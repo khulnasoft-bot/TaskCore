@@ -361,7 +361,7 @@ async function enqueueSafeNativeChatProgress(
             and(
               eq(chatEndpoints.companyId, chatConversations.companyId),
               eq(chatEndpoints.id, chatConversations.endpointId),
-          eq(chatEndpoints.publicationMode, "automatic"),
+              eq(chatEndpoints.publicationMode, "automatic"),
               eq(chatEndpoints.assignedAgentId, row.agentId),
             ),
           )

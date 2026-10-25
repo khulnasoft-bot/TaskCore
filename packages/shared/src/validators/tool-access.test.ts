@@ -22,7 +22,9 @@ describe("tool access validators", () => {
   });
 
   it("defaults connection token subjects to app", () => {
-    expect(connectionTokenRequestSchema.parse({})).toEqual({ subject: { type: "app" } });
+    expect(connectionTokenRequestSchema.parse({})).toEqual({
+      subject: { type: "app" },
+    });
   });
 
   it("accepts user subjects, grant selection, and authorization input", () => {
@@ -31,7 +33,12 @@ describe("tool access validators", () => {
       grantId: "11111111-1111-4111-8111-111111111111",
     });
     expect(request.subject).toEqual({ type: "user", userId: "user-123" });
-    expect(startConnectionAuthorizationSchema.parse({ subjectUserId: "user-123", scopes: ["read"] })).toEqual({
+    expect(
+      startConnectionAuthorizationSchema.parse({
+        subjectUserId: "user-123",
+        scopes: ["read"],
+      }),
+    ).toEqual({
       subjectUserId: "user-123",
       scopes: ["read"],
     });
@@ -61,34 +68,48 @@ describe("tool access validators", () => {
   });
 
   it("keeps app method configuration separate from secrets", () => {
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "posthog",
-      connectionMethodKey: "mcp-api-key",
-      configValues: { projectId: "12345", readOnly: true, features: "insights" },
-    }).success).toBe(true);
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "posthog",
-      configValues: { projectId: "12345", apiKey: "phx_raw" },
-    }).success).toBe(false);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "posthog",
+        connectionMethodKey: "mcp-api-key",
+        configValues: {
+          projectId: "12345",
+          readOnly: true,
+          features: "insights",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "posthog",
+        configValues: { projectId: "12345", apiKey: "phx_raw" },
+      }).success,
+    ).toBe(false);
   });
 
   it("accepts only UUID connection request links during app setup", () => {
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "posthog",
-      interactionId: "11111111-1111-4111-8111-111111111111",
-    }).success).toBe(true);
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "posthog",
-      interactionId: "not-an-interaction",
-    }).success).toBe(false);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "posthog",
+        interactionId: "11111111-1111-4111-8111-111111111111",
+      }).success,
+    ).toBe(true);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "posthog",
+        interactionId: "not-an-interaction",
+      }).success,
+    ).toBe(false);
   });
 
   it("accepts a curated provider-generated URL while still requiring a source", () => {
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "zapier",
-      connectionMethodKey: "generated-url",
-      link: "https://mcp.zapier.com/api/v1/connect?token=secret-token",
-    }).success).toBe(true);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "zapier",
+        connectionMethodKey: "generated-url",
+        link: "https://mcp.zapier.com/api/v1/connect?token=secret-token",
+      }).success,
+    ).toBe(true);
     expect(connectToolAppSchema.safeParse({}).success).toBe(false);
   });
 
@@ -112,14 +133,24 @@ describe("tool access validators", () => {
     });
     expect(manualClient.success).toBe(true);
 
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "asana",
-      oauthClient: { clientId: "customer-client", clientSecret: "customer-secret" },
-    }).success).toBe(true);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "asana",
+        oauthClient: {
+          clientId: "customer-client",
+          clientSecret: "customer-secret",
+        },
+      }).success,
+    ).toBe(true);
   });
 
   it("rejects header credentials Taskcore refuses to send", () => {
-    for (const configPath of ["headers.Host", "headers.Cookie", "headers.Transfer-Encoding", "headers.Sec-Fetch-Mode"]) {
+    for (const configPath of [
+      "headers.Host",
+      "headers.Cookie",
+      "headers.Transfer-Encoding",
+      "headers.Sec-Fetch-Mode",
+    ]) {
       const parsed = connectToolAppSchema.safeParse({
         link: "https://mcp.example.test/mcp",
         credentialValues: { [configPath]: "value" },
@@ -149,26 +180,34 @@ describe("tool access validators", () => {
   });
 
   it("keeps generic auth-mode selection off curated apps while allowing owned OAuth clients", () => {
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "posthog",
-      authMode: "bearer",
-    }).success).toBe(false);
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "posthog",
-      oauthClient: { clientId: "client-abc" },
-    }).success).toBe(true);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "posthog",
+        authMode: "bearer",
+      }).success,
+    ).toBe(false);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "posthog",
+        oauthClient: { clientId: "client-abc" },
+      }).success,
+    ).toBe(true);
   });
 
   it("allows only curated app setup to resume an exact draft", () => {
     const resumeConnectionId = "11111111-1111-4111-8111-111111111111";
-    expect(connectToolAppSchema.safeParse({
-      galleryKey: "notion",
-      resumeConnectionId,
-    }).success).toBe(true);
-    expect(connectToolAppSchema.safeParse({
-      link: "https://mcp.example.test/mcp",
-      resumeConnectionId,
-    }).success).toBe(false);
+    expect(
+      connectToolAppSchema.safeParse({
+        galleryKey: "notion",
+        resumeConnectionId,
+      }).success,
+    ).toBe(true);
+    expect(
+      connectToolAppSchema.safeParse({
+        link: "https://mcp.example.test/mcp",
+        resumeConnectionId,
+      }).success,
+    ).toBe(false);
   });
 
   it("accepts secret references for connection credentials", () => {
@@ -196,6 +235,9 @@ describe("tool access validators", () => {
       redactedFields: ["headers.Authorization", "body.token"],
     });
 
-    expect(parsed.redactedFields).toEqual(["headers.Authorization", "body.token"]);
+    expect(parsed.redactedFields).toEqual([
+      "headers.Authorization",
+      "body.token",
+    ]);
   });
 });

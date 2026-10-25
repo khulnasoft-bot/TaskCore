@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { act, forwardRef, useImperativeHandle, useRef, type ReactNode } from "react";
+import {
+  act,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  type ReactNode,
+} from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -34,7 +40,9 @@ import { InlineEditor, queueContainedBlurCommit } from "./InlineEditor";
 
 /** Enter multiline edit mode by clicking the preview surface. */
 function enterMultilineEdit(container: HTMLDivElement) {
-  const preview = container.querySelector<HTMLDivElement>('[data-testid="multiline-md-preview"]');
+  const preview = container.querySelector<HTMLDivElement>(
+    '[data-testid="multiline-md-preview"]',
+  );
   if (preview) {
     preview.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   }
@@ -45,11 +53,17 @@ function enterMultilineEdit(container: HTMLDivElement) {
 
 /** Lets React detect a DOM value change on controlled textareas (see React #10140). */
 function setNativeTextareaValue(textarea: HTMLTextAreaElement, value: string) {
-  const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    window.HTMLTextAreaElement.prototype,
+    "value",
+  )?.set;
   const previous = textarea.value;
   valueSetter?.call(textarea, value);
-  const tracker = (textarea as HTMLTextAreaElement & { _valueTracker?: { setValue: (v: string) => void } })
-    ._valueTracker;
+  const tracker = (
+    textarea as HTMLTextAreaElement & {
+      _valueTracker?: { setValue: (v: string) => void };
+    }
+  )._valueTracker;
   tracker?.setValue(previous);
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
@@ -150,7 +164,9 @@ describe("InlineEditor", () => {
     document.body.appendChild(outside);
 
     act(() => {
-      root.render(<InlineEditor value="hello" multiline nullable onSave={onSave} />);
+      root.render(
+        <InlineEditor value="hello" multiline nullable onSave={onSave} />,
+      );
     });
 
     // Non-empty value renders MarkdownBody preview; click to enter edit mode.
@@ -158,7 +174,9 @@ describe("InlineEditor", () => {
       enterMultilineEdit(container);
     });
 
-    const textarea = container.querySelector<HTMLTextAreaElement>('[data-testid="multiline-md-mock"]');
+    const textarea = container.querySelector<HTMLTextAreaElement>(
+      '[data-testid="multiline-md-mock"]',
+    );
     expect(textarea).not.toBeNull();
 
     act(() => {
@@ -189,18 +207,28 @@ describe("InlineEditor", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(<InlineEditor value="Hello world" multiline onSave={onSave} />);
+      root.render(
+        <InlineEditor value="Hello world" multiline onSave={onSave} />,
+      );
     });
 
-    expect(container.querySelector('[data-testid="multiline-md-preview"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="multiline-md-mock"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="multiline-md-preview"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="multiline-md-mock"]'),
+    ).toBeNull();
 
     act(() => {
       enterMultilineEdit(container);
     });
 
-    expect(container.querySelector('[data-testid="multiline-md-mock"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="multiline-md-preview"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="multiline-md-mock"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="multiline-md-preview"]'),
+    ).toBeNull();
 
     act(() => {
       root.unmount();
@@ -212,7 +240,9 @@ describe("InlineEditor", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(<InlineEditor value="Hello world" multiline onSave={onSave} />);
+      root.render(
+        <InlineEditor value="Hello world" multiline onSave={onSave} />,
+      );
     });
 
     const preview = container.querySelector<HTMLElement>('[role="textbox"]');
@@ -230,18 +260,26 @@ describe("InlineEditor", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(<InlineEditor value="Hello world" multiline onSave={onSave} />);
+      root.render(
+        <InlineEditor value="Hello world" multiline onSave={onSave} />,
+      );
     });
 
     const preview = container.querySelector<HTMLElement>('[role="textbox"]');
     expect(preview).not.toBeNull();
 
     act(() => {
-      preview!.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
+      preview!.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+      );
     });
 
-    expect(container.querySelector('[data-testid="multiline-md-mock"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="multiline-md-preview"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="multiline-md-mock"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="multiline-md-preview"]'),
+    ).toBeNull();
 
     act(() => {
       root.unmount();
@@ -256,7 +294,9 @@ describe("InlineEditor", () => {
       root.render(<InlineEditor value="" multiline onSave={onSave} />);
     });
 
-    const textarea = container.querySelector<HTMLTextAreaElement>('[data-testid="multiline-md-mock"]');
+    const textarea = container.querySelector<HTMLTextAreaElement>(
+      '[data-testid="multiline-md-mock"]',
+    );
     expect(textarea).not.toBeNull();
     expect(textarea?.value).toBe("");
 
@@ -265,7 +305,9 @@ describe("InlineEditor", () => {
     });
 
     act(() => {
-      root.render(<InlineEditor value="Loaded description" multiline onSave={onSave} />);
+      root.render(
+        <InlineEditor value="Loaded description" multiline onSave={onSave} />,
+      );
     });
 
     expect(textarea?.value).toBe("Loaded description");
@@ -288,7 +330,9 @@ describe("InlineEditor", () => {
       enterMultilineEdit(container);
     });
 
-    const textarea = container.querySelector<HTMLTextAreaElement>('[data-testid="multiline-md-mock"]');
+    const textarea = container.querySelector<HTMLTextAreaElement>(
+      '[data-testid="multiline-md-mock"]',
+    );
     expect(textarea).not.toBeNull();
 
     act(() => {
@@ -299,7 +343,9 @@ describe("InlineEditor", () => {
     });
 
     act(() => {
-      root.render(<InlineEditor value="Remote update" multiline onSave={onSave} />);
+      root.render(
+        <InlineEditor value="Remote update" multiline onSave={onSave} />,
+      );
     });
 
     expect(textarea?.value).toBe("Local draft");
@@ -322,8 +368,12 @@ describe("queueContainedBlurCommit", () => {
     originalRequestAnimationFrame = window.requestAnimationFrame;
     originalCancelAnimationFrame = window.cancelAnimationFrame;
     window.requestAnimationFrame = ((callback: FrameRequestCallback) =>
-      window.setTimeout(() => callback(performance.now()), 0)) as typeof window.requestAnimationFrame;
-    window.cancelAnimationFrame = ((id: number) => window.clearTimeout(id)) as typeof window.cancelAnimationFrame;
+      window.setTimeout(
+        () => callback(performance.now()),
+        0,
+      )) as typeof window.requestAnimationFrame;
+    window.cancelAnimationFrame = ((id: number) =>
+      window.clearTimeout(id)) as typeof window.cancelAnimationFrame;
 
     container = document.createElement("div");
     inside = document.createElement("textarea");

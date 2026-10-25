@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../errors.js";
-import { normalizeEnvironmentConfig, parseEnvironmentDriverConfig } from "../services/environment-config.ts";
+import {
+  normalizeEnvironmentConfig,
+  parseEnvironmentDriverConfig,
+} from "../services/environment-config.ts";
 
 describe("environment config helpers", () => {
   it("normalizes SSH config into its canonical stored shape", () => {
@@ -157,7 +160,10 @@ describe("environment config helpers", () => {
     });
 
     expect(config).not.toHaveProperty("streamAgentSessionOutput");
-    expect(config).toMatchObject({ provider: "fake-plugin", image: "fake:test" });
+    expect(config).toMatchObject({
+      provider: "fake-plugin",
+      image: "fake:test",
+    });
   });
 
   it("parses a persisted sandbox environment into a typed driver config", () => {

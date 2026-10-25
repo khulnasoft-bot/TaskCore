@@ -102,7 +102,9 @@ function mapDocument(row: typeof documents.$inferSelect): SummarySlotDocument {
   };
 }
 
-function mapRevision(row: typeof documentRevisions.$inferSelect): SummarySlotRevision {
+function mapRevision(
+  row: typeof documentRevisions.$inferSelect,
+): SummarySlotRevision {
   return {
     id: row.id,
     companyId: row.companyId,
@@ -166,7 +168,12 @@ export function summarySlotService(db: Db) {
       const row = await db
         .select({ id: projects.id })
         .from(projects)
-        .where(and(eq(projects.id, sel.scopeId), eq(projects.companyId, sel.companyId)))
+        .where(
+          and(
+            eq(projects.id, sel.scopeId),
+            eq(projects.companyId, sel.companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       if (!row) throw notFound("Summary target not found");
       return;
@@ -175,7 +182,12 @@ export function summarySlotService(db: Db) {
       const row = await db
         .select({ id: projectWorkspaces.id })
         .from(projectWorkspaces)
-        .where(and(eq(projectWorkspaces.id, sel.scopeId), eq(projectWorkspaces.companyId, sel.companyId)))
+        .where(
+          and(
+            eq(projectWorkspaces.id, sel.scopeId),
+            eq(projectWorkspaces.companyId, sel.companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       if (!row) throw notFound("Summary target not found");
       return;
@@ -184,7 +196,12 @@ export function summarySlotService(db: Db) {
       const row = await db
         .select({ id: executionWorkspaces.id })
         .from(executionWorkspaces)
-        .where(and(eq(executionWorkspaces.id, sel.scopeId), eq(executionWorkspaces.companyId, sel.companyId)))
+        .where(
+          and(
+            eq(executionWorkspaces.id, sel.scopeId),
+            eq(executionWorkspaces.companyId, sel.companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       if (!row) throw notFound("Summary target not found");
     }
@@ -199,7 +216,9 @@ export function summarySlotService(db: Db) {
           eq(summarySlots.companyId, sel.companyId),
           eq(summarySlots.scopeKind, sel.scopeKind),
           eq(summarySlots.slotKey, sel.slotKey),
-          sel.scopeId === null ? isNull(summarySlots.scopeId) : eq(summarySlots.scopeId, sel.scopeId),
+          sel.scopeId === null
+            ? isNull(summarySlots.scopeId)
+            : eq(summarySlots.scopeId, sel.scopeId),
         ),
       )
       .then((rows) => rows[0] ?? null);
@@ -210,11 +229,16 @@ export function summarySlotService(db: Db) {
     return db
       .select()
       .from(documents)
-      .where(and(eq(documents.id, documentId), eq(documents.companyId, companyId)))
+      .where(
+        and(eq(documents.id, documentId), eq(documents.companyId, companyId)),
+      )
       .then((rows) => rows[0] ?? null);
   }
 
-  async function loadIssueRef(companyId: string, issueId: string | null): Promise<{
+  async function loadIssueRef(
+    companyId: string,
+    issueId: string | null,
+  ): Promise<{
     ref: SummarySlotIssueRef | null;
     row: typeof issues.$inferSelect | null;
   }> {
@@ -241,7 +265,9 @@ export function summarySlotService(db: Db) {
     return !!row && !TERMINAL_ISSUE_STATUSES.has(row.status as IssueStatus);
   }
 
-  async function getSlot(input: SummarySlotSelectorInput): Promise<GetSummarySlotResponse> {
+  async function getSlot(
+    input: SummarySlotSelectorInput,
+  ): Promise<GetSummarySlotResponse> {
     const sel = resolveSelector(input);
     await assertTargetVisible(sel);
     const slotRow = await findSlotRow(sel);
@@ -257,7 +283,9 @@ export function summarySlotService(db: Db) {
     };
   }
 
-  async function listRevisions(input: SummarySlotSelectorInput): Promise<ListSummarySlotRevisionsResponse> {
+  async function listRevisions(
+    input: SummarySlotSelectorInput,
+  ): Promise<ListSummarySlotRevisionsResponse> {
     const sel = resolveSelector(input);
     await assertTargetVisible(sel);
     const slotRow = await findSlotRow(sel);
@@ -308,19 +336,30 @@ export function summarySlotService(db: Db) {
     return slot;
   }
 
-  async function resolveGenerationTargetProject(sel: ResolvedSelector): Promise<{
+  async function resolveGenerationTargetProject(
+    sel: ResolvedSelector,
+  ): Promise<{
     projectId: string | null;
     projectWorkspaceId: string | null;
     executionWorkspaceId: string | null;
   }> {
     if (sel.scopeKind === "project") {
-      return { projectId: sel.scopeId, projectWorkspaceId: null, executionWorkspaceId: null };
+      return {
+        projectId: sel.scopeId,
+        projectWorkspaceId: null,
+        executionWorkspaceId: null,
+      };
     }
     if (sel.scopeKind === "project_workspace" && sel.scopeId) {
       const row = await db
         .select({ projectId: projectWorkspaces.projectId })
         .from(projectWorkspaces)
-        .where(and(eq(projectWorkspaces.id, sel.scopeId), eq(projectWorkspaces.companyId, sel.companyId)))
+        .where(
+          and(
+            eq(projectWorkspaces.id, sel.scopeId),
+            eq(projectWorkspaces.companyId, sel.companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       return {
         projectId: row?.projectId ?? null,
@@ -335,7 +374,12 @@ export function summarySlotService(db: Db) {
           projectWorkspaceId: executionWorkspaces.projectWorkspaceId,
         })
         .from(executionWorkspaces)
-        .where(and(eq(executionWorkspaces.id, sel.scopeId), eq(executionWorkspaces.companyId, sel.companyId)))
+        .where(
+          and(
+            eq(executionWorkspaces.id, sel.scopeId),
+            eq(executionWorkspaces.companyId, sel.companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       return {
         projectId: row?.projectId ?? null,
@@ -343,24 +387,35 @@ export function summarySlotService(db: Db) {
         executionWorkspaceId: sel.scopeId,
       };
     }
-    return { projectId: null, projectWorkspaceId: null, executionWorkspaceId: null };
+    return {
+      projectId: null,
+      projectWorkspaceId: null,
+      executionWorkspaceId: null,
+    };
   }
 
   function scopeIssueConditions(sel: ResolvedSelector) {
-    if (sel.scopeKind === "project") return [eq(issues.projectId, sel.scopeId!)];
-    if (sel.scopeKind === "project_workspace") return [eq(issues.projectWorkspaceId, sel.scopeId!)];
-    if (sel.scopeKind === "execution_workspace") return [eq(issues.executionWorkspaceId, sel.scopeId!)];
+    if (sel.scopeKind === "project")
+      return [eq(issues.projectId, sel.scopeId!)];
+    if (sel.scopeKind === "project_workspace")
+      return [eq(issues.projectWorkspaceId, sel.scopeId!)];
+    if (sel.scopeKind === "execution_workspace")
+      return [eq(issues.executionWorkspaceId, sel.scopeId!)];
     return [];
   }
 
-  async function buildScopeSnapshot(sel: ResolvedSelector, previousGeneratedAt: Date | null): Promise<string> {
+  async function buildScopeSnapshot(
+    sel: ResolvedSelector,
+    previousGeneratedAt: Date | null,
+  ): Promise<string> {
     const commonConditions = [
       eq(issues.companyId, sel.companyId),
       isNull(issues.hiddenAt),
       ...scopeIssueConditions(sel),
     ];
-    const recentlyDoneSince = previousGeneratedAt
-      ?? new Date(Date.now() - SUMMARY_SNAPSHOT_INITIAL_LOOKBACK_MS);
+    const recentlyDoneSince =
+      previousGeneratedAt ??
+      new Date(Date.now() - SUMMARY_SNAPSHOT_INITIAL_LOOKBACK_MS);
     const selectFields = {
       identifier: issues.identifier,
       title: issues.title,
@@ -370,27 +425,41 @@ export function summarySlotService(db: Db) {
     };
 
     const [blocked, inReview, inProgress, recentlyDone] = await Promise.all([
-      db.select(selectFields).from(issues)
+      db
+        .select(selectFields)
+        .from(issues)
         .where(and(...commonConditions, eq(issues.status, "blocked")))
-        .orderBy(desc(issues.updatedAt)).limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
-      db.select(selectFields).from(issues)
+        .orderBy(desc(issues.updatedAt))
+        .limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
+      db
+        .select(selectFields)
+        .from(issues)
         .where(and(...commonConditions, eq(issues.status, "in_review")))
-        .orderBy(desc(issues.updatedAt)).limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
-      db.select(selectFields).from(issues)
+        .orderBy(desc(issues.updatedAt))
+        .limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
+      db
+        .select(selectFields)
+        .from(issues)
         .where(and(...commonConditions, eq(issues.status, "in_progress")))
-        .orderBy(desc(issues.updatedAt)).limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
-      db.select(selectFields).from(issues)
-        .where(and(
-          ...commonConditions,
-          inArray(issues.status, ["done"]),
-          gte(issues.updatedAt, recentlyDoneSince),
-        ))
-        .orderBy(desc(issues.updatedAt)).limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
+        .orderBy(desc(issues.updatedAt))
+        .limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
+      db
+        .select(selectFields)
+        .from(issues)
+        .where(
+          and(
+            ...commonConditions,
+            inArray(issues.status, ["done"]),
+            gte(issues.updatedAt, recentlyDoneSince),
+          ),
+        )
+        .orderBy(desc(issues.updatedAt))
+        .limit(SUMMARY_SNAPSHOT_GROUP_LIMIT),
     ]);
 
     const formatGroup = (
       heading: string,
-      rows: Array<typeof blocked[number]>,
+      rows: Array<(typeof blocked)[number]>,
     ) => [
       `### ${heading}`,
       ...(rows.length > 0
@@ -426,9 +495,13 @@ export function summarySlotService(db: Db) {
     scopeSnapshot: string,
     generationIssueId: string | null = null,
   ): string {
-    const target = sel.scopeId ? `\`${sel.scopeId}\`` : "the workspaces overview";
+    const target = sel.scopeId
+      ? `\`${sel.scopeId}\``
+      : "the workspaces overview";
     const summarySlotPath = `/api/companies/${encodeURIComponent(sel.companyId)}/summary-slots/${encodeURIComponent(sel.scopeKind)}/${encodeURIComponent(sel.slotKey)}`;
-    const scopeQuery = sel.scopeId ? `?scopeId=${encodeURIComponent(sel.scopeId)}` : "";
+    const scopeQuery = sel.scopeId
+      ? `?scopeId=${encodeURIComponent(sel.scopeId)}`
+      : "";
     return [
       `Generate the ${scopeLabel(sel.scopeKind)} summary for ${target}.`,
       "",
@@ -463,8 +536,14 @@ export function summarySlotService(db: Db) {
     ].join("\n");
   }
 
-  function generationIssueTitle(sel: ResolvedSelector, createdAt = new Date()): string {
-    const timestamp = createdAt.toISOString().replace("T", " ").replace(/:\d{2}\.\d{3}Z$/, " UTC");
+  function generationIssueTitle(
+    sel: ResolvedSelector,
+    createdAt = new Date(),
+  ): string {
+    const timestamp = createdAt
+      .toISOString()
+      .replace("T", " ")
+      .replace(/:\d{2}\.\d{3}Z$/, " UTC");
     return `Summarize ${scopeLabel(sel.scopeKind)} on ${timestamp}`;
   }
 
@@ -486,8 +565,15 @@ export function summarySlotService(db: Db) {
 
     // Dedupe: if a generation is already active, return the in-flight state.
     const existing = await findSlotRow(sel);
-    if (existing && existing.status === "generating" && existing.generatingIssueId) {
-      const active = await loadIssueRef(sel.companyId, existing.generatingIssueId);
+    if (
+      existing &&
+      existing.status === "generating" &&
+      existing.generatingIssueId
+    ) {
+      const active = await loadIssueRef(
+        sel.companyId,
+        existing.generatingIssueId,
+      );
       if (isIssueActive(active.row)) {
         return {
           slot: mapSlot(existing),
@@ -497,10 +583,17 @@ export function summarySlotService(db: Db) {
       }
     }
 
-    const { projectId, projectWorkspaceId, executionWorkspaceId } = await resolveGenerationTargetProject(sel);
-    const scopeSnapshot = await buildScopeSnapshot(sel, existing?.lastGeneratedAt ?? null);
+    const { projectId, projectWorkspaceId, executionWorkspaceId } =
+      await resolveGenerationTargetProject(sel);
+    const scopeSnapshot = await buildScopeSnapshot(
+      sel,
+      existing?.lastGeneratedAt ?? null,
+    );
     const createdAt = new Date();
-    const generationVersion = existing?.generatingIssueId ?? existing?.updatedAt.toISOString() ?? "initial";
+    const generationVersion =
+      existing?.generatingIssueId ??
+      existing?.updatedAt.toISOString() ??
+      "initial";
     let issueDeduplicated = false;
     const created = await issuesSvc.create(sel.companyId, {
       projectId,
@@ -525,11 +618,10 @@ export function summarySlotService(db: Db) {
         issueDeduplicated = reason === "idempotency_key";
       },
     });
-    const generationIssue = (
-      await issuesSvc.update(created.id, {
+    const generationIssue =
+      (await issuesSvc.update(created.id, {
         description: generationIssueDescription(sel, scopeSnapshot, created.id),
-      })
-    ) ?? created;
+      })) ?? created;
 
     const slotRow = await upsertSlot(sel, {
       status: "generating",
@@ -571,19 +663,30 @@ export function summarySlotService(db: Db) {
     // The write must originate from the linked, in-flight generation task.
     const generationIssueId = input.generationIssueId ?? null;
     if (!generationIssueId) {
-      throw forbidden("Summary writes must identify the active generation task");
+      throw forbidden(
+        "Summary writes must identify the active generation task",
+      );
     }
-    if (!slotRow?.generatingIssueId || slotRow.generatingIssueId !== generationIssueId) {
-      throw forbidden("Summary write does not match the active generation task");
+    if (
+      !slotRow?.generatingIssueId ||
+      slotRow.generatingIssueId !== generationIssueId
+    ) {
+      throw forbidden(
+        "Summary write does not match the active generation task",
+      );
     }
     const issueRef = await loadIssueRef(sel.companyId, generationIssueId);
     if (!issueRef.row) {
       throw forbidden("Linked generation task not found");
     }
-    const payloadMatch = issueRef.row.description?.match(/```json\n([\s\S]*?)\n```/);
+    const payloadMatch = issueRef.row.description?.match(
+      /```json\n([\s\S]*?)\n```/,
+    );
     let payload: Record<string, unknown> | null = null;
     try {
-      payload = payloadMatch ? (JSON.parse(payloadMatch[1]) as Record<string, unknown>) : null;
+      payload = payloadMatch
+        ? (JSON.parse(payloadMatch[1]) as Record<string, unknown>)
+        : null;
     } catch {
       payload = null;
     }
@@ -600,7 +703,9 @@ export function summarySlotService(db: Db) {
     }
     const runId = actor.runId ?? null;
     const runMatches =
-      !!runId && (issueRef.row.checkoutRunId === runId || issueRef.row.executionRunId === runId);
+      !!runId &&
+      (issueRef.row.checkoutRunId === runId ||
+        issueRef.row.executionRunId === runId);
     if (!runMatches) {
       throw forbidden("Summary write must run from the linked generation task");
     }
@@ -631,7 +736,10 @@ export function summarySlotService(db: Db) {
             .where(eq(summarySlots.id, slotRow.id))
             .then((rows) => rows[0] ?? null)
         : null;
-      if (!currentSlot || currentSlot.generatingIssueId !== input.generationIssueId) {
+      if (
+        !currentSlot ||
+        currentSlot.generatingIssueId !== input.generationIssueId
+      ) {
         throw conflict("Summary generation was superseded by a newer task");
       }
 
@@ -642,12 +750,20 @@ export function summarySlotService(db: Db) {
         ? await tx
             .select()
             .from(documents)
-            .where(and(eq(documents.id, currentSlot.documentId), eq(documents.companyId, sel.companyId)))
+            .where(
+              and(
+                eq(documents.id, currentSlot.documentId),
+                eq(documents.companyId, sel.companyId),
+              ),
+            )
             .then((rows) => rows[0] ?? null)
         : null;
 
       if (existingDocument) {
-        if (input.baseRevisionId && input.baseRevisionId !== existingDocument.latestRevisionId) {
+        if (
+          input.baseRevisionId &&
+          input.baseRevisionId !== existingDocument.latestRevisionId
+        ) {
           throw conflict("Summary was updated by someone else", {
             currentRevisionId: existingDocument.latestRevisionId,
           });

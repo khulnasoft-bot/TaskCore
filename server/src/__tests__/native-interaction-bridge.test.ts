@@ -27,7 +27,9 @@ import { TaskcoreControlPlanePort } from "../services/native-runtime/taskcore-co
 import { finalizeNativeRun } from "../services/native-runtime/native-run-finalizer.js";
 
 describe("P6-19 native interaction bridge", () => {
-  let temporary: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let temporary: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let db: ReturnType<typeof createDb>;
   const companyId = "78000000-0000-4000-8000-000000000001";
   const agentId = "78000000-0000-4000-8000-000000000002";
@@ -42,9 +44,17 @@ describe("P6-19 native interaction bridge", () => {
   const itemVerdictsId = "78000000-0000-4000-8000-000000000014";
 
   beforeAll(async () => {
-    temporary = await startEmbeddedPostgresTestDatabase("taskcore-native-interaction-");
+    temporary = await startEmbeddedPostgresTestDatabase(
+      "taskcore-native-interaction-",
+    );
     db = createDb(temporary.connectionString);
-    await db.insert(companies).values({ id: companyId, name: "Native interaction", issuePrefix: "NIB" });
+    await db
+      .insert(companies)
+      .values({
+        id: companyId,
+        name: "Native interaction",
+        issuePrefix: "NIB",
+      });
     await db.insert(agents).values({
       id: agentId,
       companyId,
@@ -89,14 +99,19 @@ describe("P6-19 native interaction bridge", () => {
         resolvedAt: new Date(),
         payload: {
           version: 1,
-          questions: [{
-            id: "choice",
-            prompt: "Which path?",
-            selectionMode: "single",
-            options: [{ id: "safe", label: "Safe" }],
-          }],
+          questions: [
+            {
+              id: "choice",
+              prompt: "Which path?",
+              selectionMode: "single",
+              options: [{ id: "safe", label: "Safe" }],
+            },
+          ],
         },
-        result: { version: 1, answers: [{ questionId: "choice", optionIds: ["safe"] }] },
+        result: {
+          version: 1,
+          answers: [{ questionId: "choice", optionIds: ["safe"] }],
+        },
       },
       {
         id: governedId,
@@ -154,7 +169,12 @@ describe("P6-19 native interaction bridge", () => {
         },
         result: {
           version: 1,
-          createdTasks: [{ clientKey: "calculator", issueId: "78000000-0000-4000-8000-000000000015" }],
+          createdTasks: [
+            {
+              clientKey: "calculator",
+              issueId: "78000000-0000-4000-8000-000000000015",
+            },
+          ],
           skippedClientKeys: [],
         },
       },
@@ -171,7 +191,11 @@ describe("P6-19 native interaction bridge", () => {
           prompt: "Choose outputs",
           options: [{ id: "guide", label: "Guide" }],
         },
-        result: { version: 1, outcome: "accepted", selectedOptionIds: ["guide"] },
+        result: {
+          version: 1,
+          outcome: "accepted",
+          selectedOptionIds: ["guide"],
+        },
       },
       {
         id: itemVerdictsId,
@@ -191,12 +215,14 @@ describe("P6-19 native interaction bridge", () => {
           version: 1,
           outcome: "resolved",
           complete: false,
-          items: [{
-            id: "one",
-            verdict: "approve",
-            resolvedByUserId: "board-user",
-            resolvedAt: new Date().toISOString(),
-          }],
+          items: [
+            {
+              id: "one",
+              verdict: "approve",
+              resolvedByUserId: "board-user",
+              resolvedAt: new Date().toISOString(),
+            },
+          ],
         },
       },
     ]);
@@ -205,18 +231,29 @@ describe("P6-19 native interaction bridge", () => {
   afterAll(async () => temporary?.cleanup());
 
   it("projects supported typed responses through the authorized interaction service", async () => {
-    await expect(materializeNativeInteractionResponses({
-      db,
-      companyId,
-      issueId,
-      runId,
-      agentId,
-      interactionIds: [questionsId, confirmationId, suggestedTasksId, checkboxId, itemVerdictsId],
-    })).resolves.toEqual([
+    await expect(
+      materializeNativeInteractionResponses({
+        db,
+        companyId,
+        issueId,
+        runId,
+        agentId,
+        interactionIds: [
+          questionsId,
+          confirmationId,
+          suggestedTasksId,
+          checkboxId,
+          itemVerdictsId,
+        ],
+      }),
+    ).resolves.toEqual([
       {
         interactionId: confirmationId,
         kind: "request_confirmation",
-        response: { status: "accepted", result: { version: 1, outcome: "accepted" } },
+        response: {
+          status: "accepted",
+          result: { version: 1, outcome: "accepted" },
+        },
       },
       {
         interactionId: questionsId,
@@ -240,7 +277,12 @@ describe("P6-19 native interaction bridge", () => {
           status: "accepted",
           result: {
             version: 1,
-            createdTasks: [{ clientKey: "calculator", issueId: "78000000-0000-4000-8000-000000000015" }],
+            createdTasks: [
+              {
+                clientKey: "calculator",
+                issueId: "78000000-0000-4000-8000-000000000015",
+              },
+            ],
             skippedClientKeys: [],
           },
         },
@@ -250,7 +292,11 @@ describe("P6-19 native interaction bridge", () => {
         kind: "request_checkbox_confirmation",
         response: {
           status: "accepted",
-          result: { version: 1, outcome: "accepted", selectedOptionIds: ["guide"] },
+          result: {
+            version: 1,
+            outcome: "accepted",
+            selectedOptionIds: ["guide"],
+          },
         },
       },
       {
@@ -262,12 +308,14 @@ describe("P6-19 native interaction bridge", () => {
             version: 1,
             outcome: "resolved",
             complete: false,
-            items: [{
-              id: "one",
-              verdict: "approve",
-              resolvedByUserId: "board-user",
-              resolvedAt: expect.any(String),
-            }],
+            items: [
+              {
+                id: "one",
+                verdict: "approve",
+                resolvedByUserId: "board-user",
+                resolvedAt: expect.any(String),
+              },
+            ],
           },
         },
       },
@@ -275,14 +323,16 @@ describe("P6-19 native interaction bridge", () => {
   });
 
   it("projects answered questions for legacy adapter wake prompts", async () => {
-    await expect(materializeLegacyQuestionResponseWakeProjection({
-      db,
-      companyId,
-      issueId,
-      runId,
-      agentId,
-      interactionId: questionsId,
-    })).resolves.toEqual({
+    await expect(
+      materializeLegacyQuestionResponseWakeProjection({
+        db,
+        companyId,
+        issueId,
+        runId,
+        agentId,
+        interactionId: questionsId,
+      }),
+    ).resolves.toEqual({
       interactionId: questionsId,
       summaryMarkdown: [
         "Resolved questions and answers:",
@@ -294,24 +344,33 @@ describe("P6-19 native interaction bridge", () => {
   it.each([
     [governedId, "native_interaction_governed_request_unresolved"],
     [selfApprovedId, "native_interaction_self_approval"],
-  ])("fails closed for governed or self-approved interaction %s", async (interactionId, code) => {
-    const error = await materializeNativeInteractionResponses({
-      db,
-      companyId,
-      issueId,
-      runId,
-      agentId,
-      interactionIds: [interactionId],
-    }).catch((caught) => caught);
-    expect(error).toBeInstanceOf(NativeInteractionBridgeError);
-    expect(error).toMatchObject({ code });
-  });
+  ])(
+    "fails closed for governed or self-approved interaction %s",
+    async (interactionId, code) => {
+      const error = await materializeNativeInteractionResponses({
+        db,
+        companyId,
+        issueId,
+        runId,
+        agentId,
+        interactionIds: [interactionId],
+      }).catch((caught) => caught);
+      expect(error).toBeInstanceOf(NativeInteractionBridgeError);
+      expect(error).toMatchObject({ code });
+    },
+  );
 
   it("routes accepted package-result attention through live issue and interaction owners", async () => {
     const delegateId = "78000000-0000-4000-8000-000000000020";
     const outsideCompanyId = "78000000-0000-4000-8000-000000000021";
     const outsideAgentId = "78000000-0000-4000-8000-000000000022";
-    await db.insert(companies).values({ id: outsideCompanyId, name: "Outside attention", issuePrefix: "NIO" });
+    await db
+      .insert(companies)
+      .values({
+        id: outsideCompanyId,
+        name: "Outside attention",
+        issuePrefix: "NIO",
+      });
     await db.insert(agents).values([
       {
         id: delegateId,
@@ -367,7 +426,11 @@ describe("P6-19 native interaction bridge", () => {
           id: "attention-cross-company",
           requestedCapability: "domain_expertise",
           summary: "Reject an outside-company native delegate",
-          target: { ownerClass: "agent", agentId: outsideAgentId, companyId: outsideCompanyId },
+          target: {
+            ownerClass: "agent",
+            agentId: outsideAgentId,
+            companyId: outsideCompanyId,
+          },
         },
       },
     ];
@@ -392,7 +455,11 @@ describe("P6-19 native interaction bridge", () => {
         risk: "standard",
         completionAuthority: "server_arbiter",
         incompleteCriteriaPolicy: "preserve_non_terminal",
-        contractJson: { revision: "attention-v1", objective: scenario.key, criteria: [{ id: "objective" }] },
+        contractJson: {
+          revision: "attention-v1",
+          objective: scenario.key,
+          criteria: [{ id: "objective" }],
+        },
         canonicalSha256: contractSha,
         createdByActorType: "system",
         createdByActorId: "test",
@@ -432,20 +499,26 @@ describe("P6-19 native interaction bridge", () => {
           completionClaim: {
             contractRevision: "attention-v1",
             objectiveSatisfied: false,
-            criteria: [{ criterionId: "objective", status: "unknown", evidenceRefs: [] }],
-            remainingWork: [{ description: "Resolve attention", blocksCompletion: true }],
+            criteria: [
+              { criterionId: "objective", status: "unknown", evidenceRefs: [] },
+            ],
+            remainingWork: [
+              { description: "Resolve attention", blocksCompletion: true },
+            ],
           },
           evidence: [],
           verification: [{ commandOrCheck: "attention", status: "not_run" }],
           attentionRequests: [scenario.request],
           artifacts: [],
-          ...(scenario.disposition === "yielded" ? {
-            continuation: {
-              kind: "response_wake" as const,
-              summary: "Resume after attention",
-              idempotencyKey: `attention:${scenario.key}`,
-            },
-          } : {}),
+          ...(scenario.disposition === "yielded"
+            ? {
+                continuation: {
+                  kind: "response_wake" as const,
+                  summary: "Resume after attention",
+                  idempotencyKey: `attention:${scenario.key}`,
+                },
+              }
+            : {}),
         },
         terminal: {
           schema: "taskcore.prp.terminal.v1",
@@ -463,12 +536,19 @@ describe("P6-19 native interaction bridge", () => {
       });
     }
 
-    const delegated = await db.select().from(issues).where(and(
-      eq(issues.parentId, scenarios[0]!.issueId),
-      eq(issues.companyId, companyId),
-    ));
+    const delegated = await db
+      .select()
+      .from(issues)
+      .where(
+        and(
+          eq(issues.parentId, scenarios[0]!.issueId),
+          eq(issues.companyId, companyId),
+        ),
+      );
     expect(delegated).toEqual([]);
-    const agentInteractions = await db.select().from(issueThreadInteractions)
+    const agentInteractions = await db
+      .select()
+      .from(issueThreadInteractions)
       .where(eq(issueThreadInteractions.issueId, scenarios[0]!.issueId));
     expect(agentInteractions).toEqual([
       expect.objectContaining({
@@ -478,43 +558,90 @@ describe("P6-19 native interaction bridge", () => {
         addresseeAgentId: delegateId,
       }),
     ]);
-    const humanInteractions = await db.select().from(issueThreadInteractions)
+    const humanInteractions = await db
+      .select()
+      .from(issueThreadInteractions)
       .where(eq(issueThreadInteractions.issueId, scenarios[1]!.issueId));
     expect(humanInteractions).toEqual([
-      expect.objectContaining({ kind: "request_confirmation", status: "pending", sourceRunId: scenarios[1]!.runId }),
+      expect.objectContaining({
+        kind: "request_confirmation",
+        status: "pending",
+        sourceRunId: scenarios[1]!.runId,
+      }),
     ]);
-    await expect(db.select().from(issues).where(eq(issues.id, scenarios[0]!.issueId))).resolves.toEqual([
-      expect.objectContaining({ status: "in_review" }),
-    ]);
-    await expect(db.select().from(issues).where(eq(issues.id, scenarios[1]!.issueId))).resolves.toEqual([
-      expect.objectContaining({ status: "in_review" }),
-    ]);
-    await expect(db.select().from(issues).where(eq(issues.parentId, scenarios[2]!.issueId))).resolves.toHaveLength(0);
-    await expect(db.select().from(issueRecoveryActions)
-      .where(eq(issueRecoveryActions.sourceIssueId, scenarios[2]!.issueId))).resolves.toEqual([]);
-    await expect(db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, scenarios[2]!.runId))).resolves.toEqual([
-      expect.objectContaining({ status: "succeeded", nativePhase: "committed" }),
+    await expect(
+      db.select().from(issues).where(eq(issues.id, scenarios[0]!.issueId)),
+    ).resolves.toEqual([expect.objectContaining({ status: "in_review" })]);
+    await expect(
+      db.select().from(issues).where(eq(issues.id, scenarios[1]!.issueId)),
+    ).resolves.toEqual([expect.objectContaining({ status: "in_review" })]);
+    await expect(
+      db
+        .select()
+        .from(issues)
+        .where(eq(issues.parentId, scenarios[2]!.issueId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(issueRecoveryActions)
+        .where(eq(issueRecoveryActions.sourceIssueId, scenarios[2]!.issueId)),
+    ).resolves.toEqual([]);
+    await expect(
+      db
+        .select()
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, scenarios[2]!.runId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        status: "succeeded",
+        nativePhase: "committed",
+      }),
     ]);
 
     for (const scenario of scenarios) {
-      const assessments = await db.select().from(workAssessments)
+      const assessments = await db
+        .select()
+        .from(workAssessments)
         .where(eq(workAssessments.issueId, scenario.issueId));
-      expect(assessments.map((row) => row.triggerKind)).toEqual(["native_result"]);
-      const decisions = await db.select().from(statusDecisions)
+      expect(assessments.map((row) => row.triggerKind)).toEqual([
+        "native_result",
+      ]);
+      const decisions = await db
+        .select()
+        .from(statusDecisions)
         .where(eq(statusDecisions.issueId, scenario.issueId));
       expect(decisions).toHaveLength(1);
-      const effects = await db.select().from(statusDecisionEffects)
+      const effects = await db
+        .select()
+        .from(statusDecisionEffects)
         .where(eq(statusDecisionEffects.decisionId, decisions[0]!.id));
       expect(effects.length).toBeGreaterThan(0);
-      await expect(db.select().from(activityLog).where(and(
-        eq(activityLog.entityId, scenario.issueId),
-        eq(activityLog.runId, scenario.runId),
-      ))).resolves.toEqual(expect.arrayContaining([
-        expect.objectContaining({ actorId: "native-status-committer" }),
-      ]));
-      await expect(db.select().from(nativeRunFinalizations)
-        .where(eq(nativeRunFinalizations.runId, scenario.runId))).resolves.toEqual([
-        expect.objectContaining({ assessmentId: decisions[0]!.assessmentId, decisionId: decisions[0]!.id }),
+      await expect(
+        db
+          .select()
+          .from(activityLog)
+          .where(
+            and(
+              eq(activityLog.entityId, scenario.issueId),
+              eq(activityLog.runId, scenario.runId),
+            ),
+          ),
+      ).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ actorId: "native-status-committer" }),
+        ]),
+      );
+      await expect(
+        db
+          .select()
+          .from(nativeRunFinalizations)
+          .where(eq(nativeRunFinalizations.runId, scenario.runId)),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          assessmentId: decisions[0]!.assessmentId,
+          decisionId: decisions[0]!.id,
+        }),
       ]);
     }
   }, 30_000);
@@ -550,7 +677,12 @@ describe("P6-19 native interaction bridge", () => {
         contractJson: {
           revision: "audit-v1",
           objective: "Retain superseded attention for audit",
-          criteria: [{ id: "objective", requirement: "Preserve the authoritative issue state" }],
+          criteria: [
+            {
+              id: "objective",
+              requirement: "Preserve the authoritative issue state",
+            },
+          ],
         },
         canonicalSha256: contractSha,
         createdByActorType: "system",
@@ -573,11 +705,13 @@ describe("P6-19 native interaction bridge", () => {
         contextSnapshot: { issueId: localIssueId },
       });
       if (input.interactions.length > 0) {
-        await db.insert(issueThreadInteractions).values(input.interactions.map((interaction) => ({
-          ...interaction,
-          companyId: interaction.companyId ?? companyId,
-          issueId: interaction.issueId ?? localIssueId,
-        })));
+        await db.insert(issueThreadInteractions).values(
+          input.interactions.map((interaction) => ({
+            ...interaction,
+            companyId: interaction.companyId ?? companyId,
+            issueId: interaction.issueId ?? localIssueId,
+          })),
+        );
       }
       const port = new TaskcoreControlPlanePort(db, {
         companyId,
@@ -598,11 +732,20 @@ describe("P6-19 native interaction bridge", () => {
           completionClaim: {
             contractRevision: "audit-v1",
             objectiveSatisfied: false,
-            criteria: [{ criterionId: "objective", status: "unknown", evidenceRefs: [] }],
-            remainingWork: [{ description: "The canonical request remains authoritative", blocksCompletion: true }],
+            criteria: [
+              { criterionId: "objective", status: "unknown", evidenceRefs: [] },
+            ],
+            remainingWork: [
+              {
+                description: "The canonical request remains authoritative",
+                blocksCompletion: true,
+              },
+            ],
           },
           evidence: [],
-          verification: [{ commandOrCheck: "audit-only attention", status: "not_run" }],
+          verification: [
+            { commandOrCheck: "audit-only attention", status: "not_run" },
+          ],
           attentionRequests: input.requests,
           artifacts: [],
           continuation: {
@@ -646,10 +789,14 @@ describe("P6-19 native interaction bridge", () => {
         responseState: "stale",
         targetInteractionId: staleId,
       };
-      const requests = label === "duplicate"
-        ? [duplicateRequest]
-        : label === "stale" ? [staleRequest] : [duplicateRequest, staleRequest];
-      const interactions: Array<typeof issueThreadInteractions.$inferInsert> = [];
+      const requests =
+        label === "duplicate"
+          ? [duplicateRequest]
+          : label === "stale"
+            ? [staleRequest]
+            : [duplicateRequest, staleRequest];
+      const interactions: Array<typeof issueThreadInteractions.$inferInsert> =
+        [];
       if (label !== "stale") {
         interactions.push(
           {
@@ -664,7 +811,11 @@ describe("P6-19 native interaction bridge", () => {
             status: "expired",
             resolvedAt: new Date(),
             payload: { version: 1, prompt: `Duplicate ${label}` },
-            result: { version: 1, outcome: "superseded_by_newer_request", supersededByInteractionId: canonicalId },
+            result: {
+              version: 1,
+              outcome: "superseded_by_newer_request",
+              supersededByInteractionId: canonicalId,
+            },
           },
         );
       }
@@ -675,7 +826,11 @@ describe("P6-19 native interaction bridge", () => {
           status: "expired",
           resolvedAt: new Date(),
           payload: { version: 1, prompt: `Stale ${label}` },
-          result: { version: 1, outcome: "superseded_by_comment", commentId: randomUUID() },
+          result: {
+            version: 1,
+            outcome: "superseded_by_comment",
+            commentId: randomUUID(),
+          },
         });
       }
       const seeded = await seedAuditRun({ label, requests, interactions });
@@ -685,41 +840,78 @@ describe("P6-19 native interaction bridge", () => {
         workspaceFinalizeStatus: "succeeded",
         projectRunStatus: true,
       });
-      expect(finalized).toMatchObject({ phase: "committed", decisionId: expect.any(String) });
+      expect(finalized).toMatchObject({
+        phase: "committed",
+        decisionId: expect.any(String),
+      });
       const finalDecisionId = finalized.decisionId;
 
-      await expect(db.select().from(issues).where(eq(issues.id, seeded.issueId))).resolves.toEqual([
+      await expect(
+        db.select().from(issues).where(eq(issues.id, seeded.issueId)),
+      ).resolves.toEqual([
         expect.objectContaining({
           status: label === "stale" ? "in_progress" : "in_review",
           statusVersion: 1,
           lastStatusDecisionId: expect.any(String),
         }),
       ]);
-      await expect(db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, seeded.runId))).resolves.toEqual([
+      await expect(
+        db
+          .select()
+          .from(heartbeatRuns)
+          .where(eq(heartbeatRuns.id, seeded.runId)),
+      ).resolves.toEqual([
         expect.objectContaining({
           status: "succeeded",
           nativePhase: "committed",
           resultJson: expect.objectContaining({
             finalizationPhase: "committed",
             decisionId: expect.any(String),
-            authoritativeDecision: label === "stale" ? "in_progress" : "in_review",
+            authoritativeDecision:
+              label === "stale" ? "in_progress" : "in_review",
             ignoredAttentionRequests: expect.any(Array),
           }),
         }),
       ]);
-      await expect(db.select().from(nativeRunFinalizations)
-        .where(eq(nativeRunFinalizations.runId, seeded.runId))).resolves.toEqual([
-        expect.objectContaining({ phase: "committed", decisionId: expect.any(String), failureCode: null }),
+      await expect(
+        db
+          .select()
+          .from(nativeRunFinalizations)
+          .where(eq(nativeRunFinalizations.runId, seeded.runId)),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          phase: "committed",
+          decisionId: expect.any(String),
+          failureCode: null,
+        }),
       ]);
-      await expect(db.select().from(statusDecisions).where(eq(statusDecisions.issueId, seeded.issueId))).resolves.toHaveLength(1);
-      await expect(db.select().from(statusDecisionEffects).where(eq(statusDecisionEffects.issueId, seeded.issueId)))
-        .resolves.not.toHaveLength(0);
-      const issueWakeups = (await db.select().from(agentWakeupRequests)
-        .where(eq(agentWakeupRequests.companyId, companyId)))
-        .filter((request) => (request.payload as Record<string, unknown> | null)?.issueId === seeded.issueId);
+      await expect(
+        db
+          .select()
+          .from(statusDecisions)
+          .where(eq(statusDecisions.issueId, seeded.issueId)),
+      ).resolves.toHaveLength(1);
+      await expect(
+        db
+          .select()
+          .from(statusDecisionEffects)
+          .where(eq(statusDecisionEffects.issueId, seeded.issueId)),
+      ).resolves.not.toHaveLength(0);
+      const issueWakeups = (
+        await db
+          .select()
+          .from(agentWakeupRequests)
+          .where(eq(agentWakeupRequests.companyId, companyId))
+      ).filter(
+        (request) =>
+          (request.payload as Record<string, unknown> | null)?.issueId ===
+          seeded.issueId,
+      );
       if (label === "stale") {
         expect(issueWakeups).toEqual([
-          expect.objectContaining({ payload: expect.objectContaining({ issueId: seeded.issueId }) }),
+          expect.objectContaining({
+            payload: expect.objectContaining({ issueId: seeded.issueId }),
+          }),
         ]);
       } else {
         // Duplicate actionable attention is owned by the review interaction;
@@ -727,47 +919,81 @@ describe("P6-19 native interaction bridge", () => {
         expect(issueWakeups).toEqual([]);
       }
 
-      const beforeReplay = await db.select({
-        id: issueThreadInteractions.id,
-        summary: issueThreadInteractions.summary,
-        updatedAt: issueThreadInteractions.updatedAt,
-      }).from(issueThreadInteractions).where(and(
-        eq(issueThreadInteractions.issueId, seeded.issueId),
-      ));
-      const assessmentCount = await db.select().from(workAssessments)
-        .where(eq(workAssessments.runId, seeded.runId)).then((rows) => rows.length);
-      await expect(finalizeNativeRun({
-        db,
-        runId: seeded.runId,
-        workspaceFinalizeStatus: "succeeded",
-        projectRunStatus: true,
-      })).resolves.toMatchObject({ phase: "committed", decisionId: finalDecisionId });
-      const afterReplay = await db.select({
-        id: issueThreadInteractions.id,
-        summary: issueThreadInteractions.summary,
-        updatedAt: issueThreadInteractions.updatedAt,
-      }).from(issueThreadInteractions).where(eq(issueThreadInteractions.issueId, seeded.issueId));
+      const beforeReplay = await db
+        .select({
+          id: issueThreadInteractions.id,
+          summary: issueThreadInteractions.summary,
+          updatedAt: issueThreadInteractions.updatedAt,
+        })
+        .from(issueThreadInteractions)
+        .where(and(eq(issueThreadInteractions.issueId, seeded.issueId)));
+      const assessmentCount = await db
+        .select()
+        .from(workAssessments)
+        .where(eq(workAssessments.runId, seeded.runId))
+        .then((rows) => rows.length);
+      await expect(
+        finalizeNativeRun({
+          db,
+          runId: seeded.runId,
+          workspaceFinalizeStatus: "succeeded",
+          projectRunStatus: true,
+        }),
+      ).resolves.toMatchObject({
+        phase: "committed",
+        decisionId: finalDecisionId,
+      });
+      const afterReplay = await db
+        .select({
+          id: issueThreadInteractions.id,
+          summary: issueThreadInteractions.summary,
+          updatedAt: issueThreadInteractions.updatedAt,
+        })
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.issueId, seeded.issueId));
       expect(afterReplay).toEqual(beforeReplay);
-      await expect(db.select().from(workAssessments)
-        .where(eq(workAssessments.runId, seeded.runId)).then((rows) => rows.length)).resolves.toBe(assessmentCount);
-      const coordinatorBeforeCommittedReplay = await db.select({ attempt: nativeRunFinalizations.attempt })
-        .from(nativeRunFinalizations).where(eq(nativeRunFinalizations.runId, seeded.runId))
+      await expect(
+        db
+          .select()
+          .from(workAssessments)
+          .where(eq(workAssessments.runId, seeded.runId))
+          .then((rows) => rows.length),
+      ).resolves.toBe(assessmentCount);
+      const coordinatorBeforeCommittedReplay = await db
+        .select({ attempt: nativeRunFinalizations.attempt })
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, seeded.runId))
         .then((rows) => rows[0] ?? null);
-      await expect(finalizeNativeRun({
-        db,
-        runId: seeded.runId,
-        workspaceFinalizeStatus: "succeeded",
-        projectRunStatus: true,
-      })).resolves.toMatchObject({ phase: "committed", decisionId: finalDecisionId });
-      await expect(db.select({ attempt: nativeRunFinalizations.attempt })
-        .from(nativeRunFinalizations).where(eq(nativeRunFinalizations.runId, seeded.runId))
-        .then((rows) => rows[0] ?? null)).resolves.toEqual(coordinatorBeforeCommittedReplay);
+      await expect(
+        finalizeNativeRun({
+          db,
+          runId: seeded.runId,
+          workspaceFinalizeStatus: "succeeded",
+          projectRunStatus: true,
+        }),
+      ).resolves.toMatchObject({
+        phase: "committed",
+        decisionId: finalDecisionId,
+      });
+      await expect(
+        db
+          .select({ attempt: nativeRunFinalizations.attempt })
+          .from(nativeRunFinalizations)
+          .where(eq(nativeRunFinalizations.runId, seeded.runId))
+          .then((rows) => rows[0] ?? null),
+      ).resolves.toEqual(coordinatorBeforeCommittedReplay);
     }
 
     const outsideCompanyId = randomUUID();
     const outsideIssueId = randomUUID();
     const outsideInteractionId = randomUUID();
-    await db.insert(companies).values({ id: outsideCompanyId, name: "Outside audit target", issuePrefix: "OAT" });
+    await db
+      .insert(companies)
+      .values({
+        id: outsideCompanyId,
+        name: "Outside audit target",
+        issuePrefix: "OAT",
+      });
     await db.insert(issues).values({
       id: outsideIssueId,
       companyId: outsideCompanyId,
@@ -783,7 +1009,11 @@ describe("P6-19 native interaction bridge", () => {
       status: "expired",
       resolvedAt: new Date(),
       payload: { version: 1, prompt: "Outside stale response" },
-      result: { version: 1, outcome: "superseded_by_comment", commentId: randomUUID() },
+      result: {
+        version: 1,
+        outcome: "superseded_by_comment",
+        commentId: randomUUID(),
+      },
     });
     for (const [label, targetInteractionId] of [
       ["missing", randomUUID()],
@@ -791,34 +1021,59 @@ describe("P6-19 native interaction bridge", () => {
     ] as const) {
       const seeded = await seedAuditRun({
         label: `invalid-${label}`,
-        requests: [{
-          id: `audit:invalid:${label}`,
-          requestedCapability: "context_lookup",
-          requiredAuthority: "agent",
-          target: { ownerClass: "current_agent", companyId },
-          summary: `Invalid audit target ${label}`,
-          responseState: "stale",
-          targetInteractionId,
-        }],
+        requests: [
+          {
+            id: `audit:invalid:${label}`,
+            requestedCapability: "context_lookup",
+            requiredAuthority: "agent",
+            target: { ownerClass: "current_agent", companyId },
+            summary: `Invalid audit target ${label}`,
+            responseState: "stale",
+            targetInteractionId,
+          },
+        ],
         interactions: [],
       });
-      await expect(finalizeNativeRun({
-        db,
-        runId: seeded.runId,
-        workspaceFinalizeStatus: "succeeded",
-        projectRunStatus: true,
-      })).resolves.toMatchObject({ phase: "committed", failureCode: null });
-      await expect(db.select().from(issues).where(eq(issues.id, seeded.issueId))).resolves.toEqual([
-        expect.objectContaining({ status: "in_progress", statusVersion: 1, lastStatusDecisionId: expect.any(String) }),
+      await expect(
+        finalizeNativeRun({
+          db,
+          runId: seeded.runId,
+          workspaceFinalizeStatus: "succeeded",
+          projectRunStatus: true,
+        }),
+      ).resolves.toMatchObject({ phase: "committed", failureCode: null });
+      await expect(
+        db.select().from(issues).where(eq(issues.id, seeded.issueId)),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          status: "in_progress",
+          statusVersion: 1,
+          lastStatusDecisionId: expect.any(String),
+        }),
       ]);
-      await expect(db.select().from(statusDecisions).where(eq(statusDecisions.issueId, seeded.issueId))).resolves.toHaveLength(1);
-      await expect(db.select({ resultJson: heartbeatRuns.resultJson }).from(heartbeatRuns)
-        .where(eq(heartbeatRuns.id, seeded.runId)).then((rows) => rows[0]?.resultJson)).resolves.toEqual(
-        expect.objectContaining({ ignoredAttentionRequests: expect.any(Array) }),
+      await expect(
+        db
+          .select()
+          .from(statusDecisions)
+          .where(eq(statusDecisions.issueId, seeded.issueId)),
+      ).resolves.toHaveLength(1);
+      await expect(
+        db
+          .select({ resultJson: heartbeatRuns.resultJson })
+          .from(heartbeatRuns)
+          .where(eq(heartbeatRuns.id, seeded.runId))
+          .then((rows) => rows[0]?.resultJson),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          ignoredAttentionRequests: expect.any(Array),
+        }),
       );
     }
-    await expect(db.select({ summary: issueThreadInteractions.summary })
-      .from(issueThreadInteractions)
-      .where(eq(issueThreadInteractions.id, outsideInteractionId))).resolves.toEqual([{ summary: null }]);
+    await expect(
+      db
+        .select({ summary: issueThreadInteractions.summary })
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.id, outsideInteractionId)),
+    ).resolves.toEqual([{ summary: null }]);
   }, 30_000);
 });

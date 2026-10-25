@@ -12,20 +12,41 @@ import {
   statSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from "node:path";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const repoRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const defaultManifestPath = join(repoRoot, "tests", "storybook-visual", "baseline-manifest.json");
+const defaultManifestPath = join(
+  repoRoot,
+  "tests",
+  "storybook-visual",
+  "baseline-manifest.json",
+);
 const manifestPath = resolvePath(
   process.env.STORYBOOK_VISUAL_BASELINE_MANIFEST ?? defaultManifestPath,
 );
 const defaultCacheDir = join(repoRoot, "tests", "storybook-visual", ".cache");
-const cacheDir = resolvePath(process.env.STORYBOOK_VISUAL_BASELINE_CACHE_DIR ?? defaultCacheDir);
-const defaultSnapshotDir = join(repoRoot, "tests", "storybook-visual", ".snapshots");
-const snapshotDir = resolvePath(process.env.STORYBOOK_VISUAL_SNAPSHOT_DIR ?? defaultSnapshotDir);
+const cacheDir = resolvePath(
+  process.env.STORYBOOK_VISUAL_BASELINE_CACHE_DIR ?? defaultCacheDir,
+);
+const defaultSnapshotDir = join(
+  repoRoot,
+  "tests",
+  "storybook-visual",
+  ".snapshots",
+);
+const snapshotDir = resolvePath(
+  process.env.STORYBOOK_VISUAL_SNAPSHOT_DIR ?? defaultSnapshotDir,
+);
 
 const command = process.argv[2];
 const flags = parseFlags(process.argv.slice(3));
@@ -100,7 +121,9 @@ function readManifest() {
   }
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   if (manifest.version !== 1) {
-    throw new Error(`Unsupported baseline manifest version: ${manifest.version}`);
+    throw new Error(
+      `Unsupported baseline manifest version: ${manifest.version}`,
+    );
   }
   if (!Number.isInteger(manifest.snapshotCount) || manifest.snapshotCount < 0) {
     throw new Error("Manifest snapshotCount must be a non-negative integer.");
@@ -119,15 +142,24 @@ async function download() {
   mkdirSync(dirname(archivePathFor(manifest)), { recursive: true });
   const archivePath = archivePathFor(manifest);
 
-  if (!existsSync(archivePath) || sha256File(archivePath) !== manifest.archive.sha256) {
+  if (
+    !existsSync(archivePath) ||
+    sha256File(archivePath) !== manifest.archive.sha256
+  ) {
     await fetchArchive(manifest.archive.url, archivePath);
   }
   verifyArchiveFile(manifest, archivePath);
   rmSync(snapshotDir, { recursive: true, force: true });
   mkdirSync(snapshotDir, { recursive: true });
-  run("tar", ["-xzf", archivePath, "-C", snapshotDir], "unpack baseline archive");
+  run(
+    "tar",
+    ["-xzf", archivePath, "-C", snapshotDir],
+    "unpack baseline archive",
+  );
   verifySnapshotCount(manifest, snapshotDir);
-  console.log(`Downloaded ${manifest.baselineId} to ${relative(repoRoot, snapshotDir)}`);
+  console.log(
+    `Downloaded ${manifest.baselineId} to ${relative(repoRoot, snapshotDir)}`,
+  );
 }
 
 async function verify() {
@@ -159,7 +191,14 @@ async function pack() {
     throw new Error(`No PNG snapshots found in ${sourceDir}`);
   }
   const out = resolvePath(
-    flags.get("out") ?? join(repoRoot, "tests", "storybook-visual", "baseline-review", "snapshots.tgz"),
+    flags.get("out") ??
+      join(
+        repoRoot,
+        "tests",
+        "storybook-visual",
+        "baseline-review",
+        "snapshots.tgz",
+      ),
   );
   mkdirSync(dirname(out), { recursive: true });
   const tempDir = mkdtempSync(join(tmpdir(), "storybook-visual-pack-"));
@@ -189,7 +228,8 @@ async function pack() {
   }
   const sha256 = sha256File(out);
   const byteSize = statSync(out).size;
-  const publicUrl = flags.get("public-url") ?? process.env.STORYBOOK_VISUAL_PUBLIC_URL ?? "";
+  const publicUrl =
+    flags.get("public-url") ?? process.env.STORYBOOK_VISUAL_PUBLIC_URL ?? "";
   const objectKey = `baselines/storybook-visual/${sha256}/snapshots.tgz`;
   console.log(`Packed ${count} PNG snapshots into ${relative(repoRoot, out)}`);
   console.log("");
@@ -212,7 +252,16 @@ async function pack() {
 }
 
 async function upload() {
-  const archive = resolvePath(flags.get("archive") ?? join(repoRoot, "tests", "storybook-visual", "baseline-review", "snapshots.tgz"));
+  const archive = resolvePath(
+    flags.get("archive") ??
+      join(
+        repoRoot,
+        "tests",
+        "storybook-visual",
+        "baseline-review",
+        "snapshots.tgz",
+      ),
+  );
   const s3Uri = flags.get("s3-uri") ?? process.env.STORYBOOK_VISUAL_S3_URI;
   if (!s3Uri) {
     throw new Error("Missing --s3-uri or STORYBOOK_VISUAL_S3_URI for upload.");
@@ -227,16 +276,29 @@ async function upload() {
   const { bucket, key } = parseS3Uri(s3Uri);
   const head = spawnSync(
     "aws",
-    ["s3api", "head-object", "--bucket", bucket, "--key", key, "--output", "json"],
+    [
+      "s3api",
+      "head-object",
+      "--bucket",
+      bucket,
+      "--key",
+      key,
+      "--output",
+      "json",
+    ],
     { encoding: "utf8" },
   );
   if (head.status === 0) {
     const metadata = JSON.parse(head.stdout || "{}").Metadata ?? {};
     if (metadata.sha256 === sha256) {
-      console.log(`Archive already exists at ${s3Uri} with matching sha256 ${sha256}.`);
+      console.log(
+        `Archive already exists at ${s3Uri} with matching sha256 ${sha256}.`,
+      );
       return;
     }
-    throw new Error(`Refusing to overwrite existing S3 object with different sha256: ${s3Uri}`);
+    throw new Error(
+      `Refusing to overwrite existing S3 object with different sha256: ${s3Uri}`,
+    );
   }
   run(
     "aws",
@@ -271,7 +333,10 @@ function assertConfiguredArchive(manifest) {
 
 async function fetchArchive(url, destination) {
   if (url.startsWith("file://")) {
-    await pipeline(createReadStream(fileURLToPath(url)), createWriteStream(destination));
+    await pipeline(
+      createReadStream(fileURLToPath(url)),
+      createWriteStream(destination),
+    );
     return;
   }
   if (!url.startsWith("https://") && !url.startsWith("http://")) {
@@ -279,7 +344,9 @@ async function fetchArchive(url, destination) {
   }
   const response = await fetch(url);
   if (!response.ok || !response.body) {
-    throw new Error(`Failed to download baseline archive: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to download baseline archive: ${response.status} ${response.statusText}`,
+    );
   }
   await pipeline(response.body, createWriteStream(destination));
 }
@@ -332,7 +399,10 @@ function parseS3Uri(uri) {
   const withoutScheme = uri.slice("s3://".length);
   const slash = withoutScheme.indexOf("/");
   if (slash === -1) throw new Error(`S3 URI must include a key: ${uri}`);
-  return { bucket: withoutScheme.slice(0, slash), key: withoutScheme.slice(slash + 1) };
+  return {
+    bucket: withoutScheme.slice(0, slash),
+    key: withoutScheme.slice(slash + 1),
+  };
 }
 
 function run(cmd, args, label) {

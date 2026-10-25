@@ -8,7 +8,10 @@ vi.mock("@taskcore/adapter-utils/execution-target", async (importOriginal) => {
   return { ...actual, runAdapterExecutionTargetProcess: vi.fn() };
 });
 
-import { ensureRemoteOpenCodeModelConfiguredAndAvailable, execute } from "./execute.js";
+import {
+  ensureRemoteOpenCodeModelConfiguredAndAvailable,
+  execute,
+} from "./execute.js";
 import { runAdapterExecutionTargetProcess } from "@taskcore/adapter-utils/execution-target";
 import { createPromptContextFixture } from "@taskcore/adapter-utils/test-fixtures/prompt-context";
 
@@ -38,7 +41,9 @@ describe("OpenCode local skill injection", () => {
   let configHome: string;
 
   beforeEach(async () => {
-    configHome = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-test-config-"));
+    configHome = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-opencode-test-config-"),
+    );
     vi.stubEnv("XDG_CONFIG_HOME", configHome);
   });
 
@@ -47,40 +52,74 @@ describe("OpenCode local skill injection", () => {
     await fs.rm(configHome, { recursive: true, force: true });
   });
 
-  it.each([false, true])("keeps chat policy with a legacy OpenCode prompt (custom=%s)", async (custom) => {
-    const commandPath = path.join(configHome, "fake-opencode");
-    await fs.writeFile(commandPath, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-    runProcessMock.mockReset();
-    runProcessMock.mockResolvedValue(probeResult({ stdout: JSON.stringify({
-      type: "text", sessionID: "chat-session", part: { text: "Reply" },
-    }) }));
-    const directive = "Chat directive: clarify goals and hand plans off to project tasks.";
-    let prompt = "";
-    const result = await execute({
-      runId: "chat-run",
-      agent: { id: "agent-1", companyId: "company-1", name: "OpenCode", adapterType: "opencode_local", adapterConfig: {} },
-      runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
-      config: {
-        command: commandPath, cwd: configHome, model: "openai/gpt-5", env: { OPENCODE_ALLOW_ALL_MODELS: "1" },
-        ...(custom ? { promptTemplate: "Custom agent instruction." } : {}),
-      },
-      context: {
-        conversationMode: true,
-        taskcoreTaskMarkdown: directive,
-        taskcoreWake: {
-          reason: "issue_commented", issue: { id: "chat-1", status: "in_progress", workMode: "planning" },
-          interactionKind: "request_confirmation", interactionStatus: "accepted",
+  it.each([false, true])(
+    "keeps chat policy with a legacy OpenCode prompt (custom=%s)",
+    async (custom) => {
+      const commandPath = path.join(configHome, "fake-opencode");
+      await fs.writeFile(commandPath, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+      runProcessMock.mockReset();
+      runProcessMock.mockResolvedValue(
+        probeResult({
+          stdout: JSON.stringify({
+            type: "text",
+            sessionID: "chat-session",
+            part: { text: "Reply" },
+          }),
+        }),
+      );
+      const directive =
+        "Chat directive: clarify goals and hand plans off to project tasks.";
+      let prompt = "";
+      const result = await execute({
+        runId: "chat-run",
+        agent: {
+          id: "agent-1",
+          companyId: "company-1",
+          name: "OpenCode",
+          adapterType: "opencode_local",
+          adapterConfig: {},
         },
-      },
-      onLog: async () => {},
-      onMeta: async (meta) => { prompt = String(meta.prompt ?? ""); },
-    });
-    expect(result.exitCode).toBe(0);
-    expect(prompt).toContain(directive);
-    expect(prompt).toContain(custom ? "Custom agent instruction." : "You are agent agent-1");
-    expect(prompt).not.toContain("Execution contract:");
-    expect(prompt).not.toContain("Create child issues");
-  });
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
+        config: {
+          command: commandPath,
+          cwd: configHome,
+          model: "openai/gpt-5",
+          env: { OPENCODE_ALLOW_ALL_MODELS: "1" },
+          ...(custom ? { promptTemplate: "Custom agent instruction." } : {}),
+        },
+        context: {
+          conversationMode: true,
+          taskcoreTaskMarkdown: directive,
+          taskcoreWake: {
+            reason: "issue_commented",
+            issue: {
+              id: "chat-1",
+              status: "in_progress",
+              workMode: "planning",
+            },
+            interactionKind: "request_confirmation",
+            interactionStatus: "accepted",
+          },
+        },
+        onLog: async () => {},
+        onMeta: async (meta) => {
+          prompt = String(meta.prompt ?? "");
+        },
+      });
+      expect(result.exitCode).toBe(0);
+      expect(prompt).toContain(directive);
+      expect(prompt).toContain(
+        custom ? "Custom agent instruction." : "You are agent agent-1",
+      );
+      expect(prompt).not.toContain("Execution contract:");
+      expect(prompt).not.toContain("Create child issues");
+    },
+  );
 
   it("delivers assignment context on an ordinary task turn and rebuilds it after resume fallback", async () => {
     const commandPath = path.join(configHome, "fake-opencode-context");
@@ -88,32 +127,68 @@ describe("OpenCode local skill injection", () => {
     const prompts: string[] = [];
     runProcessMock
       .mockReset()
-      .mockResolvedValueOnce(probeResult({ stdout: JSON.stringify({ type: "error", error: "unknown session" }) }))
-      .mockResolvedValueOnce(probeResult({ stdout: JSON.stringify({ type: "text", sessionID: "fresh", part: { text: "done" } }) }));
+      .mockResolvedValueOnce(
+        probeResult({
+          stdout: JSON.stringify({ type: "error", error: "unknown session" }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        probeResult({
+          stdout: JSON.stringify({
+            type: "text",
+            sessionID: "fresh",
+            part: { text: "done" },
+          }),
+        }),
+      );
     await execute({
       runId: "run-context-fallback",
-      agent: { id: "agent-1", companyId: "company-1", name: "OpenCode", adapterType: "opencode_local", adapterConfig: {} },
-      runtime: { sessionId: "previous", sessionParams: null, sessionDisplayId: null, taskKey: null },
-      config: { command: commandPath, cwd: configHome, model: "openai/gpt-5", env: { OPENCODE_ALLOW_ALL_MODELS: "1" } },
+      agent: {
+        id: "agent-1",
+        companyId: "company-1",
+        name: "OpenCode",
+        adapterType: "opencode_local",
+        adapterConfig: {},
+      },
+      runtime: {
+        sessionId: "previous",
+        sessionParams: null,
+        sessionDisplayId: null,
+        taskKey: null,
+      },
+      config: {
+        command: commandPath,
+        cwd: configHome,
+        model: "openai/gpt-5",
+        env: { OPENCODE_ALLOW_ALL_MODELS: "1" },
+      },
       context: createPromptContextFixture(),
       onLog: async () => {},
-      onMeta: async (meta) => { prompts.push(String(meta.prompt ?? "")); },
+      onMeta: async (meta) => {
+        prompts.push(String(meta.prompt ?? ""));
+      },
     });
     expect(prompts).toHaveLength(2);
     expect(prompts[0]).toContain("## Compact assignment");
     expect(prompts[1]).toContain("## Owned assignment");
-    for (const prompt of prompts) expect(prompt).not.toContain("Execution contract:");
+    for (const prompt of prompts)
+      expect(prompt).not.toContain("Execution contract:");
     expect(prompts[1]).toContain("You are agent agent-1 (OpenCode).");
     expect(prompts[1]).toContain("Connection tools:");
   });
 
   it("injects runtime skills into the configured child HOME", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-configured-home-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-opencode-configured-home-"),
+    );
     const processHome = path.join(root, "process-home");
     const configuredHome = path.join(root, "configured-home");
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "opencode");
-    const skillSource = await createSkillDir(path.join(root, "runtime-skills"), "taskcore");
+    const skillSource = await createSkillDir(
+      path.join(root, "runtime-skills"),
+      "taskcore",
+    );
     await fs.mkdir(workspace, { recursive: true });
     await fs.writeFile(commandPath, "#!/bin/sh\nexit 0\n", "utf8");
     await fs.chmod(commandPath, 0o755);
@@ -121,13 +196,15 @@ describe("OpenCode local skill injection", () => {
     const previousHome = process.env.HOME;
     process.env.HOME = processHome;
     runProcessMock.mockReset();
-    runProcessMock.mockResolvedValueOnce(probeResult({
-      stdout: JSON.stringify({
-        type: "text",
-        sessionID: "session-configured-home",
-        part: { text: "done" },
+    runProcessMock.mockResolvedValueOnce(
+      probeResult({
+        stdout: JSON.stringify({
+          type: "text",
+          sessionID: "session-configured-home",
+          part: { text: "done" },
+        }),
       }),
-    }));
+    );
 
     try {
       const result = await execute({
@@ -153,11 +230,13 @@ describe("OpenCode local skill injection", () => {
             HOME: configuredHome,
             OPENCODE_ALLOW_ALL_MODELS: "1",
           },
-          taskcoreRuntimeSkills: [{
-            key: "taskcore/taskcore/taskcore",
-            runtimeName: "taskcore",
-            source: skillSource,
-          }],
+          taskcoreRuntimeSkills: [
+            {
+              key: "taskcore/taskcore/taskcore",
+              runtimeName: "taskcore",
+              source: skillSource,
+            },
+          ],
           promptTemplate: "Follow the taskcore heartbeat.",
         },
         context: {},
@@ -166,10 +245,19 @@ describe("OpenCode local skill injection", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      const installedSkill = path.join(configuredHome, ".claude", "skills", "taskcore");
+      const installedSkill = path.join(
+        configuredHome,
+        ".claude",
+        "skills",
+        "taskcore",
+      );
       expect((await fs.lstat(installedSkill)).isSymbolicLink()).toBe(true);
-      expect(await fs.realpath(installedSkill)).toBe(await fs.realpath(skillSource));
-      await expect(fs.lstat(path.join(processHome, ".claude", "skills", "taskcore"))).rejects.toThrow();
+      expect(await fs.realpath(installedSkill)).toBe(
+        await fs.realpath(skillSource),
+      );
+      await expect(
+        fs.lstat(path.join(processHome, ".claude", "skills", "taskcore")),
+      ).rejects.toThrow();
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -178,7 +266,9 @@ describe("OpenCode local skill injection", () => {
   });
 
   it("passes an OpenRouter key and complete model to OpenCode without logging the key", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-openrouter-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-opencode-openrouter-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "opencode");
     const apiKey = "openrouter-test-secret";
@@ -187,13 +277,15 @@ describe("OpenCode local skill injection", () => {
     await fs.writeFile(commandPath, "#!/bin/sh\nexit 0\n", "utf8");
     await fs.chmod(commandPath, 0o755);
     runProcessMock.mockReset();
-    runProcessMock.mockResolvedValueOnce(probeResult({
-      stdout: JSON.stringify({
-        type: "text",
-        sessionID: "session-openrouter",
-        part: { text: "done" },
+    runProcessMock.mockResolvedValueOnce(
+      probeResult({
+        stdout: JSON.stringify({
+          type: "text",
+          sessionID: "session-openrouter",
+          part: { text: "done" },
+        }),
       }),
-    }));
+    );
     const logs: string[] = [];
     const metadata: unknown[] = [];
 
@@ -238,9 +330,14 @@ describe("OpenCode local skill injection", () => {
       const executionCall = runProcessMock.mock.calls.at(-1)!;
       expect(executionCall[3]).toContain("--model");
       expect(executionCall[3]).toContain(model);
-      expect((executionCall[4] as { env: Record<string, string> }).env.OPENROUTER_API_KEY).toBe(apiKey);
+      expect(
+        (executionCall[4] as { env: Record<string, string> }).env
+          .OPENROUTER_API_KEY,
+      ).toBe(apiKey);
       expect(JSON.stringify({ logs, metadata, result })).not.toContain(apiKey);
-      expect(JSON.stringify(metadata)).toContain('"OPENROUTER_API_KEY":"***REDACTED***"');
+      expect(JSON.stringify(metadata)).toContain(
+        '"OPENROUTER_API_KEY":"***REDACTED***"',
+      );
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
@@ -323,30 +420,52 @@ describe("ensureRemoteOpenCodeModelConfiguredAndAvailable — probe is non-fatal
   });
 
   it("proceeds when the remote probe exits non-zero (e.g. a transient `Unexpected error`)", async () => {
-    runProcessMock.mockResolvedValueOnce(probeResult({ exitCode: 1, stderr: "Unexpected error" }));
+    runProcessMock.mockResolvedValueOnce(
+      probeResult({ exitCode: 1, stderr: "Unexpected error" }),
+    );
     await expect(
-      ensureRemoteOpenCodeModelConfiguredAndAvailable({ ...base, model: "openai/gpt-5" }),
+      ensureRemoteOpenCodeModelConfiguredAndAvailable({
+        ...base,
+        model: "openai/gpt-5",
+      }),
     ).resolves.toBeUndefined();
   });
 
   it("proceeds when the remote probe times out", async () => {
-    runProcessMock.mockResolvedValueOnce(probeResult({ timedOut: true, exitCode: null }));
+    runProcessMock.mockResolvedValueOnce(
+      probeResult({ timedOut: true, exitCode: null }),
+    );
     await expect(
-      ensureRemoteOpenCodeModelConfiguredAndAvailable({ ...base, model: "openai/gpt-5" }),
+      ensureRemoteOpenCodeModelConfiguredAndAvailable({
+        ...base,
+        model: "openai/gpt-5",
+      }),
     ).resolves.toBeUndefined();
   });
 
   it("proceeds when the remote probe returns no models", async () => {
-    runProcessMock.mockResolvedValueOnce(probeResult({ exitCode: 0, stdout: "" }));
+    runProcessMock.mockResolvedValueOnce(
+      probeResult({ exitCode: 0, stdout: "" }),
+    );
     await expect(
-      ensureRemoteOpenCodeModelConfiguredAndAvailable({ ...base, model: "openai/gpt-5" }),
+      ensureRemoteOpenCodeModelConfiguredAndAvailable({
+        ...base,
+        model: "openai/gpt-5",
+      }),
     ).resolves.toBeUndefined();
   });
 
   it("still rejects when the probe succeeds but the configured model is absent (guard retained)", async () => {
-    runProcessMock.mockResolvedValueOnce(probeResult({ exitCode: 0, stdout: "openai/gpt-4.1\n" }));
+    runProcessMock.mockResolvedValueOnce(
+      probeResult({ exitCode: 0, stdout: "openai/gpt-4.1\n" }),
+    );
     await expect(
-      ensureRemoteOpenCodeModelConfiguredAndAvailable({ ...base, model: "openai/gpt-5" }),
-    ).rejects.toThrow("Configured OpenCode model is unavailable on the remote execution target");
+      ensureRemoteOpenCodeModelConfiguredAndAvailable({
+        ...base,
+        model: "openai/gpt-5",
+      }),
+    ).rejects.toThrow(
+      "Configured OpenCode model is unavailable on the remote execution target",
+    );
   });
 });

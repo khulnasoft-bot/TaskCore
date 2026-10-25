@@ -16,13 +16,18 @@ export function loopbackTarget(port: number): string {
   return `http://127.0.0.1:${port}`;
 }
 
-function assertMutablePort(port: number, protectedPorts: readonly number[] = []): number {
+function assertMutablePort(
+  port: number,
+  protectedPorts: readonly number[] = [],
+): number {
   const p = assertCanonicalPort(port);
   if (p === PROTECTED_PRIMARY_PORT) {
     throw new Error("refusing to operate on the protected primary port 443");
   }
   if (p < 1024) {
-    throw new Error("refusing to operate on a privileged/reserved port (<1024)");
+    throw new Error(
+      "refusing to operate on a privileged/reserved port (<1024)",
+    );
   }
   // Innermost refusal for operator-declared protected ports (PAP-17285). Higher
   // layers deny first with a typed code; this exists so no caller can construct

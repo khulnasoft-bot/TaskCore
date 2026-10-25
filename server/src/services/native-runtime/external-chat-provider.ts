@@ -10,7 +10,10 @@ const BOUND_EXTERNAL_CHAT_PROVIDERS = [
 ] as const;
 
 export function boundExternalChatProvider(source: unknown) {
-  return BOUND_EXTERNAL_CHAT_PROVIDERS.find(
-    (provider) => source === `chat:${provider}` || source === `chat:${provider}:recovery`,
-  ) ?? null;
+  return (
+    BOUND_EXTERNAL_CHAT_PROVIDERS.find(
+      (provider) =>
+        source === `chat:${provider}` || source === `chat:${provider}:recovery`,
+    ) ?? null
+  );
 }

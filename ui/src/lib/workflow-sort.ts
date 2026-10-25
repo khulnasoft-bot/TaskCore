@@ -112,6 +112,7 @@ export function workflowSort<T extends WorkflowSortIssue>(issues: T[]): T[] {
 
 function toTimestamp(value: Date | string | null | undefined): number {
   if (!value) return 0;
-  const ts = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  const ts =
+    value instanceof Date ? value.getTime() : new Date(value).getTime();
   return Number.isFinite(ts) ? ts : 0;
 }

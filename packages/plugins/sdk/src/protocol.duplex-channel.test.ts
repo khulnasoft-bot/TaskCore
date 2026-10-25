@@ -250,7 +250,8 @@ describe("duplex channel byte-safe wire representation", () => {
     // chunk back to raw bytes.
     const parsed = parseMessage(line);
     expect("params" in parsed).toBe(true);
-    const receivedParams = (parsed as { params: PluginDuplexChannelDataParams }).params;
+    const receivedParams = (parsed as { params: PluginDuplexChannelDataParams })
+      .params;
     const decoded = decodeChannelBytes(receivedParams.chunk);
 
     expect(decoded).not.toBeNull();

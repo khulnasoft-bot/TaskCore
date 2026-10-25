@@ -6,7 +6,9 @@ export type PluginIdleWork = "none" | "present" | "unknown";
 export function createPluginIdleDrain() {
   let active = 0;
   let preparing = 0;
-  let hold: (PluginIdleHold & { controller: AbortController; ready: boolean }) | null = null;
+  let hold:
+    (PluginIdleHold & { controller: AbortController; ready: boolean }) | null =
+    null;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   function release(ownerId: string): void {
@@ -26,24 +28,46 @@ export function createPluginIdleDrain() {
     if (current()) throw new Error("Plugin is held for idle sleep");
     active++;
     let done = false;
-    return () => { if (!done) { done = true; active--; } };
+    return () => {
+      if (!done) {
+        done = true;
+        active--;
+      }
+    };
   }
 
   async function prepare(
     requested: PluginIdleHold,
     inspect?: (signal: AbortSignal) => Promise<PluginIdleWork>,
   ): Promise<PluginIdleWork> {
-    if (!requested || typeof requested.ownerId !== "string" || !requested.ownerId ||
-        !Number.isFinite(requested.expiresAt) || requested.expiresAt <= Date.now() ||
-        requested.expiresAt > Date.now() + 300_000) return "unknown";
+    if (
+      !requested ||
+      typeof requested.ownerId !== "string" ||
+      !requested.ownerId ||
+      !Number.isFinite(requested.expiresAt) ||
+      requested.expiresAt <= Date.now() ||
+      requested.expiresAt > Date.now() + 300_000
+    )
+      return "unknown";
     if (!inspect) return "present";
     const prior = current();
-    if (prior) return prior.ownerId === requested.ownerId && prior.expiresAt === requested.expiresAt && prior.ready
-      ? "none" : "unknown";
+    if (prior)
+      return prior.ownerId === requested.ownerId &&
+        prior.expiresAt === requested.expiresAt &&
+        prior.ready
+        ? "none"
+        : "unknown";
     if (active !== 0 || preparing !== 0) return "present";
-    const candidate = { ...requested, controller: new AbortController(), ready: false };
+    const candidate = {
+      ...requested,
+      controller: new AbortController(),
+      ready: false,
+    };
     hold = candidate;
-    timer = setTimeout(() => release(candidate.ownerId), requested.expiresAt - Date.now());
+    timer = setTimeout(
+      () => release(candidate.ownerId),
+      requested.expiresAt - Date.now(),
+    );
     timer.unref?.();
     preparing++;
     try {
@@ -63,5 +87,12 @@ export function createPluginIdleDrain() {
     }
   }
 
-  return { begin, prepare, release, close: () => { if (hold) release(hold.ownerId); } };
+  return {
+    begin,
+    prepare,
+    release,
+    close: () => {
+      if (hold) release(hold.ownerId);
+    },
+  };
 }

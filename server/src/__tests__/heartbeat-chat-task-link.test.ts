@@ -22,13 +22,24 @@ describe("external chat task link context", () => {
     (externalChatProvider) => {
       vi.stubEnv("TASKCORE_AUTH_PUBLIC_BASE_URL", "https://pool.example");
       vi.stubEnv("TASKCORE_API_URL", "http://localhost:3100");
-      vi.mocked(runtimeCanonicalOrigin).mockReturnValue("https://vanity.example");
+      vi.mocked(runtimeCanonicalOrigin).mockReturnValue(
+        "https://vanity.example",
+      );
       for (const includeDescription of [true, false]) {
         for (const nativeRunner of [true, false]) {
-          const markdown = buildTaskcoreTaskMarkdown({ issue, externalChatProvider, nativeRunner, includeDescription });
-          expect(markdown).toContain("Public task URL: https://vanity.example/issues/task-123");
+          const markdown = buildTaskcoreTaskMarkdown({
+            issue,
+            externalChatProvider,
+            nativeRunner,
+            includeDescription,
+          });
+          expect(markdown).toContain(
+            "Public task URL: https://vanity.example/issues/task-123",
+          );
           expect(markdown).toContain("use this exact URL");
-          expect(markdown).toContain("Opening it still requires Taskcore access");
+          expect(markdown).toContain(
+            "Opening it still requires Taskcore access",
+          );
           expect(markdown).not.toContain("https://pool.example");
           expect(markdown).not.toContain("http://localhost:3100");
         }
@@ -36,14 +47,29 @@ describe("external chat task link context", () => {
     },
   );
 
-  it.each(["", "http://localhost:3100", "https://board.internal", "https://user:secret@board.example"])(
+  it.each([
+    "",
+    "http://localhost:3100",
+    "https://board.internal",
+    "https://user:secret@board.example",
+  ])(
     "does not invent a task link from missing or unsafe configuration (%s)",
     (publicUrl) => {
-      for (const name of ["TASKCORE_AUTH_PUBLIC_BASE_URL", "BETTER_AUTH_URL", "BETTER_AUTH_BASE_URL", "TASKCORE_PUBLIC_URL", "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL"]) vi.stubEnv(name, "");
+      for (const name of [
+        "TASKCORE_AUTH_PUBLIC_BASE_URL",
+        "BETTER_AUTH_URL",
+        "BETTER_AUTH_BASE_URL",
+        "TASKCORE_PUBLIC_URL",
+        "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL",
+      ])
+        vi.stubEnv(name, "");
       vi.stubEnv("TASKCORE_PUBLIC_URL", publicUrl);
       vi.stubEnv("TASKCORE_API_URL", "https://api.example");
       vi.stubEnv("TASKCORE_CHAT_WEBHOOK_PUBLIC_URL", "https://ingress.example");
-      const markdown = buildTaskcoreTaskMarkdown({ issue, externalChatProvider: "slack" });
+      const markdown = buildTaskcoreTaskMarkdown({
+        issue,
+        externalChatProvider: "slack",
+      });
       expect(markdown).toContain("No public task URL is configured");
       expect(markdown).toContain("do not invent a URL");
       expect(markdown).not.toContain("Public task URL:");

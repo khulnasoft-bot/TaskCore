@@ -21,12 +21,20 @@ import {
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { DEFAULT_CURSOR_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../index.js";
+import {
+  DEFAULT_CURSOR_LOCAL_MODEL,
+  SANDBOX_INSTALL_COMMAND,
+} from "../index.js";
 import { firstCursorDiagnosticLine, parseCursorJsonl } from "./parse.js";
-import { isDefaultCursorCommand, prepareCursorSandboxCommand } from "./remote-command.js";
+import {
+  isDefaultCursorCommand,
+  prepareCursorSandboxCommand,
+} from "./remote-command.js";
 import { hasCursorTrustBypassArg } from "../shared/trust.js";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -36,8 +44,15 @@ function isNonEmpty(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function summarizeProbeDetail(stdout: string, stderr: string, parsedError: string | null): string | null {
-  const raw = parsedError?.trim() || firstCursorDiagnosticLine(stderr) || firstCursorDiagnosticLine(stdout);
+function summarizeProbeDetail(
+  stdout: string,
+  stderr: string,
+  parsedError: string | null,
+): string | null {
+  const raw =
+    parsedError?.trim() ||
+    firstCursorDiagnosticLine(stderr) ||
+    firstCursorDiagnosticLine(stdout);
   if (!raw) return null;
   const clean = raw.replace(/\s+/g, " ").trim();
   const max = 240;
@@ -51,10 +66,15 @@ export interface CursorAuthInfo {
 }
 
 export function cursorConfigPath(cursorHome?: string): string {
-  return path.join(cursorHome ?? path.join(os.homedir(), ".cursor"), "cli-config.json");
+  return path.join(
+    cursorHome ?? path.join(os.homedir(), ".cursor"),
+    "cli-config.json",
+  );
 }
 
-export async function readCursorAuthInfo(cursorHome?: string): Promise<CursorAuthInfo | null> {
+export async function readCursorAuthInfo(
+  cursorHome?: string,
+): Promise<CursorAuthInfo | null> {
   let raw: string;
   try {
     raw = await fs.readFile(cursorConfigPath(cursorHome), "utf8");
@@ -72,8 +92,14 @@ export async function readCursorAuthInfo(cursorHome?: string): Promise<CursorAut
   const authInfo = obj.authInfo;
   if (typeof authInfo !== "object" || authInfo === null) return null;
   const info = authInfo as Record<string, unknown>;
-  const email = typeof info.email === "string" && info.email.trim().length > 0 ? info.email.trim() : null;
-  const displayName = typeof info.displayName === "string" && info.displayName.trim().length > 0 ? info.displayName.trim() : null;
+  const email =
+    typeof info.email === "string" && info.email.trim().length > 0
+      ? info.email.trim()
+      : null;
+  const displayName =
+    typeof info.displayName === "string" && info.displayName.trim().length > 0
+      ? info.displayName.trim()
+      : null;
   const userId = typeof info.userId === "number" ? info.userId : null;
   if (!email && !displayName && userId == null) return null;
   return { email, displayName, userId };
@@ -90,10 +116,15 @@ export async function testEnvironment(
   let command = asString(config.command, "agent");
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
-  const targetIsSandbox = target?.kind === "remote" && target.transport === "sandbox";
-  const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
+  const targetIsSandbox =
+    target?.kind === "remote" && target.transport === "sandbox";
+  const cwd = resolveAdapterExecutionTargetCwd(
+    target,
+    asString(config.cwd, ""),
+    process.cwd(),
+  );
   const targetLabel = targetIsRemote
-    ? ctx.environmentName ?? describeAdapterExecutionTarget(target)
+    ? (ctx.environmentName ?? describeAdapterExecutionTarget(target))
     : null;
   const runId = `cursor-envtest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -164,7 +195,12 @@ export async function testEnvironment(
   env = finalSandboxCommand.env;
   const runtimeEnv = ensurePathInEnv({ ...process.env, ...env });
   try {
-    await ensureAdapterExecutionTargetCommandResolvable(command, target, cwd, runtimeEnv);
+    await ensureAdapterExecutionTargetCommandResolvable(
+      command,
+      target,
+      cwd,
+      runtimeEnv,
+    );
     checks.push({
       code: "cursor_command_resolvable",
       level: "info",
@@ -180,9 +216,13 @@ export async function testEnvironment(
   }
 
   const configCursorApiKey = env.CURSOR_API_KEY;
-  const hostCursorApiKey = targetIsRemote ? undefined : process.env.CURSOR_API_KEY;
+  const hostCursorApiKey = targetIsRemote
+    ? undefined
+    : process.env.CURSOR_API_KEY;
   if (isNonEmpty(configCursorApiKey) || isNonEmpty(hostCursorApiKey)) {
-    const source = isNonEmpty(configCursorApiKey) ? "adapter config env" : "server environment";
+    const source = isNonEmpty(configCursorApiKey)
+      ? "adapter config env"
+      : "server environment";
     checks.push({
       code: "cursor_api_key_present",
       level: "info",
@@ -190,7 +230,9 @@ export async function testEnvironment(
       detail: `Detected in ${source}.`,
     });
   } else if (!targetIsRemote) {
-    const cursorHome = isNonEmpty(env.CURSOR_HOME) ? env.CURSOR_HOME : undefined;
+    const cursorHome = isNonEmpty(env.CURSOR_HOME)
+      ? env.CURSOR_HOME
+      : undefined;
     const cursorAuth = await readCursorAuthInfo(cursorHome).catch(() => null);
     if (cursorAuth) {
       checks.push({
@@ -205,20 +247,25 @@ export async function testEnvironment(
       checks.push({
         code: "cursor_api_key_missing",
         level: "warn",
-        message: "CURSOR_API_KEY is not set. Cursor runs may fail until authentication is configured.",
+        message:
+          "CURSOR_API_KEY is not set. Cursor runs may fail until authentication is configured.",
         hint: "Set CURSOR_API_KEY in adapter env or run `agent login`.",
       });
     }
   }
 
-  const canRunProbe =
-    checks.every((check) => check.code !== "cursor_cwd_invalid" && check.code !== "cursor_command_unresolvable");
+  const canRunProbe = checks.every(
+    (check) =>
+      check.code !== "cursor_cwd_invalid" &&
+      check.code !== "cursor_command_unresolvable",
+  );
   if (canRunProbe) {
     if (!isDefaultCursorCommand(command)) {
       checks.push({
         code: "cursor_hello_probe_skipped_custom_command",
         level: "info",
-        message: "Skipped hello probe because command is not a default Cursor CLI entrypoint.",
+        message:
+          "Skipped hello probe because command is not a default Cursor CLI entrypoint.",
         detail: command,
         hint: "Use `agent` or `cursor-agent` to run the automatic installation and auth probe.",
       });
@@ -242,7 +289,11 @@ export async function testEnvironment(
           onLog: async () => {},
         },
       );
-      const versionDetail = summarizeProbeDetail(versionProbe.stdout, versionProbe.stderr, null);
+      const versionDetail = summarizeProbeDetail(
+        versionProbe.stdout,
+        versionProbe.stderr,
+        null,
+      );
       if (versionProbe.timedOut) {
         checks.push({
           code: "cursor_version_probe_timed_out",
@@ -288,7 +339,15 @@ export async function testEnvironment(
         return asStringArray(config.args);
       })();
       const autoTrustEnabled = !hasCursorTrustBypassArg(extraArgs);
-      const args = ["-p", "--mode", "ask", "--output-format", "json", "--workspace", cwd];
+      const args = [
+        "-p",
+        "--mode",
+        "ask",
+        "--output-format",
+        "json",
+        "--workspace",
+        cwd,
+      ];
       if (model) args.push("--model", model);
       if (autoTrustEnabled) args.push("--yolo");
       if (extraArgs.length > 0) args.push(...extraArgs);
@@ -314,30 +373,39 @@ export async function testEnvironment(
         },
       );
       const parsed = parseCursorJsonl(probe.stdout);
-      const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
-      const authEvidence = `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
+      const detail = summarizeProbeDetail(
+        probe.stdout,
+        probe.stderr,
+        parsed.errorMessage,
+      );
+      const authEvidence =
+        `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
 
       if (probe.timedOut) {
         checks.push({
           code: "cursor_hello_probe_timed_out",
           level: "warn",
           message: "Cursor hello probe timed out.",
-          hint: "Retry the probe. If this persists, verify `agent -p --mode ask --output-format json \"Respond with hello.\"` manually.",
+          hint: 'Retry the probe. If this persists, verify `agent -p --mode ask --output-format json "Respond with hello."` manually.',
         });
       } else if ((probe.exitCode ?? 1) === 0) {
         const summary = parsed.summary.trim();
         const hasHello = /\bhello\b/i.test(summary);
         checks.push({
-          code: hasHello ? "cursor_hello_probe_passed" : "cursor_hello_probe_unexpected_output",
+          code: hasHello
+            ? "cursor_hello_probe_passed"
+            : "cursor_hello_probe_unexpected_output",
           level: hasHello ? "info" : "warn",
           message: hasHello
             ? "Cursor hello probe succeeded."
             : "Cursor probe ran but did not return `hello` as expected.",
-          ...(summary ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) } : {}),
+          ...(summary
+            ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) }
+            : {}),
           ...(hasHello
             ? {}
             : {
-                hint: "Try `agent -p --mode ask --output-format json \"Respond with hello.\"` manually to inspect full output.",
+                hint: 'Try `agent -p --mode ask --output-format json "Respond with hello."` manually to inspect full output.',
               }),
         });
       } else if (CURSOR_AUTH_REQUIRED_RE.test(authEvidence)) {
@@ -354,7 +422,7 @@ export async function testEnvironment(
           level: "error",
           message: "Cursor hello probe failed.",
           ...(detail ? { detail } : {}),
-          hint: "Run `agent -p --mode ask --output-format json \"Respond with hello.\"` manually in this working directory to debug.",
+          hint: 'Run `agent -p --mode ask --output-format json "Respond with hello."` manually in this working directory to debug.',
         });
       }
     }

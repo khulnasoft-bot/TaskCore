@@ -69,7 +69,9 @@ function isValidSubnetToken(token: string): boolean {
  *
  * Throws `Error` with an explanatory message if the value is malformed.
  */
-export function parseTrustProxyEnv(raw: string | undefined): TrustProxyValue | undefined {
+export function parseTrustProxyEnv(
+  raw: string | undefined,
+): TrustProxyValue | undefined {
   if (raw === undefined) return undefined;
   // We intentionally trim only the *outer* value — tokens inside the
   // comma list are trimmed individually below. Leading/trailing whitespace

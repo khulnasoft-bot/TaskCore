@@ -93,13 +93,18 @@ export function deriveTaskcoreViteHmrPort(serverPort: number): number {
  * Build the canonical browser URL for an exposed app port on a resolved
  * Tailscale node hostname. Uses the non-standard HTTPS port explicitly.
  */
-export function buildRuntimeExposureUrl(hostname: string, appPort: number): string {
+export function buildRuntimeExposureUrl(
+  hostname: string,
+  appPort: number,
+): string {
   const trimmed = hostname.trim();
   if (trimmed.length === 0) {
     throw new Error("hostname is required to build an exposure URL");
   }
   if (!isRuntimeExposureAppPort(appPort)) {
-    throw new RangeError(`app port ${appPort} is outside the dedicated runtime exposure range`);
+    throw new RangeError(
+      `app port ${appPort} is outside the dedicated runtime exposure range`,
+    );
   }
   return `https://${trimmed}:${appPort}`;
 }
@@ -108,6 +113,9 @@ export function buildRuntimeExposureUrl(hostname: string, appPort: number): stri
  * Build the external HTTPS health-probe URL used to verify normal certificate
  * validation before a runtime is reported healthy.
  */
-export function buildRuntimeExposureHealthUrl(hostname: string, appPort: number): string {
+export function buildRuntimeExposureHealthUrl(
+  hostname: string,
+  appPort: number,
+): string {
   return `${buildRuntimeExposureUrl(hostname, appPort)}/api/health`;
 }

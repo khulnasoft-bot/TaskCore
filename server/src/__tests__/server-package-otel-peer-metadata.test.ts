@@ -20,7 +20,9 @@ const OPTIONAL_OTEL_PACKAGES = [
   "@opentelemetry/exporter-trace-otlp-http",
 ] as const;
 
-const packageJsonPath = fileURLToPath(new URL("../../package.json", import.meta.url));
+const packageJsonPath = fileURLToPath(
+  new URL("../../package.json", import.meta.url),
+);
 
 describe("server package OpenTelemetry peer metadata", () => {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
@@ -34,7 +36,9 @@ describe("server package OpenTelemetry peer metadata", () => {
     "declares %s as an optional peer dependency",
     (packageName) => {
       expect(packageJson.peerDependencies?.[packageName]).toBeDefined();
-      expect(packageJson.peerDependenciesMeta?.[packageName]?.optional).toBe(true);
+      expect(packageJson.peerDependenciesMeta?.[packageName]?.optional).toBe(
+        true,
+      );
     },
   );
 
@@ -48,6 +52,8 @@ describe("server package OpenTelemetry peer metadata", () => {
 
   it("keeps @opentelemetry/api as a normal dependency", () => {
     expect(packageJson.dependencies?.["@opentelemetry/api"]).toBeDefined();
-    expect(packageJson.peerDependencies?.["@opentelemetry/api"]).toBeUndefined();
+    expect(
+      packageJson.peerDependencies?.["@opentelemetry/api"],
+    ).toBeUndefined();
   });
 });

@@ -3,7 +3,12 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { Agent, ExecutionWorkspace, Project, RoutineVariable } from "@taskcore/shared";
+import type {
+  Agent,
+  ExecutionWorkspace,
+  Project,
+  RoutineVariable,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../lib/queryKeys";
 import { RoutineRunVariablesDialog } from "./RoutineRunVariablesDialog";
@@ -188,10 +193,13 @@ function createQueryClient(hiddenSettings: string[] = []) {
   return client;
 }
 
-async function renderRoutineRunDialog(container: HTMLDivElement, props: {
-  variables: RoutineVariable[];
-  onSubmit?: (data: unknown) => void;
-}) {
+async function renderRoutineRunDialog(
+  container: HTMLDivElement,
+  props: {
+    variables: RoutineVariable[];
+    onSubmit?: (data: unknown) => void;
+  },
+) {
   const root = createRoot(container);
   const queryClient = createQueryClient();
   const onSubmit = props.onSubmit ?? vi.fn();
@@ -218,14 +226,18 @@ async function renderRoutineRunDialog(container: HTMLDivElement, props: {
 }
 
 function setInputValue(input: HTMLInputElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+  const setter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    "value",
+  )?.set;
   setter?.call(input, value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function findRunButton() {
-  return Array.from(document.querySelectorAll("button"))
-    .find((button) => button.textContent === "Run routine") as HTMLButtonElement | undefined;
+  return Array.from(document.querySelectorAll("button")).find(
+    (button) => button.textContent === "Run routine",
+  ) as HTMLButtonElement | undefined;
 }
 
 describe("RoutineRunVariablesDialog", () => {
@@ -288,21 +300,35 @@ describe("RoutineRunVariablesDialog", () => {
     const queryClient = createQueryClient(["workspaces.isolation"]);
     const onSubmit = vi.fn();
     const workspace = createExecutionWorkspace();
-    await flushUi(() => root.render(
-      <QueryClientProvider client={queryClient}>
-        <RoutineRunVariablesDialog open onOpenChange={() => {}} companyId="company-1"
-          projects={[createProject()]} agents={[createAgent()]} defaultProjectId="project-1"
-          defaultAssigneeAgentId="agent-1" defaultExecutionWorkspace={workspace}
-          variables={[{ name: "workspaceBranch", required: true } as RoutineVariable]}
-          isPending={false} onSubmit={onSubmit} />
-      </QueryClientProvider>,
-    ));
+    await flushUi(() =>
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <RoutineRunVariablesDialog
+            open
+            onOpenChange={() => {}}
+            companyId="company-1"
+            projects={[createProject()]}
+            agents={[createAgent()]}
+            defaultProjectId="project-1"
+            defaultAssigneeAgentId="agent-1"
+            defaultExecutionWorkspace={workspace}
+            variables={[
+              { name: "workspaceBranch", required: true } as RoutineVariable,
+            ]}
+            isPending={false}
+            onSubmit={onSubmit}
+          />
+        </QueryClientProvider>,
+      ),
+    );
     await flushUi(() => {});
     expect(document.body.textContent).not.toContain("Workspace card");
     expect(findRunButton()?.disabled).toBe(false);
     await flushUi(() => findRunButton()?.click());
     expect(onSubmit).toHaveBeenCalledWith({
-      variables: { workspaceBranch: workspace.branchName }, assigneeAgentId: "agent-1", projectId: "project-1",
+      variables: { workspaceBranch: workspace.branchName },
+      assigneeAgentId: "agent-1",
+      projectId: "project-1",
     });
     expect(issueWorkspaceDraftCalls).toBe(0);
     await flushUi(() => root.unmount());
@@ -374,23 +400,33 @@ describe("RoutineRunVariablesDialog", () => {
       );
     });
 
-    const dialogContent = Array.from(document.body.querySelectorAll("div")).find((element) =>
-      typeof element.className === "string" && element.className.includes("max-h-(--sz-calc-18)"),
+    const dialogContent = Array.from(
+      document.body.querySelectorAll("div"),
+    ).find(
+      (element) =>
+        typeof element.className === "string" &&
+        element.className.includes("max-h-(--sz-calc-18)"),
     );
     expect(dialogContent?.className).toContain("h-(--sz-calc-18)");
     expect(dialogContent?.className).toContain("overflow-hidden");
 
     const notesInput = document.querySelector("textarea");
-    const formScrollRegion = Array.from(document.body.querySelectorAll("div")).find((element) =>
-      typeof element.className === "string" && element.className.includes("overscroll-contain"),
+    const formScrollRegion = Array.from(
+      document.body.querySelectorAll("div"),
+    ).find(
+      (element) =>
+        typeof element.className === "string" &&
+        element.className.includes("overscroll-contain"),
     );
     expect(formScrollRegion?.className).toContain("min-h-0");
     expect(formScrollRegion?.className).toContain("flex-1");
     expect(formScrollRegion?.className).toContain("overflow-y-auto");
     expect(formScrollRegion?.contains(notesInput)).toBe(true);
 
-    const footer = Array.from(document.body.querySelectorAll("div")).find((element) =>
-      typeof element.className === "string" && element.className.includes("pb-(--sz-calc-19)"),
+    const footer = Array.from(document.body.querySelectorAll("div")).find(
+      (element) =>
+        typeof element.className === "string" &&
+        element.className.includes("pb-(--sz-calc-19)"),
     );
     expect(footer?.className).toContain("shrink-0");
     expect(footer?.contains(formScrollRegion ?? null)).toBe(false);
@@ -452,13 +488,15 @@ describe("RoutineRunVariablesDialog", () => {
       await settleEffects();
     }
 
-    const branchInput = Array.from(document.querySelectorAll("input"))
-      .find((input) => input.value === "pap-1634-routine-branch");
+    const branchInput = Array.from(document.querySelectorAll("input")).find(
+      (input) => input.value === "pap-1634-routine-branch",
+    );
     expect(branchInput?.disabled).toBe(true);
     expect(document.body.textContent).not.toContain("Missing: workspaceBranch");
 
-    const runButton = Array.from(document.querySelectorAll("button"))
-      .find((button) => button.textContent === "Run routine");
+    const runButton = Array.from(document.querySelectorAll("button")).find(
+      (button) => button.textContent === "Run routine",
+    );
     expect(runButton).toBeTruthy();
 
     await flushUi(() => {
@@ -551,12 +589,15 @@ describe("RoutineRunVariablesDialog", () => {
       ],
     });
 
-    const dateInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'));
+    const dateInputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="date"]'),
+    );
     expect(dateInputs).toHaveLength(1);
     expect(dateInputs[0]?.value).toBe("2026-07-01");
 
-    const textInput = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="text"]'))
-      .find((input) => input.value === "2026-06-26");
+    const textInput = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="text"]'),
+    ).find((input) => input.value === "2026-06-26");
     expect(textInput).toBeTruthy();
 
     await flushUi(() => {
@@ -598,9 +639,13 @@ describe("RoutineRunVariablesDialog", () => {
 
     const runButton = findRunButton();
     expect(runButton?.disabled).toBe(true);
-    expect(document.body.textContent).toContain("Missing: startDate, Release on");
+    expect(document.body.textContent).toContain(
+      "Missing: startDate, Release on",
+    );
 
-    const dateInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'));
+    const dateInputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="date"]'),
+    );
     await flushUi(() => {
       setInputValue(dateInputs[0]!, "2026-07-04");
       setInputValue(dateInputs[1]!, "2026-08-01");

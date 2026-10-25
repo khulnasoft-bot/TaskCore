@@ -30,14 +30,17 @@ export function IssueFieldChangeReceipt({
   resolveUserLabel?: (userId: string) => string | null | undefined;
   className?: string;
 }) {
-  const rows = readIssueChangeReceipt(event.details, { resolveAgentLabel, resolveUserLabel });
+  const rows = readIssueChangeReceipt(event.details, {
+    resolveAgentLabel,
+    resolveUserLabel,
+  });
   const reason = issueAuthorizationReasonLabel(
     typeof event.details?.authorizationReason === "string"
       ? event.details.authorizationReason
       : null,
   );
   const responsibleUserName = event.responsibleUserId
-    ? resolveUserLabel?.(event.responsibleUserId) ?? null
+    ? (resolveUserLabel?.(event.responsibleUserId) ?? null)
     : null;
 
   if (rows.length === 0 && !reason) return null;
@@ -60,8 +63,13 @@ export function IssueFieldChangeReceipt({
                 <span className="min-w-0 break-words text-muted-foreground line-through decoration-muted-foreground/50">
                   {row.from}
                 </span>
-                <ArrowRight className="size-3 shrink-0 text-muted-foreground/70" aria-hidden="true" />
-                <span className="min-w-0 break-words font-medium text-foreground">{row.to}</span>
+                <ArrowRight
+                  className="size-3 shrink-0 text-muted-foreground/70"
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 break-words font-medium text-foreground">
+                  {row.to}
+                </span>
                 {/* Long text is stored as a preview, so the receipt says so
                     rather than implying the whole value is shown. */}
                 {row.truncated ? (

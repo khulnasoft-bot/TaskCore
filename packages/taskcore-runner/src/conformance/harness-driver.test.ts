@@ -47,7 +47,10 @@ describe("harness-driver conformance V1", () => {
       message: { role: "user", text: "[conformance:interrupt]" },
     });
     const snapshot = await session.snapshot();
-    expect(snapshot).toMatchObject({ activeTurnId: turnId, lastSourceSequence: 2 });
+    expect(snapshot).toMatchObject({
+      activeTurnId: turnId,
+      lastSourceSequence: 2,
+    });
 
     const firstRecovery = await driver.recoverSession(snapshot);
     expect(firstRecovery.recovered).toBe(true);
@@ -88,10 +91,12 @@ describe("harness-driver conformance V1", () => {
       schema: "taskcore-runner/harness-transcript/v1",
       complete: false,
       eventCount: 3,
-      events: events.map((event) => expect.objectContaining({
-        sourceSeq: event.sourceSeq,
-        eventType: event.eventType,
-      })),
+      events: events.map((event) =>
+        expect.objectContaining({
+          sourceSeq: event.sourceSeq,
+          eventType: event.eventType,
+        }),
+      ),
       omissionReason: "pre_recovery_events_not_reconstructed",
     });
     await recovered.close({ reason: "recovered_complete" });
@@ -113,10 +118,12 @@ describe("harness-driver conformance V1", () => {
     const recovered = recovery.session!;
 
     await new Promise<void>((resolve) => setImmediate(resolve));
-    await expect(recovered.interrupt?.({
-      turnId,
-      reason: "cancel_before_consumption",
-    })).resolves.toBeUndefined();
+    await expect(
+      recovered.interrupt?.({
+        turnId,
+        reason: "cancel_before_consumption",
+      }),
+    ).resolves.toBeUndefined();
     const events = [];
     for await (const event of recovered.events()) events.push(event);
     expect(events.map((event) => [event.sourceSeq, event.eventType])).toEqual([
@@ -153,13 +160,17 @@ describe("harness-driver conformance V1", () => {
 
     const first = await recoveredEvents.next();
     expect(first.value?.eventType).toBe("run.result.proposed");
-    await expect(recovered.interrupt?.({
-      turnId,
-      reason: "cancel_after_event_settlement_started",
-    })).resolves.toBeUndefined();
+    await expect(
+      recovered.interrupt?.({
+        turnId,
+        reason: "cancel_after_event_settlement_started",
+      }),
+    ).resolves.toBeUndefined();
 
     const events = first.done || first.value === undefined ? [] : [first.value];
-    for await (const event of { [Symbol.asyncIterator]: () => recoveredEvents }) {
+    for await (const event of {
+      [Symbol.asyncIterator]: () => recoveredEvents,
+    }) {
       events.push(event);
     }
     expect(events.map((event) => event.eventType)).toEqual([
@@ -167,7 +178,9 @@ describe("harness-driver conformance V1", () => {
       "turn.interrupted",
       "run.terminal",
     ]);
-    expect(events.filter((event) => event.eventType === "run.terminal")).toHaveLength(1);
+    expect(
+      events.filter((event) => event.eventType === "run.terminal"),
+    ).toHaveLength(1);
 
     await recovered.close({ reason: "recovered_complete" });
     await session.close({ reason: "original_complete", force: true });
@@ -198,7 +211,9 @@ describe("harness-driver conformance V1", () => {
       "turn.completed",
       "run.terminal",
     ]);
-    expect(events[0]?.payload).toMatchObject({ reportedWorkDisposition: "done" });
+    expect(events[0]?.payload).toMatchObject({
+      reportedWorkDisposition: "done",
+    });
     expect(events[2]?.payload).toMatchObject({ runTerminalState: "succeeded" });
     await expect(recovered.snapshot()).resolves.toMatchObject({
       activeTurnId: null,
@@ -226,10 +241,12 @@ describe("harness-driver conformance V1", () => {
     });
     const recovered = recovery.session!;
 
-    await expect(recovered.interrupt?.({
-      turnId,
-      reason: "late cancellation",
-    })).resolves.toBeUndefined();
+    await expect(
+      recovered.interrupt?.({
+        turnId,
+        reason: "late cancellation",
+      }),
+    ).resolves.toBeUndefined();
     const events = [];
     for await (const event of recovered.events()) events.push(event);
     expect(events.map((event) => event.eventType)).toEqual([

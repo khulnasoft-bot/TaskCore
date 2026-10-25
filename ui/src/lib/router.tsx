@@ -39,7 +39,9 @@ export function useActiveCompanyPrefix(): string | null {
   const pathPrefix = extractCompanyPrefixFromPath(location.pathname);
   if (pathPrefix) return pathPrefix;
 
-  return selectedCompany ? normalizeCompanyPrefix(selectedCompany.issuePrefix) : null;
+  return selectedCompany
+    ? normalizeCompanyPrefix(selectedCompany.issuePrefix)
+    : null;
 }
 
 /**
@@ -60,22 +62,31 @@ export * from "react-router-dom";
 type CompanyLinkProps = React.ComponentProps<typeof RouterDom.Link> & {
   disableIssueQuicklook?: boolean;
   issuePrefetch?: Issue | null;
-  issueQuicklookSide?: React.ComponentProps<typeof IssueLinkQuicklook>["issueQuicklookSide"];
-  issueQuicklookAlign?: React.ComponentProps<typeof IssueLinkQuicklook>["issueQuicklookAlign"];
+  issueQuicklookSide?: React.ComponentProps<
+    typeof IssueLinkQuicklook
+  >["issueQuicklookSide"];
+  issueQuicklookAlign?: React.ComponentProps<
+    typeof IssueLinkQuicklook
+  >["issueQuicklookAlign"];
 };
 
 export const Link = React.forwardRef<HTMLAnchorElement, CompanyLinkProps>(
-  function CompanyLink({
-    to,
-    disableIssueQuicklook = false,
-    issuePrefetch = null,
-    issueQuicklookSide,
-    issueQuicklookAlign,
-    ...props
-  }, ref) {
+  function CompanyLink(
+    {
+      to,
+      disableIssueQuicklook = false,
+      issuePrefetch = null,
+      issueQuicklookSide,
+      issueQuicklookAlign,
+      ...props
+    },
+    ref,
+  ) {
     const companyPrefix = useActiveCompanyPrefix();
     const resolvedTo = resolveTo(to, companyPrefix);
-    const issuePathId = parseIssuePathIdFromPath(typeof resolvedTo === "string" ? resolvedTo : resolvedTo.pathname);
+    const issuePathId = parseIssuePathIdFromPath(
+      typeof resolvedTo === "string" ? resolvedTo : resolvedTo.pathname,
+    );
 
     if (issuePathId) {
       return (
@@ -96,14 +107,20 @@ export const Link = React.forwardRef<HTMLAnchorElement, CompanyLinkProps>(
   },
 );
 
-export const NavLink = React.forwardRef<HTMLAnchorElement, React.ComponentProps<typeof RouterDom.NavLink>>(
-  function CompanyNavLink({ to, ...props }, ref) {
-    const companyPrefix = useActiveCompanyPrefix();
-    return <RouterDom.NavLink ref={ref} to={resolveTo(to, companyPrefix)} {...props} />;
-  },
-);
+export const NavLink = React.forwardRef<
+  HTMLAnchorElement,
+  React.ComponentProps<typeof RouterDom.NavLink>
+>(function CompanyNavLink({ to, ...props }, ref) {
+  const companyPrefix = useActiveCompanyPrefix();
+  return (
+    <RouterDom.NavLink ref={ref} to={resolveTo(to, companyPrefix)} {...props} />
+  );
+});
 
-export function Navigate({ to, ...props }: React.ComponentProps<typeof RouterDom.Navigate>) {
+export function Navigate({
+  to,
+  ...props
+}: React.ComponentProps<typeof RouterDom.Navigate>) {
   const companyPrefix = useActiveCompanyPrefix();
   return <RouterDom.Navigate to={resolveTo(to, companyPrefix)} {...props} />;
 }

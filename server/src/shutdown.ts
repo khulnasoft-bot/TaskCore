@@ -64,8 +64,14 @@ export async function closeHttpListenerForShutdown(input: {
     return await Promise.race([
       new Promise<"closed">((resolve) => {
         input.server.close((err) => {
-          if (err && (err as NodeJS.ErrnoException).code !== "ERR_SERVER_NOT_RUNNING") {
-            input.log.error({ err, signal: input.signal }, "HTTP listener close failed");
+          if (
+            err &&
+            (err as NodeJS.ErrnoException).code !== "ERR_SERVER_NOT_RUNNING"
+          ) {
+            input.log.error(
+              { err, signal: input.signal },
+              "HTTP listener close failed",
+            );
           }
           resolve("closed");
         });
@@ -197,7 +203,10 @@ const COORDINATED_SHUTDOWN_SIGNALS = ["SIGINT", "SIGTERM"] as const;
 
 type ShutdownSignalTarget = {
   rawListeners(eventName: string): Function[];
-  removeListener(eventName: string, listener: (...args: any[]) => void): unknown;
+  removeListener(
+    eventName: string,
+    listener: (...args: any[]) => void,
+  ): unknown;
 };
 
 /**
@@ -230,7 +239,10 @@ export async function loadWithoutCoordinatedShutdownSignalHooks<T>(
           remainingBeforeLoad.splice(existingIndex, 1);
           continue;
         }
-        signalTarget.removeListener(signal, listener as (...args: any[]) => void);
+        signalTarget.removeListener(
+          signal,
+          listener as (...args: any[]) => void,
+        );
       }
     }
   }
@@ -242,7 +254,8 @@ export async function coordinateHeartbeatSchedulerShutdown<
   TPreparation extends HotRestartShutdownPreparation,
 >(input: {
   signal: "SIGINT" | "SIGTERM";
-  prepareHotRestartShutdown: ((signal: "SIGINT" | "SIGTERM") => Promise<TPreparation>) | null;
+  prepareHotRestartShutdown:
+    ((signal: "SIGINT" | "SIGTERM") => Promise<TPreparation>) | null;
   waitForHeartbeatSchedulerIdle: () => Promise<void>;
 }): Promise<{
   hotRestart: TPreparation | null;

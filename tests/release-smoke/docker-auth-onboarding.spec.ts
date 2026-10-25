@@ -26,7 +26,7 @@ const ADMIN_PASSWORD =
 const BASE_URL =
   process.env.TASKCORE_RELEASE_SMOKE_BASE_URL ?? "http://127.0.0.1:3232";
 const TARGET_IS_LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1)([:/]|$)/i.test(
-  BASE_URL
+  BASE_URL,
 );
 const ANTHROPIC_API_KEY =
   process.env.TASKCORE_RELEASE_SMOKE_ANTHROPIC_API_KEY ??
@@ -103,7 +103,7 @@ test.describe("Docker authenticated onboarding smoke", () => {
     // placeholder to the real provider and timing out deep in the wizard.
     expect(
       ANTHROPIC_API_KEY,
-      "This target reaches the real provider — set TASKCORE_RELEASE_SMOKE_ANTHROPIC_API_KEY to a key it accepts"
+      "This target reaches the real provider — set TASKCORE_RELEASE_SMOKE_ANTHROPIC_API_KEY to a key it accepts",
     ).toBeTruthy();
 
     await signIn(page);
@@ -116,7 +116,7 @@ test.describe("Docker authenticated onboarding smoke", () => {
     // (or a re-used smoke container) runs against one that is not.
     const companiesBeforeOnboarding = await getJson<Array<{ id: string }>>(
       page,
-      `${baseUrl}/api/companies`
+      `${baseUrl}/api/companies`,
     );
     if (companiesBeforeOnboarding.length === 0) {
       await expect(page).toHaveURL(/\/onboarding$/, { timeout: 20_000 });
@@ -160,7 +160,7 @@ test.describe("Docker authenticated onboarding smoke", () => {
     // while the row is still a question (`connectLinkVisible` in
     // OnboardingWizard.tsx).
     await expect(
-      page.getByRole("heading", { name: "Connect a model" })
+      page.getByRole("heading", { name: "Connect a model" }),
     ).toBeVisible({ timeout: 20_000 });
 
     await page
@@ -202,7 +202,7 @@ test.describe("Docker authenticated onboarding smoke", () => {
 
     const companies = await getJson<Array<{ id: string; name: string }>>(
       page,
-      `${baseUrl}/api/companies`
+      `${baseUrl}/api/companies`,
     );
     const company = companies.find((entry) => entry.name === COMPANY_NAME);
     expect(company).toBeTruthy();
@@ -220,7 +220,7 @@ test.describe("Docker authenticated onboarding smoke", () => {
     // goal list rather than an unchosen one.
     const goals = await getJson<Array<{ id: string }>>(
       page,
-      `${baseUrl}/api/companies/${company!.id}/goals`
+      `${baseUrl}/api/companies/${company!.id}/goals`,
     );
     expect(goals).toEqual([]);
 
@@ -232,7 +232,9 @@ test.describe("Docker authenticated onboarding smoke", () => {
         assigneeAgentId: string | null;
       }>
     >(page, `${baseUrl}/api/companies/${company!.id}/issues`);
-    const seededIssue = issues.find((entry) => entry.title === FIRST_TASK_TITLE);
+    const seededIssue = issues.find(
+      (entry) => entry.title === FIRST_TASK_TITLE,
+    );
     expect(seededIssue).toBeTruthy();
     expect(seededIssue!.assigneeAgentId).toBe(leadAgent!.id);
 
@@ -240,7 +242,7 @@ test.describe("Docker authenticated onboarding smoke", () => {
     // some issue route.
     const seededRef = seededIssue!.identifier ?? seededIssue!.id;
     expect(new URL(page.url()).pathname.endsWith(`/issues/${seededRef}`)).toBe(
-      true
+      true,
     );
 
     // #13068 rebuilt the seeded first task as a chat with the lead: launch
@@ -249,15 +251,15 @@ test.describe("Docker authenticated onboarding smoke", () => {
     // user answers". Assert the chat actually opened (the greeting and the
     // card are seeded without an LLM, so their absence means the launch
     // half-finished) …
-    await expect(
-      page.getByText("Welcome to Taskcore!").first()
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Welcome to Taskcore!").first()).toBeVisible({
+      timeout: 20_000,
+    });
     // The timeline also summarizes the unanswered question. Check the open
     // question card so a summary alone cannot satisfy this assertion.
     await expect(
       page
         .getByTestId("task-chat-interaction")
-        .getByText("What would you like to do?", { exact: true })
+        .getByText("What would you like to do?", { exact: true }),
     ).toBeVisible();
 
     // … and that the no-run contract holds. This spec used to poll for an

@@ -12,7 +12,10 @@ import { queryKeys } from "@/lib/queryKeys";
  * `loaded` is false until the health response is in the cache — gates should
  * render nothing rather than flash a surface that may turn out to be hidden.
  */
-export function useHiddenSettings(): { hidden: ReadonlySet<string>; loaded: boolean } {
+export function useHiddenSettings(): {
+  hidden: ReadonlySet<string>;
+  loaded: boolean;
+} {
   const healthQuery = useQuery({
     queryKey: queryKeys.health,
     queryFn: () => healthApi.get(),
@@ -21,7 +24,10 @@ export function useHiddenSettings(): { hidden: ReadonlySet<string>; loaded: bool
 
   const data = healthQuery.data;
   return useMemo(
-    () => ({ hidden: new Set(data?.hiddenSettings ?? []), loaded: data !== undefined }),
+    () => ({
+      hidden: new Set(data?.hiddenSettings ?? []),
+      loaded: data !== undefined,
+    }),
     [data],
   );
 }

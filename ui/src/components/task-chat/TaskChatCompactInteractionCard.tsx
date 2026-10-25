@@ -1041,7 +1041,9 @@ function ConfirmationCard({
             <Button
               type="button"
               size="sm"
-              disabled={working !== null || preparingApproval || !onAcceptInteraction}
+              disabled={
+                working !== null || preparingApproval || !onAcceptInteraction
+              }
               onClick={() => void resolve("accept")}
             >
               {working === "accept" ? (
@@ -1279,7 +1281,12 @@ function CheckboxConfirmationCard({
             <Button
               type="button"
               size="sm"
-              disabled={working !== null || preparingApproval || !validCount || !onAcceptInteraction}
+              disabled={
+                working !== null ||
+                preparingApproval ||
+                !validCount ||
+                !onAcceptInteraction
+              }
               onClick={() => void resolve("accept")}
             >
               {working === "accept" ? (
@@ -1927,12 +1934,16 @@ export function TaskChatCompactInteractionCard({
 
   if (interaction.kind === "connection_intent") {
     return (
-        <ConnectionIntentInteractionBody
-          interaction={interaction}
-          currentUserId={currentUserId}
-          addresseeLabel={addresseeLabel ?? "the addressed user"}
-          addresseeName={interaction.addresseeUserId ? userLabelMap?.get(interaction.addresseeUserId) : undefined}
-        />
+      <ConnectionIntentInteractionBody
+        interaction={interaction}
+        currentUserId={currentUserId}
+        addresseeLabel={addresseeLabel ?? "the addressed user"}
+        addresseeName={
+          interaction.addresseeUserId
+            ? userLabelMap?.get(interaction.addresseeUserId)
+            : undefined
+        }
+      />
     );
   }
 

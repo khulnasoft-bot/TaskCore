@@ -24,11 +24,16 @@ import {
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
 import { drainHeartbeatRunsToQuiescence } from "./helpers/drain-heartbeat-runs.js";
-import { heartbeatService, resolveHeartbeatSchedulingSuppression } from "../services/heartbeat.ts";
+import {
+  heartbeatService,
+  resolveHeartbeatSchedulingSuppression,
+} from "../services/heartbeat.ts";
 import { instanceSettingsService } from "../services/instance-settings.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -38,10 +43,15 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("heartbeat worktree suppression", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   function isHeartbeatRunDependentFkError(error: unknown) {
-    const message = error instanceof Error ? `${error.message} ${String(error.cause ?? "")}` : String(error);
+    const message =
+      error instanceof Error
+        ? `${error.message} ${String(error.cause ?? "")}`
+        : String(error);
     return (
       message.includes("heartbeat_run_events_run_id_heartbeat_runs_id_fk") ||
       message.includes("activity_log_run_id_heartbeat_runs_id_fk")
@@ -57,14 +67,17 @@ describeEmbeddedPostgres("heartbeat worktree suppression", () => {
         await db.delete(heartbeatRuns);
         return;
       } catch (error) {
-        if (!isHeartbeatRunDependentFkError(error) || attempt === 4) throw error;
+        if (!isHeartbeatRunDependentFkError(error) || attempt === 4)
+          throw error;
         await new Promise((resolve) => setTimeout(resolve, 25));
       }
     }
   }
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("heartbeat-worktree-suppression-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "heartbeat-worktree-suppression-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -173,7 +186,12 @@ describeEmbeddedPostgres("heartbeat worktree suppression", () => {
       latestStatus = run?.status ?? null;
       latestLastRunId = state?.lastRunId ?? null;
 
-      if (run && run.status !== "queued" && run.status !== "running" && state?.lastRunId === runId) {
+      if (
+        run &&
+        run.status !== "queued" &&
+        run.status !== "running" &&
+        state?.lastRunId === runId
+      ) {
         return run.status;
       }
 
@@ -248,7 +266,10 @@ describeEmbeddedPostgres("heartbeat worktree suppression", () => {
     expect(tick).toEqual({ checked: 0, enqueued: 0, skipped: 0 });
 
     const [copiedRun] = await db
-      .select({ status: heartbeatRuns.status, startedAt: heartbeatRuns.startedAt })
+      .select({
+        status: heartbeatRuns.status,
+        startedAt: heartbeatRuns.startedAt,
+      })
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId));
     expect(copiedRun).toMatchObject({
@@ -284,12 +305,17 @@ describeEmbeddedPostgres("heartbeat worktree suppression", () => {
     expect(systemRun).toBeNull();
 
     const skippedWake = await db
-      .select({ reason: agentWakeupRequests.reason, payload: agentWakeupRequests.payload })
+      .select({
+        reason: agentWakeupRequests.reason,
+        payload: agentWakeupRequests.payload,
+      })
       .from(agentWakeupRequests)
       .orderBy(sql`${agentWakeupRequests.createdAt} desc`)
       .limit(1)
       .then((rows) => rows[0] ?? null);
-    expect(skippedWake).toMatchObject({ reason: "heartbeat.worktree_execution_cutoff" });
+    expect(skippedWake).toMatchObject({
+      reason: "heartbeat.worktree_execution_cutoff",
+    });
     expect(skippedWake?.payload).toMatchObject({
       heartbeatSkip: { reason: "worktree_execution_cutoff", issueId },
     });
@@ -320,7 +346,11 @@ describeEmbeddedPostgres("heartbeat worktree suppression", () => {
       triggerDetail: "system",
       reason: "issue_assigned",
       payload: { issueId },
-      contextSnapshot: { issueId, wakeReason: "issue_assigned", skipIssueComment: true },
+      contextSnapshot: {
+        issueId,
+        wakeReason: "issue_assigned",
+        skipIssueComment: true,
+      },
       requestedByActorType: "system",
       requestedByActorId: "issue_assignment",
     });
@@ -341,9 +371,11 @@ describeEmbeddedPostgres("heartbeat worktree suppression", () => {
   }, 10_000);
 
   it("recognizes explicit restore-in-progress suppression", () => {
-    expect(resolveHeartbeatSchedulingSuppression({
-      TASKCORE_DATABASE_RESTORE_IN_PROGRESS: "true",
-    })).toEqual({
+    expect(
+      resolveHeartbeatSchedulingSuppression({
+        TASKCORE_DATABASE_RESTORE_IN_PROGRESS: "true",
+      }),
+    ).toEqual({
       suppressed: true,
       reason: "database_restore_in_progress",
     });

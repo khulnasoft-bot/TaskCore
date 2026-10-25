@@ -10,8 +10,11 @@ vi.mock("@taskcore/adapter-utils/execution-target", () => ({
   ensureAdapterExecutionTargetCommandResolvable: ensureCommandMock,
   ensureAdapterExecutionTargetDirectory: ensureDirectoryMock,
   maybeRunSandboxInstallCommand: maybeInstallMock,
-  resolveAdapterExecutionTargetCwd: (_target: unknown, configuredCwd: string, fallbackCwd: string) =>
-    configuredCwd || fallbackCwd,
+  resolveAdapterExecutionTargetCwd: (
+    _target: unknown,
+    configuredCwd: string,
+    fallbackCwd: string,
+  ) => configuredCwd || fallbackCwd,
   runAdapterExecutionTargetProcess: runProcessMock,
 }));
 
@@ -48,7 +51,11 @@ describe("kimi_local testEnvironment", () => {
         timedOut: false,
         stdout: [
           JSON.stringify({ role: "assistant", content: "hello" }),
-          JSON.stringify({ role: "meta", type: "session.resume_hint", session_id: "session_1" }),
+          JSON.stringify({
+            role: "meta",
+            type: "session.resume_hint",
+            session_id: "session_1",
+          }),
         ].join("\n"),
         stderr: "",
       });
@@ -101,7 +108,13 @@ describe("kimi_local testEnvironment", () => {
 
   it("passes -m to the hello probe when a model is configured", async () => {
     runProcessMock
-      .mockResolvedValueOnce({ exitCode: 0, signal: null, timedOut: false, stdout: "kimi 0.27.0\n", stderr: "" })
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "kimi 0.27.0\n",
+        stderr: "",
+      })
       .mockResolvedValueOnce({
         exitCode: 0,
         signal: null,
@@ -118,7 +131,10 @@ describe("kimi_local testEnvironment", () => {
         command: "kimi",
         cwd: "/tmp/project",
         model: "kimi-code/k3",
-        env: { KIMI_MODEL_NAME: "kimi-code/k3", KIMI_MODEL_API_KEY: "test-key" },
+        env: {
+          KIMI_MODEL_NAME: "kimi-code/k3",
+          KIMI_MODEL_API_KEY: "test-key",
+        },
       },
     });
 
@@ -134,13 +150,20 @@ describe("kimi_local testEnvironment", () => {
 
   it("downgrades missing auth and auth probe failures to warnings", async () => {
     runProcessMock
-      .mockResolvedValueOnce({ exitCode: 0, signal: null, timedOut: false, stdout: "kimi 0.27.0\n", stderr: "" })
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "kimi 0.27.0\n",
+        stderr: "",
+      })
       .mockResolvedValueOnce({
         exitCode: 1,
         signal: null,
         timedOut: false,
         stdout: "",
-        stderr: "Not authenticated. Run `kimi login` to authenticate with a device code.",
+        stderr:
+          "Not authenticated. Run `kimi login` to authenticate with a device code.",
       });
 
     const result = await testEnvironment({

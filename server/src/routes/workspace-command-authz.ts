@@ -13,7 +13,10 @@ function prefixPath(prefix: string, key: string) {
   return prefix.length > 0 ? `${prefix}.${key}` : key;
 }
 
-function collectWorkspaceStrategyCommandPaths(raw: unknown, prefix: string): string[] {
+function collectWorkspaceStrategyCommandPaths(
+  raw: unknown,
+  prefix: string,
+): string[] {
   if (!isRecord(raw)) return [];
   const paths: string[] = [];
   if (hasOwn(raw, "provisionCommand")) {
@@ -28,7 +31,10 @@ function collectWorkspaceStrategyCommandPaths(raw: unknown, prefix: string): str
   return paths;
 }
 
-function collectWorkspaceRuntimeCommandPaths(raw: unknown, prefix: string): string[] {
+function collectWorkspaceRuntimeCommandPaths(
+  raw: unknown,
+  prefix: string,
+): string[] {
   if (!isRecord(raw)) return [];
   const paths: string[] = [];
   for (const collectionKey of ["commands", "services", "jobs"] as const) {
@@ -43,7 +49,10 @@ function collectWorkspaceRuntimeCommandPaths(raw: unknown, prefix: string): stri
   return paths;
 }
 
-function collectExecutionWorkspaceConfigCommandPaths(raw: unknown, prefix: string): string[] {
+function collectExecutionWorkspaceConfigCommandPaths(
+  raw: unknown,
+  prefix: string,
+): string[] {
   if (!isRecord(raw)) return [];
   const paths: string[] = [];
   if (hasOwn(raw, "provisionCommand")) {
@@ -67,7 +76,10 @@ function collectExecutionWorkspaceConfigCommandPaths(raw: unknown, prefix: strin
   return paths;
 }
 
-export function assertNoAgentHostWorkspaceCommandMutation(req: Request, paths: string[]) {
+export function assertNoAgentHostWorkspaceCommandMutation(
+  req: Request,
+  paths: string[],
+) {
   if (req.actor.type !== "agent" || paths.length === 0) return;
   throw forbidden(
     `Agent keys cannot modify host-executed workspace commands (${paths.join(", ")}).`,
@@ -85,7 +97,9 @@ export function collectAgentAdapterWorkspaceCommandPaths(
   );
 }
 
-export function collectProjectExecutionWorkspaceCommandPaths(policy: unknown): string[] {
+export function collectProjectExecutionWorkspaceCommandPaths(
+  policy: unknown,
+): string[] {
   if (!isRecord(policy)) return [];
   return [
     ...collectWorkspaceStrategyCommandPaths(
@@ -157,10 +171,17 @@ export function collectExecutionWorkspaceCommandPaths(input: {
 }): string[] {
   const paths: string[] = [];
   if (input.config !== undefined) {
-    paths.push(...collectExecutionWorkspaceConfigCommandPaths(input.config, "config"));
+    paths.push(
+      ...collectExecutionWorkspaceConfigCommandPaths(input.config, "config"),
+    );
   }
   if (isRecord(input.metadata) && hasOwn(input.metadata, "config")) {
-    paths.push(...collectExecutionWorkspaceConfigCommandPaths(input.metadata.config, "metadata.config"));
+    paths.push(
+      ...collectExecutionWorkspaceConfigCommandPaths(
+        input.metadata.config,
+        "metadata.config",
+      ),
+    );
   }
   return paths;
 }

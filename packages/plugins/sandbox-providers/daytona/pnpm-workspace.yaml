@@ -1,5 +1,5 @@
 packages:
-  - '.'
+  - "."
 
 # The SDK ships generated protobuf code; its optional install script is not needed.
 allowBuilds:

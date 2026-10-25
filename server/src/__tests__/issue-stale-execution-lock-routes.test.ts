@@ -23,7 +23,9 @@ import { errorHandler } from "../middleware/index.js";
 import { issueRoutes } from "../routes/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -35,10 +37,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("stale issue execution lock routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-stale-execution-lock-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-stale-execution-lock-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -82,8 +88,25 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
       requireBoardApprovalForNewAgents: false,
     });
-    await db.insert(authUsers).values({ id: "board-user", name: "Board", email: "board@example.test", createdAt: new Date(), updatedAt: new Date() }).onConflictDoNothing();
-    await db.insert(companyMemberships).values({ companyId, principalType: "user", principalId: "board-user", status: "active", membershipRole: "admin" });
+    await db
+      .insert(authUsers)
+      .values({
+        id: "board-user",
+        name: "Board",
+        email: "board@example.test",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing();
+    await db
+      .insert(companyMemberships)
+      .values({
+        companyId,
+        principalType: "user",
+        principalId: "board-user",
+        status: "active",
+        membershipRole: "admin",
+      });
     await db.insert(agents).values({
       id: agentId,
       companyId,
@@ -117,7 +140,11 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
     return { companyId, agentId, failedRunId, currentRunId };
   }
 
-  function agentActor(companyId: string, agentId: string, runId: string): Express.Request["actor"] {
+  function agentActor(
+    companyId: string,
+    agentId: string,
+    runId: string,
+  ): Express.Request["actor"] {
     return {
       type: "agent",
       agentId,
@@ -139,7 +166,8 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
   }
 
   it("allows an assigned agent PATCH to recover a terminal stale executionRunId", async () => {
-    const { companyId, agentId, failedRunId, currentRunId } = await seedCompanyAgentAndRuns();
+    const { companyId, agentId, failedRunId, currentRunId } =
+      await seedCompanyAgentAndRuns();
     const issueId = randomUUID();
     await db.insert(issues).values({
       id: issueId,
@@ -153,11 +181,14 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       executionAgentNameKey: "codexcoder",
       executionLockedAt: new Date(),
     });
-    await db.update(heartbeatRuns)
+    await db
+      .update(heartbeatRuns)
       .set({ contextSnapshot: { issueId } })
       .where(eq(heartbeatRuns.id, currentRunId));
 
-    const res = await request(createApp(agentActor(companyId, agentId, currentRunId)))
+    const res = await request(
+      createApp(agentActor(companyId, agentId, currentRunId)),
+    )
       .patch(`/api/issues/${issueId}`)
       .send({ title: "Recovered execution lock" });
 
@@ -181,17 +212,45 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
   });
 
   it.each([
-    { status: "done" as const, title: "Done release preserves owner", completedAt: new Date(), retainAssignee: true },
-    { status: "cancelled" as const, title: "Cancelled release preserves owner", cancelledAt: new Date(), retainAssignee: true },
-    { status: "in_review" as const, title: "In review release preserves status" },
+    {
+      status: "done" as const,
+      title: "Done release preserves owner",
+      completedAt: new Date(),
+      retainAssignee: true,
+    },
+    {
+      status: "cancelled" as const,
+      title: "Cancelled release preserves owner",
+      cancelledAt: new Date(),
+      retainAssignee: true,
+    },
+    {
+      status: "in_review" as const,
+      title: "In review release preserves status",
+    },
     { status: "blocked" as const, title: "Blocked release preserves status" },
-    { status: "backlog" as const, title: "Backlog release relinquishes ownership" },
+    {
+      status: "backlog" as const,
+      title: "Backlog release relinquishes ownership",
+    },
     { status: "todo" as const, title: "Todo release relinquishes ownership" },
-    { status: "in_progress" as const, title: "Active release requeues work", expectedStatus: "todo" },
+    {
+      status: "in_progress" as const,
+      title: "Active release requeues work",
+      expectedStatus: "todo",
+    },
   ])(
     "$title and clears execution locks",
-    async ({ status, title, completedAt, cancelledAt, retainAssignee, expectedStatus = status }) => {
-      const { companyId, agentId, currentRunId } = await seedCompanyAgentAndRuns();
+    async ({
+      status,
+      title,
+      completedAt,
+      cancelledAt,
+      retainAssignee,
+      expectedStatus = status,
+    }) => {
+      const { companyId, agentId, currentRunId } =
+        await seedCompanyAgentAndRuns();
       const issueId = randomUUID();
       await db.insert(issues).values({
         id: issueId,
@@ -208,13 +267,18 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
         ...(cancelledAt ? { cancelledAt } : {}),
       });
 
-      const res = await request(createApp(agentActor(companyId, agentId, currentRunId)))
+      const res = await request(
+        createApp(agentActor(companyId, agentId, currentRunId)),
+      )
         .post(`/api/issues/${issueId}/release`)
         .send();
 
       expect(res.status, JSON.stringify(res.body)).toBe(200);
       const expectedAssignee = retainAssignee ? agentId : null;
-      expect(res.body).toMatchObject({ status: expectedStatus, assigneeAgentId: expectedAssignee });
+      expect(res.body).toMatchObject({
+        status: expectedStatus,
+        assigneeAgentId: expectedAssignee,
+      });
 
       const row = await db
         .select({
@@ -241,10 +305,18 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
         cancelledAt: cancelledAt ?? null,
       });
 
-      const events = await db.select().from(activityLog).where(eq(activityLog.entityId, issueId));
-      expect(events).toContainEqual(expect.objectContaining({
-        action: "issue.released", companyId, agentId, runId: currentRunId,
-      }));
+      const events = await db
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.entityId, issueId));
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          action: "issue.released",
+          companyId,
+          agentId,
+          runId: currentRunId,
+        }),
+      );
 
       if (retainAssignee) {
         // Repeated cleanup, including by the board, must not erase attribution.
@@ -252,15 +324,24 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
           .post(`/api/issues/${issueId}/release`)
           .send();
         expect(retried.status, JSON.stringify(retried.body)).toBe(200);
-        expect(retried.body).toMatchObject({ status, assigneeAgentId: agentId, checkoutRunId: null, executionRunId: null });
-        const [saved] = await db.select().from(issues).where(eq(issues.id, issueId));
+        expect(retried.body).toMatchObject({
+          status,
+          assigneeAgentId: agentId,
+          checkoutRunId: null,
+          executionRunId: null,
+        });
+        const [saved] = await db
+          .select()
+          .from(issues)
+          .where(eq(issues.id, issueId));
         expect(saved).toMatchObject(row);
       }
     },
   );
 
   it("allows the rightful assignee to release after the owning run failed", async () => {
-    const { companyId, agentId, failedRunId, currentRunId } = await seedCompanyAgentAndRuns();
+    const { companyId, agentId, failedRunId, currentRunId } =
+      await seedCompanyAgentAndRuns();
     const issueId = randomUUID();
     await db.insert(issues).values({
       id: issueId,
@@ -275,7 +356,9 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       executionLockedAt: new Date(),
     });
 
-    const res = await request(createApp(agentActor(companyId, agentId, currentRunId)))
+    const res = await request(
+      createApp(agentActor(companyId, agentId, currentRunId)),
+    )
       .post(`/api/issues/${issueId}/release`)
       .send();
 
@@ -302,7 +385,8 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
   });
 
   it("lets the current assignee recover a timed_out stale checkout owner during PATCH", async () => {
-    const { companyId, agentId, currentRunId } = await seedCompanyAgentAndRuns();
+    const { companyId, agentId, currentRunId } =
+      await seedCompanyAgentAndRuns();
     const timedOutRunId = randomUUID();
     const issueId = randomUUID();
     await db.insert(heartbeatRuns).values({
@@ -325,11 +409,14 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       executionAgentNameKey: "codexcoder",
       executionLockedAt: new Date(),
     });
-    await db.update(heartbeatRuns)
+    await db
+      .update(heartbeatRuns)
       .set({ contextSnapshot: { issueId } })
       .where(eq(heartbeatRuns.id, currentRunId));
 
-    const res = await request(createApp(agentActor(companyId, agentId, currentRunId)))
+    const res = await request(
+      createApp(agentActor(companyId, agentId, currentRunId)),
+    )
       .patch(`/api/issues/${issueId}`)
       .send({ title: "Recovered stale checkout lock" });
 
@@ -373,7 +460,9 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       executionLockedAt: new Date(),
     });
 
-    const res = await request(createApp(agentActor(companyId, agentId, failedRunId)))
+    const res = await request(
+      createApp(agentActor(companyId, agentId, failedRunId)),
+    )
       .patch(`/api/issues/${issueId}`)
       .send({ title: "Should fail" });
 
@@ -382,7 +471,8 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
   });
 
   it("preserves live checkout ownership on checkout conflicts without retry side effects", async () => {
-    const { companyId, agentId, currentRunId } = await seedCompanyAgentAndRuns();
+    const { companyId, agentId, currentRunId } =
+      await seedCompanyAgentAndRuns();
     const contenderRunId = randomUUID();
     const issueId = randomUUID();
     await db.insert(heartbeatRuns).values({
@@ -406,7 +496,9 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       executionLockedAt: new Date(),
     });
 
-    const res = await request(createApp(agentActor(companyId, agentId, contenderRunId)))
+    const res = await request(
+      createApp(agentActor(companyId, agentId, contenderRunId)),
+    )
       .post(`/api/issues/${issueId}/checkout`)
       .send({
         agentId,
@@ -443,7 +535,8 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
   });
 
   it("restricts admin force-release to board users with company access and writes an audit event", async () => {
-    const { companyId, agentId, failedRunId, currentRunId } = await seedCompanyAgentAndRuns();
+    const { companyId, agentId, failedRunId, currentRunId } =
+      await seedCompanyAgentAndRuns();
     const issueId = randomUUID();
     await db.insert(issues).values({
       id: issueId,
@@ -461,14 +554,16 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
     await request(createApp(agentActor(companyId, agentId, currentRunId)))
       .post(`/api/issues/${issueId}/admin/force-release`)
       .expect(403);
-    await request(createApp({
-      type: "board",
-      userId: "outside-user",
-      companyIds: [],
-      memberships: [],
-      isInstanceAdmin: false,
-      source: "session",
-    }))
+    await request(
+      createApp({
+        type: "board",
+        userId: "outside-user",
+        companyIds: [],
+        memberships: [],
+        isInstanceAdmin: false,
+        source: "session",
+      }),
+    )
       .post(`/api/issues/${issueId}/admin/force-release`)
       .expect(404);
 
@@ -518,7 +613,8 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
     // was cleared by releaseIssueExecutionAndPromote, but checkoutRunId stayed
     // pinned to the dead run. The new agent's POST /checkout would 409 forever
     // without the clearCheckoutRunIfTerminal helper in svc.checkout.
-    const { companyId, agentId, failedRunId, currentRunId } = await seedCompanyAgentAndRuns();
+    const { companyId, agentId, failedRunId, currentRunId } =
+      await seedCompanyAgentAndRuns();
     const issueId = randomUUID();
     const otherAgentId = randomUUID();
     await db.insert(agents).values({
@@ -547,7 +643,9 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       executionLockedAt: null,
     });
 
-    const res = await request(createApp(agentActor(companyId, otherAgentId, currentRunId)))
+    const res = await request(
+      createApp(agentActor(companyId, otherAgentId, currentRunId)),
+    )
       .post(`/api/issues/${issueId}/checkout`)
       .send({
         agentId: otherAgentId,

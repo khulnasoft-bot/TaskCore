@@ -1,4 +1,7 @@
-import { isIncompleteFirstTaskResult, renderCaseOutcome } from "./case-outcome.js";
+import {
+  isIncompleteFirstTaskResult,
+  renderCaseOutcome,
+} from "./case-outcome.js";
 import { renderFirstTaskDetails } from "./first-task-report.js";
 import {
   discoverReportCatalog,
@@ -61,11 +64,17 @@ function durationLabel(durationMs: number) {
 
 function tokenLabel(value: number, llm?: RunnerE2EBillingSummary["llm"]) {
   const formatted = new Intl.NumberFormat("en-US").format(value);
-  return llm ? billingCoverageLabel(formatted, llm.runsWithTokenUsage, llm.runCount) : formatted;
+  return llm
+    ? billingCoverageLabel(formatted, llm.runsWithTokenUsage, llm.runCount)
+    : formatted;
 }
 
 function llmCostLabel(value: number, llm: RunnerE2EBillingSummary["llm"]) {
-  return billingCoverageLabel(usdLabel(value), llm.runsWithReportedCost, llm.runCount);
+  return billingCoverageLabel(
+    usdLabel(value),
+    llm.runsWithReportedCost,
+    llm.runCount,
+  );
 }
 
 function usdLabel(value: number | null) {
@@ -180,12 +189,18 @@ function renderCase(
   const firstTaskChecks = entry?.result.firstTask?.checks;
   const notReached = firstTaskChecks?.filter((c) => c.notReached).length ?? 0;
   const matcherResults = firstTaskChecks?.length
-    ? firstTaskChecks.filter((c) => !c.notReached).map((c) => ({
-        matcher: { kind: "json_path" as const, path: `firstTask.checks.${c.id}`, expected: true },
-        passed: c.passed,
-        detail: c.detail,
-      }))
-    : entry?.result.matcherResults ?? [];
+    ? firstTaskChecks
+        .filter((c) => !c.notReached)
+        .map((c) => ({
+          matcher: {
+            kind: "json_path" as const,
+            path: `firstTask.checks.${c.id}`,
+            expected: true,
+          },
+          passed: c.passed,
+          detail: c.detail,
+        }))
+    : (entry?.result.matcherResults ?? []);
   const passedMatchers = matcherResults.filter(
     (result) => result.passed,
   ).length;
@@ -214,7 +229,12 @@ function renderCase(
     ["snapshots/first-task.json", "Full conversation and instruction JSON"],
     ["snapshots/first-task-run-evidence.json", "Full run / tool-event JSON"],
     ["regraded-result.json", "Regraded result JSON"],
-    ["result.json", availableFiles?.has("regraded-result.json") ? "Original result JSON" : "Complete result JSON"],
+    [
+      "result.json",
+      availableFiles?.has("regraded-result.json")
+        ? "Original result JSON"
+        : "Complete result JSON",
+    ],
   ].flatMap(([file, label]) => {
     if (!availableFiles?.has(file)) return [];
     const href = safeEvidenceHref(entry?.evidenceBaseHref, file);
@@ -502,7 +522,12 @@ function renderHistory(history: RunnerE2EHistoryIndex | undefined) {
     .join("");
   const rows = history.campaigns
     .map((campaign) => {
-      const status = campaign.failed > 0 ? "failed" : (campaign.incomplete ?? 0) > 0 ? "incomplete" : "passed";
+      const status =
+        campaign.failed > 0
+          ? "failed"
+          : (campaign.incomplete ?? 0) > 0
+            ? "incomplete"
+            : "passed";
       const sha = campaign.source.sha;
       const searchable = [
         campaign.campaignId,
@@ -629,7 +654,6 @@ function renderSuiteMatrix(input: {
   </section>`;
 }
 
-
 export function renderRunnerE2EDashboard(input: RunnerDashboardInput) {
   const catalog = discoverReportCatalog({
     catalog: input.catalog,
@@ -644,8 +668,9 @@ export function renderRunnerE2EDashboard(input: RunnerDashboardInput) {
     expected.has(entry.result.executionId),
   );
   const passed = selectedEntries.filter((entry) => entry.valid).length;
-  const incomplete = selectedEntries.filter((entry) =>
-    !entry.valid && isIncompleteFirstTaskResult(entry.result, entry.errors),
+  const incomplete = selectedEntries.filter(
+    (entry) =>
+      !entry.valid && isIncompleteFirstTaskResult(entry.result, entry.errors),
   ).length;
   const failed = input.expected.length - passed - incomplete;
   const totalDuration = selectedEntries.reduce(

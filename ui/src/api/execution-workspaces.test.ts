@@ -107,17 +107,26 @@ describe("executionWorkspacesApi.reconcile", () => {
   it("posts forward reconcile to the /reconcile-branch route", async () => {
     await executionWorkspacesApi.reconcile("workspace-1", { mode: "forward" });
 
-    expect(mockApi.post).toHaveBeenCalledWith("/execution-workspaces/workspace-1/reconcile-branch", {
-      mode: "forward",
-    });
+    expect(mockApi.post).toHaveBeenCalledWith(
+      "/execution-workspaces/workspace-1/reconcile-branch",
+      {
+        mode: "forward",
+      },
+    );
   });
 
   it("posts break-glass override reconcile to the /reconcile-branch route", async () => {
-    await executionWorkspacesApi.reconcile("workspace-1", { mode: "override", reason: "operator note" });
-
-    expect(mockApi.post).toHaveBeenCalledWith("/execution-workspaces/workspace-1/reconcile-branch", {
+    await executionWorkspacesApi.reconcile("workspace-1", {
       mode: "override",
       reason: "operator note",
     });
+
+    expect(mockApi.post).toHaveBeenCalledWith(
+      "/execution-workspaces/workspace-1/reconcile-branch",
+      {
+        mode: "override",
+        reason: "operator note",
+      },
+    );
   });
 });

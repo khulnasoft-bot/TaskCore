@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const stylesheet = readFileSync(fileURLToPath(new URL("../index.css", import.meta.url)), "utf8");
+const stylesheet = readFileSync(
+  fileURLToPath(new URL("../index.css", import.meta.url)),
+  "utf8",
+);
 
 function cssBlock(selector: string): string {
   const start = stylesheet.indexOf(`${selector} {`);
@@ -10,8 +13,13 @@ function cssBlock(selector: string): string {
 
   const bodyStart = stylesheet.indexOf("{", start);
   const bodyEnd = stylesheet.indexOf("\n}", bodyStart);
-  expect(bodyStart, `Missing CSS block start: ${selector}`).toBeGreaterThanOrEqual(0);
-  expect(bodyEnd, `Missing CSS block end: ${selector}`).toBeGreaterThan(bodyStart);
+  expect(
+    bodyStart,
+    `Missing CSS block start: ${selector}`,
+  ).toBeGreaterThanOrEqual(0);
+  expect(bodyEnd, `Missing CSS block end: ${selector}`).toBeGreaterThan(
+    bodyStart,
+  );
 
   return stylesheet.slice(bodyStart + 1, bodyEnd);
 }
@@ -29,15 +37,19 @@ describe("accent markdown styles", () => {
   });
 
   it("keeps ordered-list markers and rendered link variants readable on accent bubbles", () => {
-    expect(cssBlock(".taskcore-markdown.taskcore-markdown-on-accent li::marker")).toContain(
-      "color: currentColor",
-    );
-    expect(cssBlock(".taskcore-markdown.taskcore-markdown-on-accent :where(a, a:visited)")).toContain(
-      "color: currentColor",
-    );
-    expect(cssBlock(".taskcore-markdown.taskcore-markdown-on-accent .taskcore-workspace-file-link")).toContain(
-      "color: currentColor",
-    );
+    expect(
+      cssBlock(".taskcore-markdown.taskcore-markdown-on-accent li::marker"),
+    ).toContain("color: currentColor");
+    expect(
+      cssBlock(
+        ".taskcore-markdown.taskcore-markdown-on-accent :where(a, a:visited)",
+      ),
+    ).toContain("color: currentColor");
+    expect(
+      cssBlock(
+        ".taskcore-markdown.taskcore-markdown-on-accent .taskcore-workspace-file-link",
+      ),
+    ).toContain("color: currentColor");
     expect(
       cssBlock(
         ".taskcore-markdown.taskcore-markdown-on-accent :where(a.taskcore-mention-chip, a.taskcore-project-mention-chip)",

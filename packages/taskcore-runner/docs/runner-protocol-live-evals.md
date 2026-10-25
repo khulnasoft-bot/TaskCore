@@ -324,7 +324,6 @@ pnpm --filter @taskcore/taskcore-runner \
   --output /tmp/runner-protocol-eval-catalog.json
 ```
 
-
 For Grok qualification, select `protocol-live-acpx-grok` and its exact eval
 revision. Set `max_parallel: 2` when the API key has a low custom rate limit;
 this admits one case per shard. The override can only lower the configured

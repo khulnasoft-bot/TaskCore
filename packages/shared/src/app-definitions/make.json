@@ -3,17 +3,13 @@
   "slug": "make",
   "name": "Make",
   "description": "Connect Make's provider-hosted MCP server.",
-  "categories": [
-    "productivity"
-  ],
+  "categories": ["productivity"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/make.svg",
     "darkLogoUrl": "/brands/apps/make-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.make.com/*"
-  ],
+  "urlPatterns": ["https://mcp.make.com/*"],
   "docsUrl": "https://developers.make.com/mcp-server",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,9 +17,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.make.com"
@@ -34,9 +28,7 @@
       "consoleLinks": {
         "docs": "https://developers.make.com/mcp-server"
       },
-      "warnings": [
-        "A Make account and access to the scenarios exposed to MCP."
-      ]
+      "warnings": ["A Make account and access to the scenarios exposed to MCP."]
     }
   ]
 }

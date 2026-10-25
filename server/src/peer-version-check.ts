@@ -22,7 +22,9 @@ function readOwnPeerDependencies(): Record<string, string> {
   try {
     const pkgUrl = new URL("../package.json", import.meta.url);
     const raw = readFileSync(pkgUrl, "utf8");
-    const parsed = JSON.parse(raw) as { peerDependencies?: Record<string, string> };
+    const parsed = JSON.parse(raw) as {
+      peerDependencies?: Record<string, string>;
+    };
     return parsed.peerDependencies ?? {};
   } catch {
     return {};
@@ -87,7 +89,8 @@ export function checkExactPeerVersions(
   peerDependencies: Record<string, string> = readOwnPeerDependencies(),
 ): { ok: true } | { ok: false; diagnostic: string; detail: unknown } {
   const missing: string[] = [];
-  const mismatched: { name: string; installed: string; expected: string }[] = [];
+  const mismatched: { name: string; installed: string; expected: string }[] =
+    [];
 
   for (const name of packageNames) {
     const expected = peerDependencies[name];
@@ -103,7 +106,9 @@ export function checkExactPeerVersions(
 
   const parts: string[] = [];
   if (missing.length > 0) {
-    parts.push(`the @opentelemetry/* packages are not installed: ${missing.join(", ")}`);
+    parts.push(
+      `the @opentelemetry/* packages are not installed: ${missing.join(", ")}`,
+    );
   }
   if (mismatched.length > 0) {
     const detail = mismatched

@@ -17,7 +17,7 @@ function nonEmptyTrimmed(value: string | null | undefined): string | null {
 }
 
 export function normalizeJoinRequestEmail(
-  email: string | null | undefined
+  email: string | null | undefined,
 ): string | null {
   const trimmed = nonEmptyTrimmed(email);
   return trimmed ? trimmed.toLowerCase() : null;
@@ -27,7 +27,7 @@ export function humanJoinRequestIdentity(
   row: Pick<
     JoinRequestLike,
     "requestType" | "requestingUserId" | "requestEmailSnapshot"
-  >
+  >,
 ): string | null {
   if (row.requestType !== "human") return null;
   const requestingUserId = nonEmptyTrimmed(row.requestingUserId);
@@ -39,11 +39,18 @@ export function humanJoinRequestIdentity(
 export function findReusableHumanJoinRequest<
   T extends Pick<
     JoinRequestLike,
-    "id" | "requestType" | "status" | "requestingUserId" | "requestEmailSnapshot"
+    | "id"
+    | "requestType"
+    | "status"
+    | "requestingUserId"
+    | "requestEmailSnapshot"
   >,
 >(
   rows: T[],
-  actor: { requestingUserId?: string | null; requestEmailSnapshot?: string | null }
+  actor: {
+    requestingUserId?: string | null;
+    requestEmailSnapshot?: string | null;
+  },
 ): T | null {
   const actorUserId = nonEmptyTrimmed(actor.requestingUserId);
   if (actorUserId) {
@@ -51,7 +58,7 @@ export function findReusableHumanJoinRequest<
       (row) =>
         row.requestType === "human" &&
         (row.status === "pending_approval" || row.status === "approved") &&
-        row.requestingUserId === actorUserId
+        row.requestingUserId === actorUserId,
     );
     if (sameUser) return sameUser;
   }
@@ -63,7 +70,7 @@ export function findReusableHumanJoinRequest<
       (row) =>
         row.requestType === "human" &&
         (row.status === "pending_approval" || row.status === "approved") &&
-        normalizeJoinRequestEmail(row.requestEmailSnapshot) === actorEmail
+        normalizeJoinRequestEmail(row.requestEmailSnapshot) === actorEmail,
     ) ?? null
   );
 }
@@ -71,7 +78,11 @@ export function findReusableHumanJoinRequest<
 export function collapseDuplicatePendingHumanJoinRequests<
   T extends Pick<
     JoinRequestLike,
-    "id" | "requestType" | "status" | "requestingUserId" | "requestEmailSnapshot"
+    | "id"
+    | "requestType"
+    | "status"
+    | "requestingUserId"
+    | "requestEmailSnapshot"
   >,
 >(rows: T[]): T[] {
   const seen = new Set<string>();

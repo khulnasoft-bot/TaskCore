@@ -65,13 +65,18 @@ export function redactEnvironmentCustomImageTemplate<
 >(template: T): T {
   return {
     ...template,
-    templateRef: template.templateRef == null ? template.templateRef : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
-    sourceTemplateRef: template.sourceTemplateRef == null
-      ? template.sourceTemplateRef
-      : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
-    metadata: template.metadata == null
-      ? template.metadata
-      : redactEnvironmentCustomImageValue(template.metadata),
+    templateRef:
+      template.templateRef == null
+        ? template.templateRef
+        : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    sourceTemplateRef:
+      template.sourceTemplateRef == null
+        ? template.sourceTemplateRef
+        : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    metadata:
+      template.metadata == null
+        ? template.metadata
+        : redactEnvironmentCustomImageValue(template.metadata),
   };
 }
 
@@ -86,30 +91,36 @@ export interface EnvironmentCustomImageSetupSessionRedactionInput {
 export function redactEnvironmentCustomImageSetupSession<
   T extends EnvironmentCustomImageSetupSessionRedactionInput,
 >(session: T): T {
-  const connectionSummary = session.connectionSummary == null
-    ? session.connectionSummary
-    : {
-        ...redactEnvironmentCustomImageValue(session.connectionSummary),
-        ...(
-          Object.prototype.hasOwnProperty.call(session.connectionSummary, "username")
+  const connectionSummary =
+    session.connectionSummary == null
+      ? session.connectionSummary
+      : {
+          ...redactEnvironmentCustomImageValue(session.connectionSummary),
+          ...(Object.prototype.hasOwnProperty.call(
+            session.connectionSummary,
+            "username",
+          )
             ? { username: REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE }
-            : {}
-        ),
-      };
+            : {}),
+        };
   return {
     ...session,
-    providerLeaseId: session.providerLeaseId == null
-      ? session.providerLeaseId
-      : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
-    baseTemplateRef: session.baseTemplateRef == null
-      ? session.baseTemplateRef
-      : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
-    connectionSecretRef: session.connectionSecretRef == null
-      ? session.connectionSecretRef
-      : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    providerLeaseId:
+      session.providerLeaseId == null
+        ? session.providerLeaseId
+        : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    baseTemplateRef:
+      session.baseTemplateRef == null
+        ? session.baseTemplateRef
+        : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    connectionSecretRef:
+      session.connectionSecretRef == null
+        ? session.connectionSecretRef
+        : REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
     connectionSummary,
-    metadata: session.metadata == null
-      ? session.metadata
-      : redactEnvironmentCustomImageValue(session.metadata),
+    metadata:
+      session.metadata == null
+        ? session.metadata
+        : redactEnvironmentCustomImageValue(session.metadata),
   };
 }

@@ -161,9 +161,9 @@ export interface InstanceExperimentalSettings {
  * (activation cutoffs, lookback hours) are excluded by construction.
  */
 export type ManagedExperimentalFeatureKey = {
-  [K in keyof InstanceExperimentalSettings]-?: InstanceExperimentalSettings[K] extends boolean
-    ? K
-    : never;
+  [
+    K in keyof InstanceExperimentalSettings
+  ]-?: InstanceExperimentalSettings[K] extends boolean ? K : never;
 }[keyof InstanceExperimentalSettings];
 
 export const TASKCORE_CLOUD_MANAGED_BY = "taskcore-cloud" as const;
@@ -180,7 +180,9 @@ export interface ManagedSettingMetadata {
  * whose value is overlaid by the harness; self-hosted responses omit it.
  */
 export interface InstanceExperimentalSettingsWithManaged extends InstanceExperimentalSettings {
-  managedKeys?: Partial<Record<ManagedExperimentalFeatureKey, ManagedSettingMetadata>>;
+  managedKeys?: Partial<
+    Record<ManagedExperimentalFeatureKey, ManagedSettingMetadata>
+  >;
 }
 
 export interface InstanceSettings {

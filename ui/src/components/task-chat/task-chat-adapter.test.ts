@@ -7,27 +7,41 @@ import {
 
 describe("commentsToTaskChatItems", () => {
   it("carries inbound channel attribution into the human bubble", () => {
-    expect(commentsToTaskChatItems([{
-      id: "photon-comment",
-      body: "From my phone",
-      authorType: "user",
-      authorUserId: "local-board",
-      metadata: { version: 1, sourceChannel: "imessage-photon", sections: [] },
-      createdAt: "2026-09-12T12:00:00Z",
-    } as unknown as IssueChatComment])).toMatchObject([{
-      author: "human", sourceChannel: "imessage-photon", text: "From my phone",
-    }]);
+    expect(
+      commentsToTaskChatItems([
+        {
+          id: "photon-comment",
+          body: "From my phone",
+          authorType: "user",
+          authorUserId: "local-board",
+          metadata: {
+            version: 1,
+            sourceChannel: "imessage-photon",
+            sections: [],
+          },
+          createdAt: "2026-09-12T12:00:00Z",
+        } as unknown as IssueChatComment,
+      ]),
+    ).toMatchObject([
+      {
+        author: "human",
+        sourceChannel: "imessage-photon",
+        text: "From my phone",
+      },
+    ]);
   });
   it("classifies a recovered local-board comment as an agent bubble", () => {
-    const items = commentsToTaskChatItems([{
-      id: "c-recovered",
-      body: "Recovered agent reply.",
-      authorType: "user",
-      authorUserId: "local-board",
-      authorAgentId: null,
-      derivedAuthorAgentId: "agent-1",
-      createdAt: "2026-08-07T09:00:00.000Z",
-    } as unknown as IssueChatComment]);
+    const items = commentsToTaskChatItems([
+      {
+        id: "c-recovered",
+        body: "Recovered agent reply.",
+        authorType: "user",
+        authorUserId: "local-board",
+        authorAgentId: null,
+        derivedAuthorAgentId: "agent-1",
+        createdAt: "2026-08-07T09:00:00.000Z",
+      } as unknown as IssueChatComment,
+    ]);
 
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ kind: "message", author: "agent" });
@@ -72,28 +86,34 @@ describe("commentsToTaskChatItems", () => {
   });
 
   it("attaches verification caveats using durable comment run provenance", () => {
-    const verificationCaveats = [{
-      commandOrCheck: "external-validator",
-      reasonCode: "tool_unavailable",
-      detail: "The optional validator is unavailable.",
-    }];
-    const comments = [{
-      id: "c-final",
-      body: "Implemented and locally verified.",
-      authorType: "agent",
-      authorAgentId: "agent-1",
-      createdByRunId: "run-1",
-      createdAt: "2026-08-22T09:00:00.000Z",
-    } as unknown as IssueChatComment];
+    const verificationCaveats = [
+      {
+        commandOrCheck: "external-validator",
+        reasonCode: "tool_unavailable",
+        detail: "The optional validator is unavailable.",
+      },
+    ];
+    const comments = [
+      {
+        id: "c-final",
+        body: "Implemented and locally verified.",
+        authorType: "agent",
+        authorAgentId: "agent-1",
+        createdByRunId: "run-1",
+        createdAt: "2026-08-22T09:00:00.000Z",
+      } as unknown as IssueChatComment,
+    ];
 
     const items = commentsToTaskChatItems(comments, {
       verificationCaveatsByRunId: new Map([["run-1", verificationCaveats]]),
     });
 
-    expect(items).toEqual([expect.objectContaining({
-      kind: "message",
-      verificationCaveats,
-    })]);
+    expect(items).toEqual([
+      expect.objectContaining({
+        kind: "message",
+        verificationCaveats,
+      }),
+    ]);
   });
 
   it("carries presentation, metadata, and the raw timestamp for system comments", () => {
@@ -129,7 +149,8 @@ describe("commentsToTaskChatItems", () => {
     ];
     const items = commentsToTaskChatItems(comments);
     const [sys, agent] = items;
-    if (sys.kind !== "message" || agent.kind !== "message") throw new Error("expected messages");
+    if (sys.kind !== "message" || agent.kind !== "message")
+      throw new Error("expected messages");
     expect(sys.presentation).toEqual(presentation);
     expect(sys.metadata).toEqual(metadata);
     expect(sys.runAgentId).toBe("agent-1");
@@ -172,13 +193,13 @@ describe("commentsToTaskChatItems", () => {
       {
         id: "c-delivered",
         body: "Use three seconds instead.",
-      authorType: "user",
-      authorUserId: "user-1",
-      authorAgentId: null,
-      followUpRequested: true,
-      consumedByRunId: "run-2",
-      conversationAnchorAt,
-      createdAt,
+        authorType: "user",
+        authorUserId: "user-1",
+        authorAgentId: null,
+        followUpRequested: true,
+        consumedByRunId: "run-2",
+        conversationAnchorAt,
+        createdAt,
       } as unknown as IssueChatComment,
     ]);
 
@@ -229,7 +250,11 @@ describe("commentsToTaskChatItems", () => {
               label: "Branch",
               value: "fix/workspace-ready-notice",
             },
-            { type: "key_value", label: "CWD", value: "/worktrees/workspace-ready-notice" },
+            {
+              type: "key_value",
+              label: "CWD",
+              value: "/worktrees/workspace-ready-notice",
+            },
           ],
         },
       ],

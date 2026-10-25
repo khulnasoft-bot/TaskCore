@@ -20,31 +20,47 @@ export function resolveTaskcoreHomeDir(homeOverride?: string): string {
 }
 
 export function resolveTaskcoreInstanceId(instanceIdOverride?: string): string {
-  const raw = instanceIdOverride?.trim() || process.env.TASKCORE_INSTANCE_ID?.trim() || DEFAULT_TASKCORE_INSTANCE_ID;
+  const raw =
+    instanceIdOverride?.trim() ||
+    process.env.TASKCORE_INSTANCE_ID?.trim() ||
+    DEFAULT_TASKCORE_INSTANCE_ID;
   if (!PATH_SEGMENT_RE.test(raw)) {
     throw new Error(`Invalid TASKCORE_INSTANCE_ID '${raw}'.`);
   }
   return raw;
 }
 
-export function resolveTaskcoreInstanceRoot(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
-  return path.resolve(resolveTaskcoreHomeDir(input.homeDir), "instances", resolveTaskcoreInstanceId(input.instanceId));
+export function resolveTaskcoreInstanceRoot(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
+  return path.resolve(
+    resolveTaskcoreHomeDir(input.homeDir),
+    "instances",
+    resolveTaskcoreInstanceId(input.instanceId),
+  );
 }
 
-export function resolveTaskcoreInstanceConfigPath(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(input), TASKCORE_CONFIG_BASENAME);
+export function resolveTaskcoreInstanceConfigPath(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
+  return path.resolve(
+    resolveTaskcoreInstanceRoot(input),
+    TASKCORE_CONFIG_BASENAME,
+  );
 }
 
-export function resolveTaskcoreConfigPathForInstance(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
+export function resolveTaskcoreConfigPathForInstance(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
   return resolveTaskcoreInstanceConfigPath(input);
 }
 
@@ -52,38 +68,52 @@ export function resolveTaskcoreEnvPathForConfig(configPath: string): string {
   return path.resolve(path.dirname(configPath), TASKCORE_ENV_FILENAME);
 }
 
-export function resolveDefaultEmbeddedPostgresDir(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
+export function resolveDefaultEmbeddedPostgresDir(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
   return path.resolve(resolveTaskcoreInstanceRoot(input), "db");
 }
 
-export function resolveDefaultLogsDir(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
+export function resolveDefaultLogsDir(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
   return path.resolve(resolveTaskcoreInstanceRoot(input), "logs");
 }
 
-export function resolveDefaultSecretsKeyFilePath(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(input), "secrets", "master.key");
+export function resolveDefaultSecretsKeyFilePath(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
+  return path.resolve(
+    resolveTaskcoreInstanceRoot(input),
+    "secrets",
+    "master.key",
+  );
 }
 
-export function resolveDefaultStorageDir(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
+export function resolveDefaultStorageDir(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
   return path.resolve(resolveTaskcoreInstanceRoot(input), "data", "storage");
 }
 
-export function resolveDefaultBackupDir(input: {
-  homeDir?: string;
-  instanceId?: string;
-} = {}): string {
+export function resolveDefaultBackupDir(
+  input: {
+    homeDir?: string;
+    instanceId?: string;
+  } = {},
+): string {
   return path.resolve(resolveTaskcoreInstanceRoot(input), "data", "backups");
 }
 

@@ -18,7 +18,11 @@ import {
   ParityPanel,
   StateDiffPanel,
 } from "./components/inspector-panels.js";
-import { buildFacets, ScenarioPicker, type CapabilityPickerFacets } from "./components/scenario-picker.js";
+import {
+  buildFacets,
+  ScenarioPicker,
+  type CapabilityPickerFacets,
+} from "./components/scenario-picker.js";
 import { RunHeader } from "./components/run-header.js";
 import { ScenarioTranscript } from "./components/scenario-transcript.js";
 import { EmptyState, Mono } from "./components/primitives.js";
@@ -98,23 +102,37 @@ export function ExplorerApp({
   openSession,
 }: ExplorerAppProps) {
   const [route, setRoute] = React.useState<CapabilityRoute>(
-    () => initialRoute ?? parseCapabilityRoute(typeof window === "undefined" ? "#/" : window.location.hash),
+    () =>
+      initialRoute ??
+      parseCapabilityRoute(
+        typeof window === "undefined" ? "#/" : window.location.hash,
+      ),
   );
-  const [artifacts, setArtifacts] = React.useState<Record<string, CapabilityRunArtifact>>({});
+  const [artifacts, setArtifacts] = React.useState<
+    Record<string, CapabilityRunArtifact>
+  >({});
   const [runState, setRunState] = React.useState<RunState>("idle");
   const [mode, setMode] = React.useState<"fake" | "codex">(route.run ?? "fake");
-  const [segment, setSegment] = React.useState<Segment>(() => defaultSegment(route));
+  const [segment, setSegment] = React.useState<Segment>(() =>
+    defaultSegment(route),
+  );
   const [replayPosition, setReplayPosition] = React.useState(0);
   const [highlight, setHighlight] = React.useState<number | null>(null);
   const [runFocusRequest, setRunFocusRequest] = React.useState(0);
-  const [chatArtifact, setChatArtifact] = React.useState<CapabilityChatSessionArtifact | null>(null);
+  const [chatArtifact, setChatArtifact] =
+    React.useState<CapabilityChatSessionArtifact | null>(null);
   const [chatRevealedSequence, setChatRevealedSequence] = React.useState(0);
-  const [chatState, setChatState] = React.useState<CapabilityChatState>("seeding");
-  const [stripFocusRequest, setStripFocusRequest] = React.useState({ turn: 0, nonce: 0 });
+  const [chatState, setChatState] =
+    React.useState<CapabilityChatState>("seeding");
+  const [stripFocusRequest, setStripFocusRequest] = React.useState({
+    turn: 0,
+    nonce: 0,
+  });
   const shellRef = React.useRef<HTMLDivElement>(null);
   const runHeaderRef = React.useRef<HTMLElement>(null);
 
-  const selected = route.caseId === null ? null : findEntry(index, route.caseId);
+  const selected =
+    route.caseId === null ? null : findEntry(index, route.caseId);
   const artifact = selected === null ? null : (artifacts[selected.id] ?? null);
 
   const navigate = React.useCallback((next: CapabilityRoute) => {
@@ -126,7 +144,8 @@ export function ExplorerApp({
 
   React.useEffect(() => {
     if (typeof window === "undefined") return undefined;
-    const onHashChange = (): void => setRoute(parseCapabilityRoute(window.location.hash));
+    const onHashChange = (): void =>
+      setRoute(parseCapabilityRoute(window.location.hash));
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
@@ -161,13 +180,16 @@ export function ExplorerApp({
       );
       if (regions === undefined || regions.length === 0) return;
       event.preventDefault();
-      const current = [...regions].findIndex((region) => region.contains(document.activeElement));
+      const current = [...regions].findIndex((region) =>
+        region.contains(document.activeElement),
+      );
       const delta = event.shiftKey ? -1 : 1;
-      const next = current < 0
-        ? event.shiftKey
-          ? regions.length - 1
-          : 0
-        : (current + delta + regions.length) % regions.length;
+      const next =
+        current < 0
+          ? event.shiftKey
+            ? regions.length - 1
+            : 0
+          : (current + delta + regions.length) % regions.length;
       regions[next]?.focus();
     };
     document.addEventListener("keydown", cycleRegions, true);
@@ -198,12 +220,16 @@ export function ExplorerApp({
   }, [artifacts, route.run, run, runState, selected]);
 
   const parityStatus = React.useCallback(
-    (id: string): CapabilityParityStatus => artifacts[id]?.parity.verdict ?? "not_run",
+    (id: string): CapabilityParityStatus =>
+      artifacts[id]?.parity.verdict ?? "not_run",
     [artifacts],
   );
 
   const visible = React.useMemo(
-    () => index.entries.filter((entry) => matches(entry, route.filters, parityStatus)),
+    () =>
+      index.entries.filter((entry) =>
+        matches(entry, route.filters, parityStatus),
+      ),
     [index.entries, parityStatus, route.filters],
   );
 
@@ -214,12 +240,15 @@ export function ExplorerApp({
           ...route.filters,
           [key === "parity" ? "parity" : key]: value,
         };
-        return index.entries.filter((entry) => matches(entry, probe, parityStatus)).length;
+        return index.entries.filter((entry) =>
+          matches(entry, probe, parityStatus),
+        ).length;
       }),
     [index.entries, parityStatus, route.filters],
   );
 
-  const timeline = artifact === null ? [] : artifact.timeline.slice(0, replayPosition);
+  const timeline =
+    artifact === null ? [] : artifact.timeline.slice(0, replayPosition);
   const settled =
     selected === null
       ? "settled"
@@ -290,7 +319,11 @@ export function ExplorerApp({
         Skip to {chat ? "the chat" : "run view"}
       </a>
 
-      <nav className="pcr7-surface-nav" aria-label="Surfaces" data-testid="surface-nav">
+      <nav
+        className="pcr7-surface-nav"
+        aria-label="Surfaces"
+        data-testid="surface-nav"
+      >
         <button
           type="button"
           className="pcr7-chip"
@@ -311,8 +344,8 @@ export function ExplorerApp({
         </button>
       </nav>
       <p className="pcr7-visually-hidden">
-        Region shortcut: press F6, or Control+Period when the browser reserves F6, to cycle the
-        scenario picker, run view, and inspector.
+        Region shortcut: press F6, or Control+Period when the browser reserves
+        F6, to cycle the scenario picker, run view, and inspector.
       </p>
 
       {/*
@@ -334,12 +367,16 @@ export function ExplorerApp({
             data-testid={`segment-${value}`}
             onClick={() => {
               setSegment(value);
-              if (chat && (value === "chat" || value === "activity")) setChatView(value);
+              if (chat && (value === "chat" || value === "activity"))
+                setChatView(value);
             }}
           >
             {SEGMENT_LABEL[value]}
             {chat && value === "activity" && denials > 0 ? (
-              <span className="pcr7-segment-chip" data-testid="segment-activity-denials">
+              <span
+                className="pcr7-segment-chip"
+                data-testid="segment-activity-denials"
+              >
                 {" "}
                 · {denials} deny
               </span>
@@ -372,7 +409,12 @@ export function ExplorerApp({
             <UnknownScenarioCard
               caseId={route.caseId}
               onBack={() => {
-                navigate({ ...route, caseId: null, run: null, view: "transcript" });
+                navigate({
+                  ...route,
+                  caseId: null,
+                  run: null,
+                  view: "transcript",
+                });
                 setSegment("scenarios");
               }}
             />
@@ -386,11 +428,15 @@ export function ExplorerApp({
               codexAvailable={codexAvailable}
               activeTurn={route.turn}
               onOpenTurn={openTurn}
-              onOpenParity={() => openTurn(chatArtifact?.turns.at(-1)?.turn ?? 0)}
+              onOpenParity={() =>
+                openTurn(chatArtifact?.turns.at(-1)?.turn ?? 0)
+              }
               onArtifactChange={setChatArtifact}
               onRevealSequenceChange={setChatRevealedSequence}
               onStateChange={setChatState}
-              onCancelScenarioSwitch={(entryId) => navigate({ ...route, caseId: entryId })}
+              onCancelScenarioSwitch={(entryId) =>
+                navigate({ ...route, caseId: entryId })
+              }
               openSession={openSession}
               headerRef={runHeaderRef}
             />
@@ -410,10 +456,14 @@ export function ExplorerApp({
                   enter: () => setReplayPosition(0),
                   exit: () => setReplayPosition(artifact?.timeline.length ?? 0),
                   setPosition: setReplayPosition,
-                  togglePlay: () => setReplayPosition(artifact?.timeline.length ?? 0),
+                  togglePlay: () =>
+                    setReplayPosition(artifact?.timeline.length ?? 0),
                   step: (delta) =>
                     setReplayPosition((current) =>
-                      Math.min(Math.max(current + delta, 0), artifact?.timeline.length ?? 0),
+                      Math.min(
+                        Math.max(current + delta, 0),
+                        artifact?.timeline.length ?? 0,
+                      ),
                     ),
                 }}
                 onRun={() => void run(selected)}
@@ -421,7 +471,11 @@ export function ExplorerApp({
                 onOpenParity={() => setView("parity")}
                 headerRef={runHeaderRef}
               />
-              <p className="pcr7-visually-hidden" role="status" aria-live="polite">
+              <p
+                className="pcr7-visually-hidden"
+                role="status"
+                aria-live="polite"
+              >
                 {runState === "settled"
                   ? `Scenario run settled — verdict ${artifact?.parity.verdict ?? "not run"}`
                   : runState === "pending"
@@ -431,8 +485,9 @@ export function ExplorerApp({
               {artifact === null ? (
                 <EmptyState title="Run to produce the deterministic timeline.">
                   <p className="pcr7-muted">
-                    Fake mode runs entirely in this page against checked-in fixtures. No Taskcore
-                    service is contacted and no credential is held.
+                    Fake mode runs entirely in this page against checked-in
+                    fixtures. No Taskcore service is contacted and no credential
+                    is held.
                   </p>
                 </EmptyState>
               ) : (
@@ -511,7 +566,9 @@ export function ExplorerApp({
 function InspectorTabs(props: React.ComponentProps<typeof Tabs>) {
   const assignTestIds = React.useCallback((node: HTMLDivElement | null) => {
     if (node === null) return;
-    for (const tab of node.querySelectorAll<HTMLElement>('[role="tab"][data-tab-id]')) {
+    for (const tab of node.querySelectorAll<HTMLElement>(
+      '[role="tab"][data-tab-id]',
+    )) {
       tab.setAttribute("data-testid", `inspector-tab-${tab.dataset.tabId}`);
     }
   }, []);
@@ -522,11 +579,19 @@ function InspectorTabs(props: React.ComponentProps<typeof Tabs>) {
   );
 }
 
-function UnknownScenarioCard({ caseId, onBack }: { caseId: string; onBack: () => void }) {
+function UnknownScenarioCard({
+  caseId,
+  onBack,
+}: {
+  caseId: string;
+  onBack: () => void;
+}) {
   return (
     <section className="pcr7-intro" role="alert" data-testid="unknown-scenario">
       <p className="pcr-eyebrow">Scenario not found</p>
-      <h1>No scenario named <Mono>{caseId}</Mono></h1>
+      <h1>
+        No scenario named <Mono>{caseId}</Mono>
+      </h1>
       <p>The route does not match a case in this generated scenario index.</p>
       <a
         className="pcr7-linkish"
@@ -551,19 +616,25 @@ function IntroCard({
   chat: boolean;
   onSelect: (id: string) => void;
 }) {
-  const examples = ["hb-scoped-wake-01", "ap-mcp-gate-01", "rs-question-only-01"].filter((id) =>
-    index.entries.some((entry) => entry.id === id),
-  );
+  const examples = [
+    "hb-scoped-wake-01",
+    "ap-mcp-gate-01",
+    "rs-question-only-01",
+  ].filter((id) => index.entries.some((entry) => entry.id === id));
   return (
     <section className="pcr7-intro" data-testid="explorer-intro">
       <p className="pcr-eyebrow">
         Capability scenario {chat ? "chat" : "explorer"} — mock control plane
       </p>
-      <h1>{index.entries.length} scenarios across {index.groups.length} eval groups</h1>
+      <h1>
+        {index.entries.length} scenarios across {index.groups.length} eval
+        groups
+      </h1>
       <p>
-        Every scenario runs against the deterministic, package-local mock control plane. The
-        {chat ? " chat" : " explorer"} renders records the runtime produced: it holds no credential,
-        decides no policy, and owns no control-plane state.
+        Every scenario runs against the deterministic, package-local mock
+        control plane. The
+        {chat ? " chat" : " explorer"} renders records the runtime produced: it
+        holds no credential, decides no policy, and owns no control-plane state.
       </p>
       <p className="pcr7-label">
         {chat
@@ -573,7 +644,11 @@ function IntroCard({
       <ul className="pcr7-exposure" data-testid="intro-examples">
         {examples.map((id) => (
           <li key={id}>
-            <button type="button" className="pcr7-linkish" onClick={() => onSelect(id)}>
+            <button
+              type="button"
+              className="pcr7-linkish"
+              onClick={() => onSelect(id)}
+            >
               <Mono>{id}</Mono>
             </button>
           </li>
@@ -588,13 +663,15 @@ function IntroCard({
  * useful instead of leaving a dead column (UX map §6, "no dead panels").
  */
 function CorpusSummary({ index }: { index: CapabilityScenarioIndex }) {
-  const byDisposition = (["control_plane_owned", "always_agent_tool", "optional_agent_tool"] as const).map(
-    (disposition) => ({
-      disposition,
-      label: DISPOSITION_LABEL[disposition],
-      count: index.entries.filter((entry) => entry.primaryDisposition === disposition).length,
-    }),
-  );
+  const byDisposition = (
+    ["control_plane_owned", "always_agent_tool", "optional_agent_tool"] as const
+  ).map((disposition) => ({
+    disposition,
+    label: DISPOSITION_LABEL[disposition],
+    count: index.entries.filter(
+      (entry) => entry.primaryDisposition === disposition,
+    ).length,
+  }));
   return (
     <div className="pcr7-panel" data-testid="corpus-summary">
       <section className="pcr7-panel-section">
@@ -615,9 +692,10 @@ function CorpusSummary({ index }: { index: CapabilityScenarioIndex }) {
       <section className="pcr7-panel-section">
         <h3>Boundary</h3>
         <p className="pcr7-muted">
-          The explorer receives snapshots and records only. It owns no credential, no policy
-          decision, and no mutable control-plane state; every allow, deny, and redaction on screen
-          was emitted by the mock core.
+          The explorer receives snapshots and records only. It owns no
+          credential, no policy decision, and no mutable control-plane state;
+          every allow, deny, and redaction on screen was emitted by the mock
+          core.
         </p>
       </section>
       <EmptyState title="Pick a scenario to inspect." />
@@ -632,11 +710,15 @@ function CorpusSummary({ index }: { index: CapabilityScenarioIndex }) {
  */
 function defaultSegment(route: CapabilityRoute): Segment {
   if (route.caseId === null) return "scenarios";
-  if (route.surface === "chat") return route.chatView === "activity" ? "activity" : "chat";
+  if (route.surface === "chat")
+    return route.chatView === "activity" ? "activity" : "chat";
   return route.view === "transcript" ? "run" : "inspect";
 }
 
-function findEntry(index: CapabilityScenarioIndex, id: string): CapabilityScenarioIndexEntry | null {
+function findEntry(
+  index: CapabilityScenarioIndex,
+  id: string,
+): CapabilityScenarioIndexEntry | null {
   return index.entries.find((entry) => entry.id === id) ?? null;
 }
 
@@ -645,7 +727,12 @@ export function matches(
   filters: CapabilityFilters,
   parityStatus: (id: string) => string,
 ): boolean {
-  if (filters.group !== null && filters.group.length > 0 && entry.group !== filters.group) return false;
+  if (
+    filters.group !== null &&
+    filters.group.length > 0 &&
+    entry.group !== filters.group
+  )
+    return false;
   if (
     filters.disposition !== null &&
     filters.disposition.length > 0 &&
@@ -653,7 +740,12 @@ export function matches(
   ) {
     return false;
   }
-  if (filters.role !== null && filters.role.length > 0 && entry.actorRole !== filters.role) return false;
+  if (
+    filters.role !== null &&
+    filters.role.length > 0 &&
+    entry.actorRole !== filters.role
+  )
+    return false;
   if (
     filters.claim !== null &&
     filters.claim.length > 0 &&
@@ -670,7 +762,8 @@ export function matches(
   }
   if (filters.query.length > 0) {
     const needle = filters.query.toLowerCase();
-    if (!`${entry.id} ${entry.title}`.toLowerCase().includes(needle)) return false;
+    if (!`${entry.id} ${entry.title}`.toLowerCase().includes(needle))
+      return false;
   }
   return true;
 }

@@ -19,7 +19,10 @@ export type ActiveRunWatchdogConfig = {
  * the process adapter, and the four use cases. The recovery service holds
  * the only caller.
  */
-export function createActiveRunWatchdog(db: Db, config: ActiveRunWatchdogConfig) {
+export function createActiveRunWatchdog(
+  db: Db,
+  config: ActiveRunWatchdogConfig,
+) {
   const postgresAdapter = createPostgresWatchdogAdapter(db);
   const processController = createProcessAdapter();
 

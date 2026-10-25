@@ -5,7 +5,15 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { eq, ne } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   costEvents,
   activityLog,
@@ -41,16 +49,18 @@ import { issueService } from "../services/issues.ts";
 
 const execFileAsync = promisify(execFile);
 
-const adapterExecute = vi.hoisted(() => vi.fn(async () => ({
-  exitCode: 0,
-  signal: null,
-  timedOut: false,
-  sessionParams: { sessionId: "fresh-session" },
-  sessionDisplayId: "fresh-session",
-  summary: "Accepted plan workspace refresh test run.",
-  provider: "test",
-  model: "test-model",
-})));
+const adapterExecute = vi.hoisted(() =>
+  vi.fn(async () => ({
+    exitCode: 0,
+    signal: null,
+    timedOut: false,
+    sessionParams: { sessionId: "fresh-session" },
+    sessionDisplayId: "fresh-session",
+    summary: "Accepted plan workspace refresh test run.",
+    provider: "test",
+    model: "test-model",
+  })),
+);
 
 vi.mock("../adapters/index.js", () => ({
   getServerAdapter: () => ({
@@ -67,7 +77,9 @@ vi.mock("../adapters/index.js", () => ({
 }));
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -81,12 +93,17 @@ async function runGit(cwd: string, args: string[]) {
 }
 
 async function createGitRepo() {
-  const repoRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-accepted-plan-repo-"));
+  const repoRoot = await mkdtemp(
+    path.join(os.tmpdir(), "taskcore-accepted-plan-repo-"),
+  );
   await runGit(repoRoot, ["init"]);
   await runGit(repoRoot, ["checkout", "-B", "master"]);
   await runGit(repoRoot, ["config", "user.email", "taskcore-test@example.com"]);
   await runGit(repoRoot, ["config", "user.name", "Taskcore Test"]);
-  await writeFile(path.join(repoRoot, "README.md"), "accepted plan workspace refresh\n");
+  await writeFile(
+    path.join(repoRoot, "README.md"),
+    "accepted plan workspace refresh\n",
+  );
   await runGit(repoRoot, ["add", "README.md"]);
   await runGit(repoRoot, ["commit", "-m", "initial"]);
   return repoRoot;
@@ -94,7 +111,9 @@ async function createGitRepo() {
 
 async function createGitRepoWithOrigin() {
   const repoRoot = await createGitRepo();
-  const originRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-accepted-plan-origin-"));
+  const originRoot = await mkdtemp(
+    path.join(os.tmpdir(), "taskcore-accepted-plan-origin-"),
+  );
   await runGit(originRoot, ["init", "--bare"]);
   await runGit(repoRoot, ["remote", "add", "origin", originRoot]);
   await runGit(repoRoot, ["push", "-u", "origin", "master"]);
@@ -104,11 +123,15 @@ async function createGitRepoWithOrigin() {
 
 describeEmbeddedPostgres("accepted plan workspace refresh", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-accepted-plan-workspace-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-accepted-plan-workspace-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -124,7 +147,8 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     adapterExecute.mockClear();
     while (tempRoots.length > 0) {
       const root = tempRoots.pop();
-      if (root) await rm(root, { recursive: true, force: true }).catch(() => undefined);
+      if (root)
+        await rm(root, { recursive: true, force: true }).catch(() => undefined);
     }
     await db.delete(issuePlanDecompositions);
     await db.delete(issueThreadInteractions);
@@ -380,7 +404,10 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       sessionDisplayId: "stale-shared-session",
     });
     adapterExecute.mockImplementationOnce(async () => {
-      await db.update(issues).set({ status: "done", updatedAt: new Date() }).where(eq(issues.id, issueId));
+      await db
+        .update(issues)
+        .set({ status: "done", updatedAt: new Date() })
+        .where(eq(issues.id, issueId));
       return {
         exitCode: 0,
         signal: null,
@@ -410,23 +437,33 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     });
 
     expect(run).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(run!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 10_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(run!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 10_000 },
+    );
 
     expect(adapterExecute).toHaveBeenCalledTimes(1);
     const adapterInput = adapterExecute.mock.calls[0]?.[0] as {
-      runtime: { sessionId: string | null; sessionParams: Record<string, unknown> | null };
+      runtime: {
+        sessionId: string | null;
+        sessionParams: Record<string, unknown> | null;
+      };
       context: Record<string, unknown>;
     };
     expect(adapterInput.runtime.sessionId).toBeNull();
     expect(adapterInput.runtime.sessionParams).toBeNull();
-    expect(adapterInput.context.taskcoreWorkspace).toEqual(expect.objectContaining({
-      mode: "isolated_workspace",
-      strategy: "git_worktree",
-    }));
-    expect((adapterInput.context.taskcoreWorkspace as { cwd: string }).cwd).not.toBe(repoRoot);
+    expect(adapterInput.context.taskcoreWorkspace).toEqual(
+      expect.objectContaining({
+        mode: "isolated_workspace",
+        strategy: "git_worktree",
+      }),
+    );
+    expect(
+      (adapterInput.context.taskcoreWorkspace as { cwd: string }).cwd,
+    ).not.toBe(repoRoot);
 
     const refreshedIssue = await db
       .select({
@@ -437,7 +474,9 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       .where(eq(issues.id, issueId))
       .then((rows) => rows[0]);
     expect(refreshedIssue?.executionWorkspaceId).toBeTruthy();
-    expect(refreshedIssue?.executionWorkspaceId).not.toBe(sharedExecutionWorkspaceId);
+    expect(refreshedIssue?.executionWorkspaceId).not.toBe(
+      sharedExecutionWorkspaceId,
+    );
     expect(refreshedIssue?.executionWorkspaceSettings).toMatchObject({
       mode: "isolated_workspace",
     });
@@ -540,20 +579,25 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     adapterExecute.mockImplementationOnce(async () => {
       // Planning is awaiting a real confirmation, not a prose-only promise.
       await db.insert(issueThreadInteractions).values({
-        companyId, issueId: sourceIssueId, kind: "request_confirmation", status: "pending",
-        requestedResolverPolicy: "anyone", effectiveResolverPolicy: "anyone",
+        companyId,
+        issueId: sourceIssueId,
+        kind: "request_confirmation",
+        status: "pending",
+        requestedResolverPolicy: "anyone",
+        effectiveResolverPolicy: "anyone",
         payload: { version: 1, prompt: "Review the source plan" },
       });
       return {
-      exitCode: 0,
-      signal: null,
-      timedOut: false,
-      sessionParams: { sessionId: "planning-source-session" },
-      sessionDisplayId: "planning-source-session",
-      summary: "Realized the planning source workspace.",
-      provider: "test",
-      model: "test-model",
-    }; });
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        sessionParams: { sessionId: "planning-source-session" },
+        sessionDisplayId: "planning-source-session",
+        summary: "Realized the planning source workspace.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
 
     const sourceRun = await heartbeat.wakeup(agentId, {
       source: "automation",
@@ -567,10 +611,13 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       },
     });
     expect(sourceRun).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(sourceRun!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 10_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(sourceRun!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 10_000 },
+    );
 
     const sourceWorkspace = await db
       .select()
@@ -584,7 +631,10 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     });
     expect(sourceWorkspace?.branchName).toBeTruthy();
 
-    await writeFile(path.join(repoRoot, "base-moved.txt"), "base moved after planning\n");
+    await writeFile(
+      path.join(repoRoot, "base-moved.txt"),
+      "base moved after planning\n",
+    );
     await runGit(repoRoot, ["add", "base-moved.txt"]);
     await runGit(repoRoot, ["commit", "-m", "Move base after planning"]);
     const movedBaseSha = await runGit(repoRoot, ["rev-parse", "HEAD"]);
@@ -592,25 +642,30 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     await runGit(repoRoot, ["fetch", "origin", "master"]);
 
     await drainHeartbeatRunsToQuiescence(db, heartbeat);
-    await db.delete(issueThreadInteractions).where(eq(issueThreadInteractions.issueId, sourceIssueId));
+    await db
+      .delete(issueThreadInteractions)
+      .where(eq(issueThreadInteractions.issueId, sourceIssueId));
     const acceptedPlanRevisionId = await seedAcceptedPlanAcceptance({
       companyId,
       issueId: sourceIssueId,
       ownerAgentId: agentId,
     });
-    const decomposition = await issueService(db).decomposeAcceptedPlan(sourceIssueId, {
-      acceptedPlanRevisionId,
-      children: [
-        {
-          title: "Implement approved child after base move",
-          status: "todo",
-          workMode: "standard",
-          priority: "medium",
-          assigneeAgentId: agentId,
-        },
-      ],
-      actorAgentId: agentId,
-    });
+    const decomposition = await issueService(db).decomposeAcceptedPlan(
+      sourceIssueId,
+      {
+        acceptedPlanRevisionId,
+        children: [
+          {
+            title: "Implement approved child after base move",
+            status: "todo",
+            workMode: "standard",
+            priority: "medium",
+            assigneeAgentId: agentId,
+          },
+        ],
+        actorAgentId: agentId,
+      },
+    );
     const childIssueId = decomposition.childIssueIds[0];
     expect(childIssueId).toBeTruthy();
 
@@ -634,23 +689,37 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       },
     });
 
-    let childRunWorkspace:
-      | { cwd: string; branchName: string; executionWorkspaceId: string }
-      | null = null;
+    let childRunWorkspace: {
+      cwd: string;
+      branchName: string;
+      executionWorkspaceId: string;
+    } | null = null;
     adapterExecute.mockImplementationOnce(async (input) => {
-      const context = (input as { context?: Record<string, unknown> }).context ?? {};
-      const workspace = context.taskcoreWorkspace as Record<string, unknown> | undefined;
+      const context =
+        (input as { context?: Record<string, unknown> }).context ?? {};
+      const workspace = context.taskcoreWorkspace as
+        Record<string, unknown> | undefined;
       const cwd = typeof workspace?.cwd === "string" ? workspace.cwd : null;
-      const branchName = typeof workspace?.branchName === "string" ? workspace.branchName : null;
+      const branchName =
+        typeof workspace?.branchName === "string" ? workspace.branchName : null;
       const executionWorkspaceId =
-        typeof context.executionWorkspaceId === "string" ? context.executionWorkspaceId : null;
+        typeof context.executionWorkspaceId === "string"
+          ? context.executionWorkspaceId
+          : null;
       if (!cwd || !branchName || !executionWorkspaceId) {
-        throw new Error("Accepted-plan child run did not receive a realized workspace");
+        throw new Error(
+          "Accepted-plan child run did not receive a realized workspace",
+        );
       }
       childRunWorkspace = { cwd, branchName, executionWorkspaceId };
       expect(branchName).not.toBe(sourceWorkspace?.branchName);
-      await expect(runGit(cwd, ["rev-parse", "HEAD"])).resolves.toBe(movedBaseSha);
-      await db.update(issues).set({ status: "done", updatedAt: new Date() }).where(eq(issues.id, childIssueId!));
+      await expect(runGit(cwd, ["rev-parse", "HEAD"])).resolves.toBe(
+        movedBaseSha,
+      );
+      await db
+        .update(issues)
+        .set({ status: "done", updatedAt: new Date() })
+        .where(eq(issues.id, childIssueId!));
       return {
         exitCode: 0,
         signal: null,
@@ -675,19 +744,26 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       },
     });
     expect(childRun).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(childRun!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 10_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(childRun!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 10_000 },
+    );
 
     expect(childRunWorkspace).not.toBeNull();
-    expect(childRunWorkspace?.executionWorkspaceId).not.toBe(sourceWorkspace?.id);
+    expect(childRunWorkspace?.executionWorkspaceId).not.toBe(
+      sourceWorkspace?.id,
+    );
     const childAfterRun = await db
       .select({ executionWorkspaceId: issues.executionWorkspaceId })
       .from(issues)
       .where(eq(issues.id, childIssueId!))
       .then((rows) => rows[0] ?? null);
-    expect(childAfterRun?.executionWorkspaceId).toBe(childRunWorkspace?.executionWorkspaceId);
+    expect(childAfterRun?.executionWorkspaceId).toBe(
+      childRunWorkspace?.executionWorkspaceId,
+    );
   }, 20_000);
 
   it("forces a fresh session and suppresses accepted-plan continuation when another issue owns the in-flight claim", async () => {
@@ -793,7 +869,10 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       sessionDisplayId: "stale-cross-issue-session",
     });
     adapterExecute.mockImplementationOnce(async () => {
-      await db.update(issues).set({ status: "done", updatedAt: new Date() }).where(eq(issues.id, issueId));
+      await db
+        .update(issues)
+        .set({ status: "done", updatedAt: new Date() })
+        .where(eq(issues.id, issueId));
       return {
         exitCode: 0,
         signal: null,
@@ -828,25 +907,37 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     });
 
     expect(run).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(run!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 10_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(run!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 10_000 },
+    );
 
     expect(adapterExecute).toHaveBeenCalledTimes(1);
     const adapterInput = adapterExecute.mock.calls[0]?.[0] as {
-      runtime: { sessionId: string | null; sessionParams: Record<string, unknown> | null };
+      runtime: {
+        sessionId: string | null;
+        sessionParams: Record<string, unknown> | null;
+      };
       context: Record<string, unknown>;
     };
     expect(adapterInput.runtime.sessionId).toBeNull();
     expect(adapterInput.runtime.sessionParams).toBeNull();
-    expect(adapterInput.context.acceptedPlanWakeRouting).toEqual(expect.objectContaining({
-      reason: "other_issue_claim_in_flight",
-      otherActiveClaimIssueId: otherPlanningIssueId,
-      otherActiveClaimIdentifier: "PAP-9302",
-    }));
-    expect(adapterInput.context.taskcoreTaskMarkdown).toContain("Make the plan only.");
-    expect(adapterInput.context.taskcoreTaskMarkdown).not.toContain("Create child issues from the approved plan only");
+    expect(adapterInput.context.acceptedPlanWakeRouting).toEqual(
+      expect.objectContaining({
+        reason: "other_issue_claim_in_flight",
+        otherActiveClaimIssueId: otherPlanningIssueId,
+        otherActiveClaimIdentifier: "PAP-9302",
+      }),
+    );
+    expect(adapterInput.context.taskcoreTaskMarkdown).toContain(
+      "Make the plan only.",
+    );
+    expect(adapterInput.context.taskcoreTaskMarkdown).not.toContain(
+      "Create child issues from the approved plan only",
+    );
   }, 20_000);
 
   it("guards cross-issue accepted-plan retries even when the waking issue is standard work mode", async () => {
@@ -952,14 +1043,18 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       sessionDisplayId: "stale-standard-cross-issue-session",
     });
     adapterExecute.mockImplementationOnce(async () => {
-      await db.update(issues).set({ status: "done", updatedAt: new Date() }).where(eq(issues.id, issueId));
+      await db
+        .update(issues)
+        .set({ status: "done", updatedAt: new Date() })
+        .where(eq(issues.id, issueId));
       return {
         exitCode: 0,
         signal: null,
         timedOut: false,
         sessionParams: { sessionId: "fresh-session" },
         sessionDisplayId: "fresh-session",
-        summary: "Suppressed cross-issue accepted-plan continuation for a standard-work wake.",
+        summary:
+          "Suppressed cross-issue accepted-plan continuation for a standard-work wake.",
         provider: "test",
         model: "test-model",
       };
@@ -989,25 +1084,37 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     });
 
     expect(run).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(run!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 10_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(run!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 10_000 },
+    );
 
     expect(adapterExecute).toHaveBeenCalledTimes(1);
     const adapterInput = adapterExecute.mock.calls[0]?.[0] as {
-      runtime: { sessionId: string | null; sessionParams: Record<string, unknown> | null };
+      runtime: {
+        sessionId: string | null;
+        sessionParams: Record<string, unknown> | null;
+      };
       context: Record<string, unknown>;
     };
     expect(adapterInput.runtime.sessionId).toBeNull();
     expect(adapterInput.runtime.sessionParams).toBeNull();
-    expect(adapterInput.context.acceptedPlanWakeRouting).toEqual(expect.objectContaining({
-      reason: "other_issue_claim_in_flight",
-      otherActiveClaimIssueId: otherPlanningIssueId,
-      otherActiveClaimIdentifier: "PAP-9402",
-    }));
-    expect(adapterInput.context.taskcoreTaskMarkdown).toContain("Issue: \"PAP-9401\"");
-    expect(adapterInput.context.taskcoreTaskMarkdown).not.toContain("Create child issues from the approved plan only");
+    expect(adapterInput.context.acceptedPlanWakeRouting).toEqual(
+      expect.objectContaining({
+        reason: "other_issue_claim_in_flight",
+        otherActiveClaimIssueId: otherPlanningIssueId,
+        otherActiveClaimIdentifier: "PAP-9402",
+      }),
+    );
+    expect(adapterInput.context.taskcoreTaskMarkdown).toContain(
+      'Issue: "PAP-9401"',
+    );
+    expect(adapterInput.context.taskcoreTaskMarkdown).not.toContain(
+      "Create child issues from the approved plan only",
+    );
   }, 20_000);
 
   it("preserves accepted-plan instructions but replaces a pre-identity session when the wake issue owns the in-flight claim", async () => {
@@ -1095,7 +1202,10 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       sessionDisplayId: "accepted-plan-retry-session",
     });
     adapterExecute.mockImplementationOnce(async () => {
-      await db.update(issues).set({ status: "done", updatedAt: new Date() }).where(eq(issues.id, issueId));
+      await db
+        .update(issues)
+        .set({ status: "done", updatedAt: new Date() })
+        .where(eq(issues.id, issueId));
       return {
         exitCode: 0,
         signal: null,
@@ -1130,14 +1240,20 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
     });
 
     expect(run).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(run!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 10_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(run!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 10_000 },
+    );
 
     expect(adapterExecute).toHaveBeenCalledTimes(1);
     const adapterInput = adapterExecute.mock.calls[0]?.[0] as {
-      runtime: { sessionId: string | null; sessionParams: Record<string, unknown> | null };
+      runtime: {
+        sessionId: string | null;
+        sessionParams: Record<string, unknown> | null;
+      };
       context: Record<string, unknown>;
     };
     // The old process predates identity injection and must be replaced.

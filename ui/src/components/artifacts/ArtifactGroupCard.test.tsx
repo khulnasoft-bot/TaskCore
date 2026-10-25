@@ -11,7 +11,9 @@ vi.mock("@/context/CompanyContext", () => ({
   useCompany: () => ({ selectedCompany: null, selectedCompanyId: "company-1" }),
 }));
 
-function sampleArtifact(overrides: Partial<CompanyArtifact> = {}): CompanyArtifact {
+function sampleArtifact(
+  overrides: Partial<CompanyArtifact> = {},
+): CompanyArtifact {
   return {
     id: "artifact-1",
     source: "attachment",
@@ -31,7 +33,9 @@ function sampleArtifact(overrides: Partial<CompanyArtifact> = {}): CompanyArtifa
   } as CompanyArtifact;
 }
 
-function sampleGroup(overrides: Partial<CompanyArtifactGroup> = {}): CompanyArtifactGroup {
+function sampleGroup(
+  overrides: Partial<CompanyArtifactGroup> = {},
+): CompanyArtifactGroup {
   return {
     id: "task:issue-1",
     groupBy: "task",
@@ -46,7 +50,10 @@ function sampleGroup(overrides: Partial<CompanyArtifactGroup> = {}): CompanyArti
   };
 }
 
-function render(group: CompanyArtifactGroup, to = "?groupBy=task&groupIssueId=issue-1") {
+function render(
+  group: CompanyArtifactGroup,
+  to = "?groupBy=task&groupIssueId=issue-1",
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -61,7 +68,10 @@ function render(group: CompanyArtifactGroup, to = "?groupBy=task&groupIssueId=is
 }
 
 describe("ArtifactGroupCard", () => {
-  let mounted: { container: HTMLElement; root: ReturnType<typeof createRoot> } | null = null;
+  let mounted: {
+    container: HTMLElement;
+    root: ReturnType<typeof createRoot>;
+  } | null = null;
 
   beforeEach(() => {
     mounted = null;
@@ -77,21 +87,31 @@ describe("ArtifactGroupCard", () => {
 
   it("shows a stack effect and plural count when count > 1", () => {
     mounted = render(sampleGroup({ count: 3 }));
-    const card = mounted.container.querySelector('[data-testid="artifact-group-card"]') as HTMLElement;
+    const card = mounted.container.querySelector(
+      '[data-testid="artifact-group-card"]',
+    ) as HTMLElement;
     expect(card).not.toBeNull();
     expect(card.getAttribute("data-stacked")).toBe("true");
     expect(card.getAttribute("data-count")).toBe("3");
     // Two decorative stack layers sit behind the card.
-    expect(mounted.container.querySelectorAll('[data-testid="artifact-stack-layer"]').length).toBe(2);
+    expect(
+      mounted.container.querySelectorAll('[data-testid="artifact-stack-layer"]')
+        .length,
+    ).toBe(2);
     expect(mounted.container.textContent).toContain("3 artifacts");
   });
 
   it("omits the stack effect and uses singular count when count === 1", () => {
     mounted = render(sampleGroup({ count: 1 }));
-    const card = mounted.container.querySelector('[data-testid="artifact-group-card"]') as HTMLElement;
+    const card = mounted.container.querySelector(
+      '[data-testid="artifact-group-card"]',
+    ) as HTMLElement;
     expect(card.getAttribute("data-stacked")).toBe("false");
     expect(card.getAttribute("data-count")).toBe("1");
-    expect(mounted.container.querySelectorAll('[data-testid="artifact-stack-layer"]').length).toBe(0);
+    expect(
+      mounted.container.querySelectorAll('[data-testid="artifact-stack-layer"]')
+        .length,
+    ).toBe(0);
     expect(mounted.container.textContent).toContain("1 artifact");
     expect(mounted.container.textContent).not.toContain("1 artifacts");
   });
@@ -115,7 +135,9 @@ describe("ArtifactGroupCard", () => {
   it("falls back to a placeholder when there are no preview artifacts", () => {
     mounted = render(sampleGroup({ previewArtifacts: [] }));
     expect(mounted.container.querySelector("img")).toBeNull();
-    const card = mounted.container.querySelector('[data-testid="artifact-group-card"]') as HTMLElement;
+    const card = mounted.container.querySelector(
+      '[data-testid="artifact-group-card"]',
+    ) as HTMLElement;
     expect(card).not.toBeNull();
   });
 });

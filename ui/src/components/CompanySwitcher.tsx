@@ -30,11 +30,21 @@ interface CompanySwitcherProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function CompanySwitcher({ open: controlledOpen, onOpenChange }: CompanySwitcherProps = {}) {
+export function CompanySwitcher({
+  open: controlledOpen,
+  onOpenChange,
+}: CompanySwitcherProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const { companies, selectedCompany, setSelectedCompanyId, companyListUnavailable, retryCompanies } =
-    useCompany();
-  const sidebarCompanies = companies.filter((company) => company.status !== "archived");
+  const {
+    companies,
+    selectedCompany,
+    setSelectedCompanyId,
+    companyListUnavailable,
+    retryCompanies,
+  } = useCompany();
+  const sidebarCompanies = companies.filter(
+    (company) => company.status !== "archived",
+  );
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
 
@@ -47,7 +57,9 @@ export function CompanySwitcher({ open: controlledOpen, onOpenChange }: CompanyS
         >
           <div className="flex items-center gap-2 min-w-0">
             {selectedCompany && (
-              <span className={`h-2 w-2 rounded-full shrink-0 ${statusDotColor(selectedCompany.status)}`} />
+              <span
+                className={`h-2 w-2 rounded-full shrink-0 ${statusDotColor(selectedCompany.status)}`}
+              />
             )}
             <span className="text-sm font-medium truncate">
               {selectedCompany?.name ?? "Select organization"}
@@ -65,17 +77,21 @@ export function CompanySwitcher({ open: controlledOpen, onOpenChange }: CompanyS
             onClick={() => setSelectedCompanyId(company.id)}
             className={company.id === selectedCompany?.id ? "bg-accent" : ""}
           >
-            <span className={`h-2 w-2 rounded-full shrink-0 mr-2 ${statusDotColor(company.status)}`} />
+            <span
+              className={`h-2 w-2 rounded-full shrink-0 mr-2 ${statusDotColor(company.status)}`}
+            />
             <span className="truncate">{company.name}</span>
           </DropdownMenuItem>
         ))}
-        {sidebarCompanies.length === 0 && (
+        {sidebarCompanies.length === 0 &&
           // "No companies" is a claim about the account, and after a failed list
           // request it is one we cannot make — say what actually happened and
           // give the customer the way out, since nothing else in the app does.
-          companyListUnavailable ? (
+          (companyListUnavailable ? (
             <>
-              <DropdownMenuItem disabled>Couldn't load organizations</DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                Couldn't load organizations
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={(event) => {
                   // Keep the menu open so the result of the retry is visible.
@@ -89,8 +105,7 @@ export function CompanySwitcher({ open: controlledOpen, onOpenChange }: CompanyS
             </>
           ) : (
             <DropdownMenuItem disabled>No organizations</DropdownMenuItem>
-          )
-        )}
+          ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link to="/company/settings" className="no-underline text-inherit">

@@ -22,8 +22,8 @@ const instructions: Record<Platform, { steps: string[]; tip?: string }> = {
     steps: [
       "Open Finder and navigate to the folder.",
       "Right-click (or Control-click) the folder.",
-      "Hold the Option (⌥) key — \"Copy\" changes to \"Copy as Pathname\".",
-      "Click \"Copy as Pathname\", then paste here.",
+      'Hold the Option (⌥) key — "Copy" changes to "Copy as Pathname".',
+      'Click "Copy as Pathname", then paste here.',
     ],
     tip: "You can also open Terminal, type cd, drag the folder into the terminal window, and press Enter. Then type pwd to see the full path.",
   },
@@ -33,7 +33,7 @@ const instructions: Record<Platform, { steps: string[]; tip?: string }> = {
       "Click in the address bar at the top — the full path will appear.",
       "Copy the path, then paste here.",
     ],
-    tip: "Alternatively, hold Shift and right-click the folder, then select \"Copy as path\".",
+    tip: 'Alternatively, hold Shift and right-click the folder, then select "Copy as path".',
   },
   linux: {
     steps: [
@@ -69,10 +69,14 @@ export function PathInstructionsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-base">How to get a full path</DialogTitle>
+          <DialogTitle className="text-base">
+            How to get a full path
+          </DialogTitle>
           <DialogDescription>
             Paste the absolute path (e.g.{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">/Users/you/project</code>
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">
+              /Users/you/project
+            </code>
             ) into the input field.
           </DialogDescription>
         </DialogHeader>

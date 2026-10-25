@@ -1,10 +1,20 @@
-import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { ChevronRight } from "lucide-react";
 import { Identity } from "@/components/Identity";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +66,9 @@ export function MemberMultiSelect({
   loading?: boolean;
   disabled?: boolean;
   pending?: boolean;
-  getDescription?: (member: MemberMultiSelectOption) => string | null | undefined;
+  getDescription?: (
+    member: MemberMultiSelectOption,
+  ) => string | null | undefined;
   triggerLabel?: string;
   triggerVariant?: ComponentProps<typeof Button>["variant"];
   triggerSize?: ComponentProps<typeof Button>["size"];
@@ -70,7 +82,9 @@ export function MemberMultiSelect({
 }): ReactNode {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
-  const [draftUserIds, setDraftUserIds] = useState<Set<string>>(new Set(selectedUserIds));
+  const [draftUserIds, setDraftUserIds] = useState<Set<string>>(
+    new Set(selectedUserIds),
+  );
   const staged = Boolean(onSave);
   const workingUserIds = staged ? draftUserIds : selectedUserIds;
 
@@ -84,7 +98,9 @@ export function MemberMultiSelect({
       members
         .filter((member) => {
           const description = getDescription?.(member) ?? member.email ?? "";
-          return `${memberOptionLabel(member)} ${description}`.toLowerCase().includes(normalizedFilter);
+          return `${memberOptionLabel(member)} ${description}`
+            .toLowerCase()
+            .includes(normalizedFilter);
         })
         .sort((a, b) => {
           const aSelected = workingUserIds.has(a.userId);
@@ -95,7 +111,9 @@ export function MemberMultiSelect({
     [members, getDescription, normalizedFilter, workingUserIds],
   );
   const selectedCount = selectedUserIds.size;
-  const selectedMembers = members.filter((member) => selectedUserIds.has(member.userId));
+  const selectedMembers = members.filter((member) =>
+    selectedUserIds.has(member.userId),
+  );
 
   function setSelection(next: Set<string>) {
     if (staged) setDraftUserIds(next);
@@ -117,14 +135,19 @@ export function MemberMultiSelect({
             type="button"
             variant={triggerVariant}
             size={triggerSize}
-            className={cn("justify-between", triggerFullWidth && "w-full", triggerClassName)}
+            className={cn(
+              "justify-between",
+              triggerFullWidth && "w-full",
+              triggerClassName,
+            )}
             disabled={disabled || pending}
           >
             <span className="flex min-w-0 items-center">
               <span className="truncate">
-                {triggerLabel ?? (selectedCount === 0
-                  ? "Select people"
-                  : `${selectedCount} ${selectedCount === 1 ? "person" : "people"} selected`)}
+                {triggerLabel ??
+                  (selectedCount === 0
+                    ? "Select people"
+                    : `${selectedCount} ${selectedCount === 1 ? "person" : "people"} selected`)}
               </span>
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -146,13 +169,18 @@ export function MemberMultiSelect({
               <Skeleton className="h-6 w-full" />
             </div>
           ) : members.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-muted-foreground">{emptyMessage}</div>
+            <div className="px-3 py-4 text-sm text-muted-foreground">
+              {emptyMessage}
+            </div>
           ) : (
             <div className="max-h-60 overflow-y-auto py-1">
               {filteredMembers.map((member) => {
                 const label = memberOptionLabel(member);
-                const description = getDescription?.(member)
-                  ?? (member.email && member.email !== label ? member.email : null);
+                const description =
+                  getDescription?.(member) ??
+                  (member.email && member.email !== label
+                    ? member.email
+                    : null);
                 return (
                   <label
                     key={member.userId}
@@ -169,26 +197,42 @@ export function MemberMultiSelect({
                       }}
                     />
                     <span className="flex min-w-0 flex-col">
-                      <Identity name={label} avatarUrl={member.image ?? null} size="sm" />
+                      <Identity
+                        name={label}
+                        avatarUrl={member.image ?? null}
+                        size="sm"
+                      />
                       {description ? (
-                        <span className="truncate text-xs text-muted-foreground">{description}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {description}
+                        </span>
                       ) : null}
                     </span>
                   </label>
                 );
               })}
               {filteredMembers.length === 0 ? (
-                <div className="px-3 py-4 text-sm text-muted-foreground">No matches.</div>
+                <div className="px-3 py-4 text-sm text-muted-foreground">
+                  No matches.
+                </div>
               ) : null}
             </div>
           )}
           <div className="flex items-center justify-between border-t border-border px-3 py-2">
             <span className="text-xs text-muted-foreground" aria-live="polite">
-              {workingUserIds.size === 0 ? "No people selected" : `${workingUserIds.size} selected`}
+              {workingUserIds.size === 0
+                ? "No people selected"
+                : `${workingUserIds.size} selected`}
             </span>
             <div className="flex items-center gap-2">
               {staged ? (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={pending}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setOpen(false)}
+                  disabled={pending}
+                >
                   Cancel
                 </Button>
               ) : null}
@@ -210,8 +254,15 @@ export function MemberMultiSelect({
       {showSelectionPreview && selectedMembers.length > 0 ? (
         <div className="space-y-0.5">
           {selectedMembers.slice(0, 3).map((member) => (
-            <div key={member.userId} className="flex items-center gap-2 px-1.5 py-1 text-sm">
-              <Identity name={memberOptionLabel(member)} avatarUrl={member.image ?? null} size="sm" />
+            <div
+              key={member.userId}
+              className="flex items-center gap-2 px-1.5 py-1 text-sm"
+            >
+              <Identity
+                name={memberOptionLabel(member)}
+                avatarUrl={member.image ?? null}
+                size="sm"
+              />
             </div>
           ))}
           {selectedMembers.length > 3 ? (

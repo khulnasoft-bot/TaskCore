@@ -23,7 +23,9 @@ import { errorHandler } from "../middleware/index.js";
 import { issueRoutes } from "../routes/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -56,13 +58,19 @@ function boardActor(company: CompanyRow): Express.Request["actor"] {
     type: "board",
     userId: "board-user",
     companyIds: [company.id],
-    memberships: [{ companyId: company.id, membershipRole: "operator", status: "active" }],
+    memberships: [
+      { companyId: company.id, membershipRole: "operator", status: "active" },
+    ],
     isInstanceAdmin: true,
     source: "local_implicit",
   };
 }
 
-function agentActor(company: CompanyRow, agent: AgentRow, runId: string): Express.Request["actor"] {
+function agentActor(
+  company: CompanyRow,
+  agent: AgentRow,
+  runId: string,
+): Express.Request["actor"] {
   return {
     type: "agent",
     agentId: agent.id,
@@ -74,33 +82,46 @@ function agentActor(company: CompanyRow, agent: AgentRow, runId: string): Expres
 
 async function seedCompany(db: Db, label = "Wake Diagnostics") {
   const nonce = randomUUID().slice(0, 8);
-  const [company] = await db.insert(companies).values({
-    name: `${label} ${nonce}`,
-    issuePrefix: `WD${nonce.slice(0, 4).toUpperCase()}`,
-    defaultResponsibleUserId: "board-user",
-  }).returning();
+  const [company] = await db
+    .insert(companies)
+    .values({
+      name: `${label} ${nonce}`,
+      issuePrefix: `WD${nonce.slice(0, 4).toUpperCase()}`,
+      defaultResponsibleUserId: "board-user",
+    })
+    .returning();
   return company!;
 }
 
-async function seedAgent(db: Db, companyId: string, permissions: Record<string, unknown> = {}) {
-  const [agent] = await db.insert(agents).values({
-    companyId,
-    name: `Agent ${randomUUID().slice(0, 6)}`,
-    role: "engineer",
-    adapterType: "process",
-    adapterConfig: {},
-    runtimeConfig: {},
-    permissions,
-  }).returning();
+async function seedAgent(
+  db: Db,
+  companyId: string,
+  permissions: Record<string, unknown> = {},
+) {
+  const [agent] = await db
+    .insert(agents)
+    .values({
+      companyId,
+      name: `Agent ${randomUUID().slice(0, 6)}`,
+      role: "engineer",
+      adapterType: "process",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions,
+    })
+    .returning();
   return agent!;
 }
 
 async function seedProject(db: Db, companyId: string, name: string) {
-  const [project] = await db.insert(projects).values({
-    companyId,
-    name,
-    status: "in_progress",
-  }).returning();
+  const [project] = await db
+    .insert(projects)
+    .values({
+      companyId,
+      name,
+      status: "in_progress",
+    })
+    .returning();
   return project!;
 }
 
@@ -115,20 +136,28 @@ async function seedIssue(
     parentId?: string | null;
   },
 ) {
-  const [issue] = await db.insert(issues).values({
-    companyId: input.companyId,
-    projectId: input.projectId ?? null,
-    parentId: input.parentId ?? null,
-    title: input.title,
-    status: input.status ?? "todo",
-    priority: "medium",
-    assigneeAgentId: input.assigneeAgentId ?? null,
-    responsibleUserId: "board-user",
-  }).returning();
+  const [issue] = await db
+    .insert(issues)
+    .values({
+      companyId: input.companyId,
+      projectId: input.projectId ?? null,
+      parentId: input.parentId ?? null,
+      title: input.title,
+      status: input.status ?? "todo",
+      priority: "medium",
+      assigneeAgentId: input.assigneeAgentId ?? null,
+      responsibleUserId: "board-user",
+    })
+    .returning();
   return issue!;
 }
 
-async function blockIssue(db: Db, companyId: string, blockerIssueId: string, blockedIssueId: string) {
+async function blockIssue(
+  db: Db,
+  companyId: string,
+  blockerIssueId: string,
+  blockedIssueId: string,
+) {
   await db.insert(issueRelations).values({
     companyId,
     issueId: blockerIssueId,
@@ -137,13 +166,16 @@ async function blockIssue(db: Db, companyId: string, blockerIssueId: string, blo
   });
 }
 
-async function attachLowTrustRun(db: Db, fixture: {
-  company: CompanyRow;
-  agent: AgentRow;
-  allowedProject: ProjectRow;
-  root: IssueRow;
-  visibleBlocker: IssueRow;
-}) {
+async function attachLowTrustRun(
+  db: Db,
+  fixture: {
+    company: CompanyRow;
+    agent: AgentRow;
+    allowedProject: ProjectRow;
+    root: IssueRow;
+    visibleBlocker: IssueRow;
+  },
+) {
   const executionPolicy = {
     authorizationPolicy: {
       trustBoundary: {
@@ -156,41 +188,54 @@ async function attachLowTrustRun(db: Db, fixture: {
       },
     },
   };
-  await db.update(agents).set({
-    permissions: {
-      trustPreset: LOW_TRUST_REVIEW_PRESET,
-      authorizationPolicy: executionPolicy.authorizationPolicy,
-    },
-  }).where(eq(agents.id, fixture.agent.id));
+  await db
+    .update(agents)
+    .set({
+      permissions: {
+        trustPreset: LOW_TRUST_REVIEW_PRESET,
+        authorizationPolicy: executionPolicy.authorizationPolicy,
+      },
+    })
+    .where(eq(agents.id, fixture.agent.id));
   fixture.agent.permissions = {
     trustPreset: LOW_TRUST_REVIEW_PRESET,
     authorizationPolicy: executionPolicy.authorizationPolicy,
   };
 
-  const [run] = await db.insert(heartbeatRuns).values({
-    companyId: fixture.company.id,
-    agentId: fixture.agent.id,
-    status: "running",
-    contextSnapshot: {
-      issueId: fixture.root.id,
+  const [run] = await db
+    .insert(heartbeatRuns)
+    .values({
+      companyId: fixture.company.id,
+      agentId: fixture.agent.id,
+      status: "running",
+      contextSnapshot: {
+        issueId: fixture.root.id,
+        executionPolicy,
+      },
+    })
+    .returning();
+  await db
+    .update(issues)
+    .set({
+      assigneeAgentId: fixture.agent.id,
+      checkoutRunId: run!.id,
+      executionRunId: run!.id,
       executionPolicy,
-    },
-  }).returning();
-  await db.update(issues).set({
-    assigneeAgentId: fixture.agent.id,
-    checkoutRunId: run!.id,
-    executionRunId: run!.id,
-    executionPolicy,
-  }).where(eq(issues.id, fixture.root.id));
+    })
+    .where(eq(issues.id, fixture.root.id));
   return run!;
 }
 
 describeEmbeddedPostgres("issue wake diagnostics route", () => {
   let db!: Db;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-wake-diagnostics-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-wake-diagnostics-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -236,13 +281,18 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
       finishedAt: new Date(Date.now() - 1_000),
     });
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${issue.id}/diagnostics/wakes`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${issue.id}/diagnostics/wakes`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toMatchObject({
-      diagnosis: expect.stringContaining("completed for issue_blockers_resolved"),
-      likelyReason: expect.stringContaining("completed for issue_blockers_resolved"),
+      diagnosis: expect.stringContaining(
+        "completed for issue_blockers_resolved",
+      ),
+      likelyReason: expect.stringContaining(
+        "completed for issue_blockers_resolved",
+      ),
       wakeRequestCount: 1,
       activityRecordCount: 0,
       truncated: false,
@@ -261,24 +311,45 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
     });
     const serialized = JSON.stringify(res.body);
     expect(serialized).not.toContain("SHOULD_NOT_LEAK");
-    expect(serialized).not.toContain("\"payload\"");
-    expect(serialized).not.toContain("\"details\"");
-    expect(serialized).not.toContain("\"triggerDetail\"");
-    expect(serialized).not.toContain("\"error\"");
+    expect(serialized).not.toContain('"payload"');
+    expect(serialized).not.toContain('"details"');
+    expect(serialized).not.toContain('"triggerDetail"');
+    expect(serialized).not.toContain('"error"');
   });
 
-  it.each(["chat_task_completed", "issue_execution_deferred"])("preserves the known %s reason without exposing completion payloads", async reason => {
-    const company = await seedCompany(db);
-    const agent = await seedAgent(db, company.id);
-    const issue = await seedIssue(db, { companyId: company.id, title: "Completion target", assigneeAgentId: agent.id });
-    await db.insert(agentWakeupRequests).values({ companyId: company.id, agentId: agent.id,
-      source: "automation", reason, status: "deferred_issue_execution",
-      payload: { issueId: issue.id, chatCompletionDeliveryIds: ["PRIVATE_DELIVERY_ID"] } });
-    const res = await request(createApp(db, boardActor(company))).get(`/api/issues/${issue.id}/diagnostics/wakes`);
-    expect(res.status).toBe(200);
-    expect(res.body.events).toMatchObject([{ reason, status: "deferred_issue_execution", source: "automation" }]);
-    expect(JSON.stringify(res.body)).not.toContain("PRIVATE_DELIVERY_ID");
-  });
+  it.each(["chat_task_completed", "issue_execution_deferred"])(
+    "preserves the known %s reason without exposing completion payloads",
+    async (reason) => {
+      const company = await seedCompany(db);
+      const agent = await seedAgent(db, company.id);
+      const issue = await seedIssue(db, {
+        companyId: company.id,
+        title: "Completion target",
+        assigneeAgentId: agent.id,
+      });
+      await db
+        .insert(agentWakeupRequests)
+        .values({
+          companyId: company.id,
+          agentId: agent.id,
+          source: "automation",
+          reason,
+          status: "deferred_issue_execution",
+          payload: {
+            issueId: issue.id,
+            chatCompletionDeliveryIds: ["PRIVATE_DELIVERY_ID"],
+          },
+        });
+      const res = await request(createApp(db, boardActor(company))).get(
+        `/api/issues/${issue.id}/diagnostics/wakes`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.events).toMatchObject([
+        { reason, status: "deferred_issue_execution", source: "automation" },
+      ]);
+      expect(JSON.stringify(res.body)).not.toContain("PRIVATE_DELIVERY_ID");
+    },
+  );
 
   it("returns null diagnosis for an unblocked issue with no wake history", async () => {
     const company = await seedCompany(db);
@@ -290,8 +361,9 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
       status: "todo",
     });
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${issue.id}/diagnostics/wakes`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${issue.id}/diagnostics/wakes`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.diagnosis).toBeNull();
@@ -320,15 +392,18 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
     });
     await blockIssue(db, company.id, blocker.id, root.id);
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${root.id}/diagnostics/wakes`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${root.id}/diagnostics/wakes`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.events).toEqual([]);
     expect(res.body.diagnosis).toContain("No wake row exists");
     expect(res.body.diagnosis).toContain("Unfinished blocker");
     expect(res.body.diagnosis).toContain("in_progress");
-    expect(res.body.diagnosis).toContain("issue_blockers_resolved has not fired");
+    expect(res.body.diagnosis).toContain(
+      "issue_blockers_resolved has not fired",
+    );
   });
 
   it("omits hidden blocker state from Case-B diagnosis for boundary-scoped agents", async () => {
@@ -357,10 +432,17 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
     });
     await blockIssue(db, company.id, visibleBlocker.id, root.id);
     await blockIssue(db, company.id, hiddenBlocker.id, root.id);
-    const run = await attachLowTrustRun(db, { company, agent, allowedProject, root, visibleBlocker });
+    const run = await attachLowTrustRun(db, {
+      company,
+      agent,
+      allowedProject,
+      root,
+      visibleBlocker,
+    });
 
-    const res = await request(createApp(db, agentActor(company, agent, run.id)))
-      .get(`/api/issues/${root.id}/diagnostics/wakes`);
+    const res = await request(
+      createApp(db, agentActor(company, agent, run.id)),
+    ).get(`/api/issues/${root.id}/diagnostics/wakes`);
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.diagnosis).toContain("authorization boundary");
@@ -371,11 +453,14 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
 
     const hiddenAgent = await seedAgent(db, company.id);
     const wakeRunId = randomUUID();
-    const [activityRun] = await db.insert(heartbeatRuns).values({
-      companyId: company.id,
-      agentId: hiddenAgent.id,
-      status: "succeeded",
-    }).returning();
+    const [activityRun] = await db
+      .insert(heartbeatRuns)
+      .values({
+        companyId: company.id,
+        agentId: hiddenAgent.id,
+        status: "succeeded",
+      })
+      .returning();
     const activityRunId = activityRun!.id;
     const holdId = randomUUID();
     await db.insert(agentWakeupRequests).values({
@@ -410,13 +495,18 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
       createdAt: new Date(Date.now() - 1_000),
     });
 
-    const resWithEvents = await request(createApp(db, agentActor(company, agent, run.id)))
-      .get(`/api/issues/${root.id}/diagnostics/wakes`);
+    const resWithEvents = await request(
+      createApp(db, agentActor(company, agent, run.id)),
+    ).get(`/api/issues/${root.id}/diagnostics/wakes`);
 
     expect(resWithEvents.status, JSON.stringify(resWithEvents.body)).toBe(200);
     expect(resWithEvents.body.events).toHaveLength(2);
-    const activityEvent = resWithEvents.body.events.find((event: { kind: string }) => event.kind === "activity");
-    const wakeEvent = resWithEvents.body.events.find((event: { kind: string }) => event.kind === "wake_request");
+    const activityEvent = resWithEvents.body.events.find(
+      (event: { kind: string }) => event.kind === "activity",
+    );
+    const wakeEvent = resWithEvents.body.events.find(
+      (event: { kind: string }) => event.kind === "wake_request",
+    );
     expect(activityEvent).toMatchObject({
       kind: "activity",
       agentId: null,
@@ -448,15 +538,19 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
       title: "Company A issue",
       status: "blocked",
     });
-    const [runB] = await db.insert(heartbeatRuns).values({
-      companyId: companyB.id,
-      agentId: agentB.id,
-      status: "running",
-      contextSnapshot: { issueId: issueA.id },
-    }).returning();
+    const [runB] = await db
+      .insert(heartbeatRuns)
+      .values({
+        companyId: companyB.id,
+        agentId: agentB.id,
+        status: "running",
+        contextSnapshot: { issueId: issueA.id },
+      })
+      .returning();
 
-    const res = await request(createApp(db, agentActor(companyB, agentB, runB!.id)))
-      .get(`/api/issues/${issueA.id}/diagnostics/wakes`);
+    const res = await request(
+      createApp(db, agentActor(companyB, agentB, runB!.id)),
+    ).get(`/api/issues/${issueA.id}/diagnostics/wakes`);
 
     // Uniform 404 so cross-tenant ids are indistinguishable from missing ones.
     expect(res.status, JSON.stringify(res.body)).toBe(404);
@@ -475,11 +569,14 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
       assigneeAgentId: agent.id,
     });
     const rawMarker = `RAW-DETAIL-${randomUUID()}`;
-    const [activityRun] = await db.insert(heartbeatRuns).values({
-      companyId: company.id,
-      agentId: agent.id,
-      status: "succeeded",
-    }).returning();
+    const [activityRun] = await db
+      .insert(heartbeatRuns)
+      .values({
+        companyId: company.id,
+        agentId: agent.id,
+        status: "succeeded",
+      })
+      .returning();
     const activityRunId = activityRun!.id;
 
     await db.insert(agentWakeupRequests).values({
@@ -512,11 +609,14 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
       createdAt: new Date(Date.now() - 1_000),
     });
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${issue.id}/diagnostics/wakes`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${issue.id}/diagnostics/wakes`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.diagnosis).toContain("deferred by an active issue-tree hold");
+    expect(res.body.diagnosis).toContain(
+      "deferred by an active issue-tree hold",
+    );
     expect(res.body.events).toHaveLength(2);
     expect(res.body.events[0]).toMatchObject({
       kind: "activity",
@@ -526,7 +626,8 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
       agentId: agent.id,
       runId: activityRunId,
       holdId: "hold-safe",
-      summary: "Wake was deferred because an active issue-tree hold was present.",
+      summary:
+        "Wake was deferred because an active issue-tree hold was present.",
     });
     expect(res.body.events[1]).toMatchObject({
       kind: "wake_request",
@@ -536,10 +637,10 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
     });
     const serialized = JSON.stringify(res.body);
     expect(serialized).not.toContain(rawMarker);
-    expect(serialized).not.toContain("\"payload\"");
-    expect(serialized).not.toContain("\"details\"");
-    expect(serialized).not.toContain("\"triggerDetail\"");
-    expect(serialized).not.toContain("\"error\"");
+    expect(serialized).not.toContain('"payload"');
+    expect(serialized).not.toContain('"details"');
+    expect(serialized).not.toContain('"triggerDetail"');
+    expect(serialized).not.toContain('"error"');
   });
 
   it("caps wake output and reports truncation", async () => {
@@ -567,15 +668,23 @@ describeEmbeddedPostgres("issue wake diagnostics route", () => {
     }
     await db.insert(agentWakeupRequests).values(wakeRows);
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${issue.id}/diagnostics/wakes`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${issue.id}/diagnostics/wakes`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.events).toHaveLength(50);
     expect(res.body.wakeRequestCount).toBe(50);
     expect(res.body.truncated).toBe(true);
-    expect(res.body.truncatedSections).toEqual({ wakeRequests: true, activityRecords: false });
+    expect(res.body.truncatedSections).toEqual({
+      wakeRequests: true,
+      activityRecords: false,
+    });
     expect(res.body.diagnosis).toContain("truncated to 50 wake requests");
-    expect(res.body.caps).toEqual({ maxWakeRequests: 50, maxActivityRecords: 50, lookbackDays: 14 });
+    expect(res.body.caps).toEqual({
+      maxWakeRequests: 50,
+      maxActivityRecords: 50,
+      lookbackDays: 14,
+    });
   });
 });

@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { setImmediate } from "node:timers/promises";
 
-const postgres = process.env.DRIVER_FORMAT === "cjs"
-  ? createRequire(import.meta.url)("postgres")
-  : (await import("postgres")).default;
+const postgres =
+  process.env.DRIVER_FORMAT === "cjs"
+    ? createRequire(import.meta.url)("postgres")
+    : (await import("postgres")).default;
 const mode = process.env.RECOVERY_CASE;
 const closed = Promise.withResolvers();
 const sql = postgres(process.env.TEST_DATABASE_URL, {
@@ -14,11 +15,17 @@ const sql = postgres(process.env.TEST_DATABASE_URL, {
   onnotice() {},
   onclose: () => closed.resolve(),
 });
-const control = postgres(process.env.TEST_DATABASE_URL, { max: 1, onnotice() {} });
-const capture = (query) => Promise.resolve(query).then(
-  () => { throw new Error("Expected the closed connection to reject"); },
-  (error) => error,
-);
+const control = postgres(process.env.TEST_DATABASE_URL, {
+  max: 1,
+  onnotice() {},
+});
+const capture = (query) =>
+  Promise.resolve(query).then(
+    () => {
+      throw new Error("Expected the closed connection to reject");
+    },
+    (error) => error,
+  );
 const terminate = async (pid) => {
   await control.unsafe("select pg_terminate_backend($1)", [pid]);
   await closed.promise;
@@ -28,7 +35,11 @@ try {
   await control.unsafe("drop table if exists connection_recovery_probe");
   await control.unsafe("create table connection_recovery_probe (id integer)");
 
-  if (mode === "transaction" || mode === "transaction-closed" || mode === "savepoint") {
+  if (
+    mode === "transaction" ||
+    mode === "transaction-closed" ||
+    mode === "savepoint"
+  ) {
     const started = Promise.withResolvers();
     const resume = Promise.withResolvers();
     const callbackDone = Promise.withResolvers();
@@ -47,7 +58,9 @@ try {
         callbackDone.resolve();
       }
     };
-    const failed = capture(sql.begin((tx) => mode === "savepoint" ? tx.savepoint(work) : work(tx)));
+    const failed = capture(
+      sql.begin((tx) => (mode === "savepoint" ? tx.savepoint(work) : work(tx))),
+    );
     await terminate(await started.promise);
     assert.equal((await failed).code, "CONNECTION_CLOSED");
 
@@ -67,20 +80,31 @@ try {
       await finishOldCallback();
       await tx.unsafe("insert into connection_recovery_probe values (4)");
     });
-    const rows = await sql.unsafe("select id from connection_recovery_probe order by id");
-    assert.deepEqual(rows.map((row) => row.id), [3, 4]);
+    const rows = await sql.unsafe(
+      "select id from connection_recovery_probe order by id",
+    );
+    assert.deepEqual(
+      rows.map((row) => row.id),
+      [3, 4],
+    );
   } else if (mode === "reserve") {
     const reserved = await sql.reserve();
     const [row] = await reserved.unsafe("select pg_backend_pid() as pid");
     await terminate(row.pid);
-    assert.equal((await capture(reserved.unsafe("select 1"))).code, "CONNECTION_CLOSED");
+    assert.equal(
+      (await capture(reserved.unsafe("select 1"))).code,
+      "CONNECTION_CLOSED",
+    );
     reserved.release();
     const fresh = await sql.reserve();
     try {
       const [freshRow] = await fresh.unsafe("select pg_backend_pid() as pid");
       assert.notEqual(freshRow.pid, row.pid);
       reserved.release();
-      assert.equal((await capture(reserved.unsafe("select 1"))).code, "CONNECTION_CLOSED");
+      assert.equal(
+        (await capture(reserved.unsafe("select 1"))).code,
+        "CONNECTION_CLOSED",
+      );
       assert.equal((await fresh.unsafe("select 42 as value"))[0].value, 42);
     } finally {
       fresh.release();
@@ -95,13 +119,20 @@ try {
       pending = [0, 1, 2].map(() => capture(tx.unsafe("select pg_sleep(30)")));
       started.resolve(row.pid);
       const errors = await Promise.all(pending);
-      assert.ok(errors.every((error) => ["57P01", "CONNECTION_CLOSED"].includes(error.code)));
+      assert.ok(
+        errors.every((error) =>
+          ["57P01", "CONNECTION_CLOSED"].includes(error.code),
+        ),
+      );
     };
     const reserved = mode === "reserve-queue" ? await sql.reserve() : null;
     const task = reserved ? work(reserved) : capture(sql.begin(work));
     const pid = await started.promise;
     while (true) {
-      const [row] = await control.unsafe("select wait_event from pg_stat_activity where pid = $1", [pid]);
+      const [row] = await control.unsafe(
+        "select wait_event from pg_stat_activity where pid = $1",
+        [pid],
+      );
       if (row?.wait_event === "PgSleep") break;
       await setImmediate();
     }

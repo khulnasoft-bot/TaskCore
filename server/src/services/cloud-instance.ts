@@ -27,8 +27,8 @@ export function isCloudManagedInstance(
   env: CloudInstanceEnv = process.env,
 ): boolean {
   return (
-    normalizeOptionalEnvValue(env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN) !== null ||
-    env.TASKCORE_MANAGED_CONFIG !== undefined
+    normalizeOptionalEnvValue(env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN) !==
+      null || env.TASKCORE_MANAGED_CONFIG !== undefined
   );
 }
 
@@ -47,7 +47,9 @@ export function getCloudStackContext(
   return {
     stackId: normalizeOptionalEnvValue(env.TASKCORE_CLOUD_STACK_ID),
     stackSlug: normalizeOptionalEnvValue(env.TASKCORE_STACK_SLUG),
-    accountGroupId: normalizeOptionalEnvValue(env.TASKCORE_CLOUD_ACCOUNT_GROUP_ID),
+    accountGroupId: normalizeOptionalEnvValue(
+      env.TASKCORE_CLOUD_ACCOUNT_GROUP_ID,
+    ),
     primaryHost: normalizeOptionalEnvValue(env.TASKCORE_PRIMARY_HOST),
     cloudOrigin: normalizeOptionalEnvValue(env.TASKCORE_CLOUD_API_ORIGIN),
   };
@@ -60,7 +62,9 @@ export function getCloudStackContext(
  * these ids. middleware/auth.ts delegates here; this is the one definition.
  */
 export function cloudTenantPrimaryCompanyId(stackId: string): string {
-  const bytes = createHash("sha256").update(`taskcore-cloud-tenant-company:${stackId}`).digest();
+  const bytes = createHash("sha256")
+    .update(`taskcore-cloud-tenant-company:${stackId}`)
+    .digest();
   bytes[6] = (bytes[6]! & 0x0f) | 0x50;
   bytes[8] = (bytes[8]! & 0x3f) | 0x80;
   const hex = bytes.subarray(0, 16).toString("hex");

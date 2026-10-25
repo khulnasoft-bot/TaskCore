@@ -33,14 +33,19 @@ if (!LOCAL_RUNNER_SCENARIOS.includes(scenarioInput as LocalRunnerScenario)) {
   });
   const outputPath = argument("--output");
   if (outputPath !== undefined) {
-    await writeFile(outputPath, `${JSON.stringify(localRunnerTraceAsFixture(trace), null, 2)}\n`);
+    await writeFile(
+      outputPath,
+      `${JSON.stringify(localRunnerTraceAsFixture(trace), null, 2)}\n`,
+    );
   }
   process.stdout.write(
     `${JSON.stringify({
       schema: "taskcore.runner.local-runner.summary.v1",
       scenario,
       eventCount: trace.events.length,
-      terminalCount: trace.events.filter((event) => event.eventType === "run.terminal").length,
+      terminalCount: trace.events.filter(
+        (event) => event.eventType === "run.terminal",
+      ).length,
       semanticResult: trace.result?.reportedWorkDisposition ?? null,
       harnessProcessExit: trace.harnessProcessExit,
       runnerProcessExit: trace.runnerProcessExit,

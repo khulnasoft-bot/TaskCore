@@ -42,14 +42,18 @@ function event(overrides: Partial<ToolCallEvent>): ToolCallEvent {
 describe("isTestEvent", () => {
   it("is true only when metadata.source === 'test'", () => {
     expect(isTestEvent(event({ metadata: { source: "test" } }))).toBe(true);
-    expect(isTestEvent(event({ metadata: { source: "heartbeat" } }))).toBe(false);
+    expect(isTestEvent(event({ metadata: { source: "heartbeat" } }))).toBe(
+      false,
+    );
     expect(isTestEvent(event({ metadata: null }))).toBe(false);
   });
 });
 
 describe("resolveActorLabel", () => {
   it("prefers the directory display name", () => {
-    expect(resolveActorLabel("user-1", new Map([["user-1", "Dotta"]]))).toBe("Dotta");
+    expect(resolveActorLabel("user-1", new Map([["user-1", "Dotta"]]))).toBe(
+      "Dotta",
+    );
   });
 
   it("falls back to 'Board' for the local board principal", () => {
@@ -66,7 +70,11 @@ describe("resolveActorLabel", () => {
 describe("humanizeEvent test-tab attribution", () => {
   it("surfaces '<User> tested as <Agent>' for a successful test call", () => {
     const { primary } = humanizeEvent(
-      event({ actorType: "user", actorId: "user-1", metadata: { source: "test" } }),
+      event({
+        actorType: "user",
+        actorId: "user-1",
+        metadata: { source: "test" },
+      }),
       "BenchmarkForensics",
       undefined,
       "Dotta",
@@ -81,12 +89,18 @@ describe("humanizeEvent test-tab attribution", () => {
 
   it("attributes a denied test call to the runner instead of an anonymous block", () => {
     const { primary } = humanizeEvent(
-      event({ eventType: "call_denied", outcome: "denied", metadata: { source: "test" } }),
+      event({
+        eventType: "call_denied",
+        outcome: "denied",
+        metadata: { source: "test" },
+      }),
       "BenchmarkForensics",
       undefined,
       "Board",
     );
-    expect(primary).toBe("Board tested as BenchmarkForensics - Read Values is turned off");
+    expect(primary).toBe(
+      "Board tested as BenchmarkForensics - Read Values is turned off",
+    );
   });
 
   it("keeps the anonymous block wording for non-test denied calls", () => {

@@ -2,7 +2,10 @@ import { AgentAvatar } from "@/components/AgentAvatar";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useVisibilityRefetchInterval } from "@/lib/polling";
-import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
+import {
+  usePublishSharedQueryData,
+  useSharedPollingQuery,
+} from "../hooks/useSharedPolling";
 import type { ActivityEvent, Agent } from "@taskcore/shared";
 import { activityApi } from "../api/activity";
 import { agentsApi } from "../api/agents";
@@ -26,7 +29,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ListFilter, Layers, ChevronDown, ChevronRight, User, Settings } from "lucide-react";
+import {
+  ListFilter,
+  Layers,
+  ChevronDown,
+  ChevronRight,
+  User,
+  Settings,
+} from "lucide-react";
 import { timeAgo } from "../lib/timeAgo";
 
 /* ------------------------------------------------------------------ */
@@ -121,8 +131,16 @@ const FILTER_OPTIONS: Array<{ value: FilterValue; label: string }> = [
 
 const FILTER_ACTIONS: Record<FilterValue, Set<string> | null> = {
   all: null,
-  "in-progress": new Set(["issue.created", "issue.checked_out", "heartbeat.invoked"]),
-  "for-review": new Set(["approval.created", "issue.document_created", "issue.document_updated"]),
+  "in-progress": new Set([
+    "issue.created",
+    "issue.checked_out",
+    "heartbeat.invoked",
+  ]),
+  "for-review": new Set([
+    "approval.created",
+    "issue.document_created",
+    "issue.document_updated",
+  ]),
   completed: new Set(["approval.approved"]),
 };
 
@@ -140,7 +158,12 @@ function matchesFilter(event: ActivityEvent, filter: FilterValue): boolean {
   if (event.action === "issue.updated" && event.details) {
     const statusSet = STATUS_FILTER_MAP[filter];
     const details = event.details as Record<string, unknown>;
-    if (statusSet && typeof details.status === "string" && statusSet.has(details.status)) return true;
+    if (
+      statusSet &&
+      typeof details.status === "string" &&
+      statusSet.has(details.status)
+    )
+      return true;
   }
   return false;
 }
@@ -171,7 +194,9 @@ function collapseSequential(events: ActivityEvent[]): FeedItem[] {
   for (let i = 1; i < events.length; i++) {
     const evt = events[i];
     const key = `${evt.entityType}:${evt.entityId}`;
-    const prevTime = new Date(currentGroup[currentGroup.length - 1].createdAt).getTime();
+    const prevTime = new Date(
+      currentGroup[currentGroup.length - 1].createdAt,
+    ).getTime();
     const thisTime = new Date(evt.createdAt).getTime();
     const withinWindow = Math.abs(prevTime - thisTime) <= COLLAPSE_WINDOW_MS;
 
@@ -254,13 +279,17 @@ function CollapsedFeedGroup({
   entityTitleMap: Map<string, string>;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const actor = group.latestEvent.actorType === "agent"
-    ? agentMap.get(group.latestEvent.actorId)
-    : null;
-  const actorName = actor?.name
-    ?? (group.latestEvent.actorType === "system" ? "System"
-      : group.latestEvent.actorType === "user" ? "Board"
-      : "Unknown");
+  const actor =
+    group.latestEvent.actorType === "agent"
+      ? agentMap.get(group.latestEvent.actorId)
+      : null;
+  const actorName =
+    actor?.name ??
+    (group.latestEvent.actorType === "system"
+      ? "System"
+      : group.latestEvent.actorType === "user"
+        ? "Board"
+        : "Unknown");
   const entityName = entityNameMap.get(`${group.entityType}:${group.entityId}`);
 
   return (
@@ -275,20 +304,38 @@ function CollapsedFeedGroup({
           "cursor-pointer hover:bg-accent hover:border-muted-foreground/30",
         )}
       >
-        {expanded
-          ? <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-          : <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
-        }
-        {group.latestEvent.actorType === "agent"
-          ? <AgentAvatar agent={actor} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
-          : group.latestEvent.actorType === "user"
-            ? <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            : <Settings className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        }
+        {expanded ? (
+          <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+        )}
+        {group.latestEvent.actorType === "agent" ? (
+          <AgentAvatar
+            agent={actor}
+            size={16}
+            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          />
+        ) : group.latestEvent.actorType === "user" ? (
+          <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        ) : (
+          <Settings className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        )}
         <span className="flex-1 min-w-0 truncate">
-          <span data-fc="actor" className="font-medium text-(--hex-959596) group-hover:text-white">{actorName}</span>
-          <span data-fc="verb" className="ml-1 text-(--hex-959596)">made {group.events.length} updates to</span>
-          <span data-fc="title" className="ml-1 text-(--hex-959596) group-hover:text-white">{entityName ?? group.entityId}</span>
+          <span
+            data-fc="actor"
+            className="font-medium text-(--hex-959596) group-hover:text-white"
+          >
+            {actorName}
+          </span>
+          <span data-fc="verb" className="ml-1 text-(--hex-959596)">
+            made {group.events.length} updates to
+          </span>
+          <span
+            data-fc="title"
+            className="ml-1 text-(--hex-959596) group-hover:text-white"
+          >
+            {entityName ?? group.entityId}
+          </span>
         </span>
         <span data-fc="time" className="text-muted-foreground shrink-0">
           {timeAgo(group.latestEvent.createdAt)}
@@ -342,7 +389,9 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
 
   // Fetch company-level activity. Poll ~5s when the tab is focused; slow/stop in the
   // background so restored tabs don't storm the activity endpoint (PAP-12556).
-  const activityRefetchInterval = useVisibilityRefetchInterval({ visibleMs: 5000 });
+  const activityRefetchInterval = useVisibilityRefetchInterval({
+    visibleMs: 5000,
+  });
   const activityQueryKey = queryKeys.activity(selectedCompanyId ?? "");
   const sharedActivity = useSharedPollingQuery({
     companyId: selectedCompanyId,
@@ -354,7 +403,8 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
   });
   const { data: activity, dataUpdatedAt: activityUpdatedAt } = useQuery({
     queryKey: activityQueryKey,
-    queryFn: ({ signal }) => activityApi.list(selectedCompanyId!, undefined, { signal }),
+    queryFn: ({ signal }) =>
+      activityApi.list(selectedCompanyId!, undefined, { signal }),
     enabled: sharedActivity.enabled,
     refetchInterval: sharedActivity.refetchInterval,
   });
@@ -383,7 +433,8 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
   const entityNameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const a of agents ?? []) map.set(`agent:${a.id}`, a.name);
-    for (const i of issues ?? []) map.set(`issue:${i.id}`, i.identifier ?? i.id);
+    for (const i of issues ?? [])
+      map.set(`issue:${i.id}`, i.identifier ?? i.id);
     return map;
   }, [agents, issues]);
 
@@ -407,7 +458,10 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
         if (!showAllActivity && tier === 3) return false;
         return matchesFilter(evt, filter);
       })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
 
     return collapseSequential(events);
   }, [activity, filter, showAllActivity]);
@@ -471,19 +525,22 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     // Insert recency separator
     let separator: React.ReactNode = null;
     if (index > 0) {
-      const prevCreatedAt = "type" in item
-        ? item.latestEvent.createdAt
-        : item.createdAt;
+      const prevCreatedAt =
+        "type" in item ? item.latestEvent.createdAt : item.createdAt;
       const prevItem = items[index - 1];
-      const prevPrevCreatedAt = "type" in prevItem
-        ? prevItem.latestEvent.createdAt
-        : prevItem.createdAt;
+      const prevPrevCreatedAt =
+        "type" in prevItem
+          ? prevItem.latestEvent.createdAt
+          : prevItem.createdAt;
 
       const prevIsRecent = isRecent(prevPrevCreatedAt);
       const thisIsRecent = isRecent(prevCreatedAt);
       if (prevIsRecent && !thisIsRecent) {
         separator = (
-          <div className="flex items-center gap-2 px-4 py-1.5" key={`sep-${index}`}>
+          <div
+            className="flex items-center gap-2 px-4 py-1.5"
+            key={`sep-${index}`}
+          >
             <div className="h-px flex-1 bg-border" />
             <span className="text-(length:--text-nano) font-medium text-muted-foreground uppercase tracking-wider">
               Earlier
@@ -514,7 +571,9 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     const evt = item as ActivityEvent;
     const tier = getEventTier(evt);
     const animClass = isNewItem(evt.id) ? "feed-item-new" : "";
-    const isActiveHeartbeat = activeHeartbeatEntityIds.has(evt.entityId) && evt.action === "heartbeat.invoked";
+    const isActiveHeartbeat =
+      activeHeartbeatEntityIds.has(evt.entityId) &&
+      evt.action === "heartbeat.invoked";
 
     if (tier === 1) {
       return (
@@ -557,7 +616,12 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     // Group by issue entityId
     const groups = new Map<string, FeedItem[]>();
     for (const item of visibleItems) {
-      const key = "type" in item ? item.entityId : (item.entityType === "issue" ? item.entityId : "__other__");
+      const key =
+        "type" in item
+          ? item.entityId
+          : item.entityType === "issue"
+            ? item.entityId
+            : "__other__";
       const existing = groups.get(key) ?? [];
       existing.push(item);
       groups.set(key, existing);
@@ -574,7 +638,9 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
       return (
         <div key={groupKey} className="mb-2">
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b px-4 py-1.5">
-            <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
+            <p className="text-xs font-medium text-muted-foreground truncate">
+              {label}
+            </p>
           </div>
           {items.map((item, i) => renderItem(item, i, items))}
         </div>
@@ -610,7 +676,12 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
   const isEmpty = visibleItems.length === 0;
 
   return (
-    <aside className={cn("flex min-h-0 min-w-0 flex-1 flex-col bg-background", className)}>
+    <aside
+      className={cn(
+        "flex min-h-0 min-w-0 flex-1 flex-col bg-background",
+        className,
+      )}
+    >
       {/* Header */}
       <div className="relative flex shrink-0 items-start justify-between gap-2 px-4 py-3">
         {/* Bottom rule: extends through the 12px resize handle on desktop so
@@ -636,7 +707,9 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
                 size="icon-sm"
                 className="shrink-0 text-muted-foreground"
                 aria-label="group by task"
-                onClick={() => setGroupMode((m) => (m === "flat" ? "by-task" : "flat"))}
+                onClick={() =>
+                  setGroupMode((m) => (m === "flat" ? "by-task" : "flat"))
+                }
               >
                 <Layers className="h-3.5 w-3.5" />
               </Button>
@@ -653,7 +726,11 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
-                    variant={filter !== "all" || showAllActivity ? "secondary" : "ghost"}
+                    variant={
+                      filter !== "all" || showAllActivity
+                        ? "secondary"
+                        : "ghost"
+                    }
                     size="icon-sm"
                     className="shrink-0 text-muted-foreground"
                     aria-label="filter by"
@@ -703,12 +780,15 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
                 </span>
               )}
               <p className="text-center text-sm text-muted-foreground">
-                {emptyMessage?.text ?? "Activity from your agents will appear here."}
+                {emptyMessage?.text ??
+                  "Activity from your agents will appear here."}
               </p>
             </div>
           </div>
         ) : groupMode === "flat" ? (
-          <div className="py-2">{visibleItems.map((item, i) => renderItem(item, i, visibleItems))}</div>
+          <div className="py-2">
+            {visibleItems.map((item, i) => renderItem(item, i, visibleItems))}
+          </div>
         ) : (
           renderGrouped()
         )}

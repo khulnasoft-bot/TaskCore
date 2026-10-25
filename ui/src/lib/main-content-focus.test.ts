@@ -15,8 +15,12 @@ describe("main-content-focus", () => {
     originalRequestAnimationFrame = window.requestAnimationFrame;
     originalCancelAnimationFrame = window.cancelAnimationFrame;
     window.requestAnimationFrame = ((callback: FrameRequestCallback) =>
-      window.setTimeout(() => callback(performance.now()), 0)) as typeof window.requestAnimationFrame;
-    window.cancelAnimationFrame = ((handle: number) => window.clearTimeout(handle)) as typeof window.cancelAnimationFrame;
+      window.setTimeout(
+        () => callback(performance.now()),
+        0,
+      )) as typeof window.requestAnimationFrame;
+    window.cancelAnimationFrame = ((handle: number) =>
+      window.clearTimeout(handle)) as typeof window.cancelAnimationFrame;
   });
 
   afterEach(() => {

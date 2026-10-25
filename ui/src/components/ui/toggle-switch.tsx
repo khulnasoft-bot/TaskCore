@@ -1,8 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export interface ToggleSwitchProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> {
+export interface ToggleSwitchProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "onChange"
+> {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   size?: "default" | "lg";
@@ -21,7 +23,15 @@ export const ToggleSwitch = React.forwardRef<
   ToggleSwitchProps
 >(
   (
-    { checked, onCheckedChange, size = "default", className, disabled, onClick, ...props },
+    {
+      checked,
+      onCheckedChange,
+      size = "default",
+      className,
+      disabled,
+      onClick,
+      ...props
+    },
     ref,
   ) => {
     const isLg = size === "lg";

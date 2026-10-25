@@ -66,10 +66,12 @@ function createDbStub() {
               return query;
             },
             where() {
-              return Promise.resolve([{
-                name: "Acme Robotics",
-                logoAssetId: null,
-              }]);
+              return Promise.resolve([
+                {
+                  name: "Acme Robotics",
+                  logoAssetId: null,
+                },
+              ]);
             },
           };
           return query;

@@ -8,14 +8,20 @@ import {
 import { claimFirstInstanceAdmin } from "../first-admin-claim.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("claimFirstInstanceAdmin", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-first-admin-claim-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-first-admin-claim-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -33,12 +39,20 @@ describeEmbeddedPostgres("claimFirstInstanceAdmin", () => {
 
     expect(first).toMatchObject({ status: "claimed", userId: firstUserId });
 
-    const second = await claimFirstInstanceAdmin(db, { userId: `user-${randomUUID()}` });
-    expect(second).toMatchObject({ status: "already_claimed", existingUserId: firstUserId });
+    const second = await claimFirstInstanceAdmin(db, {
+      userId: `user-${randomUUID()}`,
+    });
+    expect(second).toMatchObject({
+      status: "already_claimed",
+      existingUserId: firstUserId,
+    });
 
     const roles = await db.select().from(instanceUserRoles);
     expect(roles).toHaveLength(1);
-    expect(roles[0]).toMatchObject({ userId: firstUserId, role: "instance_admin" });
+    expect(roles[0]).toMatchObject({
+      userId: firstUserId,
+      role: "instance_admin",
+    });
   });
 
   it("runs onClaim inside the winning transaction", async () => {
@@ -51,6 +65,10 @@ describeEmbeddedPostgres("claimFirstInstanceAdmin", () => {
       },
     });
 
-    expect(result).toMatchObject({ status: "claimed", userId, value: [userId] });
+    expect(result).toMatchObject({
+      status: "claimed",
+      userId,
+      value: [userId],
+    });
   });
 });

@@ -33,9 +33,18 @@ function makeBlockerAttention(
 
 describe("inbox live descendant status helpers", () => {
   it("combines server and loaded live descendant counts without double-counting", () => {
-    expect(resolveIssueLiveDescendantCount(makeIssue({ liveDescendantCount: 3 }), 1)).toBe(3);
-    expect(resolveIssueLiveDescendantCount(makeIssue({ liveDescendantCount: 0 }), 2)).toBe(2);
-    expect(resolveIssueLiveDescendantCount(makeIssue({ liveDescendantCount: -1 }), 2.7)).toBe(2);
+    expect(
+      resolveIssueLiveDescendantCount(makeIssue({ liveDescendantCount: 3 }), 1),
+    ).toBe(3);
+    expect(
+      resolveIssueLiveDescendantCount(makeIssue({ liveDescendantCount: 0 }), 2),
+    ).toBe(2);
+    expect(
+      resolveIssueLiveDescendantCount(
+        makeIssue({ liveDescendantCount: -1 }),
+        2.7,
+      ),
+    ).toBe(2);
   });
 
   it("synthesizes covered blocker attention for a blocked row with live descendants", () => {
@@ -63,7 +72,10 @@ describe("inbox live descendant status helpers", () => {
 
   it("keeps urgent blocked attention red even when descendants are live", () => {
     for (const state of ["needs_attention", "stalled"] as const) {
-      const original = makeBlockerAttention({ state, reason: "attention_required" });
+      const original = makeBlockerAttention({
+        state,
+        reason: "attention_required",
+      });
       const attention = resolveInboxIssueBlockerAttention(
         makeIssue({ blockerAttention: original, liveDescendantCount: 4 }),
         { isLive: false },

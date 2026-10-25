@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { ClientAdmissionController } from "./socket-server.js";
 
-function admission(overrides: Partial<ConstructorParameters<typeof ClientAdmissionController>[0]> = {}) {
+function admission(
+  overrides: Partial<
+    ConstructorParameters<typeof ClientAdmissionController>[0]
+  > = {},
+) {
   return new ClientAdmissionController({
     maxClients: 32,
     maxClientsPerUid: 8,
@@ -14,7 +18,9 @@ function admission(overrides: Partial<ConstructorParameters<typeof ClientAdmissi
 describe("ClientAdmissionController", () => {
   it("bounds one non-service peer by UID even when it opens 40 connections", () => {
     const controller = admission();
-    const admitted = Array.from({ length: 40 }, () => controller.tryAcquire(1000));
+    const admitted = Array.from({ length: 40 }, () =>
+      controller.tryAcquire(1000),
+    );
 
     expect(admitted.filter(Boolean)).toHaveLength(8);
     expect(admitted.slice(8)).toEqual(Array(32).fill(false));
@@ -22,7 +28,11 @@ describe("ClientAdmissionController", () => {
   });
 
   it("reserves global headroom for the Taskcore service UID", () => {
-    const controller = admission({ maxClients: 6, maxClientsPerUid: 3, reservedServiceClients: 2 });
+    const controller = admission({
+      maxClients: 6,
+      maxClientsPerUid: 3,
+      reservedServiceClients: 2,
+    });
 
     expect(controller.tryAcquire(1000)).toBe(true);
     expect(controller.tryAcquire(1000)).toBe(true);
@@ -36,7 +46,11 @@ describe("ClientAdmissionController", () => {
   });
 
   it("returns capacity to the same UID when a socket finishes", () => {
-    const controller = admission({ maxClients: 3, maxClientsPerUid: 1, reservedServiceClients: 1 });
+    const controller = admission({
+      maxClients: 3,
+      maxClientsPerUid: 1,
+      reservedServiceClients: 1,
+    });
 
     expect(controller.tryAcquire(1000)).toBe(true);
     expect(controller.tryAcquire(1000)).toBe(false);
@@ -45,8 +59,14 @@ describe("ClientAdmissionController", () => {
   });
 
   it("rejects quota configurations that would disable a bound or reservation", () => {
-    expect(() => admission({ maxClientsPerUid: 0 })).toThrow(/maxClientsPerUid/);
-    expect(() => admission({ maxClients: 8, maxClientsPerUid: 9 })).toThrow(/must not exceed/);
-    expect(() => admission({ maxClients: 8, reservedServiceClients: 8 })).toThrow(/less than/);
+    expect(() => admission({ maxClientsPerUid: 0 })).toThrow(
+      /maxClientsPerUid/,
+    );
+    expect(() => admission({ maxClients: 8, maxClientsPerUid: 9 })).toThrow(
+      /must not exceed/,
+    );
+    expect(() =>
+      admission({ maxClients: 8, reservedServiceClients: 8 }),
+    ).toThrow(/less than/);
   });
 });

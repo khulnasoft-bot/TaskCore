@@ -23,7 +23,8 @@ describe("ToastContext", () => {
   it("does not rerender action-only consumers when toast state changes", () => {
     const root = createRoot(container);
     let actionOnlyRenderCount = 0;
-    let pushToastRef: ((input: { title: string }) => string | null) | null = null;
+    let pushToastRef: ((input: { title: string }) => string | null) | null =
+      null;
     let clearToastsRef: (() => void) | null = null;
 
     function ActionOnlyConsumer() {
@@ -49,21 +50,27 @@ describe("ToastContext", () => {
     });
 
     expect(actionOnlyRenderCount).toBe(1);
-    expect(container.querySelector('[data-testid="toast-count"]')?.textContent).toBe("0");
+    expect(
+      container.querySelector('[data-testid="toast-count"]')?.textContent,
+    ).toBe("0");
 
     act(() => {
       pushToastRef?.({ title: "Saved" });
     });
 
     expect(actionOnlyRenderCount).toBe(1);
-    expect(container.querySelector('[data-testid="toast-count"]')?.textContent).toBe("1");
+    expect(
+      container.querySelector('[data-testid="toast-count"]')?.textContent,
+    ).toBe("1");
 
     act(() => {
       clearToastsRef?.();
     });
 
     expect(actionOnlyRenderCount).toBe(1);
-    expect(container.querySelector('[data-testid="toast-count"]')?.textContent).toBe("0");
+    expect(
+      container.querySelector('[data-testid="toast-count"]')?.textContent,
+    ).toBe("0");
 
     act(() => {
       root.unmount();

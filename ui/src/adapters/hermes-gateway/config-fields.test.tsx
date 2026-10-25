@@ -54,7 +54,11 @@ describe("HermesGatewayConfigFields", () => {
     const result = renderFields({
       config: {
         apiBaseUrl: "http://127.0.0.1:8642",
-        apiKey: { type: "secret_ref", secretId: "11111111-1111-4111-8111-111111111111", version: "latest" },
+        apiKey: {
+          type: "secret_ref",
+          secretId: "11111111-1111-4111-8111-111111111111",
+          version: "latest",
+        },
         taskcoreApiUrl: "http://127.0.0.1:3100",
         sessionKeyStrategy: "issue",
       },
@@ -72,13 +76,20 @@ describe("HermesGatewayConfigFields", () => {
     expect(text).toContain("Extra headers");
     expect(text).toContain("Instructions");
 
-    const urlInput = result.container.querySelector<HTMLInputElement>('input[value="http://127.0.0.1:8642"]');
+    const urlInput = result.container.querySelector<HTMLInputElement>(
+      'input[value="http://127.0.0.1:8642"]',
+    );
     expect(urlInput).toBeTruthy();
 
-    const apiKeyInput = Array.from(result.container.querySelectorAll<HTMLInputElement>('input[type="password"]'))
-      .find((input) => input.placeholder.includes("Stored secret"));
+    const apiKeyInput = Array.from(
+      result.container.querySelectorAll<HTMLInputElement>(
+        'input[type="password"]',
+      ),
+    ).find((input) => input.placeholder.includes("Stored secret"));
     expect(apiKeyInput).toBeTruthy();
 
-    expect(result.container.querySelector('button[aria-label="Show API key"]')).toBeTruthy();
+    expect(
+      result.container.querySelector('button[aria-label="Show API key"]'),
+    ).toBeTruthy();
   });
 });

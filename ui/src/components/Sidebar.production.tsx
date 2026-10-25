@@ -37,8 +37,15 @@ import { instanceSettingsApi } from "../api/instanceSettings";
 import { queryKeys } from "../lib/queryKeys";
 import { attentionBadgeCount } from "../lib/attention";
 import { useInboxBadge } from "../hooks/useInboxBadge";
-import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  usePublishSharedQueryData,
+  useSharedPollingQuery,
+} from "../hooks/useSharedPolling";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
 import { PluginSlotOutlet } from "@/plugins/slots";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
@@ -78,7 +85,8 @@ export function Sidebar() {
   });
   usePublishSharedQueryData(sharedLiveRuns, liveRuns, liveRunsUpdatedAt);
   const liveRunCount = liveRuns?.length ?? 0;
-  const showWorkspacesLink = experimentalSettings?.enableIsolatedWorkspaces === true;
+  const showWorkspacesLink =
+    experimentalSettings?.enableIsolatedWorkspaces === true;
   const showApps = experimentalSettings?.enableApps === true;
   const showPipelines = experimentalSettings?.enablePipelines === true;
   const showStatusCards = experimentalSettings?.enableStatusCards === true;
@@ -105,7 +113,8 @@ export function Sidebar() {
   // Conference Room Chat flag (PAP-136/PAP-137): the Conference Room nav item
   // is a new surface, hidden entirely while the flag is off (same no-flash
   // pattern as showWorkspacesLink above).
-  const conferenceRoomChatEnabled = experimentalSettings?.enableConferenceRoomChat === true;
+  const conferenceRoomChatEnabled =
+    experimentalSettings?.enableConferenceRoomChat === true;
 
   const pluginContext = {
     companyId: selectedCompanyId,
@@ -135,7 +144,9 @@ export function Sidebar() {
                 className="flex items-center gap-2.5 mx-2 rounded-lg px-2 py-1.5 pointer-coarse:py-1 text-(length:--text-compact) font-medium text-foreground/80 hover:bg-accent/50 hover:text-foreground transition-colors"
               >
                 <SquarePen className="h-4 w-4 shrink-0" />
-                <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "truncate"}>New Task</span>
+                <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "truncate"}>
+                  New Task
+                </span>
               </button>
             );
             return rail ? (
@@ -152,7 +163,12 @@ export function Sidebar() {
               collapsed rail, where the old header icon was dropped entirely.
               Cmd/Ctrl+K remains the keyboard path (command palette). */}
           <SidebarNavItem to="/search" label="Search" icon={Search} />
-          <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem
+            to="/dashboard"
+            label="Dashboard"
+            icon={LayoutDashboard}
+            liveCount={liveRunCount}
+          />
           <SidebarNavItem
             to="/inbox"
             label="Inbox"
@@ -172,21 +188,42 @@ export function Sidebar() {
             />
           ) : null}
           {showStatusCards ? (
-            <SidebarNavItem to="/status" label="Status" icon={LayoutGrid} textBadge="beta" />
+            <SidebarNavItem
+              to="/status"
+              label="Status"
+              icon={LayoutGrid}
+              textBadge="beta"
+            />
           ) : null}
           {conferenceRoomChatEnabled ? (
-            <SidebarNavItem to="/board-chat" label="Conference Room" icon={MessagesSquare} />
+            <SidebarNavItem
+              to="/board-chat"
+              label="Conference Room"
+              icon={MessagesSquare}
+            />
           ) : null}
         </div>
 
-        <SidebarSection label="Work" collapsible={{ open: workOpen, onOpenChange: setWorkOpen }}>
+        <SidebarSection
+          label="Work"
+          collapsible={{ open: workOpen, onOpenChange: setWorkOpen }}
+        >
           <SidebarNavItem to="/issues" label="Tasks" icon={CircleDot} />
           {showCases ? (
-            <SidebarNavItem to="/cases" label="Cases" icon={Layers} textBadge="beta" />
+            <SidebarNavItem
+              to="/cases"
+              label="Cases"
+              icon={Layers}
+              textBadge="beta"
+            />
           ) : null}
           <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
           {showPipelines ? (
-            <SidebarNavItem to="/pipelines" label="Pipelines" icon={GitBranch} />
+            <SidebarNavItem
+              to="/pipelines"
+              label="Pipelines"
+              icon={GitBranch}
+            />
           ) : null}
           {showGoalsLink ? (
             <SidebarNavItem to="/goals" label="Goals" icon={Target} />
@@ -200,11 +237,19 @@ export function Sidebar() {
           <SidebarNavItem to="/artifacts" label="Artifacts" icon={Package} />
           <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
           {showWorkspacesLink ? (
-            <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
+            <SidebarNavItem
+              to="/workspaces"
+              label="Workspaces"
+              icon={GitBranch}
+            />
           ) : null}
           {streamlined ? (
             <>
-              <SidebarNavItem to="/projects" label="Projects" icon={FolderOpen} />
+              <SidebarNavItem
+                to="/projects"
+                label="Projects"
+                icon={FolderOpen}
+              />
               <SidebarStarredProjects />
             </>
           ) : null}
@@ -230,14 +275,27 @@ export function Sidebar() {
 
         <SidebarAgents streamlined={streamlined} />
 
-        <SidebarSection label="Company" collapsible={{ open: companyOpen, onOpenChange: setCompanyOpen }}>
+        <SidebarSection
+          label="Company"
+          collapsible={{ open: companyOpen, onOpenChange: setCompanyOpen }}
+        >
           <SidebarNavItem to="/org" label="Org" icon={Network} />
-          {showApps ? <SidebarNavItem to="/apps" label="Connectors" icon={Unplug} /> : null}
-          <SidebarNavItem to="/timeline" label="Timeline" icon={GanttChartSquare} />
+          {showApps ? (
+            <SidebarNavItem to="/apps" label="Connectors" icon={Unplug} />
+          ) : null}
+          <SidebarNavItem
+            to="/timeline"
+            label="Timeline"
+            icon={GanttChartSquare}
+          />
           <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
           {/* One entry — /audit merged into the rich Activity feed (PAP-16302). */}
           <SidebarNavItem to="/activity" label="Activity" icon={History} />
-          <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
+          <SidebarNavItem
+            to="/company/settings"
+            label="Settings"
+            icon={Settings}
+          />
         </SidebarSection>
 
         <PluginSlotOutlet

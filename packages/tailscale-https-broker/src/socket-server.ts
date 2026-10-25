@@ -49,7 +49,10 @@ export class ClientAdmissionController {
     assertPositiveInteger(config.maxClients, "maxClients");
     assertPositiveInteger(config.maxClientsPerUid, "maxClientsPerUid");
     assertNonNegativeInteger(config.serviceUid, "serviceUid");
-    assertNonNegativeInteger(config.reservedServiceClients, "reservedServiceClients");
+    assertNonNegativeInteger(
+      config.reservedServiceClients,
+      "reservedServiceClients",
+    );
     if (config.maxClientsPerUid > config.maxClients) {
       throw new Error("maxClientsPerUid must not exceed maxClients");
     }
@@ -61,10 +64,14 @@ export class ClientAdmissionController {
   tryAcquire(uid: number): boolean {
     if (!Number.isInteger(uid) || uid < 0) return false;
     const activeForUid = this.activeByUid.get(uid) ?? 0;
-    if (activeForUid >= this.config.maxClientsPerUid || this.active >= this.config.maxClients) {
+    if (
+      activeForUid >= this.config.maxClientsPerUid ||
+      this.active >= this.config.maxClients
+    ) {
       return false;
     }
-    const nonServiceLimit = this.config.maxClients - this.config.reservedServiceClients;
+    const nonServiceLimit =
+      this.config.maxClients - this.config.reservedServiceClients;
     if (uid !== this.config.serviceUid && this.active >= nonServiceLimit) {
       return false;
     }
@@ -89,10 +96,13 @@ export function startSocketServer(config: SocketServerConfig): Server {
   const maxClients = config.maxClients ?? DEFAULT_MAX_CLIENTS;
   const admission = new ClientAdmissionController({
     maxClients,
-    maxClientsPerUid: config.maxClientsPerUid ?? Math.min(DEFAULT_MAX_CLIENTS_PER_UID, maxClients),
+    maxClientsPerUid:
+      config.maxClientsPerUid ??
+      Math.min(DEFAULT_MAX_CLIENTS_PER_UID, maxClients),
     serviceUid: config.serviceUid,
     reservedServiceClients:
-      config.reservedServiceClients ?? Math.min(DEFAULT_RESERVED_SERVICE_CLIENTS, maxClients - 1),
+      config.reservedServiceClients ??
+      Math.min(DEFAULT_RESERVED_SERVICE_CLIENTS, maxClients - 1),
   });
   const deadlineMs = config.connectionDeadlineMs ?? 5_000;
 
@@ -153,7 +163,10 @@ export function startSocketServer(config: SocketServerConfig): Server {
         }
       }
       if (buf.byteLength < LENGTH_PREFIX_BYTES + expected) return;
-      const body = buf.subarray(LENGTH_PREFIX_BYTES, LENGTH_PREFIX_BYTES + expected);
+      const body = buf.subarray(
+        LENGTH_PREFIX_BYTES,
+        LENGTH_PREFIX_BYTES + expected,
+      );
       void handleFrame(body);
     });
 
@@ -168,8 +181,18 @@ export function startSocketServer(config: SocketServerConfig): Server {
       } catch (error) {
         response =
           error instanceof ProtocolError
-            ? { ok: false, requestId: error.requestId, code: error.code, message: error.code }
-            : { ok: false, requestId: null, code: "malformed_request", message: "malformed_request" };
+            ? {
+                ok: false,
+                requestId: error.requestId,
+                code: error.code,
+                message: error.code,
+              }
+            : {
+                ok: false,
+                requestId: null,
+                code: "malformed_request",
+                message: "malformed_request",
+              };
       }
       writeResponse(socket, response);
     };
@@ -204,7 +227,12 @@ function assertNonNegativeInteger(value: number, name: string): void {
 function writeResponse(socket: Socket, response: unknown): void {
   let json = JSON.stringify(response);
   if (Buffer.byteLength(json, "utf8") > MAX_RESPONSE_BYTES) {
-    json = JSON.stringify({ ok: false, requestId: null, code: "internal_error", message: "internal_error" });
+    json = JSON.stringify({
+      ok: false,
+      requestId: null,
+      code: "internal_error",
+      message: "internal_error",
+    });
   }
   const body = Buffer.from(json, "utf8");
   const frame = Buffer.allocUnsafe(LENGTH_PREFIX_BYTES + body.byteLength);

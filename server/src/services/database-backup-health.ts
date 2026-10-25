@@ -46,12 +46,16 @@ function roundHours(value: number): number {
 }
 
 function alertFileCandidates(opts: InspectDatabaseBackupHealthOptions) {
-  return [...new Set([
-    opts.alertFile,
-    ...(opts.alertFiles ?? []),
-    join(opts.backupDir, "db-backup-to-s3.failure"),
-    resolve(opts.backupDir, "..", "db-backup-to-s3.failure"),
-  ].filter((value): value is string => Boolean(value)))];
+  return [
+    ...new Set(
+      [
+        opts.alertFile,
+        ...(opts.alertFiles ?? []),
+        join(opts.backupDir, "db-backup-to-s3.failure"),
+        resolve(opts.backupDir, "..", "db-backup-to-s3.failure"),
+      ].filter((value): value is string => Boolean(value)),
+    ),
+  ];
 }
 
 function readLastFailure(alertFiles: string[]) {
@@ -59,7 +63,8 @@ function readLastFailure(alertFiles: string[]) {
     .filter((alertFile) => existsSync(alertFile))
     .map((alertFile) => {
       const stat = statSync(alertFile);
-      const message = readFileSync(alertFile, "utf8").trim().split(/\r?\n/)[0] ||
+      const message =
+        readFileSync(alertFile, "utf8").trim().split(/\r?\n/)[0] ||
         "Database backup failure marker is present.";
       return {
         path: alertFile,

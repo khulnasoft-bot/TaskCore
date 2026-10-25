@@ -343,7 +343,8 @@ describeEmbeddedPostgres("hidden runner PRP coordinator", () => {
   it("persists NUL-containing command output without changing replay identity", async () => {
     const seed = await seedNativeRun();
     const nativeStore = store(seed);
-    const output = "transforming (6) ../\u0000virtual:/@storybook/builder-vite/storybook-stories.js";
+    const output =
+      "transforming (6) ../\u0000virtual:/@storybook/builder-vite/storybook-stories.js";
     const payload = {
       schema: "taskcore.tool.execution.v1",
       executionId: "storybook-build",
@@ -363,31 +364,43 @@ describeEmbeddedPostgres("hidden runner PRP coordinator", () => {
     };
 
     // The provider's valid JSON cannot be inserted directly into PostgreSQL JSONB.
-    await expect(db.execute(sql`select ${JSON.stringify(event)}::jsonb`))
-      .rejects.toMatchObject({ cause: { code: "22P05" } });
+    await expect(
+      db.execute(sql`select ${JSON.stringify(event)}::jsonb`),
+    ).rejects.toMatchObject({ cause: { code: "22P05" } });
     await expect(nativeStore.appendEvent(event)).resolves.toMatchObject({
       disposition: "committed",
       cursor: 1,
     });
-    const [row] = await db.select().from(heartbeatRunEvents)
+    const [row] = await db
+      .select()
+      .from(heartbeatRunEvents)
       .where(eq(heartbeatRunEvents.runId, seed.runId));
     expect(row.payload).toEqual({ prpEvent: event });
-    expect(row.sourcePayloadSha256).toBe(`sha256:${nativeSha256(row.payload?.prpEvent)}`);
+    expect(row.sourcePayloadSha256).toBe(
+      `sha256:${nativeSha256(row.payload?.prpEvent)}`,
+    );
 
     // Existing SQL selectors still see the event's ordinary routing fields.
-    const [projection] = await db.select({
-      sourceKind: sql<string>`${heartbeatRunEvents.payload}->'prpEvent'->>'sourceKind'`,
-    }).from(heartbeatRunEvents).where(eq(heartbeatRunEvents.runId, seed.runId));
+    const [projection] = await db
+      .select({
+        sourceKind: sql<string>`${heartbeatRunEvents.payload}->'prpEvent'->>'sourceKind'`,
+      })
+      .from(heartbeatRunEvents)
+      .where(eq(heartbeatRunEvents.runId, seed.runId));
     expect(projection.sourceKind).toBe("runner");
     await expect(nativeStore.appendEvent(event)).resolves.toMatchObject({
       disposition: "duplicate",
       cursor: 1,
     });
-    await expect(nativeStore.appendEvent({
-      ...event,
-      payload: { ...payload, output: output.replaceAll("\u0000", "\\u0000") },
-    })).rejects.toBeInstanceOf(NativeSessionProtocolIntegrityError);
-    await expect(nativeStore.appendEvent(runnerEvent(seed, 2))).resolves.toMatchObject({
+    await expect(
+      nativeStore.appendEvent({
+        ...event,
+        payload: { ...payload, output: output.replaceAll("\u0000", "\\u0000") },
+      }),
+    ).rejects.toBeInstanceOf(NativeSessionProtocolIntegrityError);
+    await expect(
+      nativeStore.appendEvent(runnerEvent(seed, 2)),
+    ).resolves.toMatchObject({
       disposition: "committed",
       cursor: 2,
     });
@@ -396,27 +409,33 @@ describeEmbeddedPostgres("hidden runner PRP coordinator", () => {
   it("persists events and results idempotently and leases finalization", async () => {
     const seed = await seedNativeRun();
     const nativeStore = store(seed);
-    await expect(nativeStore.completeRun({
-      result: {
-        ...result,
-        completionClaim: { ...result.completionClaim, contractRevision: "2" },
-      },
-      terminal,
-    })).rejects.toThrow("native_result_completion_contract_mismatch");
-    await expect(nativeStore.completeRun({
-      result: {
-        ...result,
-        completionClaim: {
-          ...result.completionClaim,
-          criteria: [{
-            criterionId: "not-bound",
-            status: "satisfied",
-            evidenceRefs: [],
-          }],
+    await expect(
+      nativeStore.completeRun({
+        result: {
+          ...result,
+          completionClaim: { ...result.completionClaim, contractRevision: "2" },
         },
-      },
-      terminal,
-    })).rejects.toThrow("native_result_completion_contract_mismatch");
+        terminal,
+      }),
+    ).rejects.toThrow("native_result_completion_contract_mismatch");
+    await expect(
+      nativeStore.completeRun({
+        result: {
+          ...result,
+          completionClaim: {
+            ...result.completionClaim,
+            criteria: [
+              {
+                criterionId: "not-bound",
+                status: "satisfied",
+                evidenceRefs: [],
+              },
+            ],
+          },
+        },
+        terminal,
+      }),
+    ).rejects.toThrow("native_result_completion_contract_mismatch");
     const event = runnerEvent(seed);
     await expect(nativeStore.appendEvent(event)).resolves.toMatchObject({
       disposition: "committed",

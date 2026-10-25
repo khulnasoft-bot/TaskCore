@@ -18,7 +18,10 @@ export function getLastProjectId(companyId: string): string | undefined {
   }
 }
 
-export function trackRecentProject(projectId: string, companyId?: string): void {
+export function trackRecentProject(
+  projectId: string,
+  companyId?: string,
+): void {
   trackRecentSelectionId(STORAGE_KEY, projectId);
   if (companyId) {
     try {

@@ -8,7 +8,13 @@ import type {
   RunSummary,
 } from "./types.js";
 
-export type { InvokableAgentSnapshot, IssueSnapshot, ReleaseRecoveryBlockedNoticeKind, RunSnapshot, RunSummary };
+export type {
+  InvokableAgentSnapshot,
+  IssueSnapshot,
+  ReleaseRecoveryBlockedNoticeKind,
+  RunSnapshot,
+  RunSummary,
+};
 
 /** The primary issue a locked release resolves to, plus the finishing run the lock step already loaded. */
 export type LockedIssueExecution = {
@@ -39,7 +45,11 @@ export interface WakeQueueHost {
     contextSnapshot: Record<string, unknown>;
     issue: IssueSnapshot;
     /** From a prior `getRoutineEnv` call against the same issue; pass `{ routineId: null, env: null, responsibleUserId: null }` when the issue is not a routine execution. */
-    routineEnvContext: { routineId: string | null; env: unknown; responsibleUserId: string | null };
+    routineEnvContext: {
+      routineId: string | null;
+      env: unknown;
+      responsibleUserId: string | null;
+    };
     requestedByActorType: "user" | "agent" | "system" | null;
     requestedByActorId: string | null;
     source: string;
@@ -54,7 +64,11 @@ export interface WakeQueueHost {
   getRoutineEnv(input: {
     companyId: string;
     issue: IssueSnapshot;
-  }): Promise<{ routineId: string | null; env: unknown; responsibleUserId: string | null }>;
+  }): Promise<{
+    routineId: string | null;
+    env: unknown;
+    responsibleUserId: string | null;
+  }>;
   resolveSessionBeforeForWakeup(input: {
     companyId: string;
     agentId: string;
@@ -109,8 +123,15 @@ export type PromoteDeferredWakeInput = {
  * the deferred-wake queue.
  */
 export interface WakeQueueTransaction {
-  findInvokableAgent(input: { companyId: string; agentId: string }): Promise<InvokableAgentSnapshot | null>;
-  findNextDeferredWake(input: { companyId: string; issueId: string; excludedWakeIds?: string[] }): Promise<DeferredWakeCandidate | null>;
+  findInvokableAgent(input: {
+    companyId: string;
+    agentId: string;
+  }): Promise<InvokableAgentSnapshot | null>;
+  findNextDeferredWake(input: {
+    companyId: string;
+    issueId: string;
+    excludedWakeIds?: string[];
+  }): Promise<DeferredWakeCandidate | null>;
   getQueuedCommentLiveness(input: {
     companyId: string;
     issueId: string;
@@ -118,7 +139,10 @@ export interface WakeQueueTransaction {
     finishingRunId: string;
     finishingRunAgentId: string;
     queuedCommentIds: string[];
-  }): Promise<{ liveNonSelfCommentIds: string[]; containedSelfAuthoredComment: boolean }>;
+  }): Promise<{
+    liveNonSelfCommentIds: string[];
+    containedSelfAuthoredComment: boolean;
+  }>;
   /** Cancels the wake with `status = 'deferred_issue_execution'` as an atomic compare-and-set guard. */
   cancelDeferredWake(input: {
     companyId: string;
@@ -135,7 +159,11 @@ export interface WakeQueueTransaction {
     now: Date;
   }): Promise<DeferredWakeCandidate | null>;
   /** Sets `status = 'failed'` guarded by the current `deferred_issue_execution` status. */
-  failDeferredWake(input: { companyId: string; wakeId: string; now: Date }): Promise<boolean>;
+  failDeferredWake(input: {
+    companyId: string;
+    wakeId: string;
+    now: Date;
+  }): Promise<boolean>;
   getPauseHoldFacts(input: {
     companyId: string;
     issueId: string;
@@ -166,10 +194,19 @@ export interface WakeQueueTransaction {
     wakeAgentId: string;
     commentIds: string[];
   }): Promise<boolean>;
-  reopenIssue(input: { companyId: string; issueId: string; runId: string }): Promise<IssueSnapshot | null>;
+  reopenIssue(input: {
+    companyId: string;
+    issueId: string;
+    runId: string;
+  }): Promise<IssueSnapshot | null>;
   /** Verifies a Done onboarding parent's completion wake against its own completed children. */
-  isCompletedOnboardingHandoffWake(input: { companyId: string; issueId: string; agentId: string;
-    reason: string | null; contextSnapshot: Record<string, unknown> }): Promise<boolean>;
+  isCompletedOnboardingHandoffWake(input: {
+    companyId: string;
+    issueId: string;
+    agentId: string;
+    reason: string | null;
+    contextSnapshot: Record<string, unknown>;
+  }): Promise<boolean>;
   /**
    * Atomically claims the wake for promotion, guarded on its current
    * `deferred_issue_execution` status. Call this before any other write in
@@ -177,7 +214,11 @@ export interface WakeQueueTransaction {
    * leave another write committed underneath it. Returns `false` when a
    * concurrent writer already changed the wake's status.
    */
-  claimDeferredWakeForPromotion(input: { companyId: string; wakeId: string; now: Date }): Promise<boolean>;
+  claimDeferredWakeForPromotion(input: {
+    companyId: string;
+    wakeId: string;
+    now: Date;
+  }): Promise<boolean>;
   /**
    * Finalizes a wake that `claimDeferredWakeForPromotion` already claimed:
    * inserts the queued run, links it back onto the wake row, and takes the
@@ -192,10 +233,19 @@ export interface WakeQueueTransaction {
     agentId: string | null;
   }): Promise<boolean>;
   /** An open, non-hidden issue that still lists this issue as a `blocks` predecessor. */
-  hasExplicitBlockerPath(input: { companyId: string; issueId: string }): Promise<boolean>;
-  isAutomaticRecoverySuppressedByPauseHold(input: { companyId: string; issueId: string }): Promise<boolean>;
+  hasExplicitBlockerPath(input: {
+    companyId: string;
+    issueId: string;
+  }): Promise<boolean>;
+  isAutomaticRecoverySuppressedByPauseHold(input: {
+    companyId: string;
+    issueId: string;
+  }): Promise<boolean>;
   /** Deny-only facts from the exact finishing run and its durable chat wake owner. */
-  isImmediateRecoverySourceBlocked(input: { companyId: string; runId: string }): Promise<boolean>;
+  isImmediateRecoverySourceBlocked(input: {
+    companyId: string;
+    runId: string;
+  }): Promise<boolean>;
   queueReviewParticipantRecoveryRun(input: {
     companyId: string;
     issue: IssueSnapshot;
@@ -258,8 +308,12 @@ export type StrandedRecoveryInPlaceEscalationInput = {
 
 /** Wraps `services/recovery`'s stranded-issue escalation, called only after the release transaction commits. */
 export interface RecoveryEscalationPort {
-  escalateStrandedAssignedIssue(input: StrandedAssignedIssueEscalationInput): Promise<void>;
-  escalateStrandedRecoveryIssueInPlace(input: StrandedRecoveryInPlaceEscalationInput): Promise<void>;
+  escalateStrandedAssignedIssue(
+    input: StrandedAssignedIssueEscalationInput,
+  ): Promise<void>;
+  escalateStrandedRecoveryIssueInPlace(
+    input: StrandedRecoveryInPlaceEscalationInput,
+  ): Promise<void>;
 }
 
 export type { PostCommitEffect, ReleaseOutcome };

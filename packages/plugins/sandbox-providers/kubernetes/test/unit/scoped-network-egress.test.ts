@@ -8,12 +8,14 @@ import {
 
 describe("scoped network egress", () => {
   it("normalizes task grants", () => {
-    expect(parseScopedNetworkEgressGrant({
-      networkEgress: {
-        allowFqdns: ["GitHub.com", "pypi.org"],
-        allowCidrs: ["203.0.113.0/24"],
-      },
-    })).toEqual({
+    expect(
+      parseScopedNetworkEgressGrant({
+        networkEgress: {
+          allowFqdns: ["GitHub.com", "pypi.org"],
+          allowCidrs: ["203.0.113.0/24"],
+        },
+      }),
+    ).toEqual({
       allowFqdns: ["github.com", "pypi.org"],
       allowCidrs: ["203.0.113.0/24"],
     });
@@ -27,16 +29,25 @@ describe("scoped network egress", () => {
       mode: "standard",
       runId: "run-123",
       workloadName: "pc-workload",
-      ownerReference: { apiVersion: "batch/v1", kind: "Job", name: "pc-workload", uid: "uid-1" },
+      ownerReference: {
+        apiVersion: "batch/v1",
+        kind: "Job",
+        name: "pc-workload",
+        uid: "uid-1",
+      },
       grant: { allowFqdns: ["github.com", "pypi.org"], allowCidrs: [] },
     });
-    expect(createNamespacedNetworkPolicy).toHaveBeenCalledWith(expect.objectContaining({
-      namespace: "taskcore-acme",
-      body: expect.objectContaining({
-        metadata: expect.objectContaining({ name: "pc-workload-egress" }),
-        spec: expect.objectContaining({ podSelector: { matchLabels: { "taskcore.io/run-id": "run-123" } } }),
+    expect(createNamespacedNetworkPolicy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namespace: "taskcore-acme",
+        body: expect.objectContaining({
+          metadata: expect.objectContaining({ name: "pc-workload-egress" }),
+          spec: expect.objectContaining({
+            podSelector: { matchLabels: { "taskcore.io/run-id": "run-123" } },
+          }),
+        }),
       }),
-    }));
+    );
   });
 
   it("caps scoped policy names while preserving the workload tail", async () => {
@@ -49,7 +60,12 @@ describe("scoped network egress", () => {
       mode: "standard",
       runId: "run-123",
       workloadName,
-      ownerReference: { apiVersion: "batch/v1", kind: "Job", name: workloadName, uid: "uid-1" },
+      ownerReference: {
+        apiVersion: "batch/v1",
+        kind: "Job",
+        name: workloadName,
+        uid: "uid-1",
+      },
       grant: { allowFqdns: ["github.com"], allowCidrs: [] },
     });
 
@@ -58,29 +74,43 @@ describe("scoped network egress", () => {
   });
 
   it("adds the policy and grant path to likely network denials", () => {
-    expect(appendNetworkEgressDenyHint("curl: Could not resolve host: example.com", {
-      allowFqdns: ["github.com"],
-      allowCidrs: [],
-    })).toContain("executionWorkspaceSettings.networkEgress");
+    expect(
+      appendNetworkEgressDenyHint("curl: Could not resolve host: example.com", {
+        allowFqdns: ["github.com"],
+        allowCidrs: [],
+      }),
+    ).toContain("executionWorkspaceSettings.networkEgress");
   });
 
   it("releases the workload when scoped policy creation fails", async () => {
     const policyError = new Error("policy denied");
     const releaseWorkload = vi.fn().mockResolvedValue(undefined);
 
-    await expect(createScopedNetworkEgressPolicyOrReleaseWorkload({
-      clients: {
-        networking: {
-          createNamespacedNetworkPolicy: vi.fn().mockRejectedValue(policyError),
+    await expect(
+      createScopedNetworkEgressPolicyOrReleaseWorkload(
+        {
+          clients: {
+            networking: {
+              createNamespacedNetworkPolicy: vi
+                .fn()
+                .mockRejectedValue(policyError),
+            },
+          } as never,
+          namespace: "taskcore-acme",
+          mode: "standard",
+          runId: "run-123",
+          workloadName: "pc-workload",
+          ownerReference: {
+            apiVersion: "batch/v1",
+            kind: "Job",
+            name: "pc-workload",
+            uid: "uid-1",
+          },
+          grant: { allowFqdns: ["github.com"], allowCidrs: [] },
         },
-      } as never,
-      namespace: "taskcore-acme",
-      mode: "standard",
-      runId: "run-123",
-      workloadName: "pc-workload",
-      ownerReference: { apiVersion: "batch/v1", kind: "Job", name: "pc-workload", uid: "uid-1" },
-      grant: { allowFqdns: ["github.com"], allowCidrs: [] },
-    }, releaseWorkload)).rejects.toBe(policyError);
+        releaseWorkload,
+      ),
+    ).rejects.toBe(policyError);
     expect(releaseWorkload).toHaveBeenCalledOnce();
   });
 });

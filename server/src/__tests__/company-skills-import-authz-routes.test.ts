@@ -26,7 +26,9 @@ import { errorHandler } from "../middleware/error-handler.js";
 import { companySkillRoutes } from "../routes/company-skills.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -36,7 +38,9 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("company skill import authorization routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let taskcoreHome: string | null = null;
   const cleanupDirs = new Set<string>();
   const previousAgentJwtSecret = process.env.TASKCORE_AGENT_JWT_SECRET;
@@ -44,11 +48,16 @@ describeEmbeddedPostgres("company skill import authorization routes", () => {
   const previousTaskcoreInstanceId = process.env.TASKCORE_INSTANCE_ID;
 
   beforeAll(async () => {
-    process.env.TASKCORE_AGENT_JWT_SECRET = "company-skills-import-authz-test-secret";
-    taskcoreHome = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-company-skills-import-authz-home-"));
+    process.env.TASKCORE_AGENT_JWT_SECRET =
+      "company-skills-import-authz-test-secret";
+    taskcoreHome = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-company-skills-import-authz-home-"),
+    );
     process.env.TASKCORE_HOME = taskcoreHome;
     process.env.TASKCORE_INSTANCE_ID = "default";
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-company-skills-import-authz-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-company-skills-import-authz-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -61,7 +70,11 @@ describeEmbeddedPostgres("company skill import authorization routes", () => {
     await db.delete(agents);
     await db.delete(companies);
     await db.delete(authUsers);
-    await Promise.all(Array.from(cleanupDirs, (dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs, (dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -70,11 +83,13 @@ describeEmbeddedPostgres("company skill import authorization routes", () => {
     if (taskcoreHome) {
       await fs.rm(taskcoreHome, { recursive: true, force: true });
     }
-    if (previousAgentJwtSecret === undefined) delete process.env.TASKCORE_AGENT_JWT_SECRET;
+    if (previousAgentJwtSecret === undefined)
+      delete process.env.TASKCORE_AGENT_JWT_SECRET;
     else process.env.TASKCORE_AGENT_JWT_SECRET = previousAgentJwtSecret;
     if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
     else process.env.TASKCORE_HOME = previousTaskcoreHome;
-    if (previousTaskcoreInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+    if (previousTaskcoreInstanceId === undefined)
+      delete process.env.TASKCORE_INSTANCE_ID;
     else process.env.TASKCORE_INSTANCE_ID = previousTaskcoreInstanceId;
   });
 
@@ -92,9 +107,17 @@ describeEmbeddedPostgres("company skill import authorization routes", () => {
     // Local imports must originate from an approved root (managed-skill
     // directory or a configured workspace); a bare tmpdir is rejected with
     // skill_workspace_boundary_denied.
-    const managedRoot = path.join(taskcoreHome, "instances", "default", "skills", companyId);
+    const managedRoot = path.join(
+      taskcoreHome,
+      "instances",
+      "default",
+      "skills",
+      companyId,
+    );
     await fs.mkdir(managedRoot, { recursive: true });
-    const skillDir = await fs.mkdtemp(path.join(managedRoot, "taskcore-import-authz-skill-"));
+    const skillDir = await fs.mkdtemp(
+      path.join(managedRoot, "taskcore-import-authz-skill-"),
+    );
     cleanupDirs.add(skillDir);
     await fs.writeFile(
       path.join(skillDir, "SKILL.md"),
@@ -113,21 +136,27 @@ describeEmbeddedPostgres("company skill import authorization routes", () => {
   }
 
   async function seedGrantedAgentWithResponsibleUser() {
-    const [company] = await db.insert(companies).values({
-      name: "Company Skill Import Authz",
-      issuePrefix: `IA${randomUUID().replace(/-/g, "").slice(0, 6)}`,
-    }).returning();
+    const [company] = await db
+      .insert(companies)
+      .values({
+        name: "Company Skill Import Authz",
+        issuePrefix: `IA${randomUUID().replace(/-/g, "").slice(0, 6)}`,
+      })
+      .returning();
     const companyId = company!.id;
 
-    const [agent] = await db.insert(agents).values({
-      companyId,
-      name: "Skill Import Agent",
-      role: "ceo",
-      adapterType: "codex_local",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: { canCreateSkills: false },
-    }).returning();
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        companyId,
+        name: "Skill Import Agent",
+        role: "ceo",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: { canCreateSkills: false },
+      })
+      .returning();
     const agentId = agent!.id;
 
     const responsibleUserId = `user-${randomUUID()}`;
@@ -178,9 +207,16 @@ describeEmbeddedPostgres("company skill import authorization routes", () => {
   }
 
   it("lets a standard responsible-user agent JWT with skills:create import a company skill", async () => {
-    const { companyId, agent, responsibleUserId, runId } = await seedGrantedAgentWithResponsibleUser();
+    const { companyId, agent, responsibleUserId, runId } =
+      await seedGrantedAgentWithResponsibleUser();
     const skillDir = await writeSkillFixture(companyId);
-    const token = createLocalAgentJwt(agent.id, companyId, agent.adapterType, runId, responsibleUserId);
+    const token = createLocalAgentJwt(
+      agent.id,
+      companyId,
+      agent.adapterType,
+      runId,
+      responsibleUserId,
+    );
     expect(token).toBeTruthy();
 
     const res = await request(authenticatedApp())

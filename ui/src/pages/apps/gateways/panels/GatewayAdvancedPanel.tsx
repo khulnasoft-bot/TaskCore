@@ -49,10 +49,17 @@ export function GatewayAdvancedPanel({
   );
 
   const archiveMutation = useMutation({
-    mutationFn: () => toolsApi.updateGateway(companyId, gateway.id, { status: "archived" }),
+    mutationFn: () =>
+      toolsApi.updateGateway(companyId, gateway.id, { status: "archived" }),
     onSuccess: async () => {
-      pushToast({ title: "Gateway archived", body: `${gateway.name} is no longer reachable.`, tone: "success" });
-      await queryClient.invalidateQueries({ queryKey: gatewaysQueryKey(companyId) });
+      pushToast({
+        title: "Gateway archived",
+        body: `${gateway.name} is no longer reachable.`,
+        tone: "success",
+      });
+      await queryClient.invalidateQueries({
+        queryKey: gatewaysQueryKey(companyId),
+      });
       navigate("/apps/gateways");
     },
     onError: (error) =>
@@ -68,7 +75,11 @@ export function GatewayAdvancedPanel({
       await copyTextToClipboard(value);
       pushToast({ title: "Copied", body: label, tone: "success" });
     } catch {
-      pushToast({ title: "Copy failed", body: "Clipboard access is unavailable.", tone: "error" });
+      pushToast({
+        title: "Copy failed",
+        body: "Clipboard access is unavailable.",
+        tone: "error",
+      });
     }
   }
 
@@ -86,7 +97,11 @@ export function GatewayAdvancedPanel({
           <code className="min-w-0 flex-1 truncate rounded-md bg-muted px-3 py-2 font-mono text-xs text-muted-foreground">
             {endpoint}
           </code>
-          <Button variant="outline" size="sm" onClick={() => void copy(endpoint, "Endpoint URL")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void copy(endpoint, "Endpoint URL")}
+          >
             <Copy className="mr-1 h-3.5 w-3.5" />
             Copy
           </Button>
@@ -95,8 +110,14 @@ export function GatewayAdvancedPanel({
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Raw configuration</h3>
-          <Button variant="outline" size="sm" onClick={() => void copy(rawConfig, "Gateway config JSON")}>
+          <h3 className="text-sm font-semibold text-foreground">
+            Raw configuration
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void copy(rawConfig, "Gateway config JSON")}
+          >
             <Copy className="mr-1 h-3.5 w-3.5" />
             Copy JSON
           </Button>
@@ -109,8 +130,8 @@ export function GatewayAdvancedPanel({
       <section className="space-y-2 rounded-lg border border-destructive/40 p-4">
         <h3 className="text-sm font-semibold text-destructive">Danger zone</h3>
         <p className="text-sm text-muted-foreground">
-          Archiving takes the gateway offline for every client. Existing tokens stop working. Type the
-          gateway name to confirm.
+          Archiving takes the gateway offline for every client. Existing tokens
+          stop working. Type the gateway name to confirm.
         </p>
         {confirming ? (
           <div className="space-y-2">
@@ -124,18 +145,33 @@ export function GatewayAdvancedPanel({
               <Button
                 variant="destructive"
                 size="sm"
-                disabled={confirmName.trim() !== gateway.name || archiveMutation.isPending}
+                disabled={
+                  confirmName.trim() !== gateway.name ||
+                  archiveMutation.isPending
+                }
                 onClick={() => archiveMutation.mutate()}
               >
                 {archiveMutation.isPending ? "Archiving…" : "Archive gateway"}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => { setConfirming(false); setConfirmName(""); }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setConfirming(false);
+                  setConfirmName("");
+                }}
+              >
                 Cancel
               </Button>
             </div>
           </div>
         ) : (
-          <Button variant="outline" size="sm" className="text-destructive" onClick={() => setConfirming(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive"
+            onClick={() => setConfirming(true)}
+          >
             Archive gateway
           </Button>
         )}
@@ -144,11 +180,25 @@ export function GatewayAdvancedPanel({
   );
 }
 
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Row({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
     <div>
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className={mono ? "mt-0.5 font-mono text-foreground" : "mt-0.5 text-foreground"}>{value}</dd>
+      <dd
+        className={
+          mono ? "mt-0.5 font-mono text-foreground" : "mt-0.5 text-foreground"
+        }
+      >
+        {value}
+      </dd>
     </div>
   );
 }

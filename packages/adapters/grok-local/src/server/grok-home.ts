@@ -15,22 +15,34 @@ import { resolveTaskcoreInstanceRootForAdapter } from "@taskcore/adapter-utils/s
 const AUTH_FILE_NAME = "auth.json";
 
 /** Inspect only the selected private home, never Grok's remote registry. */
-export async function grokHomeHasSession(home: string, sessionId: string): Promise<boolean> {
+export async function grokHomeHasSession(
+  home: string,
+  sessionId: string,
+): Promise<boolean> {
   if (!home || !/^[a-zA-Z0-9_-]{1,128}$/.test(sessionId)) return false;
   let remaining = 5000;
   async function inspect(directory: string, depth: number): Promise<boolean> {
     let entries;
-    try { entries = await fs.opendir(directory); }
-    catch (error) {
+    try {
+      entries = await fs.opendir(directory);
+    } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
       throw error;
     }
     for await (const entry of entries) {
       if (--remaining < 0) return false;
       if (entry.isSymbolicLink()) continue;
-      if ((entry.isFile() || entry.isDirectory()) &&
-          (entry.name === sessionId || entry.name.startsWith(`${sessionId}.`))) return true;
-      if (entry.isDirectory() && depth > 0 && await inspect(path.join(directory, entry.name), depth - 1)) return true;
+      if (
+        (entry.isFile() || entry.isDirectory()) &&
+        (entry.name === sessionId || entry.name.startsWith(`${sessionId}.`))
+      )
+        return true;
+      if (
+        entry.isDirectory() &&
+        depth > 0 &&
+        (await inspect(path.join(directory, entry.name), depth - 1))
+      )
+        return true;
     }
     return false;
   }
@@ -54,7 +66,9 @@ const GROK_IDENTITY_KEY_RE =
   /^.+::[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 function nonEmpty(value: string | undefined): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 /** One parsed Grok auth payload: the composite identity key and its value object. */
@@ -70,18 +84,22 @@ export interface GrokAuthPayload {
  * object. Never assumes a fixed key name.
  */
 export function parseGrokAuthPayload(raw: unknown): GrokAuthPayload | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+    return null;
   const keys = Object.keys(raw as Record<string, unknown>);
   if (keys.length !== 1) return null;
   const [identityKey] = keys as [string];
   if (!GROK_IDENTITY_KEY_RE.test(identityKey)) return null;
   const value = (raw as Record<string, unknown>)[identityKey];
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return null;
   return { identityKey, value: value as Record<string, unknown> };
 }
 
 /** True when the payload value holds the two fields a run needs to authenticate. */
-export function hasUsableGrokAuthValue(value: Record<string, unknown>): boolean {
+export function hasUsableGrokAuthValue(
+  value: Record<string, unknown>,
+): boolean {
   const key = value.key;
   const refreshToken = value.refresh_token;
   return (
@@ -138,7 +156,9 @@ export interface StageGrokHomeForSyncOptions {
  * null for a missing file or a dangling symlink (both resolve to `ENOENT`);
  * any other read error propagates to the caller.
  */
-async function readFileBytesIfPresent(candidate: string): Promise<Buffer | null> {
+async function readFileBytesIfPresent(
+  candidate: string,
+): Promise<Buffer | null> {
   try {
     return await fs.readFile(candidate);
   } catch (error) {
@@ -170,11 +190,16 @@ export async function stageGrokHomeForSync(
 ): Promise<string> {
   const runIdPart = nonEmpty(options.runId ?? undefined);
   const stagedHome = await fs.mkdtemp(
-    path.join(os.tmpdir(), `taskcore-grok-home-sync-${runIdPart ? `${runIdPart}-` : ""}`),
+    path.join(
+      os.tmpdir(),
+      `taskcore-grok-home-sync-${runIdPart ? `${runIdPart}-` : ""}`,
+    ),
   );
   try {
     for (const entry of GROK_SYNC_ALLOWLIST) {
-      const bytes = await readFileBytesIfPresent(path.join(effectiveGrokHome, entry));
+      const bytes = await readFileBytesIfPresent(
+        path.join(effectiveGrokHome, entry),
+      );
       if (bytes === null) continue;
       const target = path.join(stagedHome, entry);
       await fs.writeFile(target, bytes, { mode: 0o600 });

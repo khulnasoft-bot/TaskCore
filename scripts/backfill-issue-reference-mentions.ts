@@ -12,9 +12,9 @@ function parseFlag(name: string): string | null {
 async function main() {
   const config = loadConfig();
   const dbUrl =
-    process.env.DATABASE_URL?.trim()
-    || config.databaseUrl
-    || `postgres://taskcore:taskcore@127.0.0.1:${config.embeddedPostgresPort}/taskcore`;
+    process.env.DATABASE_URL?.trim() ||
+    config.databaseUrl ||
+    `postgres://taskcore:taskcore@127.0.0.1:${config.embeddedPostgresPort}/taskcore`;
 
   const db = createDb(dbUrl);
   const refs = issueReferenceService(db);
@@ -28,7 +28,9 @@ async function main() {
     return;
   }
 
-  console.log(`Backfilling issue reference mentions for ${companyRows.length} compan${companyRows.length === 1 ? "y" : "ies"}...`);
+  console.log(
+    `Backfilling issue reference mentions for ${companyRows.length} compan${companyRows.length === 1 ? "y" : "ies"}...`,
+  );
   for (const company of companyRows) {
     console.log(`- ${company.id}`);
     await refs.syncAllForCompany(company.id);

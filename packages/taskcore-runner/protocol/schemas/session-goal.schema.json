@@ -15,7 +15,9 @@
         "usageReporting"
       ],
       "properties": {
-        "availability": { "enum": ["available", "unsupported", "policy_disabled"] },
+        "availability": {
+          "enum": ["available", "unsupported", "policy_disabled"]
+        },
         "actions": {
           "type": "array",
           "items": { "enum": ["set", "pause", "resume", "clear"] },
@@ -23,7 +25,11 @@
         },
         "autonomousUpdates": { "type": "boolean" },
         "persistentAcrossResume": { "type": "boolean" },
-        "maxObjectiveChars": { "type": "integer", "minimum": 1, "maximum": 4000 },
+        "maxObjectiveChars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4000
+        },
         "tokenBudgetControl": { "type": "boolean" },
         "usageReporting": { "type": "boolean" },
         "reasonCode": { "type": "string", "minLength": 1, "maxLength": 160 },
@@ -48,7 +54,17 @@
       ],
       "properties": {
         "objective": { "type": "string", "minLength": 1, "maxLength": 4000 },
-        "status": { "enum": ["active", "paused", "blocked", "limited", "usage_limited", "budget_limited", "complete"] },
+        "status": {
+          "enum": [
+            "active",
+            "paused",
+            "blocked",
+            "limited",
+            "usage_limited",
+            "budget_limited",
+            "complete"
+          ]
+        },
         "tokenBudget": { "type": ["integer", "null"], "minimum": 1 },
         "tokensUsed": { "type": ["integer", "null"], "minimum": 0 },
         "elapsedSeconds": { "type": ["number", "null"], "minimum": 0 },

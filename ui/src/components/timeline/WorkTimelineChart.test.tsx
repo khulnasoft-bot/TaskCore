@@ -99,7 +99,9 @@ describe("WorkTimelineChart", () => {
   it("renders date-aware AM/PM labels on the header axis", () => {
     renderChart(timelineSample());
 
-    const timeAxis = container.querySelector<HTMLElement>("[data-testid='work-timeline-time-axis']");
+    const timeAxis = container.querySelector<HTMLElement>(
+      "[data-testid='work-timeline-time-axis']",
+    );
 
     expect(timeAxis?.textContent).toContain("Jul 2");
     expect(timeAxis?.textContent).toContain("AM");
@@ -109,8 +111,12 @@ describe("WorkTimelineChart", () => {
   it("freezes the time axis over vertical scrolling while preserving horizontal alignment", async () => {
     renderChart(timelineSample());
 
-    const scroller = container.querySelector<HTMLElement>("[data-testid='work-timeline-scroll']")!;
-    const timeAxis = container.querySelector<HTMLElement>("[data-testid='work-timeline-time-axis']")!;
+    const scroller = container.querySelector<HTMLElement>(
+      "[data-testid='work-timeline-scroll']",
+    )!;
+    const timeAxis = container.querySelector<HTMLElement>(
+      "[data-testid='work-timeline-time-axis']",
+    )!;
     const axisSvg = timeAxis.querySelector<SVGSVGElement>("svg")!;
 
     expect(timeAxis.getAttribute("class")).toContain("absolute");
@@ -119,8 +125,14 @@ describe("WorkTimelineChart", () => {
     expect(axisSvg.style.transform).toBe("translateX(0px)");
 
     flushSync(() => {
-      Object.defineProperty(scroller, "scrollTop", { configurable: true, value: 400 });
-      Object.defineProperty(scroller, "scrollLeft", { configurable: true, value: 240 });
+      Object.defineProperty(scroller, "scrollTop", {
+        configurable: true,
+        value: 400,
+      });
+      Object.defineProperty(scroller, "scrollLeft", {
+        configurable: true,
+        value: 240,
+      });
       scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -132,8 +144,12 @@ describe("WorkTimelineChart", () => {
   it("renders actor labels in a sticky gutter outside the horizontally scrolling SVG", () => {
     renderChart(timelineSample());
 
-    const scroller = container.querySelector<HTMLElement>("[data-testid='work-timeline-scroll']");
-    const gutter = container.querySelector<SVGSVGElement>("[data-testid='work-timeline-actor-gutter']");
+    const scroller = container.querySelector<HTMLElement>(
+      "[data-testid='work-timeline-scroll']",
+    );
+    const gutter = container.querySelector<SVGSVGElement>(
+      "[data-testid='work-timeline-actor-gutter']",
+    );
     const chartSvg = container.querySelector<SVGSVGElement>("svg.absolute");
 
     expect(scroller).not.toBeNull();
@@ -143,7 +159,9 @@ describe("WorkTimelineChart", () => {
     expect(gutter?.getAttribute("class")).toContain("left-0");
     expect(gutter?.getAttribute("class")).not.toContain("top-0");
     expect(gutter?.getAttribute("width")).toBe("176");
-    expect(chartSvg?.getAttribute("width")).not.toBe(gutter?.getAttribute("width"));
+    expect(chartSvg?.getAttribute("width")).not.toBe(
+      gutter?.getAttribute("width"),
+    );
     expect(gutter?.textContent).toContain("CodexCoder");
     expect(gutter?.textContent).not.toContain("agent");
     expect(gutter?.textContent).not.toContain("×");
@@ -153,7 +171,10 @@ describe("WorkTimelineChart", () => {
       scroller!.dispatchEvent(new Event("scroll", { bubbles: true }));
     });
 
-    expect(container.querySelector("[data-testid='work-timeline-actor-gutter']")?.textContent).toContain("CodexCoder");
+    expect(
+      container.querySelector("[data-testid='work-timeline-actor-gutter']")
+        ?.textContent,
+    ).toContain("CodexCoder");
   });
 
   it("reports the currently visible time window when the chart scrolls", async () => {
@@ -164,7 +185,9 @@ describe("WorkTimelineChart", () => {
 
     await flushTimelineEffects();
 
-    const scroller = container.querySelector<HTMLElement>("[data-testid='work-timeline-scroll']")!;
+    const scroller = container.querySelector<HTMLElement>(
+      "[data-testid='work-timeline-scroll']",
+    )!;
     expect(onVisibleWindowChange).toHaveBeenCalled();
 
     flushSync(() => {
@@ -175,18 +198,29 @@ describe("WorkTimelineChart", () => {
 
     const lastCall = onVisibleWindowChange.mock.calls.at(-1)?.[0];
     expect(lastCall?.fromMs).toBe(new Date(data.window.from).getTime());
-    expect(lastCall?.toMs).toBeCloseTo(new Date("2026-07-02T01:00:00.000Z").getTime(), -3);
+    expect(lastCall?.toMs).toBeCloseTo(
+      new Date("2026-07-02T01:00:00.000Z").getTime(),
+      -3,
+    );
   });
 
   it("renders cached persona images in the actor gutter", () => {
     renderChart(timelineSample());
 
-    const gutter = container.querySelector<SVGSVGElement>("[data-testid='work-timeline-actor-gutter']");
+    const gutter = container.querySelector<SVGSVGElement>(
+      "[data-testid='work-timeline-actor-gutter']",
+    );
 
-    const portraits = gutter?.querySelectorAll('image[data-testid="timeline-agent-icon"]');
+    const portraits = gutter?.querySelectorAll(
+      'image[data-testid="timeline-agent-icon"]',
+    );
     expect(portraits?.length).toBe(2);
-    expect(portraits?.[0].getAttribute("href")).toContain("/api/agent-avatars/cap-v1/");
-    expect(portraits?.[1].getAttribute("href")).toContain("/api/agent-avatars/cap-v1/");
+    expect(portraits?.[0].getAttribute("href")).toContain(
+      "/api/agent-avatars/cap-v1/",
+    );
+    expect(portraits?.[1].getAttribute("href")).toContain(
+      "/api/agent-avatars/cap-v1/",
+    );
     expect(gutter?.textContent).not.toContain("CC");
   });
 
@@ -194,16 +228,37 @@ describe("WorkTimelineChart", () => {
     const data = timelineSample();
     data.actors.push({ id: "user:dotta", type: "user", name: "Dotta" });
     data.events = [
-      { actorId: "user:dotta", kind: "created", issueId: "issue-1", at: "2026-07-02T08:30:00.000Z" },
-      { actorId: "user:dotta", kind: "commented", issueId: "issue-2", at: "2026-07-02T09:15:00.000Z" },
-      { actorId: "user:dotta", kind: "approved", issueId: "issue-1", at: "2026-07-02T10:05:00.000Z" },
+      {
+        actorId: "user:dotta",
+        kind: "created",
+        issueId: "issue-1",
+        at: "2026-07-02T08:30:00.000Z",
+      },
+      {
+        actorId: "user:dotta",
+        kind: "commented",
+        issueId: "issue-2",
+        at: "2026-07-02T09:15:00.000Z",
+      },
+      {
+        actorId: "user:dotta",
+        kind: "approved",
+        issueId: "issue-1",
+        at: "2026-07-02T10:05:00.000Z",
+      },
     ];
     renderChart(data);
 
-    const gutter = container.querySelector<SVGSVGElement>("[data-testid='work-timeline-actor-gutter']");
+    const gutter = container.querySelector<SVGSVGElement>(
+      "[data-testid='work-timeline-actor-gutter']",
+    );
     expect(gutter?.textContent).not.toContain("Dotta");
-    expect(container.querySelectorAll("[data-testid='timeline-event-marker']")).toHaveLength(0);
-    expect(container.querySelectorAll("[data-testid='timeline-comment-marker']")).toHaveLength(0);
+    expect(
+      container.querySelectorAll("[data-testid='timeline-event-marker']"),
+    ).toHaveLength(0);
+    expect(
+      container.querySelectorAll("[data-testid='timeline-comment-marker']"),
+    ).toHaveLength(0);
   });
 
   it("keeps connectors hidden until hover, renders them orthogonally, and highlights the connected graph", async () => {
@@ -253,25 +308,55 @@ describe("WorkTimelineChart", () => {
     ];
     renderChart(data);
 
-    expect(container.querySelectorAll("[data-testid='timeline-connector']")).toHaveLength(0);
+    expect(
+      container.querySelectorAll("[data-testid='timeline-connector']"),
+    ).toHaveLength(0);
 
-    const hovered = container.querySelector<SVGGElement>("[data-run-id='run-2']")!;
+    const hovered = container.querySelector<SVGGElement>(
+      "[data-run-id='run-2']",
+    )!;
     flushSync(() => {
-      hovered.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, clientX: 100, clientY: 100 }));
+      hovered.dispatchEvent(
+        new MouseEvent("mouseover", {
+          bubbles: true,
+          clientX: 100,
+          clientY: 100,
+        }),
+      );
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(container.querySelectorAll("[data-testid='timeline-connector']")).toHaveLength(2);
+    expect(
+      container.querySelectorAll("[data-testid='timeline-connector']"),
+    ).toHaveLength(2);
     const connectorStrokePaths = Array.from(
-      container.querySelectorAll<SVGPathElement>("[data-testid='timeline-connector'] path[fill='none']"),
+      container.querySelectorAll<SVGPathElement>(
+        "[data-testid='timeline-connector'] path[fill='none']",
+      ),
     );
     expect(connectorStrokePaths.map((path) => path.getAttribute("d"))).toEqual(
       expect.arrayContaining([expect.stringMatching(/ V.+ H/)]),
     );
-    expect(container.querySelector("[data-run-id='run-1']")?.getAttribute("data-connected-state")).toBe("connected");
-    expect(container.querySelector("[data-run-id='run-2']")?.getAttribute("data-connected-state")).toBe("connected");
-    expect(container.querySelector("[data-run-id='run-3']")?.getAttribute("data-connected-state")).toBe("connected");
-    expect(container.querySelector("[data-run-id='run-4']")?.getAttribute("data-connected-state")).toBe("faded");
+    expect(
+      container
+        .querySelector("[data-run-id='run-1']")
+        ?.getAttribute("data-connected-state"),
+    ).toBe("connected");
+    expect(
+      container
+        .querySelector("[data-run-id='run-2']")
+        ?.getAttribute("data-connected-state"),
+    ).toBe("connected");
+    expect(
+      container
+        .querySelector("[data-run-id='run-3']")
+        ?.getAttribute("data-connected-state"),
+    ).toBe("connected");
+    expect(
+      container
+        .querySelector("[data-run-id='run-4']")
+        ?.getAttribute("data-connected-state"),
+    ).toBe("faded");
 
     const layout = computeLayout(data, {
       gutter: 176,
@@ -285,7 +370,11 @@ describe("WorkTimelineChart", () => {
       { sourceRunId: "run-1", targetRunId: "run-2", dashed: false },
       { sourceRunId: "run-2", targetRunId: "run-3", dashed: false },
     ]);
-    const bars = new Map(layout.rows.flatMap((row) => row.bars.map((bar) => [bar.span.runId, bar])));
+    const bars = new Map(
+      layout.rows.flatMap((row) =>
+        row.bars.map((bar) => [bar.span.runId, bar]),
+      ),
+    );
     expect(layout.connectors[0].x1).toBe(bars.get("run-1")?.x2);
     expect(layout.connectors[0].x2).toBe(bars.get("run-2")?.x1);
   });
@@ -317,9 +406,13 @@ describe("WorkTimelineChart", () => {
 
     renderChart(data);
 
-    const kickoffChips = container.querySelectorAll("[data-testid='timeline-kickoff-chip']");
+    const kickoffChips = container.querySelectorAll(
+      "[data-testid='timeline-kickoff-chip']",
+    );
     expect(kickoffChips).toHaveLength(1);
-    expect(kickoffChips[0].querySelector("image")?.getAttribute("href")).toBe("/api/assets/dotta-avatar/content");
+    expect(kickoffChips[0].querySelector("image")?.getAttribute("href")).toBe(
+      "/api/assets/dotta-avatar/content",
+    );
     expect(kickoffChips[0].textContent).not.toContain("DO");
   });
 
@@ -327,14 +420,29 @@ describe("WorkTimelineChart", () => {
     const onZoomScaleChange = vi.fn();
     renderChart(timelineSample(), { onZoomScaleChange });
 
-    const scroller = container.querySelector<HTMLElement>("[data-testid='work-timeline-scroll']")!;
+    const scroller = container.querySelector<HTMLElement>(
+      "[data-testid='work-timeline-scroll']",
+    )!;
     flushSync(() => {
-      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 80, bubbles: true, cancelable: true }));
+      scroller.dispatchEvent(
+        new WheelEvent("wheel", {
+          deltaY: 80,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
     expect(onZoomScaleChange).not.toHaveBeenCalled();
 
     flushSync(() => {
-      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 80, ctrlKey: true, bubbles: true, cancelable: true }));
+      scroller.dispatchEvent(
+        new WheelEvent("wheel", {
+          deltaY: 80,
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
     expect(onZoomScaleChange).toHaveBeenCalledTimes(1);
   });
@@ -348,14 +456,20 @@ describe("WorkTimelineChart", () => {
       bar.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(open).toHaveBeenCalledWith("/PAP/issues/issue-1", "_blank", "noopener,noreferrer");
+    expect(open).toHaveBeenCalledWith(
+      "/PAP/issues/issue-1",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
   it("lets minimap edge handles resize the visible range and update zoom", () => {
     const onZoomScaleChange = vi.fn();
     renderChart(timelineSample(), { onZoomScaleChange });
 
-    const rightHandle = container.querySelector<SVGGElement>("[data-testid='timeline-minimap-right-handle']")!;
+    const rightHandle = container.querySelector<SVGGElement>(
+      "[data-testid='timeline-minimap-right-handle']",
+    )!;
     const minimap = rightHandle.ownerSVGElement!;
     vi.spyOn(minimap, "getBoundingClientRect").mockReturnValue({
       x: 0,
@@ -370,8 +484,20 @@ describe("WorkTimelineChart", () => {
     });
 
     flushSync(() => {
-      rightHandle.dispatchEvent(new MouseEvent("mousedown", { clientX: 300, bubbles: true, cancelable: true }));
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 520, bubbles: true, cancelable: true }));
+      rightHandle.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 300,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      document.dispatchEvent(
+        new MouseEvent("mousemove", {
+          clientX: 520,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
       document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
     });
 
@@ -381,8 +507,12 @@ describe("WorkTimelineChart", () => {
   it("shows grab-handle affordances on minimap selection edges", () => {
     renderChart(timelineSample(), { onZoomScaleChange: vi.fn() });
 
-    const leftHandle = container.querySelector<SVGGElement>("[data-testid='timeline-minimap-left-handle']")!;
-    const rightHandle = container.querySelector<SVGGElement>("[data-testid='timeline-minimap-right-handle']")!;
+    const leftHandle = container.querySelector<SVGGElement>(
+      "[data-testid='timeline-minimap-left-handle']",
+    )!;
+    const rightHandle = container.querySelector<SVGGElement>(
+      "[data-testid='timeline-minimap-right-handle']",
+    )!;
 
     expect(leftHandle.getAttribute("class")).toContain("cursor-grab");
     expect(rightHandle.getAttribute("class")).toContain("cursor-grab");
@@ -409,7 +539,13 @@ describe("WorkTimelineChart", () => {
     });
 
     flushSync(() => {
-      chartSvg.dispatchEvent(new MouseEvent("mousedown", { clientX: 260, bubbles: true, cancelable: true }));
+      chartSvg.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 260,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
 
     expect(add).toHaveBeenCalledWith("mousemove", expect.any(Function));
@@ -427,7 +563,9 @@ describe("WorkTimelineChart", () => {
     const remove = vi.spyOn(document, "removeEventListener");
     renderChart(timelineSample(), { onZoomScaleChange: vi.fn() });
 
-    const rightHandle = container.querySelector<SVGGElement>("[data-testid='timeline-minimap-right-handle']")!;
+    const rightHandle = container.querySelector<SVGGElement>(
+      "[data-testid='timeline-minimap-right-handle']",
+    )!;
     const minimap = rightHandle.ownerSVGElement!;
     vi.spyOn(minimap, "getBoundingClientRect").mockReturnValue({
       x: 0,
@@ -442,7 +580,13 @@ describe("WorkTimelineChart", () => {
     });
 
     flushSync(() => {
-      rightHandle.dispatchEvent(new MouseEvent("mousedown", { clientX: 300, bubbles: true, cancelable: true }));
+      rightHandle.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 300,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
 
     expect(add).toHaveBeenCalledWith("mousemove", expect.any(Function));
@@ -475,7 +619,11 @@ describe("WorkTimelineChart", () => {
     currentNow = later;
     renderChart(data, { nowMs: undefined });
 
-    expect(container.querySelector<SVGRectElement>("[data-run-id='run-1'] rect")?.getAttribute("width")).toBe(initialWidth);
+    expect(
+      container
+        .querySelector<SVGRectElement>("[data-run-id='run-1'] rect")
+        ?.getAttribute("width"),
+    ).toBe(initialWidth);
   });
 
   it("lets dragging the chart grid select a time range to zoom into", () => {
@@ -498,17 +646,39 @@ describe("WorkTimelineChart", () => {
     });
 
     flushSync(() => {
-      chartSvg.dispatchEvent(new MouseEvent("mousedown", { clientX: 260, bubbles: true, cancelable: true }));
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 520, bubbles: true, cancelable: true }));
+      chartSvg.dispatchEvent(
+        new MouseEvent("mousedown", {
+          clientX: 260,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      document.dispatchEvent(
+        new MouseEvent("mousemove", {
+          clientX: 520,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
 
-    expect(container.querySelector("[data-testid='timeline-drag-selection']")).not.toBeNull();
+    expect(
+      container.querySelector("[data-testid='timeline-drag-selection']"),
+    ).not.toBeNull();
 
     flushSync(() => {
-      document.dispatchEvent(new MouseEvent("mouseup", { clientX: 520, bubbles: true, cancelable: true }));
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          clientX: 520,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
 
     expect(onZoomScaleChange).toHaveBeenCalled();
-    expect(container.querySelector("[data-testid='timeline-drag-selection']")).toBeNull();
+    expect(
+      container.querySelector("[data-testid='timeline-drag-selection']"),
+    ).toBeNull();
   });
 });

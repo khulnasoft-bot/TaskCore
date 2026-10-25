@@ -2,7 +2,15 @@ import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { agents, companies, companySkills, createDb } from "@taskcore/db";
 import {
   getEmbeddedPostgresTestSupport,
@@ -13,7 +21,9 @@ import { companySkillService } from "../services/company-skills.js";
 const mockListSkills = vi.hoisted(() => vi.fn(() => new Promise(() => {})));
 
 vi.mock("../adapters/index.js", async () => {
-  const actual = await vi.importActual<typeof import("../adapters/index.js")>("../adapters/index.js");
+  const actual = await vi.importActual<typeof import("../adapters/index.js")>(
+    "../adapters/index.js",
+  );
   return {
     ...actual,
     findActiveServerAdapter: vi.fn(() => ({
@@ -23,7 +33,9 @@ vi.mock("../adapters/index.js", async () => {
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -34,11 +46,15 @@ if (!embeddedPostgresSupport.supported) {
 describeEmbeddedPostgres("companySkillService.detail", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof companySkillService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const cleanupDirs = new Set<string>();
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-company-skills-detail-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-company-skills-detail-",
+    );
     db = createDb(tempDb.connectionString);
     svc = companySkillService(db);
   }, 20_000);
@@ -48,7 +64,11 @@ describeEmbeddedPostgres("companySkillService.detail", () => {
     await db.delete(agents);
     await db.delete(companySkills);
     await db.delete(companies);
-    await Promise.all(Array.from(cleanupDirs, (dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs, (dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -67,17 +87,28 @@ describeEmbeddedPostgres("companySkillService.detail", () => {
         }
 
         return ((selection?: unknown) => {
-          const builder = selection === undefined ? target.select() : target.select(selection as never);
+          const builder =
+            selection === undefined
+              ? target.select()
+              : target.select(selection as never);
 
           return new Proxy(builder as object, {
             get(builderTarget, builderProp, builderReceiver) {
               if (builderProp !== "from") {
-                const value = Reflect.get(builderTarget, builderProp, builderReceiver);
-                return typeof value === "function" ? value.bind(builderTarget) : value;
+                const value = Reflect.get(
+                  builderTarget,
+                  builderProp,
+                  builderReceiver,
+                );
+                return typeof value === "function"
+                  ? value.bind(builderTarget)
+                  : value;
               }
 
               return (table: unknown) => {
-                const fromResult = (builderTarget as { from: (value: unknown) => unknown }).from(table);
+                const fromResult = (
+                  builderTarget as { from: (value: unknown) => unknown }
+                ).from(table);
                 if (table === companySkills) {
                   if (selection === undefined) {
                     implicitCompanySkillSelects();
@@ -102,9 +133,15 @@ describeEmbeddedPostgres("companySkillService.detail", () => {
     const companyId = randomUUID();
     const skillId = randomUUID();
     const skillKey = `company/${companyId}/reflection-coach`;
-    const skillDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-reflection-skill-"));
+    const skillDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-reflection-skill-"),
+    );
     cleanupDirs.add(skillDir);
-    await fs.writeFile(path.join(skillDir, "SKILL.md"), "# Reflection Coach\n", "utf8");
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "# Reflection Coach\n",
+      "utf8",
+    );
 
     await db.insert(companies).values({
       id: companyId,
@@ -142,7 +179,9 @@ describeEmbeddedPostgres("companySkillService.detail", () => {
 
     const detail = await Promise.race([
       svc.detail(companyId, skillId),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("skill detail timed out")), 1_000)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("skill detail timed out")), 1_000),
+      ),
     ]);
 
     expect(mockListSkills).not.toHaveBeenCalled();
@@ -159,9 +198,15 @@ describeEmbeddedPostgres("companySkillService.detail", () => {
     const companyId = randomUUID();
     const skillId = randomUUID();
     const skillKey = `company/${companyId}/reflection-coach`;
-    const skillDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-reflection-skill-"));
+    const skillDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-reflection-skill-"),
+    );
     cleanupDirs.add(skillDir);
-    await fs.writeFile(path.join(skillDir, "SKILL.md"), "# Reflection Coach\n", "utf8");
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "# Reflection Coach\n",
+      "utf8",
+    );
 
     await db.insert(companies).values({
       id: companyId,
@@ -218,7 +263,9 @@ describeEmbeddedPostgres("companySkillService.detail", () => {
     const trackedSvc = companySkillService(tracked.db);
     const detail = await Promise.race([
       trackedSvc.detail(companyId, skillId),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("skill detail timed out")), 1_000)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("skill detail timed out")), 1_000),
+      ),
     ]);
 
     expect(detail?.usedByAgents).toEqual([

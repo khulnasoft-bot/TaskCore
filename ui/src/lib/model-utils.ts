@@ -5,7 +5,10 @@ export function extractProviderId(modelId: string): string | null {
   return provider || null;
 }
 
-export function extractProviderIdWithFallback(modelId: string, fallback = "other"): string {
+export function extractProviderIdWithFallback(
+  modelId: string,
+  fallback = "other",
+): string {
   return extractProviderId(modelId) ?? fallback;
 }
 

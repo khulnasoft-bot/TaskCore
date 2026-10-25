@@ -79,14 +79,17 @@ export function Composer(props: ComposerProps) {
         {model.helper !== null ? (
           <p className="pit-composer-helper">
             {model.helper}
-            {model.state === "waiting" && model.pendingInteractionId !== null ? (
+            {model.state === "waiting" &&
+            model.pendingInteractionId !== null ? (
               <>
                 {" "}
                 <button
                   type="button"
                   className="pit-link-button"
                   data-testid="pending-anchor"
-                  onClick={() => onFocusPending(model.pendingInteractionId as string)}
+                  onClick={() =>
+                    onFocusPending(model.pendingInteractionId as string)
+                  }
                 >
                   Go to the pending request
                 </button>
@@ -152,7 +155,11 @@ export function Composer(props: ComposerProps) {
             disabled={!canSend || model.state === "sending"}
             data-testid="composer-send"
           >
-            {model.state === "sending" ? "Sending…" : model.state === "streaming" ? "Steer" : "Send"}
+            {model.state === "sending"
+              ? "Sending…"
+              : model.state === "streaming"
+                ? "Steer"
+                : "Send"}
           </button>
         </div>
       </div>

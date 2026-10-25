@@ -8,7 +8,9 @@ function source(relativePath: string) {
 describe("Apps agent selector contract", () => {
   it("keeps every agent chooser under /apps searchable", () => {
     const appConnect = source("./AppsConnect.tsx");
-    const connectionSetupFlow = source("../../features/connections/ConnectionSetupFlow.tsx");
+    const connectionSetupFlow = source(
+      "../../features/connections/ConnectionSetupFlow.tsx",
+    );
     const permissions = source("./app-detail/PermissionsPanel.tsx");
     const tester = source("./app-detail/ActionTestDialog.tsx");
     const profiles = source("../tools/ProfilesTab.tsx");

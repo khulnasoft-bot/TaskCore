@@ -1,6 +1,9 @@
 import type { Issue } from "./issue.js";
 import type { RoutineEnvConfig } from "./routine.js";
-import type { ExecutionWorkspaceMode, IssueExecutionWorkspaceSettings } from "./workspace-runtime.js";
+import type {
+  ExecutionWorkspaceMode,
+  IssueExecutionWorkspaceSettings,
+} from "./workspace-runtime.js";
 import type { SourceTrustMetadata } from "../trust-policy.js";
 
 export type PipelineCaseConversationSourceReason =
@@ -10,11 +13,10 @@ export type PipelineCaseConversationSourceReason =
   | "conversation_link"
   | "work_link";
 
-export type PipelineCaseConversationSourceLinkRole = "automation" | "conversation" | "work";
+export type PipelineCaseConversationSourceLinkRole =
+  "automation" | "conversation" | "work";
 export type PipelineCaseConversationSourceKind =
-  | "explicit_conversation"
-  | "own_producer"
-  | "inherited_parent_producer";
+  "explicit_conversation" | "own_producer" | "inherited_parent_producer";
 
 export interface PipelineCaseConversationSource {
   issue: Issue;
@@ -40,7 +42,8 @@ export interface PipelineStageAutomation {
   latestRoutineRevisionNumber: number;
 }
 
-export type PipelineCaseLivenessState = "terminal" | "live" | "waiting" | "blocked" | "attention";
+export type PipelineCaseLivenessState =
+  "terminal" | "live" | "waiting" | "blocked" | "attention";
 
 export interface PipelineCaseLiveness {
   state: PipelineCaseLivenessState;
@@ -201,7 +204,8 @@ export interface PipelineCaseDocumentRevision {
   createdAt: Date | string;
 }
 
-export type PipelineCaseOutputSourceRole = "origin" | "conversation" | "work" | "automation";
+export type PipelineCaseOutputSourceRole =
+  "origin" | "conversation" | "work" | "automation";
 export type PipelineCaseOutputKind = "document" | "work_product" | "attachment";
 
 export interface PipelineCaseOutputSource {

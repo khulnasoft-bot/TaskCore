@@ -5,7 +5,10 @@ import { buildTweakExport } from "./TweakPanel";
 
 /** Collect shared --motion-* properties from the token layer (deduped). */
 function declaredMotionTokens(): Set<string> {
-  const indexCss = readFileSync(new URL("../../index.css", import.meta.url), "utf8");
+  const indexCss = readFileSync(
+    new URL("../../index.css", import.meta.url),
+    "utf8",
+  );
   expect(indexCss).toContain('@import "./motion-tokens.css";');
   const css = `${indexCss}\n${readFileSync(new URL("../../motion-tokens.css", import.meta.url), "utf8")}`;
   const names = new Set<string>();
@@ -23,8 +26,14 @@ describe("motion token catalog", () => {
     const missingFromCatalog = [...declared].filter((n) => !catalog.has(n));
     const missingFromCss = [...catalog].filter((n) => !declared.has(n));
 
-    expect(missingFromCatalog, "tokens in the token layer but not in the catalog").toEqual([]);
-    expect(missingFromCss, "tokens in the catalog but not in the token layer").toEqual([]);
+    expect(
+      missingFromCatalog,
+      "tokens in the token layer but not in the catalog",
+    ).toEqual([]);
+    expect(
+      missingFromCss,
+      "tokens in the catalog but not in the token layer",
+    ).toEqual([]);
     expect(catalog.size).toBe(declared.size);
   });
 });
@@ -32,7 +41,8 @@ describe("motion token catalog", () => {
 describe("tweak panel export", () => {
   it("emits a valid :root block containing every motion token", () => {
     const values: Record<string, string> = {};
-    for (const t of MOTION_TOKENS) values[t.name] = t.kind === "time" ? "123ms" : "linear";
+    for (const t of MOTION_TOKENS)
+      values[t.name] = t.kind === "time" ? "123ms" : "linear";
     const out = buildTweakExport(values);
 
     expect(out.startsWith(":root {")).toBe(true);

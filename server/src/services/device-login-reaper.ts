@@ -283,14 +283,18 @@ export function createProductionLoginSessionReaperRuntime(
         return { outcome: "not_found" };
       }
       const leases = await environmentsSvc.listLeases(ref.environmentId);
-      const lease = leases.find((candidate) => candidate.providerLeaseId === ref.providerLeaseId);
+      const lease = leases.find(
+        (candidate) => candidate.providerLeaseId === ref.providerLeaseId,
+      );
       if (!lease) {
         // No live lease row holds this provider lease. The sandbox is already
         // released, so the delete is an idempotent confirmation.
         return { outcome: "not_found" };
       }
       const driverKey =
-        typeof lease.metadata?.driver === "string" ? lease.metadata.driver : environment.driver;
+        typeof lease.metadata?.driver === "string"
+          ? lease.metadata.driver
+          : environment.driver;
       const runtimeDriver = deps.environmentRuntime.getDriver(driverKey);
       if (!runtimeDriver) {
         throw new Error(`Environment driver "${driverKey}" is not registered.`);
@@ -319,7 +323,10 @@ export function createProductionLoginSessionReaperRuntime(
             // The shared table also holds the setup-token rows. Filter by the
             // closed set of displayed-code adapter types, so the orphan sweep
             // reads only displayed-code rows.
-            inArray(adapterAuthSessions.adapterType, DISPLAYED_CODE_ADAPTER_TYPES),
+            inArray(
+              adapterAuthSessions.adapterType,
+              DISPLAYED_CODE_ADAPTER_TYPES,
+            ),
             inArray(adapterAuthSessions.status, [
               ...ADAPTER_AUTH_ACTIVE_STATUSES,
               "cleanup_pending",
@@ -328,11 +335,17 @@ export function createProductionLoginSessionReaperRuntime(
         );
       const tagged: TaggedLease[] = [];
       for (const { environmentId } of environmentRows) {
-        const leases = await environmentsSvc.listLeases(environmentId, { status: "active" });
+        const leases = await environmentsSvc.listLeases(environmentId, {
+          status: "active",
+        });
         for (const lease of leases) {
           const sessionId = lease.metadata?.[LOGIN_LEASE_SESSION_TAG_KEY];
           if (typeof sessionId === "string" && lease.providerLeaseId) {
-            tagged.push({ environmentId, providerLeaseId: lease.providerLeaseId, sessionId });
+            tagged.push({
+              environmentId,
+              providerLeaseId: lease.providerLeaseId,
+              sessionId,
+            });
           }
         }
       }

@@ -1,7 +1,18 @@
-import { isRetiredComposioConnection, RETIRED_COMPOSIO_MESSAGE } from "@taskcore/shared";
+import {
+  isRetiredComposioConnection,
+  RETIRED_COMPOSIO_MESSAGE,
+} from "@taskcore/shared";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppWindow, Cloud, Loader2, ShieldAlert, ShieldCheck, ShieldQuestion, Trash2 } from "lucide-react";
+import {
+  AppWindow,
+  Cloud,
+  Loader2,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldQuestion,
+  Trash2,
+} from "lucide-react";
 import type {
   ToolApplication,
   ToolConnection,
@@ -44,7 +55,10 @@ import {
   type AppGalleryDisplayEntry,
 } from "./app-definition-display";
 import { useReviewCount } from "./useReviewCount";
-import { connectionNameForCredentialPolicy, connectionTypeLabel } from "./connection-identity";
+import {
+  connectionNameForCredentialPolicy,
+  connectionTypeLabel,
+} from "./connection-identity";
 import {
   ConnectionOwnerIdentity,
   connectionDisplayNameForOwner,
@@ -80,19 +94,30 @@ type AppRow = {
  * BOTH the row highlight and the Status pill so they can never disagree. The
  * pill's `attention` tone and the row highlight are now the *same* predicate.
  */
-function statusFor(application: ToolApplication, connections: ToolConnection[]): AppStatus {
-  if (connections.some(isRetiredComposioConnection)) return { label: "Retired", tone: "attention" };
+function statusFor(
+  application: ToolApplication,
+  connections: ToolConnection[],
+): AppStatus {
+  if (connections.some(isRetiredComposioConnection))
+    return { label: "Retired", tone: "attention" };
   if (connections.length === 0) {
     return { label: "Not connected", tone: "not_connected" };
   }
   if (
     application.status === "disabled" ||
     application.status === "archived" ||
-    connections.every((connection) => connection.enabled === false || connection.status === "disabled")
+    connections.every(
+      (connection) =>
+        connection.enabled === false || connection.status === "disabled",
+    )
   ) {
     return { label: "Paused", tone: "paused" };
   }
-  if (connections.some((connection) => isAttentionHealthStatus(connection.healthStatus))) {
+  if (
+    connections.some((connection) =>
+      isAttentionHealthStatus(connection.healthStatus),
+    )
+  ) {
     return { label: "Needs attention", tone: "attention" };
   }
   return { label: "Healthy", tone: "connected" };
@@ -104,8 +129,10 @@ function rowNeedsAttention(row: AppRow): boolean {
 }
 
 const STATUS_CLASS: Record<AppStatus["tone"], string> = {
-  connected: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  attention: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  connected:
+    "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  attention:
+    "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   paused: "border-border bg-muted text-muted-foreground",
   not_connected: "border-border bg-background text-muted-foreground",
 };
@@ -122,7 +149,6 @@ export function Connections() {
     id: string;
     appName: string;
     remainingConnectionCount: number;
-
   } | null>(null);
 
   useEffect(() => {
@@ -154,7 +180,9 @@ export function Connections() {
     enabled: !!selectedCompanyId,
   });
   const userDirectoryQuery = useQuery({
-    queryKey: queryKeys.access.companyUserDirectory(selectedCompanyId ?? "__none__"),
+    queryKey: queryKeys.access.companyUserDirectory(
+      selectedCompanyId ?? "__none__",
+    ),
     queryFn: () => accessApi.listUserDirectory(selectedCompanyId!),
     enabled: !!selectedCompanyId,
   });
@@ -163,15 +191,21 @@ export function Connections() {
     queryFn: () => toolsApi.getCloudConnectorEnrollment(),
   });
   const startConnectorEnrollment = useMutation({
-    mutationFn: () => toolsApi.startCloudConnectorEnrollment(selectedCompanyId!, selectedCompany?.name),
+    mutationFn: () =>
+      toolsApi.startCloudConnectorEnrollment(
+        selectedCompanyId!,
+        selectedCompany?.name,
+      ),
     onSuccess: (status) => {
-      if (status.verificationUrl) window.location.assign(status.verificationUrl);
+      if (status.verificationUrl)
+        window.location.assign(status.verificationUrl);
     },
-    onError: (error) => pushToast({
-      title: "Couldn’t reach Taskcore Cloud",
-      body: error instanceof Error ? error.message : "Try again in a moment.",
-      tone: "error",
-    }),
+    onError: (error) =>
+      pushToast({
+        title: "Couldn’t reach Taskcore Cloud",
+        body: error instanceof Error ? error.message : "Try again in a moment.",
+        tone: "error",
+      }),
   });
 
   const deleteConnection = useMutation({
@@ -179,18 +213,23 @@ export function Connections() {
       id: string;
       appName: string;
       remainingConnectionCount: number;
-
-    }) =>
-      toolsApi.archiveConnection(target.id),
+    }) => toolsApi.archiveConnection(target.id),
     onSuccess: (_connection, target) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connections(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.applications(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connections(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.applications(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.apps.attention(selectedCompanyId!),
+      });
       pushToast({
         title: "Connection deleted",
-        body: target.remainingConnectionCount > 0
-          ? `${target.appName} still has ${target.remainingConnectionCount} active ${target.remainingConnectionCount === 1 ? "connection" : "connections"} available to agents.`
-          : `${target.appName} is no longer available to agents and its credentials are deleted. Connecting it again needs a new sign-in or key.`,
+        body:
+          target.remainingConnectionCount > 0
+            ? `${target.appName} still has ${target.remainingConnectionCount} active ${target.remainingConnectionCount === 1 ? "connection" : "connections"} available to agents.`
+            : `${target.appName} is no longer available to agents and its credentials are deleted. Connecting it again needs a new sign-in or key.`,
         tone: "success",
       });
       setConnectionToDelete(null);
@@ -206,7 +245,8 @@ export function Connections() {
   const gallery = (galleryQuery.data?.apps ?? []) as AppGalleryDisplayEntry[];
   const logoByName = useMemo(() => {
     const map = new Map<string, AppGalleryDisplayEntry>();
-    for (const entry of gallery) map.set(appDefinitionName(entry).toLowerCase(), entry);
+    for (const entry of gallery)
+      map.set(appDefinitionName(entry).toLowerCase(), entry);
     return map;
   }, [gallery]);
   const logoByKey = useMemo(() => {
@@ -234,7 +274,10 @@ export function Connections() {
   const connectionsByApplication = useMemo(() => {
     const map = new Map<string, ToolConnection[]>();
     for (const connection of connections) {
-      map.set(connection.applicationId, [...(map.get(connection.applicationId) ?? []), connection]);
+      map.set(connection.applicationId, [
+        ...(map.get(connection.applicationId) ?? []),
+        connection,
+      ]);
     }
     return map;
   }, [connections]);
@@ -247,7 +290,8 @@ export function Connections() {
     return applications.flatMap((application): AppRow[] => {
       const appConnections = connectionsByApplication.get(application.id) ?? [];
       const appSourceSlug = appApplicationSourceSlug(application);
-      const resolvedGalleryEntry = logoByKey.get(appSourceSlug ?? "") ??
+      const resolvedGalleryEntry =
+        logoByKey.get(appSourceSlug ?? "") ??
         logoByName.get(application.name.toLowerCase());
       const logoUrl = appDefinitionLogoUrl(resolvedGalleryEntry);
       const brandKey = appSourceSlug ?? application.name;
@@ -256,29 +300,36 @@ export function Connections() {
         (connection) => connection.status === "active" && connection.enabled,
       ).length;
       if (appConnections.length === 0) {
-        return [{
-          application,
-          connection: null,
-          displayName: application.name,
-          brandKey,
-          owner: null,
-          remainingAgentAvailableConnectionCount: 0,
-          status: statusFor(application, []),
-          actionCount: 0,
-          lastUsedAt: null,
-          logoUrl,
-          darkLogoUrl,
-        }];
+        return [
+          {
+            application,
+            connection: null,
+            displayName: application.name,
+            brandKey,
+            owner: null,
+            remainingAgentAvailableConnectionCount: 0,
+            status: statusFor(application, []),
+            actionCount: 0,
+            lastUsedAt: null,
+            logoUrl,
+            darkLogoUrl,
+          },
+        ];
       }
       return appConnections.map((connection) => {
         const owner = connectionOwnerProfile(connection, userProfileById);
         const type = connectionTypeLabel(connection.credentialPolicy);
-        const displayName = type === "Organization"
-          ? connectionNameForCredentialPolicy(
-              humanizeConnectionDisplayName(connection),
-              connection.credentialPolicy,
-            )
-          : connectionDisplayNameForOwner(connection, application.name, owner);
+        const displayName =
+          type === "Organization"
+            ? connectionNameForCredentialPolicy(
+                humanizeConnectionDisplayName(connection),
+                connection.credentialPolicy,
+              )
+            : connectionDisplayNameForOwner(
+                connection,
+                application.name,
+                owner,
+              );
         return {
           application,
           connection,
@@ -298,16 +349,30 @@ export function Connections() {
         };
       });
     });
-  }, [actionCountByConnection, applications, connectionsByApplication, logoByKey, logoByName, userProfileById]);
+  }, [
+    actionCountByConnection,
+    applications,
+    connectionsByApplication,
+    logoByKey,
+    logoByName,
+    userProfileById,
+  ]);
 
   const rowsNeedingAttention = rows.filter(rowNeedsAttention);
   const visibleRows = filter === "attention" ? rowsNeedingAttention : rows;
 
   if (!selectedCompanyId) {
-    return <div className="p-6 text-sm text-muted-foreground">Select an organization to manage apps.</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Select an organization to manage apps.
+      </div>
+    );
   }
 
-  const loading = applicationsQuery.isLoading || connectionsQuery.isLoading || galleryQuery.isLoading;
+  const loading =
+    applicationsQuery.isLoading ||
+    connectionsQuery.isLoading ||
+    galleryQuery.isLoading;
 
   return (
     <div className="max-w-5xl space-y-5">
@@ -317,7 +382,8 @@ export function Connections() {
           unavailable={connectorEnrollmentQuery.isError}
           busy={startConnectorEnrollment.isPending}
           onEnable={() => {
-            const verificationUrl = connectorEnrollmentQuery.data?.verificationUrl;
+            const verificationUrl =
+              connectorEnrollmentQuery.data?.verificationUrl;
             if (verificationUrl) window.location.assign(verificationUrl);
             else startConnectorEnrollment.mutate();
           }}
@@ -339,11 +405,16 @@ export function Connections() {
                 The tools you’ve connected, and whether they’re working.
               </p>
             </div>
-            <Button onClick={() => navigate(BROWSE_HREF)}>Connect an app</Button>
+            <Button onClick={() => navigate(BROWSE_HREF)}>
+              Connect an app
+            </Button>
           </header>
 
           <div className="flex flex-wrap items-center gap-2">
-            <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
+            <FilterChip
+              active={filter === "all"}
+              onClick={() => setFilter("all")}
+            >
               All ({rows.length})
             </FilterChip>
             <FilterChip
@@ -365,13 +436,17 @@ export function Connections() {
               <ShieldQuestion className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                  {reviewCount} {reviewCount === 1 ? "action is" : "actions are"} waiting for your OK
+                  {reviewCount}{" "}
+                  {reviewCount === 1 ? "action is" : "actions are"} waiting for
+                  your OK
                 </div>
                 <div className="truncate text-xs text-amber-700 dark:text-amber-300">
                   Your agents paused to check with you before making a change.
                 </div>
               </div>
-              <span className="shrink-0 text-xs font-semibold text-amber-800 dark:text-amber-200">Review →</span>
+              <span className="shrink-0 text-xs font-semibold text-amber-800 dark:text-amber-200">
+                Review →
+              </span>
             </button>
           )}
 
@@ -384,13 +459,19 @@ export function Connections() {
               <ShieldAlert className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-red-900 dark:text-red-100">
-                  {rowsNeedingAttention.length} {rowsNeedingAttention.length === 1 ? "connection needs" : "connections need"} attention
+                  {rowsNeedingAttention.length}{" "}
+                  {rowsNeedingAttention.length === 1
+                    ? "connection needs"
+                    : "connections need"}{" "}
+                  attention
                 </div>
                 <div className="truncate text-xs text-red-700 dark:text-red-300">
                   {floatSummary(rowsNeedingAttention)}
                 </div>
               </div>
-              <span className="shrink-0 text-xs font-semibold text-red-800 dark:text-red-200">Fix →</span>
+              <span className="shrink-0 text-xs font-semibold text-red-800 dark:text-red-200">
+                Fix →
+              </span>
             </button>
           )}
 
@@ -412,27 +493,29 @@ export function Connections() {
                   const { application, connection, status } = row;
                   const attention = rowNeedsAttention(row);
                   const hint =
-                    connection && isRetiredComposioConnection(connection) ? RETIRED_COMPOSIO_MESSAGE :
-                    status.tone === "attention"
-                      ? connection?.authKind === "oauth"
-                        ? "Reconnect required — sign in again to restore access."
-                        : "The key stopped working — reconnect to fix."
-                      : status.tone === "paused"
-                        ? "Paused — agents can’t use it right now."
-                        : status.tone === "not_connected"
-                          ? "Connect it so agents can use it."
-                          : row.displayName !== application.name
-                            ? application.name
-                            : null;
+                    connection && isRetiredComposioConnection(connection)
+                      ? RETIRED_COMPOSIO_MESSAGE
+                      : status.tone === "attention"
+                        ? connection?.authKind === "oauth"
+                          ? "Reconnect required — sign in again to restore access."
+                          : "The key stopped working — reconnect to fix."
+                        : status.tone === "paused"
+                          ? "Paused — agents can’t use it right now."
+                          : status.tone === "not_connected"
+                            ? "Connect it so agents can use it."
+                            : row.displayName !== application.name
+                              ? application.name
+                              : null;
                   const appHref = connection
                     ? `/apps/${connection.id}/permissions`
                     : `/apps/app/${application.id}/permissions`;
                   const actionLabel = !connection
                     ? "Connect"
-                    : connection && isRetiredComposioConnection(connection) ? "Review"
-                    : status.tone === "attention"
-                      ? "Reconnect"
-                      : "Permissions";
+                    : connection && isRetiredComposioConnection(connection)
+                      ? "Review"
+                      : status.tone === "attention"
+                        ? "Reconnect"
+                        : "Permissions";
                   return (
                     <tr
                       key={connection?.id ?? application.id}
@@ -453,18 +536,26 @@ export function Connections() {
                           />
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-medium text-foreground">{row.displayName}</span>
-                              <ConnectionProvenanceChip connection={row.connection} />
+                              <span className="font-medium text-foreground">
+                                {row.displayName}
+                              </span>
+                              <ConnectionProvenanceChip
+                                connection={row.connection}
+                              />
                             </div>
                             {hint && (
-                              <div className="truncate text-xs text-muted-foreground">{hint}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {hint}
+                              </div>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-medium text-foreground">
-                          {connection ? connectionTypeLabel(connection.credentialPolicy) : "—"}
+                          {connection
+                            ? connectionTypeLabel(connection.credentialPolicy)
+                            : "—"}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -481,7 +572,9 @@ export function Connections() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-muted-foreground">{row.actionCount} on</span>
+                        <span className="text-xs text-muted-foreground">
+                          {row.actionCount} on
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs text-muted-foreground">
@@ -511,8 +604,8 @@ export function Connections() {
                                 setConnectionToDelete({
                                   id: connection.id,
                                   appName: application.name,
-                                  remainingConnectionCount: row.remainingAgentAvailableConnectionCount,
-
+                                  remainingConnectionCount:
+                                    row.remainingAgentAvailableConnectionCount,
                                 });
                               }}
                             >
@@ -530,7 +623,8 @@ export function Connections() {
 
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              Apps you connect become available to every agent unless you change “Who can use it”.
+              Apps you connect become available to every agent unless you change
+              “Who can use it”.
             </p>
           </div>
         </div>
@@ -548,22 +642,28 @@ export function Connections() {
               Delete {connectionToDelete?.appName ?? "this"} connection?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {connectionToDelete && connectionToDelete.remainingConnectionCount > 0
+              {connectionToDelete &&
+              connectionToDelete.remainingConnectionCount > 0
                 ? `This connection's saved credentials are deleted and agents lose access through it immediately. Agents can still use ${connectionToDelete.appName} through ${connectionToDelete.remainingConnectionCount} other active ${connectionToDelete.remainingConnectionCount === 1 ? "connection" : "connections"}.`
                 : "The saved credentials are deleted and agents lose access immediately. Connecting it again later needs a new sign-in or key."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteConnection.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteConnection.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={!connectionToDelete || deleteConnection.isPending}
               onClick={(event) => {
                 event.preventDefault();
-                if (connectionToDelete) deleteConnection.mutate(connectionToDelete);
+                if (connectionToDelete)
+                  deleteConnection.mutate(connectionToDelete);
               }}
             >
-              {deleteConnection.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {deleteConnection.isPending && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
               {deleteConnection.isPending ? "Deleting..." : "Delete connection"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -579,7 +679,9 @@ function CloudConnectorEnrollmentBanner({
   busy,
   onEnable,
 }: {
-  status: Awaited<ReturnType<typeof toolsApi.getCloudConnectorEnrollment>> | undefined;
+  status:
+    | Awaited<ReturnType<typeof toolsApi.getCloudConnectorEnrollment>>
+    | undefined;
   unavailable: boolean;
   busy: boolean;
   onEnable: () => void;
@@ -589,9 +691,12 @@ function CloudConnectorEnrollmentBanner({
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
         <ShieldCheck className="h-5 w-5 text-primary" />
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-foreground">Taskcore-managed sign-in is ready</div>
+          <div className="text-sm font-semibold text-foreground">
+            Taskcore-managed sign-in is ready
+          </div>
           <div className="truncate text-xs text-muted-foreground">
-            Provider authorization uses {status.brokerBaseUrl}; credentials stay in this instance.
+            Provider authorization uses {status.brokerBaseUrl}; credentials stay
+            in this instance.
           </div>
         </div>
       </div>
@@ -601,7 +706,9 @@ function CloudConnectorEnrollmentBanner({
     return (
       <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
         <Cloud className="h-5 w-5 text-muted-foreground" />
-        <div className="text-sm text-muted-foreground">Taskcore Cloud enrollment status is unavailable.</div>
+        <div className="text-sm text-muted-foreground">
+          Taskcore Cloud enrollment status is unavailable.
+        </div>
       </div>
     );
   }
@@ -610,10 +717,13 @@ function CloudConnectorEnrollmentBanner({
       <Cloud className="h-5 w-5 text-muted-foreground" />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold text-foreground">
-          {status?.status === "pending" ? "Finish Taskcore Cloud enrollment" : "Enable Taskcore-managed sign-in"}
+          {status?.status === "pending"
+            ? "Finish Taskcore Cloud enrollment"
+            : "Enable Taskcore-managed sign-in"}
         </div>
         <div className="text-xs text-muted-foreground">
-          Confirm this server’s exact address before Cloud can return encrypted Google credentials to it.
+          Confirm this server’s exact address before Cloud can return encrypted
+          Google credentials to it.
         </div>
       </div>
       <Button variant="outline" size="sm" disabled={busy} onClick={onEnable}>
@@ -666,7 +776,9 @@ function enabledActionCount(profile: ToolProfileWithDetails): number {
 }
 
 function floatSummary(rows: AppRow[]): string {
-  const names = rows.map((row) => humanizeConnectionDisplayName(row.application.name));
+  const names = rows.map((row) =>
+    humanizeConnectionDisplayName(row.application.name),
+  );
   if (names.length <= 2) return names.join(" and ");
   return `${names.slice(0, 2).join(", ")} and ${names.length - 2} more`;
 }
@@ -685,10 +797,12 @@ function EmptyConnections({ onBrowse }: { onBrowse: () => void }) {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
           <AppWindow className="h-6 w-6 text-muted-foreground" />
         </div>
-        <p className="mt-4 text-sm font-medium text-foreground">No connections yet.</p>
+        <p className="mt-4 text-sm font-medium text-foreground">
+          No connections yet.
+        </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Add one from <span className="font-medium text-foreground">Apps</span> to give your agents
-          the tools they need.
+          Add one from <span className="font-medium text-foreground">Apps</span>{" "}
+          to give your agents the tools they need.
         </p>
         <Button className="mt-6" onClick={onBrowse}>
           Browse apps

@@ -126,12 +126,18 @@ describe("issueDetailBreadcrumb", () => {
   });
 
   it("prefers the full breadcrumb from route state", () => {
-    const state = createIssueDetailLocationState("Inbox", "/inbox/mine", "inbox");
+    const state = createIssueDetailLocationState(
+      "Inbox",
+      "/inbox/mine",
+      "inbox",
+    );
 
-    expect(readIssueDetailBreadcrumb("PAP-465", state, "?from=issues")).toEqual({
-      label: "Inbox",
-      href: "/inbox/mine",
-    });
+    expect(readIssueDetailBreadcrumb("PAP-465", state, "?from=issues")).toEqual(
+      {
+        label: "Inbox",
+        href: "/inbox/mine",
+      },
+    );
   });
 
   it("falls back to the source query param when route state is unavailable", () => {
@@ -142,13 +148,19 @@ describe("issueDetailBreadcrumb", () => {
   });
 
   it("can detect legacy query-based breadcrumb links", () => {
-    expect(hasLegacyIssueDetailQuery("?from=inbox&fromHref=%2Finbox%2Fmine")).toBe(true);
+    expect(
+      hasLegacyIssueDetailQuery("?from=inbox&fromHref=%2Finbox%2Fmine"),
+    ).toBe(true);
     expect(hasLegacyIssueDetailQuery("?q=test")).toBe(false);
   });
 
   it("restores the exact breadcrumb href from the query fallback", () => {
     expect(
-      readIssueDetailBreadcrumb("PAP-465", null, "?from=inbox&fromHref=%2FPAP%2Finbox%2Funread"),
+      readIssueDetailBreadcrumb(
+        "PAP-465",
+        null,
+        "?from=inbox&fromHref=%2FPAP%2Finbox%2Funread",
+      ),
     ).toEqual({
       label: "Inbox",
       href: "/PAP/inbox/unread",
@@ -156,13 +168,15 @@ describe("issueDetailBreadcrumb", () => {
   });
 
   it("reads hidden breadcrumb context from session storage when route state is unavailable", () => {
-    const state = createIssueDetailLocationState("Inbox", "/inbox/mine", "inbox");
+    const state = createIssueDetailLocationState(
+      "Inbox",
+      "/inbox/mine",
+      "inbox",
+    );
     sessionStorageMock.clear();
     rememberIssueDetailLocationState("PAP-465", state);
 
-    expect(
-      readIssueDetailLocationState("PAP-465", null),
-    ).toEqual({
+    expect(readIssueDetailLocationState("PAP-465", null)).toEqual({
       issueDetailBreadcrumb: { label: "Inbox", href: "/inbox/mine" },
       issueDetailSource: "inbox",
       issueDetailInboxQuickArchiveArmed: false,
@@ -212,9 +226,17 @@ describe("issueDetailBreadcrumb", () => {
   });
 
   it("can arm quick archive only for explicit inbox keyboard entry state", () => {
-    const state = createIssueDetailLocationState("Inbox", "/inbox/mine", "inbox");
+    const state = createIssueDetailLocationState(
+      "Inbox",
+      "/inbox/mine",
+      "inbox",
+    );
 
     expect(shouldArmIssueDetailInboxQuickArchive(state)).toBe(false);
-    expect(shouldArmIssueDetailInboxQuickArchive(armIssueDetailInboxQuickArchive(state))).toBe(true);
+    expect(
+      shouldArmIssueDetailInboxQuickArchive(
+        armIssueDetailInboxQuickArchive(state),
+      ),
+    ).toBe(true);
   });
 });

@@ -16,7 +16,12 @@ describe("argv construction", () => {
       "--https=42010",
       "http://127.0.0.1:42010",
     ]);
-    expect(buildRemoveArgv(BIN, 42010)).toEqual([BIN, "serve", "--https=42010", "off"]);
+    expect(buildRemoveArgv(BIN, 42010)).toEqual([
+      BIN,
+      "serve",
+      "--https=42010",
+      "off",
+    ]);
   });
 
   it("refuses the protected primary port 443 and privileged ports", () => {

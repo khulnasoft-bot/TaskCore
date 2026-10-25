@@ -17,15 +17,15 @@ production control-plane behavior.
 
 ## Version fields
 
-| Field | Replay support | Compatibility rule |
-|---|---:|---|
-| `protocolVersion` | `1` | Required. Negotiate the highest overlapping version; no overlap fails closed. |
-| `fixtureVersion` | `1` | Required by the conformance corpus. Unknown values fail closed. |
-| `event.schemaVersion` | `1` | Required on every event. Unknown values fail closed before reduction. |
-| `capabilities.semanticTools.schemaVersion` | `1` | Optional advertisement. When present, an unknown required version fails closed. |
-| `payload.semantic_tool.schemaVersion` | `1` | Optional on paired semantic tool input/result events. When present, an unknown required version fails closed. |
-| `terminal.stopReason.schemaVersion` | `1` | Optional budget/cost receipt. When present, an unknown required version fails closed. |
-| Typed `schema` discriminators | `*.v1` | Required. Unknown required schema identities fail JSON Schema validation. |
+| Field                                      | Replay support | Compatibility rule                                                                                            |
+| ------------------------------------------ | -------------: | ------------------------------------------------------------------------------------------------------------- |
+| `protocolVersion`                          |            `1` | Required. Negotiate the highest overlapping version; no overlap fails closed.                                 |
+| `fixtureVersion`                           |            `1` | Required by the conformance corpus. Unknown values fail closed.                                               |
+| `event.schemaVersion`                      |            `1` | Required on every event. Unknown values fail closed before reduction.                                         |
+| `capabilities.semanticTools.schemaVersion` |            `1` | Optional advertisement. When present, an unknown required version fails closed.                               |
+| `payload.semantic_tool.schemaVersion`      |            `1` | Optional on paired semantic tool input/result events. When present, an unknown required version fails closed. |
+| `terminal.stopReason.schemaVersion`        |            `1` | Optional budget/cost receipt. When present, an unknown required version fails closed.                         |
+| Typed `schema` discriminators              |         `*.v1` | Required. Unknown required schema identities fail JSON Schema validation.                                     |
 
 Wire protocol versions and fixture-corpus versions are independent. A fixture
 format can evolve without changing PRP, and a future PRP version can be
@@ -61,13 +61,13 @@ only when a non-empty snapshot contains only `completed` steps. The legacy
 document-coupling fields are always `syncStatus: "not_applicable"` and
 `documentRevision: null`.
 
-| Qualified adapter profile | Checklist support |
-|---|---|
-| Direct Codex App Server | `turn/plan/updated` |
-| ACPX Codex | Structured ACP `plan` entries |
-| ACPX Claude | Structured ACP `plan` entries |
-| ACPX Pi | Unavailable; no production-qualified profile is exposed |
-| OpenCode | Unsupported until it exposes a structured plan event |
+| Qualified adapter profile | Checklist support                                       |
+| ------------------------- | ------------------------------------------------------- |
+| Direct Codex App Server   | `turn/plan/updated`                                     |
+| ACPX Codex                | Structured ACP `plan` entries                           |
+| ACPX Claude               | Structured ACP `plan` entries                           |
+| ACPX Pi                   | Unavailable; no production-qualified profile is exposed |
+| OpenCode                  | Unsupported until it exposes a structured plan event    |
 
 Codex `turn/diff/updated` is normalized separately as the latest same-turn
 `workspace.change.updated` snapshot. Together these two independent event

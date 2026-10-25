@@ -26,7 +26,9 @@ describe("FileTree", () => {
   });
 
   function row(path: string) {
-    return container.querySelector(`[data-file-tree-path="${path}"]`) as HTMLDivElement | null;
+    return container.querySelector(
+      `[data-file-tree-path="${path}"]`,
+    ) as HTMLDivElement | null;
   }
 
   it("selects file rows and expands directory rows", () => {
@@ -82,7 +84,9 @@ describe("FileTree", () => {
       );
     });
 
-    const input = row("docs")?.querySelector("input[type='checkbox']") as HTMLInputElement | null;
+    const input = row("docs")?.querySelector(
+      "input[type='checkbox']",
+    ) as HTMLInputElement | null;
     expect(input?.checked).toBe(false);
     expect(input?.indeterminate).toBe(true);
     expect(row("docs")?.getAttribute("aria-checked")).toBe("mixed");
@@ -108,16 +112,20 @@ describe("FileTree", () => {
               tooltip: "Synced",
             },
           }}
-          renderFileExtra={(node) => (
-            node.kind === "file" ? <span data-testid="file-extra">{node.name.length} chars</span> : null
-          )}
+          renderFileExtra={(node) =>
+            node.kind === "file" ? (
+              <span data-testid="file-extra">{node.name.length} chars</span>
+            ) : null
+          }
         />,
       );
     });
 
     expect(container.textContent).toContain("fresh");
     expect(container.querySelector("[title='Synced']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='file-extra']")?.textContent).toBe("22 chars");
+    expect(
+      container.querySelector("[data-testid='file-extra']")?.textContent,
+    ).toBe("22 chars");
   });
 
   it("wraps long labels by default and can opt back into truncation", () => {
@@ -137,7 +145,9 @@ describe("FileTree", () => {
       );
     });
 
-    expect(row("wiki/extremely-long-page-slug-that-wraps-on-mobile.md")?.innerHTML).toContain("break-all");
+    expect(
+      row("wiki/extremely-long-page-slug-that-wraps-on-mobile.md")?.innerHTML,
+    ).toContain("break-all");
 
     act(() => {
       root.render(
@@ -152,7 +162,9 @@ describe("FileTree", () => {
       );
     });
 
-    expect(row("wiki/extremely-long-page-slug-that-wraps-on-mobile.md")?.innerHTML).toContain("truncate");
+    expect(
+      row("wiki/extremely-long-page-slug-that-wraps-on-mobile.md")?.innerHTML,
+    ).toContain("truncate");
   });
 
   it("supports tree keyboard expansion and checkbox toggling", () => {
@@ -178,22 +190,41 @@ describe("FileTree", () => {
     const docsRow = row("docs");
     act(() => {
       docsRow?.focus();
-      docsRow?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      docsRow?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+      );
     });
     expect(onToggleDir).toHaveBeenCalledWith("docs");
 
     act(() => {
-      docsRow?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+      docsRow?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", bubbles: true }),
+      );
     });
     expect(onToggleCheck).toHaveBeenCalledWith("docs", "dir");
   });
 
   it("keeps hidden descendants in folder selection and restores a tab stop when filtering", () => {
     const nodes = buildFileTree({ "docs/a.md": "", "docs/b.md": "" });
-    const props = { nodes, selectedFile: null, expandedDirs: new Set(["docs"]), checkedFiles: new Set(["docs/a.md"]), onSelectFile: () => {}, onToggleDir: () => {} };
+    const props = {
+      nodes,
+      selectedFile: null,
+      expandedDirs: new Set(["docs"]),
+      checkedFiles: new Set(["docs/a.md"]),
+      onSelectFile: () => {},
+      onToggleDir: () => {},
+    };
     act(() => root.render(<FileTree {...props} />));
     act(() => row("docs/b.md")?.focus());
-    act(() => root.render(<FileTree {...props} visiblePaths={new Set(["docs", "docs/a.md"])} renderLabel={node => <span>{node.name} description</span>} />));
+    act(() =>
+      root.render(
+        <FileTree
+          {...props}
+          visiblePaths={new Set(["docs", "docs/a.md"])}
+          renderLabel={(node) => <span>{node.name} description</span>}
+        />,
+      ),
+    );
     expect(row("docs/b.md")).toBeNull();
     expect(row("docs")?.getAttribute("aria-checked")).toBe("mixed");
     expect(row("docs")?.tabIndex).toBe(0);
@@ -204,15 +235,34 @@ describe("FileTree", () => {
     const onToggleDir = vi.fn();
     const onToggleCheck = vi.fn();
     const onSelectFile = vi.fn();
-    act(() => root.render(<FileTree nodes={buildFileTree({ "docs/a.md": "" })} selectedFile={null} expandedDirs={new Set(["docs"])} onToggleDir={onToggleDir} onToggleCheck={onToggleCheck} onSelectFile={onSelectFile} disabled />));
+    act(() =>
+      root.render(
+        <FileTree
+          nodes={buildFileTree({ "docs/a.md": "" })}
+          selectedFile={null}
+          expandedDirs={new Set(["docs"])}
+          onToggleDir={onToggleDir}
+          onToggleCheck={onToggleCheck}
+          onSelectFile={onSelectFile}
+          disabled
+        />,
+      ),
+    );
     act(() => {
       row("docs/a.md")?.click();
-      row("docs")?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
-      container.querySelector<HTMLButtonElement>('[aria-label="Collapse docs"]')?.click();
+      row("docs")?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", bubbles: true }),
+      );
+      container
+        .querySelector<HTMLButtonElement>('[aria-label="Collapse docs"]')
+        ?.click();
     });
     expect(onToggleCheck).not.toHaveBeenCalled();
     expect(onSelectFile).not.toHaveBeenCalled();
     expect(onToggleDir).not.toHaveBeenCalled();
-    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.disabled).toBe(true);
+    expect(
+      container.querySelector<HTMLInputElement>('input[type="checkbox"]')
+        ?.disabled,
+    ).toBe(true);
   });
 });

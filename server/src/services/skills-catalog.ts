@@ -28,7 +28,10 @@ const catalogPackageName = "@taskcore/skills-catalog";
 const catalogPackageJsonSpecifier = `${catalogPackageName}/package.json`;
 const catalogManifestSpecifier = `${catalogPackageName}/catalog.json`;
 const devCatalogPackageRoot = path.join(repoRoot, "packages/skills-catalog");
-const devCatalogManifestPath = path.join(devCatalogPackageRoot, "generated/catalog.json");
+const devCatalogManifestPath = path.join(
+  devCatalogPackageRoot,
+  "generated/catalog.json",
+);
 let cachedCatalogManifest: {
   manifest: CatalogManifestFile;
   mtimeMs: number;
@@ -36,9 +39,9 @@ let cachedCatalogManifest: {
 } | null = null;
 let cachedCatalogPaths:
   | {
-  packageRoot: string;
-  manifestPath: string;
-}
+      packageRoot: string;
+      manifestPath: string;
+    }
   | false
   | null = null;
 let cachedCatalogPathsError: CatalogManifestUnavailableError | null = null;
@@ -59,7 +62,9 @@ export class CatalogManifestUnavailableError extends Error {
   }
 }
 
-export function isCatalogManifestUnavailableError(error: unknown): error is CatalogManifestUnavailableError {
+export function isCatalogManifestUnavailableError(
+  error: unknown,
+): error is CatalogManifestUnavailableError {
   return error instanceof CatalogManifestUnavailableError;
 }
 
@@ -72,7 +77,11 @@ function packageResolutionFailureMessage() {
 }
 
 function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {
-  return error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT";
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    (error as NodeJS.ErrnoException).code === "ENOENT"
+  );
 }
 
 function resolvePublishedCatalogPaths() {
@@ -108,7 +117,10 @@ function resolveCatalogPaths() {
       cachedCatalogPathsError = null;
       return cachedCatalogPaths;
     }
-    cachedCatalogPathsError = new CatalogManifestUnavailableError(packageResolutionFailureMessage(), { cause: publishedError });
+    cachedCatalogPathsError = new CatalogManifestUnavailableError(
+      packageResolutionFailureMessage(),
+      { cause: publishedError },
+    );
     cachedCatalogPaths = false;
     throw cachedCatalogPathsError;
   }
@@ -116,10 +128,15 @@ function resolveCatalogPaths() {
 
 function loadCatalogManifest(manifestPath: string): CatalogManifestFile {
   try {
-    return JSON.parse(readFileSync(manifestPath, "utf8")) as CatalogManifestFile;
+    return JSON.parse(
+      readFileSync(manifestPath, "utf8"),
+    ) as CatalogManifestFile;
   } catch (error) {
     if (isMissingFileError(error)) {
-      throw new CatalogManifestUnavailableError(manifestUnavailableMessage(manifestPath), { cause: error });
+      throw new CatalogManifestUnavailableError(
+        manifestUnavailableMessage(manifestPath),
+        { cause: error },
+      );
     }
     throw error;
   }
@@ -128,14 +145,19 @@ function loadCatalogManifest(manifestPath: string): CatalogManifestFile {
 function getCatalogManifest() {
   const { manifestPath } = resolveCatalogPaths();
   if (!existsSync(manifestPath)) {
-    throw new CatalogManifestUnavailableError(manifestUnavailableMessage(manifestPath));
+    throw new CatalogManifestUnavailableError(
+      manifestUnavailableMessage(manifestPath),
+    );
   }
   let stats: ReturnType<typeof statSync>;
   try {
     stats = statSync(manifestPath);
   } catch (error) {
     if (isMissingFileError(error)) {
-      throw new CatalogManifestUnavailableError(manifestUnavailableMessage(manifestPath), { cause: error });
+      throw new CatalogManifestUnavailableError(
+        manifestUnavailableMessage(manifestPath),
+        { cause: error },
+      );
     }
     throw error;
   }
@@ -194,7 +216,10 @@ function sourceRootPath(source: CatalogSkillSource) {
   return source.path ? normalizePortablePath(source.path) : "";
 }
 
-function resolveCatalogSourcePath(source: CatalogSkillSource, relativePath: string) {
+function resolveCatalogSourcePath(
+  source: CatalogSkillSource,
+  relativePath: string,
+) {
   const sourceRoot = sourceRootPath(source);
   return sourceRoot ? `${sourceRoot}/${relativePath}` : relativePath;
 }
@@ -208,21 +233,34 @@ async function fetchCatalogSourceFile(
     const packageRoot = resolveCatalogPackageRoot();
     const absolutePath = path.resolve(packageRoot, skill.path, relativePath);
     const skillRoot = path.resolve(packageRoot, skill.path);
-    if (absolutePath !== skillRoot && !absolutePath.startsWith(`${skillRoot}${path.sep}`)) {
+    if (
+      absolutePath !== skillRoot &&
+      !absolutePath.startsWith(`${skillRoot}${path.sep}`)
+    ) {
       throw notFound("Catalog skill file not found");
     }
     return fs.readFile(absolutePath);
   }
 
   if (source.type !== "github") {
-    throw unprocessable(`Unsupported catalog source type: ${(source as { type: string }).type}`);
+    throw unprocessable(
+      `Unsupported catalog source type: ${(source as { type: string }).type}`,
+    );
   }
 
   const sourcePath = resolveCatalogSourcePath(source, relativePath);
-  const url = resolveRawGitHubUrl(source.hostname, source.owner, source.repo, source.commit, sourcePath);
+  const url = resolveRawGitHubUrl(
+    source.hostname,
+    source.owner,
+    source.repo,
+    source.commit,
+    sourcePath,
+  );
   const response = await ghFetch(url);
   if (!response.ok) {
-    throw unprocessable(`Failed to fetch pinned catalog file ${sourcePath} from ${source.owner}/${source.repo}@${source.commit}: HTTP ${response.status}`);
+    throw unprocessable(
+      `Failed to fetch pinned catalog file ${sourcePath} from ${source.owner}/${source.repo}@${source.commit}: HTTP ${response.status}`,
+    );
   }
   return Buffer.from(await response.arrayBuffer());
 }
@@ -239,7 +277,9 @@ async function readCatalogFileBytes(
   const bytes = await fetchCatalogSourceFile(skill, relativePath);
   const actualSha = createHash("sha256").update(bytes).digest("hex");
   if (actualSha !== fileEntry.sha256) {
-    throw unprocessable(`Pinned catalog file hash mismatch for ${skill.id}:${relativePath}.`);
+    throw unprocessable(
+      `Pinned catalog file hash mismatch for ${skill.id}:${relativePath}.`,
+    );
   }
   return bytes;
 }
@@ -255,19 +295,32 @@ function searchText(skill: CatalogSkill) {
     skill.kind,
     ...skill.recommendedForRoles,
     ...skill.tags,
-  ].join("\n").toLowerCase();
+  ]
+    .join("\n")
+    .toLowerCase();
 }
 
-export function listCatalogSkills(query: CatalogSkillListQuery = {}): CatalogSkill[] {
+export function listCatalogSkills(
+  query: CatalogSkillListQuery = {},
+): CatalogSkill[] {
   const normalizedQuery = query.q?.trim().toLowerCase() ?? "";
   return getCatalogSkills()
     .filter((skill) => !query.kind || skill.kind === query.kind)
     .filter((skill) => !query.category || skill.category === query.category)
-    .filter((skill) => !normalizedQuery || searchText(skill).includes(normalizedQuery))
-    .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key));
+    .filter(
+      (skill) =>
+        !normalizedQuery || searchText(skill).includes(normalizedQuery),
+    )
+    .sort(
+      (left, right) =>
+        left.name.localeCompare(right.name) ||
+        left.key.localeCompare(right.key),
+    );
 }
 
-export function listCatalogSkillsOrEmpty(query: CatalogSkillListQuery = {}): CatalogSkill[] {
+export function listCatalogSkillsOrEmpty(
+  query: CatalogSkillListQuery = {},
+): CatalogSkill[] {
   try {
     const skills = listCatalogSkills(query);
     loggedCatalogUnavailableWarning = false;
@@ -277,23 +330,32 @@ export function listCatalogSkillsOrEmpty(query: CatalogSkillListQuery = {}): Cat
       throw error;
     }
     if (!loggedCatalogUnavailableWarning) {
-      logger.warn({ err: error }, "skills catalog manifest unavailable; returning empty catalog");
+      logger.warn(
+        { err: error },
+        "skills catalog manifest unavailable; returning empty catalog",
+      );
       loggedCatalogUnavailableWarning = true;
     }
     return [];
   }
 }
 
-export function resolveCatalogSkillReference(reference: string): { skill: CatalogSkill | null; ambiguous: boolean } {
+export function resolveCatalogSkillReference(reference: string): {
+  skill: CatalogSkill | null;
+  ambiguous: boolean;
+} {
   const trimmed = reference.trim();
   if (!trimmed) return { skill: null, ambiguous: false };
   const catalogSkills = getCatalogSkills();
 
-  const exact = catalogSkills.find((skill) => skill.id === trimmed || skill.key === trimmed);
+  const exact = catalogSkills.find(
+    (skill) => skill.id === trimmed || skill.key === trimmed,
+  );
   if (exact) return { skill: exact, ambiguous: false };
 
   const slugMatches = catalogSkills.filter((skill) => skill.slug === trimmed);
-  if (slugMatches.length === 1) return { skill: slugMatches[0]!, ambiguous: false };
+  if (slugMatches.length === 1)
+    return { skill: slugMatches[0]!, ambiguous: false };
   if (slugMatches.length > 1) return { skill: null, ambiguous: true };
   return { skill: null, ambiguous: false };
 }
@@ -301,7 +363,9 @@ export function resolveCatalogSkillReference(reference: string): { skill: Catalo
 export function getCatalogSkillOrThrow(reference: string): CatalogSkill {
   const result = resolveCatalogSkillReference(reference);
   if (result.ambiguous) {
-    throw conflict(`Catalog skill slug "${reference}" is ambiguous. Use an id or key.`);
+    throw conflict(
+      `Catalog skill slug "${reference}" is ambiguous. Use an id or key.`,
+    );
   }
   if (!result.skill) {
     throw notFound("Catalog skill not found");
@@ -324,7 +388,9 @@ export async function readCatalogSkillFile(
     throw new HttpError(415, "Catalog asset previews are not supported.");
   }
 
-  const content = (await readCatalogFileBytes(skill, normalizedPath)).toString("utf8");
+  const content = (await readCatalogFileBytes(skill, normalizedPath)).toString(
+    "utf8",
+  );
   return {
     catalogSkillId: skill.id,
     path: normalizedPath,
@@ -335,7 +401,11 @@ export async function readCatalogSkillFile(
   };
 }
 
-export async function copyCatalogSkillFile(reference: string, relativePath: string, targetPath: string): Promise<void> {
+export async function copyCatalogSkillFile(
+  reference: string,
+  relativePath: string,
+  targetPath: string,
+): Promise<void> {
   const skill = getCatalogSkillOrThrow(reference);
   const normalizedPath = normalizePortablePath(relativePath || "SKILL.md");
   const fileEntry = skill.files.find((entry) => entry.path === normalizedPath);
@@ -343,7 +413,10 @@ export async function copyCatalogSkillFile(reference: string, relativePath: stri
     throw notFound("Catalog skill file not found");
   }
 
-  await fs.writeFile(targetPath, await readCatalogFileBytes(skill, normalizedPath));
+  await fs.writeFile(
+    targetPath,
+    await readCatalogFileBytes(skill, normalizedPath),
+  );
 }
 
 export function getCatalogPackageMetadata() {

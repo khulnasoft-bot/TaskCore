@@ -6,6 +6,4 @@ export {
   findExistingRunLivenessContinuationWake,
   readContinuationAttempt,
 } from "./recovery/run-liveness-continuations.js";
-export type {
-  RunContinuationDecision,
-} from "./recovery/run-liveness-continuations.js";
+export type { RunContinuationDecision } from "./recovery/run-liveness-continuations.js";

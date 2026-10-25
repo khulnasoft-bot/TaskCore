@@ -46,7 +46,9 @@ describe("stampClaudeAgentIdHeader", () => {
     } as never);
 
     const forwarded = inner.mock.calls[0]?.[0] as ExecuteCtx;
-    expect(customHeaders(forwarded)).toBe("X-Trace: abc\nX-Anthropic-Agent-Id: agent-9");
+    expect(customHeaders(forwarded)).toBe(
+      "X-Trace: abc\nX-Anthropic-Agent-Id: agent-9",
+    );
   });
 
   it("strips CR/LF and bounds length to prevent header injection", async () => {
@@ -59,7 +61,9 @@ describe("stampClaudeAgentIdHeader", () => {
     } as never);
 
     const forwarded = inner.mock.calls[0]?.[0] as ExecuteCtx;
-    expect(customHeaders(forwarded)).toBe("X-Anthropic-Agent-Id: evilX-Injected: 1");
+    expect(customHeaders(forwarded)).toBe(
+      "X-Anthropic-Agent-Id: evilX-Injected: 1",
+    );
     expect(customHeaders(forwarded)).not.toContain("\n");
   });
 
@@ -73,7 +77,9 @@ describe("stampClaudeAgentIdHeader", () => {
     } as never);
 
     const forwarded = inner.mock.calls[0]?.[0] as ExecuteCtx;
-    expect(customHeaders(forwarded)).toBe(`X-Anthropic-Agent-Id: ${"a".repeat(256)}`);
+    expect(customHeaders(forwarded)).toBe(
+      `X-Anthropic-Agent-Id: ${"a".repeat(256)}`,
+    );
   });
 
   it("passes through unchanged when no agent id is available", async () => {
@@ -85,7 +91,9 @@ describe("stampClaudeAgentIdHeader", () => {
 
     // Same ctx object forwarded; no header added.
     expect(inner.mock.calls[0]?.[0]).toBe(ctx);
-    expect(customHeaders(inner.mock.calls[0]?.[0] as ExecuteCtx)).toBeUndefined();
+    expect(
+      customHeaders(inner.mock.calls[0]?.[0] as ExecuteCtx),
+    ).toBeUndefined();
   });
 
   it("does not append a duplicate when X-Anthropic-Agent-Id is already present", async () => {
@@ -94,7 +102,11 @@ describe("stampClaudeAgentIdHeader", () => {
 
     const ctx = {
       agent: { id: "agent-7" },
-      config: { env: { ANTHROPIC_CUSTOM_HEADERS: "X-Anthropic-Agent-Id: manual-override" } },
+      config: {
+        env: {
+          ANTHROPIC_CUSTOM_HEADERS: "X-Anthropic-Agent-Id: manual-override",
+        },
+      },
     } as never;
     await wrapped(ctx);
 

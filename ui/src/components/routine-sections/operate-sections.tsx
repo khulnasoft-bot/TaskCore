@@ -13,23 +13,44 @@ import { RoutineActivityRow } from "../RoutineActivityRow";
 import { useRoutineDetail } from "./context";
 
 export function RunsSection() {
-  const { routine, companyId, agents, projects, hasLiveRun, activeIssueId } = useRoutineDetail();
+  const { routine, companyId, agents, projects, hasLiveRun, activeIssueId } =
+    useRoutineDetail();
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const filters = { originKind: "routine_execution", originId: routine.id };
-  const issueQueryKey = [...queryKeys.issues.list(companyId), "routine", routine.id];
-  const { data: issues, isLoading, error } = useQuery({
+  const issueQueryKey = [
+    ...queryKeys.issues.list(companyId),
+    "routine",
+    routine.id,
+  ];
+  const {
+    data: issues,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: issueQueryKey,
     queryFn: () => issuesApi.list(companyId, filters),
   });
   const updateIssue = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => issuesApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      issuesApi.update(id, data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(companyId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.routines.detail(routine.id) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.routines.runs(routine.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.list(companyId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.routines.detail(routine.id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.routines.runs(routine.id),
+      });
     },
-    onError: (updateError) => pushToast({ title: "Failed to update task", body: updateError.message, tone: "error" }),
+    onError: (updateError) =>
+      pushToast({
+        title: "Failed to update task",
+        body: updateError.message,
+        tone: "error",
+      }),
   });
 
   return (
@@ -42,7 +63,10 @@ export function RunsSection() {
       liveIssueIds={new Set(hasLiveRun && activeIssueId ? [activeIssueId] : [])}
       viewStateKey={`taskcore:routine-runs:${companyId}:${routine.id}`}
       searchFilters={filters}
-      issueLinkState={createIssueDetailLocationState("Runs", routineDetailHref(routine.id, "runs"))}
+      issueLinkState={createIssueDetailLocationState(
+        "Runs",
+        routineDetailHref(routine.id, "runs"),
+      )}
       rowPresentation="task"
       toolbarPresentation="collection"
       onUpdateIssue={(id, data) => updateIssue.mutate({ id, data })}
@@ -50,7 +74,10 @@ export function RunsSection() {
   );
 }
 
-export function ActivitySection({ isLoading = false, error }: { isLoading?: boolean; error?: Error | null } = {}) {
+export function ActivitySection({
+  isLoading = false,
+  error,
+}: { isLoading?: boolean; error?: Error | null } = {}) {
   const ctx = useRoutineDetail();
   const { activity } = ctx;
   const events = activity ?? [];
@@ -75,8 +102,14 @@ export function ActivitySection({ isLoading = false, error }: { isLoading?: bool
     return Array.from(byDay.entries());
   }, [events]);
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Loading activity…</p>;
-  if (error) return <p role="alert" className="text-sm text-destructive">{error.message}</p>;
+  if (isLoading)
+    return <p className="text-sm text-muted-foreground">Loading activity…</p>;
+  if (error)
+    return (
+      <p role="alert" className="text-sm text-destructive">
+        {error.message}
+      </p>
+    );
 
   if (events.length === 0) {
     return <EmptyState icon={ActivityIcon} message="No activity yet." />;

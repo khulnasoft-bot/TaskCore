@@ -14,8 +14,14 @@ import { ToastProvider } from "../context/ToastContext";
 import { AttentionQueueRow } from "./AttentionQueueRow";
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -68,7 +74,9 @@ function render(element: ReactElement) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   act(() =>
     root?.render(
       <ToastProvider>
@@ -261,7 +269,9 @@ describe("AttentionQueueRow", () => {
           onDismiss={noop}
         />,
       );
-      expect(el.querySelector('[data-testid="review-policy-badge"]')).toBeNull();
+      expect(
+        el.querySelector('[data-testid="review-policy-badge"]'),
+      ).toBeNull();
     }
   });
 
@@ -343,11 +353,17 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const chevronButton = container?.querySelector('button[aria-label="Expand decision"]');
+    const chevronButton = container?.querySelector(
+      'button[aria-label="Expand decision"]',
+    );
     expect(chevronButton).toBeTruthy();
     expect(chevronButton?.getAttribute("aria-expanded")).toBe("false");
-    act(() => chevronButton?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onToggleExpand).toHaveBeenCalledWith(expect.objectContaining({ id: "a1" }));
+    act(() =>
+      chevronButton?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    expect(onToggleExpand).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "a1" }),
+    );
   });
 
   it("does not navigate on title click — the title is plain text, not a link", () => {
@@ -362,7 +378,11 @@ describe("AttentionQueueRow", () => {
     );
     const links = Array.from(container?.querySelectorAll("a") ?? []);
     // No anchor should carry the subject title (only the identifier link, absent here).
-    expect(links.some((a) => a.textContent?.includes("Hire agent: Research Analyst"))).toBe(false);
+    expect(
+      links.some((a) =>
+        a.textContent?.includes("Hire agent: Research Analyst"),
+      ),
+    ).toBe(false);
   });
 
   // The eyebrow carries the decision kind and the task key only. Project
@@ -373,7 +393,13 @@ describe("AttentionQueueRow", () => {
     render(
       <AttentionQueueRow
         item={buildItem({
-          project: { id: "project-1", name: "Alpha", urlKey: "alpha", color: null, icon: "rocket" },
+          project: {
+            id: "project-1",
+            name: "Alpha",
+            urlKey: "alpha",
+            color: null,
+            icon: "rocket",
+          },
         })}
         companyId="c1"
         expanded={false}
@@ -382,7 +408,9 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    expect(container?.querySelector('[data-testid="attention-project-meta"]')).toBeNull();
+    expect(
+      container?.querySelector('[data-testid="attention-project-meta"]'),
+    ).toBeNull();
     expect(container?.textContent).not.toContain("Alpha");
   });
 
@@ -409,7 +437,7 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const eyebrow = container?.querySelector('[data-attention-row] > div');
+    const eyebrow = container?.querySelector("[data-attention-row] > div");
     expect(eyebrow?.textContent).toContain("·");
     expect(eyebrow?.textContent).not.toContain("/");
   });
@@ -440,7 +468,9 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const link = Array.from(container?.querySelectorAll("a") ?? []).find((a) => a.textContent === "PAP-23");
+    const link = Array.from(container?.querySelectorAll("a") ?? []).find(
+      (a) => a.textContent === "PAP-23",
+    );
     expect(link).toBeTruthy();
     expect(link?.getAttribute("href")).toBe("/PAP/issues/PAP-23");
   });
@@ -515,28 +545,40 @@ describe("AttentionQueueRow", () => {
     expect(header?.textContent).not.toContain("Approve");
     expect(header?.textContent).not.toContain("Reject");
 
-    const decisionActions = container?.querySelector('[aria-label="Decision actions"]');
+    const decisionActions = container?.querySelector(
+      '[aria-label="Decision actions"]',
+    );
     expect(decisionActions?.textContent).toContain("Approve");
     expect(decisionActions?.textContent).toContain("Reject");
 
     // The footer splits the row's last line: disclosure on the left, decision
     // verbs on the right, so the affirmative verb sits in the same place in
     // every row whether it is collapsed or expanded.
-    const actionArea = decisionActions?.closest('[data-attention-actions="true"]');
+    const actionArea = decisionActions?.closest(
+      '[data-attention-actions="true"]',
+    );
     expect(actionArea?.getAttribute("class")).toContain("justify-between");
-    expect(decisionActions?.parentElement?.getAttribute("class")).toContain("@xl:justify-end");
+    expect(decisionActions?.parentElement?.getAttribute("class")).toContain(
+      "@xl:justify-end",
+    );
 
     const rowMenu = container?.querySelector('[aria-label="Row actions"]');
     expect(rowMenu?.closest('[data-attention-menu="true"]')).toBeTruthy();
     expect(rowMenu?.closest('[data-attention-actions="true"]')).toBeNull();
 
-    const buttons = Array.from(decisionActions?.querySelectorAll("button") ?? []);
-    expect(buttons.find((button) => button.textContent === "Approve")?.getAttribute("data-variant")).toBe(
-      "default",
+    const buttons = Array.from(
+      decisionActions?.querySelectorAll("button") ?? [],
     );
-    expect(buttons.find((button) => button.textContent === "Reject")?.getAttribute("data-variant")).toBe(
-      "destructive",
-    );
+    expect(
+      buttons
+        .find((button) => button.textContent === "Approve")
+        ?.getAttribute("data-variant"),
+    ).toBe("default");
+    expect(
+      buttons
+        .find((button) => button.textContent === "Reject")
+        ?.getAttribute("data-variant"),
+    ).toBe("destructive");
   });
 
   it("submits a compact approval without expanding the card and confirms it", async () => {
@@ -545,7 +587,9 @@ describe("AttentionQueueRow", () => {
     render(
       <AttentionQueueRow
         item={buildItem({
-          decisionVerbs: [{ id: "approve", label: "Approve", description: null }],
+          decisionVerbs: [
+            { id: "approve", label: "Approve", description: null },
+          ],
         })}
         companyId="c1"
         expanded={false}
@@ -554,10 +598,12 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const approve = Array.from(container?.querySelectorAll("button") ?? []).find(
-      (button) => button.textContent === "Approve",
+    const approve = Array.from(
+      container?.querySelectorAll("button") ?? [],
+    ).find((button) => button.textContent === "Approve");
+    act(() =>
+      approve?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
     );
-    act(() => approve?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(approvalsApi.approve).toHaveBeenCalledWith("approval-1");
@@ -594,19 +640,34 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const decisionActions = container?.querySelector('[aria-label="Decision actions"]');
+    const decisionActions = container?.querySelector(
+      '[aria-label="Decision actions"]',
+    );
     expect(decisionActions?.textContent).toContain("Approve plan");
     expect(decisionActions?.textContent).toContain("Request changes");
-    expect(Array.from(decisionActions?.querySelectorAll("button") ?? []).find((button) => button.textContent === "Approve plan")?.getAttribute("data-variant")).toBe("default");
-    expect(Array.from(decisionActions?.querySelectorAll("button") ?? []).find((button) => button.textContent === "Request changes")?.getAttribute("data-variant")).toBe("outline");
+    expect(
+      Array.from(decisionActions?.querySelectorAll("button") ?? [])
+        .find((button) => button.textContent === "Approve plan")
+        ?.getAttribute("data-variant"),
+    ).toBe("default");
+    expect(
+      Array.from(decisionActions?.querySelectorAll("button") ?? [])
+        .find((button) => button.textContent === "Request changes")
+        ?.getAttribute("data-variant"),
+    ).toBe("outline");
 
-    const approve = Array.from(decisionActions?.querySelectorAll("button") ?? []).find(
-      (button) => button.textContent === "Approve plan",
+    const approve = Array.from(
+      decisionActions?.querySelectorAll("button") ?? [],
+    ).find((button) => button.textContent === "Approve plan");
+    act(() =>
+      approve?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
     );
-    act(() => approve?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(issuesApi.acceptInteraction).toHaveBeenCalledWith("issue-1", "interaction-1");
+    expect(issuesApi.acceptInteraction).toHaveBeenCalledWith(
+      "issue-1",
+      "interaction-1",
+    );
     expect(onToggleExpand).not.toHaveBeenCalled();
   });
 
@@ -626,7 +687,9 @@ describe("AttentionQueueRow", () => {
             href: "/PAP/issues/issue-1#interaction-interaction-1",
             metadata: { kind: "request_confirmation", issueId: "issue-1" },
           },
-          decisionVerbs: [{ id: "reject", label: "Request changes", description: null }],
+          decisionVerbs: [
+            { id: "reject", label: "Request changes", description: null },
+          ],
         })}
         companyId="c1"
         expanded={false}
@@ -635,10 +698,12 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const requestChanges = Array.from(container?.querySelectorAll("button") ?? []).find(
-      (button) => button.textContent === "Request changes",
+    const requestChanges = Array.from(
+      container?.querySelectorAll("button") ?? [],
+    ).find((button) => button.textContent === "Request changes");
+    act(() =>
+      requestChanges?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
     );
-    act(() => requestChanges?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 
     expect(onToggleExpand).toHaveBeenCalledOnce();
     expect(issuesApi.rejectInteraction).not.toHaveBeenCalled();
@@ -704,14 +769,19 @@ describe("AttentionQueueRow", () => {
   it("does not expose a toggle button for non-inline rows", () => {
     render(
       <AttentionQueueRow
-        item={buildItem({ sourceKind: "failed_run" as AttentionSourceKind, inlineResolvable: false })}
+        item={buildItem({
+          sourceKind: "failed_run" as AttentionSourceKind,
+          inlineResolvable: false,
+        })}
         companyId="c1"
         expanded={false}
         onToggleExpand={noop}
         onDismiss={noop}
       />,
     );
-    expect(container?.querySelector('[role="button"][aria-expanded]')).toBeNull();
+    expect(
+      container?.querySelector('[role="button"][aria-expanded]'),
+    ).toBeNull();
   });
 
   it("makes a non-inline row with images expandable", () => {
@@ -776,13 +846,15 @@ describe("AttentionQueueRow", () => {
         onDismiss={noop}
       />,
     );
-    const gallery = container?.querySelector('[data-attention-expanded-images="true"]');
+    const gallery = container?.querySelector(
+      '[data-attention-expanded-images="true"]',
+    );
     expect(gallery).not.toBeNull();
     // First three images render at the larger size.
     expect(gallery?.querySelectorAll("img")).toHaveLength(3);
     // "n more" link points at the related issue (5 images − 3 shown = 2 more).
-    const moreLink = Array.from(gallery?.querySelectorAll("a") ?? []).find((a) =>
-      a.textContent?.includes("2 more"),
+    const moreLink = Array.from(gallery?.querySelectorAll("a") ?? []).find(
+      (a) => a.textContent?.includes("2 more"),
     );
     expect(moreLink).toBeDefined();
     expect(moreLink?.getAttribute("href")).toBe("/PAP/issues/PAP-42");
@@ -822,7 +894,9 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const gallery = container?.querySelector('[data-attention-expanded-images="true"]');
+    const gallery = container?.querySelector(
+      '[data-attention-expanded-images="true"]',
+    );
     expect(gallery?.textContent).toContain("1 more");
     expect(gallery?.querySelectorAll("a")).toHaveLength(0);
   });
@@ -875,7 +949,9 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const audience = container?.querySelector('[data-testid="interaction-audience"]');
+    const audience = container?.querySelector(
+      '[data-testid="interaction-audience"]',
+    );
     expect(audience?.getAttribute("data-audience-policy")).toBe("anyone");
     expect(audience?.getAttribute("data-audience-open")).toBe("true");
     expect(audience?.textContent).toContain("Anyone");
@@ -884,8 +960,9 @@ describe("AttentionQueueRow", () => {
     // Reading order is the point: the audience qualifies the buttons, so it has
     // to precede them in the DOM as well as on screen.
     const actions = container?.querySelector('[aria-label="Decision actions"]');
-    expect(audience && actions && audience.compareDocumentPosition(actions))
-      .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      audience && actions && audience.compareDocumentPosition(actions),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("names the addressed responder on a restricted collapsed row", () => {
@@ -903,9 +980,13 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const audience = container?.querySelector('[data-testid="interaction-audience"]');
+    const audience = container?.querySelector(
+      '[data-testid="interaction-audience"]',
+    );
     expect(audience?.getAttribute("data-audience-open")).toBe("false");
-    expect(audience?.textContent).toContain("Only CodexCoder or the board can respond");
+    expect(audience?.textContent).toContain(
+      "Only CodexCoder or the board can respond",
+    );
     // A collapsed row spends its line on the responder, not on a badge that
     // repeats the clause beside it.
     expect(audience?.textContent).not.toContain("Addressed —");
@@ -930,9 +1011,15 @@ describe("AttentionQueueRow", () => {
       />,
     );
 
-    const audience = container?.querySelector('[data-testid="interaction-audience"]');
-    const summary = audience?.querySelector('[data-testid="interaction-audience-summary"]');
-    expect(summary?.textContent).toBe(`Only ${addresseeName} or the board can respond`);
+    const audience = container?.querySelector(
+      '[data-testid="interaction-audience"]',
+    );
+    const summary = audience?.querySelector(
+      '[data-testid="interaction-audience-summary"]',
+    );
+    expect(summary?.textContent).toBe(
+      `Only ${addresseeName} or the board can respond`,
+    );
     expect(summary?.parentElement?.className).toContain("break-words");
   });
 
@@ -948,7 +1035,9 @@ describe("AttentionQueueRow", () => {
     );
 
     // Never guess a policy client-side: silence beats a wrong audience.
-    expect(container?.querySelector('[data-testid="interaction-audience"]')).toBeNull();
+    expect(
+      container?.querySelector('[data-testid="interaction-audience"]'),
+    ).toBeNull();
   });
 
   it("keeps the server denial reason and names the responder when a compact accept is refused", async () => {
@@ -975,7 +1064,9 @@ describe("AttentionQueueRow", () => {
     const accept = Array.from(container?.querySelectorAll("button") ?? []).find(
       (button) => button.textContent === "Accept",
     );
-    act(() => accept?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    act(() =>
+      accept?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
@@ -997,8 +1088,14 @@ describe("AttentionQueueRow", () => {
       />,
     );
     expect(container?.textContent).not.toContain("Train");
-    expect(container?.querySelector('[data-testid="attention-trained-badge"]')).toBeNull();
-    expect(container?.querySelector('[data-testid="attention-train-inline"]')).toBeNull();
-    expect(container?.querySelector('[data-testid="attention-train-button"]')).toBeNull();
+    expect(
+      container?.querySelector('[data-testid="attention-trained-badge"]'),
+    ).toBeNull();
+    expect(
+      container?.querySelector('[data-testid="attention-train-inline"]'),
+    ).toBeNull();
+    expect(
+      container?.querySelector('[data-testid="attention-train-button"]'),
+    ).toBeNull();
   });
 });

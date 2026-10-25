@@ -8,15 +8,20 @@ import { queryKeys } from "@/lib/queryKeys";
 import { SentryGate } from "./SentryGate";
 
 const getSessionMock = vi.hoisted(() => vi.fn());
-const initBrowserErrorMonitoringMock = vi.hoisted(() => vi.fn(async (_dsn: string, _environment?: string) => {}));
-const teardownBrowserErrorMonitoringMock = vi.hoisted(() => vi.fn(async () => {}));
+const initBrowserErrorMonitoringMock = vi.hoisted(() =>
+  vi.fn(async (_dsn: string, _environment?: string) => {}),
+);
+const teardownBrowserErrorMonitoringMock = vi.hoisted(() =>
+  vi.fn(async () => {}),
+);
 
 vi.mock("@/api/auth", () => ({
   authApi: { getSession: () => getSessionMock() },
 }));
 
 vi.mock("@/lib/sentry", () => ({
-  initBrowserErrorMonitoring: (dsn: string, environment?: string) => initBrowserErrorMonitoringMock(dsn, environment),
+  initBrowserErrorMonitoring: (dsn: string, environment?: string) =>
+    initBrowserErrorMonitoringMock(dsn, environment),
   teardownBrowserErrorMonitoring: () => teardownBrowserErrorMonitoringMock(),
 }));
 
@@ -37,7 +42,9 @@ describe("SentryGate", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
   });
 
   afterEach(() => {
@@ -93,7 +100,10 @@ describe("SentryGate", () => {
     const root = await renderGate();
 
     expect(initBrowserErrorMonitoringMock).toHaveBeenCalledTimes(1);
-    expect(initBrowserErrorMonitoringMock).toHaveBeenCalledWith("https://public@o0.ingest.sentry.io/1", undefined);
+    expect(initBrowserErrorMonitoringMock).toHaveBeenCalledWith(
+      "https://public@o0.ingest.sentry.io/1",
+      undefined,
+    );
     root.unmount();
   });
 
@@ -113,7 +123,10 @@ describe("SentryGate", () => {
     await flushReact();
 
     expect(initBrowserErrorMonitoringMock).toHaveBeenCalledTimes(1);
-    expect(initBrowserErrorMonitoringMock).toHaveBeenCalledWith("https://public@o0.ingest.sentry.io/1", undefined);
+    expect(initBrowserErrorMonitoringMock).toHaveBeenCalledWith(
+      "https://public@o0.ingest.sentry.io/1",
+      undefined,
+    );
     root.unmount();
   });
 
@@ -127,7 +140,10 @@ describe("SentryGate", () => {
     getSessionMock.mockResolvedValue(session);
     const root = await renderGate();
     try {
-      expect(initBrowserErrorMonitoringMock).toHaveBeenLastCalledWith(session.sentryDsn, "staging");
+      expect(initBrowserErrorMonitoringMock).toHaveBeenLastCalledWith(
+        session.sentryDsn,
+        "staging",
+      );
       await act(async () => {
         await queryClient.refetchQueries({ queryKey: queryKeys.auth.session });
       });
@@ -135,16 +151,25 @@ describe("SentryGate", () => {
       expect(initBrowserErrorMonitoringMock).toHaveBeenCalledTimes(1);
       expect(teardownBrowserErrorMonitoringMock).not.toHaveBeenCalled();
 
-      getSessionMock.mockResolvedValue({ ...session, sentryEnvironment: "production" });
+      getSessionMock.mockResolvedValue({
+        ...session,
+        sentryEnvironment: "production",
+      });
       await act(async () => {
         await queryClient.refetchQueries({ queryKey: queryKeys.auth.session });
       });
       await flushReact();
       expect(teardownBrowserErrorMonitoringMock).toHaveBeenCalledTimes(1);
       expect(initBrowserErrorMonitoringMock).toHaveBeenCalledTimes(2);
-      expect(initBrowserErrorMonitoringMock).toHaveBeenLastCalledWith(session.sentryDsn, "production");
-      expect(teardownBrowserErrorMonitoringMock.mock.invocationCallOrder[0])
-        .toBeLessThan(initBrowserErrorMonitoringMock.mock.invocationCallOrder[1]);
+      expect(initBrowserErrorMonitoringMock).toHaveBeenLastCalledWith(
+        session.sentryDsn,
+        "production",
+      );
+      expect(
+        teardownBrowserErrorMonitoringMock.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        initBrowserErrorMonitoringMock.mock.invocationCallOrder[1],
+      );
     } finally {
       root.unmount();
     }

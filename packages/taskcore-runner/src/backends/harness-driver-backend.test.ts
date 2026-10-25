@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { HarnessDriver, HarnessSession, PersistedHarnessSession } from "../contracts/harness-driver.js";
-import type { PrpEvent, PrpStructuredRunResult, PrpTerminalState } from "../protocol/replay-contract.js";
+import type {
+  HarnessDriver,
+  HarnessSession,
+  PersistedHarnessSession,
+} from "../contracts/harness-driver.js";
+import type {
+  PrpEvent,
+  PrpStructuredRunResult,
+  PrpTerminalState,
+} from "../protocol/replay-contract.js";
 import { NativeSessionProtocolIntegrityError } from "../contracts/native-session-backend.js";
 import { HarnessDriverBackend } from "./harness-driver-backend.js";
 
@@ -12,7 +20,9 @@ const result: PrpStructuredRunResult = {
   completionClaim: {
     contractRevision: "1",
     objectiveSatisfied: true,
-    criteria: [{ criterionId: "objective", status: "satisfied", evidenceRefs: [] }],
+    criteria: [
+      { criterionId: "objective", status: "satisfied", evidenceRefs: [] },
+    ],
     remainingWork: [],
   },
   evidence: [],
@@ -34,7 +44,11 @@ const providerIdentity = {
   providerLifetimeFenceCandidates: [60_001, 60_002, 60_003] as const,
 };
 
-function prpEvent(sourceSeq: number, eventType: PrpEvent["eventType"], payload: Record<string, unknown>): PrpEvent {
+function prpEvent(
+  sourceSeq: number,
+  eventType: PrpEvent["eventType"],
+  payload: Record<string, unknown>,
+): PrpEvent {
   return {
     schema: "taskcore.prp.event.v1",
     sourceEventId: `fake:${sourceSeq}`,
@@ -55,12 +69,16 @@ function prpEvent(sourceSeq: number, eventType: PrpEvent["eventType"], payload: 
 const runtimeResolutions: unknown[] = [];
 
 class FakeHarnessSession implements HarnessSession {
-  ids() { return { driverSessionId: "driver-1", providerSessionId: "provider-1" }; }
+  ids() {
+    return { driverSessionId: "driver-1", providerSessionId: "provider-1" };
+  }
   async *events() {
     yield prpEvent(1, "run.result.proposed", result);
     yield prpEvent(2, "turn.completed", { status: "completed" });
   }
-  async startTurn() { return { turnId: "turn-1" }; }
+  async startTurn() {
+    return { turnId: "turn-1" };
+  }
   async resolveRuntimeRequest(input: unknown) {
     runtimeResolutions.push(structuredClone(input));
   }
@@ -93,71 +111,156 @@ const driver: HarnessDriver = {
       },
     };
   },
-  async openSession() { return new FakeHarnessSession(); },
+  async openSession() {
+    return new FakeHarnessSession();
+  },
 };
 
 describe("HarnessDriverBackend", () => {
   it("refreshes negotiated controls after a warm handshake and separates follow-ups", async () => {
     let controls = { steering: false, queuedFollowUp: false };
     const steer = vi.fn(async () => {});
-    const session = Object.assign(new FakeHarnessSession(), { steer, turnControlCapabilities: () => ({ ...controls }) });
-    const backend = new HarnessDriverBackend({ ...driver, openSession: async () => session });
-    const opened = await backend.openSession({ identity: {
-      runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1",
-    } });
-    expect(await opened.capabilities()).toMatchObject({ steering: false, queuedFollowUp: false });
+    const session = Object.assign(new FakeHarnessSession(), {
+      steer,
+      turnControlCapabilities: () => ({ ...controls }),
+    });
+    const backend = new HarnessDriverBackend({
+      ...driver,
+      openSession: async () => session,
+    });
+    const opened = await backend.openSession({
+      identity: {
+        runId: "run-1",
+        sessionId: "session-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
+    });
+    expect(await opened.capabilities()).toMatchObject({
+      steering: false,
+      queuedFollowUp: false,
+    });
     controls = { steering: false, queuedFollowUp: true };
     expect(await opened.capabilities()).toMatchObject(controls);
-    expect(() => opened.steer!({ turnId: "turn-1", message: { role: "user", text: "steer" }, correlationId: "c-1" })).toThrow();
-    await opened.steer!({ turnId: "turn-1", message: { role: "user", text: "follow" }, correlationId: "c-2", mode: "follow_up" });
-    expect(steer).toHaveBeenCalledWith(expect.objectContaining({ mode: "follow_up" }));
+    expect(() =>
+      opened.steer!({
+        turnId: "turn-1",
+        message: { role: "user", text: "steer" },
+        correlationId: "c-1",
+      }),
+    ).toThrow();
+    await opened.steer!({
+      turnId: "turn-1",
+      message: { role: "user", text: "follow" },
+      correlationId: "c-2",
+      mode: "follow_up",
+    });
+    expect(steer).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "follow_up" }),
+    );
     controls = { steering: true, queuedFollowUp: false };
     expect(await opened.capabilities()).toMatchObject(controls);
-    expect(() => opened.steer!({ turnId: "turn-1", message: { role: "user", text: "follow" }, correlationId: "c-3", mode: "follow_up" })).toThrow();
+    expect(() =>
+      opened.steer!({
+        turnId: "turn-1",
+        message: { role: "user", text: "follow" },
+        correlationId: "c-3",
+        mode: "follow_up",
+      }),
+    ).toThrow();
   });
-  it.each([false, true])("honors driver steering support even when the transport exposes a steer method (%s)", async supported => {
-    const steer = vi.fn(async () => { throw new Error("provider does not support steering"); });
-    const session = Object.assign(new FakeHarnessSession(), { steer });
-    const backend = new HarnessDriverBackend({ ...driver,
-      descriptor: async () => ({ ...(await driver.descriptor()), capabilities: {
-        ...(await driver.descriptor()).capabilities, steering: supported,
-      } }),
-      openSession: async () => session,
-      recoverSession: async () => ({ recovered: true, session }),
-    });
-    const opened = await backend.openSession({ identity: {
-      runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1",
-    } });
-    expect((await opened.capabilities()).steering).toBe(supported);
-    const recovered = await backend.recoverSession(await opened.snapshot(), { signal: new AbortController().signal });
-    expect(recovered.recovered).toBe(true);
-    expect((await recovered.session!.capabilities()).steering).toBe(supported);
-    expect(steer).not.toHaveBeenCalled();
-  });
+  it.each([false, true])(
+    "honors driver steering support even when the transport exposes a steer method (%s)",
+    async (supported) => {
+      const steer = vi.fn(async () => {
+        throw new Error("provider does not support steering");
+      });
+      const session = Object.assign(new FakeHarnessSession(), { steer });
+      const backend = new HarnessDriverBackend({
+        ...driver,
+        descriptor: async () => ({
+          ...(await driver.descriptor()),
+          capabilities: {
+            ...(await driver.descriptor()).capabilities,
+            steering: supported,
+          },
+        }),
+        openSession: async () => session,
+        recoverSession: async () => ({ recovered: true, session }),
+      });
+      const opened = await backend.openSession({
+        identity: {
+          runId: "run-1",
+          sessionId: "session-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
+        },
+      });
+      expect((await opened.capabilities()).steering).toBe(supported);
+      const recovered = await backend.recoverSession(await opened.snapshot(), {
+        signal: new AbortController().signal,
+      });
+      expect(recovered.recovered).toBe(true);
+      expect((await recovered.session!.capabilities()).steering).toBe(
+        supported,
+      );
+      expect(steer).not.toHaveBeenCalled();
+    },
+  );
   it("retains Codex accounting and startup state through a serialized native checkpoint", async () => {
-    const fields = { workingDirectory: "/workspace/selected", codexUsageBaseline: {
-      baseline: { inputTokens: 100, outputTokens: 20 },
-      latest: { inputTokens: 150, outputTokens: 35 },
-    } };
+    const fields = {
+      workingDirectory: "/workspace/selected",
+      codexUsageBaseline: {
+        baseline: { inputTokens: 100, outputTokens: 20 },
+        latest: { inputTokens: 150, outputTokens: 35 },
+      },
+    };
     class RecoveryFieldsSession extends FakeHarnessSession {
       override async snapshot(): Promise<PersistedHarnessSession> {
-        return { ...(await super.snapshot()), ...fields, semanticResult: undefined, activeTurnId: null };
+        return {
+          ...(await super.snapshot()),
+          ...fields,
+          semanticResult: undefined,
+          activeTurnId: null,
+        };
       }
     }
-    const original = new HarnessDriverBackend({ ...driver, openSession: async () => new RecoveryFieldsSession() });
-    const session = await original.openSession({ identity: {
-      runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1",
-    }, workingDirectory: fields.workingDirectory });
+    const original = new HarnessDriverBackend({
+      ...driver,
+      openSession: async () => new RecoveryFieldsSession(),
+    });
+    const session = await original.openSession({
+      identity: {
+        runId: "run-1",
+        sessionId: "session-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
+      workingDirectory: fields.workingDirectory,
+    });
     const checkpoint = JSON.parse(JSON.stringify(await session.snapshot()));
     expect(checkpoint).toMatchObject(fields);
-    const recover = vi.fn(async (_snapshot: PersistedHarnessSession) => ({ recovered: true, session: new RecoveryFieldsSession() }));
-    const restarted = new HarnessDriverBackend({ ...driver, recoverSession: recover });
-    const restored = await restarted.recoverSession(checkpoint, { signal: new AbortController().signal });
+    const recover = vi.fn(async (_snapshot: PersistedHarnessSession) => ({
+      recovered: true,
+      session: new RecoveryFieldsSession(),
+    }));
+    const restarted = new HarnessDriverBackend({
+      ...driver,
+      recoverSession: recover,
+    });
+    const restored = await restarted.recoverSession(checkpoint, {
+      signal: new AbortController().signal,
+    });
     expect(restored.recovered).toBe(true);
     expect(recover.mock.calls[0]![0]).toMatchObject(fields);
     expect(await restored.session!.snapshot()).toMatchObject(fields);
     checkpoint.codexUsageBaseline.latest.inputTokens = 999;
-    expect(recover.mock.calls[0]![0].codexUsageBaseline!.latest.inputTokens).toBe(150);
+    expect(
+      recover.mock.calls[0]![0].codexUsageBaseline!.latest.inputTokens,
+    ).toBe(150);
   });
 
   it("rejects and closes a provider session without a durable provider identity", async () => {
@@ -182,16 +285,18 @@ describe("HarnessDriverBackend", () => {
     };
     const backend = new HarnessDriverBackend(incompleteDriver);
 
-    await expect(backend.openSession({
-      identity: {
-        runId: "run-incomplete",
-        sessionId: "session-incomplete",
-        companyId: "company-1",
-        issueId: "issue-1",
-        agentId: "agent-1",
-      },
-      workingDirectory: "/workspace",
-    })).rejects.toThrow(
+    await expect(
+      backend.openSession({
+        identity: {
+          runId: "run-incomplete",
+          sessionId: "session-incomplete",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
+        },
+        workingDirectory: "/workspace",
+      }),
+    ).rejects.toThrow(
       "provider_initialize_protocol_error: provider=fake stage=session.open missing durable provider session identity",
     );
     expect(closed).toBe(true);
@@ -222,22 +327,27 @@ describe("HarnessDriverBackend", () => {
     };
     const backend = new HarnessDriverBackend(incompleteDriver);
 
-    await expect(backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      identity: {
-        runId: "run-recover-incomplete",
-        sessionId: "session-recover-incomplete",
-        companyId: "company-1",
-        issueId: "issue-1",
-        agentId: "agent-1",
-      },
-      cursor: "0",
-    }, {
-      signal: new AbortController().signal,
-    })).rejects.toThrow(
+    await expect(
+      backend.recoverSession(
+        {
+          backendKind: "runner",
+          driverKind: "fake",
+          sessionId: "driver-1",
+          providerSessionId: "provider-1",
+          identity: {
+            runId: "run-recover-incomplete",
+            sessionId: "session-recover-incomplete",
+            companyId: "company-1",
+            issueId: "issue-1",
+            agentId: "agent-1",
+          },
+          cursor: "0",
+        },
+        {
+          signal: new AbortController().signal,
+        },
+      ),
+    ).rejects.toThrow(
       "provider_initialize_protocol_error: provider=fake stage=session.recover missing durable provider session identity",
     );
     expect(closed).toBe(true);
@@ -246,13 +356,23 @@ describe("HarnessDriverBackend", () => {
   it("normalizes harness events, result, terminal, and snapshot", async () => {
     const backend = new HarnessDriverBackend(driver);
     const session = await backend.openSession({
-      identity: { runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
+      identity: {
+        runId: "run-1",
+        sessionId: "session-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
       workingDirectory: "/workspace",
     });
     const events: PrpEvent[] = [];
     for await (const event of session.events()) events.push(event);
     expect(events).toHaveLength(2);
-    await expect(session.result()).resolves.toMatchObject({ result, turnId: "turn-1", terminal: { runTerminalState: "succeeded" } });
+    await expect(session.result()).resolves.toMatchObject({
+      result,
+      turnId: "turn-1",
+      terminal: { runTerminalState: "succeeded" },
+    });
     await expect(session.snapshot()).resolves.toMatchObject({
       driverKind: "fake",
       sessionId: "driver-1",
@@ -277,18 +397,27 @@ describe("HarnessDriverBackend", () => {
       },
     };
     const backend = new HarnessDriverBackend(recoveryDriver);
-    const recovery = await backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      providerIdentity,
-      providerRecoveryPolicy: "allow_replacement_after_governed_wait",
-      dispositionOnlyRecoveryConsumed: true,
-      identity: { runId: "run-2", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
-    }, {
-      signal: new AbortController().signal,
-    });
+    const recovery = await backend.recoverSession(
+      {
+        backendKind: "runner",
+        driverKind: "fake",
+        sessionId: "driver-1",
+        providerSessionId: "provider-1",
+        providerIdentity,
+        providerRecoveryPolicy: "allow_replacement_after_governed_wait",
+        dispositionOnlyRecoveryConsumed: true,
+        identity: {
+          runId: "run-2",
+          sessionId: "session-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
+        },
+      },
+      {
+        signal: new AbortController().signal,
+      },
+    );
     expect(recovery.recovered).toBe(true);
     expect(recoveredDriverKind).toBe("fake");
     expect(recoveredProviderIdentity).toEqual(providerIdentity);
@@ -337,7 +466,13 @@ describe("HarnessDriverBackend", () => {
     });
 
     await backend.openSession({
-      identity: { runId: "run-signal", sessionId: "session-signal", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
+      identity: {
+        runId: "run-signal",
+        sessionId: "session-signal",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
       workingDirectory: "/workspace",
       signal: controller.signal,
     });
@@ -356,16 +491,25 @@ describe("HarnessDriverBackend", () => {
       },
     });
 
-    const recovery = await backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      providerIdentity,
-      identity: { runId: "run-recover-signal", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
-    }, {
-      signal: controller.signal,
-    });
+    const recovery = await backend.recoverSession(
+      {
+        backendKind: "runner",
+        driverKind: "fake",
+        sessionId: "driver-1",
+        providerSessionId: "provider-1",
+        providerIdentity,
+        identity: {
+          runId: "run-recover-signal",
+          sessionId: "session-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
+        },
+      },
+      {
+        signal: controller.signal,
+      },
+    );
 
     expect(recovery.recovered).toBe(true);
     expect(receivedSignal).toBe(controller.signal);
@@ -391,7 +535,11 @@ describe("HarnessDriverBackend", () => {
       override async *events() {
         // Model the deterministic driver's recovery rule: only an active turn
         // produces a reconstructed result/terminal sequence.
-        if (this.#snapshot.activeTurnId === null || this.#snapshot.activeTurnId === undefined) return;
+        if (
+          this.#snapshot.activeTurnId === null ||
+          this.#snapshot.activeTurnId === undefined
+        )
+          return;
         yield prpEvent(3, "run.result.proposed", result);
         yield prpEvent(4, "turn.completed", { status: "completed" });
         yield prpEvent(5, "run.terminal", terminal);
@@ -406,7 +554,10 @@ describe("HarnessDriverBackend", () => {
       ...driver,
       async recoverSession(snapshot) {
         recoveredSnapshots.push(structuredClone(snapshot));
-        return { recovered: true, session: new SettledRecoveredSession(snapshot) };
+        return {
+          recovered: true,
+          session: new SettledRecoveredSession(snapshot),
+        };
       },
     };
     const backend = new HarnessDriverBackend(recoveryDriver);
@@ -446,9 +597,12 @@ describe("HarnessDriverBackend", () => {
       turnId: "turn-1",
     });
 
-    const secondRecovery = await backend.recoverSession(firstRecoveredSnapshot, {
-      signal: new AbortController().signal,
-    });
+    const secondRecovery = await backend.recoverSession(
+      firstRecoveredSnapshot,
+      {
+        signal: new AbortController().signal,
+      },
+    );
     expect(secondRecovery.recovered).toBe(true);
     const secondSession = secondRecovery.session!;
     await expect(secondSession.snapshot()).resolves.toMatchObject({
@@ -457,11 +611,18 @@ describe("HarnessDriverBackend", () => {
       terminal,
     });
     const replayedEvents: PrpEvent[] = [];
-    for await (const event of secondSession.events()) replayedEvents.push(event);
-    expect(replayedEvents.filter((event) =>
-      event.eventType === "run.result.proposed" || event.eventType === "run.terminal"
-    )).toEqual([]);
-    expect(recoveredSnapshots.map((snapshot) => snapshot.activeTurnId)).toEqual([null, null]);
+    for await (const event of secondSession.events())
+      replayedEvents.push(event);
+    expect(
+      replayedEvents.filter(
+        (event) =>
+          event.eventType === "run.result.proposed" ||
+          event.eventType === "run.terminal",
+      ),
+    ).toEqual([]);
+    expect(recoveredSnapshots.map((snapshot) => snapshot.activeTurnId)).toEqual(
+      [null, null],
+    );
 
     await secondSession.close({ reason: "double recovery complete" });
     await firstSession.close({ reason: "first recovery complete" });
@@ -476,7 +637,9 @@ describe("HarnessDriverBackend", () => {
     }
     const backend = new HarnessDriverBackend({
       ...driver,
-      async openSession() { return new AttachableHarnessSession(); },
+      async openSession() {
+        return new AttachableHarnessSession();
+      },
     });
     const originalIdentity = {
       runId: "run-1",
@@ -491,10 +654,18 @@ describe("HarnessDriverBackend", () => {
     });
 
     for (const identity of [
-      { ...originalIdentity, runId: "run-forged-company", companyId: "company-2" },
+      {
+        ...originalIdentity,
+        runId: "run-forged-company",
+        companyId: "company-2",
+      },
       { ...originalIdentity, runId: "run-forged-issue", issueId: "issue-2" },
       { ...originalIdentity, runId: "run-forged-agent", agentId: "agent-2" },
-      { ...originalIdentity, runId: "run-forged-session", sessionId: "session-2" },
+      {
+        ...originalIdentity,
+        runId: "run-forged-session",
+        sessionId: "session-2",
+      },
     ]) {
       await expect(session.attachRun?.({ identity })).rejects.toThrow(
         "native_session_attach_binding_mismatch",
@@ -503,9 +674,11 @@ describe("HarnessDriverBackend", () => {
     }
     expect(attachedRunIds).toEqual([]);
 
-    await expect(session.attachRun?.({
-      identity: { ...originalIdentity, runId: "run-2" },
-    })).resolves.toBeUndefined();
+    await expect(
+      session.attachRun?.({
+        identity: { ...originalIdentity, runId: "run-2" },
+      }),
+    ).resolves.toBeUndefined();
     expect(attachedRunIds).toEqual(["run-2"]);
     expect(session.identity()).toEqual({ ...originalIdentity, runId: "run-2" });
   });
@@ -524,27 +697,30 @@ describe("HarnessDriverBackend", () => {
       runTerminalState: "succeeded" as const,
       reportedWorkDisposition: "done" as const,
     };
-    const recovery = await backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      identity: {
-        runId: "run-terminal-recovery",
-        sessionId: "session-1",
-        companyId: "company-1",
-        issueId: "issue-1",
-        agentId: "agent-1",
+    const recovery = await backend.recoverSession(
+      {
+        backendKind: "runner",
+        driverKind: "fake",
+        sessionId: "driver-1",
+        providerSessionId: "provider-1",
+        identity: {
+          runId: "run-terminal-recovery",
+          sessionId: "session-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
+        },
+        semanticResult: result,
+        terminal,
+        activeTurnId: "turn-1",
+        terminalTurns: [
+          { turnId: "turn-1", fingerprint: "terminal-fingerprint" },
+        ],
       },
-      semanticResult: result,
-      terminal,
-      activeTurnId: "turn-1",
-      terminalTurns: [
-        { turnId: "turn-1", fingerprint: "terminal-fingerprint" },
-      ],
-    }, {
-      signal: new AbortController().signal,
-    });
+      {
+        signal: new AbortController().signal,
+      },
+    );
 
     expect(recovery).toMatchObject({ recovered: true });
     await expect(recovery.session!.snapshot()).resolves.toMatchObject({
@@ -567,33 +743,36 @@ describe("HarnessDriverBackend", () => {
     };
     const backend = new HarnessDriverBackend(recoveryDriver);
     const semanticFingerprint = canonicalTestJson(result);
-    const recovery = await backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      identity: {
-        runId: "run-terminal-inference",
-        sessionId: "session-1",
-        companyId: "company-1",
-        issueId: "issue-1",
-        agentId: "agent-1",
-      },
-      semanticResult: result,
-      terminal: null,
-      activeTurnId: null,
-      terminalTurns: [
-        {
-          turnId: "turn-1",
-          fingerprint: JSON.stringify({
-            status: "completed",
-            semanticResult: semanticFingerprint,
-          }),
+    const recovery = await backend.recoverSession(
+      {
+        backendKind: "runner",
+        driverKind: "fake",
+        sessionId: "driver-1",
+        providerSessionId: "provider-1",
+        identity: {
+          runId: "run-terminal-inference",
+          sessionId: "session-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
         },
-      ],
-    }, {
-      signal: new AbortController().signal,
-    });
+        semanticResult: result,
+        terminal: null,
+        activeTurnId: null,
+        terminalTurns: [
+          {
+            turnId: "turn-1",
+            fingerprint: JSON.stringify({
+              status: "completed",
+              semanticResult: semanticFingerprint,
+            }),
+          },
+        ],
+      },
+      {
+        signal: new AbortController().signal,
+      },
+    );
 
     expect(recovery).toMatchObject({ recovered: true });
     await expect(recovery.session!.result()).resolves.toEqual({
@@ -612,7 +791,8 @@ describe("HarnessDriverBackend", () => {
     let recoveredPersisted: PersistedHarnessSession | null = null;
     class RecoveredHarnessSession extends FakeHarnessSession {
       override async snapshot(): Promise<PersistedHarnessSession> {
-        if (recoveredPersisted === null) throw new Error("missing recovered snapshot");
+        if (recoveredPersisted === null)
+          throw new Error("missing recovered snapshot");
         return structuredClone(recoveredPersisted);
       }
     }
@@ -625,42 +805,45 @@ describe("HarnessDriverBackend", () => {
     };
     const backend = new HarnessDriverBackend(recoveryDriver);
     const semanticFingerprint = canonicalTestJson(result);
-    const recovery = await backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      identity: {
-        runId: "run-cross-turn-terminal",
-        sessionId: "session-1",
-        companyId: "company-1",
-        issueId: "issue-1",
-        agentId: "agent-1",
-      },
-      semanticResult: result,
-      terminal: {
-        schema: "taskcore.prp.terminal.v1",
-        turnTerminalState: "cancelled",
-        runTerminalState: "cancelled",
-        reportedWorkDisposition: "yielded",
-      },
-      activeTurnId: null,
-      terminalTurns: [
-        {
-          turnId: "turn-with-result",
-          fingerprint: JSON.stringify({
-            status: "completed",
-            semanticResult: semanticFingerprint,
-          }),
+    const recovery = await backend.recoverSession(
+      {
+        backendKind: "runner",
+        driverKind: "fake",
+        sessionId: "driver-1",
+        providerSessionId: "provider-1",
+        identity: {
+          runId: "run-cross-turn-terminal",
+          sessionId: "session-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
         },
-        {
-          turnId: "later-cancelled-turn",
-          fingerprint: JSON.stringify({ status: "cancelled" }),
+        semanticResult: result,
+        terminal: {
+          schema: "taskcore.prp.terminal.v1",
+          turnTerminalState: "cancelled",
+          runTerminalState: "cancelled",
+          reportedWorkDisposition: "yielded",
         },
-      ],
-    }, {
-      signal: new AbortController().signal,
-    });
+        activeTurnId: null,
+        terminalTurns: [
+          {
+            turnId: "turn-with-result",
+            fingerprint: JSON.stringify({
+              status: "completed",
+              semanticResult: semanticFingerprint,
+            }),
+          },
+          {
+            turnId: "later-cancelled-turn",
+            fingerprint: JSON.stringify({ status: "cancelled" }),
+          },
+        ],
+      },
+      {
+        signal: new AbortController().signal,
+      },
+    );
 
     expect(recovery).toMatchObject({ recovered: true });
     await expect(recovery.session!.result()).resolves.toEqual({
@@ -687,26 +870,31 @@ describe("HarnessDriverBackend", () => {
       },
     });
 
-    await expect(backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      identity: {
-        runId: "run-oversized-terminals",
-        sessionId: "session-1",
-        companyId: "company-1",
-        issueId: "issue-1",
-        agentId: "agent-1",
-      },
-      semanticResult: inaccessibleResult,
-      terminalTurns: Array.from({ length: 4_097 }, (_, index) => ({
-        turnId: `turn-${index}`,
-        fingerprint: "terminal",
-      })),
-    }, {
-      signal: new AbortController().signal,
-    })).resolves.toEqual({
+    await expect(
+      backend.recoverSession(
+        {
+          backendKind: "runner",
+          driverKind: "fake",
+          sessionId: "driver-1",
+          providerSessionId: "provider-1",
+          identity: {
+            runId: "run-oversized-terminals",
+            sessionId: "session-1",
+            companyId: "company-1",
+            issueId: "issue-1",
+            agentId: "agent-1",
+          },
+          semanticResult: inaccessibleResult,
+          terminalTurns: Array.from({ length: 4_097 }, (_, index) => ({
+            turnId: `turn-${index}`,
+            fingerprint: "terminal",
+          })),
+        },
+        {
+          signal: new AbortController().signal,
+        },
+      ),
+    ).resolves.toEqual({
       recovered: false,
       reason: "persisted harness terminal history exceeds its recovery limit",
     });
@@ -720,26 +908,31 @@ describe("HarnessDriverBackend", () => {
     }));
     const backend = new HarnessDriverBackend({ ...driver, recoverSession });
 
-    await expect(backend.recoverSession({
-      backendKind: "runner",
-      driverKind: "fake",
-      sessionId: "driver-1",
-      providerSessionId: "provider-1",
-      identity: {
-        runId: "run-oversized-semantic-result",
-        sessionId: "session-1",
-        companyId: "company-1",
-        issueId: "issue-1",
-        agentId: "agent-1",
-      },
-      semanticResult: {
-        ...result,
-        summary: "x".repeat(8 * 1024 * 1024),
-      },
-      terminalTurns: [],
-    }, {
-      signal: new AbortController().signal,
-    })).resolves.toEqual({
+    await expect(
+      backend.recoverSession(
+        {
+          backendKind: "runner",
+          driverKind: "fake",
+          sessionId: "driver-1",
+          providerSessionId: "provider-1",
+          identity: {
+            runId: "run-oversized-semantic-result",
+            sessionId: "session-1",
+            companyId: "company-1",
+            issueId: "issue-1",
+            agentId: "agent-1",
+          },
+          semanticResult: {
+            ...result,
+            summary: "x".repeat(8 * 1024 * 1024),
+          },
+          terminalTurns: [],
+        },
+        {
+          signal: new AbortController().signal,
+        },
+      ),
+    ).resolves.toEqual({
       recovered: false,
       reason: "persisted harness semantic result exceeds its recovery limit",
     });
@@ -890,9 +1083,26 @@ describe("HarnessDriverBackend", () => {
     await expect(iterator.next()).rejects.toBe(fault);
     await expect(session.result()).rejects.toBe(fault);
     await expect(session.snapshot()).rejects.toBe(fault);
-    await expect(Promise.resolve().then(() => session.goal!({ action: "get" }))).rejects.toBe(fault);
-    await expect(Promise.resolve().then(() => session.steer!({ turnId: "turn-1", message: { role: "user", text: "must not send" } }))).rejects.toBe(fault);
-    await expect(Promise.resolve().then(() => session.resolveRuntimeRequest!({ requestId: "request-1", turnId: "turn-1", resolution: { type: "input", answers: [] } as never }))).rejects.toBe(fault);
+    await expect(
+      Promise.resolve().then(() => session.goal!({ action: "get" })),
+    ).rejects.toBe(fault);
+    await expect(
+      Promise.resolve().then(() =>
+        session.steer!({
+          turnId: "turn-1",
+          message: { role: "user", text: "must not send" },
+        }),
+      ),
+    ).rejects.toBe(fault);
+    await expect(
+      Promise.resolve().then(() =>
+        session.resolveRuntimeRequest!({
+          requestId: "request-1",
+          turnId: "turn-1",
+          resolution: { type: "input", answers: [] } as never,
+        }),
+      ),
+    ).rejects.toBe(fault);
     expect(harness.goal).not.toHaveBeenCalled();
     expect(harness.steer).not.toHaveBeenCalled();
     await session.close({ reason: "fixture complete" });
@@ -901,143 +1111,277 @@ describe("HarnessDriverBackend", () => {
   it("emits one non-replayable input expiration and terminal wait after provider loss", async () => {
     const questionSet = {
       schema: "taskcore.question_set.v1" as const,
-      questions: [{ id: "target", prompt: "Which target?", required: true, answerMode: "text" as const }],
+      questions: [
+        {
+          id: "target",
+          prompt: "Which target?",
+          required: true,
+          answerMode: "text" as const,
+        },
+      ],
     };
     class LostProviderSession extends FakeHarnessSession {
       override async *events() {
-        yield prpEvent(1, "runtime_request.created", { request: {
-          schema: "taskcore.runtime_request.v2",
-          requestKind: "runtime",
-          requestId: "input-1",
-          type: "input",
-          status: "pending",
-          prompt: "Which target?",
-          input: questionSet,
-          turnId: "turn-1",
-          itemId: "input-1",
-        } });
+        yield prpEvent(1, "runtime_request.created", {
+          request: {
+            schema: "taskcore.runtime_request.v2",
+            requestKind: "runtime",
+            requestId: "input-1",
+            type: "input",
+            status: "pending",
+            prompt: "Which target?",
+            input: questionSet,
+            turnId: "turn-1",
+            itemId: "input-1",
+          },
+        });
         throw new Error("provider transport lost");
       }
       override async snapshot(): Promise<PersistedHarnessSession> {
-        return { driverKind: "fake", driverSessionId: "driver-1", lastSourceSequence: 1 };
+        return {
+          driverKind: "fake",
+          driverSessionId: "driver-1",
+          lastSourceSequence: 1,
+        };
       }
     }
-    const backend = new HarnessDriverBackend({ ...driver, async openSession() { return new LostProviderSession(); } });
+    const backend = new HarnessDriverBackend({
+      ...driver,
+      async openSession() {
+        return new LostProviderSession();
+      },
+    });
     const session = await backend.openSession({
-      identity: { runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
+      identity: {
+        runId: "run-1",
+        sessionId: "session-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
       workingDirectory: "/workspace",
     });
     const iterator = session.events()[Symbol.asyncIterator]();
-    await expect(iterator.next()).resolves.toMatchObject({ value: { eventType: "runtime_request.created" } });
-    await expect(iterator.next()).resolves.toMatchObject({ value: {
-      eventType: "runtime_request.expired",
-      sourceSeq: 2,
-      payload: {
-        requestId: "input-1",
-        reason: "provider_process_lost",
-        replayAllowed: false,
-        request: { input: questionSet },
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: { eventType: "runtime_request.created" },
+    });
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: {
+        eventType: "runtime_request.expired",
+        sourceSeq: 2,
+        payload: {
+          requestId: "input-1",
+          reason: "provider_process_lost",
+          replayAllowed: false,
+          request: { input: questionSet },
+        },
       },
-    } });
-    await expect(iterator.next()).resolves.toMatchObject({ value: {
-      eventType: "turn.interrupted",
-      sourceSeq: 3,
-      payload: { reason: "provider_process_lost" },
-    } });
+    });
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: {
+        eventType: "turn.interrupted",
+        sourceSeq: 3,
+        payload: { reason: "provider_process_lost" },
+      },
+    });
     await expect(iterator.next()).resolves.toMatchObject({ done: true });
   });
 
   it("does not synthesize a fallback after the input was already resolved", async () => {
     class ResolvedThenLostSession extends FakeHarnessSession {
       override async *events() {
-        yield prpEvent(1, "runtime_request.created", { request: {
-          schema: "taskcore.runtime_request.v2",
-          requestKind: "runtime",
+        yield prpEvent(1, "runtime_request.created", {
+          request: {
+            schema: "taskcore.runtime_request.v2",
+            requestKind: "runtime",
+            requestId: "input-1",
+            type: "input",
+            status: "pending",
+            prompt: "Which target?",
+            input: {
+              schema: "taskcore.question_set.v1",
+              questions: [
+                {
+                  id: "target",
+                  prompt: "Which target?",
+                  required: true,
+                  answerMode: "text",
+                },
+              ],
+            },
+          },
+        });
+        yield prpEvent(2, "runtime_request.resolved", {
           requestId: "input-1",
-          type: "input",
-          status: "pending",
-          prompt: "Which target?",
-          input: { schema: "taskcore.question_set.v1", questions: [{ id: "target", prompt: "Which target?", required: true, answerMode: "text" }] },
-        } });
-        yield prpEvent(2, "runtime_request.resolved", { requestId: "input-1", action: "submit" });
+          action: "submit",
+        });
         throw new Error("provider transport lost after resolution");
       }
     }
-    const backend = new HarnessDriverBackend({ ...driver, async openSession() { return new ResolvedThenLostSession(); } });
+    const backend = new HarnessDriverBackend({
+      ...driver,
+      async openSession() {
+        return new ResolvedThenLostSession();
+      },
+    });
     const session = await backend.openSession({
-      identity: { runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
+      identity: {
+        runId: "run-1",
+        sessionId: "session-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
       workingDirectory: "/workspace",
     });
     const iterator = session.events()[Symbol.asyncIterator]();
     await iterator.next();
     await iterator.next();
-    await expect(iterator.next()).rejects.toThrow("provider transport lost after resolution");
+    await expect(iterator.next()).rejects.toThrow(
+      "provider transport lost after resolution",
+    );
   });
 
-  it.each([false, true])("retains final usage without accepting late output (journal boundary only: %s)", async journalOnly => {
-    class AccountingAfterCancelSession extends FakeHarnessSession {
-      async interrupt() {}
-      override async *events() {
-        yield prpEvent(1, "item.completed", { kind: "agentMessage", text: "late answer" });
-        yield prpEvent(2, "item.completed", { kind: "usage", usage: { runDelta: { inputTokens: 7, outputTokens: 3 }, runDeltaComplete: true } });
-        yield prpEvent(3, "turn.completed", { status: "completed" });
+  it.each([false, true])(
+    "retains final usage without accepting late output (journal boundary only: %s)",
+    async (journalOnly) => {
+      class AccountingAfterCancelSession extends FakeHarnessSession {
+        async interrupt() {}
+        override async *events() {
+          yield prpEvent(1, "item.completed", {
+            kind: "agentMessage",
+            text: "late answer",
+          });
+          yield prpEvent(2, "item.completed", {
+            kind: "usage",
+            usage: {
+              runDelta: { inputTokens: 7, outputTokens: 3 },
+              runDeltaComplete: true,
+            },
+          });
+          yield prpEvent(3, "turn.completed", { status: "completed" });
+        }
       }
-    }
-    const backend = new HarnessDriverBackend({ ...driver, async openSession() { return new AccountingAfterCancelSession(); } });
-    const session = await backend.openSession({
-      identity: { runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" }, workingDirectory: "/workspace",
-    });
-    if (journalOnly) session.revokeTurnPublication();
-    else await session.cancel({ reason: "durable governed wait", signal: new AbortController().signal }).cleanup;
-    const events = [];
-    for await (const event of session.events()) events.push(event);
-    expect(events.filter(event => event.payload.kind === "agentMessage")).toHaveLength(0);
-    expect(events.find(event => event.payload.kind === "usage")?.payload.usage).toMatchObject({ runDelta: { inputTokens: 7, outputTokens: 3 } });
-    expect(events.some(event => event.eventType === "turn.cancelled")).toBe(true);
-  });
+      const backend = new HarnessDriverBackend({
+        ...driver,
+        async openSession() {
+          return new AccountingAfterCancelSession();
+        },
+      });
+      const session = await backend.openSession({
+        identity: {
+          runId: "run-1",
+          sessionId: "session-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          agentId: "agent-1",
+        },
+        workingDirectory: "/workspace",
+      });
+      if (journalOnly) session.revokeTurnPublication();
+      else
+        await session.cancel({
+          reason: "durable governed wait",
+          signal: new AbortController().signal,
+        }).cleanup;
+      const events = [];
+      for await (const event of session.events()) events.push(event);
+      expect(
+        events.filter((event) => event.payload.kind === "agentMessage"),
+      ).toHaveLength(0);
+      expect(
+        events.find((event) => event.payload.kind === "usage")?.payload.usage,
+      ).toMatchObject({ runDelta: { inputTokens: 7, outputTokens: 3 } });
+      expect(events.some((event) => event.eventType === "turn.cancelled")).toBe(
+        true,
+      );
+    },
+  );
 
   it("does not start provider work when Stop arrives before the first turn", async () => {
     const provider = new FakeHarnessSession();
     const start = vi.spyOn(provider, "startTurn");
-    const backend = new HarnessDriverBackend({ ...driver, async openSession() { return provider; } });
+    const backend = new HarnessDriverBackend({
+      ...driver,
+      async openSession() {
+        return provider;
+      },
+    });
     const session = await backend.openSession({
-      identity: { runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
+      identity: {
+        runId: "run-1",
+        sessionId: "session-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
       workingDirectory: "/workspace",
     });
-    await session.cancel({ reason: "user stop during startup", signal: new AbortController().signal }).cleanup;
-    await expect(session.startTurn({ message: { role: "user", text: "cancelled work" } }))
-      .rejects.toThrow("native_session_cancelled");
+    await session.cancel({
+      reason: "user stop during startup",
+      signal: new AbortController().signal,
+    }).cleanup;
+    await expect(
+      session.startTurn({ message: { role: "user", text: "cancelled work" } }),
+    ).rejects.toThrow("native_session_cancelled");
     expect(start).not.toHaveBeenCalled();
   });
 
   it("does not synthesize a fallback after explicit run cancellation", async () => {
     class CancelledProviderSession extends FakeHarnessSession {
       override async *events() {
-        yield prpEvent(1, "runtime_request.created", { request: {
-          schema: "taskcore.runtime_request.v2",
-          requestKind: "runtime",
-          requestId: "input-1",
-          type: "input",
-          status: "pending",
-          prompt: "Which target?",
-          input: { schema: "taskcore.question_set.v1", questions: [{ id: "target", prompt: "Which target?", required: true, answerMode: "text" }] },
-        } });
+        yield prpEvent(1, "runtime_request.created", {
+          request: {
+            schema: "taskcore.runtime_request.v2",
+            requestKind: "runtime",
+            requestId: "input-1",
+            type: "input",
+            status: "pending",
+            prompt: "Which target?",
+            input: {
+              schema: "taskcore.question_set.v1",
+              questions: [
+                {
+                  id: "target",
+                  prompt: "Which target?",
+                  required: true,
+                  answerMode: "text",
+                },
+              ],
+            },
+          },
+        });
         throw new Error("provider stopped after cancellation");
       }
       async interrupt() {}
     }
-    const backend = new HarnessDriverBackend({ ...driver, async openSession() { return new CancelledProviderSession(); } });
+    const backend = new HarnessDriverBackend({
+      ...driver,
+      async openSession() {
+        return new CancelledProviderSession();
+      },
+    });
     const session = await backend.openSession({
-      identity: { runId: "run-1", sessionId: "session-1", companyId: "company-1", issueId: "issue-1", agentId: "agent-1" },
+      identity: {
+        runId: "run-1",
+        sessionId: "session-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+      },
       workingDirectory: "/workspace",
     });
     const iterator = session.events()[Symbol.asyncIterator]();
-    await expect(iterator.next()).resolves.toMatchObject({ value: { eventType: "runtime_request.created" } });
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: { eventType: "runtime_request.created" },
+    });
     await session.cancel({
       reason: "operator cancelled the run",
       signal: new AbortController().signal,
     }).cleanup;
-    await expect(iterator.next()).rejects.toThrow("provider stopped after cancellation");
+    await expect(iterator.next()).rejects.toThrow(
+      "provider stopped after cancellation",
+    );
   });
 });
 

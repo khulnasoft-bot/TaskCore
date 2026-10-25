@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseWorkspaceFileRef, formatWorkspaceFileRefDisplay } from "./workspace-file-parser";
+import {
+  parseWorkspaceFileRef,
+  formatWorkspaceFileRefDisplay,
+} from "./workspace-file-parser";
 
 describe("parseWorkspaceFileRef", () => {
   it("parses a simple workspace-relative path", () => {
@@ -70,7 +73,9 @@ describe("parseWorkspaceFileRef", () => {
   });
 
   it("parses trailing-slash directory refs", () => {
-    const ref = parseWorkspaceFileRef("content-os/cases/active/2026-06-06-pap-10199-bundled-skills/");
+    const ref = parseWorkspaceFileRef(
+      "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/",
+    );
     expect(ref).toEqual({
       path: "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/",
       resourceKind: "directory",
@@ -93,9 +98,33 @@ describe("parseWorkspaceFileRef", () => {
   });
 
   it("formats the display string with line and column", () => {
-    expect(formatWorkspaceFileRefDisplay({ path: "a/b.ts", resourceKind: "file", line: 5, column: 10, raw: "a/b.ts:5:10" })).toBe("a/b.ts:5:10");
-    expect(formatWorkspaceFileRefDisplay({ path: "a/b.ts", resourceKind: "file", line: 5, column: null, raw: "a/b.ts:5" })).toBe("a/b.ts:5");
-    expect(formatWorkspaceFileRefDisplay({ path: "a/b.ts", resourceKind: "file", line: null, column: null, raw: "a/b.ts" })).toBe("a/b.ts");
+    expect(
+      formatWorkspaceFileRefDisplay({
+        path: "a/b.ts",
+        resourceKind: "file",
+        line: 5,
+        column: 10,
+        raw: "a/b.ts:5:10",
+      }),
+    ).toBe("a/b.ts:5:10");
+    expect(
+      formatWorkspaceFileRefDisplay({
+        path: "a/b.ts",
+        resourceKind: "file",
+        line: 5,
+        column: null,
+        raw: "a/b.ts:5",
+      }),
+    ).toBe("a/b.ts:5");
+    expect(
+      formatWorkspaceFileRefDisplay({
+        path: "a/b.ts",
+        resourceKind: "file",
+        line: null,
+        column: null,
+        raw: "a/b.ts",
+      }),
+    ).toBe("a/b.ts");
   });
 
   it("rejects line numbers that are zero or negative", () => {

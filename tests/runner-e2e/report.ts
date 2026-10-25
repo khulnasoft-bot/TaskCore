@@ -122,10 +122,7 @@ async function stageDashboardEvidence(
       );
       const candidates = (entry.evidence?.files ?? []).filter((relative) => {
         const basename = path.posix.basename(relative);
-        return (
-          basename === screenshot.file ||
-          hashedAttachment.test(basename)
-        );
+        return basename === screenshot.file || hashedAttachment.test(basename);
       });
       if (candidates.length !== 1) continue;
       const segments = safeEvidenceRelative(candidates[0]!);
@@ -147,7 +144,6 @@ async function stageDashboardEvidence(
   }
   return staged;
 }
-
 
 async function main() {
   const root = path.resolve(
@@ -280,9 +276,12 @@ async function main() {
     source: resolveRunnerE2ESource(entry.result.source),
     status: entry.valid ? entry.result.status : ("failed" as const),
     // Evidence failures must not be mistaken for an interrupted behavior recording.
-    failureClass: entry.errors.length > 0
-      ? entry.evidence?.leaks?.length ? "secret_leak" as const : "permanent_infrastructure" as const
-      : entry.result.failureClass,
+    failureClass:
+      entry.errors.length > 0
+        ? entry.evidence?.leaks?.length
+          ? ("secret_leak" as const)
+          : ("permanent_infrastructure" as const)
+        : entry.result.failureClass,
     billing: summarizeExecutionBilling(entry.result),
   }));
   const generatedAt = new Date().toISOString();
@@ -360,12 +359,20 @@ async function main() {
     `Provider-reported LLM cost: ${billingCoverageLabel(`$${billing.reportedLlmCostUsd.toFixed(6)}`, billing.llm.runsWithReportedCost, billing.llm.runCount)}`,
     "",
     `Estimated Daytona list-price runtime cost: $${billing.estimatedRuntimeCostUsd.toFixed(6)}`,
-    ...(billing.judge ? [`Estimated judge cost: ${billing.judge.estimatedCostUsd === null ? "unknown" : `$${billing.judge.estimatedCostUsd.toFixed(6)}`}; ${billing.judge.attempts} attempts; ${billing.judge.attemptsWithUnknownUsage} with unknown usage; $${billing.judge.reservedCostUsd.toFixed(6)} reserved`] : []),
+    ...(billing.judge
+      ? [
+          `Estimated judge cost: ${billing.judge.estimatedCostUsd === null ? "unknown" : `$${billing.judge.estimatedCostUsd.toFixed(6)}`}; ${billing.judge.attempts} attempts; ${billing.judge.attemptsWithUnknownUsage} with unknown usage; $${billing.judge.reservedCostUsd.toFixed(6)} reserved`,
+        ]
+      : []),
     "",
     "| Cell | Attempt | Result | Runtime | Duration | Tokens (in/out) | LLM reported | Runtime estimate | Detail |",
     "|---|---:|---|---|---:|---:|---:|---:|---|",
     ...selected.map((entry, index) => {
-      const detail = [entry.result.error, ...entry.errors].filter(Boolean).join("; ").replaceAll("|", "\\|") || "ok";
+      const detail =
+        [entry.result.error, ...entry.errors]
+          .filter(Boolean)
+          .join("; ")
+          .replaceAll("|", "\\|") || "ok";
       const resolved = resolvedResults[index]!;
       const cellBilling = resolved.billing!;
       const runtimeCost = cellBilling.runtime.estimatedListCostUsd;

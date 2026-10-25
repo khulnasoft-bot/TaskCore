@@ -27,12 +27,17 @@ vi.mock("@/components/MarkdownEditor", () => ({
 }));
 
 import { ThemeProvider } from "@/context/ThemeContext";
-import { TaskChatDescriptionBubble, type TaskChatIssueBrief } from "./TaskChatDescriptionBubble";
+import {
+  TaskChatDescriptionBubble,
+  type TaskChatIssueBrief,
+} from "./TaskChatDescriptionBubble";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
-function makeBrief(overrides: Partial<TaskChatIssueBrief> = {}): TaskChatIssueBrief {
+function makeBrief(
+  overrides: Partial<TaskChatIssueBrief> = {},
+): TaskChatIssueBrief {
   return {
     description: "Ship the widget by **Friday**.",
     author: "human",
@@ -76,7 +81,9 @@ describe("TaskChatDescriptionBubble (PAP-375)", () => {
 
   it("renders a human-created task as the blue user bubble, right-aligned, without an author header", () => {
     render(makeBrief({ createdAt: "2026-08-02T14:34:00.000Z" }));
-    const bubble = container.querySelector('[data-testid="task-chat-description-bubble"]');
+    const bubble = container.querySelector(
+      '[data-testid="task-chat-description-bubble"]',
+    );
     expect(bubble).not.toBeNull();
     expect(bubble?.getAttribute("data-author")).toBe("human");
     expect(bubble?.className).toContain("items-end");
@@ -86,12 +93,16 @@ describe("TaskChatDescriptionBubble (PAP-375)", () => {
     expect(body?.textContent).toContain("Ship the widget by");
     // Markdown renders (bold), not raw asterisks.
     expect(body?.querySelector("strong")?.textContent).toBe("Friday");
-    expect(bubble?.querySelector('[data-testid="task-chat-description-edit"]')).toBeNull();
+    expect(
+      bubble?.querySelector('[data-testid="task-chat-description-edit"]'),
+    ).toBeNull();
   });
 
   it("renders an agent-created task as the agent-side bubble with the avatar author header", () => {
     render(makeBrief({ author: "agent", authorName: "CEO" }));
-    const bubble = container.querySelector('[data-testid="task-chat-description-bubble"]');
+    const bubble = container.querySelector(
+      '[data-testid="task-chat-description-bubble"]',
+    );
     expect(bubble?.getAttribute("data-author")).toBe("agent");
     expect(bubble?.className).toContain("items-start");
     expect(bubble?.querySelector('[data-slot="agent-avatar"]')).not.toBeNull();
@@ -109,11 +120,17 @@ describe("TaskChatDescriptionBubble (PAP-375)", () => {
 
   it("keeps the agent-side pencil editor and returns to the bubble on Escape", () => {
     render(makeBrief({ author: "agent", authorName: "CEO" }));
-    click(container.querySelector('[data-testid="task-chat-description-edit"]'));
+    click(
+      container.querySelector('[data-testid="task-chat-description-edit"]'),
+    );
 
-    const editorWrap = container.querySelector('[data-testid="task-chat-description-editor"]');
+    const editorWrap = container.querySelector(
+      '[data-testid="task-chat-description-editor"]',
+    );
     expect(editorWrap).not.toBeNull();
-    expect(container.querySelector('[data-testid="task-chat-description-bubble"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-description-bubble"]'),
+    ).toBeNull();
     const textarea = editorWrap?.querySelector<HTMLTextAreaElement>(
       '[data-testid="description-md-editor"]',
     );
@@ -126,20 +143,32 @@ describe("TaskChatDescriptionBubble (PAP-375)", () => {
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
       );
     });
-    expect(container.querySelector('[data-testid="task-chat-description-editor"]')).toBeNull();
-    expect(container.querySelector('[data-testid="task-chat-description-bubble"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-description-editor"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-description-bubble"]'),
+    ).not.toBeNull();
   });
 
   it("renders a muted ghost row for an empty description — never an empty bubble — and opens the editor", () => {
     render(makeBrief({ description: "" }));
-    expect(container.querySelector('[data-testid="task-chat-description-bubble"]')).toBeNull();
-    const ghost = container.querySelector('[data-testid="task-chat-description-ghost"]');
+    expect(
+      container.querySelector('[data-testid="task-chat-description-bubble"]'),
+    ).toBeNull();
+    const ghost = container.querySelector(
+      '[data-testid="task-chat-description-ghost"]',
+    );
     expect(ghost?.textContent).toContain("Add a description");
 
     click(ghost);
-    expect(container.querySelector('[data-testid="task-chat-description-ghost"]')).toBeNull();
     expect(
-      container.querySelector('[data-testid="task-chat-description-editor"] [data-testid="description-md-editor"]'),
+      container.querySelector('[data-testid="task-chat-description-ghost"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-testid="task-chat-description-editor"] [data-testid="description-md-editor"]',
+      ),
     ).not.toBeNull();
   });
 
@@ -151,9 +180,14 @@ describe("TaskChatDescriptionBubble (PAP-375)", () => {
 
     afterEach(() => {
       if (scrollHeightDescriptor) {
-        Object.defineProperty(HTMLElement.prototype, "scrollHeight", scrollHeightDescriptor);
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "scrollHeight",
+          scrollHeightDescriptor,
+        );
       } else {
-        delete (HTMLElement.prototype as { scrollHeight?: number }).scrollHeight;
+        delete (HTMLElement.prototype as { scrollHeight?: number })
+          .scrollHeight;
       }
     });
 
@@ -166,8 +200,16 @@ describe("TaskChatDescriptionBubble (PAP-375)", () => {
 
     it("folds a long description at the 12-line height with a Show more expander", () => {
       stubScrollHeight(900);
-      render(makeBrief({ description: Array.from({ length: 40 }, (_, i) => `line ${i}`).join("\n\n") }));
-      const content = container.querySelector<HTMLElement>(".fold-curtain__content");
+      render(
+        makeBrief({
+          description: Array.from({ length: 40 }, (_, i) => `line ${i}`).join(
+            "\n\n",
+          ),
+        }),
+      );
+      const content = container.querySelector<HTMLElement>(
+        ".fold-curtain__content",
+      );
       expect(content?.style.maxHeight).toBe("240px");
       const toggle = [...container.querySelectorAll("button")].find((b) =>
         b.textContent?.includes("Show more"),

@@ -24,7 +24,9 @@ import { issueService } from "../services/issues.ts";
 import { documentService } from "../services/documents.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 type ActivityService = ReturnType<typeof activityService>;
 type IssueRun = Awaited<ReturnType<ActivityService["runsForIssue"]>>[number];
 
@@ -48,15 +50,21 @@ async function waitForIssueRun(
     if (run) return { run, runs: latestRuns };
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  throw new Error(`Timed out waiting for issue run. Latest run count: ${latestRuns.length}`);
+  throw new Error(
+    `Timed out waiting for issue run. Latest run count: ${latestRuns.length}`,
+  );
 }
 
 describeEmbeddedPostgres("activity service", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-activity-service-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-activity-service-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -76,35 +84,92 @@ describeEmbeddedPostgres("activity service", () => {
     await tempDb?.cleanup();
   });
 
-  it.each(["standard", "planning", "ask"] as const)("LCA-05 persists explicit %s mode across wording edits and uses it in ledger backfill", async (workMode) => {
-    const companyId = randomUUID();
-    const agentId = randomUUID();
-    await db.insert(companies).values({ id: companyId, name: "Mode fixture", issuePrefix: `M${companyId.slice(0, 6)}` });
-    await db.insert(agents).values({ id: agentId, companyId, name: "Writer", role: "engineer", status: "idle", adapterType: "codex_local" });
-    const service = issueService(db);
-    const task = await service.create(companyId, { title: "Making a plan", description: "Create a report and research proposal.", status: "in_progress", assigneeAgentId: agentId, ...(workMode === "standard" ? {} : { workMode }) });
-    expect(task.workMode).toBe(workMode);
-    for (const prose of [
-      { title: "Implement exporter", description: "Change the code now." },
-      { title: "Making a plan", description: "Create a plan for the report exporter." },
-    ]) {
-      await service.update(task.id, prose);
-      expect((await service.getById(task.id))?.workMode).toBe(workMode);
-    }
-    const runId = randomUUID();
-    await db.insert(heartbeatRuns).values({ id: runId, companyId, agentId, status: "succeeded", contextSnapshot: { issueId: task.id }, resultJson: { summary: "I will inspect the repository next." } });
-    const expected = workMode === "planning" ? "advanced" : "plan_only";
-    await waitForIssueRun(activityService(db), companyId, task.id, run => run.runId === runId && run.livenessState === expected);
-    expect((await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId)))[0].livenessState).toBe(expected);
-    if (workMode === "standard") {
-      await documentService(db).upsertIssueDocument({ issueId: task.id, key: "plan", title: "Requested plan", format: "markdown", body: "1. Inspect files.\n2. Implement the exporter.", createdByAgentId: agentId });
-      expect((await service.getById(task.id))?.workMode).toBe("standard");
-      expect(await documentService(db).getIssueDocumentByKey(task.id, "plan")).toBeTruthy();
-    }
-    const nextMode = workMode === "planning" ? "standard" : "planning";
-    await service.update(task.id, { workMode: nextMode });
-    expect((await service.getById(task.id))?.workMode).toBe(nextMode);
-  });
+  it.each(["standard", "planning", "ask"] as const)(
+    "LCA-05 persists explicit %s mode across wording edits and uses it in ledger backfill",
+    async (workMode) => {
+      const companyId = randomUUID();
+      const agentId = randomUUID();
+      await db
+        .insert(companies)
+        .values({
+          id: companyId,
+          name: "Mode fixture",
+          issuePrefix: `M${companyId.slice(0, 6)}`,
+        });
+      await db
+        .insert(agents)
+        .values({
+          id: agentId,
+          companyId,
+          name: "Writer",
+          role: "engineer",
+          status: "idle",
+          adapterType: "codex_local",
+        });
+      const service = issueService(db);
+      const task = await service.create(companyId, {
+        title: "Making a plan",
+        description: "Create a report and research proposal.",
+        status: "in_progress",
+        assigneeAgentId: agentId,
+        ...(workMode === "standard" ? {} : { workMode }),
+      });
+      expect(task.workMode).toBe(workMode);
+      for (const prose of [
+        { title: "Implement exporter", description: "Change the code now." },
+        {
+          title: "Making a plan",
+          description: "Create a plan for the report exporter.",
+        },
+      ]) {
+        await service.update(task.id, prose);
+        expect((await service.getById(task.id))?.workMode).toBe(workMode);
+      }
+      const runId = randomUUID();
+      await db
+        .insert(heartbeatRuns)
+        .values({
+          id: runId,
+          companyId,
+          agentId,
+          status: "succeeded",
+          contextSnapshot: { issueId: task.id },
+          resultJson: { summary: "I will inspect the repository next." },
+        });
+      const expected = workMode === "planning" ? "advanced" : "plan_only";
+      await waitForIssueRun(
+        activityService(db),
+        companyId,
+        task.id,
+        (run) => run.runId === runId && run.livenessState === expected,
+      );
+      expect(
+        (
+          await db
+            .select()
+            .from(heartbeatRuns)
+            .where(eq(heartbeatRuns.id, runId))
+        )[0].livenessState,
+      ).toBe(expected);
+      if (workMode === "standard") {
+        await documentService(db).upsertIssueDocument({
+          issueId: task.id,
+          key: "plan",
+          title: "Requested plan",
+          format: "markdown",
+          body: "1. Inspect files.\n2. Implement the exporter.",
+          createdByAgentId: agentId,
+        });
+        expect((await service.getById(task.id))?.workMode).toBe("standard");
+        expect(
+          await documentService(db).getIssueDocumentByKey(task.id, "plan"),
+        ).toBeTruthy();
+      }
+      const nextMode = workMode === "planning" ? "standard" : "planning";
+      await service.update(task.id, { workMode: nextMode });
+      expect((await service.getById(task.id))?.workMode).toBe(nextMode);
+    },
+  );
 
   it("limits company activity lists", async () => {
     const companyId = randomUUID();
@@ -148,7 +213,10 @@ describeEmbeddedPostgres("activity service", () => {
 
     const result = await activityService(db).list({ companyId, limit: 2 });
 
-    expect(result.map((event) => event.action)).toEqual(["test.newest", "test.middle"]);
+    expect(result.map((event) => event.action)).toEqual([
+      "test.newest",
+      "test.middle",
+    ]);
   });
 
   it("filters company activity rows whose entity is a private issue", async () => {
@@ -180,8 +248,22 @@ describeEmbeddedPostgres("activity service", () => {
       },
     ]);
     await db.insert(activityLog).values([
-      { companyId, actorType: "system", actorId: "system", action: "private.changed", entityType: "issue", entityId: privateIssueId },
-      { companyId, actorType: "system", actorId: "system", action: "open.changed", entityType: "issue", entityId: openIssueId },
+      {
+        companyId,
+        actorType: "system",
+        actorId: "system",
+        action: "private.changed",
+        entityType: "issue",
+        entityId: privateIssueId,
+      },
+      {
+        companyId,
+        actorType: "system",
+        actorId: "system",
+        action: "open.changed",
+        entityType: "issue",
+        entityId: openIssueId,
+      },
     ]);
     const actor = {
       type: "board" as const,
@@ -199,120 +281,128 @@ describeEmbeddedPostgres("activity service", () => {
     expect(rows.map((row) => row.action)).not.toContain("private.changed");
   });
 
-  it.each([null, "native_provider_model_rejected", "adapter_failed"])("returns compact issue runs with bounded model rejection details: %s", async (errorCode) => {
-    const companyId = randomUUID();
-    const agentId = randomUUID();
-    const issueId = randomUUID();
-    const runId = randomUUID();
+  it.each([null, "native_provider_model_rejected", "adapter_failed"])(
+    "returns compact issue runs with bounded model rejection details: %s",
+    async (errorCode) => {
+      const companyId = randomUUID();
+      const agentId = randomUUID();
+      const issueId = randomUUID();
+      const runId = randomUUID();
 
-    await db.insert(companies).values({
-      id: companyId,
-      name: "Taskcore",
-      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
-      requireBoardApprovalForNewAgents: false,
-    });
+      await db.insert(companies).values({
+        id: companyId,
+        name: "Taskcore",
+        issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+        requireBoardApprovalForNewAgents: false,
+      });
 
-    await db.insert(agents).values({
-      id: agentId,
-      companyId,
-      name: "CodexCoder",
-      role: "engineer",
-      status: "running",
-      adapterType: "codex_local",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: {},
-    });
+      await db.insert(agents).values({
+        id: agentId,
+        companyId,
+        name: "CodexCoder",
+        role: "engineer",
+        status: "running",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      });
 
-    await db.insert(issues).values({
-      id: issueId,
-      companyId,
-      title: "Summarize a completed run",
-      status: "done",
-      priority: "medium",
-      assigneeAgentId: agentId,
-    });
+      await db.insert(issues).values({
+        id: issueId,
+        companyId,
+        title: "Summarize a completed run",
+        status: "done",
+        priority: "medium",
+        assigneeAgentId: agentId,
+      });
 
-    await db.insert(heartbeatRuns).values({
-      id: runId,
-      companyId,
-      agentId,
-      scopeKind: "issue",
-      issueId,
-      invocationSource: "assignment",
-      status: errorCode ? "failed" : "succeeded",
-      errorCode,
-      error: "provider-error".repeat(200),
-      contextSnapshot: { issueId },
-      usageJson: {
+      await db.insert(heartbeatRuns).values({
+        id: runId,
+        companyId,
+        agentId,
+        scopeKind: "issue",
+        issueId,
+        invocationSource: "assignment",
+        status: errorCode ? "failed" : "succeeded",
+        errorCode,
+        error: "provider-error".repeat(200),
+        contextSnapshot: { issueId },
+        usageJson: {
+          inputTokens: 11,
+          output_tokens: 7,
+          cache_read_input_tokens: 3,
+          billingType: "metered",
+          costUsd: 0.42,
+          enormousBlob: "x".repeat(256_000),
+        },
+        resultJson: {
+          conversationReset: true,
+          billing_type: "metered",
+          total_cost_usd: 0.42,
+          stopReason: "timeout",
+          effectiveTimeoutSec: 30,
+          timeoutFired: true,
+          summary: "done",
+          nestedHuge: { payload: "y".repeat(256_000) },
+        },
+        livenessState: "advanced",
+        livenessReason:
+          "Run produced concrete action evidence: 1 issue comment(s)",
+        continuationAttempt: 2,
+        lastUsefulActionAt: new Date("2026-04-18T19:59:00.000Z"),
+        nextAction: "Review the completed output.",
+      });
+
+      const runs = await activityService(db).runsForIssue(companyId, issueId);
+
+      expect(runs).toHaveLength(1);
+      expect(runs[0]).toMatchObject({
+        runId,
+        agentId,
+        invocationSource: "assignment",
+        contextIssueId: issueId,
+        error:
+          errorCode === "native_provider_model_rejected"
+            ? "provider-error".repeat(200).slice(0, 2000)
+            : null,
+      });
+      expect(runs[0]?.usageJson).toEqual({
         inputTokens: 11,
+        input_tokens: 11,
+        outputTokens: 7,
         output_tokens: 7,
+        cachedInputTokens: 3,
+        cached_input_tokens: 3,
         cache_read_input_tokens: 3,
         billingType: "metered",
-        costUsd: 0.42,
-        enormousBlob: "x".repeat(256_000),
-      },
-      resultJson: {
-        conversationReset: true,
         billing_type: "metered",
+        costUsd: 0.42,
+        cost_usd: 0.42,
+        total_cost_usd: 0.42,
+      });
+      expect(runs[0]?.resultJson).toEqual({
+        conversationReset: true,
+        billingType: "metered",
+        billing_type: "metered",
+        costUsd: 0.42,
+        cost_usd: 0.42,
         total_cost_usd: 0.42,
         stopReason: "timeout",
         effectiveTimeoutSec: 30,
         timeoutFired: true,
-        summary: "done",
-        nestedHuge: { payload: "y".repeat(256_000) },
-      },
-      livenessState: "advanced",
-      livenessReason: "Run produced concrete action evidence: 1 issue comment(s)",
-      continuationAttempt: 2,
-      lastUsefulActionAt: new Date("2026-04-18T19:59:00.000Z"),
-      nextAction: "Review the completed output.",
-    });
-
-    const runs = await activityService(db).runsForIssue(companyId, issueId);
-
-    expect(runs).toHaveLength(1);
-    expect(runs[0]).toMatchObject({
-      runId,
-      agentId,
-      invocationSource: "assignment",
-      contextIssueId: issueId,
-      error: errorCode === "native_provider_model_rejected" ? "provider-error".repeat(200).slice(0, 2000) : null,
-    });
-    expect(runs[0]?.usageJson).toEqual({
-      inputTokens: 11,
-      input_tokens: 11,
-      outputTokens: 7,
-      output_tokens: 7,
-      cachedInputTokens: 3,
-      cached_input_tokens: 3,
-      cache_read_input_tokens: 3,
-      billingType: "metered",
-      billing_type: "metered",
-      costUsd: 0.42,
-      cost_usd: 0.42,
-      total_cost_usd: 0.42,
-    });
-    expect(runs[0]?.resultJson).toEqual({
-      conversationReset: true,
-      billingType: "metered",
-      billing_type: "metered",
-      costUsd: 0.42,
-      cost_usd: 0.42,
-      total_cost_usd: 0.42,
-      stopReason: "timeout",
-      effectiveTimeoutSec: 30,
-      timeoutFired: true,
-    });
-    expect(runs[0]).toMatchObject({
-      livenessState: "advanced",
-      livenessReason: "Run produced concrete action evidence: 1 issue comment(s)",
-      continuationAttempt: 2,
-      lastUsefulActionAt: new Date("2026-04-18T19:59:00.000Z"),
-      nextAction: "Review the completed output.",
-    });
-    expect(runs[0]).not.toHaveProperty("contextSnapshot");
-  });
+      });
+      expect(runs[0]).toMatchObject({
+        livenessState: "advanced",
+        livenessReason:
+          "Run produced concrete action evidence: 1 issue comment(s)",
+        continuationAttempt: 2,
+        lastUsefulActionAt: new Date("2026-04-18T19:59:00.000Z"),
+        nextAction: "Review the completed output.",
+      });
+      expect(runs[0]).not.toHaveProperty("contextSnapshot");
+    },
+  );
 
   it("backfills missing liveness for completed issue runs before returning the ledger", async () => {
     const companyId = randomUUID();
@@ -479,7 +569,8 @@ describeEmbeddedPostgres("activity service", () => {
           summary: "Updated the plan document.",
         },
         livenessState: "advanced",
-        livenessReason: "Run produced concrete action evidence: 1 document revision(s)",
+        livenessReason:
+          "Run produced concrete action evidence: 1 document revision(s)",
       },
     ]);
 
@@ -530,7 +621,8 @@ describeEmbeddedPostgres("activity service", () => {
     expect(backfilledRun).toMatchObject({
       runId,
       livenessState: "plan_only",
-      livenessReason: "Run described runnable future work without concrete action evidence",
+      livenessReason:
+        "Run described runnable future work without concrete action evidence",
       lastUsefulActionAt: null,
     });
   });
@@ -638,7 +730,8 @@ describeEmbeddedPostgres("activity service", () => {
     expect(backfilledRun).toMatchObject({
       runId,
       livenessState: "plan_only",
-      livenessReason: "Run described runnable future work without concrete action evidence",
+      livenessReason:
+        "Run described runnable future work without concrete action evidence",
       lastUsefulActionAt: null,
     });
   });

@@ -23,7 +23,9 @@ interface RegisteredGoalController extends GoalControllerBinding {
 
 const registrations = new Map<string, RegisteredGoalController>();
 
-function bindingKey(input: Pick<GoalControllerBinding, "companyId" | "issueId" | "agentId">): string {
+function bindingKey(
+  input: Pick<GoalControllerBinding, "companyId" | "issueId" | "agentId">,
+): string {
   return `${input.companyId}:${input.issueId}:${input.agentId}`;
 }
 
@@ -35,7 +37,8 @@ export function registerLiveRunnerGoalController(
   const generation = Symbol(binding.runId);
   registrations.set(key, { ...binding, controller, generation });
   return () => {
-    if (registrations.get(key)?.generation === generation) registrations.delete(key);
+    if (registrations.get(key)?.generation === generation)
+      registrations.delete(key);
   };
 }
 
@@ -47,7 +50,9 @@ export function dispatchLiveRunnerGoalControl(
   if (!registered) return null;
   return {
     runId: registered.runId,
-    completion: Promise.resolve().then(() => registered.controller.control(control)),
+    completion: Promise.resolve().then(() =>
+      registered.controller.control(control),
+    ),
   };
 }
 

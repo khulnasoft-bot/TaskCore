@@ -89,7 +89,11 @@ vi.mock("../services/environment-probe.js", () => ({
 vi.mock("../services/plugin-environment-driver.js", () => ({
   // The runtime reads this published constant at import time. Mirror the real
   // value so the mocked module keeps the same reusable-lease method contract.
-  REUSABLE_LEASE_WORKER_METHODS: ["environmentResumeLease", "environmentReleaseLease", "environmentDestroyLease"],
+  REUSABLE_LEASE_WORKER_METHODS: [
+    "environmentResumeLease",
+    "environmentReleaseLease",
+    "environmentDestroyLease",
+  ],
   listReadyPluginEnvironmentDrivers: vi.fn(async () => []),
   resolvePluginSandboxProviderDriverByKey: vi.fn(async () => null),
   validatePluginEnvironmentDriverConfig: vi.fn(async ({ config }) => config),
@@ -193,11 +197,18 @@ function createApp(actor: Record<string, unknown>) {
     next();
   });
   app.use("/api", environmentRoutes({} as never));
-  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    res.status((err as { status?: number }).status ?? 500).json({
-      error: err instanceof Error ? err.message : String(err),
-    });
-  });
+  app.use(
+    (
+      err: unknown,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      res.status((err as { status?: number }).status ?? 500).json({
+        error: err instanceof Error ? err.message : String(err),
+      });
+    },
+  );
   return app;
 }
 
@@ -236,7 +247,9 @@ describe("environment customImage setup routes", () => {
     mockProjectService.clearExecutionWorkspaceEnvironmentSelection.mockReset();
     mockInstanceSettingsService.listCompanyIds.mockReset();
     Object.values(mockEnvironmentService).forEach((mock) => mock.mockReset());
-    Object.values(mockEnvironmentCustomImageService).forEach((mock) => mock.mockReset());
+    Object.values(mockEnvironmentCustomImageService).forEach((mock) =>
+      mock.mockReset(),
+    );
     mockExecutionWorkspaceService.clearEnvironmentSelection.mockReset();
     Object.values(mockSecretService).forEach((mock) => mock.mockReset());
     mockLogActivity.mockReset();
@@ -280,34 +293,51 @@ describe("environment customImage setup routes", () => {
       }),
       connectionPayload: null,
     });
-    mockEnvironmentCustomImageService.cancelSetupSession.mockResolvedValue(createSession({
-      status: "cancelled",
-      finishedAt: now,
-      failureReason: "operator requested",
-    }));
+    mockEnvironmentCustomImageService.cancelSetupSession.mockResolvedValue(
+      createSession({
+        status: "cancelled",
+        finishedAt: now,
+        failureReason: "operator requested",
+      }),
+    );
     mockEnvironmentCustomImageService.rollbackTemplate.mockResolvedValue({
-      activeTemplate: createTemplate({ id: "template-1", templateRef: "old-template-secret" }),
-      supersededTemplate: createTemplate({ id: "template-2", templateRef: "new-template-secret" }),
+      activeTemplate: createTemplate({
+        id: "template-1",
+        templateRef: "old-template-secret",
+      }),
+      supersededTemplate: createTemplate({
+        id: "template-2",
+        templateRef: "new-template-secret",
+      }),
     });
-    mockEnvironmentCustomImageService.disableTemplate.mockResolvedValue(createTemplate({
-      id: "template-2",
-      templateRef: "disabled-template-secret",
-      status: "revoked",
-    }));
+    mockEnvironmentCustomImageService.disableTemplate.mockResolvedValue(
+      createTemplate({
+        id: "template-2",
+        templateRef: "disabled-template-secret",
+        status: "revoked",
+      }),
+    );
     mockEnvironmentCustomImageService.relinkActiveTemplate.mockResolvedValue({
-      template: createTemplate({ id: "template-1", templateRef: "relinked-template-secret" }),
+      template: createTemplate({
+        id: "template-1",
+        templateRef: "relinked-template-secret",
+      }),
       classification: "knob_only",
     });
   });
 
   it("starts a setup session, returns the live payload, and logs redacted details", async () => {
     const res = await request(createApp(boardActor()))
-      .post("/api/environments/env-1/custom-image-setup-sessions?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-setup-sessions?companyId=company-1",
+      )
       .send({ ttlSeconds: 3600 });
 
     expect(res.status).toBe(201);
     expect(res.body.connectionPayload.command).toContain("203.0.113.10");
-    expect(mockEnvironmentCustomImageService.startSetupSession).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.startSetupSession,
+    ).toHaveBeenCalledWith({
       environmentId: "env-1",
       templateId: null,
       ttlSeconds: 3600,
@@ -324,23 +354,30 @@ describe("environment customImage setup routes", () => {
   });
 
   it("refreshes active setup status and can return the live payload to board admins", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession());
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession(),
+    );
 
-    const res = await request(createApp(boardActor()))
-      .get("/api/environment-custom-image-setup-sessions/session-1");
+    const res = await request(createApp(boardActor())).get(
+      "/api/environment-custom-image-setup-sessions/session-1",
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.connectionPayload.command).toContain("203.0.113.10");
-    expect(mockEnvironmentCustomImageService.refreshSetupSession).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.refreshSetupSession,
+    ).toHaveBeenCalledWith({
       sessionId: "session-1",
       includeConnectionPayload: true,
     });
   });
 
   it("mints a redacted terminal token for waiting SSH setup sessions", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession({
-      expiresAt: futureDate(),
-    }));
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession({
+        expiresAt: futureDate(),
+      }),
+    );
     mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValue({
       session: createSession({
         expiresAt: futureDate(),
@@ -360,7 +397,9 @@ describe("environment customImage setup routes", () => {
     });
 
     const res = await request(createApp(boardActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(res.status).toBe(201);
@@ -377,7 +416,9 @@ describe("environment customImage setup routes", () => {
     );
     expect(res.body.websocketPath).not.toContain("token=");
     expect(res.body.websocketPath).not.toContain(res.body.token);
-    expect(mockEnvironmentCustomImageService.refreshSetupSession).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.refreshSetupSession,
+    ).toHaveBeenCalledWith({
       sessionId: "session-1",
       includeConnectionPayload: true,
     });
@@ -393,31 +434,49 @@ describe("environment customImage setup routes", () => {
 
   it("denies terminal token minting to agent API key actors before customImage state is read", async () => {
     const res = await request(createApp(agentActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(res.status).toBe(403);
-    expect(mockEnvironmentCustomImageService.getSessionById).not.toHaveBeenCalled();
-    expect(mockEnvironmentCustomImageService.refreshSetupSession).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.getSessionById,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.refreshSetupSession,
+    ).not.toHaveBeenCalled();
   });
 
   it("denies terminal token minting to non-admin board users before connection payload refresh", async () => {
-    const res = await request(createApp(boardActor({
-      companyIds: ["company-2"],
-      isInstanceAdmin: false,
-    })))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+    const res = await request(
+      createApp(
+        boardActor({
+          companyIds: ["company-2"],
+          isInstanceAdmin: false,
+        }),
+      ),
+    )
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(res.status).toBe(403);
-    expect(mockEnvironmentCustomImageService.getSessionById).not.toHaveBeenCalled();
-    expect(mockEnvironmentCustomImageService.refreshSetupSession).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.getSessionById,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.refreshSetupSession,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects terminal tokens unless the refreshed setup session is waiting for the user", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession({
-      expiresAt: futureDate(),
-    }));
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession({
+        expiresAt: futureDate(),
+      }),
+    );
     mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValue({
       session: createSession({ status: "starting", expiresAt: futureDate() }),
       connectionPayload: {
@@ -427,7 +486,9 @@ describe("environment customImage setup routes", () => {
     });
 
     const res = await request(createApp(boardActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(res.status).toBe(409);
@@ -435,7 +496,9 @@ describe("environment customImage setup routes", () => {
   });
 
   it("rejects terminal tokens for expired setup sessions", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession());
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession(),
+    );
     mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValue({
       session: createSession({
         status: "waiting_for_user",
@@ -448,132 +511,188 @@ describe("environment customImage setup routes", () => {
     });
 
     const res = await request(createApp(boardActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(res.status).toBe(409);
   });
 
   it("rejects non-SSH or unsupported SSH terminal payloads without echoing secrets", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession({
-      expiresAt: futureDate(),
-    }));
-    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce({
-      session: createSession({ expiresAt: futureDate() }),
-      connectionPayload: {
-        type: "browser_terminal",
-        command: "ssh ssh-token-secret@203.0.113.10",
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession({
+        expiresAt: futureDate(),
+      }),
+    );
+    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce(
+      {
+        session: createSession({ expiresAt: futureDate() }),
+        connectionPayload: {
+          type: "browser_terminal",
+          command: "ssh ssh-token-secret@203.0.113.10",
+        },
       },
-    });
+    );
 
     const unsupportedType = await request(createApp(boardActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(unsupportedType.status).toBe(422);
-    expect(JSON.stringify(unsupportedType.body)).not.toContain("ssh-token-secret");
+    expect(JSON.stringify(unsupportedType.body)).not.toContain(
+      "ssh-token-secret",
+    );
     expect(JSON.stringify(unsupportedType.body)).not.toContain("203.0.113.10");
 
-    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce({
-      session: createSession({ expiresAt: futureDate() }),
-      connectionPayload: {
-        type: "ssh",
-        command: "ssh ssh-token-secret@203.0.113.10 -i /tmp/private-key",
+    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce(
+      {
+        session: createSession({ expiresAt: futureDate() }),
+        connectionPayload: {
+          type: "ssh",
+          command: "ssh ssh-token-secret@203.0.113.10 -i /tmp/private-key",
+        },
       },
-    });
+    );
 
     const unsupportedShape = await request(createApp(boardActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(unsupportedShape.status).toBe(422);
-    expect(JSON.stringify(unsupportedShape.body)).not.toContain("ssh-token-secret");
+    expect(JSON.stringify(unsupportedShape.body)).not.toContain(
+      "ssh-token-secret",
+    );
     expect(JSON.stringify(unsupportedShape.body)).not.toContain("203.0.113.10");
     expect(loggedActivityJson()).not.toContain("ssh-token-secret");
   });
 
   it("rejects invalid and expired terminal payload expiries without minting tokens", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession({
-      expiresAt: futureDate(),
-    }));
-    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce({
-      session: createSession({ expiresAt: futureDate() }),
-      connectionPayload: {
-        type: "ssh",
-        command: "ssh ssh-token-secret@ssh.app.daytona.io",
-        expiresAt: "not-a-date",
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession({
+        expiresAt: futureDate(),
+      }),
+    );
+    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce(
+      {
+        session: createSession({ expiresAt: futureDate() }),
+        connectionPayload: {
+          type: "ssh",
+          command: "ssh ssh-token-secret@ssh.app.daytona.io",
+          expiresAt: "not-a-date",
+        },
       },
-    });
+    );
 
     const invalidExpiry = await request(createApp(boardActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(invalidExpiry.status).toBe(422);
-    expect(JSON.stringify(invalidExpiry.body)).not.toContain("ssh-token-secret");
+    expect(JSON.stringify(invalidExpiry.body)).not.toContain(
+      "ssh-token-secret",
+    );
 
-    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce({
-      session: createSession({ expiresAt: futureDate() }),
-      connectionPayload: {
-        type: "ssh",
-        command: "ssh ssh-token-secret@ssh.app.daytona.io",
-        expiresAt: new Date(Date.now() - 60_000).toISOString(),
+    mockEnvironmentCustomImageService.refreshSetupSession.mockResolvedValueOnce(
+      {
+        session: createSession({ expiresAt: futureDate() }),
+        connectionPayload: {
+          type: "ssh",
+          command: "ssh ssh-token-secret@ssh.app.daytona.io",
+          expiresAt: new Date(Date.now() - 60_000).toISOString(),
+        },
       },
-    });
+    );
 
     const expiredPayload = await request(createApp(boardActor()))
-      .post("/api/environment-custom-image-setup-sessions/session-1/terminal-session-token")
+      .post(
+        "/api/environment-custom-image-setup-sessions/session-1/terminal-session-token",
+      )
       .send({});
 
     expect(expiredPayload.status).toBe(409);
-    expect(JSON.stringify(expiredPayload.body)).not.toContain("ssh-token-secret");
+    expect(JSON.stringify(expiredPayload.body)).not.toContain(
+      "ssh-token-secret",
+    );
   });
 
   it("denies agent API key actors before customImage state or payloads are read", async () => {
     const app = createApp(agentActor());
     const start = await request(app)
-      .post("/api/environments/env-1/custom-image-setup-sessions?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-setup-sessions?companyId=company-1",
+      )
       .send({});
-    const status = await request(app)
-      .get("/api/environment-custom-image-setup-sessions/session-1");
+    const status = await request(app).get(
+      "/api/environment-custom-image-setup-sessions/session-1",
+    );
 
     expect(start.status).toBe(403);
     expect(status.status).toBe(403);
-    expect(mockEnvironmentCustomImageService.startSetupSession).not.toHaveBeenCalled();
-    expect(mockEnvironmentCustomImageService.getSessionById).not.toHaveBeenCalled();
-    expect(mockEnvironmentCustomImageService.refreshSetupSession).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.startSetupSession,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.getSessionById,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.refreshSetupSession,
+    ).not.toHaveBeenCalled();
   });
 
   it("denies non-admin board users before connection payload refresh", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession());
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession(),
+    );
 
-    const res = await request(createApp(boardActor({
-      companyIds: ["company-2"],
-      isInstanceAdmin: false,
-    })))
-      .get("/api/environment-custom-image-setup-sessions/session-1");
+    const res = await request(
+      createApp(
+        boardActor({
+          companyIds: ["company-2"],
+          isInstanceAdmin: false,
+        }),
+      ),
+    ).get("/api/environment-custom-image-setup-sessions/session-1");
 
     expect(res.status).toBe(403);
-    expect(mockEnvironmentCustomImageService.getSessionById).not.toHaveBeenCalled();
-    expect(mockEnvironmentCustomImageService.refreshSetupSession).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.getSessionById,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.refreshSetupSession,
+    ).not.toHaveBeenCalled();
   });
 
   it("denies single-company fallback when the board actor is not a member", async () => {
     mockInstanceSettingsService.listCompanyIds.mockResolvedValue(["company-2"]);
 
-    const res = await request(createApp(boardActor({
-      companyIds: ["company-1"],
-      isInstanceAdmin: false,
-    })))
+    const res = await request(
+      createApp(
+        boardActor({
+          companyIds: ["company-1"],
+          isInstanceAdmin: false,
+        }),
+      ),
+    )
       .post("/api/environments/env-1/custom-image-setup-sessions")
       .send({});
 
     expect(res.status).toBe(403);
-    expect(mockEnvironmentCustomImageService.startSetupSession).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.startSetupSession,
+    ).not.toHaveBeenCalled();
   });
 
   it("finishes and promotes a template while logging redacted template details", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession());
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession(),
+    );
     const terminal = environmentCustomImageTerminalSessionStore.create({
       setupSessionId: "session-1",
       companyId: "company-1",
@@ -594,14 +713,18 @@ describe("environment customImage setup routes", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.template.templateRef).toBe("captured-template-secret");
-    expect(mockEnvironmentCustomImageService.finishSetupSession).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.finishSetupSession,
+    ).toHaveBeenCalledWith({
       sessionId: "session-1",
       metadata: { safeLabel: "done" },
     });
-    expect(environmentCustomImageTerminalSessionStore.get({
-      id: terminal.session.id,
-      token: terminal.token,
-    })).toBeNull();
+    expect(
+      environmentCustomImageTerminalSessionStore.get({
+        id: terminal.session.id,
+        token: terminal.token,
+      }),
+    ).toBeNull();
     expect(closeReasons).toEqual(["setup_finished"]);
     const activity = loggedActivityJson();
     expect(activity).not.toContain("captured-template-secret");
@@ -610,7 +733,9 @@ describe("environment customImage setup routes", () => {
   });
 
   it("cancels active sessions without logging lease details", async () => {
-    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(createSession());
+    mockEnvironmentCustomImageService.getSessionById.mockResolvedValue(
+      createSession(),
+    );
 
     const res = await request(createApp(boardActor()))
       .post("/api/environment-custom-image-setup-sessions/session-1/cancel")
@@ -618,7 +743,9 @@ describe("environment customImage setup routes", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("cancelled");
-    expect(mockEnvironmentCustomImageService.cancelSetupSession).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.cancelSetupSession,
+    ).toHaveBeenCalledWith({
       sessionId: "session-1",
       reason: "operator requested",
     });
@@ -628,17 +755,24 @@ describe("environment customImage setup routes", () => {
   it("rolls back and disables active templates through company-scoped routes", async () => {
     const app = createApp(boardActor());
     const rollback = await request(app)
-      .post("/api/environments/env-1/custom-image-template/rollback?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-template/rollback?companyId=company-1",
+      )
       .send({});
-    const disable = await request(app)
-      .delete("/api/environments/env-1/custom-image-template?companyId=company-1&deleteProviderTemplate=true");
+    const disable = await request(app).delete(
+      "/api/environments/env-1/custom-image-template?companyId=company-1&deleteProviderTemplate=true",
+    );
 
     expect(rollback.status).toBe(200);
     expect(disable.status).toBe(200);
-    expect(mockEnvironmentCustomImageService.rollbackTemplate).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.rollbackTemplate,
+    ).toHaveBeenCalledWith({
       environmentId: "env-1",
     });
-    expect(mockEnvironmentCustomImageService.disableTemplate).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.disableTemplate,
+    ).toHaveBeenCalledWith({
       environmentId: "env-1",
       deleteProviderTemplate: true,
     });
@@ -650,12 +784,16 @@ describe("environment customImage setup routes", () => {
 
   it("relinks the active template through the company-scoped route", async () => {
     const res = await request(createApp(boardActor()))
-      .post("/api/environments/env-1/custom-image-template/relink?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-template/relink?companyId=company-1",
+      )
       .send({ confirmBootSourceDrift: true });
 
     expect(res.status).toBe(200);
     expect(res.body.classification).toBe("knob_only");
-    expect(mockEnvironmentCustomImageService.relinkActiveTemplate).toHaveBeenCalledWith({
+    expect(
+      mockEnvironmentCustomImageService.relinkActiveTemplate,
+    ).toHaveBeenCalledWith({
       environmentId: "env-1",
       confirmBootSourceDrift: true,
       actor: {
@@ -672,32 +810,50 @@ describe("environment customImage setup routes", () => {
   it("defaults the confirmation flag to false and rejects unknown body keys", async () => {
     const app = createApp(boardActor());
     const withoutFlag = await request(app)
-      .post("/api/environments/env-1/custom-image-template/relink?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-template/relink?companyId=company-1",
+      )
       .send({});
     expect(withoutFlag.status).toBe(200);
-    expect(mockEnvironmentCustomImageService.relinkActiveTemplate).toHaveBeenCalledExactlyOnceWith(
+    expect(
+      mockEnvironmentCustomImageService.relinkActiveTemplate,
+    ).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ confirmBootSourceDrift: false }),
     );
 
     // The strict schema rejects unknown keys before the handler runs, so the
     // relink service is never reached for the malformed body.
     const unknownKey = await request(app)
-      .post("/api/environments/env-1/custom-image-template/relink?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-template/relink?companyId=company-1",
+      )
       .send({ confirmBootSourceDrift: false, unexpected: true });
     expect(unknownKey.status).not.toBe(200);
-    expect(mockEnvironmentCustomImageService.relinkActiveTemplate).toHaveBeenCalledTimes(1);
+    expect(
+      mockEnvironmentCustomImageService.relinkActiveTemplate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("propagates the drift conflict from the relink service", async () => {
-    mockEnvironmentCustomImageService.relinkActiveTemplate.mockImplementationOnce(async () => {
-      throw new HttpError(409, "Confirm the relink to keep the captured snapshot.", {
-        classification: "boot_source_drift",
-        driftedPaths: [{ path: "image", from: "fake:base", to: "fake:other" }],
-      });
-    });
+    mockEnvironmentCustomImageService.relinkActiveTemplate.mockImplementationOnce(
+      async () => {
+        throw new HttpError(
+          409,
+          "Confirm the relink to keep the captured snapshot.",
+          {
+            classification: "boot_source_drift",
+            driftedPaths: [
+              { path: "image", from: "fake:base", to: "fake:other" },
+            ],
+          },
+        );
+      },
+    );
 
     const res = await request(createApp(boardActor()))
-      .post("/api/environments/env-1/custom-image-template/relink?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-template/relink?companyId=company-1",
+      )
       .send({});
 
     expect(res.status).toBe(409);
@@ -705,20 +861,32 @@ describe("environment customImage setup routes", () => {
 
   it("denies agent API key actors before the relink service is called", async () => {
     const res = await request(createApp(agentActor()))
-      .post("/api/environments/env-1/custom-image-template/relink?companyId=company-1")
+      .post(
+        "/api/environments/env-1/custom-image-template/relink?companyId=company-1",
+      )
       .send({});
     expect(res.status).toBe(403);
-    expect(mockEnvironmentCustomImageService.relinkActiveTemplate).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.relinkActiveTemplate,
+    ).not.toHaveBeenCalled();
   });
 
   it("denies non-admin board users before the relink service is called", async () => {
-    const res = await request(createApp(boardActor({
-      companyIds: ["company-2"],
-      isInstanceAdmin: false,
-    })))
-      .post("/api/environments/env-1/custom-image-template/relink?companyId=company-1")
+    const res = await request(
+      createApp(
+        boardActor({
+          companyIds: ["company-2"],
+          isInstanceAdmin: false,
+        }),
+      ),
+    )
+      .post(
+        "/api/environments/env-1/custom-image-template/relink?companyId=company-1",
+      )
       .send({});
     expect(res.status).toBe(403);
-    expect(mockEnvironmentCustomImageService.relinkActiveTemplate).not.toHaveBeenCalled();
+    expect(
+      mockEnvironmentCustomImageService.relinkActiveTemplate,
+    ).not.toHaveBeenCalled();
   });
 });

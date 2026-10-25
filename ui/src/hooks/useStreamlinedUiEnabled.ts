@@ -1,5 +1,9 @@
 import { useContext } from "react";
-import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientContext,
+  useQuery,
+} from "@tanstack/react-query";
 import type { InstanceExperimentalSettings } from "@taskcore/shared";
 import { instanceSettingsApi } from "@/api/instanceSettings";
 import { queryKeys } from "@/lib/queryKeys";
@@ -24,7 +28,10 @@ function getDetachedClient(): QueryClient {
  * loading states, and read failures all fail open so the app never flashes or
  * falls back to the legacy shell unless an instance explicitly opts out.
  */
-export function useStreamlinedUiEnabled(): { enabled: boolean; loaded: boolean } {
+export function useStreamlinedUiEnabled(): {
+  enabled: boolean;
+  loaded: boolean;
+} {
   const contextClient = useContext(QueryClientContext);
   const query = useQuery(
     {

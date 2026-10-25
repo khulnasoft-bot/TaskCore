@@ -14,7 +14,12 @@ import {
 
 export interface CodexAcpxNativeSessionBackendOptions extends Omit<
   CodexAcpxDriverOptions,
-  "model" | "permissionMode" | "mode" | "systemInstructions" | "providerPolicy" | "runtimeContext"
+  | "model"
+  | "permissionMode"
+  | "mode"
+  | "systemInstructions"
+  | "providerPolicy"
+  | "runtimeContext"
 > {}
 
 export type AcpxNativeSessionBackendOptions =
@@ -54,8 +59,12 @@ export function createAcpxNativeSessionBackend(
     }
   }
 
-  if (ACPX_CAPABILITY_PROFILES[input.provider.agent].qualification !== "qualified") {
-    throw new Error("ACPX candidate direct execution requires completed qualification; use the host-controlled runnerd evaluation path");
+  if (
+    ACPX_CAPABILITY_PROFILES[input.provider.agent].qualification !== "qualified"
+  ) {
+    throw new Error(
+      "ACPX candidate direct execution requires completed qualification; use the host-controlled runnerd evaluation path",
+    );
   }
 
   const constraints = nativeTaskConstraints(input);
@@ -75,7 +84,9 @@ export function createAcpxNativeSessionBackend(
       mode: input.provider.mode,
       systemInstructions,
       runtimeContext: "runtimeContext" in input ? input.runtimeContext : null,
-      providerPolicy: { readOnly: "executionMode" in input && input.executionMode === "plan" },
+      providerPolicy: {
+        readOnly: "executionMode" in input && input.executionMode === "plan",
+      },
     }),
   );
 }

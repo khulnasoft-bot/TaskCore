@@ -14,11 +14,7 @@ export const EVAL_SESSION_ARTIFACT_SCHEMA =
   "taskcore-runner/eval-session-artifact/v1" as const;
 
 export type EvalSessionProvider =
-  | "codex"
-  | "opencode"
-  | "claude_managed"
-  | "aws_agentcore"
-  | "acpx";
+  "codex" | "opencode" | "claude_managed" | "aws_agentcore" | "acpx";
 export type EvalSessionDriver =
   | "codex_app_server"
   | "opencode_server"
@@ -94,7 +90,8 @@ export interface EvalSessionUsage {
   providerReportedCostProvenance: "legacy_runner_usage_ledger" | "unavailable";
   estimatedCostNanodollars: number | null;
   pricingVersion: EstimatedModelCost["pricingVersion"] | null;
-  ratesUsdPerMillionTokens: EstimatedModelCost["ratesUsdPerMillionTokens"] | null;
+  ratesUsdPerMillionTokens:
+    EstimatedModelCost["ratesUsdPerMillionTokens"] | null;
   costCoverage: "estimated" | "unpriced" | "legacy_ledger_and_estimate";
 }
 
@@ -128,7 +125,9 @@ export function expectedEvalSessionDriver(
       ? "claude_managed_agents_api"
       : provider === "aws_agentcore"
         ? "aws_agentcore_harness_api"
-    : provider === "acpx" ? "acpx_runtime" : "codex_app_server";
+        : provider === "acpx"
+          ? "acpx_runtime"
+          : "codex_app_server";
 }
 
 function positiveNumber(value: unknown, path: string): number {
@@ -250,38 +249,59 @@ export function parseEvalSessionRequest(
   if (
     acpxAgent !== undefined &&
     acpxAgent !== "codex" &&
-    acpxAgent !== "claude" && acpxAgent !== "grok" &&
-    acpxAgent !== "pi" && acpxAgent !== "cursor" && acpxAgent !== "copilot"
+    acpxAgent !== "claude" &&
+    acpxAgent !== "grok" &&
+    acpxAgent !== "pi" &&
+    acpxAgent !== "cursor" &&
+    acpxAgent !== "copilot"
   ) {
     throw new Error("eval-session acpxAgent must be a registered ACPX profile");
   }
   if (provider !== "acpx" && acpxAgent !== undefined) {
     throw new Error("eval-session acpxAgent requires provider acpx");
   }
-  const candidate = acpxAgent === "pi" || acpxAgent === "cursor" || acpxAgent === "copilot";
-  if (options.candidateProfile !== undefined && (provider !== "acpx" || acpxAgent !== options.candidateProfile || !candidate)) {
-    throw new Error("--candidate-profile must match the request's registered candidate ACPX agent");
+  const candidate =
+    acpxAgent === "pi" || acpxAgent === "cursor" || acpxAgent === "copilot";
+  if (
+    options.candidateProfile !== undefined &&
+    (provider !== "acpx" ||
+      acpxAgent !== options.candidateProfile ||
+      !candidate)
+  ) {
+    throw new Error(
+      "--candidate-profile must match the request's registered candidate ACPX agent",
+    );
   }
-  if (candidate && acpxAgent !== "cursor" && options.candidateProfile !== acpxAgent) {
-    throw new Error("Candidate ACPX profiles require an explicit matching --candidate-profile diagnostic flag");
+  if (
+    candidate &&
+    acpxAgent !== "cursor" &&
+    options.candidateProfile !== acpxAgent
+  ) {
+    throw new Error(
+      "Candidate ACPX profiles require an explicit matching --candidate-profile diagnostic flag",
+    );
   }
-  const managedProfileInput = input.managedProfile === null
-    ? undefined
-    : input.managedProfile;
-  const agentCoreProfileInput = input.agentCoreProfile === null
-    ? undefined
-    : input.agentCoreProfile;
-  const managedProfile = provider === "claude_managed"
-    ? parseManagedProfile(managedProfileInput)
-    : undefined;
-  const agentCoreProfile = provider === "aws_agentcore"
-    ? parseAgentCoreProfile(agentCoreProfileInput)
-    : undefined;
+  const managedProfileInput =
+    input.managedProfile === null ? undefined : input.managedProfile;
+  const agentCoreProfileInput =
+    input.agentCoreProfile === null ? undefined : input.agentCoreProfile;
+  const managedProfile =
+    provider === "claude_managed"
+      ? parseManagedProfile(managedProfileInput)
+      : undefined;
+  const agentCoreProfile =
+    provider === "aws_agentcore"
+      ? parseAgentCoreProfile(agentCoreProfileInput)
+      : undefined;
   if (provider !== "claude_managed" && managedProfileInput !== undefined) {
-    throw new Error("eval-session managedProfile requires provider claude_managed");
+    throw new Error(
+      "eval-session managedProfile requires provider claude_managed",
+    );
   }
   if (provider !== "aws_agentcore" && agentCoreProfileInput !== undefined) {
-    throw new Error("eval-session agentCoreProfile requires provider aws_agentcore");
+    throw new Error(
+      "eval-session agentCoreProfile requires provider aws_agentcore",
+    );
   }
   if (input.nativeResume !== undefined) {
     throw new Error(
@@ -314,7 +334,10 @@ export function parseEvalSessionRequest(
       "AWS AgentCore evals require exact model global.anthropic.claude-sonnet-4-6",
     );
   }
-  if (sessionInput.provider !== undefined && sessionInput.provider !== provider) {
+  if (
+    sessionInput.provider !== undefined &&
+    sessionInput.provider !== provider
+  ) {
     throw new Error("request.session.provider must match request.provider");
   }
   if (
@@ -335,7 +358,12 @@ export function parseEvalSessionRequest(
     provider,
     driver,
     ...(typeof input.opencodeVersion === "string"
-      ? { opencodeVersion: text(input.opencodeVersion, "request.opencodeVersion") }
+      ? {
+          opencodeVersion: text(
+            input.opencodeVersion,
+            "request.opencodeVersion",
+          ),
+        }
       : {}),
     ...(acpxAgent === undefined ? {} : { acpxAgent }),
     ...(managedProfile === undefined ? {} : { managedProfile }),
@@ -372,29 +400,33 @@ export function evalSessionUsage(
   const unique = new Map(
     (snapshot.usageLedger ?? []).map((receipt) => [receipt.receiptId, receipt]),
   );
-  const totals = [...unique.values()].reduce((result, receipt) => ({
-    agentTurns: result.agentTurns + receipt.providerCalls,
-    providerRequests: result.providerRequests + receipt.providerRequests,
-    inputTokens: result.inputTokens + receipt.inputTokens,
-    outputTokens: result.outputTokens + receipt.outputTokens,
-    cachedInputTokens: result.cachedInputTokens + receipt.cachedInputTokens,
-    reasoningTokens: result.reasoningTokens + receipt.reasoningTokens,
-    providerReportedCostNanodollars:
-      result.providerReportedCostNanodollars + receipt.costNanodollars,
-  }), {
-    agentTurns: 0,
-    providerRequests: 0,
-    inputTokens: 0,
-    outputTokens: 0,
-    cachedInputTokens: 0,
-    reasoningTokens: 0,
-    providerReportedCostNanodollars: 0,
-  });
+  const totals = [...unique.values()].reduce(
+    (result, receipt) => ({
+      agentTurns: result.agentTurns + receipt.providerCalls,
+      providerRequests: result.providerRequests + receipt.providerRequests,
+      inputTokens: result.inputTokens + receipt.inputTokens,
+      outputTokens: result.outputTokens + receipt.outputTokens,
+      cachedInputTokens: result.cachedInputTokens + receipt.cachedInputTokens,
+      reasoningTokens: result.reasoningTokens + receipt.reasoningTokens,
+      providerReportedCostNanodollars:
+        result.providerReportedCostNanodollars + receipt.costNanodollars,
+    }),
+    {
+      agentTurns: 0,
+      providerRequests: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cachedInputTokens: 0,
+      reasoningTokens: 0,
+      providerReportedCostNanodollars: 0,
+    },
+  );
   if (unique.size === 0) {
     throw new Error("completed turn omitted usage accounting");
   }
-  const candidate = snapshot.config?.provider === "acpx"
-    && ["pi", "cursor", "copilot"].includes(snapshot.config.acpxAgent ?? "");
+  const candidate =
+    snapshot.config?.provider === "acpx" &&
+    ["pi", "cursor", "copilot"].includes(snapshot.config.acpxAgent ?? "");
   let estimate: EstimatedModelCost | null;
   try {
     estimate = estimateModelCostNanodollars(model, totals);
@@ -402,7 +434,12 @@ export function evalSessionUsage(
     // An exact candidate model can be advertised before our pricing catalog
     // contains it. Preserve unpriced usage for billing reconciliation instead
     // of substituting a model or converting unknown spend into zero.
-    if (!candidate || !(error instanceof Error) || !error.message.startsWith("model pricing unavailable for ")) throw error;
+    if (
+      !candidate ||
+      !(error instanceof Error) ||
+      !error.message.startsWith("model pricing unavailable for ")
+    )
+      throw error;
     estimate = null;
   }
   return {
@@ -410,11 +447,19 @@ export function evalSessionUsage(
     // Candidate ACP adapters do not supply authenticated USD receipts. The
     // shared legacy ledger fills absent cost with zero, so its numeric value
     // cannot establish an invoice amount for these profiles.
-    providerReportedCostNanodollars: candidate ? null : totals.providerReportedCostNanodollars,
-    providerReportedCostProvenance: candidate ? "unavailable" : "legacy_runner_usage_ledger",
+    providerReportedCostNanodollars: candidate
+      ? null
+      : totals.providerReportedCostNanodollars,
+    providerReportedCostProvenance: candidate
+      ? "unavailable"
+      : "legacy_runner_usage_ledger",
     estimatedCostNanodollars: estimate?.estimatedCostNanodollars ?? null,
     pricingVersion: estimate?.pricingVersion ?? null,
     ratesUsdPerMillionTokens: estimate?.ratesUsdPerMillionTokens ?? null,
-    costCoverage: candidate ? (estimate === null ? "unpriced" : "estimated") : "legacy_ledger_and_estimate",
+    costCoverage: candidate
+      ? estimate === null
+        ? "unpriced"
+        : "estimated"
+      : "legacy_ledger_and_estimate",
   };
 }

@@ -1,18 +1,20 @@
-import {
-  buildSandboxNpmInstallCommand,
-} from "@taskcore/adapter-utils";
+import { buildSandboxNpmInstallCommand } from "@taskcore/adapter-utils";
 
 export const type = "gemini_local";
 export const label = "Gemini CLI";
 
-export const SANDBOX_INSTALL_COMMAND = buildSandboxNpmInstallCommand("@google/gemini-cli");
+export const SANDBOX_INSTALL_COMMAND =
+  buildSandboxNpmInstallCommand("@google/gemini-cli");
 
 export const DEFAULT_GEMINI_LOCAL_MODEL = "auto";
 
 export const models = [
   { id: DEFAULT_GEMINI_LOCAL_MODEL, label: "Auto" },
   { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
-  { id: "gemini-3.1-pro-preview-customtools", label: "Gemini 3.1 Pro Preview (Custom Tools)" },
+  {
+    id: "gemini-3.1-pro-preview-customtools",
+    label: "Gemini 3.1 Pro Preview (Custom Tools)",
+  },
   { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash" },
   { id: "gemini-3.7-flash", label: "Gemini 3.7 Flash" },
   { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },

@@ -1,12 +1,18 @@
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { classifyRemoteConnectionError, markRemoteConnectionFailure, readRemoteConnectionFailure } from "./remote-connection-failure.js";
+import {
+  classifyRemoteConnectionError,
+  markRemoteConnectionFailure,
+  readRemoteConnectionFailure,
+} from "./remote-connection-failure.js";
 
 const DEFAULT_DNS_TIMEOUT_MS = 5_000;
 
 type LookupResult = { address: string; family: number };
 
-export type RemoteHttpEndpointLookup = (hostname: string) => Promise<LookupResult[]>;
+export type RemoteHttpEndpointLookup = (
+  hostname: string,
+) => Promise<LookupResult[]>;
 
 export type RemoteHttpEndpointGuardOptions = {
   allowPrivateNetwork?: boolean;
@@ -14,23 +20,35 @@ export type RemoteHttpEndpointGuardOptions = {
   lookup?: RemoteHttpEndpointLookup;
 };
 
-export type RemoteHttpEndpointErrorFactory = (message: string, code: string) => Error;
+export type RemoteHttpEndpointErrorFactory = (
+  message: string,
+  code: string,
+) => Error;
 
 export function parseRemoteHttpEndpoint(
   value: unknown,
   error: RemoteHttpEndpointErrorFactory,
 ): URL {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw error("Remote MCP connection requires config.url", "mcp_remote_url_missing");
+    throw error(
+      "Remote MCP connection requires config.url",
+      "mcp_remote_url_missing",
+    );
   }
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch {
-    throw error("Remote MCP connection URL is invalid", "mcp_remote_url_invalid");
+    throw error(
+      "Remote MCP connection URL is invalid",
+      "mcp_remote_url_invalid",
+    );
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw error("Remote MCP connection URL must use http or https", "mcp_remote_url_invalid");
+    throw error(
+      "Remote MCP connection URL must use http or https",
+      "mcp_remote_url_invalid",
+    );
   }
   return parsed;
 }
@@ -65,14 +83,26 @@ export async function resolveApprovedRemoteHttpAddresses(
   error: RemoteHttpEndpointErrorFactory,
 ): Promise<string[]> {
   const hostname = endpoint.hostname.replace(/^\[|\]$/g, "").toLowerCase();
-  if (!options.allowPrivateNetwork && (hostname === "localhost" || hostname.endsWith(".localhost"))) {
-    throw error("Remote MCP connection URL cannot target private or reserved network addresses", "remote_http_private_endpoint");
+  if (
+    !options.allowPrivateNetwork &&
+    (hostname === "localhost" || hostname.endsWith(".localhost"))
+  ) {
+    throw error(
+      "Remote MCP connection URL cannot target private or reserved network addresses",
+      "remote_http_private_endpoint",
+    );
   }
 
   const literalVersion = isIP(hostname);
   if (literalVersion !== 0) {
-    if (isAlwaysDeniedLinkLocalIp(hostname) || (!options.allowPrivateNetwork && isPrivateOrReservedIp(hostname))) {
-      throw error("Remote MCP connection URL cannot target private or reserved network addresses", "remote_http_private_endpoint");
+    if (
+      isAlwaysDeniedLinkLocalIp(hostname) ||
+      (!options.allowPrivateNetwork && isPrivateOrReservedIp(hostname))
+    ) {
+      throw error(
+        "Remote MCP connection URL cannot target private or reserved network addresses",
+        "remote_http_private_endpoint",
+      );
     }
     return [hostname];
   }
@@ -85,18 +115,37 @@ export async function resolveApprovedRemoteHttpAddresses(
       options.dnsTimeoutMs ?? DEFAULT_DNS_TIMEOUT_MS,
     );
   } catch (cause) {
-    const failure = error("Remote MCP connection hostname could not be resolved", "remote_http_dns_failed");
-    const reason = readRemoteConnectionFailure(cause) ?? classifyRemoteConnectionError(cause);
-    if (reason === "dns_failure" || reason === "connection_timeout") markRemoteConnectionFailure(failure, reason);
+    const failure = error(
+      "Remote MCP connection hostname could not be resolved",
+      "remote_http_dns_failed",
+    );
+    const reason =
+      readRemoteConnectionFailure(cause) ??
+      classifyRemoteConnectionError(cause);
+    if (reason === "dns_failure" || reason === "connection_timeout")
+      markRemoteConnectionFailure(failure, reason);
     throw failure;
   }
   if (results.length === 0) {
-    throw markRemoteConnectionFailure(error("Remote MCP connection hostname did not resolve", "remote_http_dns_failed"), "dns_failure");
+    throw markRemoteConnectionFailure(
+      error(
+        "Remote MCP connection hostname did not resolve",
+        "remote_http_dns_failed",
+      ),
+      "dns_failure",
+    );
   }
-  if (results.some((result) =>
-    isAlwaysDeniedLinkLocalIp(result.address)
-    || (!options.allowPrivateNetwork && isPrivateOrReservedIp(result.address)))) {
-    throw error("Remote MCP connection URL cannot resolve to private or reserved network addresses", "remote_http_private_endpoint");
+  if (
+    results.some(
+      (result) =>
+        isAlwaysDeniedLinkLocalIp(result.address) ||
+        (!options.allowPrivateNetwork && isPrivateOrReservedIp(result.address)),
+    )
+  ) {
+    throw error(
+      "Remote MCP connection URL cannot resolve to private or reserved network addresses",
+      "remote_http_private_endpoint",
+    );
   }
   return results.map((result) => result.address);
 }
@@ -108,7 +157,12 @@ export async function resolveApprovedRemoteHttpAddresses(
  * appears in a DNS answer.
  */
 export function normalizeIpAddress(address: string): string {
-  const lower = address.trim().toLowerCase().replace(/^\[|\]$/g, "").split("%")[0] ?? "";
+  const lower =
+    address
+      .trim()
+      .toLowerCase()
+      .replace(/^\[|\]$/g, "")
+      .split("%")[0] ?? "";
   const mappedIpv4 = lower.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
   if (mappedIpv4?.[1]) return mappedIpv4[1];
   const mappedIpv4Hex = parseMappedIpv4Hex(lower);
@@ -120,14 +174,23 @@ function defaultLookup(hostname: string): Promise<LookupResult[]> {
   return dnsLookup(hostname, { all: true, verbatim: true });
 }
 
-async function lookupWithTimeout(hostname: string, lookup: RemoteHttpEndpointLookup, timeoutMs: number) {
+async function lookupWithTimeout(
+  hostname: string,
+  lookup: RemoteHttpEndpointLookup,
+  timeoutMs: number,
+) {
   let timeout: NodeJS.Timeout | undefined;
   try {
     return await Promise.race([
       lookup(hostname),
       new Promise<never>((_, reject) => {
         timeout = setTimeout(() => {
-          reject(markRemoteConnectionFailure(new Error(`DNS lookup timed out for ${hostname}`), "connection_timeout"));
+          reject(
+            markRemoteConnectionFailure(
+              new Error(`DNS lookup timed out for ${hostname}`),
+              "connection_timeout",
+            ),
+          );
         }, timeoutMs);
         timeout.unref?.();
       }),
@@ -179,14 +242,17 @@ function isPrivateOrReservedIpv4(address: string): boolean {
   return false;
 }
 
-function parseIpv4Address(address: string): [number, number, number, number] | null {
+function parseIpv4Address(
+  address: string,
+): [number, number, number, number] | null {
   const parts = address.split(".");
   if (parts.length !== 4) return null;
   const parsed = parts.map((part) => {
     if (!/^\d+$/.test(part)) return NaN;
     return Number(part);
   });
-  if (parsed.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return null;
+  if (parsed.some((part) => !Number.isInteger(part) || part < 0 || part > 255))
+    return null;
   return parsed as [number, number, number, number];
 }
 

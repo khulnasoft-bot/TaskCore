@@ -10,20 +10,20 @@
 
 ## 1. The layered-outcome model (vocabulary system)
 
-The contract yields four independent facts. A single status badge collapses them into exactly the "agent succeeded" lie the parent issue names. Codex renders them as four distinct visual layers with a strict vocabulary, so a stranger can tell in two seconds *what happened to the process* versus *what Taskcore decided about the work* (Mental Models; Nielsen #1 visibility of system status; #2 match to the real world).
+The contract yields four independent facts. A single status badge collapses them into exactly the "agent succeeded" lie the parent issue names. Codex renders them as four distinct visual layers with a strict vocabulary, so a stranger can tell in two seconds _what happened to the process_ versus _what Taskcore decided about the work_ (Mental Models; Nielsen #1 visibility of system status; #2 match to the real world).
 
-| Layer | Source of truth (spec §18.3 authority table) | Values | Vocabulary rule | Visual treatment |
-|---|---|---|---|---|
-| **Turn outcome** | Harness driver | completed / failed / interrupted / cancelled | "Turn completed" — always the noun *turn* | Tiny mono-caption chip on the run row; never colored green |
-| **Run outcome** | Runner / finalizer | succeeded / failed / cancelled | "Run succeeded" — always the noun *run* | Small neutral chip on the run row (existing `IssueRunLedger` liveness copy) |
-| **Agent report** | Model claim (`ReportedWorkDisposition`) | done / blocked / needs_review / yielded | "reported done", "claimed complete" — always claim verbs, never bare "done" | **Claim chip**: outlined, `border-dashed`, `text-muted-foreground`, quote glyph. Never status-colored fill |
-| **Issue status** | Status arbiter only (`StatusDecision`) | backlog … done / cancelled | The only element allowed to say "Done" plainly | Existing `StatusBadge` / `StatusIcon`, unchanged — remains the single authoritative badge |
+| Layer            | Source of truth (spec §18.3 authority table) | Values                                       | Vocabulary rule                                                             | Visual treatment                                                                                           |
+| ---------------- | -------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Turn outcome** | Harness driver                               | completed / failed / interrupted / cancelled | "Turn completed" — always the noun _turn_                                   | Tiny mono-caption chip on the run row; never colored green                                                 |
+| **Run outcome**  | Runner / finalizer                           | succeeded / failed / cancelled               | "Run succeeded" — always the noun _run_                                     | Small neutral chip on the run row (existing `IssueRunLedger` liveness copy)                                |
+| **Agent report** | Model claim (`ReportedWorkDisposition`)      | done / blocked / needs_review / yielded      | "reported done", "claimed complete" — always claim verbs, never bare "done" | **Claim chip**: outlined, `border-dashed`, `text-muted-foreground`, quote glyph. Never status-colored fill |
+| **Issue status** | Status arbiter only (`StatusDecision`)       | backlog … done / cancelled                   | The only element allowed to say "Done" plainly                              | Existing `StatusBadge` / `StatusIcon`, unchanged — remains the single authoritative badge                  |
 
 Copy laws (enforceable in review):
 
 1. Never compose "agent" + a success verb. Banned: "Agent succeeded", "Agent completed the task". Allowed: "Run succeeded", "UXDesigner reported done".
-2. A claim is always attributed and past-tense: "*UXDesigner reported done · 12m ago*".
-3. The arbiter is always the subject of status sentences: "*Taskcore kept In Progress — evidence incomplete*".
+2. A claim is always attributed and past-tense: "_UXDesigner reported done · 12m ago_".
+3. The arbiter is always the subject of status sentences: "_Taskcore kept In Progress — evidence incomplete_".
 4. Filled status colors (green done, violet review, red blocked) are reserved for arbiter output. Claims and process outcomes use neutral/outline treatments. This makes disagreement visible pre-attentively (Selective Attention; color-independence: shape differs too — dashed vs solid).
 
 ---
@@ -78,7 +78,7 @@ Anatomy top-to-bottom:
    - **Scope** — "blocks this turn only" / "blocks one track" / "blocks the whole task". When narrowed, strike the claim: `~~task-wide~~ → this turn` with the alternate live track linked.
    - **Attempts** — "attempt 2 of 6" from `AttentionResolutionBudget` (spec §18.3.3); expandable route history (context ✓ → retry ✗ → agent…) so a human landing here sees escalation was earned, not first-resort.
    - **Expiry** — relative countdown "expires in 3h 40m"; switches to amber text under 25% remaining; the expired state renders the card inert with "expired unanswered · one fallback wake sent".
-3. **Resume line (always present, directly above the response control):** the exact consequence of responding, generated from the response binding (spec §18.3.6): "*Answering wakes UXDesigner and resumes this turn*" / "*Answer recorded; UXDesigner wakes on its next scheduled turn*" / "*Recorded for audit only — this request was superseded*". Fitts/forgiveness: the operator knows what the button fires before pressing it — which is why it precedes the control in DOM order (spec §18.12 `[OPX-4]`/OPX-F3; sequential reading order for screen-reader users, who must hear the consequence before reaching the button). The TASK-16712 mockups draw this line as a card footer; this list's order is normative, not the mockup.
+3. **Resume line (always present, directly above the response control):** the exact consequence of responding, generated from the response binding (spec §18.3.6): "_Answering wakes UXDesigner and resumes this turn_" / "_Answer recorded; UXDesigner wakes on its next scheduled turn_" / "_Recorded for audit only — this request was superseded_". Fitts/forgiveness: the operator knows what the button fires before pressing it — which is why it precedes the control in DOM order (spec §18.12 `[OPX-4]`/OPX-F3; sequential reading order for screen-reader users, who must hear the consequence before reaching the button). The TASK-16712 mockups draw this line as a card footer; this list's order is normative, not the mockup.
 4. **Response affordance** — only for `route: board` + state `pending/routed`: the existing typed interaction control (`AttentionInteractionResolver`) — answer / choose / approve / decline. All other routes render read-only.
 
 ### 2.4 Extensions to existing components
@@ -102,7 +102,7 @@ Anatomy top-to-bottom:
 3. Expanding shows the claim-vs-decision strip, the criterion table (e.g. `tests pass` → claim satisfied → **missing**: no persisted test record), and "Queued continuation for UXDesigner".
 4. Operator actions: open evidence refs; add guidance comment; or use the normal board status override — copy on the override confirm: "Your change is recorded as a board decision and supersedes the arbiter's" (the override becomes a `board_user` trigger for a superseding decision; the old card shows the supersession chain).
 
-**Anti-goal:** no red/error styling. Disagreement is a *normal governed outcome*, not a failure — amber "downgraded" tone only on the decision glyph.
+**Anti-goal:** no red/error styling. Disagreement is a _normal governed outcome_, not a failure — amber "downgraded" tone only on the decision glyph.
 
 ### Flow B — Real human-needed interaction (`attention_requires_human_authority`)
 
@@ -110,7 +110,7 @@ Anatomy top-to-bottom:
 
 1. Attention inbox: one `AttentionQueueRow` — "UXDesigner needs a decision on TASK-16712 · expires in 3h · attempt 1". Issues board shows the violet `Needs you` chip.
 2. Task page card shows the full anatomy: owner **you**, authority "needs a board decision", scope "blocks this turn only", attempts history proving context/agent routes were tried or skipped-by-classification, expiry, and the typed answer control.
-3. Resume line: "*Answering wakes UXDesigner and resumes this turn.*"
+3. Resume line: "_Answering wakes UXDesigner and resumes this turn._"
 4. On answer: card flips to `resolved` with the response pinned; a system marker "UXDesigner woken · continuation queued" appears; the `Needs you` chip clears. Peak-End: the operator sees their answer take effect without refreshing (spec §23.9 item 7).
 
 ### Flow C — Agent-routed resolution (`attention_routed_to_agent`)
@@ -118,7 +118,7 @@ Anatomy top-to-bottom:
 > Agent asked for a human; resolver reclassified to expertise and delegated in-company.
 
 1. **Not** in the attention inbox, no `Needs you` chip — humans are only interrupted for human-authority work (the parent issue's core ask).
-2. Task page renders the card read-only: authority chip shows the correction `asked: human → resolved as: expertise`; owner "Routed to: CodexCoder"; link to the delegated issue; resume line "*CodexCoder's answer resumes this track — no action needed from you.*"
+2. Task page renders the card read-only: authority chip shows the correction `asked: human → resolved as: expertise`; owner "Routed to: CodexCoder"; link to the delegated issue; resume line "_CodexCoder's answer resumes this track — no action needed from you._"
 3. If delegation later exhausts, the card's attempt history grows and only then can a human route appear (budget rules, spec §18.3.3) — the UI never shows a human affordance on an agent-routed card.
 
 ### Flow D — Duplicate suppression (`attention_duplicate_suppressed`)
@@ -144,29 +144,29 @@ Anatomy top-to-bottom:
 
 Plain-language, ≤ 70 chars, agent-name-free; raw code in the audit footer. (Plain Language / Recognition over recall.)
 
-| Reason code | Operator copy | Tone |
-|---|---|---|
-| completion_contract_satisfied | All acceptance criteria verified | accepted |
-| completion_claim_policy_accepted | Claim accepted under low-risk policy | accepted |
-| completion_evidence_incomplete | Completion claim not accepted: evidence incomplete | downgraded |
-| completion_review_required | Completion needs review before Done | review |
-| governed_gate_pending | Waiting on a governed approval | review |
-| live_continuation_registered | More work queued — continuing | progress |
-| turn_waiting_other_track_live | One track waiting; another continues | progress |
-| task_wide_blocker_bound | Blocked task-wide — unblock owner assigned | blocked |
-| attention_resolved_from_context | Answered from existing context | progress |
-| attention_routed_to_agent | Routed to a qualified agent | progress |
-| attention_requires_human_authority | Needs a human decision | review |
-| attention_duplicate_suppressed | Repeat request merged — no new ask | preserved |
-| attention_budget_exhausted | Escalation budget exhausted — recovery recorded | recovery |
-| run_failed_partial_evidence_preserved | Run failed — partial work preserved | recovery |
-| finalization_failed_claim_preserved | Finalization failed — claim preserved, not accepted | recovery |
-| result_schema_rejected | Agent report couldn't be read — status unchanged | recovery |
-| cancellation_turn_only / _run_only | Turn/Run cancelled — task unaffected | preserved |
-| cancellation_issue_authorized | Task cancelled by authorized decision | blocked-tone gray |
-| prior_status_preserved_no_live_path | Status preserved — no live path could be created | recovery |
-| authorized_resume / dependency_resolved | Resumed by authorization / dependency resolved | progress |
-| decision_superseded_by_new_evidence | Superseded by newer evidence | preserved |
+| Reason code                             | Operator copy                                       | Tone              |
+| --------------------------------------- | --------------------------------------------------- | ----------------- |
+| completion_contract_satisfied           | All acceptance criteria verified                    | accepted          |
+| completion_claim_policy_accepted        | Claim accepted under low-risk policy                | accepted          |
+| completion_evidence_incomplete          | Completion claim not accepted: evidence incomplete  | downgraded        |
+| completion_review_required              | Completion needs review before Done                 | review            |
+| governed_gate_pending                   | Waiting on a governed approval                      | review            |
+| live_continuation_registered            | More work queued — continuing                       | progress          |
+| turn_waiting_other_track_live           | One track waiting; another continues                | progress          |
+| task_wide_blocker_bound                 | Blocked task-wide — unblock owner assigned          | blocked           |
+| attention_resolved_from_context         | Answered from existing context                      | progress          |
+| attention_routed_to_agent               | Routed to a qualified agent                         | progress          |
+| attention_requires_human_authority      | Needs a human decision                              | review            |
+| attention_duplicate_suppressed          | Repeat request merged — no new ask                  | preserved         |
+| attention_budget_exhausted              | Escalation budget exhausted — recovery recorded     | recovery          |
+| run_failed_partial_evidence_preserved   | Run failed — partial work preserved                 | recovery          |
+| finalization_failed_claim_preserved     | Finalization failed — claim preserved, not accepted | recovery          |
+| result_schema_rejected                  | Agent report couldn't be read — status unchanged    | recovery          |
+| cancellation_turn_only / _run_only      | Turn/Run cancelled — task unaffected                | preserved         |
+| cancellation_issue_authorized           | Task cancelled by authorized decision               | blocked-tone gray |
+| prior_status_preserved_no_live_path     | Status preserved — no live path could be created    | recovery          |
+| authorized_resume / dependency_resolved | Resumed by authorization / dependency resolved      | progress          |
+| decision_superseded_by_new_evidence     | Superseded by newer evidence                        | preserved         |
 
 New reason codes added to the v1 enum after this document's approval MUST land with a row in this table before they can be emitted on a UI-visible surface.
 
@@ -180,7 +180,7 @@ New reason codes added to the v1 enum after this document's approval MUST land w
 2. **Claim treatment is a pattern, not a color:** `border border-dashed border-border rounded-full text-muted-foreground` + quote glyph. Document it as a named pattern ("claim chip") in `/design-guide` so it is reused for any future agent-asserted-but-unverified value. Color-independent by construction (dashed ≠ solid).
 3. **Proposed semantic tokens** (only if implementation finds repeated inline pairs): `--tone-recovery` → cyan-500-based bg/fg pair and `--tone-downgraded` → amber-500-based pair, defined like the existing `--status-*` vars with `.status-chip` color-mix derivation. If declined, components use the BlockedReasonChip literal classes, which already pass AA in both modes.
 4. Typography/spacing: entirely from the existing scale — card title `text-sm font-medium`, meta `text-xs text-muted-foreground`, audit `text-xs font-mono`, chips `rounded-full`, cards `rounded-lg border-border`, `space-y-1` property rows. Shadows ≤ `shadow-sm`.
-5. Accessibility: every tone pairs color with a distinct glyph (check/dash/x/?/arrow); countdown text never relies on color alone ("expires in 40m" text turns amber *and* gains a clock glyph); all chips ≥ 24px hit target when interactive; reduced-motion: no pulse on `Needs you`, static dot.
+5. Accessibility: every tone pairs color with a distinct glyph (check/dash/x/?/arrow); countdown text never relies on color alone ("expires in 40m" text turns amber _and_ gains a clock glyph); all chips ≥ 24px hit target when interactive; reduced-motion: no pulse on `Needs you`, static dot.
 
 ---
 

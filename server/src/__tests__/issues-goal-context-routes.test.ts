@@ -49,7 +49,11 @@ const mockAgentService = vi.hoisted(() => ({
 
 const mockFeedbackService = vi.hoisted(() => ({
   listIssueVotesForUser: vi.fn(async () => []),
-  saveIssueVote: vi.fn(async () => ({ vote: null, consentEnabledNow: false, sharingEnabled: false })),
+  saveIssueVote: vi.fn(async () => ({
+    vote: null,
+    consentEnabledNow: false,
+    sharingEnabled: false,
+  })),
 }));
 
 const mockHeartbeatService = vi.hoisted(() => ({
@@ -108,7 +112,9 @@ vi.mock("../services/index.js", () => ({
   companySkillService: () => ({
     completeTestRunForIssue: vi.fn(async () => null),
   }),
-  documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+  documentAnnotationService: () => ({
+    remapOpenThreadsForDocument: async () => [],
+  }),
   documentService: () => mockDocumentsService,
   environmentService: () => mockEnvironmentService,
   executionWorkspaceService: () => mockExecutionWorkspaceService,
@@ -201,7 +207,10 @@ describe("issue goal context routes", () => {
     });
     mockIssueService.getById.mockResolvedValue(legacyProjectLinkedIssue);
     mockIssueService.getAncestors.mockResolvedValue([]);
-    mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
+    mockIssueService.getRelationSummaries.mockResolvedValue({
+      blockedBy: [],
+      blocks: [],
+    });
     mockIssueService.findMentionedProjectIds.mockResolvedValue([]);
     mockIssueService.getCommentCursor.mockResolvedValue({
       totalComments: 0,
@@ -224,8 +233,10 @@ describe("issue goal context routes", () => {
     emptyQuery.where = vi.fn(() => emptyQuery);
     emptyQuery.orderBy = vi.fn(() => emptyQuery);
     emptyQuery.limit = vi.fn(async () => []);
-    emptyQuery.then = (resolve: (rows: unknown[]) => unknown, reject?: (error: unknown) => unknown) =>
-      Promise.resolve([]).then(resolve, reject);
+    emptyQuery.then = (
+      resolve: (rows: unknown[]) => unknown,
+      reject?: (error: unknown) => unknown,
+    ) => Promise.resolve([]).then(resolve, reject);
     mockDb.select.mockReturnValue(emptyQuery);
     mockDb.execute.mockResolvedValue([]);
     mockProjectService.getById.mockResolvedValue({
@@ -268,26 +279,33 @@ describe("issue goal context routes", () => {
     mockGoalService.getDefaultCompanyGoal.mockResolvedValue(null);
   });
 
-  it.each(["", "/heartbeat-context"])("reads historical review tasks without computed productivity fields: %s", async (suffix) => {
-    mockIssueService.getById.mockResolvedValue({
-      ...legacyProjectLinkedIssue,
-      originKind: "issue_productivity_review",
-      originId: "historical-source",
-    });
-    const res = await request(createApp()).get(`/api/issues/${legacyProjectLinkedIssue.id}${suffix}`);
-    expect(res.status).toBe(200);
-    const issue = suffix ? res.body.issue : res.body;
-    expect(issue).toMatchObject({
-      originKind: "issue_productivity_review",
-      originId: "historical-source",
-      assigneeAgentId: legacyProjectLinkedIssue.assigneeAgentId,
-      status: legacyProjectLinkedIssue.status,
-    });
-    expect(issue).not.toHaveProperty("productivityReview");
-  });
+  it.each(["", "/heartbeat-context"])(
+    "reads historical review tasks without computed productivity fields: %s",
+    async (suffix) => {
+      mockIssueService.getById.mockResolvedValue({
+        ...legacyProjectLinkedIssue,
+        originKind: "issue_productivity_review",
+        originId: "historical-source",
+      });
+      const res = await request(createApp()).get(
+        `/api/issues/${legacyProjectLinkedIssue.id}${suffix}`,
+      );
+      expect(res.status).toBe(200);
+      const issue = suffix ? res.body.issue : res.body;
+      expect(issue).toMatchObject({
+        originKind: "issue_productivity_review",
+        originId: "historical-source",
+        assigneeAgentId: legacyProjectLinkedIssue.assigneeAgentId,
+        status: legacyProjectLinkedIssue.status,
+      });
+      expect(issue).not.toHaveProperty("productivityReview");
+    },
+  );
 
   it("surfaces the project goal from GET /issues/:id when the issue has no direct goal", async () => {
-    const res = await request(createApp()).get("/api/issues/11111111-1111-4111-8111-111111111111");
+    const res = await request(createApp()).get(
+      "/api/issues/11111111-1111-4111-8111-111111111111",
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.goalId).toBe(projectGoal.id);
@@ -356,9 +374,19 @@ describe("issue goal context routes", () => {
           remoteProvider: null,
           remoteWorkspaceRef: null,
           sharedWorkspaceKey: null,
-          metadata: { huge: "project workspace metadata should not be embedded" },
-          runtimeConfig: { services: [{ name: "Dev server", command: "pnpm dev" }] },
-          runtimeServices: [{ ...runtimeServiceBase, id: "project-service-stopped", status: "stopped" }],
+          metadata: {
+            huge: "project workspace metadata should not be embedded",
+          },
+          runtimeConfig: {
+            services: [{ name: "Dev server", command: "pnpm dev" }],
+          },
+          runtimeServices: [
+            {
+              ...runtimeServiceBase,
+              id: "project-service-stopped",
+              status: "stopped",
+            },
+          ],
           isPrimary: true,
           createdAt: new Date("2026-03-20T00:00:00Z"),
           updatedAt: new Date("2026-03-20T00:00:00Z"),
@@ -381,8 +409,16 @@ describe("issue goal context routes", () => {
         remoteWorkspaceRef: null,
         sharedWorkspaceKey: null,
         metadata: { huge: "primary workspace metadata should not be embedded" },
-        runtimeConfig: { services: [{ name: "Dev server", command: "pnpm dev" }] },
-        runtimeServices: [{ ...runtimeServiceBase, id: "primary-service-stopped", status: "stopped" }],
+        runtimeConfig: {
+          services: [{ name: "Dev server", command: "pnpm dev" }],
+        },
+        runtimeServices: [
+          {
+            ...runtimeServiceBase,
+            id: "primary-service-stopped",
+            status: "stopped",
+          },
+        ],
         isPrimary: true,
         createdAt: new Date("2026-03-20T00:00:00Z"),
         updatedAt: new Date("2026-03-20T00:00:00Z"),
@@ -415,7 +451,9 @@ describe("issue goal context routes", () => {
         provisionCommand: "bash setup.sh",
         teardownCommand: null,
         cleanupCommand: null,
-        workspaceRuntime: { services: [{ name: "Dev server", command: "pnpm dev" }] },
+        workspaceRuntime: {
+          services: [{ name: "Dev server", command: "pnpm dev" }],
+        },
         desiredState: null,
         serviceStates: null,
       },
@@ -428,22 +466,32 @@ describe("issue goal context routes", () => {
       updatedAt: new Date("2026-03-24T12:00:00Z"),
     });
 
-    const res = await request(createApp()).get("/api/issues/11111111-1111-4111-8111-111111111111");
+    const res = await request(createApp()).get(
+      "/api/issues/11111111-1111-4111-8111-111111111111",
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.project.env).toBeNull();
     expect(res.body.project.workspaces[0]).not.toHaveProperty("metadata");
-    expect(res.body.project.workspaces[0]).not.toHaveProperty("runtimeServices");
+    expect(res.body.project.workspaces[0]).not.toHaveProperty(
+      "runtimeServices",
+    );
     expect(res.body.project.primaryWorkspace).not.toHaveProperty("metadata");
-    expect(res.body.project.primaryWorkspace).not.toHaveProperty("runtimeServices");
+    expect(res.body.project.primaryWorkspace).not.toHaveProperty(
+      "runtimeServices",
+    );
     expect(res.body.currentExecutionWorkspace.metadata).toBeNull();
     expect(res.body.currentExecutionWorkspace.runtimeServices).toHaveLength(1);
-    expect(res.body.currentExecutionWorkspace.runtimeServices[0]).toMatchObject({
-      id: "service-running",
-      status: "running",
-      url: "http://localhost:3100",
-    });
-    expect(res.body.currentExecutionWorkspace.runtimeServices[0]).not.toHaveProperty("metadata");
+    expect(res.body.currentExecutionWorkspace.runtimeServices[0]).toMatchObject(
+      {
+        id: "service-running",
+        status: "running",
+        url: "http://localhost:3100",
+      },
+    );
+    expect(
+      res.body.currentExecutionWorkspace.runtimeServices[0],
+    ).not.toHaveProperty("metadata");
   });
 
   it("surfaces the project goal from GET /issues/:id/heartbeat-context", async () => {
@@ -463,7 +511,11 @@ describe("issue goal context routes", () => {
     expect(mockGoalService.getDefaultCompanyGoal).not.toHaveBeenCalled();
     expect(res.body.attachments).toEqual([]);
     expect(res.body.taskQuestionContext).toEqual({
-      questions: [], truncated: false, guidance: expect.stringContaining("Historical questions remain answerable"),
+      questions: [],
+      truncated: false,
+      guidance: expect.stringContaining(
+        "Historical questions remain answerable",
+      ),
     });
   });
 
@@ -486,10 +538,12 @@ describe("issue goal context routes", () => {
       "11111111-1111-4111-8111-111111111111",
       "continuation-summary",
     );
-    expect(res.body.continuationSummary).toEqual(expect.objectContaining({
-      key: "continuation-summary",
-      body: "# Handoff",
-    }));
+    expect(res.body.continuationSummary).toEqual(
+      expect.objectContaining({
+        key: "continuation-summary",
+        body: "# Handoff",
+      }),
+    );
   });
 
   it("surfaces blocker summaries on GET /issues/:id/heartbeat-context", async () => {
@@ -548,16 +602,20 @@ describe("issue goal context routes", () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mockExecutionWorkspaceService.getById).toHaveBeenCalledWith("55555555-5555-4555-8555-555555555555");
-    expect(res.body.currentExecutionWorkspace).toEqual(expect.objectContaining({
-      id: "55555555-5555-4555-8555-555555555555",
-      mode: "isolated_workspace",
-      runtimeServices: [
-        expect.objectContaining({
-          serviceName: "web",
-          url: "http://127.0.0.1:5173",
-        }),
-      ],
-    }));
+    expect(mockExecutionWorkspaceService.getById).toHaveBeenCalledWith(
+      "55555555-5555-4555-8555-555555555555",
+    );
+    expect(res.body.currentExecutionWorkspace).toEqual(
+      expect.objectContaining({
+        id: "55555555-5555-4555-8555-555555555555",
+        mode: "isolated_workspace",
+        runtimeServices: [
+          expect.objectContaining({
+            serviceName: "web",
+            url: "http://127.0.0.1:5173",
+          }),
+        ],
+      }),
+    );
   });
 });

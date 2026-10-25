@@ -22,9 +22,12 @@ describe("fillFirstTaskPlaceholders", () => {
   });
 
   it("drops the name and its trailing separator when no name is set", () => {
-    const out = fillFirstTaskPlaceholders("I'm {{agentName}}, your first agent teammate.", {
-      agentName: null,
-    });
+    const out = fillFirstTaskPlaceholders(
+      "I'm {{agentName}}, your first agent teammate.",
+      {
+        agentName: null,
+      },
+    );
     expect(out).toBe("I'm your first agent teammate.");
   });
 
@@ -36,8 +39,12 @@ describe("fillFirstTaskPlaceholders", () => {
 
 describe("renderOnboardingFirstTaskGreeting", () => {
   it("renders the board-approved greeting with the agent name", async () => {
-    const greeting = await renderOnboardingFirstTaskGreeting({ agentName: "Ada" });
-    expect(greeting).toContain("Welcome to Taskcore! I'm Ada, your first agent teammate.");
+    const greeting = await renderOnboardingFirstTaskGreeting({
+      agentName: "Ada",
+    });
+    expect(greeting).toContain(
+      "Welcome to Taskcore! I'm Ada, your first agent teammate.",
+    );
     // The "what would you like to do" question moved onto the opening card.
     expect(greeting).not.toContain("What would you like to do?");
   });
@@ -72,26 +79,39 @@ describe("buildOnboardingFirstTaskBrief", () => {
   it.each([
     { usePlanProposal: false, mode: "confirmation" },
     { usePlanProposal: true, mode: "plan" },
-  ])("invokes the skill with $mode mode without inlining the policy", async ({ usePlanProposal, mode }) => {
-    const brief = await buildOnboardingFirstTaskBrief({ usePlanProposal });
-    expect(brief).toContain("Use the `first-task` skill (/first-task)");
-    expect(brief).toContain("Read its SKILL.md");
-    expect(brief).toContain("subsequent wakes of this task");
-    expect(brief).toContain(`Single-task proposal mode: \`${mode}\`.`);
-    expect(brief).not.toContain("{{");
-    expect(brief).not.toContain("Take the path the user picked.");
-    expect(brief).not.toContain("request_confirmation");
-    expect(brief).not.toContain("request_checkbox_confirmation");
-  });
+  ])(
+    "invokes the skill with $mode mode without inlining the policy",
+    async ({ usePlanProposal, mode }) => {
+      const brief = await buildOnboardingFirstTaskBrief({ usePlanProposal });
+      expect(brief).toContain("Use the `first-task` skill (/first-task)");
+      expect(brief).toContain("Read its SKILL.md");
+      expect(brief).toContain("subsequent wakes of this task");
+      expect(brief).toContain(`Single-task proposal mode: \`${mode}\`.`);
+      expect(brief).not.toContain("{{");
+      expect(brief).not.toContain("Take the path the user picked.");
+      expect(brief).not.toContain("request_confirmation");
+      expect(brief).not.toContain("request_checkbox_confirmation");
+    },
+  );
 });
 
 describe("first-task proposal mode policy", () => {
   it("maps both persisted brief modes to their proposal forms", async () => {
-    const skill = await readFile(new URL("../onboarding-assets/first-task/skills/first-task/SKILL.md", import.meta.url), "utf8");
+    const skill = await readFile(
+      new URL(
+        "../onboarding-assets/first-task/skills/first-task/SKILL.md",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     expect(skill).toContain("`confirmation` means one `request_confirmation`");
     expect(skill).toContain("`plan` means save a short `plan` document");
-    expect(skill).toContain("`request_checkbox_confirmation` targeting its saved revision");
-    expect(skill).toContain("explicit plan requests regardless of the single-task proposal mode");
+    expect(skill).toContain(
+      "`request_checkbox_confirmation` targeting its saved revision",
+    );
+    expect(skill).toContain(
+      "explicit plan requests regardless of the single-task proposal mode",
+    );
   });
 });
 
@@ -113,7 +133,10 @@ describe("chief-of-staff persona", () => {
     });
     expect(bundle.entryFile).toBe("AGENTS.md");
     expect(bundle.files).toEqual({
-      "AGENTS.md": await renderChiefOfStaffPersona({ agentName: "Ada", organizationName: "Acme" }),
+      "AGENTS.md": await renderChiefOfStaffPersona({
+        agentName: "Ada",
+        organizationName: "Acme",
+      }),
     });
   });
 });

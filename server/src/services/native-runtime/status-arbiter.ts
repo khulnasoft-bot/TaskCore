@@ -1,5 +1,10 @@
 import type { NativeEvidenceAssessment } from "./evidence-classifier.js";
-import { NATIVE_MODEL_REJECTION_MESSAGE, NATIVE_PROVIDER_CAPACITY_MAX_RETRIES, NATIVE_PROVIDER_OVERLOADED_CODE, NATIVE_PROVIDER_OVERLOADED_MESSAGE } from "./native-provider-failure.js";
+import {
+  NATIVE_MODEL_REJECTION_MESSAGE,
+  NATIVE_PROVIDER_CAPACITY_MAX_RETRIES,
+  NATIVE_PROVIDER_OVERLOADED_CODE,
+  NATIVE_PROVIDER_OVERLOADED_MESSAGE,
+} from "./native-provider-failure.js";
 
 export const NATIVE_STATUS_ARBITER_POLICY_VERSION = "phase6-v11";
 
@@ -157,13 +162,21 @@ export function arbitrateNativeStatus(input: {
       ],
     };
   }
-  if (input.providerFailureSuperseded) return {
-    policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-    statusAction: "preserve", toStatus: input.priorIssueStatus,
-    reasonCode: "provider_failure_authority_superseded", unblockDescriptor: null, effects: [],
-  };
-  if (input.providerModelRejected && input.terminalState === "failed" &&
-      input.nativeReviewOutcome !== "stale" && input.nativeReviewOutcome !== "resolved") {
+  if (input.providerFailureSuperseded)
+    return {
+      policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
+      statusAction: "preserve",
+      toStatus: input.priorIssueStatus,
+      reasonCode: "provider_failure_authority_superseded",
+      unblockDescriptor: null,
+      effects: [],
+    };
+  if (
+    input.providerModelRejected &&
+    input.terminalState === "failed" &&
+    input.nativeReviewOutcome !== "stale" &&
+    input.nativeReviewOutcome !== "resolved"
+  ) {
     if (input.nativeReviewOutcome === "pending") {
       // The pending review is bound to the worker's status decision and
       // version. Preserve that authority so an explicit retry after a
@@ -183,52 +196,96 @@ export function arbitrateNativeStatus(input: {
       statusAction: "blocked",
       toStatus: "blocked",
       reasonCode: "native_provider_model_rejected",
-      unblockDescriptor: { owner: "board", action: NATIVE_MODEL_REJECTION_MESSAGE },
-      effects: [{ kind: "bind_blocker", owner: "board", action: NATIVE_MODEL_REJECTION_MESSAGE }],
+      unblockDescriptor: {
+        owner: "board",
+        action: NATIVE_MODEL_REJECTION_MESSAGE,
+      },
+      effects: [
+        {
+          kind: "bind_blocker",
+          owner: "board",
+          action: NATIVE_MODEL_REJECTION_MESSAGE,
+        },
+      ],
     };
   }
-  if (input.providerOverloaded && input.terminalState === "failed" &&
-      input.nativeReviewOutcome !== "stale" && input.nativeReviewOutcome !== "resolved") {
-    const held = input.governanceGate || input.hasUnresolvedIssueBlockers || input.hasActivePauseHold || input.priorIssueStatus === "blocked";
-    const exhausted = (input.failureRetryCount ?? 0) >= NATIVE_PROVIDER_CAPACITY_MAX_RETRIES;
-    if (held || (exhausted && input.nativeReviewOutcome === "pending")) return {
-      policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-      statusAction: "preserve", toStatus: input.priorIssueStatus,
-      reasonCode: held ? "native_provider_overloaded_held" : "native_provider_overloaded_exhausted",
-      unblockDescriptor: null, effects: [{ kind: "release_checkout" }],
-    };
+  if (
+    input.providerOverloaded &&
+    input.terminalState === "failed" &&
+    input.nativeReviewOutcome !== "stale" &&
+    input.nativeReviewOutcome !== "resolved"
+  ) {
+    const held =
+      input.governanceGate ||
+      input.hasUnresolvedIssueBlockers ||
+      input.hasActivePauseHold ||
+      input.priorIssueStatus === "blocked";
+    const exhausted =
+      (input.failureRetryCount ?? 0) >= NATIVE_PROVIDER_CAPACITY_MAX_RETRIES;
+    if (held || (exhausted && input.nativeReviewOutcome === "pending"))
+      return {
+        policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
+        statusAction: "preserve",
+        toStatus: input.priorIssueStatus,
+        reasonCode: held
+          ? "native_provider_overloaded_held"
+          : "native_provider_overloaded_exhausted",
+        unblockDescriptor: null,
+        effects: [{ kind: "release_checkout" }],
+      };
     if (exhausted) {
       const action = `${NATIVE_PROVIDER_OVERLOADED_MESSAGE} Automatic retries exhausted; retry later or choose a different model.`;
       return {
         policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-        statusAction: "blocked", toStatus: "blocked", reasonCode: "native_provider_overloaded_exhausted",
+        statusAction: "blocked",
+        toStatus: "blocked",
+        reasonCode: "native_provider_overloaded_exhausted",
         unblockDescriptor: { owner: "board", action },
         effects: [{ kind: "bind_blocker", owner: "board", action }],
       };
     }
     return {
       policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-      statusAction: "preserve", toStatus: input.priorIssueStatus,
-      reasonCode: NATIVE_PROVIDER_OVERLOADED_CODE, unblockDescriptor: null,
+      statusAction: "preserve",
+      toStatus: input.priorIssueStatus,
+      reasonCode: NATIVE_PROVIDER_OVERLOADED_CODE,
+      unblockDescriptor: null,
       effects: [
-        { kind: "schedule_retry", cause: NATIVE_PROVIDER_OVERLOADED_CODE, summary: "Retry after model capacity becomes available.", agentId: input.agentId },
-        ...(input.nativeReviewOutcome === "pending" ? [{ kind: "release_checkout" as const }] : []),
+        {
+          kind: "schedule_retry",
+          cause: NATIVE_PROVIDER_OVERLOADED_CODE,
+          summary: "Retry after model capacity becomes available.",
+          agentId: input.agentId,
+        },
+        ...(input.nativeReviewOutcome === "pending"
+          ? [{ kind: "release_checkout" as const }]
+          : []),
       ],
     };
   }
   if (input.nativeReviewOutcome) {
     return {
       policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-      statusAction: "preserve", toStatus: input.priorIssueStatus,
-      reasonCode: input.nativeReviewOutcome === "pending" ? "native_review_unresolved" : "native_review_action_finished",
+      statusAction: "preserve",
+      toStatus: input.priorIssueStatus,
+      reasonCode:
+        input.nativeReviewOutcome === "pending"
+          ? "native_review_unresolved"
+          : "native_review_action_finished",
       unblockDescriptor: null,
       effects: [
         { kind: "release_checkout" },
-        ...(input.nativeReviewOutcome === "pending" ? [{
-          kind: "record_recovery" as const, cause: "native_review_unresolved",
-          nextAction: "The named reviewer must resolve the pending completion review or explain the concrete blocker. Do not restart the worker's assignment or create another review request.",
-          agentId: input.agentId,
-        }] : []),
+        ...(input.nativeReviewOutcome === "pending"
+          ? [
+              {
+                kind: "record_recovery" as const,
+                cause: "native_review_unresolved",
+                nextAction:
+                  "The named reviewer must resolve the pending completion review or explain the concrete blocker. Do not restart the worker's assignment or create another review request.",
+                agentId: input.agentId,
+              },
+            ]
+          : []),
       ],
     };
   }
@@ -320,13 +377,17 @@ export function arbitrateNativeStatus(input: {
   }
   const unfinishedResponseWait =
     !input.isConversation &&
-    !["authorized", "revoked"].includes(input.externalChatResponseWaitAuthorization ?? "") &&
+    !["authorized", "revoked"].includes(
+      input.externalChatResponseWaitAuthorization ?? "",
+    ) &&
     input.assessment.reportedDisposition === "yielded" &&
     input.assessment.continuation?.kind === "response_wake" &&
     input.assessment.hasBlockingRemainingWork;
   if (
     input.hasUnresolvedIssueBlockers === true &&
-    (["done", "blocked"].includes(input.assessment.reportedDisposition) || unfinishedResponseWait || input.assessment.continuation?.kind === "monitor")
+    (["done", "blocked"].includes(input.assessment.reportedDisposition) ||
+      unfinishedResponseWait ||
+      input.assessment.continuation?.kind === "monitor")
   ) {
     const owner = input.assessment.blocker?.boardOwned
       ? ("board" as const)
@@ -405,8 +466,12 @@ export function arbitrateNativeStatus(input: {
         requestKey: `attention-${index}`,
         prompt: request.summary.slice(0, 1_000),
         detailsMarkdown: input.assessment.summary,
-        ownerUserId: request.ownerClass === "agent" ? null : (input.reviewOwnerUserId ?? null),
-        ownerAgentId: request.ownerClass === "agent" ? request.targetAgentId : null,
+        ownerUserId:
+          request.ownerClass === "agent"
+            ? null
+            : (input.reviewOwnerUserId ?? null),
+        ownerAgentId:
+          request.ownerClass === "agent" ? request.targetAgentId : null,
       })),
     };
   }
@@ -462,23 +527,36 @@ export function arbitrateNativeStatus(input: {
       ],
     };
   }
-  if (input.assessment.reportedDisposition === "yielded" && input.assessment.continuation?.kind === "monitor") {
+  if (
+    input.assessment.reportedDisposition === "yielded" &&
+    input.assessment.continuation?.kind === "monitor"
+  ) {
     if (input.monitorWaitAuthorized) {
       return {
         policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-        statusAction: "preserve", toStatus: input.priorIssueStatus,
-        reasonCode: "scheduled_monitor_waiting", unblockDescriptor: null,
+        statusAction: "preserve",
+        toStatus: input.priorIssueStatus,
+        reasonCode: "scheduled_monitor_waiting",
+        unblockDescriptor: null,
         // The persisted timer owns delivery, never enqueue an immediate wake.
         effects: [{ kind: "release_checkout" }],
       };
     }
     return {
       policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-      statusAction: "preserve", toStatus: input.priorIssueStatus,
-      reasonCode: "monitor_wait_authority_lost", unblockDescriptor: null,
-      effects: [{ kind: "record_finalization_error", cause: "monitor_wait_authority_lost",
-        nextAction: "The scheduled monitor was cleared or became ineligible. Re-establish a valid task action path.",
-        agentId: input.agentId }],
+      statusAction: "preserve",
+      toStatus: input.priorIssueStatus,
+      reasonCode: "monitor_wait_authority_lost",
+      unblockDescriptor: null,
+      effects: [
+        {
+          kind: "record_finalization_error",
+          cause: "monitor_wait_authority_lost",
+          nextAction:
+            "The scheduled monitor was cleared or became ineligible. Re-establish a valid task action path.",
+          agentId: input.agentId,
+        },
+      ],
     };
   }
   if (
@@ -561,7 +639,8 @@ export function arbitrateNativeStatus(input: {
   ) {
     return {
       policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
-      statusAction: "in_progress", toStatus: "in_progress",
+      statusAction: "in_progress",
+      toStatus: "in_progress",
       reasonCode: "native_plan_accepted_waiting_for_continuation",
       unblockDescriptor: null,
       // An answered native plan is not task completion or permission to

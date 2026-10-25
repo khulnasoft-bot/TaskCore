@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { applyIssueExecutionPolicyTransition, normalizeIssueExecutionPolicy, parseIssueExecutionState } from "../services/issue-execution-policy.ts";
-import type { IssueExecutionPolicy, IssueExecutionState } from "@taskcore/shared";
+import {
+  applyIssueExecutionPolicyTransition,
+  normalizeIssueExecutionPolicy,
+  parseIssueExecutionState,
+} from "../services/issue-execution-policy.ts";
+import type {
+  IssueExecutionPolicy,
+  IssueExecutionState,
+} from "@taskcore/shared";
 import { buildExecutionPolicy } from "../../../ui/src/lib/issue-execution-policy.ts";
 
 const coderAgentId = "11111111-1111-4111-8111-111111111111";
@@ -10,7 +17,14 @@ const ctoUserId = "cto-user";
 const boardUserId = "board-user";
 
 function makePolicy(
-  stages: Array<{ type: "review" | "approval"; participants: Array<{ type: "agent" | "user"; agentId?: string; userId?: string }> }>,
+  stages: Array<{
+    type: "review" | "approval";
+    participants: Array<{
+      type: "agent" | "user";
+      agentId?: string;
+      userId?: string;
+    }>;
+  }>,
 ) {
   return normalizeIssueExecutionPolicy({ stages })!;
 }
@@ -47,18 +61,43 @@ describe("normalizeIssueExecutionPolicy", () => {
   it("retains an independent review limit through removing and restoring the last reviewer", () => {
     const original = normalizeIssueExecutionPolicy({
       maxReviewRounds: 4,
-      stages: [{ type: "review", participants: [{ type: "agent", agentId: qaAgentId }] }],
+      stages: [
+        {
+          type: "review",
+          participants: [{ type: "agent", agentId: qaAgentId }],
+        },
+      ],
     });
-    const edited = buildExecutionPolicy({ existingPolicy: original, reviewerValues: [], approverValues: [] });
+    const edited = buildExecutionPolicy({
+      existingPolicy: original,
+      reviewerValues: [],
+      approverValues: [],
+    });
     const saved = normalizeIssueExecutionPolicy(edited);
-    expect(saved).toEqual({ mode: "normal", commentRequired: true, stages: [], maxReviewRounds: 4 });
-    expect(applyIssueExecutionPolicyTransition({
-      issue: { status: "in_progress", assigneeAgentId: coderAgentId },
-      policy: saved, requestedStatus: "done", requestedAssigneePatch: {}, actor: { agentId: coderAgentId },
-    })).toEqual({ patch: {} });
-    expect(normalizeIssueExecutionPolicy(buildExecutionPolicy({
-      existingPolicy: saved, reviewerValues: [`agent:${qaAgentId}`], approverValues: [],
-    }))).toMatchObject({ maxReviewRounds: 4, stages: [{ type: "review" }] });
+    expect(saved).toEqual({
+      mode: "normal",
+      commentRequired: true,
+      stages: [],
+      maxReviewRounds: 4,
+    });
+    expect(
+      applyIssueExecutionPolicyTransition({
+        issue: { status: "in_progress", assigneeAgentId: coderAgentId },
+        policy: saved,
+        requestedStatus: "done",
+        requestedAssigneePatch: {},
+        actor: { agentId: coderAgentId },
+      }),
+    ).toEqual({ patch: {} });
+    expect(
+      normalizeIssueExecutionPolicy(
+        buildExecutionPolicy({
+          existingPolicy: saved,
+          reviewerValues: [`agent:${qaAgentId}`],
+          approverValues: [],
+        }),
+      ),
+    ).toMatchObject({ maxReviewRounds: 4, stages: [{ type: "review" }] });
   });
 
   it("throws when all participants are invalid (missing agentId)", () => {
@@ -87,7 +126,10 @@ describe("normalizeIssueExecutionPolicy", () => {
   it("assigns UUIDs to stages and participants", () => {
     const result = normalizeIssueExecutionPolicy({
       stages: [
-        { type: "review", participants: [{ type: "agent", agentId: qaAgentId }] },
+        {
+          type: "review",
+          participants: [{ type: "agent", agentId: qaAgentId }],
+        },
       ],
     });
     expect(result!.stages[0].id).toBeDefined();
@@ -98,7 +140,10 @@ describe("normalizeIssueExecutionPolicy", () => {
     const result = normalizeIssueExecutionPolicy({
       commentRequired: false,
       stages: [
-        { type: "review", participants: [{ type: "agent", agentId: qaAgentId }] },
+        {
+          type: "review",
+          participants: [{ type: "agent", agentId: qaAgentId }],
+        },
       ],
     });
     expect(result!.commentRequired).toBe(true);
@@ -107,7 +152,10 @@ describe("normalizeIssueExecutionPolicy", () => {
   it("defaults mode to normal", () => {
     const result = normalizeIssueExecutionPolicy({
       stages: [
-        { type: "review", participants: [{ type: "agent", agentId: qaAgentId }] },
+        {
+          type: "review",
+          participants: [{ type: "agent", agentId: qaAgentId }],
+        },
       ],
     });
     expect(result!.mode).toBe("normal");
@@ -128,7 +176,9 @@ describe("normalizeIssueExecutionPolicy", () => {
   });
 
   it("throws for invalid input", () => {
-    expect(() => normalizeIssueExecutionPolicy({ stages: [{ type: "invalid_type" }] })).toThrow();
+    expect(() =>
+      normalizeIssueExecutionPolicy({ stages: [{ type: "invalid_type" }] }),
+    ).toThrow();
   });
 
   it("keeps monitor-only policies", () => {
@@ -323,7 +373,8 @@ describe("issue execution policy transitions", () => {
 
     it("lets a reviewer provide loose instructions for the next approval stage", () => {
       const reviewStageId = policy.stages[0].id;
-      const approvalInstructions = "Please decide whether this is ready to ship, with any launch caveats.";
+      const approvalInstructions =
+        "Please decide whether this is ready to ship, with any launch caveats.";
       const result = applyIssueExecutionPolicyTransition({
         issue: {
           status: "in_review",
@@ -337,7 +388,9 @@ describe("issue execution policy transitions", () => {
             currentStageType: "review",
             currentParticipant: { type: "agent", agentId: qaAgentId },
             returnAssignee: { type: "agent", agentId: coderAgentId },
-            reviewRequest: { instructions: "Review the implementation details." },
+            reviewRequest: {
+              instructions: "Review the implementation details.",
+            },
             completedStageIds: [],
             lastDecisionId: null,
             lastDecisionOutcome: null,
@@ -389,7 +442,10 @@ describe("issue execution policy transitions", () => {
 
       expect(result.patch.executionState).toMatchObject({
         status: "completed",
-        completedStageIds: expect.arrayContaining([reviewStageId, approvalStageId]),
+        completedStageIds: expect.arrayContaining([
+          reviewStageId,
+          approvalStageId,
+        ]),
         lastDecisionOutcome: "approved",
       });
       expect(result.decision).toMatchObject({
@@ -726,7 +782,10 @@ describe("issue execution policy transitions", () => {
         commentBody: "Handing the task back",
       });
 
-      expect(result.patch).toEqual({ executionState: null, status: "in_progress" });
+      expect(result.patch).toEqual({
+        executionState: null,
+        status: "in_progress",
+      });
       expect(result.decision).toBeUndefined();
       expect(result.workflowControlledAssignment).toBeUndefined();
     });
@@ -757,7 +816,10 @@ describe("issue execution policy transitions", () => {
         commentBody: "Unassigning the reviewer",
       });
 
-      expect(result.patch).toEqual({ executionState: null, status: "in_progress" });
+      expect(result.patch).toEqual({
+        executionState: null,
+        status: "in_progress",
+      });
       expect(result.decision).toBeUndefined();
       expect(result.workflowControlledAssignment).toBeUndefined();
     });
@@ -823,7 +885,9 @@ describe("issue execution policy transitions", () => {
           actor: { agentId: qaAgentId },
           commentBody: "",
         }),
-      ).toThrow(/Approving a review or approval stage requires a comment.*same PATCH request.*prior comments are not considered/);
+      ).toThrow(
+        /Approving a review or approval stage requires a comment.*same PATCH request.*prior comments are not considered/,
+      );
     });
 
     it("changes requested without comment throws", () => {
@@ -852,7 +916,9 @@ describe("issue execution policy transitions", () => {
           actor: { agentId: qaAgentId },
           commentBody: null,
         }),
-      ).toThrow(/Requesting changes requires a comment.*same PATCH request.*prior comments are not considered/);
+      ).toThrow(
+        /Requesting changes requires a comment.*same PATCH request.*prior comments are not considered/,
+      );
     });
 
     it("whitespace-only comment is treated as empty", () => {
@@ -1277,9 +1343,18 @@ describe("issue execution policy transitions", () => {
   describe("final stage completion terminates the policy (#7893)", () => {
     function threeStagePolicy() {
       return makePolicy([
-        { type: "review", participants: [{ type: "agent", agentId: qaAgentId }] },
-        { type: "review", participants: [{ type: "agent", agentId: ctoAgentId }] },
-        { type: "approval", participants: [{ type: "user", userId: ctoUserId }] },
+        {
+          type: "review",
+          participants: [{ type: "agent", agentId: qaAgentId }],
+        },
+        {
+          type: "review",
+          participants: [{ type: "agent", agentId: ctoAgentId }],
+        },
+        {
+          type: "approval",
+          participants: [{ type: "user", userId: ctoUserId }],
+        },
       ]);
     }
 
@@ -1321,7 +1396,10 @@ describe("issue execution policy transitions", () => {
       // Must terminate the policy, not wrap around to the first stage.
       expect(result.patch.executionState).toMatchObject({
         status: "completed",
-        completedStageIds: expect.arrayContaining([...staleStageIds, approvalStageId]),
+        completedStageIds: expect.arrayContaining([
+          ...staleStageIds,
+          approvalStageId,
+        ]),
         lastDecisionOutcome: "approved",
       });
       expect(result.patch.status).toBeUndefined();
@@ -1527,7 +1605,10 @@ describe("issue execution policy transitions", () => {
   describe("user participants", () => {
     it("handles user-type reviewer participant correctly", () => {
       const policy = makePolicy([
-        { type: "review", participants: [{ type: "user", userId: boardUserId }] },
+        {
+          type: "review",
+          participants: [{ type: "user", userId: boardUserId }],
+        },
       ]);
 
       const result = applyIssueExecutionPolicyTransition({
@@ -1678,7 +1759,9 @@ describe("issue execution policy transitions", () => {
         monitorExplicitlyUpdated: true,
       });
 
-      expect(result.patch.monitorNextCheckAt).toEqual(new Date("2026-04-11T12:30:00.000Z"));
+      expect(result.patch.monitorNextCheckAt).toEqual(
+        new Date("2026-04-11T12:30:00.000Z"),
+      );
       expect(result.patch.monitorScheduledBy).toBe("board");
       expect(result.patch.executionState).toMatchObject({
         status: "idle",
@@ -1817,7 +1900,10 @@ describe("review round circuit breaker", () => {
   const policy = reviewOnlyPolicy();
   const reviewStageId = policy.stages[0].id;
 
-  function reviewPendingIssue(overrides: Record<string, unknown> = {}, stateOverrides: Record<string, unknown> = {}) {
+  function reviewPendingIssue(
+    overrides: Record<string, unknown> = {},
+    stateOverrides: Record<string, unknown> = {},
+  ) {
     return {
       status: "in_review",
       assigneeAgentId: qaAgentId,
@@ -1951,7 +2037,9 @@ describe("review round circuit breaker", () => {
         actor: { agentId: qaAgentId },
         commentBody: "Agent trying to close it anyway",
       }),
-    ).toThrow("Only the escalated reviewer can advance the current execution stage");
+    ).toThrow(
+      "Only the escalated reviewer can advance the current execution stage",
+    );
   });
 
   it("rejects a non-escalated actor reassigning the issue during the hold", () => {
@@ -1968,7 +2056,9 @@ describe("review round circuit breaker", () => {
         requestedAssigneePatch: { assigneeAgentId: coderAgentId },
         actor: { agentId: coderAgentId },
       }),
-    ).toThrow("Only the escalated reviewer can advance the current execution stage");
+    ).toThrow(
+      "Only the escalated reviewer can advance the current execution stage",
+    );
   });
 
   it("re-asserts the hold when the assignee has drifted away from the escalated human", () => {
@@ -2046,7 +2136,10 @@ describe("review round circuit breaker", () => {
 
   it("keeps handing back to the executor when no responsible human exists", () => {
     const result = applyIssueExecutionPolicyTransition({
-      issue: reviewPendingIssue({ responsibleUserId: null }, { changesRequestedCount: 9 }),
+      issue: reviewPendingIssue(
+        { responsibleUserId: null },
+        { changesRequestedCount: 9 },
+      ),
       policy,
       requestedStatus: "in_progress",
       requestedAssigneePatch: {},
@@ -2064,7 +2157,12 @@ describe("review round circuit breaker", () => {
 
   it("honors a policy maxReviewRounds override", () => {
     const strictPolicy = normalizeIssueExecutionPolicy({
-      stages: [{ type: "review", participants: [{ type: "agent", agentId: qaAgentId }] }],
+      stages: [
+        {
+          type: "review",
+          participants: [{ type: "agent", agentId: qaAgentId }],
+        },
+      ],
       maxReviewRounds: 1,
     })!;
     const stageId = strictPolicy.stages[0].id;

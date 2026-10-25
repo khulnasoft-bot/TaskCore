@@ -45,7 +45,10 @@ function stableStringify(value: unknown): string {
   }
   if (value && typeof value === "object") {
     const rec = value as Record<string, unknown>;
-    return `{${Object.keys(rec).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(rec[key])}`).join(",")}}`;
+    return `{${Object.keys(rec)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(rec[key])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(value);
 }
@@ -94,7 +97,9 @@ function getRuntimeServiceRegistryPath(serviceKey: string) {
   return path.resolve(getRuntimeServicesDir(), `${serviceKey}.json`);
 }
 
-function normalizeRegistryRecord(raw: unknown): LocalServiceRegistryRecord | null {
+function normalizeRegistryRecord(
+  raw: unknown,
+): LocalServiceRegistryRecord | null {
   if (!raw || typeof raw !== "object") return null;
   const rec = raw as Record<string, unknown>;
   if (
@@ -121,14 +126,24 @@ function normalizeRegistryRecord(raw: unknown): LocalServiceRegistryRecord | nul
     port: typeof rec.port === "number" ? rec.port : null,
     url: typeof rec.url === "string" ? rec.url : null,
     pid: rec.pid,
-    processGroupId: typeof rec.processGroupId === "number" ? rec.processGroupId : null,
+    processGroupId:
+      typeof rec.processGroupId === "number" ? rec.processGroupId : null,
     provider: "local_process",
-    runtimeServiceId: typeof rec.runtimeServiceId === "string" ? rec.runtimeServiceId : null,
+    runtimeServiceId:
+      typeof rec.runtimeServiceId === "string" ? rec.runtimeServiceId : null,
     reuseKey: typeof rec.reuseKey === "string" ? rec.reuseKey : null,
-    startedAt: typeof rec.startedAt === "string" ? rec.startedAt : new Date().toISOString(),
-    lastSeenAt: typeof rec.lastSeenAt === "string" ? rec.lastSeenAt : new Date().toISOString(),
+    startedAt:
+      typeof rec.startedAt === "string"
+        ? rec.startedAt
+        : new Date().toISOString(),
+    lastSeenAt:
+      typeof rec.lastSeenAt === "string"
+        ? rec.lastSeenAt
+        : new Date().toISOString(),
     metadata:
-      rec.metadata && typeof rec.metadata === "object" && !Array.isArray(rec.metadata)
+      rec.metadata &&
+      typeof rec.metadata === "object" &&
+      !Array.isArray(rec.metadata)
         ? (rec.metadata as Record<string, unknown>)
         : null,
   };
@@ -162,7 +177,9 @@ export function createLocalServiceKey(input: LocalServiceIdentityInput) {
   return `${sanitizeServiceKeySegment(input.profileKind, "service")}-${sanitizeServiceKeySegment(input.serviceName, "service")}-${digest}`;
 }
 
-export async function writeLocalServiceRegistryRecord(record: LocalServiceRegistryRecord) {
+export async function writeLocalServiceRegistryRecord(
+  record: LocalServiceRegistryRecord,
+) {
   await fs.mkdir(getRuntimeServicesDir(), { recursive: true });
   await fs.writeFile(
     getRuntimeServiceRegistryPath(record.serviceKey),
@@ -176,7 +193,9 @@ export async function removeLocalServiceRegistryRecord(serviceKey: string) {
 }
 
 export async function readLocalServiceRegistryRecord(serviceKey: string) {
-  return await safeReadRegistryRecord(getRuntimeServiceRegistryPath(serviceKey));
+  return await safeReadRegistryRecord(
+    getRuntimeServiceRegistryPath(serviceKey),
+  );
 }
 
 export async function listLocalServiceRegistryRecords(filter?: {
@@ -184,19 +203,28 @@ export async function listLocalServiceRegistryRecords(filter?: {
   metadata?: Record<string, unknown>;
 }) {
   try {
-    const entries = await fs.readdir(getRuntimeServicesDir(), { withFileTypes: true });
+    const entries = await fs.readdir(getRuntimeServicesDir(), {
+      withFileTypes: true,
+    });
     const records = await Promise.all(
       entries
         .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-        .map((entry) => safeReadRegistryRecord(path.resolve(getRuntimeServicesDir(), entry.name))),
+        .map((entry) =>
+          safeReadRegistryRecord(
+            path.resolve(getRuntimeServicesDir(), entry.name),
+          ),
+        ),
     );
 
     return records
       .filter((record): record is LocalServiceRegistryRecord => record !== null)
       .filter((record) => {
-        if (filter?.profileKind && record.profileKind !== filter.profileKind) return false;
+        if (filter?.profileKind && record.profileKind !== filter.profileKind)
+          return false;
         if (!filter?.metadata) return true;
-        return Object.entries(filter.metadata).every(([key, value]) => record.metadata?.[key] === value);
+        return Object.entries(filter.metadata).every(
+          ([key, value]) => record.metadata?.[key] === value,
+        );
       })
       .sort((left, right) => left.serviceKey.localeCompare(right.serviceKey));
   } catch {
@@ -211,12 +239,17 @@ export async function findLocalServiceRegistryRecordByRuntimeServiceId(input: {
   const records = await listLocalServiceRegistryRecords(
     input.profileKind ? { profileKind: input.profileKind } : undefined,
   );
-  const record = records.find((entry) => entry.runtimeServiceId === input.runtimeServiceId) ?? null;
+  const record =
+    records.find(
+      (entry) => entry.runtimeServiceId === input.runtimeServiceId,
+    ) ?? null;
   if (!record) return null;
 
   let candidate = record;
   if (!isPidAlive(candidate.pid)) {
-    const ownerPid = candidate.port ? await readLocalServicePortOwner(candidate.port) : null;
+    const ownerPid = candidate.port
+      ? await readLocalServicePortOwner(candidate.port)
+      : null;
     if (!ownerPid) {
       await removeLocalServiceRegistryRecord(candidate.serviceKey);
       return null;
@@ -224,7 +257,10 @@ export async function findLocalServiceRegistryRecordByRuntimeServiceId(input: {
     candidate = {
       ...candidate,
       pid: ownerPid,
-      processGroupId: candidate.processGroupId && isPidAlive(candidate.processGroupId) ? candidate.processGroupId : ownerPid,
+      processGroupId:
+        candidate.processGroupId && isPidAlive(candidate.processGroupId)
+          ? candidate.processGroupId
+          : ownerPid,
       lastSeenAt: new Date().toISOString(),
     };
     await writeLocalServiceRegistryRecord(candidate);
@@ -254,7 +290,12 @@ export function isPidAlive(pid: number) {
 
 export function isProcessGroupAlive(processGroupId: number | null | undefined) {
   if (process.platform === "win32") return false;
-  if (typeof processGroupId !== "number" || !Number.isInteger(processGroupId) || processGroupId <= 0) return false;
+  if (
+    typeof processGroupId !== "number" ||
+    !Number.isInteger(processGroupId) ||
+    processGroupId <= 0
+  )
+    return false;
   try {
     process.kill(-processGroupId, 0);
   } catch {
@@ -283,7 +324,10 @@ function readLinuxProcessGroupActivity(processGroupId: number): boolean | null {
       const stat = fsSync.readFileSync(`/proc/${entry.name}/stat`, "utf8");
       const commandEnd = stat.lastIndexOf(")");
       if (commandEnd < 0) continue;
-      const fields = stat.slice(commandEnd + 1).trim().split(/\s+/);
+      const fields = stat
+        .slice(commandEnd + 1)
+        .trim()
+        .split(/\s+/);
       const state = fields[0];
       const memberProcessGroupId = Number.parseInt(fields[2] ?? "", 10);
       if (memberProcessGroupId !== processGroupId) continue;
@@ -308,7 +352,9 @@ function normalizeCommandToken(value: string) {
   const unquoted = value.replace(/^["']|["']$/g, "");
   const basename = path.basename(unquoted.replace(/\\/g, "/"));
   const launcher = basename.replace(/\.(?:cjs|mjs|js|cmd|exe)$/i, "");
-  return /^(?:bun|node|nodejs|npm|npx|pnpm|yarn)$/i.test(launcher) ? launcher : unquoted;
+  return /^(?:bun|node|nodejs|npm|npx|pnpm|yarn)$/i.test(launcher)
+    ? launcher
+    : unquoted;
 }
 
 /**
@@ -365,30 +411,46 @@ export function doesLocalServiceCommandLineMatch(input: {
   recordedCommand: string;
   serviceName: string;
 }) {
-  const normalize = (value: string) => value.replace(/["']/g, "").replace(/\s+/g, " ").trim();
+  const normalize = (value: string) =>
+    value.replace(/["']/g, "").replace(/\s+/g, " ").trim();
   const normalizedCommandLine = normalize(input.commandLine);
   const normalizedRecordedCommand = normalize(input.recordedCommand);
   if (
-    normalizedCommandLine.includes(normalizedRecordedCommand)
-    || normalizedCommandLine.includes(input.serviceName)
+    normalizedCommandLine.includes(normalizedRecordedCommand) ||
+    normalizedCommandLine.includes(input.serviceName)
   ) {
     return true;
   }
 
-  const actualTokens = tokenizeCommandLine(input.commandLine).map(normalizeCommandToken);
-  const recordedTokens = tokenizeCommandLine(input.recordedCommand).map(normalizeCommandToken);
-  if (recordedTokens.length === 0 || recordedTokens.length > actualTokens.length) return false;
+  const actualTokens = tokenizeCommandLine(input.commandLine).map(
+    normalizeCommandToken,
+  );
+  const recordedTokens = tokenizeCommandLine(input.recordedCommand).map(
+    normalizeCommandToken,
+  );
+  if (
+    recordedTokens.length === 0 ||
+    recordedTokens.length > actualTokens.length
+  )
+    return false;
 
-  return actualTokens.some((_, start) => recordedTokens.every(
-    (token, offset) => actualTokens[start + offset] === token,
-  ));
+  return actualTokens.some((_, start) =>
+    recordedTokens.every(
+      (token, offset) => actualTokens[start + offset] === token,
+    ),
+  );
 }
 
 async function isLikelyMatchingCommand(record: LocalServiceRegistryRecord) {
   if (process.platform === "win32") return true;
   if (!isLocalServiceCommandLineComparable(record.command)) return true;
   try {
-    const { stdout } = await execFileAsync("ps", ["-o", "command=", "-p", String(record.pid)]);
+    const { stdout } = await execFileAsync("ps", [
+      "-o",
+      "command=",
+      "-p",
+      String(record.pid),
+    ]);
     const commandLine = stdout.trim();
     if (!commandLine) return false;
     return doesLocalServiceCommandLineMatch({
@@ -412,8 +474,8 @@ export async function findAdoptableLocalService(input: {
   url?: string | null;
 }) {
   const record =
-    await readLocalServiceRegistryRecord(input.serviceKey)
-    ?? await adoptLocalServiceFromPortOwner(input);
+    (await readLocalServiceRegistryRecord(input.serviceKey)) ??
+    (await adoptLocalServiceFromPortOwner(input));
   if (!record) return null;
 
   if (!isPidAlive(record.pid)) {
@@ -429,16 +491,28 @@ export async function findAdoptableLocalService(input: {
     return null;
   }
   if (input.command && record.command !== input.command) return null;
-  if (input.cwd && path.resolve(record.cwd) !== path.resolve(input.cwd)) return null;
-  if (input.envFingerprint && record.envFingerprint !== input.envFingerprint) return null;
-  if (input.port !== undefined && input.port !== null && record.port !== input.port) return null;
+  if (input.cwd && path.resolve(record.cwd) !== path.resolve(input.cwd))
+    return null;
+  if (input.envFingerprint && record.envFingerprint !== input.envFingerprint)
+    return null;
+  if (
+    input.port !== undefined &&
+    input.port !== null &&
+    record.port !== input.port
+  )
+    return null;
   return record;
 }
 
 export async function readLocalServiceProcessGroupId(pid: number) {
   if (process.platform === "win32") return null;
   try {
-    const { stdout } = await execFileAsync("ps", ["-o", "pgid=", "-p", String(pid)]);
+    const { stdout } = await execFileAsync("ps", [
+      "-o",
+      "pgid=",
+      "-p",
+      String(pid),
+    ]);
     const parsed = Number.parseInt(stdout.trim(), 10);
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
   } catch {
@@ -446,7 +520,10 @@ export async function readLocalServiceProcessGroupId(pid: number) {
   }
 }
 
-export async function isLocalServiceProcessOwnedBy(pid: number, ownerProcessId: number) {
+export async function isLocalServiceProcessOwnedBy(
+  pid: number,
+  ownerProcessId: number,
+) {
   if (pid === ownerProcessId) return true;
   if (process.platform !== "win32") {
     return (await readLocalServiceProcessGroupId(pid)) === ownerProcessId;
@@ -456,7 +533,7 @@ export async function isLocalServiceProcessOwnedBy(pid: number, ownerProcessId: 
     const script = [
       `$currentProcessId = ${pid}`,
       "while ($currentProcessId -gt 0) {",
-      "  $process = Get-CimInstance Win32_Process -Filter \"ProcessId = $currentProcessId\" -ErrorAction SilentlyContinue",
+      '  $process = Get-CimInstance Win32_Process -Filter "ProcessId = $currentProcessId" -ErrorAction SilentlyContinue',
       "  if ($null -eq $process) { break }",
       "  $parentProcessId = [int]$process.ParentProcessId",
       "  Write-Output $parentProcessId",
@@ -495,13 +572,17 @@ async function adoptLocalServiceFromPortOwner(input: {
 
   if (input.cwd) {
     const ownerCwd = await readLocalServiceProcessCwd(ownerPid);
-    if (!ownerCwd || !(await isLocalServiceProcessInWorkspace(ownerCwd, input.cwd))) {
+    if (
+      !ownerCwd ||
+      !(await isLocalServiceProcessInWorkspace(ownerCwd, input.cwd))
+    ) {
       return null;
     }
   }
 
   const processGroupId = await readLocalServiceProcessGroupId(ownerPid);
-  const pid = processGroupId && isPidAlive(processGroupId) ? processGroupId : ownerPid;
+  const pid =
+    processGroupId && isPidAlive(processGroupId) ? processGroupId : ownerPid;
   const now = new Date().toISOString();
   const record: LocalServiceRegistryRecord = {
     version: 1,
@@ -548,10 +629,17 @@ export async function touchLocalServiceRegistryRecord(
 export async function terminateLocalService(
   record: Pick<LocalServiceRegistryRecord, "pid" | "processGroupId"> &
     Partial<Pick<LocalServiceRegistryRecord, "port">>,
-  opts?: { signal?: NodeJS.Signals; forceAfterMs?: number; verifyAfterMs?: number },
+  opts?: {
+    signal?: NodeJS.Signals;
+    forceAfterMs?: number;
+    verifyAfterMs?: number;
+  },
 ) {
   const signal = opts?.signal ?? "SIGTERM";
-  const targetProcessGroup = process.platform !== "win32" && record.processGroupId && record.processGroupId > 0;
+  const targetProcessGroup =
+    process.platform !== "win32" &&
+    record.processGroupId &&
+    record.processGroupId > 0;
 
   const targetIsGone = async () => {
     const targetAlive = targetProcessGroup
@@ -561,7 +649,9 @@ export async function terminateLocalService(
     if (!record.port) return true;
     const portOwnerPid = await readLocalServicePortOwner(record.port);
     if (!portOwnerPid) return true;
-    const ownerProcessId = targetProcessGroup ? record.processGroupId! : record.pid;
+    const ownerProcessId = targetProcessGroup
+      ? record.processGroupId!
+      : record.pid;
     return !(await isLocalServiceProcessOwnedBy(portOwnerPid, ownerProcessId));
   };
 
@@ -614,16 +704,29 @@ export async function readLocalServicePortOwner(port: number) {
         if (columns.length < 5 || columns[0]?.toUpperCase() !== "TCP") continue;
         const localAddress = columns[1] ?? "";
         const separatorIndex = localAddress.lastIndexOf(":");
-        const localPort = Number.parseInt(localAddress.slice(separatorIndex + 1), 10);
+        const localPort = Number.parseInt(
+          localAddress.slice(separatorIndex + 1),
+          10,
+        );
         const state = columns.at(-2)?.toUpperCase();
         const pid = Number.parseInt(columns.at(-1) ?? "", 10);
-        if (localPort === port && state === "LISTENING" && Number.isInteger(pid) && pid > 0) {
+        if (
+          localPort === port &&
+          state === "LISTENING" &&
+          Number.isInteger(pid) &&
+          pid > 0
+        ) {
           return pid;
         }
       }
       return null;
     }
-    const { stdout } = await execFileAsync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"]);
+    const { stdout } = await execFileAsync("lsof", [
+      "-nP",
+      `-iTCP:${port}`,
+      "-sTCP:LISTEN",
+      "-t",
+    ]);
     const firstPid = stdout
       .split("\n")
       .map((line) => Number.parseInt(line.trim(), 10))
@@ -664,7 +767,14 @@ export async function readLocalServiceProcessCwd(pid: number) {
   }
   if (process.platform === "darwin") {
     try {
-      const { stdout } = await execFileAsync("lsof", ["-a", "-d", "cwd", "-p", String(pid), "-F0n"]);
+      const { stdout } = await execFileAsync("lsof", [
+        "-a",
+        "-d",
+        "cwd",
+        "-p",
+        String(pid),
+        "-F0n",
+      ]);
       // Each field ends with NUL. The newline that ends a field set carries
       // into the next field, so drop it before reading the `n` tag; anything
       // after the tag is the path exactly as lsof reported it.
@@ -680,29 +790,49 @@ export async function readLocalServiceProcessCwd(pid: number) {
   return null;
 }
 
-export async function isLocalServiceProcessInWorkspace(processCwd: string, workspaceCwd: string) {
+export async function isLocalServiceProcessInWorkspace(
+  processCwd: string,
+  workspaceCwd: string,
+) {
   try {
     const [resolvedProcessCwd, resolvedWorkspaceCwd] = await Promise.all([
       fs.realpath(processCwd),
       fs.realpath(workspaceCwd),
     ]);
-    const relativePath = path.relative(resolvedWorkspaceCwd, resolvedProcessCwd);
-    return relativePath === "" || (!relativePath.startsWith(`..${path.sep}`) && relativePath !== "..");
+    const relativePath = path.relative(
+      resolvedWorkspaceCwd,
+      resolvedProcessCwd,
+    );
+    return (
+      relativePath === "" ||
+      (!relativePath.startsWith(`..${path.sep}`) && relativePath !== "..")
+    );
   } catch {
     return false;
   }
 }
 
-export async function isLocalServiceRegistryCwdCompatible(processCwd: string | null, workspaceCwd: string) {
-  if (!processCwd) return process.platform !== "linux" && process.platform !== "darwin";
+export async function isLocalServiceRegistryCwdCompatible(
+  processCwd: string | null,
+  workspaceCwd: string,
+) {
+  if (!processCwd)
+    return process.platform !== "linux" && process.platform !== "darwin";
   return isLocalServiceProcessInWorkspace(processCwd, workspaceCwd);
 }
 
-async function doesLocalServiceRecordMatchCwd(record: LocalServiceRegistryRecord) {
+async function doesLocalServiceRecordMatchCwd(
+  record: LocalServiceRegistryRecord,
+) {
   if (!record.port) return true;
   const ownerPid = await readLocalServicePortOwner(record.port);
   if (!ownerPid) return false;
-  if (!(await isLocalServiceProcessOwnedBy(ownerPid, record.processGroupId ?? record.pid))) {
+  if (
+    !(await isLocalServiceProcessOwnedBy(
+      ownerPid,
+      record.processGroupId ?? record.pid,
+    ))
+  ) {
     return false;
   }
   const ownerCwd = await readLocalServiceProcessCwd(ownerPid);

@@ -17,7 +17,9 @@ import {
 } from "./clean-room.js";
 
 async function exposedOperations(): Promise<Set<string>> {
-  const { identity, input } = createCapabilityCleanRoomSessionInput({ workingDirectory: "/tmp/none" });
+  const { identity, input } = createCapabilityCleanRoomSessionInput({
+    workingDirectory: "/tmp/none",
+  });
   const port = new CapabilityMockControlPlaneAdapter(input.seed);
   await port.start();
   const context = await port.openFixtureRun({
@@ -38,7 +40,9 @@ async function exposedOperations(): Promise<Set<string>> {
     input.explicitClaims ?? [],
   );
   const exposed = new Set(
-    exposedCapabilitySemanticDescriptors(policy).map((descriptor) => descriptor.operationId),
+    exposedCapabilitySemanticDescriptors(policy).map(
+      (descriptor) => descriptor.operationId,
+    ),
   );
   await port.stop();
   return exposed;
@@ -46,7 +50,10 @@ async function exposedOperations(): Promise<Set<string>> {
 
 describe("Capability clean-room seed", () => {
   it("seeds only a company, an agent, and one blank work issue", () => {
-    const identity = createCapabilityCleanRoomIdentity({ token: "abc12345", sequence: 4242 });
+    const identity = createCapabilityCleanRoomIdentity({
+      token: "abc12345",
+      sequence: 4242,
+    });
     const state = createCapabilityCleanRoomSeed(identity);
 
     expect(state.company.id).toBe("company-cleanroom-abc12345");
@@ -66,7 +73,10 @@ describe("Capability clean-room seed", () => {
   });
 
   it("refuses a seed that carries a transcript or any other prior record", () => {
-    const identity = createCapabilityCleanRoomIdentity({ token: "abc12345", sequence: 1 });
+    const identity = createCapabilityCleanRoomIdentity({
+      token: "abc12345",
+      sequence: 1,
+    });
     const seeded = createCapabilityCleanRoomSeed(identity);
     seeded.comments.push({
       id: "comment-1",
@@ -76,13 +86,21 @@ describe("Capability clean-room seed", () => {
       createdAt: "2026-08-10T00:00:00.000Z",
     });
 
-    expect(() => assertCapabilityCleanRoomSeedIsBlank(seeded)).toThrow(/must be blank; seeded: comments/);
+    expect(() => assertCapabilityCleanRoomSeedIsBlank(seeded)).toThrow(
+      /must be blank; seeded: comments/,
+    );
   });
 
   it("mints a distinct mock tenant on every open", () => {
-    const identities = Array.from({ length: 8 }, () => createCapabilityCleanRoomIdentity());
-    expect(new Set(identities.map((identity) => identity.companyId)).size).toBe(8);
-    expect(new Set(identities.map((identity) => identity.actorId)).size).toBe(8);
+    const identities = Array.from({ length: 8 }, () =>
+      createCapabilityCleanRoomIdentity(),
+    );
+    expect(new Set(identities.map((identity) => identity.companyId)).size).toBe(
+      8,
+    );
+    expect(new Set(identities.map((identity) => identity.actorId)).size).toBe(
+      8,
+    );
     expect(new Set(identities.map((identity) => identity.taskId)).size).toBe(8);
     for (const identity of identities) {
       expect(identity.identifier.startsWith("MCK-")).toBe(true);
@@ -108,7 +126,9 @@ describe("Capability clean-room exposure profile", () => {
       "request_approval",
       "finish_task",
     ]) {
-      expect(exposed, `expected ${operationId} to be exposed`).toContain(operationId);
+      expect(exposed, `expected ${operationId} to be exposed`).toContain(
+        operationId,
+      );
     }
   });
 
@@ -119,7 +139,9 @@ describe("Capability clean-room exposure profile", () => {
       "control_workspace_service",
       "generic_api_request",
     ]) {
-      expect(exposed, `expected ${operationId} to be withheld`).not.toContain(operationId);
+      expect(exposed, `expected ${operationId} to be withheld`).not.toContain(
+        operationId,
+      );
     }
     for (const claim of CAPABILITY_CLEAN_ROOM_WITHHELD_CLAIMS) {
       expect(CAPABILITY_CLEAN_ROOM_CLAIMS).not.toContain(claim);
@@ -128,9 +150,14 @@ describe("Capability clean-room exposure profile", () => {
 
   it("only names claims the accepted catalog actually requires", () => {
     const catalogClaims = new Set(
-      CAPABILITY_SEMANTIC_TOOL_CATALOG.flatMap((descriptor) => descriptor.requiredClaims),
+      CAPABILITY_SEMANTIC_TOOL_CATALOG.flatMap(
+        (descriptor) => descriptor.requiredClaims,
+      ),
     );
-    for (const claim of [...CAPABILITY_CLEAN_ROOM_CLAIMS, ...CAPABILITY_CLEAN_ROOM_WITHHELD_CLAIMS]) {
+    for (const claim of [
+      ...CAPABILITY_CLEAN_ROOM_CLAIMS,
+      ...CAPABILITY_CLEAN_ROOM_WITHHELD_CLAIMS,
+    ]) {
       // `control_plane:*` claims are enforced at the mock command boundary
       // rather than by a catalog descriptor, so they are exempt.
       if (claim.startsWith("control_plane:")) continue;

@@ -4,7 +4,10 @@ import { webcrypto } from "node:crypto";
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { CompanyPortabilityImportResult, CompanyPortabilityPreviewResult } from "@taskcore/shared";
+import type {
+  CompanyPortabilityImportResult,
+  CompanyPortabilityPreviewResult,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/client";
 import type { CompanyImportJobAccepted } from "../api/companies";
@@ -62,7 +65,8 @@ vi.mock("../api/companies", () => ({
 // Keep the real sessionStorage bookkeeping so reload-resume is exercised, but
 // make the poll delay instant so tests never wait the real 3s interval.
 vi.mock("../lib/import-job-watch", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../lib/import-job-watch")>();
+  const actual =
+    await importOriginal<typeof import("../lib/import-job-watch")>();
   return { ...actual, waitForNextImportJobPoll: () => Promise.resolve() };
 });
 
@@ -113,18 +117,24 @@ vi.mock("../context/ToastContext", () => ({
 
 vi.mock("@/components/ui/tooltip", () => ({
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  TooltipContent: ({ children }: { children: ReactNode }) => (
+    <span>{children}</span>
+  ),
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("../components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  MarkdownBody: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 // MarkdownEditor pulls in @mdxeditor/editor, whose sandpack dependency inserts
 // CSS rules jsdom cannot parse; the editor is never exercised by these tests.
 vi.mock("../components/MarkdownEditor", () => ({
-  MarkdownEditor: ({ value }: { value?: string }) => <textarea readOnly value={value ?? ""} />,
+  MarkdownEditor: ({ value }: { value?: string }) => (
+    <textarea readOnly value={value ?? ""} />
+  ),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -154,7 +164,8 @@ async function settle(times = 6) {
 const previewFiles = {
   ".taskcore.yaml": 'schema: "taskcore/v1"\n',
   "agents/coder/AGENTS.md": "---\nname: Coder\n---\n\nYou write code.\n",
-  "tasks/weekly-report/TASK.md": "---\nname: Weekly Report\nrecurring: true\n---\n\nSend the report.\n",
+  "tasks/weekly-report/TASK.md":
+    "---\nname: Weekly Report\nrecurring: true\n---\n\nSend the report.\n",
 };
 
 function buildPreviewResult(): CompanyPortabilityPreviewResult {
@@ -166,14 +177,42 @@ function buildPreviewResult(): CompanyPortabilityPreviewResult {
     selectedAgentSlugs: ["coder"],
     plan: {
       companyAction: "create",
-      agentPlans: [{ slug: "coder", action: "create", plannedName: "Coder", existingAgentId: null, reason: null }],
+      agentPlans: [
+        {
+          slug: "coder",
+          action: "create",
+          plannedName: "Coder",
+          existingAgentId: null,
+          reason: null,
+        },
+      ],
       projectPlans: [],
-      issuePlans: [{ slug: "weekly-report", action: "create", plannedTitle: "Weekly Report", reason: "Recurring task will be imported as a routine." }],
+      issuePlans: [
+        {
+          slug: "weekly-report",
+          action: "create",
+          plannedTitle: "Weekly Report",
+          reason: "Recurring task will be imported as a routine.",
+        },
+      ],
     },
     manifest: {
-      agents: [{ slug: "coder", name: "Coder", path: "agents/coder/AGENTS.md", adapterType: "claude_local" }],
+      agents: [
+        {
+          slug: "coder",
+          name: "Coder",
+          path: "agents/coder/AGENTS.md",
+          adapterType: "claude_local",
+        },
+      ],
       projects: [],
-      issues: [{ slug: "weekly-report", title: "Weekly Report", path: "tasks/weekly-report/TASK.md" }],
+      issues: [
+        {
+          slug: "weekly-report",
+          title: "Weekly Report",
+          path: "tasks/weekly-report/TASK.md",
+        },
+      ],
       skills: [],
       company: null,
     },
@@ -195,16 +234,38 @@ function buildMixedAdapterPreviewResult(): CompanyPortabilityPreviewResult {
     plan: {
       companyAction: "create",
       agentPlans: [
-        { slug: "coder", action: "create", plannedName: "Coder", existingAgentId: null, reason: null },
-        { slug: "researcher", action: "create", plannedName: "Researcher", existingAgentId: null, reason: null },
+        {
+          slug: "coder",
+          action: "create",
+          plannedName: "Coder",
+          existingAgentId: null,
+          reason: null,
+        },
+        {
+          slug: "researcher",
+          action: "create",
+          plannedName: "Researcher",
+          existingAgentId: null,
+          reason: null,
+        },
       ],
       projectPlans: [],
       issuePlans: [],
     },
     manifest: {
       agents: [
-        { slug: "coder", name: "Coder", path: "agents/coder/AGENTS.md", adapterType: "claude_local" },
-        { slug: "researcher", name: "Researcher", path: "agents/researcher/AGENTS.md", adapterType: "codex_local" },
+        {
+          slug: "coder",
+          name: "Coder",
+          path: "agents/coder/AGENTS.md",
+          adapterType: "claude_local",
+        },
+        {
+          slug: "researcher",
+          name: "Researcher",
+          path: "agents/researcher/AGENTS.md",
+          adapterType: "codex_local",
+        },
       ],
       projects: [],
       issues: [],
@@ -214,7 +275,8 @@ function buildMixedAdapterPreviewResult(): CompanyPortabilityPreviewResult {
     files: {
       ".taskcore.yaml": 'schema: "taskcore/v1"\n',
       "agents/coder/AGENTS.md": "---\nname: Coder\n---\n\nYou write code.\n",
-      "agents/researcher/AGENTS.md": "---\nname: Researcher\n---\n\nYou research.\n",
+      "agents/researcher/AGENTS.md":
+        "---\nname: Researcher\n---\n\nYou research.\n",
     },
     envInputs: [],
     warnings: [],
@@ -225,20 +287,42 @@ function buildMixedAdapterPreviewResult(): CompanyPortabilityPreviewResult {
 function buildImportResult(): CompanyPortabilityImportResult {
   return {
     company: { id: "company-2", name: "Imported Test", action: "created" },
-    agents: [{ slug: "coder", id: "agent-1", action: "created", name: "Coder", reason: null }],
+    agents: [
+      {
+        slug: "coder",
+        id: "agent-1",
+        action: "created",
+        name: "Coder",
+        reason: null,
+      },
+    ],
     skills: [],
     projects: [],
-    routines: [{ slug: "weekly-report", id: "routine-1", action: "created", title: "Weekly Report", status: "paused" }],
+    routines: [
+      {
+        slug: "weekly-report",
+        id: "routine-1",
+        action: "created",
+        title: "Weekly Report",
+        status: "paused",
+      },
+    ],
     envInputs: [],
     warnings: [],
   };
 }
 
 function buildAccepted(id = "job-1"): CompanyImportJobAccepted {
-  return { job: { id, status: "running" }, statusUrl: `/companies/import/jobs/${id}` };
+  return {
+    job: { id, status: "running" },
+    statusUrl: `/companies/import/jobs/${id}`,
+  };
 }
 
-function buildTransferCreated(missingParts: number[], alreadyCompleted = false) {
+function buildTransferCreated(
+  missingParts: number[],
+  alreadyCompleted = false,
+) {
   return {
     transferId: "transfer-1",
     status: "running",
@@ -257,14 +341,24 @@ const TRANSFER_PART_SIZE = 32 * 1024 * 1024;
  */
 function buildLargeZipFile(): File {
   const bytes = new Uint8Array(TRANSFER_PART_SIZE + 1024);
-  const file = new File([bytes], "big-package.zip", { type: "application/zip" });
+  const file = new File([bytes], "big-package.zip", {
+    type: "application/zip",
+  });
   Object.defineProperty(file, "size", { value: 49 * 1024 * 1024 });
-  Object.defineProperty(file, "arrayBuffer", { value: async () => bytes.buffer });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => bytes.buffer,
+  });
   return file;
 }
 
 function buildSucceededJob(id = "job-1") {
-  return { job: { id, status: "succeeded" as const, importResult: buildImportResult() } };
+  return {
+    job: {
+      id,
+      status: "succeeded" as const,
+      importResult: buildImportResult(),
+    },
+  };
 }
 
 describe("CompanyImport", () => {
@@ -277,7 +371,10 @@ describe("CompanyImport", () => {
     document.body.appendChild(container);
     mockAuthApi.getSession.mockResolvedValue({ user: { id: "user-1" } });
     mockAgentsApi.list.mockResolvedValue([]);
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableNativeRunner: false, enableOpenAiDot: false });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableNativeRunner: false,
+      enableOpenAiDot: false,
+    });
     mockInstanceSettingsApi.getGeneral.mockResolvedValue({});
     mockInstanceSettingsApi.get.mockResolvedValue({});
     mockAdaptersApi.list.mockResolvedValue([
@@ -285,19 +382,38 @@ describe("CompanyImport", () => {
       { type: "codex_local", disabled: false },
     ]);
     mockAgentsApi.resume.mockResolvedValue({ id: "agent-1", status: "idle" });
-    mockRoutinesApi.update.mockResolvedValue({ id: "routine-1", status: "active" });
+    mockRoutinesApi.update.mockResolvedValue({
+      id: "routine-1",
+      status: "active",
+    });
     mockCompaniesApi.importPreview.mockResolvedValue(buildPreviewResult());
-    mockCompaniesApi.importPreviewPackage.mockResolvedValue(buildPreviewResult());
+    mockCompaniesApi.importPreviewPackage.mockResolvedValue(
+      buildPreviewResult(),
+    );
     // Default async flow: the submit is accepted (202) and the first poll finds
     // the job already finished with the full result. Individual tests override.
     mockCompaniesApi.importBundleAsync.mockResolvedValue(buildAccepted());
-    mockCompaniesApi.importBundlePackageAsync.mockResolvedValue(buildAccepted());
-    mockCompaniesApi.importTransferCreate.mockResolvedValue(buildTransferCreated([0, 1]));
-    mockCompaniesApi.importTransferUploadPart.mockResolvedValue({ ok: true, index: 0, alreadyCompleted: false });
-    mockCompaniesApi.importTransferPreview.mockResolvedValue(buildPreviewResult());
+    mockCompaniesApi.importBundlePackageAsync.mockResolvedValue(
+      buildAccepted(),
+    );
+    mockCompaniesApi.importTransferCreate.mockResolvedValue(
+      buildTransferCreated([0, 1]),
+    );
+    mockCompaniesApi.importTransferUploadPart.mockResolvedValue({
+      ok: true,
+      index: 0,
+      alreadyCompleted: false,
+    });
+    mockCompaniesApi.importTransferPreview.mockResolvedValue(
+      buildPreviewResult(),
+    );
     mockCompaniesApi.importTransferApply.mockResolvedValue(buildAccepted());
     mockCompaniesApi.getImportJob.mockResolvedValue(buildSucceededJob());
-    mockCompaniesApi.get.mockResolvedValue({ id: "company-2", name: "Imported Test", issuePrefix: "IMP" });
+    mockCompaniesApi.get.mockResolvedValue({
+      id: "company-2",
+      name: "Imported Test",
+      issuePrefix: "IMP",
+    });
     mockSidebarPreferencesApi.updateProjectOrder.mockResolvedValue(undefined);
   });
 
@@ -316,8 +432,9 @@ describe("CompanyImport", () => {
   });
 
   function findButton(matches: (text: string) => boolean) {
-    return Array.from(container.querySelectorAll("button"))
-      .find((button) => matches(button.textContent?.trim() ?? "")) as HTMLButtonElement | undefined;
+    return Array.from(container.querySelectorAll("button")).find((button) =>
+      matches(button.textContent?.trim() ?? ""),
+    ) as HTMLButtonElement | undefined;
   }
 
   async function clickButton(matches: (text: string) => boolean) {
@@ -332,7 +449,9 @@ describe("CompanyImport", () => {
 
   async function renderPage() {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     const currentRoot = root;
 
     await act(async () => {
@@ -345,13 +464,18 @@ describe("CompanyImport", () => {
     await flushReact();
   }
 
-  async function enterGithubUrl(url = "https://github.com/acme/starter/tree/main/company") {
+  async function enterGithubUrl(
+    url = "https://github.com/acme/starter/tree/main/company",
+  ) {
     const urlInput = container.querySelector<HTMLInputElement>(
       'input[placeholder="https://github.com/owner/repo/tree/main/company"]',
     );
     expect(urlInput).toBeTruthy();
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
       setter.call(urlInput!, url);
       urlInput!.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -360,9 +484,13 @@ describe("CompanyImport", () => {
 
   async function chooseLocalZip(file: File) {
     await clickButton((text) => text.includes("Local zip"));
-    const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]');
+    const fileInput =
+      container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(fileInput).toBeTruthy();
-    Object.defineProperty(fileInput!, "files", { value: [file], configurable: true });
+    Object.defineProperty(fileInput!, "files", {
+      value: [file],
+      configurable: true,
+    });
     await act(async () => {
       fileInput!.dispatchEvent(new Event("change", { bubbles: true }));
     });
@@ -376,10 +504,17 @@ describe("CompanyImport", () => {
     await clickButton((text) => text === "Preview import");
 
     // Paused-import checkbox is present and checked by default.
-    const pauseLabel = Array.from(container.querySelectorAll("label"))
-      .find((label) => label.textContent?.includes("Start imported agents and routines paused"));
+    const pauseLabel = Array.from(container.querySelectorAll("label")).find(
+      (label) =>
+        label.textContent?.includes(
+          "Start imported agents and routines paused",
+        ),
+    );
     expect(pauseLabel).toBeTruthy();
-    expect(pauseLabel?.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+    expect(
+      pauseLabel?.querySelector<HTMLInputElement>('input[type="checkbox"]')
+        ?.checked,
+    ).toBe(true);
 
     await clickButton((text) => text.startsWith("Import 3 file"));
     await settle();
@@ -395,14 +530,18 @@ describe("CompanyImport", () => {
     // the synchronous response used to drive.
     expect(mockCompaniesApi.getImportJob).toHaveBeenCalledWith("job-1");
     expect(container.textContent).toContain("Import complete");
-    expect(container.textContent).toContain("Activate imported agents and routines");
+    expect(container.textContent).toContain(
+      "Activate imported agents and routines",
+    );
     expect(container.textContent).toContain("Coder");
     expect(container.textContent).toContain("Weekly Report");
 
     await clickButton((text) => text.startsWith("Activate selected"));
 
     expect(mockAgentsApi.resume).toHaveBeenCalledWith("agent-1");
-    expect(mockRoutinesApi.update).toHaveBeenCalledWith("routine-1", { status: "active" });
+    expect(mockRoutinesApi.update).toHaveBeenCalledWith("routine-1", {
+      status: "active",
+    });
     expect(container.textContent).toContain("activated");
     expect(container.textContent).not.toContain("failed:");
     expect(findButton((text) => text === "Go to dashboard")).toBeTruthy();
@@ -415,10 +554,14 @@ describe("CompanyImport", () => {
     await clickButton((text) => text.startsWith("Activate selected"));
 
     expect(mockAgentsApi.resume).toHaveBeenCalledWith("agent-1");
-    expect(mockRoutinesApi.update).toHaveBeenCalledWith("routine-1", { status: "active" });
+    expect(mockRoutinesApi.update).toHaveBeenCalledWith("routine-1", {
+      status: "active",
+    });
     expect(container.textContent).toContain("failed: resume exploded");
     expect(container.textContent).toContain("activated");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error" }));
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "error" }),
+    );
   });
 
   it("uploads a local .zip as a multipart package and never blocks on inline size", async () => {
@@ -442,10 +585,15 @@ describe("CompanyImport", () => {
 
     await clickButton((text) => text.includes("Local zip"));
 
-    const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]');
+    const fileInput =
+      container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(fileInput).toBeTruthy();
-    const file = new File(["stub-zip-bytes"], "big-package.zip", { type: "application/zip" });
-    Object.defineProperty(file, "arrayBuffer", { value: async () => new ArrayBuffer(0) });
+    const file = new File(["stub-zip-bytes"], "big-package.zip", {
+      type: "application/zip",
+    });
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => new ArrayBuffer(0),
+    });
     Object.defineProperty(fileInput!, "files", { value: [file] });
     await act(async () => {
       fileInput!.dispatchEvent(new Event("change", { bubbles: true }));
@@ -453,9 +601,13 @@ describe("CompanyImport", () => {
     await flushReact();
 
     // The inline preflight no longer blocks the zip path.
-    expect(container.textContent).not.toContain("Package too large for browser import");
+    expect(container.textContent).not.toContain(
+      "Package too large for browser import",
+    );
     expect(container.textContent).not.toContain("CLI folder import");
-    expect(findButton((text) => text === "Preview import")?.disabled).toBe(false);
+    expect(findButton((text) => text === "Preview import")?.disabled).toBe(
+      false,
+    );
 
     await clickButton((text) => text === "Preview import");
     // The preview goes up as a multipart package (the raw File), not inline JSON.
@@ -470,7 +622,8 @@ describe("CompanyImport", () => {
     // inflated inline body that truncated in transit.
     expect(mockCompaniesApi.importBundleAsync).not.toHaveBeenCalled();
     expect(mockCompaniesApi.importBundlePackageAsync).toHaveBeenCalledTimes(1);
-    const [sentFile, meta] = mockCompaniesApi.importBundlePackageAsync.mock.calls[0]! as [
+    const [sentFile, meta] = mockCompaniesApi.importBundlePackageAsync.mock
+      .calls[0]! as [
       File,
       { pauseAutomations: boolean; target: { mode: string } },
     ];
@@ -485,26 +638,38 @@ describe("CompanyImport", () => {
   });
 
   it("uploads a large local .zip through the chunked transfer path for preview and import", async () => {
-    mockReadZipArchive.mockResolvedValue({ rootPath: "big-package", files: previewFiles });
+    mockReadZipArchive.mockResolvedValue({
+      rootPath: "big-package",
+      files: previewFiles,
+    });
     mockCompaniesApi.importTransferCreate
       .mockResolvedValueOnce(buildTransferCreated([0, 1]))
       // The import's re-declaration resumes the transfer the preview uploaded.
       .mockResolvedValueOnce(buildTransferCreated([]));
 
     // Hold the last part so the visible upload progress can be observed.
-    let resolveLastPart!: (value: { ok: true; index: number; alreadyCompleted: boolean }) => void;
-    mockCompaniesApi.importTransferUploadPart.mockImplementation((_id: string, index: number) => {
-      if (index === 0) return Promise.resolve({ ok: true, index, alreadyCompleted: false });
-      return new Promise((resolve) => {
-        resolveLastPart = resolve;
-      });
-    });
+    let resolveLastPart!: (value: {
+      ok: true;
+      index: number;
+      alreadyCompleted: boolean;
+    }) => void;
+    mockCompaniesApi.importTransferUploadPart.mockImplementation(
+      (_id: string, index: number) => {
+        if (index === 0)
+          return Promise.resolve({ ok: true, index, alreadyCompleted: false });
+        return new Promise((resolve) => {
+          resolveLastPart = resolve;
+        });
+      },
+    );
 
     await renderPage();
     await chooseLocalZip(buildLargeZipFile());
     await clickButton((text) => text === "Preview import");
     await vi.waitFor(() => {
-      expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledTimes(2);
+      expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledTimes(
+        2,
+      );
     });
     await flushReact();
 
@@ -521,7 +686,8 @@ describe("CompanyImport", () => {
 
     // The declaration describes the sliced zip: whole-file hash plus one
     // content hash per 32 MB byte range.
-    const manifest = mockCompaniesApi.importTransferCreate.mock.calls[0]![0] as {
+    const manifest = mockCompaniesApi.importTransferCreate.mock
+      .calls[0]![0] as {
       totalBytes: number;
       zipSha256: string;
       partSizeBytes: number;
@@ -530,19 +696,39 @@ describe("CompanyImport", () => {
     expect(manifest.totalBytes).toBe(TRANSFER_PART_SIZE + 1024);
     expect(manifest.partSizeBytes).toBe(TRANSFER_PART_SIZE);
     expect(manifest.zipSha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(manifest.parts.map((part) => ({ index: part.index, byteSize: part.byteSize }))).toEqual([
+    expect(
+      manifest.parts.map((part) => ({
+        index: part.index,
+        byteSize: part.byteSize,
+      })),
+    ).toEqual([
       { index: 0, byteSize: TRANSFER_PART_SIZE },
       { index: 1, byteSize: 1024 },
     ]);
-    expect(manifest.parts.every((part) => /^[0-9a-f]{64}$/.test(part.sha256))).toBe(true);
+    expect(
+      manifest.parts.every((part) => /^[0-9a-f]{64}$/.test(part.sha256)),
+    ).toBe(true);
 
     // Both parts traveled, then the preview ran against the assembled spool —
     // never the single-shot multipart endpoints.
-    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenNthCalledWith(1, "transfer-1", 0, expect.anything());
-    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenNthCalledWith(2, "transfer-1", 1, expect.anything());
+    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenNthCalledWith(
+      1,
+      "transfer-1",
+      0,
+      expect.anything(),
+    );
+    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenNthCalledWith(
+      2,
+      "transfer-1",
+      1,
+      expect.anything(),
+    );
     expect(mockCompaniesApi.importTransferPreview).toHaveBeenCalledWith(
       "transfer-1",
-      expect.objectContaining({ collisionStrategy: "rename", target: { mode: "new_company", newCompanyName: null } }),
+      expect.objectContaining({
+        collisionStrategy: "rename",
+        target: { mode: "new_company", newCompanyName: null },
+      }),
     );
     expect(mockCompaniesApi.importPreviewPackage).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Import preview");
@@ -567,12 +753,20 @@ describe("CompanyImport", () => {
   });
 
   it("retries a failed part before surfacing the error panel, keeping the transfer resumable", async () => {
-    mockReadZipArchive.mockResolvedValue({ rootPath: "big-package", files: previewFiles });
-    mockCompaniesApi.importTransferCreate.mockResolvedValue(buildTransferCreated([0, 1]));
-    mockCompaniesApi.importTransferUploadPart.mockImplementation((_id: string, index: number) => {
-      if (index === 0) return Promise.resolve({ ok: true, index, alreadyCompleted: false });
-      return Promise.reject(new Error("socket hang up"));
+    mockReadZipArchive.mockResolvedValue({
+      rootPath: "big-package",
+      files: previewFiles,
     });
+    mockCompaniesApi.importTransferCreate.mockResolvedValue(
+      buildTransferCreated([0, 1]),
+    );
+    mockCompaniesApi.importTransferUploadPart.mockImplementation(
+      (_id: string, index: number) => {
+        if (index === 0)
+          return Promise.resolve({ ok: true, index, alreadyCompleted: false });
+        return Promise.reject(new Error("socket hang up"));
+      },
+    );
 
     await renderPage();
     await chooseLocalZip(buildLargeZipFile());
@@ -583,17 +777,26 @@ describe("CompanyImport", () => {
 
     // Part 1 was attempted three times before the failure surfaced; the
     // preview never ran and no state was consumed, so retrying can resume.
-    const partOneAttempts = mockCompaniesApi.importTransferUploadPart.mock.calls.filter(
-      (call) => call[1] === 1,
-    );
+    const partOneAttempts =
+      mockCompaniesApi.importTransferUploadPart.mock.calls.filter(
+        (call) => call[1] === 1,
+      );
     expect(partOneAttempts).toHaveLength(3);
     expect(mockCompaniesApi.importTransferPreview).not.toHaveBeenCalled();
-    expect(findButton((text) => text === "Preview import")?.disabled).toBe(false);
+    expect(findButton((text) => text === "Preview import")?.disabled).toBe(
+      false,
+    );
 
     // Retry: the re-declared transfer reports only the lost part missing, so
     // just that part travels again.
-    mockCompaniesApi.importTransferCreate.mockResolvedValue(buildTransferCreated([1]));
-    mockCompaniesApi.importTransferUploadPart.mockResolvedValue({ ok: true, index: 1, alreadyCompleted: false });
+    mockCompaniesApi.importTransferCreate.mockResolvedValue(
+      buildTransferCreated([1]),
+    );
+    mockCompaniesApi.importTransferUploadPart.mockResolvedValue({
+      ok: true,
+      index: 1,
+      alreadyCompleted: false,
+    });
     mockCompaniesApi.importTransferUploadPart.mockClear();
 
     await clickButton((text) => text === "Preview import");
@@ -603,15 +806,24 @@ describe("CompanyImport", () => {
     await settle();
 
     expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledTimes(1);
-    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledWith("transfer-1", 1, expect.anything());
+    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledWith(
+      "transfer-1",
+      1,
+      expect.anything(),
+    );
     expect(container.textContent).toContain("Import preview");
   });
 
   it("re-uploads only the missing parts when resuming an interrupted transfer", async () => {
     // A previous page load already uploaded part 0; re-declaring the same
     // file resumes that transfer, so only part 1 travels.
-    mockReadZipArchive.mockResolvedValue({ rootPath: "big-package", files: previewFiles });
-    mockCompaniesApi.importTransferCreate.mockResolvedValue(buildTransferCreated([1]));
+    mockReadZipArchive.mockResolvedValue({
+      rootPath: "big-package",
+      files: previewFiles,
+    });
+    mockCompaniesApi.importTransferCreate.mockResolvedValue(
+      buildTransferCreated([1]),
+    );
 
     await renderPage();
     await chooseLocalZip(buildLargeZipFile());
@@ -622,20 +834,32 @@ describe("CompanyImport", () => {
     await settle();
 
     expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledTimes(1);
-    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledWith("transfer-1", 1, expect.anything());
+    expect(mockCompaniesApi.importTransferUploadPart).toHaveBeenCalledWith(
+      "transfer-1",
+      1,
+      expect.anything(),
+    );
     expect(container.textContent).toContain("Import preview");
   });
 
   it("explains the disabled preview button until a package is chosen", async () => {
     await renderPage();
 
-    expect(findButton((text) => text === "Preview import")?.disabled).toBe(true);
-    expect(container.textContent).toContain("Choose a package above to enable the preview.");
+    expect(findButton((text) => text === "Preview import")?.disabled).toBe(
+      true,
+    );
+    expect(container.textContent).toContain(
+      "Choose a package above to enable the preview.",
+    );
 
     await enterGithubUrl();
 
-    expect(findButton((text) => text === "Preview import")?.disabled).toBe(false);
-    expect(container.textContent).not.toContain("Choose a package above to enable the preview.");
+    expect(findButton((text) => text === "Preview import")?.disabled).toBe(
+      false,
+    );
+    expect(container.textContent).not.toContain(
+      "Choose a package above to enable the preview.",
+    );
   });
 
   it("shows a progress panel while the preview runs and a durable error panel when it fails", async () => {
@@ -651,7 +875,9 @@ describe("CompanyImport", () => {
 
     await clickButton((text) => text === "Preview import");
 
-    expect(container.textContent).toContain("Uploading and analyzing your package");
+    expect(container.textContent).toContain(
+      "Uploading and analyzing your package",
+    );
     expect(container.textContent).toContain("Keep this page open.");
 
     // A mid-flight config edit keeps the progress panel visible (the request
@@ -659,14 +885,18 @@ describe("CompanyImport", () => {
     // settles silently instead of describing a package no longer selected.
     await enterGithubUrl("https://github.com/acme/starter-b/tree/main/company");
 
-    expect(container.textContent).toContain("Uploading and analyzing your package");
+    expect(container.textContent).toContain(
+      "Uploading and analyzing your package",
+    );
 
     await act(async () => {
       rejectPreview(new Error("stream disconnected"));
     });
     await flushReact();
 
-    expect(container.textContent).not.toContain("Uploading and analyzing your package");
+    expect(container.textContent).not.toContain(
+      "Uploading and analyzing your package",
+    );
     expect(container.textContent).not.toContain("Preview failed:");
     expect(mockPushToast).not.toHaveBeenCalled();
 
@@ -677,12 +907,20 @@ describe("CompanyImport", () => {
     });
     await flushReact();
 
-    expect(container.textContent).toContain("Preview failed: stream disconnected");
-    expect(container.textContent).toContain("Retry, or re-export the package without large attachments");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error" }));
+    expect(container.textContent).toContain(
+      "Preview failed: stream disconnected",
+    );
+    expect(container.textContent).toContain(
+      "Retry, or re-export the package without large attachments",
+    );
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "error" }),
+    );
 
     // Changing the package supersedes the failed request: the error panel resets.
-    await enterGithubUrl("https://github.com/acme/other-starter/tree/main/company");
+    await enterGithubUrl(
+      "https://github.com/acme/other-starter/tree/main/company",
+    );
 
     expect(container.textContent).not.toContain("Preview failed:");
   });
@@ -709,7 +947,9 @@ describe("CompanyImport", () => {
     // While the import runs, previewing and the structural package/settings
     // controls are locked (and explained), so nothing can replace or unmount
     // the plan the import started from.
-    expect(findButton((text) => text === "Preview import")?.disabled).toBe(true);
+    expect(findButton((text) => text === "Preview import")?.disabled).toBe(
+      true,
+    );
     expect(container.textContent).toContain(
       "Import in progress — the package and settings unlock when it finishes.",
     );
@@ -717,9 +957,9 @@ describe("CompanyImport", () => {
       'input[placeholder="https://github.com/owner/repo/tree/main/company"]',
     );
     expect(lockedUrlInput?.disabled).toBe(true);
-    const lockedSelects = Array.from(container.querySelectorAll("select")).filter(
-      (select) => select.value === "new" || select.value === "rename",
-    );
+    const lockedSelects = Array.from(
+      container.querySelectorAll("select"),
+    ).filter((select) => select.value === "new" || select.value === "rename");
     expect(lockedSelects).toHaveLength(2);
     expect(lockedSelects.every((select) => select.disabled)).toBe(true);
 
@@ -730,7 +970,10 @@ describe("CompanyImport", () => {
     );
     expect(midFlightNameInput).toBeTruthy();
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
       setter.call(midFlightNameInput!, "Mid Flight");
       midFlightNameInput!.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -745,15 +988,24 @@ describe("CompanyImport", () => {
 
     expect(container.textContent).not.toContain("Import running on the server");
     expect(container.textContent).toContain("Import failed: connection reset");
-    expect(container.textContent).toContain("check the target company before retrying.");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error" }));
+    expect(container.textContent).toContain(
+      "check the target company before retrying.",
+    );
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "error" }),
+    );
 
     // The new-company name feeds the request payload too: editing it clears
     // the stale error panel without discarding the rendered preview.
-    const nameInput = container.querySelector<HTMLInputElement>('input[placeholder="Imported Organization"]');
+    const nameInput = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Imported Organization"]',
+    );
     expect(nameInput).toBeTruthy();
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
       setter.call(nameInput!, "Renamed Import");
       nameInput!.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -761,7 +1013,9 @@ describe("CompanyImport", () => {
 
     expect(container.textContent).not.toContain("Import failed:");
     expect(findButton((text) => text.startsWith("Import 3 file"))).toBeTruthy();
-    expect(findButton((text) => text === "Preview import")?.disabled).toBe(false);
+    expect(findButton((text) => text === "Preview import")?.disabled).toBe(
+      false,
+    );
     expect(
       container.querySelector<HTMLInputElement>(
         'input[placeholder="https://github.com/owner/repo/tree/main/company"]',
@@ -779,7 +1033,11 @@ describe("CompanyImport", () => {
     expect(container.textContent).toContain("Import failed: second failure");
 
     const pauseInput = Array.from(container.querySelectorAll("label"))
-      .find((label) => label.textContent?.includes("Start imported agents and routines paused"))
+      .find((label) =>
+        label.textContent?.includes(
+          "Start imported agents and routines paused",
+        ),
+      )
       ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
     expect(pauseInput).toBeTruthy();
     await act(async () => {
@@ -800,7 +1058,10 @@ describe("CompanyImport", () => {
 
     const fileCheckbox = Array.from(
       container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
-    ).find((input) => !input.closest("label")?.textContent?.includes("Start imported agents"));
+    ).find(
+      (input) =>
+        !input.closest("label")?.textContent?.includes("Start imported agents"),
+    );
     expect(fileCheckbox).toBeTruthy();
     await act(async () => {
       fileCheckbox!.click();
@@ -811,7 +1072,9 @@ describe("CompanyImport", () => {
 
     // Changing the package supersedes the failed import: previewing a fresh
     // package must not resurface the stale import error panel.
-    await enterGithubUrl("https://github.com/acme/other-starter/tree/main/company");
+    await enterGithubUrl(
+      "https://github.com/acme/other-starter/tree/main/company",
+    );
     await clickButton((text) => text === "Preview import");
 
     expect(findButton((text) => text.startsWith("Import 3 file"))).toBeTruthy();
@@ -827,7 +1090,9 @@ describe("CompanyImport", () => {
           resolveAccepted = resolve;
         }),
     );
-    mockCompaniesApi.getImportJob.mockResolvedValue(buildSucceededJob("job-final"));
+    mockCompaniesApi.getImportJob.mockResolvedValue(
+      buildSucceededJob("job-final"),
+    );
     await clickButton((text) => text.startsWith("Import 3 file"));
 
     expect(mockCompaniesApi.importBundleAsync).toHaveBeenLastCalledWith(
@@ -835,7 +1100,11 @@ describe("CompanyImport", () => {
     );
 
     const midFlightPauseInput = Array.from(container.querySelectorAll("label"))
-      .find((label) => label.textContent?.includes("Start imported agents and routines paused"))
+      .find((label) =>
+        label.textContent?.includes(
+          "Start imported agents and routines paused",
+        ),
+      )
       ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
     expect(midFlightPauseInput).toBeTruthy();
     await act(async () => {
@@ -849,7 +1118,9 @@ describe("CompanyImport", () => {
     await settle();
 
     expect(container.textContent).toContain("Import complete");
-    expect(container.textContent).not.toContain("Activate imported agents and routines");
+    expect(container.textContent).not.toContain(
+      "Activate imported agents and routines",
+    );
   });
 
   it("adopts the already-running job when the server reports a 409", async () => {
@@ -859,7 +1130,9 @@ describe("CompanyImport", () => {
         statusUrl: "/companies/import/jobs/job-existing",
       }),
     );
-    mockCompaniesApi.getImportJob.mockResolvedValue(buildSucceededJob("job-existing"));
+    mockCompaniesApi.getImportJob.mockResolvedValue(
+      buildSucceededJob("job-existing"),
+    );
 
     await renderPageAndImport();
 
@@ -867,12 +1140,18 @@ describe("CompanyImport", () => {
     // it instead of firing a second import.
     expect(mockCompaniesApi.getImportJob).toHaveBeenCalledWith("job-existing");
     expect(container.textContent).toContain("Import complete");
-    expect(container.textContent).toContain("Activate imported agents and routines");
+    expect(container.textContent).toContain(
+      "Activate imported agents and routines",
+    );
   });
 
   it("surfaces a failed import job in the durable error panel", async () => {
     mockCompaniesApi.getImportJob.mockResolvedValue({
-      job: { id: "job-1", status: "failed", error: { message: "blob mismatch" } },
+      job: {
+        id: "job-1",
+        status: "failed",
+        error: { message: "blob mismatch" },
+      },
     });
 
     await renderPage();
@@ -882,7 +1161,9 @@ describe("CompanyImport", () => {
     await settle();
 
     expect(container.textContent).toContain("Import failed: blob mismatch");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error" }));
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "error" }),
+    );
   });
 
   it("terminates the import when polling hits a permanent auth error", async () => {
@@ -890,7 +1171,9 @@ describe("CompanyImport", () => {
     // again, so the watch must stop and surface an error instead of leaving the
     // import locked in its running state forever.
     mockCompaniesApi.getImportJob.mockRejectedValue(
-      new ApiError("Board access required", 403, { error: "Board access required" }),
+      new ApiError("Board access required", 403, {
+        error: "Board access required",
+      }),
     );
 
     await renderPage();
@@ -901,7 +1184,9 @@ describe("CompanyImport", () => {
 
     expect(container.textContent).not.toContain("Import running on the server");
     expect(container.textContent).toContain("your session may have expired");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error" }));
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "error" }),
+    );
   });
 
   it("keeps watching through a transient poll failure", async () => {
@@ -925,7 +1210,11 @@ describe("CompanyImport", () => {
     // summary still carries the company id. That is a success we can no longer
     // fully read — never a scary failure.
     mockCompaniesApi.getImportJob.mockResolvedValue({
-      job: { id: "job-1", status: "succeeded", result: { companyId: "company-2" } },
+      job: {
+        id: "job-1",
+        status: "succeeded",
+        result: { companyId: "company-2" },
+      },
     });
 
     const invalidateSpy = vi.spyOn(QueryClient.prototype, "invalidateQueries");
@@ -940,12 +1229,18 @@ describe("CompanyImport", () => {
       // The default import submits with pauseAutomations checked, so the
       // paused pointer must show; it is gated off when the user unchecks it.
       expect(container.textContent).toContain("Imported agents arrived paused");
-      const openCompany = container.querySelector('[data-testid="import-expired-open-company"]');
+      const openCompany = container.querySelector(
+        '[data-testid="import-expired-open-company"]',
+      );
       expect(openCompany).not.toBeNull();
       expect(container.textContent).not.toContain("Import failed");
-      expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "success" }));
+      expect(mockPushToast).toHaveBeenCalledWith(
+        expect.objectContaining({ tone: "success" }),
+      );
       // The company list is refreshed so the new company appears in the switcher.
-      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["companies"] }));
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ["companies"] }),
+      );
       // The summary's company id still drives navigation into the import.
       expect(mockSetSelectedCompanyId).toHaveBeenCalledWith("company-2");
     } finally {
@@ -955,23 +1250,33 @@ describe("CompanyImport", () => {
 
   it("falls back to switcher guidance when the expired job's company is unreadable", async () => {
     mockCompaniesApi.getImportJob.mockResolvedValue({
-      job: { id: "job-1", status: "succeeded", result: { companyId: "company-2" } },
+      job: {
+        id: "job-1",
+        status: "succeeded",
+        result: { companyId: "company-2" },
+      },
     });
     mockCompaniesApi.get.mockRejectedValue(new Error("forbidden"));
 
     await renderPageAndImport();
 
     expect(container.textContent).toContain("Import completed");
-    expect(container.textContent).toContain("select it from the organization switcher");
+    expect(container.textContent).toContain(
+      "select it from the organization switcher",
+    );
     // No readable company, so no dashboard CTA — the switcher guidance stands in.
-    expect(container.querySelector('[data-testid="import-expired-open-company"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="import-expired-open-company"]'),
+    ).toBeNull();
   });
 
   it("surfaces a first-poll 404 as an error because the job never existed", async () => {
     // A 404 on the very first poll — before the client ever saw the job
     // running — means the id never existed. That stays a hard error.
     mockCompaniesApi.getImportJob.mockRejectedValue(
-      new ApiError("Import job not found", 404, { error: "Import job not found" }),
+      new ApiError("Import job not found", 404, {
+        error: "Import job not found",
+      }),
     );
 
     await renderPage();
@@ -981,9 +1286,13 @@ describe("CompanyImport", () => {
     await settle();
 
     expect(container.textContent).toContain("Import failed:");
-    expect(container.textContent).toContain("it may have restarted while the import ran");
+    expect(container.textContent).toContain(
+      "it may have restarted while the import ran",
+    );
     expect(container.textContent).not.toContain("Import completed");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error" }));
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "error" }),
+    );
   });
 
   it("surfaces a running-then-gone job as an error because the server restarted mid-import", async () => {
@@ -994,7 +1303,11 @@ describe("CompanyImport", () => {
     // honestly instead of masking a possibly-incomplete import as completed.
     mockCompaniesApi.getImportJob
       .mockResolvedValueOnce({ job: { id: "job-1", status: "running" } })
-      .mockRejectedValue(new ApiError("Import job not found", 404, { error: "Import job not found" }));
+      .mockRejectedValue(
+        new ApiError("Import job not found", 404, {
+          error: "Import job not found",
+        }),
+      );
 
     await renderPage();
     await enterGithubUrl();
@@ -1003,9 +1316,13 @@ describe("CompanyImport", () => {
     await settle();
 
     expect(container.textContent).toContain("Import failed:");
-    expect(container.textContent).toContain("it may have restarted while the import ran");
+    expect(container.textContent).toContain(
+      "it may have restarted while the import ran",
+    );
     expect(container.textContent).not.toContain("Import completed");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error" }));
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "error" }),
+    );
   });
 
   it("refreshes the company list on a full import success", async () => {
@@ -1014,7 +1331,9 @@ describe("CompanyImport", () => {
       await renderPageAndImport();
 
       expect(container.textContent).toContain("Import complete");
-      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["companies"] }));
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ["companies"] }),
+      );
     } finally {
       invalidateSpy.mockRestore();
     }
@@ -1028,7 +1347,9 @@ describe("CompanyImport", () => {
       JSON.stringify({ jobId: "job-resume", pauseAutomations: false }),
     );
 
-    let resolveFirstPoll!: (value: ReturnType<typeof buildSucceededJob>) => void;
+    let resolveFirstPoll!: (
+      value: ReturnType<typeof buildSucceededJob>,
+    ) => void;
     mockCompaniesApi.getImportJob.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
@@ -1052,17 +1373,27 @@ describe("CompanyImport", () => {
     expect(container.textContent).not.toContain("Resume watching import");
     expect(container.textContent).toContain("Import complete");
     // The stored entry is cleared once the job settles.
-    expect(sessionStorage.getItem("taskcore:company-import-job:company-1:acme/starter")).toBeNull();
+    expect(
+      sessionStorage.getItem(
+        "taskcore:company-import-job:company-1:acme/starter",
+      ),
+    ).toBeNull();
   });
 
   /** Adapter selects in the picker list, in manifest order (excludes the target/collision selects). */
   function findAdapterSelects() {
-    return Array.from(container.querySelectorAll("select"))
-      .filter((select) => select.value !== "new" && select.value !== "existing" && select.value !== "rename");
+    return Array.from(container.querySelectorAll("select")).filter(
+      (select) =>
+        select.value !== "new" &&
+        select.value !== "existing" &&
+        select.value !== "rename",
+    );
   }
 
   async function previewMixedAdapterPackage() {
-    mockCompaniesApi.importPreview.mockResolvedValue(buildMixedAdapterPreviewResult());
+    mockCompaniesApi.importPreview.mockResolvedValue(
+      buildMixedAdapterPreviewResult(),
+    );
     await renderPage();
     await enterGithubUrl();
     await clickButton((text) => text === "Preview import");
@@ -1071,14 +1402,22 @@ describe("CompanyImport", () => {
   function lastImportMeta() {
     const call = mockCompaniesApi.importBundleAsync.mock.calls.at(-1);
     expect(call).toBeTruthy();
-    return call![0] as { adapterOverrides?: Record<string, { adapterType: string; adapterConfig?: Record<string, unknown> }> };
+    return call![0] as {
+      adapterOverrides?: Record<
+        string,
+        { adapterType: string; adapterConfig?: Record<string, unknown> }
+      >;
+    };
   }
 
   it("keeps manifest adapters and sends no overrides when the user touches nothing", async () => {
     await previewMixedAdapterPackage();
 
     // The picker shows each agent's source adapter, not a coerced CEO default.
-    expect(findAdapterSelects().map((select) => select.value)).toEqual(["claude_local", "codex_local"]);
+    expect(findAdapterSelects().map((select) => select.value)).toEqual([
+      "claude_local",
+      "codex_local",
+    ]);
 
     await clickButton((text) => text.startsWith("Import 3 file"));
     await settle();
@@ -1094,7 +1433,10 @@ describe("CompanyImport", () => {
     const coderSelect = findAdapterSelects()[0];
     expect(coderSelect?.value).toBe("claude_local");
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        "value",
+      )!.set!;
       setter.call(coderSelect!, "codex_local");
       coderSelect!.dispatchEvent(new Event("change", { bubbles: true }));
     });
@@ -1117,13 +1459,17 @@ describe("CompanyImport", () => {
     await previewMixedAdapterPackage();
 
     for (const select of findAdapterSelects()) {
-      expect(Array.from(select.options).map((option) => option.value))
-        .not.toContain("taskcore_runner");
+      expect(
+        Array.from(select.options).map((option) => option.value),
+      ).not.toContain("taskcore_runner");
     }
   });
 
   it("offers Taskcore Runner import configuration after its experimental flag is enabled", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableNativeRunner: true, enableOpenAiDot: false });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableNativeRunner: true,
+      enableOpenAiDot: false,
+    });
     mockAdaptersApi.list.mockResolvedValue([
       { type: "claude_local", disabled: false },
       { type: "codex_local", disabled: false },
@@ -1132,20 +1478,27 @@ describe("CompanyImport", () => {
     await previewMixedAdapterPackage();
 
     for (const select of findAdapterSelects()) {
-      expect(Array.from(select.options).map((option) => option.value))
-        .toContain("taskcore_runner");
+      expect(
+        Array.from(select.options).map((option) => option.value),
+      ).toContain("taskcore_runner");
     }
   });
 
   it("keeps imported Dot agents and falls back other Runner providers under Dot-only opt-in", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableNativeRunner: false, enableOpenAiDot: true });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableNativeRunner: false,
+      enableOpenAiDot: true,
+    });
     mockAdaptersApi.list.mockResolvedValue([
       { type: "claude_local", disabled: false },
       { type: "taskcore_runner", disabled: false },
     ]);
     const preview = buildMixedAdapterPreviewResult();
     preview.manifest.agents[0]!.adapterType = "taskcore_runner";
-    preview.manifest.agents[0]!.adapterConfig = { provider: "openai_dot", allowUnmeteredProvider: true };
+    preview.manifest.agents[0]!.adapterConfig = {
+      provider: "openai_dot",
+      allowUnmeteredProvider: true,
+    };
     preview.manifest.agents[1]!.adapterType = "taskcore_runner";
     preview.manifest.agents[1]!.adapterConfig = { provider: "codex" };
     mockCompaniesApi.importPreview.mockResolvedValue(preview);
@@ -1153,7 +1506,10 @@ describe("CompanyImport", () => {
     await enterGithubUrl();
     await clickButton((text) => text === "Preview import");
 
-    expect(findAdapterSelects().map((select) => select.value)).toEqual(["openai_dot", "claude_local"]);
+    expect(findAdapterSelects().map((select) => select.value)).toEqual([
+      "openai_dot",
+      "claude_local",
+    ]);
     for (const select of findAdapterSelects()) {
       const choices = Array.from(select.options).map((option) => option.value);
       expect(choices).toContain("openai_dot");
@@ -1161,11 +1517,16 @@ describe("CompanyImport", () => {
     }
     await clickButton((text) => text.startsWith("Import 3 file"));
     await settle();
-    expect(lastImportMeta().adapterOverrides).toEqual({ researcher: { adapterType: "claude_local" } });
+    expect(lastImportMeta().adapterOverrides).toEqual({
+      researcher: { adapterType: "claude_local" },
+    });
   });
 
   it("requires billing acknowledgement and serializes the standalone Dot import choice as Runner", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableNativeRunner: false, enableOpenAiDot: true });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableNativeRunner: false,
+      enableOpenAiDot: true,
+    });
     mockAdaptersApi.list.mockResolvedValue([
       { type: "claude_local", disabled: false },
       { type: "taskcore_runner", disabled: false },
@@ -1173,7 +1534,10 @@ describe("CompanyImport", () => {
     await previewMixedAdapterPackage();
     const select = findAdapterSelects()[0]!;
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        "value",
+      )!.set!;
       setter.call(select, "openai_dot");
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
@@ -1183,11 +1547,21 @@ describe("CompanyImport", () => {
     await clickButton((text) => text.startsWith("Import 3 file"));
     await settle();
     expect(mockCompaniesApi.importBundleAsync).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("OpenAI Dot requires acknowledgement of external billing");
+    expect(container.textContent).toContain(
+      "OpenAI Dot requires acknowledgement of external billing",
+    );
 
-    const billingToggle = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="switch"]'))
-      .find((button) => button.closest("label")?.textContent?.includes("Allow externally billed provider")
-        || button.parentElement?.textContent?.includes("Allow externally billed provider"));
+    const billingToggle = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('button[role="switch"]'),
+    ).find(
+      (button) =>
+        button
+          .closest("label")
+          ?.textContent?.includes("Allow externally billed provider") ||
+        button.parentElement?.textContent?.includes(
+          "Allow externally billed provider",
+        ),
+    );
     expect(billingToggle).toBeTruthy();
     await act(async () => billingToggle!.click());
     await flushReact();
@@ -1196,15 +1570,23 @@ describe("CompanyImport", () => {
     expect(lastImportMeta().adapterOverrides?.coder).toEqual({
       adapterType: "taskcore_runner",
       adapterConfig: {
-        provider: "openai_dot", lifecycleMode: "per_turn", allowUnmeteredProvider: true,
-        dotAttachmentAccess: false, dotWorkspaceAccess: false,
+        provider: "openai_dot",
+        lifecycleMode: "per_turn",
+        allowUnmeteredProvider: true,
+        dotAttachmentAccess: false,
+        dotWorkspaceAccess: false,
       },
     });
   });
 
   it("does not expose Dot when only the general Runner option is enabled", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableNativeRunner: true, enableOpenAiDot: false });
-    mockAdaptersApi.list.mockResolvedValue([{ type: "taskcore_runner", disabled: false }]);
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableNativeRunner: true,
+      enableOpenAiDot: false,
+    });
+    mockAdaptersApi.list.mockResolvedValue([
+      { type: "taskcore_runner", disabled: false },
+    ]);
     await previewMixedAdapterPackage();
     for (const select of findAdapterSelects()) {
       const choices = Array.from(select.options).map((option) => option.value);
@@ -1216,12 +1598,19 @@ describe("CompanyImport", () => {
   it("falls back to the CEO adapter with a visible warning when a manifest adapter is not installed", async () => {
     // The destination has no codex_local adapter; the CEO fallback (an empty
     // agent list defaults to claude_local) takes over — never silently.
-    mockAdaptersApi.list.mockResolvedValue([{ type: "claude_local", disabled: false }]);
+    mockAdaptersApi.list.mockResolvedValue([
+      { type: "claude_local", disabled: false },
+    ]);
     await previewMixedAdapterPackage();
 
-    expect(container.textContent).toContain("source adapter codex_local is not installed here");
+    expect(container.textContent).toContain(
+      "source adapter codex_local is not installed here",
+    );
     expect(container.textContent).toContain("will use Claude Code");
-    expect(findAdapterSelects().map((select) => select.value)).toEqual(["claude_local", "claude_local"]);
+    expect(findAdapterSelects().map((select) => select.value)).toEqual([
+      "claude_local",
+      "claude_local",
+    ]);
 
     await clickButton((text) => text.startsWith("Import 3 file"));
     await settle();
@@ -1237,11 +1626,18 @@ describe("CompanyImport", () => {
     // Neither codex_local nor the CEO fallback (claude_local) is installed;
     // the fallback must be an adapter that actually exists on the
     // destination, never an unavailable type the server would reject.
-    mockAdaptersApi.list.mockResolvedValue([{ type: "gemini_local", disabled: false }]);
+    mockAdaptersApi.list.mockResolvedValue([
+      { type: "gemini_local", disabled: false },
+    ]);
     await previewMixedAdapterPackage();
 
-    expect(container.textContent).toContain("source adapter codex_local is not installed here");
-    expect(findAdapterSelects().map((select) => select.value)).toEqual(["gemini_local", "gemini_local"]);
+    expect(container.textContent).toContain(
+      "source adapter codex_local is not installed here",
+    );
+    expect(findAdapterSelects().map((select) => select.value)).toEqual([
+      "gemini_local",
+      "gemini_local",
+    ]);
 
     await clickButton((text) => text.startsWith("Import 3 file"));
     await settle();
@@ -1255,11 +1651,16 @@ describe("CompanyImport", () => {
   it("fails open to manifest adapters when the adapter list cannot be read", async () => {
     // Unknown availability must never coerce: with no adapter list, every
     // agent keeps its manifest adapter and no fallback warning renders.
-    mockAdaptersApi.list.mockRejectedValue(new ApiError("adapters unavailable", 500, null));
+    mockAdaptersApi.list.mockRejectedValue(
+      new ApiError("adapters unavailable", 500, null),
+    );
     await previewMixedAdapterPackage();
 
     expect(container.textContent).not.toContain("is not installed here");
-    expect(findAdapterSelects().map((select) => select.value)).toEqual(["claude_local", "codex_local"]);
+    expect(findAdapterSelects().map((select) => select.value)).toEqual([
+      "claude_local",
+      "codex_local",
+    ]);
 
     await clickButton((text) => text.startsWith("Import 3 file"));
     await settle();

@@ -16,7 +16,8 @@ type CurrentUserCandidates = {
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return false;
   const proto = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
 }
@@ -26,21 +27,32 @@ function escapeRegExp(value: string) {
 }
 
 function uniqueNonEmpty(values: Array<string | null | undefined>) {
-  return Array.from(new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)));
+  return Array.from(
+    new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)),
+  );
 }
 
 function splitPathSegments(value: string) {
-  return value.replace(/[\\/]+$/, "").split(/[\\/]+/).filter(Boolean);
+  return value
+    .replace(/[\\/]+$/, "")
+    .split(/[\\/]+/)
+    .filter(Boolean);
 }
 
 function replaceLastPathSegment(pathValue: string, replacement: string) {
   const normalized = pathValue.replace(/[\\/]+$/, "");
-  const lastSeparator = Math.max(normalized.lastIndexOf("/"), normalized.lastIndexOf("\\"));
+  const lastSeparator = Math.max(
+    normalized.lastIndexOf("/"),
+    normalized.lastIndexOf("\\"),
+  );
   if (lastSeparator < 0) return replacement;
   return `${normalized.slice(0, lastSeparator + 1)}${replacement}`;
 }
 
-export function maskUserNameForLogs(value: string, fallback = CURRENT_USER_REDACTION_TOKEN) {
+export function maskUserNameForLogs(
+  value: string,
+  fallback = CURRENT_USER_REDACTION_TOKEN,
+) {
   const trimmed = value.trim();
   if (!trimmed) return fallback;
   return `${trimmed[0]}${"*".repeat(Math.max(1, Array.from(trimmed).length - 1))}`;
@@ -104,32 +116,48 @@ function resolveCurrentUserCandidates(opts?: CurrentUserRedactionOptions) {
   return { userNames, homeDirs, replacement };
 }
 
-export function redactCurrentUserText(input: string, opts?: CurrentUserRedactionOptions) {
+export function redactCurrentUserText(
+  input: string,
+  opts?: CurrentUserRedactionOptions,
+) {
   if (!input) return input;
   if (opts?.enabled === false) return input;
 
-  const { userNames, homeDirs, replacement } = resolveCurrentUserCandidates(opts);
+  const { userNames, homeDirs, replacement } =
+    resolveCurrentUserCandidates(opts);
   let result = input;
 
   for (const homeDir of [...homeDirs].sort((a, b) => b.length - a.length)) {
     if (!result.includes(homeDir)) continue;
     const lastSegment = splitPathSegments(homeDir).pop() ?? "";
     const replacementDir = lastSegment
-      ? replaceLastPathSegment(homeDir, maskUserNameForLogs(lastSegment, replacement))
+      ? replaceLastPathSegment(
+          homeDir,
+          maskUserNameForLogs(lastSegment, replacement),
+        )
       : replacement;
     result = result.split(homeDir).join(replacementDir);
   }
 
   for (const userName of [...userNames].sort((a, b) => b.length - a.length)) {
     if (!result.includes(userName)) continue;
-    const pattern = new RegExp(`(?<![A-Za-z0-9._-])${escapeRegExp(userName)}(?![A-Za-z0-9._-])`, "g");
-    result = result.replace(pattern, maskUserNameForLogs(userName, replacement));
+    const pattern = new RegExp(
+      `(?<![A-Za-z0-9._-])${escapeRegExp(userName)}(?![A-Za-z0-9._-])`,
+      "g",
+    );
+    result = result.replace(
+      pattern,
+      maskUserNameForLogs(userName, replacement),
+    );
   }
 
   return result;
 }
 
-export function redactCurrentUserValue<T>(value: T, opts?: CurrentUserRedactionOptions): T {
+export function redactCurrentUserValue<T>(
+  value: T,
+  opts?: CurrentUserRedactionOptions,
+): T {
   if (typeof value === "string") {
     return redactCurrentUserText(value, opts) as T;
   }

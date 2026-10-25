@@ -26,7 +26,9 @@ export interface StoryIssue {
   wakeDiagnostics?: StoryWakeDiagnostics;
   blockedTransitionAt?: string | null;
 }
-export interface StoryComment extends Partial<Pick<IssueComment, "authorAgentId" | "createdByRunId">> {
+export interface StoryComment extends Partial<
+  Pick<IssueComment, "authorAgentId" | "createdByRunId">
+> {
   id?: string;
   body?: unknown;
   createdAt?: string;
@@ -72,8 +74,7 @@ export function storyAcceptedAgentReview(
     .filter((candidate) => {
       const result = candidate.result;
       const target = candidate.payload?.target as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       const revisionId = String(target?.revisionId ?? "");
       const reviewRun = runs.find(
         (run) => run.id === candidate.resolvedByRunId,
@@ -98,8 +99,8 @@ export function storyAcceptedAgentReview(
         revisionId.length > 0
       );
     })
-    .sort((a, b) =>
-      Date.parse(a.resolvedAt ?? "") - Date.parse(b.resolvedAt ?? ""),
+    .sort(
+      (a, b) => Date.parse(a.resolvedAt ?? "") - Date.parse(b.resolvedAt ?? ""),
     )[0];
 }
 export interface StoryWakeDiagnosticEvent {
@@ -174,7 +175,7 @@ export function storyParentCompletionPrecedesReview(
   if (reviewStartedAt) {
     return Boolean(
       parentFinishedAt &&
-        Date.parse(parentFinishedAt) <= Date.parse(reviewStartedAt),
+      Date.parse(parentFinishedAt) <= Date.parse(reviewStartedAt),
     );
   }
   return parentBlocked;
@@ -218,17 +219,25 @@ export function isExpectedStoryInterruption(
 ): boolean {
   if (!allowedRunIds.includes(run.id)) return false;
   return (
-    (run.status === "cancelled" && (!run.errorCode || run.errorCode === "cancelled")) ||
-    (run.status === "interrupted" && run.errorCode === "server_shutdown_interrupted") ||
+    (run.status === "cancelled" &&
+      (!run.errorCode || run.errorCode === "cancelled")) ||
+    (run.status === "interrupted" &&
+      run.errorCode === "server_shutdown_interrupted") ||
     (run.status === "failed" && run.errorCode === "process_lost")
   );
 }
 
-export function storyUnexpectedRunFailure(runs: StoryRun[], allowedRunIds: readonly string[]) {
-  return runs.find((run) =>
-    ["failed", "timed_out", "cancelled", "interrupted"].includes(run.status) &&
-    !isStoryWorkspaceDeferral(run) &&
-    !isExpectedStoryInterruption(run, allowedRunIds),
+export function storyUnexpectedRunFailure(
+  runs: StoryRun[],
+  allowedRunIds: readonly string[],
+) {
+  return runs.find(
+    (run) =>
+      ["failed", "timed_out", "cancelled", "interrupted"].includes(
+        run.status,
+      ) &&
+      !isStoryWorkspaceDeferral(run) &&
+      !isExpectedStoryInterruption(run, allowedRunIds),
   );
 }
 
@@ -240,29 +249,45 @@ export function storyUnexercisedReviewBoundary(
   leadId: string,
 ): string | undefined {
   if (issues.length === 0 || runs.length === 0) return;
-  if (!issues.every((issue) =>
-    issue.status === "done" && !issue.scheduledRetry && !issue.activeRecoveryAction,
-  )) return;
+  if (
+    !issues.every(
+      (issue) =>
+        issue.status === "done" &&
+        !issue.scheduledRetry &&
+        !issue.activeRecoveryAction,
+    )
+  )
+    return;
   if (!runs.every((run) => run.status === "succeeded")) return;
   const child = issues.find((issue) => issue.parentId === parentId);
   const accepted = child?.interactions?.flatMap((interaction) => {
-    const review = storyAcceptedAgentReview(child, interaction.id, leadId, runs);
+    const review = storyAcceptedAgentReview(
+      child,
+      interaction.id,
+      leadId,
+      runs,
+    );
     return review ? [review] : [];
   })[0];
-  const reviewRun = accepted && runs.find((run) => run.id === accepted.resolvedByRunId);
+  const reviewRun =
+    accepted && runs.find((run) => run.id === accepted.resolvedByRunId);
   const reviewStartedAt = Date.parse(reviewRun?.startedAt ?? "");
-  const parentRuns = runs.filter((run) =>
-    run.nativeIssueId === parentId ||
-    run.contextSnapshot?.issueId === parentId ||
-    run.contextSnapshot?.taskId === parentId,
+  const parentRuns = runs.filter(
+    (run) =>
+      run.nativeIssueId === parentId ||
+      run.contextSnapshot?.issueId === parentId ||
+      run.contextSnapshot?.taskId === parentId,
   );
   // Snapshots are fetched separately. Missing review evidence is not proof that it
   // never happened; wait unless persisted timestamps rule out the required order.
   if (!Number.isFinite(reviewStartedAt) || parentRuns.length === 0) return;
-  if (!parentRuns.every((run) => {
-    const finishedAt = Date.parse(run.finishedAt ?? "");
-    return Number.isFinite(finishedAt) && finishedAt > reviewStartedAt;
-  })) return;
+  if (
+    !parentRuns.every((run) => {
+      const finishedAt = Date.parse(run.finishedAt ?? "");
+      return Number.isFinite(finishedAt) && finishedAt > reviewStartedAt;
+    })
+  )
+    return;
   return "Review handoff boundary not exercised: the accepted review started before any parent run finished, so the blocked-parent-before-review ordering was not tested.";
 }
 
@@ -302,7 +327,10 @@ export function storyLifecycleChecks(input: {
     ),
     check(
       "successful-runs",
-      executed.every((r) => r.status === "succeeded" || isExpectedStoryInterruption(r, allowed)),
+      executed.every(
+        (r) =>
+          r.status === "succeeded" || isExpectedStoryInterruption(r, allowed),
+      ),
       "Only the expected stop or process-loss outcome of an injected interruption is exempt.",
     ),
     check(
@@ -418,30 +446,33 @@ export function storyHasDurableAgentReviewContinuation(
       ["completed", "failed", "cancelled"].includes(String(event.status)),
   );
   if (terminalWake) return false;
-  return issues.some((child) =>
-    child.parentId === parentId &&
-    child.status === "done" &&
-    (child.interactions?.some((interaction) => {
-      const target = interaction.payload?.target as
-        | Record<string, unknown>
-        | undefined;
-      const reviewRun = runs.find((run) => run.id === interaction.resolvedByRunId);
-      return (
-        interaction.kind === "request_confirmation" &&
-        interaction.status === "accepted" &&
-        interaction.issueId === child.id &&
-        interaction.addresseeAgentId === leadId &&
-        interaction.resolvedByAgentId === leadId &&
-        interaction.result?.version === 1 &&
-        interaction.result?.outcome === "accepted" &&
-        Number.isFinite(blockedAt) &&
-        Date.parse(interaction.resolvedAt ?? "") >= blockedAt &&
-        target?.type === "custom" &&
-        target?.key === "native_completion_review" &&
-        reviewRun?.status === "succeeded" &&
-        reviewRun.agentId === leadId
-      );
-    }) ?? false),
+  return issues.some(
+    (child) =>
+      child.parentId === parentId &&
+      child.status === "done" &&
+      (child.interactions?.some((interaction) => {
+        const target = interaction.payload?.target as
+          Record<string, unknown> | undefined;
+        const reviewRun = runs.find(
+          (run) => run.id === interaction.resolvedByRunId,
+        );
+        return (
+          interaction.kind === "request_confirmation" &&
+          interaction.status === "accepted" &&
+          interaction.issueId === child.id &&
+          interaction.addresseeAgentId === leadId &&
+          interaction.resolvedByAgentId === leadId &&
+          interaction.result?.version === 1 &&
+          interaction.result?.outcome === "accepted" &&
+          Number.isFinite(blockedAt) &&
+          Date.parse(interaction.resolvedAt ?? "") >= blockedAt &&
+          target?.type === "custom" &&
+          target?.key === "native_completion_review" &&
+          reviewRun?.status === "succeeded" &&
+          reviewRun.agentId === leadId
+        );
+      }) ??
+        false),
   );
 }
 
@@ -449,28 +480,61 @@ export function storyHasDurableAgentReviewContinuation(
  * Wait within the original deadline only for this task/run's recorded response.
  * Once a follow-up run has consumed it, a new blocker is a real failure.
  */
-export function storyHasDurableServiceContinuation(issues: StoryIssue[], parentId: string, agentId: string, runs: StoryRun[]): boolean {
-  const issue = issues.find(i => i.id === parentId);
-  if (issue?.status !== "blocked" || issue.assigneeAgentId !== agentId) return false;
-  return issue.interactions?.some(interaction => {
-    const source = runs.find(run => run.id === interaction.sourceRunId);
-    const action = interaction.payload?.toolAction as Record<string, unknown> | undefined;
-    const result = interaction.result?.toolAction as Record<string, unknown> | undefined;
-    const resolved = (interaction.status === "accepted" && interaction.result?.outcome === "accepted" && result?.status === "executed") ||
-      (interaction.status === "rejected" && interaction.result?.outcome === "rejected" && result === undefined);
-    if (interaction.issueId !== parentId || interaction.createdByAgentId !== agentId ||
-        interaction.kind !== "request_confirmation" || interaction.continuationPolicy !== "wake_assignee" ||
+export function storyHasDurableServiceContinuation(
+  issues: StoryIssue[],
+  parentId: string,
+  agentId: string,
+  runs: StoryRun[],
+): boolean {
+  const issue = issues.find((i) => i.id === parentId);
+  if (issue?.status !== "blocked" || issue.assigneeAgentId !== agentId)
+    return false;
+  return (
+    issue.interactions?.some((interaction) => {
+      const source = runs.find((run) => run.id === interaction.sourceRunId);
+      const action = interaction.payload?.toolAction as
+        Record<string, unknown> | undefined;
+      const result = interaction.result?.toolAction as
+        Record<string, unknown> | undefined;
+      const resolved =
+        (interaction.status === "accepted" &&
+          interaction.result?.outcome === "accepted" &&
+          result?.status === "executed") ||
+        (interaction.status === "rejected" &&
+          interaction.result?.outcome === "rejected" &&
+          result === undefined);
+      if (
+        interaction.issueId !== parentId ||
+        interaction.createdByAgentId !== agentId ||
+        interaction.kind !== "request_confirmation" ||
+        interaction.continuationPolicy !== "wake_assignee" ||
         !resolved ||
-        action?.version !== 1 || typeof action.actionRequestId !== "string" || !action.actionRequestId.trim() ||
-        source?.agentId !== agentId || source.companyId !== issue.companyId || source.nativeIssueId !== parentId || source.status !== "succeeded" ||
-        (!Number.isFinite(Date.parse(source.finishedAt ?? "")) || !Number.isFinite(Date.parse(interaction.resolvedAt ?? "")))) return false;
-    return !runs.some(run => {
-      const input = run.runnerProfileJson?.nativeExecutionInput as
-        { interactionResponses?: Array<{ interactionId?: string }> } | undefined;
-      return run.id !== source.id && run.agentId === agentId && run.companyId === issue.companyId &&
-        input?.interactionResponses?.some(response => response.interactionId === interaction.id);
-    });
-  }) ?? false;
+        action?.version !== 1 ||
+        typeof action.actionRequestId !== "string" ||
+        !action.actionRequestId.trim() ||
+        source?.agentId !== agentId ||
+        source.companyId !== issue.companyId ||
+        source.nativeIssueId !== parentId ||
+        source.status !== "succeeded" ||
+        !Number.isFinite(Date.parse(source.finishedAt ?? "")) ||
+        !Number.isFinite(Date.parse(interaction.resolvedAt ?? ""))
+      )
+        return false;
+      return !runs.some((run) => {
+        const input = run.runnerProfileJson?.nativeExecutionInput as
+          | { interactionResponses?: Array<{ interactionId?: string }> }
+          | undefined;
+        return (
+          run.id !== source.id &&
+          run.agentId === agentId &&
+          run.companyId === issue.companyId &&
+          input?.interactionResponses?.some(
+            (response) => response.interactionId === interaction.id,
+          )
+        );
+      });
+    }) ?? false
+  );
 }
 
 /** Timeout evidence requires a stranded leaf with durable accepted-review evidence. */
@@ -481,10 +545,8 @@ export function storyReviewContinuationTimeoutDetail(
   runs: StoryRun[],
   observableAgentIds: string | readonly string[],
 ): string | undefined {
-  return (
-    storyHasStrandedBlockedLeaf(issues, observableAgentIds) &&
+  return storyHasStrandedBlockedLeaf(issues, observableAgentIds) &&
     storyHasDurableAgentReviewContinuation(issues, parentId, leadId, runs)
-  )
     ? "task is Blocked without an active continuation after accepted review"
     : undefined;
 }
@@ -511,9 +573,7 @@ export function storyHasPendingHumanInteraction(
       interaction.status === "pending" &&
       !storyHasPendingAgentReviewForInteraction(issue, interaction, agentIds),
   );
-  return Boolean(
-    pendingInteraction,
-  );
+  return Boolean(pendingInteraction);
 }
 
 function storyHasPendingAgentReviewForInteraction(
@@ -539,14 +599,11 @@ function storyHasPendingAgentReviewForInteraction(
         RUNNABLE_WAKE_STATUSES.has(String(event.status)),
     ) ?? [];
   const explicitlyBound = wakeEvents.some(
-    (event) =>
-      event.payload?.nativeReviewInteractionId === interaction.id,
+    (event) => event.payload?.nativeReviewInteractionId === interaction.id,
   );
   if (explicitlyBound) return true;
   if (
-    wakeEvents.some(
-      (event) => event.payload?.nativeReviewInteractionId != null,
-    )
+    wakeEvents.some((event) => event.payload?.nativeReviewInteractionId != null)
   )
     return false;
   const sameAgentPendingCards =
@@ -606,8 +663,7 @@ export function storyIssueHasBlockedTimelineBefore(
 /** Native result evidence survives a fast transition past the blocked projection. */
 export function storyRunReportsDependencyBlock(run: StoryRun): boolean {
   const result = run.resultJson?.nativeResult as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (result?.reportedWorkDisposition !== "blocked") return false;
   const blocker = result.blocker as Record<string, unknown> | undefined;
   const reason = String(blocker?.reasonCode ?? "").toLowerCase();

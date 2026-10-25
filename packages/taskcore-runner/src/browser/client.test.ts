@@ -17,18 +17,30 @@ function json(body: unknown, status = 200): Response {
 describe("public runner browser client", () => {
   it("uses an injected fetch transport and normalizes the base URL", async () => {
     const calls: Array<{ input: string; init?: RequestInit }> = [];
-    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      calls.push({ input: String(input), ...(init === undefined ? {} : { init }) });
-      return json({ manifests: [{ id: "completion" }] });
-    }) as typeof fetch;
-    const client = createRunnerClient({ baseUrl: "https://runner.test/api/", fetchImpl });
+    const fetchImpl = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        calls.push({
+          input: String(input),
+          ...(init === undefined ? {} : { init }),
+        });
+        return json({ manifests: [{ id: "completion" }] });
+      },
+    ) as typeof fetch;
+    const client = createRunnerClient({
+      baseUrl: "https://runner.test/api/",
+      fetchImpl,
+    });
 
-    await expect(client.fetchManifests()).resolves.toEqual([{ id: "completion" }]);
+    await expect(client.fetchManifests()).resolves.toEqual([
+      { id: "completion" },
+    ]);
     expect(calls[0]?.input).toBe("https://runner.test/api/manifests");
   });
 
   it("preserves structured status and code on server errors", async () => {
-    const fetchImpl = vi.fn(async () => json({ error: "stale_turn", message: "Turn ended." }, 409)) as unknown as typeof fetch;
+    const fetchImpl = vi.fn(async () =>
+      json({ error: "stale_turn", message: "Turn ended." }, 409),
+    ) as unknown as typeof fetch;
     const client = createRunnerClient({ fetchImpl });
 
     await expect(client.startTurn("session", "hello")).rejects.toEqual(
@@ -48,11 +60,16 @@ describe("public runner browser client", () => {
       onopen: null,
       onmessage: null,
       onerror: null,
-      close: () => { closed = true; },
+      close: () => {
+        closed = true;
+      },
     };
     const client = createRunnerClient({
       fetchImpl: vi.fn() as unknown as typeof fetch,
-      eventSourceFactory: (nextUrl) => { url = nextUrl; return source; },
+      eventSourceFactory: (nextUrl) => {
+        url = nextUrl;
+        return source;
+      },
     });
     const event = {
       schema: "taskcore.prp.event.v1",
@@ -66,7 +83,10 @@ describe("public runner browser client", () => {
     } as PrpEvent;
     const onEvent = vi.fn();
     const onError = vi.fn();
-    const handle = client.openEventStream("session/id", 8, { onEvent, onError });
+    const handle = client.openEventStream("session/id", 8, {
+      onEvent,
+      onError,
+    });
 
     expect(url).toBe("/api/liveConsole/sessions/session%2Fid/stream?after=8");
     source.onmessage?.({ data: JSON.stringify(event) } as MessageEvent<string>);

@@ -26,11 +26,21 @@ describe("home path resolution", () => {
 
     const instanceRoot = path.join(home, "instances", "default");
     expect(resolveTaskcoreInstanceRoot()).toBe(instanceRoot);
-    expect(resolveTaskcoreConfigPathForInstance()).toBe(path.join(instanceRoot, "config.json"));
-    expect(resolveDefaultEmbeddedPostgresDir()).toBe(path.join(instanceRoot, "db"));
-    expect(resolveDefaultBackupDir()).toBe(path.join(instanceRoot, "data", "backups"));
+    expect(resolveTaskcoreConfigPathForInstance()).toBe(
+      path.join(instanceRoot, "config.json"),
+    );
+    expect(resolveDefaultEmbeddedPostgresDir()).toBe(
+      path.join(instanceRoot, "db"),
+    );
+    expect(resolveDefaultBackupDir()).toBe(
+      path.join(instanceRoot, "data", "backups"),
+    );
     expect(resolveDefaultLogsDir()).toBe(path.join(instanceRoot, "logs"));
-    expect(resolveDefaultStorageDir()).toBe(path.join(instanceRoot, "data", "storage"));
-    expect(resolveDefaultSecretsKeyFilePath()).toBe(path.join(instanceRoot, "secrets", "master.key"));
+    expect(resolveDefaultStorageDir()).toBe(
+      path.join(instanceRoot, "data", "storage"),
+    );
+    expect(resolveDefaultSecretsKeyFilePath()).toBe(
+      path.join(instanceRoot, "secrets", "master.key"),
+    );
   });
 });

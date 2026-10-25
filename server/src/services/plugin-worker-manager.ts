@@ -20,9 +20,16 @@
 
 import { fork, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { beginIdleTrackedWork, readTaskDrain, trackIdleWork } from "./task-admission.js";
+import {
+  beginIdleTrackedWork,
+  readTaskDrain,
+  trackIdleWork,
+} from "./task-admission.js";
 import { EventEmitter } from "node:events";
-import { createInterface, type Interface as ReadlineInterface } from "node:readline";
+import {
+  createInterface,
+  type Interface as ReadlineInterface,
+} from "node:readline";
 import type { TaskcorePluginManifestV1 } from "@taskcore/shared";
 import {
   JSONRPC_VERSION,
@@ -309,12 +316,7 @@ const EXECUTE_LOG_DROP_LOG_INTERVAL_MS = 1_000;
  * Status of a managed worker process.
  */
 export type WorkerStatus =
-  | "stopped"
-  | "starting"
-  | "running"
-  | "stopping"
-  | "crashed"
-  | "backoff";
+  "stopped" | "starting" | "running" | "stopping" | "crashed" | "backoff";
 
 /**
  * Worker-to-host method handler. The host registers these to service calls
@@ -337,15 +339,28 @@ export type WorkerToHostHandlers = {
  */
 export interface WorkerHandleEvents {
   /** Worker process started and is ready (initialize succeeded). */
-  "ready": { pluginId: string };
+  ready: { pluginId: string };
   /** Worker process exited. */
-  "exit": { pluginId: string; code: number | null; signal: NodeJS.Signals | null };
+  exit: {
+    pluginId: string;
+    code: number | null;
+    signal: NodeJS.Signals | null;
+  };
   /** Worker process crashed unexpectedly. */
-  "crash": { pluginId: string; code: number | null; signal: NodeJS.Signals | null; willRestart: boolean };
+  crash: {
+    pluginId: string;
+    code: number | null;
+    signal: NodeJS.Signals | null;
+    willRestart: boolean;
+  };
   /** Worker process errored (e.g. spawn failure). */
-  "error": { pluginId: string; error: Error };
+  error: { pluginId: string; error: Error };
   /** Worker status changed. */
-  "status": { pluginId: string; status: WorkerStatus; previousStatus: WorkerStatus };
+  status: {
+    pluginId: string;
+    status: WorkerStatus;
+    previousStatus: WorkerStatus;
+  };
 }
 
 type WorkerHandleEventName = keyof WorkerHandleEvents;
@@ -357,7 +372,10 @@ export function appendStderrExcerpt(current: string, chunk: string): string {
     : next.slice(-MAX_STDERR_EXCERPT_CHARS);
 }
 
-export function formatWorkerFailureMessage(message: string, stderrExcerpt: string): string {
+export function formatWorkerFailureMessage(
+  message: string,
+  stderrExcerpt: string,
+): string {
   const excerpt = stderrExcerpt.trim();
   if (!excerpt) return message;
   if (message.includes(excerpt)) return message;
@@ -383,7 +401,10 @@ export function resolveRpcCallTimeoutMs(
     Number.isFinite(explicitTimeoutMs) &&
     explicitTimeoutMs > 0
   ) {
-    return Math.min(Math.max(Math.trunc(explicitTimeoutMs), 1), MAX_NODE_TIMER_TIMEOUT_MS);
+    return Math.min(
+      Math.max(Math.trunc(explicitTimeoutMs), 1),
+      MAX_NODE_TIMER_TIMEOUT_MS,
+    );
   }
   return Math.min(defaultTimeoutMs, MAX_RPC_TIMEOUT_MS);
 }
@@ -451,7 +472,10 @@ export interface WorkerStartOptions {
    * Callback for stream notifications from the worker (streams.open/emit/close).
    * The host wires this to the PluginStreamBus to fan out events to SSE clients.
    */
-  onStreamNotification?: (method: string, params: Record<string, unknown>) => void;
+  onStreamNotification?: (
+    method: string,
+    params: Record<string, unknown>,
+  ) => void;
   /**
    * Framing and flood limits for the `execute.log` route. The defaults bound
    * one incoming line before the JSON parse and the total streamed output for
@@ -677,7 +701,10 @@ interface ExecuteLogRoute {
  * with exponential backoff automatically when `autoRestart` is enabled.
  */
 export interface PluginWorkerHandle {
-  prepareIdleSleep?(hold: { ownerId: string; expiresAt: number }): Promise<"none" | "present" | "unknown">;
+  prepareIdleSleep?(hold: {
+    ownerId: string;
+    expiresAt: number;
+  }): Promise<"none" | "present" | "unknown">;
   releaseIdleSleep?(): void;
   /** The plugin ID this worker serves. */
   readonly pluginId: string;
@@ -729,9 +756,7 @@ export interface PluginWorkerHandle {
    * binds the worker session identifier one time, and returns a session the login
    * transport drives. It permits one active credential pseudo-terminal per worker.
    */
-  openLoginPtySession(
-    input: LoginPtyOpenInput,
-  ): Promise<LoginPtyHostSession>;
+  openLoginPtySession(input: LoginPtyOpenInput): Promise<LoginPtyHostSession>;
 
   /**
    * Open one generic duplex channel on this worker. The manager mints the host
@@ -797,7 +822,8 @@ export interface WorkerDiagnostics {
  */
 export interface PluginWorkerManager {
   inspectIdleSleep?(hold: { ownerId: string; expiresAt: number }): Promise<{
-    backgroundWork: "none" | "present" | "unknown"; pluginIds: string[];
+    backgroundWork: "none" | "present" | "unknown";
+    pluginIds: string[];
   }>;
   releaseIdleSleep?(): void;
   /**
@@ -806,7 +832,10 @@ export interface PluginWorkerManager {
    * @returns The worker handle
    * @throws if a worker is already registered for this plugin
    */
-  startWorker(pluginId: string, options: WorkerStartOptions): Promise<PluginWorkerHandle>;
+  startWorker(
+    pluginId: string,
+    options: WorkerStartOptions,
+  ): Promise<PluginWorkerHandle>;
 
   /**
    * Stop and unregister a specific plugin worker.
@@ -827,7 +856,10 @@ export interface PluginWorkerManager {
    * Authorize the companies a plugin's worker may act on from proactive
    * (non-invocation) context. No-op if the worker is not registered.
    */
-  setProactiveCompanyScopes(pluginId: string, companyIds: readonly string[]): void;
+  setProactiveCompanyScopes(
+    pluginId: string,
+    companyIds: readonly string[],
+  ): void;
 
   /**
    * Stop all managed workers. Called during server shutdown.
@@ -899,22 +931,32 @@ export function createPluginWorkerHandle(
   // completion receipt. A worker crash cannot manufacture one.
   const unsettledCalls = new Map<string | number, () => void>();
   let activeHostHandlers = 0;
-  let idleHold: { ownerId: string; expiresAt: number; ready: boolean } | null = null;
+  let idleHold: { ownerId: string; expiresAt: number; ready: boolean } | null =
+    null;
 
   function releaseIdleSleep(): void {
     const prior = idleHold;
     idleHold = null;
     if (prior && childProcess?.stdin?.writable) {
       try {
-        sendMessage({ jsonrpc: JSONRPC_VERSION, method: "releaseIdleSleep", params: { ownerId: prior.ownerId } });
-      } catch { /* Worker-side expiry still bounds a lost release. */ }
+        sendMessage({
+          jsonrpc: JSONRPC_VERSION,
+          method: "releaseIdleSleep",
+          params: { ownerId: prior.ownerId },
+        });
+      } catch {
+        /* Worker-side expiry still bounds a lost release. */
+      }
     }
   }
 
   function idleSleepHeld(): boolean {
     if (!idleHold) return false;
     const drain = readTaskDrain(new Date());
-    if (drain?.ownerId !== idleHold.ownerId || drain.expiresAt?.getTime() !== idleHold.expiresAt) {
+    if (
+      drain?.ownerId !== idleHold.ownerId ||
+      drain.expiresAt?.getTime() !== idleHold.expiresAt
+    ) {
       releaseIdleSleep();
     }
     return idleHold !== null;
@@ -940,9 +982,11 @@ export function createPluginWorkerHandle(
   // incoming line before the JSON parse and the total streamed output for one
   // execute call. A caller (a test) can lower them.
   const maxIncomingMessageChars =
-    options.executeLogLimits?.maxIncomingMessageChars ?? MAX_WORKER_MESSAGE_CHARS;
+    options.executeLogLimits?.maxIncomingMessageChars ??
+    MAX_WORKER_MESSAGE_CHARS;
   const maxExecuteLogTotalChars =
-    options.executeLogLimits?.maxTotalCharsPerExecute ?? MAX_EXECUTE_LOG_TOTAL_CHARS;
+    options.executeLogLimits?.maxTotalCharsPerExecute ??
+    MAX_EXECUTE_LOG_TOTAL_CHARS;
 
   // Bounds and timeouts for the login pseudo-terminal route. A caller
   // (a test) can lower them to exercise the terminalize paths.
@@ -965,7 +1009,8 @@ export function createPluginWorkerHandle(
   // chunks, so every one of these bounds counts raw bytes (`.length` on a
   // `Uint8Array` is its byte count), not UTF-16 code units.
   const maxDuplexChannelChunkChars =
-    options.duplexChannelLimits?.maxChunkChars ?? MAX_DUPLEX_CHANNEL_CHUNK_CHARS;
+    options.duplexChannelLimits?.maxChunkChars ??
+    MAX_DUPLEX_CHANNEL_CHUNK_CHARS;
   const maxDuplexChannelPreBindChars =
     options.duplexChannelLimits?.maxPreBindBufferedChars ??
     DUPLEX_ROUTE_INPUT_MAX_BYTES;
@@ -981,9 +1026,11 @@ export function createPluginWorkerHandle(
     options.duplexChannelLimits?.maxPendingRequests ??
     MAX_DUPLEX_CHANNEL_PENDING_REQUESTS;
   const maxDuplexChannelWriteChars =
-    options.duplexChannelLimits?.maxWriteChars ?? MAX_DUPLEX_CHANNEL_WRITE_CHARS;
+    options.duplexChannelLimits?.maxWriteChars ??
+    MAX_DUPLEX_CHANNEL_WRITE_CHARS;
   const maxDuplexRoutePendingWriteBytes =
-    options.duplexChannelLimits?.maxPendingWriteBytes ?? DUPLEX_ROUTE_PENDING_WRITE_MAX_BYTES;
+    options.duplexChannelLimits?.maxPendingWriteBytes ??
+    DUPLEX_ROUTE_PENDING_WRITE_MAX_BYTES;
   const maxDuplexChannelProtocolErrors =
     options.duplexChannelLimits?.maxProtocolErrors ??
     MAX_DUPLEX_CHANNEL_PROTOCOL_ERRORS;
@@ -991,11 +1038,14 @@ export function createPluginWorkerHandle(
     options.duplexChannelLimits?.maxTotalDataBytes ??
     MAX_DUPLEX_CHANNEL_TOTAL_DATA_BYTES;
   const maxDuplexChannelDurationMs =
-    options.duplexChannelLimits?.maxDurationMs ?? MAX_DUPLEX_CHANNEL_DURATION_MS;
+    options.duplexChannelLimits?.maxDurationMs ??
+    MAX_DUPLEX_CHANNEL_DURATION_MS;
   const duplexChannelOpenTimeoutMs =
-    options.duplexChannelLimits?.openTimeoutMs ?? DUPLEX_CHANNEL_OPEN_TIMEOUT_MS;
+    options.duplexChannelLimits?.openTimeoutMs ??
+    DUPLEX_CHANNEL_OPEN_TIMEOUT_MS;
   const duplexChannelCloseTimeoutMs =
-    options.duplexChannelLimits?.closeTimeoutMs ?? DUPLEX_CHANNEL_CLOSE_TIMEOUT_MS;
+    options.duplexChannelLimits?.closeTimeoutMs ??
+    DUPLEX_CHANNEL_CLOSE_TIMEOUT_MS;
 
   // ------------------------------------------------------------------
   // Proactive company scopes (LOOA-629)
@@ -1055,7 +1105,11 @@ export function createPluginWorkerHandle(
     done();
     status = newStatus;
     log.debug({ from: prev, to: newStatus }, "worker status change");
-    emitter.emit("status", { pluginId, status: newStatus, previousStatus: prev });
+    emitter.emit("status", {
+      pluginId,
+      status: newStatus,
+      previousStatus: prev,
+    });
   }
 
   // -----------------------------------------------------------------------
@@ -1064,7 +1118,9 @@ export function createPluginWorkerHandle(
 
   function sendMessage(message: unknown): void {
     if (!childProcess?.stdin?.writable) {
-      throw new Error(`Worker process for plugin "${pluginId}" is not writable`);
+      throw new Error(
+        `Worker process for plugin "${pluginId}" is not writable`,
+      );
     }
     const serialized = serializeMessage(message as any);
     childProcess.stdin.write(serialized);
@@ -1072,7 +1128,9 @@ export function createPluginWorkerHandle(
 
   function errorCodeForWorkerHostError(err: unknown): number {
     const code = (err as { code?: unknown } | null)?.code;
-    const pluginErrorCodes: readonly number[] = Object.values(PLUGIN_RPC_ERROR_CODES);
+    const pluginErrorCodes: readonly number[] = Object.values(
+      PLUGIN_RPC_ERROR_CODES,
+    );
     return typeof code === "number" && pluginErrorCodes.includes(code)
       ? code
       : JSONRPC_ERROR_CODES.INTERNAL_ERROR;
@@ -1098,7 +1156,10 @@ export function createPluginWorkerHandle(
       message = parseMessage(line);
     } catch (err) {
       if (err instanceof JsonRpcParseError) {
-        log.warn({ rawLine: line.slice(0, 200) }, "unparseable message from worker");
+        log.warn(
+          { rawLine: line.slice(0, 200) },
+          "unparseable message from worker",
+        );
       } else {
         log.warn({ err }, "error parsing worker message");
       }
@@ -1140,7 +1201,9 @@ export function createPluginWorkerHandle(
   }
 
   function readNonEmptyString(value: unknown): string | null {
-    return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+    return typeof value === "string" && value.trim().length > 0
+      ? value.trim()
+      : null;
   }
 
   function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1174,7 +1237,10 @@ export function createPluginWorkerHandle(
     return null;
   }
 
-  function registerInvocation(scope: PluginInvocationScope, ttlMs?: number): PluginInvocationContext {
+  function registerInvocation(
+    scope: PluginInvocationScope,
+    ttlMs?: number,
+  ): PluginInvocationContext {
     // Mint a W3C `traceparent` from the active startup span, so the worker's
     // provider span can parent to it. The host keeps the value on its own record
     // (below) and never trusts the worker to supply the parent. Outside a
@@ -1233,7 +1299,11 @@ export function createPluginWorkerHandle(
     const nowMs = Date.now();
     if (nowMs - oversizedLineLoggedAtMs >= EXECUTE_LOG_DROP_LOG_INTERVAL_MS) {
       log.warn(
-        { lineLength, maxIncomingMessageChars, droppedSinceLastLog: oversizedLineDropCount },
+        {
+          lineLength,
+          maxIncomingMessageChars,
+          droppedSinceLastLog: oversizedLineDropCount,
+        },
         "dropping oversized worker line before JSON parse",
       );
       oversizedLineLoggedAtMs = nowMs;
@@ -1273,7 +1343,9 @@ export function createPluginWorkerHandle(
   // company B's active id and inject output into B's route. The final command
   // result still delivers the complete output, so no byte is lost; only the live
   // stream pauses while two companies overlap.
-  function routeExecuteLogNotification(notification: JsonRpcNotification): void {
+  function routeExecuteLogNotification(
+    notification: JsonRpcNotification,
+  ): void {
     const invocationId = readNonEmptyString(
       (notification as { taskcoreInvocationId?: unknown }).taskcoreInvocationId,
     );
@@ -1391,7 +1463,12 @@ export function createPluginWorkerHandle(
   // Settle the route wait exactly once. Replace the settler with a no-op, so a
   // later exit or terminalize never settles the wait a second time.
   function settleRouteWait(
-    route: { settleWait: (value: { exitCode: number | null; transportClosed?: boolean }) => void },
+    route: {
+      settleWait: (value: {
+        exitCode: number | null;
+        transportClosed?: boolean;
+      }) => void;
+    },
     value: { exitCode: number | null; transportClosed?: boolean },
   ): void {
     const settle = route.settleWait;
@@ -1432,7 +1509,8 @@ export function createPluginWorkerHandle(
     exitCode: number | null;
   }
 
-  type LoginPtyPreBindRecord = LoginPtyPreBindOutputRecord | LoginPtyPreBindExitRecord;
+  type LoginPtyPreBindRecord =
+    LoginPtyPreBindOutputRecord | LoginPtyPreBindExitRecord;
 
   interface LoginPtyRoute {
     hostRouteId: string;
@@ -1504,7 +1582,9 @@ export function createPluginWorkerHandle(
         { hostRouteId },
         loginPtyCloseTimeoutMs,
       );
-      return isRecord(ack) && readNonEmptyString(ack.hostRouteId) === hostRouteId;
+      return (
+        isRecord(ack) && readNonEmptyString(ack.hostRouteId) === hostRouteId
+      );
     } catch {
       return false;
     }
@@ -1569,7 +1649,9 @@ export function createPluginWorkerHandle(
   // once for each dropped message, since a live pseudo-terminal can send
   // many — so an operator can see the build is too old, then still delivers
   // the route's output and exit notifications instead of losing them.
-  function resolveLoginPtyRoute(params: Record<string, unknown>): LoginPtyRoute | null {
+  function resolveLoginPtyRoute(
+    params: Record<string, unknown>,
+  ): LoginPtyRoute | null {
     const hostRouteId = readNonEmptyString(params.hostRouteId);
     if (hostRouteId) {
       return loginPtyRoutesByHostRouteId.get(hostRouteId) ?? null;
@@ -1639,7 +1721,8 @@ export function createPluginWorkerHandle(
     if (route.state !== "open") return;
     const workerSessionId = readNonEmptyString(params.workerSessionId);
     if (!workerSessionId || workerSessionId !== route.workerSessionId) return;
-    const exitCode = typeof params.exitCode === "number" ? params.exitCode : null;
+    const exitCode =
+      typeof params.exitCode === "number" ? params.exitCode : null;
     route.state = "closed";
     // A terminal exit is its own slot-release path, distinct from the later
     // explicit close, so a route that already exited returns its slot at once.
@@ -1694,7 +1777,8 @@ export function createPluginWorkerHandle(
     const params = isRecord(notification.params) ? notification.params : {};
     const workerSessionId = readNonEmptyString(params.workerSessionId);
     if (!workerSessionId) return;
-    const exitCode = typeof params.exitCode === "number" ? params.exitCode : null;
+    const exitCode =
+      typeof params.exitCode === "number" ? params.exitCode : null;
     const recordChars = workerSessionId.length;
     if (
       route.preBind.length + 1 > maxLoginPtyPreBindFrames ||
@@ -1949,7 +2033,10 @@ export function createPluginWorkerHandle(
     totalDataBytes: number;
     lifetimeTimer: ReturnType<typeof setTimeout> | null;
     terminalized: boolean;
-    settleWait: (value: { exitCode: number | null; transportClosed?: boolean }) => void;
+    settleWait: (value: {
+      exitCode: number | null;
+      transportClosed?: boolean;
+    }) => void;
     // The bounded raw data events that arrived before the bind, held in order. The
     // bind replays them through the exact-pair routing, so an early frame is never
     // lost and a frame whose pair does not match the bound pair still fails closed.
@@ -2033,7 +2120,10 @@ export function createPluginWorkerHandle(
   // as the fail-closed response to an ownership violation and to a tombstone-set
   // overflow. The host never logs the raw frame content on a violation.
   function retireDuplexWorkerOnViolation(reason: string): void {
-    log.error({ pluginId }, `duplex channel ownership violation (${reason}); retiring worker`);
+    log.error(
+      { pluginId },
+      `duplex channel ownership violation (${reason}); retiring worker`,
+    );
     void killProcess();
   }
 
@@ -2077,7 +2167,10 @@ export function createPluginWorkerHandle(
         { hostRouteId },
         duplexChannelCloseTimeoutMs,
       );
-      if (!isRecord(ack) || readNonEmptyString(ack.hostRouteId) !== hostRouteId) {
+      if (
+        !isRecord(ack) ||
+        readNonEmptyString(ack.hostRouteId) !== hostRouteId
+      ) {
         return false;
       }
       if (boundWorkerSessionId !== null) {
@@ -2103,7 +2196,9 @@ export function createPluginWorkerHandle(
     }
   }
 
-  async function terminalizeDuplexChannelRoute(route: DuplexChannelRoute): Promise<void> {
+  async function terminalizeDuplexChannelRoute(
+    route: DuplexChannelRoute,
+  ): Promise<void> {
     if (route.terminalized) return;
     route.terminalized = true;
     route.state = "closed";
@@ -2133,7 +2228,10 @@ export function createPluginWorkerHandle(
     // A terminalized route reports a null exit code, which the caller treats as a
     // failure.
     settleRouteWait(route, { exitCode: null });
-    const confirmed = await closeDuplexChannelTerminal(route.hostRouteId, route.workerSessionId);
+    const confirmed = await closeDuplexChannelTerminal(
+      route.hostRouteId,
+      route.workerSessionId,
+    );
     if (!confirmed) {
       // The worker did not acknowledge the close, so the host cannot prove the
       // channel is gone. Fail closed: retire the worker before any reuse.
@@ -2237,7 +2335,8 @@ export function createPluginWorkerHandle(
     // held event whose chunk the host already decoded once; it carries the
     // already-decoded `Uint8Array` straight through with no second decode.
     const rawChunk = params.chunk;
-    const chunk = rawChunk instanceof Uint8Array ? rawChunk : decodeChannelBytes(rawChunk);
+    const chunk =
+      rawChunk instanceof Uint8Array ? rawChunk : decodeChannelBytes(rawChunk);
     if (chunk === null || chunk.byteLength === 0) {
       // The exact pair matches, but the chunk is malformed or empty. Count one
       // per-route protocol error.
@@ -2301,7 +2400,8 @@ export function createPluginWorkerHandle(
       bufferPreBindDuplexFrame(hostRouteId, notification);
       return;
     }
-    const exitCode = typeof params.exitCode === "number" ? params.exitCode : null;
+    const exitCode =
+      typeof params.exitCode === "number" ? params.exitCode : null;
     // A reason-less transport close carries `transportClosed`; a real process exit
     // does not. Carry the discriminator to the wait only when it is a transport
     // close, so a real exit keeps the plain `{ exitCode }` result and the broker
@@ -2338,7 +2438,8 @@ export function createPluginWorkerHandle(
     if (notification.method === DUPLEX_CHANNEL_EXIT_NOTIFICATION) {
       // Normalize the exit to the narrow duplex-event schema. A replaced exit
       // simply overwrites the earlier held exit.
-      const exitCode = typeof params.exitCode === "number" ? params.exitCode : null;
+      const exitCode =
+        typeof params.exitCode === "number" ? params.exitCode : null;
       route.preBindExit = {
         workerSessionId,
         exitCode,
@@ -2411,7 +2512,9 @@ export function createPluginWorkerHandle(
             hostRouteId: route.hostRouteId,
             workerSessionId: heldExit.workerSessionId,
             exitCode: heldExit.exitCode,
-            ...(heldExit.transportClosed === true ? { transportClosed: true } : {}),
+            ...(heldExit.transportClosed === true
+              ? { transportClosed: true }
+              : {}),
           },
         });
       }
@@ -2467,13 +2570,16 @@ export function createPluginWorkerHandle(
     input: DuplexChannelOpenInput,
   ): Promise<DuplexChannelHostSession> {
     const hostRouteId = nextDuplexHostRouteId();
-    let settleWait: (value: { exitCode: number | null; transportClosed?: boolean }) => void =
-      () => {};
-    const waitPromise = new Promise<{ exitCode: number | null; transportClosed?: boolean }>(
-      (resolve) => {
-        settleWait = resolve;
-      },
-    );
+    let settleWait: (value: {
+      exitCode: number | null;
+      transportClosed?: boolean;
+    }) => void = () => {};
+    const waitPromise = new Promise<{
+      exitCode: number | null;
+      transportClosed?: boolean;
+    }>((resolve) => {
+      settleWait = resolve;
+    });
     const route: DuplexChannelRoute = {
       hostRouteId,
       state: "reserved",
@@ -2586,8 +2692,12 @@ export function createPluginWorkerHandle(
       // cannot make one route hold an unbounded number of write bytes, even
       // under a raised pending-request count. A stop request carries no
       // payload, so it never counts against this bound.
-      const pendingWriteBytesToCharge = method === "duplexChannelWrite" ? writeByteCount ?? 0 : 0;
-      if (route.pendingWriteBytes + pendingWriteBytesToCharge > maxDuplexRoutePendingWriteBytes) {
+      const pendingWriteBytesToCharge =
+        method === "duplexChannelWrite" ? (writeByteCount ?? 0) : 0;
+      if (
+        route.pendingWriteBytes + pendingWriteBytesToCharge >
+        maxDuplexRoutePendingWriteBytes
+      ) {
         void terminalizeDuplexChannelRoute(route);
         return;
       }
@@ -2655,7 +2765,10 @@ export function createPluginWorkerHandle(
       kill(): void {
         const sid = route.workerSessionId;
         if (!sid) return;
-        sendBoundedRequest("duplexChannelStop", { hostRouteId: route.hostRouteId, workerSessionId: sid });
+        sendBoundedRequest("duplexChannelStop", {
+          hostRouteId: route.hostRouteId,
+          workerSessionId: sid,
+        });
       },
       async close(): Promise<void> {
         await terminalizeDuplexChannelRoute(route);
@@ -2698,7 +2811,9 @@ export function createPluginWorkerHandle(
     return null;
   }
 
-  function contextForWorkerMessage(message: JsonRpcRequest | JsonRpcNotification): WorkerHostCallContext {
+  function contextForWorkerMessage(
+    message: JsonRpcRequest | JsonRpcNotification,
+  ): WorkerHostCallContext {
     const invocationId = readNonEmptyString(
       (message as { taskcoreInvocationId?: unknown }).taskcoreInvocationId,
     );
@@ -2714,11 +2829,17 @@ export function createPluginWorkerHandle(
         message.method,
         (message as { params?: unknown }).params,
       );
-      if (proactiveCompanyId && proactiveCompanyScopes.has(proactiveCompanyId)) {
+      if (
+        proactiveCompanyId &&
+        proactiveCompanyScopes.has(proactiveCompanyId)
+      ) {
         return { invocationScope: { companyId: proactiveCompanyId } };
       }
-      const hasActiveInvocation = activeInvocations.size > 0 ||
-        Array.from(pendingRequests.values()).some((pending) => pending.invocationId);
+      const hasActiveInvocation =
+        activeInvocations.size > 0 ||
+        Array.from(pendingRequests.values()).some(
+          (pending) => pending.invocationId,
+        );
       return hasActiveInvocation ? { invalidInvocationScope: true } : {};
     }
     const entry = activeInvocations.get(invocationId);
@@ -2738,12 +2859,23 @@ export function createPluginWorkerHandle(
       // has positively acknowledged that all accepted handlers have drained.
       if (idleSleepHeld() && idleHold?.ready) {
         try {
-          sendMessage(createErrorResponse(request.id, PLUGIN_RPC_ERROR_CODES.WORKER_UNAVAILABLE, "Plugin is held for idle sleep"));
-        } catch { /* Worker may have exited after sending its request. */ }
+          sendMessage(
+            createErrorResponse(
+              request.id,
+              PLUGIN_RPC_ERROR_CODES.WORKER_UNAVAILABLE,
+              "Plugin is held for idle sleep",
+            ),
+          );
+        } catch {
+          /* Worker may have exited after sending its request. */
+        }
         return;
       }
       await dispatchWorkerRequest(request);
-    } finally { activeHostHandlers--; done(); }
+    } finally {
+      activeHostHandlers--;
+      done();
+    }
   }
 
   async function dispatchWorkerRequest(request: JsonRpcRequest): Promise<void> {
@@ -2769,7 +2901,10 @@ export function createPluginWorkerHandle(
     }
 
     try {
-      const result = await handler(request.params, contextForWorkerMessage(request));
+      const result = await handler(
+        request.params,
+        contextForWorkerMessage(request),
+      );
       sendMessage({
         jsonrpc: JSONRPC_VERSION,
         id: request.id,
@@ -2913,7 +3048,10 @@ export function createPluginWorkerHandle(
       return;
     }
 
-    log.debug({ method: notification.method }, "received notification from worker");
+    log.debug(
+      { method: notification.method },
+      "received notification from worker",
+    );
   }
 
   // -----------------------------------------------------------------------
@@ -2981,10 +3119,12 @@ export function createPluginWorkerHandle(
       if (status === "starting") {
         setStatus("crashed");
         rejectAllPending(
-          new Error(formatWorkerFailureMessage(
-            `Worker process failed to start: ${err.message}`,
-            stderrExcerpt,
-          )),
+          new Error(
+            formatWorkerFailureMessage(
+              `Worker process failed to start: ${err.message}`,
+              stderrExcerpt,
+            ),
+          ),
         );
       }
     });
@@ -3010,10 +3150,12 @@ export function createPluginWorkerHandle(
 
     // Reject all pending requests
     rejectAllPending(
-      new Error(formatWorkerFailureMessage(
-        `Worker process exited (code=${code}, signal=${signal})`,
-        stderrExcerpt,
-      )),
+      new Error(
+        formatWorkerFailureMessage(
+          `Worker process exited (code=${code}, signal=${signal})`,
+          stderrExcerpt,
+        ),
+      ),
     );
 
     // Close the one login pseudo-terminal route with a fixed non-secret exit and
@@ -3177,11 +3319,11 @@ export function createPluginWorkerHandle(
     };
 
     try {
-      const result = await callInternal(
+      const result = (await callInternal(
         "initialize",
         initParams,
         INITIALIZE_TIMEOUT_MS,
-      ) as { ok?: boolean; supportedMethods?: string[] } | undefined;
+      )) as { ok?: boolean; supportedMethods?: string[] } | undefined;
       if (!result || !result.ok) {
         throw new Error("Worker initialize returned ok=false");
       }
@@ -3222,7 +3364,11 @@ export function createPluginWorkerHandle(
     // the shutdown and exit on its own within the drain period.
     try {
       await Promise.race([
-        callInternal("shutdown", {} as Record<string, never>, SHUTDOWN_DRAIN_MS),
+        callInternal(
+          "shutdown",
+          {} as Record<string, never>,
+          SHUTDOWN_DRAIN_MS,
+        ),
         waitForExit(SHUTDOWN_DRAIN_MS),
       ]);
     } catch {
@@ -3255,7 +3401,9 @@ export function createPluginWorkerHandle(
     await killWithSignal("SIGKILL", 2_000);
 
     if (childProcess) {
-      log.error("worker process still alive after SIGKILL — this should not happen");
+      log.error(
+        "worker process still alive after SIGKILL — this should not happen",
+      );
     }
 
     setStatus("stopped");
@@ -3350,101 +3498,118 @@ export function createPluginWorkerHandle(
     timeoutMs?: number,
     executeLogSink?: ExecuteLogSink,
   ): Promise<HostToWorkerMethods[M][1]> {
-    const rpcPromise = new Promise<HostToWorkerMethods[M][1]>((resolve, reject) => {
-      const idleControl = method === "prepareIdleSleep" || method === "releaseIdleSleep";
-      if (!idleControl && method !== "shutdown" && idleSleepHeld()) {
-        reject(new Error("Plugin is held for idle sleep"));
-        return;
-      }
-      if (!childProcess?.stdin?.writable) {
-        reject(
-          new Error(
-            `Cannot call "${method}" — worker for "${pluginId}" is not running`,
-          ),
-        );
-        return;
-      }
+    const rpcPromise = new Promise<HostToWorkerMethods[M][1]>(
+      (resolve, reject) => {
+        const idleControl =
+          method === "prepareIdleSleep" || method === "releaseIdleSleep";
+        if (!idleControl && method !== "shutdown" && idleSleepHeld()) {
+          reject(new Error("Plugin is held for idle sleep"));
+          return;
+        }
+        if (!childProcess?.stdin?.writable) {
+          reject(
+            new Error(
+              `Cannot call "${method}" — worker for "${pluginId}" is not running`,
+            ),
+          );
+          return;
+        }
 
-      const id = nextRequestId++;
-      if (!idleControl) unsettledCalls.set(id, beginIdleTrackedWork());
-      const timeout = resolveRpcCallTimeoutMs(timeoutMs, rpcTimeoutMs);
-      const invocationScope = deriveInvocationScope(method, params);
-      const invocation = invocationScope ? registerInvocation(invocationScope) : null;
-      // Register the host-owned execute route only for an execute call that
-      // carries a log sink. The company id comes from the host-derived
-      // invocation scope, never from the worker. This binds the sink to the
-      // exact company for the life of the call.
-      if (invocation && invocationScope && executeLogSink && method === "environmentExecute") {
-        registerExecuteRoute(invocation.id, invocationScope.companyId, executeLogSink);
-      }
+        const id = nextRequestId++;
+        if (!idleControl) unsettledCalls.set(id, beginIdleTrackedWork());
+        const timeout = resolveRpcCallTimeoutMs(timeoutMs, rpcTimeoutMs);
+        const invocationScope = deriveInvocationScope(method, params);
+        const invocation = invocationScope
+          ? registerInvocation(invocationScope)
+          : null;
+        // Register the host-owned execute route only for an execute call that
+        // carries a log sink. The company id comes from the host-derived
+        // invocation scope, never from the worker. This binds the sink to the
+        // exact company for the life of the call.
+        if (
+          invocation &&
+          invocationScope &&
+          executeLogSink &&
+          method === "environmentExecute"
+        ) {
+          registerExecuteRoute(
+            invocation.id,
+            invocationScope.companyId,
+            executeLogSink,
+          );
+        }
 
-      // Guard against double-settlement. When a process exits all pending
-      // requests are rejected via rejectAllPending(), but the timeout timer
-      // may still be running. Without this guard the timer's reject fires on
-      // an already-settled promise, producing an unhandled rejection.
-      let settled = false;
+        // Guard against double-settlement. When a process exits all pending
+        // requests are rejected via rejectAllPending(), but the timeout timer
+        // may still be running. Without this guard the timer's reject fires on
+        // an already-settled promise, producing an unhandled rejection.
+        let settled = false;
 
-      const settle = <T>(fn: (value: T) => void, value: T): void => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        pendingRequests.delete(id);
-        clearInvocation(invocation);
-        clearExecuteRoute(invocation?.id);
-        fn(value);
-      };
-
-      const timer = setTimeout(() => {
-        settle(
-          reject,
-          new JsonRpcCallError({
-            code: PLUGIN_RPC_ERROR_CODES.TIMEOUT,
-            message: `RPC call "${method}" timed out after ${timeout}ms`,
-          }),
-        );
-      }, timeout);
-
-      const pending: PendingRequest = {
-        id,
-        method,
-        resolve: (response: JsonRpcResponse) => {
-          if (isJsonRpcSuccessResponse(response)) {
-            settle(resolve, response.result as HostToWorkerMethods[M][1]);
-          } else if ("error" in response && response.error) {
-            settle(reject, new JsonRpcCallError(response.error));
-          } else {
-            settle(reject, new Error(`Unexpected response format for "${method}"`));
-          }
-        },
-        timer,
-        sentAt: Date.now(),
-        invocationId: invocation?.id,
-      };
-
-      pendingRequests.set(id, pending);
-
-      try {
-        const request = {
-          ...createRequest(method, params, id),
-          ...(invocation ? { taskcoreInvocation: invocation } : {}),
+        const settle = <T>(fn: (value: T) => void, value: T): void => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          pendingRequests.delete(id);
+          clearInvocation(invocation);
+          clearExecuteRoute(invocation?.id);
+          fn(value);
         };
-        sendMessage(request);
-      } catch (err) {
-        clearTimeout(timer);
-        pendingRequests.delete(id);
-        unsettledCalls.get(id)?.();
-        unsettledCalls.delete(id);
-        clearInvocation(invocation);
-        clearExecuteRoute(invocation?.id);
-        reject(
-          new Error(
-            `Failed to send "${method}" to worker: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          ),
-        );
-      }
-    });
+
+        const timer = setTimeout(() => {
+          settle(
+            reject,
+            new JsonRpcCallError({
+              code: PLUGIN_RPC_ERROR_CODES.TIMEOUT,
+              message: `RPC call "${method}" timed out after ${timeout}ms`,
+            }),
+          );
+        }, timeout);
+
+        const pending: PendingRequest = {
+          id,
+          method,
+          resolve: (response: JsonRpcResponse) => {
+            if (isJsonRpcSuccessResponse(response)) {
+              settle(resolve, response.result as HostToWorkerMethods[M][1]);
+            } else if ("error" in response && response.error) {
+              settle(reject, new JsonRpcCallError(response.error));
+            } else {
+              settle(
+                reject,
+                new Error(`Unexpected response format for "${method}"`),
+              );
+            }
+          },
+          timer,
+          sentAt: Date.now(),
+          invocationId: invocation?.id,
+        };
+
+        pendingRequests.set(id, pending);
+
+        try {
+          const request = {
+            ...createRequest(method, params, id),
+            ...(invocation ? { taskcoreInvocation: invocation } : {}),
+          };
+          sendMessage(request);
+        } catch (err) {
+          clearTimeout(timer);
+          pendingRequests.delete(id);
+          unsettledCalls.get(id)?.();
+          unsettledCalls.delete(id);
+          clearInvocation(invocation);
+          clearExecuteRoute(invocation?.id);
+          reject(
+            new Error(
+              `Failed to send "${method}" to worker: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            ),
+          );
+        }
+      },
+    );
 
     // Some call sites hand these promises across async boundaries before
     // attaching their own handlers. Mark the promise as handled here so a
@@ -3463,21 +3628,48 @@ export function createPluginWorkerHandle(
     releaseIdleSleep,
     async prepareIdleSleep(hold) {
       const drain = readTaskDrain(new Date());
-      if (drain?.ownerId !== hold.ownerId || drain.expiresAt?.getTime() !== hold.expiresAt ||
-          hold.expiresAt <= Date.now()) return "unknown";
+      if (
+        drain?.ownerId !== hold.ownerId ||
+        drain.expiresAt?.getTime() !== hold.expiresAt ||
+        hold.expiresAt <= Date.now()
+      )
+        return "unknown";
       // Clear a previous hold even when this idle worker received no ordinary
       // call between two controller attempts.
       idleSleepHeld();
       if (status !== "running" || totalCrashes > 0) return "unknown";
       if (!supportedMethods.includes("prepareIdleSleep")) return "present";
-      if (unsettledCalls.size || activeHostHandlers || loginPtyRoutesByHostRouteId.size ||
-          liveDuplexRoutes.size || openingDuplexRoutes.size || terminalDuplexRoutes.size) return "present";
-      if (idleHold && (idleHold.ownerId !== hold.ownerId || idleHold.expiresAt !== hold.expiresAt)) return "unknown";
-      const candidate = idleHold ??= { ...hold, ready: false };
+      if (
+        unsettledCalls.size ||
+        activeHostHandlers ||
+        loginPtyRoutesByHostRouteId.size ||
+        liveDuplexRoutes.size ||
+        openingDuplexRoutes.size ||
+        terminalDuplexRoutes.size
+      )
+        return "present";
+      if (
+        idleHold &&
+        (idleHold.ownerId !== hold.ownerId ||
+          idleHold.expiresAt !== hold.expiresAt)
+      )
+        return "unknown";
+      const candidate = (idleHold ??= { ...hold, ready: false });
       try {
-        const result = await callInternal("prepareIdleSleep", hold, Math.min(5_000, hold.expiresAt - Date.now()));
-        if (!idleSleepHeld() || idleHold !== candidate || status !== "running" || unsettledCalls.size || activeHostHandlers ||
-            result.ownerId !== hold.ownerId || result.expiresAt !== hold.expiresAt) {
+        const result = await callInternal(
+          "prepareIdleSleep",
+          hold,
+          Math.min(5_000, hold.expiresAt - Date.now()),
+        );
+        if (
+          !idleSleepHeld() ||
+          idleHold !== candidate ||
+          status !== "running" ||
+          unsettledCalls.size ||
+          activeHostHandlers ||
+          result.ownerId !== hold.ownerId ||
+          result.expiresAt !== hold.expiresAt
+        ) {
           if (idleHold === candidate) releaseIdleSleep();
           return "unknown";
         }
@@ -3562,7 +3754,9 @@ export function createPluginWorkerHandle(
       // Notifications have no response to settle on, so the invocation scope
       // is GC'd by TTL. Call-path invocations are registered without a TTL and
       // cleared on settlement, so they survive arbitrarily long call timeouts.
-      const invocation = invocationScope ? registerInvocation(invocationScope, MAX_RPC_TIMEOUT_MS) : null;
+      const invocation = invocationScope
+        ? registerInvocation(invocationScope, MAX_RPC_TIMEOUT_MS)
+        : null;
       try {
         sendMessage({
           jsonrpc: JSONRPC_VERSION,
@@ -3677,9 +3871,13 @@ export const DEFAULT_MAX_CONCURRENT_DUPLEX_ROUTES = 128;
  * strictly positive integer ceiling and a live count. `tryAcquire` reserves one
  * slot only when a slot is free, so the count never passes the ceiling.
  */
-export function createDuplexRouteSlotController(maxRoutes?: number | null): DuplexRouteSlotController {
+export function createDuplexRouteSlotController(
+  maxRoutes?: number | null,
+): DuplexRouteSlotController {
   const ceiling =
-    typeof maxRoutes === "number" && Number.isInteger(maxRoutes) && maxRoutes > 0
+    typeof maxRoutes === "number" &&
+    Number.isInteger(maxRoutes) &&
+    maxRoutes > 0
       ? maxRoutes
       : DEFAULT_MAX_CONCURRENT_DUPLEX_ROUTES;
   let active = 0;
@@ -3737,15 +3935,33 @@ export function createPluginWorkerManager(
 
   return {
     async inspectIdleSleep(hold) {
-      if (startupLocks.size) return { backgroundWork: "unknown", pluginIds: [] };
+      if (startupLocks.size)
+        return { backgroundWork: "unknown", pluginIds: [] };
       const snapshot = [...workers.entries()];
-      const results = await Promise.all(snapshot.map(async ([, worker]) =>
-        worker.prepareIdleSleep ? worker.prepareIdleSleep(hold) : "unknown"));
-      if (startupLocks.size || snapshot.length !== workers.size || snapshot.some(([id, worker]) => workers.get(id) !== worker || worker.status !== "running")) {
+      const results = await Promise.all(
+        snapshot.map(async ([, worker]) =>
+          worker.prepareIdleSleep ? worker.prepareIdleSleep(hold) : "unknown",
+        ),
+      );
+      if (
+        startupLocks.size ||
+        snapshot.length !== workers.size ||
+        snapshot.some(
+          ([id, worker]) =>
+            workers.get(id) !== worker || worker.status !== "running",
+        )
+      ) {
         return { backgroundWork: "unknown", pluginIds: [] };
       }
-      const backgroundWork = results.includes("present") ? "present" : results.includes("unknown") ? "unknown" : "none";
-      return { backgroundWork, pluginIds: backgroundWork === "none" ? snapshot.map(([id]) => id) : [] };
+      const backgroundWork = results.includes("present")
+        ? "present"
+        : results.includes("unknown")
+          ? "unknown"
+          : "none";
+      return {
+        backgroundWork,
+        pluginIds: backgroundWork === "none" ? snapshot.map(([id]) => id) : [],
+      };
     },
     releaseIdleSleep() {
       for (const worker of workers.values()) worker.releaseIdleSleep?.();
@@ -3757,7 +3973,10 @@ export function createPluginWorkerManager(
       // Mutex: if a start is already in-flight for this plugin, wait for it
       const inFlight = startupLocks.get(pluginId);
       if (inFlight) {
-        log.warn({ pluginId }, "concurrent startWorker call — waiting for in-flight start");
+        log.warn(
+          { pluginId },
+          "concurrent startWorker call — waiting for in-flight start",
+        );
         return inFlight;
       }
 
@@ -3803,9 +4022,11 @@ export function createPluginWorkerManager(
       log.info({ pluginId }, "starting plugin worker");
 
       // Set the lock before awaiting start() to prevent concurrent spawns
-      const startPromise = trackIdleWork(handle.start()).then(() => handle).finally(() => {
-        startupLocks.delete(pluginId);
-      });
+      const startPromise = trackIdleWork(handle.start())
+        .then(() => handle)
+        .finally(() => {
+          startupLocks.delete(pluginId);
+        });
       startupLocks.set(pluginId, startPromise);
 
       return startPromise;
@@ -3814,7 +4035,10 @@ export function createPluginWorkerManager(
     async stopWorker(pluginId: string): Promise<void> {
       const handle = workers.get(pluginId);
       if (!handle) {
-        log.warn({ pluginId }, "no worker registered for plugin, nothing to stop");
+        log.warn(
+          { pluginId },
+          "no worker registered for plugin, nothing to stop",
+        );
         return;
       }
 
@@ -3832,7 +4056,10 @@ export function createPluginWorkerManager(
       return handle?.status === "running";
     },
 
-    setProactiveCompanyScopes(pluginId: string, companyIds: readonly string[]): void {
+    setProactiveCompanyScopes(
+      pluginId: string,
+      companyIds: readonly string[],
+    ): void {
       workers.get(pluginId)?.setProactiveCompanyScopes(companyIds);
     },
 

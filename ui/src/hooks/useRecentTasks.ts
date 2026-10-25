@@ -30,16 +30,18 @@ export function useRecentTasks({
   userId: string | null | undefined;
 }) {
   const storageKey = useMemo(
-    () => companyId ? getRecentTasksStorageKey(companyId, userId) : null,
+    () => (companyId ? getRecentTasksStorageKey(companyId, userId) : null),
     [companyId, userId],
   );
-  const [entries, setEntries] = useState<RecentTaskEntry[]>(() => (
-    storageKey && companyId ? readRecentTasks(storageKey, companyId) : []
-  ));
+  const [entries, setEntries] = useState<RecentTaskEntry[]>(() =>
+    storageKey && companyId ? readRecentTasks(storageKey, companyId) : [],
+  );
 
   useEffect(() => {
     if (storageKey && companyId) migrateRecentTasks(storageKey, companyId);
-    setEntries(storageKey && companyId ? readRecentTasks(storageKey, companyId) : []);
+    setEntries(
+      storageKey && companyId ? readRecentTasks(storageKey, companyId) : [],
+    );
   }, [companyId, storageKey]);
 
   useEffect(() => {
@@ -58,12 +60,17 @@ export function useRecentTasks({
     window.addEventListener(RECENT_TASKS_UPDATED_EVENT, onRecentTasksUpdated);
     return () => {
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener(RECENT_TASKS_UPDATED_EVENT, onRecentTasksUpdated);
+      window.removeEventListener(
+        RECENT_TASKS_UPDATED_EVENT,
+        onRecentTasksUpdated,
+      );
     };
   }, [companyId, storageKey]);
 
   // Keep query observers in a fixed order when activity changes the display order.
-  const queryEntries = [...entries].sort((left, right) => left.id.localeCompare(right.id));
+  const queryEntries = [...entries].sort((left, right) =>
+    left.id.localeCompare(right.id),
+  );
   const membership = JSON.stringify(queryEntries.map((entry) => entry.id));
   const detailQueries = useQueries({
     queries: queryEntries.map((entry) => ({
@@ -74,14 +81,21 @@ export function useRecentTasks({
     })),
   });
 
-  const issueById = new Map(detailQueries.flatMap((query) => query.data ? [[query.data.id, query.data] as const] : []));
+  const issueById = new Map(
+    detailQueries.flatMap((query) =>
+      query.data ? [[query.data.id, query.data] as const] : [],
+    ),
+  );
   const refreshedEntries = entries.map((entry) => {
     const issue = issueById.get(entry.id);
     if (!issue || issue.companyId !== companyId || issue.hiddenAt) return entry;
     return mergeRecentTaskSnapshot(entry, issue);
   });
   const queryRevision = detailQueries
-    .map((query) => `${query.dataUpdatedAt}:${query.errorUpdatedAt}:${query.status}`)
+    .map(
+      (query) =>
+        `${query.dataUpdatedAt}:${query.errorUpdatedAt}:${query.status}`,
+    )
     .join("|");
 
   useEffect(() => {
@@ -98,7 +112,10 @@ export function useRecentTasks({
         } else {
           resolvedIssues.push(query.data);
         }
-      } else if (query.error instanceof ApiError && [403, 404].includes(query.error.status)) {
+      } else if (
+        query.error instanceof ApiError &&
+        [403, 404].includes(query.error.status)
+      ) {
         removeIds.add(entry.id);
       }
     });
@@ -110,25 +127,41 @@ export function useRecentTasks({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, membership, queryRevision, storageKey]);
 
-  const [settledOrder, setSettledOrder] = useState(() => entries.map((entry) => entry.id));
-  const activityRevision = JSON.stringify(entries.map((entry) => [entry.id, entry.recordedAt]));
+  const [settledOrder, setSettledOrder] = useState(() =>
+    entries.map((entry) => entry.id),
+  );
+  const activityRevision = JSON.stringify(
+    entries.map((entry) => [entry.id, entry.recordedAt]),
+  );
   useEffect(() => {
-    const latestOrder = (JSON.parse(activityRevision) as Array<[string, number]>).map(([id]) => id);
+    const latestOrder = (
+      JSON.parse(activityRevision) as Array<[string, number]>
+    ).map(([id]) => id);
     // Additions and removals are immediate. Only activity-driven moves wait for quiet.
-    if (JSON.stringify([...settledOrder].sort((a, b) => a.localeCompare(b))) !== membership) {
+    if (
+      JSON.stringify([...settledOrder].sort((a, b) => a.localeCompare(b))) !==
+      membership
+    ) {
       setSettledOrder(latestOrder);
       return;
     }
     if (latestOrder.every((id, index) => id === settledOrder[index])) return;
-    const timeout = window.setTimeout(() => setSettledOrder(latestOrder), RECENT_TASK_ORDER_DEBOUNCE_MS);
+    const timeout = window.setTimeout(
+      () => setSettledOrder(latestOrder),
+      RECENT_TASK_ORDER_DEBOUNCE_MS,
+    );
     return () => window.clearTimeout(timeout);
   }, [activityRevision, membership, settledOrder, storageKey]);
 
   const entryById = new Map(refreshedEntries.map((entry) => [entry.id, entry]));
-  const hasSameMembership = settledOrder.length === entries.length && settledOrder.every((id) => entryById.has(id));
+  const hasSameMembership =
+    settledOrder.length === entries.length &&
+    settledOrder.every((id) => entryById.has(id));
 
   return {
-    entries: hasSameMembership ? settledOrder.map((id) => entryById.get(id)!) : refreshedEntries,
+    entries: hasSameMembership
+      ? settledOrder.map((id) => entryById.get(id)!)
+      : refreshedEntries,
     storageKey,
   };
 }

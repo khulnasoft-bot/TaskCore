@@ -50,7 +50,9 @@ export function IssueHeader(props: IssueHeaderProps) {
   const chat = surface === "chat";
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const turnActive = snapshot.composer.state === "streaming" || snapshot.composer.state === "sending";
+  const turnActive =
+    snapshot.composer.state === "streaming" ||
+    snapshot.composer.state === "sending";
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -72,50 +74,114 @@ export function IssueHeader(props: IssueHeaderProps) {
         <div className="pit-header-controls">
           {!chat && !readOnly ? (
             <>
-              <label className="pit-visually-hidden" htmlFor="scenario-picker">Scenario</label>
-              <select className="pit-select pit-desktop-only" id="scenario-picker" value={snapshot.issue.fixtureProfile} onChange={(event) => onSelectScenario(event.target.value)} data-testid="scenario-picker">
-                {scenarios.map((scenario) => <option key={scenario} value={scenario}>{scenario}</option>)}
+              <label className="pit-visually-hidden" htmlFor="scenario-picker">
+                Scenario
+              </label>
+              <select
+                className="pit-select pit-desktop-only"
+                id="scenario-picker"
+                value={snapshot.issue.fixtureProfile}
+                onChange={(event) => onSelectScenario(event.target.value)}
+                data-testid="scenario-picker"
+              >
+                {scenarios.map((scenario) => (
+                  <option key={scenario} value={scenario}>
+                    {scenario}
+                  </option>
+                ))}
               </select>
-              <button type="button" className="pit-button pit-desktop-only" onClick={onReplay} data-testid="replay-button"><Icon name="play" /> Replay</button>
+              <button
+                type="button"
+                className="pit-button pit-desktop-only"
+                onClick={onReplay}
+                data-testid="replay-button"
+              >
+                <Icon name="play" /> Replay
+              </button>
             </>
           ) : null}
-          {!readOnly ? <button type="button" className="pit-icon-button pit-desktop-only" data-variant="destructive" onClick={onReset} data-testid="reset-button" title={chat ? "Reset chat" : "Reset scenario"} aria-label={chat ? "Reset chat" : "Reset scenario"}><Icon name="reset" /></button> : null}
-          {!readOnly ? <button type="button" className="pit-icon-button" data-variant="destructive" onClick={onStop} disabled={!turnActive} data-testid="stop-button" title="Stop turn" aria-label="Stop turn"><Icon name="stop" /></button> : null}
-          <button type="button" className="pit-button pit-desktop-only" aria-expanded={evidenceOpen} onClick={onToggleEvidence} data-testid="evidence-toggle"><Icon name="evidence" /> DevTools{denialCount > 0 ? ` (${denialCount})` : ""}</button>
+          {!readOnly ? (
+            <button
+              type="button"
+              className="pit-icon-button pit-desktop-only"
+              data-variant="destructive"
+              onClick={onReset}
+              data-testid="reset-button"
+              title={chat ? "Reset chat" : "Reset scenario"}
+              aria-label={chat ? "Reset chat" : "Reset scenario"}
+            >
+              <Icon name="reset" />
+            </button>
+          ) : null}
+          {!readOnly ? (
+            <button
+              type="button"
+              className="pit-icon-button"
+              data-variant="destructive"
+              onClick={onStop}
+              disabled={!turnActive}
+              data-testid="stop-button"
+              title="Stop turn"
+              aria-label="Stop turn"
+            >
+              <Icon name="stop" />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="pit-button pit-desktop-only"
+            aria-expanded={evidenceOpen}
+            onClick={onToggleEvidence}
+            data-testid="evidence-toggle"
+          >
+            <Icon name="evidence" /> DevTools
+            {denialCount > 0 ? ` (${denialCount})` : ""}
+          </button>
         </div>
       </div>
 
       <div className="pit-header-context">
         <div className="pit-chip-row" data-testid="identity-chips">
-        <Chip tone={snapshot.mode === "live" ? "live" : undefined} testId="agent-chip">
-          {snapshot.identity.agentLabel}
-          {snapshot.identity.replaySource !== null
-            ? ` · ${snapshot.identity.replaySource} source`
-            : ""}
-        </Chip>
-        <Chip testId="runner-chip">
-          <span
-            className="pit-process-dot"
-            data-attached={snapshot.identity.runnerAttached}
-            aria-hidden="true"
-          />
-          {snapshot.identity.runnerLabel}
-          <span className="pit-visually-hidden">
-            {snapshot.identity.runnerAttached ? "attached" : "detached"}
-          </span>
-        </Chip>
-        <Chip tone="mock" title={snapshot.identity.controlPlaneTooltip} testId="control-plane-chip">
-          {snapshot.identity.controlPlaneLabel}
-        </Chip>
-        {chat && cleanRoomToken !== null ? (
-          <Chip tone="accent" testId="clean-room-identity">
-            Clean room {cleanRoomToken}
+          <Chip
+            tone={snapshot.mode === "live" ? "live" : undefined}
+            testId="agent-chip"
+          >
+            {snapshot.identity.agentLabel}
+            {snapshot.identity.replaySource !== null
+              ? ` · ${snapshot.identity.replaySource} source`
+              : ""}
           </Chip>
-        ) : null}
+          <Chip testId="runner-chip">
+            <span
+              className="pit-process-dot"
+              data-attached={snapshot.identity.runnerAttached}
+              aria-hidden="true"
+            />
+            {snapshot.identity.runnerLabel}
+            <span className="pit-visually-hidden">
+              {snapshot.identity.runnerAttached ? "attached" : "detached"}
+            </span>
+          </Chip>
+          <Chip
+            tone="mock"
+            title={snapshot.identity.controlPlaneTooltip}
+            testId="control-plane-chip"
+          >
+            {snapshot.identity.controlPlaneLabel}
+          </Chip>
+          {chat && cleanRoomToken !== null ? (
+            <Chip tone="accent" testId="clean-room-identity">
+              Clean room {cleanRoomToken}
+            </Chip>
+          ) : null}
         </div>
         <PriorityIcon priority={snapshot.issue.priority} />
-        {snapshot.issue.assignee !== null ? <span className="pit-assignee">{snapshot.issue.assignee}</span> : null}
-        <span className="pit-run-state" title={snapshot.issue.runState}>{snapshot.issue.runState}</span>
+        {snapshot.issue.assignee !== null ? (
+          <span className="pit-assignee">{snapshot.issue.assignee}</span>
+        ) : null}
+        <span className="pit-run-state" title={snapshot.issue.runState}>
+          {snapshot.issue.runState}
+        </span>
 
         <div className="pit-menu pit-mobile-only" ref={menuRef}>
           <button
@@ -130,10 +196,17 @@ export function IssueHeader(props: IssueHeaderProps) {
             <span className="pit-visually-hidden">More actions</span>
           </button>
           {menuOpen ? (
-            <div className="pit-menu-list" role="menu" data-testid="overflow-menu">
+            <div
+              className="pit-menu-list"
+              role="menu"
+              data-testid="overflow-menu"
+            >
               {chat ? null : (
                 <>
-                  <label className="pit-menu-item" htmlFor="scenario-picker-mobile">
+                  <label
+                    className="pit-menu-item"
+                    htmlFor="scenario-picker-mobile"
+                  >
                     Scenario
                     <select
                       className="pit-select"
@@ -178,10 +251,13 @@ export function IssueHeader(props: IssueHeaderProps) {
             </div>
           ) : null}
         </div>
-
       </div>
 
-      <div className="pit-segmented" role="tablist" aria-label="Thread or evidence">
+      <div
+        className="pit-segmented"
+        role="tablist"
+        aria-label="Thread or evidence"
+      >
         <button
           type="button"
           role="tab"
@@ -202,7 +278,10 @@ export function IssueHeader(props: IssueHeaderProps) {
         >
           Evidence
           {denialCount > 0 ? (
-            <span className="pit-segment-badge" data-testid="segment-denial-badge">
+            <span
+              className="pit-segment-badge"
+              data-testid="segment-denial-badge"
+            >
               {denialCount}
             </span>
           ) : null}

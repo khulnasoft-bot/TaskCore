@@ -8,7 +8,9 @@ import type { Agent, ToolCallEvent } from "@taskcore/shared";
 import { ActivityPanel } from "./ActivityPanel";
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
+  Link: ({ to, children }: { to: string; children: ReactNode }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,7 +57,9 @@ function event(overrides: Partial<ToolCallEvent>): ToolCallEvent {
   } as ToolCallEvent;
 }
 
-const agents: Agent[] = [{ id: "agent-1", name: "BenchmarkForensics" } as Agent];
+const agents: Agent[] = [
+  { id: "agent-1", name: "BenchmarkForensics" } as Agent,
+];
 
 let container: HTMLDivElement | null = null;
 
@@ -86,10 +90,18 @@ describe("ActivityPanel render", () => {
   it("renders 'tested as' attribution for a Test-tab call", () => {
     const text = renderPanel({
       ...base,
-      events: [event({ actorType: "user", actorId: "user-1", metadata: { source: "test" } })],
+      events: [
+        event({
+          actorType: "user",
+          actorId: "user-1",
+          metadata: { source: "test" },
+        }),
+      ],
       userLabelById: new Map([["user-1", "Dotta"]]),
     });
-    expect(text).toContain("Dotta tested as BenchmarkForensics used Read Values");
+    expect(text).toContain(
+      "Dotta tested as BenchmarkForensics used Read Values",
+    );
   });
 
   it("renders a real heartbeat call without the prefix", () => {

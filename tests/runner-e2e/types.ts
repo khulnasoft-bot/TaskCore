@@ -22,7 +22,6 @@ export type RunnerTaskFlow =
   | "public_mcp"
   | "everyday_workflow"
   | "context_integrity"
-
   | "continuation_accounting"
   | "continuation"
   | "first_task"
@@ -133,7 +132,12 @@ export type Matcher =
   | { kind: "file_exact"; path: string; expected: string }
   | { kind: "file_contains"; path: string; expected: string }
   | { kind: "artifact_exists"; name: string; mimeType?: string }
-  | { kind: "artifact_exact"; name: string; expected: string; mimeType?: string }
+  | {
+      kind: "artifact_exact";
+      name: string;
+      expected: string;
+      mimeType?: string;
+    }
   | { kind: "json_path"; path: string; expected: unknown }
   | { kind: "json_schema"; schema: Record<string, unknown> };
 
@@ -265,7 +269,12 @@ export interface RunnerE2EBillingSummary {
   /** Public-list-price estimate for metered execution infrastructure. */
   estimatedRuntimeCostUsd: number;
   /** Separately recorded post-processing judge usage; absent when not judged. */
-  judge?: { inputTokens: number | null; outputTokens: number | null; estimatedCostUsd: number | null; reservedCostUsd: number };
+  judge?: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    estimatedCostUsd: number | null;
+    reservedCostUsd: number;
+  };
   /** Reported model subtotal plus runtime and judge list-price estimates. */
   observedAndEstimatedCostUsd: number | null;
   complete: boolean;
@@ -366,7 +375,13 @@ export interface RunnerE2EJudgeBillingSummary {
 }
 
 export interface RunnerE2EAggregateBillingSummary {
-  assistant?: { requests: number; inputTokens: number; outputTokens: number; cachedInputTokens: number; estimatedCostUsd: number };
+  assistant?: {
+    requests: number;
+    inputTokens: number;
+    outputTokens: number;
+    cachedInputTokens: number;
+    estimatedCostUsd: number;
+  };
   judge?: RunnerE2EJudgeBillingSummary;
   testCount: number;
   agentRunDurationMs: number;

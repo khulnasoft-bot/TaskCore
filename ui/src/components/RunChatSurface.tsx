@@ -28,20 +28,25 @@ export const RunChatSurface = memo(function RunChatSurface({
   companyId,
 }: RunChatSurfaceProps) {
   const active = isRunActive(run);
-  const liveRuns = useMemo(() => (active ? [run] : EMPTY_LIVE_RUNS), [active, run]);
+  const liveRuns = useMemo(
+    () => (active ? [run] : EMPTY_LIVE_RUNS),
+    [active, run],
+  );
   const linkedRuns = useMemo<IssueChatLinkedRun[]>(
     () =>
       active
         ? EMPTY_LINKED_RUNS
-        : [{
-            runId: run.id,
-            status: run.status,
-            agentId: run.agentId,
-            agentName: run.agentName,
-            createdAt: run.createdAt,
-            startedAt: run.startedAt,
-            finishedAt: run.finishedAt,
-          }],
+        : [
+            {
+              runId: run.id,
+              status: run.status,
+              agentId: run.agentId,
+              agentName: run.agentName,
+              createdAt: run.createdAt,
+              startedAt: run.startedAt,
+              finishedAt: run.finishedAt,
+            },
+          ],
     [active, run],
   );
   const transcriptsByRunId = useMemo(
@@ -59,7 +64,9 @@ export const RunChatSurface = memo(function RunChatSurface({
       showComposer={false}
       showJumpToLatest={false}
       variant="embedded"
-      emptyMessage={active ? "Waiting for run output..." : "No run output captured."}
+      emptyMessage={
+        active ? "Waiting for run output..." : "No run output captured."
+      }
       enableLiveTranscriptPolling={false}
       transcriptsByRunId={transcriptsByRunId}
       hasOutputForRun={(runId) => runId === run.id && hasOutput}

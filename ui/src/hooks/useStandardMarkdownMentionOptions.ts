@@ -14,23 +14,31 @@ type StandardMarkdownMentionOptionsArgs = {
   enabled?: boolean;
 } & Partial<MarkdownMentionInputs>;
 
-export function useStandardMarkdownMentionOptions(args: StandardMarkdownMentionOptionsArgs = {}) {
+export function useStandardMarkdownMentionOptions(
+  args: StandardMarkdownMentionOptionsArgs = {},
+) {
   const { selectedCompanyId } = useCompany();
   const companyId = args.companyId ?? selectedCompanyId;
   const enabled = (args.enabled ?? true) && Boolean(companyId);
 
   const agentsQuery = useQuery({
-    queryKey: companyId ? queryKeys.agents.list(companyId) : ["agents", "standard-mentions", "none"],
+    queryKey: companyId
+      ? queryKeys.agents.list(companyId)
+      : ["agents", "standard-mentions", "none"],
     queryFn: () => agentsApi.list(companyId!),
     enabled: enabled && args.agents === undefined,
   });
   const projectsQuery = useQuery({
-    queryKey: companyId ? queryKeys.projects.list(companyId) : ["projects", "standard-mentions", "none"],
+    queryKey: companyId
+      ? queryKeys.projects.list(companyId)
+      : ["projects", "standard-mentions", "none"],
     queryFn: () => projectsApi.list(companyId!),
     enabled: enabled && args.projects === undefined,
   });
   const usersQuery = useQuery({
-    queryKey: companyId ? queryKeys.access.companyUserDirectory(companyId) : ["access", "standard-mentions", "users", "none"],
+    queryKey: companyId
+      ? queryKeys.access.companyUserDirectory(companyId)
+      : ["access", "standard-mentions", "users", "none"],
     queryFn: () => accessApi.listUserDirectory(companyId!),
     enabled: enabled && args.members === undefined,
   });

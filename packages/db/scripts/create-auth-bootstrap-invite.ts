@@ -24,7 +24,9 @@ async function main() {
   const baseUrl = readArg("--base-url");
 
   if (!configPath || !baseUrl) {
-    throw new Error("Usage: tsx create-auth-bootstrap-invite.ts --config <path> --base-url <url>");
+    throw new Error(
+      "Usage: tsx create-auth-bootstrap-invite.ts --config <path> --base-url <url>",
+    );
   }
 
   const config = JSON.parse(readFileSync(path.resolve(configPath), "utf8")) as {
@@ -40,14 +42,29 @@ async function main() {
   let embeddedPort: number | undefined;
   if (config.database?.mode !== "postgres") {
     const dataDir = config.database?.embeddedPostgresDataDir;
-    if (!dataDir) throw new Error("Embedded bootstrap requires its configured data directory");
-    const pidLines = readFileSync(path.join(dataDir, "postmaster.pid"), "utf8").split(/\r?\n/);
-    if (realpathSync(pidLines[1] ?? "") !== realpathSync(dataDir)) throw new Error("Embedded bootstrap data directory does not match the running postmaster");
+    if (!dataDir)
+      throw new Error(
+        "Embedded bootstrap requires its configured data directory",
+      );
+    const pidLines = readFileSync(
+      path.join(dataDir, "postmaster.pid"),
+      "utf8",
+    ).split(/\r?\n/);
+    if (realpathSync(pidLines[1] ?? "") !== realpathSync(dataDir))
+      throw new Error(
+        "Embedded bootstrap data directory does not match the running postmaster",
+      );
     const postmasterPid = Number(pidLines[0]);
-    if (!Number.isInteger(postmasterPid) || postmasterPid <= 1) throw new Error("Invalid embedded postmaster PID");
+    if (!Number.isInteger(postmasterPid) || postmasterPid <= 1)
+      throw new Error("Invalid embedded postmaster PID");
     process.kill(postmasterPid, 0);
     embeddedPort = Number(pidLines[3]);
-    if (!Number.isInteger(embeddedPort) || embeddedPort < 1 || embeddedPort > 65535) throw new Error("Invalid running embedded database port");
+    if (
+      !Number.isInteger(embeddedPort) ||
+      embeddedPort < 1 ||
+      embeddedPort > 65535
+    )
+      throw new Error("Invalid running embedded database port");
   }
   const dbUrl =
     config.database?.mode === "postgres"
@@ -74,8 +91,8 @@ async function main() {
           eq(invites.inviteType, "bootstrap_ceo"),
           isNull(invites.revokedAt),
           isNull(invites.acceptedAt),
-          gt(invites.expiresAt, now)
-        )
+          gt(invites.expiresAt, now),
+        ),
       );
 
     const token = createInviteToken();
@@ -94,6 +111,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  );
   process.exit(1);
 });

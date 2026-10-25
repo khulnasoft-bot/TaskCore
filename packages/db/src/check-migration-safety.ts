@@ -64,15 +64,18 @@ type MutationInfo = {
 const RULE_METADATA: Record<MigrationSafetyRule, RuleMetadata> = {
   "loop-mutation-large-table": {
     severity: "error",
-    message: "DO $$ loop mutates a known-large table without a same-migration support index",
+    message:
+      "DO $$ loop mutates a known-large table without a same-migration support index",
   },
   "batched-mutation-large-table-missing-index": {
     severity: "error",
-    message: "Batched LIMIT mutation over a known-large table lacks a same-migration support index",
+    message:
+      "Batched LIMIT mutation over a known-large table lacks a same-migration support index",
   },
   "full-table-mutation-large-table": {
     severity: "error",
-    message: "Known-large table mutation does not have a selective WHERE clause",
+    message:
+      "Known-large table mutation does not have a selective WHERE clause",
   },
   "large-create-index-not-concurrently": {
     severity: "warning",
@@ -185,7 +188,8 @@ function splitSqlStatements(sql: string): string[] {
 
 function ignoreRules(statement: string): Set<string> {
   const rules = new Set<string>();
-  const pattern = /--\s*taskcore:migration-safety-ignore\s+([a-z0-9-]+|all)\s*:\s*(\S.*)$/gim;
+  const pattern =
+    /--\s*taskcore:migration-safety-ignore\s+([a-z0-9-]+|all)\s*:\s*(\S.*)$/gim;
   for (const match of statement.matchAll(pattern)) {
     const rule = match[1];
     const reason = match[2]?.trim();
@@ -199,7 +203,10 @@ function isIgnored(statement: string, rule: MigrationSafetyRule): boolean {
   return ignored.has(rule) || ignored.has("all");
 }
 
-function skipSingleQuotedLiteral(statement: string, startIndex: number): number {
+function skipSingleQuotedLiteral(
+  statement: string,
+  startIndex: number,
+): number {
   let index = startIndex + 1;
   while (index < statement.length) {
     if (statement[index] === "'" && statement[index + 1] === "'") {
@@ -212,7 +219,10 @@ function skipSingleQuotedLiteral(statement: string, startIndex: number): number 
   return index;
 }
 
-function skipDoubleQuotedIdentifier(statement: string, startIndex: number): number {
+function skipDoubleQuotedIdentifier(
+  statement: string,
+  startIndex: number,
+): number {
   let index = startIndex + 1;
   while (index < statement.length) {
     if (statement[index] === '"' && statement[index + 1] === '"') {
@@ -296,7 +306,11 @@ function stripSqlComments(statement: string): string {
     if (char === "/" && next === "*") {
       stripped += " ";
       const commentEnd = skipBlockComment(statement, index);
-      for (let commentIndex = index; commentIndex < commentEnd; commentIndex += 1) {
+      for (
+        let commentIndex = index;
+        commentIndex < commentEnd;
+        commentIndex += 1
+      ) {
         if (statement[commentIndex] === "\n") stripped += "\n";
       }
       index = commentEnd;
@@ -328,7 +342,9 @@ function identifierList(value: string): string[] {
   return [...value.matchAll(/"([^"]+)"|(?:^|[\s,(])([A-Za-z_][A-Za-z0-9_]*)/g)]
     .map((match) => normalizeIdentifier(match[1] ?? match[2] ?? ""))
     .filter((identifier) => identifier.length > 0)
-    .filter((identifier) => !RESERVED_ALIAS_WORDS.has(identifier.toLowerCase()));
+    .filter(
+      (identifier) => !RESERVED_ALIAS_WORDS.has(identifier.toLowerCase()),
+    );
 }
 
 function plainIndexColumns(columnSpec: string): string[] {
@@ -412,14 +428,17 @@ function orderByExpressionColumn(value: string): string | null {
   ]
     .map((match) => normalizeIdentifier(match[1] ?? match[2] ?? ""))
     .filter((identifier) => identifier.length > 0)
-    .filter((identifier) => !RESERVED_ALIAS_WORDS.has(identifier.toLowerCase()));
+    .filter(
+      (identifier) => !RESERVED_ALIAS_WORDS.has(identifier.toLowerCase()),
+    );
   return identifiers[identifiers.length - 1] ?? null;
 }
 
 function predicateColumns(statement: string): string[] {
   const columns = new Set<string>();
   const sql = stripSqlComments(statement);
-  const predicatePattern = /\b(?:WHERE|ORDER\s+BY|ON)\b([\s\S]*?)(?=\b(?:LIMIT|RETURNING|GROUP\s+BY|ORDER\s+BY|SET|FROM)\b|$)/gi;
+  const predicatePattern =
+    /\b(?:WHERE|ORDER\s+BY|ON)\b([\s\S]*?)(?=\b(?:LIMIT|RETURNING|GROUP\s+BY|ORDER\s+BY|SET|FROM)\b|$)/gi;
   for (const match of sql.matchAll(predicatePattern)) {
     for (const identifier of identifierList(match[1] ?? "")) {
       columns.add(identifier);
@@ -495,7 +514,10 @@ function batchWhereClausesBeforeOrderBy(statement: string): string[] {
 
   for (const orderBy of orderByOccurrences) {
     const where = whereOccurrences
-      .filter((candidate) => candidate.depth === orderBy.depth && candidate.index < orderBy.index)
+      .filter(
+        (candidate) =>
+          candidate.depth === orderBy.depth && candidate.index < orderBy.index,
+      )
       .at(-1);
     if (!where) continue;
 
@@ -568,7 +590,8 @@ function splitConjunctivePredicate(value: string): string[] {
       continue;
     }
 
-    const match = depth === 0 ? keywordOccurrenceAt(sql, index, /^\bAND\b/i) : null;
+    const match =
+      depth === 0 ? keywordOccurrenceAt(sql, index, /^\bAND\b/i) : null;
     if (match) {
       const term = stripOuterParens(sql.slice(start, index));
       if (term) terms.push(term);
@@ -623,7 +646,8 @@ function predicateTerms(value: string): Set<string> {
 function orderByColumns(statement: string): string[] {
   const columns: string[] = [];
   const sql = stripSqlComments(statement);
-  const pattern = /\bORDER\s+BY\b([\s\S]*?)(?=\b(?:LIMIT|RETURNING|GROUP\s+BY|WHERE|SET|FROM|END|LOOP)\b|$)/gi;
+  const pattern =
+    /\bORDER\s+BY\b([\s\S]*?)(?=\b(?:LIMIT|RETURNING|GROUP\s+BY|WHERE|SET|FROM|END|LOOP)\b|$)/gi;
   for (const match of sql.matchAll(pattern)) {
     for (const expression of splitSqlList(match[1] ?? "")) {
       const column = orderByExpressionColumn(expression);
@@ -669,14 +693,22 @@ function parseMutations(statement: string): MutationInfo[] {
   for (const match of sql.matchAll(updatePattern)) {
     const table = normalizeIdentifier(match[1] ?? match[2] ?? "");
     if (table) {
-      mutations.push({ table, statementSql: sql, keywordIndex: match.index ?? 0 });
+      mutations.push({
+        table,
+        statementSql: sql,
+        keywordIndex: match.index ?? 0,
+      });
     }
   }
 
   for (const match of sql.matchAll(deletePattern)) {
     const table = normalizeIdentifier(match[1] ?? match[2] ?? "");
     if (table) {
-      mutations.push({ table, statementSql: sql, keywordIndex: match.index ?? 0 });
+      mutations.push({
+        table,
+        statementSql: sql,
+        keywordIndex: match.index ?? 0,
+      });
     }
   }
 
@@ -688,20 +720,32 @@ function hasDoLoop(statement: string): boolean {
 }
 
 function hasBatchedLimitMutation(statement: string): boolean {
-  const hasLimit = /\bLIMIT\s+(?:\d+|[A-Za-z_][A-Za-z0-9_]*|\$[0-9]+)\b/i.test(statement);
+  const hasLimit = /\bLIMIT\s+(?:\d+|[A-Za-z_][A-Za-z0-9_]*|\$[0-9]+)\b/i.test(
+    statement,
+  );
   const hasFetchLimit =
-    /\bFETCH\s+(?:FIRST|NEXT)(?:\s+(?:\d+|[A-Za-z_][A-Za-z0-9_]*|\$[0-9]+))?\s+ROWS?\s+(?:ONLY|WITH\s+TIES)\b/i.test(statement);
+    /\bFETCH\s+(?:FIRST|NEXT)(?:\s+(?:\d+|[A-Za-z_][A-Za-z0-9_]*|\$[0-9]+))?\s+ROWS?\s+(?:ONLY|WITH\s+TIES)\b/i.test(
+      statement,
+    );
   const hasDml = /\b(?:UPDATE|DELETE)\b/i.test(statement);
   return (hasLimit || hasFetchLimit) && hasDml;
 }
 
-function dollarQuoteTagAt(statement: string, startIndex: number): string | null {
+function dollarQuoteTagAt(
+  statement: string,
+  startIndex: number,
+): string | null {
   if (statement[startIndex] !== "$") return null;
-  const match = statement.slice(startIndex).match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/);
+  const match = statement
+    .slice(startIndex)
+    .match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/);
   return match?.[0] ?? null;
 }
 
-function topLevelWhereClause(statement: string, startIndex: number): string | null {
+function topLevelWhereClause(
+  statement: string,
+  startIndex: number,
+): string | null {
   // Walk character-by-character, tracking paren depth.
   // Only consider WHERE keywords at depth 0 after the target mutation.
   let depth = 0;
@@ -735,12 +779,19 @@ function topLevelWhereClause(statement: string, startIndex: number): string | nu
 }
 
 function hasSelectiveWhere(mutation: MutationInfo): boolean {
-  const afterWhere = topLevelWhereClause(mutation.statementSql, mutation.keywordIndex);
+  const afterWhere = topLevelWhereClause(
+    mutation.statementSql,
+    mutation.keywordIndex,
+  );
   if (!afterWhere) return false;
 
   const whereClause = normalizeSql(afterWhere).replace(/;$/, "");
   if (/^(?:true|1\s*=\s*1)$/i.test(whereClause)) return false;
-  if (!/(?:=|<>|!=|<|>|\bIN\s*\(|\bEXISTS\s*\(|\bLIKE\b|\bIS\s+(?:NOT\s+)?NULL\b)/i.test(whereClause))
+  if (
+    !/(?:=|<>|!=|<|>|\bIN\s*\(|\bEXISTS\s*\(|\bLIKE\b|\bIS\s+(?:NOT\s+)?NULL\b)/i.test(
+      whereClause,
+    )
+  )
     return false;
 
   // A WHERE that only constrains joined tables is not a filter on the target table.
@@ -748,18 +799,25 @@ function hasSelectiveWhere(mutation: MutationInfo): boolean {
   const qualRefs = [
     ...whereClause.matchAll(/"([^"]+)"\s*\.\s*(?:"[^"]+"|\w+)/g),
     ...whereClause.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\."[^"]+"/g),
-    ...whereClause.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b/g),
-  ].map((m) => normalizeIdentifier(m[1] ?? "")).filter(Boolean);
+    ...whereClause.matchAll(
+      /\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b/g,
+    ),
+  ]
+    .map((m) => normalizeIdentifier(m[1] ?? ""))
+    .filter(Boolean);
 
   if (qualRefs.length > 0) {
     // Resolve unquoted aliases from UPDATE/FROM/JOIN clauses to their real table names.
     const aliasMap = new Map<string, string>();
     const aliasPattern =
       /\b(?:UPDATE|FROM|JOIN)\s+(?:"public"\s*\.\s*)?(?:"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))\s+(?:AS\s+)?(?:"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))\b/gi;
-    for (const m of stripSqlComments(mutation.statementSql).matchAll(aliasPattern)) {
+    for (const m of stripSqlComments(mutation.statementSql).matchAll(
+      aliasPattern,
+    )) {
       const tbl = normalizeIdentifier(m[1] ?? m[2] ?? "");
       const alias = normalizeIdentifier(m[3] ?? m[4] ?? "");
-      if (tbl && alias && !RESERVED_ALIAS_WORDS.has(alias.toLowerCase())) aliasMap.set(alias, tbl);
+      if (tbl && alias && !RESERVED_ALIAS_WORDS.has(alias.toLowerCase()))
+        aliasMap.set(alias, tbl);
     }
     const refTables = qualRefs.map((r) => aliasMap.get(r) ?? r);
     if (!refTables.some((t) => t === mutation.table)) {
@@ -771,7 +829,8 @@ function hasSelectiveWhere(mutation: MutationInfo): boolean {
         .replace(/'(?:[^']|'')*'/g, " ");
       const SQL_KW =
         /\b(?:AND|OR|NOT|IN|EXISTS|LIKE|IS|NULL|TRUE|FALSE|BETWEEN|CASE|WHEN|THEN|END|CAST|AS|ANY|ALL|SOME)\b/gi;
-      if (!/\b[A-Za-z_][A-Za-z0-9_]*\b/.test(noQual.replace(SQL_KW, " "))) return false;
+      if (!/\b[A-Za-z_][A-Za-z0-9_]*\b/.test(noQual.replace(SQL_KW, " ")))
+        return false;
     }
   }
 
@@ -813,7 +872,9 @@ function hasMatchingSupportIndex(
   mutation: MutationInfo,
   statement: string,
 ): boolean {
-  const matchingIndexes = indexes.filter((index) => index.table === mutation.table);
+  const matchingIndexes = indexes.filter(
+    (index) => index.table === mutation.table,
+  );
   if (matchingIndexes.length === 0) return false;
 
   // ORDER BY columns are the batch-progression key. If the statement orders its
@@ -830,12 +891,18 @@ function hasMatchingSupportIndex(
   }
 
   return matchingIndexes.some((index) => {
-    const indexedColumns = new Set([...index.columns, ...index.predicateColumns]);
+    const indexedColumns = new Set([
+      ...index.columns,
+      ...index.predicateColumns,
+    ]);
     return [...allPredicateCols].some((col) => indexedColumns.has(col));
   });
 }
 
-function estimateSuffix(table: string, estimates: ReadonlyMap<string, TableSizeEstimate>): string {
+function estimateSuffix(
+  table: string,
+  estimates: ReadonlyMap<string, TableSizeEstimate>,
+): string {
   const estimate = estimates.get(table) ?? getTableSizeEstimate(table);
   if (!estimate) return "bucket=large";
   return `bucket=${estimate.bucket}, localRows=${estimate.localRows}, estimatedRows=${estimate.estimatedRows}`;
@@ -878,7 +945,10 @@ function estimatesByTable(
   return new Map(estimates.map((estimate) => [estimate.table, estimate]));
 }
 
-function tableIsLarge(table: string, estimates: ReadonlyMap<string, TableSizeEstimate>): boolean {
+function tableIsLarge(
+  table: string,
+  estimates: ReadonlyMap<string, TableSizeEstimate>,
+): boolean {
   if (estimates.size > 0) return estimates.get(table)?.bucket === "large";
   return isKnownLargeTable(table);
 }
@@ -919,10 +989,15 @@ export function analyzeMigrationSafety(
         }
       }
 
-      const mutations = parseMutations(statement)
-        .filter((mutation) => tableIsLarge(mutation.table, estimates));
+      const mutations = parseMutations(statement).filter((mutation) =>
+        tableIsLarge(mutation.table, estimates),
+      );
       for (const mutation of mutations) {
-        const hasSupportIndex = hasMatchingSupportIndex(migrationIndexes, mutation, statement);
+        const hasSupportIndex = hasMatchingSupportIndex(
+          migrationIndexes,
+          mutation,
+          statement,
+        );
 
         if (
           hasDoLoop(statement) &&
@@ -980,10 +1055,16 @@ export function analyzeMigrationSafety(
     }
   }
 
-  const baselineIds = new Set(options.baselineIds ?? MIGRATION_SAFETY_BASELINE.map((entry) => entry.id));
+  const baselineIds = new Set(
+    options.baselineIds ?? MIGRATION_SAFETY_BASELINE.map((entry) => entry.id),
+  );
   const foundIds = new Set(findings.map((finding) => finding.id));
-  const newFindings = findings.filter((finding) => !baselineIds.has(finding.id));
-  const baselineFindings = findings.filter((finding) => baselineIds.has(finding.id));
+  const newFindings = findings.filter(
+    (finding) => !baselineIds.has(finding.id),
+  );
+  const baselineFindings = findings.filter((finding) =>
+    baselineIds.has(finding.id),
+  );
   const staleBaselineIds = [...baselineIds].filter((id) => !foundIds.has(id));
 
   return {
@@ -1002,7 +1083,10 @@ async function readMigrations(): Promise<MigrationSafetyInput[]> {
   return Promise.all(
     files.map(async (fileName) => ({
       fileName,
-      sql: await readFile(new URL(`./migrations/${fileName}`, import.meta.url), "utf8"),
+      sql: await readFile(
+        new URL(`./migrations/${fileName}`, import.meta.url),
+        "utf8",
+      ),
     })),
   );
 }
@@ -1015,7 +1099,9 @@ function formatFinding(finding: MigrationSafetyFinding): string {
   ].join("\n");
 }
 
-function formatNewFindings(findings: readonly MigrationSafetyFinding[]): string {
+function formatNewFindings(
+  findings: readonly MigrationSafetyFinding[],
+): string {
   const rendered = findings.map(formatFinding).join("\n\n");
   return [
     `Migration safety check found ${findings.length} new finding(s).`,
@@ -1033,15 +1119,19 @@ async function main() {
     throw new Error(formatNewFindings(result.newFindings));
   }
 
-  const staleSuffix = result.staleBaselineIds.length > 0
-    ? ` (${result.staleBaselineIds.length} stale baseline id(s) ignored)`
-    : "";
+  const staleSuffix =
+    result.staleBaselineIds.length > 0
+      ? ` (${result.staleBaselineIds.length} stale baseline id(s) ignored)`
+      : "";
   console.log(
     `Migration safety check passed: ${result.baselineFindings.length} historical finding(s) covered by baseline${staleSuffix}.`,
   );
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   try {
     await main();
   } catch (error) {

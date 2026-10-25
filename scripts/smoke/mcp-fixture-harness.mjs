@@ -13,8 +13,14 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../..");
-const stdioServerPath = resolve(repoRoot, "scripts/mcp-fixtures/servers/stdio-fixture.mjs");
-const httpServerPath = resolve(repoRoot, "scripts/mcp-fixtures/servers/http-fixture.mjs");
+const stdioServerPath = resolve(
+  repoRoot,
+  "scripts/mcp-fixtures/servers/stdio-fixture.mjs",
+);
+const httpServerPath = resolve(
+  repoRoot,
+  "scripts/mcp-fixtures/servers/http-fixture.mjs",
+);
 
 function parseArgs(argv) {
   const args = {
@@ -29,7 +35,9 @@ function parseArgs(argv) {
     else if (arg === "--require-taskcore") args.requireTaskcore = true;
     else if (arg === "--json") args.json = true;
     else if (arg === "--help") {
-      console.log(`Usage: node scripts/smoke/mcp-fixture-harness.mjs [--taskcore-url URL] [--require-taskcore] [--json]`);
+      console.log(
+        `Usage: node scripts/smoke/mcp-fixture-harness.mjs [--taskcore-url URL] [--require-taskcore] [--json]`,
+      );
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -49,12 +57,16 @@ function normalizeTaskcoreUrl(raw) {
 async function checkTaskcoreHealth(rawUrl, required) {
   const baseUrl = normalizeTaskcoreUrl(rawUrl);
   try {
-    const response = await fetch(`${baseUrl}/api/health`, { signal: AbortSignal.timeout(1500) });
+    const response = await fetch(`${baseUrl}/api/health`, {
+      signal: AbortSignal.timeout(1500),
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return { ok: true, baseUrl };
   } catch (error) {
     if (required) {
-      throw new Error(`Taskcore health check failed at ${baseUrl}/api/health: ${error.message}`);
+      throw new Error(
+        `Taskcore health check failed at ${baseUrl}/api/health: ${error.message}`,
+      );
     }
     return { ok: false, baseUrl, skippedReason: error.message };
   }
@@ -155,7 +167,10 @@ class HttpFixtureClient {
     });
     const rl = createInterface({ input: this.process.stdout });
     const ready = await new Promise((resolveReady, reject) => {
-      const timer = setTimeout(() => reject(new Error("http fixture did not become ready")), 2000);
+      const timer = setTimeout(
+        () => reject(new Error("http fixture did not become ready")),
+        2000,
+      );
       rl.on("line", (line) => {
         const event = JSON.parse(line);
         if (event.event === "ready") {
@@ -166,7 +181,8 @@ class HttpFixtureClient {
     });
     this.baseUrl = `http://${ready.host}:${ready.port}`;
     const health = await fetch(`${this.baseUrl}/health`);
-    if (!health.ok) throw new Error(`http fixture health failed: ${health.status}`);
+    if (!health.ok)
+      throw new Error(`http fixture health failed: ${health.status}`);
   }
 
   async listTools() {
@@ -202,21 +218,33 @@ class SmokePolicyHarness {
     this.pendingApprovals = new Map();
     this.idempotency = new Map();
     this.quarantine = new Set();
-    this.baselineFingerprints = new Map(listTools().map((tool) => [tool.name, fingerprintTool(tool)]));
+    this.baselineFingerprints = new Map(
+      listTools().map((tool) => [tool.name, fingerprintTool(tool)]),
+    );
   }
 
   profile(profileId) {
-    const profile = fixtureProfiles.find((candidate) => candidate.id === profileId);
+    const profile = fixtureProfiles.find(
+      (candidate) => candidate.id === profileId,
+    );
     if (!profile) throw new Error(`Unknown profile: ${profileId}`);
     return profile;
   }
 
   isAllowedByProfile(profile, tool) {
     if (this.quarantine.has(tool.name)) return { outcome: "quarantined" };
-    const riskAllowed = tool.risk === "low" || profile.allowRisks?.includes(tool.risk) || !profile.denyRisks?.includes(tool.risk);
+    const riskAllowed =
+      tool.risk === "low" ||
+      profile.allowRisks?.includes(tool.risk) ||
+      !profile.denyRisks?.includes(tool.risk);
     if (!riskAllowed) return { outcome: "denied" };
-    if (profile.allowCapabilities.includes(tool.capability)) return { outcome: "allowed" };
-    if (profile.approvalCapabilities.includes(tool.capability) || tool.approvalRequired) return { outcome: "approval_required" };
+    if (profile.allowCapabilities.includes(tool.capability))
+      return { outcome: "allowed" };
+    if (
+      profile.approvalCapabilities.includes(tool.capability) ||
+      tool.approvalRequired
+    )
+      return { outcome: "approval_required" };
     return { outcome: "denied" };
   }
 
@@ -226,7 +254,12 @@ class SmokePolicyHarness {
     const idempotencyKey = options.idempotencyKey ?? null;
     if (idempotencyKey && this.idempotency.has(idempotencyKey)) {
       const cached = this.idempotency.get(idempotencyKey);
-      this.audit.push({ toolName, profileId, outcome: "idempotent_replay", idempotencyKey });
+      this.audit.push({
+        toolName,
+        profileId,
+        outcome: "idempotent_replay",
+        idempotencyKey,
+      });
       return cached;
     }
 
@@ -239,23 +272,53 @@ class SmokePolicyHarness {
 
     if (decision.outcome === "approval_required" && !options.approved) {
       const approvalId = `approval-${this.pendingApprovals.size + 1}`;
-      const response = { ok: false, outcome: "approval_required", approvalId, toolName };
-      this.pendingApprovals.set(approvalId, { profileId, toolName, input, idempotencyKey });
-      this.audit.push({ toolName, profileId, outcome: "approval_required", approvalId });
+      const response = {
+        ok: false,
+        outcome: "approval_required",
+        approvalId,
+        toolName,
+      };
+      this.pendingApprovals.set(approvalId, {
+        profileId,
+        toolName,
+        input,
+        idempotencyKey,
+      });
+      this.audit.push({
+        toolName,
+        profileId,
+        outcome: "approval_required",
+        approvalId,
+      });
       return response;
     }
 
-    const client = tool.transport === "stdio" ? this.stdioClient : this.httpClient;
+    const client =
+      tool.transport === "stdio" ? this.stdioClient : this.httpClient;
     const response = await client.callTool(toolName, input);
-    let outcome = response.ok ? "allowed" : response.error?.code ?? "fixture_error";
+    let outcome = response.ok
+      ? "allowed"
+      : (response.error?.code ?? "fixture_error");
     if (tool.hostile && response.ok) {
       const redacted = redactHostileText(response.result);
-      outcome = redacted.includes("Ignore prior instructions") ? "malicious_result_quarantined" : "allowed";
-      response.result = { redacted, quarantined: outcome === "malicious_result_quarantined" };
+      outcome = redacted.includes("Ignore prior instructions")
+        ? "malicious_result_quarantined"
+        : "allowed";
+      response.result = {
+        redacted,
+        quarantined: outcome === "malicious_result_quarantined",
+      };
     }
     const wrapped = { ...response, outcome, toolName };
-    if (idempotencyKey && response.ok) this.idempotency.set(idempotencyKey, wrapped);
-    this.audit.push({ toolName, profileId, outcome, transport: tool.transport, idempotencyKey });
+    if (idempotencyKey && response.ok)
+      this.idempotency.set(idempotencyKey, wrapped);
+    this.audit.push({
+      toolName,
+      profileId,
+      outcome,
+      transport: tool.transport,
+      idempotencyKey,
+    });
     return wrapped;
   }
 
@@ -276,7 +339,10 @@ class SmokePolicyHarness {
       if (baseline && baseline !== fingerprintTool(tool)) {
         this.quarantine.add(tool.name);
         quarantined.push(tool.name);
-        this.audit.push({ toolName: tool.name, outcome: "schema_change_quarantined" });
+        this.audit.push({
+          toolName: tool.name,
+          outcome: "schema_change_quarantined",
+        });
       }
     }
     return quarantined;
@@ -298,7 +364,10 @@ function assert(condition, message) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const taskcore = await checkTaskcoreHealth(args.taskcoreUrl, args.requireTaskcore);
+  const taskcore = await checkTaskcoreHealth(
+    args.taskcoreUrl,
+    args.requireTaskcore,
+  );
   const stdioClient = new StdioFixtureClient();
   const httpClient = new HttpFixtureClient();
   const results = [];
@@ -308,96 +377,249 @@ async function main() {
     await httpClient.start();
     const harness = new SmokePolicyHarness({ stdioClient, httpClient });
 
-    await runCase(results, "fixture catalog includes required profiles and demos", async () => {
-      assert(fixtureProfiles.length === 4, "expected four profile definitions");
-      assert(demoProfiles.length === 8, "expected eight first-install demo definitions");
-      const tools = [...await stdioClient.listTools(), ...await httpClient.listTools()];
-      for (const fixture of [
-        "echo-calculator-time",
-        "todo-kv",
-        "outbox-email",
-        "mock-social-blog",
-        "malicious",
-        "slow-crashing-stdio",
-        "fake-oauth-missing-secret",
-      ]) {
-        assert(tools.some((tool) => tool.fixture === fixture), `missing fixture ${fixture}`);
-      }
-      assert(tools.some((tool) => tool.transport === "stdio"), "missing stdio fixture");
-      assert(tools.some((tool) => tool.transport === "http"), "missing http fixture");
-    });
+    await runCase(
+      results,
+      "fixture catalog includes required profiles and demos",
+      async () => {
+        assert(
+          fixtureProfiles.length === 4,
+          "expected four profile definitions",
+        );
+        assert(
+          demoProfiles.length === 8,
+          "expected eight first-install demo definitions",
+        );
+        const tools = [
+          ...(await stdioClient.listTools()),
+          ...(await httpClient.listTools()),
+        ];
+        for (const fixture of [
+          "echo-calculator-time",
+          "todo-kv",
+          "outbox-email",
+          "mock-social-blog",
+          "malicious",
+          "slow-crashing-stdio",
+          "fake-oauth-missing-secret",
+        ]) {
+          assert(
+            tools.some((tool) => tool.fixture === fixture),
+            `missing fixture ${fixture}`,
+          );
+        }
+        assert(
+          tools.some((tool) => tool.transport === "stdio"),
+          "missing stdio fixture",
+        );
+        assert(
+          tools.some((tool) => tool.transport === "http"),
+          "missing http fixture",
+        );
+      },
+    );
 
-    await runCase(results, "allow and deny decisions are enforced", async () => {
-      const allowed = await harness.call("read-only", "calculator.add", { a: 2, b: 3 });
-      assert(allowed.ok && allowed.result.value === 5, "calculator.add should be allowed");
-      const denied = await harness.call("read-only", "kv.set", { key: "a", value: "b" });
-      assert(!denied.ok && denied.outcome === "denied", "kv.set should be denied for read-only");
-    });
+    await runCase(
+      results,
+      "allow and deny decisions are enforced",
+      async () => {
+        const allowed = await harness.call("read-only", "calculator.add", {
+          a: 2,
+          b: 3,
+        });
+        assert(
+          allowed.ok && allowed.result.value === 5,
+          "calculator.add should be allowed",
+        );
+        const denied = await harness.call("read-only", "kv.set", {
+          key: "a",
+          value: "b",
+        });
+        assert(
+          !denied.ok && denied.outcome === "denied",
+          "kv.set should be denied for read-only",
+        );
+      },
+    );
 
-    await runCase(results, "approval-gated writes execute after approval", async () => {
-      const pending = await harness.call("approval-gated-writes", "email.send", {
-        to: "qa@example.com",
-        subject: "fixture",
-        body: "deterministic",
-      }, { idempotencyKey: "send-email-1" });
-      assert(pending.outcome === "approval_required", "email.send should require approval");
-      const approved = await harness.approve(pending.approvalId);
-      assert(approved.ok && approved.result.message.status === "sent", "approved email.send should execute");
-    });
+    await runCase(
+      results,
+      "approval-gated writes execute after approval",
+      async () => {
+        const pending = await harness.call(
+          "approval-gated-writes",
+          "email.send",
+          {
+            to: "qa@example.com",
+            subject: "fixture",
+            body: "deterministic",
+          },
+          { idempotencyKey: "send-email-1" },
+        );
+        assert(
+          pending.outcome === "approval_required",
+          "email.send should require approval",
+        );
+        const approved = await harness.approve(pending.approvalId);
+        assert(
+          approved.ok && approved.result.message.status === "sent",
+          "approved email.send should execute",
+        );
+      },
+    );
 
-    await runCase(results, "audit trail records decisions and transports", async () => {
-      assert(harness.audit.some((event) => event.outcome === "denied" && event.toolName === "kv.set"), "missing deny audit");
-      assert(harness.audit.some((event) => event.outcome === "approval_required" && event.toolName === "email.send"), "missing approval audit");
-      assert(harness.audit.some((event) => event.transport === "stdio"), "missing stdio audit");
-      assert(harness.audit.some((event) => event.transport === "http"), "missing http audit");
-    });
+    await runCase(
+      results,
+      "audit trail records decisions and transports",
+      async () => {
+        assert(
+          harness.audit.some(
+            (event) =>
+              event.outcome === "denied" && event.toolName === "kv.set",
+          ),
+          "missing deny audit",
+        );
+        assert(
+          harness.audit.some(
+            (event) =>
+              event.outcome === "approval_required" &&
+              event.toolName === "email.send",
+          ),
+          "missing approval audit",
+        );
+        assert(
+          harness.audit.some((event) => event.transport === "stdio"),
+          "missing stdio audit",
+        );
+        assert(
+          harness.audit.some((event) => event.transport === "http"),
+          "missing http audit",
+        );
+      },
+    );
 
-    await runCase(results, "runtime lifecycle handles slow and crashing stdio fixtures", async () => {
-      const slow = await harness.call("runtime-lifecycle", "slow.ping", { delayMs: 10 });
-      assert(slow.ok && slow.result.pong === true, "slow.ping should return");
-      const crash = await harness.call("runtime-lifecycle", "crash.now", {});
-      assert(!crash.ok && crash.outcome === "fixture_crash", "crash.now should report fixture_crash");
-      const afterCrash = await harness.call("runtime-lifecycle", "time.now", {});
-      assert(afterCrash.ok, "stdio fixture should keep serving after synthetic crash response");
-    });
+    await runCase(
+      results,
+      "runtime lifecycle handles slow and crashing stdio fixtures",
+      async () => {
+        const slow = await harness.call("runtime-lifecycle", "slow.ping", {
+          delayMs: 10,
+        });
+        assert(slow.ok && slow.result.pong === true, "slow.ping should return");
+        const crash = await harness.call("runtime-lifecycle", "crash.now", {});
+        assert(
+          !crash.ok && crash.outcome === "fixture_crash",
+          "crash.now should report fixture_crash",
+        );
+        const afterCrash = await harness.call(
+          "runtime-lifecycle",
+          "time.now",
+          {},
+        );
+        assert(
+          afterCrash.ok,
+          "stdio fixture should keep serving after synthetic crash response",
+        );
+      },
+    );
 
-    await runCase(results, "secret failures are categorized without real credentials", async () => {
-      const response = await harness.call("read-only", "secret.read", {});
-      assert(!response.ok && response.outcome === "secret_missing", "secret.read should fail with secret_missing");
-    });
+    await runCase(
+      results,
+      "secret failures are categorized without real credentials",
+      async () => {
+        const response = await harness.call("read-only", "secret.read", {});
+        assert(
+          !response.ok && response.outcome === "secret_missing",
+          "secret.read should fail with secret_missing",
+        );
+      },
+    );
 
-    await runCase(results, "schema changes quarantine changed tools", async () => {
-      const flip = await harness.call("runtime-lifecycle", "fixture.schemaFlip", { toolName: "kv.set" });
-      assert(flip.ok, "fixture.schemaFlip should execute");
-      const changedTools = await httpClient.listTools();
-      const quarantined = harness.discoverSchemaChanges(changedTools);
-      assert(quarantined.includes("kv.set"), "kv.set should be quarantined after schema change");
-      const blocked = await harness.call("approval-gated-writes", "kv.set", { key: "a", value: "b" });
-      assert(blocked.outcome === "quarantined", "quarantined tool should not execute");
-    });
+    await runCase(
+      results,
+      "schema changes quarantine changed tools",
+      async () => {
+        const flip = await harness.call(
+          "runtime-lifecycle",
+          "fixture.schemaFlip",
+          { toolName: "kv.set" },
+        );
+        assert(flip.ok, "fixture.schemaFlip should execute");
+        const changedTools = await httpClient.listTools();
+        const quarantined = harness.discoverSchemaChanges(changedTools);
+        assert(
+          quarantined.includes("kv.set"),
+          "kv.set should be quarantined after schema change",
+        );
+        const blocked = await harness.call("approval-gated-writes", "kv.set", {
+          key: "a",
+          value: "b",
+        });
+        assert(
+          blocked.outcome === "quarantined",
+          "quarantined tool should not execute",
+        );
+      },
+    );
 
-    await runCase(results, "malicious result is redacted and quarantined", async () => {
-      const response = await harness.call("security-hostile", "malicious.result", {});
-      assert(response.ok, "malicious result fixture should return a result");
-      assert(response.outcome === "malicious_result_quarantined", "malicious result should be quarantined");
-      assert(!response.result.redacted.includes("pc_live_should_be_redacted"), "synthetic secret should be redacted");
-      assert(!response.result.redacted.includes("TASKCORE_API_KEY"), "env key name should be redacted");
-    });
+    await runCase(
+      results,
+      "malicious result is redacted and quarantined",
+      async () => {
+        const response = await harness.call(
+          "security-hostile",
+          "malicious.result",
+          {},
+        );
+        assert(response.ok, "malicious result fixture should return a result");
+        assert(
+          response.outcome === "malicious_result_quarantined",
+          "malicious result should be quarantined",
+        );
+        assert(
+          !response.result.redacted.includes("pc_live_should_be_redacted"),
+          "synthetic secret should be redacted",
+        );
+        assert(
+          !response.result.redacted.includes("TASKCORE_API_KEY"),
+          "env key name should be redacted",
+        );
+      },
+    );
 
-    await runCase(results, "idempotent approved writes only execute once", async () => {
-      const first = await harness.call("approval-gated-writes", "email.send", {
-        to: "qa@example.com",
-        subject: "idempotent",
-        body: "only once",
-      }, { approved: true, idempotencyKey: "send-email-idempotent" });
-      const second = await harness.call("approval-gated-writes", "email.send", {
-        to: "qa@example.com",
-        subject: "idempotent",
-        body: "only once",
-      }, { approved: true, idempotencyKey: "send-email-idempotent" });
-      assert(first.result.message.id === second.result.message.id, "idempotent replay should return cached message");
-      assert(harness.audit.some((event) => event.outcome === "idempotent_replay"), "missing idempotent replay audit");
-    });
+    await runCase(
+      results,
+      "idempotent approved writes only execute once",
+      async () => {
+        const first = await harness.call(
+          "approval-gated-writes",
+          "email.send",
+          {
+            to: "qa@example.com",
+            subject: "idempotent",
+            body: "only once",
+          },
+          { approved: true, idempotencyKey: "send-email-idempotent" },
+        );
+        const second = await harness.call(
+          "approval-gated-writes",
+          "email.send",
+          {
+            to: "qa@example.com",
+            subject: "idempotent",
+            body: "only once",
+          },
+          { approved: true, idempotencyKey: "send-email-idempotent" },
+        );
+        assert(
+          first.result.message.id === second.result.message.id,
+          "idempotent replay should return cached message",
+        );
+        assert(
+          harness.audit.some((event) => event.outcome === "idempotent_replay"),
+          "missing idempotent replay audit",
+        );
+      },
+    );
 
     const summary = {
       ok: results.every((result) => result.ok),
@@ -411,9 +633,13 @@ async function main() {
       console.log(JSON.stringify(summary, null, 2));
     } else {
       console.log(`MCP fixture smoke: ${summary.ok ? "PASS" : "FAIL"}`);
-      console.log(`Taskcore health: ${taskcore.ok ? "ok" : `skipped (${taskcore.skippedReason})`}`);
+      console.log(
+        `Taskcore health: ${taskcore.ok ? "ok" : `skipped (${taskcore.skippedReason})`}`,
+      );
       for (const result of results) {
-        console.log(`${result.ok ? "PASS" : "FAIL"} ${result.name}${result.error ? ` - ${result.error}` : ""}`);
+        console.log(
+          `${result.ok ? "PASS" : "FAIL"} ${result.name}${result.error ? ` - ${result.error}` : ""}`,
+        );
       }
     }
     if (!summary.ok) process.exitCode = 1;

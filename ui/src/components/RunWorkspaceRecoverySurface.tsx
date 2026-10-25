@@ -18,7 +18,8 @@ import {
 } from "../lib/recovery-reconcile";
 
 /** The run errorCode Taskcore stamps when it declines a run over a git workspace it can't validate. */
-export const WORKSPACE_VALIDATION_RUN_ERROR_CODE = "workspace_validation_failed";
+export const WORKSPACE_VALIDATION_RUN_ERROR_CODE =
+  "workspace_validation_failed";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -57,7 +58,8 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
   const { pushToast } = useToastActions();
 
   const isWorkspaceValidationFailure =
-    run.status === "failed" && run.errorCode === WORKSPACE_VALIDATION_RUN_ERROR_CODE;
+    run.status === "failed" &&
+    run.errorCode === WORKSPACE_VALIDATION_RUN_ERROR_CODE;
   const issueId = readRunIssueId(run);
 
   const { data: issue } = useQuery({
@@ -74,15 +76,22 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
   });
 
   const recoveryAction = issue?.activeRecoveryAction ?? null;
-  const canManageBoardRuntime = canBoardManageRuntime(run.companyId, boardAccess);
+  const canManageBoardRuntime = canBoardManageRuntime(
+    run.companyId,
+    boardAccess,
+  );
   // Prefer the workspace pinned by the recovery action's evidence (the workspace that actually
   // diverged) over the page-level id, which can drift after a re-issue rebinds the issue.
   const reconcileWorkspaceId =
-    readRecoveryReconcileWorkspaceId(recoveryAction) ?? issue?.executionWorkspaceId ?? null;
+    readRecoveryReconcileWorkspaceId(recoveryAction) ??
+    issue?.executionWorkspaceId ??
+    null;
 
   const invalidate = useCallback(() => {
     if (issueId) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issueId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.detail(issueId),
+      });
     }
     queryClient.invalidateQueries({ queryKey: queryKeys.runIssues(run.id) });
     queryClient.invalidateQueries({ queryKey: queryKeys.runDetail(run.id) });
@@ -117,7 +126,10 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
     onError: (err) => {
       pushToast({
         title: "Reconcile failed",
-        body: err instanceof Error ? err.message : "Unable to reconcile the workspace branch.",
+        body:
+          err instanceof Error
+            ? err.message
+            : "Unable to reconcile the workspace branch.",
         tone: "error",
       });
     },
@@ -131,7 +143,9 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
         `Re-issued from ${sourceLabel} on an isolated git worktree after a workspace branch divergence.`,
         "",
         `- Base ref (live branch): \`${request.baseRef}\``,
-        ...(request.expectedBranch ? [`- Recorded branch: \`${request.expectedBranch}\``] : []),
+        ...(request.expectedBranch
+          ? [`- Recorded branch: \`${request.expectedBranch}\``]
+          : []),
         "",
         "---",
         "",
@@ -171,7 +185,10 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
     onError: (err) => {
       pushToast({
         title: "Re-issue failed",
-        body: err instanceof Error ? err.message : "Unable to create an isolated re-issue.",
+        body:
+          err instanceof Error
+            ? err.message
+            : "Unable to create an isolated re-issue.",
         tone: "error",
       });
     },
@@ -182,7 +199,8 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
       outcome: "restored" | "false_positive";
       sourceIssueStatus: "todo" | "done" | "in_review";
     }) => {
-      if (!issueId || !recoveryAction) throw new Error("No recovery action to resolve.");
+      if (!issueId || !recoveryAction)
+        throw new Error("No recovery action to resolve.");
       return issuesApi.resolveRecoveryAction(issueId, {
         actionId: recoveryAction.id,
         outcome: data.outcome,
@@ -195,7 +213,10 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
     onError: (err) => {
       pushToast({
         title: "Recovery resolution failed",
-        body: err instanceof Error ? err.message : "Unable to resolve recovery action",
+        body:
+          err instanceof Error
+            ? err.message
+            : "Unable to resolve recovery action",
         tone: "error",
       });
     },
@@ -203,20 +224,30 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
 
   const handleReconcileForward = useCallback(() => {
     if (!reconcileWorkspaceId) return;
-    void reconcile.mutateAsync({ workspaceId: reconcileWorkspaceId, mode: "forward" });
+    void reconcile.mutateAsync({
+      workspaceId: reconcileWorkspaceId,
+      mode: "forward",
+    });
   }, [reconcile, reconcileWorkspaceId]);
 
   const handleBreakGlass = useCallback(
     (reason: string) => {
       if (!reconcileWorkspaceId) return;
-      void reconcile.mutateAsync({ workspaceId: reconcileWorkspaceId, mode: "override", reason });
+      void reconcile.mutateAsync({
+        workspaceId: reconcileWorkspaceId,
+        mode: "override",
+        reason,
+      });
     },
     [reconcile, reconcileWorkspaceId],
   );
 
   const handleQuarantineRestore = useCallback(() => {
     if (!reconcileWorkspaceId) return;
-    void reconcile.mutateAsync({ workspaceId: reconcileWorkspaceId, mode: "quarantine_restore" });
+    void reconcile.mutateAsync({
+      workspaceId: reconcileWorkspaceId,
+      mode: "quarantine_restore",
+    });
   }, [reconcile, reconcileWorkspaceId]);
 
   const handleReissue = useCallback(
@@ -230,19 +261,34 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
     (outcome: RecoveryResolveOutcome) => {
       switch (outcome) {
         case "todo":
-          void resolve.mutateAsync({ outcome: "restored", sourceIssueStatus: "todo" });
+          void resolve.mutateAsync({
+            outcome: "restored",
+            sourceIssueStatus: "todo",
+          });
           return;
         case "done":
-          void resolve.mutateAsync({ outcome: "restored", sourceIssueStatus: "done" });
+          void resolve.mutateAsync({
+            outcome: "restored",
+            sourceIssueStatus: "done",
+          });
           return;
         case "in_review":
-          void resolve.mutateAsync({ outcome: "restored", sourceIssueStatus: "in_review" });
+          void resolve.mutateAsync({
+            outcome: "restored",
+            sourceIssueStatus: "in_review",
+          });
           return;
         case "false_positive_done":
-          void resolve.mutateAsync({ outcome: "false_positive", sourceIssueStatus: "done" });
+          void resolve.mutateAsync({
+            outcome: "false_positive",
+            sourceIssueStatus: "done",
+          });
           return;
         case "false_positive_in_review":
-          void resolve.mutateAsync({ outcome: "false_positive", sourceIssueStatus: "in_review" });
+          void resolve.mutateAsync({
+            outcome: "false_positive",
+            sourceIssueStatus: "in_review",
+          });
           return;
       }
     },
@@ -250,12 +296,15 @@ export function RunWorkspaceRecoverySurface({ run }: { run: HeartbeatRun }) {
   );
 
   if (!isWorkspaceValidationFailure || !issueId) return null;
-  if (!recoveryAction || recoveryAction.kind !== "workspace_validation") return null;
+  if (!recoveryAction || recoveryAction.kind !== "workspace_validation")
+    return null;
 
   return (
     <div className="space-y-2" data-testid="run-workspace-recovery-surface">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">Workspace recovery</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          Workspace recovery
+        </span>
         {issue?.identifier ? (
           <a
             href={`/issues/${issue.identifier}`}

@@ -8,8 +8,16 @@ import {
   SECRET_STATUSES,
 } from "../constants.js";
 
-const secretKeySchema = z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9_.-]+$/);
-const secretVersionSelectorSchema = z.union([z.literal("latest"), z.number().int().positive()]);
+const secretKeySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(/^[a-zA-Z0-9_.-]+$/);
+const secretVersionSelectorSchema = z.union([
+  z.literal("latest"),
+  z.number().int().positive(),
+]);
 const creatableSecretStatusSchema = z.enum(["active", "disabled", "archived"]);
 
 export const envBindingPlainSchema = z.object({
@@ -22,7 +30,13 @@ export const envBindingSecretRefSchema = z.object({
   secretId: z.string().guid(),
   version: secretVersionSelectorSchema.optional(),
   projectionClass: z.enum(SECRET_PROJECTION_CLASSES).optional(),
-  projectionAllowlistKey: z.string().trim().min(1).max(160).optional().nullable(),
+  projectionAllowlistKey: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .optional()
+    .nullable(),
 });
 
 export const envBindingUserSecretRefSchema = z.object({
@@ -43,43 +57,45 @@ export const envBindingSchema = z.union([
 
 export const envConfigSchema = z.record(z.string(), envBindingSchema);
 
-export const createSecretSchema = z.object({
-  name: z.string().min(1),
-  key: secretKeySchema.optional(),
-  provider: z.enum(SECRET_PROVIDERS).optional(),
-  providerConfigId: z.string().guid().optional().nullable(),
-  managedMode: z.enum(SECRET_MANAGED_MODES).optional(),
-  value: z.string().min(1).optional().nullable(),
-  description: z.string().optional().nullable(),
-  externalRef: z.string().optional().nullable(),
-  providerMetadata: z.record(z.string(), z.unknown()).optional().nullable(),
-  providerVersionRef: z.string().optional().nullable(),
-}).superRefine((value, ctx) => {
-  if ((value.managedMode ?? "taskcore_managed") === "external_reference") {
-    if (!value.externalRef?.trim()) {
+export const createSecretSchema = z
+  .object({
+    name: z.string().min(1),
+    key: secretKeySchema.optional(),
+    provider: z.enum(SECRET_PROVIDERS).optional(),
+    providerConfigId: z.string().guid().optional().nullable(),
+    managedMode: z.enum(SECRET_MANAGED_MODES).optional(),
+    value: z.string().min(1).optional().nullable(),
+    description: z.string().optional().nullable(),
+    externalRef: z.string().optional().nullable(),
+    providerMetadata: z.record(z.string(), z.unknown()).optional().nullable(),
+    providerVersionRef: z.string().optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.managedMode ?? "taskcore_managed") === "external_reference") {
+      if (!value.externalRef?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["externalRef"],
+          message: "External reference secrets require externalRef",
+        });
+      }
+      return;
+    }
+    if (value.externalRef?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["externalRef"],
-        message: "External reference secrets require externalRef",
+        message: "Managed secrets cannot set externalRef",
       });
     }
-    return;
-  }
-  if (value.externalRef?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["externalRef"],
-      message: "Managed secrets cannot set externalRef",
-    });
-  }
-  if (!value.value?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["value"],
-      message: "Managed secrets require value",
-    });
-  }
-});
+    if (!value.value?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "Managed secrets require value",
+      });
+    }
+  });
 
 export type CreateSecret = z.infer<typeof createSecretSchema>;
 
@@ -101,17 +117,20 @@ function requireSecretRotationInput(
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["value"],
-      message: "Secret rotation requires value, externalRef, providerVersionRef, or providerConfigId",
+      message:
+        "Secret rotation requires value, externalRef, providerVersionRef, or providerConfigId",
     });
   }
 }
 
-export const rotateSecretSchema = z.object({
-  value: z.string().min(1).optional().nullable(),
-  externalRef: z.string().optional().nullable(),
-  providerVersionRef: z.string().optional().nullable(),
-  providerConfigId: z.string().guid().optional().nullable(),
-}).superRefine(requireSecretRotationInput);
+export const rotateSecretSchema = z
+  .object({
+    value: z.string().min(1).optional().nullable(),
+    externalRef: z.string().optional().nullable(),
+    providerVersionRef: z.string().optional().nullable(),
+    providerConfigId: z.string().guid().optional().nullable(),
+  })
+  .superRefine(requireSecretRotationInput);
 
 export type RotateSecret = z.infer<typeof rotateSecretSchema>;
 
@@ -139,7 +158,13 @@ export const createSecretBindingSchema = secretBindingTargetSchema.extend({
   required: z.boolean().default(true),
   label: z.string().optional().nullable(),
   projectionClass: z.enum(SECRET_PROJECTION_CLASSES).optional(),
-  projectionAllowlistKey: z.string().trim().min(1).max(160).optional().nullable(),
+  projectionAllowlistKey: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .optional()
+    .nullable(),
 });
 
 export type CreateSecretBinding = z.infer<typeof createSecretBindingSchema>;
@@ -156,7 +181,9 @@ export const createUserSecretDefinitionSchema = z.object({
   usageGuidance: z.string().trim().max(1000).optional().nullable(),
 });
 
-export type CreateUserSecretDefinition = z.infer<typeof createUserSecretDefinitionSchema>;
+export type CreateUserSecretDefinition = z.infer<
+  typeof createUserSecretDefinitionSchema
+>;
 
 export const updateUserSecretDefinitionSchema = z.object({
   name: z.string().trim().min(1).max(160).optional(),
@@ -167,31 +194,35 @@ export const updateUserSecretDefinitionSchema = z.object({
   usageGuidance: z.string().trim().max(1000).optional().nullable(),
 });
 
-export type UpdateUserSecretDefinition = z.infer<typeof updateUserSecretDefinitionSchema>;
+export type UpdateUserSecretDefinition = z.infer<
+  typeof updateUserSecretDefinitionSchema
+>;
 
-export const createUserSecretValueSchema = z.object({
-  definitionKey: secretKeySchema.optional(),
-  definitionId: z.string().guid().optional(),
-  value: z.string().min(1).optional().nullable(),
-  externalRef: z.string().optional().nullable(),
-  providerVersionRef: z.string().optional().nullable(),
-  providerConfigId: z.string().guid().optional().nullable(),
-}).superRefine((value, ctx) => {
-  if (!value.definitionKey && !value.definitionId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["definitionId"],
-      message: "User secret value requires definitionId or definitionKey",
-    });
-  }
-  if (!value.value?.trim() && !value.externalRef?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["value"],
-      message: "User secret value requires value or externalRef",
-    });
-  }
-});
+export const createUserSecretValueSchema = z
+  .object({
+    definitionKey: secretKeySchema.optional(),
+    definitionId: z.string().guid().optional(),
+    value: z.string().min(1).optional().nullable(),
+    externalRef: z.string().optional().nullable(),
+    providerVersionRef: z.string().optional().nullable(),
+    providerConfigId: z.string().guid().optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.definitionKey && !value.definitionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["definitionId"],
+        message: "User secret value requires definitionId or definitionKey",
+      });
+    }
+    if (!value.value?.trim() && !value.externalRef?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "User secret value requires value or externalRef",
+      });
+    }
+  });
 
 export type CreateUserSecretValue = z.infer<typeof createUserSecretValueSchema>;
 
@@ -205,25 +236,30 @@ export const updateUserSecretValueSchema = z.object({
 
 export type UpdateUserSecretValue = z.infer<typeof updateUserSecretValueSchema>;
 
-export const rotateUserSecretValueSchema = z.object({
-  value: z.string().min(1).optional().nullable(),
-  externalRef: z.string().min(1).optional().nullable(),
-  providerVersionRef: z.string().min(1).optional().nullable(),
-  providerConfigId: z.string().guid().optional().nullable(),
-}).superRefine(requireSecretRotationInput);
+export const rotateUserSecretValueSchema = z
+  .object({
+    value: z.string().min(1).optional().nullable(),
+    externalRef: z.string().min(1).optional().nullable(),
+    providerVersionRef: z.string().min(1).optional().nullable(),
+    providerConfigId: z.string().guid().optional().nullable(),
+  })
+  .superRefine(requireSecretRotationInput);
 
 export type RotateUserSecretValue = z.infer<typeof rotateUserSecretValueSchema>;
 
-export const createUserSecretDeclarationSchema = secretBindingTargetSchema.extend({
-  definitionKey: secretKeySchema,
-  envKey: z.string().trim().min(1),
-  versionSelector: secretVersionSelectorSchema.default("latest"),
-  required: z.boolean().default(true),
-  allowMissingOverride: z.boolean().default(false),
-  label: z.string().optional().nullable(),
-});
+export const createUserSecretDeclarationSchema =
+  secretBindingTargetSchema.extend({
+    definitionKey: secretKeySchema,
+    envKey: z.string().trim().min(1),
+    versionSelector: secretVersionSelectorSchema.default("latest"),
+    required: z.boolean().default(true),
+    allowMissingOverride: z.boolean().default(false),
+    label: z.string().optional().nullable(),
+  });
 
-export type CreateUserSecretDeclaration = z.infer<typeof createUserSecretDeclarationSchema>;
+export type CreateUserSecretDeclaration = z.infer<
+  typeof createUserSecretDeclarationSchema
+>;
 
 const safeShortText = z.string().trim().min(1).max(160);
 const optionalSafeShortText = safeShortText.optional().nullable();
@@ -231,7 +267,10 @@ const optionalSafeShortText = safeShortText.optional().nullable();
 const deniedProviderConfigKeyPattern =
   /^(access[-_]?key([-_]?id)?|secret[-_]?access[-_]?key|secret[-_]?key|token|password|passwd|credential|credentials|private[-_]?key|pem|jwt|session[-_]?token|service[-_]?account([-_]?json)?|client[-_]?secret|secret[-_]?id|unseal[-_]?key|recovery[-_]?key|key[-_]?file([-_]?path)?|token[-_]?file([-_]?path)?)$/i;
 
-function rejectSensitiveProviderConfigKeys(value: unknown, ctx: z.RefinementCtx) {
+function rejectSensitiveProviderConfigKeys(
+  value: unknown,
+  ctx: z.RefinementCtx,
+) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return;
   for (const key of Object.keys(value)) {
     if (!deniedProviderConfigKeyPattern.test(key)) continue;
@@ -243,50 +282,71 @@ function rejectSensitiveProviderConfigKeys(value: unknown, ctx: z.RefinementCtx)
   }
 }
 
-export const localEncryptedProviderConfigSchema = z.object({
-  backupReminderAcknowledged: z.boolean().optional(),
-}).strict();
+export const localEncryptedProviderConfigSchema = z
+  .object({
+    backupReminderAcknowledged: z.boolean().optional(),
+  })
+  .strict();
 
-export const awsSecretsManagerProviderConfigSchema = z.object({
-  region: z.string().trim().regex(/^[a-z]{2}(?:-gov)?-[a-z]+-\d+$/, "Invalid AWS region"),
-  namespace: optionalSafeShortText,
-  secretNamePrefix: optionalSafeShortText,
-  kmsKeyId: z.string().trim().min(1).max(512).optional().nullable(),
-  ownerTag: optionalSafeShortText,
-  environmentTag: optionalSafeShortText,
-}).strict();
+export const awsSecretsManagerProviderConfigSchema = z
+  .object({
+    region: z
+      .string()
+      .trim()
+      .regex(/^[a-z]{2}(?:-gov)?-[a-z]+-\d+$/, "Invalid AWS region"),
+    namespace: optionalSafeShortText,
+    secretNamePrefix: optionalSafeShortText,
+    kmsKeyId: z.string().trim().min(1).max(512).optional().nullable(),
+    ownerTag: optionalSafeShortText,
+    environmentTag: optionalSafeShortText,
+  })
+  .strict();
 
-export const gcpSecretManagerProviderConfigSchema = z.object({
-  projectId: z.string().trim().min(1).max(128).regex(/^[a-z][a-z0-9-]{4,127}$/).optional().nullable(),
-  location: optionalSafeShortText,
-  namespace: optionalSafeShortText,
-  secretNamePrefix: optionalSafeShortText,
-}).strict();
+export const gcpSecretManagerProviderConfigSchema = z
+  .object({
+    projectId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(128)
+      .regex(/^[a-z][a-z0-9-]{4,127}$/)
+      .optional()
+      .nullable(),
+    location: optionalSafeShortText,
+    namespace: optionalSafeShortText,
+    secretNamePrefix: optionalSafeShortText,
+  })
+  .strict();
 
 const vaultAddressSchema = z.preprocess(
-  (value) => typeof value === "string" ? value.trim() : value,
-  z.string().url().superRefine((value, ctx) => {
-    let url: URL;
-    try {
-      url = new URL(value);
-    } catch {
-      return;
-    }
-    const hasPath = url.pathname !== "" && url.pathname !== "/";
-    if (
-      (url.protocol !== "http:" && url.protocol !== "https:") ||
-      url.username ||
-      url.password ||
-      url.search ||
-      url.hash ||
-      hasPath
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Vault address must be an origin-only HTTP(S) URL without credentials, path, query, or fragment",
-      });
-    }
-  }).transform((value) => new URL(value).origin),
+  (value) => (typeof value === "string" ? value.trim() : value),
+  z
+    .string()
+    .url()
+    .superRefine((value, ctx) => {
+      let url: URL;
+      try {
+        url = new URL(value);
+      } catch {
+        return;
+      }
+      const hasPath = url.pathname !== "" && url.pathname !== "/";
+      if (
+        (url.protocol !== "http:" && url.protocol !== "https:") ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash ||
+        hasPath
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "Vault address must be an origin-only HTTP(S) URL without credentials, path, query, or fragment",
+        });
+      }
+    })
+    .transform((value) => new URL(value).origin),
 );
 
 function rejectUnsafeVaultAddress(value: unknown, ctx: z.RefinementCtx) {
@@ -301,79 +361,119 @@ function rejectUnsafeVaultAddress(value: unknown, ctx: z.RefinementCtx) {
   }
 }
 
-export const vaultProviderConfigSchema = z.object({
-  address: vaultAddressSchema.optional().nullable(),
-  namespace: optionalSafeShortText,
-  mountPath: optionalSafeShortText,
-  secretPathPrefix: optionalSafeShortText,
-}).strict();
+export const vaultProviderConfigSchema = z
+  .object({
+    address: vaultAddressSchema.optional().nullable(),
+    namespace: optionalSafeShortText,
+    mountPath: optionalSafeShortText,
+    secretPathPrefix: optionalSafeShortText,
+  })
+  .strict();
 
-export const secretProviderConfigPayloadSchema = z.discriminatedUnion("provider", [
-  z.object({ provider: z.literal("local_encrypted"), config: localEncryptedProviderConfigSchema }),
-  z.object({ provider: z.literal("aws_secrets_manager"), config: awsSecretsManagerProviderConfigSchema }),
-  z.object({ provider: z.literal("gcp_secret_manager"), config: gcpSecretManagerProviderConfigSchema }),
-  z.object({ provider: z.literal("vault"), config: vaultProviderConfigSchema }),
-]);
+export const secretProviderConfigPayloadSchema = z.discriminatedUnion(
+  "provider",
+  [
+    z.object({
+      provider: z.literal("local_encrypted"),
+      config: localEncryptedProviderConfigSchema,
+    }),
+    z.object({
+      provider: z.literal("aws_secrets_manager"),
+      config: awsSecretsManagerProviderConfigSchema,
+    }),
+    z.object({
+      provider: z.literal("gcp_secret_manager"),
+      config: gcpSecretManagerProviderConfigSchema,
+    }),
+    z.object({
+      provider: z.literal("vault"),
+      config: vaultProviderConfigSchema,
+    }),
+  ],
+);
 
-export const createSecretProviderConfigSchema = z.object({
-  provider: z.enum(SECRET_PROVIDERS),
-  displayName: z.string().trim().min(1).max(120),
-  status: z.enum(SECRET_PROVIDER_CONFIG_STATUSES).optional(),
-  isDefault: z.boolean().optional(),
-  config: z.record(z.string(), z.unknown()).default({}),
-}).superRefine((value, ctx) => {
-  rejectSensitiveProviderConfigKeys(value.config, ctx);
-  const parsed = secretProviderConfigPayloadSchema.safeParse({
-    provider: value.provider,
-    config: value.config,
-  });
-  if (!parsed.success) {
-    for (const issue of parsed.error.issues) {
+export const createSecretProviderConfigSchema = z
+  .object({
+    provider: z.enum(SECRET_PROVIDERS),
+    displayName: z.string().trim().min(1).max(120),
+    status: z.enum(SECRET_PROVIDER_CONFIG_STATUSES).optional(),
+    isDefault: z.boolean().optional(),
+    config: z.record(z.string(), z.unknown()).default({}),
+  })
+  .superRefine((value, ctx) => {
+    rejectSensitiveProviderConfigKeys(value.config, ctx);
+    const parsed = secretProviderConfigPayloadSchema.safeParse({
+      provider: value.provider,
+      config: value.config,
+    });
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        ctx.addIssue({
+          ...issue,
+          path:
+            issue.path[0] === "config" ? issue.path : ["config", ...issue.path],
+        });
+      }
+    }
+    const status =
+      value.status ??
+      (["gcp_secret_manager", "vault"].includes(value.provider)
+        ? "coming_soon"
+        : "ready");
+    if (
+      (value.provider === "gcp_secret_manager" || value.provider === "vault") &&
+      status !== "coming_soon" &&
+      status !== "disabled"
+    ) {
       ctx.addIssue({
-        ...issue,
-        path: issue.path[0] === "config" ? issue.path : ["config", ...issue.path],
+        code: z.ZodIssueCode.custom,
+        path: ["status"],
+        message: `${value.provider} provider vaults are locked while coming soon`,
       });
     }
-  }
-  const status = value.status ?? (["gcp_secret_manager", "vault"].includes(value.provider) ? "coming_soon" : "ready");
-  if ((value.provider === "gcp_secret_manager" || value.provider === "vault") && status !== "coming_soon" && status !== "disabled") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["status"],
-      message: `${value.provider} provider vaults are locked while coming soon`,
-    });
-  }
-  if ((status === "coming_soon" || status === "disabled") && value.isDefault) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["isDefault"],
-      message: "Only ready or warning provider vaults can be default",
-    });
-  }
-});
+    if (
+      (status === "coming_soon" || status === "disabled") &&
+      value.isDefault
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["isDefault"],
+        message: "Only ready or warning provider vaults can be default",
+      });
+    }
+  });
 
-export type CreateSecretProviderConfig = z.infer<typeof createSecretProviderConfigSchema>;
+export type CreateSecretProviderConfig = z.infer<
+  typeof createSecretProviderConfigSchema
+>;
 
-export const updateSecretProviderConfigSchema = z.object({
-  displayName: z.string().trim().min(1).max(120).optional(),
-  status: z.enum(SECRET_PROVIDER_CONFIG_STATUSES).optional(),
-  isDefault: z.boolean().optional(),
-  config: z.record(z.string(), z.unknown()).optional(),
-}).superRefine((value, ctx) => {
-  if (value.config !== undefined) {
-    rejectSensitiveProviderConfigKeys(value.config, ctx);
-    rejectUnsafeVaultAddress(value.config.address, ctx);
-  }
-  if ((value.status === "coming_soon" || value.status === "disabled") && value.isDefault) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["isDefault"],
-      message: "Only ready or warning provider vaults can be default",
-    });
-  }
-});
+export const updateSecretProviderConfigSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(120).optional(),
+    status: z.enum(SECRET_PROVIDER_CONFIG_STATUSES).optional(),
+    isDefault: z.boolean().optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.config !== undefined) {
+      rejectSensitiveProviderConfigKeys(value.config, ctx);
+      rejectUnsafeVaultAddress(value.config.address, ctx);
+    }
+    if (
+      (value.status === "coming_soon" || value.status === "disabled") &&
+      value.isDefault
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["isDefault"],
+        message: "Only ready or warning provider vaults can be default",
+      });
+    }
+  });
 
-export type UpdateSecretProviderConfig = z.infer<typeof updateSecretProviderConfigSchema>;
+export type UpdateSecretProviderConfig = z.infer<
+  typeof updateSecretProviderConfigSchema
+>;
 
 export const remoteSecretImportPreviewSchema = z.object({
   providerConfigId: z.string().guid(),
@@ -382,36 +482,50 @@ export const remoteSecretImportPreviewSchema = z.object({
   pageSize: z.number().int().min(1).max(100).optional(),
 });
 
-export type RemoteSecretImportPreview = z.infer<typeof remoteSecretImportPreviewSchema>;
+export type RemoteSecretImportPreview = z.infer<
+  typeof remoteSecretImportPreviewSchema
+>;
 
-export const secretProviderConfigDiscoveryPreviewSchema = z.object({
-  provider: z.enum(SECRET_PROVIDERS),
-  config: z.record(z.string(), z.unknown()).default({}),
-  query: z.string().trim().max(200).optional().nullable(),
-  nextToken: z.string().trim().min(1).max(4096).optional().nullable(),
-  pageSize: z.number().int().min(1).max(100).optional(),
-}).superRefine((value, ctx) => {
-  rejectSensitiveProviderConfigKeys(value.config, ctx);
-  const parsed = secretProviderConfigPayloadSchema.safeParse({
-    provider: value.provider,
-    config: value.config,
-  });
-  if (!parsed.success) {
-    for (const issue of parsed.error.issues) {
-      ctx.addIssue({
-        ...issue,
-        path: issue.path[0] === "config" ? issue.path : ["config", ...issue.path],
-      });
+export const secretProviderConfigDiscoveryPreviewSchema = z
+  .object({
+    provider: z.enum(SECRET_PROVIDERS),
+    config: z.record(z.string(), z.unknown()).default({}),
+    query: z.string().trim().max(200).optional().nullable(),
+    nextToken: z.string().trim().min(1).max(4096).optional().nullable(),
+    pageSize: z.number().int().min(1).max(100).optional(),
+  })
+  .superRefine((value, ctx) => {
+    rejectSensitiveProviderConfigKeys(value.config, ctx);
+    const parsed = secretProviderConfigPayloadSchema.safeParse({
+      provider: value.provider,
+      config: value.config,
+    });
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        ctx.addIssue({
+          ...issue,
+          path:
+            issue.path[0] === "config" ? issue.path : ["config", ...issue.path],
+        });
+      }
     }
-  }
-});
+  });
 
-export type SecretProviderConfigDiscoveryPreview = z.infer<typeof secretProviderConfigDiscoveryPreviewSchema>;
+export type SecretProviderConfigDiscoveryPreview = z.infer<
+  typeof secretProviderConfigDiscoveryPreviewSchema
+>;
 
 export const remoteSecretImportSelectionSchema = z.object({
   externalRef: z.string().trim().min(1).max(2048),
   name: z.string().trim().min(1).max(160).optional().nullable(),
-  key: z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9_.-]+$/).optional().nullable(),
+  key: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(/^[a-zA-Z0-9_.-]+$/)
+    .optional()
+    .nullable(),
   description: z.string().trim().max(500).optional().nullable(),
   providerVersionRef: z.string().trim().min(1).max(512).optional().nullable(),
   providerMetadata: z.record(z.string(), z.unknown()).optional().nullable(),
@@ -422,5 +536,7 @@ export const remoteSecretImportSchema = z.object({
   secrets: z.array(remoteSecretImportSelectionSchema).min(1).max(100),
 });
 
-export type RemoteSecretImportSelection = z.infer<typeof remoteSecretImportSelectionSchema>;
+export type RemoteSecretImportSelection = z.infer<
+  typeof remoteSecretImportSelectionSchema
+>;
 export type RemoteSecretImport = z.infer<typeof remoteSecretImportSchema>;

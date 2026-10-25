@@ -43,7 +43,9 @@ describe("isMarkdownAttachmentContent", () => {
     "application/markdown",
     "application/x-markdown",
   ])("accepts %s regardless of filename", (contentType) => {
-    expect(isMarkdownAttachmentContent({ contentType, originalFilename: null })).toBe(true);
+    expect(
+      isMarkdownAttachmentContent({ contentType, originalFilename: null }),
+    ).toBe(true);
   });
 
   it("ignores MIME parameters and case", () => {
@@ -61,7 +63,12 @@ describe("isMarkdownAttachmentContent", () => {
     "binary/octet-stream",
     "application/x-binary",
   ])("accepts a .md filename when the content type is %s", (contentType) => {
-    expect(isMarkdownAttachmentContent({ contentType, originalFilename: "README.md" })).toBe(true);
+    expect(
+      isMarkdownAttachmentContent({
+        contentType,
+        originalFilename: "README.md",
+      }),
+    ).toBe(true);
   });
 
   it("accepts a .markdown filename with a generic content type", () => {
@@ -81,26 +88,38 @@ describe("isMarkdownAttachmentContent", () => {
       }),
     ).toBe(false);
     expect(
-      isMarkdownAttachmentContent({ contentType: "text/plain", originalFilename: "page.mdx" }),
+      isMarkdownAttachmentContent({
+        contentType: "text/plain",
+        originalFilename: "page.mdx",
+      }),
     ).toBe(false);
   });
 
   it("rejects markdown filenames with non-generic content types", () => {
     expect(
-      isMarkdownAttachmentContent({ contentType: "text/html", originalFilename: "notes.md" }),
+      isMarkdownAttachmentContent({
+        contentType: "text/html",
+        originalFilename: "notes.md",
+      }),
     ).toBe(false);
   });
 
   it("rejects non-markdown filenames with generic content types", () => {
     expect(
-      isMarkdownAttachmentContent({ contentType: "text/plain", originalFilename: "notes.txt" }),
+      isMarkdownAttachmentContent({
+        contentType: "text/plain",
+        originalFilename: "notes.txt",
+      }),
     ).toBe(false);
   });
 
   it("rejects a missing content type", () => {
-    expect(isMarkdownAttachmentContent({ contentType: null, originalFilename: "notes.md" })).toBe(
-      false,
-    );
+    expect(
+      isMarkdownAttachmentContent({
+        contentType: null,
+        originalFilename: "notes.md",
+      }),
+    ).toBe(false);
   });
 });
 
@@ -111,19 +130,31 @@ describe("getAttachmentArtifactWorkProductMetadata", () => {
   });
 
   it("returns null for non-artifact work products", () => {
-    expect(getAttachmentArtifactWorkProductMetadata(workProduct({ type: "document" }))).toBeNull();
+    expect(
+      getAttachmentArtifactWorkProductMetadata(
+        workProduct({ type: "document" }),
+      ),
+    ).toBeNull();
   });
 
   it("returns null for non-taskcore providers", () => {
-    expect(getAttachmentArtifactWorkProductMetadata(workProduct({ provider: "github" }))).toBeNull();
+    expect(
+      getAttachmentArtifactWorkProductMetadata(
+        workProduct({ provider: "github" }),
+      ),
+    ).toBeNull();
   });
 
   it("returns null when metadata is missing or non-canonical", () => {
-    expect(getAttachmentArtifactWorkProductMetadata(workProduct({ metadata: null }))).toBeNull();
+    expect(
+      getAttachmentArtifactWorkProductMetadata(workProduct({ metadata: null })),
+    ).toBeNull();
     expect(
       getAttachmentArtifactWorkProductMetadata(
         workProduct({
-          metadata: attachmentMetadata({ openPath: "https://evil.example/content" }),
+          metadata: attachmentMetadata({
+            openPath: "https://evil.example/content",
+          }),
         }),
       ),
     ).toBeNull();
@@ -132,11 +163,16 @@ describe("getAttachmentArtifactWorkProductMetadata", () => {
 
 describe("getMarkdownWorkProductAttachmentMetadata", () => {
   it("returns metadata only when the attachment is markdown-eligible", () => {
-    expect(getMarkdownWorkProductAttachmentMetadata(workProduct())).not.toBeNull();
+    expect(
+      getMarkdownWorkProductAttachmentMetadata(workProduct()),
+    ).not.toBeNull();
     expect(
       getMarkdownWorkProductAttachmentMetadata(
         workProduct({
-          metadata: attachmentMetadata({ contentType: "application/pdf", originalFilename: "a.pdf" }),
+          metadata: attachmentMetadata({
+            contentType: "application/pdf",
+            originalFilename: "a.pdf",
+          }),
         }),
       ),
     ).toBeNull();
@@ -147,7 +183,10 @@ describe("getMarkdownWorkProductAttachmentMetadata", () => {
     expect(
       isMarkdownArtifactWorkProduct(
         workProduct({
-          metadata: attachmentMetadata({ contentType: "image/png", originalFilename: "a.png" }),
+          metadata: attachmentMetadata({
+            contentType: "image/png",
+            originalFilename: "a.png",
+          }),
         }),
       ),
     ).toBe(false);
@@ -163,15 +202,21 @@ describe("artifact review document keys", () => {
   });
 
   it("identifies proxy review-document keys", () => {
-    expect(isArtifactReviewDocumentKey(artifactReviewDocumentKey(WORK_PRODUCT_ID))).toBe(true);
+    expect(
+      isArtifactReviewDocumentKey(artifactReviewDocumentKey(WORK_PRODUCT_ID)),
+    ).toBe(true);
     expect(isArtifactReviewDocumentKey("plan")).toBe(false);
     expect(isArtifactReviewDocumentKey("notes")).toBe(false);
-    expect(isArtifactReviewDocumentKey(ARTIFACT_REVIEW_DOCUMENT_KEY_PREFIX)).toBe(false);
+    expect(
+      isArtifactReviewDocumentKey(ARTIFACT_REVIEW_DOCUMENT_KEY_PREFIX),
+    ).toBe(false);
   });
 
   it("round-trips the work product id", () => {
     expect(
-      workProductIdFromArtifactReviewDocumentKey(artifactReviewDocumentKey(WORK_PRODUCT_ID)),
+      workProductIdFromArtifactReviewDocumentKey(
+        artifactReviewDocumentKey(WORK_PRODUCT_ID),
+      ),
     ).toBe(WORK_PRODUCT_ID);
     expect(workProductIdFromArtifactReviewDocumentKey("plan")).toBeNull();
   });

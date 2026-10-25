@@ -34,7 +34,9 @@ describe("PriorityIcon picker", () => {
 
   it("opens the real popover and selects a priority", async () => {
     const onChange = vi.fn();
-    await act(async () => root?.render(<PriorityIcon priority="medium" onChange={onChange} />));
+    await act(async () =>
+      root?.render(<PriorityIcon priority="medium" onChange={onChange} />),
+    );
 
     const trigger = container.querySelector<HTMLButtonElement>(
       'button[aria-label="Change priority (current: Medium)"]',
@@ -45,8 +47,9 @@ describe("PriorityIcon picker", () => {
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const highOption = [...document.body.querySelectorAll<HTMLButtonElement>("button")]
-      .find((button) => button.textContent?.trim() === "High");
+    const highOption = [
+      ...document.body.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.trim() === "High");
     expect(highOption).not.toBeUndefined();
 
     await act(async () => {

@@ -20,18 +20,11 @@
       "const": "taskcore.prp.capabilities.v3"
     },
     "sessionReusePolicy": {
-      "enum": [
-        "new_per_run",
-        "reuse_per_issue",
-        "reuse_per_workspace"
-      ]
+      "enum": ["new_per_run", "reuse_per_issue", "reuse_per_workspace"]
     },
     "driver": {
       "type": "object",
-      "required": [
-        "kind",
-        "version"
-      ],
+      "required": ["kind", "version"],
       "properties": {
         "kind": {
           "type": "string",

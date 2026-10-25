@@ -17,8 +17,12 @@ describe("audit navigation", () => {
   });
 
   it("provides agent, routine, and run scoped links", () => {
-    expect(agentAuditHref("agent-1")).toBe("/activity?mode=agents&agentId=agent-1");
-    expect(agentAuditHref("agent-1", "runs")).toBe("/activity/runs?agentId=agent-1");
+    expect(agentAuditHref("agent-1")).toBe(
+      "/activity?mode=agents&agentId=agent-1",
+    );
+    expect(agentAuditHref("agent-1", "runs")).toBe(
+      "/activity/runs?agentId=agent-1",
+    );
     expect(routineAuditHref("routine-1")).toBe(
       "/activity?entityType=routine&entityId=routine-1",
     );
@@ -28,9 +32,13 @@ describe("audit navigation", () => {
   });
 
   it("reads supported scope parameters without treating arbitrary query data as filters", () => {
-    expect(auditScopeFromSearchParams(new URLSearchParams(
-      "mode=agents&agentId=agent-1&entityType=routine&entityId=routine-1&ignored=yes",
-    ))).toEqual({
+    expect(
+      auditScopeFromSearchParams(
+        new URLSearchParams(
+          "mode=agents&agentId=agent-1&entityType=routine&entityId=routine-1&ignored=yes",
+        ),
+      ),
+    ).toEqual({
       mode: "agents",
       agentId: "agent-1",
       runId: null,

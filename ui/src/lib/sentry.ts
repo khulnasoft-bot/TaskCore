@@ -38,7 +38,11 @@
 // (`GlobalHandlers`), the two React error boundaries, deduplicates a repeat
 // event (`Dedupe`), and links a caused-by chain (`LinkedErrors`).
 
-import { buildBrowserErrorContext, readBrowserErrorState, type BrowserErrorDetails } from "./browser-error-context";
+import {
+  buildBrowserErrorContext,
+  readBrowserErrorState,
+  type BrowserErrorDetails,
+} from "./browser-error-context";
 
 let queue: Promise<void> = Promise.resolve();
 
@@ -58,7 +62,9 @@ type SentryBrowserModule = typeof import("@sentry/browser");
  * gate never returns. `NonNullable` removes only that arm — the object shape
  * underneath stays the true `@sentry/browser` option type.
  */
-type BrowserSentryInitOptions = NonNullable<Parameters<SentryBrowserModule["init"]>[0]>;
+type BrowserSentryInitOptions = NonNullable<
+  Parameters<SentryBrowserModule["init"]>[0]
+>;
 
 let sentry: SentryBrowserModule | null = null;
 
@@ -67,7 +73,10 @@ let sentry: SentryBrowserModule | null = null;
  * — the session query can refetch and call this again, and a second call is
  * a no-op because a client is already started.
  */
-export function initBrowserErrorMonitoring(dsn: string, environment?: string | null): Promise<void> {
+export function initBrowserErrorMonitoring(
+  dsn: string,
+  environment?: string | null,
+): Promise<void> {
   return enqueue(async () => {
     if (sentry) return;
     try {
@@ -127,7 +136,10 @@ export function teardownBrowserErrorMonitoring(): Promise<void> {
       await client?.close(2_000);
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error("[taskcore] Sentry teardownBrowserErrorMonitoring failed", err);
+      console.error(
+        "[taskcore] Sentry teardownBrowserErrorMonitoring failed",
+        err,
+      );
     }
   });
 }
@@ -137,7 +149,10 @@ export function teardownBrowserErrorMonitoring(): Promise<void> {
  * control flow. A no-op before the gate opens, when the gate never opens (no
  * DSN on the session), or when bootstrap failed.
  */
-export function captureBrowserException(error: unknown, details?: BrowserErrorDetails): void {
+export function captureBrowserException(
+  error: unknown,
+  details?: BrowserErrorDetails,
+): void {
   let context: ReturnType<typeof buildBrowserErrorContext> | undefined;
   try {
     if (details) context = buildBrowserErrorContext(details);
@@ -182,20 +197,28 @@ export function buildBrowserSentryInitOptions(
       try {
         event.contexts = {
           ...event.contexts,
-          browser_state: event.contexts?.browser_state ?? readBrowserErrorState(),
+          browser_state:
+            event.contexts?.browser_state ?? readBrowserErrorState(),
         };
         event.tags = {
           ...event.tags,
-          browser_build_mode: import.meta.env.DEV ? "development" : "production",
+          browser_build_mode: import.meta.env.DEV
+            ? "development"
+            : "production",
         };
-        if (event.exception?.values?.some((value) =>
-          value.mechanism?.type === "onunhandledrejection"
-          || value.mechanism?.type === "auto.browser.global_handlers.onunhandledrejection",
-        )) {
+        if (
+          event.exception?.values?.some(
+            (value) =>
+              value.mechanism?.type === "onunhandledrejection" ||
+              value.mechanism?.type ===
+                "auto.browser.global_handlers.onunhandledrejection",
+          )
+        ) {
           // The SDK supplies the rejected value directly. Classify without
           // reading object properties, coercing strings, or copying its value.
           const reason = hint.originalException;
-          event.tags.browser_rejection_kind = reason === null ? "null" : typeof reason;
+          event.tags.browser_rejection_kind =
+            reason === null ? "null" : typeof reason;
         }
       } catch {
         // Diagnostics must not replace or discard the original error.
@@ -204,7 +227,9 @@ export function buildBrowserSentryInitOptions(
     },
     integrations: (defaults) =>
       defaults.filter(
-        (integration) => integration.name !== "HttpContext" && integration.name !== "Breadcrumbs",
+        (integration) =>
+          integration.name !== "HttpContext" &&
+          integration.name !== "Breadcrumbs",
       ),
   };
 }

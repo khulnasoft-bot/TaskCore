@@ -1,4 +1,8 @@
-import { usePluginAction, usePluginData, type PluginWidgetProps } from "@taskcore/plugin-sdk/ui";
+import {
+  usePluginAction,
+  usePluginData,
+  type PluginWidgetProps,
+} from "@taskcore/plugin-sdk/ui";
 
 type HealthData = {
   status: "ok" | "degraded" | "error";

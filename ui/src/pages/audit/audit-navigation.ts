@@ -1,4 +1,5 @@
-export type AuditSection = "activity" | "runs" | "costs" | "budgets" | "timeline";
+export type AuditSection =
+  "activity" | "runs" | "costs" | "budgets" | "timeline";
 
 export const AUDIT_SECTIONS: ReadonlyArray<{
   value: AuditSection;
@@ -20,8 +21,13 @@ export interface AuditLinkScope {
   entityId?: string | null;
 }
 
-export function auditSectionHref(section: AuditSection, scope: AuditLinkScope = {}) {
-  const base = AUDIT_SECTIONS.find((candidate) => candidate.value === section)?.href ?? "/activity";
+export function auditSectionHref(
+  section: AuditSection,
+  scope: AuditLinkScope = {},
+) {
+  const base =
+    AUDIT_SECTIONS.find((candidate) => candidate.value === section)?.href ??
+    "/activity";
   const search = new URLSearchParams();
   if (scope.mode === "agents") search.set("mode", "agents");
   if (scope.agentId) search.set("agentId", scope.agentId);
@@ -33,7 +39,10 @@ export function auditSectionHref(section: AuditSection, scope: AuditLinkScope = 
 }
 
 /** Link target for an agent's attributed activity or company-wide run history. */
-export function agentAuditHref(agentId: string, section: "activity" | "runs" = "activity") {
+export function agentAuditHref(
+  agentId: string,
+  section: "activity" | "runs" = "activity",
+) {
   return auditSectionHref(section, {
     mode: section === "activity" ? "agents" : undefined,
     agentId,
@@ -53,7 +62,9 @@ export function runAuditHref(runId: string, agentId?: string | null) {
   return auditSectionHref("activity", { mode: "agents", runId, agentId });
 }
 
-export function auditScopeFromSearchParams(searchParams: URLSearchParams): AuditLinkScope {
+export function auditScopeFromSearchParams(
+  searchParams: URLSearchParams,
+): AuditLinkScope {
   return {
     mode: searchParams.get("mode") === "agents" ? "agents" : "all",
     agentId: searchParams.get("agentId"),

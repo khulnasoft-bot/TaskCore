@@ -26,7 +26,9 @@ function createDocument(overrides: Partial<IssueDocument> = {}): IssueDocument {
   };
 }
 
-function createRevision(overrides: Partial<DocumentRevision> = {}): DocumentRevision {
+function createRevision(
+  overrides: Partial<DocumentRevision> = {},
+): DocumentRevision {
   return {
     id: "revision-1",
     companyId: "company-1",
@@ -47,35 +49,59 @@ function createRevision(overrides: Partial<DocumentRevision> = {}): DocumentRevi
 
 describe("deriveDocumentRevisionState", () => {
   it("falls back to a synthetic current revision when no revision history has been fetched yet", () => {
-    const state = deriveDocumentRevisionState(createDocument({
-      latestRevisionId: null,
-      latestRevisionNumber: 0,
-      body: "# Draft plan",
-    }), []);
+    const state = deriveDocumentRevisionState(
+      createDocument({
+        latestRevisionId: null,
+        latestRevisionNumber: 0,
+        body: "# Draft plan",
+      }),
+      [],
+    );
 
     expect(state.currentRevision.id).toBe("document-1-latest");
     expect(state.currentRevision.body).toBe("# Draft plan");
-    expect(state.revisions.map((revision) => revision.id)).toEqual(["document-1-latest"]);
+    expect(state.revisions.map((revision) => revision.id)).toEqual([
+      "document-1-latest",
+    ]);
   });
 
   it("sorts fetched revisions newest-first even when the API payload is out of order", () => {
     const state = deriveDocumentRevisionState(createDocument(), [
-      createRevision({ id: "revision-1", revisionNumber: 1, createdAt: new Date("2026-04-10T15:00:00.000Z") }),
-      createRevision({ id: "revision-2", revisionNumber: 2, body: "# Current plan", createdAt: new Date("2026-04-10T16:00:00.000Z") }),
+      createRevision({
+        id: "revision-1",
+        revisionNumber: 1,
+        createdAt: new Date("2026-04-10T15:00:00.000Z"),
+      }),
+      createRevision({
+        id: "revision-2",
+        revisionNumber: 2,
+        body: "# Current plan",
+        createdAt: new Date("2026-04-10T16:00:00.000Z"),
+      }),
     ]);
 
     expect(state.currentRevision.id).toBe("revision-2");
-    expect(state.revisions.map((revision) => revision.id)).toEqual(["revision-2", "revision-1"]);
+    expect(state.revisions.map((revision) => revision.id)).toEqual([
+      "revision-2",
+      "revision-1",
+    ]);
   });
 
   it("keeps the latest document revision current when the revision history cache is stale", () => {
     const state = deriveDocumentRevisionState(createDocument(), [
-      createRevision({ id: "revision-1", revisionNumber: 1, body: "# Original plan" }),
+      createRevision({
+        id: "revision-1",
+        revisionNumber: 1,
+        body: "# Original plan",
+      }),
     ]);
 
     expect(state.currentRevision.id).toBe("revision-2");
     expect(state.currentRevision.body).toBe("# Current plan");
-    expect(state.revisions.map((revision) => revision.id)).toEqual(["revision-2", "revision-1"]);
+    expect(state.revisions.map((revision) => revision.id)).toEqual([
+      "revision-2",
+      "revision-1",
+    ]);
   });
 
   it("trusts the fetched revision history when it is newer than the document summary cache", () => {
@@ -87,12 +113,25 @@ describe("deriveDocumentRevisionState", () => {
     });
 
     const state = deriveDocumentRevisionState(staleDocument, [
-      createRevision({ id: "revision-2", revisionNumber: 2, body: "# Current plan", createdAt: new Date("2026-04-10T16:00:00.000Z") }),
-      createRevision({ id: "revision-1", revisionNumber: 1, body: "# Original plan", createdAt: new Date("2026-04-10T15:00:00.000Z") }),
+      createRevision({
+        id: "revision-2",
+        revisionNumber: 2,
+        body: "# Current plan",
+        createdAt: new Date("2026-04-10T16:00:00.000Z"),
+      }),
+      createRevision({
+        id: "revision-1",
+        revisionNumber: 1,
+        body: "# Original plan",
+        createdAt: new Date("2026-04-10T15:00:00.000Z"),
+      }),
     ]);
 
     expect(state.currentRevision.id).toBe("revision-2");
     expect(state.currentRevision.body).toBe("# Current plan");
-    expect(state.revisions.map((revision) => revision.id)).toEqual(["revision-2", "revision-1"]);
+    expect(state.revisions.map((revision) => revision.id)).toEqual([
+      "revision-2",
+      "revision-1",
+    ]);
   });
 });

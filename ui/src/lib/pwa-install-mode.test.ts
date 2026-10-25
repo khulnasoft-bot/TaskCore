@@ -7,7 +7,9 @@ const uiRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 
 describe("PWA install mode", () => {
   it("opens home-screen launches with browser controls visible", () => {
-    const manifest = JSON.parse(readFileSync(resolve(uiRoot, "public/site.webmanifest"), "utf8")) as {
+    const manifest = JSON.parse(
+      readFileSync(resolve(uiRoot, "public/site.webmanifest"), "utf8"),
+    ) as {
       display?: string;
     };
     const html = readFileSync(resolve(uiRoot, "index.html"), "utf8");
@@ -25,6 +27,8 @@ describe("PWA install mode", () => {
     // the link opts in. Behind an authenticating reverse proxy (e.g. a
     // managed-hosting front door), the cookie-less request is rejected on
     // every page load.
-    expect(html).toContain('rel="manifest" href="/site.webmanifest" crossorigin="use-credentials"');
+    expect(html).toContain(
+      'rel="manifest" href="/site.webmanifest" crossorigin="use-credentials"',
+    );
   });
 });

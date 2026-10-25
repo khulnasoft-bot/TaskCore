@@ -58,8 +58,15 @@ function assertSelfContainedBundle(entrypoint, result) {
 export async function bundleVerifiedProviderEntrypoints({ write = true } = {}) {
   if (write) {
     await mkdir(resolve(packageRoot, "dist/providers"), { recursive: true });
-    await cp(resolve(packageRoot, "src/providers"), resolve(packageRoot, "dist/providers"), { recursive: true });
-    await copyFile(resolve(packageRoot, "cursor-distributions.json"), resolve(packageRoot, "dist/cursor-distributions.json"));
+    await cp(
+      resolve(packageRoot, "src/providers"),
+      resolve(packageRoot, "dist/providers"),
+      { recursive: true },
+    );
+    await copyFile(
+      resolve(packageRoot, "cursor-distributions.json"),
+      resolve(packageRoot, "dist/cursor-distributions.json"),
+    );
   }
   const results = [];
   for (const entrypoint of verifiedProviderEntrypoints) {

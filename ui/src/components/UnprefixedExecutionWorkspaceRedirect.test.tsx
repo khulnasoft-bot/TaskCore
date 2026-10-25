@@ -15,8 +15,18 @@ vi.mock("@/api/execution-workspaces", () => ({
   executionWorkspacesApi: mockExecutionWorkspacesApi,
 }));
 
-const PAP = { id: "company-pap", name: "Taskcore", issuePrefix: "PAP", status: "active" };
-const FOR = { id: "company-for", name: "Forgotten Runes", issuePrefix: "FOR", status: "active" };
+const PAP = {
+  id: "company-pap",
+  name: "Taskcore",
+  issuePrefix: "PAP",
+  status: "active",
+};
+const FOR = {
+  id: "company-for",
+  name: "Forgotten Runes",
+  issuePrefix: "FOR",
+  status: "active",
+};
 vi.mock("@/context/CompanyContext", () => ({
   useCompany: () => ({
     companies: [PAP, FOR],
@@ -32,7 +42,9 @@ vi.mock("../pages/NotFound", () => ({
 
 function Destination() {
   const location = useLocation();
-  return <div>{`DESTINATION@${location.pathname}${location.search}${location.hash}`}</div>;
+  return (
+    <div>{`DESTINATION@${location.pathname}${location.search}${location.hash}`}</div>
+  );
 }
 
 describe("UnprefixedExecutionWorkspaceRedirect", () => {
@@ -52,14 +64,22 @@ describe("UnprefixedExecutionWorkspaceRedirect", () => {
 
   function render(path: string) {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     flushSync(() => {
       root.render(
         <QueryClientProvider client={queryClient}>
           <MemoryRouter initialEntries={[path]}>
             <Routes>
-              <Route path="execution-workspaces/:workspaceId/issues" element={<UnprefixedExecutionWorkspaceRedirect />} />
-              <Route path=":companyPrefix/execution-workspaces/:workspaceId/issues" element={<Destination />} />
+              <Route
+                path="execution-workspaces/:workspaceId/issues"
+                element={<UnprefixedExecutionWorkspaceRedirect />}
+              />
+              <Route
+                path=":companyPrefix/execution-workspaces/:workspaceId/issues"
+                element={<Destination />}
+              />
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>,
@@ -69,14 +89,22 @@ describe("UnprefixedExecutionWorkspaceRedirect", () => {
 
   function renderGate(path: string) {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     flushSync(() => {
       root.render(
         <QueryClientProvider client={queryClient}>
           <MemoryRouter initialEntries={[path]}>
             <Routes>
-              <Route path=":companyPrefix" element={<ExecutionWorkspaceCompanyGate />}>
-                <Route path="execution-workspaces/:workspaceId/issues" element={<Destination />} />
+              <Route
+                path=":companyPrefix"
+                element={<ExecutionWorkspaceCompanyGate />}
+              >
+                <Route
+                  path="execution-workspaces/:workspaceId/issues"
+                  element={<Destination />}
+                />
               </Route>
             </Routes>
           </MemoryRouter>
@@ -86,7 +114,10 @@ describe("UnprefixedExecutionWorkspaceRedirect", () => {
   }
 
   it("uses the workspace owner instead of the selected company after login", async () => {
-    mockExecutionWorkspacesApi.get.mockResolvedValue({ id: "workspace-1", companyId: PAP.id });
+    mockExecutionWorkspacesApi.get.mockResolvedValue({
+      id: "workspace-1",
+      companyId: PAP.id,
+    });
     render("/execution-workspaces/workspace-1/issues?tab=open#latest");
 
     await vi.waitFor(() => {
@@ -98,18 +129,27 @@ describe("UnprefixedExecutionWorkspaceRedirect", () => {
   });
 
   it("shows not found when the workspace cannot be resolved", async () => {
-    mockExecutionWorkspacesApi.get.mockRejectedValue(new Error("Execution workspace not found"));
+    mockExecutionWorkspacesApi.get.mockRejectedValue(
+      new Error("Execution workspace not found"),
+    );
     render("/execution-workspaces/missing/issues");
 
-    await vi.waitFor(() => expect(container.textContent).toContain("NOT_FOUND"));
+    await vi.waitFor(() =>
+      expect(container.textContent).toContain("NOT_FOUND"),
+    );
     expect(container.textContent).not.toContain("DESTINATION@");
   });
 
   it("rejects a prefixed route for a different company's workspace", async () => {
-    mockExecutionWorkspacesApi.get.mockResolvedValue({ id: "workspace-1", companyId: PAP.id });
+    mockExecutionWorkspacesApi.get.mockResolvedValue({
+      id: "workspace-1",
+      companyId: PAP.id,
+    });
     renderGate("/FOR/execution-workspaces/workspace-1/issues");
 
-    await vi.waitFor(() => expect(container.textContent).toContain("NOT_FOUND"));
+    await vi.waitFor(() =>
+      expect(container.textContent).toContain("NOT_FOUND"),
+    );
     expect(container.textContent).not.toContain("DESTINATION@");
   });
 });

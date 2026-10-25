@@ -50,12 +50,19 @@ export function SessionHeader({
   const failing = completed.find((turn) => turn.parity.verdict === "fail");
   // Controls that would corrupt a running turn are disabled with the reason
   // named, never silently inert.
-  const busyReason = busy ? "A turn is running — wait for it to settle." : undefined;
+  const busyReason = busy
+    ? "A turn is running — wait for it to settle."
+    : undefined;
   const runningControlsReasonId = "running-controls-reason";
   const codexUnavailableReasonId = "codex-unavailable-reason";
 
   return (
-    <header ref={headerRef} className="pcr7-session-header" data-testid="session-header" tabIndex={-1}>
+    <header
+      ref={headerRef}
+      className="pcr7-session-header"
+      data-testid="session-header"
+      tabIndex={-1}
+    >
       <div className="pcr7-run-title">
         <Mono>{entry.id}</Mono>
         <h1>{entry.title}</h1>
@@ -110,7 +117,11 @@ export function SessionHeader({
             role="radio"
             aria-checked={mode === "codex"}
             aria-describedby={
-              busy ? runningControlsReasonId : !codexAvailable ? codexUnavailableReasonId : undefined
+              busy
+                ? runningControlsReasonId
+                : !codexAvailable
+                  ? codexUnavailableReasonId
+                  : undefined
             }
             disabled={busy || !codexAvailable}
             data-testid="chat-mode-codex"
@@ -130,9 +141,9 @@ export function SessionHeader({
             className="pcr7-muted"
             data-testid="chat-codex-unavailable"
           >
-            Codex mode needs the local provider relay — provider relay not running, see tutorial §4.
-            Scripted mode drives the same mock control plane offline, and no provider credential
-            ever reaches this page.
+            Codex mode needs the local provider relay — provider relay not
+            running, see tutorial §4. Scripted mode drives the same mock control
+            plane offline, and no provider credential ever reaches this page.
           </p>
         )}
 
@@ -181,8 +192,10 @@ function sessionStatus(
   mode: CapabilityChatMode,
 ): { label: string; tone: "accent" | "neutral" | "danger" } {
   if (artifact === null) return { label: "Seeding…", tone: "neutral" };
-  if (artifact.status === "failed") return { label: "Harness error", tone: "danger" };
-  if (artifact.turns.length <= 1) return { label: "Idle · seeded", tone: "neutral" };
+  if (artifact.status === "failed")
+    return { label: "Harness error", tone: "danger" };
+  if (artifact.turns.length <= 1)
+    return { label: "Idle · seeded", tone: "neutral" };
   return mode === "codex"
     ? { label: "Live · Codex (bounded)", tone: "accent" }
     : { label: "Scripted · deterministic", tone: "neutral" };

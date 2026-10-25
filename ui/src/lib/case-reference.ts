@@ -29,7 +29,10 @@ export function parseCaseReferenceFromHref(
     const prefix = normalized.split("-")[0];
     if (!prefix || !knownPrefixes.has(prefix)) return null;
   }
-  return { identifier: normalized, href: `/cases/${encodeURIComponent(normalized)}` };
+  return {
+    identifier: normalized,
+    href: `/cases/${encodeURIComponent(normalized)}`,
+  };
 }
 
 function createCaseLinkNode(
@@ -40,7 +43,10 @@ function createCaseLinkNode(
   return { type: "link", url: href, children: [{ type: childType, value }] };
 }
 
-function linkifyCaseReferencesInText(value: string, knownPrefixes?: Set<string>): MarkdownNode[] | null {
+function linkifyCaseReferencesInText(
+  value: string,
+  knownPrefixes?: Set<string>,
+): MarkdownNode[] | null {
   const nodes: MarkdownNode[] = [];
   let cursor = 0;
   let matched = false;
@@ -51,12 +57,14 @@ function linkifyCaseReferencesInText(value: string, knownPrefixes?: Set<string>)
     if (!caseRef) continue;
     const start = match.index ?? 0;
     matched = true;
-    if (start > cursor) nodes.push({ type: "text", value: value.slice(cursor, start) });
+    if (start > cursor)
+      nodes.push({ type: "text", value: value.slice(cursor, start) });
     nodes.push(createCaseLinkNode(raw, caseRef.href));
     cursor = start + raw.length;
   }
   if (!matched) return null;
-  if (cursor < value.length) nodes.push({ type: "text", value: value.slice(cursor) });
+  if (cursor < value.length)
+    nodes.push({ type: "text", value: value.slice(cursor) });
   return nodes;
 }
 
@@ -76,7 +84,9 @@ function rewriteMarkdownTree(node: MarkdownNode, knownPrefixes?: Set<string>) {
     if (child.type === "inlineCode" && typeof child.value === "string") {
       const caseRef = parseCaseReferenceFromHref(child.value, knownPrefixes);
       if (caseRef) {
-        nextChildren.push(createCaseLinkNode(child.value, caseRef.href, "inlineCode"));
+        nextChildren.push(
+          createCaseLinkNode(child.value, caseRef.href, "inlineCode"),
+        );
         continue;
       }
     }
@@ -98,7 +108,9 @@ export interface RemarkLinkCaseReferencesOptions {
   knownPrefixes?: string[];
 }
 
-export function remarkLinkCaseReferences(options?: RemarkLinkCaseReferencesOptions) {
+export function remarkLinkCaseReferences(
+  options?: RemarkLinkCaseReferencesOptions,
+) {
   const knownPrefixes =
     options?.knownPrefixes && options.knownPrefixes.length > 0
       ? new Set(options.knownPrefixes.map((prefix) => prefix.toUpperCase()))

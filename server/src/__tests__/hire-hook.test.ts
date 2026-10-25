@@ -14,7 +14,13 @@ vi.mock("../services/activity-log.js", () => ({
 const { findActiveServerAdapter } = await import("../adapters/registry.js");
 const { logActivity } = await import("../services/activity-log.js");
 
-function mockDbWithAgent(agent: { id: string; companyId: string; name: string; adapterType: string; adapterConfig?: Record<string, unknown> }): Db {
+function mockDbWithAgent(agent: {
+  id: string;
+  companyId: string;
+  name: string;
+  adapterType: string;
+  adapterConfig?: Record<string, unknown>;
+}): Db {
   return {
     select: () => ({
       from: () => ({
@@ -65,7 +71,11 @@ describe("notifyHireApproved", () => {
       expect.objectContaining({
         action: "hire_hook.succeeded",
         entityId: "a1",
-        details: expect.objectContaining({ source: "approval", sourceId: "ap1", adapterType: "openclaw_gateway" }),
+        details: expect.objectContaining({
+          source: "approval",
+          sourceId: "ap1",
+          adapterType: "openclaw_gateway",
+        }),
       }),
     );
   });
@@ -92,7 +102,9 @@ describe("notifyHireApproved", () => {
   });
 
   it("does nothing when adapter has no onHireApproved", async () => {
-    vi.mocked(findActiveServerAdapter).mockReturnValue({ type: "process" } as any);
+    vi.mocked(findActiveServerAdapter).mockReturnValue({
+      type: "process",
+    } as any);
 
     const db = mockDbWithAgent({
       id: "a1",
@@ -117,7 +129,13 @@ describe("notifyHireApproved", () => {
   it("logs failed result when adapter onHireApproved returns ok=false", async () => {
     vi.mocked(findActiveServerAdapter).mockReturnValue({
       type: "openclaw_gateway",
-      onHireApproved: vi.fn().mockResolvedValue({ ok: false, error: "HTTP 500", detail: { status: 500 } }),
+      onHireApproved: vi
+        .fn()
+        .mockResolvedValue({
+          ok: false,
+          error: "HTTP 500",
+          detail: { status: 500 },
+        }),
     } as any);
 
     const db = mockDbWithAgent({
@@ -141,7 +159,11 @@ describe("notifyHireApproved", () => {
       expect.objectContaining({
         action: "hire_hook.failed",
         entityId: "a1",
-        details: expect.objectContaining({ source: "join_request", sourceId: "jr1", error: "HTTP 500" }),
+        details: expect.objectContaining({
+          source: "join_request",
+          sourceId: "jr1",
+          error: "HTTP 500",
+        }),
       }),
     );
   });
@@ -173,7 +195,11 @@ describe("notifyHireApproved", () => {
       expect.objectContaining({
         action: "hire_hook.error",
         entityId: "a1",
-        details: expect.objectContaining({ source: "join_request", sourceId: "jr1", error: "Network error" }),
+        details: expect.objectContaining({
+          source: "join_request",
+          sourceId: "jr1",
+          error: "Network error",
+        }),
       }),
     );
   });

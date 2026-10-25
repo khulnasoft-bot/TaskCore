@@ -31,7 +31,8 @@ function saveCompanyPath(companyId: string, path: string) {
  * Falls back to /dashboard if no page was previously visited for a company.
  */
 export function useCompanyPageMemory() {
-  const { companies, selectedCompanyId, selectedCompany, selectionSource } = useCompany();
+  const { companies, selectedCompanyId, selectedCompany, selectionSource } =
+    useCompany();
   const location = useLocation();
   const navigate = useNavigate();
   const prevCompanyId = useRef<string | null>(selectedCompanyId);
@@ -71,7 +72,9 @@ export function useCompanyPageMemory() {
           path: paths[selectedCompanyId],
           companyPrefix: selectedCompany.issuePrefix,
         });
-        navigate(`/${selectedCompany.issuePrefix}${targetPath}`, { replace: true });
+        navigate(`/${selectedCompany.issuePrefix}${targetPath}`, {
+          replace: true,
+        });
       }
     }
     prevCompanyId.current = selectedCompanyId;

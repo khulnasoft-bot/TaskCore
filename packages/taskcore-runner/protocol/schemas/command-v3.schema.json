@@ -80,10 +80,7 @@
           }
         },
         "activeTurnId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": true
@@ -119,16 +116,10 @@
                 "maxLength": 4000
               },
               "status": {
-                "enum": [
-                  "active",
-                  "paused"
-                ]
+                "enum": ["active", "paused"]
               },
               "tokenBudget": {
-                "type": [
-                  "integer",
-                  "null"
-                ],
+                "type": ["integer", "null"],
                 "minimum": 1
               }
             },
@@ -202,12 +193,7 @@
                 "pattern": "^sha256:[0-9a-f]{64}$"
               },
               "action": {
-                "enum": [
-                  "accept",
-                  "tool",
-                  "progress",
-                  "finish"
-                ]
+                "enum": ["accept", "tool", "progress", "finish"]
               },
               "input": {
                 "type": "object"
@@ -286,10 +272,7 @@
                     "type": "object"
                   }
                 },
-                "required": [
-                  "name",
-                  "arguments"
-                ],
+                "required": ["name", "arguments"],
                 "additionalProperties": false
               }
             },
@@ -329,9 +312,7 @@
                     "maxLength": 12000
                   }
                 },
-                "required": [
-                  "text"
-                ],
+                "required": ["text"],
                 "additionalProperties": false
               }
             },
@@ -369,9 +350,7 @@
                     "type": "object"
                   }
                 },
-                "required": [
-                  "result"
-                ],
+                "required": ["result"],
                 "additionalProperties": false
               }
             },

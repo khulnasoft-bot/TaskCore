@@ -37,22 +37,18 @@ const support = await getEmbeddedPostgresTestSupport();
         agentId = randomUUID(),
         issueId = randomUUID(),
         runId = randomUUID();
-      await db
-        .insert(companies)
-        .values({
-          id: companyId,
-          name: "Context",
-          issuePrefix: `C${companyId.slice(0, 6)}`,
-        });
-      await db
-        .insert(agents)
-        .values({
-          id: agentId,
-          companyId,
-          name: "Executor",
-          role: "engineer",
-          adapterType: "taskcore_runner",
-        });
+      await db.insert(companies).values({
+        id: companyId,
+        name: "Context",
+        issuePrefix: `C${companyId.slice(0, 6)}`,
+      });
+      await db.insert(agents).values({
+        id: agentId,
+        companyId,
+        name: "Executor",
+        role: "engineer",
+        adapterType: "taskcore_runner",
+      });
       const [task] = await db
         .insert(issues)
         .values({
@@ -120,28 +116,24 @@ const support = await getEmbeddedPostgresTestSupport();
         ...oldInput,
         completionContract: contract(current),
       });
-      await db
-        .insert(heartbeatRuns)
-        .values({
-          id: runId,
-          companyId,
-          agentId,
-          nativeIssueId: issueId,
-          status: "running",
-          runtimeMode: "native",
-          completionContractId: previous.row.id,
-          completionContractSha256: previous.row.canonicalSha256,
-          runnerProfileJson: { nativeExecutionInput: oldInput },
-        });
-      await db
-        .insert(nativeRunFinalizations)
-        .values({
-          companyId,
-          issueId,
-          runId,
-          phase: "retryable_failure",
-          attempt: 1,
-        });
+      await db.insert(heartbeatRuns).values({
+        id: runId,
+        companyId,
+        agentId,
+        nativeIssueId: issueId,
+        status: "running",
+        runtimeMode: "native",
+        completionContractId: previous.row.id,
+        completionContractSha256: previous.row.canonicalSha256,
+        runnerProfileJson: { nativeExecutionInput: oldInput },
+      });
+      await db.insert(nativeRunFinalizations).values({
+        companyId,
+        issueId,
+        runId,
+        phase: "retryable_failure",
+        attempt: 1,
+      });
       return { companyId, issueId, runId, oldInput, nextInput };
     }
     it("rebinds a fenced unfinished run to Gmail while retaining the Notion revision", async () => {
@@ -161,11 +153,35 @@ const support = await getEmbeddedPostgresTestSupport();
     });
     it("incorporates later direction under the matching fenced recovery claim", async () => {
       const s = await setup();
-      await db.update(nativeRunFinalizations).set({ leaseOwner: "recovery-owner", controllerGeneration: 2, phase: "observed", recoveryState: "resuming_session" }).where(eq(nativeRunFinalizations.runId, s.runId));
-      const claim = { kind: "resume_dead_runner" as const, runId: s.runId, leaseOwner: "recovery-owner", controllerGeneration: 2, providerAttempt: 2, restartKind: "hard" as const, recoveryRequestId: null };
-      await expect(rebindContinuationContract(db, s.oldInput, s.nextInput, { ...claim, leaseOwner: "other-owner" })).rejects.toThrow("requires_fenced_uncompleted_run");
+      await db
+        .update(nativeRunFinalizations)
+        .set({
+          leaseOwner: "recovery-owner",
+          controllerGeneration: 2,
+          phase: "observed",
+          recoveryState: "resuming_session",
+        })
+        .where(eq(nativeRunFinalizations.runId, s.runId));
+      const claim = {
+        kind: "resume_dead_runner" as const,
+        runId: s.runId,
+        leaseOwner: "recovery-owner",
+        controllerGeneration: 2,
+        providerAttempt: 2,
+        restartKind: "hard" as const,
+        recoveryRequestId: null,
+      };
+      await expect(
+        rebindContinuationContract(db, s.oldInput, s.nextInput, {
+          ...claim,
+          leaseOwner: "other-owner",
+        }),
+      ).rejects.toThrow("requires_fenced_uncompleted_run");
       await rebindContinuationContract(db, s.oldInput, s.nextInput, claim);
-      const [run] = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, s.runId));
+      const [run] = await db
+        .select()
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, s.runId));
       expect(run?.completionContractId).toBe(s.nextInput.completionContract.id);
     });
     it("cannot change the contract beneath a live execution owner", async () => {
@@ -180,18 +196,16 @@ const support = await getEmbeddedPostgresTestSupport();
     });
     it("preserves a durable completed result and rejects ownership changes", async () => {
       const s = await setup();
-      await db
-        .insert(nativeRunResults)
-        .values({
-          companyId: s.companyId,
-          issueId: s.issueId,
-          runId: s.runId,
-          completionContractId: s.oldInput.completionContract.id,
-          serverFingerprint: "completed",
-          schemaStatus: "accepted",
-          resultJson: {},
-          canonicalSha256: "completed",
-        });
+      await db.insert(nativeRunResults).values({
+        companyId: s.companyId,
+        issueId: s.issueId,
+        runId: s.runId,
+        completionContractId: s.oldInput.completionContract.id,
+        serverFingerprint: "completed",
+        schemaStatus: "accepted",
+        resultJson: {},
+        canonicalSha256: "completed",
+      });
       await expect(
         rebindContinuationContract(db, s.oldInput, s.nextInput),
       ).rejects.toThrow("requires_fenced_uncompleted_run");

@@ -106,9 +106,12 @@ export const CANONICAL_PROVIDER_EVENT_TYPES = [
   "wait.completed",
   "provider.notice.recorded",
 ] as const;
-export type CanonicalProviderEventType = (typeof CANONICAL_PROVIDER_EVENT_TYPES)[number];
-export function isCanonicalProviderEventType(value: unknown): value is CanonicalProviderEventType {
-  return CANONICAL_PROVIDER_EVENT_TYPES.some(type => value === type);
+export type CanonicalProviderEventType =
+  (typeof CANONICAL_PROVIDER_EVENT_TYPES)[number];
+export function isCanonicalProviderEventType(
+  value: unknown,
+): value is CanonicalProviderEventType {
+  return CANONICAL_PROVIDER_EVENT_TYPES.some((type) => value === type);
 }
 
 export interface CanonicalProviderEvent {
@@ -251,14 +254,24 @@ function boundedAcpxLifecycleLocations(value: unknown): unknown[] | undefined {
  * Thoughts never become output and tool progress cannot fragment output chunks.
  * Create one normalizer per turn; native IDs, when present, remain authoritative.
  */
-export function createGrokMessageNormalizer<T extends AcpRuntimeEventShape>(): (event: T) => T {
+export function createGrokMessageNormalizer<T extends AcpRuntimeEventShape>(): (
+  event: T,
+) => T {
   let segment = 0;
   let hasOutput = false;
   let boundary = false;
   return (event) => {
     if (event.type === "tool_call" && hasOutput) boundary = true;
-    if (event.type !== "text_delta" || event.stream === "thought" || event.tag === "agent_thought_chunk") return event;
-    if (boundary) { segment += 1; boundary = false; }
+    if (
+      event.type !== "text_delta" ||
+      event.stream === "thought" ||
+      event.tag === "agent_thought_chunk"
+    )
+      return event;
+    if (boundary) {
+      segment += 1;
+      boundary = false;
+    }
     hasOutput = true;
     return { ...event, messageId: event.messageId || `grok-output-${segment}` };
   };
@@ -594,7 +607,10 @@ export function canonicalProviderEventsFromCodex(
   const type = text(item.type);
   const itemId = safeId(text(item.id, text(params.itemId)), "provider-item");
   const completed = method === "item/completed";
-  if (method === "warning" && params.classification === "unrelated_information") {
+  if (
+    method === "warning" &&
+    params.classification === "unrelated_information"
+  ) {
     const boundedField = (key: string, limit: number) => {
       if (typeof params[key] !== "string") return null;
       const characters = [...redactCodexDiagnostic(params[key])];
@@ -603,19 +619,21 @@ export function canonicalProviderEventsFromCodex(
         ? characters.join("")
         : characters.slice(0, limit - marker.length).join("") + marker;
     };
-    return [{
-      eventType: "harness.diagnostic",
-      itemId,
-      payload: {
-        code: "codex_unrelated_information",
-        classification: "unrelated_information",
-        providerMethod: boundedField("providerMethod", 160),
-        expectedThreadId: boundedField("expectedThreadId", 256),
-        receivedThreadId: boundedField("receivedThreadId", 256),
-        expectedTurnId: boundedField("expectedTurnId", 256),
-        receivedTurnId: boundedField("receivedTurnId", 256),
+    return [
+      {
+        eventType: "harness.diagnostic",
+        itemId,
+        payload: {
+          code: "codex_unrelated_information",
+          classification: "unrelated_information",
+          providerMethod: boundedField("providerMethod", 160),
+          expectedThreadId: boundedField("expectedThreadId", 256),
+          receivedThreadId: boundedField("receivedThreadId", 256),
+          expectedTurnId: boundedField("expectedTurnId", 256),
+          receivedTurnId: boundedField("receivedTurnId", 256),
+        },
       },
-    }];
+    ];
   }
   if (method === "turn/plan/updated") {
     const turnPlanId = safeId(text(params.turnId), "turn-plan");
@@ -858,23 +876,21 @@ export function canonicalProviderEventsFromCodex(
   if (completed && type === "agentMessage" && item.memoryCitation) {
     const citation = record(item.memoryCitation);
     const entries = Array.isArray(citation.entries) ? citation.entries : [];
-    return entries
-      .slice(0, 64)
-      .map((entry, index) => ({
-        eventType: "memory.citation.referenced" as const,
-        payload: {
-          schema: "taskcore.memory.citation.v1",
-          citationId: `${itemId}:citation:${index + 1}`,
-          messageItemId: itemId,
-          label: text(record(entry).label, `Memory source ${index + 1}`).slice(
-            0,
-            4000,
-          ),
-          available: false,
-          reference: null,
-        },
-        itemId: `${itemId}:citation:${index + 1}`,
-      }));
+    return entries.slice(0, 64).map((entry, index) => ({
+      eventType: "memory.citation.referenced" as const,
+      payload: {
+        schema: "taskcore.memory.citation.v1",
+        citationId: `${itemId}:citation:${index + 1}`,
+        messageItemId: itemId,
+        label: text(record(entry).label, `Memory source ${index + 1}`).slice(
+          0,
+          4000,
+        ),
+        available: false,
+        reference: null,
+      },
+      itemId: `${itemId}:citation:${index + 1}`,
+    }));
   }
   if (
     method === "item/autoApprovalReview/started" ||
@@ -955,9 +971,11 @@ export function canonicalProviderEventsFromCodex(
               : "turn",
           recoverable: method !== "error",
           userActionable: method === "error" || method === "warning",
-          summary: [params.summary, params.message, params.details]
-            .map((value) => text(value).trim())
-            .find(Boolean)?.slice(0, 4000) || "Provider notice",
+          summary:
+            [params.summary, params.message, params.details]
+              .map((value) => text(value).trim())
+              .find(Boolean)
+              ?.slice(0, 4000) || "Provider notice",
         },
         itemId,
       },

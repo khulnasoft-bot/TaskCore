@@ -37,7 +37,9 @@ export function Dialog({
       data-slot="dialog"
       className="ui-dialog"
       aria-labelledby={titleId}
-      {...(description === undefined ? {} : { "aria-describedby": descriptionId })}
+      {...(description === undefined
+        ? {}
+        : { "aria-describedby": descriptionId })}
       onCancel={(event) => {
         event.preventDefault();
         onClose();

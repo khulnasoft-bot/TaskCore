@@ -109,9 +109,21 @@ function RunnerTurnStatus({
 
 function RunnerCurrentActivityTail({ status }: { status: string }) {
   if (isTerminalRunStatus(status)) return null;
-  return <div className="mt-2 flex min-h-8 min-w-0 items-center gap-2 px-1 py-1 text-xs text-muted-foreground" data-testid="task-chat-current-activity" data-turn-position="tail">
-    <span className="shimmer-text shimmer-text-muted" aria-live="polite" data-testid="task-chat-current-activity-label">Thinking</span>
-  </div>;
+  return (
+    <div
+      className="mt-2 flex min-h-8 min-w-0 items-center gap-2 px-1 py-1 text-xs text-muted-foreground"
+      data-testid="task-chat-current-activity"
+      data-turn-position="tail"
+    >
+      <span
+        className="shimmer-text shimmer-text-muted"
+        aria-live="polite"
+        data-testid="task-chat-current-activity-label"
+      >
+        Thinking
+      </span>
+    </div>
+  );
 }
 
 export function TaskChatRunnerTurn({
@@ -215,7 +227,11 @@ export function TaskChatRunnerTurn({
         data-testid="task-chat-runner-identity-row"
       >
         {agentName ? (
-          <TaskChatAgentIdentity agentName={agentName} agentIcon={agentIcon} agent={agent} />
+          <TaskChatAgentIdentity
+            agentName={agentName}
+            agentIcon={agentIcon}
+            agent={agent}
+          />
         ) : null}
         <RunnerTurnStatus
           status={status}
@@ -268,19 +284,24 @@ export function TaskChatRunnerTurn({
         </div>
       ) : null}
       {final ? (
-        <div
-          className="w-full"
-          data-testid="task-chat-final-response"
-        >
+        <div className="w-full" data-testid="task-chat-final-response">
           <TaskChatBubble
-            item={{ ...final, authorName: agentName ?? undefined, agentIcon, agent, timestamp: final.timestamp ?? formatTaskChatTimestamp(final.atMs) }}
+            item={{
+              ...final,
+              authorName: agentName ?? undefined,
+              agentIcon,
+              agent,
+              timestamp: final.timestamp ?? formatTaskChatTimestamp(final.atMs),
+            }}
             animateEntry={false}
             hideAgentIdentity={!continuedAfterSteering}
             actions={<TaskChatBubbleActions copyText={final.text} />}
           />
         </div>
       ) : null}
-      {!final && currentActivityItems.length === 0 ? <RunnerCurrentActivityTail status={status} /> : null}
+      {!final && currentActivityItems.length === 0 ? (
+        <RunnerCurrentActivityTail status={status} />
+      ) : null}
     </div>
   );
 }

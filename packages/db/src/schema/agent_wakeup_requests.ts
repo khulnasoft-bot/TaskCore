@@ -74,19 +74,30 @@ export const agentWakeupRequests = pgTable(
       "agent_wakeup_requests_question_response_delivery_idempotency_uq",
     )
       .on(table.companyId, table.idempotencyKey)
-      .where(sql`(${table.idempotencyKey} LIKE 'question-response:%' OR ${table.idempotencyKey} LIKE 'interaction:%') AND ${table.status} NOT IN ('skipped', 'failed', 'cancelled')`),
-    connectionIntentDeliveryIdempotencyUq: uniqueIndex("agent_wakeup_requests_connection_intent_delivery_idempotency_uq")
+      .where(
+        sql`(${table.idempotencyKey} LIKE 'question-response:%' OR ${table.idempotencyKey} LIKE 'interaction:%') AND ${table.status} NOT IN ('skipped', 'failed', 'cancelled')`,
+      ),
+    connectionIntentDeliveryIdempotencyUq: uniqueIndex(
+      "agent_wakeup_requests_connection_intent_delivery_idempotency_uq",
+    )
       .on(table.companyId, table.idempotencyKey)
-      .where(sql`${table.idempotencyKey} LIKE 'connection-intent:%' AND ${table.status} NOT IN ('skipped', 'failed', 'cancelled')`),
-    toolActionDeliveryIdempotencyUq: uniqueIndex("agent_wakeup_requests_tool_action_delivery_uq")
+      .where(
+        sql`${table.idempotencyKey} LIKE 'connection-intent:%' AND ${table.status} NOT IN ('skipped', 'failed', 'cancelled')`,
+      ),
+    toolActionDeliveryIdempotencyUq: uniqueIndex(
+      "agent_wakeup_requests_tool_action_delivery_uq",
+    )
       .on(table.companyId, table.idempotencyKey)
-      .where(sql`${table.idempotencyKey} LIKE 'tool-action-response:%' AND ${table.status} NOT IN ('skipped', 'failed', 'cancelled')`),
-    chatCompletionIdempotencyUq: uniqueIndex("agent_wakeup_requests_chat_completion_uq")
+      .where(
+        sql`${table.idempotencyKey} LIKE 'tool-action-response:%' AND ${table.status} NOT IN ('skipped', 'failed', 'cancelled')`,
+      ),
+    chatCompletionIdempotencyUq: uniqueIndex(
+      "agent_wakeup_requests_chat_completion_uq",
+    )
       .on(table.companyId, table.idempotencyKey)
       .where(sql`${table.idempotencyKey} LIKE 'chat-completion:%'`),
-    companyPayloadIssueIdx: index("agent_wakeup_requests_company_payload_issue_idx").on(
-      table.companyId,
-      sql`(${table.payload} ->> 'issueId')`,
-    ),
+    companyPayloadIssueIdx: index(
+      "agent_wakeup_requests_company_payload_issue_idx",
+    ).on(table.companyId, sql`(${table.payload} ->> 'issueId')`),
   }),
 );

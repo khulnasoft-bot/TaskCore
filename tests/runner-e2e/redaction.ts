@@ -15,27 +15,33 @@ const SENSITIVE_JSON_KEY =
 
 export function normalizedSecrets(values: readonly (string | undefined)[]) {
   return [
-    ...new Set(values.flatMap((value) => {
-      const trimmed = value?.trim();
-      if (!trimmed) return [];
-      if (trimmed.startsWith("{")) {
-        try {
-          const parsed = JSON.parse(trimmed) as unknown;
-          // Subscription credentials are structured JSON. A log may contain an
-          // individual token or identity rather than the whole serialized file.
-          const leaves = (value: unknown, depth = 0): string[] => {
-            if (depth > 8) return [];
-            if (typeof value === "string") return value.length >= 8 ? [value] : [];
-            if (!value || typeof value !== "object") return [];
-            return Object.entries(value).flatMap(([key, child]) => [
-              ...(key.includes("::") ? [key] : []), ...leaves(child, depth + 1),
-            ]);
-          };
-          return [trimmed, ...leaves(parsed)];
-        } catch { /* Preserve ordinary non-JSON secrets. */ }
-      }
-      return [trimmed];
-    })),
+    ...new Set(
+      values.flatMap((value) => {
+        const trimmed = value?.trim();
+        if (!trimmed) return [];
+        if (trimmed.startsWith("{")) {
+          try {
+            const parsed = JSON.parse(trimmed) as unknown;
+            // Subscription credentials are structured JSON. A log may contain an
+            // individual token or identity rather than the whole serialized file.
+            const leaves = (value: unknown, depth = 0): string[] => {
+              if (depth > 8) return [];
+              if (typeof value === "string")
+                return value.length >= 8 ? [value] : [];
+              if (!value || typeof value !== "object") return [];
+              return Object.entries(value).flatMap(([key, child]) => [
+                ...(key.includes("::") ? [key] : []),
+                ...leaves(child, depth + 1),
+              ]);
+            };
+            return [trimmed, ...leaves(parsed)];
+          } catch {
+            /* Preserve ordinary non-JSON secrets. */
+          }
+        }
+        return [trimmed];
+      }),
+    ),
   ].sort((left, right) => right.length - left.length);
 }
 
@@ -61,8 +67,12 @@ export function isEphemeralCodexRuntimeAuthFile(
 export function browserDiagnosticUrl(value: string): string {
   try {
     const url = new URL(value);
-    return ["http:", "https:"].includes(url.protocol) ? url.origin + url.pathname : "[non-HTTP URL]";
-  } catch { return "[invalid URL]"; }
+    return ["http:", "https:"].includes(url.protocol)
+      ? url.origin + url.pathname
+      : "[non-HTTP URL]";
+  } catch {
+    return "[invalid URL]";
+  }
 }
 
 export function redactText(value: string, secrets: readonly string[]) {
@@ -177,17 +187,27 @@ export function assertSecretFree(
   if (leak) throw new Error(`Secret leak in ${label}: ${leak}`);
 }
 
-export function isEphemeralPostgresPidFile(taskcoreHome: string, file: string): boolean {
+export function isEphemeralPostgresPidFile(
+  taskcoreHome: string,
+  file: string,
+): boolean {
   const relative = path.relative(taskcoreHome, file).split(path.sep).join("/");
   return /^instances\/[^/]+\/db\/postmaster\.pid$/.test(relative);
 }
 
-export function isEphemeralPostgresScanFile(taskcoreHome: string, file: string): boolean {
+export function isEphemeralPostgresScanFile(
+  taskcoreHome: string,
+  file: string,
+): boolean {
   const relative = path.relative(taskcoreHome, file).split(path.sep).join("/");
   // A relation can be unlinked during PostgreSQL shutdown/checkpoint. Existing
   // files are always scanned; this predicate only permits ENOENT after readdir.
-  return isEphemeralPostgresPidFile(taskcoreHome, file) ||
-    /^instances\/[^/]+\/db\/base\/\d+\/\d+(?:_(?:fsm|vm|init))?(?:\.\d+)?$/.test(relative);
+  return (
+    isEphemeralPostgresPidFile(taskcoreHome, file) ||
+    /^instances\/[^/]+\/db\/base\/\d+\/\d+(?:_(?:fsm|vm|init))?(?:\.\d+)?$/.test(
+      relative,
+    )
+  );
 }
 
 export async function findSecretLeakInDirectory(
@@ -232,8 +252,11 @@ export async function findSecretLeakInDirectory(
           // PostgreSQL removes its PID file on shutdown, possibly after readdir.
           // Existing contents are still scanned; only the caller's exact
           // transient paths may disappear. Evidence and other I/O errors fail.
-          if ((error as NodeJS.ErrnoException)?.code !== "ENOENT" ||
-              !options.allowDisappearedFile?.(file)) throw error;
+          if (
+            (error as NodeJS.ErrnoException)?.code !== "ENOENT" ||
+            !options.allowDisappearedFile?.(file)
+          )
+            throw error;
         }
       }
     }

@@ -9,7 +9,9 @@ import { describe, expect, it } from "vitest";
  * guards the manifest: the declared version must be exact, not a range.
  */
 
-const packageJsonPath = fileURLToPath(new URL("../../package.json", import.meta.url));
+const packageJsonPath = fileURLToPath(
+  new URL("../../package.json", import.meta.url),
+);
 
 describe("ui package Sentry version pin", () => {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {

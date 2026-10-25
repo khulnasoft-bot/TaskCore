@@ -31,7 +31,8 @@ function HeadersJsonTextarea({
   inputClass: string;
 }) {
   const [editDraft, setEditDraft] = useState<string>(editStringified);
-  const [lastSyncedFromConfig, setLastSyncedFromConfig] = useState<string>(editStringified);
+  const [lastSyncedFromConfig, setLastSyncedFromConfig] =
+    useState<string>(editStringified);
   useEffect(() => {
     if (isCreate) return;
     if (editStringified !== lastSyncedFromConfig) {
@@ -79,7 +80,11 @@ function SecretField({
           onClick={() => setVisible((v) => !v)}
           className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
         >
-          {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+          {visible ? (
+            <Eye className="h-3.5 w-3.5" />
+          ) : (
+            <EyeOff className="h-3.5 w-3.5" />
+          )}
         </button>
         <DraftInput
           value={value}
@@ -96,7 +101,9 @@ function SecretField({
 
 function parseScopes(value: unknown): string {
   if (Array.isArray(value)) {
-    return value.filter((entry): entry is string => typeof entry === "string").join(", ");
+    return value
+      .filter((entry): entry is string => typeof entry === "string")
+      .join(", ");
   }
   return typeof value === "string" ? value : "";
 }
@@ -111,17 +118,23 @@ export function OpenClawGatewayConfigFields({
   mark,
 }: AdapterConfigFieldsProps) {
   const configuredHeaders =
-    config.headers && typeof config.headers === "object" && !Array.isArray(config.headers)
+    config.headers &&
+    typeof config.headers === "object" &&
+    !Array.isArray(config.headers)
       ? (config.headers as Record<string, unknown>)
       : {};
   const effectiveHeaders =
-    (eff("adapterConfig", "headers", configuredHeaders) as Record<string, unknown>) ?? {};
+    (eff("adapterConfig", "headers", configuredHeaders) as Record<
+      string,
+      unknown
+    >) ?? {};
 
-  const effectiveGatewayToken = typeof effectiveHeaders["x-openclaw-token"] === "string"
-    ? String(effectiveHeaders["x-openclaw-token"])
-    : typeof effectiveHeaders["x-openclaw-auth"] === "string"
-      ? String(effectiveHeaders["x-openclaw-auth"])
-      : "";
+  const effectiveGatewayToken =
+    typeof effectiveHeaders["x-openclaw-token"] === "string"
+      ? String(effectiveHeaders["x-openclaw-token"])
+      : typeof effectiveHeaders["x-openclaw-auth"] === "string"
+        ? String(effectiveHeaders["x-openclaw-auth"])
+        : "";
 
   const commitGatewayToken = (rawValue: string) => {
     const nextValue = rawValue.trim();
@@ -133,7 +146,11 @@ export function OpenClawGatewayConfigFields({
       delete nextHeaders["x-openclaw-token"];
       delete nextHeaders["x-openclaw-auth"];
     }
-    mark("adapterConfig", "headers", Object.keys(nextHeaders).length > 0 ? nextHeaders : undefined);
+    mark(
+      "adapterConfig",
+      "headers",
+      Object.keys(nextHeaders).length > 0 ? nextHeaders : undefined,
+    );
   };
 
   const sessionStrategy = eff(
@@ -142,7 +159,8 @@ export function OpenClawGatewayConfigFields({
     String(config.sessionKeyStrategy ?? "fixed"),
   );
 
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       <Field label="Gateway URL" hint={help.webhookUrl}>
         <DraftInput
@@ -173,15 +191,9 @@ export function OpenClawGatewayConfigFields({
       {/* Auth and Identity - available in both create and edit modes */}
       <SecretField
         label="Gateway auth token"
-        value={
-          isCreate
-            ? values!.authToken ?? ""
-            : effectiveGatewayToken
-        }
+        value={isCreate ? (values!.authToken ?? "") : effectiveGatewayToken}
         onCommit={(v) =>
-          isCreate
-            ? set!({ authToken: v })
-            : commitGatewayToken(v)
+          isCreate ? set!({ authToken: v }) : commitGatewayToken(v)
         }
         placeholder="OpenClaw gateway token"
       />
@@ -190,7 +202,7 @@ export function OpenClawGatewayConfigFields({
         <DraftInput
           value={
             isCreate
-              ? values!.agentId ?? ""
+              ? (values!.agentId ?? "")
               : eff("adapterConfig", "agentId", String(config.agentId ?? ""))
           }
           onCommit={(v) =>
@@ -207,9 +219,7 @@ export function OpenClawGatewayConfigFields({
       <Field label="Session strategy">
         <select
           value={
-            isCreate
-              ? values!.sessionKeyStrategy ?? "fixed"
-              : sessionStrategy
+            isCreate ? (values!.sessionKeyStrategy ?? "fixed") : sessionStrategy
           }
           onChange={(e) =>
             isCreate
@@ -224,13 +234,19 @@ export function OpenClawGatewayConfigFields({
         </select>
       </Field>
 
-      {(isCreate ? values!.sessionKeyStrategy ?? "fixed" : sessionStrategy) === "fixed" && (
+      {(isCreate
+        ? (values!.sessionKeyStrategy ?? "fixed")
+        : sessionStrategy) === "fixed" && (
         <Field label="Session key">
           <DraftInput
             value={
               isCreate
-                ? values!.sessionKey ?? ""
-                : eff("adapterConfig", "sessionKey", String(config.sessionKey ?? "taskcore"))
+                ? (values!.sessionKey ?? "")
+                : eff(
+                    "adapterConfig",
+                    "sessionKey",
+                    String(config.sessionKey ?? "taskcore"),
+                  )
             }
             onCommit={(v) =>
               isCreate
@@ -248,7 +264,7 @@ export function OpenClawGatewayConfigFields({
         label="Password (alternative auth)"
         value={
           isCreate
-            ? values!.password ?? ""
+            ? (values!.password ?? "")
             : eff("adapterConfig", "password", String(config.password ?? ""))
         }
         onCommit={(v) =>
@@ -263,7 +279,7 @@ export function OpenClawGatewayConfigFields({
         <DraftInput
           value={
             isCreate
-              ? values!.role ?? ""
+              ? (values!.role ?? "")
               : eff("adapterConfig", "role", String(config.role ?? "operator"))
           }
           onCommit={(v) =>
@@ -281,8 +297,12 @@ export function OpenClawGatewayConfigFields({
         <DraftInput
           value={
             isCreate
-              ? values!.scopes ?? ""
-              : eff("adapterConfig", "scopes", parseScopes(config.scopes ?? ["operator.admin"]))
+              ? (values!.scopes ?? "")
+              : eff(
+                  "adapterConfig",
+                  "scopes",
+                  parseScopes(config.scopes ?? ["operator.admin"]),
+                )
           }
           onCommit={(v) => {
             const parsed = v
@@ -292,7 +312,11 @@ export function OpenClawGatewayConfigFields({
             if (isCreate) {
               set!({ scopes: v });
             } else {
-              mark("adapterConfig", "scopes", parsed.length > 0 ? parsed : undefined);
+              mark(
+                "adapterConfig",
+                "scopes",
+                parsed.length > 0 ? parsed : undefined,
+              );
             }
           }}
           immediate
@@ -313,8 +337,12 @@ export function OpenClawGatewayConfigFields({
         <DraftInput
           value={
             isCreate
-              ? values!.taskcoreApiUrl ?? ""
-              : eff("adapterConfig", "taskcoreApiUrl", String(config.taskcoreApiUrl ?? ""))
+              ? (values!.taskcoreApiUrl ?? "")
+              : eff(
+                  "adapterConfig",
+                  "taskcoreApiUrl",
+                  String(config.taskcoreApiUrl ?? ""),
+                )
           }
           onCommit={(v) =>
             isCreate
@@ -331,12 +359,19 @@ export function OpenClawGatewayConfigFields({
         <DraftInput
           value={
             isCreate
-              ? values!.timeoutSec != null ? String(values!.timeoutSec) : ""
-              : eff("adapterConfig", "timeoutSec", String(config.timeoutSec ?? ""))
+              ? values!.timeoutSec != null
+                ? String(values!.timeoutSec)
+                : ""
+              : eff(
+                  "adapterConfig",
+                  "timeoutSec",
+                  String(config.timeoutSec ?? ""),
+                )
           }
           onCommit={(v) => {
             const parsed = Number.parseInt(v.trim(), 10);
-            const val = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+            const val =
+              Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
             if (isCreate) {
               set!({ timeoutSec: val });
             } else {
@@ -352,9 +387,13 @@ export function OpenClawGatewayConfigFields({
       <Field label="Headers JSON">
         <HeadersJsonTextarea
           isCreate={isCreate}
-          createDraft={isCreate ? values!.headersJson ?? "" : ""}
+          createDraft={isCreate ? (values!.headersJson ?? "") : ""}
           onCreateDraftChange={(next) => set!({ headersJson: next })}
-          editStringified={JSON.stringify(eff("adapterConfig", "headers", config.headers ?? {}), null, 2)}
+          editStringified={JSON.stringify(
+            eff("adapterConfig", "headers", config.headers ?? {}),
+            null,
+            2,
+          )}
           onEditCommit={(next) => {
             const trimmed = next.trim();
             if (!trimmed) {
@@ -363,7 +402,11 @@ export function OpenClawGatewayConfigFields({
             }
             try {
               const parsed = JSON.parse(trimmed);
-              if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+              if (
+                typeof parsed === "object" &&
+                parsed !== null &&
+                !Array.isArray(parsed)
+              ) {
                 mark("adapterConfig", "headers", parsed);
               }
             } catch {
@@ -377,8 +420,14 @@ export function OpenClawGatewayConfigFields({
       {!isCreate && (
         <Field label="Claimed API key path">
           <DraftInput
-            value={eff("adapterConfig", "claimedApiKeyPath", String(config.claimedApiKeyPath ?? ""))}
-            onCommit={(v) => mark("adapterConfig", "claimedApiKeyPath", v || undefined)}
+            value={eff(
+              "adapterConfig",
+              "claimedApiKeyPath",
+              String(config.claimedApiKeyPath ?? ""),
+            )}
+            onCommit={(v) =>
+              mark("adapterConfig", "claimedApiKeyPath", v || undefined)
+            }
             immediate
             className={inputClass}
             placeholder="~/.openclaw/workspace/taskcore-claimed-api-key.json"
@@ -393,11 +442,16 @@ export function OpenClawGatewayConfigFields({
               ? values!.waitTimeoutMs != null
                 ? String(values!.waitTimeoutMs)
                 : ""
-              : eff("adapterConfig", "waitTimeoutMs", String(config.waitTimeoutMs ?? "120000"))
+              : eff(
+                  "adapterConfig",
+                  "waitTimeoutMs",
+                  String(config.waitTimeoutMs ?? "120000"),
+                )
           }
           onCommit={(v) => {
             const parsed = Number.parseInt(v.trim(), 10);
-            const next = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+            const next =
+              Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
             if (isCreate) {
               set!({ waitTimeoutMs: next });
             } else {
@@ -416,13 +470,21 @@ export function OpenClawGatewayConfigFields({
             type="checkbox"
             checked={
               isCreate
-                ? values!.disableDeviceAuth ?? false
-                : eff("adapterConfig", "disableDeviceAuth", Boolean(config.disableDeviceAuth ?? false))
+                ? (values!.disableDeviceAuth ?? false)
+                : eff(
+                    "adapterConfig",
+                    "disableDeviceAuth",
+                    Boolean(config.disableDeviceAuth ?? false),
+                  )
             }
             onChange={(e) =>
               isCreate
                 ? set!({ disableDeviceAuth: e.target.checked })
-                : mark("adapterConfig", "disableDeviceAuth", e.target.checked || undefined)
+                : mark(
+                    "adapterConfig",
+                    "disableDeviceAuth",
+                    e.target.checked || undefined,
+                  )
             }
           />
           Skip device key authentication
@@ -435,13 +497,21 @@ export function OpenClawGatewayConfigFields({
             type="checkbox"
             checked={
               isCreate
-                ? values!.autoPairOnFirstConnect ?? true
-                : eff("adapterConfig", "autoPairOnFirstConnect", config.autoPairOnFirstConnect !== false)
+                ? (values!.autoPairOnFirstConnect ?? true)
+                : eff(
+                    "adapterConfig",
+                    "autoPairOnFirstConnect",
+                    config.autoPairOnFirstConnect !== false,
+                  )
             }
             onChange={(e) =>
               isCreate
                 ? set!({ autoPairOnFirstConnect: e.target.checked })
-                : mark("adapterConfig", "autoPairOnFirstConnect", e.target.checked)
+                : mark(
+                    "adapterConfig",
+                    "autoPairOnFirstConnect",
+                    e.target.checked,
+                  )
             }
           />
           Automatically approve device pairing
@@ -450,10 +520,10 @@ export function OpenClawGatewayConfigFields({
 
       <Field label="Device auth">
         <div className="text-xs text-muted-foreground leading-relaxed">
-          When enabled, Taskcore persists a device key during onboarding so pairing approvals
-          remain stable across runs.
+          When enabled, Taskcore persists a device key during onboarding so
+          pairing approvals remain stable across runs.
         </div>
       </Field>
-    </>
-  ));
+    </>,
+  );
 }

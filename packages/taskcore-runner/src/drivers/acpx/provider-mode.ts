@@ -1,5 +1,8 @@
 import { parseProviderMode } from "../../contracts/provider-mode.js";
-import { createCursorModeAdmission, resolveCursorSessionMode } from "./cursor-mode.js";
+import {
+  createCursorModeAdmission,
+  resolveCursorSessionMode,
+} from "./cursor-mode.js";
 
 interface ModeAdmission {
   assertReady(): void;
@@ -18,16 +21,20 @@ interface ProviderModeAdapter {
 const adapters: Readonly<Record<string, ProviderModeAdapter | undefined>> = {
   cursor: {
     resolve: resolveCursorSessionMode,
-    admit: mode => createCursorModeAdmission(resolveCursorSessionMode(mode)),
+    admit: (mode) => createCursorModeAdmission(resolveCursorSessionMode(mode)),
     configKey: "mode",
   },
 };
 
-export function resolveAcpxProviderMode(agent: string, mode: unknown): string | undefined {
+export function resolveAcpxProviderMode(
+  agent: string,
+  mode: unknown,
+): string | undefined {
   const identifier = parseProviderMode(mode);
   const adapter = adapters[agent];
   if (adapter) return adapter.resolve(identifier);
-  if (identifier !== undefined) throw new Error(`ACPX ${agent} does not support configurable native modes`);
+  if (identifier !== undefined)
+    throw new Error(`ACPX ${agent} does not support configurable native modes`);
   return undefined;
 }
 
@@ -35,5 +42,9 @@ export function createAcpxModeBinding(agent: string, mode: unknown) {
   const selectedMode = resolveAcpxProviderMode(agent, mode);
   if (selectedMode === undefined) return null;
   const adapter = adapters[agent]!;
-  return { selectedMode, configKey: adapter.configKey, ...adapter.admit(selectedMode) };
+  return {
+    selectedMode,
+    configKey: adapter.configKey,
+    ...adapter.admit(selectedMode),
+  };
 }

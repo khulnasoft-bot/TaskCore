@@ -1,12 +1,24 @@
 #!/usr/bin/env -S node --import tsx
-import { listLocalServiceRegistryRecords, removeLocalServiceRegistryRecord, terminateLocalService } from "../server/src/services/local-service-supervisor.ts";
+import {
+  listLocalServiceRegistryRecords,
+  removeLocalServiceRegistryRecord,
+  terminateLocalService,
+} from "../server/src/services/local-service-supervisor.ts";
 import { applyDevRunnerOptions } from "./dev-runner-options.ts";
 import { repoRoot } from "./dev-service-profile.ts";
 
-function toDisplayLines(records: Awaited<ReturnType<typeof listLocalServiceRegistryRecords>>) {
+function toDisplayLines(
+  records: Awaited<ReturnType<typeof listLocalServiceRegistryRecords>>,
+) {
   return records.map((record) => {
-    const childPid = typeof record.metadata?.childPid === "number" ? ` child=${record.metadata.childPid}` : "";
-    const url = typeof record.metadata?.url === "string" ? ` url=${record.metadata.url}` : "";
+    const childPid =
+      typeof record.metadata?.childPid === "number"
+        ? ` child=${record.metadata.childPid}`
+        : "";
+    const url =
+      typeof record.metadata?.url === "string"
+        ? ` url=${record.metadata.url}`
+        : "";
     return `${record.serviceName} pid=${record.pid}${childPid} cwd=${record.cwd}${url}`;
   });
 }
@@ -22,7 +34,9 @@ try {
     throw new Error(`Unknown dev-service option: ${forwardedArgs[0]}`);
   }
 } catch (error) {
-  console.error(`[taskcore] ${error instanceof Error ? error.message : String(error)}`);
+  console.error(
+    `[taskcore] ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exit(1);
 }
 

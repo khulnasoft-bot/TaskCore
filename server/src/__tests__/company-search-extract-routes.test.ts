@@ -10,7 +10,9 @@ import type {
 import { issueRoutes } from "../routes/issues.js";
 import { createCompanySearchRateLimiter } from "../services/company-search-rate-limit.js";
 
-function extractResponse(query: CompanySearchExtractQuery): CompanySearchExtractResponse {
+function extractResponse(
+  query: CompanySearchExtractQuery,
+): CompanySearchExtractResponse {
   return {
     contains: query.contains,
     kind: query.kind,
@@ -24,11 +26,20 @@ function extractResponse(query: CompanySearchExtractQuery): CompanySearchExtract
   };
 }
 
-function unusedSearch(_companyId: string, _query: CompanySearchQuery): Promise<CompanySearchResponse> {
+function unusedSearch(
+  _companyId: string,
+  _query: CompanySearchQuery,
+): Promise<CompanySearchResponse> {
   throw new Error("interactive search should not be called");
 }
 
-function createApp(companyIds: string[], extract: (companyId: string, query: CompanySearchExtractQuery) => Promise<CompanySearchExtractResponse>) {
+function createApp(
+  companyIds: string[],
+  extract: (
+    companyId: string,
+    query: CompanySearchExtractQuery,
+  ) => Promise<CompanySearchExtractResponse>,
+) {
   const app = express();
   app.use((req, _res, next) => {
     req.actor = {
@@ -40,20 +51,26 @@ function createApp(companyIds: string[], extract: (companyId: string, query: Com
     };
     next();
   });
-  app.use("/api", issueRoutes({} as never, {} as never, {
-    searchService: { search: unusedSearch, extract },
-    searchRateLimiter: createCompanySearchRateLimiter({
-      maxRequests: 1,
-      windowMs: 60_000,
-      now: () => 1_000,
+  app.use(
+    "/api",
+    issueRoutes({} as never, {} as never, {
+      searchService: { search: unusedSearch, extract },
+      searchRateLimiter: createCompanySearchRateLimiter({
+        maxRequests: 1,
+        windowMs: 60_000,
+        now: () => 1_000,
+      }),
     }),
-  }));
+  );
   return app;
 }
 
 describe("company extract-search route", () => {
   it("parses the extraction query and invokes the service", async () => {
-    const extract = vi.fn(async (_companyId: string, query: CompanySearchExtractQuery) => extractResponse(query));
+    const extract = vi.fn(
+      async (_companyId: string, query: CompanySearchExtractQuery) =>
+        extractResponse(query),
+    );
     const app = createApp(["company-1"], extract);
 
     const response = await request(app)
@@ -70,19 +87,26 @@ describe("company extract-search route", () => {
     expect(extract).toHaveBeenCalledWith(
       "company-1",
       expect.objectContaining({
-      contains: "github.com/example/repo/pull",
-      kind: "url",
-      scope: "comments",
-      limit: 200,
-      matchesPerIssue: 200,
+        contains: "github.com/example/repo/pull",
+        kind: "url",
+        scope: "comments",
+        limit: 200,
+        matchesPerIssue: 200,
       }),
       expect.objectContaining({ issueReadCondition: expect.anything() }),
     );
-    expect(response.body).toMatchObject({ kind: "url", scope: "comments", truncated: false });
+    expect(response.body).toMatchObject({
+      kind: "url",
+      scope: "comments",
+      truncated: false,
+    });
   });
 
   it("denies cross-company access before invoking the service", async () => {
-    const extract = vi.fn(async (_companyId: string, query: CompanySearchExtractQuery) => extractResponse(query));
+    const extract = vi.fn(
+      async (_companyId: string, query: CompanySearchExtractQuery) =>
+        extractResponse(query),
+    );
     const app = createApp(["company-1"], extract);
 
     await request(app)
@@ -93,16 +117,24 @@ describe("company extract-search route", () => {
   });
 
   it("shares the company-search rate limiter", async () => {
-    const extract = vi.fn(async (_companyId: string, query: CompanySearchExtractQuery) => extractResponse(query));
+    const extract = vi.fn(
+      async (_companyId: string, query: CompanySearchExtractQuery) =>
+        extractResponse(query),
+    );
     const app = createApp(["company-1"], extract);
 
-    await request(app).get("/api/companies/company-1/search/extract?contains=needle").expect(200);
+    await request(app)
+      .get("/api/companies/company-1/search/extract?contains=needle")
+      .expect(200);
     const limited = await request(app)
       .get("/api/companies/company-1/search/extract?contains=needle")
       .expect(429);
 
     expect(extract).toHaveBeenCalledTimes(1);
-    expect(limited.body).toEqual({ error: "Search rate limit exceeded", retryAfterSeconds: 60 });
+    expect(limited.body).toEqual({
+      error: "Search rate limit exceeded",
+      retryAfterSeconds: 60,
+    });
     expect(limited.headers["retry-after"]).toBe("60");
   });
 });

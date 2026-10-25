@@ -3,7 +3,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { writeTaskcoreSkillSyncPreference } from "@taskcore/adapter-utils/server-utils";
 import {
   agents,
@@ -28,7 +36,9 @@ import {
 } from "./helpers/embedded-postgres.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -43,11 +53,15 @@ async function closeDbClient(db: ReturnType<typeof createDb> | undefined) {
 describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof feedbackService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let tempDirs: string[] = [];
 
   beforeAll(async () => {
-    const started = await startEmbeddedPostgresTestDatabase("taskcore-feedback-service-");
+    const started = await startEmbeddedPostgresTestDatabase(
+      "taskcore-feedback-service-",
+    );
     db = createDb(started.connectionString);
     svc = feedbackService(db);
     tempDb = started;
@@ -136,7 +150,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     // Random UUIDs occasionally produce digit pairs like "4880-8614" that
     // cross segment boundaries and match the phone pattern.
     const runId = "abcde123-face-beef-cafe-abcdef654321";
-    const instructionsDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-feedback-instructions-"));
+    const instructionsDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-feedback-instructions-"),
+    );
     tempDirs.push(instructionsDir);
     const instructionsPath = path.join(instructionsDir, "AGENTS.md");
     fs.writeFileSync(
@@ -173,7 +189,8 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
         name: "Public Skill",
         markdown: "# Public Skill",
         sourceType: "github",
-        sourceLocator: "https://github.com/octo/research/tree/main/skills/public-skill",
+        sourceLocator:
+          "https://github.com/octo/research/tree/main/skills/public-skill",
         sourceRef: "main",
         fileInventory: [{ path: "SKILL.md", kind: "skill" }],
       },
@@ -209,7 +226,8 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       id: issueId,
       companyId,
       title: "Trace-rich feedback",
-      description: "Issue context includes ops@example.com and a backup phone 555 111 2222.",
+      description:
+        "Issue context includes ops@example.com and a backup phone 555 111 2222.",
       status: "todo",
       priority: "medium",
       createdByUserId: "user-1",
@@ -396,8 +414,12 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       startedAt: new Date("2026-04-01T10:00:00.000Z"),
       finishedAt: new Date("2026-04-01T10:05:00.000Z"),
       usageJson: {
-        provider: input.adapterType === "claude_local" ? "anthropic" : "opencode",
-        model: input.adapterType === "claude_local" ? "claude-opus-4-6" : "opencode/minimax-m2.5-free",
+        provider:
+          input.adapterType === "claude_local" ? "anthropic" : "opencode",
+        model:
+          input.adapterType === "claude_local"
+            ? "claude-opus-4-6"
+            : "opencode/minimax-m2.5-free",
       },
     });
 
@@ -461,7 +483,10 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     const { issueId, commentId } = await seedIssueWithAgentComment();
     await db.insert(instanceSettings).values({
       singletonKey: "default",
-      general: { feedbackDataSharingPreference: "not_allowed", keyboardShortcuts: true },
+      general: {
+        feedbackDataSharingPreference: "not_allowed",
+        keyboardShortcuts: true,
+      },
       experimental: {},
     });
 
@@ -536,7 +561,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
 
     expect(company?.feedbackDataSharingEnabled).toBe(true);
     expect(company?.feedbackDataSharingConsentByUserId).toBe("user-1");
-    expect(company?.feedbackDataSharingTermsVersion).toBe("feedback-data-sharing-v1");
+    expect(company?.feedbackDataSharingTermsVersion).toBe(
+      "feedback-data-sharing-v1",
+    );
 
     const settings = await db
       .select()
@@ -595,7 +622,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       authorUserId: "user-1",
     });
 
-    expect(result.vote.reason).toBe("The update missed the edge case handling.");
+    expect(result.vote.reason).toBe(
+      "The update missed the edge case handling.",
+    );
 
     const traces = await svc.listFeedbackTraces({
       companyId: result.vote.companyId,
@@ -649,7 +678,8 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
   });
 
   it("builds a sanitized shared bundle without reading external instruction roots", async () => {
-    const { companyId, issueId, targetCommentId, runId } = await seedIssueWithRichAgentComment();
+    const { companyId, issueId, targetCommentId, runId } =
+      await seedIssueWithRichAgentComment();
 
     await svc.saveIssueVote({
       issueId,
@@ -668,15 +698,23 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     const trace = traces[0];
     const payload = trace?.payloadSnapshot;
     const bundle = payload?.bundle as Record<string, unknown> | null;
-    const primaryContent = bundle?.primaryContent as Record<string, unknown> | null;
+    const primaryContent = bundle?.primaryContent as Record<
+      string,
+      unknown
+    > | null;
     const issueContext = bundle?.issueContext as Record<string, unknown> | null;
-    const issueContextItems = issueContext?.items as Array<Record<string, unknown>> | undefined;
+    const issueContextItems = issueContext?.items as
+      Array<Record<string, unknown>> | undefined;
     const agentContext = bundle?.agentContext as Record<string, unknown> | null;
     const runtime = agentContext?.runtime as Record<string, unknown> | null;
     const sourceRun = runtime?.sourceRun as Record<string, unknown> | null;
     const skills = agentContext?.skills as Record<string, unknown> | null;
-    const skillItems = skills?.items as Array<Record<string, unknown>> | undefined;
-    const instructions = agentContext?.instructions as Record<string, unknown> | null;
+    const skillItems = skills?.items as
+      Array<Record<string, unknown>> | undefined;
+    const instructions = agentContext?.instructions as Record<
+      string,
+      unknown
+    > | null;
 
     expect(trace?.status).toBe("pending");
     expect(trace?.exportId).toMatch(/^fbexp_/);
@@ -691,7 +729,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     expect(JSON.stringify(issueContextItems)).toContain("[REDACTED_PHONE]");
     expect(sourceRun?.id).toBe(runId);
     expect(JSON.stringify(sourceRun)).toContain("gpt-5.4");
-    expect(skillItems?.[1]?.sourceLocator).toBe("https://github.com/octo/research/tree/main/skills/public-skill");
+    expect(skillItems?.[1]?.sourceLocator).toBe(
+      "https://github.com/octo/research/tree/main/skills/public-skill",
+    );
     expect(instructions).toBeNull();
     expect(runtime?.configuredInstructionsBundleMode).toBe("external");
     expect(runtime?.configuredInstructionsFilePath).toBeNull();
@@ -701,7 +741,11 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
   });
 
   it("keeps earlier local votes local when a later vote enables sharing", async () => {
-    const { companyId, issueId, commentId: firstCommentId } = await seedIssueWithAgentComment();
+    const {
+      companyId,
+      issueId,
+      commentId: firstCommentId,
+    } = await seedIssueWithAgentComment();
     const secondCommentId = randomUUID();
     const agentId = await db
       .select({ authorAgentId: issueComments.authorAgentId })
@@ -739,8 +783,12 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       issueId,
       includePayload: true,
     });
-    const localTrace = traces.find((trace) => trace.targetId === firstCommentId);
-    const sharedTrace = traces.find((trace) => trace.targetId === secondCommentId);
+    const localTrace = traces.find(
+      (trace) => trace.targetId === firstCommentId,
+    );
+    const sharedTrace = traces.find(
+      (trace) => trace.targetId === secondCommentId,
+    );
 
     expect(localTrace?.status).toBe("local_only");
     expect(localTrace?.exportId).toBeNull();
@@ -752,11 +800,15 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
   });
 
   it("captures Claude project session artifacts as full traces", async () => {
-    const claudeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-feedback-claude-"));
+    const claudeRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-feedback-claude-"),
+    );
     tempDirs.push(claudeRoot);
     const sessionId = randomUUID();
     const projectDir = path.join(claudeRoot, "projects", "workspace-1");
-    fs.mkdirSync(path.join(projectDir, sessionId, "tool-results"), { recursive: true });
+    fs.mkdirSync(path.join(projectDir, sessionId, "tool-results"), {
+      recursive: true,
+    });
     fs.mkdirSync(path.join(claudeRoot, "debug"), { recursive: true });
     fs.writeFileSync(
       path.join(projectDir, `${sessionId}.jsonl`),
@@ -764,14 +816,23 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
         JSON.stringify({
           type: "user",
           sessionId,
-          message: { role: "user", content: "Open AGENTS.md and continue the task." },
+          message: {
+            role: "user",
+            content: "Open AGENTS.md and continue the task.",
+          },
         }),
         JSON.stringify({
           type: "assistant",
           sessionId,
           message: {
             role: "assistant",
-            content: [{ type: "tool_use", name: "Read", input: { file_path: "/tmp/AGENTS.md" } }],
+            content: [
+              {
+                type: "tool_use",
+                name: "Read",
+                input: { file_path: "/tmp/AGENTS.md" },
+              },
+            ],
           },
         }),
       ].join("\n"),
@@ -788,7 +849,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       "utf8",
     );
     vi.stubEnv("CLAUDE_CONFIG_DIR", claudeRoot);
-    const uploadTraceBundle = vi.fn().mockResolvedValue({ objectKey: "feedback-traces/test.json" });
+    const uploadTraceBundle = vi
+      .fn()
+      .mockResolvedValue({ objectKey: "feedback-traces/test.json" });
     const flushingSvc = feedbackService(db, {
       shareClient: {
         uploadTraceBundle,
@@ -811,14 +874,22 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     await flushingSvc.flushPendingFeedbackTraces();
 
     expect(uploadTraceBundle).toHaveBeenCalledTimes(1);
-    const bundle = uploadTraceBundle.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    const files = Array.isArray(bundle?.files) ? (bundle.files as Array<Record<string, unknown>>) : [];
+    const bundle = uploadTraceBundle.mock.calls[0]?.[0] as
+      Record<string, unknown> | undefined;
+    const files = Array.isArray(bundle?.files)
+      ? (bundle.files as Array<Record<string, unknown>>)
+      : [];
     const filePaths = files.map((file) => String(file.path));
-    const rawAdapterTrace = bundle?.rawAdapterTrace as Record<string, unknown> | null;
+    const rawAdapterTrace = bundle?.rawAdapterTrace as Record<
+      string,
+      unknown
+    > | null;
 
     expect(bundle?.captureStatus).toBe("full");
     expect(filePaths).toContain("adapter/claude/session.jsonl");
-    expect(filePaths).toContain("adapter/claude/session/tool-results/result.txt");
+    expect(filePaths).toContain(
+      "adapter/claude/session/tool-results/result.txt",
+    );
     expect(filePaths).toContain("adapter/claude/debug.txt");
     expect(rawAdapterTrace?.projectSessionFound).toBe(true);
     expect(rawAdapterTrace?.projectArtifactsCount).toBe(1);
@@ -826,17 +897,25 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
   });
 
   it("captures OpenCode message and part files as full traces", async () => {
-    const opencodeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-feedback-opencode-"));
+    const opencodeRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-feedback-opencode-"),
+    );
     tempDirs.push(opencodeRoot);
     const sessionId = "ses_test_feedback_trace";
     const sessionDir = path.join(opencodeRoot, "storage", "session", "global");
     const messageDir = path.join(opencodeRoot, "storage", "message", sessionId);
     const partDir = path.join(opencodeRoot, "storage", "part");
     fs.mkdirSync(sessionDir, { recursive: true });
-    fs.mkdirSync(path.join(opencodeRoot, "storage", "session_diff"), { recursive: true });
+    fs.mkdirSync(path.join(opencodeRoot, "storage", "session_diff"), {
+      recursive: true,
+    });
     fs.mkdirSync(messageDir, { recursive: true });
-    fs.mkdirSync(path.join(opencodeRoot, "storage", "project"), { recursive: true });
-    fs.mkdirSync(path.join(opencodeRoot, "storage", "todo"), { recursive: true });
+    fs.mkdirSync(path.join(opencodeRoot, "storage", "project"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(opencodeRoot, "storage", "todo"), {
+      recursive: true,
+    });
     const userMessageId = "msg_user_trace";
     const assistantMessageId = "msg_assistant_trace";
     fs.mkdirSync(path.join(partDir, userMessageId), { recursive: true });
@@ -853,7 +932,13 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     );
     fs.writeFileSync(
       path.join(opencodeRoot, "storage", "session_diff", `${sessionId}.json`),
-      JSON.stringify([{ op: "replace", path: "/title", value: "Feedback export verification" }]),
+      JSON.stringify([
+        {
+          op: "replace",
+          path: "/title",
+          value: "Feedback export verification",
+        },
+      ]),
       "utf8",
     );
     fs.writeFileSync(
@@ -917,7 +1002,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       "utf8",
     );
     vi.stubEnv("TASKCORE_OPENCODE_STORAGE_DIR", opencodeRoot);
-    const uploadTraceBundle = vi.fn().mockResolvedValue({ objectKey: "feedback-traces/test.json" });
+    const uploadTraceBundle = vi
+      .fn()
+      .mockResolvedValue({ objectKey: "feedback-traces/test.json" });
     const flushingSvc = feedbackService(db, {
       shareClient: {
         uploadTraceBundle,
@@ -940,16 +1027,26 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     await flushingSvc.flushPendingFeedbackTraces();
 
     expect(uploadTraceBundle).toHaveBeenCalledTimes(1);
-    const bundle = uploadTraceBundle.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    const files = Array.isArray(bundle?.files) ? (bundle.files as Array<Record<string, unknown>>) : [];
+    const bundle = uploadTraceBundle.mock.calls[0]?.[0] as
+      Record<string, unknown> | undefined;
+    const files = Array.isArray(bundle?.files)
+      ? (bundle.files as Array<Record<string, unknown>>)
+      : [];
     const filePaths = files.map((file) => String(file.path));
-    const rawAdapterTrace = bundle?.rawAdapterTrace as Record<string, unknown> | null;
+    const rawAdapterTrace = bundle?.rawAdapterTrace as Record<
+      string,
+      unknown
+    > | null;
 
     expect(bundle?.captureStatus).toBe("full");
     expect(filePaths).toContain("adapter/opencode/session.json");
     expect(filePaths).toContain("adapter/opencode/session-diff.json");
-    expect(filePaths).toContain(`adapter/opencode/messages/${userMessageId}.json`);
-    expect(filePaths).toContain(`adapter/opencode/parts/${assistantMessageId}/prt_tool.json`);
+    expect(filePaths).toContain(
+      `adapter/opencode/messages/${userMessageId}.json`,
+    );
+    expect(filePaths).toContain(
+      `adapter/opencode/parts/${assistantMessageId}/prt_tool.json`,
+    );
     expect(filePaths).toContain("adapter/opencode/project.json");
     expect(filePaths).toContain("adapter/opencode/todo.json");
     expect(rawAdapterTrace?.messageFilesCount).toBe(2);
@@ -993,7 +1090,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
         vote: "up",
         authorUserId: "user-1",
       }),
-    ).rejects.toThrow("Feedback voting is only available on agent-authored issue comments");
+    ).rejects.toThrow(
+      "Feedback voting is only available on agent-authored issue comments",
+    );
   });
 
   it("flushes pending shared traces into configured object storage and marks them sent", async () => {
@@ -1048,7 +1147,11 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
   });
 
   it("can flush a single shared trace immediately by trace id", async () => {
-    const { companyId, issueId, commentId: firstCommentId } = await seedIssueWithAgentComment();
+    const {
+      companyId,
+      issueId,
+      commentId: firstCommentId,
+    } = await seedIssueWithAgentComment();
     const secondCommentId = randomUUID();
     const agentId = await db
       .select({ authorAgentId: issueComments.authorAgentId })
@@ -1108,15 +1211,21 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       issueId,
       includePayload: true,
     });
-    const firstTrace = traces.find((trace) => trace.targetId === firstCommentId);
-    const secondTrace = traces.find((trace) => trace.targetId === secondCommentId);
+    const firstTrace = traces.find(
+      (trace) => trace.targetId === firstCommentId,
+    );
+    const secondTrace = traces.find(
+      (trace) => trace.targetId === secondCommentId,
+    );
     expect(firstTrace?.status).toBe("sent");
     expect(secondTrace?.status).toBe("pending");
   });
 
   it("marks pending shared traces as failed when remote export upload fails", async () => {
     const { companyId, issueId, commentId } = await seedIssueWithAgentComment();
-    const uploadTraceBundle = vi.fn().mockRejectedValue(new Error("telemetry unavailable"));
+    const uploadTraceBundle = vi
+      .fn()
+      .mockRejectedValue(new Error("telemetry unavailable"));
     const flushingSvc = feedbackService(db, {
       shareClient: {
         uploadTraceBundle,
@@ -1183,7 +1292,9 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     });
     expect(traces[0]?.status).toBe("failed");
     expect(traces[0]?.attemptCount).toBe(1);
-    expect(traces[0]?.failureReason).toBe("Feedback export backend is not configured");
+    expect(traces[0]?.failureReason).toBe(
+      "Feedback export backend is not configured",
+    );
     expect(traces[0]?.exportedAt).toBeNull();
   });
 });

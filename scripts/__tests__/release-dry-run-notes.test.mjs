@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -22,7 +30,10 @@ function createReleaseFixture() {
   mkdirSync(binDir);
   writeFileSync(callLog, "");
 
-  copyFileSync(join(repoRoot, "scripts", "release.sh"), join(scriptsDir, "release.sh"));
+  copyFileSync(
+    join(repoRoot, "scripts", "release.sh"),
+    join(scriptsDir, "release.sh"),
+  );
   chmodSync(join(scriptsDir, "release.sh"), 0o755);
 
   writeFileSync(
@@ -139,7 +150,12 @@ exit 0
 `,
   );
 
-  return { binDir, callLog, fixtureDir, script: join(scriptsDir, "release.sh") };
+  return {
+    binDir,
+    callLog,
+    fixtureDir,
+    script: join(scriptsDir, "release.sh"),
+  };
 }
 
 function runRelease(args, extraEnv = {}, prepare = null) {
@@ -183,7 +199,10 @@ test("stable publish still requires release notes before publish work starts", (
 
   assert.equal(result.status, 1);
   assert.match(result.output, /stable release notes file is required/);
-  assert.doesNotMatch(result.output, /==> Step 2\/7: Building workspace artifacts/);
+  assert.doesNotMatch(
+    result.output,
+    /==> Step 2\/7: Building workspace artifacts/,
+  );
   assert.doesNotMatch(result.calls, /^pnpm /m);
 });
 
@@ -223,7 +242,10 @@ test("beta dry-run publishes under the beta identity without release notes", () 
   const result = runRelease(["beta", "--skip-verify", "--dry-run"]);
 
   assert.equal(result.status, 42);
-  assert.match(result.output, /\[fixture\] require_channel_tag_at_head nightly/);
+  assert.match(
+    result.output,
+    /\[fixture\] require_channel_tag_at_head nightly/,
+  );
   assert.match(result.output, /Beta version: 2026\.710\.0-beta\.0/);
   assert.match(result.output, /Dist-tag: beta/);
   assert.match(result.output, /Git tag: beta\/v2026\.710\.0-beta\.0/);
@@ -242,22 +264,36 @@ test("beta refuses commits that already shipped as a beta", () => {
 });
 
 test("beta --from-candidate waives the nightly requirement but keeps the duplicate guard", () => {
-  const result = runRelease(["beta", "--from-candidate", "--skip-verify", "--dry-run"], {
-    FAKE_MISSING_CHANNEL_TAG: "nightly",
-  });
+  const result = runRelease(
+    ["beta", "--from-candidate", "--skip-verify", "--dry-run"],
+    {
+      FAKE_MISSING_CHANNEL_TAG: "nightly",
+    },
+  );
 
   assert.equal(result.status, 42);
   assert.doesNotMatch(result.output, /require_channel_tag_at_head nightly/);
-  assert.match(result.output, /\[fixture\] require_channel_tag_absent_at_head beta/);
+  assert.match(
+    result.output,
+    /\[fixture\] require_channel_tag_absent_at_head beta/,
+  );
   assert.match(result.output, /Beta version: 2026\.710\.0-beta\.0/);
   assert.match(result.calls, /^pnpm build$/m);
 });
 
 test("--from-candidate is rejected outside the beta channel", () => {
-  const result = runRelease(["nightly", "--from-candidate", "--skip-verify", "--dry-run"]);
+  const result = runRelease([
+    "nightly",
+    "--from-candidate",
+    "--skip-verify",
+    "--dry-run",
+  ]);
 
   assert.equal(result.status, 1);
-  assert.match(result.output, /--from-candidate only applies to the beta channel/);
+  assert.match(
+    result.output,
+    /--from-candidate only applies to the beta channel/,
+  );
   assert.doesNotMatch(result.calls, /^pnpm /m);
 });
 
@@ -279,7 +315,11 @@ function preparePreviewFixture(fixture) {
   const { fixtureDir } = fixture;
   // Step 2 copies the skills tree into these package dirs.
   mkdirSync(join(fixtureDir, "skills"), { recursive: true });
-  for (const dir of ["server", "packages/adapters/claude-local", "packages/adapters/codex-local"]) {
+  for (const dir of [
+    "server",
+    "packages/adapters/claude-local",
+    "packages/adapters/codex-local",
+  ]) {
     mkdirSync(join(fixtureDir, dir), { recursive: true });
   }
   // Step 2 build helpers that live outside the pnpm stub.
@@ -287,8 +327,14 @@ function preparePreviewFixture(fixture) {
     join(fixtureDir, "scripts", "build-standalone-public-packages.mjs"),
     "#!/usr/bin/env node\nprocess.exit(0);\n",
   );
-  writeExecutable(join(fixtureDir, "scripts", "prepare-server-ui-dist.sh"), "#!/usr/bin/env bash\nexit 0\n");
-  writeExecutable(join(fixtureDir, "scripts", "build-npm.sh"), "#!/usr/bin/env bash\nexit 0\n");
+  writeExecutable(
+    join(fixtureDir, "scripts", "prepare-server-ui-dist.sh"),
+    "#!/usr/bin/env bash\nexit 0\n",
+  );
+  writeExecutable(
+    join(fixtureDir, "scripts", "build-npm.sh"),
+    "#!/usr/bin/env bash\nexit 0\n",
+  );
   // Step 4 verifies the CLI package version against the target canary version.
   mkdirSync(join(fixtureDir, "cli"), { recursive: true });
   writeFileSync(
@@ -323,7 +369,11 @@ test("canary dry-run previews every publish payload and replays logs in package 
   const headerOffsets = [];
   for (let index = 1; index <= PREVIEW_PACKAGE_COUNT; index += 1) {
     const offset = result.output.indexOf(`--- ${previewPackageDir(index)} ---`);
-    assert.notEqual(offset, -1, `missing preview header for ${previewPackageDir(index)}`);
+    assert.notEqual(
+      offset,
+      -1,
+      `missing preview header for ${previewPackageDir(index)}`,
+    );
     headerOffsets.push(offset);
   }
   assert.deepEqual(
@@ -332,7 +382,11 @@ test("canary dry-run previews every publish payload and replays logs in package 
     "preview logs must replay in package order even though previews run concurrently",
   );
   const previews = result.output.match(/fixture publish preview in /g) ?? [];
-  assert.equal(previews.length, PREVIEW_PACKAGE_COUNT, "every package must be previewed exactly once");
+  assert.equal(
+    previews.length,
+    PREVIEW_PACKAGE_COUNT,
+    "every package must be previewed exactly once",
+  );
   assert.match(result.output, /Would create git tag/);
 });
 
@@ -357,5 +411,9 @@ test("canary dry-run fails when any concurrent payload preview fails, after repl
       "every package's log must still replay so the failure is diagnosable",
     );
   }
-  assert.doesNotMatch(result.output, /Would create git tag/, "a failed preview must not reach tagging");
+  assert.doesNotMatch(
+    result.output,
+    /Would create git tag/,
+    "a failed preview must not reach tagging",
+  );
 });

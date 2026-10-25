@@ -1,4 +1,7 @@
-import type { AiConnectionRouterRequest, AiConnectionRouterResult } from "@taskcore/shared";
+import type {
+  AiConnectionRouterRequest,
+  AiConnectionRouterResult,
+} from "@taskcore/shared";
 /**
  * `definePlugin` — the top-level helper for authoring a Taskcore plugin.
  *
@@ -315,7 +318,9 @@ export interface PluginDefinition {
    * @param config - The configuration to validate
    * @see PLUGIN_SPEC.md §13.3 — `validateConfig`
    */
-  onValidateConfig?(config: Record<string, unknown>): Promise<PluginConfigValidationResult>;
+  onValidateConfig?(
+    config: Record<string, unknown>,
+  ): Promise<PluginConfigValidationResult>;
 
   /**
    * Called to handle an inbound webhook delivery.
@@ -358,7 +363,9 @@ export interface PluginDefinition {
    * Requires `external.objects.read`.
    */
   /** Propose a member from host-authorized candidates. Requires ai.connections.route. */
-  onRouteAiConnection?(params: AiConnectionRouterRequest): Promise<AiConnectionRouterResult>;
+  onRouteAiConnection?(
+    params: AiConnectionRouterRequest,
+  ): Promise<AiConnectionRouterResult>;
 
   onResolveExternalObject?(
     params: ResolveExternalObjectParams,

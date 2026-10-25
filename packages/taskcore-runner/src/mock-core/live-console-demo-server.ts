@@ -125,7 +125,11 @@ function browserSafe(value: unknown): unknown {
   });
 }
 
-function browserSafeValue(value: unknown, depth: number, budget: BrowserSafeBudget): unknown {
+function browserSafeValue(
+  value: unknown,
+  depth: number,
+  budget: BrowserSafeBudget,
+): unknown {
   if (depth > 10) return "[TRUNCATED]";
   if (budget.nodesRemaining <= 0) return "[TRUNCATED]";
   budget.nodesRemaining -= 1;
@@ -147,12 +151,14 @@ function browserSafeValue(value: unknown, depth: number, budget: BrowserSafeBudg
   }
   if (typeof value !== "object" || value === null) return value;
   return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).slice(0, 256).map(([key, entry]) => [
-      key,
-      isSensitiveBrowserEntry(key, entry)
-        ? "[REDACTED]"
-        : browserSafeValue(entry, depth + 1, budget),
-    ]),
+    Object.entries(value as Record<string, unknown>)
+      .slice(0, 256)
+      .map(([key, entry]) => [
+        key,
+        isSensitiveBrowserEntry(key, entry)
+          ? "[REDACTED]"
+          : browserSafeValue(entry, depth + 1, budget),
+      ]),
   );
 }
 
@@ -163,8 +169,12 @@ function browserSafeValue(value: unknown, depth: number, budget: BrowserSafeBudg
  */
 function redactBrowserString(value: string): string {
   const truncated = value.length > MAX_BROWSER_STRING_CHARACTERS;
-  const visible = truncated ? value.slice(0, MAX_BROWSER_STRING_CHARACTERS) : value;
-  const redacted = redactStructuredBrowserCredentials(redactCodexDiagnostic(visible)).replace(
+  const visible = truncated
+    ? value.slice(0, MAX_BROWSER_STRING_CHARACTERS)
+    : value;
+  const redacted = redactStructuredBrowserCredentials(
+    redactCodexDiagnostic(visible),
+  ).replace(
     /\/(?:srv\/taskcore\/home|home\/[^/\s]+|Users\/[^/\s]+)\/\.[^\s"'<>),\]}]*/g,
     "<server-path>",
   );
@@ -185,29 +195,34 @@ function isSensitiveBrowserKey(key: string): boolean {
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter(Boolean);
-  if (words.some((word) =>
-    [
-      "authorization",
-      "cookie",
-      "cookies",
-      "credential",
-      "credentials",
-      "passwd",
-      "passwds",
-      "password",
-      "passwords",
-      "secret",
-      "secrets",
-      "token",
-      "tokens",
-    ].includes(word)
-  )) {
+  if (
+    words.some((word) =>
+      [
+        "authorization",
+        "cookie",
+        "cookies",
+        "credential",
+        "credentials",
+        "passwd",
+        "passwds",
+        "password",
+        "passwords",
+        "secret",
+        "secrets",
+        "token",
+        "tokens",
+      ].includes(word),
+    )
+  ) {
     return true;
   }
-  if (words.some((word, index) =>
-    ["access", "api", "private", "signing"].includes(word) &&
-    ["key", "keys"].includes(words[index + 1] ?? "")
-  )) {
+  if (
+    words.some(
+      (word, index) =>
+        ["access", "api", "private", "signing"].includes(word) &&
+        ["key", "keys"].includes(words[index + 1] ?? ""),
+    )
+  ) {
     return true;
   }
   return /(?:apikeys?|accesskeys?|privatekeys?|signingkeys?|credentials?|passwds?|passwords?|secrets?|tokens?)$/.test(
@@ -260,9 +275,13 @@ function redactStructuredBrowserCredentials(value: string): string {
     );
 }
 
-function isSensitiveBrowserDiagnosticField(key: string, value: string): boolean {
+function isSensitiveBrowserDiagnosticField(
+  key: string,
+  value: string,
+): boolean {
   const normalized = normalizeBrowserKey(key);
-  if (normalized === "credentialsexposed") return !/^(?:true|false)$/i.test(value);
+  if (normalized === "credentialsexposed")
+    return !/^(?:true|false)$/i.test(value);
   if (normalized === "providerauthentication") return value !== "server-side";
   if (BROWSER_SAFE_USAGE_KEYS.has(normalized)) {
     if (normalized === "tokenusage") return true;
@@ -272,7 +291,10 @@ function isSensitiveBrowserDiagnosticField(key: string, value: string): boolean 
   return isSensitiveBrowserKey(key);
 }
 
-function serializeBrowserJson(body: unknown): { serialized: string; overflow: boolean } {
+function serializeBrowserJson(body: unknown): {
+  serialized: string;
+  overflow: boolean;
+} {
   const serialized = JSON.stringify(browserSafe(body)) ?? "null";
   if (Buffer.byteLength(serialized) <= MAX_BROWSER_SERIALIZED_BYTES) {
     return { serialized, overflow: false };
@@ -297,13 +319,16 @@ function json(response: ServerResponse, status: number, body: unknown): void {
   response.end(serialized);
 }
 
-async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
+async function readJson(
+  request: IncomingMessage,
+): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     size += buffer.length;
-    if (size > MAX_BROWSER_BODY_BYTES) throw new Error("browser request body is too large");
+    if (size > MAX_BROWSER_BODY_BYTES)
+      throw new Error("browser request body is too large");
     chunks.push(buffer);
   }
   if (chunks.length === 0) return {};
@@ -314,7 +339,9 @@ async function readJson(request: IncomingMessage): Promise<Record<string, unknow
   return value as Record<string, unknown>;
 }
 
-function prpCapabilities(capabilities: NativeSessionCapabilities): PrpCapabilities {
+function prpCapabilities(
+  capabilities: NativeSessionCapabilities,
+): PrpCapabilities {
   return {
     schema: "taskcore.prp.capabilities.v1",
     sessionReusePolicy: "reuse_per_issue",
@@ -327,7 +354,9 @@ function prpCapabilities(capabilities: NativeSessionCapabilities): PrpCapabiliti
     typedEvents: capabilities.typedEvents,
     goals: capabilities.goals ?? false,
     threadLineage: capabilities.threadLineage ?? false,
-    ...(capabilities.unsupported?.length ? { unsupported: capabilities.unsupported } : {}),
+    ...(capabilities.unsupported?.length
+      ? { unsupported: capabilities.unsupported }
+      : {}),
   };
 }
 
@@ -368,7 +397,10 @@ function errorCode(error: unknown): string {
 
 function isLoopbackAddress(address: unknown): boolean {
   if (typeof address !== "string") return false;
-  const normalized = address.toLowerCase().replace(/^\[|\]$/g, "").replace(/^::ffff:/, "");
+  const normalized = address
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/^::ffff:/, "");
   if (normalized === "::1" || normalized === "localhost") return true;
   const octets = normalized.split(".");
   return (
@@ -381,7 +413,11 @@ function isLoopbackAddress(address: unknown): boolean {
 /** Reject wildcard and LAN binds before a provider-capable server starts. */
 export function assertLiveConsoleLoopbackBindHost(host: string): void {
   if (!isLoopbackAddress(host)) {
-    throw new LiveConsoleHttpError(403, "non_loopback_bind_forbidden", LOOPBACK_ONLY);
+    throw new LiveConsoleHttpError(
+      403,
+      "non_loopback_bind_forbidden",
+      LOOPBACK_ONLY,
+    );
   }
 }
 
@@ -391,14 +427,19 @@ function normalizedHost(host: string): string {
 
 function expectedAuthority(host: string, port: number): string {
   const normalized = normalizedHost(host);
-  return normalized.includes(":") ? `[${normalized}]:${port}` : `${normalized}:${port}`;
+  return normalized.includes(":")
+    ? `[${normalized}]:${port}`
+    : `${normalized}:${port}`;
 }
 
 function singleHeader(value: string | string[] | undefined): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function hasValidCapability(request: IncomingMessage, capability: string): boolean {
+function hasValidCapability(
+  request: IncomingMessage,
+  capability: string,
+): boolean {
   const authorization = singleHeader(request.headers.authorization);
   if (authorization === null) return false;
   const expected = Buffer.from(`Bearer ${capability}`);
@@ -420,7 +461,11 @@ function requireTransportAdmission(
 
   const port = request.socket.localPort;
   const host = singleHeader(request.headers.host);
-  if (port === undefined || host === null || host.toLowerCase() !== expectedAuthority(bindHost, port)) {
+  if (
+    port === undefined ||
+    host === null ||
+    host.toLowerCase() !== expectedAuthority(bindHost, port)
+  ) {
     throw new LiveConsoleHttpError(
       403,
       "invalid_host",
@@ -431,12 +476,19 @@ function requireTransportAdmission(
   const authorization = singleHeader(request.headers.authorization);
   const authenticatedDirectRequest = hasValidCapability(request, capability);
   if (authorization !== null && !authenticatedDirectRequest) {
-    throw new LiveConsoleHttpError(401, "invalid_transport_capability", "Invalid Live console capability");
+    throw new LiveConsoleHttpError(
+      401,
+      "invalid_transport_capability",
+      "Invalid Live console capability",
+    );
   }
 
   const mutation = !["GET", "HEAD"].includes(request.method ?? "GET");
   if (mutation) {
-    const mediaType = singleHeader(request.headers["content-type"])?.split(";", 1)[0]?.trim().toLowerCase();
+    const mediaType = singleHeader(request.headers["content-type"])
+      ?.split(";", 1)[0]
+      ?.trim()
+      .toLowerCase();
     if (mediaType !== "application/json") {
       throw new LiveConsoleHttpError(
         415,
@@ -458,14 +510,22 @@ function requireTransportAdmission(
 
   const origin = singleHeader(request.headers.origin);
   if (origin !== null && origin !== `http://${host.toLowerCase()}`) {
-    throw new LiveConsoleHttpError(403, "invalid_origin", "Live console cross-origin requests are forbidden");
+    throw new LiveConsoleHttpError(
+      403,
+      "invalid_origin",
+      "Live console cross-origin requests are forbidden",
+    );
   }
   // Only mutations are required to name their origin. A same-origin `GET` —
   // which is what the `EventSource` stream is — sends no `Origin` header at
   // all, so demanding one there rejects the console's own subscription;
   // `Sec-Fetch-Site: same-origin` above is what proves that request safe.
   if (mutation && origin === null) {
-    throw new LiveConsoleHttpError(403, "origin_required", "Live console browser request Origin is required");
+    throw new LiveConsoleHttpError(
+      403,
+      "origin_required",
+      "Live console browser request Origin is required",
+    );
   }
 }
 
@@ -487,7 +547,9 @@ function browserCredentialField(body: Record<string, unknown>): string | null {
 }
 
 export class LiveConsoleDemoServer {
-  readonly #options: Required<Pick<LiveConsoleDemoServerOptions, "host" | "port">> &
+  readonly #options: Required<
+    Pick<LiveConsoleDemoServerOptions, "host" | "port">
+  > &
     Omit<LiveConsoleDemoServerOptions, "host" | "port">;
   readonly #entries = new Map<string, DemoEntry>();
   readonly #transportCapability = randomBytes(32).toString("base64url");
@@ -517,12 +579,15 @@ export class LiveConsoleDemoServer {
   }
 
   async start(): Promise<{ host: string; port: number; url: string }> {
-    if (this.#server !== null) throw new Error("Live console demo server is already started");
+    if (this.#server !== null)
+      throw new Error("Live console demo server is already started");
     assertLiveConsoleLoopbackBindHost(this.#options.host);
     this.#server = createServer(this.middleware());
     await new Promise<void>((resolve, reject) => {
       this.#server!.once("error", reject);
-      this.#server!.listen(this.#options.port, this.#options.host, () => resolve());
+      this.#server!.listen(this.#options.port, this.#options.host, () =>
+        resolve(),
+      );
     });
     const address = this.#server.address();
     if (address === null || typeof address === "string") {
@@ -548,7 +613,11 @@ export class LiveConsoleDemoServer {
     return (request, response) => {
       try {
         assertLiveConsoleLoopbackBindHost(this.#options.host);
-        requireTransportAdmission(request, this.#options.host, this.#transportCapability);
+        requireTransportAdmission(
+          request,
+          this.#options.host,
+          this.#transportCapability,
+        );
       } catch (error) {
         json(response, errorStatus(error), {
           error: errorCode(error),
@@ -572,23 +641,33 @@ export class LiveConsoleDemoServer {
   async close(): Promise<void> {
     const entries = [...this.#entries.values()];
     this.#entries.clear();
-    await Promise.all(entries.map(async (entry) => {
-      for (const subscriber of entry.subscribers) subscriber.end();
-      await entry.session.close({ reason: "demo_server_closed" });
-      await entry.consumeTask.catch(() => undefined);
-    }));
+    await Promise.all(
+      entries.map(async (entry) => {
+        for (const subscriber of entry.subscribers) subscriber.end();
+        await entry.session.close({ reason: "demo_server_closed" });
+        await entry.consumeTask.catch(() => undefined);
+      }),
+    );
     if (this.#server === null) return;
     const server = this.#server;
     this.#server = null;
-    await new Promise<void>((resolve, reject) => server.close((error) => {
-      if (error) reject(error);
-      else resolve();
-    }));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      }),
+    );
   }
 
-  async #handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  async #handle(
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> {
     const parts = pathParts(request);
-    if (request.method === "GET" && parts.join("/") === "api/liveConsole/health") {
+    if (
+      request.method === "GET" &&
+      parts.join("/") === "api/liveConsole/health"
+    ) {
       json(response, 200, {
         status: "ok",
         boundary: "package-local-mock-core",
@@ -597,12 +676,19 @@ export class LiveConsoleDemoServer {
       });
       return;
     }
-    if (request.method === "GET" && parts.join("/") === "api/liveConsole/manifests") {
+    if (
+      request.method === "GET" &&
+      parts.join("/") === "api/liveConsole/manifests"
+    ) {
       json(response, 200, { manifests: this.#options.manifests ?? [] });
       return;
     }
-    if (request.method === "POST" && parts.join("/") === "api/liveConsole/sessions") {
-      const body = await readJson(request) as BrowserCreateBody & Record<string, unknown>;
+    if (
+      request.method === "POST" &&
+      parts.join("/") === "api/liveConsole/sessions"
+    ) {
+      const body = (await readJson(request)) as BrowserCreateBody &
+        Record<string, unknown>;
       const credentialField = browserCredentialField(body);
       if (credentialField !== null) {
         throw new LiveConsoleHttpError(
@@ -611,31 +697,47 @@ export class LiveConsoleDemoServer {
           `Browser bodies cannot provide credentials (${credentialField})`,
         );
       }
-      if (this.#entries.size + this.#creatingSessions >= this.#maxActiveSessions) {
+      if (
+        this.#entries.size + this.#creatingSessions >=
+        this.#maxActiveSessions
+      ) {
         throw new LiveConsoleHttpError(
           429,
           "session_limit_reached",
           `Live console is limited to ${this.#maxActiveSessions} active sessions`,
         );
       }
-      const objective = typeof body.objective === "string" && body.objective.trim().length > 0
-        ? body.objective.trim()
-        : "Complete the Live console demo task safely.";
-      const message = typeof body.message === "string" ? body.message : objective;
-      const manifestId = typeof body.manifest === "string" && body.manifest.length > 0
-        ? body.manifest
-        : null;
+      const objective =
+        typeof body.objective === "string" && body.objective.trim().length > 0
+          ? body.objective.trim()
+          : "Complete the Live console demo task safely.";
+      const message =
+        typeof body.message === "string" ? body.message : objective;
+      const manifestId =
+        typeof body.manifest === "string" && body.manifest.length > 0
+          ? body.manifest
+          : null;
       this.#creatingSessions += 1;
       let entry: DemoEntry;
       try {
-        entry = await this.#create(objective, message, manifestId, body.startTurn !== false);
+        entry = await this.#create(
+          objective,
+          message,
+          manifestId,
+          body.startTurn !== false,
+        );
       } finally {
         this.#creatingSessions -= 1;
       }
       json(response, 201, await this.#publicState(entry));
       return;
     }
-    if (parts.length < 4 || parts[0] !== "api" || parts[1] !== "liveConsole" || parts[2] !== "sessions") {
+    if (
+      parts.length < 4 ||
+      parts[0] !== "api" ||
+      parts[1] !== "liveConsole" ||
+      parts[2] !== "sessions"
+    ) {
       json(response, 404, { error: "not_found" });
       return;
     }
@@ -651,7 +753,10 @@ export class LiveConsoleDemoServer {
     }
     if (request.method === "GET" && action === "events") {
       const url = new URL(request.url ?? "/", "http://liveConsole.invalid");
-      const after = Math.max(0, Number.parseInt(url.searchParams.get("after") ?? "0", 10) || 0);
+      const after = Math.max(
+        0,
+        Number.parseInt(url.searchParams.get("after") ?? "0", 10) || 0,
+      );
       json(response, 200, {
         events: entry.events.slice(after),
         cursor: entry.events.length,
@@ -661,7 +766,10 @@ export class LiveConsoleDemoServer {
     }
     if (request.method === "GET" && action === "stream") {
       const url = new URL(request.url ?? "/", "http://liveConsole.invalid");
-      const after = Math.max(0, Number.parseInt(url.searchParams.get("after") ?? "0", 10) || 0);
+      const after = Math.max(
+        0,
+        Number.parseInt(url.searchParams.get("after") ?? "0", 10) || 0,
+      );
       if (entry.subscribers.size >= this.#maxSessionSubscribers) {
         throw new LiveConsoleHttpError(
           429,
@@ -713,7 +821,9 @@ export class LiveConsoleDemoServer {
         ...(typeof body.reason === "string" ? { reason: body.reason } : {}),
       });
     } else if (action === "requests" && parts[5] && parts[6] === "resolve") {
-      const pending = entry.session.pendingRuntimeRequests?.().find(({ requestId }) => requestId === parts[5]);
+      const pending = entry.session
+        .pendingRuntimeRequests?.()
+        .find(({ requestId }) => requestId === parts[5]);
       if (pending === undefined) {
         throw new LiveConsoleHttpError(
           409,
@@ -732,7 +842,10 @@ export class LiveConsoleDemoServer {
       // request it answers here as well as inside the driver.
       let resolution: HarnessRuntimeRequestResolution;
       try {
-        resolution = parseHarnessRuntimeRequestResolution(pending.requestKind, body.resolution);
+        resolution = parseHarnessRuntimeRequestResolution(
+          pending.requestKind,
+          body.resolution,
+        );
       } catch (error) {
         throw new LiveConsoleHttpError(
           422,
@@ -775,7 +888,10 @@ export class LiveConsoleDemoServer {
       contractRevision: "live-console-demo-v1",
       criteria: [{ id: "objective", requirement: objective }],
     });
-    const driver = this.#options.driverFactory(envelope, manifestId ?? undefined);
+    const driver = this.#options.driverFactory(
+      envelope,
+      manifestId ?? undefined,
+    );
     const id = randomUUID();
     const runId = `live-console-run-${id}`;
     const normalizedSessionId = `live-console-session-${id}`;
@@ -809,7 +925,9 @@ export class LiveConsoleDemoServer {
       return entry;
     } catch (error) {
       this.#entries.delete(id);
-      await session.close({ reason: "demo_session_start_failed" }).catch(() => undefined);
+      await session
+        .close({ reason: "demo_session_start_failed" })
+        .catch(() => undefined);
       await entry?.consumeTask.catch(() => undefined);
       throw error;
     }
@@ -849,7 +967,9 @@ export class LiveConsoleDemoServer {
       signal: new AbortController().signal,
     });
     if (!recovery?.recovered || recovery.session === undefined) {
-      throw new Error(`session resume failed: ${recovery?.reason ?? "driver cannot resume"}`);
+      throw new Error(
+        `session resume failed: ${recovery?.reason ?? "driver cannot resume"}`,
+      );
     }
     entry.session = recovery.session;
     entry.consumeTask = this.#consume(entry, recovery.session);
@@ -898,15 +1018,29 @@ export class LiveConsoleDemoServer {
   }
 }
 
-function goalOperation(action: string, body: Record<string, unknown>): HarnessGoalOperation {
-  if (action === "get" || action === "pause" || action === "resume" || action === "clear") {
+function goalOperation(
+  action: string,
+  body: Record<string, unknown>,
+): HarnessGoalOperation {
+  if (
+    action === "get" ||
+    action === "pause" ||
+    action === "resume" ||
+    action === "clear"
+  ) {
     return { action };
   }
-  if (action === "set" && typeof body.objective === "string" && body.objective.trim().length > 0) {
+  if (
+    action === "set" &&
+    typeof body.objective === "string" &&
+    body.objective.trim().length > 0
+  ) {
     return {
       action,
       objective: body.objective.trim(),
-      ...(typeof body.tokenBudget === "number" ? { tokenBudget: body.tokenBudget } : {}),
+      ...(typeof body.tokenBudget === "number"
+        ? { tokenBudget: body.tokenBudget }
+        : {}),
     };
   }
   throw new Error(`unsupported goal operation ${action}`);

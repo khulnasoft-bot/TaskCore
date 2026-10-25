@@ -5,14 +5,16 @@ import { boardMutationGuard } from "../middleware/board-mutation-guard.js";
 
 function createApp(
   actorType: "board" | "agent",
-  boardSource: "session" | "local_implicit" | "board_key" | "cloud_tenant" = "session",
+  boardSource:
+    "session" | "local_implicit" | "board_key" | "cloud_tenant" = "session",
 ) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    req.actor = actorType === "board"
-      ? { type: "board", userId: "board", source: boardSource }
-      : { type: "agent", agentId: "agent-1" };
+    req.actor =
+      actorType === "board"
+        ? { type: "board", userId: "board", source: boardSource }
+        : { type: "agent", agentId: "agent-1" };
     next();
   });
   app.use(boardMutationGuard());

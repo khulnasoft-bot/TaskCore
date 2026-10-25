@@ -38,12 +38,27 @@
     },
     "content": { "$ref": "#/$defs/safeContent" },
     "outcome": {
-      "enum": ["succeeded", "denied", "conflict", "duplicate", "unavailable", "failed"]
+      "enum": [
+        "succeeded",
+        "denied",
+        "conflict",
+        "duplicate",
+        "unavailable",
+        "failed"
+      ]
     },
     "code": { "$ref": "#/$defs/stableCode" },
     "retryable": { "type": "boolean" },
     "authorizationBoundary": {
-      "enum": ["company", "actor", "active_task", "grant", "governed_action", "lock", "revision"]
+      "enum": [
+        "company",
+        "actor",
+        "active_task",
+        "grant",
+        "governed_action",
+        "lock",
+        "revision"
+      ]
     },
     "operationReceiptId": { "$ref": "#/$defs/stableId" },
     "auditReceiptId": { "$ref": "#/$defs/stableId" },
@@ -155,7 +170,9 @@
       "type": "object",
       "required": ["kind", "id", "immutable"],
       "properties": {
-        "kind": { "enum": ["document_revision", "interaction", "approval", "decision"] },
+        "kind": {
+          "enum": ["document_revision", "interaction", "approval", "decision"]
+        },
         "id": { "$ref": "#/$defs/stableId" },
         "immutable": { "const": true },
         "revisionId": { "$ref": "#/$defs/stableId" },

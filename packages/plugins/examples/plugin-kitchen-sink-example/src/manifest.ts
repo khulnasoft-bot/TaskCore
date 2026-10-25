@@ -16,7 +16,8 @@ const manifest: TaskcorePluginManifestV1 = {
   apiVersion: 1,
   version: PLUGIN_VERSION,
   displayName: "Kitchen Sink (Example)",
-  description: "Reference plugin that demonstrates the current Taskcore plugin API surface, UI surfaces, bridge actions, events, jobs, webhooks, tools, local workspace access, and runtime diagnostics in one place.",
+  description:
+    "Reference plugin that demonstrates the current Taskcore plugin API surface, UI surfaces, bridge actions, events, jobs, webhooks, tools, local workspace access, and runtime diagnostics in one place.",
   author: "Taskcore",
   categories: ["ui", "automation", "workspace", "connector"],
   capabilities: [
@@ -100,7 +101,8 @@ const manifest: TaskcorePluginManifestV1 = {
         type: "boolean",
         title: "Enable Process Demos",
         default: DEFAULT_CONFIG.enableProcessDemos,
-        description: "Allows curated local child-process demos in project workspaces.",
+        description:
+          "Allows curated local child-process demos in project workspaces.",
       },
       secretRefExample: {
         type: "string",
@@ -140,7 +142,8 @@ const manifest: TaskcorePluginManifestV1 = {
     {
       endpointKey: WEBHOOK_KEYS.demo,
       displayName: "Demo Ingest",
-      description: "Accepts arbitrary webhook payloads and records the latest delivery in plugin state.",
+      description:
+        "Accepts arbitrary webhook payloads and records the latest delivery in plugin state.",
     },
   ],
   tools: [
@@ -159,7 +162,8 @@ const manifest: TaskcorePluginManifestV1 = {
     {
       name: TOOL_NAMES.companySummary,
       displayName: "Kitchen Sink Company Summary",
-      description: "Summarizes the current company using the Taskcore domain APIs.",
+      description:
+        "Summarizes the current company using the Taskcore domain APIs.",
       parametersSchema: {
         type: "object",
         properties: {},
@@ -168,7 +172,8 @@ const manifest: TaskcorePluginManifestV1 = {
     {
       name: TOOL_NAMES.createIssue,
       displayName: "Kitchen Sink Create Issue",
-      description: "Creates an issue in the current project from an agent tool call.",
+      description:
+        "Creates an issue in the current project from an agent tool call.",
       parametersSchema: {
         type: "object",
         properties: {

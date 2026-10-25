@@ -45,7 +45,8 @@ const manifest: TaskcorePluginManifestV1 = {
           requestedCwd: {
             type: "string",
             default: "/home/user/taskcore-workspace",
-            description: "Workspace directory to create inside the sandbox lease.",
+            description:
+              "Workspace directory to create inside the sandbox lease.",
           },
           timeoutMs: {
             type: "number",
@@ -62,12 +63,14 @@ const manifest: TaskcorePluginManifestV1 = {
           secure: {
             type: "boolean",
             default: true,
-            description: "Use secure connections when supported by the Novita SDK.",
+            description:
+              "Use secure connections when supported by the Novita SDK.",
           },
           autoPause: {
             type: "boolean",
             default: false,
-            description: "Enable Novita sandbox auto-pause behavior when supported by the selected template.",
+            description:
+              "Enable Novita sandbox auto-pause behavior when supported by the selected template.",
           },
           reuseLease: {
             type: "boolean",

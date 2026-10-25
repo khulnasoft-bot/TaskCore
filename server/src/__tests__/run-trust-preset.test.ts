@@ -82,9 +82,7 @@ it("dispatch retains raw trust before workspace and broker setup", () => {
     let db: ReturnType<typeof createDb>;
 
     beforeAll(async () => {
-      database = await startEmbeddedPostgresTestDatabase(
-        "taskcore-run-trust-",
-      );
+      database = await startEmbeddedPostgresTestDatabase("taskcore-run-trust-");
       db = createDb(database.connectionString);
     }, 30_000);
     afterAll(async () => {

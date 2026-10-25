@@ -16,17 +16,20 @@ import type { CapabilityInteractionResponse } from "./InteractionCard";
  * package server instead.
  */
 
-function resolvedState(
-  outcome: CapabilityInteractionResponse["outcome"],
-): { state: CapabilityThreadInteractionState; label: string } {
+function resolvedState(outcome: CapabilityInteractionResponse["outcome"]): {
+  state: CapabilityThreadInteractionState;
+  label: string;
+} {
   if (outcome === "accepted") return { state: "accepted", label: "Accepted" };
-  if (outcome === "rejected") return { state: "rejected", label: "Changes requested" };
+  if (outcome === "rejected")
+    return { state: "rejected", label: "Changes requested" };
   return { state: "answered", label: "Answered" };
 }
 
 function summarise(response: CapabilityInteractionResponse): string[] {
   const result = response.result;
-  if (Array.isArray(result.selected)) return result.selected.map((entry) => String(entry));
+  if (Array.isArray(result.selected))
+    return result.selected.map((entry) => String(entry));
   if (Array.isArray(result.acceptedTaskIds)) {
     return result.acceptedTaskIds.map((entry) => `Accepted ${String(entry)}`);
   }
@@ -49,14 +52,21 @@ function applyToItem(
   item: CapabilityThreadItem,
   response: CapabilityInteractionResponse,
 ): CapabilityThreadItem {
-  if (item.kind !== "interaction" || item.interactionId !== response.interactionId) return item;
+  if (
+    item.kind !== "interaction" ||
+    item.interactionId !== response.interactionId
+  )
+    return item;
   const view = resolvedState(response.outcome);
   return {
     ...item,
     state: view.state,
     stateLabel: view.label,
     resolvedSummary: summarise(response),
-    reason: typeof response.result.reason === "string" ? response.result.reason : null,
+    reason:
+      typeof response.result.reason === "string"
+        ? response.result.reason
+        : null,
   };
 }
 
@@ -69,14 +79,21 @@ export function applyFakeInteractionResponse(
     ...turn,
     items: turn.items.map((item) => applyToItem(item, response)),
   }));
-  const stillPending = turns.some(
-    (turn) => turn.items.some((item) => item.kind === "interaction" && item.state === "pending"),
+  const stillPending = turns.some((turn) =>
+    turn.items.some(
+      (item) => item.kind === "interaction" && item.state === "pending",
+    ),
   );
   return {
     ...snapshot,
     turns,
     composer: stillPending
       ? snapshot.composer
-      : { state: "ready", helper: null, reason: null, pendingInteractionId: null },
+      : {
+          state: "ready",
+          helper: null,
+          reason: null,
+          pendingInteractionId: null,
+        },
   };
 }

@@ -7,9 +7,14 @@ const transientDbConnectionCodes = new Set([
 ]);
 
 export function isTransientDbConnectionError(error: unknown): boolean {
-  for (let current: unknown = error; current instanceof Error; current = current.cause) {
+  for (
+    let current: unknown = error;
+    current instanceof Error;
+    current = current.cause
+  ) {
     const code = (current as { code?: unknown }).code;
-    if (typeof code === "string" && transientDbConnectionCodes.has(code)) return true;
+    if (typeof code === "string" && transientDbConnectionCodes.has(code))
+      return true;
   }
   return false;
 }
@@ -24,7 +29,9 @@ export function isTransientDbConnectionError(error: unknown): boolean {
  * another stale socket. The pauses give the driver time to replace them.
  * Persistent failures still propagate after three total attempts.
  */
-export async function retryIdempotentDatabaseOperation<T>(run: () => Promise<T>): Promise<T> {
+export async function retryIdempotentDatabaseOperation<T>(
+  run: () => Promise<T>,
+): Promise<T> {
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await run();

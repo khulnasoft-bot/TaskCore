@@ -6,7 +6,9 @@ import type { EnvironmentRuntimeService } from "./environment-runtime.js";
  * derives from the service method, so a change to the acquire input stays in
  * sync with this helper.
  */
-export type AcquireLoginLeaseArgs = Parameters<EnvironmentRuntimeService["acquireRunLease"]>[0];
+export type AcquireLoginLeaseArgs = Parameters<
+  EnvironmentRuntimeService["acquireRunLease"]
+>[0];
 
 /**
  * The lease metadata that identifies the login sandbox. The helper copies these

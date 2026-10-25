@@ -22,13 +22,21 @@ describe("taskcore config schema", () => {
       server: {},
     });
 
-    expect(parsed.database.embeddedPostgresDataDir).toBe("~/.taskcore/instances/default/db");
-    expect(parsed.database.backup.dir).toBe("~/.taskcore/instances/default/data/backups");
+    expect(parsed.database.embeddedPostgresDataDir).toBe(
+      "~/.taskcore/instances/default/db",
+    );
+    expect(parsed.database.backup.dir).toBe(
+      "~/.taskcore/instances/default/data/backups",
+    );
     expect(parsed.logging.logDir).toBe("~/.taskcore/instances/default/logs");
-    expect(parsed.storage.localDisk.baseDir).toBe("~/.taskcore/instances/default/data/storage");
+    expect(parsed.storage.localDisk.baseDir).toBe(
+      "~/.taskcore/instances/default/data/storage",
+    );
     expect(parsed.storage.vercelBlob.access).toBe("private");
     expect(parsed.storage.vercelBlob.prefix).toBe("");
-    expect(parsed.secrets.localEncrypted.keyFilePath).toBe("~/.taskcore/instances/default/secrets/master.key");
+    expect(parsed.secrets.localEncrypted.keyFilePath).toBe(
+      "~/.taskcore/instances/default/secrets/master.key",
+    );
   });
 
   it("retains extension keys at the top level and every nested config boundary", () => {
@@ -120,18 +128,20 @@ describe("taskcore config schema", () => {
   });
 
   it("warns about likely misspellings while leaving arbitrary extensions alone", () => {
-    expect(findTaskcoreConfigKeyWarnings({
-      servr: {},
-      server: {
-        ports: 3100,
-        pluginOptions: {
-          arbitrary: true,
+    expect(
+      findTaskcoreConfigKeyWarnings({
+        servr: {},
+        server: {
+          ports: 3100,
+          pluginOptions: {
+            arbitrary: true,
+          },
         },
-      },
-      extensionNamespace: {
-        port: 9999,
-      },
-    })).toEqual([
+        extensionNamespace: {
+          port: 9999,
+        },
+      }),
+    ).toEqual([
       { path: "servr", suggestion: "server" },
       { path: "server.ports", suggestion: "server.port" },
     ]);

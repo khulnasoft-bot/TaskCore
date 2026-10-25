@@ -50,19 +50,27 @@ describe("PF-4 shouldResetTaskSessionForWake", () => {
   });
 
   it("still respects forceFreshSession === true", () => {
-    expect(shouldResetTaskSessionForWake({ forceFreshSession: true })).toBe(true);
+    expect(shouldResetTaskSessionForWake({ forceFreshSession: true })).toBe(
+      true,
+    );
   });
 
   it("does not reset for issue_commented (preserve continuation context)", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "issue_commented" })).toBe(false);
+    expect(
+      shouldResetTaskSessionForWake({ wakeReason: "issue_commented" }),
+    ).toBe(false);
   });
 
   it("does not reset for transient_failure_retry (resume in-flight work)", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "transient_failure_retry" })).toBe(false);
+    expect(
+      shouldResetTaskSessionForWake({ wakeReason: "transient_failure_retry" }),
+    ).toBe(false);
   });
 
   it("does not reset for unknown wake reasons", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "unknown_reason" })).toBe(false);
+    expect(
+      shouldResetTaskSessionForWake({ wakeReason: "unknown_reason" }),
+    ).toBe(false);
   });
 
   it("does not reset when context is null/undefined", () => {
@@ -76,7 +84,9 @@ describe("PF-4 describeSessionResetReason", () => {
     const reason = describeSessionResetReason({
       wakeReason: "heartbeat_timer",
     });
-    expect(reason).toBe("wake reason is heartbeat_timer (unscoped timer wake starts fresh)");
+    expect(reason).toBe(
+      "wake reason is heartbeat_timer (unscoped timer wake starts fresh)",
+    );
   });
 
   it("does not describe an issue-scoped heartbeat_timer wake as a reset", () => {
@@ -92,17 +102,25 @@ describe("PF-4 describeSessionResetReason", () => {
     expect(describeSessionResetReason({ wakeReason: "issue_assigned" })).toBe(
       "wake reason is issue_assigned",
     );
-    expect(describeSessionResetReason({ wakeReason: "execution_approval_requested" })).toBe(
-      "wake reason is execution_approval_requested",
-    );
     expect(
-      describeSessionResetReason({ wakeReason: "execution_review_participant_recovery" }),
+      describeSessionResetReason({
+        wakeReason: "execution_approval_requested",
+      }),
+    ).toBe("wake reason is execution_approval_requested");
+    expect(
+      describeSessionResetReason({
+        wakeReason: "execution_review_participant_recovery",
+      }),
     ).toBe("wake reason is execution_review_participant_recovery");
   });
 
   it("does not report review/change-request handoffs as reset reasons", () => {
-    expect(describeSessionResetReason({ wakeReason: "execution_review_requested" })).toBeNull();
-    expect(describeSessionResetReason({ wakeReason: "execution_changes_requested" })).toBeNull();
+    expect(
+      describeSessionResetReason({ wakeReason: "execution_review_requested" }),
+    ).toBeNull();
+    expect(
+      describeSessionResetReason({ wakeReason: "execution_changes_requested" }),
+    ).toBeNull();
   });
 
   it("returns the forceFreshSession message when explicitly requested", () => {
@@ -112,9 +130,15 @@ describe("PF-4 describeSessionResetReason", () => {
   });
 
   it("returns null for non-resetting wake reasons", () => {
-    expect(describeSessionResetReason({ wakeReason: "issue_commented" })).toBeNull();
-    expect(describeSessionResetReason({ wakeReason: "transient_failure_retry" })).toBeNull();
-    expect(describeSessionResetReason({ wakeReason: "unknown_reason" })).toBeNull();
+    expect(
+      describeSessionResetReason({ wakeReason: "issue_commented" }),
+    ).toBeNull();
+    expect(
+      describeSessionResetReason({ wakeReason: "transient_failure_retry" }),
+    ).toBeNull();
+    expect(
+      describeSessionResetReason({ wakeReason: "unknown_reason" }),
+    ).toBeNull();
     expect(describeSessionResetReason(null)).toBeNull();
     expect(describeSessionResetReason(undefined)).toBeNull();
   });

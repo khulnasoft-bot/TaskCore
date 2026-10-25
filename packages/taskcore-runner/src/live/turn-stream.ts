@@ -18,16 +18,18 @@
  * all agree on the wire format without any of them dragging in the others.
  */
 
-export const CAPABILITY_TURN_STREAM_SCHEMA = "taskcore.capability.turn-stream.v1" as const;
+export const CAPABILITY_TURN_STREAM_SCHEMA =
+  "taskcore.capability.turn-stream.v1" as const;
 
 /** `no-transform` is the half that keeps an intermediary from coalescing frames. */
-export const CAPABILITY_TURN_STREAM_HEADERS: Readonly<Record<string, string>> = Object.freeze({
-  "content-type": "application/x-ndjson; charset=utf-8",
-  "cache-control": "no-store, no-transform",
-  // Nginx and friends buffer proxied responses by default, which would hold
-  // every frame until the turn ended and reproduce the reported symptom.
-  "x-accel-buffering": "no",
-});
+export const CAPABILITY_TURN_STREAM_HEADERS: Readonly<Record<string, string>> =
+  Object.freeze({
+    "content-type": "application/x-ndjson; charset=utf-8",
+    "cache-control": "no-store, no-transform",
+    // Nginx and friends buffer proxied responses by default, which would hold
+    // every frame until the turn ended and reproduce the reported symptom.
+    "x-accel-buffering": "no",
+  });
 
 export const CAPABILITY_TURN_STREAM_ACCEPT = "application/x-ndjson" as const;
 
@@ -70,11 +72,7 @@ export function capabilityUtf8ByteLength(value: string): number {
  * client renders `view` the same way whatever produced it.
  */
 export type CapabilityTurnStreamReason =
-  | "open"
-  | "delta"
-  | "activity"
-  | "stop_requested"
-  | "terminal";
+  "open" | "delta" | "activity" | "stop_requested" | "terminal";
 
 export interface CapabilityTurnStreamViewFrame<View> {
   schema: typeof CAPABILITY_TURN_STREAM_SCHEMA;
@@ -108,7 +106,8 @@ export type CapabilityTurnStreamFrame<View, Payload> =
 
 export function isCapabilityTurnStreamTerminalFrame<View, Payload>(
   frame: CapabilityTurnStreamFrame<View, Payload>,
-): frame is CapabilityTurnStreamSettledFrame<Payload> | CapabilityTurnStreamErrorFrame {
+): frame is
+  CapabilityTurnStreamSettledFrame<Payload> | CapabilityTurnStreamErrorFrame {
   return frame.type === "settled" || frame.type === "error";
 }
 
@@ -128,25 +127,50 @@ export class CapabilityTurnStreamError extends Error {
   }
 }
 
-function parseFrame<View, Payload>(line: string): CapabilityTurnStreamFrame<View, Payload> {
+function parseFrame<View, Payload>(
+  line: string,
+): CapabilityTurnStreamFrame<View, Payload> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(line);
   } catch {
-    throw new CapabilityTurnStreamError("stream_frame_invalid", "A turn frame was not valid JSON.");
+    throw new CapabilityTurnStreamError(
+      "stream_frame_invalid",
+      "A turn frame was not valid JSON.",
+    );
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new CapabilityTurnStreamError("stream_frame_invalid", "A turn frame was not an object.");
+    throw new CapabilityTurnStreamError(
+      "stream_frame_invalid",
+      "A turn frame was not an object.",
+    );
   }
   const frame = parsed as Partial<CapabilityTurnStreamFrame<View, Payload>>;
   if (frame.schema !== CAPABILITY_TURN_STREAM_SCHEMA) {
-    throw new CapabilityTurnStreamError("stream_schema_unknown", "A turn frame used an unknown schema.");
+    throw new CapabilityTurnStreamError(
+      "stream_schema_unknown",
+      "A turn frame used an unknown schema.",
+    );
   }
-  if (frame.type !== "frame" && frame.type !== "settled" && frame.type !== "error") {
-    throw new CapabilityTurnStreamError("stream_frame_invalid", "A turn frame used an unknown type.");
+  if (
+    frame.type !== "frame" &&
+    frame.type !== "settled" &&
+    frame.type !== "error"
+  ) {
+    throw new CapabilityTurnStreamError(
+      "stream_frame_invalid",
+      "A turn frame used an unknown type.",
+    );
   }
-  if (typeof frame.seq !== "number" || !Number.isInteger(frame.seq) || frame.seq < 1) {
-    throw new CapabilityTurnStreamError("stream_frame_invalid", "A turn frame omitted its sequence.");
+  if (
+    typeof frame.seq !== "number" ||
+    !Number.isInteger(frame.seq) ||
+    frame.seq < 1
+  ) {
+    throw new CapabilityTurnStreamError(
+      "stream_frame_invalid",
+      "A turn frame omitted its sequence.",
+    );
   }
   return frame as CapabilityTurnStreamFrame<View, Payload>;
 }
@@ -164,15 +188,17 @@ export interface CapabilityTurnStreamDecoder<View, Payload> {
  * wire order, and `seq` is checked to be strictly increasing so a reordered or
  * replayed frame is a failure rather than a silently applied stale view.
  */
-export function createCapabilityTurnStreamDecoder<View, Payload>(): CapabilityTurnStreamDecoder<
+export function createCapabilityTurnStreamDecoder<
   View,
-  Payload
-> {
+  Payload,
+>(): CapabilityTurnStreamDecoder<View, Payload> {
   let buffer = "";
   let lastSeq = 0;
   let terminal = false;
 
-  function accept(line: string): CapabilityTurnStreamFrame<View, Payload> | null {
+  function accept(
+    line: string,
+  ): CapabilityTurnStreamFrame<View, Payload> | null {
     const trimmed = line.trim();
     if (trimmed.length === 0) return null;
     if (terminal) {
@@ -196,7 +222,10 @@ export function createCapabilityTurnStreamDecoder<View, Payload>(): CapabilityTu
   return {
     push(chunk) {
       buffer += chunk;
-      if (capabilityUtf8ByteLength(buffer) > CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES) {
+      if (
+        capabilityUtf8ByteLength(buffer) >
+        CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES
+      ) {
         throw new CapabilityTurnStreamError(
           "stream_frame_too_large",
           "A turn frame exceeded the stream frame limit.",
@@ -249,7 +278,10 @@ export async function readCapabilityTurnStream<View, Payload>(
   onFrame: (frame: CapabilityTurnStreamViewFrame<View>) => void,
 ): Promise<Payload> {
   if (response.body === null) {
-    throw new CapabilityTurnStreamError("stream_unreadable", "The turn response had no readable body.");
+    throw new CapabilityTurnStreamError(
+      "stream_unreadable",
+      "The turn response had no readable body.",
+    );
   }
   const decoder = createCapabilityTurnStreamDecoder<View, Payload>();
   const text = new TextDecoder();
@@ -257,7 +289,9 @@ export async function readCapabilityTurnStream<View, Payload>(
   let settled: Payload | undefined;
   let settledSeen = false;
 
-  function apply(frames: Array<CapabilityTurnStreamFrame<View, Payload>>): void {
+  function apply(
+    frames: Array<CapabilityTurnStreamFrame<View, Payload>>,
+  ): void {
     for (const frame of frames) {
       if (frame.type === "frame") {
         onFrame(frame);
@@ -285,7 +319,10 @@ export async function readCapabilityTurnStream<View, Payload>(
   }
 
   if (!settledSeen) {
-    throw new CapabilityTurnStreamError("stream_truncated", "The turn stream never settled.");
+    throw new CapabilityTurnStreamError(
+      "stream_truncated",
+      "The turn stream never settled.",
+    );
   }
   return settled as Payload;
 }

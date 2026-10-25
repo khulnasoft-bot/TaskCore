@@ -8,7 +8,9 @@ function at(hash: string, search = "") {
 
 describe("Capability issue-thread routes", () => {
   it("keeps the existing deterministic scenario deep links intact", () => {
-    const route = at("#/issue/dp-documents?shot=document-revision&panel=state&rec=doc-1&at=3&seg=evidence");
+    const route = at(
+      "#/issue/dp-documents?shot=document-revision&panel=state&rec=doc-1&at=3&seg=evidence",
+    );
 
     expect(route.surface).toBe("issue");
     expect(route.fixtureProfile).toBe("dp-documents");
@@ -62,14 +64,25 @@ describe("Capability clean-room route", () => {
     expect(route.panel).toBe("calls");
     expect(route.record).toBe("call-1");
     expect(route.segment).toBe("evidence");
-    expect(capabilityRouteHref(route, {})).toBe("#/chat?panel=calls&rec=call-1&seg=evidence");
-    expect(capabilityRouteHref(route, { panel: null, record: null, segment: "thread" })).toBe("#/chat");
+    expect(capabilityRouteHref(route, {})).toBe(
+      "#/chat?panel=calls&rec=call-1&seg=evidence",
+    );
+    expect(
+      capabilityRouteHref(route, {
+        panel: null,
+        record: null,
+        segment: "thread",
+      }),
+    ).toBe("#/chat");
   });
 
   it("switches surfaces without dragging scenario state across", () => {
     const chat = at("#/chat");
-    expect(capabilityRouteHref(chat, { surface: "issue", fixtureProfile: "ar-artifacts" })).toBe(
-      "#/issue/ar-artifacts?mode=live",
-    );
+    expect(
+      capabilityRouteHref(chat, {
+        surface: "issue",
+        fixtureProfile: "ar-artifacts",
+      }),
+    ).toBe("#/issue/ar-artifacts?mode=live");
   });
 });

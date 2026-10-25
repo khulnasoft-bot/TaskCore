@@ -11,7 +11,11 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { copyTextToClipboard } from "@/lib/clipboard";
 
@@ -36,7 +40,8 @@ export type WorkspaceServiceControlEntry = {
   /** Short human-readable failure summary, e.g. "dev exited with code 1, 12s ago". */
   failureDetail?: string | null;
   /** HTTPS exposure lifecycle, intentionally separate from process health. */
-  exposureState?: "pending" | "ready" | "failed" | "cleanup_pending" | "removed" | null;
+  exposureState?:
+    "pending" | "ready" | "failed" | "cleanup_pending" | "removed" | null;
   exposureDetail?: string | null;
   canStart?: boolean;
 };
@@ -44,7 +49,10 @@ export type WorkspaceServiceControlEntry = {
 export type WorkspaceServiceControlBarProps = {
   services: WorkspaceServiceControlEntry[];
   /** serviceKey is null when the action targets all services (aggregate bar / popover footer). */
-  onAction: (action: WorkspaceServiceControlAction, serviceKey: string | null) => void;
+  onAction: (
+    action: WorkspaceServiceControlAction,
+    serviceKey: string | null,
+  ) => void;
   onViewLogs?: () => void;
   /** Optional link target for "Manage in Services tab" in the multi-service popover. */
   onManageServices?: () => void;
@@ -53,7 +61,12 @@ export type WorkspaceServiceControlBarProps = {
   className?: string;
 };
 
-const TRANSITIONAL_STATES: WorkspaceServiceControlState[] = ["provisioning", "starting", "stopping", "restarting"];
+const TRANSITIONAL_STATES: WorkspaceServiceControlState[] = [
+  "provisioning",
+  "starting",
+  "stopping",
+  "restarting",
+];
 
 function isTransitional(state: WorkspaceServiceControlState) {
   return TRANSITIONAL_STATES.includes(state);
@@ -64,7 +77,10 @@ function formatServiceUrl(url: string | null | undefined) {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
-function statusMeta(entry: WorkspaceServiceControlEntry): { label: string; unhealthy: boolean } {
+function statusMeta(entry: WorkspaceServiceControlEntry): {
+  label: string;
+  unhealthy: boolean;
+} {
   switch (entry.state) {
     case "provisioning":
       return { label: "Provisioning…", unhealthy: false };
@@ -85,14 +101,32 @@ function statusMeta(entry: WorkspaceServiceControlEntry): { label: string; unhea
   }
 }
 
-function StatusIndicator({ entry, className }: { entry: WorkspaceServiceControlEntry; className?: string }) {
+function StatusIndicator({
+  entry,
+  className,
+}: {
+  entry: WorkspaceServiceControlEntry;
+  className?: string;
+}) {
   if (isTransitional(entry.state)) {
-    return <Loader2 className={cn("size-3 shrink-0 animate-spin text-muted-foreground", className)} />;
+    return (
+      <Loader2
+        className={cn(
+          "size-3 shrink-0 animate-spin text-muted-foreground",
+          className,
+        )}
+      />
+    );
   }
   if (entry.state === "failed") {
-    return <TriangleAlert className={cn("size-3 shrink-0 text-destructive", className)} />;
+    return (
+      <TriangleAlert
+        className={cn("size-3 shrink-0 text-destructive", className)}
+      />
+    );
   }
-  const unhealthy = entry.state === "running" && entry.healthStatus === "unhealthy";
+  const unhealthy =
+    entry.state === "running" && entry.healthStatus === "unhealthy";
   return (
     <span
       className={cn(
@@ -109,12 +143,22 @@ function StatusIndicator({ entry, className }: { entry: WorkspaceServiceControlE
 }
 
 function CopyUrlButton({ url, disabled }: { url: string; disabled?: boolean }) {
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  }, []);
-  const copyLabel = copyState === "copied" ? "URL copied" : copyState === "failed" ? "Copy failed" : "Copy URL";
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    [],
+  );
+  const copyLabel =
+    copyState === "copied"
+      ? "URL copied"
+      : copyState === "failed"
+        ? "Copy failed"
+        : "Copy URL";
   return (
     <Button
       variant="ghost"
@@ -141,17 +185,28 @@ function CopyUrlButton({ url, disabled }: { url: string; disabled?: boolean }) {
       ) : (
         <Copy className="size-3" />
       )}
-      <span className="sr-only" aria-live="polite">{copyLabel}</span>
+      <span className="sr-only" aria-live="polite">
+        {copyLabel}
+      </span>
     </Button>
   );
 }
 
-function UrlSegment({ entry, compact }: { entry: WorkspaceServiceControlEntry; compact?: boolean }) {
-  const displayUrl = formatServiceUrl(entry.url) ?? (entry.port ? `:${entry.port}` : null);
+function UrlSegment({
+  entry,
+  compact,
+}: {
+  entry: WorkspaceServiceControlEntry;
+  compact?: boolean;
+}) {
+  const displayUrl =
+    formatServiceUrl(entry.url) ?? (entry.port ? `:${entry.port}` : null);
   const live = entry.state === "running" && Boolean(entry.url);
 
   if (!displayUrl) {
-    return <span className="font-mono text-xs text-muted-foreground/70">no url</span>;
+    return (
+      <span className="font-mono text-xs text-muted-foreground/70">no url</span>
+    );
   }
   return (
     <>
@@ -161,19 +216,28 @@ function UrlSegment({ entry, compact }: { entry: WorkspaceServiceControlEntry; c
           target="_blank"
           rel="noreferrer"
           title={entry.url ?? undefined}
-          className={cn("min-w-0 truncate font-mono text-xs text-foreground hover:underline", compact ? "max-w-44" : "max-w-56")}
+          className={cn(
+            "min-w-0 truncate font-mono text-xs text-foreground hover:underline",
+            compact ? "max-w-44" : "max-w-56",
+          )}
         >
           {displayUrl}
         </a>
       ) : (
         <span
           title={entry.url ?? undefined}
-          className={cn("min-w-0 truncate font-mono text-xs text-muted-foreground/70", compact ? "max-w-44" : "max-w-56")}
+          className={cn(
+            "min-w-0 truncate font-mono text-xs text-muted-foreground/70",
+            compact ? "max-w-44" : "max-w-56",
+          )}
         >
           {displayUrl}
         </span>
       )}
-      <span className={cn("flex items-center", live ? null : "invisible")} aria-hidden={live ? undefined : true}>
+      <span
+        className={cn("flex items-center", live ? null : "invisible")}
+        aria-hidden={live ? undefined : true}
+      >
         <CopyUrlButton url={entry.url ?? ""} disabled={!live} />
         <Button
           asChild={live}
@@ -184,7 +248,12 @@ function UrlSegment({ entry, compact }: { entry: WorkspaceServiceControlEntry; c
           title="Open in new tab"
         >
           {live ? (
-            <a href={entry.url ?? undefined} target="_blank" rel="noreferrer" aria-label="Open in new tab">
+            <a
+              href={entry.url ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open in new tab"
+            >
               <ExternalLink className="size-3" />
             </a>
           ) : (
@@ -286,11 +355,20 @@ function ServiceDetail({
   entry: WorkspaceServiceControlEntry;
   onViewLogs?: () => void;
 }) {
-  const detail = entry.exposureDetail ?? (entry.state === "failed" ? entry.failureDetail : null);
+  const detail =
+    entry.exposureDetail ??
+    (entry.state === "failed" ? entry.failureDetail : null);
   if (!detail) return null;
-  const exposureFailed = entry.exposureState === "failed" || entry.exposureState === "cleanup_pending";
+  const exposureFailed =
+    entry.exposureState === "failed" ||
+    entry.exposureState === "cleanup_pending";
   return (
-    <div className={cn("flex items-center gap-1 text-xs", exposureFailed ? "text-destructive" : "text-muted-foreground")}>
+    <div
+      className={cn(
+        "flex items-center gap-1 text-xs",
+        exposureFailed ? "text-destructive" : "text-muted-foreground",
+      )}
+    >
       <span>{detail}</span>
       {onViewLogs && entry.state === "failed" ? (
         <>
@@ -315,18 +393,28 @@ function SingleServiceBar({
   className,
 }: {
   entry: WorkspaceServiceControlEntry;
-  onAction: (action: WorkspaceServiceControlAction, serviceKey: string | null) => void;
+  onAction: (
+    action: WorkspaceServiceControlAction,
+    serviceKey: string | null,
+  ) => void;
   onViewLogs?: () => void;
   className?: string;
 }) {
   const meta = statusMeta(entry);
   return (
-    <div className={cn("flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end", className)}>
+    <div
+      className={cn(
+        "flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end",
+        className,
+      )}
+    >
       <div className="rounded-lg border border-border bg-background">
         <div className="flex h-9 items-center pl-3 pr-1.5">
           <div className="flex items-center gap-2 sm:min-w-24">
             <StatusIndicator entry={entry} />
-            <span className="whitespace-nowrap text-xs font-medium text-foreground">{meta.label}</span>
+            <span className="whitespace-nowrap text-xs font-medium text-foreground">
+              {meta.label}
+            </span>
           </div>
           <div className="mx-3 hidden h-5 w-px bg-border sm:block" />
           <div className="hidden w-56 min-w-0 shrink-0 items-center gap-0.5 sm:flex">
@@ -354,27 +442,34 @@ function ServicePopoverRow({
   onAction,
 }: {
   entry: WorkspaceServiceControlEntry;
-  onAction: (action: WorkspaceServiceControlAction, serviceKey: string | null) => void;
+  onAction: (
+    action: WorkspaceServiceControlAction,
+    serviceKey: string | null,
+  ) => void;
 }) {
   const meta = statusMeta(entry);
   const displayUrl = formatServiceUrl(entry.url);
   const live = entry.state === "running" && Boolean(entry.url);
-  const exposureFailed = entry.exposureState === "failed" || entry.exposureState === "cleanup_pending";
+  const exposureFailed =
+    entry.exposureState === "failed" ||
+    entry.exposureState === "cleanup_pending";
   const secondary = entry.exposureDetail
     ? entry.exposureDetail
     : live
       ? displayUrl
-    : entry.state === "starting" && entry.port
-      ? `starting on :${entry.port}…`
-      : entry.state === "failed" && entry.failureDetail
-        ? entry.failureDetail
-        : `${meta.label.toLowerCase().replace(/…$/, "")}${entry.port ? ` · :${entry.port}` : ""}`;
+      : entry.state === "starting" && entry.port
+        ? `starting on :${entry.port}…`
+        : entry.state === "failed" && entry.failureDetail
+          ? entry.failureDetail
+          : `${meta.label.toLowerCase().replace(/…$/, "")}${entry.port ? ` · :${entry.port}` : ""}`;
 
   return (
     <div className="flex items-center gap-3 py-2.5">
       <StatusIndicator entry={entry} className="mt-0.5" />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-foreground">{entry.name}</div>
+        <div className="truncate text-sm font-medium text-foreground">
+          {entry.name}
+        </div>
         <div className="flex min-w-0 items-center gap-0.5">
           {live && entry.url ? (
             <>
@@ -404,7 +499,10 @@ function ServicePopoverRow({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <ActionSlots entry={entry} onAction={(action) => onAction(action, entry.key)} />
+        <ActionSlots
+          entry={entry}
+          onAction={(action) => onAction(action, entry.key)}
+        />
       </div>
     </div>
   );
@@ -418,17 +516,23 @@ function MultiServiceBar({
   className,
 }: {
   services: WorkspaceServiceControlEntry[];
-  onAction: (action: WorkspaceServiceControlAction, serviceKey: string | null) => void;
+  onAction: (
+    action: WorkspaceServiceControlAction,
+    serviceKey: string | null,
+  ) => void;
   onManageServices?: () => void;
   defaultServicesOpen?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(defaultServicesOpen ?? false);
-  const runningCount = services.filter((entry) => entry.state === "running").length;
+  const runningCount = services.filter(
+    (entry) => entry.state === "running",
+  ).length;
   const anyTransitional = services.some((entry) => isTransitional(entry.state));
   const anyFailed = services.some((entry) => entry.state === "failed");
   const anyRunning = runningCount > 0;
-  const primary = services.find((entry) => entry.state === "running" && entry.url) ?? null;
+  const primary =
+    services.find((entry) => entry.state === "running" && entry.url) ?? null;
 
   const aggregateEntry: WorkspaceServiceControlEntry = {
     key: "__all__",
@@ -440,13 +544,21 @@ function MultiServiceBar({
         : anyRunning
           ? "running"
           : "stopped",
-    healthStatus: services.some((entry) => entry.state === "running" && entry.healthStatus === "unhealthy")
+    healthStatus: services.some(
+      (entry) =>
+        entry.state === "running" && entry.healthStatus === "unhealthy",
+    )
       ? "unhealthy"
       : "healthy",
   };
 
   return (
-    <div className={cn("flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end", className)}>
+    <div
+      className={cn(
+        "flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end",
+        className,
+      )}
+    >
       <div className="rounded-lg border border-border bg-background">
         <div className="flex h-9 items-center pl-3 pr-1.5">
           <Popover open={open} onOpenChange={setOpen}>
@@ -457,23 +569,51 @@ function MultiServiceBar({
                 aria-label={`${runningCount} of ${services.length} services running — show services`}
               >
                 <StatusIndicator entry={aggregateEntry} />
-                <span className="whitespace-nowrap">{runningCount}/{services.length} running</span>
+                <span className="whitespace-nowrap">
+                  {runningCount}/{services.length} running
+                </span>
                 <ChevronDown className="size-3 text-muted-foreground" />
               </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-96 p-0" onOpenAutoFocus={(event) => event.preventDefault()}>
+            <PopoverContent
+              align="end"
+              className="w-96 p-0"
+              onOpenAutoFocus={(event) => event.preventDefault()}
+            >
               <div className="px-4 pb-1 pt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Services · {services.length}
               </div>
               <div className="divide-y divide-border px-4">
                 {services.map((entry) => (
-                  <ServicePopoverRow key={entry.key} entry={entry} onAction={onAction} />
+                  <ServicePopoverRow
+                    key={entry.key}
+                    entry={entry}
+                    onAction={onAction}
+                  />
                 ))}
               </div>
               <div className="flex items-center gap-1 border-t border-border px-4 py-2">
-                <Button variant="ghost" size="xs" onClick={() => onAction("start", null)}>Start all</Button>
-                <Button variant="ghost" size="xs" onClick={() => onAction("stop", null)}>Stop all</Button>
-                <Button variant="ghost" size="xs" onClick={() => onAction("restart", null)}>Restart all</Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => onAction("start", null)}
+                >
+                  Start all
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => onAction("stop", null)}
+                >
+                  Stop all
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => onAction("restart", null)}
+                >
+                  Restart all
+                </Button>
                 {onManageServices ? (
                   <Button
                     variant="link"
@@ -491,11 +631,15 @@ function MultiServiceBar({
           <div className="hidden min-w-0 items-center gap-0.5 sm:flex">
             {primary ? (
               <>
-                <span className="mr-1 shrink-0 text-xs text-muted-foreground">{primary.name}</span>
+                <span className="mr-1 shrink-0 text-xs text-muted-foreground">
+                  {primary.name}
+                </span>
                 <UrlSegment entry={primary} />
               </>
             ) : (
-              <span className="font-mono text-xs text-muted-foreground/70">no url</span>
+              <span className="font-mono text-xs text-muted-foreground/70">
+                no url
+              </span>
             )}
           </div>
           <div className="mx-3 hidden h-5 w-px bg-border sm:block" />

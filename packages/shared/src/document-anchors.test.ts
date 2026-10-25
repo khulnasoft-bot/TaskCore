@@ -37,9 +37,15 @@ describe("document text projection", () => {
     expect(projection.positions).toHaveLength(projection.text.length);
 
     const linkStart = projection.text.indexOf("link text");
-    const range = resolveProjectionRange(projection, linkStart, linkStart + "link text".length);
+    const range = resolveProjectionRange(
+      projection,
+      linkStart,
+      linkStart + "link text".length,
+    );
     expect(range?.markdownStart).toBe(markdown.indexOf("link text"));
-    expect(range?.markdownEnd).toBe(markdown.indexOf("link text") + "link text".length);
+    expect(range?.markdownEnd).toBe(
+      markdown.indexOf("link text") + "link text".length,
+    );
   });
 
   it("normalizes whitespace while retaining markdown offsets", () => {
@@ -47,7 +53,11 @@ describe("document text projection", () => {
     const projection = projectMarkdownToText(markdown);
 
     expect(projection.text).toBe("First line Second line");
-    const range = resolveProjectionRange(projection, projection.text.indexOf("Second"), projection.text.length);
+    const range = resolveProjectionRange(
+      projection,
+      projection.text.indexOf("Second"),
+      projection.text.length,
+    );
     expect(range?.markdownStart).toBe(markdown.indexOf("Second"));
     expect(range?.markdownEnd).toBe(markdown.length);
   });
@@ -56,7 +66,9 @@ describe("document text projection", () => {
     const markdown = "Keep (parenthetical) [plain brackets] visible.";
     const projection = projectMarkdownToText(markdown);
 
-    expect(projection.text).toBe("Keep (parenthetical) [plain brackets] visible.");
+    expect(projection.text).toBe(
+      "Keep (parenthetical) [plain brackets] visible.",
+    );
   });
 });
 
@@ -69,11 +81,16 @@ describe("document anchor verification and remapping", () => {
 
     expect(result.ok).toBe(true);
     expect(result.anchor?.selectedText).toBe("selected text");
-    expect(result.anchor?.markdownStart).toBe(markdown.indexOf("selected text"));
+    expect(result.anchor?.markdownStart).toBe(
+      markdown.indexOf("selected text"),
+    );
   });
 
   it("remaps exact anchors after surrounding text moves", () => {
-    const selector = selectorFor("Alpha paragraph.\n\nTarget sentence here.\n\nOmega paragraph.", "Target sentence here.");
+    const selector = selectorFor(
+      "Alpha paragraph.\n\nTarget sentence here.\n\nOmega paragraph.",
+      "Target sentence here.",
+    );
     const previousAnchor = {
       selectedText: selector.quote.exact,
       prefixText: selector.quote.prefix,
@@ -86,7 +103,8 @@ describe("document anchor verification and remapping", () => {
 
     const result = remapDocumentAnchor({
       previousAnchor,
-      nextMarkdown: "Omega paragraph.\n\nAlpha paragraph.\n\nTarget sentence here.",
+      nextMarkdown:
+        "Omega paragraph.\n\nAlpha paragraph.\n\nTarget sentence here.",
     });
 
     expect(result.anchorState).toBe("active");
@@ -95,7 +113,10 @@ describe("document anchor verification and remapping", () => {
   });
 
   it("uses context and proximity to disambiguate duplicate quotes", () => {
-    const selector = selectorFor("One apple near the start.\n\nTwo apple near the end.", "apple");
+    const selector = selectorFor(
+      "One apple near the start.\n\nTwo apple near the end.",
+      "apple",
+    );
     const previousAnchor = {
       selectedText: selector.quote.exact,
       prefixText: selector.quote.prefix,
@@ -108,7 +129,8 @@ describe("document anchor verification and remapping", () => {
 
     const result = remapDocumentAnchor({
       previousAnchor,
-      nextMarkdown: "Zero apple elsewhere.\n\nOne apple near the start.\n\nTwo apple near the end.",
+      nextMarkdown:
+        "Zero apple elsewhere.\n\nOne apple near the start.\n\nTwo apple near the end.",
     });
 
     expect(result.anchorState).toBe("active");
@@ -128,14 +150,20 @@ describe("document anchor verification and remapping", () => {
       markdownEnd: selector.position.markdownEnd,
     };
 
-    const result = remapDocumentAnchor({ previousAnchor, nextMarkdown: "apple apple" });
+    const result = remapDocumentAnchor({
+      previousAnchor,
+      nextMarkdown: "apple apple",
+    });
 
     expect(result.anchorState).toBe("stale");
     expect(result.confidence).toBe("ambiguous");
   });
 
   it("keeps edited anchors as stale fuzzy matches", () => {
-    const selector = selectorFor("We rely on an important launch assumption for scope.", "important launch assumption");
+    const selector = selectorFor(
+      "We rely on an important launch assumption for scope.",
+      "important launch assumption",
+    );
     const previousAnchor = {
       selectedText: selector.quote.exact,
       prefixText: selector.quote.prefix,
@@ -148,16 +176,22 @@ describe("document anchor verification and remapping", () => {
 
     const result = remapDocumentAnchor({
       previousAnchor,
-      nextMarkdown: "We rely on an important product launch assumption for scope.",
+      nextMarkdown:
+        "We rely on an important product launch assumption for scope.",
     });
 
     expect(result.anchorState).toBe("stale");
     expect(result.confidence).toBe("fuzzy");
-    expect(result.anchor?.selectedText).toBe("important product launch assumption");
+    expect(result.anchor?.selectedText).toBe(
+      "important product launch assumption",
+    );
   });
 
   it("marks deleted anchors orphaned and allows future remapping from the latest known anchor", () => {
-    const selector = selectorFor("Keep this reviewed phrase in mind.", "reviewed phrase");
+    const selector = selectorFor(
+      "Keep this reviewed phrase in mind.",
+      "reviewed phrase",
+    );
     const previousAnchor = {
       selectedText: selector.quote.exact,
       prefixText: selector.quote.prefix,
@@ -168,7 +202,10 @@ describe("document anchor verification and remapping", () => {
       markdownEnd: selector.position.markdownEnd,
     };
 
-    const missing = remapDocumentAnchor({ previousAnchor, nextMarkdown: "The target disappeared." });
+    const missing = remapDocumentAnchor({
+      previousAnchor,
+      nextMarkdown: "The target disappeared.",
+    });
     const recovered = remapDocumentAnchor({
       previousAnchor,
       nextMarkdown: "The target came back: reviewed phrase.",

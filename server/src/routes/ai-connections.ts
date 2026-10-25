@@ -35,16 +35,31 @@ import { validate } from "../middleware/validate.js";
 /** Agent API calls inherit authenticated run identity, never the agent's own ID. */
 export function responsibleUserForAiRequest(req: Request): string | null {
   return req.actor.type === "agent"
-    ? req.actor.onBehalfOfUserId ?? null
+    ? (req.actor.onBehalfOfUserId ?? null)
     : getActorInfo(req).actorId;
 }
 
-export async function canManageAiConnections(db: Db, req: Request, companyId: string): Promise<boolean> {
-  const membership = req.actor.memberships?.find((m) => m.companyId === companyId && m.status === "active");
+export async function canManageAiConnections(
+  db: Db,
+  req: Request,
+  companyId: string,
+): Promise<boolean> {
+  const membership = req.actor.memberships?.find(
+    (m) => m.companyId === companyId && m.status === "active",
+  );
   if (membership?.membershipRole === "viewer") return false;
-  return req.actor.source === "local_implicit" || Boolean(req.actor.isInstanceAdmin)
-    || membership?.membershipRole === "owner" || membership?.membershipRole === "admin"
-    || await accessService(db).hasPermission(companyId, "user", getActorInfo(req).actorId, "tools:manage_connections");
+  return (
+    req.actor.source === "local_implicit" ||
+    Boolean(req.actor.isInstanceAdmin) ||
+    membership?.membershipRole === "owner" ||
+    membership?.membershipRole === "admin" ||
+    (await accessService(db).hasPermission(
+      companyId,
+      "user",
+      getActorInfo(req).actorId,
+      "tools:manage_connections",
+    ))
+  );
 }
 
 export async function assertAiConnectionCreateAccess(
@@ -118,19 +133,40 @@ export async function assertAiConnectionCreateAccess(
 /** Creating an agent may install a shared connection only with the existing
  * connection-configure authority. An agent actor cannot grant itself access. */
 export async function canInstallSharedAiConnectionForNewAgent(
-  db: Db, req: Request, companyId: string, binding: AiConnectionBinding,
+  db: Db,
+  req: Request,
+  companyId: string,
+  binding: AiConnectionBinding,
 ): Promise<boolean> {
   if (req.actor.type !== "board" || binding.mode !== "shared") return false;
   assertCompanyAccess(req, companyId);
-  const member = req.actor.memberships?.find(m => m.companyId === companyId && m.status === "active");
+  const member = req.actor.memberships?.find(
+    (m) => m.companyId === companyId && m.status === "active",
+  );
   if (member?.membershipRole === "viewer") return false;
   const userId = getActorInfo(req).actorId;
-  const [connection] = await db.select({ creator: toolConnections.createdByUserId })
-    .from(toolConnections).where(and(eq(toolConnections.companyId, companyId),
-      eq(toolConnections.id, binding.connectionId), eq(toolConnections.connectionPurpose, "ai")));
+  const [connection] = await db
+    .select({ creator: toolConnections.createdByUserId })
+    .from(toolConnections)
+    .where(
+      and(
+        eq(toolConnections.companyId, companyId),
+        eq(toolConnections.id, binding.connectionId),
+        eq(toolConnections.connectionPurpose, "ai"),
+      ),
+    );
   if (!connection) return false;
-  return req.actor.source === "local_implicit" || req.actor.isInstanceAdmin === true ||
-    connection.creator === userId || await accessService(db).hasPermission(companyId, "user", userId, "tools:manage_connections");
+  return (
+    req.actor.source === "local_implicit" ||
+    req.actor.isInstanceAdmin === true ||
+    connection.creator === userId ||
+    (await accessService(db).hasPermission(
+      companyId,
+      "user",
+      userId,
+      "tools:manage_connections",
+    ))
+  );
 }
 
 /** Fixed provider endpoints; credentials are never sent to a caller-supplied URL or through a redirect. */
@@ -144,7 +180,8 @@ export async function validateAiApiKey(
     openai: "https://api.openai.com/v1/models",
     openrouter: "https://openrouter.ai/api/v1/key",
     xai: "https://api.x.ai/v1/models",
-    google: "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1",
+    google:
+      "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1",
   };
   let response: Response;
   try {
@@ -152,12 +189,16 @@ export async function validateAiApiKey(
       redirect: "error",
       signal: AbortSignal.timeout(15000),
       headers:
-        provider === "google" ? { "x-goog-api-key": key } : provider === "anthropic"
-          ? { "x-api-key": key, "anthropic-version": "2023-06-01" }
-          : { Authorization: `Bearer ${key}` },
+        provider === "google"
+          ? { "x-goog-api-key": key }
+          : provider === "anthropic"
+            ? { "x-api-key": key, "anthropic-version": "2023-06-01" }
+            : { Authorization: `Bearer ${key}` },
     });
   } catch {
-    throw unprocessable("Could not verify the account. Try again.", { code: "ai_connection_verification_failed" });
+    throw unprocessable("Could not verify the account. Try again.", {
+      code: "ai_connection_verification_failed",
+    });
   }
   await response.body?.cancel();
   if (!response.ok)
@@ -165,13 +206,24 @@ export async function validateAiApiKey(
       response.status === 401 || response.status === 403
         ? "The provider rejected this API key."
         : "The provider could not verify this account. Try again.",
-      { code: response.status === 401 || response.status === 403 ? "ai_connection_api_key_rejected" : "ai_connection_verification_failed" },
+      {
+        code:
+          response.status === 401 || response.status === 403
+            ? "ai_connection_api_key_rejected"
+            : "ai_connection_verification_failed",
+      },
     );
 }
 
-export function aiConnectionRoutes(db: Db, options: Parameters<typeof supportsLocalAiLogin>[0] = {}) {
+export function aiConnectionRoutes(
+  db: Db,
+  options: Parameters<typeof supportsLocalAiLogin>[0] = {},
+) {
   function assertLocalLoginAvailable() {
-    if (!supportsLocalAiLogin(options)) throw unprocessable("Server-host subscription sign-in is unavailable on this hosted instance. Choose a supported sign-in environment or use an API key.");
+    if (!supportsLocalAiLogin(options))
+      throw unprocessable(
+        "Server-host subscription sign-in is unavailable on this hosted instance. Choose a supported sign-in environment or use an API key.",
+      );
   }
   const router = Router();
   const service = aiConnectionService(db);
@@ -179,72 +231,158 @@ export function aiConnectionRoutes(db: Db, options: Parameters<typeof supportsLo
   const pools = aiConnectionRouterService(db);
   router.get("/companies/:companyId/ai-connection-pools", async (req, res) => {
     const companyId = req.params.companyId as string;
-    assertBoard(req); assertCompanyAccess(req, companyId);
-    if (!(await canManageAiConnections(db, req, companyId))) throw forbidden("Manage connections permission is required");
+    assertBoard(req);
+    assertCompanyAccess(req, companyId);
+    if (!(await canManageAiConnections(db, req, companyId)))
+      throw forbidden("Manage connections permission is required");
     res.setHeader("Cache-Control", "no-store");
     res.json(await pools.list(companyId));
   });
-  router.get("/companies/:companyId/ai-connection-pools/:poolId/inspection", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertBoard(req); assertCompanyAccess(req, companyId);
-    if (!(await canManageAiConnections(db, req, companyId))) throw forbidden("Manage connections permission is required");
-    res.setHeader("Cache-Control", "no-store");
-    res.json(await pools.inspect(companyId, z.string().uuid().parse(req.params.poolId), getActorInfo(req).actorId));
-  });
+  router.get(
+    "/companies/:companyId/ai-connection-pools/:poolId/inspection",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertBoard(req);
+      assertCompanyAccess(req, companyId);
+      if (!(await canManageAiConnections(db, req, companyId)))
+        throw forbidden("Manage connections permission is required");
+      res.setHeader("Cache-Control", "no-store");
+      res.json(
+        await pools.inspect(
+          companyId,
+          z.string().uuid().parse(req.params.poolId),
+          getActorInfo(req).actorId,
+        ),
+      );
+    },
+  );
   router.post("/companies/:companyId/ai-connection-pools", async (req, res) => {
     const companyId = req.params.companyId as string;
-    assertBoard(req); assertCompanyAccess(req, companyId);
-    if (!(await canManageAiConnections(db, req, companyId))) throw forbidden("Manage connections permission is required");
-    const body = z.object({ pluginKey: z.string().min(1).max(160), id: z.string().uuid().optional(), expectedRevision: z.number().int().positive().optional(), config: aiConnectionPoolConfigSchema }).strict().parse(req.body);
-    res.json(await pools.save(body.pluginKey, { ...body, companyId }, getActorInfo(req).actorId));
+    assertBoard(req);
+    assertCompanyAccess(req, companyId);
+    if (!(await canManageAiConnections(db, req, companyId)))
+      throw forbidden("Manage connections permission is required");
+    const body = z
+      .object({
+        pluginKey: z.string().min(1).max(160),
+        id: z.string().uuid().optional(),
+        expectedRevision: z.number().int().positive().optional(),
+        config: aiConnectionPoolConfigSchema,
+      })
+      .strict()
+      .parse(req.body);
+    res.json(
+      await pools.save(
+        body.pluginKey,
+        { ...body, companyId },
+        getActorInfo(req).actorId,
+      ),
+    );
   });
-  router.delete("/companies/:companyId/ai-connection-pools/:poolId", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertBoard(req); assertCompanyAccess(req, companyId);
-    if (!(await canManageAiConnections(db, req, companyId))) throw forbidden("Manage connections permission is required");
-    const poolId = z.string().uuid().parse(req.params.poolId);
-    const { expectedRevision } = z.object({ expectedRevision: z.number().int().positive() }).strict().parse(req.body);
-    res.json(await pools.remove(companyId, poolId, expectedRevision, getActorInfo(req).actorId));
-  });
+  router.delete(
+    "/companies/:companyId/ai-connection-pools/:poolId",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertBoard(req);
+      assertCompanyAccess(req, companyId);
+      if (!(await canManageAiConnections(db, req, companyId)))
+        throw forbidden("Manage connections permission is required");
+      const poolId = z.string().uuid().parse(req.params.poolId);
+      const { expectedRevision } = z
+        .object({ expectedRevision: z.number().int().positive() })
+        .strict()
+        .parse(req.body);
+      res.json(
+        await pools.remove(
+          companyId,
+          poolId,
+          expectedRevision,
+          getActorInfo(req).actorId,
+        ),
+      );
+    },
+  );
   function assertLocalOperator(req: Request) {
     assertBoard(req);
     assertCompanyAccess(req, req.params.companyId as string);
     if (req.actor.source !== "local_implicit")
-      throw forbidden("Only the local operator can connect this machine's CLI account.");
+      throw forbidden(
+        "Only the local operator can connect this machine's CLI account.",
+      );
   }
-  router.post("/companies/:companyId/ai-connections/local/attempts", validate(localAiLoginStartSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    const { restart, ...intent } = localAiLoginStartSchema.parse(req.body);
-    assertLocalLoginAvailable();
-    const userId = await assertAiConnectionCreateAccess(db, req, companyId, intent);
-    res.setHeader("Cache-Control", "no-store");
-    res.status(201).json(await localLogin.start(companyId, userId, intent, restart));
-  });
-  router.post("/companies/:companyId/ai-connections/local/check", validate(localAiConnectionSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    const { localSessionId, ...intent } = localAiConnectionSchema.parse(req.body);
-    assertLocalLoginAvailable();
-    const userId = await assertAiConnectionCreateAccess(db, req, companyId, intent);
-    res.setHeader("Cache-Control", "no-store");
-    res.json(await localLogin.check(companyId, userId, intent, localSessionId));
-  });
-  router.delete("/companies/:companyId/ai-connections/local/attempts/:sessionId", async (req, res) => {
-    assertBoard(req);
-    assertCompanyAccess(req, req.params.companyId as string);
-    const id = z.string().uuid().parse(req.params.sessionId);
-    await localLogin.cancel(req.params.companyId as string, getActorInfo(req).actorId, id);
-    res.json({ ok: true });
-  });
-  router.post("/companies/:companyId/ai-connections/local/attempts/:sessionId/code", validate(z.object({ browserCode: browserCodeSchema })), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertLocalLoginAvailable();
-    assertBoard(req);
-    assertCompanyAccess(req, companyId);
-    const id = z.string().uuid().parse(req.params.sessionId);
-    await localLogin.submitCode(companyId, getActorInfo(req).actorId, id, browserCodeSchema.parse(req.body.browserCode));
-    res.setHeader("Cache-Control", "no-store");
-    res.json({ ok: true });
-  });
+  router.post(
+    "/companies/:companyId/ai-connections/local/attempts",
+    validate(localAiLoginStartSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      const { restart, ...intent } = localAiLoginStartSchema.parse(req.body);
+      assertLocalLoginAvailable();
+      const userId = await assertAiConnectionCreateAccess(
+        db,
+        req,
+        companyId,
+        intent,
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res
+        .status(201)
+        .json(await localLogin.start(companyId, userId, intent, restart));
+    },
+  );
+  router.post(
+    "/companies/:companyId/ai-connections/local/check",
+    validate(localAiConnectionSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      const { localSessionId, ...intent } = localAiConnectionSchema.parse(
+        req.body,
+      );
+      assertLocalLoginAvailable();
+      const userId = await assertAiConnectionCreateAccess(
+        db,
+        req,
+        companyId,
+        intent,
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.json(
+        await localLogin.check(companyId, userId, intent, localSessionId),
+      );
+    },
+  );
+  router.delete(
+    "/companies/:companyId/ai-connections/local/attempts/:sessionId",
+    async (req, res) => {
+      assertBoard(req);
+      assertCompanyAccess(req, req.params.companyId as string);
+      const id = z.string().uuid().parse(req.params.sessionId);
+      await localLogin.cancel(
+        req.params.companyId as string,
+        getActorInfo(req).actorId,
+        id,
+      );
+      res.json({ ok: true });
+    },
+  );
+  router.post(
+    "/companies/:companyId/ai-connections/local/attempts/:sessionId/code",
+    validate(z.object({ browserCode: browserCodeSchema })),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertLocalLoginAvailable();
+      assertBoard(req);
+      assertCompanyAccess(req, companyId);
+      const id = z.string().uuid().parse(req.params.sessionId);
+      await localLogin.submitCode(
+        companyId,
+        getActorInfo(req).actorId,
+        id,
+        browserCodeSchema.parse(req.body.browserCode),
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ ok: true });
+    },
+  );
   router.get("/companies/:companyId/ai-connections", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertBoard(req);
@@ -273,9 +411,17 @@ export function aiConnectionRoutes(db: Db, options: Parameters<typeof supportsLo
       assertCompanyAccess(req, companyId);
       const connectionId = z.string().uuid().safeParse(req.params.connectionId);
       const grantId = z.string().uuid().optional().safeParse(req.query.grantId);
-      if (!connectionId.success || !grantId.success) throw unprocessable("Invalid connection or grant ID");
+      if (!connectionId.success || !grantId.success)
+        throw unprocessable("Invalid connection or grant ID");
       res.setHeader("Cache-Control", "no-store");
-      res.json(await service.probeUsage(companyId, getActorInfo(req).actorId, connectionId.data, grantId.data));
+      res.json(
+        await service.probeUsage(
+          companyId,
+          getActorInfo(req).actorId,
+          connectionId.data,
+          grantId.data,
+        ),
+      );
     },
   );
   router.get(
@@ -296,7 +442,12 @@ export function aiConnectionRoutes(db: Db, options: Parameters<typeof supportsLo
             eq(toolConnections.connectionPurpose, "ai"),
           ),
         );
-      if (!connection || !(await service.list(companyId, getActorInfo(req).actorId)).some(account => account.id === connection.id))
+      if (
+        !connection ||
+        !(await service.list(companyId, getActorInfo(req).actorId)).some(
+          (account) => account.id === connection.id,
+        )
+      )
         throw notFound("AI connection not found");
       res.setHeader("Cache-Control", "no-store");
       res.json(
@@ -338,7 +489,8 @@ export function aiConnectionRoutes(db: Db, options: Parameters<typeof supportsLo
       const attemptStartedAt = new Date();
       // Custom destinations are exercised in the selected execution environment,
       // never fetched by the control plane (including localhost/private URLs).
-      if (!input.routing || input.routing.kind === "openrouter") await validateAiApiKey(input.provider, input.apiKey!);
+      if (!input.routing || input.routing.kind === "openrouter")
+        await validateAiApiKey(input.provider, input.apiKey!);
       const result = await service.save(
         companyId,
         userId,
@@ -355,13 +507,27 @@ export function aiConnectionRoutes(db: Db, options: Parameters<typeof supportsLo
     validate(localAiConnectionSchema),
     async (req, res) => {
       const companyId = req.params.companyId as string;
-      const { localSessionId, ...input } = localAiConnectionSchema.parse(req.body);
+      const { localSessionId, ...input } = localAiConnectionSchema.parse(
+        req.body,
+      );
       assertLocalLoginAvailable();
-      const userId = await assertAiConnectionCreateAccess(db, req, companyId, input);
-      if (!localSessionId) throw unprocessable(input.provider === "xai"
-        ? "Start local sign-in for this connection before connecting."
-        : "Start browser sign-in for this connection before connecting.");
-      res.status(201).json(await localLogin.complete(companyId, userId, localSessionId, input));
+      const userId = await assertAiConnectionCreateAccess(
+        db,
+        req,
+        companyId,
+        input,
+      );
+      if (!localSessionId)
+        throw unprocessable(
+          input.provider === "xai"
+            ? "Start local sign-in for this connection before connecting."
+            : "Start browser sign-in for this connection before connecting.",
+        );
+      res
+        .status(201)
+        .json(
+          await localLogin.complete(companyId, userId, localSessionId, input),
+        );
     },
   );
   router.put(

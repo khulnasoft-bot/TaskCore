@@ -19,7 +19,10 @@ export interface SidePanelTabRecord<TPayload = unknown> {
 }
 
 /** Visual projection consumed by the domain-free tab strip. */
-export interface SidePanelTabItem extends Omit<SidePanelTabRecord<unknown>, "payload"> {
+export interface SidePanelTabItem extends Omit<
+  SidePanelTabRecord<unknown>,
+  "payload"
+> {
   icon?: ReactNode;
   status?: ReactNode;
   disabled?: boolean;

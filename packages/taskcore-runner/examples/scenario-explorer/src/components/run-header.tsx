@@ -8,7 +8,10 @@ import {
   Button,
   ReplayControls,
 } from "@taskcore/taskcore-runner/react";
-import type { CapabilityRunArtifact, CapabilityScenarioIndexEntry } from "@taskcore-runner-local/capability";
+import type {
+  CapabilityRunArtifact,
+  CapabilityScenarioIndexEntry,
+} from "@taskcore-runner-local/capability";
 
 import { ASSERTION_CLASS_LABEL, groupLabel, PARITY_TONE } from "../labels.js";
 import { DispositionBadge, Mono, ParityStatusBadge } from "./primitives.js";
@@ -49,11 +52,19 @@ export function RunHeader({
   headerRef,
 }: RunHeaderProps) {
   const verdict = artifact?.parity.verdict ?? "not_run";
-  const passing = artifact?.parity.assertions.filter((assertion) => assertion.status === "pass").length ?? 0;
+  const passing =
+    artifact?.parity.assertions.filter(
+      (assertion) => assertion.status === "pass",
+    ).length ?? 0;
   const total = artifact?.parity.assertions.length ?? 0;
 
   return (
-    <header ref={headerRef} className="pcr7-run-header" data-testid="run-header" tabIndex={-1}>
+    <header
+      ref={headerRef}
+      className="pcr7-run-header"
+      data-testid="run-header"
+      tabIndex={-1}
+    >
       <div className="pcr7-run-title">
         <Mono>{entry.id}</Mono>
         <h1>{entry.title}</h1>
@@ -126,13 +137,22 @@ export function RunHeader({
         </div>
         {codexAvailable ? null : (
           <p className="pcr7-muted" data-testid="codex-unavailable">
-            Codex mode needs the local provider relay — provider relay not running, see tutorial §4.
-            Fake mode stays fully usable offline.
+            Codex mode needs the local provider relay — provider relay not
+            running, see tutorial §4. Fake mode stays fully usable offline.
           </p>
         )}
 
-        <Button type="button" onClick={onRun} disabled={runState === "pending"} data-testid="run-button">
-          {runState === "pending" ? "Running…" : artifact === null ? "Run scenario" : "Re-run scenario"}
+        <Button
+          type="button"
+          onClick={onRun}
+          disabled={runState === "pending"}
+          data-testid="run-button"
+        >
+          {runState === "pending"
+            ? "Running…"
+            : artifact === null
+              ? "Run scenario"
+              : "Re-run scenario"}
         </Button>
 
         {artifact === null ? null : <ReplayControls replay={replay} />}

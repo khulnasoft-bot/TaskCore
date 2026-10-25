@@ -8,11 +8,20 @@ import {
 
 describe("ACPX driver profile", () => {
   it("enables only negotiated Pi controls and keeps the static profile conservative", () => {
-    expect(acpxCapabilities("pi")).toMatchObject({ steering: false, queuedFollowUp: false });
-    expect(acpxCapabilities("pi", { steering: true, queuedFollowUp: false })).toMatchObject({ steering: true, queuedFollowUp: false });
-    expect(acpxCapabilities("pi", { steering: false, queuedFollowUp: true })).toMatchObject({ steering: false, queuedFollowUp: true });
+    expect(acpxCapabilities("pi")).toMatchObject({
+      steering: false,
+      queuedFollowUp: false,
+    });
+    expect(
+      acpxCapabilities("pi", { steering: true, queuedFollowUp: false }),
+    ).toMatchObject({ steering: true, queuedFollowUp: false });
+    expect(
+      acpxCapabilities("pi", { steering: false, queuedFollowUp: true }),
+    ).toMatchObject({ steering: false, queuedFollowUp: true });
     for (const agent of ["cursor", "copilot", "codex", "claude"] as const) {
-      expect(acpxCapabilities(agent, { steering: true, queuedFollowUp: true })).toMatchObject({ steering: false, queuedFollowUp: false });
+      expect(
+        acpxCapabilities(agent, { steering: true, queuedFollowUp: true }),
+      ).toMatchObject({ steering: false, queuedFollowUp: false });
     }
   });
   it.each([
@@ -54,14 +63,17 @@ describe("ACPX driver profile", () => {
     });
   });
 
-  it.each(["claude", "codex", "grok", "cursor"] as const)("accepts an unlisted %s model for native verification", agent => {
-    const model = "custom/model[reasoning=medium]";
-    expect(validateAcpxDriverConfig({ agent, model })).toEqual({
-      ok: true,
-      config: { agent, model, permissionMode: "approve-all" },
-      issues: [],
-    });
-  });
+  it.each(["claude", "codex", "grok", "cursor"] as const)(
+    "accepts an unlisted %s model for native verification",
+    (agent) => {
+      const model = "custom/model[reasoning=medium]";
+      expect(validateAcpxDriverConfig({ agent, model })).toEqual({
+        ok: true,
+        config: { agent, model, permissionMode: "approve-all" },
+        issues: [],
+      });
+    },
+  );
 
   it("fails closed for unknown fields and unqualified settings", () => {
     expect(validateAcpxDriverConfig(null)).toMatchObject({

@@ -26,7 +26,9 @@ describe("authApi.getSession", () => {
   it("initiates recovery and stays pending for a Cloud tenant-session 401", async () => {
     const reload = vi.fn();
     const recovery = createTenantSessionRecoveryCoordinator(reload);
-    vi.spyOn(tenantSessionRecovery, "recoverIfNeeded").mockImplementation(recovery.recoverIfNeeded);
+    vi.spyOn(tenantSessionRecovery, "recoverIfNeeded").mockImplementation(
+      recovery.recoverIfNeeded,
+    );
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ error: "tenant_session_required" }), {
         status: 401,
@@ -40,8 +42,12 @@ describe("authApi.getSession", () => {
 
     let settled = false;
     void request.then(
-      () => { settled = true; },
-      () => { settled = true; },
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
     );
     await Promise.resolve();
     expect(settled).toBe(false);
@@ -51,10 +57,13 @@ describe("authApi.getSession", () => {
 describe("authApi.signOut", () => {
   it("returns the managed deployment redirect from the response", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ success: true, redirectTo: "/cloud/logout" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify({ success: true, redirectTo: "/cloud/logout" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
     vi.stubGlobal("fetch", fetchMock);
 

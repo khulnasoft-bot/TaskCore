@@ -1,6 +1,10 @@
 import type { Db } from "@taskcore/db";
 import { agents } from "@taskcore/db";
-import { getAgentWorkEligibility, type AgentEligibilityAgent, type AgentOrgChainHealth } from "@taskcore/shared";
+import {
+  getAgentWorkEligibility,
+  type AgentEligibilityAgent,
+  type AgentOrgChainHealth,
+} from "@taskcore/shared";
 import { eq } from "drizzle-orm";
 
 type AgentStatus = (typeof agents.$inferSelect)["status"];
@@ -47,7 +51,9 @@ function blocked(
   return { invokable: false, reason, message, details, invalidOrgChain };
 }
 
-function statusBlockReason(status: AgentStatus): AgentInvokabilityBlockReason | null {
+function statusBlockReason(
+  status: AgentStatus,
+): AgentInvokabilityBlockReason | null {
   if (status === "paused") return "paused";
   if (status === "terminated") return "terminated";
   if (status === "pending_approval") return "pending_approval";
@@ -64,7 +70,9 @@ function toEligibilityAgent(row: AgentOrgRow): AgentEligibilityAgent {
   };
 }
 
-function invalidChainReason(health: AgentOrgChainHealth): AgentInvokabilityBlockReason {
+function invalidChainReason(
+  health: AgentOrgChainHealth,
+): AgentInvokabilityBlockReason {
   if (health.reason === "terminated_ancestor") return "manager_terminated";
   if (health.reason === "cycle") return "reporting_cycle";
   return "manager_missing";
@@ -85,9 +93,10 @@ export function evaluateAgentInvokability(
 
   if (eligibility.invokable) return { invokable: true };
 
-  const directStatusReason = eligibility.invokabilityReason === "unknown_status"
-    ? "unknown_status"
-    : statusBlockReason(agent.status);
+  const directStatusReason =
+    eligibility.invokabilityReason === "unknown_status"
+      ? "unknown_status"
+      : statusBlockReason(agent.status);
   if (directStatusReason) {
     return blocked(
       directStatusReason,
@@ -159,6 +168,11 @@ export function listInvalidOrgChainDescendantIds(
   return invalidDescendantIds;
 }
 
-export function shouldCancelRunsForNonInvokableAgent(result: AgentInvokability) {
-  return !result.invokable && (result.reason === "terminated" || result.invalidOrgChain);
+export function shouldCancelRunsForNonInvokableAgent(
+  result: AgentInvokability,
+) {
+  return (
+    !result.invokable &&
+    (result.reason === "terminated" || result.invalidOrgChain)
+  );
 }

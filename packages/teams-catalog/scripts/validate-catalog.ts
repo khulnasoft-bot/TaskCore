@@ -2,7 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateCatalog } from "../src/catalog-builder.js";
 
-const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const packageDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const result = await validateCatalog(packageDir);
 
 if (result.errors.length > 0) {

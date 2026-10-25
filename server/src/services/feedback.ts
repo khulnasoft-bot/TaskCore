@@ -1,6 +1,17 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { and, asc, desc, eq, getTableColumns, gte, isNull, lte, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  isNull,
+  lte,
+  ne,
+  or,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import {
   agents,
@@ -19,8 +30,14 @@ import {
   issues,
 } from "@taskcore/db";
 import { readTaskcoreSkillSyncPreference } from "@taskcore/adapter-utils/server-utils";
-import { claudeConfigDir, parseClaudeStreamJson } from "@taskcore/adapter-claude-local/server";
-import { codexHomeDir, parseCodexJsonl } from "@taskcore/adapter-codex-local/server";
+import {
+  claudeConfigDir,
+  parseClaudeStreamJson,
+} from "@taskcore/adapter-claude-local/server";
+import {
+  codexHomeDir,
+  parseCodexJsonl,
+} from "@taskcore/adapter-codex-local/server";
 import { parseOpenCodeJsonl } from "@taskcore/adapter-opencode-local/server";
 import {
   DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
@@ -36,9 +53,15 @@ import {
   type FeedbackTraceTargetSummary,
   type FeedbackVoteValue,
 } from "@taskcore/shared";
-import { resolveHomeAwarePath, resolveTaskcoreInstanceRoot } from "../home-paths.js";
+import {
+  resolveHomeAwarePath,
+  resolveTaskcoreInstanceRoot,
+} from "../home-paths.js";
 import { notFound, unprocessable } from "../errors.js";
-import { agentInstructionsBundleMode, agentInstructionsService } from "./agent-instructions.js";
+import {
+  agentInstructionsBundleMode,
+  agentInstructionsService,
+} from "./agent-instructions.js";
 import {
   createFeedbackRedactionState,
   finalizeFeedbackRedactionSummary,
@@ -65,7 +88,8 @@ const MAX_SKILLS = 20;
 const MAX_INSTRUCTION_FILES = 20;
 const MAX_TRACE_FILE_CHARS = 10_000_000;
 const DEFAULT_INSTANCE_SETTINGS_SINGLETON_KEY = "default";
-const FEEDBACK_EXPORT_BACKEND_NOT_CONFIGURED = "Feedback export backend is not configured";
+const FEEDBACK_EXPORT_BACKEND_NOT_CONFIGURED =
+  "Feedback export backend is not configured";
 
 type FeedbackTraceRow = typeof feedbackExports.$inferSelect & {
   issueIdentifier: string | null;
@@ -111,7 +135,9 @@ const feedbackExportColumns = getTableColumns(feedbackExports);
 const instructionsSvc = agentInstructionsService();
 
 type FeedbackTraceShareClient = {
-  uploadTraceBundle(bundle: FeedbackTraceBundle): Promise<{ objectKey: string }>;
+  uploadTraceBundle(
+    bundle: FeedbackTraceBundle,
+  ): Promise<{ objectKey: string }>;
 };
 
 type FeedbackServiceOptions = {
@@ -139,18 +165,23 @@ function asBoolean(value: unknown) {
 }
 
 function uniqueNonEmpty(values: Array<string | null | undefined>) {
-  return Array.from(new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)));
+  return Array.from(
+    new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)),
+  );
 }
 
 function truncateExcerpt(text: string, max = MAX_EXCERPT_CHARS) {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return null;
-  return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1)}...`;
+  return normalized.length <= max
+    ? normalized
+    : `${normalized.slice(0, max - 1)}...`;
 }
 
 function contentTypeForPath(filePath: string) {
   const lower = filePath.toLowerCase();
-  if (lower.endsWith(".jsonl") || lower.endsWith(".ndjson")) return "application/x-ndjson";
+  if (lower.endsWith(".jsonl") || lower.endsWith(".ndjson"))
+    return "application/x-ndjson";
   if (lower.endsWith(".json")) return "application/json";
   if (lower.endsWith(".md")) return "text/markdown; charset=utf-8";
   return "text/plain; charset=utf-8";
@@ -194,7 +225,10 @@ function buildTargetSummary(input: {
   };
 }
 
-function normalizeReason(vote: FeedbackVoteValue, reason: string | null | undefined) {
+function normalizeReason(
+  vote: FeedbackVoteValue,
+  reason: string | null | undefined,
+) {
   if (vote !== "down" || typeof reason !== "string") return null;
   const trimmed = reason.trim();
   return trimmed.length > 0 ? trimmed : null;
@@ -222,7 +256,9 @@ function buildExportId(feedbackVoteId: string, sharedAt: Date) {
 }
 
 function resolveSourceRunId(payloadSnapshot: Record<string, unknown> | null) {
-  const targetRunId = asString(asRecord(payloadSnapshot?.target)?.createdByRunId);
+  const targetRunId = asString(
+    asRecord(payloadSnapshot?.target)?.createdByRunId,
+  );
   if (targetRunId) return targetRunId;
 
   const bundle = asRecord(payloadSnapshot?.bundle);
@@ -265,16 +301,23 @@ async function readTextFileIfPresent(
 }
 
 async function listChildFiles(dirPath: string) {
-  const entries = await readdir(dirPath, { withFileTypes: true }).catch(() => []);
+  const entries = await readdir(dirPath, { withFileTypes: true }).catch(
+    () => [],
+  );
   return entries
     .filter((entry) => entry.isFile())
     .map((entry) => path.join(dirPath, entry.name))
     .sort((left, right) => left.localeCompare(right));
 }
 
-async function listNestedFiles(dirPath: string, maxDepth = 4): Promise<string[]> {
+async function listNestedFiles(
+  dirPath: string,
+  maxDepth = 4,
+): Promise<string[]> {
   async function walk(currentPath: string, depth: number): Promise<string[]> {
-    const entries = await readdir(currentPath, { withFileTypes: true }).catch(() => []);
+    const entries = await readdir(currentPath, { withFileTypes: true }).catch(
+      () => [],
+    );
     const files = entries
       .filter((entry) => entry.isFile())
       .map((entry) => path.join(currentPath, entry.name))
@@ -285,7 +328,9 @@ async function listNestedFiles(dirPath: string, maxDepth = 4): Promise<string[]>
       .filter((entry) => entry.isDirectory())
       .map((entry) => path.join(currentPath, entry.name))
       .sort((left, right) => left.localeCompare(right));
-    const nested = await Promise.all(childDirs.map((childDir) => walk(childDir, depth + 1)));
+    const nested = await Promise.all(
+      childDirs.map((childDir) => walk(childDir, depth + 1)),
+    );
     return [...files, ...nested.flat()];
   }
 
@@ -297,8 +342,13 @@ async function findMatchingFile(
   matcher: (absolutePath: string, name: string) => boolean,
   maxDepth = 5,
 ): Promise<string | null> {
-  async function search(dirPath: string, depth: number): Promise<string | null> {
-    const entries = await readdir(dirPath, { withFileTypes: true }).catch(() => []);
+  async function search(
+    dirPath: string,
+    depth: number,
+  ): Promise<string | null> {
+    const entries = await readdir(dirPath, { withFileTypes: true }).catch(
+      () => [],
+    );
     for (const entry of entries) {
       const absolutePath = path.join(dirPath, entry.name);
       if (entry.isFile() && matcher(absolutePath, entry.name)) {
@@ -327,10 +377,15 @@ async function readFullRunLog(run: {
   let combined = "";
 
   while (true) {
-    const result = await store.read({ store: "local_file", logRef: run.logRef }, {
-      offset,
-      limitBytes: 512_000,
-    }).catch(() => null);
+    const result = await store
+      .read(
+        { store: "local_file", logRef: run.logRef },
+        {
+          offset,
+          limitBytes: 512_000,
+        },
+      )
+      .catch(() => null);
     if (!result) return combined || null;
     combined += result.content;
     if (result.nextOffset == null) break;
@@ -347,7 +402,11 @@ function parseRunLogEntries(logText: string | null) {
     const line = rawLine.trim();
     if (!line) continue;
     try {
-      const parsed = JSON.parse(line) as { ts?: unknown; stream?: unknown; chunk?: unknown };
+      const parsed = JSON.parse(line) as {
+        ts?: unknown;
+        stream?: unknown;
+        chunk?: unknown;
+      };
       const ts = asString(parsed.ts) ?? new Date(0).toISOString();
       const stream = asString(parsed.stream) ?? "stdout";
       const chunk = typeof parsed.chunk === "string" ? parsed.chunk : "";
@@ -359,10 +418,13 @@ function parseRunLogEntries(logText: string | null) {
   return entries;
 }
 
-function captureStatusFromFiles(files: FeedbackTraceBundleFile[]): FeedbackTraceBundleCaptureStatus {
+function captureStatusFromFiles(
+  files: FeedbackTraceBundleFile[],
+): FeedbackTraceBundleCaptureStatus {
   const sources = new Set(files.map((file) => file.source));
   if (sources.has("codex_session")) return "full";
-  if (sources.has("claude_project_session") || sources.has("claude_debug_log")) return "full";
+  if (sources.has("claude_project_session") || sources.has("claude_debug_log"))
+    return "full";
   if (
     sources.has("opencode_session") &&
     sources.has("opencode_message") &&
@@ -371,10 +433,11 @@ function captureStatusFromFiles(files: FeedbackTraceBundleFile[]): FeedbackTrace
     return "full";
   }
 
-  const hasAdapterFiles = files.some((file) =>
-    file.source !== "taskcore_run" &&
-    file.source !== "taskcore_run_events" &&
-    file.source !== "taskcore_run_log",
+  const hasAdapterFiles = files.some(
+    (file) =>
+      file.source !== "taskcore_run" &&
+      file.source !== "taskcore_run_events" &&
+      file.source !== "taskcore_run_log",
   );
   if (hasAdapterFiles) return "partial";
   return files.length > 0 ? "partial" : "unavailable";
@@ -389,7 +452,11 @@ async function buildCodexTraceFiles(input: {
   const files: FeedbackTraceBundleFile[] = [];
   if (!input.sessionId) {
     appendNote(input.notes, "codex_session_id_missing");
-    return { files, raw: null as Record<string, unknown> | null, normalized: null as Record<string, unknown> | null };
+    return {
+      files,
+      raw: null as Record<string, unknown> | null,
+      normalized: null as Record<string, unknown> | null,
+    };
   }
 
   const managedRoot = path.join(
@@ -401,21 +468,39 @@ async function buildCodexTraceFiles(input: {
   );
   const sharedRoot = path.join(codexHomeDir(), "sessions");
   const sessionFile =
-    await findMatchingFile(managedRoot, (_absolutePath, name) => name.includes(input.sessionId!), 6) ??
-    await findMatchingFile(sharedRoot, (_absolutePath, name) => name.includes(input.sessionId!), 6);
+    (await findMatchingFile(
+      managedRoot,
+      (_absolutePath, name) => name.includes(input.sessionId!),
+      6,
+    )) ??
+    (await findMatchingFile(
+      sharedRoot,
+      (_absolutePath, name) => name.includes(input.sessionId!),
+      6,
+    ));
 
-  const sessionText = await readTextFileIfPresent(sessionFile, input.state, "bundle.rawAdapterTrace.codex.session");
+  const sessionText = await readTextFileIfPresent(
+    sessionFile,
+    input.state,
+    "bundle.rawAdapterTrace.codex.session",
+  );
   if (!sessionText) {
     appendNote(input.notes, "codex_session_file_missing");
-    return { files, raw: null as Record<string, unknown> | null, normalized: null as Record<string, unknown> | null };
+    return {
+      files,
+      raw: null as Record<string, unknown> | null,
+      normalized: null as Record<string, unknown> | null,
+    };
   }
 
-  files.push(makeBundleFile({
-    path: "adapter/codex/session.jsonl",
-    contentType: "application/x-ndjson",
-    source: "codex_session",
-    contents: sessionText,
-  }));
+  files.push(
+    makeBundleFile({
+      path: "adapter/codex/session.jsonl",
+      contentType: "application/x-ndjson",
+      source: "codex_session",
+      contents: sessionText,
+    }),
+  );
 
   return {
     files,
@@ -451,17 +536,23 @@ async function buildClaudeTraceFiles(input: {
     MAX_TRACE_FILE_CHARS,
   );
   if (sanitizedStdout.trim().length > 0) {
-    files.push(makeBundleFile({
-      path: "adapter/claude/stream-json.ndjson",
-      contentType: "application/x-ndjson",
-      source: "claude_stream_json",
-      contents: sanitizedStdout,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/claude/stream-json.ndjson",
+        contentType: "application/x-ndjson",
+        source: "claude_stream_json",
+        contents: sanitizedStdout,
+      }),
+    );
   }
 
   const projectsRoot = path.join(claudeConfigDir(), "projects");
   const projectSessionFile = input.sessionId
-    ? await findMatchingFile(projectsRoot, (_absolutePath, name) => name === `${input.sessionId}.jsonl`, 6)
+    ? await findMatchingFile(
+        projectsRoot,
+        (_absolutePath, name) => name === `${input.sessionId}.jsonl`,
+        6,
+      )
     : null;
   const projectSessionText = await readTextFileIfPresent(
     projectSessionFile,
@@ -469,12 +560,14 @@ async function buildClaudeTraceFiles(input: {
     "bundle.rawAdapterTrace.claude.projectSession",
   );
   if (projectSessionText) {
-    files.push(makeBundleFile({
-      path: "adapter/claude/session.jsonl",
-      contentType: "application/x-ndjson",
-      source: "claude_project_session",
-      contents: projectSessionText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/claude/session.jsonl",
+        contentType: "application/x-ndjson",
+        source: "claude_project_session",
+        contents: projectSessionText,
+      }),
+    );
   } else if (input.sessionId) {
     appendNote(input.notes, "claude_project_session_missing");
   }
@@ -486,36 +579,47 @@ async function buildClaudeTraceFiles(input: {
     ? await listNestedFiles(projectSessionArtifactsDir, 4)
     : [];
   for (const filePath of projectSessionArtifactFiles) {
-    const relativePath = path.relative(projectSessionArtifactsDir!, filePath).split(path.sep).join("/");
+    const relativePath = path
+      .relative(projectSessionArtifactsDir!, filePath)
+      .split(path.sep)
+      .join("/");
     const fileText = await readTextFileIfPresent(
       filePath,
       input.state,
       `bundle.rawAdapterTrace.claude.projectArtifacts.${relativePath}`,
     );
     if (!fileText) continue;
-    files.push(makeBundleFile({
-      path: `adapter/claude/session/${relativePath}`,
-      contentType: contentTypeForPath(filePath),
-      source: "claude_project_artifact",
-      contents: fileText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: `adapter/claude/session/${relativePath}`,
+        contentType: contentTypeForPath(filePath),
+        source: "claude_project_artifact",
+        contents: fileText,
+      }),
+    );
   }
 
   const debugLogText = await readTextFileIfPresent(
-    input.sessionId ? path.join(claudeConfigDir(), "debug", `${input.sessionId}.txt`) : null,
+    input.sessionId
+      ? path.join(claudeConfigDir(), "debug", `${input.sessionId}.txt`)
+      : null,
     input.state,
     "bundle.rawAdapterTrace.claude.debugLog",
   );
   if (debugLogText) {
-    files.push(makeBundleFile({
-      path: "adapter/claude/debug.txt",
-      contentType: "text/plain; charset=utf-8",
-      source: "claude_debug_log",
-      contents: debugLogText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/claude/debug.txt",
+        contentType: "text/plain; charset=utf-8",
+        source: "claude_debug_log",
+        contents: debugLogText,
+      }),
+    );
   }
 
-  const taskDir = input.sessionId ? path.join(claudeConfigDir(), "tasks", input.sessionId) : null;
+  const taskDir = input.sessionId
+    ? path.join(claudeConfigDir(), "tasks", input.sessionId)
+    : null;
   const taskFiles = taskDir ? await listChildFiles(taskDir) : [];
   const metadataPieces: string[] = [];
   for (const filePath of taskFiles) {
@@ -528,12 +632,14 @@ async function buildClaudeTraceFiles(input: {
     metadataPieces.push(`# ${path.basename(filePath)}\n${fileText}`);
   }
   if (metadataPieces.length > 0) {
-    files.push(makeBundleFile({
-      path: "adapter/claude/task-metadata.txt",
-      contentType: "text/plain; charset=utf-8",
-      source: "claude_task_metadata",
-      contents: `${metadataPieces.join("\n\n")}\n`,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/claude/task-metadata.txt",
+        contentType: "text/plain; charset=utf-8",
+        source: "claude_task_metadata",
+        contents: `${metadataPieces.join("\n\n")}\n`,
+      }),
+    );
   } else if (input.sessionId) {
     appendNote(input.notes, "claude_task_metadata_missing");
   }
@@ -605,18 +711,27 @@ async function buildOpenCodeTraceFiles(input: {
   );
   const diffFile = path.join(diffRoot, `${input.sessionId}.json`);
 
-  const sessionRaw = sessionFile ? await readFile(sessionFile, "utf8").catch(() => null) : null;
+  const sessionRaw = sessionFile
+    ? await readFile(sessionFile, "utf8").catch(() => null)
+    : null;
   const sessionText =
     sessionRaw == null
       ? null
-      : sanitizeFeedbackText(sessionRaw, input.state, "bundle.rawAdapterTrace.opencode.session", MAX_TRACE_FILE_CHARS);
+      : sanitizeFeedbackText(
+          sessionRaw,
+          input.state,
+          "bundle.rawAdapterTrace.opencode.session",
+          MAX_TRACE_FILE_CHARS,
+        );
   if (sessionText) {
-    files.push(makeBundleFile({
-      path: "adapter/opencode/session.json",
-      contentType: "application/json",
-      source: "opencode_session",
-      contents: sessionText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/opencode/session.json",
+        contentType: "application/json",
+        source: "opencode_session",
+        contents: sessionText,
+      }),
+    );
   } else {
     appendNote(input.notes, "opencode_session_file_missing");
   }
@@ -627,15 +742,19 @@ async function buildOpenCodeTraceFiles(input: {
     "bundle.rawAdapterTrace.opencode.sessionDiff",
   );
   if (diffText) {
-    files.push(makeBundleFile({
-      path: "adapter/opencode/session-diff.json",
-      contentType: "application/json",
-      source: "opencode_session_diff",
-      contents: diffText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/opencode/session-diff.json",
+        contentType: "application/json",
+        source: "opencode_session_diff",
+        contents: diffText,
+      }),
+    );
   }
 
-  const messageFiles = await listChildFiles(path.join(messageRoot, input.sessionId));
+  const messageFiles = await listChildFiles(
+    path.join(messageRoot, input.sessionId),
+  );
   const messageIds: string[] = [];
   for (const filePath of messageFiles) {
     const messageText = await readTextFileIfPresent(
@@ -645,12 +764,14 @@ async function buildOpenCodeTraceFiles(input: {
     );
     if (!messageText) continue;
     messageIds.push(path.basename(filePath, path.extname(filePath)));
-    files.push(makeBundleFile({
-      path: `adapter/opencode/messages/${path.basename(filePath)}`,
-      contentType: "application/json",
-      source: "opencode_message",
-      contents: messageText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: `adapter/opencode/messages/${path.basename(filePath)}`,
+        contentType: "application/json",
+        source: "opencode_message",
+        contents: messageText,
+      }),
+    );
   }
   if (messageFiles.length === 0) {
     appendNote(input.notes, "opencode_message_files_missing");
@@ -667,12 +788,14 @@ async function buildOpenCodeTraceFiles(input: {
       );
       if (!partText) continue;
       partFilesCount += 1;
-      files.push(makeBundleFile({
-        path: `adapter/opencode/parts/${messageId}/${path.basename(filePath)}`,
-        contentType: "application/json",
-        source: "opencode_message_part",
-        contents: partText,
-      }));
+      files.push(
+        makeBundleFile({
+          path: `adapter/opencode/parts/${messageId}/${path.basename(filePath)}`,
+          contentType: "application/json",
+          source: "opencode_message_part",
+          contents: partText,
+        }),
+      );
     }
   }
   if (messageIds.length > 0 && partFilesCount === 0) {
@@ -687,19 +810,22 @@ async function buildOpenCodeTraceFiles(input: {
       return null;
     }
   })();
-  const projectId = asString(parsedSession?.projectID) ?? asString(parsedSession?.projectId);
+  const projectId =
+    asString(parsedSession?.projectID) ?? asString(parsedSession?.projectId);
   const projectText = await readTextFileIfPresent(
     projectId ? path.join(projectRoot, `${projectId}.json`) : null,
     input.state,
     "bundle.rawAdapterTrace.opencode.project",
   );
   if (projectText) {
-    files.push(makeBundleFile({
-      path: "adapter/opencode/project.json",
-      contentType: "application/json",
-      source: "opencode_project",
-      contents: projectText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/opencode/project.json",
+        contentType: "application/json",
+        source: "opencode_project",
+        contents: projectText,
+      }),
+    );
   }
 
   const todoText = await readTextFileIfPresent(
@@ -708,12 +834,14 @@ async function buildOpenCodeTraceFiles(input: {
     "bundle.rawAdapterTrace.opencode.todo",
   );
   if (todoText) {
-    files.push(makeBundleFile({
-      path: "adapter/opencode/todo.json",
-      contentType: "application/json",
-      source: "opencode_todo",
-      contents: todoText,
-    }));
+    files.push(
+      makeBundleFile({
+        path: "adapter/opencode/todo.json",
+        contentType: "application/json",
+        source: "opencode_todo",
+        contents: todoText,
+      }),
+    );
   }
 
   return {
@@ -746,8 +874,13 @@ function truncateFailureReason(error: unknown) {
   return message.trim().slice(0, 1_000) || "Feedback export failed";
 }
 
-function mapTraceRow(row: FeedbackTraceRow, includePayload: boolean): FeedbackTrace {
-  const targetSummary = asRecord(row.targetSummary) as unknown as FeedbackTraceTargetSummary | null;
+function mapTraceRow(
+  row: FeedbackTraceRow,
+  includePayload: boolean,
+): FeedbackTrace {
+  const targetSummary = asRecord(
+    row.targetSummary,
+  ) as unknown as FeedbackTraceTargetSummary | null;
   return {
     id: row.id,
     companyId: row.companyId,
@@ -769,13 +902,15 @@ function mapTraceRow(row: FeedbackTraceRow, includePayload: boolean): FeedbackTr
     payloadVersion: row.payloadVersion,
     payloadDigest: row.payloadDigest ?? null,
     payloadSnapshot: includePayload ? asRecord(row.payloadSnapshot) : null,
-    targetSummary: targetSummary ?? buildTargetSummary({
-      label: row.targetType,
-      excerpt: null,
-      authorAgentId: null,
-      authorUserId: null,
-      createdAt: null,
-    }),
+    targetSummary:
+      targetSummary ??
+      buildTargetSummary({
+        label: row.targetType,
+        excerpt: null,
+        authorAgentId: null,
+        authorUserId: null,
+        createdAt: null,
+      }),
     redactionSummary: asRecord(row.redactionSummary),
     attemptCount: row.attemptCount,
     lastAttemptedAt: row.lastAttemptedAt ?? null,
@@ -814,14 +949,20 @@ async function resolveFeedbackTarget(
       .where(eq(issueComments.id, targetId))
       .then((rows) => rows[0] ?? null);
 
-    if (!targetComment || targetComment.issueId !== issue.id || targetComment.companyId !== issue.companyId) {
+    if (
+      !targetComment ||
+      targetComment.issueId !== issue.id ||
+      targetComment.companyId !== issue.companyId
+    ) {
       throw notFound("Feedback target not found");
     }
     if (targetComment.deletedAt) {
       throw notFound("Feedback target not found");
     }
     if (!targetComment.authorAgentId) {
-      throw unprocessable("Feedback voting is only available on agent-authored issue comments");
+      throw unprocessable(
+        "Feedback voting is only available on agent-authored issue comments",
+      );
     }
 
     const record: ResolvedFeedbackTarget = {
@@ -832,7 +973,13 @@ async function resolveFeedbackTarget(
       createdAt: targetComment.createdAt,
       authorAgentId: targetComment.authorAgentId,
       authorUserId: targetComment.authorUserId,
-      authorType: targetComment.authorType ?? (targetComment.authorAgentId ? "agent" : targetComment.authorUserId ? "user" : "system"),
+      authorType:
+        targetComment.authorType ??
+        (targetComment.authorAgentId
+          ? "agent"
+          : targetComment.authorUserId
+            ? "user"
+            : "system"),
       presentation: targetComment.presentation ?? null,
       metadata: targetComment.metadata ?? null,
       createdByRunId: targetComment.createdByRunId ?? null,
@@ -848,12 +995,20 @@ async function resolveFeedbackTarget(
         createdAt: targetComment.createdAt.toISOString(),
         authorAgentId: targetComment.authorAgentId,
         authorUserId: targetComment.authorUserId,
-        authorType: targetComment.authorType ?? (targetComment.authorAgentId ? "agent" : targetComment.authorUserId ? "user" : "system"),
+        authorType:
+          targetComment.authorType ??
+          (targetComment.authorAgentId
+            ? "agent"
+            : targetComment.authorUserId
+              ? "user"
+              : "system"),
         presentation: targetComment.presentation ?? null,
         metadata: targetComment.metadata ?? null,
         createdByRunId: targetComment.createdByRunId ?? null,
         issuePath,
-        targetPath: issuePath ? `${issuePath}#comment-${targetComment.id}` : null,
+        targetPath: issuePath
+          ? `${issuePath}#comment-${targetComment.id}`
+          : null,
       },
     };
     return record;
@@ -885,7 +1040,9 @@ async function resolveFeedbackTarget(
       throw notFound("Feedback target not found");
     }
     if (!targetRevision.createdByAgentId) {
-      throw unprocessable("Feedback voting is only available on agent-authored document revisions");
+      throw unprocessable(
+        "Feedback voting is only available on agent-authored document revisions",
+      );
     }
 
     const record: ResolvedFeedbackTarget = {
@@ -902,7 +1059,9 @@ async function resolveFeedbackTarget(
       documentTitle: targetRevision.title ?? null,
       revisionNumber: targetRevision.revisionNumber,
       issuePath,
-      targetPath: issuePath ? `${issuePath}#document-${encodeURIComponent(targetRevision.key)}` : null,
+      targetPath: issuePath
+        ? `${issuePath}#document-${encodeURIComponent(targetRevision.key)}`
+        : null,
       payloadTarget: {
         type: targetType,
         id: targetRevision.id,
@@ -915,7 +1074,9 @@ async function resolveFeedbackTarget(
         authorUserId: targetRevision.createdByUserId,
         createdByRunId: targetRevision.createdByRunId ?? null,
         issuePath,
-        targetPath: issuePath ? `${issuePath}#document-${encodeURIComponent(targetRevision.key)}` : null,
+        targetPath: issuePath
+          ? `${issuePath}#document-${encodeURIComponent(targetRevision.key)}`
+          : null,
       },
     };
     return record;
@@ -943,11 +1104,13 @@ async function listIssueContextItems(
         deletedAt: issueComments.deletedAt,
       })
       .from(issueComments)
-      .where(and(
-        eq(issueComments.companyId, issue.companyId),
-        eq(issueComments.issueId, issue.id),
-        isNull(issueComments.deletedAt),
-      )),
+      .where(
+        and(
+          eq(issueComments.companyId, issue.companyId),
+          eq(issueComments.issueId, issue.id),
+          isNull(issueComments.deletedAt),
+        ),
+      ),
     db
       .select({
         targetId: documentRevisions.id,
@@ -964,7 +1127,12 @@ async function listIssueContextItems(
       .from(documentRevisions)
       .innerJoin(documents, eq(documentRevisions.documentId, documents.id))
       .innerJoin(issueDocuments, eq(issueDocuments.documentId, documents.id))
-      .where(and(eq(documentRevisions.companyId, issue.companyId), eq(issueDocuments.issueId, issue.id))),
+      .where(
+        and(
+          eq(documentRevisions.companyId, issue.companyId),
+          eq(issueDocuments.issueId, issue.id),
+        ),
+      ),
   ]);
 
   const issuePath = buildIssuePath(issue.identifier);
@@ -978,7 +1146,9 @@ async function listIssueContextItems(
       createdAt: row.createdAt,
       authorAgentId: row.authorAgentId,
       authorUserId: row.authorUserId,
-      authorType: row.authorType ?? (row.authorAgentId ? "agent" : row.authorUserId ? "user" : "system"),
+      authorType:
+        row.authorType ??
+        (row.authorAgentId ? "agent" : row.authorUserId ? "user" : "system"),
       presentation: row.presentation ?? null,
       metadata: row.metadata ?? null,
       createdByRunId: row.createdByRunId ?? null,
@@ -1003,7 +1173,9 @@ async function listIssueContextItems(
       documentTitle: row.documentTitle ?? null,
       revisionNumber: row.revisionNumber,
       issuePath,
-      targetPath: issuePath ? `${issuePath}#document-${encodeURIComponent(row.documentKey)}` : null,
+      targetPath: issuePath
+        ? `${issuePath}#document-${encodeURIComponent(row.documentKey)}`
+        : null,
     })),
   ];
 
@@ -1021,52 +1193,68 @@ async function buildIssueContext(
   state: ReturnType<typeof createFeedbackRedactionState>,
 ) {
   const items = await listIssueContextItems(db, issue);
-  const targetIndex = items.findIndex((item) => item.targetType === target.targetType && item.targetId === target.targetId);
-  const before = targetIndex >= 0
-    ? items.slice(Math.max(0, targetIndex - FEEDBACK_CONTEXT_WINDOW), targetIndex)
-    : [];
-  const after = targetIndex >= 0
-    ? items.slice(targetIndex + 1, targetIndex + 1 + FEEDBACK_CONTEXT_WINDOW)
-    : [];
+  const targetIndex = items.findIndex(
+    (item) =>
+      item.targetType === target.targetType &&
+      item.targetId === target.targetId,
+  );
+  const before =
+    targetIndex >= 0
+      ? items.slice(
+          Math.max(0, targetIndex - FEEDBACK_CONTEXT_WINDOW),
+          targetIndex,
+        )
+      : [];
+  const after =
+    targetIndex >= 0
+      ? items.slice(targetIndex + 1, targetIndex + 1 + FEEDBACK_CONTEXT_WINDOW)
+      : [];
 
   let remainingChars = MAX_TOTAL_CONTEXT_CHARS;
-  const serializedItems = [...before, ...after].map((item, index) => {
-    const relation = index < before.length ? "before" : "after";
-    if (remainingChars <= 0) {
-      state.omittedFields.add("bundle.issueContext.items");
-      return null;
-    }
-    const maxChars = Math.min(MAX_CONTEXT_ITEM_BODY_CHARS, remainingChars);
-    const body = sanitizeFeedbackText(
-      item.body,
-      state,
-      `bundle.issueContext.items.${index}.body`,
-      maxChars,
-    );
-    remainingChars -= body.length;
-    return {
-      type: item.targetType,
-      id: item.targetId,
-      label: item.label,
-      relation,
-      createdAt: item.createdAt.toISOString(),
-      authorAgentId: item.authorAgentId,
-      authorUserId: item.authorUserId,
-      authorType: item.authorType ?? null,
-      presentation: item.presentation ?? null,
-      metadata: item.metadata ?? null,
-      createdByRunId: item.createdByRunId,
-      documentKey: item.documentKey,
-      documentTitle: item.documentTitle,
-      revisionNumber: item.revisionNumber,
-      targetPath: item.targetPath,
-      body,
-      excerpt: truncateExcerpt(body),
-    };
-  }).filter((item): item is NonNullable<typeof item> => item !== null);
+  const serializedItems = [...before, ...after]
+    .map((item, index) => {
+      const relation = index < before.length ? "before" : "after";
+      if (remainingChars <= 0) {
+        state.omittedFields.add("bundle.issueContext.items");
+        return null;
+      }
+      const maxChars = Math.min(MAX_CONTEXT_ITEM_BODY_CHARS, remainingChars);
+      const body = sanitizeFeedbackText(
+        item.body,
+        state,
+        `bundle.issueContext.items.${index}.body`,
+        maxChars,
+      );
+      remainingChars -= body.length;
+      return {
+        type: item.targetType,
+        id: item.targetId,
+        label: item.label,
+        relation,
+        createdAt: item.createdAt.toISOString(),
+        authorAgentId: item.authorAgentId,
+        authorUserId: item.authorUserId,
+        authorType: item.authorType ?? null,
+        presentation: item.presentation ?? null,
+        metadata: item.metadata ?? null,
+        createdByRunId: item.createdByRunId,
+        documentKey: item.documentKey,
+        documentTitle: item.documentTitle,
+        revisionNumber: item.revisionNumber,
+        targetPath: item.targetPath,
+        body,
+        excerpt: truncateExcerpt(body),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   const descriptionExcerpt = issue.description
-    ? sanitizeFeedbackText(issue.description, state, "bundle.issueContext.issue.description", MAX_DESCRIPTION_CHARS)
+    ? sanitizeFeedbackText(
+        issue.description,
+        state,
+        "bundle.issueContext.issue.description",
+        MAX_DESCRIPTION_CHARS,
+      )
     : null;
 
   return {
@@ -1076,7 +1264,9 @@ async function buildIssueContext(
       title: issue.title,
       projectId: issue.projectId,
       path: buildIssuePath(issue.identifier),
-      descriptionExcerpt: descriptionExcerpt ? truncateExcerpt(descriptionExcerpt, MAX_DESCRIPTION_CHARS) : null,
+      descriptionExcerpt: descriptionExcerpt
+        ? truncateExcerpt(descriptionExcerpt, MAX_DESCRIPTION_CHARS)
+        : null,
     },
     items: serializedItems,
   };
@@ -1117,144 +1307,208 @@ async function buildAgentContext(
 
   const adapterConfig = asRecord(agent.adapterConfig) ?? {};
   const runtimeConfig = asRecord(agent.runtimeConfig) ?? {};
-  const desiredSkillRefs = uniqueNonEmpty(readTaskcoreSkillSyncPreference(adapterConfig).desiredSkills).slice(0, MAX_SKILLS);
-  const availableSkills = desiredSkillRefs.length === 0
-    ? []
-    : await db
-      .select()
-      .from(companySkills)
-      .where(eq(companySkills.companyId, companyId));
+  const desiredSkillRefs = uniqueNonEmpty(
+    readTaskcoreSkillSyncPreference(adapterConfig).desiredSkills,
+  ).slice(0, MAX_SKILLS);
+  const availableSkills =
+    desiredSkillRefs.length === 0
+      ? []
+      : await db
+          .select()
+          .from(companySkills)
+          .where(eq(companySkills.companyId, companyId));
   const matchedSkills = availableSkills
-    .filter((skill) => desiredSkillRefs.some((reference) => matchesSkillReference(skill, reference)))
+    .filter((skill) =>
+      desiredSkillRefs.some((reference) =>
+        matchesSkillReference(skill, reference),
+      ),
+    )
     .slice(0, MAX_SKILLS);
   const unresolvedSkillRefs = desiredSkillRefs.filter(
-    (reference) => !matchedSkills.some((skill) => matchesSkillReference(skill, reference)),
+    (reference) =>
+      !matchedSkills.some((skill) => matchesSkillReference(skill, reference)),
   );
 
-  if (availableSkills.length > MAX_SKILLS || desiredSkillRefs.length > MAX_SKILLS) {
+  if (
+    availableSkills.length > MAX_SKILLS ||
+    desiredSkillRefs.length > MAX_SKILLS
+  ) {
     state.omittedFields.add("bundle.agentContext.skills");
   }
 
   const run = createdByRunId
     ? await db
-      .select({
-        id: heartbeatRuns.id,
-        companyId: heartbeatRuns.companyId,
-        agentId: heartbeatRuns.agentId,
-        invocationSource: heartbeatRuns.invocationSource,
-        status: heartbeatRuns.status,
-        startedAt: heartbeatRuns.startedAt,
-        finishedAt: heartbeatRuns.finishedAt,
-        usageJson: heartbeatRuns.usageJson,
-        sessionIdBefore: heartbeatRuns.sessionIdBefore,
-        sessionIdAfter: heartbeatRuns.sessionIdAfter,
-        externalRunId: heartbeatRuns.externalRunId,
-      })
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.id, createdByRunId))
-      .then((rows) => rows[0] ?? null)
+        .select({
+          id: heartbeatRuns.id,
+          companyId: heartbeatRuns.companyId,
+          agentId: heartbeatRuns.agentId,
+          invocationSource: heartbeatRuns.invocationSource,
+          status: heartbeatRuns.status,
+          startedAt: heartbeatRuns.startedAt,
+          finishedAt: heartbeatRuns.finishedAt,
+          usageJson: heartbeatRuns.usageJson,
+          sessionIdBefore: heartbeatRuns.sessionIdBefore,
+          sessionIdAfter: heartbeatRuns.sessionIdAfter,
+          externalRunId: heartbeatRuns.externalRunId,
+        })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, createdByRunId))
+        .then((rows) => rows[0] ?? null)
     : null;
   const runCosts = run
     ? await db
-      .select({
-        provider: costEvents.provider,
-        biller: costEvents.biller,
-        billingType: costEvents.billingType,
-        model: costEvents.model,
-        inputTokens: costEvents.inputTokens,
-        cachedInputTokens: costEvents.cachedInputTokens,
-        outputTokens: costEvents.outputTokens,
-        costCents: costEvents.costCents,
-      })
-      .from(costEvents)
-      .where(and(eq(costEvents.companyId, companyId), eq(costEvents.heartbeatRunId, run.id)))
+        .select({
+          provider: costEvents.provider,
+          biller: costEvents.biller,
+          billingType: costEvents.billingType,
+          model: costEvents.model,
+          inputTokens: costEvents.inputTokens,
+          cachedInputTokens: costEvents.cachedInputTokens,
+          outputTokens: costEvents.outputTokens,
+          costCents: costEvents.costCents,
+        })
+        .from(costEvents)
+        .where(
+          and(
+            eq(costEvents.companyId, companyId),
+            eq(costEvents.heartbeatRunId, run.id),
+          ),
+        )
     : [];
 
   const usage = asRecord(run?.usageJson) ?? {};
-  const externalInstructions = agentInstructionsBundleMode({
-    id: agent.id,
-    companyId: agent.companyId,
-    name: agent.name,
-    adapterConfig: agent.adapterConfig,
-  }) === "external";
-  if (externalInstructions) {
-    state.omittedFields.add("bundle.agentContext.runtime.configuredInstructionsFilePath");
-    state.omittedFields.add("bundle.agentContext.runtime.configuredInstructionsRootPath");
-    state.omittedFields.add("bundle.agentContext.instructions");
-  }
-  const runtime = {
-    configuredModel: asString(adapterConfig.model),
-    configuredInstructionsBundleMode: asString(adapterConfig.instructionsBundleMode),
-    configuredInstructionsEntryFile: asString(adapterConfig.instructionsEntryFile),
-    configuredInstructionsFilePath: externalInstructions ? null : asString(adapterConfig.instructionsFilePath),
-    configuredInstructionsRootPath: externalInstructions ? null : asString(adapterConfig.instructionsRootPath),
-    heartbeatPolicy: sanitizeFeedbackValue(runtimeConfig.heartbeat ?? null, state, "bundle.agentContext.runtime.heartbeatPolicy", 400),
-    provenanceMode: run ? "source_run" : "vote_time_snapshot",
-    sourceRun: run
-      ? sanitizeFeedbackValue({
-        id: run.id,
-        invocationSource: run.invocationSource,
-        status: run.status,
-        startedAt: run.startedAt?.toISOString() ?? null,
-        finishedAt: run.finishedAt?.toISOString() ?? null,
-        externalRunId: run.externalRunId ?? null,
-        sessionIdBefore: run.sessionIdBefore ?? null,
-        sessionIdAfter: run.sessionIdAfter ?? null,
-        usage: {
-          provider: asString(usage.provider),
-          biller: asString(usage.biller),
-          billingType: asString(usage.billingType),
-          model: asString(usage.model),
-          inputTokens: asNumber(usage.inputTokens) ?? asNumber(usage.rawInputTokens),
-          cachedInputTokens: asNumber(usage.cachedInputTokens) ?? asNumber(usage.rawCachedInputTokens),
-          outputTokens: asNumber(usage.outputTokens) ?? asNumber(usage.rawOutputTokens),
-          costUsd: asNumber(usage.costUsd),
-          usageSource: asString(usage.usageSource),
-          sessionReused: asBoolean(usage.sessionReused),
-          taskSessionReused: asBoolean(usage.taskSessionReused),
-          freshSession: asBoolean(usage.freshSession),
-          sessionRotated: asBoolean(usage.sessionRotated),
-          sessionRotationReason: asString(usage.sessionRotationReason),
-        },
-      }, state, "bundle.agentContext.runtime.sourceRun", 400)
-      : null,
-    costSummary: runCosts.length > 0
-      ? {
-        providers: uniqueNonEmpty(runCosts.map((row) => row.provider)),
-        billers: uniqueNonEmpty(runCosts.map((row) => row.biller)),
-        billingTypes: uniqueNonEmpty(runCosts.map((row) => row.billingType)),
-        models: uniqueNonEmpty(runCosts.map((row) => row.model)),
-        inputTokens: runCosts.reduce((sum, row) => sum + row.inputTokens, 0),
-        cachedInputTokens: runCosts.reduce((sum, row) => sum + row.cachedInputTokens, 0),
-        outputTokens: runCosts.reduce((sum, row) => sum + row.outputTokens, 0),
-        costCents: runCosts.reduce((sum, row) => sum + row.costCents, 0),
-      }
-      : null,
-  };
-
-  const instructionsBundle = externalInstructions
-    ? null
-    : await instructionsSvc.getBundle({
+  const externalInstructions =
+    agentInstructionsBundleMode({
       id: agent.id,
       companyId: agent.companyId,
       name: agent.name,
       adapterConfig: agent.adapterConfig,
-    }).catch(() => null);
+    }) === "external";
+  if (externalInstructions) {
+    state.omittedFields.add(
+      "bundle.agentContext.runtime.configuredInstructionsFilePath",
+    );
+    state.omittedFields.add(
+      "bundle.agentContext.runtime.configuredInstructionsRootPath",
+    );
+    state.omittedFields.add("bundle.agentContext.instructions");
+  }
+  const runtime = {
+    configuredModel: asString(adapterConfig.model),
+    configuredInstructionsBundleMode: asString(
+      adapterConfig.instructionsBundleMode,
+    ),
+    configuredInstructionsEntryFile: asString(
+      adapterConfig.instructionsEntryFile,
+    ),
+    configuredInstructionsFilePath: externalInstructions
+      ? null
+      : asString(adapterConfig.instructionsFilePath),
+    configuredInstructionsRootPath: externalInstructions
+      ? null
+      : asString(adapterConfig.instructionsRootPath),
+    heartbeatPolicy: sanitizeFeedbackValue(
+      runtimeConfig.heartbeat ?? null,
+      state,
+      "bundle.agentContext.runtime.heartbeatPolicy",
+      400,
+    ),
+    provenanceMode: run ? "source_run" : "vote_time_snapshot",
+    sourceRun: run
+      ? sanitizeFeedbackValue(
+          {
+            id: run.id,
+            invocationSource: run.invocationSource,
+            status: run.status,
+            startedAt: run.startedAt?.toISOString() ?? null,
+            finishedAt: run.finishedAt?.toISOString() ?? null,
+            externalRunId: run.externalRunId ?? null,
+            sessionIdBefore: run.sessionIdBefore ?? null,
+            sessionIdAfter: run.sessionIdAfter ?? null,
+            usage: {
+              provider: asString(usage.provider),
+              biller: asString(usage.biller),
+              billingType: asString(usage.billingType),
+              model: asString(usage.model),
+              inputTokens:
+                asNumber(usage.inputTokens) ?? asNumber(usage.rawInputTokens),
+              cachedInputTokens:
+                asNumber(usage.cachedInputTokens) ??
+                asNumber(usage.rawCachedInputTokens),
+              outputTokens:
+                asNumber(usage.outputTokens) ?? asNumber(usage.rawOutputTokens),
+              costUsd: asNumber(usage.costUsd),
+              usageSource: asString(usage.usageSource),
+              sessionReused: asBoolean(usage.sessionReused),
+              taskSessionReused: asBoolean(usage.taskSessionReused),
+              freshSession: asBoolean(usage.freshSession),
+              sessionRotated: asBoolean(usage.sessionRotated),
+              sessionRotationReason: asString(usage.sessionRotationReason),
+            },
+          },
+          state,
+          "bundle.agentContext.runtime.sourceRun",
+          400,
+        )
+      : null,
+    costSummary:
+      runCosts.length > 0
+        ? {
+            providers: uniqueNonEmpty(runCosts.map((row) => row.provider)),
+            billers: uniqueNonEmpty(runCosts.map((row) => row.biller)),
+            billingTypes: uniqueNonEmpty(
+              runCosts.map((row) => row.billingType),
+            ),
+            models: uniqueNonEmpty(runCosts.map((row) => row.model)),
+            inputTokens: runCosts.reduce(
+              (sum, row) => sum + row.inputTokens,
+              0,
+            ),
+            cachedInputTokens: runCosts.reduce(
+              (sum, row) => sum + row.cachedInputTokens,
+              0,
+            ),
+            outputTokens: runCosts.reduce(
+              (sum, row) => sum + row.outputTokens,
+              0,
+            ),
+            costCents: runCosts.reduce((sum, row) => sum + row.costCents, 0),
+          }
+        : null,
+  };
+
+  const instructionsBundle = externalInstructions
+    ? null
+    : await instructionsSvc
+        .getBundle({
+          id: agent.id,
+          companyId: agent.companyId,
+          name: agent.name,
+          adapterConfig: agent.adapterConfig,
+        })
+        .catch(() => null);
 
   let entryDigest: string | null = null;
   let entryBody: string | null = null;
   if (instructionsBundle) {
     const readableEntryPath =
-      instructionsBundle.files.find((file) => file.path === instructionsBundle.entryFile)?.path
-      ?? instructionsBundle.files[0]?.path
-      ?? null;
+      instructionsBundle.files.find(
+        (file) => file.path === instructionsBundle.entryFile,
+      )?.path ??
+      instructionsBundle.files[0]?.path ??
+      null;
     if (readableEntryPath) {
-      const entryFile = await instructionsSvc.readFile({
-        id: agent.id,
-        companyId: agent.companyId,
-        name: agent.name,
-        adapterConfig: agent.adapterConfig,
-      }, readableEntryPath).catch(() => null);
+      const entryFile = await instructionsSvc
+        .readFile(
+          {
+            id: agent.id,
+            companyId: agent.companyId,
+            name: agent.name,
+            adapterConfig: agent.adapterConfig,
+          },
+          readableEntryPath,
+        )
+        .catch(() => null);
       if (entryFile) {
         entryDigest = sha256Digest(entryFile.content);
         entryBody = sanitizeFeedbackText(
@@ -1279,7 +1533,12 @@ async function buildAgentContext(
       status: agent.status,
       adapterType: agent.adapterType,
     },
-    runtime: sanitizeFeedbackValue(runtime, state, "bundle.agentContext.runtime", 400),
+    runtime: sanitizeFeedbackValue(
+      runtime,
+      state,
+      "bundle.agentContext.runtime",
+      400,
+    ),
     skills: {
       desiredRefs: desiredSkillRefs,
       unresolvedRefs: unresolvedSkillRefs,
@@ -1288,16 +1547,19 @@ async function buildAgentContext(
         slug: skill.slug,
         name: skill.name,
         sourceType: skill.sourceType,
-        sourceLocator: skill.sourceLocator == null
-          ? null
-          : skill.sourceType === "github" || skill.sourceType === "skills_sh" || skill.sourceType === "url"
-            ? skill.sourceLocator
-            : sanitizeFeedbackText(
-              skill.sourceLocator,
-              state,
-              `bundle.agentContext.skills.items.${index}.sourceLocator`,
-              MAX_PATH_CHARS,
-            ),
+        sourceLocator:
+          skill.sourceLocator == null
+            ? null
+            : skill.sourceType === "github" ||
+                skill.sourceType === "skills_sh" ||
+                skill.sourceType === "url"
+              ? skill.sourceLocator
+              : sanitizeFeedbackText(
+                  skill.sourceLocator,
+                  state,
+                  `bundle.agentContext.skills.items.${index}.sourceLocator`,
+                  MAX_PATH_CHARS,
+                ),
         sourceRef: skill.sourceRef,
         trustLevel: skill.trustLevel,
         compatibility: skill.compatibility,
@@ -1306,37 +1568,42 @@ async function buildAgentContext(
     },
     instructions: instructionsBundle
       ? {
-        mode: instructionsBundle.mode,
-        entryFile: instructionsBundle.entryFile,
-        resolvedEntryPath: instructionsBundle.resolvedEntryPath
-          ? sanitizeFeedbackText(
-            instructionsBundle.resolvedEntryPath,
-            state,
-            "bundle.agentContext.instructions.resolvedEntryPath",
-            MAX_PATH_CHARS,
-          )
-          : null,
-        warnings: instructionsBundle.warnings.map((warning, index) =>
-          sanitizeFeedbackText(
-            warning,
-            state,
-            `bundle.agentContext.instructions.warnings.${index}`,
-            400,
-          )),
-        legacyPromptTemplateActive: instructionsBundle.legacyPromptTemplateActive,
-        legacyBootstrapPromptTemplateActive: instructionsBundle.legacyBootstrapPromptTemplateActive,
-        fileCount: instructionsBundle.files.length,
-        files: instructionsBundle.files.slice(0, MAX_INSTRUCTION_FILES).map((file) => ({
-          path: file.path,
-          size: file.size,
-          language: file.language,
-          markdown: file.markdown,
-          isEntryFile: file.isEntryFile,
-          virtual: file.virtual,
-        })),
-        entryDigest,
-        entryBody,
-      }
+          mode: instructionsBundle.mode,
+          entryFile: instructionsBundle.entryFile,
+          resolvedEntryPath: instructionsBundle.resolvedEntryPath
+            ? sanitizeFeedbackText(
+                instructionsBundle.resolvedEntryPath,
+                state,
+                "bundle.agentContext.instructions.resolvedEntryPath",
+                MAX_PATH_CHARS,
+              )
+            : null,
+          warnings: instructionsBundle.warnings.map((warning, index) =>
+            sanitizeFeedbackText(
+              warning,
+              state,
+              `bundle.agentContext.instructions.warnings.${index}`,
+              400,
+            ),
+          ),
+          legacyPromptTemplateActive:
+            instructionsBundle.legacyPromptTemplateActive,
+          legacyBootstrapPromptTemplateActive:
+            instructionsBundle.legacyBootstrapPromptTemplateActive,
+          fileCount: instructionsBundle.files.length,
+          files: instructionsBundle.files
+            .slice(0, MAX_INSTRUCTION_FILES)
+            .map((file) => ({
+              path: file.path,
+              size: file.size,
+              language: file.language,
+              markdown: file.markdown,
+              isEntryFile: file.isEntryFile,
+              virtual: file.virtual,
+            })),
+          entryDigest,
+          entryBody,
+        }
       : null,
     taskcore: {
       schemaVersion: FEEDBACK_SCHEMA_VERSION,
@@ -1437,7 +1704,13 @@ async function buildPayloadArtifacts(
   const exportId = buildExportId(input.voteId, input.now);
   const [issueContext, agentContext] = await Promise.all([
     buildIssueContext(db, input.issue, input.target, state),
-    buildAgentContext(db, input.issue.companyId, input.target.authorAgentId, input.target.createdByRunId, state),
+    buildAgentContext(
+      db,
+      input.issue.companyId,
+      input.target.authorAgentId,
+      input.target.createdByRunId,
+      state,
+    ),
   ]);
 
   const payloadSnapshot = {
@@ -1566,12 +1839,14 @@ async function buildFeedbackTraceBundleFromRow(
         MAX_TRACE_FILE_CHARS,
       ) as Record<string, unknown>;
 
-      files.push(makeBundleFile({
-        path: "taskcore/run.json",
-        contentType: "application/json",
-        source: "taskcore_run",
-        contents: `${JSON.stringify(taskcoreRun, null, 2)}\n`,
-      }));
+      files.push(
+        makeBundleFile({
+          path: "taskcore/run.json",
+          contentType: "application/json",
+          source: "taskcore_run",
+          contents: `${JSON.stringify(taskcoreRun, null, 2)}\n`,
+        }),
+      );
 
       const sanitizedEvents = sanitizeFeedbackValue(
         events,
@@ -1579,20 +1854,24 @@ async function buildFeedbackTraceBundleFromRow(
         "bundle.taskcoreRun.events",
         MAX_TRACE_FILE_CHARS,
       );
-      files.push(makeBundleFile({
-        path: "taskcore/run-events.json",
-        contentType: "application/json",
-        source: "taskcore_run_events",
-        contents: `${JSON.stringify(sanitizedEvents, null, 2)}\n`,
-      }));
+      files.push(
+        makeBundleFile({
+          path: "taskcore/run-events.json",
+          contentType: "application/json",
+          source: "taskcore_run_events",
+          contents: `${JSON.stringify(sanitizedEvents, null, 2)}\n`,
+        }),
+      );
 
       if (logText) {
-        files.push(makeBundleFile({
-          path: "taskcore/run-log.ndjson",
-          contentType: "application/x-ndjson",
-          source: "taskcore_run_log",
-          contents: `${sanitizeFeedbackText(logText, state, "bundle.taskcoreRun.log", MAX_TRACE_FILE_CHARS)}\n`,
-        }));
+        files.push(
+          makeBundleFile({
+            path: "taskcore/run-log.ndjson",
+            contentType: "application/x-ndjson",
+            source: "taskcore_run_log",
+            contents: `${sanitizeFeedbackText(logText, state, "bundle.taskcoreRun.log", MAX_TRACE_FILE_CHARS)}\n`,
+          }),
+        );
       } else {
         appendNote(notes, "run_log_missing");
       }
@@ -1720,7 +1999,12 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
       db
         .select()
         .from(feedbackVotes)
-        .where(and(eq(feedbackVotes.issueId, issueId), eq(feedbackVotes.authorUserId, authorUserId))),
+        .where(
+          and(
+            eq(feedbackVotes.issueId, issueId),
+            eq(feedbackVotes.authorUserId, authorUserId),
+          ),
+        ),
 
     listFeedbackTraces: async (input: {
       companyId: string;
@@ -1735,12 +2019,16 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
       includePayload?: boolean;
     }) => {
       const filters = [eq(feedbackExports.companyId, input.companyId)];
-      if (input.issueId) filters.push(eq(feedbackExports.issueId, input.issueId));
-      if (input.projectId) filters.push(eq(feedbackExports.projectId, input.projectId));
-      if (input.targetType) filters.push(eq(feedbackExports.targetType, input.targetType));
+      if (input.issueId)
+        filters.push(eq(feedbackExports.issueId, input.issueId));
+      if (input.projectId)
+        filters.push(eq(feedbackExports.projectId, input.projectId));
+      if (input.targetType)
+        filters.push(eq(feedbackExports.targetType, input.targetType));
       if (input.vote) filters.push(eq(feedbackExports.vote, input.vote));
       if (input.status) filters.push(eq(feedbackExports.status, input.status));
-      if (input.sharedOnly) filters.push(ne(feedbackExports.status, "local_only"));
+      if (input.sharedOnly)
+        filters.push(ne(feedbackExports.status, "local_only"));
       if (input.from) filters.push(gte(feedbackExports.createdAt, input.from));
       if (input.to) filters.push(lte(feedbackExports.createdAt, input.to));
 
@@ -1835,7 +2123,10 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
 
       const limit = Math.max(1, Math.min(input?.limit ?? 25, 200));
       const filters = [
-        or(eq(feedbackExports.status, "pending"), eq(feedbackExports.status, "failed")),
+        or(
+          eq(feedbackExports.status, "pending"),
+          eq(feedbackExports.status, "failed"),
+        ),
       ];
       if (input?.companyId) {
         filters.push(eq(feedbackExports.companyId, input.companyId));
@@ -1926,12 +2217,18 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
           .then((rows) => rows[0] ?? null);
         if (!issue) throw notFound("Issue not found");
 
-        const target = await resolveFeedbackTarget(tx, issue, input.targetType, input.targetId);
+        const target = await resolveFeedbackTarget(
+          tx,
+          issue,
+          input.targetType,
+          input.targetId,
+        );
 
         const existingCompany = await tx
           .select({
             feedbackDataSharingEnabled: companies.feedbackDataSharingEnabled,
-            feedbackDataSharingTermsVersion: companies.feedbackDataSharingTermsVersion,
+            feedbackDataSharingTermsVersion:
+              companies.feedbackDataSharingTermsVersion,
           })
           .from(companies)
           .where(eq(companies.id, issue.companyId))
@@ -1942,7 +2239,8 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
         const normalizedReason = normalizeReason(input.vote, input.reason);
         const sharedWithLabs = input.allowSharing === true;
         let consentEnabledNow = false;
-        let consentVersion = existingCompany.feedbackDataSharingTermsVersion ?? null;
+        let consentVersion =
+          existingCompany.feedbackDataSharingTermsVersion ?? null;
         let persistedSharingPreference: "allowed" | "not_allowed" | null = null;
 
         if (sharedWithLabs && !existingCompany.feedbackDataSharingEnabled) {
@@ -1966,7 +2264,12 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
             general: instanceSettings.general,
           })
           .from(instanceSettings)
-          .where(eq(instanceSettings.singletonKey, DEFAULT_INSTANCE_SETTINGS_SINGLETON_KEY))
+          .where(
+            eq(
+              instanceSettings.singletonKey,
+              DEFAULT_INSTANCE_SETTINGS_SINGLETON_KEY,
+            ),
+          )
           .then((rows) => rows[0] ?? null);
 
         const currentInstanceSettings =
@@ -1999,9 +2302,15 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
           normalizeInstanceGeneralSettings(currentInstanceSettings?.general),
           getOperatorSettingDefaults(),
         );
-        if (currentInstanceSettings && currentGeneral.feedbackDataSharingPreference === "prompt") {
-          const nextSharingPreference = sharedWithLabs ? "allowed" : "not_allowed";
-          const currentGeneralRaw = asRecord(currentInstanceSettings.general) ?? {};
+        if (
+          currentInstanceSettings &&
+          currentGeneral.feedbackDataSharingPreference === "prompt"
+        ) {
+          const nextSharingPreference = sharedWithLabs
+            ? "allowed"
+            : "not_allowed";
+          const currentGeneralRaw =
+            asRecord(currentInstanceSettings.general) ?? {};
           await tx
             .update(instanceSettings)
             .set({
@@ -2028,7 +2337,9 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
             reason: normalizedReason,
             sharedWithLabs,
             sharedAt: sharedWithLabs ? now : null,
-            consentVersion: sharedWithLabs ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION) : null,
+            consentVersion: sharedWithLabs
+              ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION)
+              : null,
             redactionSummary: null,
             updatedAt: now,
           })
@@ -2044,7 +2355,10 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
               reason: normalizedReason,
               sharedWithLabs,
               sharedAt: sharedWithLabs ? now : null,
-              consentVersion: sharedWithLabs ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION) : null,
+              consentVersion: sharedWithLabs
+                ? (consentVersion ??
+                  DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION)
+                : null,
               redactionSummary: null,
               updatedAt: now,
             },
@@ -2058,7 +2372,9 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
           vote: input.vote,
           reason: normalizedReason,
           authorUserId: input.authorUserId,
-          consentVersion: sharedWithLabs ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION) : null,
+          consentVersion: sharedWithLabs
+            ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION)
+            : null,
           sharedWithLabs,
           now,
         });
@@ -2085,7 +2401,9 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
             status: sharedWithLabs ? "pending" : "local_only",
             destination: sharedWithLabs ? FEEDBACK_DESTINATION : null,
             exportId: artifacts.exportId,
-            consentVersion: sharedWithLabs ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION) : null,
+            consentVersion: sharedWithLabs
+              ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION)
+              : null,
             schemaVersion: FEEDBACK_SCHEMA_VERSION,
             bundleVersion: FEEDBACK_BUNDLE_VERSION,
             payloadVersion: FEEDBACK_PAYLOAD_VERSION,
@@ -2107,7 +2425,10 @@ export function feedbackService(db: Db, options: FeedbackServiceOptions = {}) {
               status: sharedWithLabs ? "pending" : "local_only",
               destination: sharedWithLabs ? FEEDBACK_DESTINATION : null,
               exportId: artifacts.exportId,
-              consentVersion: sharedWithLabs ? (consentVersion ?? DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION) : null,
+              consentVersion: sharedWithLabs
+                ? (consentVersion ??
+                  DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION)
+                : null,
               schemaVersion: FEEDBACK_SCHEMA_VERSION,
               bundleVersion: FEEDBACK_BUNDLE_VERSION,
               payloadVersion: FEEDBACK_PAYLOAD_VERSION,

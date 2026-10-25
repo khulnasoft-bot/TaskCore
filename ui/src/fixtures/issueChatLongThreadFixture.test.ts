@@ -21,15 +21,18 @@ describe("issueChatLongThreadFixture", () => {
       agentMap: issueChatLongThreadAgentMap,
       currentUserId: "user-board",
       transcriptsByRunId: issueChatLongThreadTranscriptsByRunId,
-      hasOutputForRun: (runId) => issueChatLongThreadTranscriptsByRunId.has(runId),
+      hasOutputForRun: (runId) =>
+        issueChatLongThreadTranscriptsByRunId.has(runId),
     });
 
     expect(issueChatLongThreadComments).toHaveLength(LONG_THREAD_COMMENT_COUNT);
-    expect(issueChatLongThreadMarkdownCommentIds.size).toBe(LONG_THREAD_MARKDOWN_COMMENT_COUNT);
-    expect(messages.length).toBeGreaterThanOrEqual(450);
-    expect(messages.filter((message) => message.role === "assistant").length).toBeGreaterThanOrEqual(
+    expect(issueChatLongThreadMarkdownCommentIds.size).toBe(
       LONG_THREAD_MARKDOWN_COMMENT_COUNT,
     );
+    expect(messages.length).toBeGreaterThanOrEqual(450);
+    expect(
+      messages.filter((message) => message.role === "assistant").length,
+    ).toBeGreaterThanOrEqual(LONG_THREAD_MARKDOWN_COMMENT_COUNT);
   });
 
   it("keeps markdown rows markdown-heavy enough to exercise MarkdownBody", () => {

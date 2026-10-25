@@ -3,16 +3,12 @@
   "slug": "postman",
   "name": "Postman",
   "description": "Connect Postman's provider-hosted MCP server.",
-  "categories": [
-    "developer"
-  ],
+  "categories": ["developer"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/postman.svg"
   },
-  "urlPatterns": [
-    "https://mcp.postman.com/*"
-  ],
+  "urlPatterns": ["https://mcp.postman.com/*"],
   "docsUrl": "https://learning.postman.com/latest-v-12/docs/reference/postman-api/postman-mcp-server/postman-mcp-remote-server",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,9 +16,7 @@
       "key": "mcp-oauth-minimal",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.postman.com/minimal"
@@ -46,9 +40,7 @@
       "key": "mcp-oauth-code",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.postman.com/code"
@@ -72,9 +64,7 @@
       "key": "mcp-oauth-full",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.postman.com/mcp"
@@ -98,9 +88,7 @@
       "key": "mcp-eu-key-minimal",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.eu.postman.com/minimal"
@@ -141,9 +129,7 @@
       "key": "mcp-eu-key-code",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.eu.postman.com/code"
@@ -184,9 +170,7 @@
       "key": "mcp-eu-key-full",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.eu.postman.com/mcp"

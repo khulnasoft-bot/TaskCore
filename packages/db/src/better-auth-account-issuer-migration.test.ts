@@ -30,7 +30,9 @@ const OAUTH_ISSUER_PREFIX = "local:oauth:";
 
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 async function migrationHash() {
   const content = await fs.promises.readFile(
@@ -49,12 +51,13 @@ describe("account issuer schema", () => {
 
     // Better Auth declares `(issuer, accountId)` unique on the account model
     // and resolves accounts by that pair.
-    const unique = config.indexes.find((index) => index.config.name === UNIQUE_INDEX);
+    const unique = config.indexes.find(
+      (index) => index.config.name === UNIQUE_INDEX,
+    );
     expect(unique?.config.unique).toBe(true);
-    expect(unique?.config.columns.map((column) => (column as { name: string }).name)).toEqual([
-      "issuer",
-      "account_id",
-    ]);
+    expect(
+      unique?.config.columns.map((column) => (column as { name: string }).name),
+    ).toEqual(["issuer", "account_id"]);
   });
 });
 
@@ -70,7 +73,9 @@ describeEmbeddedPostgres("account issuer migration", () => {
   });
 
   it("backfills every pre-upgrade row before the column goes NOT NULL", async () => {
-    const database = await startEmbeddedPostgresTestDatabase("taskcore-account-issuer-");
+    const database = await startEmbeddedPostgresTestDatabase(
+      "taskcore-account-issuer-",
+    );
     cleanups.push(database.cleanup);
     const sql = postgres(database.connectionString, { max: 1 });
     cleanups.push(async () => sql.end());
@@ -110,8 +115,12 @@ describeEmbeddedPostgres("account issuer migration", () => {
     expect(issuerById.get(credentialAccountId)).toBe(CREDENTIAL_ISSUER);
     // A backfill restricted to `provider_id = 'credential'` leaves these NULL,
     // and SET NOT NULL then aborts the upgrade.
-    expect(issuerById.get(githubAccountId)).toBe(`${OAUTH_ISSUER_PREFIX}github`);
-    expect(issuerById.get(googleAccountId)).toBe(`${OAUTH_ISSUER_PREFIX}google`);
+    expect(issuerById.get(githubAccountId)).toBe(
+      `${OAUTH_ISSUER_PREFIX}github`,
+    );
+    expect(issuerById.get(googleAccountId)).toBe(
+      `${OAUTH_ISSUER_PREFIX}google`,
+    );
 
     const [issuerColumn] = await sql<{ is_nullable: string }[]>`
       SELECT "is_nullable" FROM "information_schema"."columns"

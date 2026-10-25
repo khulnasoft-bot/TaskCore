@@ -84,7 +84,9 @@ class TestQueue<T> implements AsyncIterable<T> {
         if (value) return { value, done: false };
         if (this.error) throw this.error;
         if (this.closed) return { value: undefined, done: true };
-        return new Promise((resolve, reject) => this.waiters.push({ resolve, reject }));
+        return new Promise((resolve, reject) =>
+          this.waiters.push({ resolve, reject }),
+        );
       },
     };
   }
@@ -105,11 +107,13 @@ class FakeCodexTransport implements CodexAppServerTransport {
   turnStartResponse: Promise<Record<string, unknown>> | null = null;
   goalState: Record<string, unknown> | null = null;
   confirmCollaborationMode = true;
-  runtimeRequestResolver: ((input: {
-    requestId: string;
-    turnId: string;
-    resolution: HarnessRuntimeRequestResolution;
-  }) => Promise<void>) | null = null;
+  runtimeRequestResolver:
+    | ((input: {
+        requestId: string;
+        turnId: string;
+        resolution: HarnessRuntimeRequestResolution;
+      }) => Promise<void>)
+    | null = null;
 
   constructor(
     readonly threadId = "thread-1",
@@ -156,9 +160,11 @@ class FakeCodexTransport implements CodexAppServerTransport {
           cwd: TEST_WORKING_DIRECTORY,
           turns: [],
           activePermissionProfile: {
-            id: params.permissions ?? (planMode
-              ? "taskcore-runner-workspace-read-only"
-              : "taskcore-runner-workspace-only"),
+            id:
+              params.permissions ??
+              (planMode
+                ? "taskcore-runner-workspace-read-only"
+                : "taskcore-runner-workspace-only"),
           },
         },
         model: "gpt-test",
@@ -200,14 +206,32 @@ class FakeCodexTransport implements CodexAppServerTransport {
       return {};
     }
     if (method === "thread/turns/list") {
-      const snapshot = this.readResponse ?? { thread: { turns: [{ id: "turn-1", status: "inProgress", items: [] }] } };
+      const snapshot = this.readResponse ?? {
+        thread: { turns: [{ id: "turn-1", status: "inProgress", items: [] }] },
+      };
       const turns = (snapshot.thread as Record<string, unknown>).turns;
-      return { data: Array.isArray(turns) ? turns.map(turn => ({ ...turn, items: [], itemsView: "notLoaded" })) : turns, nextCursor: null };
+      return {
+        data: Array.isArray(turns)
+          ? turns.map((turn) => ({
+              ...turn,
+              items: [],
+              itemsView: "notLoaded",
+            }))
+          : turns,
+        nextCursor: null,
+      };
     }
     if (method === "thread/items/list") {
-      const turns = ((this.readResponse?.thread as Record<string, unknown> | undefined)?.turns ?? []) as Array<Record<string, unknown>>;
-      const turn = turns.find(value => value.id === params.turnId);
-      return { data: ((turn?.items ?? []) as Array<Record<string, unknown>>).map(item => ({ turnId: params.turnId, item })), nextCursor: null };
+      const turns = ((
+        this.readResponse?.thread as Record<string, unknown> | undefined
+      )?.turns ?? []) as Array<Record<string, unknown>>;
+      const turn = turns.find((value) => value.id === params.turnId);
+      return {
+        data: ((turn?.items ?? []) as Array<Record<string, unknown>>).map(
+          (item) => ({ turnId: params.turnId, item }),
+        ),
+        nextCursor: null,
+      };
     }
     if (method === "thread/read") {
       return structuredClone(
@@ -218,7 +242,7 @@ class FakeCodexTransport implements CodexAppServerTransport {
             cwd: TEST_WORKING_DIRECTORY,
             turns: [{ id: "turn-1", status: "inProgress", items: [] }],
           },
-        }
+        },
       );
     }
     return {};
@@ -330,25 +354,59 @@ function makeDriver(
 it("refreshes authorized tools on resume without replacing the provider thread", async () => {
   const first = new FakeCodexTransport();
   const second = new FakeCodexTransport();
-  const original = await makeDriver([first], { conversationMode: "prepared", dynamicTools: [] }).openSession({
-    runId: "run-connect", normalizedSessionId: "normalized-connect", workingDirectory: TEST_WORKING_DIRECTORY,
+  const original = await makeDriver([first], {
+    conversationMode: "prepared",
+    dynamicTools: [],
+  }).openSession({
+    runId: "run-connect",
+    normalizedSessionId: "normalized-connect",
+    workingDirectory: TEST_WORKING_DIRECTORY,
   });
   const snapshot = await original.snapshot();
   await original.close({ reason: "waiting for connection" });
-  const githubTool = { name: "github_search", description: "Search authorized repositories", inputSchema: { type: "object" } };
+  const githubTool = {
+    name: "github_search",
+    description: "Search authorized repositories",
+    inputSchema: { type: "object" },
+  };
   const handler = vi.fn(async () => ({ repositories: ["taskcore"] }));
-  const resumedDriver = makeDriver([second], { conversationMode: "prepared", dynamicTools: [githubTool], dynamicToolHandler: handler });
-  expect((await resumedDriver.descriptor()).capabilities.toolRefreshOnResume).toBe(true);
+  const resumedDriver = makeDriver([second], {
+    conversationMode: "prepared",
+    dynamicTools: [githubTool],
+    dynamicToolHandler: handler,
+  });
+  expect(
+    (await resumedDriver.descriptor()).capabilities.toolRefreshOnResume,
+  ).toBe(true);
   const recovery = await resumedDriver.recoverSession(snapshot);
   expect(recovery.recovered).toBe(true);
-  await recovery.session!.startTurn({ message: { role: "user", text: "Continue with GitHub connected" } });
-  expect(second.calls.some(call => call.method === "thread/start")).toBe(false);
-  expect(second.calls.find(call => call.method === "thread/resume")?.params).toMatchObject({ threadId: "thread-1", dynamicTools: expect.arrayContaining([githubTool]) });
-  const result = await second.invoke({ id: "rpc-github", method: "item/tool/call", params: {
-    threadId: "thread-1", turnId: "turn-1", callId: "github-call", tool: "github_search", arguments: { query: "taskcore" },
-  } });
+  await recovery.session!.startTurn({
+    message: { role: "user", text: "Continue with GitHub connected" },
+  });
+  expect(second.calls.some((call) => call.method === "thread/start")).toBe(
+    false,
+  );
+  expect(
+    second.calls.find((call) => call.method === "thread/resume")?.params,
+  ).toMatchObject({
+    threadId: "thread-1",
+    dynamicTools: expect.arrayContaining([githubTool]),
+  });
+  const result = await second.invoke({
+    id: "rpc-github",
+    method: "item/tool/call",
+    params: {
+      threadId: "thread-1",
+      turnId: "turn-1",
+      callId: "github-call",
+      tool: "github_search",
+      arguments: { query: "taskcore" },
+    },
+  });
   expect(result).toMatchObject({ success: true });
-  expect(handler).toHaveBeenCalledWith(expect.objectContaining({ tool: "github_search", threadId: "thread-1" }));
+  expect(handler).toHaveBeenCalledWith(
+    expect.objectContaining({ tool: "github_search", threadId: "thread-1" }),
+  );
   await recovery.session?.close({ reason: "test done" });
 });
 
@@ -431,20 +489,24 @@ async function traceCompletedProposal(
 
 describe("Codex app-server Codex driver", () => {
   it("parses a complete Codex turn diff snapshot with bounded file statistics", () => {
-    expect(parseCodexTurnDiff([
-      "diff --git a/src/old.ts b/src/new.ts",
-      "similarity index 95%",
-      "rename from src/old.ts",
-      "rename to src/new.ts",
-      "--- a/src/old.ts",
-      "+++ b/src/new.ts",
-      "@@ -1 +1,2 @@",
-      "-old",
-      "+new",
-      "+another",
-      "diff --git a/assets/image.png b/assets/image.png",
-      "Binary files a/assets/image.png and b/assets/image.png differ",
-    ].join("\n"))).toEqual([
+    expect(
+      parseCodexTurnDiff(
+        [
+          "diff --git a/src/old.ts b/src/new.ts",
+          "similarity index 95%",
+          "rename from src/old.ts",
+          "rename to src/new.ts",
+          "--- a/src/old.ts",
+          "+++ b/src/new.ts",
+          "@@ -1 +1,2 @@",
+          "-old",
+          "+new",
+          "+another",
+          "diff --git a/assets/image.png b/assets/image.png",
+          "Binary files a/assets/image.png and b/assets/image.png differ",
+        ].join("\n"),
+      ),
+    ).toEqual([
       expect.objectContaining({
         path: "src/new.ts",
         previousPath: "src/old.ts",
@@ -464,33 +526,41 @@ describe("Codex app-server Codex driver", () => {
   });
 
   it("bounds aggregate Codex diffs and rejects unsafe workspace paths", () => {
-    const patches = Array.from({ length: 2_001 }, (_, index) => [
-      `diff --git a/src/file-${index}.ts b/src/file-${index}.ts`,
-      `--- a/src/file-${index}.ts`,
-      `+++ b/src/file-${index}.ts`,
-      "@@ -1 +1 @@",
-      "-old",
-      "+new",
-    ].join("\n"));
+    const patches = Array.from({ length: 2_001 }, (_, index) =>
+      [
+        `diff --git a/src/file-${index}.ts b/src/file-${index}.ts`,
+        `--- a/src/file-${index}.ts`,
+        `+++ b/src/file-${index}.ts`,
+        "@@ -1 +1 @@",
+        "-old",
+        "+new",
+      ].join("\n"),
+    );
     expect(parseCodexTurnDiff(patches.join("\n"))).toHaveLength(2_000);
 
-    const oversized = parseCodexTurnDiff([
-      "diff --git a/src/large.ts b/src/large.ts",
-      "--- a/src/large.ts",
-      "+++ b/src/large.ts",
-      "@@ -0,0 +1 @@",
-      `+${"x".repeat(300_000)}`,
-    ].join("\n"));
+    const oversized = parseCodexTurnDiff(
+      [
+        "diff --git a/src/large.ts b/src/large.ts",
+        "--- a/src/large.ts",
+        "+++ b/src/large.ts",
+        "@@ -0,0 +1 @@",
+        `+${"x".repeat(300_000)}`,
+      ].join("\n"),
+    );
     expect(oversized[0]?.diff).toHaveLength(256 * 1_024);
 
-    expect(parseCodexTurnDiff([
-      "diff --git a/../../secret.txt b/../../secret.txt",
-      "--- a/../../secret.txt",
-      "+++ b/../../secret.txt",
-      "@@ -1 +1 @@",
-      "-old",
-      "+new",
-    ].join("\n"))).toEqual([]);
+    expect(
+      parseCodexTurnDiff(
+        [
+          "diff --git a/../../secret.txt b/../../secret.txt",
+          "--- a/../../secret.txt",
+          "+++ b/../../secret.txt",
+          "@@ -1 +1 @@",
+          "-old",
+          "+new",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
   });
 
   it("persists process ownership before sending provider requests", async () => {
@@ -578,7 +648,9 @@ describe("Codex app-server Codex driver", () => {
 
   it("forwards the persisted native model to the runner transport", async () => {
     const transport = new FakeCodexTransport();
-    const driver = makeDriver([transport], { model: "qualified-provider-model" });
+    const driver = makeDriver([transport], {
+      model: "qualified-provider-model",
+    });
 
     await driver.openSession({
       runId: "run-qualified-model",
@@ -615,7 +687,9 @@ describe("Codex app-server Codex driver", () => {
       workingDirectory: TEST_WORKING_DIRECTORY,
     });
 
-    const threadStart = transport.calls.find((call) => call.method === "thread/start");
+    const threadStart = transport.calls.find(
+      (call) => call.method === "thread/start",
+    );
     expect(threadStart?.params).toMatchObject({
       developerInstructions: baseInstructions,
       config: {
@@ -624,7 +698,9 @@ describe("Codex app-server Codex driver", () => {
       },
     });
     expect(threadStart?.params).not.toHaveProperty("baseInstructions");
-    expect(JSON.stringify(threadStart?.params.input ?? null)).not.toContain(baseInstructions);
+    expect(JSON.stringify(threadStart?.params.input ?? null)).not.toContain(
+      baseInstructions,
+    );
   });
 
   it("passes the common typed-event contract and reports one provider turn terminal", async () => {
@@ -755,7 +831,9 @@ describe("Codex app-server Codex driver", () => {
     expect(
       events.filter((event) => event.eventType === "run.terminal"),
     ).toHaveLength(0);
-    const workspaceEvents = events.filter((event) => event.eventType === "workspace.change.updated");
+    const workspaceEvents = events.filter(
+      (event) => event.eventType === "workspace.change.updated",
+    );
     expect(workspaceEvents[0]?.payload).toMatchObject({
       schema: "taskcore.workspace.diff.v1",
       changeSetId: `${turn.turnId}:workspace`,
@@ -767,9 +845,13 @@ describe("Codex app-server Codex driver", () => {
       complete: true,
       totals: { files: 1 },
     });
-    const planEvents = events.filter((event) => event.eventType === "plan.updated");
+    const planEvents = events.filter(
+      (event) => event.eventType === "plan.updated",
+    );
     expect(planEvents).toHaveLength(2);
-    expect(new Set(planEvents.map((event) => event.itemId))).toEqual(new Set([turn.turnId]));
+    expect(new Set(planEvents.map((event) => event.itemId))).toEqual(
+      new Set([turn.turnId]),
+    );
     expect(planEvents.at(-1)?.payload).toMatchObject({
       planId: turn.turnId,
       revision: 2,
@@ -952,15 +1034,17 @@ describe("Codex app-server Codex driver", () => {
       revision: 1,
       source: "harness_reported",
       complete: false,
-      files: [{
-        path: "src/index.ts",
-        operation: "modify",
-        previousPath: null,
-        additions: 1,
-        deletions: 0,
-        binary: false,
-        diff: "+first\n",
-      }],
+      files: [
+        {
+          path: "src/index.ts",
+          operation: "modify",
+          previousPath: null,
+          additions: 1,
+          deletions: 0,
+          binary: false,
+          diff: "+first\n",
+        },
+      ],
       totals: { files: 1, additions: 1, deletions: 0 },
       patchArtifactRef: null,
     };
@@ -1029,13 +1113,15 @@ describe("Codex app-server Codex driver", () => {
         (event) => (event.payload as Record<string, unknown>).revision,
       ),
     ).toEqual([1, 2]);
+    expect((updates[1]?.payload as Record<string, unknown>).files).toHaveLength(
+      3,
+    );
     expect(
-      (updates[1]?.payload as Record<string, unknown>).files,
-    ).toHaveLength(3);
-    expect(events.filter((event) => event.eventType === "workspace.diff.recorded"))
-      .toHaveLength(1);
+      events.filter((event) => event.eventType === "workspace.diff.recorded"),
+    ).toHaveLength(1);
     expect(
-      events.find((event) => event.eventType === "workspace.diff.recorded")?.payload,
+      events.find((event) => event.eventType === "workspace.diff.recorded")
+        ?.payload,
     ).toMatchObject({
       revision: 2,
       source: "runner_verified",
@@ -1043,9 +1129,12 @@ describe("Codex app-server Codex driver", () => {
       totals: { files: 3, additions: null, deletions: null },
     });
     expect(
-      transport.traceInterpretations.filter((entry) =>
-        entry.providerMethod === "taskcore/workspaceChange/updated"
-      ).map((entry) => entry.disposition),
+      transport.traceInterpretations
+        .filter(
+          (entry) =>
+            entry.providerMethod === "taskcore/workspaceChange/updated",
+        )
+        .map((entry) => entry.disposition),
     ).toEqual(["mapped", "mapped"]);
   });
 
@@ -1083,13 +1172,25 @@ describe("Codex app-server Codex driver", () => {
     });
 
     const events = await collectUntilTerminal(session.events());
-    expect(events.find((event) => event.eventType === "workspace.change.updated")?.payload)
-      .toMatchObject({ revision: 1, complete: false, totals: { files: 0 } });
-    expect(events.filter((event) => event.eventType === "workspace.diff.recorded"))
-      .toHaveLength(1);
-    expect(events.find((event) => event.eventType === "workspace.diff.recorded")?.payload)
-      .toMatchObject({ revision: 1, source: "runner_verified", complete: true, totals: { files: 0 } });
-    expect(events.some((event) => event.eventType === "turn.interrupted")).toBe(true);
+    expect(
+      events.find((event) => event.eventType === "workspace.change.updated")
+        ?.payload,
+    ).toMatchObject({ revision: 1, complete: false, totals: { files: 0 } });
+    expect(
+      events.filter((event) => event.eventType === "workspace.diff.recorded"),
+    ).toHaveLength(1);
+    expect(
+      events.find((event) => event.eventType === "workspace.diff.recorded")
+        ?.payload,
+    ).toMatchObject({
+      revision: 1,
+      source: "runner_verified",
+      complete: true,
+      totals: { files: 0 },
+    });
+    expect(events.some((event) => event.eventType === "turn.interrupted")).toBe(
+      true,
+    );
   });
 
   it("accepts a thread usage snapshot replayed before a resumed turn starts", async () => {
@@ -1369,35 +1470,74 @@ describe("Codex app-server Codex driver", () => {
       await original.close({ reason: "policy recovery test" });
       const recovered = await driver.recoverSession?.(snapshot);
       expect(recovered).toMatchObject({ recovered: true });
-      const resumed = await recovered!.session!.events()[Symbol.asyncIterator]().next();
-      expect(first.calls.find((call) => call.method === "thread/start")?.params)
-        .toMatchObject({ approvalPolicy });
-      expect(second.calls.find((call) => call.method === "thread/resume")?.params)
-        .toMatchObject({ approvalPolicy });
-      expect(started.value).toMatchObject({ eventType: "session.started", payload: { context: { approvalPolicy } } });
-      expect(resumed.value).toMatchObject({ eventType: "session.resumed", payload: { context: { approvalPolicy } } });
+      const resumed = await recovered!
+        .session!.events()
+        [Symbol.asyncIterator]()
+        .next();
+      expect(
+        first.calls.find((call) => call.method === "thread/start")?.params,
+      ).toMatchObject({ approvalPolicy });
+      expect(
+        second.calls.find((call) => call.method === "thread/resume")?.params,
+      ).toMatchObject({ approvalPolicy });
+      expect(started.value).toMatchObject({
+        eventType: "session.started",
+        payload: { context: { approvalPolicy } },
+      });
+      expect(resumed.value).toMatchObject({
+        eventType: "session.resumed",
+        payload: { context: { approvalPolicy } },
+      });
       await recovered?.session?.close({ reason: "policy recovery complete" });
     },
   );
 
-  it.each([false, true])("requires trusted continuation metadata before omitting task context (%s)", async (continuation) => {
-    const transport = new FakeCodexTransport();
-    const session = await makeDriver([transport], {
-      skillInputs: [{ type: "skill", name: "first-task", path: "/skills/first-task/SKILL.md" }],
-    }).openSession({ runId: "run-delta", normalizedSessionId: "session-delta", workingDirectory: TEST_WORKING_DIRECTORY });
-    const text = JSON.stringify({ schema: "taskcore.native-continuation.v1", events: '{"messages":[{"body":"Go ahead"}]}', completion: { revision: "2", criterionIds: ["comment"] } });
-    await session.startTurn({ message: { role: "user", text }, ...(continuation ? { continuation: true as const } : {}) });
-    const params = transport.calls.find((call) => call.method === "turn/start")!.params;
-    if (continuation) {
-      expect(params.input).toEqual([{ type: "text", text, text_elements: [] }]);
-      expect(JSON.stringify(params.input)).not.toContain("constraints");
-      expect(JSON.stringify(params.input)).not.toContain("first-task");
-    } else {
-      expect(JSON.stringify(params.input)).toContain("constraints");
-      expect(params.input).toContainEqual({ type: "skill", name: "first-task", path: "/skills/first-task/SKILL.md" });
-    }
-    await session.close({ reason: "test complete" });
-  });
+  it.each([false, true])(
+    "requires trusted continuation metadata before omitting task context (%s)",
+    async (continuation) => {
+      const transport = new FakeCodexTransport();
+      const session = await makeDriver([transport], {
+        skillInputs: [
+          {
+            type: "skill",
+            name: "first-task",
+            path: "/skills/first-task/SKILL.md",
+          },
+        ],
+      }).openSession({
+        runId: "run-delta",
+        normalizedSessionId: "session-delta",
+        workingDirectory: TEST_WORKING_DIRECTORY,
+      });
+      const text = JSON.stringify({
+        schema: "taskcore.native-continuation.v1",
+        events: '{"messages":[{"body":"Go ahead"}]}',
+        completion: { revision: "2", criterionIds: ["comment"] },
+      });
+      await session.startTurn({
+        message: { role: "user", text },
+        ...(continuation ? { continuation: true as const } : {}),
+      });
+      const params = transport.calls.find(
+        (call) => call.method === "turn/start",
+      )!.params;
+      if (continuation) {
+        expect(params.input).toEqual([
+          { type: "text", text, text_elements: [] },
+        ]);
+        expect(JSON.stringify(params.input)).not.toContain("constraints");
+        expect(JSON.stringify(params.input)).not.toContain("first-task");
+      } else {
+        expect(JSON.stringify(params.input)).toContain("constraints");
+        expect(params.input).toContainEqual({
+          type: "skill",
+          name: "first-task",
+          path: "/skills/first-task/SKILL.md",
+        });
+      }
+      await session.close({ reason: "test complete" });
+    },
+  );
 
   it("allows eval fixtures to opt out of Codex collaboration instructions", async () => {
     const transport = new FakeCodexTransport();
@@ -1465,13 +1605,18 @@ describe("Codex app-server Codex driver", () => {
 
   it("sends the selected reasoning effort with the Codex turn", async () => {
     const transport = new FakeCodexTransport();
-    const session = await makeDriver([transport], { model: "gpt-6-astra", reasoningEffort: "ultra" }).openSession({
+    const session = await makeDriver([transport], {
+      model: "gpt-6-astra",
+      reasoningEffort: "ultra",
+    }).openSession({
       runId: "run-effort",
       normalizedSessionId: "session-effort",
       workingDirectory: TEST_WORKING_DIRECTORY,
     });
     await session.startTurn({ message: { role: "user", text: "Continue" } });
-    expect(transport.calls.find((call) => call.method === "turn/start")?.params).toMatchObject({ effort: "ultra" });
+    expect(
+      transport.calls.find((call) => call.method === "turn/start")?.params,
+    ).toMatchObject({ effort: "ultra" });
     await session.close({ reason: "test complete" });
   });
 
@@ -1527,34 +1672,86 @@ describe("Codex app-server Codex driver", () => {
 
   it("uses negotiated ACP controls through the Codex transport facade", async () => {
     let controls = { steering: false, queuedFollowUp: false };
-    const transport = Object.assign(new FakeCodexTransport(), { turnControlCapabilities: () => ({ ...controls }) });
+    const transport = Object.assign(new FakeCodexTransport(), {
+      turnControlCapabilities: () => ({ ...controls }),
+    });
     const session = await makeDriver([transport], {
-      driverIdentity: { kind: "acpx_runtime", displayName: "Pi ACP", version: "test" },
+      driverIdentity: {
+        kind: "acpx_runtime",
+        displayName: "Pi ACP",
+        version: "test",
+      },
       capabilities: { steering: false },
-    }).openSession({ runId: "run-pi", normalizedSessionId: "session-pi", workingDirectory: TEST_WORKING_DIRECTORY });
+    }).openSession({
+      runId: "run-pi",
+      normalizedSessionId: "session-pi",
+      workingDirectory: TEST_WORKING_DIRECTORY,
+    });
     try {
       expect(session.turnControlCapabilities?.()).toEqual(controls);
-      const { turnId } = await session.startTurn({ message: { role: "user", text: "Work" } });
-      await expect(session.steer?.({ turnId, message: { role: "user", text: "Change" } })).rejects.toThrow("not negotiated");
+      const { turnId } = await session.startTurn({
+        message: { role: "user", text: "Work" },
+      });
+      await expect(
+        session.steer?.({ turnId, message: { role: "user", text: "Change" } }),
+      ).rejects.toThrow("not negotiated");
       controls = { steering: true, queuedFollowUp: true };
       expect(session.turnControlCapabilities?.()).toEqual(controls);
-      const input = { turnId, correlationId: "queued-1", mode: "follow_up" as const, message: { role: "user" as const, text: "Then validate" } };
+      const input = {
+        turnId,
+        correlationId: "queued-1",
+        mode: "follow_up" as const,
+        message: { role: "user" as const, text: "Then validate" },
+      };
       await session.steer?.(input);
-      expect(transport.calls.find(call => call.method === "turn/steer")?.params).toMatchObject({ expectedTurnId: turnId, mode: "follow_up", correlationId: "queued-1" });
-      await expect(session.steer?.(input)).rejects.toThrow("already acknowledged");
-      expect(transport.calls.filter(call => call.method === "turn/steer")).toHaveLength(1);
-    } finally { await session.close({ reason: "verified" }); }
+      expect(
+        transport.calls.find((call) => call.method === "turn/steer")?.params,
+      ).toMatchObject({
+        expectedTurnId: turnId,
+        mode: "follow_up",
+        correlationId: "queued-1",
+      });
+      await expect(session.steer?.(input)).rejects.toThrow(
+        "already acknowledged",
+      );
+      expect(
+        transport.calls.filter((call) => call.method === "turn/steer"),
+      ).toHaveLength(1);
+    } finally {
+      await session.close({ reason: "verified" });
+    }
   });
 
   it("keeps native follow-up disabled for the Codex app-server driver", async () => {
-    const transport = Object.assign(new FakeCodexTransport(), { turnControlCapabilities: () => ({ steering: true, queuedFollowUp: true }) });
-    const session = await makeDriver([transport]).openSession({ runId: "run-codex", normalizedSessionId: "session-codex", workingDirectory: TEST_WORKING_DIRECTORY });
+    const transport = Object.assign(new FakeCodexTransport(), {
+      turnControlCapabilities: () => ({ steering: true, queuedFollowUp: true }),
+    });
+    const session = await makeDriver([transport]).openSession({
+      runId: "run-codex",
+      normalizedSessionId: "session-codex",
+      workingDirectory: TEST_WORKING_DIRECTORY,
+    });
     try {
-      expect(session.turnControlCapabilities?.()).toEqual({ steering: true, queuedFollowUp: false });
-      const { turnId } = await session.startTurn({ message: { role: "user", text: "Work" } });
-      await expect(session.steer?.({ turnId, mode: "follow_up", message: { role: "user", text: "Queue" } })).rejects.toThrow("not negotiated");
-      expect(transport.calls.filter(call => call.method === "turn/steer")).toHaveLength(0);
-    } finally { await session.close({ reason: "verified" }); }
+      expect(session.turnControlCapabilities?.()).toEqual({
+        steering: true,
+        queuedFollowUp: false,
+      });
+      const { turnId } = await session.startTurn({
+        message: { role: "user", text: "Work" },
+      });
+      await expect(
+        session.steer?.({
+          turnId,
+          mode: "follow_up",
+          message: { role: "user", text: "Queue" },
+        }),
+      ).rejects.toThrow("not negotiated");
+      expect(
+        transport.calls.filter((call) => call.method === "turn/steer"),
+      ).toHaveLength(0);
+    } finally {
+      await session.close({ reason: "verified" });
+    }
   });
 
   it("steers and interrupts an active turn without replacing the session", async () => {
@@ -1784,8 +1981,9 @@ describe("Codex app-server Codex driver", () => {
         }),
       ]),
     );
-    expect(observed.some((event) => event.eventType === "session.failed"))
-      .toBe(false);
+    expect(observed.some((event) => event.eventType === "session.failed")).toBe(
+      false,
+    );
     await session.close({ reason: "fixture complete" });
   });
 
@@ -1987,11 +2185,13 @@ describe("Codex app-server Codex driver", () => {
     await definiteSession.close({ reason: "fixture complete" });
 
     const ambiguousTransport = new FakeCodexTransport();
-    const ambiguousSession = await makeDriver([ambiguousTransport]).openSession({
-      runId: "run-goal-autostart-ambiguous",
-      normalizedSessionId: "normalized-goal-autostart-ambiguous",
-      workingDirectory: TEST_WORKING_DIRECTORY,
-    });
+    const ambiguousSession = await makeDriver([ambiguousTransport]).openSession(
+      {
+        runId: "run-goal-autostart-ambiguous",
+        normalizedSessionId: "normalized-goal-autostart-ambiguous",
+        workingDirectory: TEST_WORKING_DIRECTORY,
+      },
+    );
     ambiguousTransport.rejectMethods.set(
       "thread/goal/set",
       new Error("codex app-server transport closed"),
@@ -2043,9 +2243,9 @@ describe("Codex app-server Codex driver", () => {
       },
     });
 
-    await expect(
-      session.goal?.({ action: "pause" }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnavailableError);
+    await expect(session.goal?.({ action: "pause" })).rejects.toBeInstanceOf(
+      HarnessCapabilityUnavailableError,
+    );
     expect(
       transport.calls.filter(({ method }) => method === "thread/goal/set"),
     ).toHaveLength(0);
@@ -2185,8 +2385,11 @@ describe("Codex app-server Codex driver", () => {
     });
     const resolvedEvent = (async () => {
       for await (const event of session.events()) {
-        if (event.eventType === "runtime_request.resolved"
-          && event.payload.requestId === "dot-185-request") return event;
+        if (
+          event.eventType === "runtime_request.resolved" &&
+          event.payload.requestId === "dot-185-request"
+        )
+          return event;
       }
       return null;
     })();
@@ -2204,7 +2407,10 @@ describe("Codex app-server Codex driver", () => {
             question: "Where should we deploy?",
             options: [
               { label: "Staging", description: "Deploy to staging first." },
-              { label: "Production", description: "Deploy directly to production." },
+              {
+                label: "Production",
+                description: "Deploy directly to production.",
+              },
             ],
             isOther: true,
           },
@@ -2235,8 +2441,16 @@ describe("Codex app-server Codex driver", () => {
           answerMode: "single_select",
           customAnswer: { enabled: true },
           options: [
-            { id: "option-1", label: "Staging", description: "Deploy to staging first." },
-            { id: "option-2", label: "Production", description: "Deploy directly to production." },
+            {
+              id: "option-1",
+              label: "Staging",
+              description: "Deploy to staging first.",
+            },
+            {
+              id: "option-2",
+              label: "Production",
+              description: "Deploy directly to production.",
+            },
           ],
         },
         { id: "regions", answerMode: "multi_select", required: false },
@@ -2291,33 +2505,40 @@ describe("Codex app-server Codex driver", () => {
     });
     const diagnostic = (async () => {
       for await (const event of session.events()) {
-        if (event.eventType === "harness.diagnostic" && event.payload.code === "runtime_input_rejected") {
+        if (
+          event.eventType === "harness.diagnostic" &&
+          event.payload.code === "runtime_input_rejected"
+        ) {
           return event;
         }
       }
       return null;
     })();
-    await expect(transport.invoke({
-      id: "malformed-input",
-      method: "item/tool/requestUserInput",
-      params: {
-        threadId: "thread-1",
-        turnId,
-        itemId: "malformed-item",
-        questions: [
-          { id: "duplicate", question: "First?" },
-          { id: "duplicate", question: "Second?" },
-        ],
-      },
-    })).resolves.toEqual({ answers: {} });
-    expect(session.pendingRuntimeRequests?.()).toEqual([]);
-    expect(await diagnostic).toEqual(expect.objectContaining({
-      eventType: "harness.diagnostic",
-      payload: expect.objectContaining({
-        code: "runtime_input_rejected",
-        adapter: "codex-app-server",
+    await expect(
+      transport.invoke({
+        id: "malformed-input",
+        method: "item/tool/requestUserInput",
+        params: {
+          threadId: "thread-1",
+          turnId,
+          itemId: "malformed-item",
+          questions: [
+            { id: "duplicate", question: "First?" },
+            { id: "duplicate", question: "Second?" },
+          ],
+        },
       }),
-    }));
+    ).resolves.toEqual({ answers: {} });
+    expect(session.pendingRuntimeRequests?.()).toEqual([]);
+    expect(await diagnostic).toEqual(
+      expect.objectContaining({
+        eventType: "harness.diagnostic",
+        payload: expect.objectContaining({
+          code: "runtime_input_rejected",
+          adapter: "codex-app-server",
+        }),
+      }),
+    );
     await session.close({ reason: "fixture complete" });
   });
 
@@ -2428,12 +2649,14 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "lost-input-item",
-        questions: [{
-          id: "environment",
-          header: "Environment",
-          question: "Where should we deploy?",
-          options: [{ label: "Staging" }, { label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            header: "Environment",
+            question: "Where should we deploy?",
+            options: [{ label: "Staging" }, { label: "Production" }],
+          },
+        ],
       },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -2441,7 +2664,9 @@ describe("Codex app-server Codex driver", () => {
     expect(await pending).toEqual({ answers: {} });
     await consume;
 
-    const expired = events.find((event) => event.eventType === "runtime_request.expired");
+    const expired = events.find(
+      (event) => event.eventType === "runtime_request.expired",
+    );
     expect(expired).toMatchObject({
       turnId,
       itemId: "lost-input-item",
@@ -2462,7 +2687,9 @@ describe("Codex app-server Codex driver", () => {
         },
       },
     });
-    expect(events.filter((event) => event.eventType === "runtime_request.cancelled")).toHaveLength(0);
+    expect(
+      events.filter((event) => event.eventType === "runtime_request.cancelled"),
+    ).toHaveLength(0);
     expect(validatePrpEvent(expired!)).toMatchObject({ ok: true });
   });
 
@@ -2484,12 +2711,14 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "handoff-input-item",
-        questions: [{
-          id: "environment",
-          header: "Environment",
-          question: "Where should we deploy?",
-          options: [{ label: "Staging" }, { label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            header: "Environment",
+            question: "Where should we deploy?",
+            options: [{ label: "Staging" }, { label: "Production" }],
+          },
+        ],
       },
     });
     let created: PrpEvent | null = null;
@@ -2683,9 +2912,10 @@ describe("Codex app-server Codex driver", () => {
   it("lets an answer claimed before expiry win the terminal-event race", async () => {
     const transport = new FakeCodexTransport();
     let releaseResolution!: () => void;
-    transport.runtimeRequestResolver = () => new Promise<void>((resolve) => {
-      releaseResolution = resolve;
-    });
+    transport.runtimeRequestResolver = () =>
+      new Promise<void>((resolve) => {
+        releaseResolution = resolve;
+      });
     const session = await makeDriver([transport]).openSession({
       runId: "run-answer-handoff-race",
       normalizedSessionId: "normalized-answer-handoff-race",
@@ -2702,17 +2932,20 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "race-input-item",
-        questions: [{
-          id: "environment",
-          header: "Environment",
-          question: "Where should we deploy?",
-          options: [{ label: "Staging" }, { label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            header: "Environment",
+            question: "Where should we deploy?",
+            options: [{ label: "Staging" }, { label: "Production" }],
+          },
+        ],
       },
     });
     for (let count = 0; count < 20; count += 1) {
       const event = await iterator.next();
-      if (event.done || event.value.eventType === "runtime_request.created") break;
+      if (event.done || event.value.eventType === "runtime_request.created")
+        break;
     }
     const resolution = session.resolveRuntimeRequest!({
       requestId: "race-input",
@@ -2743,8 +2976,12 @@ describe("Codex app-server Codex driver", () => {
       const event = await iterator.next();
       if (event.done) break;
       if (
-        event.value.payload.requestId === "race-input"
-        && ["runtime_request.resolved", "runtime_request.cancelled", "runtime_request.expired"].includes(event.value.eventType)
+        event.value.payload.requestId === "race-input" &&
+        [
+          "runtime_request.resolved",
+          "runtime_request.cancelled",
+          "runtime_request.expired",
+        ].includes(event.value.eventType)
       ) {
         terminalEvent = event.value;
         break;
@@ -2828,9 +3065,7 @@ describe("Codex app-server Codex driver", () => {
     });
     expect(resultMapping?.emittedEventIds).toHaveLength(2);
     expect(resultMapping?.emittedEventIds).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining(":run-result:"),
-      ]),
+      expect.arrayContaining([expect.stringContaining(":run-result:")]),
     );
     expect(
       await transport.invoke({
@@ -2878,12 +3113,17 @@ describe("Codex app-server Codex driver", () => {
       workingDirectory: TEST_WORKING_DIRECTORY,
     });
     await session.startTurn({ message: { role: "user", text: "Complete." } });
-    const toolShaped = structuredClone(result) as unknown as Record<string, unknown>;
-    toolShaped.verification = [{
-      commandOrCheck: "read hello.txt",
-      status: "passed",
-      result: "hello",
-    }];
+    const toolShaped = structuredClone(result) as unknown as Record<
+      string,
+      unknown
+    >;
+    toolShaped.verification = [
+      {
+        commandOrCheck: "read hello.txt",
+        status: "passed",
+        result: "hello",
+      },
+    ];
     delete toolShaped.attentionRequests;
     expect(
       await transport.invoke({
@@ -2904,11 +3144,13 @@ describe("Codex app-server Codex driver", () => {
       itemId: "tool-result",
       result: {
         ...result,
-        verification: [{
-          commandOrCheck: "read hello.txt",
-          status: "passed",
-          detail: "hello",
-        }],
+        verification: [
+          {
+            commandOrCheck: "read hello.txt",
+            status: "passed",
+            detail: "hello",
+          },
+        ],
       },
     });
     transport.push("turn/completed", {
@@ -2985,28 +3227,61 @@ describe("Codex app-server Codex driver", () => {
     );
   });
 
-  it.each(["unknown", "validation"])("preserves the dynamic tool outcome boundary (%s)", async (outcome) => {
-    const transport = new FakeCodexTransport();
-    const error = outcome === "unknown"
-      ? new SemanticToolOutcomeUnknownError("write may have committed")
-      : new Error("invalid instruction input");
-    const handler = vi.fn(async () => { throw error; });
-    const session = await makeDriver([transport], {
-      dynamicTools: [{ name: "update_agent_instructions", description: "Write instructions.", inputSchema: { type: "object" } }],
-      dynamicToolHandler: handler,
-    }).openSession({ runId: "run-uncertain-write", normalizedSessionId: "session-uncertain-write", workingDirectory: TEST_WORKING_DIRECTORY });
-    await session.startTurn({ message: { role: "user", text: "Update instructions." } });
-    const response = transport.invoke({ id: "rpc-write", method: "item/tool/call", params: {
-      threadId: "thread-1", turnId: "turn-1", callId: "uncertain-write", tool: "update_agent_instructions", arguments: {},
-    } });
-    if (outcome === "unknown") await expect(response).rejects.toBe(error);
-    else await expect(response).resolves.toMatchObject({ success: false });
-    transport.push("turn/completed", { threadId: "thread-1", turn: { id: "turn-1", status: "completed", items: [] } });
-    const events = await collectUntilTerminal(session.events());
-    const completions = events.filter((event) => event.eventType === "item.completed" && event.itemId === "uncertain-write");
-    expect(completions).toHaveLength(outcome === "unknown" ? 0 : 1);
-    expect(handler).toHaveBeenCalledTimes(1);
-  });
+  it.each(["unknown", "validation"])(
+    "preserves the dynamic tool outcome boundary (%s)",
+    async (outcome) => {
+      const transport = new FakeCodexTransport();
+      const error =
+        outcome === "unknown"
+          ? new SemanticToolOutcomeUnknownError("write may have committed")
+          : new Error("invalid instruction input");
+      const handler = vi.fn(async () => {
+        throw error;
+      });
+      const session = await makeDriver([transport], {
+        dynamicTools: [
+          {
+            name: "update_agent_instructions",
+            description: "Write instructions.",
+            inputSchema: { type: "object" },
+          },
+        ],
+        dynamicToolHandler: handler,
+      }).openSession({
+        runId: "run-uncertain-write",
+        normalizedSessionId: "session-uncertain-write",
+        workingDirectory: TEST_WORKING_DIRECTORY,
+      });
+      await session.startTurn({
+        message: { role: "user", text: "Update instructions." },
+      });
+      const response = transport.invoke({
+        id: "rpc-write",
+        method: "item/tool/call",
+        params: {
+          threadId: "thread-1",
+          turnId: "turn-1",
+          callId: "uncertain-write",
+          tool: "update_agent_instructions",
+          arguments: {},
+        },
+      });
+      if (outcome === "unknown") await expect(response).rejects.toBe(error);
+      else await expect(response).resolves.toMatchObject({ success: false });
+      transport.push("turn/completed", {
+        threadId: "thread-1",
+        turn: { id: "turn-1", status: "completed", items: [] },
+      });
+      const events = await collectUntilTerminal(session.events());
+      const completions = events.filter(
+        (event) =>
+          event.eventType === "item.completed" &&
+          event.itemId === "uncertain-write",
+      );
+      expect(completions).toHaveLength(outcome === "unknown" ? 0 : 1);
+      expect(handler).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("fails closed when an agent message changes a tool-committed result", async () => {
     const transport = new FakeCodexTransport();

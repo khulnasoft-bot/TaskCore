@@ -1,6 +1,9 @@
 import pc from "picocolors";
 
-export function printOpenClawGatewayStreamEvent(raw: string, debug: boolean): void {
+export function printOpenClawGatewayStreamEvent(
+  raw: string,
+  debug: boolean,
+): void {
   const line = raw.trim();
   if (!line) return;
 

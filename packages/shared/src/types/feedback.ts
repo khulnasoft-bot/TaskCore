@@ -1,18 +1,33 @@
-export const FEEDBACK_TARGET_TYPES = ["issue_comment", "issue_document_revision"] as const;
+export const FEEDBACK_TARGET_TYPES = [
+  "issue_comment",
+  "issue_document_revision",
+] as const;
 export type FeedbackTargetType = (typeof FEEDBACK_TARGET_TYPES)[number];
 
 export const FEEDBACK_VOTE_VALUES = ["up", "down"] as const;
 export type FeedbackVoteValue = (typeof FEEDBACK_VOTE_VALUES)[number];
 
-export const FEEDBACK_DATA_SHARING_PREFERENCES = ["allowed", "not_allowed", "prompt"] as const;
-export type FeedbackDataSharingPreference = (typeof FEEDBACK_DATA_SHARING_PREFERENCES)[number];
+export const FEEDBACK_DATA_SHARING_PREFERENCES = [
+  "allowed",
+  "not_allowed",
+  "prompt",
+] as const;
+export type FeedbackDataSharingPreference =
+  (typeof FEEDBACK_DATA_SHARING_PREFERENCES)[number];
 
-export const DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE: FeedbackDataSharingPreference = "prompt";
+export const DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE: FeedbackDataSharingPreference =
+  "prompt";
 
-export const FEEDBACK_TRACE_STATUSES = ["local_only", "pending", "sent", "failed"] as const;
+export const FEEDBACK_TRACE_STATUSES = [
+  "local_only",
+  "pending",
+  "sent",
+  "failed",
+] as const;
 export type FeedbackTraceStatus = (typeof FEEDBACK_TRACE_STATUSES)[number];
 
-export const DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION = "feedback-data-sharing-v1";
+export const DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION =
+  "feedback-data-sharing-v1";
 
 export interface FeedbackVote {
   id: string;
@@ -73,7 +88,8 @@ export interface FeedbackTrace {
   updatedAt: Date;
 }
 
-export type FeedbackTraceBundleCaptureStatus = "full" | "partial" | "unavailable";
+export type FeedbackTraceBundleCaptureStatus =
+  "full" | "partial" | "unavailable";
 
 export interface FeedbackTraceBundleFile {
   path: string;

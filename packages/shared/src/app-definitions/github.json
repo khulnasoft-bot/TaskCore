@@ -3,9 +3,7 @@
   "slug": "github",
   "name": "GitHub",
   "description": "Give agents access to GitHub repositories, issues, and pull requests.",
-  "categories": [
-    "developer"
-  ],
+  "categories": ["developer"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/github.svg",
@@ -20,9 +18,7 @@
       "key": "managed",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Connect your GitHub account for durable MCP, shell Git, gh, and repository access.",
       "defaults": {
         "serverUrl": "https://api.githubcopilot.com/mcp/"
@@ -33,25 +29,17 @@
       "purpose": "tool",
       "oauthStrategy": "taskcore_cloud_connector",
       "connectorProfile": "github.code",
-      "grantKinds": [
-        "user",
-        "agent"
-      ],
+      "grantKinds": ["user", "agent"],
       "warnings": [
         "Shell Git and gh receive this identity for the run and are not constrained by per-tool Ask-first controls."
       ],
-      "requiredResourceFilters": [
-        "organization",
-        "repository"
-      ]
+      "requiredResourceFilters": ["organization", "repository"]
     },
     {
       "key": "mcp-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use the provider-hosted connection for the quickest setup.",
       "defaults": {
         "serverUrl": "https://api.githubcopilot.com/mcp/"
@@ -76,10 +64,7 @@
         "name": "Authorization",
         "prefix": "Bearer "
       },
-      "requiredResourceFilters": [
-        "organization",
-        "repository"
-      ]
+      "requiredResourceFilters": ["organization", "repository"]
     }
   ]
 }

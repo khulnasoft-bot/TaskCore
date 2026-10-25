@@ -19,10 +19,18 @@ export function resolveCommentAttribution(input: {
   /** Resolve a user id to a display name, when the directory is loaded. */
   resolveUserLabel?: (userId: string) => string | null | undefined;
 }): { userName: string } | null {
-  const { authorAgentId, onBehalfOfUserId, issueAssigneeAgentId, resolveUserLabel } = input;
+  const {
+    authorAgentId,
+    onBehalfOfUserId,
+    issueAssigneeAgentId,
+    resolveUserLabel,
+  } = input;
   if (!authorAgentId || !onBehalfOfUserId) return null;
   // The assignee acting on its own task is the ordinary case, not a cross-issue write.
-  if (issueAssigneeAgentId && authorAgentId === issueAssigneeAgentId) return null;
+  if (issueAssigneeAgentId && authorAgentId === issueAssigneeAgentId)
+    return null;
   // Falls back to "the responsible user" so the chip never shows a raw id.
-  return { userName: responsibleUserLabel(resolveUserLabel?.(onBehalfOfUserId)) };
+  return {
+    userName: responsibleUserLabel(resolveUserLabel?.(onBehalfOfUserId)),
+  };
 }

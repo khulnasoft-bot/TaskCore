@@ -1,4 +1,8 @@
-import { checkMcpRemoteHeaderName, checkMcpRemoteHeaderValue, mcpRemoteHeaderRejectionMessage } from "@taskcore/shared";
+import {
+  checkMcpRemoteHeaderName,
+  checkMcpRemoteHeaderValue,
+  mcpRemoteHeaderRejectionMessage,
+} from "@taskcore/shared";
 import type { GenericMcpAuthMode } from "@taskcore/shared";
 
 /**
@@ -42,12 +46,14 @@ export function endpointHost(url: string): string | null {
  * they point at the same machine. The API therefore uses `localhost` for local
  * HTTP OAuth, so the setup form must advertise that same canonical spelling.
  */
-export function oauthCallbackUrlForBrowser(origin: string = window.location.origin): string {
+export function oauthCallbackUrlForBrowser(
+  origin: string = window.location.origin,
+): string {
   const callbackUrl = new URL("/api/tools/oauth/callback", origin);
   const hostname = callbackUrl.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (
-    callbackUrl.protocol === "http:"
-    && (hostname === "127.0.0.1" || hostname === "::1")
+    callbackUrl.protocol === "http:" &&
+    (hostname === "127.0.0.1" || hostname === "::1")
   ) {
     callbackUrl.hostname = "localhost";
   }
@@ -66,7 +72,8 @@ export function defaultGenericMcpName(url: string): string | null {
   try {
     const parsed = new URL(url);
     const host = parsed.host.replace(/^www\./, "");
-    const path = parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
+    const path =
+      parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
     return `${host}${path}`.slice(0, 160) || null;
   } catch {
     return null;
@@ -97,7 +104,9 @@ export function genericConnectGuidance(
   code: string | null | undefined,
   message: string | null | undefined,
 ): GenericConnectGuidance {
-  const fallback = message?.trim() || "Taskcore couldn't connect to that address. Check it and try again.";
+  const fallback =
+    message?.trim() ||
+    "Taskcore couldn't connect to that address. Check it and try again.";
   switch (code) {
     case "mcp_remote_url_missing":
     case "mcp_remote_url_invalid":
@@ -176,10 +185,13 @@ export function customHeaderError(rows: CustomHeaderRow[]): string | null {
     const name = row.name.trim();
     if (!name && !row.value.trim()) continue;
     const nameCheck = checkMcpRemoteHeaderName(name);
-    if (!nameCheck.ok) return mcpRemoteHeaderRejectionMessage(name, nameCheck.reason!);
+    if (!nameCheck.ok)
+      return mcpRemoteHeaderRejectionMessage(name, nameCheck.reason!);
     const valueCheck = checkMcpRemoteHeaderValue(row.value);
-    if (!valueCheck.ok) return mcpRemoteHeaderRejectionMessage(name, valueCheck.reason!);
-    if (!row.value.trim()) return `Add a value for "${name}", or remove the row.`;
+    if (!valueCheck.ok)
+      return mcpRemoteHeaderRejectionMessage(name, valueCheck.reason!);
+    if (!row.value.trim())
+      return `Add a value for "${name}", or remove the row.`;
     const lower = name.toLowerCase();
     if (seen.has(lower)) return `"${name}" is listed twice.`;
     seen.add(lower);
@@ -215,11 +227,16 @@ export interface GenericConnectPayload {
  * Header values become `headers.<Name>` credential paths, which the server turns
  * into Taskcore secrets — nothing here ever puts a value in the config.
  */
-export function genericConnectPayload(draft: GenericConnectDraft): GenericConnectPayload {
+export function genericConnectPayload(
+  draft: GenericConnectDraft,
+): GenericConnectPayload {
   const credentialValues: Record<string, string> = {};
   const bearerKey = draft.keyValue.trim();
-  const useBearer = draft.authMode === "bearer" || (draft.authMode === "auto" && draft.needsKey);
-  if (useBearer && bearerKey) credentialValues["credentials.authorization"] = bearerKey;
+  const useBearer =
+    draft.authMode === "bearer" ||
+    (draft.authMode === "auto" && draft.needsKey);
+  if (useBearer && bearerKey)
+    credentialValues["credentials.authorization"] = bearerKey;
   if (draft.authMode === "custom_headers") {
     for (const row of draft.headers) {
       const name = row.name.trim();
@@ -244,10 +261,13 @@ export function genericConnectPayload(draft: GenericConnectDraft): GenericConnec
 /** Can "Check link" be pressed? */
 export function canSubmitGenericConnect(draft: GenericConnectDraft): boolean {
   if (!draft.link.trim()) return false;
-  if (draft.authMode === "auto") return !draft.needsKey || draft.keyValue.trim().length > 0;
+  if (draft.authMode === "auto")
+    return !draft.needsKey || draft.keyValue.trim().length > 0;
   if (draft.authMode === "bearer") return draft.keyValue.trim().length > 0;
   if (draft.authMode === "custom_headers") {
-    const filled = draft.headers.filter((row) => row.name.trim() && row.value.trim());
+    const filled = draft.headers.filter(
+      (row) => row.name.trim() && row.value.trim(),
+    );
     return filled.length > 0 && customHeaderError(draft.headers) === null;
   }
   // "oauth" here means the operator is supplying a preregistered client, and

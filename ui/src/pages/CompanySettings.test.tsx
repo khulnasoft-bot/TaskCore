@@ -4,7 +4,10 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { AGENT_ADAPTER_TYPES, getEnvironmentCapabilities } from "@taskcore/shared";
+import {
+  AGENT_ADAPTER_TYPES,
+  getEnvironmentCapabilities,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CompanyEnvironments } from "./CompanyEnvironments";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -100,7 +103,8 @@ class ResizeObserverStub {
   disconnect() {}
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(globalThis as any).ResizeObserver = (globalThis as any).ResizeObserver ?? ResizeObserverStub;
+(globalThis as any).ResizeObserver =
+  (globalThis as any).ResizeObserver ?? ResizeObserverStub;
 
 async function act(callback: () => void | Promise<void>) {
   let result: void | Promise<void> = undefined;
@@ -138,22 +142,35 @@ function getEnvironmentFormPage(): HTMLElement | null {
 }
 
 function findAction(root: ParentNode, label: string): HTMLElement | undefined {
-  return Array.from(root.querySelectorAll<HTMLElement>("button,a")).find((element) => element.textContent?.trim() === label);
+  return Array.from(root.querySelectorAll<HTMLElement>("button,a")).find(
+    (element) => element.textContent?.trim() === label,
+  );
 }
 
 function click(element: Element | null | undefined) {
-  element?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+  element?.dispatchEvent(
+    new MouseEvent("click", { bubbles: true, cancelable: true }),
+  );
 }
 
-function renderCompanyEnvironments(queryClient: QueryClient, initialPath = ENVIRONMENTS_PATH) {
+function renderCompanyEnvironments(
+  queryClient: QueryClient,
+  initialPath = ENVIRONMENTS_PATH,
+) {
   return (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialPath]}>
         <TooltipProvider>
           <Routes>
             <Route path={ENVIRONMENTS_PATH} element={<CompanyEnvironments />} />
-            <Route path={`${ENVIRONMENTS_PATH}/new`} element={<CompanyEnvironments mode="create" />} />
-            <Route path={`${ENVIRONMENTS_PATH}/:environmentId/edit`} element={<CompanyEnvironments mode="edit" />} />
+            <Route
+              path={`${ENVIRONMENTS_PATH}/new`}
+              element={<CompanyEnvironments mode="create" />}
+            />
+            <Route
+              path={`${ENVIRONMENTS_PATH}/:environmentId/edit`}
+              element={<CompanyEnvironments mode="edit" />}
+            />
           </Routes>
         </TooltipProvider>
       </MemoryRouter>
@@ -171,7 +188,9 @@ describe("CompanyEnvironments", () => {
     mockInstanceSettingsApi.getExperimental.mockResolvedValue({
       enableEnvironments: true,
     });
-    mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
+    mockInstanceSettingsApi.get.mockResolvedValue({
+      defaultEnvironmentId: null,
+    });
     mockEnvironmentsApi.list.mockResolvedValue([]);
     mockEnvironmentsApi.capabilities.mockResolvedValue(
       getEnvironmentCapabilities(AGENT_ADAPTER_TYPES),
@@ -204,11 +223,15 @@ describe("CompanyEnvironments", () => {
     await flushReact();
     await flushReact();
 
-    const optionLabels = Array.from(container.querySelectorAll("option")).map((option) => option.textContent?.trim());
+    const optionLabels = Array.from(container.querySelectorAll("option")).map(
+      (option) => option.textContent?.trim(),
+    );
 
     expect(optionLabels).not.toContain("Sandbox");
     expect(container.textContent).not.toContain("Fake sandbox");
-    expect(container.textContent).not.toContain("Fake is the deterministic test provider");
+    expect(container.textContent).not.toContain(
+      "Fake is the deterministic test provider",
+    );
 
     await act(async () => {
       root.unmount();
@@ -242,7 +265,9 @@ describe("CompanyEnvironments", () => {
     await flushReact();
     await flushReact();
 
-    const addEnvironmentButton = container.querySelector('[aria-label="Add environment"]');
+    const addEnvironmentButton = container.querySelector(
+      '[aria-label="Add environment"]',
+    );
     expect(addEnvironmentButton).toBeTruthy();
 
     await act(async () => {
@@ -252,13 +277,16 @@ describe("CompanyEnvironments", () => {
     await waitForAssertion(() => expect(getEnvironmentFormPage()).toBeTruthy());
     const dialog = getEnvironmentFormPage();
 
-    const driverSelect = Array.from(dialog?.querySelectorAll("select") ?? [])
-      .find((select) => Array.from(select.options).some((option) => option.value === "ssh")) as
-      | HTMLSelectElement
-      | undefined;
+    const driverSelect = Array.from(
+      dialog?.querySelectorAll("select") ?? [],
+    ).find((select) =>
+      Array.from(select.options).some((option) => option.value === "ssh"),
+    ) as HTMLSelectElement | undefined;
     expect(driverSelect).toBeTruthy();
 
-    const driverOptionValues = Array.from(driverSelect!.options).map((option) => option.value);
+    const driverOptionValues = Array.from(driverSelect!.options).map(
+      (option) => option.value,
+    );
     expect(driverOptionValues).not.toContain("local");
     expect(driverOptionValues).toEqual(["sandbox", "ssh"]);
 
@@ -303,13 +331,16 @@ describe("CompanyEnvironments", () => {
     await waitForAssertion(() => expect(getEnvironmentFormPage()).toBeTruthy());
     const dialog = getEnvironmentFormPage();
 
-    const driverSelect = Array.from(dialog?.querySelectorAll("select") ?? [])
-      .find((select) => Array.from(select.options).some((option) => option.value === "ssh")) as
-      | HTMLSelectElement
-      | undefined;
+    const driverSelect = Array.from(
+      dialog?.querySelectorAll("select") ?? [],
+    ).find((select) =>
+      Array.from(select.options).some((option) => option.value === "ssh"),
+    ) as HTMLSelectElement | undefined;
     expect(driverSelect).toBeTruthy();
 
-    const driverOptionValues = Array.from(driverSelect!.options).map((option) => option.value);
+    const driverOptionValues = Array.from(driverSelect!.options).map(
+      (option) => option.value,
+    );
     expect(driverOptionValues).toContain("local");
     expect(driverSelect!.value).toBe("local");
 
@@ -379,8 +410,12 @@ describe("CompanyEnvironments", () => {
     await waitForAssertion(() => expect(getEnvironmentFormPage()).toBeTruthy());
     const dialog = getEnvironmentFormPage();
 
-    const providerSelect = Array.from(dialog?.querySelectorAll("select") ?? []).find((select) =>
-      Array.from(select.options).some((option) => option.value === "secure-plugin"),
+    const providerSelect = Array.from(
+      dialog?.querySelectorAll("select") ?? [],
+    ).find((select) =>
+      Array.from(select.options).some(
+        (option) => option.value === "secure-plugin",
+      ),
     ) as HTMLSelectElement | undefined;
     expect(providerSelect).toBeTruthy();
 
@@ -390,8 +425,11 @@ describe("CompanyEnvironments", () => {
     });
     await flushReact();
 
-    const templateInput = Array.from(dialog?.querySelectorAll("input") ?? [])
-      .find((input) => (input as HTMLInputElement).value === "saved-template") as HTMLInputElement | undefined;
+    const templateInput = Array.from(
+      dialog?.querySelectorAll("input") ?? [],
+    ).find(
+      (input) => (input as HTMLInputElement).value === "saved-template",
+    ) as HTMLInputElement | undefined;
     expect(templateInput?.value).toBe("saved-template");
 
     await act(async () => {

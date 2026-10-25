@@ -1,6 +1,9 @@
 import type { SVGProps } from "react";
 
-interface TaskcoreLockupProps extends Omit<SVGProps<SVGSVGElement>, "children"> {
+interface TaskcoreLockupProps extends Omit<
+  SVGProps<SVGSVGElement>,
+  "children"
+> {
   decorative?: boolean;
   title?: string;
 }

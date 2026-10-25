@@ -53,12 +53,16 @@ describe("ApprovalPayloadRenderer", () => {
     });
 
     expect(container.textContent).toContain("Reply with an ASCII frog");
-    expect(container.textContent).toContain("Board asked for approval before posting the frog.");
+    expect(container.textContent).toContain(
+      "Board asked for approval before posting the frog.",
+    );
     expect(container.textContent).toContain("Approve the frog reply.");
-    expect(container.textContent).toContain("Post the frog comment on the issue.");
+    expect(container.textContent).toContain(
+      "Post the frog comment on the issue.",
+    );
     expect(container.textContent).toContain("The frog might be too powerful.");
     expect(container.textContent).toContain("(o)<");
-    expect(container.textContent).not.toContain("\"recommendedAction\"");
+    expect(container.textContent).not.toContain('"recommendedAction"');
 
     act(() => {
       root.unmount();
@@ -97,7 +101,9 @@ describe("ApprovalPayloadRenderer", () => {
 
     // The raw markdown characters must not survive into the rendered text.
     expect(container.textContent).not.toContain("**Bold**");
-    expect(container.textContent).not.toContain("[a link](https://example.com)");
+    expect(container.textContent).not.toContain(
+      "[a link](https://example.com)",
+    );
 
     expect(bodies[1].querySelector("strong")?.textContent).toBe("frog");
     expect(bodies[2].querySelector("code")?.textContent).toBe("frog");
@@ -202,8 +208,12 @@ describe("ApprovalPayloadRenderer", () => {
       );
     });
 
-    expect(container.textContent).toContain("Board asked for approval before posting the frog.");
-    expect(container.textContent).not.toContain("TitleReply with an ASCII frog");
+    expect(container.textContent).toContain(
+      "Board asked for approval before posting the frog.",
+    );
+    expect(container.textContent).not.toContain(
+      "TitleReply with an ASCII frog",
+    );
 
     act(() => {
       root.unmount();

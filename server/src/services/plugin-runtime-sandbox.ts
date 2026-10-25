@@ -38,7 +38,15 @@ interface LoadedModule {
 }
 
 const DEFAULT_TIMEOUT_MS = 2_000;
-const MODULE_PATH_SUFFIXES = ["", ".js", ".mjs", ".cjs", "/index.js", "/index.mjs", "/index.cjs"];
+const MODULE_PATH_SUFFIXES = [
+  "",
+  ".js",
+  ".mjs",
+  ".cjs",
+  "/index.js",
+  "/index.mjs",
+  "/index.cjs",
+];
 const DEFAULT_GLOBALS: Record<string, unknown> = {
   console,
   setTimeout,
@@ -77,7 +85,8 @@ export async function loadPluginModuleInSandbox(
   options: PluginSandboxOptions,
 ): Promise<LoadedModule> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const allowedSpecifiers = options.allowedModuleSpecifiers ?? new Set<string>();
+  const allowedSpecifiers =
+    options.allowedModuleSpecifiers ?? new Set<string>();
   const entrypointPath = path.resolve(options.entrypointPath);
   const pluginRoot = path.dirname(entrypointPath);
 
@@ -183,7 +192,9 @@ function resolveModulePathSync(candidatePath: string): string {
     }
   }
 
-  throw new PluginSandboxError(`Unable to resolve module import at path '${candidatePath}'`);
+  throw new PluginSandboxError(
+    `Unable to resolve module import at path '${candidatePath}'`,
+  );
 }
 
 /**
@@ -192,7 +203,10 @@ function resolveModulePathSync(candidatePath: string): string {
  */
 function isWithinRoot(targetPath: string, rootPath: string): boolean {
   const relative = path.relative(rootPath, targetPath);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
 }
 
 function readModuleSourceSync(modulePath: string): string {
@@ -205,7 +219,9 @@ function readModuleSourceSync(modulePath: string): string {
   }
 }
 
-function normalizeModuleExports(exportsValue: unknown): Record<string, unknown> {
+function normalizeModuleExports(
+  exportsValue: unknown,
+): Record<string, unknown> {
   if (typeof exportsValue === "object" && exportsValue !== null) {
     return exportsValue as Record<string, unknown>;
   }

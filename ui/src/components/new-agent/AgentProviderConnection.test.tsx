@@ -15,12 +15,26 @@ const mocks = vi.hoisted(() => ({
 }));
 const managedApi = vi.hoisted(() => ({
   list: vi.fn(async () => ({ currentUserId: "user-1", connections: [] })),
-  loginResult: vi.fn(async () => ({ connectionId: "login-account", grantId: "login-grant" })),
-  connectLocal: vi.fn(async () => ({ connectionId: "local-account", grantId: "local-grant" })),
-  startLocalLogin: vi.fn(async () => ({ sessionId: "local-attempt", expiresAt: "2099-01-01T00:00:00Z" })),
-  checkLocalLogin: vi.fn(async () => ({ status: "sign_in_required" as "ready" | "sign_in_required" })),
+  loginResult: vi.fn(async () => ({
+    connectionId: "login-account",
+    grantId: "login-grant",
+  })),
+  connectLocal: vi.fn(async () => ({
+    connectionId: "local-account",
+    grantId: "local-grant",
+  })),
+  startLocalLogin: vi.fn(async () => ({
+    sessionId: "local-attempt",
+    expiresAt: "2099-01-01T00:00:00Z",
+  })),
+  checkLocalLogin: vi.fn(async () => ({
+    status: "sign_in_required" as "ready" | "sign_in_required",
+  })),
   cancelLocalLogin: vi.fn(async () => ({})),
-  create: vi.fn(async () => ({ connectionId: "managed-connection", grantId: "managed-grant" })),
+  create: vi.fn(async () => ({
+    connectionId: "managed-connection",
+    grantId: "managed-grant",
+  })),
 }));
 vi.mock("@/api/ai-connections", () => ({ aiConnectionsApi: managedApi }));
 vi.mock("@/api/agents", () => ({
@@ -33,7 +47,10 @@ vi.mock("@/api/secrets", () => ({
   secretsApi: { listMyUserSecrets: mocks.personal, list: mocks.organization },
 }));
 vi.mock("../AgentConfigForm", () => ({
-  AdapterLoginPanel: (props: unknown) => { mocks.loginPanel(props); return <div>New subscription login</div>; },
+  AdapterLoginPanel: (props: unknown) => {
+    mocks.loginPanel(props);
+    return <div>New subscription login</div>;
+  },
 }));
 let root: Root;
 let host: HTMLDivElement;
@@ -51,11 +68,15 @@ async function mount(
   codexSubscriptions = false,
   savedApiKeys = true,
   cachedClaudeLogin = false,
-  managedAccount?: Parameters<typeof AgentProviderConnection>[0]["managedAccount"],
+  managedAccount?: Parameters<
+    typeof AgentProviderConnection
+  >[0]["managedAccount"],
   localEnvironment = false,
   deploymentMode: "local_trusted" | "authenticated" = "local_trusted",
   localAiLoginSupported = true,
-  advancedConnection?: Parameters<typeof AgentProviderConnection>[0]["advancedConnection"],
+  advancedConnection?: Parameters<
+    typeof AgentProviderConnection
+  >[0]["advancedConnection"],
 ) {
   const key =
     adapterType === "claude_local" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY";
@@ -105,7 +126,10 @@ async function mount(
   }
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (cachedClaudeLogin) {
-    client.setQueryData(["claude-oauth-token-status", "c1"], { secretId: "cached-claude", latestVersion: 1 });
+    client.setQueryData(["claude-oauth-token-status", "c1"], {
+      secretId: "cached-claude",
+      latestVersion: 1,
+    });
     mocks.auth.mockResolvedValue({ status: "absent" });
   }
   client.setQueryData(["health"], { deploymentMode, localAiLoginSupported });
@@ -135,12 +159,17 @@ async function mount(
   );
   await vi.waitFor(() => expect(mocks.personal).toHaveBeenCalled());
   await vi.waitFor(() => expect(client.isFetching()).toBe(0));
-  if (savedApiKeys && !managedAccount && !advancedConnection) await vi.waitFor(() => expect(host.textContent).toContain("2 saved API keys"));
+  if (savedApiKeys && !managedAccount && !advancedConnection)
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain("2 saved API keys"),
+    );
   return { test, connected, key };
 }
 function click(text: string) {
   const button = [...host.querySelectorAll("button")].find((b) =>
-    b.getAttribute("aria-label") ? b.getAttribute("aria-label") === text : b.textContent?.includes(text),
+    b.getAttribute("aria-label")
+      ? b.getAttribute("aria-label") === text
+      : b.textContent?.includes(text),
   )!;
   expect(button).toBeTruthy();
   flushSync(() => button.click());
@@ -152,259 +181,655 @@ function openProvider() {
 }
 describe("AgentProviderConnection reuse", () => {
   it("keeps all three connection tiles visible while switching forms", async () => {
-    await mount("codex_local", false, true, true, true, false, undefined, false, "local_trusted", true, {
-      content: <div>Advanced connection picker</div>,
-    });
-    const modeLabels = () => Array.from(host.querySelectorAll('[role="radio"]')).map(button => button.textContent);
-    expect(modeLabels()).toEqual(["OpenAISubscription", "OpenAIAPI key", "AdvancedCustom Gateway"]);
-    expect(host.querySelector('[aria-label="Saved subscription"]')).not.toBeNull();
+    await mount(
+      "codex_local",
+      false,
+      true,
+      true,
+      true,
+      false,
+      undefined,
+      false,
+      "local_trusted",
+      true,
+      {
+        content: <div>Advanced connection picker</div>,
+      },
+    );
+    const modeLabels = () =>
+      Array.from(host.querySelectorAll('[role="radio"]')).map(
+        (button) => button.textContent,
+      );
+    expect(modeLabels()).toEqual([
+      "OpenAISubscription",
+      "OpenAIAPI key",
+      "AdvancedCustom Gateway",
+    ]);
+    expect(
+      host.querySelector('[aria-label="Saved subscription"]'),
+    ).not.toBeNull();
     expect(host.textContent).not.toContain("Advanced connection picker");
     expect(host.textContent).not.toContain("instead");
     click("OpenAIAPI key");
     expect(host.querySelector('[aria-label="Saved API key"]')).not.toBeNull();
-    expect(host.querySelector('[role="radio"][aria-checked="true"]')?.textContent).toBe("OpenAIAPI key");
+    expect(
+      host.querySelector('[role="radio"][aria-checked="true"]')?.textContent,
+    ).toBe("OpenAIAPI key");
     expect(host.querySelector('[aria-label="Saved subscription"]')).toBeNull();
-    expect(modeLabels()).toEqual(["OpenAISubscription", "OpenAIAPI key", "AdvancedCustom Gateway"]);
+    expect(modeLabels()).toEqual([
+      "OpenAISubscription",
+      "OpenAIAPI key",
+      "AdvancedCustom Gateway",
+    ]);
     click("Advanced");
     expect(host.textContent).toContain("Advanced connection picker");
-    expect(host.querySelector('[role="radio"][aria-checked="true"]')?.textContent).toBe("AdvancedCustom Gateway");
+    expect(
+      host.querySelector('[role="radio"][aria-checked="true"]')?.textContent,
+    ).toBe("AdvancedCustom Gateway");
     expect(host.querySelector("select")).toBeNull();
-    expect(modeLabels()).toEqual(["OpenAISubscription", "OpenAIAPI key", "AdvancedCustom Gateway"]);
-    const useConnection = Array.from(host.querySelectorAll("button")).find(button => button.textContent?.includes("Use connection"))!;
+    expect(modeLabels()).toEqual([
+      "OpenAISubscription",
+      "OpenAIAPI key",
+      "AdvancedCustom Gateway",
+    ]);
+    const useConnection = Array.from(host.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Use connection"),
+    )!;
     expect(useConnection.disabled).toBe(true);
     click("OpenAISubscription");
-    expect(host.querySelector('[aria-label="Saved subscription"]')).not.toBeNull();
+    expect(
+      host.querySelector('[aria-label="Saved subscription"]'),
+    ).not.toBeNull();
     expect(host.textContent).not.toContain("Advanced connection picker");
   });
 
   it("continues with the selected advanced connection", async () => {
-    const binding = { provider: "openrouter" as const, method: "api_key" as const, mode: "shared" as const, connectionId: "router", grantId: "router-grant" };
-    const { connected, test } = await mount("codex_local", false, true, true, true, false, undefined, false, "local_trusted", true, {
-      content: <div>Advanced connection picker</div>, value: binding,
-    });
+    const binding = {
+      provider: "openrouter" as const,
+      method: "api_key" as const,
+      mode: "shared" as const,
+      connectionId: "router",
+      grantId: "router-grant",
+    };
+    const { connected, test } = await mount(
+      "codex_local",
+      false,
+      true,
+      true,
+      true,
+      false,
+      undefined,
+      false,
+      "local_trusted",
+      true,
+      {
+        content: <div>Advanced connection picker</div>,
+        value: binding,
+      },
+    );
     click("Advanced");
     click("Use connection");
-    expect(connected).toHaveBeenCalledExactlyOnceWith({ env: {}, aiConnection: binding });
+    expect(connected).toHaveBeenCalledExactlyOnceWith({
+      env: {},
+      aiConnection: binding,
+    });
     expect(test).not.toHaveBeenCalled();
   });
 
   it("preserves the API key when the selected tile is clicked again", async () => {
-    await mount("codex_local", false, true, false, false, false, undefined, false, "local_trusted", true, {
-      content: <div>Advanced connection picker</div>,
-    });
+    await mount(
+      "codex_local",
+      false,
+      true,
+      false,
+      false,
+      false,
+      undefined,
+      false,
+      "local_trusted",
+      true,
+      {
+        content: <div>Advanced connection picker</div>,
+      },
+    );
     click("OpenAIAPI key");
-    const input = host.querySelector<HTMLInputElement>('input[type="password"]')!;
+    const input = host.querySelector<HTMLInputElement>(
+      'input[type="password"]',
+    )!;
     flushSync(() => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "fixture-key");
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!.call(input, "fixture-key");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     click("OpenAIAPI key");
     expect(input.value).toBe("fixture-key");
-    const apiTile = host.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')!;
-    flushSync(() => apiTile.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
-    expect(host.querySelector('[role="radio"][aria-checked="true"]')?.textContent).toBe("AdvancedCustom Gateway");
+    const apiTile = host.querySelector<HTMLElement>(
+      '[role="radio"][aria-checked="true"]',
+    )!;
+    flushSync(() =>
+      apiTile.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+      ),
+    );
+    expect(
+      host.querySelector('[role="radio"][aria-checked="true"]')?.textContent,
+    ).toBe("AdvancedCustom Gateway");
     expect(host.querySelectorAll('[role="radio"]')).toHaveLength(3);
   });
 
   it("uses the saved subscription after switching back from an advanced connection", async () => {
-    const { connected } = await mount("codex_local", false, true, true, true, false, undefined, false, "local_trusted", true, {
-      content: <div>Advanced connection picker</div>,
-      value: { provider: "openrouter", method: "api_key", mode: "shared", connectionId: "router", grantId: "router-grant" },
-    });
+    const { connected } = await mount(
+      "codex_local",
+      false,
+      true,
+      true,
+      true,
+      false,
+      undefined,
+      false,
+      "local_trusted",
+      true,
+      {
+        content: <div>Advanced connection picker</div>,
+        value: {
+          provider: "openrouter",
+          method: "api_key",
+          mode: "shared",
+          connectionId: "router",
+          grantId: "router-grant",
+        },
+      },
+    );
     click("Advanced");
     click("OpenAISubscription");
     click("Use saved subscription");
     await vi.waitFor(() => expect(connected).toHaveBeenCalled());
-    expect(connected.mock.calls[0][0]).toMatchObject({ env: { CODEX_HOME: { type: "secret_ref", secretId: "codex-home" } } });
+    expect(connected.mock.calls[0][0]).toMatchObject({
+      env: { CODEX_HOME: { type: "secret_ref", secretId: "codex-home" } },
+    });
     expect(connected.mock.calls[0][0].aiConnection).toBeUndefined();
   });
 
   it.each([
-    ["anthropic", "claude_local"], ["openai", "codex_local"], ["xai", "grok_local"],
-  ] as const)("lets %s recovery switch methods without overwriting the original account", async (provider, adapterType) => {
-    const onComplete = vi.fn();
-    const intent = { provider, method: "subscription" as const, name: "Existing API account", ownership: "personal" as const, agentIds: ["agent"], allAgents: false, connectionId: "original" };
-    await mount(adapterType, false, true, false, false, false, {
-      intent, initialMethod: "api_key", fixedMethod: false, onComplete,
-      nameForMethod: method => defaultAiConnectionName("dotta", provider, method),
-    });
-    expect(host.querySelector('input[type="password"]')).not.toBeNull();
-    click("Use subscription instead");
-    const subscription = mocks.loginPanel.mock.calls.at(-1)![0].aiConnection;
-    expect(subscription).toMatchObject({ provider, method: "subscription", name: defaultAiConnectionName("dotta", provider, "subscription") });
-    expect(subscription.connectionId).toBeUndefined();
-    expect(host.querySelector('input[type="password"]')).toBeNull();
-    click("Use API key instead");
-    flushSync(() => {
-      const input = host.querySelector('input[type="password"]')!;
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "test-api-key");
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    click("Connect");
-    await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(managedApi.create).toHaveBeenCalledWith("c1", expect.objectContaining({ connectionId: "original", name: "Existing API account", method: "api_key" }));
-  });
+    ["anthropic", "claude_local"],
+    ["openai", "codex_local"],
+    ["xai", "grok_local"],
+  ] as const)(
+    "lets %s recovery switch methods without overwriting the original account",
+    async (provider, adapterType) => {
+      const onComplete = vi.fn();
+      const intent = {
+        provider,
+        method: "subscription" as const,
+        name: "Existing API account",
+        ownership: "personal" as const,
+        agentIds: ["agent"],
+        allAgents: false,
+        connectionId: "original",
+      };
+      await mount(adapterType, false, true, false, false, false, {
+        intent,
+        initialMethod: "api_key",
+        fixedMethod: false,
+        onComplete,
+        nameForMethod: (method) =>
+          defaultAiConnectionName("dotta", provider, method),
+      });
+      expect(host.querySelector('input[type="password"]')).not.toBeNull();
+      click("Use subscription instead");
+      const subscription = mocks.loginPanel.mock.calls.at(-1)![0].aiConnection;
+      expect(subscription).toMatchObject({
+        provider,
+        method: "subscription",
+        name: defaultAiConnectionName("dotta", provider, "subscription"),
+      });
+      expect(subscription.connectionId).toBeUndefined();
+      expect(host.querySelector('input[type="password"]')).toBeNull();
+      click("Use API key instead");
+      flushSync(() => {
+        const input = host.querySelector('input[type="password"]')!;
+        Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          "value",
+        )!.set!.call(input, "test-api-key");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      click("Connect");
+      await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(managedApi.create).toHaveBeenCalledWith(
+        "c1",
+        expect.objectContaining({
+          connectionId: "original",
+          name: "Existing API account",
+          method: "api_key",
+        }),
+      );
+    },
+  );
   it("creates an API account when recovering a subscription with an API key", async () => {
     const onComplete = vi.fn();
     await mount("claude_local", false, true, false, false, false, {
-      intent: { provider: "anthropic", method: "subscription", name: "Existing subscription", ownership: "personal", agentIds: [], allAgents: false, connectionId: "subscription" },
-      initialMethod: "subscription", fixedMethod: false, onComplete,
-      nameForMethod: method => defaultAiConnectionName("dotta", "anthropic", method),
+      intent: {
+        provider: "anthropic",
+        method: "subscription",
+        name: "Existing subscription",
+        ownership: "personal",
+        agentIds: [],
+        allAgents: false,
+        connectionId: "subscription",
+      },
+      initialMethod: "subscription",
+      fixedMethod: false,
+      onComplete,
+      nameForMethod: (method) =>
+        defaultAiConnectionName("dotta", "anthropic", method),
     });
     openProvider();
     click("Use API key instead");
     flushSync(() => {
       const input = host.querySelector('input[type="password"]')!;
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "test-api-key");
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!.call(input, "test-api-key");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     click("Connect");
     await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
-    const saved = managedApi.create.mock.calls.at(-1)! as unknown as [string, {connectionId?: string; name: string; method: string}];
-    expect(saved[1]).toMatchObject({ name: "dotta's Claude API account", method: "api_key" });
+    const saved = managedApi.create.mock.calls.at(-1)! as unknown as [
+      string,
+      { connectionId?: string; name: string; method: string },
+    ];
+    expect(saved[1]).toMatchObject({
+      name: "dotta's Claude API account",
+      method: "api_key",
+    });
     expect(saved[1].connectionId).toBeUndefined();
   });
 
-  it.each([false, true])("names the selected method automatically and preserves reconnect names (reconnect: %s)", async (reconnect) => {
-    const onComplete = vi.fn();
-    const intent = { provider: "anthropic" as const, method: "subscription" as const, name: "Existing account", ownership: "personal" as const, agentIds: [], allAgents: false, ...(reconnect ? { connectionId: "existing" } : {}) };
-    await mount("claude_local", false, true, false, false, false, {
-      intent, onComplete,
-      nameForMethod: method => defaultAiConnectionName("dotta", "anthropic", method),
-    });
-    openProvider();
-    expect(mocks.loginPanel.mock.calls.at(-1)![0].aiConnection.name).toBe(reconnect ? "Existing account" : "dotta's Claude subscription account");
-    click("Back");
-    click("Use API key instead");
-    openProvider();
-    flushSync(() => {
-      const input = host.querySelector('input[type="password"]')!;
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "test-api-key");
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    click("Connect");
-    await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(managedApi.create).toHaveBeenCalledWith("c1", expect.objectContaining({
-      name: reconnect ? "Existing account" : "dotta's Claude API account", method: "api_key", apiKey: "test-api-key",
-    }));
-  });
+  it.each([false, true])(
+    "names the selected method automatically and preserves reconnect names (reconnect: %s)",
+    async (reconnect) => {
+      const onComplete = vi.fn();
+      const intent = {
+        provider: "anthropic" as const,
+        method: "subscription" as const,
+        name: "Existing account",
+        ownership: "personal" as const,
+        agentIds: [],
+        allAgents: false,
+        ...(reconnect ? { connectionId: "existing" } : {}),
+      };
+      await mount("claude_local", false, true, false, false, false, {
+        intent,
+        onComplete,
+        nameForMethod: (method) =>
+          defaultAiConnectionName("dotta", "anthropic", method),
+      });
+      openProvider();
+      expect(mocks.loginPanel.mock.calls.at(-1)![0].aiConnection.name).toBe(
+        reconnect ? "Existing account" : "dotta's Claude subscription account",
+      );
+      click("Back");
+      click("Use API key instead");
+      openProvider();
+      flushSync(() => {
+        const input = host.querySelector('input[type="password"]')!;
+        Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          "value",
+        )!.set!.call(input, "test-api-key");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      click("Connect");
+      await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(managedApi.create).toHaveBeenCalledWith(
+        "c1",
+        expect.objectContaining({
+          name: reconnect ? "Existing account" : "dotta's Claude API account",
+          method: "api_key",
+          apiKey: "test-api-key",
+        }),
+      );
+    },
+  );
 
-  it.each(["claude_local", "codex_local"] as const)("does not offer a server-host command when health disables local login: %s", async adapterType => {
-    const onComplete = vi.fn();
-    const intent = { provider: adapterType === "claude_local" ? "anthropic" as const : "openai" as const, method: "subscription" as const, name: "Hosted account", ownership: "personal" as const, agentIds: [], allAgents: false };
-    await mount(adapterType, false, false, false, false, false, { intent, onComplete }, true, "authenticated", false);
-    openProvider();
-    expect(host.textContent).toContain("This environment does not support browser sign-in");
-    expect(host.textContent).not.toContain("Run this in a terminal");
-    expect(managedApi.startLocalLogin).not.toHaveBeenCalled();
-    click("Connect");
-    expect(managedApi.connectLocal).not.toHaveBeenCalled();
-    expect(onComplete).not.toHaveBeenCalled();
-  });
-  it.each(["claude_local", "codex_local"] as const)("prepares and completes an isolated subscription on an authenticated self-hosted instance: %s", async adapterType => {
-    const onComplete = vi.fn();
-    managedApi.checkLocalLogin.mockResolvedValue({ status: "ready" });
-    const intent = { provider: adapterType === "claude_local" ? "anthropic" as const : "openai" as const, method: "subscription" as const, name: "Self-hosted account", ownership: "personal" as const, agentIds: [], allAgents: false };
-    await mount(adapterType, false, false, false, false, false, { intent, onComplete }, true, "authenticated");
-    openProvider();
-    await vi.waitFor(() => expect(host.textContent).toContain("is signed in"));
-    expect(host.textContent).not.toMatch(/CLAUDE_CONFIG_DIR|CODEX_HOME|Run this in a terminal/);
-    expect(managedApi.startLocalLogin).toHaveBeenCalledWith("c1", intent);
-    expect(managedApi.checkLocalLogin).toHaveBeenCalledWith("c1", { ...intent, localSessionId: "local-attempt" });
-    click("Connect");
-    await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(managedApi.connectLocal).toHaveBeenCalledWith("c1", { ...intent, localSessionId: "local-attempt" });
-  });
-  it.each(["claude_local", "codex_local"] as const)("connects a local subscription without a sandbox and supports retry: %s", async (adapterType) => {
-    const onComplete = vi.fn();
-    managedApi.checkLocalLogin.mockResolvedValue({ status: "ready" });
-    const intent = { provider: adapterType === "claude_local" ? "anthropic" as const : "openai" as const, method: "subscription" as const, name: "My account", ownership: "personal" as const, agentIds: [], allAgents: false };
-    await mount(adapterType, false, false, false, false, false, { intent, onComplete }, true);
-    openProvider();
-    await vi.waitFor(() => expect(host.textContent).toContain("is signed in"));
-    expect(host.textContent).not.toMatch(/claude auth login|codex login|CODEX_HOME/);
-    expect(host.textContent).not.toContain("sandbox");
-    managedApi.connectLocal.mockRejectedValueOnce(new Error("Run local login and try again"));
-    click("Connect");
-    await vi.waitFor(() => expect(host.textContent).toContain("Run local login and try again"));
-    expect(onComplete).not.toHaveBeenCalled();
-    if (adapterType === "codex_local") {
-      expect(host.textContent).not.toContain("Start sign-in again");
-      click("Use a different account");
-      await vi.waitFor(() => expect(host.textContent).not.toContain("Run local login and try again"));
-      await vi.waitFor(() => expect(managedApi.cancelLocalLogin).toHaveBeenCalledWith("c1", "local-attempt"));
-      await vi.waitFor(() => expect(host.textContent).toContain("is signed in"));
-    }
-    click("Connect");
-    await vi.waitFor(() => expect(onComplete).toHaveBeenCalledWith({ connectionId: "local-account", grantId: "local-grant", method: "subscription" }));
-    expect(managedApi.connectLocal).toHaveBeenCalledWith("c1", { ...intent, localSessionId: "local-attempt" });
-    expect(mocks.loginPanel).not.toHaveBeenCalled();
-  });
+  it.each(["claude_local", "codex_local"] as const)(
+    "does not offer a server-host command when health disables local login: %s",
+    async (adapterType) => {
+      const onComplete = vi.fn();
+      const intent = {
+        provider:
+          adapterType === "claude_local"
+            ? ("anthropic" as const)
+            : ("openai" as const),
+        method: "subscription" as const,
+        name: "Hosted account",
+        ownership: "personal" as const,
+        agentIds: [],
+        allAgents: false,
+      };
+      await mount(
+        adapterType,
+        false,
+        false,
+        false,
+        false,
+        false,
+        { intent, onComplete },
+        true,
+        "authenticated",
+        false,
+      );
+      openProvider();
+      expect(host.textContent).toContain(
+        "This environment does not support browser sign-in",
+      );
+      expect(host.textContent).not.toContain("Run this in a terminal");
+      expect(managedApi.startLocalLogin).not.toHaveBeenCalled();
+      click("Connect");
+      expect(managedApi.connectLocal).not.toHaveBeenCalled();
+      expect(onComplete).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["claude_local", "codex_local"] as const)(
+    "prepares and completes an isolated subscription on an authenticated self-hosted instance: %s",
+    async (adapterType) => {
+      const onComplete = vi.fn();
+      managedApi.checkLocalLogin.mockResolvedValue({ status: "ready" });
+      const intent = {
+        provider:
+          adapterType === "claude_local"
+            ? ("anthropic" as const)
+            : ("openai" as const),
+        method: "subscription" as const,
+        name: "Self-hosted account",
+        ownership: "personal" as const,
+        agentIds: [],
+        allAgents: false,
+      };
+      await mount(
+        adapterType,
+        false,
+        false,
+        false,
+        false,
+        false,
+        { intent, onComplete },
+        true,
+        "authenticated",
+      );
+      openProvider();
+      await vi.waitFor(() =>
+        expect(host.textContent).toContain("is signed in"),
+      );
+      expect(host.textContent).not.toMatch(
+        /CLAUDE_CONFIG_DIR|CODEX_HOME|Run this in a terminal/,
+      );
+      expect(managedApi.startLocalLogin).toHaveBeenCalledWith("c1", intent);
+      expect(managedApi.checkLocalLogin).toHaveBeenCalledWith("c1", {
+        ...intent,
+        localSessionId: "local-attempt",
+      });
+      click("Connect");
+      await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(managedApi.connectLocal).toHaveBeenCalledWith("c1", {
+        ...intent,
+        localSessionId: "local-attempt",
+      });
+    },
+  );
+  it.each(["claude_local", "codex_local"] as const)(
+    "connects a local subscription without a sandbox and supports retry: %s",
+    async (adapterType) => {
+      const onComplete = vi.fn();
+      managedApi.checkLocalLogin.mockResolvedValue({ status: "ready" });
+      const intent = {
+        provider:
+          adapterType === "claude_local"
+            ? ("anthropic" as const)
+            : ("openai" as const),
+        method: "subscription" as const,
+        name: "My account",
+        ownership: "personal" as const,
+        agentIds: [],
+        allAgents: false,
+      };
+      await mount(
+        adapterType,
+        false,
+        false,
+        false,
+        false,
+        false,
+        { intent, onComplete },
+        true,
+      );
+      openProvider();
+      await vi.waitFor(() =>
+        expect(host.textContent).toContain("is signed in"),
+      );
+      expect(host.textContent).not.toMatch(
+        /claude auth login|codex login|CODEX_HOME/,
+      );
+      expect(host.textContent).not.toContain("sandbox");
+      managedApi.connectLocal.mockRejectedValueOnce(
+        new Error("Run local login and try again"),
+      );
+      click("Connect");
+      await vi.waitFor(() =>
+        expect(host.textContent).toContain("Run local login and try again"),
+      );
+      expect(onComplete).not.toHaveBeenCalled();
+      if (adapterType === "codex_local") {
+        expect(host.textContent).not.toContain("Start sign-in again");
+        click("Use a different account");
+        await vi.waitFor(() =>
+          expect(host.textContent).not.toContain(
+            "Run local login and try again",
+          ),
+        );
+        await vi.waitFor(() =>
+          expect(managedApi.cancelLocalLogin).toHaveBeenCalledWith(
+            "c1",
+            "local-attempt",
+          ),
+        );
+        await vi.waitFor(() =>
+          expect(host.textContent).toContain("is signed in"),
+        );
+      }
+      click("Connect");
+      await vi.waitFor(() =>
+        expect(onComplete).toHaveBeenCalledWith({
+          connectionId: "local-account",
+          grantId: "local-grant",
+          method: "subscription",
+        }),
+      );
+      expect(managedApi.connectLocal).toHaveBeenCalledWith("c1", {
+        ...intent,
+        localSessionId: "local-attempt",
+      });
+      expect(mocks.loginPanel).not.toHaveBeenCalled();
+    },
+  );
   it("leaves a completed local account saved when its host is cancelled", async () => {
     managedApi.checkLocalLogin.mockResolvedValue({ status: "ready" });
     let finish!: (result: { connectionId: string; grantId: string }) => void;
-    managedApi.connectLocal.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    managedApi.connectLocal.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
     const onComplete = vi.fn();
-    await mount("claude_local", false, false, false, false, false, { intent: { provider: "anthropic", method: "subscription", name: "My account", ownership: "personal", agentIds: [], allAgents: false }, onComplete }, true);
+    await mount(
+      "claude_local",
+      false,
+      false,
+      false,
+      false,
+      false,
+      {
+        intent: {
+          provider: "anthropic",
+          method: "subscription",
+          name: "My account",
+          ownership: "personal",
+          agentIds: [],
+          allAgents: false,
+        },
+        onComplete,
+      },
+      true,
+    );
     openProvider();
     await vi.waitFor(() => expect(host.textContent).toContain("is signed in"));
-    click("Connect"); flushSync(() => root.unmount());
-    finish({ connectionId: "saved", grantId: "saved-grant" });
-    await new Promise(resolve => setTimeout(resolve, 0));
-    expect(onComplete).not.toHaveBeenCalled();
-  });
-  it.each(["claude_local", "codex_local"] as const)("does not import local credentials for an unsupported remote environment: %s", async (adapterType) => {
-    const onComplete = vi.fn();
-    const intent = { provider: adapterType === "claude_local" ? "anthropic" as const : "openai" as const, method: "subscription" as const, name: "Engineering subscription", ownership: "shared" as const, agentIds: ["nova"], allAgents: false };
-    const { test } = await mount(adapterType, false, false, false, true, false, { intent, onComplete });
-    openProvider();
-    expect(host.textContent).toContain("This environment does not support browser sign-in");
-    expect(host.textContent).not.toContain("login on this machine");
     click("Connect");
+    flushSync(() => root.unmount());
+    finish({ connectionId: "saved", grantId: "saved-grant" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(onComplete).not.toHaveBeenCalled();
-    expect(managedApi.create).not.toHaveBeenCalled();
-    expect(test).not.toHaveBeenCalled();
   });
+  it.each(["claude_local", "codex_local"] as const)(
+    "does not import local credentials for an unsupported remote environment: %s",
+    async (adapterType) => {
+      const onComplete = vi.fn();
+      const intent = {
+        provider:
+          adapterType === "claude_local"
+            ? ("anthropic" as const)
+            : ("openai" as const),
+        method: "subscription" as const,
+        name: "Engineering subscription",
+        ownership: "shared" as const,
+        agentIds: ["nova"],
+        allAgents: false,
+      };
+      const { test } = await mount(
+        adapterType,
+        false,
+        false,
+        false,
+        true,
+        false,
+        { intent, onComplete },
+      );
+      openProvider();
+      expect(host.textContent).toContain(
+        "This environment does not support browser sign-in",
+      );
+      expect(host.textContent).not.toContain("login on this machine");
+      click("Connect");
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(managedApi.create).not.toHaveBeenCalled();
+      expect(test).not.toHaveBeenCalled();
+    },
+  );
 
-  it.each(["claude_local", "codex_local"] as const)("drives onboarding's provider redirect and completion: %s", async (adapterType) => {
-    const onComplete = vi.fn();
-    const intent = { provider: adapterType === "claude_local" ? "anthropic" as const : "openai" as const, method: "subscription" as const, name: "My account", ownership: "personal" as const, agentIds: [], allAgents: false };
-    await mount(adapterType, false, true, false, false, false, { intent, onComplete });
-    openProvider();
-    const panel = () => mocks.loginPanel.mock.calls.at(-1)![0];
-    expect(panel().chrome).toBe("onboarding");
-    expect(panel().autoStart).toBe(true);
-    expect(panel().aiConnection).toEqual(intent);
-    const open = vi.spyOn(window, "open").mockReturnValue(null);
-    try {
-      flushSync(() => panel().onPromptReady("https://provider.example/authorize"));
-      click(adapterType === "claude_local" ? "Sign in to Claude" : "Sign in to OpenAI");
-      expect(open).toHaveBeenCalledWith("https://provider.example/authorize", "_blank", "noreferrer,noopener");
-      expect(host.textContent).toContain("Waiting for code");
-      flushSync(() => panel().onCodeSubmitted());
-      expect(host.textContent).toContain("Connecting");
-      flushSync(() => panel().onSubmitFailed());
-      expect(host.textContent).toContain("Waiting for code");
-      flushSync(() => panel().onConnected("session-1"));
-      await vi.waitFor(() => expect(onComplete).toHaveBeenCalledWith({ connectionId: "login-account", grantId: "login-grant", method: "subscription" }));
-      expect(managedApi.loginResult).toHaveBeenCalledWith("c1", "session-1");
-    } finally { open.mockRestore(); }
-  });
+  it.each(["claude_local", "codex_local"] as const)(
+    "drives onboarding's provider redirect and completion: %s",
+    async (adapterType) => {
+      const onComplete = vi.fn();
+      const intent = {
+        provider:
+          adapterType === "claude_local"
+            ? ("anthropic" as const)
+            : ("openai" as const),
+        method: "subscription" as const,
+        name: "My account",
+        ownership: "personal" as const,
+        agentIds: [],
+        allAgents: false,
+      };
+      await mount(adapterType, false, true, false, false, false, {
+        intent,
+        onComplete,
+      });
+      openProvider();
+      const panel = () => mocks.loginPanel.mock.calls.at(-1)![0];
+      expect(panel().chrome).toBe("onboarding");
+      expect(panel().autoStart).toBe(true);
+      expect(panel().aiConnection).toEqual(intent);
+      const open = vi.spyOn(window, "open").mockReturnValue(null);
+      try {
+        flushSync(() =>
+          panel().onPromptReady("https://provider.example/authorize"),
+        );
+        click(
+          adapterType === "claude_local"
+            ? "Sign in to Claude"
+            : "Sign in to OpenAI",
+        );
+        expect(open).toHaveBeenCalledWith(
+          "https://provider.example/authorize",
+          "_blank",
+          "noreferrer,noopener",
+        );
+        expect(host.textContent).toContain("Waiting for code");
+        flushSync(() => panel().onCodeSubmitted());
+        expect(host.textContent).toContain("Connecting");
+        flushSync(() => panel().onSubmitFailed());
+        expect(host.textContent).toContain("Waiting for code");
+        flushSync(() => panel().onConnected("session-1"));
+        await vi.waitFor(() =>
+          expect(onComplete).toHaveBeenCalledWith({
+            connectionId: "login-account",
+            grantId: "login-grant",
+            method: "subscription",
+          }),
+        );
+        expect(managedApi.loginResult).toHaveBeenCalledWith("c1", "session-1");
+      } finally {
+        open.mockRestore();
+      }
+    },
+  );
 
   it("does not advance after Back while the saved login result is loading", async () => {
     let finish!: (result: { connectionId: string; grantId: string }) => void;
-    managedApi.loginResult.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    managedApi.loginResult.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
     const onComplete = vi.fn();
-    await mount("claude_local", false, true, false, false, false, { intent: { provider: "anthropic", method: "subscription", name: "My account", ownership: "personal", agentIds: [], allAgents: false }, onComplete });
+    await mount("claude_local", false, true, false, false, false, {
+      intent: {
+        provider: "anthropic",
+        method: "subscription",
+        name: "My account",
+        ownership: "personal",
+        agentIds: [],
+        allAgents: false,
+      },
+      onComplete,
+    });
     openProvider();
-    flushSync(() => mocks.loginPanel.mock.calls.at(-1)![0].onConnected("session-1"));
+    flushSync(() =>
+      mocks.loginPanel.mock.calls.at(-1)![0].onConnected("session-1"),
+    );
     click("Back");
     finish({ connectionId: "saved", grantId: "grant" });
     await Promise.resolve();
     expect(onComplete).not.toHaveBeenCalled();
   });
   it("starts the existing browser login when adding an account even if the environment is authenticated", async () => {
-    await mount("claude_local", true, true, false, true, false, { intent: { provider: "anthropic", method: "subscription", name: "My second account", ownership: "personal", agentIds: [], allAgents: false }, onComplete: vi.fn() });
+    await mount("claude_local", true, true, false, true, false, {
+      intent: {
+        provider: "anthropic",
+        method: "subscription",
+        name: "My second account",
+        ownership: "personal",
+        agentIds: [],
+        allAgents: false,
+      },
+      onComplete: vi.fn(),
+    });
     openProvider();
     expect(host.textContent).toContain("New subscription login");
     expect(host.textContent).not.toContain("Use saved subscription");
@@ -461,7 +886,11 @@ describe("AgentProviderConnection reuse", () => {
     await vi.waitFor(() =>
       expect(connected).toHaveBeenCalledWith({
         env: {
-          CODEX_HOME: { type: "secret_ref", secretId: "codex-home", version: "latest" },
+          CODEX_HOME: {
+            type: "secret_ref",
+            secretId: "codex-home",
+            version: "latest",
+          },
         },
       }),
     );
@@ -552,36 +981,64 @@ describe("AgentProviderConnection reuse", () => {
     click("Connect");
     await vi.waitFor(() => expect(test).toHaveBeenCalledWith({ env: {} }));
   });
-  it.each(["claude_local", "codex_local"] as const)("uses a managed subscription through the upstream chooser for %s", async (adapterType) => {
-    const provider = adapterType === "claude_local" ? "anthropic" : "openai";
-    managedApi.list.mockResolvedValue({ currentUserId: "user-1", connections: [{
-      id: "account", grantId: "grant", companyId: "c1", provider,
-      method: "subscription", name: "My subscription", ownership: "personal",
-      ownerUserId: "user-1", isDefault: true, status: "connected",
-    }] } as never);
-    const { connected } = await mount(adapterType, false, true, false, false);
-    openProvider();
-    expect(host.querySelector('select[aria-label="Saved subscription"]')?.textContent).toContain("My subscription (Your default)");
-    click("Use saved subscription");
-    await vi.waitFor(() => expect(connected).toHaveBeenCalledWith({ env: {}, aiConnection: { provider, method: "subscription", mode: "responsible_user" } }));
-    expect(managedApi.create).not.toHaveBeenCalled();
-    flushSync(() => {
-      const select = host.querySelector("select")!;
-      select.value = "";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    expect(host.textContent).toContain("New subscription login");
-    await client.invalidateQueries();
-    await vi.waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(host.querySelector("select")!.value).toBe("");
-    expect(host.textContent).toContain("New subscription login");
-  });
+  it.each(["claude_local", "codex_local"] as const)(
+    "uses a managed subscription through the upstream chooser for %s",
+    async (adapterType) => {
+      const provider = adapterType === "claude_local" ? "anthropic" : "openai";
+      managedApi.list.mockResolvedValue({
+        currentUserId: "user-1",
+        connections: [
+          {
+            id: "account",
+            grantId: "grant",
+            companyId: "c1",
+            provider,
+            method: "subscription",
+            name: "My subscription",
+            ownership: "personal",
+            ownerUserId: "user-1",
+            isDefault: true,
+            status: "connected",
+          },
+        ],
+      } as never);
+      const { connected } = await mount(adapterType, false, true, false, false);
+      openProvider();
+      expect(
+        host.querySelector('select[aria-label="Saved subscription"]')
+          ?.textContent,
+      ).toContain("My subscription (Your default)");
+      click("Use saved subscription");
+      await vi.waitFor(() =>
+        expect(connected).toHaveBeenCalledWith({
+          env: {},
+          aiConnection: {
+            provider,
+            method: "subscription",
+            mode: "responsible_user",
+          },
+        }),
+      );
+      expect(managedApi.create).not.toHaveBeenCalled();
+      flushSync(() => {
+        const select = host.querySelector("select")!;
+        select.value = "";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      expect(host.textContent).toContain("New subscription login");
+      await client.invalidateQueries();
+      await vi.waitFor(() => expect(client.isFetching()).toBe(0));
+      expect(host.querySelector("select")!.value).toBe("");
+      expect(host.textContent).toContain("New subscription login");
+    },
+  );
   it("never offers a saved Codex home in Claude's subscription chooser", async () => {
     await mount("claude_local", false, true, true);
     click("Use subscription instead");
     openProvider();
-    expect(host.querySelector('select[aria-label="Saved subscription"]')).toBeNull();
+    expect(
+      host.querySelector('select[aria-label="Saved subscription"]'),
+    ).toBeNull();
     expect(host.textContent).not.toContain("ChatGPT account");
   });
-
 });

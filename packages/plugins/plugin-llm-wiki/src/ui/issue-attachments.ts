@@ -9,9 +9,12 @@ export type IngestSourceActionResult = {
 };
 
 export function readIngestOperationIssueId(result: unknown): string {
-  const issueId = (result as IngestSourceActionResult | null)?.operation?.issue?.id;
+  const issueId = (result as IngestSourceActionResult | null)?.operation?.issue
+    ?.id;
   if (typeof issueId === "string" && issueId.trim()) return issueId;
-  throw new Error("Ingest operation did not return an issue id; the dropped file could not be attached.");
+  throw new Error(
+    "Ingest operation did not return an issue id; the dropped file could not be attached.",
+  );
 }
 
 async function readUploadError(response: Response): Promise<string> {

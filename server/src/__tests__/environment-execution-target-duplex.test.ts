@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockResolveEnvironmentDriverConfigForRuntime, mockResolvePluginSandboxProviderDriverById } =
-  vi.hoisted(() => ({
-    mockResolveEnvironmentDriverConfigForRuntime: vi.fn(),
-    mockResolvePluginSandboxProviderDriverById: vi.fn(),
-  }));
+const {
+  mockResolveEnvironmentDriverConfigForRuntime,
+  mockResolvePluginSandboxProviderDriverById,
+} = vi.hoisted(() => ({
+  mockResolveEnvironmentDriverConfigForRuntime: vi.fn(),
+  mockResolvePluginSandboxProviderDriverById: vi.fn(),
+}));
 
 vi.mock("../services/environment-config.js", () => ({
-  resolveEnvironmentDriverConfigForRuntime: mockResolveEnvironmentDriverConfigForRuntime,
+  resolveEnvironmentDriverConfigForRuntime:
+    mockResolveEnvironmentDriverConfigForRuntime,
 }));
 
 // The centralized duplex authorization gate resolves the exact lease capability
@@ -16,8 +19,11 @@ vi.mock("../services/environment-config.js", () => ({
 // database, so replace only the by-id declaration resolver. The test sets the
 // resolved declaration per case; every other export stays real.
 vi.mock("../services/plugin-environment-driver.js", async (importActual) => ({
-  ...(await importActual<typeof import("../services/plugin-environment-driver.js")>()),
-  resolvePluginSandboxProviderDriverById: mockResolvePluginSandboxProviderDriverById,
+  ...(await importActual<
+    typeof import("../services/plugin-environment-driver.js")
+  >()),
+  resolvePluginSandboxProviderDriverById:
+    mockResolvePluginSandboxProviderDriverById,
 }));
 
 import type { EffectiveExecutionCapabilities } from "@taskcore/adapter-utils/execution-target";
@@ -120,13 +126,18 @@ beforeEach(() => {
     config: { provider: "daytona", timeoutMs: 30_000 },
   });
   mockResolvePluginSandboxProviderDriverById.mockReset();
-  mockResolvePluginSandboxProviderDriverById.mockResolvedValue(DUPLEX_DECLARED_DRIVER);
+  mockResolvePluginSandboxProviderDriverById.mockResolvedValue(
+    DUPLEX_DECLARED_DRIVER,
+  );
 });
 
 describe("sandbox driver duplex channel wiring", () => {
   it("reaches the worker manager route with the lease scope and delegates the channel members", async () => {
-    const { manager, worker, hostSession, settleWait } = makeFakeWorkerManager();
-    const service = environmentRuntimeService({} as never, { pluginWorkerManager: manager });
+    const { manager, worker, hostSession, settleWait } =
+      makeFakeWorkerManager();
+    const service = environmentRuntimeService({} as never, {
+      pluginWorkerManager: manager,
+    });
 
     const channel = await service.openDuplexChannel({
       environment: SANDBOX_ENVIRONMENT,
@@ -170,7 +181,9 @@ describe("sandbox driver duplex channel wiring", () => {
 
   it("refuses a lease that is not a plugin-backed sandbox lease before it reaches the worker", async () => {
     const { manager, worker } = makeFakeWorkerManager();
-    const service = environmentRuntimeService({} as never, { pluginWorkerManager: manager });
+    const service = environmentRuntimeService({} as never, {
+      pluginWorkerManager: manager,
+    });
     const nonPluginLease = {
       id: "lease-2",
       companyId: "company-1",
@@ -203,8 +216,13 @@ describe("EnvironmentRuntimeService.openDuplexChannel capability gate", () => {
     // The worker verifies the duplex verb, but the declaration omits the opt-in
     // capability. An opt-in capability needs an explicit declaration, so the
     // effective snapshot denies it.
-    mockResolvePluginSandboxProviderDriverById.mockResolvedValue({ plugin: {}, driver: {} });
-    const service = environmentRuntimeService({} as never, { pluginWorkerManager: manager });
+    mockResolvePluginSandboxProviderDriverById.mockResolvedValue({
+      plugin: {},
+      driver: {},
+    });
+    const service = environmentRuntimeService({} as never, {
+      pluginWorkerManager: manager,
+    });
 
     await expect(
       service.openDuplexChannel({
@@ -222,7 +240,9 @@ describe("EnvironmentRuntimeService.openDuplexChannel capability gate", () => {
     // the `duplexChannelOpen` verb, so the runtime never verified it. A
     // declaration never grants an unverified capability.
     worker.supportedMethods = [];
-    const service = environmentRuntimeService({} as never, { pluginWorkerManager: manager });
+    const service = environmentRuntimeService({} as never, {
+      pluginWorkerManager: manager,
+    });
 
     await expect(
       service.openDuplexChannel({
@@ -247,12 +267,17 @@ describe("EnvironmentRuntimeService.openDuplexChannel capability gate", () => {
       resolveCapabilities: vi.fn(async () => ({ ...DUPLEX_ABSENT })),
       openDuplexChannel,
     } as unknown as EnvironmentRuntimeDriver;
-    const service = environmentRuntimeService({} as never, { drivers: [narrowedDriver] });
+    const service = environmentRuntimeService({} as never, {
+      drivers: [narrowedDriver],
+    });
 
     await expect(
       service.openDuplexChannel({
         environment: SANDBOX_ENVIRONMENT,
-        lease: { ...PLUGIN_LEASE, metadata: { ...PLUGIN_LEASE.metadata, driver: "sandbox" } },
+        lease: {
+          ...PLUGIN_LEASE,
+          metadata: { ...PLUGIN_LEASE.metadata, driver: "sandbox" },
+        },
         command: "bridge-callback",
       }),
     ).rejects.toThrow(DUPLEX_DENIED);
@@ -264,8 +289,12 @@ describe("EnvironmentRuntimeService.openDuplexChannel capability gate", () => {
     // The declaration grants the capability and the worker verifies the verb, but
     // the provider config cannot be resolved. An untrusted provider fails closed,
     // so the config-resolution failure narrows the duplex capability away.
-    mockResolveEnvironmentDriverConfigForRuntime.mockRejectedValue(new Error("config unresolved"));
-    const service = environmentRuntimeService({} as never, { pluginWorkerManager: manager });
+    mockResolveEnvironmentDriverConfigForRuntime.mockRejectedValue(
+      new Error("config unresolved"),
+    );
+    const service = environmentRuntimeService({} as never, {
+      pluginWorkerManager: manager,
+    });
 
     await expect(
       service.openDuplexChannel({
@@ -336,7 +365,11 @@ async function buildSandboxRunner(input: {
     db: {} as never,
     companyId: "company-1",
     adapterType: "codex_local",
-    environment: { id: "env-1", driver: "sandbox", config: { provider: "daytona" } },
+    environment: {
+      id: "env-1",
+      driver: "sandbox",
+      config: { provider: "daytona" },
+    },
     leaseId: "lease-1",
     leaseMetadata: { remoteCwd: "/work" },
     lease: { id: "lease-1", leasePolicy: "reuse_by_environment" } as never,
@@ -350,7 +383,9 @@ async function buildSandboxRunner(input: {
 
 describe("inline sandbox runner duplex capability gate", () => {
   it("exposes openDuplexChannel that delegates to the runtime when the capability is granted", async () => {
-    const { runner, openDuplexChannel } = await buildSandboxRunner({ snapshot: DUPLEX_GRANT });
+    const { runner, openDuplexChannel } = await buildSandboxRunner({
+      snapshot: DUPLEX_GRANT,
+    });
     expect(runner?.openDuplexChannel).toBeDefined();
 
     await runner!.openDuplexChannel!({ command: "bridge-callback" });

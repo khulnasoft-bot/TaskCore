@@ -10,7 +10,9 @@ import { chromium } from "@playwright/test";
 async function main() {
   const [, , staticDir, outDir] = process.argv;
   if (!staticDir || !outDir) {
-    console.error("usage: node scripts/screenshot-blocked-inbox.mjs <storybook-static-dir> <output-dir>");
+    console.error(
+      "usage: node scripts/screenshot-blocked-inbox.mjs <storybook-static-dir> <output-dir>",
+    );
     process.exit(1);
   }
   await fs.mkdir(outDir, { recursive: true });
@@ -21,24 +23,28 @@ async function main() {
       let urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
       if (urlPath.endsWith("/")) urlPath += "iframe.html";
       const filePath = path.resolve(absStaticDir, `.${urlPath}`);
-      if (!filePath.startsWith(absStaticDir + path.sep) && filePath !== absStaticDir) {
+      if (
+        !filePath.startsWith(absStaticDir + path.sep) &&
+        filePath !== absStaticDir
+      ) {
         res.writeHead(403);
         res.end("Forbidden");
         return;
       }
       const buf = await fs.readFile(filePath);
       const ext = path.extname(filePath).toLowerCase();
-      const mime = {
-        ".html": "text/html; charset=utf-8",
-        ".js": "application/javascript",
-        ".css": "text/css",
-        ".json": "application/json",
-        ".svg": "image/svg+xml",
-        ".png": "image/png",
-        ".woff": "font/woff",
-        ".woff2": "font/woff2",
-        ".map": "application/json",
-      }[ext] || "application/octet-stream";
+      const mime =
+        {
+          ".html": "text/html; charset=utf-8",
+          ".js": "application/javascript",
+          ".css": "text/css",
+          ".json": "application/json",
+          ".svg": "image/svg+xml",
+          ".png": "image/png",
+          ".woff": "font/woff",
+          ".woff2": "font/woff2",
+          ".map": "application/json",
+        }[ext] || "application/octet-stream";
       res.writeHead(200, { "content-type": mime });
       res.end(buf);
     } catch (err) {
@@ -54,12 +60,48 @@ async function main() {
   const browser = await chromium.launch();
   try {
     const stories = [
-      { id: "product-inbox-blocked-tab--desktop-loaded", file: "01-desktop-loaded.png", width: 1440, height: 1100, dark: false },
-      { id: "product-inbox-blocked-tab--desktop-loaded", file: "02-desktop-loaded-dark.png", width: 1440, height: 1100, dark: true },
-      { id: "product-inbox-blocked-tab--desktop-with-search", file: "03-desktop-with-search.png", width: 1440, height: 800, dark: false },
-      { id: "product-inbox-blocked-tab--mobile-layout", file: "04-mobile-layout.png", width: 390, height: 1100, dark: false },
-      { id: "product-inbox-blocked-tab--reason-chip-catalog", file: "05-reason-chip-catalog.png", width: 900, height: 600, dark: false },
-      { id: "product-inbox-blocked-tab--empty-state", file: "06-empty-state.png", width: 900, height: 500, dark: false },
+      {
+        id: "product-inbox-blocked-tab--desktop-loaded",
+        file: "01-desktop-loaded.png",
+        width: 1440,
+        height: 1100,
+        dark: false,
+      },
+      {
+        id: "product-inbox-blocked-tab--desktop-loaded",
+        file: "02-desktop-loaded-dark.png",
+        width: 1440,
+        height: 1100,
+        dark: true,
+      },
+      {
+        id: "product-inbox-blocked-tab--desktop-with-search",
+        file: "03-desktop-with-search.png",
+        width: 1440,
+        height: 800,
+        dark: false,
+      },
+      {
+        id: "product-inbox-blocked-tab--mobile-layout",
+        file: "04-mobile-layout.png",
+        width: 390,
+        height: 1100,
+        dark: false,
+      },
+      {
+        id: "product-inbox-blocked-tab--reason-chip-catalog",
+        file: "05-reason-chip-catalog.png",
+        width: 900,
+        height: 600,
+        dark: false,
+      },
+      {
+        id: "product-inbox-blocked-tab--empty-state",
+        file: "06-empty-state.png",
+        width: 900,
+        height: 500,
+        dark: false,
+      },
     ];
 
     for (const story of stories) {

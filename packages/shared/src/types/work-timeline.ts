@@ -7,7 +7,8 @@ import type { AgentAppearance } from "../agent-appearance.js";
  */
 
 export type TimelineActorType = "agent" | "user" | "system" | "plugin";
-export type TimelineEventKind = "created" | "commented" | "approved" | "delegated" | "assigned";
+export type TimelineEventKind =
+  "created" | "commented" | "approved" | "delegated" | "assigned";
 export type TimelineEdgeKind = "delegation" | "assignment" | "mention";
 
 export interface WorkTimelineActor {

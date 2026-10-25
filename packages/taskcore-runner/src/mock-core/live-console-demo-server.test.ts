@@ -39,7 +39,8 @@ class Queue<T> implements AsyncIterable<T> {
 
   close(): void {
     this.#closed = true;
-    for (const waiter of this.#waiters.splice(0)) waiter({ value: undefined, done: true });
+    for (const waiter of this.#waiters.splice(0))
+      waiter({ value: undefined, done: true });
   }
 
   [Symbol.asyncIterator](): AsyncIterator<T> {
@@ -125,14 +126,23 @@ class StubSession implements HarnessSession {
   async startTurn(): Promise<{ turnId: string }> {
     this.activeTurnId = "turn-demo";
     this.emit("turn.submitted", {});
-    this.emit("turn.accepted", { turnId: "turn-demo" }, { turnId: "turn-demo" });
-    this.emit("turn.started", { status: "inProgress" }, { turnId: "turn-demo" });
+    this.emit(
+      "turn.accepted",
+      { turnId: "turn-demo" },
+      { turnId: "turn-demo" },
+    );
+    this.emit(
+      "turn.started",
+      { status: "inProgress" },
+      { turnId: "turn-demo" },
+    );
     const request: HarnessRuntimeRequest = {
       requestId: this.requestId,
       requestKind: this.requestKind,
-      method: this.requestKind === "elicitation"
-        ? "mcpServer/elicitation/request"
-        : "item/commandExecution/requestApproval",
+      method:
+        this.requestKind === "elicitation"
+          ? "mcpServer/elicitation/request"
+          : "item/commandExecution/requestApproval",
       turnId: "turn-demo",
       itemId: "command-demo",
       status: "pending",
@@ -157,26 +167,38 @@ class StubSession implements HarnessSession {
       },
     };
     this.pending = [request];
-    this.emit("runtime_request.created", {
-      request: { ...request, type: request.method },
-    }, { turnId: request.turnId, itemId: request.itemId });
+    this.emit(
+      "runtime_request.created",
+      {
+        request: { ...request, type: request.method },
+      },
+      { turnId: request.turnId, itemId: request.itemId },
+    );
     return { turnId: "turn-demo" };
   }
 
   async steer(input: { turnId: string }): Promise<void> {
-    this.emit("item.completed", {
-      kind: "steering_acknowledgement",
-      status: "acknowledged",
-      text: "Steering acknowledged.",
-    }, { turnId: input.turnId, itemId: "steer-demo" });
+    this.emit(
+      "item.completed",
+      {
+        kind: "steering_acknowledgement",
+        status: "acknowledged",
+        text: "Steering acknowledged.",
+      },
+      { turnId: input.turnId, itemId: "steer-demo" },
+    );
   }
 
   async interrupt(input: { turnId?: string }): Promise<void> {
-    this.emit("item.completed", {
-      kind: "interrupt_acknowledgement",
-      status: "acknowledged",
-      text: "Interrupt acknowledged.",
-    }, { turnId: input.turnId, itemId: "interrupt-demo" });
+    this.emit(
+      "item.completed",
+      {
+        kind: "interrupt_acknowledgement",
+        status: "acknowledged",
+        text: "Interrupt acknowledged.",
+      },
+      { turnId: input.turnId, itemId: "interrupt-demo" },
+    );
   }
 
   pendingRuntimeRequests(): HarnessRuntimeRequest[] {
@@ -188,12 +210,19 @@ class StubSession implements HarnessSession {
     turnId: string;
     resolution: HarnessRuntimeRequestResolution;
   }): Promise<void> {
-    const request = this.pending.find(({ requestId }) => requestId === input.requestId);
-    if (request === undefined) throw new Error(`unknown runtime request ${input.requestId}`);
-    this.pending = this.pending.filter(({ requestId }) => requestId !== input.requestId);
+    const request = this.pending.find(
+      ({ requestId }) => requestId === input.requestId,
+    );
+    if (request === undefined)
+      throw new Error(`unknown runtime request ${input.requestId}`);
+    this.pending = this.pending.filter(
+      ({ requestId }) => requestId !== input.requestId,
+    );
     this.emit(
       "runtime_request.resolved",
-      harnessRuntimeRequestOutcome(request, { action: input.resolution.action }),
+      harnessRuntimeRequestOutcome(request, {
+        action: input.resolution.action,
+      }),
       { turnId: input.turnId, itemId: request.itemId },
     );
   }
@@ -216,15 +245,17 @@ class StubSession implements HarnessSession {
   }
 
   lineage() {
-    return [{
-      threadId: "thread-demo",
-      providerSessionId: "provider-demo",
-      parentThreadId: null,
-      depth: 0,
-      nickname: null,
-      role: null,
-      status: "active",
-    }];
+    return [
+      {
+        threadId: "thread-demo",
+        providerSessionId: "provider-demo",
+        parentThreadId: null,
+        depth: 0,
+        nickname: null,
+        role: null,
+        status: "active",
+      },
+    ];
   }
 
   async snapshot(): Promise<PersistedHarnessSession> {
@@ -313,7 +344,9 @@ class StubDriver implements HarnessDriver {
     });
   }
 
-  async recoverSession(snapshot: PersistedHarnessSession): Promise<HarnessSessionRecoveryResult> {
+  async recoverSession(
+    snapshot: PersistedHarnessSession,
+  ): Promise<HarnessSessionRecoveryResult> {
     return {
       recovered: true,
       session: new StubSession({
@@ -368,14 +401,23 @@ async function rawRequest(
   headers: Record<string, string>,
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
-    const request = httpRequest(`${url}/api/liveConsole/health`, { headers }, (response) => {
-      const chunks: Buffer[] = [];
-      response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-      response.once("end", () => resolve({
-        status: response.statusCode ?? 0,
-        body: JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>,
-      }));
-    });
+    const request = httpRequest(
+      `${url}/api/liveConsole/health`,
+      { headers },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+        response.once("end", () =>
+          resolve({
+            status: response.statusCode ?? 0,
+            body: JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<
+              string,
+              unknown
+            >,
+          }),
+        );
+      },
+    );
     request.once("error", reject);
     request.end();
   });
@@ -387,24 +429,32 @@ async function openEventStream(
 ): Promise<ReturnType<typeof httpRequest>> {
   const origin = new URL(url).origin;
   return new Promise((resolve, reject) => {
-    const request = httpRequest(`${url}/api/liveConsole/sessions/${sessionId}/stream?after=0`, {
-      headers: { origin, "sec-fetch-site": "same-origin" },
-    }, (response) => {
-      response.once("data", () => resolve(request));
-    });
+    const request = httpRequest(
+      `${url}/api/liveConsole/sessions/${sessionId}/stream?after=0`,
+      {
+        headers: { origin, "sec-fetch-site": "same-origin" },
+      },
+      (response) => {
+        response.once("data", () => resolve(request));
+      },
+    );
     request.once("error", reject);
     request.end();
   });
 }
 
-async function readEventStreamReplay(url: string, sessionId: string): Promise<string> {
+async function readEventStreamReplay(
+  url: string,
+  sessionId: string,
+): Promise<string> {
   const response = await browserRequest(
     url,
     `/api/liveConsole/sessions/${sessionId}/stream?after=0`,
   );
   expect(response.status).toBe(200);
   const reader = response.body?.getReader();
-  if (reader === undefined) throw new Error("event stream response did not include a body");
+  if (reader === undefined)
+    throw new Error("event stream response did not include a body");
   let result = "";
   try {
     while (!result.includes('"tokenBudget":4096')) {
@@ -459,7 +509,9 @@ describe("Live console package-local demo server", () => {
     });
     servers.push(server);
 
-    await expect(server.start()).rejects.toThrow("available only over loopback");
+    await expect(server.start()).rejects.toThrow(
+      "available only over loopback",
+    );
   });
 
   it("rejects cross-origin and missing or hostile Fetch Metadata", async () => {
@@ -471,20 +523,29 @@ describe("Live console package-local demo server", () => {
     const { url } = await server.start();
 
     const crossOrigin = await fetch(`${url}/api/liveConsole/health`, {
-      headers: { origin: "http://attacker.test:4174", "sec-fetch-site": "same-origin" },
+      headers: {
+        origin: "http://attacker.test:4174",
+        "sec-fetch-site": "same-origin",
+      },
     });
     expect(crossOrigin.status).toBe(403);
-    await expect(crossOrigin.json()).resolves.toMatchObject({ error: "invalid_origin" });
+    await expect(crossOrigin.json()).resolves.toMatchObject({
+      error: "invalid_origin",
+    });
 
     const missing = await fetch(`${url}/api/liveConsole/health`);
     expect(missing.status).toBe(403);
-    await expect(missing.json()).resolves.toMatchObject({ error: "invalid_fetch_metadata" });
+    await expect(missing.json()).resolves.toMatchObject({
+      error: "invalid_fetch_metadata",
+    });
 
     const hostile = await fetch(`${url}/api/liveConsole/health`, {
       headers: { origin: new URL(url).origin, "sec-fetch-site": "cross-site" },
     });
     expect(hostile.status).toBe(403);
-    await expect(hostile.json()).resolves.toMatchObject({ error: "invalid_fetch_metadata" });
+    await expect(hostile.json()).resolves.toMatchObject({
+      error: "invalid_fetch_metadata",
+    });
   });
 
   it("rejects text/plain simple mutations and accepts a valid loopback browser request", async () => {
@@ -502,7 +563,9 @@ describe("Live console package-local demo server", () => {
       body: "{}",
     });
     expect(simplePost.status).toBe(415);
-    await expect(simplePost.json()).resolves.toMatchObject({ error: "json_content_type_required" });
+    await expect(simplePost.json()).resolves.toMatchObject({
+      error: "json_content_type_required",
+    });
 
     const valid = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
       objective: "Exercise the browser transport.",
@@ -536,18 +599,28 @@ describe("Live console package-local demo server", () => {
         authorization: server.directApiAuthorization(),
         "content-type": "application/json",
       },
-      body: JSON.stringify({ objective: "Use the server-owned provider path." }),
+      body: JSON.stringify({
+        objective: "Use the server-owned provider path.",
+      }),
     });
     expect(response.status).toBe(201);
-    const created = await response.json() as Record<string, unknown>;
-    expect(driver.openInputs[0]?.workingDirectory).toBe("/safe/server-owned-workspace");
-    expect(JSON.stringify(created)).not.toContain(server.directApiAuthorization());
+    const created = (await response.json()) as Record<string, unknown>;
+    expect(driver.openInputs[0]?.workingDirectory).toBe(
+      "/safe/server-owned-workspace",
+    );
+    expect(JSON.stringify(created)).not.toContain(
+      server.directApiAuthorization(),
+    );
     expect(JSON.stringify(created)).not.toContain("server-only-secret");
 
-    const credentialAttempt = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
-      objective: "Browser must not choose provider credentials.",
-      clientSecret: "browser-secret",
-    });
+    const credentialAttempt = await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      {
+        objective: "Browser must not choose provider credentials.",
+        clientSecret: "browser-secret",
+      },
+    );
     expect(credentialAttempt.status).toBe(422);
     await expect(credentialAttempt.json()).resolves.toMatchObject({
       error: "browser_credentials_forbidden",
@@ -564,19 +637,33 @@ describe("Live console package-local demo server", () => {
     servers.push(server);
     const { url } = await server.start();
 
-    const first = await jsonBrowserRequest(url, "/api/liveConsole/sessions", { startTurn: false });
+    const first = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
+      startTurn: false,
+    });
     expect(first.status).toBe(201);
-    const { sessionId } = await first.json() as { sessionId: string };
+    const { sessionId } = (await first.json()) as { sessionId: string };
 
-    const capped = await jsonBrowserRequest(url, "/api/liveConsole/sessions", { startTurn: false });
+    const capped = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
+      startTurn: false,
+    });
     expect(capped.status).toBe(429);
-    await expect(capped.json()).resolves.toMatchObject({ error: "session_limit_reached" });
+    await expect(capped.json()).resolves.toMatchObject({
+      error: "session_limit_reached",
+    });
 
-    const closed = await jsonBrowserRequest(url, `/api/liveConsole/sessions/${sessionId}/close`, {});
+    const closed = await jsonBrowserRequest(
+      url,
+      `/api/liveConsole/sessions/${sessionId}/close`,
+      {},
+    );
     expect(closed.status).toBe(200);
     await expect(closed.json()).resolves.toEqual({ closed: true, sessionId });
 
-    const replacement = await jsonBrowserRequest(url, "/api/liveConsole/sessions", { startTurn: false });
+    const replacement = await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      { startTurn: false },
+    );
     expect(replacement.status).toBe(201);
   });
 
@@ -588,8 +675,10 @@ describe("Live console package-local demo server", () => {
     });
     servers.push(server);
     const { url } = await server.start();
-    const created = await jsonBrowserRequest(url, "/api/liveConsole/sessions", { startTurn: false });
-    const { sessionId } = await created.json() as { sessionId: string };
+    const created = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
+      startTurn: false,
+    });
+    const { sessionId } = (await created.json()) as { sessionId: string };
     const first = await openEventStream(url, sessionId);
 
     try {
@@ -598,7 +687,9 @@ describe("Live console package-local demo server", () => {
         `/api/liveConsole/sessions/${sessionId}/stream?after=0`,
       );
       expect(capped.status).toBe(429);
-      await expect(capped.json()).resolves.toMatchObject({ error: "subscriber_limit_reached" });
+      await expect(capped.json()).resolves.toMatchObject({
+        error: "subscriber_limit_reached",
+      });
     } finally {
       first.destroy();
     }
@@ -613,18 +704,28 @@ describe("Live console package-local demo server", () => {
     servers.push(server);
     const { url } = await server.start();
 
-    const health = await browserRequest(url, "/api/liveConsole/health").then((response) => response.json());
-    expect(health).toEqual(expect.objectContaining({
-      status: "ok",
-      providerAuthentication: "server-side",
-      credentialsExposed: false,
-    }));
+    const health = await browserRequest(url, "/api/liveConsole/health").then(
+      (response) => response.json(),
+    );
+    expect(health).toEqual(
+      expect.objectContaining({
+        status: "ok",
+        providerAuthentication: "server-side",
+        credentialsExposed: false,
+      }),
+    );
 
-    const created = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
+    const created = (await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      {
         objective: "Exercise the server boundary.",
         workingDirectory: "/browser/chosen-path",
-      }).then((response) => response.json()) as Record<string, unknown>;
-    expect(driver.openInputs[0]?.workingDirectory).toBe("/safe/server-owned-workspace");
+      },
+    ).then((response) => response.json())) as Record<string, unknown>;
+    expect(driver.openInputs[0]?.workingDirectory).toBe(
+      "/safe/server-owned-workspace",
+    );
     expect(created).toMatchObject({
       providerAuthentication: "server-side",
       credentialsExposed: false,
@@ -637,34 +738,44 @@ describe("Live console package-local demo server", () => {
     expect(JSON.stringify(created)).not.toContain("/srv/taskcore/home");
     expectOpaqueCredentialsRedacted(JSON.stringify(created));
     expect(created).toMatchObject({
-      pendingRequests: [{
-        details: {
-          provider: {
-            clientSecret: "[REDACTED]",
-            providerApiKey: "[REDACTED]",
-            sessionToken: "[REDACTED]",
-            idToken: "[REDACTED]",
-            nested: {
-              signingKey: "[REDACTED]",
-              private_key: "[REDACTED]",
+      pendingRequests: [
+        {
+          details: {
+            provider: {
+              clientSecret: "[REDACTED]",
+              providerApiKey: "[REDACTED]",
+              sessionToken: "[REDACTED]",
+              idToken: "[REDACTED]",
+              nested: {
+                signingKey: "[REDACTED]",
+                private_key: "[REDACTED]",
+              },
             },
+            usage: {
+              tokenBudget: 4096,
+              tokensUsed: 128,
+              tokenUsage: { inputTokens: 96, outputTokens: 32 },
+            },
+            invalidUsage: { tokenBudget: "[REDACTED]" },
           },
-          usage: {
-            tokenBudget: 4096,
-            tokensUsed: 128,
-            tokenUsage: { inputTokens: 96, outputTokens: 32 },
-          },
-          invalidUsage: { tokenBudget: "[REDACTED]" },
         },
-      }],
+      ],
     });
 
     const sessionId = String(created.sessionId);
-    const replay = await browserRequest(url, `/api/liveConsole/sessions/${sessionId}/events?after=0`)
-      .then((response) => response.json()) as { events: PrpEvent[]; cursor: number; replay: boolean };
+    const replay = (await browserRequest(
+      url,
+      `/api/liveConsole/sessions/${sessionId}/events?after=0`,
+    ).then((response) => response.json())) as {
+      events: PrpEvent[];
+      cursor: number;
+      replay: boolean;
+    };
     expect(replay.replay).toBe(true);
     expect(replay.events.length).toBeGreaterThanOrEqual(5);
-    expect(replay.events.every((event, index) => event.sourceSeq === index + 1)).toBe(true);
+    expect(
+      replay.events.every((event, index) => event.sourceSeq === index + 1),
+    ).toBe(true);
     expect(JSON.stringify(replay)).not.toContain("/srv/taskcore/home");
     expect(JSON.stringify(replay)).toContain("<server-path>");
     expectOpaqueCredentialsRedacted(JSON.stringify(replay));
@@ -674,17 +785,23 @@ describe("Live console package-local demo server", () => {
     expect(streamReplay).toContain('"tokenBudget":4096');
     expect(streamReplay).toContain('"tokensUsed":128');
 
-    const otherSession = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
-      objective: "Keep request scope separate.",
-      startTurn: false,
-    }).then((response) => response.json()) as { sessionId: string };
+    const otherSession = (await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      {
+        objective: "Keep request scope separate.",
+        startTurn: false,
+      },
+    ).then((response) => response.json())) as { sessionId: string };
     const wrongSession = await jsonBrowserRequest(
       url,
       `/api/liveConsole/sessions/${otherSession.sessionId}/requests/request-demo/resolve`,
       { turnId: "turn-demo", resolution: { action: "accept_for_session" } },
     );
     expect(wrongSession.status).toBe(409);
-    await expect(wrongSession.json()).resolves.toMatchObject({ error: "runtime_request_not_pending" });
+    await expect(wrongSession.json()).resolves.toMatchObject({
+      error: "runtime_request_not_pending",
+    });
 
     const wrongTurn = await jsonBrowserRequest(
       url,
@@ -695,16 +812,18 @@ describe("Live console package-local demo server", () => {
       },
     );
     expect(wrongTurn.status).toBe(409);
-    await expect(wrongTurn.json()).resolves.toMatchObject({ error: "runtime_request_scope_mismatch" });
+    await expect(wrongTurn.json()).resolves.toMatchObject({
+      error: "runtime_request_scope_mismatch",
+    });
 
-    const resolved = await jsonBrowserRequest(
+    const resolved = (await jsonBrowserRequest(
       url,
       `/api/liveConsole/sessions/${sessionId}/requests/request-demo/resolve`,
       {
-          turnId: "turn-demo",
-          resolution: { action: "accept_for_session" },
+        turnId: "turn-demo",
+        resolution: { action: "accept_for_session" },
       },
-    ).then((response) => response.json()) as Record<string, unknown>;
+    ).then((response) => response.json())) as Record<string, unknown>;
     expect(resolved.pendingRequests).toEqual([]);
 
     const duplicate = await jsonBrowserRequest(
@@ -713,24 +832,26 @@ describe("Live console package-local demo server", () => {
       { turnId: "turn-demo", resolution: { action: "decline" } },
     );
     expect(duplicate.status).toBe(409);
-    await expect(duplicate.json()).resolves.toMatchObject({ error: "runtime_request_not_pending" });
+    await expect(duplicate.json()).resolves.toMatchObject({
+      error: "runtime_request_not_pending",
+    });
 
-    const withGoal = await jsonBrowserRequest(
+    const withGoal = (await jsonBrowserRequest(
       url,
       `/api/liveConsole/sessions/${sessionId}/goal/set`,
       { objective: "Keep the goal durable.", tokenBudget: 1024 },
-    ).then((response) => response.json()) as Record<string, unknown>;
+    ).then((response) => response.json())) as Record<string, unknown>;
     expect(withGoal.goal).toMatchObject({
       objective: "Keep the goal durable.",
       status: "active",
       tokenBudget: 1024,
     });
 
-    const reconnected = await jsonBrowserRequest(
+    const reconnected = (await jsonBrowserRequest(
       url,
       `/api/liveConsole/sessions/${sessionId}/reconnect`,
       {},
-    ).then((response) => response.json()) as Record<string, unknown>;
+    ).then((response) => response.json())) as Record<string, unknown>;
     expect(reconnected).toMatchObject({
       sessionId,
       runId: created.runId,
@@ -738,11 +859,15 @@ describe("Live console package-local demo server", () => {
       driverSession: created.driverSession,
       goal: withGoal.goal,
     });
-    const afterReconnect = await browserRequest(
+    const afterReconnect = (await browserRequest(
       url,
       `/api/liveConsole/sessions/${sessionId}/events?after=${replay.cursor}`,
-    ).then((response) => response.json()) as { events: PrpEvent[] };
-    expect(afterReconnect.events.some(({ eventType }) => eventType === "session.resumed")).toBe(true);
+    ).then((response) => response.json())) as { events: PrpEvent[] };
+    expect(
+      afterReconnect.events.some(
+        ({ eventType }) => eventType === "session.resumed",
+      ),
+    ).toBe(true);
   });
 
   it("redacts structured credential diagnostics and bounds browser-visible errors", async () => {
@@ -760,15 +885,19 @@ describe("Live console package-local demo server", () => {
 
     const response = await browserRequest(url, "/api/liveConsole/sessions", {
       method: "POST",
-      headers: { "connection": "close", "content-type": "application/json" },
-      body: JSON.stringify({ objective: "Exercise a structured provider error." }),
+      headers: { connection: "close", "content-type": "application/json" },
+      body: JSON.stringify({
+        objective: "Exercise a structured provider error.",
+      }),
     });
     expect(response.status).toBe(400);
-    const body = await response.json() as { error: string; message: string };
+    const body = (await response.json()) as { error: string; message: string };
     expect(body.error).toBe("invalid_request");
     expect(body.message).not.toContain(errorSecret);
     expect(body.message).toContain('"clientSecret":"[REDACTED]"');
-    expect(body.message.length).toBeLessThanOrEqual(16 * 1024 + "[TRUNCATED]".length);
+    expect(body.message.length).toBeLessThanOrEqual(
+      16 * 1024 + "[TRUNCATED]".length,
+    );
     expect(body.message).toMatch(/\[TRUNCATED\]$/);
   });
 
@@ -779,8 +908,11 @@ describe("Live console package-local demo server", () => {
     });
     servers.push(server);
     const { url } = await server.start();
-    const created = await jsonBrowserRequest(url, "/api/liveConsole/sessions", { startTurn: false })
-      .then((response) => response.json()) as { sessionId: string };
+    const created = (await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      { startTurn: false },
+    ).then((response) => response.json())) as { sessionId: string };
 
     // A same-origin EventSource GET sends Fetch Metadata but no Origin header.
     const stream = await fetch(
@@ -791,13 +923,21 @@ describe("Live console package-local demo server", () => {
     expect(stream.headers.get("content-type")).toContain("text/event-stream");
     await stream.body?.cancel();
 
-    const mutation = await fetch(`${url}/api/liveConsole/sessions/${created.sessionId}/turns`, {
-      method: "POST",
-      headers: { "sec-fetch-site": "same-origin", "content-type": "application/json" },
-      body: JSON.stringify({ text: "no origin" }),
-    });
+    const mutation = await fetch(
+      `${url}/api/liveConsole/sessions/${created.sessionId}/turns`,
+      {
+        method: "POST",
+        headers: {
+          "sec-fetch-site": "same-origin",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ text: "no origin" }),
+      },
+    );
     expect(mutation.status).toBe(403);
-    await expect(mutation.json()).resolves.toMatchObject({ error: "origin_required" });
+    await expect(mutation.json()).resolves.toMatchObject({
+      error: "origin_required",
+    });
   });
 
   it("resolves a request identity that carries reserved characters", async () => {
@@ -811,11 +951,17 @@ describe("Live console package-local demo server", () => {
     servers.push(server);
     const { url } = await server.start();
 
-    const created = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
-      objective: "Resolve a reserved-character request identity.",
-    }).then((response) => response.json()) as Record<string, unknown>;
+    const created = (await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      {
+        objective: "Resolve a reserved-character request identity.",
+      },
+    ).then((response) => response.json())) as Record<string, unknown>;
     const sessionId = String(created.sessionId);
-    expect(created.pendingRequests).toEqual([expect.objectContaining({ requestId })]);
+    expect(created.pendingRequests).toEqual([
+      expect.objectContaining({ requestId }),
+    ]);
 
     const encoded = encodeURIComponent(requestId);
     expect(encoded).not.toBe(requestId);
@@ -825,7 +971,9 @@ describe("Live console package-local demo server", () => {
       { turnId: "turn-demo", resolution: { action: "accept" } },
     );
     expect(resolved.status).toBe(200);
-    await expect(resolved.json()).resolves.toMatchObject({ pendingRequests: [] });
+    await expect(resolved.json()).resolves.toMatchObject({
+      pendingRequests: [],
+    });
 
     const malformed = await jsonBrowserRequest(
       url,
@@ -833,7 +981,9 @@ describe("Live console package-local demo server", () => {
       { turnId: "turn-demo", resolution: { action: "accept" } },
     );
     expect(malformed.status).toBe(400);
-    await expect(malformed.json()).resolves.toMatchObject({ error: "invalid_path_encoding" });
+    await expect(malformed.json()).resolves.toMatchObject({
+      error: "invalid_path_encoding",
+    });
   });
 
   it("fails closed on a submit body that does not match the request kind", async () => {
@@ -844,26 +994,38 @@ describe("Live console package-local demo server", () => {
     servers.push(server);
     const { url } = await server.start();
 
-    const created = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
-      objective: "Answer an elicitation.",
-    }).then((response) => response.json()) as Record<string, unknown>;
+    const created = (await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      {
+        objective: "Answer an elicitation.",
+      },
+    ).then((response) => response.json())) as Record<string, unknown>;
     const sessionId = String(created.sessionId);
     const resolve = `/api/liveConsole/sessions/${sessionId}/requests/request-elicit/resolve`;
 
     for (const resolution of [
       { action: "submit" },
       { action: "submit", content: {} },
-      { action: "submit", answers: { answer: { answers: ["user-input shape"] } } },
+      {
+        action: "submit",
+        answers: { answer: { answers: ["user-input shape"] } },
+      },
       { action: "accept_for_session" },
     ]) {
-      const rejected = await jsonBrowserRequest(url, resolve, { turnId: "turn-demo", resolution });
+      const rejected = await jsonBrowserRequest(url, resolve, {
+        turnId: "turn-demo",
+        resolution,
+      });
       expect(rejected.status).toBe(422);
       await expect(rejected.json()).resolves.toMatchObject({
         error: "invalid_runtime_request_resolution",
       });
       // A rejected submit must never settle the request.
-      const state = await browserRequest(url, `/api/liveConsole/sessions/${sessionId}`)
-        .then((response) => response.json()) as Record<string, unknown>;
+      const state = (await browserRequest(
+        url,
+        `/api/liveConsole/sessions/${sessionId}`,
+      ).then((response) => response.json())) as Record<string, unknown>;
       expect(state.pendingRequests).toEqual([
         expect.objectContaining({ requestId: "request-elicit" }),
       ]);
@@ -874,7 +1036,9 @@ describe("Live console package-local demo server", () => {
       resolution: { action: "submit", content: { answer: "green" } },
     });
     expect(accepted.status).toBe(200);
-    await expect(accepted.json()).resolves.toMatchObject({ pendingRequests: [] });
+    await expect(accepted.json()).resolves.toMatchObject({
+      pendingRequests: [],
+    });
   });
 
   it("appends exactly one terminal fact per request across a reconnect", async () => {
@@ -885,9 +1049,13 @@ describe("Live console package-local demo server", () => {
     servers.push(server);
     const { url } = await server.start();
 
-    const created = await jsonBrowserRequest(url, "/api/liveConsole/sessions", {
-      objective: "Reconnect while a request is still pending.",
-    }).then((response) => response.json()) as Record<string, unknown>;
+    const created = (await jsonBrowserRequest(
+      url,
+      "/api/liveConsole/sessions",
+      {
+        objective: "Reconnect while a request is still pending.",
+      },
+    ).then((response) => response.json())) as Record<string, unknown>;
     const sessionId = String(created.sessionId);
     expect(created.pendingRequests).toEqual([
       expect.objectContaining({ requestId: "request-demo" }),
@@ -900,10 +1068,15 @@ describe("Live console package-local demo server", () => {
     );
     expect(reconnected.status).toBe(200);
 
-    const { events } = await browserRequest(url, `/api/liveConsole/sessions/${sessionId}/events?after=0`)
-      .then((response) => response.json()) as { events: PrpEvent[] };
-    const terminal = events.filter(({ eventType }) =>
-      eventType.startsWith("runtime_request.") && eventType !== "runtime_request.created");
+    const { events } = (await browserRequest(
+      url,
+      `/api/liveConsole/sessions/${sessionId}/events?after=0`,
+    ).then((response) => response.json())) as { events: PrpEvent[] };
+    const terminal = events.filter(
+      ({ eventType }) =>
+        eventType.startsWith("runtime_request.") &&
+        eventType !== "runtime_request.created",
+    );
     expect(terminal).toEqual([
       expect.objectContaining({
         eventType: "runtime_request.cancelled",
@@ -922,6 +1095,8 @@ describe("Live console package-local demo server", () => {
     expect(events.map(({ sourceSeq }) => sourceSeq)).toEqual(
       events.map((_, index) => index + 1),
     );
-    expect(events.some(({ eventType }) => eventType === "session.resumed")).toBe(true);
+    expect(
+      events.some(({ eventType }) => eventType === "session.resumed"),
+    ).toBe(true);
   });
 });

@@ -27,7 +27,8 @@ export type TaskcoreRunnerEvalCompatibilityIssueCode =
 
 export interface TaskcoreRunnerEvalCompatibilityIssue {
   code: TaskcoreRunnerEvalCompatibilityIssueCode;
-  component: "package" | "binary" | "nativeExecution" | "prp" | "catalog" | "driver";
+  component:
+    "package" | "binary" | "nativeExecution" | "prp" | "catalog" | "driver";
   expected: string;
   received: string;
   message: string;
@@ -71,7 +72,9 @@ export class TaskcoreRunnerEvalCompatibilityError extends Error {
         .join("; ")}`,
     );
     this.name = "TaskcoreRunnerEvalCompatibilityError";
-    this.issues = Object.freeze(issues.map((issue) => Object.freeze({ ...issue })));
+    this.issues = Object.freeze(
+      issues.map((issue) => Object.freeze({ ...issue })),
+    );
   }
 }
 
@@ -119,7 +122,10 @@ export function assertTaskcoreRunnerEvalCompatibility(
       `runnerd was built for package ${requirement.runnerd.packageVersion}, not ${expected.package.version}`,
     );
   }
-  if (requirement.runnerd.binaryContractVersion !== expected.contracts.runnerdArtifact) {
+  if (
+    requirement.runnerd.binaryContractVersion !==
+    expected.contracts.runnerdArtifact
+  ) {
     issue(
       "binary_contract_version_mismatch",
       "binary",
@@ -129,8 +135,9 @@ export function assertTaskcoreRunnerEvalCompatibility(
     );
   }
   if (
-    requirement.nativeExecutionVersion !== expected.contracts.nativeExecution
-    || requirement.runnerd.nativeExecutionVersion !== expected.contracts.nativeExecution
+    requirement.nativeExecutionVersion !== expected.contracts.nativeExecution ||
+    requirement.runnerd.nativeExecutionVersion !==
+      expected.contracts.nativeExecution
   ) {
     issue(
       "native_execution_version_mismatch",
@@ -152,17 +159,21 @@ export function assertTaskcoreRunnerEvalCompatibility(
   }
   const packageAndConsumerPrp = negotiateProtocolVersion(
     { min: expected.prp.minimumVersion, max: expected.prp.maximumVersion },
-    { min: requirement.prp.minimumVersion, max: requirement.prp.maximumVersion },
+    {
+      min: requirement.prp.minimumVersion,
+      max: requirement.prp.maximumVersion,
+    },
   );
-  const negotiatedPrpVersion = packageAndConsumerPrp === null
-    ? null
-    : negotiateProtocolVersion(
-        { min: packageAndConsumerPrp, max: packageAndConsumerPrp },
-        {
-          min: requirement.runnerd.prp.minimumVersion,
-          max: requirement.runnerd.prp.maximumVersion,
-        },
-      );
+  const negotiatedPrpVersion =
+    packageAndConsumerPrp === null
+      ? null
+      : negotiateProtocolVersion(
+          { min: packageAndConsumerPrp, max: packageAndConsumerPrp },
+          {
+            min: requirement.runnerd.prp.minimumVersion,
+            max: requirement.runnerd.prp.maximumVersion,
+          },
+        );
   if (negotiatedPrpVersion === null) {
     issue(
       "prp_version_no_overlap",
@@ -192,8 +203,9 @@ export function assertTaskcoreRunnerEvalCompatibility(
     );
   }
   if (
-    requirement.driver.contractVersion !== expected.contracts.harnessDriver
-    || requirement.runnerd.harnessDriverVersion !== expected.contracts.harnessDriver
+    requirement.driver.contractVersion !== expected.contracts.harnessDriver ||
+    requirement.runnerd.harnessDriverVersion !==
+      expected.contracts.harnessDriver
   ) {
     issue(
       "driver_contract_version_mismatch",
@@ -204,8 +216,9 @@ export function assertTaskcoreRunnerEvalCompatibility(
     );
   }
   if (
-    negotiatedPrpVersion !== null
-    && requirement.driver.descriptor.protocolVersion !== `prp.v${negotiatedPrpVersion}`
+    negotiatedPrpVersion !== null &&
+    requirement.driver.descriptor.protocolVersion !==
+      `prp.v${negotiatedPrpVersion}`
   ) {
     issue(
       "driver_protocol_version_mismatch",
@@ -215,7 +228,9 @@ export function assertTaskcoreRunnerEvalCompatibility(
       `driver ${requirement.driver.descriptor.kind}@${requirement.driver.descriptor.version} does not speak the negotiated PRP version`,
     );
   }
-  for (const capability of [...new Set(requirement.driver.requiredCapabilities)].sort()) {
+  for (const capability of [
+    ...new Set(requirement.driver.requiredCapabilities),
+  ].sort()) {
     if (requirement.driver.descriptor.capabilities[capability] !== true) {
       issue(
         "driver_capability_unsupported",
@@ -228,7 +243,10 @@ export function assertTaskcoreRunnerEvalCompatibility(
   }
 
   if (issues.length > 0) {
-    throw new TaskcoreRunnerEvalCompatibilityError(requirement.consumer, issues);
+    throw new TaskcoreRunnerEvalCompatibilityError(
+      requirement.consumer,
+      issues,
+    );
   }
 
   return {

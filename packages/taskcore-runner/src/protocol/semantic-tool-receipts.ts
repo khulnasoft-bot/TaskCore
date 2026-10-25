@@ -16,12 +16,7 @@ export type PrpSemanticAuthorizationBoundary =
   | "revision";
 
 export type PrpSemanticToolOutcome =
-  | "succeeded"
-  | "denied"
-  | "conflict"
-  | "duplicate"
-  | "unavailable"
-  | "failed";
+  "succeeded" | "denied" | "conflict" | "duplicate" | "unavailable" | "failed";
 
 export interface PrpSemanticCorrelation {
   runId: string;
@@ -116,7 +111,8 @@ function createPrpSemanticToolTerminalEnvelope(
   input: CreatePrpSemanticToolResultInput,
   phase: "result" | "reconciled",
 ): PrpSemanticToolEnvelope {
-  const operationReceiptId = input.operationReceiptId ?? derivedReceiptId(input);
+  const operationReceiptId =
+    input.operationReceiptId ?? derivedReceiptId(input);
   return {
     schema: "taskcore.prp.semantic_tool.v1",
     schemaVersion: 1,
@@ -131,14 +127,22 @@ function createPrpSemanticToolTerminalEnvelope(
     retryable: input.retryable,
     authorizationBoundary: input.authorizationBoundary,
     operationReceiptId,
-    ...(input.auditReceiptId === undefined ? {} : { auditReceiptId: input.auditReceiptId }),
-    ...(input.currentRevision === undefined ? {} : { currentRevision: input.currentRevision }),
+    ...(input.auditReceiptId === undefined
+      ? {}
+      : { auditReceiptId: input.auditReceiptId }),
+    ...(input.currentRevision === undefined
+      ? {}
+      : { currentRevision: input.currentRevision }),
     ...(input.duplicateOfReceiptId === undefined
       ? {}
       : { duplicateOfReceiptId: input.duplicateOfReceiptId }),
-    ...(input.artifactRefs === undefined ? {} : { artifactRefs: [...input.artifactRefs] }),
+    ...(input.artifactRefs === undefined
+      ? {}
+      : { artifactRefs: [...input.artifactRefs] }),
     ...(input.targets === undefined ? {} : { targets: [...input.targets] }),
-    ...(input.causalRefs === undefined ? {} : { causalRefs: [...input.causalRefs] }),
+    ...(input.causalRefs === undefined
+      ? {}
+      : { causalRefs: [...input.causalRefs] }),
   } as PrpSemanticToolEnvelope;
 }
 
@@ -148,7 +152,12 @@ export function createPrpBudgetStopReason(input: {
   code: string;
   retryable: boolean;
   decisionId: string;
-  limitClass: "company_monthly" | "actor_monthly" | "project_monthly" | "run_cost" | "provider_quota";
+  limitClass:
+    | "company_monthly"
+    | "actor_monthly"
+    | "project_monthly"
+    | "run_cost"
+    | "provider_quota";
   aggregate: {
     unit: "cents" | "usd_micros" | "tokens";
     observed: number;
@@ -182,10 +191,11 @@ export function prpSemanticToolResultReceipts(
     const payload = asRecord(event.payload);
     const envelope = asRecord(payload?.semantic_tool);
     if (
-      envelope?.schema !== "taskcore.prp.semantic_tool.v1"
-      || envelope.schemaVersion !== 1
-      || envelope.phase !== "result"
-    ) return [];
+      envelope?.schema !== "taskcore.prp.semantic_tool.v1" ||
+      envelope.schemaVersion !== 1 ||
+      envelope.phase !== "result"
+    )
+      return [];
     return [structuredClone(envelope) as PrpSemanticToolEnvelope];
   });
 }
@@ -196,9 +206,14 @@ export function semanticAuthorizationBoundaryForCode(
   if (code.includes("company")) return "company";
   if (code.includes("actor") || code.includes("role")) return "actor";
   if (code.includes("claim") || code.includes("exposed")) return "grant";
-  if (code.includes("revision") || code.includes("idempotency_conflict")) return "revision";
+  if (code.includes("revision") || code.includes("idempotency_conflict"))
+    return "revision";
   if (code.includes("lock") || code.includes("ownership")) return "lock";
-  if (code.includes("approval") || code.includes("interaction") || code.includes("governed")) {
+  if (
+    code.includes("approval") ||
+    code.includes("interaction") ||
+    code.includes("governed")
+  ) {
     return "governed_action";
   }
   return "active_task";
@@ -209,9 +224,12 @@ export function semanticOutcomeForCode(input: {
   code: string;
   disposition?: unknown;
 }): PrpSemanticToolOutcome {
-  if (input.ok) return input.disposition === "duplicate" ? "duplicate" : "succeeded";
-  if (input.code.includes("conflict") || input.code.includes("revision")) return "conflict";
-  if (input.code.includes("unavailable") || input.code.includes("not_exposed")) return "unavailable";
+  if (input.ok)
+    return input.disposition === "duplicate" ? "duplicate" : "succeeded";
+  if (input.code.includes("conflict") || input.code.includes("revision"))
+    return "conflict";
+  if (input.code.includes("unavailable") || input.code.includes("not_exposed"))
+    return "unavailable";
   return "denied";
 }
 
@@ -228,15 +246,16 @@ function safeContent(input: SemanticEnvelopeBaseInput) {
 }
 
 function derivedReceiptId(input: CreatePrpSemanticToolResultInput): string {
-  const identity = input.idempotencyKey === undefined || input.idempotencyKey === null
-    ? `${input.correlation.runId}:${input.operationId}:${input.callId}`
-    : `${input.correlation.runId}:${input.operationId}:${input.idempotencyKey}`;
+  const identity =
+    input.idempotencyKey === undefined || input.idempotencyKey === null
+      ? `${input.correlation.runId}:${input.operationId}:${input.callId}`
+      : `${input.correlation.runId}:${input.operationId}:${input.idempotencyKey}`;
   return `semantic_receipt:${createHash("sha256").update(identity).digest("hex").slice(0, 32)}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 

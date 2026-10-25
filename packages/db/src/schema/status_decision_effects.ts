@@ -16,7 +16,9 @@ export const statusDecisionEffects = pgTable(
   "status_decision_effects",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
     issueId: uuid("issue_id").notNull(),
     decisionId: uuid("decision_id").notNull(),
     ordinal: integer("ordinal").notNull(),
@@ -30,8 +32,12 @@ export const statusDecisionEffects = pgTable(
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
     lastError: text("last_error"),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     issueCompanyFk: foreignKey({
@@ -41,16 +47,18 @@ export const statusDecisionEffects = pgTable(
     }),
     decisionOwnerFk: foreignKey({
       columns: [table.companyId, table.issueId, table.decisionId],
-      foreignColumns: [statusDecisions.companyId, statusDecisions.issueId, statusDecisions.id],
+      foreignColumns: [
+        statusDecisions.companyId,
+        statusDecisions.issueId,
+        statusDecisions.id,
+      ],
       name: "status_decision_effects_decision_owner_fk",
     }),
-    decisionOrdinalUq: uniqueIndex("status_decision_effects_decision_ordinal_uq").on(
-      table.decisionId,
-      table.ordinal,
-    ),
-    idempotencyUq: uniqueIndex("status_decision_effects_company_idempotency_uq").on(
-      table.companyId,
-      table.idempotencyKey,
-    ),
+    decisionOrdinalUq: uniqueIndex(
+      "status_decision_effects_decision_ordinal_uq",
+    ).on(table.decisionId, table.ordinal),
+    idempotencyUq: uniqueIndex(
+      "status_decision_effects_company_idempotency_uq",
+    ).on(table.companyId, table.idempotencyKey),
   }),
 );

@@ -41,7 +41,10 @@ try {
         const url = `${BASE}?id=${PREFIX}--${story.id}&viewMode=story&globals=theme:${theme}`;
         await page.goto(url, { waitUntil: "networkidle" });
         await page.waitForTimeout(800);
-        const out = path.join(OUT_DIR, `${story.label}_${vp.name}_${theme}.png`);
+        const out = path.join(
+          OUT_DIR,
+          `${story.label}_${vp.name}_${theme}.png`,
+        );
         await page.screenshot({ path: out, fullPage: true });
         console.log(`Wrote ${out}`);
       }

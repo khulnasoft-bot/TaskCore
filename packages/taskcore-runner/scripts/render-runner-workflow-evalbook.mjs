@@ -268,11 +268,7 @@ export async function resolveCanonicalEvalProgram(packageRoot, environment) {
     environment.TASKCORE_EVALBOOK_PROGRAM,
     fromRoot,
     resolve(packageRoot, "../../.taskcore-evals", EVAL_PROGRAM_RELATIVE_PATH),
-    resolve(
-      packageRoot,
-      "../../../taskcore-evals",
-      EVAL_PROGRAM_RELATIVE_PATH,
-    ),
+    resolve(packageRoot, "../../../taskcore-evals", EVAL_PROGRAM_RELATIVE_PATH),
     resolve(
       packageRoot,
       "../../../../taskcore-evals",

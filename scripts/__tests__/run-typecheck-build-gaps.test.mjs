@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-const script = new URL("../run-typecheck-build-gaps.mjs", import.meta.url).pathname;
+const script = new URL("../run-typecheck-build-gaps.mjs", import.meta.url)
+  .pathname;
 
 function createFixtureRepo() {
   return mkdtempSync(path.join(tmpdir(), "run-typecheck-build-gaps-test-"));
@@ -36,7 +37,10 @@ test("passes when all source runtime assets are present in dist", () => {
     const result = runRuntimeAssetGuard(root);
 
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /server runtime assets present in dist: 2 file\(s\)/);
+    assert.match(
+      result.stdout,
+      /server runtime assets present in dist: 2 file\(s\)/,
+    );
     assert.equal(result.stderr, "");
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -52,8 +56,14 @@ test("fails with the missing source asset and expected dist path", () => {
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Missing server runtime asset\(s\) in dist/);
-    assert.match(result.stderr, /source: server\/src\/built-ins\/agents\/default\.md/);
-    assert.match(result.stderr, /expected dist: server\/dist\/built-ins\/agents\/default\.md/);
+    assert.match(
+      result.stderr,
+      /source: server\/src\/built-ins\/agents\/default\.md/,
+    );
+    assert.match(
+      result.stderr,
+      /expected dist: server\/dist\/built-ins\/agents\/default\.md/,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

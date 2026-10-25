@@ -1,11 +1,26 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { chmod, lstat, mkdir, mkdtemp, open, realpath, rm, writeFile, type FileHandle } from "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  open,
+  realpath,
+  rm,
+  writeFile,
+  type FileHandle,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { AcpxPrivateSnapshot } from "./private-snapshot.js";
 
-export interface NativeAcpxDistributionEntry { path: string; sha256: string; size: number; executable: boolean }
+export interface NativeAcpxDistributionEntry {
+  path: string;
+  sha256: string;
+  size: number;
+  executable: boolean;
+}
 export interface NativeAcpxDistributionInput {
   distributionRoot: string;
   manifestPath: string;
@@ -33,93 +48,233 @@ const NATIVE_COPY_BUFFER_BYTES = 32 * 1024 * 1024;
 const BOOTSTRAP = ".taskcore-native-entry.cjs";
 const GUARD = ".taskcore-native-module-guard.cjs";
 export const NATIVE_ACPX_BOOTSTRAP_NAME = BOOTSTRAP;
-const sha256 = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
-const validPath = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 4_096 && !isAbsolute(value) && !/[\u0000-\u001f\u007f\\]/.test(value) && value.split("/").every(part => part.length > 0 && part !== "." && part !== "..");
+const sha256 = (value: string | Buffer) =>
+  createHash("sha256").update(value).digest("hex");
+const validPath = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.length > 0 &&
+  value.length <= 4_096 &&
+  !isAbsolute(value) &&
+  !/[\u0000-\u001f\u007f\\]/.test(value) &&
+  value
+    .split("/")
+    .every((part) => part.length > 0 && part !== "." && part !== "..");
 
 /** Parse a closed, canonical execution inventory before opening any file in it. */
-export function parseNativeAcpxDistributionEntries(value: unknown, expectedSha256: string): NativeAcpxDistributionEntry[] {
-  if (!/^[a-f0-9]{64}$/.test(expectedSha256)) throw new Error("Native ACPX closure pin is invalid");
-  const entries = value !== null && typeof value === "object" ? (value as { entries?: unknown }).entries : undefined;
-  if (!Array.isArray(entries) || entries.length === 0 || entries.length > 30_000) throw new Error("Native ACPX closure inventory is invalid");
+export function parseNativeAcpxDistributionEntries(
+  value: unknown,
+  expectedSha256: string,
+): NativeAcpxDistributionEntry[] {
+  if (!/^[a-f0-9]{64}$/.test(expectedSha256))
+    throw new Error("Native ACPX closure pin is invalid");
+  const entries =
+    value !== null && typeof value === "object"
+      ? (value as { entries?: unknown }).entries
+      : undefined;
+  if (
+    !Array.isArray(entries) ||
+    entries.length === 0 ||
+    entries.length > 30_000
+  )
+    throw new Error("Native ACPX closure inventory is invalid");
   let total = 0;
   let previous = "";
-  const parsed = entries.map(raw => {
-    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Native ACPX closure entry is invalid");
+  const parsed = entries.map((raw) => {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+      throw new Error("Native ACPX closure entry is invalid");
     const entry = raw as Record<string, unknown>;
-    if (Object.keys(entry).some(key => !["path", "sha256", "size", "executable"].includes(key)) || !validPath(entry.path) || entry.path <= previous || entry.path === BOOTSTRAP || entry.path === GUARD || entry.path === "manifest.json" || entry.path.startsWith(".taskcore-")) throw new Error("Native ACPX closure paths must be safe, unique and sorted");
-    if (typeof entry.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(entry.sha256) || !Number.isSafeInteger(entry.size) || Number(entry.size) < 0 || Number(entry.size) > MAX_NATIVE_FILE_BYTES || typeof entry.executable !== "boolean") throw new Error("Native ACPX closure file metadata is invalid");
+    if (
+      Object.keys(entry).some(
+        (key) => !["path", "sha256", "size", "executable"].includes(key),
+      ) ||
+      !validPath(entry.path) ||
+      entry.path <= previous ||
+      entry.path === BOOTSTRAP ||
+      entry.path === GUARD ||
+      entry.path === "manifest.json" ||
+      entry.path.startsWith(".taskcore-")
+    )
+      throw new Error(
+        "Native ACPX closure paths must be safe, unique and sorted",
+      );
+    if (
+      typeof entry.sha256 !== "string" ||
+      !/^[a-f0-9]{64}$/.test(entry.sha256) ||
+      !Number.isSafeInteger(entry.size) ||
+      Number(entry.size) < 0 ||
+      Number(entry.size) > MAX_NATIVE_FILE_BYTES ||
+      typeof entry.executable !== "boolean"
+    )
+      throw new Error("Native ACPX closure file metadata is invalid");
     previous = entry.path;
     total += Number(entry.size);
-    if (total > MAX_NATIVE_TREE_BYTES) throw new Error("Native ACPX closure exceeds its byte bound");
-    return { path: entry.path, sha256: entry.sha256, size: Number(entry.size), executable: entry.executable };
+    if (total > MAX_NATIVE_TREE_BYTES)
+      throw new Error("Native ACPX closure exceeds its byte bound");
+    return {
+      path: entry.path,
+      sha256: entry.sha256,
+      size: Number(entry.size),
+      executable: entry.executable,
+    };
   });
-  if (sha256(JSON.stringify(parsed)) !== expectedSha256) throw new Error("Native ACPX closure manifest digest mismatch");
+  if (sha256(JSON.stringify(parsed)) !== expectedSha256)
+    throw new Error("Native ACPX closure manifest digest mismatch");
   return parsed;
 }
 
-export async function readNativeAcpxDistributionEntries(input: NativeAcpxDistributionInput): Promise<NativeAcpxDistributionEntry[]> {
-  if (!validPath(input.executable) || (input.entrypoint !== undefined && !validPath(input.entrypoint)) || input.fixedArguments.length > 128 || input.fixedArguments.some(arg => typeof arg !== "string" || arg.length > 16_384 || arg.includes("\0")) || (input.isolatedCacheEnvironmentName !== undefined && input.isolatedCacheEnvironmentName !== "COPILOT_PKG_CACHE_HOME")) throw new Error("Native ACPX launch declaration is invalid");
-  const file = await open(input.manifestPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+export async function readNativeAcpxDistributionEntries(
+  input: NativeAcpxDistributionInput,
+): Promise<NativeAcpxDistributionEntry[]> {
+  if (
+    !validPath(input.executable) ||
+    (input.entrypoint !== undefined && !validPath(input.entrypoint)) ||
+    input.fixedArguments.length > 128 ||
+    input.fixedArguments.some(
+      (arg) =>
+        typeof arg !== "string" || arg.length > 16_384 || arg.includes("\0"),
+    ) ||
+    (input.isolatedCacheEnvironmentName !== undefined &&
+      input.isolatedCacheEnvironmentName !== "COPILOT_PKG_CACHE_HOME")
+  )
+    throw new Error("Native ACPX launch declaration is invalid");
+  const file = await open(
+    input.manifestPath,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
   try {
     const before = await file.stat({ bigint: true });
-    if (!before.isFile() || before.size < 1n || before.size > BigInt(MAX_NATIVE_MANIFEST_BYTES)) throw new Error("Native ACPX manifest must be a bounded regular file");
+    if (
+      !before.isFile() ||
+      before.size < 1n ||
+      before.size > BigInt(MAX_NATIVE_MANIFEST_BYTES)
+    )
+      throw new Error("Native ACPX manifest must be a bounded regular file");
     const bytes = await file.readFile();
-    if (!same(before, await file.stat({ bigint: true })) || bytes.length !== Number(before.size)) throw new Error("Native ACPX manifest changed while read");
-    const entries = parseNativeAcpxDistributionEntries(JSON.parse(bytes.toString("utf8")), input.expectedClosureSha256);
-    if (!entries.some(entry => entry.path === input.executable && entry.executable && entry.size > 0) || (input.entrypoint !== undefined && !entries.some(entry => entry.path === input.entrypoint && entry.size > 0))) throw new Error("Native ACPX executable or entrypoint is absent from its closure");
+    if (
+      !same(before, await file.stat({ bigint: true })) ||
+      bytes.length !== Number(before.size)
+    )
+      throw new Error("Native ACPX manifest changed while read");
+    const entries = parseNativeAcpxDistributionEntries(
+      JSON.parse(bytes.toString("utf8")),
+      input.expectedClosureSha256,
+    );
+    if (
+      !entries.some(
+        (entry) =>
+          entry.path === input.executable && entry.executable && entry.size > 0,
+      ) ||
+      (input.entrypoint !== undefined &&
+        !entries.some(
+          (entry) => entry.path === input.entrypoint && entry.size > 0,
+        ))
+    )
+      throw new Error(
+        "Native ACPX executable or entrypoint is absent from its closure",
+      );
     return entries;
-  } finally { await file.close(); }
+  } finally {
+    await file.close();
+  }
 }
 
 /**
  * Freeze only manifest-admitted bytes. Native trees deliberately have a separate
  * bound; the tighter JavaScript/npm snapshot limits remain unchanged.
  */
-export async function createNativeAcpxDistributionSnapshot(input: NativeAcpxDistributionInput, entries: NativeAcpxDistributionEntry[]): Promise<NativeAcpxDistributionSnapshot> {
+export async function createNativeAcpxDistributionSnapshot(
+  input: NativeAcpxDistributionInput,
+  entries: NativeAcpxDistributionEntry[],
+): Promise<NativeAcpxDistributionSnapshot> {
   // Callers cannot substitute entries between manifest validation and copying.
-  entries = parseNativeAcpxDistributionEntries({ entries }, input.expectedClosureSha256);
-  if (process.platform !== "linux" && process.platform !== "darwin") throw new Error("Native ACPX snapshots require Linux or macOS");
+  entries = parseNativeAcpxDistributionEntries(
+    { entries },
+    input.expectedClosureSha256,
+  );
+  if (process.platform !== "linux" && process.platform !== "darwin")
+    throw new Error("Native ACPX snapshots require Linux or macOS");
   const source = await realpath(input.distributionRoot);
   const rootBefore = await lstat(source, { bigint: true });
-  if (!rootBefore.isDirectory() || rootBefore.isSymbolicLink()) throw new Error("Native ACPX distribution must be a directory");
-  const heldRoot = await open(source, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_DIRECTORY);
-  const privateRoot = await realpath(await mkdtemp(join(tmpdir(), "taskcore-acpx-native-")));
+  if (!rootBefore.isDirectory() || rootBefore.isSymbolicLink())
+    throw new Error("Native ACPX distribution must be a directory");
+  const heldRoot = await open(
+    source,
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_DIRECTORY,
+  );
+  const privateRoot = await realpath(
+    await mkdtemp(join(tmpdir(), "taskcore-acpx-native-")),
+  );
   const packageRoot = join(privateRoot, "distribution");
   const cacheRoot = join(privateRoot, "state");
   const directories = new Set([privateRoot, packageRoot]);
   const digests: Record<string, string> = {};
   const close = async () => {
-    for (const path of directories) await chmod(path, 0o700).catch(() => undefined);
+    for (const path of directories)
+      await chmod(path, 0o700).catch(() => undefined);
     await rm(privateRoot, { recursive: true, force: true });
   };
   let commandDirectory: FileHandle | undefined;
   try {
-    if (!same(rootBefore, await heldRoot.stat({ bigint: true }))) throw new Error("Native ACPX distribution root changed before snapshot");
+    if (!same(rootBefore, await heldRoot.stat({ bigint: true })))
+      throw new Error("Native ACPX distribution root changed before snapshot");
     await mkdir(packageRoot, { mode: 0o700 });
-    if (input.isolatedCacheEnvironmentName) await mkdir(cacheRoot, { mode: 0o700 });
-    const copyEntry = async (entry: NativeAcpxDistributionEntry): Promise<void> => {
+    if (input.isolatedCacheEnvironmentName)
+      await mkdir(cacheRoot, { mode: 0o700 });
+    const copyEntry = async (
+      entry: NativeAcpxDistributionEntry,
+    ): Promise<void> => {
       const path = join(source, ...entry.path.split("/"));
-      if (await realpath(path) !== path) throw new Error("Native ACPX closure contains a symbolic link");
+      if ((await realpath(path)) !== path)
+        throw new Error("Native ACPX closure contains a symbolic link");
       const before = await lstat(path, { bigint: true });
-      if (!before.isFile() || before.nlink !== 1n || before.size !== BigInt(entry.size) || Boolean(before.mode & 0o111n) !== entry.executable) throw new Error("Native ACPX closure file identity is invalid");
+      if (
+        !before.isFile() ||
+        before.nlink !== 1n ||
+        before.size !== BigInt(entry.size) ||
+        Boolean(before.mode & 0o111n) !== entry.executable
+      )
+        throw new Error("Native ACPX closure file identity is invalid");
       const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
       try {
-        if (!same(before, await file.stat({ bigint: true }))) throw new Error("Native ACPX closure file changed before read");
+        if (!same(before, await file.stat({ bigint: true })))
+          throw new Error("Native ACPX closure file changed before read");
         const bytes = Buffer.alloc(entry.size);
         let offset = 0;
         while (offset < bytes.length) {
-          const read = await file.read(bytes, offset, bytes.length - offset, offset);
-          if (read.bytesRead === 0) throw new Error("Native ACPX closure file ended during snapshot");
+          const read = await file.read(
+            bytes,
+            offset,
+            bytes.length - offset,
+            offset,
+          );
+          if (read.bytesRead === 0)
+            throw new Error("Native ACPX closure file ended during snapshot");
           offset += read.bytesRead;
         }
-        if (!same(before, await file.stat({ bigint: true })) || !same(before, await lstat(path, { bigint: true })) || await realpath(path) !== path) throw new Error("Native ACPX closure file changed while read");
-        if (sha256(bytes) !== entry.sha256) throw new Error(`Native ACPX closure file digest mismatch: ${entry.path}`);
+        if (
+          !same(before, await file.stat({ bigint: true })) ||
+          !same(before, await lstat(path, { bigint: true })) ||
+          (await realpath(path)) !== path
+        )
+          throw new Error("Native ACPX closure file changed while read");
+        if (sha256(bytes) !== entry.sha256)
+          throw new Error(
+            `Native ACPX closure file digest mismatch: ${entry.path}`,
+          );
         const target = join(packageRoot, ...entry.path.split("/"));
         await mkdir(dirname(target), { recursive: true, mode: 0o700 });
         let directory = dirname(target);
-        while (directory !== privateRoot) { directories.add(directory); directory = dirname(directory); }
-        await writeFile(target, bytes, { mode: entry.executable ? 0o500 : 0o400, flag: "wx" });
-      } finally { await file.close(); }
+        while (directory !== privateRoot) {
+          directories.add(directory);
+          directory = dirname(directory);
+        }
+        await writeFile(target, bytes, {
+          mode: entry.executable ? 0o500 : 0o400,
+          flag: "wx",
+        });
+      } finally {
+        await file.close();
+      }
     };
     for (let start = 0; start < entries.length;) {
       let end = start;
@@ -137,44 +292,99 @@ export async function createNativeAcpxDistributionSnapshot(input: NativeAcpxDist
       const failure = copied.find((result) => result.status === "rejected");
       if (failure?.status === "rejected") throw failure.reason;
       // Worker completion order must not change the module guard or manifest.
-      for (const entry of batch) digests[join(packageRoot, ...entry.path.split("/"))] = entry.sha256;
+      for (const entry of batch)
+        digests[join(packageRoot, ...entry.path.split("/"))] = entry.sha256;
       start = end;
     }
-    if (!same(rootBefore, await heldRoot.stat({ bigint: true })) || !same(rootBefore, await lstat(source, { bigint: true }))) throw new Error("Native ACPX distribution root changed during snapshot");
+    if (
+      !same(rootBefore, await heldRoot.stat({ bigint: true })) ||
+      !same(rootBefore, await lstat(source, { bigint: true }))
+    )
+      throw new Error("Native ACPX distribution root changed during snapshot");
     const executable = join(packageRoot, ...input.executable.split("/"));
-    const args = [...(input.entrypoint === undefined ? [] : ["--require", join(packageRoot, GUARD), join(packageRoot, ...input.entrypoint.split("/"))]), ...input.fixedArguments];
+    const args = [
+      ...(input.entrypoint === undefined
+        ? []
+        : [
+            "--require",
+            join(packageRoot, GUARD),
+            join(packageRoot, ...input.entrypoint.split("/")),
+          ]),
+      ...input.fixedArguments,
+    ];
     if (input.entrypoint !== undefined) {
       const guard = Buffer.from(nativeModuleGuard(digests));
-      await writeFile(join(packageRoot, GUARD), guard, { mode: 0o400, flag: "wx" });
+      await writeFile(join(packageRoot, GUARD), guard, {
+        mode: 0o400,
+        flag: "wx",
+      });
       digests[join(packageRoot, GUARD)] = sha256(guard);
     }
-    const bootstrap = Buffer.from(nativeBootstrap(executable, digests[executable]!, args, input.isolatedCacheEnvironmentName ? { name: input.isolatedCacheEnvironmentName, value: cacheRoot } : undefined));
-    await writeFile(join(packageRoot, BOOTSTRAP), bootstrap, { mode: 0o400, flag: "wx" });
+    const bootstrap = Buffer.from(
+      nativeBootstrap(
+        executable,
+        digests[executable]!,
+        args,
+        input.isolatedCacheEnvironmentName
+          ? { name: input.isolatedCacheEnvironmentName, value: cacheRoot }
+          : undefined,
+      ),
+    );
+    await writeFile(join(packageRoot, BOOTSTRAP), bootstrap, {
+      mode: 0o400,
+      flag: "wx",
+    });
     digests[join(packageRoot, BOOTSTRAP)] = sha256(bootstrap);
     // executable is null: commandLease's separately-qualified provider runtime
     // slot is unused; this distribution is spawned by the trusted bootstrap.
-    const manifest = Buffer.from(JSON.stringify({ roots: [packageRoot], executable: null, digests }));
+    const manifest = Buffer.from(
+      JSON.stringify({ roots: [packageRoot], executable: null, digests }),
+    );
     const manifestPath = join(privateRoot, "manifest.json");
     await writeFile(manifestPath, manifest, { mode: 0o400, flag: "wx" });
     for (const directory of directories) await chmod(directory, 0o500);
-    commandDirectory = await open(packageRoot, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_DIRECTORY);
-    return { commandDirectory, bootstrap, snapshot: { roots: [packageRoot], executable: null, digests, handoff: { path: manifestPath, digest: sha256(manifest) }, close } };
+    commandDirectory = await open(
+      packageRoot,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_DIRECTORY,
+    );
+    return {
+      commandDirectory,
+      bootstrap,
+      snapshot: {
+        roots: [packageRoot],
+        executable: null,
+        digests,
+        handoff: { path: manifestPath, digest: sha256(manifest) },
+        close,
+      },
+    };
   } catch (error) {
-    await commandDirectory?.close(); await close(); throw error;
-  } finally { await heldRoot.close(); }
+    await commandDirectory?.close();
+    await close();
+    throw error;
+  } finally {
+    await heldRoot.close();
+  }
 }
 
-function nativeBootstrap(executable: string, executableDigest: string, args: string[], cache?: { name: string; value: string }): string {
+function nativeBootstrap(
+  executable: string,
+  executableDigest: string,
+  args: string[],
+  cache?: { name: string; value: string },
+): string {
   return [
     'const {spawn}=require("node:child_process");',
     'const fs=require("node:fs");',
     // The commandLease's guarded bootstrap owns FDs 5 (guardian), 6 (exit),
     // 7/8 (credential fences). Keep them open in the native process too.
     'const guarded=process.env.TASKCORE_ACPX_NATIVE_GUARDED==="1";',
-    'const env={...process.env}; delete env.TASKCORE_ACPX_NATIVE_GUARDED; delete env.TASKCORE_ACPX_PRIVATE_SNAPSHOT; delete env.TASKCORE_VERIFIED_RUNTIME_EXECUTABLE;',
+    "const env={...process.env}; delete env.TASKCORE_ACPX_NATIVE_GUARDED; delete env.TASKCORE_ACPX_PRIVATE_SNAPSHOT; delete env.TASKCORE_VERIFIED_RUNTIME_EXECUTABLE;",
     'env.NODE_DISABLE_COMPILE_CACHE="1"; delete env.NODE_COMPILE_CACHE;',
-    ...(cache ? [`env[${JSON.stringify(cache.name)}]=${JSON.stringify(cache.value)};`] : []),
-    'if(guarded)for(const fd of [5,6,7,8])fs.fstatSync(fd);',
+    ...(cache
+      ? [`env[${JSON.stringify(cache.name)}]=${JSON.stringify(cache.value)};`]
+      : []),
+    "if(guarded)for(const fd of [5,6,7,8])fs.fstatSync(fd);",
     `const executable=${JSON.stringify(executable)};const fd=fs.openSync(executable,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);`,
     `if(require("node:crypto").createHash("sha256").update(fs.readFileSync(fd)).digest("hex")!==${JSON.stringify(executableDigest)})throw new Error("Native ACPX executable changed before spawn");`,
     'const stdio=guarded?[0,1,2,5,6,7,8]:[0,1,2]; const childExecutable=process.platform==="linux"?"/proc/self/fd/"+stdio.length:executable;stdio.push(fd);',
@@ -195,6 +405,21 @@ function nativeModuleGuard(digests: Record<string, string>): string {
   ].join("\n");
 }
 
-function same(a: { dev: bigint; ino: bigint; size: bigint; mtimeNs: bigint; ctimeNs: bigint }, b: typeof a): boolean {
-  return a.dev === b.dev && a.ino === b.ino && a.size === b.size && a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
+function same(
+  a: {
+    dev: bigint;
+    ino: bigint;
+    size: bigint;
+    mtimeNs: bigint;
+    ctimeNs: bigint;
+  },
+  b: typeof a,
+): boolean {
+  return (
+    a.dev === b.dev &&
+    a.ino === b.ino &&
+    a.size === b.size &&
+    a.mtimeNs === b.mtimeNs &&
+    a.ctimeNs === b.ctimeNs
+  );
 }

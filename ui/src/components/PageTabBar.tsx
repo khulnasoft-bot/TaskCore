@@ -15,7 +15,12 @@ interface PageTabBarProps {
   align?: "center" | "start";
 }
 
-export function PageTabBar({ items, value, onValueChange, align = "center" }: PageTabBarProps) {
+export function PageTabBar({
+  items,
+  value,
+  onValueChange,
+  align = "center",
+}: PageTabBarProps) {
   const { isMobile } = useSidebar();
 
   if (isMobile && value !== undefined && onValueChange) {
@@ -33,13 +38,19 @@ export function PageTabBar({ items, value, onValueChange, align = "center" }: Pa
             </option>
           ))}
         </select>
-        <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <ChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+        />
       </div>
     );
   }
 
   return (
-    <TabsList variant="line" className={align === "start" ? "justify-start" : undefined}>
+    <TabsList
+      variant="line"
+      className={align === "start" ? "justify-start" : undefined}
+    >
       {items.map((item) => (
         <TabsTrigger key={item.value} value={item.value}>
           {item.label}

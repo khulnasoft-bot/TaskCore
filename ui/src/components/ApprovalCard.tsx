@@ -17,10 +17,18 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 
 function statusIcon(status: string) {
-  if (status === "approved") return <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />;
-  if (status === "rejected") return <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />;
-  if (status === "revision_requested") return <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />;
-  if (status === "pending") return <Clock className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />;
+  if (status === "approved")
+    return (
+      <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+    );
+  if (status === "rejected")
+    return <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />;
+  if (status === "revision_requested")
+    return <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />;
+  if (status === "pending")
+    return (
+      <Clock className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+    );
   return null;
 }
 
@@ -72,7 +80,11 @@ export function ApprovalCard({
                 {requesterAgent && (
                   <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Requested by</span>
-                    <AgentIdentity agent={requesterAgent} size="sm" className="inline-flex" />
+                    <AgentIdentity
+                      agent={requesterAgent}
+                      size="sm"
+                      className="inline-flex"
+                    />
                   </div>
                 )}
               </div>
@@ -90,7 +102,9 @@ export function ApprovalCard({
         <div className="shrink-0">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-2.5 py-1 text-xs text-muted-foreground">
             {statusIcon(approval.status)}
-            <span className="capitalize">{approval.status.replace(/_/g, " ")}</span>
+            <span className="capitalize">
+              {approval.status.replace(/_/g, " ")}
+            </span>
           </div>
         </div>
       </div>
@@ -105,7 +119,8 @@ export function ApprovalCard({
 
       {approval.decisionNote && (
         <div className="mt-4 rounded-lg border border-border/60 bg-muted/30 px-3.5 py-3 text-xs leading-5 text-muted-foreground">
-          <span className="font-medium text-foreground">Decision note.</span> {approval.decisionNote}
+          <span className="font-medium text-foreground">Decision note.</span>{" "}
+          {approval.decisionNote}
         </div>
       )}
 
@@ -133,16 +148,24 @@ export function ApprovalCard({
               </>
             )}
           </div>
-          {(detailLink || onOpen) ? (
+          {detailLink || onOpen ? (
             detailLink ? (
               <Link
                 to={detailLink}
-                className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-auto px-2 text-xs text-muted-foreground")}
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  "h-auto px-2 text-xs text-muted-foreground",
+                )}
               >
                 View details
               </Link>
             ) : (
-              <Button variant="ghost" size="sm" className="h-auto px-2 text-xs text-muted-foreground" onClick={onOpen}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 text-xs text-muted-foreground"
+                onClick={onOpen}
+              >
                 View details
               </Button>
             )

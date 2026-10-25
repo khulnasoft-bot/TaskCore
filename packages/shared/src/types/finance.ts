@@ -1,4 +1,9 @@
-import type { AgentAdapterType, FinanceDirection, FinanceEventKind, FinanceUnit } from "../constants.js";
+import type {
+  AgentAdapterType,
+  FinanceDirection,
+  FinanceEventKind,
+  FinanceUnit,
+} from "../constants.js";
 
 export interface FinanceEvent {
   id: string;

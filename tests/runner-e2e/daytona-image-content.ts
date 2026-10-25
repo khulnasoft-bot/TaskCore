@@ -83,11 +83,17 @@ export interface DaytonaImageContentOptions {
   candidateProviders?: readonly string[];
 }
 
-export function normalizedDaytonaCandidateProviders(values: readonly string[]): string[] {
+export function normalizedDaytonaCandidateProviders(
+  values: readonly string[],
+): string[] {
   const selected = [...values].sort();
-  if (selected.some(value => !["cursor", "copilot", "pi"].includes(value))
-    || new Set(selected).size !== selected.length) {
-    throw new Error("Daytona candidate providers must be distinct known ACP profiles");
+  if (
+    selected.some((value) => !["cursor", "copilot", "pi"].includes(value)) ||
+    new Set(selected).size !== selected.length
+  ) {
+    throw new Error(
+      "Daytona candidate providers must be distinct known ACP profiles",
+    );
   }
   return selected;
 }
@@ -287,7 +293,9 @@ export async function computeDaytonaImageContentId(
   for (const baseImage of await resolveBaseImages(root, options.baseImages)) {
     updateRecord(hash, "base-image", baseImage);
   }
-  for (const candidate of normalizedDaytonaCandidateProviders(options.candidateProviders ?? [])) {
+  for (const candidate of normalizedDaytonaCandidateProviders(
+    options.candidateProviders ?? [],
+  )) {
     updateRecord(hash, "candidate-provider", candidate);
   }
   for (const inputPath of inputPaths) {
@@ -300,10 +308,18 @@ const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : null;
 if (invokedPath && import.meta.url === pathToFileURL(invokedPath).href) {
   const arguments_ = process.argv.slice(2);
   const candidateFlag = arguments_[0];
-  if (arguments_.length > 1 || (candidateFlag !== undefined && !candidateFlag.startsWith("--candidate-providers="))) {
+  if (
+    arguments_.length > 1 ||
+    (candidateFlag !== undefined &&
+      !candidateFlag.startsWith("--candidate-providers="))
+  ) {
     throw new Error("Expected only --candidate-providers=cursor,copilot,pi");
   }
-  const candidateProviders = candidateFlag?.slice("--candidate-providers=".length).split(",").filter(Boolean) ?? [];
+  const candidateProviders =
+    candidateFlag
+      ?.slice("--candidate-providers=".length)
+      .split(",")
+      .filter(Boolean) ?? [];
   computeDaytonaImageContentId({ candidateProviders })
     .then((contentId) => process.stdout.write(`${contentId}\n`))
     .catch((error: unknown) => {

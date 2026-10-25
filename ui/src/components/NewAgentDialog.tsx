@@ -9,13 +9,32 @@ export function NewAgentDialog() {
   const { newAgentOpen, closeNewAgent } = useDialog();
   const { selectedCompanyId } = useCompany();
   if (!newAgentOpen) return null;
-  return <NewAgentDialogContent key={selectedCompanyId} companyId={selectedCompanyId} onClose={closeNewAgent} />;
+  return (
+    <NewAgentDialogContent
+      key={selectedCompanyId}
+      companyId={selectedCompanyId}
+      onClose={closeNewAgent}
+    />
+  );
 }
 
-function NewAgentDialogContent({ companyId, onClose }: { companyId: string | null; onClose: () => void }) {
+function NewAgentDialogContent({
+  companyId,
+  onClose,
+}: {
+  companyId: string | null;
+  onClose: () => void;
+}) {
   const navigate = useNavigate();
   const [invite, setInvite] = useState(false);
-  if (invite && companyId) return <ExternalAgentInviteDialog companyId={companyId} onClose={onClose} onBack={() => setInvite(false)} />;
+  if (invite && companyId)
+    return (
+      <ExternalAgentInviteDialog
+        companyId={companyId}
+        onClose={onClose}
+        onBack={() => setInvite(false)}
+      />
+    );
   return (
     <AgentBasicsDialog
       open

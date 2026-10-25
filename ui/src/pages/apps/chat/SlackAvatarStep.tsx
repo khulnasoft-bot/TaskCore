@@ -1,9 +1,5 @@
 import { useId, useState } from "react";
-import {
-  Download,
-  ExternalLink,
-  Loader2,
-} from "lucide-react";
+import { Download, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface SlackAvatarProps {
@@ -151,7 +147,6 @@ export function SlackAvatarContent({
     </div>
   );
 }
-
 
 export function SlackAvatarSettings(props: SlackAvatarProps) {
   return (

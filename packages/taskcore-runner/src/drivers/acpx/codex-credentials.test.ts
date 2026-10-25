@@ -82,10 +82,7 @@ describe("managed Codex credentials", () => {
     await expect(lease.activateLifetimeOwner(0)).rejects.toThrow(
       "lifetime owner is invalid",
     );
-    const cleanupIntent = join(
-      fixture.home,
-      ".taskcore-auth-cleanup-required",
-    );
+    const cleanupIntent = join(fixture.home, ".taskcore-auth-cleanup-required");
     await expect(readFile(lease.path, "utf8")).resolves.toContain(
       "inline-canary",
     );
@@ -497,10 +494,7 @@ describe("managed Codex credentials", () => {
   it("recovers a persisted cleanup intent before admitting another provider", async () => {
     const fixture = await credentialFixture();
     const destination = join(fixture.home, "auth.json");
-    const cleanupIntent = join(
-      fixture.home,
-      ".taskcore-auth-cleanup-required",
-    );
+    const cleanupIntent = join(fixture.home, ".taskcore-auth-cleanup-required");
     await writeFile(destination, '{"crash_stale":true}', { mode: 0o600 });
     await writeFile(cleanupIntent, "taskcore-managed-codex-cleanup-v1\n", {
       mode: 0o600,
@@ -525,10 +519,7 @@ describe("managed Codex credentials", () => {
   it("scrubs a crash-left credential staging file before admission", async () => {
     const fixture = await credentialFixture();
     const stagingPath = join(fixture.home, ".taskcore-auth-staging-v1");
-    const cleanupIntent = join(
-      fixture.home,
-      ".taskcore-auth-cleanup-required",
-    );
+    const cleanupIntent = join(fixture.home, ".taskcore-auth-cleanup-required");
     await writeFile(stagingPath, '{"crash_secret":"must-not-survive"}', {
       mode: 0o600,
     });

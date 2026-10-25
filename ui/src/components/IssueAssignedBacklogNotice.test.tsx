@@ -6,7 +6,9 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { Agent } from "@taskcore/shared";
 import { IssueAssignedBacklogNotice } from "./IssueAssignedBacklogNotice";
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 const baseAgent = {
   id: "agent-1",
@@ -43,7 +45,9 @@ describe("IssueAssignedBacklogNotice", () => {
         />,
       );
     });
-    expect(container.querySelector('[data-testid="issue-assigned-backlog-notice"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="issue-assigned-backlog-notice"]'),
+    ).toBeNull();
   });
 
   it("renders nothing when there is no assignee", () => {
@@ -56,7 +60,9 @@ describe("IssueAssignedBacklogNotice", () => {
         />,
       );
     });
-    expect(container.querySelector('[data-testid="issue-assigned-backlog-notice"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="issue-assigned-backlog-notice"]'),
+    ).toBeNull();
   });
 
   it("renders the notice with the agent's name when an agent-assigned issue is parked in backlog", () => {
@@ -69,7 +75,9 @@ describe("IssueAssignedBacklogNotice", () => {
         />,
       );
     });
-    const notice = container.querySelector('[data-testid="issue-assigned-backlog-notice"]');
+    const notice = container.querySelector(
+      '[data-testid="issue-assigned-backlog-notice"]',
+    );
     expect(notice).not.toBeNull();
     expect(notice?.textContent).toContain("Parked");
     expect(notice?.textContent).toContain("ClaudeCoder");
@@ -91,7 +99,9 @@ describe("IssueAssignedBacklogNotice", () => {
         />,
       );
     });
-    const notice = container.querySelector('[data-testid="issue-assigned-backlog-notice"]');
+    const notice = container.querySelector(
+      '[data-testid="issue-assigned-backlog-notice"]',
+    );
     expect(notice).not.toBeNull();
     expect(notice?.textContent).toContain(
       "the assignee will not be asked to work on this until status changes to To do or In progress.",
@@ -110,7 +120,9 @@ describe("IssueAssignedBacklogNotice", () => {
         />,
       );
     });
-    const button = container.querySelector('[data-testid="issue-assigned-backlog-resume"]') as HTMLButtonElement | null;
+    const button = container.querySelector(
+      '[data-testid="issue-assigned-backlog-resume"]',
+    ) as HTMLButtonElement | null;
     expect(button).not.toBeNull();
     expect(button?.textContent).toBe("Resume now");
     act(() => {
@@ -131,7 +143,9 @@ describe("IssueAssignedBacklogNotice", () => {
         />,
       );
     });
-    const button = container.querySelector('[data-testid="issue-assigned-backlog-resume"]') as HTMLButtonElement | null;
+    const button = container.querySelector(
+      '[data-testid="issue-assigned-backlog-resume"]',
+    ) as HTMLButtonElement | null;
     expect(button).not.toBeNull();
     expect(button?.disabled).toBe(true);
     expect(button?.textContent).toBe("Resuming…");

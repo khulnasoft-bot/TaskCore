@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client.js";
 import { resolveTelemetryConfig } from "./config.js";
-import type { TelemetryConfig, TelemetryDimensions, TelemetryState } from "./types.js";
+import type {
+  TelemetryConfig,
+  TelemetryDimensions,
+  TelemetryState,
+} from "./types.js";
 
 const TEST_STATE: TelemetryState = {
   installId: "test-install",
@@ -29,7 +33,8 @@ function makeClient(
 }
 
 function sentBody() {
-  const requestInit = vi.mocked(fetch).mock.calls.at(-1)?.[1] as RequestInit | undefined;
+  const requestInit = vi.mocked(fetch).mock.calls.at(-1)?.[1] as
+    RequestInit | undefined;
   return JSON.parse(String(requestInit?.body ?? "{}"));
 }
 
@@ -182,7 +187,9 @@ describe("TelemetryClient chunking (count + bytes)", () => {
     // 5 events / cap 2 => 3 POSTs (2 + 2 + 1)
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const bodies = sentBodies();
-    expect(bodies.map((b) => (b.events as unknown[]).length)).toEqual([2, 2, 1]);
+    expect(bodies.map((b) => (b.events as unknown[]).length)).toEqual([
+      2, 2, 1,
+    ]);
     for (const body of bodies) {
       expect((body.events as unknown[]).length).toBeLessThanOrEqual(cap);
     }
@@ -193,10 +200,14 @@ describe("TelemetryClient chunking (count + bytes)", () => {
     vi.stubGlobal("fetch", fetchMock);
     // Big enough to hold a single fat event but force >1 event to split.
     const maxBodyBytes = 900;
-    const { client } = makeClient(undefined, { maxEventsPerBatch: 100, maxBodyBytes });
+    const { client } = makeClient(undefined, {
+      maxEventsPerBatch: 100,
+      maxBodyBytes,
+    });
 
     const blob = "x".repeat(300);
-    for (let i = 0; i < 6; i++) client.trackDynamic("plugin.telemetry.blob", { blob });
+    for (let i = 0; i < 6; i++)
+      client.trackDynamic("plugin.telemetry.blob", { blob });
     await client.flush();
 
     expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
@@ -337,7 +348,10 @@ describe("TelemetryClient deterministic batchId", () => {
     circular.self = circular;
     // Cast models an untyped third-party plugin passing a malformed object at
     // runtime — TypeScript would reject the cycle, but the wire path cannot.
-    client.trackDynamic("plugin.telemetry.circular", circular as unknown as TelemetryDimensions);
+    client.trackDynamic(
+      "plugin.telemetry.circular",
+      circular as unknown as TelemetryDimensions,
+    );
     // A well-formed event queued alongside it must still be delivered.
     client.trackDynamic("plugin.telemetry.ok", { a: 1 });
 
@@ -346,14 +360,18 @@ describe("TelemetryClient deterministic batchId", () => {
 
     // The circular event was dropped-and-logged (fail loudly), not sent.
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("non-serializable dimension (circular reference?)"),
+      expect.stringContaining(
+        "non-serializable dimension (circular reference?)",
+      ),
     );
 
     // The valid event still went out on the wire with a well-formed batchId.
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = sentBody();
     expect(body.events).toHaveLength(1);
-    expect((body.events as Array<{ name: string }>)[0]?.name).toBe("plugin.telemetry.ok");
+    expect((body.events as Array<{ name: string }>)[0]?.name).toBe(
+      "plugin.telemetry.ok",
+    );
     const id = body.batchId as string;
     expect(id.length).toBeGreaterThanOrEqual(32);
     expect(id).toMatch(/^[0-9a-f]+$/);
@@ -381,7 +399,12 @@ describe("TelemetryClient batched retry + backoff", () => {
       .mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
     const { client } = makeClient(undefined, {
-      backoff: { baseDelayMs: 1_000, maxDelayMs: 30_000, maxAttempts: 5, jitterRatio: 0.25 },
+      backoff: {
+        baseDelayMs: 1_000,
+        maxDelayMs: 30_000,
+        maxAttempts: 5,
+        jitterRatio: 0.25,
+      },
     });
 
     client.track("install.started", {});
@@ -429,7 +452,12 @@ describe("TelemetryClient batched retry + backoff", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const maxAttempts = 3;
     const { client } = makeClient(undefined, {
-      backoff: { baseDelayMs: 1_000, maxDelayMs: 30_000, maxAttempts, jitterRatio: 0.25 },
+      backoff: {
+        baseDelayMs: 1_000,
+        maxDelayMs: 30_000,
+        maxAttempts,
+        jitterRatio: 0.25,
+      },
     });
 
     client.track("install.started", {});
@@ -475,7 +503,12 @@ describe("TelemetryClient batched retry + backoff", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { client } = makeClient(undefined, {
       endpoint: "",
-      backoff: { baseDelayMs: 1_000, maxDelayMs: 30_000, maxAttempts: 5, jitterRatio: 0.25 },
+      backoff: {
+        baseDelayMs: 1_000,
+        maxDelayMs: 30_000,
+        maxAttempts: 5,
+        jitterRatio: 0.25,
+      },
     });
 
     client.track("install.started", {});
@@ -494,12 +527,22 @@ describe("TelemetryClient batched retry + backoff", () => {
     const retryAfterResponse = {
       ok: false,
       status: 429,
-      headers: { get: (name: string) => (name === "retry-after" ? "999999999" : null) },
+      headers: {
+        get: (name: string) => (name === "retry-after" ? "999999999" : null),
+      },
     };
-    const fetchMock = vi.fn().mockResolvedValueOnce(retryAfterResponse).mockResolvedValue({ ok: true });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(retryAfterResponse)
+      .mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
     const { client } = makeClient(undefined, {
-      backoff: { baseDelayMs: 1_000, maxDelayMs: 30_000, maxAttempts: 5, jitterRatio: 0.25 },
+      backoff: {
+        baseDelayMs: 1_000,
+        maxDelayMs: 30_000,
+        maxAttempts: 5,
+        jitterRatio: 0.25,
+      },
     });
 
     client.track("install.started", {});
@@ -541,7 +584,10 @@ describe("TelemetryClient bounded pending-retry store", () => {
       .mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { client } = makeClient(undefined, { maxEventsPerBatch: 1, maxPendingRetryBatches: 2 });
+    const { client } = makeClient(undefined, {
+      maxEventsPerBatch: 1,
+      maxPendingRetryBatches: 2,
+    });
 
     client.trackDynamic("plugin.telemetry.evt", { n: 1 });
     client.trackDynamic("plugin.telemetry.evt", { n: 2 });
@@ -573,7 +619,10 @@ describe("TelemetryClient bounded pending-retry store", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429 });
     vi.stubGlobal("fetch", fetchMock);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { client } = makeClient(undefined, { maxEventsPerBatch: 1, maxPendingRetryBatches: 0 });
+    const { client } = makeClient(undefined, {
+      maxEventsPerBatch: 1,
+      maxPendingRetryBatches: 0,
+    });
 
     client.trackDynamic("plugin.telemetry.evt", { n: 1 });
     client.trackDynamic("plugin.telemetry.evt", { n: 2 });
@@ -597,7 +646,10 @@ describe("TelemetryClient bounded pending-retry store", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429 });
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { client } = makeClient(undefined, { maxEventsPerBatch: 1, maxPendingRetryBatches: 1 });
+    const { client } = makeClient(undefined, {
+      maxEventsPerBatch: 1,
+      maxPendingRetryBatches: 1,
+    });
 
     client.trackDynamic("plugin.telemetry.evt", { n: 1 });
     client.trackDynamic("plugin.telemetry.evt", { n: 2 });

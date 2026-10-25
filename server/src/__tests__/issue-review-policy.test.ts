@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { activityLog, agents, companies, createDb, issues, type Db } from "@taskcore/db";
+import {
+  activityLog,
+  agents,
+  companies,
+  createDb,
+  issues,
+  type Db,
+} from "@taskcore/db";
 import { HttpError } from "../errors.js";
 import {
   assertIssueReviewVerdictActorAllowed,
@@ -12,14 +19,20 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("issue review verdict policy", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-review-policy-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-review-policy-",
+    );
     db = createDb(tempDb.connectionString);
   }, 30_000);
 
@@ -69,29 +82,41 @@ describeEmbeddedPostgres("issue review verdict policy", () => {
         permissions: {},
       },
     ]);
-    const [issue] = await db.insert(issues).values({
-      id: issueId,
-      companyId,
-      title: "Review this",
-      status: "in_review",
-      priority: "medium",
-      reviewPolicy: policy,
-      createdByAgentId: requesterAgentId,
-    }).returning();
+    const [issue] = await db
+      .insert(issues)
+      .values({
+        id: issueId,
+        companyId,
+        title: "Review this",
+        status: "in_review",
+        priority: "medium",
+        reviewPolicy: policy,
+        createdByAgentId: requesterAgentId,
+      })
+      .returning();
     return { issue, companyId, requesterAgentId, peerAgentId };
   }
 
   it("does no database work for the default anyone policy", async () => {
-    const noQueryDb = new Proxy({}, {
-      get() {
-        throw new Error("default policy must not query");
+    const noQueryDb = new Proxy(
+      {},
+      {
+        get() {
+          throw new Error("default policy must not query");
+        },
       },
-    }) as Db;
+    ) as Db;
 
-    await expect(assertIssueReviewVerdictActorAllowed(noQueryDb, {
-      issue: { id: randomUUID(), companyId: randomUUID(), reviewPolicy: null },
-      actor: { type: "agent", id: randomUUID() },
-    })).resolves.toBeUndefined();
+    await expect(
+      assertIssueReviewVerdictActorAllowed(noQueryDb, {
+        issue: {
+          id: randomUUID(),
+          companyId: randomUUID(),
+          reviewPolicy: null,
+        },
+        actor: { type: "agent", id: randomUUID() },
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it("blocks the in-review requester under not_creator and admits another agent", async () => {
@@ -120,10 +145,12 @@ describeEmbeddedPostgres("issue review verdict policy", () => {
         allowedActor: "writer_other_than_review_requester",
       }),
     });
-    await expect(assertIssueReviewVerdictActorAllowed(db, {
-      issue: seeded.issue,
-      actor: { type: "agent", id: seeded.peerAgentId },
-    })).resolves.toBeUndefined();
+    await expect(
+      assertIssueReviewVerdictActorAllowed(db, {
+        issue: seeded.issue,
+        actor: { type: "agent", id: seeded.peerAgentId },
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it("ignores later in-review snapshots that did not record a status transition", async () => {
@@ -153,17 +180,21 @@ describeEmbeddedPostgres("issue review verdict policy", () => {
       },
     ]);
 
-    await expect(assertIssueReviewVerdictActorAllowed(db, {
-      issue: seeded.issue,
-      actor: { type: "agent", id: seeded.requesterAgentId },
-    })).rejects.toMatchObject<HttpError>({
+    await expect(
+      assertIssueReviewVerdictActorAllowed(db, {
+        issue: seeded.issue,
+        actor: { type: "agent", id: seeded.requesterAgentId },
+      }),
+    ).rejects.toMatchObject<HttpError>({
       status: 403,
       details: expect.objectContaining({ code: "review_policy_denied" }),
     });
-    await expect(assertIssueReviewVerdictActorAllowed(db, {
-      issue: seeded.issue,
-      actor: { type: "agent", id: seeded.peerAgentId },
-    })).resolves.toBeUndefined();
+    await expect(
+      assertIssueReviewVerdictActorAllowed(db, {
+        issue: seeded.issue,
+        actor: { type: "agent", id: seeded.peerAgentId },
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it("classifies only confirmations created by the review requester as review verdicts", async () => {
@@ -183,18 +214,33 @@ describeEmbeddedPostgres("issue review verdict policy", () => {
       },
     });
 
-    await expect(isIssueReviewVerdictInteraction(db, {
-      issue: seeded.issue,
-      interaction: { id: "review-confirmation", createdByAgentId: seeded.requesterAgentId },
-    })).resolves.toBe(true);
-    await expect(isIssueReviewVerdictInteraction(db, {
-      issue: seeded.issue,
-      interaction: { id: "review-confirmation", createdByAgentId: seeded.peerAgentId },
-    })).resolves.toBe(false);
-    await expect(isIssueReviewVerdictInteraction(db, {
-      issue: seeded.issue,
-      interaction: { id: "requester-sibling", createdByAgentId: seeded.requesterAgentId },
-    })).resolves.toBe(false);
+    await expect(
+      isIssueReviewVerdictInteraction(db, {
+        issue: seeded.issue,
+        interaction: {
+          id: "review-confirmation",
+          createdByAgentId: seeded.requesterAgentId,
+        },
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      isIssueReviewVerdictInteraction(db, {
+        issue: seeded.issue,
+        interaction: {
+          id: "review-confirmation",
+          createdByAgentId: seeded.peerAgentId,
+        },
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      isIssueReviewVerdictInteraction(db, {
+        issue: seeded.issue,
+        interaction: {
+          id: "requester-sibling",
+          createdByAgentId: seeded.requesterAgentId,
+        },
+      }),
+    ).resolves.toBe(false);
   });
 
   it("classifies an unbound legacy confirmation only when the review requester created it", async () => {
@@ -210,14 +256,24 @@ describeEmbeddedPostgres("issue review verdict policy", () => {
       details: { status: "in_review", _previous: { status: "in_progress" } },
     });
 
-    await expect(isIssueReviewVerdictInteraction(db, {
-      issue: seeded.issue,
-      interaction: { id: "legacy-review", createdByAgentId: seeded.requesterAgentId },
-    })).resolves.toBe(true);
-    await expect(isIssueReviewVerdictInteraction(db, {
-      issue: seeded.issue,
-      interaction: { id: "unrelated-confirmation", createdByAgentId: seeded.peerAgentId },
-    })).resolves.toBe(false);
+    await expect(
+      isIssueReviewVerdictInteraction(db, {
+        issue: seeded.issue,
+        interaction: {
+          id: "legacy-review",
+          createdByAgentId: seeded.requesterAgentId,
+        },
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      isIssueReviewVerdictInteraction(db, {
+        issue: seeded.issue,
+        interaction: {
+          id: "unrelated-confirmation",
+          createdByAgentId: seeded.peerAgentId,
+        },
+      }),
+    ).resolves.toBe(false);
   });
 
   it("uses authenticated principal type for human_only", async () => {
@@ -235,9 +291,11 @@ describeEmbeddedPostgres("issue review verdict policy", () => {
         allowedActor: "authenticated_user_with_issue_write_access",
       }),
     });
-    await expect(assertIssueReviewVerdictActorAllowed(db, {
-      issue: seeded.issue,
-      actor: { type: "user", id: "board-user" },
-    })).resolves.toBeUndefined();
+    await expect(
+      assertIssueReviewVerdictActorAllowed(db, {
+        issue: seeded.issue,
+        actor: { type: "user", id: "board-user" },
+      }),
+    ).resolves.toBeUndefined();
   });
 });

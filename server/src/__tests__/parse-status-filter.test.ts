@@ -53,7 +53,10 @@ describe("parseStatusFilter", () => {
 
   it("trims surrounding whitespace", () => {
     expect(parseStatusFilter(" todo ")).toEqual(["todo"]);
-    expect(parseStatusFilter(" todo , in_progress ")).toEqual(["todo", "in_progress"]);
+    expect(parseStatusFilter(" todo , in_progress ")).toEqual([
+      "todo",
+      "in_progress",
+    ]);
   });
 
   it("filters out empty entries from trailing/extra commas", () => {

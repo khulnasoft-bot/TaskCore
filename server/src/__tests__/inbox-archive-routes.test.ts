@@ -28,14 +28,20 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("inbox archive routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-inbox-archive-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-inbox-archive-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -151,10 +157,19 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       priority: "medium",
       createdByUserId: responsibleUserId,
     });
-    return { companyId, agentId, runId, issueId, responsibleUserId, targetUserId };
+    return {
+      companyId,
+      agentId,
+      runId,
+      issueId,
+      responsibleUserId,
+      targetUserId,
+    };
   }
 
-  function agentActor(seed: Awaited<ReturnType<typeof seed>>): Express.Request["actor"] {
+  function agentActor(
+    seed: Awaited<ReturnType<typeof seed>>,
+  ): Express.Request["actor"] {
     return {
       type: "agent",
       source: "agent_jwt",
@@ -162,11 +177,13 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       companyId: seed.companyId,
       runId: seed.runId,
       onBehalfOfUserId: seed.responsibleUserId,
-      onBehalfOfMemberships: [{
-        companyId: seed.companyId,
-        membershipRole: "operator",
-        status: "active",
-      }],
+      onBehalfOfMemberships: [
+        {
+          companyId: seed.companyId,
+          membershipRole: "operator",
+          status: "active",
+        },
+      ],
     };
   }
 
@@ -177,143 +194,257 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       source: "session",
       userId: seeded.responsibleUserId,
       companyIds: [seeded.companyId],
-      memberships: [{ companyId: seeded.companyId, membershipRole: "operator", status: "active" }],
+      memberships: [
+        {
+          companyId: seeded.companyId,
+          membershipRole: "operator",
+          status: "active",
+        },
+      ],
       isInstanceAdmin: false,
     });
 
-    const first = await request(app).post(`/api/issues/${seeded.issueId}/inbox-archive`).send({}).expect(200);
-    const second = await request(app).post(`/api/issues/${seeded.issueId}/inbox-archive`).send({}).expect(200);
-    expect(first.body).toMatchObject({ userId: seeded.responsibleUserId, archivedByActorType: "user" });
+    const first = await request(app)
+      .post(`/api/issues/${seeded.issueId}/inbox-archive`)
+      .send({})
+      .expect(200);
+    const second = await request(app)
+      .post(`/api/issues/${seeded.issueId}/inbox-archive`)
+      .send({})
+      .expect(200);
+    expect(first.body).toMatchObject({
+      userId: seeded.responsibleUserId,
+      archivedByActorType: "user",
+    });
     expect(second.body.id).toBe(first.body.id);
     expect(await db.select().from(issueInboxArchives)).toHaveLength(1);
 
-    await request(app).delete(`/api/issues/${seeded.issueId}/inbox-archive`).send({}).expect(200);
+    await request(app)
+      .delete(`/api/issues/${seeded.issueId}/inbox-archive`)
+      .send({})
+      .expect(200);
     await request(app)
       .delete(`/api/issues/${seeded.issueId}/inbox-archive`)
       .send({})
       .expect(200)
-      .expect(({ body }) => expect(body).toEqual({ ok: true, userId: seeded.responsibleUserId }));
+      .expect(({ body }) =>
+        expect(body).toEqual({ ok: true, userId: seeded.responsibleUserId }),
+      );
   });
 
-  it.each([false, true])("allows manual archive during human completion (existing archive: %s)", async (alreadyArchived) => {
-    const seeded = await seed();
-    const svc = issueService(db);
-    if (alreadyArchived) {
-      await svc.archiveInbox(seeded.companyId, seeded.issueId, seeded.responsibleUserId);
-    }
-    const app = appFor({
-      type: "board",
-      source: "session",
-      userId: seeded.responsibleUserId,
-      companyIds: [seeded.companyId],
-      memberships: [{ companyId: seeded.companyId, membershipRole: "operator", status: "active" }],
-      isInstanceAdmin: false,
-    });
-    let manualArchive: Promise<{ status: number }> | undefined;
-    let completed: Awaited<ReturnType<typeof svc.update>>;
-    let manualStatus: number | undefined;
-    try {
-      completed = await db.transaction(async (tx) => {
-        await tx.execute(sql`set local statement_timeout = '5s'`);
-        // Human completion locks the issue before it writes the archive.
-        await tx.select({ id: issues.id }).from(issues).where(eq(issues.id, seeded.issueId)).for("update");
-        const [{ pid }] = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
-        manualArchive = request(app).post(`/api/issues/${seeded.issueId}/inbox-archive`).send({}).then((response) => response);
-        await expect.poll(async () => {
-          const blocked = await db.execute(sql`
+  it.each([false, true])(
+    "allows manual archive during human completion (existing archive: %s)",
+    async (alreadyArchived) => {
+      const seeded = await seed();
+      const svc = issueService(db);
+      if (alreadyArchived) {
+        await svc.archiveInbox(
+          seeded.companyId,
+          seeded.issueId,
+          seeded.responsibleUserId,
+        );
+      }
+      const app = appFor({
+        type: "board",
+        source: "session",
+        userId: seeded.responsibleUserId,
+        companyIds: [seeded.companyId],
+        memberships: [
+          {
+            companyId: seeded.companyId,
+            membershipRole: "operator",
+            status: "active",
+          },
+        ],
+        isInstanceAdmin: false,
+      });
+      let manualArchive: Promise<{ status: number }> | undefined;
+      let completed: Awaited<ReturnType<typeof svc.update>>;
+      let manualStatus: number | undefined;
+      try {
+        completed = await db.transaction(async (tx) => {
+          await tx.execute(sql`set local statement_timeout = '5s'`);
+          // Human completion locks the issue before it writes the archive.
+          await tx
+            .select({ id: issues.id })
+            .from(issues)
+            .where(eq(issues.id, seeded.issueId))
+            .for("update");
+          const [{ pid }] = await tx.execute<{ pid: number }>(
+            sql`select pg_backend_pid() as pid`,
+          );
+          manualArchive = request(app)
+            .post(`/api/issues/${seeded.issueId}/inbox-archive`)
+            .send({})
+            .then((response) => response);
+          await expect
+            .poll(
+              async () => {
+                const blocked = await db.execute(sql`
             select 1 from pg_stat_activity
             where datname = current_database() and ${pid} = any(pg_blocking_pids(pid))
           `);
-          return blocked.length;
-        }, { timeout: 3_000 }).toBeGreaterThan(0);
+                return blocked.length;
+              },
+              { timeout: 3_000 },
+            )
+            .toBeGreaterThan(0);
 
-        // The manual request is now waiting on our parent row. Previously it
-        // already owned the archive insert, so this completion formed a cycle.
-        return svc.update(seeded.issueId, {
-          status: "done",
-          actorUserId: seeded.responsibleUserId,
-          companyGuard: seeded.companyId,
-        }, tx, []);
+          // The manual request is now waiting on our parent row. Previously it
+          // already owned the archive insert, so this completion formed a cycle.
+          return svc.update(
+            seeded.issueId,
+            {
+              status: "done",
+              actorUserId: seeded.responsibleUserId,
+              companyGuard: seeded.companyId,
+            },
+            tx,
+            [],
+          );
+        });
+      } finally {
+        // Do not leave an in-flight route writing into the next test's fixture.
+        if (manualArchive) manualStatus = (await manualArchive).status;
+      }
+      expect(manualStatus).toBe(200);
+      expect(completed!.status).toBe("done");
+      const archives = await db.select().from(issueInboxArchives);
+      expect(archives).toHaveLength(1);
+      expect(archives[0]).toMatchObject({
+        companyId: seeded.companyId,
+        issueId: seeded.issueId,
+        userId: seeded.responsibleUserId,
+        archivedByActorType: "user",
+        archivedByAgentId: null,
+        archivedByRunId: null,
       });
-    } finally {
-      // Do not leave an in-flight route writing into the next test's fixture.
-      if (manualArchive) manualStatus = (await manualArchive).status;
-    }
-    expect(manualStatus).toBe(200);
-    expect(completed!.status).toBe("done");
-    const archives = await db.select().from(issueInboxArchives);
-    expect(archives).toHaveLength(1);
-    expect(archives[0]).toMatchObject({
-      companyId: seeded.companyId,
-      issueId: seeded.issueId,
-      userId: seeded.responsibleUserId,
-      archivedByActorType: "user",
-      archivedByAgentId: null,
-      archivedByRunId: null,
-    });
-    const audits = await db.select().from(activityLog).where(eq(activityLog.action, "issue.inbox_archived"));
-    expect(audits).toHaveLength(2);
-    expect(audits.some((audit) => audit.details?.source === "issue_status_done")).toBe(true);
-    expect(archives[0].archivedAt.getTime()).toBeGreaterThanOrEqual(completed!.completedAt!.getTime());
-    // The status route records this activity after the completion transaction.
-    await db.insert(activityLog).values({
-      companyId: seeded.companyId,
-      actorType: "user",
-      actorId: seeded.responsibleUserId,
-      action: "issue.updated",
-      entityType: "issue",
-      entityId: seeded.issueId,
-      details: { status: "done", _previous: { status: "todo" } },
-    });
-    await request(app).get(`/api/companies/${seeded.companyId}/issues`)
-      .query({ touchedByUserId: seeded.responsibleUserId, inboxArchivedByUserId: seeded.responsibleUserId, status: "done" })
-      .expect(200)
-      .expect(({ body }) => expect(body.map((issue: { id: string }) => issue.id)).not.toContain(seeded.issueId));
-  });
+      const audits = await db
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.action, "issue.inbox_archived"));
+      expect(audits).toHaveLength(2);
+      expect(
+        audits.some((audit) => audit.details?.source === "issue_status_done"),
+      ).toBe(true);
+      expect(archives[0].archivedAt.getTime()).toBeGreaterThanOrEqual(
+        completed!.completedAt!.getTime(),
+      );
+      // The status route records this activity after the completion transaction.
+      await db.insert(activityLog).values({
+        companyId: seeded.companyId,
+        actorType: "user",
+        actorId: seeded.responsibleUserId,
+        action: "issue.updated",
+        entityType: "issue",
+        entityId: seeded.issueId,
+        details: { status: "done", _previous: { status: "todo" } },
+      });
+      await request(app)
+        .get(`/api/companies/${seeded.companyId}/issues`)
+        .query({
+          touchedByUserId: seeded.responsibleUserId,
+          inboxArchivedByUserId: seeded.responsibleUserId,
+          status: "done",
+        })
+        .expect(200)
+        .expect(({ body }) =>
+          expect(body.map((issue: { id: string }) => issue.id)).not.toContain(
+            seeded.issueId,
+          ),
+        );
+    },
+  );
 
   it("keeps caller rollback atomic without blocking a different user's archive", async () => {
     const seeded = await seed();
     const svc = issueService(db);
     const rollback = new Error("Roll back the first user's archive");
-    await expect(db.transaction(async (tx) => {
-      await svc.archiveInbox(seeded.companyId, seeded.issueId, seeded.responsibleUserId, new Date(), undefined, tx);
-      // An exclusive parent lock would unnecessarily serialize these users.
-      await db.transaction(async (otherTx) => {
-        await otherTx.execute(sql`set local statement_timeout = '3s'`);
-        await svc.archiveInbox(seeded.companyId, seeded.issueId, seeded.targetUserId, new Date(), undefined, otherTx);
-      });
-      throw rollback;
-    })).rejects.toBe(rollback);
+    await expect(
+      db.transaction(async (tx) => {
+        await svc.archiveInbox(
+          seeded.companyId,
+          seeded.issueId,
+          seeded.responsibleUserId,
+          new Date(),
+          undefined,
+          tx,
+        );
+        // An exclusive parent lock would unnecessarily serialize these users.
+        await db.transaction(async (otherTx) => {
+          await otherTx.execute(sql`set local statement_timeout = '3s'`);
+          await svc.archiveInbox(
+            seeded.companyId,
+            seeded.issueId,
+            seeded.targetUserId,
+            new Date(),
+            undefined,
+            otherTx,
+          );
+        });
+        throw rollback;
+      }),
+    ).rejects.toBe(rollback);
     const archives = await db.select().from(issueInboxArchives);
     expect(archives).toHaveLength(1);
     expect(archives[0].userId).toBe(seeded.targetUserId);
   });
 
-  it.each([-1, 0, 1])("keeps the newest archive time and matching attribution (offset: %s)", async (offset) => {
-    const seeded = await seed();
-    const svc = issueService(db);
-    const firstTime = new Date("2000-01-02T00:00:00.000Z");
-    const nextTime = new Date(firstTime.getTime() + offset * 1_000);
-    const first = await svc.archiveInbox(seeded.companyId, seeded.issueId, seeded.responsibleUserId, firstTime, {
-      archivedByActorType: "agent",
-      archivedByAgentId: seeded.agentId,
-      archivedByRunId: seeded.runId,
-    });
-    const next = await svc.archiveInbox(seeded.companyId, seeded.issueId, seeded.responsibleUserId, nextTime);
-    expect(next.id).toBe(first.id);
-    expect(next).toMatchObject(offset < 0 ? first : {
-      archivedAt: nextTime,
-      archivedByActorType: "user",
-      archivedByAgentId: null,
-      archivedByRunId: null,
-    });
-    expect(await db.select().from(issueInboxArchives)).toEqual([next]);
+  it.each([-1, 0, 1])(
+    "keeps the newest archive time and matching attribution (offset: %s)",
+    async (offset) => {
+      const seeded = await seed();
+      const svc = issueService(db);
+      const firstTime = new Date("2000-01-02T00:00:00.000Z");
+      const nextTime = new Date(firstTime.getTime() + offset * 1_000);
+      const first = await svc.archiveInbox(
+        seeded.companyId,
+        seeded.issueId,
+        seeded.responsibleUserId,
+        firstTime,
+        {
+          archivedByActorType: "agent",
+          archivedByAgentId: seeded.agentId,
+          archivedByRunId: seeded.runId,
+        },
+      );
+      const next = await svc.archiveInbox(
+        seeded.companyId,
+        seeded.issueId,
+        seeded.responsibleUserId,
+        nextTime,
+      );
+      expect(next.id).toBe(first.id);
+      expect(next).toMatchObject(
+        offset < 0
+          ? first
+          : {
+              archivedAt: nextTime,
+              archivedByActorType: "user",
+              archivedByAgentId: null,
+              archivedByRunId: null,
+            },
+      );
+      expect(await db.select().from(issueInboxArchives)).toEqual([next]);
 
-    await svc.unarchiveInbox(seeded.companyId, seeded.issueId, seeded.responsibleUserId);
-    const afterUndo = await svc.archiveInbox(seeded.companyId, seeded.issueId, seeded.responsibleUserId, nextTime);
-    expect(afterUndo).toMatchObject({ archivedAt: nextTime, archivedByActorType: "user" });
-    expect(afterUndo.id).not.toBe(first.id);
-  });
+      await svc.unarchiveInbox(
+        seeded.companyId,
+        seeded.issueId,
+        seeded.responsibleUserId,
+      );
+      const afterUndo = await svc.archiveInbox(
+        seeded.companyId,
+        seeded.issueId,
+        seeded.responsibleUserId,
+        nextTime,
+      );
+      expect(afterUndo).toMatchObject({
+        archivedAt: nextTime,
+        archivedByActorType: "user",
+      });
+      expect(afterUndo.id).not.toBe(first.id);
+    },
+  );
 
   it("holds the issue company stable until its archive transaction ends", async () => {
     const seeded = await seed();
@@ -322,24 +453,47 @@ describeEmbeddedPostgres("inbox archive routes", () => {
     let move: Promise<unknown> | undefined;
     try {
       await db.transaction(async (tx) => {
-        await svc.archiveInbox(seeded.companyId, seeded.issueId, seeded.responsibleUserId, new Date(), undefined, tx);
-        const [{ pid }] = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
-        move = db.update(issues).set({ companyId: otherCompany.companyId })
-          .where(eq(issues.id, seeded.issueId)).then((rows) => rows);
-        await expect.poll(async () => {
-          const blocked = await db.execute(sql`
+        await svc.archiveInbox(
+          seeded.companyId,
+          seeded.issueId,
+          seeded.responsibleUserId,
+          new Date(),
+          undefined,
+          tx,
+        );
+        const [{ pid }] = await tx.execute<{ pid: number }>(
+          sql`select pg_backend_pid() as pid`,
+        );
+        move = db
+          .update(issues)
+          .set({ companyId: otherCompany.companyId })
+          .where(eq(issues.id, seeded.issueId))
+          .then((rows) => rows);
+        await expect
+          .poll(
+            async () => {
+              const blocked = await db.execute(sql`
             select 1 from pg_stat_activity
             where datname = current_database() and ${pid} = any(pg_blocking_pids(pid))
           `);
-          return blocked.length;
-        }, { timeout: 3_000 }).toBeGreaterThan(0);
-        const [stillOwned] = await tx.select().from(issues).where(eq(issues.id, seeded.issueId));
+              return blocked.length;
+            },
+            { timeout: 3_000 },
+          )
+          .toBeGreaterThan(0);
+        const [stillOwned] = await tx
+          .select()
+          .from(issues)
+          .where(eq(issues.id, seeded.issueId));
         expect(stillOwned.companyId).toBe(seeded.companyId);
       });
     } finally {
       await move;
     }
-    const [moved] = await db.select().from(issues).where(eq(issues.id, seeded.issueId));
+    const [moved] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, seeded.issueId));
     expect(moved.companyId).toBe(otherCompany.companyId);
   });
 
@@ -351,8 +505,9 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       [otherCompany.companyId, seeded.issueId],
       [seeded.companyId, randomUUID()],
     ]) {
-      await expect(svc.archiveInbox(companyId, issueId, seeded.responsibleUserId))
-        .rejects.toMatchObject({ status: 404, message: "Issue not found" });
+      await expect(
+        svc.archiveInbox(companyId, issueId, seeded.responsibleUserId),
+      ).rejects.toMatchObject({ status: 404, message: "Issue not found" });
     }
     expect(await db.select().from(issueInboxArchives)).toHaveLength(0);
   });
@@ -364,7 +519,13 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       source: "session",
       userId: seeded.responsibleUserId,
       companyIds: [seeded.companyId],
-      memberships: [{ companyId: seeded.companyId, membershipRole: "operator", status: "active" }],
+      memberships: [
+        {
+          companyId: seeded.companyId,
+          membershipRole: "operator",
+          status: "active",
+        },
+      ],
       isInstanceAdmin: false,
     });
 
@@ -372,7 +533,9 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       .patch(`/api/issues/${seeded.issueId}`)
       .send({ status: "done" })
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({ id: seeded.issueId, status: "done" }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ id: seeded.issueId, status: "done" }),
+      );
 
     const [archive] = await db
       .select()
@@ -409,19 +572,34 @@ describeEmbeddedPostgres("inbox archive routes", () => {
         status: "backlog,todo,in_progress,in_review,blocked,done",
       })
       .expect(200)
-      .expect(({ body }) => expect(body.map((issue: { id: string }) => issue.id)).not.toContain(seeded.issueId));
+      .expect(({ body }) =>
+        expect(body.map((issue: { id: string }) => issue.id)).not.toContain(
+          seeded.issueId,
+        ),
+      );
   });
 
   it("rolls back completion when the inbox archive audit cannot be written", async () => {
     const seeded = await seed();
-    const liveEvents: Array<{ type: string; payload: Record<string, unknown> }> = [];
-    const unsubscribe = subscribeCompanyLiveEvents(seeded.companyId, (event) => liveEvents.push(event));
+    const liveEvents: Array<{
+      type: string;
+      payload: Record<string, unknown>;
+    }> = [];
+    const unsubscribe = subscribeCompanyLiveEvents(seeded.companyId, (event) =>
+      liveEvents.push(event),
+    );
     const app = appFor({
       type: "board",
       source: "session",
       userId: seeded.responsibleUserId,
       companyIds: [seeded.companyId],
-      memberships: [{ companyId: seeded.companyId, membershipRole: "operator", status: "active" }],
+      memberships: [
+        {
+          companyId: seeded.companyId,
+          membershipRole: "operator",
+          status: "active",
+        },
+      ],
       isInstanceAdmin: false,
     });
 
@@ -435,10 +613,12 @@ describeEmbeddedPostgres("inbox archive routes", () => {
         .patch(`/api/issues/${seeded.issueId}`)
         .send({ status: "done" })
         .expect(500);
-      expect(liveEvents).not.toContainEqual(expect.objectContaining({
-        type: "activity.logged",
-        payload: expect.objectContaining({ action: "issue.inbox_archived" }),
-      }));
+      expect(liveEvents).not.toContainEqual(
+        expect.objectContaining({
+          type: "activity.logged",
+          payload: expect.objectContaining({ action: "issue.inbox_archived" }),
+        }),
+      );
     } finally {
       unsubscribe();
       await db.execute(sql`
@@ -447,7 +627,10 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       `);
     }
 
-    const [issue] = await db.select().from(issues).where(eq(issues.id, seeded.issueId));
+    const [issue] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, seeded.issueId));
     expect(issue.status).toBe("todo");
     expect(await db.select().from(issueInboxArchives)).toHaveLength(0);
   });
@@ -471,12 +654,14 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       .post(`/api/issues/${seeded.issueId}/inbox-archive`)
       .send({})
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({
-        userId: seeded.responsibleUserId,
-        archivedByActorType: "agent",
-        archivedByAgentId: seeded.agentId,
-        archivedByRunId: seeded.runId,
-      }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          userId: seeded.responsibleUserId,
+          archivedByActorType: "agent",
+          archivedByAgentId: seeded.agentId,
+          archivedByRunId: seeded.runId,
+        }),
+      );
 
     const [audit] = await db.select().from(activityLog);
     expect(audit).toMatchObject({
@@ -507,19 +692,27 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       source: "session",
       userId: seeded.responsibleUserId,
       companyIds: [seeded.companyId],
-      memberships: [{ companyId: seeded.companyId, membershipRole: "operator", status: "active" }],
+      memberships: [
+        {
+          companyId: seeded.companyId,
+          membershipRole: "operator",
+          status: "active",
+        },
+      ],
       isInstanceAdmin: false,
     });
     await request(boardApp)
       .get(`/api/issues/${seeded.issueId}`)
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({
-        id: seeded.issueId,
-        archivedAt: expect.any(String),
-        archivedByActorType: "agent",
-        archivedByAgentId: seeded.agentId,
-        archivedByRunId: seeded.runId,
-      }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          id: seeded.issueId,
+          archivedAt: expect.any(String),
+          archivedByActorType: "agent",
+          archivedByAgentId: seeded.agentId,
+          archivedByRunId: seeded.runId,
+        }),
+      );
 
     await db.insert(issueComments).values({
       companyId: seeded.companyId,
@@ -553,7 +746,9 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       .post(`/api/issues/${unresolved.issueId}/inbox-archive`)
       .send({})
       .expect(403)
-      .expect(({ body }) => expect(body.code).toBe("inbox_target_user_unresolved"));
+      .expect(({ body }) =>
+        expect(body.code).toBe("inbox_target_user_unresolved"),
+      );
 
     const disabled = await seed();
     await db.insert(userInboxAgentPolicies).values({
@@ -565,7 +760,9 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       .post(`/api/issues/${disabled.issueId}/inbox-archive`)
       .send({})
       .expect(403)
-      .expect(({ body }) => expect(body.code).toBe("inbox_management_disabled"));
+      .expect(({ body }) =>
+        expect(body.code).toBe("inbox_management_disabled"),
+      );
 
     const allowlist = await seed();
     await db.insert(userInboxAgentPolicies).values({
@@ -604,7 +801,9 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       .post(`/api/issues/${seeded.issueId}/inbox-archive`)
       .send({ userId: seeded.targetUserId })
       .expect(403)
-      .expect(({ body }) => expect(body.code).toBe("inbox_cross_user_grant_required"));
+      .expect(({ body }) =>
+        expect(body.code).toBe("inbox_cross_user_grant_required"),
+      );
 
     await db.insert(companyMemberships).values({
       companyId: seeded.companyId,
@@ -630,26 +829,34 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       .post(`/api/issues/${seeded.issueId}/inbox-archive`)
       .send({ userId: seeded.targetUserId })
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({ userId: seeded.targetUserId }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ userId: seeded.targetUserId }),
+      );
     await request(app)
       .delete(`/api/issues/${seeded.issueId}/inbox-archive`)
       .send({ userId: seeded.targetUserId })
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({ userId: seeded.targetUserId }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ userId: seeded.targetUserId }),
+      );
 
     const auditRows = await db.select().from(activityLog);
-    expect(auditRows.find((row) => row.action === "issue.inbox_unarchived")).toMatchObject({
+    expect(
+      auditRows.find((row) => row.action === "issue.inbox_unarchived"),
+    ).toMatchObject({
       actorType: "agent",
       agentId: seeded.agentId,
       runId: seeded.runId,
     });
-    expect(auditRows.map((row) => row.details)).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        userId: seeded.targetUserId,
-        targetResolvedFrom: "explicit",
-        policyMode: "grant_override",
-      }),
-    ]));
+    expect(auditRows.map((row) => row.details)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: seeded.targetUserId,
+          targetResolvedFrom: "explicit",
+          policyMode: "grant_override",
+        }),
+      ]),
+    );
   });
 
   it("honors the target user's allowlist for explicit archive and unarchive", async () => {
@@ -666,20 +873,26 @@ describeEmbeddedPostgres("inbox archive routes", () => {
       .post(`/api/issues/${seeded.issueId}/inbox-archive`)
       .send({ userId: seeded.targetUserId })
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({ userId: seeded.targetUserId }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ userId: seeded.targetUserId }),
+      );
     await request(app)
       .delete(`/api/issues/${seeded.issueId}/inbox-archive`)
       .send({ userId: seeded.targetUserId })
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({ userId: seeded.targetUserId }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ userId: seeded.targetUserId }),
+      );
 
     const auditRows = await db.select().from(activityLog);
-    expect(auditRows.map((row) => row.details)).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        userId: seeded.targetUserId,
-        targetResolvedFrom: "explicit",
-        policyMode: "allowlist",
-      }),
-    ]));
+    expect(auditRows.map((row) => row.details)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: seeded.targetUserId,
+          targetResolvedFrom: "explicit",
+          policyMode: "allowlist",
+        }),
+      ]),
+    );
   });
 });

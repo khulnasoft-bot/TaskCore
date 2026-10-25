@@ -3,7 +3,18 @@ import { defineConfig } from "@playwright/test";
 /** Browser-only harness regressions: no Taskcore instance or provider credentials. */
 export default defineConfig({
   testDir: ".",
-  testMatch: ["screenshot-readiness.spec.ts", "service-worker-reload.spec.ts", "lost-send.spec.ts", "chat-restart.spec.ts", "settings-toggle.spec.ts", "browser-bootstrap-diagnostics.spec.ts", "service-worker-module-loading.spec.ts", "browser-bootstrap-recovery.spec.ts", "blocker-input.spec.ts", "native-blocker-visible.spec.ts"],
+  testMatch: [
+    "screenshot-readiness.spec.ts",
+    "service-worker-reload.spec.ts",
+    "lost-send.spec.ts",
+    "chat-restart.spec.ts",
+    "settings-toggle.spec.ts",
+    "browser-bootstrap-diagnostics.spec.ts",
+    "service-worker-module-loading.spec.ts",
+    "browser-bootstrap-recovery.spec.ts",
+    "blocker-input.spec.ts",
+    "native-blocker-visible.spec.ts",
+  ],
   workers: 1,
   retries: 0,
   timeout: 10_000,

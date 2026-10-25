@@ -1,6 +1,14 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmod, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -17,7 +25,9 @@ async function readVerifiedBuildMetadata(
   bytes: Buffer,
   timeoutMs: number,
 ): Promise<string> {
-  const stagingDirectory = await mkdtemp(join(tmpdir(), "taskcore-runnerd-verified-"));
+  const stagingDirectory = await mkdtemp(
+    join(tmpdir(), "taskcore-runnerd-verified-"),
+  );
   const stagedExecutable = join(
     stagingDirectory,
     process.platform === "win32" ? "taskcore-runnerd.exe" : "taskcore-runnerd",
@@ -27,11 +37,15 @@ async function readVerifiedBuildMetadata(
     await chmod(stagingDirectory, 0o700);
     await writeFile(stagedExecutable, bytes, { flag: "wx", mode: 0o700 });
     await chmod(stagedExecutable, 0o700);
-    const { stdout } = await execFileAsync(stagedExecutable, ["--build-metadata"], {
-      encoding: "utf8",
-      timeout: timeoutMs,
-      maxBuffer: 64 * 1024,
-    });
+    const { stdout } = await execFileAsync(
+      stagedExecutable,
+      ["--build-metadata"],
+      {
+        encoding: "utf8",
+        timeout: timeoutMs,
+        maxBuffer: 64 * 1024,
+      },
+    );
     return stdout;
   } finally {
     await rm(stagingDirectory, { recursive: true, force: true });
@@ -79,21 +93,30 @@ export class TaskcoreRunnerdArtifactError extends Error {
 
 function record(value: unknown, path: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new TaskcoreRunnerdArtifactError(`${path} must be an object`, "metadata_invalid");
+    throw new TaskcoreRunnerdArtifactError(
+      `${path} must be an object`,
+      "metadata_invalid",
+    );
   }
   return value as Record<string, unknown>;
 }
 
 function text(value: unknown, path: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new TaskcoreRunnerdArtifactError(`${path} must be a non-empty string`, "metadata_invalid");
+    throw new TaskcoreRunnerdArtifactError(
+      `${path} must be a non-empty string`,
+      "metadata_invalid",
+    );
   }
   return value;
 }
 
 function version(value: unknown, path: string): number {
   if (!Number.isSafeInteger(value) || (value as number) < 1) {
-    throw new TaskcoreRunnerdArtifactError(`${path} must be a positive integer`, "metadata_invalid");
+    throw new TaskcoreRunnerdArtifactError(
+      `${path} must be a positive integer`,
+      "metadata_invalid",
+    );
   }
   return value as number;
 }
@@ -140,7 +163,10 @@ export function parseTaskcoreRunnerdBuildMetadata(
     schema: TASKCORE_RUNNERD_BUILD_METADATA_SCHEMA,
     binaryName: "taskcore-runnerd",
     packageName: TASKCORE_RUNNER_BUILD_METADATA.package.name,
-    packageVersion: text(metadata.packageVersion, "runnerd build metadata.packageVersion"),
+    packageVersion: text(
+      metadata.packageVersion,
+      "runnerd build metadata.packageVersion",
+    ),
     binaryContractVersion: version(
       metadata.binaryContractVersion,
       "runnerd build metadata.binaryContractVersion",
@@ -203,7 +229,10 @@ export async function resolveTaskcoreRunnerdArtifact(input: {
 
   let stdout: string;
   try {
-    stdout = await readVerifiedBuildMetadata(bytes, input.metadataTimeoutMs ?? 5_000);
+    stdout = await readVerifiedBuildMetadata(
+      bytes,
+      input.metadataTimeoutMs ?? 5_000,
+    );
   } catch (error) {
     throw new TaskcoreRunnerdArtifactError(
       `runnerd artifact did not return build metadata: ${error instanceof Error ? error.message : String(error)}`,

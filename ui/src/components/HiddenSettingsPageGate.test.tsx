@@ -28,7 +28,9 @@ describe("HiddenSettingsPageGate", () => {
 
   async function renderGate(pageKey: string, health?: Record<string, unknown>) {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     if (health !== undefined) {
       queryClient.setQueryData(queryKeys.health, health);
     }
@@ -60,23 +62,32 @@ describe("HiddenSettingsPageGate", () => {
       hiddenSettings: ["instance.plugins", "instance.adapters"],
     });
 
-    expect(container.querySelector('[data-testid="navigate"]')?.getAttribute("data-to")).toBe(
-      "/company/settings",
-    );
+    expect(
+      container
+        .querySelector('[data-testid="navigate"]')
+        ?.getAttribute("data-to"),
+    ).toBe("/company/settings");
     expect(container.querySelector('[data-testid="page-content"]')).toBeNull();
   });
 
   it("renders the page when it is not hidden", async () => {
-    await renderGate("instance.plugins", { status: "ok", hiddenSettings: ["instance.access"] });
+    await renderGate("instance.plugins", {
+      status: "ok",
+      hiddenSettings: ["instance.access"],
+    });
 
-    expect(container.querySelector('[data-testid="page-content"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="page-content"]'),
+    ).not.toBeNull();
     expect(container.querySelector('[data-testid="navigate"]')).toBeNull();
   });
 
   it("renders the page when nothing is hidden at all", async () => {
     await renderGate("instance.adapters", { status: "ok" });
 
-    expect(container.querySelector('[data-testid="page-content"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="page-content"]'),
+    ).not.toBeNull();
   });
 
   it("renders nothing until health is cached", async () => {

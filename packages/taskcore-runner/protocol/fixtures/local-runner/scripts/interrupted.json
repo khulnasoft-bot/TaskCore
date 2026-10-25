@@ -14,7 +14,10 @@
       "kind": "event",
       "event_type": "item.failed",
       "item_id": "item_local_runner_long_command",
-      "payload": { "kind": "command", "message": "Interrupted by the operator." }
+      "payload": {
+        "kind": "command",
+        "message": "Interrupted by the operator."
+      }
     },
     {
       "kind": "result",
@@ -27,7 +30,10 @@
           "objectiveSatisfied": false,
           "criteria": [],
           "remainingWork": [
-            { "description": "Start a replacement turn.", "blocksCompletion": true }
+            {
+              "description": "Start a replacement turn.",
+              "blocksCompletion": true
+            }
           ]
         },
         "evidence": [],

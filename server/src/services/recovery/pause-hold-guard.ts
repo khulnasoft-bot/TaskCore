@@ -9,6 +9,9 @@ export async function isAutomaticRecoverySuppressedByPauseHold(
   issueId: string,
   treeControlSvc: IssueTreeControlService = issueTreeControlService(db),
 ) {
-  const activePauseHold = await treeControlSvc.getActivePauseHoldGate(companyId, issueId);
+  const activePauseHold = await treeControlSvc.getActivePauseHoldGate(
+    companyId,
+    issueId,
+  );
   return Boolean(activePauseHold);
 }

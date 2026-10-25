@@ -13,5 +13,7 @@ const CAPABILITY_FIXTURE_ADAPTER_CLAIMS = Object.freeze(
 export function capabilityFixtureRunCapabilities(
   scenarioClaims: readonly string[],
 ): string[] {
-  return [...new Set([...scenarioClaims, ...CAPABILITY_FIXTURE_ADAPTER_CLAIMS])].sort();
+  return [
+    ...new Set([...scenarioClaims, ...CAPABILITY_FIXTURE_ADAPTER_CLAIMS]),
+  ].sort();
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildQueuedCommentQueueSnapshot, decideQueuedCommentQueueSteering, withQueuedCommentIdsInRunContext } from "./issue-queued-comment-queue.js";
+import {
+  buildQueuedCommentQueueSnapshot,
+  decideQueuedCommentQueueSteering,
+  withQueuedCommentIdsInRunContext,
+} from "./issue-queued-comment-queue.js";
 
 describe("decideQueuedCommentQueueSteering", () => {
   it("answers unsupported on the legacy protocol", () => {
@@ -23,7 +27,10 @@ describe("decideQueuedCommentQueueSteering", () => {
       queuedCommentCount: 1,
     });
 
-    expect(decision).toEqual({ protocol: "taskcore_runner_v1", kind: "temporarily_unavailable" });
+    expect(decision).toEqual({
+      protocol: "taskcore_runner_v1",
+      kind: "temporarily_unavailable",
+    });
   });
 
   it("answers temporarily_unavailable when the queue holds no live comments", () => {
@@ -35,7 +42,10 @@ describe("decideQueuedCommentQueueSteering", () => {
       queuedCommentCount: 0,
     });
 
-    expect(decision).toEqual({ protocol: "taskcore_runner_v1", kind: "temporarily_unavailable" });
+    expect(decision).toEqual({
+      protocol: "taskcore_runner_v1",
+      kind: "temporarily_unavailable",
+    });
   });
 
   it("tells the caller it may probe a running deferred turn on the native protocol", () => {
@@ -47,7 +57,11 @@ describe("decideQueuedCommentQueueSteering", () => {
       queuedCommentCount: 1,
     });
 
-    expect(decision).toEqual({ protocol: "taskcore_runner_v1", kind: "probe", steeringRunId: "run-1" });
+    expect(decision).toEqual({
+      protocol: "taskcore_runner_v1",
+      kind: "probe",
+      steeringRunId: "run-1",
+    });
   });
 
   // Acceptance-criterion fact pattern: a deferred queue whose active run
@@ -65,23 +79,52 @@ describe("decideQueuedCommentQueueSteering", () => {
       queuedCommentCount: 1,
     });
 
-    expect(decision).toEqual({ protocol: "taskcore_runner_v1", kind: "probe", steeringRunId: "run-1" });
+    expect(decision).toEqual({
+      protocol: "taskcore_runner_v1",
+      kind: "probe",
+      steeringRunId: "run-1",
+    });
   });
 
   it("keeps a preparing Taskcore Runner on the steering protocol until runtime selection finishes", () => {
-    expect(decideQueuedCommentQueueSteering({ state: "deferred", queueRunRuntimeMode: null,
-      activeRun: { id: "preparing-run", runtimeMode: "legacy", runtimeModeResolvedAt: null,
-        runnerProfileJson: { adapterDispatch: { adapterType: "taskcore_runner" } } },
-      assignedAgentAdapterType: "taskcore_runner", queuedCommentCount: 1,
-    })).toEqual({ protocol: "taskcore_runner_v1", kind: "temporarily_unavailable" });
+    expect(
+      decideQueuedCommentQueueSteering({
+        state: "deferred",
+        queueRunRuntimeMode: null,
+        activeRun: {
+          id: "preparing-run",
+          runtimeMode: "legacy",
+          runtimeModeResolvedAt: null,
+          runnerProfileJson: {
+            adapterDispatch: { adapterType: "taskcore_runner" },
+          },
+        },
+        assignedAgentAdapterType: "taskcore_runner",
+        queuedCommentCount: 1,
+      }),
+    ).toEqual({
+      protocol: "taskcore_runner_v1",
+      kind: "temporarily_unavailable",
+    });
   });
 
   it("preserves the historical adapter when mutable agent settings change", () => {
-    expect(decideQueuedCommentQueueSteering({ state: "deferred", queueRunRuntimeMode: null,
-      activeRun: { id: "legacy-run", runtimeMode: "legacy", runtimeModeResolvedAt: null,
-        runnerProfileJson: { adapterDispatch: { adapterType: "codex_local" } } },
-      assignedAgentAdapterType: "taskcore_runner", queuedCommentCount: 1,
-    })).toEqual({ protocol: "legacy", kind: "unsupported" });
+    expect(
+      decideQueuedCommentQueueSteering({
+        state: "deferred",
+        queueRunRuntimeMode: null,
+        activeRun: {
+          id: "legacy-run",
+          runtimeMode: "legacy",
+          runtimeModeResolvedAt: null,
+          runnerProfileJson: {
+            adapterDispatch: { adapterType: "codex_local" },
+          },
+        },
+        assignedAgentAdapterType: "taskcore_runner",
+        queuedCommentCount: 1,
+      }),
+    ).toEqual({ protocol: "legacy", kind: "unsupported" });
   });
 });
 
@@ -100,7 +143,9 @@ describe("buildQueuedCommentQueueSnapshot entry permissions", () => {
       ...baseFacts,
       actorType: "user",
       actorId: "user-1",
-      comments: [{ id: "comment-1", updatedAt: new Date(), authorUserId: "user-1" }],
+      comments: [
+        { id: "comment-1", updatedAt: new Date(), authorUserId: "user-1" },
+      ],
     });
 
     expect(queue.entries[0]?.canEdit).toBe(true);
@@ -112,7 +157,9 @@ describe("buildQueuedCommentQueueSnapshot entry permissions", () => {
       ...baseFacts,
       actorType: "user",
       actorId: "user-1",
-      comments: [{ id: "comment-1", updatedAt: new Date(), authorUserId: "user-2" }],
+      comments: [
+        { id: "comment-1", updatedAt: new Date(), authorUserId: "user-2" },
+      ],
     });
 
     expect(queue.entries[0]?.canEdit).toBe(false);
@@ -124,7 +171,9 @@ describe("buildQueuedCommentQueueSnapshot entry permissions", () => {
       ...baseFacts,
       actorType: "agent",
       actorId: "user-1",
-      comments: [{ id: "comment-1", updatedAt: new Date(), authorUserId: "user-1" }],
+      comments: [
+        { id: "comment-1", updatedAt: new Date(), authorUserId: "user-1" },
+      ],
     });
 
     expect(queue.entries[0]?.canEdit).toBe(false);
@@ -134,17 +183,20 @@ describe("buildQueuedCommentQueueSnapshot entry permissions", () => {
 
 describe("withQueuedCommentIdsInRunContext", () => {
   it("invalidates every generated task projection and ownership metadata", () => {
-    const result = withQueuedCommentIdsInRunContext({
-      issueId: "issue-1",
-      preserved: "keep",
-      taskcoreWake: { comments: [{ id: "comment-1" }] },
-      taskcoreWakeComment: { id: "comment-1" },
-      taskcoreTaskMarkdown: "historical",
-      taskcoreTaskMarkdownCompact: "historical compact",
-      taskcoreTaskMarkdownAssignment: "assignment",
-      taskcoreTaskMarkdownAssignmentCompact: "assignment compact",
-      taskcoreTurnContext: { version: 1, events: { owner: "wake_prompt" } },
-    }, ["comment-2"]);
+    const result = withQueuedCommentIdsInRunContext(
+      {
+        issueId: "issue-1",
+        preserved: "keep",
+        taskcoreWake: { comments: [{ id: "comment-1" }] },
+        taskcoreWakeComment: { id: "comment-1" },
+        taskcoreTaskMarkdown: "historical",
+        taskcoreTaskMarkdownCompact: "historical compact",
+        taskcoreTaskMarkdownAssignment: "assignment",
+        taskcoreTaskMarkdownAssignmentCompact: "assignment compact",
+        taskcoreTurnContext: { version: 1, events: { owner: "wake_prompt" } },
+      },
+      ["comment-2"],
+    );
 
     expect(result).toMatchObject({
       issueId: "issue-1",

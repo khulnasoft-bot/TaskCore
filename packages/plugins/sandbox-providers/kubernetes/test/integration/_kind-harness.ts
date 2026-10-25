@@ -10,12 +10,16 @@ export function readKindKubeconfig(): string {
 }
 
 export function kubectl(args: string): string {
-  return execSync(`kubectl --context ${KIND_CONTEXT} ${args}`, { encoding: "utf-8" });
+  return execSync(`kubectl --context ${KIND_CONTEXT} ${args}`, {
+    encoding: "utf-8",
+  });
 }
 
 export function deleteNamespaceIfExists(namespace: string): void {
   try {
-    kubectl(`delete namespace ${namespace} --wait=true --timeout=60s --ignore-not-found`);
+    kubectl(
+      `delete namespace ${namespace} --wait=true --timeout=60s --ignore-not-found`,
+    );
   } catch {
     // ignore
   }

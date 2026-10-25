@@ -96,8 +96,9 @@ function validateBoundCompletion(
     (criterion) => criterion.criterionId,
   );
   if (
-    reportedCriterionIds.length !== binding.completionContractCriterionIds.length
-    || reportedCriterionIds.some(
+    reportedCriterionIds.length !==
+      binding.completionContractCriterionIds.length ||
+    reportedCriterionIds.some(
       (criterionId, index) =>
         criterionId !== binding.completionContractCriterionIds[index],
     )
@@ -150,7 +151,11 @@ export class NativeRunCoordinatorStore {
       envelope.result,
       envelope.terminal,
     );
-    if (envelope.turnId !== null && envelope.turnId !== undefined && typeof envelope.turnId !== "string") {
+    if (
+      envelope.turnId !== null &&
+      envelope.turnId !== undefined &&
+      typeof envelope.turnId !== "string"
+    ) {
       throw new Error("native_result_envelope_invalid");
     }
     return {
@@ -163,32 +168,41 @@ export class NativeRunCoordinatorStore {
     const rows = await this.#db
       .select({ payload: heartbeatRunEvents.payload })
       .from(heartbeatRunEvents)
-      .where(and(
-        eq(heartbeatRunEvents.runId, this.#binding.runId),
-        eq(heartbeatRunEvents.sourceInstanceId, this.#binding.runnerSourceInstanceId),
-        inArray(heartbeatRunEvents.eventType, [
-          "session.started",
-          "session.resumed",
-          "session.reconciled",
-        ]),
-      ))
+      .where(
+        and(
+          eq(heartbeatRunEvents.runId, this.#binding.runId),
+          eq(
+            heartbeatRunEvents.sourceInstanceId,
+            this.#binding.runnerSourceInstanceId,
+          ),
+          inArray(heartbeatRunEvents.eventType, [
+            "session.started",
+            "session.resumed",
+            "session.reconciled",
+          ]),
+        ),
+      )
       .orderBy(desc(heartbeatRunEvents.sourceSeq))
       .limit(3);
     for (const row of rows) {
       const event = (row.payload as Record<string, unknown> | null)?.prpEvent;
-      const payload = typeof event === "object" && event !== null && !Array.isArray(event)
-        ? (event as Record<string, unknown>).payload
-        : null;
-      const providerSessionId = typeof payload === "object"
-        && payload !== null
-        && !Array.isArray(payload)
-        ? (payload as Record<string, unknown>).providerSessionId
-        : null;
+      const payload =
+        typeof event === "object" && event !== null && !Array.isArray(event)
+          ? (event as Record<string, unknown>).payload
+          : null;
+      const providerSessionId =
+        typeof payload === "object" &&
+        payload !== null &&
+        !Array.isArray(payload)
+          ? (payload as Record<string, unknown>).providerSessionId
+          : null;
       if (
-        typeof providerSessionId === "string"
-        && providerSessionId.length > 0
-        && providerSessionId.length <= 240
-        && ![...providerSessionId].some((character) => /[\u0000-\u001f\u007f]/.test(character))
+        typeof providerSessionId === "string" &&
+        providerSessionId.length > 0 &&
+        providerSessionId.length <= 240 &&
+        ![...providerSessionId].some((character) =>
+          /[\u0000-\u001f\u007f]/.test(character),
+        )
       ) {
         return providerSessionId;
       }
@@ -326,7 +340,11 @@ export class NativeRunCoordinatorStore {
     readonly disposition: "committed" | "duplicate";
     readonly resultId: string;
   }> {
-    const validated = validateBoundCompletion(this.#binding, input.result, input.terminal);
+    const validated = validateBoundCompletion(
+      this.#binding,
+      input.result,
+      input.terminal,
+    );
     const canonical = {
       result: validated.result,
       terminal: validated.terminal,
@@ -342,8 +360,15 @@ export class NativeRunCoordinatorStore {
     return this.#db.transaction(async (tx) => {
       // Match task -> run lock ordering before the result's task foreign-key
       // check; a concurrent task mutation may also need this run row.
-      await tx.select({ id: issues.id }).from(issues)
-        .where(and(eq(issues.id, this.#binding.issueId), eq(issues.companyId, this.#binding.companyId)))
+      await tx
+        .select({ id: issues.id })
+        .from(issues)
+        .where(
+          and(
+            eq(issues.id, this.#binding.issueId),
+            eq(issues.companyId, this.#binding.companyId),
+          ),
+        )
         .for("key share");
       const [run] = await tx
         .select()

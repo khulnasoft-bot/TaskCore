@@ -16,7 +16,11 @@ vi.mock("@/api/instanceSettings", () => ({
 
 vi.mock("@/lib/router", () => ({
   Navigate: ({ to, replace }: { to: string; replace?: boolean }) => (
-    <div data-testid="navigate" data-to={to} data-replace={String(replace ?? false)} />
+    <div
+      data-testid="navigate"
+      data-to={to}
+      data-replace={String(replace ?? false)}
+    />
   ),
   Outlet: () => <div data-testid="workspace-route" />,
 }));
@@ -63,28 +67,40 @@ describe("IsolatedWorkspacesRouteGate", () => {
   });
 
   it("redirects to the dashboard when isolated workspaces are disabled", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: false });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableIsolatedWorkspaces: false,
+    });
     await renderGate();
 
     const navigate = container.querySelector('[data-testid="navigate"]');
     expect(navigate?.getAttribute("data-to")).toBe("/dashboard");
     expect(navigate?.getAttribute("data-replace")).toBe("true");
-    expect(container.querySelector('[data-testid="workspace-route"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="workspace-route"]'),
+    ).toBeNull();
   });
 
   it("renders the workspace routes when isolated workspaces are enabled", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: true });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableIsolatedWorkspaces: true,
+    });
     await renderGate();
 
-    expect(container.querySelector('[data-testid="workspace-route"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="workspace-route"]'),
+    ).not.toBeNull();
     expect(container.querySelector('[data-testid="navigate"]')).toBeNull();
   });
 
   it("renders nothing while the flag is loading, so an enabled instance never flashes a redirect", async () => {
-    mockInstanceSettingsApi.getExperimental.mockImplementation(() => new Promise(() => {}));
+    mockInstanceSettingsApi.getExperimental.mockImplementation(
+      () => new Promise(() => {}),
+    );
     await renderGate();
 
     expect(container.querySelector('[data-testid="navigate"]')).toBeNull();
-    expect(container.querySelector('[data-testid="workspace-route"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="workspace-route"]'),
+    ).toBeNull();
   });
 });

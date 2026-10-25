@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { inArray } from "drizzle-orm";
 import {
   activityLog,
@@ -33,14 +41,18 @@ describe("merged pull-request confirmation extraction", () => {
 
     expect(cache.size).toBe(PULL_REQUEST_CACHE_MAX_ENTRIES);
     expect(cache.has("pr-0")).toBe(false);
-    expect(cache.get(`pr-${PULL_REQUEST_CACHE_MAX_ENTRIES}`)).toBe(PULL_REQUEST_CACHE_MAX_ENTRIES);
+    expect(cache.get(`pr-${PULL_REQUEST_CACHE_MAX_ENTRIES}`)).toBe(
+      PULL_REQUEST_CACHE_MAX_ENTRIES,
+    );
   });
 
   it("extracts and deduplicates full GitHub URLs and owner/repo#N shorthand", () => {
-    expect(extractGitHubPullRequestReferences([
-      "Merge https://github.com/khulnasoft/taskcore/pull/39.",
-      "Also taskcore/taskcore#40 and TASKCORE/taskcore#40.",
-    ])).toEqual([
+    expect(
+      extractGitHubPullRequestReferences([
+        "Merge https://github.com/khulnasoft/taskcore/pull/39.",
+        "Also taskcore/taskcore#40 and TASKCORE/taskcore#40.",
+      ]),
+    ).toEqual([
       { host: "github.com", owner: "taskcore", repo: "taskcore", number: 39 },
       { host: "github.com", owner: "taskcore", repo: "taskcore", number: 40 },
     ]);
@@ -54,36 +66,50 @@ describe("merged pull-request confirmation extraction", () => {
       payload: { version: 1, prompt: "Merge the pull request?" },
     } as const;
     expect(getMergeConfirmationPullRequestReferences(base)).toHaveLength(1);
-    expect(getMergeConfirmationPullRequestReferences({
-      ...base,
-      title: "Approve the release?",
-    })).toEqual([]);
-    expect(getMergeConfirmationPullRequestReferences({
-      ...base,
-      payload: { ...base.payload, target: { type: "issue_document", key: "plan" } },
-    })).toEqual([]);
-    expect(getMergeConfirmationPullRequestReferences({
-      ...base,
-      payload: { ...base.payload, toolAction: { actionRequestId: "action-1" } },
-    })).toEqual([]);
+    expect(
+      getMergeConfirmationPullRequestReferences({
+        ...base,
+        title: "Approve the release?",
+      }),
+    ).toEqual([]);
+    expect(
+      getMergeConfirmationPullRequestReferences({
+        ...base,
+        payload: {
+          ...base.payload,
+          target: { type: "issue_document", key: "plan" },
+        },
+      }),
+    ).toEqual([]);
+    expect(
+      getMergeConfirmationPullRequestReferences({
+        ...base,
+        payload: {
+          ...base.payload,
+          toolAction: { actionRequestId: "action-1" },
+        },
+      }),
+    ).toEqual([]);
   });
 
   it("finds references in merge-confirmation body and custom target fields", () => {
-    expect(getMergeConfirmationPullRequestReferences({
-      kind: "request_confirmation",
-      title: "Merge the linked PR?",
-      summary: "The checks are green.",
-      payload: {
-        version: 1,
-        prompt: "Merge the linked pull request?",
-        detailsMarkdown: "Primary: taskcore/taskcore#39",
-        target: {
-          type: "custom",
-          key: "github-pr-40",
-          href: "https://github.com/khulnasoft/taskcore/pull/40",
+    expect(
+      getMergeConfirmationPullRequestReferences({
+        kind: "request_confirmation",
+        title: "Merge the linked PR?",
+        summary: "The checks are green.",
+        payload: {
+          version: 1,
+          prompt: "Merge the linked pull request?",
+          detailsMarkdown: "Primary: taskcore/taskcore#39",
+          target: {
+            type: "custom",
+            key: "github-pr-40",
+            href: "https://github.com/khulnasoft/taskcore/pull/40",
+          },
         },
-      },
-    })).toEqual([
+      }),
+    ).toEqual([
       { host: "github.com", owner: "taskcore", repo: "taskcore", number: 39 },
       { host: "github.com", owner: "taskcore", repo: "taskcore", number: 40 },
     ]);
@@ -95,51 +121,65 @@ describe("merged pull-request confirmation extraction", () => {
       title: "Merge the linked PR?",
       summary: "The checks are green.",
     } as const;
-    expect(getMergeConfirmationPullRequestReferences({
-      ...base,
-      payload: {
-        version: 1,
-        prompt: "Merge the linked pull request?",
-        detailsMarkdown: "Deploy to production after taskcore/taskcore#39 merges.",
-      },
-    })).toEqual([]);
-    expect(getMergeConfirmationPullRequestReferences({
-      ...base,
-      payload: {
-        version: 1,
-        prompt: "Merge the linked pull request?",
-        target: {
-          type: "custom",
-          label: "Release to production",
-          href: "https://github.com/khulnasoft/taskcore/pull/39",
+    expect(
+      getMergeConfirmationPullRequestReferences({
+        ...base,
+        payload: {
+          version: 1,
+          prompt: "Merge the linked pull request?",
+          detailsMarkdown:
+            "Deploy to production after taskcore/taskcore#39 merges.",
         },
-      },
-    })).toEqual([]);
+      }),
+    ).toEqual([]);
+    expect(
+      getMergeConfirmationPullRequestReferences({
+        ...base,
+        payload: {
+          version: 1,
+          prompt: "Merge the linked pull request?",
+          target: {
+            type: "custom",
+            label: "Release to production",
+            href: "https://github.com/khulnasoft/taskcore/pull/39",
+          },
+        },
+      }),
+    ).toEqual([]);
   });
 
   it("fails closed when a merge confirmation includes an additional action clause", () => {
-    expect(getMergeConfirmationPullRequestReferences({
-      kind: "request_confirmation",
-      title: "Merge the linked PR?",
-      summary: null,
-      payload: {
-        version: 1,
-        prompt: "Merge taskcore/taskcore#39?",
-        detailsMarkdown: "Erase all customer records after taskcore/taskcore#39 merges.",
-      },
-    })).toEqual([]);
+    expect(
+      getMergeConfirmationPullRequestReferences({
+        kind: "request_confirmation",
+        title: "Merge the linked PR?",
+        summary: null,
+        payload: {
+          version: 1,
+          prompt: "Merge taskcore/taskcore#39?",
+          detailsMarkdown:
+            "Erase all customer records after taskcore/taskcore#39 merges.",
+        },
+      }),
+    ).toEqual([]);
   });
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("merged pull-request confirmation sweep", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-merged-pr-confirmations-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-merged-pr-confirmations-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -256,26 +296,32 @@ describeEmbeddedPostgres("merged pull-request confirmation sweep", () => {
         payload: {
           version: 1,
           prompt: "Merge taskcore/taskcore#39?",
-          detailsMarkdown: "Erase all customer records after taskcore/taskcore#39 merges.",
+          detailsMarkdown:
+            "Erase all customer records after taskcore/taskcore#39 merges.",
         },
       },
     ]);
 
     const wakeup = vi.fn(async () => ({ id: "wake-1" }));
-    const resolvePullRequestState = vi.fn(async (_resolvedCompanyId: string, reference: { number: number }) =>
-      reference.number === 41 ? "open" as const : "merged" as const
+    const resolvePullRequestState = vi.fn(
+      async (_resolvedCompanyId: string, reference: { number: number }) =>
+        reference.number === 41 ? ("open" as const) : ("merged" as const),
     );
     const service = issueThreadInteractionService(db, {
       wakeup,
       resolvePullRequestState,
     });
 
-    await expect(service.sweepMergedPullRequestConfirmations([{
-      companyId,
-      owner: "taskcore",
-      repo: "taskcore",
-      number: 39,
-    }])).resolves.toEqual({
+    await expect(
+      service.sweepMergedPullRequestConfirmations([
+        {
+          companyId,
+          owner: "taskcore",
+          repo: "taskcore",
+          number: 39,
+        },
+      ]),
+    ).resolves.toEqual({
       checked: 6,
       candidates: 3,
       accepted: 2,
@@ -283,44 +329,59 @@ describeEmbeddedPostgres("merged pull-request confirmation sweep", () => {
     });
 
     const stored = await db
-      .select({ id: issueThreadInteractions.id, status: issueThreadInteractions.status })
+      .select({
+        id: issueThreadInteractions.id,
+        status: issueThreadInteractions.status,
+      })
       .from(issueThreadInteractions)
-      .where(inArray(issueThreadInteractions.id, Object.values(interactionIds)));
-    expect(new Map(stored.map((row) => [row.id, row.status]))).toEqual(new Map([
-      [interactionIds.merged, "accepted"],
-      [interactionIds.boardOrAgents, "accepted"],
-      [interactionIds.someOpen, "pending"],
-      [interactionIds.zeroRefs, "pending"],
-      [interactionIds.toolAction, "pending"],
-      [interactionIds.extraAction, "pending"],
-    ]));
-    expect(wakeup).toHaveBeenCalledWith(agentId, expect.objectContaining({
-      requestedByActorType: "system",
-      requestedByActorId: "system:pr-merged",
-      idempotencyKey: `interaction:${interactionIds.merged}:accepted`,
-    }));
-    expect(wakeup).toHaveBeenCalledWith(agentId, expect.objectContaining({
-      requestedByActorType: "system",
-      requestedByActorId: "system:pr-merged",
-      idempotencyKey: `interaction:${interactionIds.boardOrAgents}:accepted`,
-    }));
+      .where(
+        inArray(issueThreadInteractions.id, Object.values(interactionIds)),
+      );
+    expect(new Map(stored.map((row) => [row.id, row.status]))).toEqual(
+      new Map([
+        [interactionIds.merged, "accepted"],
+        [interactionIds.boardOrAgents, "accepted"],
+        [interactionIds.someOpen, "pending"],
+        [interactionIds.zeroRefs, "pending"],
+        [interactionIds.toolAction, "pending"],
+        [interactionIds.extraAction, "pending"],
+      ]),
+    );
+    expect(wakeup).toHaveBeenCalledWith(
+      agentId,
+      expect.objectContaining({
+        requestedByActorType: "system",
+        requestedByActorId: "system:pr-merged",
+        idempotencyKey: `interaction:${interactionIds.merged}:accepted`,
+      }),
+    );
+    expect(wakeup).toHaveBeenCalledWith(
+      agentId,
+      expect.objectContaining({
+        requestedByActorType: "system",
+        requestedByActorId: "system:pr-merged",
+        idempotencyKey: `interaction:${interactionIds.boardOrAgents}:accepted`,
+      }),
+    );
     // The webhook hint resolves #39 immediately; only the other referenced PR
     // needs the periodic provider resolver.
     expect(resolvePullRequestState).toHaveBeenCalledTimes(1);
 
     const audit = await db.select().from(activityLog);
-    expect(audit).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        actorType: "system",
-        actorId: "system:pr-merged",
-        action: "issue.thread_interaction_accepted",
-        entityId: issueId,
-        details: expect.objectContaining({
-          interactionId: interactionIds.merged,
-          resolutionActorKind: "system",
-          pullRequests: ["taskcore/taskcore#39"],
+    expect(audit).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorType: "system",
+          actorId: "system:pr-merged",
+          action: "issue.thread_interaction_accepted",
+          entityId: issueId,
+          details: expect.objectContaining({
+            interactionId: interactionIds.merged,
+            resolutionActorKind: "system",
+            pullRequests: ["taskcore/taskcore#39"],
+          }),
         }),
-      }),
-    ]));
+      ]),
+    );
   });
 });

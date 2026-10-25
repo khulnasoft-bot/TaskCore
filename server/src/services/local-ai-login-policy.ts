@@ -6,7 +6,13 @@ export function supportsLocalAiLogin(options: {
   deploymentExposure?: DeploymentExposure;
   trustedLocalStdioRuntimeHost?: string | null;
 }) {
-  return options.deploymentMode !== "authenticated" || options.deploymentExposure !== "public" || Boolean(
-    options.trustedLocalStdioRuntimeHost ?? process.env.TASKCORE_TRUSTED_MCP_RUNTIME_HOST ?? process.env.TASKCORE_TOOL_RUNTIME_TRUSTED_HOST,
+  return (
+    options.deploymentMode !== "authenticated" ||
+    options.deploymentExposure !== "public" ||
+    Boolean(
+      options.trustedLocalStdioRuntimeHost ??
+      process.env.TASKCORE_TRUSTED_MCP_RUNTIME_HOST ??
+      process.env.TASKCORE_TOOL_RUNTIME_TRUSTED_HOST,
+    )
   );
 }

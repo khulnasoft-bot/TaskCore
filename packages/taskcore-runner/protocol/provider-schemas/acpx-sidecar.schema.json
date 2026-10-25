@@ -52,10 +52,14 @@
         "params": { "type": "object" }
       },
       "additionalProperties": false,
-      "allOf": [{
-        "if": { "properties": { "command": { "const": "turn.steer" } } },
-        "then": { "properties": { "params": { "$ref": "#/$defs/turnControl" } } }
-      }]
+      "allOf": [
+        {
+          "if": { "properties": { "command": { "const": "turn.steer" } } },
+          "then": {
+            "properties": { "params": { "$ref": "#/$defs/turnControl" } }
+          }
+        }
+      ]
     },
     "response": {
       "type": "object",
@@ -110,14 +114,24 @@
         "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
         "sequence": { "type": "integer", "minimum": 1 },
         "eventType": { "$ref": "#/$defs/eventType" },
-        "runId": { "type": ["string", "null"], "maxLength": 160, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
-        "turnId": { "type": ["string", "null"], "maxLength": 240, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+        "runId": {
+          "type": ["string", "null"],
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "turnId": {
+          "type": ["string", "null"],
+          "maxLength": 240,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
         "payload": { "type": "object" }
       },
       "additionalProperties": false,
       "allOf": [
         {
-          "if": { "properties": { "eventType": { "const": "runtime.rich_event" } } },
+          "if": {
+            "properties": { "eventType": { "const": "runtime.rich_event" } }
+          },
           "then": {
             "properties": {
               "runId": { "type": "string" },
@@ -130,11 +144,7 @@
     },
     "richEvent": {
       "type": "object",
-      "required": [
-        "eventType",
-        "itemId",
-        "payload"
-      ],
+      "required": ["eventType", "itemId", "payload"],
       "properties": {
         "eventType": {
           "enum": [
@@ -179,12 +189,7 @@
     },
     "turnControl": {
       "type": "object",
-      "required": [
-        "turnId",
-        "controlId",
-        "mode",
-        "message"
-      ],
+      "required": ["turnId", "controlId", "mode", "message"],
       "properties": {
         "turnId": {
           "type": "string",
@@ -199,10 +204,7 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
         },
         "mode": {
-          "enum": [
-            "steer",
-            "follow_up"
-          ]
+          "enum": ["steer", "follow_up"]
         },
         "message": {
           "type": "string",

@@ -21,7 +21,10 @@ function normalizeOrderedIds(value: unknown): string[] {
   return orderedIds;
 }
 
-function toPreference(orderedIds: unknown, updatedAt: Date | null): SidebarOrderPreference {
+function toPreference(
+  orderedIds: unknown,
+  updatedAt: Date | null,
+): SidebarOrderPreference {
   return {
     orderedIds: normalizeOrderedIds(orderedIds),
     updatedAt,
@@ -37,7 +40,10 @@ export function sidebarPreferenceService(db: Db) {
       return toPreference(row?.companyOrder ?? [], row?.updatedAt ?? null);
     },
 
-    async upsertCompanyOrder(userId: string, orderedIds: string[]): Promise<SidebarOrderPreference> {
+    async upsertCompanyOrder(
+      userId: string,
+      orderedIds: string[],
+    ): Promise<SidebarOrderPreference> {
       const now = new Date();
       const normalized = normalizeOrderedIds(orderedIds);
       const [row] = await db
@@ -55,10 +61,16 @@ export function sidebarPreferenceService(db: Db) {
           },
         })
         .returning();
-      return toPreference(row?.companyOrder ?? normalized, row?.updatedAt ?? now);
+      return toPreference(
+        row?.companyOrder ?? normalized,
+        row?.updatedAt ?? now,
+      );
     },
 
-    async getProjectOrder(companyId: string, userId: string): Promise<SidebarOrderPreference> {
+    async getProjectOrder(
+      companyId: string,
+      userId: string,
+    ): Promise<SidebarOrderPreference> {
       const row = await db.query.companyUserSidebarPreferences.findFirst({
         where: and(
           eq(companyUserSidebarPreferences.companyId, companyId),
@@ -84,14 +96,20 @@ export function sidebarPreferenceService(db: Db) {
           updatedAt: now,
         })
         .onConflictDoUpdate({
-          target: [companyUserSidebarPreferences.companyId, companyUserSidebarPreferences.userId],
+          target: [
+            companyUserSidebarPreferences.companyId,
+            companyUserSidebarPreferences.userId,
+          ],
           set: {
             projectOrder: normalized,
             updatedAt: now,
           },
         })
         .returning();
-      return toPreference(row?.projectOrder ?? normalized, row?.updatedAt ?? now);
+      return toPreference(
+        row?.projectOrder ?? normalized,
+        row?.updatedAt ?? now,
+      );
     },
   };
 }

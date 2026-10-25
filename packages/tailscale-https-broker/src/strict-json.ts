@@ -69,7 +69,8 @@ class StrictParser {
     }
     for (;;) {
       this.skipWhitespace();
-      if (this.peek() !== '"') throw new SyntaxError("expected object key string");
+      if (this.peek() !== '"')
+        throw new SyntaxError("expected object key string");
       const key = this.parseString();
       if (seen.has(key)) {
         throw new SyntaxError(`duplicate object key: ${JSON.stringify(key)}`);
@@ -119,17 +120,34 @@ class StrictParser {
       if (ch === "\\") {
         const esc = this.src[this.pos++];
         switch (esc) {
-          case '"': out += '"'; break;
-          case "\\": out += "\\"; break;
-          case "/": out += "/"; break;
-          case "b": out += "\b"; break;
-          case "f": out += "\f"; break;
-          case "n": out += "\n"; break;
-          case "r": out += "\r"; break;
-          case "t": out += "\t"; break;
+          case '"':
+            out += '"';
+            break;
+          case "\\":
+            out += "\\";
+            break;
+          case "/":
+            out += "/";
+            break;
+          case "b":
+            out += "\b";
+            break;
+          case "f":
+            out += "\f";
+            break;
+          case "n":
+            out += "\n";
+            break;
+          case "r":
+            out += "\r";
+            break;
+          case "t":
+            out += "\t";
+            break;
           case "u": {
             const hex = this.src.slice(this.pos, this.pos + 4);
-            if (!/^[0-9a-fA-F]{4}$/.test(hex)) throw new SyntaxError("bad unicode escape");
+            if (!/^[0-9a-fA-F]{4}$/.test(hex))
+              throw new SyntaxError("bad unicode escape");
             out += String.fromCharCode(parseInt(hex, 16));
             this.pos += 4;
             break;
@@ -139,7 +157,8 @@ class StrictParser {
         }
       } else {
         const code = ch.charCodeAt(0);
-        if (code < 0x20) throw new SyntaxError("unescaped control character in string");
+        if (code < 0x20)
+          throw new SyntaxError("unescaped control character in string");
         out += ch;
       }
     }
@@ -150,7 +169,8 @@ class StrictParser {
     const re = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
     re.lastIndex = this.pos;
     const match = re.exec(this.src);
-    if (!match || match.index !== start) throw new SyntaxError("invalid number");
+    if (!match || match.index !== start)
+      throw new SyntaxError("invalid number");
     this.pos += match[0].length;
     const num = Number(match[0]);
     if (!Number.isFinite(num)) throw new SyntaxError("non-finite number");

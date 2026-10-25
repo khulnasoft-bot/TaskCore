@@ -24,11 +24,23 @@ export function Banner({
   );
 }
 
-export function BannerText({ className = "", ...props }: React.ComponentProps<"p">) {
-  return <p data-slot="banner-text" className={`pcr-banner-text ${className}`.trim()} {...props} />;
+export function BannerText({
+  className = "",
+  ...props
+}: React.ComponentProps<"p">) {
+  return (
+    <p
+      data-slot="banner-text"
+      className={`pcr-banner-text ${className}`.trim()}
+      {...props}
+    />
+  );
 }
 
-export function BannerActions({ className = "", ...props }: React.ComponentProps<"div">) {
+export function BannerActions({
+  className = "",
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="banner-actions"

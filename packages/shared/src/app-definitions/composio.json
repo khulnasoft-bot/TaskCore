@@ -3,9 +3,7 @@
   "slug": "composio",
   "name": "Composio",
   "description": "Discover and use connected apps through Composio Connect.",
-  "categories": [
-    "productivity"
-  ],
+  "categories": ["productivity"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/composio.svg",
@@ -22,10 +20,7 @@
       "key": "mcp",
       "transport": "mcp_remote",
       "auth": "none",
-      "ownershipModes": [
-        "dcr",
-        "customer"
-      ],
+      "ownershipModes": ["dcr", "customer"],
       "whenToUse": "Use the provider-hosted connection for the quickest setup.",
       "defaults": {
         "serverUrl": "https://connect.composio.dev/mcp"

@@ -1,7 +1,8 @@
 export const type = "pi_local";
 export const label = "Pi";
 
-export const SANDBOX_INSTALL_COMMAND = "npm install -g @earendil-works/pi-coding-agent@0.74.0";
+export const SANDBOX_INSTALL_COMMAND =
+  "npm install -g @earendil-works/pi-coding-agent@0.74.0";
 
 export const models: Array<{ id: string; label: string }> = [];
 

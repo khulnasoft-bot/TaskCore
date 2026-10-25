@@ -26,7 +26,11 @@ export function AppsReview() {
   }, [setBreadcrumbs]);
 
   if (!selectedCompanyId) {
-    return <div className="p-6 text-sm text-muted-foreground">Select an organization to review approvals.</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Select an organization to review approvals.
+      </div>
+    );
   }
 
   return (
@@ -34,7 +38,8 @@ export function AppsReview() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Review</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Actions your agents want to run that need your OK first. Approve, always-allow, or decline.
+          Actions your agents want to run that need your OK first. Approve,
+          always-allow, or decline.
         </p>
       </header>
 

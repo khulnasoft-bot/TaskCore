@@ -38,7 +38,12 @@ function discoverPublicPackages() {
 
     for (const entry of readdirSync(absDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
+      if (
+        entry.name === "node_modules" ||
+        entry.name === "dist" ||
+        entry.name === ".git"
+      )
+        continue;
       walk(join(relDir, entry.name));
     }
   }
@@ -59,15 +64,21 @@ function loadReleaseManifest() {
 
   return manifest.map((entry, index) => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      throw new Error(`manifest entry ${index + 1} in ${manifestPath} must be an object.`);
+      throw new Error(
+        `manifest entry ${index + 1} in ${manifestPath} must be an object.`,
+      );
     }
 
     if (typeof entry.dir !== "string" || entry.dir.length === 0) {
-      throw new Error(`manifest entry ${index + 1} in ${manifestPath} is missing a non-empty "dir".`);
+      throw new Error(
+        `manifest entry ${index + 1} in ${manifestPath} is missing a non-empty "dir".`,
+      );
     }
 
     if (typeof entry.name !== "string" || entry.name.length === 0) {
-      throw new Error(`manifest entry ${index + 1} in ${manifestPath} is missing a non-empty "name".`);
+      throw new Error(
+        `manifest entry ${index + 1} in ${manifestPath} is missing a non-empty "name".`,
+      );
     }
 
     if (typeof entry.publishFromCi !== "boolean") {
@@ -82,7 +93,11 @@ function loadReleaseManifest() {
 
 // Sections whose @taskcore workspace deps are rewritten to the calver release
 // version by replaceWorkspaceDeps() and that consumers resolve at install time.
-const RESOLVED_DEP_SECTIONS = ["dependencies", "optionalDependencies", "peerDependencies"];
+const RESOLVED_DEP_SECTIONS = [
+  "dependencies",
+  "optionalDependencies",
+  "peerDependencies",
+];
 
 // A publishFromCi:true package gets republished at the unified calver version every
 // release, and every @taskcore/* workspace: dep it declares is rewritten to that
@@ -91,7 +106,9 @@ const RESOLVED_DEP_SECTIONS = ["dependencies", "optionalDependencies", "peerDepe
 // the package becomes uninstallable. Detect those edges so the release fails fast
 // instead of shipping a broken canary (e.g. server -> skills-catalog from #8327).
 function findUnpublishableWorkspaceEdges(packages) {
-  const publishFromCiByName = new Map(packages.map((pkg) => [pkg.name, pkg.publishFromCi]));
+  const publishFromCiByName = new Map(
+    packages.map((pkg) => [pkg.name, pkg.publishFromCi]),
+  );
   const problems = [];
 
   for (const pkg of packages) {
@@ -103,7 +120,8 @@ function findUnpublishableWorkspaceEdges(packages) {
 
       for (const [depName, spec] of Object.entries(deps)) {
         if (!depName.startsWith("@taskcore/")) continue;
-        if (typeof spec !== "string" || !spec.startsWith("workspace:")) continue;
+        if (typeof spec !== "string" || !spec.startsWith("workspace:"))
+          continue;
         if (publishFromCiByName.get(depName) === true) continue;
 
         problems.push(
@@ -136,7 +154,9 @@ function buildReleasePackagePlan() {
     const pkg = packageByDir.get(entry.dir);
 
     if (!pkg) {
-      problems.push(`${entry.dir} is listed in ${manifestPath} but is not a public package in this repo`);
+      problems.push(
+        `${entry.dir} is listed in ${manifestPath} but is not a public package in this repo`,
+      );
       continue;
     }
 
@@ -156,7 +176,9 @@ function buildReleasePackagePlan() {
   }
 
   if (problems.length > 0) {
-    throw new Error(`release package manifest validation failed:\n- ${problems.join("\n- ")}`);
+    throw new Error(
+      `release package manifest validation failed:\n- ${problems.join("\n- ")}`,
+    );
   }
 
   const packages = discoveredPackages.map((pkg) => ({
@@ -166,7 +188,9 @@ function buildReleasePackagePlan() {
 
   const edgeProblems = findUnpublishableWorkspaceEdges(packages);
   if (edgeProblems.length > 0) {
-    throw new Error(`release package manifest validation failed:\n- ${edgeProblems.join("\n- ")}`);
+    throw new Error(
+      `release package manifest validation failed:\n- ${edgeProblems.join("\n- ")}`,
+    );
   }
 
   return packages;
@@ -212,8 +236,12 @@ function sortTopologically(packages) {
 }
 
 function getReleasePackages() {
-  const ordered = sortTopologically(buildReleasePackagePlan().filter((pkg) => pkg.publishFromCi));
-  const entrypoint = ordered.find((pkg) => pkg.name === CHANNEL_ENTRYPOINT_PACKAGE);
+  const ordered = sortTopologically(
+    buildReleasePackagePlan().filter((pkg) => pkg.publishFromCi),
+  );
+  const entrypoint = ordered.find(
+    (pkg) => pkg.name === CHANNEL_ENTRYPOINT_PACKAGE,
+  );
 
   if (!entrypoint) {
     throw new Error(
@@ -251,7 +279,10 @@ function setVersion(version) {
       ...pkg.pkg,
       version,
       dependencies: replaceWorkspaceDeps(pkg.pkg.dependencies, version),
-      optionalDependencies: replaceWorkspaceDeps(pkg.pkg.optionalDependencies, version),
+      optionalDependencies: replaceWorkspaceDeps(
+        pkg.pkg.optionalDependencies,
+        version,
+      ),
       peerDependencies: replaceWorkspaceDeps(pkg.pkg.peerDependencies, version),
       devDependencies: replaceWorkspaceDeps(pkg.pkg.devDependencies, version),
     };
@@ -289,7 +320,9 @@ function checkConfiguration() {
   const disabledCount = packages.length - enabledCount;
 
   if (enabledCount === 0) {
-    throw new Error(`no packages are enabled for CI publishing in ${manifestPath}`);
+    throw new Error(
+      `no packages are enabled for CI publishing in ${manifestPath}`,
+    );
   }
 
   process.stdout.write(
@@ -310,7 +343,9 @@ function usage() {
 }
 
 const [command, arg] = process.argv.slice(2);
-const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isDirectRun =
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
   if (command === "list") {

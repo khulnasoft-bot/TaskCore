@@ -5,7 +5,10 @@ import { isUuidLike } from "@taskcore/shared";
 import { unprocessable } from "../errors.js";
 
 /** Creation provenance is independent of the task's current parent or project. */
-export function createdFromIssueCondition(companyId: string, sourceIssueId: string) {
+export function createdFromIssueCondition(
+  companyId: string,
+  sourceIssueId: string,
+) {
   if (!isUuidLike(sourceIssueId)) {
     throw unprocessable("createdFromIssueId must be a UUID");
   }

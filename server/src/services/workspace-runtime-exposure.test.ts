@@ -3,7 +3,16 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import {
   deriveViteHmrPort,
@@ -11,7 +20,10 @@ import {
   RUNTIME_EXPOSURE_APP_PORT_MIN,
 } from "@taskcore/shared";
 
-import type { BrokerClient, BrokerListenerRequest } from "./runtime-exposure/broker-client.js";
+import type {
+  BrokerClient,
+  BrokerListenerRequest,
+} from "./runtime-exposure/broker-client.js";
 import {
   diagnoseRuntimeListenerBinds,
   readListenerBindFacts,
@@ -172,9 +184,18 @@ process.exit(1);
 
 beforeAll(async () => {
   guestDir = await fs.mkdtemp(path.join(os.tmpdir(), "pap-17256-guest-"));
-  await fs.writeFile(path.join(guestDir, "dev-runner.mjs"), PRE_MANAGED_EXPOSURE_GUEST);
-  await fs.writeFile(path.join(guestDir, "dev-runner-legacy.mjs"), ALWAYS_WILDCARD_GUEST);
-  await fs.writeFile(path.join(guestDir, "dev-runner-wildcard-hmr.mjs"), WILDCARD_HMR_GUEST);
+  await fs.writeFile(
+    path.join(guestDir, "dev-runner.mjs"),
+    PRE_MANAGED_EXPOSURE_GUEST,
+  );
+  await fs.writeFile(
+    path.join(guestDir, "dev-runner-legacy.mjs"),
+    ALWAYS_WILDCARD_GUEST,
+  );
+  await fs.writeFile(
+    path.join(guestDir, "dev-runner-wildcard-hmr.mjs"),
+    WILDCARD_HMR_GUEST,
+  );
   await fs.writeFile(
     path.join(guestDir, "dev-runner-bind-conflict.mjs"),
     'process.stderr.write("local_trusted requires server.bind=loopback\\n"); process.exit(1);\n',
@@ -216,11 +237,17 @@ function createBroker() {
     async reserve(_runtimeId, requested) {
       calls.push("reserve");
       listeners = requested;
-      return { handle: HANDLE, reservedPorts: requested.map((listener) => listener.port) };
+      return {
+        handle: HANDLE,
+        reservedPorts: requested.map((listener) => listener.port),
+      };
     },
     async expose() {
       calls.push("expose");
-      return { handle: HANDLE, publicPorts: listeners.map((listener) => listener.port) };
+      return {
+        handle: HANDLE,
+        publicPorts: listeners.map((listener) => listener.port),
+      };
     },
     async remove() {
       calls.push("remove");
@@ -270,12 +297,21 @@ async function isLoopbackPortFree(port: number): Promise<boolean> {
  * under test.
  */
 async function findFreeExposureAppPort(startAt: number): Promise<number> {
-  for (let appPort = startAt; appPort <= RUNTIME_EXPOSURE_APP_PORT_MAX; appPort += 1) {
-    if (await isLoopbackPortFree(appPort) && await isLoopbackPortFree(deriveViteHmrPort(appPort))) {
+  for (
+    let appPort = startAt;
+    appPort <= RUNTIME_EXPOSURE_APP_PORT_MAX;
+    appPort += 1
+  ) {
+    if (
+      (await isLoopbackPortFree(appPort)) &&
+      (await isLoopbackPortFree(deriveViteHmrPort(appPort)))
+    ) {
       return appPort;
     }
   }
-  throw new Error("no free app/HMR port pair available in the dedicated runtime exposure range");
+  throw new Error(
+    "no free app/HMR port pair available in the dedicated runtime exposure range",
+  );
 }
 
 function installDeps(overrides: {
@@ -290,12 +326,14 @@ function installDeps(overrides: {
     broker: overrides.broker,
     isPortAvailable: overrides.isPortAvailable ?? isLoopbackPortFree,
     isBrokerAvailable: overrides.isBrokerAvailable ?? (async () => true),
-    resolveHostname: overrides.resolveHostname ?? (async () => "runner.tail123.ts.net"),
+    resolveHostname:
+      overrides.resolveHostname ?? (async () => "runner.tail123.ts.net"),
     probeHealth: overrides.probeHealth ?? (async () => true),
     now: () => "2026-08-11T00:00:00.000Z",
     // The real /proc-backed diagnosis, not a fake: the fake broker below always
     // says yes, so this is what has to catch an off-loopback bind here.
-    diagnoseListenerBinds: overrides.diagnoseListenerBinds ?? diagnoseRuntimeListenerBinds,
+    diagnoseListenerBinds:
+      overrides.diagnoseListenerBinds ?? diagnoseRuntimeListenerBinds,
   });
 }
 
@@ -323,10 +361,15 @@ function startInput(options?: {
   port?: Record<string, unknown> | number;
   command?: string;
 }) {
-  const expose = options?.expose === undefined ? DECLARED_EXPOSE : options.expose;
+  const expose =
+    options?.expose === undefined ? DECLARED_EXPOSE : options.expose;
   return {
     invocationId: "runtime-exposure-test",
-    actor: { id: null, name: "Taskcore", companyId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" },
+    actor: {
+      id: null,
+      name: "Taskcore",
+      companyId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    },
     issue: null,
     workspace: {
       baseCwd: process.cwd(),
@@ -346,16 +389,22 @@ function startInput(options?: {
     executionWorkspaceId: EXECUTION_WORKSPACE_ID,
     config: {
       workspaceRuntime: {
-        services: [{
-          name: options?.serviceName ?? "preview",
-          command: options?.command ?? serviceCommand(),
-          env: { TASKCORE_PUBLIC_URL: "http://127.0.0.1:3100" },
-          port: options?.port ?? { type: "auto", envKey: "PORT" },
-          // These lifecycle tests spawn real servers; cold CI startup can take
-          // five seconds before the first listener is ready.
-          readiness: { type: "http", urlTemplate: "http://127.0.0.1:{{port}}", timeoutSec: 10 },
-          ...(expose ? { expose } : {}),
-        }],
+        services: [
+          {
+            name: options?.serviceName ?? "preview",
+            command: options?.command ?? serviceCommand(),
+            env: { TASKCORE_PUBLIC_URL: "http://127.0.0.1:3100" },
+            port: options?.port ?? { type: "auto", envKey: "PORT" },
+            // These lifecycle tests spawn real servers; cold CI startup can take
+            // five seconds before the first listener is ready.
+            readiness: {
+              type: "http",
+              urlTemplate: "http://127.0.0.1:{{port}}",
+              timeoutSec: 10,
+            },
+            ...(expose ? { expose } : {}),
+          },
+        ],
       },
     },
     adapterEnv: {},
@@ -371,12 +420,15 @@ describe("workspace runtime tailscale_https lifecycle", () => {
         ...broker,
         async reserve(runtimeId, listeners) {
           reservedPorts = listeners.map((listener) => listener.port);
-          for (const port of reservedPorts) expect(await isLoopbackPortFree(port)).toBe(true);
+          for (const port of reservedPorts)
+            expect(await isLoopbackPortFree(port)).toBe(true);
           return broker.reserve(runtimeId, listeners);
         },
         async expose(...args) {
           for (const port of reservedPorts) {
-            const response = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(5_000) });
+            const response = await fetch(`http://127.0.0.1:${port}/`, {
+              signal: AbortSignal.timeout(5_000),
+            });
             expect(await response.text()).toBe("ok");
           }
           return broker.expose(...args);
@@ -400,14 +452,17 @@ describe("workspace runtime tailscale_https lifecycle", () => {
       runtimeServiceId: runtime.id,
     });
     expect(calls).toEqual(["reserve", "expose", "remove"]);
-    for (const port of reservedPorts) expect(await isLoopbackPortFree(port)).toBe(true);
+    for (const port of reservedPorts)
+      expect(await isLoopbackPortFree(port)).toBe(true);
   }, 35_000);
 
   it("fails closed and removes the mapping when external HTTPS validation fails", async () => {
     const { broker, calls } = createBroker();
     installDeps({ broker, probeHealth: async () => false });
 
-    await expect(startRuntimeServicesForWorkspaceControl(startInput())).rejects.toThrow(/HTTPS exposure failed/);
+    await expect(
+      startRuntimeServicesForWorkspaceControl(startInput()),
+    ).rejects.toThrow(/HTTPS exposure failed/);
     expect(calls).toEqual(["reserve", "expose", "remove"]);
   }, 15_000);
 });
@@ -418,11 +473,13 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     installDeps({ broker });
 
     // Exactly the persisted pre-feature shape: pinned 45439 + HTTP urlTemplate.
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      expose: LEGACY_HTTP_EXPOSE,
-      port: 45_439,
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        expose: LEGACY_HTTP_EXPOSE,
+        port: 45_439,
+      }),
+    );
 
     expect(calls.slice(0, 2)).toEqual(["reserve", "expose"]);
     // 45439 is outside the broker allowlist, so the pinned port cannot be kept.
@@ -444,14 +501,18 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     // scan would return that lower pair, so coming back with the pinned port
     // still proves the behaviour — without betting the test on one hard-coded
     // host port (formerly 42500) staying unoccupied for the whole run.
-    const lowestFreeAppPort = await findFreeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MIN);
+    const lowestFreeAppPort = await findFreeExposureAppPort(
+      RUNTIME_EXPOSURE_APP_PORT_MIN,
+    );
     const pinnedPort = await findFreeExposureAppPort(lowestFreeAppPort + 1);
 
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      expose: LEGACY_HTTP_EXPOSE,
-      port: pinnedPort,
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        expose: LEGACY_HTTP_EXPOSE,
+        port: pinnedPort,
+      }),
+    );
 
     expect(runtime.port).toBe(pinnedPort);
     expect(runtime.url).toBe(`https://runner.tail123.ts.net:${pinnedPort}`);
@@ -461,11 +522,13 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     const { broker, calls } = createBroker();
     installDeps({ broker });
 
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      expose: { ...LEGACY_HTTP_EXPOSE, tailscaleHttps: false },
-      port: { type: "auto", envKey: "PORT" },
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        expose: { ...LEGACY_HTTP_EXPOSE, tailscaleHttps: false },
+        port: { type: "auto", envKey: "PORT" },
+      }),
+    );
 
     expect(calls).toEqual([]);
     expect(runtime.exposure ?? null).toBeNull();
@@ -476,11 +539,13 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     const { broker, calls } = createBroker();
     installDeps({ broker });
 
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "preview",
-      expose: LEGACY_HTTP_EXPOSE,
-      port: { type: "auto", envKey: "PORT" },
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "preview",
+        expose: LEGACY_HTTP_EXPOSE,
+        port: { type: "auto", envKey: "PORT" },
+      }),
+    );
 
     expect(calls).toEqual([]);
     expect(runtime.exposure ?? null).toBeNull();
@@ -491,11 +556,13 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     const { broker, calls } = createBroker();
     installDeps({ broker, isBrokerAvailable: async () => false });
 
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      expose: LEGACY_HTTP_EXPOSE,
-      port: { type: "auto", envKey: "PORT" },
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        expose: LEGACY_HTTP_EXPOSE,
+        port: { type: "auto", envKey: "PORT" },
+      }),
+    );
 
     expect(calls).toEqual([]);
     expect(runtime.exposure ?? null).toBeNull();
@@ -514,7 +581,9 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     installDeps({ broker: failing, isBrokerAvailable: async () => false });
 
     await expect(
-      startRuntimeServicesForWorkspaceControl(startInput({ serviceName: "taskcore-dev" })),
+      startRuntimeServicesForWorkspaceControl(
+        startInput({ serviceName: "taskcore-dev" }),
+      ),
     ).rejects.toThrow();
     expect(calls).toEqual(["reserve"]);
   }, 15_000);
@@ -523,11 +592,13 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     const { broker, calls } = createBroker();
     installDeps({ broker });
 
-    const [first] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      expose: LEGACY_HTTP_EXPOSE,
-      port: 45_439,
-    }));
+    const [first] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        expose: LEGACY_HTTP_EXPOSE,
+        port: 45_439,
+      }),
+    );
     const firstPort = first.port;
     await stopRuntimeServicesForExecutionWorkspace({
       executionWorkspaceId: EXECUTION_WORKSPACE_ID,
@@ -535,11 +606,13 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     });
     calls.length = 0;
 
-    const [second] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      expose: LEGACY_HTTP_EXPOSE,
-      port: 45_439,
-    }));
+    const [second] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        expose: LEGACY_HTTP_EXPOSE,
+        port: 45_439,
+      }),
+    );
 
     expect(calls.slice(0, 2)).toEqual(["reserve", "expose"]);
     expect(second.port).toBe(firstPort);
@@ -557,7 +630,10 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
     const broker: BrokerClient = {
       async reserve(_runtimeId, requested) {
         reservedAppPorts.push(requested[0]!.port);
-        return { handle: HANDLE, reservedPorts: requested.map((listener) => listener.port) };
+        return {
+          handle: HANDLE,
+          reservedPorts: requested.map((listener) => listener.port),
+        };
       },
       async expose() {
         return { handle: HANDLE, publicPorts: [] };
@@ -578,7 +654,9 @@ describe("automatic tailscale_https default for managed worktree runtimes", () =
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await expect(
-        startRuntimeServicesForWorkspaceControl(startInput({ serviceName: "taskcore-dev" })),
+        startRuntimeServicesForWorkspaceControl(
+          startInput({ serviceName: "taskcore-dev" }),
+        ),
       ).rejects.toThrow(/MagicDNS hostname unavailable/);
     }
 
@@ -600,13 +678,15 @@ describe("loopback bind is forced on the guest, not merely requested (PAP-17256)
     const { broker, calls } = createBroker();
     installDeps({ broker });
 
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      // Verbatim the command every failing lane recorded, modulo the fake guest.
-      command: `${guestCommand("dev-runner.mjs")} --bind lan`,
-      expose: LEGACY_HTTP_EXPOSE,
-      port: { type: "auto", envKey: "PORT" },
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        // Verbatim the command every failing lane recorded, modulo the fake guest.
+        command: `${guestCommand("dev-runner.mjs")} --bind lan`,
+        expose: LEGACY_HTTP_EXPOSE,
+        port: { type: "auto", envKey: "PORT" },
+      }),
+    );
 
     // The launched command carries the loopback bind, replacing `--bind lan`.
     expect(runtime.command).toContain("--bind loopback");
@@ -623,7 +703,9 @@ describe("loopback bind is forced on the guest, not merely requested (PAP-17256)
     // Independent confirmation on the live listeners, using the same /proc read
     // the broker's gate performs.
     const hmrPort = runtime.port! + 10_000;
-    expect(await diagnoseRuntimeListenerBinds([runtime.port!, hmrPort])).toBeNull();
+    expect(
+      await diagnoseRuntimeListenerBinds([runtime.port!, hmrPort]),
+    ).toBeNull();
 
     await stopRuntimeServicesForExecutionWorkspace({
       executionWorkspaceId: EXECUTION_WORKSPACE_ID,
@@ -633,42 +715,59 @@ describe("loopback bind is forced on the guest, not merely requested (PAP-17256)
   }, 20_000);
 
   // This acceptance fixture inspects live Linux /proc socket tables.
-  it.skipIf(process.platform !== "linux")("reaches a terminal failure naming the port and address when a guest still binds the wildcard", async () => {
-    const { broker, calls } = createBroker();
-    installDeps({ broker });
+  it.skipIf(process.platform !== "linux")(
+    "reaches a terminal failure naming the port and address when a guest still binds the wildcard",
+    async () => {
+      const { broker, calls } = createBroker();
+      installDeps({ broker });
 
-    // A guest with no bind flags at all: the argv rewrite cannot reach it, so
-    // this is the residual case that must fail loudly rather than expose.
-    await expect(startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      command: guestCommand("dev-runner-legacy.mjs"),
-      expose: LEGACY_HTTP_EXPOSE,
-      port: { type: "auto", envKey: "PORT" },
-    }))).rejects.toThrow(/listener_ownership_mismatch.*(?:0\.0\.0\.0|::)/s);
+      // A guest with no bind flags at all: the argv rewrite cannot reach it, so
+      // this is the residual case that must fail loudly rather than expose.
+      await expect(
+        startRuntimeServicesForWorkspaceControl(
+          startInput({
+            serviceName: "taskcore-dev",
+            command: guestCommand("dev-runner-legacy.mjs"),
+            expose: LEGACY_HTTP_EXPOSE,
+            port: { type: "auto", envKey: "PORT" },
+          }),
+        ),
+      ).rejects.toThrow(/listener_ownership_mismatch.*(?:0\.0\.0\.0|::)/s);
 
-    // Terminal recovery: the reservation is released and nothing was exposed.
-    // The diagnosis runs before the broker, so `expose` is never attempted.
-    expect(calls).toEqual(["reserve", "remove"]);
-  }, 20_000);
+      // Terminal recovery: the reservation is released and nothing was exposed.
+      // The diagnosis runs before the broker, so `expose` is never attempted.
+      expect(calls).toEqual(["reserve", "remove"]);
+    },
+    20_000,
+  );
 
   // This acceptance fixture inspects live Linux /proc socket tables.
-  it.skipIf(process.platform !== "linux")("explains rather than only coding the failure, so the next operator can act", async () => {
-    const { broker } = createBroker();
-    installDeps({ broker });
+  it.skipIf(process.platform !== "linux")(
+    "explains rather than only coding the failure, so the next operator can act",
+    async () => {
+      const { broker } = createBroker();
+      installDeps({ broker });
 
-    const error = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      command: guestCommand("dev-runner-legacy.mjs"),
-      expose: LEGACY_HTTP_EXPOSE,
-      port: { type: "auto", envKey: "PORT" },
-    })).then(() => null, (err: unknown) => err as Error);
+      const error = await startRuntimeServicesForWorkspaceControl(
+        startInput({
+          serviceName: "taskcore-dev",
+          command: guestCommand("dev-runner-legacy.mjs"),
+          expose: LEGACY_HTTP_EXPOSE,
+          port: { type: "auto", envKey: "PORT" },
+        }),
+      ).then(
+        () => null,
+        (err: unknown) => err as Error,
+      );
 
-    expect(error).not.toBeNull();
-    // The bare code alone is what cost PAP-17254 three diagnostic cycles.
-    expect(error!.message).toContain("listener_ownership_mismatch");
-    expect(error!.message).toContain("loopback");
-    expect(error!.message).toContain("--bind loopback");
-  }, 20_000);
+      expect(error).not.toBeNull();
+      // The bare code alone is what cost PAP-17254 three diagnostic cycles.
+      expect(error!.message).toContain("listener_ownership_mismatch");
+      expect(error!.message).toContain("loopback");
+      expect(error!.message).toContain("--bind loopback");
+    },
+    20_000,
+  );
 
   it("leaves a non-Taskcore service's --bind argument alone", async () => {
     // `--bind` means something entirely different to the HTTPS probe canaries
@@ -677,11 +776,13 @@ describe("loopback bind is forced on the guest, not merely requested (PAP-17256)
     installDeps({ broker });
 
     const declared = `${serviceCommand()} -- --bind 127.0.0.1`;
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "https-probe-canary",
-      command: declared,
-      port: { type: "auto", envKey: "PORT" },
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "https-probe-canary",
+        command: declared,
+        port: { type: "auto", envKey: "PORT" },
+      }),
+    );
 
     expect(runtime.command).toBe(declared);
     expect(runtime.command).not.toContain("--bind loopback");
@@ -694,14 +795,16 @@ describe("loopback bind is forced on the guest, not merely requested (PAP-17256)
     installDeps({ broker });
 
     const declared = `${guestCommand("dev-runner.mjs")} --bind lan`;
-    const [runtime] = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      command: declared,
-      expose: { ...LEGACY_HTTP_EXPOSE, tailscaleHttps: false },
-      // This guest opens a second listener at appPort + 10000. An arbitrary
-      // ephemeral app port can overflow the valid TCP port range.
-      port: await findFreeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MIN),
-    }));
+    const [runtime] = await startRuntimeServicesForWorkspaceControl(
+      startInput({
+        serviceName: "taskcore-dev",
+        command: declared,
+        expose: { ...LEGACY_HTTP_EXPOSE, tailscaleHttps: false },
+        // This guest opens a second listener at appPort + 10000. An arbitrary
+        // ephemeral app port can overflow the valid TCP port range.
+        port: await findFreeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MIN),
+      }),
+    );
 
     expect(calls).toEqual([]);
     expect(runtime.command).toBe(declared);
@@ -711,12 +814,16 @@ describe("loopback bind is forced on the guest, not merely requested (PAP-17256)
     const { broker } = createBroker();
     installDeps({ broker });
 
-    await expect(startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      command: guestCommand("dev-runner-bind-conflict.mjs"),
-      expose: LEGACY_HTTP_EXPOSE,
-      port: { type: "auto", envKey: "PORT" },
-    }))).rejects.toThrow(
+    await expect(
+      startRuntimeServicesForWorkspaceControl(
+        startInput({
+          serviceName: "taskcore-dev",
+          command: guestCommand("dev-runner-bind-conflict.mjs"),
+          expose: LEGACY_HTTP_EXPOSE,
+          port: { type: "auto", envKey: "PORT" },
+        }),
+      ),
+    ).rejects.toThrow(
       /deployment\/bind conflict: local_trusted requires server\.bind=loopback.*output: local_trusted requires server\.bind=loopback/s,
     );
   }, 20_000);
@@ -738,7 +845,10 @@ describe("readiness probes loopback for an exposed runtime (PAP-17256)", () => {
       port: { type: "auto", envKey: "PORT" },
     });
     // Drop the explicit loopback readiness URL so the fallback path is exercised.
-    const service = input.config.workspaceRuntime.services[0] as Record<string, unknown>;
+    const service = input.config.workspaceRuntime.services[0] as Record<
+      string,
+      unknown
+    >;
     service.readiness = { type: "http", timeoutSec: 10, intervalMs: 100 };
 
     const [runtime] = await startRuntimeServicesForWorkspaceControl(input);
@@ -751,174 +861,224 @@ describe("readiness probes loopback for an exposed runtime (PAP-17256)", () => {
 
 describe("the deployed failure shape: loopback app port, wildcard HMR (PAP-17256)", () => {
   // This acceptance fixture inspects live Linux /proc socket tables.
-  it.skipIf(process.platform !== "linux")("fails terminally naming the HMR port, because forcing the bind cannot reach Vite's own listener", async () => {
-    // Plain master's app.ts passes Vite `hmr.port` without `hmr.server` or
-    // `server.host`, so the HMR websocket binds `::` no matter what the bind mode
-    // is. The argv rewrite fixes the app port; only the preflight catches this.
-    const { broker, calls } = createBroker();
-    installDeps({ broker });
+  it.skipIf(process.platform !== "linux")(
+    "fails terminally naming the HMR port, because forcing the bind cannot reach Vite's own listener",
+    async () => {
+      // Plain master's app.ts passes Vite `hmr.port` without `hmr.server` or
+      // `server.host`, so the HMR websocket binds `::` no matter what the bind mode
+      // is. The argv rewrite fixes the app port; only the preflight catches this.
+      const { broker, calls } = createBroker();
+      installDeps({ broker });
 
-    const error = await startRuntimeServicesForWorkspaceControl(startInput({
-      serviceName: "taskcore-dev",
-      command: `${guestCommand("dev-runner-wildcard-hmr.mjs")} --bind lan`,
-      expose: LEGACY_HTTP_EXPOSE,
-      port: { type: "auto", envKey: "PORT" },
-    })).then(() => null, (err: unknown) => err as Error);
+      const error = await startRuntimeServicesForWorkspaceControl(
+        startInput({
+          serviceName: "taskcore-dev",
+          command: `${guestCommand("dev-runner-wildcard-hmr.mjs")} --bind lan`,
+          expose: LEGACY_HTTP_EXPOSE,
+          port: { type: "auto", envKey: "PORT" },
+        }),
+      ).then(
+        () => null,
+        (err: unknown) => err as Error,
+      );
 
-    expect(error).not.toBeNull();
-    expect(error!.message).toContain("listener_ownership_mismatch");
-    // The app port obeyed the forced bind; the HMR companion is the offender, and
-    // the diagnosis has to say so rather than blaming the lane as a whole.
-    expect(error!.message).toMatch(/port 5\d{4} is bound to/);
-    expect(error!.message).not.toMatch(/port 4\d{4} is bound to/);
-    expect(calls).toEqual(["reserve", "remove"]);
-  }, 20_000);
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain("listener_ownership_mismatch");
+      // The app port obeyed the forced bind; the HMR companion is the offender, and
+      // the diagnosis has to say so rather than blaming the lane as a whole.
+      expect(error!.message).toMatch(/port 5\d{4} is bound to/);
+      expect(error!.message).not.toMatch(/port 4\d{4} is bound to/);
+      expect(calls).toEqual(["reserve", "remove"]);
+    },
+    20_000,
+  );
 });
 
-describe.each([false, true])("guest exposure-port collision reporting (base pair occupied: %s)", (basePairOccupied) => {
-  // The quarantine decision itself is unit-tested through
-  // `classifyExposureHostCollisions` below. A deterministic end-to-end quarantine
-  // test is not reachable here: a real host listener that holds the assigned port
-  // is intercepted earlier, either by the pre-spawn ownership guard or by the
-  // allocated-port bind wait, before the EADDRINUSE-text quarantine branch runs.
-  it("does not quarantine the pair when the guest fabricates an assigned-port EADDRINUSE with no host listener", async () => {
-    const { broker } = createBroker();
-    const reservedAppPorts: number[] = [];
-    const recordingBroker: BrokerClient = {
-      ...broker,
-      async reserve(runtimeId, requested) {
-        reservedAppPorts.push(requested[0]!.port);
-        return broker.reserve(runtimeId, requested);
-      },
-    };
-    installDeps({
-      broker: recordingBroker,
-      isPortAvailable: (port) => basePairOccupied &&
-        [RUNTIME_EXPOSURE_APP_PORT_MIN, deriveViteHmrPort(RUNTIME_EXPOSURE_APP_PORT_MIN)].includes(port)
-        ? Promise.resolve(false) : isLoopbackPortFree(port),
-    });
+describe.each([false, true])(
+  "guest exposure-port collision reporting (base pair occupied: %s)",
+  (basePairOccupied) => {
+    // The quarantine decision itself is unit-tested through
+    // `classifyExposureHostCollisions` below. A deterministic end-to-end quarantine
+    // test is not reachable here: a real host listener that holds the assigned port
+    // is intercepted earlier, either by the pre-spawn ownership guard or by the
+    // allocated-port bind wait, before the EADDRINUSE-text quarantine branch runs.
+    it("does not quarantine the pair when the guest fabricates an assigned-port EADDRINUSE with no host listener", async () => {
+      const { broker } = createBroker();
+      const reservedAppPorts: number[] = [];
+      const recordingBroker: BrokerClient = {
+        ...broker,
+        async reserve(runtimeId, requested) {
+          reservedAppPorts.push(requested[0]!.port);
+          return broker.reserve(runtimeId, requested);
+        },
+      };
+      installDeps({
+        broker: recordingBroker,
+        isPortAvailable: (port) =>
+          basePairOccupied &&
+          [
+            RUNTIME_EXPOSURE_APP_PORT_MIN,
+            deriveViteHmrPort(RUNTIME_EXPOSURE_APP_PORT_MIN),
+          ].includes(port)
+            ? Promise.resolve(false)
+            : isLoopbackPortFree(port),
+      });
 
-    const logs: string[] = [];
-    const error = await startRuntimeServicesForWorkspaceControl({
-      ...startInput({
-        serviceName: "taskcore-dev",
-        command: `${guestCommand("dev-runner-eaddrinuse-synthetic.mjs")} --bind lan`,
-        expose: LEGACY_HTTP_EXPOSE,
-        port: { type: "auto", envKey: "PORT" },
-      }),
-      onLog: async (_stream, chunk) => {
-        logs.push(chunk);
-      },
-    }).then(() => null, (err: unknown) => err as Error);
+      const logs: string[] = [];
+      const error = await startRuntimeServicesForWorkspaceControl({
+        ...startInput({
+          serviceName: "taskcore-dev",
+          command: `${guestCommand("dev-runner-eaddrinuse-synthetic.mjs")} --bind lan`,
+          expose: LEGACY_HTTP_EXPOSE,
+          port: { type: "auto", envKey: "PORT" },
+        }),
+        onLog: async (_stream, chunk) => {
+          logs.push(chunk);
+        },
+      }).then(
+        () => null,
+        (err: unknown) => err as Error,
+      );
 
-    // The assigned pair is free, so the printed EADDRINUSE line is unverified.
-    // The start fails terminally after ONE allocation and never burns the pool.
-    expect(error).not.toBeNull();
-    expect(error!.message).toContain(String(reservedAppPorts[0]));
-    expect(error!.message).toContain("not verified");
-    expect(reservedAppPorts).toHaveLength(1);
-    expect(reservedAppPorts[0]).toBeGreaterThanOrEqual(RUNTIME_EXPOSURE_APP_PORT_MIN + (basePairOccupied ? 1 : 0));
-    expect(reservedAppPorts[0]).toBeLessThanOrEqual(RUNTIME_EXPOSURE_APP_PORT_MAX);
+      // The assigned pair is free, so the printed EADDRINUSE line is unverified.
+      // The start fails terminally after ONE allocation and never burns the pool.
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain(String(reservedAppPorts[0]));
+      expect(error!.message).toContain("not verified");
+      expect(reservedAppPorts).toHaveLength(1);
+      expect(reservedAppPorts[0]).toBeGreaterThanOrEqual(
+        RUNTIME_EXPOSURE_APP_PORT_MIN + (basePairOccupied ? 1 : 0),
+      );
+      expect(reservedAppPorts[0]).toBeLessThanOrEqual(
+        RUNTIME_EXPOSURE_APP_PORT_MAX,
+      );
 
-    // No quarantine and no re-allocation happened for the unverified claim.
-    const diagnosis = logs.join("");
-    expect(diagnosis).not.toContain("Quarantined pair");
-    expect(diagnosis).not.toContain("collided during startup");
-  }, 25_000);
+      // No quarantine and no re-allocation happened for the unverified claim.
+      const diagnosis = logs.join("");
+      expect(diagnosis).not.toContain("Quarantined pair");
+      expect(diagnosis).not.toContain("collided during startup");
+    }, 25_000);
 
-  it("does not quarantine the pair for an EADDRINUSE on an unrelated auxiliary port", async () => {
-    const { broker } = createBroker();
-    const reservedAppPorts: number[] = [];
-    const recordingBroker: BrokerClient = {
-      ...broker,
-      async reserve(runtimeId, requested) {
-        reservedAppPorts.push(requested[0]!.port);
-        return broker.reserve(runtimeId, requested);
-      },
-    };
-    installDeps({
-      broker: recordingBroker,
-      isPortAvailable: (port) => basePairOccupied &&
-        [RUNTIME_EXPOSURE_APP_PORT_MIN, deriveViteHmrPort(RUNTIME_EXPOSURE_APP_PORT_MIN)].includes(port)
-        ? Promise.resolve(false) : isLoopbackPortFree(port),
-    });
+    it("does not quarantine the pair for an EADDRINUSE on an unrelated auxiliary port", async () => {
+      const { broker } = createBroker();
+      const reservedAppPorts: number[] = [];
+      const recordingBroker: BrokerClient = {
+        ...broker,
+        async reserve(runtimeId, requested) {
+          reservedAppPorts.push(requested[0]!.port);
+          return broker.reserve(runtimeId, requested);
+        },
+      };
+      installDeps({
+        broker: recordingBroker,
+        isPortAvailable: (port) =>
+          basePairOccupied &&
+          [
+            RUNTIME_EXPOSURE_APP_PORT_MIN,
+            deriveViteHmrPort(RUNTIME_EXPOSURE_APP_PORT_MIN),
+          ].includes(port)
+            ? Promise.resolve(false)
+            : isLoopbackPortFree(port),
+      });
 
-    const logs: string[] = [];
-    const error = await startRuntimeServicesForWorkspaceControl({
-      ...startInput({
-        serviceName: "taskcore-dev",
-        command: `${guestCommand("dev-runner-eaddrinuse-auxiliary.mjs")} --bind lan`,
-        expose: LEGACY_HTTP_EXPOSE,
-        port: { type: "auto", envKey: "PORT" },
-      }),
-      onLog: async (_stream, chunk) => {
-        logs.push(chunk);
-      },
-    }).then(() => null, (err: unknown) => err as Error);
+      const logs: string[] = [];
+      const error = await startRuntimeServicesForWorkspaceControl({
+        ...startInput({
+          serviceName: "taskcore-dev",
+          command: `${guestCommand("dev-runner-eaddrinuse-auxiliary.mjs")} --bind lan`,
+          expose: LEGACY_HTTP_EXPOSE,
+          port: { type: "auto", envKey: "PORT" },
+        }),
+        onLog: async (_stream, chunk) => {
+          logs.push(chunk);
+        },
+      }).then(
+        () => null,
+        (err: unknown) => err as Error,
+      );
 
-    // The failure names an unrelated port, so the assigned pair is not a
-    // collision. The start fails terminally after ONE allocation, and never
-    // burns the bounded retries on a valid pair.
-    expect(error).not.toBeNull();
-    expect(error!.message).toContain("39999");
-    expect(reservedAppPorts).toHaveLength(1);
-    expect(reservedAppPorts[0]).toBeGreaterThanOrEqual(RUNTIME_EXPOSURE_APP_PORT_MIN + (basePairOccupied ? 1 : 0));
-    expect(reservedAppPorts[0]).toBeLessThanOrEqual(RUNTIME_EXPOSURE_APP_PORT_MAX);
+      // The failure names an unrelated port, so the assigned pair is not a
+      // collision. The start fails terminally after ONE allocation, and never
+      // burns the bounded retries on a valid pair.
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain("39999");
+      expect(reservedAppPorts).toHaveLength(1);
+      expect(reservedAppPorts[0]).toBeGreaterThanOrEqual(
+        RUNTIME_EXPOSURE_APP_PORT_MIN + (basePairOccupied ? 1 : 0),
+      );
+      expect(reservedAppPorts[0]).toBeLessThanOrEqual(
+        RUNTIME_EXPOSURE_APP_PORT_MAX,
+      );
 
-    // No quarantine and no re-allocation happened for the auxiliary conflict.
-    const diagnosis = logs.join("");
-    expect(diagnosis).not.toContain("Quarantined pair");
-    expect(diagnosis).not.toContain("collided during startup");
-  }, 25_000);
+      // No quarantine and no re-allocation happened for the auxiliary conflict.
+      const diagnosis = logs.join("");
+      expect(diagnosis).not.toContain("Quarantined pair");
+      expect(diagnosis).not.toContain("collided during startup");
+    }, 25_000);
 
-  it("does not quarantine when an auxiliary EADDRINUSE mixes with a benign assigned-port line", async () => {
-    const { broker } = createBroker();
-    const reservedAppPorts: number[] = [];
-    const recordingBroker: BrokerClient = {
-      ...broker,
-      async reserve(runtimeId, requested) {
-        reservedAppPorts.push(requested[0]!.port);
-        return broker.reserve(runtimeId, requested);
-      },
-    };
-    installDeps({
-      broker: recordingBroker,
-      isPortAvailable: (port) => basePairOccupied &&
-        [RUNTIME_EXPOSURE_APP_PORT_MIN, deriveViteHmrPort(RUNTIME_EXPOSURE_APP_PORT_MIN)].includes(port)
-        ? Promise.resolve(false) : isLoopbackPortFree(port),
-    });
+    it("does not quarantine when an auxiliary EADDRINUSE mixes with a benign assigned-port line", async () => {
+      const { broker } = createBroker();
+      const reservedAppPorts: number[] = [];
+      const recordingBroker: BrokerClient = {
+        ...broker,
+        async reserve(runtimeId, requested) {
+          reservedAppPorts.push(requested[0]!.port);
+          return broker.reserve(runtimeId, requested);
+        },
+      };
+      installDeps({
+        broker: recordingBroker,
+        isPortAvailable: (port) =>
+          basePairOccupied &&
+          [
+            RUNTIME_EXPOSURE_APP_PORT_MIN,
+            deriveViteHmrPort(RUNTIME_EXPOSURE_APP_PORT_MIN),
+          ].includes(port)
+            ? Promise.resolve(false)
+            : isLoopbackPortFree(port),
+      });
 
-    const logs: string[] = [];
-    const error = await startRuntimeServicesForWorkspaceControl({
-      ...startInput({
-        serviceName: "taskcore-dev",
-        command: `${guestCommand("dev-runner-eaddrinuse-auxiliary-mixed.mjs")} --bind lan`,
-        expose: LEGACY_HTTP_EXPOSE,
-        port: { type: "auto", envKey: "PORT" },
-      }),
-      onLog: async (_stream, chunk) => {
-        logs.push(chunk);
-      },
-    }).then(() => null, (err: unknown) => err as Error);
+      const logs: string[] = [];
+      const error = await startRuntimeServicesForWorkspaceControl({
+        ...startInput({
+          serviceName: "taskcore-dev",
+          command: `${guestCommand("dev-runner-eaddrinuse-auxiliary-mixed.mjs")} --bind lan`,
+          expose: LEGACY_HTTP_EXPOSE,
+          port: { type: "auto", envKey: "PORT" },
+        }),
+        onLog: async (_stream, chunk) => {
+          logs.push(chunk);
+        },
+      }).then(
+        () => null,
+        (err: unknown) => err as Error,
+      );
 
-    // The assigned port appears on a benign line, but EADDRINUSE names only
-    // the auxiliary port 39999. The parser matches the error and the port on the
-    // same line, so the assigned pair is not a collision. The start fails
-    // terminally after ONE allocation and never quarantines the valid pair.
-    expect(error).not.toBeNull();
-    expect(error!.message).toContain("39999");
-    expect(reservedAppPorts).toHaveLength(1);
-    expect(reservedAppPorts[0]).toBeGreaterThanOrEqual(RUNTIME_EXPOSURE_APP_PORT_MIN + (basePairOccupied ? 1 : 0));
-    expect(reservedAppPorts[0]).toBeLessThanOrEqual(RUNTIME_EXPOSURE_APP_PORT_MAX);
+      // The assigned port appears on a benign line, but EADDRINUSE names only
+      // the auxiliary port 39999. The parser matches the error and the port on the
+      // same line, so the assigned pair is not a collision. The start fails
+      // terminally after ONE allocation and never quarantines the valid pair.
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain("39999");
+      expect(reservedAppPorts).toHaveLength(1);
+      expect(reservedAppPorts[0]).toBeGreaterThanOrEqual(
+        RUNTIME_EXPOSURE_APP_PORT_MIN + (basePairOccupied ? 1 : 0),
+      );
+      expect(reservedAppPorts[0]).toBeLessThanOrEqual(
+        RUNTIME_EXPOSURE_APP_PORT_MAX,
+      );
 
-    const diagnosis = logs.join("");
-    expect(diagnosis).not.toContain("Quarantined pair");
-    expect(diagnosis).not.toContain("collided during startup");
-  }, 25_000);
-});
+      const diagnosis = logs.join("");
+      expect(diagnosis).not.toContain("Quarantined pair");
+      expect(diagnosis).not.toContain("collided during startup");
+    }, 25_000);
+  },
+);
 
 describe("classifyExposureHostCollisions gates quarantine on verified host state", () => {
-  const state = (over: Partial<ExposurePortHostState> & { port: number }): ExposurePortHostState => ({
+  const state = (
+    over: Partial<ExposurePortHostState> & { port: number },
+  ): ExposurePortHostState => ({
     named: false,
     listenerPresent: false,
     ownerPid: null,
@@ -930,11 +1090,24 @@ describe("classifyExposureHostCollisions gates quarantine on verified host state
     const result = classifyExposureHostCollisions({
       childPid: 4242,
       ports: [
-        state({ port: 42_000, named: true, listenerPresent: true, ownerPid: 9999 }),
-        state({ port: 52_000, named: false, listenerPresent: false, ownerPid: null }),
+        state({
+          port: 42_000,
+          named: true,
+          listenerPresent: true,
+          ownerPid: 9999,
+        }),
+        state({
+          port: 52_000,
+          named: false,
+          listenerPresent: false,
+          ownerPid: null,
+        }),
       ],
     });
-    expect(result).toEqual({ hostCollisionPorts: [42_000], hostCollision: true });
+    expect(result).toEqual({
+      hostCollisionPorts: [42_000],
+      hostCollision: true,
+    });
   });
 
   it("treats a present listener with an unknown owner as a host collision", () => {
@@ -942,9 +1115,19 @@ describe("classifyExposureHostCollisions gates quarantine on verified host state
     // hold it, so an unknown owner still counts as the host.
     const result = classifyExposureHostCollisions({
       childPid: 4242,
-      ports: [state({ port: 42_000, named: true, listenerPresent: true, ownerPid: null })],
+      ports: [
+        state({
+          port: 42_000,
+          named: true,
+          listenerPresent: true,
+          ownerPid: null,
+        }),
+      ],
     });
-    expect(result).toEqual({ hostCollisionPorts: [42_000], hostCollision: true });
+    expect(result).toEqual({
+      hostCollisionPorts: [42_000],
+      hostCollision: true,
+    });
   });
 
   it("does not report a collision when the named port has no listener", () => {
@@ -952,7 +1135,14 @@ describe("classifyExposureHostCollisions gates quarantine on verified host state
     // would drain the shared exposure-port pool across repeated starts.
     const result = classifyExposureHostCollisions({
       childPid: 4242,
-      ports: [state({ port: 42_000, named: true, listenerPresent: false, ownerPid: null })],
+      ports: [
+        state({
+          port: 42_000,
+          named: true,
+          listenerPresent: false,
+          ownerPid: null,
+        }),
+      ],
     });
     expect(result).toEqual({ hostCollisionPorts: [], hostCollision: false });
   });
@@ -961,7 +1151,14 @@ describe("classifyExposureHostCollisions gates quarantine on verified host state
     // The guest bound and holds its own port, so this is not a host collision.
     const result = classifyExposureHostCollisions({
       childPid: 4242,
-      ports: [state({ port: 42_000, named: true, listenerPresent: true, ownerPid: 4242 })],
+      ports: [
+        state({
+          port: 42_000,
+          named: true,
+          listenerPresent: true,
+          ownerPid: 4242,
+        }),
+      ],
     });
     expect(result).toEqual({ hostCollisionPorts: [], hostCollision: false });
   });
@@ -1002,14 +1199,24 @@ describe("classifyExposureHostCollisions gates quarantine on verified host state
         }),
       ],
     });
-    expect(result).toEqual({ hostCollisionPorts: [42_000], hostCollision: true });
+    expect(result).toEqual({
+      hostCollisionPorts: [42_000],
+      hostCollision: true,
+    });
   });
 
   it("ignores a present listener on a port the failure text did not name", () => {
     // An auxiliary-port conflict leaves the assigned pair valid.
     const result = classifyExposureHostCollisions({
       childPid: 4242,
-      ports: [state({ port: 42_000, named: false, listenerPresent: true, ownerPid: 9999 })],
+      ports: [
+        state({
+          port: 42_000,
+          named: false,
+          listenerPresent: true,
+          ownerPid: 9999,
+        }),
+      ],
     });
     expect(result).toEqual({ hostCollisionPorts: [], hostCollision: false });
   });

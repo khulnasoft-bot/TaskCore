@@ -31,7 +31,10 @@ import type {
   NativeSessionBackend,
 } from "../contracts/native-session-backend.js";
 import type { PrpEvent } from "../protocol/replay-contract.js";
-import { completeRetainedNativeSessionCleanup, executeNativeSession } from "../native-session-runtime.js";
+import {
+  completeRetainedNativeSessionCleanup,
+  executeNativeSession,
+} from "../native-session-runtime.js";
 import { NativeSessionCloseUnrecoverableError } from "../contracts/native-session-backend.js";
 import { DurablePrpControlPlane } from "../control-plane/durable-prp-control-plane.js";
 import * as durableControlPlane from "../control-plane/durable-prp-control-plane.js";
@@ -90,15 +93,48 @@ it.each([
   { alreadyEnded: true, appendFailure: false, epochFailure: "retired" },
   { alreadyEnded: true, appendFailure: false, holdSpawned: true },
   { alreadyEnded: true, appendFailure: false, completedTerminalAck: "pending" },
-  { alreadyEnded: true, appendFailure: false, completedTerminalAck: "completed" },
+  {
+    alreadyEnded: true,
+    appendFailure: false,
+    completedTerminalAck: "completed",
+  },
   { alreadyEnded: true, appendFailure: false, completedTerminalAck: "repeat" },
-  { alreadyEnded: true, appendFailure: false, finalRetirementRevocation: "abort" },
-  { alreadyEnded: true, appendFailure: false, finalRetirementRevocation: "revoked" },
-  { alreadyEnded: true, appendFailure: false, finalRetirementRevocation: "during_authorize" },
+  {
+    alreadyEnded: true,
+    appendFailure: false,
+    finalRetirementRevocation: "abort",
+  },
+  {
+    alreadyEnded: true,
+    appendFailure: false,
+    finalRetirementRevocation: "revoked",
+  },
+  {
+    alreadyEnded: true,
+    appendFailure: false,
+    finalRetirementRevocation: "during_authorize",
+  },
   { alreadyEnded: true, appendFailure: false, homeScoped: true },
-  { alreadyEnded: true, appendFailure: false, homeScoped: true, missingHome: true },
-  { alreadyEnded: true, appendFailure: false, homeScoped: true, missingHome: true, unknownExit: true },
-  { alreadyEnded: true, appendFailure: false, homeScoped: true, missingHome: true, startupFailureProof: true },
+  {
+    alreadyEnded: true,
+    appendFailure: false,
+    homeScoped: true,
+    missingHome: true,
+  },
+  {
+    alreadyEnded: true,
+    appendFailure: false,
+    homeScoped: true,
+    missingHome: true,
+    unknownExit: true,
+  },
+  {
+    alreadyEnded: true,
+    appendFailure: false,
+    homeScoped: true,
+    missingHome: true,
+    startupFailureProof: true,
+  },
   {
     alreadyEnded: true,
     appendFailure: false,
@@ -122,7 +158,8 @@ it.each([
     startupFailureProof,
   }) => {
     const replaySpyRestorers: Array<() => void> = [];
-    const replayRetirements: ReturnType<typeof maintenanceReplaySnapshot>[] = [];
+    const replayRetirements: ReturnType<typeof maintenanceReplaySnapshot>[] =
+      [];
     const withheldTerminalFrames: Array<{
       epoch: number;
       direction: "inbound" | "outbound";
@@ -199,27 +236,41 @@ it.each([
     ) => {
       // This helper may time out immediately after dispatching SIGKILL. Its
       // return/rejection alone is not proof that this exact child has exited.
-      await durableControlPlane.waitForProcess(handle, 250).catch(() => undefined);
+      await durableControlPlane
+        .waitForProcess(handle, 250)
+        .catch(() => undefined);
       let deadline: NodeJS.Timeout | undefined;
       try {
         await Promise.race([
           handle.completion,
           new Promise<never>((_resolveJoin, rejectJoin) => {
-            deadline = setTimeout(() => rejectJoin(new Error(
-              "startup-proof fixture could not join its exact runner child",
-            )), 5_000);
+            deadline = setTimeout(
+              () =>
+                rejectJoin(
+                  new Error(
+                    "startup-proof fixture could not join its exact runner child",
+                  ),
+                ),
+              5_000,
+            );
           }),
         ]);
         if (handle.processGroupId && !dead(-handle.processGroupId)) {
-          try { process.kill(-handle.processGroupId, "SIGKILL"); }
-          catch (error) {
+          try {
+            process.kill(-handle.processGroupId, "SIGKILL");
+          } catch (error) {
             if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
           }
         }
-        await vi.waitFor(() => {
-          expect(handle.child.pid && dead(handle.child.pid)).toBe(true);
-          expect(handle.processGroupId && dead(-handle.processGroupId)).toBe(true);
-        }, { timeout: 2_000 });
+        await vi.waitFor(
+          () => {
+            expect(handle.child.pid && dead(handle.child.pid)).toBe(true);
+            expect(handle.processGroupId && dead(-handle.processGroupId)).toBe(
+              true,
+            );
+          },
+          { timeout: 2_000 },
+        );
       } catch (error) {
         retainFixtureForUnprovenExit = true;
         throw error;
@@ -244,8 +295,9 @@ it.each([
       // The provider can exit when its runner dies. An already-gone process
       // group satisfies teardown; still fail on other signal errors and join below.
       for (const pid of [runnerPid, providerPid]) {
-        try { process.kill(-pid, "SIGKILL"); }
-        catch (error) {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
         }
       }
@@ -254,9 +306,7 @@ it.each([
         expect(dead(providerPid)).toBe(true);
       });
       if (alreadyEnded) {
-        const providerState = JSON.parse(
-          await readFile(fakeState, "utf8"),
-        );
+        const providerState = JSON.parse(await readFile(fakeState, "utf8"));
         await writeFile(
           fakeState,
           JSON.stringify({ ...providerState, activeTurnId: null }),
@@ -330,7 +380,9 @@ it.each([
       }
       await writeFile(providerFile, JSON.stringify(providerBefore));
       await cp(original, copy, { recursive: true });
-      const originalProviderHome = homeScoped ? await readFile(fakeState) : null;
+      const originalProviderHome = homeScoped
+        ? await readFile(fakeState)
+        : null;
       if (missingHome) await rm(join(copy, "codex-home/fake-codex-state.json"));
       const files = [
         "control-plane/control-plane-state.json",
@@ -517,14 +569,16 @@ it.each([
             close: async () => {},
           }),
         };
-        await expect(executeNativeSession({
-          input: nativeInput,
-          backend: independentBackend,
-          controlPlane: port,
-          runnerInstanceId: identity.runnerInstanceId,
-          controlPlaneInstanceId: "independent-control-maintenance",
-          requireSessionCloseBeforeReturn: true,
-        })).rejects.toThrow("independent fixture admission reached");
+        await expect(
+          executeNativeSession({
+            input: nativeInput,
+            backend: independentBackend,
+            controlPlane: port,
+            runnerInstanceId: identity.runnerInstanceId,
+            controlPlaneInstanceId: "independent-control-maintenance",
+            requireSessionCloseBeforeReturn: true,
+          }),
+        ).rejects.toThrow("independent fixture admission reached");
         expect(independentStart).toHaveBeenCalledOnce();
         await expect(execute()).rejects.toMatchObject({
           code: "native_session_cleanup_quarantined",
@@ -621,10 +675,14 @@ it.each([
         }
       }
       if (missingHome) {
-        const startupEvents = () => appendEvent.mock.calls
-          .map(([event]) => event)
-          .filter((event) => event.eventType === "harness.diagnostic" &&
-            event.payload.code === "provider_startup_ownership");
+        const startupEvents = () =>
+          appendEvent.mock.calls
+            .map(([event]) => event)
+            .filter(
+              (event) =>
+                event.eventType === "harness.diagnostic" &&
+                event.payload.code === "provider_startup_ownership",
+            );
         let startupPhasesBeforeFailure: unknown[] | null = null;
         const launch = durableControlPlane.spawnRunner;
         const completions: Promise<unknown>[] = [];
@@ -641,7 +699,9 @@ it.each([
               // dispatching a kill is not itself a durable retirement receipt.
               if (unknownExit) await exitGate;
               else
-                await new Promise((resolveExit) => setTimeout(resolveExit, 750));
+                await new Promise((resolveExit) =>
+                  setTimeout(resolveExit, 750),
+                );
               return result;
             });
             completions.push(completion);
@@ -657,8 +717,10 @@ it.each([
             )
           ) {
             if (startupFailureProof && startupPhasesBeforeFailure === null)
-              startupPhasesBeforeFailure = startupEvents().map((event) =>
-                (event.payload.startup as Record<string, unknown>).phase);
+              startupPhasesBeforeFailure = startupEvents().map(
+                (event) =>
+                  (event.payload.startup as Record<string, unknown>).phase,
+              );
             throw new Error("native_cleanup_maintenance_unproven");
           }
         });
@@ -700,7 +762,9 @@ it.each([
           expect(dead(Number(spawned.pid))).toBe(true);
           expect(dead(-Number(spawned.pid))).toBe(true);
         }
-        const failed = JSON.parse(await readFile(join(copy, files[0]!), "utf8"));
+        const failed = JSON.parse(
+          await readFile(join(copy, files[0]!), "utf8"),
+        );
         expect(
           failed.commands.some(
             (command: {
@@ -713,44 +777,74 @@ it.each([
         ).toBe(true);
         expect(await readFile(fakeState)).toEqual(originalProviderHome);
         expect(
-          await Promise.all(files.map((file) => readFile(join(original, file)))),
+          await Promise.all(
+            files.map((file) => readFile(join(original, file))),
+          ),
         ).toEqual(bytes);
         await expect(execute()).rejects.toMatchObject({
           code: "native_session_cleanup_quarantined",
         });
         expect(start).toHaveBeenCalledOnce();
         const methods = (await readFile(calls, "utf8")).trim().split("\n");
-        expect(methods.filter((method) => method === "turn/start")).toHaveLength(
-          1,
-        );
+        expect(
+          methods.filter((method) => method === "turn/start"),
+        ).toHaveLength(1);
         if (startupFailureProof) {
           expect(startupPhasesBeforeFailure).toEqual([
-            "intent", "spawned", "initialization_failed",
+            "intent",
+            "spawned",
+            "initialization_failed",
           ]);
           const events = startupEvents();
           expect(events).toHaveLength(3);
           expect(events.map((event) => event.sourceSeq)).toEqual(
-            events.map((event) => event.sourceSeq).sort((left, right) => left - right),
+            events
+              .map((event) => event.sourceSeq)
+              .sort((left, right) => left - right),
           );
-          expect(new Set(events.map((event) => event.sourceEventId)).size).toBe(3);
-          const facts = events.map((event) => event.payload.startup as Record<string, unknown>);
+          expect(new Set(events.map((event) => event.sourceEventId)).size).toBe(
+            3,
+          );
+          const facts = events.map(
+            (event) => event.payload.startup as Record<string, unknown>,
+          );
           const [intent, spawned, initializationFailed] = facts;
           expect(intent!.launchId).toMatch(/^[0-9a-f-]{36}$/);
-          expect(intent!.configurationFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/);
-          const failedStop = failed.commands.find((command: { type: string; status: string }) =>
-            command.type === "turn.stop" && command.status === "failed");
+          expect(intent!.configurationFingerprint).toMatch(
+            /^sha256:[0-9a-f]{64}$/,
+          );
+          const failedStop = failed.commands.find(
+            (command: { type: string; status: string }) =>
+              command.type === "turn.stop" && command.status === "failed",
+          );
           for (const fact of facts) {
-            expect(Object.keys(fact).sort()).toEqual([
-              "schema", "launchId", "phase", "trigger", "attemptedProcessGeneration",
-              "origin", "command", "configurationFingerprint", "requestedThreadId",
-              "authenticatedThreadId", "processId", "processGroupId", "failedStage",
-              "directChildExitObserved", "exitCode", "signal", "processTreeRetired",
-            ].sort());
+            expect(Object.keys(fact).sort()).toEqual(
+              [
+                "schema",
+                "launchId",
+                "phase",
+                "trigger",
+                "attemptedProcessGeneration",
+                "origin",
+                "command",
+                "configurationFingerprint",
+                "requestedThreadId",
+                "authenticatedThreadId",
+                "processId",
+                "processGroupId",
+                "failedStage",
+                "directChildExitObserved",
+                "exitCode",
+                "signal",
+                "processTreeRetired",
+              ].sort(),
+            );
             expect(fact).toMatchObject({
               schema: "taskcore.provider_startup.v1",
               launchId: intent!.launchId,
               trigger: "restore",
-              attemptedProcessGeneration: providerBefore.providerProcessGeneration + 1,
+              attemptedProcessGeneration:
+                providerBefore.providerProcessGeneration + 1,
               origin: {
                 runnerInstanceId: identity.runnerInstanceId,
                 runId: identity.runId,
@@ -770,38 +864,70 @@ it.each([
             });
           }
           expect(intent).toMatchObject({
-            phase: "intent", processId: null, processGroupId: null,
-            directChildExitObserved: false, failedStage: null, exitCode: null, signal: null,
+            phase: "intent",
+            processId: null,
+            processGroupId: null,
+            directChildExitObserved: false,
+            failedStage: null,
+            exitCode: null,
+            signal: null,
           });
           expect(spawned!.processId).toBeGreaterThan(0);
           expect(spawned).toMatchObject({
-            phase: "spawned", processGroupId: spawned!.processId,
-            directChildExitObserved: false, failedStage: null, exitCode: null, signal: null,
+            phase: "spawned",
+            processGroupId: spawned!.processId,
+            directChildExitObserved: false,
+            failedStage: null,
+            exitCode: null,
+            signal: null,
           });
           expect(initializationFailed).toMatchObject({
-            phase: "initialization_failed", failedStage: "thread_open",
-            processId: spawned!.processId, processGroupId: spawned!.processId,
+            phase: "initialization_failed",
+            failedStage: "thread_open",
+            processId: spawned!.processId,
+            processGroupId: spawned!.processId,
             directChildExitObserved: true,
           });
           expect(dead(Number(spawned!.processId))).toBe(true);
-          expect(appendEvent.mock.calls.filter(([event]) =>
-            ["session.started", "session.resumed"].includes(event.eventType) &&
-            event.payload.processId !== providerPid)).toHaveLength(0);
-          expect(failed.commands.some((command: {
-            type: string; result?: { result?: { providerExitConfirmed?: boolean } };
-          }) => command.type === "turn.stop" &&
-            command.result?.result?.providerExitConfirmed === true)).toBe(false);
-          const deltas = appendEvent.mock.calls.map(([event]) => event.payload.delta)
-            .filter((delta) => typeof delta === "string" && delta.startsWith("maintenance-"));
+          expect(
+            appendEvent.mock.calls.filter(
+              ([event]) =>
+                ["session.started", "session.resumed"].includes(
+                  event.eventType,
+                ) && event.payload.processId !== providerPid,
+            ),
+          ).toHaveLength(0);
+          expect(
+            failed.commands.some(
+              (command: {
+                type: string;
+                result?: { result?: { providerExitConfirmed?: boolean } };
+              }) =>
+                command.type === "turn.stop" &&
+                command.result?.result?.providerExitConfirmed === true,
+            ),
+          ).toBe(false);
+          const deltas = appendEvent.mock.calls
+            .map(([event]) => event.payload.delta)
+            .filter(
+              (delta) =>
+                typeof delta === "string" && delta.startsWith("maintenance-"),
+            );
           expect(deltas).toHaveLength(218);
           expect(new Set(deltas).size).toBe(218);
-          const failedProviderState = JSON.parse(await readFile(copyProvider, "utf8"));
+          const failedProviderState = JSON.parse(
+            await readFile(copyProvider, "utf8"),
+          );
           expect(failedProviderState.startupAttempt).toMatchObject({
             launchId: intent!.launchId,
           });
           const observedMethods = await readFile(calls, "utf8");
-          expect(observedMethods.trim().split("\n").filter((method) =>
-            method === "process-start")).toHaveLength(2);
+          expect(
+            observedMethods
+              .trim()
+              .split("\n")
+              .filter((method) => method === "process-start"),
+          ).toHaveLength(2);
           const originalFailure = structuredClone(failedStop.result);
           // Exercise the producer fence directly in this isolated fixture.
           // This does not admit the failed copy through maintenance or alter
@@ -812,18 +938,23 @@ it.each([
               identity,
               expectedRunnerVersion: "0.3.0",
               expectedRunnerDigest: `sha256:${createHash("sha256")
-                .update(await readFile(fixtureRunner)).digest("hex")}`,
+                .update(await readFile(fixtureRunner))
+                .digest("hex")}`,
               onCommittedEvent: appendEvent,
             });
             const snapshot = replayCore.queueCommand("session.snapshot", {});
             const stop = replayCore.queueCommand("turn.stop", {
               reason: "startup-fence regression only",
             });
-            let replayHandle: ReturnType<typeof durableControlPlane.spawnRunner> | null = null;
+            let replayHandle: ReturnType<
+              typeof durableControlPlane.spawnRunner
+            > | null = null;
             let replayAssertionFailed = false;
             try {
               await replayCore.start();
-              const runnerState = JSON.parse(await readFile(join(copy, files[1]!), "utf8"));
+              const runnerState = JSON.parse(
+                await readFile(join(copy, files[1]!), "utf8"),
+              );
               replayHandle = durableControlPlane.spawnRunner({
                 connectUrl: replayCore.connectUrl,
                 stateDirectory: join(copy, "runner"),
@@ -836,7 +967,8 @@ it.each([
                 runnerBinaryPath: fixtureRunner,
                 runnerVersion: "0.3.0",
                 runnerDigest: `sha256:${createHash("sha256")
-                  .update(await readFile(fixtureRunner)).digest("hex")}`,
+                  .update(await readFile(fixtureRunner))
+                  .digest("hex")}`,
                 environment: createCapabilityRunnerdProviderEnvironment({
                   provider: "codex",
                   options: {},
@@ -846,27 +978,38 @@ it.each([
                   hasRuntimeContext: false,
                 }),
               });
-              await vi.waitFor(() => {
-                for (const queued of [snapshot, stop]) {
-                  const command = replayCore.getCommand(queued.commandId);
-                  expect(command?.status).toBe("failed");
-                  expect(command?.result).toMatchObject({
-                    result: {
-                      message: expect.stringContaining(
-                        "provider startup ownership remains unadmitted",
-                      ),
-                    },
-                  });
-                }
-              }, { timeout: 5_000 });
+              await vi.waitFor(
+                () => {
+                  for (const queued of [snapshot, stop]) {
+                    const command = replayCore.getCommand(queued.commandId);
+                    expect(command?.status).toBe("failed");
+                    expect(command?.result).toMatchObject({
+                      result: {
+                        message: expect.stringContaining(
+                          "provider startup ownership remains unadmitted",
+                        ),
+                      },
+                    });
+                  }
+                },
+                { timeout: 5_000 },
+              );
               await durableControlPlane.waitForProcess(replayHandle, 5_000);
               expect(await readFile(calls, "utf8")).toBe(observedMethods);
-              expect((await readFile(calls, "utf8")).trim().split("\n")
-                .filter((method) => method === "process-start")).toHaveLength(2);
-              expect(replayCore.store.state.commands.find((command) =>
-                command.commandId === failedStop.commandId)?.result).toEqual(originalFailure);
-              expect(JSON.parse(await readFile(copyProvider, "utf8")).startupAttempt)
-                .toEqual(failedProviderState.startupAttempt);
+              expect(
+                (await readFile(calls, "utf8"))
+                  .trim()
+                  .split("\n")
+                  .filter((method) => method === "process-start"),
+              ).toHaveLength(2);
+              expect(
+                replayCore.store.state.commands.find(
+                  (command) => command.commandId === failedStop.commandId,
+                )?.result,
+              ).toEqual(originalFailure);
+              expect(
+                JSON.parse(await readFile(copyProvider, "utf8")).startupAttempt,
+              ).toEqual(failedProviderState.startupAttempt);
               expect(startupEvents()).toHaveLength(3);
             } catch (error) {
               replayAssertionFailed = true;
@@ -878,15 +1021,20 @@ it.each([
                 // Keep the original assertion as the primary failure. Do not
                 // delete evidence underneath an unjoined owned process.
                 if (!replayAssertionFailed) throw error;
-                console.error("startup-proof fixture cleanup unproven; directory retained");
+                console.error(
+                  "startup-proof fixture cleanup unproven; directory retained",
+                );
               } finally {
                 await replayCore.stop();
               }
             }
           }
           expect(await readFile(fakeState)).toEqual(originalProviderHome);
-          expect(await Promise.all(files.map((file) => readFile(join(original, file)))))
-            .toEqual(bytes);
+          expect(
+            await Promise.all(
+              files.map((file) => readFile(join(original, file))),
+            ),
+          ).toEqual(bytes);
         }
         return;
       }
@@ -932,7 +1080,8 @@ it.each([
         const providerBefore = await readFile(copyProvider);
         const controlBefore = JSON.parse(
           await readFile(
-            join(copy, "control-plane/control-plane-state.json"), "utf8",
+            join(copy, "control-plane/control-plane-state.json"),
+            "utf8",
           ),
         );
         // Give the actual runner time to authenticate while its durable spawn
@@ -942,7 +1091,8 @@ it.each([
         expect(await readFile(copyProvider)).toEqual(providerBefore);
         const controlAfter = JSON.parse(
           await readFile(
-            join(copy, "control-plane/control-plane-state.json"), "utf8",
+            join(copy, "control-plane/control-plane-state.json"),
+            "utf8",
           ),
         );
         expect(controlAfter.connectionCount).toBe(
@@ -1211,7 +1361,9 @@ it.each([
           legacyRunner.processedCommandFingerprints[command.commandId] =
             createHash("sha256")
               .update(
-                durableControlPlane.durableRecoveryInternals.canonicalJson(wire),
+                durableControlPlane.durableRecoveryInternals.canonicalJson(
+                  wire,
+                ),
               )
               .digest("hex");
           legacyRunner.lastControllerCommandSeq = command.controllerSeq;
@@ -1271,10 +1423,14 @@ it.each([
           code: "native_session_cleanup_quarantined",
         });
         expect(
-          await Promise.all(files.map((file) => readFile(join(original, file)))),
+          await Promise.all(
+            files.map((file) => readFile(join(original, file))),
+          ),
         ).toEqual(bytes);
         const methods = (await readFile(calls, "utf8")).trim().split("\n");
-        expect(methods.filter((method) => method === "turn/start")).toHaveLength(1);
+        expect(
+          methods.filter((method) => method === "turn/start"),
+        ).toHaveLength(1);
         return;
       }
       if (completedTerminalAck === "repeat") {
@@ -1344,74 +1500,71 @@ it.each([
         ).toHaveLength(1);
         return;
       }
-      const proof = await pendingProof.catch(
-        async (error: unknown) => {
-          const runner = JSON.parse(
-            await readFile(join(copy, "runner/runner-state.json"), "utf8"),
-          );
-          const provider = JSON.parse(
-            await readFile(
-              join(copy, "runner/codex-provider-state.json"),
-              "utf8",
-            ),
-          );
-          const control = JSON.parse(
-            await readFile(
-              join(copy, "control-plane/control-plane-state.json"),
-              "utf8",
-            ),
-          );
-          throw new Error(
-            JSON.stringify({
-              runner: {
-                lifecycle: runner.lifecycle,
-                outbox: runner.outbox.length,
-                acked: runner.ackedSourceSeq,
-                next: runner.nextSourceSeq,
-                terminalAckTimedOut: JSON.stringify(
-                  runner.diagnostics,
-                ).includes("terminal command result acknowledgement timed out"),
-                pendingTerminalDelivery:
-                  runner.pendingTerminalDelivery ?? null,
-                retainedIdentityTypes: runner.outbox
-                  .filter((row: { eventType: string }) =>
-                    [
-                      "session.started",
-                      "session.resumed",
-                      "harness.ready",
-                    ].includes(row.eventType),
-                  )
-                  .map((row: { sourceSeq: number; eventType: string }) => ({
-                    sourceSeq: row.sourceSeq,
-                    eventType: row.eventType,
-                  })),
-              },
-              provider: {
-                lifecycle: provider.lifecycle,
-                pending: provider.pendingEvents.length,
-                queued: provider.queuedEvents.length,
-                generation: provider.providerProcessGeneration,
-              },
-              commands: control.commands.map(
-                (command: { type: string; status: string }) => ({
-                  type: command.type,
-                  status: command.status,
-                }),
+      const proof = await pendingProof.catch(async (error: unknown) => {
+        const runner = JSON.parse(
+          await readFile(join(copy, "runner/runner-state.json"), "utf8"),
+        );
+        const provider = JSON.parse(
+          await readFile(
+            join(copy, "runner/codex-provider-state.json"),
+            "utf8",
+          ),
+        );
+        const control = JSON.parse(
+          await readFile(
+            join(copy, "control-plane/control-plane-state.json"),
+            "utf8",
+          ),
+        );
+        throw new Error(
+          JSON.stringify({
+            runner: {
+              lifecycle: runner.lifecycle,
+              outbox: runner.outbox.length,
+              acked: runner.ackedSourceSeq,
+              next: runner.nextSourceSeq,
+              terminalAckTimedOut: JSON.stringify(runner.diagnostics).includes(
+                "terminal command result acknowledgement timed out",
               ),
-              committedCount: appendEvent.mock.calls.length,
-              epochExits: recordEpoch.mock.calls
-                .map(([receipt]) => receipt)
-                .filter((receipt) => receipt.phase === "retired")
-                .map((receipt) => ({
-                  epoch: receipt.epoch,
-                  exitCode: receipt.exitCode,
-                  exitSignal: receipt.exitSignal,
+              pendingTerminalDelivery: runner.pendingTerminalDelivery ?? null,
+              retainedIdentityTypes: runner.outbox
+                .filter((row: { eventType: string }) =>
+                  [
+                    "session.started",
+                    "session.resumed",
+                    "harness.ready",
+                  ].includes(row.eventType),
+                )
+                .map((row: { sourceSeq: number; eventType: string }) => ({
+                  sourceSeq: row.sourceSeq,
+                  eventType: row.eventType,
                 })),
-            }),
-            { cause: error },
-          );
-        },
-      );
+            },
+            provider: {
+              lifecycle: provider.lifecycle,
+              pending: provider.pendingEvents.length,
+              queued: provider.queuedEvents.length,
+              generation: provider.providerProcessGeneration,
+            },
+            commands: control.commands.map(
+              (command: { type: string; status: string }) => ({
+                type: command.type,
+                status: command.status,
+              }),
+            ),
+            committedCount: appendEvent.mock.calls.length,
+            epochExits: recordEpoch.mock.calls
+              .map(([receipt]) => receipt)
+              .filter((receipt) => receipt.phase === "retired")
+              .map((receipt) => ({
+                epoch: receipt.epoch,
+                exitCode: receipt.exitCode,
+                exitSignal: receipt.exitSignal,
+              })),
+          }),
+          { cause: error },
+        );
+      });
       if (failedAttempt) {
         expect(
           await Promise.all(
@@ -1526,7 +1679,8 @@ it.each([
             (status): [string, (state: typeof before) => void] => [
               `outer ${status}`,
               (state) => {
-                state.runner.processedCommands[pending.commandId].status = status;
+                state.runner.processedCommands[pending.commandId].status =
+                  status;
               },
             ],
           ),
@@ -1534,8 +1688,9 @@ it.each([
             (status): [string, (state: typeof before) => void] => [
               `nested ${status}`,
               (state) => {
-                state.runner.processedCommands[pending.commandId].result.status =
-                  status;
+                state.runner.processedCommands[
+                  pending.commandId
+                ].result.status = status;
               },
             ],
           ),
@@ -1548,7 +1703,8 @@ it.each([
           [
             "terminal type",
             (state) => {
-              state.runner.pendingTerminalDelivery.commandType = "runner.shutdown";
+              state.runner.pendingTerminalDelivery.commandType =
+                "runner.shutdown";
             },
           ],
           [
@@ -1600,7 +1756,9 @@ it.each([
           const changed = structuredClone(before);
           mutate(changed);
           expect(
-            runnerdRecoveryInternals.completedMaintenanceTerminalReceipt(changed),
+            runnerdRecoveryInternals.completedMaintenanceTerminalReceipt(
+              changed,
+            ),
             name,
           ).toBeNull();
         }
@@ -1751,4 +1909,3 @@ it.each([
   },
   40_000,
 );
-

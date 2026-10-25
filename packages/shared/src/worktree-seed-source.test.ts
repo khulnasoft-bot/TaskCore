@@ -13,7 +13,10 @@ function makeInstance(prefix: string, instanceId: string) {
   const configPath = path.join(configDir, "config.json");
   fs.mkdirSync(configDir, { recursive: true });
   fs.writeFileSync(configPath, "{}\n");
-  fs.writeFileSync(path.join(configDir, ".env"), `TASKCORE_INSTANCE_ID=${instanceId}\n`);
+  fs.writeFileSync(
+    path.join(configDir, ".env"),
+    `TASKCORE_INSTANCE_ID=${instanceId}\n`,
+  );
   return { cwd, configPath, instanceId };
 }
 
@@ -39,7 +42,8 @@ function makePlainCheckout() {
 }
 
 afterEach(() => {
-  for (const dir of cleanup.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  for (const dir of cleanup.splice(0))
+    fs.rmSync(dir, { recursive: true, force: true });
 });
 
 describe("resolveCanonicalWorktreeSeedSource", () => {
@@ -47,13 +51,18 @@ describe("resolveCanonicalWorktreeSeedSource", () => {
     const source = makeInstance("taskcore-seed-source-", "source-instance");
     const target = makeInstance("taskcore-seed-target-", "target-instance");
 
-    expect(resolveCanonicalWorktreeSeedSource({
-      registeredBaseWorkspaceCwd: source.cwd,
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: { configPath: source.configPath, instanceId: source.instanceId },
-      manifestTargetInstanceId: target.instanceId,
-    })).toMatchObject({
+    expect(
+      resolveCanonicalWorktreeSeedSource({
+        registeredBaseWorkspaceCwd: source.cwd,
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: {
+          configPath: source.configPath,
+          instanceId: source.instanceId,
+        },
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toMatchObject({
       baseWorkspaceCwd: source.cwd,
       configPath: source.configPath,
       targetConfigPath: target.configPath,
@@ -65,14 +74,19 @@ describe("resolveCanonicalWorktreeSeedSource", () => {
     const source = makeInstanceRoot("default");
     const target = makeInstance("taskcore-seed-target-", "target-instance");
 
-    expect(resolveCanonicalWorktreeSeedSource({
-      registeredBaseWorkspaceCwd: baseCwd,
-      explicitSourceConfigPath: source.configPath,
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: { configPath: source.configPath, instanceId: source.instanceId },
-      manifestTargetInstanceId: target.instanceId,
-    })).toMatchObject({
+    expect(
+      resolveCanonicalWorktreeSeedSource({
+        registeredBaseWorkspaceCwd: baseCwd,
+        explicitSourceConfigPath: source.configPath,
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: {
+          configPath: source.configPath,
+          instanceId: source.instanceId,
+        },
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toMatchObject({
       baseWorkspaceCwd: baseCwd,
       configPath: source.configPath,
       instanceId: "default",
@@ -82,18 +96,29 @@ describe("resolveCanonicalWorktreeSeedSource", () => {
   it("rejects a dangling config symlink instead of falling back to the named source", () => {
     const baseCwd = makePlainCheckout();
     fs.mkdirSync(path.join(baseCwd, ".taskcore"), { recursive: true });
-    fs.symlinkSync(path.join(baseCwd, "absent.json"), path.join(baseCwd, ".taskcore", "config.json"));
+    fs.symlinkSync(
+      path.join(baseCwd, "absent.json"),
+      path.join(baseCwd, ".taskcore", "config.json"),
+    );
     const source = makeInstanceRoot("default");
-    const target = makeInstance("taskcore-seed-dangling-target-", "target-instance");
+    const target = makeInstance(
+      "taskcore-seed-dangling-target-",
+      "target-instance",
+    );
 
-    expect(() => resolveCanonicalWorktreeSeedSource({
-      registeredBaseWorkspaceCwd: baseCwd,
-      explicitSourceConfigPath: source.configPath,
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: { configPath: source.configPath, instanceId: source.instanceId },
-      manifestTargetInstanceId: target.instanceId,
-    })).toThrow(/Registered source Taskcore config does not exist/);
+    expect(() =>
+      resolveCanonicalWorktreeSeedSource({
+        registeredBaseWorkspaceCwd: baseCwd,
+        explicitSourceConfigPath: source.configPath,
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: {
+          configPath: source.configPath,
+          instanceId: source.instanceId,
+        },
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toThrow(/Registered source Taskcore config does not exist/);
   });
 
   it("fails closed when the declared config cannot be inspected", () => {
@@ -101,34 +126,55 @@ describe("resolveCanonicalWorktreeSeedSource", () => {
     // `.taskcore` as a regular file makes lstat report ENOTDIR, not ENOENT.
     fs.writeFileSync(path.join(baseCwd, ".taskcore"), "not a directory\n");
     const source = makeInstanceRoot("default");
-    const target = makeInstance("taskcore-seed-unreadable-target-", "target-instance");
+    const target = makeInstance(
+      "taskcore-seed-unreadable-target-",
+      "target-instance",
+    );
 
-    expect(() => resolveCanonicalWorktreeSeedSource({
-      registeredBaseWorkspaceCwd: baseCwd,
-      explicitSourceConfigPath: source.configPath,
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: { configPath: source.configPath, instanceId: source.instanceId },
-      manifestTargetInstanceId: target.instanceId,
-    })).toThrow(/cannot be inspected \(ENOTDIR\)/);
+    expect(() =>
+      resolveCanonicalWorktreeSeedSource({
+        registeredBaseWorkspaceCwd: baseCwd,
+        explicitSourceConfigPath: source.configPath,
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: {
+          configPath: source.configPath,
+          instanceId: source.instanceId,
+        },
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toThrow(/cannot be inspected \(ENOTDIR\)/);
   });
 
   it("rejects a dangling .taskcore symlink instead of falling back to the named source", () => {
     const baseCwd = makePlainCheckout();
     // Resolving `.taskcore` fails before the probe reaches config.json, so the config
     // entry reports ENOENT even though this workspace is malformed rather than plain.
-    fs.symlinkSync(path.join(baseCwd, "absent-dir"), path.join(baseCwd, ".taskcore"));
+    fs.symlinkSync(
+      path.join(baseCwd, "absent-dir"),
+      path.join(baseCwd, ".taskcore"),
+    );
     const source = makeInstanceRoot("default");
-    const target = makeInstance("taskcore-seed-dangling-parent-target-", "target-instance");
+    const target = makeInstance(
+      "taskcore-seed-dangling-parent-target-",
+      "target-instance",
+    );
 
-    expect(() => resolveCanonicalWorktreeSeedSource({
-      registeredBaseWorkspaceCwd: baseCwd,
-      explicitSourceConfigPath: source.configPath,
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: { configPath: source.configPath, instanceId: source.instanceId },
-      manifestTargetInstanceId: target.instanceId,
-    })).toThrow(/cannot be inspected \(ENOENT on its \.taskcore symlink target\)/);
+    expect(() =>
+      resolveCanonicalWorktreeSeedSource({
+        registeredBaseWorkspaceCwd: baseCwd,
+        explicitSourceConfigPath: source.configPath,
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: {
+          configPath: source.configPath,
+          instanceId: source.instanceId,
+        },
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toThrow(
+      /cannot be inspected \(ENOENT on its \.taskcore symlink target\)/,
+    );
   });
 
   it("takes the named source when .taskcore is a symlink to a directory with no config", () => {
@@ -137,14 +183,20 @@ describe("resolveCanonicalWorktreeSeedSource", () => {
     fs.mkdirSync(linked, { recursive: true });
     fs.symlinkSync(linked, path.join(baseCwd, ".taskcore"));
     const source = makeInstanceRoot("default");
-    const target = makeInstance("taskcore-seed-linked-empty-target-", "target-instance");
+    const target = makeInstance(
+      "taskcore-seed-linked-empty-target-",
+      "target-instance",
+    );
 
     const resolved = resolveCanonicalWorktreeSeedSource({
       registeredBaseWorkspaceCwd: baseCwd,
       explicitSourceConfigPath: source.configPath,
       targetConfigPath: target.configPath,
       expectedTargetInstanceId: target.instanceId,
-      manifestSource: { configPath: source.configPath, instanceId: source.instanceId },
+      manifestSource: {
+        configPath: source.configPath,
+        instanceId: source.instanceId,
+      },
       manifestTargetInstanceId: target.instanceId,
     });
 
@@ -154,34 +206,52 @@ describe("resolveCanonicalWorktreeSeedSource", () => {
 
   it("fails closed when the base workspace carries no config and none is named", () => {
     const baseCwd = makePlainCheckout();
-    const target = makeInstance("taskcore-seed-unnamed-target-", "target-instance");
+    const target = makeInstance(
+      "taskcore-seed-unnamed-target-",
+      "target-instance",
+    );
 
-    expect(() => resolveCanonicalWorktreeSeedSource({
-      registeredBaseWorkspaceCwd: baseCwd,
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: { configPath: target.configPath, instanceId: target.instanceId },
-      manifestTargetInstanceId: target.instanceId,
-    })).toThrow(/no Taskcore config of its own/);
+    expect(() =>
+      resolveCanonicalWorktreeSeedSource({
+        registeredBaseWorkspaceCwd: baseCwd,
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: {
+          configPath: target.configPath,
+          instanceId: target.instanceId,
+        },
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toThrow(/no Taskcore config of its own/);
   });
 
   it("fails closed without registration and when source equals target", () => {
-    const target = makeInstance("taskcore-seed-same-target-", "target-instance");
-    const diagnostic = { configPath: target.configPath, instanceId: target.instanceId };
+    const target = makeInstance(
+      "taskcore-seed-same-target-",
+      "target-instance",
+    );
+    const diagnostic = {
+      configPath: target.configPath,
+      instanceId: target.instanceId,
+    };
 
-    expect(() => resolveCanonicalWorktreeSeedSource({
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: diagnostic,
-      manifestTargetInstanceId: target.instanceId,
-    })).toThrow(/not registered/);
+    expect(() =>
+      resolveCanonicalWorktreeSeedSource({
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: diagnostic,
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toThrow(/not registered/);
 
-    expect(() => resolveCanonicalWorktreeSeedSource({
-      registeredBaseWorkspaceCwd: target.cwd,
-      targetConfigPath: target.configPath,
-      expectedTargetInstanceId: target.instanceId,
-      manifestSource: diagnostic,
-      manifestTargetInstanceId: target.instanceId,
-    })).toThrow(/same canonical file/);
+    expect(() =>
+      resolveCanonicalWorktreeSeedSource({
+        registeredBaseWorkspaceCwd: target.cwd,
+        targetConfigPath: target.configPath,
+        expectedTargetInstanceId: target.instanceId,
+        manifestSource: diagnostic,
+        manifestTargetInstanceId: target.instanceId,
+      }),
+    ).toThrow(/same canonical file/);
   });
 });

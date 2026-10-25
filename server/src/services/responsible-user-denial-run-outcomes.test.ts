@@ -27,12 +27,12 @@ function makeDbReturning(row: Record<string, unknown> | null) {
 
 describe("responsible-user denial run outcomes", () => {
   it("normalizes only responsible-user denial codes", () => {
-    expect(normalizeResponsibleUserDenialCode("RESPONSIBLE_USER_UNAUTHORIZED")).toBe(
-      "RESPONSIBLE_USER_UNAUTHORIZED",
-    );
-    expect(normalizeResponsibleUserDenialCode("RESPONSIBLE_USER_UNAVAILABLE")).toBe(
-      "RESPONSIBLE_USER_UNAVAILABLE",
-    );
+    expect(
+      normalizeResponsibleUserDenialCode("RESPONSIBLE_USER_UNAUTHORIZED"),
+    ).toBe("RESPONSIBLE_USER_UNAUTHORIZED");
+    expect(
+      normalizeResponsibleUserDenialCode("RESPONSIBLE_USER_UNAVAILABLE"),
+    ).toBe("RESPONSIBLE_USER_UNAVAILABLE");
     expect(normalizeResponsibleUserDenialCode("access_denied")).toBeNull();
     expect(normalizeResponsibleUserDenialCode(null)).toBeNull();
   });
@@ -62,9 +62,11 @@ describe("responsible-user denial run outcomes", () => {
     });
 
     expect(update).toHaveBeenCalledTimes(1);
-    expect(set).toHaveBeenCalledWith(expect.objectContaining({
-      errorCode: "RESPONSIBLE_USER_UNAUTHORIZED",
-    }));
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "RESPONSIBLE_USER_UNAUTHORIZED",
+      }),
+    );
     expect(publishLiveEventMock).toHaveBeenCalledWith({
       companyId: "company-1",
       type: "heartbeat.run.status",

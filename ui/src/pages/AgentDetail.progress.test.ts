@@ -48,11 +48,17 @@ describe("agent detail tabs", () => {
     };
     const currentState = { key: "agent-config" };
 
-    expect(restoreAgentConfigHistoryEntry(history, {
-      index: undefined,
-      state: currentState,
-      url: "https://taskcore.test/agents/eng/secrets",
-    }, undefined)).toBe(false);
+    expect(
+      restoreAgentConfigHistoryEntry(
+        history,
+        {
+          index: undefined,
+          state: currentState,
+          url: "https://taskcore.test/agents/eng/secrets",
+        },
+        undefined,
+      ),
+    ).toBe(false);
     expect(history.pushState).toHaveBeenCalledWith(
       currentState,
       "",
@@ -137,8 +143,12 @@ describe("syncAgentRouteAfterRename", () => {
   it("replaces stale agent routes after a rename changes the URL key", () => {
     const queryClient = new QueryClient();
     const navigate = vi.fn();
-    queryClient.setQueryData(queryKeys.agents.detail("old-agent"), { id: "agent-1" });
-    queryClient.setQueryData(queryKeys.agents.detail("renamed-agent"), { id: "agent-1" });
+    queryClient.setQueryData(queryKeys.agents.detail("old-agent"), {
+      id: "agent-1",
+    });
+    queryClient.setQueryData(queryKeys.agents.detail("renamed-agent"), {
+      id: "agent-1",
+    });
 
     const redirected = syncAgentRouteAfterRename(
       queryClient,
@@ -149,15 +159,24 @@ describe("syncAgentRouteAfterRename", () => {
     );
 
     expect(redirected).toBe(true);
-    expect(navigate).toHaveBeenCalledWith("/agents/renamed-agent/configuration", { replace: true });
-    expect(queryClient.getQueryData(queryKeys.agents.detail("old-agent"))).toBeUndefined();
-    expect(queryClient.getQueryData(queryKeys.agents.detail("renamed-agent"))).toEqual({ id: "agent-1" });
+    expect(navigate).toHaveBeenCalledWith(
+      "/agents/renamed-agent/configuration",
+      { replace: true },
+    );
+    expect(
+      queryClient.getQueryData(queryKeys.agents.detail("old-agent")),
+    ).toBeUndefined();
+    expect(
+      queryClient.getQueryData(queryKeys.agents.detail("renamed-agent")),
+    ).toEqual({ id: "agent-1" });
   });
 
   it("does not redirect when the canonical route ref stays the same", () => {
     const queryClient = new QueryClient();
     const navigate = vi.fn();
-    queryClient.setQueryData(queryKeys.agents.detail("same-agent"), { id: "agent-1" });
+    queryClient.setQueryData(queryKeys.agents.detail("same-agent"), {
+      id: "agent-1",
+    });
 
     const redirected = syncAgentRouteAfterRename(
       queryClient,
@@ -169,6 +188,8 @@ describe("syncAgentRouteAfterRename", () => {
 
     expect(redirected).toBe(false);
     expect(navigate).not.toHaveBeenCalled();
-    expect(queryClient.getQueryData(queryKeys.agents.detail("same-agent"))).toEqual({ id: "agent-1" });
+    expect(
+      queryClient.getQueryData(queryKeys.agents.detail("same-agent")),
+    ).toEqual({ id: "agent-1" });
   });
 });

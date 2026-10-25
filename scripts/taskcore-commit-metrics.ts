@@ -7,8 +7,10 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_QUERY = "\"Co-Authored-By: Taskcore <noreply@taskcore.ing>\"";
-const DEFAULT_CACHE_FILE = path.resolve("data/taskcore-commit-metrics-cache.json");
+const DEFAULT_QUERY = '"Co-Authored-By: Taskcore <noreply@taskcore.ing>"';
+const DEFAULT_CACHE_FILE = path.resolve(
+  "data/taskcore-commit-metrics-cache.json",
+);
 const DEFAULT_SEARCH_START = "2008-01-01T00:00:00Z";
 const SEARCH_WINDOW_LIMIT = 900;
 const MIN_WINDOW_MS = 60_000;
@@ -154,22 +156,42 @@ async function main() {
   const cache = await loadCache(options.cacheFile, options);
   const client = new GitHubClient(await resolveGitHubToken());
 
-  const { shas } = await searchWindow(client, cache, options, options.start, options.end);
+  const { shas } = await searchWindow(
+    client,
+    cache,
+    options,
+    options.start,
+    options.end,
+  );
   const sortedShas = [...shas].sort();
 
   let fetchedThisRun = 0;
   if (!options.skipStats) {
-    fetchedThisRun = await enrichCommitStats(client, cache, options, sortedShas);
+    fetchedThisRun = await enrichCommitStats(
+      client,
+      cache,
+      options,
+      sortedShas,
+    );
   }
 
   cache.updatedAt = new Date().toISOString();
   await saveCache(options.cacheFile, cache);
 
-  const filteredShas = sortFilteredShas(cache, filterShas(cache, sortedShas, options));
+  const filteredShas = sortFilteredShas(
+    cache,
+    filterShas(cache, sortedShas, options),
+  );
   const summary = buildSummary(cache, options, filteredShas, fetchedThisRun);
 
   if (options.output) {
-    await writeExport(options.output, options.exportFormat, cache, filteredShas, summary);
+    await writeExport(
+      options.output,
+      options.exportFormat,
+      cache,
+      filteredShas,
+      summary,
+    );
   }
 
   if (options.json) {
@@ -209,7 +231,9 @@ function parseArgs(argv: string[]): CliOptions {
         options.end = parseDateArg(requireValue(argv, ++index, arg), arg);
         break;
       case "--exclude-owner":
-        options.excludeOwners.push(requireValue(argv, ++index, arg).toLowerCase());
+        options.excludeOwners.push(
+          requireValue(argv, ++index, arg).toLowerCase(),
+        );
         break;
       case "--export-format": {
         const value = requireValue(argv, ++index, arg);
@@ -252,10 +276,16 @@ function parseArgs(argv: string[]): CliOptions {
         options.start = parseDateArg(requireValue(argv, ++index, arg), arg);
         break;
       case "--stats-concurrency":
-        options.statsConcurrency = parsePositiveInt(requireValue(argv, ++index, arg), arg);
+        options.statsConcurrency = parsePositiveInt(
+          requireValue(argv, ++index, arg),
+          arg,
+        );
         break;
       case "--stats-fetch-limit":
-        options.statsFetchLimit = parseNonNegativeInt(requireValue(argv, ++index, arg), arg);
+        options.statsFetchLimit = parseNonNegativeInt(
+          requireValue(argv, ++index, arg),
+          arg,
+        );
         break;
       case "--help":
         printHelp();
@@ -266,7 +296,10 @@ function parseArgs(argv: string[]): CliOptions {
     }
   }
 
-  if (Number.isNaN(options.start.getTime()) || Number.isNaN(options.end.getTime())) {
+  if (
+    Number.isNaN(options.start.getTime()) ||
+    Number.isNaN(options.end.getTime())
+  ) {
     throw new Error("Invalid start or end date");
   }
   if (options.start >= options.end) {
@@ -340,16 +373,25 @@ async function resolveGitHubToken(): Promise<string> {
   const { stdout } = await execFileAsync("gh", ["auth", "token"]);
   const token = stdout.trim();
   if (!token) {
-    throw new Error("Unable to resolve a GitHub token. Set GITHUB_TOKEN/GH_TOKEN or run `gh auth login`.");
+    throw new Error(
+      "Unable to resolve a GitHub token. Set GITHUB_TOKEN/GH_TOKEN or run `gh auth login`.",
+    );
   }
   return token;
 }
 
-async function loadCache(cacheFile: string, options: CliOptions): Promise<CacheFile> {
+async function loadCache(
+  cacheFile: string,
+  options: CliOptions,
+): Promise<CacheFile> {
   try {
     const raw = await fs.readFile(cacheFile, "utf8");
     const parsed = JSON.parse(raw) as CacheFile;
-    if (parsed.version !== 1 || parsed.queryKey !== buildQueryKey(options) || parsed.searchField !== options.searchField) {
+    if (
+      parsed.version !== 1 ||
+      parsed.queryKey !== buildQueryKey(options) ||
+      parsed.searchField !== options.searchField
+    ) {
       return createEmptyCache(options);
     }
     return parsed;
@@ -404,7 +446,9 @@ async function searchWindow(
 
   const firstPage = await searchPage(client, options, start, end, 1, 100);
   if (firstPage.incomplete_results) {
-    throw new Error(`GitHub returned incomplete search results for window ${windowKey}`);
+    throw new Error(
+      `GitHub returned incomplete search results for window ${windowKey}`,
+    );
   }
 
   if (firstPage.total_count > SEARCH_WINDOW_LIMIT) {
@@ -417,7 +461,13 @@ async function searchWindow(
 
     const midpoint = new Date(start.getTime() + Math.floor(durationMs / 2));
     const left = await searchWindow(client, cache, options, start, midpoint);
-    const right = await searchWindow(client, cache, options, new Date(midpoint.getTime() + 1), end);
+    const right = await searchWindow(
+      client,
+      cache,
+      options,
+      new Date(midpoint.getTime() + 1),
+      end,
+    );
     const shas = new Set([...left.shas, ...right.shas]);
 
     cache.windows[windowKey] = {
@@ -468,14 +518,20 @@ async function searchPage(
 }
 
 function buildSearchQuery(options: CliOptions, start: Date, end: Date): string {
-  const qualifiers = [`${options.searchField}:${formatQueryDate(start)}..${formatQueryDate(end)}`];
+  const qualifiers = [
+    `${options.searchField}:${formatQueryDate(start)}..${formatQueryDate(end)}`,
+  ];
   if (!options.includePrivate) {
     qualifiers.push("is:public");
   }
   return `${options.query} ${qualifiers.join(" ")}`.trim();
 }
 
-function filterShas(cache: CacheFile, shas: string[], options: CliOptions): string[] {
+function filterShas(
+  cache: CacheFile,
+  shas: string[],
+  options: CliOptions,
+): string[] {
   if (options.excludeOwners.length === 0) {
     return shas;
   }
@@ -500,7 +556,9 @@ function sortFilteredShas(cache: CacheFile, shas: string[]): string[] {
       return rightTime - leftTime;
     }
 
-    const repoCompare = (left?.repositoryFullName ?? "").localeCompare(right?.repositoryFullName ?? "");
+    const repoCompare = (left?.repositoryFullName ?? "").localeCompare(
+      right?.repositoryFullName ?? "",
+    );
     if (repoCompare !== 0) {
       return repoCompare;
     }
@@ -512,7 +570,11 @@ function formatQueryDate(value: Date): string {
   return value.toISOString().replace(".000Z", "Z");
 }
 
-function ingestSearchItems(cache: CacheFile, items: SearchCommitItem[], shas: Set<string>) {
+function ingestSearchItems(
+  cache: CacheFile,
+  items: SearchCommitItem[],
+  shas: Set<string>,
+) {
   for (const item of items) {
     shas.add(item.sha);
     cache.commits[item.sha] = {
@@ -568,11 +630,18 @@ function normalizeContributor(input: {
   if (!displayName && !email && !login) {
     return null;
   }
-  if ((email && email === TASKCORE_EMAIL) || (displayName && displayName.toLowerCase() === TASKCORE_NAME)) {
+  if (
+    (email && email === TASKCORE_EMAIL) ||
+    (displayName && displayName.toLowerCase() === TASKCORE_NAME)
+  ) {
     return null;
   }
 
-  const key = login ? `login:${login}` : email ? `email:${email}` : `name:${displayName!.toLowerCase()}`;
+  const key = login
+    ? `login:${login}`
+    : email
+      ? `email:${email}`
+      : `name:${displayName!.toLowerCase()}`;
   return {
     displayName: displayName ?? email ?? login ?? "unknown",
     email,
@@ -596,36 +665,49 @@ async function enrichCommitStats(
   options: CliOptions,
   shas: string[],
 ): Promise<number> {
-  const pending = shas.filter((sha) => options.refreshStats || !cache.stats[sha]).slice(0, options.statsFetchLimit);
+  const pending = shas
+    .filter((sha) => options.refreshStats || !cache.stats[sha])
+    .slice(0, options.statsFetchLimit);
   let nextIndex = 0;
   let fetched = 0;
 
-  const workers = Array.from({ length: Math.min(options.statsConcurrency, pending.length) }, async () => {
-    while (true) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      const sha = pending[currentIndex];
-      if (!sha) {
-        return;
+  const workers = Array.from(
+    { length: Math.min(options.statsConcurrency, pending.length) },
+    async () => {
+      while (true) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        const sha = pending[currentIndex];
+        if (!sha) {
+          return;
+        }
+        const commit = cache.commits[sha];
+        if (!commit) {
+          continue;
+        }
+        const stats = await fetchCommitStats(
+          client,
+          commit.repositoryFullName,
+          sha,
+        );
+        cache.stats[sha] = {
+          ...stats,
+          fetchedAt: new Date().toISOString(),
+        };
+        fetched += 1;
       }
-      const commit = cache.commits[sha];
-      if (!commit) {
-        continue;
-      }
-      const stats = await fetchCommitStats(client, commit.repositoryFullName, sha);
-      cache.stats[sha] = {
-        ...stats,
-        fetchedAt: new Date().toISOString(),
-      };
-      fetched += 1;
-    }
-  });
+    },
+  );
 
   await Promise.all(workers);
   return fetched;
 }
 
-async function fetchCommitStats(client: GitHubClient, repositoryFullName: string, sha: string): Promise<CommitStats> {
+async function fetchCommitStats(
+  client: GitHubClient,
+  repositoryFullName: string,
+  sha: string,
+): Promise<CommitStats> {
   const response = await client.getJson<{ stats?: CommitStats }>(
     `/repos/${repositoryFullName}/commits/${sha}`,
   );
@@ -636,7 +718,12 @@ async function fetchCommitStats(client: GitHubClient, repositoryFullName: string
   };
 }
 
-function buildSummary(cache: CacheFile, options: CliOptions, shas: string[], fetchedThisRun: number): Summary {
+function buildSummary(
+  cache: CacheFile,
+  options: CliOptions,
+  shas: string[],
+  fetchedThisRun: number,
+): Summary {
   const repoNames = new Set<string>();
   const contributors = new Map<string, ContributorRecord>();
   let additions = 0;
@@ -664,7 +751,9 @@ function buildSummary(cache: CacheFile, options: CliOptions, shas: string[], fet
   const contributorSample = [...contributors.values()]
     .sort((left, right) => left.displayName.localeCompare(right.displayName))
     .slice(0, 10);
-  const repoSample = [...repoNames].sort((left, right) => left.localeCompare(right)).slice(0, 10);
+  const repoSample = [...repoNames]
+    .sort((left, right) => left.localeCompare(right))
+    .slice(0, 10);
 
   return {
     cacheFile: options.cacheFile,
@@ -706,9 +795,13 @@ function buildSummary(cache: CacheFile, options: CliOptions, shas: string[], fet
 function printSummary(summary: Summary) {
   console.log("Taskcore commit metrics");
   console.log(`Query: ${summary.detectedQuery}`);
-  console.log(`Range: ${summary.range.start} -> ${summary.range.end} (${summary.range.searchField})`);
+  console.log(
+    `Range: ${summary.range.start} -> ${summary.range.end} (${summary.range.searchField})`,
+  );
   if (summary.filters.excludedOwners.length > 0) {
-    console.log(`Excluded owners: ${summary.filters.excludedOwners.join(", ")}`);
+    console.log(
+      `Excluded owners: ${summary.filters.excludedOwners.join(", ")}`,
+    );
   }
   console.log(`Commits: ${summary.totals.commits}`);
   console.log(`Distinct repos: ${summary.repos.count}`);
@@ -718,9 +811,13 @@ function printSummary(summary: Summary) {
   );
   console.log(
     `Line stat coverage: ${summary.lineStats.coveredCommits}/${summary.totals.commits}` +
-      (summary.lineStats.complete ? " (complete)" : " (partial; rerun to hydrate more commits)"),
+      (summary.lineStats.complete
+        ? " (complete)"
+        : " (partial; rerun to hydrate more commits)"),
   );
-  console.log(`Stats fetched this run: ${summary.statsFetch.fetchedThisRun}${summary.statsFetch.skipped ? " (skipped)" : ""}`);
+  console.log(
+    `Stats fetched this run: ${summary.statsFetch.fetchedThisRun}${summary.statsFetch.skipped ? " (skipped)" : ""}`,
+  );
   console.log(`Cache: ${summary.cacheFile}`);
 
   if (summary.repos.sample.length > 0) {
@@ -804,7 +901,9 @@ function buildExportRow(cache: CacheFile, sha: string) {
     authorName: commit.authorName ?? "",
     commitUrl: commit.htmlUrl,
     committedAt: commit.committedAt ?? "",
-    contributors: commit.contributors.map((contributor) => contributor.login ?? contributor.displayName).join(" | "),
+    contributors: commit.contributors
+      .map((contributor) => contributor.login ?? contributor.displayName)
+      .join(" | "),
     deletions: stats?.deletions ?? 0,
     repository: commit.repositoryFullName,
     repositoryUrl: commit.repositoryUrl,
@@ -814,8 +913,8 @@ function buildExportRow(cache: CacheFile, sha: string) {
 }
 
 function escapeCsv(value: string): string {
-  if (value.includes(",") || value.includes("\"") || value.includes("\n")) {
-    return `"${value.replaceAll("\"", "\"\"")}"`;
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replaceAll('"', '""')}"`;
   }
   return value;
 }
@@ -849,15 +948,26 @@ class GitHubClient {
 
       const remaining = response.headers.get("x-ratelimit-remaining");
       const resetAt = response.headers.get("x-ratelimit-reset");
-      if ((response.status === 403 || response.status === 429) && remaining === "0" && resetAt) {
-        const waitMs = Math.max(Number.parseInt(resetAt, 10) * 1000 - Date.now() + 1_000, 1_000);
-        console.error(`GitHub rate limit hit for ${pathname}; waiting ${Math.ceil(waitMs / 1000)}s...`);
+      if (
+        (response.status === 403 || response.status === 429) &&
+        remaining === "0" &&
+        resetAt
+      ) {
+        const waitMs = Math.max(
+          Number.parseInt(resetAt, 10) * 1000 - Date.now() + 1_000,
+          1_000,
+        );
+        console.error(
+          `GitHub rate limit hit for ${pathname}; waiting ${Math.ceil(waitMs / 1000)}s...`,
+        );
         await sleep(waitMs);
         continue;
       }
 
       const body = await response.text();
-      throw new Error(`GitHub API request failed (${response.status}) for ${pathname}: ${body}`);
+      throw new Error(
+        `GitHub API request failed (${response.status}) for ${pathname}: ${body}`,
+      );
     }
   }
 }

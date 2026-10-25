@@ -3,16 +3,12 @@
   "slug": "xai",
   "name": "Grok",
   "description": "Connect Grok accounts for your agents.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "branding": {
     "logoUrl": "/brands/apps/xai.svg",
     "darkLogoUrl": "/brands/apps/xai-dark.svg"
   },
-  "urlPatterns": [
-    "https://api.x.ai/*"
-  ],
+  "urlPatterns": ["https://api.x.ai/*"],
   "methods": [
     {
       "key": "ai-subscription",
@@ -24,13 +20,8 @@
         "provider": "xai",
         "method": "subscription"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Authenticate an agent with this account.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3"
@@ -45,13 +36,8 @@
         "provider": "xai",
         "method": "api_key"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Authenticate an agent with this account.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3",
@@ -71,7 +57,5 @@
       }
     }
   ],
-  "tags": [
-    "model-provider"
-  ]
+  "tags": ["model-provider"]
 }

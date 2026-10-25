@@ -28,11 +28,21 @@ function areEqual(a: string[], b: string[]) {
   return true;
 }
 
-function buildOrderIds(agents: Agent[], orderedIds: string[], options: AgentSidebarOrderOptions) {
-  return sortAgentsByStoredOrder(agents, orderedIds, options).map((agent) => agent.id);
+function buildOrderIds(
+  agents: Agent[],
+  orderedIds: string[],
+  options: AgentSidebarOrderOptions,
+) {
+  return sortAgentsByStoredOrder(agents, orderedIds, options).map(
+    (agent) => agent.id,
+  );
 }
 
-export function useAgentOrder({ agents, companyId, userId }: UseAgentOrderParams) {
+export function useAgentOrder({
+  agents,
+  companyId,
+  userId,
+}: UseAgentOrderParams) {
   const sortOptions = useMemo<AgentSidebarOrderOptions>(
     () => ({ leadershipFirst: true }),
     [],
@@ -51,7 +61,9 @@ export function useAgentOrder({ agents, companyId, userId }: UseAgentOrderParams
     const nextIds = storageKey
       ? buildOrderIds(agents, readAgentOrder(storageKey), sortOptions)
       : agents.map((agent) => agent.id);
-    setOrderedIds((current) => (areEqual(current, nextIds) ? current : nextIds));
+    setOrderedIds((current) =>
+      areEqual(current, nextIds) ? current : nextIds,
+    );
   }, [agents, storageKey, sortOptions]);
 
   useEffect(() => {
@@ -59,7 +71,9 @@ export function useAgentOrder({ agents, companyId, userId }: UseAgentOrderParams
 
     const syncFromIds = (ids: string[]) => {
       const nextIds = buildOrderIds(agents, ids, sortOptions);
-      setOrderedIds((current) => (areEqual(current, nextIds) ? current : nextIds));
+      setOrderedIds((current) =>
+        areEqual(current, nextIds) ? current : nextIds,
+      );
     };
 
     const onStorage = (event: StorageEvent) => {
@@ -93,7 +107,9 @@ export function useAgentOrder({ agents, companyId, userId }: UseAgentOrderParams
         if (!filtered.includes(agent.id)) filtered.push(agent.id);
       }
 
-      setOrderedIds((current) => (areEqual(current, filtered) ? current : filtered));
+      setOrderedIds((current) =>
+        areEqual(current, filtered) ? current : filtered,
+      );
       if (storageKey) {
         writeAgentOrder(storageKey, filtered);
       }

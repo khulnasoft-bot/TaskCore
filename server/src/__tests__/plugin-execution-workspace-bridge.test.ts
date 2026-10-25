@@ -34,7 +34,10 @@ describe("plugin execution workspace bridge", () => {
       id: "workspace-1",
       cwd: "/tmp/workspace-1",
     });
-    expect(get).toHaveBeenCalledWith({ workspaceId: "workspace-1", companyId: "company-1" });
+    expect(get).toHaveBeenCalledWith({
+      workspaceId: "workspace-1",
+      companyId: "company-1",
+    });
   });
 
   it("rejects metadata reads when the plugin lacks execution.workspace read access", async () => {

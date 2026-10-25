@@ -3,7 +3,9 @@ import { runnerCodexDynamicToolsFit } from "./runnerd-codex-transport.js";
 
 function tools(count: number, description = "Read a fixture") {
   return Array.from({ length: count }, (_, i) => ({
-    name: `fixture_${i}`, description, inputSchema: { type: "object" },
+    name: `fixture_${i}`,
+    description,
+    inputSchema: { type: "object" },
   }));
 }
 

@@ -1,6 +1,21 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { Agent, AgentSessionEvent, Issue, IssueComment, PluginContext, PluginEvent, PluginLocalFolderEntry, Project, ToolResult } from "@taskcore/plugin-sdk";
-import type { IssueDocument, PluginIssueOriginKind, PluginManagedRoutineResolution, PluginManagedSkillResolution } from "@taskcore/plugin-sdk/types";
+import type {
+  Agent,
+  AgentSessionEvent,
+  Issue,
+  IssueComment,
+  PluginContext,
+  PluginEvent,
+  PluginLocalFolderEntry,
+  Project,
+  ToolResult,
+} from "@taskcore/plugin-sdk";
+import type {
+  IssueDocument,
+  PluginIssueOriginKind,
+  PluginManagedRoutineResolution,
+  PluginManagedSkillResolution,
+} from "@taskcore/plugin-sdk/types";
 import {
   DEFAULT_MAX_SOURCE_BYTES,
   DEFAULT_MAX_TASKCORE_CURSOR_WINDOW_CHARS,
@@ -24,7 +39,8 @@ import {
 
 export const DEFAULT_WIKI_ID = "default";
 export const DEFAULT_SPACE_SLUG = "default";
-export const OPERATION_ORIGIN_KIND = `plugin:${PLUGIN_ID}:operation` as PluginIssueOriginKind;
+export const OPERATION_ORIGIN_KIND =
+  `plugin:${PLUGIN_ID}:operation` as PluginIssueOriginKind;
 const EVENT_INGESTION_STATE_NAMESPACE = "llm-wiki";
 const EVENT_INGESTION_STATE_KEY = "event-ingestion";
 const EVENT_INGESTION_DEDUP_NAMESPACE = "llm-wiki-event-ingestion";
@@ -39,7 +55,8 @@ export const PUBLIC_DISTILLATION_AUTO_APPLY_RESTRICTION =
 
 export type WikiEventIngestionSource = "issues" | "comments" | "documents";
 export type TaskcoreDistillationScope = "company" | "project" | "root_issue";
-export type TaskcoreDistillationWorkItemKind = "manual" | "retry" | "backfill" | "priority_override" | "review_patch";
+export type TaskcoreDistillationWorkItemKind =
+  "manual" | "retry" | "backfill" | "priority_override" | "review_patch";
 
 export type WikiEventIngestionSettings = {
   enabled: boolean;
@@ -48,12 +65,19 @@ export type WikiEventIngestionSettings = {
   maxCharacters: number;
 };
 
-export type WikiEventIngestionSettingsUpdate = Omit<Partial<WikiEventIngestionSettings>, "sources"> & {
+export type WikiEventIngestionSettingsUpdate = Omit<
+  Partial<WikiEventIngestionSettings>,
+  "sources"
+> & {
   sources?: Partial<Record<WikiEventIngestionSource, boolean>>;
 };
 
 export type TaskcoreIngestionSourceScope =
-  | { kind: "active_projects"; limit: number; statuses?: Array<"in_progress" | "todo" | "done"> }
+  | {
+      kind: "active_projects";
+      limit: number;
+      statuses?: Array<"in_progress" | "todo" | "done">;
+    }
   | { kind: "selected_projects"; projectIds: string[] }
   | { kind: "root_issues"; issueIds: string[] }
   | { kind: "company_all"; requiresBoardConfirmation: true };
@@ -89,7 +113,10 @@ export type TaskcoreIngestionProfileEffectiveState =
 
 export type TaskcoreIngestionProfileRead = {
   wikiId: string;
-  space: Pick<WikiSpace, "id" | "slug" | "displayName" | "accessScope" | "status">;
+  space: Pick<
+    WikiSpace,
+    "id" | "slug" | "displayName" | "accessScope" | "status"
+  >;
   profile: TaskcoreIngestionProfileV1;
   effectiveState: TaskcoreIngestionProfileEffectiveState;
   policyBlocks: string[];
@@ -114,7 +141,16 @@ type TaskcoreIngestionPolicyPurpose =
 
 type TaskcoreIngestionPolicyDecision =
   | { allowed: true; space: WikiSpace }
-  | { allowed: false; space: WikiSpace; reason: "restricted_space" | "archived_space" | "profile_disabled" | "profile_empty"; message: string };
+  | {
+      allowed: false;
+      space: WikiSpace;
+      reason:
+        | "restricted_space"
+        | "archived_space"
+        | "profile_disabled"
+        | "profile_empty";
+      message: string;
+    };
 
 type TaskcoreIngestionCandidatesInput = SpaceInput & {
   query?: string | null;
@@ -168,7 +204,13 @@ export type WikiAgentResource = {
   agentId: string | null;
   resourceKey: string;
   agent: Agent | null;
-  details: { name: string; status: string; adapterType: string | null; icon?: string | null; urlKey?: string | null } | null;
+  details: {
+    name: string;
+    status: string;
+    adapterType: string | null;
+    icon?: string | null;
+    urlKey?: string | null;
+  } | null;
   defaultDrift?: { entryFile: string; changedFiles: string[] } | null;
 };
 
@@ -257,7 +299,14 @@ type OperationInput = {
   companyId: string;
   wikiId?: string | null;
   spaceSlug?: string | null;
-  operationType: "ingest" | "query" | "lint" | "file-as-page" | "index" | "distill" | "backfill";
+  operationType:
+    | "ingest"
+    | "query"
+    | "lint"
+    | "file-as-page"
+    | "index"
+    | "distill"
+    | "backfill";
   title?: string | null;
   prompt?: string | null;
 };
@@ -419,8 +468,25 @@ type TaskcoreDistillationPatch = {
   humanReviewRequired: boolean;
 };
 type TaskcoreEventIngestResult =
-  | { status: "skipped"; reason: "disabled" | "source_disabled" | "unsupported_event" | "missing_issue" | "missing_comment" | "missing_document" | "plugin_operation" | "already_ingested" }
-  | { status: "recorded"; sourceKind: WikiEventIngestionSource; sourceId: string; cursorId: string; issueId: string };
+  | {
+      status: "skipped";
+      reason:
+        | "disabled"
+        | "source_disabled"
+        | "unsupported_event"
+        | "missing_issue"
+        | "missing_comment"
+        | "missing_document"
+        | "plugin_operation"
+        | "already_ingested";
+    }
+  | {
+      status: "recorded";
+      sourceKind: WikiEventIngestionSource;
+      sourceId: string;
+      cursorId: string;
+      issueId: string;
+    };
 
 type WikiResourceBinding = {
   resolvedId: string | null;
@@ -428,7 +494,9 @@ type WikiResourceBinding = {
 };
 
 function stringField(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function requireString(value: unknown, name: string): string {
@@ -449,7 +517,8 @@ export function normalizeSpaceSlug(value: unknown): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   if (!normalized) throw new Error("spaceSlug is required");
-  if (normalized.length > 64) throw new Error("spaceSlug must be 64 characters or fewer");
+  if (normalized.length > 64)
+    throw new Error("spaceSlug must be 64 characters or fewer");
   return normalized;
 }
 
@@ -475,23 +544,38 @@ async function requireTaskcoreIngestionPolicy(
   return decision.space;
 }
 
-function assertTaskcoreSourceScopePayload(input: { projectId?: string | null; rootIssueId?: string | null }) {
+function assertTaskcoreSourceScopePayload(input: {
+  projectId?: string | null;
+  rootIssueId?: string | null;
+}) {
   if (input.projectId && input.rootIssueId) {
-    throw new Error("Taskcore source scope must specify either projectId or rootIssueId, not both.");
+    throw new Error(
+      "Taskcore source scope must specify either projectId or rootIssueId, not both.",
+    );
   }
 }
 
-function assertRequestedCharacterLimit(name: string, value: unknown, max: number) {
+function assertRequestedCharacterLimit(
+  name: string,
+  value: unknown,
+  max: number,
+) {
   if (value == null) return;
   if (typeof value !== "number" || !Number.isFinite(value) || value < 1) {
     throw new Error(`${name} must be a positive number.`);
   }
   if (Math.floor(value) > max) {
-    throw new Error(`${name} exceeds the hard Taskcore ingestion cap of ${max} characters.`);
+    throw new Error(
+      `${name} exceeds the hard Taskcore ingestion cap of ${max} characters.`,
+    );
   }
 }
 
-function stableSpaceId(input: { companyId: string; wikiId: string; slug: string }): string {
+function stableSpaceId(input: {
+  companyId: string;
+  wikiId: string;
+  slug: string;
+}): string {
   const hex = createHash("md5")
     .update(`${input.companyId}:${input.wikiId}:${input.slug}`)
     .digest("hex");
@@ -542,7 +626,8 @@ function normalizeBoolean(value: unknown, fallback: boolean): boolean {
 }
 
 function normalizeMaxSourceBytes(value: unknown): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_MAX_SOURCE_BYTES;
+  if (typeof value !== "number" || !Number.isFinite(value))
+    return DEFAULT_MAX_SOURCE_BYTES;
   return Math.max(1, Math.floor(value));
 }
 
@@ -552,7 +637,8 @@ function normalizeBundleLimit(value: unknown, fallback: number): number {
 }
 
 function normalizeCostRate(value: unknown): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_TASKCORE_COST_CENTS_PER_1K_CHARS;
+  if (typeof value !== "number" || !Number.isFinite(value))
+    return DEFAULT_TASKCORE_COST_CENTS_PER_1K_CHARS;
   return Math.max(0, value);
 }
 
@@ -570,7 +656,8 @@ const DISTILLATION_ESCAPED_JSON_SECRET_FIELD_TEXT_RE =
   /((?:\\")?(?:api[-_]?key|access[-_]?token|auth(?:_?token)?|authorization|bearer|secret|passwd|password|credential|jwt|private[-_]?key|cookie|connectionstring)(?:\\")?\s*:\s*(?:\\"))[^\\\r\n]+((?:\\"))/gi;
 const DISTILLATION_ENV_SECRET_ASSIGNMENT_RE =
   /(\b[A-Za-z0-9_]*(?:TOKEN|KEY|SECRET|PASSWORD|PASSWD|AUTHORIZATION|JWT)[A-Za-z0-9_]*\s*=\s*)[^\s"'`]+/gi;
-const DISTILLATION_AUTHORIZATION_BEARER_RE = /(\bAuthorization\s*:\s*Bearer\s+)[^\s"'`]+/gi;
+const DISTILLATION_AUTHORIZATION_BEARER_RE =
+  /(\bAuthorization\s*:\s*Bearer\s+)[^\s"'`]+/gi;
 const DISTILLATION_OPENAI_KEY_RE = /\bsk-[A-Za-z0-9_-]{12,}\b/g;
 const DISTILLATION_GITHUB_TOKEN_RE = /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g;
 const DISTILLATION_JWT_RE =
@@ -591,10 +678,22 @@ type DistillationSourceProtectionResult = {
 function redactDistillationSensitiveText(input: string): string {
   return input
     .replace(DISTILLATION_PRIVATE_KEY_BLOCK_RE, DISTILLATION_REDACTED_VALUE)
-    .replace(DISTILLATION_JSON_SECRET_FIELD_TEXT_RE, `$1${DISTILLATION_REDACTED_VALUE}$2`)
-    .replace(DISTILLATION_ESCAPED_JSON_SECRET_FIELD_TEXT_RE, `$1${DISTILLATION_REDACTED_VALUE}$2`)
-    .replace(DISTILLATION_ENV_SECRET_ASSIGNMENT_RE, `$1${DISTILLATION_REDACTED_VALUE}`)
-    .replace(DISTILLATION_AUTHORIZATION_BEARER_RE, `$1${DISTILLATION_REDACTED_VALUE}`)
+    .replace(
+      DISTILLATION_JSON_SECRET_FIELD_TEXT_RE,
+      `$1${DISTILLATION_REDACTED_VALUE}$2`,
+    )
+    .replace(
+      DISTILLATION_ESCAPED_JSON_SECRET_FIELD_TEXT_RE,
+      `$1${DISTILLATION_REDACTED_VALUE}$2`,
+    )
+    .replace(
+      DISTILLATION_ENV_SECRET_ASSIGNMENT_RE,
+      `$1${DISTILLATION_REDACTED_VALUE}`,
+    )
+    .replace(
+      DISTILLATION_AUTHORIZATION_BEARER_RE,
+      `$1${DISTILLATION_REDACTED_VALUE}`,
+    )
     .replace(DISTILLATION_CONNECTION_STRING_RE, DISTILLATION_REDACTED_VALUE)
     .replace(DISTILLATION_OPENAI_KEY_RE, DISTILLATION_REDACTED_VALUE)
     .replace(DISTILLATION_GITHUB_TOKEN_RE, DISTILLATION_REDACTED_VALUE)
@@ -609,7 +708,9 @@ function protectDistillationSourceBody(input: {
 }): DistillationSourceProtectionResult {
   const redactedBody = redactDistillationSensitiveText(input.body);
   const reasons = [
-    DISTILLATION_PRIVATE_KEY_BLOCK_TEST_RE.test(input.body) ? "private_key_block" : null,
+    DISTILLATION_PRIVATE_KEY_BLOCK_TEST_RE.test(input.body)
+      ? "private_key_block"
+      : null,
     redactedBody !== input.body ? "secret_like_token" : null,
   ].filter((reason): reason is string => Boolean(reason));
   if (reasons.length === 0) {
@@ -638,14 +739,34 @@ function protectDistillationSourceBody(input: {
 
 async function resolveTaskcoreDistillationLimits(
   ctx: PluginContext,
-  input: Pick<TaskcoreSourceBundleInput, "companyId" | "maxCharacters" | "maxCharactersPerSource" | "routineRun">,
+  input: Pick<
+    TaskcoreSourceBundleInput,
+    "companyId" | "maxCharacters" | "maxCharactersPerSource" | "routineRun"
+  >,
 ): Promise<TaskcoreDistillationLimits> {
-  assertRequestedCharacterLimit("maxCharacters", input.maxCharacters, DEFAULT_MAX_TASKCORE_CURSOR_WINDOW_CHARS);
-  assertRequestedCharacterLimit("maxCharactersPerSource", input.maxCharactersPerSource, DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS);
-  const config = await ctx.config.get(input.companyId) as Record<string, unknown>;
+  assertRequestedCharacterLimit(
+    "maxCharacters",
+    input.maxCharacters,
+    DEFAULT_MAX_TASKCORE_CURSOR_WINDOW_CHARS,
+  );
+  assertRequestedCharacterLimit(
+    "maxCharactersPerSource",
+    input.maxCharactersPerSource,
+    DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS,
+  );
+  const config = (await ctx.config.get(input.companyId)) as Record<
+    string,
+    unknown
+  >;
   const maxCharactersPerSource = Math.min(
-    normalizeBundleLimit(input.maxCharactersPerSource, DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS),
-    normalizeBundleLimit(config.maxTaskcoreIssueSourceCharacters, DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS),
+    normalizeBundleLimit(
+      input.maxCharactersPerSource,
+      DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS,
+    ),
+    normalizeBundleLimit(
+      config.maxTaskcoreIssueSourceCharacters,
+      DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS,
+    ),
   );
   const cursorWindowCap = normalizeBundleLimit(
     config.maxTaskcoreCursorWindowCharacters,
@@ -655,19 +776,29 @@ async function resolveTaskcoreDistillationLimits(
     config.maxTaskcoreRoutineRunCharacters,
     DEFAULT_MAX_TASKCORE_ROUTINE_RUN_CHARS,
   );
-  const requestedMaxCharacters = normalizeBundleLimit(input.maxCharacters, cursorWindowCap);
-  const hardCharacterCap = input.routineRun ? Math.min(cursorWindowCap, routineRunCap) : cursorWindowCap;
+  const requestedMaxCharacters = normalizeBundleLimit(
+    input.maxCharacters,
+    cursorWindowCap,
+  );
+  const hardCharacterCap = input.routineRun
+    ? Math.min(cursorWindowCap, routineRunCap)
+    : cursorWindowCap;
   return {
     maxCharacters: Math.min(requestedMaxCharacters, hardCharacterCap),
     maxCharactersPerSource,
     maxRoutineRunCharacters: routineRunCap,
-    costCentsPerThousandSourceCharacters: normalizeCostRate(config.taskcoreCostCentsPerThousandSourceCharacters),
+    costCentsPerThousandSourceCharacters: normalizeCostRate(
+      config.taskcoreCostCentsPerThousandSourceCharacters,
+    ),
   };
 }
 
 async function resolveTaskcoreDistillationLimitsForSpace(
   ctx: PluginContext,
-  input: Pick<TaskcoreSourceBundleInput, "companyId" | "maxCharacters" | "maxCharactersPerSource" | "routineRun"> & { space: WikiSpace },
+  input: Pick<
+    TaskcoreSourceBundleInput,
+    "companyId" | "maxCharacters" | "maxCharactersPerSource" | "routineRun"
+  > & { space: WikiSpace },
 ): Promise<TaskcoreDistillationLimits> {
   const [base, profile] = await Promise.all([
     resolveTaskcoreDistillationLimits(ctx, input),
@@ -675,42 +806,82 @@ async function resolveTaskcoreDistillationLimitsForSpace(
   ]);
   return {
     ...base,
-    maxCharacters: Math.min(base.maxCharacters, profile.cursor.maxWindowCharacters),
-    maxCharactersPerSource: Math.min(base.maxCharactersPerSource, profile.cursor.maxCharactersPerSource),
+    maxCharacters: Math.min(
+      base.maxCharacters,
+      profile.cursor.maxWindowCharacters,
+    ),
+    maxCharactersPerSource: Math.min(
+      base.maxCharactersPerSource,
+      profile.cursor.maxCharactersPerSource,
+    ),
   };
 }
 
-function estimateSourceCostCents(characters: number, costCentsPerThousandSourceCharacters: number): number {
+function estimateSourceCostCents(
+  characters: number,
+  costCentsPerThousandSourceCharacters: number,
+): number {
   if (characters <= 0 || costCentsPerThousandSourceCharacters <= 0) return 0;
   return Math.ceil((characters / 1000) * costCentsPerThousandSourceCharacters);
 }
 
-async function assertSourceWithinConfiguredLimit(ctx: PluginContext, companyId: string, contents: string) {
+async function assertSourceWithinConfiguredLimit(
+  ctx: PluginContext,
+  companyId: string,
+  contents: string,
+) {
   const config = await ctx.config.get(companyId);
   const maxSourceBytes = normalizeMaxSourceBytes(config.maxSourceBytes);
   const sourceBytes = byteLength(contents);
   if (sourceBytes > maxSourceBytes) {
-    throw new Error(`Source content is ${sourceBytes} bytes, which exceeds the configured LLM Wiki source limit of ${maxSourceBytes} bytes.`);
+    throw new Error(
+      `Source content is ${sourceBytes} bytes, which exceeds the configured LLM Wiki source limit of ${maxSourceBytes} bytes.`,
+    );
   }
 }
 
-function normalizeEventIngestionSettings(value: unknown): WikiEventIngestionSettings {
+function normalizeEventIngestionSettings(
+  value: unknown,
+): WikiEventIngestionSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { ...DEFAULT_EVENT_INGESTION_SETTINGS, sources: { ...DEFAULT_EVENT_INGESTION_SETTINGS.sources } };
+    return {
+      ...DEFAULT_EVENT_INGESTION_SETTINGS,
+      sources: { ...DEFAULT_EVENT_INGESTION_SETTINGS.sources },
+    };
   }
   const record = value as Record<string, unknown>;
-  const sources = record.sources && typeof record.sources === "object" && !Array.isArray(record.sources)
-    ? record.sources as Record<string, unknown>
-    : {};
-  const maxCharacters = typeof record.maxCharacters === "number" && Number.isFinite(record.maxCharacters)
-    ? Math.max(1000, Math.min(MAX_EVENT_SOURCE_CHARS, Math.floor(record.maxCharacters)))
-    : DEFAULT_EVENT_INGESTION_SETTINGS.maxCharacters;
+  const sources =
+    record.sources &&
+    typeof record.sources === "object" &&
+    !Array.isArray(record.sources)
+      ? (record.sources as Record<string, unknown>)
+      : {};
+  const maxCharacters =
+    typeof record.maxCharacters === "number" &&
+    Number.isFinite(record.maxCharacters)
+      ? Math.max(
+          1000,
+          Math.min(MAX_EVENT_SOURCE_CHARS, Math.floor(record.maxCharacters)),
+        )
+      : DEFAULT_EVENT_INGESTION_SETTINGS.maxCharacters;
   return {
-    enabled: normalizeBoolean(record.enabled, DEFAULT_EVENT_INGESTION_SETTINGS.enabled),
+    enabled: normalizeBoolean(
+      record.enabled,
+      DEFAULT_EVENT_INGESTION_SETTINGS.enabled,
+    ),
     sources: {
-      issues: normalizeBoolean(sources.issues, DEFAULT_EVENT_INGESTION_SETTINGS.sources.issues),
-      comments: normalizeBoolean(sources.comments, DEFAULT_EVENT_INGESTION_SETTINGS.sources.comments),
-      documents: normalizeBoolean(sources.documents, DEFAULT_EVENT_INGESTION_SETTINGS.sources.documents),
+      issues: normalizeBoolean(
+        sources.issues,
+        DEFAULT_EVENT_INGESTION_SETTINGS.sources.issues,
+      ),
+      comments: normalizeBoolean(
+        sources.comments,
+        DEFAULT_EVENT_INGESTION_SETTINGS.sources.comments,
+      ),
+      documents: normalizeBoolean(
+        sources.documents,
+        DEFAULT_EVENT_INGESTION_SETTINGS.sources.documents,
+      ),
     },
     wikiId: normalizeWikiId(record.wikiId),
     maxCharacters,
@@ -721,11 +892,14 @@ function defaultTaskcoreIngestionProfile(input: {
   space: Pick<WikiSpace, "slug">;
   legacySettings?: WikiEventIngestionSettings | null;
 }): TaskcoreIngestionProfileV1 {
-  const legacy = input.space.slug === DEFAULT_SPACE_SLUG ? input.legacySettings : null;
+  const legacy =
+    input.space.slug === DEFAULT_SPACE_SLUG ? input.legacySettings : null;
   return {
     version: 1,
     enabled: legacy?.enabled ?? false,
-    sourceScopes: legacy?.enabled ? [{ kind: "company_all", requiresBoardConfirmation: true }] : [],
+    sourceScopes: legacy?.enabled
+      ? [{ kind: "company_all", requiresBoardConfirmation: true }]
+      : [],
     sourceKinds: {
       issues: legacy?.sources.issues ?? true,
       comments: legacy?.sources.comments ?? true,
@@ -750,29 +924,57 @@ function defaultTaskcoreIngestionProfile(input: {
 
 function stringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.map((item) => stringField(item)).filter((item): item is string => Boolean(item)))];
+  return [
+    ...new Set(
+      value
+        .map((item) => stringField(item))
+        .filter((item): item is string => Boolean(item)),
+    ),
+  ];
 }
 
-function normalizeTaskcoreIngestionSourceScope(value: unknown): TaskcoreIngestionSourceScope | null {
+function normalizeTaskcoreIngestionSourceScope(
+  value: unknown,
+): TaskcoreIngestionSourceScope | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   const kind = stringField(record.kind);
   if (kind === "active_projects") {
     const statuses = Array.isArray(record.statuses)
-      ? record.statuses.filter((status): status is "in_progress" | "todo" | "done" =>
-          status === "in_progress" || status === "todo" || status === "done")
+      ? record.statuses.filter(
+          (status): status is "in_progress" | "todo" | "done" =>
+            status === "in_progress" || status === "todo" || status === "done",
+        )
       : undefined;
     return {
       kind,
-      limit: normalizeLimit(record.limit, 3, MAX_TASKCORE_PROFILE_SELECTED_PROJECTS),
-      ...(statuses && statuses.length > 0 ? { statuses: [...new Set(statuses)] } : {}),
+      limit: normalizeLimit(
+        record.limit,
+        3,
+        MAX_TASKCORE_PROFILE_SELECTED_PROJECTS,
+      ),
+      ...(statuses && statuses.length > 0
+        ? { statuses: [...new Set(statuses)] }
+        : {}),
     };
   }
   if (kind === "selected_projects") {
-    return { kind, projectIds: stringArray(record.projectIds).slice(0, MAX_TASKCORE_PROFILE_SELECTED_PROJECTS) };
+    return {
+      kind,
+      projectIds: stringArray(record.projectIds).slice(
+        0,
+        MAX_TASKCORE_PROFILE_SELECTED_PROJECTS,
+      ),
+    };
   }
   if (kind === "root_issues") {
-    return { kind, issueIds: stringArray(record.issueIds).slice(0, MAX_TASKCORE_PROFILE_ROOT_ISSUES) };
+    return {
+      kind,
+      issueIds: stringArray(record.issueIds).slice(
+        0,
+        MAX_TASKCORE_PROFILE_ROOT_ISSUES,
+      ),
+    };
   }
   if (kind === "company_all") {
     return { kind, requiresBoardConfirmation: true };
@@ -782,51 +984,109 @@ function normalizeTaskcoreIngestionSourceScope(value: unknown): TaskcoreIngestio
 
 function normalizeTaskcoreIngestionProfile(
   value: unknown,
-  input: { space: Pick<WikiSpace, "slug">; legacySettings?: WikiEventIngestionSettings | null },
+  input: {
+    space: Pick<WikiSpace, "slug">;
+    legacySettings?: WikiEventIngestionSettings | null;
+  },
 ): TaskcoreIngestionProfileV1 {
   const fallback = defaultTaskcoreIngestionProfile(input);
-  if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return fallback;
   const record = value as Record<string, unknown>;
-  const sourceKinds = record.sourceKinds && typeof record.sourceKinds === "object" && !Array.isArray(record.sourceKinds)
-    ? record.sourceKinds as Record<string, unknown>
-    : {};
-  const cursor = record.cursor && typeof record.cursor === "object" && !Array.isArray(record.cursor)
-    ? record.cursor as Record<string, unknown>
-    : {};
-  const backfill = record.backfill && typeof record.backfill === "object" && !Array.isArray(record.backfill)
-    ? record.backfill as Record<string, unknown>
-    : {};
+  const sourceKinds =
+    record.sourceKinds &&
+    typeof record.sourceKinds === "object" &&
+    !Array.isArray(record.sourceKinds)
+      ? (record.sourceKinds as Record<string, unknown>)
+      : {};
+  const cursor =
+    record.cursor &&
+    typeof record.cursor === "object" &&
+    !Array.isArray(record.cursor)
+      ? (record.cursor as Record<string, unknown>)
+      : {};
+  const backfill =
+    record.backfill &&
+    typeof record.backfill === "object" &&
+    !Array.isArray(record.backfill)
+      ? (record.backfill as Record<string, unknown>)
+      : {};
   return {
     version: 1,
     enabled: normalizeBoolean(record.enabled, fallback.enabled),
     sourceScopes: Array.isArray(record.sourceScopes)
-      ? record.sourceScopes.map(normalizeTaskcoreIngestionSourceScope).filter((scope): scope is TaskcoreIngestionSourceScope => Boolean(scope))
+      ? record.sourceScopes
+          .map(normalizeTaskcoreIngestionSourceScope)
+          .filter((scope): scope is TaskcoreIngestionSourceScope =>
+            Boolean(scope),
+          )
       : fallback.sourceScopes,
     sourceKinds: {
       issues: normalizeBoolean(sourceKinds.issues, fallback.sourceKinds.issues),
-      comments: normalizeBoolean(sourceKinds.comments, fallback.sourceKinds.comments),
-      documents: normalizeBoolean(sourceKinds.documents, fallback.sourceKinds.documents),
-      attachments: sourceKinds.attachments === "metadata_only" ? "metadata_only" : "off",
-      workProducts: sourceKinds.workProducts === "metadata_only" ? "metadata_only" : "off",
+      comments: normalizeBoolean(
+        sourceKinds.comments,
+        fallback.sourceKinds.comments,
+      ),
+      documents: normalizeBoolean(
+        sourceKinds.documents,
+        fallback.sourceKinds.documents,
+      ),
+      attachments:
+        sourceKinds.attachments === "metadata_only" ? "metadata_only" : "off",
+      workProducts:
+        sourceKinds.workProducts === "metadata_only" ? "metadata_only" : "off",
     },
     cursor: {
-      maxWindowCharacters: normalizeLimit(cursor.maxWindowCharacters, fallback.cursor.maxWindowCharacters, DEFAULT_MAX_TASKCORE_CURSOR_WINDOW_CHARS),
-      maxCharactersPerSource: normalizeLimit(cursor.maxCharactersPerSource, fallback.cursor.maxCharactersPerSource, DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS),
-      minSourceAgeMinutes: normalizeLimit(cursor.minSourceAgeMinutes, fallback.cursor.minSourceAgeMinutes, 24 * 60),
-      maxWindowsPerRun: normalizeLimit(cursor.maxWindowsPerRun, fallback.cursor.maxWindowsPerRun, 25),
-      staleAfterHours: normalizeLimit(cursor.staleAfterHours, fallback.cursor.staleAfterHours, 24 * 30),
+      maxWindowCharacters: normalizeLimit(
+        cursor.maxWindowCharacters,
+        fallback.cursor.maxWindowCharacters,
+        DEFAULT_MAX_TASKCORE_CURSOR_WINDOW_CHARS,
+      ),
+      maxCharactersPerSource: normalizeLimit(
+        cursor.maxCharactersPerSource,
+        fallback.cursor.maxCharactersPerSource,
+        DEFAULT_MAX_TASKCORE_ISSUE_SOURCE_CHARS,
+      ),
+      minSourceAgeMinutes: normalizeLimit(
+        cursor.minSourceAgeMinutes,
+        fallback.cursor.minSourceAgeMinutes,
+        24 * 60,
+      ),
+      maxWindowsPerRun: normalizeLimit(
+        cursor.maxWindowsPerRun,
+        fallback.cursor.maxWindowsPerRun,
+        25,
+      ),
+      staleAfterHours: normalizeLimit(
+        cursor.staleAfterHours,
+        fallback.cursor.staleAfterHours,
+        24 * 30,
+      ),
     },
     backfill: {
       defaultStartAt: isoString(backfill.defaultStartAt),
       defaultEndAt: isoString(backfill.defaultEndAt),
-      requireManualQueue: normalizeBoolean(backfill.requireManualQueue, fallback.backfill.requireManualQueue),
+      requireManualQueue: normalizeBoolean(
+        backfill.requireManualQueue,
+        fallback.backfill.requireManualQueue,
+      ),
     },
   };
 }
 
-async function profileForSpace(ctx: PluginContext, companyId: string, space: WikiSpace): Promise<TaskcoreIngestionProfileV1> {
-  const legacySettings = space.slug === DEFAULT_SPACE_SLUG ? await getEventIngestionSettings(ctx, companyId) : null;
-  return normalizeTaskcoreIngestionProfile(space.settings.taskcoreIngestion, { space, legacySettings });
+async function profileForSpace(
+  ctx: PluginContext,
+  companyId: string,
+  space: WikiSpace,
+): Promise<TaskcoreIngestionProfileV1> {
+  const legacySettings =
+    space.slug === DEFAULT_SPACE_SLUG
+      ? await getEventIngestionSettings(ctx, companyId)
+      : null;
+  return normalizeTaskcoreIngestionProfile(space.settings.taskcoreIngestion, {
+    space,
+    legacySettings,
+  });
 }
 
 function eventIngestionStateKey(companyId: string) {
@@ -838,7 +1098,13 @@ function eventIngestionStateKey(companyId: string) {
   };
 }
 
-function eventIngestionDedupKey(companyId: string, wikiId: string, spaceId: string, sourceKind: WikiEventIngestionSource, sourceId: string) {
+function eventIngestionDedupKey(
+  companyId: string,
+  wikiId: string,
+  spaceId: string,
+  sourceKind: WikiEventIngestionSource,
+  sourceId: string,
+) {
   return {
     scopeKind: "company" as const,
     scopeId: companyId,
@@ -847,8 +1113,13 @@ function eventIngestionDedupKey(companyId: string, wikiId: string, spaceId: stri
   };
 }
 
-export async function getEventIngestionSettings(ctx: PluginContext, companyId: string): Promise<WikiEventIngestionSettings> {
-  return normalizeEventIngestionSettings(await ctx.state.get(eventIngestionStateKey(companyId)));
+export async function getEventIngestionSettings(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiEventIngestionSettings> {
+  return normalizeEventIngestionSettings(
+    await ctx.state.get(eventIngestionStateKey(companyId)),
+  );
 }
 
 function evaluateTaskcoreProfilePolicy(input: {
@@ -874,7 +1145,11 @@ function evaluateTaskcoreProfilePolicy(input: {
       message: `Taskcore ingestion policy denied ${purpose}: ${space.accessScope} spaces cannot ingest Taskcore sources until host permissions are enforced.`,
     };
   }
-  if (input.requireEnabledProfile && space.slug !== DEFAULT_SPACE_SLUG && !profile?.enabled) {
+  if (
+    input.requireEnabledProfile &&
+    space.slug !== DEFAULT_SPACE_SLUG &&
+    !profile?.enabled
+  ) {
     return {
       allowed: false,
       space,
@@ -882,7 +1157,12 @@ function evaluateTaskcoreProfilePolicy(input: {
       message: `Taskcore ingestion policy denied ${purpose}: Taskcore ingestion is not enabled for space "${space.slug}".`,
     };
   }
-  if (input.requireEnabledProfile && space.slug !== DEFAULT_SPACE_SLUG && profile?.enabled && profile.sourceScopes.length === 0) {
+  if (
+    input.requireEnabledProfile &&
+    space.slug !== DEFAULT_SPACE_SLUG &&
+    profile?.enabled &&
+    profile.sourceScopes.length === 0
+  ) {
     return {
       allowed: false,
       space,
@@ -895,12 +1175,24 @@ function evaluateTaskcoreProfilePolicy(input: {
 
 export async function getTaskcoreIngestionProfile(
   ctx: PluginContext,
-  input: { companyId: string; wikiId?: string | null; spaceSlug?: string | null },
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+  },
 ): Promise<TaskcoreIngestionProfileRead> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const profile = await profileForSpace(ctx, input.companyId, space);
-  const policy = evaluateTaskcoreProfilePolicy({ space, profile, purpose: "profile_read" });
+  const policy = evaluateTaskcoreProfilePolicy({
+    space,
+    profile,
+    purpose: "profile_read",
+  });
   const historicalPageCount = await countTaskcoreHistoricalPages(ctx, {
     companyId: input.companyId,
     wikiId,
@@ -936,7 +1228,10 @@ export async function getTaskcoreIngestionProfile(
   };
 }
 
-async function countTaskcoreHistoricalPages(ctx: PluginContext, input: { companyId: string; wikiId: string; spaceId: string }): Promise<number> {
+async function countTaskcoreHistoricalPages(
+  ctx: PluginContext,
+  input: { companyId: string; wikiId: string; spaceId: string },
+): Promise<number> {
   const rows = await ctx.db.query<{ count: string | number }>(
     `SELECT count(*)::text AS count
        FROM ${pageBindingTable(ctx)}
@@ -947,22 +1242,32 @@ async function countTaskcoreHistoricalPages(ctx: PluginContext, input: { company
 }
 
 function scopeIdentity(scope: TaskcoreIngestionSourceScope): string[] {
-  if (scope.kind === "active_projects") return [`active_projects:${scope.limit}`];
-  if (scope.kind === "selected_projects") return scope.projectIds.map((id) => `project:${id}`);
-  if (scope.kind === "root_issues") return scope.issueIds.map((id) => `root_issue:${id}`);
+  if (scope.kind === "active_projects")
+    return [`active_projects:${scope.limit}`];
+  if (scope.kind === "selected_projects")
+    return scope.projectIds.map((id) => `project:${id}`);
+  if (scope.kind === "root_issues")
+    return scope.issueIds.map((id) => `root_issue:${id}`);
   return ["company_all"];
 }
 
-async function countTaskcoreProfileOverlaps(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId: string;
-  space: WikiSpace;
-  profile: TaskcoreIngestionProfileV1;
-}): Promise<number> {
-  if (!input.profile.enabled || input.profile.sourceScopes.length === 0) return 0;
+async function countTaskcoreProfileOverlaps(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId: string;
+    space: WikiSpace;
+    profile: TaskcoreIngestionProfileV1;
+  },
+): Promise<number> {
+  if (!input.profile.enabled || input.profile.sourceScopes.length === 0)
+    return 0;
   const own = new Set(input.profile.sourceScopes.flatMap(scopeIdentity));
   if (own.size === 0) return 0;
-  const { spaces } = await listSpaces(ctx, { companyId: input.companyId, wikiId: input.wikiId });
+  const { spaces } = await listSpaces(ctx, {
+    companyId: input.companyId,
+    wikiId: input.wikiId,
+  });
   let overlaps = 0;
   for (const space of spaces) {
     if (space.id === input.space.id) continue;
@@ -975,60 +1280,103 @@ async function countTaskcoreProfileOverlaps(ctx: PluginContext, input: {
   return overlaps;
 }
 
-async function validateTaskcoreIngestionProfile(ctx: PluginContext, input: {
-  companyId: string;
-  space: WikiSpace;
-  profile: TaskcoreIngestionProfileV1;
-}) {
+async function validateTaskcoreIngestionProfile(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    space: WikiSpace;
+    profile: TaskcoreIngestionProfileV1;
+  },
+) {
   const policy = evaluateTaskcoreProfilePolicy({
     space: input.space,
     profile: input.profile,
     purpose: "profile_update",
-    requireEnabledProfile: input.profile.enabled && input.space.slug !== DEFAULT_SPACE_SLUG,
+    requireEnabledProfile:
+      input.profile.enabled && input.space.slug !== DEFAULT_SPACE_SLUG,
   });
   if (!policy.allowed) throw new Error(policy.message);
   if (input.profile.enabled && input.profile.sourceScopes.length === 0) {
-    throw new Error("Taskcore ingestion profile must include at least one source scope before it can be enabled.");
+    throw new Error(
+      "Taskcore ingestion profile must include at least one source scope before it can be enabled.",
+    );
   }
-  if (input.profile.sourceScopes.length > MAX_TASKCORE_INGESTION_PROFILE_SOURCE_COUNT) {
-    throw new Error(`Taskcore ingestion profile sources exceed the hard cap of ${MAX_TASKCORE_INGESTION_PROFILE_SOURCE_COUNT}.`);
+  if (
+    input.profile.sourceScopes.length >
+    MAX_TASKCORE_INGESTION_PROFILE_SOURCE_COUNT
+  ) {
+    throw new Error(
+      `Taskcore ingestion profile sources exceed the hard cap of ${MAX_TASKCORE_INGESTION_PROFILE_SOURCE_COUNT}.`,
+    );
   }
   for (const scope of input.profile.sourceScopes) {
-    if (scope.kind === "company_all" && input.space.slug !== DEFAULT_SPACE_SLUG) {
-      throw new Error("Everything in the company is only available on the default wiki space.");
+    if (
+      scope.kind === "company_all" &&
+      input.space.slug !== DEFAULT_SPACE_SLUG
+    ) {
+      throw new Error(
+        "Everything in the company is only available on the default wiki space.",
+      );
     }
     if (scope.kind === "selected_projects") {
       if (scope.projectIds.length > MAX_TASKCORE_PROFILE_SELECTED_PROJECTS) {
-        throw new Error(`selected_projects exceeds the hard cap of ${MAX_TASKCORE_PROFILE_SELECTED_PROJECTS}.`);
+        throw new Error(
+          `selected_projects exceeds the hard cap of ${MAX_TASKCORE_PROFILE_SELECTED_PROJECTS}.`,
+        );
       }
       for (const projectId of scope.projectIds) {
         const project = await ctx.projects.get(projectId, input.companyId);
-        if (!project) throw new Error(`Project belongs to another company or does not exist: ${projectId}`);
+        if (!project)
+          throw new Error(
+            `Project belongs to another company or does not exist: ${projectId}`,
+          );
       }
     }
     if (scope.kind === "root_issues") {
       if (scope.issueIds.length > MAX_TASKCORE_PROFILE_ROOT_ISSUES) {
-        throw new Error(`root_issues exceeds the hard cap of ${MAX_TASKCORE_PROFILE_ROOT_ISSUES}.`);
+        throw new Error(
+          `root_issues exceeds the hard cap of ${MAX_TASKCORE_PROFILE_ROOT_ISSUES}.`,
+        );
       }
       for (const issueId of scope.issueIds) {
         const issue = await ctx.issues.get(issueId, input.companyId);
-        if (!issue) throw new Error(`Issue belongs to another company or does not exist: ${issueId}`);
+        if (!issue)
+          throw new Error(
+            `Issue belongs to another company or does not exist: ${issueId}`,
+          );
       }
     }
   }
 }
 
-export async function updateTaskcoreIngestionProfile(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId?: string | null;
-  spaceSlug?: string | null;
-  profile: unknown;
-}): Promise<TaskcoreIngestionProfileRead> {
+export async function updateTaskcoreIngestionProfile(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    profile: unknown;
+  },
+): Promise<TaskcoreIngestionProfileRead> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const current = await profileForSpace(ctx, input.companyId, space);
-  const profile = normalizeTaskcoreIngestionProfile(input.profile, { space, legacySettings: space.slug === DEFAULT_SPACE_SLUG ? await getEventIngestionSettings(ctx, input.companyId) : null });
-  await validateTaskcoreIngestionProfile(ctx, { companyId: input.companyId, space, profile });
+  const profile = normalizeTaskcoreIngestionProfile(input.profile, {
+    space,
+    legacySettings:
+      space.slug === DEFAULT_SPACE_SLUG
+        ? await getEventIngestionSettings(ctx, input.companyId)
+        : null,
+  });
+  await validateTaskcoreIngestionProfile(ctx, {
+    companyId: input.companyId,
+    space,
+    profile,
+  });
   await updateSpace(ctx, {
     companyId: input.companyId,
     wikiId,
@@ -1063,17 +1411,41 @@ export async function updateTaskcoreIngestionProfile(ctx: PluginContext, input: 
       cursor: profile.cursor,
     },
   });
-  return getTaskcoreIngestionProfile(ctx, { companyId: input.companyId, wikiId, spaceSlug: space.slug });
+  return getTaskcoreIngestionProfile(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: space.slug,
+  });
 }
 
-export async function listTaskcoreIngestionCandidates(ctx: PluginContext, input: TaskcoreIngestionCandidatesInput): Promise<{
-  projects: Array<{ id: string; name: string; status: string; updatedAt: string | null }>;
-  rootIssues: Array<{ id: string; identifier: string | null; title: string; status: string; projectId: string | null }>;
+export async function listTaskcoreIngestionCandidates(
+  ctx: PluginContext,
+  input: TaskcoreIngestionCandidatesInput,
+): Promise<{
+  projects: Array<{
+    id: string;
+    name: string;
+    status: string;
+    updatedAt: string | null;
+  }>;
+  rootIssues: Array<{
+    id: string;
+    identifier: string | null;
+    title: string;
+    status: string;
+    projectId: string | null;
+  }>;
 }> {
   const wikiId = normalizeWikiId(input.wikiId);
-  await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "candidate_search");
+  await requireTaskcoreIngestionPolicy(
+    ctx,
+    { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+    "candidate_search",
+  );
   const query = stringField(input.query)?.toLowerCase() ?? "";
-  const projects = (await ctx.projects.list({ companyId: input.companyId, limit: 200 }))
+  const projects = (
+    await ctx.projects.list({ companyId: input.companyId, limit: 200 })
+  )
     .filter((project) => !project.archivedAt)
     .filter((project) => !query || project.name.toLowerCase().includes(query))
     .slice(0, 50)
@@ -1083,13 +1455,20 @@ export async function listTaskcoreIngestionCandidates(ctx: PluginContext, input:
       status: project.status,
       updatedAt: isoString(project.updatedAt),
     }));
-  const issues = (await ctx.issues.list({
-    companyId: input.companyId,
-    includePluginOperations: false,
-    limit: 200,
-  }))
+  const issues = (
+    await ctx.issues.list({
+      companyId: input.companyId,
+      includePluginOperations: false,
+      limit: 200,
+    })
+  )
     .filter((issue) => !issue.parentId)
-    .filter((issue) => !query || issue.title.toLowerCase().includes(query) || issue.identifier?.toLowerCase().includes(query))
+    .filter(
+      (issue) =>
+        !query ||
+        issue.title.toLowerCase().includes(query) ||
+        issue.identifier?.toLowerCase().includes(query),
+    )
     .slice(0, 50)
     .map((issue) => ({
       id: issue.id,
@@ -1101,20 +1480,30 @@ export async function listTaskcoreIngestionCandidates(ctx: PluginContext, input:
   return { projects, rootIssues: issues };
 }
 
-  export async function updateEventIngestionSettings(
-    ctx: PluginContext,
+export async function updateEventIngestionSettings(
+  ctx: PluginContext,
   input: { companyId: string; settings: WikiEventIngestionSettingsUpdate },
-  ): Promise<WikiEventIngestionSettings> {
-  await requireTaskcoreIngestionPolicy(ctx, {
-    companyId: input.companyId,
-    wikiId: normalizeWikiId(input.settings.wikiId),
-    spaceSlug: DEFAULT_SPACE_SLUG,
-  }, "profile_update");
+): Promise<WikiEventIngestionSettings> {
+  await requireTaskcoreIngestionPolicy(
+    ctx,
+    {
+      companyId: input.companyId,
+      wikiId: normalizeWikiId(input.settings.wikiId),
+      spaceSlug: DEFAULT_SPACE_SLUG,
+    },
+    "profile_update",
+  );
   const sourceKeys = Object.keys(input.settings.sources ?? {});
   if (sourceKeys.length > MAX_TASKCORE_INGESTION_PROFILE_SOURCE_COUNT) {
-    throw new Error(`Taskcore ingestion profile sources exceed the hard cap of ${MAX_TASKCORE_INGESTION_PROFILE_SOURCE_COUNT}.`);
+    throw new Error(
+      `Taskcore ingestion profile sources exceed the hard cap of ${MAX_TASKCORE_INGESTION_PROFILE_SOURCE_COUNT}.`,
+    );
   }
-  assertRequestedCharacterLimit("maxCharacters", input.settings.maxCharacters, MAX_EVENT_SOURCE_CHARS);
+  assertRequestedCharacterLimit(
+    "maxCharacters",
+    input.settings.maxCharacters,
+    MAX_EVENT_SOURCE_CHARS,
+  );
   const current = await getEventIngestionSettings(ctx, input.companyId);
   const next = normalizeEventIngestionSettings({
     ...current,
@@ -1125,10 +1514,16 @@ export async function listTaskcoreIngestionCandidates(ctx: PluginContext, input:
     },
   });
   await ctx.state.set(eventIngestionStateKey(input.companyId), next);
-  const defaultSpace = await ensureDefaultSpace(ctx, { companyId: input.companyId, wikiId: next.wikiId });
+  const defaultSpace = await ensureDefaultSpace(ctx, {
+    companyId: input.companyId,
+    wikiId: next.wikiId,
+  });
   const profile = normalizeTaskcoreIngestionProfile(
     {
-      ...defaultTaskcoreIngestionProfile({ space: defaultSpace, legacySettings: next }),
+      ...defaultTaskcoreIngestionProfile({
+        space: defaultSpace,
+        legacySettings: next,
+      }),
       enabled: next.enabled,
       sourceKinds: {
         issues: next.sources.issues,
@@ -1138,7 +1533,10 @@ export async function listTaskcoreIngestionCandidates(ctx: PluginContext, input:
         workProducts: "off",
       },
       cursor: {
-        ...defaultTaskcoreIngestionProfile({ space: defaultSpace, legacySettings: next }).cursor,
+        ...defaultTaskcoreIngestionProfile({
+          space: defaultSpace,
+          legacySettings: next,
+        }).cursor,
         maxCharactersPerSource: next.maxCharacters,
       },
     },
@@ -1153,12 +1551,17 @@ export async function listTaskcoreIngestionCandidates(ctx: PluginContext, input:
   return next;
 }
 
-function assertWikiPath(path: string, options: { allowMetadata?: boolean } = {}): string {
+function assertWikiPath(
+  path: string,
+  options: { allowMetadata?: boolean } = {},
+): string {
   const trimmed = path.trim().replace(/^\/+/, "");
   if (
     !trimmed ||
     trimmed.includes("\\") ||
-    trimmed.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
+    trimmed
+      .split("/")
+      .some((segment) => segment === "" || segment === "." || segment === "..")
   ) {
     throw new Error(`Invalid wiki path: ${path}`);
   }
@@ -1173,15 +1576,26 @@ function assertWikiPath(path: string, options: { allowMetadata?: boolean } = {})
     !trimmed.startsWith("wiki/") &&
     !(options.allowMetadata && trimmed.startsWith(".taskcore/"))
   ) {
-    throw new Error(`Wiki path must stay inside AGENTS.md, IDEA.md, raw/, or wiki/: ${path}`);
+    throw new Error(
+      `Wiki path must stay inside AGENTS.md, IDEA.md, raw/, or wiki/: ${path}`,
+    );
   }
   return trimmed;
 }
 
 function assertPagePath(path: string): string {
   const normalized = assertWikiPath(path);
-  if (normalized !== "index.md" && normalized !== "log.md" && normalized !== "WIKI.md" && normalized !== "AGENTS.md" && normalized !== "IDEA.md" && !normalized.startsWith("wiki/")) {
-    throw new Error(`Wiki page writes must target AGENTS.md, IDEA.md, or wiki/: ${path}`);
+  if (
+    normalized !== "index.md" &&
+    normalized !== "log.md" &&
+    normalized !== "WIKI.md" &&
+    normalized !== "AGENTS.md" &&
+    normalized !== "IDEA.md" &&
+    !normalized.startsWith("wiki/")
+  ) {
+    throw new Error(
+      `Wiki page writes must target AGENTS.md, IDEA.md, or wiki/: ${path}`,
+    );
   }
   if (!normalized.endsWith(".md")) {
     throw new Error(`Wiki page path must be a markdown file: ${path}`);
@@ -1189,9 +1603,14 @@ function assertPagePath(path: string): string {
   return normalized;
 }
 
-function assertPageWriteAllowed(path: string, writer: WritePageInput["writer"] = "agent_tool"): void {
+function assertPageWriteAllowed(
+  path: string,
+  writer: WritePageInput["writer"] = "agent_tool",
+): void {
   if (writer !== "board_ui" && PROTECTED_WIKI_CONTROL_FILES.has(path)) {
-    throw new Error(`Refusing to overwrite protected wiki control file ${path}; board-managed edits must use the wiki UI.`);
+    throw new Error(
+      `Refusing to overwrite protected wiki control file ${path}; board-managed edits must use the wiki UI.`,
+    );
   }
 }
 
@@ -1236,11 +1655,14 @@ function pageBindingTable(ctx: PluginContext): string {
 }
 
 function parseBindingMetadata(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (value && typeof value === "object" && !Array.isArray(value))
+    return value as Record<string, unknown>;
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
     } catch {
       return {};
     }
@@ -1249,11 +1671,14 @@ function parseBindingMetadata(value: unknown): Record<string, unknown> {
 }
 
 function parseJsonObject(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (value && typeof value === "object" && !Array.isArray(value))
+    return value as Record<string, unknown>;
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
     } catch {
       return {};
     }
@@ -1305,9 +1730,16 @@ function wikiSpaceFromRow(row: WikiSpaceRow): WikiSpace {
   };
 }
 
-function fallbackDefaultSpace(input: { companyId: string; wikiId: string }): WikiSpace {
+function fallbackDefaultSpace(input: {
+  companyId: string;
+  wikiId: string;
+}): WikiSpace {
   return {
-    id: stableSpaceId({ companyId: input.companyId, wikiId: input.wikiId, slug: DEFAULT_SPACE_SLUG }),
+    id: stableSpaceId({
+      companyId: input.companyId,
+      wikiId: input.wikiId,
+      slug: DEFAULT_SPACE_SLUG,
+    }),
     companyId: input.companyId,
     wikiId: input.wikiId,
     slug: DEFAULT_SPACE_SLUG,
@@ -1328,9 +1760,16 @@ function fallbackDefaultSpace(input: { companyId: string; wikiId: string }): Wik
   };
 }
 
-export async function ensureDefaultSpace(ctx: PluginContext, input: { companyId: string; wikiId?: string | null }): Promise<WikiSpace> {
+export async function ensureDefaultSpace(
+  ctx: PluginContext,
+  input: { companyId: string; wikiId?: string | null },
+): Promise<WikiSpace> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const id = stableSpaceId({ companyId: input.companyId, wikiId, slug: DEFAULT_SPACE_SLUG });
+  const id = stableSpaceId({
+    companyId: input.companyId,
+    wikiId,
+    slug: DEFAULT_SPACE_SLUG,
+  });
   await ctx.db.execute(
     `INSERT INTO ${spaceTable(ctx)} AS wiki_spaces
        (id, company_id, wiki_id, slug, display_name, space_type, folder_mode, root_folder_key, path_prefix, access_scope, status, settings)
@@ -1348,10 +1787,15 @@ export async function ensureDefaultSpace(ctx: PluginContext, input: { companyId:
       LIMIT 1`,
     [input.companyId, wikiId],
   );
-  return rows[0] ? wikiSpaceFromRow(rows[0]) : fallbackDefaultSpace({ companyId: input.companyId, wikiId });
+  return rows[0]
+    ? wikiSpaceFromRow(rows[0])
+    : fallbackDefaultSpace({ companyId: input.companyId, wikiId });
 }
 
-export async function resolveSpace(ctx: PluginContext, input: SpaceInput): Promise<WikiSpace> {
+export async function resolveSpace(
+  ctx: PluginContext,
+  input: SpaceInput,
+): Promise<WikiSpace> {
   const wikiId = normalizeWikiId(input.wikiId);
   const slug = normalizeSpaceSlug(input.spaceSlug);
   if (slug === DEFAULT_SPACE_SLUG) {
@@ -1370,7 +1814,10 @@ export async function resolveSpace(ctx: PluginContext, input: SpaceInput): Promi
   return wikiSpaceFromRow(rows[0]);
 }
 
-async function resolveSpaceAnyStatus(ctx: PluginContext, input: SpaceInput): Promise<WikiSpace> {
+async function resolveSpaceAnyStatus(
+  ctx: PluginContext,
+  input: SpaceInput,
+): Promise<WikiSpace> {
   const wikiId = normalizeWikiId(input.wikiId);
   const slug = normalizeSpaceSlug(input.spaceSlug);
   if (slug === DEFAULT_SPACE_SLUG) {
@@ -1389,7 +1836,10 @@ async function resolveSpaceAnyStatus(ctx: PluginContext, input: SpaceInput): Pro
   return wikiSpaceFromRow(rows[0]);
 }
 
-export async function listSpaces(ctx: PluginContext, input: { companyId: string; wikiId?: string | null }): Promise<{ spaces: WikiSpace[] }> {
+export async function listSpaces(
+  ctx: PluginContext,
+  input: { companyId: string; wikiId?: string | null },
+): Promise<{ spaces: WikiSpace[] }> {
   const wikiId = normalizeWikiId(input.wikiId);
   await ensureDefaultSpace(ctx, { companyId: input.companyId, wikiId });
   const rows = await ctx.db.query<WikiSpaceRow>(
@@ -1401,20 +1851,35 @@ export async function listSpaces(ctx: PluginContext, input: { companyId: string;
       ORDER BY CASE WHEN slug = 'default' THEN 0 ELSE 1 END, display_name, slug`,
     [input.companyId, wikiId],
   );
-  const spaces = rows.length > 0 ? rows.map(wikiSpaceFromRow) : [fallbackDefaultSpace({ companyId: input.companyId, wikiId })];
+  const spaces =
+    rows.length > 0
+      ? rows.map(wikiSpaceFromRow)
+      : [fallbackDefaultSpace({ companyId: input.companyId, wikiId })];
   return { spaces };
 }
 
-export async function createSpace(ctx: PluginContext, input: CreateSpaceInput): Promise<{ status: "created"; space: WikiSpace }> {
+export async function createSpace(
+  ctx: PluginContext,
+  input: CreateSpaceInput,
+): Promise<{ status: "created"; space: WikiSpace }> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const displayName = stringField(input.displayName) ?? stringField(input.slug) ?? "New space";
+  const displayName =
+    stringField(input.displayName) ?? stringField(input.slug) ?? "New space";
   const slug = normalizeSpaceSlug(input.slug ?? displayName);
   if (slug === DEFAULT_SPACE_SLUG) {
-    return { status: "created", space: await ensureDefaultSpace(ctx, { companyId: input.companyId, wikiId }) };
+    return {
+      status: "created",
+      space: await ensureDefaultSpace(ctx, {
+        companyId: input.companyId,
+        wikiId,
+      }),
+    };
   }
   const folderMode = input.folderMode ?? "managed_subfolder";
   if (folderMode !== "managed_subfolder") {
-    throw new Error("Only managed_subfolder spaces are supported until dynamic local folder bindings are available.");
+    throw new Error(
+      "Only managed_subfolder spaces are supported until dynamic local folder bindings are available.",
+    );
   }
   const accessScope = input.accessScope ?? "shared";
   const id = randomUUID();
@@ -1461,12 +1926,22 @@ export async function createSpace(ctx: PluginContext, input: CreateSpaceInput): 
   return { status: "created", space };
 }
 
-export async function updateSpace(ctx: PluginContext, input: UpdateSpaceInput): Promise<{ status: "ok"; space: WikiSpace }> {
+export async function updateSpace(
+  ctx: PluginContext,
+  input: UpdateSpaceInput,
+): Promise<{ status: "ok"; space: WikiSpace }> {
   const nextStatus = input.status ?? null;
-  if (nextStatus !== null && nextStatus !== "active" && nextStatus !== "archived") {
+  if (
+    nextStatus !== null &&
+    nextStatus !== "active" &&
+    nextStatus !== "archived"
+  ) {
     throw new Error("LLM Wiki space status must be active or archived.");
   }
-  const space = nextStatus === "active" ? await resolveSpaceAnyStatus(ctx, input) : await resolveSpace(ctx, input);
+  const space =
+    nextStatus === "active"
+      ? await resolveSpaceAnyStatus(ctx, input)
+      : await resolveSpace(ctx, input);
   const nextDisplayName = stringField(input.displayName);
   if (space.slug === DEFAULT_SPACE_SLUG && nextStatus === "archived") {
     throw new Error("The default LLM Wiki space cannot be archived.");
@@ -1493,17 +1968,30 @@ export async function updateSpace(ctx: PluginContext, input: UpdateSpaceInput): 
       space: {
         ...space,
         displayName: nextDisplayName ?? space.displayName,
-        settings: input.settings ? { ...space.settings, ...input.settings } : space.settings,
+        settings: input.settings
+          ? { ...space.settings, ...input.settings }
+          : space.settings,
         status: "archived",
       },
     };
   }
-  return { status: "ok", space: await resolveSpace(ctx, { companyId: input.companyId, wikiId: space.wikiId, spaceSlug: space.slug }) };
+  return {
+    status: "ok",
+    space: await resolveSpace(ctx, {
+      companyId: input.companyId,
+      wikiId: space.wikiId,
+      spaceSlug: space.slug,
+    }),
+  };
 }
 
-export async function archiveSpace(ctx: PluginContext, input: SpaceInput): Promise<{ status: "archived"; space: WikiSpace }> {
+export async function archiveSpace(
+  ctx: PluginContext,
+  input: SpaceInput,
+): Promise<{ status: "archived"; space: WikiSpace }> {
   const space = await resolveSpace(ctx, input);
-  if (space.slug === DEFAULT_SPACE_SLUG) throw new Error("The default LLM Wiki space cannot be archived.");
+  if (space.slug === DEFAULT_SPACE_SLUG)
+    throw new Error("The default LLM Wiki space cannot be archived.");
   await ctx.db.execute(
     `UPDATE ${spaceTable(ctx)}
         SET status = 'archived', updated_at = now()
@@ -1513,20 +2001,32 @@ export async function archiveSpace(ctx: PluginContext, input: SpaceInput): Promi
   return { status: "archived", space: { ...space, status: "archived" } };
 }
 
-export function spaceRelativePath(space: Pick<WikiSpace, "pathPrefix">, path: string): string {
+export function spaceRelativePath(
+  space: Pick<WikiSpace, "pathPrefix">,
+  path: string,
+): string {
   const normalized = path.replace(/^\/+/, "");
   return space.pathPrefix ? `${space.pathPrefix}/${normalized}` : normalized;
 }
 
-function logicalPathFromSpacePath(space: Pick<WikiSpace, "pathPrefix">, path: string): string {
+function logicalPathFromSpacePath(
+  space: Pick<WikiSpace, "pathPrefix">,
+  path: string,
+): string {
   if (!space.pathPrefix) return path;
   const prefix = `${space.pathPrefix}/`;
   return path.startsWith(prefix) ? path.slice(prefix.length) : path;
 }
 
-export async function spaceFolderStatus(ctx: PluginContext, input: SpaceInput): Promise<WikiSpaceWithFolderStatus> {
+export async function spaceFolderStatus(
+  ctx: PluginContext,
+  input: SpaceInput,
+): Promise<WikiSpaceWithFolderStatus> {
   const space = await resolveSpace(ctx, input);
-  const folder = await ctx.localFolders.status(input.companyId, WIKI_ROOT_FOLDER_KEY);
+  const folder = await ctx.localFolders.status(
+    input.companyId,
+    WIKI_ROOT_FOLDER_KEY,
+  );
   return {
     ...space,
     relativeRoot: space.pathPrefix ?? ".",
@@ -1536,9 +2036,17 @@ export async function spaceFolderStatus(ctx: PluginContext, input: SpaceInput): 
 
 async function getResourceBinding(
   ctx: PluginContext,
-  input: { companyId: string; wikiId: string; resourceKind: WikiResourceKind; resourceKey: string },
+  input: {
+    companyId: string;
+    wikiId: string;
+    resourceKind: WikiResourceKind;
+    resourceKey: string;
+  },
 ): Promise<WikiResourceBinding | null> {
-  const rows = await ctx.db.query<{ resolved_id: string | null; metadata: unknown }>(
+  const rows = await ctx.db.query<{
+    resolved_id: string | null;
+    metadata: unknown;
+  }>(
     `SELECT resolved_id, metadata
        FROM ${bindingTable(ctx)}
       WHERE company_id = $1
@@ -1549,12 +2057,24 @@ async function getResourceBinding(
     [input.companyId, input.wikiId, input.resourceKind, input.resourceKey],
   );
   const row = rows[0];
-  return row ? { resolvedId: row.resolved_id, metadata: parseBindingMetadata(row.metadata) } : null;
+  return row
+    ? {
+        resolvedId: row.resolved_id,
+        metadata: parseBindingMetadata(row.metadata),
+      }
+    : null;
 }
 
 async function upsertResourceBinding(
   ctx: PluginContext,
-  input: { companyId: string; wikiId: string; resourceKind: WikiResourceKind; resourceKey: string; resolvedId: string; metadata?: Record<string, unknown> },
+  input: {
+    companyId: string;
+    wikiId: string;
+    resourceKind: WikiResourceKind;
+    resourceKey: string;
+    resolvedId: string;
+    metadata?: Record<string, unknown>;
+  },
 ) {
   await ctx.db.execute(
     `INSERT INTO ${bindingTable(ctx)} AS wiki_resource_bindings
@@ -1578,17 +2098,37 @@ async function upsertResourceBinding(
 
 function agentDetails(agent: Agent | null): WikiAgentResource["details"] {
   return agent
-    ? { name: agent.name, status: agent.status, adapterType: agent.adapterType ?? null, icon: agent.icon ?? null, urlKey: agent.urlKey ?? null }
+    ? {
+        name: agent.name,
+        status: agent.status,
+        adapterType: agent.adapterType ?? null,
+        icon: agent.icon ?? null,
+        urlKey: agent.urlKey ?? null,
+      }
     : null;
 }
 
-function projectDetails(project: Project | null): WikiProjectResource["details"] {
-  return project ? { name: project.name, status: project.status, color: project.color ?? null } : null;
+function projectDetails(
+  project: Project | null,
+): WikiProjectResource["details"] {
+  return project
+    ? {
+        name: project.name,
+        status: project.status,
+        color: project.color ?? null,
+      }
+    : null;
 }
 
-function skillDetails(skill: PluginManagedSkillResolution["skill"]): WikiSkillResource["details"] {
+function skillDetails(
+  skill: PluginManagedSkillResolution["skill"],
+): WikiSkillResource["details"] {
   return skill
-    ? { name: skill.name, key: skill.key, description: skill.description ?? null }
+    ? {
+        name: skill.name,
+        key: skill.key,
+        description: skill.description ?? null,
+      }
     : null;
 }
 
@@ -1624,7 +2164,9 @@ function projectResource(input: {
   };
 }
 
-function skillResource(resolved: PluginManagedSkillResolution): WikiSkillResource {
+function skillResource(
+  resolved: PluginManagedSkillResolution,
+): WikiSkillResource {
   return {
     status: resolved.status,
     skillId: resolved.skillId,
@@ -1635,13 +2177,21 @@ function skillResource(resolved: PluginManagedSkillResolution): WikiSkillResourc
   };
 }
 
-async function resolveSelectedAgent(ctx: PluginContext, companyId: string, binding: WikiResourceBinding | null) {
+async function resolveSelectedAgent(
+  ctx: PluginContext,
+  companyId: string,
+  binding: WikiResourceBinding | null,
+) {
   if (!binding?.resolvedId) return null;
   const agent = await ctx.agents.get(binding.resolvedId, companyId);
   return agent && agent.status !== "terminated" ? agent : null;
 }
 
-async function resolveSelectedProject(ctx: PluginContext, companyId: string, binding: WikiResourceBinding | null) {
+async function resolveSelectedProject(
+  ctx: PluginContext,
+  companyId: string,
+  binding: WikiResourceBinding | null,
+) {
   if (!binding?.resolvedId) return null;
   return ctx.projects.get(binding.resolvedId, companyId);
 }
@@ -1654,9 +2204,17 @@ function inferTitle(path: string, contents: string): string {
 }
 
 function inferPageType(path: string): string | null {
-  if (/^wiki\/projects\/[^/]+\/standup\.md$/.test(path)) return "project-standup";
+  if (/^wiki\/projects\/[^/]+\/standup\.md$/.test(path))
+    return "project-standup";
   const match = path.match(/^wiki\/([^/]+)\//);
-  return match?.[1] ?? (path === "index.md" || path === "wiki/index.md" ? "index" : path === "log.md" || path === "wiki/log.md" ? "log" : null);
+  return (
+    match?.[1] ??
+    (path === "index.md" || path === "wiki/index.md"
+      ? "index"
+      : path === "log.md" || path === "wiki/log.md"
+        ? "log"
+        : null)
+  );
 }
 
 function extractWikiLinks(contents: string): string[] {
@@ -1664,7 +2222,14 @@ function extractWikiLinks(contents: string): string[] {
   const markdownLinkPattern = /\[[^\]]+\]\(([^)]+)\)/g;
   for (const match of contents.matchAll(markdownLinkPattern)) {
     const target = match[1]?.split("#")[0]?.trim();
-    if (target && (target.startsWith("wiki/") || target === "index.md" || target === "log.md" || target === "AGENTS.md" || target === "IDEA.md")) {
+    if (
+      target &&
+      (target.startsWith("wiki/") ||
+        target === "index.md" ||
+        target === "log.md" ||
+        target === "AGENTS.md" ||
+        target === "IDEA.md")
+    ) {
       links.add(target);
     }
   }
@@ -1682,7 +2247,11 @@ async function readCurrentWithHash(
   space: Pick<WikiSpace, "pathPrefix">,
 ): Promise<{ contents: string | null; hash: string | null }> {
   try {
-    const contents = await ctx.localFolders.readText(companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, path));
+    const contents = await ctx.localFolders.readText(
+      companyId,
+      WIKI_ROOT_FOLDER_KEY,
+      spaceRelativePath(space, path),
+    );
     return { contents, hash: contentHash(contents) };
   } catch {
     return { contents: null, hash: null };
@@ -1696,34 +2265,57 @@ async function filterReadableRows<T>(
   rows: T[],
   pathForRow: (row: T) => string,
 ): Promise<T[]> {
-  const checks: Array<T | null> = await Promise.all(rows.map(async (row): Promise<T | null> => {
-    try {
-      await ctx.localFolders.readText(companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, pathForRow(row)));
-      return row;
-    } catch {
-      return null;
-    }
-  }));
+  const checks: Array<T | null> = await Promise.all(
+    rows.map(async (row): Promise<T | null> => {
+      try {
+        await ctx.localFolders.readText(
+          companyId,
+          WIKI_ROOT_FOLDER_KEY,
+          spaceRelativePath(space, pathForRow(row)),
+        );
+        return row;
+      } catch {
+        return null;
+      }
+    }),
+  );
   return checks.filter((row): row is T => row != null);
 }
 
-async function listLocalFiles(ctx: PluginContext, input: { companyId: string; space: Pick<WikiSpace, "pathPrefix">; relativePath: "wiki" | "raw" }): Promise<PluginLocalFolderEntry[]> {
+async function listLocalFiles(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    space: Pick<WikiSpace, "pathPrefix">;
+    relativePath: "wiki" | "raw";
+  },
+): Promise<PluginLocalFolderEntry[]> {
   try {
     const relativePath = spaceRelativePath(input.space, input.relativePath);
-    const listing = await ctx.localFolders.list(input.companyId, WIKI_ROOT_FOLDER_KEY, {
-      relativePath,
-      recursive: true,
-      maxEntries: LOCAL_BROWSE_FILE_LIMIT,
-    });
+    const listing = await ctx.localFolders.list(
+      input.companyId,
+      WIKI_ROOT_FOLDER_KEY,
+      {
+        relativePath,
+        recursive: true,
+        maxEntries: LOCAL_BROWSE_FILE_LIMIT,
+      },
+    );
     return listing.entries
       .filter((entry) => entry.kind === "file")
-      .map((entry) => ({ ...entry, path: logicalPathFromSpacePath(input.space, entry.path) }));
+      .map((entry) => ({
+        ...entry,
+        path: logicalPathFromSpacePath(input.space, entry.path),
+      }));
   } catch {
     return [];
   }
 }
 
-function mergeLocalPageRows(pages: WikiPageRow[], entries: PluginLocalFolderEntry[]): WikiPageRow[] {
+function mergeLocalPageRows(
+  pages: WikiPageRow[],
+  entries: PluginLocalFolderEntry[],
+): WikiPageRow[] {
   const byPath = new Map(pages.map((page) => [page.path, page]));
   for (const entry of entries) {
     if (!entry.path.endsWith(".md") || byPath.has(entry.path)) continue;
@@ -1740,7 +2332,10 @@ function mergeLocalPageRows(pages: WikiPageRow[], entries: PluginLocalFolderEntr
   return [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function mergeLocalSourceRows(sources: WikiSourceRow[], entries: PluginLocalFolderEntry[]): WikiSourceRow[] {
+function mergeLocalSourceRows(
+  sources: WikiSourceRow[],
+  entries: PluginLocalFolderEntry[],
+): WikiSourceRow[] {
   const byPath = new Map(sources.map((source) => [source.rawPath, source]));
   for (const entry of entries) {
     if (!entry.path.endsWith(".md") || byPath.has(entry.path)) continue;
@@ -1753,16 +2348,27 @@ function mergeLocalSourceRows(sources: WikiSourceRow[], entries: PluginLocalFold
       createdAt: entry.modifiedAt ?? new Date(0).toISOString(),
     });
   }
-  return [...byPath.values()].sort((a, b) => a.rawPath.localeCompare(b.rawPath));
+  return [...byPath.values()].sort((a, b) =>
+    a.rawPath.localeCompare(b.rawPath),
+  );
 }
 
-function assertExpectedHash(expectedHash: string | null | undefined, currentHash: string | null, path: string): void {
+function assertExpectedHash(
+  expectedHash: string | null | undefined,
+  currentHash: string | null,
+  path: string,
+): void {
   if (expectedHash && currentHash && expectedHash !== currentHash) {
-    throw new Error(`Refusing to overwrite ${path}: expected hash ${expectedHash} but current hash is ${currentHash}`);
+    throw new Error(
+      `Refusing to overwrite ${path}: expected hash ${expectedHash} but current hash is ${currentHash}`,
+    );
   }
 }
 
-async function upsertWikiInstance(ctx: PluginContext, input: { companyId: string; wikiId: string; rootPath?: string | null }) {
+async function upsertWikiInstance(
+  ctx: PluginContext,
+  input: { companyId: string; wikiId: string; rootPath?: string | null },
+) {
   await ctx.db.execute(
     `INSERT INTO ${tableName(ctx.db.namespace, "wiki_instances")} AS wiki_instances
        (id, company_id, wiki_id, root_folder_key, configured_root_path, schema_version, settings, managed_agent_key, managed_project_key)
@@ -1784,16 +2390,19 @@ async function upsertWikiInstance(ctx: PluginContext, input: { companyId: string
   );
 }
 
-async function upsertPageMetadata(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId: string;
-  spaceId: string;
-  path: string;
-  contents: string;
-  summary?: string | null;
-  sourceRefs?: unknown;
-  operationId?: string | null;
-}) {
+async function upsertPageMetadata(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId: string;
+    spaceId: string;
+    path: string;
+    contents: string;
+    summary?: string | null;
+    sourceRefs?: unknown;
+    operationId?: string | null;
+  },
+) {
   const pageId = randomUUID();
   const revisionId = randomUUID();
   const hash = contentHash(input.contents);
@@ -1833,7 +2442,16 @@ async function upsertPageMetadata(ctx: PluginContext, input: {
     `INSERT INTO ${tableName(ctx.db.namespace, "wiki_page_revisions")}
        (id, company_id, wiki_id, space_id, page_id, operation_id, path, content_hash, summary, metadata)
      VALUES ($1, $2, $3, $8, (SELECT id FROM ${tableName(ctx.db.namespace, "wiki_pages")} WHERE company_id = $2 AND wiki_id = $3 AND space_id = $8 AND path = $4), $7, $4, $5, $6, '{}'::jsonb)`,
-    [revisionId, input.companyId, input.wikiId, input.path, hash, input.summary ?? null, input.operationId ?? null, input.spaceId],
+    [
+      revisionId,
+      input.companyId,
+      input.wikiId,
+      input.path,
+      hash,
+      input.summary ?? null,
+      input.operationId ?? null,
+      input.spaceId,
+    ],
   );
 
   return { title, pageType, backlinks, hash, revisionId };
@@ -1841,12 +2459,21 @@ async function upsertPageMetadata(ctx: PluginContext, input: {
 
 export async function writeWikiPage(ctx: PluginContext, input: WritePageInput) {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const path = assertPagePath(input.path);
   assertPageWriteAllowed(path, input.writer);
   const current = await readCurrentWithHash(ctx, input.companyId, path, space);
   assertExpectedHash(input.expectedHash, current.hash, path);
-  await ctx.localFolders.writeTextAtomic(input.companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, path), input.contents);
+  await ctx.localFolders.writeTextAtomic(
+    input.companyId,
+    WIKI_ROOT_FOLDER_KEY,
+    spaceRelativePath(space, path),
+    input.contents,
+  );
   const metadata = await upsertPageMetadata(ctx, {
     companyId: input.companyId,
     wikiId,
@@ -1858,19 +2485,40 @@ export async function writeWikiPage(ctx: PluginContext, input: WritePageInput) {
     operationId: input.operationId,
   });
   await upsertWikiInstance(ctx, { companyId: input.companyId, wikiId });
-  return { status: "ok", wikiId, spaceSlug: space.slug, path, previousHash: current.hash, ...metadata };
+  return {
+    status: "ok",
+    wikiId,
+    spaceSlug: space.slug,
+    path,
+    previousHash: current.hash,
+    ...metadata,
+  };
 }
 
-export async function captureWikiSource(ctx: PluginContext, input: CaptureSourceInput) {
+export async function captureWikiSource(
+  ctx: PluginContext,
+  input: CaptureSourceInput,
+) {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const title = stringField(input.title) ?? "Untitled source";
   await assertSourceWithinConfiguredLimit(ctx, input.companyId, input.contents);
   const hash = contentHash(input.contents);
   const rawPath = input.rawPath
     ? assertRawPath(input.rawPath)
-    : assertRawPath(`raw/${new Date().toISOString().slice(0, 10)}-${slugify(title)}-${hash.slice(0, 8)}.md`);
-  await ctx.localFolders.writeTextAtomic(input.companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, rawPath), input.contents);
+    : assertRawPath(
+        `raw/${new Date().toISOString().slice(0, 10)}-${slugify(title)}-${hash.slice(0, 8)}.md`,
+      );
+  await ctx.localFolders.writeTextAtomic(
+    input.companyId,
+    WIKI_ROOT_FOLDER_KEY,
+    spaceRelativePath(space, rawPath),
+    input.contents,
+  );
   await upsertWikiInstance(ctx, { companyId: input.companyId, wikiId });
   const sourceId = randomUUID();
   await ctx.db.execute(
@@ -1890,17 +2538,29 @@ export async function captureWikiSource(ctx: PluginContext, input: CaptureSource
       space.id,
     ],
   );
-  return { status: "ok", sourceId, wikiId, spaceSlug: space.slug, rawPath, hash, title };
+  return {
+    status: "ok",
+    sourceId,
+    wikiId,
+    spaceSlug: space.slug,
+    rawPath,
+    hash,
+    title,
+  };
 }
 
-export async function getOverview(ctx: PluginContext, companyId: string): Promise<WikiOverview> {
-  const [defaultSpace, folder, managedAgent, managedProject, managedSkills] = await Promise.all([
-    ensureDefaultSpace(ctx, { companyId, wikiId: DEFAULT_WIKI_ID }),
-    ctx.localFolders.status(companyId, WIKI_ROOT_FOLDER_KEY),
-    resolveWikiAgentResource(ctx, companyId),
-    resolveWikiProjectResource(ctx, companyId),
-    resolveWikiSkillResources(ctx, companyId),
-  ]);
+export async function getOverview(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiOverview> {
+  const [defaultSpace, folder, managedAgent, managedProject, managedSkills] =
+    await Promise.all([
+      ensureDefaultSpace(ctx, { companyId, wikiId: DEFAULT_WIKI_ID }),
+      ctx.localFolders.status(companyId, WIKI_ROOT_FOLDER_KEY),
+      resolveWikiAgentResource(ctx, companyId),
+      resolveWikiProjectResource(ctx, companyId),
+      resolveWikiSkillResources(ctx, companyId),
+    ]);
   const operationRows = await ctx.db.query<{ count: string }>(
     `SELECT count(*)::text AS count FROM ${tableName(ctx.db.namespace, "wiki_operations")} WHERE company_id = $1`,
     [companyId],
@@ -1940,10 +2600,12 @@ export async function resolveWikiAgentResource(
   });
   const selectedAgent = await resolveSelectedAgent(ctx, companyId, binding);
   if (selectedAgent) {
-    const source = binding?.metadata.source === "managed-default" ? "managed" : "selected";
-    const managedResolution = source === "managed"
-      ? await ctx.agents.managed.get(WIKI_MAINTAINER_AGENT_KEY, companyId)
-      : null;
+    const source =
+      binding?.metadata.source === "managed-default" ? "managed" : "selected";
+    const managedResolution =
+      source === "managed"
+        ? await ctx.agents.managed.get(WIKI_MAINTAINER_AGENT_KEY, companyId)
+        : null;
     return agentResource({
       status: "resolved",
       source,
@@ -1952,7 +2614,11 @@ export async function resolveWikiAgentResource(
     });
   }
   if (binding?.resolvedId && !options.reconcileMissing) {
-    return agentResource({ status: "missing", source: "selected", agent: null });
+    return agentResource({
+      status: "missing",
+      source: "selected",
+      agent: null,
+    });
   }
 
   const resolved = options.reconcileMissing
@@ -1968,7 +2634,12 @@ export async function resolveWikiAgentResource(
       metadata: { source: "managed-default", updatedBy: "resolve" },
     });
   }
-  return agentResource({ status: resolved.status, source: "managed", agent: resolved.agent, defaultDrift: resolved.defaultDrift ?? null });
+  return agentResource({
+    status: resolved.status,
+    source: "managed",
+    agent: resolved.agent,
+    defaultDrift: resolved.defaultDrift ?? null,
+  });
 }
 
 export async function resolveWikiProjectResource(
@@ -1987,12 +2658,17 @@ export async function resolveWikiProjectResource(
   if (selectedProject) {
     return projectResource({
       status: "resolved",
-      source: binding?.metadata.source === "managed-default" ? "managed" : "selected",
+      source:
+        binding?.metadata.source === "managed-default" ? "managed" : "selected",
       project: selectedProject,
     });
   }
   if (binding?.resolvedId && !options.reconcileMissing) {
-    return projectResource({ status: "missing", source: "selected", project: null });
+    return projectResource({
+      status: "missing",
+      source: "selected",
+      project: null,
+    });
   }
 
   const resolved = options.reconcileMissing
@@ -2008,7 +2684,11 @@ export async function resolveWikiProjectResource(
       metadata: { source: "managed-default", updatedBy: "resolve" },
     });
   }
-  return projectResource({ status: resolved.status, source: "managed", project: resolved.project });
+  return projectResource({
+    status: resolved.status,
+    source: "managed",
+    project: resolved.project,
+  });
 }
 
 export async function resolveWikiSkillResources(
@@ -2026,8 +2706,14 @@ export async function resolveWikiSkillResources(
   );
 }
 
-export async function reconcileWikiAgentResource(ctx: PluginContext, companyId: string): Promise<WikiAgentResource> {
-  const resolved = await ctx.agents.managed.reconcile(WIKI_MAINTAINER_AGENT_KEY, companyId);
+export async function reconcileWikiAgentResource(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiAgentResource> {
+  const resolved = await ctx.agents.managed.reconcile(
+    WIKI_MAINTAINER_AGENT_KEY,
+    companyId,
+  );
   if (resolved.agentId) {
     await upsertResourceBinding(ctx, {
       companyId,
@@ -2038,11 +2724,22 @@ export async function reconcileWikiAgentResource(ctx: PluginContext, companyId: 
       metadata: { source: "managed-default", updatedBy: "reconcile" },
     });
   }
-  return agentResource({ status: resolved.status, source: "managed", agent: resolved.agent, defaultDrift: resolved.defaultDrift ?? null });
+  return agentResource({
+    status: resolved.status,
+    source: "managed",
+    agent: resolved.agent,
+    defaultDrift: resolved.defaultDrift ?? null,
+  });
 }
 
-export async function resetWikiAgentResource(ctx: PluginContext, companyId: string): Promise<WikiAgentResource> {
-  const resolved = await ctx.agents.managed.reset(WIKI_MAINTAINER_AGENT_KEY, companyId);
+export async function resetWikiAgentResource(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiAgentResource> {
+  const resolved = await ctx.agents.managed.reset(
+    WIKI_MAINTAINER_AGENT_KEY,
+    companyId,
+  );
   if (resolved.agentId) {
     await upsertResourceBinding(ctx, {
       companyId,
@@ -2053,13 +2750,23 @@ export async function resetWikiAgentResource(ctx: PluginContext, companyId: stri
       metadata: { source: "managed-default", updatedBy: "reset" },
     });
   }
-  return agentResource({ status: resolved.status, source: "managed", agent: resolved.agent, defaultDrift: resolved.defaultDrift ?? null });
+  return agentResource({
+    status: resolved.status,
+    source: "managed",
+    agent: resolved.agent,
+    defaultDrift: resolved.defaultDrift ?? null,
+  });
 }
 
-export async function selectWikiAgentResource(ctx: PluginContext, input: { companyId: string; agentId: string }): Promise<WikiAgentResource> {
+export async function selectWikiAgentResource(
+  ctx: PluginContext,
+  input: { companyId: string; agentId: string },
+): Promise<WikiAgentResource> {
   const agent = await ctx.agents.get(input.agentId, input.companyId);
   if (!agent || agent.status === "terminated") {
-    throw new Error("Selected Wiki Maintainer agent was not found or is terminated.");
+    throw new Error(
+      "Selected Wiki Maintainer agent was not found or is terminated.",
+    );
   }
   await upsertResourceBinding(ctx, {
     companyId: input.companyId,
@@ -2072,8 +2779,14 @@ export async function selectWikiAgentResource(ctx: PluginContext, input: { compa
   return agentResource({ status: "resolved", source: "selected", agent });
 }
 
-export async function reconcileWikiProjectResource(ctx: PluginContext, companyId: string): Promise<WikiProjectResource> {
-  const resolved = await ctx.projects.managed.reconcile(WIKI_PROJECT_KEY, companyId);
+export async function reconcileWikiProjectResource(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiProjectResource> {
+  const resolved = await ctx.projects.managed.reconcile(
+    WIKI_PROJECT_KEY,
+    companyId,
+  );
   if (resolved.projectId) {
     await upsertResourceBinding(ctx, {
       companyId,
@@ -2084,11 +2797,21 @@ export async function reconcileWikiProjectResource(ctx: PluginContext, companyId
       metadata: { source: "managed-default", updatedBy: "reconcile" },
     });
   }
-  return projectResource({ status: resolved.status, source: "managed", project: resolved.project });
+  return projectResource({
+    status: resolved.status,
+    source: "managed",
+    project: resolved.project,
+  });
 }
 
-export async function resetWikiProjectResource(ctx: PluginContext, companyId: string): Promise<WikiProjectResource> {
-  const resolved = await ctx.projects.managed.reset(WIKI_PROJECT_KEY, companyId);
+export async function resetWikiProjectResource(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiProjectResource> {
+  const resolved = await ctx.projects.managed.reset(
+    WIKI_PROJECT_KEY,
+    companyId,
+  );
   if (resolved.projectId) {
     await upsertResourceBinding(ctx, {
       companyId,
@@ -2099,14 +2822,24 @@ export async function resetWikiProjectResource(ctx: PluginContext, companyId: st
       metadata: { source: "managed-default", updatedBy: "reset" },
     });
   }
-  return projectResource({ status: resolved.status, source: "managed", project: resolved.project });
+  return projectResource({
+    status: resolved.status,
+    source: "managed",
+    project: resolved.project,
+  });
 }
 
-export async function reconcileWikiSkillResources(ctx: PluginContext, companyId: string): Promise<WikiSkillResource[]> {
+export async function reconcileWikiSkillResources(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiSkillResource[]> {
   return resolveWikiSkillResources(ctx, companyId, { reconcileMissing: true });
 }
 
-export async function resetWikiSkillResources(ctx: PluginContext, companyId: string): Promise<WikiSkillResource[]> {
+export async function resetWikiSkillResources(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiSkillResource[]> {
   return Promise.all(
     WIKI_MANAGED_SKILL_KEYS.map(async (skillKey) => {
       return skillResource(await ctx.skills.managed.reset(skillKey, companyId));
@@ -2132,13 +2865,17 @@ export async function reconcileWikiRoutineResources(
       ctx.routines.managed.reconcile(routineKey, companyId, {
         assigneeAgentId: managedAgent.agentId,
         projectId: managedProject.projectId,
-      })),
+      }),
+    ),
   );
 
   return { managedAgent, managedProject, managedRoutines };
 }
 
-export async function selectWikiProjectResource(ctx: PluginContext, input: { companyId: string; projectId: string }): Promise<WikiProjectResource> {
+export async function selectWikiProjectResource(
+  ctx: PluginContext,
+  input: { companyId: string; projectId: string },
+): Promise<WikiProjectResource> {
   const project = await ctx.projects.get(input.projectId, input.companyId);
   if (!project) {
     throw new Error("Selected LLM Wiki project was not found.");
@@ -2154,7 +2891,10 @@ export async function selectWikiProjectResource(ctx: PluginContext, input: { com
   return projectResource({ status: "resolved", source: "selected", project });
 }
 
-export async function listWikiAgentOptions(ctx: PluginContext, companyId: string): Promise<WikiResourceOption[]> {
+export async function listWikiAgentOptions(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiResourceOption[]> {
   const agents = await ctx.agents.list({ companyId, limit: 200 });
   return agents
     .filter((agent) => agent.status !== "terminated")
@@ -2168,15 +2908,30 @@ export async function listWikiAgentOptions(ctx: PluginContext, companyId: string
     }));
 }
 
-export async function listWikiProjectOptions(ctx: PluginContext, companyId: string): Promise<WikiResourceOption[]> {
+export async function listWikiProjectOptions(
+  ctx: PluginContext,
+  companyId: string,
+): Promise<WikiResourceOption[]> {
   const projects = await ctx.projects.list({ companyId, limit: 200 });
-  return projects.map((project) => ({ id: project.id, name: project.name, status: project.status, color: project.color ?? null }));
+  return projects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    status: project.status,
+    color: project.color ?? null,
+  }));
 }
 
-export async function bootstrapWikiRoot(ctx: PluginContext, input: BootstrapInput) {
+export async function bootstrapWikiRoot(
+  ctx: PluginContext,
+  input: BootstrapInput,
+) {
   const wikiId = DEFAULT_WIKI_ID;
-  const defaultSpace = await ensureDefaultSpace(ctx, { companyId: input.companyId, wikiId });
-  const configureFolder = (path: string) => ctx.localFolders.configure({
+  const defaultSpace = await ensureDefaultSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+  });
+  const configureFolder = (path: string) =>
+    ctx.localFolders.configure({
       companyId: input.companyId,
       folderKey: WIKI_ROOT_FOLDER_KEY,
       path,
@@ -2191,24 +2946,38 @@ export async function bootstrapWikiRoot(ctx: PluginContext, input: BootstrapInpu
     ? await configureFolder(input.path)
     : currentFolder?.configured && currentFolder.path
       ? await configureFolder(currentFolder.path)
-      : currentFolder ?? await ctx.localFolders.status(input.companyId, WIKI_ROOT_FOLDER_KEY);
+      : (currentFolder ??
+        (await ctx.localFolders.status(input.companyId, WIKI_ROOT_FOLDER_KEY)));
 
   const writtenFiles: string[] = [];
   const preservedFiles: string[] = [];
   for (const file of BOOTSTRAP_FILES) {
     const path = assertWikiPath(file.path, { allowMetadata: true });
     try {
-      await ctx.localFolders.readText(input.companyId, WIKI_ROOT_FOLDER_KEY, path);
+      await ctx.localFolders.readText(
+        input.companyId,
+        WIKI_ROOT_FOLDER_KEY,
+        path,
+      );
       preservedFiles.push(path);
       continue;
     } catch {
       // Missing files are initialized below. Existing files are intentionally preserved.
     }
-    await ctx.localFolders.writeTextAtomic(input.companyId, WIKI_ROOT_FOLDER_KEY, file.path, file.contents);
+    await ctx.localFolders.writeTextAtomic(
+      input.companyId,
+      WIKI_ROOT_FOLDER_KEY,
+      file.path,
+      file.contents,
+    );
     writtenFiles.push(path);
   }
 
-  await upsertWikiInstance(ctx, { companyId: input.companyId, wikiId, rootPath: folder.path });
+  await upsertWikiInstance(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    rootPath: folder.path,
+  });
   const managedSkills = await reconcileWikiSkillResources(ctx, input.companyId);
   const [managedAgent, managedProject] = await Promise.all([
     reconcileWikiAgentResource(ctx, input.companyId),
@@ -2239,8 +3008,16 @@ export async function bootstrapWikiRoot(ctx: PluginContext, input: BootstrapInpu
 
 export async function bootstrapSpace(ctx: PluginContext, input: SpaceInput) {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
-  const { writtenFiles, preservedFiles } = await bootstrapSpaceFiles(ctx, input.companyId, space);
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
+  const { writtenFiles, preservedFiles } = await bootstrapSpaceFiles(
+    ctx,
+    input.companyId,
+    space,
+  );
   await upsertWikiInstance(ctx, { companyId: input.companyId, wikiId });
   return {
     status: "ok",
@@ -2251,27 +3028,42 @@ export async function bootstrapSpace(ctx: PluginContext, input: SpaceInput) {
   };
 }
 
-async function bootstrapSpaceFiles(ctx: PluginContext, companyId: string, space: WikiSpace) {
+async function bootstrapSpaceFiles(
+  ctx: PluginContext,
+  companyId: string,
+  space: WikiSpace,
+) {
   const writtenFiles: string[] = [];
   const preservedFiles: string[] = [];
   for (const file of BOOTSTRAP_FILES) {
     const path = assertWikiPath(file.path, { allowMetadata: true });
     const physicalPath = spaceRelativePath(space, path);
     try {
-      await ctx.localFolders.readText(companyId, WIKI_ROOT_FOLDER_KEY, physicalPath);
+      await ctx.localFolders.readText(
+        companyId,
+        WIKI_ROOT_FOLDER_KEY,
+        physicalPath,
+      );
       preservedFiles.push(path);
       continue;
     } catch {
       // Missing files are initialized below. Existing files are intentionally preserved.
     }
-    await ctx.localFolders.writeTextAtomic(companyId, WIKI_ROOT_FOLDER_KEY, physicalPath, file.contents);
+    await ctx.localFolders.writeTextAtomic(
+      companyId,
+      WIKI_ROOT_FOLDER_KEY,
+      physicalPath,
+      file.contents,
+    );
     writtenFiles.push(path);
   }
   return { writtenFiles, preservedFiles };
 }
 
 function operationSpaceRoot(space: WikiSpace): string {
-  return space.pathPrefix ? `${space.rootFolderKey}/${space.pathPrefix}` : `${space.rootFolderKey} root`;
+  return space.pathPrefix
+    ? `${space.rootFolderKey}/${space.pathPrefix}`
+    : `${space.rootFolderKey} root`;
 }
 
 function operationBillingContext(wikiId: string, space: WikiSpace): string {
@@ -2281,10 +3073,16 @@ function operationBillingContext(wikiId: string, space: WikiSpace): string {
 }
 
 function operationBillingCode(wikiId: string, space: WikiSpace): string {
-  return space.slug === DEFAULT_SPACE_SLUG ? `plugin-llm-wiki:${wikiId}` : `plugin-llm-wiki:${wikiId}:${space.slug}`;
+  return space.slug === DEFAULT_SPACE_SLUG
+    ? `plugin-llm-wiki:${wikiId}`
+    : `plugin-llm-wiki:${wikiId}:${space.slug}`;
 }
 
-function operationIssueOriginId(input: { wikiId: string; space: WikiSpace; operationId: string }): string {
+function operationIssueOriginId(input: {
+  wikiId: string;
+  space: WikiSpace;
+  operationId: string;
+}): string {
   return input.space.slug === DEFAULT_SPACE_SLUG
     ? `wiki:${input.wikiId}:operation:${input.operationId}`
     : `wiki:${input.wikiId}:space:${input.space.slug}:operation:${input.operationId}`;
@@ -2295,7 +3093,8 @@ function operationTitleWithSpace(title: string, space: WikiSpace): string {
 }
 
 function operationPromptWithSpaceContext(input: OperationSpaceContext): string {
-  const taskcoreDerived = input.operationType === "distill" || input.operationType === "backfill";
+  const taskcoreDerived =
+    input.operationType === "distill" || input.operationType === "backfill";
   return [
     `Plugin operation: ${input.operationType}`,
     `Wiki ID: ${input.wikiId}`,
@@ -2328,17 +3127,45 @@ function operationMetadata(input: OperationSpaceContext) {
   };
 }
 
-export async function createOperationIssue(ctx: PluginContext, input: OperationInput) {
+export async function createOperationIssue(
+  ctx: PluginContext,
+  input: OperationInput,
+) {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = input.operationType === "distill" || input.operationType === "backfill"
-    ? await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "queue", { requireEnabledProfile: true })
-    : await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
-  const managedAgent = await resolveWikiAgentResource(ctx, input.companyId, { reconcileMissing: true });
-  const managedProject = await resolveWikiProjectResource(ctx, input.companyId, { reconcileMissing: true });
+  const space =
+    input.operationType === "distill" || input.operationType === "backfill"
+      ? await requireTaskcoreIngestionPolicy(
+          ctx,
+          { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+          "queue",
+          { requireEnabledProfile: true },
+        )
+      : await resolveSpace(ctx, {
+          companyId: input.companyId,
+          wikiId,
+          spaceSlug: input.spaceSlug,
+        });
+  const managedAgent = await resolveWikiAgentResource(ctx, input.companyId, {
+    reconcileMissing: true,
+  });
+  const managedProject = await resolveWikiProjectResource(
+    ctx,
+    input.companyId,
+    { reconcileMissing: true },
+  );
   const operationId = randomUUID();
-  const title = operationTitleWithSpace(input.title ?? `LLM Wiki ${input.operationType}`, space);
+  const title = operationTitleWithSpace(
+    input.title ?? `LLM Wiki ${input.operationType}`,
+    space,
+  );
   const originId = operationIssueOriginId({ wikiId, space, operationId });
-  const operationContext = { wikiId, space, operationType: input.operationType, operationId, prompt: input.prompt };
+  const operationContext = {
+    wikiId,
+    space,
+    operationType: input.operationType,
+    operationId,
+    prompt: input.prompt,
+  };
   const assignableAgentId =
     managedAgent.agent &&
     managedAgent.agent.status !== "pending_approval" &&
@@ -2355,7 +3182,8 @@ export async function createOperationIssue(ctx: PluginContext, input: OperationI
     assigneeAgentId: assignableAgentId,
     billingCode: operationBillingCode(wikiId, space),
     surfaceVisibility: "plugin_operation",
-    originKind: `${OPERATION_ORIGIN_KIND}:${input.operationType}` as PluginIssueOriginKind,
+    originKind:
+      `${OPERATION_ORIGIN_KIND}:${input.operationType}` as PluginIssueOriginKind,
     originId,
   });
 
@@ -2384,19 +3212,30 @@ export async function createOperationIssue(ctx: PluginContext, input: OperationI
 }
 
 function isLlmWikiOperationIssue(issue: Issue): boolean {
-  return typeof issue.originKind === "string" && issue.originKind.startsWith(OPERATION_ORIGIN_KIND);
+  return (
+    typeof issue.originKind === "string" &&
+    issue.originKind.startsWith(OPERATION_ORIGIN_KIND)
+  );
 }
 
-function taskcoreDistillationScope(input: { projectId?: string | null; rootIssueId?: string | null }): TaskcoreDistillationScope {
+function taskcoreDistillationScope(input: {
+  projectId?: string | null;
+  rootIssueId?: string | null;
+}): TaskcoreDistillationScope {
   if (input.rootIssueId) return "root_issue";
   if (input.projectId) return "project";
   return "company";
 }
 
-function taskcoreCursorScopeMetadata(input: { projectId?: string | null; rootIssueId?: string | null }) {
+function taskcoreCursorScopeMetadata(input: {
+  projectId?: string | null;
+  rootIssueId?: string | null;
+}) {
   const sourceScope = taskcoreDistillationScope(input);
-  const projectId = sourceScope === "project" ? input.projectId ?? null : null;
-  const rootIssueId = sourceScope === "root_issue" ? input.rootIssueId ?? null : null;
+  const projectId =
+    sourceScope === "project" ? (input.projectId ?? null) : null;
+  const rootIssueId =
+    sourceScope === "root_issue" ? (input.rootIssueId ?? null) : null;
   return {
     sourceScope,
     scopeKey: rootIssueId ?? projectId ?? "company",
@@ -2405,15 +3244,18 @@ function taskcoreCursorScopeMetadata(input: { projectId?: string | null; rootIss
   };
 }
 
-async function upsertTaskcoreDistillationCursor(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId: string;
-  spaceId: string;
-  projectId?: string | null;
-  rootIssueId?: string | null;
-  observedAt?: string | null;
-  metadata?: Record<string, unknown>;
-}): Promise<string> {
+async function upsertTaskcoreDistillationCursor(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId: string;
+    spaceId: string;
+    projectId?: string | null;
+    rootIssueId?: string | null;
+    observedAt?: string | null;
+    metadata?: Record<string, unknown>;
+  },
+): Promise<string> {
   const cursorId = randomUUID();
   const scope = taskcoreCursorScopeMetadata(input);
   await ctx.db.execute(
@@ -2452,7 +3294,13 @@ async function upsertTaskcoreDistillationCursor(ctx: PluginContext, input: {
         AND scope_key = $5
         AND source_kind = 'taskcore_issue_history'
       LIMIT 1`,
-    [input.companyId, input.wikiId, input.spaceId, scope.sourceScope, scope.scopeKey],
+    [
+      input.companyId,
+      input.wikiId,
+      input.spaceId,
+      scope.sourceScope,
+      scope.scopeKey,
+    ],
   );
   return rows[0]?.id ?? cursorId;
 }
@@ -2469,25 +3317,45 @@ function projectActivityTimestamp(project: Project): string {
   return isoString(project.updatedAt) ?? new Date().toISOString();
 }
 
-export async function enableActiveProjectDistillation(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId?: string | null;
-  spaceSlug?: string | null;
-  limit?: number | null;
-}): Promise<EnableActiveProjectDistillationResult> {
+export async function enableActiveProjectDistillation(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    limit?: number | null;
+  },
+): Promise<EnableActiveProjectDistillationResult> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "candidate_search", { requireEnabledProfile: true });
-  if (typeof input.limit === "number" && Number.isFinite(input.limit) && Math.floor(input.limit) > MAX_TASKCORE_DISTILLATION_FAN_OUT) {
-    throw new Error(`Taskcore ingestion fan-out exceeds the hard cap of ${MAX_TASKCORE_DISTILLATION_FAN_OUT} enabled profiles.`);
+  const space = await requireTaskcoreIngestionPolicy(
+    ctx,
+    { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+    "candidate_search",
+    { requireEnabledProfile: true },
+  );
+  if (
+    typeof input.limit === "number" &&
+    Number.isFinite(input.limit) &&
+    Math.floor(input.limit) > MAX_TASKCORE_DISTILLATION_FAN_OUT
+  ) {
+    throw new Error(
+      `Taskcore ingestion fan-out exceeds the hard cap of ${MAX_TASKCORE_DISTILLATION_FAN_OUT} enabled profiles.`,
+    );
   }
   const limit = normalizeLimit(input.limit ?? 3, 3, 25);
-  const projects = await ctx.projects.list({ companyId: input.companyId, limit: 200 });
+  const projects = await ctx.projects.list({
+    companyId: input.companyId,
+    limit: 200,
+  });
   const activeProjects = projects
     .filter(isActiveDistillationProject)
-    .sort((a, b) => projectActivityTimestamp(b).localeCompare(projectActivityTimestamp(a)))
+    .sort((a, b) =>
+      projectActivityTimestamp(b).localeCompare(projectActivityTimestamp(a)),
+    )
     .slice(0, limit);
 
-  const selectedProjects: EnableActiveProjectDistillationResult["selectedProjects"] = [];
+  const selectedProjects: EnableActiveProjectDistillationResult["selectedProjects"] =
+    [];
   for (const project of activeProjects) {
     const observedAt = projectActivityTimestamp(project);
     const cursorId = await upsertTaskcoreDistillationCursor(ctx, {
@@ -2544,19 +3412,31 @@ function appendBoundedSection(input: {
   warnings: string[];
 }) {
   if (input.remaining.value <= 0) {
-    input.warnings.push(`Skipped ${input.title}: source bundle character limit reached.`);
+    input.warnings.push(
+      `Skipped ${input.title}: source bundle character limit reached.`,
+    );
     return;
   }
-  const boundedBody = input.body.length > input.perSourceLimit
-    ? `${input.body.slice(0, input.perSourceLimit)}\n\n[Clipped at ${input.perSourceLimit} characters for this source.]`
-    : input.body;
-  const section = [`## ${input.title}`, "", boundedBody.trim() || "_No content._", ""].join("\n");
-  const clippedSection = section.length > input.remaining.value
-    ? `${section.slice(0, input.remaining.value)}\n\n[Source bundle clipped at configured limit.]\n`
-    : section;
+  const boundedBody =
+    input.body.length > input.perSourceLimit
+      ? `${input.body.slice(0, input.perSourceLimit)}\n\n[Clipped at ${input.perSourceLimit} characters for this source.]`
+      : input.body;
+  const section = [
+    `## ${input.title}`,
+    "",
+    boundedBody.trim() || "_No content._",
+    "",
+  ].join("\n");
+  const clippedSection =
+    section.length > input.remaining.value
+      ? `${section.slice(0, input.remaining.value)}\n\n[Source bundle clipped at configured limit.]\n`
+      : section;
   input.lines.push(clippedSection);
   input.refs.push(input.ref);
-  if (boundedBody.length !== input.body.length || clippedSection.length !== section.length) {
+  if (
+    boundedBody.length !== input.body.length ||
+    clippedSection.length !== section.length
+  ) {
     input.warnings.push(`Clipped ${input.title}.`);
   }
   input.remaining.value -= clippedSection.length;
@@ -2570,7 +3450,10 @@ function sourceRefUpdatedAt(ref: TaskcoreSourceRef): string | null {
   return ref.updatedAt ?? ref.createdAt ?? null;
 }
 
-function issueInBackfillWindow(issue: Issue, input: Pick<TaskcoreSourceBundleInput, "backfillStartAt" | "backfillEndAt">): boolean {
+function issueInBackfillWindow(
+  issue: Issue,
+  input: Pick<TaskcoreSourceBundleInput, "backfillStartAt" | "backfillEndAt">,
+): boolean {
   const issueUpdatedAt = isoString(issue.updatedAt);
   if (!issueUpdatedAt) return true;
   const startAt = isoString(input.backfillStartAt);
@@ -2580,7 +3463,10 @@ function issueInBackfillWindow(issue: Issue, input: Pick<TaskcoreSourceBundleInp
   return true;
 }
 
-async function listTaskcoreBundleIssues(ctx: PluginContext, input: TaskcoreSourceBundleInput): Promise<Issue[]> {
+async function listTaskcoreBundleIssues(
+  ctx: PluginContext,
+  input: TaskcoreSourceBundleInput,
+): Promise<Issue[]> {
   const filterAndSort = (issues: Issue[]) =>
     issues
       .filter((issue) => !isLlmWikiOperationIssue(issue))
@@ -2588,12 +3474,16 @@ async function listTaskcoreBundleIssues(ctx: PluginContext, input: TaskcoreSourc
       .sort((a, b) => issueSortKey(a).localeCompare(issueSortKey(b)));
 
   if (input.rootIssueId) {
-    const subtree = await ctx.issues.getSubtree(input.rootIssueId, input.companyId, {
-      includeRoot: true,
-      includeRelations: true,
-      includeDocuments: true,
-      includeAssignees: true,
-    });
+    const subtree = await ctx.issues.getSubtree(
+      input.rootIssueId,
+      input.companyId,
+      {
+        includeRoot: true,
+        includeRelations: true,
+        includeDocuments: true,
+        includeAssignees: true,
+      },
+    );
     return filterAndSort(subtree.issues);
   }
 
@@ -2606,11 +3496,22 @@ async function listTaskcoreBundleIssues(ctx: PluginContext, input: TaskcoreSourc
   return filterAndSort(issues);
 }
 
-export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: TaskcoreSourceBundleInput): Promise<TaskcoreSourceBundle> {
+export async function assembleTaskcoreSourceBundle(
+  ctx: PluginContext,
+  input: TaskcoreSourceBundleInput,
+): Promise<TaskcoreSourceBundle> {
   const wikiId = normalizeWikiId(input.wikiId);
   assertTaskcoreSourceScopePayload(input);
-  const space = await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "execute", { requireEnabledProfile: true });
-  const limits = await resolveTaskcoreDistillationLimitsForSpace(ctx, { ...input, space });
+  const space = await requireTaskcoreIngestionPolicy(
+    ctx,
+    { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+    "execute",
+    { requireEnabledProfile: true },
+  );
+  const limits = await resolveTaskcoreDistillationLimitsForSpace(ctx, {
+    ...input,
+    space,
+  });
   const maxCharacters = limits.maxCharacters;
   const perSourceLimit = limits.maxCharactersPerSource;
   const includeComments = input.includeComments !== false;
@@ -2630,8 +3531,12 @@ export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: Ta
     `- Source scope: ${scope.sourceScope}`,
     scope.projectId ? `- Project ID: ${scope.projectId}` : null,
     scope.rootIssueId ? `- Root issue ID: ${scope.rootIssueId}` : null,
-    input.backfillStartAt ? `- Backfill start: ${isoString(input.backfillStartAt) ?? input.backfillStartAt}` : null,
-    input.backfillEndAt ? `- Backfill end: ${isoString(input.backfillEndAt) ?? input.backfillEndAt}` : null,
+    input.backfillStartAt
+      ? `- Backfill start: ${isoString(input.backfillStartAt) ?? input.backfillStartAt}`
+      : null,
+    input.backfillEndAt
+      ? `- Backfill end: ${isoString(input.backfillEndAt) ?? input.backfillEndAt}`
+      : null,
     `- Issue count: ${issues.length}`,
     `- Source caps: ${maxCharacters} characters per window; ${perSourceLimit} characters per source`,
     "",
@@ -2648,8 +3553,12 @@ export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: Ta
       issue.projectId ? `- Project ID: ${issue.projectId}` : null,
       `- Updated at: ${isoString(issue.updatedAt) ?? "unknown"}`,
       "",
-      issue.description?.trim() ? issue.description.trim() : "_No issue description._",
-    ].filter((line): line is string => line !== null).join("\n");
+      issue.description?.trim()
+        ? issue.description.trim()
+        : "_No issue description._",
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n");
     appendBoundedSection({
       lines,
       title: `Issue: ${sourceTitleForIssue(issue)}`,
@@ -2669,9 +3578,18 @@ export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: Ta
     });
 
     if (includeDocuments && remaining.value > 0) {
-      const documentSummaries = await ctx.issues.documents.list(issue.id, input.companyId);
-      for (const summary of [...documentSummaries].sort((a, b) => a.key.localeCompare(b.key))) {
-        const document = await ctx.issues.documents.get(issue.id, summary.key, input.companyId);
+      const documentSummaries = await ctx.issues.documents.list(
+        issue.id,
+        input.companyId,
+      );
+      for (const summary of [...documentSummaries].sort((a, b) =>
+        a.key.localeCompare(b.key),
+      )) {
+        const document = await ctx.issues.documents.get(
+          issue.id,
+          summary.key,
+          input.companyId,
+        );
         if (!document) continue;
         const protectedDocument = protectDistillationSourceBody({
           issue,
@@ -2692,7 +3610,9 @@ export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: Ta
             `- Updated at: ${isoString(document.updatedAt) ?? "unknown"}`,
             "",
             protectedDocument.body,
-          ].filter((line): line is string => line !== null).join("\n"),
+          ]
+            .filter((line): line is string => line !== null)
+            .join("\n"),
           refs: sourceRefs,
           ref: {
             kind: "document",
@@ -2713,7 +3633,11 @@ export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: Ta
 
     if (includeComments && remaining.value > 0) {
       const comments = await ctx.issues.listComments(issue.id, input.companyId);
-      for (const comment of [...comments].sort((a, b) => (isoString(a.createdAt) ?? "").localeCompare(isoString(b.createdAt) ?? ""))) {
+      for (const comment of [...comments].sort((a, b) =>
+        (isoString(a.createdAt) ?? "").localeCompare(
+          isoString(b.createdAt) ?? "",
+        ),
+      )) {
         const protectedComment = protectDistillationSourceBody({
           issue,
           sourceKind: "comment",
@@ -2731,7 +3655,9 @@ export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: Ta
             `- Created at: ${isoString(comment.createdAt) ?? "unknown"}`,
             "",
             protectedComment.body,
-          ].filter((line): line is string => line !== null).join("\n"),
+          ]
+            .filter((line): line is string => line !== null)
+            .join("\n"),
           refs: sourceRefs,
           ref: {
             kind: "comment",
@@ -2751,24 +3677,41 @@ export async function assembleTaskcoreSourceBundle(ctx: PluginContext, input: Ta
   }
 
   const markdown = lines.join("\n").slice(0, maxCharacters);
-  const sourceDates = sourceRefs.map(sourceRefUpdatedAt).filter((date): date is string => Boolean(date)).sort();
+  const sourceDates = sourceRefs
+    .map(sourceRefUpdatedAt)
+    .filter((date): date is string => Boolean(date))
+    .sort();
   return {
     markdown,
     sourceRefs,
     sourceHash: contentHash(markdown),
     sourceWindowStart: sourceDates[0] ?? null,
     sourceWindowEnd: sourceDates[sourceDates.length - 1] ?? null,
-    clipped: warnings.some((warning) => warning.includes("Clipped") || warning.includes("Skipped")) || lines.join("\n").length > maxCharacters,
+    clipped:
+      warnings.some(
+        (warning) => warning.includes("Clipped") || warning.includes("Skipped"),
+      ) || lines.join("\n").length > maxCharacters,
     warnings,
   };
 }
 
-export async function createTaskcoreDistillationRun(ctx: PluginContext, input: TaskcoreDistillationRunInput) {
+export async function createTaskcoreDistillationRun(
+  ctx: PluginContext,
+  input: TaskcoreDistillationRunInput,
+) {
   const wikiId = normalizeWikiId(input.wikiId);
   assertTaskcoreSourceScopePayload(input);
-  const space = await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "execute", { requireEnabledProfile: true });
+  const space = await requireTaskcoreIngestionPolicy(
+    ctx,
+    { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+    "execute",
+    { requireEnabledProfile: true },
+  );
   const scope = taskcoreCursorScopeMetadata(input);
-  const limits = await resolveTaskcoreDistillationLimitsForSpace(ctx, { ...input, space });
+  const limits = await resolveTaskcoreDistillationLimitsForSpace(ctx, {
+    ...input,
+    space,
+  });
   const cursorId = await upsertTaskcoreDistillationCursor(ctx, {
     companyId: input.companyId,
     wikiId,
@@ -2840,12 +3783,29 @@ export async function createTaskcoreDistillationRun(ctx: PluginContext, input: T
     ],
   );
 
-  return { status: "source_ready" as const, wikiId, spaceSlug: space.slug, cursorId, runId, snapshotId, bundle, estimatedCostCents };
+  return {
+    status: "source_ready" as const,
+    wikiId,
+    spaceSlug: space.slug,
+    cursorId,
+    runId,
+    snapshotId,
+    bundle,
+    estimatedCostCents,
+  };
 }
 
-export async function recordTaskcoreDistillationOutcome(ctx: PluginContext, input: TaskcoreDistillationOutcomeInput) {
+export async function recordTaskcoreDistillationOutcome(
+  ctx: PluginContext,
+  input: TaskcoreDistillationOutcomeInput,
+) {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "execute", { requireEnabledProfile: true });
+  const space = await requireTaskcoreIngestionPolicy(
+    ctx,
+    { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+    "execute",
+    { requireEnabledProfile: true },
+  );
   const warnings = input.warning ? [input.warning] : [];
   await ctx.db.execute(
     `UPDATE ${distillationRunTable(ctx)}
@@ -2870,7 +3830,12 @@ export async function recordTaskcoreDistillationOutcome(ctx: PluginContext, inpu
     ],
   );
 
-  if (input.status === "succeeded" && input.cursorId && input.sourceHash && input.sourceWindowEnd) {
+  if (
+    input.status === "succeeded" &&
+    input.cursorId &&
+    input.sourceHash &&
+    input.sourceWindowEnd
+  ) {
     await ctx.db.execute(
       `UPDATE ${distillationCursorTable(ctx)}
           SET last_processed_at = $4::timestamptz,
@@ -2882,24 +3847,44 @@ export async function recordTaskcoreDistillationOutcome(ctx: PluginContext, inpu
           AND wiki_id = $2
           AND space_id = $7
           AND id = $6`,
-      [input.companyId, wikiId, input.runId, input.sourceWindowEnd, input.sourceHash, input.cursorId, space.id],
+      [
+        input.companyId,
+        wikiId,
+        input.runId,
+        input.sourceWindowEnd,
+        input.sourceHash,
+        input.cursorId,
+        space.id,
+      ],
     );
   }
 
   return {
     status: input.status,
-    cursorAdvanced: input.status === "succeeded" && Boolean(input.cursorId && input.sourceHash && input.sourceWindowEnd),
+    cursorAdvanced:
+      input.status === "succeeded" &&
+      Boolean(input.cursorId && input.sourceHash && input.sourceWindowEnd),
   };
 }
 
-export async function createTaskcoreDistillationWorkItem(ctx: PluginContext, input: TaskcoreDistillationWorkItemInput) {
+export async function createTaskcoreDistillationWorkItem(
+  ctx: PluginContext,
+  input: TaskcoreDistillationWorkItemInput,
+) {
   const wikiId = normalizeWikiId(input.wikiId);
   assertTaskcoreSourceScopePayload(input);
-  const space = await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "queue", { requireEnabledProfile: true });
+  const space = await requireTaskcoreIngestionPolicy(
+    ctx,
+    { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+    "queue",
+    { requireEnabledProfile: true },
+  );
   const itemId = randomUUID();
   const scope = taskcoreCursorScopeMetadata(input);
   if (input.kind === "backfill" && !scope.projectId && !scope.rootIssueId) {
-    throw new Error("Backfill work items must target a projectId or rootIssueId; whole-company backfill is not allowed.");
+    throw new Error(
+      "Backfill work items must target a projectId or rootIssueId; whole-company backfill is not allowed.",
+    );
   }
   await ctx.db.execute(
     `INSERT INTO ${distillationWorkItemTable(ctx)} AS taskcore_distillation_work_items
@@ -2927,12 +3912,22 @@ export async function createTaskcoreDistillationWorkItem(ctx: PluginContext, inp
       space.id,
     ],
   );
-  return { status: "pending", workItemId: itemId, wikiId, spaceSlug: space.slug, kind: input.kind, sourceScope: scope.sourceScope };
+  return {
+    status: "pending",
+    workItemId: itemId,
+    wikiId,
+    spaceSlug: space.slug,
+    kind: input.kind,
+    sourceScope: scope.sourceScope,
+  };
 }
 
 function sourceRefLabel(ref: TaskcoreSourceRef): string {
-  const issue = ref.issueIdentifier ? issueReference(ref.issueIdentifier) : (ref.title ?? "Taskcore source");
-  if (ref.kind === "document") return `${issue} document:${ref.documentKey ?? "unknown"}`;
+  const issue = ref.issueIdentifier
+    ? issueReference(ref.issueIdentifier)
+    : (ref.title ?? "Taskcore source");
+  if (ref.kind === "document")
+    return `${issue} document:${ref.documentKey ?? "unknown"}`;
   if (ref.kind === "comment") return `${issue} comment`;
   return issue;
 }
@@ -2940,8 +3935,12 @@ function sourceRefLabel(ref: TaskcoreSourceRef): string {
 function sourceRefMarkdown(ref: TaskcoreSourceRef): string {
   const metadata = [
     ref.redactionStatus ? `redaction=${ref.redactionStatus}` : null,
-    ref.redactionReasons?.length ? `redaction_reasons=${ref.redactionReasons.join("|")}` : null,
-  ].filter((part): part is string => Boolean(part)).join(", ");
+    ref.redactionReasons?.length
+      ? `redaction_reasons=${ref.redactionReasons.join("|")}`
+      : null,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(", ");
   return `- ${sourceRefLabel(ref)}${metadata ? ` (${metadata})` : ""}`;
 }
 
@@ -2956,8 +3955,13 @@ function issueSourceRef(issue: Issue): TaskcoreSourceRef {
   };
 }
 
-function projectPageSlug(input: { project: Project | null; rootIssue: Issue | null }): string {
-  return slugify(input.project?.name ?? input.rootIssue?.title ?? "taskcore-project");
+function projectPageSlug(input: {
+  project: Project | null;
+  rootIssue: Issue | null;
+}): string {
+  return slugify(
+    input.project?.name ?? input.rootIssue?.title ?? "taskcore-project",
+  );
 }
 
 function issueDescription(issue: Issue): string {
@@ -2966,7 +3970,9 @@ function issueDescription(issue: Issue): string {
 
 function issueReference(identifier: string): string {
   const prefix = identifier.match(/^([A-Z]+)-\d+$/)?.[1];
-  return prefix ? `[${identifier}](/${prefix}/issues/${identifier})` : identifier;
+  return prefix
+    ? `[${identifier}](/${prefix}/issues/${identifier})`
+    : identifier;
 }
 
 function issueReferenceFor(issue: Issue): string {
@@ -2975,7 +3981,10 @@ function issueReferenceFor(issue: Issue): string {
 
 function issueConcept(issue: Issue): string {
   const title = issue.title
-    .replace(/^\s*(implement|add|update|fix|ship|write|create|publish|review|validate|investigate|design|refactor|support|make)\s+/i, "")
+    .replace(
+      /^\s*(implement|add|update|fix|ship|write|create|publish|review|validate|investigate|design|refactor|support|make)\s+/i,
+      "",
+    )
     .replace(/\s+/g, " ")
     .trim();
   const words = title.split(" ").filter(Boolean).slice(0, 5).join(" ");
@@ -2998,17 +4007,36 @@ function excerpt(value: string, maxLength = 240): string {
 }
 
 function hasDecisionSignal(value: string): boolean {
-  return /\b(accepted|approved|rejected|reversed|decided|decision|plan|proposal|approach|architecture|tradeoff)\b/i.test(value);
+  return /\b(accepted|approved|rejected|reversed|decided|decision|plan|proposal|approach|architecture|tradeoff)\b/i.test(
+    value,
+  );
 }
 
 function hasRiskSignal(value: string): boolean {
-  return /\b(blocked|blocker|risk|warning|stale|conflict|failed|failure|regression)\b/i.test(value);
+  return /\b(blocked|blocker|risk|warning|stale|conflict|failed|failure|regression)\b/i.test(
+    value,
+  );
 }
 
-function hasDurableSignal(bundle: TaskcoreSourceBundle, issues: Issue[]): boolean {
-  if (bundle.sourceRefs.some((ref) => ref.kind === "document" || ref.kind === "comment")) return true;
-  if (issues.some((issue) => issue.status !== "todo" || issueDescription(issue).length > 0)) return true;
-  return /\b(decision|approved|implemented|completed|blocked|risk|artifact|plan|handoff|merged|fixed)\b/i.test(bundle.markdown);
+function hasDurableSignal(
+  bundle: TaskcoreSourceBundle,
+  issues: Issue[],
+): boolean {
+  if (
+    bundle.sourceRefs.some(
+      (ref) => ref.kind === "document" || ref.kind === "comment",
+    )
+  )
+    return true;
+  if (
+    issues.some(
+      (issue) => issue.status !== "todo" || issueDescription(issue).length > 0,
+    )
+  )
+    return true;
+  return /\b(decision|approved|implemented|completed|blocked|risk|artifact|plan|handoff|merged|fixed)\b/i.test(
+    bundle.markdown,
+  );
 }
 
 function standupPageContents(input: {
@@ -3020,15 +4048,36 @@ function standupPageContents(input: {
   durablePagePath: string;
 }): string {
   const currentAsOf = input.bundle.sourceWindowEnd ?? new Date().toISOString();
-  const title = input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
-  const activeIssues = input.issues.filter((issue) => !["done", "cancelled"].includes(issue.status));
+  const title =
+    input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
+  const activeIssues = input.issues.filter(
+    (issue) => !["done", "cancelled"].includes(issue.status),
+  );
   const recentlyChanged = [...input.issues]
-    .sort((a, b) => (isoString(b.updatedAt) ?? "").localeCompare(isoString(a.updatedAt) ?? ""))
+    .sort((a, b) =>
+      (isoString(b.updatedAt) ?? "").localeCompare(
+        isoString(a.updatedAt) ?? "",
+      ),
+    )
     .slice(0, 6);
-  const completedIssues = recentlyChanged.filter((issue) => issue.status === "done");
-  const advancedIssues = recentlyChanged.filter((issue) => issue.status !== "done" && issue.status !== "cancelled");
-  const decisionIssues = input.issues.filter((issue) => hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`)).slice(0, 6);
-  const riskIssues = input.issues.filter((issue) => issue.status === "blocked" || hasRiskSignal(`${issue.title}\n${issueDescription(issue)}`)).slice(0, 6);
+  const completedIssues = recentlyChanged.filter(
+    (issue) => issue.status === "done",
+  );
+  const advancedIssues = recentlyChanged.filter(
+    (issue) => issue.status !== "done" && issue.status !== "cancelled",
+  );
+  const decisionIssues = input.issues
+    .filter((issue) =>
+      hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`),
+    )
+    .slice(0, 6);
+  const riskIssues = input.issues
+    .filter(
+      (issue) =>
+        issue.status === "blocked" ||
+        hasRiskSignal(`${issue.title}\n${issueDescription(issue)}`),
+    )
+    .slice(0, 6);
   const nextActionIssues = activeIssues.slice(0, 6);
   const lead = activeIssues[0] ?? recentlyChanged[0] ?? null;
 
@@ -3055,7 +4104,9 @@ function standupPageContents(input: {
       ? completedIssues.map(conceptBullet)
       : advancedIssues.length
         ? advancedIssues.map(conceptBullet)
-        : ["- No material completed or advanced work was identified in this source window."]),
+        : [
+            "- No material completed or advanced work was identified in this source window.",
+          ]),
     "",
     "## Decisions",
     "",
@@ -3067,12 +4118,17 @@ function standupPageContents(input: {
     "",
     ...(riskIssues.length
       ? riskIssues.map(conceptBullet)
-      : ["- No active blocker or material risk surfaced in this source window."]),
+      : [
+          "- No active blocker or material risk surfaced in this source window.",
+        ]),
     "",
     "## Next Actions",
     "",
     ...(nextActionIssues.length
-      ? nextActionIssues.map((issue) => `- **${issueConcept(issue)}.** Continue the work represented by ${issueReferenceFor(issue)}; focus on the next concrete deliverable rather than routine status churn.`)
+      ? nextActionIssues.map(
+          (issue) =>
+            `- **${issueConcept(issue)}.** Continue the work represented by ${issueReferenceFor(issue)}; focus on the next concrete deliverable rather than routine status churn.`,
+        )
       : ["- No next action inferred from this source window."]),
     "",
     "## Links",
@@ -3080,7 +4136,9 @@ function standupPageContents(input: {
     `- Durable project overview: [[${input.durablePagePath}]]`,
     ...input.bundle.sourceRefs.slice(0, 12).map(sourceRefMarkdown),
     "",
-  ].filter((line): line is string => line !== null).join("\n");
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
 }
 
 function projectPageContents(input: {
@@ -3091,14 +4149,34 @@ function projectPageContents(input: {
   pagePath: string;
 }): string {
   const currentAsOf = input.bundle.sourceWindowEnd ?? new Date().toISOString();
-  const title = input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
-  const description = input.project?.description?.trim() || input.rootIssue?.description?.trim() || "";
-  const activeIssues = input.issues.filter((issue) => !["done", "cancelled"].includes(issue.status));
+  const title =
+    input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
+  const description =
+    input.project?.description?.trim() ||
+    input.rootIssue?.description?.trim() ||
+    "";
+  const activeIssues = input.issues.filter(
+    (issue) => !["done", "cancelled"].includes(issue.status),
+  );
   const recentIssues = [...input.issues]
-    .sort((a, b) => (isoString(b.updatedAt) ?? "").localeCompare(isoString(a.updatedAt) ?? ""))
+    .sort((a, b) =>
+      (isoString(b.updatedAt) ?? "").localeCompare(
+        isoString(a.updatedAt) ?? "",
+      ),
+    )
     .slice(0, 8);
-  const decisionIssues = input.issues.filter((issue) => hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`)).slice(0, 8);
-  const riskIssues = input.issues.filter((issue) => issue.status === "blocked" || hasRiskSignal(`${issue.title}\n${issueDescription(issue)}`)).slice(0, 8);
+  const decisionIssues = input.issues
+    .filter((issue) =>
+      hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`),
+    )
+    .slice(0, 8);
+  const riskIssues = input.issues
+    .filter(
+      (issue) =>
+        issue.status === "blocked" ||
+        hasRiskSignal(`${issue.title}\n${issueDescription(issue)}`),
+    )
+    .slice(0, 8);
 
   return [
     "---",
@@ -3112,20 +4190,34 @@ function projectPageContents(input: {
     "",
     "## Overview",
     "",
-    description ? excerpt(description, 700) : `This page synthesizes Taskcore issue history into a stable project brief for ${title}.`,
+    description
+      ? excerpt(description, 700)
+      : `This page synthesizes Taskcore issue history into a stable project brief for ${title}.`,
     "",
     "## Current Direction",
     "",
     activeIssues.length
-      ? `Work is currently organized around ${activeIssues.slice(0, 3).map((issue) => `**${issueConcept(issue)}** (${issueReferenceFor(issue)})`).join(", ")}. The useful project view is the concept being advanced, not the raw issue queue.`
+      ? `Work is currently organized around ${activeIssues
+          .slice(0, 3)
+          .map(
+            (issue) =>
+              `**${issueConcept(issue)}** (${issueReferenceFor(issue)})`,
+          )
+          .join(
+            ", ",
+          )}. The useful project view is the concept being advanced, not the raw issue queue.`
       : "The current source window does not show active project work.",
-    input.bundle.clipped ? "\nThe source window was clipped, so verify Taskcore before treating this as complete state." : null,
+    input.bundle.clipped
+      ? "\nThe source window was clipped, so verify Taskcore before treating this as complete state."
+      : null,
     "",
     "## Workstreams",
     "",
     ...(recentIssues.length
       ? recentIssues.map(conceptBullet)
-      : ["- No meaningful workstream signal was identified in this source window."]),
+      : [
+          "- No meaningful workstream signal was identified in this source window.",
+        ]),
     "",
     "## Decisions",
     "",
@@ -3144,26 +4236,40 @@ function projectPageContents(input: {
     `- Current standup: [[${input.pagePath.replace(/\/index\.md$/, "/standup.md")}]]`,
     ...input.bundle.sourceRefs.slice(0, 12).map(sourceRefMarkdown),
     "",
-  ].filter((line): line is string => line !== null).join("\n");
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
 }
 
-function decisionsPageContents(input: { project: Project | null; rootIssue: Issue | null; issues: Issue[]; bundle: TaskcoreSourceBundle }): string {
-  const title = input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
-  const decisionIssues = input.issues.filter((issue) => hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`));
+function decisionsPageContents(input: {
+  project: Project | null;
+  rootIssue: Issue | null;
+  issues: Issue[];
+  bundle: TaskcoreSourceBundle;
+}): string {
+  const title =
+    input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
+  const decisionIssues = input.issues.filter((issue) =>
+    hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`),
+  );
   return [
     `# ${title} Decisions`,
     "",
     "Durable project decisions grouped by concept. Use this as an editorial memory of why the project changed direction, not as an issue log.",
     "",
     ...(decisionIssues.length
-      ? decisionIssues.map((issue) => [
-        `## ${issueConcept(issue)}`,
-        "",
-        issueDescription(issue) ? excerpt(issueDescription(issue), 900) : "_No decision details beyond the issue title._",
-        "",
-        `Source: ${issueReferenceFor(issue)}`,
-        "",
-      ].join("\n"))
+      ? decisionIssues.map((issue) =>
+          [
+            `## ${issueConcept(issue)}`,
+            "",
+            issueDescription(issue)
+              ? excerpt(issueDescription(issue), 900)
+              : "_No decision details beyond the issue title._",
+            "",
+            `Source: ${issueReferenceFor(issue)}`,
+            "",
+          ].join("\n"),
+        )
       : ["No durable decisions identified in this source window.", ""]),
     "## References",
     "",
@@ -3172,10 +4278,20 @@ function decisionsPageContents(input: { project: Project | null; rootIssue: Issu
   ].join("\n");
 }
 
-function historyPageContents(input: { project: Project | null; rootIssue: Issue | null; issues: Issue[]; bundle: TaskcoreSourceBundle }): string {
-  const title = input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
+function historyPageContents(input: {
+  project: Project | null;
+  rootIssue: Issue | null;
+  issues: Issue[];
+  bundle: TaskcoreSourceBundle;
+}): string {
+  const title =
+    input.project?.name ?? input.rootIssue?.title ?? "Taskcore Project";
   const timeline = [...input.issues]
-    .sort((a, b) => (isoString(a.updatedAt) ?? "").localeCompare(isoString(b.updatedAt) ?? ""))
+    .sort((a, b) =>
+      (isoString(a.updatedAt) ?? "").localeCompare(
+        isoString(b.updatedAt) ?? "",
+      ),
+    )
     .slice(-30);
   return [
     `# ${title} History`,
@@ -3195,8 +4311,13 @@ function historyPageContents(input: { project: Project | null; rootIssue: Issue 
   ].join("\n");
 }
 
-function updateProjectIndexContents(current: string | null, input: { pagePath: string; standupPath: string; title: string }): string {
-  const base = current?.trimEnd() || "# Index\n\n## Sources\n\n_(none yet)_\n\n## Projects\n\n_(none yet)_\n\n## Entities\n\n_(none yet)_\n\n## Concepts\n\n_(none yet)_\n\n## Synthesis\n\n_(none yet)_";
+function updateProjectIndexContents(
+  current: string | null,
+  input: { pagePath: string; standupPath: string; title: string },
+): string {
+  const base =
+    current?.trimEnd() ||
+    "# Index\n\n## Sources\n\n_(none yet)_\n\n## Projects\n\n_(none yet)_\n\n## Entities\n\n_(none yet)_\n\n## Concepts\n\n_(none yet)_\n\n## Synthesis\n\n_(none yet)_";
   const entry = `- [[${input.pagePath}]] — ${input.title} project overview. Current executive standup: [[${input.standupPath}]].`;
   const projectsMatch = base.match(/(^## Projects\n)([\s\S]*?)(?=^## |\s*$)/m);
   if (!projectsMatch || projectsMatch.index == null) {
@@ -3207,13 +4328,36 @@ function updateProjectIndexContents(current: string | null, input: { pagePath: s
   const existingLines = projectsMatch[2]
     .split("\n")
     .map((line) => line.trimEnd())
-    .filter((line) => line.trim() && line.trim() !== "_(none yet)_" && !line.includes(input.pagePath) && !line.includes(input.standupPath));
-  const nextLines = [...existingLines, entry].sort((a, b) => a.localeCompare(b));
-  return `${base.slice(0, start)}${nextLines.join("\n")}\n\n${base.slice(end).replace(/^\n+/, "")}`.trimEnd() + "\n";
+    .filter(
+      (line) =>
+        line.trim() &&
+        line.trim() !== "_(none yet)_" &&
+        !line.includes(input.pagePath) &&
+        !line.includes(input.standupPath),
+    );
+  const nextLines = [...existingLines, entry].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  return (
+    `${base.slice(0, start)}${nextLines.join("\n")}\n\n${base.slice(end).replace(/^\n+/, "")}`.trimEnd() +
+    "\n"
+  );
 }
 
-function appendProjectLogContents(current: string | null, input: { standupPath: string; pagePath: string; runId: string; sourceHash: string; status: string; warnings: string[] }): string {
-  const base = current?.trimEnd() || "# Log\n\nAppend-only chronological record of wiki operations.";
+function appendProjectLogContents(
+  current: string | null,
+  input: {
+    standupPath: string;
+    pagePath: string;
+    runId: string;
+    sourceHash: string;
+    status: string;
+    warnings: string[];
+  },
+): string {
+  const base =
+    current?.trimEnd() ||
+    "# Log\n\nAppend-only chronological record of wiki operations.";
   const warningLines = input.warnings.length
     ? input.warnings.map((warning) => `- warning: ${warning}`)
     : ["- warnings: none"];
@@ -3256,7 +4400,15 @@ function patchForPage(input: {
   };
 }
 
-async function readPageBinding(ctx: PluginContext, input: { companyId: string; wikiId: string; spaceId: string; pagePath: string }) {
+async function readPageBinding(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId: string;
+    spaceId: string;
+    pagePath: string;
+  },
+) {
   const rows = await ctx.db.query<{ last_applied_source_hash: string | null }>(
     `SELECT last_applied_source_hash
        FROM ${pageBindingTable(ctx)}
@@ -3270,18 +4422,21 @@ async function readPageBinding(ctx: PluginContext, input: { companyId: string; w
   return rows[0] ?? null;
 }
 
-async function upsertPageBinding(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId: string;
-  spaceId: string;
-  spaceSlug: string;
-  projectId: string | null;
-  rootIssueId: string | null;
-  pagePath: string;
-  sourceHash: string;
-  runId: string;
-  metadata?: Record<string, unknown>;
-}) {
+async function upsertPageBinding(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId: string;
+    spaceId: string;
+    spaceSlug: string;
+    projectId: string | null;
+    rootIssueId: string | null;
+    pagePath: string;
+    sourceHash: string;
+    runId: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
   await ctx.db.execute(
     `INSERT INTO ${pageBindingTable(ctx)} AS taskcore_page_bindings
        (id, company_id, wiki_id, space_id, project_id, root_issue_id, page_path, last_applied_source_hash, last_distillation_run_id, metadata)
@@ -3306,12 +4461,18 @@ async function upsertPageBinding(ctx: PluginContext, input: {
   );
 }
 
-async function autoApplyEnabled(ctx: PluginContext, companyId: string, requested: boolean | undefined): Promise<boolean> {
+async function autoApplyEnabled(
+  ctx: PluginContext,
+  companyId: string,
+  requested: boolean | undefined,
+): Promise<boolean> {
   if (getDistillationAutoApplyRestriction().autoApplyRestriction) {
     return false;
   }
   const config = await ctx.config.get(companyId);
-  const configured = (config as { autoApplyIngestPatches?: unknown }).autoApplyIngestPatches !== false;
+  const configured =
+    (config as { autoApplyIngestPatches?: unknown }).autoApplyIngestPatches !==
+    false;
   return configured && requested !== false;
 }
 
@@ -3322,33 +4483,53 @@ export function getDistillationAutoApplyRestriction(): DistillationAutoApplyRest
     rawMode === "local_trusted" || rawMode === "authenticated" ? rawMode : null;
   const deploymentExposure =
     rawExposure === "private" || rawExposure === "public" ? rawExposure : null;
-  const blocked = deploymentMode === "authenticated" && deploymentExposure === "public";
+  const blocked =
+    deploymentMode === "authenticated" && deploymentExposure === "public";
   return {
     autoApplyAllowed: !blocked,
-    autoApplyRestriction: blocked ? PUBLIC_DISTILLATION_AUTO_APPLY_RESTRICTION : null,
+    autoApplyRestriction: blocked
+      ? PUBLIC_DISTILLATION_AUTO_APPLY_RESTRICTION
+      : null,
     deploymentMode,
     deploymentExposure,
   };
 }
 
-export async function distillTaskcoreProjectPage(ctx: PluginContext, input: TaskcoreProjectPageDistillationInput) {
+export async function distillTaskcoreProjectPage(
+  ctx: PluginContext,
+  input: TaskcoreProjectPageDistillationInput,
+) {
   if (!input.projectId && !input.rootIssueId) {
     throw new Error("projectId or rootIssueId is required");
   }
   const wikiId = normalizeWikiId(input.wikiId);
   assertTaskcoreSourceScopePayload(input);
-  const space = await requireTaskcoreIngestionPolicy(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug }, "execute", { requireEnabledProfile: true });
+  const space = await requireTaskcoreIngestionPolicy(
+    ctx,
+    { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug },
+    "execute",
+    { requireEnabledProfile: true },
+  );
   const scope = taskcoreCursorScopeMetadata(input);
   const issues = await listTaskcoreBundleIssues(ctx, input);
-  const project = scope.projectId ? await ctx.projects.get(scope.projectId, input.companyId) : null;
-  const rootIssue = scope.rootIssueId ? await ctx.issues.get(scope.rootIssueId, input.companyId) : null;
+  const project = scope.projectId
+    ? await ctx.projects.get(scope.projectId, input.companyId)
+    : null;
+  const rootIssue = scope.rootIssueId
+    ? await ctx.issues.get(scope.rootIssueId, input.companyId)
+    : null;
   const slug = projectPageSlug({ project, rootIssue });
   const projectDir = `wiki/projects/${slug}`;
   const standupPath = assertPagePath(`${projectDir}/standup.md`);
   const pagePath = assertPagePath(`${projectDir}/index.md`);
   const run = await createTaskcoreDistillationRun(ctx, input);
   const bundle = run.bundle;
-  const current = await readCurrentWithHash(ctx, input.companyId, pagePath, space);
+  const current = await readCurrentWithHash(
+    ctx,
+    input.companyId,
+    pagePath,
+    space,
+  );
   assertExpectedHash(input.expectedProjectPageHash, current.hash, pagePath);
 
   if (!hasDurableSignal(bundle, issues)) {
@@ -3375,7 +4556,12 @@ export async function distillTaskcoreProjectPage(ctx: PluginContext, input: Task
     };
   }
 
-  const existingBinding = await readPageBinding(ctx, { companyId: input.companyId, wikiId, spaceId: space.id, pagePath });
+  const existingBinding = await readPageBinding(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceId: space.id,
+    pagePath,
+  });
   if (existingBinding?.last_applied_source_hash === bundle.sourceHash) {
     await recordTaskcoreDistillationOutcome(ctx, {
       companyId: input.companyId,
@@ -3401,14 +4587,44 @@ export async function distillTaskcoreProjectPage(ctx: PluginContext, input: Task
   }
 
   const warnings = [...bundle.warnings];
-  const confidence: "high" | "medium" | "low" = bundle.clipped ? "medium" : "high";
+  const confidence: "high" | "medium" | "low" = bundle.clipped
+    ? "medium"
+    : "high";
   const reviewRequired = bundle.clipped || warnings.length > 0;
   const title = project?.name ?? rootIssue?.title ?? "Taskcore Project";
-  const standupCurrent = await readCurrentWithHash(ctx, input.companyId, standupPath, space);
-  const standupContents = standupPageContents({ project, rootIssue, issues, bundle, pagePath: standupPath, durablePagePath: pagePath });
-  const projectContents = projectPageContents({ project, rootIssue, issues, bundle, pagePath });
-  const indexCurrent = await readCurrentWithHash(ctx, input.companyId, "wiki/index.md", space);
-  const logCurrent = await readCurrentWithHash(ctx, input.companyId, "wiki/log.md", space);
+  const standupCurrent = await readCurrentWithHash(
+    ctx,
+    input.companyId,
+    standupPath,
+    space,
+  );
+  const standupContents = standupPageContents({
+    project,
+    rootIssue,
+    issues,
+    bundle,
+    pagePath: standupPath,
+    durablePagePath: pagePath,
+  });
+  const projectContents = projectPageContents({
+    project,
+    rootIssue,
+    issues,
+    bundle,
+    pagePath,
+  });
+  const indexCurrent = await readCurrentWithHash(
+    ctx,
+    input.companyId,
+    "wiki/index.md",
+    space,
+  );
+  const logCurrent = await readCurrentWithHash(
+    ctx,
+    input.companyId,
+    "wiki/log.md",
+    space,
+  );
   const indexContents = updateProjectIndexContents(indexCurrent.contents, {
     pagePath,
     standupPath,
@@ -3423,48 +4639,109 @@ export async function distillTaskcoreProjectPage(ctx: PluginContext, input: Task
     warnings,
   });
   const patches: TaskcoreDistillationPatch[] = [
-    patchForPage({ path: standupPath, operationType: "standup_update", currentHash: standupCurrent.hash, contents: standupContents, bundle, confidence, warnings, humanReviewRequired: reviewRequired }),
-    patchForPage({ path: pagePath, operationType: "project_page_distill", currentHash: current.hash, contents: projectContents, bundle, confidence, warnings, humanReviewRequired: reviewRequired }),
-    patchForPage({ path: "wiki/index.md", operationType: "index_refresh", currentHash: indexCurrent.hash, contents: indexContents, bundle, confidence: "high", warnings: [], humanReviewRequired: false }),
-    patchForPage({ path: "wiki/log.md", operationType: "log_append", currentHash: logCurrent.hash, contents: logContents, bundle, confidence: "high", warnings: [], humanReviewRequired: false }),
-  ];
-
-  if (input.includeSupportingPages !== false) {
-    const hasDecisions = issues.some((issue) => hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`));
-    if (hasDecisions) {
-      const decisionsPath = assertPagePath(`${projectDir}/decisions.md`);
-      const decisionsCurrent = await readCurrentWithHash(ctx, input.companyId, decisionsPath, space);
-      patches.push(patchForPage({
-        path: decisionsPath,
-        operationType: "decision_distill",
-        currentHash: decisionsCurrent.hash,
-        contents: decisionsPageContents({ project, rootIssue, issues, bundle }),
-        bundle,
-        confidence,
-        warnings,
-        humanReviewRequired: reviewRequired,
-      }));
-    }
-    const historyPath = assertPagePath(`${projectDir}/history.md`);
-    const historyCurrent = await readCurrentWithHash(ctx, input.companyId, historyPath, space);
-    patches.push(patchForPage({
-      path: historyPath,
-      operationType: "history_distill",
-      currentHash: historyCurrent.hash,
-      contents: historyPageContents({ project, rootIssue, issues, bundle }),
+    patchForPage({
+      path: standupPath,
+      operationType: "standup_update",
+      currentHash: standupCurrent.hash,
+      contents: standupContents,
       bundle,
       confidence,
       warnings,
       humanReviewRequired: reviewRequired,
-    }));
+    }),
+    patchForPage({
+      path: pagePath,
+      operationType: "project_page_distill",
+      currentHash: current.hash,
+      contents: projectContents,
+      bundle,
+      confidence,
+      warnings,
+      humanReviewRequired: reviewRequired,
+    }),
+    patchForPage({
+      path: "wiki/index.md",
+      operationType: "index_refresh",
+      currentHash: indexCurrent.hash,
+      contents: indexContents,
+      bundle,
+      confidence: "high",
+      warnings: [],
+      humanReviewRequired: false,
+    }),
+    patchForPage({
+      path: "wiki/log.md",
+      operationType: "log_append",
+      currentHash: logCurrent.hash,
+      contents: logContents,
+      bundle,
+      confidence: "high",
+      warnings: [],
+      humanReviewRequired: false,
+    }),
+  ];
+
+  if (input.includeSupportingPages !== false) {
+    const hasDecisions = issues.some((issue) =>
+      hasDecisionSignal(`${issue.title}\n${issueDescription(issue)}`),
+    );
+    if (hasDecisions) {
+      const decisionsPath = assertPagePath(`${projectDir}/decisions.md`);
+      const decisionsCurrent = await readCurrentWithHash(
+        ctx,
+        input.companyId,
+        decisionsPath,
+        space,
+      );
+      patches.push(
+        patchForPage({
+          path: decisionsPath,
+          operationType: "decision_distill",
+          currentHash: decisionsCurrent.hash,
+          contents: decisionsPageContents({
+            project,
+            rootIssue,
+            issues,
+            bundle,
+          }),
+          bundle,
+          confidence,
+          warnings,
+          humanReviewRequired: reviewRequired,
+        }),
+      );
+    }
+    const historyPath = assertPagePath(`${projectDir}/history.md`);
+    const historyCurrent = await readCurrentWithHash(
+      ctx,
+      input.companyId,
+      historyPath,
+      space,
+    );
+    patches.push(
+      patchForPage({
+        path: historyPath,
+        operationType: "history_distill",
+        currentHash: historyCurrent.hash,
+        contents: historyPageContents({ project, rootIssue, issues, bundle }),
+        bundle,
+        confidence,
+        warnings,
+        humanReviewRequired: reviewRequired,
+      }),
+    );
   }
 
   const autoApplyRestriction = getDistillationAutoApplyRestriction();
-  const canAutoApply = await autoApplyEnabled(ctx, input.companyId, input.autoApply);
+  const canAutoApply = await autoApplyEnabled(
+    ctx,
+    input.companyId,
+    input.autoApply,
+  );
   if (!canAutoApply || reviewRequired) {
     const autoApplyWarning =
-      autoApplyRestriction.autoApplyRestriction
-      ?? "Auto-apply policy disabled; proposed patches require review.";
+      autoApplyRestriction.autoApplyRestriction ??
+      "Auto-apply policy disabled; proposed patches require review.";
     await recordTaskcoreDistillationOutcome(ctx, {
       companyId: input.companyId,
       wikiId,
@@ -3474,7 +4751,9 @@ export async function distillTaskcoreProjectPage(ctx: PluginContext, input: Task
       status: "review_required",
       sourceHash: bundle.sourceHash,
       sourceWindowEnd: bundle.sourceWindowEnd,
-      warning: canAutoApply ? "Human review required by patch warnings." : autoApplyWarning,
+      warning: canAutoApply
+        ? "Human review required by patch warnings."
+        : autoApplyWarning,
     });
     return {
       status: "review_required",
@@ -3543,8 +4822,10 @@ function truncateEventSource(contents: string, maxCharacters: number): string {
 }
 
 function eventPayload(event: PluginEvent): Record<string, unknown> {
-  return event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
-    ? event.payload as Record<string, unknown>
+  return event.payload &&
+    typeof event.payload === "object" &&
+    !Array.isArray(event.payload)
+    ? (event.payload as Record<string, unknown>)
     : {};
 }
 
@@ -3561,82 +4842,118 @@ function rawPathForTaskcoreEvent(input: {
 }): string {
   const identifier = input.issue.identifier ?? input.issue.id.slice(0, 8);
   const eventDate = input.event.occurredAt.slice(0, 10);
-  return assertRawPath(`raw/taskcore/${input.sourceKind}/${eventDate}-${slugify(identifier)}-${slugify(input.label)}-${contentHash(input.contents).slice(0, 8)}.md`);
+  return assertRawPath(
+    `raw/taskcore/${input.sourceKind}/${eventDate}-${slugify(identifier)}-${slugify(input.label)}-${contentHash(input.contents).slice(0, 8)}.md`,
+  );
 }
 
-function formatIssueEventSource(issue: Issue, event: PluginEvent, maxCharacters: number): string {
-  return truncateEventSource([
-    `# TaskCore issue: ${sourceTitleForIssue(issue)}`,
-    "",
-    "## Provenance",
-    "",
-    `- Company ID: ${issue.companyId}`,
-    `- Issue ID: ${issue.id}`,
-    issue.identifier ? `- Issue identifier: ${issue.identifier}` : null,
-    `- Event type: ${event.eventType}`,
-    `- Event ID: ${event.eventId}`,
-    `- Event occurred at: ${event.occurredAt}`,
-    `- Status: ${issue.status}`,
-    `- Priority: ${issue.priority}`,
-    "",
-    "## Issue",
-    "",
-    issue.description?.trim() ? issue.description.trim() : "_No issue description._",
-  ].filter((line): line is string => line !== null).join("\n"), maxCharacters);
+function formatIssueEventSource(
+  issue: Issue,
+  event: PluginEvent,
+  maxCharacters: number,
+): string {
+  return truncateEventSource(
+    [
+      `# TaskCore issue: ${sourceTitleForIssue(issue)}`,
+      "",
+      "## Provenance",
+      "",
+      `- Company ID: ${issue.companyId}`,
+      `- Issue ID: ${issue.id}`,
+      issue.identifier ? `- Issue identifier: ${issue.identifier}` : null,
+      `- Event type: ${event.eventType}`,
+      `- Event ID: ${event.eventId}`,
+      `- Event occurred at: ${event.occurredAt}`,
+      `- Status: ${issue.status}`,
+      `- Priority: ${issue.priority}`,
+      "",
+      "## Issue",
+      "",
+      issue.description?.trim()
+        ? issue.description.trim()
+        : "_No issue description._",
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n"),
+    maxCharacters,
+  );
 }
 
-function formatCommentEventSource(issue: Issue, comment: IssueComment, event: PluginEvent, maxCharacters: number): string {
-  return truncateEventSource([
-    `# TaskCore comment on ${sourceTitleForIssue(issue)}`,
-    "",
-    "## Provenance",
-    "",
-    `- Company ID: ${issue.companyId}`,
-    `- Issue ID: ${issue.id}`,
-    issue.identifier ? `- Issue identifier: ${issue.identifier}` : null,
-    `- Comment ID: ${comment.id}`,
-    `- Event type: ${event.eventType}`,
-    `- Event ID: ${event.eventId}`,
-    `- Event occurred at: ${event.occurredAt}`,
-    "",
-    "## Comment",
-    "",
-    comment.body,
-  ].filter((line): line is string => line !== null).join("\n"), maxCharacters);
+function formatCommentEventSource(
+  issue: Issue,
+  comment: IssueComment,
+  event: PluginEvent,
+  maxCharacters: number,
+): string {
+  return truncateEventSource(
+    [
+      `# TaskCore comment on ${sourceTitleForIssue(issue)}`,
+      "",
+      "## Provenance",
+      "",
+      `- Company ID: ${issue.companyId}`,
+      `- Issue ID: ${issue.id}`,
+      issue.identifier ? `- Issue identifier: ${issue.identifier}` : null,
+      `- Comment ID: ${comment.id}`,
+      `- Event type: ${event.eventType}`,
+      `- Event ID: ${event.eventId}`,
+      `- Event occurred at: ${event.occurredAt}`,
+      "",
+      "## Comment",
+      "",
+      comment.body,
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n"),
+    maxCharacters,
+  );
 }
 
-function formatDocumentEventSource(issue: Issue, document: IssueDocument, event: PluginEvent, maxCharacters: number): string {
-  return truncateEventSource([
-    `# TaskCore document: ${document.title ?? document.key}`,
-    "",
-    "## Provenance",
-    "",
-    `- Company ID: ${issue.companyId}`,
-    `- Issue ID: ${issue.id}`,
-    issue.identifier ? `- Issue identifier: ${issue.identifier}` : null,
-    `- Document ID: ${document.id}`,
-    `- Document key: ${document.key}`,
-    `- Event type: ${event.eventType}`,
-    `- Event ID: ${event.eventId}`,
-    `- Event occurred at: ${event.occurredAt}`,
-    `- Format: ${document.format}`,
-    `- Revision: ${document.latestRevisionNumber}`,
-    "",
-    "## Document",
-    "",
-    document.body,
-  ].filter((line): line is string => line !== null).join("\n"), maxCharacters);
+function formatDocumentEventSource(
+  issue: Issue,
+  document: IssueDocument,
+  event: PluginEvent,
+  maxCharacters: number,
+): string {
+  return truncateEventSource(
+    [
+      `# TaskCore document: ${document.title ?? document.key}`,
+      "",
+      "## Provenance",
+      "",
+      `- Company ID: ${issue.companyId}`,
+      `- Issue ID: ${issue.id}`,
+      issue.identifier ? `- Issue identifier: ${issue.identifier}` : null,
+      `- Document ID: ${document.id}`,
+      `- Document key: ${document.key}`,
+      `- Event type: ${event.eventType}`,
+      `- Event ID: ${event.eventId}`,
+      `- Event occurred at: ${event.occurredAt}`,
+      `- Format: ${document.format}`,
+      `- Revision: ${document.latestRevisionNumber}`,
+      "",
+      "## Document",
+      "",
+      document.body,
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n"),
+    maxCharacters,
+  );
 }
 
-async function recordTaskcoreCursorObservation(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId: string;
-  space: WikiSpace;
-  sourceKind: WikiEventIngestionSource;
-  sourceId: string;
-  issue: Issue;
-  event: PluginEvent;
-}): Promise<Extract<TaskcoreEventIngestResult, { status: "recorded" }>> {
+async function recordTaskcoreCursorObservation(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId: string;
+    space: WikiSpace;
+    sourceKind: WikiEventIngestionSource;
+    sourceId: string;
+    issue: Issue;
+    event: PluginEvent;
+  },
+): Promise<Extract<TaskcoreEventIngestResult, { status: "recorded" }>> {
   const cursorId = await upsertTaskcoreDistillationCursor(ctx, {
     companyId: input.companyId,
     wikiId: input.wikiId,
@@ -3653,13 +4970,22 @@ async function recordTaskcoreCursorObservation(ctx: PluginContext, input: {
       lastIssueIdentifier: input.issue.identifier ?? null,
     },
   });
-  await ctx.state.set(eventIngestionDedupKey(input.companyId, input.wikiId, input.space.id, input.sourceKind, input.sourceId), {
-    eventId: input.event.eventId,
-    cursorId,
-    issueId: input.issue.id,
-    spaceSlug: input.space.slug,
-    observedAt: new Date().toISOString(),
-  });
+  await ctx.state.set(
+    eventIngestionDedupKey(
+      input.companyId,
+      input.wikiId,
+      input.space.id,
+      input.sourceKind,
+      input.sourceId,
+    ),
+    {
+      eventId: input.event.eventId,
+      cursorId,
+      issueId: input.issue.id,
+      spaceSlug: input.space.slug,
+      observedAt: new Date().toISOString(),
+    },
+  );
   return {
     status: "recorded",
     sourceKind: input.sourceKind,
@@ -3669,78 +4995,138 @@ async function recordTaskcoreCursorObservation(ctx: PluginContext, input: {
   };
 }
 
-async function taskcoreProfileIncludesIssue(ctx: PluginContext, input: {
-  companyId: string;
-  issue: Issue;
-  profile: TaskcoreIngestionProfileV1;
-}): Promise<boolean> {
+async function taskcoreProfileIncludesIssue(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    issue: Issue;
+    profile: TaskcoreIngestionProfileV1;
+  },
+): Promise<boolean> {
   for (const scope of input.profile.sourceScopes) {
     if (scope.kind === "company_all") return true;
-    if (scope.kind === "selected_projects" && input.issue.projectId && scope.projectIds.includes(input.issue.projectId)) {
+    if (
+      scope.kind === "selected_projects" &&
+      input.issue.projectId &&
+      scope.projectIds.includes(input.issue.projectId)
+    ) {
       return true;
     }
     if (scope.kind === "active_projects" && input.issue.projectId) {
-      const project = await ctx.projects.get(input.issue.projectId, input.companyId);
+      const project = await ctx.projects.get(
+        input.issue.projectId,
+        input.companyId,
+      );
       const statuses = scope.statuses ?? ["in_progress"];
-      if (project && statuses.includes(project.status as "in_progress" | "todo" | "done") && isActiveDistillationProject(project)) {
+      if (
+        project &&
+        statuses.includes(project.status as "in_progress" | "todo" | "done") &&
+        isActiveDistillationProject(project)
+      ) {
         return true;
       }
     }
     if (scope.kind === "root_issues") {
       for (const rootIssueId of scope.issueIds) {
         if (input.issue.id === rootIssueId) return true;
-        const subtree = await ctx.issues.getSubtree(rootIssueId, input.companyId, { includeRoot: true });
-        if (subtree.issues.some((issue) => issue.id === input.issue.id)) return true;
+        const subtree = await ctx.issues.getSubtree(
+          rootIssueId,
+          input.companyId,
+          { includeRoot: true },
+        );
+        if (subtree.issues.some((issue) => issue.id === input.issue.id))
+          return true;
       }
     }
   }
   return false;
 }
 
-async function routeTaskcoreCursorObservation(ctx: PluginContext, input: {
-  companyId: string;
-  sourceKind: WikiEventIngestionSource;
-  sourceId: string;
-  issue: Issue;
-  event: PluginEvent;
-}): Promise<TaskcoreEventIngestResult> {
-  const { spaces } = await listSpaces(ctx, { companyId: input.companyId, wikiId: DEFAULT_WIKI_ID });
-  const recorded: Array<Extract<TaskcoreEventIngestResult, { status: "recorded" }>> = [];
+async function routeTaskcoreCursorObservation(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    sourceKind: WikiEventIngestionSource;
+    sourceId: string;
+    issue: Issue;
+    event: PluginEvent;
+  },
+): Promise<TaskcoreEventIngestResult> {
+  const { spaces } = await listSpaces(ctx, {
+    companyId: input.companyId,
+    wikiId: DEFAULT_WIKI_ID,
+  });
+  const recorded: Array<
+    Extract<TaskcoreEventIngestResult, { status: "recorded" }>
+  > = [];
   let eligibleProfileCount = 0;
   for (const space of spaces) {
     const profile = await profileForSpace(ctx, input.companyId, space);
     if (!profile.enabled) continue;
-    const policy = evaluateTaskcoreProfilePolicy({ space, profile, purpose: "event_routing", requireEnabledProfile: true });
+    const policy = evaluateTaskcoreProfilePolicy({
+      space,
+      profile,
+      purpose: "event_routing",
+      requireEnabledProfile: true,
+    });
     if (!policy.allowed) continue;
     if (!profile.sourceKinds[input.sourceKind]) continue;
-    if (!(await taskcoreProfileIncludesIssue(ctx, { companyId: input.companyId, issue: input.issue, profile }))) continue;
+    if (
+      !(await taskcoreProfileIncludesIssue(ctx, {
+        companyId: input.companyId,
+        issue: input.issue,
+        profile,
+      }))
+    )
+      continue;
     eligibleProfileCount += 1;
     if (eligibleProfileCount > MAX_TASKCORE_DISTILLATION_FAN_OUT) {
-      throw new Error(`Taskcore ingestion fan-out exceeds the hard cap of ${MAX_TASKCORE_DISTILLATION_FAN_OUT} enabled profiles.`);
+      throw new Error(
+        `Taskcore ingestion fan-out exceeds the hard cap of ${MAX_TASKCORE_DISTILLATION_FAN_OUT} enabled profiles.`,
+      );
     }
-    if (await ctx.state.get(eventIngestionDedupKey(input.companyId, space.wikiId, space.id, input.sourceKind, input.sourceId))) {
+    if (
+      await ctx.state.get(
+        eventIngestionDedupKey(
+          input.companyId,
+          space.wikiId,
+          space.id,
+          input.sourceKind,
+          input.sourceId,
+        ),
+      )
+    ) {
       continue;
     }
-    recorded.push(await recordTaskcoreCursorObservation(ctx, {
-      ...input,
-      wikiId: space.wikiId,
-      space,
-    }));
+    recorded.push(
+      await recordTaskcoreCursorObservation(ctx, {
+        ...input,
+        wikiId: space.wikiId,
+        space,
+      }),
+    );
   }
   return recorded[0] ?? { status: "skipped", reason: "source_disabled" };
 }
 
-export async function handleTaskcoreEventIngestion(ctx: PluginContext, event: PluginEvent): Promise<TaskcoreEventIngestResult> {
+export async function handleTaskcoreEventIngestion(
+  ctx: PluginContext,
+  event: PluginEvent,
+): Promise<TaskcoreEventIngestResult> {
   const companyId = event.companyId;
 
   const issueId = stringField(event.entityId);
   if (!issueId) return { status: "skipped", reason: "unsupported_event" };
   const issue = await ctx.issues.get(issueId, companyId);
   if (!issue) return { status: "skipped", reason: "missing_issue" };
-  if (isLlmWikiOperationIssue(issue)) return { status: "skipped", reason: "plugin_operation" };
+  if (isLlmWikiOperationIssue(issue))
+    return { status: "skipped", reason: "plugin_operation" };
 
   const payload = eventPayload(event);
-  if (event.eventType === "issue.created" || event.eventType === "issue.updated") {
+  if (
+    event.eventType === "issue.created" ||
+    event.eventType === "issue.updated"
+  ) {
     const sourceId = `${event.eventType}:${issue.id}:${event.eventId}`;
     return routeTaskcoreCursorObservation(ctx, {
       companyId,
@@ -3764,10 +5150,18 @@ export async function handleTaskcoreEventIngestion(ctx: PluginContext, event: Pl
     });
   }
 
-  if (event.eventType === "issue.document.created" || event.eventType === "issue.document.updated") {
-    const documentKey = stringField(payload.key) ?? stringField(payload.documentKey);
+  if (
+    event.eventType === "issue.document.created" ||
+    event.eventType === "issue.document.updated"
+  ) {
+    const documentKey =
+      stringField(payload.key) ?? stringField(payload.documentKey);
     if (!documentKey) return { status: "skipped", reason: "missing_document" };
-    const revision = stringField(payload.revisionId) ?? stringField(payload.latestRevisionId) ?? stringField(payload.revisionNumber) ?? event.eventId;
+    const revision =
+      stringField(payload.revisionId) ??
+      stringField(payload.latestRevisionId) ??
+      stringField(payload.revisionNumber) ??
+      event.eventId;
     const sourceId = `document:${issue.id}:${documentKey}:revision:${revision}`;
     return routeTaskcoreCursorObservation(ctx, {
       companyId,
@@ -3785,7 +5179,12 @@ function queryStreamChannel(operationId: string): string {
   return `llm-wiki:query:${operationId}`;
 }
 
-function buildQueryPrompt(input: { companyId: string; wikiId: string; space: WikiSpace; question: string }): string {
+function buildQueryPrompt(input: {
+  companyId: string;
+  wikiId: string;
+  space: WikiSpace;
+  question: string;
+}): string {
   return [
     QUERY_PROMPT,
     `Company ID: ${input.companyId}`,
@@ -3799,15 +5198,18 @@ function buildQueryPrompt(input: { companyId: string; wikiId: string; space: Wik
   ].join("\n\n");
 }
 
-async function markOperation(ctx: PluginContext, input: {
-  companyId: string;
-  operationId: string;
-  status: string;
-  runId?: string | null;
-  warning?: string | null;
-  affectedPages?: unknown[] | null;
-  metadata?: Record<string, unknown> | null;
-}) {
+async function markOperation(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    operationId: string;
+    status: string;
+    runId?: string | null;
+    warning?: string | null;
+    affectedPages?: unknown[] | null;
+    metadata?: Record<string, unknown> | null;
+  },
+) {
   await ctx.db.execute(
     `UPDATE ${tableName(ctx.db.namespace, "wiki_operations")}
         SET status = $3,
@@ -3833,10 +5235,17 @@ function isTerminalSessionEvent(event: AgentSessionEvent): boolean {
   return event.eventType === "done" || event.eventType === "error";
 }
 
-export async function startWikiQuerySession(ctx: PluginContext, input: QuerySessionInput) {
+export async function startWikiQuerySession(
+  ctx: PluginContext,
+  input: QuerySessionInput,
+) {
   const question = requireString(input.question, "question");
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const operation = await createOperationIssue(ctx, {
     companyId: input.companyId,
     wikiId,
@@ -3849,20 +5258,34 @@ export async function startWikiQuerySession(ctx: PluginContext, input: QuerySess
   const channel = queryStreamChannel(operation.operationId);
 
   if (!agentId) {
-    const warning = "No configured Wiki Maintainer agent is available for this company.";
+    const warning =
+      "No configured Wiki Maintainer agent is available for this company.";
     await markOperation(ctx, {
       companyId: input.companyId,
       operationId: operation.operationId,
       status: "blocked",
       warning,
     });
-    await ctx.issues.update(operation.issue.id, { status: "blocked" }, input.companyId);
-    await ctx.issues.createComment(operation.issue.id, warning, input.companyId);
+    await ctx.issues.update(
+      operation.issue.id,
+      { status: "blocked" },
+      input.companyId,
+    );
+    await ctx.issues.createComment(
+      operation.issue.id,
+      warning,
+      input.companyId,
+    );
     throw new Error(warning);
   }
 
   const agent = await ctx.agents.get(agentId, input.companyId);
-  if (!agent || agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") {
+  if (
+    !agent ||
+    agent.status === "paused" ||
+    agent.status === "terminated" ||
+    agent.status === "pending_approval"
+  ) {
     const warning = agent
       ? `Wiki Maintainer agent is not invokable while status is ${agent.status}.`
       : "Wiki Maintainer agent could not be loaded.";
@@ -3872,8 +5295,16 @@ export async function startWikiQuerySession(ctx: PluginContext, input: QuerySess
       status: "blocked",
       warning,
     });
-    await ctx.issues.update(operation.issue.id, { status: "blocked" }, input.companyId);
-    await ctx.issues.createComment(operation.issue.id, warning, input.companyId);
+    await ctx.issues.update(
+      operation.issue.id,
+      { status: "blocked" },
+      input.companyId,
+    );
+    await ctx.issues.createComment(
+      operation.issue.id,
+      warning,
+      input.companyId,
+    );
     throw new Error(warning);
   }
 
@@ -3885,10 +5316,22 @@ export async function startWikiQuerySession(ctx: PluginContext, input: QuerySess
     `INSERT INTO ${tableName(ctx.db.namespace, "wiki_query_sessions")}
        (id, company_id, wiki_id, space_id, hidden_issue_id, agent_session_id, status, filed_outputs)
      VALUES ($1, $2, $3, $6, $4, $5, 'active', '[]'::jsonb)`,
-    [operation.operationId, input.companyId, wikiId, operation.issue.id, session.sessionId, space.id],
+    [
+      operation.operationId,
+      input.companyId,
+      wikiId,
+      operation.issue.id,
+      session.sessionId,
+      space.id,
+    ],
   );
 
-  const prompt = buildQueryPrompt({ companyId: input.companyId, wikiId, space, question });
+  const prompt = buildQueryPrompt({
+    companyId: input.companyId,
+    wikiId,
+    space,
+    question,
+  });
   ctx.streams.open(channel, input.companyId);
   ctx.streams.emit(channel, {
     type: "query.started",
@@ -3900,67 +5343,82 @@ export async function startWikiQuerySession(ctx: PluginContext, input: QuerySess
   });
 
   let answer = "";
-  const sendResult = await ctx.agents.sessions.sendMessage(session.sessionId, input.companyId, {
-    prompt,
-    reason: "LLM Wiki query",
-    onEvent: (event) => {
-      if (event.eventType === "chunk" && event.stream !== "stderr" && event.message) {
-        answer += event.message;
-      }
-      ctx.streams.emit(channel, {
-        type: "agent.event",
-        operationId: operation.operationId,
-        querySessionId: operation.operationId,
-        eventType: event.eventType,
-        stream: event.stream,
-        message: event.message,
-        payload: event.payload,
-        runId: event.runId,
-        seq: event.seq,
-      });
-      if (isTerminalSessionEvent(event)) {
-        const finalStatus = event.eventType === "done" ? "done" : "failed";
+  const sendResult = await ctx.agents.sessions.sendMessage(
+    session.sessionId,
+    input.companyId,
+    {
+      prompt,
+      reason: "LLM Wiki query",
+      onEvent: (event) => {
+        if (
+          event.eventType === "chunk" &&
+          event.stream !== "stderr" &&
+          event.message
+        ) {
+          answer += event.message;
+        }
         ctx.streams.emit(channel, {
-          type: event.eventType === "done" ? "query.done" : "query.error",
+          type: "agent.event",
           operationId: operation.operationId,
           querySessionId: operation.operationId,
-          issueId: operation.issue.id,
-          sessionId: session.sessionId,
-          runId: event.runId,
-          answer,
+          eventType: event.eventType,
+          stream: event.stream,
           message: event.message,
-        });
-        ctx.streams.close(channel);
-        void markOperation(ctx, {
-          companyId: input.companyId,
-          operationId: operation.operationId,
-          status: finalStatus,
+          payload: event.payload,
           runId: event.runId,
-          warning: event.eventType === "error" ? event.message : null,
-          metadata: { answerLength: answer.length },
+          seq: event.seq,
         });
-        void ctx.db.execute(
-          `UPDATE ${tableName(ctx.db.namespace, "wiki_query_sessions")}
+        if (isTerminalSessionEvent(event)) {
+          const finalStatus = event.eventType === "done" ? "done" : "failed";
+          ctx.streams.emit(channel, {
+            type: event.eventType === "done" ? "query.done" : "query.error",
+            operationId: operation.operationId,
+            querySessionId: operation.operationId,
+            issueId: operation.issue.id,
+            sessionId: session.sessionId,
+            runId: event.runId,
+            answer,
+            message: event.message,
+          });
+          ctx.streams.close(channel);
+          void markOperation(ctx, {
+            companyId: input.companyId,
+            operationId: operation.operationId,
+            status: finalStatus,
+            runId: event.runId,
+            warning: event.eventType === "error" ? event.message : null,
+            metadata: { answerLength: answer.length },
+          });
+          void ctx.db.execute(
+            `UPDATE ${tableName(ctx.db.namespace, "wiki_query_sessions")}
               SET status = $3,
                   updated_at = now()
             WHERE company_id = $1 AND id = $2`,
-          [input.companyId, operation.operationId, finalStatus === "done" ? "completed" : "failed"],
-        );
-        void ctx.issues.createComment(
-          operation.issue.id,
-          event.eventType === "done"
-            ? `Query completed.\n\n${answer.trim() || "_No answer text was streamed._"}`
-            : `Query failed: ${event.message ?? "agent session ended with an error"}`,
-          input.companyId,
-        );
-        void ctx.issues.update(
-          operation.issue.id,
-          { status: event.eventType === "done" ? "done" : "blocked", originRunId: event.runId },
-          input.companyId,
-        );
-      }
+            [
+              input.companyId,
+              operation.operationId,
+              finalStatus === "done" ? "completed" : "failed",
+            ],
+          );
+          void ctx.issues.createComment(
+            operation.issue.id,
+            event.eventType === "done"
+              ? `Query completed.\n\n${answer.trim() || "_No answer text was streamed._"}`
+              : `Query failed: ${event.message ?? "agent session ended with an error"}`,
+            input.companyId,
+          );
+          void ctx.issues.update(
+            operation.issue.id,
+            {
+              status: event.eventType === "done" ? "done" : "blocked",
+              originRunId: event.runId,
+            },
+            input.companyId,
+          );
+        }
+      },
     },
-  });
+  );
 
   await markOperation(ctx, {
     companyId: input.companyId,
@@ -3968,7 +5426,11 @@ export async function startWikiQuerySession(ctx: PluginContext, input: QuerySess
     status: "running",
     runId: sendResult.runId,
   });
-  await ctx.issues.update(operation.issue.id, { originRunId: sendResult.runId }, input.companyId);
+  await ctx.issues.update(
+    operation.issue.id,
+    { originRunId: sendResult.runId },
+    input.companyId,
+  );
 
   return {
     status: "running",
@@ -3983,19 +5445,33 @@ export async function startWikiQuerySession(ctx: PluginContext, input: QuerySess
   };
 }
 
-export async function fileQueryAnswerAsPage(ctx: PluginContext, input: FileQueryAnswerInput) {
+export async function fileQueryAnswerAsPage(
+  ctx: PluginContext,
+  input: FileQueryAnswerInput,
+) {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const path = assertPagePath(input.path);
-  const title = stringField(input.title) ?? inferTitle(path, input.contents ?? input.answer ?? "");
+  const title =
+    stringField(input.title) ??
+    inferTitle(path, input.contents ?? input.answer ?? "");
   const answer = stringField(input.answer);
-  const contents = stringField(input.contents) ?? [
-    `# ${title}`,
-    "",
-    input.question ? `> Filed from query: ${input.question}` : null,
-    "",
-    answer ?? "",
-  ].filter((line): line is string => line !== null).join("\n").trimEnd() + "\n";
+  const contents =
+    stringField(input.contents) ??
+    [
+      `# ${title}`,
+      "",
+      input.question ? `> Filed from query: ${input.question}` : null,
+      "",
+      answer ?? "",
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n")
+      .trimEnd() + "\n";
   const operation = await createOperationIssue(ctx, {
     companyId: input.companyId,
     wikiId,
@@ -4012,7 +5488,9 @@ export async function fileQueryAnswerAsPage(ctx: PluginContext, input: FileQuery
     contents,
     expectedHash: stringField(input.expectedHash),
     summary: `Filed query answer as ${path}`,
-    sourceRefs: input.querySessionId ? [{ querySessionId: input.querySessionId }] : [],
+    sourceRefs: input.querySessionId
+      ? [{ querySessionId: input.querySessionId }]
+      : [],
     operationId: operation.operationId,
   });
   const affectedPage = {
@@ -4028,7 +5506,11 @@ export async function fileQueryAnswerAsPage(ctx: PluginContext, input: FileQuery
     affectedPages: [affectedPage],
     metadata: { querySessionId: input.querySessionId ?? null },
   });
-  await ctx.issues.update(operation.issue.id, { status: "done" }, input.companyId);
+  await ctx.issues.update(
+    operation.issue.id,
+    { status: "done" },
+    input.companyId,
+  );
   await ctx.issues.createComment(
     operation.issue.id,
     `Filed query answer as \`${path}\`.`,
@@ -4057,19 +5539,33 @@ export async function fileQueryAnswerAsPage(ctx: PluginContext, input: FileQuery
 }
 
 export async function registerWikiTools(ctx: PluginContext) {
-  ctx.tools.register("wiki_search", {
-    displayName: "Search Wiki",
-    description: "Search indexed wiki page and source metadata.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_search")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const query = requireString(input.query, "query");
-    const limit = normalizeLimit(input.limit, 20, 50);
-    const rows = await ctx.db.query<{ kind: string; path: string; title: string | null; match_text: string | null }>(
-      `SELECT 'page' AS kind, path, title, page_type AS match_text
+  ctx.tools.register(
+    "wiki_search",
+    {
+      displayName: "Search Wiki",
+      description: "Search indexed wiki page and source metadata.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_search",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
+        companyId,
+        wikiId,
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const query = requireString(input.query, "query");
+      const limit = normalizeLimit(input.limit, 20, 50);
+      const rows = await ctx.db.query<{
+        kind: string;
+        path: string;
+        title: string | null;
+        match_text: string | null;
+      }>(
+        `SELECT 'page' AS kind, path, title, page_type AS match_text
          FROM ${tableName(ctx.db.namespace, "wiki_pages")}
         WHERE company_id = $1 AND wiki_id = $2 AND space_id = $5 AND (lower(path) LIKE lower($3) OR lower(coalesce(title, '')) LIKE lower($3))
        UNION ALL
@@ -4078,204 +5574,381 @@ export async function registerWikiTools(ctx: PluginContext) {
         WHERE company_id = $1 AND wiki_id = $2 AND space_id = $5 AND (lower(raw_path) LIKE lower($3) OR lower(coalesce(title, '')) LIKE lower($3) OR lower(coalesce(url, '')) LIKE lower($3))
        ORDER BY kind, path
        LIMIT $4`,
-      [companyId, wikiId, `%${query}%`, limit, space.id],
-    );
-    return {
-      content: rows.length ? rows.map((row) => `${row.kind}: ${row.path}${row.title ? ` - ${row.title}` : ""}`).join("\n") : "No wiki matches found.",
-      data: { companyId, wikiId, spaceSlug: space.slug, query, results: rows },
-    };
-  });
+        [companyId, wikiId, `%${query}%`, limit, space.id],
+      );
+      return {
+        content: rows.length
+          ? rows
+              .map(
+                (row) =>
+                  `${row.kind}: ${row.path}${row.title ? ` - ${row.title}` : ""}`,
+              )
+              .join("\n")
+          : "No wiki matches found.",
+        data: {
+          companyId,
+          wikiId,
+          spaceSlug: space.slug,
+          query,
+          results: rows,
+        },
+      };
+    },
+  );
 
-  ctx.tools.register("wiki_read_page", {
-    displayName: "Read Wiki Page",
-    description: "Read a markdown wiki page from the configured local wiki root.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_read_page")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const path = assertPagePath(requireString(input.path, "path"));
-    const contents = await ctx.localFolders.readText(companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, path));
-    return { content: contents, data: { companyId, wikiId, spaceSlug: space.slug, path, hash: contentHash(contents) } };
-  });
-
-  ctx.tools.register("wiki_write_page", {
-    displayName: "Write Wiki Page",
-    description: "Atomically write a markdown wiki page after plugin path validation.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_write_page")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const result = await writeWikiPage(ctx, {
-      companyId: requireString(input.companyId, "companyId"),
-      wikiId: stringField(input.wikiId),
-      spaceSlug: stringField(input.spaceSlug),
-      path: requireString(input.path, "path"),
-      contents: requireString(input.contents, "contents"),
-      expectedHash: stringField(input.expectedHash),
-      summary: stringField(input.summary),
-      sourceRefs: input.sourceRefs,
-    });
-    return { content: `Wrote ${result.path}`, data: result };
-  });
-
-  ctx.tools.register("wiki_propose_patch", {
-    displayName: "Propose Wiki Patch",
-    description: "Return a structured proposed page write without changing files.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_propose_patch")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const path = assertPagePath(requireString(input.path, "path"));
-    const contents = requireString(input.contents, "contents");
-    const current = await readCurrentWithHash(ctx, companyId, path, space);
-    return {
-      content: `Proposed patch for ${path}`,
-      data: {
+  ctx.tools.register(
+    "wiki_read_page",
+    {
+      displayName: "Read Wiki Page",
+      description:
+        "Read a markdown wiki page from the configured local wiki root.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_read_page",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
         companyId,
         wikiId,
-        spaceSlug: space.slug,
-        path,
-        summary: stringField(input.summary),
-        currentHash: current.hash,
-        proposedHash: contentHash(contents),
-        proposedContents: contents,
-      },
-    };
-  });
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const path = assertPagePath(requireString(input.path, "path"));
+      const contents = await ctx.localFolders.readText(
+        companyId,
+        WIKI_ROOT_FOLDER_KEY,
+        spaceRelativePath(space, path),
+      );
+      return {
+        content: contents,
+        data: {
+          companyId,
+          wikiId,
+          spaceSlug: space.slug,
+          path,
+          hash: contentHash(contents),
+        },
+      };
+    },
+  );
 
-  ctx.tools.register("wiki_list_sources", {
-    displayName: "List Wiki Sources",
-    description: "Return captured raw source metadata from the plugin index.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_list_sources")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const limit = normalizeLimit(input.limit, 50, 200);
-    const rows = await ctx.db.query<{ raw_path: string; title: string | null; source_type: string; url: string | null; content_hash: string }>(
-      `SELECT raw_path, title, source_type, url, content_hash
+  ctx.tools.register(
+    "wiki_write_page",
+    {
+      displayName: "Write Wiki Page",
+      description:
+        "Atomically write a markdown wiki page after plugin path validation.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_write_page",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const result = await writeWikiPage(ctx, {
+        companyId: requireString(input.companyId, "companyId"),
+        wikiId: stringField(input.wikiId),
+        spaceSlug: stringField(input.spaceSlug),
+        path: requireString(input.path, "path"),
+        contents: requireString(input.contents, "contents"),
+        expectedHash: stringField(input.expectedHash),
+        summary: stringField(input.summary),
+        sourceRefs: input.sourceRefs,
+      });
+      return { content: `Wrote ${result.path}`, data: result };
+    },
+  );
+
+  ctx.tools.register(
+    "wiki_propose_patch",
+    {
+      displayName: "Propose Wiki Patch",
+      description:
+        "Return a structured proposed page write without changing files.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_propose_patch",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
+        companyId,
+        wikiId,
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const path = assertPagePath(requireString(input.path, "path"));
+      const contents = requireString(input.contents, "contents");
+      const current = await readCurrentWithHash(ctx, companyId, path, space);
+      return {
+        content: `Proposed patch for ${path}`,
+        data: {
+          companyId,
+          wikiId,
+          spaceSlug: space.slug,
+          path,
+          summary: stringField(input.summary),
+          currentHash: current.hash,
+          proposedHash: contentHash(contents),
+          proposedContents: contents,
+        },
+      };
+    },
+  );
+
+  ctx.tools.register(
+    "wiki_list_sources",
+    {
+      displayName: "List Wiki Sources",
+      description: "Return captured raw source metadata from the plugin index.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_list_sources",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
+        companyId,
+        wikiId,
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const limit = normalizeLimit(input.limit, 50, 200);
+      const rows = await ctx.db.query<{
+        raw_path: string;
+        title: string | null;
+        source_type: string;
+        url: string | null;
+        content_hash: string;
+      }>(
+        `SELECT raw_path, title, source_type, url, content_hash
          FROM ${tableName(ctx.db.namespace, "wiki_sources")}
         WHERE company_id = $1 AND wiki_id = $2 AND space_id = $4
         ORDER BY created_at DESC
         LIMIT $3`,
-      [companyId, wikiId, limit, space.id],
-    );
-    return {
-      content: rows.length ? rows.map((row) => `${row.raw_path}${row.title ? ` - ${row.title}` : ""}`).join("\n") : "No sources captured yet.",
-      data: { companyId, wikiId, spaceSlug: space.slug, sources: rows },
-    };
-  });
+        [companyId, wikiId, limit, space.id],
+      );
+      return {
+        content: rows.length
+          ? rows
+              .map(
+                (row) => `${row.raw_path}${row.title ? ` - ${row.title}` : ""}`,
+              )
+              .join("\n")
+          : "No sources captured yet.",
+        data: { companyId, wikiId, spaceSlug: space.slug, sources: rows },
+      };
+    },
+  );
 
-  ctx.tools.register("wiki_read_source", {
-    displayName: "Read Wiki Source",
-    description: "Read a captured raw source from the configured local wiki root.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_read_source")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const rawPath = assertRawPath(requireString(input.rawPath, "rawPath"));
-    const contents = await ctx.localFolders.readText(companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, rawPath));
-    return { content: contents, data: { companyId, wikiId, spaceSlug: space.slug, rawPath, hash: contentHash(contents) } };
-  });
+  ctx.tools.register(
+    "wiki_read_source",
+    {
+      displayName: "Read Wiki Source",
+      description:
+        "Read a captured raw source from the configured local wiki root.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_read_source",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
+        companyId,
+        wikiId,
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const rawPath = assertRawPath(requireString(input.rawPath, "rawPath"));
+      const contents = await ctx.localFolders.readText(
+        companyId,
+        WIKI_ROOT_FOLDER_KEY,
+        spaceRelativePath(space, rawPath),
+      );
+      return {
+        content: contents,
+        data: {
+          companyId,
+          wikiId,
+          spaceSlug: space.slug,
+          rawPath,
+          hash: contentHash(contents),
+        },
+      };
+    },
+  );
 
-  ctx.tools.register("wiki_append_log", {
-    displayName: "Append Wiki Log",
-    description: "Append a maintenance note to wiki/log.md.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_append_log")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const entry = requireString(input.entry, "entry");
-    let current = "";
-    try {
-      current = await ctx.localFolders.readText(companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, "wiki/log.md"));
-    } catch {
-      current = "# Log\n\nAppend-only chronological record of wiki operations.\n";
-    }
-    const next = `${current.trimEnd()}\n\n- ${new Date().toISOString()} ${entry}\n`;
-    await ctx.localFolders.writeTextAtomic(companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, "wiki/log.md"), next);
-    await upsertPageMetadata(ctx, {
-      companyId,
-      wikiId,
-      spaceId: space.id,
-      path: "wiki/log.md",
-      contents: next,
-      summary: "Append log entry",
-    });
-    return { content: "Appended log entry", data: { companyId, wikiId, spaceSlug: space.slug, hash: contentHash(next) } };
-  });
+  ctx.tools.register(
+    "wiki_append_log",
+    {
+      displayName: "Append Wiki Log",
+      description: "Append a maintenance note to wiki/log.md.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_append_log",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
+        companyId,
+        wikiId,
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const entry = requireString(input.entry, "entry");
+      let current = "";
+      try {
+        current = await ctx.localFolders.readText(
+          companyId,
+          WIKI_ROOT_FOLDER_KEY,
+          spaceRelativePath(space, "wiki/log.md"),
+        );
+      } catch {
+        current =
+          "# Log\n\nAppend-only chronological record of wiki operations.\n";
+      }
+      const next = `${current.trimEnd()}\n\n- ${new Date().toISOString()} ${entry}\n`;
+      await ctx.localFolders.writeTextAtomic(
+        companyId,
+        WIKI_ROOT_FOLDER_KEY,
+        spaceRelativePath(space, "wiki/log.md"),
+        next,
+      );
+      await upsertPageMetadata(ctx, {
+        companyId,
+        wikiId,
+        spaceId: space.id,
+        path: "wiki/log.md",
+        contents: next,
+        summary: "Append log entry",
+      });
+      return {
+        content: "Appended log entry",
+        data: {
+          companyId,
+          wikiId,
+          spaceSlug: space.slug,
+          hash: contentHash(next),
+        },
+      };
+    },
+  );
 
-  ctx.tools.register("wiki_update_index", {
-    displayName: "Update Wiki Index",
-    description: "Atomically replace wiki/index.md with optional hash conflict checks.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_update_index")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const result = await writeWikiPage(ctx, {
-      companyId: requireString(input.companyId, "companyId"),
-      wikiId: stringField(input.wikiId),
-      spaceSlug: stringField(input.spaceSlug),
-      path: "wiki/index.md",
-      contents: requireString(input.contents, "contents"),
-      expectedHash: stringField(input.expectedHash),
-      summary: "Update index",
-    });
-    return { content: "Updated wiki/index.md", data: result };
-  });
+  ctx.tools.register(
+    "wiki_update_index",
+    {
+      displayName: "Update Wiki Index",
+      description:
+        "Atomically replace wiki/index.md with optional hash conflict checks.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_update_index",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const result = await writeWikiPage(ctx, {
+        companyId: requireString(input.companyId, "companyId"),
+        wikiId: stringField(input.wikiId),
+        spaceSlug: stringField(input.spaceSlug),
+        path: "wiki/index.md",
+        contents: requireString(input.contents, "contents"),
+        expectedHash: stringField(input.expectedHash),
+        summary: "Update index",
+      });
+      return { content: "Updated wiki/index.md", data: result };
+    },
+  );
 
-  ctx.tools.register("wiki_list_backlinks", {
-    displayName: "List Wiki Backlinks",
-    description: "Return indexed backlinks for a wiki page.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_list_backlinks")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const path = assertPagePath(requireString(input.path, "path"));
-    const rows = await ctx.db.query<{ path: string; title: string | null }>(
-      `SELECT path, title
+  ctx.tools.register(
+    "wiki_list_backlinks",
+    {
+      displayName: "List Wiki Backlinks",
+      description: "Return indexed backlinks for a wiki page.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_list_backlinks",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
+        companyId,
+        wikiId,
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const path = assertPagePath(requireString(input.path, "path"));
+      const rows = await ctx.db.query<{ path: string; title: string | null }>(
+        `SELECT path, title
          FROM ${tableName(ctx.db.namespace, "wiki_pages")}
         WHERE company_id = $1 AND wiki_id = $2 AND space_id = $4 AND backlinks ? $3
         ORDER BY path
         LIMIT 200`,
-      [companyId, wikiId, path, space.id],
-    );
-    return {
-      content: rows.length ? rows.map((row) => `${row.path}${row.title ? ` - ${row.title}` : ""}`).join("\n") : "No backlinks indexed.",
-      data: { companyId, wikiId, spaceSlug: space.slug, path, backlinks: rows },
-    };
-  });
+        [companyId, wikiId, path, space.id],
+      );
+      return {
+        content: rows.length
+          ? rows
+              .map((row) => `${row.path}${row.title ? ` - ${row.title}` : ""}`)
+              .join("\n")
+          : "No backlinks indexed.",
+        data: {
+          companyId,
+          wikiId,
+          spaceSlug: space.slug,
+          path,
+          backlinks: rows,
+        },
+      };
+    },
+  );
 
-  ctx.tools.register("wiki_list_pages", {
-    displayName: "List Wiki Pages",
-    description: "Return the known page index from plugin metadata.",
-    parametersSchema: ctx.manifest.tools?.find((tool) => tool.name === "wiki_list_pages")?.parametersSchema ?? { type: "object" },
-  }, async (params: unknown): Promise<ToolResult> => {
-    const input = params as ToolParams;
-    const companyId = requireString(input.companyId, "companyId");
-    const wikiId = normalizeWikiId(input.wikiId);
-    const space = await resolveSpace(ctx, { companyId, wikiId, spaceSlug: input.spaceSlug as string | null | undefined });
-    const rows = await ctx.db.query<{ path: string; title: string | null; page_type: string | null }>(
-      `SELECT path, title, page_type FROM ${tableName(ctx.db.namespace, "wiki_pages")} WHERE company_id = $1 AND wiki_id = $2 AND space_id = $3 ORDER BY path LIMIT 200`,
-      [companyId, wikiId, space.id],
-    );
-    return {
-      content: rows.length ? rows.map((row) => `${row.path}${row.title ? ` - ${row.title}` : ""}`).join("\n") : "No pages indexed yet.",
-      data: { companyId, wikiId, spaceSlug: space.slug, pages: rows },
-    };
-  });
+  ctx.tools.register(
+    "wiki_list_pages",
+    {
+      displayName: "List Wiki Pages",
+      description: "Return the known page index from plugin metadata.",
+      parametersSchema: ctx.manifest.tools?.find(
+        (tool) => tool.name === "wiki_list_pages",
+      )?.parametersSchema ?? { type: "object" },
+    },
+    async (params: unknown): Promise<ToolResult> => {
+      const input = params as ToolParams;
+      const companyId = requireString(input.companyId, "companyId");
+      const wikiId = normalizeWikiId(input.wikiId);
+      const space = await resolveSpace(ctx, {
+        companyId,
+        wikiId,
+        spaceSlug: input.spaceSlug as string | null | undefined,
+      });
+      const rows = await ctx.db.query<{
+        path: string;
+        title: string | null;
+        page_type: string | null;
+      }>(
+        `SELECT path, title, page_type FROM ${tableName(ctx.db.namespace, "wiki_pages")} WHERE company_id = $1 AND wiki_id = $2 AND space_id = $3 ORDER BY path LIMIT 200`,
+        [companyId, wikiId, space.id],
+      );
+      return {
+        content: rows.length
+          ? rows
+              .map((row) => `${row.path}${row.title ? ` - ${row.title}` : ""}`)
+              .join("\n")
+          : "No pages indexed yet.",
+        data: { companyId, wikiId, spaceSlug: space.slug, pages: rows },
+      };
+    },
+  );
 }
 
-export function readCompanyIdFromParams(params: Record<string, unknown>): string {
+export function readCompanyIdFromParams(
+  params: Record<string, unknown>,
+): string {
   return requireString(params.companyId, "companyId");
 }
 
@@ -4325,16 +5998,23 @@ export type WikiOperationRow = {
   updatedAt: string;
 };
 
-export async function listPages(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId?: string | null;
-  spaceSlug?: string | null;
-  pageType?: string | null;
-  includeRaw?: boolean;
-  limit?: number | null;
-}): Promise<{ pages: WikiPageRow[]; sources: WikiSourceRow[] }> {
+export async function listPages(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    pageType?: string | null;
+    includeRaw?: boolean;
+    limit?: number | null;
+  },
+): Promise<{ pages: WikiPageRow[]; sources: WikiSourceRow[] }> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const limit = normalizeLimit(input.limit, 500, LOCAL_BROWSE_FILE_LIMIT);
   const params: unknown[] = [input.companyId, wikiId, space.id];
   let pageFilter = "";
@@ -4360,7 +6040,13 @@ export async function listPages(ctx: PluginContext, input: {
       LIMIT $${limitIndex}`,
     params,
   );
-  const readablePageRows = await filterReadableRows(ctx, input.companyId, space, pageRows, (row) => row.path);
+  const readablePageRows = await filterReadableRows(
+    ctx,
+    input.companyId,
+    space,
+    pageRows,
+    (row) => row.path,
+  );
   const pages: WikiPageRow[] = readablePageRows.map((row) => ({
     path: row.path,
     title: row.title,
@@ -4372,29 +6058,62 @@ export async function listPages(ctx: PluginContext, input: {
   }));
   let pagesWithLocalFiles = pages;
   if (!input.pageType) {
-    const wikiFiles = await listLocalFiles(ctx, { companyId: input.companyId, space, relativePath: "wiki" });
+    const wikiFiles = await listLocalFiles(ctx, {
+      companyId: input.companyId,
+      space,
+      relativePath: "wiki",
+    });
     pagesWithLocalFiles = mergeLocalPageRows(pages, wikiFiles);
   }
 
   let sources: WikiSourceRow[] = [];
   if (input.includeRaw) {
-    sources = (await listSources(ctx, { companyId: input.companyId, wikiId, spaceSlug: space.slug, limit, onlyReadable: true })).sources;
-    sources = mergeLocalSourceRows(sources, await listLocalFiles(ctx, { companyId: input.companyId, space, relativePath: "raw" }));
+    sources = (
+      await listSources(ctx, {
+        companyId: input.companyId,
+        wikiId,
+        spaceSlug: space.slug,
+        limit,
+        onlyReadable: true,
+      })
+    ).sources;
+    sources = mergeLocalSourceRows(
+      sources,
+      await listLocalFiles(ctx, {
+        companyId: input.companyId,
+        space,
+        relativePath: "raw",
+      }),
+    );
   }
   return { pages: pagesWithLocalFiles, sources };
 }
 
-export async function listSources(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId?: string | null;
-  spaceSlug?: string | null;
-  limit?: number | null;
-  onlyReadable?: boolean;
-}): Promise<{ sources: WikiSourceRow[] }> {
+export async function listSources(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    limit?: number | null;
+    onlyReadable?: boolean;
+  },
+): Promise<{ sources: WikiSourceRow[] }> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const limit = normalizeLimit(input.limit, 500, LOCAL_BROWSE_FILE_LIMIT);
-  const rows = await ctx.db.query<{ raw_path: string; title: string | null; source_type: string; url: string | null; status: string; created_at: string }>(
+  const rows = await ctx.db.query<{
+    raw_path: string;
+    title: string | null;
+    source_type: string;
+    url: string | null;
+    status: string;
+    created_at: string;
+  }>(
     `SELECT raw_path, title, source_type, url, status, created_at::text AS created_at
        FROM ${tableName(ctx.db.namespace, "wiki_sources")}
       WHERE company_id = $1 AND wiki_id = $2 AND space_id = $4
@@ -4403,7 +6122,13 @@ export async function listSources(ctx: PluginContext, input: {
     [input.companyId, wikiId, limit, space.id],
   );
   const sourceRows = input.onlyReadable
-    ? await filterReadableRows(ctx, input.companyId, space, rows, (row) => row.raw_path)
+    ? await filterReadableRows(
+        ctx,
+        input.companyId,
+        space,
+        rows,
+        (row) => row.raw_path,
+      )
     : rows;
   return {
     sources: sourceRows.map((row) => ({
@@ -4417,12 +6142,34 @@ export async function listSources(ctx: PluginContext, input: {
   };
 }
 
-export async function readWikiPage(ctx: PluginContext, input: { companyId: string; wikiId?: string | null; spaceSlug?: string | null; path: string }) {
+export async function readWikiPage(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    path: string;
+  },
+) {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const path = assertWikiPath(input.path);
-  const contents = await ctx.localFolders.readText(input.companyId, WIKI_ROOT_FOLDER_KEY, spaceRelativePath(space, path));
-  const meta = await ctx.db.query<{ title: string | null; page_type: string | null; backlinks: unknown; source_refs: unknown; updated_at: string }>(
+  const contents = await ctx.localFolders.readText(
+    input.companyId,
+    WIKI_ROOT_FOLDER_KEY,
+    spaceRelativePath(space, path),
+  );
+  const meta = await ctx.db.query<{
+    title: string | null;
+    page_type: string | null;
+    backlinks: unknown;
+    source_refs: unknown;
+    updated_at: string;
+  }>(
     `SELECT title, page_type, backlinks, source_refs, updated_at::text AS updated_at
        FROM ${tableName(ctx.db.namespace, "wiki_pages")}
       WHERE company_id = $1 AND wiki_id = $2 AND space_id = $4 AND path = $3
@@ -4444,23 +6191,53 @@ export async function readWikiPage(ctx: PluginContext, input: { companyId: strin
   };
 }
 
-export async function readTemplate(ctx: PluginContext, input: { companyId: string; path: string }) {
+export async function readTemplate(
+  ctx: PluginContext,
+  input: { companyId: string; path: string },
+) {
   if (!isTemplateFile(input.path)) {
-    throw new Error(`template path must be one of ${TEMPLATE_FILES.join(", ")}`);
+    throw new Error(
+      `template path must be one of ${TEMPLATE_FILES.join(", ")}`,
+    );
   }
   try {
-    const contents = await ctx.localFolders.readText(input.companyId, WIKI_ROOT_FOLDER_KEY, input.path);
-    return { path: input.path, contents, hash: contentHash(contents), exists: true };
+    const contents = await ctx.localFolders.readText(
+      input.companyId,
+      WIKI_ROOT_FOLDER_KEY,
+      input.path,
+    );
+    return {
+      path: input.path,
+      contents,
+      hash: contentHash(contents),
+      exists: true,
+    };
   } catch (error) {
-    return { path: input.path, contents: "", hash: null, exists: false, error: error instanceof Error ? error.message : String(error) };
+    return {
+      path: input.path,
+      contents: "",
+      hash: null,
+      exists: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
-export async function writeTemplate(ctx: PluginContext, input: { companyId: string; path: string; contents: string }) {
+export async function writeTemplate(
+  ctx: PluginContext,
+  input: { companyId: string; path: string; contents: string },
+) {
   if (!isTemplateFile(input.path)) {
-    throw new Error(`template path must be one of ${TEMPLATE_FILES.join(", ")}`);
+    throw new Error(
+      `template path must be one of ${TEMPLATE_FILES.join(", ")}`,
+    );
   }
-  await ctx.localFolders.writeTextAtomic(input.companyId, WIKI_ROOT_FOLDER_KEY, input.path, input.contents);
+  await ctx.localFolders.writeTextAtomic(
+    input.companyId,
+    WIKI_ROOT_FOLDER_KEY,
+    input.path,
+    input.contents,
+  );
   return { status: "ok", path: input.path, hash: contentHash(input.contents) };
 }
 
@@ -4559,15 +6336,23 @@ export type DistillationOverview = {
 };
 
 function jsonObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function jsonArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
-function affectedPagePathsFromRunMetadata(metadata: Record<string, unknown>, fallbackBindings: DistillationPageBindingRow[], runId: string): string[] {
-  const explicit = jsonArray(metadata.affectedPages ?? metadata.pagePaths ?? metadata.affected_pages)
+function affectedPagePathsFromRunMetadata(
+  metadata: Record<string, unknown>,
+  fallbackBindings: DistillationPageBindingRow[],
+  runId: string,
+): string[] {
+  const explicit = jsonArray(
+    metadata.affectedPages ?? metadata.pagePaths ?? metadata.affected_pages,
+  )
     .map((entry) => {
       if (typeof entry === "string") return entry;
       if (entry && typeof entry === "object") {
@@ -4584,14 +6369,21 @@ function affectedPagePathsFromRunMetadata(metadata: Record<string, unknown>, fal
   return Array.from(new Set(bindings));
 }
 
-export async function getDistillationOverview(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId?: string | null;
-  spaceSlug?: string | null;
-  limit?: number | null;
-}): Promise<DistillationOverview> {
+export async function getDistillationOverview(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    limit?: number | null;
+  },
+): Promise<DistillationOverview> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const runLimit = normalizeLimit(input.limit ?? 25, 25, 200);
   const cursorRows = await ctx.db.query<{
     id: string;
@@ -4790,12 +6582,18 @@ export async function getDistillationOverview(ctx: PluginContext, input: {
       status: row.status,
       costCents: Number(row.cost_cents ?? 0),
       retryCount: Number(row.retry_count ?? 0),
-      warnings: jsonArray(row.warnings).map((entry) => (typeof entry === "string" ? entry : JSON.stringify(entry))),
+      warnings: jsonArray(row.warnings).map((entry) =>
+        typeof entry === "string" ? entry : JSON.stringify(entry),
+      ),
       metadata,
       operationIssueId: row.operation_issue_id,
       operationIssueIdentifier: row.operation_issue_identifier,
       operationIssueTitle: row.operation_issue_title,
-      affectedPagePaths: affectedPagePathsFromRunMetadata(metadata, pageBindings, row.id),
+      affectedPagePaths: affectedPagePathsFromRunMetadata(
+        metadata,
+        pageBindings,
+        row.id,
+      ),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -4813,10 +6611,14 @@ export async function getDistillationOverview(ctx: PluginContext, input: {
     updatedAt: row.updated_at,
   }));
 
-  const reviewWorkItems = workItems.filter((item) => item.status === "review_required" || item.workItemKind === "review");
+  const reviewWorkItems = workItems.filter(
+    (item) =>
+      item.status === "review_required" || item.workItemKind === "review",
+  );
   const failedSince = Date.now() - 24 * 60 * 60 * 1000;
   const failedRuns24h = runs.filter((run) => {
-    if (run.status !== "failed" && run.status !== "refused_cost_cap") return false;
+    if (run.status !== "failed" && run.status !== "refused_cost_cap")
+      return false;
     const updatedAt = run.updatedAt ? Date.parse(run.updatedAt) : Number.NaN;
     return Number.isFinite(updatedAt) ? updatedAt >= failedSince : true;
   }).length;
@@ -4836,35 +6638,51 @@ export async function getDistillationOverview(ctx: PluginContext, input: {
   };
 }
 
-export async function getDistillationPageProvenance(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId?: string | null;
-  spaceSlug?: string | null;
-  pagePath: string;
-}): Promise<{
+export async function getDistillationPageProvenance(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    pagePath: string;
+  },
+): Promise<{
   binding: DistillationPageBindingRow | null;
   runs: DistillationRunRow[];
   snapshot: DistillationSourceSnapshotRow | null;
   cursor: DistillationCursorRow | null;
 }> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
-  const overview = await getDistillationOverview(ctx, { companyId: input.companyId, wikiId, spaceSlug: space.slug });
-  const binding = overview.pageBindings.find((row) => row.pagePath === input.pagePath) ?? null;
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
+  const overview = await getDistillationOverview(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: space.slug,
+  });
+  const binding =
+    overview.pageBindings.find((row) => row.pagePath === input.pagePath) ??
+    null;
   if (!binding) {
     return { binding: null, runs: [], snapshot: null, cursor: null };
   }
   const relatedRuns = overview.runs.filter((run) => {
     if (binding.lastDistillationRunId === run.id) return true;
     if (binding.projectId && run.projectId === binding.projectId) return true;
-    if (binding.rootIssueId && run.rootIssueId === binding.rootIssueId) return true;
+    if (binding.rootIssueId && run.rootIssueId === binding.rootIssueId)
+      return true;
     return run.affectedPagePaths.includes(binding.pagePath);
   });
-  const cursor = overview.cursors.find((row) => {
-    if (binding.rootIssueId && row.rootIssueId === binding.rootIssueId) return true;
-    if (binding.projectId && row.projectId === binding.projectId) return true;
-    return false;
-  }) ?? null;
+  const cursor =
+    overview.cursors.find((row) => {
+      if (binding.rootIssueId && row.rootIssueId === binding.rootIssueId)
+        return true;
+      if (binding.projectId && row.projectId === binding.projectId) return true;
+      return false;
+    }) ?? null;
 
   let snapshot: DistillationSourceSnapshotRow | null = null;
   if (binding.lastDistillationRunId) {
@@ -4903,16 +6721,23 @@ export async function getDistillationPageProvenance(ctx: PluginContext, input: {
   return { binding, runs: relatedRuns, snapshot, cursor };
 }
 
-export async function listOperations(ctx: PluginContext, input: {
-  companyId: string;
-  wikiId?: string | null;
-  spaceSlug?: string | null;
-  operationType?: string | null;
-  status?: string | null;
-  limit?: number | null;
-}): Promise<{ operations: WikiOperationRow[] }> {
+export async function listOperations(
+  ctx: PluginContext,
+  input: {
+    companyId: string;
+    wikiId?: string | null;
+    spaceSlug?: string | null;
+    operationType?: string | null;
+    status?: string | null;
+    limit?: number | null;
+  },
+): Promise<{ operations: WikiOperationRow[] }> {
   const wikiId = normalizeWikiId(input.wikiId);
-  const space = await resolveSpace(ctx, { companyId: input.companyId, wikiId, spaceSlug: input.spaceSlug });
+  const space = await resolveSpace(ctx, {
+    companyId: input.companyId,
+    wikiId,
+    spaceSlug: input.spaceSlug,
+  });
   const limit = normalizeLimit(input.limit, 50, 500);
   const params: unknown[] = [input.companyId, wikiId, space.id];
   const filters: string[] = [];
@@ -4969,7 +6794,9 @@ export async function listOperations(ctx: PluginContext, input: {
       runIds: Array.isArray(row.run_ids) ? row.run_ids : [],
       costCents: Number(row.cost_cents ?? 0),
       warnings: Array.isArray(row.warnings) ? row.warnings : [],
-      affectedPages: Array.isArray(row.affected_pages) ? row.affected_pages : [],
+      affectedPages: Array.isArray(row.affected_pages)
+        ? row.affected_pages
+        : [],
       metadata: jsonObject(row.metadata),
       createdAt: row.created_at,
       updatedAt: row.updated_at,

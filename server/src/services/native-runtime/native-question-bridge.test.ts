@@ -4,7 +4,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { eq, sql } from "drizzle-orm";
 
 import {
@@ -58,7 +66,9 @@ import {
 } from "../../realtime/runner-prp-ws.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -67,7 +77,9 @@ if (!embeddedPostgresSupport.supported) {
 }
 
 describeEmbeddedPostgres("native question bridge", () => {
-  let temporary: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let temporary: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let db: ReturnType<typeof createDb>;
   let heartbeat: ReturnType<typeof heartbeatService>;
   let companyId: string;
@@ -78,7 +90,9 @@ describeEmbeddedPostgres("native question bridge", () => {
   let runnerInstanceId: string;
 
   beforeAll(async () => {
-    temporary = await startEmbeddedPostgresTestDatabase("taskcore-native-question-");
+    temporary = await startEmbeddedPostgresTestDatabase(
+      "taskcore-native-question-",
+    );
     db = createDb(temporary.connectionString);
     heartbeat = heartbeatService(db);
   }, 20_000);
@@ -92,7 +106,8 @@ describeEmbeddedPostgres("native question bridge", () => {
     // TRUNCATE below and can deadlock.
     await drainHeartbeatRunsToQuiescence(db, heartbeat);
     nativeQuestionBridgeInternals.resetForTests();
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       TRUNCATE TABLE
         "activity_log",
         "issue_thread_interactions",
@@ -102,7 +117,8 @@ describeEmbeddedPostgres("native question bridge", () => {
         "agents",
         "companies"
       RESTART IDENTITY CASCADE
-    `));
+    `),
+    );
   });
 
   afterAll(async () => {
@@ -123,12 +139,22 @@ describeEmbeddedPostgres("native question bridge", () => {
       issuePrefix: `NQ${companyId.replaceAll("-", "").slice(0, 6).toUpperCase()}`,
       requireBoardApprovalForNewAgents: false,
     });
-    await db.insert(authUsers).values({
-      id: "operator-1", name: "Operator", email: "operator-1@example.test",
-      createdAt: new Date(), updatedAt: new Date(),
-    }).onConflictDoNothing();
+    await db
+      .insert(authUsers)
+      .values({
+        id: "operator-1",
+        name: "Operator",
+        email: "operator-1@example.test",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing();
     await db.insert(companyMemberships).values({
-      companyId, principalType: "user", principalId: "operator-1", status: "active", membershipRole: "member",
+      companyId,
+      principalType: "user",
+      principalId: "operator-1",
+      status: "active",
+      membershipRole: "member",
     });
     await db.insert(agents).values({
       id: agentId,
@@ -194,16 +220,18 @@ describeEmbeddedPostgres("native question bridge", () => {
           input: {
             schema: "taskcore.question_set.v1",
             title: "Deployment",
-            questions: [{
-              id: "color",
-              prompt: "Which color?",
-              required: true,
-              answerMode: "single_select",
-              options: [
-                { id: "blue", label: "Blue" },
-                { id: "green", label: "Green" },
-              ],
-            }],
+            questions: [
+              {
+                id: "color",
+                prompt: "Which color?",
+                required: true,
+                answerMode: "single_select",
+                options: [
+                  { id: "blue", label: "Blue" },
+                  { id: "green", label: "Green" },
+                ],
+              },
+            ],
           },
         },
       },
@@ -226,71 +254,189 @@ describeEmbeddedPostgres("native question bridge", () => {
   }
 
   function permissionRequestEvent(): PrpEvent {
-    return { ...runtimeRequestEvent(), payload: { request: {
-      schema: "taskcore.runtime_request.v2", requestKind: "permission_approval",
-      requestId: "permission-1", turnId: "turn-1", itemId: "item-1",
-      type: "permission", status: "pending", prompt: "Allow editing src/example.ts?",
-      choices: [{ key: "accept", label: "Allow once" }, { key: "decline", label: "Deny" }],
-      details: { toolCallId: "tool-1" },
-      origin: { adapter: "acpx-runtime-sidecar", provider: "acpx", method: "session/request_permission" },
-    } } };
+    return {
+      ...runtimeRequestEvent(),
+      payload: {
+        request: {
+          schema: "taskcore.runtime_request.v2",
+          requestKind: "permission_approval",
+          requestId: "permission-1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          type: "permission",
+          status: "pending",
+          prompt: "Allow editing src/example.ts?",
+          choices: [
+            { key: "accept", label: "Allow once" },
+            { key: "decline", label: "Deny" },
+          ],
+          details: { toolCallId: "tool-1" },
+          origin: {
+            adapter: "acpx-runtime-sidecar",
+            provider: "acpx",
+            method: "session/request_permission",
+          },
+        },
+      },
+    };
   }
 
   it("commits and acknowledges an ACP permission, then queues only an admin's exact turn-bound decision", async () => {
     await seed();
     const event = permissionRequestEvent();
     const projection = vi.fn(async (committed: PrpEvent) => {
-      await projectNativeRuntimeRequest({ db, binding: binding(), event: committed });
+      await projectNativeRuntimeRequest({
+        db,
+        binding: binding(),
+        event: committed,
+      });
     });
-    const port = new TaskcoreControlPlanePort(db, {
-      companyId, issueId, runId, agentId, sessionId,
-      completionContractId: binding().completionContractId,
-      completionContractSha256: binding().completionContractSha256,
-      sourceInstanceId: runnerInstanceId, controlPlaneSourceInstanceId: "control-1",
-    }, { onCommittedEvent: projection });
+    const port = new TaskcoreControlPlanePort(
+      db,
+      {
+        companyId,
+        issueId,
+        runId,
+        agentId,
+        sessionId,
+        completionContractId: binding().completionContractId,
+        completionContractSha256: binding().completionContractSha256,
+        sourceInstanceId: runnerInstanceId,
+        controlPlaneSourceInstanceId: "control-1",
+      },
+      { onCommittedEvent: projection },
+    );
     const receipt = await port.appendEvent(event);
-    expect(receipt).toMatchObject({ disposition: "committed", highestContiguousSourceSeq: 1 });
+    expect(receipt).toMatchObject({
+      disposition: "committed",
+      highestContiguousSourceSeq: 1,
+    });
     expect(projection).toHaveBeenCalledOnce();
     expect(await db.select().from(issueThreadInteractions)).toHaveLength(0);
-    const [persisted] = await db.select().from(heartbeatRunEvents).where(eq(heartbeatRunEvents.runId, runId));
+    const [persisted] = await db
+      .select()
+      .from(heartbeatRunEvents)
+      .where(eq(heartbeatRunEvents.runId, runId));
     expect(persisted?.payload).toEqual({ prpEvent: event }); // task-chat's exact source, with only offered decisions
-    expect(await port.appendEvent(event)).toMatchObject({ disposition: "duplicate" });
-    const pending = await readPendingNativeRuntimeRequest(db, { companyId, runId, requestId: "permission-1" });
-    expect(pending).toMatchObject({ requestKind: "permission_approval", turnId: "turn-1", resolverPolicy: "instance_admin" });
-    expect(await readPendingNativeRuntimeRequest(db, { companyId: randomUUID(), runId, requestId: "permission-1" })).toBeNull();
+    expect(await port.appendEvent(event)).toMatchObject({
+      disposition: "duplicate",
+    });
+    const pending = await readPendingNativeRuntimeRequest(db, {
+      companyId,
+      runId,
+      requestId: "permission-1",
+    });
+    expect(pending).toMatchObject({
+      requestKind: "permission_approval",
+      turnId: "turn-1",
+      resolverPolicy: "instance_admin",
+    });
+    expect(
+      await readPendingNativeRuntimeRequest(db, {
+        companyId: randomUUID(),
+        runId,
+        requestId: "permission-1",
+      }),
+    ).toBeNull();
 
-    const stateDirectory = mkdtempSync(join(tmpdir(), "native-permission-authority-"));
+    const stateDirectory = mkdtempSync(
+      join(tmpdir(), "native-permission-authority-"),
+    );
     const server = createServer();
     setupRunnerPrpWebSocketServer(server, { apiUrl: "http://127.0.0.1:3213" });
     const authority = new DurablePrpControlPlane({
       stateDirectory,
-      identity: { runnerInstanceId, environmentLeaseId: "lease-1", runId, normalizedSessionId: sessionId, turnId: "turn-1", itemId: "item-1" },
-      expectedRunnerVersion: "0.3.0", expectedRunnerDigest: `sha256:${"a".repeat(64)}`,
+      identity: {
+        runnerInstanceId,
+        environmentLeaseId: "lease-1",
+        runId,
+        normalizedSessionId: sessionId,
+        turnId: "turn-1",
+        itemId: "item-1",
+      },
+      expectedRunnerVersion: "0.3.0",
+      expectedRunnerDigest: `sha256:${"a".repeat(64)}`,
     });
-    const registration = await registerRunnerPrpAuthority({ companyId, runId, authority });
+    const registration = await registerRunnerPrpAuthority({
+      companyId,
+      runId,
+      authority,
+    });
     try {
-      const commandInput = { companyId, runId, pendingRequest: pending!, resolution: { action: "accept" as const },
-        actor: { type: "user" as const, userId: "admin-1", isInstanceAdmin: true } };
-      expect(() => queueRunnerPrpRuntimeRequestResolution({ ...commandInput, actor: { ...commandInput.actor, isInstanceAdmin: false } }))
-        .toThrow("native_runtime_request_resolver_denied");
-      expect(() => queueRunnerPrpRuntimeRequestResolution({ ...commandInput, companyId: randomUUID() }))
-        .toThrow("runner_prp_authority_not_active");
+      const commandInput = {
+        companyId,
+        runId,
+        pendingRequest: pending!,
+        resolution: { action: "accept" as const },
+        actor: {
+          type: "user" as const,
+          userId: "admin-1",
+          isInstanceAdmin: true,
+        },
+      };
+      expect(() =>
+        queueRunnerPrpRuntimeRequestResolution({
+          ...commandInput,
+          actor: { ...commandInput.actor, isInstanceAdmin: false },
+        }),
+      ).toThrow("native_runtime_request_resolver_denied");
+      expect(() =>
+        queueRunnerPrpRuntimeRequestResolution({
+          ...commandInput,
+          companyId: randomUUID(),
+        }),
+      ).toThrow("runner_prp_authority_not_active");
       const queued = queueRunnerPrpRuntimeRequestResolution(commandInput);
-      expect(queueRunnerPrpRuntimeRequestResolution(commandInput)).toEqual(queued);
+      expect(queueRunnerPrpRuntimeRequestResolution(commandInput)).toEqual(
+        queued,
+      );
       expect(authority.store.state.commands).toHaveLength(1);
-      expect(authority.store.state.commands[0]).toMatchObject({ type: "request.resolve", payload: {
-        requestId: "permission-1", requestKind: "permission_approval", turnId: "turn-1",
-        resolution: { action: "accept" }, resolutionActor: commandInput.actor,
-      } });
-      expect(() => queueRunnerPrpRuntimeRequestResolution({ ...commandInput, resolution: { action: "decline" } }))
-        .toThrow("runtime_request_resolution_conflict");
+      expect(authority.store.state.commands[0]).toMatchObject({
+        type: "request.resolve",
+        payload: {
+          requestId: "permission-1",
+          requestKind: "permission_approval",
+          turnId: "turn-1",
+          resolution: { action: "accept" },
+          resolutionActor: commandInput.actor,
+        },
+      });
+      expect(() =>
+        queueRunnerPrpRuntimeRequestResolution({
+          ...commandInput,
+          resolution: { action: "decline" },
+        }),
+      ).toThrow("runtime_request_resolution_conflict");
       // Queueing is not delivery: only the runner's post-write receipt closes
       // the request. ACP sidecar delivery tests exercise that provider edge.
-      expect(await readPendingNativeRuntimeRequest(db, { companyId, runId, requestId: "permission-1" })).toEqual(pending);
-      await port.appendEvent({ ...event, sourceEventId: "permission-delivered", sourceSeq: 2,
-        eventType: "runtime_request.resolved", payload: { requestId: "permission-1", requestKind: "permission_approval",
-          turnId: "turn-1", itemId: "item-1", status: "delivered", action: "accept" } });
-      expect(await readPendingNativeRuntimeRequest(db, { companyId, runId, requestId: "permission-1" })).toBeNull();
+      expect(
+        await readPendingNativeRuntimeRequest(db, {
+          companyId,
+          runId,
+          requestId: "permission-1",
+        }),
+      ).toEqual(pending);
+      await port.appendEvent({
+        ...event,
+        sourceEventId: "permission-delivered",
+        sourceSeq: 2,
+        eventType: "runtime_request.resolved",
+        payload: {
+          requestId: "permission-1",
+          requestKind: "permission_approval",
+          turnId: "turn-1",
+          itemId: "item-1",
+          status: "delivered",
+          action: "accept",
+        },
+      });
+      expect(
+        await readPendingNativeRuntimeRequest(db, {
+          companyId,
+          runId,
+          requestId: "permission-1",
+        }),
+      ).toBeNull();
     } finally {
       await registration.release();
       await authority.stop();
@@ -300,64 +446,154 @@ describeEmbeddedPostgres("native question bridge", () => {
   });
 
   it.each([
-    { requestKind: "runtime" }, { type: "input" }, { turnId: "stale-turn" }, { itemId: "wrong-item" },
-    { choices: [] }, { choices: [{ key: "allow_forever", label: "Always" }] },
-    { choices: [{ key: "accept", label: "One" }, { key: "accept", label: "Two" }] },
+    { requestKind: "runtime" },
+    { type: "input" },
+    { turnId: "stale-turn" },
+    { itemId: "wrong-item" },
+    { choices: [] },
+    { choices: [{ key: "allow_forever", label: "Always" }] },
+    {
+      choices: [
+        { key: "accept", label: "One" },
+        { key: "accept", label: "Two" },
+      ],
+    },
   ])("rejects a malformed permission projection %j", async (override) => {
     await seed();
     const event = permissionRequestEvent();
     Object.assign(event.payload.request as object, override);
-    await expect(projectNativeRuntimeRequest({ db, binding: binding(), event })).rejects.toThrow(/native_runtime_/);
+    await expect(
+      projectNativeRuntimeRequest({ db, binding: binding(), event }),
+    ).rejects.toThrow(/native_runtime_/);
   });
 
   it("projects an executor question immediately and routes its durable answer into the same live turn", async () => {
     await seed();
     const event = runtimeRequestEvent();
-    await db.insert(heartbeatRunEvents).values({ companyId, agentId, runId, seq: 1,
-      eventType: event.eventType, stream: "system", level: "info", payload: { prpEvent: event } });
-    const resolve = vi.fn(async (input: any) => { await input.authorizeBeforeDispatch(); return { commandId: "live-response" }; });
-    const bridge = createLocalNativeQuestionBridge({ db, binding: binding(), resolve });
+    await db
+      .insert(heartbeatRunEvents)
+      .values({
+        companyId,
+        agentId,
+        runId,
+        seq: 1,
+        eventType: event.eventType,
+        stream: "system",
+        level: "info",
+        payload: { prpEvent: event },
+      });
+    const resolve = vi.fn(async (input: any) => {
+      await input.authorizeBeforeDispatch();
+      return { commandId: "live-response" };
+    });
+    const bridge = createLocalNativeQuestionBridge({
+      db,
+      binding: binding(),
+      resolve,
+    });
     try {
       await bridge.attach();
       await bridge.observe(event);
       await bridge.observe(event); // replay must not create a second card
-      const cards = await issueThreadInteractionService(db).listForIssue(issueId);
+      const cards =
+        await issueThreadInteractionService(db).listForIssue(issueId);
       expect(cards).toHaveLength(1);
-      expect(cards[0]).toMatchObject({ status: "pending", sourceRunId: runId, continuationPolicy: "none" });
+      expect(cards[0]).toMatchObject({
+        status: "pending",
+        sourceRunId: runId,
+        continuationPolicy: "none",
+      });
       const answered = await issueThreadInteractionService(db).answerQuestions(
-        { id: issueId, companyId, status: "in_progress" }, cards[0]!.id,
-        { answers: [{ questionId: "color", optionIds: ["green"] }] }, { userId: "operator-1" },
+        { id: issueId, companyId, status: "in_progress" },
+        cards[0]!.id,
+        { answers: [{ questionId: "color", optionIds: ["green"] }] },
+        { userId: "operator-1" },
       );
-      if (answered.kind !== "ask_user_questions") throw new Error("wrong question kind");
+      if (answered.kind !== "ask_user_questions")
+        throw new Error("wrong question kind");
       expect(await deliverNativeQuestionResponse(db, answered)).toBe("queued");
-      expect(resolve).toHaveBeenCalledWith(expect.objectContaining({ runId, requestId: "request-1", turnId: "turn-1",
-        resolution: { action: "submit", response: { schema: "taskcore.question_response.v1", answers: { color: { selectedOptionIds: ["green"] } } } },
-      }));
-      await db.update(heartbeatRuns).set({ status: "cancelled" }).where(eq(heartbeatRuns.id, runId));
-      await expect(resolve.mock.calls[0]![0].authorizeBeforeDispatch()).rejects.toThrow("native_question_not_pending");
-    } finally { bridge.close(); }
+      expect(resolve).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runId,
+          requestId: "request-1",
+          turnId: "turn-1",
+          resolution: {
+            action: "submit",
+            response: {
+              schema: "taskcore.question_response.v1",
+              answers: { color: { selectedOptionIds: ["green"] } },
+            },
+          },
+        }),
+      );
+      await db
+        .update(heartbeatRuns)
+        .set({ status: "cancelled" })
+        .where(eq(heartbeatRuns.id, runId));
+      await expect(
+        resolve.mock.calls[0]![0].authorizeBeforeDispatch(),
+      ).rejects.toThrow("native_question_not_pending");
+    } finally {
+      bridge.close();
+    }
   });
 
   it("delivers saved answers without entering pattern validation again", async () => {
     await seed();
     const event = runtimeRequestEvent();
-    (event.payload.request as any).input.questions = [{ id: "url", prompt: "URL?", required: true, answerMode: "text" }];
-    const interaction = await projectNativeRuntimeRequest({ db, binding: binding(), event });
+    (event.payload.request as any).input.questions = [
+      { id: "url", prompt: "URL?", required: true, answerMode: "text" },
+    ];
+    const interaction = await projectNativeRuntimeRequest({
+      db,
+      binding: binding(),
+      event,
+    });
     const answered = await issueThreadInteractionService(db).answerQuestions(
-      { id: issueId, companyId, status: "in_progress" }, interaction!.id,
-      { answers: [{ questionId: "url", optionIds: [], otherText: "https://example.test" }] }, { userId: "operator-1" },
+      { id: issueId, companyId, status: "in_progress" },
+      interaction!.id,
+      {
+        answers: [
+          {
+            questionId: "url",
+            optionIds: [],
+            otherText: "https://example.test",
+          },
+        ],
+      },
+      { userId: "operator-1" },
     );
-    if (answered.kind !== "ask_user_questions") throw new Error("expected questions");
-    const queueCommand = vi.fn(() => ({ commandId: "question", controllerSeq: 1 }));
-    const release = registerNativeQuestionCommandTarget({ binding: { companyId, issueId, runId, agentId }, queueCommand });
-    const busy = vi.spyOn(questionPatternValidation, "validateQuestionPatterns").mockRejectedValue(new Error("Question format validation is busy; try again"));
+    if (answered.kind !== "ask_user_questions")
+      throw new Error("expected questions");
+    const queueCommand = vi.fn(() => ({
+      commandId: "question",
+      controllerSeq: 1,
+    }));
+    const release = registerNativeQuestionCommandTarget({
+      binding: { companyId, issueId, runId, agentId },
+      queueCommand,
+    });
+    const busy = vi
+      .spyOn(questionPatternValidation, "validateQuestionPatterns")
+      .mockRejectedValue(
+        new Error("Question format validation is busy; try again"),
+      );
     try {
       await flushNativeQuestionResponses(db, runId);
-      expect(queueCommand).toHaveBeenCalledWith("request.resolve", expect.objectContaining({
-        response: { schema: "taskcore.question_response.v1", answers: { url: { text: "https://example.test" } } },
-      }), `question_${interaction!.id}`);
+      expect(queueCommand).toHaveBeenCalledWith(
+        "request.resolve",
+        expect.objectContaining({
+          response: {
+            schema: "taskcore.question_response.v1",
+            answers: { url: { text: "https://example.test" } },
+          },
+        }),
+        `question_${interaction!.id}`,
+      );
       expect(busy).not.toHaveBeenCalled();
-      const [delivery] = await db.select().from(issueQuestionResponseDeliveries);
+      const [delivery] = await db
+        .select()
+        .from(issueQuestionResponseDeliveries);
       expect(delivery).toMatchObject({ status: "delivered" });
     } finally {
       busy.mockRestore();
@@ -365,115 +601,215 @@ describeEmbeddedPostgres("native question bridge", () => {
     }
   });
 
-  it.each(["codex", "claude"])("materializes, validates, and durably resumes a %s question response", async (provider) => {
-    await seed();
-    const interaction = await projectNativeRuntimeRequest({
-      db,
-      binding: binding(),
-      event: { ...runtimeRequestEvent(), payload: {
-        request: { ...(runtimeRequestEvent().payload.request as Record<string, unknown>),
-          origin: { adapter: provider === "claude" ? "acpx-runtime-sidecar" : "codex-app-server", provider,
-            method: provider === "claude" ? "elicitation/create" : "item/tool/requestUserInput" },
+  it.each(["codex", "claude"])(
+    "materializes, validates, and durably resumes a %s question response",
+    async (provider) => {
+      await seed();
+      const interaction = await projectNativeRuntimeRequest({
+        db,
+        binding: binding(),
+        event: {
+          ...runtimeRequestEvent(),
+          payload: {
+            request: {
+              ...(runtimeRequestEvent().payload.request as Record<
+                string,
+                unknown
+              >),
+              origin: {
+                adapter:
+                  provider === "claude"
+                    ? "acpx-runtime-sidecar"
+                    : "codex-app-server",
+                provider,
+                method:
+                  provider === "claude"
+                    ? "elicitation/create"
+                    : "item/tool/requestUserInput",
+              },
+            },
+          },
         },
-      } },
-    });
+      });
 
-    expect(interaction).toMatchObject({
-      kind: "ask_user_questions",
-      status: "pending",
-      sourceRunId: runId,
-      continuationPolicy: "none",
-      effectiveResolverPolicy: "human_only",
-      payload: {
-        runtimeRequestId: "request-1",
-        supersedeOnUserComment: false,
-        questionSet: { schema: "taskcore.question_set.v1" },
-        questions: [{
-          id: "color",
-          selectionMode: "single",
-          allowOther: false,
-          options: [{ id: "blue", label: "Blue" }, { id: "green", label: "Green" }],
-        }],
-      },
-    });
-    expect(await db.select().from(activityLog)).toHaveLength(1);
-
-    const answer = { answers: [{ questionId: "color", optionIds: ["blue"] }] };
-    await validateNativeQuestionResponseInput(interaction!, answer);
-    await expect(validateNativeQuestionResponseInput(interaction!, {
-      answers: [{ questionId: "color", optionIds: ["red"] }],
-    })).rejects.toThrow(/unknown option red/);
-
-    const answered = await issueThreadInteractionService(db).answerQuestions(
-      { id: issueId, companyId, status: "in_progress" },
-      interaction!.id,
-      answer,
-      { userId: "operator-1" },
-    );
-    const queueCommand = vi.fn(() => ({ commandId: "question", controllerSeq: 1 }));
-    const release = registerNativeQuestionCommandTarget({
-      binding: { companyId, issueId, runId, agentId },
-      queueCommand,
-    });
-
-    await flushNativeQuestionResponses(db, runId);
-    expect(queueCommand).toHaveBeenCalledWith(
-      "request.resolve",
-      {
-        requestId: "request-1",
-        response: {
-          schema: "taskcore.question_response.v1",
-          answers: { color: { selectedOptionIds: ["blue"] } },
+      expect(interaction).toMatchObject({
+        kind: "ask_user_questions",
+        status: "pending",
+        sourceRunId: runId,
+        continuationPolicy: "none",
+        effectiveResolverPolicy: "human_only",
+        payload: {
+          runtimeRequestId: "request-1",
+          supersedeOnUserComment: false,
+          questionSet: { schema: "taskcore.question_set.v1" },
+          questions: [
+            {
+              id: "color",
+              selectionMode: "single",
+              allowOther: false,
+              options: [
+                { id: "blue", label: "Blue" },
+                { id: "green", label: "Green" },
+              ],
+            },
+          ],
         },
-      },
-      `question_${interaction!.id}`,
-    );
-    expect(queueCommand).toHaveBeenCalledTimes(1);
-    const [delivery] = await db.select().from(issueQuestionResponseDeliveries);
-    expect(delivery).toMatchObject({
-      interactionId: interaction!.id,
-      status: "delivered",
-      deliveryMode: "steered",
-      targetRunId: runId,
-    });
-    expect(answered.kind).toBe("ask_user_questions");
-    if (answered.kind !== "ask_user_questions") throw new Error("expected question interaction");
-    await expect(nativeQuestionRunToCancel(db, answered)).resolves.toBe(runId);
-    release();
-  });
+      });
+      expect(await db.select().from(activityLog)).toHaveLength(1);
 
-  it.each(["succeeded", "failed", "cancelled", "timed_out"])("delivers a historical answer exactly once after a %s native run", async status => {
-    await seed();
-    await db.update(issues).set({ conversationAgentId: agentId, conversationUserId: "operator-1", conversationState: "active", conversationSessionGeneration: 1, executionRunId: null }).where(eq(issues.id, issueId));
-    const interaction = await projectNativeRuntimeRequest({ db, binding: binding(), event: runtimeRequestEvent() });
-    await db.update(heartbeatRuns).set({ status, finishedAt: new Date() }).where(eq(heartbeatRuns.id, runId));
-    await issueThreadInteractionService(db).answerQuestions({ id: issueId, companyId, status: "in_progress" }, interaction!.id,
-      { answers: [{ questionId: "color", optionIds: ["green"] }] }, { userId: "operator-1" });
-    const queueCommand = vi.fn();
-    const release = registerNativeQuestionCommandTarget({ binding: { companyId, issueId, runId, agentId }, queueCommand });
-    const targetRunId = randomUUID();
-    const wakeup = vi.fn(async () => db.insert(heartbeatRuns).values({ id: targetRunId, companyId, agentId, status: "queued",
-      contextSnapshot: { issueId } }).returning().then(rows => rows[0]!));
-    const service = questionResponseDeliveryService(db, { heartbeat: { wakeup } as never,
-      resolveNativeQuestion: candidate => deliverNativeQuestionResponse(db, candidate) });
-    expect(await service.deliver(interaction!.id)).toMatchObject({ status: "fallback_queued", targetRunId });
-    expect((await service.deliver(interaction!.id))?.duplicate).toBe(true);
-    expect(wakeup).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(wakeup.mock.calls)).toContain(interaction!.id);
-    const [saved] = await db.select().from(issueThreadInteractions).where(eq(issueThreadInteractions.id, interaction!.id));
-    expect(saved).toMatchObject({ status: "answered", result: { answers: [{ questionId: "color", optionIds: ["green"] }] } });
-    const [delivery] = await db.select().from(issueQuestionResponseDeliveries).where(eq(issueQuestionResponseDeliveries.interactionId, interaction!.id));
-    expect(delivery).toMatchObject({ targetRunId, sourceRunId: runId, deliveryMode: "wake_fallback", status: "fallback_queued" });
-    expect(queueCommand).not.toHaveBeenCalled();
-    release();
-  });
+      const answer = {
+        answers: [{ questionId: "color", optionIds: ["blue"] }],
+      };
+      await validateNativeQuestionResponseInput(interaction!, answer);
+      await expect(
+        validateNativeQuestionResponseInput(interaction!, {
+          answers: [{ questionId: "color", optionIds: ["red"] }],
+        }),
+      ).rejects.toThrow(/unknown option red/);
+
+      const answered = await issueThreadInteractionService(db).answerQuestions(
+        { id: issueId, companyId, status: "in_progress" },
+        interaction!.id,
+        answer,
+        { userId: "operator-1" },
+      );
+      const queueCommand = vi.fn(() => ({
+        commandId: "question",
+        controllerSeq: 1,
+      }));
+      const release = registerNativeQuestionCommandTarget({
+        binding: { companyId, issueId, runId, agentId },
+        queueCommand,
+      });
+
+      await flushNativeQuestionResponses(db, runId);
+      expect(queueCommand).toHaveBeenCalledWith(
+        "request.resolve",
+        {
+          requestId: "request-1",
+          response: {
+            schema: "taskcore.question_response.v1",
+            answers: { color: { selectedOptionIds: ["blue"] } },
+          },
+        },
+        `question_${interaction!.id}`,
+      );
+      expect(queueCommand).toHaveBeenCalledTimes(1);
+      const [delivery] = await db
+        .select()
+        .from(issueQuestionResponseDeliveries);
+      expect(delivery).toMatchObject({
+        interactionId: interaction!.id,
+        status: "delivered",
+        deliveryMode: "steered",
+        targetRunId: runId,
+      });
+      expect(answered.kind).toBe("ask_user_questions");
+      if (answered.kind !== "ask_user_questions")
+        throw new Error("expected question interaction");
+      await expect(nativeQuestionRunToCancel(db, answered)).resolves.toBe(
+        runId,
+      );
+      release();
+    },
+  );
+
+  it.each(["succeeded", "failed", "cancelled", "timed_out"])(
+    "delivers a historical answer exactly once after a %s native run",
+    async (status) => {
+      await seed();
+      await db
+        .update(issues)
+        .set({
+          conversationAgentId: agentId,
+          conversationUserId: "operator-1",
+          conversationState: "active",
+          conversationSessionGeneration: 1,
+          executionRunId: null,
+        })
+        .where(eq(issues.id, issueId));
+      const interaction = await projectNativeRuntimeRequest({
+        db,
+        binding: binding(),
+        event: runtimeRequestEvent(),
+      });
+      await db
+        .update(heartbeatRuns)
+        .set({ status, finishedAt: new Date() })
+        .where(eq(heartbeatRuns.id, runId));
+      await issueThreadInteractionService(db).answerQuestions(
+        { id: issueId, companyId, status: "in_progress" },
+        interaction!.id,
+        { answers: [{ questionId: "color", optionIds: ["green"] }] },
+        { userId: "operator-1" },
+      );
+      const queueCommand = vi.fn();
+      const release = registerNativeQuestionCommandTarget({
+        binding: { companyId, issueId, runId, agentId },
+        queueCommand,
+      });
+      const targetRunId = randomUUID();
+      const wakeup = vi.fn(async () =>
+        db
+          .insert(heartbeatRuns)
+          .values({
+            id: targetRunId,
+            companyId,
+            agentId,
+            status: "queued",
+            contextSnapshot: { issueId },
+          })
+          .returning()
+          .then((rows) => rows[0]!),
+      );
+      const service = questionResponseDeliveryService(db, {
+        heartbeat: { wakeup } as never,
+        resolveNativeQuestion: (candidate) =>
+          deliverNativeQuestionResponse(db, candidate),
+      });
+      expect(await service.deliver(interaction!.id)).toMatchObject({
+        status: "fallback_queued",
+        targetRunId,
+      });
+      expect((await service.deliver(interaction!.id))?.duplicate).toBe(true);
+      expect(wakeup).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(wakeup.mock.calls)).toContain(interaction!.id);
+      const [saved] = await db
+        .select()
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.id, interaction!.id));
+      expect(saved).toMatchObject({
+        status: "answered",
+        result: { answers: [{ questionId: "color", optionIds: ["green"] }] },
+      });
+      const [delivery] = await db
+        .select()
+        .from(issueQuestionResponseDeliveries)
+        .where(
+          eq(issueQuestionResponseDeliveries.interactionId, interaction!.id),
+        );
+      expect(delivery).toMatchObject({
+        targetRunId,
+        sourceRunId: runId,
+        deliveryMode: "wake_fallback",
+        status: "fallback_queued",
+      });
+      expect(queueCommand).not.toHaveBeenCalled();
+      release();
+    },
+  );
 
   it("binds projection to the persisted native run and ignores legacy delivery", async () => {
     await seed();
     const mismatched = runtimeRequestEvent();
     mismatched.runId = randomUUID();
-    await expect(projectNativeRuntimeRequest({ db, binding: binding(), event: mismatched }))
-      .rejects.toThrow("native_runtime_request_binding_mismatch");
+    await expect(
+      projectNativeRuntimeRequest({
+        db,
+        binding: binding(),
+        event: mismatched,
+      }),
+    ).rejects.toThrow("native_runtime_request_binding_mismatch");
 
     const interaction = await projectNativeRuntimeRequest({
       db,
@@ -486,148 +822,206 @@ describeEmbeddedPostgres("native question bridge", () => {
       { answers: [{ questionId: "color", optionIds: ["green"] }] },
       { userId: "operator-1" },
     );
-    await db.update(heartbeatRuns).set({ runtimeMode: "legacy" }).where(eq(heartbeatRuns.id, runId));
+    await db
+      .update(heartbeatRuns)
+      .set({ runtimeMode: "legacy" })
+      .where(eq(heartbeatRuns.id, runId));
     expect(answered.kind).toBe("ask_user_questions");
-    if (answered.kind !== "ask_user_questions") throw new Error("expected question interaction");
-    await expect(deliverNativeQuestionResponse(db, answered)).resolves.toBe("not_native");
+    if (answered.kind !== "ask_user_questions")
+      throw new Error("expected question interaction");
+    await expect(deliverNativeQuestionResponse(db, answered)).resolves.toBe(
+      "not_native",
+    );
     await expect(nativeQuestionRunToCancel(db, answered)).resolves.toBeNull();
   });
 
   it("does not duplicate the task card when the runner replays a request", async () => {
     await seed();
-    const first = await projectNativeRuntimeRequest({ db, binding: binding(), event: runtimeRequestEvent() });
-    const second = await projectNativeRuntimeRequest({ db, binding: binding(), event: runtimeRequestEvent() });
+    const first = await projectNativeRuntimeRequest({
+      db,
+      binding: binding(),
+      event: runtimeRequestEvent(),
+    });
+    const second = await projectNativeRuntimeRequest({
+      db,
+      binding: binding(),
+      event: runtimeRequestEvent(),
+    });
     expect(second?.id).toBe(first?.id);
     expect(await db.select().from(issueThreadInteractions)).toHaveLength(1);
     expect(await db.select().from(activityLog)).toHaveLength(1);
   });
 
   async function addLaterHumanDirection(interactionId: string) {
-    const [question] = await db.select().from(issueThreadInteractions)
+    const [question] = await db
+      .select()
+      .from(issueThreadInteractions)
       .where(eq(issueThreadInteractions.id, interactionId));
-    await db.insert(issueComments).values({ companyId, issueId, authorType: "user", authorUserId: "operator-1",
-      body: "Continue with the configuration already selected.", createdAt: new Date(question.createdAt.getTime() + 1000) });
+    await db
+      .insert(issueComments)
+      .values({
+        companyId,
+        issueId,
+        authorType: "user",
+        authorUserId: "operator-1",
+        body: "Continue with the configuration already selected.",
+        createdAt: new Date(question.createdAt.getTime() + 1000),
+      });
   }
 
-  it.each([false, true])("cancels the active native run when the task is cancelled (historical=%s)", async historical => {
-    await seed();
-    const interaction = await projectNativeRuntimeRequest({
-      db,
-      binding: binding(),
-      event: runtimeRequestEvent(),
-    });
-    if (historical) await addLaterHumanDirection(interaction!.id);
-    await issueService(db).update(issueId, { status: "cancelled" });
+  it.each([false, true])(
+    "cancels the active native run when the task is cancelled (historical=%s)",
+    async (historical) => {
+      await seed();
+      const interaction = await projectNativeRuntimeRequest({
+        db,
+        binding: binding(),
+        event: runtimeRequestEvent(),
+      });
+      if (historical) await addLaterHumanDirection(interaction!.id);
+      await issueService(db).update(issueId, { status: "cancelled" });
 
-    const [persistedInteraction] = await db.select({ status: issueThreadInteractions.status })
-      .from(issueThreadInteractions)
-      .where(eq(issueThreadInteractions.id, interaction!.id));
-    const [persistedRun] = await db.select({
-      status: heartbeatRuns.status,
-      resultJson: heartbeatRuns.resultJson,
-    }).from(heartbeatRuns).where(eq(heartbeatRuns.id, runId));
-    expect(persistedInteraction?.status).toBe("expired");
-    expect(persistedRun).toMatchObject({
-      status: "cancelled",
-      resultJson: {
-        cancelledByIssueStatus: "cancelled",
-        cancelledIssueId: issueId,
-      },
-    });
-  });
-
-  it.each([false, true])("defers native cancellation until task completion commits (historical=%s)", async historical => {
-    await seed();
-    const interaction = await projectNativeRuntimeRequest({
-      db,
-      binding: binding(),
-      event: runtimeRequestEvent(),
-    });
-    if (historical) await addLaterHumanDirection(interaction!.id);
-    const postCommitActions: IssuePostCommitAction[] = [];
-    await db.transaction(async (tx) => {
-      await issueService(db).update(
-        issueId,
-        { status: "done" },
-        tx,
-        undefined,
-        postCommitActions,
-      );
-      const [runInsideTransaction] = await tx.select({ status: heartbeatRuns.status })
+      const [persistedInteraction] = await db
+        .select({ status: issueThreadInteractions.status })
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.id, interaction!.id));
+      const [persistedRun] = await db
+        .select({
+          status: heartbeatRuns.status,
+          resultJson: heartbeatRuns.resultJson,
+        })
         .from(heartbeatRuns)
         .where(eq(heartbeatRuns.id, runId));
-      expect(runInsideTransaction?.status).toBe("running");
-    });
-
-    expect(postCommitActions).toHaveLength(1);
-    await executeIssuePostCommitActions(db, postCommitActions);
-    const [persistedRun] = await db.select({ status: heartbeatRuns.status })
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.id, runId));
-    expect(persistedRun?.status).toBe("cancelled");
-    const [question] = await db.select().from(issueThreadInteractions)
-      .where(eq(issueThreadInteractions.id, interaction!.id));
-    expect(question.status).toBe(historical ? "pending" : "expired");
-    if (historical) {
-      await issueThreadInteractionService(db).answerQuestions({ id: issueId, companyId, status: "done" }, interaction!.id,
-        { answers: [{ questionId: "color", optionIds: ["green"] }] }, { userId: "operator-1" });
-      expect(await db.select().from(issueQuestionResponseDeliveries)).toEqual([]);
-      expect((await db.select().from(issues).where(eq(issues.id, issueId)))[0].status).toBe("done");
-    }
-  });
-
-  it.each([false, true])("recovers task closure cancellation after process exit (historical=%s)", async historical => {
-    await seed();
-    const interaction = await projectNativeRuntimeRequest({
-      db,
-      binding: binding(),
-      event: runtimeRequestEvent(),
-    });
-    if (historical) await addLaterHumanDirection(interaction!.id);
-    const postCommitActions: IssuePostCommitAction[] = [];
-    await db.transaction(async (tx) => {
-      await issueService(db).update(
-        issueId,
-        { status: "done" },
-        tx,
-        undefined,
-        postCommitActions,
-      );
-    });
-
-    const [markedRun] = await db.select({
-      status: heartbeatRuns.status,
-      contextSnapshot: heartbeatRuns.contextSnapshot,
-    }).from(heartbeatRuns).where(eq(heartbeatRuns.id, runId));
-    expect(markedRun).toMatchObject({
-      status: "running",
-      contextSnapshot: {
-        nativeQuestionCancellation: {
-          version: 1,
-          issueId,
-          issueStatus: "done",
+      expect(persistedInteraction?.status).toBe("expired");
+      expect(persistedRun).toMatchObject({
+        status: "cancelled",
+        resultJson: {
+          cancelledByIssueStatus: "cancelled",
+          cancelledIssueId: issueId,
         },
-      },
-    });
+      });
+    },
+  );
 
-    // Simulate process exit before executeIssuePostCommitActions can run.
-    await heartbeat.reapOrphanedRuns();
+  it.each([false, true])(
+    "defers native cancellation until task completion commits (historical=%s)",
+    async (historical) => {
+      await seed();
+      const interaction = await projectNativeRuntimeRequest({
+        db,
+        binding: binding(),
+        event: runtimeRequestEvent(),
+      });
+      if (historical) await addLaterHumanDirection(interaction!.id);
+      const postCommitActions: IssuePostCommitAction[] = [];
+      await db.transaction(async (tx) => {
+        await issueService(db).update(
+          issueId,
+          { status: "done" },
+          tx,
+          undefined,
+          postCommitActions,
+        );
+        const [runInsideTransaction] = await tx
+          .select({ status: heartbeatRuns.status })
+          .from(heartbeatRuns)
+          .where(eq(heartbeatRuns.id, runId));
+        expect(runInsideTransaction?.status).toBe("running");
+      });
 
-    const [persistedRun] = await db.select({
-      status: heartbeatRuns.status,
-      resultJson: heartbeatRuns.resultJson,
-    }).from(heartbeatRuns).where(eq(heartbeatRuns.id, runId));
-    expect(persistedRun).toMatchObject({
-      status: "cancelled",
-      resultJson: {
-        cancelledByIssueStatus: "done",
-        cancelledIssueId: issueId,
-      },
-    });
-    const [question] = await db.select().from(issueThreadInteractions)
-      .where(eq(issueThreadInteractions.id, interaction!.id));
-    expect(question.status).toBe(historical ? "pending" : "expired");
-  });
+      expect(postCommitActions).toHaveLength(1);
+      await executeIssuePostCommitActions(db, postCommitActions);
+      const [persistedRun] = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, runId));
+      expect(persistedRun?.status).toBe("cancelled");
+      const [question] = await db
+        .select()
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.id, interaction!.id));
+      expect(question.status).toBe(historical ? "pending" : "expired");
+      if (historical) {
+        await issueThreadInteractionService(db).answerQuestions(
+          { id: issueId, companyId, status: "done" },
+          interaction!.id,
+          { answers: [{ questionId: "color", optionIds: ["green"] }] },
+          { userId: "operator-1" },
+        );
+        expect(await db.select().from(issueQuestionResponseDeliveries)).toEqual(
+          [],
+        );
+        expect(
+          (await db.select().from(issues).where(eq(issues.id, issueId)))[0]
+            .status,
+        ).toBe("done");
+      }
+    },
+  );
+
+  it.each([false, true])(
+    "recovers task closure cancellation after process exit (historical=%s)",
+    async (historical) => {
+      await seed();
+      const interaction = await projectNativeRuntimeRequest({
+        db,
+        binding: binding(),
+        event: runtimeRequestEvent(),
+      });
+      if (historical) await addLaterHumanDirection(interaction!.id);
+      const postCommitActions: IssuePostCommitAction[] = [];
+      await db.transaction(async (tx) => {
+        await issueService(db).update(
+          issueId,
+          { status: "done" },
+          tx,
+          undefined,
+          postCommitActions,
+        );
+      });
+
+      const [markedRun] = await db
+        .select({
+          status: heartbeatRuns.status,
+          contextSnapshot: heartbeatRuns.contextSnapshot,
+        })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, runId));
+      expect(markedRun).toMatchObject({
+        status: "running",
+        contextSnapshot: {
+          nativeQuestionCancellation: {
+            version: 1,
+            issueId,
+            issueStatus: "done",
+          },
+        },
+      });
+
+      // Simulate process exit before executeIssuePostCommitActions can run.
+      await heartbeat.reapOrphanedRuns();
+
+      const [persistedRun] = await db
+        .select({
+          status: heartbeatRuns.status,
+          resultJson: heartbeatRuns.resultJson,
+        })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, runId));
+      expect(persistedRun).toMatchObject({
+        status: "cancelled",
+        resultJson: {
+          cancelledByIssueStatus: "done",
+          cancelledIssueId: issueId,
+        },
+      });
+      const [question] = await db
+        .select()
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.id, interaction!.id));
+      expect(question.status).toBe(historical ? "pending" : "expired");
+    },
+  );
 
   it("recovers an explicit question withdrawal committed with its cancellation intent", async () => {
     await seed();
@@ -643,15 +1037,18 @@ describeEmbeddedPostgres("native question bridge", () => {
       { userId: "operator-1" },
       {
         afterResolveInTransaction: async (tx, withdrawn) => {
-          await expect(requestNativeQuestionRunCancellation(tx, withdrawn, {
-            kind: "interaction_withdrawn",
-            interactionId: withdrawn.id,
-          })).resolves.toBe(runId);
+          await expect(
+            requestNativeQuestionRunCancellation(tx, withdrawn, {
+              kind: "interaction_withdrawn",
+              interactionId: withdrawn.id,
+            }),
+          ).resolves.toBe(runId);
         },
       },
     );
 
-    const [markedRun] = await db.select({ contextSnapshot: heartbeatRuns.contextSnapshot })
+    const [markedRun] = await db
+      .select({ contextSnapshot: heartbeatRuns.contextSnapshot })
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId));
     expect(markedRun?.contextSnapshot).toMatchObject({
@@ -665,10 +1062,13 @@ describeEmbeddedPostgres("native question bridge", () => {
 
     await heartbeat.reapOrphanedRuns();
 
-    const [cancelledRun] = await db.select({
-      status: heartbeatRuns.status,
-      resultJson: heartbeatRuns.resultJson,
-    }).from(heartbeatRuns).where(eq(heartbeatRuns.id, runId));
+    const [cancelledRun] = await db
+      .select({
+        status: heartbeatRuns.status,
+        resultJson: heartbeatRuns.resultJson,
+      })
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.id, runId));
     expect(cancelledRun).toMatchObject({
       status: "cancelled",
       resultJson: {
@@ -683,21 +1083,29 @@ describeEmbeddedPostgres("native question bridge", () => {
     const event = runtimeRequestEvent();
     const request = event.payload.request as Record<string, unknown>;
     const input = request.input as Record<string, unknown>;
-    input.questions = [{
-      id: "color",
-      prompt: "Which color?",
-      required: true,
-      answerMode: "single_select",
-      options: [{ id: "blue", label: "Blue" }],
-      customAnswer: { enabled: true, label: "Another color" },
-    }];
-    const interaction = await projectNativeRuntimeRequest({ db, binding: binding(), event });
+    input.questions = [
+      {
+        id: "color",
+        prompt: "Which color?",
+        required: true,
+        answerMode: "single_select",
+        options: [{ id: "blue", label: "Blue" }],
+        customAnswer: { enabled: true, label: "Another color" },
+      },
+    ];
+    const interaction = await projectNativeRuntimeRequest({
+      db,
+      binding: binding(),
+      event,
+    });
     const answer = {
-      answers: [{
-        questionId: "color",
-        optionIds: ["taskcore_custom_answer"],
-        otherText: "purple",
-      }],
+      answers: [
+        {
+          questionId: "color",
+          optionIds: ["taskcore_custom_answer"],
+          otherText: "purple",
+        },
+      ],
     };
     await validateNativeQuestionResponseInput(interaction!, answer);
     const answered = await issueThreadInteractionService(db).answerQuestions(
@@ -707,14 +1115,20 @@ describeEmbeddedPostgres("native question bridge", () => {
       { userId: "operator-1" },
     );
     expect(answered.kind).toBe("ask_user_questions");
-    if (answered.kind !== "ask_user_questions") throw new Error("expected question interaction");
+    if (answered.kind !== "ask_user_questions")
+      throw new Error("expected question interaction");
 
-    const queueCommand = vi.fn(() => ({ commandId: "question", controllerSeq: 1 }));
+    const queueCommand = vi.fn(() => ({
+      commandId: "question",
+      controllerSeq: 1,
+    }));
     registerNativeQuestionCommandTarget({
       binding: { companyId, issueId, runId, agentId },
       queueCommand,
     });
-    await expect(deliverNativeQuestionResponse(db, answered)).resolves.toBe("queued");
+    await expect(deliverNativeQuestionResponse(db, answered)).resolves.toBe(
+      "queued",
+    );
     expect(queueCommand).toHaveBeenCalledWith(
       "request.resolve",
       {

@@ -10,7 +10,9 @@ function parseEnvFile(contents: string): Record<string, string> {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
 
-    const match = rawLine.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    const match = rawLine.match(
+      /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/,
+    );
     if (!match) continue;
 
     const [, key, rawValue] = match;
@@ -25,7 +27,7 @@ function parseEnvFile(contents: string): Record<string, string> {
     }
 
     if (
-      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       entries[key] = value.slice(1, -1);
@@ -50,7 +52,9 @@ export function isLinkedGitWorktreeCheckout(rootDir: string): boolean {
   const stat = lstatSync(gitMetadataPath);
   if (!stat.isFile()) return false;
 
-  return readFileSync(gitMetadataPath, "utf8").trimStart().startsWith("gitdir:");
+  return readFileSync(gitMetadataPath, "utf8")
+    .trimStart()
+    .startsWith("gitdir:");
 }
 
 export function resolveWorktreeEnvFilePath(rootDir: string): string {
@@ -58,15 +62,28 @@ export function resolveWorktreeEnvFilePath(rootDir: string): string {
 }
 
 /** An explicitly empty instance owns its saved keys, even in an agent shell. */
-export function applyEmptyWorktreeSigningSecrets(rootDir: string, env: NodeJS.ProcessEnv = process.env): boolean {
-  if (!existsSync(path.resolve(rootDir, ".taskcore", "seed-empty"))) return false;
-  const entries = parseEnvFile(readFileSync(resolveWorktreeEnvFilePath(rootDir), "utf8"));
-  for (const key of ["TASKCORE_AGENT_JWT_SECRET", "TASKCORE_TOOL_ACTION_SIGNING_SECRET"] as const) {
-    if (!entries[key]?.trim()) throw new Error(`Empty worktree is missing its saved ${key}. Reinitialize its configuration before starting.`);
+export function applyEmptyWorktreeSigningSecrets(
+  rootDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (!existsSync(path.resolve(rootDir, ".taskcore", "seed-empty")))
+    return false;
+  const entries = parseEnvFile(
+    readFileSync(resolveWorktreeEnvFilePath(rootDir), "utf8"),
+  );
+  for (const key of [
+    "TASKCORE_AGENT_JWT_SECRET",
+    "TASKCORE_TOOL_ACTION_SIGNING_SECRET",
+  ] as const) {
+    if (!entries[key]?.trim())
+      throw new Error(
+        `Empty worktree is missing its saved ${key}. Reinitialize its configuration before starting.`,
+      );
     env[key] = entries[key];
   }
   // Better Auth otherwise prefers an inherited key over this instance's JWT key.
-  env.BETTER_AUTH_SECRET = entries.BETTER_AUTH_SECRET?.trim() || entries.TASKCORE_AGENT_JWT_SECRET;
+  env.BETTER_AUTH_SECRET =
+    entries.BETTER_AUTH_SECRET?.trim() || entries.TASKCORE_AGENT_JWT_SECRET;
   return true;
 }
 
@@ -76,8 +93,10 @@ export function isWorktreeSeedPending(rootDir: string): boolean {
   if (existsSync(manifestPath)) {
     return !hasVerifiedWorktreeSeedManifest(manifestPath);
   }
-  return existsSync(path.resolve(markerDir, "seed-pending"))
-    && !existsSync(path.resolve(markerDir, "seed-complete"));
+  return (
+    existsSync(path.resolve(markerDir, "seed-pending")) &&
+    !existsSync(path.resolve(markerDir, "seed-complete"))
+  );
 }
 
 function expandHomePrefix(value: string): string {
@@ -91,7 +110,11 @@ function resolveHomeAwarePath(value: string): string {
 }
 
 function resolveDefaultWorktreeHome(env: NodeJS.ProcessEnv): string {
-  return path.resolve(expandHomePrefix(env.TASKCORE_WORKTREES_DIR?.trim() || "~/.taskcore-worktrees"));
+  return path.resolve(
+    expandHomePrefix(
+      env.TASKCORE_WORKTREES_DIR?.trim() || "~/.taskcore-worktrees",
+    ),
+  );
 }
 
 function repairStaleMigratedWorktreeEnvEntries(

@@ -36,8 +36,15 @@ export interface WorkspaceFileAvailabilityRegistry {
   check(ref: WorkspaceFileAvailabilityRef): WorkspaceFileAvailability;
 }
 
-function isFileResourceKeyForIssue(queryKey: readonly unknown[], issueId: string) {
-  return queryKey[0] === "issues" && queryKey[1] === "file-resources" && queryKey[2] === issueId;
+function isFileResourceKeyForIssue(
+  queryKey: readonly unknown[],
+  issueId: string,
+) {
+  return (
+    queryKey[0] === "issues" &&
+    queryKey[1] === "file-resources" &&
+    queryKey[2] === issueId
+  );
 }
 
 /**
@@ -48,7 +55,9 @@ function isFileResourceKeyForIssue(queryKey: readonly unknown[], issueId: string
  * server's 100-query cap, and cached on the shared file-resource query key so
  * an invalidation of the issue's file resources forces a recheck.
  */
-export function useWorkspaceFileAvailability(issueId: string): WorkspaceFileAvailabilityRegistry {
+export function useWorkspaceFileAvailability(
+  issueId: string,
+): WorkspaceFileAvailabilityRegistry {
   const queryClient = useQueryClient();
   const [version, setVersion] = useState(0);
   const resultsRef = useRef<Map<string, WorkspaceFileAvailability>>(new Map());
@@ -91,8 +100,15 @@ export function useWorkspaceFileAvailability(issueId: string): WorkspaceFileAvai
       const refKeys = chunk.map(([key]) => key).sort();
       try {
         const response = await clientRef.current.fetchQuery({
-          queryKey: queryKeys.issues.fileResourceAvailability(batchIssueId, refKeys),
-          queryFn: () => fileResourcesApi.availability(batchIssueId, chunk.map(([, ref]) => ref)),
+          queryKey: queryKeys.issues.fileResourceAvailability(
+            batchIssueId,
+            refKeys,
+          ),
+          queryFn: () =>
+            fileResourcesApi.availability(
+              batchIssueId,
+              chunk.map(([, ref]) => ref),
+            ),
           staleTime: WORKSPACE_FILE_AVAILABILITY_STALE_MS,
         });
         if (generation !== generationRef.current) return;
@@ -105,7 +121,13 @@ export function useWorkspaceFileAvailability(issueId: string): WorkspaceFileAvai
         for (const [key] of chunk) {
           // A reference the server did not echo back stays non-openable rather
           // than falling through to a provisional link.
-          resultsRef.current.set(key, byKey.get(key) ?? { state: "unavailable", reason: "unmatched_reference" });
+          resultsRef.current.set(
+            key,
+            byKey.get(key) ?? {
+              state: "unavailable",
+              reason: "unmatched_reference",
+            },
+          );
           inFlightRef.current.delete(key);
         }
         bump();
@@ -122,8 +144,9 @@ export function useWorkspaceFileAvailability(issueId: string): WorkspaceFileAvai
 
   const drainBatchQueue = useCallback(() => {
     while (
-      activeBatchCountRef.current < WORKSPACE_FILE_AVAILABILITY_MAX_CONCURRENT
-      && batchQueueRef.current.length > 0
+      activeBatchCountRef.current <
+        WORKSPACE_FILE_AVAILABILITY_MAX_CONCURRENT &&
+      batchQueueRef.current.length > 0
     ) {
       const batch = batchQueueRef.current.shift()!;
       activeBatchCountRef.current += 1;
@@ -138,7 +161,9 @@ export function useWorkspaceFileAvailability(issueId: string): WorkspaceFileAvai
     flushHandleRef.current = null;
     const queued = [...queueRef.current.entries()] as QueuedRef[];
     queueRef.current.clear();
-    const fresh = queued.filter(([key]) => !inFlightRef.current.has(key) && !resultsRef.current.has(key));
+    const fresh = queued.filter(
+      ([key]) => !inFlightRef.current.has(key) && !resultsRef.current.has(key),
+    );
     if (fresh.length === 0) return;
     for (const [key] of fresh) inFlightRef.current.add(key);
     batchQueueRef.current.push(
@@ -188,7 +213,8 @@ export function useWorkspaceFileAvailability(issueId: string): WorkspaceFileAvai
   // writing our own batch results cannot loop.
   useEffect(() => {
     return queryClient.getQueryCache().subscribe((event) => {
-      if (event.type !== "updated" || event.action.type !== "invalidate") return;
+      if (event.type !== "updated" || event.action.type !== "invalidate")
+        return;
       if (!isFileResourceKeyForIssue(event.query.queryKey, issueId)) return;
       if (resultsRef.current.size === 0) return;
       resultsRef.current.clear();

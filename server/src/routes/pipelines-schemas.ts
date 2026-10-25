@@ -1,7 +1,16 @@
 import { z } from "zod";
-import { envConfigSchema, pipelineAutomationRetryScopeSchema } from "@taskcore/shared";
+import {
+  envConfigSchema,
+  pipelineAutomationRetryScopeSchema,
+} from "@taskcore/shared";
 
-export const stageKindSchema = z.enum(["open", "working", "review", "done", "cancelled"]);
+export const stageKindSchema = z.enum([
+  "open",
+  "working",
+  "review",
+  "done",
+  "cancelled",
+]);
 export const jsonObjectSchema = z.record(z.string(), z.unknown());
 export const stageConfigSchema = z.record(z.string(), z.unknown()).default({});
 export const casePatchSchema = z.object({
@@ -31,13 +40,17 @@ export const createPipelineSchema = z.object({
   description: z.string().max(8_000).nullable().optional(),
   projectId: z.string().guid().nullable().optional(),
   enforceTransitions: z.boolean().optional(),
-  stages: z.array(z.object({
-    key: z.string().trim().min(1).max(120),
-    name: z.string().trim().min(1).max(200),
-    kind: stageKindSchema,
-    position: z.number().int().optional(),
-    config: stageConfigSchema.optional(),
-  })).optional(),
+  stages: z
+    .array(
+      z.object({
+        key: z.string().trim().min(1).max(120),
+        name: z.string().trim().min(1).max(200),
+        kind: stageKindSchema,
+        position: z.number().int().optional(),
+        config: stageConfigSchema.optional(),
+      }),
+    )
+    .optional(),
 });
 export const updatePipelineSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
@@ -64,23 +77,35 @@ export const updateStageAutomationEnvSchema = z.object({
   baseRoutineRevisionId: z.string().guid().nullable().optional(),
 });
 export const replaceTransitionsSchema = z.object({
-  transitions: z.array(z.object({
-    fromStageKey: z.string().trim().min(1).max(120),
-    toStageKey: z.string().trim().min(1).max(120),
-    label: z.string().max(200).nullable().optional(),
-  })).max(500),
+  transitions: z
+    .array(
+      z.object({
+        fromStageKey: z.string().trim().min(1).max(120),
+        toStageKey: z.string().trim().min(1).max(120),
+        label: z.string().max(200).nullable().optional(),
+      }),
+    )
+    .max(500),
   enforceTransitions: z.boolean().optional(),
 });
-export const batchIngestSchema = z.object({ items: z.array(ingestCaseSchema).max(200) });
-export const breakdownCaseSchema = z.object({
-  items: z.array(z.object({
-    key: z.string().trim().min(1).max(200),
-    title: z.string().trim().min(1).max(500),
-    summary: z.string().max(8_000).nullable().optional(),
-    fields: jsonObjectSchema.optional(),
-  })).max(200),
+export const batchIngestSchema = z.object({
+  items: z.array(ingestCaseSchema).max(200),
 });
-export const claimCaseSchema = z.object({ leaseSeconds: z.number().int().positive().max(86_400).optional() });
+export const breakdownCaseSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        key: z.string().trim().min(1).max(200),
+        title: z.string().trim().min(1).max(500),
+        summary: z.string().max(8_000).nullable().optional(),
+        fields: jsonObjectSchema.optional(),
+      }),
+    )
+    .max(200),
+});
+export const claimCaseSchema = z.object({
+  leaseSeconds: z.number().int().positive().max(86_400).optional(),
+});
 export const releaseCaseSchema = z.object({
   leaseToken: z.string().guid().nullable().optional(),
   force: z.boolean().optional(),
@@ -125,14 +150,23 @@ export const reviewCaseSchema = z.object({
   expectedVersion: z.number().int().positive(),
   leaseToken: z.string().guid().nullable().optional(),
 });
-export const blockersSchema = z.object({ blockedByCaseIds: z.array(z.string().guid()).max(100) });
-export const issueLinkRoleSchema = z.enum(["origin", "conversation", "work", "automation"]);
+export const blockersSchema = z.object({
+  blockedByCaseIds: z.array(z.string().guid()).max(100),
+});
+export const issueLinkRoleSchema = z.enum([
+  "origin",
+  "conversation",
+  "work",
+  "automation",
+]);
 export const createIssueLinkSchema = z.object({
   issueId: z.string().guid(),
   role: issueLinkRoleSchema,
 });
 export const bulkReviewSchema = z.object({
-  items: z.array(reviewCaseSchema.extend({ caseId: z.string().guid() })).max(100),
+  items: z
+    .array(reviewCaseSchema.extend({ caseId: z.string().guid() }))
+    .max(100),
 });
 export const upsertPipelineDocumentSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),

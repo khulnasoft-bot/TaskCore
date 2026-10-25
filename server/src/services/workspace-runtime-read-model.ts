@@ -22,7 +22,9 @@ function runtimeServiceIdentityKey(row: WorkspaceRuntimeServiceRow) {
   ].join(":");
 }
 
-export function selectCurrentRuntimeServiceRows(rows: WorkspaceRuntimeServiceRow[]) {
+export function selectCurrentRuntimeServiceRows(
+  rows: WorkspaceRuntimeServiceRow[],
+) {
   const current = new Map<string, WorkspaceRuntimeServiceRow>();
   for (const row of rows) {
     const identity = runtimeServiceIdentityKey(row);
@@ -42,9 +44,13 @@ export function selectConfiguredRuntimeServiceRows(
     ...row,
     configIndex: null as number | null,
   }));
-  const selectedRows: Array<WorkspaceRuntimeServiceRow & { configIndex: number | null }> = [];
+  const selectedRows: Array<
+    WorkspaceRuntimeServiceRow & { configIndex: number | null }
+  > = [];
 
-  for (const command of listWorkspaceServiceCommandDefinitions(workspaceRuntime)) {
+  for (const command of listWorkspaceServiceCommandDefinitions(
+    workspaceRuntime,
+  )) {
     const reuseScope = command.rawConfig.reuseScope;
     const expectedScope =
       reuseScope === "project_workspace" ||
@@ -57,12 +63,16 @@ export function selectConfiguredRuntimeServiceRows(
           : "run";
     const candidateScopes = [
       expectedScope,
-      ...(options?.fallbackScopeTypes ?? []).filter((scopeType) => scopeType !== expectedScope),
+      ...(options?.fallbackScopeTypes ?? []).filter(
+        (scopeType) => scopeType !== expectedScope,
+      ),
     ];
-    const matchedRow = candidateScopes.reduce<(typeof availableRows)[number] | null>(
+    const matchedRow = candidateScopes.reduce<
+      (typeof availableRows)[number] | null
+    >(
       (match, scopeType) =>
-        match
-        ?? matchWorkspaceRuntimeServiceToCommand(
+        match ??
+        matchWorkspaceRuntimeServiceToCommand(
           command,
           availableRows.filter((row) => row.scopeType === scopeType),
         ),
@@ -84,7 +94,8 @@ export async function listCurrentRuntimeServicesForProjectWorkspaces(
   companyId: string,
   projectWorkspaceIds: string[],
 ) {
-  if (projectWorkspaceIds.length === 0) return new Map<string, WorkspaceRuntimeServiceRow[]>();
+  if (projectWorkspaceIds.length === 0)
+    return new Map<string, WorkspaceRuntimeServiceRow[]>();
 
   const rows = await db
     .select()
@@ -92,11 +103,17 @@ export async function listCurrentRuntimeServicesForProjectWorkspaces(
     .where(
       and(
         eq(workspaceRuntimeServices.companyId, companyId),
-        inArray(workspaceRuntimeServices.projectWorkspaceId, projectWorkspaceIds),
+        inArray(
+          workspaceRuntimeServices.projectWorkspaceId,
+          projectWorkspaceIds,
+        ),
         eq(workspaceRuntimeServices.scopeType, "project_workspace"),
       ),
     )
-    .orderBy(desc(workspaceRuntimeServices.updatedAt), desc(workspaceRuntimeServices.createdAt));
+    .orderBy(
+      desc(workspaceRuntimeServices.updatedAt),
+      desc(workspaceRuntimeServices.createdAt),
+    );
 
   const grouped = new Map<string, WorkspaceRuntimeServiceRow[]>();
   for (const row of rows) {
@@ -119,7 +136,8 @@ export async function listCurrentRuntimeServicesForExecutionWorkspaces(
   companyId: string,
   executionWorkspaceIds: string[],
 ) {
-  if (executionWorkspaceIds.length === 0) return new Map<string, WorkspaceRuntimeServiceRow[]>();
+  if (executionWorkspaceIds.length === 0)
+    return new Map<string, WorkspaceRuntimeServiceRow[]>();
 
   const rows = await db
     .select()
@@ -127,10 +145,16 @@ export async function listCurrentRuntimeServicesForExecutionWorkspaces(
     .where(
       and(
         eq(workspaceRuntimeServices.companyId, companyId),
-        inArray(workspaceRuntimeServices.executionWorkspaceId, executionWorkspaceIds),
+        inArray(
+          workspaceRuntimeServices.executionWorkspaceId,
+          executionWorkspaceIds,
+        ),
       ),
     )
-    .orderBy(desc(workspaceRuntimeServices.updatedAt), desc(workspaceRuntimeServices.createdAt));
+    .orderBy(
+      desc(workspaceRuntimeServices.updatedAt),
+      desc(workspaceRuntimeServices.createdAt),
+    );
 
   const grouped = new Map<string, WorkspaceRuntimeServiceRow[]>();
   for (const row of rows) {

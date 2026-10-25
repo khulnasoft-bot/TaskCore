@@ -6,7 +6,8 @@ import type { RoutineRunSummary, RoutineVariable } from "@taskcore/shared";
  */
 function formatVariableValue(value: unknown): string {
   if (typeof value === "string") return `"${value}"`;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   if (value == null) return "—";
   try {
     return JSON.stringify(value);
@@ -21,7 +22,10 @@ function formatVariableValue(value: unknown): string {
  * the redundant text rather than re-stating it.
  */
 export function dedupedTriggerLabel(
-  trigger: Pick<RoutineRunSummary["trigger"] & object, "kind" | "label"> | null | undefined,
+  trigger:
+    | Pick<RoutineRunSummary["trigger"] & object, "kind" | "label">
+    | null
+    | undefined,
 ): string | null {
   if (!trigger) return null;
   const label = trigger.label?.trim();
@@ -65,7 +69,9 @@ export function runRowSubtitle(
   const parts: string[] = [];
   for (const variable of variables ?? []) {
     if (!(variable.name in payload)) continue;
-    parts.push(`${variable.name}=${formatVariableValue((payload as Record<string, unknown>)[variable.name])}`);
+    parts.push(
+      `${variable.name}=${formatVariableValue((payload as Record<string, unknown>)[variable.name])}`,
+    );
   }
   return parts.join(", ");
 }

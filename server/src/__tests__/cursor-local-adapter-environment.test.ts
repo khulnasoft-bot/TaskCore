@@ -5,7 +5,10 @@ import path from "node:path";
 import { runChildProcess } from "@taskcore/adapter-utils/server-utils";
 import { testEnvironment } from "@taskcore/adapter-cursor-local/server";
 
-async function writeFakeAgentCommand(binDir: string, argsCapturePath: string): Promise<string> {
+async function writeFakeAgentCommand(
+  binDir: string,
+  argsCapturePath: string,
+): Promise<string> {
   const commandPath = path.join(binDir, "agent");
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
@@ -68,17 +71,26 @@ function createLocalSandboxRunner() {
       onSpawn?: (meta: { pid: number; startedAt: string }) => Promise<void>;
     }) => {
       counter += 1;
-      return await runChildProcess(`cursor-sandbox-env-${counter}`, input.command, input.args ?? [], {
-        cwd: input.cwd ?? process.cwd(),
-        env: input.env ?? {},
-        stdin: input.stdin,
-        timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
-        graceSec: 5,
-        onLog: input.onLog ?? (async () => {}),
-        onSpawn: input.onSpawn
-          ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
-          : undefined,
-      });
+      return await runChildProcess(
+        `cursor-sandbox-env-${counter}`,
+        input.command,
+        input.args ?? [],
+        {
+          cwd: input.cwd ?? process.cwd(),
+          env: input.env ?? {},
+          stdin: input.stdin,
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
+          graceSec: 5,
+          onLog: input.onLog ?? (async () => {}),
+          onSpawn: input.onSpawn
+            ? async (meta) =>
+                input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            : undefined,
+        },
+      );
     },
   };
 }
@@ -109,7 +121,9 @@ describe("cursor environment diagnostics", () => {
       },
     });
 
-    expect(result.checks.some((check) => check.code === "cursor_cwd_valid")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "cursor_cwd_valid"),
+    ).toBe(true);
     expect(result.checks.some((check) => check.level === "error")).toBe(false);
     const stats = await fs.stat(cwd);
     expect(stats.isDirectory()).toBe(true);
@@ -142,7 +156,9 @@ describe("cursor environment diagnostics", () => {
     });
 
     expect(result.status).toBe("pass");
-    const args = JSON.parse(await fs.readFile(argsCapturePath, "utf8")) as string[];
+    const args = JSON.parse(
+      await fs.readFile(argsCapturePath, "utf8"),
+    ) as string[];
     expect(args).toContain("--yolo");
     await fs.rm(root, { recursive: true, force: true });
   });
@@ -174,7 +190,9 @@ describe("cursor environment diagnostics", () => {
     });
 
     expect(result.status).toBe("pass");
-    const args = JSON.parse(await fs.readFile(argsCapturePath, "utf8")) as string[];
+    const args = JSON.parse(
+      await fs.readFile(argsCapturePath, "utf8"),
+    ) as string[];
     expect(args).toContain("--yolo");
     expect(args).not.toContain("--trust");
     await fs.rm(root, { recursive: true, force: true });
@@ -217,13 +235,17 @@ describe("cursor environment diagnostics", () => {
       });
 
       expect(result.status).toBe("pass");
-      const capture = JSON.parse(await fs.readFile(argsCapturePath, "utf8")) as {
+      const capture = JSON.parse(
+        await fs.readFile(argsCapturePath, "utf8"),
+      ) as {
         command: string;
         argv: string[];
         path: string;
       };
       expect(capture.command).toBe(cursorAgentPath);
-      expect(capture.path.split(":")[0]).toBe(path.join(homeDir, ".local", "bin"));
+      expect(capture.path.split(":")[0]).toBe(
+        path.join(homeDir, ".local", "bin"),
+      );
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -262,9 +284,17 @@ describe("cursor environment diagnostics", () => {
         },
       });
 
-      expect(result.checks.some((check) => check.code === "cursor_native_auth_present")).toBe(true);
-      expect(result.checks.some((check) => check.code === "cursor_api_key_missing")).toBe(false);
-      const authCheck = result.checks.find((check) => check.code === "cursor_native_auth_present");
+      expect(
+        result.checks.some(
+          (check) => check.code === "cursor_native_auth_present",
+        ),
+      ).toBe(true);
+      expect(
+        result.checks.some((check) => check.code === "cursor_api_key_missing"),
+      ).toBe(false);
+      const authCheck = result.checks.find(
+        (check) => check.code === "cursor_native_auth_present",
+      );
       expect(authCheck?.detail).toContain("test@example.com");
     } finally {
       await fs.rm(root, { recursive: true, force: true });
@@ -293,8 +323,14 @@ describe("cursor environment diagnostics", () => {
         },
       });
 
-      expect(result.checks.some((check) => check.code === "cursor_api_key_missing")).toBe(true);
-      expect(result.checks.some((check) => check.code === "cursor_native_auth_present")).toBe(false);
+      expect(
+        result.checks.some((check) => check.code === "cursor_api_key_missing"),
+      ).toBe(true);
+      expect(
+        result.checks.some(
+          (check) => check.code === "cursor_native_auth_present",
+        ),
+      ).toBe(false);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

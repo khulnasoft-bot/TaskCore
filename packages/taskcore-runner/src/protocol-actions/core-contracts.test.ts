@@ -4,33 +4,103 @@ import { describe, expect, it } from "vitest";
 import { TASKCORE_CORE_PROTOCOL_ACTIONS } from "./core.js";
 
 describe("core Taskcore protocol action contracts", () => {
-  const ajv = new Ajv2020({ allErrors: true, allowUnionTypes: true, strict: false });
+  const ajv = new Ajv2020({
+    allErrors: true,
+    allowUnionTypes: true,
+    strict: false,
+  });
 
   it("advertises a complete typed form for mixed text and choice questions", () => {
-    const action = TASKCORE_CORE_PROTOCOL_ACTIONS.find(action => action.id === "request_human_input")!;
-    const payload = { version: 1, questionSet: { schema: "taskcore.question_set.v1", questions: [
-      { id: "repo", prompt: "Repository URL?", required: true, answerMode: "text" },
-      { id: "scope", prompt: "Review scope?", required: true, answerMode: "single_select", options: [{ id: "all", label: "All changes" }, { id: "selected", label: "Selected changes" }] },
-    ] } };
-    for (const schema of [action.live!.descriptor.inputSchema, action.scenario!.descriptor.inputSchema]) {
-      const input = { ...action.examples.call.input, interactionKind: "questions", payload };
-      if (schema === action.scenario!.descriptor.inputSchema) delete (input as { idempotencyKey?: string }).idempotencyKey;
-      expect(ajv.validate(schema, input), JSON.stringify(ajv.errors)).toBe(true);
-      expect(ajv.validate(schema, { ...input, payload: { version: 1 } })).toBe(false);
-      expect(ajv.validate(schema, { ...input, payload: { version: 1, questionSet: { ...payload.questionSet, questions: [{ ...payload.questionSet.questions[0], options: [{ id: "a", label: "A" }] }] } } })).toBe(false);
+    const action = TASKCORE_CORE_PROTOCOL_ACTIONS.find(
+      (action) => action.id === "request_human_input",
+    )!;
+    const payload = {
+      version: 1,
+      questionSet: {
+        schema: "taskcore.question_set.v1",
+        questions: [
+          {
+            id: "repo",
+            prompt: "Repository URL?",
+            required: true,
+            answerMode: "text",
+          },
+          {
+            id: "scope",
+            prompt: "Review scope?",
+            required: true,
+            answerMode: "single_select",
+            options: [
+              { id: "all", label: "All changes" },
+              { id: "selected", label: "Selected changes" },
+            ],
+          },
+        ],
+      },
+    };
+    for (const schema of [
+      action.live!.descriptor.inputSchema,
+      action.scenario!.descriptor.inputSchema,
+    ]) {
+      const input = {
+        ...action.examples.call.input,
+        interactionKind: "questions",
+        payload,
+      };
+      if (schema === action.scenario!.descriptor.inputSchema)
+        delete (input as { idempotencyKey?: string }).idempotencyKey;
+      expect(ajv.validate(schema, input), JSON.stringify(ajv.errors)).toBe(
+        true,
+      );
+      expect(ajv.validate(schema, { ...input, payload: { version: 1 } })).toBe(
+        false,
+      );
+      expect(
+        ajv.validate(schema, {
+          ...input,
+          payload: {
+            version: 1,
+            questionSet: {
+              ...payload.questionSet,
+              questions: [
+                {
+                  ...payload.questionSet.questions[0],
+                  options: [{ id: "a", label: "A" }],
+                },
+              ],
+            },
+          },
+        }),
+      ).toBe(false);
     }
-    expect(action.documentation.description).not.toContain("questions for choices");
+    expect(action.documentation.description).not.toContain(
+      "questions for choices",
+    );
   });
 
   it("keeps the live input tool's guidance consistent with conversational confirmation recording", () => {
-    const action = TASKCORE_CORE_PROTOCOL_ACTIONS.find(action => action.id === "request_human_input")!;
-    expect(action.live!.descriptor.description).toBe(action.documentation.description);
-    expect(action.live!.descriptor.description).toContain("resolve-from-comment");
-    expect(action.live!.descriptor.description).toContain("resolver permissions");
-    expect(action.live!.descriptor.description).not.toContain("Never infer answers, answer your own card");
+    const action = TASKCORE_CORE_PROTOCOL_ACTIONS.find(
+      (action) => action.id === "request_human_input",
+    )!;
+    expect(action.live!.descriptor.description).toBe(
+      action.documentation.description,
+    );
+    expect(action.live!.descriptor.description).toContain(
+      "resolve-from-comment",
+    );
+    expect(action.live!.descriptor.description).toContain(
+      "resolver permissions",
+    );
+    expect(action.live!.descriptor.description).not.toContain(
+      "Never infer answers, answer your own card",
+    );
   });
 
-  it.each(TASKCORE_CORE_PROTOCOL_ACTIONS.map((action) => [action.id, action] as const))(
+  it.each(
+    TASKCORE_CORE_PROTOCOL_ACTIONS.map(
+      (action) => [action.id, action] as const,
+    ),
+  )(
     "%s has immutable metadata and schema-valid examples",
     (operationId, action) => {
       expect(action.canonical.operationId).toBe(operationId);
@@ -44,18 +114,25 @@ describe("core Taskcore protocol action contracts", () => {
 
       if (action.live !== null) {
         expect(
-          ajv.validate(action.live.descriptor.inputSchema, action.examples.call.input),
+          ajv.validate(
+            action.live.descriptor.inputSchema,
+            action.examples.call.input,
+          ),
           JSON.stringify(ajv.errors),
         ).toBe(true);
         expect(
-          ajv.validate(action.live.descriptor.outputSchema, action.examples.success.result),
+          ajv.validate(
+            action.live.descriptor.outputSchema,
+            action.examples.success.result,
+          ),
           JSON.stringify(ajv.errors),
         ).toBe(true);
       }
 
       if (action.scenario !== null) {
         expect(action.scenario.successExample.operationId).toBe(operationId);
-        const scenarioProperties = action.scenario.descriptor.inputSchema.properties ?? {};
+        const scenarioProperties =
+          action.scenario.descriptor.inputSchema.properties ?? {};
         const callEntries = Object.entries(action.examples.call.input);
         const outOfBandKeys = callEntries
           .map(([key]) => key)
@@ -63,7 +140,9 @@ describe("core Taskcore protocol action contracts", () => {
         // Scenario mutation idempotency is carried by the invocation envelope,
         // not the operation input. No other example field may be omitted.
         expect(outOfBandKeys).toEqual(
-          "idempotencyKey" in action.examples.call.input ? ["idempotencyKey"] : [],
+          "idempotencyKey" in action.examples.call.input
+            ? ["idempotencyKey"]
+            : [],
         );
         const scenarioInput = Object.fromEntries(
           callEntries.filter(([key]) => key !== "idempotencyKey"),

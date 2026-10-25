@@ -87,7 +87,8 @@ function createState(): SelectionDebugState {
 }
 
 export function isSelectionDebugEnabled(): boolean {
-  if (import.meta.env.MODE === "production" || typeof window === "undefined") return false;
+  if (import.meta.env.MODE === "production" || typeof window === "undefined")
+    return false;
   try {
     const value = window.localStorage.getItem(SELECTION_DEBUG_STORAGE_KEY);
     return value === "1" || value === "true";
@@ -99,7 +100,9 @@ export function isSelectionDebugEnabled(): boolean {
 export function initializeSelectionDebug(): SelectionDebugState {
   if (!window.__taskcoreSelectionDebug) {
     window.__taskcoreSelectionDebug = createState();
-    console.info(`[taskcore selection debug] enabled; set localStorage.${SELECTION_DEBUG_STORAGE_KEY} = "0" and reload to disable`);
+    console.info(
+      `[taskcore selection debug] enabled; set localStorage.${SELECTION_DEBUG_STORAGE_KEY} = "0" and reload to disable`,
+    );
   }
   return window.__taskcoreSelectionDebug;
 }
@@ -115,9 +118,10 @@ function record(type: string, details: SelectionDebugEvent["details"]): void {
 export function recordSelectionChange(active: boolean): void {
   const state = initializeSelectionDebug();
   const timestamp = now();
-  const elapsedSincePreviousMs = state.lastSelectionChangeAt === null
-    ? null
-    : timestamp - state.lastSelectionChangeAt;
+  const elapsedSincePreviousMs =
+    state.lastSelectionChangeAt === null
+      ? null
+      : timestamp - state.lastSelectionChangeAt;
   state.selectionChanges += 1;
   if (active) {
     state.activeSelectionChanges += 1;
@@ -129,7 +133,10 @@ export function recordSelectionChange(active: boolean): void {
   });
 }
 
-export function recordCaptureSelection(durationMs: number, captured: boolean): void {
+export function recordCaptureSelection(
+  durationMs: number,
+  captured: boolean,
+): void {
   const state = initializeSelectionDebug();
   state.captureCount += 1;
   state.captureDurationMs += durationMs;
@@ -137,7 +144,11 @@ export function recordCaptureSelection(durationMs: number, captured: boolean): v
   record("captureSelection", { durationMs, captured });
 }
 
-export function recordAnnotationCommit(id: string, phase: string, actualDuration: number): void {
+export function recordAnnotationCommit(
+  id: string,
+  phase: string,
+  actualDuration: number,
+): void {
   const state = initializeSelectionDebug();
   state.reactCommits[id] = (state.reactCommits[id] ?? 0) + 1;
   record("react-commit", { id, phase, actualDuration });
@@ -145,7 +156,9 @@ export function recordAnnotationCommit(id: string, phase: string, actualDuration
 
 export function recordMarkdownMutations(recordCount: number): void {
   const state = initializeSelectionDebug();
-  const idle = state.lastSelectionChangeAt !== null && now() - state.lastSelectionChangeAt >= IDLE_SELECTION_WINDOW_MS;
+  const idle =
+    state.lastSelectionChangeAt !== null &&
+    now() - state.lastSelectionChangeAt >= IDLE_SELECTION_WINDOW_MS;
   state.mutationCallbacks += 1;
   state.mutationRecords += recordCount;
   if (idle) {

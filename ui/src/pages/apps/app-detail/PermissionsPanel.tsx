@@ -1,14 +1,31 @@
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Ban, Check, FlaskConical, Loader2, RefreshCw, Search, ShieldQuestion } from "lucide-react";
-import type { Agent, ToolCatalogEntry, ToolConnectionCapabilities } from "@taskcore/shared";
+import {
+  Ban,
+  Check,
+  FlaskConical,
+  Loader2,
+  RefreshCw,
+  Search,
+  ShieldQuestion,
+} from "lucide-react";
+import type {
+  Agent,
+  ToolCatalogEntry,
+  ToolConnectionCapabilities,
+} from "@taskcore/shared";
 import { useSearchParams } from "@/lib/router";
 import { AgentMultiSelect } from "@/components/AgentMultiSelect";
 import { InlineBanner } from "@/components/InlineBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioCardGroup } from "@/components/ui/radio-card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { type InstallState } from "@/lib/tool-installs";
 import { QuarantinedActionsReview } from "./SetupPanel";
@@ -77,24 +94,28 @@ export function PermissionsPanel({
         onSave={onSaveAccess}
       />
       {afterAgentAccess}
-      {actions !== undefined ? actions : <ActionsSection
-        key={connectionId}
-        connectionId={connectionId}
-        appName={appName}
-        readOnly={readOnly}
-        canChange={canChange}
-        quarantined={quarantined}
-        enabledIds={enabledIds}
-        askFirstIds={askFirstIds}
-        disabled={pending}
-        refreshPending={refreshPending}
-        focusId={searchParams.get("focus")}
-        canConfigure={capabilities?.canConfigure ?? false}
-        permissionChangeWarning={permissionChangeWarning}
-        onSetPermission={onSetActionPermission}
-        onReviewQuarantined={onReviewQuarantined}
-        onRefreshActions={onRefreshActions}
-      />}
+      {actions !== undefined ? (
+        actions
+      ) : (
+        <ActionsSection
+          key={connectionId}
+          connectionId={connectionId}
+          appName={appName}
+          readOnly={readOnly}
+          canChange={canChange}
+          quarantined={quarantined}
+          enabledIds={enabledIds}
+          askFirstIds={askFirstIds}
+          disabled={pending}
+          refreshPending={refreshPending}
+          focusId={searchParams.get("focus")}
+          canConfigure={capabilities?.canConfigure ?? false}
+          permissionChangeWarning={permissionChangeWarning}
+          onSetPermission={onSetActionPermission}
+          onReviewQuarantined={onReviewQuarantined}
+          onRefreshActions={onRefreshActions}
+        />
+      )}
     </div>
   );
 }
@@ -120,14 +141,20 @@ function AgentAccessSection({
   const selectableAgents = editableAgentIds
     ? liveAgents.filter((agent) => editableAgentIds.includes(agent.id))
     : liveAgents;
-  const selectedAgents = liveAgents.filter((agent) => access.agentIds.has(agent.id));
+  const selectedAgents = liveAgents.filter((agent) =>
+    access.agentIds.has(agent.id),
+  );
   const requiredAgentIds = install.agentIds;
 
   return (
     <section className="space-y-4 border-t border-border pt-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-foreground">Which agents can use this connection?</h2>
-        {disabled ? <span className="text-xs text-muted-foreground">Saving…</span> : null}
+        <h2 className="text-sm font-semibold text-foreground">
+          Which agents can use this connection?
+        </h2>
+        {disabled ? (
+          <span className="text-xs text-muted-foreground">Saving…</span>
+        ) : null}
       </div>
 
       {canManage ? (
@@ -139,10 +166,11 @@ function AgentAccessSection({
             className="sm:grid-cols-2"
             onValueChange={(next) => {
               if (next === "all") onSave({ mode: "all", agentIds: new Set() });
-              else onSave({
-                mode: "specific",
-                agentIds: new Set([...access.agentIds, ...requiredAgentIds]),
-              });
+              else
+                onSave({
+                  mode: "specific",
+                  agentIds: new Set([...access.agentIds, ...requiredAgentIds]),
+                });
             }}
             options={[
               {
@@ -166,29 +194,50 @@ function AgentAccessSection({
               agents={selectableAgents}
               selectedAgentIds={access.agentIds}
               disabled={disabled}
-              triggerLabel={access.agentIds.size === 0
-                ? "Choose agents"
-                : `${access.agentIds.size} ${access.agentIds.size === 1 ? "agent" : "agents"} selected`}
+              triggerLabel={
+                access.agentIds.size === 0
+                  ? "Choose agents"
+                  : `${access.agentIds.size} ${access.agentIds.size === 1 ? "agent" : "agents"} selected`
+              }
               emptyMessage="You cannot edit any agents yet."
               isAgentDisabled={(agent) => requiredAgentIds.has(agent.id)}
-              getDescription={(agent) => requiredAgentIds.has(agent.id) ? "Required by this connection's install setting" : agent.title}
-              onChange={(agentIds) => onSave({
-                mode: "specific",
-                agentIds: new Set([...agentIds, ...requiredAgentIds]),
-              })}
+              getDescription={(agent) =>
+                requiredAgentIds.has(agent.id)
+                  ? "Required by this connection's install setting"
+                  : agent.title
+              }
+              onChange={(agentIds) =>
+                onSave({
+                  mode: "specific",
+                  agentIds: new Set([...agentIds, ...requiredAgentIds]),
+                })
+              }
             />
           ) : null}
         </div>
       ) : access.mode === "all" ? (
-        <p className="text-sm text-muted-foreground">Any agent can use this connection.</p>
+        <p className="text-sm text-muted-foreground">
+          Any agent can use this connection.
+        </p>
       ) : selectedAgents.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No agents can use this connection.</p>
+        <p className="text-sm text-muted-foreground">
+          No agents can use this connection.
+        </p>
       ) : (
         <div className="space-y-0.5">
           {selectedAgents.map((agent) => (
-            <div key={agent.id} className="flex items-center gap-2 px-1.5 py-1 text-sm">
-              <AgentAvatar agent={agent} size={16} className="h-4 w-4 shrink-0 text-muted-foreground"/>
-              <span className="min-w-0 flex-1 truncate text-foreground">{agent.name}</span>
+            <div
+              key={agent.id}
+              className="flex items-center gap-2 px-1.5 py-1 text-sm"
+            >
+              <AgentAvatar
+                agent={agent}
+                size={16}
+                className="h-4 w-4 shrink-0 text-muted-foreground"
+              />
+              <span className="min-w-0 flex-1 truncate text-foreground">
+                {agent.name}
+              </span>
             </div>
           ))}
         </div>
@@ -232,7 +281,8 @@ export function ActionsSection({
 }) {
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<ActionKindFilter>("all");
-  const [showPermissionChangeWarning, setShowPermissionChangeWarning] = useState(false);
+  const [showPermissionChangeWarning, setShowPermissionChangeWarning] =
+    useState(false);
   const byName = (a: ToolCatalogEntry, b: ToolCatalogEntry) =>
     (a.title ?? a.toolName).localeCompare(b.title ?? b.toolName);
   const sortedRead = useMemo(() => [...readOnly].sort(byName), [readOnly]);
@@ -240,8 +290,10 @@ export function ActionsSection({
   const matches = (entry: ToolCatalogEntry) => {
     const needle = query.trim().toLowerCase();
     if (!needle) return true;
-    return (entry.title ?? entry.toolName).toLowerCase().includes(needle)
-      || (entry.description ?? "").toLowerCase().includes(needle);
+    return (
+      (entry.title ?? entry.toolName).toLowerCase().includes(needle) ||
+      (entry.description ?? "").toLowerCase().includes(needle)
+    );
   };
   const visibleRead = kindFilter === "write" ? [] : sortedRead.filter(matches);
   const visibleWrite = kindFilter === "read" ? [] : sortedWrite.filter(matches);
@@ -253,7 +305,9 @@ export function ActionsSection({
         <h2 className="text-lg font-semibold text-foreground">Actions</h2>
         {canConfigure ? (
           <div className="flex items-center gap-2">
-            {disabled ? <span className="text-xs text-muted-foreground">Saving…</span> : null}
+            {disabled ? (
+              <span className="text-xs text-muted-foreground">Saving…</span>
+            ) : null}
             <Button
               variant="outline"
               size="sm"
@@ -297,11 +351,25 @@ export function ActionsSection({
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <FilterChip label={`All ${readOnly.length + canChange.length}`} active={kindFilter === "all"} onClick={() => setKindFilter("all")} />
-          <FilterChip label={`Read ${readOnly.length}`} active={kindFilter === "read"} onClick={() => setKindFilter("read")} />
-          <FilterChip label={`Write ${canChange.length}`} active={kindFilter === "write"} onClick={() => setKindFilter("write")} />
+          <FilterChip
+            label={`All ${readOnly.length + canChange.length}`}
+            active={kindFilter === "all"}
+            onClick={() => setKindFilter("all")}
+          />
+          <FilterChip
+            label={`Read ${readOnly.length}`}
+            active={kindFilter === "read"}
+            onClick={() => setKindFilter("read")}
+          />
+          <FilterChip
+            label={`Write ${canChange.length}`}
+            active={kindFilter === "write"}
+            onClick={() => setKindFilter("write")}
+          />
         </div>
-        <p className="text-xs text-muted-foreground">{visibleCount} matches · sorted A–Z</p>
+        <p className="text-xs text-muted-foreground">
+          {visibleCount} matches · sorted A–Z
+        </p>
       </div>
 
       {visibleCount === 0 ? (
@@ -346,7 +414,15 @@ export function ActionsSection({
   );
 }
 
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -390,14 +466,19 @@ function ActionGroup({
   if (actions.length === 0) return null;
   const groupValue = (() => {
     const first = actionPermission(actions[0]!.id, enabledIds, askFirstIds);
-    return actions.every((action) => actionPermission(action.id, enabledIds, askFirstIds) === first)
+    return actions.every(
+      (action) =>
+        actionPermission(action.id, enabledIds, askFirstIds) === first,
+    )
       ? first
       : "";
   })();
   return (
     <div>
       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {title}
+        </h3>
         {canConfigure ? (
           // PAP-659 C6b: set the whole group at once, so narrowing a fresh
           // connection's writes is one choice rather than one per action;
@@ -412,13 +493,19 @@ function ActionGroup({
                 // One change for the whole group: each row's setter rebuilds the
                 // full permission set from the same render, so looping it lets
                 // the last call overwrite the others.
-                onSetPermission(actions.map((action) => action.id), event.target.value as ActionPermission);
+                onSetPermission(
+                  actions.map((action) => action.id),
+                  event.target.value as ActionPermission,
+                );
               }}
               className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
             >
               {groupValue === "" ? <option value="">Mixed</option> : null}
               {PERMISSION_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{`Set all: ${option.label}`}</option>
+                <option
+                  key={option.value}
+                  value={option.value}
+                >{`Set all: ${option.label}`}</option>
               ))}
             </select>
           </label>
@@ -449,9 +536,24 @@ const PERMISSION_OPTIONS: Array<{
   description: string;
   icon: typeof Ban;
 }> = [
-  { value: "off", label: "Off", description: "Agents cannot run this action.", icon: Ban },
-  { value: "ask", label: "Ask first", description: "A human must approve each call.", icon: ShieldQuestion },
-  { value: "allowed", label: "Allowed", description: "Runs without approval.", icon: Check },
+  {
+    value: "off",
+    label: "Off",
+    description: "Agents cannot run this action.",
+    icon: Ban,
+  },
+  {
+    value: "ask",
+    label: "Ask first",
+    description: "A human must approve each call.",
+    icon: ShieldQuestion,
+  },
+  {
+    value: "allowed",
+    label: "Allowed",
+    description: "Runs without approval.",
+    icon: Check,
+  },
 ];
 
 function ActionRow({
@@ -478,7 +580,8 @@ function ActionRow({
   const title = action.title ?? action.toolName;
 
   useEffect(() => {
-    if (focused) rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (focused)
+      rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [focused]);
 
   return (
@@ -505,7 +608,9 @@ function ActionRow({
             </span>
           </div>
           {action.description ? (
-            <div className="truncate text-xs text-muted-foreground">{action.description}</div>
+            <div className="truncate text-xs text-muted-foreground">
+              {action.description}
+            </div>
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -516,43 +621,55 @@ function ActionRow({
                 aria-label={`${title} permission`}
                 className="inline-flex rounded-md border border-border bg-muted/40 p-0.5"
               >
-              {PERMISSION_OPTIONS.map((option) => {
-                const Icon = option.icon;
-                const selected = option.value === value;
-                return (
-                  <Tooltip key={option.value}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        aria-label={`${title}: ${option.label}`}
-                        disabled={disabled}
-                        onClick={() => onSetPermission([action.id], option.value)}
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-sm text-muted-foreground outline-none transition-colors",
-                          "hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
-                          "disabled:cursor-not-allowed disabled:opacity-50",
-                          selected && "bg-background text-foreground shadow-xs",
-                        )}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <span className="font-medium">{option.label}</span> — {option.description}
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
+                {PERMISSION_OPTIONS.map((option) => {
+                  const Icon = option.icon;
+                  const selected = option.value === value;
+                  return (
+                    <Tooltip key={option.value}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          aria-label={`${title}: ${option.label}`}
+                          disabled={disabled}
+                          onClick={() =>
+                            onSetPermission([action.id], option.value)
+                          }
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-sm text-muted-foreground outline-none transition-colors",
+                            "hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+                            "disabled:cursor-not-allowed disabled:opacity-50",
+                            selected &&
+                              "bg-background text-foreground shadow-xs",
+                          )}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <span className="font-medium">{option.label}</span> —{" "}
+                        {option.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
               </div>
             </TooltipProvider>
           ) : (
             <span className="text-sm text-muted-foreground">
-              {PERMISSION_OPTIONS.find((option) => option.value === value)?.label}
+              {
+                PERMISSION_OPTIONS.find((option) => option.value === value)
+                  ?.label
+              }
             </span>
           )}
-          <Button type="button" size="sm" variant="outline" onClick={() => setTestOpen(true)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setTestOpen(true)}
+          >
             <FlaskConical className="mr-1.5 h-3.5 w-3.5" />
             Test
           </Button>

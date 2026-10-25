@@ -18,7 +18,10 @@ export async function createTaskThroughUi(input: {
     ? `/${encodeURIComponent(input.issuePrefix)}/search?scope=issues&q=${encodeURIComponent(`"${input.title}"`)}`
     : `/${encodeURIComponent(input.issuePrefix)}/issues`;
   const newTask = input.requireExplicitTitle
-    ? input.page.getByRole("button", { name: "Create task from this query", exact: true })
+    ? input.page.getByRole("button", {
+        name: "Create task from this query",
+        exact: true,
+      })
     : input.page.getByRole("button", { name: /^New task$/i }).first();
   let bootstrapError: unknown;
   for (let bootstrapAttempt = 1; bootstrapAttempt <= 3; bootstrapAttempt += 1) {
@@ -42,36 +45,74 @@ export async function createTaskThroughUi(input: {
     );
   }
   await newTask.click();
-  const dialog = input.page.getByRole("dialog", { name: "New task", exact: true });
-  const titleInput = dialog.getByRole("textbox", { name: "Task title", exact: true });
+  const dialog = input.page.getByRole("dialog", {
+    name: "New task",
+    exact: true,
+  });
+  const titleInput = dialog.getByRole("textbox", {
+    name: "Task title",
+    exact: true,
+  });
   if (await titleInput.isVisible()) await titleInput.fill(input.title);
-  else if (input.requireExplicitTitle) throw new Error("This title-preservation case requires a visible explicit title input");
+  else if (input.requireExplicitTitle)
+    throw new Error(
+      "This title-preservation case requires a visible explicit title input",
+    );
   await dialog
     .getByRole("textbox", { name: "editable markdown", exact: true })
     .fill(input.prompt);
   if (input.workMode !== "standard") {
-    await dialog.getByRole("button", { name: "Add to composer", exact: true }).click();
-    await input.page.getByTestId(input.workMode === "planning" ? "composer-add-plan" : "composer-add-ask").click();
+    await dialog
+      .getByRole("button", { name: "Add to composer", exact: true })
+      .click();
+    await input.page
+      .getByTestId(
+        input.workMode === "planning"
+          ? "composer-add-plan"
+          : "composer-add-ask",
+      )
+      .click();
   }
   await dialog
     .getByRole("button", { name: "Select assignee", exact: true })
     .click();
-  await input.page.getByRole("searchbox", { name: "Search assignees", exact: true }).fill(input.agentName);
-  await input.page.getByRole("option").filter({ has: input.page.getByText(input.agentName, { exact: true }) }).click();
-  await expect(input.page.getByRole("searchbox", { name: "Search assignees", exact: true })).toBeHidden();
+  await input.page
+    .getByRole("searchbox", { name: "Search assignees", exact: true })
+    .fill(input.agentName);
+  await input.page
+    .getByRole("option")
+    .filter({ has: input.page.getByText(input.agentName, { exact: true }) })
+    .click();
+  await expect(
+    input.page.getByRole("searchbox", {
+      name: "Search assignees",
+      exact: true,
+    }),
+  ).toBeHidden();
   if (input.projectName) {
     // Selecting the assignee advances focus to this selector and opens it.
     // Focus is idempotent here; clicking would toggle an already-open popover
     // closed before the search field can be filled.
-    const projectTrigger = dialog.getByRole("group", { name: "Task project and worktrees", exact: true }).getByRole("button").first();
+    const projectTrigger = dialog
+      .getByRole("group", { name: "Task project and worktrees", exact: true })
+      .getByRole("button")
+      .first();
     await projectTrigger.focus();
-    const projectSearch = input.page.getByPlaceholder(/^Search projects(?:…|\.\.\.)?$/i);
-    await expect(projectSearch).toBeVisible({ timeout: 2_000 }).catch(async () => {
-      if (await projectTrigger.getAttribute("aria-expanded") !== "true") await projectTrigger.click();
-      await expect(projectSearch).toBeVisible();
-    });
+    const projectSearch = input.page.getByPlaceholder(
+      /^Search projects(?:…|\.\.\.)?$/i,
+    );
+    await expect(projectSearch)
+      .toBeVisible({ timeout: 2_000 })
+      .catch(async () => {
+        if ((await projectTrigger.getAttribute("aria-expanded")) !== "true")
+          await projectTrigger.click();
+        await expect(projectSearch).toBeVisible();
+      });
     await projectSearch.fill(input.projectName);
-    await input.page.getByText(input.projectName, { exact: true }).last().click();
+    await input.page
+      .getByText(input.projectName, { exact: true })
+      .last()
+      .click();
   }
   const submittedAtMs = Date.now();
   if (input.attachments?.length) {
@@ -79,8 +120,12 @@ export async function createTaskThroughUi(input: {
     const upload = dialog.getByRole("button", { name: "Upload", exact: true });
     if (await upload.count()) await upload.click();
     else {
-      await dialog.getByRole("button", { name: "Add to composer", exact: true }).click();
-      await input.page.getByRole("menuitem", { name: /^Files and images/ }).click();
+      await dialog
+        .getByRole("button", { name: "Add to composer", exact: true })
+        .click();
+      await input.page
+        .getByRole("menuitem", { name: /^Files and images/ })
+        .click();
     }
     await (await chooser).setFiles([...input.attachments]);
     // Upload finishes as part of task creation; the dialog retains the selected files.
@@ -88,13 +133,25 @@ export async function createTaskThroughUi(input: {
   // The prompt-only composer generates a provisional title which the provider
   // can rename immediately. Bind the fixture to the actual creation response.
   const [response] = await Promise.all([
-    input.page.waitForResponse(response => response.request().method() === "POST"
-      && /^\/api\/companies\/[^/]+\/issues$/.test(new URL(response.url()).pathname)),
+    input.page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        /^\/api\/companies\/[^/]+\/issues$/.test(
+          new URL(response.url()).pathname,
+        ),
+    ),
     dialog.getByRole("button", { name: "Create task", exact: true }).click(),
   ]);
   expect(response.status()).toBe(201);
-  const issue = await response.json() as { id: string; companyId: string; title: string; titleNeedsGeneration: boolean };
-  expect(new URL(response.url()).pathname).toBe(`/api/companies/${issue.companyId}/issues`);
+  const issue = (await response.json()) as {
+    id: string;
+    companyId: string;
+    title: string;
+    titleNeedsGeneration: boolean;
+  };
+  expect(new URL(response.url()).pathname).toBe(
+    `/api/companies/${issue.companyId}/issues`,
+  );
   expect(issue.id).toEqual(expect.any(String));
   expect(issue.id.length).toBeGreaterThan(0);
   if (input.requireExplicitTitle) {

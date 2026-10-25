@@ -92,7 +92,9 @@ describe("LCA live baseline authoring and evidence", () => {
         .passed,
     ).toBe(false);
   });
-  it.each(lifecycleLiveCases.filter((c) => !c.continuation && c.family !== "repair"))(
+  it.each(
+    lifecycleLiveCases.filter((c) => !c.continuation && c.family !== "repair"),
+  )(
     "LCA-01 $id checks actual visible wording and durable terminal state",
     async (probe) => {
       const execution = runnerMatrix.find(
@@ -149,8 +151,28 @@ describe("LCA live baseline authoring and evidence", () => {
       );
       if (probe.family === "work-mode") {
         expect(task.workMode).toBe("standard");
-        expect((await failures({ ...valid, json: { ...valid.json, issue: { ...valid.json.issue, workMode: "planning" } } })).length).toBeGreaterThan(0);
-        expect((await failures({ ...valid, json: { ...valid.json, issue: { ...valid.json.issue, workMode: undefined } } })).length).toBeGreaterThan(0);
+        expect(
+          (
+            await failures({
+              ...valid,
+              json: {
+                ...valid.json,
+                issue: { ...valid.json.issue, workMode: "planning" },
+              },
+            })
+          ).length,
+        ).toBeGreaterThan(0);
+        expect(
+          (
+            await failures({
+              ...valid,
+              json: {
+                ...valid.json,
+                issue: { ...valid.json.issue, workMode: undefined },
+              },
+            })
+          ).length,
+        ).toBeGreaterThan(0);
       }
       expect(
         (
@@ -166,15 +188,50 @@ describe("LCA live baseline authoring and evidence", () => {
 
 describe("LCA-09 repair oracle calibration", () => {
   const source = { id: "source", status: "succeeded" };
-  const repair = { id: "repair", status: "succeeded", contextSnapshot: { wakeReason: "issue_disposition_repair", retryOfRunId: "source", legacyDispositionEpisode: { id: "source", attempt: 1, maxAttempts: 2 } } };
-  const input = { runs: [source, repair], agentId: "agent", narrative: "I am blocked.", comments: [{ body: "I am blocked.", authorAgentId: "agent", createdByRunId: "source" }] };
+  const repair = {
+    id: "repair",
+    status: "succeeded",
+    contextSnapshot: {
+      wakeReason: "issue_disposition_repair",
+      retryOfRunId: "source",
+      legacyDispositionEpisode: { id: "source", attempt: 1, maxAttempts: 2 },
+    },
+  };
+  const input = {
+    runs: [source, repair],
+    agentId: "agent",
+    narrative: "I am blocked.",
+    comments: [
+      {
+        body: "I am blocked.",
+        authorAgentId: "agent",
+        createdByRunId: "source",
+      },
+    ],
+  };
   it("requires the causal repair and the actual attributed perturbation", () => {
     expect(gradeLifecycleRepair(input).passed).toBe(true);
-    for (const runs of [[], [source], [source, repair, repair], [source, { ...repair, contextSnapshot: {} }], [{ ...source, status: "failed" }, repair]]) {
+    for (const runs of [
+      [],
+      [source],
+      [source, repair, repair],
+      [source, { ...repair, contextSnapshot: {} }],
+      [{ ...source, status: "failed" }, repair],
+    ]) {
       expect(gradeLifecycleRepair({ ...input, runs }).passed).toBe(false);
     }
     expect(gradeLifecycleRepair({ ...input, comments: [] }).passed).toBe(false);
-    expect(gradeLifecycleRepair({ ...input, comments: [...input.comments, { authorUserId: "user" }] }).passed).toBe(false);
-    expect(gradeLifecycleRepair({ ...input, comments: [{ ...input.comments[0], createdByRunId: "repair" }] }).passed).toBe(false);
+    expect(
+      gradeLifecycleRepair({
+        ...input,
+        comments: [...input.comments, { authorUserId: "user" }],
+      }).passed,
+    ).toBe(false);
+    expect(
+      gradeLifecycleRepair({
+        ...input,
+        comments: [{ ...input.comments[0], createdByRunId: "repair" }],
+      }).passed,
+    ).toBe(false);
   });
 });

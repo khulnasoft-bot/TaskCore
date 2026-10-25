@@ -13,15 +13,20 @@ vi.mock("../adapters/registry.js", async (orig) => ({
 
 vi.mock("./adapter-plugin-store.js", () => ({
   listAdapterPlugins: () => [],
-  setAdapterDisabled: (type: string, disabled: boolean) => setAdapterDisabled(type, disabled),
+  setAdapterDisabled: (type: string, disabled: boolean) =>
+    setAdapterDisabled(type, disabled),
 }));
 
-const { reconcileAdapterAvailability } = await import("./adapter-registry-bootstrap.js");
+const { reconcileAdapterAvailability } =
+  await import("./adapter-registry-bootstrap.js");
 
 describe("reconcileAdapterAvailability", () => {
   it("is a no-op when registry is null", () => {
     setAdapterDisabled.mockReset();
-    expect(reconcileAdapterAvailability(null)).toEqual({ enabled: [], disabled: [] });
+    expect(reconcileAdapterAvailability(null)).toEqual({
+      enabled: [],
+      disabled: [],
+    });
     expect(setAdapterDisabled).not.toHaveBeenCalled();
   });
 
@@ -39,7 +44,9 @@ describe("reconcileAdapterAvailability", () => {
   it("throws when a declared adapter has no installed implementation", () => {
     setAdapterDisabled.mockReset();
     expect(() =>
-      reconcileAdapterAvailability([{ adapterType: "ghost_adapter", enabled: true }]),
+      reconcileAdapterAvailability([
+        { adapterType: "ghost_adapter", enabled: true },
+      ]),
     ).toThrow(/no installed adapter: ghost_adapter/);
   });
 });

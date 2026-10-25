@@ -1,10 +1,17 @@
 import { randomUUID } from "node:crypto";
 import type { Db } from "@taskcore/db";
 import { workspaceOperations } from "@taskcore/db";
-import type { WorkspaceOperation, WorkspaceOperationPhase, WorkspaceOperationStatus } from "@taskcore/shared";
+import type {
+  WorkspaceOperation,
+  WorkspaceOperationPhase,
+  WorkspaceOperationStatus,
+} from "@taskcore/shared";
 import { asc, desc, eq, gte, inArray, isNull, lt, or, and } from "drizzle-orm";
 import { conflict, notFound } from "../errors.js";
-import { redactCurrentUserText, redactCurrentUserValue } from "../log-redaction.js";
+import {
+  redactCurrentUserText,
+  redactCurrentUserValue,
+} from "../log-redaction.js";
 import { instanceSettingsService } from "./instance-settings.js";
 import { getWorkspaceOperationLogStore } from "./workspace-operation-log-store.js";
 
@@ -14,7 +21,13 @@ type WorkspaceOperationRow = typeof workspaceOperations.$inferSelect;
  * Managed runtime control actions. Every one of these mutates the runtime rows and
  * local listeners of a single execution workspace, so only one may be live at a time.
  */
-const RUNTIME_CONTROL_ACTIONS = new Set(["start", "stop", "restart", "repair", "run"]);
+const RUNTIME_CONTROL_ACTIONS = new Set([
+  "start",
+  "stop",
+  "restart",
+  "repair",
+  "run",
+]);
 
 /**
  * Identity of this server process. A `running` runtime-control operation stamped with a
@@ -49,11 +62,16 @@ export const WORKSPACE_JOB_MAX_DURATION_MS = 4 * 60 * 60_000;
 
 function defaultRuntimeControlTimeoutMs(action: string | null) {
   if (!action) return null;
-  return action === "run" ? WORKSPACE_JOB_MAX_DURATION_MS : RUNTIME_CONTROL_MAX_DURATION_MS;
+  return action === "run"
+    ? WORKSPACE_JOB_MAX_DURATION_MS
+    : RUNTIME_CONTROL_MAX_DURATION_MS;
 }
 
 export class WorkspaceOperationTimeoutError extends Error {
-  constructor(public readonly timeoutMs: number, action: string | null) {
+  constructor(
+    public readonly timeoutMs: number,
+    action: string | null,
+  ) {
     super(
       `Managed workspace ${action ?? "runtime"} operation exceeded its ${Math.round(timeoutMs / 1000)}s time budget and was failed so it can be retried or stopped.`,
     );
@@ -71,11 +89,14 @@ type RuntimeControlOwnerStamp = {
 function readRuntimeControlAction(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== "object") return null;
   const action = (metadata as Record<string, unknown>).action;
-  if (typeof action !== "string" || !RUNTIME_CONTROL_ACTIONS.has(action)) return null;
+  if (typeof action !== "string" || !RUNTIME_CONTROL_ACTIONS.has(action))
+    return null;
   return action;
 }
 
-function readRuntimeControlOwner(metadata: unknown): RuntimeControlOwnerStamp | null {
+function readRuntimeControlOwner(
+  metadata: unknown,
+): RuntimeControlOwnerStamp | null {
   if (!metadata || typeof metadata !== "object") return null;
   const owner = (metadata as Record<string, unknown>).runtimeControlOwner;
   if (!owner || typeof owner !== "object") return null;
@@ -85,7 +106,10 @@ function readRuntimeControlOwner(metadata: unknown): RuntimeControlOwnerStamp | 
     ownerId: record.ownerId,
     pid: typeof record.pid === "number" ? record.pid : 0,
     action: typeof record.action === "string" ? record.action : "start",
-    heartbeatAt: typeof record.heartbeatAt === "string" ? record.heartbeatAt : new Date(0).toISOString(),
+    heartbeatAt:
+      typeof record.heartbeatAt === "string"
+        ? record.heartbeatAt
+        : new Date(0).toISOString(),
   };
 }
 
@@ -104,12 +128,21 @@ type NativeFinalizationActivityScope = {
 };
 // Presentation-only positive proof. Persisted running rows can outlive a crash;
 // this registry only exists while this process awaits the actual export callback.
-const liveNativeFinalizationOperations = new Map<string, NativeFinalizationActivityScope>();
+const liveNativeFinalizationOperations = new Map<
+  string,
+  NativeFinalizationActivityScope
+>();
 
-export function isNativeWorkspaceFinalizationOperationActive(scope: NativeFinalizationActivityScope): boolean {
+export function isNativeWorkspaceFinalizationOperationActive(
+  scope: NativeFinalizationActivityScope,
+): boolean {
   const active = liveNativeFinalizationOperations.get(scope.operationId);
-  return Boolean(active && active.companyId === scope.companyId
-    && active.runId === scope.runId && active.issueId === scope.issueId);
+  return Boolean(
+    active &&
+    active.companyId === scope.companyId &&
+    active.runId === scope.runId &&
+    active.issueId === scope.issueId,
+  );
 }
 
 /**
@@ -162,7 +195,10 @@ export function workspaceRuntimeControlOwnerIdForTests() {
  * machinery above: the claim is taken before the operation row exists, so a recovery sweep
  * can never see a live control it is not yet tracking.
  */
-const activeRuntimeControls = new Map<string, { action: string; startedAt: Date }>();
+const activeRuntimeControls = new Map<
+  string,
+  { action: string; startedAt: Date }
+>();
 
 export async function runExclusiveWorkspaceRuntimeControl<T>(input: {
   executionWorkspaceId: string;
@@ -171,14 +207,18 @@ export async function runExclusiveWorkspaceRuntimeControl<T>(input: {
 }): Promise<T> {
   const active = activeRuntimeControls.get(input.executionWorkspaceId);
   if (active) {
-    throw conflict("A managed runtime control operation is already in progress for this execution workspace.", {
-      code: "workspace_runtime_control_in_progress",
-      executionWorkspaceId: input.executionWorkspaceId,
-      activeAction: active.action,
-      requestedAction: input.action,
-      startedAt: active.startedAt.toISOString(),
-      remediation: "Wait for the active operation to reach a terminal state before retrying.",
-    });
+    throw conflict(
+      "A managed runtime control operation is already in progress for this execution workspace.",
+      {
+        code: "workspace_runtime_control_in_progress",
+        executionWorkspaceId: input.executionWorkspaceId,
+        activeAction: active.action,
+        requestedAction: input.action,
+        startedAt: active.startedAt.toISOString(),
+        remediation:
+          "Wait for the active operation to reach a terminal state before retrying.",
+      },
+    );
   }
 
   const claim = { action: input.action, startedAt: new Date() };
@@ -239,7 +279,9 @@ function combineMetadata(
 }
 
 export interface WorkspaceOperationRecorder {
-  attachExecutionWorkspaceId(executionWorkspaceId: string | null): Promise<void>;
+  attachExecutionWorkspaceId(
+    executionWorkspaceId: string | null,
+  ): Promise<void>;
   recordOperation(input: {
     phase: WorkspaceOperationPhase;
     command?: string | null;
@@ -250,10 +292,12 @@ export interface WorkspaceOperationRecorder {
      * timeout error is rethrown, so a hung provider can never leave an active operation.
      */
     timeoutMs?: number | null;
-    run: (reportProgress: (input: {
-      metadata?: Record<string, unknown> | null;
-      system?: string | null;
-    }) => Promise<void>) => Promise<{
+    run: (
+      reportProgress: (input: {
+        metadata?: Record<string, unknown> | null;
+        system?: string | null;
+      }) => Promise<void>,
+    ) => Promise<{
       status?: WorkspaceOperationStatus;
       exitCode?: number | null;
       stdout?: string | null;
@@ -292,14 +336,18 @@ export function workspaceOperationService(db: Db) {
     options?: { now?: Date; staleAfterMs?: number },
   ) {
     const now = options?.now ?? new Date();
-    const staleAfterMs = options?.staleAfterMs ?? RUNTIME_CONTROL_STALE_AFTER_MS;
+    const staleAfterMs =
+      options?.staleAfterMs ?? RUNTIME_CONTROL_STALE_AFTER_MS;
     const candidates = await db
       .select()
       .from(workspaceOperations)
       .where(
         executionWorkspaceId
           ? and(
-              eq(workspaceOperations.executionWorkspaceId, executionWorkspaceId),
+              eq(
+                workspaceOperations.executionWorkspaceId,
+                executionWorkspaceId,
+              ),
               eq(workspaceOperations.status, "running"),
             )
           : eq(workspaceOperations.status, "running"),
@@ -319,45 +367,59 @@ export function workspaceOperationService(db: Db) {
       const silentForMs = now.getTime() - lastSignalAt.getTime();
 
       const ownedByThisProcess = owner?.ownerId === RUNTIME_CONTROL_OWNER_ID;
-      const abandonedByThisProcess = ownedByThisProcess && !liveRuntimeControlOperationIds.has(candidate.id);
-      const ownedHereAndLive = ownedByThisProcess && liveRuntimeControlOperationIds.has(candidate.id);
+      const abandonedByThisProcess =
+        ownedByThisProcess && !liveRuntimeControlOperationIds.has(candidate.id);
+      const ownedHereAndLive =
+        ownedByThisProcess && liveRuntimeControlOperationIds.has(candidate.id);
       // A previous server process that no longer exists cannot heartbeat again, so its
       // operations are recoverable at once instead of after the staleness window.
-      const ownerProcessGone = owner !== null && !ownedByThisProcess && !ownerProcessIsAlive(owner.pid);
+      const ownerProcessGone =
+        owner !== null &&
+        !ownedByThisProcess &&
+        !ownerProcessIsAlive(owner.pid);
 
       if (ownedHereAndLive) {
         // This process is driving it right now; its own time budget is what terminalizes it.
         live.push(toWorkspaceOperation(candidate));
         continue;
       }
-      if (!abandonedByThisProcess && !ownerProcessGone && silentForMs < staleAfterMs) {
+      if (
+        !abandonedByThisProcess &&
+        !ownerProcessGone &&
+        silentForMs < staleAfterMs
+      ) {
         live.push(toWorkspaceOperation(candidate));
         continue;
       }
 
       const finishedAt = new Date();
-      const reconciliationMessage =
-        `Reconciled stale managed runtime ${action} operation: ${
-          ownerProcessGone
-            ? `the owning server process (pid ${owner?.pid}) is gone`
-            : abandonedByThisProcess
-              ? "the owning request no longer exists"
-              : `no live owner has reported progress for ${Math.round(silentForMs / 1000)}s`
-        }, so the operation was failed to release the execution workspace for retry or stop.\n`;
+      const reconciliationMessage = `Reconciled stale managed runtime ${action} operation: ${
+        ownerProcessGone
+          ? `the owning server process (pid ${owner?.pid}) is gone`
+          : abandonedByThisProcess
+            ? "the owning request no longer exists"
+            : `no live owner has reported progress for ${Math.round(silentForMs / 1000)}s`
+      }, so the operation was failed to release the execution workspace for retry or stop.\n`;
       // Compare-and-swap on `updated_at`: a live owner that heartbeats between the read and
       // this write moves the column and keeps its operation.
       const claimed = await db
         .update(workspaceOperations)
         .set({
           status: "failed",
-          stderrExcerpt: appendExcerpt(candidate.stderrExcerpt ?? "", reconciliationMessage),
-          metadata: combineMetadata(candidate.metadata as Record<string, unknown> | null, {
-            reconciled: true,
-            reconciliationReason: abandonedByThisProcess
-              ? "abandoned_runtime_control"
-              : "orphaned_runtime_control",
-            reconciledAt: finishedAt.toISOString(),
-          }),
+          stderrExcerpt: appendExcerpt(
+            candidate.stderrExcerpt ?? "",
+            reconciliationMessage,
+          ),
+          metadata: combineMetadata(
+            candidate.metadata as Record<string, unknown> | null,
+            {
+              reconciled: true,
+              reconciliationReason: abandonedByThisProcess
+                ? "abandoned_runtime_control"
+                : "orphaned_runtime_control",
+              reconciledAt: finishedAt.toISOString(),
+            },
+          ),
           finishedAt,
           updatedAt: finishedAt,
         })
@@ -410,7 +472,11 @@ export function workspaceOperationService(db: Db) {
       }
     }
 
-    return { reconciled: reconciledIds.length, operationIds: reconciledIds, live };
+    return {
+      reconciled: reconciledIds.length,
+      operationIds: reconciledIds,
+      live,
+    };
   }
 
   return {
@@ -423,8 +489,14 @@ export function workspaceOperationService(db: Db) {
       executionWorkspaceId?: string | null,
       options?: { now?: Date; staleAfterMs?: number },
     ) {
-      const result = await sweepRuntimeControlOperations(executionWorkspaceId, options);
-      return { reconciled: result.reconciled, operationIds: result.operationIds };
+      const result = await sweepRuntimeControlOperations(
+        executionWorkspaceId,
+        options,
+      );
+      return {
+        reconciled: result.reconciled,
+        operationIds: result.operationIds,
+      };
     },
 
     /**
@@ -437,20 +509,32 @@ export function workspaceOperationService(db: Db) {
       action: string;
       options?: { now?: Date; staleAfterMs?: number };
     }) {
-      const { live } = await sweepRuntimeControlOperations(input.executionWorkspaceId, input.options);
+      const { live } = await sweepRuntimeControlOperations(
+        input.executionWorkspaceId,
+        input.options,
+      );
       const blocking = live[0];
       if (!blocking) return;
       const owner = readRuntimeControlOwner(blocking.metadata);
-      throw conflict("A managed runtime control operation is already in progress for this execution workspace.", {
-        code: "workspace_runtime_control_in_progress",
-        executionWorkspaceId: input.executionWorkspaceId,
-        activeAction: readRuntimeControlAction(blocking.metadata) ?? owner?.action ?? null,
-        requestedAction: input.action,
-        activeOperationId: blocking.id,
-        startedAt: blocking.startedAt instanceof Date ? blocking.startedAt.toISOString() : blocking.startedAt,
-        remediation:
-          "Wait for the active operation to reach a terminal state before retrying; abandoned operations are recovered automatically.",
-      });
+      throw conflict(
+        "A managed runtime control operation is already in progress for this execution workspace.",
+        {
+          code: "workspace_runtime_control_in_progress",
+          executionWorkspaceId: input.executionWorkspaceId,
+          activeAction:
+            readRuntimeControlAction(blocking.metadata) ??
+            owner?.action ??
+            null,
+          requestedAction: input.action,
+          activeOperationId: blocking.id,
+          startedAt:
+            blocking.startedAt instanceof Date
+              ? blocking.startedAt.toISOString()
+              : blocking.startedAt,
+          remediation:
+            "Wait for the active operation to reach a terminal state before retrying; abandoned operations are recovered automatically.",
+        },
+      );
     },
 
     createRecorder(input: {
@@ -488,11 +572,19 @@ export function workspaceOperationService(db: Db) {
 
           let stdoutExcerpt = "";
           let stderrExcerpt = "";
-          const append = async (stream: "stdout" | "stderr" | "system", chunk: string | null | undefined) => {
+          const append = async (
+            stream: "stdout" | "stderr" | "system",
+            chunk: string | null | undefined,
+          ) => {
             if (!chunk) return;
-            const sanitizedChunk = redactCurrentUserText(chunk, currentUserRedactionOptions);
-            if (stream === "stdout") stdoutExcerpt = appendExcerpt(stdoutExcerpt, sanitizedChunk);
-            if (stream === "stderr") stderrExcerpt = appendExcerpt(stderrExcerpt, sanitizedChunk);
+            const sanitizedChunk = redactCurrentUserText(
+              chunk,
+              currentUserRedactionOptions,
+            );
+            if (stream === "stdout")
+              stdoutExcerpt = appendExcerpt(stdoutExcerpt, sanitizedChunk);
+            if (stream === "stderr")
+              stderrExcerpt = appendExcerpt(stderrExcerpt, sanitizedChunk);
             await logStore.append(handle, {
               stream,
               chunk: sanitizedChunk,
@@ -502,7 +594,9 @@ export function workspaceOperationService(db: Db) {
 
           // Managed runtime controls get an ownership stamp so bounded recovery can tell a
           // slow-but-live operation from one abandoned by a dead request or server process.
-          const runtimeControlAction = readRuntimeControlAction(recordInput.metadata);
+          const runtimeControlAction = readRuntimeControlAction(
+            recordInput.metadata,
+          );
           let currentMetadata = runtimeControlAction
             ? {
                 ...(recordInput.metadata ?? {}),
@@ -513,7 +607,7 @@ export function workspaceOperationService(db: Db) {
                   heartbeatAt: startedAt.toISOString(),
                 } satisfies RuntimeControlOwnerStamp,
               }
-            : recordInput.metadata ?? null;
+            : (recordInput.metadata ?? null);
 
           // Claim in-process before the row exists, so there is no ordering in which a recovery
           // sweep can observe an operation stamped by this process but not yet tracked by it —
@@ -568,7 +662,12 @@ export function workspaceOperationService(db: Db) {
                   ) as Record<string, unknown> | null,
                   updatedAt: heartbeatAt,
                 })
-                .where(and(eq(workspaceOperations.id, id), eq(workspaceOperations.status, "running")))
+                .where(
+                  and(
+                    eq(workspaceOperations.id, id),
+                    eq(workspaceOperations.status, "running"),
+                  ),
+                )
                 .catch(() => undefined);
             }, RUNTIME_CONTROL_HEARTBEAT_MS);
             heartbeatTimer.unref?.();
@@ -579,7 +678,10 @@ export function workspaceOperationService(db: Db) {
             system?: string | null;
           }) => {
             await append("system", progress.system ?? null);
-            currentMetadata = combineMetadata(currentMetadata, progress.metadata);
+            currentMetadata = combineMetadata(
+              currentMetadata,
+              progress.metadata,
+            );
             await db
               .update(workspaceOperations)
               .set({
@@ -591,18 +693,31 @@ export function workspaceOperationService(db: Db) {
                 stderrExcerpt: stderrExcerpt || null,
                 updatedAt: new Date(),
               })
-              .where(and(eq(workspaceOperations.id, id), eq(workspaceOperations.status, "running")));
+              .where(
+                and(
+                  eq(workspaceOperations.id, id),
+                  eq(workspaceOperations.status, "running"),
+                ),
+              );
           };
 
-          const timeoutMs = recordInput.timeoutMs ?? defaultRuntimeControlTimeoutMs(runtimeControlAction);
+          const timeoutMs =
+            recordInput.timeoutMs ??
+            defaultRuntimeControlTimeoutMs(runtimeControlAction);
           const runWithActivity = async () => {
-            const nativeFinalization = recordInput.phase === "workspace_finalize"
-              && recordInput.metadata?.owningService === "native_workspace_finalizer"
-              && input.heartbeatRunId && input.issueId;
-            if (nativeFinalization) liveNativeFinalizationOperations.set(id, {
-              operationId: id, companyId: input.companyId,
-              runId: input.heartbeatRunId!, issueId: input.issueId!,
-            });
+            const nativeFinalization =
+              recordInput.phase === "workspace_finalize" &&
+              recordInput.metadata?.owningService ===
+                "native_workspace_finalizer" &&
+              input.heartbeatRunId &&
+              input.issueId;
+            if (nativeFinalization)
+              liveNativeFinalizationOperations.set(id, {
+                operationId: id,
+                companyId: input.companyId,
+                runId: input.heartbeatRunId!,
+                issueId: input.issueId!,
+              });
             try {
               return await recordInput.run(reportProgress);
             } finally {
@@ -615,7 +730,13 @@ export function workspaceOperationService(db: Db) {
             if (!timeoutMs || timeoutMs <= 0) return await runWithActivity();
             const timeout = new Promise<never>((_resolve, reject) => {
               timeoutTimer = setTimeout(
-                () => reject(new WorkspaceOperationTimeoutError(timeoutMs, runtimeControlAction)),
+                () =>
+                  reject(
+                    new WorkspaceOperationTimeoutError(
+                      timeoutMs,
+                      runtimeControlAction,
+                    ),
+                  ),
                 timeoutMs,
               );
               timeoutTimer.unref?.();
@@ -654,7 +775,10 @@ export function workspaceOperationService(db: Db) {
             if (!row) throw notFound("Workspace operation not found");
             return toWorkspaceOperation(row);
           } catch (error) {
-            await append("stderr", error instanceof Error ? error.message : String(error));
+            await append(
+              "stderr",
+              error instanceof Error ? error.message : String(error),
+            );
             const finalized = await logStore.finalize(handle).catch(() => null);
             const finishedAt = new Date();
             await db
@@ -673,9 +797,10 @@ export function workspaceOperationService(db: Db) {
                   ? {
                       metadata: redactCurrentUserValue(
                         combineMetadata(currentMetadata, {
-                          failureReason: error instanceof WorkspaceOperationTimeoutError
-                            ? "runtime_control_timeout"
-                            : "runtime_control_error",
+                          failureReason:
+                            error instanceof WorkspaceOperationTimeoutError
+                              ? "runtime_control_timeout"
+                              : "runtime_control_error",
                         }),
                         currentUserRedactionOptions,
                       ) as Record<string, unknown> | null,
@@ -711,7 +836,11 @@ export function workspaceOperationService(db: Db) {
         .select()
         .from(workspaceOperations)
         .where(conditions.length === 1 ? conditions[0]! : or(...conditions)!)
-        .orderBy(asc(workspaceOperations.startedAt), asc(workspaceOperations.createdAt), asc(workspaceOperations.id));
+        .orderBy(
+          asc(workspaceOperations.startedAt),
+          asc(workspaceOperations.createdAt),
+          asc(workspaceOperations.id),
+        );
 
       return rows.map(toWorkspaceOperation);
     },
@@ -720,15 +849,24 @@ export function workspaceOperationService(db: Db) {
       const rows = await db
         .select()
         .from(workspaceOperations)
-        .where(eq(workspaceOperations.executionWorkspaceId, executionWorkspaceId))
-        .orderBy(desc(workspaceOperations.startedAt), desc(workspaceOperations.createdAt));
+        .where(
+          eq(workspaceOperations.executionWorkspaceId, executionWorkspaceId),
+        )
+        .orderBy(
+          desc(workspaceOperations.startedAt),
+          desc(workspaceOperations.createdAt),
+        );
       return rows.map(toWorkspaceOperation);
     },
 
-    readLog: async (operationId: string, opts?: { offset?: number; limitBytes?: number }) => {
+    readLog: async (
+      operationId: string,
+      opts?: { offset?: number; limitBytes?: number },
+    ) => {
       const operation = await getById(operationId);
       if (!operation) throw notFound("Workspace operation not found");
-      if (!operation.logStore || !operation.logRef) throw notFound("Workspace operation log not found");
+      if (!operation.logStore || !operation.logRef)
+        throw notFound("Workspace operation log not found");
 
       const result = await logStore.read(
         {

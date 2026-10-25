@@ -1,7 +1,16 @@
-import { budgetServiceInTransaction, deliverBudgetEnforcement, type BudgetServiceHooks } from "./budgets.js";
+import {
+  budgetServiceInTransaction,
+  deliverBudgetEnforcement,
+  type BudgetServiceHooks,
+} from "./budgets.js";
 import { withAccountingTransaction } from "./accounting-transaction.js";
 import type { ActivityPublication } from "./activity-log.js";
-import { agentAppearanceSchema, randomAgentAppearance, resolveAgentAppearance, agentAvatarUrl } from "@taskcore/shared";
+import {
+  agentAppearanceSchema,
+  randomAgentAppearance,
+  resolveAgentAppearance,
+  agentAvatarUrl,
+} from "@taskcore/shared";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
@@ -34,9 +43,7 @@ import {
   type AgentEligibilityAgent,
   type AgentApiKeyScope,
 } from "@taskcore/shared";
-import {
-  normalizeTaskcoreRunnerAdapterConfig,
-} from "@taskcore/adapter-utils/server-utils";
+import { normalizeTaskcoreRunnerAdapterConfig } from "@taskcore/adapter-utils/server-utils";
 import { conflict, notFound, unprocessable } from "../errors.js";
 import {
   collectSecretRefs,
@@ -44,8 +51,16 @@ import {
   syncAgentAdapterEnvBindings,
 } from "./agent-secret-bindings.js";
 import { logActivity } from "./activity-log.js";
-import { NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS, newStandardAgentGrantScope, normalizeAgentPermissions, permissionsImplyLowTrust } from "./agent-permissions.js";
-import { recordAgentStatusEvent, recordResourceCreationEvent } from "./resource-lifecycle-events.js";
+import {
+  NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS,
+  newStandardAgentGrantScope,
+  normalizeAgentPermissions,
+  permissionsImplyLowTrust,
+} from "./agent-permissions.js";
+import {
+  recordAgentStatusEvent,
+  recordResourceCreationEvent,
+} from "./resource-lifecycle-events.js";
 import { REDACTED_EVENT_VALUE, sanitizeRecord } from "../redaction.js";
 import {
   assertClaudeOAuthBindingInvariant,
@@ -91,7 +106,10 @@ const CONFIG_REVISION_FIELDS = [
 ] as const;
 
 type ConfigRevisionField = (typeof CONFIG_REVISION_FIELDS)[number];
-type AgentConfigSnapshot = Pick<typeof agents.$inferSelect, ConfigRevisionField>;
+type AgentConfigSnapshot = Pick<
+  typeof agents.$inferSelect,
+  ConfigRevisionField
+>;
 
 interface RevisionMetadata {
   createdByAgentId?: string | null;
@@ -137,7 +155,11 @@ interface UpdateAgentOptions {
 
 interface CreateAgentOptions {
   createdByUserId?: string | null;
-  aiConnectionInstall?: { connectionId: string; memberConnectionIds?: string[]; createdByUserId: string | null };
+  aiConnectionInstall?: {
+    connectionId: string;
+    memberConnectionIds?: string[];
+    createdByUserId: string | null;
+  };
   allowBuiltInAgentMetadata?: boolean;
   claudeLogin?: ClaudeLoginContext;
 }
@@ -164,17 +186,23 @@ function buildConfigSnapshot(
   row: Pick<typeof agents.$inferSelect, ConfigRevisionField>,
 ): AgentConfigSnapshot {
   const adapterConfig =
-    typeof row.adapterConfig === "object" && row.adapterConfig !== null && !Array.isArray(row.adapterConfig)
+    typeof row.adapterConfig === "object" &&
+    row.adapterConfig !== null &&
+    !Array.isArray(row.adapterConfig)
       ? sanitizeRecord(row.adapterConfig as Record<string, unknown>)
       : {};
   const runtimeConfig =
-    typeof row.runtimeConfig === "object" && row.runtimeConfig !== null && !Array.isArray(row.runtimeConfig)
+    typeof row.runtimeConfig === "object" &&
+    row.runtimeConfig !== null &&
+    !Array.isArray(row.runtimeConfig)
       ? sanitizeRecord(row.runtimeConfig as Record<string, unknown>)
       : {};
   const metadata =
-    typeof row.metadata === "object" && row.metadata !== null && !Array.isArray(row.metadata)
+    typeof row.metadata === "object" &&
+    row.metadata !== null &&
+    !Array.isArray(row.metadata)
       ? sanitizeRecord(row.metadata as Record<string, unknown>)
-      : row.metadata ?? null;
+      : (row.metadata ?? null);
   return {
     name: row.name,
     role: row.role,
@@ -194,21 +222,28 @@ function buildConfigSnapshot(
 
 function containsRedactedMarker(value: unknown): boolean {
   if (value === REDACTED_EVENT_VALUE) return true;
-  if (Array.isArray(value)) return value.some((item) => containsRedactedMarker(item));
+  if (Array.isArray(value))
+    return value.some((item) => containsRedactedMarker(item));
   if (typeof value !== "object" || value === null) return false;
-  return Object.values(value as Record<string, unknown>).some((entry) => containsRedactedMarker(entry));
+  return Object.values(value as Record<string, unknown>).some((entry) =>
+    containsRedactedMarker(entry),
+  );
 }
 
 function hasConfigPatchFields(data: Partial<typeof agents.$inferInsert>) {
-  return CONFIG_REVISION_FIELDS.some((field) => Object.prototype.hasOwnProperty.call(data, field));
+  return CONFIG_REVISION_FIELDS.some((field) =>
+    Object.prototype.hasOwnProperty.call(data, field),
+  );
 }
 
 function changedPendingApprovalConfigFields(
   existing: typeof agents.$inferSelect,
   data: Partial<typeof agents.$inferInsert>,
 ) {
-  return CONFIG_REVISION_FIELDS.filter((field) =>
-    Object.prototype.hasOwnProperty.call(data, field) && !jsonEqual(data[field], existing[field]),
+  return CONFIG_REVISION_FIELDS.filter(
+    (field) =>
+      Object.prototype.hasOwnProperty.call(data, field) &&
+      !jsonEqual(data[field], existing[field]),
   );
 }
 
@@ -216,7 +251,8 @@ function configPatchFromApprovalPayload(payload: Record<string, unknown>) {
   const patch: Partial<typeof agents.$inferInsert> = {};
   if (typeof payload.name === "string") patch.name = payload.name;
   if (typeof payload.role === "string") patch.role = payload.role;
-  if (payload.appearance != null) patch.appearance = agentAppearanceSchema.parse(payload.appearance);
+  if (payload.appearance != null)
+    patch.appearance = agentAppearanceSchema.parse(payload.appearance);
   if (Object.prototype.hasOwnProperty.call(payload, "title")) {
     patch.title = typeof payload.title === "string" ? payload.title : null;
   }
@@ -224,17 +260,24 @@ function configPatchFromApprovalPayload(payload: Record<string, unknown>) {
     patch.icon = typeof payload.icon === "string" ? payload.icon : null;
   }
   if (Object.prototype.hasOwnProperty.call(payload, "reportsTo")) {
-    patch.reportsTo = typeof payload.reportsTo === "string" ? payload.reportsTo : null;
+    patch.reportsTo =
+      typeof payload.reportsTo === "string" ? payload.reportsTo : null;
   }
   if (Object.prototype.hasOwnProperty.call(payload, "capabilities")) {
-    patch.capabilities = typeof payload.capabilities === "string" ? payload.capabilities : null;
+    patch.capabilities =
+      typeof payload.capabilities === "string" ? payload.capabilities : null;
   }
-  if (typeof payload.adapterType === "string") patch.adapterType = payload.adapterType;
-  if (isPlainRecord(payload.adapterConfig)) patch.adapterConfig = payload.adapterConfig;
-  if (isPlainRecord(payload.runtimeConfig)) patch.runtimeConfig = payload.runtimeConfig;
+  if (typeof payload.adapterType === "string")
+    patch.adapterType = payload.adapterType;
+  if (isPlainRecord(payload.adapterConfig))
+    patch.adapterConfig = payload.adapterConfig;
+  if (isPlainRecord(payload.runtimeConfig))
+    patch.runtimeConfig = payload.runtimeConfig;
   if (Object.prototype.hasOwnProperty.call(payload, "defaultEnvironmentId")) {
     patch.defaultEnvironmentId =
-      typeof payload.defaultEnvironmentId === "string" ? payload.defaultEnvironmentId : null;
+      typeof payload.defaultEnvironmentId === "string"
+        ? payload.defaultEnvironmentId
+        : null;
   }
   if (typeof payload.budgetMonthlyCents === "number") {
     patch.budgetMonthlyCents = payload.budgetMonthlyCents;
@@ -255,8 +298,12 @@ function parseFiniteNumberLike(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeRuntimeConfigForNewAgent(runtimeConfig: unknown): Record<string, unknown> {
-  const normalizedRuntimeConfig = isPlainRecord(runtimeConfig) ? { ...runtimeConfig } : {};
+function normalizeRuntimeConfigForNewAgent(
+  runtimeConfig: unknown,
+): Record<string, unknown> {
+  const normalizedRuntimeConfig = isPlainRecord(runtimeConfig)
+    ? { ...runtimeConfig }
+    : {};
   const heartbeat = isPlainRecord(normalizedRuntimeConfig.heartbeat)
     ? { ...normalizedRuntimeConfig.heartbeat }
     : {};
@@ -271,11 +318,16 @@ function diffConfigSnapshot(
   before: AgentConfigSnapshot,
   after: AgentConfigSnapshot,
 ): string[] {
-  return CONFIG_REVISION_FIELDS.filter((field) => !jsonEqual(before[field], after[field]));
+  return CONFIG_REVISION_FIELDS.filter(
+    (field) => !jsonEqual(before[field], after[field]),
+  );
 }
 
-function configPatchFromSnapshot(snapshot: unknown): Partial<typeof agents.$inferInsert> {
-  if (!isPlainRecord(snapshot)) throw unprocessable("Invalid revision snapshot");
+function configPatchFromSnapshot(
+  snapshot: unknown,
+): Partial<typeof agents.$inferInsert> {
+  if (!isPlainRecord(snapshot))
+    throw unprocessable("Invalid revision snapshot");
 
   if (typeof snapshot.name !== "string" || snapshot.name.length === 0) {
     throw unprocessable("Invalid revision snapshot: name");
@@ -283,10 +335,16 @@ function configPatchFromSnapshot(snapshot: unknown): Partial<typeof agents.$infe
   if (typeof snapshot.role !== "string" || snapshot.role.length === 0) {
     throw unprocessable("Invalid revision snapshot: role");
   }
-  if (typeof snapshot.adapterType !== "string" || snapshot.adapterType.length === 0) {
+  if (
+    typeof snapshot.adapterType !== "string" ||
+    snapshot.adapterType.length === 0
+  ) {
     throw unprocessable("Invalid revision snapshot: adapterType");
   }
-  if (typeof snapshot.budgetMonthlyCents !== "number" || !Number.isFinite(snapshot.budgetMonthlyCents)) {
+  if (
+    typeof snapshot.budgetMonthlyCents !== "number" ||
+    !Number.isFinite(snapshot.budgetMonthlyCents)
+  ) {
     throw unprocessable("Invalid revision snapshot: budgetMonthlyCents");
   }
   const runtimeConfig = agentRuntimeConfigSchema.safeParse(
@@ -299,22 +357,34 @@ function configPatchFromSnapshot(snapshot: unknown): Partial<typeof agents.$infe
   return {
     name: snapshot.name,
     role: snapshot.role,
-    title: typeof snapshot.title === "string" || snapshot.title === null ? snapshot.title : null,
+    title:
+      typeof snapshot.title === "string" || snapshot.title === null
+        ? snapshot.title
+        : null,
     reportsTo:
-      typeof snapshot.reportsTo === "string" || snapshot.reportsTo === null ? snapshot.reportsTo : null,
+      typeof snapshot.reportsTo === "string" || snapshot.reportsTo === null
+        ? snapshot.reportsTo
+        : null,
     capabilities:
-      typeof snapshot.capabilities === "string" || snapshot.capabilities === null
+      typeof snapshot.capabilities === "string" ||
+      snapshot.capabilities === null
         ? snapshot.capabilities
         : null,
     adapterType: snapshot.adapterType,
-    adapterConfig: isPlainRecord(snapshot.adapterConfig) ? snapshot.adapterConfig : {},
+    adapterConfig: isPlainRecord(snapshot.adapterConfig)
+      ? snapshot.adapterConfig
+      : {},
     runtimeConfig: runtimeConfig.data,
     defaultEnvironmentId:
-      typeof snapshot.defaultEnvironmentId === "string" || snapshot.defaultEnvironmentId === null
+      typeof snapshot.defaultEnvironmentId === "string" ||
+      snapshot.defaultEnvironmentId === null
         ? snapshot.defaultEnvironmentId
         : null,
     budgetMonthlyCents: Math.max(0, Math.floor(snapshot.budgetMonthlyCents)),
-    metadata: isPlainRecord(snapshot.metadata) || snapshot.metadata === null ? snapshot.metadata : null,
+    metadata:
+      isPlainRecord(snapshot.metadata) || snapshot.metadata === null
+        ? snapshot.metadata
+        : null,
   };
 }
 
@@ -328,7 +398,8 @@ export function hasAgentShortnameCollision(
 
   return existingAgents.some((agent) => {
     if (agent.status === "terminated") return false;
-    if (options?.excludeAgentId && agent.id === options.excludeAgentId) return false;
+    if (options?.excludeAgentId && agent.id === options.excludeAgentId)
+      return false;
     return normalizeAgentUrlKey(agent.name) === candidateShortname;
   });
 }
@@ -375,7 +446,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     });
   }
 
-  function toEligibilityAgent(row: Pick<typeof agents.$inferSelect, "id" | "companyId" | "name" | "status" | "reportsTo">): AgentEligibilityAgent {
+  function toEligibilityAgent(
+    row: Pick<
+      typeof agents.$inferSelect,
+      "id" | "companyId" | "name" | "status" | "reportsTo"
+    >,
+  ): AgentEligibilityAgent {
     return {
       id: row.id,
       companyId: row.companyId,
@@ -385,7 +461,10 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     };
   }
 
-  function normalizeAgentRows(rows: (typeof agents.$inferSelect)[], allCompanyRows = rows) {
+  function normalizeAgentRows(
+    rows: (typeof agents.$inferSelect)[],
+    allCompanyRows = rows,
+  ) {
     const eligibilityAgents = allCompanyRows.map(toEligibilityAgent);
     return rows.map((row) => {
       const base = normalizeAgentBaseRow(row);
@@ -402,7 +481,10 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     });
   }
 
-  function normalizeAgentRow(row: typeof agents.$inferSelect, allCompanyRows?: (typeof agents.$inferSelect)[]) {
+  function normalizeAgentRow(
+    row: typeof agents.$inferSelect,
+    allCompanyRows?: (typeof agents.$inferSelect)[],
+  ) {
     return normalizeAgentRows([row], allCompanyRows)[0]!;
   }
 
@@ -410,7 +492,10 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     return db.select().from(agents).where(eq(agents.companyId, companyId));
   }
 
-  async function getMonthlySpendByAgentIds(companyId: string, agentIds: string[]) {
+  async function getMonthlySpendByAgentIds(
+    companyId: string,
+    agentIds: string[],
+  ) {
     if (agentIds.length === 0) return new Map<string, number>();
     const { start, end } = currentUtcMonthWindow();
     const rows = await db
@@ -428,10 +513,14 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         ),
       )
       .groupBy(costEvents.agentId);
-    return new Map(rows.map((row) => [row.agentId, Number(row.spentMonthlyCents ?? 0)]));
+    return new Map(
+      rows.map((row) => [row.agentId, Number(row.spentMonthlyCents ?? 0)]),
+    );
   }
 
-  async function hydrateAgentSpend<T extends { id: string; companyId: string; spentMonthlyCents: number }>(rows: T[]) {
+  async function hydrateAgentSpend<
+    T extends { id: string; companyId: string; spentMonthlyCents: number },
+  >(rows: T[]) {
     const agentIds = rows.map((row) => row.id);
     const companyId = rows[0]?.companyId;
     if (!companyId || agentIds.length === 0) return rows;
@@ -471,13 +560,18 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     return manager;
   }
 
-  async function assertNoCycle(agentId: string, reportsTo: string | null | undefined) {
+  async function assertNoCycle(
+    agentId: string,
+    reportsTo: string | null | undefined,
+  ) {
     if (!reportsTo) return;
-    if (reportsTo === agentId) throw unprocessable("Agent cannot report to itself");
+    if (reportsTo === agentId)
+      throw unprocessable("Agent cannot report to itself");
 
     let cursor: string | null = reportsTo;
     while (cursor) {
-      if (cursor === agentId) throw unprocessable("Reporting relationship would create cycle");
+      if (cursor === agentId)
+        throw unprocessable("Reporting relationship would create cycle");
       const next = await getById(cursor);
       cursor = next?.reportsTo ?? null;
     }
@@ -500,7 +594,11 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       .from(agents)
       .where(eq(agents.companyId, companyId));
 
-    const hasCollision = hasAgentShortnameCollision(candidateName, existingAgents, options);
+    const hasCollision = hasAgentShortnameCollision(
+      candidateName,
+      existingAgents,
+      options,
+    );
     if (hasCollision) {
       throw conflict(
         `Agent shortname '${candidateShortname}' is already in use in this company`,
@@ -514,7 +612,8 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     previousAdapterConfig: unknown = null,
     actor: RevisionMetadata = {},
   ) {
-    const scopedSecretsSvc = dbClient === db ? secretsSvc : secretService(dbClient);
+    const scopedSecretsSvc =
+      dbClient === db ? secretsSvc : secretService(dbClient);
     await syncAgentAdapterEnvBindings({
       secretsSvc: scopedSecretsSvc,
       companyId: agent.companyId,
@@ -522,8 +621,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       adapterConfig: agent.adapterConfig,
     });
     const previousRefs = new Set([
-      ...collectSecretRefs(previousAdapterConfig).map((ref) => `secret:${ref.secretId}:${ref.configPath}`),
-      ...collectUserSecretRefs(previousAdapterConfig).map((ref) => `user:${ref.definitionKey}:${ref.configPath}`),
+      ...collectSecretRefs(previousAdapterConfig).map(
+        (ref) => `secret:${ref.secretId}:${ref.configPath}`,
+      ),
+      ...collectUserSecretRefs(previousAdapterConfig).map(
+        (ref) => `user:${ref.definitionKey}:${ref.configPath}`,
+      ),
     ]);
     const createdRefs = [
       ...collectSecretRefs(agent.adapterConfig).map((ref) => ({
@@ -541,7 +644,11 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         definitionKey: ref.definitionKey,
       })),
     ].filter((ref) => !previousRefs.has(ref.key));
-    const actorType = actor.createdByUserId ? "user" as const : actor.createdByAgentId ? "agent" as const : "system" as const;
+    const actorType = actor.createdByUserId
+      ? ("user" as const)
+      : actor.createdByAgentId
+        ? ("agent" as const)
+        : ("system" as const);
     const actorId = actor.createdByUserId ?? actor.createdByAgentId ?? "system";
     for (const ref of createdRefs) {
       await logActivity(dbClient, {
@@ -627,7 +734,10 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     },
   ): Promise<void> {
     const ownerUserId = input.claudeLogin?.ownerUserId ?? null;
-    if (input.decision.introducesBinding && !input.claudeLogin?.allowInternalBindingOverride) {
+    if (
+      input.decision.introducesBinding &&
+      !input.claudeLogin?.allowInternalBindingOverride
+    ) {
       if (input.claudeLogin?.applyExistingWithoutClaim) {
         // The user-actor apply-existing path. The route derived the owner from
         // the authenticated user actor. The gate binds the fixed reference only
@@ -635,10 +745,9 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         if (!ownerUserId) {
           throw claudeOAuthClaimRejectedError();
         }
-        const stored = await secretService(txDb).readClaudeOAuthUserSecretStatus(
-          input.companyId,
-          ownerUserId,
-        );
+        const stored = await secretService(
+          txDb,
+        ).readClaudeOAuthUserSecretStatus(input.companyId, ownerUserId);
         if (!stored) {
           throw claudeOAuthClaimRejectedError();
         }
@@ -660,8 +769,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
           .where(eq(agents.id, parentId))
           .for("update")
           .then((rows) => rows[0] ?? null);
-        const parentBinding = readClaudeOAuthBinding(parent?.adapterConfig ?? null);
-        const childBinding = readClaudeOAuthBinding(input.childAdapterConfig ?? null);
+        const parentBinding = readClaudeOAuthBinding(
+          parent?.adapterConfig ?? null,
+        );
+        const childBinding = readClaudeOAuthBinding(
+          input.childAdapterConfig ?? null,
+        );
         if (
           !parent ||
           parent.companyId !== input.companyId ||
@@ -673,7 +786,9 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       } else if (!input.consume) {
         throw claudeOAuthClaimRejectedError();
       } else {
-        const consumed = await createDbSetupTokenCleanupStore(txDb).consumeStoredClaim({
+        const consumed = await createDbSetupTokenCleanupStore(
+          txDb,
+        ).consumeStoredClaim({
           sessionId: input.claudeLogin?.storedSessionId ?? "",
           companyId: input.companyId,
           ownerUserId: ownerUserId ?? "",
@@ -686,9 +801,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     }
     if (input.decision.introducesBinding || input.decision.keepsBinding) {
       // Create the fixed definition before declaration synchronization.
-      await secretService(txDb).ensureClaudeOAuthUserSecretDefinition(input.companyId, {
-        userId: ownerUserId,
-      });
+      await secretService(txDb).ensureClaudeOAuthUserSecretDefinition(
+        input.companyId,
+        {
+          userId: ownerUserId,
+        },
+      );
     }
   }
 
@@ -701,10 +819,13 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     const beforeMarker = readBuiltInAgentMarker(beforeMetadata);
     const afterMarker = readBuiltInAgentMarker(afterMetadata);
     if (builtInAgentMarkersEqual(beforeMarker, afterMarker)) return;
-    throw conflict("Built-in agent marker is managed by Taskcore and cannot be edited directly", {
-      code: "built_in_agent_marker_readonly",
-      key: beforeMarker?.key ?? afterMarker?.key ?? null,
-    });
+    throw conflict(
+      "Built-in agent marker is managed by Taskcore and cannot be edited directly",
+      {
+        code: "built_in_agent_marker_readonly",
+        key: beforeMarker?.key ?? afterMarker?.key ?? null,
+      },
+    );
   }
 
   async function updateAgent(
@@ -715,7 +836,11 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     const existing = await getById(id);
     if (!existing) return null;
 
-    if (existing.status === "terminated" && data.status && data.status !== "terminated") {
+    if (
+      existing.status === "terminated" &&
+      data.status &&
+      data.status !== "terminated"
+    ) {
       throw conflict("Terminated agents cannot be resumed");
     }
     if (
@@ -726,14 +851,23 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     ) {
       throw conflict("Pending approval agents cannot be activated directly");
     }
-    if (existing.status === "pending_approval" && !options?.allowPendingApprovalConfigUpdate) {
-      const changedFields = changedPendingApprovalConfigFields(existing as typeof agents.$inferSelect, data);
+    if (
+      existing.status === "pending_approval" &&
+      !options?.allowPendingApprovalConfigUpdate
+    ) {
+      const changedFields = changedPendingApprovalConfigFields(
+        existing as typeof agents.$inferSelect,
+        data,
+      );
       if (changedFields.length > 0) {
-        throw conflict("Pending approval agent configuration cannot be changed before board approval", {
-          code: "pending_approval_agent_config_frozen",
-          agentId: id,
-          fields: changedFields,
-        });
+        throw conflict(
+          "Pending approval agent configuration cannot be changed before board approval",
+          {
+            code: "pending_approval_agent_config_frozen",
+            agentId: id,
+            fields: changedFields,
+          },
+        );
       }
     }
 
@@ -748,21 +882,41 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const previousShortname = normalizeAgentUrlKey(existing.name);
       const nextShortname = normalizeAgentUrlKey(data.name);
       if (previousShortname !== nextShortname) {
-        await assertCompanyShortnameAvailable(existing.companyId, data.name, { excludeAgentId: id });
+        await assertCompanyShortnameAvailable(existing.companyId, data.name, {
+          excludeAgentId: id,
+        });
       }
     }
 
     if (Object.prototype.hasOwnProperty.call(data, "metadata")) {
-      assertBuiltInAgentMetadataMutationAllowed(existing.metadata, data.metadata, options);
+      assertBuiltInAgentMetadataMutationAllowed(
+        existing.metadata,
+        data.metadata,
+        options,
+      );
     }
 
     if (data.appearance?.customAvatarAssetId) {
-      const [asset] = await db.select().from(assets).where(and(
-        eq(assets.id, data.appearance.customAvatarAssetId), eq(assets.companyId, existing.companyId),
-        eq(assets.createdByAgentId, id),
-      ));
-      if (!asset || asset.contentType !== "image/png" || !asset.objectKey.startsWith(`${existing.companyId}/agent-avatars/${id}/`)) {
-        throw unprocessable("Use the avatar upload endpoint to set this agent's image");
+      const [asset] = await db
+        .select()
+        .from(assets)
+        .where(
+          and(
+            eq(assets.id, data.appearance.customAvatarAssetId),
+            eq(assets.companyId, existing.companyId),
+            eq(assets.createdByAgentId, id),
+          ),
+        );
+      if (
+        !asset ||
+        asset.contentType !== "image/png" ||
+        !asset.objectKey.startsWith(
+          `${existing.companyId}/agent-avatars/${id}/`,
+        )
+      ) {
+        throw unprocessable(
+          "Use the avatar upload endpoint to set this agent's image",
+        );
       }
     }
     const normalizedPatch = { ...data } as Partial<typeof agents.$inferInsert>;
@@ -773,18 +927,22 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       Object.prototype.hasOwnProperty.call(normalizedPatch, "adapterConfig") &&
       isPlainRecord(normalizedPatch.adapterConfig)
     ) {
-      const normalizedAdapterConfig = await secretsSvc.normalizeAdapterConfigForPersistence(
-        existing.companyId,
-        normalizedPatch.adapterConfig,
-        { adapterType: (normalizedPatch.adapterType ?? existing.adapterType) as string },
-      );
+      const normalizedAdapterConfig =
+        await secretsSvc.normalizeAdapterConfigForPersistence(
+          existing.companyId,
+          normalizedPatch.adapterConfig,
+          {
+            adapterType: (normalizedPatch.adapterType ??
+              existing.adapterType) as string,
+          },
+        );
       normalizedPatch.adapterConfig = normalizeTaskcoreRunnerAdapterConfig(
         (normalizedPatch.adapterType ?? existing.adapterType) as string,
         normalizedAdapterConfig,
       );
     } else if (
-      Object.prototype.hasOwnProperty.call(normalizedPatch, "adapterType")
-      && isPlainRecord(existing.adapterConfig)
+      Object.prototype.hasOwnProperty.call(normalizedPatch, "adapterType") &&
+      isPlainRecord(existing.adapterConfig)
     ) {
       normalizedPatch.adapterConfig = normalizeTaskcoreRunnerAdapterConfig(
         normalizedPatch.adapterType as string,
@@ -795,27 +953,52 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     // adapter config. The update, approval, and rollback paths keep an existing
     // fixed binding but reject a newly introduced binding, because they carry no
     // stored-session claim.
-    const bindingDecision = Object.prototype.hasOwnProperty.call(normalizedPatch, "adapterConfig")
+    const bindingDecision = Object.prototype.hasOwnProperty.call(
+      normalizedPatch,
+      "adapterConfig",
+    )
       ? assertClaudeOAuthBindingInvariant({
-          adapterType: (normalizedPatch.adapterType ?? existing.adapterType) as string,
+          adapterType: (normalizedPatch.adapterType ??
+            existing.adapterType) as string,
           nextConfig: normalizedPatch.adapterConfig,
           priorConfig: existing.adapterConfig,
         })
       : null;
 
-    const shouldRecordRevision = Boolean(options?.recordRevision) && hasConfigPatchFields(normalizedPatch);
-    const beforeConfig = shouldRecordRevision ? buildConfigSnapshot(existing) : null;
+    const shouldRecordRevision =
+      Boolean(options?.recordRevision) && hasConfigPatchFields(normalizedPatch);
+    const beforeConfig = shouldRecordRevision
+      ? buildConfigSnapshot(existing)
+      : null;
 
     type AgentUpdateResult = Awaited<ReturnType<typeof getById>>;
-    const applyUpdate = async (txDb: Db, publications: ActivityPublication[] = []): Promise<AgentUpdateResult> => {
-      const current = data.status !== undefined
-        ? await txDb.select().from(agents).where(eq(agents.id, id)).for("update").then(rows => rows[0] ?? null)
-        : existing;
+    const applyUpdate = async (
+      txDb: Db,
+      publications: ActivityPublication[] = [],
+    ): Promise<AgentUpdateResult> => {
+      const current =
+        data.status !== undefined
+          ? await txDb
+              .select()
+              .from(agents)
+              .where(eq(agents.id, id))
+              .for("update")
+              .then((rows) => rows[0] ?? null)
+          : existing;
       if (!current) return null;
-      if (current.status === "terminated" && data.status && data.status !== "terminated") {
+      if (
+        current.status === "terminated" &&
+        data.status &&
+        data.status !== "terminated"
+      ) {
         throw conflict("Terminated agents cannot be resumed");
       }
-      if (current.status === "pending_approval" && data.status && data.status !== "pending_approval" && data.status !== "terminated") {
+      if (
+        current.status === "pending_approval" &&
+        data.status &&
+        data.status !== "pending_approval" &&
+        data.status !== "terminated"
+      ) {
         throw conflict("Pending approval agents cannot be activated directly");
       }
       const updated = await txDb
@@ -829,22 +1012,55 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         await clearPrimaryAgent(txDb, updated.companyId, id);
       }
       if (data.status !== undefined) {
-        await recordAgentStatusEvent(txDb, updated.companyId, id, current.status, updated.status);
+        await recordAgentStatusEvent(
+          txDb,
+          updated.companyId,
+          id,
+          current.status,
+          updated.status,
+        );
       }
 
-      const priorAdapterConfig = isPlainRecord(existing.adapterConfig) ? existing.adapterConfig : {};
-      const afterConfig = isPlainRecord(updated.adapterConfig) ? updated.adapterConfig : {};
-      const changedExecution = updated.adapterType !== existing.adapterType
-        || (updated.adapterType === "taskcore_runner" && ["provider", "acpxAgent", "model"].some(
-          (key) => priorAdapterConfig[key] !== afterConfig[key],
-        ));
+      const priorAdapterConfig = isPlainRecord(existing.adapterConfig)
+        ? existing.adapterConfig
+        : {};
+      const afterConfig = isPlainRecord(updated.adapterConfig)
+        ? updated.adapterConfig
+        : {};
+      const changedExecution =
+        updated.adapterType !== existing.adapterType ||
+        (updated.adapterType === "taskcore_runner" &&
+          ["provider", "acpxAgent", "model"].some(
+            (key) => priorAdapterConfig[key] !== afterConfig[key],
+          ));
       if (changedExecution) {
-        await txDb.delete(agentTaskSessions).where(and(eq(agentTaskSessions.companyId, existing.companyId), eq(agentTaskSessions.agentId, id)));
-        await txDb.update(agentRuntimeState).set({ adapterType: updated.adapterType, sessionId: null, stateJson: {}, updatedAt: new Date() })
-          .where(and(eq(agentRuntimeState.companyId, existing.companyId), eq(agentRuntimeState.agentId, id)));
+        await txDb
+          .delete(agentTaskSessions)
+          .where(
+            and(
+              eq(agentTaskSessions.companyId, existing.companyId),
+              eq(agentTaskSessions.agentId, id),
+            ),
+          );
+        await txDb
+          .update(agentRuntimeState)
+          .set({
+            adapterType: updated.adapterType,
+            sessionId: null,
+            stateJson: {},
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(agentRuntimeState.companyId, existing.companyId),
+              eq(agentRuntimeState.agentId, id),
+            ),
+          );
       }
 
-      if (Object.prototype.hasOwnProperty.call(normalizedPatch, "adapterConfig")) {
+      if (
+        Object.prototype.hasOwnProperty.call(normalizedPatch, "adapterConfig")
+      ) {
         if (bindingDecision) {
           await enforceClaudeOAuthBindingClaim(txDb, {
             companyId: existing.companyId,
@@ -863,9 +1079,17 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       }
 
       if (normalizedPatch.budgetMonthlyCents !== undefined) {
-        await budgetServiceInTransaction(txDb, publications).upsertPolicy(existing.companyId, {
-          scopeType: "agent", scopeId: id, amount: normalizedPatch.budgetMonthlyCents, isActive: normalizedPatch.budgetMonthlyCents > 0, windowKind: "calendar_month_utc",
-        }, options?.recordRevision?.createdByUserId ?? null);
+        await budgetServiceInTransaction(txDb, publications).upsertPolicy(
+          existing.companyId,
+          {
+            scopeType: "agent",
+            scopeId: id,
+            amount: normalizedPatch.budgetMonthlyCents,
+            isActive: normalizedPatch.budgetMonthlyCents > 0,
+            windowKind: "calendar_month_utc",
+          },
+          options?.recordRevision?.createdByUserId ?? null,
+        );
       }
       const normalizedUpdated = await agentService(txDb).getById(updated.id);
       if (!normalizedUpdated) {
@@ -882,7 +1106,8 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
             createdByAgentId: options?.recordRevision?.createdByAgentId ?? null,
             createdByUserId: options?.recordRevision?.createdByUserId ?? null,
             source: options?.recordRevision?.source ?? "patch",
-            rolledBackFromRevisionId: options?.recordRevision?.rolledBackFromRevisionId ?? null,
+            rolledBackFromRevisionId:
+              options?.recordRevision?.rolledBackFromRevisionId ?? null,
             changedKeys,
             beforeConfig: beforeConfig as unknown as Record<string, unknown>,
             afterConfig: afterConfig as unknown as Record<string, unknown>,
@@ -894,26 +1119,40 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     };
 
     if (normalizedPatch.budgetMonthlyCents !== undefined) {
-      const result = await withAccountingTransaction(db, existing.companyId, applyUpdate);
+      const result = await withAccountingTransaction(
+        db,
+        existing.companyId,
+        applyUpdate,
+      );
       await deliverBudgetEnforcement(db, budgetHooks, existing.companyId);
       return result;
     }
 
-    const transaction = (db as unknown as {
-      transaction?: (callback: (tx: unknown) => Promise<AgentUpdateResult>) => Promise<AgentUpdateResult>;
-    }).transaction;
+    const transaction = (
+      db as unknown as {
+        transaction?: (
+          callback: (tx: unknown) => Promise<AgentUpdateResult>,
+        ) => Promise<AgentUpdateResult>;
+      }
+    ).transaction;
     if (typeof transaction !== "function") return applyUpdate(db);
     return transaction.call(db, async (tx) => applyUpdate(tx as unknown as Db));
   }
 
   return {
-    list: async (companyId: string, options?: { includeTerminated?: boolean }) => {
+    list: async (
+      companyId: string,
+      options?: { includeTerminated?: boolean },
+    ) => {
       const conditions = [eq(agents.companyId, companyId)];
       if (!options?.includeTerminated) {
         conditions.push(ne(agents.status, "terminated"));
       }
       const [rows, allCompanyRows] = await Promise.all([
-        db.select().from(agents).where(and(...conditions)),
+        db
+          .select()
+          .from(agents)
+          .where(and(...conditions)),
         listCompanyAgentRows(companyId),
       ]);
       const hydrated = await hydrateAgentSpend(rows);
@@ -922,8 +1161,13 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
 
     getById,
 
-    create: async (companyId: string, data: Omit<typeof agents.$inferInsert, "companyId">, options?: CreateAgentOptions) => {
-      if (data.appearance?.customAvatarAssetId) throw unprocessable("Create the agent before uploading its avatar");
+    create: async (
+      companyId: string,
+      data: Omit<typeof agents.$inferInsert, "companyId">,
+      options?: CreateAgentOptions,
+    ) => {
+      if (data.appearance?.customAvatarAssetId)
+        throw unprocessable("Create the agent before uploading its avatar");
       assertBuiltInAgentMetadataMutationAllowed(null, data.metadata, options);
       if (data.reportsTo) {
         await ensureManager(companyId, data.reportsTo);
@@ -936,13 +1180,25 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const uniqueName = deduplicateAgentName(data.name, existingAgents);
 
       const role = data.role ?? "general";
-      const normalizedPermissions = normalizeAgentPermissions(data.permissions, { context: "create" });
-      const runtimeConfig = normalizeRuntimeConfigForNewAgent(data.runtimeConfig);
+      const normalizedPermissions = normalizeAgentPermissions(
+        data.permissions,
+        { context: "create" },
+      );
+      const runtimeConfig = normalizeRuntimeConfigForNewAgent(
+        data.runtimeConfig,
+      );
       const adapterType = data.adapterType ?? "process";
       const rawAdapterConfig = isPlainRecord(data.adapterConfig)
-        ? await secretsSvc.normalizeAdapterConfigForPersistence(companyId, data.adapterConfig, { adapterType })
+        ? await secretsSvc.normalizeAdapterConfigForPersistence(
+            companyId,
+            data.adapterConfig,
+            { adapterType },
+          )
         : {};
-      const adapterConfig = normalizeTaskcoreRunnerAdapterConfig(adapterType, rawAdapterConfig);
+      const adapterConfig = normalizeTaskcoreRunnerAdapterConfig(
+        adapterType,
+        rawAdapterConfig,
+      );
       // Run the server-enforced binding invariant after generic normalization
       // and before any database write. A create has no prior config.
       const bindingDecision = assertClaudeOAuthBindingInvariant({
@@ -959,7 +1215,8 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
           companyId,
           decision: bindingDecision,
           consume: true,
-          environmentId: (data.defaultEnvironmentId as string | null | undefined) ?? null,
+          environmentId:
+            (data.defaultEnvironmentId as string | null | undefined) ?? null,
           claudeLogin: options?.claudeLogin,
           childAdapterConfig: adapterConfig,
         });
@@ -968,7 +1225,10 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
           .values({
             ...data,
             name: uniqueName,
-            appearance: data.appearance == null ? randomAgentAppearance() : agentAppearanceSchema.parse(data.appearance),
+            appearance:
+              data.appearance == null
+                ? randomAgentAppearance()
+                : agentAppearanceSchema.parse(data.appearance),
             companyId,
             role,
             adapterType,
@@ -978,36 +1238,73 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
           })
           .returning()
           .then((rows) => rows[0]);
-        await agentIdentityService(txDb).ensureAgentIdentity(companyId, created.id);
+        await agentIdentityService(txDb).ensureAgentIdentity(
+          companyId,
+          created.id,
+        );
         // New standard agents receive the standard direct grants at activation.
         // Low-trust and bundled agents keep their explicit, narrower grants.
-        if (created.status !== "pending_approval" && !permissionsImplyLowTrust(normalizedPermissions) &&
-            !readBuiltInAgentMarker(created.metadata)) {
-          await tx.insert(principalPermissionGrants).values(
-            NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS.map((permissionKey) => ({
-              companyId,
-              principalType: "agent" as const,
-              principalId: created.id,
-              permissionKey,
-              scope: newStandardAgentGrantScope(permissionKey, created.id),
-            })),
-          ).onConflictDoNothing();
+        if (
+          created.status !== "pending_approval" &&
+          !permissionsImplyLowTrust(normalizedPermissions) &&
+          !readBuiltInAgentMarker(created.metadata)
+        ) {
+          await tx
+            .insert(principalPermissionGrants)
+            .values(
+              NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS.map((permissionKey) => ({
+                companyId,
+                principalType: "agent" as const,
+                principalId: created.id,
+                permissionKey,
+                scope: newStandardAgentGrantScope(permissionKey, created.id),
+              })),
+            )
+            .onConflictDoNothing();
         }
         if (options?.aiConnectionInstall) {
           const install = options.aiConnectionInstall;
-          const connectionIds = [...new Set([install.connectionId, ...(install.memberConnectionIds ?? [])])];
-          await tx.insert(toolConnectionInstalls).values(connectionIds.map(connectionId => ({
-            companyId, connectionId,
-            targetType: "agent" as const, targetId: created.id,
-            createdByUserId: install.createdByUserId,
-          }))).onConflictDoNothing();
+          const connectionIds = [
+            ...new Set([
+              install.connectionId,
+              ...(install.memberConnectionIds ?? []),
+            ]),
+          ];
+          await tx
+            .insert(toolConnectionInstalls)
+            .values(
+              connectionIds.map((connectionId) => ({
+                companyId,
+                connectionId,
+                targetType: "agent" as const,
+                targetId: created.id,
+                createdByUserId: install.createdByUserId,
+              })),
+            )
+            .onConflictDoNothing();
         }
         await syncAgentSecretBindings(created, txDb);
-        if (options?.createdByUserId && !readBuiltInAgentMarker(created.metadata)) {
-          await initializePrimaryAgent(txDb, companyId, options.createdByUserId, created.id);
+        if (
+          options?.createdByUserId &&
+          !readBuiltInAgentMarker(created.metadata)
+        ) {
+          await initializePrimaryAgent(
+            txDb,
+            companyId,
+            options.createdByUserId,
+            created.id,
+          );
         }
-        if (created.status !== "pending_approval" && created.status !== "terminated") {
-          await recordResourceCreationEvent(txDb, companyId, "agent", created.id);
+        if (
+          created.status !== "pending_approval" &&
+          created.status !== "terminated"
+        ) {
+          await recordResourceCreationEvent(
+            txDb,
+            companyId,
+            "agent",
+            created.id,
+          );
         }
         const normalizedCreated = await agentService(txDb).getById(created.id);
         if (!normalizedCreated) {
@@ -1019,10 +1316,14 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
 
     update: updateAgent,
 
-    pause: async (id: string, reason: "manual" | "budget" | "system" = "manual") => {
+    pause: async (
+      id: string,
+      reason: "manual" | "budget" | "system" = "manual",
+    ) => {
       const existing = await getById(id);
       if (!existing) return null;
-      if (existing.status === "terminated") throw conflict("Cannot pause terminated agent");
+      if (existing.status === "terminated")
+        throw conflict("Cannot pause terminated agent");
 
       return updateAgent(id, {
         status: "paused",
@@ -1035,7 +1336,8 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     resume: async (id: string) => {
       const existing = await getById(id);
       if (!existing) return null;
-      if (existing.status === "terminated") throw conflict("Cannot resume terminated agent");
+      if (existing.status === "terminated")
+        throw conflict("Cannot resume terminated agent");
       if (existing.status === "pending_approval") {
         throw conflict("Pending approval agents cannot be resumed");
       }
@@ -1051,12 +1353,15 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     clearError: async (id: string) => {
       const existing = await getById(id);
       if (!existing) return null;
-      if (existing.status === "terminated") throw conflict("Cannot clear error on terminated agent");
+      if (existing.status === "terminated")
+        throw conflict("Cannot clear error on terminated agent");
       if (existing.status === "pending_approval") {
         throw conflict("Pending approval agents cannot have errors cleared");
       }
       if (existing.status !== "error") {
-        throw conflict("Only agents in error status can have their error cleared");
+        throw conflict(
+          "Only agents in error status can have their error cleared",
+        );
       }
 
       const updated = await db
@@ -1073,7 +1378,9 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         .then((rows) => rows[0] ?? null);
 
       if (!updated) {
-        throw conflict("Only agents in error status can have their error cleared");
+        throw conflict(
+          "Only agents in error status can have their error cleared",
+        );
       }
       return getById(updated.id);
     },
@@ -1082,7 +1389,7 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const existing = await getById(id);
       if (!existing) return null;
 
-      return db.transaction(async tx => {
+      return db.transaction(async (tx) => {
         const txDb = tx as unknown as Db;
         const updated = await agentService(txDb).update(id, {
           status: "terminated",
@@ -1092,7 +1399,10 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
           updatedAt: new Date(),
         });
         if (!updated) return null;
-        await tx.update(agentApiKeys).set({ revokedAt: new Date() }).where(eq(agentApiKeys.agentId, id));
+        await tx
+          .update(agentApiKeys)
+          .set({ revokedAt: new Date() })
+          .where(eq(agentApiKeys.agentId, id));
         return updated;
       });
     },
@@ -1102,52 +1412,91 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       if (!existing) return null;
       const builtInMarker = readBuiltInAgentMarker(existing.metadata);
       if (builtInMarker) {
-        throw conflict("Built-in agents cannot be deleted; pause them instead", {
-          code: "built_in_agent_undeletable",
-          key: builtInMarker.key,
-          featureKeys: builtInMarker.featureKeys,
-        });
+        throw conflict(
+          "Built-in agents cannot be deleted; pause them instead",
+          {
+            code: "built_in_agent_undeletable",
+            key: builtInMarker.key,
+            featureKeys: builtInMarker.featureKeys,
+          },
+        );
       }
 
       return withAccountingTransaction(db, existing.companyId, async (tx) => {
-        const [decisionHold] = await tx.select({ id: budgetReservations.id }).from(budgetReservations).where(and(
-          eq(budgetReservations.companyId, existing.companyId), eq(budgetReservations.agentId, id),
-          eq(budgetReservations.state, "held"), sql`${budgetReservations.decisionInvocationId} is not null`,
-        )).limit(1);
-        if (decisionHold) throw conflict("Wait for active decisions or resolve their unknown charges in Costs before deleting this agent", {
-          code: "agent_decision_accounting_pending",
-        });
+        const [decisionHold] = await tx
+          .select({ id: budgetReservations.id })
+          .from(budgetReservations)
+          .where(
+            and(
+              eq(budgetReservations.companyId, existing.companyId),
+              eq(budgetReservations.agentId, id),
+              eq(budgetReservations.state, "held"),
+              sql`${budgetReservations.decisionInvocationId} is not null`,
+            ),
+          )
+          .limit(1);
+        if (decisionHold)
+          throw conflict(
+            "Wait for active decisions or resolve their unknown charges in Costs before deleting this agent",
+            {
+              code: "agent_decision_accounting_pending",
+            },
+          );
         await tx
           .select({ id: agents.id })
           .from(agents)
           .where(eq(agents.id, id))
           .for("update");
-        await issueThreadInteractionService(tx as unknown as Db)
-          .cancelPendingForDeletedAddressee(existing.companyId, id);
-        await tx.update(agents).set({ reportsTo: null }).where(eq(agents.reportsTo, id));
+        await issueThreadInteractionService(
+          tx as unknown as Db,
+        ).cancelPendingForDeletedAddressee(existing.companyId, id);
+        await tx
+          .update(agents)
+          .set({ reportsTo: null })
+          .where(eq(agents.reportsTo, id));
         await tx
           .update(issues)
           .set({ assigneeAgentId: null, createdByAgentId: null })
-          .where(or(eq(issues.assigneeAgentId, id), eq(issues.createdByAgentId, id)));
-        await tx.delete(heartbeatRunEvents).where(eq(heartbeatRunEvents.agentId, id));
-        await tx.delete(agentTaskSessions).where(eq(agentTaskSessions.agentId, id));
-        await tx.delete(activityLog).where(
-          or(
-            eq(activityLog.agentId, id),
-            sql`${activityLog.runId} in (select ${heartbeatRuns.id} from ${heartbeatRuns} where ${heartbeatRuns.agentId} = ${id})`,
-          ),
-        );
-        await tx.delete(issueExecutionDecisions).where(eq(issueExecutionDecisions.actorAgentId, id));
-        await tx.delete(issueComments).where(eq(issueComments.authorAgentId, id));
+          .where(
+            or(eq(issues.assigneeAgentId, id), eq(issues.createdByAgentId, id)),
+          );
+        await tx
+          .delete(heartbeatRunEvents)
+          .where(eq(heartbeatRunEvents.agentId, id));
+        await tx
+          .delete(agentTaskSessions)
+          .where(eq(agentTaskSessions.agentId, id));
+        await tx
+          .delete(activityLog)
+          .where(
+            or(
+              eq(activityLog.agentId, id),
+              sql`${activityLog.runId} in (select ${heartbeatRuns.id} from ${heartbeatRuns} where ${heartbeatRuns.agentId} = ${id})`,
+            ),
+          );
+        await tx
+          .delete(issueExecutionDecisions)
+          .where(eq(issueExecutionDecisions.actorAgentId, id));
+        await tx
+          .delete(issueComments)
+          .where(eq(issueComments.authorAgentId, id));
         await tx.delete(heartbeatRuns).where(eq(heartbeatRuns.agentId, id));
-        await tx.delete(agentWakeupRequests).where(eq(agentWakeupRequests.agentId, id));
+        await tx
+          .delete(agentWakeupRequests)
+          .where(eq(agentWakeupRequests.agentId, id));
         await tx.delete(agentApiKeys).where(eq(agentApiKeys.agentId, id));
-        await tx.delete(agentRuntimeState).where(eq(agentRuntimeState.agentId, id));
-        await tx.delete(principalPermissionGrants).where(and(
-          eq(principalPermissionGrants.companyId, existing.companyId),
-          eq(principalPermissionGrants.principalType, "agent"),
-          eq(principalPermissionGrants.principalId, id),
-        ));
+        await tx
+          .delete(agentRuntimeState)
+          .where(eq(agentRuntimeState.agentId, id));
+        await tx
+          .delete(principalPermissionGrants)
+          .where(
+            and(
+              eq(principalPermissionGrants.companyId, existing.companyId),
+              eq(principalPermissionGrants.principalType, "agent"),
+              eq(principalPermissionGrants.principalId, id),
+            ),
+          );
         const deleted = await tx
           .delete(agents)
           .where(eq(agents.id, id))
@@ -1157,22 +1506,33 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       });
     },
 
-    activatePendingApproval: async (id: string, approvedPayload?: Record<string, unknown> | null) => {
+    activatePendingApproval: async (
+      id: string,
+      approvedPayload?: Record<string, unknown> | null,
+    ) => {
       const activatedAgent = await db.transaction(async (tx) => {
         const txDb = tx as unknown as Db;
         const existing = await agentService(txDb).getById(id);
         if (!existing || existing.status !== "pending_approval") return null;
-        const approvedPatch = approvedPayload ? configPatchFromApprovalPayload(approvedPayload) : {};
+        const approvedPatch = approvedPayload
+          ? configPatchFromApprovalPayload(approvedPayload)
+          : {};
         let patch = { ...approvedPatch } as Partial<typeof agents.$inferInsert>;
-        let approvalBindingDecision: ClaudeOAuthBindingInvariantDecision | null = null;
+        let approvalBindingDecision: ClaudeOAuthBindingInvariantDecision | null =
+          null;
         if (
           Object.prototype.hasOwnProperty.call(patch, "adapterConfig") &&
           isPlainRecord(patch.adapterConfig)
         ) {
-          const normalizedAdapterConfig = await secretService(txDb).normalizeAdapterConfigForPersistence(
+          const normalizedAdapterConfig = await secretService(
+            txDb,
+          ).normalizeAdapterConfigForPersistence(
             existing.companyId,
             patch.adapterConfig,
-            { adapterType: (patch.adapterType ?? existing.adapterType) as string },
+            {
+              adapterType: (patch.adapterType ??
+                existing.adapterType) as string,
+            },
           );
           patch.adapterConfig = normalizeTaskcoreRunnerAdapterConfig(
             (patch.adapterType ?? existing.adapterType) as string,
@@ -1186,8 +1546,8 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
             priorConfig: existing.adapterConfig,
           });
         } else if (
-          Object.prototype.hasOwnProperty.call(patch, "adapterType")
-          && isPlainRecord(existing.adapterConfig)
+          Object.prototype.hasOwnProperty.call(patch, "adapterType") &&
+          isPlainRecord(existing.adapterConfig)
         ) {
           patch.adapterConfig = normalizeTaskcoreRunnerAdapterConfig(
             patch.adapterType as string,
@@ -1197,7 +1557,9 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         if (patch.permissions !== undefined) {
           // The pending-approval activation replays the original hire
           // request, so the new-agent creation default applies.
-          patch.permissions = normalizeAgentPermissions(patch.permissions, { context: "create" });
+          patch.permissions = normalizeAgentPermissions(patch.permissions, {
+            context: "create",
+          });
         }
         const updated = await tx
           .update(agents)
@@ -1215,18 +1577,29 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
           });
         }
         await syncAgentSecretBindings(updated, txDb, existing.adapterConfig);
-        if (!permissionsImplyLowTrust(updated.permissions) && !readBuiltInAgentMarker(updated.metadata)) {
-          await tx.insert(principalPermissionGrants).values(
-            NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS.map((permissionKey) => ({
-              companyId: updated.companyId,
-              principalType: "agent" as const,
-              principalId: updated.id,
-              permissionKey,
-              scope: newStandardAgentGrantScope(permissionKey, updated.id),
-            })),
-          ).onConflictDoNothing();
+        if (
+          !permissionsImplyLowTrust(updated.permissions) &&
+          !readBuiltInAgentMarker(updated.metadata)
+        ) {
+          await tx
+            .insert(principalPermissionGrants)
+            .values(
+              NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS.map((permissionKey) => ({
+                companyId: updated.companyId,
+                principalType: "agent" as const,
+                principalId: updated.id,
+                permissionKey,
+                scope: newStandardAgentGrantScope(permissionKey, updated.id),
+              })),
+            )
+            .onConflictDoNothing();
         }
-        await recordResourceCreationEvent(txDb, existing.companyId, "agent", updated.id);
+        await recordResourceCreationEvent(
+          txDb,
+          existing.companyId,
+          "agent",
+          updated.id,
+        );
         const agent = await agentService(txDb).getById(updated.id);
         if (!agent) {
           throw notFound("Agent not found");
@@ -1242,21 +1615,30 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       return existing ? { agent: existing, activated: false } : null;
     },
 
-    updatePermissions: async (id: string, permissions: Record<string, unknown> & { canCreateAgents: boolean }) => {
+    updatePermissions: async (
+      id: string,
+      permissions: Record<string, unknown> & { canCreateAgents: boolean },
+    ) => {
       const existing = await getById(id);
       if (!existing) return null;
       if (existing.status === "pending_approval") {
-        throw conflict("Pending approval agent permissions cannot be changed before board approval", {
-          code: "pending_approval_agent_config_frozen",
-          agentId: id,
-          fields: ["permissions"],
-        });
+        throw conflict(
+          "Pending approval agent permissions cannot be changed before board approval",
+          {
+            code: "pending_approval_agent_config_frozen",
+            agentId: id,
+            fields: ["permissions"],
+          },
+        );
       }
 
       const updated = await db
         .update(agents)
         .set({
-          permissions: normalizeAgentPermissions({ ...existing.permissions, ...permissions }),
+          permissions: normalizeAgentPermissions({
+            ...existing.permissions,
+            ...permissions,
+          }),
           updatedAt: new Date(),
         })
         .where(eq(agents.id, id))
@@ -1277,7 +1659,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       db
         .select()
         .from(agentConfigRevisions)
-        .where(and(eq(agentConfigRevisions.agentId, id), eq(agentConfigRevisions.id, revisionId)))
+        .where(
+          and(
+            eq(agentConfigRevisions.agentId, id),
+            eq(agentConfigRevisions.id, revisionId),
+          ),
+        )
         .then((rows) => rows[0] ?? null),
 
     rollbackConfigRevision: async (
@@ -1288,11 +1675,18 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const revision = await db
         .select()
         .from(agentConfigRevisions)
-        .where(and(eq(agentConfigRevisions.agentId, id), eq(agentConfigRevisions.id, revisionId)))
+        .where(
+          and(
+            eq(agentConfigRevisions.agentId, id),
+            eq(agentConfigRevisions.id, revisionId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       if (!revision) return null;
       if (containsRedactedMarker(revision.afterConfig)) {
-        throw unprocessable("Cannot roll back a revision that contains redacted secret values");
+        throw unprocessable(
+          "Cannot roll back a revision that contains redacted secret values",
+        );
       }
 
       const patch = configPatchFromSnapshot(revision.afterConfig);
@@ -1358,14 +1752,16 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         })
         .from(agentApiKeys)
         .where(eq(agentApiKeys.agentId, id))
-        .then((rows) => rows.map((row) => ({
-          id: row.id,
-          name: row.name,
-          scope: normalizeAgentApiKeyScope(row.scopeConfig),
-          responsibleUserId: row.responsibleUserId,
-          createdAt: row.createdAt,
-          revokedAt: row.revokedAt,
-        }))),
+        .then((rows) =>
+          rows.map((row) => ({
+            id: row.id,
+            name: row.name,
+            scope: normalizeAgentApiKeyScope(row.scopeConfig),
+            responsibleUserId: row.responsibleUserId,
+            createdAt: row.createdAt,
+            revokedAt: row.revokedAt,
+          })),
+        ),
 
     getKeyById: async (keyId: string) =>
       db
@@ -1385,9 +1781,9 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
           const row = rows[0] ?? null;
           return row
             ? {
-              ...row,
-              scope: normalizeAgentApiKeyScope(row.scopeConfig),
-            }
+                ...row,
+                scope: normalizeAgentApiKeyScope(row.scopeConfig),
+              }
             : null;
         }),
 
@@ -1395,7 +1791,9 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const rows = await db
         .update(agentApiKeys)
         .set({ revokedAt: new Date() })
-        .where(and(eq(agentApiKeys.id, keyId), eq(agentApiKeys.agentId, agentId)))
+        .where(
+          and(eq(agentApiKeys.id, keyId), eq(agentApiKeys.agentId, agentId)),
+        )
         .returning();
       return rows[0] ?? null;
     },
@@ -1406,13 +1804,19 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const normalizedRows = normalizeAgentRows(rows, allCompanyRows);
       const byManager = new Map<string | null, typeof normalizedRows>();
       for (const row of normalizedRows) {
-        const key = row.reportsTo && rows.some((candidate) => candidate.id === row.reportsTo) ? row.reportsTo : null;
+        const key =
+          row.reportsTo &&
+          rows.some((candidate) => candidate.id === row.reportsTo)
+            ? row.reportsTo
+            : null;
         const group = byManager.get(key) ?? [];
         group.push(row);
         byManager.set(key, group);
       }
 
-      const build = (managerId: string | null): Array<Record<string, unknown>> => {
+      const build = (
+        managerId: string | null,
+      ): Array<Record<string, unknown>> => {
         const members = byManager.get(managerId) ?? [];
         return members.map((member) => ({
           ...member,
@@ -1424,7 +1828,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
     },
 
     getChainOfCommand: async (agentId: string) => {
-      const chain: { id: string; name: string; role: string; title: string | null }[] = [];
+      const chain: {
+        id: string;
+        name: string;
+        role: string;
+        title: string | null;
+      }[] = [];
       const visited = new Set<string>([agentId]);
       const start = await getById(agentId);
       let currentId = start?.reportsTo ?? null;
@@ -1432,7 +1841,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         visited.add(currentId);
         const mgr = await getById(currentId);
         if (!mgr) break;
-        chain.push({ id: mgr.id, name: mgr.name, role: mgr.role, title: mgr.title ?? null });
+        chain.push({
+          id: mgr.id,
+          name: mgr.name,
+          role: mgr.role,
+          title: mgr.title ?? null,
+        });
         currentId = mgr.reportsTo ?? null;
       }
       return chain;
@@ -1442,7 +1856,12 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       db
         .select()
         .from(heartbeatRuns)
-        .where(and(eq(heartbeatRuns.agentId, agentId), inArray(heartbeatRuns.status, ["queued", "running"]))),
+        .where(
+          and(
+            eq(heartbeatRuns.agentId, agentId),
+            inArray(heartbeatRuns.status, ["queued", "running"]),
+          ),
+        ),
 
     resolveByReference: async (companyId: string, reference: string) => {
       const raw = reference.trim();
@@ -1463,9 +1882,13 @@ export function agentService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         return { agent: null, ambiguous: false } as const;
       }
 
-      const rows = await db.select().from(agents).where(eq(agents.companyId, companyId));
-      const matches = normalizeAgentRows(rows, rows)
-        .filter((agent) => agent.urlKey === urlKey && agent.status !== "terminated");
+      const rows = await db
+        .select()
+        .from(agents)
+        .where(eq(agents.companyId, companyId));
+      const matches = normalizeAgentRows(rows, rows).filter(
+        (agent) => agent.urlKey === urlKey && agent.status !== "terminated",
+      );
       if (matches.length === 1) {
         return { agent: matches[0] ?? null, ambiguous: false } as const;
       }

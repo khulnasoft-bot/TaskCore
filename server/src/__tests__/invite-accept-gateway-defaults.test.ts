@@ -24,7 +24,9 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -121,7 +123,9 @@ describe("normalizeAgentDefaultsForJoin (openclaw_gateway)", () => {
     expect(normalized.fatalErrors).toEqual([]);
     expect(normalized.normalized?.disableDeviceAuth).toBe(false);
     expect(typeof normalized.normalized?.devicePrivateKeyPem).toBe("string");
-    expect((normalized.normalized?.devicePrivateKeyPem as string).length).toBeGreaterThan(64);
+    expect(
+      (normalized.normalized?.devicePrivateKeyPem as string).length,
+    ).toBeGreaterThan(64);
   });
 
   it("does not generate device key when disableDeviceAuth=true", () => {
@@ -252,111 +256,126 @@ describe("normalizeAgentDefaultsForJoin (hermes_gateway)", () => {
   });
 });
 
-describeEmbeddedPostgres("prepareAgentDefaultsPayloadForJoinPersistence (hermes_gateway)", () => {
-  let stopDb: (() => Promise<void>) | null = null;
-  let db!: ReturnType<typeof createDb>;
-  const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
-  const secretsTmpDir = path.join(os.tmpdir(), `taskcore-hermes-join-defaults-${randomUUID()}`);
+describeEmbeddedPostgres(
+  "prepareAgentDefaultsPayloadForJoinPersistence (hermes_gateway)",
+  () => {
+    let stopDb: (() => Promise<void>) | null = null;
+    let db!: ReturnType<typeof createDb>;
+    const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
+    const secretsTmpDir = path.join(
+      os.tmpdir(),
+      `taskcore-hermes-join-defaults-${randomUUID()}`,
+    );
 
-  beforeAll(async () => {
-    mkdirSync(secretsTmpDir, { recursive: true });
-    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(secretsTmpDir, "master.key");
-    const started = await startEmbeddedPostgresTestDatabase("hermes-join-defaults");
-    stopDb = started.cleanup;
-    db = createDb(started.connectionString);
-  }, 20_000);
+    beforeAll(async () => {
+      mkdirSync(secretsTmpDir, { recursive: true });
+      process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(
+        secretsTmpDir,
+        "master.key",
+      );
+      const started = await startEmbeddedPostgresTestDatabase(
+        "hermes-join-defaults",
+      );
+      stopDb = started.cleanup;
+      db = createDb(started.connectionString);
+    }, 20_000);
 
-  afterEach(async () => {
-    await db.delete(joinRequests);
-    await db.delete(invites);
-    await db.delete(companySecretVersions);
-    await db.delete(companySecrets);
-    await db.delete(companySecretProviderConfigs);
-    await db.delete(companies);
-  });
-
-  afterAll(async () => {
-    await stopDb?.();
-    if (previousKeyFile === undefined) {
-      delete process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
-    } else {
-      process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = previousKeyFile;
-    }
-    rmSync(secretsTmpDir, { recursive: true, force: true });
-  });
-
-  it("stores a secret ref instead of the literal apiKey in join request defaults", async () => {
-    const companyId = randomUUID();
-    const inviteId = randomUUID();
-    const joinRequestId = randomUUID();
-    const literalApiKey = `hermes-key-${randomUUID()}`;
-
-    await db.insert(companies).values({
-      id: companyId,
-      name: "Taskcore",
-      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
-      requireBoardApprovalForNewAgents: false,
-    });
-    await db.insert(invites).values({
-      id: inviteId,
-      companyId,
-      inviteType: "company_join",
-      tokenHash: `invite-token-${randomUUID()}`,
-      allowedJoinTypes: "agent",
-      defaultsPayload: null,
-      expiresAt: new Date("2027-03-10T00:00:00.000Z"),
+    afterEach(async () => {
+      await db.delete(joinRequests);
+      await db.delete(invites);
+      await db.delete(companySecretVersions);
+      await db.delete(companySecrets);
+      await db.delete(companySecretProviderConfigs);
+      await db.delete(companies);
     });
 
-    const joinDefaults = normalizeAgentDefaultsForJoin({
-      adapterType: "hermes_gateway",
-      defaultsPayload: {
-        apiBaseUrl: "https://hermes.example",
-        apiKey: literalApiKey,
-        taskcoreApiUrl: "https://taskcore.example",
-      },
-      deploymentMode: "authenticated",
-      deploymentExposure: "private",
-      bindHost: "127.0.0.1",
-      allowedHostnames: [],
-    });
-    expect(joinDefaults.fatalErrors).toEqual([]);
-
-    const persistedDefaults = await prepareAgentDefaultsPayloadForJoinPersistence({
-      db,
-      companyId,
-      adapterType: "hermes_gateway",
-      normalized: joinDefaults.normalized,
+    afterAll(async () => {
+      await stopDb?.();
+      if (previousKeyFile === undefined) {
+        delete process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
+      } else {
+        process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = previousKeyFile;
+      }
+      rmSync(secretsTmpDir, { recursive: true, force: true });
     });
 
-    await db.insert(joinRequests).values({
-      id: joinRequestId,
-      inviteId,
-      companyId,
-      requestType: "agent",
-      status: "pending_approval",
-      requestIp: "127.0.0.1",
-      agentName: "Hermes Gateway",
-      adapterType: "hermes_gateway",
-      capabilities: "Hermes gateway agent",
-      agentDefaultsPayload: persistedDefaults,
-      claimSecretHash: "claim-secret-hash",
-      claimSecretExpiresAt: new Date("2027-03-11T00:00:00.000Z"),
-    });
+    it("stores a secret ref instead of the literal apiKey in join request defaults", async () => {
+      const companyId = randomUUID();
+      const inviteId = randomUUID();
+      const joinRequestId = randomUUID();
+      const literalApiKey = `hermes-key-${randomUUID()}`;
 
-    const persistedJoinRequest = await db
-      .select()
-      .from(joinRequests)
-      .where(eq(joinRequests.id, joinRequestId))
-      .then((rows) => rows[0]);
-    const storedPayload = persistedJoinRequest?.agentDefaultsPayload as Record<string, unknown>;
-    expect(JSON.stringify(storedPayload)).not.toContain(literalApiKey);
-    expect(storedPayload.apiKey).toMatchObject({
-      type: "secret_ref",
-      version: "latest",
-    });
+      await db.insert(companies).values({
+        id: companyId,
+        name: "Taskcore",
+        issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+        requireBoardApprovalForNewAgents: false,
+      });
+      await db.insert(invites).values({
+        id: inviteId,
+        companyId,
+        inviteType: "company_join",
+        tokenHash: `invite-token-${randomUUID()}`,
+        allowedJoinTypes: "agent",
+        defaultsPayload: null,
+        expiresAt: new Date("2027-03-10T00:00:00.000Z"),
+      });
 
-    const storedSecrets = await db.select().from(companySecrets);
-    expect(storedSecrets).toHaveLength(1);
-    expect((storedPayload.apiKey as { secretId: string }).secretId).toBe(storedSecrets[0]?.id);
-  });
-});
+      const joinDefaults = normalizeAgentDefaultsForJoin({
+        adapterType: "hermes_gateway",
+        defaultsPayload: {
+          apiBaseUrl: "https://hermes.example",
+          apiKey: literalApiKey,
+          taskcoreApiUrl: "https://taskcore.example",
+        },
+        deploymentMode: "authenticated",
+        deploymentExposure: "private",
+        bindHost: "127.0.0.1",
+        allowedHostnames: [],
+      });
+      expect(joinDefaults.fatalErrors).toEqual([]);
+
+      const persistedDefaults =
+        await prepareAgentDefaultsPayloadForJoinPersistence({
+          db,
+          companyId,
+          adapterType: "hermes_gateway",
+          normalized: joinDefaults.normalized,
+        });
+
+      await db.insert(joinRequests).values({
+        id: joinRequestId,
+        inviteId,
+        companyId,
+        requestType: "agent",
+        status: "pending_approval",
+        requestIp: "127.0.0.1",
+        agentName: "Hermes Gateway",
+        adapterType: "hermes_gateway",
+        capabilities: "Hermes gateway agent",
+        agentDefaultsPayload: persistedDefaults,
+        claimSecretHash: "claim-secret-hash",
+        claimSecretExpiresAt: new Date("2027-03-11T00:00:00.000Z"),
+      });
+
+      const persistedJoinRequest = await db
+        .select()
+        .from(joinRequests)
+        .where(eq(joinRequests.id, joinRequestId))
+        .then((rows) => rows[0]);
+      const storedPayload =
+        persistedJoinRequest?.agentDefaultsPayload as Record<string, unknown>;
+      expect(JSON.stringify(storedPayload)).not.toContain(literalApiKey);
+      expect(storedPayload.apiKey).toMatchObject({
+        type: "secret_ref",
+        version: "latest",
+      });
+
+      const storedSecrets = await db.select().from(companySecrets);
+      expect(storedSecrets).toHaveLength(1);
+      expect((storedPayload.apiKey as { secretId: string }).secretId).toBe(
+        storedSecrets[0]?.id,
+      );
+    });
+  },
+);

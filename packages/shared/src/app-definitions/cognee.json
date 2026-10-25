@@ -3,15 +3,11 @@
   "slug": "cognee",
   "name": "Cognee",
   "description": "Build and recall shared graph memory from documents and conversations.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "branding": {
     "logoUrl": "/brands/apps/cognee.png"
   },
-  "urlPatterns": [
-    "https://*.aws.cognee.ai/*"
-  ],
+  "urlPatterns": ["https://*.aws.cognee.ai/*"],
   "docsUrl": "https://docs.cognee.ai/cognee-cloud/connections/cloud-mcp",
   "setupPrerequisite": {
     "title": "Cognee Cloud and a local runtime",
@@ -24,9 +20,7 @@
       "key": "cloud-local",
       "transport": "local_stdio",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Connect your Cloud tenant through the official Cognee MCP client.",
       "defaults": {
         "templateKey": "taskcore.cognee-cloud"

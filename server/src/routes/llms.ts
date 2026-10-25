@@ -10,9 +10,14 @@ const pluginOnlyAdapterDocs = new Map<string, string>([
   ["hermes_gateway", hermesGatewayAgentConfigurationDoc],
 ]);
 
-function hasCreatePermission(agent: { role: string; permissions: Record<string, unknown> | null | undefined }) {
+function hasCreatePermission(agent: {
+  role: string;
+  permissions: Record<string, unknown> | null | undefined;
+}) {
   if (!agent.permissions || typeof agent.permissions !== "object") return false;
-  return Boolean((agent.permissions as Record<string, unknown>).canCreateAgents);
+  return Boolean(
+    (agent.permissions as Record<string, unknown>).canCreateAgents,
+  );
 }
 
 export function llmRoutes(db: Db) {
@@ -26,26 +31,35 @@ export function llmRoutes(db: Db) {
     }
     const actorAgent = await agentsSvc.getById(req.actor.agentId);
     if (!actorAgent || !hasCreatePermission(actorAgent)) {
-      throw forbidden("Missing permission to read agent configuration reflection");
+      throw forbidden(
+        "Missing permission to read agent configuration reflection",
+      );
     }
   }
 
   router.get("/llms/agent-configuration.txt", async (req, res) => {
     await assertCanRead(req);
-    const adapters = listServerAdapters().sort((a, b) => a.type.localeCompare(b.type));
+    const adapters = listServerAdapters().sort((a, b) =>
+      a.type.localeCompare(b.type),
+    );
     const lines = [
       "# TaskCore Agent Configuration Index",
       "",
       "Installed adapters:",
-      ...adapters.map((adapter) => `- ${adapter.type}: /llms/agent-configuration/${adapter.type}.txt`),
+      ...adapters.map(
+        (adapter) =>
+          `- ${adapter.type}: /llms/agent-configuration/${adapter.type}.txt`,
+      ),
       "",
       "Plugin-only adapter docs:",
       ...Array.from(pluginOnlyAdapterDocs.keys())
         .filter(
-          (adapterType) => !adapters.some((adapter) => adapter.type === adapterType),
+          (adapterType) =>
+            !adapters.some((adapter) => adapter.type === adapterType),
         )
         .map(
-          (adapterType) => `- ${adapterType}: /llms/agent-configuration/${adapterType}.txt`,
+          (adapterType) =>
+            `- ${adapterType}: /llms/agent-configuration/${adapterType}.txt`,
         ),
       "",
       "Related API endpoints:",
@@ -84,14 +98,19 @@ export function llmRoutes(db: Db) {
   router.get("/llms/agent-configuration/:adapterType.txt", async (req, res) => {
     await assertCanRead(req);
     const adapterType = req.params.adapterType as string;
-    const adapter = listServerAdapters().find((entry) => entry.type === adapterType);
+    const adapter = listServerAdapters().find(
+      (entry) => entry.type === adapterType,
+    );
     if (!adapter) {
       const pluginOnlyDoc = pluginOnlyAdapterDocs.get(adapterType);
       if (pluginOnlyDoc) {
         res.type("text/plain").send(pluginOnlyDoc);
         return;
       }
-      res.status(404).type("text/plain").send(`Unknown adapter type: ${adapterType}`);
+      res
+        .status(404)
+        .type("text/plain")
+        .send(`Unknown adapter type: ${adapterType}`);
       return;
     }
     res

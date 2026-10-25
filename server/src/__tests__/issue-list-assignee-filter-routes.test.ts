@@ -3,7 +3,16 @@ import express from "express";
 import request from "supertest";
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { activityLog, agents, companies, companyMemberships, createDb, heartbeatRuns, issues, principalPermissionGrants } from "@taskcore/db";
+import {
+  activityLog,
+  agents,
+  companies,
+  companyMemberships,
+  createDb,
+  heartbeatRuns,
+  issues,
+  principalPermissionGrants,
+} from "@taskcore/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
@@ -20,7 +29,9 @@ import { ensureHumanRoleDefaultGrants } from "../services/principal-access-compa
 import { resolveRequiredSuccessfulRunHandoffOnValidPath } from "../services/successful-run-handoff-state.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -30,10 +41,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-list-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-list-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -64,7 +79,14 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
         type: "board",
         userId,
         companyIds: [companyId],
-        memberships: [{ companyId, membershipRole: "owner", status: "active", principalId: userId }],
+        memberships: [
+          {
+            companyId,
+            membershipRole: "owner",
+            status: "active",
+            principalId: userId,
+          },
+        ],
         source: "cloud_tenant",
         isInstanceAdmin: false,
       };
@@ -75,12 +97,14 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
     return app;
   }
 
-
   function uniqueIssuePrefix() {
     return `P${randomUUID().replace(/-/g, "").slice(0, 4).toUpperCase()}`;
   }
 
-  async function seedCloudTenantMember(companyId: string, userId = "cloud-user-1") {
+  async function seedCloudTenantMember(
+    companyId: string,
+    userId = "cloud-user-1",
+  ) {
     await db.insert(companyMemberships).values({
       companyId,
       principalType: "user",
@@ -146,7 +170,9 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
       .query({ status: "todo", assigneeAgentId: "null", limit: "20" });
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.map((issue: { id: string }) => issue.id)).toEqual([unassignedIssueId]);
+    expect(res.body.map((issue: { id: string }) => issue.id)).toEqual([
+      unassignedIssueId,
+    ]);
   });
 
   it("returns compact issue list rows with recovery chips but without detail-only fields", async () => {
@@ -177,12 +203,15 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
       id: issueId,
       companyId,
       title: "Compact issue",
-      description: "This long detail belongs on the issue detail endpoint, not the board list.",
+      description:
+        "This long detail belongs on the issue detail endpoint, not the board list.",
       status: "todo",
       priority: "medium",
       billingCode: "product",
     });
-    const recoveryAction = await issueRecoveryActionService(db).upsertSourceScoped({
+    const recoveryAction = await issueRecoveryActionService(
+      db,
+    ).upsertSourceScoped({
       companyId,
       sourceIssueId: issueId,
       kind: "missing_disposition",
@@ -205,7 +234,8 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
       runId: null,
       details: {
         sourceRunId,
-        detectedProgressSummary: "Implemented the requested change without choosing a disposition.",
+        detectedProgressSummary:
+          "Implemented the requested change without choosing a disposition.",
       },
     });
 
@@ -222,7 +252,8 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
       id: issueId,
       companyId,
       title: "Compact issue",
-      description: "This long detail belongs on the issue detail endpoint, not the board list.",
+      description:
+        "This long detail belongs on the issue detail endpoint, not the board list.",
       status: "todo",
       priority: "medium",
       billingCode: "product",
@@ -425,20 +456,26 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
       createdAt: new Date("2026-07-01T00:00:00.000Z"),
     });
 
-    await expect(resolveRequiredSuccessfulRunHandoffOnValidPath(db, {
-      companyId,
-      issueId,
-      issueIdentifier: "PAP-1",
-      agentId,
-      runId: resolverRunId,
-      skipReason: "persisted issue monitor owns the next action",
-    })).resolves.toBe(true);
+    await expect(
+      resolveRequiredSuccessfulRunHandoffOnValidPath(db, {
+        companyId,
+        issueId,
+        issueIdentifier: "PAP-1",
+        agentId,
+        runId: resolverRunId,
+        skipReason: "persisted issue monitor owns the next action",
+      }),
+    ).resolves.toBe(true);
 
     const resolved = await db
       .select()
       .from(activityLog)
       .where(eq(activityLog.entityId, issueId))
-      .then((rows) => rows.find((row) => row.action === "issue.successful_run_handoff_resolved"));
+      .then((rows) =>
+        rows.find(
+          (row) => row.action === "issue.successful_run_handoff_resolved",
+        ),
+      );
     expect(resolved).toMatchObject({
       runId: resolverRunId,
       details: {
@@ -512,18 +549,24 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
         },
       },
     });
-    const responses = await Promise.all(Array.from({ length: 10 }, () =>
-      request(app)
-        .get(`/api/companies/${companyId}/issues`)
-        .query({ view: "compact", limit: "20" })
-    ));
+    const responses = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        request(app)
+          .get(`/api/companies/${companyId}/issues`)
+          .query({ view: "compact", limit: "20" }),
+      ),
+    );
 
     expect(responses.every((res) => res.status === 200)).toBe(true);
-    expect(responses.map((res) => res.body.map((issue: { id: string }) => issue.id))).toEqual(
-      Array.from({ length: 10 }, () => [issueId]),
-    );
+    expect(
+      responses.map((res) => res.body.map((issue: { id: string }) => issue.id)),
+    ).toEqual(Array.from({ length: 10 }, () => [issueId]));
     expect(computeCount).toBe(1);
-    expect(responses.some((res) => res.headers["x-taskcore-request-cache"] === "coalesced")).toBe(true);
+    expect(
+      responses.some(
+        (res) => res.headers["x-taskcore-request-cache"] === "coalesced",
+      ),
+    ).toBe(true);
   });
 
   it("keeps compact issue-list cache keys separated by board user identity", async () => {
@@ -634,14 +677,20 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
     });
 
     const app = createApp(companyId);
-    for (let index = 0; index < ISSUE_LIST_SERVER_CACHE_MAX_ENTRIES + 5; index += 1) {
+    for (
+      let index = 0;
+      index < ISSUE_LIST_SERVER_CACHE_MAX_ENTRIES + 5;
+      index += 1
+    ) {
       const res = await request(app)
         .get(`/api/companies/${companyId}/issues`)
         .query({ view: "compact", limit: "20", q: `cache-key-${index}` });
       expect(res.status, JSON.stringify(res.body)).toBe(200);
     }
 
-    expect(__getIssueListResponseCacheSizeForTests()).toBe(ISSUE_LIST_SERVER_CACHE_MAX_ENTRIES);
+    expect(__getIssueListResponseCacheSizeForTests()).toBe(
+      ISSUE_LIST_SERVER_CACHE_MAX_ENTRIES,
+    );
   });
 
   it("logs request_storm_detected for identical in-flight compact issue-list fanout without query values", async () => {
@@ -674,13 +723,15 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
         },
       },
     });
-    const responses = await Promise.all(Array.from({ length: 5 }, () =>
-      request(app)
-        .get(`/api/companies/${companyId}/issues`)
-        .set("Referer", "http://localhost:3100/issues?q=do-not-log-this")
-        .set("X-Taskcore-Tab-Visible", "visible")
-        .query({ view: "compact", limit: "20", q: "do-not-log-this" })
-    ));
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        request(app)
+          .get(`/api/companies/${companyId}/issues`)
+          .set("Referer", "http://localhost:3100/issues?q=do-not-log-this")
+          .set("X-Taskcore-Tab-Visible", "visible")
+          .query({ view: "compact", limit: "20", q: "do-not-log-this" }),
+      ),
+    );
 
     expect(responses.every((res) => res.status === 200)).toBe(true);
     expect(stormEvents).toHaveLength(1);
@@ -760,7 +811,9 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
       .query({ status: "todo", assigneeAgentId, limit: "20" });
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.map((issue: { id: string }) => issue.id)).toEqual([assignedIssueId]);
+    expect(res.body.map((issue: { id: string }) => issue.id)).toEqual([
+      assignedIssueId,
+    ]);
   });
 
   it("returns 422 for malformed assigneeAgentId filters", async () => {
@@ -925,14 +978,20 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
       .get(`/api/companies/${companyId}/issues`)
       .query({ status: "blocked", limit: "20" });
 
-    expect(withoutSummary.status, JSON.stringify(withoutSummary.body)).toBe(200);
+    expect(withoutSummary.status, JSON.stringify(withoutSummary.body)).toBe(
+      200,
+    );
     expect(withoutSummary.body).toHaveLength(1);
     expect(withoutSummary.body[0].id).toBe(rootIssueId);
     expect(withoutSummary.body[0].liveDescendantCount).toBeUndefined();
 
     const withSummary = await request(app)
       .get(`/api/companies/${companyId}/issues`)
-      .query({ status: "blocked", includeLiveDescendantSummary: "true", limit: "20" });
+      .query({
+        status: "blocked",
+        includeLiveDescendantSummary: "true",
+        limit: "20",
+      });
 
     expect(withSummary.status, JSON.stringify(withSummary.body)).toBe(200);
     expect(withSummary.body).toHaveLength(1);
@@ -999,7 +1058,11 @@ describeEmbeddedPostgres("issue list routes assigneeAgentId filter", () => {
     const app = createApp(companyId);
     const res = await request(app)
       .get(`/api/companies/${companyId}/issues`)
-      .query({ status: "blocked", includeLiveDescendantSummary: "true", limit: "20" });
+      .query({
+        status: "blocked",
+        includeLiveDescendantSummary: "true",
+        limit: "20",
+      });
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toHaveLength(1);

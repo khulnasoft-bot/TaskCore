@@ -24,7 +24,8 @@ import type { CreateCapabilityLiveSessionInput } from "./live-session.js";
  * chance of the next chat inheriting its records.
  */
 
-export const CAPABILITY_CLEAN_ROOM_SCENARIO_ID = "capability-clean-room" as const;
+export const CAPABILITY_CLEAN_ROOM_SCENARIO_ID =
+  "capability-clean-room" as const;
 
 /**
  * Model-visible grants. This is the deterministic, inspectable half of the
@@ -51,24 +52,26 @@ export const CAPABILITY_CLEAN_ROOM_CLAIMS: readonly string[] = Object.freeze([
 ]);
 
 /** Grants that stay withheld so a denial is always reachable. */
-export const CAPABILITY_CLEAN_ROOM_WITHHELD_CLAIMS: readonly string[] = Object.freeze([
-  "governance:approvals:decide",
-  "test:generic_api_request",
-  "workspace:control",
-]);
+export const CAPABILITY_CLEAN_ROOM_WITHHELD_CLAIMS: readonly string[] =
+  Object.freeze([
+    "governance:approvals:decide",
+    "test:generic_api_request",
+    "workspace:control",
+  ]);
 
-export const CAPABILITY_CLEAN_ROOM_SCENARIO: CapabilitySemanticScenarioPolicy = Object.freeze({
-  id: CAPABILITY_CLEAN_ROOM_SCENARIO_ID,
-  claims: CAPABILITY_CLEAN_ROOM_CLAIMS,
-  allowedInteractionKinds: [
-    "questions",
-    "confirmation",
-    "checkbox",
-    "suggest_tasks",
-    "item_verdicts",
-  ] as const,
-  enableGenericApiRequest: false,
-});
+export const CAPABILITY_CLEAN_ROOM_SCENARIO: CapabilitySemanticScenarioPolicy =
+  Object.freeze({
+    id: CAPABILITY_CLEAN_ROOM_SCENARIO_ID,
+    claims: CAPABILITY_CLEAN_ROOM_CLAIMS,
+    allowedInteractionKinds: [
+      "questions",
+      "confirmation",
+      "checkbox",
+      "suggest_tasks",
+      "item_verdicts",
+    ] as const,
+    enableGenericApiRequest: false,
+  });
 
 export interface CapabilityCleanRoomIdentity {
   /** Short opaque token that separates one clean room from the next. */
@@ -89,7 +92,9 @@ export interface CapabilityCleanRoomIdentityInput {
 export function createCapabilityCleanRoomIdentity(
   input: CapabilityCleanRoomIdentityInput = {},
 ): CapabilityCleanRoomIdentity {
-  const token = (input.token ?? randomUUID().replaceAll("-", "").slice(0, 8)).toLowerCase();
+  const token = (
+    input.token ?? randomUUID().replaceAll("-", "").slice(0, 8)
+  ).toLowerCase();
   const sequence = input.sequence ?? randomInt(1_000, 10_000);
   return {
     token,
@@ -173,13 +178,21 @@ const SEEDED_RECORD_KEYS = [
  * is an acceptance criterion, so it is checked at the seam that creates the
  * session rather than trusted to stay true.
  */
-export function assertCapabilityCleanRoomSeedIsBlank(state: CapabilityFixtureState): void {
-  const seeded = SEEDED_RECORD_KEYS.filter((key) => (state[key] as unknown[]).length > 0);
+export function assertCapabilityCleanRoomSeedIsBlank(
+  state: CapabilityFixtureState,
+): void {
+  const seeded = SEEDED_RECORD_KEYS.filter(
+    (key) => (state[key] as unknown[]).length > 0,
+  );
   if (seeded.length > 0) {
-    throw new Error(`Capability clean-room seed must be blank; seeded: ${seeded.join(", ")}`);
+    throw new Error(
+      `Capability clean-room seed must be blank; seeded: ${seeded.join(", ")}`,
+    );
   }
   if (state.tasks.length !== 1 || state.actors.length !== 1) {
-    throw new Error("Capability clean-room seed must hold exactly one actor and one task");
+    throw new Error(
+      "Capability clean-room seed must hold exactly one actor and one task",
+    );
   }
 }
 
@@ -215,12 +228,16 @@ export function createCapabilityCleanRoomSessionInput(
       seed,
       workingDirectory: options.workingDirectory,
       scenario: CAPABILITY_CLEAN_ROOM_SCENARIO,
-      capabilities: capabilityFixtureRunCapabilities(CAPABILITY_CLEAN_ROOM_CLAIMS),
+      capabilities: capabilityFixtureRunCapabilities(
+        CAPABILITY_CLEAN_ROOM_CLAIMS,
+      ),
       explicitClaims: [...CAPABILITY_CLEAN_ROOM_CLAIMS],
       companyId: identity.companyId,
       actorId: identity.actorId,
       taskId: identity.taskId,
-      ...(options.turnTimeoutMs === undefined ? {} : { turnTimeoutMs: options.turnTimeoutMs }),
+      ...(options.turnTimeoutMs === undefined
+        ? {}
+        : { turnTimeoutMs: options.turnTimeoutMs }),
     },
   };
 }

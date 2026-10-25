@@ -73,8 +73,12 @@ function registerModuleMocks() {
 
 async function createApp(actor: Record<string, unknown>) {
   const [{ summarySlotRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/summary-slots.js")>("../routes/summary-slots.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/summary-slots.js")>(
+      "../routes/summary-slots.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -110,12 +114,24 @@ describe("summary slot routes", () => {
     vi.resetModules();
     registerModuleMocks();
     vi.clearAllMocks();
-    mockAccessService.decide.mockResolvedValue({ allowed: true, explanation: "Allowed." });
+    mockAccessService.decide.mockResolvedValue({
+      allowed: true,
+      explanation: "Allowed.",
+    });
     mockAccessService.canUser.mockResolvedValue(true);
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableSummaries: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableSummaries: true,
+    });
     mockHeartbeatWakeup.mockResolvedValue({ id: "run-1" });
-    mockSummarySlotService.getSlot.mockResolvedValue({ slot: slot(), document: null, generatingIssue: null });
-    mockSummarySlotService.listRevisions.mockResolvedValue({ slot: slot(), revisions: [] });
+    mockSummarySlotService.getSlot.mockResolvedValue({
+      slot: slot(),
+      document: null,
+      generatingIssue: null,
+    });
+    mockSummarySlotService.listRevisions.mockResolvedValue({
+      slot: slot(),
+      revisions: [],
+    });
     mockSummarySlotService.generate.mockResolvedValue({
       slot: slot({ status: "generating", generatingIssueId }),
       generatingIssue: generatingIssue(),
@@ -123,7 +139,12 @@ describe("summary slot routes", () => {
     });
     mockSummarySlotService.write.mockResolvedValue({
       slot: slot({ documentId: "doc-1", status: "idle" }),
-      document: { id: "doc-1", companyId, format: "markdown", body: "# Summary" },
+      document: {
+        id: "doc-1",
+        companyId,
+        format: "markdown",
+        body: "# Summary",
+      },
       revision: { id: "rev-1", documentId: "doc-1", revisionNumber: 1 },
     });
   });
@@ -151,7 +172,9 @@ describe("summary slot routes", () => {
     });
 
     it("returns 404 and does not load state when the summaries flag is disabled", async () => {
-      mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableSummaries: false });
+      mockInstanceSettingsService.getExperimental.mockResolvedValue({
+        enableSummaries: false,
+      });
       const app = await createApp(boardActor);
       const res = await request(app).get(slotPath);
       expect(res.status, JSON.stringify(res.body)).toBe(404);
@@ -159,7 +182,10 @@ describe("summary slot routes", () => {
     });
 
     it("denies reads outside the actor company boundary", async () => {
-      const app = await createApp({ ...boardActor, companyIds: [otherCompanyId] });
+      const app = await createApp({
+        ...boardActor,
+        companyIds: [otherCompanyId],
+      });
       const res = await request(app).get(slotPath);
       expect(res.status, JSON.stringify(res.body)).toBe(403);
       expect(mockSummarySlotService.getSlot).not.toHaveBeenCalled();
@@ -169,13 +195,20 @@ describe("summary slot routes", () => {
   describe("generate route", () => {
     it("creates a generation task and logs activity for board operators", async () => {
       const app = await createApp(boardActor);
-      const res = await request(app).post(
-        `/api/companies/${companyId}/summary-slots/project/header/generate`,
-      ).send({ scopeId: projectId });
+      const res = await request(app)
+        .post(
+          `/api/companies/${companyId}/summary-slots/project/header/generate`,
+        )
+        .send({ scopeId: projectId });
       expect(res.status, JSON.stringify(res.body)).toBe(202);
       expect(res.body.alreadyGenerating).toBe(false);
       expect(mockSummarySlotService.generate).toHaveBeenCalledWith(
-        { companyId, scopeKind: "project", slotKey: "header", scopeId: projectId },
+        {
+          companyId,
+          scopeKind: "project",
+          slotKey: "header",
+          scopeId: projectId,
+        },
         expect.objectContaining({ userId: "board-user", agentId: null }),
       );
       expect(mockLogActivity).toHaveBeenCalledWith(
@@ -209,9 +242,11 @@ describe("summary slot routes", () => {
         alreadyGenerating: true,
       });
       const app = await createApp(boardActor);
-      const res = await request(app).post(
-        `/api/companies/${companyId}/summary-slots/project/header/generate`,
-      ).send({});
+      const res = await request(app)
+        .post(
+          `/api/companies/${companyId}/summary-slots/project/header/generate`,
+        )
+        .send({});
       expect(res.status, JSON.stringify(res.body)).toBe(200);
       expect(res.body.alreadyGenerating).toBe(true);
       expect(mockHeartbeatWakeup).not.toHaveBeenCalled();
@@ -220,28 +255,36 @@ describe("summary slot routes", () => {
     it("denies generate when the operator lacks tasks:assign", async () => {
       mockAccessService.canUser.mockResolvedValue(false);
       const app = await createApp(boardActor);
-      const res = await request(app).post(
-        `/api/companies/${companyId}/summary-slots/project/header/generate`,
-      ).send({});
+      const res = await request(app)
+        .post(
+          `/api/companies/${companyId}/summary-slots/project/header/generate`,
+        )
+        .send({});
       expect(res.status, JSON.stringify(res.body)).toBe(403);
       expect(mockSummarySlotService.generate).not.toHaveBeenCalled();
     });
 
     it("denies generate for agent actors", async () => {
       const app = await createApp(agentActor);
-      const res = await request(app).post(
-        `/api/companies/${companyId}/summary-slots/project/header/generate`,
-      ).send({});
+      const res = await request(app)
+        .post(
+          `/api/companies/${companyId}/summary-slots/project/header/generate`,
+        )
+        .send({});
       expect(res.status, JSON.stringify(res.body)).toBe(403);
       expect(mockSummarySlotService.generate).not.toHaveBeenCalled();
     });
 
     it("returns 404 when the summaries flag is disabled", async () => {
-      mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableSummaries: false });
+      mockInstanceSettingsService.getExperimental.mockResolvedValue({
+        enableSummaries: false,
+      });
       const app = await createApp(boardActor);
-      const res = await request(app).post(
-        `/api/companies/${companyId}/summary-slots/project/header/generate`,
-      ).send({});
+      const res = await request(app)
+        .post(
+          `/api/companies/${companyId}/summary-slots/project/header/generate`,
+        )
+        .send({});
       expect(res.status, JSON.stringify(res.body)).toBe(404);
       expect(mockSummarySlotService.generate).not.toHaveBeenCalled();
     });
@@ -268,21 +311,30 @@ describe("summary slot routes", () => {
       );
       expect(mockLogActivity).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ action: "summary_slot.write", entityType: "summary_slot" }),
+        expect.objectContaining({
+          action: "summary_slot.write",
+          entityType: "summary_slot",
+        }),
       );
     });
 
     it("rejects writes from board actors", async () => {
       const app = await createApp(boardActor);
-      const res = await request(app).put(slotPath).send({ markdown: "# Summary" });
+      const res = await request(app)
+        .put(slotPath)
+        .send({ markdown: "# Summary" });
       expect(res.status, JSON.stringify(res.body)).toBe(403);
       expect(mockSummarySlotService.write).not.toHaveBeenCalled();
     });
 
     it("returns 404 when the summaries flag is disabled", async () => {
-      mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableSummaries: false });
+      mockInstanceSettingsService.getExperimental.mockResolvedValue({
+        enableSummaries: false,
+      });
       const app = await createApp(agentActor);
-      const res = await request(app).put(slotPath).send({ markdown: "# Summary" });
+      const res = await request(app)
+        .put(slotPath)
+        .send({ markdown: "# Summary" });
       expect(res.status, JSON.stringify(res.body)).toBe(404);
       expect(mockSummarySlotService.write).not.toHaveBeenCalled();
     });

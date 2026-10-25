@@ -2,7 +2,8 @@ import pc from "picocolors";
 import { printAcpxStreamEvent } from "@taskcore/adapter-utils/acpx-engine/cli";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -47,7 +48,8 @@ export function printKimiStreamEvent(raw: string, _debug: boolean): void {
       const call = asRecord(callRaw);
       if (!call) continue;
       const fn = asRecord(call.function);
-      const name = asString(fn?.name, asString(call.name, "tool")).trim() || "tool";
+      const name =
+        asString(fn?.name, asString(call.name, "tool")).trim() || "tool";
       console.log(pc.yellow(`tool_call: ${name}`));
       const argsRaw = fn?.arguments ?? call.arguments;
       if (argsRaw === undefined) continue;
@@ -66,7 +68,8 @@ export function printKimiStreamEvent(raw: string, _debug: boolean): void {
 
   if (role === "tool") {
     console.log(pc.cyan("tool_result"));
-    const content = asString(parsed.content) || stringifyUnknown(parsed.content);
+    const content =
+      asString(parsed.content) || stringifyUnknown(parsed.content);
     if (content) console.log(pc.gray(content));
     return;
   }
@@ -80,7 +83,10 @@ export function printKimiStreamEvent(raw: string, _debug: boolean): void {
     return;
   }
 
-  if (role === "error" || asString(parsed.type).trim().toLowerCase() === "error") {
+  if (
+    role === "error" ||
+    asString(parsed.type).trim().toLowerCase() === "error"
+  ) {
     const text =
       asString(parsed.content) ||
       asString(parsed.message) ||

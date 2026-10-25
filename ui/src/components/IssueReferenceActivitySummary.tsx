@@ -8,10 +8,16 @@ type ActivityIssueReference = {
   title?: string | null;
 };
 
-function readIssueReferences(details: Record<string, unknown> | null | undefined, key: string): ActivityIssueReference[] {
+function readIssueReferences(
+  details: Record<string, unknown> | null | undefined,
+  key: string,
+): ActivityIssueReference[] {
   const value = details?.[key];
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is ActivityIssueReference => !!item && typeof item === "object");
+  return value.filter(
+    (item): item is ActivityIssueReference =>
+      !!item && typeof item === "object",
+  );
 }
 
 function Section({
@@ -50,7 +56,11 @@ function Section({
   );
 }
 
-export function IssueReferenceActivitySummary({ event }: { event: Pick<ActivityEvent, "details"> }) {
+export function IssueReferenceActivitySummary({
+  event,
+}: {
+  event: Pick<ActivityEvent, "details">;
+}) {
   const added = readIssueReferences(event.details, "addedReferencedIssues");
   const removed = readIssueReferences(event.details, "removedReferencedIssues");
   if (added.length === 0 && removed.length === 0) return null;
@@ -59,12 +69,22 @@ export function IssueReferenceActivitySummary({ event }: { event: Pick<ActivityE
     <div className="mt-2 space-y-1">
       <Section
         label="Added references"
-        icon={<Plus className="h-3 w-3 text-green-600 dark:text-green-400" aria-hidden="true" />}
+        icon={
+          <Plus
+            className="h-3 w-3 text-green-600 dark:text-green-400"
+            aria-hidden="true"
+          />
+        }
         items={added}
       />
       <Section
         label="Removed references"
-        icon={<Minus className="h-3 w-3 text-red-600 dark:text-red-400" aria-hidden="true" />}
+        icon={
+          <Minus
+            className="h-3 w-3 text-red-600 dark:text-red-400"
+            aria-hidden="true"
+          />
+        }
         items={removed}
         strikethrough
       />

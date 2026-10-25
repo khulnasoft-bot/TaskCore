@@ -38,7 +38,10 @@ afterEach(() => {
   }
 });
 
-function buildLegacyConfig(sharedRoot: string, publicBaseUrl = "http://127.0.0.1:3100") {
+function buildLegacyConfig(
+  sharedRoot: string,
+  publicBaseUrl = "http://127.0.0.1:3100",
+) {
   return {
     $meta: {
       version: 1,
@@ -95,8 +98,15 @@ function buildLegacyConfig(sharedRoot: string, publicBaseUrl = "http://127.0.0.1
   };
 }
 
-function buildIsolatedConfig(instanceRoot: string, serverPort: number, databasePort: number) {
-  const config = buildLegacyConfig(instanceRoot, `http://127.0.0.1:${serverPort}`);
+function buildIsolatedConfig(
+  instanceRoot: string,
+  serverPort: number,
+  databasePort: number,
+) {
+  const config = buildLegacyConfig(
+    instanceRoot,
+    `http://127.0.0.1:${serverPort}`,
+  );
   return {
     ...config,
     database: {
@@ -116,7 +126,9 @@ function buildIsolatedConfig(instanceRoot: string, serverPort: number, databaseP
 
 describe("worktree config repair", () => {
   it("repairs legacy repo-local worktree config and env files into an isolated instance", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-repair-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-repair-"),
+    );
     const worktreeRoot = path.join(tempRoot, "PAP-884-ai-commits-component");
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
@@ -125,7 +137,11 @@ describe("worktree config repair", () => {
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
 
     await fs.mkdir(taskcoreDir, { recursive: true });
-    await fs.writeFile(configPath, JSON.stringify(buildLegacyConfig(sharedRoot), null, 2) + "\n", "utf8");
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(buildLegacyConfig(sharedRoot), null, 2) + "\n",
+      "utf8",
+    );
     await fs.writeFile(
       envPath,
       [
@@ -157,41 +173,73 @@ describe("worktree config repair", () => {
 
     const repairedConfig = JSON.parse(await fs.readFile(configPath, "utf8"));
     const repairedEnv = await fs.readFile(envPath, "utf8");
-    const instanceRoot = path.join(isolatedHome, "instances", "pap-884-ai-commits-component");
+    const instanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "pap-884-ai-commits-component",
+    );
 
-    expect(repairedConfig.database.embeddedPostgresDataDir).toBe(path.join(instanceRoot, "db"));
+    expect(repairedConfig.database.embeddedPostgresDataDir).toBe(
+      path.join(instanceRoot, "db"),
+    );
     expect(repairedConfig.database.backup.enabled).toBe(false);
-    expect(repairedConfig.database.backup.dir).toBe(path.join(instanceRoot, "data", "backups"));
+    expect(repairedConfig.database.backup.dir).toBe(
+      path.join(instanceRoot, "data", "backups"),
+    );
     expect(repairedConfig.logging.logDir).toBe(path.join(instanceRoot, "logs"));
-    expect(repairedConfig.storage.localDisk.baseDir).toBe(path.join(instanceRoot, "data", "storage"));
-    expect(repairedConfig.secrets.localEncrypted.keyFilePath).toBe(path.join(instanceRoot, "secrets", "master.key"));
-    expect(repairedEnv).toContain(`TASKCORE_HOME=${JSON.stringify(isolatedHome)}`);
-    expect(repairedEnv).toContain('TASKCORE_INSTANCE_ID="pap-884-ai-commits-component"');
-    expect(repairedEnv).toContain(`TASKCORE_CONFIG=${JSON.stringify(await fs.realpath(configPath))}`);
-    expect(repairedEnv).toContain(`TASKCORE_CONTEXT=${JSON.stringify(path.join(isolatedHome, "context.json"))}`);
+    expect(repairedConfig.storage.localDisk.baseDir).toBe(
+      path.join(instanceRoot, "data", "storage"),
+    );
+    expect(repairedConfig.secrets.localEncrypted.keyFilePath).toBe(
+      path.join(instanceRoot, "secrets", "master.key"),
+    );
+    expect(repairedEnv).toContain(
+      `TASKCORE_HOME=${JSON.stringify(isolatedHome)}`,
+    );
+    expect(repairedEnv).toContain(
+      'TASKCORE_INSTANCE_ID="pap-884-ai-commits-component"',
+    );
+    expect(repairedEnv).toContain(
+      `TASKCORE_CONFIG=${JSON.stringify(await fs.realpath(configPath))}`,
+    );
+    expect(repairedEnv).toContain(
+      `TASKCORE_CONTEXT=${JSON.stringify(path.join(isolatedHome, "context.json"))}`,
+    );
     expect(repairedEnv).toContain('TASKCORE_DB_BACKUP_ENABLED="false"');
     expect(repairedEnv).toContain("TASKCORE_AGENT_JWT_SECRET=shared-secret");
     expect(repairedEnv).toContain("TASKCORE_TOOL_ACTION_SIGNING_SECRET=");
     expect(process.env.TASKCORE_HOME).toBe(isolatedHome);
     expect(process.env.PORT).toBe("3101");
-    expect(process.env.TASKCORE_INSTANCE_ID).toBe("pap-884-ai-commits-component");
+    expect(process.env.TASKCORE_INSTANCE_ID).toBe(
+      "pap-884-ai-commits-component",
+    );
     expect(process.env.TASKCORE_DB_BACKUP_ENABLED).toBe("false");
     expect(process.env.TASKCORE_TOOL_ACTION_SIGNING_SECRET).toHaveLength(64);
   });
 
   it("disables backups in an otherwise isolated existing worktree config", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-backup-migration-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-backup-migration-"),
+    );
     const worktreeRoot = path.join(tempRoot, "disable-worktree-backups");
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
     const envPath = path.join(taskcoreDir, ".env");
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const instanceRoot = path.join(isolatedHome, "instances", "disable-worktree-backups");
+    const instanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "disable-worktree-backups",
+    );
 
     await fs.mkdir(taskcoreDir, { recursive: true });
     const legacyIsolatedConfig = buildIsolatedConfig(instanceRoot, 3110, 54339);
     legacyIsolatedConfig.database.backup.enabled = true;
-    await fs.writeFile(configPath, JSON.stringify(legacyIsolatedConfig, null, 2) + "\n", "utf8");
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(legacyIsolatedConfig, null, 2) + "\n",
+      "utf8",
+    );
     await fs.writeFile(
       envPath,
       [
@@ -232,7 +280,9 @@ describe("worktree config repair", () => {
   });
 
   it("preserves an externally supplied PORT while repairing worktree config", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-repair-external-port-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-repair-external-port-"),
+    );
     const worktreeRoot = path.join(tempRoot, "PAP-10341-runtime-managed-port");
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
@@ -241,7 +291,11 @@ describe("worktree config repair", () => {
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
 
     await fs.mkdir(taskcoreDir, { recursive: true });
-    await fs.writeFile(configPath, JSON.stringify(buildLegacyConfig(sharedRoot), null, 2) + "\n", "utf8");
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(buildLegacyConfig(sharedRoot), null, 2) + "\n",
+      "utf8",
+    );
     await fs.writeFile(
       envPath,
       [
@@ -273,14 +327,17 @@ describe("worktree config repair", () => {
   });
 
   it("never rewrites a main-instance env when ambient worktree flags leak into the process", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-leak-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-leak-"),
+    );
     const homeDir = path.join(tempRoot, ".taskcore");
     const instanceRoot = path.join(homeDir, "instances", "default");
     const configPath = path.join(instanceRoot, "config.json");
     const envPath = path.join(instanceRoot, ".env");
 
     await fs.mkdir(instanceRoot, { recursive: true });
-    const originalConfig = JSON.stringify(buildLegacyConfig(instanceRoot), null, 2) + "\n";
+    const originalConfig =
+      JSON.stringify(buildLegacyConfig(instanceRoot), null, 2) + "\n";
     await fs.writeFile(configPath, originalConfig, "utf8");
     const cleanEnv = [
       "# TaskCore environment variables",
@@ -310,13 +367,19 @@ describe("worktree config repair", () => {
   });
 
   it("does not persist runtime ports into a main-instance config when ambient worktree flags leak in", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-leak-ports-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-leak-ports-"),
+    );
     const homeDir = path.join(tempRoot, ".taskcore");
     const instanceRoot = path.join(homeDir, "instances", "default");
     const configPath = path.join(instanceRoot, "config.json");
 
     await fs.mkdir(instanceRoot, { recursive: true });
-    await fs.writeFile(configPath, JSON.stringify(buildLegacyConfig(instanceRoot), null, 2) + "\n", "utf8");
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(buildLegacyConfig(instanceRoot), null, 2) + "\n",
+      "utf8",
+    );
 
     process.chdir(tempRoot);
     process.env.TASKCORE_IN_WORKTREE = "true";
@@ -335,7 +398,9 @@ describe("worktree config repair", () => {
   });
 
   it("does not adopt a .taskcore config whose own env does not declare a worktree", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-unattested-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-unattested-"),
+    );
     const repoRoot = path.join(tempRoot, "repo");
     const taskcoreDir = path.join(repoRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
@@ -343,7 +408,11 @@ describe("worktree config repair", () => {
 
     await fs.mkdir(taskcoreDir, { recursive: true });
     const originalConfig =
-      JSON.stringify(buildLegacyConfig(path.join(tempRoot, "shared")), null, 2) + "\n";
+      JSON.stringify(
+        buildLegacyConfig(path.join(tempRoot, "shared")),
+        null,
+        2,
+      ) + "\n";
     await fs.writeFile(configPath, originalConfig, "utf8");
     const nonWorktreeEnv = [
       "# TaskCore environment variables",
@@ -355,7 +424,10 @@ describe("worktree config repair", () => {
     process.chdir(repoRoot);
     process.env.TASKCORE_IN_WORKTREE = "true";
     process.env.TASKCORE_WORKTREE_NAME = "PAP-884-ai-commits-component";
-    process.env.TASKCORE_WORKTREES_DIR = path.join(tempRoot, ".taskcore-worktrees");
+    process.env.TASKCORE_WORKTREES_DIR = path.join(
+      tempRoot,
+      ".taskcore-worktrees",
+    );
     delete process.env.TASKCORE_HOME;
     delete process.env.TASKCORE_INSTANCE_ID;
     delete process.env.TASKCORE_CONFIG;
@@ -368,18 +440,31 @@ describe("worktree config repair", () => {
   });
 
   it("avoids sibling worktree ports when repairing legacy configs", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-repair-ports-"));
-    const worktreeRoot = path.join(tempRoot, "PAP-880-thumbs-capture-for-evals-feature");
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-repair-ports-"),
+    );
+    const worktreeRoot = path.join(
+      tempRoot,
+      "PAP-880-thumbs-capture-for-evals-feature",
+    );
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
     const envPath = path.join(taskcoreDir, ".env");
     const sharedRoot = path.join(tempRoot, ".taskcore", "instances", "default");
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const siblingInstanceRoot = path.join(isolatedHome, "instances", "pap-878-create-a-mine-tab-in-inbox");
+    const siblingInstanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "pap-878-create-a-mine-tab-in-inbox",
+    );
 
     await fs.mkdir(taskcoreDir, { recursive: true });
     await fs.mkdir(siblingInstanceRoot, { recursive: true });
-    await fs.writeFile(configPath, JSON.stringify(buildLegacyConfig(sharedRoot), null, 2) + "\n", "utf8");
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(buildLegacyConfig(sharedRoot), null, 2) + "\n",
+      "utf8",
+    );
     await fs.writeFile(
       envPath,
       [
@@ -423,7 +508,8 @@ describe("worktree config repair", () => {
 
     process.chdir(worktreeRoot);
     process.env.TASKCORE_IN_WORKTREE = "true";
-    process.env.TASKCORE_WORKTREE_NAME = "PAP-880-thumbs-capture-for-evals-feature";
+    process.env.TASKCORE_WORKTREE_NAME =
+      "PAP-880-thumbs-capture-for-evals-feature";
     process.env.TASKCORE_WORKTREES_DIR = isolatedHome;
     delete process.env.TASKCORE_HOME;
     delete process.env.TASKCORE_INSTANCE_ID;
@@ -439,12 +525,30 @@ describe("worktree config repair", () => {
   });
 
   it("serializes and persists cross-repo worktree port reservations", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-port-registry-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-port-registry-"),
+    );
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const firstWorktreeRoot = path.join(tempRoot, "repo-one", "PAP-14013-import-bulk-skills");
-    const secondWorktreeRoot = path.join(tempRoot, "repo-two", "PAP-14069-port-conflicts");
-    const firstConfigPath = path.join(firstWorktreeRoot, ".taskcore", "config.json");
-    const secondConfigPath = path.join(secondWorktreeRoot, ".taskcore", "config.json");
+    const firstWorktreeRoot = path.join(
+      tempRoot,
+      "repo-one",
+      "PAP-14013-import-bulk-skills",
+    );
+    const secondWorktreeRoot = path.join(
+      tempRoot,
+      "repo-two",
+      "PAP-14069-port-conflicts",
+    );
+    const firstConfigPath = path.join(
+      firstWorktreeRoot,
+      ".taskcore",
+      "config.json",
+    );
+    const secondConfigPath = path.join(
+      secondWorktreeRoot,
+      ".taskcore",
+      "config.json",
+    );
 
     const writeWorktree = async (
       worktreeRoot: string,
@@ -452,21 +556,32 @@ describe("worktree config repair", () => {
       databaseMode: "embedded-postgres" | "postgres" = "embedded-postgres",
     ) => {
       const taskcoreDir = path.join(worktreeRoot, ".taskcore");
-      const instanceRoot = path.join(isolatedHome, "instances", name.toLowerCase());
+      const instanceRoot = path.join(
+        isolatedHome,
+        "instances",
+        name.toLowerCase(),
+      );
       const config = buildIsolatedConfig(instanceRoot, 45439, 55439);
       await fs.mkdir(taskcoreDir, { recursive: true });
       await fs.writeFile(
         path.join(taskcoreDir, "config.json"),
-        `${JSON.stringify({
-          ...config,
-          database: {
-            ...config.database,
-            mode: databaseMode,
-            ...(databaseMode === "postgres"
-              ? { connectionString: "postgres://taskcore:taskcore@127.0.0.1:55439/taskcore" }
-              : {}),
+        `${JSON.stringify(
+          {
+            ...config,
+            database: {
+              ...config.database,
+              mode: databaseMode,
+              ...(databaseMode === "postgres"
+                ? {
+                    connectionString:
+                      "postgres://taskcore:taskcore@127.0.0.1:55439/taskcore",
+                  }
+                : {}),
+            },
           },
-        }, null, 2)}\n`,
+          null,
+          2,
+        )}\n`,
         "utf8",
       );
       await fs.writeFile(
@@ -491,30 +606,54 @@ describe("worktree config repair", () => {
       process.env.TASKCORE_WORKTREES_DIR = isolatedHome;
       process.env.TASKCORE_HOME = isolatedHome;
       process.env.TASKCORE_INSTANCE_ID = name.toLowerCase();
-      process.env.TASKCORE_CONFIG = path.join(worktreeRoot, ".taskcore", "config.json");
+      process.env.TASKCORE_CONFIG = path.join(
+        worktreeRoot,
+        ".taskcore",
+        "config.json",
+      );
       delete process.env.PORT;
       delete process.env.DATABASE_URL;
     };
 
-    await writeWorktree(firstWorktreeRoot, "PAP-14013-import-bulk-skills", "postgres");
+    await writeWorktree(
+      firstWorktreeRoot,
+      "PAP-14013-import-bulk-skills",
+      "postgres",
+    );
     await writeWorktree(secondWorktreeRoot, "PAP-14069-port-conflicts");
-    const staleLockPath = path.join(isolatedHome, ".worktree-port-reservations.lock");
+    const staleLockPath = path.join(
+      isolatedHome,
+      ".worktree-port-reservations.lock",
+    );
     await fs.mkdir(staleLockPath, { recursive: true });
     const staleLockTime = new Date(Date.now() - 6_000);
     await fs.utimes(staleLockPath, staleLockTime, staleLockTime);
-    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warning = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
 
     activateWorktree(firstWorktreeRoot, "PAP-14013-import-bulk-skills");
-    expect(maybeRepairLegacyWorktreeConfigAndEnvFiles().repairedConfig).toBe(false);
-    await expect(fs.stat(staleLockPath)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(maybeRepairLegacyWorktreeConfigAndEnvFiles().repairedConfig).toBe(
+      false,
+    );
+    await expect(fs.stat(staleLockPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
 
     activateWorktree(secondWorktreeRoot, "PAP-14069-port-conflicts");
-    expect(maybeRepairLegacyWorktreeConfigAndEnvFiles().repairedConfig).toBe(true);
+    expect(maybeRepairLegacyWorktreeConfigAndEnvFiles().repairedConfig).toBe(
+      true,
+    );
 
     const firstConfig = JSON.parse(await fs.readFile(firstConfigPath, "utf8"));
-    const secondConfig = JSON.parse(await fs.readFile(secondConfigPath, "utf8"));
+    const secondConfig = JSON.parse(
+      await fs.readFile(secondConfigPath, "utf8"),
+    );
     const registry = JSON.parse(
-      await fs.readFile(path.join(isolatedHome, "worktree-port-reservations.json"), "utf8"),
+      await fs.readFile(
+        path.join(isolatedHome, "worktree-port-reservations.json"),
+        "utf8",
+      ),
     );
 
     expect(firstConfig.server.port).toBe(45439);
@@ -522,20 +661,32 @@ describe("worktree config repair", () => {
     expect(secondConfig.server.port).toBe(45440);
     expect(secondConfig.database.embeddedPostgresPort).toBe(55440);
     expect(secondConfig.auth.publicBaseUrl).toBe("http://127.0.0.1:45440/");
-    expect(registry.configPaths).toEqual([firstConfigPath, secondConfigPath].sort());
-    expect(warning).toHaveBeenCalledWith(expect.stringContaining("Worktree port conflict detected"));
-    expect(warning).toHaveBeenCalledWith(expect.stringContaining("server: 45439 -> 45440"));
+    expect(registry.configPaths).toEqual(
+      [firstConfigPath, secondConfigPath].sort(),
+    );
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining("Worktree port conflict detected"),
+    );
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining("server: 45439 -> 45440"),
+    );
 
     warning.mockClear();
-    expect(maybeRepairLegacyWorktreeConfigAndEnvFiles().repairedConfig).toBe(false);
-    const persistedConfig = JSON.parse(await fs.readFile(secondConfigPath, "utf8"));
+    expect(maybeRepairLegacyWorktreeConfigAndEnvFiles().repairedConfig).toBe(
+      false,
+    );
+    const persistedConfig = JSON.parse(
+      await fs.readFile(secondConfigPath, "utf8"),
+    );
     expect(persistedConfig.server.port).toBe(45440);
     expect(persistedConfig.database.embeddedPostgresPort).toBe(55440);
     expect(warning).not.toHaveBeenCalled();
   });
 
   it("ignores stale migrated env paths when the dev runner resolved the local config", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-migrated-env-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-migrated-env-"),
+    );
     const worktreeRoot = path.join(tempRoot, "PAP-9940-what-can-we-learn");
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
@@ -544,7 +695,11 @@ describe("worktree config repair", () => {
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
 
     await fs.mkdir(taskcoreDir, { recursive: true });
-    await fs.writeFile(configPath, JSON.stringify(buildLegacyConfig(oldHome), null, 2) + "\n", "utf8");
+    await fs.writeFile(
+      configPath,
+      JSON.stringify(buildLegacyConfig(oldHome), null, 2) + "\n",
+      "utf8",
+    );
     await fs.writeFile(
       envPath,
       [
@@ -571,28 +726,52 @@ describe("worktree config repair", () => {
     const result = maybeRepairLegacyWorktreeConfigAndEnvFiles();
     const repairedConfig = JSON.parse(await fs.readFile(configPath, "utf8"));
     const repairedEnv = await fs.readFile(envPath, "utf8");
-    const instanceRoot = path.join(isolatedHome, "instances", "pap-9940-what-can-we-learn");
+    const instanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "pap-9940-what-can-we-learn",
+    );
 
     expect(result).toEqual({
       repairedConfig: true,
       repairedEnv: true,
     });
-    expect(repairedConfig.database.embeddedPostgresDataDir).toBe(path.join(instanceRoot, "db"));
-    expect(repairedConfig.secrets.localEncrypted.keyFilePath).toBe(path.join(instanceRoot, "secrets", "master.key"));
-    expect(repairedEnv).toContain(`TASKCORE_HOME=${JSON.stringify(isolatedHome)}`);
-    expect(repairedEnv).toContain(`TASKCORE_CONFIG=${JSON.stringify(configPath)}`);
+    expect(repairedConfig.database.embeddedPostgresDataDir).toBe(
+      path.join(instanceRoot, "db"),
+    );
+    expect(repairedConfig.secrets.localEncrypted.keyFilePath).toBe(
+      path.join(instanceRoot, "secrets", "master.key"),
+    );
+    expect(repairedEnv).toContain(
+      `TASKCORE_HOME=${JSON.stringify(isolatedHome)}`,
+    );
+    expect(repairedEnv).toContain(
+      `TASKCORE_CONFIG=${JSON.stringify(configPath)}`,
+    );
     expect(repairedEnv).not.toContain("/old/home");
   });
 
   it("does not persist transient runtime home overrides over repo-local worktree env", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-runtime-override-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-runtime-override-"),
+    );
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const transientHome = path.join(tempRoot, "tests", "e2e", ".tmp", "multiuser-authenticated");
-    const worktreeRoot = path.join(tempRoot, "PAP-989-multi-user-implementation-using-plan-from-pap-958");
+    const transientHome = path.join(
+      tempRoot,
+      "tests",
+      "e2e",
+      ".tmp",
+      "multiuser-authenticated",
+    );
+    const worktreeRoot = path.join(
+      tempRoot,
+      "PAP-989-multi-user-implementation-using-plan-from-pap-958",
+    );
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
     const envPath = path.join(taskcoreDir, ".env");
-    const instanceId = "pap-989-multi-user-implementation-using-plan-from-pap-958";
+    const instanceId =
+      "pap-989-multi-user-implementation-using-plan-from-pap-958";
     const stableInstanceRoot = path.join(isolatedHome, "instances", instanceId);
 
     await fs.mkdir(taskcoreDir, { recursive: true });
@@ -603,13 +782,24 @@ describe("worktree config repair", () => {
           ...buildLegacyConfig(transientHome),
           database: {
             mode: "embedded-postgres",
-            embeddedPostgresDataDir: path.join(transientHome, "instances", instanceId, "db"),
+            embeddedPostgresDataDir: path.join(
+              transientHome,
+              "instances",
+              instanceId,
+              "db",
+            ),
             embeddedPostgresPort: 54334,
             backup: {
               enabled: true,
               intervalMinutes: 60,
               retentionDays: 30,
-              dir: path.join(transientHome, "instances", instanceId, "data", "backups"),
+              dir: path.join(
+                transientHome,
+                "instances",
+                instanceId,
+                "data",
+                "backups",
+              ),
             },
           },
           logging: {
@@ -627,7 +817,13 @@ describe("worktree config repair", () => {
           storage: {
             provider: "local_disk",
             localDisk: {
-              baseDir: path.join(transientHome, "instances", instanceId, "data", "storage"),
+              baseDir: path.join(
+                transientHome,
+                "instances",
+                instanceId,
+                "data",
+                "storage",
+              ),
             },
             s3: {
               bucket: "taskcore",
@@ -640,7 +836,13 @@ describe("worktree config repair", () => {
             provider: "local_encrypted",
             strictMode: false,
             localEncrypted: {
-              keyFilePath: path.join(transientHome, "instances", instanceId, "secrets", "master.key"),
+              keyFilePath: path.join(
+                transientHome,
+                "instances",
+                instanceId,
+                "secrets",
+                "master.key",
+              ),
             },
           },
         },
@@ -666,7 +868,8 @@ describe("worktree config repair", () => {
 
     process.chdir(worktreeRoot);
     process.env.TASKCORE_IN_WORKTREE = "true";
-    process.env.TASKCORE_WORKTREE_NAME = "PAP-989-multi-user-implementation-using-plan-from-pap-958";
+    process.env.TASKCORE_WORKTREE_NAME =
+      "PAP-989-multi-user-implementation-using-plan-from-pap-958";
     process.env.TASKCORE_HOME = transientHome;
     process.env.TASKCORE_INSTANCE_ID = instanceId;
     process.env.TASKCORE_CONFIG = configPath;
@@ -679,31 +882,68 @@ describe("worktree config repair", () => {
       repairedConfig: true,
       repairedEnv: true,
     });
-    expect(repairedConfig.database.embeddedPostgresDataDir).toBe(path.join(stableInstanceRoot, "db"));
-    expect(repairedConfig.database.backup.dir).toBe(path.join(stableInstanceRoot, "data", "backups"));
-    expect(repairedConfig.logging.logDir).toBe(path.join(stableInstanceRoot, "logs"));
-    expect(repairedConfig.storage.localDisk.baseDir).toBe(path.join(stableInstanceRoot, "data", "storage"));
+    expect(repairedConfig.database.embeddedPostgresDataDir).toBe(
+      path.join(stableInstanceRoot, "db"),
+    );
+    expect(repairedConfig.database.backup.dir).toBe(
+      path.join(stableInstanceRoot, "data", "backups"),
+    );
+    expect(repairedConfig.logging.logDir).toBe(
+      path.join(stableInstanceRoot, "logs"),
+    );
+    expect(repairedConfig.storage.localDisk.baseDir).toBe(
+      path.join(stableInstanceRoot, "data", "storage"),
+    );
     expect(repairedConfig.secrets.localEncrypted.keyFilePath).toBe(
       path.join(stableInstanceRoot, "secrets", "master.key"),
     );
-    expect(repairedEnv).toContain(`TASKCORE_HOME=${JSON.stringify(isolatedHome)}`);
+    expect(repairedEnv).toContain(
+      `TASKCORE_HOME=${JSON.stringify(isolatedHome)}`,
+    );
     expect(repairedEnv).toContain('TASKCORE_DB_BACKUP_ENABLED="false"');
-    expect(repairedEnv).not.toContain(`TASKCORE_HOME=${JSON.stringify(transientHome)}`);
+    expect(repairedEnv).not.toContain(
+      `TASKCORE_HOME=${JSON.stringify(transientHome)}`,
+    );
     expect(process.env.TASKCORE_HOME).toBe(isolatedHome);
   });
 
   it("rebalances duplicate ports for already isolated worktree configs", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-rebalance-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-rebalance-"),
+    );
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const repoWorktreesRoot = path.join(tempRoot, "repo", ".taskcore", "worktrees");
-    const siblingWorktreeRoot = path.join(repoWorktreesRoot, "PAP-878-create-a-mine-tab-in-inbox");
-    const siblingInstanceRoot = path.join(isolatedHome, "instances", "pap-878-create-a-mine-tab-in-inbox");
-    const currentWorktreeRoot = path.join(repoWorktreesRoot, "PAP-884-ai-commits-component");
+    const repoWorktreesRoot = path.join(
+      tempRoot,
+      "repo",
+      ".taskcore",
+      "worktrees",
+    );
+    const siblingWorktreeRoot = path.join(
+      repoWorktreesRoot,
+      "PAP-878-create-a-mine-tab-in-inbox",
+    );
+    const siblingInstanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "pap-878-create-a-mine-tab-in-inbox",
+    );
+    const currentWorktreeRoot = path.join(
+      repoWorktreesRoot,
+      "PAP-884-ai-commits-component",
+    );
     const taskcoreDir = path.join(currentWorktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
     const envPath = path.join(taskcoreDir, ".env");
-    const currentInstanceRoot = path.join(isolatedHome, "instances", "pap-884-ai-commits-component");
-    const siblingConfigPath = path.join(siblingWorktreeRoot, ".taskcore", "config.json");
+    const currentInstanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "pap-884-ai-commits-component",
+    );
+    const siblingConfigPath = path.join(
+      siblingWorktreeRoot,
+      ".taskcore",
+      "config.json",
+    );
 
     await fs.mkdir(taskcoreDir, { recursive: true });
     await fs.mkdir(path.dirname(siblingConfigPath), { recursive: true });
@@ -751,7 +991,11 @@ describe("worktree config repair", () => {
             provider: "local_encrypted",
             strictMode: false,
             localEncrypted: {
-              keyFilePath: path.join(currentInstanceRoot, "secrets", "master.key"),
+              keyFilePath: path.join(
+                currentInstanceRoot,
+                "secrets",
+                "master.key",
+              ),
             },
           },
         },
@@ -819,12 +1063,21 @@ describe("worktree config repair", () => {
   });
 
   it("persists runtime-selected worktree ports back into explicit-port auth URLs", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-ports-"));
-    const worktreeRoot = path.join(tempRoot, "PAP-878-create-a-mine-tab-in-inbox");
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-ports-"),
+    );
+    const worktreeRoot = path.join(
+      tempRoot,
+      "PAP-878-create-a-mine-tab-in-inbox",
+    );
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const instanceRoot = path.join(isolatedHome, "instances", "pap-878-create-a-mine-tab-in-inbox");
+    const instanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "pap-878-create-a-mine-tab-in-inbox",
+    );
 
     await fs.mkdir(taskcoreDir, { recursive: true });
     await fs.writeFile(
@@ -883,7 +1136,11 @@ describe("worktree config repair", () => {
 
     await fs.writeFile(
       path.join(taskcoreDir, ".env"),
-      ["# TaskCore environment variables", "TASKCORE_IN_WORKTREE=true", ""].join("\n"),
+      [
+        "# TaskCore environment variables",
+        "TASKCORE_IN_WORKTREE=true",
+        "",
+      ].join("\n"),
       "utf8",
     );
 
@@ -905,16 +1162,24 @@ describe("worktree config repair", () => {
 
     expect(writtenConfig.server.port).toBe(3103);
     expect(writtenConfig.database.embeddedPostgresPort).toBe(54335);
-    expect(writtenConfig.auth.publicBaseUrl).toBe("http://my-host.ts.net:3103/");
+    expect(writtenConfig.auth.publicBaseUrl).toBe(
+      "http://my-host.ts.net:3103/",
+    );
   });
 
   it("does not rewrite no-port public auth URLs when persisting runtime-selected ports", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-public-ports-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-public-ports-"),
+    );
     const worktreeRoot = path.join(tempRoot, "PAP-125-public-base-url");
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const instanceRoot = path.join(isolatedHome, "instances", "pap-125-public-base-url");
+    const instanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "pap-125-public-base-url",
+    );
 
     await fs.mkdir(taskcoreDir, { recursive: true });
     await fs.writeFile(
@@ -973,7 +1238,11 @@ describe("worktree config repair", () => {
 
     await fs.writeFile(
       path.join(taskcoreDir, ".env"),
-      ["# TaskCore environment variables", "TASKCORE_IN_WORKTREE=true", ""].join("\n"),
+      [
+        "# TaskCore environment variables",
+        "TASKCORE_IN_WORKTREE=true",
+        "",
+      ].join("\n"),
       "utf8",
     );
 
@@ -999,12 +1268,18 @@ describe("worktree config repair", () => {
   });
 
   it("preserves top-level and nested config extensions while persisting runtime ports", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-worktree-config-extensions-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-worktree-config-extensions-"),
+    );
     const worktreeRoot = path.join(tempRoot, "config-extensions");
     const taskcoreDir = path.join(worktreeRoot, ".taskcore");
     const configPath = path.join(taskcoreDir, "config.json");
     const isolatedHome = path.join(tempRoot, ".taskcore-worktrees");
-    const instanceRoot = path.join(isolatedHome, "instances", "config-extensions");
+    const instanceRoot = path.join(
+      isolatedHome,
+      "instances",
+      "config-extensions",
+    );
     const base = buildIsolatedConfig(instanceRoot, 3101, 54331);
     const config = {
       ...base,
@@ -1030,10 +1305,18 @@ describe("worktree config repair", () => {
     };
 
     await fs.mkdir(taskcoreDir, { recursive: true });
-    await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+    await fs.writeFile(
+      configPath,
+      `${JSON.stringify(config, null, 2)}\n`,
+      "utf8",
+    );
     await fs.writeFile(
       path.join(taskcoreDir, ".env"),
-      ["# TaskCore environment variables", "TASKCORE_IN_WORKTREE=true", ""].join("\n"),
+      [
+        "# TaskCore environment variables",
+        "TASKCORE_IN_WORKTREE=true",
+        "",
+      ].join("\n"),
       "utf8",
     );
 

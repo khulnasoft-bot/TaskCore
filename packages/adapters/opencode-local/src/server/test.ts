@@ -25,12 +25,20 @@ import {
   prepareAdapterExecutionTargetRuntime,
   overrideAdapterExecutionTargetRemoteCwd,
 } from "@taskcore/adapter-utils/execution-target";
-import { discoverOpenCodeModels, ensureOpenCodeModelConfiguredAndAvailable } from "./models.js";
+import {
+  discoverOpenCodeModels,
+  ensureOpenCodeModelConfiguredAndAvailable,
+} from "./models.js";
 import { parseOpenCodeJsonl } from "./parse.js";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
-import { prepareOpenCodeRuntimeConfig, prepareManagedOpenCodeRemoteHomes } from "./runtime-config.js";
+import {
+  prepareOpenCodeRuntimeConfig,
+  prepareManagedOpenCodeRemoteHomes,
+} from "./runtime-config.js";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -45,8 +53,15 @@ function firstNonEmptyLine(text: string): string {
   );
 }
 
-function summarizeProbeDetail(stdout: string, stderr: string, parsedError: string | null): string | null {
-  const raw = parsedError?.trim() || firstNonEmptyLine(stderr) || firstNonEmptyLine(stdout);
+function summarizeProbeDetail(
+  stdout: string,
+  stderr: string,
+  parsedError: string | null,
+): string | null {
+  const raw =
+    parsedError?.trim() ||
+    firstNonEmptyLine(stderr) ||
+    firstNonEmptyLine(stdout);
   if (!raw) return null;
   const clean = raw.replace(/\s+/g, " ").trim();
   const max = 240;
@@ -54,7 +69,8 @@ function summarizeProbeDetail(stdout: string, stderr: string, parsedError: strin
 }
 
 function normalizeEnv(input: unknown): Record<string, string> {
-  if (typeof input !== "object" || input === null || Array.isArray(input)) return {};
+  if (typeof input !== "object" || input === null || Array.isArray(input))
+    return {};
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
     if (typeof value === "string") env[key] = value;
@@ -73,10 +89,15 @@ export async function testEnvironment(
   const command = asString(config.command, "opencode");
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
-  const targetIsSandbox = target?.kind === "remote" && target.transport === "sandbox";
-  const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
+  const targetIsSandbox =
+    target?.kind === "remote" && target.transport === "sandbox";
+  const cwd = resolveAdapterExecutionTargetCwd(
+    target,
+    asString(config.cwd, ""),
+    process.cwd(),
+  );
   const targetLabel = targetIsRemote
-    ? ctx.environmentName ?? describeAdapterExecutionTarget(target)
+    ? (ctx.environmentName ?? describeAdapterExecutionTarget(target))
     : null;
   const runId = `opencode-envtest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -114,8 +135,15 @@ export async function testEnvironment(
     if (typeof value === "string") env[key] = value;
   }
 
-  const openaiKeyOverride = "OPENAI_API_KEY" in envConfig ? asString(envConfig.OPENAI_API_KEY, "") : null;
-  if (!config.managedAiConnection && openaiKeyOverride !== null && openaiKeyOverride.trim() === "") {
+  const openaiKeyOverride =
+    "OPENAI_API_KEY" in envConfig
+      ? asString(envConfig.OPENAI_API_KEY, "")
+      : null;
+  if (
+    !config.managedAiConnection &&
+    openaiKeyOverride !== null &&
+    openaiKeyOverride.trim() === ""
+  ) {
     checks.push({
       code: "opencode_openai_api_key_missing",
       level: "warn",
@@ -126,14 +154,20 @@ export async function testEnvironment(
 
   // Prevent OpenCode from writing an opencode.json into the working directory.
   env.OPENCODE_DISABLE_PROJECT_CONFIG = "true";
-  const preparedRuntimeConfig = await prepareOpenCodeRuntimeConfig({ env, config });
+  const preparedRuntimeConfig = await prepareOpenCodeRuntimeConfig({
+    env,
+    config,
+  });
   const localRuntimeConfigHome =
-    preparedRuntimeConfig.notes.length > 0 ? preparedRuntimeConfig.env.XDG_CONFIG_HOME : "";
+    preparedRuntimeConfig.notes.length > 0
+      ? preparedRuntimeConfig.env.XDG_CONFIG_HOME
+      : "";
   if (asBoolean(config.dangerouslySkipPermissions, true)) {
     checks.push({
       code: "opencode_headless_permissions_enabled",
       level: "info",
-      message: "Headless OpenCode permissions are auto-approved for all tools and connections.",
+      message:
+        "Headless OpenCode permissions are auto-approved for all tools and connections.",
     });
   }
   let restoreWorkspace: (() => Promise<void>) | null = null;
@@ -145,32 +179,49 @@ export async function testEnvironment(
     let runtimeTarget: AdapterExecutionTarget | null = target ?? null;
     let runtimeCwd = cwd;
     if (targetIsRemote) {
-      preparedRuntimeWorkspaceLocalDir = await fs.mkdtemp(path.join(os.tmpdir(), `taskcore-opencode-envtest-${runId}-`));
-      const preparedExecutionTargetRuntime = await prepareAdapterExecutionTargetRuntime({
-        runId,
-        target,
-        adapterKey: "opencode",
-        workspaceLocalDir: preparedRuntimeWorkspaceLocalDir,
-        workspaceRemoteDir: cwd,
-        installCommand: SANDBOX_INSTALL_COMMAND,
-        detectCommand: command,
-        assets: localRuntimeConfigHome
-          ? [{
-            key: "xdgConfig",
-            localDir: localRuntimeConfigHome,
-          }]
-          : [],
-      });
+      preparedRuntimeWorkspaceLocalDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), `taskcore-opencode-envtest-${runId}-`),
+      );
+      const preparedExecutionTargetRuntime =
+        await prepareAdapterExecutionTargetRuntime({
+          runId,
+          target,
+          adapterKey: "opencode",
+          workspaceLocalDir: preparedRuntimeWorkspaceLocalDir,
+          workspaceRemoteDir: cwd,
+          installCommand: SANDBOX_INSTALL_COMMAND,
+          detectCommand: command,
+          assets: localRuntimeConfigHome
+            ? [
+                {
+                  key: "xdgConfig",
+                  localDir: localRuntimeConfigHome,
+                },
+              ]
+            : [],
+        });
       restoreWorkspace = async () => {
         await preparedExecutionTargetRuntime.restoreWorkspace().catch(() => {});
         if (preparedRuntimeWorkspaceLocalDir) {
-          await fs.rm(preparedRuntimeWorkspaceLocalDir, { recursive: true, force: true }).catch(() => {});
+          await fs
+            .rm(preparedRuntimeWorkspaceLocalDir, {
+              recursive: true,
+              force: true,
+            })
+            .catch(() => {});
         }
       };
-      runtimeCwd = preparedExecutionTargetRuntime.workspaceRemoteDir ?? runtimeCwd;
-      runtimeTarget = overrideAdapterExecutionTargetRemoteCwd(target ?? null, runtimeCwd) ?? null;
-      if (localRuntimeConfigHome && preparedExecutionTargetRuntime.assetDirs.xdgConfig) {
-        preparedRuntimeConfig.env.XDG_CONFIG_HOME = preparedExecutionTargetRuntime.assetDirs.xdgConfig;
+      runtimeCwd =
+        preparedExecutionTargetRuntime.workspaceRemoteDir ?? runtimeCwd;
+      runtimeTarget =
+        overrideAdapterExecutionTargetRemoteCwd(target ?? null, runtimeCwd) ??
+        null;
+      if (
+        localRuntimeConfigHome &&
+        preparedExecutionTargetRuntime.assetDirs.xdgConfig
+      ) {
+        preparedRuntimeConfig.env.XDG_CONFIG_HOME =
+          preparedExecutionTargetRuntime.assetDirs.xdgConfig;
       }
       prepareManagedOpenCodeRemoteHomes({
         env: preparedRuntimeConfig.env,
@@ -180,14 +231,19 @@ export async function testEnvironment(
         configDir: preparedExecutionTargetRuntime.assetDirs.xdgConfig,
       });
     }
-    const runtimeEnv = normalizeEnv(ensurePathInEnv({ ...process.env, ...preparedRuntimeConfig.env }));
+    const runtimeEnv = normalizeEnv(
+      ensurePathInEnv({ ...process.env, ...preparedRuntimeConfig.env }),
+    );
 
-    const cwdInvalid = checks.some((check) => check.code === "opencode_cwd_invalid");
+    const cwdInvalid = checks.some(
+      (check) => check.code === "opencode_cwd_invalid",
+    );
     if (cwdInvalid) {
       checks.push({
         code: "opencode_command_skipped",
         level: "warn",
-        message: "Skipped command check because working directory validation failed.",
+        message:
+          "Skipped command check because working directory validation failed.",
         detail: command,
       });
     } else {
@@ -201,7 +257,12 @@ export async function testEnvironment(
       });
       if (installCheck) checks.push(installCheck);
       try {
-        await ensureAdapterExecutionTargetCommandResolvable(command, runtimeTarget, runtimeCwd, runtimeEnv);
+        await ensureAdapterExecutionTargetCommandResolvable(
+          command,
+          runtimeTarget,
+          runtimeCwd,
+          runtimeEnv,
+        );
         checks.push({
           code: "opencode_command_resolvable",
           level: "info",
@@ -211,14 +272,18 @@ export async function testEnvironment(
         checks.push({
           code: "opencode_command_unresolvable",
           level: "error",
-          message: err instanceof Error ? err.message : "Command is not executable",
+          message:
+            err instanceof Error ? err.message : "Command is not executable",
           detail: command,
         });
       }
     }
 
-    const canRunProbe =
-      checks.every((check) => check.code !== "opencode_cwd_invalid" && check.code !== "opencode_command_unresolvable");
+    const canRunProbe = checks.every(
+      (check) =>
+        check.code !== "opencode_cwd_invalid" &&
+        check.code !== "opencode_command_unresolvable",
+    );
 
     let modelValidationPassed = false;
     const configuredModel = asString(config.model, "").trim();
@@ -237,7 +302,11 @@ export async function testEnvironment(
       modelValidationPassed = true;
     } else if (canRunProbe && configuredModel) {
       try {
-        const discovered = await discoverOpenCodeModels({ command, cwd, env: runtimeEnv });
+        const discovered = await discoverOpenCodeModels({
+          command,
+          cwd,
+          env: runtimeEnv,
+        });
         if (discovered.length > 0) {
           checks.push({
             code: "opencode_models_discovered",
@@ -273,7 +342,11 @@ export async function testEnvironment(
       }
     } else if (!targetIsRemote && canRunProbe && !configuredModel) {
       try {
-        const discovered = await discoverOpenCodeModels({ command, cwd, env: runtimeEnv });
+        const discovered = await discoverOpenCodeModels({
+          command,
+          cwd,
+          env: runtimeEnv,
+        });
         if (discovered.length > 0) {
           checks.push({
             code: "opencode_models_discovered",
@@ -295,14 +368,18 @@ export async function testEnvironment(
           checks.push({
             code: "opencode_models_discovery_failed",
             level: "warn",
-            message: errMsg || "OpenCode model discovery failed (best-effort, no model configured).",
+            message:
+              errMsg ||
+              "OpenCode model discovery failed (best-effort, no model configured).",
             hint: "Run `opencode models` manually to verify provider auth and config.",
           });
         }
       }
     }
 
-    const modelUnavailable = checks.some((check) => check.code === "opencode_hello_probe_model_unavailable");
+    const modelUnavailable = checks.some(
+      (check) => check.code === "opencode_hello_probe_model_unavailable",
+    );
     if (!configuredModel && !modelUnavailable) {
       // No model configured – skip model requirement if no model-related checks exist
     } else if (!targetIsRemote && configuredModel && canRunProbe) {
@@ -323,7 +400,10 @@ export async function testEnvironment(
         checks.push({
           code: "opencode_model_invalid",
           level: "error",
-          message: err instanceof Error ? err.message : "Configured model is unavailable.",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Configured model is unavailable.",
           hint: "Run `opencode models` and choose a currently available provider/model ID.",
         });
       }
@@ -368,8 +448,13 @@ export async function testEnvironment(
         );
 
         const parsed = parseOpenCodeJsonl(probe.stdout);
-        const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
-        const authEvidence = `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
+        const detail = summarizeProbeDetail(
+          probe.stdout,
+          probe.stderr,
+          parsed.errorMessage,
+        );
+        const authEvidence =
+          `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
 
         if (probe.timedOut) {
           checks.push({
@@ -382,12 +467,16 @@ export async function testEnvironment(
           const summary = parsed.summary.trim();
           const hasHello = /\bhello\b/i.test(summary);
           checks.push({
-            code: hasHello ? "opencode_hello_probe_passed" : "opencode_hello_probe_unexpected_output",
+            code: hasHello
+              ? "opencode_hello_probe_passed"
+              : "opencode_hello_probe_unexpected_output",
             level: hasHello ? "info" : "warn",
             message: hasHello
               ? "OpenCode hello probe succeeded."
               : "OpenCode probe ran but did not return `hello` as expected.",
-            ...(summary ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) } : {}),
+            ...(summary
+              ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) }
+              : {}),
             ...(hasHello
               ? {}
               : {
@@ -406,7 +495,8 @@ export async function testEnvironment(
           checks.push({
             code: "opencode_hello_probe_auth_required",
             level: "warn",
-            message: "OpenCode is installed, but provider authentication is not ready.",
+            message:
+              "OpenCode is installed, but provider authentication is not ready.",
             ...(detail ? { detail } : {}),
             hint: "Run `opencode auth login` or set provider credentials, then retry the probe.",
           });
@@ -434,7 +524,9 @@ export async function testEnvironment(
     if (!restoreWorkspace && preparedRuntimeWorkspaceLocalDir) {
       // Reached when `prepareAdapterExecutionTargetRuntime` threw before
       // assigning `restoreWorkspace`: clean up the temp dir directly.
-      await fs.rm(preparedRuntimeWorkspaceLocalDir, { recursive: true, force: true }).catch(() => {});
+      await fs
+        .rm(preparedRuntimeWorkspaceLocalDir, { recursive: true, force: true })
+        .catch(() => {});
     }
     await preparedRuntimeConfig.cleanup();
   }

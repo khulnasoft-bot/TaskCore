@@ -40,7 +40,11 @@ function updateJsonConfig(
 
   try {
     const parsed = JSON.parse(trimmed);
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed)
+    ) {
       mark("adapterConfig", configKey, parsed);
     }
   } catch {
@@ -71,7 +75,7 @@ export function RuntimeServicesJsonField({
     if (!isCreate) setDraft(existing);
   }, [existing, isCreate]);
 
-  const value = isCreate ? values?.runtimeServicesJson ?? "" : draft;
+  const value = isCreate ? (values?.runtimeServicesJson ?? "") : draft;
 
   return (
     <Field label="Runtime services JSON" hint={help.runtimeServicesJson}>
@@ -81,7 +85,14 @@ export function RuntimeServicesJsonField({
         onChange={(e) => {
           const next = e.target.value;
           if (!isCreate) setDraft(next);
-          updateJsonConfig(isCreate, "runtimeServicesJson", next, set, mark, "workspaceRuntime");
+          updateJsonConfig(
+            isCreate,
+            "runtimeServicesJson",
+            next,
+            set,
+            mark,
+            "workspaceRuntime",
+          );
         }}
         placeholder={`{\n  "services": [\n    {\n      "name": "preview",\n      "lifecycle": "ephemeral",\n      "metadata": {\n        "purpose": "remote preview"\n      }\n    }\n  ]\n}`}
       />
@@ -103,7 +114,7 @@ export function PayloadTemplateJsonField({
     if (!isCreate) setDraft(existing);
   }, [existing, isCreate]);
 
-  const value = isCreate ? values?.payloadTemplateJson ?? "" : draft;
+  const value = isCreate ? (values?.payloadTemplateJson ?? "") : draft;
 
   return (
     <Field label="Payload template JSON" hint={help.payloadTemplateJson}>
@@ -113,7 +124,14 @@ export function PayloadTemplateJsonField({
         onChange={(e) => {
           const next = e.target.value;
           if (!isCreate) setDraft(next);
-          updateJsonConfig(isCreate, "payloadTemplateJson", next, set, mark, "payloadTemplate");
+          updateJsonConfig(
+            isCreate,
+            "payloadTemplateJson",
+            next,
+            set,
+            mark,
+            "payloadTemplate",
+          );
         }}
         placeholder={`{\n  "agentId": "remote-agent-123",\n  "metadata": {\n    "team": "platform"\n  }\n}`}
       />

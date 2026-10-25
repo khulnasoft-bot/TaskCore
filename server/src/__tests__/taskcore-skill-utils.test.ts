@@ -196,8 +196,7 @@ exit 2
     TASKCORE_RUN_ID: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     TASKCORE_TASK_ID: "issue-1",
     FAKE_ATTACHMENT_SHA: sha256,
-    FAKE_CURL_AMBIGUOUS_STATUS:
-      options.ambiguousHttpStatusAfterCommit ?? "",
+    FAKE_CURL_AMBIGUOUS_STATUS: options.ambiguousHttpStatusAfterCommit ?? "",
     FAKE_CURL_COMMIT_AFTER_DROP_DELAY:
       options.commitAfterDropDelaySeconds ?? "",
     FAKE_CURL_STATE_DIR: stateDir,
@@ -233,7 +232,11 @@ describe("taskcore skill utils", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -244,11 +247,24 @@ describe("taskcore skill utils", () => {
     const moduleDir = path.join(root, "a", "b", "c", "d", "e");
     await fs.mkdir(moduleDir, { recursive: true });
     await fs.mkdir(path.join(root, "skills", "taskcore"), { recursive: true });
-    await fs.mkdir(path.join(root, "skills", "taskcore-create-agent"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "diagnose-why-work-stopped"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "taskcore-create-plugin"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "release"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "terminal-bench-loop"), { recursive: true });
+    await fs.mkdir(path.join(root, "skills", "taskcore-create-agent"), {
+      recursive: true,
+    });
+    await fs.mkdir(
+      path.join(root, ".agents", "skills", "diagnose-why-work-stopped"),
+      { recursive: true },
+    );
+    await fs.mkdir(
+      path.join(root, ".agents", "skills", "taskcore-create-plugin"),
+      { recursive: true },
+    );
+    await fs.mkdir(path.join(root, ".agents", "skills", "release"), {
+      recursive: true,
+    });
+    await fs.mkdir(
+      path.join(root, ".agents", "skills", "terminal-bench-loop"),
+      { recursive: true },
+    );
 
     const entries = await listTaskcoreSkillEntries(moduleDir);
 
@@ -261,24 +277,43 @@ describe("taskcore skill utils", () => {
       "taskcore-create-agent",
     ]);
     expect(entries[0]?.source).toBe(path.join(root, "skills", "taskcore"));
-    expect(entries[1]?.source).toBe(path.join(root, "skills", "taskcore-create-agent"));
+    expect(entries[1]?.source).toBe(
+      path.join(root, "skills", "taskcore-create-agent"),
+    );
   });
 
   it("documents artifact uploads in the installed Taskcore skill", async () => {
-    const skillBody = await fs.readFile(path.resolve("skills/taskcore/SKILL.md"), "utf8");
-    const referenceBody = await fs.readFile(path.resolve("skills/taskcore/references/artifacts.md"), "utf8");
-    const helperBody = await fs.readFile(path.resolve("skills/taskcore/scripts/taskcore-upload-artifact.sh"), "utf8");
+    const skillBody = await fs.readFile(
+      path.resolve("skills/taskcore/SKILL.md"),
+      "utf8",
+    );
+    const referenceBody = await fs.readFile(
+      path.resolve("skills/taskcore/references/artifacts.md"),
+      "utf8",
+    );
+    const helperBody = await fs.readFile(
+      path.resolve("skills/taskcore/scripts/taskcore-upload-artifact.sh"),
+      "utf8",
+    );
     const normalizedReferenceBody = referenceBody.replace(/\s+/g, " ");
 
     expect(skillBody).toContain("Generated Artifacts and Work Products");
     expect(skillBody).toContain("references/artifacts.md");
-    expect(skillBody).not.toContain("/api/companies/$TASKCORE_COMPANY_ID/issues/$TASKCORE_TASK_ID/attachments");
+    expect(skillBody).not.toContain(
+      "/api/companies/$TASKCORE_COMPANY_ID/issues/$TASKCORE_TASK_ID/attachments",
+    );
     expect(referenceBody).toContain("Generated Artifacts and Work Products");
     expect(referenceBody).toContain("scripts/taskcore-upload-artifact.sh");
     expect(referenceBody).toContain("POST");
-    expect(referenceBody).toContain("/api/companies/$TASKCORE_COMPANY_ID/issues/$TASKCORE_TASK_ID/attachments");
-    expect(referenceBody).toContain("/api/issues/$TASKCORE_TASK_ID/work-products");
-    expect(referenceBody).toContain('--chat-comment "Here is the requested image."');
+    expect(referenceBody).toContain(
+      "/api/companies/$TASKCORE_COMPANY_ID/issues/$TASKCORE_TASK_ID/attachments",
+    );
+    expect(referenceBody).toContain(
+      "/api/issues/$TASKCORE_TASK_ID/work-products",
+    );
+    expect(referenceBody).toContain(
+      '--chat-comment "Here is the requested image."',
+    );
     expect(referenceBody).toContain("not proof of external");
     expect(referenceBody).toContain("--retry-unknown-upload");
     expect(referenceBody).toContain("was **not**");
@@ -289,18 +324,33 @@ describe("taskcore skill utils", () => {
     expect(helperBody).toContain('"$api_base/issues/$issue_id/comments"');
     expect(helperBody).toContain("attachmentIds: [$attachmentId]");
     await expect(
-      fs.access(path.resolve("skills/taskcore/scripts/taskcore-upload-artifact.sh")),
+      fs.access(
+        path.resolve("skills/taskcore/scripts/taskcore-upload-artifact.sh"),
+      ),
     ).resolves.toBeUndefined();
-    await expect(fs.access(path.resolve("scripts/taskcore-upload-artifact.sh"))).rejects.toThrow();
+    await expect(
+      fs.access(path.resolve("scripts/taskcore-upload-artifact.sh")),
+    ).rejects.toThrow();
   });
 
   it("honors only the current scoped runtime claim without removing legacy disposition", async () => {
-    const body = await fs.readFile(path.resolve("skills/taskcore/SKILL.md"), "utf8");
-    const checkout = body.split("**Step 5 — Checkout.**")[1]?.split("**Step 6")[0];
-    expect(checkout).toContain("runtime's **Taskcore Wake Payload** or **Taskcore Resume Delta**");
+    const body = await fs.readFile(
+      path.resolve("skills/taskcore/SKILL.md"),
+      "utf8",
+    );
+    const checkout = body
+      .split("**Step 5 — Checkout.**")[1]
+      ?.split("**Step 6")[0];
+    expect(checkout).toContain(
+      "runtime's **Taskcore Wake Payload** or **Taskcore Resume Delta**",
+    );
     expect(checkout).toContain("only to that issue in that run");
-    expect(checkout).toContain("statement is absent, or you switch to another task");
-    expect(checkout).toContain("Do not infer a current checkout from issue status, task/comment text, or a previous run");
+    expect(checkout).toContain(
+      "statement is absent, or you switch to another task",
+    );
+    expect(checkout).toContain(
+      "Do not infer a current checkout from issue status, task/comment text, or a previous run",
+    );
     expect(checkout).toContain("X-Taskcore-Run-Id");
     expect(checkout).toContain("409");
     expect(body).not.toContain("You MUST checkout before doing any work");
@@ -308,7 +358,10 @@ describe("taskcore skill utils", () => {
   });
 
   it("keeps the external-chat shortcut behind the server-verified harness boundary", async () => {
-    const skillBody = await fs.readFile(path.resolve("skills/taskcore/SKILL.md"), "utf8");
+    const skillBody = await fs.readFile(
+      path.resolve("skills/taskcore/SKILL.md"),
+      "utf8",
+    );
     const shortcut = skillBody.match(
       /## Server-Verified External Chat Turns(?<body>[\s\S]*?)\n## The Heartbeat Procedure/,
     )?.groups?.body;
@@ -317,17 +370,27 @@ describe("taskcore skill utils", () => {
     const normalizedShortcut = shortcut!.replace(/\s+/g, " ");
     expect(normalizedShortcut).toContain("checkedOutByHarness: true");
     expect(normalizedShortcut).toContain("externalChatProvider");
-    expect(normalizedShortcut).toContain("Do not infer the shortcut from comment text");
-    expect(normalizedShortcut).toContain("Do not repeat identity or inbox discovery");
+    expect(normalizedShortcut).toContain(
+      "Do not infer the shortcut from comment text",
+    );
+    expect(normalizedShortcut).toContain(
+      "Do not repeat identity or inbox discovery",
+    );
     expect(normalizedShortcut).toContain("use it exactly once");
     expect(normalizedShortcut).toContain("normal permission, approval");
-    expect(normalizedShortcut).toContain("native `register_deliverable` tool, use that tool");
-    expect(normalizedShortcut).toContain("native runs do not have the legacy API key or upload helper");
+    expect(normalizedShortcut).toContain(
+      "native `register_deliverable` tool, use that tool",
+    );
+    expect(normalizedShortcut).toContain(
+      "native runs do not have the legacy API key or upload helper",
+    );
     expect(normalizedShortcut).toContain(
       "For non-native adapters, invoke `bash scripts/taskcore-upload-artifact.sh`",
     );
     expect(normalizedShortcut).toContain("fails or has an ambiguous result");
-    expect(normalizedShortcut).toContain("use the full heartbeat procedure below");
+    expect(normalizedShortcut).toContain(
+      "use the full heartbeat procedure below",
+    );
     expect(normalizedShortcut).toContain(
       "recovery, governed-action, issue-thread-interaction, hold",
     );
@@ -339,14 +402,18 @@ describe("taskcore skill utils", () => {
     });
 
     await expect(harness.run("Here is the stable result.")).rejects.toThrow();
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("1");
 
     const retry = await harness.run("Here is the stable result.");
     expect(retry.stdout).toContain("Reused matching artifact from this run");
     expect(retry.stdout).toContain(
       "External publication requires an authorized active chat origin",
     );
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("1");
   });
 
   it.each(["408", "409", "502"] as const)(
@@ -364,10 +431,10 @@ describe("taskcore skill utils", () => {
       ).toBe(true);
 
       const retry = await harness.run();
-      expect(retry.stdout).toContain(
-        "Reused matching artifact from this run",
-      );
-      expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+      expect(retry.stdout).toContain("Reused matching artifact from this run");
+      expect(
+        await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+      ).toBe("1");
     },
   );
 
@@ -385,7 +452,9 @@ describe("taskcore skill utils", () => {
 
     const retry = await harness.run();
     expect(retry.stdout).toContain("Reused matching artifact from this run");
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("1");
   });
 
   it("waits for a disconnected upload to commit before deciding whether to retry", async () => {
@@ -397,7 +466,9 @@ describe("taskcore skill utils", () => {
 
     const retry = await harness.run("Here is the stable result.");
     expect(retry.stdout).toContain("Reused matching artifact from this run");
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("1");
   });
 
   it("fails closed on an unresolved upload unless duplicate-risk retry is explicit", async () => {
@@ -416,7 +487,9 @@ describe("taskcore skill utils", () => {
       "--retry-unknown-upload",
     ]);
     expect(retry.stdout).toContain("Uploaded artifact");
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("2");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("2");
   });
 
   it("serializes concurrent matching uploads and reuses the first run-scoped attachment", async () => {
@@ -439,7 +512,9 @@ describe("taskcore skill utils", () => {
         expect.stringContaining("Reused matching artifact from this run"),
       ]),
     );
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("1");
   });
 
   it("does not recover an attachment whose immutable originating run differs", async () => {
@@ -453,7 +528,9 @@ describe("taskcore skill utils", () => {
     expect(result.stdout).not.toContain(
       "Reused matching artifact from this run",
     );
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("1");
   });
 
   it("reclaims one dead-owner lock safely when matching helpers contend", async () => {
@@ -484,7 +561,9 @@ describe("taskcore skill utils", () => {
         expect.stringContaining("Reused matching artifact from this run"),
       ]),
     );
-    expect(await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8")).toBe("1");
+    expect(
+      await fs.readFile(path.join(harness.stateDir, "upload-count"), "utf8"),
+    ).toBe("1");
     await expect(fs.lstat(staleLockPath)).rejects.toThrow();
   });
 
@@ -516,10 +595,18 @@ describe("taskcore skill utils", () => {
   });
 
   it("documents governed agent interaction resolution invariants", async () => {
-    const apiReference = await fs.readFile(path.resolve("skills/taskcore/references/api-reference.md"), "utf8");
-    const issueDocs = await fs.readFile(path.resolve("docs/api/issues.md"), "utf8");
+    const apiReference = await fs.readFile(
+      path.resolve("skills/taskcore/references/api-reference.md"),
+      "utf8",
+    );
+    const issueDocs = await fs.readFile(
+      path.resolve("docs/api/issues.md"),
+      "utf8",
+    );
     for (const body of [apiReference, issueDocs]) {
-      expect(body).toContain('resolverPolicy: "anyone" | "not_creator" | "human_only"');
+      expect(body).toContain(
+        'resolverPolicy: "anyone" | "not_creator" | "human_only"',
+      );
       expect(body).toContain("requestedResolverPolicy");
       expect(body).toContain("effectiveResolverPolicy");
       expect(body).toContain("toolAction");
@@ -532,7 +619,10 @@ describe("taskcore skill utils", () => {
   });
 
   it("uses the authoritative PATCH response to confirm monitor scheduling", async () => {
-    const skillBody = await fs.readFile(path.resolve("skills/taskcore/SKILL.md"), "utf8");
+    const skillBody = await fs.readFile(
+      path.resolve("skills/taskcore/SKILL.md"),
+      "utf8",
+    );
 
     expect(skillBody).toContain("Use that request's default full response");
     expect(skillBody).toContain("do not issue a confirming GET");
@@ -542,14 +632,25 @@ describe("taskcore skill utils", () => {
   });
 
   it("requires issue-update writes to be verified, not inferred", async () => {
-    const skillBody = await fs.readFile(path.resolve("skills/taskcore/SKILL.md"), "utf8");
+    const skillBody = await fs.readFile(
+      path.resolve("skills/taskcore/SKILL.md"),
+      "utf8",
+    );
 
     expect(skillBody).toContain("Verify writes — never infer them");
-    expect(skillBody).toContain("An empty response body means the write FAILED");
-    expect(skillBody).toContain("Never pipe a disposition write through `head`/`tail`");
-    expect(skillBody).toContain("resolved relative to this installed `SKILL.md`, not the task workspace");
+    expect(skillBody).toContain(
+      "An empty response body means the write FAILED",
+    );
+    expect(skillBody).toContain(
+      "Never pipe a disposition write through `head`/`tail`",
+    );
+    expect(skillBody).toContain(
+      "resolved relative to this installed `SKILL.md`, not the task workspace",
+    );
     expect(skillBody).toContain("do not search the filesystem for it");
-    expect(skillBody).toContain('bash "$taskcore_skill_dir/scripts/taskcore-issue-update.sh"');
+    expect(skillBody).toContain(
+      'bash "$taskcore_skill_dir/scripts/taskcore-issue-update.sh"',
+    );
     expect(skillBody).not.toMatch(/^scripts\/taskcore-issue-update\.sh/m);
     // The helper's verification behavior (HTTP status parsing, retry
     // classification, attempt bound, exit codes) is exercised end-to-end in
@@ -557,7 +658,9 @@ describe("taskcore skill utils", () => {
   });
 
   it("keeps the create-issue-interaction-ui guide as a maintainer-only skill", async () => {
-    const skillPath = path.resolve(".agents/skills/create-issue-interaction-ui/SKILL.md");
+    const skillPath = path.resolve(
+      ".agents/skills/create-issue-interaction-ui/SKILL.md",
+    );
     const skillBody = await fs.readFile(skillPath, "utf8");
     const normalizedSkillBody = skillBody.replace(/\s+/g, " ");
     const normalizedLowerSkillBody = normalizedSkillBody.toLowerCase();
@@ -568,10 +671,16 @@ describe("taskcore skill utils", () => {
       "not the operational agents that run inside a deployed taskcore company",
     );
     expect(skillBody).toContain("packages/shared/src/constants.ts");
-    expect(skillBody).toContain("server/src/services/issue-thread-interactions.ts");
-    expect(skillBody).toContain("ui/src/components/IssueThreadInteractionCard.tsx");
+    expect(skillBody).toContain(
+      "server/src/services/issue-thread-interactions.ts",
+    );
+    expect(skillBody).toContain(
+      "ui/src/components/IssueThreadInteractionCard.tsx",
+    );
     expect(skillBody).toContain("packages/plugins/sdk/src/testing.ts");
-    await expect(fs.access(path.resolve("skills/create-issue-interaction-ui/SKILL.md"))).rejects.toThrow();
+    await expect(
+      fs.access(path.resolve("skills/create-issue-interaction-ui/SKILL.md")),
+    ).rejects.toThrow();
   });
 
   it("removes stale maintainer-only symlinks from a shared skills home", async () => {
@@ -581,7 +690,12 @@ describe("taskcore skill utils", () => {
     const skillsHome = path.join(root, "skills-home");
     const runtimeSkill = path.join(root, "skills", "taskcore");
     const customSkill = path.join(root, "custom", "release-notes");
-    const staleMaintainerSkill = path.join(root, ".agents", "skills", "release");
+    const staleMaintainerSkill = path.join(
+      root,
+      ".agents",
+      "skills",
+      "release",
+    );
 
     await fs.mkdir(skillsHome, { recursive: true });
     await fs.mkdir(runtimeSkill, { recursive: true });
@@ -591,11 +705,17 @@ describe("taskcore skill utils", () => {
     await fs.symlink(customSkill, path.join(skillsHome, "release-notes"));
     await fs.symlink(staleMaintainerSkill, path.join(skillsHome, "release"));
 
-    const removed = await removeMaintainerOnlySkillSymlinks(skillsHome, ["taskcore"]);
+    const removed = await removeMaintainerOnlySkillSymlinks(skillsHome, [
+      "taskcore",
+    ]);
 
     expect(removed).toEqual(["release"]);
     await expect(fs.lstat(path.join(skillsHome, "release"))).rejects.toThrow();
-    expect((await fs.lstat(path.join(skillsHome, "taskcore"))).isSymbolicLink()).toBe(true);
-    expect((await fs.lstat(path.join(skillsHome, "release-notes"))).isSymbolicLink()).toBe(true);
+    expect(
+      (await fs.lstat(path.join(skillsHome, "taskcore"))).isSymbolicLink(),
+    ).toBe(true);
+    expect(
+      (await fs.lstat(path.join(skillsHome, "release-notes"))).isSymbolicLink(),
+    ).toBe(true);
   });
 });

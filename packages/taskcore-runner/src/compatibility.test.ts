@@ -10,38 +10,44 @@ import {
 
 describe("runner compatibility preflight", () => {
   it("keeps the compatibility manifest synchronized with the package version", () => {
-    const manifestPath = fileURLToPath(new URL("../package.json", import.meta.url));
+    const manifestPath = fileURLToPath(
+      new URL("../package.json", import.meta.url),
+    );
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
     expect(TASKCORE_RUNNER_COMPATIBILITY.packageVersion).toBe(manifest.version);
   });
 
   it("accepts the supported product/test/eval bundle", () => {
-    expect(assertTaskcoreRunnerCompatibility({
-      consumer: "taskcore-evals",
-      components: {
-        catalog: 1,
-        protocol: 1,
-        runnerClient: 1,
-        controlPlaneAdapter: 1,
-        testkit: 1,
-      },
-      evalCorpusVersion: 1,
-      requiredOperationIds: ["get_task_context", "finish_task"],
-      provider: {
-        id: "codex-app-server",
-        supportedOperationIds: ["get_task_context", "finish_task"],
-      },
-    })).toBe(TASKCORE_RUNNER_COMPATIBILITY);
+    expect(
+      assertTaskcoreRunnerCompatibility({
+        consumer: "taskcore-evals",
+        components: {
+          catalog: 1,
+          protocol: 1,
+          runnerClient: 1,
+          controlPlaneAdapter: 1,
+          testkit: 1,
+        },
+        evalCorpusVersion: 1,
+        requiredOperationIds: ["get_task_context", "finish_task"],
+        provider: {
+          id: "codex-app-server",
+          supportedOperationIds: ["get_task_context", "finish_task"],
+        },
+      }),
+    ).toBe(TASKCORE_RUNNER_COMPATIBILITY);
   });
 
   it("fails with stable component, corpus, catalog, and provider issues", () => {
-    expect(() => assertTaskcoreRunnerCompatibility({
-      consumer: "incompatible-eval-bundle",
-      components: { protocol: 2 },
-      evalCorpusVersion: 2,
-      requiredOperationIds: ["missing_operation", "finish_task"],
-      provider: { id: "limited-provider", supportedOperationIds: [] },
-    })).toThrow(TaskcoreRunnerCompatibilityError);
+    expect(() =>
+      assertTaskcoreRunnerCompatibility({
+        consumer: "incompatible-eval-bundle",
+        components: { protocol: 2 },
+        evalCorpusVersion: 2,
+        requiredOperationIds: ["missing_operation", "finish_task"],
+        provider: { id: "limited-provider", supportedOperationIds: [] },
+      }),
+    ).toThrow(TaskcoreRunnerCompatibilityError);
 
     try {
       assertTaskcoreRunnerCompatibility({
@@ -53,8 +59,14 @@ describe("runner compatibility preflight", () => {
       });
     } catch (error) {
       expect(error).toBeInstanceOf(TaskcoreRunnerCompatibilityError);
-      expect((error as TaskcoreRunnerCompatibilityError).code).toBe("taskcore_runner_incompatible");
-      expect((error as TaskcoreRunnerCompatibilityError).issues.map((issue) => issue.code)).toEqual([
+      expect((error as TaskcoreRunnerCompatibilityError).code).toBe(
+        "taskcore_runner_incompatible",
+      );
+      expect(
+        (error as TaskcoreRunnerCompatibilityError).issues.map(
+          (issue) => issue.code,
+        ),
+      ).toEqual([
         "component_version_mismatch",
         "eval_corpus_version_unsupported",
         "catalog_operation_unknown",
@@ -64,9 +76,11 @@ describe("runner compatibility preflight", () => {
   });
 
   it("requires explicit provider capabilities when operations are required", () => {
-    expect(() => assertTaskcoreRunnerCompatibility({
-      consumer: "undeclared-provider",
-      requiredOperationIds: ["finish_task"],
-    })).toThrow(/provider_capabilities_missing/);
+    expect(() =>
+      assertTaskcoreRunnerCompatibility({
+        consumer: "undeclared-provider",
+        requiredOperationIds: ["finish_task"],
+      }),
+    ).toThrow(/provider_capabilities_missing/);
   });
 });

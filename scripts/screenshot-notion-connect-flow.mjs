@@ -23,7 +23,10 @@ async function main() {
       let urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
       if (urlPath.endsWith("/")) urlPath += "iframe.html";
       const filePath = path.resolve(absStaticDir, `.${urlPath}`);
-      if (!filePath.startsWith(absStaticDir + path.sep) && filePath !== absStaticDir) {
+      if (
+        !filePath.startsWith(absStaticDir + path.sep) &&
+        filePath !== absStaticDir
+      ) {
         res.writeHead(403);
         res.end("Forbidden");
         return;
@@ -53,7 +56,8 @@ async function main() {
 
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  if (!address || typeof address === "string") throw new Error("Failed to start screenshot server");
+  if (!address || typeof address === "string")
+    throw new Error("Failed to start screenshot server");
   const baseUrl = `http://127.0.0.1:${address.port}/iframe.html`;
 
   const stories = [

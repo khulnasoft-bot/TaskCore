@@ -2,7 +2,11 @@ import type {
   PrpEvent,
   PrpStructuredRunResult,
 } from "../protocol/replay-contract.js";
-import type { NativeSessionCapabilities, NativeTurnControlCapabilities, NativeUserMessage } from "./types.js";
+import type {
+  NativeSessionCapabilities,
+  NativeTurnControlCapabilities,
+  NativeUserMessage,
+} from "./types.js";
 import {
   TASKCORE_RUNTIME_REQUEST_SCHEMA_V2,
   parseTaskcoreQuestionResponse,
@@ -401,7 +405,14 @@ export function harnessRuntimeInputExpiredOutcome(
 export interface HarnessThreadGoal {
   threadId: string;
   objective: string;
-  status: "active" | "paused" | "blocked" | "limited" | "usageLimited" | "budgetLimited" | "complete";
+  status:
+    | "active"
+    | "paused"
+    | "blocked"
+    | "limited"
+    | "usageLimited"
+    | "budgetLimited"
+    | "complete";
   tokenBudget: number | null;
   tokensUsed: number;
   timeUsedSeconds: number;
@@ -453,7 +464,8 @@ export interface AcpxSessionIdentity {
   requestedModel: string;
   effectiveModel: string;
   /** Missing on legacy snapshots; those used the historical approve-reads behavior. */
-  permissionMode?: "approve-all" | "approve-taskcore" | "approve-reads" | "deny-all";
+  permissionMode?:
+    "approve-all" | "approve-taskcore" | "approve-reads" | "deny-all";
   /** Effective provider mode identifier, bound to the session identity. */
   mode?: string;
   providerLifetimeFenceCandidates: readonly [number, number, number];
@@ -472,7 +484,10 @@ export interface PersistedHarnessSession {
   activeTurnId?: string | null;
   semanticResult?: PersistedHarnessSemanticResult | null;
   terminalTurns?: PersistedHarnessTurnTerminal[];
-  codexUsageBaseline?: { baseline: Record<string, number>; latest: Record<string, number> };
+  codexUsageBaseline?: {
+    baseline: Record<string, number>;
+    latest: Record<string, number>;
+  };
   /** A result-less terminal task may spend this fail-closed one-shot recovery allowance. */
   dispositionOnlyRecoveryConsumed?: boolean;
   /** Exact accepted provider turn that spent the disposition-only allowance. */

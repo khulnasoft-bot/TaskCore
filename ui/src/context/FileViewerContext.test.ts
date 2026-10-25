@@ -54,7 +54,9 @@ describe("readFileViewerStateFromSearch", () => {
   });
 
   it("reads file, line, column, workspace from the search", () => {
-    const state = readFileViewerStateFromSearch("?file=ui/src/a.ts&line=42&column=3&workspace=project");
+    const state = readFileViewerStateFromSearch(
+      "?file=ui/src/a.ts&line=42&column=3&workspace=project",
+    );
     expect(state).toEqual({
       path: "ui/src/a.ts",
       line: 42,
@@ -71,12 +73,16 @@ describe("readFileViewerStateFromSearch", () => {
   });
 
   it("clamps invalid workspace to auto", () => {
-    const state = readFileViewerStateFromSearch("?file=ui/src/a.ts&workspace=bogus");
+    const state = readFileViewerStateFromSearch(
+      "?file=ui/src/a.ts&workspace=bogus",
+    );
     expect(state?.workspace).toBe("auto");
   });
 
   it("treats invalid line/column as null", () => {
-    const state = readFileViewerStateFromSearch("?file=x.ts&line=abc&column=-1");
+    const state = readFileViewerStateFromSearch(
+      "?file=x.ts&line=abc&column=-1",
+    );
     expect(state?.line).toBeNull();
     expect(state?.column).toBeNull();
   });
@@ -84,17 +90,14 @@ describe("readFileViewerStateFromSearch", () => {
 
 describe("writeFileViewerStateToSearch", () => {
   it("sets all params when opening", () => {
-    const next = writeFileViewerStateToSearch(
-      "?existing=1",
-      {
-        path: "ui/src/a.ts",
-        line: 42,
-        column: 3,
-        workspace: "project",
-        projectId: null,
-        workspaceId: null,
-      },
-    );
+    const next = writeFileViewerStateToSearch("?existing=1", {
+      path: "ui/src/a.ts",
+      line: 42,
+      column: 3,
+      workspace: "project",
+      projectId: null,
+      workspaceId: null,
+    });
     const params = new URLSearchParams(next);
     expect(params.get("file")).toBe("ui/src/a.ts");
     expect(params.get("line")).toBe("42");
@@ -104,26 +107,28 @@ describe("writeFileViewerStateToSearch", () => {
   });
 
   it("omits workspace when auto", () => {
-    const next = writeFileViewerStateToSearch(
-      "",
-      { path: "a.ts", line: null, column: null, workspace: "auto", projectId: null, workspaceId: null },
-    );
+    const next = writeFileViewerStateToSearch("", {
+      path: "a.ts",
+      line: null,
+      column: null,
+      workspace: "auto",
+      projectId: null,
+      workspaceId: null,
+    });
     expect(next.includes("workspace")).toBe(false);
   });
 
   it("round-trips explicit target project workspace params", () => {
-    const targetPath = "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md";
-    const next = writeFileViewerStateToSearch(
-      "?existing=1",
-      {
-        path: targetPath,
-        line: 7,
-        column: null,
-        workspace: "auto",
-        projectId: "17acae7d-9d0c-46bf-9c82-be9694ac3461",
-        workspaceId: "0de5f74f-a7d4-4f73-a9a0-455a2b968cf2",
-      },
-    );
+    const targetPath =
+      "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md";
+    const next = writeFileViewerStateToSearch("?existing=1", {
+      path: targetPath,
+      line: 7,
+      column: null,
+      workspace: "auto",
+      projectId: "17acae7d-9d0c-46bf-9c82-be9694ac3461",
+      workspaceId: "0de5f74f-a7d4-4f73-a9a0-455a2b968cf2",
+    });
     const state = readFileViewerStateFromSearch(next);
     expect(state).toEqual({
       path: targetPath,
@@ -172,7 +177,8 @@ describe("writeFileViewerStateToSearch", () => {
 
 describe("folder browse search state", () => {
   it("round-trips explicit target folder browse params", () => {
-    const targetPath = "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/";
+    const targetPath =
+      "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/";
     const next = writeFolderViewerStateToSearch("?tab=thread", {
       path: targetPath,
       projectId: "17acae7d-9d0c-46bf-9c82-be9694ac3461",

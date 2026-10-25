@@ -20,13 +20,23 @@ function areEqual(a: string[], b: string[]) {
 }
 
 function buildOrderIds(projects: Project[], orderedIds: string[]) {
-  return sortProjectsByStoredOrder(projects, orderedIds).map((project) => project.id);
+  return sortProjectsByStoredOrder(projects, orderedIds).map(
+    (project) => project.id,
+  );
 }
 
-export function useProjectOrder({ projects, companyId, userId }: UseProjectOrderParams) {
+export function useProjectOrder({
+  projects,
+  companyId,
+  userId,
+}: UseProjectOrderParams) {
   const queryClient = useQueryClient();
   const queryKey = useMemo(
-    () => queryKeys.sidebarPreferences.projectOrder(companyId ?? "__none__", userId ?? "__anon__"),
+    () =>
+      queryKeys.sidebarPreferences.projectOrder(
+        companyId ?? "__none__",
+        userId ?? "__anon__",
+      ),
     [companyId, userId],
   );
 
@@ -42,11 +52,16 @@ export function useProjectOrder({ projects, companyId, userId }: UseProjectOrder
 
   useEffect(() => {
     const nextIds = buildOrderIds(projects, data?.orderedIds ?? []);
-    setOrderedIds((current) => (areEqual(current, nextIds) ? current : nextIds));
+    setOrderedIds((current) =>
+      areEqual(current, nextIds) ? current : nextIds,
+    );
   }, [data?.orderedIds, projects]);
 
   const mutation = useMutation({
-    mutationFn: (nextIds: string[]) => sidebarPreferencesApi.updateProjectOrder(companyId!, { orderedIds: nextIds }),
+    mutationFn: (nextIds: string[]) =>
+      sidebarPreferencesApi.updateProjectOrder(companyId!, {
+        orderedIds: nextIds,
+      }),
     onSuccess: (preference) => {
       queryClient.setQueryData(queryKey, preference);
     },
@@ -65,13 +80,21 @@ export function useProjectOrder({ projects, companyId, userId }: UseProjectOrder
         if (!filtered.includes(project.id)) filtered.push(project.id);
       }
 
-      setOrderedIds((current) => (areEqual(current, filtered) ? current : filtered));
+      setOrderedIds((current) =>
+        areEqual(current, filtered) ? current : filtered,
+      );
       if (!companyId || !userId) return;
 
-      queryClient.setQueryData(queryKey, (current: { orderedIds?: string[]; updatedAt?: Date | null } | undefined) => ({
-        orderedIds: filtered,
-        updatedAt: current?.updatedAt ?? null,
-      }));
+      queryClient.setQueryData(
+        queryKey,
+        (
+          current:
+            { orderedIds?: string[]; updatedAt?: Date | null } | undefined,
+        ) => ({
+          orderedIds: filtered,
+          updatedAt: current?.updatedAt ?? null,
+        }),
+      );
       mutation.mutate(filtered);
     },
     [companyId, mutation, projects, queryClient, queryKey, userId],

@@ -24,26 +24,46 @@ describe("monitor time formatting", () => {
     [(2 * 60 + 59) * 60_000, "in 2h 59m"],
     [(3 * 24 + 4) * 60 * 60_000, "in 3d 4h"],
     [3 * 24 * 60 * 60_000, "in 3d"],
-  ])("formats future offset %i with up to two non-zero units", (offsetMs, expected) => {
-    expect(formatMonitorEta(new Date(now.getTime() + offsetMs), now)).toBe(expected);
-  });
+  ])(
+    "formats future offset %i with up to two non-zero units",
+    (offsetMs, expected) => {
+      expect(formatMonitorEta(new Date(now.getTime() + offsetMs), now)).toBe(
+        expected,
+      );
+    },
+  );
 
   it("uses due-now grace before switching to overdue copy", () => {
     expect(formatMonitorEta(now, now)).toBe("due now");
-    expect(formatMonitorEta(new Date(now.getTime() - 59_999), now)).toBe("due now");
-    expect(formatMonitorEta(new Date(now.getTime() - 60_000), now)).toBe("overdue by 1m");
-    expect(formatMonitorEta(new Date(now.getTime() - 12 * 60_000), now)).toBe("overdue by 12m");
+    expect(formatMonitorEta(new Date(now.getTime() - 59_999), now)).toBe(
+      "due now",
+    );
+    expect(formatMonitorEta(new Date(now.getTime() - 60_000), now)).toBe(
+      "overdue by 1m",
+    );
+    expect(formatMonitorEta(new Date(now.getTime() - 12 * 60_000), now)).toBe(
+      "overdue by 12m",
+    );
   });
 
   it("formats sentence-case ETA labels without slicing prefixes", () => {
-    expect(formatMonitorEtaLabel(new Date(now.getTime() + (2 * 60 + 12) * 60_000), now)).toBe("In 2h 12m");
+    expect(
+      formatMonitorEtaLabel(
+        new Date(now.getTime() + (2 * 60 + 12) * 60_000),
+        now,
+      ),
+    ).toBe("In 2h 12m");
     expect(formatMonitorEtaLabel(now, now)).toBe("Due now");
-    expect(formatMonitorEtaLabel(new Date(now.getTime() - 18 * 60_000), now)).toBe("Overdue by 18m");
+    expect(
+      formatMonitorEtaLabel(new Date(now.getTime() - 18 * 60_000), now),
+    ).toBe("Overdue by 18m");
   });
 
   it("uses the injectable Date.now clock for scheduled retry offsets", () => {
     const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now.getTime());
-    expect(formatMonitorOffset(new Date(now.getTime() + 15 * 60_000))).toBe("in 15m");
+    expect(formatMonitorOffset(new Date(now.getTime() + 15 * 60_000))).toBe(
+      "in 15m",
+    );
     expect(formatMonitorOffset(new Date(now.getTime() + 10_000))).toBe("now");
     expect(formatMonitorOffset(now)).toBe("now");
     dateNowSpy.mockRestore();
@@ -53,7 +73,9 @@ describe("monitor time formatting", () => {
     const timestamp = "2026-07-17T21:08:00.000Z";
     const options = { locale: "en-US", timeZone: "America/Chicago" } as const;
 
-    expect(formatMonitorAbsoluteFull(timestamp, options)).toBe("Friday, July 17, 2026, 4:08:00 PM CDT");
+    expect(formatMonitorAbsoluteFull(timestamp, options)).toBe(
+      "Friday, July 17, 2026, 4:08:00 PM CDT",
+    );
   });
 
   describe("formatMonitorAbsolute compact copy (wireframe 04)", () => {
@@ -63,26 +85,34 @@ describe("monitor time formatting", () => {
 
     it("says Today when the check lands on the reference day", () => {
       const now = "2026-07-17T14:00:00.000Z"; // 9:00 AM Chicago, same day
-      expect(formatMonitorAbsolute(timestamp, options, now)).toBe("Today, 4:08 PM");
+      expect(formatMonitorAbsolute(timestamp, options, now)).toBe(
+        "Today, 4:08 PM",
+      );
     });
 
     it("compares the day in the display time zone, not UTC", () => {
       // 2026-07-18T04:08:00Z is still 11:08 PM on Jul 17 in Chicago.
       const lateNight = "2026-07-18T04:08:00.000Z";
       const now = "2026-07-17T14:00:00.000Z"; // 9:00 AM Chicago, Jul 17
-      expect(formatMonitorAbsolute(lateNight, options, now)).toBe("Today, 11:08 PM");
+      expect(formatMonitorAbsolute(lateNight, options, now)).toBe(
+        "Today, 11:08 PM",
+      );
     });
 
     it("prefixes the weekday beyond today within the current year", () => {
       const later = "2026-07-20T14:00:00.000Z"; // 9:00 AM Chicago, Mon Jul 20
       const now = "2026-07-17T14:00:00.000Z";
-      expect(formatMonitorAbsolute(later, options, now)).toBe("Mon Jul 20, 9:00 AM");
+      expect(formatMonitorAbsolute(later, options, now)).toBe(
+        "Mon Jul 20, 9:00 AM",
+      );
     });
 
     it("adds the year only when it differs from the reference year", () => {
       const nextYear = "2027-01-04T15:00:00.000Z"; // 9:00 AM Chicago, Mon Jan 4 2027
       const now = "2026-07-17T14:00:00.000Z";
-      expect(formatMonitorAbsolute(nextYear, options, now)).toBe("Mon Jan 4, 2027, 9:00 AM");
+      expect(formatMonitorAbsolute(nextYear, options, now)).toBe(
+        "Mon Jan 4, 2027, 9:00 AM",
+      );
     });
   });
 });
@@ -94,7 +124,12 @@ describe("deriveMonitorState", () => {
     expect(
       deriveMonitorState(
         {
-          executionPolicy: { monitor: { nextCheckAt: "2026-07-17T22:12:00.000Z", serviceName: "API" } },
+          executionPolicy: {
+            monitor: {
+              nextCheckAt: "2026-07-17T22:12:00.000Z",
+              serviceName: "API",
+            },
+          },
           executionState: {
             monitor: {
               status: "scheduled",
@@ -133,45 +168,84 @@ describe("deriveMonitorState", () => {
 
   it("derives due-now and overdue at the grace boundary", () => {
     const issue = (nextCheckAt: string) => ({
-      executionState: { monitor: { status: "scheduled" as const, nextCheckAt, attemptCount: 1 } },
+      executionState: {
+        monitor: { status: "scheduled" as const, nextCheckAt, attemptCount: 1 },
+      },
     });
 
-    expect(deriveMonitorState(issue("2026-07-17T19:59:00.001Z"), now).state).toBe("due-now");
-    expect(deriveMonitorState(issue("2026-07-17T19:59:00.000Z"), now).state).toBe("overdue");
+    expect(
+      deriveMonitorState(issue("2026-07-17T19:59:00.001Z"), now).state,
+    ).toBe("due-now");
+    expect(
+      deriveMonitorState(issue("2026-07-17T19:59:00.000Z"), now).state,
+    ).toBe("overdue");
   });
 
-  it.each(["queued", "running", "cancelled"] as const)("ignores a %s retry's historical start time", (status) => {
-    const issue = {
-      status: "in_progress",
-      scheduledRetry: {
-        status,
-        scheduledRetryAt: "2026-07-17T19:58:00.000Z",
-        scheduledRetryAttempt: 1,
-      },
-    };
+  it.each(["queued", "running", "cancelled"] as const)(
+    "ignores a %s retry's historical start time",
+    (status) => {
+      const issue = {
+        status: "in_progress",
+        scheduledRetry: {
+          status,
+          scheduledRetryAt: "2026-07-17T19:58:00.000Z",
+          scheduledRetryAttempt: 1,
+        },
+      };
 
-    expect(deriveMonitorState(issue, now)).toMatchObject({ state: "none", nextCheckAt: null });
-    // A separate, explicitly scheduled monitor must still be visible.
-    expect(deriveMonitorState({ ...issue, monitorNextCheckAt: "2026-07-17T20:05:00.000Z" }, now))
-      .toMatchObject({ state: "scheduled", source: "monitor" });
-  });
+      expect(deriveMonitorState(issue, now)).toMatchObject({
+        state: "none",
+        nextCheckAt: null,
+      });
+      // A separate, explicitly scheduled monitor must still be visible.
+      expect(
+        deriveMonitorState(
+          { ...issue, monitorNextCheckAt: "2026-07-17T20:05:00.000Z" },
+          now,
+        ),
+      ).toMatchObject({ state: "scheduled", source: "monitor" });
+    },
+  );
 
   it("keeps overdue warnings for retries that have not been promoted", () => {
-    expect(deriveMonitorState({
-      scheduledRetry: { status: "scheduled_retry", scheduledRetryAt: "2026-07-17T19:58:00.000Z" },
-    }, now)).toMatchObject({ state: "overdue", source: "scheduled-retry" });
+    expect(
+      deriveMonitorState(
+        {
+          scheduledRetry: {
+            status: "scheduled_retry",
+            scheduledRetryAt: "2026-07-17T19:58:00.000Z",
+          },
+        },
+        now,
+      ),
+    ).toMatchObject({ state: "overdue", source: "scheduled-retry" });
   });
 
-  it.each(["done", "cancelled"])("ignores stale monitor and retry schedules on %s tasks", (status) => {
-    const scheduledRetry = { status: "scheduled_retry" as const, scheduledRetryAt: "2026-07-17T19:58:00.000Z" };
-    expect(deriveMonitorState({ status, scheduledRetry }, now)).toMatchObject({ state: "none", nextCheckAt: null });
-    expect(deriveMonitorState({ status, monitorNextCheckAt: scheduledRetry.scheduledRetryAt }, now))
-      .toMatchObject({ state: "none", nextCheckAt: null });
-  });
+  it.each(["done", "cancelled"])(
+    "ignores stale monitor and retry schedules on %s tasks",
+    (status) => {
+      const scheduledRetry = {
+        status: "scheduled_retry" as const,
+        scheduledRetryAt: "2026-07-17T19:58:00.000Z",
+      };
+      expect(deriveMonitorState({ status, scheduledRetry }, now)).toMatchObject(
+        { state: "none", nextCheckAt: null },
+      );
+      expect(
+        deriveMonitorState(
+          { status, monitorNextCheckAt: scheduledRetry.scheduledRetryAt },
+          now,
+        ),
+      ).toMatchObject({ state: "none", nextCheckAt: null });
+    },
+  );
 
   it("derives cleared, none, and scheduled retry states", () => {
     expect(
-      deriveMonitorState({ executionState: { monitor: { status: "cleared", attemptCount: 2 } } }, now),
+      deriveMonitorState(
+        { executionState: { monitor: { status: "cleared", attemptCount: 2 } } },
+        now,
+      ),
     ).toMatchObject({ state: "cleared", attemptCount: 2 });
     expect(deriveMonitorState({}, now)).toEqual({
       state: "none",
@@ -192,7 +266,11 @@ describe("deriveMonitorState", () => {
         },
         now,
       ),
-    ).toMatchObject({ state: "retrying", source: "scheduled-retry", attemptCount: 2 });
+    ).toMatchObject({
+      state: "retrying",
+      source: "scheduled-retry",
+      attemptCount: 2,
+    });
   });
 });
 
@@ -216,15 +294,23 @@ describe("useMonitorCountdown", () => {
       return null;
     }
 
-    flushSync(() => root.render(<Probe nextCheckAt="2026-07-17T20:02:00.000Z" />));
+    flushSync(() =>
+      root.render(<Probe nextCheckAt="2026-07-17T20:02:00.000Z" />),
+    );
     expect(vi.getTimerCount()).toBe(1);
 
     flushSync(() => vi.advanceTimersByTime(30_000));
-    expect(observed.at(-1)).toBe(new Date("2026-07-17T20:00:30.000Z").getTime());
+    expect(observed.at(-1)).toBe(
+      new Date("2026-07-17T20:00:30.000Z").getTime(),
+    );
 
-    flushSync(() => root.render(<Probe nextCheckAt="2026-07-17T20:00:45.000Z" />));
+    flushSync(() =>
+      root.render(<Probe nextCheckAt="2026-07-17T20:00:45.000Z" />),
+    );
     flushSync(() => vi.advanceTimersByTime(1_000));
-    expect(observed.at(-1)).toBe(new Date("2026-07-17T20:00:31.000Z").getTime());
+    expect(observed.at(-1)).toBe(
+      new Date("2026-07-17T20:00:31.000Z").getTime(),
+    );
 
     flushSync(() => root.render(<Probe nextCheckAt={null} />));
     expect(vi.getTimerCount()).toBe(0);

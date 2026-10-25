@@ -19,18 +19,19 @@ import type { TaskcoreWorkspaceFileReference } from "../live/workspace-file-refe
 export type { CapabilityJsonValue } from "../mock-core/capability-control-plane-types.js";
 import type { CapabilitySemanticOperationId } from "../semantic-tools/types.js";
 
-export const CAPABILITY_ISSUE_THREAD_VIEW_SCHEMA = "taskcore.capability.issue-thread-view.v1" as const;
+export const CAPABILITY_ISSUE_THREAD_VIEW_SCHEMA =
+  "taskcore.capability.issue-thread-view.v1" as const;
 
 /** Contract §0: a surface never shows an unlabeled mode. */
 export type CapabilityThreadMode = "live" | "fake" | "replay";
 
 /** Contract §0: closed disposition enum; UI copy is fixed per disposition. */
 export type CapabilityToolDisposition =
-  | "control_plane_owned"
-  | "always_agent_tool"
-  | "optional_agent_tool";
+  "control_plane_owned" | "always_agent_tool" | "optional_agent_tool";
 
-export const CAPABILITY_DISPOSITION_LABELS: Readonly<Record<CapabilityToolDisposition, string>> = {
+export const CAPABILITY_DISPOSITION_LABELS: Readonly<
+  Record<CapabilityToolDisposition, string>
+> = {
   always_agent_tool: "Agent tool — always",
   optional_agent_tool: "Agent tool — granted",
   control_plane_owned: "Control plane",
@@ -63,12 +64,7 @@ export interface CapabilityThreadIssue {
 
 /** Contract §4. `data-composer-state` is the test and screenshot hook. */
 export type CapabilityComposerState =
-  | "ready"
-  | "sending"
-  | "streaming"
-  | "waiting"
-  | "reconnecting"
-  | "disabled";
+  "ready" | "sending" | "streaming" | "waiting" | "reconnecting" | "disabled";
 
 export interface CapabilityComposerModel {
   state: CapabilityComposerState;
@@ -126,7 +122,11 @@ export interface CapabilityThreadVerdictItem {
 }
 
 export type CapabilityThreadInteractionPayload =
-  | { kind: "questions"; questions: CapabilityThreadQuestion[]; submitLabel: string }
+  | {
+      kind: "questions";
+      questions: CapabilityThreadQuestion[];
+      submitLabel: string;
+    }
   | {
       kind: "confirmation";
       targetSummary: string;
@@ -142,8 +142,16 @@ export type CapabilityThreadInteractionPayload =
       acceptLabel: string;
       rejectLabel: string;
     }
-  | { kind: "suggest_tasks"; tasks: CapabilityThreadProposedTask[]; acceptLabel: string }
-  | { kind: "item_verdicts"; items: CapabilityThreadVerdictItem[]; submitLabel: string };
+  | {
+      kind: "suggest_tasks";
+      tasks: CapabilityThreadProposedTask[];
+      acceptLabel: string;
+    }
+  | {
+      kind: "item_verdicts";
+      items: CapabilityThreadVerdictItem[];
+      submitLabel: string;
+    };
 
 export interface CapabilityThreadInteractionCard {
   interactionId: string;
@@ -171,7 +179,13 @@ export interface CapabilityEvidenceRef {
 }
 
 export type CapabilityThreadItem =
-  | { kind: "user_message"; id: string; at: string; author: string; body: string }
+  | {
+      kind: "user_message";
+      id: string;
+      at: string;
+      author: string;
+      body: string;
+    }
   | {
       kind: "agent_message";
       id: string;
@@ -227,15 +241,34 @@ export type CapabilityThreadItem =
       kind: "provider_activity";
       id: string;
       at: string;
-      family: "plan" | "tool_execution" | "research" | "delegation" | "model_identity" | "context" | "artifact" | "review" | "hook" | "memory" | "safety" | "terminal" | "wait" | "provider_notice";
+      family:
+        | "plan"
+        | "tool_execution"
+        | "research"
+        | "delegation"
+        | "model_identity"
+        | "context"
+        | "artifact"
+        | "review"
+        | "hook"
+        | "memory"
+        | "safety"
+        | "terminal"
+        | "wait"
+        | "provider_notice";
       eventType: string;
-      status: "running" | "completed" | "failed" | "interrupted" | "informational";
+      status:
+        "running" | "completed" | "failed" | "interrupted" | "informational";
       title: string;
       summary: string;
       payload: CapabilityJsonValue;
       evidenceRef: CapabilityEvidenceRef;
     }
-  | ({ kind: "interaction"; id: string; at: string } & CapabilityThreadInteractionCard)
+  | ({
+      kind: "interaction";
+      id: string;
+      at: string;
+    } & CapabilityThreadInteractionCard)
   | {
       kind: "document";
       id: string;
@@ -373,7 +406,13 @@ export interface CapabilityEvidenceAuthorizationRecord {
 export interface CapabilityEvidenceControlPlaneRecord {
   id: string;
   turnId: string;
-  category: "checkout" | "wake" | "budget" | "idempotency" | "reconciliation" | "session";
+  category:
+    | "checkout"
+    | "wake"
+    | "budget"
+    | "idempotency"
+    | "reconciliation"
+    | "session";
   outcome: string;
   reason: string;
   stateRevision: number;
@@ -462,7 +501,9 @@ export interface CapabilityIssueThreadSnapshot {
   renderedAt: string;
 }
 
-export function capabilityDispositionLabel(disposition: CapabilityToolDisposition): string {
+export function capabilityDispositionLabel(
+  disposition: CapabilityToolDisposition,
+): string {
   return CAPABILITY_DISPOSITION_LABELS[disposition];
 }
 

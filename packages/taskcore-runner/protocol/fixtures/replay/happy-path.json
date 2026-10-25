@@ -143,7 +143,10 @@
       "schemaVersion": 1,
       "priority": 1,
       "emittedAt": "2026-08-07T12:00:00.080Z",
-      "payload": { "kind": "assistant_message", "text": "Validated fixture. Replay complete." }
+      "payload": {
+        "kind": "assistant_message",
+        "text": "Validated fixture. Replay complete."
+      }
     },
     {
       "schema": "taskcore.prp.event.v1",
@@ -169,7 +172,9 @@
           "remainingWork": []
         },
         "evidence": [],
-        "verification": [{ "commandOrCheck": "fixture replay", "status": "passed" }],
+        "verification": [
+          { "commandOrCheck": "fixture replay", "status": "passed" }
+        ],
         "attentionRequests": [],
         "artifacts": []
       }
@@ -223,7 +228,9 @@
       "remainingWork": []
     },
     "evidence": [],
-    "verification": [{ "commandOrCheck": "fixture replay", "status": "passed" }],
+    "verification": [
+      { "commandOrCheck": "fixture replay", "status": "passed" }
+    ],
     "attentionRequests": [],
     "artifacts": []
   }

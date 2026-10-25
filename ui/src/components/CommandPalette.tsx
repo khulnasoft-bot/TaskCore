@@ -46,7 +46,10 @@ import {
 
 const SEARCH_ALL_VALUE = "__taskcore-search-all__";
 
-export function buildFullSearchPath(query: string, context: SearchQueryParserContext = {}) {
+export function buildFullSearchPath(
+  query: string,
+  context: SearchQueryParserContext = {},
+) {
   return buildSearchPathFromQuery(query, context);
 }
 
@@ -76,7 +79,11 @@ function isSubsequence(needle: string, haystack: string): boolean {
  * `null` means no match. Prefers name hits (exact > prefix > substring) over
  * description hits, with fuzzy subsequence as a last resort.
  */
-function scoreProjectMatch(name: string, description: string, q: string): number | null {
+function scoreProjectMatch(
+  name: string,
+  description: string,
+  q: string,
+): number | null {
   if (name === q) return 1000;
   // Shorter names rank first, but clamp the length penalty so a prefix match can
   // never sink below the substring band (max 699) for unusually long names —
@@ -105,7 +112,8 @@ export function CommandPalette() {
     retry: false,
   });
   const { enabled: combinedInboxTasksEnabled } = useCombinedInboxTasksEnabled();
-  const fileViewerEnabled = experimentalSettings?.enableExperimentalFileViewer === true;
+  const fileViewerEnabled =
+    experimentalSettings?.enableExperimentalFileViewer === true;
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -134,10 +142,7 @@ export function CommandPalette() {
     queryFn: () => projectsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId && open,
   });
-  const projects = useMemo(
-    () => allProjects,
-    [allProjects],
-  );
+  const projects = useMemo(() => allProjects, [allProjects]);
 
   const { data: labels = [] } = useQuery({
     queryKey: queryKeys.issues.labels(selectedCompanyId!),
@@ -152,13 +157,19 @@ export function CommandPalette() {
   });
 
   const currentUserId = session?.user?.id ?? session?.session?.userId ?? null;
-  const parserContext = useMemo<SearchQueryParserContext>(() => ({
-    currentUserId,
-    agents,
-    projects,
-    labels,
-  }), [agents, currentUserId, labels, projects]);
-  const parsedQuery = useMemo(() => parseSearchQuery(query, parserContext), [parserContext, query]);
+  const parserContext = useMemo<SearchQueryParserContext>(
+    () => ({
+      currentUserId,
+      agents,
+      projects,
+      labels,
+    }),
+    [agents, currentUserId, labels, projects],
+  );
+  const parsedQuery = useMemo(
+    () => parseSearchQuery(query, parserContext),
+    [parserContext, query],
+  );
   const quickSearchQuery = parsedQuery.query.trim();
 
   const { data: issues = [] } = useQuery({
@@ -168,8 +179,18 @@ export function CommandPalette() {
   });
 
   const { data: searchedIssues = [] } = useQuery({
-    queryKey: queryKeys.issues.search(selectedCompanyId!, quickSearchQuery, undefined, 10),
-    queryFn: () => issuesApi.list(selectedCompanyId!, { q: quickSearchQuery, limit: 10, includeRoutineExecutions: true }),
+    queryKey: queryKeys.issues.search(
+      selectedCompanyId!,
+      quickSearchQuery,
+      undefined,
+      10,
+    ),
+    queryFn: () =>
+      issuesApi.list(selectedCompanyId!, {
+        q: quickSearchQuery,
+        limit: 10,
+        includeRoutineExecutions: true,
+      }),
     enabled: !!selectedCompanyId && open && quickSearchQuery.length > 0,
   });
 
@@ -207,7 +228,12 @@ export function CommandPalette() {
           q,
         ),
       }))
-      .filter((entry): entry is { project: (typeof projects)[number]; score: number } => entry.score !== null)
+      .filter(
+        (
+          entry,
+        ): entry is { project: (typeof projects)[number]; score: number } =>
+          entry.score !== null,
+      )
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_MATCHED_PROJECTS)
       .map((entry) => entry.project);
@@ -215,15 +241,20 @@ export function CommandPalette() {
 
   const showSearchAll = searchQuery.length > 0;
   const showPromotedProjects = showSearchAll && matchedProjects.length > 0;
-  const taskLimit = showPromotedProjects ? TASK_LIMIT_WITH_PROJECTS : TASK_LIMIT;
+  const taskLimit = showPromotedProjects
+    ? TASK_LIMIT_WITH_PROJECTS
+    : TASK_LIMIT;
   const showEmptyHint =
     showSearchAll && visibleIssues.length === 0 && matchedProjects.length === 0;
 
   return (
-    <CommandDialog open={open} onOpenChange={(v) => {
+    <CommandDialog
+      open={open}
+      onOpenChange={(v) => {
         setOpen(v);
         if (v && isMobile) setSidebarOpen(false);
-      }}>
+      }}
+    >
       <CommandInput
         placeholder="Search tasks, agents, projects..."
         value={query}
@@ -245,8 +276,11 @@ export function CommandPalette() {
           {showSearchAll ? (
             <span>
               No quick task matches. Press{" "}
-              <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-(length:--text-nano)">↵</kbd>{" "}
-              to <span className="font-medium">search all</span> or keep typing to refine.
+              <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-(length:--text-nano)">
+                ↵
+              </kbd>{" "}
+              to <span className="font-medium">search all</span> or keep typing
+              to refine.
             </span>
           ) : (
             "No results found."
@@ -263,11 +297,16 @@ export function CommandPalette() {
             >
               <Search className="mr-2 h-4 w-4" />
               <span className="flex-1 truncate">
-                Search all for <span className="font-semibold">&ldquo;{searchQuery}&rdquo;</span>
+                Search all for{" "}
+                <span className="font-semibold">
+                  &ldquo;{searchQuery}&rdquo;
+                </span>
               </span>
               <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <span>open full search</span>
-                <kbd className="rounded border border-border bg-background px-1 py-0.5 text-(length:--text-nano)">↵</kbd>
+                <kbd className="rounded border border-border bg-background px-1 py-0.5 text-(length:--text-nano)">
+                  ↵
+                </kbd>
               </span>
             </CommandItem>
           </CommandGroup>
@@ -280,7 +319,11 @@ export function CommandPalette() {
             <CommandItem
               key={chip}
               value={`quick-filter ${chip}`}
-              onSelect={() => setQuery((current) => current.trim() ? `${current.trim()} ${chip}` : chip)}
+              onSelect={() =>
+                setQuery((current) =>
+                  current.trim() ? `${current.trim()} ${chip}` : chip,
+                )
+              }
               data-testid="command-filter-chip"
             >
               <Search className="mr-2 h-4 w-4" />
@@ -330,7 +373,9 @@ export function CommandPalette() {
             <CommandItem
               onSelect={() => {
                 setOpen(false);
-                window.dispatchEvent(new CustomEvent("taskcore:open-file-viewer"));
+                window.dispatchEvent(
+                  new CustomEvent("taskcore:open-file-viewer"),
+                );
               }}
             >
               <FileCode2 className="mr-2 h-4 w-4" />
@@ -360,7 +405,11 @@ export function CommandPalette() {
             <LayoutDashboard className="mr-2 h-4 w-4" />
             Dashboard
           </CommandItem>
-          <CommandItem onSelect={() => go(combinedInboxTasksEnabled ? "/issues?view=mine" : "/inbox")}>
+          <CommandItem
+            onSelect={() =>
+              go(combinedInboxTasksEnabled ? "/issues?view=mine" : "/inbox")
+            }
+          >
             <Inbox className="mr-2 h-4 w-4" />
             {combinedInboxTasksEnabled ? "My work" : "Inbox"}
           </CommandItem>
@@ -409,10 +458,21 @@ export function CommandPalette() {
                     {issue.identifier ?? issue.id.slice(0, 8)}
                   </span>
                   <span className="flex-1 truncate">{issue.title}</span>
-                  {issue.assigneeAgentId && (() => {
-                    const name = agentName(issue.assigneeAgentId);
-                    return name ? <AgentIdentity agent={agents?.find((agent) => agent.id === issue.assigneeAgentId) ?? { id: issue.assigneeAgentId, name }} size="sm" className="ml-2 hidden sm:inline-flex" /> : null;
-                  })()}
+                  {issue.assigneeAgentId &&
+                    (() => {
+                      const name = agentName(issue.assigneeAgentId);
+                      return name ? (
+                        <AgentIdentity
+                          agent={
+                            agents?.find(
+                              (agent) => agent.id === issue.assigneeAgentId,
+                            ) ?? { id: issue.assigneeAgentId, name }
+                          }
+                          size="sm"
+                          className="ml-2 hidden sm:inline-flex"
+                        />
+                      ) : null;
+                    })()}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -424,10 +484,15 @@ export function CommandPalette() {
             <CommandSeparator />
             <CommandGroup heading="Agents">
               {agents.slice(0, 10).map((agent) => (
-                <CommandItem key={agent.id} onSelect={() => go(agentUrl(agent))}>
+                <CommandItem
+                  key={agent.id}
+                  onSelect={() => go(agentUrl(agent))}
+                >
                   <Bot className="mr-2 h-4 w-4" />
                   {agent.name}
-                  <span className="text-xs text-muted-foreground ml-2">{agent.role}</span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {agent.role}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -439,7 +504,10 @@ export function CommandPalette() {
             <CommandSeparator />
             <CommandGroup heading="Projects">
               {projects.slice(0, 10).map((project) => (
-                <CommandItem key={project.id} onSelect={() => go(projectUrl(project))}>
+                <CommandItem
+                  key={project.id}
+                  onSelect={() => go(projectUrl(project))}
+                >
                   <Hexagon className="mr-2 h-4 w-4" />
                   {project.name}
                 </CommandItem>

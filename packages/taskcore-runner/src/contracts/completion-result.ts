@@ -41,9 +41,19 @@ export const PRP_ATTENTION_OWNER_CLASSES = [
 const completionClaimSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["contractRevision", "objectiveSatisfied", "criteria", "remainingWork"],
+  required: [
+    "contractRevision",
+    "objectiveSatisfied",
+    "criteria",
+    "remainingWork",
+  ],
   properties: {
-    contractRevision: { type: "string", minLength: 1, description: "Use the current turn completion.revision (or completionContract.revision on the first turn), never a previous turn’s revision. On stale-revision feedback, reassess the current request and correct the report without repeating completed work." },
+    contractRevision: {
+      type: "string",
+      minLength: 1,
+      description:
+        "Use the current turn completion.revision (or completionContract.revision on the first turn), never a previous turn’s revision. On stale-revision feedback, reassess the current request and correct the report without repeating completed work.",
+    },
     objectiveSatisfied: { type: "boolean" },
     criteria: {
       type: "array",
@@ -100,15 +110,21 @@ const verificationSchema = {
       },
       reasonCode: {
         enum: [...PRP_VERIFICATION_REASON_CODES],
-        description: "Required for not_run; identify why the check had no meaningful verdict.",
+        description:
+          "Required for not_run; identify why the check had no meaningful verdict.",
       },
       detail: { type: "string" },
       artifactRef: { type: "string", minLength: 1 },
     },
-    allOf: [{
-      if: { properties: { status: { const: "not_run" } }, required: ["status"] },
-      then: { required: ["reasonCode"] },
-    }],
+    allOf: [
+      {
+        if: {
+          properties: { status: { const: "not_run" } },
+          required: ["status"],
+        },
+        then: { required: ["reasonCode"] },
+      },
+    ],
   },
 } as const;
 
@@ -124,10 +140,15 @@ const attentionRequestsSchema = {
       ownerClass: { enum: [...PRP_ATTENTION_OWNER_CLASSES] },
       targetAgentId: { type: "string", minLength: 1 },
     },
-    allOf: [{
-      if: { properties: { ownerClass: { const: "agent" } }, required: ["ownerClass"] },
-      then: { required: ["targetAgentId"] },
-    }],
+    allOf: [
+      {
+        if: {
+          properties: { ownerClass: { const: "agent" } },
+          required: ["ownerClass"],
+        },
+        then: { required: ["targetAgentId"] },
+      },
+    ],
   },
 } as const;
 
@@ -196,15 +217,24 @@ export const PRP_COMPLETION_RESULT_OUTPUT_SCHEMA = {
   },
   allOf: [
     {
-      if: { properties: { reportedWorkDisposition: { const: "done" } }, required: ["reportedWorkDisposition"] },
+      if: {
+        properties: { reportedWorkDisposition: { const: "done" } },
+        required: ["reportedWorkDisposition"],
+      },
       then: { properties: { attentionRequests: { maxItems: 0 } } },
     },
     {
-      if: { properties: { reportedWorkDisposition: { const: "needs_review" } }, required: ["reportedWorkDisposition"] },
+      if: {
+        properties: { reportedWorkDisposition: { const: "needs_review" } },
+        required: ["reportedWorkDisposition"],
+      },
       then: { properties: { attentionRequests: { minItems: 1 } } },
     },
     {
-      if: { properties: { reportedWorkDisposition: { const: "yielded" } }, required: ["reportedWorkDisposition"] },
+      if: {
+        properties: { reportedWorkDisposition: { const: "yielded" } },
+        required: ["reportedWorkDisposition"],
+      },
       then: { required: ["continuation"] },
       else: { not: { required: ["continuation"] } },
     },
@@ -227,7 +257,11 @@ export const PRP_BLOCK_RESULT_OUTPUT_SCHEMA = {
   properties: {
     ...commonResultProperties,
     reportedWorkDisposition: { type: "string", const: "blocked" },
-    attentionRequests: { type: "array", maxItems: 0, items: attentionRequestsSchema.items },
+    attentionRequests: {
+      type: "array",
+      maxItems: 0,
+      items: attentionRequestsSchema.items,
+    },
     blocker: {
       type: "object",
       additionalProperties: false,
@@ -262,20 +296,32 @@ const providerVerificationCompatibilitySchema = {
       commandOrCheck: { type: "string", minLength: 1 },
       command: { type: "string", minLength: 1 },
       status: {
-        enum: ["passed", "failed", "not_run", "blocked", "skipped", "pass", "success", "succeeded", "fail"],
+        enum: [
+          "passed",
+          "failed",
+          "not_run",
+          "blocked",
+          "skipped",
+          "pass",
+          "success",
+          "succeeded",
+          "fail",
+        ],
         description:
           "passed: the check ran and succeeded. failed: the check ran to a meaningful verdict and found the work incorrect. not_run: no meaningful verdict because the check was not attempted or could not complete. Prefer not_run over legacy blocked/skipped, and include reasonCode for any unavailable check.",
       },
       reasonCode: {
         enum: [...PRP_VERIFICATION_REASON_CODES],
-        description: "Required for not_run; identify why the check had no meaningful verdict.",
+        description:
+          "Required for not_run; identify why the check had no meaningful verdict.",
       },
       detail: { type: "string" },
       result: { type: "string" },
       cwd: { type: "string" },
       artifactRef: {
         type: ["string", "null"],
-        description: "Reference to a real verification artifact. Omit or use null when no artifact exists; empty values are normalized away.",
+        description:
+          "Reference to a real verification artifact. Omit or use null when no artifact exists; empty values are normalized away.",
       },
     },
   },
@@ -360,7 +406,9 @@ export const PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA = {
   ],
   properties: {
     ...providerCommonResultProperties,
-    reportedWorkDisposition: { enum: ["done", "needs_review", "yielded", "completed"] },
+    reportedWorkDisposition: {
+      enum: ["done", "needs_review", "yielded", "completed"],
+    },
     verification: providerVerificationCompatibilitySchema,
     attentionRequests: providerAttentionCompatibilitySchema,
     // Responses-compatible gateways can require every declared property in
@@ -377,8 +425,14 @@ export const PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA = {
   // root allOf containing only an if/then constraint as `args: unknown`, hiding
   // every required field from the model. This equivalent direct conditional
   // preserves validation without obscuring the object-shaped tool signature.
-  if: { properties: { reportedWorkDisposition: { const: "yielded" } }, required: ["reportedWorkDisposition"] },
-  then: { required: ["continuation"], properties: { continuation: { type: "object" } } },
+  if: {
+    properties: { reportedWorkDisposition: { const: "yielded" } },
+    required: ["reportedWorkDisposition"],
+  },
+  then: {
+    required: ["continuation"],
+    properties: { continuation: { type: "object" } },
+  },
   else: { properties: { continuation: { type: "null" } } },
 } as const;
 

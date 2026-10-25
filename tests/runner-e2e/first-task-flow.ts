@@ -1,8 +1,17 @@
 import { runsCompletionUpdateProbe } from "./completion-quality.js";
-import { gradeConfirmationReply, assertConfirmationReceipt } from "./confirmation-replies.js";
+import {
+  gradeConfirmationReply,
+  assertConfirmationReceipt,
+} from "./confirmation-replies.js";
 import { firstTaskUserRequest } from "./first-task-transcript.js";
-import { isBlockedUnstartedWake, isTerminalUnstartedWake } from "./non-execution-wake.js";
-import { firstTaskRejectionReplyRecorded, isFirstTaskRejectionCancellation } from "./first-task-rejection.js";
+import {
+  isBlockedUnstartedWake,
+  isTerminalUnstartedWake,
+} from "./non-execution-wake.js";
+import {
+  firstTaskRejectionReplyRecorded,
+  isFirstTaskRejectionCancellation,
+} from "./first-task-rejection.js";
 import { answerableRuntimeRunIds } from "./runtime-question-readiness.js";
 import { captureFirstTaskAttachments } from "./first-task-attachments.js";
 import { waitForFirstTaskReply } from "./first-task-replies.js";
@@ -258,14 +267,22 @@ export async function runFirstTaskFlow(input: {
     };
     e.checkpoints.push(checkpoint);
     e.checks = gradeFirstTask(e);
-    if (execution.suite.id === "confirmation-replies" && scenario.id !== "task-card-accept") e.checks.push(...gradeConfirmationReply(e));
+    if (
+      execution.suite.id === "confirmation-replies" &&
+      scenario.id !== "task-card-accept"
+    )
+      e.checks.push(...gradeConfirmationReply(e));
     input.observe(issue, runs, e);
     await input.evidence("first-task.json", e);
     await input.evidence("api-state.json", checkpoint);
     return checkpoint;
   };
   let pausedRuntimeRunIds = new Set<string>();
-  const settle = async (priorRunIds: Set<string>, completion = false, rejection = false) => {
+  const settle = async (
+    priorRunIds: Set<string>,
+    completion = false,
+    rejection = false,
+  ) => {
     const previousPaused = pausedRuntimeRunIds;
     let stable = 0;
     await pollUntil({
@@ -275,13 +292,20 @@ export async function runFirstTaskFlow(input: {
       load: async () => ({
         runs: await allRuns(),
         tasks: await api.get<Row[]>(tasksPath),
-        interactions: await api.get<Row[]>(`/api/issues/${issue.id}/interactions`),
-        comments: rejection ? await api.get<Row[]>(`/api/issues/${issue.id}/comments?order=asc`) : [],
+        interactions: await api.get<Row[]>(
+          `/api/issues/${issue.id}/interactions`,
+        ),
+        comments: rejection
+          ? await api.get<Row[]>(`/api/issues/${issue.id}/comments?order=asc`)
+          : [],
       }),
       reject: ({ runs, tasks }) => {
-        const bad = runs.find((r) =>
-          ["failed", "timed_out", "cancelled"].includes(r.status) && !isBlockedUnstartedWake(r) &&
-          !isTerminalUnstartedWake(r, tasks) && !(rejection && isFirstTaskRejectionCancellation(r, e, tasks)),
+        const bad = runs.find(
+          (r) =>
+            ["failed", "timed_out", "cancelled"].includes(r.status) &&
+            !isBlockedUnstartedWake(r) &&
+            !isTerminalUnstartedWake(r, tasks) &&
+            !(rejection && isFirstTaskRejectionCancellation(r, e, tasks)),
         );
         if (bad)
           return `run status ${bad.status}: ${bad.errorCode ?? ""} ${bad.error ?? ""}`;
@@ -290,8 +314,13 @@ export async function runFirstTaskFlow(input: {
       accept: ({ runs, tasks, interactions, comments }) => {
         const paused = answerableRuntimeRunIds(interactions);
         const active = activeRuns(runs);
-        const waitingForAnswer = !completion && active.length > 0 && active.every((r) => paused.has(r.id));
-        const progressed = runs.some((r) => !priorRunIds.has(r.id) || previousPaused.has(r.id));
+        const waitingForAnswer =
+          !completion &&
+          active.length > 0 &&
+          active.every((r) => paused.has(r.id));
+        const progressed = runs.some(
+          (r) => !priorRunIds.has(r.id) || previousPaused.has(r.id),
+        );
         const settled = progressed && (active.length === 0 || waitingForAnswer);
         pausedRuntimeRunIds = waitingForAnswer ? paused : new Set();
         const done =
@@ -301,7 +330,8 @@ export async function runFirstTaskFlow(input: {
             e.initialTaskIds,
             e.onboardingIssueId,
           );
-        const replied = !rejection || firstTaskRejectionReplyRecorded(e, comments, runs);
+        const replied =
+          !rejection || firstTaskRejectionReplyRecorded(e, comments, runs);
         stable = settled && done && replied ? stable + 1 : 0;
         return stable >= 3;
       },
@@ -353,8 +383,7 @@ export async function runFirstTaskFlow(input: {
       runtimeConfig: agent.runtimeConfig,
       permissions: agent.permissions,
     };
-    const desired =
-      agent.adapterConfig?.taskcoreSkillSync?.desiredSkills ?? [];
+    const desired = agent.adapterConfig?.taskcoreSkillSync?.desiredSkills ?? [];
     expect(
       desired.map((s: string | { key: string }) =>
         typeof s === "string" ? s : s.key,
@@ -452,24 +481,42 @@ export async function runFirstTaskFlow(input: {
       if (scenario.id === "accept-while-running") {
         await pollUntil({
           label: "approval card published before the source run finishes",
-          deadlineAt: Math.min(deadlineAt, Date.now() + 300_000), intervalMs: 100,
-          load: async () => ({ interactions: await api.get<Row[]>(`/api/issues/${issue.id}/interactions`), runs: await allRuns() }),
-          accept: ({ interactions, runs }) => interactions.some(i => i.status === "pending" &&
-            ["request_confirmation", "request_checkbox_confirmation"].includes(i.kind) &&
-            runs.some(r => r.id === i.sourceRunId && r.status === "running")),
-          reject: ({ runs }) => runs.some(r => !before.has(r.id)) && !activeRuns(runs).length
-            ? "Acceptance overlap was not exercised: source run finished before a live approval card was observed" : undefined,
+          deadlineAt: Math.min(deadlineAt, Date.now() + 300_000),
+          intervalMs: 100,
+          load: async () => ({
+            interactions: await api.get<Row[]>(
+              `/api/issues/${issue.id}/interactions`,
+            ),
+            runs: await allRuns(),
+          }),
+          accept: ({ interactions, runs }) =>
+            interactions.some(
+              (i) =>
+                i.status === "pending" &&
+                [
+                  "request_confirmation",
+                  "request_checkbox_confirmation",
+                ].includes(i.kind) &&
+                runs.some(
+                  (r) => r.id === i.sourceRunId && r.status === "running",
+                ),
+            ),
+          reject: ({ runs }) =>
+            runs.some((r) => !before.has(r.id)) && !activeRuns(runs).length
+              ? "Acceptance overlap was not exercised: source run finished before a live approval card was observed"
+              : undefined,
         });
       } else await settle(before);
       await snapshot("response");
     }
     // Screenshots can take longer than the source turn's final handoff. In the
     // overlap case, accept first and retain the response checkpoint as evidence.
-    if (scenario.id !== "accept-while-running") await input.capture(
-      "first-task-response",
-      "First onboarding response",
-      "first-task-response.png",
-    );
+    if (scenario.id !== "accept-while-running")
+      await input.capture(
+        "first-task-response",
+        "First onboarding response",
+        "first-task-response.png",
+      );
     const assertBeforeAcceptance = () => {
       const check = gradeFirstTask(e).find((c) => c.id === "no-premature-work");
       expect(
@@ -540,7 +587,9 @@ export async function runFirstTaskFlow(input: {
       assertBeforeAcceptance();
       if (scenario.id === "reject-no-execution")
         await turn(scenario.rejection, "rejected");
-      else if (["task-card-accept", "accept-while-running"].includes(scenario.id)) {
+      else if (
+        ["task-card-accept", "accept-while-running"].includes(scenario.id)
+      ) {
         const pending = (
           await api.get<Row[]>(`/api/issues/${issue.id}/interactions`)
         ).find(
@@ -601,25 +650,48 @@ export async function runFirstTaskFlow(input: {
           scenario.id !== "interview-plan-accept",
         );
     }
-    if (execution.suite.id === "confirmation-replies" && scenario.id !== "task-card-accept") {
+    if (
+      execution.suite.id === "confirmation-replies" &&
+      scenario.id !== "task-card-accept"
+    ) {
       const last = e.checkpoints.at(-1)!;
-      const decisionCard = last.interactions.find(card => card.result?.commentId && ["accepted", "rejected"].includes(card.status));
+      const decisionCard = last.interactions.find(
+        (card) =>
+          card.result?.commentId &&
+          ["accepted", "rejected"].includes(card.status),
+      );
       if (decisionCard) {
         await page.reload({ waitUntil: "domcontentloaded" });
         await assertConfirmationReceipt(page, decisionCard);
       }
-      await input.evidence("confirmation-audit.json", await api.get(`/api/issues/${issue.id}/activity`));
+      await input.evidence(
+        "confirmation-audit.json",
+        await api.get(`/api/issues/${issue.id}/activity`),
+      );
     }
     if (runsCompletionUpdateProbe(execution)) {
-      const children = (await api.get<Row[]>(tasksPath)).filter(t => t.parentId === issue.id);
+      const children = (await api.get<Row[]>(tasksPath)).filter(
+        (t) => t.parentId === issue.id,
+      );
       expect(children).toHaveLength(1);
-      const completion = await observeCompletionUpdate({ ...input, sourceId: issue.id, workerId: children[0]!.id,
-        marker: scenario.marker, fixtureRequest: firstTaskUserRequest(e), allRuns });
-      e.runtimeSettings!.completionRenderedLinks = completion.renderedLinks ?? [];
+      const completion = await observeCompletionUpdate({
+        ...input,
+        sourceId: issue.id,
+        workerId: children[0]!.id,
+        marker: scenario.marker,
+        fixtureRequest: firstTaskUserRequest(e),
+        allRuns,
+      });
+      e.runtimeSettings!.completionRenderedLinks =
+        completion.renderedLinks ?? [];
       await snapshot("finished");
     }
     e.checks = gradeFirstTask(e);
-    if (execution.suite.id === "confirmation-replies" && scenario.id !== "task-card-accept") e.checks.push(...gradeConfirmationReply(e));
+    if (
+      execution.suite.id === "confirmation-replies" &&
+      scenario.id !== "task-card-accept"
+    )
+      e.checks.push(...gradeConfirmationReply(e));
     await input.evidence("first-task.json", e);
     await input.capture(
       "final-state",

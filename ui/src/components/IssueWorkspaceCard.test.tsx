@@ -18,7 +18,9 @@ function act(callback: () => void | Promise<void>) {
 const useQueryMock = vi.fn();
 
 vi.mock("@tanstack/react-query", async () => {
-  const actual = await vi.importActual<typeof import("@tanstack/react-query")>("@tanstack/react-query");
+  const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
+    "@tanstack/react-query",
+  );
   return {
     ...actual,
     useQuery: (options: unknown) => useQueryMock(options),
@@ -31,18 +33,27 @@ vi.mock("../context/CompanyContext", () => ({
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children, className, ...props }: ComponentProps<"a">) => (
-    <a className={className} {...props}>{children}</a>
+    <a className={className} {...props}>
+      {children}
+    </a>
   ),
 }));
 
 const visibility = vi.hoisted(() => ({ visible: true, loaded: true }));
-vi.mock("@/hooks/useWorkspaceIsolationControls", () => ({ useWorkspaceIsolationControls: () => visibility }));
-beforeEach(() => { visibility.visible = true; visibility.loaded = true; });
+vi.mock("@/hooks/useWorkspaceIsolationControls", () => ({
+  useWorkspaceIsolationControls: () => visibility,
+}));
+beforeEach(() => {
+  visibility.visible = true;
+  visibility.loaded = true;
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
-function createExecutionWorkspace(overrides: Partial<ExecutionWorkspace> = {}): ExecutionWorkspace {
+function createExecutionWorkspace(
+  overrides: Partial<ExecutionWorkspace> = {},
+): ExecutionWorkspace {
   return {
     id: "workspace-1",
     companyId: "company-1",
@@ -153,21 +164,42 @@ describe("IssueWorkspaceCard", () => {
   it("keeps workspace details and files while suppressing editing and draft writes", () => {
     visibility.visible = false;
     useQueryMock.mockImplementation((options: { queryKey: unknown[] }) => ({
-      data: options.queryKey[0] === "instance" ? { enableIsolatedWorkspaces: true } : [],
+      data:
+        options.queryKey[0] === "instance"
+          ? { enableIsolatedWorkspaces: true }
+          : [],
     }));
     const root = createRoot(container);
     const onUpdate = vi.fn();
     const onDraftChange = vi.fn();
     const onBrowseFiles = vi.fn();
-    act(() => root.render(<IssueWorkspaceCard
-      issue={createIssue({ currentExecutionWorkspace: createExecutionWorkspace() })}
-      project={{ id: "project-1", executionWorkspacePolicy: { enabled: true, defaultMode: "isolated_workspace" } }}
-      initialEditing livePreview onUpdate={onUpdate} onDraftChange={onDraftChange} onBrowseFiles={onBrowseFiles}
-    />));
+    act(() =>
+      root.render(
+        <IssueWorkspaceCard
+          issue={createIssue({
+            currentExecutionWorkspace: createExecutionWorkspace(),
+          })}
+          project={{
+            id: "project-1",
+            executionWorkspacePolicy: {
+              enabled: true,
+              defaultMode: "isolated_workspace",
+            },
+          }}
+          initialEditing
+          livePreview
+          onUpdate={onUpdate}
+          onDraftChange={onDraftChange}
+          onBrowseFiles={onBrowseFiles}
+        />,
+      ),
+    );
     expect(container.querySelector("select")).toBeNull();
     expect(container.textContent).not.toContain("Save");
     expect(container.textContent).toContain("View workspace details");
-    const browse = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Browse files"));
+    const browse = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Browse files"),
+    );
     act(() => browse!.click());
     expect(onBrowseFiles).toHaveBeenCalledOnce();
     expect(onUpdate).not.toHaveBeenCalled();
@@ -182,7 +214,9 @@ describe("IssueWorkspaceCard", () => {
 
     useQueryMock.mockImplementation((options: { queryKey: unknown[] }) => {
       if (options.queryKey[0] === "instance") {
-        return { data: { enableEnvironments: true, enableIsolatedWorkspaces: true } };
+        return {
+          data: { enableEnvironments: true, enableIsolatedWorkspaces: true },
+        };
       }
       if (options.queryKey[0] === "environments") {
         return {
@@ -212,22 +246,32 @@ describe("IssueWorkspaceCard", () => {
       );
     });
 
-    const editButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Edit"));
+    const editButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Edit"),
+    );
     expect(editButton).not.toBeUndefined();
 
     act(() => {
-      editButton!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      editButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     const selects = container.querySelectorAll("select");
     expect(selects).toHaveLength(1);
-    expect(container.querySelector("button[role='combobox']")?.textContent).toContain("Issue sandbox");
+    expect(
+      container.querySelector("button[role='combobox']")?.textContent,
+    ).toContain("Issue sandbox");
 
-    const saveButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Save"));
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Save"),
+    );
     expect(saveButton).not.toBeUndefined();
 
     act(() => {
-      saveButton!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      saveButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({
@@ -249,7 +293,9 @@ describe("IssueWorkspaceCard", () => {
 
     useQueryMock.mockImplementation((options: { queryKey: unknown[] }) => {
       if (options.queryKey[0] === "instance") {
-        return { data: { enableEnvironments: false, enableIsolatedWorkspaces: true } };
+        return {
+          data: { enableEnvironments: false, enableIsolatedWorkspaces: true },
+        };
       }
       if (options.queryKey[0] === "execution-workspaces") {
         return { data: [createExecutionWorkspace()] };
@@ -276,16 +322,22 @@ describe("IssueWorkspaceCard", () => {
 
     expect(container.textContent).not.toContain("Environment:");
 
-    const editButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Edit"));
+    const editButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Edit"),
+    );
     expect(editButton).not.toBeUndefined();
 
     act(() => {
-      editButton!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      editButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     const selects = container.querySelectorAll("select");
     expect(selects).toHaveLength(1);
-    expect(container.querySelector("button[role='combobox']")?.textContent).toContain("Issue sandbox");
+    expect(
+      container.querySelector("button[role='combobox']")?.textContent,
+    ).toContain("Issue sandbox");
     expect(container.textContent).not.toContain("Project default environment");
 
     act(() => {

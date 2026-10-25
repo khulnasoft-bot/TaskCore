@@ -6,7 +6,7 @@ const QUEUE_IDS_KEY = "wakeCommentIds";
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -14,19 +14,24 @@ function uniqueIds(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
   return value.flatMap((candidate) => {
-    if (typeof candidate !== "string" || !candidate || seen.has(candidate)) return [];
+    if (typeof candidate !== "string" || !candidate || seen.has(candidate))
+      return [];
     seen.add(candidate);
     return [candidate];
   });
 }
 
-export function queuedCommentIdsFromWakePayload(payloadValue: unknown): string[] {
+export function queuedCommentIdsFromWakePayload(
+  payloadValue: unknown,
+): string[] {
   const payload = record(payloadValue);
   const context = record(payload[QUEUE_CONTEXT_KEY]);
   return uniqueIds(context[QUEUE_IDS_KEY]);
 }
 
-export function queuedCommentIdsFromRunContext(contextValue: unknown): string[] {
+export function queuedCommentIdsFromRunContext(
+  contextValue: unknown,
+): string[] {
   return uniqueIds(record(contextValue)[QUEUE_IDS_KEY]);
 }
 
@@ -65,10 +70,15 @@ export function queuedCommentQueueRevision(input: {
   comments: Array<{ id: string; updatedAt: Date }>;
 }): string {
   return createHash("sha256")
-    .update(JSON.stringify({
-      queueId: input.queueId,
-      comments: input.comments.map((comment) => [comment.id, comment.updatedAt.toISOString()]),
-    }))
+    .update(
+      JSON.stringify({
+        queueId: input.queueId,
+        comments: input.comments.map((comment) => [
+          comment.id,
+          comment.updatedAt.toISOString(),
+        ]),
+      }),
+    )
     .digest("hex")
     .slice(0, 32);
 }
@@ -128,25 +138,36 @@ export function decideQueuedCommentQueueSteering(facts: {
   /** The queued run's own runtime mode. Read only when `state` is `"queued"`. */
   queueRunRuntimeMode: string | null;
   /** The currently running turn, if any. Read only when `state` is `"deferred"`. */
-  activeRun: { id: string; runtimeMode: string | null; runtimeModeResolvedAt?: Date | null; runnerProfileJson?: Record<string, unknown> | null } | null;
+  activeRun: {
+    id: string;
+    runtimeMode: string | null;
+    runtimeModeResolvedAt?: Date | null;
+    runnerProfileJson?: Record<string, unknown> | null;
+  } | null;
   assignedAgentAdapterType: string | null;
   queuedCommentCount: number;
 }): QueuedCommentQueueSteeringDecision {
   // The default legacy value is not a selection receipt during preparation.
   // Use the run's immutable dispatch choice, never the agent's mutable settings.
-  const preparingNative = facts.state === "deferred" && facts.activeRun?.runtimeMode === "legacy" &&
+  const preparingNative =
+    facts.state === "deferred" &&
+    facts.activeRun?.runtimeMode === "legacy" &&
     facts.activeRun.runtimeModeResolvedAt === null &&
-    record(facts.activeRun.runnerProfileJson?.adapterDispatch).adapterType === "taskcore_runner";
-  const persistedRuntimeMode = preparingNative ? null :
-    facts.state === "queued"
+    record(facts.activeRun.runnerProfileJson?.adapterDispatch).adapterType ===
+      "taskcore_runner";
+  const persistedRuntimeMode = preparingNative
+    ? null
+    : facts.state === "queued"
       ? facts.queueRunRuntimeMode
       : facts.state === "deferred"
-        ? facts.activeRun?.runtimeMode ?? null
+        ? (facts.activeRun?.runtimeMode ?? null)
         : null;
 
   const protocol: QueuedCommentQueueProtocol =
-    preparingNative || persistedRuntimeMode === "native"
-      || (persistedRuntimeMode === null && facts.assignedAgentAdapterType === "taskcore_runner")
+    preparingNative ||
+    persistedRuntimeMode === "native" ||
+    (persistedRuntimeMode === null &&
+      facts.assignedAgentAdapterType === "taskcore_runner")
       ? "taskcore_runner_v1"
       : "legacy";
 
@@ -176,7 +197,9 @@ type QueuedCommentQueueEntryFacts = {
  * caller that builds a queue response must call this function instead of
  * repeating the rule.
  */
-export function buildQueuedCommentQueueSnapshot<TComment extends QueuedCommentQueueEntryFacts>(facts: {
+export function buildQueuedCommentQueueSnapshot<
+  TComment extends QueuedCommentQueueEntryFacts,
+>(facts: {
   issueId: string;
   queueId: string | null;
   state: "deferred" | "queued" | null;
@@ -194,15 +217,20 @@ export function buildQueuedCommentQueueSnapshot<TComment extends QueuedCommentQu
     queueId: facts.queueId,
     state: facts.state,
     targetRunId: facts.state === "deferred" ? facts.activeRunId : null,
-    revision: queuedCommentQueueRevision({ queueId: facts.queueId, comments: facts.comments }),
+    revision: queuedCommentQueueRevision({
+      queueId: facts.queueId,
+      comments: facts.comments,
+    }),
     protocol: facts.protocol,
     steeringDisposition: facts.steeringDisposition,
     ...(facts.executionWait ? { executionWait: facts.executionWait } : {}),
     entries: facts.comments.map((comment, position) => ({
       comment: comment as unknown as IssueComment,
       position,
-      canEdit: facts.actorType === "user" && comment.authorUserId === facts.actorId,
-      canDiscard: facts.actorType === "user" && comment.authorUserId === facts.actorId,
+      canEdit:
+        facts.actorType === "user" && comment.authorUserId === facts.actorId,
+      canDiscard:
+        facts.actorType === "user" && comment.authorUserId === facts.actorId,
     })),
   };
 }

@@ -7,7 +7,9 @@ import { lineScrollOffset, TaskChatStatusPill } from "./TaskChatStatusPill";
 import { whimsyWord, WHIMSY_ROTATE_MS } from "./status-whimsy";
 import type { TaskChatStatusItem } from "./task-chat-model";
 
-function liveStatus(overrides: Partial<TaskChatStatusItem> = {}): TaskChatStatusItem {
+function liveStatus(
+  overrides: Partial<TaskChatStatusItem> = {},
+): TaskChatStatusItem {
   return {
     id: "run-42:status",
     kind: "status",
@@ -32,7 +34,9 @@ describe("TaskChatStatusPill whimsy", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
-    document.documentElement.style.removeProperty("--motion-interstitial-dwell");
+    document.documentElement.style.removeProperty(
+      "--motion-interstitial-dwell",
+    );
     document.documentElement.style.removeProperty("--motion-line-scroll");
     vi.useRealTimers();
   });
@@ -122,9 +126,13 @@ describe("TaskChatStatusPill whimsy", () => {
     // No message streaming: the row is still mounted as an empty one-line
     // slot (same height as when text occupies it) — nothing above shifts when
     // a message later appears.
-    const row = container.querySelector('[data-testid="task-chat-interstitial-row"]');
+    const row = container.querySelector(
+      '[data-testid="task-chat-interstitial-row"]',
+    );
     expect(row).not.toBeNull();
-    expect(container.querySelector('[data-testid="task-chat-live-self-talk"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-live-self-talk"]'),
+    ).toBeNull();
     // The empty slot keeps the 1lh viewport height.
     expect(row?.querySelector(".tc-line-scroll")).not.toBeNull();
   });
@@ -139,14 +147,22 @@ describe("TaskChatStatusPill whimsy", () => {
     act(() => {
       vi.advanceTimersByTime(1200);
     });
-    const row = container.querySelector('[data-testid="task-chat-interstitial-row"]');
-    const line = container.querySelector('[data-testid="task-chat-live-self-talk"]');
+    const row = container.querySelector(
+      '[data-testid="task-chat-interstitial-row"]',
+    );
+    const line = container.querySelector(
+      '[data-testid="task-chat-live-self-talk"]',
+    );
     expect(row).not.toBeNull();
-    expect(line?.textContent).toBe("I'll extend the ipRateLimit helper with a per-account bucket.");
+    expect(line?.textContent).toBe(
+      "I'll extend the ipRateLimit helper with a per-account bucket.",
+    );
     // The row sits DIRECTLY ABOVE the status line — never sharing it: the
     // gerund rotation runs uninterrupted below (no "Responding…" copy), with
     // meta and pulse dot in place.
-    expect(row?.nextElementSibling?.textContent).toContain(`${whimsyWord(item.id, 1200)}…`);
+    expect(row?.nextElementSibling?.textContent).toContain(
+      `${whimsyWord(item.id, 1200)}…`,
+    );
     expect(row?.contains(line)).toBe(true);
     expect(container.textContent).not.toContain("Responding…");
     expect(container.textContent).toContain("1.2s");
@@ -154,11 +170,16 @@ describe("TaskChatStatusPill whimsy", () => {
     expect(container.querySelector(".animate-pulse")).not.toBeNull();
     // Viewport + transition classes: 1lh clip outside, transform-only inner.
     expect(line?.className).toContain("tc-line-scroll");
-    expect(line?.firstElementChild?.className).toContain("tc-line-scroll-inner");
+    expect(line?.firstElementChild?.className).toContain(
+      "tc-line-scroll-inner",
+    );
   });
 
   it("holds the finished update through the dwell, then slides it away (PAP-376)", () => {
-    document.documentElement.style.setProperty("--motion-interstitial-dwell", "4000ms");
+    document.documentElement.style.setProperty(
+      "--motion-interstitial-dwell",
+      "4000ms",
+    );
     document.documentElement.style.setProperty("--motion-line-scroll", "240ms");
     render(liveStatus({ label: "Responding", selfTalk: "Almost there." }));
     render(liveStatus({}));
@@ -167,7 +188,9 @@ describe("TaskChatStatusPill whimsy", () => {
     act(() => {
       vi.advanceTimersByTime(3900);
     });
-    let line = container.querySelector('[data-testid="task-chat-live-self-talk"]');
+    let line = container.querySelector(
+      '[data-testid="task-chat-live-self-talk"]',
+    );
     expect(line?.textContent).toBe("Almost there.");
     expect(line?.getAttribute("data-streaming")).toBeNull();
     expect(line?.getAttribute("data-leaving")).toBeNull();
@@ -186,30 +209,45 @@ describe("TaskChatStatusPill whimsy", () => {
     act(() => {
       vi.advanceTimersByTime(300);
     });
-    expect(container.querySelector('[data-testid="task-chat-live-self-talk"]')).toBeNull();
-    const row = container.querySelector('[data-testid="task-chat-interstitial-row"]');
+    expect(
+      container.querySelector('[data-testid="task-chat-live-self-talk"]'),
+    ).toBeNull();
+    const row = container.querySelector(
+      '[data-testid="task-chat-interstitial-row"]',
+    );
     expect(row).not.toBeNull();
     expect(row?.querySelector(".tc-line-scroll")).not.toBeNull();
     expect(container.querySelector(".animate-pulse")).not.toBeNull();
   });
 
   it("swaps a new update straight in after the held line has slid away", () => {
-    document.documentElement.style.setProperty("--motion-interstitial-dwell", "4000ms");
+    document.documentElement.style.setProperty(
+      "--motion-interstitial-dwell",
+      "4000ms",
+    );
     render(liveStatus({ label: "Responding", selfTalk: "First." }));
     render(liveStatus({}));
     act(() => {
       vi.advanceTimersByTime(4100);
     });
-    expect(container.querySelector('[data-testid="task-chat-live-self-talk"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-live-self-talk"]'),
+    ).toBeNull();
     render(liveStatus({ label: "Responding", selfTalk: "Second." }));
-    const line = container.querySelector('[data-testid="task-chat-live-self-talk"]');
+    const line = container.querySelector(
+      '[data-testid="task-chat-live-self-talk"]',
+    );
     expect(line?.textContent).toBe("Second.");
     expect(line?.getAttribute("data-streaming")).toBe("true");
   });
 
   it("renders the interstitial text without a leading icon (PAP-376)", () => {
-    render(liveStatus({ label: "Responding", selfTalk: "No icon on this row." }));
-    const row = container.querySelector('[data-testid="task-chat-interstitial-row"]');
+    render(
+      liveStatus({ label: "Responding", selfTalk: "No icon on this row." }),
+    );
+    const row = container.querySelector(
+      '[data-testid="task-chat-interstitial-row"]',
+    );
     expect(row?.textContent).toBe("No icon on this row.");
     expect(row?.querySelector("svg")).toBeNull();
     // The empty lead slot still column-aligns the text with the status label.
@@ -217,11 +255,15 @@ describe("TaskChatStatusPill whimsy", () => {
   });
 
   it("streams the tail line without a transition once the enter slide settles", () => {
-    render(liveStatus({ label: "Responding", selfTalk: "Streaming along nicely." }));
+    render(
+      liveStatus({ label: "Responding", selfTalk: "Streaming along nicely." }),
+    );
     act(() => {
       vi.advanceTimersByTime(50);
     });
-    const line = container.querySelector('[data-testid="task-chat-live-self-talk"]');
+    const line = container.querySelector(
+      '[data-testid="task-chat-live-self-talk"]',
+    );
     expect(line?.getAttribute("data-streaming")).toBe("true");
     // Post-enter (--motion-line-scroll reads 0ms in jsdom) the inline
     // transition is disabled: mid-stream wraps snap instead of gliding.
@@ -231,7 +273,10 @@ describe("TaskChatStatusPill whimsy", () => {
   });
 
   it("respects the minimum dwell between swaps and collapses bursts latest-wins", () => {
-    document.documentElement.style.setProperty("--motion-interstitial-dwell", "4000ms");
+    document.documentElement.style.setProperty(
+      "--motion-interstitial-dwell",
+      "4000ms",
+    );
     // Update A streams and finishes → held.
     render(liveStatus({ label: "Responding", selfTalk: "Update A." }));
     render(liveStatus({}));
@@ -257,37 +302,50 @@ describe("TaskChatStatusPill whimsy", () => {
       vi.advanceTimersByTime(200);
     });
     // Dwell expired → only the NEWEST pending update swaps in; B never shows.
-    const line = container.querySelector('[data-testid="task-chat-live-self-talk"]');
+    const line = container.querySelector(
+      '[data-testid="task-chat-live-self-talk"]',
+    );
     expect(line?.textContent).toBe("Update C.");
     expect(container.textContent).not.toContain("Update A.");
     expect(container.textContent).not.toContain("Update B.");
     // The swap remounts the line (new key) so the slide plays exactly then.
-    expect(container.querySelector(".tc-line-scroll-inner")).not.toBe(innerBefore);
+    expect(container.querySelector(".tc-line-scroll-inner")).not.toBe(
+      innerBefore,
+    );
     // C was still streaming at swap time → it keeps tracking the tail.
     expect(line?.getAttribute("data-streaming")).toBe("true");
   });
 
   it("swaps a queued update in as held when its stream already ended", () => {
-    document.documentElement.style.setProperty("--motion-interstitial-dwell", "4000ms");
+    document.documentElement.style.setProperty(
+      "--motion-interstitial-dwell",
+      "4000ms",
+    );
     render(liveStatus({ label: "Responding", selfTalk: "Update A." }));
     render(liveStatus({}));
     act(() => {
       vi.advanceTimersByTime(1000);
     });
     // B streams and ENDS while A's dwell is still running.
-    render(liveStatus({ label: "Responding", selfTalk: "Update B, done already." }));
+    render(
+      liveStatus({ label: "Responding", selfTalk: "Update B, done already." }),
+    );
     render(liveStatus({}));
     act(() => {
       vi.advanceTimersByTime(3100);
     });
-    const line = container.querySelector('[data-testid="task-chat-live-self-talk"]');
+    const line = container.querySelector(
+      '[data-testid="task-chat-live-self-talk"]',
+    );
     expect(line?.textContent).toBe("Update B, done already.");
     expect(line?.getAttribute("data-streaming")).toBeNull();
     expect(line?.firstElementChild?.className).toContain("truncate");
   });
 
   it("clears the held line when the turn ends", () => {
-    render(liveStatus({ label: "Responding", selfTalk: "Held across the turn?" }));
+    render(
+      liveStatus({ label: "Responding", selfTalk: "Held across the turn?" }),
+    );
     render(liveStatus({}));
     expect(container.textContent).toContain("Held across the turn?");
     // Turn settles into a non-live status: the row (and held text) is gone;
@@ -296,13 +354,17 @@ describe("TaskChatStatusPill whimsy", () => {
     act(() => {
       vi.advanceTimersByTime(50);
     });
-    expect(container.querySelector('[data-testid="task-chat-interstitial-row"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-interstitial-row"]'),
+    ).toBeNull();
     render(liveStatus({}));
     act(() => {
       vi.advanceTimersByTime(50);
     });
     expect(container.textContent).not.toContain("Held across the turn?");
-    expect(container.querySelector('[data-testid="task-chat-live-self-talk"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-live-self-talk"]'),
+    ).toBeNull();
   });
 });
 

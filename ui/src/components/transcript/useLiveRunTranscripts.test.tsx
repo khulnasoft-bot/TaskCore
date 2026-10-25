@@ -9,7 +9,13 @@ import { TRANSCRIPT_REQUEST_TIMEOUT_MS } from "./read-transcript-request";
 
 const { useQueryMock, logMock, buildTranscriptMock } = vi.hoisted(() => ({
   useQueryMock: vi.fn(() => ({ data: { censorUsernameInLogs: false } })),
-  logMock: vi.fn(async () => ({ runId: "run-1", store: "memory", logRef: "log-1", content: "", nextOffset: 0 })),
+  logMock: vi.fn(async () => ({
+    runId: "run-1",
+    store: "memory",
+    logRef: "log-1",
+    content: "",
+    nextOffset: 0,
+  })),
   buildTranscriptMock: vi.fn((chunks: unknown[]) => chunks),
 }));
 
@@ -82,7 +88,13 @@ describe("useLiveRunTranscripts", () => {
     FakeWebSocket.instances = [];
     useQueryMock.mockClear();
     logMock.mockReset();
-    logMock.mockImplementation(async () => ({ runId: "run-1", store: "memory", logRef: "log-1", content: "", nextOffset: 0 }));
+    logMock.mockImplementation(async () => ({
+      runId: "run-1",
+      store: "memory",
+      logRef: "log-1",
+      content: "",
+      nextOffset: 0,
+    }));
     buildTranscriptMock.mockClear();
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
   });
@@ -95,11 +107,25 @@ describe("useLiveRunTranscripts", () => {
 
   it("pauses hidden-tab reads and resumes at the retained log offset", async () => {
     vi.useFakeTimers();
-    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
-    logMock.mockResolvedValue({ runId: "run-1", store: "memory", logRef: "log-1", content: "", nextOffset: 42 });
-    const runs = [{ id: "run-1", status: "running", adapterType: "codex_local" }];
+    const visibility = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockReturnValue("hidden");
+    logMock.mockResolvedValue({
+      runId: "run-1",
+      store: "memory",
+      logRef: "log-1",
+      content: "",
+      nextOffset: 42,
+    });
+    const runs = [
+      { id: "run-1", status: "running", adapterType: "codex_local" },
+    ];
     function Harness() {
-      useLiveRunTranscripts({ companyId: "company-1", runs, enableRealtimeUpdates: false });
+      useLiveRunTranscripts({
+        companyId: "company-1",
+        runs,
+        enableRealtimeUpdates: false,
+      });
       return null;
     }
     const container = document.createElement("div");
@@ -124,7 +150,12 @@ describe("useLiveRunTranscripts", () => {
         visibility.mockReturnValue("visible");
         document.dispatchEvent(new Event("visibilitychange"));
       });
-      expect(logMock).toHaveBeenLastCalledWith("run-1", 42, 256_000, expect.anything());
+      expect(logMock).toHaveBeenLastCalledWith(
+        "run-1",
+        42,
+        256_000,
+        expect.anything(),
+      );
     } finally {
       await act(async () => root.unmount());
     }
@@ -162,7 +193,9 @@ describe("useLiveRunTranscripts", () => {
       socket.triggerOpen();
     });
 
-    expect(socket.closeCalls).toEqual([{ code: 1000, reason: "live_run_transcripts_unmount" }]);
+    expect(socket.closeCalls).toEqual([
+      { code: 1000, reason: "live_run_transcripts_unmount" },
+    ]);
     container.remove();
   });
 
@@ -172,7 +205,14 @@ describe("useLiveRunTranscripts", () => {
     function Harness() {
       const { hasOutputForRun } = useLiveRunTranscripts({
         companyId: "company-1",
-        runs: [{ id: "run-1", status: "succeeded", adapterType: "codex_local", hasStoredOutput: true }],
+        runs: [
+          {
+            id: "run-1",
+            status: "succeeded",
+            adapterType: "codex_local",
+            hasStoredOutput: true,
+          },
+        ],
       });
       latestHasOutput = hasOutputForRun("run-1");
       return null;
@@ -197,8 +237,15 @@ describe("useLiveRunTranscripts", () => {
 
   it("reports initial hydration until the first persisted-log read completes", async () => {
     let latestIsInitialHydrating = false;
-    type RunLogResult = { runId: string; store: string; logRef: string; content: string; nextOffset: number };
-    let resolveLog: ((value: RunLogResult | PromiseLike<RunLogResult>) => void) | null = null;
+    type RunLogResult = {
+      runId: string;
+      store: string;
+      logRef: string;
+      content: string;
+      nextOffset: number;
+    };
+    let resolveLog:
+      ((value: RunLogResult | PromiseLike<RunLogResult>) => void) | null = null;
     logMock.mockImplementationOnce(
       () =>
         new Promise<RunLogResult>((resolve) => {
@@ -209,7 +256,9 @@ describe("useLiveRunTranscripts", () => {
     function Harness() {
       const { isInitialHydrating } = useLiveRunTranscripts({
         companyId: "company-1",
-        runs: [{ id: "run-1", status: "succeeded", adapterType: "codex_local" }],
+        runs: [
+          { id: "run-1", status: "succeeded", adapterType: "codex_local" },
+        ],
       });
       latestIsInitialHydrating = isInitialHydrating;
       return null;
@@ -227,7 +276,13 @@ describe("useLiveRunTranscripts", () => {
     expect(latestIsInitialHydrating).toBe(true);
 
     await act(async () => {
-      resolveLog?.({ runId: "run-1", store: "memory", logRef: "log-1", content: "", nextOffset: 0 });
+      resolveLog?.({
+        runId: "run-1",
+        store: "memory",
+        logRef: "log-1",
+        content: "",
+        nextOffset: 0,
+      });
       await Promise.resolve();
     });
 
@@ -245,22 +300,46 @@ describe("useLiveRunTranscripts", () => {
     const root = createRoot(container);
     let latest!: ReturnType<typeof useLiveRunTranscripts>;
     let resolveLate!: (result: Awaited<ReturnType<typeof logMock>>) => void;
-    const empty = { runId: "run-1", store: "memory", logRef: "log-1", content: "", nextOffset: 0 };
-    logMock.mockImplementationOnce(() => new Promise((resolve) => { resolveLate = resolve; }));
+    const empty = {
+      runId: "run-1",
+      store: "memory",
+      logRef: "log-1",
+      content: "",
+      nextOffset: 0,
+    };
+    logMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveLate = resolve;
+        }),
+    );
     function Harness() {
-      latest = useLiveRunTranscripts({ companyId: "company-1", runs: [{ id: "run-1", status: "succeeded", adapterType: "codex_local" }] });
+      latest = useLiveRunTranscripts({
+        companyId: "company-1",
+        runs: [
+          { id: "run-1", status: "succeeded", adapterType: "codex_local" },
+        ],
+      });
       return null;
     }
     try {
-      await act(async () => { root.render(<Harness />); });
+      await act(async () => {
+        root.render(<Harness />);
+      });
       expect(latest.isInitialHydrating).toBe(true);
-      await act(async () => { await vi.advanceTimersByTimeAsync(TRANSCRIPT_REQUEST_TIMEOUT_MS); });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(TRANSCRIPT_REQUEST_TIMEOUT_MS);
+      });
       expect(latest.isInitialHydrating).toBe(false);
       expect(latest.errorsByRun.get("run-1")?.message).toContain("too long");
-      await act(async () => { resolveLate(empty); });
+      await act(async () => {
+        resolveLate(empty);
+      });
       expect(latest.errorsByRun.has("run-1")).toBe(true);
       logMock.mockResolvedValue(empty);
-      await act(async () => { latest.retry(); });
+      await act(async () => {
+        latest.retry();
+      });
       expect(latest.errorsByRun.size).toBe(0);
       expect(logMock).toHaveBeenCalledTimes(2);
     } finally {
@@ -271,7 +350,9 @@ describe("useLiveRunTranscripts", () => {
 
   it("stops retrying terminal runs whose persisted log never existed", async () => {
     logMock.mockReset();
-    logMock.mockRejectedValue(new ApiError("Run log not found", 404, { error: "Run log not found" }));
+    logMock.mockRejectedValue(
+      new ApiError("Run log not found", 404, { error: "Run log not found" }),
+    );
 
     function Harness() {
       useLiveRunTranscripts({
@@ -332,7 +413,12 @@ describe("useLiveRunTranscripts", () => {
     });
 
     expect(logMock).toHaveBeenCalledTimes(1);
-    expect(logMock).toHaveBeenCalledWith("run-queued", 0, 256_000, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(logMock).toHaveBeenCalledWith(
+      "run-queued",
+      0,
+      256_000,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
     expect(FakeWebSocket.instances).toHaveLength(1);
 
     act(() => {
@@ -362,7 +448,12 @@ describe("useLiveRunTranscripts", () => {
     });
 
     expect(FakeWebSocket.instances).toHaveLength(0);
-    expect(logMock).toHaveBeenCalledWith("run-1", 0, 64_000, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(logMock).toHaveBeenCalledWith(
+      "run-1",
+      0,
+      64_000,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
 
     act(() => {
       root.unmount();
@@ -374,7 +465,14 @@ describe("useLiveRunTranscripts", () => {
     function Harness() {
       useLiveRunTranscripts({
         companyId: "company-1",
-        runs: [{ id: "run-1", status: "running", adapterType: "codex_local", lastOutputBytes: 100_000 }],
+        runs: [
+          {
+            id: "run-1",
+            status: "running",
+            adapterType: "codex_local",
+            lastOutputBytes: 100_000,
+          },
+        ],
         enableRealtimeUpdates: false,
         logReadLimitBytes: 64_000,
       });
@@ -390,7 +488,12 @@ describe("useLiveRunTranscripts", () => {
       await Promise.resolve();
     });
 
-    expect(logMock).toHaveBeenCalledWith("run-1", 36_000, 64_000, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(logMock).toHaveBeenCalledWith(
+      "run-1",
+      36_000,
+      64_000,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
 
     act(() => {
       root.unmount();
@@ -401,7 +504,12 @@ describe("useLiveRunTranscripts", () => {
   it("keeps identical same-timestamp log records that carry distinct seq values", async () => {
     const ts = "2026-04-20T00:00:00.000Z";
     const tokenRow = (seq: number) =>
-      JSON.stringify({ ts, stream: "stdout", chunk: '{"type":"acpx.text_delta","text":" the"}\n', seq });
+      JSON.stringify({
+        ts,
+        stream: "stdout",
+        chunk: '{"type":"acpx.text_delta","text":" the"}\n',
+        seq,
+      });
     logMock.mockImplementationOnce(async () => ({
       runId: "run-1",
       store: "memory",
@@ -428,11 +536,27 @@ describe("useLiveRunTranscripts", () => {
       await Promise.resolve();
     });
 
-    const lastCall = buildTranscriptMock.mock.calls.at(-1) as unknown[] | undefined;
+    const lastCall = buildTranscriptMock.mock.calls.at(-1) as
+      unknown[] | undefined;
     expect(lastCall?.[0]).toEqual([
-      { ts, stream: "stdout", chunk: '{"type":"acpx.text_delta","text":" the"}\n', seq: 1 },
-      { ts, stream: "stdout", chunk: '{"type":"acpx.text_delta","text":" the"}\n', seq: 2 },
-      { ts, stream: "stdout", chunk: '{"type":"acpx.text_delta","text":" the"}\n', seq: 3 },
+      {
+        ts,
+        stream: "stdout",
+        chunk: '{"type":"acpx.text_delta","text":" the"}\n',
+        seq: 1,
+      },
+      {
+        ts,
+        stream: "stdout",
+        chunk: '{"type":"acpx.text_delta","text":" the"}\n',
+        seq: 2,
+      },
+      {
+        ts,
+        stream: "stdout",
+        chunk: '{"type":"acpx.text_delta","text":" the"}\n',
+        seq: 3,
+      },
     ]);
 
     act(() => {
@@ -474,11 +598,27 @@ describe("useLiveRunTranscripts", () => {
       await Promise.resolve();
     });
 
-    const lastCall = buildTranscriptMock.mock.calls.at(-1) as unknown[] | undefined;
+    const lastCall = buildTranscriptMock.mock.calls.at(-1) as
+      unknown[] | undefined;
     expect(lastCall?.[0]).toEqual([
-      { ts, stream: "stdout", chunk: '{"type":"acpx.text_delta","text":" the"}\n', seq: undefined },
-      { ts, stream: "stdout", chunk: '{"type":"acpx.text_delta","text":" the"}\n', seq: undefined },
-      { ts, stream: "stdout", chunk: '{"type":"acpx.text_delta","text":" the"}\n', seq: undefined },
+      {
+        ts,
+        stream: "stdout",
+        chunk: '{"type":"acpx.text_delta","text":" the"}\n',
+        seq: undefined,
+      },
+      {
+        ts,
+        stream: "stdout",
+        chunk: '{"type":"acpx.text_delta","text":" the"}\n',
+        seq: undefined,
+      },
+      {
+        ts,
+        stream: "stdout",
+        chunk: '{"type":"acpx.text_delta","text":" the"}\n',
+        seq: undefined,
+      },
     ]);
 
     act(() => {
@@ -488,7 +628,13 @@ describe("useLiveRunTranscripts", () => {
   });
 
   it("orders and dedupes sequenced chunks across websocket and persisted-log delivery", async () => {
-    type RunLogResult = { runId: string; store: string; logRef: string; content: string; nextOffset: number };
+    type RunLogResult = {
+      runId: string;
+      store: string;
+      logRef: string;
+      content: string;
+      nextOffset: number;
+    };
     let resolveLog: ((value: RunLogResult) => void) | null = null;
     logMock.mockImplementationOnce(
       () =>
@@ -545,7 +691,12 @@ describe("useLiveRunTranscripts", () => {
     });
 
     const persistedRow = (seq: number, chunk: string) =>
-      JSON.stringify({ ts: "2026-04-20T00:00:00.500Z", stream: "stdout", chunk, seq });
+      JSON.stringify({
+        ts: "2026-04-20T00:00:00.500Z",
+        stream: "stdout",
+        chunk,
+        seq,
+      });
     await act(async () => {
       resolveLog?.({
         runId: "run-1",
@@ -557,11 +708,27 @@ describe("useLiveRunTranscripts", () => {
       await Promise.resolve();
     });
 
-    const lastCall = buildTranscriptMock.mock.calls.at(-1) as unknown[] | undefined;
+    const lastCall = buildTranscriptMock.mock.calls.at(-1) as
+      unknown[] | undefined;
     expect(lastCall?.[0]).toEqual([
-      { ts: "2026-04-20T00:00:00.500Z", stream: "stdout", chunk: "hello\n", seq: 1 },
-      { ts: "2026-04-20T00:00:00.500Z", stream: "stdout", chunk: "world\n", seq: 2 },
-      { ts: "2026-04-20T00:00:01.000Z", stream: "stdout", chunk: "!\n", seq: 3 },
+      {
+        ts: "2026-04-20T00:00:00.500Z",
+        stream: "stdout",
+        chunk: "hello\n",
+        seq: 1,
+      },
+      {
+        ts: "2026-04-20T00:00:00.500Z",
+        stream: "stdout",
+        chunk: "world\n",
+        seq: 2,
+      },
+      {
+        ts: "2026-04-20T00:00:01.000Z",
+        stream: "stdout",
+        chunk: "!\n",
+        seq: 3,
+      },
     ]);
 
     act(() => {
@@ -617,7 +784,13 @@ describe("useLiveRunTranscripts", () => {
 
     expect(buildTranscriptMock).toHaveBeenCalledTimes(1);
     expect(buildTranscriptMock).toHaveBeenCalledWith(
-      [{ ts: "2026-04-20T00:00:00.000Z", stream: "stdout", chunk: "hello from run 1\n" }],
+      [
+        {
+          ts: "2026-04-20T00:00:00.000Z",
+          stream: "stdout",
+          chunk: "hello from run 1\n",
+        },
+      ],
       null,
       { censorUsernameInLogs: false },
     );
@@ -639,19 +812,42 @@ describe("useLiveRunTranscripts", () => {
     // Serve the buffered chunk on the FIRST persisted-log read only; every later
     // read (including after the run reappears) returns nothing new. So the chunk
     // can only be present the second time if the buffer survived the gap.
-    logMock.mockResolvedValue({ runId: "run-1", store: "memory", logRef: "log-1", content: "", nextOffset: 100 });
-    logMock.mockResolvedValueOnce({ runId: "run-1", store: "memory", logRef: "log-1", content: `${row}\n`, nextOffset: 100 });
+    logMock.mockResolvedValue({
+      runId: "run-1",
+      store: "memory",
+      logRef: "log-1",
+      content: "",
+      nextOffset: 100,
+    });
+    logMock.mockResolvedValueOnce({
+      runId: "run-1",
+      store: "memory",
+      logRef: "log-1",
+      content: `${row}\n`,
+      nextOffset: 100,
+    });
 
-    const captured: { value: ReturnType<typeof useLiveRunTranscripts> | null } = { value: null };
-    function Harness({ runs }: { runs: Array<{ id: string; status: string; adapterType: string }> }) {
-      captured.value = useLiveRunTranscripts({ companyId: "company-1", runs, enableRealtimeUpdates: false });
+    const captured: { value: ReturnType<typeof useLiveRunTranscripts> | null } =
+      { value: null };
+    function Harness({
+      runs,
+    }: {
+      runs: Array<{ id: string; status: string; adapterType: string }>;
+    }) {
+      captured.value = useLiveRunTranscripts({
+        companyId: "company-1",
+        runs,
+        enableRealtimeUpdates: false,
+      });
       return null;
     }
 
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
-    const runList = [{ id: "run-1", status: "running", adapterType: "gemini_local" }];
+    const runList = [
+      { id: "run-1", status: "running", adapterType: "gemini_local" },
+    ];
 
     await act(async () => {
       root.render(<Harness runs={runList} />);
@@ -689,19 +885,43 @@ describe("useLiveRunTranscripts", () => {
         chunk: '{"type":"acpx.text_delta","text":"hello"}\n',
         seq: 1,
       });
-      logMock.mockResolvedValue({ runId: "run-1", store: "memory", logRef: "log-1", content: "", nextOffset: 100 });
-      logMock.mockResolvedValueOnce({ runId: "run-1", store: "memory", logRef: "log-1", content: `${row}\n`, nextOffset: 100 });
+      logMock.mockResolvedValue({
+        runId: "run-1",
+        store: "memory",
+        logRef: "log-1",
+        content: "",
+        nextOffset: 100,
+      });
+      logMock.mockResolvedValueOnce({
+        runId: "run-1",
+        store: "memory",
+        logRef: "log-1",
+        content: `${row}\n`,
+        nextOffset: 100,
+      });
 
-      const captured: { value: ReturnType<typeof useLiveRunTranscripts> | null } = { value: null };
-      function Harness({ runs }: { runs: Array<{ id: string; status: string; adapterType: string }> }) {
-        captured.value = useLiveRunTranscripts({ companyId: "company-1", runs, enableRealtimeUpdates: false });
+      const captured: {
+        value: ReturnType<typeof useLiveRunTranscripts> | null;
+      } = { value: null };
+      function Harness({
+        runs,
+      }: {
+        runs: Array<{ id: string; status: string; adapterType: string }>;
+      }) {
+        captured.value = useLiveRunTranscripts({
+          companyId: "company-1",
+          runs,
+          enableRealtimeUpdates: false,
+        });
         return null;
       }
 
       const container = document.createElement("div");
       document.body.appendChild(container);
       const root = createRoot(container);
-      const runList = [{ id: "run-1", status: "running", adapterType: "gemini_local" }];
+      const runList = [
+        { id: "run-1", status: "running", adapterType: "gemini_local" },
+      ];
 
       await act(async () => {
         root.render(<Harness runs={runList} />);
@@ -725,7 +945,9 @@ describe("useLiveRunTranscripts", () => {
         root.render(<Harness runs={runList} />);
         await Promise.resolve();
       });
-      expect(captured.value?.transcriptByRun.get("run-1") ?? []).toHaveLength(0);
+      expect(captured.value?.transcriptByRun.get("run-1") ?? []).toHaveLength(
+        0,
+      );
 
       act(() => {
         root.unmount();
@@ -739,9 +961,13 @@ describe("useLiveRunTranscripts", () => {
   it("keeps HTTP log polling when the socket constructor fails and retries later", async () => {
     vi.useFakeTimers();
     globalThis.WebSocket = class {
-      constructor() { throw new TypeError("WebSocket is not a constructor"); }
+      constructor() {
+        throw new TypeError("WebSocket is not a constructor");
+      }
     } as unknown as typeof WebSocket;
-    const runs = [{ id: "run-1", status: "running", adapterType: "codex_local" }];
+    const runs = [
+      { id: "run-1", status: "running", adapterType: "codex_local" },
+    ];
     function Harness() {
       useLiveRunTranscripts({ companyId: "company-1", runs });
       return null;
@@ -773,7 +999,14 @@ describe("useLiveRunTranscripts", () => {
       function Harness({ lastOutputBytes }: { lastOutputBytes?: number }) {
         useLiveRunTranscripts({
           companyId: "company-1",
-          runs: [{ id: "run-1", status: "running", adapterType: "codex_local", lastOutputBytes }],
+          runs: [
+            {
+              id: "run-1",
+              status: "running",
+              adapterType: "codex_local",
+              lastOutputBytes,
+            },
+          ],
         });
         return null;
       }

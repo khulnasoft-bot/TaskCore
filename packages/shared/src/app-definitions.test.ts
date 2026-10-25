@@ -27,7 +27,10 @@ import {
   SELF_SERVE_MCP_RESEARCH,
 } from "./self-serve-mcp-research.js";
 import { aiConnectionRouterAppDefinition } from "./ai-connection-router.js";
-import { appDefinitionSchema, appDefinitionsSchema } from "./validators/app-definition.js";
+import {
+  appDefinitionSchema,
+  appDefinitionsSchema,
+} from "./validators/app-definition.js";
 
 const googleScope = (scope: string) =>
   `https://www.googleapis.com/auth/${scope}`;
@@ -220,26 +223,66 @@ const GOOGLE_WORKSPACE_PROFILE_EXPECTATIONS = [
 }>;
 describe("AppDefinition catalog", () => {
   it("namespaces Browser Use's hosted service as browser-use-cloud", () => {
-    expect(CONNECTABLE_APP_DEFINITIONS.find(app => app.slug === "browser-use-cloud"))
-      .toMatchObject({ name: "Browser Use Cloud", methods: [{ key: "cloud-v4", transport: "rest_api" }] });
-    expect(APP_DEFINITIONS.some(app => app.slug === "browser-use")).toBe(false);
-    expect(getAppDefinitionForUrl("https://cloud.browser-use.com/agents")?.slug).toBe("browser-use-cloud");
+    expect(
+      CONNECTABLE_APP_DEFINITIONS.find(
+        (app) => app.slug === "browser-use-cloud",
+      ),
+    ).toMatchObject({
+      name: "Browser Use Cloud",
+      methods: [{ key: "cloud-v4", transport: "rest_api" }],
+    });
+    expect(APP_DEFINITIONS.some((app) => app.slug === "browser-use")).toBe(
+      false,
+    );
+    expect(
+      getAppDefinitionForUrl("https://cloud.browser-use.com/agents")?.slug,
+    ).toBe("browser-use-cloud");
   });
   it("offers Anthropic runtime authentication without the unsupported REST tool method", () => {
     const anthropic = APP_DEFINITIONS.find((app) => app.slug === "anthropic")!;
-    expect(anthropic.methods.map((method) => method.key)).toEqual(["ai-subscription", "ai-api_key"]);
-    expect(anthropic.methods.every((method) => method.purpose === "ai" && method.transport === "runtime_auth")).toBe(true);
+    expect(anthropic.methods.map((method) => method.key)).toEqual([
+      "ai-subscription",
+      "ai-api_key",
+    ]);
+    expect(
+      anthropic.methods.every(
+        (method) =>
+          method.purpose === "ai" && method.transport === "runtime_auth",
+      ),
+    ).toBe(true);
     expect(getAvailableConnectionMethod(anthropic, "api-key")).toBeNull();
   });
 
   it("validates all Wave 1 definitions", () =>
     expect(() => appDefinitionsSchema.parse(APP_DEFINITIONS)).not.toThrow());
   it("lists model providers as regular tagged catalog entries", () => {
-    const slugs = ["openai", "anthropic", "openrouter", "xai", "google", "bedrock", "responses-api", "messages-api", "chat-completions-api", "local"];
-    expect(APP_STORE_DEFINITIONS.filter(app => app.tags?.includes("model-provider")).map(app => app.slug).sort()).toEqual(slugs.sort());
+    const slugs = [
+      "openai",
+      "anthropic",
+      "openrouter",
+      "xai",
+      "google",
+      "bedrock",
+      "responses-api",
+      "messages-api",
+      "chat-completions-api",
+      "local",
+    ];
+    expect(
+      APP_STORE_DEFINITIONS.filter((app) =>
+        app.tags?.includes("model-provider"),
+      )
+        .map((app) => app.slug)
+        .sort(),
+    ).toEqual(slugs.sort());
     for (const slug of slugs) {
-      const app = APP_STORE_DEFINITIONS.find(app => app.slug === slug)!;
-      expect(app.methods.some(method => method.purpose === "ai" && method.transport === "runtime_auth")).toBe(true);
+      const app = APP_STORE_DEFINITIONS.find((app) => app.slug === slug)!;
+      expect(
+        app.methods.some(
+          (method) =>
+            method.purpose === "ai" && method.transport === "runtime_auth",
+        ),
+      ).toBe(true);
     }
   });
 
@@ -299,11 +342,20 @@ describe("AppDefinition catalog", () => {
   it("separates GitHub tools from the review bot without changing the provider identity", () => {
     const github = getConnectableAppDefinition("github")!;
     const bot = getConnectableAppDefinition("github-code-review-bot")!;
-    expect(github.methods.map((method) => method.key)).toEqual(["managed", "mcp-key"]);
-    expect(github.methods.every((method) => method.purpose === "tool")).toBe(true);
+    expect(github.methods.map((method) => method.key)).toEqual([
+      "managed",
+      "mcp-key",
+    ]);
+    expect(github.methods.every((method) => method.purpose === "tool")).toBe(
+      true,
+    );
     expect(bot.name).toBe("GitHub Code Review Bot");
     expect(bot.methods).toHaveLength(1);
-    expect(bot.methods[0]).toMatchObject({ provider: "github", purpose: "channel", transport: "chat_sdk" });
+    expect(bot.methods[0]).toMatchObject({
+      provider: "github",
+      purpose: "channel",
+      transport: "chat_sdk",
+    });
     expect(bot.branding).toEqual(github.branding);
     expect(bot.urlPatterns).toEqual([]);
   });
@@ -397,10 +449,14 @@ describe("AppDefinition catalog", () => {
       APP_DEFINITIONS.find((app) => app.slug === slug)?.methods.find(
         (method) => method.purpose === "channel",
       );
-    expect(channel("github-code-review-bot")?.guidanceMd).toContain("issue_comment");
+    expect(channel("github-code-review-bot")?.guidanceMd).toContain(
+      "issue_comment",
+    );
     expect(channel("discord")?.guidanceMd).toContain("Message Content intent");
     expect(channel("discord")?.guidanceMd).toContain("Discord thread");
-    expect(channel("github-code-review-bot")?.guidanceMd).toContain("pull_request");
+    expect(channel("github-code-review-bot")?.guidanceMd).toContain(
+      "pull_request",
+    );
     expect(channel("github-code-review-bot")?.guidanceMd).toContain(
       "pull_request_review_comment",
     );
@@ -410,7 +466,9 @@ describe("AppDefinition catalog", () => {
     expect(channel("github-code-review-bot")?.guidanceMd).toContain(
       "Generate the webhook secret in Taskcore",
     );
-    expect(channel("github-code-review-bot")?.guidanceMd).toContain("SSL-verified");
+    expect(channel("github-code-review-bot")?.guidanceMd).toContain(
+      "SSL-verified",
+    );
     expect(channel("microsoft-teams")?.guidanceMd).toContain(
       "resource-specific",
     );
@@ -455,17 +513,41 @@ describe("AppDefinition catalog", () => {
     }
   });
   it("offers Fireflies browser sign-in and a vaulted bearer key on the same official MCP endpoint", () => {
-    const app = APP_STORE_DEFINITIONS.find((entry) => entry.slug === "fireflies")!;
-    expect(getAppDefinitionForUrl("https://api.fireflies.ai/mcp")?.slug).toBe("fireflies");
-    expect(app.methods.map((method) => method.key)).toEqual(["mcp-oauth", "mcp-api-key"]);
+    const app = APP_STORE_DEFINITIONS.find(
+      (entry) => entry.slug === "fireflies",
+    )!;
+    expect(getAppDefinitionForUrl("https://api.fireflies.ai/mcp")?.slug).toBe(
+      "fireflies",
+    );
+    expect(app.methods.map((method) => method.key)).toEqual([
+      "mcp-oauth",
+      "mcp-api-key",
+    ]);
     expect(app.methods[0]).toMatchObject({
-      transport: "mcp_remote", auth: "oauth", ownershipModes: ["dcr"],
-      defaults: { serverUrl: "https://api.fireflies.ai/mcp", scopesHint: ["email", "profile"] },
+      transport: "mcp_remote",
+      auth: "oauth",
+      ownershipModes: ["dcr"],
+      defaults: {
+        serverUrl: "https://api.fireflies.ai/mcp",
+        scopesHint: ["email", "profile"],
+      },
     });
     expect(app.methods[1]).toMatchObject({
-      auth: "api_key", defaults: { serverUrl: "https://api.fireflies.ai/mcp" },
-      credentialFields: [{ key: "authorization", secret: true, type: "password", required: true }],
-      keyPlacement: { location: "header", name: "Authorization", prefix: "Bearer " },
+      auth: "api_key",
+      defaults: { serverUrl: "https://api.fireflies.ai/mcp" },
+      credentialFields: [
+        {
+          key: "authorization",
+          secret: true,
+          type: "password",
+          required: true,
+        },
+      ],
+      keyPlacement: {
+        location: "header",
+        name: "Authorization",
+        prefix: "Bearer ",
+      },
     });
   });
 
@@ -486,12 +568,13 @@ describe("AppDefinition catalog", () => {
     expect(APP_STORE_HIDDEN_SLUGS.has("enterpret")).toBe(false);
     expect(app.availability?.available).not.toBe(false);
     expect(app.ownershipAvailability?.dcr).not.toBe(false);
-    expect(getAvailableConnectionMethods(app).map((method) => method.key)).toEqual([
-      "mcp-api-key",
-      "mcp-oauth",
-    ]);
+    expect(
+      getAvailableConnectionMethods(app).map((method) => method.key),
+    ).toEqual(["mcp-api-key", "mcp-oauth"]);
     expect(getAvailableConnectionMethod(app)?.key).toBe("mcp-api-key");
-    expect(getAvailableConnectionMethod(app, "mcp-oauth")?.key).toBe("mcp-oauth");
+    expect(getAvailableConnectionMethod(app, "mcp-oauth")?.key).toBe(
+      "mcp-oauth",
+    );
     expect(app.methods[0]).toMatchObject({
       transport: "mcp_remote",
       auth: "api_key",
@@ -500,7 +583,12 @@ describe("AppDefinition catalog", () => {
       riskTier: "S3",
       defaults: { serverUrl: "https://wisdom-api.enterpret.com/server/mcp" },
       credentialFields: [
-        { key: "authorization", type: "password", required: true, secret: true },
+        {
+          key: "authorization",
+          type: "password",
+          required: true,
+          secret: true,
+        },
       ],
       keyPlacement: {
         location: "header",
@@ -526,9 +614,9 @@ describe("AppDefinition catalog", () => {
     expect(app.methods[1].defaults?.authorizationEndpoint).toBeUndefined();
     expect(app.methods[1].defaults?.tokenEndpoint).toBeUndefined();
     expect(app.methods[1].label).toBe("Sign in with Enterpret");
-    expect(app.methods[1].warnings?.some((w) => /broader OAuth scopes/i.test(w))).toBe(
-      true,
-    );
+    expect(
+      app.methods[1].warnings?.some((w) => /broader OAuth scopes/i.test(w)),
+    ).toBe(true);
     // The definition records the placement of a credential, never a value.
     const serialized = JSON.stringify(app);
     expect(serialized).not.toMatch(/eyJ[A-Za-z0-9_-]{8,}/);
@@ -654,12 +742,24 @@ describe("AppDefinition catalog", () => {
       )?.defaultValue,
     ).toBe(false);
     expect(method("asana")).toMatchObject({
-      key: "managed", ownershipModes: ["platform_shared"], connectorProfile: "asana.mcp",
-      defaults: { serverUrl: "https://mcp.asana.com/v2/mcp", scopesHint: ["default"] },
+      key: "managed",
+      ownershipModes: ["platform_shared"],
+      connectorProfile: "asana.mcp",
+      defaults: {
+        serverUrl: "https://mcp.asana.com/v2/mcp",
+        scopesHint: ["default"],
+      },
     });
-    expect(APP_DEFINITIONS.find((app) => app.slug === "asana")?.methods[1]).toMatchObject({
-      key: "mcp-own-oauth", ownershipModes: ["customer"], oauthClientSecretRequired: true,
-      defaults: { discoveryUrl: "https://mcp.asana.com/.well-known/oauth-protected-resource/v2" },
+    expect(
+      APP_DEFINITIONS.find((app) => app.slug === "asana")?.methods[1],
+    ).toMatchObject({
+      key: "mcp-own-oauth",
+      ownershipModes: ["customer"],
+      oauthClientSecretRequired: true,
+      defaults: {
+        discoveryUrl:
+          "https://mcp.asana.com/.well-known/oauth-protected-resource/v2",
+      },
       consoleLinks: { register: "https://app.asana.com/0/my-apps" },
     });
     expect(method("linear")?.ownershipModes).toEqual(["dcr", "customer"]);
@@ -674,7 +774,9 @@ describe("AppDefinition catalog", () => {
         (candidate) => candidate.key,
       ),
     ).toEqual(["mcp-oauth", "mcp-api-key", "mcp-free"]);
-    expect(method("youcom")?.defaults?.serverUrl).toBe("https://api.you.com/mcp");
+    expect(method("youcom")?.defaults?.serverUrl).toBe(
+      "https://api.you.com/mcp",
+    );
     expect(method("youcom", "mcp-api-key")).toMatchObject({
       auth: "api_key",
       keyPlacement: {
@@ -1111,7 +1213,11 @@ describe("AppDefinition catalog", () => {
         "projectId",
         "readOnly",
       ]);
-      expect(method.tenantFields?.every((field) => field.advanced && !field.required)).toBe(true);
+      expect(
+        method.tenantFields?.every(
+          (field) => field.advanced && !field.required,
+        ),
+      ).toBe(true);
       expect(method.tenantFields?.[0]).toMatchObject({
         type: "text",
         validation: { pattern: "^[a-z0-9-]+$", maxLength: 64 },
@@ -1140,8 +1246,13 @@ describe("AppDefinition catalog", () => {
       branding: { logoUrl: "/brands/apps/gauge.png" },
       redirectConstraints: "https-or-loopback-http",
     });
-    expect(APP_STORE_DEFINITIONS.some((app) => app.slug === "gauge")).toBe(true);
-    expect(gauge.methods.map((method) => method.key)).toEqual(["mcp-oauth", "mcp-api-key"]);
+    expect(APP_STORE_DEFINITIONS.some((app) => app.slug === "gauge")).toBe(
+      true,
+    );
+    expect(gauge.methods.map((method) => method.key)).toEqual([
+      "mcp-oauth",
+      "mcp-api-key",
+    ]);
     const [oauth, apiKey] = gauge.methods;
     expect(oauth).toMatchObject({
       transport: "mcp_remote",
@@ -1150,7 +1261,10 @@ describe("AppDefinition catalog", () => {
       riskTier: "S3",
       // Gauge advertises identity scopes too; only the reviewed MCP scope is
       // requested, and the organization is chosen on Gauge's consent screen.
-      defaults: { serverUrl: "https://app.withgauge.com/mcp", scopesHint: ["mcp"] },
+      defaults: {
+        serverUrl: "https://app.withgauge.com/mcp",
+        scopesHint: ["mcp"],
+      },
     });
     expect(apiKey).toMatchObject({
       transport: "mcp_remote",
@@ -1158,14 +1272,25 @@ describe("AppDefinition catalog", () => {
       ownershipModes: ["customer"],
       riskTier: "S3",
       defaults: { serverUrl: "https://app.withgauge.com/mcp" },
-      keyPlacement: { location: "header", name: "Authorization", prefix: "Bearer " },
+      keyPlacement: {
+        location: "header",
+        name: "Authorization",
+        prefix: "Bearer ",
+      },
     });
     expect(apiKey!.credentialFields).toEqual([
-      expect.objectContaining({ key: "authorization", type: "password", secret: true, required: true }),
+      expect.objectContaining({
+        key: "authorization",
+        type: "password",
+        secret: true,
+        required: true,
+      }),
     ]);
     // The key form renders credential helper text, not method warnings, so the
     // publish advice must live in the helper.
-    expect(apiKey!.credentialFields?.[0]?.helperMd).toContain("set publish actions to Ask first");
+    expect(apiKey!.credentialFields?.[0]?.helperMd).toContain(
+      "set publish actions to Ask first",
+    );
     for (const method of gauge.methods) {
       // One shared profile: no capability picker, but the access step shows
       // its description (with the publish warning) before sign-in.
@@ -1181,7 +1306,9 @@ describe("AppDefinition catalog", () => {
     }
   });
   it("connects Superagent's hosted server with an organization API key only", () => {
-    const superagent = APP_DEFINITIONS.find((app) => app.slug === "superagent")!;
+    const superagent = APP_DEFINITIONS.find(
+      (app) => app.slug === "superagent",
+    )!;
     expect(superagent).toMatchObject({
       name: "Superagent",
       categories: ["developer"],
@@ -1193,7 +1320,9 @@ describe("AppDefinition catalog", () => {
     // there is no browser sign-in method and no OAuth redirect constraint.
     expect(superagent.redirectConstraints).toBeUndefined();
     expect(superagent.branding.darkLogoUrl).toBeUndefined();
-    expect(APP_STORE_DEFINITIONS.some((app) => app.slug === "superagent")).toBe(true);
+    expect(APP_STORE_DEFINITIONS.some((app) => app.slug === "superagent")).toBe(
+      true,
+    );
     expect(superagent.methods).toHaveLength(1);
     const [apiKey] = superagent.methods;
     expect(apiKey).toMatchObject({
@@ -1310,37 +1439,86 @@ describe("AppDefinition catalog", () => {
   });
 });
 
-
 describe("Railway provider", () => {
   it("matches only the hosted endpoint and exposes one vault-backed OAuth method", () => {
-    const app = APP_STORE_DEFINITIONS.find((entry) => entry.slug === "railway")!;
-    expect(getAppDefinitionForUrl("https://mcp.railway.com")?.slug).toBe("railway");
-    for (const url of ["https://mcp.railway.com/path", "https://mcp.railway.com.evil.test", "http://mcp.railway.com"]) expect(getAppDefinitionForUrl(url)?.slug).not.toBe("railway");
+    const app = APP_STORE_DEFINITIONS.find(
+      (entry) => entry.slug === "railway",
+    )!;
+    expect(getAppDefinitionForUrl("https://mcp.railway.com")?.slug).toBe(
+      "railway",
+    );
+    for (const url of [
+      "https://mcp.railway.com/path",
+      "https://mcp.railway.com.evil.test",
+      "http://mcp.railway.com",
+    ])
+      expect(getAppDefinitionForUrl(url)?.slug).not.toBe("railway");
     expect(app.methods).toHaveLength(1);
-    expect(app.methods[0]).toMatchObject({ key: "mcp-oauth", auth: "oauth", transport: "mcp_remote", ownershipModes: ["dcr", "customer"], riskTier: "S4", defaults: { serverUrl: "https://mcp.railway.com", scopesHint: ["openid", "offline_access", "workspace:member"], oauthAuthorizationParams: { prompt: "consent" } } });
-    expect(JSON.stringify(app.methods)).toContain("Live Railway qualification is pending");
+    expect(app.methods[0]).toMatchObject({
+      key: "mcp-oauth",
+      auth: "oauth",
+      transport: "mcp_remote",
+      ownershipModes: ["dcr", "customer"],
+      riskTier: "S4",
+      defaults: {
+        serverUrl: "https://mcp.railway.com",
+        scopesHint: ["openid", "offline_access", "workspace:member"],
+        oauthAuthorizationParams: { prompt: "consent" },
+      },
+    });
+    expect(JSON.stringify(app.methods)).toContain(
+      "Live Railway qualification is pending",
+    );
   });
 });
 
-
 describe("tool method permission review", () => {
-  const audit = JSON.parse(fs.readFileSync(new URL("../../../doc/connections/tool-method-permission-reviews.json", import.meta.url), "utf8")) as {
-    methods: { app: string; method: string; auth: string; policy: string; requestedScopes: string[]; providerDefaultReason?: string; supportedActions: string; evidence: string[]; reviewedAt: string }[];
+  const audit = JSON.parse(
+    fs.readFileSync(
+      new URL(
+        "../../../doc/connections/tool-method-permission-reviews.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ) as {
+    methods: {
+      app: string;
+      method: string;
+      auth: string;
+      policy: string;
+      requestedScopes: string[];
+      providerDefaultReason?: string;
+      supportedActions: string;
+      evidence: string[];
+      reviewedAt: string;
+    }[];
   };
-  const methods = APP_DEFINITIONS.flatMap((app) => app.methods
-    .filter((method) => method.purpose !== "channel" && method.purpose !== "ai")
-    .map((method) => ({ app, method })));
+  const methods = APP_DEFINITIONS.flatMap((app) =>
+    app.methods
+      .filter(
+        (method) => method.purpose !== "channel" && method.purpose !== "ai",
+      )
+      .map((method) => ({ app, method })),
+  );
   it("requires an explicit review for every tool method, including documented scope omissions", () => {
-    expect(new Set(audit.methods.map((review) => `${review.app}/${review.method}`)).size).toBe(audit.methods.length);
+    expect(
+      new Set(audit.methods.map((review) => `${review.app}/${review.method}`))
+        .size,
+    ).toBe(audit.methods.length);
     expect(audit.methods).toHaveLength(methods.length);
     for (const { app, method } of methods) {
-      const review = audit.methods.find((entry) => entry.app === app.slug && entry.method === method.key);
+      const review = audit.methods.find(
+        (entry) => entry.app === app.slug && entry.method === method.key,
+      );
       expect(review, `${app.slug}/${method.key}`).toBeDefined();
       expect(review!.auth).toBe(method.auth);
       expect(review!.supportedActions.length).toBeGreaterThan(15);
       expect(review!.evidence.length).toBeGreaterThan(0);
       if (method.auth === "oauth") {
-        expect(method.defaults?.scopesHint ?? []).toEqual(review!.requestedScopes);
+        expect(method.defaults?.scopesHint ?? []).toEqual(
+          review!.requestedScopes,
+        );
         if (!review!.requestedScopes.length) {
           expect(review!.policy).toBe("provider-default");
           expect(review!.providerDefaultReason!.length).toBeGreaterThan(30);
@@ -1349,20 +1527,44 @@ describe("tool method permission review", () => {
     }
   });
   it("requests Airtable record, schema and comment writes, and Hugging Face repository/job actions", () => {
-    expect(APP_DEFINITIONS.find((app) => app.slug === "airtable")!.methods[0]!.defaults!.scopesHint).toEqual([
-      "data.records:read", "data.records:write", "schema.bases:read", "schema.bases:write",
-      "data.recordComments:read", "data.recordComments:write", "workspacesAndBases:read",
+    expect(
+      APP_DEFINITIONS.find((app) => app.slug === "airtable")!.methods[0]!
+        .defaults!.scopesHint,
+    ).toEqual([
+      "data.records:read",
+      "data.records:write",
+      "schema.bases:read",
+      "schema.bases:write",
+      "data.recordComments:read",
+      "data.recordComments:write",
+      "workspacesAndBases:read",
     ]);
-    expect(APP_DEFINITIONS.find((app) => app.slug === "hugging-face")!.methods[0]!.defaults!.scopesHint)
-      .toEqual(["read-mcp", "read-repos", "contribute-repos", "jobs"]);
+    expect(
+      APP_DEFINITIONS.find((app) => app.slug === "hugging-face")!.methods[0]!
+        .defaults!.scopesHint,
+    ).toEqual(["read-mcp", "read-repos", "contribute-repos", "jobs"]);
   });
 });
 
 it("validates native pool catalog entries without inventing an authentication method", () => {
-  const entry = aiConnectionRouterAppDefinition("example.pool", { name: "AI connection pool", description: "Use saved connections" });
+  const entry = aiConnectionRouterAppDefinition("example.pool", {
+    name: "AI connection pool",
+    description: "Use saved connections",
+  });
   expect(appDefinitionSchema.parse(entry)).toEqual(entry);
   expect(entry.methods).toEqual([]);
-  expect(appDefinitionSchema.safeParse({ ...entry, aiConnectionRouter: undefined }).success).toBe(false);
-  expect(appDefinitionSchema.safeParse({ ...entry, methods: APP_STORE_DEFINITIONS[0]!.methods }).success).toBe(false);
-  expect(appDefinitionSchema.safeParse({ ...entry, categories: ["developer"] }).success).toBe(false);
+  expect(
+    appDefinitionSchema.safeParse({ ...entry, aiConnectionRouter: undefined })
+      .success,
+  ).toBe(false);
+  expect(
+    appDefinitionSchema.safeParse({
+      ...entry,
+      methods: APP_STORE_DEFINITIONS[0]!.methods,
+    }).success,
+  ).toBe(false);
+  expect(
+    appDefinitionSchema.safeParse({ ...entry, categories: ["developer"] })
+      .success,
+  ).toBe(false);
 });

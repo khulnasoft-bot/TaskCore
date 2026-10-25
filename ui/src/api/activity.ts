@@ -1,4 +1,8 @@
-import type { ActivityEvent, ExecutionProjection, RunLivenessState } from "@taskcore/shared";
+import type {
+  ActivityEvent,
+  ExecutionProjection,
+  RunLivenessState,
+} from "@taskcore/shared";
 import { api, type RequestOptions } from "./client";
 
 export type { RunLivenessState } from "@taskcore/shared";
@@ -67,7 +71,12 @@ export interface IssueForRun {
 export const activityApi = {
   list: (
     companyId: string,
-    filters?: { entityType?: string; entityId?: string; agentId?: string; limit?: number },
+    filters?: {
+      entityType?: string;
+      entityId?: string;
+      agentId?: string;
+      limit?: number;
+    },
     options?: RequestOptions,
   ) => {
     const params = new URLSearchParams();
@@ -76,9 +85,15 @@ export const activityApi = {
     if (filters?.agentId) params.set("agentId", filters.agentId);
     if (filters?.limit) params.set("limit", String(filters.limit));
     const qs = params.toString();
-    return api.get<ActivityEvent[]>(`/companies/${companyId}/activity${qs ? `?${qs}` : ""}`, options);
+    return api.get<ActivityEvent[]>(
+      `/companies/${companyId}/activity${qs ? `?${qs}` : ""}`,
+      options,
+    );
   },
-  forIssue: (issueId: string) => api.get<ActivityEvent[]>(`/issues/${issueId}/activity`),
-  runsForIssue: (issueId: string) => api.get<RunForIssue[]>(`/issues/${issueId}/runs`),
-  issuesForRun: (runId: string) => api.get<IssueForRun[]>(`/heartbeat-runs/${runId}/issues`),
+  forIssue: (issueId: string) =>
+    api.get<ActivityEvent[]>(`/issues/${issueId}/activity`),
+  runsForIssue: (issueId: string) =>
+    api.get<RunForIssue[]>(`/issues/${issueId}/runs`),
+  issuesForRun: (runId: string) =>
+    api.get<IssueForRun[]>(`/heartbeat-runs/${runId}/issues`),
 };

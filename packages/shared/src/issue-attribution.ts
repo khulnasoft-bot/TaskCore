@@ -12,11 +12,19 @@ export function deriveResponsibleUser(
   issue: Pick<Issue, "responsibleUserId" | "createdByUserId">,
 ): ResponsibleUserAttribution {
   if (issue.responsibleUserId) {
-    return { userId: issue.responsibleUserId, source: "explicit", isAutoDerived: false };
+    return {
+      userId: issue.responsibleUserId,
+      source: "explicit",
+      isAutoDerived: false,
+    };
   }
 
   if (issue.createdByUserId) {
-    return { userId: issue.createdByUserId, source: "creator", isAutoDerived: true };
+    return {
+      userId: issue.createdByUserId,
+      source: "creator",
+      isAutoDerived: true,
+    };
   }
 
   return { userId: null, source: "none", isAutoDerived: false };
@@ -36,7 +44,10 @@ export type OriginatingActor =
   | { kind: "agent"; id: string };
 
 export function deriveOriginatingActor(
-  issue: Pick<Issue, "createdByUserId" | "createdByAgentId" | "responsibleUserId">,
+  issue: Pick<
+    Issue,
+    "createdByUserId" | "createdByAgentId" | "responsibleUserId"
+  >,
 ): OriginatingActor | null {
   if (issue.createdByUserId) {
     return { kind: "user", id: issue.createdByUserId };
@@ -44,7 +55,11 @@ export function deriveOriginatingActor(
 
   if (issue.createdByAgentId) {
     if (issue.responsibleUserId) {
-      return { kind: "user", id: issue.responsibleUserId, viaAgentId: issue.createdByAgentId };
+      return {
+        kind: "user",
+        id: issue.responsibleUserId,
+        viaAgentId: issue.createdByAgentId,
+      };
     }
     return { kind: "agent", id: issue.createdByAgentId };
   }

@@ -10,7 +10,11 @@ import { queryKeys } from "../lib/queryKeys";
 import { StatusBadge } from "./StatusBadge";
 import { formatDate, cn, agentUrl } from "../lib/utils";
 import { Separator } from "@/components/ui/separator";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
 interface GoalPropertiesProps {
@@ -18,11 +22,21 @@ interface GoalPropertiesProps {
   onUpdate?: (data: Record<string, unknown>) => void;
 }
 
-function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
+function PropertyRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-start gap-3 py-1.5">
-      <span className="text-xs text-muted-foreground shrink-0 w-20 mt-0.5">{label}</span>
-      <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">{children}</div>
+      <span className="text-xs text-muted-foreground shrink-0 w-20 mt-0.5">
+        {label}
+      </span>
+      <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+        {children}
+      </div>
     </div>
   );
 }
@@ -56,7 +70,10 @@ function PickerButton({
             key={opt}
             variant="ghost"
             size="sm"
-            className={cn("w-full justify-start text-xs", opt === current && "bg-accent")}
+            className={cn(
+              "w-full justify-start text-xs",
+              opt === current && "bg-accent",
+            )}
             onClick={() => {
               onChange(opt);
               setOpen(false);
@@ -126,10 +143,7 @@ export function GoalProperties({ goal, onUpdate }: GoalPropertiesProps) {
 
         <PropertyRow label="Owner">
           {ownerAgent ? (
-            <Link
-              to={agentUrl(ownerAgent)}
-              className="text-sm hover:underline"
-            >
+            <Link to={agentUrl(ownerAgent)} className="text-sm hover:underline">
               {ownerAgent.name}
             </Link>
           ) : (

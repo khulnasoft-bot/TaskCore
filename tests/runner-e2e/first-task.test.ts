@@ -2,7 +2,10 @@ import { captureFirstTaskAttachments } from "./first-task-attachments.js";
 import type { RunnerApi } from "./api.js";
 import { renderRunnerE2EDashboard } from "./dashboard.js";
 import { waitForFirstTaskReply } from "./first-task-replies.js";
-import { firstTaskRejectionReplyRecorded, isFirstTaskRejectionCancellation } from "./first-task-rejection.js";
+import {
+  firstTaskRejectionReplyRecorded,
+  isFirstTaskRejectionCancellation,
+} from "./first-task-rejection.js";
 import { createIssueThreadInteractionSchema } from "../../packages/shared/src/validators/issue.js";
 import { renderInteractionCard } from "./interaction-report.js";
 import { main as judgeCommand } from "./first-task-judge.js";
@@ -151,23 +154,43 @@ function rejectionRecording(): FirstTaskEvidence {
   const rejected = e.checkpoints[2];
   rejected.phase = "rejected";
   rejected.comments[rejected.comments.length - 1] = {
-    id: "no", issueId: "onboarding", authorUserId: "board",
+    id: "no",
+    issueId: "onboarding",
+    authorUserId: "board",
     body: firstTaskScenario(e.caseId, e.nonce).rejection,
     createdAt: "2026-09-15T00:02:00.100Z",
   };
   const last = e.checkpoints[3];
   last.tasks = [{ ...last.tasks[0], status: "cancelled" }];
   last.documents = [];
-  last.runs = [...rejected.runs, {
-    id: "refusal-run", agentId: "agent", status: "cancelled", errorCode: "cancelled",
-    error: "Cancelled by control plane", startedAt: "2026-09-15T00:02:01Z", finishedAt: "2026-09-15T00:02:15Z",
-    contextSnapshot: { issueId: "onboarding", commentId: "no", wakeCommentId: "no" },
-  }];
-  last.comments = [...rejected.comments, {
-    id: "ack", issueId: "onboarding", authorAgentId: "agent", createdByRunId: "refusal-run",
-    body: "Understood. Stopped at your request. No welcome note or child task was created.",
-    createdAt: "2026-09-15T00:02:15.100Z",
-  }];
+  last.runs = [
+    ...rejected.runs,
+    {
+      id: "refusal-run",
+      agentId: "agent",
+      status: "cancelled",
+      errorCode: "cancelled",
+      error: "Cancelled by control plane",
+      startedAt: "2026-09-15T00:02:01Z",
+      finishedAt: "2026-09-15T00:02:15Z",
+      contextSnapshot: {
+        issueId: "onboarding",
+        commentId: "no",
+        wakeCommentId: "no",
+      },
+    },
+  ];
+  last.comments = [
+    ...rejected.comments,
+    {
+      id: "ack",
+      issueId: "onboarding",
+      authorAgentId: "agent",
+      createdByRunId: "refusal-run",
+      body: "Understood. Stopped at your request. No welcome note or child task was created.",
+      createdAt: "2026-09-15T00:02:15.100Z",
+    },
+  ];
   return e;
 }
 
@@ -219,22 +242,62 @@ const scores = () =>
 describe("first-task attachment evidence", () => {
   it("reads persisted bytes, verifies their hash, and redacts the retained text", async () => {
     const body = "Welcome SECRET-VALUE";
-    const attachment = { id: "attachment", issueId: "child", byteSize: Buffer.byteLength(body), sha256: digestText(body), contentType: "text/markdown" };
-    const request = { get: vi.fn().mockResolvedValue({ ok: () => true, body: async () => Buffer.from(body) }) };
-    const api = { get: vi.fn().mockResolvedValue([attachment]), request } as unknown as RunnerApi;
-    const rows = await captureFirstTaskAttachments(api, [{ id: "child" }], ["SECRET-VALUE"]);
+    const attachment = {
+      id: "attachment",
+      issueId: "child",
+      byteSize: Buffer.byteLength(body),
+      sha256: digestText(body),
+      contentType: "text/markdown",
+    };
+    const request = {
+      get: vi
+        .fn()
+        .mockResolvedValue({
+          ok: () => true,
+          body: async () => Buffer.from(body),
+        }),
+    };
+    const api = {
+      get: vi.fn().mockResolvedValue([attachment]),
+      request,
+    } as unknown as RunnerApi;
+    const rows = await captureFirstTaskAttachments(
+      api,
+      [{ id: "child" }],
+      ["SECRET-VALUE"],
+    );
     expect(rows[0]).toMatchObject({ issueId: "child", contentVerified: true });
     expect(rows[0].body).not.toContain("SECRET-VALUE");
     expect(rows[0].contentSha256).toBe(digestText(rows[0].body));
-    expect(request.get).toHaveBeenCalledWith("/api/attachments/attachment/content");
+    expect(request.get).toHaveBeenCalledWith(
+      "/api/attachments/attachment/content",
+    );
     attachment.sha256 = "wrong";
-    await expect(captureFirstTaskAttachments(api, [{ id: "child" }], [])).rejects.toThrow("hash mismatch");
+    await expect(
+      captureFirstTaskAttachments(api, [{ id: "child" }], []),
+    ).rejects.toThrow("hash mismatch");
   });
 
   it("retains unavailable text as metadata without claiming verified content", async () => {
     const request = { get: vi.fn() };
-    const api = { get: vi.fn().mockResolvedValue([{ id: "binary", contentType: "application/pdf", byteSize: 100 }]), request } as unknown as RunnerApi;
-    expect(await captureFirstTaskAttachments(api, [{ id: "child" }], [])).toEqual([{ id: "binary", issueId: "child", contentType: "application/pdf", byteSize: 100 }]);
+    const api = {
+      get: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "binary", contentType: "application/pdf", byteSize: 100 },
+        ]),
+      request,
+    } as unknown as RunnerApi;
+    expect(
+      await captureFirstTaskAttachments(api, [{ id: "child" }], []),
+    ).toEqual([
+      {
+        id: "binary",
+        issueId: "child",
+        contentType: "application/pdf",
+        byteSize: 100,
+      },
+    ]);
     expect(request.get).not.toHaveBeenCalled();
   });
 });
@@ -465,40 +528,56 @@ describe("first-task fixtures and state grading", () => {
     "Do you understand what a subtask is?",
     "Here is the task I already created. Continue?",
     "Here is the task I will not create. Continue?",
-  ])("does not count incidental or declined work as a proposal: %s", (prompt) => {
-    const e = recording("clear-task-first-response");
-    e.checkpoints = e.checkpoints.slice(0, 2);
-    e.checkpoints[1].comments.pop();
-    e.checkpoints[1].interactions.push({
-      id: "not-a-proposal", kind: "request_confirmation", status: "pending",
-      payload: { prompt },
-    });
-    expect(failed(e)).toContain("subtask-proposal");
-  });
+  ])(
+    "does not count incidental or declined work as a proposal: %s",
+    (prompt) => {
+      const e = recording("clear-task-first-response");
+      e.checkpoints = e.checkpoints.slice(0, 2);
+      e.checkpoints[1].comments.pop();
+      e.checkpoints[1].interactions.push({
+        id: "not-a-proposal",
+        kind: "request_confirmation",
+        status: "pending",
+        payload: { prompt },
+      });
+      expect(failed(e)).toContain("subtask-proposal");
+    },
+  );
 
   it("recognizes the recorded Claude confirmation that offers a new task without proposal jargon", () => {
     const e = recording("clear-task-first-response");
     e.checkpoints = e.checkpoints.slice(0, 2);
     e.checkpoints[1].comments.pop();
     e.checkpoints[1].interactions.push({
-      id: "proposal-card", kind: "request_confirmation", status: "pending",
+      id: "proposal-card",
+      kind: "request_confirmation",
+      status: "pending",
       title: "Confirm: Garden club welcome note",
-      payload: { prompt: `Here's what I'll do:\n\nWrite a two-sentence welcome note for your neighborhood garden club. It will invite beginners to the free Saturday meetup and include the phrase "${e.nonce}". I'll save the finished note as a document attached to a new task.\n\nShall I go ahead?` },
+      payload: {
+        prompt: `Here's what I'll do:\n\nWrite a two-sentence welcome note for your neighborhood garden club. It will invite beginners to the free Saturday meetup and include the phrase "${e.nonce}". I'll save the finished note as a document attached to a new task.\n\nShall I go ahead?`,
+      },
     });
     expect(failed(e)).toEqual([]);
   });
 
-  it.each(["create and complete", "create and run"])("recognizes the recorded task I will %s confirmation", (action) => {
-    const e = recording("clear-task-first-response");
-    e.checkpoints = e.checkpoints.slice(0, 2);
-    e.checkpoints[1].comments.pop();
-    e.checkpoints[1].interactions.push({
-      id: "proposal-card", kind: "request_confirmation", status: "pending",
-      title: "Confirm: Welcome note task",
-      payload: { prompt: `Here's the task I'll ${action}:\n\n**Write a welcome note for the garden club**\n- A two-sentence welcome note\n- Invites beginners to the free Saturday meetup\n- Includes the exact phrase: ${e.nonce}\n- Saved as a document attached to the task\n\nShall I go ahead?` },
-    });
-    expect(failed(e)).toEqual([]);
-  });
+  it.each(["create and complete", "create and run"])(
+    "recognizes the recorded task I will %s confirmation",
+    (action) => {
+      const e = recording("clear-task-first-response");
+      e.checkpoints = e.checkpoints.slice(0, 2);
+      e.checkpoints[1].comments.pop();
+      e.checkpoints[1].interactions.push({
+        id: "proposal-card",
+        kind: "request_confirmation",
+        status: "pending",
+        title: "Confirm: Welcome note task",
+        payload: {
+          prompt: `Here's the task I'll ${action}:\n\n**Write a welcome note for the garden club**\n- A two-sentence welcome note\n- Invites beginners to the free Saturday meetup\n- Includes the exact phrase: ${e.nonce}\n- Saved as a document attached to the task\n\nShall I go ahead?`,
+        },
+      });
+      expect(failed(e)).toEqual([]);
+    },
+  );
 
   it("recognizes a Proposal heading introducing the task, as in the Claude verification recording", () => {
     const e = recording("clear-task-first-response");
@@ -537,7 +616,15 @@ Accept the card above and I write it. This task stays in review until then.`;
     const e = recording();
     const final = e.checkpoints.at(-1)!;
     const output = final.documents.pop()!;
-    const attachment = { ...output, issueId: "child", body: String(output.body), filename: "welcome.md", contentType: "text/markdown", contentVerified: true, contentSha256: digestText(output.body) };
+    const attachment = {
+      ...output,
+      issueId: "child",
+      body: String(output.body),
+      filename: "welcome.md",
+      contentType: "text/markdown",
+      contentVerified: true,
+      contentSha256: digestText(output.body),
+    };
     final.attachments = [attachment];
     expect(failed(e)).toEqual([]);
     attachment.contentVerified = false;
@@ -555,7 +642,15 @@ Accept the card above and I write it. This task stays in review until then.`;
     const last = e.checkpoints.at(-1)!;
     last.tasks.pop();
     const output = last.documents.pop()!;
-    last.attachments = [{ ...output, issueId: "onboarding", filename: "welcome.md", contentVerified: true, contentSha256: digestText(output.body) }];
+    last.attachments = [
+      {
+        ...output,
+        issueId: "onboarding",
+        filename: "welcome.md",
+        contentVerified: true,
+        contentSha256: digestText(output.body),
+      },
+    ];
     expect(failed(e)).toEqual([]);
     const page = renderFirstTaskDetails(result(e));
     expect(page).toContain("Attachment · welcome.md");
@@ -565,7 +660,14 @@ Accept the card above and I write it. This task stays in review until then.`;
   it("allows a verified planning attachment before approval without treating it as finished output", () => {
     const e = recording();
     const body = "# Plan\n\nWrite the welcome note after approval.";
-    const plan = { id: "plan-file", issueId: "onboarding", filename: "plan.md", body, contentVerified: true, contentSha256: digestText(body) };
+    const plan = {
+      id: "plan-file",
+      issueId: "onboarding",
+      filename: "plan.md",
+      body,
+      contentVerified: true,
+      contentSha256: digestText(body),
+    };
     e.checkpoints[1].attachments = [plan];
     expect(failed(e)).toEqual([]);
     e.checkpoints.at(-1)!.documents = [];
@@ -577,9 +679,15 @@ Accept the card above and I write it. This task stays in review until then.`;
     const e = recording("reject-no-execution");
     e.checkpoints = e.checkpoints.slice(0, 2);
     const c = e.checkpoints[1];
-    c.attachments = [{ id: "file", issueId: "onboarding", filename: "welcome.md" }];
+    c.attachments = [
+      { id: "file", issueId: "onboarding", filename: "welcome.md" },
+    ];
     expect(failed(e)).toContain("no-premature-work");
-    e.checkpoints.push({ ...structuredClone(c), id: "rejected", phase: "rejected" });
+    e.checkpoints.push({
+      ...structuredClone(c),
+      id: "rejected",
+      phase: "rejected",
+    });
     expect(failed(e)).toContain("rejection-respected");
   });
 
@@ -606,44 +714,93 @@ Accept the card above and I write it. This task stays in review until then.`;
 
   // Reduced fixtures from gha-35021304437-1; no provider calls or private state.
   it.each([
-    ["task-card-accept", "Neighborhood Garden Club Welcome Note — Proposal", "## Proposed child task"],
-    ["task-reply-accept", "Neighborhood Garden Club Welcome Note — Proposal", "# Task proposal"],
+    [
+      "task-card-accept",
+      "Neighborhood Garden Club Welcome Note — Proposal",
+      "## Proposed child task",
+    ],
+    [
+      "task-reply-accept",
+      "Neighborhood Garden Club Welcome Note — Proposal",
+      "# Task proposal",
+    ],
     ["clarify-propose-accept", "First task proposal", "# First task proposal"],
-    ["revise-accept", "Proposed first task: Garden club welcome note", "# Proposed first task"],
-    ["reject-no-execution", "Garden club welcome note — task proposal", "# Proposed single task"],
-  ])("recognizes the recorded %s proposal without inventing downstream failures", (caseId, title, heading) => {
-    const e = recording(caseId === "clarify-propose-accept" ? "task-card-accept" : caseId);
-    e.checkpoints = e.checkpoints.slice(0, 2);
-    const response = e.checkpoints[1];
-    response.comments.pop();
-    response.documents.push({
-      id: "proposal-document", key: "single-task-proposal", title,
-      body: `${heading}\n\nCreate one two-sentence garden club welcome note.\n\n### Done when\nThe child task contains the finished document.`,
-    });
-    response.interactions.push({
-      id: "confirm", kind: "request_confirmation", status: "pending",
-      payload: { prompt: "Approve this single task: create a two-sentence neighborhood garden club welcome note." },
-    });
-    const checks = gradeFirstTask(e);
-    expect(checks.filter((c) => !c.passed && !c.notReached)).toEqual([]);
-    expect(checks.find((c) => c.id === "no-premature-work")?.passed).toBe(true);
-    expect(checks.find((c) => c.id === "subtask-proposal")?.passed).toBe(true);
-    expect(checks.filter((c) => c.notReached).map((c) => c.id)).toEqual(
-      caseId === "reject-no-execution" ? ["rejection-respected"] :
-        ["acceptance-recorded", "one-scoped-subtask", "creation-after-acceptance", "durable-completion"],
-    );
-    // Do not turn an interrupted journey into a pass during offline grading.
-    expect(checks.every((c) => c.passed)).toBe(false);
-    response.documents.push({ id: "finished-note", key: "welcome", body: "Welcome to the garden club." });
-    expect(gradeFirstTask(e).find((c) => c.id === "no-premature-work")).toMatchObject({ passed: false });
-  });
+    [
+      "revise-accept",
+      "Proposed first task: Garden club welcome note",
+      "# Proposed first task",
+    ],
+    [
+      "reject-no-execution",
+      "Garden club welcome note — task proposal",
+      "# Proposed single task",
+    ],
+  ])(
+    "recognizes the recorded %s proposal without inventing downstream failures",
+    (caseId, title, heading) => {
+      const e = recording(
+        caseId === "clarify-propose-accept" ? "task-card-accept" : caseId,
+      );
+      e.checkpoints = e.checkpoints.slice(0, 2);
+      const response = e.checkpoints[1];
+      response.comments.pop();
+      response.documents.push({
+        id: "proposal-document",
+        key: "single-task-proposal",
+        title,
+        body: `${heading}\n\nCreate one two-sentence garden club welcome note.\n\n### Done when\nThe child task contains the finished document.`,
+      });
+      response.interactions.push({
+        id: "confirm",
+        kind: "request_confirmation",
+        status: "pending",
+        payload: {
+          prompt:
+            "Approve this single task: create a two-sentence neighborhood garden club welcome note.",
+        },
+      });
+      const checks = gradeFirstTask(e);
+      expect(checks.filter((c) => !c.passed && !c.notReached)).toEqual([]);
+      expect(checks.find((c) => c.id === "no-premature-work")?.passed).toBe(
+        true,
+      );
+      expect(checks.find((c) => c.id === "subtask-proposal")?.passed).toBe(
+        true,
+      );
+      expect(checks.filter((c) => c.notReached).map((c) => c.id)).toEqual(
+        caseId === "reject-no-execution"
+          ? ["rejection-respected"]
+          : [
+              "acceptance-recorded",
+              "one-scoped-subtask",
+              "creation-after-acceptance",
+              "durable-completion",
+            ],
+      );
+      // Do not turn an interrupted journey into a pass during offline grading.
+      expect(checks.every((c) => c.passed)).toBe(false);
+      response.documents.push({
+        id: "finished-note",
+        key: "welcome",
+        body: "Welcome to the garden club.",
+      });
+      expect(
+        gradeFirstTask(e).find((c) => c.id === "no-premature-work"),
+      ).toMatchObject({ passed: false });
+    },
+  );
 
   it("uses the recorded Approve one child task card while retaining the real missing-child failures", () => {
     const e = recording();
     e.checkpoints[1].comments.pop();
     e.checkpoints[1].interactions.push({
-      id: "confirmation", kind: "request_confirmation", status: "pending",
-      payload: { prompt: "Approve one child task to write a two-sentence welcome note for the neighborhood garden club, invite beginners to the free Saturday meetup, and save the finished note as a document on that child task." },
+      id: "confirmation",
+      kind: "request_confirmation",
+      status: "pending",
+      payload: {
+        prompt:
+          "Approve one child task to write a two-sentence welcome note for the neighborhood garden club, invite beginners to the free Saturday meetup, and save the finished note as a document on that child task.",
+      },
     });
     e.checkpoints[3].tasks.pop();
     e.checkpoints[3].documents[0].issueId = "onboarding";
@@ -654,37 +811,56 @@ Accept the card above and I write it. This task stays in review until then.`;
   it("recognizes a task proposal document without requiring a matching chat sentence", () => {
     const e = recording("clear-task-first-response");
     e.checkpoints = e.checkpoints.slice(0, 2);
-    e.checkpoints[1].comments.at(-1)!.body = "Please review the attached proposal.";
+    e.checkpoints[1].comments.at(-1)!.body =
+      "Please review the attached proposal.";
     e.checkpoints[1].documents.push({
-      id: "proposal-document", key: "single-task-proposal",
-      title: "Garden club welcome note", body: "## Proposed child task\n\nWrite the welcome note after approval.",
+      id: "proposal-document",
+      key: "single-task-proposal",
+      title: "Garden club welcome note",
+      body: "## Proposed child task\n\nWrite the welcome note after approval.",
     });
     expect(failed(e)).toEqual([]);
   });
 
-  it.each(["clear-task-first-response", "plain-message-first-response"])("recognizes the recorded %s Single-task proposal heading", (caseId) => {
-    const e = recording(caseId);
-    e.checkpoints = e.checkpoints.slice(0, 2);
-    e.checkpoints[1].comments.pop();
-    e.checkpoints[1].documents.push({
-      id: "proposal-document", key: "single-task-proposal", title: "Garden club welcome note proposal",
-      body: "# Single-task proposal\n\n## Outcome\nCreate a two-sentence welcome note.\n\n## Scope\nInvite beginners to the free Saturday meetup.\n\n## Done means\nThe child task is complete and its document contains the finished note.",
-    });
-    e.checkpoints[1].interactions.push({
-      id: "confirmation", kind: "request_confirmation", status: "pending",
-      payload: { prompt: "Approve this proposal so I can create one child task and produce the welcome note." },
-    });
-    expect(failed(e)).toEqual([]);
-    e.checkpoints[1].documents.push({ id: "finished-note", key: "welcome", body: "Welcome to the garden club." });
-    expect(failed(e)).toContain("no-premature-work");
-  });
+  it.each(["clear-task-first-response", "plain-message-first-response"])(
+    "recognizes the recorded %s Single-task proposal heading",
+    (caseId) => {
+      const e = recording(caseId);
+      e.checkpoints = e.checkpoints.slice(0, 2);
+      e.checkpoints[1].comments.pop();
+      e.checkpoints[1].documents.push({
+        id: "proposal-document",
+        key: "single-task-proposal",
+        title: "Garden club welcome note proposal",
+        body: "# Single-task proposal\n\n## Outcome\nCreate a two-sentence welcome note.\n\n## Scope\nInvite beginners to the free Saturday meetup.\n\n## Done means\nThe child task is complete and its document contains the finished note.",
+      });
+      e.checkpoints[1].interactions.push({
+        id: "confirmation",
+        kind: "request_confirmation",
+        status: "pending",
+        payload: {
+          prompt:
+            "Approve this proposal so I can create one child task and produce the welcome note.",
+        },
+      });
+      expect(failed(e)).toEqual([]);
+      e.checkpoints[1].documents.push({
+        id: "finished-note",
+        key: "welcome",
+        body: "Welcome to the garden club.",
+      });
+      expect(failed(e)).toContain("no-premature-work");
+    },
+  );
 
   it("does not recognize hidden card metadata as a visible proposal", () => {
     const e = recording("clear-task-first-response");
     e.checkpoints = e.checkpoints.slice(0, 2);
     e.checkpoints[1].comments.pop();
     e.checkpoints[1].interactions.push({
-      id: "confirmation", kind: "request_confirmation", status: "pending",
+      id: "confirmation",
+      kind: "request_confirmation",
+      status: "pending",
       payload: { prompt: "Is this okay?", idempotencyKey: "propose-task" },
     });
     expect(failed(e)).toContain("subtask-proposal");
@@ -1156,9 +1332,15 @@ describe("first-task informational judging and reporting", () => {
     expect(q.status).toBe("failed");
     expect(q.estimatedCostUsd).toBeNull();
     const unknownResult = { ...result(e), firstTaskQuality: q };
-    expect(summarizeExecutionBilling(unknownResult).observedAndEstimatedCostUsd).toBeNull();
-    expect(aggregateCampaignBilling([unknownResult]).observedAndEstimatedCostUsd).toBeNull();
-    expect(aggregateCampaignBilling([unknownResult]).judge?.estimatedCostUsd).toBeNull();
+    expect(
+      summarizeExecutionBilling(unknownResult).observedAndEstimatedCostUsd,
+    ).toBeNull();
+    expect(
+      aggregateCampaignBilling([unknownResult]).observedAndEstimatedCostUsd,
+    ).toBeNull();
+    expect(
+      aggregateCampaignBilling([unknownResult]).judge?.estimatedCostUsd,
+    ).toBeNull();
     expect(q.reservedCostUsd).toBeGreaterThan(0);
     expect(JSON.stringify(q)).not.toContain("sensitive");
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -1227,33 +1409,74 @@ describe("first-task informational judging and reporting", () => {
   });
 });
 
-
 describe("accept-while-running overlap evidence", () => {
-  it.each([true, false])("requires persisted execution overlap: %s", (overlap) => {
-    const e = recording("accept-while-running");
-    const accepted = e.checkpoints.find(c => c.phase === "accepted")!;
-    accepted.interactions.push({ id: "approval", kind: "request_confirmation", status: "accepted",
-      sourceRunId: "parent-run", resolvedAt: "2026-09-15T00:02:00Z", result: { outcome: "accepted" } });
-    const last = e.checkpoints.at(-1)!;
-    Object.assign(last.runs.find(r => r.id === "parent-run")!, {
-      startedAt: "2026-09-15T00:01:00Z", finishedAt: overlap ? "2026-09-15T00:02:01Z" : "2026-09-15T00:01:59Z",
-    });
-    const check = gradeFirstTask(e).find(c => c.id === "accepted-while-running")!;
-    expect(check.passed).toBe(overlap);
-    expect(Boolean(check.notReached)).toBe(!overlap);
-  });
+  it.each([true, false])(
+    "requires persisted execution overlap: %s",
+    (overlap) => {
+      const e = recording("accept-while-running");
+      const accepted = e.checkpoints.find((c) => c.phase === "accepted")!;
+      accepted.interactions.push({
+        id: "approval",
+        kind: "request_confirmation",
+        status: "accepted",
+        sourceRunId: "parent-run",
+        resolvedAt: "2026-09-15T00:02:00Z",
+        result: { outcome: "accepted" },
+      });
+      const last = e.checkpoints.at(-1)!;
+      Object.assign(
+        last.runs.find((r) => r.id === "parent-run")!,
+        {
+          startedAt: "2026-09-15T00:01:00Z",
+          finishedAt: overlap ? "2026-09-15T00:02:01Z" : "2026-09-15T00:01:59Z",
+        },
+      );
+      const check = gradeFirstTask(e).find(
+        (c) => c.id === "accepted-while-running",
+      )!;
+      expect(check.passed).toBe(overlap);
+      expect(Boolean(check.notReached)).toBe(!overlap);
+    },
+  );
 });
 
-
 describe("native provider session continuity", () => {
-  const row = (id: string) => ({ id, nativeIssueId: "parent", nativeSessionId: "native", usageJson: { sessionReused: true }, runnerProfileJson: { sessionCheckpoint: { providerSessionId: "provider" }, nativeExecutionInput: { binding: { executionWorkspaceId: "workspace" } } } });
+  const row = (id: string) => ({
+    id,
+    nativeIssueId: "parent",
+    nativeSessionId: "native",
+    usageJson: { sessionReused: true },
+    runnerProfileJson: {
+      sessionCheckpoint: { providerSessionId: "provider" },
+      nativeExecutionInput: { binding: { executionWorkspaceId: "workspace" } },
+    },
+  });
   it("accepts stable parent identity, deduplicates checkpoints, and excludes children", () => {
-    expect(gradeNativeSessionContinuity([row("one"), row("one"), row("two"), { ...row("child"), nativeIssueId: "child", nativeSessionId: "different" }], "parent").passed).toBe(true);
+    expect(
+      gradeNativeSessionContinuity(
+        [
+          row("one"),
+          row("one"),
+          row("two"),
+          {
+            ...row("child"),
+            nativeIssueId: "child",
+            nativeSessionId: "different",
+          },
+        ],
+        "parent",
+      ).passed,
+    ).toBe(true);
   });
   it("rejects a fresh provider despite generic sessionReused metadata", () => {
-    const next = row("two"); next.runnerProfileJson.sessionCheckpoint.providerSessionId = "fresh";
-    expect(gradeNativeSessionContinuity([row("one"), next], "parent").passed).toBe(false);
-    expect(gradeNativeSessionContinuity([row("one")], "parent").passed).toBe(false);
+    const next = row("two");
+    next.runnerProfileJson.sessionCheckpoint.providerSessionId = "fresh";
+    expect(
+      gradeNativeSessionContinuity([row("one"), next], "parent").passed,
+    ).toBe(false);
+    expect(gradeNativeSessionContinuity([row("one")], "parent").passed).toBe(
+      false,
+    );
   });
 });
 
@@ -1261,8 +1484,15 @@ it("allows first-response native question waits but never treats unfinished jour
   const e = recording("interview-first-response");
   const last = e.checkpoints.at(-1)!;
   last.runs = [{ id: "native-wait", status: "running" }];
-  last.interactions.push({ id: "native-card", kind: "ask_user_questions", status: "pending", sourceRunId: "native-wait", payload: { runtimeRequestId: "request" } });
-  const providerPassed = () => gradeFirstTask(e).find(c => c.id === "provider-runs-succeeded")?.passed;
+  last.interactions.push({
+    id: "native-card",
+    kind: "ask_user_questions",
+    status: "pending",
+    sourceRunId: "native-wait",
+    payload: { runtimeRequestId: "request" },
+  });
+  const providerPassed = () =>
+    gradeFirstTask(e).find((c) => c.id === "provider-runs-succeeded")?.passed;
   expect(providerPassed()).toBe(true);
   e.caseId = "interview-plan-accept";
   expect(providerPassed()).toBe(false);
@@ -1277,9 +1507,15 @@ it("allows first-response native question waits but never treats unfinished jour
 it("retains suppressed unstarted wakes without failing successful execution", () => {
   const e = recording();
   const last = e.checkpoints.at(-1)!;
-  const wake = { id: "blocked-wake", status: "cancelled", errorCode: "issue_dependencies_blocked", startedAt: null as string | null };
+  const wake = {
+    id: "blocked-wake",
+    status: "cancelled",
+    errorCode: "issue_dependencies_blocked",
+    startedAt: null as string | null,
+  };
   last.runs.push(wake);
-  const passed = () => gradeFirstTask(e).find(c => c.id === "provider-runs-succeeded")?.passed;
+  const passed = () =>
+    gradeFirstTask(e).find((c) => c.id === "provider-runs-succeeded")?.passed;
   expect(passed()).toBe(true);
   wake.startedAt = "2026-09-18";
   expect(passed()).toBe(false);
@@ -1288,8 +1524,13 @@ it("retains suppressed unstarted wakes without failing successful execution", ()
 it("ignores an obsolete unstarted wake but still requires successful execution and approved output", () => {
   const e = recording();
   const last = e.checkpoints.at(-1)!;
-  last.runs.push({ id: "obsolete", status: "cancelled", errorCode: "issue_terminal_status",
-    startedAt: null, contextSnapshot: { issueId: "child" } });
+  last.runs.push({
+    id: "obsolete",
+    status: "cancelled",
+    errorCode: "issue_terminal_status",
+    startedAt: null,
+    contextSnapshot: { issueId: "child" },
+  });
   expect(failed(e)).toEqual([]);
   // The old harness aborted here while another provider run was still active.
   last.runs[1].status = "running";
@@ -1311,52 +1552,138 @@ describe("recorded refusal cancellation", () => {
     const run = last.runs.at(-1)!;
     expect(isFirstTaskRejectionCancellation(run, e, last.tasks)).toBe(true);
     const reply = last.comments.pop()!;
-    expect(firstTaskRejectionReplyRecorded(e, last.comments, last.runs)).toBe(false);
-    expect(failed(e)).toEqual(["rejection-respected", "provider-runs-succeeded"]);
+    expect(firstTaskRejectionReplyRecorded(e, last.comments, last.runs)).toBe(
+      false,
+    );
+    expect(failed(e)).toEqual([
+      "rejection-respected",
+      "provider-runs-succeeded",
+    ]);
     last.comments.push(reply);
     expect(failed(e)).toEqual([]);
   });
 
   it.each([
-    ["missing decision checkpoint", (e: FirstTaskEvidence) => { e.checkpoints[2].phase = "response"; }],
-    ["acceptance rather than refusal", (e: FirstTaskEvidence) => { e.checkpoints[2].comments.at(-1)!.body = "Yes, proceed"; }],
-    ["agent-authored refusal", (e: FirstTaskEvidence) => { e.checkpoints[2].comments.at(-1)!.authorAgentId = e.agentId; }],
-    ["no user attribution", (e: FirstTaskEvidence) => { delete e.checkpoints[2].comments.at(-1)!.authorUserId; }],
-    ["stale refusal", (e: FirstTaskEvidence) => { e.checkpoints[2].comments.at(-1)!.createdAt = "2026-09-15T00:00:00Z"; }],
-    ["unrelated task", (e: FirstTaskEvidence) => { e.checkpoints[3].runs.at(-1)!.contextSnapshot.issueId = "other"; }],
-    ["unrelated wake", (e: FirstTaskEvidence) => { e.checkpoints[3].runs.at(-1)!.contextSnapshot = { issueId: "onboarding", commentId: "old", wakeCommentId: "old" }; }],
-    ["operator cleanup", (e: FirstTaskEvidence) => { e.checkpoints[3].runs.at(-1)!.error = "Cancelled by a board operator"; }],
-    ["provider failure", (e: FirstTaskEvidence) => { e.checkpoints[3].runs.at(-1)!.status = "failed"; }],
-    ["provider timeout", (e: FirstTaskEvidence) => { e.checkpoints[3].runs.at(-1)!.status = "timed_out"; }],
-    ["unfinished task", (e: FirstTaskEvidence) => { e.checkpoints[3].tasks[0].status = "in_progress"; }],
-    ["missing execution timestamp", (e: FirstTaskEvidence) => { e.checkpoints[3].runs.at(-1)!.startedAt = null; }],
+    [
+      "missing decision checkpoint",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[2].phase = "response";
+      },
+    ],
+    [
+      "acceptance rather than refusal",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[2].comments.at(-1)!.body = "Yes, proceed";
+      },
+    ],
+    [
+      "agent-authored refusal",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[2].comments.at(-1)!.authorAgentId = e.agentId;
+      },
+    ],
+    [
+      "no user attribution",
+      (e: FirstTaskEvidence) => {
+        delete e.checkpoints[2].comments.at(-1)!.authorUserId;
+      },
+    ],
+    [
+      "stale refusal",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[2].comments.at(-1)!.createdAt = "2026-09-15T00:00:00Z";
+      },
+    ],
+    [
+      "unrelated task",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[3].runs.at(-1)!.contextSnapshot.issueId = "other";
+      },
+    ],
+    [
+      "unrelated wake",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[3].runs.at(-1)!.contextSnapshot = {
+          issueId: "onboarding",
+          commentId: "old",
+          wakeCommentId: "old",
+        };
+      },
+    ],
+    [
+      "operator cleanup",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[3].runs.at(-1)!.error = "Cancelled by a board operator";
+      },
+    ],
+    [
+      "provider failure",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[3].runs.at(-1)!.status = "failed";
+      },
+    ],
+    [
+      "provider timeout",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[3].runs.at(-1)!.status = "timed_out";
+      },
+    ],
+    [
+      "unfinished task",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[3].tasks[0].status = "in_progress";
+      },
+    ],
+    [
+      "missing execution timestamp",
+      (e: FirstTaskEvidence) => {
+        e.checkpoints[3].runs.at(-1)!.startedAt = null;
+      },
+    ],
   ])("does not exempt %s", (_name, mutate) => {
     const e = rejectionRecording();
     mutate(e);
     const last = e.checkpoints.at(-1)!;
-    expect(isFirstTaskRejectionCancellation(last.runs.at(-1)!, e, last.tasks)).toBe(false);
+    expect(
+      isFirstTaskRejectionCancellation(last.runs.at(-1)!, e, last.tasks),
+    ).toBe(false);
     expect(failed(e)).toContain("provider-runs-succeeded");
   });
 
   it.each([
-    { authorAgentId: "other" }, { createdByRunId: "parent-run" },
-    { createdAt: "2026-09-15T00:01:00Z" }, { body: " " }, { deletedAt: "2026-09-15T00:02:20Z" },
-  ])("does not accept unrelated or missing reply evidence: %j", patch => {
+    { authorAgentId: "other" },
+    { createdByRunId: "parent-run" },
+    { createdAt: "2026-09-15T00:01:00Z" },
+    { body: " " },
+    { deletedAt: "2026-09-15T00:02:20Z" },
+  ])("does not accept unrelated or missing reply evidence: %j", (patch) => {
     const e = rejectionRecording();
     Object.assign(e.checkpoints[3].comments.at(-1)!, patch);
-    expect(failed(e)).toEqual(["rejection-respected", "provider-runs-succeeded"]);
+    expect(failed(e)).toEqual([
+      "rejection-respected",
+      "provider-runs-succeeded",
+    ]);
   });
 
   it("keeps unauthorized work and active runs red despite an acknowledged cancellation", () => {
     for (const kind of ["task", "document", "attachment", "agent", "run"]) {
       const e = rejectionRecording();
       const last = e.checkpoints[3];
-      if (kind === "task") last.tasks.push({ id: "unauthorized-child", status: "done" });
-      if (kind === "document") last.documents.push({ id: "output", key: "welcome", body: "Completed note" });
-      if (kind === "attachment") last.attachments = [{ id: "output", filename: "welcome.md" }];
+      if (kind === "task")
+        last.tasks.push({ id: "unauthorized-child", status: "done" });
+      if (kind === "document")
+        last.documents.push({
+          id: "output",
+          key: "welcome",
+          body: "Completed note",
+        });
+      if (kind === "attachment")
+        last.attachments = [{ id: "output", filename: "welcome.md" }];
       if (kind === "agent") last.agents.push({ id: "unapproved-hire" });
       if (kind === "run") last.runs.push({ id: "active", status: "running" });
-      expect(failed(e), kind).toContain(kind === "agent" ? "no-premature-work" : "rejection-respected");
+      expect(failed(e), kind).toContain(
+        kind === "agent" ? "no-premature-work" : "rejection-respected",
+      );
     }
   });
 });

@@ -98,7 +98,9 @@ let shutdownPromise: Promise<void> | null = null;
  * until ready — but `index.ts` awaits it at startup so the first real error
  * has a live client.
  */
-export const sentryReady: Promise<void> = dsn ? bootstrapSentry(dsn) : Promise.resolve();
+export const sentryReady: Promise<void> = dsn
+  ? bootstrapSentry(dsn)
+  : Promise.resolve();
 
 /**
  * Report an error to Sentry. A no-op before the gate opens, when the gate
@@ -122,7 +124,9 @@ export function captureException(error: unknown): void {
       exception.stack = error.stack;
       sentryHandle.captureException(exception, {
         tags: { error_code: "cloud_portfolio_failure" },
-        contexts: { cloud_portfolio: { ...CloudPortfolioError.diagnosticsFor(error) } },
+        contexts: {
+          cloud_portfolio: { ...CloudPortfolioError.diagnosticsFor(error) },
+        },
         fingerprint: ["{{ default }}"],
       });
     } else {
@@ -201,18 +205,33 @@ export function captureRunFailure(event: RunFailureEvent): void {
     const diagnostics = event.diagnostics;
     const contexts: Record<string, Record<string, unknown>> = {};
     if (diagnostics) {
-      contexts.run_execution = { ...diagnostics.execution, truncatedFields: diagnostics.truncatedFields };
-      if (Object.keys(diagnostics.adapter).length) contexts.adapter_failure = diagnostics.adapter;
-      if (Object.keys(diagnostics.provider).length) contexts.provider_failure = diagnostics.provider;
-      diagnostics.exceptions.forEach(({ name, code, status, requestId }, index) => {
-        contexts[`run_exception_${index}`] = { name, code, status, requestId };
-      });
+      contexts.run_execution = {
+        ...diagnostics.execution,
+        truncatedFields: diagnostics.truncatedFields,
+      };
+      if (Object.keys(diagnostics.adapter).length)
+        contexts.adapter_failure = diagnostics.adapter;
+      if (Object.keys(diagnostics.provider).length)
+        contexts.provider_failure = diagnostics.provider;
+      diagnostics.exceptions.forEach(
+        ({ name, code, status, requestId }, index) => {
+          contexts[`run_exception_${index}`] = {
+            name,
+            code,
+            status,
+            requestId,
+          };
+        },
+      );
     }
     // Rebuild only sanitized exception fields. Passing a raw SDK Error can
     // serialize its request/response, headers, or other enumerable properties.
     let cause: Error | undefined;
     for (const entry of [...(diagnostics?.exceptions ?? [])].reverse()) {
-      const error: Error = new Error(entry.message ?? event.errorMessage, cause ? { cause } : undefined);
+      const error: Error = new Error(
+        entry.message ?? event.errorMessage,
+        cause ? { cause } : undefined,
+      );
       error.name = entry.name ?? "Error";
       error.stack = entry.stack;
       cause = error;
@@ -221,8 +240,10 @@ export function captureRunFailure(event: RunFailureEvent): void {
     if (!cause) {
       // A saved adapter result is not a thrown Error. Do not pretend that the
       // reporter's own stack is the failure location.
-      exception.stack = typeof diagnostics?.adapter.stackPreview === "string"
-        ? diagnostics.adapter.stackPreview : undefined;
+      exception.stack =
+        typeof diagnostics?.adapter.stackPreview === "string"
+          ? diagnostics.adapter.stackPreview
+          : undefined;
     }
     handle.captureException(exception, {
       tags: {
@@ -281,7 +302,9 @@ export function shutdownSentry(): Promise<void> {
  */
 interface SentryModuleLike {
   httpIntegration(options: { breadcrumbs: boolean }): { name: string };
-  onUnhandledRejectionIntegration(options: { mode: "strict" }): { name: string };
+  onUnhandledRejectionIntegration(options: { mode: "strict" }): {
+    name: string;
+  };
 }
 
 /** The `Sentry.init` options this gate builds. */
@@ -307,7 +330,8 @@ export function buildSentryInitOptions(
 ): SentryInitOptions {
   return {
     dsn,
-    release: process.env.SENTRY_RELEASE?.trim() || readBuildCommit() || undefined,
+    release:
+      process.env.SENTRY_RELEASE?.trim() || readBuildCommit() || undefined,
     skipOpenTelemetrySetup: true,
     tracesSampleRate: 0,
     sendDefaultPii: false,

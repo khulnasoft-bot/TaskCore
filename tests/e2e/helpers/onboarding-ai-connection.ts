@@ -8,7 +8,10 @@ export async function mockOnboardingLocalAiConnection(page: Page) {
   const grantId = randomUUID();
   await page.route("**/ai-connections/local", async (route) => {
     expect(route.request().method()).toBe("POST");
-    expect(route.request().postDataJSON()).toMatchObject({ method: "subscription", ownership: "personal" });
+    expect(route.request().postDataJSON()).toMatchObject({
+      method: "subscription",
+      ownership: "personal",
+    });
     await route.fulfill({ json: { connectionId, grantId } });
   });
 }

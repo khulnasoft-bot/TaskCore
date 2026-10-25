@@ -51,7 +51,6 @@ import "./index.css";
  * it needs a query client, a router and a company.
  */
 
-
 /**
  * OpenAI's blossom, inlined — the shipped step inlines it for the same reason.
  * The supplied asset is a white fill that disappears on a light tile, and only
@@ -75,7 +74,11 @@ const MODEL_SOURCES: ModelSource[] = [
     label: "Claude",
     icon: <img src="/brands/claude-color.svg" alt="" className="size-full" />,
   },
-  { id: "codex_local", label: "OpenAI", icon: <OpenAiBlossom className="size-full" /> },
+  {
+    id: "codex_local",
+    label: "OpenAI",
+    icon: <OpenAiBlossom className="size-full" />,
+  },
 ];
 
 /**
@@ -248,9 +251,7 @@ function ConnectFlowPreview({
   // Collapsed from the moment a tile is pressed until the row is asked to
   // reopen — `unwindRow` is where it expands, one beat after the card left.
   const collapsed =
-    phase !== "idle" &&
-    phase !== "unwindRow" &&
-    phase !== "done";
+    phase !== "idle" && phase !== "unwindRow" && phase !== "done";
 
   /*
     Space and visibility are separate throughout, and that separation is the
@@ -260,10 +261,16 @@ function ConnectFlowPreview({
     column has finished sliding before anything appears in it.
   */
   const cardLive =
-    phase === "loading" || phase === "ready" || phase === "waiting" || phase === "connecting";
+    phase === "loading" ||
+    phase === "ready" ||
+    phase === "waiting" ||
+    phase === "connecting";
   const cardSpace = cardLive || phase === "unwindCard";
   const linkSpace =
-    phase === "idle" || phase === "collapsing" || phase === "unwindRoom" || phase === "unwindRow";
+    phase === "idle" ||
+    phase === "collapsing" ||
+    phase === "unwindRoom" ||
+    phase === "unwindRow";
   const linkVisible = phase === "idle" || phase === "unwindRow";
   const done = phase === "done";
 
@@ -277,18 +284,30 @@ function ConnectFlowPreview({
     phase === "unwindCard"
       ? { label: signInLabel, icon: "none" as const, disabled: true }
       : done
-      ? { label: "Start over", icon: "arrow" as const, disabled: false }
-      : phase === "ready" && apiMode
-        ? // A key is typed here rather than fetched elsewhere, so the button is
-          // the submit and stays dead until there is something to submit.
-          { label: "Connect", icon: "arrow" as const, disabled: !apiKey.trim() }
-        : phase === "ready"
-        ? { label: signInLabel, icon: "none" as const, disabled: false }
-        : phase === "waiting"
-          ? { label: "Waiting for code", icon: "spinner" as const, disabled: true }
-          : phase === "connecting"
-            ? { label: "Connecting", icon: "spinner" as const, disabled: true }
-            : { label: "Next", icon: "arrow" as const, disabled: true };
+        ? { label: "Start over", icon: "arrow" as const, disabled: false }
+        : phase === "ready" && apiMode
+          ? // A key is typed here rather than fetched elsewhere, so the button is
+            // the submit and stays dead until there is something to submit.
+            {
+              label: "Connect",
+              icon: "arrow" as const,
+              disabled: !apiKey.trim(),
+            }
+          : phase === "ready"
+            ? { label: signInLabel, icon: "none" as const, disabled: false }
+            : phase === "waiting"
+              ? {
+                  label: "Waiting for code",
+                  icon: "spinner" as const,
+                  disabled: true,
+                }
+              : phase === "connecting"
+                ? {
+                    label: "Connecting",
+                    icon: "spinner" as const,
+                    disabled: true,
+                  }
+                : { label: "Next", icon: "arrow" as const, disabled: true };
 
   return (
     <MotionConfig reducedMotion="user">
@@ -299,7 +318,12 @@ function ConnectFlowPreview({
 
         <div className="flex flex-col items-center">
           <div className="relative size-(--sz-72px)">
-            <AgentCharacter muted={!done} state={done ? "success" : "sleepy"} size={128} className="size-full" />
+            <AgentCharacter
+              muted={!done}
+              state={done ? "success" : "sleepy"}
+              size={128}
+              className="size-full"
+            />
             {!done && <SleepingZs />}
           </div>
           <AgentPreview agentName="Ron" agentRole="" />
@@ -343,7 +367,10 @@ function ConnectFlowPreview({
               <motion.div
                 className="overflow-hidden"
                 initial={false}
-                animate={{ opacity: linkVisible ? 1 : 0, height: linkSpace ? "auto" : 0 }}
+                animate={{
+                  opacity: linkVisible ? 1 : 0,
+                  height: linkSpace ? "auto" : 0,
+                }}
                 transition={{ opacity: SOURCE_LINK_EXIT, height: MAKE_ROOM }}
               >
                 <CredentialModeLink
@@ -390,64 +417,67 @@ function ConnectFlowPreview({
                   : CARD_EXIT,
               }}
             >
-                  <OnboardingLoginCard
-                    loading={phase === "loading"}
-                    instruction={
-                      apiMode ? (
-                        // No link, because there is nowhere to sign in to. The
-                        // key is pasted straight in, so the sentence only has
-                        // to say what is wanted.
-                        `Provide your ${providerName} API key to connect`
-                      ) : (
-                        <>
-                          {/* The same destination as the button below. Two ways
+              <OnboardingLoginCard
+                loading={phase === "loading"}
+                instruction={
+                  apiMode ? (
+                    // No link, because there is nowhere to sign in to. The
+                    // key is pasted straight in, so the sentence only has
+                    // to say what is wanted.
+                    `Provide your ${providerName} API key to connect`
+                  ) : (
+                    <>
+                      {/* The same destination as the button below. Two ways
                               to reach one link: the button for the customer
                               following the flow, the anchor for anyone who
                               wants to copy it into another browser. */}
-                          <a
-                            href={authUrl}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            className="underline underline-offset-2 hover:text-foreground"
-                          >
-                            {signInLabel}
-                          </a>
-                          {instructionTail}
-                        </>
-                      )
-                    }
+                      <a
+                        href={authUrl}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="underline underline-offset-2 hover:text-foreground"
+                      >
+                        {signInLabel}
+                      </a>
+                      {instructionTail}
+                    </>
+                  )
+                }
               >
-                    {/* The one place the three paths differ. */}
-                    {apiMode ? (
-                      <OnboardingCardField
-                        label="API key"
-                        placeholder="Enter API key here"
-                        masked
-                        value={apiKey}
-                        onChange={setApiKey}
-                        disabled={phase === "connecting"}
-                        onSubmit={submitKey}
-                      />
-                    ) : handsOverCode ? (
-                      <OnboardingLoginCodeRow code={DISPLAYED_CODE} autoCopy={cardLive} />
-                    ) : (
-                      <OnboardingCardField
-                        value={code}
-                        onChange={setCode}
-                        masked
-                        disabled={phase === "connecting"}
-                        onSubmit={() => {
-                          if (isValidBrowserCode(code.trim())) {
-                            setPhase("connecting");
-                            after(CONNECTED_HOLD_MS, () => setPhase("done"));
-                          }
-                        }}
-                        onPaste={() => {
-                          pastedRef.current = true;
-                        }}
-                      />
-                    )}
-                      </OnboardingLoginCard>
+                {/* The one place the three paths differ. */}
+                {apiMode ? (
+                  <OnboardingCardField
+                    label="API key"
+                    placeholder="Enter API key here"
+                    masked
+                    value={apiKey}
+                    onChange={setApiKey}
+                    disabled={phase === "connecting"}
+                    onSubmit={submitKey}
+                  />
+                ) : handsOverCode ? (
+                  <OnboardingLoginCodeRow
+                    code={DISPLAYED_CODE}
+                    autoCopy={cardLive}
+                  />
+                ) : (
+                  <OnboardingCardField
+                    value={code}
+                    onChange={setCode}
+                    masked
+                    disabled={phase === "connecting"}
+                    onSubmit={() => {
+                      if (isValidBrowserCode(code.trim())) {
+                        setPhase("connecting");
+                        after(CONNECTED_HOLD_MS, () => setPhase("done"));
+                      }
+                    }}
+                    onPaste={() => {
+                      pastedRef.current = true;
+                    }}
+                  />
+                )}
+              </OnboardingLoginCard>
             </motion.div>
           </>
         )}
@@ -464,7 +494,12 @@ function ConnectFlowPreview({
         */}
         <FooterNav
           onBack={() => {
-            if (phase === "idle" || phase === "unwindCard" || phase === "unwindRow") return;
+            if (
+              phase === "idle" ||
+              phase === "unwindCard" ||
+              phase === "unwindRow"
+            )
+              return;
             unwind();
           }}
           primaryLabel={cta.label}
@@ -490,7 +525,10 @@ function ConnectFlowPreview({
 }
 
 /** `?state=` opens on a frame; everything stays clickable afterwards. */
-const STATES: Record<string, { initialSourceId: string | null; initialPhase: Phase }> = {
+const STATES: Record<
+  string,
+  { initialSourceId: string | null; initialPhase: Phase }
+> = {
   default: { initialSourceId: null, initialPhase: "idle" },
   loading: { initialSourceId: "claude_local", initialPhase: "loading" },
   ready: { initialSourceId: "claude_local", initialPhase: "ready" },
@@ -498,7 +536,8 @@ const STATES: Record<string, { initialSourceId: string | null; initialPhase: Pha
   openai: { initialSourceId: "codex_local", initialPhase: "ready" },
 };
 
-const requested = new URLSearchParams(window.location.search).get("state") ?? "default";
+const requested =
+  new URLSearchParams(window.location.search).get("state") ?? "default";
 const initial = STATES[requested] ?? STATES.default!;
 
 createRoot(document.getElementById("root")!).render(

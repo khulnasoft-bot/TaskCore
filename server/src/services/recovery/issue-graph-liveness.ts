@@ -136,7 +136,9 @@ function issueLabel(issue: IssueLivenessIssueInput) {
   return issue.identifier ?? issue.id;
 }
 
-function pathEntry(issue: IssueLivenessIssueInput): IssueLivenessDependencyPathEntry {
+function pathEntry(
+  issue: IssueLivenessIssueInput,
+): IssueLivenessDependencyPathEntry {
   return {
     issueId: issue.id,
     identifier: issue.identifier,
@@ -149,7 +151,9 @@ function isInvokableAgent(
   agent: IssueLivenessAgentInput | null | undefined,
   agentsById: Map<string, IssueLivenessAgentInput>,
 ) {
-  return Boolean(agent && isAgentInvokable({ agent, agents: [...agentsById.values()] }));
+  return Boolean(
+    agent && isAgentInvokable({ agent, agents: [...agentsById.values()] }),
+  );
 }
 
 function hasActiveExecutionPath(
@@ -168,17 +172,21 @@ function hasWaitingPath(
   issueId: string,
   waitingPaths: IssueLivenessWaitingPathInput[],
 ) {
-  return waitingPaths.some((entry) => entry.companyId === companyId && entry.issueId === issueId);
+  return waitingPaths.some(
+    (entry) => entry.companyId === companyId && entry.issueId === issueId,
+  );
 }
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
 function readPositiveInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : null;
 }
 
 function readDateMs(value: unknown): number | null {
@@ -194,17 +202,25 @@ function monitorFromIssue(issue: IssueLivenessIssueInput) {
   return { policyMonitor, stateMonitor };
 }
 
-export function hasScheduledIssueMonitorPath(issue: IssueLivenessIssueInput, now: Date | string | number) {
-  const nowMs = typeof now === "number" ? now : readDateMs(now) ?? Date.now();
+export function hasScheduledIssueMonitorPath(
+  issue: IssueLivenessIssueInput,
+  now: Date | string | number,
+) {
+  const nowMs = typeof now === "number" ? now : (readDateMs(now) ?? Date.now());
   const nextCheckAtMs = readDateMs(issue.monitorNextCheckAt);
   if (nextCheckAtMs === null || nextCheckAtMs <= nowMs) return false;
 
   const { policyMonitor, stateMonitor } = monitorFromIssue(issue);
-  const timeoutAtMs = readDateMs(policyMonitor?.timeoutAt ?? stateMonitor?.timeoutAt);
+  const timeoutAtMs = readDateMs(
+    policyMonitor?.timeoutAt ?? stateMonitor?.timeoutAt,
+  );
   if (timeoutAtMs !== null && timeoutAtMs <= nowMs) return false;
 
-  const maxAttempts = readPositiveInteger(policyMonitor?.maxAttempts ?? stateMonitor?.maxAttempts);
-  const stateAttemptCount = readPositiveInteger(stateMonitor?.attemptCount) ?? 0;
+  const maxAttempts = readPositiveInteger(
+    policyMonitor?.maxAttempts ?? stateMonitor?.maxAttempts,
+  );
+  const stateAttemptCount =
+    readPositiveInteger(stateMonitor?.attemptCount) ?? 0;
   const attemptCount = issue.monitorAttemptCount ?? stateAttemptCount;
   if (maxAttempts !== null && attemptCount >= maxAttempts) return false;
 
@@ -219,8 +235,20 @@ export function classifyIssueReviewPaths(
   const nowMs = readDateMs(input.now ?? new Date()) ?? Date.now();
   const agentsById = new Map(input.agents.map((agent) => [agent.id, agent]));
   const paths: IssueReviewPathFact[] = [];
-  if (issue.conversationAgentId && issue.conversationUserId && issue.conversationState === "waiting") {
-    return [{ kind: "human_reviewer", ref: issue.conversationUserId, userId: issue.conversationUserId, agentId: null, since: null }];
+  if (
+    issue.conversationAgentId &&
+    issue.conversationUserId &&
+    issue.conversationState === "waiting"
+  ) {
+    return [
+      {
+        kind: "human_reviewer",
+        ref: issue.conversationUserId,
+        userId: issue.conversationUserId,
+        agentId: null,
+        since: null,
+      },
+    ];
   }
 
   if (issue.assigneeUserId) {
@@ -233,13 +261,17 @@ export function classifyIssueReviewPaths(
     });
   }
 
-  const participant = issue.executionState?.status === "pending"
-    ? issue.executionState.currentParticipant
-    : null;
+  const participant =
+    issue.executionState?.status === "pending"
+      ? issue.executionState.currentParticipant
+      : null;
   const participantAgentId = readPrincipalAgentId(participant);
   if (participantAgentId) {
     const participantAgent = agentsById.get(participantAgentId);
-    if (participantAgent?.companyId === issue.companyId && isInvokableAgent(participantAgent, agentsById)) {
+    if (
+      participantAgent?.companyId === issue.companyId &&
+      isInvokableAgent(participantAgent, agentsById)
+    ) {
       paths.push({
         kind: "execution_participant",
         ref: participantAgentId,
@@ -260,7 +292,13 @@ export function classifyIssueReviewPaths(
   }
 
   if (hasScheduledIssueMonitorPath(issue, nowMs)) {
-    paths.push({ kind: "monitor", ref: null, agentId: issue.assigneeAgentId ?? null, userId: null, since: null });
+    paths.push({
+      kind: "monitor",
+      ref: null,
+      agentId: issue.assigneeAgentId ?? null,
+      userId: null,
+      since: null,
+    });
   }
 
   const appendExecutionPaths = (
@@ -268,7 +306,8 @@ export function classifyIssueReviewPaths(
     kind: "active_run" | "queued_wake",
   ) => {
     for (const entry of entries) {
-      if (entry.companyId !== issue.companyId || entry.issueId !== issue.id) continue;
+      if (entry.companyId !== issue.companyId || entry.issueId !== issue.id)
+        continue;
       paths.push({
         kind,
         ref: entry.id ?? null,
@@ -286,7 +325,8 @@ export function classifyIssueReviewPaths(
     kind: "interaction" | "approval" | "recovery",
   ) => {
     for (const entry of entries) {
-      if (entry.companyId !== issue.companyId || entry.issueId !== issue.id) continue;
+      if (entry.companyId !== issue.companyId || entry.issueId !== issue.id)
+        continue;
       paths.push({
         kind,
         ref: entry.id ?? null,
@@ -306,7 +346,9 @@ export function classifyIssueReviewPaths(
 function readPrincipalAgentId(principal: unknown): string | null {
   if (!principal || typeof principal !== "object") return null;
   const value = principal as Record<string, unknown>;
-  return value.type === "agent" && typeof value.agentId === "string" && value.agentId.length > 0
+  return value.type === "agent" &&
+    typeof value.agentId === "string" &&
+    value.agentId.length > 0
     ? value.agentId
     : null;
 }
@@ -314,7 +356,11 @@ function readPrincipalAgentId(principal: unknown): string | null {
 function principalIsResolvableUser(principal: unknown): boolean {
   if (!principal || typeof principal !== "object") return false;
   const value = principal as Record<string, unknown>;
-  return value.type === "user" && typeof value.userId === "string" && value.userId.length > 0;
+  return (
+    value.type === "user" &&
+    typeof value.userId === "string" &&
+    value.userId.length > 0
+  );
 }
 
 function addOwnerCandidate(
@@ -328,7 +374,12 @@ function addOwnerCandidate(
 ) {
   if (!agentId || seen.has(agentId)) return;
   const agent = agentsById.get(agentId);
-  if (!agent || agent.companyId !== companyId || !isInvokableAgent(agent, agentsById)) return;
+  if (
+    !agent ||
+    agent.companyId !== companyId ||
+    !isInvokableAgent(agent, agentsById)
+  )
+    return;
   seen.add(agentId);
   candidates.push({ agentId, reason, sourceIssueId });
 }
@@ -350,7 +401,15 @@ function addAgentChainCandidates(
     chainSeen.add(current.reportsTo);
     const manager = agentsById.get(current.reportsTo);
     if (!manager || manager.companyId !== companyId) break;
-    addOwnerCandidate(candidates, seen, agentsById, companyId, manager.id, reason, sourceIssueId);
+    addOwnerCandidate(
+      candidates,
+      seen,
+      agentsById,
+      companyId,
+      manager.id,
+      reason,
+      sourceIssueId,
+    );
     current = manager;
   }
 }
@@ -361,7 +420,10 @@ function orderedInvokableAgents(
   companyId: string,
 ) {
   return agents
-    .filter((agent) => agent.companyId === companyId && isInvokableAgent(agent, agentsById))
+    .filter(
+      (agent) =>
+        agent.companyId === companyId && isInvokableAgent(agent, agentsById),
+    )
     .sort((left, right) => left.id.localeCompare(right.id));
 }
 
@@ -376,7 +438,11 @@ function ownerCandidatesForRecoveryIssue(
   const candidates: IssueLivenessOwnerCandidate[] = [];
   const seen = new Set<string>();
 
-  if (options.includeStalledAssignee && issue.status !== "cancelled" && issue.status !== "done") {
+  if (
+    options.includeStalledAssignee &&
+    issue.status !== "cancelled" &&
+    issue.status !== "done"
+  ) {
     addOwnerCandidate(
       candidates,
       seen,
@@ -407,10 +473,22 @@ function ownerCandidatesForRecoveryIssue(
     issue.id,
   );
 
-  const invokableAgents = orderedInvokableAgents(agents, agentsById, issue.companyId);
+  const invokableAgents = orderedInvokableAgents(
+    agents,
+    agentsById,
+    issue.companyId,
+  );
   for (const agent of invokableAgents) {
     if (!agent.reportsTo) {
-      addOwnerCandidate(candidates, seen, agentsById, issue.companyId, agent.id, "root_agent", issue.id);
+      addOwnerCandidate(
+        candidates,
+        seen,
+        agentsById,
+        issue.companyId,
+        agent.id,
+        "root_agent",
+        issue.id,
+      );
     }
   }
   for (const agent of invokableAgents) {
@@ -474,11 +552,16 @@ function finding(input: {
   };
 }
 
-export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): IssueLivenessFinding[] {
+export function classifyIssueGraphLiveness(
+  input: IssueGraphLivenessInput,
+): IssueLivenessFinding[] {
   const nowMs = readDateMs(input.now ?? new Date()) ?? Date.now();
   const issuesById = new Map(input.issues.map((issue) => [issue.id, issue]));
   const agentsById = new Map(input.agents.map((agent) => [agent.id, agent]));
-  const blockersByBlockedIssueId = new Map<string, IssueLivenessRelationInput[]>();
+  const blockersByBlockedIssueId = new Map<
+    string,
+    IssueLivenessRelationInput[]
+  >();
   const unresolvedBlockers = new Set<string>();
   const findings: IssueLivenessFinding[] = [];
   const activeRuns = input.activeRuns ?? [];
@@ -512,18 +595,27 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
       const leftIssue = issuesById.get(left.blockerIssueId);
       const rightIssue = issuesById.get(right.blockerIssueId);
       const leftLabel = leftIssue ? issueLabel(leftIssue) : left.blockerIssueId;
-      const rightLabel = rightIssue ? issueLabel(rightIssue) : right.blockerIssueId;
+      const rightLabel = rightIssue
+        ? issueLabel(rightIssue)
+        : right.blockerIssueId;
       return leftLabel.localeCompare(rightLabel);
     });
   }
 
   function hasExplicitWaitingPath(issue: IssueLivenessIssueInput) {
-    return Boolean(issue.assigneeUserId) ||
+    return (
+      Boolean(issue.assigneeUserId) ||
       hasScheduledIssueMonitorPath(issue, nowMs) ||
-      hasActiveExecutionPath(issue.companyId, issue.id, activeRuns, queuedWakeRequests) ||
+      hasActiveExecutionPath(
+        issue.companyId,
+        issue.id,
+        activeRuns,
+        queuedWakeRequests,
+      ) ||
       hasWaitingPath(issue.companyId, issue.id, pendingInteractions) ||
       hasWaitingPath(issue.companyId, issue.id, pendingApprovals) ||
-      hasWaitingPath(issue.companyId, issue.id, openRecoveryIssues);
+      hasWaitingPath(issue.companyId, issue.id, openRecoveryIssues)
+    );
   }
 
   function reviewFinding(
@@ -534,18 +626,28 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
     if (reviewIssue.status !== "in_review") return null;
     if (classifyIssueReviewPaths(input, reviewIssue).length > 0) return null;
 
-    const ownerCandidates = ownerCandidatesForRecoveryIssue(reviewIssue, input.agents, agentsById, {
-      includeStalledAssignee: true,
-    });
+    const ownerCandidates = ownerCandidatesForRecoveryIssue(
+      reviewIssue,
+      input.agents,
+      agentsById,
+      {
+        includeStalledAssignee: true,
+      },
+    );
 
-    const hasPendingExecutionState = reviewIssue.executionState?.status === "pending";
+    const hasPendingExecutionState =
+      reviewIssue.executionState?.status === "pending";
     const participant = hasPendingExecutionState
       ? reviewIssue.executionState?.currentParticipant
       : null;
     const participantAgentId = readPrincipalAgentId(participant);
     if (participantAgentId) {
       const participantAgent = agentsById.get(participantAgentId);
-      if (isInvokableAgent(participantAgent, agentsById) && participantAgent?.companyId === reviewIssue.companyId) return null;
+      if (
+        isInvokableAgent(participantAgent, agentsById) &&
+        participantAgent?.companyId === reviewIssue.companyId
+      )
+        return null;
 
       return finding({
         issue: source,
@@ -555,10 +657,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
           : `${issueLabel(reviewIssue)} is in review, but current participant agent cannot be resolved.`,
         dependencyPath,
         recoveryIssue: reviewIssue,
-        recommendedOwnerCandidateAgentIds: ownerCandidates.map((candidate) => candidate.agentId),
+        recommendedOwnerCandidateAgentIds: ownerCandidates.map(
+          (candidate) => candidate.agentId,
+        ),
         recommendedOwnerCandidates: ownerCandidates,
-        recommendedAction:
-          `Repair ${issueLabel(reviewIssue)}'s review participant or return the issue to an active assignee with a clear change request.`,
+        recommendedAction: `Repair ${issueLabel(reviewIssue)}'s review participant or return the issue to an active assignee with a clear change request.`,
         participantAgentId,
       });
     }
@@ -572,10 +675,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
         reason: `${issueLabel(reviewIssue)} is in review, but its current participant cannot be resolved.`,
         dependencyPath,
         recoveryIssue: reviewIssue,
-        recommendedOwnerCandidateAgentIds: ownerCandidates.map((candidate) => candidate.agentId),
+        recommendedOwnerCandidateAgentIds: ownerCandidates.map(
+          (candidate) => candidate.agentId,
+        ),
         recommendedOwnerCandidates: ownerCandidates,
-        recommendedAction:
-          `Repair ${issueLabel(reviewIssue)}'s review participant or return the issue to an active assignee with a clear change request.`,
+        recommendedAction: `Repair ${issueLabel(reviewIssue)}'s review participant or return the issue to an active assignee with a clear change request.`,
       });
     }
 
@@ -587,10 +691,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
       reason: `${issueLabel(reviewIssue)} is in review with an agent assignee but no participant, interaction, approval, user owner, wake, active run, or recovery issue owning the next action.`,
       dependencyPath,
       recoveryIssue: reviewIssue,
-      recommendedOwnerCandidateAgentIds: ownerCandidates.map((candidate) => candidate.agentId),
+      recommendedOwnerCandidateAgentIds: ownerCandidates.map(
+        (candidate) => candidate.agentId,
+      ),
       recommendedOwnerCandidates: ownerCandidates,
-      recommendedAction:
-        `Review ${issueLabel(reviewIssue)} and make the next action explicit: add a reviewer/interaction, return it to active work with a change request, mark it done if accepted, or open a bounded recovery issue.`,
+      recommendedAction: `Review ${issueLabel(reviewIssue)} and make the next action explicit: add a reviewer/interaction, return it to active work with a change request, mark it done if accepted, or open a bounded recovery issue.`,
       blockerIssueId: reviewIssue.id,
     });
   }
@@ -600,9 +705,14 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
     blocker: IssueLivenessIssueInput,
     dependencyPath: IssueLivenessIssueInput[],
   ): IssueLivenessFinding | null {
-    const ownerCandidates = ownerCandidatesForRecoveryIssue(blocker, input.agents, agentsById, {
-      includeStalledAssignee: true,
-    });
+    const ownerCandidates = ownerCandidatesForRecoveryIssue(
+      blocker,
+      input.agents,
+      agentsById,
+      {
+        includeStalledAssignee: true,
+      },
+    );
 
     if (blocker.status === "cancelled") {
       return finding({
@@ -611,10 +721,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
         reason: `${issueLabel(source)} is still blocked by cancelled issue ${issueLabel(blocker)}.`,
         dependencyPath,
         recoveryIssue: blocker,
-        recommendedOwnerCandidateAgentIds: ownerCandidates.map((candidate) => candidate.agentId),
+        recommendedOwnerCandidateAgentIds: ownerCandidates.map(
+          (candidate) => candidate.agentId,
+        ),
         recommendedOwnerCandidates: ownerCandidates,
-        recommendedAction:
-          `Inspect ${issueLabel(blocker)} and either remove it from ${issueLabel(source)}'s blockers or replace it with an actionable unblock issue.`,
+        recommendedAction: `Inspect ${issueLabel(blocker)} and either remove it from ${issueLabel(source)}'s blockers or replace it with an actionable unblock issue.`,
         blockerIssueId: blocker.id,
       });
     }
@@ -632,10 +743,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
         reason: `${issueLabel(source)} is blocked by assigned backlog issue ${issueLabel(blocker)} with no wake, active run, human owner, interaction, approval, monitor, or recovery issue owning the next action.`,
         dependencyPath,
         recoveryIssue: blocker,
-        recommendedOwnerCandidateAgentIds: ownerCandidates.map((candidate) => candidate.agentId),
+        recommendedOwnerCandidateAgentIds: ownerCandidates.map(
+          (candidate) => candidate.agentId,
+        ),
         recommendedOwnerCandidates: ownerCandidates,
-        recommendedAction:
-          `Review ${issueLabel(blocker)} and either move it to todo so the assignee wakes, assign a human owner or interaction if it is intentionally parked, or remove it from ${issueLabel(source)}'s blockers if it is no longer required.`,
+        recommendedAction: `Review ${issueLabel(blocker)} and either move it to todo so the assignee wakes, assign a human owner or interaction if it is intentionally parked, or remove it from ${issueLabel(source)}'s blockers if it is no longer required.`,
         blockerIssueId: blocker.id,
       });
     }
@@ -647,10 +759,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
         reason: `${issueLabel(source)} is blocked by unassigned issue ${issueLabel(blocker)} with no user owner.`,
         dependencyPath,
         recoveryIssue: blocker,
-        recommendedOwnerCandidateAgentIds: ownerCandidates.map((candidate) => candidate.agentId),
+        recommendedOwnerCandidateAgentIds: ownerCandidates.map(
+          (candidate) => candidate.agentId,
+        ),
         recommendedOwnerCandidates: ownerCandidates,
-        recommendedAction:
-          `Assign ${issueLabel(blocker)} to an owner who can complete it, or remove it from ${issueLabel(source)}'s blockers if it is no longer required.`,
+        recommendedAction: `Assign ${issueLabel(blocker)} to an owner who can complete it, or remove it from ${issueLabel(source)}'s blockers if it is no longer required.`,
         blockerIssueId: blocker.id,
       });
     }
@@ -661,7 +774,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
     const blockerEligibility = blockerAgent
       ? getAgentWorkEligibility({ agent: blockerAgent, agents: input.agents })
       : null;
-    if (!blockerAgent || blockerAgent.companyId !== source.companyId || !blockerEligibility?.invokable) {
+    if (
+      !blockerAgent ||
+      blockerAgent.companyId !== source.companyId ||
+      !blockerEligibility?.invokable
+    ) {
       return finding({
         issue: source,
         state: "blocked_by_uninvokable_assignee",
@@ -670,10 +787,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
           : `${issueLabel(source)} is blocked by ${issueLabel(blocker)}, but its assignee no longer exists.`,
         dependencyPath,
         recoveryIssue: blocker,
-        recommendedOwnerCandidateAgentIds: ownerCandidates.map((candidate) => candidate.agentId),
+        recommendedOwnerCandidateAgentIds: ownerCandidates.map(
+          (candidate) => candidate.agentId,
+        ),
         recommendedOwnerCandidates: ownerCandidates,
-        recommendedAction:
-          `Review ${issueLabel(blocker)} and assign it to an active owner or replace the blocker with an actionable issue.`,
+        recommendedAction: `Review ${issueLabel(blocker)} and assign it to an active owner or replace the blocker with an actionable issue.`,
         blockerIssueId: blocker.id,
       });
     }
@@ -692,13 +810,27 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
 
     const relations = blockersByBlockedIssueId.get(current.id) ?? [];
     for (const relation of relations) {
-      if (relation.companyId !== current.companyId || relation.companyId !== source.companyId) continue;
+      if (
+        relation.companyId !== current.companyId ||
+        relation.companyId !== source.companyId
+      )
+        continue;
       const blocker = issuesById.get(relation.blockerIssueId);
-      if (!blocker || blocker.companyId !== source.companyId || blocker.status === "done") continue;
+      if (
+        !blocker ||
+        blocker.companyId !== source.companyId ||
+        blocker.status === "done"
+      )
+        continue;
       const path = [...dependencyPath, blocker];
 
       if (blocker.status === "blocked") {
-        const nested = firstBlockedChainFinding(source, blocker, path, new Set(seen));
+        const nested = firstBlockedChainFinding(
+          source,
+          blocker,
+          path,
+          new Set(seen),
+        );
         if (nested) return nested;
         if (hasExplicitWaitingPath(blocker)) continue;
       }
@@ -711,17 +843,23 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
   }
 
   for (const issue of input.issues) {
-    const hasUnresolvedBlockerEdge = (blockersByBlockedIssueId.get(issue.id) ?? []).some((relation) => {
+    const hasUnresolvedBlockerEdge = (
+      blockersByBlockedIssueId.get(issue.id) ?? []
+    ).some((relation) => {
       if (relation.companyId !== issue.companyId) return false;
       const blocker = issuesById.get(relation.blockerIssueId);
-      return Boolean(blocker && blocker.companyId === issue.companyId && blocker.status !== "done");
+      return Boolean(
+        blocker &&
+        blocker.companyId === issue.companyId &&
+        blocker.status !== "done",
+      );
     });
-    const shouldInspectBlockedChain = issue.status === "blocked" || (
-      issue.status !== "done" &&
-      issue.status !== "cancelled" &&
-      Boolean(issue.assigneeAgentId) &&
-      hasUnresolvedBlockerEdge
-    );
+    const shouldInspectBlockedChain =
+      issue.status === "blocked" ||
+      (issue.status !== "done" &&
+        issue.status !== "cancelled" &&
+        Boolean(issue.assigneeAgentId) &&
+        hasUnresolvedBlockerEdge);
 
     let chainFinding: IssueLivenessFinding | null = null;
     if (shouldInspectBlockedChain) {
@@ -730,7 +868,11 @@ export function classifyIssueGraphLiveness(input: IssueGraphLivenessInput): Issu
       if (chainFinding) findings.push(chainFinding);
     }
 
-    if (issue.status === "in_review" && !chainFinding && !unresolvedBlockers.has(issue.id)) {
+    if (
+      issue.status === "in_review" &&
+      !chainFinding &&
+      !unresolvedBlockers.has(issue.id)
+    ) {
       const review = reviewFinding(issue, issue, [issue]);
       if (review) findings.push(review);
     }

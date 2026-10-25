@@ -30,7 +30,10 @@ import { parseCapabilityRoute, serializeCapabilityRoute } from "./route.js";
  * browser spec.
  */
 
-const MANIFEST_PATH = resolve(import.meta.dirname, "../../../spec/capability/eval-traceability.yaml");
+const MANIFEST_PATH = resolve(
+  import.meta.dirname,
+  "../../../spec/capability/eval-traceability.yaml",
+);
 
 let index: CapabilityScenarioIndex;
 const sessions = new Map<string, CapabilityChatSessionArtifact>();
@@ -96,7 +99,9 @@ describe("chat conversation", () => {
     const markup = conversation("ix-checkbox-01");
     for (const turn of artifact.turns) {
       expect(markup).toContain(`data-testid="chat-turn-${turn.turn}"`);
-      expect(markup).toContain(`data-testid="turn-activity-strip-${turn.turn}"`);
+      expect(markup).toContain(
+        `data-testid="turn-activity-strip-${turn.turn}"`,
+      );
     }
     for (const entry of artifact.timeline) {
       expect(markup, `entry ${entry.sequence} lost its channel`).toContain(
@@ -129,8 +134,12 @@ describe("chat conversation", () => {
     const lastTurn = artifact.turns.at(-1)!;
     const markup = conversation("ap-mcp-gate-01", lastTurn.firstSequence);
     expect(markup).toContain(`data-testid="turn-pending-${lastTurn.turn}"`);
-    expect(markup).not.toContain(`data-testid="turn-activity-strip-${lastTurn.turn}"`);
-    expect(markup).not.toContain(`data-testid="chat-entry-${lastTurn.lastSequence}"`);
+    expect(markup).not.toContain(
+      `data-testid="turn-activity-strip-${lastTurn.turn}"`,
+    );
+    expect(markup).not.toContain(
+      `data-testid="chat-entry-${lastTurn.lastSequence}"`,
+    );
     // Earlier turns are untouched by the reveal of a later one.
     expect(markup).toContain('data-testid="turn-activity-strip-1"');
   });
@@ -141,9 +150,14 @@ describe("chat conversation", () => {
     const model = artifact.timeline.find(
       (entry) => entry.turn === lastTurn.turn && entry.kind === "agent_message",
     );
-    if (model?.kind !== "agent_message") throw new Error("staged turn has no model message");
+    if (model?.kind !== "agent_message")
+      throw new Error("staged turn has no model message");
 
-    const markup = conversation("ap-mcp-gate-01", model.sequence, lastTurn.turn);
+    const markup = conversation(
+      "ap-mcp-gate-01",
+      model.sequence,
+      lastTurn.turn,
+    );
     expect(markup).toContain('data-testid="streaming-model-card"');
     expect(markup).toContain('data-state="streaming"');
     expect(markup).toContain('class="pcr-stream-cursor"');
@@ -154,7 +168,9 @@ describe("chat conversation", () => {
 describe("turn strip", () => {
   it("states the counts as icon plus text and reads them into the label", () => {
     const turn = sessionFor("ap-mcp-gate-01").turns.at(-1)!;
-    const markup = renderToStaticMarkup(<TurnStrip turn={turn} onOpen={() => undefined} />);
+    const markup = renderToStaticMarkup(
+      <TurnStrip turn={turn} onOpen={() => undefined} />,
+    );
     expect(markup).toContain(`${turn.counts.calls} tool`);
     expect(markup).toContain(`${turn.counts.denied} denied`);
     expect(markup).toContain("control plane");
@@ -178,7 +194,14 @@ describe("activity stream", () => {
     for (const turn of artifact.turns) {
       expect(markup).toContain(`data-testid="activity-turn-${turn.turn}"`);
     }
-    const order = ["exposure", "calls", "authorization", "control", "diff", "parity"]
+    const order = [
+      "exposure",
+      "calls",
+      "authorization",
+      "control",
+      "diff",
+      "parity",
+    ]
       .map((name) => markup.indexOf(`data-testid="activity-section-2-${name}"`))
       .filter((position) => position >= 0);
     expect(order.length).toBeGreaterThan(3);
@@ -189,7 +212,9 @@ describe("activity stream", () => {
     const artifact = sessionFor("ap-mcp-gate-01");
     const denied = artifact.turns.find((turn) => turn.counts.denied > 0)!;
     const markup = activity("ap-mcp-gate-01", "all", denied.turn);
-    expect(markup).toContain(`data-testid="activity-section-${denied.turn}-authorization"`);
+    expect(markup).toContain(
+      `data-testid="activity-section-${denied.turn}-authorization"`,
+    );
     expect(markup).toContain("required_claim_missing");
     expect(markup).toContain(`data-testid="activity-diff-${denied.turn}"`);
     expect(markup).toContain(`data-testid="activity-parity-${denied.turn}"`);
@@ -197,9 +222,13 @@ describe("activity stream", () => {
 
   it("shows the wake the control plane scheduled as a reconciliation row", () => {
     const artifact = sessionFor("ix-checkbox-01");
-    const withWake = artifact.turns.find((turn) => turn.reconciliationEvents.length > 0)!;
+    const withWake = artifact.turns.find(
+      (turn) => turn.reconciliationEvents.length > 0,
+    )!;
     const markup = activity("ix-checkbox-01", "all", withWake.turn);
-    expect(markup).toContain(`data-testid="activity-reconciliation-${withWake.turn}"`);
+    expect(markup).toContain(
+      `data-testid="activity-reconciliation-${withWake.turn}"`,
+    );
     expect(markup).toContain("wake.scheduled");
   });
 
@@ -225,7 +254,9 @@ describe("activity stream", () => {
     const artifact = sessionFor("ix-checkbox-01");
     const markup = activity("ix-checkbox-01");
     const newest = artifact.turns.at(-1)!.turn;
-    expect(markup).toContain(`data-testid="activity-turn-${newest}" data-open="true"`);
+    expect(markup).toContain(
+      `data-testid="activity-turn-${newest}" data-open="true"`,
+    );
     expect(markup).toContain('data-testid="activity-turn-0" data-open="false"');
   });
 
@@ -235,23 +266,34 @@ describe("activity stream", () => {
     const model = artifact.timeline.find(
       (entry) => entry.turn === turn.turn && entry.kind === "agent_message",
     );
-    if (model === undefined) throw new Error("staged turn has no model message");
+    if (model === undefined)
+      throw new Error("staged turn has no model message");
 
     const markup = activity("ap-mcp-gate-01", "all", turn.turn, model.sequence);
     expect(markup).toContain(`Turn ${turn.turn} · running`);
     const calls = markup.match(
-      new RegExp(`data-testid="activity-section-${turn.turn}-calls"[\\s\\S]*?</section>`),
+      new RegExp(
+        `data-testid="activity-section-${turn.turn}-calls"[\\s\\S]*?</section>`,
+      ),
     )?.[0];
     expect(calls).toContain("request_approval");
     expect(calls).not.toContain("request_review");
-    expect(markup).toContain(`data-testid="activity-section-${turn.turn}-authorization"`);
+    expect(markup).toContain(
+      `data-testid="activity-section-${turn.turn}-authorization"`,
+    );
     expect(markup).toContain("Authorization (1)");
     const header = markup.match(
-      new RegExp(`data-testid="activity-turn-header-${turn.turn}"[\\s\\S]*?</button>`),
+      new RegExp(
+        `data-testid="activity-turn-header-${turn.turn}"[\\s\\S]*?</button>`,
+      ),
     )?.[0];
     expect(header).not.toContain("parity");
-    expect(markup).not.toContain(`data-testid="activity-section-${turn.turn}-diff"`);
-    expect(markup).not.toContain(`data-testid="activity-section-${turn.turn}-parity"`);
+    expect(markup).not.toContain(
+      `data-testid="activity-section-${turn.turn}-diff"`,
+    );
+    expect(markup).not.toContain(
+      `data-testid="activity-section-${turn.turn}-parity"`,
+    );
     expect(markup).not.toContain('data-testid="activity-session"');
   });
 });
@@ -323,9 +365,13 @@ describe("session header", () => {
       "reset-session",
       "replay-session",
     ]) {
-      const control = markup.match(new RegExp(`<button[^>]*data-testid="${testId}"[^>]*>`))?.[0];
+      const control = markup.match(
+        new RegExp(`<button[^>]*data-testid="${testId}"[^>]*>`),
+      )?.[0];
       expect(control, testId).toContain("disabled");
-      expect(control, testId).toContain('aria-describedby="running-controls-reason"');
+      expect(control, testId).toContain(
+        'aria-describedby="running-controls-reason"',
+      );
     }
   });
 });
@@ -345,15 +391,22 @@ describe("chat routes and shell", () => {
   });
 
   it("keeps the explorer routes untouched", () => {
-    const route = parseCapabilityRoute("#/case/ap-mcp-gate-01?run=fake&view=authorization");
+    const route = parseCapabilityRoute(
+      "#/case/ap-mcp-gate-01?run=fake&view=authorization",
+    );
     expect(route.surface).toBe("explorer");
     expect(route.caseId).toBe("ap-mcp-gate-01");
-    expect(serializeCapabilityRoute(route)).toBe("#/case/ap-mcp-gate-01?run=fake&view=authorization");
+    expect(serializeCapabilityRoute(route)).toBe(
+      "#/case/ap-mcp-gate-01?run=fake&view=authorization",
+    );
   });
 
   it("renders three landmarks and the chat segments on a chat route", () => {
     const markup = renderToStaticMarkup(
-      <ExplorerApp index={index} initialRoute={parseCapabilityRoute("#/chat/ix-checkbox-01")} />,
+      <ExplorerApp
+        index={index}
+        initialRoute={parseCapabilityRoute("#/chat/ix-checkbox-01")}
+      />,
     );
     expect(markup).toContain('aria-label="Scenario chat"');
     expect(markup).toContain('aria-label="Turn activity"');
@@ -367,7 +420,10 @@ describe("chat routes and shell", () => {
 
   it("names an unknown chat scenario instead of falling back to home", () => {
     const markup = renderToStaticMarkup(
-      <ExplorerApp index={index} initialRoute={parseCapabilityRoute("#/chat/not-a-real-case")} />,
+      <ExplorerApp
+        index={index}
+        initialRoute={parseCapabilityRoute("#/chat/not-a-real-case")}
+      />,
     );
     expect(markup).toContain('data-testid="unknown-scenario"');
     expect(markup).toContain("not-a-real-case");

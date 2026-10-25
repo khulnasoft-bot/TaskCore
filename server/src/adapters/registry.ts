@@ -1,4 +1,7 @@
-import type { AdapterRuntimeCommandSpec, ServerAdapterModule } from "./types.js";
+import type {
+  AdapterRuntimeCommandSpec,
+  ServerAdapterModule,
+} from "./types.js";
 import { parseAdapterModelsEnv } from "../services/adapter-models-env.js";
 import { stampClaudeAgentIdHeader } from "./claude-agent-id-header.js";
 import {
@@ -143,7 +146,10 @@ import {
   resolveTaskcoreRunnerProviderProfile,
 } from "../services/native-runtime/provider-profile.js";
 
-function readConfiguredCommand(config: Record<string, unknown>, fallback: string): string {
+function readConfiguredCommand(
+  config: Record<string, unknown>,
+  fallback: string,
+): string {
   const value = typeof config.command === "string" ? config.command.trim() : "";
   return value.length > 0 ? value : fallback;
 }
@@ -162,7 +168,8 @@ function buildNpmRuntimeCommandSpec(
   packageName: string,
 ): AdapterRuntimeCommandSpec {
   const command = readConfiguredCommand(config, fallbackCommand);
-  const canSelfInstall = !hasPathSeparator(command) && command === fallbackCommand;
+  const canSelfInstall =
+    !hasPathSeparator(command) && command === fallbackCommand;
   const installLine = buildSandboxNpmInstallCommand(packageName);
   return {
     command,
@@ -173,7 +180,9 @@ function buildNpmRuntimeCommandSpec(
   };
 }
 
-function buildCursorRuntimeCommandSpec(config: Record<string, unknown>): AdapterRuntimeCommandSpec {
+function buildCursorRuntimeCommandSpec(
+  config: Record<string, unknown>,
+): AdapterRuntimeCommandSpec {
   const command = readConfiguredCommand(config, "agent");
   return {
     command,
@@ -183,7 +192,7 @@ function buildCursorRuntimeCommandSpec(config: Record<string, unknown>): Adapter
 }
 
 const retiredAcpxMessage =
-  "The acpx_local adapter has been retired. Existing Claude and Codex ACPX agents should be migrated to claude_local or codex_local with adapterConfig.engine=\"acp\".";
+  'The acpx_local adapter has been retired. Existing Claude and Codex ACPX agents should be migrated to claude_local or codex_local with adapterConfig.engine="acp".';
 
 const retiredAcpxAgentConfigurationDoc = `# acpx_local retired
 
@@ -352,7 +361,8 @@ const codexLocalAdapter: ServerAdapterModule = {
   supportsInstructionsBundle: true,
   instructionsPathKey: "instructionsFilePath",
   requiresMaterializedRuntimeSkills: false,
-  getRuntimeCommandSpec: (config) => buildNpmRuntimeCommandSpec(config, "codex", "@openai/codex"),
+  getRuntimeCommandSpec: (config) =>
+    buildNpmRuntimeCommandSpec(config, "codex", "@openai/codex"),
   agentConfigurationDoc: codexAgentConfigurationDoc,
   getConfigSchema: getCodexConfigSchema,
   getQuotaWindows: codexGetQuotaWindows,
@@ -371,15 +381,16 @@ const taskcoreRunnerAdapter: ServerAdapterModule = {
       timedOut: false,
       errorMessage: message,
       errorCode: "taskcore_runner_coordinator_required",
-      provider: ctx.config.provider === "opencode"
-        ? "opencode"
-        : ctx.config.provider === "claude_managed"
-          ? "anthropic"
-          : ctx.config.provider === "aws_agentcore"
-            ? "amazon-bedrock"
-        : ctx.config.provider === "acpx"
-            ? "acpx"
-            : "codex",
+      provider:
+        ctx.config.provider === "opencode"
+          ? "opencode"
+          : ctx.config.provider === "claude_managed"
+            ? "anthropic"
+            : ctx.config.provider === "aws_agentcore"
+              ? "amazon-bedrock"
+              : ctx.config.provider === "acpx"
+                ? "acpx"
+                : "codex",
       summary: message,
     };
   },
@@ -388,66 +399,142 @@ const taskcoreRunnerAdapter: ServerAdapterModule = {
     try {
       profile = resolveTaskcoreRunnerProviderProfile(context.config);
     } catch (error) {
-      const profileError = error instanceof TaskcoreRunnerProviderProfileError
-        ? error
-        : new TaskcoreRunnerProviderProfileError(
-            "taskcore_runner_provider_unsupported",
-            "Taskcore Runner provider configuration is invalid.",
-          );
+      const profileError =
+        error instanceof TaskcoreRunnerProviderProfileError
+          ? error
+          : new TaskcoreRunnerProviderProfileError(
+              "taskcore_runner_provider_unsupported",
+              "Taskcore Runner provider configuration is invalid.",
+            );
       return {
         adapterType: "taskcore_runner",
         status: "fail" as const,
         testedAt: new Date().toISOString(),
-        checks: [{
-          code: profileError.code,
-          level: "error" as const,
-          message: profileError.message,
-        }],
+        checks: [
+          {
+            code: profileError.code,
+            level: "error" as const,
+            message: profileError.message,
+          },
+        ],
       };
     }
     if (profile.provider === "openai_dot") {
-      return { adapterType: "taskcore_runner", status: "warn" as const, testedAt: new Date().toISOString(),
-        checks: [{ code: "dot_event_test_required", level: "warn" as const, message: "Dot manages its model and billing. Validate the dedicated agent binding and event round trip in Taskcore; this read-only check does not wake the Dot." }] };
+      return {
+        adapterType: "taskcore_runner",
+        status: "warn" as const,
+        testedAt: new Date().toISOString(),
+        checks: [
+          {
+            code: "dot_event_test_required",
+            level: "warn" as const,
+            message:
+              "Dot manages its model and billing. Validate the dedicated agent binding and event round trip in Taskcore; this read-only check does not wake the Dot.",
+          },
+        ],
+      };
     }
     if (profile.provider === "acpx") {
       if (["copilot", "pi"].includes(profile.acpxAgent)) {
         // The profile resolver already validated the isolated host's exact
         // qualification pair. Do not report a production readiness pass.
         return {
-          adapterType: "taskcore_runner", status: "warn" as const, testedAt: new Date().toISOString(),
-          checks: [{ code: "acpx_candidate_qualification_only", level: "warn" as const,
-            message: "This exact candidate and model are admitted for operator-controlled qualification only. Verified runtime installation, bound credentials, and model access are checked before execution; production support remains pending." }],
+          adapterType: "taskcore_runner",
+          status: "warn" as const,
+          testedAt: new Date().toISOString(),
+          checks: [
+            {
+              code: "acpx_candidate_qualification_only",
+              level: "warn" as const,
+              message:
+                "This exact candidate and model are admitted for operator-controlled qualification only. Verified runtime installation, bound credentials, and model access are checked before execution; production support remains pending.",
+            },
+          ],
         };
       }
       try {
-        if (profile.acpxAgent !== "claude" && profile.acpxAgent !== "grok" && profile.acpxAgent !== "cursor") throw new Error("Select Codex to use the native Codex runner.");
+        if (
+          profile.acpxAgent !== "claude" &&
+          profile.acpxAgent !== "grok" &&
+          profile.acpxAgent !== "cursor"
+        )
+          throw new Error("Select Codex to use the native Codex runner.");
         const target = context.executionTarget;
         if (target?.kind === "remote") {
           const probe = await runAdapterExecutionTargetShellCommand(
-            `acpx-platform-${crypto.randomUUID()}`, target, "uname -s && uname -m",
+            `acpx-platform-${crypto.randomUUID()}`,
+            target,
+            "uname -s && uname -m",
             { cwd: target.remoteCwd, env: {}, timeoutSec: 15 },
           );
-          if (probe.timedOut || probe.exitCode !== 0) throw new Error("Could not verify the remote ACPX runner platform.");
+          if (probe.timedOut || probe.exitCode !== 0)
+            throw new Error(
+              "Could not verify the remote ACPX runner platform.",
+            );
           const [os, arch] = probe.stdout.trim().split(/\s+/);
-          if (!((os === "Linux" && arch === "x86_64") || (os === "Darwin" && (arch === "arm64" || (profile.acpxAgent !== "grok" && arch === "x86_64"))))) {
-            throw new Error(`ACPX ${profile.acpxAgent} requires a qualified Linux x64 or macOS architecture.`);
+          if (!(
+            (os === "Linux" && arch === "x86_64") ||
+            (os === "Darwin" &&
+              (arch === "arm64" ||
+                (profile.acpxAgent !== "grok" && arch === "x86_64")))
+          )) {
+            throw new Error(
+              `ACPX ${profile.acpxAgent} requires a qualified Linux x64 or macOS architecture.`,
+            );
           }
           return {
-            adapterType: "taskcore_runner", status: "warn" as const, testedAt: new Date().toISOString(),
-            checks: [{ code: "acpx_remote_runtime_unverified", level: "warn" as const,
-              message: "The remote platform is supported. Runtime package integrity and readiness must still be verified by the remote runner before launch." }],
+            adapterType: "taskcore_runner",
+            status: "warn" as const,
+            testedAt: new Date().toISOString(),
+            checks: [
+              {
+                code: "acpx_remote_runtime_unverified",
+                level: "warn" as const,
+                message:
+                  "The remote platform is supported. Runtime package integrity and readiness must still be verified by the remote runner before launch.",
+              },
+            ],
           };
         }
-        const { probeAcpxClaudeInstallation, probeAcpxGrokInstallation, probeAcpxCursorInstallation } = await import("../vendor/taskcore-runner/live/index.js");
-        await (profile.acpxAgent === "grok" ? probeAcpxGrokInstallation : profile.acpxAgent === "cursor" ? probeAcpxCursorInstallation : probeAcpxClaudeInstallation)(profile.model);
+        const {
+          probeAcpxClaudeInstallation,
+          probeAcpxGrokInstallation,
+          probeAcpxCursorInstallation,
+        } = await import("../vendor/taskcore-runner/live/index.js");
+        await (
+          profile.acpxAgent === "grok"
+            ? probeAcpxGrokInstallation
+            : profile.acpxAgent === "cursor"
+              ? probeAcpxCursorInstallation
+              : probeAcpxClaudeInstallation
+        )(profile.model);
         return {
-          adapterType: "taskcore_runner", status: "pass" as const, testedAt: new Date().toISOString(),
-          checks: [{ code: "acpx_runtime_ready", level: "info" as const, message: `ACPX ${profile.acpxAgent} runtime is installed and verified. Model access is checked when it runs.` }],
+          adapterType: "taskcore_runner",
+          status: "pass" as const,
+          testedAt: new Date().toISOString(),
+          checks: [
+            {
+              code: "acpx_runtime_ready",
+              level: "info" as const,
+              message: `ACPX ${profile.acpxAgent} runtime is installed and verified. Model access is checked when it runs.`,
+            },
+          ],
         };
       } catch (error) {
         return {
-          adapterType: "taskcore_runner", status: "fail" as const, testedAt: new Date().toISOString(),
-          checks: [{ code: "acpx_runtime_unavailable", level: "error" as const, message: error instanceof Error ? error.message : "ACPX Claude runtime could not be verified." }],
+          adapterType: "taskcore_runner",
+          status: "fail" as const,
+          testedAt: new Date().toISOString(),
+          checks: [
+            {
+              code: "acpx_runtime_unavailable",
+              level: "error" as const,
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "ACPX Claude runtime could not be verified.",
+            },
+          ],
         };
       }
     }
@@ -456,15 +543,19 @@ const taskcoreRunnerAdapter: ServerAdapterModule = {
         adapterType: "taskcore_runner",
         status: "warn" as const,
         testedAt: new Date().toISOString(),
-        checks: [{
-          code: "claude_managed_profile_selected",
-          level: "info" as const,
-          message: `Claude Managed profile ${profile.managedProfileId} is selected with retention acknowledged. Its stored qualification, API-key binding, and spend ceiling are verified before the first turn.`,
-        }, {
-          code: "claude_managed_retention_notice",
-          level: "warn" as const,
-          message: "Claude Managed is a stateful beta service and is not eligible for ZDR or HIPAA modes.",
-        }],
+        checks: [
+          {
+            code: "claude_managed_profile_selected",
+            level: "info" as const,
+            message: `Claude Managed profile ${profile.managedProfileId} is selected with retention acknowledged. Its stored qualification, API-key binding, and spend ceiling are verified before the first turn.`,
+          },
+          {
+            code: "claude_managed_retention_notice",
+            level: "warn" as const,
+            message:
+              "Claude Managed is a stateful beta service and is not eligible for ZDR or HIPAA modes.",
+          },
+        ],
       };
     }
     if (profile.provider === "aws_agentcore") {
@@ -472,20 +563,25 @@ const taskcoreRunnerAdapter: ServerAdapterModule = {
         adapterType: "taskcore_runner",
         status: "warn" as const,
         testedAt: new Date().toISOString(),
-        checks: [{
-          code: "aws_agentcore_profile_selected",
-          level: "info" as const,
-          message: `AWS AgentCore profile ${profile.agentCoreProfileId} is selected with retention acknowledged. Its stored qualification, invocation limits, and estimated spend ceiling are verified before the first turn.`,
-        }, {
-          code: "aws_agentcore_retention_notice",
-          level: "warn" as const,
-          message: "AgentCore Memory retains short-term events for 90 days; the spend ceiling is an estimate, not an AWS currency hard stop.",
-        }],
+        checks: [
+          {
+            code: "aws_agentcore_profile_selected",
+            level: "info" as const,
+            message: `AWS AgentCore profile ${profile.agentCoreProfileId} is selected with retention acknowledged. Its stored qualification, invocation limits, and estimated spend ceiling are verified before the first turn.`,
+          },
+          {
+            code: "aws_agentcore_retention_notice",
+            level: "warn" as const,
+            message:
+              "AgentCore Memory retains short-term events for 90 days; the spend ceiling is an estimate, not an AWS currency hard stop.",
+          },
+        ],
       };
     }
-    const result = profile.provider === "opencode"
-      ? await openCodeTestEnvironment(context)
-      : await codexTestEnvironment(context);
+    const result =
+      profile.provider === "opencode"
+        ? await openCodeTestEnvironment(context)
+        : await codexTestEnvironment(context);
     return { ...result, adapterType: "taskcore_runner" };
   },
   listSkills: listCodexSkills,
@@ -493,37 +589,60 @@ const taskcoreRunnerAdapter: ServerAdapterModule = {
   sessionCodec: codexSessionCodec,
   models: [
     ...codexModels,
-    { id: DEFAULT_OPENCODE_RUNNER_MODEL, label: "OpenRouter · DeepSeek V4 Flash 0731" },
+    {
+      id: DEFAULT_OPENCODE_RUNNER_MODEL,
+      label: "OpenRouter · DeepSeek V4 Flash 0731",
+    },
     { id: DEFAULT_ACPX_RUNNER_MODELS.claude, label: "Claude Sonnet 5" },
-    { id: "global.anthropic.claude-sonnet-4-6", label: "Amazon Bedrock · Claude Sonnet 4.6 (global)" },
+    {
+      id: "global.anthropic.claude-sonnet-4-6",
+      label: "Amazon Bedrock · Claude Sonnet 4.6 (global)",
+    },
   ],
   listModels: async () => [
-    ...await listCodexModels(),
-    { id: DEFAULT_OPENCODE_RUNNER_MODEL, label: "OpenRouter · DeepSeek V4 Flash 0731" },
+    ...(await listCodexModels()),
+    {
+      id: DEFAULT_OPENCODE_RUNNER_MODEL,
+      label: "OpenRouter · DeepSeek V4 Flash 0731",
+    },
     { id: DEFAULT_ACPX_RUNNER_MODELS.claude, label: "Claude Sonnet 5" },
-    { id: "global.anthropic.claude-sonnet-4-6", label: "Amazon Bedrock · Claude Sonnet 4.6 (global)" },
+    {
+      id: "global.anthropic.claude-sonnet-4-6",
+      label: "Amazon Bedrock · Claude Sonnet 4.6 (global)",
+    },
   ],
   refreshModels: async () => [
-    ...await refreshCodexModels(),
-    { id: DEFAULT_OPENCODE_RUNNER_MODEL, label: "OpenRouter · DeepSeek V4 Flash 0731" },
+    ...(await refreshCodexModels()),
+    {
+      id: DEFAULT_OPENCODE_RUNNER_MODEL,
+      label: "OpenRouter · DeepSeek V4 Flash 0731",
+    },
     { id: DEFAULT_ACPX_RUNNER_MODELS.claude, label: "Claude Sonnet 5" },
-    { id: "global.anthropic.claude-sonnet-4-6", label: "Amazon Bedrock · Claude Sonnet 4.6 (global)" },
+    {
+      id: "global.anthropic.claude-sonnet-4-6",
+      label: "Amazon Bedrock · Claude Sonnet 4.6 (global)",
+    },
   ],
   supportsLocalAgentJwt: false,
   supportsInstructionsBundle: true,
   instructionsPathKey: "instructionsFilePath",
   requiresMaterializedRuntimeSkills: false,
-  getRuntimeCommandSpec: (config) => config.provider === "claude_managed"
-    || config.provider === "aws_agentcore"
-    || config.provider === "acpx"
-    ? { command: "taskcore-runnerd", detectCommand: null, installCommand: null }
-    : config.provider === "opencode"
-      ? buildNpmRuntimeCommandSpec(
-          config,
-          "opencode",
-          `opencode-ai@${QUALIFIED_OPENCODE_RUNNER_VERSION}`,
-        )
-      : buildNpmRuntimeCommandSpec(config, "codex", "@openai/codex@0.160.0"),
+  getRuntimeCommandSpec: (config) =>
+    config.provider === "claude_managed" ||
+    config.provider === "aws_agentcore" ||
+    config.provider === "acpx"
+      ? {
+          command: "taskcore-runnerd",
+          detectCommand: null,
+          installCommand: null,
+        }
+      : config.provider === "opencode"
+        ? buildNpmRuntimeCommandSpec(
+            config,
+            "opencode",
+            `opencode-ai@${QUALIFIED_OPENCODE_RUNNER_VERSION}`,
+          )
+        : buildNpmRuntimeCommandSpec(config, "codex", "@openai/codex@0.160.0"),
   agentConfigurationDoc:
     "# TaskCore Runner\n\nAdapter: taskcore_runner\n\nRuns Codex, OpenCode, Claude Managed, AWS AgentCore, or ACPX Claude/Grok Build/Cursor through the Rust Taskcore runner and authenticated PRP transport. GitHub Copilot and Pi are awaiting local and Daytona qualification and are not enabled for production runs. Managed providers use company-scoped qualified profiles, explicit retention acknowledgement, and spend limits.\n",
   getConfigSchema: () => ({
@@ -535,7 +654,10 @@ const taskcoreRunnerAdapter: ServerAdapterModule = {
         default: "codex",
         options: [
           { value: "codex", label: "Codex" },
-          { value: "opencode", label: `OpenCode ${QUALIFIED_OPENCODE_RUNNER_VERSION}` },
+          {
+            value: "opencode",
+            label: `OpenCode ${QUALIFIED_OPENCODE_RUNNER_VERSION}`,
+          },
           { value: "claude_managed", label: "Claude Managed" },
           { value: "aws_agentcore", label: "AWS AgentCore" },
           { value: "acpx", label: "ACP agents" },
@@ -543,8 +665,14 @@ const taskcoreRunnerAdapter: ServerAdapterModule = {
         hint: "Select a local provider, company-qualified managed provider, or an ACP agent.",
       },
       {
-        key: "acpxAgent", label: "ACP agent", type: "select" as const, default: "claude",
-        options: [{ value: "claude", label: "Claude" }, { value: "grok", label: "Grok Build" }],
+        key: "acpxAgent",
+        label: "ACP agent",
+        type: "select" as const,
+        default: "claude",
+        options: [
+          { value: "claude", label: "Claude" },
+          { value: "grok", label: "Grok Build" },
+        ],
         meta: { visibleWhen: { key: "provider", value: "acpx" } },
       },
       {
@@ -840,7 +968,8 @@ const openCodeLocalAdapter: ServerAdapterModule = {
   supportsInstructionsBundle: true,
   instructionsPathKey: "instructionsFilePath",
   requiresMaterializedRuntimeSkills: true,
-  getRuntimeCommandSpec: (config) => buildNpmRuntimeCommandSpec(config, "opencode", "opencode-ai"),
+  getRuntimeCommandSpec: (config) =>
+    buildNpmRuntimeCommandSpec(config, "opencode", "opencode-ai"),
   agentConfigurationDoc: openCodeAgentConfigurationDoc,
 };
 
@@ -938,9 +1067,9 @@ export function resolveExternalAdapterRegistration(
   return {
     ...externalAdapter,
     sessionManagement:
-      externalAdapter.sessionManagement
-        ?? getAdapterSessionManagement(externalAdapter.type)
-        ?? undefined,
+      externalAdapter.sessionManagement ??
+      getAdapterSessionManagement(externalAdapter.type) ??
+      undefined,
   };
 }
 
@@ -986,7 +1115,10 @@ export function waitForExternalAdapters(): Promise<void> {
 }
 
 export function registerServerAdapter(adapter: ServerAdapterModule): void {
-  if (BUILTIN_ADAPTER_TYPES.has(adapter.type) && !builtinFallbacks.has(adapter.type)) {
+  if (
+    BUILTIN_ADAPTER_TYPES.has(adapter.type) &&
+    !builtinFallbacks.has(adapter.type)
+  ) {
     const existing = adaptersByType.get(adapter.type);
     if (existing) {
       builtinFallbacks.set(adapter.type, existing);
@@ -1054,14 +1186,21 @@ function getDeclaredAdapterModels(): ReturnType<typeof parseAdapterModelsEnv> {
   return value;
 }
 
-function declaredModelsForAdapter(type: string): { id: string; label: string }[] | null {
+function declaredModelsForAdapter(
+  type: string,
+): { id: string; label: string }[] | null {
   const declared = getDeclaredAdapterModels()?.[type];
   return declared?.length
-    ? declared.map((model) => ({ id: model.id, label: model.label ?? model.id }))
+    ? declared.map((model) => ({
+        id: model.id,
+        label: model.label ?? model.id,
+      }))
     : null;
 }
 
-export async function listAdapterModels(type: string): Promise<{ id: string; label: string }[]> {
+export async function listAdapterModels(
+  type: string,
+): Promise<{ id: string; label: string }[]> {
   const declaredModels = declaredModelsForAdapter(type);
   if (declaredModels) return declaredModels;
   const adapter = findActiveServerAdapter(type);
@@ -1077,10 +1216,13 @@ export async function listAdapterModels(type: string): Promise<{ id: string; lab
   return adapter.models ?? [];
 }
 
-export async function refreshAdapterModels(type: string): Promise<{ id: string; label: string }[]> {
+export async function refreshAdapterModels(
+  type: string,
+): Promise<{ id: string; label: string }[]> {
   const declaredModels = declaredModelsForAdapter(type);
   if (declaredModels) return declaredModels;
-  if (findActiveServerAdapter(type) === codexLocalAdapter) return listAdapterModels(type);
+  if (findActiveServerAdapter(type) === codexLocalAdapter)
+    return listAdapterModels(type);
   const adapter = findActiveServerAdapter(type);
   if (!adapter) return [];
   if (adapter.refreshModels) {
@@ -1107,13 +1249,20 @@ export function listEnabledServerAdapters(): ServerAdapterModule[] {
   const disabled = getDisabledAdapterTypesFromStore();
   const disabledSet = disabled.length > 0 ? new Set(disabled) : null;
   return disabledSet
-    ? Array.from(adaptersByType.values()).filter((a) => !disabledSet.has(a.type))
+    ? Array.from(adaptersByType.values()).filter(
+        (a) => !disabledSet.has(a.type),
+      )
     : Array.from(adaptersByType.values());
 }
 
 export async function detectAdapterModel(
   type: string,
-): Promise<{ model: string; provider: string; source: string; candidates?: string[] } | null> {
+): Promise<{
+  model: string;
+  provider: string;
+  source: string;
+  candidates?: string[];
+} | null> {
   const adapter = findActiveServerAdapter(type);
   if (!adapter?.detectModel) return null;
   const detected = await adapter.detectModel();
@@ -1148,12 +1297,16 @@ export function setOverridePaused(type: string, paused: boolean): boolean {
   const wasPaused = pausedOverrides.has(type);
   if (paused && !wasPaused) {
     pausedOverrides.add(type);
-    console.log(`[taskcore] Override paused for "${type}" — builtin adapter restored`);
+    console.log(
+      `[taskcore] Override paused for "${type}" — builtin adapter restored`,
+    );
     return true;
   }
   if (!paused && wasPaused) {
     pausedOverrides.delete(type);
-    console.log(`[taskcore] Override resumed for "${type}" — external adapter active`);
+    console.log(
+      `[taskcore] Override resumed for "${type}" — external adapter active`,
+    );
     return true;
   }
   return false;
@@ -1173,7 +1326,9 @@ export function findServerAdapter(type: string): ServerAdapterModule | null {
   return adaptersByType.get(type) ?? null;
 }
 
-export function findActiveServerAdapter(type: string): ServerAdapterModule | null {
+export function findActiveServerAdapter(
+  type: string,
+): ServerAdapterModule | null {
   if (pausedOverrides.has(type)) {
     const fallback = builtinFallbacks.get(type);
     if (fallback) return fallback;

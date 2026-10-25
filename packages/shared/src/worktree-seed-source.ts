@@ -1,4 +1,11 @@
-import { existsSync, lstatSync, readFileSync, realpathSync, statSync, type Stats } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  type Stats,
+} from "node:fs";
 import path from "node:path";
 import { resolveTaskcoreInstanceId } from "./home-paths.js";
 
@@ -22,7 +29,10 @@ export type RegisteredWorktreeSeedSourceInput = {
   expectedTargetInstanceId: string;
 };
 
-function readInstanceId(configPath: string, label: "source" | "target"): string {
+function readInstanceId(
+  configPath: string,
+  label: "source" | "target",
+): string {
   const configDir = path.dirname(configPath);
   const envPath = path.join(configDir, ".env");
   if (!existsSync(envPath)) {
@@ -31,7 +41,9 @@ function readInstanceId(configPath: string, label: "source" | "target"): string 
     if (path.basename(path.dirname(configDir)) === "instances") {
       return resolveTaskcoreInstanceId(path.basename(configDir));
     }
-    throw new Error(`Registered ${label} Taskcore config is missing its adjacent .env instance pointer.`);
+    throw new Error(
+      `Registered ${label} Taskcore config is missing its adjacent .env instance pointer.`,
+    );
   }
   const contents = readFileSync(envPath, "utf8");
   for (const rawLine of contents.split(/\r?\n/)) {
@@ -41,7 +53,9 @@ function readInstanceId(configPath: string, label: "source" | "target"): string 
     const value = (match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim();
     if (value) return value;
   }
-  throw new Error(`Registered ${label} Taskcore config has no TASKCORE_INSTANCE_ID binding.`);
+  throw new Error(
+    `Registered ${label} Taskcore config has no TASKCORE_INSTANCE_ID binding.`,
+  );
 }
 
 function errorCode(error: unknown): string {
@@ -54,7 +68,11 @@ function errorCode(error: unknown): string {
  * Any other failure means the declared path is unreadable or malformed, and a guess there
  * would silently seed from a different instance.
  */
-function inspectDeclaredEntry(entryPath: string, configPath: string, detail?: string): Stats | null {
+function inspectDeclaredEntry(
+  entryPath: string,
+  configPath: string,
+  detail?: string,
+): Stats | null {
   try {
     return lstatSync(entryPath);
   } catch (error) {
@@ -73,7 +91,9 @@ function inspectDeclaredEntry(entryPath: string, configPath: string, detail?: st
  * declared config, so the resolver rejects the malformed source instead of falling back
  * to another one.
  */
-export function baseWorkspaceDeclaresInstanceConfig(baseWorkspaceCwd: string): boolean {
+export function baseWorkspaceDeclaresInstanceConfig(
+  baseWorkspaceCwd: string,
+): boolean {
   const configDir = path.join(baseWorkspaceCwd, ".taskcore");
   const configPath = path.join(configDir, "config.json");
   if (inspectDeclaredEntry(configPath, configPath)) return true;
@@ -81,7 +101,11 @@ export function baseWorkspaceDeclaresInstanceConfig(baseWorkspaceCwd: string): b
   // The probe above resolves `.taskcore` before it reaches the config, so a broken link
   // there also reports ENOENT. Only an absent or traversable `.taskcore` lets the caller
   // name another source; a link that hides whatever it points at is malformed, not empty.
-  const configDirEntry = inspectDeclaredEntry(configDir, configPath, " on its .taskcore entry");
+  const configDirEntry = inspectDeclaredEntry(
+    configDir,
+    configPath,
+    " on its .taskcore entry",
+  );
   if (configDirEntry?.isSymbolicLink()) {
     try {
       statSync(configDir);
@@ -103,7 +127,9 @@ function canonicalRegularFile(filePath: string, label: string): string {
     throw new Error(`${label} does not exist at ${resolved}.`);
   }
   if (canonical !== resolved || lstatSync(resolved).isSymbolicLink()) {
-    throw new Error(`${label} must be a canonical path and cannot use a symlink alias.`);
+    throw new Error(
+      `${label} must be a canonical path and cannot use a symlink alias.`,
+    );
   }
   if (!lstatSync(canonical).isFile()) {
     throw new Error(`${label} is not a regular file at ${canonical}.`);
@@ -130,13 +156,19 @@ export function resolveRegisteredWorktreeSeedSource(
     try {
       canonicalBaseCwd = realpathSync(resolvedRegisteredCwd);
     } catch {
-      throw new Error(`Registered base project workspace does not exist at ${resolvedRegisteredCwd}.`);
+      throw new Error(
+        `Registered base project workspace does not exist at ${resolvedRegisteredCwd}.`,
+      );
     }
     if (canonicalBaseCwd !== resolvedRegisteredCwd) {
-      throw new Error("Registered base project workspace must be canonical and cannot use a symlink alias.");
+      throw new Error(
+        "Registered base project workspace must be canonical and cannot use a symlink alias.",
+      );
     }
     if (!lstatSync(canonicalBaseCwd).isDirectory()) {
-      throw new Error(`Registered base project workspace is not a directory at ${canonicalBaseCwd}.`);
+      throw new Error(
+        `Registered base project workspace is not a directory at ${canonicalBaseCwd}.`,
+      );
     }
     // A base workspace that is a plain checkout carries no instance config of its own.
     // The caller's explicit source supplies it, and stays subject to every check below.
@@ -151,15 +183,28 @@ export function resolveRegisteredWorktreeSeedSource(
       "Registered base project workspace has no Taskcore config of its own and no explicit source was provided.",
     );
   }
-  const canonicalSourceConfigPath = canonicalRegularFile(selectedPath, "Registered source Taskcore config");
-  if (registeredConfigPath && canonicalSourceConfigPath !== registeredConfigPath) {
-    throw new Error("Registered source Taskcore config escapes the base project workspace or uses a symlink alias.");
+  const canonicalSourceConfigPath = canonicalRegularFile(
+    selectedPath,
+    "Registered source Taskcore config",
+  );
+  if (
+    registeredConfigPath &&
+    canonicalSourceConfigPath !== registeredConfigPath
+  ) {
+    throw new Error(
+      "Registered source Taskcore config escapes the base project workspace or uses a symlink alias.",
+    );
   }
 
   if (explicitSource) {
-    const canonicalExplicitSource = canonicalRegularFile(explicitSource, "Explicit source Taskcore config");
+    const canonicalExplicitSource = canonicalRegularFile(
+      explicitSource,
+      "Explicit source Taskcore config",
+    );
     if (canonicalExplicitSource !== canonicalSourceConfigPath) {
-      throw new Error("Explicit source Taskcore config does not match the registered base project workspace.");
+      throw new Error(
+        "Explicit source Taskcore config does not match the registered base project workspace.",
+      );
     }
   }
 
@@ -168,16 +213,22 @@ export function resolveRegisteredWorktreeSeedSource(
     "Target worktree Taskcore config",
   );
   if (canonicalSourceConfigPath === canonicalTargetConfigPath) {
-    throw new Error("Source and target Taskcore configs are the same canonical file.");
+    throw new Error(
+      "Source and target Taskcore configs are the same canonical file.",
+    );
   }
 
   const sourceInstanceId = readInstanceId(canonicalSourceConfigPath, "source");
   const targetInstanceId = readInstanceId(canonicalTargetConfigPath, "target");
   if (targetInstanceId !== input.expectedTargetInstanceId) {
-    throw new Error("Target Taskcore instance does not match the registered worktree instance.");
+    throw new Error(
+      "Target Taskcore instance does not match the registered worktree instance.",
+    );
   }
   if (sourceInstanceId === targetInstanceId) {
-    throw new Error("Source and target Taskcore configs name the same instance.");
+    throw new Error(
+      "Source and target Taskcore configs name the same instance.",
+    );
   }
 
   return {
@@ -199,29 +250,43 @@ export function resolveRegisteredWorktreeSeedSource(
  * path supplies the source. Manifest source fields are diagnostic assertions only and
  * never select the returned source.
  */
-export function resolveCanonicalWorktreeSeedSource(input: RegisteredWorktreeSeedSourceInput & {
-  manifestSource: WorktreeSeedSourceDiagnostic | null | undefined;
-  manifestTargetInstanceId?: unknown;
-}): CanonicalWorktreeSeedSource {
+export function resolveCanonicalWorktreeSeedSource(
+  input: RegisteredWorktreeSeedSourceInput & {
+    manifestSource: WorktreeSeedSourceDiagnostic | null | undefined;
+    manifestTargetInstanceId?: unknown;
+  },
+): CanonicalWorktreeSeedSource {
   const registered = resolveRegisteredWorktreeSeedSource(input);
-  const diagnosticPath = typeof input.manifestSource?.configPath === "string"
-    ? input.manifestSource.configPath.trim()
-    : "";
+  const diagnosticPath =
+    typeof input.manifestSource?.configPath === "string"
+      ? input.manifestSource.configPath.trim()
+      : "";
   if (!diagnosticPath) {
-    throw new Error("Worktree seed manifest is missing source path diagnostics.");
+    throw new Error(
+      "Worktree seed manifest is missing source path diagnostics.",
+    );
   }
   const canonicalDiagnosticPath = canonicalRegularFile(
     diagnosticPath,
     "Worktree seed manifest source diagnostic",
   );
-  if (path.resolve(diagnosticPath) !== registered.configPath || canonicalDiagnosticPath !== registered.configPath) {
-    throw new Error("Worktree seed manifest source path does not match the registered canonical source.");
+  if (
+    path.resolve(diagnosticPath) !== registered.configPath ||
+    canonicalDiagnosticPath !== registered.configPath
+  ) {
+    throw new Error(
+      "Worktree seed manifest source path does not match the registered canonical source.",
+    );
   }
   if (input.manifestSource?.instanceId !== registered.instanceId) {
-    throw new Error("Worktree seed manifest source instance does not match the registered source instance.");
+    throw new Error(
+      "Worktree seed manifest source instance does not match the registered source instance.",
+    );
   }
   if (input.manifestTargetInstanceId !== registered.targetInstanceId) {
-    throw new Error("Worktree seed manifest target instance does not match the registered target instance.");
+    throw new Error(
+      "Worktree seed manifest target instance does not match the registered target instance.",
+    );
   }
   return registered;
 }

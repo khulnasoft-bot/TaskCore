@@ -286,7 +286,8 @@ export function EvalReportInspector({
           <dd>
             {isPublic
               ? "Withheld from public replay"
-              : evalReport.run.initialRevision == null || evalReport.run.finalRevision == null
+              : evalReport.run.initialRevision == null ||
+                  evalReport.run.finalRevision == null
                 ? "unavailable"
                 : `r${evalReport.run.initialRevision} → r${evalReport.run.finalRevision}`}
           </dd>

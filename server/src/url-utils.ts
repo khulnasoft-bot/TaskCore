@@ -6,8 +6,15 @@
 
 export function isLoopbackHost(host: string): boolean {
   // Strip surrounding brackets so a URL hostname form ("[::1]") matches too.
-  const normalized = host.trim().toLowerCase().replace(/^\[|\]$/g, "");
-  return normalized === "127.0.0.1" || normalized === "localhost" || normalized === "::1";
+  const normalized = host
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
+  return (
+    normalized === "127.0.0.1" ||
+    normalized === "localhost" ||
+    normalized === "::1"
+  );
 }
 
 /**
@@ -18,7 +25,10 @@ export function isLoopbackHost(host: string): boolean {
  * port, so its advertised base URL must follow that port even for a non-loopback
  * host (worktrees are reachable at the same host on their own port).
  */
-export function rewriteUrlPort(rawUrl: string | undefined, port: number): string | undefined {
+export function rewriteUrlPort(
+  rawUrl: string | undefined,
+  port: number,
+): string | undefined {
   if (!rawUrl) return undefined;
   try {
     const parsed = new URL(rawUrl);

@@ -4,9 +4,14 @@ import { customType } from "drizzle-orm/pg-core";
 const originalJsonKey = "$taskcoreRunEventJsonV1";
 
 /** Keep JSONB routing fields queryable while retaining JSON strings containing NUL. */
-export function encodeRunEventPayload(payload: Record<string, unknown>): string {
+export function encodeRunEventPayload(
+  payload: Record<string, unknown>,
+): string {
   const originalJson = JSON.stringify(payload);
-  if (!originalJson.includes("\\u0000") && !originalJson.includes(originalJsonKey)) {
+  if (
+    !originalJson.includes("\\u0000") &&
+    !originalJson.includes(originalJsonKey)
+  ) {
     return originalJson;
   }
 
@@ -21,9 +26,12 @@ export function encodeRunEventPayload(payload: Record<string, unknown>): string 
     if (typeof value === "string") return projectString(value);
     if (Array.isArray(value)) return value.map(project);
     if (value !== null && typeof value === "object") {
-      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
-        projectString(key), project(entry),
-      ]));
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [
+          projectString(key),
+          project(entry),
+        ]),
+      );
     }
     return value;
   }
@@ -35,13 +43,23 @@ export function encodeRunEventPayload(payload: Record<string, unknown>): string 
   return JSON.stringify({ ...projection, [originalJsonKey]: originalJson });
 }
 
-export function decodeRunEventPayload(value: string | Record<string, unknown>): Record<string, unknown> {
-  const payload = typeof value === "string" ? JSON.parse(value) as Record<string, unknown> : value;
+export function decodeRunEventPayload(
+  value: string | Record<string, unknown>,
+): Record<string, unknown> {
+  const payload =
+    typeof value === "string"
+      ? (JSON.parse(value) as Record<string, unknown>)
+      : value;
   if (Object.hasOwn(payload, originalJsonKey)) {
     const originalJson = payload[originalJsonKey];
-    if (typeof originalJson !== "string") throw new Error("Invalid run-event payload encoding");
+    if (typeof originalJson !== "string")
+      throw new Error("Invalid run-event payload encoding");
     const original: unknown = JSON.parse(originalJson);
-    if (original === null || typeof original !== "object" || Array.isArray(original)) {
+    if (
+      original === null ||
+      typeof original !== "object" ||
+      Array.isArray(original)
+    ) {
       throw new Error("Invalid run-event payload encoding");
     }
     return original as Record<string, unknown>;

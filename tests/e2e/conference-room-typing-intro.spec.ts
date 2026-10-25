@@ -120,7 +120,9 @@ async function assertFirstTaskExists(page: Page, companyName: string) {
   );
   expect(company).toBeTruthy();
 
-  const issuesRes = await page.request.get(`/api/companies/${company.id}/issues`);
+  const issuesRes = await page.request.get(
+    `/api/companies/${company.id}/issues`,
+  );
   expect(issuesRes.ok()).toBe(true);
   const issues = await issuesRes.json();
   const firstTask = issues.find(
@@ -133,7 +135,10 @@ async function assertFirstTaskExists(page: Page, companyName: string) {
 }
 
 test.describe("First-task launch after onboarding wizard", () => {
-  test("creates the first task and opens its detail page", async ({ page, baseURL }) => {
+  test("creates the first task and opens its detail page", async ({
+    page,
+    baseURL,
+  }) => {
     await instrumentNavLog(page);
     await installLaunchIntercepts(page, baseURL);
 

@@ -12,9 +12,7 @@ export type {
   RecoveryOriginKind,
   RecoveryReasonKind,
 } from "./origins.js";
-export {
-  classifyIssueGraphLiveness,
-} from "./issue-graph-liveness.js";
+export { classifyIssueGraphLiveness } from "./issue-graph-liveness.js";
 export type {
   IssueGraphLivenessInput,
   IssueLivenessAgentInput,
@@ -28,9 +26,7 @@ export type {
   IssueLivenessSeverity,
   IssueLivenessState,
 } from "./issue-graph-liveness.js";
-export {
-  recoveryService,
-} from "./service.js";
+export { recoveryService } from "./service.js";
 export {
   DEFAULT_MAX_LIVENESS_CONTINUATION_ATTEMPTS,
   RUN_LIVENESS_CONTINUATION_REASON,
@@ -39,9 +35,7 @@ export {
   findExistingRunLivenessContinuationWake,
   readContinuationAttempt,
 } from "./run-liveness-continuations.js";
-export type {
-  RunContinuationDecision,
-} from "./run-liveness-continuations.js";
+export type { RunContinuationDecision } from "./run-liveness-continuations.js";
 export {
   DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS,
   FINISH_SUCCESSFUL_RUN_HANDOFF_REASON,

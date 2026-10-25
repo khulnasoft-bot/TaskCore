@@ -12,14 +12,22 @@ import { startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.j
 
 describe("P6-18 / MIG-01..04 native finalization migration", () => {
   it("repairs only later duplicates and preserves legacy event bytes and cursors", async () => {
-    const temporary = await startEmbeddedPostgresTestDatabase("taskcore-native-migration-");
+    const temporary = await startEmbeddedPostgresTestDatabase(
+      "taskcore-native-migration-",
+    );
     const migration = await readFile(
-      new URL("../../../packages/db/src/migrations/0227_modern_pandemic.sql", import.meta.url),
+      new URL(
+        "../../../packages/db/src/migrations/0227_modern_pandemic.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
     const migrationHash = createHash("sha256").update(migration).digest("hex");
     const sequenceMigration = await readFile(
-      new URL("../../../packages/db/src/migrations/0235_heartbeat_run_event_sequence_uniqueness.sql", import.meta.url),
+      new URL(
+        "../../../packages/db/src/migrations/0235_heartbeat_run_event_sequence_uniqueness.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
     const sequenceMigrationHash = createHash("sha256")
@@ -32,7 +40,8 @@ describe("P6-18 / MIG-01..04 native finalization migration", () => {
       const runId = "10000000-0000-4000-8000-000000000003";
       // Reconstruct the actual pre-0227 shape rather than extracting selected
       // repair statements from the migration under test.
-      await rawDb.execute(sql.raw(`
+      await rawDb.execute(
+        sql.raw(`
         DROP TABLE IF EXISTS status_decision_effects, status_decisions, work_assessments,
           native_run_finalizations, native_run_results, completion_contracts CASCADE;
         DROP TRIGGER IF EXISTS taskcore_issue_status_version_trigger ON issues;
@@ -67,9 +76,14 @@ describe("P6-18 / MIG-01..04 native finalization migration", () => {
         ALTER TABLE issues
           DROP COLUMN IF EXISTS status_version,
           DROP COLUMN IF EXISTS last_status_decision_id;
-      `));
-      await rawDb.execute(sql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${migrationHash}`);
-      await rawDb.execute(sql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${sequenceMigrationHash}`);
+      `),
+      );
+      await rawDb.execute(
+        sql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${migrationHash}`,
+      );
+      await rawDb.execute(
+        sql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${sequenceMigrationHash}`,
+      );
       await rawDb.execute(sql`
         INSERT INTO companies (id, name, issue_prefix)
         VALUES (${companyId}, 'Migration fixture', 'MIG')
@@ -99,11 +113,20 @@ describe("P6-18 / MIG-01..04 native finalization migration", () => {
       await applyPendingMigrations(temporary.connectionString);
       const db = createDb(temporary.connectionString);
 
-      const after = await db.select().from(heartbeatRunEvents)
-        .where(eq(heartbeatRunEvents.runId, runId)).orderBy(heartbeatRunEvents.id);
+      const after = await db
+        .select()
+        .from(heartbeatRunEvents)
+        .where(eq(heartbeatRunEvents.runId, runId))
+        .orderBy(heartbeatRunEvents.id);
       expect(after.map((row) => row.seq)).toEqual([1, 5, 10, 9]);
-      expect((await db.select({ nextEventSeq: heartbeatRuns.nextEventSeq }).from(heartbeatRuns)
-        .where(eq(heartbeatRuns.id, runId)))[0]?.nextEventSeq).toBe(11);
+      expect(
+        (
+          await db
+            .select({ nextEventSeq: heartbeatRuns.nextEventSeq })
+            .from(heartbeatRuns)
+            .where(eq(heartbeatRuns.id, runId))
+        )[0]?.nextEventSeq,
+      ).toBe(11);
 
       // The repaired duplicate's cursor is the only changed byte-equivalent read field.
       const legacyColumns = (row: Record<string, unknown>) => ({
@@ -116,15 +139,25 @@ describe("P6-18 / MIG-01..04 native finalization migration", () => {
         level: row.level,
         message: row.message,
         payload: row.payload,
-        createdAt: new Date(String(row.createdAt ?? row.created_at)).toISOString(),
+        createdAt: new Date(
+          String(row.createdAt ?? row.created_at),
+        ).toISOString(),
       });
-      expect(after.map((row) => legacyColumns(row))).toEqual(before.map(legacyColumns));
+      expect(after.map((row) => legacyColumns(row))).toEqual(
+        before.map(legacyColumns),
+      );
       expect(after[0]?.seq).toBe(Number(before[0]?.seq));
       expect(after[1]?.seq).toBe(Number(before[1]?.seq));
       expect(after[3]?.seq).toBe(Number(before[3]?.seq));
-      await expect(db.insert(heartbeatRunEvents).values({
-        companyId, runId, agentId, seq: 5, eventType: "must-conflict",
-      })).rejects.toThrow();
+      await expect(
+        db.insert(heartbeatRunEvents).values({
+          companyId,
+          runId,
+          agentId,
+          seq: 5,
+          eventType: "must-conflict",
+        }),
+      ).rejects.toThrow();
     } finally {
       await temporary.cleanup();
     }

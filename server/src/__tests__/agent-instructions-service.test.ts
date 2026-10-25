@@ -39,59 +39,109 @@ describe("agent instructions service", () => {
   afterEach(async () => {
     if (originalTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
     else process.env.TASKCORE_HOME = originalTaskcoreHome;
-    if (originalTaskcoreInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+    if (originalTaskcoreInstanceId === undefined)
+      delete process.env.TASKCORE_INSTANCE_ID;
     else process.env.TASKCORE_INSTANCE_ID = originalTaskcoreInstanceId;
 
-    await Promise.all([...cleanupDirs].map(async (dir) => {
-      await fs.rm(dir, { recursive: true, force: true });
-      cleanupDirs.delete(dir);
-    }));
+    await Promise.all(
+      [...cleanupDirs].map(async (dir) => {
+        await fs.rm(dir, { recursive: true, force: true });
+        cleanupDirs.delete(dir);
+      }),
+    );
   });
 
-  it.each(["./AGENTS.md", "notes/../AGENTS.md", "notes\\..\\AGENTS.md", "../invalid"])("reads legacy entry configuration %s without breaking the bundle", async (entry) => {
-    const root = await makeTempDir("legacy-entry-"); cleanupDirs.add(root);
-    await fs.writeFile(path.join(root, "AGENTS.md"), "legacy instructions");
-    const agent = makeAgent({ instructionsBundleMode: "external", instructionsRootPath: root, instructionsEntryFile: entry });
-    const svc = agentInstructionsService();
-    const bundle = await svc.getBundle(agent);
-    expect(bundle.entryFile).toBe("AGENTS.md");
-    expect((await svc.readFile(agent, bundle.entryFile)).content).toBe("legacy instructions");
-    if (entry === "../invalid") expect(bundle.warnings.length).toBeGreaterThan(0);
-  });
+  it.each([
+    "./AGENTS.md",
+    "notes/../AGENTS.md",
+    "notes\\..\\AGENTS.md",
+    "../invalid",
+  ])(
+    "reads legacy entry configuration %s without breaking the bundle",
+    async (entry) => {
+      const root = await makeTempDir("legacy-entry-");
+      cleanupDirs.add(root);
+      await fs.writeFile(path.join(root, "AGENTS.md"), "legacy instructions");
+      const agent = makeAgent({
+        instructionsBundleMode: "external",
+        instructionsRootPath: root,
+        instructionsEntryFile: entry,
+      });
+      const svc = agentInstructionsService();
+      const bundle = await svc.getBundle(agent);
+      expect(bundle.entryFile).toBe("AGENTS.md");
+      expect((await svc.readFile(agent, bundle.entryFile)).content).toBe(
+        "legacy instructions",
+      );
+      if (entry === "../invalid")
+        expect(bundle.warnings.length).toBeGreaterThan(0);
+    },
+  );
 
   it("lists external bundles containing large binary assets", async () => {
-    const root = await makeTempDir("external-large-assets-"); cleanupDirs.add(root);
+    const root = await makeTempDir("external-large-assets-");
+    cleanupDirs.add(root);
     await fs.writeFile(path.join(root, "AGENTS.md"), "external instructions");
     const asset = await fs.open(path.join(root, "large.bin"), "w");
-    try { await asset.truncate(17 * 1024 * 1024); } finally { await asset.close(); }
-    const agent = makeAgent({ instructionsBundleMode: "external", instructionsRootPath: root });
+    try {
+      await asset.truncate(17 * 1024 * 1024);
+    } finally {
+      await asset.close();
+    }
+    const agent = makeAgent({
+      instructionsBundleMode: "external",
+      instructionsRootPath: root,
+    });
     const svc = agentInstructionsService();
     const bundle = await svc.getBundle(agent);
-    expect(bundle.files).toContainEqual(expect.objectContaining({ path: "large.bin", binary: true, editable: false }));
-    expect((await svc.readFile(agent, "AGENTS.md")).content).toBe("external instructions");
+    expect(bundle.files).toContainEqual(
+      expect.objectContaining({
+        path: "large.bin",
+        binary: true,
+        editable: false,
+      }),
+    );
+    expect((await svc.readFile(agent, "AGENTS.md")).content).toBe(
+      "external instructions",
+    );
   });
 
   it("rejects reserved paths while initializing an unconfigured managed bundle", async () => {
-    const root = await makeTempDir("unconfigured-reserved-path-"); cleanupDirs.add(root);
+    const root = await makeTempDir("unconfigured-reserved-path-");
+    cleanupDirs.add(root);
     process.env.TASKCORE_HOME = root;
     const svc = agentInstructionsService();
-    await expect(svc.writeFile(makeAgent({}), ".taskcore-runtime/state", "invalid")).rejects.toMatchObject({ status: 422 });
+    await expect(
+      svc.writeFile(makeAgent({}), ".taskcore-runtime/state", "invalid"),
+    ).rejects.toMatchObject({ status: 422 });
     expect(await fs.readdir(root)).toEqual([]);
   });
 
   it("copies the existing bundle into the managed root when switching to managed mode", async () => {
     const taskcoreHome = await makeTempDir("taskcore-agent-instructions-home-");
-    const externalRoot = await makeTempDir("taskcore-agent-instructions-external-");
+    const externalRoot = await makeTempDir(
+      "taskcore-agent-instructions-external-",
+    );
     cleanupDirs.add(taskcoreHome);
     cleanupDirs.add(externalRoot);
     process.env.TASKCORE_HOME = taskcoreHome;
     process.env.TASKCORE_INSTANCE_ID = "test-instance";
 
-    await fs.writeFile(path.join(externalRoot, "AGENTS.md"), "# External Agent\n", "utf8");
+    await fs.writeFile(
+      path.join(externalRoot, "AGENTS.md"),
+      "# External Agent\n",
+      "utf8",
+    );
     await fs.mkdir(path.join(externalRoot, "docs"), { recursive: true });
-    await fs.writeFile(path.join(externalRoot, "docs", "TOOLS.md"), "## Tools\n", "utf8");
+    await fs.writeFile(
+      path.join(externalRoot, "docs", "TOOLS.md"),
+      "## Tools\n",
+      "utf8",
+    );
 
-    const svc = agentInstructionsService({ select: () => ({ from: () => ({ where: async () => [] }) }) } as never);
+    const svc = agentInstructionsService({
+      select: () => ({ from: () => ({ where: async () => [] }) }),
+    } as never);
     const agent = makeAgent({
       instructionsBundleMode: "external",
       instructionsRootPath: externalRoot,
@@ -114,9 +164,22 @@ describe("agent instructions service", () => {
         "instructions",
       ),
     );
-    expect(result.bundle.files.map((file) => file.path)).toEqual(["AGENTS.md", "docs/TOOLS.md"]);
-    await expect(fs.readFile(path.join(result.bundle.managedRootPath, "AGENTS.md"), "utf8")).resolves.toBe("# External Agent\n");
-    await expect(fs.readFile(path.join(result.bundle.managedRootPath, "docs", "TOOLS.md"), "utf8")).resolves.toBe("## Tools\n");
+    expect(result.bundle.files.map((file) => file.path)).toEqual([
+      "AGENTS.md",
+      "docs/TOOLS.md",
+    ]);
+    await expect(
+      fs.readFile(
+        path.join(result.bundle.managedRootPath, "AGENTS.md"),
+        "utf8",
+      ),
+    ).resolves.toBe("# External Agent\n");
+    await expect(
+      fs.readFile(
+        path.join(result.bundle.managedRootPath, "docs", "TOOLS.md"),
+        "utf8",
+      ),
+    ).resolves.toBe("## Tools\n");
   });
 
   it("creates the target entry file when switching to a new external root", async () => {
@@ -131,14 +194,20 @@ describe("agent instructions service", () => {
       "agent-1",
       "instructions",
     );
-    const externalRoot = await makeTempDir("taskcore-agent-instructions-new-external-");
+    const externalRoot = await makeTempDir(
+      "taskcore-agent-instructions-new-external-",
+    );
     cleanupDirs.add(taskcoreHome);
     cleanupDirs.add(externalRoot);
     process.env.TASKCORE_HOME = taskcoreHome;
     process.env.TASKCORE_INSTANCE_ID = "test-instance";
 
     await fs.mkdir(managedRoot, { recursive: true });
-    await fs.writeFile(path.join(managedRoot, "AGENTS.md"), "# Managed Agent\n", "utf8");
+    await fs.writeFile(
+      path.join(managedRoot, "AGENTS.md"),
+      "# Managed Agent\n",
+      "utf8",
+    );
 
     const svc = agentInstructionsService();
     const agent = makeAgent({
@@ -156,30 +225,73 @@ describe("agent instructions service", () => {
 
     expect(result.bundle.mode).toBe("external");
     expect(result.bundle.rootPath).toBe(externalRoot);
-    await expect(fs.readFile(path.join(externalRoot, "docs", "AGENTS.md"), "utf8")).resolves.toBe("# Managed Agent\n");
+    await expect(
+      fs.readFile(path.join(externalRoot, "docs", "AGENTS.md"), "utf8"),
+    ).resolves.toBe("# Managed Agent\n");
   });
 
   it("filters junk files, dependency bundles, and python caches from bundle listings and exports", async () => {
-    const externalRoot = await makeTempDir("taskcore-agent-instructions-ignore-");
+    const externalRoot = await makeTempDir(
+      "taskcore-agent-instructions-ignore-",
+    );
     cleanupDirs.add(externalRoot);
 
-    await fs.writeFile(path.join(externalRoot, "AGENTS.md"), "# External Agent\n", "utf8");
-    await fs.writeFile(path.join(externalRoot, ".gitignore"), "node_modules/\n", "utf8");
+    await fs.writeFile(
+      path.join(externalRoot, "AGENTS.md"),
+      "# External Agent\n",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(externalRoot, ".gitignore"),
+      "node_modules/\n",
+      "utf8",
+    );
     await fs.writeFile(path.join(externalRoot, ".DS_Store"), "junk", "utf8");
     await fs.mkdir(path.join(externalRoot, "docs"), { recursive: true });
-    await fs.writeFile(path.join(externalRoot, "docs", "TOOLS.md"), "## Tools\n", "utf8");
-    await fs.writeFile(path.join(externalRoot, "docs", "module.pyc"), "compiled", "utf8");
-    await fs.writeFile(path.join(externalRoot, "docs", "._TOOLS.md"), "appledouble", "utf8");
-    await fs.mkdir(path.join(externalRoot, "node_modules", "pkg"), { recursive: true });
-    await fs.writeFile(path.join(externalRoot, "node_modules", "pkg", "index.js"), "export {};\n", "utf8");
-    await fs.mkdir(path.join(externalRoot, "python", "__pycache__"), { recursive: true });
     await fs.writeFile(
-      path.join(externalRoot, "python", "__pycache__", "module.cpython-313.pyc"),
+      path.join(externalRoot, "docs", "TOOLS.md"),
+      "## Tools\n",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(externalRoot, "docs", "module.pyc"),
       "compiled",
       "utf8",
     );
-    await fs.mkdir(path.join(externalRoot, ".pytest_cache"), { recursive: true });
-    await fs.writeFile(path.join(externalRoot, ".pytest_cache", "README.md"), "cache", "utf8");
+    await fs.writeFile(
+      path.join(externalRoot, "docs", "._TOOLS.md"),
+      "appledouble",
+      "utf8",
+    );
+    await fs.mkdir(path.join(externalRoot, "node_modules", "pkg"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(externalRoot, "node_modules", "pkg", "index.js"),
+      "export {};\n",
+      "utf8",
+    );
+    await fs.mkdir(path.join(externalRoot, "python", "__pycache__"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(
+        externalRoot,
+        "python",
+        "__pycache__",
+        "module.cpython-313.pyc",
+      ),
+      "compiled",
+      "utf8",
+    );
+    await fs.mkdir(path.join(externalRoot, ".pytest_cache"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(externalRoot, ".pytest_cache", "README.md"),
+      "cache",
+      "utf8",
+    );
 
     const svc = agentInstructionsService();
     const agent = makeAgent({
@@ -192,39 +304,66 @@ describe("agent instructions service", () => {
     const bundle = await svc.getBundle(agent);
     const exported = await svc.exportFiles(agent);
 
-    expect(bundle.files.map((file) => file.path)).toEqual([".gitignore", "AGENTS.md", "docs/TOOLS.md"]);
-    expect(Object.keys(exported.files).sort((left, right) => left.localeCompare(right))).toEqual([
+    expect(bundle.files.map((file) => file.path)).toEqual([
       ".gitignore",
       "AGENTS.md",
       "docs/TOOLS.md",
     ]);
+    expect(
+      Object.keys(exported.files).sort((left, right) =>
+        left.localeCompare(right),
+      ),
+    ).toEqual([".gitignore", "AGENTS.md", "docs/TOOLS.md"]);
   });
 
-  it.skipIf(process.platform === "win32")("rejects instruction symlinks for immutable runner snapshots without changing legacy exports", async () => {
-    const externalRoot = await makeTempDir("taskcore-agent-instructions-symlink-");
-    const outsideRoot = await makeTempDir("taskcore-agent-instructions-outside-");
-    cleanupDirs.add(externalRoot);
-    cleanupDirs.add(outsideRoot);
-    await fs.writeFile(path.join(externalRoot, "AGENTS.md"), "Read sibling.md\n", "utf8");
-    await fs.writeFile(path.join(outsideRoot, "secret.md"), "must not enter the bundle\n", "utf8");
-    await fs.symlink(path.join(outsideRoot, "secret.md"), path.join(externalRoot, "sibling.md"));
-    const agent = makeAgent({
-      instructionsBundleMode: "external",
-      instructionsRootPath: externalRoot,
-      instructionsEntryFile: "AGENTS.md",
-      instructionsFilePath: path.join(externalRoot, "AGENTS.md"),
-    });
-    const svc = agentInstructionsService();
+  it.skipIf(process.platform === "win32")(
+    "rejects instruction symlinks for immutable runner snapshots without changing legacy exports",
+    async () => {
+      const externalRoot = await makeTempDir(
+        "taskcore-agent-instructions-symlink-",
+      );
+      const outsideRoot = await makeTempDir(
+        "taskcore-agent-instructions-outside-",
+      );
+      cleanupDirs.add(externalRoot);
+      cleanupDirs.add(outsideRoot);
+      await fs.writeFile(
+        path.join(externalRoot, "AGENTS.md"),
+        "Read sibling.md\n",
+        "utf8",
+      );
+      await fs.writeFile(
+        path.join(outsideRoot, "secret.md"),
+        "must not enter the bundle\n",
+        "utf8",
+      );
+      await fs.symlink(
+        path.join(outsideRoot, "secret.md"),
+        path.join(externalRoot, "sibling.md"),
+      );
+      const agent = makeAgent({
+        instructionsBundleMode: "external",
+        instructionsRootPath: externalRoot,
+        instructionsEntryFile: "AGENTS.md",
+        instructionsFilePath: path.join(externalRoot, "AGENTS.md"),
+      });
+      const svc = agentInstructionsService();
 
-    await expect(svc.exportFiles(agent)).resolves.toMatchObject({
-      files: { "AGENTS.md": "Read sibling.md\n" },
-    });
-    await expect(svc.exportFiles(agent, { rejectSymlinks: true }))
-      .rejects.toThrow("Instructions bundle may not contain symlinks: sibling.md");
-  });
+      await expect(svc.exportFiles(agent)).resolves.toMatchObject({
+        files: { "AGENTS.md": "Read sibling.md\n" },
+      });
+      await expect(
+        svc.exportFiles(agent, { rejectSymlinks: true }),
+      ).rejects.toThrow(
+        "Instructions bundle may not contain symlinks: sibling.md",
+      );
+    },
+  );
 
   it("recovers a managed bundle from disk when bundle config metadata is missing", async () => {
-    const taskcoreHome = await makeTempDir("taskcore-agent-instructions-recover-");
+    const taskcoreHome = await makeTempDir(
+      "taskcore-agent-instructions-recover-",
+    );
     cleanupDirs.add(taskcoreHome);
     process.env.TASKCORE_HOME = taskcoreHome;
     process.env.TASKCORE_INSTANCE_ID = "test-instance";
@@ -240,7 +379,11 @@ describe("agent instructions service", () => {
       "instructions",
     );
     await fs.mkdir(managedRoot, { recursive: true });
-    await fs.writeFile(path.join(managedRoot, "AGENTS.md"), "# Recovered Agent\n", "utf8");
+    await fs.writeFile(
+      path.join(managedRoot, "AGENTS.md"),
+      "# Recovered Agent\n",
+      "utf8",
+    );
 
     const svc = agentInstructionsService();
     const agent = makeAgent({});
@@ -255,8 +398,12 @@ describe("agent instructions service", () => {
   });
 
   it("prefers the managed bundle on disk when managed metadata points at a stale root", async () => {
-    const taskcoreHome = await makeTempDir("taskcore-agent-instructions-stale-managed-");
-    const staleRoot = await makeTempDir("taskcore-agent-instructions-stale-root-");
+    const taskcoreHome = await makeTempDir(
+      "taskcore-agent-instructions-stale-managed-",
+    );
+    const staleRoot = await makeTempDir(
+      "taskcore-agent-instructions-stale-root-",
+    );
     cleanupDirs.add(taskcoreHome);
     cleanupDirs.add(staleRoot);
     process.env.TASKCORE_HOME = taskcoreHome;
@@ -273,7 +420,11 @@ describe("agent instructions service", () => {
       "instructions",
     );
     await fs.mkdir(managedRoot, { recursive: true });
-    await fs.writeFile(path.join(managedRoot, "AGENTS.md"), "# Managed Agent\n", "utf8");
+    await fs.writeFile(
+      path.join(managedRoot, "AGENTS.md"),
+      "# Managed Agent\n",
+      "utf8",
+    );
 
     const svc = agentInstructionsService();
     const agent = makeAgent({
@@ -297,8 +448,12 @@ describe("agent instructions service", () => {
   });
 
   it("heals stale managed metadata when writing bundle files", async () => {
-    const taskcoreHome = await makeTempDir("taskcore-agent-instructions-heal-write-");
-    const staleRoot = await makeTempDir("taskcore-agent-instructions-heal-write-stale-");
+    const taskcoreHome = await makeTempDir(
+      "taskcore-agent-instructions-heal-write-",
+    );
+    const staleRoot = await makeTempDir(
+      "taskcore-agent-instructions-heal-write-stale-",
+    );
     cleanupDirs.add(taskcoreHome);
     cleanupDirs.add(staleRoot);
     process.env.TASKCORE_HOME = taskcoreHome;
@@ -315,7 +470,11 @@ describe("agent instructions service", () => {
       "instructions",
     );
     await fs.mkdir(path.join(managedRoot, "docs"), { recursive: true });
-    await fs.writeFile(path.join(managedRoot, "AGENTS.md"), "# Managed Agent\n", "utf8");
+    await fs.writeFile(
+      path.join(managedRoot, "AGENTS.md"),
+      "# Managed Agent\n",
+      "utf8",
+    );
 
     const svc = agentInstructionsService();
     const agent = makeAgent({
@@ -333,12 +492,18 @@ describe("agent instructions service", () => {
       instructionsEntryFile: "docs/MISSING.md",
       instructionsFilePath: path.join(managedRoot, "docs/MISSING.md"),
     });
-    await expect(fs.readFile(path.join(managedRoot, "docs", "TOOLS.md"), "utf8")).resolves.toBe("## Tools\n");
+    await expect(
+      fs.readFile(path.join(managedRoot, "docs", "TOOLS.md"), "utf8"),
+    ).resolves.toBe("## Tools\n");
   });
 
   it("heals stale managed metadata when deleting bundle files", async () => {
-    const taskcoreHome = await makeTempDir("taskcore-agent-instructions-heal-delete-");
-    const staleRoot = await makeTempDir("taskcore-agent-instructions-heal-delete-stale-");
+    const taskcoreHome = await makeTempDir(
+      "taskcore-agent-instructions-heal-delete-",
+    );
+    const staleRoot = await makeTempDir(
+      "taskcore-agent-instructions-heal-delete-stale-",
+    );
     cleanupDirs.add(taskcoreHome);
     cleanupDirs.add(staleRoot);
     process.env.TASKCORE_HOME = taskcoreHome;
@@ -355,8 +520,16 @@ describe("agent instructions service", () => {
       "instructions",
     );
     await fs.mkdir(path.join(managedRoot, "docs"), { recursive: true });
-    await fs.writeFile(path.join(managedRoot, "AGENTS.md"), "# Managed Agent\n", "utf8");
-    await fs.writeFile(path.join(managedRoot, "docs", "TOOLS.md"), "## Tools\n", "utf8");
+    await fs.writeFile(
+      path.join(managedRoot, "AGENTS.md"),
+      "# Managed Agent\n",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(managedRoot, "docs", "TOOLS.md"),
+      "## Tools\n",
+      "utf8",
+    );
 
     const svc = agentInstructionsService();
     const agent = makeAgent({
@@ -374,13 +547,19 @@ describe("agent instructions service", () => {
       instructionsEntryFile: "docs/MISSING.md",
       instructionsFilePath: path.join(managedRoot, "docs/MISSING.md"),
     });
-    await expect(fs.stat(path.join(managedRoot, "docs", "TOOLS.md"))).rejects.toThrow();
+    await expect(
+      fs.stat(path.join(managedRoot, "docs", "TOOLS.md")),
+    ).rejects.toThrow();
     expect(result.bundle.files.map((file) => file.path)).toEqual(["AGENTS.md"]);
   });
 
   it("recovers the managed bundle when stale root metadata is present but mode is missing", async () => {
-    const taskcoreHome = await makeTempDir("taskcore-agent-instructions-partial-managed-");
-    const staleRoot = await makeTempDir("taskcore-agent-instructions-partial-root-");
+    const taskcoreHome = await makeTempDir(
+      "taskcore-agent-instructions-partial-managed-",
+    );
+    const staleRoot = await makeTempDir(
+      "taskcore-agent-instructions-partial-root-",
+    );
     cleanupDirs.add(taskcoreHome);
     cleanupDirs.add(staleRoot);
     process.env.TASKCORE_HOME = taskcoreHome;
@@ -397,7 +576,11 @@ describe("agent instructions service", () => {
       "instructions",
     );
     await fs.mkdir(managedRoot, { recursive: true });
-    await fs.writeFile(path.join(managedRoot, "AGENTS.md"), "# Managed Agent\n", "utf8");
+    await fs.writeFile(
+      path.join(managedRoot, "AGENTS.md"),
+      "# Managed Agent\n",
+      "utf8",
+    );
 
     const svc = agentInstructionsService();
     const agent = makeAgent({

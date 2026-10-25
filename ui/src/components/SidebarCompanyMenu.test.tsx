@@ -9,7 +9,10 @@ import { queryKeys } from "@/lib/queryKeys";
 import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
 import { SidebarCompanyMenu as SidebarCompanyMenuProduction } from "./SidebarCompanyMenu.production";
 
-vi.mock("./PluginOrganizationSwitcher", () => ({ PluginOrganizationSwitcher: ({ children }: { children: ReactNode }) => children }));
+vi.mock("./PluginOrganizationSwitcher", () => ({
+  PluginOrganizationSwitcher: ({ children }: { children: ReactNode }) =>
+    children,
+}));
 
 const mockAuthApi = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -44,7 +47,9 @@ vi.mock("@/api/sidebarPreferences", () => ({
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: { children: ReactNode; to: string }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
   useLocation: () => mockLocation,
   useNavigate: () => mockNavigate,
@@ -100,8 +105,16 @@ vi.mock("@/context/DialogContext", () => ({
 }));
 
 vi.mock("./CompanyPatternIcon", () => ({
-  CompanyPatternIcon: ({ companyName, logoUrl }: { companyName: string; logoUrl?: string | null }) => (
-    <span aria-hidden="true" data-logo-url={logoUrl ?? undefined}>{companyName.slice(0, 1)}</span>
+  CompanyPatternIcon: ({
+    companyName,
+    logoUrl,
+  }: {
+    companyName: string;
+    logoUrl?: string | null;
+  }) => (
+    <span aria-hidden="true" data-logo-url={logoUrl ?? undefined}>
+      {companyName.slice(0, 1)}
+    </span>
   ),
 }));
 
@@ -168,17 +181,24 @@ describe("SidebarCompanyMenu", () => {
     vi.clearAllMocks();
   });
 
-  function renderMenu(options: { cloud?: boolean; health?: unknown; production?: boolean } = {}) {
+  function renderMenu(
+    options: { cloud?: boolean; health?: unknown; production?: boolean } = {},
+  ) {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     // CloudAccessGate owns the health fetch in the app; seeding the cache is how
     // useCloudInstance sees a cloud-managed instance under test.
     if (options.cloud || options.health) {
-      queryClient.setQueryData(queryKeys.health, options.health ?? CLOUD_HEALTH);
+      queryClient.setQueryData(
+        queryKeys.health,
+        options.health ?? CLOUD_HEALTH,
+      );
     }
     const root = createRoot(container);
-    const Menu = options.production ? SidebarCompanyMenuProduction : SidebarCompanyMenu;
+    const Menu = options.production
+      ? SidebarCompanyMenuProduction
+      : SidebarCompanyMenu;
     act(() => {
       root.render(
         <QueryClientProvider client={queryClient}>
@@ -190,10 +210,14 @@ describe("SidebarCompanyMenu", () => {
   }
 
   async function openMenu(ariaLabel: string) {
-    const trigger = container.querySelector(`button[aria-label="${ariaLabel}"]`);
+    const trigger = container.querySelector(
+      `button[aria-label="${ariaLabel}"]`,
+    );
     expect(trigger).not.toBeNull();
     act(() => {
-      trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      trigger?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
@@ -214,13 +238,15 @@ describe("SidebarCompanyMenu", () => {
     expect(document.body.textContent).toContain("Couldn't load organizations");
     expect(document.body.textContent).not.toContain("No organizations");
 
-    const retryItem = Array.from(document.body.querySelectorAll('[role="menuitem"]')).find(
-      (item) => item.textContent?.includes("Try again"),
-    );
+    const retryItem = Array.from(
+      document.body.querySelectorAll('[role="menuitem"]'),
+    ).find((item) => item.textContent?.includes("Try again"));
     expect(retryItem).not.toBeUndefined();
 
     act(() => {
-      retryItem?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      retryItem?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       retryItem?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
@@ -241,7 +267,9 @@ describe("SidebarCompanyMenu", () => {
     await openMenu("Open Acme Labs organization switcher");
 
     expect(document.body.textContent).toContain("No organizations");
-    expect(document.body.textContent).not.toContain("Couldn't load organizations");
+    expect(document.body.textContent).not.toContain(
+      "Couldn't load organizations",
+    );
 
     act(() => {
       root.unmount();
@@ -264,19 +292,27 @@ describe("SidebarCompanyMenu", () => {
     await flushReact();
     await flushReact();
 
-    const trigger = container.querySelector('button[aria-label="Open Acme Labs organization switcher"]');
+    const trigger = container.querySelector(
+      'button[aria-label="Open Acme Labs organization switcher"]',
+    );
     expect(trigger).not.toBeNull();
     expect(trigger?.classList).toContain("px-4");
     expect(trigger?.classList).toContain("has-[>svg]:px-4");
     expect(trigger?.classList).toContain("hover:bg-sidebar-accent");
-    expect(trigger?.classList).toContain("hover:text-sidebar-accent-foreground");
+    expect(trigger?.classList).toContain(
+      "hover:text-sidebar-accent-foreground",
+    );
     expect(trigger?.classList).toContain("dark:hover:bg-sidebar-accent");
-    expect(trigger?.classList).toContain("dark:hover:text-sidebar-accent-foreground");
+    expect(trigger?.classList).toContain(
+      "dark:hover:text-sidebar-accent-foreground",
+    );
     expect(trigger?.classList).not.toContain("hover:bg-background");
     expect(trigger?.classList).not.toContain("dark:hover:bg-background");
     expect(trigger?.classList).not.toContain("dark:hover:bg-accent/50");
     act(() => {
-      trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      trigger?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
@@ -310,11 +346,15 @@ describe("SidebarCompanyMenu", () => {
 
     expect(container.textContent).toContain("Acme Labs");
 
-    const trigger = container.querySelector('button[aria-label="Open Acme Labs organization switcher"]');
+    const trigger = container.querySelector(
+      'button[aria-label="Open Acme Labs organization switcher"]',
+    );
     expect(trigger).not.toBeNull();
 
     act(() => {
-      trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      trigger?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
@@ -328,8 +368,9 @@ describe("SidebarCompanyMenu", () => {
     expect(document.body.textContent).not.toContain("Company settings");
     expect(document.body.textContent).toContain("Sign out");
 
-    const signOutButton = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Sign out"));
+    const signOutButton = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Sign out"));
     expect(signOutButton).toBeTruthy();
 
     act(() => {
@@ -339,7 +380,9 @@ describe("SidebarCompanyMenu", () => {
 
     expect(mockAuthApi.signOut).toHaveBeenCalledTimes(1);
     expect(mockNavigateTopLevel).not.toHaveBeenCalled();
-    expect(queryClient.getQueryState(queryKeys.health)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.health)?.isInvalidated).toBe(
+      true,
+    );
     expect(document.body.textContent).not.toContain("Organizations");
 
     act(() => {
@@ -348,7 +391,9 @@ describe("SidebarCompanyMenu", () => {
   });
 
   it("shows the production-shell invite shortcut when no surface is hidden", async () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     queryClient.setQueryData(queryKeys.health, { status: "ok" });
     const root = createRoot(container);
     act(() => {
@@ -374,8 +419,13 @@ describe("SidebarCompanyMenu", () => {
     // The production shell (streamlined UI disabled) must honor
     // TASKCORE_HIDDEN_SETTINGS like the streamlined menu — this is the knob
     // Taskcore Cloud uses to drop the shortcut on its managed stacks.
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    queryClient.setQueryData(queryKeys.health, { status: "ok", hiddenSettings: ["company.invites"] });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(queryKeys.health, {
+      status: "ok",
+      hiddenSettings: ["company.invites"],
+    });
     const root = createRoot(container);
     act(() => {
       root.render(
@@ -464,17 +514,22 @@ describe("SidebarCompanyMenu", () => {
     await flushReact();
     await flushReact();
 
-    const trigger = container.querySelector('button[aria-label="Open Acme Labs organization switcher"]');
+    const trigger = container.querySelector(
+      'button[aria-label="Open Acme Labs organization switcher"]',
+    );
     expect(trigger).not.toBeNull();
 
     act(() => {
-      trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      trigger?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
 
-    const editButton = Array.from(document.body.querySelectorAll("button"))
-      .find((element) => element.textContent === "Edit");
+    const editButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((element) => element.textContent === "Edit");
     expect(editButton).toBeTruthy();
 
     act(() => {
@@ -491,8 +546,9 @@ describe("SidebarCompanyMenu", () => {
     expect(reorderButton).toBeTruthy();
     expect(reorderButton?.classList).toContain("size-8");
 
-    const strataItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Strata"));
+    const strataItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Strata"));
     expect(strataItem).toBeTruthy();
 
     act(() => {
@@ -525,17 +581,22 @@ describe("SidebarCompanyMenu", () => {
     await flushReact();
     await flushReact();
 
-    const trigger = container.querySelector('button[aria-label="Open Acme Labs organization switcher"]');
+    const trigger = container.querySelector(
+      'button[aria-label="Open Acme Labs organization switcher"]',
+    );
     expect(trigger).not.toBeNull();
 
     act(() => {
-      trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      trigger?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
 
-    const strataItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Strata"));
+    const strataItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Strata"));
     expect(strataItem).toBeTruthy();
 
     act(() => {
@@ -558,8 +619,9 @@ describe("SidebarCompanyMenu", () => {
 
     await openMenu("Open Acme Labs organization switcher");
 
-    const createItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Create organization"));
+    const createItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Create organization"));
     expect(createItem).toBeTruthy();
 
     act(() => {
@@ -585,7 +647,9 @@ describe("SidebarCompanyMenu", () => {
     const { root } = renderMenu();
     await flushReact();
 
-    const trigger = container.querySelector('button[aria-label="Open Acme Labs organization switcher"]');
+    const trigger = container.querySelector(
+      'button[aria-label="Open Acme Labs organization switcher"]',
+    );
     expect(trigger).not.toBeNull();
     expect(trigger?.className).toContain("min-w-0");
 
@@ -611,8 +675,9 @@ describe("SidebarCompanyMenu", () => {
       await flushReact();
       await openMenu("Open Acme Labs organization switcher");
 
-      const signOutItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-        .find((element) => element.textContent?.includes("Sign out"));
+      const signOutItem = Array.from(
+        document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+      ).find((element) => element.textContent?.includes("Sign out"));
       expect(signOutItem).toBeTruthy();
 
       act(() => {
@@ -630,22 +695,30 @@ describe("SidebarCompanyMenu", () => {
       });
     });
 
-    it.each([false, true])("keeps company navigation without local creation when a managed host has no switcher plugin (production=%s)", async (production) => {
-      const { root } = renderMenu({ cloud: true, production });
-      await flushReact();
-      await flushReact();
-      await openMenu(`Open Acme Labs ${production ? "company" : "organization"} switcher`);
-      expect(document.body.textContent).toContain("Anachronist Wiki");
-      expect(document.body.textContent).toContain("ANA");
-      expect(document.body.textContent).not.toContain("Create organization");
-      expect(mockOpenOnboarding).not.toHaveBeenCalled();
-      const row = [...document.querySelectorAll('[data-slot="dropdown-menu-item"]')]
-        .find(element => element.textContent?.includes("Anachronist Wiki"));
-      act(() => row?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-      expect(mockSetSelectedCompanyId).toHaveBeenCalledWith("company-3");
-      expect(mockNavigate).toHaveBeenCalledWith("/ANA/dashboard");
-      expect(mockNavigateTopLevel).not.toHaveBeenCalled();
-      act(() => root.unmount());
-    });
+    it.each([false, true])(
+      "keeps company navigation without local creation when a managed host has no switcher plugin (production=%s)",
+      async (production) => {
+        const { root } = renderMenu({ cloud: true, production });
+        await flushReact();
+        await flushReact();
+        await openMenu(
+          `Open Acme Labs ${production ? "company" : "organization"} switcher`,
+        );
+        expect(document.body.textContent).toContain("Anachronist Wiki");
+        expect(document.body.textContent).toContain("ANA");
+        expect(document.body.textContent).not.toContain("Create organization");
+        expect(mockOpenOnboarding).not.toHaveBeenCalled();
+        const row = [
+          ...document.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+        ].find((element) => element.textContent?.includes("Anachronist Wiki"));
+        act(() =>
+          row?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+        );
+        expect(mockSetSelectedCompanyId).toHaveBeenCalledWith("company-3");
+        expect(mockNavigate).toHaveBeenCalledWith("/ANA/dashboard");
+        expect(mockNavigateTopLevel).not.toHaveBeenCalled();
+        act(() => root.unmount());
+      },
+    );
   });
 });

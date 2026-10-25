@@ -1,5 +1,8 @@
 import type { UIAdapterModule } from "../types";
-import { createGrokStdoutParser, parseGrokStdoutLine } from "@taskcore/adapter-grok-local/ui";
+import {
+  createGrokStdoutParser,
+  parseGrokStdoutLine,
+} from "@taskcore/adapter-grok-local/ui";
 import { buildGrokLocalConfig } from "@taskcore/adapter-grok-local/ui";
 import { GrokLocalConfigFields } from "./config-fields";
 

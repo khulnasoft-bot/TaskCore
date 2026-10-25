@@ -1,9 +1,17 @@
 import { Router, type Request } from "express";
 import type { Db } from "@taskcore/db";
-import { builtInAgentEmptyMutationSchema, builtInAgentProvisionSchema, builtInAgentResetSchema } from "@taskcore/shared";
+import {
+  builtInAgentEmptyMutationSchema,
+  builtInAgentProvisionSchema,
+  builtInAgentResetSchema,
+} from "@taskcore/shared";
 import { validate } from "../middleware/validate.js";
 import { forbidden, notFound } from "../errors.js";
-import { accessService, instanceSettingsService, logActivity } from "../services/index.js";
+import {
+  accessService,
+  instanceSettingsService,
+  logActivity,
+} from "../services/index.js";
 import { builtInAgentService } from "../services/built-in-agents.js";
 import { authorizationDeniedDetails } from "../services/authorization.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
@@ -11,50 +19,58 @@ import type { BuiltInAgentState } from "../services/built-in-agents.js";
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function formatScheduleLabel(trigger: { cronExpression: string; timezone: string } | undefined) {
+function formatScheduleLabel(
+  trigger: { cronExpression: string; timezone: string } | undefined,
+) {
   if (!trigger) return "Weekly schedule";
   const parts = trigger.cronExpression.trim().split(/\s+/);
   const [minute, hour, , , dayOfWeek] = parts;
   const weekdayIndex = dayOfWeek ? Number(dayOfWeek) : Number.NaN;
   if (
-    parts.length === 5
-    && /^\d+$/.test(minute ?? "")
-    && /^\d+$/.test(hour ?? "")
-    && Number.isInteger(weekdayIndex)
-    && weekdayIndex >= 0
-    && weekdayIndex < WEEKDAY_LABELS.length
+    parts.length === 5 &&
+    /^\d+$/.test(minute ?? "") &&
+    /^\d+$/.test(hour ?? "") &&
+    Number.isInteger(weekdayIndex) &&
+    weekdayIndex >= 0 &&
+    weekdayIndex < WEEKDAY_LABELS.length
   ) {
     return `Weekly · ${WEEKDAY_LABELS[weekdayIndex]} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${trigger.timezone}`;
   }
   return `Weekly · ${trigger.timezone}`;
 }
 
-function redactBuiltInAgentListState(state: BuiltInAgentState): BuiltInAgentState {
+function redactBuiltInAgentListState(
+  state: BuiltInAgentState,
+): BuiltInAgentState {
   const definition = {
     ...state.definition,
-    defaultInstructions: state.definition.defaultInstructions ? "[file-backed]" : "",
+    defaultInstructions: state.definition.defaultInstructions
+      ? "[file-backed]"
+      : "",
     bundle: state.definition.bundle
       ? {
-        stockVersion: state.definition.bundle.stockVersion,
-        instructions: {
-          entryFile: state.definition.bundle.instructions.entryFile,
-          files: Object.keys(state.definition.bundle.instructions.files),
-        },
-        skill: {
-          skillKey: state.definition.bundle.skill.skillKey,
-          displayName: state.definition.bundle.skill.displayName,
-          slug: state.definition.bundle.skill.slug,
-          canonicalKey: state.definition.bundle.skill.canonicalKey,
-          files: Object.keys(state.definition.bundle.skill.files),
-        },
-        routine: {
-          routineKey: state.definition.bundle.routine.routineKey,
-          title: state.definition.bundle.routine.title,
-          status: state.definition.bundle.routine.status,
-          triggerCount: state.definition.bundle.routine.triggers.length,
-          scheduleLabel: formatScheduleLabel(state.definition.bundle.routine.triggers[0]),
-        },
-      }
+          stockVersion: state.definition.bundle.stockVersion,
+          instructions: {
+            entryFile: state.definition.bundle.instructions.entryFile,
+            files: Object.keys(state.definition.bundle.instructions.files),
+          },
+          skill: {
+            skillKey: state.definition.bundle.skill.skillKey,
+            displayName: state.definition.bundle.skill.displayName,
+            slug: state.definition.bundle.skill.slug,
+            canonicalKey: state.definition.bundle.skill.canonicalKey,
+            files: Object.keys(state.definition.bundle.skill.files),
+          },
+          routine: {
+            routineKey: state.definition.bundle.routine.routineKey,
+            title: state.definition.bundle.routine.title,
+            status: state.definition.bundle.routine.status,
+            triggerCount: state.definition.bundle.routine.triggers.length,
+            scheduleLabel: formatScheduleLabel(
+              state.definition.bundle.routine.triggers[0],
+            ),
+          },
+        }
       : undefined,
   } as BuiltInAgentState["definition"];
   if (!state.agent) return { ...state, definition };
@@ -82,7 +98,10 @@ export function builtInAgentRoutes(db: Db) {
     }
   }
 
-  async function assertCanProvisionBuiltInAgents(req: Request, companyId: string) {
+  async function assertCanProvisionBuiltInAgents(
+    req: Request,
+    companyId: string,
+  ) {
     assertCompanyAccess(req, companyId);
     const decision = await access.decide({
       actor: req.actor,
@@ -93,13 +112,21 @@ export function builtInAgentRoutes(db: Db) {
     throw forbidden(decision.explanation, authorizationDeniedDetails(decision));
   }
 
-  async function assertCanControlBuiltInRoutine(req: Request, companyId: string) {
+  async function assertCanControlBuiltInRoutine(
+    req: Request,
+    companyId: string,
+  ) {
     assertCompanyAccess(req, companyId);
     if (req.actor.type !== "board") {
       throw forbidden("Only board operators can control built-in routines.");
     }
-    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
-    const allowed = await access.canUser(companyId, req.actor.userId, "tasks:assign");
+    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+      return;
+    const allowed = await access.canUser(
+      companyId,
+      req.actor.userId,
+      "tasks:assign",
+    );
     if (!allowed) {
       throw forbidden("Missing permission: tasks:assign");
     }
@@ -107,8 +134,8 @@ export function builtInAgentRoutes(db: Db) {
 
   async function logBuiltInAgentMutation(
     req: Request,
-      input: {
-        companyId: string;
+    input: {
+      companyId: string;
       action:
         | "built_in_agent.provision_requested"
         | "built_in_agent.reconcile"
@@ -132,7 +159,10 @@ export function builtInAgentRoutes(db: Db) {
       actorId: actor.actorId,
       action: input.action,
       entityType: input.action === "approval.created" ? "approval" : "agent",
-      entityId: input.action === "approval.created" ? input.approvalId ?? input.key : input.agentId ?? input.key,
+      entityId:
+        input.action === "approval.created"
+          ? (input.approvalId ?? input.key)
+          : (input.agentId ?? input.key),
       ...(actor.agentId ? { agentId: actor.agentId } : {}),
       ...(actor.runId ? { runId: actor.runId } : {}),
       details: {
@@ -153,29 +183,36 @@ export function builtInAgentRoutes(db: Db) {
     res.json(states.map(redactBuiltInAgentListState));
   });
 
-  router.get("/companies/:companyId/built-in-agents/:key/status", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    const key = req.params.key as string;
-    assertCompanyAccess(req, companyId);
-    await assertBuiltInAgentsEnabled();
-    res.json(redactBuiltInAgentListState(await svc.get(companyId, key)));
-  });
+  router.get(
+    "/companies/:companyId/built-in-agents/:key/status",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      const key = req.params.key as string;
+      assertCompanyAccess(req, companyId);
+      await assertBuiltInAgentsEnabled();
+      res.json(redactBuiltInAgentListState(await svc.get(companyId, key)));
+    },
+  );
 
-  router.post("/companies/:companyId/built-in-agents/:key/reconcile", validate(builtInAgentEmptyMutationSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    const key = req.params.key as string;
-    await assertBuiltInAgentsEnabled();
-    await assertCanProvisionBuiltInAgents(req, companyId);
-    const state = await svc.ensure(companyId, key);
-    await logBuiltInAgentMutation(req, {
-      companyId,
-      action: "built_in_agent.reconcile",
-      key,
-      agentId: state.agentId,
-      status: state.status,
-    });
-    res.json(redactBuiltInAgentListState(state));
-  });
+  router.post(
+    "/companies/:companyId/built-in-agents/:key/reconcile",
+    validate(builtInAgentEmptyMutationSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      const key = req.params.key as string;
+      await assertBuiltInAgentsEnabled();
+      await assertCanProvisionBuiltInAgents(req, companyId);
+      const state = await svc.ensure(companyId, key);
+      await logBuiltInAgentMutation(req, {
+        companyId,
+        action: "built_in_agent.reconcile",
+        key,
+        agentId: state.agentId,
+        status: state.status,
+      });
+      res.json(redactBuiltInAgentListState(state));
+    },
+  );
 
   router.post(
     "/companies/:companyId/built-in-agents/:key/provision",
@@ -208,25 +245,31 @@ export function builtInAgentRoutes(db: Db) {
           approvalId: approval.id,
         });
       }
-      res.status(approval ? 202 : 200).json(redactBuiltInAgentListState({ ...state, approval }));
+      res
+        .status(approval ? 202 : 200)
+        .json(redactBuiltInAgentListState({ ...state, approval }));
     },
   );
 
-  router.post("/companies/:companyId/built-in-agents/:key/reset", validate(builtInAgentResetSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    const key = req.params.key as string;
-    await assertBuiltInAgentsEnabled();
-    await assertCanProvisionBuiltInAgents(req, companyId);
-    const state = await svc.reset(companyId, key, req.body, req.actor);
-    await logBuiltInAgentMutation(req, {
-      companyId,
-      action: "built_in_agent.reset",
-      key,
-      agentId: state.agentId,
-      status: state.status,
-    });
-    res.json(redactBuiltInAgentListState(state));
-  });
+  router.post(
+    "/companies/:companyId/built-in-agents/:key/reset",
+    validate(builtInAgentResetSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      const key = req.params.key as string;
+      await assertBuiltInAgentsEnabled();
+      await assertCanProvisionBuiltInAgents(req, companyId);
+      const state = await svc.reset(companyId, key, req.body, req.actor);
+      await logBuiltInAgentMutation(req, {
+        companyId,
+        action: "built_in_agent.reset",
+        key,
+        agentId: state.agentId,
+        status: state.status,
+      });
+      res.json(redactBuiltInAgentListState(state));
+    },
+  );
 
   router.post(
     "/companies/:companyId/built-in-agents/:key/routines/:routineKey/enable",
@@ -239,11 +282,16 @@ export function builtInAgentRoutes(db: Db) {
       assertCompanyAccess(req, companyId);
       await assertCanControlBuiltInRoutine(req, companyId);
       const actor = getActorInfo(req);
-      const state = await svc.enableRoutineSchedule(companyId, key, routineKey, {
-        agentId: actor.actorType === "agent" ? actor.actorId : null,
-        userId: actor.actorType === "user" ? actor.actorId : null,
-        runId: actor.runId ?? null,
-      });
+      const state = await svc.enableRoutineSchedule(
+        companyId,
+        key,
+        routineKey,
+        {
+          agentId: actor.actorType === "agent" ? actor.actorId : null,
+          userId: actor.actorType === "user" ? actor.actorId : null,
+          runId: actor.runId ?? null,
+        },
+      );
       await logBuiltInAgentMutation(req, {
         companyId,
         action: "built_in_agent.routine_schedule_enabled",
@@ -267,11 +315,16 @@ export function builtInAgentRoutes(db: Db) {
       assertCompanyAccess(req, companyId);
       await assertCanControlBuiltInRoutine(req, companyId);
       const actor = getActorInfo(req);
-      const state = await svc.disableRoutineSchedule(companyId, key, routineKey, {
-        agentId: actor.actorType === "agent" ? actor.actorId : null,
-        userId: actor.actorType === "user" ? actor.actorId : null,
-        runId: actor.runId ?? null,
-      });
+      const state = await svc.disableRoutineSchedule(
+        companyId,
+        key,
+        routineKey,
+        {
+          agentId: actor.actorType === "agent" ? actor.actorId : null,
+          userId: actor.actorType === "user" ? actor.actorId : null,
+          runId: actor.runId ?? null,
+        },
+      );
       await logBuiltInAgentMutation(req, {
         companyId,
         action: "built_in_agent.routine_schedule_disabled",

@@ -22,12 +22,16 @@ export function verifyInspectionPermit(
   now = Date.now(),
 ): InspectionPermit {
   const parts = token.split(".");
-  if (parts.length !== 3 || token.length > 16384) throw forbidden("Invalid inspection permit");
+  if (parts.length !== 3 || token.length > 16384)
+    throw forbidden("Invalid inspection permit");
   try {
     const header = JSON.parse(Buffer.from(parts[0], "base64url").toString());
-    const claims = JSON.parse(Buffer.from(parts[1], "base64url").toString()) as InspectionPermit;
+    const claims = JSON.parse(
+      Buffer.from(parts[1], "base64url").toString(),
+    ) as InspectionPermit;
     const jwk = keys.keys.find(
-      (k) => k.kid === header.kid && k.kty === "OKP" && k.crv === "Ed25519" && !k.d,
+      (k) =>
+        k.kid === header.kid && k.kty === "OKP" && k.crv === "Ed25519" && !k.d,
     );
     if (
       header.alg !== "EdDSA" ||
@@ -79,8 +83,11 @@ export function customerSuccessRoutes(db: Db, storage: StorageService) {
   router.get("/run-authority", async (req, res) => {
     if (process.env.TASKCORE_CUSTOMER_SUCCESS_AUTHORITY_ENABLED !== "true")
       throw forbidden("Run authority is disabled");
-    if (req.headers.cookie) throw forbidden("Browser credentials are not run authority");
-    const match = req.headers.authorization?.match(/^Bearer ([A-Za-z0-9_.-]+)$/);
+    if (req.headers.cookie)
+      throw forbidden("Browser credentials are not run authority");
+    const match = req.headers.authorization?.match(
+      /^Bearer ([A-Za-z0-9_.-]+)$/,
+    );
     if (!match) throw forbidden("Managed run bearer required");
     res.json(await customerSuccessRunAuthority(db, match[1]));
   });
@@ -89,7 +96,8 @@ export function customerSuccessRoutes(db: Db, storage: StorageService) {
       throw forbidden("Inspection is disabled");
     if (req.headers.authorization || req.headers.cookie)
       throw forbidden("Only a Cloud inspection permit is accepted");
-    const stackId = getCloudRuntimeIdentity()?.stackId ?? process.env.TASKCORE_CLOUD_STACK_ID;
+    const stackId =
+      getCloudRuntimeIdentity()?.stackId ?? process.env.TASKCORE_CLOUD_STACK_ID;
     const rawKeys = process.env.TASKCORE_CUSTOMER_SUCCESS_INSPECTION_JWKS;
     const origin = process.env.TASKCORE_CUSTOMER_SUCCESS_CLOUD_ORIGIN;
     const token = req.get(INSPECTION_HEADER);
@@ -99,7 +107,8 @@ export function customerSuccessRoutes(db: Db, storage: StorageService) {
     if (
       (url.protocol !== "https:" &&
         !(
-          url.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)
+          url.protocol === "http:" &&
+          ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)
         )) ||
       url.origin !== origin
     )
@@ -114,18 +123,27 @@ export function customerSuccessRoutes(db: Db, storage: StorageService) {
     if (canonicalJson(query) !== canonicalJson(permit.query))
       throw forbidden("Inspection parameters do not match permit");
     // Replay fencing and all inspection state live in Cloud. No tenant receipt.
-    const consumed = await fetch(`${origin}/v1/customer-success/permits/consume`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", [INSPECTION_HEADER]: token },
-      body: "{}",
-      redirect: "error",
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!consumed.ok) throw forbidden("Inspection permit could not be consumed");
+    const consumed = await fetch(
+      `${origin}/v1/customer-success/permits/consume`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          [INSPECTION_HEADER]: token,
+        },
+        body: "{}",
+        redirect: "error",
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    if (!consumed.ok)
+      throw forbidden("Inspection permit could not be consumed");
     const result = await readCustomerSuccessResource(db, storage, query);
     const body = JSON.stringify(result);
     if (Buffer.byteLength(body) > 2 * 1024 * 1024)
-      throw unprocessable("Inspection response is too large; use pagination or a byte range");
+      throw unprocessable(
+        "Inspection response is too large; use pagination or a byte range",
+      );
     res.type("application/json").send(body);
   });
   // Unknown methods/paths terminate here rather than entering normal auth.

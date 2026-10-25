@@ -1,5 +1,15 @@
 import type { InteractionResolverGovernance } from "@taskcore/shared";
-import { numeric, pgTable, uuid, text, integer, timestamp, boolean, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  numeric,
+  pgTable,
+  uuid,
+  text,
+  integer,
+  timestamp,
+  boolean,
+  jsonb,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 export const companies = pgTable(
   "companies",
@@ -14,9 +24,17 @@ export const companies = pgTable(
     issueCounter: integer("issue_counter").notNull().default(0),
     budgetMonthlyCents: integer("budget_monthly_cents").notNull().default(0),
     spendMonthUtc: text("spend_month_utc"),
-    spentMonthlyCents: numeric("spent_monthly_cents", { precision: 24, scale: 7, mode: "number" }).notNull().default(0),
+    spentMonthlyCents: numeric("spent_monthly_cents", {
+      precision: 24,
+      scale: 7,
+      mode: "number",
+    })
+      .notNull()
+      .default(0),
     defaultResponsibleUserId: text("default_responsible_user_id"),
-    requireBoardApprovalForNewAgents: boolean("require_board_approval_for_new_agents")
+    requireBoardApprovalForNewAgents: boolean(
+      "require_board_approval_for_new_agents",
+    )
       .notNull()
       .default(false),
     interactionResolverGovernance: jsonb("interaction_resolver_governance")
@@ -26,13 +44,26 @@ export const companies = pgTable(
     feedbackDataSharingEnabled: boolean("feedback_data_sharing_enabled")
       .notNull()
       .default(false),
-    feedbackDataSharingConsentAt: timestamp("feedback_data_sharing_consent_at", { withTimezone: true }),
-    feedbackDataSharingConsentByUserId: text("feedback_data_sharing_consent_by_user_id"),
-    feedbackDataSharingTermsVersion: text("feedback_data_sharing_terms_version"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    feedbackDataSharingConsentAt: timestamp(
+      "feedback_data_sharing_consent_at",
+      { withTimezone: true },
+    ),
+    feedbackDataSharingConsentByUserId: text(
+      "feedback_data_sharing_consent_by_user_id",
+    ),
+    feedbackDataSharingTermsVersion: text(
+      "feedback_data_sharing_terms_version",
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    issuePrefixUniqueIdx: uniqueIndex("companies_issue_prefix_idx").on(table.issuePrefix),
+    issuePrefixUniqueIdx: uniqueIndex("companies_issue_prefix_idx").on(
+      table.issuePrefix,
+    ),
   }),
 );

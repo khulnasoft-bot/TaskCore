@@ -24,7 +24,8 @@ class ResizeObserverStub {
   disconnect() {}
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(globalThis as any).ResizeObserver = (globalThis as any).ResizeObserver ?? ResizeObserverStub;
+(globalThis as any).ResizeObserver =
+  (globalThis as any).ResizeObserver ?? ResizeObserverStub;
 
 // SecretBindingPicker pulls in CompanyContext + react-query. Stub it so we can
 // exercise SecretField in isolation. The stub renders a select with the same
@@ -49,7 +50,9 @@ vi.mock("./SecretBindingPicker", () => ({
       disabled={disabled}
     >
       <option value="">none</option>
-      <option value="11111111-1111-4111-8111-111111111111">existing-secret</option>
+      <option value="11111111-1111-4111-8111-111111111111">
+        existing-secret
+      </option>
     </select>
   ),
 }));
@@ -92,7 +95,9 @@ describe("JsonSchemaForm secret-ref rendering", () => {
 
     // The picker is always rendered, and a non-UUID raw value auto-opens the
     // textarea fallback.
-    expect(container.querySelector('[data-testid="secret-binding-picker"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="secret-binding-picker"]'),
+    ).not.toBeNull();
     expect(container.querySelector("textarea")).not.toBeNull();
     expect(container.querySelector('input[type="password"]')).toBeNull();
 
@@ -201,7 +206,11 @@ describe("JsonSchemaForm secret-ref rendering", () => {
     // First render with empty value — picker visible, no raw input.
     await act(async () => {
       root.render(
-        <JsonSchemaForm schema={schema} values={{ apiKey: "" }} onChange={() => {}} />,
+        <JsonSchemaForm
+          schema={schema}
+          values={{ apiKey: "" }}
+          onChange={() => {}}
+        />,
       );
     });
     expect(container.querySelector('input[type="password"]')).toBeNull();
@@ -217,7 +226,9 @@ describe("JsonSchemaForm secret-ref rendering", () => {
       );
     });
 
-    const input = container.querySelector<HTMLInputElement>('input[type="password"]');
+    const input = container.querySelector<HTMLInputElement>(
+      'input[type="password"]',
+    );
     expect(input).not.toBeNull();
     expect(input?.value).toBe("loaded-from-api");
 
@@ -420,13 +431,17 @@ describe("JsonSchemaForm secret-ref rendering", () => {
       );
     });
 
-    const input = container.querySelector<HTMLInputElement>('input[type="number"]');
+    const input = container.querySelector<HTMLInputElement>(
+      'input[type="number"]',
+    );
     // The "/" in the field path is sanitized so the id is a valid CSS/HTML identifier.
     expect(input?.getAttribute("list")).toBe("-memory-suggestions");
-    expect(container.querySelector("datalist")?.getAttribute("id")).toBe("-memory-suggestions");
-    const options = Array.from(container.querySelectorAll("datalist option")).map((option) =>
-      option.getAttribute("value"),
+    expect(container.querySelector("datalist")?.getAttribute("id")).toBe(
+      "-memory-suggestions",
     );
+    const options = Array.from(
+      container.querySelectorAll("datalist option"),
+    ).map((option) => option.getAttribute("value"));
     expect(options).toEqual(["1", "2", "4", "8"]);
 
     await act(async () => {
@@ -513,7 +528,11 @@ describe("JsonSchemaForm enum rendering", () => {
 
     await act(async () => {
       root.render(
-        <JsonSchemaForm schema={numericEnumSchema} values={{}} onChange={() => {}} />,
+        <JsonSchemaForm
+          schema={numericEnumSchema}
+          values={{}}
+          onChange={() => {}}
+        />,
       );
     });
 
@@ -538,7 +557,11 @@ describe("JsonSchemaForm enum rendering", () => {
 
     await act(async () => {
       root.render(
-        <JsonSchemaForm schema={numericEnumSchema} values={{}} onChange={() => {}} />,
+        <JsonSchemaForm
+          schema={numericEnumSchema}
+          values={{}}
+          onChange={() => {}}
+        />,
       );
     });
 
@@ -560,14 +583,20 @@ describe("JsonSchemaForm enum rendering", () => {
 
     await act(async () => {
       root.render(
-        <JsonSchemaForm schema={numericEnumSchema} values={{}} onChange={onChange} />,
+        <JsonSchemaForm
+          schema={numericEnumSchema}
+          values={{}}
+          onChange={onChange}
+        />,
       );
     });
 
     await openSelect();
 
     await act(async () => {
-      optionByLabel("2")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      optionByLabel("2")!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     // Number, not the string "2", so server-side integer validation passes.
@@ -595,7 +624,9 @@ describe("JsonSchemaForm enum rendering", () => {
     await openSelect();
 
     await act(async () => {
-      optionByLabel("None")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      optionByLabel("None")!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onChange).toHaveBeenCalledWith({ memory: undefined });

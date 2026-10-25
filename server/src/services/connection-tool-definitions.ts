@@ -1,4 +1,7 @@
-import { CONNECTION_REQUEST_TOOL_DESCRIPTION, CONNECTIONS_SEARCH_TOOL_DESCRIPTION } from "@taskcore/shared";
+import {
+  CONNECTION_REQUEST_TOOL_DESCRIPTION,
+  CONNECTIONS_SEARCH_TOOL_DESCRIPTION,
+} from "@taskcore/shared";
 
 export const RUNTIME_CONNECTION_TOOL_DEFINITIONS = [
   {
@@ -6,7 +9,14 @@ export const RUNTIME_CONNECTION_TOOL_DEFINITIONS = [
     description: CONNECTIONS_SEARCH_TOOL_DESCRIPTION,
     inputSchema: {
       type: "object",
-      properties: { query: { type: "string", maxLength: 4000 }, retryProviderChoice: { type: "boolean", description: "Only when the user explicitly asks to reconsider a previous provider choice or decline" } },
+      properties: {
+        query: { type: "string", maxLength: 4000 },
+        retryProviderChoice: {
+          type: "boolean",
+          description:
+            "Only when the user explicitly asks to reconsider a previous provider choice or decline",
+        },
+      },
       additionalProperties: false,
     },
   },
@@ -15,7 +25,31 @@ export const RUNTIME_CONNECTION_TOOL_DEFINITIONS = [
     description: CONNECTION_REQUEST_TOOL_DESCRIPTION,
     inputSchema: {
       type: "object",
-      properties: { service: { type: "string" }, connectionId: { type: "string", description: "Reuse this saved connection" }, toolNames: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 20, uniqueItems: true, description: "Exact indexed tools needed by this agent" }, targetService: { type: "string", description: "App slug returned by search only when the user explicitly named this external provider" }, selectionInteractionId: { type: "string", description: "Saved answered provider-choice interaction ID for aggregator routes" } },
+      properties: {
+        service: { type: "string" },
+        connectionId: {
+          type: "string",
+          description: "Reuse this saved connection",
+        },
+        toolNames: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+          maxItems: 20,
+          uniqueItems: true,
+          description: "Exact indexed tools needed by this agent",
+        },
+        targetService: {
+          type: "string",
+          description:
+            "App slug returned by search only when the user explicitly named this external provider",
+        },
+        selectionInteractionId: {
+          type: "string",
+          description:
+            "Saved answered provider-choice interaction ID for aggregator routes",
+        },
+      },
       required: ["service"],
       additionalProperties: false,
     },

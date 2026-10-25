@@ -29,7 +29,9 @@ type GitHubBinding = {
   grantId: string;
   subject: string;
   installationId: string;
-  providerTenant: NonNullable<typeof connectionGrants.$inferSelect.providerTenant>;
+  providerTenant: NonNullable<
+    typeof connectionGrants.$inferSelect.providerTenant
+  >;
 };
 
 export type GitHubConnectionEventPollResult = {
@@ -42,7 +44,7 @@ export type GitHubConnectionEventPollResult = {
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -51,15 +53,23 @@ function stringValue(value: unknown): string | null {
 }
 
 function positiveInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0
+    ? value
+    : null;
 }
 
 function boundedString(value: unknown, maximum: number): string | null {
-  return typeof value === "string" && value.length > 0 && value.length <= maximum ? value : null;
+  return typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= maximum
+    ? value
+    : null;
 }
 
 function identifier(value: unknown): string | null {
-  return typeof value === "string" && /^[1-9][0-9]{0,30}$/.test(value) ? value : null;
+  return typeof value === "string" && /^[1-9][0-9]{0,30}$/.test(value)
+    ? value
+    : null;
 }
 
 function isoDate(value: unknown): string | null {
@@ -69,7 +79,9 @@ function isoDate(value: unknown): string | null {
 }
 
 function commitSha(value: unknown): string | null {
-  return typeof value === "string" && /^[0-9a-f]{40,64}$/i.test(value) ? value.toLowerCase() : null;
+  return typeof value === "string" && /^[0-9a-f]{40,64}$/i.test(value)
+    ? value.toLowerCase()
+    : null;
 }
 
 function githubUrl(value: unknown): string | null {
@@ -77,14 +89,21 @@ function githubUrl(value: unknown): string | null {
   if (!candidate) return null;
   try {
     const url = new URL(candidate);
-    return url.protocol === "https:" && url.hostname.toLowerCase() === "github.com" ? url.toString() : null;
+    return url.protocol === "https:" &&
+      url.hostname.toLowerCase() === "github.com"
+      ? url.toString()
+      : null;
   } catch {
     return null;
   }
 }
 
 function compact(values: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== null && value !== undefined));
+  return Object.fromEntries(
+    Object.entries(values).filter(
+      ([, value]) => value !== null && value !== undefined,
+    ),
+  );
 }
 
 /**
@@ -119,9 +138,10 @@ function normalizeLeasedPayload(event: LeasedEvent): Record<string, unknown> {
     });
   }
   if (event.event === "installation_repositories") {
-    const repositoryIds = (value: unknown) => Array.isArray(value)
-      ? value.slice(0, 1_000).flatMap((item) => identifier(item) ?? [])
-      : [];
+    const repositoryIds = (value: unknown) =>
+      Array.isArray(value)
+        ? value.slice(0, 1_000).flatMap((item) => identifier(item) ?? [])
+        : [];
     return compact({
       ...base,
       repositorySelection: boundedString(payload.repositorySelection, 40),
@@ -140,21 +160,28 @@ function normalizeLeasedPayload(event: LeasedEvent): Record<string, unknown> {
   return compact(base);
 }
 
-function bindingRows(rows: Array<{
-  grant: typeof connectionGrants.$inferSelect;
-  connection: typeof toolConnections.$inferSelect;
-}>): GitHubBinding[] {
+function bindingRows(
+  rows: Array<{
+    grant: typeof connectionGrants.$inferSelect;
+    connection: typeof toolConnections.$inferSelect;
+  }>,
+): GitHubBinding[] {
   return rows.flatMap(({ grant, connection }) => {
     const config = record(connection.config);
     const oauth = record(config.oauth);
-    if (config.sourceTemplateKey !== "github" || oauth.connectorProfile !== "github.code") return [];
+    if (
+      config.sourceTemplateKey !== "github" ||
+      oauth.connectorProfile !== "github.code"
+    )
+      return [];
     const github = grant.providerTenant?.github;
     if (!github || grant.status !== "active") return [];
-    const subject = grant.kind === "agent" && grant.subjectAgentId
-      ? `agent:${grant.subjectAgentId}`
-      : grant.kind === "user" && grant.subjectUserId
-        ? grant.subjectUserId
-        : null;
+    const subject =
+      grant.kind === "agent" && grant.subjectAgentId
+        ? `agent:${grant.subjectAgentId}`
+        : grant.kind === "user" && grant.subjectUserId
+          ? grant.subjectUserId
+          : null;
     if (!subject) return [];
     return github.installationIds.map((installationId) => ({
       id: `${grant.id}_${installationId}`,
@@ -186,9 +213,17 @@ function githubSnapshotUpdate(payload: Record<string, unknown>) {
     merged,
     statusKey: merged ? "merged" : state === "closed" ? "closed" : "open",
     statusLabel: merged ? "Merged" : state === "closed" ? "Closed" : "Open",
-    statusCategory: merged ? "succeeded" : state === "closed" ? "closed" : "open",
+    statusCategory: merged
+      ? "succeeded"
+      : state === "closed"
+        ? "closed"
+        : "open",
     statusTone: merged ? "success" : state === "closed" ? "muted" : "info",
-    statusIconKey: merged ? "git-merge" : state === "closed" ? "x-circle" : "git-pull-request",
+    statusIconKey: merged
+      ? "git-merge"
+      : state === "closed"
+        ? "x-circle"
+        : "git-pull-request",
     data: {
       provider: "github",
       owner,
@@ -197,11 +232,21 @@ function githubSnapshotUpdate(payload: Record<string, unknown>) {
       state,
       merged,
       ...(stringValue(payload.url) ? { url: stringValue(payload.url) } : {}),
-      ...(stringValue(payload.mergedAt) ? { mergedAt: stringValue(payload.mergedAt) } : {}),
-      ...(stringValue(payload.headRef) ? { headRef: stringValue(payload.headRef) } : {}),
-      ...(stringValue(payload.headSha) ? { headSha: stringValue(payload.headSha) } : {}),
-      ...(stringValue(payload.baseRef) ? { baseRef: stringValue(payload.baseRef) } : {}),
-      ...(stringValue(payload.baseSha) ? { baseSha: stringValue(payload.baseSha) } : {}),
+      ...(stringValue(payload.mergedAt)
+        ? { mergedAt: stringValue(payload.mergedAt) }
+        : {}),
+      ...(stringValue(payload.headRef)
+        ? { headRef: stringValue(payload.headRef) }
+        : {}),
+      ...(stringValue(payload.headSha)
+        ? { headSha: stringValue(payload.headSha) }
+        : {}),
+      ...(stringValue(payload.baseRef)
+        ? { baseRef: stringValue(payload.baseRef) }
+        : {}),
+      ...(stringValue(payload.baseSha)
+        ? { baseSha: stringValue(payload.baseSha) }
+        : {}),
     },
     remoteVersion: stringValue(payload.updatedAt),
   } as const;
@@ -213,7 +258,9 @@ export function githubConnectionEventService(
     connector?: TaskcoreCloudConnector;
     env?: NodeJS.ProcessEnv;
     now?: () => Date;
-    wakeup?: NonNullable<Parameters<typeof issueThreadInteractionService>[1]>["wakeup"];
+    wakeup?: NonNullable<
+      Parameters<typeof issueThreadInteractionService>[1]
+    >["wakeup"];
   } = {},
 ) {
   const now = options.now ?? (() => new Date());
@@ -221,17 +268,23 @@ export function githubConnectionEventService(
   let emptyPolls = 0;
 
   async function activeBindings() {
-    const rows = await db.select({ grant: connectionGrants, connection: toolConnections })
+    const rows = await db
+      .select({ grant: connectionGrants, connection: toolConnections })
       .from(connectionGrants)
-      .innerJoin(toolConnections, and(
-        eq(toolConnections.id, connectionGrants.connectionId),
-        eq(toolConnections.companyId, connectionGrants.companyId),
-      ))
-      .where(and(
-        eq(connectionGrants.status, "active"),
-        eq(toolConnections.status, "active"),
-        eq(toolConnections.enabled, true),
-      ));
+      .innerJoin(
+        toolConnections,
+        and(
+          eq(toolConnections.id, connectionGrants.connectionId),
+          eq(toolConnections.companyId, connectionGrants.companyId),
+        ),
+      )
+      .where(
+        and(
+          eq(connectionGrants.status, "active"),
+          eq(toolConnections.status, "active"),
+          eq(toolConnections.enabled, true),
+        ),
+      );
     return bindingRows(rows);
   }
 
@@ -239,65 +292,104 @@ export function githubConnectionEventService(
     const snapshot = githubSnapshotUpdate(event.payload);
     if (!snapshot) return;
     const appliedAt = now();
-    await db.update(externalObjects).set({
-      statusKey: snapshot.statusKey,
-      statusLabel: snapshot.statusLabel,
-      statusCategory: snapshot.statusCategory,
-      statusTone: snapshot.statusTone,
-      statusIconKey: snapshot.statusIconKey,
-      isTerminal: snapshot.merged || snapshot.state === "closed",
-      data: sql`${externalObjects.data} || ${JSON.stringify(snapshot.data)}::jsonb`,
-      remoteVersion: snapshot.remoteVersion,
-      lastResolvedAt: appliedAt,
-      lastChangedAt: appliedAt,
-      nextRefreshAt: appliedAt,
-      updatedAt: appliedAt,
-    }).where(and(
-      eq(externalObjects.companyId, companyId),
-      eq(externalObjects.providerKey, "github"),
-      eq(externalObjects.objectType, "pull_request"),
-      sql`lower(${externalObjects.externalId}) = lower(${snapshot.externalId})`,
-    ));
+    await db
+      .update(externalObjects)
+      .set({
+        statusKey: snapshot.statusKey,
+        statusLabel: snapshot.statusLabel,
+        statusCategory: snapshot.statusCategory,
+        statusTone: snapshot.statusTone,
+        statusIconKey: snapshot.statusIconKey,
+        isTerminal: snapshot.merged || snapshot.state === "closed",
+        data: sql`${externalObjects.data} || ${JSON.stringify(snapshot.data)}::jsonb`,
+        remoteVersion: snapshot.remoteVersion,
+        lastResolvedAt: appliedAt,
+        lastChangedAt: appliedAt,
+        nextRefreshAt: appliedAt,
+        updatedAt: appliedAt,
+      })
+      .where(
+        and(
+          eq(externalObjects.companyId, companyId),
+          eq(externalObjects.providerKey, "github"),
+          eq(externalObjects.objectType, "pull_request"),
+          sql`lower(${externalObjects.externalId}) = lower(${snapshot.externalId})`,
+        ),
+      );
     if (snapshot.merged && event.action === "closed") {
-      await issueThreadInteractionService(db, { wakeup: options.wakeup })
-        .sweepMergedPullRequestConfirmations([{
+      await issueThreadInteractionService(db, {
+        wakeup: options.wakeup,
+      }).sweepMergedPullRequestConfirmations([
+        {
           companyId,
           owner: snapshot.owner,
           repo: snapshot.repo,
           number: snapshot.number,
-        }]);
+        },
+      ]);
     }
   }
 
-  async function applyInstallationEvent(database: Db, binding: GitHubBinding, event: LeasedEvent) {
+  async function applyInstallationEvent(
+    database: Db,
+    binding: GitHubBinding,
+    event: LeasedEvent,
+  ) {
     // Bindings are loaded before the Cloud request. Lock and read the grant
     // again so a refresh completed during that request cannot be overwritten.
-    const [currentGrant] = await database.select().from(connectionGrants).where(and(
-      eq(connectionGrants.id, binding.grantId),
-      eq(connectionGrants.companyId, binding.companyId),
-      eq(connectionGrants.status, "active"),
-    )).for("update").limit(1);
+    const [currentGrant] = await database
+      .select()
+      .from(connectionGrants)
+      .where(
+        and(
+          eq(connectionGrants.id, binding.grantId),
+          eq(connectionGrants.companyId, binding.companyId),
+          eq(connectionGrants.status, "active"),
+        ),
+      )
+      .for("update")
+      .limit(1);
     const currentProviderTenant = currentGrant?.providerTenant;
     const github = currentProviderTenant?.github;
     if (!github) return;
     // A newly bound instance can receive installation events from before OAuth
     // verified its repository list. Those events must not erase newer access.
-    if (Date.parse(github.lastAccessRefreshAt ?? "") > Date.parse(event.createdAt)) {
-      await database.update(connectionGrants).set({
-        providerTenant: {
-          ...currentProviderTenant,
-          github: { ...github, lastWebhookAt: now().toISOString(), webhookHealth: "healthy" },
-        },
-        updatedAt: now(),
-      }).where(and(eq(connectionGrants.id, binding.grantId), eq(connectionGrants.companyId, binding.companyId)));
+    if (
+      Date.parse(github.lastAccessRefreshAt ?? "") > Date.parse(event.createdAt)
+    ) {
+      await database
+        .update(connectionGrants)
+        .set({
+          providerTenant: {
+            ...currentProviderTenant,
+            github: {
+              ...github,
+              lastWebhookAt: now().toISOString(),
+              webhookHealth: "healthy",
+            },
+          },
+          updatedAt: now(),
+        })
+        .where(
+          and(
+            eq(connectionGrants.id, binding.grantId),
+            eq(connectionGrants.companyId, binding.companyId),
+          ),
+        );
       return;
     }
-    const unavailable = event.event === "installation" && (event.action === "deleted" || event.action === "suspend");
+    const unavailable =
+      event.event === "installation" &&
+      (event.action === "deleted" || event.action === "suspend");
     const installationIds = unavailable
       ? github.installationIds.filter((id) => id !== binding.installationId)
       : [...new Set([...github.installationIds, binding.installationId])];
-    const added = Array.isArray(event.payload.repositoriesAdded) ? event.payload.repositoriesAdded.length : 0;
-    const removed = Array.isArray(event.payload.repositoriesRemoved) ? event.payload.repositoriesRemoved.length : 0;
+    const added = Array.isArray(event.payload.repositoriesAdded)
+      ? event.payload.repositoriesAdded.length
+      : 0;
+    const removed = Array.isArray(event.payload.repositoriesRemoved)
+      ? event.payload.repositoriesRemoved.length
+      : 0;
     const repositoryCount = Math.max(
       0,
       unavailable && installationIds.length === 0
@@ -317,126 +409,201 @@ export function githubConnectionEventService(
         installationIds,
         installationCount: installationIds.length,
         repositoryCount,
-        repositorySelection: repositoryCount === 0 ? "none" as const : github.repositorySelection,
+        repositorySelection:
+          repositoryCount === 0
+            ? ("none" as const)
+            : github.repositorySelection,
         lastWebhookAt: now().toISOString(),
-        webhookHealth: unavailable ? "unhealthy" as const : "healthy" as const,
+        webhookHealth: unavailable
+          ? ("unhealthy" as const)
+          : ("healthy" as const),
       },
     };
-    await database.update(connectionGrants).set({ providerTenant, updatedAt: now() })
-      .where(and(eq(connectionGrants.id, binding.grantId), eq(connectionGrants.companyId, binding.companyId)));
-    await database.update(toolConnections).set({
-      healthStatus: unavailable ? "failed" : "ok",
-      healthMessage: unavailable
-        ? "GitHub installation access was removed or suspended. Manage repository access on GitHub."
-        : "GitHub installation and repository access are available.",
-      healthCheckedAt: now(),
-      lastHealthAt: now(),
-      lastError: unavailable ? "GitHub installation unavailable" : null,
-      updatedAt: now(),
-    }).where(and(eq(toolConnections.id, binding.connectionId), eq(toolConnections.companyId, binding.companyId)));
+    await database
+      .update(connectionGrants)
+      .set({ providerTenant, updatedAt: now() })
+      .where(
+        and(
+          eq(connectionGrants.id, binding.grantId),
+          eq(connectionGrants.companyId, binding.companyId),
+        ),
+      );
+    await database
+      .update(toolConnections)
+      .set({
+        healthStatus: unavailable ? "failed" : "ok",
+        healthMessage: unavailable
+          ? "GitHub installation access was removed or suspended. Manage repository access on GitHub."
+          : "GitHub installation and repository access are available.",
+        healthCheckedAt: now(),
+        lastHealthAt: now(),
+        lastError: unavailable ? "GitHub installation unavailable" : null,
+        updatedAt: now(),
+      })
+      .where(
+        and(
+          eq(toolConnections.id, binding.connectionId),
+          eq(toolConnections.companyId, binding.companyId),
+        ),
+      );
   }
 
-  async function processForCompany(companyId: string, bindings: GitHubBinding[], event: LeasedEvent) {
+  async function processForCompany(
+    companyId: string,
+    bindings: GitHubBinding[],
+    event: LeasedEvent,
+  ) {
     const receiptAt = now();
-    const normalizedEvent = { ...event, payload: normalizeLeasedPayload(event) };
-    const [receipt] = await db.insert(connectionEventDeliveries).values({
-      companyId,
-      provider: event.provider,
-      providerDeliveryId: event.id,
-      event: event.event,
-      action: event.action,
-      installationId: event.installationId,
-      repositoryId: event.repositoryId,
-      normalizedPayload: normalizedEvent.payload,
-      providerCreatedAt: new Date(event.createdAt),
-      status: "received",
-      attempts: 1,
-      updatedAt: receiptAt,
-    }).onConflictDoNothing().returning();
-    if (!receipt) {
-      const [existing] = await db.select().from(connectionEventDeliveries).where(and(
-        eq(connectionEventDeliveries.companyId, companyId),
-        eq(connectionEventDeliveries.provider, event.provider),
-        eq(connectionEventDeliveries.providerDeliveryId, event.id),
-      )).limit(1);
-      if (existing?.status === "processed") return "duplicate" as const;
-      await db.update(connectionEventDeliveries).set({
+    const normalizedEvent = {
+      ...event,
+      payload: normalizeLeasedPayload(event),
+    };
+    const [receipt] = await db
+      .insert(connectionEventDeliveries)
+      .values({
+        companyId,
+        provider: event.provider,
+        providerDeliveryId: event.id,
+        event: event.event,
+        action: event.action,
+        installationId: event.installationId,
+        repositoryId: event.repositoryId,
+        normalizedPayload: normalizedEvent.payload,
+        providerCreatedAt: new Date(event.createdAt),
         status: "received",
-        attempts: sql`${connectionEventDeliveries.attempts} + 1`,
-        lastError: null,
+        attempts: 1,
         updatedAt: receiptAt,
-      }).where(eq(connectionEventDeliveries.id, existing!.id));
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (!receipt) {
+      const [existing] = await db
+        .select()
+        .from(connectionEventDeliveries)
+        .where(
+          and(
+            eq(connectionEventDeliveries.companyId, companyId),
+            eq(connectionEventDeliveries.provider, event.provider),
+            eq(connectionEventDeliveries.providerDeliveryId, event.id),
+          ),
+        )
+        .limit(1);
+      if (existing?.status === "processed") return "duplicate" as const;
+      await db
+        .update(connectionEventDeliveries)
+        .set({
+          status: "received",
+          attempts: sql`${connectionEventDeliveries.attempts} + 1`,
+          lastError: null,
+          updatedAt: receiptAt,
+        })
+        .where(eq(connectionEventDeliveries.id, existing!.id));
     }
     const postCommitPublications: ActivityPublication[] = [];
     try {
       const applyAndFinalize = async (database: Db) => {
-        if (event.event === "pull_request") await applyPullRequestEvent(companyId, normalizedEvent);
-        if (event.event === "installation" || event.event === "installation_repositories") {
-          for (const binding of bindings) await applyInstallationEvent(database, binding, normalizedEvent);
+        if (event.event === "pull_request")
+          await applyPullRequestEvent(companyId, normalizedEvent);
+        if (
+          event.event === "installation" ||
+          event.event === "installation_repositories"
+        ) {
+          for (const binding of bindings)
+            await applyInstallationEvent(database, binding, normalizedEvent);
         } else {
           const touchedAt = now();
           for (const binding of bindings) {
             const github = binding.providerTenant.github;
             if (!github) continue;
-            await database.update(connectionGrants).set({
-              // Update only webhook fields; a concurrent access/token refresh
-              // owns the remaining metadata and must not be replaced here.
-              providerTenant: sql`jsonb_set(${connectionGrants.providerTenant}, '{github}',
-                (${connectionGrants.providerTenant}->'github') || ${JSON.stringify({
-                  lastWebhookAt: touchedAt.toISOString(), webhookHealth: "healthy",
-                })}::jsonb)`,
-              updatedAt: touchedAt,
-            }).where(and(
-              eq(connectionGrants.id, binding.grantId),
-              eq(connectionGrants.companyId, companyId),
-              eq(connectionGrants.status, "active"),
-              sql`${connectionGrants.providerTenant}->'github' is not null`,
-            ));
+            await database
+              .update(connectionGrants)
+              .set({
+                // Update only webhook fields; a concurrent access/token refresh
+                // owns the remaining metadata and must not be replaced here.
+                providerTenant: sql`jsonb_set(${connectionGrants.providerTenant}, '{github}',
+                (${connectionGrants.providerTenant}->'github') || ${JSON.stringify(
+                  {
+                    lastWebhookAt: touchedAt.toISOString(),
+                    webhookHealth: "healthy",
+                  },
+                )}::jsonb)`,
+                updatedAt: touchedAt,
+              })
+              .where(
+                and(
+                  eq(connectionGrants.id, binding.grantId),
+                  eq(connectionGrants.companyId, companyId),
+                  eq(connectionGrants.status, "active"),
+                  sql`${connectionGrants.providerTenant}->'github' is not null`,
+                ),
+              );
           }
         }
         const finishedAt = now();
-        await database.update(connectionEventDeliveries).set({
-          status: "processed",
-          processedAt: finishedAt,
-          lastError: null,
-          updatedAt: finishedAt,
-        }).where(and(
-          eq(connectionEventDeliveries.companyId, companyId),
-          eq(connectionEventDeliveries.provider, event.provider),
-          eq(connectionEventDeliveries.providerDeliveryId, event.id),
-        ));
-        await logActivity(database, {
-          companyId,
-          actorType: "system",
-          actorId: "system:github-webhook",
-          action: "tool_connection.webhook_processed",
-          entityType: "tool_connection",
-          entityId: bindings[0]!.connectionId,
-          details: {
-            provider: "github",
-            event: event.event,
-            action: event.action,
-            deliveryId: event.id,
-            installationId: event.installationId,
-            repositoryId: event.repositoryId,
+        await database
+          .update(connectionEventDeliveries)
+          .set({
+            status: "processed",
+            processedAt: finishedAt,
+            lastError: null,
+            updatedAt: finishedAt,
+          })
+          .where(
+            and(
+              eq(connectionEventDeliveries.companyId, companyId),
+              eq(connectionEventDeliveries.provider, event.provider),
+              eq(connectionEventDeliveries.providerDeliveryId, event.id),
+            ),
+          );
+        await logActivity(
+          database,
+          {
+            companyId,
+            actorType: "system",
+            actorId: "system:github-webhook",
+            action: "tool_connection.webhook_processed",
+            entityType: "tool_connection",
+            entityId: bindings[0]!.connectionId,
+            details: {
+              provider: "github",
+              event: event.event,
+              action: event.action,
+              deliveryId: event.id,
+              installationId: event.installationId,
+              repositoryId: event.repositoryId,
+            },
           },
-        }, postCommitPublications);
+          postCommitPublications,
+        );
       };
-      if (event.event === "installation" || event.event === "installation_repositories") {
-        await db.transaction(async (tx) => applyAndFinalize(tx as unknown as Db));
+      if (
+        event.event === "installation" ||
+        event.event === "installation_repositories"
+      ) {
+        await db.transaction(async (tx) =>
+          applyAndFinalize(tx as unknown as Db),
+        );
       } else {
         await applyAndFinalize(db);
       }
     } catch (error) {
-      await db.update(connectionEventDeliveries).set({
-        status: "failed",
-        lastError: error instanceof Error ? error.message.slice(0, 500) : "GitHub event processing failed",
-        updatedAt: now(),
-      }).where(and(
-        eq(connectionEventDeliveries.companyId, companyId),
-        eq(connectionEventDeliveries.provider, event.provider),
-        eq(connectionEventDeliveries.providerDeliveryId, event.id),
-      ));
+      await db
+        .update(connectionEventDeliveries)
+        .set({
+          status: "failed",
+          lastError:
+            error instanceof Error
+              ? error.message.slice(0, 500)
+              : "GitHub event processing failed",
+          updatedAt: now(),
+        })
+        .where(
+          and(
+            eq(connectionEventDeliveries.companyId, companyId),
+            eq(connectionEventDeliveries.provider, event.provider),
+            eq(connectionEventDeliveries.providerDeliveryId, event.id),
+          ),
+        );
       throw error;
     }
     // Persistence is complete at this point (and installation deltas have
@@ -446,11 +613,14 @@ export function githubConnectionEventService(
       try {
         publishActivity(publication);
       } catch (error) {
-        logger.warn({
-          err: error,
-          companyId,
-          providerDeliveryId: event.id,
-        }, "GitHub webhook activity publication failed after commit");
+        logger.warn(
+          {
+            err: error,
+            companyId,
+            providerDeliveryId: event.id,
+          },
+          "GitHub webhook activity publication failed after commit",
+        );
       }
     }
     return "processed" as const;
@@ -466,17 +636,26 @@ export function githubConnectionEventService(
         nextPollAt = now().getTime() + 5 * 60_000;
         return { leased: 0, processed: 0, duplicate: 0, ignored: 0, failed: 0 };
       }
-      const config = options.connector ? null : taskcoreCloudConnectorConfigFromEnv(options.env);
-      const connector = options.connector ?? (config ? createTaskcoreCloudConnector({ config }) : null);
+      const config = options.connector
+        ? null
+        : taskcoreCloudConnectorConfigFromEnv(options.env);
+      const connector =
+        options.connector ??
+        (config ? createTaskcoreCloudConnector({ config }) : null);
       if (!connector) {
         nextPollAt = now().getTime() + 5 * 60_000;
         return { leased: 0, processed: 0, duplicate: 0, ignored: 0, failed: 0 };
       }
       const first = bindings[0]!;
-      const lease = await connector.leaseEvents({ subject: first.subject, companyId: first.companyId });
+      const lease = await connector.leaseEvents({
+        subject: first.subject,
+        companyId: first.companyId,
+      });
       if (!lease) {
         emptyPolls += 1;
-        nextPollAt = now().getTime() + Math.min(5 * 60_000, 5_000 * (2 ** Math.min(emptyPolls, 6)));
+        nextPollAt =
+          now().getTime() +
+          Math.min(5 * 60_000, 5_000 * 2 ** Math.min(emptyPolls, 6));
         return { leased: 0, processed: 0, duplicate: 0, ignored: 0, failed: 0 };
       }
       emptyPolls = 0;
@@ -490,7 +669,9 @@ export function githubConnectionEventService(
       };
       const acknowledge: string[] = [];
       for (const event of lease.events) {
-        const matched = bindings.filter((binding) => event.bindingIds.includes(binding.id));
+        const matched = bindings.filter((binding) =>
+          event.bindingIds.includes(binding.id),
+        );
         if (matched.length === 0) {
           result.ignored += 1;
           acknowledge.push(event.id);
@@ -498,22 +679,37 @@ export function githubConnectionEventService(
         }
         try {
           const companies = new Map<string, GitHubBinding[]>();
-          for (const binding of matched) companies.set(binding.companyId, [...(companies.get(binding.companyId) ?? []), binding]);
+          for (const binding of matched)
+            companies.set(binding.companyId, [
+              ...(companies.get(binding.companyId) ?? []),
+              binding,
+            ]);
           for (const [companyId, companyBindings] of companies) {
-            const status = await processForCompany(companyId, companyBindings, event);
+            const status = await processForCompany(
+              companyId,
+              companyBindings,
+              event,
+            );
             result[status] += 1;
           }
           acknowledge.push(event.id);
-          if (event.event === "installation" && (event.action === "deleted" || event.action === "suspend")) {
-            await Promise.all(matched.map((binding) => connector.setWebhookBinding({
-              subject: binding.subject,
-              companyId: binding.companyId,
-              id: binding.id,
-              installationId: binding.installationId,
-              connectionId: binding.connectionId,
-              grantId: binding.grantId,
-              active: false,
-            })));
+          if (
+            event.event === "installation" &&
+            (event.action === "deleted" || event.action === "suspend")
+          ) {
+            await Promise.all(
+              matched.map((binding) =>
+                connector.setWebhookBinding({
+                  subject: binding.subject,
+                  companyId: binding.companyId,
+                  id: binding.id,
+                  installationId: binding.installationId,
+                  connectionId: binding.connectionId,
+                  grantId: binding.grantId,
+                  active: false,
+                }),
+              ),
+            );
           }
         } catch {
           result.failed += 1;

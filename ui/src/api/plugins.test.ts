@@ -48,10 +48,15 @@ describe("pluginsApi local folders", () => {
   });
 
   it("saves through the local-folder PUT endpoint", async () => {
-    await pluginsApi.configureLocalFolder("plugin-1", "company-1", "wiki-root", {
-      path: "/tmp/wiki",
-      requiredDirectories: ["wiki"],
-    });
+    await pluginsApi.configureLocalFolder(
+      "plugin-1",
+      "company-1",
+      "wiki-root",
+      {
+        path: "/tmp/wiki",
+        requiredDirectories: ["wiki"],
+      },
+    );
 
     expect(mockApi.put).toHaveBeenCalledWith(
       "/plugins/plugin-1/companies/company-1/local-folders/wiki-root",

@@ -63,7 +63,9 @@ export class CapabilityChatSession {
   private readonly runtime: CapabilitySemanticToolRuntime;
   private readonly recorder: CapabilityExecutionRecorder;
   private readonly options: CapabilityChatSessionOptions;
-  private readonly context: Awaited<ReturnType<CapabilityMockControlPlaneAdapter["openFixtureRun"]>>;
+  private readonly context: Awaited<
+    ReturnType<CapabilityMockControlPlaneAdapter["openFixtureRun"]>
+  >;
   private readonly seedState: CapabilityFixtureState;
   private readonly turns: CapabilityChatTurn[] = [];
 
@@ -80,7 +82,9 @@ export class CapabilityChatSession {
     adapter: CapabilityMockControlPlaneAdapter;
     runtime: CapabilitySemanticToolRuntime;
     recorder: CapabilityExecutionRecorder;
-    context: Awaited<ReturnType<CapabilityMockControlPlaneAdapter["openFixtureRun"]>>;
+    context: Awaited<
+      ReturnType<CapabilityMockControlPlaneAdapter["openFixtureRun"]>
+    >;
     seedState: CapabilityFixtureState;
     options: CapabilityChatSessionOptions;
   }) {
@@ -107,7 +111,11 @@ export class CapabilityChatSession {
   ): Promise<CapabilityChatSession> {
     const fixture = capabilityScenarioFixture(entry);
     const adapter = new CapabilityMockControlPlaneAdapter(fixture.seed);
-    return await CapabilityChatSession.openWithMockAdapter(entry, adapter, options);
+    return await CapabilityChatSession.openWithMockAdapter(
+      entry,
+      adapter,
+      options,
+    );
   }
 
   /**
@@ -155,7 +163,11 @@ export class CapabilityChatSession {
       resolveSecretValue: () => CAPABILITY_SECRET_PLACEHOLDER,
     });
 
-    const recorder = new CapabilityExecutionRecorder({ entry, adapter, runtime });
+    const recorder = new CapabilityExecutionRecorder({
+      entry,
+      adapter,
+      runtime,
+    });
     recorder.openTurn(0);
     recorder.drainControlPlane();
     const seedState = snapshotOf(adapter);
@@ -170,7 +182,12 @@ export class CapabilityChatSession {
       seedState,
       options,
     });
-    session.recordTurn({ turn: 0, prompt: null, before: beforeSeed, after: seedState });
+    session.recordTurn({
+      turn: 0,
+      prompt: null,
+      before: beforeSeed,
+      after: seedState,
+    });
     return session;
   }
 
@@ -190,7 +207,8 @@ export class CapabilityChatSession {
    */
   async send(prompt: string): Promise<CapabilityChatSessionArtifact> {
     if (this.closed) throw new Error("This chat session is closed.");
-    const turn = this.turns.length === 0 ? 1 : this.turns[this.turns.length - 1]!.turn + 1;
+    const turn =
+      this.turns.length === 0 ? 1 : this.turns[this.turns.length - 1]!.turn + 1;
     const before = snapshotOf(this.adapter);
     this.recorder.openTurn(turn);
     this.recorder.pushUserMessage(prompt);
@@ -221,7 +239,9 @@ export class CapabilityChatSession {
         }
       }
     } catch (error) {
-      turnFailure = { message: error instanceof Error ? error.message : String(error) };
+      turnFailure = {
+        message: error instanceof Error ? error.message : String(error),
+      };
       this.failure = turnFailure;
     }
 
@@ -285,7 +305,10 @@ export class CapabilityChatSession {
         title: this.context.activeTask.title,
         workMode: this.context.activeTask.workMode,
       },
-      wake: { reason: this.context.wake.reason, payload: this.context.wake.payload },
+      wake: {
+        reason: this.context.wake.reason,
+        payload: this.context.wake.payload,
+      },
       budget: { ...this.context.budget },
       timeline,
       exposure,
@@ -317,8 +340,12 @@ export class CapabilityChatSession {
     after: CapabilityFixtureState;
     failure?: { message: string } | null;
   }): void {
-    const entries = this.recorder.timeline.filter((item) => item.turn === input.turn);
-    const authorizationRecords = this.invocationRecords().slice(this.authorizationCursor);
+    const entries = this.recorder.timeline.filter(
+      (item) => item.turn === input.turn,
+    );
+    const authorizationRecords = this.invocationRecords().slice(
+      this.authorizationCursor,
+    );
     this.authorizationCursor += authorizationRecords.length;
     const diff = capabilityStateDiff(input.before, input.after);
     const failure = input.failure ?? null;
@@ -330,7 +357,8 @@ export class CapabilityChatSession {
       prompt: input.prompt,
       status: failure === null ? "settled" : "failed",
       firstSequence: entries[0]?.sequence ?? this.recorder.lastSequence,
-      lastSequence: entries[entries.length - 1]?.sequence ?? this.recorder.lastSequence,
+      lastSequence:
+        entries[entries.length - 1]?.sequence ?? this.recorder.lastSequence,
       exposure,
       authorizationRecords,
       diff,
@@ -350,7 +378,9 @@ export class CapabilityChatSession {
             item.kind === "semantic_result" &&
             (item.outcome === "denied" || item.outcome === "absent"),
         ).length,
-        controlPlane: entries.filter((item) => item.kind === "control_plane_action").length,
+        controlPlane: entries.filter(
+          (item) => item.kind === "control_plane_action",
+        ).length,
         changedDomains: diff.domains.filter((domain) => domain.changed).length,
       },
       failure,
@@ -378,8 +408,14 @@ function reconciliationEvents(
 ): CapabilityChatTurn["reconciliationEvents"] {
   return entries
     .filter(
-      (item): item is Extract<CapabilityTimelineEntry, { kind: "control_plane_action" }> =>
-        item.kind === "control_plane_action" && capabilityIsReconciliationAction(item.action),
+      (
+        item,
+      ): item is Extract<
+        CapabilityTimelineEntry,
+        { kind: "control_plane_action" }
+      > =>
+        item.kind === "control_plane_action" &&
+        capabilityIsReconciliationAction(item.action),
     )
     .map((item) => ({
       sequence: item.sequence,

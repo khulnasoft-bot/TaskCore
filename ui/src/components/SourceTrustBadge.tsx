@@ -1,7 +1,11 @@
 import type { SourceTrustMetadata } from "@taskcore/shared";
 import { BadgeCheck, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { sourceTrustLabel } from "../lib/trust-policy-ui";
 import { cn } from "../lib/utils";
 
@@ -36,13 +40,15 @@ export function SourceTrustBadge({
             className,
           )}
         >
-          {promoted ? <BadgeCheck className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
+          {promoted ? (
+            <BadgeCheck className="h-3 w-3" />
+          ) : (
+            <ShieldAlert className="h-3 w-3" />
+          )}
           {label}
         </Badge>
       </TooltipTrigger>
-      <TooltipContent className="max-w-xs text-xs">
-        {tooltip}
-      </TooltipContent>
+      <TooltipContent className="max-w-xs text-xs">{tooltip}</TooltipContent>
     </Tooltip>
   );
 }

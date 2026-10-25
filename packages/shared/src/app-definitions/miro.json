@@ -3,16 +3,12 @@
   "slug": "miro",
   "name": "Miro",
   "description": "Connect Miro's provider-hosted MCP server.",
-  "categories": [
-    "productivity"
-  ],
+  "categories": ["productivity"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/miro.svg"
   },
-  "urlPatterns": [
-    "https://mcp.miro.com/*"
-  ],
+  "urlPatterns": ["https://mcp.miro.com/*"],
   "docsUrl": "https://help.miro.com/hc/en-us/articles/31625301583890-How-to-enable-Miro-s-MCP-Server-user-guide",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,18 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.miro.com/",
-        "scopesHint": [
-          "boards:read",
-          "boards:write",
-          "openid",
-          "email"
-        ]
+        "scopesHint": ["boards:read", "boards:write", "openid", "email"]
       },
       "guidanceMd": "Connect Miro in the browser. A Miro account; enterprise administrators may restrict third-party MCP clients.",
       "riskTier": "S3",

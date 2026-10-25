@@ -18,7 +18,10 @@ function fakeClient() {
 
 describe("createInvalidationBatcher", () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it("marks queries stale without refetching when the tab hides before flush", async () => {
     const { client } = fakeClient();
@@ -27,19 +30,25 @@ describe("createInvalidationBatcher", () => {
     vi.stubGlobal("document", { visibilityState: "hidden" });
     await batcher.flush();
     await pending;
-    expect(client.invalidateQueries).toHaveBeenCalledExactlyOnceWith({ queryKey: ["dashboard", "c1"], refetchType: "none" });
+    expect(client.invalidateQueries).toHaveBeenCalledExactlyOnceWith({
+      queryKey: ["dashboard", "c1"],
+      refetchType: "none",
+    });
   });
 
   it("coalesces repeated invalidations of the same key into one call per window", () => {
     const { client } = fakeClient();
     const batcher = createInvalidationBatcher(client, 300);
 
-    for (let i = 0; i < 20; i++) batcher.schedule({ queryKey: ["dashboard", "c1"] });
+    for (let i = 0; i < 20; i++)
+      batcher.schedule({ queryKey: ["dashboard", "c1"] });
     expect(client.invalidateQueries).not.toHaveBeenCalled(); // nothing until flush
 
     vi.advanceTimersByTime(300);
     expect(client.invalidateQueries).toHaveBeenCalledTimes(1);
-    expect(client.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["dashboard", "c1"] });
+    expect(client.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["dashboard", "c1"],
+    });
   });
 
   it("keeps distinct keys and distinct refetchType variants separate", () => {
@@ -121,13 +130,20 @@ describe("createInvalidationBatcher", () => {
 
 describe("createCoalescingQueryClient", () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it("batches invalidateQueries but passes other methods straight through", () => {
     const setQueryData = vi.fn();
     const getQueryData = vi.fn(() => ({ some: "data" }));
     const realInvalidate = vi.fn(() => Promise.resolve());
-    const real = { invalidateQueries: realInvalidate, setQueryData, getQueryData } as unknown as QueryClient;
+    const real = {
+      invalidateQueries: realInvalidate,
+      setQueryData,
+      getQueryData,
+    } as unknown as QueryClient;
 
     const batcher = createInvalidationBatcher(
       { invalidateQueries: realInvalidate } as unknown as QueryClient,

@@ -57,11 +57,18 @@ export interface DocumentFrameHeaderProps {
   actionsSlot?: ReactNode;
 }
 
-function RevisionActorAvatar({ actor }: { actor: DocumentFrameHeaderRevisionActor }) {
-  if (actor.kind === "agent") return <AgentAvatar agent={actor.agent} name={actor.name} size={20} />;
+function RevisionActorAvatar({
+  actor,
+}: {
+  actor: DocumentFrameHeaderRevisionActor;
+}) {
+  if (actor.kind === "agent")
+    return <AgentAvatar agent={actor.agent} name={actor.name} size={20} />;
   return (
     <Avatar size="xs" className="shrink-0">
-      {actor.imageUrl ? <AvatarImage src={actor.imageUrl} alt={actor.name} /> : null}
+      {actor.imageUrl ? (
+        <AvatarImage src={actor.imageUrl} alt={actor.name} />
+      ) : null}
       <AvatarFallback>{deriveInitials(actor.name)}</AvatarFallback>
     </Avatar>
   );
@@ -88,33 +95,53 @@ export function DocumentFrameHeader({
             type="button"
             className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
             onClick={onToggleFolded}
-            aria-label={folded ? `Expand ${documentKey} document` : `Collapse ${documentKey} document`}
+            aria-label={
+              folded
+                ? `Expand ${documentKey} document`
+                : `Collapse ${documentKey} document`
+            }
             aria-expanded={!folded}
           >
-            {folded ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {folded ? (
+              <ChevronRight className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
           </button>
           {documentLabel ? (
             <>
-              <span className="truncate text-sm font-semibold text-foreground">{documentLabel}</span>
-              <Badge variant="outline" className="border-border font-mono text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
+              <span className="truncate text-sm font-semibold text-foreground">
+                {documentLabel}
+              </span>
+              <Badge
+                variant="outline"
+                className="border-border font-mono text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground"
+              >
                 {documentKey}
               </Badge>
             </>
           ) : (
-            <Badge variant="outline" className="border-border font-mono text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="border-border font-mono text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground"
+            >
               {documentKey}
             </Badge>
           )}
           {sourceTrustSlot}
           {revisionMenu ? (
-            <DropdownMenu open={revisionMenu.open} onOpenChange={revisionMenu.onOpenChange}>
+            <DropdownMenu
+              open={revisionMenu.open}
+              onOpenChange={revisionMenu.onOpenChange}
+            >
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   className={cn(
                     "h-auto px-1.5 py-0 text-(length:--text-micro) font-normal text-muted-foreground hover:text-foreground",
-                    revisionMenu.historicalPreview && "text-amber-700 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200",
+                    revisionMenu.historicalPreview &&
+                      "text-amber-700 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200",
                   )}
                 >
                   rev {revisionMenu.displayedRevisionNumber}
@@ -124,23 +151,42 @@ export function DocumentFrameHeader({
               <DropdownMenuContent align="start" className="w-72">
                 <DropdownMenuLabel>Revision history</DropdownMenuLabel>
                 {revisionMenu.loading && revisionMenu.revisions.length === 0 ? (
-                  <DropdownMenuItem disabled>Loading revisions...</DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    Loading revisions...
+                  </DropdownMenuItem>
                 ) : revisionMenu.revisions.length > 0 ? (
-                  <DropdownMenuRadioGroup value={revisionMenu.selectedRevisionId ?? revisionMenu.currentRevisionId ?? ""}>
+                  <DropdownMenuRadioGroup
+                    value={
+                      revisionMenu.selectedRevisionId ??
+                      revisionMenu.currentRevisionId ??
+                      ""
+                    }
+                  >
                     {revisionMenu.revisions.map((revision) => {
-                      const isCurrentRevision = revision.id === revisionMenu.currentRevisionId;
+                      const isCurrentRevision =
+                        revision.id === revisionMenu.currentRevisionId;
                       return (
                         <DropdownMenuRadioItem
                           key={revision.id}
                           value={revision.id}
-                          onSelect={() => revisionMenu.onSelectRevision(revision.id, isCurrentRevision)}
+                          onSelect={() =>
+                            revisionMenu.onSelectRevision(
+                              revision.id,
+                              isCurrentRevision,
+                            )
+                          }
                           className="items-start"
                         >
                           <div className="flex min-w-0 flex-col">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">rev {revision.revisionNumber}</span>
+                              <span className="font-medium">
+                                rev {revision.revisionNumber}
+                              </span>
                               {isCurrentRevision ? (
-                                <Badge variant="outline" className="border-border px-1.5 text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
+                                <Badge
+                                  variant="outline"
+                                  className="border-border px-1.5 text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground"
+                                >
                                   Current
                                 </Badge>
                               ) : null}
@@ -148,7 +194,8 @@ export function DocumentFrameHeader({
                             <div className="mt-1 flex min-w-0 items-center gap-1.5 text-(length:--text-micro) text-muted-foreground">
                               <RevisionActorAvatar actor={revision.actor} />
                               <span className="truncate">
-                                {relativeTime(revision.createdAt)} • {revision.actor.name}
+                                {relativeTime(revision.createdAt)} •{" "}
+                                {revision.actor.name}
                               </span>
                             </div>
                           </div>
@@ -164,7 +211,9 @@ export function DocumentFrameHeader({
           ) : null}
           {updatedAt ? (
             <a
-              href={updatedHref ?? `#document-${encodeURIComponent(documentKey)}`}
+              href={
+                updatedHref ?? `#document-${encodeURIComponent(documentKey)}`
+              }
               className="truncate text-(length:--text-micro) text-muted-foreground transition-colors hover:text-foreground hover:underline"
             >
               updated {relativeTime(updatedAt)}
@@ -174,7 +223,9 @@ export function DocumentFrameHeader({
         </div>
         {titleSlot}
       </div>
-      {actionsSlot ? <div className="flex items-center gap-1 shrink-0">{actionsSlot}</div> : null}
+      {actionsSlot ? (
+        <div className="flex items-center gap-1 shrink-0">{actionsSlot}</div>
+      ) : null}
     </div>
   );
 }

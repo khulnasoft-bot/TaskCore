@@ -80,9 +80,13 @@ export interface ManagedEnvironmentSpec {
  * this pattern to floor credential-shaped config keys out of
  * platform-provisioned environment responses on managed instances.
  */
-export const SECRET_LIKE_CONFIG_KEY_PATTERN = /(api[-_]?key|token|secret|password|credential)/i;
+export const SECRET_LIKE_CONFIG_KEY_PATTERN =
+  /(api[-_]?key|token|secret|password|credential)/i;
 
-function findSecretLikeConfigKey(value: Record<string, unknown>, path: string): string | null {
+function findSecretLikeConfigKey(
+  value: Record<string, unknown>,
+  path: string,
+): string | null {
   for (const [key, child] of Object.entries(value)) {
     const childPath = path.length > 0 ? `${path}.${key}` : key;
     if (SECRET_LIKE_CONFIG_KEY_PATTERN.test(key)) return childPath;
@@ -92,7 +96,10 @@ function findSecretLikeConfigKey(value: Record<string, unknown>, path: string): 
     } else if (Array.isArray(child)) {
       for (const [index, element] of child.entries()) {
         if (!isPlainObject(element)) continue;
-        const nested = findSecretLikeConfigKey(element, `${childPath}[${index}]`);
+        const nested = findSecretLikeConfigKey(
+          element,
+          `${childPath}[${index}]`,
+        );
         if (nested) return nested;
       }
     }
@@ -110,7 +117,10 @@ let cachedFeatureKeys: ReadonlySet<string> | null = null;
  */
 export function managedFeatureKeySet(): ReadonlySet<string> {
   if (!cachedFeatureKeys) {
-    const defaults = instanceExperimentalSettingsSchema.parse({}) as Record<string, unknown>;
+    const defaults = instanceExperimentalSettingsSchema.parse({}) as Record<
+      string,
+      unknown
+    >;
     cachedFeatureKeys = new Set(
       Object.keys(defaults).filter((key) => typeof defaults[key] === "boolean"),
     );
@@ -138,7 +148,9 @@ function describeJsonValue(value: unknown): string {
  * present-but-blank value or any malformed document so a cloud instance fails
  * to start (fail closed).
  */
-export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceConfig | null {
+export function parseManagedConfigEnv(
+  env: ManagedConfigEnv,
+): ManagedInstanceConfig | null {
   const raw = env[MANAGED_CONFIG_ENV_KEY];
   if (raw === undefined) return null;
   if (raw.trim().length === 0) {
@@ -151,16 +163,27 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
   try {
     doc = JSON.parse(raw);
   } catch (err) {
-    fail(`is not valid JSON: ${err instanceof Error ? err.message : String(err)}`);
+    fail(
+      `is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
   if (!isPlainObject(doc)) {
     fail(`must be a JSON object (got ${describeJsonValue(doc)})`);
   }
 
-  const allowedTopLevelKeys = new Set(["v", "mode", "catalogVersion", "features", "plugins", "environments"]);
+  const allowedTopLevelKeys = new Set([
+    "v",
+    "mode",
+    "catalogVersion",
+    "features",
+    "plugins",
+    "environments",
+  ]);
   for (const key of Object.keys(doc)) {
     if (!allowedTopLevelKeys.has(key)) {
-      fail(`has unknown top-level key "${key}" (allowed: v, mode, catalogVersion, features, plugins, environments)`);
+      fail(
+        `has unknown top-level key "${key}" (allowed: v, mode, catalogVersion, features, plugins, environments)`,
+      );
     }
   }
 
@@ -172,8 +195,13 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
   if (doc.mode !== "cloud") {
     fail(`has invalid "mode" ${describeJsonValue(doc.mode)}; expected "cloud"`);
   }
-  if (typeof doc.catalogVersion !== "string" || doc.catalogVersion.trim().length === 0) {
-    fail(`requires a non-empty string "catalogVersion" (got ${describeJsonValue(doc.catalogVersion)})`);
+  if (
+    typeof doc.catalogVersion !== "string" ||
+    doc.catalogVersion.trim().length === 0
+  ) {
+    fail(
+      `requires a non-empty string "catalogVersion" (got ${describeJsonValue(doc.catalogVersion)})`,
+    );
   }
 
   // The cloud contract is the FULL document: `features` and
@@ -185,10 +213,14 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
   // the follow-up PR that generalizes `ensureBundledKubernetesPlugin`.
   const features: Partial<Record<ManagedExperimentalFeatureKey, boolean>> = {};
   if (doc.features === undefined) {
-    fail(`requires a "features" object mapping feature key → boolean (use {} for none)`);
+    fail(
+      `requires a "features" object mapping feature key → boolean (use {} for none)`,
+    );
   }
   if (!isPlainObject(doc.features)) {
-    fail(`"features" must be an object mapping feature key → boolean (got ${describeJsonValue(doc.features)})`);
+    fail(
+      `"features" must be an object mapping feature key → boolean (got ${describeJsonValue(doc.features)})`,
+    );
   }
   const knownKeys = managedFeatureKeySet();
   for (const [key, value] of Object.entries(doc.features)) {
@@ -203,21 +235,26 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
     // code-pinned `floor`, or a tier demoted since the document's
     // `catalogVersion` was published) is version skew — refuse startup rather
     // than apply a control with mismatched catalog semantics.
-    const tier = INSTANCE_FEATURE_CATALOG[key as ManagedExperimentalFeatureKey].tier;
+    const tier =
+      INSTANCE_FEATURE_CATALOG[key as ManagedExperimentalFeatureKey].tier;
     if (tier !== "managed") {
       fail(
         `"features" key "${key}" has tier "${tier}" in this build's feature catalog; only tier "managed" keys may be set by a managed-config document (catalogVersion ${JSON.stringify(doc.catalogVersion)} is incompatible with this build)`,
       );
     }
     if (typeof value !== "boolean") {
-      fail(`"features.${key}" must be a boolean (got ${describeJsonValue(value)})`);
+      fail(
+        `"features.${key}" must be a boolean (got ${describeJsonValue(value)})`,
+      );
     }
     features[key as ManagedExperimentalFeatureKey] = value;
   }
 
   const autoInstall: string[] = [];
   if (doc.plugins === undefined) {
-    fail(`requires a "plugins" object with an "autoInstall" array (use { "autoInstall": [] } for none)`);
+    fail(
+      `requires a "plugins" object with an "autoInstall" array (use { "autoInstall": [] } for none)`,
+    );
   }
   if (!isPlainObject(doc.plugins)) {
     fail(`"plugins" must be an object (got ${describeJsonValue(doc.plugins)})`);
@@ -229,13 +266,21 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
   }
   const rawAutoInstall = doc.plugins.autoInstall;
   if (rawAutoInstall === undefined) {
-    fail(`requires a "plugins.autoInstall" array of plugin keys (use [] for none)`);
+    fail(
+      `requires a "plugins.autoInstall" array of plugin keys (use [] for none)`,
+    );
   }
   if (!Array.isArray(rawAutoInstall)) {
-    fail(`"plugins.autoInstall" must be an array of plugin keys (got ${describeJsonValue(rawAutoInstall)})`);
+    fail(
+      `"plugins.autoInstall" must be an array of plugin keys (got ${describeJsonValue(rawAutoInstall)})`,
+    );
   }
   for (const entry of rawAutoInstall) {
-    if (typeof entry !== "string" || entry.length === 0 || entry.trim() !== entry) {
+    if (
+      typeof entry !== "string" ||
+      entry.length === 0 ||
+      entry.trim() !== entry
+    ) {
       fail(
         `"plugins.autoInstall" entries must be non-empty strings without surrounding whitespace (got ${describeJsonValue(entry)})`,
       );
@@ -255,7 +300,9 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
   const environmentSpecs: ManagedEnvironmentSpec[] = [];
   if (doc.environments !== undefined) {
     if (!Array.isArray(doc.environments)) {
-      fail(`"environments" must be an array of environment objects (got ${describeJsonValue(doc.environments)})`);
+      fail(
+        `"environments" must be an array of environment objects (got ${describeJsonValue(doc.environments)})`,
+      );
     }
     // The DB enforces at most ONE Taskcore-managed sandbox row per instance
     // (partial unique index `environments_managed_sandbox_idx`); every entry
@@ -267,26 +314,46 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
     }
     for (const [index, entry] of doc.environments.entries()) {
       if (!isPlainObject(entry)) {
-        fail(`"environments[${index}]" must be an object (got ${describeJsonValue(entry)})`);
+        fail(
+          `"environments[${index}]" must be an object (got ${describeJsonValue(entry)})`,
+        );
       }
-      const allowedEntryKeys = new Set(["name", "description", "provider", "config"]);
+      const allowedEntryKeys = new Set([
+        "name",
+        "description",
+        "provider",
+        "config",
+      ]);
       for (const key of Object.keys(entry)) {
         if (!allowedEntryKeys.has(key)) {
-          fail(`"environments[${index}]" has unknown key "${key}" (allowed: name, description, provider, config)`);
+          fail(
+            `"environments[${index}]" has unknown key "${key}" (allowed: name, description, provider, config)`,
+          );
         }
       }
-      if (typeof entry.name !== "string" || entry.name.length === 0 || entry.name.trim() !== entry.name) {
+      if (
+        typeof entry.name !== "string" ||
+        entry.name.length === 0 ||
+        entry.name.trim() !== entry.name
+      ) {
         fail(
           `"environments[${index}].name" must be a non-empty string without surrounding whitespace (got ${describeJsonValue(entry.name)})`,
         );
       }
       if (
-        entry.description !== undefined
-        && (typeof entry.description !== "string" || entry.description.trim().length === 0)
+        entry.description !== undefined &&
+        (typeof entry.description !== "string" ||
+          entry.description.trim().length === 0)
       ) {
-        fail(`"environments[${index}].description" must be a non-empty string when present (got ${describeJsonValue(entry.description)})`);
+        fail(
+          `"environments[${index}].description" must be a non-empty string when present (got ${describeJsonValue(entry.description)})`,
+        );
       }
-      if (typeof entry.provider !== "string" || entry.provider.length === 0 || entry.provider.trim() !== entry.provider) {
+      if (
+        typeof entry.provider !== "string" ||
+        entry.provider.length === 0 ||
+        entry.provider.trim() !== entry.provider
+      ) {
         fail(
           `"environments[${index}].provider" must be a non-empty string without surrounding whitespace (got ${describeJsonValue(entry.provider)})`,
         );
@@ -302,10 +369,14 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
       const config: Record<string, unknown> = {};
       if (entry.config !== undefined) {
         if (!isPlainObject(entry.config)) {
-          fail(`"environments[${index}].config" must be an object (got ${describeJsonValue(entry.config)})`);
+          fail(
+            `"environments[${index}].config" must be an object (got ${describeJsonValue(entry.config)})`,
+          );
         }
         if (entry.config.provider !== undefined) {
-          fail(`"environments[${index}].config" must not set "provider"; it is forced from the entry's provider key`);
+          fail(
+            `"environments[${index}].config" must not set "provider"; it is forced from the entry's provider key`,
+          );
         }
         const secretLikeKey = findSecretLikeConfigKey(entry.config, "");
         if (secretLikeKey) {
@@ -318,7 +389,9 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
       environmentSpecs.push(
         Object.freeze({
           name: entry.name,
-          ...(entry.description !== undefined ? { description: entry.description } : {}),
+          ...(entry.description !== undefined
+            ? { description: entry.description }
+            : {}),
           provider: entry.provider,
           config: Object.freeze(config),
         }) as ManagedEnvironmentSpec,
@@ -336,7 +409,10 @@ export function parseManagedConfigEnv(env: ManagedConfigEnv): ManagedInstanceCon
   }) as ManagedInstanceConfig;
 }
 
-let cache: { raw: string | undefined; config: ManagedInstanceConfig | null } | null = null;
+let cache: {
+  raw: string | undefined;
+  config: ManagedInstanceConfig | null;
+} | null = null;
 
 /**
  * Parse-once accessor keyed on the raw env value. Callers that pass a custom

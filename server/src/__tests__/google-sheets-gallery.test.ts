@@ -6,12 +6,14 @@ import { googleSheetsRobotEmailFromEnv } from "../services/tool-access.js";
 
 describe("Google Sheets app gallery availability", () => {
   it("reads the robot email from inline service-account JSON", () => {
-    expect(googleSheetsRobotEmailFromEnv({
-      GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON: JSON.stringify({
-        client_email: "robot@example.iam.gserviceaccount.com",
-        private_key: "secret",
+    expect(
+      googleSheetsRobotEmailFromEnv({
+        GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON: JSON.stringify({
+          client_email: "robot@example.iam.gserviceaccount.com",
+          private_key: "secret",
+        }),
       }),
-    })).toEqual({
+    ).toEqual({
       available: true,
       robotEmail: "robot@example.iam.gserviceaccount.com",
     });
@@ -21,10 +23,15 @@ describe("Google Sheets app gallery availability", () => {
     const dir = mkdtempSync(join(tmpdir(), "taskcore-sheets-"));
     try {
       const path = join(dir, "service-account.json");
-      writeFileSync(path, JSON.stringify({ client_email: "robot-from-file@example.com" }));
-      expect(googleSheetsRobotEmailFromEnv({
-        GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_PATH: path,
-      })).toEqual({
+      writeFileSync(
+        path,
+        JSON.stringify({ client_email: "robot-from-file@example.com" }),
+      );
+      expect(
+        googleSheetsRobotEmailFromEnv({
+          GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_PATH: path,
+        }),
+      ).toEqual({
         available: true,
         robotEmail: "robot-from-file@example.com",
       });

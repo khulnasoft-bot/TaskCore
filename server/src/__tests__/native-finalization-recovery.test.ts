@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { eq } from "drizzle-orm";
 import {
   agents,
@@ -41,9 +49,13 @@ describe("P6-16/P6-25/P6-28 native finalization recovery", () => {
   const staleRunId = "72000000-0000-4000-8000-000000000015";
 
   beforeAll(async () => {
-    temporary = await startEmbeddedPostgresTestDatabase("taskcore-native-recovery-");
+    temporary = await startEmbeddedPostgresTestDatabase(
+      "taskcore-native-recovery-",
+    );
     db = createDb(temporary.connectionString);
-    await db.insert(companies).values({ id: companyId, name: "Native recovery", issuePrefix: "NRC" });
+    await db
+      .insert(companies)
+      .values({ id: companyId, name: "Native recovery", issuePrefix: "NRC" });
     await db.insert(agents).values({
       id: agentId,
       companyId,
@@ -113,14 +125,24 @@ describe("P6-16/P6-25/P6-28 native finalization recovery", () => {
       terminal: CONTROL_PLANE_CONFORMANCE_TERMINAL,
       callerResultId: "recovery-result",
     });
-    const stored = await db.select().from(nativeRunResults).where(eq(nativeRunResults.runId, runId))
-      .limit(1).then((rows) => rows[0]!);
-    await db.update(nativeRunResults).set({
-      resultJson: {
-        ...(stored.resultJson as Record<string, unknown>),
-        terminal: { ...CONTROL_PLANE_CONFORMANCE_TERMINAL, runTerminalState: "unknown" },
-      },
-    }).where(eq(nativeRunResults.id, stored.id));
+    const stored = await db
+      .select()
+      .from(nativeRunResults)
+      .where(eq(nativeRunResults.runId, runId))
+      .limit(1)
+      .then((rows) => rows[0]!);
+    await db
+      .update(nativeRunResults)
+      .set({
+        resultJson: {
+          ...(stored.resultJson as Record<string, unknown>),
+          terminal: {
+            ...CONTROL_PLANE_CONFORMANCE_TERMINAL,
+            runTerminalState: "unknown",
+          },
+        },
+      })
+      .where(eq(nativeRunResults.id, stored.id));
     await db.insert(workspaceOperations).values({
       companyId,
       heartbeatRunId: runId,
@@ -183,7 +205,13 @@ describe("P6-16/P6-25/P6-28 native finalization recovery", () => {
     });
     await stalePort.openRun({
       ...CONTROL_PLANE_CONFORMANCE_OPEN,
-      identity: { companyId, issueId: staleIssueId, runId: staleRunId, agentId, sessionId: staleRunId },
+      identity: {
+        companyId,
+        issueId: staleIssueId,
+        runId: staleRunId,
+        agentId,
+        sessionId: staleRunId,
+      },
       sourceInstanceId: staleContractId,
     });
     await stalePort.completeRun({
@@ -191,15 +219,24 @@ describe("P6-16/P6-25/P6-28 native finalization recovery", () => {
       terminal: CONTROL_PLANE_CONFORMANCE_TERMINAL,
       callerResultId: "stale-result",
     });
-    const staleStored = await db.select().from(nativeRunResults)
+    const staleStored = await db
+      .select()
+      .from(nativeRunResults)
       .where(eq(nativeRunResults.runId, staleRunId))
-      .limit(1).then((rows) => rows[0]!);
-    await db.update(nativeRunResults).set({
-      resultJson: {
-        ...(staleStored.resultJson as Record<string, unknown>),
-        terminal: { ...CONTROL_PLANE_CONFORMANCE_TERMINAL, runTerminalState: "unknown" },
-      },
-    }).where(eq(nativeRunResults.id, staleStored.id));
+      .limit(1)
+      .then((rows) => rows[0]!);
+    await db
+      .update(nativeRunResults)
+      .set({
+        resultJson: {
+          ...(staleStored.resultJson as Record<string, unknown>),
+          terminal: {
+            ...CONTROL_PLANE_CONFORMANCE_TERMINAL,
+            runTerminalState: "unknown",
+          },
+        },
+      })
+      .where(eq(nativeRunResults.id, staleStored.id));
     await db.insert(workspaceOperations).values({
       companyId,
       heartbeatRunId: staleRunId,
@@ -215,22 +252,52 @@ describe("P6-16/P6-25/P6-28 native finalization recovery", () => {
 
   it("fails closed into bounded named recovery without consulting the live flag or falling back", async () => {
     await expect(reconcileNativeFinalizations(db, [runId])).resolves.toEqual([
-      expect.objectContaining({ phase: "retryable_failure", failureCode: "native_finalization_invalid" }),
+      expect.objectContaining({
+        phase: "retryable_failure",
+        failureCode: "native_finalization_invalid",
+      }),
     ]);
-    await expect(db.select().from(issues).where(eq(issues.id, issueId))).resolves.toEqual([
-      expect.objectContaining({ status: "in_progress", statusVersion: 0, lastStatusDecisionId: null }),
+    await expect(
+      db.select().from(issues).where(eq(issues.id, issueId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        status: "in_progress",
+        statusVersion: 0,
+        lastStatusDecisionId: null,
+      }),
     ]);
-    await expect(db.select().from(issueRecoveryActions).where(eq(issueRecoveryActions.sourceIssueId, issueId))).resolves.toEqual([
-      expect.objectContaining({ status: "active", ownerAgentId: agentId, cause: "native_finalization_invalid" }),
+    await expect(
+      db
+        .select()
+        .from(issueRecoveryActions)
+        .where(eq(issueRecoveryActions.sourceIssueId, issueId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        status: "active",
+        ownerAgentId: agentId,
+        cause: "native_finalization_invalid",
+      }),
     ]);
-    await expect(db.select().from(statusDecisions).where(eq(statusDecisions.issueId, issueId))).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(statusDecisions)
+        .where(eq(statusDecisions.issueId, issueId)),
+    ).resolves.toHaveLength(0);
 
     for (let retry = 0; retry < 2; retry += 1) {
-      await db.update(nativeRunFinalizations).set({ nextAttemptAt: new Date(0) })
+      await db
+        .update(nativeRunFinalizations)
+        .set({ nextAttemptAt: new Date(0) })
         .where(eq(nativeRunFinalizations.runId, runId));
       await reconcileNativeFinalizations(db, [runId]);
     }
-    await expect(db.select().from(nativeRunFinalizations).where(eq(nativeRunFinalizations.runId, runId))).resolves.toEqual([
+    await expect(
+      db
+        .select()
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, runId)),
+    ).resolves.toEqual([
       expect.objectContaining({
         phase: "terminal_failure",
         attempt: 3,
@@ -238,20 +305,31 @@ describe("P6-16/P6-25/P6-28 native finalization recovery", () => {
         nextAttemptAt: null,
       }),
     ]);
-    await expect(db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId))).resolves.toEqual([
+    await expect(
+      db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId)),
+    ).resolves.toEqual([
       expect.objectContaining({
         runtimeMode: "native",
         status: "succeeded",
         nativePhase: "terminal_failure",
-        resultJson: expect.objectContaining({ prpRunTerminalState: "succeeded" }),
+        resultJson: expect.objectContaining({
+          prpRunTerminalState: "succeeded",
+        }),
       }),
     ]);
-    await expect(reconcileNativeFinalizations(db, [runId])).resolves.toEqual([]);
+    await expect(reconcileNativeFinalizations(db, [runId])).resolves.toEqual(
+      [],
+    );
   });
 
   it("retires an older failed finalizer when a newer run already committed the issue", async () => {
-    await expect(reconcileNativeFinalizations(db, [staleRunId])).resolves.toEqual([
-      expect.objectContaining({ phase: "retryable_failure", failureCode: "native_finalization_invalid" }),
+    await expect(
+      reconcileNativeFinalizations(db, [staleRunId]),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        phase: "retryable_failure",
+        failureCode: "native_finalization_invalid",
+      }),
     ]);
 
     const newerRunId = "72000000-0000-4000-8000-000000000016";
@@ -266,66 +344,97 @@ describe("P6-16/P6-25/P6-28 native finalization recovery", () => {
       completionContractSha256: "stale-finalizer-contract",
       contextSnapshot: { issueId: staleIssueId },
     });
-    const [newerResult] = await db.insert(nativeRunResults).values({
-      companyId,
-      issueId: staleIssueId,
-      runId: newerRunId,
-      completionContractId: staleContractId,
-      callerResultId: "newer-result",
-      serverFingerprint: "newer-result-fingerprint",
-      schemaStatus: "accepted",
-      resultJson: {},
-      canonicalSha256: "newer-result-sha",
-    }).returning();
-    const [newerAssessment] = await db.insert(workAssessments).values({
-      companyId,
-      issueId: staleIssueId,
-      runId: newerRunId,
-      contractId: staleContractId,
-      resultId: newerResult!.id,
-      triggerKind: "native_result",
-      triggerRef: newerResult!.id,
-      triggerCapability: "server_native_finalizer",
-      triggerActorCompanyId: companyId,
-      priorIssueStatus: "in_progress",
-      priorStatusVersion: 0,
-      policyVersion: "phase6-v3",
-      assessmentJson: {},
-      inputDigest: "newer-assessment-digest",
-    }).returning();
-    const [newerDecision] = await db.insert(statusDecisions).values({
-      companyId,
-      issueId: staleIssueId,
-      runId: newerRunId,
-      assessmentId: newerAssessment!.id,
-      decisionVersion: 1,
-      policyVersion: "phase6-v3",
-      fromStatus: "in_progress",
-      toStatus: "done",
-      reasonCode: "completion_claim_policy_accepted",
-      decisionJson: {},
-      decisionDigest: "newer-decision-digest",
-      applicationState: "applied",
-      appliedAt: new Date(),
-    }).returning();
-    await db.update(issues).set({
-      status: "done",
-      statusVersion: 1,
-      lastStatusDecisionId: newerDecision!.id,
-    }).where(eq(issues.id, staleIssueId));
-    await db.update(nativeRunFinalizations).set({ nextAttemptAt: new Date(0) })
+    const [newerResult] = await db
+      .insert(nativeRunResults)
+      .values({
+        companyId,
+        issueId: staleIssueId,
+        runId: newerRunId,
+        completionContractId: staleContractId,
+        callerResultId: "newer-result",
+        serverFingerprint: "newer-result-fingerprint",
+        schemaStatus: "accepted",
+        resultJson: {},
+        canonicalSha256: "newer-result-sha",
+      })
+      .returning();
+    const [newerAssessment] = await db
+      .insert(workAssessments)
+      .values({
+        companyId,
+        issueId: staleIssueId,
+        runId: newerRunId,
+        contractId: staleContractId,
+        resultId: newerResult!.id,
+        triggerKind: "native_result",
+        triggerRef: newerResult!.id,
+        triggerCapability: "server_native_finalizer",
+        triggerActorCompanyId: companyId,
+        priorIssueStatus: "in_progress",
+        priorStatusVersion: 0,
+        policyVersion: "phase6-v3",
+        assessmentJson: {},
+        inputDigest: "newer-assessment-digest",
+      })
+      .returning();
+    const [newerDecision] = await db
+      .insert(statusDecisions)
+      .values({
+        companyId,
+        issueId: staleIssueId,
+        runId: newerRunId,
+        assessmentId: newerAssessment!.id,
+        decisionVersion: 1,
+        policyVersion: "phase6-v3",
+        fromStatus: "in_progress",
+        toStatus: "done",
+        reasonCode: "completion_claim_policy_accepted",
+        decisionJson: {},
+        decisionDigest: "newer-decision-digest",
+        applicationState: "applied",
+        appliedAt: new Date(),
+      })
+      .returning();
+    await db
+      .update(issues)
+      .set({
+        status: "done",
+        statusVersion: 1,
+        lastStatusDecisionId: newerDecision!.id,
+      })
+      .where(eq(issues.id, staleIssueId));
+    await db
+      .update(nativeRunFinalizations)
+      .set({ nextAttemptAt: new Date(0) })
       .where(eq(nativeRunFinalizations.runId, staleRunId));
 
-    await expect(reconcileNativeFinalizations(db, [staleRunId])).resolves.toEqual([
-      expect.objectContaining({ phase: "terminal_failure", failureCode: "native_finalization_superseded" }),
+    await expect(
+      reconcileNativeFinalizations(db, [staleRunId]),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        phase: "terminal_failure",
+        failureCode: "native_finalization_superseded",
+      }),
     ]);
-    await expect(db.select().from(issues).where(eq(issues.id, staleIssueId))).resolves.toEqual([
-      expect.objectContaining({ status: "done", lastStatusDecisionId: newerDecision!.id }),
+    await expect(
+      db.select().from(issues).where(eq(issues.id, staleIssueId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        status: "done",
+        lastStatusDecisionId: newerDecision!.id,
+      }),
     ]);
-    await expect(db.select().from(issueRecoveryActions)
-      .where(eq(issueRecoveryActions.sourceIssueId, staleIssueId))).resolves.toEqual([
-        expect.objectContaining({ status: "resolved", outcome: "false_positive" }),
-      ]);
+    await expect(
+      db
+        .select()
+        .from(issueRecoveryActions)
+        .where(eq(issueRecoveryActions.sourceIssueId, staleIssueId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        status: "resolved",
+        outcome: "false_positive",
+      }),
+    ]);
   });
 });
 
@@ -362,14 +471,12 @@ describe("retained native cleanup discovery", () => {
     await db
       .insert(companies)
       .values({ id: companyId, name: "Cleanup sweep", issuePrefix: "NCS" });
-    await db
-      .insert(agents)
-      .values({
-        id: agentId,
-        companyId,
-        name: "Cleanup",
-        adapterType: "codex_local",
-      });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "Cleanup",
+      adapterType: "codex_local",
+    });
   });
   afterEach(async () => {
     // Remove only this suite's discovery rows; the throwaway database retains
@@ -397,9 +504,8 @@ describe("retained native cleanup discovery", () => {
     const runId = randomUUID();
     const issueId = options.issueId ?? randomUUID();
     const contractId = randomUUID();
-    if (!options.issueId) await db
-      .insert(issues)
-      .values({
+    if (!options.issueId)
+      await db.insert(issues).values({
         id: issueId,
         companyId,
         title: "Retained session",
@@ -566,11 +672,26 @@ describe("retained native cleanup discovery", () => {
         recoveryHistory: [{ kind: "native_cleanup_maintenance", phase }],
       },
     })),
-    { coordinator: { recoveryHistory: [{ kind: "native_cleanup_source_archive", phase: "operator_required" }] } },
-    { coordinator: { recoveryHistory: [
-      { kind: "native_cleanup_source_archive", phase: "prepared" },
-      { kind: "native_cleanup_runner_epoch", phase: "spawned", epoch: 1, pid: 88736 },
-    ] } },
+    {
+      coordinator: {
+        recoveryHistory: [
+          { kind: "native_cleanup_source_archive", phase: "operator_required" },
+        ],
+      },
+    },
+    {
+      coordinator: {
+        recoveryHistory: [
+          { kind: "native_cleanup_source_archive", phase: "prepared" },
+          {
+            kind: "native_cleanup_runner_epoch",
+            phase: "spawned",
+            epoch: 1,
+            pid: 88736,
+          },
+        ],
+      },
+    },
   ])(
     "excludes ineligible or previously attempted cleanup: %j",
     async (options) => {
@@ -605,65 +726,143 @@ describe("retained native cleanup discovery", () => {
     ).toEqual(before);
   });
 
-  it.each(["prepared", "archived"])("discovers prelaunch source archival at %s without changing authority", async (phase) => {
-    const runId = await candidate();
-    const prepared = {
-      kind: "native_cleanup_source_archive", version: 1, phase: "prepared",
-      requestId: "native-cleanup:source-archive", companyId, agentId, runId,
-      nativeSessionId: runId, runnerInstanceId: randomUUID(), stateKey: "a".repeat(64),
-      archiveName: `${"a".repeat(64)}.identity_indeterminate.cleanup.fixture`,
-      rootIdentity: { device: 1, inode: 2, mode: 0o40700 },
-      sourceFingerprint: "b".repeat(64), providerHomeFingerprint: "c".repeat(64),
-    };
-    const history = [prepared, ...(phase === "archived" ? [{ ...prepared, phase }] : [])];
-    await db.update(nativeRunFinalizations).set({ recoveryHistory: history })
-      .where(eq(nativeRunFinalizations.runId, runId));
-    const cleanup = vi.fn(async () => ({ runId, status: "not_eligible" as const }));
-    await reconcileRetainedNativeSessionCleanups(db, { cleanup });
-    expect(cleanup).toHaveBeenCalledExactlyOnceWith({ companyId, runId });
-    const [after] = await db.select().from(nativeRunFinalizations).where(eq(nativeRunFinalizations.runId, runId));
-    expect(after?.recoveryHistory).toEqual(history);
-    expect(after?.phase).toBe("committed");
-  });
+  it.each(["prepared", "archived"])(
+    "discovers prelaunch source archival at %s without changing authority",
+    async (phase) => {
+      const runId = await candidate();
+      const prepared = {
+        kind: "native_cleanup_source_archive",
+        version: 1,
+        phase: "prepared",
+        requestId: "native-cleanup:source-archive",
+        companyId,
+        agentId,
+        runId,
+        nativeSessionId: runId,
+        runnerInstanceId: randomUUID(),
+        stateKey: "a".repeat(64),
+        archiveName: `${"a".repeat(64)}.identity_indeterminate.cleanup.fixture`,
+        rootIdentity: { device: 1, inode: 2, mode: 0o40700 },
+        sourceFingerprint: "b".repeat(64),
+        providerHomeFingerprint: "c".repeat(64),
+      };
+      const history = [
+        prepared,
+        ...(phase === "archived" ? [{ ...prepared, phase }] : []),
+      ];
+      await db
+        .update(nativeRunFinalizations)
+        .set({ recoveryHistory: history })
+        .where(eq(nativeRunFinalizations.runId, runId));
+      const cleanup = vi.fn(async () => ({
+        runId,
+        status: "not_eligible" as const,
+      }));
+      await reconcileRetainedNativeSessionCleanups(db, { cleanup });
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith({ companyId, runId });
+      const [after] = await db
+        .select()
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, runId));
+      expect(after?.recoveryHistory).toEqual(history);
+      expect(after?.phase).toBe("committed");
+    },
+  );
 
   it("fences actual scoped admission until every archived owner has its matching latest settlement", async () => {
     const first = await candidate();
-    const [owner] = await db.select().from(nativeRunFinalizations).where(eq(nativeRunFinalizations.runId, first));
+    const [owner] = await db
+      .select()
+      .from(nativeRunFinalizations)
+      .where(eq(nativeRunFinalizations.runId, first));
     const issueId = owner!.issueId;
     const scope = { companyId, issueId, stateKey: "d".repeat(64) };
-    const prepared = { kind: "native_cleanup_source_archive", version: 1, phase: "prepared",
-      stateKey: scope.stateKey, requestId: "native-cleanup:archive", sourceFingerprint: "a".repeat(64) };
-    const settled = { kind: "native_cleanup_maintenance", phase: "settled",
-      sourceArchiveRequestId: prepared.requestId, sourceFingerprint: prepared.sourceFingerprint };
-    const setHistory = async (runId: string, history: Record<string, unknown>[]) =>
-      db.update(nativeRunFinalizations).set({ recoveryHistory: history }).where(eq(nativeRunFinalizations.runId, runId));
+    const prepared = {
+      kind: "native_cleanup_source_archive",
+      version: 1,
+      phase: "prepared",
+      stateKey: scope.stateKey,
+      requestId: "native-cleanup:archive",
+      sourceFingerprint: "a".repeat(64),
+    };
+    const settled = {
+      kind: "native_cleanup_maintenance",
+      phase: "settled",
+      sourceArchiveRequestId: prepared.requestId,
+      sourceFingerprint: prepared.sourceFingerprint,
+    };
+    const setHistory = async (
+      runId: string,
+      history: Record<string, unknown>[],
+    ) =>
+      db
+        .update(nativeRunFinalizations)
+        .set({ recoveryHistory: history })
+        .where(eq(nativeRunFinalizations.runId, runId));
     await assertRetainedNativeSourceArchiveSettled(db, scope);
     await setHistory(first, [prepared]);
-    await expect(assertRetainedNativeSourceArchiveSettled(db, scope)).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
-    await assertRetainedNativeSourceArchiveSettled(db, { ...scope, stateKey: "e".repeat(64) });
-    await assertRetainedNativeSourceArchiveSettled(db, { ...scope, companyId: randomUUID() });
-    await assertRetainedNativeSourceArchiveSettled(db, { ...scope, issueId: randomUUID() });
-    await setHistory(first, [prepared, { ...settled, sourceFingerprint: "b".repeat(64) }]);
-    await expect(assertRetainedNativeSourceArchiveSettled(db, scope)).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
+    await expect(
+      assertRetainedNativeSourceArchiveSettled(db, scope),
+    ).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
+    await assertRetainedNativeSourceArchiveSettled(db, {
+      ...scope,
+      stateKey: "e".repeat(64),
+    });
+    await assertRetainedNativeSourceArchiveSettled(db, {
+      ...scope,
+      companyId: randomUUID(),
+    });
+    await assertRetainedNativeSourceArchiveSettled(db, {
+      ...scope,
+      issueId: randomUUID(),
+    });
+    await setHistory(first, [
+      prepared,
+      { ...settled, sourceFingerprint: "b".repeat(64) },
+    ]);
+    await expect(
+      assertRetainedNativeSourceArchiveSettled(db, scope),
+    ).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
     await setHistory(first, [prepared, settled]);
     await assertRetainedNativeSourceArchiveSettled(db, scope);
     await setHistory(first, [prepared, { ...prepared }, settled]);
-    await expect(assertRetainedNativeSourceArchiveSettled(db, scope)).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
+    await expect(
+      assertRetainedNativeSourceArchiveSettled(db, scope),
+    ).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
     await setHistory(first, [{ ...prepared, version: null }, settled]);
-    await expect(assertRetainedNativeSourceArchiveSettled(db, scope)).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
-    await setHistory(first, [{ ...prepared, requestId: null }, { kind: "native_cleanup_maintenance", phase: "settled", sourceFingerprint: prepared.sourceFingerprint }]);
-    await expect(assertRetainedNativeSourceArchiveSettled(db, scope)).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
+    await expect(
+      assertRetainedNativeSourceArchiveSettled(db, scope),
+    ).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
+    await setHistory(first, [
+      { ...prepared, requestId: null },
+      {
+        kind: "native_cleanup_maintenance",
+        phase: "settled",
+        sourceFingerprint: prepared.sourceFingerprint,
+      },
+    ]);
+    await expect(
+      assertRetainedNativeSourceArchiveSettled(db, scope),
+    ).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
     await setHistory(first, [prepared, settled]);
     const second = await candidate({ issueId, revision: 2 });
     await setHistory(second, [prepared, settled]);
     await assertRetainedNativeSourceArchiveSettled(db, scope);
     const third = await candidate({ issueId, revision: 3 });
     await setHistory(third, [prepared]);
-    await expect(assertRetainedNativeSourceArchiveSettled(db, scope)).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
+    await expect(
+      assertRetainedNativeSourceArchiveSettled(db, scope),
+    ).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
     await setHistory(third, [prepared, settled]);
     await assertRetainedNativeSourceArchiveSettled(db, scope);
-    await setHistory(first, [prepared, settled, { ...settled, phase: "operator_required" }]);
-    await expect(assertRetainedNativeSourceArchiveSettled(db, scope)).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
+    await setHistory(first, [
+      prepared,
+      settled,
+      { ...settled, phase: "operator_required" },
+    ]);
+    await expect(
+      assertRetainedNativeSourceArchiveSettled(db, scope),
+    ).rejects.toMatchObject({ code: "native_session_cleanup_quarantined" });
   });
 
   it.each([

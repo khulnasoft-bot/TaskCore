@@ -13,12 +13,17 @@ export const assetsApi = {
     const form = new FormData();
     // Callers build namespaces from ids and filenames that can hold characters
     // the API rejects. Clean the namespace here so every caller is covered.
-    const safeNamespace = namespace ? sanitizeAssetNamespace(namespace) : undefined;
+    const safeNamespace = namespace
+      ? sanitizeAssetNamespace(namespace)
+      : undefined;
     if (safeNamespace) {
       form.append("namespace", safeNamespace);
     }
     form.append("file", safeFile);
-    return api.postForm<AssetImage>(`/companies/${companyId}/assets/images`, form);
+    return api.postForm<AssetImage>(
+      `/companies/${companyId}/assets/images`,
+      form,
+    );
   },
 
   uploadCompanyLogo: async (companyId: string, file: File) => {

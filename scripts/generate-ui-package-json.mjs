@@ -26,6 +26,9 @@ const publishPackageJson = {
   },
 };
 
-writeFileSync(packageJsonPath, `${JSON.stringify(publishPackageJson, null, 2)}\n`);
+writeFileSync(
+  packageJsonPath,
+  `${JSON.stringify(publishPackageJson, null, 2)}\n`,
+);
 
 console.log("  ✓ Generated publishable UI package.json");

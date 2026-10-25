@@ -33,9 +33,14 @@ export function resolveArchivedCompanyBounce(params: {
   if (selectedCompanyId === matchedCompany.id) return null;
 
   const selectedActive = companies.find(
-    (company) => company.id === selectedCompanyId && company.status !== "archived",
+    (company) =>
+      company.id === selectedCompanyId && company.status !== "archived",
   );
-  return selectedActive ?? companies.find((company) => company.status !== "archived") ?? null;
+  return (
+    selectedActive ??
+    companies.find((company) => company.status !== "archived") ??
+    null
+  );
 }
 
 export type CompanyArchiveDeparture =
@@ -63,10 +68,12 @@ export function resolveCompanyArchiveDeparture(params: {
 }): CompanyArchiveDeparture {
   const { archivedCompanyId, companies, cloudPortfolioUrl } = params;
   const nextCompany = companies.find(
-    (company) => company.id !== archivedCompanyId && company.status !== "archived",
+    (company) =>
+      company.id !== archivedCompanyId && company.status !== "archived",
   );
   if (nextCompany) return { kind: "company", company: nextCompany };
-  if (cloudPortfolioUrl) return { kind: "cloud_portfolio", url: cloudPortfolioUrl };
+  if (cloudPortfolioUrl)
+    return { kind: "cloud_portfolio", url: cloudPortfolioUrl };
   return { kind: "companies_list" };
 }
 

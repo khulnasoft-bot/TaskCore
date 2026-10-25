@@ -1,5 +1,9 @@
 import type { PluginDetailTabProps } from "@taskcore/plugin-sdk/ui";
-import { copyTextToClipboard, usePluginData, usePluginToast } from "@taskcore/plugin-sdk/ui";
+import {
+  copyTextToClipboard,
+  usePluginData,
+  usePluginToast,
+} from "@taskcore/plugin-sdk/ui";
 import { DIFFS_TAG_NAME, getSingularPatch } from "@pierre/diffs";
 import type { PatchDiffProps } from "@pierre/diffs/react";
 import { useFileDiffInstance } from "@pierre/diffs/react";
@@ -28,7 +32,10 @@ import {
 import type { WorkspaceDiffResponse } from "../contracts.js";
 
 type WorkspaceDiffData = WorkspaceDiffResponse;
-type WorkspacePatchDiffOptions = PatchDiffProps<undefined, undefined>["options"];
+type WorkspacePatchDiffOptions = PatchDiffProps<
+  undefined,
+  undefined
+>["options"];
 type DiffViewMode = "working-tree" | "head";
 
 type LucideIconProps = { size?: number };
@@ -37,7 +44,8 @@ const DEFAULT_FILE_SIDEBAR_WIDTH = 280;
 const MIN_FILE_SIDEBAR_WIDTH = 220;
 const MAX_FILE_SIDEBAR_WIDTH = 520;
 const FILE_SIDEBAR_WIDTH_STEP = 16;
-const FILE_SIDEBAR_WIDTH_STORAGE_KEY = "taskcore.workspace-diff.files-sidebar-width";
+const FILE_SIDEBAR_WIDTH_STORAGE_KEY =
+  "taskcore.workspace-diff.files-sidebar-width";
 
 function makeLucideIcon(paths: ReactNode) {
   return function LucideIcon({ size = 16 }: LucideIconProps) {
@@ -70,7 +78,9 @@ const RefreshCwIcon = makeLucideIcon(
 
 function readInitialView(): DiffViewMode {
   if (typeof window === "undefined") return "working-tree";
-  return new URLSearchParams(window.location.search).get("diffView") === "head" ? "head" : "working-tree";
+  return new URLSearchParams(window.location.search).get("diffView") === "head"
+    ? "head"
+    : "working-tree";
 }
 
 function hasInitialViewParam() {
@@ -102,7 +112,10 @@ function iconButtonClass(active = false) {
 }
 
 function clampFileSidebarWidth(width: number) {
-  return Math.min(MAX_FILE_SIDEBAR_WIDTH, Math.max(MIN_FILE_SIDEBAR_WIDTH, width));
+  return Math.min(
+    MAX_FILE_SIDEBAR_WIDTH,
+    Math.max(MIN_FILE_SIDEBAR_WIDTH, width),
+  );
 }
 
 function readStoredFileSidebarWidth() {
@@ -112,7 +125,9 @@ function readStoredFileSidebarWidth() {
     const stored = window.localStorage.getItem(FILE_SIDEBAR_WIDTH_STORAGE_KEY);
     if (!stored) return DEFAULT_FILE_SIDEBAR_WIDTH;
     const parsed = Number.parseInt(stored, 10);
-    return Number.isFinite(parsed) ? clampFileSidebarWidth(parsed) : DEFAULT_FILE_SIDEBAR_WIDTH;
+    return Number.isFinite(parsed)
+      ? clampFileSidebarWidth(parsed)
+      : DEFAULT_FILE_SIDEBAR_WIDTH;
   } catch {
     return DEFAULT_FILE_SIDEBAR_WIDTH;
   }
@@ -122,7 +137,10 @@ function writeStoredFileSidebarWidth(width: number) {
   if (typeof window === "undefined") return;
 
   try {
-    window.localStorage.setItem(FILE_SIDEBAR_WIDTH_STORAGE_KEY, String(clampFileSidebarWidth(width)));
+    window.localStorage.setItem(
+      FILE_SIDEBAR_WIDTH_STORAGE_KEY,
+      String(clampFileSidebarWidth(width)),
+    );
   } catch {
     // Storage can be unavailable; keep resize interactive even when persistence fails.
   }
@@ -130,12 +148,20 @@ function writeStoredFileSidebarWidth(width: number) {
 
 function useIsDesktopDiffLayout() {
   const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return false;
     return window.matchMedia("(min-width: 1024px)").matches;
   });
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return;
 
     const query = window.matchMedia("(min-width: 1024px)");
     const update = () => setIsDesktop(query.matches);
@@ -150,7 +176,8 @@ function warningText(file: DiffFileViewModel) {
   if (file.binary) return "Binary file";
   if (file.oversized) return "Too large to render";
   if (file.truncated) return "Patch truncated";
-  if (file.warnings.length > 0) return file.warnings[0]?.message ?? "Diff warning";
+  if (file.warnings.length > 0)
+    return file.warnings[0]?.message ?? "Diff warning";
   if (file.patches.every((patch) => !patch.patch)) return "No text patch";
   return null;
 }
@@ -170,7 +197,8 @@ function patchWarningText(patch: DiffPatchViewModel) {
   if (patch.binary) return "Binary file";
   if (patch.oversized) return "Too large to render";
   if (patch.truncated) return "Patch truncated";
-  if (patch.warnings.length > 0) return patch.warnings[0]?.message ?? "Diff warning";
+  if (patch.warnings.length > 0)
+    return patch.warnings[0]?.message ?? "Diff warning";
   if (!patch.patch) return "No text patch";
   return null;
 }
@@ -192,7 +220,9 @@ function FileRow({
 }) {
   const warning = warningText(file);
   const expandLabel = expanded ? "Collapse file" : "Expand file";
-  const fileAriaLabel = expanded ? `Collapse ${file.path}` : `Expand ${file.path}`;
+  const fileAriaLabel = expanded
+    ? `Collapse ${file.path}`
+    : `Expand ${file.path}`;
 
   return (
     <div
@@ -218,8 +248,18 @@ function FileRow({
           className="min-w-0 flex-1 text-left"
           onClick={onSelect}
         >
-          <div key="name" className="truncate text-sm font-medium text-foreground">{fileName(file.path)}</div>
-          <div key="path" className="truncate font-mono text-[11px] text-muted-foreground">{file.path}</div>
+          <div
+            key="name"
+            className="truncate text-sm font-medium text-foreground"
+          >
+            {fileName(file.path)}
+          </div>
+          <div
+            key="path"
+            className="truncate font-mono text-[11px] text-muted-foreground"
+          >
+            {file.path}
+          </div>
         </button>
         <button
           key="copy"
@@ -232,11 +272,24 @@ function FileRow({
           ⧉
         </button>
       </div>
-      <div key="meta" className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-5 text-[11px] text-muted-foreground">
+      <div
+        key="meta"
+        className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-5 text-[11px] text-muted-foreground"
+      >
         <span key="status">{statusLabel(file.status)}</span>
-        <span key="additions" className="font-mono text-emerald-700 dark:text-emerald-300">{`+${file.additions}`}</span>
-        <span key="deletions" className="font-mono text-red-700 dark:text-red-300">{`-${file.deletions}`}</span>
-        {warning ? <span key="warning" className="text-amber-700 dark:text-amber-300">{warning}</span> : null}
+        <span
+          key="additions"
+          className="font-mono text-emerald-700 dark:text-emerald-300"
+        >{`+${file.additions}`}</span>
+        <span
+          key="deletions"
+          className="font-mono text-red-700 dark:text-red-300"
+        >{`-${file.deletions}`}</span>
+        {warning ? (
+          <span key="warning" className="text-amber-700 dark:text-amber-300">
+            {warning}
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -274,7 +327,9 @@ function WorkspacePatchDiff({
 function EmptyState() {
   return (
     <div className="border border-dashed border-border bg-background px-4 py-8 text-center">
-      <div className="text-sm font-medium text-foreground">No workspace changes</div>
+      <div className="text-sm font-medium text-foreground">
+        No workspace changes
+      </div>
       <div className="mt-1 text-sm text-muted-foreground">
         The workspace matches its current comparison target.
       </div>
@@ -298,10 +353,15 @@ export function ErrorState({
   onRetry: () => void;
 }) {
   return (
-    <div className="border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm" role="alert">
+    <div
+      className="border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+      role="alert"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <div className="font-medium text-foreground">Unable to load workspace changes.</div>
+          <div className="font-medium text-foreground">
+            Unable to load workspace changes.
+          </div>
           <div className="mt-1 text-muted-foreground">
             Retry the request or open the details below for the technical error.
           </div>
@@ -350,17 +410,23 @@ function FileDiffPanel({
       {file.patches.map((patch, index) => {
         const patchWarning = patchWarningText(patch);
         return (
-          <div key={`${patch.kind}:${index}`} className="overflow-hidden border border-border bg-background">
+          <div
+            key={`${patch.kind}:${index}`}
+            className="overflow-hidden border border-border bg-background"
+          >
             {file.patches.length > 1 ? (
               <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{patchKindLabel(patch.kind)}</span>
+                <span className="font-medium text-foreground">
+                  {patchKindLabel(patch.kind)}
+                </span>
                 <span className="font-mono text-emerald-700 dark:text-emerald-300">{`+${patch.additions}`}</span>
                 <span className="font-mono text-red-700 dark:text-red-300">{`-${patch.deletions}`}</span>
               </div>
             ) : null}
             {patchWarning || !patch.patch ? (
               <div className="px-4 py-6 text-sm text-muted-foreground">
-                {patchWarning ?? "No renderable patch is available for this file."}
+                {patchWarning ??
+                  "No renderable patch is available for this file."}
               </div>
             ) : (
               <WorkspacePatchDiff
@@ -388,9 +454,10 @@ function CollapsedFilePanel({
   onExpand: () => void;
 }) {
   const title = file.longDiff ? "Large diff folded" : "Diff folded";
-  const details = file.lineCount > 0
-    ? `${file.lineCount.toLocaleString()} lines`
-    : statusLabel(file.status);
+  const details =
+    file.lineCount > 0
+      ? `${file.lineCount.toLocaleString()} lines`
+      : statusLabel(file.status);
 
   return (
     <div className="border border-dashed border-border bg-background px-4 py-5 text-sm text-muted-foreground">
@@ -421,43 +488,70 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
   const baseRefTouchedRef = useRef(Boolean(baseRef.trim()));
   const viewTouchedRef = useRef(hasInitialViewParam());
   const [includeUntracked, setIncludeUntracked] = useState(false);
-  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(() => new Set());
+  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [fileSidebarWidth, setFileSidebarWidth] = useState(() => readStoredFileSidebarWidth());
+  const [fileSidebarWidth, setFileSidebarWidth] = useState(() =>
+    readStoredFileSidebarWidth(),
+  );
   const [fileSidebarResizing, setFileSidebarResizing] = useState(false);
   const fileSidebarWidthRef = useRef(fileSidebarWidth);
-  const fileSidebarDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const fileSidebarDragRef = useRef<{
+    startX: number;
+    startWidth: number;
+  } | null>(null);
   const fileSectionRefs = useRef(new Map<string, HTMLElement>());
   const diffScrollRef = useRef<HTMLElement | null>(null);
   const scrollSyncFrameRef = useRef<number | null>(null);
   const usesDesktopDiffLayout = useIsDesktopDiffLayout();
   const requestedBaseRef = baseRef.trim();
-  const effectiveView = view === "head" && !requestedBaseRef ? "working-tree" : view;
+  const effectiveView =
+    view === "head" && !requestedBaseRef ? "working-tree" : view;
   const fileSidebarStyle = useMemo(
-    () => usesDesktopDiffLayout ? { width: `${fileSidebarWidth}px` } : undefined,
+    () =>
+      usesDesktopDiffLayout ? { width: `${fileSidebarWidth}px` } : undefined,
     [fileSidebarWidth, usesDesktopDiffLayout],
   );
 
-  const params = useMemo(() => ({
-    workspaceId: context.entityId,
-    companyId: context.companyId ?? "",
-    projectId: context.projectId ?? "",
-    entityType: context.entityType,
-    view: effectiveView,
-    baseRef: requestedBaseRef || null,
-    includeUntracked,
-  }), [context.companyId, context.entityId, context.entityType, context.projectId, effectiveView, includeUntracked, requestedBaseRef]);
+  const params = useMemo(
+    () => ({
+      workspaceId: context.entityId,
+      companyId: context.companyId ?? "",
+      projectId: context.projectId ?? "",
+      entityType: context.entityType,
+      view: effectiveView,
+      baseRef: requestedBaseRef || null,
+      includeUntracked,
+    }),
+    [
+      context.companyId,
+      context.entityId,
+      context.entityType,
+      context.projectId,
+      effectiveView,
+      includeUntracked,
+      requestedBaseRef,
+    ],
+  );
 
-  const { data, loading, error, refresh } = usePluginData<WorkspaceDiffData>("workspace-diff", params);
+  const { data, loading, error, refresh } = usePluginData<WorkspaceDiffData>(
+    "workspace-diff",
+    params,
+  );
   const files = useMemo(() => toFileViewModels(data), [data]);
   const summary = useMemo(() => diffSummary(data), [data]);
-  const selectedFile = files.find((file) => file.path === selectedPath) ?? files[0] ?? null;
+  const selectedFile =
+    files.find((file) => file.path === selectedPath) ?? files[0] ?? null;
   const compareLabel = `${data?.baseRef ? `base ${data.baseRef}` : "working tree"}${data?.headSha ? ` · ${data.headSha.slice(0, 12)}` : ""}`;
 
-  const setFileSectionRef = useCallback((filePath: string) => (node: HTMLElement | null) => {
-    if (node) fileSectionRefs.current.set(filePath, node);
-    else fileSectionRefs.current.delete(filePath);
-  }, []);
+  const setFileSectionRef = useCallback(
+    (filePath: string) => (node: HTMLElement | null) => {
+      if (node) fileSectionRefs.current.set(filePath, node);
+      else fileSectionRefs.current.delete(filePath);
+    },
+    [],
+  );
 
   const selectFile = useCallback((filePath: string) => {
     setSelectedPath(filePath);
@@ -478,7 +572,8 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
     for (const file of files) {
       const section = fileSectionRefs.current.get(file.path);
       if (!section) continue;
-      const offsetFromScrollTop = section.getBoundingClientRect().top - containerTop;
+      const offsetFromScrollTop =
+        section.getBoundingClientRect().top - containerTop;
       if (offsetFromScrollTop <= 48) {
         nextPath = file.path;
       } else {
@@ -487,7 +582,7 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
     }
 
     if (nextPath) {
-      setSelectedPath((current) => current === nextPath ? current : nextPath);
+      setSelectedPath((current) => (current === nextPath ? current : nextPath));
     }
   }, [files]);
 
@@ -506,26 +601,34 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
     writeStoredFileSidebarWidth(clamped);
   }, []);
 
-  const handleFileSidebarPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (!usesDesktopDiffLayout) return;
+  const handleFileSidebarPointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!usesDesktopDiffLayout) return;
 
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    fileSidebarDragRef.current = {
-      startX: event.clientX,
-      startWidth: fileSidebarWidthRef.current,
-    };
-    setFileSidebarResizing(true);
-  }, [usesDesktopDiffLayout]);
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      fileSidebarDragRef.current = {
+        startX: event.clientX,
+        startWidth: fileSidebarWidthRef.current,
+      };
+      setFileSidebarResizing(true);
+    },
+    [usesDesktopDiffLayout],
+  );
 
-  const handleFileSidebarPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const drag = fileSidebarDragRef.current;
-    if (!drag) return;
+  const handleFileSidebarPointerMove = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      const drag = fileSidebarDragRef.current;
+      if (!drag) return;
 
-    const nextWidth = clampFileSidebarWidth(drag.startWidth + event.clientX - drag.startX);
-    fileSidebarWidthRef.current = nextWidth;
-    setFileSidebarWidth(nextWidth);
-  }, []);
+      const nextWidth = clampFileSidebarWidth(
+        drag.startWidth + event.clientX - drag.startX,
+      );
+      fileSidebarWidthRef.current = nextWidth;
+      setFileSidebarWidth(nextWidth);
+    },
+    [],
+  );
 
   const endFileSidebarResize = useCallback(() => {
     if (!fileSidebarDragRef.current) return;
@@ -535,23 +638,26 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
     writeStoredFileSidebarWidth(fileSidebarWidthRef.current);
   }, []);
 
-  const handleFileSidebarKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-    if (!usesDesktopDiffLayout) return;
+  const handleFileSidebarKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (!usesDesktopDiffLayout) return;
 
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      commitFileSidebarWidth(fileSidebarWidth - FILE_SIDEBAR_WIDTH_STEP);
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      commitFileSidebarWidth(fileSidebarWidth + FILE_SIDEBAR_WIDTH_STEP);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      commitFileSidebarWidth(MIN_FILE_SIDEBAR_WIDTH);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      commitFileSidebarWidth(MAX_FILE_SIDEBAR_WIDTH);
-    }
-  }, [commitFileSidebarWidth, fileSidebarWidth, usesDesktopDiffLayout]);
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        commitFileSidebarWidth(fileSidebarWidth - FILE_SIDEBAR_WIDTH_STEP);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        commitFileSidebarWidth(fileSidebarWidth + FILE_SIDEBAR_WIDTH_STEP);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        commitFileSidebarWidth(MIN_FILE_SIDEBAR_WIDTH);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        commitFileSidebarWidth(MAX_FILE_SIDEBAR_WIDTH);
+      }
+    },
+    [commitFileSidebarWidth, fileSidebarWidth, usesDesktopDiffLayout],
+  );
 
   useEffect(() => {
     const defaultBaseRef = data?.defaultBaseRef?.trim();
@@ -571,7 +677,11 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
       return;
     }
     setExpandedFiles(initialExpandedFileSet(files));
-    setSelectedPath((current) => files.some((file) => file.path === current) ? current : files[0]?.path ?? null);
+    setSelectedPath((current) =>
+      files.some((file) => file.path === current)
+        ? current
+        : (files[0]?.path ?? null),
+    );
   }, [files]);
 
   useEffect(() => {
@@ -606,29 +716,66 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
 
   return (
     <div className="space-y-3">
-      <div key="toolbar" className="flex flex-col gap-3 border-b border-border pb-3 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        key="toolbar"
+        className="flex flex-col gap-3 border-b border-border pb-3 lg:flex-row lg:items-center lg:justify-between"
+      >
         <div key="summary" className="min-w-0">
-          <div key="summary-line" className="flex flex-wrap items-center gap-2 text-sm">
-            <span key="changed" className="font-medium text-foreground">{summary.changedLabel}</span>
-            <span key="lines" className="font-mono text-xs text-muted-foreground">{summary.lineLabel}</span>
+          <div
+            key="summary-line"
+            className="flex flex-wrap items-center gap-2 text-sm"
+          >
+            <span key="changed" className="font-medium text-foreground">
+              {summary.changedLabel}
+            </span>
+            <span
+              key="lines"
+              className="font-mono text-xs text-muted-foreground"
+            >
+              {summary.lineLabel}
+            </span>
             {summary.truncated ? (
-              <span key="truncated" className="text-xs text-amber-700 dark:text-amber-300">Truncated</span>
+              <span
+                key="truncated"
+                className="text-xs text-amber-700 dark:text-amber-300"
+              >
+                Truncated
+              </span>
             ) : null}
             {summary.warningCount > 0 ? (
-              <span key="warnings" className="text-xs text-muted-foreground">{summary.warningCount} warnings</span>
+              <span key="warnings" className="text-xs text-muted-foreground">
+                {summary.warningCount} warnings
+              </span>
             ) : null}
           </div>
-          <div key="compare" className="mt-1 truncate font-mono text-xs text-muted-foreground">
+          <div
+            key="compare"
+            className="mt-1 truncate font-mono text-xs text-muted-foreground"
+          >
             {compareLabel}
           </div>
         </div>
 
         <div key="actions" className="flex flex-wrap items-center gap-2">
-          <div key="layout" className="inline-flex gap-1" aria-label="Diff layout">
-            <button key="split" type="button" className={buttonClass(mode === "split")} onClick={() => setMode("split")}>
+          <div
+            key="layout"
+            className="inline-flex gap-1"
+            aria-label="Diff layout"
+          >
+            <button
+              key="split"
+              type="button"
+              className={buttonClass(mode === "split")}
+              onClick={() => setMode("split")}
+            >
               Split
             </button>
-            <button key="unified" type="button" className={buttonClass(mode === "unified")} onClick={() => setMode("unified")}>
+            <button
+              key="unified"
+              type="button"
+              className={buttonClass(mode === "unified")}
+              onClick={() => setMode("unified")}
+            >
               Unified
             </button>
           </div>
@@ -642,7 +789,11 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
           >
             {lineWrap ? "Wrap on" : "Wrap lines"}
           </button>
-          <div key="view" className="inline-flex gap-1" aria-label="Diff comparison">
+          <div
+            key="view"
+            className="inline-flex gap-1"
+            aria-label="Diff comparison"
+          >
             <button
               key="working-tree"
               type="button"
@@ -709,16 +860,25 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
       ) : files.length === 0 ? (
         <EmptyState />
       ) : (
-        <div key="content" className="flex flex-col gap-3 lg:h-[70vh] lg:min-h-[560px] lg:max-h-[820px] lg:flex-row">
+        <div
+          key="content"
+          className="flex flex-col gap-3 lg:h-[70vh] lg:min-h-[560px] lg:max-h-[820px] lg:flex-row"
+        >
           <aside
             key="files"
             className="relative flex min-w-0 flex-col border border-border bg-background lg:h-full lg:shrink-0 lg:overflow-hidden"
             style={fileSidebarStyle}
           >
-            <div key="heading" className="border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <div
+              key="heading"
+              className="border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground"
+            >
               Files
             </div>
-            <div key="list" className="max-h-[70vh] overflow-auto lg:max-h-none lg:flex-1">
+            <div
+              key="list"
+              className="max-h-[70vh] overflow-auto lg:max-h-none lg:flex-1"
+            >
               {files.map((file, index) => (
                 <FileRow
                   key={`${file.path}:${index}`}
@@ -726,7 +886,11 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
                   active={file.path === selectedFile?.path}
                   expanded={expandedFiles.has(file.path)}
                   onSelect={() => selectFile(file.path)}
-                  onToggle={() => setExpandedFiles((current) => nextExpandedFileSet(current, file.path))}
+                  onToggle={() =>
+                    setExpandedFiles((current) =>
+                      nextExpandedFileSet(current, file.path),
+                    )
+                  }
                   onCopy={() => void copyPath(file.path)}
                 />
               ))}
@@ -760,66 +924,96 @@ export function ChangesTab({ context }: PluginDetailTabProps) {
             className="max-h-[70vh] min-w-0 flex-1 space-y-3 overflow-auto lg:h-full lg:max-h-none lg:pr-1"
             onScroll={handleDiffScroll}
           >
-            {files
-              .map((file, index) => (
-                <section
-                  key={`${file.path}:${index}`}
-                  ref={setFileSectionRef(file.path)}
-                  className={file.path === selectedFile?.path ? "scroll-mt-2" : undefined}
+            {files.map((file, index) => (
+              <section
+                key={`${file.path}:${index}`}
+                ref={setFileSectionRef(file.path)}
+                className={
+                  file.path === selectedFile?.path ? "scroll-mt-2" : undefined
+                }
+              >
+                <div
+                  key="header"
+                  className="sticky top-0 z-30 flex min-w-0 items-center justify-between gap-3 border border-b-0 border-border bg-background px-3 py-2 shadow-sm"
                 >
-                  <div
-                    key="header"
-                    className="sticky top-0 z-30 flex min-w-0 items-center justify-between gap-3 border border-b-0 border-border bg-background px-3 py-2 shadow-sm"
-                  >
-                    <div key="left" className="flex min-w-0 items-start gap-2">
-                      <button
-                        key="collapse"
-                        type="button"
-                        className="mt-0.5 text-muted-foreground hover:text-foreground"
-                        title={expandedFiles.has(file.path) ? "Collapse file" : "Expand file"}
-                        aria-label={expandedFiles.has(file.path) ? `Collapse ${file.path}` : `Expand ${file.path}`}
-                        onClick={() => setExpandedFiles((current) => nextExpandedFileSet(current, file.path))}
-                      >
-                        {expandedFiles.has(file.path) ? "−" : "+"}
-                      </button>
-                      <button
-                        key="select"
-                        type="button"
-                        className="min-w-0 text-left"
-                        onClick={() => selectFile(file.path)}
-                      >
-                        <div key="path" className="truncate text-sm font-medium">{file.path}</div>
-                        {file.oldPath ? (
-                          <div key="old-path" className="truncate font-mono text-[11px] text-muted-foreground">
-                            from {file.oldPath}
-                          </div>
-                        ) : null}
-                      </button>
-                    </div>
-                    <div key="actions" className="flex shrink-0 items-center gap-1">
-                      <button
-                        key="copy"
-                        type="button"
-                        className={iconButtonClass(false)}
-                        title="Copy path"
-                        aria-label={`Copy ${file.path}`}
-                        onClick={() => void copyPath(file.path)}
-                      >
-                        ⧉
-                      </button>
-                    </div>
+                  <div key="left" className="flex min-w-0 items-start gap-2">
+                    <button
+                      key="collapse"
+                      type="button"
+                      className="mt-0.5 text-muted-foreground hover:text-foreground"
+                      title={
+                        expandedFiles.has(file.path)
+                          ? "Collapse file"
+                          : "Expand file"
+                      }
+                      aria-label={
+                        expandedFiles.has(file.path)
+                          ? `Collapse ${file.path}`
+                          : `Expand ${file.path}`
+                      }
+                      onClick={() =>
+                        setExpandedFiles((current) =>
+                          nextExpandedFileSet(current, file.path),
+                        )
+                      }
+                    >
+                      {expandedFiles.has(file.path) ? "−" : "+"}
+                    </button>
+                    <button
+                      key="select"
+                      type="button"
+                      className="min-w-0 text-left"
+                      onClick={() => selectFile(file.path)}
+                    >
+                      <div key="path" className="truncate text-sm font-medium">
+                        {file.path}
+                      </div>
+                      {file.oldPath ? (
+                        <div
+                          key="old-path"
+                          className="truncate font-mono text-[11px] text-muted-foreground"
+                        >
+                          from {file.oldPath}
+                        </div>
+                      ) : null}
+                    </button>
                   </div>
-                  {expandedFiles.has(file.path) ? (
-                    <FileDiffPanel key="diff" file={file} mode={mode} lineWrap={lineWrap} />
-                  ) : (
-                    <CollapsedFilePanel
-                      key="collapsed"
-                      file={file}
-                      onExpand={() => setExpandedFiles((current) => nextExpandedFileSet(current, file.path))}
-                    />
-                  )}
-                </section>
-              ))}
+                  <div
+                    key="actions"
+                    className="flex shrink-0 items-center gap-1"
+                  >
+                    <button
+                      key="copy"
+                      type="button"
+                      className={iconButtonClass(false)}
+                      title="Copy path"
+                      aria-label={`Copy ${file.path}`}
+                      onClick={() => void copyPath(file.path)}
+                    >
+                      ⧉
+                    </button>
+                  </div>
+                </div>
+                {expandedFiles.has(file.path) ? (
+                  <FileDiffPanel
+                    key="diff"
+                    file={file}
+                    mode={mode}
+                    lineWrap={lineWrap}
+                  />
+                ) : (
+                  <CollapsedFilePanel
+                    key="collapsed"
+                    file={file}
+                    onExpand={() =>
+                      setExpandedFiles((current) =>
+                        nextExpandedFileSet(current, file.path),
+                      )
+                    }
+                  />
+                )}
+              </section>
+            ))}
           </main>
         </div>
       )}

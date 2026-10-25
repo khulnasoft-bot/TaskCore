@@ -25,7 +25,11 @@ export type IssueThreadInteractionResolutionDenialCode =
 
 export type IssueThreadInteractionResolverActor =
   | { type: "user"; userId: string }
-  | { type: "agent"; agentId: string | null | undefined; runId: string | null | undefined }
+  | {
+      type: "agent";
+      agentId: string | null | undefined;
+      runId: string | null | undefined;
+    }
   | { type: "system"; systemId: string };
 
 export type IssueThreadInteractionResolverRestriction = {
@@ -65,7 +69,12 @@ export type IssueThreadInteractionResolverAudienceDecision =
   | {
       allowed: true;
       effectiveResolverPolicy: IssueThreadInteractionCanonicalResolverPolicy;
-      reason: "allow_anyone" | "allow_addressee" | "allow_human" | "allow_system" | "allow_human_override";
+      reason:
+        | "allow_anyone"
+        | "allow_addressee"
+        | "allow_human"
+        | "allow_system"
+        | "allow_human_override";
     }
   | {
       allowed: false;
@@ -97,13 +106,20 @@ export function canonicalizeStoredResolverPolicy(
   policy: IssueThreadInteractionResolverPolicy | string,
   resolverPolicyProvenance: string | null | undefined,
 ): IssueThreadInteractionCanonicalResolverPolicy {
-  if (resolverPolicyProvenance === "legacy_inherited_restriction" && policy === "board_or_agents") {
+  if (
+    resolverPolicyProvenance === "legacy_inherited_restriction" &&
+    policy === "board_or_agents"
+  ) {
     return "not_creator";
   }
-  return normalizeIssueThreadInteractionResolverPolicy(policy as IssueThreadInteractionResolverPolicy);
+  return normalizeIssueThreadInteractionResolverPolicy(
+    policy as IssueThreadInteractionResolverPolicy,
+  );
 }
 
-function canonicalStoredPolicy(input: IssueThreadInteractionResolverAudienceInput["interaction"]) {
+function canonicalStoredPolicy(
+  input: IssueThreadInteractionResolverAudienceInput["interaction"],
+) {
   return canonicalizeStoredResolverPolicy(
     input.effectiveResolverPolicy,
     input.resolverPolicyProvenance,
@@ -114,15 +130,13 @@ function reviewRestrictionExcludesActor(
   restriction: IssueThreadInteractionResolverRestriction | null | undefined,
   actor: { type: "agent" | "user"; id: string },
 ) {
-  return restriction?.policy === "not_creator"
-    && restriction.source === "issue_review"
-    && (
-      restriction.excludedActor === null
-      || (
-        restriction.excludedActor?.type === actor.type
-        && restriction.excludedActor.id === actor.id
-      )
-    );
+  return (
+    restriction?.policy === "not_creator" &&
+    restriction.source === "issue_review" &&
+    (restriction.excludedActor === null ||
+      (restriction.excludedActor?.type === actor.type &&
+        restriction.excludedActor.id === actor.id))
+  );
 }
 
 function reviewPolicyDeniedDecision(
@@ -156,25 +170,23 @@ export function evaluateIssueThreadInteractionResolverAudience(
   input: IssueThreadInteractionResolverAudienceInput,
 ): IssueThreadInteractionResolverAudienceDecision {
   const persistedPolicy = canonicalStoredPolicy(input.interaction);
-  const additionalRestriction = typeof input.additionalRestriction === "string"
-    ? { policy: input.additionalRestriction }
-    : input.additionalRestriction;
+  const additionalRestriction =
+    typeof input.additionalRestriction === "string"
+      ? { policy: input.additionalRestriction }
+      : input.additionalRestriction;
   // human_only and not_creator are independent constraints, not a linear
   // severity scale: their intersection means "a human other than the
   // creator." Keep both predicates even though the persisted public policy
   // enum can only name one of them.
   const creatorExcluded =
-    persistedPolicy === "not_creator"
-    || additionalRestriction?.policy === "not_creator";
+    persistedPolicy === "not_creator" ||
+    additionalRestriction?.policy === "not_creator";
   const humanOnly =
-    Boolean(input.governedAction)
-    || persistedPolicy === "human_only"
-    || additionalRestriction?.policy === "human_only";
-  const effectiveResolverPolicy: IssueThreadInteractionCanonicalResolverPolicy = humanOnly
-    ? "human_only"
-    : creatorExcluded
-      ? "not_creator"
-      : "anyone";
+    Boolean(input.governedAction) ||
+    persistedPolicy === "human_only" ||
+    additionalRestriction?.policy === "human_only";
+  const effectiveResolverPolicy: IssueThreadInteractionCanonicalResolverPolicy =
+    humanOnly ? "human_only" : creatorExcluded ? "not_creator" : "anyone";
 
   if (input.actor.type === "system") {
     return { allowed: true, effectiveResolverPolicy, reason: "allow_system" };
@@ -182,33 +194,37 @@ export function evaluateIssueThreadInteractionResolverAudience(
 
   if (input.actor.type === "user") {
     if (
-      input.interaction.addresseeUserId
-      && input.interaction.addresseeUserId !== input.actor.userId
+      input.interaction.addresseeUserId &&
+      input.interaction.addresseeUserId !== input.actor.userId
     ) {
       return {
         allowed: false,
         effectiveResolverPolicy,
         status: 403,
         code: "interaction_addressee_mismatch",
-        message: "Only the addressed user may resolve this issue-thread interaction",
+        message:
+          "Only the addressed user may resolve this issue-thread interaction",
       };
     }
     if (
-      creatorExcluded
-      && input.interaction.createdByUserId === input.actor.userId
+      creatorExcluded &&
+      input.interaction.createdByUserId === input.actor.userId
     ) {
       return {
         allowed: false,
         effectiveResolverPolicy,
         status: 403,
         code: "interaction_creator_excluded",
-        message: "This issue-thread interaction requires a resolver other than its creator",
+        message:
+          "This issue-thread interaction requires a resolver other than its creator",
       };
     }
-    if (reviewRestrictionExcludesActor(additionalRestriction, {
-      type: "user",
-      id: input.actor.userId,
-    })) {
+    if (
+      reviewRestrictionExcludesActor(additionalRestriction, {
+        type: "user",
+        id: input.actor.userId,
+      })
+    ) {
       return reviewPolicyDeniedDecision(
         effectiveResolverPolicy,
         additionalRestriction?.excludedActor !== null,
@@ -231,7 +247,8 @@ export function evaluateIssueThreadInteractionResolverAudience(
       effectiveResolverPolicy,
       status: 422,
       code: "interaction_run_attribution_required",
-      message: "A valid authenticated agent run is required to resolve this issue-thread interaction",
+      message:
+        "A valid authenticated agent run is required to resolve this issue-thread interaction",
     };
   }
 
@@ -241,7 +258,8 @@ export function evaluateIssueThreadInteractionResolverAudience(
       effectiveResolverPolicy,
       status: 403,
       code: "interaction_governed_action_denied",
-      message: "This interaction is bound to a governed action that requires independent authorization",
+      message:
+        "This interaction is bound to a governed action that requires independent authorization",
     };
   }
 
@@ -266,41 +284,41 @@ export function evaluateIssueThreadInteractionResolverAudience(
   }
 
   if (
-    input.interaction.addresseeAgentId
-    && input.interaction.addresseeAgentId !== input.actor.agentId
+    input.interaction.addresseeAgentId &&
+    input.interaction.addresseeAgentId !== input.actor.agentId
   ) {
     return {
       allowed: false,
       effectiveResolverPolicy,
       status: 403,
       code: "interaction_addressee_mismatch",
-      message: "Only the addressed agent or an authorized human may resolve this issue-thread interaction",
+      message:
+        "Only the addressed agent or an authorized human may resolve this issue-thread interaction",
     };
   }
 
   if (
-    creatorExcluded
-    && (
-      input.interaction.createdByAgentId === input.actor.agentId
-      || (
-        Boolean(input.interaction.sourceRunId)
-        && input.interaction.sourceRunId === input.actor.runId
-      )
-    )
+    creatorExcluded &&
+    (input.interaction.createdByAgentId === input.actor.agentId ||
+      (Boolean(input.interaction.sourceRunId) &&
+        input.interaction.sourceRunId === input.actor.runId))
   ) {
     return {
       allowed: false,
       effectiveResolverPolicy,
       status: 403,
       code: "interaction_creator_excluded",
-      message: "This issue-thread interaction requires a resolver other than its creator or creating run",
+      message:
+        "This issue-thread interaction requires a resolver other than its creator or creating run",
     };
   }
 
-  if (reviewRestrictionExcludesActor(additionalRestriction, {
-    type: "agent",
-    id: input.actor.agentId,
-  })) {
+  if (
+    reviewRestrictionExcludesActor(additionalRestriction, {
+      type: "agent",
+      id: input.actor.agentId,
+    })
+  ) {
     return reviewPolicyDeniedDecision(
       effectiveResolverPolicy,
       additionalRestriction?.excludedActor !== null,
@@ -310,7 +328,9 @@ export function evaluateIssueThreadInteractionResolverAudience(
   return {
     allowed: true,
     effectiveResolverPolicy,
-    reason: input.interaction.addresseeAgentId ? "allow_addressee" : "allow_anyone",
+    reason: input.interaction.addresseeAgentId
+      ? "allow_addressee"
+      : "allow_anyone",
   };
 }
 
@@ -332,7 +352,10 @@ export function assertIssueThreadInteractionResolverAudience(
       decision.status,
       decision.code,
       decision.message,
-      { effectiveResolverPolicy: decision.effectiveResolverPolicy, ...(decision.details ?? {}) },
+      {
+        effectiveResolverPolicy: decision.effectiveResolverPolicy,
+        ...(decision.details ?? {}),
+      },
     );
   }
   return decision;
@@ -350,9 +373,10 @@ export function issueThreadInteractionAttentionAgentAllowed(input: {
   additionalRestriction?: IssueThreadInteractionResolverAudienceInput["additionalRestriction"];
   governedAction?: boolean;
 }) {
-  const attentionRunId = input.interaction.createdByAgentId === input.agentId
-    ? input.interaction.sourceRunId ?? "attention-owner-creator-run"
-    : "attention-owner-non-source-run";
+  const attentionRunId =
+    input.interaction.createdByAgentId === input.agentId
+      ? (input.interaction.sourceRunId ?? "attention-owner-creator-run")
+      : "attention-owner-non-source-run";
   return evaluateIssueThreadInteractionResolverAudience({
     actor: { type: "agent", agentId: input.agentId, runId: attentionRunId },
     interaction: input.interaction,

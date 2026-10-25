@@ -45,7 +45,9 @@ export function upsertInterruptedRun(
   const existingIndex = current.findIndex((entry) => entry.runId === run.id);
   if (existingIndex === -1) {
     return [...current, nextRun].sort((a, b) => {
-      const diff = toTimestamp(a.startedAt ?? a.createdAt) - toTimestamp(b.startedAt ?? b.createdAt);
+      const diff =
+        toTimestamp(a.startedAt ?? a.createdAt) -
+        toTimestamp(b.startedAt ?? b.createdAt);
       if (diff !== 0) return diff;
       return a.runId.localeCompare(b.runId);
     });

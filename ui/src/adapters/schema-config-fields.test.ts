@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { AdapterConfigSchema, ConfigFieldSchema } from "@taskcore/adapter-utils";
+import type {
+  AdapterConfigSchema,
+  ConfigFieldSchema,
+} from "@taskcore/adapter-utils";
 import { fieldMatchesVisibleWhen } from "./schema-config-fields";
 
 const sourceField: ConfigFieldSchema = {
@@ -16,7 +19,9 @@ const schema: AdapterConfigSchema = {
   fields: [sourceField],
 };
 
-function targetWithVisibleWhen(visibleWhen: Record<string, unknown>): ConfigFieldSchema {
+function targetWithVisibleWhen(
+  visibleWhen: Record<string, unknown>,
+): ConfigFieldSchema {
   return {
     key: "model",
     label: "Model",
@@ -33,13 +38,19 @@ describe("fieldMatchesVisibleWhen", () => {
   });
 
   it("treats all non-string values as no match", () => {
-    const field = targetWithVisibleWhen({ key: "provider", values: [null, 42] });
+    const field = targetWithVisibleWhen({
+      key: "provider",
+      values: [null, 42],
+    });
 
     expect(fieldMatchesVisibleWhen(field, () => "claude", schema)).toBe(false);
   });
 
   it("matches non-empty string values", () => {
-    const field = targetWithVisibleWhen({ key: "provider", values: ["claude"] });
+    const field = targetWithVisibleWhen({
+      key: "provider",
+      values: ["claude"],
+    });
 
     expect(fieldMatchesVisibleWhen(field, () => "claude", schema)).toBe(true);
     expect(fieldMatchesVisibleWhen(field, () => "codex", schema)).toBe(false);

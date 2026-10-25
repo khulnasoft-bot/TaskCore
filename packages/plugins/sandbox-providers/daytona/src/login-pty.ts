@@ -122,7 +122,9 @@ export function isLoginCommandKey(value: unknown): value is LoginCommandKey {
  * interactive shell with the command through `exec`, so the pseudo-terminal
  * runs the command directly and its exit code becomes the PTY exit code.
  */
-export function composeLaunchLine(descriptor: LoginPtyLaunchDescriptor): string {
+export function composeLaunchLine(
+  descriptor: LoginPtyLaunchDescriptor,
+): string {
   const command = LOGIN_COMMAND_BY_KEY[descriptor.loginCommandKey];
   const encodedHome = encodePosixShellArg(descriptor.sessionHome);
   if (descriptor.loginCommandKey === "codex") {
@@ -311,7 +313,9 @@ export async function openDaytonaLoginPtySession(
   // Replace the interactive shell with the login command, so the pseudo-terminal
   // runs the command directly. The runner then writes the delayed browser code
   // to the command, not to a shell.
-  await handle.sendInput(composeLaunchLine(descriptor) + PTY_COMMAND_TERMINATOR);
+  await handle.sendInput(
+    composeLaunchLine(descriptor) + PTY_COMMAND_TERMINATOR,
+  );
 
   // The tail of the write chain. The chunker awaits each chunk, so one write can
   // suspend between its chunks. The chain runs each write after the previous
@@ -340,7 +344,9 @@ export async function openDaytonaLoginPtySession(
     },
     async wait(): Promise<{ exitCode: number | null }> {
       const result = await handle.wait();
-      return { exitCode: typeof result.exitCode === "number" ? result.exitCode : null };
+      return {
+        exitCode: typeof result.exitCode === "number" ? result.exitCode : null,
+      };
     },
     kill(): void {
       void handle.kill().catch(() => undefined);
@@ -384,11 +390,15 @@ function composeLoginProfileCommand(command: string): string {
  * to call the Taskcore API. The real command lands against a live sandbox; a
  * unit test injects a fake surface instead.
  */
-export function createDaytonaLoginHomeFs(exec: DaytonaSandboxExec): DaytonaLoginHomeFs {
+export function createDaytonaLoginHomeFs(
+  exec: DaytonaSandboxExec,
+): DaytonaLoginHomeFs {
   return {
     async createDirectory(path: string): Promise<void> {
       const encodedPath = encodePosixShellArg(path);
-      const out = await exec.executeCommand(composeLoginProfileCommand(`mkdir -p ${encodedPath}`));
+      const out = await exec.executeCommand(
+        composeLoginProfileCommand(`mkdir -p ${encodedPath}`),
+      );
       if ((out.exitCode ?? 0) !== 0) {
         throw new Error(LOGIN_PTY_HOME_REJECTED);
       }

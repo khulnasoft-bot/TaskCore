@@ -13,7 +13,9 @@ describe("shouldRenderComposerHandoffPreview", () => {
     });
 
     expect(preview.kind).toBe("none");
-    expect(shouldRenderComposerHandoffPreview("Wake Claude", preview)).toBe(false);
+    expect(shouldRenderComposerHandoffPreview("Wake Claude", preview)).toBe(
+      false,
+    );
   });
 
   it("renders the spacer wrapper only when body text and a visible preview are present", () => {

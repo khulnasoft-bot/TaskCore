@@ -1,4 +1,7 @@
-import { AdapterStopTimeoutError, type AdapterStopContext } from "./adapter-stop-timeout.js";
+import {
+  AdapterStopTimeoutError,
+  type AdapterStopContext,
+} from "./adapter-stop-timeout.js";
 import { createAdapterExecutionPhaseTracker } from "./adapter-execution-phase.js";
 
 /** Live adapter ownership shared by routes and scheduler service instances. */
@@ -9,7 +12,15 @@ export function createAdapterExecutionControl() {
   const settled = new Promise<void>((resolve) => {
     finish = resolve;
   });
-  return { controller, settled, phases, finish: () => { phases.finish(); finish(); } };
+  return {
+    controller,
+    settled,
+    phases,
+    finish: () => {
+      phases.finish();
+      finish();
+    },
+  };
 }
 
 export const adapterExecutionControls = new Map<
@@ -76,9 +87,12 @@ export async function waitForAdapterStop(
 ) {
   const currentPhase = () => {
     try {
-      return owner && owner.settled === settled && diagnostics?.runId
-        && adapterExecutionControls.get(diagnostics.runId) === owner
-        ? owner.phases.snapshot() : null;
+      return owner &&
+        owner.settled === settled &&
+        diagnostics?.runId &&
+        adapterExecutionControls.get(diagnostics.runId) === owner
+        ? owner.phases.snapshot()
+        : null;
     } catch {
       return null;
     }

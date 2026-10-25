@@ -4,7 +4,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { inferOpenAiCompatibleBiller, type AdapterExecutionContext, type AdapterExecutionResult } from "@taskcore/adapter-utils";
+import {
+  inferOpenAiCompatibleBiller,
+  type AdapterExecutionContext,
+  type AdapterExecutionResult,
+} from "@taskcore/adapter-utils";
 import {
   adapterExecutionTargetIsRemote,
   adapterExecutionTargetRemoteCwd,
@@ -55,7 +59,11 @@ import {
   runChildProcess,
 } from "@taskcore/adapter-utils/server-utils";
 import { shellQuote } from "@taskcore/adapter-utils/ssh";
-import { isPiUnknownSessionError, parsePiJsonl, createPiJsonlParser } from "./parse.js";
+import {
+  isPiUnknownSessionError,
+  parsePiJsonl,
+  createPiJsonlParser,
+} from "./parse.js";
 import { ensurePiModelConfiguredAndAvailable } from "./models.js";
 import { preparePiRuntimeConfig } from "./runtime-config.js";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
@@ -93,8 +101,12 @@ async function ensurePiSkillsInjected(
   skillsEntries: Array<{ key: string; runtimeName: string; source: string }>,
   desiredSkillNames?: string[],
 ) {
-  const desiredSet = new Set(desiredSkillNames ?? skillsEntries.map((entry) => entry.key));
-  const selectedEntries = skillsEntries.filter((entry) => desiredSet.has(entry.key));
+  const desiredSet = new Set(
+    desiredSkillNames ?? skillsEntries.map((entry) => entry.key),
+  );
+  const selectedEntries = skillsEntries.filter((entry) =>
+    desiredSet.has(entry.key),
+  );
   if (selectedEntries.length === 0) return;
   await fs.mkdir(PI_AGENT_SKILLS_DIR, { recursive: true });
   const removedSkills = await removeMaintainerOnlySkillSymlinks(
@@ -127,12 +139,19 @@ async function ensurePiSkillsInjected(
   }
 }
 
-async function buildPiSkillsDir(config: Record<string, unknown>): Promise<string> {
+async function buildPiSkillsDir(
+  config: Record<string, unknown>,
+): Promise<string> {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-pi-skills-"));
   const target = path.join(tmp, "skills");
   await fs.mkdir(target, { recursive: true });
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredNames = new Set(resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries));
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredNames = new Set(
+    resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries),
+  );
   for (const entry of availableEntries) {
     if (!desiredNames.has(entry.key)) continue;
     if (isTaskcoreSkillSourceMissing(entry)) continue;
@@ -141,8 +160,13 @@ async function buildPiSkillsDir(config: Record<string, unknown>): Promise<string
   return target;
 }
 
-function resolvePiBiller(env: Record<string, string>, provider: string | null): string {
-  return provider === "openai" ? inferOpenAiCompatibleBiller(env, "openai") ?? "unknown" : provider ?? "unknown";
+function resolvePiBiller(
+  env: Record<string, string>,
+  provider: string | null,
+): string {
+  return provider === "openai"
+    ? (inferOpenAiCompatibleBiller(env, "openai") ?? "unknown")
+    : (provider ?? "unknown");
 }
 
 async function ensureSessionsDir(): Promise<string> {
@@ -155,17 +179,32 @@ function buildSessionPath(agentId: string, timestamp: string): string {
   return path.join(TASKCORE_SESSIONS_DIR, `${safeTimestamp}-${agentId}.jsonl`);
 }
 
-function buildRemoteSessionPath(runtimeRootDir: string, agentId: string, timestamp: string): string {
+function buildRemoteSessionPath(
+  runtimeRootDir: string,
+  agentId: string,
+  timestamp: string,
+): string {
   const safeTimestamp = timestamp.replace(/[:.]/g, "-");
-  return path.posix.join(runtimeRootDir, "sessions", `${safeTimestamp}-${agentId}.jsonl`);
+  return path.posix.join(
+    runtimeRootDir,
+    "sessions",
+    `${safeTimestamp}-${agentId}.jsonl`,
+  );
 }
 
 function normalizeExecutionCwd(candidate: string, remote: boolean): string {
   return remote ? path.posix.normalize(candidate) : path.resolve(candidate);
 }
 
-function executionCwdsMatch(saved: string, current: string, remote: boolean): boolean {
-  return normalizeExecutionCwd(saved, remote) === normalizeExecutionCwd(current, remote);
+function executionCwdsMatch(
+  saved: string,
+  current: string,
+  remote: boolean,
+): boolean {
+  return (
+    normalizeExecutionCwd(saved, remote) ===
+    normalizeExecutionCwd(current, remote)
+  );
 }
 
 function readSessionHeaderCwd(raw: string): string | null {
@@ -215,21 +254,35 @@ async function readSavedSessionCwd(input: {
         graceSec: input.graceSec,
       },
     );
-    if (sessionHeader.timedOut || (sessionHeader.exitCode ?? 0) !== 0) return null;
+    if (sessionHeader.timedOut || (sessionHeader.exitCode ?? 0) !== 0)
+      return null;
     return readSessionHeaderCwd(sessionHeader.stdout);
   } catch {
     return null;
   }
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
   const providerStop = createProviderStoppedBoundary(ctx.onProviderStopped);
-  const { runId, agent, runtime, config, context, onLog, onMeta, onSpawn, authToken } = ctx;
+  const {
+    runId,
+    agent,
+    runtime,
+    config,
+    context,
+    onLog,
+    onMeta,
+    onSpawn,
+    authToken,
+  } = ctx;
   const executionTarget = readAdapterExecutionTarget({
     executionTarget: ctx.executionTarget,
     legacyRemoteExecution: ctx.executionTransport?.remoteExecution,
   });
-  const executionTargetIsRemote = adapterExecutionTargetIsRemote(executionTarget);
+  const executionTargetIsRemote =
+    adapterExecutionTargetIsRemote(executionTarget);
 
   const promptTemplate = asString(
     config.promptTemplate,
@@ -237,7 +290,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       ? DEFAULT_TASKCORE_CONVERSATION_PROMPT_TEMPLATE
       : DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   );
-  const hasCustomPromptTemplate = asString(config.promptTemplate, "").trim().length > 0;
+  const hasCustomPromptTemplate =
+    asString(config.promptTemplate, "").trim().length > 0;
   const command = asString(config.command, "pi");
   const model = asString(config.model, "").trim();
   const thinking = asString(config.thinking, "").trim();
@@ -255,22 +309,35 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+        (value): value is Record<string, unknown> =>
+          typeof value === "object" && value !== null,
       )
     : [];
   const configuredCwd = asString(config.cwd, "");
-  const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
-  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome ? "" : workspaceCwd;
+  const useConfiguredInsteadOfAgentHome =
+    workspaceSource === "agent_home" && configuredCwd.length > 0;
+  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome
+    ? ""
+    : workspaceCwd;
   const cwd = effectiveWorkspaceCwd || configuredCwd || process.cwd();
-  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(executionTarget, cwd);
+  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(
+    executionTarget,
+    cwd,
+  );
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
 
   if (!executionTargetIsRemote) {
     await ensureSessionsDir();
   }
 
-  const piSkillEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredPiSkillNames = resolveLegacyTaskcoreDesiredSkillNames(config, piSkillEntries);
+  const piSkillEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredPiSkillNames = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    piSkillEntries,
+  );
   if (!executionTargetIsRemote) {
     await ensurePiSkillsInjected(onLog, piSkillEntries, desiredPiSkillNames);
   }
@@ -284,37 +351,52 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   env.TASKCORE_RUN_ID = runId;
 
   const wakeTaskId =
-    (typeof context.taskId === "string" && context.taskId.trim().length > 0 && context.taskId.trim()) ||
-    (typeof context.issueId === "string" && context.issueId.trim().length > 0 && context.issueId.trim()) ||
+    (typeof context.taskId === "string" &&
+      context.taskId.trim().length > 0 &&
+      context.taskId.trim()) ||
+    (typeof context.issueId === "string" &&
+      context.issueId.trim().length > 0 &&
+      context.issueId.trim()) ||
     null;
   const wakeReason =
-    typeof context.wakeReason === "string" && context.wakeReason.trim().length > 0
+    typeof context.wakeReason === "string" &&
+    context.wakeReason.trim().length > 0
       ? context.wakeReason.trim()
       : null;
   const wakeCommentId =
-    (typeof context.wakeCommentId === "string" && context.wakeCommentId.trim().length > 0 && context.wakeCommentId.trim()) ||
-    (typeof context.commentId === "string" && context.commentId.trim().length > 0 && context.commentId.trim()) ||
+    (typeof context.wakeCommentId === "string" &&
+      context.wakeCommentId.trim().length > 0 &&
+      context.wakeCommentId.trim()) ||
+    (typeof context.commentId === "string" &&
+      context.commentId.trim().length > 0 &&
+      context.commentId.trim()) ||
     null;
   const approvalId =
-    typeof context.approvalId === "string" && context.approvalId.trim().length > 0
+    typeof context.approvalId === "string" &&
+    context.approvalId.trim().length > 0
       ? context.approvalId.trim()
       : null;
   const approvalStatus =
-    typeof context.approvalStatus === "string" && context.approvalStatus.trim().length > 0
+    typeof context.approvalStatus === "string" &&
+    context.approvalStatus.trim().length > 0
       ? context.approvalStatus.trim()
       : null;
   const linkedIssueIds = Array.isArray(context.issueIds)
-    ? context.issueIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    ? context.issueIds.filter(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0,
+      )
     : [];
   const issueWorkMode = readTaskcoreIssueWorkModeFromContext(context);
-    
+
   if (wakeTaskId) env.TASKCORE_TASK_ID = wakeTaskId;
   if (issueWorkMode) env.TASKCORE_ISSUE_WORK_MODE = issueWorkMode;
   if (wakeReason) env.TASKCORE_WAKE_REASON = wakeReason;
   if (wakeCommentId) env.TASKCORE_WAKE_COMMENT_ID = wakeCommentId;
   if (approvalId) env.TASKCORE_APPROVAL_ID = approvalId;
   if (approvalStatus) env.TASKCORE_APPROVAL_STATUS = approvalStatus;
-  if (linkedIssueIds.length > 0) env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
+  if (linkedIssueIds.length > 0)
+    env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
   refreshTaskcoreWorkspaceEnvForExecution({
     env,
     envConfig,
@@ -348,11 +430,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     // to the agent.
     const injectedSkillKeys = new Set(desiredPiSkillNames);
     const skillBinDirs = piSkillEntries
-      .filter((entry) => injectedSkillKeys.has(entry.key) && entry.source.length > 0)
+      .filter(
+        (entry) => injectedSkillKeys.has(entry.key) && entry.source.length > 0,
+      )
       .map((entry) => path.join(entry.source, "bin"));
     const mergedEnv = ensurePathInEnv({ ...process.env, ...env });
     const pathKey =
-      typeof mergedEnv.Path === "string" && mergedEnv.Path.length > 0 && !mergedEnv.PATH
+      typeof mergedEnv.Path === "string" &&
+      mergedEnv.Path.length > 0 &&
+      !mergedEnv.PATH
         ? "Path"
         : "PATH";
     const basePath = mergedEnv[pathKey] ?? "";
@@ -360,7 +446,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       const existing = basePath.split(path.delimiter).filter(Boolean);
       const additions = skillBinDirs.filter((dir) => !existing.includes(dir));
       if (additions.length > 0) {
-        mergedEnv[pathKey] = [...additions, basePath].filter(Boolean).join(path.delimiter);
+        mergedEnv[pathKey] = [...additions, basePath]
+          .filter(Boolean)
+          .join(path.delimiter);
       }
     }
     const runtimeEnv = Object.fromEntries(
@@ -384,11 +472,22 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       graceSec,
       onLog,
     });
-    await ensureAdapterExecutionTargetCommandResolvable(command, executionTarget, cwd, runtimeEnv, {
-      installCommand: SANDBOX_INSTALL_COMMAND,
-      timeoutSec,
-    });
-    const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(command, executionTarget, cwd, runtimeEnv);
+    await ensureAdapterExecutionTargetCommandResolvable(
+      command,
+      executionTarget,
+      cwd,
+      runtimeEnv,
+      {
+        installCommand: SANDBOX_INSTALL_COMMAND,
+        timeoutSec,
+      },
+    );
+    const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(
+      command,
+      executionTarget,
+      cwd,
+      runtimeEnv,
+    );
     let loggedEnv = buildInvocationEnvForLogs(env, {
       runtimeEnv,
       includeRuntimeKeys: ["HOME"],
@@ -413,7 +512,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     let remoteRuntimeRootDir: string | null = null;
     let localSkillsDir: string | null = null;
     let remoteSkillsDir: string | null = null;
-    let taskcoreBridge: Awaited<ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>> = null;
+    let taskcoreBridge: Awaited<
+      ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>
+    > = null;
 
     if (executionTargetIsRemote) {
       try {
@@ -422,33 +523,39 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           "stdout",
           `[taskcore] Syncing workspace and Pi runtime assets to ${describeAdapterExecutionTarget(executionTarget)}.\n`,
         );
-        const preparedRemoteRuntime = await prepareAdapterExecutionTargetRuntime({
-          runId,
-          target: executionTarget,
-          adapterKey: "pi",
-          timeoutSec,
-          workspaceLocalDir: cwd,
-          installCommand: SANDBOX_INSTALL_COMMAND,
-          detectCommand: command,
-          onProgress: (line) => onLog("stdout", line),
-          onRuntimeProgress: ctx.onRuntimeProgress,
-          assets: [
-            {
-              key: "skills",
-              localDir: localSkillsDir,
-              followSymlinks: true,
-            },
-            ...(localAgentConfigDir
-              ? [{
-                key: "agentConfig",
-                localDir: localAgentConfigDir,
-              }]
-              : []),
-          ],
-        });
+        const preparedRemoteRuntime =
+          await prepareAdapterExecutionTargetRuntime({
+            runId,
+            target: executionTarget,
+            adapterKey: "pi",
+            timeoutSec,
+            workspaceLocalDir: cwd,
+            installCommand: SANDBOX_INSTALL_COMMAND,
+            detectCommand: command,
+            onProgress: (line) => onLog("stdout", line),
+            onRuntimeProgress: ctx.onRuntimeProgress,
+            assets: [
+              {
+                key: "skills",
+                localDir: localSkillsDir,
+                followSymlinks: true,
+              },
+              ...(localAgentConfigDir
+                ? [
+                    {
+                      key: "agentConfig",
+                      localDir: localAgentConfigDir,
+                    },
+                  ]
+                : []),
+            ],
+          });
         restoreRemoteWorkspace = () =>
-          preparedRemoteRuntime.restoreWorkspace((line) => onLog("stdout", line));
-        effectiveExecutionCwd = preparedRemoteRuntime.workspaceRemoteDir ?? effectiveExecutionCwd;
+          preparedRemoteRuntime.restoreWorkspace((line) =>
+            onLog("stdout", line),
+          );
+        effectiveExecutionCwd =
+          preparedRemoteRuntime.workspaceRemoteDir ?? effectiveExecutionCwd;
         refreshTaskcoreWorkspaceEnvForExecution({
           env,
           envConfig,
@@ -462,29 +569,54 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           executionTargetIsRemote,
           executionCwd: effectiveExecutionCwd,
         });
-        if (adapterExecutionTargetUsesManagedHome(executionTarget) && preparedRemoteRuntime.runtimeRootDir) {
+        if (
+          adapterExecutionTargetUsesManagedHome(executionTarget) &&
+          preparedRemoteRuntime.runtimeRootDir
+        ) {
           env.HOME = preparedRemoteRuntime.runtimeRootDir;
         }
         remoteRuntimeRootDir = preparedRemoteRuntime.runtimeRootDir;
         remoteSkillsDir = preparedRemoteRuntime.assetDirs.skills ?? null;
-        if (localAgentConfigDir && preparedRemoteRuntime.assetDirs.agentConfig) {
+        if (
+          localAgentConfigDir &&
+          preparedRemoteRuntime.assetDirs.agentConfig
+        ) {
           env.PI_CODING_AGENT_DIR = preparedRemoteRuntime.assetDirs.agentConfig;
         }
       } catch (error) {
         await Promise.allSettled([
           restoreRemoteWorkspace?.(),
-          localSkillsDir ? fs.rm(path.dirname(localSkillsDir), { recursive: true, force: true }).catch(() => undefined) : Promise.resolve(),
+          localSkillsDir
+            ? fs
+                .rm(path.dirname(localSkillsDir), {
+                  recursive: true,
+                  force: true,
+                })
+                .catch(() => undefined)
+            : Promise.resolve(),
         ]);
         throw error;
       }
     }
-    const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(executionTarget, effectiveExecutionCwd);
-    if (executionTargetIsRemote && adapterExecutionTargetUsesTaskcoreBridge(runtimeExecutionTarget)) {
+    const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(
+      executionTarget,
+      effectiveExecutionCwd,
+    );
+    if (
+      executionTargetIsRemote &&
+      adapterExecutionTargetUsesTaskcoreBridge(runtimeExecutionTarget)
+    ) {
       taskcoreBridge = await startAdapterExecutionTargetTaskcoreBridge({
         runId,
         target: runtimeExecutionTarget,
-        enableSandboxDuplexBridge: adapterExecutionTargetEnablesSandboxDuplexBridge(runtimeExecutionTarget),
-        duplexObservabilityRecorder: adapterExecutionTargetDuplexObservabilityRecorder(runtimeExecutionTarget),
+        enableSandboxDuplexBridge:
+          adapterExecutionTargetEnablesSandboxDuplexBridge(
+            runtimeExecutionTarget,
+          ),
+        duplexObservabilityRecorder:
+          adapterExecutionTargetDuplexObservabilityRecorder(
+            runtimeExecutionTarget,
+          ),
         runtimeRootDir: remoteRuntimeRootDir,
         adapterKey: "pi",
         timeoutSec,
@@ -496,7 +628,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         loggedEnv = buildInvocationEnvForLogs(env, {
           runtimeEnv: Object.fromEntries(
             Object.entries(ensurePathInEnv({ ...process.env, ...env })).filter(
-              (entry): entry is [string, string] => typeof entry[1] === "string",
+              (entry): entry is [string, string] =>
+                typeof entry[1] === "string",
             ),
           ),
           includeRuntimeKeys: ["HOME"],
@@ -506,13 +639,25 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
 
     const runtimeSessionParams = parseObject(runtime.sessionParams);
-    const runtimeSessionId = asString(runtimeSessionParams.sessionId, runtime.sessionId ?? "");
+    const runtimeSessionId = asString(
+      runtimeSessionParams.sessionId,
+      runtime.sessionId ?? "",
+    );
     const runtimeSessionCwd = asString(runtimeSessionParams.cwd, "");
-    const runtimeRemoteExecution = parseObject(runtimeSessionParams.remoteExecution);
-    const sessionTargetMatches = adapterExecutionTargetSessionMatches(runtimeRemoteExecution, runtimeExecutionTarget);
+    const runtimeRemoteExecution = parseObject(
+      runtimeSessionParams.remoteExecution,
+    );
+    const sessionTargetMatches = adapterExecutionTargetSessionMatches(
+      runtimeRemoteExecution,
+      runtimeExecutionTarget,
+    );
     const sessionParamsCwdMatches =
       runtimeSessionCwd.length === 0 ||
-      executionCwdsMatch(runtimeSessionCwd, effectiveExecutionCwd, executionTargetIsRemote);
+      executionCwdsMatch(
+        runtimeSessionCwd,
+        effectiveExecutionCwd,
+        executionTargetIsRemote,
+      );
     const savedSessionCwd =
       runtimeSessionId.length > 0
         ? await readSavedSessionCwd({
@@ -528,7 +673,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const sessionHeaderCwdMatches =
       runtimeSessionId.length === 0 ||
       (savedSessionCwd !== null &&
-        executionCwdsMatch(savedSessionCwd, effectiveExecutionCwd, executionTargetIsRemote));
+        executionCwdsMatch(
+          savedSessionCwd,
+          effectiveExecutionCwd,
+          executionTargetIsRemote,
+        ));
     const canResumeSession =
       runtimeSessionId.length > 0 &&
       sessionTargetMatches &&
@@ -537,7 +686,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const sessionPath = canResumeSession
       ? runtimeSessionId
       : executionTargetIsRemote && remoteRuntimeRootDir
-        ? buildRemoteSessionPath(remoteRuntimeRootDir, agent.id, new Date().toISOString())
+        ? buildRemoteSessionPath(
+            remoteRuntimeRootDir,
+            agent.id,
+            new Date().toISOString(),
+          )
         : buildSessionPath(agent.id, new Date().toISOString());
 
     if (runtimeSessionId && !canResumeSession) {
@@ -555,13 +708,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
     if (!canResumeSession) {
       if (executionTargetIsRemote) {
-        await ensureAdapterExecutionTargetFile(runId, runtimeExecutionTarget, sessionPath, {
-          cwd,
-          env,
-          timeoutSec: 15,
-          graceSec: 5,
-          onLog,
-        });
+        await ensureAdapterExecutionTargetFile(
+          runId,
+          runtimeExecutionTarget,
+          sessionPath,
+          {
+            cwd,
+            env,
+            timeoutSec: 15,
+            graceSec: 5,
+            onLog,
+          },
+        );
       } else {
         try {
           await fs.writeFile(sessionPath, "", { flag: "wx" });
@@ -574,17 +732,25 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
 
     // Handle instructions file and build system prompt extension
-    const instructionsFilePath = asString(config.instructionsFilePath, "").trim();
+    const instructionsFilePath = asString(
+      config.instructionsFilePath,
+      "",
+    ).trim();
     const resolvedInstructionsFilePath = instructionsFilePath
       ? path.resolve(cwd, instructionsFilePath)
       : "";
-    const instructionsFileDir = instructionsFilePath ? `${path.dirname(instructionsFilePath)}/` : "";
+    const instructionsFileDir = instructionsFilePath
+      ? `${path.dirname(instructionsFilePath)}/`
+      : "";
 
     let systemPromptExtension = "";
     let instructionsReadFailed = false;
     if (resolvedInstructionsFilePath) {
       try {
-        const instructionsContents = await fs.readFile(resolvedInstructionsFilePath, "utf8");
+        const instructionsContents = await fs.readFile(
+          resolvedInstructionsFilePath,
+          "utf8",
+        );
         systemPromptExtension =
           `${instructionsContents}\n\n` +
           `The above agent instructions were loaded from ${resolvedInstructionsFilePath}. ` +
@@ -606,7 +772,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       systemPromptExtension = promptTemplate;
     }
 
-    const bootstrapPromptTemplate = asString(config.bootstrapPromptTemplate, "");
+    const bootstrapPromptTemplate = asString(
+      config.bootstrapPromptTemplate,
+      "",
+    );
     const templateData = {
       agentId: agent.id,
       companyId: agent.companyId,
@@ -616,9 +785,17 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       run: { id: runId, source: "on_demand" },
       context,
     };
-    const renderedSystemPromptExtension = renderTemplate(systemPromptExtension, templateData);
-    const systemOwnsDefaultPolicy = !hasCustomPromptTemplate || Boolean(resolvedInstructionsFilePath && !instructionsReadFailed);
-    const sessionHandoffNote = asString(context.taskcoreSessionHandoffMarkdown, "").trim();
+    const renderedSystemPromptExtension = renderTemplate(
+      systemPromptExtension,
+      templateData,
+    );
+    const systemOwnsDefaultPolicy =
+      !hasCustomPromptTemplate ||
+      Boolean(resolvedInstructionsFilePath && !instructionsReadFailed);
+    const sessionHandoffNote = asString(
+      context.taskcoreSessionHandoffMarkdown,
+      "",
+    ).trim();
 
     const commandNotes = (() => {
       const notes = [...preparedRuntimeConfig.notes];
@@ -629,7 +806,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         );
         return notes;
       }
-      notes.push(`Loaded agent instructions from ${resolvedInstructionsFilePath}`);
+      notes.push(
+        `Loaded agent instructions from ${resolvedInstructionsFilePath}`,
+      );
       notes.push(
         `Appended instructions + path directive to system prompt (relative references from ${instructionsFileDir}).`,
       );
@@ -663,22 +842,27 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     };
 
     const runAttempt = async (sessionFile: string) => {
-      const attemptResumedSession = canResumeSession && sessionFile === sessionPath;
-      await hydrateFreshSessionHandoff(ctx, { resumedSession: attemptResumedSession });
+      const attemptResumedSession =
+        canResumeSession && sessionFile === sessionPath;
+      await hydrateFreshSessionHandoff(ctx, {
+        resumedSession: attemptResumedSession,
+      });
       const attemptSections = selectTaskcorePromptSections(context, {
         resumedSession: attemptResumedSession,
         includeCommunicationGuidance: false,
         includeExecutionContract: systemOwnsDefaultPolicy ? false : undefined,
       });
-      const attemptBootstrapPrompt = !attemptResumedSession && bootstrapPromptTemplate.trim().length > 0
-        ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
-        : "";
+      const attemptBootstrapPrompt =
+        !attemptResumedSession && bootstrapPromptTemplate.trim().length > 0
+          ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
+          : "";
       const attemptWakePrompt = attemptSections.wakePrompt;
-      const attemptRenderedHeartbeatPrompt = attemptResumedSession && attemptWakePrompt.length > 0
-        || isTaskcoreRecoveryWakePayload(context.taskcoreWake)
-        || !hasCustomPromptTemplate
-        ? ""
-        : renderTemplate(promptTemplate, templateData);
+      const attemptRenderedHeartbeatPrompt =
+        (attemptResumedSession && attemptWakePrompt.length > 0) ||
+        isTaskcoreRecoveryWakePayload(context.taskcoreWake) ||
+        !hasCustomPromptTemplate
+          ? ""
+          : renderTemplate(promptTemplate, templateData);
       const attemptBaseUserPrompt = joinPromptSections([
         attemptBootstrapPrompt,
         attemptWakePrompt,
@@ -687,7 +871,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         attemptRenderedHeartbeatPrompt,
       ]);
       const userPrompt = joinPromptSections([
-        selectInitialCommunicationGuidance(context, { resumedSession: attemptResumedSession }),
+        selectInitialCommunicationGuidance(context, {
+          resumedSession: attemptResumedSession,
+        }),
         attemptBaseUserPrompt,
       ]);
       const promptMetrics = {
@@ -716,7 +902,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
       // Buffer stdout by lines to handle partial JSON chunks
       let stdoutBuffer = "";
-      const bufferedOnLog = async (stream: "stdout" | "stderr", chunk: string) => {
+      const bufferedOnLog = async (
+        stream: "stdout" | "stderr",
+        chunk: string,
+      ) => {
         if (stream === "stderr") {
           // Pass stderr through immediately (not JSONL)
           await onLog(stream, chunk);
@@ -739,23 +928,42 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
       const consumeAccounting = createPiJsonlParser();
       let hasAccounting = false;
-      const accountingLog = createUsageCheckpointLog(bufferedOnLog, ctx.onUsage ?? (async () => {}), stdout => {
-        hasAccounting = true;
-        const parsed = consumeAccounting(stdout);
-        return { usage: parsed.usage, costUsd: parsed.usage.costUsd, usageBasis: "per_run", provider, biller: resolvePiBiller(runtimeEnv, provider), billingType: "unknown", model, complete: parsed.sawAgentEnd };
-      });
-      const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {
-        onProcessStopped: providerStop.beginInvocation(),
-        cwd,
-        env: executionTargetIsRemote ? env : runtimeEnv,
-        timeoutSec,
-        graceSec,
-        onSpawn,
-        onRuntimeProgress: ctx.onRuntimeProgress,
-        onLog: accountingLog,
-        runLogTail: taskcoreBridge?.runLogTail,
-        settleRunDisposition: taskcoreBridge?.settleRunDisposition,
-      });
+      const accountingLog = createUsageCheckpointLog(
+        bufferedOnLog,
+        ctx.onUsage ?? (async () => {}),
+        (stdout) => {
+          hasAccounting = true;
+          const parsed = consumeAccounting(stdout);
+          return {
+            usage: parsed.usage,
+            costUsd: parsed.usage.costUsd,
+            usageBasis: "per_run",
+            provider,
+            biller: resolvePiBiller(runtimeEnv, provider),
+            billingType: "unknown",
+            model,
+            complete: parsed.sawAgentEnd,
+          };
+        },
+      );
+      const proc = await runAdapterExecutionTargetProcess(
+        runId,
+        runtimeExecutionTarget,
+        command,
+        args,
+        {
+          onProcessStopped: providerStop.beginInvocation(),
+          cwd,
+          env: executionTargetIsRemote ? env : runtimeEnv,
+          timeoutSec,
+          graceSec,
+          onSpawn,
+          onRuntimeProgress: ctx.onRuntimeProgress,
+          onLog: accountingLog,
+          runLogTail: taskcoreBridge?.runLogTail,
+          settleRunDisposition: taskcoreBridge?.settleRunDisposition,
+        },
+      );
       await accountingLog.flush();
 
       // Flush any remaining buffer content
@@ -776,7 +984,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
     const toResult = (
       attempt: {
-        proc: { exitCode: number | null; signal: string | null; timedOut: boolean; stdout: string; stderr: string; errorCode?: string | null };
+        proc: {
+          exitCode: number | null;
+          signal: string | null;
+          timedOut: boolean;
+          stdout: string;
+          stderr: string;
+          errorCode?: string | null;
+        };
         rawStderr: string;
         parsed: ReturnType<typeof parsePiJsonl>;
       },
@@ -788,13 +1003,21 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           signal: attempt.proc.signal,
           timedOut: true,
           usageComplete: attempt.parsed.sawAgentEnd,
-        usage: attempt.parsed.usage, usageBasis: "per_run", provider, biller: resolvePiBiller(runtimeEnv, provider), model, billingType: "unknown", costUsd: attempt.parsed.usage.costUsd,
+          usage: attempt.parsed.usage,
+          usageBasis: "per_run",
+          provider,
+          biller: resolvePiBiller(runtimeEnv, provider),
+          model,
+          billingType: "unknown",
+          costUsd: attempt.parsed.usage.costUsd,
           errorMessage: `Timed out after ${timeoutSec}s`,
           clearSession: clearSessionOnMissingSession,
         };
       }
 
-      const resolvedSessionId = clearSessionOnMissingSession ? null : sessionPath;
+      const resolvedSessionId = clearSessionOnMissingSession
+        ? null
+        : sessionPath;
       const resolvedSessionParams = resolvedSessionId
         ? {
             sessionId: resolvedSessionId,
@@ -804,7 +1027,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
             ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
             ...(executionTargetIsRemote
               ? {
-                  remoteExecution: adapterExecutionTargetSessionIdentity(runtimeExecutionTarget),
+                  remoteExecution: adapterExecutionTargetSessionIdentity(
+                    runtimeExecutionTarget,
+                  ),
                 }
               : {}),
           }
@@ -812,17 +1037,21 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
       const stderrLine = firstNonEmptyLine(attempt.proc.stderr);
       const rawExitCode = attempt.proc.exitCode;
-      const parsedError = attempt.parsed.errors.find((error) => error.trim().length > 0) ?? "";
-      const effectiveExitCode = (rawExitCode ?? 0) === 0 && parsedError ? 1 : rawExitCode;
-      const fallbackErrorMessage = parsedError || stderrLine || `Pi exited with code ${rawExitCode ?? -1}`;
+      const parsedError =
+        attempt.parsed.errors.find((error) => error.trim().length > 0) ?? "";
+      const effectiveExitCode =
+        (rawExitCode ?? 0) === 0 && parsedError ? 1 : rawExitCode;
+      const fallbackErrorMessage =
+        parsedError || stderrLine || `Pi exited with code ${rawExitCode ?? -1}`;
 
       return {
         exitCode: effectiveExitCode,
         signal: attempt.proc.signal,
         timedOut: false,
         usageComplete: attempt.parsed.sawAgentEnd,
-      usageBasis: "per_run",
-        errorMessage: (effectiveExitCode ?? 0) === 0 ? null : fallbackErrorMessage,
+        usageBasis: "per_run",
+        errorMessage:
+          (effectiveExitCode ?? 0) === 0 ? null : fallbackErrorMessage,
         // Forward the transport-level error code from the run-disposition seam.
         // A lost duplex control channel surfaces the typed `duplex_channel_lost`
         // code; every other result carries no code here.
@@ -844,7 +1073,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           stdout: attempt.proc.stdout,
           stderr: attempt.proc.stderr,
         },
-        summary: attempt.parsed.finalMessage ?? attempt.parsed.messages.join("\n\n").trim(),
+        summary:
+          attempt.parsed.finalMessage ??
+          attempt.parsed.messages.join("\n\n").trim(),
         clearSession: Boolean(clearSessionOnMissingSession),
       };
     };
@@ -852,7 +1083,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     try {
       const initial = await runAttempt(sessionPath);
       const initialFailed =
-        !initial.proc.timedOut && ((initial.proc.exitCode ?? 0) !== 0 || initial.parsed.errors.length > 0);
+        !initial.proc.timedOut &&
+        ((initial.proc.exitCode ?? 0) !== 0 ||
+          initial.parsed.errors.length > 0);
 
       if (
         canResumeSession &&
@@ -863,17 +1096,27 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           "stdout",
           `[taskcore] Pi session "${runtimeSessionId}" is unavailable; retrying with a fresh session.\n`,
         );
-        const newSessionPath = executionTargetIsRemote && remoteRuntimeRootDir
-          ? buildRemoteSessionPath(remoteRuntimeRootDir, agent.id, new Date().toISOString())
-          : buildSessionPath(agent.id, new Date().toISOString());
+        const newSessionPath =
+          executionTargetIsRemote && remoteRuntimeRootDir
+            ? buildRemoteSessionPath(
+                remoteRuntimeRootDir,
+                agent.id,
+                new Date().toISOString(),
+              )
+            : buildSessionPath(agent.id, new Date().toISOString());
         if (executionTargetIsRemote) {
-          await ensureAdapterExecutionTargetFile(runId, executionTarget, newSessionPath, {
-            cwd,
-            env,
-            timeoutSec: 15,
-            graceSec: 5,
-            onLog,
-          });
+          await ensureAdapterExecutionTargetFile(
+            runId,
+            executionTarget,
+            newSessionPath,
+            {
+              cwd,
+              env,
+              timeoutSec: 15,
+              graceSec: 5,
+              onLog,
+            },
+          );
         } else {
           try {
             await fs.writeFile(newSessionPath, "", { flag: "wx" });
@@ -895,7 +1138,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         await Promise.all([
           taskcoreBridge?.stop(),
           restoreRemoteWorkspace?.(),
-          localSkillsDir ? fs.rm(path.dirname(localSkillsDir), { recursive: true, force: true }).catch(() => undefined) : Promise.resolve(),
+          localSkillsDir
+            ? fs
+                .rm(path.dirname(localSkillsDir), {
+                  recursive: true,
+                  force: true,
+                })
+                .catch(() => undefined)
+            : Promise.resolve(),
         ]);
       }
     }

@@ -32,7 +32,8 @@ export interface ParsedWorkspaceFileRef {
 const WORKSPACE_FILE_REF_RE =
   /^([A-Za-z0-9_.\-+][A-Za-z0-9_./\-+]*\.[A-Za-z0-9_+\-]{1,10})(?::([1-9]\d*)(?::([1-9]\d*))?|#L([1-9]\d*)(?:C([1-9]\d*))?)?$/;
 
-const BARE_NO_EXT_RE = /^([A-Za-z0-9_.\-+][A-Za-z0-9_./\-+]+\/[A-Za-z0-9_.\-+]+)(?::([1-9]\d*)(?::([1-9]\d*))?|#L([1-9]\d*)(?:C([1-9]\d*))?)?$/;
+const BARE_NO_EXT_RE =
+  /^([A-Za-z0-9_.\-+][A-Za-z0-9_./\-+]+\/[A-Za-z0-9_.\-+]+)(?::([1-9]\d*)(?::([1-9]\d*))?|#L([1-9]\d*)(?:C([1-9]\d*))?)?$/;
 
 const WORKSPACE_DIRECTORY_REF_RE = /^([A-Za-z0-9_.\-+][A-Za-z0-9_./\-+]*\/)$/;
 
@@ -45,13 +46,23 @@ function toPositiveInt(value: string | undefined): number | null {
   return n;
 }
 
-function looksLikeWorkspacePath(input: string, opts: { allowTrailingSlash: boolean }): boolean {
+function looksLikeWorkspacePath(
+  input: string,
+  opts: { allowTrailingSlash: boolean },
+): boolean {
   if (!input || input.length > 512) return false;
   if (input.includes("\\") || input.includes("\0")) return false;
-  if (input.startsWith("/") || input.startsWith("~") || /^[A-Za-z]:/.test(input)) return false;
+  if (
+    input.startsWith("/") ||
+    input.startsWith("~") ||
+    /^[A-Za-z]:/.test(input)
+  )
+    return false;
   if (input.includes("//")) return false;
-  if (INVALID_PREFIXES.some((prefix) => input === prefix.slice(0, -1))) return false;
-  const path = opts.allowTrailingSlash && input.endsWith("/") ? input.slice(0, -1) : input;
+  if (INVALID_PREFIXES.some((prefix) => input === prefix.slice(0, -1)))
+    return false;
+  const path =
+    opts.allowTrailingSlash && input.endsWith("/") ? input.slice(0, -1) : input;
   if (!path || /^\.+$/.test(path)) return false;
   const segments = path.split("/");
   for (const segment of segments) {
@@ -64,7 +75,9 @@ function looksLikeWorkspacePath(input: string, opts: { allowTrailingSlash: boole
  * Attempt to parse the given text as a workspace file reference.
  * Returns null if the text does not look like one.
  */
-export function parseWorkspaceFileRef(input: string): ParsedWorkspaceFileRef | null {
+export function parseWorkspaceFileRef(
+  input: string,
+): ParsedWorkspaceFileRef | null {
   if (typeof input !== "string") return null;
   const trimmed = input.trim();
   if (!trimmed) return null;
@@ -72,7 +85,11 @@ export function parseWorkspaceFileRef(input: string): ParsedWorkspaceFileRef | n
   const directoryMatch = trimmed.match(WORKSPACE_DIRECTORY_REF_RE);
   if (directoryMatch) {
     const [, rawPath] = directoryMatch;
-    if (!rawPath || !looksLikeWorkspacePath(rawPath, { allowTrailingSlash: true })) return null;
+    if (
+      !rawPath ||
+      !looksLikeWorkspacePath(rawPath, { allowTrailingSlash: true })
+    )
+      return null;
     if (!rawPath.slice(0, -1).includes("/")) return null;
     return {
       path: rawPath,
@@ -83,11 +100,13 @@ export function parseWorkspaceFileRef(input: string): ParsedWorkspaceFileRef | n
     };
   }
 
-  const match = trimmed.match(WORKSPACE_FILE_REF_RE) ?? trimmed.match(BARE_NO_EXT_RE);
+  const match =
+    trimmed.match(WORKSPACE_FILE_REF_RE) ?? trimmed.match(BARE_NO_EXT_RE);
   if (!match) return null;
   const [, rawPath, colonLine, colonCol, hashLine, hashCol] = match;
   if (!rawPath) return null;
-  if (!looksLikeWorkspacePath(rawPath, { allowTrailingSlash: false })) return null;
+  if (!looksLikeWorkspacePath(rawPath, { allowTrailingSlash: false }))
+    return null;
 
   const line = toPositiveInt(colonLine) ?? toPositiveInt(hashLine);
   const column = toPositiveInt(colonCol) ?? toPositiveInt(hashCol);
@@ -105,11 +124,14 @@ export function parseWorkspaceFileRef(input: string): ParsedWorkspaceFileRef | n
   };
 }
 
-export function formatWorkspaceFileRefDisplay(ref: ParsedWorkspaceFileRef): string {
-  const path = ref.line && ref.column
-    ? `${ref.path}:${ref.line}:${ref.column}`
-    : ref.line
-      ? `${ref.path}:${ref.line}`
-      : ref.path;
+export function formatWorkspaceFileRefDisplay(
+  ref: ParsedWorkspaceFileRef,
+): string {
+  const path =
+    ref.line && ref.column
+      ? `${ref.path}:${ref.line}:${ref.column}`
+      : ref.line
+        ? `${ref.path}:${ref.line}`
+        : ref.path;
   return ref.projectName ? `${ref.projectName} / ${path}` : path;
 }

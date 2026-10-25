@@ -159,21 +159,21 @@ const diagnosticProcessKinds = new Set([
   "tsx",
 ]);
 
-export async function readProcessTable(startInspector?: () => ChildProcess): Promise<ProcessObservation[] | null> {
+export async function readProcessTable(
+  startInspector?: () => ChildProcess,
+): Promise<ProcessObservation[] | null> {
   if (process.platform === "win32") {
     return null;
   }
   return await new Promise<ProcessObservation[] | null>((resolve) => {
-    const inspector = startInspector ? startInspector() : spawn(
-      "ps",
-      ["-e", "-o", "pid=,ppid=,pgid=,lstart=,stat=,comm="],
-      {
-        env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
-        stdio: ["ignore", "pipe", "ignore"],
-        // A wrapper-group shutdown must not interrupt its own bounded audit.
-        detached: true,
-      },
-    );
+    const inspector = startInspector
+      ? startInspector()
+      : spawn("ps", ["-e", "-o", "pid=,ppid=,pgid=,lstart=,stat=,comm="], {
+          env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
+          stdio: ["ignore", "pipe", "ignore"],
+          // A wrapper-group shutdown must not interrupt its own bounded audit.
+          detached: true,
+        });
     let output = "";
     let settled = false;
     let truncated = false;
@@ -199,7 +199,10 @@ export async function readProcessTable(startInspector?: () => ChildProcess): Pro
     });
     inspector.once("error", () => finish(null));
     inspector.once("close", (code) => {
-      if (code !== 0 || truncated) { finish(null); return; }
+      if (code !== 0 || truncated) {
+        finish(null);
+        return;
+      }
       const observations = output
         .split(/\r?\n/)
         .map((line) =>

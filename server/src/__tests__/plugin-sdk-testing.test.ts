@@ -17,28 +17,34 @@ describe("plugin SDK test harness", () => {
     };
     const harness = createTestHarness({ manifest });
     harness.seed({
-      executionWorkspaces: [{
-        id: "workspace-1",
-        companyId: "company-1",
-        projectId: "project-1",
-        projectWorkspaceId: "project-workspace-1",
-        path: "/tmp/taskcore-test",
-        cwd: "/tmp/taskcore-test",
-        repoUrl: "https://example.com/repo.git",
-        baseRef: "main",
-        branchName: "feature/test",
-        providerType: "git_worktree",
-        providerMetadata: { sandboxId: "sandbox-1" },
-      }],
+      executionWorkspaces: [
+        {
+          id: "workspace-1",
+          companyId: "company-1",
+          projectId: "project-1",
+          projectWorkspaceId: "project-workspace-1",
+          path: "/tmp/taskcore-test",
+          cwd: "/tmp/taskcore-test",
+          repoUrl: "https://example.com/repo.git",
+          baseRef: "main",
+          branchName: "feature/test",
+          providerType: "git_worktree",
+          providerMetadata: { sandboxId: "sandbox-1" },
+        },
+      ],
     });
 
-    await expect(harness.ctx.executionWorkspaces.get("workspace-1", "company-1")).resolves.toMatchObject({
+    await expect(
+      harness.ctx.executionWorkspaces.get("workspace-1", "company-1"),
+    ).resolves.toMatchObject({
       id: "workspace-1",
       cwd: "/tmp/taskcore-test",
       branchName: "feature/test",
       providerMetadata: { sandboxId: "sandbox-1" },
     });
-    await expect(harness.ctx.executionWorkspaces.get("workspace-1", "company-2")).resolves.toBeNull();
+    await expect(
+      harness.ctx.executionWorkspaces.get("workspace-1", "company-2"),
+    ).resolves.toBeNull();
   });
 
   it("requires execution.workspaces.read before returning workspace metadata", async () => {
@@ -55,7 +61,9 @@ describe("plugin SDK test harness", () => {
     };
     const harness = createTestHarness({ manifest });
 
-    await expect(harness.ctx.executionWorkspaces.get("workspace-1", "company-1")).rejects.toThrow(
+    await expect(
+      harness.ctx.executionWorkspaces.get("workspace-1", "company-1"),
+    ).rejects.toThrow(
       "missing required capability 'execution.workspaces.read'",
     );
   });
@@ -71,16 +79,18 @@ describe("plugin SDK test harness", () => {
       categories: ["automation"],
       capabilities: [],
       entrypoints: { worker: "./dist/worker.js" },
-      skills: [{
-        skillKey: "wiki-maintainer",
-        displayName: "Wiki Maintainer",
-      }],
+      skills: [
+        {
+          skillKey: "wiki-maintainer",
+          displayName: "Wiki Maintainer",
+        },
+      ],
     };
     const harness = createTestHarness({ manifest });
 
-    await expect(harness.ctx.skills.managed.reset("unknown-skill", "company-1")).rejects.toThrow(
-      "missing required capability 'skills.managed'",
-    );
+    await expect(
+      harness.ctx.skills.managed.reset("unknown-skill", "company-1"),
+    ).rejects.toThrow("missing required capability 'skills.managed'");
   });
 
   it("requires access and authorization capabilities for permission SDK calls", async () => {
@@ -97,15 +107,17 @@ describe("plugin SDK test harness", () => {
     };
     const harness = createTestHarness({ manifest });
 
-    await expect(harness.ctx.access.members.list({ companyId: "company-1" })).rejects.toThrow(
-      "missing required capability 'access.members.read'",
-    );
-    await expect(harness.ctx.authorization.grants.list({ companyId: "company-1" })).rejects.toThrow(
+    await expect(
+      harness.ctx.access.members.list({ companyId: "company-1" }),
+    ).rejects.toThrow("missing required capability 'access.members.read'");
+    await expect(
+      harness.ctx.authorization.grants.list({ companyId: "company-1" }),
+    ).rejects.toThrow(
       "missing required capability 'authorization.grants.read'",
     );
-    await expect(harness.ctx.authorization.audit.search({ companyId: "company-1" })).rejects.toThrow(
-      "missing required capability 'authorization.audit.read'",
-    );
+    await expect(
+      harness.ctx.authorization.audit.search({ companyId: "company-1" }),
+    ).rejects.toThrow("missing required capability 'authorization.audit.read'");
   });
 
   it("returns tombstone-safe deleted comments from the in-memory issue helper", async () => {
@@ -122,32 +134,44 @@ describe("plugin SDK test harness", () => {
     };
     const harness = createTestHarness({ manifest });
     harness.seed({
-      issues: [{
-        id: "issue-1",
-        companyId: "company-1",
-        title: "Comment redaction",
-        status: "todo",
-        priority: "medium",
-      }],
-      issueComments: [{
-        id: "comment-1",
-        companyId: "company-1",
-        issueId: "issue-1",
-        authorType: "user",
-        authorAgentId: null,
-        authorUserId: "user-1",
-        body: "secret plugin-visible body",
-        presentation: { kind: "system_notice", tone: "warning" },
-        metadata: { version: 1, sections: [{ rows: [{ type: "text", text: "secret plugin metadata" }] }] },
-        deletedAt: new Date("2026-06-03T12:00:00.000Z"),
-        deletedByType: "user",
-        deletedByUserId: "user-1",
-        createdAt: new Date("2026-06-03T11:00:00.000Z"),
-        updatedAt: new Date("2026-06-03T12:00:00.000Z"),
-      }],
+      issues: [
+        {
+          id: "issue-1",
+          companyId: "company-1",
+          title: "Comment redaction",
+          status: "todo",
+          priority: "medium",
+        },
+      ],
+      issueComments: [
+        {
+          id: "comment-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          authorType: "user",
+          authorAgentId: null,
+          authorUserId: "user-1",
+          body: "secret plugin-visible body",
+          presentation: { kind: "system_notice", tone: "warning" },
+          metadata: {
+            version: 1,
+            sections: [
+              { rows: [{ type: "text", text: "secret plugin metadata" }] },
+            ],
+          },
+          deletedAt: new Date("2026-06-03T12:00:00.000Z"),
+          deletedByType: "user",
+          deletedByUserId: "user-1",
+          createdAt: new Date("2026-06-03T11:00:00.000Z"),
+          updatedAt: new Date("2026-06-03T12:00:00.000Z"),
+        },
+      ],
     });
 
-    const comments = await harness.ctx.issues.listComments("issue-1", "company-1");
+    const comments = await harness.ctx.issues.listComments(
+      "issue-1",
+      "company-1",
+    );
 
     expect(comments).toHaveLength(1);
     expect(comments[0]).toMatchObject({
@@ -157,7 +181,9 @@ describe("plugin SDK test harness", () => {
       metadata: null,
       deletedByUserId: "user-1",
     });
-    expect(JSON.stringify(comments)).not.toContain("secret plugin-visible body");
+    expect(JSON.stringify(comments)).not.toContain(
+      "secret plugin-visible body",
+    );
     expect(JSON.stringify(comments)).not.toContain("secret plugin metadata");
   });
 
@@ -170,37 +196,51 @@ describe("plugin SDK test harness", () => {
       description: "Test plugin",
       author: "Taskcore",
       categories: ["automation"],
-      capabilities: ["issue.comments.create", "issue.comments.create_human_attributed"],
+      capabilities: [
+        "issue.comments.create",
+        "issue.comments.create_human_attributed",
+      ],
       entrypoints: { worker: "./dist/worker.js" },
     };
     const harness = createTestHarness({ manifest });
     harness.seed({
-      issues: [{
-        id: "issue-1",
-        companyId: "company-1",
-        title: "Human attribution",
-        status: "todo",
-        priority: "medium",
-      }],
+      issues: [
+        {
+          id: "issue-1",
+          companyId: "company-1",
+          title: "Human attribution",
+          status: "todo",
+          priority: "medium",
+        },
+      ],
       // A suspended member must not satisfy the active-human-member check —
       // the harness mirrors the host's `requireActiveHumanMember` guard so a
       // plugin test cannot pass an attribution production would reject.
-      accessMembers: [{
-        id: "member-suspended",
-        companyId: "company-1",
-        principalType: "user",
-        principalId: "user-1",
-        status: "suspended",
-        membershipRole: "member",
-        grants: [],
-        createdAt: new Date("2026-06-03T11:00:00.000Z"),
-        updatedAt: new Date("2026-06-03T11:00:00.000Z"),
-      }],
+      accessMembers: [
+        {
+          id: "member-suspended",
+          companyId: "company-1",
+          principalType: "user",
+          principalId: "user-1",
+          status: "suspended",
+          membershipRole: "member",
+          grants: [],
+          createdAt: new Date("2026-06-03T11:00:00.000Z"),
+          updatedAt: new Date("2026-06-03T11:00:00.000Z"),
+        },
+      ],
     });
 
     await expect(
-      harness.ctx.issues.createComment("issue-1", "relayed reply", "company-1", { actorUserId: "user-1" }),
-    ).rejects.toThrow('actorUserId "user-1" is not an active human member of this company');
+      harness.ctx.issues.createComment(
+        "issue-1",
+        "relayed reply",
+        "company-1",
+        { actorUserId: "user-1" },
+      ),
+    ).rejects.toThrow(
+      'actorUserId "user-1" is not an active human member of this company',
+    );
   });
 
   it("rejects a human-attributed comment when the actorUserId is a viewer-role (read-only) member", async () => {
@@ -215,33 +255,45 @@ describe("plugin SDK test harness", () => {
       description: "Test plugin",
       author: "Taskcore",
       categories: ["automation"],
-      capabilities: ["issue.comments.create", "issue.comments.create_human_attributed"],
+      capabilities: [
+        "issue.comments.create",
+        "issue.comments.create_human_attributed",
+      ],
       entrypoints: { worker: "./dist/worker.js" },
     };
     const harness = createTestHarness({ manifest });
     harness.seed({
-      issues: [{
-        id: "issue-1",
-        companyId: "company-1",
-        title: "Human attribution",
-        status: "todo",
-        priority: "medium",
-      }],
-      accessMembers: [{
-        id: "member-viewer",
-        companyId: "company-1",
-        principalType: "user",
-        principalId: "user-1",
-        status: "active",
-        membershipRole: "viewer",
-        grants: [],
-        createdAt: new Date("2026-06-03T11:00:00.000Z"),
-        updatedAt: new Date("2026-06-03T11:00:00.000Z"),
-      }],
+      issues: [
+        {
+          id: "issue-1",
+          companyId: "company-1",
+          title: "Human attribution",
+          status: "todo",
+          priority: "medium",
+        },
+      ],
+      accessMembers: [
+        {
+          id: "member-viewer",
+          companyId: "company-1",
+          principalType: "user",
+          principalId: "user-1",
+          status: "active",
+          membershipRole: "viewer",
+          grants: [],
+          createdAt: new Date("2026-06-03T11:00:00.000Z"),
+          updatedAt: new Date("2026-06-03T11:00:00.000Z"),
+        },
+      ],
     });
 
     await expect(
-      harness.ctx.issues.createComment("issue-1", "relayed reply", "company-1", { actorUserId: "user-1" }),
+      harness.ctx.issues.createComment(
+        "issue-1",
+        "relayed reply",
+        "company-1",
+        { actorUserId: "user-1" },
+      ),
     ).rejects.toThrow("viewer (read-only) access");
   });
 
@@ -254,29 +306,36 @@ describe("plugin SDK test harness", () => {
       description: "Test plugin",
       author: "Taskcore",
       categories: ["automation"],
-      capabilities: ["issue.comments.create", "issue.comments.create_human_attributed"],
+      capabilities: [
+        "issue.comments.create",
+        "issue.comments.create_human_attributed",
+      ],
       entrypoints: { worker: "./dist/worker.js" },
     };
     const harness = createTestHarness({ manifest });
     harness.seed({
-      issues: [{
-        id: "issue-1",
-        companyId: "company-1",
-        title: "Human attribution",
-        status: "todo",
-        priority: "medium",
-      }],
-      accessMembers: [{
-        id: "member-active",
-        companyId: "company-1",
-        principalType: "user",
-        principalId: "user-1",
-        status: "active",
-        membershipRole: "member",
-        grants: [],
-        createdAt: new Date("2026-06-03T11:00:00.000Z"),
-        updatedAt: new Date("2026-06-03T11:00:00.000Z"),
-      }],
+      issues: [
+        {
+          id: "issue-1",
+          companyId: "company-1",
+          title: "Human attribution",
+          status: "todo",
+          priority: "medium",
+        },
+      ],
+      accessMembers: [
+        {
+          id: "member-active",
+          companyId: "company-1",
+          principalType: "user",
+          principalId: "user-1",
+          status: "active",
+          membershipRole: "member",
+          grants: [],
+          createdAt: new Date("2026-06-03T11:00:00.000Z"),
+          updatedAt: new Date("2026-06-03T11:00:00.000Z"),
+        },
+      ],
     });
 
     const comment = await harness.ctx.issues.createComment(

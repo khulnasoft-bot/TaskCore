@@ -20,10 +20,15 @@ import {
 } from "./helpers/embedded-postgres.js";
 import { errorHandler } from "../middleware/index.js";
 import { companyRoutes } from "../routes/companies.js";
-import { normalizeTimelineWindow, workTimelineService } from "../services/work-timeline.js";
+import {
+  normalizeTimelineWindow,
+  workTimelineService,
+} from "../services/work-timeline.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -33,7 +38,9 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("work timeline aggregation", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("taskcore-work-timeline-");
@@ -122,10 +129,13 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
   }
 
   it("normalizes timeline windows with a 31 day cap", () => {
-    const result = normalizeTimelineWindow({
-      from: new Date("2026-01-01T00:00:00Z"),
-      to: new Date("2026-03-15T00:00:00Z"),
-    }, new Date("2026-03-15T00:00:00Z"));
+    const result = normalizeTimelineWindow(
+      {
+        from: new Date("2026-01-01T00:00:00Z"),
+        to: new Date("2026-03-15T00:00:00Z"),
+      },
+      new Date("2026-03-15T00:00:00Z"),
+    );
 
     expect(result.capped).toBe(true);
     expect(result.from.toISOString()).toBe("2026-02-12T00:00:00.000Z");
@@ -175,7 +185,11 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
         invocationSource: "issue_assigned",
         startedAt: new Date("2026-03-01T12:00:00Z"),
         finishedAt: null,
-        usageJson: { inputTokens: 120, cachedInputTokens: 30, outputTokens: 50 },
+        usageJson: {
+          inputTokens: 120,
+          cachedInputTokens: 30,
+          outputTokens: 50,
+        },
         contextSnapshot: { issueId: childIssueId },
       },
       {
@@ -228,7 +242,9 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
       decidedByUserId: userId,
       decidedAt: new Date("2026-03-01T14:00:00Z"),
     });
-    await db.insert(issueApprovals).values({ companyId, issueId: childIssueId, approvalId });
+    await db
+      .insert(issueApprovals)
+      .values({ companyId, issueId: childIssueId, approvalId });
 
     const result = await workTimelineService(db).getTimeline({
       companyId,
@@ -236,28 +252,45 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
       to: new Date("2026-03-02T00:00:00Z"),
     });
 
-    expect(result.actors.map((actor) => actor.name)).toEqual(expect.arrayContaining(["Coder", "QA", "User One"]));
-    expect(result.spans).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        runId: contextRunId,
-        issueId: childIssueId,
-        end: null,
-        status: "running",
-        usage: { inputTokens: 120, cachedInputTokens: 30, outputTokens: 50, totalTokens: 200 },
-      }),
-      expect.objectContaining({ runId: activityRunId, issueId: parentIssueId, status: "completed" }),
-    ]));
-    expect(result.events.map((event) => event.kind)).toEqual(expect.arrayContaining([
-      "created",
-      "commented",
-      "approved",
-      "delegated",
-      "assigned",
-    ]));
-    expect(result.edges).toEqual(expect.arrayContaining([
-      expect.objectContaining({ kind: "delegation", issueId: childIssueId }),
-      expect.objectContaining({ kind: "assignment", issueId: childIssueId }),
-    ]));
+    expect(result.actors.map((actor) => actor.name)).toEqual(
+      expect.arrayContaining(["Coder", "QA", "User One"]),
+    );
+    expect(result.spans).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          runId: contextRunId,
+          issueId: childIssueId,
+          end: null,
+          status: "running",
+          usage: {
+            inputTokens: 120,
+            cachedInputTokens: 30,
+            outputTokens: 50,
+            totalTokens: 200,
+          },
+        }),
+        expect.objectContaining({
+          runId: activityRunId,
+          issueId: parentIssueId,
+          status: "completed",
+        }),
+      ]),
+    );
+    expect(result.events.map((event) => event.kind)).toEqual(
+      expect.arrayContaining([
+        "created",
+        "commented",
+        "approved",
+        "delegated",
+        "assigned",
+      ]),
+    );
+    expect(result.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "delegation", issueId: childIssueId }),
+        expect.objectContaining({ kind: "assignment", issueId: childIssueId }),
+      ]),
+    );
   });
 
   it("preserves delegation edges when parent and child cross a page boundary", async () => {
@@ -304,16 +337,20 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
       totalIssues: 2,
       hasMore: true,
     });
-    expect(result.events).toContainEqual(expect.objectContaining({
-      kind: "delegated",
-      issueId: childIssueId,
-    }));
-    expect(result.edges).toContainEqual(expect.objectContaining({
-      kind: "delegation",
-      issueId: childIssueId,
-      fromActorId: `agent:${agentAId}`,
-      toActorId: `agent:${agentBId}`,
-    }));
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        kind: "delegated",
+        issueId: childIssueId,
+      }),
+    );
+    expect(result.edges).toContainEqual(
+      expect.objectContaining({
+        kind: "delegation",
+        issueId: childIssueId,
+        fromActorId: `agent:${agentAId}`,
+        toActorId: `agent:${agentBId}`,
+      }),
+    );
   });
 
   it("does not join activity rows to runs from another company", async () => {
@@ -431,8 +468,12 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
       to: new Date("2026-03-04T00:00:00Z"),
     });
 
-    expect(result.events.map((event) => event.issueId)).toEqual(expect.arrayContaining([rootIssueId, childIssueId]));
-    expect(result.events.map((event) => event.issueId)).not.toContain(unrelatedIssueId);
+    expect(result.events.map((event) => event.issueId)).toEqual(
+      expect.arrayContaining([rootIssueId, childIssueId]),
+    );
+    expect(result.events.map((event) => event.issueId)).not.toContain(
+      unrelatedIssueId,
+    );
   });
 
   it("filters unreadable issues before emitting timeline rows", async () => {
@@ -469,24 +510,30 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
       canReadIssue: async (issue) => issue.id !== hiddenIssueId,
     });
 
-    expect(result.events.map((event) => event.issueId)).toContain(visibleIssueId);
-    expect(result.events.map((event) => event.issueId)).not.toContain(hiddenIssueId);
+    expect(result.events.map((event) => event.issueId)).toContain(
+      visibleIssueId,
+    );
+    expect(result.events.map((event) => event.issueId)).not.toContain(
+      hiddenIssueId,
+    );
     expect(result.pagination.totalIssues).toBe(1);
   });
 
   it("bounds pre-pagination ACL checks", async () => {
     const { companyId, agentAId } = await seedBase();
     const issueCount = 40;
-    await db.insert(issues).values(Array.from({ length: issueCount }, (_, index) => ({
-      id: randomUUID(),
-      companyId,
-      title: `Visible ${index}`,
-      status: "todo",
-      priority: "medium",
-      assigneeAgentId: agentAId,
-      createdAt: new Date(Date.parse("2026-03-04T10:00:00Z") + index * 1000),
-      updatedAt: new Date(Date.parse("2026-03-04T10:00:00Z") + index * 1000),
-    })));
+    await db.insert(issues).values(
+      Array.from({ length: issueCount }, (_, index) => ({
+        id: randomUUID(),
+        companyId,
+        title: `Visible ${index}`,
+        status: "todo",
+        priority: "medium",
+        assigneeAgentId: agentAId,
+        createdAt: new Date(Date.parse("2026-03-04T10:00:00Z") + index * 1000),
+        updatedAt: new Date(Date.parse("2026-03-04T10:00:00Z") + index * 1000),
+      })),
+    );
 
     let activeChecks = 0;
     let maxActiveChecks = 0;
@@ -531,11 +578,13 @@ describeEmbeddedPostgres("work timeline aggregation", () => {
     expect(res.body.events).toEqual([
       expect.objectContaining({ kind: "created", issueId }),
     ]);
-    expect(res.body).toEqual(expect.objectContaining({
-      actors: expect.any(Array),
-      spans: expect.any(Array),
-      edges: expect.any(Array),
-      pagination: expect.objectContaining({ totalIssues: 1 }),
-    }));
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        actors: expect.any(Array),
+        spans: expect.any(Array),
+        edges: expect.any(Array),
+        pagination: expect.objectContaining({ totalIssues: 1 }),
+      }),
+    );
   });
 });

@@ -23,7 +23,9 @@ import { agentService } from "../services/agents.ts";
 import { secretService } from "../services/secrets.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -35,12 +37,20 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
   let stopDb: (() => Promise<void>) | null = null;
   let db!: ReturnType<typeof createDb>;
   const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
-  const secretsTmpDir = path.join(os.tmpdir(), `taskcore-agent-secret-bindings-${randomUUID()}`);
+  const secretsTmpDir = path.join(
+    os.tmpdir(),
+    `taskcore-agent-secret-bindings-${randomUUID()}`,
+  );
 
   beforeAll(async () => {
     mkdirSync(secretsTmpDir, { recursive: true });
-    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(secretsTmpDir, "master.key");
-    const started = await startEmbeddedPostgresTestDatabase("agent-secret-bindings");
+    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(
+      secretsTmpDir,
+      "master.key",
+    );
+    const started = await startEmbeddedPostgresTestDatabase(
+      "agent-secret-bindings",
+    );
     stopDb = started.cleanup;
     db = createDb(started.connectionString);
   }, 20_000);
@@ -93,7 +103,11 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       adapterType: "claude_local",
       adapterConfig: {
         env: {
-          ANTHROPIC_API_KEY: { type: "secret_ref", secretId: secret.id, version: "latest" },
+          ANTHROPIC_API_KEY: {
+            type: "secret_ref",
+            secretId: secret.id,
+            version: "latest",
+          },
         },
       },
       runtimeConfig: {},
@@ -104,11 +118,13 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
     const bindings = await db
       .select()
       .from(companySecretBindings)
-      .where(and(
-        eq(companySecretBindings.companyId, companyId),
-        eq(companySecretBindings.targetType, "agent"),
-        eq(companySecretBindings.targetId, created.id),
-      ));
+      .where(
+        and(
+          eq(companySecretBindings.companyId, companyId),
+          eq(companySecretBindings.targetType, "agent"),
+          eq(companySecretBindings.targetId, created.id),
+        ),
+      );
 
     expect(bindings).toHaveLength(1);
     expect(bindings[0]).toMatchObject({
@@ -117,15 +133,23 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       versionSelector: "latest",
       required: true,
     });
-    expect(await db.select().from(activityLog).where(eq(activityLog.companyId, companyId)))
-      .toEqual(expect.arrayContaining([
+    expect(
+      await db
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.companyId, companyId)),
+    ).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           action: "secret.binding.created",
           entityType: "agent",
           entityId: created.id,
-          details: expect.objectContaining({ configPath: "env.ANTHROPIC_API_KEY" }),
+          details: expect.objectContaining({
+            configPath: "env.ANTHROPIC_API_KEY",
+          }),
         }),
-      ]));
+      ]),
+    );
   });
 
   it("stores approved class-3 env lease metadata on agent secret bindings", async () => {
@@ -160,11 +184,13 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
     const bindings = await db
       .select()
       .from(companySecretBindings)
-      .where(and(
-        eq(companySecretBindings.companyId, companyId),
-        eq(companySecretBindings.targetType, "agent"),
-        eq(companySecretBindings.targetId, created.id),
-      ));
+      .where(
+        and(
+          eq(companySecretBindings.companyId, companyId),
+          eq(companySecretBindings.targetType, "agent"),
+          eq(companySecretBindings.targetId, created.id),
+        ),
+      );
 
     expect(bindings).toHaveLength(1);
     expect(bindings[0]).toMatchObject({
@@ -238,7 +264,10 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       .select()
       .from(agents)
       .where(eq(agents.id, created.id));
-    const persistedConfig = persistedRows[0]?.adapterConfig as Record<string, unknown>;
+    const persistedConfig = persistedRows[0]?.adapterConfig as Record<
+      string,
+      unknown
+    >;
     expect(JSON.stringify(persistedConfig)).not.toContain(literalApiKey);
     expect(persistedConfig.apiKey).toMatchObject({
       type: "secret_ref",
@@ -249,11 +278,13 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
     const bindings = await db
       .select()
       .from(companySecretBindings)
-      .where(and(
-        eq(companySecretBindings.companyId, companyId),
-        eq(companySecretBindings.targetType, "agent"),
-        eq(companySecretBindings.targetId, created.id),
-      ));
+      .where(
+        and(
+          eq(companySecretBindings.companyId, companyId),
+          eq(companySecretBindings.targetType, "agent"),
+          eq(companySecretBindings.targetId, created.id),
+        ),
+      );
     expect(bindings).toHaveLength(1);
     expect(bindings[0]).toMatchObject({
       secretId,
@@ -295,7 +326,11 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       adapterType: "codex_local",
       adapterConfig: {
         env: {
-          OLD_KEY: { type: "secret_ref", secretId: oldSecret.id, version: "latest" },
+          OLD_KEY: {
+            type: "secret_ref",
+            secretId: oldSecret.id,
+            version: "latest",
+          },
         },
       },
       runtimeConfig: {},
@@ -306,7 +341,11 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
     await agentService(db).update(created.id, {
       adapterConfig: {
         env: {
-          NEW_KEY: { type: "secret_ref", secretId: nextSecret.id, version: "latest" },
+          NEW_KEY: {
+            type: "secret_ref",
+            secretId: nextSecret.id,
+            version: "latest",
+          },
         },
       },
     });
@@ -314,11 +353,13 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
     const bindings = await db
       .select()
       .from(companySecretBindings)
-      .where(and(
-        eq(companySecretBindings.companyId, companyId),
-        eq(companySecretBindings.targetType, "agent"),
-        eq(companySecretBindings.targetId, created.id),
-      ));
+      .where(
+        and(
+          eq(companySecretBindings.companyId, companyId),
+          eq(companySecretBindings.targetType, "agent"),
+          eq(companySecretBindings.targetId, created.id),
+        ),
+      );
 
     expect(bindings).toHaveLength(1);
     expect(bindings[0]).toMatchObject({
@@ -346,7 +387,11 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       adapterType: "claude_local",
       adapterConfig: {
         env: {
-          ANTHROPIC_API_KEY: { type: "secret_ref", secretId: secret.id, version: "latest" },
+          ANTHROPIC_API_KEY: {
+            type: "secret_ref",
+            secretId: secret.id,
+            version: "latest",
+          },
         },
       },
       runtimeConfig: {},
@@ -372,11 +417,13 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
     const afterBindings = await db
       .select()
       .from(companySecretBindings)
-      .where(and(
-        eq(companySecretBindings.companyId, companyId),
-        eq(companySecretBindings.targetType, "agent"),
-        eq(companySecretBindings.targetId, agentId),
-      ));
+      .where(
+        and(
+          eq(companySecretBindings.companyId, companyId),
+          eq(companySecretBindings.targetType, "agent"),
+          eq(companySecretBindings.targetId, agentId),
+        ),
+      );
 
     expect(afterBindings).toHaveLength(1);
     expect(afterBindings[0]).toMatchObject({
@@ -396,7 +443,11 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
         adapterType: "claude_local",
         adapterConfig: {
           env: {
-            ANTHROPIC_API_KEY: { type: "secret_ref", secretId: missingSecretId, version: "latest" },
+            ANTHROPIC_API_KEY: {
+              type: "secret_ref",
+              secretId: missingSecretId,
+              version: "latest",
+            },
           },
         },
         runtimeConfig: {},
@@ -426,7 +477,11 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       adapterType: "codex_local",
       adapterConfig: {
         env: {
-          API_KEY: { type: "secret_ref", secretId: validSecret.id, version: "latest" },
+          API_KEY: {
+            type: "secret_ref",
+            secretId: validSecret.id,
+            version: "latest",
+          },
         },
       },
       runtimeConfig: {},
@@ -438,7 +493,11 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       agentService(db).update(created.id, {
         adapterConfig: {
           env: {
-            API_KEY: { type: "secret_ref", secretId: randomUUID(), version: "latest" },
+            API_KEY: {
+              type: "secret_ref",
+              secretId: randomUUID(),
+              version: "latest",
+            },
           },
         },
       }),
@@ -447,18 +506,24 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
     const reloaded = await agentService(db).getById(created.id);
     expect(reloaded?.adapterConfig).toMatchObject({
       env: {
-        API_KEY: { type: "secret_ref", secretId: validSecret.id, version: "latest" },
+        API_KEY: {
+          type: "secret_ref",
+          secretId: validSecret.id,
+          version: "latest",
+        },
       },
     });
 
     const bindings = await db
       .select()
       .from(companySecretBindings)
-      .where(and(
-        eq(companySecretBindings.companyId, companyId),
-        eq(companySecretBindings.targetType, "agent"),
-        eq(companySecretBindings.targetId, created.id),
-      ));
+      .where(
+        and(
+          eq(companySecretBindings.companyId, companyId),
+          eq(companySecretBindings.targetType, "agent"),
+          eq(companySecretBindings.targetId, created.id),
+        ),
+      );
     expect(bindings).toHaveLength(1);
     expect(bindings[0]?.secretId).toBe(validSecret.id);
   });
@@ -476,14 +541,20 @@ describeEmbeddedPostgres("agent service secret binding sync", () => {
       adapterType: "claude_local",
       adapterConfig: {
         env: {
-          ANTHROPIC_API_KEY: { type: "secret_ref", secretId: randomUUID(), version: "latest" },
+          ANTHROPIC_API_KEY: {
+            type: "secret_ref",
+            secretId: randomUUID(),
+            version: "latest",
+          },
         },
       },
       runtimeConfig: {},
       permissions: {},
     });
 
-    await expect(agentService(db).activatePendingApproval(agentId)).rejects.toBeTruthy();
+    await expect(
+      agentService(db).activatePendingApproval(agentId),
+    ).rejects.toBeTruthy();
 
     const reloaded = await agentService(db).getById(agentId);
     expect(reloaded?.status).toBe("pending_approval");

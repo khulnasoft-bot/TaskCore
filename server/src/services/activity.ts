@@ -1,5 +1,15 @@
 import { executionProjectionsForRuns } from "./execution-projection.js";
-import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import {
   activityLog,
@@ -16,7 +26,11 @@ import {
   issueWorkProducts,
   workspaceOperations,
 } from "@taskcore/db";
-import { hasWorkspaceRestoreFailure, safeWorkspaceRestorePath, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY } from "@taskcore/shared";
+import {
+  hasWorkspaceRestoreFailure,
+  safeWorkspaceRestorePath,
+  ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
+} from "@taskcore/shared";
 import { logger } from "../middleware/logger.js";
 import { visibleIssueCondition } from "./issue-visibility.js";
 import { classifyRunLiveness } from "./run-liveness.js";
@@ -35,7 +49,10 @@ const MAX_ACTIVITY_LIMIT = 500;
 
 export function normalizeActivityLimit(limit: number | undefined) {
   if (!Number.isFinite(limit)) return DEFAULT_ACTIVITY_LIMIT;
-  return Math.max(1, Math.min(MAX_ACTIVITY_LIMIT, Math.floor(limit ?? DEFAULT_ACTIVITY_LIMIT)));
+  return Math.max(
+    1,
+    Math.min(MAX_ACTIVITY_LIMIT, Math.floor(limit ?? DEFAULT_ACTIVITY_LIMIT)),
+  );
 }
 
 export function activityService(db: Db) {
@@ -129,7 +146,8 @@ export function activityService(db: Db) {
   }
 
   function dateValue(value: unknown) {
-    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    if (value instanceof Date)
+      return Number.isNaN(value.getTime()) ? null : value;
     if (typeof value === "string" || typeof value === "number") {
       const parsed = new Date(value);
       return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -148,7 +166,8 @@ export function activityService(db: Db) {
   }
 
   function asRecord(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      return null;
     return value as Record<string, unknown>;
   }
 
@@ -156,7 +175,10 @@ export function activityService(db: Db) {
     return typeof value === "number" && Number.isFinite(value) ? value : null;
   }
 
-  async function backfillMissingRunLivenessForIssue(companyId: string, issueId: string) {
+  async function backfillMissingRunLivenessForIssue(
+    companyId: string,
+    issueId: string,
+  ) {
     const runs = await db
       .select({
         id: heartbeatRuns.id,
@@ -233,7 +255,10 @@ export function activityService(db: Db) {
           latestAt: sql<Date | null>`max(${documentRevisions.createdAt})`,
         })
         .from(documentRevisions)
-        .innerJoin(issueDocuments, eq(documentRevisions.documentId, issueDocuments.documentId))
+        .innerJoin(
+          issueDocuments,
+          eq(documentRevisions.documentId, issueDocuments.documentId),
+        )
         .where(
           and(
             eq(documentRevisions.companyId, companyId),
@@ -264,7 +289,12 @@ export function activityService(db: Db) {
           latestAt: sql<Date | null>`max(${workspaceOperations.startedAt})`,
         })
         .from(workspaceOperations)
-        .where(and(eq(workspaceOperations.companyId, companyId), eq(workspaceOperations.heartbeatRunId, run.id)));
+        .where(
+          and(
+            eq(workspaceOperations.companyId, companyId),
+            eq(workspaceOperations.heartbeatRunId, run.id),
+          ),
+        );
 
       const [activityStats] = await db
         .select({
@@ -272,7 +302,12 @@ export function activityService(db: Db) {
           latestAt: sql<Date | null>`max(${activityLog.createdAt})`,
         })
         .from(activityLog)
-        .where(and(eq(activityLog.companyId, companyId), eq(activityLog.runId, run.id)));
+        .where(
+          and(
+            eq(activityLog.companyId, companyId),
+            eq(activityLog.runId, run.id),
+          ),
+        );
 
       const [eventStats] = await db
         .select({
@@ -280,7 +315,12 @@ export function activityService(db: Db) {
           latestAt: sql<Date | null>`max(${heartbeatRunEvents.createdAt}) filter (where ${heartbeatRunEvents.eventType} not in ('lifecycle', 'adapter.invoke', 'error'))`,
         })
         .from(heartbeatRunEvents)
-        .where(and(eq(heartbeatRunEvents.companyId, companyId), eq(heartbeatRunEvents.runId, run.id)));
+        .where(
+          and(
+            eq(heartbeatRunEvents.companyId, companyId),
+            eq(heartbeatRunEvents.runId, run.id),
+          ),
+        );
 
       const classification = classifyRunLiveness({
         runStatus: run.status,
@@ -296,7 +336,9 @@ export function activityService(db: Db) {
           documentRevisionsCreated: countValue(documentStats?.count),
           planDocumentRevisionsCreated: countValue(documentStats?.planCount),
           workProductsCreated: countValue(workProductStats?.count),
-          workspaceOperationsCreated: countValue(workspaceOperationStats?.count),
+          workspaceOperationsCreated: countValue(
+            workspaceOperationStats?.count,
+          ),
           activityEventsCreated: countValue(activityStats?.count),
           toolOrActionEventsCreated: countValue(eventStats?.count),
           latestEvidenceAt: latestDate(
@@ -320,7 +362,12 @@ export function activityService(db: Db) {
           nextAction: classification.nextAction,
           updatedAt: new Date(),
         })
-        .where(and(eq(heartbeatRuns.id, run.id), isNull(heartbeatRuns.livenessState)));
+        .where(
+          and(
+            eq(heartbeatRuns.id, run.id),
+            isNull(heartbeatRuns.livenessState),
+          ),
+        );
     }
   }
 
@@ -330,7 +377,10 @@ export function activityService(db: Db) {
     scheduledLivenessBackfills.add(key);
     void backfillMissingRunLivenessForIssue(companyId, issueId)
       .catch((err: unknown) => {
-        logger.warn({ err, companyId, issueId }, "run liveness backfill failed");
+        logger.warn(
+          { err, companyId, issueId },
+          "run liveness backfill failed",
+        );
       })
       .finally(() => {
         scheduledLivenessBackfills.delete(key);
@@ -367,7 +417,10 @@ export function activityService(db: Db) {
             ...conditions,
             or(
               sql`${activityLog.entityType} != 'issue'`,
-              and(visibleIssueCondition(), filters.readCondition ?? sql<boolean>`true`),
+              and(
+                visibleIssueCondition(),
+                filters.readCondition ?? sql<boolean>`true`,
+              ),
             ),
           ),
         )
@@ -382,9 +435,18 @@ export function activityService(db: Db) {
         .from(activityLog)
         .where(
           or(
-            and(eq(activityLog.entityType, "issue"), eq(activityLog.entityId, issueId)),
-            and(or(eq(activityLog.action, "project.created"), eq(activityLog.action, "company.skill_created")), sql`${activityLog.details}->>'sourceIssueId' = ${issueId}`,
-              sql`${activityLog.companyId} = (select company_id from issues where id = ${issueId})`),
+            and(
+              eq(activityLog.entityType, "issue"),
+              eq(activityLog.entityId, issueId),
+            ),
+            and(
+              or(
+                eq(activityLog.action, "project.created"),
+                eq(activityLog.action, "company.skill_created"),
+              ),
+              sql`${activityLog.details}->>'sourceIssueId' = ${issueId}`,
+              sql`${activityLog.companyId} = (select company_id from issues where id = ${issueId})`,
+            ),
           ),
         )
         .orderBy(desc(activityLog.createdAt)),
@@ -419,10 +481,18 @@ export function activityService(db: Db) {
           continuationAttempt: heartbeatRuns.continuationAttempt,
           lastUsefulActionAt: heartbeatRuns.lastUsefulActionAt,
           nextAction: heartbeatRuns.nextAction,
-          wakeCommentIds: sql<string[] | null>`${heartbeatRuns.contextSnapshot} -> 'wakeCommentIds'`,
-          wakeCommentId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeCommentId'`,
-          contextCommentId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'commentId'`,
-          contextIssueId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`,
+          wakeCommentIds: sql<
+            string[] | null
+          >`${heartbeatRuns.contextSnapshot} -> 'wakeCommentIds'`,
+          wakeCommentId: sql<
+            string | null
+          >`${heartbeatRuns.contextSnapshot} ->> 'wakeCommentId'`,
+          contextCommentId: sql<
+            string | null
+          >`${heartbeatRuns.contextSnapshot} ->> 'commentId'`,
+          contextIssueId: sql<
+            string | null
+          >`${heartbeatRuns.contextSnapshot} ->> 'issueId'`,
         })
         .from(heartbeatRuns)
         .innerJoin(
@@ -479,40 +549,78 @@ export function activityService(db: Db) {
           },
         })
         .from(environmentLeases)
-        .innerJoin(environments, eq(environmentLeases.environmentId, environments.id))
+        .innerJoin(
+          environments,
+          eq(environmentLeases.environmentId, environments.id),
+        )
         .where(
           and(
             eq(environmentLeases.companyId, companyId),
             inArray(environmentLeases.heartbeatRunId, runIds),
           ),
         )
-        .orderBy(desc(environmentLeases.lastUsedAt), desc(environmentLeases.createdAt));
+        .orderBy(
+          desc(environmentLeases.lastUsedAt),
+          desc(environmentLeases.createdAt),
+        );
 
       // Only stored, current plan revisions can support a saved-plan link.
       // Do not trust an adapter's claim that it wrote a document.
-      const savedPlanQuery = runs.some((run) => hasWorkspaceRestoreFailure(run.resultJson))
-        ? db.select({ revisionId: documentRevisions.id, runId: documentRevisions.createdByRunId })
-          .from(issueDocuments)
-          .innerJoin(documents, and(eq(documents.id, issueDocuments.documentId), eq(documents.companyId, companyId)))
-          .innerJoin(documentRevisions, and(eq(documentRevisions.id, documents.latestRevisionId), eq(documentRevisions.documentId, documents.id), eq(documentRevisions.companyId, companyId)))
-          .where(and(eq(issueDocuments.companyId, companyId), eq(issueDocuments.issueId, issueId), eq(issueDocuments.key, "plan")))
-          .limit(1)
+      const savedPlanQuery = runs.some((run) =>
+        hasWorkspaceRestoreFailure(run.resultJson),
+      )
+        ? db
+            .select({
+              revisionId: documentRevisions.id,
+              runId: documentRevisions.createdByRunId,
+            })
+            .from(issueDocuments)
+            .innerJoin(
+              documents,
+              and(
+                eq(documents.id, issueDocuments.documentId),
+                eq(documents.companyId, companyId),
+              ),
+            )
+            .innerJoin(
+              documentRevisions,
+              and(
+                eq(documentRevisions.id, documents.latestRevisionId),
+                eq(documentRevisions.documentId, documents.id),
+                eq(documentRevisions.companyId, companyId),
+              ),
+            )
+            .where(
+              and(
+                eq(issueDocuments.companyId, companyId),
+                eq(issueDocuments.issueId, issueId),
+                eq(issueDocuments.key, "plan"),
+              ),
+            )
+            .limit(1)
         : Promise.resolve([]);
-      const [exhaustionRows, leaseRows, executionByRunId, [savedPlan]] = await Promise.all([
-        exhaustionRowsQuery,
-        leaseRowsQuery,
-        executionProjectionsForRuns(db, companyId, runIds, new Date(), { retryDatabaseReads: true }),
-        savedPlanQuery,
-      ]);
+      const [exhaustionRows, leaseRows, executionByRunId, [savedPlan]] =
+        await Promise.all([
+          exhaustionRowsQuery,
+          leaseRowsQuery,
+          executionProjectionsForRuns(db, companyId, runIds, new Date(), {
+            retryDatabaseReads: true,
+          }),
+          savedPlanQuery,
+        ]);
       const retryExhaustedReasonByRunId = new Map<string, string>();
       for (const row of exhaustionRows) {
-        if (!row.message || retryExhaustedReasonByRunId.has(row.runId)) continue;
+        if (!row.message || retryExhaustedReasonByRunId.has(row.runId))
+          continue;
         retryExhaustedReasonByRunId.set(row.runId, row.message);
       }
 
       const leaseByRunId = new Map<string, (typeof leaseRows)[number]>();
       for (const row of leaseRows) {
-        if (row.lease.heartbeatRunId && !leaseByRunId.has(row.lease.heartbeatRunId)) {
+        if (
+          row.lease.heartbeatRunId &&
+          !leaseByRunId.has(row.lease.heartbeatRunId)
+        ) {
           leaseByRunId.set(row.lease.heartbeatRunId, row);
         }
       }
@@ -521,22 +629,34 @@ export function activityService(db: Db) {
         const leaseRow = leaseByRunId.get(run.runId);
         const leaseMetadata = leaseRow?.lease.metadata ?? null;
         const workspacePath =
-          typeof leaseMetadata?.remoteCwd === "string" && leaseMetadata.remoteCwd.trim().length > 0
+          typeof leaseMetadata?.remoteCwd === "string" &&
+          leaseMetadata.remoteCwd.trim().length > 0
             ? leaseMetadata.remoteCwd
-            : typeof leaseMetadata?.remoteWorkspacePath === "string" && leaseMetadata.remoteWorkspacePath.trim().length > 0
+            : typeof leaseMetadata?.remoteWorkspacePath === "string" &&
+                leaseMetadata.remoteWorkspacePath.trim().length > 0
               ? leaseMetadata.remoteWorkspacePath
               : null;
         return {
           ...run,
-          resultJson: run.resultJson ? {
-            ...run.resultJson,
-            ...(Object.hasOwn(run.resultJson, "workspaceRestorePath") ? {
-              workspaceRestorePath: safeWorkspaceRestorePath(run.resultJson.workspaceRestorePath),
-            } : {}),
-            ...(hasWorkspaceRestoreFailure(run.resultJson) ? {
-              ...(savedPlan?.runId === run.runId ? { savedPlanRevisionId: savedPlan.revisionId } : {}),
-            } : {}),
-          } : null,
+          resultJson: run.resultJson
+            ? {
+                ...run.resultJson,
+                ...(Object.hasOwn(run.resultJson, "workspaceRestorePath")
+                  ? {
+                      workspaceRestorePath: safeWorkspaceRestorePath(
+                        run.resultJson.workspaceRestorePath,
+                      ),
+                    }
+                  : {}),
+                ...(hasWorkspaceRestoreFailure(run.resultJson)
+                  ? {
+                      ...(savedPlan?.runId === run.runId
+                        ? { savedPlanRevisionId: savedPlan.revisionId }
+                        : {}),
+                    }
+                  : {}),
+              }
+            : null,
           execution: executionByRunId.get(run.runId) ?? null,
           environment: leaseRow
             ? {
@@ -560,7 +680,8 @@ export function activityService(db: Db) {
                 releasedAt: leaseRow.lease.releasedAt,
               }
             : null,
-          retryExhaustedReason: retryExhaustedReasonByRunId.get(run.runId) ?? null,
+          retryExhaustedReason:
+            retryExhaustedReasonByRunId.get(run.runId) ?? null,
         };
       });
     },
@@ -598,7 +719,8 @@ export function activityService(db: Db) {
 
       const contextIssueId = run.issueId;
       if (!contextIssueId) return fromActivity;
-      if (fromActivity.some((issue) => issue.issueId === contextIssueId)) return fromActivity;
+      if (fromActivity.some((issue) => issue.issueId === contextIssueId))
+        return fromActivity;
 
       const fromContext = await db
         .select({

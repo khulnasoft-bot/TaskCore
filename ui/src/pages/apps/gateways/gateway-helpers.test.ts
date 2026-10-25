@@ -22,7 +22,9 @@ import {
 
 const NOW = new Date("2026-06-16T12:00:00.000Z").getTime();
 
-function token(overrides: Partial<ToolMcpGatewayToken> = {}): ToolMcpGatewayToken {
+function token(
+  overrides: Partial<ToolMcpGatewayToken> = {},
+): ToolMcpGatewayToken {
   return {
     id: "t",
     companyId: "c",
@@ -49,7 +51,9 @@ function token(overrides: Partial<ToolMcpGatewayToken> = {}): ToolMcpGatewayToke
   };
 }
 
-function gateway(overrides: Partial<ToolMcpGatewayWithTokens> = {}): ToolMcpGatewayWithTokens {
+function gateway(
+  overrides: Partial<ToolMcpGatewayWithTokens> = {},
+): ToolMcpGatewayWithTokens {
   return {
     id: "gateway-1",
     companyId: "c",
@@ -86,10 +90,18 @@ function gateway(overrides: Partial<ToolMcpGatewayWithTokens> = {}): ToolMcpGate
 
 describe("tokenStatus", () => {
   it("classifies revoked, expired, expiring, and active", () => {
-    expect(tokenStatus(token({ revokedAt: "2026-06-10T00:00:00.000Z" }), NOW)).toBe("revoked");
-    expect(tokenStatus(token({ expiresAt: "2026-06-01T00:00:00.000Z" }), NOW)).toBe("expired");
-    expect(tokenStatus(token({ expiresAt: "2026-06-20T00:00:00.000Z" }), NOW)).toBe("expiring");
-    expect(tokenStatus(token({ expiresAt: "2026-12-01T00:00:00.000Z" }), NOW)).toBe("active");
+    expect(
+      tokenStatus(token({ revokedAt: "2026-06-10T00:00:00.000Z" }), NOW),
+    ).toBe("revoked");
+    expect(
+      tokenStatus(token({ expiresAt: "2026-06-01T00:00:00.000Z" }), NOW),
+    ).toBe("expired");
+    expect(
+      tokenStatus(token({ expiresAt: "2026-06-20T00:00:00.000Z" }), NOW),
+    ).toBe("expiring");
+    expect(
+      tokenStatus(token({ expiresAt: "2026-12-01T00:00:00.000Z" }), NOW),
+    ).toBe("active");
     expect(tokenStatus(token({ expiresAt: null }), NOW)).toBe("active");
   });
 });
@@ -111,33 +123,37 @@ describe("token counts", () => {
 
 describe("maskedTokenLabel", () => {
   it("never reveals the full value — only prefix plus dots", () => {
-    expect(maskedTokenLabel({ tokenPrefix: "pcgw_live_8x4Pa" })).toBe("pcgw_live_8x4Pa•••");
+    expect(maskedTokenLabel({ tokenPrefix: "pcgw_live_8x4Pa" })).toBe(
+      "pcgw_live_8x4Pa•••",
+    );
   });
 });
 
 describe("gateway client snippets", () => {
   it("autofills a stable token name from the gateway and current minute", () => {
-    expect(defaultGatewayTokenName(gateway(), new Date("2026-08-18T14:37:42.000Z"))).toBe(
-      "cto-agents-202608181437",
-    );
+    expect(
+      defaultGatewayTokenName(gateway(), new Date("2026-08-18T14:37:42.000Z")),
+    ).toBe("cto-agents-202608181437");
   });
 
   it("hydrates the full origin and bearer token into copied client configuration", () => {
-    expect(formatHydratedSnippetConfig(
-      {
-        mcpServers: {
-          Taskcore: {
-            url: "/mcp/gateways/public-id",
-            headers: { Authorization: "Bearer pcgw_..." },
+    expect(
+      formatHydratedSnippetConfig(
+        {
+          mcpServers: {
+            Taskcore: {
+              url: "/mcp/gateways/public-id",
+              headers: { Authorization: "Bearer pcgw_..." },
+            },
           },
         },
-      },
-      {
-        endpointPath: "/mcp/gateways/public-id",
-        endpoint: "https://taskcore.example/mcp/gateways/public-id",
-        token: "pcgw_full_secret",
-      },
-    )).toContain('"Authorization": "Bearer pcgw_full_secret"');
+        {
+          endpointPath: "/mcp/gateways/public-id",
+          endpoint: "https://taskcore.example/mcp/gateways/public-id",
+          token: "pcgw_full_secret",
+        },
+      ),
+    ).toContain('"Authorization": "Bearer pcgw_full_secret"');
   });
 });
 
@@ -168,7 +184,11 @@ describe("orderedSnippets", () => {
       { client: "cursor", label: "Cursor", config: {}, notes: [] },
       { client: "vscode", label: "VS Code", config: {}, notes: [] },
     ];
-    expect(orderedSnippets(snippets).map((s) => s.client)).toEqual(["cursor", "vscode", "opencode"]);
+    expect(orderedSnippets(snippets).map((s) => s.client)).toEqual([
+      "cursor",
+      "vscode",
+      "opencode",
+    ]);
   });
 });
 
@@ -199,8 +219,16 @@ describe("deriveGatewayApps", () => {
     entries: [
       { effect: "include", applicationId: "app-gh", catalogEntryId: "ce-1" },
       { effect: "include", applicationId: "app-gh", catalogEntryId: "ce-2" },
-      { effect: "include", connectionId: "conn-sheets", catalogEntryId: "ce-3" },
-      { effect: "exclude", applicationId: "app-linear", catalogEntryId: "ce-4" },
+      {
+        effect: "include",
+        connectionId: "conn-sheets",
+        catalogEntryId: "ce-3",
+      },
+      {
+        effect: "exclude",
+        applicationId: "app-linear",
+        catalogEntryId: "ce-4",
+      },
     ] as unknown as ToolProfileWithDetails["entries"],
   };
 
@@ -210,8 +238,18 @@ describe("deriveGatewayApps", () => {
   ] as unknown as ToolApplication[];
 
   const connections = [
-    { id: "conn-gh", applicationId: "app-gh", name: "GitHub", healthStatus: "healthy" },
-    { id: "conn-sheets", applicationId: "app-sheets", name: "Sheets", healthStatus: "missing_secret" },
+    {
+      id: "conn-gh",
+      applicationId: "app-gh",
+      name: "GitHub",
+      healthStatus: "healthy",
+    },
+    {
+      id: "conn-sheets",
+      applicationId: "app-sheets",
+      name: "Sheets",
+      healthStatus: "missing_secret",
+    },
   ] as unknown as ToolConnection[];
 
   it("lists included apps with tool counts and surfaces attention health", () => {
@@ -232,9 +270,9 @@ describe("deriveGatewayApps", () => {
       connections[1],
     ] as ToolConnection[]);
 
-    expect(rows.find((row) => row.application.id === "app-gh")?.connection?.id).toBe(
-      "conn-gh-active",
-    );
+    expect(
+      rows.find((row) => row.application.id === "app-gh")?.connection?.id,
+    ).toBe("conn-gh-active");
   });
 
   it("returns nothing without a profile", () => {

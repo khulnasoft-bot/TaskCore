@@ -2,7 +2,10 @@ import * as React from "react";
 
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { runtimeRequestSubmission, type TranscriptRequestEntry } from "./transcript-model";
+import {
+  runtimeRequestSubmission,
+  type TranscriptRequestEntry,
+} from "./transcript-model";
 
 const KIND_LABELS: Record<string, string> = {
   command_approval: "Command",
@@ -58,7 +61,8 @@ export function RequestCard({
   const answerId = React.useId();
   const kindLabel = KIND_LABELS[entry.requestKind] ?? "Request";
   const pending = entry.status === "pending";
-  const isInput = entry.requestKind === "user_input" || entry.requestKind === "elicitation";
+  const isInput =
+    entry.requestKind === "user_input" || entry.requestKind === "elicitation";
   const payload = detailBlock(entry.details);
 
   React.useEffect(() => {
@@ -82,7 +86,8 @@ export function RequestCard({
         <details>
           <summary className="ui-request-summary">
             <span>
-              {kindLabel} · {entry.status === "resolved"
+              {kindLabel} ·{" "}
+              {entry.status === "resolved"
                 ? `resolved — ${ACTION_LABELS[entry.resolvedAction ?? ""] ?? entry.resolvedAction ?? "unknown"}`
                 : entry.status === "expired"
                   ? "expired before response"
@@ -93,9 +98,13 @@ export function RequestCard({
           <p className="ui-request-prompt">{entry.prompt}</p>
           <p className="ui-request-meta">
             <code>{entry.requestId}</code>
-            {entry.resolvedAt === null ? null : <time dateTime={entry.resolvedAt}>{entry.resolvedAt}</time>}
+            {entry.resolvedAt === null ? null : (
+              <time dateTime={entry.resolvedAt}>{entry.resolvedAt}</time>
+            )}
           </p>
-          {payload === null ? null : <pre className="ui-payload">{payload}</pre>}
+          {payload === null ? null : (
+            <pre className="ui-payload">{payload}</pre>
+          )}
         </details>
       </li>
     );
@@ -144,7 +153,9 @@ export function RequestCard({
                     ? ""
                     : "ui-button--secondary"
             }
-            disabled={resolving || (action === "submit" && answer.trim().length === 0)}
+            disabled={
+              resolving || (action === "submit" && answer.trim().length === 0)
+            }
             data-testid={`request-action-${action}`}
             onClick={() =>
               submit(

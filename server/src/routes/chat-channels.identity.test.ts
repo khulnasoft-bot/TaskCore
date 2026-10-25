@@ -8,8 +8,12 @@ import type { ChatChannelService } from "../services/chat-channels.js";
 import { chatChannelRoutes } from "./chat-channels.js";
 
 const settings = vi.hoisted(() => ({ getExperimental: vi.fn() }));
-vi.mock("../services/instance-settings.js", () => ({ instanceSettingsService: () => settings }));
-beforeEach(() => settings.getExperimental.mockResolvedValue({ enableChatConnectors: true }));
+vi.mock("../services/instance-settings.js", () => ({
+  instanceSettingsService: () => settings,
+}));
+beforeEach(() =>
+  settings.getExperimental.mockResolvedValue({ enableChatConnectors: true }),
+);
 
 const token = "synthetic-identity-preview-token-for-route-test";
 const preview = {
@@ -45,25 +49,48 @@ function fixture(
   app.use(
     "/api",
     chatChannelRoutes({} as Db, {
-      service: { previewIdentityLink, confirmIdentityLink, requestIdentityAccess } as unknown as ChatChannelService,
+      service: {
+        previewIdentityLink,
+        confirmIdentityLink,
+        requestIdentityAccess,
+      } as unknown as ChatChannelService,
       heartbeat: { wakeup: vi.fn() },
     }),
   );
   app.use(errorHandler);
-  return { app, previewIdentityLink, confirmIdentityLink, requestIdentityAccess };
+  return {
+    app,
+    previewIdentityLink,
+    confirmIdentityLink,
+    requestIdentityAccess,
+  };
 }
 
 describe("chat identity-link preview authority", () => {
-  it.each([false, undefined])("blocks every identity API when chat rollout is disabled (%s)", async (enabled) => {
-    settings.getExperimental.mockResolvedValue({ enableChatConnectors: enabled });
-    const f = fixture();
-    await request(f.app).get("/api/chat-identity-links/preview").query({ token }).expect(403);
-    await request(f.app).post("/api/chat-identity-links/confirm").send({ token }).expect(403);
-    await request(f.app).post("/api/chat-identity-links/request-access").send({ token }).expect(403);
-    expect(f.previewIdentityLink).not.toHaveBeenCalled();
-    expect(f.confirmIdentityLink).not.toHaveBeenCalled();
-    expect(f.requestIdentityAccess).not.toHaveBeenCalled();
-  });
+  it.each([false, undefined])(
+    "blocks every identity API when chat rollout is disabled (%s)",
+    async (enabled) => {
+      settings.getExperimental.mockResolvedValue({
+        enableChatConnectors: enabled,
+      });
+      const f = fixture();
+      await request(f.app)
+        .get("/api/chat-identity-links/preview")
+        .query({ token })
+        .expect(403);
+      await request(f.app)
+        .post("/api/chat-identity-links/confirm")
+        .send({ token })
+        .expect(403);
+      await request(f.app)
+        .post("/api/chat-identity-links/request-access")
+        .send({ token })
+        .expect(403);
+      expect(f.previewIdentityLink).not.toHaveBeenCalled();
+      expect(f.confirmIdentityLink).not.toHaveBeenCalled();
+      expect(f.requestIdentityAccess).not.toHaveBeenCalled();
+    },
+  );
 
   it("returns the preview to a Board member of its exact company", async () => {
     const { app, previewIdentityLink } = fixture();
@@ -72,7 +99,10 @@ describe("chat identity-link preview authority", () => {
       .query({ token });
     expect(response.status).toBe(200);
     expect(response.body).toEqual(preview);
-    expect(previewIdentityLink).toHaveBeenCalledExactlyOnceWith(token, "viewer");
+    expect(previewIdentityLink).toHaveBeenCalledExactlyOnceWith(
+      token,
+      "viewer",
+    );
   });
 
   it.each([false, true])(

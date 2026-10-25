@@ -1,10 +1,6 @@
 import { Building2, UserRound } from "lucide-react";
 import { AppLogo } from "@/pages/apps/AppLogo";
-import {
-  AI_PROVIDERS,
-  aiMethodLabel,
-  type AiConnectionSummary,
-} from "./model";
+import { AI_PROVIDERS, aiMethodLabel, type AiConnectionSummary } from "./model";
 
 export function AiConnectionIdentity({
   connection,
@@ -15,7 +11,12 @@ export function AiConnectionIdentity({
   const Icon = connection.ownership === "shared" ? Building2 : UserRound;
   return (
     <div className="flex min-w-0 items-start gap-3">
-      <AppLogo name={provider.name} brandKey={connection.provider} logoUrl={provider.logo} size={24} />
+      <AppLogo
+        name={provider.name}
+        brandKey={connection.provider}
+        logoUrl={provider.logo}
+        size={24}
+      />
       <div className="flex min-w-0 flex-col gap-1">
         <span className="break-words text-sm font-medium">
           {connection.name}

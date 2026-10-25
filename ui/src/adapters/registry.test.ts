@@ -35,7 +35,9 @@ describe("ui adapter registry", () => {
 
     expect(findUIAdapter("external_test")).toBe(externalUIAdapter);
     expect(getUIAdapter("external_test")).toBe(externalUIAdapter);
-    expect(listUIAdapters().some((adapter) => adapter.type === "external_test")).toBe(true);
+    expect(
+      listUIAdapters().some((adapter) => adapter.type === "external_test"),
+    ).toBe(true);
   });
 
   it("falls back to the process parser for unknown types after unregistering", () => {
@@ -65,7 +67,9 @@ describe("ui adapter registry", () => {
       expect(overridden.ConfigFields).toBe(builtin.ConfigFields);
       expect(overridden.buildAdapterConfig).toBe(builtin.buildAdapterConfig);
 
-      syncExternalAdapters([{ type, label: "External Hermes", overrideDisabled: true }]);
+      syncExternalAdapters([
+        { type, label: "External Hermes", overrideDisabled: true },
+      ]);
 
       expect(getUIAdapter(type)).toBe(builtin);
 

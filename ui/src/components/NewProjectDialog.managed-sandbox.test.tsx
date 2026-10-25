@@ -8,7 +8,9 @@ import { NewProjectDialog } from "./NewProjectDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryKeys } from "../lib/queryKeys";
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function act(callback: () => void) {
   flushSync(() => {
@@ -16,15 +18,31 @@ function act(callback: () => void) {
   });
 }
 
-vi.mock("../api/projects", () => ({ projectsApi: {
-  create: vi.fn(),
-  repositoryOptions: vi.fn().mockResolvedValue({ repositories: [], connectionCount: 0, failedConnectionCount: 0 }),
-} }));
-vi.mock("../api/goals", () => ({ goalsApi: { list: vi.fn().mockResolvedValue([]) } }));
-vi.mock("../api/agents", () => ({ agentsApi: { list: vi.fn().mockResolvedValue([]) } }));
-vi.mock("../api/access", () => ({ accessApi: { listUserDirectory: vi.fn().mockResolvedValue({ users: [] }) } }));
+vi.mock("../api/projects", () => ({
+  projectsApi: {
+    create: vi.fn(),
+    repositoryOptions: vi
+      .fn()
+      .mockResolvedValue({
+        repositories: [],
+        connectionCount: 0,
+        failedConnectionCount: 0,
+      }),
+  },
+}));
+vi.mock("../api/goals", () => ({
+  goalsApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock("../api/agents", () => ({
+  agentsApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock("../api/access", () => ({
+  accessApi: { listUserDirectory: vi.fn().mockResolvedValue({ users: [] }) },
+}));
 vi.mock("../api/assets", () => ({ assetsApi: { uploadImage: vi.fn() } }));
-vi.mock("../api/instanceSettings", () => ({ instanceSettingsApi: { getExperimental: vi.fn().mockResolvedValue({}) } }));
+vi.mock("../api/instanceSettings", () => ({
+  instanceSettingsApi: { getExperimental: vi.fn().mockResolvedValue({}) },
+}));
 
 vi.mock("../context/DialogContext", () => ({
   useDialog: () => ({ newProjectOpen: true, closeNewProject: vi.fn() }),
@@ -59,9 +77,14 @@ afterEach(() => {
 
 /** Pass `null` for `experimentalSettings` to render with the policy unresolved. */
 function render(experimentalSettings: Record<string, unknown> | null) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   if (experimentalSettings) {
-    client.setQueryData(queryKeys.instance.experimentalSettings, experimentalSettings);
+    client.setQueryData(
+      queryKeys.instance.experimentalSettings,
+      experimentalSettings,
+    );
   }
   act(() => {
     root.render(
@@ -80,7 +103,9 @@ function documentText() {
 }
 
 function localPathInput() {
-  return document.body.querySelector('input[placeholder="/absolute/path/to/workspace"]');
+  return document.body.querySelector(
+    'input[placeholder="/absolute/path/to/workspace"]',
+  );
 }
 
 describe("NewProjectDialog — source repositories across host policies", () => {
@@ -88,18 +113,23 @@ describe("NewProjectDialog — source repositories across host policies", () => 
     ["policy off", {}],
     ["policy unresolved", null],
     ["managed sandbox only", { enableManagedSandboxOnly: true }],
-  ] as const)("offers the simplified project form with %s", (_label, settings) => {
-    render(settings);
+  ] as const)(
+    "offers the simplified project form with %s",
+    (_label, settings) => {
+      render(settings);
 
-    expect(documentText()).toContain("Source repos");
-    expect(documentText()).toContain("Add GitHub repo");
-    expect(documentText()).not.toContain("Repo URL");
-    expect(documentText()).not.toContain("Local folder");
-    expect(localPathInput()).toBeNull();
-    expect(document.body.querySelector('input[placeholder="Project name"]')).not.toBeNull();
-    const chooseButtons = Array.from(document.body.querySelectorAll("button")).filter(
-      (button) => button.textContent?.trim() === "Choose",
-    );
-    expect(chooseButtons).toHaveLength(0);
-  });
+      expect(documentText()).toContain("Source repos");
+      expect(documentText()).toContain("Add GitHub repo");
+      expect(documentText()).not.toContain("Repo URL");
+      expect(documentText()).not.toContain("Local folder");
+      expect(localPathInput()).toBeNull();
+      expect(
+        document.body.querySelector('input[placeholder="Project name"]'),
+      ).not.toBeNull();
+      const chooseButtons = Array.from(
+        document.body.querySelectorAll("button"),
+      ).filter((button) => button.textContent?.trim() === "Choose");
+      expect(chooseButtons).toHaveLength(0);
+    },
+  );
 });

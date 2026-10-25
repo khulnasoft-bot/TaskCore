@@ -27,12 +27,19 @@ export interface HeartbeatRunScratchEnvResult {
 
 export type HeartbeatRunScratchCleanupResult =
   | { removed: true; dir: string }
-  | { removed: false; dir: string; reason: "missing" | "unmarked" | "owner_mismatch" | "process_group_alive" };
+  | {
+      removed: false;
+      dir: string;
+      reason: "missing" | "unmarked" | "owner_mismatch" | "process_group_alive";
+    };
 
 const TEMP_ENV_KEYS = ["TMPDIR", "TEMP", "TMP"] as const;
 const ISSUE_SEGMENT_MAX_CHARS = 32;
 
-function sanitizePathSegment(value: string | null | undefined, fallback: string): string {
+function sanitizePathSegment(
+  value: string | null | undefined,
+  fallback: string,
+): string {
   const normalized = (value ?? "")
     .trim()
     .toLowerCase()
@@ -46,13 +53,19 @@ function sanitizePathSegment(value: string | null | undefined, fallback: string)
 
 function isPathInside(parent: string, child: string): boolean {
   const relative = path.relative(parent, child);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
 }
 
-async function readMarker(markerPath: string): Promise<HeartbeatRunScratchMetadata | null> {
+async function readMarker(
+  markerPath: string,
+): Promise<HeartbeatRunScratchMetadata | null> {
   try {
     const parsed = JSON.parse(await fs.readFile(markerPath, "utf8")) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      return null;
     const rec = parsed as Record<string, unknown>;
     if (
       rec.version !== 1 ||
@@ -69,7 +82,8 @@ async function readMarker(markerPath: string): Promise<HeartbeatRunScratchMetada
       agentId: rec.agentId,
       runId: rec.runId,
       issueId: typeof rec.issueId === "string" ? rec.issueId : null,
-      issueIdentifier: typeof rec.issueIdentifier === "string" ? rec.issueIdentifier : null,
+      issueIdentifier:
+        typeof rec.issueIdentifier === "string" ? rec.issueIdentifier : null,
       createdAt: rec.createdAt,
     };
   } catch {
@@ -87,7 +101,9 @@ export async function prepareHeartbeatRunScratch(input: {
 }): Promise<HeartbeatRunScratch> {
   const issueSegment = sanitizePathSegment(input.issueIdentifier, "unassigned");
   const runSegment = sanitizePathSegment(input.runId.slice(0, 12), "run");
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), `taskcore-run-${issueSegment}-${runSegment}-`));
+  const dir = await fs.mkdtemp(
+    path.join(os.tmpdir(), `taskcore-run-${issueSegment}-${runSegment}-`),
+  );
   const markerPath = path.join(dir, HEARTBEAT_RUN_SCRATCH_MARKER);
   const metadata: HeartbeatRunScratchMetadata = {
     version: 1,
@@ -98,7 +114,9 @@ export async function prepareHeartbeatRunScratch(input: {
     issueIdentifier: input.issueIdentifier ?? null,
     createdAt: (input.now ?? new Date()).toISOString(),
   };
-  await fs.writeFile(markerPath, `${JSON.stringify(metadata, null, 2)}\n`, { mode: 0o600 });
+  await fs.writeFile(markerPath, `${JSON.stringify(metadata, null, 2)}\n`, {
+    mode: 0o600,
+  });
   return { dir, markerPath, metadata };
 }
 
@@ -129,7 +147,10 @@ export async function cleanupHeartbeatRunScratch(input: {
 }): Promise<HeartbeatRunScratchCleanupResult> {
   const tmpRoot = path.resolve(os.tmpdir());
   const dir = path.resolve(input.scratch.dir);
-  if (!isPathInside(tmpRoot, dir) || !path.basename(dir).startsWith("taskcore-run-")) {
+  if (
+    !isPathInside(tmpRoot, dir) ||
+    !path.basename(dir).startsWith("taskcore-run-")
+  ) {
     return { removed: false, dir, reason: "unmarked" };
   }
   try {

@@ -176,6 +176,7 @@ curl -sS "$TASKCORE_API_URL/api/approvals/$TASKCORE_APPROVAL_ID/issues" \
 ```
 
 For each linked issue, either:
+
 - close it if the approval resolved the request, or
 - comment in markdown with links to the approval and next actions.
 

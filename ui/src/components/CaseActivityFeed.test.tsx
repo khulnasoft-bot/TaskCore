@@ -12,12 +12,20 @@ function act(callback: () => void) {
 }
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function event(overrides: Partial<CaseEvent>): CaseEvent {
   return {
@@ -66,7 +74,12 @@ describe("CaseActivityFeed", () => {
         actorAgentId: "agent-1",
         actorAgentName: "Cases Agent",
         runId: "run-1",
-        issue: { id: "i1", identifier: "PAP-42", title: "Source task", status: "in_progress" },
+        issue: {
+          id: "i1",
+          identifier: "PAP-42",
+          title: "Source task",
+          status: "in_progress",
+        },
       }),
     ]);
     const text = container.textContent ?? "";
@@ -99,7 +112,10 @@ describe("CaseActivityFeed", () => {
   it("filters rows by kind when a filter chip is toggled", () => {
     const root = render([
       event({ kind: "created" }),
-      event({ kind: "status_changed", payload: { previousStatus: "draft", status: "in_review" } }),
+      event({
+        kind: "status_changed",
+        payload: { previousStatus: "draft", status: "in_review" },
+      }),
     ]);
     // The status-transition detail only appears in the status_changed row.
     expect(container.textContent).toContain("draft → in_review");
@@ -110,12 +126,18 @@ describe("CaseActivityFeed", () => {
       (b) => b.textContent?.includes("All activity"),
     );
     expect(filterButton).toBeTruthy();
-    act(() => filterButton!.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })));
-    const createdItem = Array.from(document.body.querySelectorAll('[role="menuitemcheckbox"]')).find(
-      (item) => item.textContent === "created",
+    act(() =>
+      filterButton!.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true }),
+      ),
     );
+    const createdItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemcheckbox"]'),
+    ).find((item) => item.textContent === "created");
     expect(createdItem).toBeTruthy();
-    act(() => createdItem!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    act(() =>
+      createdItem!.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
     expect(container.textContent).not.toContain("draft → in_review");
     act(() => root.unmount());
   });

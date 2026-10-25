@@ -46,8 +46,12 @@ describe("AI connection selection presentation", () => {
     }
     expect(personalAiDefault([account], requirement, "alice")).toBe(account);
     const apiDefault = { ...account, method: "api_key" as const };
-    expect(personalAiDefault([apiDefault], requirement, "alice")).toBe(apiDefault);
-    expect(bindingProblem(binding, requirement, [apiDefault], "alice", "agent")).toBeNull();
+    expect(personalAiDefault([apiDefault], requirement, "alice")).toBe(
+      apiDefault,
+    );
+    expect(
+      bindingProblem(binding, requirement, [apiDefault], "alice", "agent"),
+    ).toBeNull();
   });
   it("retains a revoked default instead of falling back to a healthy account", () => {
     const revoked = { ...account, status: "revoked" as const };
@@ -107,13 +111,7 @@ describe("AI connection selection presentation", () => {
       bindingProblem(delegated, requirement, [account], "bob", "agent"),
     ).toContain("not shared with you");
     expect(
-      bindingProblem(
-        delegated,
-        requirement,
-        [account],
-        "alice",
-        "agent",
-      ),
+      bindingProblem(delegated, requirement, [account], "alice", "agent"),
     ).toBeNull();
     expect(
       bindingProblem(
@@ -154,9 +152,17 @@ describe("AI connection selection presentation", () => {
 
 describe("default AI account names", () => {
   it("uses provider and method labels with a personal fallback", () => {
-    expect(defaultAiConnectionName("dotta", "anthropic", "api_key")).toBe("dotta's Claude API account");
-    expect(defaultAiConnectionName("Dotta", "openai", "subscription")).toBe("Dotta's ChatGPT subscription account");
-    expect(defaultAiConnectionName("You", "openai", "api_key")).toBe("My OpenAI API account");
-    expect(defaultAiConnectionName(undefined, "openrouter", "api_key")).toBe("My OpenRouter API account");
+    expect(defaultAiConnectionName("dotta", "anthropic", "api_key")).toBe(
+      "dotta's Claude API account",
+    );
+    expect(defaultAiConnectionName("Dotta", "openai", "subscription")).toBe(
+      "Dotta's ChatGPT subscription account",
+    );
+    expect(defaultAiConnectionName("You", "openai", "api_key")).toBe(
+      "My OpenAI API account",
+    );
+    expect(defaultAiConnectionName(undefined, "openrouter", "api_key")).toBe(
+      "My OpenRouter API account",
+    );
   });
 });

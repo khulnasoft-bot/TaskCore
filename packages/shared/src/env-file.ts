@@ -13,10 +13,14 @@ type EnvLine = {
   ending: string;
 };
 
-const ENV_ASSIGNMENT_PATTERN = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$/;
+const ENV_ASSIGNMENT_PATTERN =
+  /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$/;
 const MINIMAL_ENV_VALUE_PATTERN = /^[A-Za-z0-9_./:@-]+$/;
 
-export function encodeEnvValue(value: string, encoding: EnvValueEncoding = "json"): string {
+export function encodeEnvValue(
+  value: string,
+  encoding: EnvValueEncoding = "json",
+): string {
   if (encoding === "minimal" && MINIMAL_ENV_VALUE_PATTERN.test(value)) {
     return value;
   }
@@ -24,7 +28,7 @@ export function encodeEnvValue(value: string, encoding: EnvValueEncoding = "json
 }
 
 function trailingEnvCommentStart(rawValue: string): number | null {
-  let quote: "\"" | "'" | null = null;
+  let quote: '"' | "'" | null = null;
   let escaped = false;
 
   for (let index = 0; index < rawValue.length; index += 1) {
@@ -33,7 +37,7 @@ function trailingEnvCommentStart(rawValue: string): number | null {
       escaped = false;
       continue;
     }
-    if (quote === "\"" && character === "\\") {
+    if (quote === '"' && character === "\\") {
       escaped = true;
       continue;
     }
@@ -41,7 +45,7 @@ function trailingEnvCommentStart(rawValue: string): number | null {
       if (character === quote) quote = null;
       continue;
     }
-    if (character === "\"" || character === "'") {
+    if (character === '"' || character === "'") {
       quote = character;
       continue;
     }
@@ -61,10 +65,12 @@ function trailingEnvCommentStart(rawValue: string): number | null {
 
 function parseComparableEnvValue(rawValue: string): string | null {
   const commentStart = trailingEnvCommentStart(rawValue);
-  const encodedValue = rawValue.slice(0, commentStart ?? rawValue.length).trim();
+  const encodedValue = rawValue
+    .slice(0, commentStart ?? rawValue.length)
+    .trim();
 
   if (encodedValue === "") return "";
-  if (encodedValue.startsWith("\"") && encodedValue.endsWith("\"")) {
+  if (encodedValue.startsWith('"') && encodedValue.endsWith('"')) {
     try {
       const parsed = JSON.parse(encodedValue);
       return typeof parsed === "string" ? parsed : null;
@@ -127,17 +133,20 @@ export function updateEnvFileContents(
     if (parseComparableEnvValue(rawValue) === value) continue;
 
     const commentStart = trailingEnvCommentStart(rawValue);
-    const trailingComment = commentStart === null ? "" : rawValue.slice(commentStart);
+    const trailingComment =
+      commentStart === null ? "" : rawValue.slice(commentStart);
     line.contents = `${prefix}${key}${separator}${encodeEnvValue(value, valueEncoding)}${trailingComment}`;
   }
 
   if (missingEntries.size > 0) {
-    const newline = lines.find((line) => line.ending.length > 0)?.ending ?? "\n";
+    const newline =
+      lines.find((line) => line.ending.length > 0)?.ending ?? "\n";
     const insertedLines = Array.from(missingEntries, ([key, value]) => ({
       contents: `${key}=${encodeEnvValue(value, valueEncoding)}`,
       ending: newline,
     }));
-    const trailingBlankIndex = lines.at(-1)?.contents === "" ? lines.length - 1 : lines.length;
+    const trailingBlankIndex =
+      lines.at(-1)?.contents === "" ? lines.length - 1 : lines.length;
 
     if (trailingBlankIndex === lines.length && lines.length > 0) {
       const previousLine = lines.at(-1)!;
@@ -162,10 +171,17 @@ export function writeEnvFileAtomicallyIfChanged(
 
   const directory = path.dirname(filePath);
   fs.mkdirSync(directory, { recursive: true });
-  const temporaryPath = path.join(directory, `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`);
+  const temporaryPath = path.join(
+    directory,
+    `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`,
+  );
 
   try {
-    fs.writeFileSync(temporaryPath, nextContents, { encoding: "utf8", mode: 0o600, flag: "wx" });
+    fs.writeFileSync(temporaryPath, nextContents, {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
     fs.renameSync(temporaryPath, filePath);
     fs.chmodSync(filePath, 0o600);
   } catch (error) {

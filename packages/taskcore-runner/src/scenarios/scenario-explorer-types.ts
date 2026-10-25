@@ -22,9 +22,7 @@ import type {
  */
 
 export type CapabilityPrimaryDisposition =
-  | "control_plane_owned"
-  | "always_agent_tool"
-  | "optional_agent_tool";
+  "control_plane_owned" | "always_agent_tool" | "optional_agent_tool";
 
 export type CapabilityAssertionClass =
   | "control_plane_invariant"
@@ -33,7 +31,8 @@ export type CapabilityAssertionClass =
   | "combined_multi_hop"
   | "restraint_no_call";
 
-export type CapabilityParityStatus = "pass" | "fail" | "intentional_gap" | "not_run";
+export type CapabilityParityStatus =
+  "pass" | "fail" | "intentional_gap" | "not_run";
 
 export type CapabilityActorRole = "engineer" | "manager" | "reviewer" | "board";
 
@@ -263,7 +262,12 @@ export interface CapabilityRunArtifact {
   mode: CapabilityRunMode;
   runId: string;
   actor: { id: string; name: string; role: string; capabilityGrants: string[] };
-  task: { id: string; identifier: string; title: string; workMode: CapabilityToolTaskMode };
+  task: {
+    id: string;
+    identifier: string;
+    title: string;
+    workMode: CapabilityToolTaskMode;
+  };
   wake: { reason: CapabilityWakeReason; payload: CapabilityJsonValue };
   budget: { limitCents: number; spentCents: number; remainingCents: number };
   timeline: CapabilityTimelineEntry[];
@@ -315,7 +319,8 @@ export interface CapabilityChatTurn {
   failure: { message: string } | null;
 }
 
-export type CapabilityChatSessionStatus = "idle" | "running" | "settled" | "failed";
+export type CapabilityChatSessionStatus =
+  "idle" | "running" | "settled" | "failed";
 
 /**
  * A chat session artifact is a run artifact plus its turn decomposition. Every

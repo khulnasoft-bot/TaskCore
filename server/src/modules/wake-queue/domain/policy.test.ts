@@ -50,17 +50,29 @@ describe("decidePreDrain", () => {
     },
     {
       name: "blocked: a workspace-validation failure on an eligible todo issue",
-      facts: { ...basePreDrainFacts, isWorkspaceValidationFailedRun: true, issueStatus: "todo" },
+      facts: {
+        ...basePreDrainFacts,
+        isWorkspaceValidationFailedRun: true,
+        issueStatus: "todo",
+      },
       expected: { kind: "blocked", noticeKind: "workspace_validation" },
     },
     {
       name: "blocked: a configuration-incomplete failure on an eligible in_progress issue",
-      facts: { ...basePreDrainFacts, isConfigurationIncompleteFailedRun: true, issueStatus: "in_progress" },
+      facts: {
+        ...basePreDrainFacts,
+        isConfigurationIncompleteFailedRun: true,
+        issueStatus: "in_progress",
+      },
       expected: { kind: "blocked", noticeKind: "configuration_incomplete" },
     },
     {
       name: "proceed: a workspace-validation failure on an issue that is not todo or in_progress",
-      facts: { ...basePreDrainFacts, isWorkspaceValidationFailedRun: true, issueStatus: "in_review" },
+      facts: {
+        ...basePreDrainFacts,
+        isWorkspaceValidationFailedRun: true,
+        issueStatus: "in_review",
+      },
       expected: { kind: "proceed" },
     },
     {
@@ -226,7 +238,9 @@ describe("decideQueuedCommentAction", () => {
 
   for (const testCase of cases) {
     it(testCase.name, () => {
-      expect(decideQueuedCommentAction(testCase.facts)).toEqual(testCase.expected);
+      expect(decideQueuedCommentAction(testCase.facts)).toEqual(
+        testCase.expected,
+      );
     });
   }
 });
@@ -244,22 +258,34 @@ describe("decideWakeOutcome", () => {
   }> = [
     {
       name: "fail_not_invokable: the agent lookup returns not-found",
-      facts: { ...baseWakeOutcomeFacts, agent: { agentFound: false, invokable: false } },
+      facts: {
+        ...baseWakeOutcomeFacts,
+        agent: { agentFound: false, invokable: false },
+      },
       expected: { kind: "fail_not_invokable" },
     },
     {
       name: "fail_not_invokable: the agent is found but not invokable",
-      facts: { ...baseWakeOutcomeFacts, agent: { agentFound: true, invokable: false } },
+      facts: {
+        ...baseWakeOutcomeFacts,
+        agent: { agentFound: true, invokable: false },
+      },
       expected: { kind: "fail_not_invokable" },
     },
     {
       name: "cancel_pause_hold: an active pause hold with no verified tree-hold interaction",
-      facts: { ...baseWakeOutcomeFacts, pauseHold: { activePauseHold: true, treeHoldInteractionWake: false } },
+      facts: {
+        ...baseWakeOutcomeFacts,
+        pauseHold: { activePauseHold: true, treeHoldInteractionWake: false },
+      },
       expected: { kind: "cancel_pause_hold" },
     },
     {
       name: "promote: an active pause hold but a verified tree-hold interaction wake survives it",
-      facts: { ...baseWakeOutcomeFacts, pauseHold: { activePauseHold: true, treeHoldInteractionWake: true } },
+      facts: {
+        ...baseWakeOutcomeFacts,
+        pauseHold: { activePauseHold: true, treeHoldInteractionWake: true },
+      },
       expected: { kind: "promote" },
     },
     {
@@ -325,7 +351,10 @@ describe("decideReleaseRecovery", () => {
       facts: {
         ...baseReleaseRecoveryFacts,
         immediate: { ...baseReleaseRecoveryFacts.immediate, applies: true },
-        shared: { ...baseReleaseRecoveryFacts.shared, hasExistingExecutionPath: true },
+        shared: {
+          ...baseReleaseRecoveryFacts.shared,
+          hasExistingExecutionPath: true,
+        },
       },
       expected: { kind: "released" },
     },
@@ -358,7 +387,10 @@ describe("decideReleaseRecovery", () => {
       facts: {
         ...baseReleaseRecoveryFacts,
         immediate: { ...baseReleaseRecoveryFacts.immediate, applies: true },
-        shared: { ...baseReleaseRecoveryFacts.shared, isStrandedRecoveryOrigin: true },
+        shared: {
+          ...baseReleaseRecoveryFacts.shared,
+          isStrandedRecoveryOrigin: true,
+        },
       },
       expected: { kind: "blocked_recovery_in_place" },
     },
@@ -367,7 +399,10 @@ describe("decideReleaseRecovery", () => {
       facts: {
         ...baseReleaseRecoveryFacts,
         immediate: { ...baseReleaseRecoveryFacts.immediate, applies: true },
-        shared: { ...baseReleaseRecoveryFacts.shared, recoveryAgentInvokable: false },
+        shared: {
+          ...baseReleaseRecoveryFacts.shared,
+          recoveryAgentInvokable: false,
+        },
       },
       expected: { kind: "blocked", notice: "immediate_execution_path" },
     },
@@ -407,8 +442,14 @@ describe("decideReleaseRecovery", () => {
       name: "released: review-participant recovery applies but a persisted monitor already covers it",
       facts: {
         ...baseReleaseRecoveryFacts,
-        reviewParticipant: { ...baseReleaseRecoveryFacts.reviewParticipant, applies: true },
-        shared: { ...baseReleaseRecoveryFacts.shared, hasPersistedMonitor: true },
+        reviewParticipant: {
+          ...baseReleaseRecoveryFacts.reviewParticipant,
+          applies: true,
+        },
+        shared: {
+          ...baseReleaseRecoveryFacts.shared,
+          hasPersistedMonitor: true,
+        },
       },
       expected: { kind: "released" },
     },
@@ -416,8 +457,14 @@ describe("decideReleaseRecovery", () => {
       name: "blocked_recovery_in_place: review-participant recovery applies on a stranded-issue-recovery origin",
       facts: {
         ...baseReleaseRecoveryFacts,
-        reviewParticipant: { ...baseReleaseRecoveryFacts.reviewParticipant, applies: true },
-        shared: { ...baseReleaseRecoveryFacts.shared, isStrandedRecoveryOrigin: true },
+        reviewParticipant: {
+          ...baseReleaseRecoveryFacts.reviewParticipant,
+          applies: true,
+        },
+        shared: {
+          ...baseReleaseRecoveryFacts.shared,
+          isStrandedRecoveryOrigin: true,
+        },
       },
       expected: { kind: "blocked_recovery_in_place" },
     },
@@ -437,7 +484,10 @@ describe("decideReleaseRecovery", () => {
       name: "queue_review_participant_recovery: review-participant recovery applies and no suppression or block condition fires",
       facts: {
         ...baseReleaseRecoveryFacts,
-        reviewParticipant: { ...baseReleaseRecoveryFacts.reviewParticipant, applies: true },
+        reviewParticipant: {
+          ...baseReleaseRecoveryFacts.reviewParticipant,
+          applies: true,
+        },
       },
       expected: { kind: "queue_review_participant_recovery" },
     },
@@ -445,11 +495,18 @@ describe("decideReleaseRecovery", () => {
       name: "review-participant recovery is evaluated before immediate recovery when both apply",
       facts: {
         ...baseReleaseRecoveryFacts,
-        reviewParticipant: { ...baseReleaseRecoveryFacts.reviewParticipant, applies: true },
+        reviewParticipant: {
+          ...baseReleaseRecoveryFacts.reviewParticipant,
+          applies: true,
+        },
         // If the immediate branch were evaluated instead, this flag would force a
         // "blocked" outcome; the expected "queue_review_participant_recovery" here
         // proves the review-participant branch, checked first, decides the outcome.
-        immediate: { ...baseReleaseRecoveryFacts.immediate, applies: true, isWorkspaceValidationFailedRun: true },
+        immediate: {
+          ...baseReleaseRecoveryFacts.immediate,
+          applies: true,
+          isWorkspaceValidationFailedRun: true,
+        },
       },
       expected: { kind: "queue_review_participant_recovery" },
     },
@@ -499,7 +556,9 @@ describe("deriveImmediateRecoveryContextLabels", () => {
 
   for (const testCase of cases) {
     it(testCase.name, () => {
-      expect(deriveImmediateRecoveryContextLabels(testCase.issueStatus)).toEqual(testCase.expected);
+      expect(
+        deriveImmediateRecoveryContextLabels(testCase.issueStatus),
+      ).toEqual(testCase.expected);
     });
   }
 });
@@ -529,7 +588,10 @@ describe("decideWakeAdmission", () => {
     },
     {
       name: "defer: same execution agent, but the running turn must finish first",
-      facts: { ...baseWakeAdmissionFacts, shouldQueueFollowupForRunningWake: true },
+      facts: {
+        ...baseWakeAdmissionFacts,
+        shouldQueueFollowupForRunningWake: true,
+      },
       expected: { kind: "defer" },
     },
     {
@@ -539,7 +601,10 @@ describe("decideWakeAdmission", () => {
     },
     {
       name: "proceed: the zombie-run filter leaves no live coalesce target",
-      facts: { ...baseWakeAdmissionFacts, availableActiveExecutionRunPresent: false },
+      facts: {
+        ...baseWakeAdmissionFacts,
+        availableActiveExecutionRunPresent: false,
+      },
       expected: { kind: "proceed" },
     },
   ];
@@ -629,7 +694,9 @@ describe("decideQueuedCommentWakeLookup", () => {
 
   for (const testCase of cases) {
     it(testCase.name, () => {
-      expect(decideQueuedCommentWakeLookup(testCase.facts)).toEqual(testCase.expected);
+      expect(decideQueuedCommentWakeLookup(testCase.facts)).toEqual(
+        testCase.expected,
+      );
     });
   }
 });
@@ -669,7 +736,9 @@ describe("decideQueuedCommentReorder", () => {
 
   for (const testCase of cases) {
     it(testCase.name, () => {
-      expect(decideQueuedCommentReorder(testCase.facts)).toEqual(testCase.expected);
+      expect(decideQueuedCommentReorder(testCase.facts)).toEqual(
+        testCase.expected,
+      );
     });
   }
 });
@@ -682,34 +751,66 @@ describe("decideQueuedCommentActorOwnsEntry", () => {
   }> = [
     {
       name: "owns: a user actor authored the comment",
-      facts: { actorType: "user", actorId: "user-1", actorAgentId: null, authorAgentId: null, authorUserId: "user-1" },
+      facts: {
+        actorType: "user",
+        actorId: "user-1",
+        actorAgentId: null,
+        authorAgentId: null,
+        authorUserId: "user-1",
+      },
       expected: true,
     },
     {
       name: "does not own: a user actor did not author the comment",
-      facts: { actorType: "user", actorId: "user-1", actorAgentId: null, authorAgentId: null, authorUserId: "user-2" },
+      facts: {
+        actorType: "user",
+        actorId: "user-1",
+        actorAgentId: null,
+        authorAgentId: null,
+        authorUserId: "user-2",
+      },
       expected: false,
     },
     {
       name: "owns: an agent actor authored the comment as that agent",
-      facts: { actorType: "agent", actorId: "agent-1", actorAgentId: "agent-1", authorAgentId: "agent-1", authorUserId: null },
+      facts: {
+        actorType: "agent",
+        actorId: "agent-1",
+        actorAgentId: "agent-1",
+        authorAgentId: "agent-1",
+        authorUserId: null,
+      },
       expected: true,
     },
     {
       name: "does not own: an agent actor authored a different comment",
-      facts: { actorType: "agent", actorId: "agent-1", actorAgentId: "agent-1", authorAgentId: "agent-2", authorUserId: null },
+      facts: {
+        actorType: "agent",
+        actorId: "agent-1",
+        actorAgentId: "agent-1",
+        authorAgentId: "agent-2",
+        authorUserId: null,
+      },
       expected: false,
     },
     {
       name: "does not own: an agent actor with no resolved agent id",
-      facts: { actorType: "agent", actorId: "agent-1", actorAgentId: null, authorAgentId: null, authorUserId: null },
+      facts: {
+        actorType: "agent",
+        actorId: "agent-1",
+        actorAgentId: null,
+        authorAgentId: null,
+        authorUserId: null,
+      },
       expected: false,
     },
   ];
 
   for (const testCase of cases) {
     it(testCase.name, () => {
-      expect(decideQueuedCommentActorOwnsEntry(testCase.facts)).toBe(testCase.expected);
+      expect(decideQueuedCommentActorOwnsEntry(testCase.facts)).toBe(
+        testCase.expected,
+      );
     });
   }
 });

@@ -109,273 +109,293 @@ function dragHasFiles(evt: ReactDragEvent<HTMLDivElement>): boolean {
   return Array.from(types).includes("Files");
 }
 
-export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(function ChatComposer(
-  {
-    value,
-    onChange,
-    onSubmit,
-    placeholder = "Message…",
-    disabled = false,
-    submitting = false,
-    submitKey = "mod-enter",
-    singleLine = false,
-    tone = "standard",
-    surface = "card",
-    autoFocus = false,
-    sendLabel = "Send message",
-    onAttachFiles,
-    attachments = [],
-    attaching = false,
-    acceptFileTypes,
-    leadingTools,
-    trailingTools,
-    hint,
-    className,
-    textareaClassName,
-    inputTestId = "chat-composer-input",
-  },
-  forwardedRef,
-) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragDepthRef = useRef(0);
-  const [isDragOver, setIsDragOver] = useState(false);
+export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
+  function ChatComposer(
+    {
+      value,
+      onChange,
+      onSubmit,
+      placeholder = "Message…",
+      disabled = false,
+      submitting = false,
+      submitKey = "mod-enter",
+      singleLine = false,
+      tone = "standard",
+      surface = "card",
+      autoFocus = false,
+      sendLabel = "Send message",
+      onAttachFiles,
+      attachments = [],
+      attaching = false,
+      acceptFileTypes,
+      leadingTools,
+      trailingTools,
+      hint,
+      className,
+      textareaClassName,
+      inputTestId = "chat-composer-input",
+    },
+    forwardedRef,
+  ) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const dragDepthRef = useRef(0);
+    const [isDragOver, setIsDragOver] = useState(false);
 
-  const canAttach = typeof onAttachFiles === "function";
-  const isAsk = tone === "ask";
-  const isPlanning = tone === "planning";
-  const canSend = !disabled && !submitting && value.trim().length > 0;
+    const canAttach = typeof onAttachFiles === "function";
+    const isAsk = tone === "ask";
+    const isPlanning = tone === "planning";
+    const canSend = !disabled && !submitting && value.trim().length > 0;
 
-  useImperativeHandle(forwardedRef, () => ({
-    focus: () => textareaRef.current?.focus(),
-  }), []);
+    useImperativeHandle(
+      forwardedRef,
+      () => ({
+        focus: () => textareaRef.current?.focus(),
+      }),
+      [],
+    );
 
-  // Auto-grow the textarea up to a cap (multiline only). Single-line stays at
-  // one row and scrolls horizontally, matching the conference room today.
-  useLayoutEffect(() => {
-    const el = textareaRef.current;
-    if (!el || singleLine) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
-  }, [value, singleLine]);
+    // Auto-grow the textarea up to a cap (multiline only). Single-line stays at
+    // one row and scrolls horizontally, matching the conference room today.
+    useLayoutEffect(() => {
+      const el = textareaRef.current;
+      if (!el || singleLine) return;
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
+    }, [value, singleLine]);
 
-  function handleChange(evt: ChangeEvent<HTMLTextAreaElement>) {
-    const next = singleLine ? evt.target.value.replace(/\r?\n/g, " ") : evt.target.value;
-    onChange(next);
-  }
+    function handleChange(evt: ChangeEvent<HTMLTextAreaElement>) {
+      const next = singleLine
+        ? evt.target.value.replace(/\r?\n/g, " ")
+        : evt.target.value;
+      onChange(next);
+    }
 
-  function handleKeyDown(evt: ReactKeyboardEvent<HTMLTextAreaElement>) {
-    if (evt.key !== "Enter") return;
-    const wantsSubmit =
-      submitKey === "mod-enter"
-        ? evt.metaKey || evt.ctrlKey
-        : !evt.shiftKey && !evt.metaKey && !evt.ctrlKey;
-    if (!wantsSubmit) return;
-    evt.preventDefault();
-    if (canSend) onSubmit();
-  }
+    function handleKeyDown(evt: ReactKeyboardEvent<HTMLTextAreaElement>) {
+      if (evt.key !== "Enter") return;
+      const wantsSubmit =
+        submitKey === "mod-enter"
+          ? evt.metaKey || evt.ctrlKey
+          : !evt.shiftKey && !evt.metaKey && !evt.ctrlKey;
+      if (!wantsSubmit) return;
+      evt.preventDefault();
+      if (canSend) onSubmit();
+    }
 
-  function triggerFilePicker() {
-    fileInputRef.current?.click();
-  }
+    function triggerFilePicker() {
+      fileInputRef.current?.click();
+    }
 
-  async function emitFiles(files: File[]) {
-    if (!onAttachFiles || files.length === 0) return;
-    await onAttachFiles(files);
-  }
+    async function emitFiles(files: File[]) {
+      if (!onAttachFiles || files.length === 0) return;
+      await onAttachFiles(files);
+    }
 
-  async function handleFileInputChange(evt: ChangeEvent<HTMLInputElement>) {
-    const files = evt.target.files ? Array.from(evt.target.files) : [];
-    await emitFiles(files);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
+    async function handleFileInputChange(evt: ChangeEvent<HTMLInputElement>) {
+      const files = evt.target.files ? Array.from(evt.target.files) : [];
+      await emitFiles(files);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
 
-  function resetDrag() {
-    dragDepthRef.current = 0;
-    setIsDragOver(false);
-  }
+    function resetDrag() {
+      dragDepthRef.current = 0;
+      setIsDragOver(false);
+    }
 
-  function handleDragEnter(evt: ReactDragEvent<HTMLDivElement>) {
-    if (!canAttach || !dragHasFiles(evt)) return;
-    evt.preventDefault();
-    dragDepthRef.current += 1;
-    setIsDragOver(true);
-  }
+    function handleDragEnter(evt: ReactDragEvent<HTMLDivElement>) {
+      if (!canAttach || !dragHasFiles(evt)) return;
+      evt.preventDefault();
+      dragDepthRef.current += 1;
+      setIsDragOver(true);
+    }
 
-  function handleDragOver(evt: ReactDragEvent<HTMLDivElement>) {
-    if (!canAttach || !dragHasFiles(evt)) return;
-    evt.preventDefault();
-    evt.dataTransfer.dropEffect = "copy";
-  }
+    function handleDragOver(evt: ReactDragEvent<HTMLDivElement>) {
+      if (!canAttach || !dragHasFiles(evt)) return;
+      evt.preventDefault();
+      evt.dataTransfer.dropEffect = "copy";
+    }
 
-  function handleDragLeave(evt: ReactDragEvent<HTMLDivElement>) {
-    if (!canAttach || !dragHasFiles(evt)) return;
-    evt.preventDefault();
-    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-    if (dragDepthRef.current === 0) setIsDragOver(false);
-  }
+    function handleDragLeave(evt: ReactDragEvent<HTMLDivElement>) {
+      if (!canAttach || !dragHasFiles(evt)) return;
+      evt.preventDefault();
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setIsDragOver(false);
+    }
 
-  function handleDrop(evt: ReactDragEvent<HTMLDivElement>) {
-    if (!canAttach || !dragHasFiles(evt)) return;
-    evt.preventDefault();
-    resetDrag();
-    const files = evt.dataTransfer?.files ? Array.from(evt.dataTransfer.files) : [];
-    void emitFiles(files);
-  }
+    function handleDrop(evt: ReactDragEvent<HTMLDivElement>) {
+      if (!canAttach || !dragHasFiles(evt)) return;
+      evt.preventDefault();
+      resetDrag();
+      const files = evt.dataTransfer?.files
+        ? Array.from(evt.dataTransfer.files)
+        : [];
+      void emitFiles(files);
+    }
 
-  return (
-    <div
-      data-testid="chat-composer"
-      data-tone={tone}
-      data-surface={surface}
-      className={cn(
-        "relative rounded-xl border px-3 pt-2.5 pb-2 transition-colors duration-150 focus-within:border-muted-foreground/40",
-        // Surface: opaque card vs the task glass recipe (IssueChatThread.tsx shell).
-        surface === "translucent"
-          ? "border-border/70 bg-background/95 shadow-(--shadow-extract-4) backdrop-blur supports-[backdrop-filter]:bg-background/85 dark:shadow-(--shadow-extract-5)"
-          : "border-border bg-card",
-        // No blue focus ring — neutral border darkening only.
-        isAsk &&
-          "border-sky-500/55 bg-sky-50/50 focus-within:border-sky-500/70 dark:border-sky-500/50 dark:bg-sky-500/[0.07]",
-        isPlanning &&
-          "border-amber-500/55 bg-amber-50/50 focus-within:border-amber-500/70 dark:border-amber-500/50 dark:bg-amber-500/[0.07]",
-        isDragOver && canAttach && "border-muted-foreground/50 bg-accent/20",
-        disabled && "opacity-60",
-        className,
-      )}
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      {isDragOver && canAttach ? (
-        <div
-          data-testid="chat-composer-drop-overlay"
-          className="pointer-events-none absolute inset-1.5 z-20 flex items-center justify-center rounded-lg border border-dashed border-muted-foreground/50 bg-background/80 text-xs text-muted-foreground backdrop-blur-(--blur-1px)"
-        >
-          <span className="inline-flex items-center gap-2">
-            <TaskcoreIcon className="h-3.5 w-3.5" />
-            Drop to attach
-          </span>
-        </div>
-      ) : null}
-
-      <textarea
-        ref={textareaRef}
-        data-testid={inputTestId}
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        disabled={disabled}
-        autoFocus={autoFocus}
-        rows={1}
-        wrap={singleLine ? "off" : "soft"}
+    return (
+      <div
+        data-testid="chat-composer"
+        data-tone={tone}
+        data-surface={surface}
         className={cn(
-          "block min-h-(--sz-22px) w-full resize-none border-0 bg-transparent p-0 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:outline-none focus:ring-0",
-          singleLine
-            ? "max-h-(--sz-22px) overflow-x-auto whitespace-nowrap"
-            : "max-h-(--sz-200px) overflow-y-auto",
-          textareaClassName,
+          "relative rounded-xl border px-3 pt-2.5 pb-2 transition-colors duration-150 focus-within:border-muted-foreground/40",
+          // Surface: opaque card vs the task glass recipe (IssueChatThread.tsx shell).
+          surface === "translucent"
+            ? "border-border/70 bg-background/95 shadow-(--shadow-extract-4) backdrop-blur supports-[backdrop-filter]:bg-background/85 dark:shadow-(--shadow-extract-5)"
+            : "border-border bg-card",
+          // No blue focus ring — neutral border darkening only.
+          isAsk &&
+            "border-sky-500/55 bg-sky-50/50 focus-within:border-sky-500/70 dark:border-sky-500/50 dark:bg-sky-500/[0.07]",
+          isPlanning &&
+            "border-amber-500/55 bg-amber-50/50 focus-within:border-amber-500/70 dark:border-amber-500/50 dark:bg-amber-500/[0.07]",
+          isDragOver && canAttach && "border-muted-foreground/50 bg-accent/20",
+          disabled && "opacity-60",
+          className,
         )}
-      />
-
-      {attachments.length > 0 ? (
-        <div
-          data-testid="chat-composer-attachments"
-          className="mt-2 space-y-1 rounded-md border border-dashed border-border/80 bg-muted/20 p-1.5"
-        >
-          {attachments.map((attachment) => {
-            const sizeLabel = formatAttachmentSize(attachment.size);
-            const statusLabel =
-              attachment.status === "uploading"
-                ? "Uploading…"
-                : attachment.status === "error"
-                  ? attachment.error ?? "Upload failed"
-                  : attachment.inline
-                    ? "Inserted inline"
-                    : "Attached";
-            return (
-              <div
-                key={attachment.id}
-                className={cn(
-                  "flex min-w-0 items-center gap-2 rounded-sm px-2 py-1 text-xs",
-                  attachment.status === "error"
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-background/70 text-muted-foreground",
-                )}
-              >
-                {attachment.status === "uploading" ? (
-                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                ) : attachment.status === "attached" ? (
-                  <Check className="h-3.5 w-3.5 shrink-0 text-green-600 dark:text-green-400" />
-                ) : (
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                )}
-                <span className="min-w-0 flex-1 truncate font-medium text-foreground">
-                  {attachment.name}
-                </span>
-                {sizeLabel ? <span className="shrink-0">{sizeLabel}</span> : null}
-                <span className="shrink-0">{statusLabel}</span>
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {hint ? (
-        <div className="mt-2 inline-flex items-center rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-(length:--text-micro) text-muted-foreground">
-          {hint}
-        </div>
-      ) : null}
-
-      <div className="mt-2 flex items-center gap-2">
-        {canAttach ? (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={acceptFileTypes}
-              className="hidden"
-              onChange={handleFileInputChange}
-            />
-            <button
-              type="button"
-              onClick={triggerFilePicker}
-              disabled={disabled || attaching}
-              aria-label="Attach files"
-              title="Attach files"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {attaching ? <Loader2 className="h-4 w-4 animate-spin" /> : <TaskcoreIcon className="h-4 w-4" />}
-            </button>
-          </>
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {isDragOver && canAttach ? (
+          <div
+            data-testid="chat-composer-drop-overlay"
+            className="pointer-events-none absolute inset-1.5 z-20 flex items-center justify-center rounded-lg border border-dashed border-muted-foreground/50 bg-background/80 text-xs text-muted-foreground backdrop-blur-(--blur-1px)"
+          >
+            <span className="inline-flex items-center gap-2">
+              <TaskcoreIcon className="h-3.5 w-3.5" />
+              Drop to attach
+            </span>
+          </div>
         ) : null}
 
-        {leadingTools}
-
-        <span className="flex-1" />
-
-        {trailingTools}
-
-        <button
-          type="button"
-          onClick={() => {
-            if (canSend) onSubmit();
-          }}
-          disabled={!canSend}
-          aria-label={sendLabel}
-          title={sendLabel}
+        <textarea
+          ref={textareaRef}
+          data-testid={inputTestId}
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          rows={1}
+          wrap={singleLine ? "off" : "soft"}
           className={cn(
-            "grid h-7 w-7 shrink-0 place-items-center rounded-md transition-colors duration-150 disabled:cursor-not-allowed",
-            canSend
-              ? "bg-foreground text-background hover:opacity-90"
-              : "bg-accent text-muted-foreground",
+            "block min-h-(--sz-22px) w-full resize-none border-0 bg-transparent p-0 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:outline-none focus:ring-0",
+            singleLine
+              ? "max-h-(--sz-22px) overflow-x-auto whitespace-nowrap"
+              : "max-h-(--sz-200px) overflow-y-auto",
+            textareaClassName,
           )}
-        >
-          {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-        </button>
+        />
+
+        {attachments.length > 0 ? (
+          <div
+            data-testid="chat-composer-attachments"
+            className="mt-2 space-y-1 rounded-md border border-dashed border-border/80 bg-muted/20 p-1.5"
+          >
+            {attachments.map((attachment) => {
+              const sizeLabel = formatAttachmentSize(attachment.size);
+              const statusLabel =
+                attachment.status === "uploading"
+                  ? "Uploading…"
+                  : attachment.status === "error"
+                    ? (attachment.error ?? "Upload failed")
+                    : attachment.inline
+                      ? "Inserted inline"
+                      : "Attached";
+              return (
+                <div
+                  key={attachment.id}
+                  className={cn(
+                    "flex min-w-0 items-center gap-2 rounded-sm px-2 py-1 text-xs",
+                    attachment.status === "error"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-background/70 text-muted-foreground",
+                  )}
+                >
+                  {attachment.status === "uploading" ? (
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                  ) : attachment.status === "attached" ? (
+                    <Check className="h-3.5 w-3.5 shrink-0 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+                    {attachment.name}
+                  </span>
+                  {sizeLabel ? (
+                    <span className="shrink-0">{sizeLabel}</span>
+                  ) : null}
+                  <span className="shrink-0">{statusLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {hint ? (
+          <div className="mt-2 inline-flex items-center rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-(length:--text-micro) text-muted-foreground">
+            {hint}
+          </div>
+        ) : null}
+
+        <div className="mt-2 flex items-center gap-2">
+          {canAttach ? (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={acceptFileTypes}
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
+              <button
+                type="button"
+                onClick={triggerFilePicker}
+                disabled={disabled || attaching}
+                aria-label="Attach files"
+                title="Attach files"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {attaching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <TaskcoreIcon className="h-4 w-4" />
+                )}
+              </button>
+            </>
+          ) : null}
+
+          {leadingTools}
+
+          <span className="flex-1" />
+
+          {trailingTools}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (canSend) onSubmit();
+            }}
+            disabled={!canSend}
+            aria-label={sendLabel}
+            title={sendLabel}
+            className={cn(
+              "grid h-7 w-7 shrink-0 place-items-center rounded-md transition-colors duration-150 disabled:cursor-not-allowed",
+              canSend
+                ? "bg-foreground text-background hover:opacity-90"
+                : "bg-accent text-muted-foreground",
+            )}
+          >
+            {submitting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);

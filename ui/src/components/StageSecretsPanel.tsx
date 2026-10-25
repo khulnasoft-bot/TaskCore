@@ -73,9 +73,10 @@ export function StageSecretsPanel({
         )}
         <p>
           These env vars are injected when{" "}
-          <span className="font-medium text-foreground">{displayName}</span> runs this step. They override
-          matching project and agent env on collisions. <span className="font-mono">TASKCORE_*</span> names
-          are reserved.
+          <span className="font-medium text-foreground">{displayName}</span>{" "}
+          runs this step. They override matching project and agent env on
+          collisions. <span className="font-mono">TASKCORE_*</span> names are
+          reserved.
         </p>
       </div>
 
@@ -95,7 +96,9 @@ export function StageSecretsPanel({
           <Save className="h-4 w-4 mr-1.5" />
           {saving ? "Saving…" : "Save secrets"}
         </Button>
-        {dirty && !saving ? <span className="text-xs text-muted-foreground">Unsaved changes</span> : null}
+        {dirty && !saving ? (
+          <span className="text-xs text-muted-foreground">Unsaved changes</span>
+        ) : null}
       </div>
     </div>
   );

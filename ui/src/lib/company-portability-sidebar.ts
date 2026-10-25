@@ -1,4 +1,8 @@
-import type { Agent, CompanyPortabilitySidebarOrder, Project } from "@taskcore/shared";
+import type {
+  Agent,
+  CompanyPortabilitySidebarOrder,
+  Project,
+} from "@taskcore/shared";
 import { deriveProjectUrlKey, normalizeAgentUrlKey } from "@taskcore/shared";
 
 function uniqueSlug(base: string, used: Set<string>) {
@@ -18,10 +22,14 @@ function uniqueSlug(base: string, used: Set<string>) {
   }
 }
 
-export function buildPortableAgentSlugMap(agents: Agent[]): Map<string, string> {
+export function buildPortableAgentSlugMap(
+  agents: Agent[],
+): Map<string, string> {
   const usedSlugs = new Set<string>();
   const byId = new Map<string, string>();
-  const sortedAgents = [...agents].sort((left, right) => left.name.localeCompare(right.name));
+  const sortedAgents = [...agents].sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
 
   for (const agent of sortedAgents) {
     const baseSlug = normalizeAgentUrlKey(agent.name) ?? "agent";
@@ -31,10 +39,14 @@ export function buildPortableAgentSlugMap(agents: Agent[]): Map<string, string> 
   return byId;
 }
 
-export function buildPortableProjectSlugMap(projects: Project[]): Map<string, string> {
+export function buildPortableProjectSlugMap(
+  projects: Project[],
+): Map<string, string> {
   const usedSlugs = new Set<string>();
   const byId = new Map<string, string>();
-  const sortedProjects = [...projects].sort((left, right) => left.name.localeCompare(right.name));
+  const sortedProjects = [...projects].sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
 
   for (const project of sortedProjects) {
     const baseSlug = deriveProjectUrlKey(project.name, project.name);
@@ -53,9 +65,15 @@ export function buildPortableSidebarOrder(input: {
   const agentSlugById = buildPortableAgentSlugMap(input.agents);
   const projectSlugById = buildPortableProjectSlugMap(input.projects);
   const sidebar = {
-    agents: input.orderedAgents.map((agent) => agentSlugById.get(agent.id)).filter((slug): slug is string => Boolean(slug)),
-    projects: input.orderedProjects.map((project) => projectSlugById.get(project.id)).filter((slug): slug is string => Boolean(slug)),
+    agents: input.orderedAgents
+      .map((agent) => agentSlugById.get(agent.id))
+      .filter((slug): slug is string => Boolean(slug)),
+    projects: input.orderedProjects
+      .map((project) => projectSlugById.get(project.id))
+      .filter((slug): slug is string => Boolean(slug)),
   };
 
-  return sidebar.agents.length > 0 || sidebar.projects.length > 0 ? sidebar : undefined;
+  return sidebar.agents.length > 0 || sidebar.projects.length > 0
+    ? sidebar
+    : undefined;
 }

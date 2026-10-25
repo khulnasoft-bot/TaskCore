@@ -91,7 +91,7 @@ Before proposing anything, read what already exists so you don't restate it:
 - Their assigned skills (from step 1).
 - Any `MEMORY.md` / `memory/` files in their cwd if the adapter uses para-memory-files.
 
-If a rule you were about to propose is already present, drop it. A failure pattern *despite* an existing rule is a different finding — record it as "existing rule X is not being followed" and propose how to make it stick (move to a skill, add a negative example, strengthen the trigger), not a duplicate.
+If a rule you were about to propose is already present, drop it. A failure pattern _despite_ an existing rule is a different finding — record it as "existing rule X is not being followed" and propose how to make it stick (move to a skill, add a negative example, strengthen the trigger), not a duplicate.
 
 ### 4) Cluster the failures
 
@@ -121,28 +121,31 @@ Sanity check reuse honestly: a rule that applies to all coders belongs in a shar
 
 Create a document attached to the **reflection issue** (never the target's issues). One section per cluster:
 
-```markdown
+````markdown
 ## Cluster: <name>
 
 **Pattern (1 sentence, quotable):**
 **Root cause hypothesis:**
 **Evidence (≥2):**
+
 - [PAP-NNN](/PAP/issues/PAP-NNN) — "<verbatim fragment>"
 - [PAP-MMM](/PAP/issues/PAP-MMM) — "<verbatim fragment>"
 
 **Proposed change:**
+
 - Target surface: AGENTS.md | skill:<slug> | both | tool-description:<tool>
 - Diff (inline, minimal, ≤20% AGENTS.md growth / ≤15KB skill):
-    ```diff
-    ...
-    ```
+  ```diff
+  ...
+  ```
 
 **Expected still-passes (replay):**
+
 - [PAP-XXX](/PAP/issues/PAP-XXX), [PAP-YYY](/PAP/issues/PAP-YYY)
 
 **Why this change, not something bigger:**
 (1–2 sentences on why you didn't rewrite more.)
-```
+````
 
 ### 7) Write the actual drafts (files, not just prose)
 
@@ -173,7 +176,7 @@ Server-enforced mutation target keys:
 
 ### 10) Apply only after acceptance, in a follow-up run
 
-When the interaction resolves **accepted**, apply the change in a *separate* run:
+When the interaction resolves **accepted**, apply the change in a _separate_ run:
 
 - **AGENTS.md** — update the target's managed instruction file exactly as the accepted diff specified.
 - **Skill** — install/update the skill in the company library, then `POST /api/agents/<targetAgentId>/skills/sync` with `{"mode":"add","desiredSkills":["<skill-ref>"]}` when the target should receive it. Use `remove` only for the named assignments. Use `replace` only after explicit confirmation to overwrite the complete desired skill set.

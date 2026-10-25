@@ -28,25 +28,45 @@ vi.mock("@/context/ToastContext", () => ({
 }));
 
 vi.mock("@/components/ui/dialog", () => ({
-  Dialog: ({ open, children }: { open: boolean; children: ReactNode }) => open ? <div>{children}</div> : null,
-  DialogContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  DialogDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
-  DialogFooter: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  DialogHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Dialog: ({ open, children }: { open: boolean; children: ReactNode }) =>
+    open ? <div>{children}</div> : null,
+  DialogContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  DialogFooter: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogHeader: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
 vi.mock("@/components/ui/tooltip", () => ({
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  TooltipContent: ({ children }: { children: ReactNode }) => (
+    <span>{children}</span>
+  ),
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("@/components/SearchableSelect", () => ({
-  SearchableSelect: ({ value, groups, onValueChange }: {
+  SearchableSelect: ({
+    value,
+    groups,
+    onValueChange,
+  }: {
     value: string;
-    groups: Array<{ options: Array<{ key: string; value: string; label: string }> }>;
-    onValueChange: (value: string, option: { key: string; value: string; label: string }) => void;
+    groups: Array<{
+      options: Array<{ key: string; value: string; label: string }>;
+    }>;
+    onValueChange: (
+      value: string,
+      option: { key: string; value: string; label: string },
+    ) => void;
   }) => {
     const options = groups.flatMap((group) => group.options);
     return (
@@ -54,17 +74,25 @@ vi.mock("@/components/SearchableSelect", () => ({
         aria-label="Available token"
         value={value}
         onChange={(event) => {
-          const option = options.find((candidate) => candidate.value === event.target.value);
+          const option = options.find(
+            (candidate) => candidate.value === event.target.value,
+          );
           if (option) onValueChange(option.value, option);
         }}
       >
-        {options.map((option) => <option key={option.key} value={option.value}>{option.label}</option>)}
+        {options.map((option) => (
+          <option key={option.key} value={option.value}>
+            {option.label}
+          </option>
+        ))}
       </select>
     );
   },
 }));
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function storedToken(): ToolMcpGatewayToken {
   return {
@@ -122,19 +150,21 @@ function gateway(token: ToolMcpGatewayToken): ToolMcpGatewayWithTokens {
     createdAt: new Date(),
     updatedAt: new Date(),
     tokens: [token],
-    clientSnippets: [{
-      client: "vscode",
-      label: "VS Code",
-      config: {
-        servers: {
-          Taskcore: {
-            url: "/api/tool-gateway/gateways/public-1/mcp",
-            headers: { Authorization: "Bearer pcgw_..." },
+    clientSnippets: [
+      {
+        client: "vscode",
+        label: "VS Code",
+        config: {
+          servers: {
+            Taskcore: {
+              url: "/api/tool-gateway/gateways/public-1/mcp",
+              headers: { Authorization: "Bearer pcgw_..." },
+            },
           },
         },
+        notes: [],
       },
-      notes: [],
-    }],
+    ],
   };
 }
 
@@ -157,8 +187,13 @@ describe("ConnectClientDialog", () => {
 
   it("copies a complete client snippet with the selected token and explains the gateway boundary", async () => {
     const persisted = storedToken();
-    const created = { ...persisted, token: "pcgw_FULL_SECRET" } satisfies ToolMcpGatewayTokenCreated;
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const created = {
+      ...persisted,
+      token: "pcgw_FULL_SECRET",
+    } satisfies ToolMcpGatewayTokenCreated;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
     flushSync(() => {
       root.render(
@@ -175,16 +210,24 @@ describe("ConnectClientDialog", () => {
     });
     await new Promise((resolve) => window.setTimeout(resolve, 0));
 
-    expect(container.textContent).toContain("does not give it access to Taskcore or skills");
-    const copyButton = [...container.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Copy");
+    expect(container.textContent).toContain(
+      "does not give it access to Taskcore or skills",
+    );
+    const copyButton = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "Copy",
+    );
     if (!copyButton) throw new Error("snippet copy button missing");
     copyButton.click();
     await new Promise((resolve) => window.setTimeout(resolve, 0));
 
-    expect(copyTextMock).toHaveBeenCalledWith(expect.stringContaining('"Authorization": "Bearer pcgw_FULL_SECRET"'));
-    expect(copyTextMock).toHaveBeenCalledWith(expect.stringContaining(
-      `${window.location.origin}/api/tool-gateway/gateways/public-1/mcp`,
-    ));
+    expect(copyTextMock).toHaveBeenCalledWith(
+      expect.stringContaining('"Authorization": "Bearer pcgw_FULL_SECRET"'),
+    );
+    expect(copyTextMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `${window.location.origin}/api/tool-gateway/gateways/public-1/mcp`,
+      ),
+    );
     expect(container.textContent).not.toContain("pcgw_FULL_SECRET");
   });
 });

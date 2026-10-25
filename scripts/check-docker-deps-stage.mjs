@@ -54,7 +54,10 @@ function walkPackageJsonFiles(rootRelative, maxDepth) {
       if (entry.name === "node_modules") continue;
 
       const absolute = path.join(currentAbsolute, entry.name);
-      const relative = path.relative(repoRoot, absolute).split(path.sep).join("/");
+      const relative = path
+        .relative(repoRoot, absolute)
+        .split(path.sep)
+        .join("/");
 
       if (entry.isDirectory()) {
         if (depthFromRoot < maxDepth) visit(absolute, depthFromRoot + 1);
@@ -128,19 +131,23 @@ function parseCopySources(depsStage) {
 function main() {
   const depsStage = extractDepsStage(readFileSync(dockerfilePath, "utf8"));
   if (!depsStage.trim()) {
-    console.error("Could not extract deps stage from Dockerfile (expected 'FROM ... AS deps').");
+    console.error(
+      "Could not extract deps stage from Dockerfile (expected 'FROM ... AS deps').",
+    );
     process.exit(1);
   }
 
-  const workspaceRoots = parseWorkspaceRoots(readFileSync(workspacePath, "utf8"));
+  const workspaceRoots = parseWorkspaceRoots(
+    readFileSync(workspacePath, "utf8"),
+  );
   if (workspaceRoots.length === 0) {
     console.error("Could not derive workspace roots from pnpm-workspace.yaml.");
     process.exit(1);
   }
 
-  const requiredPackageJsons = [...new Set(
-    workspaceRoots.flatMap((root) => walkPackageJsonFiles(root, 2)),
-  )].sort();
+  const requiredPackageJsons = [
+    ...new Set(workspaceRoots.flatMap((root) => walkPackageJsonFiles(root, 2))),
+  ].sort();
 
   const copySources = parseCopySources(depsStage);
   const copyMatchers = copySources.map((source) => ({
@@ -152,7 +159,9 @@ function main() {
   for (const pkg of requiredPackageJsons) {
     const covered = copyMatchers.some(({ regex }) => regex.test(pkg));
     if (!covered) {
-      console.error(`Dockerfile deps stage missing package manifest coverage for: ${pkg}`);
+      console.error(
+        `Dockerfile deps stage missing package manifest coverage for: ${pkg}`,
+      );
       missing = 1;
     }
   }
@@ -166,7 +175,9 @@ function main() {
   }
 
   if (missing) {
-    console.error("Dockerfile deps stage is out of sync. Update it to cover the missing files.");
+    console.error(
+      "Dockerfile deps stage is out of sync. Update it to cover the missing files.",
+    );
     process.exit(1);
   }
 

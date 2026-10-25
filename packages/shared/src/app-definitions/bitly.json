@@ -3,16 +3,12 @@
   "slug": "bitly",
   "name": "Bitly",
   "description": "Connect Bitly's provider-hosted MCP server.",
-  "categories": [
-    "analytics"
-  ],
+  "categories": ["analytics"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/bitly.svg"
   },
-  "urlPatterns": [
-    "https://api-ssl.bitly.com/*"
-  ],
+  "urlPatterns": ["https://api-ssl.bitly.com/*"],
   "docsUrl": "https://dev.bitly.com/bitly-mcp/overview/quickstart/",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,9 +16,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://api-ssl.bitly.com/v4/mcp"
@@ -41,9 +35,7 @@
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://api-ssl.bitly.com/v4/mcp"

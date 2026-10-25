@@ -4,17 +4,23 @@ import type { Environment } from "@taskcore/shared";
  * This is a run-scoped view; never persist it over a shared environment's config.
  * The driver still verifies provider support and chooses the actual lease policy.
  */
-export function resolveRunnerEnvironmentForRun<T extends Pick<Environment, "driver" | "config">>(
+export function resolveRunnerEnvironmentForRun<
+  T extends Pick<Environment, "driver" | "config">,
+>(
   environment: T,
   adapterType: string,
   adapterConfig: Record<string, unknown> = {},
   admittedLifecycleMode?: "warm" | "per_turn",
 ): T {
-  if (adapterType !== "taskcore_runner" || environment.driver !== "sandbox") return environment;
+  if (adapterType !== "taskcore_runner" || environment.driver !== "sandbox")
+    return environment;
   const config = environment.config ?? {};
-  const lifecycleMode = admittedLifecycleMode ?? (config.runnerLifecycleMode === "warm" || config.runnerLifecycleMode === "per_turn"
-    ? config.runnerLifecycleMode
-    : adapterConfig.lifecycleMode);
+  const lifecycleMode =
+    admittedLifecycleMode ??
+    (config.runnerLifecycleMode === "warm" ||
+    config.runnerLifecycleMode === "per_turn"
+      ? config.runnerLifecycleMode
+      : adapterConfig.lifecycleMode);
   if (lifecycleMode !== "warm") return environment;
   return {
     ...environment,

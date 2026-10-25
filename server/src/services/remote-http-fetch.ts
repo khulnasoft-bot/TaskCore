@@ -4,7 +4,11 @@ import { connect as netConnect, isIP, type Socket } from "node:net";
 import { Readable } from "node:stream";
 import { connect as tlsConnect, type TLSSocket } from "node:tls";
 import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
-import { classifyRemoteConnectionError, markRemoteConnectionFailure, recordRemoteConnectionAttempts } from "./remote-connection-failure.js";
+import {
+  classifyRemoteConnectionError,
+  markRemoteConnectionFailure,
+  recordRemoteConnectionAttempts,
+} from "./remote-connection-failure.js";
 
 import {
   isAlwaysDeniedLinkLocalIp,
@@ -34,7 +38,11 @@ const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
  * pass `responseTimeoutMs` so this default never truncates it.
  */
 const DEFAULT_RESPONSE_TIMEOUT_MS = 30_000;
-const DNS_RESOLUTION_ERROR_CODES = new Set(["ENODATA", "ENOTFOUND", "EAI_AGAIN"]);
+const DNS_RESOLUTION_ERROR_CODES = new Set([
+  "ENODATA",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+]);
 
 /** How a verified socket is opened. Overridable so tests can simulate a rebind. */
 export type RemoteHttpSocketFactory = (target: {
@@ -97,19 +105,27 @@ export async function guardedRemoteHttpFetch(
   options: GuardedRemoteHttpFetchOptions,
 ): Promise<Response> {
   const endpoint = url instanceof URL ? url : new URL(url);
-  const approved = await resolveApprovedRemoteHttpAddresses(endpoint, options, options.error);
+  const approved = await resolveApprovedRemoteHttpAddresses(
+    endpoint,
+    options,
+    options.error,
+  );
   const literalHost = isIP(endpoint.hostname.replace(/^\[|\]$/g, "")) !== 0;
   const platformFetch = options.unpinnedFetch ?? fetch;
   if (literalHost) {
     try {
-      return await platformFetch(endpoint.toString(), { ...init, redirect: "manual" });
+      return await platformFetch(endpoint.toString(), {
+        ...init,
+        redirect: "manual",
+      });
     } catch (error) {
       if (isDnsResolutionError(error)) {
         const failure = options.error(
           "Remote MCP connection hostname could not be resolved",
           "remote_http_dns_failed",
         );
-        if (classifyRemoteConnectionError(error) === "dns_failure") markRemoteConnectionFailure(failure, "dns_failure");
+        if (classifyRemoteConnectionError(error) === "dns_failure")
+          markRemoteConnectionFailure(failure, "dns_failure");
         throw failure;
       }
       throw error;
@@ -122,10 +138,18 @@ export async function guardedRemoteHttpFetch(
 function isDnsResolutionError(error: unknown): boolean {
   const seen = new Set<unknown>();
   let current = error;
-  while (typeof current === "object" && current !== null && !seen.has(current)) {
+  while (
+    typeof current === "object" &&
+    current !== null &&
+    !seen.has(current)
+  ) {
     seen.add(current);
     const record = current as { code?: unknown; cause?: unknown };
-    if (typeof record.code === "string" && DNS_RESOLUTION_ERROR_CODES.has(record.code)) return true;
+    if (
+      typeof record.code === "string" &&
+      DNS_RESOLUTION_ERROR_CODES.has(record.code)
+    )
+      return true;
     current = record.cause;
   }
   return false;
@@ -145,7 +169,15 @@ async function pinnedRequest(
 
   signal?.throwIfAborted?.();
 
-  const socket = await dialApprovedAddress({ approved, approvedSet, port, hostname, useTls, signal, options });
+  const socket = await dialApprovedAddress({
+    approved,
+    approvedSet,
+    port,
+    hostname,
+    useTls,
+    signal,
+    options,
+  });
 
   try {
     return await sendRequest({
@@ -156,7 +188,8 @@ async function pinnedRequest(
       socket,
       init,
       signal,
-      responseTimeoutMs: options.responseTimeoutMs ?? DEFAULT_RESPONSE_TIMEOUT_MS,
+      responseTimeoutMs:
+        options.responseTimeoutMs ?? DEFAULT_RESPONSE_TIMEOUT_MS,
       error: options.error,
     });
   } catch (error) {
@@ -204,8 +237,14 @@ async function dialApprovedAddress(input: {
       failedAttempts.push(error.reason);
     }
   }
-  throw recordRemoteConnectionAttempts(lastReason
-    ?? input.options.error("Remote MCP endpoint could not be reached", "remote_http_connect_failed"), failedAttempts);
+  throw recordRemoteConnectionAttempts(
+    lastReason ??
+      input.options.error(
+        "Remote MCP endpoint could not be reached",
+        "remote_http_connect_failed",
+      ),
+    failedAttempts,
+  );
 }
 
 /**
@@ -222,15 +261,22 @@ async function openVerifiedSocket(input: {
   signal: AbortSignal | null;
   options: GuardedRemoteHttpFetchOptions;
 }): Promise<Socket | TLSSocket> {
-  const { address, approvedSet, port, hostname, useTls, signal, options } = input;
-  const connectTimeoutMs = options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
-  const factory = options.socketFactory
-    ?? ((target) => netConnect({ host: target.address, port: target.port }));
+  const { address, approvedSet, port, hostname, useTls, signal, options } =
+    input;
+  const connectTimeoutMs =
+    options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
+  const factory =
+    options.socketFactory ??
+    ((target) => netConnect({ host: target.address, port: target.port }));
 
   const raw = factory({ address, port, hostname, useTls });
 
   try {
-    await once(raw, "connect", { signal, timeoutMs: connectTimeoutMs, what: "connect to" });
+    await once(raw, "connect", {
+      signal,
+      timeoutMs: connectTimeoutMs,
+      what: "connect to",
+    });
   } catch (error) {
     // A connect timeout used to leave the half-open socket behind, because
     // nothing above this point owns it yet.
@@ -240,10 +286,10 @@ async function openVerifiedSocket(input: {
   }
 
   const peer = raw.remoteAddress ? normalizeIpAddress(raw.remoteAddress) : null;
-  const peerDenied = peer && (
-    isAlwaysDeniedLinkLocalIp(peer)
-    || (!options.allowPrivateNetwork && isPrivateOrReservedIp(peer))
-  );
+  const peerDenied =
+    peer &&
+    (isAlwaysDeniedLinkLocalIp(peer) ||
+      (!options.allowPrivateNetwork && isPrivateOrReservedIp(peer)));
   if (!peer || peerDenied || !approvedSet.has(peer)) {
     raw.destroy();
     throw options.error(
@@ -262,7 +308,11 @@ async function openVerifiedSocket(input: {
     host: hostname,
   });
   try {
-    await once(secure, "secureConnect", { signal, timeoutMs: connectTimeoutMs, what: "negotiate TLS with" });
+    await once(secure, "secureConnect", {
+      signal,
+      timeoutMs: connectTimeoutMs,
+      what: "negotiate TLS with",
+    });
   } catch (error) {
     secure.destroy();
     raw.destroy();
@@ -283,7 +333,17 @@ async function sendRequest(input: {
   responseTimeoutMs: number;
   error: RemoteHttpEndpointErrorFactory;
 }): Promise<Response> {
-  const { endpoint, hostname, port, useTls, socket, init, signal, responseTimeoutMs, error } = input;
+  const {
+    endpoint,
+    hostname,
+    port,
+    useTls,
+    socket,
+    init,
+    signal,
+    responseTimeoutMs,
+    error,
+  } = input;
   const headers = new Headers(init.headers);
   const body = readRequestBody(init.body);
   const method = (init.method ?? "GET").toUpperCase();
@@ -294,11 +354,18 @@ async function sendRequest(input: {
   // challenge), so give every guarded request a stable, non-identifying client
   // token while preserving an explicit caller value.
   if (!headers.has("user-agent")) headers.set("user-agent", "Taskcore/1.0");
-  if (body !== undefined && !headers.has("content-length") && !headers.has("transfer-encoding")) {
+  if (
+    body !== undefined &&
+    !headers.has("content-length") &&
+    !headers.has("transfer-encoding")
+  ) {
     headers.set("content-length", String(body.byteLength));
   }
   if (init.body instanceof URLSearchParams && !headers.has("content-type")) {
-    headers.set("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
+    headers.set(
+      "content-type",
+      "application/x-www-form-urlencoded;charset=UTF-8",
+    );
   }
   // `URL.host` already drops the port when it is the protocol default, so the
   // peer sees the same `Host` a plain `fetch` would have sent.
@@ -306,26 +373,37 @@ async function sendRequest(input: {
 
   const requestFn = useTls ? httpsRequest : httpRequest;
   const message = await new Promise<IncomingMessage>((resolve, reject) => {
-    const req = requestFn({
-      method,
-      // `createConnection` returns the socket that was already verified, so no
-      // hostname reaches the socket layer and no second lookup can happen. It is
-      // only honoured while `agent` stays unset, so do not pass one.
-      createConnection: () => socket,
-      host: hostname,
-      port,
-      path: `${endpoint.pathname}${endpoint.search}`,
-      headers: Object.fromEntries(headers.entries()),
-      setHost: false,
-      ...(signal ? { signal } : {}),
-    }, resolve);
+    const req = requestFn(
+      {
+        method,
+        // `createConnection` returns the socket that was already verified, so no
+        // hostname reaches the socket layer and no second lookup can happen. It is
+        // only honoured while `agent` stays unset, so do not pass one.
+        createConnection: () => socket,
+        host: hostname,
+        port,
+        path: `${endpoint.pathname}${endpoint.search}`,
+        headers: Object.fromEntries(headers.entries()),
+        setHost: false,
+        ...(signal ? { signal } : {}),
+      },
+      resolve,
+    );
     req.on("error", reject);
     // Headers deadline. `req.setTimeout` is socket-idle based, which a server
     // that dribbles bytes could reset forever, so hold a hard timer instead.
     const headersTimer = setTimeout(() => {
       // Destroying the request tears the socket down too, so a silent peer costs
       // neither a pending handler nor a leaked descriptor.
-      req.destroy(markRemoteConnectionFailure(error("Remote MCP endpoint did not respond in time", "remote_http_response_timeout"), "connection_timeout"));
+      req.destroy(
+        markRemoteConnectionFailure(
+          error(
+            "Remote MCP endpoint did not respond in time",
+            "remote_http_response_timeout",
+          ),
+          "connection_timeout",
+        ),
+      );
     }, responseTimeoutMs);
     headersTimer.unref?.();
     req.on("response", () => clearTimeout(headersTimer));
@@ -337,7 +415,15 @@ async function sendRequest(input: {
   // Body idle deadline, mirroring undici's `bodyTimeout`: a stalled stream is
   // destroyed so `response.text()` rejects instead of hanging the caller.
   message.setTimeout(responseTimeoutMs, () => {
-    message.destroy(markRemoteConnectionFailure(error("Remote MCP endpoint stalled mid-response", "remote_http_response_timeout"), "connection_timeout"));
+    message.destroy(
+      markRemoteConnectionFailure(
+        error(
+          "Remote MCP endpoint stalled mid-response",
+          "remote_http_response_timeout",
+        ),
+        "connection_timeout",
+      ),
+    );
   });
   // A finished response must not leave an armed socket timer behind, or a later
   // reader of the same socket inherits a deadline it never asked for.
@@ -359,8 +445,16 @@ async function sendRequest(input: {
   if (nullBody) message.resume();
 
   return new Response(
-    nullBody ? null : (Readable.toWeb(decodedBody(message, responseHeaders)) as unknown as ReadableStream<Uint8Array>),
-    { status, statusText: message.statusMessage ?? "", headers: responseHeaders },
+    nullBody
+      ? null
+      : (Readable.toWeb(
+          decodedBody(message, responseHeaders),
+        ) as unknown as ReadableStream<Uint8Array>),
+    {
+      status,
+      statusText: message.statusMessage ?? "",
+      headers: responseHeaders,
+    },
   );
 }
 
@@ -370,14 +464,17 @@ async function sendRequest(input: {
  * parse failure that looks like a broken MCP server.
  */
 function decodedBody(message: IncomingMessage, headers: Headers): Readable {
-  const encoding = (message.headers["content-encoding"] ?? "").trim().toLowerCase();
-  const decoder = encoding === "gzip" || encoding === "x-gzip"
-    ? createGunzip()
-    : encoding === "deflate"
-      ? createInflate()
-      : encoding === "br"
-        ? createBrotliDecompress()
-        : null;
+  const encoding = (message.headers["content-encoding"] ?? "")
+    .trim()
+    .toLowerCase();
+  const decoder =
+    encoding === "gzip" || encoding === "x-gzip"
+      ? createGunzip()
+      : encoding === "deflate"
+        ? createInflate()
+        : encoding === "br"
+          ? createBrotliDecompress()
+          : null;
   if (!decoder) return message;
   headers.delete("content-encoding");
   headers.delete("content-length");
@@ -388,11 +485,15 @@ function decodedBody(message: IncomingMessage, headers: Headers): Readable {
 function readRequestBody(body: RequestInit["body"]): Buffer | undefined {
   if (body === undefined || body === null) return undefined;
   if (typeof body === "string") return Buffer.from(body, "utf8");
-  if (body instanceof URLSearchParams) return Buffer.from(body.toString(), "utf8");
+  if (body instanceof URLSearchParams)
+    return Buffer.from(body.toString(), "utf8");
   if (Buffer.isBuffer(body)) return body;
   if (body instanceof ArrayBuffer) return Buffer.from(body);
-  if (ArrayBuffer.isView(body)) return Buffer.from(body.buffer, body.byteOffset, body.byteLength);
-  throw new TypeError("Guarded remote HTTP requests only support string, URLSearchParams and buffer bodies");
+  if (ArrayBuffer.isView(body))
+    return Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+  throw new TypeError(
+    "Guarded remote HTTP requests only support string, URLSearchParams and buffer bodies",
+  );
 }
 
 function once(
@@ -402,11 +503,21 @@ function once(
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => {
-      settle(markRemoteConnectionFailure(new Error(`Timed out trying to ${input.what} the remote MCP endpoint`), "connection_timeout"));
+      settle(
+        markRemoteConnectionFailure(
+          new Error(
+            `Timed out trying to ${input.what} the remote MCP endpoint`,
+          ),
+          "connection_timeout",
+        ),
+      );
     }, input.timeoutMs);
     timer.unref?.();
 
-    const onAbort = () => settle(input.signal?.reason ?? new Error("Remote MCP request was aborted"));
+    const onAbort = () =>
+      settle(
+        input.signal?.reason ?? new Error("Remote MCP request was aborted"),
+      );
 
     function settle(error?: Error) {
       clearTimeout(timer);

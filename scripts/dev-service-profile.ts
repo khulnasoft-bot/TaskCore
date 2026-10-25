@@ -3,7 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLocalServiceKey } from "../server/src/services/local-service-supervisor.ts";
 
-export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 
 export function createDevServiceIdentity(input: {
   mode: "watch" | "dev";
@@ -22,7 +25,8 @@ export function createDevServiceIdentity(input: {
     )
     .digest("hex");
 
-  const serviceName = input.mode === "watch" ? "taskcore-dev-watch" : "taskcore-dev-once";
+  const serviceName =
+    input.mode === "watch" ? "taskcore-dev-watch" : "taskcore-dev-once";
   const serviceKey = createLocalServiceKey({
     profileKind: "taskcore-dev",
     serviceName,

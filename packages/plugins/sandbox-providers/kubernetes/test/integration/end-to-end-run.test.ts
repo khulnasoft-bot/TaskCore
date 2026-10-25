@@ -24,7 +24,11 @@ import plugin from "../../src/plugin.js";
 import { createKubeConfig } from "../../src/kube-client.js";
 import { execInPod } from "../../src/pod-exec.js";
 import { sandboxCrOrchestrator } from "../../src/sandbox-cr-orchestrator.js";
-import { deleteNamespaceIfExists, kubectl, readKindKubeconfig } from "./_kind-harness.js";
+import {
+  deleteNamespaceIfExists,
+  kubectl,
+  readKindKubeconfig,
+} from "./_kind-harness.js";
 
 const NAMESPACE = "taskcore-spike-e2e";
 
@@ -75,15 +79,25 @@ describe("plugin-kubernetes end-to-end", () => {
         `get sa,role,rolebinding,resourcequota,limitrange,networkpolicy -n ${NAMESPACE} -o name`,
       );
       expect(all).toContain("serviceaccount/taskcore-tenant-sa");
-      expect(all).toContain("role.rbac.authorization.k8s.io/taskcore-tenant-role");
-      expect(all).toContain("rolebinding.rbac.authorization.k8s.io/taskcore-tenant-rb");
+      expect(all).toContain(
+        "role.rbac.authorization.k8s.io/taskcore-tenant-role",
+      );
+      expect(all).toContain(
+        "rolebinding.rbac.authorization.k8s.io/taskcore-tenant-rb",
+      );
       expect(all).toContain("resourcequota/taskcore-quota");
       expect(all).toContain("limitrange/taskcore-limits");
-      expect(all).toContain("networkpolicy.networking.k8s.io/taskcore-deny-all");
-      expect(all).toContain("networkpolicy.networking.k8s.io/taskcore-egress-allow");
+      expect(all).toContain(
+        "networkpolicy.networking.k8s.io/taskcore-deny-all",
+      );
+      expect(all).toContain(
+        "networkpolicy.networking.k8s.io/taskcore-egress-allow",
+      );
 
       // Verify the namespace has PSS-restricted labels
-      const ns = kubectl(`get namespace ${NAMESPACE} -o jsonpath='{.metadata.labels}'`);
+      const ns = kubectl(
+        `get namespace ${NAMESPACE} -o jsonpath='{.metadata.labels}'`,
+      );
       expect(ns).toContain("pod-security.kubernetes.io/enforce");
       expect(ns).toContain("restricted");
 
@@ -105,7 +119,9 @@ describe("plugin-kubernetes end-to-end", () => {
       // Allow a brief grace window for Foreground propagation to finish.
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const jobsAfter = kubectl(`get jobs -n ${NAMESPACE} -o name 2>&1 || true`);
+      const jobsAfter = kubectl(
+        `get jobs -n ${NAMESPACE} -o name 2>&1 || true`,
+      );
       expect(jobsAfter).not.toContain(`job.batch/${lease.providerLeaseId}`);
     },
     180_000,
@@ -142,7 +158,9 @@ describe("plugin-kubernetes end-to-end", () => {
       const sandboxes = kubectl(
         `get sandboxes.agents.x-k8s.io -n ${NAMESPACE} -o name 2>&1`,
       );
-      expect(sandboxes).toContain(`sandbox.agents.x-k8s.io/${lease.providerLeaseId}`);
+      expect(sandboxes).toContain(
+        `sandbox.agents.x-k8s.io/${lease.providerLeaseId}`,
+      );
 
       // Verify the per-run Secret exists (owned by the Sandbox CR)
       const secrets = kubectl(`get secrets -n ${NAMESPACE} -o name`);
@@ -169,13 +187,10 @@ describe("plugin-kubernetes end-to-end", () => {
       expect(podName).toBeTruthy();
 
       // Exec a simple echo command into the running pod
-      const execResult = await execInPod(
-        kc,
-        NAMESPACE,
-        podName!,
-        "agent",
-        ["echo", "hello"],
-      );
+      const execResult = await execInPod(kc, NAMESPACE, podName!, "agent", [
+        "echo",
+        "hello",
+      ]);
 
       expect(execResult.exitCode).toBe(0);
       expect(execResult.stdout.trim()).toBe("hello");

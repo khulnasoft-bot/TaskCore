@@ -18,11 +18,18 @@ import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
-import { heartbeatService, getTaskDrainStatus, startTaskDrain, stopTaskDrain } from "../services/heartbeat.ts";
+import {
+  heartbeatService,
+  getTaskDrainStatus,
+  startTaskDrain,
+  stopTaskDrain,
+} from "../services/heartbeat.ts";
 import { subscribeCompanyLiveEvents } from "../services/live-events.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -32,15 +39,22 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("heartbeat-task-drain-admission-release-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "heartbeat-task-drain-admission-release-",
+    );
     db = createDb(tempDb.connectionString);
   }, 60_000);
 
   function isHeartbeatRunDependentFkError(error: unknown) {
-    const message = error instanceof Error ? `${error.message} ${String(error.cause ?? "")}` : String(error);
+    const message =
+      error instanceof Error
+        ? `${error.message} ${String(error.cause ?? "")}`
+        : String(error);
     return (
       message.includes("heartbeat_run_events_run_id_heartbeat_runs_id_fk") ||
       message.includes("activity_log_run_id_heartbeat_runs_id_fk")
@@ -56,7 +70,8 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
         await db.delete(heartbeatRuns);
         return;
       } catch (error) {
-        if (!isHeartbeatRunDependentFkError(error) || attempt === 4) throw error;
+        if (!isHeartbeatRunDependentFkError(error) || attempt === 4)
+          throw error;
         await new Promise((resolve) => setTimeout(resolve, 25));
       }
     }
@@ -151,7 +166,8 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
   }
 
   it("releases the run, wakeup, and issue lock when a task drain trips right after the run is claimed", async () => {
-    const { companyId, issueId, runId, wakeupRequestId } = await seedQueuedRun();
+    const { companyId, issueId, runId, wakeupRequestId } =
+      await seedQueuedRun();
     const heartbeat = heartbeatService(db);
 
     // The claim path publishes a "heartbeat.run.status" live event with
@@ -162,7 +178,11 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
     // second one runs.
     const unsubscribe = subscribeCompanyLiveEvents(companyId, (event) => {
       const payload = event.payload as { runId?: string; status?: string };
-      if (event.type === "heartbeat.run.status" && payload.runId === runId && payload.status === "running") {
+      if (
+        event.type === "heartbeat.run.status" &&
+        payload.runId === runId &&
+        payload.status === "running"
+      ) {
         startTaskDrain({});
       }
     });
@@ -183,10 +203,17 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId))
       .then((rows) => rows[0] ?? null);
-    expect(run).toMatchObject({ status: "queued", startedAt: null, responsibleUserId: null });
+    expect(run).toMatchObject({
+      status: "queued",
+      startedAt: null,
+      responsibleUserId: null,
+    });
 
     const wakeup = await db
-      .select({ status: agentWakeupRequests.status, claimedAt: agentWakeupRequests.claimedAt })
+      .select({
+        status: agentWakeupRequests.status,
+        claimedAt: agentWakeupRequests.claimedAt,
+      })
       .from(agentWakeupRequests)
       .where(eq(agentWakeupRequests.id, wakeupRequestId))
       .then((rows) => rows[0] ?? null);
@@ -255,7 +282,10 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
       })
       .from(agentWakeupRequests)
       .then((rows) => rows[0] ?? null);
-    expect(wakeup).toMatchObject({ status: "queued", reason: "issue_assigned" });
+    expect(wakeup).toMatchObject({
+      status: "queued",
+      reason: "issue_assigned",
+    });
     expect(wakeup?.payload).not.toHaveProperty("heartbeatSkip");
     const queuedRuns = await db
       .select({ id: heartbeatRuns.id, status: heartbeatRuns.status })
@@ -301,7 +331,11 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
 
   // Inject one rollback only after the test starts task drain. Admission also
   // uses transactions, so transaction call numbers do not identify release.
-  function withFailingTransactionalUpdate(realDb: typeof db, failingTable: unknown, armed: () => boolean) {
+  function withFailingTransactionalUpdate(
+    realDb: typeof db,
+    failingTable: unknown,
+    armed: () => boolean,
+  ) {
     let injected = false;
     return new Proxy(realDb, {
       get(target, prop, receiver) {
@@ -330,17 +364,26 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
   }
 
   it("leaves the run row running for the orphan reaper when the atomic release fails", async () => {
-    const { companyId, issueId, runId, wakeupRequestId } = await seedQueuedRun();
+    const { companyId, issueId, runId, wakeupRequestId } =
+      await seedQueuedRun();
     // Fault the release transaction on the issue-lock write, so executeRun's
     // suppression branch catches the failure, logs it, and returns instead
     // of throwing. There is no in-process fallback or retry for this path.
     let releaseStarted = false;
-    const failingDb = withFailingTransactionalUpdate(db, issues, () => releaseStarted);
+    const failingDb = withFailingTransactionalUpdate(
+      db,
+      issues,
+      () => releaseStarted,
+    );
     const heartbeat = heartbeatService(failingDb);
 
     const unsubscribe = subscribeCompanyLiveEvents(companyId, (event) => {
       const payload = event.payload as { runId?: string; status?: string };
-      if (event.type === "heartbeat.run.status" && payload.runId === runId && payload.status === "running") {
+      if (
+        event.type === "heartbeat.run.status" &&
+        payload.runId === runId &&
+        payload.status === "running"
+      ) {
         startTaskDrain({});
         releaseStarted = true;
       }
@@ -390,14 +433,20 @@ describeEmbeddedPostgres("heartbeat task-drain admission release", () => {
     // releases the issue lock on its own cycle.
     const beforeExpiry = await heartbeat.reapOrphanedRuns();
     expect(beforeExpiry.runIds).not.toContain(runId);
-    await db.update(heartbeatRuns).set({
-      controllerLeaseExpiresAt: sql`clock_timestamp() - interval '1 second'`,
-    }).where(eq(heartbeatRuns.id, runId));
+    await db
+      .update(heartbeatRuns)
+      .set({
+        controllerLeaseExpiresAt: sql`clock_timestamp() - interval '1 second'`,
+      })
+      .where(eq(heartbeatRuns.id, runId));
     const reapResult = await heartbeat.reapOrphanedRuns();
     expect(reapResult.runIds).toContain(runId);
 
     const reapedRun = await db
-      .select({ status: heartbeatRuns.status, errorCode: heartbeatRuns.errorCode })
+      .select({
+        status: heartbeatRuns.status,
+        errorCode: heartbeatRuns.errorCode,
+      })
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId))
       .then((rows) => rows[0] ?? null);

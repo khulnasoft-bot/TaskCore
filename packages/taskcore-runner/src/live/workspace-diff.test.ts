@@ -4,7 +4,10 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { captureTaskcoreWorkspace, diffTaskcoreWorkspace } from "./workspace-diff.js";
+import {
+  captureTaskcoreWorkspace,
+  diffTaskcoreWorkspace,
+} from "./workspace-diff.js";
 
 describe("runner-verified workspace diffs", () => {
   it("captures create, modify, delete, and rename without runner-owned noise", async () => {
@@ -32,7 +35,9 @@ describe("runner-verified workspace diffs", () => {
       ["modify.txt", "modify"],
       ["renamed.txt", "rename"],
     ]);
-    expect(diff?.files.find((file) => file.path === "renamed.txt")?.previousPath).toBe("rename.txt");
+    expect(
+      diff?.files.find((file) => file.path === "renamed.txt")?.previousPath,
+    ).toBe("rename.txt");
     expect(JSON.stringify(diff)).not.toContain(".taskcore-runner-prp");
   });
 

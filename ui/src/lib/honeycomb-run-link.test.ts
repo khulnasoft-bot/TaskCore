@@ -22,9 +22,7 @@ describe("Honeycomb run links", () => {
     };
 
     expect(url.origin).toBe("https://ui.honeycomb.io");
-    expect(url.pathname).toBe(
-      "/taskcore/environments/test/datasets/taskcore/",
-    );
+    expect(url.pathname).toBe("/taskcore/environments/test/datasets/taskcore/");
     expect(query.calculations).toEqual([{ op: "COUNT" }]);
     expect(query.breakdowns).toEqual(["trace.trace_id"]);
     expect(query.filters).toEqual([

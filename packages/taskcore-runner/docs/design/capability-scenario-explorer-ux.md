@@ -84,8 +84,8 @@ Contents, top to bottom:
    of matched IDs. Debounce ≤ 150ms (Doherty).
 2. **Facet filters** (collapsible group, `--pcr-facet-height` baseline):
    - **Group** — the 16 eval groups (`hb 5 · co 6 · st 8 · cm 6 · se 4 ·
-     su 4 · bl 5 · dp 3 · ix 9 · ap 6 · ar 4 · er 9 · rf 22 · mh 4 · rs 3 ·
-     wk 8`), each with its case count.
+su 4 · bl 5 · dp 3 · ix 9 · ap 6 · ar 4 · er 9 · rf 22 · mh 4 · rs 3 ·
+wk 8`), each with its case count.
    - **Case** — direct case-ID picker (combobox) for jump-to-case.
    - **Disposition** — Control plane / Always tool / Optional tool, from
      `primaryDisposition`.
@@ -95,11 +95,11 @@ Contents, top to bottom:
      `approval:read`), rendered mono.
    - **Parity status** — Pass / Fail / Intentional gap / Not run, from the
      parity artifact.
-   Facets are AND-combined across facets, OR-combined within a facet. Every
-   facet value shows its live result count; zero-count values stay visible
-   but disabled (recognition over recall — the vocabulary stays learnable).
-   An active-filter chip row with per-chip remove and one **Clear filters**
-   affordance sits above the list (forgiveness).
+     Facets are AND-combined across facets, OR-combined within a facet. Every
+     facet value shows its live result count; zero-count values stay visible
+     but disabled (recognition over recall — the vocabulary stays learnable).
+     An active-filter chip row with per-chip remove and one **Clear filters**
+     affordance sits above the list (forgiveness).
 3. **Case list** — grouped by eval group with sticky group headers. Each row:
    case ID (mono, `--pcr-font-size-xs`), title (one line, truncated with
    full text in a tooltip), disposition badge, parity status dot+icon.
@@ -165,7 +165,7 @@ Failed/denied entries render in place on `--pcr-danger-surface` with the
 exact typed denial (§5) — failures are part of the record, never toast-only.
 
 Restraint/no-call scenarios (`rs-*`, `er-*` restraint cases) must remain
-legible when the correct behavior is *absence*: after the final agent turn
+legible when the correct behavior is _absence_: after the final agent turn
 the transcript appends a system note “No further operations — N forbidden
 operations, none invoked” which deep-links the Parity tab’s forbidden list.
 Restraint evidence must never depend on an empty screen.
@@ -292,16 +292,16 @@ scrollbar appears at 390px (SDK finding).
 
 States that must be designed, not defaulted:
 
-| State | Surface | Rendering |
-| --- | --- | --- |
-| No scenario selected | Center + inspector | Explorer intro card: corpus stats (106 cases · 16 groups), “Pick a scenario” pointer at the rail, three example deep links. No dead panels. |
-| Scenario selected, not run | Run view | Header + context render from the index; transcript area shows a primed empty state (“Run to produce the deterministic timeline”) with the Run button duplicated inline (Fitts). Diff/Parity tabs show “No run yet.” |
-| Run in progress | All | Progress in the header (indeterminate, reduced-motion safe); transcript streams; tabs show live counts; controls disable with reasons. |
-| Run failed (harness error) | Run view | Danger banner with the exact diagnostic + “Re-run”; partial timeline stays visible and labeled partial. Never silently reset. |
-| Parity fail | Banner/Parity | Fail is a first-class rendered state (danger banner + failing assertion rows) — the explorer’s job is showing it, not avoiding it. |
-| Denied/absent tool | Transcript/Context | Per §5. |
-| Missing/invalid fixture or artifact | Shell | Error card naming the artifact path and the regenerate command (`pnpm generate:capability-inventory` / 7E command). No blank screen. |
-| Codex relay unavailable | Mode control | Disabled option + reason; fake mode remains fully usable. |
+| State                               | Surface            | Rendering                                                                                                                                                                                                           |
+| ----------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No scenario selected                | Center + inspector | Explorer intro card: corpus stats (106 cases · 16 groups), “Pick a scenario” pointer at the rail, three example deep links. No dead panels.                                                                         |
+| Scenario selected, not run          | Run view           | Header + context render from the index; transcript area shows a primed empty state (“Run to produce the deterministic timeline”) with the Run button duplicated inline (Fitts). Diff/Parity tabs show “No run yet.” |
+| Run in progress                     | All                | Progress in the header (indeterminate, reduced-motion safe); transcript streams; tabs show live counts; controls disable with reasons.                                                                              |
+| Run failed (harness error)          | Run view           | Danger banner with the exact diagnostic + “Re-run”; partial timeline stays visible and labeled partial. Never silently reset.                                                                                       |
+| Parity fail                         | Banner/Parity      | Fail is a first-class rendered state (danger banner + failing assertion rows) — the explorer’s job is showing it, not avoiding it.                                                                                  |
+| Denied/absent tool                  | Transcript/Context | Per §5.                                                                                                                                                                                                             |
+| Missing/invalid fixture or artifact | Shell              | Error card naming the artifact path and the regenerate command (`pnpm generate:capability-inventory` / 7E command). No blank screen.                                                                                |
+| Codex relay unavailable             | Mode control       | Disabled option + reason; fake mode remains fully usable.                                                                                                                                                           |
 
 ## 7. Deterministic screenshot routes
 
@@ -337,7 +337,7 @@ Determinism contract for screenshot/CI use:
 ## 8. Package-local implementation guidance (7F)
 
 - **Reuse first.** Shell, transcript, and inspector compose the frozen SDK:
-  `RunnerConsoleApp` is *not* the shell (this is not a chat console);
+  `RunnerConsoleApp` is _not_ the shell (this is not a chat console);
   compose `conversation`, `message`, `tool-item`, `tabs`, `card`, `badge`,
   `banner`, `menu`, `dialog`, `tooltip`, `replay-controls` from
   `@taskcore/taskcore-runner/react`. Semantic call detail uses the
@@ -353,14 +353,14 @@ Determinism contract for screenshot/CI use:
   `--pcr-diff-*` pair if muted/success/danger surfaces prove insufficient)
   is proposed in the 7F PR as a token addition, never inlined.
 - **Data contract consumed (owned by 7C/7E, not the UI):**
-  - *Scenario index* (generated from `eval-traceability.yaml`): `id`,
+  - _Scenario index_ (generated from `eval-traceability.yaml`): `id`,
     `title`, `group`, `fixture`, `actorRole`, `taskMode`,
     `primaryDisposition`, `requiredGrants[]`, `assertionClasses[]`,
     `sourceAnchor`, `skillElements[]`, `evidenceIds[]`,
     `forbiddenSemantics[]`. If `actorRole`/`taskMode` are not yet in the
     manifest, 7C adds them to the index generator — the UI must not infer
     them from prose.
-  - *Run artifact* (per scenario × mode): ordered `timeline[]` entries
+  - _Run artifact_ (per scenario × mode): ordered `timeline[]` entries
     discriminated as `semantic_call` / `semantic_result` /
     `control_plane_action` / `protocol_event_ref`; `exposure` (always /
     optional-with-grant / control-plane lists); `authorizationRecords[]`
@@ -392,20 +392,20 @@ UX acceptance set for 7F (they also cover the plan’s human-checkpoint
 scenario families: heartbeat, planning, blockers, approvals, artifacts,
 interactions, manager, multi-hop, restraint).
 
-| # | Slug | Route | Expected visible evidence |
-| --- | --- | --- | --- |
-| 1 | `explorer-home` | `#/` | Picker with all 16 group facets and counts summing to 106; intro card with corpus stats; no dead panels. |
-| 2 | `picker-filtered` | `#/?group=ix&disposition=always_agent_tool&parity=pass` | Active filter chips; filtered count visible; zero-count facet values disabled but legible; Clear filters affordance. |
-| 3 | `hb-heartbeat` | `#/case/hb-scoped-wake-01?run=fake&view=transcript` | Control-plane channel entries for scoped-wake routing and checkout (“no agent tool exists for this”), then `get_task_context` agent call; pass banner. |
-| 4 | `wk-planning` | `#/case/wk-plan-directive-01?run=fake&view=transcript` | `write_document` call with revision fields, revision-bound `request_human_input` (confirmation), review-parked disposition; no re-plan loop. |
-| 5 | `bl-blockers-diff` | `#/case/bl-create-blocked-01?run=fake&view=diff` | State diff: tasks domain shows the new task created blocked; blockers domain shows first-class `blockedByIssueIds`; unchanged domains collapsed. |
-| 6 | `ap-approval-denied` | `#/case/ap-mcp-gate-01?run=fake&view=authorization` | Authorization table with a Deny row (missing claim + reason, danger surface, no protected state); “Authorization · 1 deny” tab chip; transcript shows the typed denial card. |
-| 7 | `ar-artifacts` | `#/case/ar-upload-before-done-01?run=fake&view=transcript` | `register_deliverable` completing **before** `finish_task` in artifact order; deliverable metadata in the expanded call card. |
-| 8 | `ix-interaction` | `#/case/ix-checkbox-01?run=fake&view=transcript` | `request_human_input(kind=checkbox)` call card with options payload; control-plane wake/continuation entry; result inspection entry. |
-| 9 | `rf-manager` | `#/case/rf-api-mgr-heartbeat-01?run=fake&view=context` | Context tab: manager role; optional discovery tools listed **with their unlocking grants**; control-plane “no tool” list populated; traceability panel showing source anchor + skill elements. |
-| 10 | `mh-multihop` | `#/case/mh-subtask-tree-01?run=fake&view=parity` | Multi-hop assertion rows (child creation, chained blockers) all Pass; forbidden operations section showing “never invoked ✓”. |
-| 11 | `rs-restraint` | `#/case/rs-question-only-01?run=fake&view=parity` | Restraint verdict: answer-only transcript with the “No further operations” note; parity forbidden list showing zero state writes; Pass banner. |
-| 12 | `rs-secret-redaction` | `#/case/rs-secret-hygiene-01?run=fake&view=transcript` | Redaction chips (`•••` + rule name) in call/result cards; comment content free of the key; parity Pass. |
+| #   | Slug                  | Route                                                      | Expected visible evidence                                                                                                                                                                      |
+| --- | --------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `explorer-home`       | `#/`                                                       | Picker with all 16 group facets and counts summing to 106; intro card with corpus stats; no dead panels.                                                                                       |
+| 2   | `picker-filtered`     | `#/?group=ix&disposition=always_agent_tool&parity=pass`    | Active filter chips; filtered count visible; zero-count facet values disabled but legible; Clear filters affordance.                                                                           |
+| 3   | `hb-heartbeat`        | `#/case/hb-scoped-wake-01?run=fake&view=transcript`        | Control-plane channel entries for scoped-wake routing and checkout (“no agent tool exists for this”), then `get_task_context` agent call; pass banner.                                         |
+| 4   | `wk-planning`         | `#/case/wk-plan-directive-01?run=fake&view=transcript`     | `write_document` call with revision fields, revision-bound `request_human_input` (confirmation), review-parked disposition; no re-plan loop.                                                   |
+| 5   | `bl-blockers-diff`    | `#/case/bl-create-blocked-01?run=fake&view=diff`           | State diff: tasks domain shows the new task created blocked; blockers domain shows first-class `blockedByIssueIds`; unchanged domains collapsed.                                               |
+| 6   | `ap-approval-denied`  | `#/case/ap-mcp-gate-01?run=fake&view=authorization`        | Authorization table with a Deny row (missing claim + reason, danger surface, no protected state); “Authorization · 1 deny” tab chip; transcript shows the typed denial card.                   |
+| 7   | `ar-artifacts`        | `#/case/ar-upload-before-done-01?run=fake&view=transcript` | `register_deliverable` completing **before** `finish_task` in artifact order; deliverable metadata in the expanded call card.                                                                  |
+| 8   | `ix-interaction`      | `#/case/ix-checkbox-01?run=fake&view=transcript`           | `request_human_input(kind=checkbox)` call card with options payload; control-plane wake/continuation entry; result inspection entry.                                                           |
+| 9   | `rf-manager`          | `#/case/rf-api-mgr-heartbeat-01?run=fake&view=context`     | Context tab: manager role; optional discovery tools listed **with their unlocking grants**; control-plane “no tool” list populated; traceability panel showing source anchor + skill elements. |
+| 10  | `mh-multihop`         | `#/case/mh-subtask-tree-01?run=fake&view=parity`           | Multi-hop assertion rows (child creation, chained blockers) all Pass; forbidden operations section showing “never invoked ✓”.                                                                  |
+| 11  | `rs-restraint`        | `#/case/rs-question-only-01?run=fake&view=parity`          | Restraint verdict: answer-only transcript with the “No further operations” note; parity forbidden list showing zero state writes; Pass banner.                                                 |
+| 12  | `rs-secret-redaction` | `#/case/rs-secret-hygiene-01?run=fake&view=transcript`     | Redaction chips (`•••` + rule name) in call/result cards; comment content free of the key; parity Pass.                                                                                        |
 
 Mobile captures use the same routes; the segmented control must show the
 correct active segment (`Run` for transcript shots, `Inspect` for tab shots)
@@ -486,7 +486,7 @@ of the contract.
 
 7. **Shot 2's route uses `parity=not_run`.** §9 specified
    `#/?group=ix&disposition=always_agent_tool&parity=pass`. Parity status is a
-   property of a *run*, and the picker route runs nothing, so `parity=pass`
+   property of a _run_, and the picker route runs nothing, so `parity=pass`
    selects zero scenarios on a cold load. The recorded route filters on
    `not_run`, which is the honest cold-load state and still demonstrates
    chips, live counts, disabled zero-count values, and Clear filters.

@@ -56,7 +56,9 @@ const MANIFEST: TaskcorePluginManifestV1 = {
  * lookup key (notably the pluginKey) reports the worker as down — matches
  * the real `PluginWorkerManager` behavior which keys workers by UUID.
  */
-function createUuidKeyedWorkerManager(opts: { liveUuid?: string } = {}): PluginWorkerManager {
+function createUuidKeyedWorkerManager(
+  opts: { liveUuid?: string } = {},
+): PluginWorkerManager {
   const liveUuid = opts.liveUuid ?? PLUGIN_DB_ID;
   const isRunning = vi.fn((id: string) => id === liveUuid);
   const call = vi.fn(async (id: string) => {
@@ -102,7 +104,9 @@ function createDbStub(plugin: {
     // use it. In practice, dispatcher.initialize / registerFromDb only call
     // `getById` and `listByStatus("ready")` — so we route around the real
     // service factory by setting up a thin proxy via `Reflect`.
-    select: () => ({ from: () => ({ where: () => Promise.resolve([plugin]) }) }),
+    select: () => ({
+      from: () => ({ where: () => Promise.resolve([plugin]) }),
+    }),
   };
 }
 
@@ -119,7 +123,10 @@ describe("dispatcher.registerPluginTools — activation path", () => {
     dispatcher.registerPluginTools(PLUGIN_KEY, MANIFEST, PLUGIN_DB_ID);
 
     const tool = dispatcher.getTool(`${PLUGIN_KEY}:ping`);
-    expect(tool, "tool should be registered after registerPluginTools").not.toBeNull();
+    expect(
+      tool,
+      "tool should be registered after registerPluginTools",
+    ).not.toBeNull();
     expect(tool!.pluginDbId).toBe(PLUGIN_DB_ID);
 
     await expect(
@@ -175,7 +182,10 @@ describe("dispatcher — lifecycle path (plugin.enabled → registerFromDb)", ()
   it("registers tools by UUID when plugin.enabled fires (initialize + event re-entry)", async () => {
     const workerManager = createUuidKeyedWorkerManager();
     const lifecycleManager = createLifecycleManager();
-    const dispatcher = createPluginToolDispatcher({ workerManager, lifecycleManager: lifecycleManager as any });
+    const dispatcher = createPluginToolDispatcher({
+      workerManager,
+      lifecycleManager: lifecycleManager as any,
+    });
 
     // We exercise the public surface directly (no DB shim needed): the
     // dispatcher's lifecycle handler internally calls registry.registerPlugin
@@ -183,7 +193,9 @@ describe("dispatcher — lifecycle path (plugin.enabled → registerFromDb)", ()
     // bypass registerFromDb's DB lookup by reaching for the registry through
     // the public dispatcher surface — the lifecycle handler ends in the
     // exact same registry call shape, so coverage is equivalent.
-    dispatcher.getRegistry().registerPlugin(MANIFEST.pluginKey ?? PLUGIN_KEY, MANIFEST, PLUGIN_DB_ID);
+    dispatcher
+      .getRegistry()
+      .registerPlugin(MANIFEST.pluginKey ?? PLUGIN_KEY, MANIFEST, PLUGIN_DB_ID);
 
     // Tools registered with UUID.
     const tool = dispatcher.getTool(`${PLUGIN_KEY}:ping`);
@@ -213,7 +225,9 @@ describe("dispatcher — disable → enable cycle (re-entry)", () => {
 
     // 1. First activation — UUID threaded.
     dispatcher.registerPluginTools(PLUGIN_KEY, MANIFEST, PLUGIN_DB_ID);
-    expect(dispatcher.getTool(`${PLUGIN_KEY}:ping`)?.pluginDbId).toBe(PLUGIN_DB_ID);
+    expect(dispatcher.getTool(`${PLUGIN_KEY}:ping`)?.pluginDbId).toBe(
+      PLUGIN_DB_ID,
+    );
 
     // 2. Disable — tools unregistered.
     dispatcher.unregisterPluginTools(PLUGIN_KEY);

@@ -54,7 +54,9 @@ export function normalizeAnchorText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-export function projectMarkdownToText(markdown: string): DocumentTextProjection {
+export function projectMarkdownToText(
+  markdown: string,
+): DocumentTextProjection {
   const builder = new ProjectionBuilder(markdown);
   const lines = markdown.match(/[^\n]*(?:\n|$)/g) ?? [markdown];
   let offset = 0;
@@ -95,11 +97,11 @@ export function resolveProjectionRange(
   normalizedEnd: number,
 ): DocumentTextRange | null {
   if (
-    normalizedStart < 0
-    || normalizedEnd <= normalizedStart
-    || normalizedEnd > projection.text.length
-    || normalizedStart >= projection.positions.length
-    || normalizedEnd - 1 >= projection.positions.length
+    normalizedStart < 0 ||
+    normalizedEnd <= normalizedStart ||
+    normalizedEnd > projection.text.length ||
+    normalizedStart >= projection.positions.length ||
+    normalizedEnd - 1 >= projection.positions.length
   ) {
     return null;
   }
@@ -122,8 +124,14 @@ export function createDocumentAnchorSelector(
   return {
     quote: {
       exact: range.text,
-      prefix: projection.text.slice(Math.max(0, range.normalizedStart - contextLength), range.normalizedStart),
-      suffix: projection.text.slice(range.normalizedEnd, range.normalizedEnd + contextLength),
+      prefix: projection.text.slice(
+        Math.max(0, range.normalizedStart - contextLength),
+        range.normalizedStart,
+      ),
+      suffix: projection.text.slice(
+        range.normalizedEnd,
+        range.normalizedEnd + contextLength,
+      ),
     },
     position: {
       normalizedStart: range.normalizedStart,
@@ -134,7 +142,9 @@ export function createDocumentAnchorSelector(
   };
 }
 
-export function selectorToAnchorSnapshot(selector: DocumentAnnotationAnchorSelector): DocumentAnnotationAnchorSnapshot {
+export function selectorToAnchorSnapshot(
+  selector: DocumentAnnotationAnchorSelector,
+): DocumentAnnotationAnchorSnapshot {
   return {
     selectedText: selector.quote.exact,
     prefixText: selector.quote.prefix,
@@ -146,7 +156,9 @@ export function selectorToAnchorSnapshot(selector: DocumentAnnotationAnchorSelec
   };
 }
 
-export function anchorSnapshotToSelector(anchor: DocumentAnnotationAnchorSnapshot): DocumentAnnotationAnchorSelector {
+export function anchorSnapshotToSelector(
+  anchor: DocumentAnnotationAnchorSnapshot,
+): DocumentAnnotationAnchorSelector {
   return {
     quote: {
       exact: anchor.selectedText,
@@ -175,13 +187,16 @@ export function verifyDocumentAnchorSelector(
     return { ok: false, anchor: null, projection, reason: "invalid_range" };
   }
 
-  if (normalizeAnchorText(range.text) !== normalizeAnchorText(input.selector.quote.exact)) {
+  if (
+    normalizeAnchorText(range.text) !==
+    normalizeAnchorText(input.selector.quote.exact)
+  ) {
     return { ok: false, anchor: null, projection, reason: "quote_mismatch" };
   }
 
   if (
-    range.markdownStart !== input.selector.position.markdownStart
-    || range.markdownEnd !== input.selector.position.markdownEnd
+    range.markdownStart !== input.selector.position.markdownStart ||
+    range.markdownEnd !== input.selector.position.markdownEnd
   ) {
     return { ok: false, anchor: null, projection, reason: "position_mismatch" };
   }
@@ -189,34 +204,57 @@ export function verifyDocumentAnchorSelector(
   const selector = createDocumentAnchorSelector(projection, range, {
     contextLength: input.contextLength ?? DEFAULT_CONTEXT_LENGTH,
   });
-  return { ok: true, anchor: selectorToAnchorSnapshot(selector), projection, reason: "verified" };
+  return {
+    ok: true,
+    anchor: selectorToAnchorSnapshot(selector),
+    projection,
+    reason: "verified",
+  };
 }
 
-export function remapDocumentAnchor(input: RemapDocumentAnchorInput): RemapDocumentAnchorResult {
+export function remapDocumentAnchor(
+  input: RemapDocumentAnchorInput,
+): RemapDocumentAnchorResult {
   const projection = projectMarkdownToText(input.nextMarkdown);
   const contextLength = input.contextLength ?? DEFAULT_CONTEXT_LENGTH;
   const quote = normalizeAnchorText(input.previousAnchor.selectedText);
   if (!quote) {
-    return { anchorState: "orphaned", confidence: "missing", anchor: null, projection, reason: "missing" };
+    return {
+      anchorState: "orphaned",
+      confidence: "missing",
+      anchor: null,
+      projection,
+      reason: "missing",
+    };
   }
 
-  const exactCandidates = findOccurrences(projection.text, quote).map((start) => scoreCandidate({
-    projection,
-    start,
-    end: start + quote.length,
-    previousAnchor: input.previousAnchor,
-    reason: "exact",
-    contextLength,
-  }));
+  const exactCandidates = findOccurrences(projection.text, quote).map((start) =>
+    scoreCandidate({
+      projection,
+      start,
+      end: start + quote.length,
+      previousAnchor: input.previousAnchor,
+      reason: "exact",
+      contextLength,
+    }),
+  );
 
   if (exactCandidates.length > 0) {
     exactCandidates.sort((a, b) => b.score - a.score);
     const [best, second] = exactCandidates;
-    if (exactCandidates.length > 1 && (!second || Math.abs(best.score - second.score) < 0.05)) {
+    if (
+      exactCandidates.length > 1 &&
+      (!second || Math.abs(best.score - second.score) < 0.05)
+    ) {
       return {
         anchorState: "stale",
         confidence: "ambiguous",
-        anchor: buildAnchorSnapshot(projection, best.start, best.end, contextLength),
+        anchor: buildAnchorSnapshot(
+          projection,
+          best.start,
+          best.end,
+          contextLength,
+        ),
         projection,
         reason: "ambiguous",
       };
@@ -224,33 +262,65 @@ export function remapDocumentAnchor(input: RemapDocumentAnchorInput): RemapDocum
     return {
       anchorState: "active",
       confidence: exactCandidates.length === 1 ? "exact" : "duplicate",
-      anchor: buildAnchorSnapshot(projection, best.start, best.end, contextLength),
+      anchor: buildAnchorSnapshot(
+        projection,
+        best.start,
+        best.end,
+        contextLength,
+      ),
       projection,
       reason: exactCandidates.length === 1 ? "exact" : "duplicate",
     };
   }
 
-  const fuzzy = findFuzzyCandidate(projection, input.previousAnchor, contextLength);
+  const fuzzy = findFuzzyCandidate(
+    projection,
+    input.previousAnchor,
+    contextLength,
+  );
   if (fuzzy && fuzzy.score >= 0.58) {
     return {
       anchorState: "stale",
       confidence: "fuzzy",
-      anchor: buildAnchorSnapshot(projection, fuzzy.start, fuzzy.end, contextLength),
+      anchor: buildAnchorSnapshot(
+        projection,
+        fuzzy.start,
+        fuzzy.end,
+        contextLength,
+      ),
       projection,
       reason: "fuzzy",
     };
   }
 
-  return { anchorState: "orphaned", confidence: "missing", anchor: null, projection, reason: "missing" };
+  return {
+    anchorState: "orphaned",
+    confidence: "missing",
+    anchor: null,
+    projection,
+    reason: "missing",
+  };
 }
 
-function stripBlockSyntax(line: string, absoluteOffset: number): { text: string; sourceOffset: number } {
-  const blockMatch = line.match(/^\s{0,3}(?:(#{1,6})\s+|(?:[-+*]|\d+[.)])\s+|>\s?)/);
+function stripBlockSyntax(
+  line: string,
+  absoluteOffset: number,
+): { text: string; sourceOffset: number } {
+  const blockMatch = line.match(
+    /^\s{0,3}(?:(#{1,6})\s+|(?:[-+*]|\d+[.)])\s+|>\s?)/,
+  );
   if (!blockMatch) return { text: line, sourceOffset: absoluteOffset };
-  return { text: line.slice(blockMatch[0].length), sourceOffset: absoluteOffset + blockMatch[0].length };
+  return {
+    text: line.slice(blockMatch[0].length),
+    sourceOffset: absoluteOffset + blockMatch[0].length,
+  };
 }
 
-function addInlineMarkdownText(builder: ProjectionBuilder, text: string, sourceOffset: number): void {
+function addInlineMarkdownText(
+  builder: ProjectionBuilder,
+  text: string,
+  sourceOffset: number,
+): void {
   for (let index = 0; index < text.length; index += 1) {
     const char = text[index] ?? "";
     const absolute = sourceOffset + index;
@@ -292,7 +362,11 @@ function addInlineMarkdownText(builder: ProjectionBuilder, text: string, sourceO
   }
 }
 
-function isMarkdownFormattingChar(char: string, text: string, index: number): boolean {
+function isMarkdownFormattingChar(
+  char: string,
+  text: string,
+  index: number,
+): boolean {
   if (char === "*" || char === "_" || char === "~") return true;
   if (char === "\\" && index + 1 < text.length) return true;
   return false;
@@ -316,9 +390,18 @@ function scoreCandidate(args: {
   reason: Candidate["reason"];
   contextLength: number;
 }): Candidate {
-  const before = args.projection.text.slice(Math.max(0, args.start - args.contextLength), args.start);
-  const after = args.projection.text.slice(args.end, args.end + args.contextLength);
-  const prefixScore = suffixOverlapScore(args.previousAnchor.prefixText, before);
+  const before = args.projection.text.slice(
+    Math.max(0, args.start - args.contextLength),
+    args.start,
+  );
+  const after = args.projection.text.slice(
+    args.end,
+    args.end + args.contextLength,
+  );
+  const prefixScore = suffixOverlapScore(
+    args.previousAnchor.prefixText,
+    before,
+  );
   const suffixScore = prefixOverlapScore(args.previousAnchor.suffixText, after);
   const distance = Math.abs(args.start - args.previousAnchor.normalizedStart);
   const proximity = 1 / (1 + distance / 200);
@@ -335,21 +418,30 @@ function findFuzzyCandidate(
   previousAnchor: DocumentAnnotationAnchorSnapshot,
   contextLength: number,
 ): Candidate | null {
-  const words = normalizeAnchorText(previousAnchor.selectedText).split(" ").filter(Boolean);
+  const words = normalizeAnchorText(previousAnchor.selectedText)
+    .split(" ")
+    .filter(Boolean);
   if (words.length === 0) return null;
   const textWords = [...projection.text.matchAll(/\S+/g)].map((match) => ({
     text: match[0],
     start: match.index ?? 0,
     end: (match.index ?? 0) + match[0].length,
   }));
-  const windowSizes = new Set([words.length - 1, words.length, words.length + 1, words.length + 2].filter((n) => n > 0));
+  const windowSizes = new Set(
+    [words.length - 1, words.length, words.length + 1, words.length + 2].filter(
+      (n) => n > 0,
+    ),
+  );
   let best: Candidate | null = null;
 
   for (const size of windowSizes) {
     for (let index = 0; index + size <= textWords.length; index += 1) {
       const window = textWords.slice(index, index + size);
       const candidateText = window.map((word) => word.text).join(" ");
-      const similarity = similarityScore(normalizeAnchorText(previousAnchor.selectedText), candidateText);
+      const similarity = similarityScore(
+        normalizeAnchorText(previousAnchor.selectedText),
+        candidateText,
+      );
       if (similarity < 0.45) continue;
       const scored = scoreCandidate({
         projection,
@@ -373,7 +465,11 @@ function buildAnchorSnapshot(
   normalizedEnd: number,
   contextLength: number,
 ): DocumentAnnotationAnchorSnapshot {
-  const range = resolveProjectionRange(projection, normalizedStart, normalizedEnd);
+  const range = resolveProjectionRange(
+    projection,
+    normalizedStart,
+    normalizedEnd,
+  );
   if (!range) {
     return {
       selectedText: "",
@@ -385,26 +481,44 @@ function buildAnchorSnapshot(
       markdownEnd: 0,
     };
   }
-  const selector = createDocumentAnchorSelector(projection, range, { contextLength });
+  const selector = createDocumentAnchorSelector(projection, range, {
+    contextLength,
+  });
   return selectorToAnchorSnapshot(selector);
 }
 
-function prefixOverlapScore(expectedPrefix: string, actualPrefix: string): number {
+function prefixOverlapScore(
+  expectedPrefix: string,
+  actualPrefix: string,
+): number {
   const expected = normalizeAnchorText(expectedPrefix);
   const actual = normalizeAnchorText(actualPrefix);
   if (!expected) return 0.5;
-  for (let size = Math.min(expected.length, actual.length); size > 0; size -= 1) {
-    if (expected.slice(0, size) === actual.slice(0, size)) return size / expected.length;
+  for (
+    let size = Math.min(expected.length, actual.length);
+    size > 0;
+    size -= 1
+  ) {
+    if (expected.slice(0, size) === actual.slice(0, size))
+      return size / expected.length;
   }
   return 0;
 }
 
-function suffixOverlapScore(expectedPrefix: string, actualPrefix: string): number {
+function suffixOverlapScore(
+  expectedPrefix: string,
+  actualPrefix: string,
+): number {
   const expected = normalizeAnchorText(expectedPrefix);
   const actual = normalizeAnchorText(actualPrefix);
   if (!expected) return 0.5;
-  for (let size = Math.min(expected.length, actual.length); size > 0; size -= 1) {
-    if (expected.slice(-size) === actual.slice(-size)) return size / expected.length;
+  for (
+    let size = Math.min(expected.length, actual.length);
+    size > 0;
+    size -= 1
+  ) {
+    if (expected.slice(-size) === actual.slice(-size))
+      return size / expected.length;
   }
   return 0;
 }
@@ -413,10 +527,14 @@ function similarityScore(left: string, right: string): number {
   if (left === right) return 1;
   const leftWords = new Set(left.toLowerCase().split(/\s+/).filter(Boolean));
   const rightWords = new Set(right.toLowerCase().split(/\s+/).filter(Boolean));
-  const intersection = [...leftWords].filter((word) => rightWords.has(word)).length;
+  const intersection = [...leftWords].filter((word) =>
+    rightWords.has(word),
+  ).length;
   const union = new Set([...leftWords, ...rightWords]).size || 1;
   const jaccard = intersection / union;
-  const lengthRatio = Math.min(left.length, right.length) / Math.max(left.length, right.length, 1);
+  const lengthRatio =
+    Math.min(left.length, right.length) /
+    Math.max(left.length, right.length, 1);
   return jaccard * 0.75 + lengthRatio * 0.25;
 }
 
@@ -429,7 +547,11 @@ class ProjectionBuilder {
 
   addText(text: string, sourceOffset: number): void {
     for (let index = 0; index < text.length; index += 1) {
-      this.addChar(text[index] ?? "", sourceOffset + index, sourceOffset + index + 1);
+      this.addChar(
+        text[index] ?? "",
+        sourceOffset + index,
+        sourceOffset + index + 1,
+      );
     }
   }
 

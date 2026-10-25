@@ -35,10 +35,17 @@ describe("buildAgentSkillHaystack", () => {
 
   it("tolerates null / missing fields", () => {
     // 6 fields joined by a single space; only name is present.
-    expect(buildAgentSkillHaystack({ name: "Solo" })).toBe(["solo", "", "", "", "", ""].join(" "));
-    expect(buildAgentSkillHaystack({ name: "X", slug: null, description: null, categories: null })).toBe(
-      ["x", "", "", "", "", ""].join(" "),
+    expect(buildAgentSkillHaystack({ name: "Solo" })).toBe(
+      ["solo", "", "", "", "", ""].join(" "),
     );
+    expect(
+      buildAgentSkillHaystack({
+        name: "X",
+        slug: null,
+        description: null,
+        categories: null,
+      }),
+    ).toBe(["x", "", "", "", "", ""].join(" "));
   });
 });
 
@@ -67,7 +74,9 @@ describe("filterAgentSkills", () => {
   });
 
   it("filters by the shared haystack fields and preserves order", () => {
-    expect(filterAgentSkills(ROWS, "memory").map((r) => r.key)).toEqual(["para-memory-files"]);
+    expect(filterAgentSkills(ROWS, "memory").map((r) => r.key)).toEqual([
+      "para-memory-files",
+    ]);
     expect(filterAgentSkills(ROWS, "a").map((r) => r.key)).toEqual([
       "agent-browser",
       "para-memory-files",

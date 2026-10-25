@@ -2,7 +2,10 @@ import { mkdir, open, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { withDirectoryMergeLock } from "@taskcore/adapter-utils/workspace-restore-merge";
-import { USE_SOURCE_EXIT, decideGrokAuthMerge } from "./grok-auth-merge-decision.js";
+import {
+  USE_SOURCE_EXIT,
+  decideGrokAuthMerge,
+} from "./grok-auth-merge-decision.js";
 
 // The copy-out runs the direction-agnostic decision predicate with the
 // sandbox credential as the `source` and the shared host credential as the
@@ -59,7 +62,9 @@ export interface CopyBackGrokAuthInput {
  * is logged, then the error is rethrown — the message would embed the home
  * path, and the path embeds the account handle.
  */
-export async function copyBackGrokAuth(input: CopyBackGrokAuthInput): Promise<CopyBackGrokAuthOutcome> {
+export async function copyBackGrokAuth(
+  input: CopyBackGrokAuthInput,
+): Promise<CopyBackGrokAuthOutcome> {
   const { readSandboxAuth, hostHomeDir, log, env } = input;
 
   // Read first (outside the lock) — a read never mutates the host, so there
@@ -102,9 +107,13 @@ export async function copyBackGrokAuth(input: CopyBackGrokAuthInput): Promise<Co
           await handle.writeFile(sandboxAuthBytes);
           await handle.close();
 
-          const decision = await decideGrokAuthMerge(stagedTempPath, hostAuthPath, {
-            errorLabel: "grok auth copy-out",
-          });
+          const decision = await decideGrokAuthMerge(
+            stagedTempPath,
+            hostAuthPath,
+            {
+              errorLabel: "grok auth copy-out",
+            },
+          );
           if (decision === USE_SOURCE_EXIT) {
             // Atomic same-directory swap; rename preserves the temp's 0600 mode.
             await rename(stagedTempPath, hostAuthPath);
@@ -131,7 +140,9 @@ export async function copyBackGrokAuth(input: CopyBackGrokAuthInput): Promise<Co
   } catch (error) {
     const code = (error as NodeJS.ErrnoException | null)?.code ?? "unknown";
     await Promise.resolve(
-      log(`[taskcore] Grok auth copy-out failed (${code}); host credential kept.`),
+      log(
+        `[taskcore] Grok auth copy-out failed (${code}); host credential kept.`,
+      ),
     ).catch(() => undefined);
     throw error;
   }

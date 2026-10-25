@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createRuntimeToolsToken, verifyRuntimeToolsToken } from "./runtime-tools-token.js";
+import {
+  createRuntimeToolsToken,
+  verifyRuntimeToolsToken,
+} from "./runtime-tools-token.js";
 
 describe("runtime connection tools token", () => {
   afterEach(() => {

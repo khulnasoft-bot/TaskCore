@@ -1,4 +1,7 @@
-import { capabilitySemanticTool, CAPABILITY_SEMANTIC_TOOL_CATALOG } from "./capability-semantic-tool-catalog.js";
+import {
+  capabilitySemanticTool,
+  CAPABILITY_SEMANTIC_TOOL_CATALOG,
+} from "./capability-semantic-tool-catalog.js";
 import {
   CAPABILITY_CONTROL_PLANE_OWNED_OPERATION_IDS,
   type CapabilityAuthorizationRecord,
@@ -12,14 +15,24 @@ export class CapabilityToolAuthorizationEngine {
   #sequence = 0;
   readonly #records: CapabilityAuthorizationRecord[] = [];
 
-  computeVisibleTools(context: CapabilityToolAuthorizationContext): CapabilityVisibleToolSet {
+  computeVisibleTools(
+    context: CapabilityToolAuthorizationContext,
+  ): CapabilityVisibleToolSet {
     const tools: CapabilitySemanticToolDescriptor[] = [];
-    const authorizationRecords = CAPABILITY_SEMANTIC_TOOL_CATALOG.map((tool) => {
-      const decision = this.#evaluate(tool, context, undefined);
-      const record = this.#record(context, tool, "exposure", decision.allowed ? "exposed" : "absent", decision.reason);
-      if (decision.allowed) tools.push(tool);
-      return record;
-    });
+    const authorizationRecords = CAPABILITY_SEMANTIC_TOOL_CATALOG.map(
+      (tool) => {
+        const decision = this.#evaluate(tool, context, undefined);
+        const record = this.#record(
+          context,
+          tool,
+          "exposure",
+          decision.allowed ? "exposed" : "absent",
+          decision.reason,
+        );
+        if (decision.allowed) tools.push(tool);
+        return record;
+      },
+    );
     return deepFreeze({
       schema: "taskcore.capability.visible-tools.v1",
       tools: clone(tools),
@@ -32,12 +45,26 @@ export class CapabilityToolAuthorizationEngine {
     input: CapabilityJsonValue,
     context: CapabilityToolAuthorizationContext,
   ): CapabilityAuthorizationRecord {
-    if ((CAPABILITY_CONTROL_PLANE_OWNED_OPERATION_IDS as readonly string[]).includes(operationId)) {
-      return this.#recordUnknown(context, operationId, "absent", "control_plane_owned_operation");
+    if (
+      (
+        CAPABILITY_CONTROL_PLANE_OWNED_OPERATION_IDS as readonly string[]
+      ).includes(operationId)
+    ) {
+      return this.#recordUnknown(
+        context,
+        operationId,
+        "absent",
+        "control_plane_owned_operation",
+      );
     }
     const tool = capabilitySemanticTool(operationId);
     if (tool === undefined) {
-      return this.#recordUnknown(context, operationId, "absent", "unknown_operation");
+      return this.#recordUnknown(
+        context,
+        operationId,
+        "absent",
+        "unknown_operation",
+      );
     }
     const decision = this.#evaluate(tool, context, input);
     return this.#record(
@@ -66,9 +93,13 @@ export class CapabilityToolAuthorizationEngine {
     afterRevision: number,
     entityRefs: string[],
   ): CapabilityAuthorizationRecord {
-    const record = this.#records.find((candidate) => candidate.sequence === sequence);
+    const record = this.#records.find(
+      (candidate) => candidate.sequence === sequence,
+    );
     if (record === undefined || record.outcome !== "allowed") {
-      throw new Error(`cannot attach state change to authorization record ${sequence}`);
+      throw new Error(
+        `cannot attach state change to authorization record ${sequence}`,
+      );
     }
     record.resultingStateChange = {
       beforeRevision,
@@ -104,18 +135,27 @@ export class CapabilityToolAuthorizationEngine {
     if (tool.requiredClaims.some((claim) => deniedClaims.has(claim))) {
       return { allowed: false, reason: "required_claim_denied_by_policy" };
     }
-    const grants = new Set([...context.actor.capabilityGrants, ...context.scenarioGrants]);
+    const grants = new Set([
+      ...context.actor.capabilityGrants,
+      ...context.scenarioGrants,
+    ]);
     if (tool.requiredClaims.some((claim) => !grants.has(claim))) {
       return { allowed: false, reason: "required_claim_missing" };
     }
-    if (tool.operationId === "read_secret_value" && policy.allowSecretValueAccess !== true) {
+    if (
+      tool.operationId === "read_secret_value" &&
+      policy.allowSecretValueAccess !== true
+    ) {
       return { allowed: false, reason: "secret_value_access_disabled" };
     }
     if (tool.operationId === "generic_api_request") {
       if (policy.allowGenericEscapeHatch !== true) {
         return { allowed: false, reason: "generic_escape_hatch_disabled" };
       }
-      if (input !== undefined && !genericRequestAllowed(input, policy.genericEscapeHatchAllowlist ?? [])) {
+      if (
+        input !== undefined &&
+        !genericRequestAllowed(input, policy.genericEscapeHatchAllowlist ?? [])
+      ) {
         return { allowed: false, reason: "generic_escape_hatch_target_denied" };
       }
     }
@@ -131,7 +171,10 @@ export class CapabilityToolAuthorizationEngine {
     }
     return {
       allowed: true,
-      reason: tool.disposition === "always_agent_tool" ? "task_scoped_always_tool" : "required_claims_granted",
+      reason:
+        tool.disposition === "always_agent_tool"
+          ? "task_scoped_always_tool"
+          : "required_claims_granted",
     };
   }
 
@@ -142,7 +185,12 @@ export class CapabilityToolAuthorizationEngine {
     outcome: CapabilityAuthorizationRecord["outcome"],
     reason: string,
   ): CapabilityAuthorizationRecord {
-    const grants = [...new Set([...context.actor.capabilityGrants, ...context.scenarioGrants])].sort();
+    const grants = [
+      ...new Set([
+        ...context.actor.capabilityGrants,
+        ...context.scenarioGrants,
+      ]),
+    ].sort();
     const consideredClaims = [...tool.requiredClaims].sort();
     return this.#store({
       schema: "taskcore.capability.authorization-record.v1",
@@ -155,9 +203,14 @@ export class CapabilityToolAuthorizationEngine {
       outcome,
       consideredClaims,
       grantedClaims: consideredClaims.filter((claim) => grants.includes(claim)),
-      missingClaims: consideredClaims.filter((claim) => !grants.includes(claim)),
+      missingClaims: consideredClaims.filter(
+        (claim) => !grants.includes(claim),
+      ),
       reason,
-      redactions: tool.redaction.map(({ path, replacement }) => ({ path, replacement })),
+      redactions: tool.redaction.map(({ path, replacement }) => ({
+        path,
+        replacement,
+      })),
       resultingStateChange: null,
     });
   }
@@ -197,12 +250,18 @@ function genericRequestAllowed(
   allowlist: Array<{ method: string; path: string }>,
 ): boolean {
   const object = objectValue(input);
-  if (object === undefined || typeof object.method !== "string" || typeof object.path !== "string") {
+  if (
+    object === undefined ||
+    typeof object.method !== "string" ||
+    typeof object.path !== "string"
+  ) {
     return false;
   }
   const method = object.method.toUpperCase();
   return allowlist.some(
-    (entry) => entry.method.toUpperCase() === method && pathMatches(entry.path, object.path as string),
+    (entry) =>
+      entry.method.toUpperCase() === method &&
+      pathMatches(entry.path, object.path as string),
   );
 }
 
@@ -211,7 +270,9 @@ function pathMatches(pattern: string, path: string): boolean {
   return path.startsWith(pattern.slice(0, -1));
 }
 
-function objectValue(value: CapabilityJsonValue): Record<string, CapabilityJsonValue> | undefined {
+function objectValue(
+  value: CapabilityJsonValue,
+): Record<string, CapabilityJsonValue> | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? value
     : undefined;
@@ -226,7 +287,8 @@ function clone<T>(value: T): T {
 }
 
 function deepFreeze<T>(value: T): T {
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
+  if (typeof value !== "object" || value === null || Object.isFrozen(value))
+    return value;
   Object.freeze(value);
   for (const child of Object.values(value)) deepFreeze(child);
   return value;

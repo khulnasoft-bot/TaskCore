@@ -34,9 +34,17 @@ import { describe, expect, it } from "vitest";
  * version.
  */
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+);
 const dockerfile = readFileSync(path.join(repoRoot, "Dockerfile"), "utf8");
-const workflow = readFileSync(path.join(repoRoot, ".github", "workflows", "release.yml"), "utf8");
+const workflow = readFileSync(
+  path.join(repoRoot, ".github", "workflows", "release.yml"),
+  "utf8",
+);
 const serverPackageJson = JSON.parse(
   readFileSync(path.join(repoRoot, "server", "package.json"), "utf8"),
 ) as { peerDependencies?: Record<string, string> };
@@ -65,7 +73,12 @@ function buildFakeServerDir(withTsxLoader: boolean) {
   mkdirSync(sentryDir, { recursive: true });
   writeFileSync(
     path.join(sentryDir, "package.json"),
-    JSON.stringify({ name: "@sentry/node", version: "9.9.9", type: "module", main: "index.mjs" }),
+    JSON.stringify({
+      name: "@sentry/node",
+      version: "9.9.9",
+      type: "module",
+      main: "index.mjs",
+    }),
   );
   writeFileSync(path.join(sentryDir, "index.mjs"), "export {};\n");
 
@@ -73,7 +86,10 @@ function buildFakeServerDir(withTsxLoader: boolean) {
     const tsxStoreDist = path.join(root, "tsx-store", "dist");
     mkdirSync(tsxStoreDist, { recursive: true });
     writeFileSync(path.join(tsxStoreDist, "loader.mjs"), "export {};\n");
-    symlinkSync(path.join("..", "..", "tsx-store"), path.join(serverDir, "node_modules", "tsx"));
+    symlinkSync(
+      path.join("..", "..", "tsx-store"),
+      path.join(serverDir, "node_modules", "tsx"),
+    );
   }
 
   const probeCopy = path.join(serverDir, "probe.mjs");
@@ -95,16 +111,24 @@ describe("cloud image Sentry install", () => {
 
   it("installs @sentry/node only after the production stage body ends", () => {
     const stageHeaderPattern = /^FROM\s+\S+\s+AS\s+(\S+)/gim;
-    const stages = [...dockerfile.matchAll(stageHeaderPattern)].map((match) => ({
-      name: match[1],
-      index: match.index ?? 0,
-    }));
+    const stages = [...dockerfile.matchAll(stageHeaderPattern)].map(
+      (match) => ({
+        name: match[1],
+        index: match.index ?? 0,
+      }),
+    );
 
-    const productionIndex = stages.findIndex((stage) => stage.name.toLowerCase() === "production");
-    expect(productionIndex, "the Dockerfile must declare a production stage").toBeGreaterThanOrEqual(0);
+    const productionIndex = stages.findIndex(
+      (stage) => stage.name.toLowerCase() === "production",
+    );
+    expect(
+      productionIndex,
+      "the Dockerfile must declare a production stage",
+    ).toBeGreaterThanOrEqual(0);
 
     // The next declared stage after `production` marks where its body ends.
-    const productionBodyEnd = stages[productionIndex + 1]?.index ?? dockerfile.length;
+    const productionBodyEnd =
+      stages[productionIndex + 1]?.index ?? dockerfile.length;
 
     const sentryMentionOffsets = [...dockerfile.matchAll(/@sentry\/node/g)].map(
       (match) => match.index ?? 0,
@@ -177,12 +201,18 @@ describe("cloud image Sentry probe: the server's tsx loader", () => {
     const { root, probeCopy } = buildFakeServerDir(false);
     try {
       const result = runProbe(probeCopy);
-      expect(result.status, "the probe must fail loudly, not boot a broken image").not.toBe(0);
+      expect(
+        result.status,
+        "the probe must fail loudly, not boot a broken image",
+      ).not.toBe(0);
       expect(
         result.stderr,
         "the error must name the exact path the production CMD boots through",
       ).toContain(path.join("node_modules", "tsx", "dist", "loader.mjs"));
-      expect(result.stdout, "a failed probe must not print a version string").toBe("");
+      expect(
+        result.stdout,
+        "a failed probe must not print a version string",
+      ).toBe("");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -64,7 +64,9 @@ function firstHeader(value: string | string[] | undefined): string | undefined {
  * present, however, it must explicitly describe the expected same-origin
  * `fetch()` request.
  */
-export function capabilityTailnetFetchMetadataAllowed(headers: IncomingHttpHeaders): boolean {
+export function capabilityTailnetFetchMetadataAllowed(
+  headers: IncomingHttpHeaders,
+): boolean {
   const expectations = [
     ["sec-fetch-site", "same-origin"],
     ["sec-fetch-mode", "cors"],
@@ -82,7 +84,11 @@ export function capabilityTailnetAdmissionFailure(
 ): CapabilityTailnetAdmissionFailure | null {
   const host = firstHeader(input.headers.host)?.toLowerCase() ?? "";
   if (host !== input.expectedHost) {
-    return { status: 403, code: "host_denied", message: "Request host is not allowed." };
+    return {
+      status: 403,
+      code: "host_denied",
+      message: "Request host is not allowed.",
+    };
   }
 
   const isApi = input.pathname.startsWith("/api/capability/ui/");
@@ -98,7 +104,11 @@ export function capabilityTailnetAdmissionFailure(
   if (!mutation) return null;
 
   if (firstHeader(input.headers.origin) !== input.expectedOrigin) {
-    return { status: 403, code: "origin_denied", message: "Mutation origin is not allowed." };
+    return {
+      status: 403,
+      code: "origin_denied",
+      message: "Mutation origin is not allowed.",
+    };
   }
 
   if (!capabilityTailnetFetchMetadataAllowed(input.headers)) {
@@ -127,7 +137,9 @@ export function capabilityTailnetAdmissionFailure(
 function parsePort(value: string | undefined): number {
   const port = Number(value ?? "0");
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error("Capability tailnet gateway requires valid listener and upstream ports");
+    throw new Error(
+      "Capability tailnet gateway requires valid listener and upstream ports",
+    );
   }
   return port;
 }
@@ -149,7 +161,9 @@ export function resolveCapabilityTailnetGatewayConfig(
     publicOrigin.username !== "" ||
     publicOrigin.password !== ""
   ) {
-    throw new Error("Capability tailnet gateway requires an exact bind, loopback upstream, and public origin");
+    throw new Error(
+      "Capability tailnet gateway requires an exact bind, loopback upstream, and public origin",
+    );
   }
 
   return {
@@ -165,14 +179,18 @@ export function resolveCapabilityTailnetGatewayConfig(
   };
 }
 
-function securityHeaders(secureTransport: boolean, headers: OutgoingHttpHeaders = {}): OutgoingHttpHeaders {
+function securityHeaders(
+  secureTransport: boolean,
+  headers: OutgoingHttpHeaders = {},
+): OutgoingHttpHeaders {
   return {
     ...headers,
     "cross-origin-opener-policy": "same-origin",
     "cross-origin-resource-policy": "same-origin",
     "content-security-policy":
       "default-src 'self'; base-uri 'none'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'",
-    "permissions-policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+    "permissions-policy":
+      "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
     "referrer-policy": "no-referrer",
     "x-content-type-options": "nosniff",
     "x-frame-options": "DENY",
@@ -182,7 +200,9 @@ function securityHeaders(secureTransport: boolean, headers: OutgoingHttpHeaders 
   };
 }
 
-export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayConfig): Server {
+export function createCapabilityTailnetGateway(
+  config: CapabilityTailnetGatewayConfig,
+): Server {
   const capability = randomBytes(CAPABILITY_BYTES).toString("base64url");
   const secureTransport = config.publicOrigin.protocol === "https:";
   const capabilityCookieName = secureTransport
@@ -255,7 +275,9 @@ export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayC
           });
         },
       );
-      probe.once("timeout", () => probe.destroy(new Error("health probe timeout")));
+      probe.once("timeout", () =>
+        probe.destroy(new Error("health probe timeout")),
+      );
       probe.once("error", () => {
         if (!response.headersSent) {
           sendJson(response, 503, {
@@ -283,7 +305,9 @@ export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayC
       capabilityValid: capabilityValid(firstHeader(request.headers.cookie)),
     });
     if (failure !== null) {
-      sendJson(response, failure.status, { error: { code: failure.code, message: failure.message } });
+      sendJson(response, failure.status, {
+        error: { code: failure.code, message: failure.message },
+      });
       return;
     }
 
@@ -295,7 +319,8 @@ export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayC
     headers["x-forwarded-for"] = request.socket.remoteAddress ?? "tailnet-peer";
 
     const isTurnStream =
-      request.method === "POST" && url.pathname === "/api/capability/ui/message";
+      request.method === "POST" &&
+      url.pathname === "/api/capability/ui/message";
     if (isTurnStream) delete headers["accept-encoding"];
 
     const upstream = requestHttp(
@@ -310,7 +335,8 @@ export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayC
       (upstreamResponse) => {
         const responseHeaders: OutgoingHttpHeaders = {};
         for (const [name, value] of Object.entries(upstreamResponse.headers)) {
-          if (!HOP_BY_HOP_HEADERS.has(name) && value !== undefined) responseHeaders[name] = value;
+          if (!HOP_BY_HOP_HEADERS.has(name) && value !== undefined)
+            responseHeaders[name] = value;
         }
         if (isTurnStream) {
           delete responseHeaders["content-encoding"];
@@ -322,7 +348,8 @@ export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayC
           url.pathname === "/" &&
           (upstreamResponse.statusCode ?? 500) < 400
         ) {
-          responseHeaders["set-cookie"] = `${capabilityCookieName}=${capability}; Path=/; HttpOnly; SameSite=Strict${secureTransport ? "; Secure" : ""}`;
+          responseHeaders["set-cookie"] =
+            `${capabilityCookieName}=${capability}; Path=/; HttpOnly; SameSite=Strict${secureTransport ? "; Secure" : ""}`;
         }
         response.writeHead(
           upstreamResponse.statusCode ?? 502,
@@ -333,14 +360,19 @@ export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayC
       },
     );
 
-    upstream.once("timeout", () => upstream.destroy(new Error("upstream timeout")));
+    upstream.once("timeout", () =>
+      upstream.destroy(new Error("upstream timeout")),
+    );
     upstream.once("error", () => {
       if (response.headersSent) {
         response.destroy();
         return;
       }
       sendJson(response, 502, {
-        error: { code: "upstream_unavailable", message: "Capability preview is unavailable." },
+        error: {
+          code: "upstream_unavailable",
+          message: "Capability preview is unavailable.",
+        },
       });
     });
     request.once("aborted", () => upstream.destroy());
@@ -354,7 +386,9 @@ export function createCapabilityTailnetGateway(config: CapabilityTailnetGatewayC
   return server;
 }
 
-export function startCapabilityTailnetGateway(env: NodeJS.ProcessEnv = process.env): Server {
+export function startCapabilityTailnetGateway(
+  env: NodeJS.ProcessEnv = process.env,
+): Server {
   const config = resolveCapabilityTailnetGatewayConfig(env);
   const server = createCapabilityTailnetGateway(config);
   server.listen(config.listenPort, config.bindHost, () => {
@@ -373,7 +407,9 @@ export function startCapabilityTailnetGateway(env: NodeJS.ProcessEnv = process.e
   return server;
 }
 
-const isMain = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
+const isMain =
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
   const server = startCapabilityTailnetGateway();
   const stop = (): void => {

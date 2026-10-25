@@ -17,14 +17,16 @@ vi.mock("./environments.js", () => ({
   }),
 }));
 
-const {
-  parseExecutionPolicyBootstrapEnv,
-  applyExecutionPolicyBootstrap,
-} = await import("./execution-policy-bootstrap.js");
-type ExecutionPolicyBootstrapEnv = import("./execution-policy-bootstrap.js").ExecutionPolicyBootstrapEnv;
-type ExecutionPolicyBootstrap = import("./execution-policy-bootstrap.js").ExecutionPolicyBootstrap;
+const { parseExecutionPolicyBootstrapEnv, applyExecutionPolicyBootstrap } =
+  await import("./execution-policy-bootstrap.js");
+type ExecutionPolicyBootstrapEnv =
+  import("./execution-policy-bootstrap.js").ExecutionPolicyBootstrapEnv;
+type ExecutionPolicyBootstrap =
+  import("./execution-policy-bootstrap.js").ExecutionPolicyBootstrap;
 
-function env(overrides: Record<string, string | undefined>): ExecutionPolicyBootstrapEnv {
+function env(
+  overrides: Record<string, string | undefined>,
+): ExecutionPolicyBootstrapEnv {
   return overrides;
 }
 
@@ -92,16 +94,27 @@ describe("parseExecutionPolicyBootstrapEnv", () => {
       env({
         TASKCORE_EXECUTION_MODE: "kubernetes",
         TASKCORE_ADAPTERS: JSON.stringify([
-          { adapterType: "opencode_local", runtimeImage: "img", envKeys: ["ANTHROPIC_API_KEY"], allowFqdns: [], probeCommand: ["opencode", "--version"], defaultEnv: { ANTHROPIC_BASE_URL: "http://bifrost:8080" } },
+          {
+            adapterType: "opencode_local",
+            runtimeImage: "img",
+            envKeys: ["ANTHROPIC_API_KEY"],
+            allowFqdns: [],
+            probeCommand: ["opencode", "--version"],
+            defaultEnv: { ANTHROPIC_BASE_URL: "http://bifrost:8080" },
+          },
         ]),
       }),
     );
     expect(parsed?.kubernetesConfig.adapters).toHaveLength(1);
-    expect(parsed?.kubernetesConfig.adapters?.[0].adapterType).toBe("opencode_local");
+    expect(parsed?.kubernetesConfig.adapters?.[0].adapterType).toBe(
+      "opencode_local",
+    );
   });
 
   it("leaves adapters undefined when TASKCORE_ADAPTERS is absent", () => {
-    const parsed = parseExecutionPolicyBootstrapEnv(env({ TASKCORE_EXECUTION_MODE: "kubernetes" }));
+    const parsed = parseExecutionPolicyBootstrapEnv(
+      env({ TASKCORE_EXECUTION_MODE: "kubernetes" }),
+    );
     expect(parsed?.kubernetesConfig.adapters).toBeUndefined();
   });
 
@@ -116,19 +129,27 @@ describe("parseExecutionPolicyBootstrapEnv", () => {
   });
 
   it("omits timeoutMs when TASKCORE_K8S_RPC_TIMEOUT_MS is absent", () => {
-    const parsed = parseExecutionPolicyBootstrapEnv(env({ TASKCORE_EXECUTION_MODE: "kubernetes" }));
+    const parsed = parseExecutionPolicyBootstrapEnv(
+      env({ TASKCORE_EXECUTION_MODE: "kubernetes" }),
+    );
     expect(parsed?.kubernetesConfig.timeoutMs).toBeUndefined();
   });
 
   it("throws when TASKCORE_K8S_RPC_TIMEOUT_MS is not a positive integer", () => {
     expect(() =>
       parseExecutionPolicyBootstrapEnv(
-        env({ TASKCORE_EXECUTION_MODE: "kubernetes", TASKCORE_K8S_RPC_TIMEOUT_MS: "0" }),
+        env({
+          TASKCORE_EXECUTION_MODE: "kubernetes",
+          TASKCORE_K8S_RPC_TIMEOUT_MS: "0",
+        }),
       ),
     ).toThrow(/TASKCORE_K8S_RPC_TIMEOUT_MS/);
     expect(() =>
       parseExecutionPolicyBootstrapEnv(
-        env({ TASKCORE_EXECUTION_MODE: "kubernetes", TASKCORE_K8S_RPC_TIMEOUT_MS: "abc" }),
+        env({
+          TASKCORE_EXECUTION_MODE: "kubernetes",
+          TASKCORE_K8S_RPC_TIMEOUT_MS: "abc",
+        }),
       ),
     ).toThrow(/TASKCORE_K8S_RPC_TIMEOUT_MS/);
   });
@@ -147,18 +168,25 @@ describe("applyExecutionPolicyBootstrap", () => {
 
     const result = await applyExecutionPolicyBootstrap(fakeDb, bootstrap);
 
-    expect(result).toEqual({ executionMode: "kubernetes", companiesConfigured: 3 });
+    expect(result).toEqual({
+      executionMode: "kubernetes",
+      companiesConfigured: 3,
+    });
     expect(ensureKubernetesEnvironment).toHaveBeenCalledTimes(3);
   });
 
   it("throws when at least one company fails, after attempting every company", async () => {
     listCompanyIds.mockResolvedValue(["c1", "c2", "c3"]);
-    ensureKubernetesEnvironment.mockImplementation(async (companyId: string) => {
-      if (companyId === "c2") throw new Error("operator config missing");
-      return { id: `env-${companyId}` };
-    });
+    ensureKubernetesEnvironment.mockImplementation(
+      async (companyId: string) => {
+        if (companyId === "c2") throw new Error("operator config missing");
+        return { id: `env-${companyId}` };
+      },
+    );
 
-    await expect(applyExecutionPolicyBootstrap(fakeDb, bootstrap)).rejects.toThrow(
+    await expect(
+      applyExecutionPolicyBootstrap(fakeDb, bootstrap),
+    ).rejects.toThrow(
       /execution-policy bootstrap: 1 of 3 companies failed.*c2/,
     );
 

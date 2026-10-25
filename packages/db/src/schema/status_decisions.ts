@@ -17,7 +17,9 @@ export const statusDecisions = pgTable(
   "status_decisions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
     issueId: uuid("issue_id").notNull(),
     runId: uuid("run_id").notNull(),
     assessmentId: uuid("assessment_id").notNull(),
@@ -26,12 +28,16 @@ export const statusDecisions = pgTable(
     fromStatus: text("from_status").notNull(),
     toStatus: text("to_status").notNull(),
     reasonCode: text("reason_code").notNull(),
-    decisionJson: jsonb("decision_json").$type<Record<string, unknown>>().notNull(),
+    decisionJson: jsonb("decision_json")
+      .$type<Record<string, unknown>>()
+      .notNull(),
     decisionDigest: text("decision_digest").notNull(),
     applicationState: text("application_state").notNull().default("proposed"),
     supersedesDecisionId: uuid("supersedes_decision_id"),
     appliedAt: timestamp("applied_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companyIssueIdUq: unique("status_decisions_company_issue_id_uq").on(
@@ -54,7 +60,12 @@ export const statusDecisions = pgTable(
       name: "status_decisions_issue_company_fk",
     }),
     assessmentOwnerFk: foreignKey({
-      columns: [table.companyId, table.issueId, table.runId, table.assessmentId],
+      columns: [
+        table.companyId,
+        table.issueId,
+        table.runId,
+        table.assessmentId,
+      ],
       foreignColumns: [
         workAssessments.companyId,
         workAssessments.issueId,

@@ -11,7 +11,10 @@ import type {
   RoutineVariableType,
 } from "../constants.js";
 import type { EnvBinding } from "./secrets.js";
-import type { ExecutionWorkspaceMode, IssueExecutionWorkspaceSettings } from "./workspace-runtime.js";
+import type {
+  ExecutionWorkspaceMode,
+  IssueExecutionWorkspaceSettings,
+} from "./workspace-runtime.js";
 
 export interface RoutineDescriptionDocument {
   id: string;
@@ -264,7 +267,18 @@ export interface RoutineRunWorkspaceContext {
 }
 
 export interface RoutineListItem extends Routine {
-  triggers: Pick<RoutineTrigger, "id" | "kind" | "label" | "enabled" | "cronExpression" | "timezone" | "nextRunAt" | "lastFiredAt" | "lastResult">[];
+  triggers: Pick<
+    RoutineTrigger,
+    | "id"
+    | "kind"
+    | "label"
+    | "enabled"
+    | "cronExpression"
+    | "timezone"
+    | "nextRunAt"
+    | "lastFiredAt"
+    | "lastResult"
+  >[];
   lastRun: RoutineRunSummary | null;
   activeIssue: RoutineIssueSummary | null;
 }

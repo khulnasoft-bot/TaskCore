@@ -22,7 +22,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { MemoryAuditSink } from "./audit.js";
-import { BrokerCore, type CliResult, type ListenerOwnership } from "./broker-core.js";
+import {
+  BrokerCore,
+  type CliResult,
+  type ListenerOwnership,
+} from "./broker-core.js";
 import { buildExposeArgv, buildRemoveArgv } from "./argv.js";
 import { defaultIsAllowedPort, parseProtectedPorts } from "./port-policy.js";
 import { changedProtectedPorts, parseServeStatus } from "./serve-config.js";
@@ -68,7 +72,12 @@ class FakeTailscale {
   run = (argv: string[]): CliResult => {
     const [, sub, a2, a3] = argv;
     if (sub === "serve" && a2 === "status") {
-      return { code: 0, stdout: this.statusJson(), stderr: "", timedOut: false };
+      return {
+        code: 0,
+        stdout: this.statusJson(),
+        stderr: "",
+        timedOut: false,
+      };
     }
     if (sub === "serve" && a2 === "--bg") {
       this.exposeCalls += 1;
@@ -140,7 +149,8 @@ function makeCore(
     auditSink: audit,
     peerPolicy: { allowedUids: new Set([999]), allowedGids: new Set([987]) },
     nodeIdentity: "node-1",
-    isAllowedPort: (port) => defaultIsAllowedPort(port) && !protectedPorts.includes(port),
+    isAllowedPort: (port) =>
+      defaultIsAllowedPort(port) && !protectedPorts.includes(port),
     protectedPorts,
     deps: {
       runTailscale: fake.run,
@@ -162,18 +172,20 @@ function plantRetiredLaneLease(registryPath: string, ports: number[]) {
     version: 1,
     nodeIdentity: "node-1",
     generationCounter: 7,
-    leases: [{
-      handle,
-      runtimeId: RUNTIME_A,
-      peerUid: PEER.uid,
-      peerGid: PEER.gid,
-      ports,
-      purposes: ports.map((_, index) => (index === 0 ? "app" : "vite_hmr")),
-      state: "exposed",
-      generation: 7,
-      createdAtIso: "2026-08-11T12:07:18.000Z",
-      expiresAtIso: null,
-    }],
+    leases: [
+      {
+        handle,
+        runtimeId: RUNTIME_A,
+        peerUid: PEER.uid,
+        peerGid: PEER.gid,
+        ports,
+        purposes: ports.map((_, index) => (index === 0 ? "app" : "vite_hmr")),
+        state: "exposed",
+        generation: 7,
+        createdAtIso: "2026-08-11T12:07:18.000Z",
+        expiresAtIso: null,
+      },
+    ],
     quarantinedPorts: [],
   });
   return handle;
@@ -191,7 +203,10 @@ const reserveReq = (ports: number[], runtimeId = RUNTIME_A): BrokerRequest => ({
 
 let registryPath: string;
 beforeEach(() => {
-  registryPath = join(mkdtempSync(join(tmpdir(), "broker-protected-")), "registry.json");
+  registryPath = join(
+    mkdtempSync(join(tmpdir(), "broker-protected-")),
+    "registry.json",
+  );
 });
 
 describe("operator-protected ports (PAP-17285)", () => {
@@ -200,7 +215,10 @@ describe("operator-protected ports (PAP-17285)", () => {
     // is authorized, and the entries are shape-valid same-number listeners. The
     // ONLY thing that can save them is the operator declaration.
     const fake = new FakeTailscale();
-    const handle = plantRetiredLaneLease(registryPath, [PROTECTED_APP, PROTECTED_HMR]);
+    const handle = plantRetiredLaneLease(registryPath, [
+      PROTECTED_APP,
+      PROTECTED_HMR,
+    ]);
     const { core, audit } = makeCore(fake, registryPath);
 
     const res = await core.handle(
@@ -222,7 +240,10 @@ describe("operator-protected ports (PAP-17285)", () => {
     // Proves the assertion above is carried by the new guard and not by some
     // unrelated precondition — without this, that test could pass vacuously.
     const fake = new FakeTailscale();
-    const handle = plantRetiredLaneLease(registryPath, [PROTECTED_APP, PROTECTED_HMR]);
+    const handle = plantRetiredLaneLease(registryPath, [
+      PROTECTED_APP,
+      PROTECTED_HMR,
+    ]);
     const { core } = makeCore(fake, registryPath, []); // no protected ports
 
     const res = await core.handle(
@@ -248,7 +269,10 @@ describe("operator-protected ports (PAP-17285)", () => {
     const fake = new FakeTailscale();
     const { core } = makeCore(fake, registryPath);
 
-    const reserved = await core.handle(reserveReq([PROTECTED_APP, PROTECTED_HMR]), PEER);
+    const reserved = await core.handle(
+      reserveReq([PROTECTED_APP, PROTECTED_HMR]),
+      PEER,
+    );
     expect(reserved.ok).toBe(false);
     if (!reserved.ok) expect(reserved.code).toBe("protected_port");
 
@@ -273,10 +297,16 @@ describe("operator-protected ports (PAP-17285)", () => {
 
     const reserved = await core.handle(reserveReq(lanePorts), PEER);
     expect(reserved.ok).toBe(true);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
 
     const exposed = await core.handle(
-      { op: "expose", requestId: "req-x", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-x",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(exposed.ok).toBe(true);
@@ -284,7 +314,12 @@ describe("operator-protected ports (PAP-17285)", () => {
     expect(fake.preservedSnapshot()).toEqual(PRESERVED_INTACT);
 
     const removed = await core.handle(
-      { op: "remove", requestId: "req-d", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "remove",
+        requestId: "req-d",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(removed.ok).toBe(true);
@@ -300,9 +335,15 @@ describe("operator-protected ports (PAP-17285)", () => {
     const { core, audit } = makeCore(fake, registryPath);
 
     const reserved = await core.handle(reserveReq([42010, 52010]), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     const exposed = await core.handle(
-      { op: "expose", requestId: "req-x", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-x",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
 
@@ -316,7 +357,9 @@ describe("operator-protected ports (PAP-17285)", () => {
 
     // Compensation is a Serve mutation, so it must leave a durable record
     // (req #6). Before this change it emitted none at all.
-    const compensation = audit.events.find((event) => event.recovery === "cleanup" && event.op === "expose");
+    const compensation = audit.events.find(
+      (event) => event.recovery === "cleanup" && event.op === "expose",
+    );
     expect(compensation?.reason).toBe("expose compensated");
   });
 
@@ -329,9 +372,15 @@ describe("operator-protected ports (PAP-17285)", () => {
     const { core, audit } = makeCore(fake, registryPath);
 
     const reserved = await core.handle(reserveReq([42010, 52010]), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     const exposed = await core.handle(
-      { op: "expose", requestId: "req-x", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-x",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
 
@@ -341,7 +390,9 @@ describe("operator-protected ports (PAP-17285)", () => {
 
     // The collateral damage is detected, recorded, and the port quarantined so
     // it is never silently reused. Recoverability preserved, loss surfaced.
-    const denial = audit.events.find((event) => event.reason.startsWith("expose compensation unverified"));
+    const denial = audit.events.find((event) =>
+      event.reason.startsWith("expose compensation unverified"),
+    );
     expect(denial).toBeDefined();
     expect(denial?.reason).toContain(`unexpected_serve_diff:${MANUAL_APP}`);
     expect(denial?.recovery).toBe("quarantine");
@@ -352,23 +403,49 @@ describe("operator-protected ports (PAP-17285)", () => {
   it("detects a protected entry that DISAPPEARS, not just one that is retargeted", () => {
     // The incident was a deletion. `entryDigest(undefined)` is the `"absent"`
     // sentinel precisely so removal is as loud as retargeting.
-    const withBoth = parseServeStatus(JSON.parse(new FakeTailscale().run([BIN, "serve", "status", "--json"]).stdout));
+    const withBoth = parseServeStatus(
+      JSON.parse(
+        new FakeTailscale().run([BIN, "serve", "status", "--json"]).stdout,
+      ),
+    );
     const missing = new FakeTailscale();
     missing.ports.delete(PROTECTED_APP);
-    const withoutOne = parseServeStatus(JSON.parse(missing.run([BIN, "serve", "status", "--json"]).stdout));
+    const withoutOne = parseServeStatus(
+      JSON.parse(missing.run([BIN, "serve", "status", "--json"]).stdout),
+    );
 
-    expect(changedProtectedPorts(withBoth, withoutOne, [PROTECTED_APP, PROTECTED_HMR])).toEqual([PROTECTED_APP]);
-    expect(changedProtectedPorts(withBoth, withBoth, [PROTECTED_APP, PROTECTED_HMR])).toEqual([]);
+    expect(
+      changedProtectedPorts(withBoth, withoutOne, [
+        PROTECTED_APP,
+        PROTECTED_HMR,
+      ]),
+    ).toEqual([PROTECTED_APP]);
+    expect(
+      changedProtectedPorts(withBoth, withBoth, [PROTECTED_APP, PROTECTED_HMR]),
+    ).toEqual([]);
   });
 
   it("refuses to build a mutating argv for a protected port", () => {
     const guarded = [PROTECTED_APP, PROTECTED_HMR];
-    expect(() => buildExposeArgv(BIN, PROTECTED_APP, guarded)).toThrow(/operator-protected/);
-    expect(() => buildRemoveArgv(BIN, PROTECTED_HMR, guarded)).toThrow(/operator-protected/);
+    expect(() => buildExposeArgv(BIN, PROTECTED_APP, guarded)).toThrow(
+      /operator-protected/,
+    );
+    expect(() => buildRemoveArgv(BIN, PROTECTED_HMR, guarded)).toThrow(
+      /operator-protected/,
+    );
     // Unprotected ports in the dedicated range still build exactly as before.
-    expect(buildRemoveArgv(BIN, 42010, guarded)).toEqual([BIN, "serve", "--https=42010", "off"]);
+    expect(buildRemoveArgv(BIN, 42010, guarded)).toEqual([
+      BIN,
+      "serve",
+      "--https=42010",
+      "off",
+    ]);
     expect(buildExposeArgv(BIN, 42010, guarded)).toEqual([
-      BIN, "serve", "--bg", "--https=42010", "http://127.0.0.1:42010",
+      BIN,
+      "serve",
+      "--bg",
+      "--https=42010",
+      "http://127.0.0.1:42010",
     ]);
   });
 

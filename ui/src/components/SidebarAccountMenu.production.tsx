@@ -19,8 +19,16 @@ import { useSignOut } from "@/hooks/useSignOut";
 import { useStagingCommit } from "@/hooks/useStagingCommit";
 import { userProfilePath } from "@/lib/userProfileLinks";
 import { useSidebar } from "../context/SidebarContext";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -78,8 +86,12 @@ function MenuAction({
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-foreground">{label}</span>
-        <span className="block text-xs text-muted-foreground">{description}</span>
+        <span className="block text-sm font-medium text-foreground">
+          {label}
+        </span>
+        <span className="block text-xs text-muted-foreground">
+          {description}
+        </span>
       </span>
     </>
   );
@@ -87,7 +99,13 @@ function MenuAction({
   if (href) {
     if (external) {
       return (
-        <a href={href} target="_blank" rel="noreferrer" className={className} onClick={onClick}>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className={className}
+          onClick={onClick}
+        >
           {content}
         </a>
       );
@@ -125,7 +143,8 @@ export function SidebarAccountMenu({
   // Invites live on the Members page (or in Cloud's People settings). Hide the
   // shortcut when the hosting operator hides either surface, and until the
   // health response resolves so a hidden surface never flashes.
-  const { hidden: hiddenSettings, loaded: hiddenSettingsLoaded } = useHiddenSettings();
+  const { hidden: hiddenSettings, loaded: hiddenSettingsLoaded } =
+    useHiddenSettings();
   // On Cloud the shortcut exists only for the current stack's owner/admin and
   // only once the stack metadata is known; the in-app Invites tab is never a
   // fallback there because it drives a different invitation flow.
@@ -134,7 +153,11 @@ export function SidebarAccountMenu({
   // to boards with role-default access (company owner/admin/operator,
   // instance admins, local boards). The server checks the actual grants.
   const canInviteMembers = useCanInviteCompanyMembers(!isCloud);
-  const inviteHref = isCloud ? cloudInviteUrl : canInviteMembers ? INVITES_PATH : null;
+  const inviteHref = isCloud
+    ? cloudInviteUrl
+    : canInviteMembers
+      ? INVITES_PATH
+      : null;
   const showInvite =
     hiddenSettingsLoaded &&
     inviteHref !== null &&
@@ -156,7 +179,10 @@ export function SidebarAccountMenu({
 
   const displayName = session?.user.name?.trim() || "Board";
   const secondaryLabel =
-    session?.user.email?.trim() || (deploymentMode === "authenticated" ? "Signed in" : "Local workspace board");
+    session?.user.email?.trim() ||
+    (deploymentMode === "authenticated"
+      ? "Signed in"
+      : "Local workspace board");
   const initials = deriveInitials(displayName);
   const profileHref = userProfilePath(session?.user);
 
@@ -173,109 +199,130 @@ export function SidebarAccountMenu({
     <div className="border-t border-r border-border bg-background px-3 py-2">
       <div className={cn("flex items-center gap-0.5", !rail && "px-2")}>
         <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "flex min-w-0 items-center gap-2.5 rounded-lg text-left text-(length:--text-compact) font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground",
-              rail ? "w-full px-3 py-2" : "flex-1 px-2 py-1.5",
-            )}
-            aria-label="Open account menu"
-          >
-            <Avatar size="sm">
-              {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <span className={cn("min-w-0 flex-1 truncate", rail && SIDEBAR_RAIL_HIDDEN_LABEL)}>{displayName}</span>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          side="top"
-          align="start"
-          sideOffset={10}
-          className="w-(--sz-277px) max-w-(--sz-calc-24) overflow-hidden rounded-t-2xl rounded-b-none border-border p-0 shadow-2xl"
-        >
-          <div className="h-24 bg-(image:--gradient-extract-25)" />
-          <div className="-mt-8 px-4 pb-4">
-            {/* The profile link is a stretched overlay so the staging SHA anchor can sit beside the email without nesting anchors. */}
-            <div className="relative flex items-start gap-3">
-              <Link
-                to={profileHref}
-                aria-label="View profile"
-                onClick={closeNavigationChrome}
-                className="absolute inset-0 rounded-xl transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-              <div className="pointer-events-none relative rounded-2xl border-4 border-popover bg-popover p-0.5 shadow-sm">
-                <Avatar size="lg">
-                  {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-              </div>
-              <div className="pointer-events-none relative min-w-0 flex-1 pt-1">
-                <h2 className="truncate text-base font-semibold text-foreground">{displayName}</h2>
-                <p className="truncate text-sm text-muted-foreground">{secondaryLabel}</p>
-                {stagingCommit ? (
-                  <a
-                    className="pointer-events-auto block truncate font-mono text-(length:--text-micro) leading-(--profile-popover-meta-line-height) text-muted-foreground hover:underline focus-visible:underline"
-                    href={`https://github.com/khulnasoft/taskcore/commit/${stagingCommit}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`View commit ${stagingCommit} on GitHub`}
-                    title={stagingCommit}
-                  >
-                    SHA {stagingCommit.slice(0, 7)}
-                  </a>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "flex min-w-0 items-center gap-2.5 rounded-lg text-left text-(length:--text-compact) font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground",
+                rail ? "w-full px-3 py-2" : "flex-1 px-2 py-1.5",
+              )}
+              aria-label="Open account menu"
+            >
+              <Avatar size="sm">
+                {session?.user.image ? (
+                  <AvatarImage src={session.user.image} alt={displayName} />
                 ) : null}
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <span
+                className={cn(
+                  "min-w-0 flex-1 truncate",
+                  rail && SIDEBAR_RAIL_HIDDEN_LABEL,
+                )}
+              >
+                {displayName}
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            side="top"
+            align="start"
+            sideOffset={10}
+            className="w-(--sz-277px) max-w-(--sz-calc-24) overflow-hidden rounded-t-2xl rounded-b-none border-border p-0 shadow-2xl"
+          >
+            <div className="h-24 bg-(image:--gradient-extract-25)" />
+            <div className="-mt-8 px-4 pb-4">
+              {/* The profile link is a stretched overlay so the staging SHA anchor can sit beside the email without nesting anchors. */}
+              <div className="relative flex items-start gap-3">
+                <Link
+                  to={profileHref}
+                  aria-label="View profile"
+                  onClick={closeNavigationChrome}
+                  className="absolute inset-0 rounded-xl transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <div className="pointer-events-none relative rounded-2xl border-4 border-popover bg-popover p-0.5 shadow-sm">
+                  <Avatar size="lg">
+                    {session?.user.image ? (
+                      <AvatarImage src={session.user.image} alt={displayName} />
+                    ) : null}
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className="pointer-events-none relative min-w-0 flex-1 pt-1">
+                  <h2 className="truncate text-base font-semibold text-foreground">
+                    {displayName}
+                  </h2>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {secondaryLabel}
+                  </p>
+                  {stagingCommit ? (
+                    <a
+                      className="pointer-events-auto block truncate font-mono text-(length:--text-micro) leading-(--profile-popover-meta-line-height) text-muted-foreground hover:underline focus-visible:underline"
+                      href={`https://github.com/khulnasoft/taskcore/commit/${stagingCommit}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`View commit ${stagingCommit} on GitHub`}
+                      title={stagingCommit}
+                    >
+                      SHA {stagingCommit.slice(0, 7)}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-1">
+                {showInvite && inviteHref ? (
+                  <MenuAction
+                    label="Invite"
+                    description="Invite people to your organization."
+                    icon={UserPlus}
+                    href={inviteHref}
+                    topLevel={isCloud}
+                    onClick={closeNavigationChrome}
+                  />
+                ) : null}
+                <MenuAction
+                  label="Documentation"
+                  description="Open Taskcore docs in a new tab."
+                  icon={BookOpen}
+                  href={DOCS_URL}
+                  external
+                  onClick={() => setOpen(false)}
+                />
+                <ThemeToggle
+                  variant="menu-action"
+                  onAfterToggle={() => setOpen(false)}
+                />
+                {deploymentMode === "authenticated" ? (
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-destructive/10",
+                      signOutMutation.isPending &&
+                        "cursor-not-allowed opacity-60",
+                    )}
+                    onClick={handleSignOut}
+                    disabled={signOutMutation.isPending}
+                  >
+                    <span className="mt-0.5 rounded-lg border border-border bg-background/70 p-2 text-muted-foreground">
+                      <LogOut className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground">
+                        {signOutMutation.isPending
+                          ? "Signing out..."
+                          : "Sign out"}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        End this browser session.
+                      </span>
+                    </span>
+                  </button>
+                ) : null}
+                <SidebarServerInfo />
               </div>
             </div>
-
-            <div className="mt-4 space-y-1">
-              {showInvite && inviteHref ? (
-                <MenuAction
-                  label="Invite"
-                  description="Invite people to your organization."
-                  icon={UserPlus}
-                  href={inviteHref}
-                  topLevel={isCloud}
-                  onClick={closeNavigationChrome}
-                />
-              ) : null}
-              <MenuAction
-                label="Documentation"
-                description="Open Taskcore docs in a new tab."
-                icon={BookOpen}
-                href={DOCS_URL}
-                external
-                onClick={() => setOpen(false)}
-              />
-              <ThemeToggle variant="menu-action" onAfterToggle={() => setOpen(false)} />
-              {deploymentMode === "authenticated" ? (
-                <button
-                  type="button"
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-destructive/10",
-                    signOutMutation.isPending && "cursor-not-allowed opacity-60",
-                  )}
-                  onClick={handleSignOut}
-                  disabled={signOutMutation.isPending}
-                >
-                  <span className="mt-0.5 rounded-lg border border-border bg-background/70 p-2 text-muted-foreground">
-                    <LogOut className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-foreground">
-                      {signOutMutation.isPending ? "Signing out..." : "Sign out"}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      End this browser session.
-                    </span>
-                  </span>
-                </button>
-              ) : null}
-              <SidebarServerInfo />
-            </div>
-          </div>
-        </PopoverContent>
+          </PopoverContent>
         </Popover>
         {!rail && !isCloud ? (
           <Tooltip>

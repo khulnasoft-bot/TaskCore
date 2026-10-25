@@ -140,10 +140,12 @@ function formatProvisionFailureDetail(result: {
   if (result.timedOut) {
     return "provision command timed out";
   }
-  const signal = typeof result.signal === "string" && result.signal.trim().length > 0
-    ? ` (signal ${result.signal.trim()})`
-    : "";
-  const detail = firstNonEmptyLine(result.stderr) ?? firstNonEmptyLine(result.stdout);
+  const signal =
+    typeof result.signal === "string" && result.signal.trim().length > 0
+      ? ` (signal ${result.signal.trim()})`
+      : "";
+  const detail =
+    firstNonEmptyLine(result.stderr) ?? firstNonEmptyLine(result.stdout);
   const status = `exit code ${result.exitCode ?? "null"}${signal}`;
   return detail ? `${status}: ${detail}` : status;
 }
@@ -161,9 +163,11 @@ export function environmentRunOrchestrator(
 ) {
   const environmentsSvc = environmentService(db);
   const executionWorkspacesSvc = executionWorkspaceService(db);
-  const environmentRuntime = options.environmentRuntime ?? environmentRuntimeService(db, {
-    pluginWorkerManager: options.pluginWorkerManager,
-  });
+  const environmentRuntime =
+    options.environmentRuntime ??
+    environmentRuntimeService(db, {
+      pluginWorkerManager: options.pluginWorkerManager,
+    });
 
   /**
    * Resolve the selected environment for a run. The caller passes the concrete
@@ -175,7 +179,8 @@ export function environmentRunOrchestrator(
     selectedEnvironmentId: string;
     localEnvironmentId: string;
   }): Promise<Environment> {
-    const environmentId = input.selectedEnvironmentId || input.localEnvironmentId;
+    const environmentId =
+      input.selectedEnvironmentId || input.localEnvironmentId;
 
     const environment =
       environmentId === input.localEnvironmentId
@@ -183,16 +188,24 @@ export function environmentRunOrchestrator(
         : await environmentsSvc.getById(environmentId);
 
     if (!environment) {
-      throw new EnvironmentRunError("environment_not_found", `Environment "${environmentId}" not found.`, {
-        environmentId,
-      });
+      throw new EnvironmentRunError(
+        "environment_not_found",
+        `Environment "${environmentId}" not found.`,
+        {
+          environmentId,
+        },
+      );
     }
 
     if (environment.status !== "active") {
-      throw new EnvironmentRunError("environment_inactive", `Environment "${environment.name}" is not active (status: ${environment.status}).`, {
-        environmentId: environment.id,
-        driver: environment.driver,
-      });
+      throw new EnvironmentRunError(
+        "environment_inactive",
+        `Environment "${environment.name}" is not active (status: ${environment.status}).`,
+        {
+          environmentId: environment.id,
+          driver: environment.driver,
+        },
+      );
     }
 
     return environment;
@@ -282,7 +295,10 @@ export function environmentRunOrchestrator(
     });
 
     const environment = resolveRunnerEnvironmentForRun(
-      selectedEnvironment, input.adapterType, input.adapterConfig, input.admittedLifecycleMode,
+      selectedEnvironment,
+      input.adapterType,
+      input.adapterConfig,
+      input.admittedLifecycleMode,
     );
 
     // Step 2: Acquire lease
@@ -383,7 +399,8 @@ export function environmentRunOrchestrator(
       executionWorkspaceId: persistedExecutionWorkspace?.id ?? null,
       issueId,
       heartbeatRunId,
-      requestedMode: persistedExecutionWorkspace?.mode ?? effectiveExecutionWorkspaceMode,
+      requestedMode:
+        persistedExecutionWorkspace?.mode ?? effectiveExecutionWorkspaceMode,
       workspace: executionWorkspace,
       workspaceConfig: persistedExecutionWorkspace?.config ?? null,
     });
@@ -394,26 +411,34 @@ export function environmentRunOrchestrator(
     if (ENVIRONMENT_DRIVER_TRAITS[environment.driver].realizesWorkspace) {
       try {
         const remoteCwd =
-          typeof lease.metadata?.remoteCwd === "string" && lease.metadata.remoteCwd.trim().length > 0
+          typeof lease.metadata?.remoteCwd === "string" &&
+          lease.metadata.remoteCwd.trim().length > 0
             ? lease.metadata.remoteCwd
             : undefined;
-        const workspaceRealizationResult = await environmentRuntime.realizeWorkspace({
-          environment,
-          lease,
-          workspace: {
-            localPath: executionWorkspace.cwd,
-            remotePath: remoteCwd,
-            mode: persistedExecutionWorkspace?.mode ?? effectiveExecutionWorkspaceMode ?? undefined,
-            metadata: {
-              workspaceRealizationRequest,
+        const workspaceRealizationResult =
+          await environmentRuntime.realizeWorkspace({
+            environment,
+            lease,
+            workspace: {
+              localPath: executionWorkspace.cwd,
+              remotePath: remoteCwd,
+              mode:
+                persistedExecutionWorkspace?.mode ??
+                effectiveExecutionWorkspaceMode ??
+                undefined,
+              metadata: {
+                workspaceRealizationRequest,
+              },
             },
-          },
-        });
+          });
         realizedWorkspaceCwd =
-          typeof workspaceRealizationResult.cwd === "string" && workspaceRealizationResult.cwd.trim().length > 0
+          typeof workspaceRealizationResult.cwd === "string" &&
+          workspaceRealizationResult.cwd.trim().length > 0
             ? workspaceRealizationResult.cwd.trim()
             : null;
-        workspaceRealization = parseObject(workspaceRealizationResult.metadata?.workspaceRealization);
+        workspaceRealization = parseObject(
+          workspaceRealizationResult.metadata?.workspaceRealization,
+        );
       } catch (err) {
         throw new EnvironmentRunError(
           "workspace_realization_failed",
@@ -427,10 +452,12 @@ export function environmentRunOrchestrator(
       }
     }
 
-    const provisionCommand = workspaceRealizationRequest.runtimeOverlay.provisionCommand?.trim() ?? "";
+    const provisionCommand =
+      workspaceRealizationRequest.runtimeOverlay.provisionCommand?.trim() ?? "";
     const realizedCwd =
       realizedWorkspaceCwd ??
-      (typeof lease.metadata?.remoteCwd === "string" && lease.metadata.remoteCwd.trim().length > 0
+      (typeof lease.metadata?.remoteCwd === "string" &&
+      lease.metadata.remoteCwd.trim().length > 0
         ? lease.metadata.remoteCwd.trim()
         : executionWorkspace.cwd);
     // The host `provisionCommand` runs on the host worktree during the
@@ -497,18 +524,24 @@ export function environmentRunOrchestrator(
         ...(lease.metadata ?? {}),
         workspaceRealization,
       };
-      const updatedLease = await environmentsSvc.updateLeaseMetadata(lease.id, nextLeaseMetadata);
+      const updatedLease = await environmentsSvc.updateLeaseMetadata(
+        lease.id,
+        nextLeaseMetadata,
+      );
       if (updatedLease) {
         lease = updatedLease;
       }
       if (persistedExecutionWorkspace) {
-        const updatedEw = await executionWorkspacesSvc.update(persistedExecutionWorkspace.id, {
-          metadata: {
-            ...(persistedExecutionWorkspace.metadata ?? {}),
-            workspaceRealizationRequest,
-            workspaceRealization,
+        const updatedEw = await executionWorkspacesSvc.update(
+          persistedExecutionWorkspace.id,
+          {
+            metadata: {
+              ...(persistedExecutionWorkspace.metadata ?? {}),
+              workspaceRealizationRequest,
+              workspaceRealization,
+            },
           },
-        });
+        );
         if (updatedEw) {
           persistedExecutionWorkspace = updatedEw;
         }
@@ -524,14 +557,17 @@ export function environmentRunOrchestrator(
         adapterType,
         environment,
         leaseId: lease.id,
-        leaseMetadata: (lease.metadata as Record<string, unknown> | null) ?? null,
+        leaseMetadata:
+          (lease.metadata as Record<string, unknown> | null) ?? null,
         lease,
         environmentRuntime,
         duplexObservabilityRecorder: input.duplexObservabilityRecorder ?? null,
       });
-      const realizationMode = workspaceRealization.mode === "in_place" ? "in_place" : "copy";
+      const realizationMode =
+        workspaceRealization.mode === "in_place" ? "in_place" : "copy";
       const authoritativeRoot =
-        typeof workspaceRealization.authoritativeRoot === "string" && workspaceRealization.authoritativeRoot.trim().length > 0
+        typeof workspaceRealization.authoritativeRoot === "string" &&
+        workspaceRealization.authoritativeRoot.trim().length > 0
           ? workspaceRealization.authoritativeRoot.trim()
           : realizedCwd;
       const workspaceTargetMetadata: AdapterWorkspaceRealization = {
@@ -540,19 +576,25 @@ export function environmentRunOrchestrator(
         pathAliases: Array.isArray(workspaceRealization.pathAliases)
           ? workspaceRealization.pathAliases.filter(
               (entry): entry is { path: string; target: string } =>
-                typeof entry === "object" && entry !== null &&
+                typeof entry === "object" &&
+                entry !== null &&
                 typeof (entry as { path?: unknown }).path === "string" &&
                 typeof (entry as { target?: unknown }).target === "string",
             )
           : [],
-        outboundRestorePaths: Array.isArray(workspaceRealization.outboundRestorePaths)
-          ? workspaceRealization.outboundRestorePaths.filter((entry): entry is string => typeof entry === "string")
+        outboundRestorePaths: Array.isArray(
+          workspaceRealization.outboundRestorePaths,
+        )
+          ? workspaceRealization.outboundRestorePaths.filter(
+              (entry): entry is string => typeof entry === "string",
+            )
           : [],
       };
       if (executionTarget) {
         executionTarget = {
           ...executionTarget,
-          ...(executionTarget.kind === "remote" && realizationMode === "in_place"
+          ...(executionTarget.kind === "remote" &&
+          realizationMode === "in_place"
             ? { remoteCwd: authoritativeRoot }
             : {}),
           workspaceRealization: workspaceTargetMetadata,
@@ -599,10 +641,7 @@ export function environmentRunOrchestrator(
       provider: string;
       harness: string;
       lifecycleMode: "per_turn" | "warm";
-      sandboxResource:
-        | "keep_running"
-        | "stop_and_reuse"
-        | "destroy_after_turn";
+      sandboxResource: "keep_running" | "stop_and_reuse" | "destroy_after_turn";
     };
   }): Promise<EnvironmentReleaseResult> {
     const status = input.status ?? "released";
@@ -615,7 +654,7 @@ export function environmentRunOrchestrator(
         status,
         (leaseId, error) => result.errors.push({ leaseId, error }),
         input.providerResourceDisposition,
-        ...(input.cancelActiveWork ? [true] as const : []),
+        ...(input.cancelActiveWork ? ([true] as const) : []),
       );
     } catch (err) {
       result.errors.push({ leaseId: "*", error: err });
@@ -670,4 +709,6 @@ export function environmentRunOrchestrator(
   };
 }
 
-export type EnvironmentRunOrchestrator = ReturnType<typeof environmentRunOrchestrator>;
+export type EnvironmentRunOrchestrator = ReturnType<
+  typeof environmentRunOrchestrator
+>;

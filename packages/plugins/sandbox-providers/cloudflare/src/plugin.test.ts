@@ -19,7 +19,10 @@ function requestHeadersAt(index = 0): Headers {
 }
 
 function requestBodyAt(index = 0): Record<string, unknown> {
-  return JSON.parse(String(requestInitAt(index).body ?? "{}")) as Record<string, unknown>;
+  return JSON.parse(String(requestInitAt(index).body ?? "{}")) as Record<
+    string,
+    unknown
+  >;
 }
 
 describe("Cloudflare sandbox provider plugin", () => {
@@ -75,16 +78,18 @@ describe("Cloudflare sandbox provider plugin", () => {
   });
 
   it("rejects insecure or contradictory config", async () => {
-    await expect(plugin.definition.onEnvironmentValidateConfig?.({
-      driverKey: "cloudflare",
-      config: {
-        bridgeBaseUrl: "http://bridge.example.workers.dev",
-        bridgeAuthToken: "secret-ref://bridge-token",
-        reuseLease: true,
-        keepAlive: false,
-        requestedCwd: "workspace/not-absolute",
-      },
-    })).resolves.toEqual({
+    await expect(
+      plugin.definition.onEnvironmentValidateConfig?.({
+        driverKey: "cloudflare",
+        config: {
+          bridgeBaseUrl: "http://bridge.example.workers.dev",
+          bridgeAuthToken: "secret-ref://bridge-token",
+          reuseLease: true,
+          keepAlive: false,
+          requestedCwd: "workspace/not-absolute",
+        },
+      }),
+    ).resolves.toEqual({
       ok: false,
       errors: [
         "bridgeBaseUrl must use HTTPS unless it points at localhost.",
@@ -149,7 +154,11 @@ describe("Cloudflare sandbox provider plugin", () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         providerLeaseId: "pc-run-1-abcd1234",
-        metadata: { provider: "cloudflare", remoteCwd: "/workspace/taskcore", resumedLease: false },
+        metadata: {
+          provider: "cloudflare",
+          remoteCwd: "/workspace/taskcore",
+          resumedLease: false,
+        },
       }),
     );
 
@@ -239,7 +248,12 @@ describe("Cloudflare sandbox provider plugin", () => {
     // we can assert that bridge-channel calls take the non-streaming path
     // even when adapter sessions would otherwise stream.
     await plugin.definition.setup?.({
-      logger: { info: () => undefined, warn: () => undefined, error: () => undefined, debug: () => undefined },
+      logger: {
+        info: () => undefined,
+        warn: () => undefined,
+        error: () => undefined,
+        debug: () => undefined,
+      },
     } as never);
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -278,7 +292,9 @@ describe("Cloudflare sandbox provider plugin", () => {
         KEEP_ME: "visible",
       },
     });
-    expect(requestBodyAt().env).not.toHaveProperty("TASKCORE_SANDBOX_EXEC_CHANNEL");
+    expect(requestBodyAt().env).not.toHaveProperty(
+      "TASKCORE_SANDBOX_EXEC_CHANNEL",
+    );
     // Bridge-channel commands must use the non-streaming exec path. The
     // @cloudflare/sandbox SDK's streaming mode can drop the final stdout
     // chunk when a short shell exits the same tick it writes — bridge ops
@@ -292,11 +308,16 @@ describe("Cloudflare sandbox provider plugin", () => {
     // Streaming is gated on `pluginLogger` being set, which normally happens
     // in `setup()`. Wire a minimal logger so the streaming branch is reachable.
     await plugin.definition.setup?.({
-      logger: { info: () => undefined, warn: () => undefined, error: () => undefined, debug: () => undefined },
+      logger: {
+        info: () => undefined,
+        warn: () => undefined,
+        error: () => undefined,
+        debug: () => undefined,
+      },
     } as never);
     fetchMock.mockResolvedValueOnce(
       new Response(
-        "event: stdout\ndata: {\"data\":\"hello\\n\"}\n\nevent: complete\ndata: {\"exitCode\":0,\"signal\":null,\"timedOut\":false,\"stdout\":\"hello\\n\",\"stderr\":\"\"}\n\n",
+        'event: stdout\ndata: {"data":"hello\\n"}\n\nevent: complete\ndata: {"exitCode":0,"signal":null,"timedOut":false,"stdout":"hello\\n","stderr":""}\n\n',
         {
           status: 200,
           headers: { "Content-Type": "text/event-stream" },
@@ -369,28 +390,32 @@ describe("Cloudflare sandbox provider plugin", () => {
       ),
     );
 
-    await expect(plugin.definition.onEnvironmentRealizeWorkspace?.({
-      driverKey: "cloudflare",
-      companyId: "company-1",
-      environmentId: "env-1",
-      issueId: "issue-1",
-      lease: {
-        providerLeaseId: "pc-run-1-abcd1234",
-        metadata: { remoteCwd: "/workspace/taskcore" },
-      },
-      workspace: {
-        localPath: "/tmp/project",
-        metadata: {
-          workspaceRealizationRequest: {
-            issueId: "issue-1",
+    await expect(
+      plugin.definition.onEnvironmentRealizeWorkspace?.({
+        driverKey: "cloudflare",
+        companyId: "company-1",
+        environmentId: "env-1",
+        issueId: "issue-1",
+        lease: {
+          providerLeaseId: "pc-run-1-abcd1234",
+          metadata: { remoteCwd: "/workspace/taskcore" },
+        },
+        workspace: {
+          localPath: "/tmp/project",
+          metadata: {
+            workspaceRealizationRequest: {
+              issueId: "issue-1",
+            },
           },
         },
-      },
-      config: {
-        bridgeBaseUrl: "https://bridge.example.workers.dev",
-        bridgeAuthToken: "resolved-token",
-      },
-    })).rejects.toThrow("Failed to prepare Cloudflare sandbox workspace at /workspace/taskcore: mkdir: permission denied");
+        config: {
+          bridgeBaseUrl: "https://bridge.example.workers.dev",
+          bridgeAuthToken: "resolved-token",
+        },
+      }),
+    ).rejects.toThrow(
+      "Failed to prepare Cloudflare sandbox workspace at /workspace/taskcore: mkdir: permission denied",
+    );
 
     expect(requestHeadersAt().get("X-Taskcore-Issue-Id")).toBe("issue-1");
   });

@@ -22,7 +22,10 @@
  */
 
 import type { KubeClients } from "./kube-client.js";
-import type { SandboxOrchestrator, SandboxStatus } from "./sandbox-orchestrator.js";
+import type {
+  SandboxOrchestrator,
+  SandboxStatus,
+} from "./sandbox-orchestrator.js";
 
 const SANDBOX_GROUP = "agents.x-k8s.io";
 const SANDBOX_VERSION = "v1alpha1";
@@ -45,9 +48,7 @@ function sleep(ms: number): Promise<void> {
  * Map a Sandbox CR status.phase value to our SandboxStatus shape.
  * Sandbox phases: Pending | Ready | Terminating | Failed
  */
-function mapSandboxPhase(
-  cr: Record<string, unknown>,
-): SandboxStatus {
+function mapSandboxPhase(cr: Record<string, unknown>): SandboxStatus {
   const status = (cr.status as Record<string, unknown>) ?? {};
   const phase = (status.phase as string) ?? "Pending";
 
@@ -70,7 +71,12 @@ function mapSandboxPhase(
         reason: "Terminating",
       };
     case "Failed": {
-      const conditions = (status.conditions as { type?: string; reason?: string; message?: string }[]) ?? [];
+      const conditions =
+        (status.conditions as {
+          type?: string;
+          reason?: string;
+          message?: string;
+        }[]) ?? [];
       const failedCond = conditions.find((c) => c.type === "Failed");
       return {
         phase: "Failed",
@@ -138,13 +144,13 @@ export async function findPodForSandbox(
   name: string,
 ): Promise<string | null> {
   // Primary: read status.podName from the Sandbox CR
-  const cr = await clients.custom.getNamespacedCustomObject({
+  const cr = (await clients.custom.getNamespacedCustomObject({
     group: SANDBOX_GROUP,
     version: SANDBOX_VERSION,
     namespace,
     plural: SANDBOX_PLURAL,
     name,
-  }) as Record<string, unknown>;
+  })) as Record<string, unknown>;
 
   const status = (cr.status as Record<string, unknown>) ?? {};
   const podName = status.podName as string | undefined;
@@ -183,15 +189,13 @@ export async function findPodForSandbox(
   });
   const items =
     (
-      (
-        result as {
-          items?: {
-            metadata?: { name?: string; labels?: Record<string, string> };
-            status?: { phase?: string };
-          }[];
-        }
-      ).items
-    ) ?? [];
+      result as {
+        items?: {
+          metadata?: { name?: string; labels?: Record<string, string> };
+          status?: { phase?: string };
+        }[];
+      }
+    ).items ?? [];
 
   // The label selector already scopes to exactly this sandbox's pod(s); keep a
   // defensive re-check on the label value only (no name-prefix matching).
@@ -257,20 +261,29 @@ export async function waitForSandboxReady(
   const pollMs = opts.pollMs ?? 2000;
 
   while (Date.now() < deadline) {
-    const cr = await clients.custom.getNamespacedCustomObject({
+    const cr = (await clients.custom.getNamespacedCustomObject({
       group: SANDBOX_GROUP,
       version: SANDBOX_VERSION,
       namespace,
       plural: SANDBOX_PLURAL,
       name,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     const status = (cr.status as Record<string, unknown>) ?? {};
     // agent-sandbox v1alpha1 uses status.conditions[type=Ready,status=True],
     // not status.phase. Fall back to phase for forward-compat.
-    const conditions = Array.isArray(status.conditions) ? status.conditions as Array<Record<string, unknown>> : [];
+    const conditions = Array.isArray(status.conditions)
+      ? (status.conditions as Array<Record<string, unknown>>)
+      : [];
     const readyCondition = conditions.find((c) => c.type === "Ready");
-    const failedCondition = conditions.find((c) => c.type === "Failed" || (c.type === "Ready" && c.status === "False" && typeof c.reason === "string" && /failed/i.test(c.reason)));
+    const failedCondition = conditions.find(
+      (c) =>
+        c.type === "Failed" ||
+        (c.type === "Ready" &&
+          c.status === "False" &&
+          typeof c.reason === "string" &&
+          /failed/i.test(c.reason)),
+    );
     const phase = (status.phase as string) ?? "";
 
     if (readyCondition?.status === "True" || phase === "Ready") {

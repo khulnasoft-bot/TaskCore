@@ -25,24 +25,31 @@ const SOURCE_KIND_ORDER: Record<IssueReferenceSourceKind, number> = {
   comment: 3,
 };
 
-function sourceLabel(kind: IssueReferenceSourceKind, documentKey: string | null): string {
+function sourceLabel(
+  kind: IssueReferenceSourceKind,
+  documentKey: string | null,
+): string {
   if (kind === "document") return documentKey?.trim() || "document";
   return kind;
 }
 
-function sourceWhere(
-  input: {
-    companyId?: string;
-    sourceIssueId?: string;
-    sourceKind: IssueReferenceSourceKind;
-    sourceRecordId?: string | null;
-  },
-) {
+function sourceWhere(input: {
+  companyId?: string;
+  sourceIssueId?: string;
+  sourceKind: IssueReferenceSourceKind;
+  sourceRecordId?: string | null;
+}) {
   const conditions = [eq(issueReferenceMentions.sourceKind, input.sourceKind)];
-  if (input.companyId) conditions.push(eq(issueReferenceMentions.companyId, input.companyId));
-  if (input.sourceIssueId) conditions.push(eq(issueReferenceMentions.sourceIssueId, input.sourceIssueId));
+  if (input.companyId)
+    conditions.push(eq(issueReferenceMentions.companyId, input.companyId));
+  if (input.sourceIssueId)
+    conditions.push(
+      eq(issueReferenceMentions.sourceIssueId, input.sourceIssueId),
+    );
   if (input.sourceRecordId) {
-    conditions.push(eq(issueReferenceMentions.sourceRecordId, input.sourceRecordId));
+    conditions.push(
+      eq(issueReferenceMentions.sourceRecordId, input.sourceRecordId),
+    );
   } else {
     conditions.push(isNull(issueReferenceMentions.sourceRecordId));
   }
@@ -99,8 +106,12 @@ function diffIssueSummaries(
   removedReferencedIssues: IssueRelationIssueSummary[];
   currentReferencedIssues: IssueRelationIssueSummary[];
 } {
-  const beforeById = new Map(before.outbound.map((item) => [item.issue.id, item.issue]));
-  const afterById = new Map(after.outbound.map((item) => [item.issue.id, item.issue]));
+  const beforeById = new Map(
+    before.outbound.map((item) => [item.issue.id, item.issue]),
+  );
+  const afterById = new Map(
+    after.outbound.map((item) => [item.issue.id, item.issue]),
+  );
 
   return {
     addedReferencedIssues: after.outbound
@@ -132,18 +143,27 @@ export function issueReferenceService(db: Db) {
       identifier: string | null;
     };
 
-    const resolvedTargets: ResolvedTargetRow[] = identifiers.length > 0
-      ? await dbOrTx
-        .select({
-          id: issues.id,
-          identifier: issues.identifier,
-        })
-        .from(issues)
-        .where(and(eq(issues.companyId, input.companyId), inArray(issues.identifier, identifiers)))
-      : [];
+    const resolvedTargets: ResolvedTargetRow[] =
+      identifiers.length > 0
+        ? await dbOrTx
+            .select({
+              id: issues.id,
+              identifier: issues.identifier,
+            })
+            .from(issues)
+            .where(
+              and(
+                eq(issues.companyId, input.companyId),
+                inArray(issues.identifier, identifiers),
+              ),
+            )
+        : [];
     const targetByIdentifier = new Map<string, string>(
       resolvedTargets
-        .filter((row): row is ResolvedTargetRow & { identifier: string } => typeof row.identifier === "string")
+        .filter(
+          (row): row is ResolvedTargetRow & { identifier: string } =>
+            typeof row.identifier === "string",
+        )
         .map((row) => [row.identifier, row.id]),
     );
 
@@ -154,19 +174,25 @@ export function issueReferenceService(db: Db) {
     const seenTargetIds = new Set<string>();
     const values = matches.flatMap((match) => {
       const targetIssueId = targetByIdentifier.get(match.identifier);
-      if (!targetIssueId || targetIssueId === input.sourceIssueId || seenTargetIds.has(targetIssueId)) {
+      if (
+        !targetIssueId ||
+        targetIssueId === input.sourceIssueId ||
+        seenTargetIds.has(targetIssueId)
+      ) {
         return [];
       }
       seenTargetIds.add(targetIssueId);
-      return [{
-        companyId: input.companyId,
-        sourceIssueId: input.sourceIssueId,
-        targetIssueId,
-        sourceKind: input.sourceKind,
-        sourceRecordId: input.sourceRecordId,
-        documentKey: input.documentKey,
-        matchedText: match.matchedText,
-      }];
+      return [
+        {
+          companyId: input.companyId,
+          sourceIssueId: input.sourceIssueId,
+          targetIssueId,
+          sourceKind: input.sourceKind,
+          sourceRecordId: input.sourceRecordId,
+          documentKey: input.documentKey,
+          matchedText: match.matchedText,
+        },
+      ];
     });
 
     if (values.length > 0) {
@@ -184,7 +210,16 @@ export function issueReferenceService(db: Db) {
       })
       .from(issues)
       .where(eq(issues.id, issueId))
-      .then((rows: Array<{ id: string; companyId: string; title: string; description: string | null }>) => rows[0] ?? null);
+      .then(
+        (
+          rows: Array<{
+            id: string;
+            companyId: string;
+            title: string;
+            description: string | null;
+          }>,
+        ) => rows[0] ?? null,
+      );
   }
 
   async function syncIssue(issueId: string, dbOrTx: any = db) {
@@ -192,23 +227,29 @@ export function issueReferenceService(db: Db) {
       const issue = await issueById(issueId, tx);
       if (!issue) throw notFound("Issue not found");
 
-      await replaceSourceMentions({
-        companyId: issue.companyId,
-        sourceIssueId: issue.id,
-        sourceKind: "title",
-        sourceRecordId: null,
-        documentKey: null,
-        text: issue.title,
-      }, tx);
+      await replaceSourceMentions(
+        {
+          companyId: issue.companyId,
+          sourceIssueId: issue.id,
+          sourceKind: "title",
+          sourceRecordId: null,
+          documentKey: null,
+          text: issue.title,
+        },
+        tx,
+      );
 
-      await replaceSourceMentions({
-        companyId: issue.companyId,
-        sourceIssueId: issue.id,
-        sourceKind: "description",
-        sourceRecordId: null,
-        documentKey: null,
-        text: issue.description,
-      }, tx);
+      await replaceSourceMentions(
+        {
+          companyId: issue.companyId,
+          sourceIssueId: issue.id,
+          sourceKind: "description",
+          sourceRecordId: null,
+          documentKey: null,
+          text: issue.description,
+        },
+        tx,
+      );
     };
 
     return dbOrTx === db ? db.transaction(runSync) : runSync(dbOrTx);
@@ -225,17 +266,30 @@ export function issueReferenceService(db: Db) {
       })
       .from(issueComments)
       .where(eq(issueComments.id, commentId))
-      .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string; deletedAt: Date | null }>) => rows[0] ?? null);
+      .then(
+        (
+          rows: Array<{
+            id: string;
+            companyId: string;
+            issueId: string;
+            body: string;
+            deletedAt: Date | null;
+          }>,
+        ) => rows[0] ?? null,
+      );
     if (!comment) throw notFound("Issue comment not found");
 
-    await replaceSourceMentions({
-      companyId: comment.companyId,
-      sourceIssueId: comment.issueId,
-      sourceKind: "comment",
-      sourceRecordId: comment.id,
-      documentKey: null,
-      text: comment.deletedAt ? null : comment.body,
-    }, dbOrTx);
+    await replaceSourceMentions(
+      {
+        companyId: comment.companyId,
+        sourceIssueId: comment.issueId,
+        sourceKind: "comment",
+        sourceRecordId: comment.id,
+        documentKey: null,
+        text: comment.deletedAt ? null : comment.body,
+      },
+      dbOrTx,
+    );
   }
 
   async function syncAnnotationComment(commentId: string, dbOrTx: any = db) {
@@ -248,17 +302,29 @@ export function issueReferenceService(db: Db) {
       })
       .from(documentAnnotationComments)
       .where(eq(documentAnnotationComments.id, commentId))
-      .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string }>) => rows[0] ?? null);
+      .then(
+        (
+          rows: Array<{
+            id: string;
+            companyId: string;
+            issueId: string;
+            body: string;
+          }>,
+        ) => rows[0] ?? null,
+      );
     if (!comment) throw notFound("Document annotation comment not found");
 
-    await replaceSourceMentions({
-      companyId: comment.companyId,
-      sourceIssueId: comment.issueId,
-      sourceKind: "comment",
-      sourceRecordId: comment.id,
-      documentKey: null,
-      text: comment.body,
-    }, dbOrTx);
+    await replaceSourceMentions(
+      {
+        companyId: comment.companyId,
+        sourceIssueId: comment.issueId,
+        sourceKind: "comment",
+        sourceRecordId: comment.id,
+        documentKey: null,
+        text: comment.body,
+      },
+      dbOrTx,
+    );
   }
 
   async function syncDocument(documentId: string, dbOrTx: any = db) {
@@ -273,35 +339,63 @@ export function issueReferenceService(db: Db) {
       .from(issueDocuments)
       .innerJoin(documents, eq(issueDocuments.documentId, documents.id))
       .where(eq(documents.id, documentId))
-      .then((rows: Array<{ documentId: string; companyId: string; issueId: string; key: string; body: string }>) => rows[0] ?? null);
+      .then(
+        (
+          rows: Array<{
+            documentId: string;
+            companyId: string;
+            issueId: string;
+            key: string;
+            body: string;
+          }>,
+        ) => rows[0] ?? null,
+      );
 
     if (!document) {
       await dbOrTx
         .delete(issueReferenceMentions)
-        .where(and(eq(issueReferenceMentions.sourceKind, "document"), eq(issueReferenceMentions.sourceRecordId, documentId)));
+        .where(
+          and(
+            eq(issueReferenceMentions.sourceKind, "document"),
+            eq(issueReferenceMentions.sourceRecordId, documentId),
+          ),
+        );
       return;
     }
 
-    await replaceSourceMentions({
-      companyId: document.companyId,
-      sourceIssueId: document.issueId,
-      sourceKind: "document",
-      sourceRecordId: document.documentId,
-      documentKey: document.key,
-      text: document.body,
-    }, dbOrTx);
+    await replaceSourceMentions(
+      {
+        companyId: document.companyId,
+        sourceIssueId: document.issueId,
+        sourceKind: "document",
+        sourceRecordId: document.documentId,
+        documentKey: document.key,
+        text: document.body,
+      },
+      dbOrTx,
+    );
   }
 
   async function deleteDocumentSource(documentId: string, dbOrTx: any = db) {
     await dbOrTx
       .delete(issueReferenceMentions)
-      .where(and(eq(issueReferenceMentions.sourceKind, "document"), eq(issueReferenceMentions.sourceRecordId, documentId)));
+      .where(
+        and(
+          eq(issueReferenceMentions.sourceKind, "document"),
+          eq(issueReferenceMentions.sourceRecordId, documentId),
+        ),
+      );
   }
 
   async function deleteCommentSource(commentId: string, dbOrTx: any = db) {
     await dbOrTx
       .delete(issueReferenceMentions)
-      .where(and(eq(issueReferenceMentions.sourceKind, "comment"), eq(issueReferenceMentions.sourceRecordId, commentId)));
+      .where(
+        and(
+          eq(issueReferenceMentions.sourceKind, "comment"),
+          eq(issueReferenceMentions.sourceRecordId, commentId),
+        ),
+      );
   }
 
   async function syncAllForIssue(issueId: string, dbOrTx: any = db) {
@@ -342,54 +436,62 @@ export function issueReferenceService(db: Db) {
     }
   }
 
-  async function listIssueReferenceSummary(issueId: string, dbOrTx: any = db): Promise<IssueRelatedWorkSummary> {
-      const issue = await issueById(issueId, dbOrTx);
-      if (!issue) throw notFound("Issue not found");
+  async function listIssueReferenceSummary(
+    issueId: string,
+    dbOrTx: any = db,
+  ): Promise<IssueRelatedWorkSummary> {
+    const issue = await issueById(issueId, dbOrTx);
+    if (!issue) throw notFound("Issue not found");
 
-      const [outboundRows, inboundRows] = await Promise.all([
-        dbOrTx
-          .select({
-            relatedIssueId: issues.id,
-            relatedIssueIdentifier: issues.identifier,
-            relatedIssueTitle: issues.title,
-            relatedIssueStatus: issues.status,
-            relatedIssuePriority: issues.priority,
-            relatedIssueAssigneeAgentId: issues.assigneeAgentId,
-            relatedIssueAssigneeUserId: issues.assigneeUserId,
-            sourceKind: issueReferenceMentions.sourceKind,
-            sourceRecordId: issueReferenceMentions.sourceRecordId,
-            documentKey: issueReferenceMentions.documentKey,
-            matchedText: issueReferenceMentions.matchedText,
-          })
-          .from(issueReferenceMentions)
-          .innerJoin(issues, eq(issueReferenceMentions.targetIssueId, issues.id))
-          .where(and(
+    const [outboundRows, inboundRows] = await Promise.all([
+      dbOrTx
+        .select({
+          relatedIssueId: issues.id,
+          relatedIssueIdentifier: issues.identifier,
+          relatedIssueTitle: issues.title,
+          relatedIssueStatus: issues.status,
+          relatedIssuePriority: issues.priority,
+          relatedIssueAssigneeAgentId: issues.assigneeAgentId,
+          relatedIssueAssigneeUserId: issues.assigneeUserId,
+          sourceKind: issueReferenceMentions.sourceKind,
+          sourceRecordId: issueReferenceMentions.sourceRecordId,
+          documentKey: issueReferenceMentions.documentKey,
+          matchedText: issueReferenceMentions.matchedText,
+        })
+        .from(issueReferenceMentions)
+        .innerJoin(issues, eq(issueReferenceMentions.targetIssueId, issues.id))
+        .where(
+          and(
             eq(issueReferenceMentions.companyId, issue.companyId),
             eq(issueReferenceMentions.sourceIssueId, issueId),
-          )),
-        dbOrTx
-          .select({
-            relatedIssueId: issues.id,
-            relatedIssueIdentifier: issues.identifier,
-            relatedIssueTitle: issues.title,
-            relatedIssueStatus: issues.status,
-            relatedIssuePriority: issues.priority,
-            relatedIssueAssigneeAgentId: issues.assigneeAgentId,
-            relatedIssueAssigneeUserId: issues.assigneeUserId,
-            sourceKind: issueReferenceMentions.sourceKind,
-            sourceRecordId: issueReferenceMentions.sourceRecordId,
-            documentKey: issueReferenceMentions.documentKey,
-            matchedText: issueReferenceMentions.matchedText,
-          })
-          .from(issueReferenceMentions)
-          .innerJoin(issues, eq(issueReferenceMentions.sourceIssueId, issues.id))
-          .where(and(
+          ),
+        ),
+      dbOrTx
+        .select({
+          relatedIssueId: issues.id,
+          relatedIssueIdentifier: issues.identifier,
+          relatedIssueTitle: issues.title,
+          relatedIssueStatus: issues.status,
+          relatedIssuePriority: issues.priority,
+          relatedIssueAssigneeAgentId: issues.assigneeAgentId,
+          relatedIssueAssigneeUserId: issues.assigneeUserId,
+          sourceKind: issueReferenceMentions.sourceKind,
+          sourceRecordId: issueReferenceMentions.sourceRecordId,
+          documentKey: issueReferenceMentions.documentKey,
+          matchedText: issueReferenceMentions.matchedText,
+        })
+        .from(issueReferenceMentions)
+        .innerJoin(issues, eq(issueReferenceMentions.sourceIssueId, issues.id))
+        .where(
+          and(
             eq(issueReferenceMentions.companyId, issue.companyId),
             eq(issueReferenceMentions.targetIssueId, issueId),
-          )),
-      ]);
+          ),
+        ),
+    ]);
 
-      const mapRows = (rows: Array<{
+    const mapRows = (
+      rows: Array<{
         relatedIssueId: string;
         relatedIssueIdentifier: string | null;
         relatedIssueTitle: string;
@@ -401,33 +503,37 @@ export function issueReferenceService(db: Db) {
         sourceRecordId: string | null;
         documentKey: string | null;
         matchedText: string | null;
-      }>) => {
-        const grouped = new Map<string, IssueRelatedWorkItem>();
-        for (const row of rows) {
-          const existing = grouped.get(row.relatedIssueId) ?? {
-            issue: toIssueSummary(row),
-            mentionCount: 0,
-            sources: [],
-          };
-          existing.mentionCount += 1;
-          existing.sources.push({
-            kind: row.sourceKind,
-            sourceRecordId: row.sourceRecordId,
-            label: sourceLabel(row.sourceKind, row.documentKey),
-            matchedText: row.matchedText,
-          });
-          grouped.set(row.relatedIssueId, existing);
-        }
+      }>,
+    ) => {
+      const grouped = new Map<string, IssueRelatedWorkItem>();
+      for (const row of rows) {
+        const existing = grouped.get(row.relatedIssueId) ?? {
+          issue: toIssueSummary(row),
+          mentionCount: 0,
+          sources: [],
+        };
+        existing.mentionCount += 1;
+        existing.sources.push({
+          kind: row.sourceKind,
+          sourceRecordId: row.sourceRecordId,
+          label: sourceLabel(row.sourceKind, row.documentKey),
+          matchedText: row.matchedText,
+        });
+        grouped.set(row.relatedIssueId, existing);
+      }
 
-        return [...grouped.values()]
-          .map((item) => ({ ...item, sources: [...item.sources].sort(sortSources) }))
-          .sort(sortRelatedWork);
-      };
+      return [...grouped.values()]
+        .map((item) => ({
+          ...item,
+          sources: [...item.sources].sort(sortSources),
+        }))
+        .sort(sortRelatedWork);
+    };
 
-      return {
-        outbound: mapRows(outboundRows),
-        inbound: mapRows(inboundRows),
-      };
+    return {
+      outbound: mapRows(outboundRows),
+      inbound: mapRows(inboundRows),
+    };
   }
 
   return {

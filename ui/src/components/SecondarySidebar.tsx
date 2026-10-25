@@ -17,10 +17,7 @@ export function SecondarySidebar({
   return (
     <div
       data-secondary-sidebar=""
-      className={cn(
-        "h-full w-full min-w-0 overflow-hidden",
-        className,
-      )}
+      className={cn("h-full w-full min-w-0 overflow-hidden", className)}
     >
       <SidebarNavExpandedProvider>{children}</SidebarNavExpandedProvider>
     </div>

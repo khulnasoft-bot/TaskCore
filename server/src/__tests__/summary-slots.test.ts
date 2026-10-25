@@ -24,7 +24,9 @@ import { withBuiltInAgentMarker } from "../services/built-in-agent-metadata.ts";
 import { issueService } from "../services/issues.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 function issuePrefix(id: string) {
   return `T${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
@@ -38,7 +40,9 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("summary slot service", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("taskcore-summary-slots-");
@@ -76,7 +80,9 @@ describeEmbeddedPostgres("summary slot service", () => {
 
   async function seedProject(companyId: string) {
     const projectId = randomUUID();
-    await db.insert(projects).values({ id: projectId, companyId, name: "Taskcore App" });
+    await db
+      .insert(projects)
+      .values({ id: projectId, companyId, name: "Taskcore App" });
     return projectId;
   }
 
@@ -119,7 +125,10 @@ describeEmbeddedPostgres("summary slot service", () => {
       status: "idle",
       adapterType: "codex_local",
       adapterConfig: ready ? { model: "gpt-5.4" } : {},
-      metadata: withBuiltInAgentMarker(null, { key: "summarizer", featureKeys: ["summarizer"] }),
+      metadata: withBuiltInAgentMarker(null, {
+        key: "summarizer",
+        featureKeys: ["summarizer"],
+      }),
     });
     return agentId;
   }
@@ -140,15 +149,25 @@ describeEmbeddedPostgres("summary slot service", () => {
 
   async function seedRun(companyId: string, agentId: string) {
     const runId = randomUUID();
-    await db.insert(heartbeatRuns).values({ id: runId, companyId, agentId, status: "running" });
+    await db
+      .insert(heartbeatRuns)
+      .values({ id: runId, companyId, agentId, status: "running" });
     return runId;
   }
 
   function projectSelector(companyId: string, projectId: string) {
-    return { companyId, scopeKind: "project", slotKey: "header", scopeId: projectId };
+    return {
+      companyId,
+      scopeKind: "project",
+      slotKey: "header",
+      scopeId: projectId,
+    };
   }
 
-  function executionWorkspaceSelector(companyId: string, executionWorkspaceId: string) {
+  function executionWorkspaceSelector(
+    companyId: string,
+    executionWorkspaceId: string,
+  ) {
     return {
       companyId,
       scopeKind: "execution_workspace",
@@ -163,13 +182,19 @@ describeEmbeddedPostgres("summary slot service", () => {
       const projectId = await seedProject(companyId);
       const svc = summarySlotService(db);
       const result = await svc.getSlot(projectSelector(companyId, projectId));
-      expect(result).toEqual({ slot: null, document: null, generatingIssue: null });
+      expect(result).toEqual({
+        slot: null,
+        document: null,
+        generatingIssue: null,
+      });
     });
 
     it("rejects targets that do not exist in the company", async () => {
       const companyId = await seedCompany();
       const svc = summarySlotService(db);
-      await expect(svc.getSlot(projectSelector(companyId, randomUUID()))).rejects.toMatchObject({
+      await expect(
+        svc.getSlot(projectSelector(companyId, randomUUID())),
+      ).rejects.toMatchObject({
         status: 404,
       });
     });
@@ -179,7 +204,9 @@ describeEmbeddedPostgres("summary slot service", () => {
       const otherCompanyId = await seedCompany();
       const foreignProjectId = await seedProject(otherCompanyId);
       const svc = summarySlotService(db);
-      await expect(svc.getSlot(projectSelector(companyId, foreignProjectId))).rejects.toMatchObject({
+      await expect(
+        svc.getSlot(projectSelector(companyId, foreignProjectId)),
+      ).rejects.toMatchObject({
         status: 404,
       });
     });
@@ -188,11 +215,16 @@ describeEmbeddedPostgres("summary slot service", () => {
       const companyId = await seedCompany();
       const otherCompanyId = await seedCompany();
       const otherProjectId = await seedProject(otherCompanyId);
-      const foreignExecutionWorkspaceId = await seedExecutionWorkspace(otherCompanyId, otherProjectId);
+      const foreignExecutionWorkspaceId = await seedExecutionWorkspace(
+        otherCompanyId,
+        otherProjectId,
+      );
       const svc = summarySlotService(db);
 
       await expect(
-        svc.getSlot(executionWorkspaceSelector(companyId, foreignExecutionWorkspaceId)),
+        svc.getSlot(
+          executionWorkspaceSelector(companyId, foreignExecutionWorkspaceId),
+        ),
       ).rejects.toMatchObject({ status: 404 });
     });
 
@@ -200,7 +232,12 @@ describeEmbeddedPostgres("summary slot service", () => {
       const companyId = await seedCompany();
       const svc = summarySlotService(db);
       await expect(
-        svc.getSlot({ companyId, scopeKind: "workspaces_overview", slotKey: "header", scopeId: randomUUID() }),
+        svc.getSlot({
+          companyId,
+          scopeKind: "workspaces_overview",
+          slotKey: "header",
+          scopeId: randomUUID(),
+        }),
       ).rejects.toMatchObject({ status: 422 });
     });
   });
@@ -211,8 +248,13 @@ describeEmbeddedPostgres("summary slot service", () => {
       const projectId = await seedProject(companyId);
       const svc = summarySlotService(db);
       await expect(
-        svc.generate(projectSelector(companyId, projectId), { userId: "board-user" }),
-      ).rejects.toMatchObject({ status: 422, details: { code: "summarizer_not_configured" } });
+        svc.generate(projectSelector(companyId, projectId), {
+          userId: "board-user",
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        details: { code: "summarizer_not_configured" },
+      });
     });
 
     it("creates a summarizer task, links it, and marks the slot generating", async () => {
@@ -261,7 +303,9 @@ describeEmbeddedPostgres("summary slot service", () => {
         },
       ]);
 
-      const result = await svc.generate(projectSelector(companyId, projectId), { userId: "board-user" });
+      const result = await svc.generate(projectSelector(companyId, projectId), {
+        userId: "board-user",
+      });
 
       expect(result.alreadyGenerating).toBe(false);
       expect(result.slot.status).toBe("generating");
@@ -274,7 +318,9 @@ describeEmbeddedPostgres("summary slot service", () => {
         .then((rows) => rows[0]!);
       expect(issueRow.assigneeAgentId).toBe(summarizerAgentId);
       expect(issueRow.companyId).toBe(companyId);
-      expect(issueRow.title).toMatch(/^Summarize project on \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/);
+      expect(issueRow.title).toMatch(
+        /^Summarize project on \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/,
+      );
       expect(issueRow.hiddenAt).toBeInstanceOf(Date);
       expect(issueRow.description).toContain(
         '"generationIssueId": "' + result.generatingIssue.id + '"',
@@ -315,7 +361,9 @@ describeEmbeddedPostgres("summary slot service", () => {
       expect(issueRow.description).toContain("Implement summary cards");
       expect(issueRow.description).toContain("### Recently done");
       expect(issueRow.description).toContain("Ship the previous summary");
-      expect(issueRow.description).toContain(`/${issuePrefix(companyId)}/issues/`);
+      expect(issueRow.description).toContain(
+        `/${issuePrefix(companyId)}/issues/`,
+      );
       expect(issueRow.description).not.toContain("/PAP/issues/");
       expect(issueRow.description).not.toContain("Other project issue");
     });
@@ -323,9 +371,20 @@ describeEmbeddedPostgres("summary slot service", () => {
     it("keeps summaries and snapshots isolated between execution workspaces", async () => {
       const companyId = await seedCompany();
       const projectId = await seedProject(companyId);
-      const projectWorkspaceId = await seedProjectWorkspace(companyId, projectId);
-      const firstExecutionWorkspaceId = await seedExecutionWorkspace(companyId, projectId, projectWorkspaceId);
-      const secondExecutionWorkspaceId = await seedExecutionWorkspace(companyId, projectId, projectWorkspaceId);
+      const projectWorkspaceId = await seedProjectWorkspace(
+        companyId,
+        projectId,
+      );
+      const firstExecutionWorkspaceId = await seedExecutionWorkspace(
+        companyId,
+        projectId,
+        projectWorkspaceId,
+      );
+      const secondExecutionWorkspaceId = await seedExecutionWorkspace(
+        companyId,
+        projectId,
+        projectWorkspaceId,
+      );
       await seedSummarizer(companyId);
       const svc = summarySlotService(db);
 
@@ -354,9 +413,17 @@ describeEmbeddedPostgres("summary slot service", () => {
         },
       ]);
 
-      const firstSelector = executionWorkspaceSelector(companyId, firstExecutionWorkspaceId);
-      const secondSelector = executionWorkspaceSelector(companyId, secondExecutionWorkspaceId);
-      const generated = await svc.generate(firstSelector, { userId: "board-user" });
+      const firstSelector = executionWorkspaceSelector(
+        companyId,
+        firstExecutionWorkspaceId,
+      );
+      const secondSelector = executionWorkspaceSelector(
+        companyId,
+        secondExecutionWorkspaceId,
+      );
+      const generated = await svc.generate(firstSelector, {
+        userId: "board-user",
+      });
 
       expect(generated.slot).toMatchObject({
         scopeKind: "execution_workspace",
@@ -369,9 +436,15 @@ describeEmbeddedPostgres("summary slot service", () => {
         .where(eq(issues.id, generated.generatingIssue.id))
         .then((rows) => rows[0]!);
       expect(generationIssue.description).toContain("First workspace task");
-      expect(generationIssue.description).not.toContain("Second workspace task");
-      expect(generationIssue.description).toContain('"scopeKind": "execution_workspace"');
-      expect(generationIssue.description).toContain(`"scopeId": "${firstExecutionWorkspaceId}"`);
+      expect(generationIssue.description).not.toContain(
+        "Second workspace task",
+      );
+      expect(generationIssue.description).toContain(
+        '"scopeKind": "execution_workspace"',
+      );
+      expect(generationIssue.description).toContain(
+        `"scopeId": "${firstExecutionWorkspaceId}"`,
+      );
       await expect(svc.getSlot(secondSelector)).resolves.toEqual({
         slot: null,
         document: null,
@@ -386,14 +459,23 @@ describeEmbeddedPostgres("summary slot service", () => {
       const svc = summarySlotService(db);
 
       const [first, second] = await Promise.all([
-        svc.generate(projectSelector(companyId, projectId), { userId: "board-user" }),
-        svc.generate(projectSelector(companyId, projectId), { userId: "board-user" }),
+        svc.generate(projectSelector(companyId, projectId), {
+          userId: "board-user",
+        }),
+        svc.generate(projectSelector(companyId, projectId), {
+          userId: "board-user",
+        }),
       ]);
 
       expect(second.generatingIssue.id).toBe(first.generatingIssue.id);
-      expect([first.alreadyGenerating, second.alreadyGenerating].sort()).toEqual([false, true]);
+      expect(
+        [first.alreadyGenerating, second.alreadyGenerating].sort(),
+      ).toEqual([false, true]);
 
-      const issueRows = await db.select().from(issues).where(eq(issues.companyId, companyId));
+      const issueRows = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.companyId, companyId));
       expect(issueRows).toHaveLength(1);
     });
 
@@ -403,17 +485,25 @@ describeEmbeddedPostgres("summary slot service", () => {
       await seedSummarizer(companyId);
       const svc = summarySlotService(db);
 
-      const first = await svc.generate(projectSelector(companyId, projectId), { userId: "board-user" });
-      await issueService(db).update(first.generatingIssue.id, { status: "done" });
+      const first = await svc.generate(projectSelector(companyId, projectId), {
+        userId: "board-user",
+      });
+      await issueService(db).update(first.generatingIssue.id, {
+        status: "done",
+      });
 
       const failed = await svc.getSlot(projectSelector(companyId, projectId));
       expect(failed.slot).toMatchObject({
         status: "failed",
         generatingIssueId: first.generatingIssue.id,
-        failureReason: expect.stringContaining("finished without writing a summary"),
+        failureReason: expect.stringContaining(
+          "finished without writing a summary",
+        ),
       });
 
-      const second = await svc.generate(projectSelector(companyId, projectId), { userId: "board-user" });
+      const second = await svc.generate(projectSelector(companyId, projectId), {
+        userId: "board-user",
+      });
       expect(second.alreadyGenerating).toBe(false);
       expect(second.generatingIssue.id).not.toBe(first.generatingIssue.id);
       expect(second.slot).toMatchObject({
@@ -422,7 +512,10 @@ describeEmbeddedPostgres("summary slot service", () => {
         generatingIssueId: second.generatingIssue.id,
       });
 
-      const issueRows = await db.select().from(issues).where(eq(issues.companyId, companyId));
+      const issueRows = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.companyId, companyId));
       expect(issueRows).toHaveLength(2);
     });
 
@@ -432,25 +525,42 @@ describeEmbeddedPostgres("summary slot service", () => {
       await seedSummarizer(companyId);
       const svc = summarySlotService(db);
 
-      const generated = await svc.generate(projectSelector(companyId, projectId), { userId: "board-user" });
-      await issueService(db).update(generated.generatingIssue.id, { status: "cancelled" });
+      const generated = await svc.generate(
+        projectSelector(companyId, projectId),
+        { userId: "board-user" },
+      );
+      await issueService(db).update(generated.generatingIssue.id, {
+        status: "cancelled",
+      });
 
       const result = await svc.getSlot(projectSelector(companyId, projectId));
       expect(result.slot).toMatchObject({
         status: "failed",
         generatingIssueId: generated.generatingIssue.id,
-        failureReason: expect.stringContaining("was cancelled before writing a summary"),
+        failureReason: expect.stringContaining(
+          "was cancelled before writing a summary",
+        ),
       });
     });
   });
 
   describe("summarizer writes", () => {
-    async function startGeneration(companyId: string, projectId: string, summarizerAgentId: string) {
+    async function startGeneration(
+      companyId: string,
+      projectId: string,
+      summarizerAgentId: string,
+    ) {
       const svc = summarySlotService(db);
-      const generated = await svc.generate(projectSelector(companyId, projectId), { userId: "board-user" });
+      const generated = await svc.generate(
+        projectSelector(companyId, projectId),
+        { userId: "board-user" },
+      );
       const runId = await seedRun(companyId, summarizerAgentId);
       // Simulate the summarizer run checking out its linked generation task.
-      await db.update(issues).set({ checkoutRunId: runId }).where(eq(issues.id, generated.generatingIssue.id));
+      await db
+        .update(issues)
+        .set({ checkoutRunId: runId })
+        .where(eq(issues.id, generated.generatingIssue.id));
       return { svc, generationIssueId: generated.generatingIssue.id, runId };
     }
 
@@ -458,7 +568,11 @@ describeEmbeddedPostgres("summary slot service", () => {
       const companyId = await seedCompany();
       const projectId = await seedProject(companyId);
       const summarizerAgentId = await seedSummarizer(companyId);
-      const { svc, generationIssueId, runId } = await startGeneration(companyId, projectId, summarizerAgentId);
+      const { svc, generationIssueId, runId } = await startGeneration(
+        companyId,
+        projectId,
+        summarizerAgentId,
+      );
 
       const initial = await svc.write(
         {
@@ -471,9 +585,12 @@ describeEmbeddedPostgres("summary slot service", () => {
         { agentId: summarizerAgentId, runId },
       );
 
-      const nextGeneration = await svc.generate(projectSelector(companyId, projectId), {
-        userId: "board-user",
-      });
+      const nextGeneration = await svc.generate(
+        projectSelector(companyId, projectId),
+        {
+          userId: "board-user",
+        },
+      );
       const nextRunId = await seedRun(companyId, summarizerAgentId);
       await db
         .update(issues)
@@ -492,7 +609,9 @@ describeEmbeddedPostgres("summary slot service", () => {
       );
 
       expect(written.revision.revisionNumber).toBe(2);
-      expect(written.document.body).toMatch(/^\*\*Decide:\*\*[\s\S]*\*\*I suggest:\*\*/m);
+      expect(written.document.body).toMatch(
+        /^\*\*Decide:\*\*[\s\S]*\*\*I suggest:\*\*/m,
+      );
       expect(written.document.body).not.toMatch(/^Issues: /m);
       expect(written.slot.status).toBe("idle");
       expect(written.slot.generatingIssueId).toBeNull();
@@ -500,20 +619,32 @@ describeEmbeddedPostgres("summary slot service", () => {
       expect(written.slot.lastGeneratedByAgentId).toBe(summarizerAgentId);
       expect(written.slot.lastModel).toBe("cheap-model");
 
-      const revisions = await svc.listRevisions(projectSelector(companyId, projectId));
+      const revisions = await svc.listRevisions(
+        projectSelector(companyId, projectId),
+      );
       expect(revisions.revisions).toHaveLength(2);
       expect(revisions.revisions[0]!.id).toBe(written.revision.id);
       expect(revisions.revisions[1]!.id).toBe(initial.revision.id);
-      expect(revisions.revisions[1]!.body).toContain("First summary for this scope.");
+      expect(revisions.revisions[1]!.body).toContain(
+        "First summary for this scope.",
+      );
     });
 
     it("returns only the 20 most recent summary revisions", async () => {
       const companyId = await seedCompany();
       const projectId = await seedProject(companyId);
       const summarizerAgentId = await seedSummarizer(companyId);
-      const { svc, generationIssueId, runId } = await startGeneration(companyId, projectId, summarizerAgentId);
+      const { svc, generationIssueId, runId } = await startGeneration(
+        companyId,
+        projectId,
+        summarizerAgentId,
+      );
       const written = await svc.write(
-        { ...projectSelector(companyId, projectId), markdown: "# Summary v1", generationIssueId },
+        {
+          ...projectSelector(companyId, projectId),
+          markdown: "# Summary v1",
+          generationIssueId,
+        },
         { agentId: summarizerAgentId, runId },
       );
 
@@ -526,7 +657,9 @@ describeEmbeddedPostgres("summary slot service", () => {
         })),
       );
 
-      const revisions = await svc.listRevisions(projectSelector(companyId, projectId));
+      const revisions = await svc.listRevisions(
+        projectSelector(companyId, projectId),
+      );
       expect(revisions.revisions).toHaveLength(20);
       expect(revisions.revisions[0]!.revisionNumber).toBe(25);
       expect(revisions.revisions.at(-1)!.revisionNumber).toBe(6);
@@ -536,19 +669,33 @@ describeEmbeddedPostgres("summary slot service", () => {
       const companyId = await seedCompany();
       const projectId = await seedProject(companyId);
       const summarizerAgentId = await seedSummarizer(companyId);
-      const { svc, generationIssueId, runId } = await startGeneration(companyId, projectId, summarizerAgentId);
+      const { svc, generationIssueId, runId } = await startGeneration(
+        companyId,
+        projectId,
+        summarizerAgentId,
+      );
 
       const first = await svc.write(
-        { ...projectSelector(companyId, projectId), markdown: "# Summary v1", generationIssueId },
+        {
+          ...projectSelector(companyId, projectId),
+          markdown: "# Summary v1",
+          generationIssueId,
+        },
         { agentId: summarizerAgentId, runId },
       );
 
       // A stale baseRevisionId must be rejected.
-      const second = await summarySlotService(db).generate(projectSelector(companyId, projectId), {
-        userId: "board-user",
-      });
+      const second = await summarySlotService(db).generate(
+        projectSelector(companyId, projectId),
+        {
+          userId: "board-user",
+        },
+      );
       const runId2 = await seedRun(companyId, summarizerAgentId);
-      await db.update(issues).set({ checkoutRunId: runId2 }).where(eq(issues.id, second.generatingIssue.id));
+      await db
+        .update(issues)
+        .set({ checkoutRunId: runId2 })
+        .where(eq(issues.id, second.generatingIssue.id));
 
       await expect(
         svc.write(
@@ -579,7 +726,11 @@ describeEmbeddedPostgres("summary slot service", () => {
       const projectId = await seedProject(companyId);
       const summarizerAgentId = await seedSummarizer(companyId);
       const plainAgentId = await seedPlainAgent(companyId);
-      const { svc, runId } = await startGeneration(companyId, projectId, summarizerAgentId);
+      const { svc, runId } = await startGeneration(
+        companyId,
+        projectId,
+        summarizerAgentId,
+      );
 
       await expect(
         svc.write(
@@ -593,12 +744,20 @@ describeEmbeddedPostgres("summary slot service", () => {
       const companyId = await seedCompany();
       const projectId = await seedProject(companyId);
       const summarizerAgentId = await seedSummarizer(companyId);
-      const { generationIssueId } = await startGeneration(companyId, projectId, summarizerAgentId);
+      const { generationIssueId } = await startGeneration(
+        companyId,
+        projectId,
+        summarizerAgentId,
+      );
       const svc = summarySlotService(db);
 
       await expect(
         svc.write(
-          { ...projectSelector(companyId, projectId), markdown: "# Wrong run", generationIssueId },
+          {
+            ...projectSelector(companyId, projectId),
+            markdown: "# Wrong run",
+            generationIssueId,
+          },
           { agentId: summarizerAgentId, runId: randomUUID() },
         ),
       ).rejects.toMatchObject({ status: 403 });
@@ -609,11 +768,19 @@ describeEmbeddedPostgres("summary slot service", () => {
       const projectId = await seedProject(companyId);
       const otherProjectId = await seedProject(companyId);
       const summarizerAgentId = await seedSummarizer(companyId);
-      const { svc, generationIssueId, runId } = await startGeneration(companyId, projectId, summarizerAgentId);
+      const { svc, generationIssueId, runId } = await startGeneration(
+        companyId,
+        projectId,
+        summarizerAgentId,
+      );
 
       await expect(
         svc.write(
-          { ...projectSelector(companyId, otherProjectId), markdown: "# Wrong slot", generationIssueId },
+          {
+            ...projectSelector(companyId, otherProjectId),
+            markdown: "# Wrong slot",
+            generationIssueId,
+          },
           { agentId: summarizerAgentId, runId },
         ),
       ).rejects.toMatchObject({ status: 403 });
@@ -627,7 +794,10 @@ describeEmbeddedPostgres("summary slot service", () => {
 
       await expect(
         svc.write(
-          { ...projectSelector(companyId, projectId), markdown: "# No generation" },
+          {
+            ...projectSelector(companyId, projectId),
+            markdown: "# No generation",
+          },
           { agentId: summarizerAgentId, runId: randomUUID() },
         ),
       ).rejects.toMatchObject({ status: 403 });

@@ -16,7 +16,11 @@ describe("codex local skill sync", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -38,8 +42,12 @@ describe("codex local skill sync", () => {
     const before = await listCodexSkills(ctx);
     expect(before.mode).toBe("ephemeral");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.detail).toContain("CODEX_HOME/skills/");
+    expect(
+      before.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("configured");
+    expect(
+      before.entries.find((entry) => entry.key === taskcoreKey)?.detail,
+    ).toContain("CODEX_HOME/skills/");
   });
 
   it("does not apply the legacy operational skill default to the native runner", async () => {
@@ -52,7 +60,9 @@ describe("codex local skill sync", () => {
 
     expect(snapshot.adapterType).toBe("taskcore_runner");
     expect(snapshot.desiredSkills).toEqual([]);
-    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("available");
+    expect(
+      snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("available");
   });
 
   it("does not persist Taskcore skills into CODEX_HOME during sync", async () => {
@@ -75,8 +85,12 @@ describe("codex local skill sync", () => {
 
     const after = await syncCodexSkills(configuredCtx, [taskcoreKey]);
     expect(after.mode).toBe("ephemeral");
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
-    await expect(fs.lstat(path.join(codexHome, "skills", "taskcore"))).rejects.toMatchObject({
+    expect(
+      after.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("configured");
+    await expect(
+      fs.lstat(path.join(codexHome, "skills", "taskcore")),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
   });
@@ -102,7 +116,11 @@ describe("codex local skill sync", () => {
     expect(snapshot.warnings).toEqual([]);
     expect(snapshot.desiredSkills).toContain(taskcoreKey);
     expect(snapshot.desiredSkills).not.toContain("taskcore");
-    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
-    expect(snapshot.entries.find((entry) => entry.key === "taskcore")).toBeUndefined();
+    expect(
+      snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("configured");
+    expect(
+      snapshot.entries.find((entry) => entry.key === "taskcore"),
+    ).toBeUndefined();
   });
 });

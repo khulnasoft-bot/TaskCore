@@ -12,11 +12,11 @@ const manifest: TaskcorePluginManifestV1 = {
     "events.subscribe",
     "plugin.state.read",
     "plugin.state.write",
-    "ui.dashboardWidget.register"
+    "ui.dashboardWidget.register",
   ],
   entrypoints: {
     worker: "./dist/worker.js",
-    ui: "./dist/ui"
+    ui: "./dist/ui",
   },
   ui: {
     slots: [
@@ -24,10 +24,10 @@ const manifest: TaskcorePluginManifestV1 = {
         type: "dashboardWidget",
         id: "health-widget",
         displayName: "Plugin Authoring Smoke Example Health",
-        exportName: "DashboardWidget"
-      }
-    ]
-  }
+        exportName: "DashboardWidget",
+      },
+    ],
+  },
 };
 
 export default manifest;

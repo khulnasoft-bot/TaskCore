@@ -88,7 +88,10 @@ function answerError(
   if (validation?.maxLength != null && value.length > validation.maxLength)
     return `Enter no more than ${validation.maxLength} characters.`;
   if (validation?.pattern) {
-    const result = matchSafeQuestionValidationPattern(validation.pattern, value);
+    const result = matchSafeQuestionValidationPattern(
+      validation.pattern,
+      value,
+    );
     if (result === "unsupported")
       return "This question has an unsupported validation pattern.";
     if (result === "no_match") return "Use the requested format.";
@@ -522,7 +525,9 @@ export function QuestionForm({
           tabIndex={0}
           className="mb-3 max-h-96 overflow-auto text-sm text-muted-foreground"
         >
-          <MarkdownBody mediaMode="reference" linkIssueReferences={false}>{questionSet.description}</MarkdownBody>
+          <MarkdownBody mediaMode="reference" linkIssueReferences={false}>
+            {questionSet.description}
+          </MarkdownBody>
         </div>
       ) : null}
       {question.answerMode === "text" ? (

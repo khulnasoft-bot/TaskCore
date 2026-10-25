@@ -12,15 +12,15 @@ delimited JSON-RPC over stdio. It is not exposed as a network service.
 
 ## Identity mapping
 
-| Runner identity | Codex source | Persistence rule |
-| --- | --- | --- |
-| run ID | mock-core input | Never replaced during recovery. |
-| normalized session ID | controller-owned mock-core input | A distinct identity, independent of the run and provider IDs, that stays stable across transport/process recovery. |
-| driver session ID | `thread.id` | Resumed by exact ID. A different returned ID fails recovery. |
-| provider session ID | `thread.sessionId` | Kept separately from the driver thread ID. |
-| turn ID | `turn.id` | Required by steer and interrupt preconditions. |
-| item ID | `item.id`, request ID, or deterministic turn/kind key | Preserved on lifecycle and delta events. |
-| source event ID | runner instance + run + source sequence | Source sequence continues from the persisted snapshot. |
+| Runner identity       | Codex source                                          | Persistence rule                                                                                                   |
+| --------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| run ID                | mock-core input                                       | Never replaced during recovery.                                                                                    |
+| normalized session ID | controller-owned mock-core input                      | A distinct identity, independent of the run and provider IDs, that stays stable across transport/process recovery. |
+| driver session ID     | `thread.id`                                           | Resumed by exact ID. A different returned ID fails recovery.                                                       |
+| provider session ID   | `thread.sessionId`                                    | Kept separately from the driver thread ID.                                                                         |
+| turn ID               | `turn.id`                                             | Required by steer and interrupt preconditions.                                                                     |
+| item ID               | `item.id`, request ID, or deterministic turn/kind key | Preserved on lifecycle and delta events.                                                                           |
+| source event ID       | runner instance + run + source sequence               | Source sequence continues from the persisted snapshot.                                                             |
 
 The persisted session snapshot records run, normalized session, driver
 session, provider session, the exact active turn, committed semantic-result
@@ -36,17 +36,17 @@ not emitted again.
 
 ## App-server operations
 
-| Driver operation | App-server method | Degradation |
-| --- | --- | --- |
-| initialize | `initialize`, then `initialized` | Startup fails visibly. |
-| create | `thread/start` | Required. |
-| resume | `thread/resume` | `recovered: false` with a redacted reason. |
-| read | `thread/read` | Explicit `HarnessCapabilityUnavailableError`. |
-| start turn | `turn/start` | Required. |
-| steer | `turn/steer` with `expectedTurnId` | Explicit unsupported diagnostic; no stdin fallback. |
-| interrupt | `turn/interrupt` | Explicit unsupported diagnostic; session is not killed. |
-| usage | `thread/tokenUsage/updated` | Returns the last snapshot or explicit unsupported error. |
-| reconcile | `thread/read` plus `session.reconciled` | Disabled when read is unavailable. |
+| Driver operation | App-server method                       | Degradation                                              |
+| ---------------- | --------------------------------------- | -------------------------------------------------------- |
+| initialize       | `initialize`, then `initialized`        | Startup fails visibly.                                   |
+| create           | `thread/start`                          | Required.                                                |
+| resume           | `thread/resume`                         | `recovered: false` with a redacted reason.               |
+| read             | `thread/read`                           | Explicit `HarnessCapabilityUnavailableError`.            |
+| start turn       | `turn/start`                            | Required.                                                |
+| steer            | `turn/steer` with `expectedTurnId`      | Explicit unsupported diagnostic; no stdin fallback.      |
+| interrupt        | `turn/interrupt`                        | Explicit unsupported diagnostic; session is not killed.  |
+| usage            | `thread/tokenUsage/updated`             | Returns the last snapshot or explicit unsupported error. |
+| reconcile        | `thread/read` plus `session.reconciled` | Disabled when read is unavailable.                       |
 
 Capability flags are descriptive and executable. Unsupported operations emit
 canonical `harness.diagnostic` events with secret-redacted detail. No
@@ -169,7 +169,6 @@ than surfacing a raw filesystem `ENOENT`. See the
 This phase changes no browser surface, so no new browser screenshot applies.
 The canonical events are proved through the existing reducer/replay path and
 JSON trace evidence.
-
 
 ## Explicit assigned skills in native tasks
 

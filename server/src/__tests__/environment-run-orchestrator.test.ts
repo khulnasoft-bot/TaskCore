@@ -63,7 +63,11 @@ import {
   environmentRunOrchestrator,
   EnvironmentRunError,
 } from "../services/environment-run-orchestrator.ts";
-import type { Environment, EnvironmentLease, ExecutionWorkspace } from "@taskcore/shared";
+import type {
+  Environment,
+  EnvironmentLease,
+  ExecutionWorkspace,
+} from "@taskcore/shared";
 import type { RealizedExecutionWorkspace } from "../services/workspace-runtime.ts";
 import type { EnvironmentRuntimeService } from "../services/environment-runtime.ts";
 
@@ -86,7 +90,9 @@ function makeEnvironment(driver: string = "local"): Environment {
   };
 }
 
-function makeLease(overrides: Partial<EnvironmentLease> = {}): EnvironmentLease {
+function makeLease(
+  overrides: Partial<EnvironmentLease> = {},
+): EnvironmentLease {
   return {
     id: "lease-1",
     companyId: "company-1",
@@ -111,7 +117,9 @@ function makeLease(overrides: Partial<EnvironmentLease> = {}): EnvironmentLease 
   };
 }
 
-function makeExecutionWorkspace(cwd: string = "/workspace/project"): RealizedExecutionWorkspace {
+function makeExecutionWorkspace(
+  cwd: string = "/workspace/project",
+): RealizedExecutionWorkspace {
   return {
     baseCwd: "/workspace",
     source: "project_primary",
@@ -161,11 +169,15 @@ function makePersistedExecutionWorkspace(
   };
 }
 
-function makeRealizeInput(overrides: {
-  environment?: Environment;
-  lease?: EnvironmentLease;
-  persistedExecutionWorkspace?: ExecutionWorkspace | null;
-} = {}): Parameters<ReturnType<typeof environmentRunOrchestrator>["realizeForRun"]>[0] {
+function makeRealizeInput(
+  overrides: {
+    environment?: Environment;
+    lease?: EnvironmentLease;
+    persistedExecutionWorkspace?: ExecutionWorkspace | null;
+  } = {},
+): Parameters<
+  ReturnType<typeof environmentRunOrchestrator>["realizeForRun"]
+>[0] {
   return {
     environment: overrides.environment ?? makeEnvironment("local"),
     lease: overrides.lease ?? makeLease(),
@@ -175,13 +187,16 @@ function makeRealizeInput(overrides: {
     heartbeatRunId: "run-1",
     executionWorkspace: makeExecutionWorkspace(),
     effectiveExecutionWorkspaceMode: null,
-    persistedExecutionWorkspace: overrides.persistedExecutionWorkspace !== undefined
-      ? overrides.persistedExecutionWorkspace
-      : null,
+    persistedExecutionWorkspace:
+      overrides.persistedExecutionWorkspace !== undefined
+        ? overrides.persistedExecutionWorkspace
+        : null,
   };
 }
 
-function makeMockRuntime(overrides: Partial<EnvironmentRuntimeService> = {}): EnvironmentRuntimeService {
+function makeMockRuntime(
+  overrides: Partial<EnvironmentRuntimeService> = {},
+): EnvironmentRuntimeService {
   return {
     acquireRunLease: vi.fn(),
     releaseRunLeases: vi.fn(),
@@ -256,29 +271,50 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
     mockLogActivity.mockResolvedValue(undefined);
   });
 
-  it.each([false, true])("only requests active-work cancellation for explicit Stop: %s", async (cancelActiveWork) => {
-    const releaseRunLeases = vi.fn().mockResolvedValue([]);
-    const runtime = makeMockRuntime({ releaseRunLeases });
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
-    await orchestrator.releaseForRun({
-      heartbeatRunId: "run-1", companyId: "company-1", agentId: "agent-1",
-      providerResourceDisposition: "stop_and_retain", cancelActiveWork,
-    });
-    expect(releaseRunLeases).toHaveBeenCalledWith(
-      "run-1", "released", expect.any(Function), "stop_and_retain",
-      ...(cancelActiveWork ? [true] : []),
-    );
-  });
+  it.each([false, true])(
+    "only requests active-work cancellation for explicit Stop: %s",
+    async (cancelActiveWork) => {
+      const releaseRunLeases = vi.fn().mockResolvedValue([]);
+      const runtime = makeMockRuntime({ releaseRunLeases });
+      const orchestrator = environmentRunOrchestrator(mockDb, {
+        environmentRuntime: runtime,
+      });
+      await orchestrator.releaseForRun({
+        heartbeatRunId: "run-1",
+        companyId: "company-1",
+        agentId: "agent-1",
+        providerResourceDisposition: "stop_and_retain",
+        cancelActiveWork,
+      });
+      expect(releaseRunLeases).toHaveBeenCalledWith(
+        "run-1",
+        "released",
+        expect.any(Function),
+        "stop_and_retain",
+        ...(cancelActiveWork ? [true] : []),
+      );
+    },
+  );
 
   it("happy path: returns lease, executionTarget, and remoteExecution on successful realization", async () => {
-    const executionTarget = { kind: "local", environmentId: "env-1", leaseId: "lease-1" };
-    const remoteExecution = { kind: "local", environmentId: "env-1", leaseId: "lease-1" };
+    const executionTarget = {
+      kind: "local",
+      environmentId: "env-1",
+      leaseId: "lease-1",
+    };
+    const remoteExecution = {
+      kind: "local",
+      environmentId: "env-1",
+      leaseId: "lease-1",
+    };
 
     mockResolveEnvironmentExecutionTarget.mockResolvedValue(executionTarget);
     mockAdapterExecutionTargetToRemoteSpec.mockReturnValue(remoteExecution);
 
     const runtime = makeMockRuntime();
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
     const result = await orchestrator.realizeForRun(makeRealizeInput());
 
@@ -321,32 +357,42 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
         },
       }),
     });
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
     const result = await orchestrator.realizeForRun(
       makeRealizeInput({ environment: makeEnvironment("sandbox") }),
     );
 
-    expect(result.executionTarget).toEqual(expect.objectContaining({
-      kind: "remote",
-      transport: "sandbox",
-      remoteCwd: "/app",
-      workspaceRealization: {
-        mode: "in_place",
-        authoritativeRoot: "/app",
-        pathAliases: [],
-        outboundRestorePaths: [],
-      },
-    }));
+    expect(result.executionTarget).toEqual(
+      expect.objectContaining({
+        kind: "remote",
+        transport: "sandbox",
+        remoteCwd: "/app",
+        workspaceRealization: {
+          mode: "in_place",
+          authoritativeRoot: "/app",
+          pathAliases: [],
+          outboundRestorePaths: [],
+        },
+      }),
+    );
   });
 
   it("realization failure: runtime.realizeWorkspace throws → EnvironmentRunError with code workspace_realization_failed", async () => {
     const runtime = makeMockRuntime({
-      realizeWorkspace: vi.fn().mockRejectedValue(new Error("sandbox unreachable")),
+      realizeWorkspace: vi
+        .fn()
+        .mockRejectedValue(new Error("sandbox unreachable")),
     });
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
-    await expect(orchestrator.realizeForRun(makeRealizeInput())).rejects.toSatisfy(
+    await expect(
+      orchestrator.realizeForRun(makeRealizeInput()),
+    ).rejects.toSatisfy(
       (err: unknown) =>
         err instanceof EnvironmentRunError &&
         err.code === "workspace_realization_failed" &&
@@ -358,12 +404,18 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
   });
 
   it("target resolution failure: resolveEnvironmentExecutionTarget throws → EnvironmentRunError with code transport_resolution_failed", async () => {
-    mockResolveEnvironmentExecutionTarget.mockRejectedValue(new Error("network error"));
+    mockResolveEnvironmentExecutionTarget.mockRejectedValue(
+      new Error("network error"),
+    );
 
     const runtime = makeMockRuntime();
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
-    await expect(orchestrator.realizeForRun(makeRealizeInput())).rejects.toSatisfy(
+    await expect(
+      orchestrator.realizeForRun(makeRealizeInput()),
+    ).rejects.toSatisfy(
       (err: unknown) =>
         err instanceof EnvironmentRunError &&
         err.code === "transport_resolution_failed" &&
@@ -378,7 +430,9 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
     mockResolveEnvironmentExecutionTarget.mockResolvedValue(executionTarget);
 
     const runtime = makeMockRuntime();
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
     const result = await orchestrator.realizeForRun(
       makeRealizeInput({ environment }),
@@ -392,16 +446,31 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
   it("persisted metadata is updated on lease and execution workspace after realization", async () => {
     const persistedExecutionWorkspace = makePersistedExecutionWorkspace();
     const updatedLease = makeLease({
-      metadata: { workspaceRealization: { version: 1, driver: "local", cwd: "/workspace/project" } },
+      metadata: {
+        workspaceRealization: {
+          version: 1,
+          driver: "local",
+          cwd: "/workspace/project",
+        },
+      },
     });
-    const updatedEw = { ...persistedExecutionWorkspace, metadata: { workspaceRealizationRequest: {}, workspaceRealization: {} } };
+    const updatedEw = {
+      ...persistedExecutionWorkspace,
+      metadata: { workspaceRealizationRequest: {}, workspaceRealization: {} },
+    };
 
     mockUpdateLeaseMetadata.mockResolvedValue(updatedLease);
     mockUpdateExecutionWorkspace.mockResolvedValue(updatedEw);
-    mockResolveEnvironmentExecutionTarget.mockResolvedValue({ kind: "local", environmentId: "env-1", leaseId: "lease-1" });
+    mockResolveEnvironmentExecutionTarget.mockResolvedValue({
+      kind: "local",
+      environmentId: "env-1",
+      leaseId: "lease-1",
+    });
 
     const runtime = makeMockRuntime();
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
     const result = await orchestrator.realizeForRun(
       makeRealizeInput({ persistedExecutionWorkspace }),
@@ -486,25 +555,31 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
         },
       }),
     });
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
-    await orchestrator.realizeForRun(makeRealizeInput({
-      environment: makeEnvironment("ssh"),
-    }));
+    await orchestrator.realizeForRun(
+      makeRealizeInput({
+        environment: makeEnvironment("ssh"),
+      }),
+    );
 
     // The `ssh` driver runs the command on the remote host that shares the
     // workspace path, so the configured provision command still runs there.
     expect(runtime.execute).toHaveBeenCalledOnce();
-    expect(runtime.execute).toHaveBeenCalledWith(expect.objectContaining({
-      environment: expect.objectContaining({ driver: "ssh" }),
-      lease: expect.objectContaining({ id: "lease-1" }),
-      command: "bash",
-      args: ["-lc", "npm install -g @anthropic-ai/claude-code"],
-      cwd: "/remote/workspace",
-      env: {
-        SHELL: "/bin/bash",
-      },
-    }));
+    expect(runtime.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environment: expect.objectContaining({ driver: "ssh" }),
+        lease: expect.objectContaining({ id: "lease-1" }),
+        command: "bash",
+        args: ["-lc", "npm install -g @anthropic-ai/claude-code"],
+        cwd: "/remote/workspace",
+        env: {
+          SHELL: "/bin/bash",
+        },
+      }),
+    );
     // The sandbox skip log is specific to the sandbox driver; ssh stays quiet.
     expect(mockLoggerInfo).not.toHaveBeenCalled();
   });
@@ -555,11 +630,15 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
         },
       }),
     });
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
-    await orchestrator.realizeForRun(makeRealizeInput({
-      environment: makeEnvironment("sandbox"),
-    }));
+    await orchestrator.realizeForRun(
+      makeRealizeInput({
+        environment: makeEnvironment("sandbox"),
+      }),
+    );
 
     // The sandbox receives the provisioned tree through the adapter stage.sync
     // step, so the orchestrator must not run the host command in the sandbox.
@@ -604,11 +683,15 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
     });
 
     const runtime = makeMockRuntime();
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
-    await orchestrator.realizeForRun(makeRealizeInput({
-      environment: makeEnvironment("local"),
-    }));
+    await orchestrator.realizeForRun(
+      makeRealizeInput({
+        environment: makeEnvironment("local"),
+      }),
+    );
 
     // Local workspace provisioning already ran the command before realizeForRun.
     expect(runtime.execute).not.toHaveBeenCalled();
@@ -671,27 +754,33 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
         },
       }),
     });
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
-    await orchestrator.realizeForRun(makeRealizeInput({
-      environment: makeEnvironment("ssh"),
-      lease: makeLease({
-        provider: "ssh",
-        metadata: {
-          driver: "ssh",
-          remoteCwd: "/remote/workspace",
-          remoteWorkspacePath: "/remote/workspace",
-          host: "ssh.example.test",
-          port: 22,
-          username: "ssh-user",
-        },
+    await orchestrator.realizeForRun(
+      makeRealizeInput({
+        environment: makeEnvironment("ssh"),
+        lease: makeLease({
+          provider: "ssh",
+          metadata: {
+            driver: "ssh",
+            remoteCwd: "/remote/workspace",
+            remoteWorkspacePath: "/remote/workspace",
+            host: "ssh.example.test",
+            port: 22,
+            username: "ssh-user",
+          },
+        }),
       }),
-    }));
+    );
 
-    expect(runtime.execute).toHaveBeenCalledWith(expect.objectContaining({
-      command: "bash",
-      args: ["-lc", "npm install -g @google/gemini-cli"],
-    }));
+    expect(runtime.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "bash",
+        args: ["-lc", "npm install -g @google/gemini-cli"],
+      }),
+    );
     expect(mockResolveEnvironmentExecutionTarget).toHaveBeenCalledOnce();
   });
 
@@ -730,11 +819,17 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
         stderr: "/bin/sh: install-tool: not found\n",
       }),
     });
-    const orchestrator = environmentRunOrchestrator(mockDb, { environmentRuntime: runtime });
+    const orchestrator = environmentRunOrchestrator(mockDb, {
+      environmentRuntime: runtime,
+    });
 
-    await expect(orchestrator.realizeForRun(makeRealizeInput({
-      environment: makeEnvironment("ssh"),
-    }))).rejects.toSatisfy(
+    await expect(
+      orchestrator.realizeForRun(
+        makeRealizeInput({
+          environment: makeEnvironment("ssh"),
+        }),
+      ),
+    ).rejects.toSatisfy(
       (err: unknown) =>
         err instanceof EnvironmentRunError &&
         err.code === "workspace_realization_failed" &&
@@ -745,32 +840,70 @@ describe("environmentRunOrchestrator — realizeForRun", () => {
   });
 });
 
-
 describe("native runner lifecycle changes before lease acquisition", () => {
   it("requests a reusable lease when an existing task switches from per-turn to warm", async () => {
-    const environment = { ...makeEnvironment("sandbox"), config: { provider: "daytona", reuseLease: false } };
+    const environment = {
+      ...makeEnvironment("sandbox"),
+      config: { provider: "daytona", reuseLease: false },
+    };
     mockGetEnvironment.mockResolvedValue(environment);
     const acquireRunLease = vi.fn(async (input) => ({
       environment: input.environment,
-      lease: makeLease({ leasePolicy: input.environment.config.reuseLease ? "reuse_by_environment" : "ephemeral" }),
-      leaseContext: { executionWorkspaceId: "existing-workspace", executionWorkspaceMode: "shared_workspace" },
+      lease: makeLease({
+        leasePolicy: input.environment.config.reuseLease
+          ? "reuse_by_environment"
+          : "ephemeral",
+      }),
+      leaseContext: {
+        executionWorkspaceId: "existing-workspace",
+        executionWorkspaceMode: "shared_workspace",
+      },
     }));
-    const orchestrator = environmentRunOrchestrator({} as never, { environmentRuntime: makeMockRuntime({ acquireRunLease }) });
+    const orchestrator = environmentRunOrchestrator({} as never, {
+      environmentRuntime: makeMockRuntime({ acquireRunLease }),
+    });
     const input = {
-      companyId: "company-1", selectedEnvironmentId: "env-1", localEnvironmentId: "local",
-      adapterType: "taskcore_runner", issueId: "existing-task", heartbeatRunId: "run-1", agentId: "agent-1",
-      persistedExecutionWorkspace: { id: "existing-workspace", mode: "shared_workspace" as const },
+      companyId: "company-1",
+      selectedEnvironmentId: "env-1",
+      localEnvironmentId: "local",
+      adapterType: "taskcore_runner",
+      issueId: "existing-task",
+      heartbeatRunId: "run-1",
+      agentId: "agent-1",
+      persistedExecutionWorkspace: {
+        id: "existing-workspace",
+        mode: "shared_workspace" as const,
+      },
       executionWorkspaceSettings: null,
     };
-    const cold = await orchestrator.acquireForRun({ ...input, adapterConfig: { lifecycleMode: "per_turn" } });
+    const cold = await orchestrator.acquireForRun({
+      ...input,
+      adapterConfig: { lifecycleMode: "per_turn" },
+    });
     expect(cold.lease.leasePolicy).toBe("ephemeral");
-    const warm = await orchestrator.acquireForRun({ ...input, heartbeatRunId: "run-2", adapterConfig: { lifecycleMode: "warm", idleTimeoutMs: 60_000 } });
+    const warm = await orchestrator.acquireForRun({
+      ...input,
+      heartbeatRunId: "run-2",
+      adapterConfig: { lifecycleMode: "warm", idleTimeoutMs: 60_000 },
+    });
     expect(warm.lease.leasePolicy).toBe("reuse_by_environment");
-    expect(warm.environment.config).toEqual({ provider: "daytona", reuseLease: true });
-    expect(acquireRunLease.mock.calls[1][0].persistedExecutionWorkspace).toEqual(input.persistedExecutionWorkspace);
+    expect(warm.environment.config).toEqual({
+      provider: "daytona",
+      reuseLease: true,
+    });
+    expect(
+      acquireRunLease.mock.calls[1][0].persistedExecutionWorkspace,
+    ).toEqual(input.persistedExecutionWorkspace);
     // Run-scoped adaptation must not change the shared environment or other agents.
-    expect(environment.config).toEqual({ provider: "daytona", reuseLease: false });
-    const coldAgain = await orchestrator.acquireForRun({ ...input, heartbeatRunId: "run-3", adapterConfig: { lifecycleMode: "per_turn" } });
+    expect(environment.config).toEqual({
+      provider: "daytona",
+      reuseLease: false,
+    });
+    const coldAgain = await orchestrator.acquireForRun({
+      ...input,
+      heartbeatRunId: "run-3",
+      adapterConfig: { lifecycleMode: "per_turn" },
+    });
     expect(coldAgain.lease.leasePolicy).toBe("ephemeral");
   });
 
@@ -781,37 +914,83 @@ describe("native runner lifecycle changes before lease acquisition", () => {
     ["taskcore_runner", "warm", "per_turn", true],
     ["taskcore_runner", "inherit", "warm", true],
     ["codex_local", "inherit", "warm", false],
-  ])("respects environment precedence and adapter scope (%s, %s, %s)", async (adapterType, runnerLifecycleMode, lifecycleMode, expectedReuse) => {
-    const environment = { ...makeEnvironment("sandbox"), config: { provider: "daytona", reuseLease: false, runnerLifecycleMode } };
-    mockGetEnvironment.mockResolvedValue(environment);
-    const acquireRunLease = vi.fn(async (input) => ({ environment: input.environment, lease: makeLease(), leaseContext: {} }));
-    const orchestrator = environmentRunOrchestrator({} as never, { environmentRuntime: makeMockRuntime({ acquireRunLease }) });
-    await orchestrator.acquireForRun({
-      companyId: "company-1", selectedEnvironmentId: "env-1", localEnvironmentId: "local", adapterType,
-      adapterConfig: { lifecycleMode }, issueId: "task-1", heartbeatRunId: "run-1", agentId: "agent-1",
-      persistedExecutionWorkspace: null, executionWorkspaceSettings: null,
-    });
-    expect(acquireRunLease.mock.calls[0][0].environment.config.reuseLease).toBe(expectedReuse);
-  });
+  ])(
+    "respects environment precedence and adapter scope (%s, %s, %s)",
+    async (adapterType, runnerLifecycleMode, lifecycleMode, expectedReuse) => {
+      const environment = {
+        ...makeEnvironment("sandbox"),
+        config: { provider: "daytona", reuseLease: false, runnerLifecycleMode },
+      };
+      mockGetEnvironment.mockResolvedValue(environment);
+      const acquireRunLease = vi.fn(async (input) => ({
+        environment: input.environment,
+        lease: makeLease(),
+        leaseContext: {},
+      }));
+      const orchestrator = environmentRunOrchestrator({} as never, {
+        environmentRuntime: makeMockRuntime({ acquireRunLease }),
+      });
+      await orchestrator.acquireForRun({
+        companyId: "company-1",
+        selectedEnvironmentId: "env-1",
+        localEnvironmentId: "local",
+        adapterType,
+        adapterConfig: { lifecycleMode },
+        issueId: "task-1",
+        heartbeatRunId: "run-1",
+        agentId: "agent-1",
+        persistedExecutionWorkspace: null,
+        executionWorkspaceSettings: null,
+      });
+      expect(
+        acquireRunLease.mock.calls[0][0].environment.config.reuseLease,
+      ).toBe(expectedReuse);
+    },
+  );
 });
-
 
 describe("admitted native lifecycle recovery", () => {
   it.each([
     ["warm", "per_turn", "per_turn", true],
     ["per_turn", "warm", "warm", false],
-  ] as const)("preserves admitted %s over changed agent/environment settings", async (admittedLifecycleMode, lifecycleMode, runnerLifecycleMode, expectedReuse) => {
-    const environment = { ...makeEnvironment("sandbox"), config: { provider: "daytona", reuseLease: false, runnerLifecycleMode } };
-    mockGetEnvironment.mockResolvedValue(environment);
-    const acquireRunLease = vi.fn(async (input) => ({ environment: input.environment, lease: makeLease(), leaseContext: {} }));
-    const orchestrator = environmentRunOrchestrator({} as never, { environmentRuntime: makeMockRuntime({ acquireRunLease }) });
-    await orchestrator.acquireForRun({
-      companyId: "company-1", selectedEnvironmentId: "env-1", localEnvironmentId: "local",
-      adapterType: "taskcore_runner", adapterConfig: { lifecycleMode }, admittedLifecycleMode,
-      issueId: "task-1", heartbeatRunId: "run-1", agentId: "agent-1",
-      persistedExecutionWorkspace: null, executionWorkspaceSettings: null,
-    });
-    expect(acquireRunLease.mock.calls[0][0].environment.config.reuseLease).toBe(expectedReuse);
-    expect(environment.config.reuseLease).toBe(false);
-  });
+  ] as const)(
+    "preserves admitted %s over changed agent/environment settings",
+    async (
+      admittedLifecycleMode,
+      lifecycleMode,
+      runnerLifecycleMode,
+      expectedReuse,
+    ) => {
+      const environment = {
+        ...makeEnvironment("sandbox"),
+        config: { provider: "daytona", reuseLease: false, runnerLifecycleMode },
+      };
+      mockGetEnvironment.mockResolvedValue(environment);
+      const acquireRunLease = vi.fn(async (input) => ({
+        environment: input.environment,
+        lease: makeLease(),
+        leaseContext: {},
+      }));
+      const orchestrator = environmentRunOrchestrator({} as never, {
+        environmentRuntime: makeMockRuntime({ acquireRunLease }),
+      });
+      await orchestrator.acquireForRun({
+        companyId: "company-1",
+        selectedEnvironmentId: "env-1",
+        localEnvironmentId: "local",
+        adapterType: "taskcore_runner",
+        adapterConfig: { lifecycleMode },
+        admittedLifecycleMode,
+        issueId: "task-1",
+        heartbeatRunId: "run-1",
+        agentId: "agent-1",
+        persistedExecutionWorkspace: null,
+        executionWorkspaceSettings: null,
+      });
+      expect(
+        acquireRunLease.mock.calls[0][0].environment.config.reuseLease,
+      ).toBe(expectedReuse);
+      expect(environment.config.reuseLease).toBe(false);
+    },
+  );
 });

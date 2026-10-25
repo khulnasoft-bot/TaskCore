@@ -34,16 +34,20 @@ describe("task email polling", () => {
   });
   async function render(issueId = "task-1") {
     await act(async () => {
-      root.render(<QueryClientProvider client={client}>
-        <EmailThreadProvider companyId="company-1" issueId={issueId}>
-          <EmailTaskActivity companyId="company-1" issueId={issueId} />
-        </EmailThreadProvider>
-      </QueryClientProvider>);
+      root.render(
+        <QueryClientProvider client={client}>
+          <EmailThreadProvider companyId="company-1" issueId={issueId}>
+            <EmailTaskActivity companyId="company-1" issueId={issueId} />
+          </EmailThreadProvider>
+        </QueryClientProvider>,
+      );
     });
     await advance(1);
   }
   async function advance(ms: number) {
-    await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
   }
   it("stops recurring requests when both task observers find no email thread", async () => {
     api.thread.mockResolvedValue(null);
@@ -61,7 +65,11 @@ describe("task email polling", () => {
   it("can discover a thread after invalidation and resume updates", async () => {
     api.thread.mockResolvedValueOnce(null).mockResolvedValue(emailThread);
     await render();
-    await act(async () => { await client.invalidateQueries({ queryKey: ["email-thread", "company-1", "task-1"] }); });
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: ["email-thread", "company-1", "task-1"],
+      });
+    });
     await advance(1);
     expect(api.thread).toHaveBeenCalledTimes(2);
     await advance(3_100);

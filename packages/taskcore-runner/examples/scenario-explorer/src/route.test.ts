@@ -26,7 +26,9 @@ describe("capability explorer routes", () => {
   });
 
   it("parses an auto-run screenshot route with an inspector view", () => {
-    expect(parseCapabilityRoute("#/case/ap-mcp-gate-01?run=fake&view=authorization")).toMatchObject({
+    expect(
+      parseCapabilityRoute("#/case/ap-mcp-gate-01?run=fake&view=authorization"),
+    ).toMatchObject({
       caseId: "ap-mcp-gate-01",
       run: "fake",
       view: "authorization",
@@ -34,7 +36,9 @@ describe("capability explorer routes", () => {
   });
 
   it("parses a filtered picker route", () => {
-    const route = parseCapabilityRoute("#/?group=ix&disposition=always_agent_tool&parity=pass&q=checkbox");
+    const route = parseCapabilityRoute(
+      "#/?group=ix&disposition=always_agent_tool&parity=pass&q=checkbox",
+    );
     expect(route.caseId).toBeNull();
     expect(route.filters).toEqual({
       group: "ix",
@@ -53,7 +57,9 @@ describe("capability explorer routes", () => {
   });
 
   it("rejects an unknown inspector view instead of rendering a dead tab", () => {
-    expect(parseCapabilityRoute("#/case/x?view=nonsense").view).toBe("transcript");
+    expect(parseCapabilityRoute("#/case/x?view=nonsense").view).toBe(
+      "transcript",
+    );
     expect(parseCapabilityRoute("#/case/x?run=live").run).toBeNull();
   });
 
@@ -71,7 +77,9 @@ describe("capability explorer routes", () => {
 
   it("drops picker filters from a case route so a deep link stays stable", () => {
     const route = parseCapabilityRoute("#/?group=ix");
-    expect(serializeCapabilityRoute({ ...route, caseId: "ix-checkbox-01" })).toBe("#/case/ix-checkbox-01");
+    expect(
+      serializeCapabilityRoute({ ...route, caseId: "ix-checkbox-01" }),
+    ).toBe("#/case/ix-checkbox-01");
   });
 
   it("treats empty filters as no filters", () => {

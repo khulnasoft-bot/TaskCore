@@ -8,7 +8,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 const packageDir = process.cwd();
 const packageJsonPath = join(packageDir, "package.json");
-const sdkPackageJsonPath = join(repoRoot, "packages", "plugins", "sdk", "package.json");
+const sdkPackageJsonPath = join(
+  repoRoot,
+  "packages",
+  "plugins",
+  "sdk",
+  "package.json",
+);
 
 if (!existsSync(packageJsonPath)) {
   throw new Error(`No package.json found in plugin directory: ${packageDir}`);
@@ -41,6 +47,11 @@ const publishPackageJson = {
   dependencies,
 };
 
-writeFileSync(packageJsonPath, `${JSON.stringify(publishPackageJson, null, 2)}\n`);
+writeFileSync(
+  packageJsonPath,
+  `${JSON.stringify(publishPackageJson, null, 2)}\n`,
+);
 
-console.log(`  ✓ Generated publishable plugin package.json for ${packageJson.name}`);
+console.log(
+  `  ✓ Generated publishable plugin package.json for ${packageJson.name}`,
+);

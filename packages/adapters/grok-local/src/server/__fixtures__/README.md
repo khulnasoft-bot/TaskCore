@@ -16,9 +16,9 @@ reads this fixture. The test never reads a live secret.
 
 ## File
 
-| File | Condition | Expected parse result |
-|---|---|---|
-| `device-login-prompt.txt` | Normal prompt, no pseudo-terminal | a URL and a code |
+| File                      | Condition                         | Expected parse result |
+| ------------------------- | --------------------------------- | --------------------- |
+| `device-login-prompt.txt` | Normal prompt, no pseudo-terminal | a URL and a code      |
 
 ## Redaction
 

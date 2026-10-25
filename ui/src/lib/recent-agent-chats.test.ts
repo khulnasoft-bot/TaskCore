@@ -20,7 +20,11 @@ describe("agent chat navigation and session markers", () => {
       "Five",
       "Six",
       "Seven",
-    ].map((name, i) => ({ id: String(i), name, createdAt: new Date(i * 1000) }));
+    ].map((name, i) => ({
+      id: String(i),
+      name,
+      createdAt: new Date(i * 1000),
+    }));
     expect(
       orderChatAgents(agents, ["0", "1"], ["0", "6", "5", "4", "3", "2"]).map(
         (agent) => agent.name,
@@ -36,10 +40,20 @@ describe("agent chat navigation and session markers", () => {
       { id: "tie", name: "Tie", createdAt: new Date("2026-09-01") },
     ];
     expect(orderChatAgents(agents, [], []).map((a) => a.id)).toEqual(["first"]);
-    expect(orderChatAgents(agents, ["new"], ["first", "new", "tie", "tie", "missing"]).map((a) => a.id)).toEqual(["new", "first", "tie"]);
-    expect(orderChatAgents(agents, ["first"], ["first"]).map((a) => a.id)).toEqual(["first"]);
+    expect(
+      orderChatAgents(
+        agents,
+        ["new"],
+        ["first", "new", "tie", "tie", "missing"],
+      ).map((a) => a.id),
+    ).toEqual(["new", "first", "tie"]);
+    expect(
+      orderChatAgents(agents, ["first"], ["first"]).map((a) => a.id),
+    ).toEqual(["first"]);
     expect(orderChatAgents([], ["missing"], ["missing"])).toEqual([]);
-    expect(orderChatAgents(agents.slice(0, 1), [], []).map((a) => a.id)).toEqual(["new"]);
+    expect(
+      orderChatAgents(agents.slice(0, 1), [], []).map((a) => a.id),
+    ).toEqual(["new"]);
   });
   it("keeps visits personal and company scoped and moves only the visited agent", () => {
     localStorage.clear();
@@ -60,7 +74,9 @@ describe("agent chat navigation and session markers", () => {
   });
   it("remembers an existing conversation and clears its identity for a new empty chat", () => {
     recordAgentChatVisit("company-c", "user1", "agent1", "issue-1");
-    expect(recordedAgentChatIssueId("company-c", "user1", "agent1")).toBe("issue-1");
+    expect(recordedAgentChatIssueId("company-c", "user1", "agent1")).toBe(
+      "issue-1",
+    );
     expect(recordedAgentChatIssueId("company-c", "user2", "agent1")).toBeNull();
     recordAgentChatVisit("company-c", "user1", "agent1", null);
     expect(recordedAgentChatIssueId("company-c", "user1", "agent1")).toBeNull();
@@ -71,12 +87,16 @@ describe("agent chat navigation and session markers", () => {
     localStorage.removeItem(storageKey);
     expect(recordedAgentChatIssueId("company-d", "user1", "agent1")).toBeNull();
 
-    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("storage unavailable");
-    });
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("storage unavailable");
+      });
     try {
       recordAgentChatVisit("company-d", "user1", "agent1", "issue-2");
-      expect(recordedAgentChatIssueId("company-d", "user1", "agent1")).toBe("issue-2");
+      expect(recordedAgentChatIssueId("company-d", "user1", "agent1")).toBe(
+        "issue-2",
+      );
     } finally {
       setItem.mockRestore();
     }
@@ -84,7 +104,10 @@ describe("agent chat navigation and session markers", () => {
   it("removes legacy plaintext retry records", () => {
     const scope = "company:user:agent";
     const key = `taskcore:agent-chat-pending:${scope}`;
-    localStorage.setItem(key, JSON.stringify([{ body: "private text", id: "old" }]));
+    localStorage.setItem(
+      key,
+      JSON.stringify([{ body: "private text", id: "old" }]),
+    );
     clearLegacyChatMessageRequests(scope);
     expect(localStorage.getItem(key)).toBeNull();
   });

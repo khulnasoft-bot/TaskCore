@@ -47,7 +47,9 @@ export async function setupConnectionReview(input: {
       );
       connection = { id: connected.connectionId };
     } else {
-      await page.goto(`/${input.prefix}/apps`, { waitUntil: "domcontentloaded" });
+      await page.goto(`/${input.prefix}/apps`, {
+        waitUntil: "domcontentloaded",
+      });
       const connector = page
         .getByRole("list", { name: "Connector list" })
         .getByRole("listitem")

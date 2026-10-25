@@ -26,7 +26,10 @@ const TONE_ICONS: Record<IssueWriteDenialTone, typeof ShieldX> = {
   attribution: UserCog,
 };
 
-const TONE_CLASSES: Record<IssueWriteDenialTone, { surface: string; icon: string; action: string }> = {
+const TONE_CLASSES: Record<
+  IssueWriteDenialTone,
+  { surface: string; icon: string; action: string }
+> = {
   // A real authorization wall — the strongest signal.
   boundary: {
     surface:
@@ -83,15 +86,24 @@ export function IssueWriteDenialNotice({
       data-testid="issue-write-denial-notice"
       data-denial-code={copy.code}
       data-denial-tone={copy.tone}
-      className={cn("rounded-md border px-3 py-2.5 text-sm shadow-sm", tone.surface, className)}
+      className={cn(
+        "rounded-md border px-3 py-2.5 text-sm shadow-sm",
+        tone.surface,
+        className,
+      )}
     >
       <div className="flex items-start gap-2">
-        <Icon className={cn("mt-0.5 size-4 shrink-0", tone.icon)} aria-hidden="true" />
+        <Icon
+          className={cn("mt-0.5 size-4 shrink-0", tone.icon)}
+          aria-hidden="true"
+        />
         <div className="min-w-0 space-y-1">
           <p className="font-medium leading-5">
             {copy.title}
             {/* Naming the boundary is obligation 1 of plan §6. */}
-            <span className="ml-1.5 font-normal opacity-80">({copy.boundary})</span>
+            <span className="ml-1.5 font-normal opacity-80">
+              ({copy.boundary})
+            </span>
           </p>
           <p className="leading-5">{copy.description}</p>
           {/* Inline flow, not flex rows: a flex `dd` is an unbreakable line box,

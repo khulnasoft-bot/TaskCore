@@ -29,7 +29,10 @@ export function resolveNextIssueGoalId(input: {
         ? input.currentProjectGoalId
         : null;
 
-  const resolveFallbackGoalId = (targetProjectId: MaybeId, targetProjectGoalId: MaybeId) => {
+  const resolveFallbackGoalId = (
+    targetProjectId: MaybeId,
+    targetProjectGoalId: MaybeId,
+  ) => {
     if (targetProjectId) return targetProjectGoalId ?? null;
     return input.defaultGoalId ?? null;
   };

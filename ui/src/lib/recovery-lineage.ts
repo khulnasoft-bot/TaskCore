@@ -1,4 +1,7 @@
-import type { IssueRecoveryAction, IssueScheduledRetry } from "@taskcore/shared";
+import type {
+  IssueRecoveryAction,
+  IssueScheduledRetry,
+} from "@taskcore/shared";
 import { formatMonitorOffset } from "./issue-monitor";
 
 /**
@@ -10,7 +13,8 @@ import { formatMonitorOffset } from "./issue-monitor";
  * therefore the canonical lane signal — every surface reads the same stored value rather
  * than re-deriving liveness on its own.
  */
-export type RecoveryRetryLane = "source_owner" | "recovery_owner" | "native_run" | "board";
+export type RecoveryRetryLane =
+  "source_owner" | "recovery_owner" | "native_run" | "board";
 
 export interface RecoveryRetryLineage {
   lane: RecoveryRetryLane;
@@ -71,13 +75,24 @@ const LIVE_SCHEDULED_RUN_STATUSES = new Set(["queued", "running"]);
 const RETRY_EXPIRY_GRACE_MS = 30_000;
 
 export type RecoveryLineageInput = Pick<IssueRecoveryAction, "wakePolicy"> &
-  Partial<Pick<IssueRecoveryAction, "evidence" | "attemptCount" | "maxAttempts" | "timeoutAt" | "nativeRunActivity">>;
+  Partial<
+    Pick<
+      IssueRecoveryAction,
+      | "evidence"
+      | "attemptCount"
+      | "maxAttempts"
+      | "timeoutAt"
+      | "nativeRunActivity"
+    >
+  >;
 
 /**
  * The source issue's scheduled-retry record, which is what lets a surface tell a run that is
  * really executing from a run id the server wrote down once and never started.
  */
-export type RecoveryScheduledRetryInput = Partial<Pick<IssueScheduledRetry, "runId" | "status">>;
+export type RecoveryScheduledRetryInput = Partial<
+  Pick<IssueScheduledRetry, "runId" | "status">
+>;
 
 /**
  * Everything outside the stored action that decides whether a lane is still live. Callers
@@ -127,7 +142,8 @@ function resolveLiveRunId(
   if (!scheduledRetry) return null;
   const runId = asNonEmptyString(scheduledRetry.runId);
   const status = asNonEmptyString(scheduledRetry.status);
-  if (!runId || !status || !LIVE_SCHEDULED_RUN_STATUSES.has(status)) return null;
+  if (!runId || !status || !LIVE_SCHEDULED_RUN_STATUSES.has(status))
+    return null;
   if (scheduledRunId !== null && scheduledRunId !== runId) return null;
   return runId;
 }
@@ -162,15 +178,19 @@ export function readRecoveryRetryLineage(
   } else return null;
 
   const attempt = asCount(policy.attempt) ?? asCount(action.attemptCount) ?? 0;
-  const maxAttempts = asCount(policy.maxAttempts) ?? asCount(action.maxAttempts);
-  const scheduledRunId = asNonEmptyString(nativeResume ? policy.runId : policy.scheduledRunId);
+  const maxAttempts =
+    asCount(policy.maxAttempts) ?? asCount(action.maxAttempts);
+  const scheduledRunId = asNonEmptyString(
+    nativeResume ? policy.runId : policy.scheduledRunId,
+  );
   // Native recovery resumes an existing run; its scheduling fields
   // differ from an agent wake. A retry without that run identity is not a path.
   if (nativeResume && scheduledRunId === null) return null;
   const storedRetryAt = nativeResume
     ? asIsoDate(policy.notBefore)
-    : asIsoDate(policy.retryAt) ?? asIsoDate(action.timeoutAt);
-  const exhausted = lane === "board" || (maxAttempts !== null && attempt >= maxAttempts);
+    : (asIsoDate(policy.retryAt) ?? asIsoDate(action.timeoutAt));
+  const exhausted =
+    lane === "board" || (maxAttempts !== null && attempt >= maxAttempts);
   const nextRetryAt = exhausted ? null : storedRetryAt;
   const liveRunId = nativeResume
     ? resolveLiveRunId(scheduledRunId, action.nativeRunActivity)
@@ -181,36 +201,54 @@ export function readRecoveryRetryLineage(
     !exhausted &&
     liveRunId === null &&
     nextRetryAt !== null &&
-    Date.parse(nextRetryAt) + RETRY_EXPIRY_GRACE_MS < (context?.now ?? Date.now());
+    Date.parse(nextRetryAt) + RETRY_EXPIRY_GRACE_MS <
+      (context?.now ?? Date.now());
 
   return {
     lane,
     attempt,
     maxAttempts,
-    attemptsRemaining: maxAttempts === null ? null : Math.max(0, maxAttempts - attempt),
+    attemptsRemaining:
+      maxAttempts === null ? null : Math.max(0, maxAttempts - attempt),
     exhausted,
     nextRetryAt,
     retryExpired,
     scheduledRunId,
     liveRunId,
-    retryAgentId: asNonEmptyString(policy.retryAgentId) ?? asNonEmptyString(policy.ownerAgentId),
-    preservesSourceAssignee: preservesSourceAssignee || lane === "source_owner" || nativeResume,
-    sourceAttempt: nativeResume ? null : lane === "source_owner" ? attempt : evidenceSourceAttempt,
-    sourceMaxAttempts: nativeResume ? null : lane === "source_owner" ? maxAttempts : evidenceSourceMaxAttempts,
+    retryAgentId:
+      asNonEmptyString(policy.retryAgentId) ??
+      asNonEmptyString(policy.ownerAgentId),
+    preservesSourceAssignee:
+      preservesSourceAssignee || lane === "source_owner" || nativeResume,
+    sourceAttempt: nativeResume
+      ? null
+      : lane === "source_owner"
+        ? attempt
+        : evidenceSourceAttempt,
+    sourceMaxAttempts: nativeResume
+      ? null
+      : lane === "source_owner"
+        ? maxAttempts
+        : evidenceSourceMaxAttempts,
     hasDurablePath:
       (nativeResume && liveRunId !== null) ||
-      (!exhausted && (liveRunId !== null || (nextRetryAt !== null && !retryExpired))),
+      (!exhausted &&
+        (liveRunId !== null || (nextRetryAt !== null && !retryExpired))),
   };
 }
 
 /** "Attempt 2 of 5", or null when the server did not record a bounded budget. */
-export function formatRecoveryAttemptLabel(lineage: RecoveryRetryLineage): string | null {
+export function formatRecoveryAttemptLabel(
+  lineage: RecoveryRetryLineage,
+): string | null {
   if (lineage.maxAttempts === null) return null;
   return `Attempt ${Math.min(lineage.attempt, lineage.maxAttempts)} of ${lineage.maxAttempts}`;
 }
 
 /** "in 3m" / "now" / "3m ago" for the stored next attempt, or null when none is stored. */
-export function formatRecoveryRetryOffset(lineage: RecoveryRetryLineage): string | null {
+export function formatRecoveryRetryOffset(
+  lineage: RecoveryRetryLineage,
+): string | null {
   if (!lineage.nextRetryAt) return null;
   try {
     return formatMonitorOffset(lineage.nextRetryAt);
@@ -223,7 +261,9 @@ export function formatRecoveryRetryOffset(lineage: RecoveryRetryLineage): string
  * One compact sentence fragment shared by the card and the blocker chips so every surface
  * reports the same attempt count and due time.
  */
-export function formatRecoveryLineageSummary(lineage: RecoveryRetryLineage): string | null {
+export function formatRecoveryLineageSummary(
+  lineage: RecoveryRetryLineage,
+): string | null {
   const parts: string[] = [];
   const attempt = formatRecoveryAttemptLabel(lineage);
   if (attempt) parts.push(attempt);

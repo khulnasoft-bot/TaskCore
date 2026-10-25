@@ -46,7 +46,10 @@ function githubOwnerRepo(locator: string): string | null {
   let value = locator
     .replace(/^git@github\.com:/i, "")
     .replace(/^https?:\/\/github\.com\//i, "");
-  value = value.split("#")[0].split("?")[0].replace(/\.git$/i, "");
+  value = value
+    .split("#")[0]
+    .split("?")[0]
+    .replace(/\.git$/i, "");
   const segments = value.split("/").filter(Boolean);
   return segments.length >= 2 ? `${segments[0]}/${segments[1]}` : null;
 }
@@ -66,7 +69,8 @@ export function formatForkSourceName(source: {
 }): string {
   const locator = source.sourceLocator?.trim() ?? "";
   if (!locator) return sourceTypeFallbackLabel(source.sourceType);
-  if (source.sourceType === "github") return githubOwnerRepo(locator) ?? locator;
+  if (source.sourceType === "github")
+    return githubOwnerRepo(locator) ?? locator;
   if (source.sourceType === "url") return prettyUrl(locator);
   return locator;
 }
@@ -75,7 +79,9 @@ export function formatForkSourceName(source: {
  * The lineage chip label: `owner/repo @ <short-sha>` (the `@ sha` clause is
  * dropped when the source has no pinned ref, e.g. skills.sh / URL sources).
  */
-export function formatLineageLabel(original: CompanySkillOriginalSummary): string {
+export function formatLineageLabel(
+  original: CompanySkillOriginalSummary,
+): string {
   const name = formatForkSourceName(original);
   const sha = shortSha(original.sourceRef);
   return sha ? `${name} @ ${sha}` : name;
@@ -90,7 +96,9 @@ export function pickReusableFork(
   existingForks: CompanySkillForkSummary[],
 ): CompanySkillForkSummary | null {
   return (
-    existingForks.find((fork) => fork.createdByCurrentActor && !fork.diverged) ?? null
+    existingForks.find(
+      (fork) => fork.createdByCurrentActor && !fork.diverged,
+    ) ?? null
   );
 }
 
@@ -101,7 +109,9 @@ export function agentUsageSentence(count: number): string {
 }
 
 /** Agent ids to reassign when the "Switch these agents to the copy" toggle is on. */
-export function reassignTargetIds(usedByAgents: CompanySkillUsageAgent[]): string[] {
+export function reassignTargetIds(
+  usedByAgents: CompanySkillUsageAgent[],
+): string[] {
   return usedByAgents.map((agent) => agent.id);
 }
 

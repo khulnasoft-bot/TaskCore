@@ -47,13 +47,23 @@ export async function createAcpxRecoveryBinding(input: {
   requestedModel: string;
   permissionMode: NativeAcpxPermissionMode;
   mode?: string;
-  providerPolicy?: { readOnly: boolean; readRoots?: readonly string[]; protectedPaths?: readonly string[] };
+  providerPolicy?: {
+    readOnly: boolean;
+    readRoots?: readonly string[];
+    protectedPaths?: readonly string[];
+  };
 }): Promise<AcpxRecoveryBinding> {
   validateIdentity(input.normalizedSessionId, "normalized session");
   const mode = parseProviderMode(input.mode);
-  if (input.providerPolicy !== undefined && typeof input.providerPolicy.readOnly !== "boolean") throw new Error("ACPX recovery requires a valid task execution policy");
+  if (
+    input.providerPolicy !== undefined &&
+    typeof input.providerPolicy.readOnly !== "boolean"
+  )
+    throw new Error("ACPX recovery requires a valid task execution policy");
   if (input.requestedModel !== input.profile.qualificationModel) {
-    throw new Error("ACPX recovery requested model does not match its admitted profile");
+    throw new Error(
+      "ACPX recovery requested model does not match its admitted profile",
+    );
   }
   if (!isDigest(input.profile.commandDigest)) {
     throw new Error("ACPX recovery profile command digest is invalid");
@@ -79,11 +89,15 @@ export async function createAcpxRecoveryBinding(input: {
       qualificationModel: input.profile.qualificationModel,
       reportedModelId: input.profile.reportedModelId,
       permissionPolicy: input.profile.permissionPolicy,
-      ...(input.providerPolicy === undefined ? {} : { executionPolicy: {
-        readOnly: input.providerPolicy.readOnly,
-        readRoots: input.providerPolicy.readRoots ?? [],
-        protectedPaths: input.providerPolicy.protectedPaths ?? [],
-      } }),
+      ...(input.providerPolicy === undefined
+        ? {}
+        : {
+            executionPolicy: {
+              readOnly: input.providerPolicy.readOnly,
+              readRoots: input.providerPolicy.readRoots ?? [],
+              protectedPaths: input.providerPolicy.protectedPaths ?? [],
+            },
+          }),
     }),
   );
   const profileSessionKey = digest(
@@ -372,7 +386,9 @@ function isDigest(value: unknown): value is string {
 function isPermissionMode(value: unknown): value is NativeAcpxPermissionMode {
   return (
     typeof value === "string" &&
-    ["approve-all", "approve-taskcore", "approve-reads", "deny-all"].includes(value)
+    ["approve-all", "approve-taskcore", "approve-reads", "deny-all"].includes(
+      value,
+    )
   );
 }
 

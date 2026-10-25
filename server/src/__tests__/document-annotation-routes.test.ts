@@ -86,7 +86,12 @@ const annotationThread = {
   markdownEnd: 19,
   anchorSelector: {
     quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-    position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+    position: {
+      normalizedStart: 6,
+      normalizedEnd: 19,
+      markdownStart: 6,
+      markdownEnd: 19,
+    },
   },
   createdByAgentId: null,
   createdByUserId: "board-user",
@@ -152,33 +157,43 @@ function registerModuleMocks() {
     issueThreadInteractionService: () => mockIssueThreadInteractionService,
     logActivity: mockLogActivity,
     projectService: () => ({}),
-    routineService: () => ({ syncRunStatusForIssue: vi.fn(async () => undefined) }),
+    routineService: () => ({
+      syncRunStatusForIssue: vi.fn(async () => undefined),
+    }),
     workProductService: () => ({}),
   }));
 }
 
-async function createApp(actor: "board" | "agent" = "board", actorCompanyId = companyId) {
+async function createApp(
+  actor: "board" | "agent" = "board",
+  actorCompanyId = companyId,
+) {
   const [{ issueRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/issues.js")>(
+      "../routes/issues.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    (req as any).actor = actor === "agent"
-      ? {
-        type: "agent",
-        agentId: "77777777-7777-4777-8777-777777777777",
-        companyId: actorCompanyId,
-        runId: "88888888-8888-4888-8888-888888888888",
-      }
-      : {
-        type: "board",
-        userId: "board-user",
-        companyIds: [actorCompanyId],
-        source: "local_implicit",
-        isInstanceAdmin: false,
-      };
+    (req as any).actor =
+      actor === "agent"
+        ? {
+            type: "agent",
+            agentId: "77777777-7777-4777-8777-777777777777",
+            companyId: actorCompanyId,
+            runId: "88888888-8888-4888-8888-888888888888",
+          }
+        : {
+            type: "board",
+            userId: "board-user",
+            companyIds: [actorCompanyId],
+            source: "local_implicit",
+            isInstanceAdmin: false,
+          };
     next();
   });
   app.use("/api", issueRoutes({} as any, {} as any));
@@ -202,7 +217,9 @@ describe("document annotation routes", () => {
     });
     mockIssueService.assertCheckoutOwner.mockResolvedValue({});
     mockIssueService.listReviewAttention.mockResolvedValue(new Map());
-    mockDocumentService.getIssueDocumentByKey.mockResolvedValue(documentPayload);
+    mockDocumentService.getIssueDocumentByKey.mockResolvedValue(
+      documentPayload,
+    );
     mockDocumentService.upsertIssueDocument.mockResolvedValue({
       created: false,
       document: {
@@ -212,19 +229,29 @@ describe("document annotation routes", () => {
         latestRevisionNumber: 2,
       },
     });
-    mockAnnotationService.listThreadsForIssueDocument.mockImplementation(async (
-      _issueId: string,
-      _key: string,
-      options?: { includeComments?: boolean },
-    ) => (
-      options?.includeComments
-        ? [{ ...annotationThread, comments: [annotationComment] }]
-        : [annotationThread]
-    ));
-    mockAnnotationService.getThreadForIssueDocument.mockResolvedValue({ ...annotationThread, comments: [annotationComment] });
-    mockAnnotationService.createThread.mockResolvedValue({ ...annotationThread, comments: [annotationComment] });
+    mockAnnotationService.listThreadsForIssueDocument.mockImplementation(
+      async (
+        _issueId: string,
+        _key: string,
+        options?: { includeComments?: boolean },
+      ) =>
+        options?.includeComments
+          ? [{ ...annotationThread, comments: [annotationComment] }]
+          : [annotationThread],
+    );
+    mockAnnotationService.getThreadForIssueDocument.mockResolvedValue({
+      ...annotationThread,
+      comments: [annotationComment],
+    });
+    mockAnnotationService.createThread.mockResolvedValue({
+      ...annotationThread,
+      comments: [annotationComment],
+    });
     mockAnnotationService.addComment.mockResolvedValue(annotationComment);
-    mockAnnotationService.updateThread.mockResolvedValue({ ...annotationThread, status: "resolved" });
+    mockAnnotationService.updateThread.mockResolvedValue({
+      ...annotationThread,
+      status: "resolved",
+    });
     mockAnnotationService.remapOpenThreadsForDocument.mockResolvedValue([]);
     // Cold route transforms belong to fixture setup, not the request timeout.
     await Promise.all([
@@ -240,7 +267,9 @@ describe("document annotation routes", () => {
 
     expect(res.body.annotations).toHaveLength(1);
     expect(res.body.annotations[0].comments).toBeUndefined();
-    expect(mockAnnotationService.listThreadsForIssueDocument).toHaveBeenCalledWith(issueId, "plan", {
+    expect(
+      mockAnnotationService.listThreadsForIssueDocument,
+    ).toHaveBeenCalledWith(issueId, "plan", {
       status: "open",
       includeComments: false,
     });
@@ -248,11 +277,17 @@ describe("document annotation routes", () => {
 
   it("includes annotation comment bodies on document reads only when explicitly requested", async () => {
     const res = await request(await createApp("agent"))
-      .get(`/api/issues/${issueId}/documents/plan?includeAnnotationComments=true`)
+      .get(
+        `/api/issues/${issueId}/documents/plan?includeAnnotationComments=true`,
+      )
       .expect(200);
 
-    expect(res.body.annotations[0].comments[0].body).toBe("Please review PAP-1");
-    expect(mockAnnotationService.listThreadsForIssueDocument).toHaveBeenCalledWith(issueId, "plan", {
+    expect(res.body.annotations[0].comments[0].body).toBe(
+      "Please review PAP-1",
+    );
+    expect(
+      mockAnnotationService.listThreadsForIssueDocument,
+    ).toHaveBeenCalledWith(issueId, "plan", {
       status: "open",
       includeComments: true,
     });
@@ -279,10 +314,15 @@ describe("document annotation routes", () => {
       .expect(200);
 
     expect(res.body.latestRevisionNumber).toBe(2);
-    expect(mockIssueReferenceService.syncDocument).toHaveBeenCalledWith(documentPayload.id);
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "issue.document_updated",
-    }));
+    expect(mockIssueReferenceService.syncDocument).toHaveBeenCalledWith(
+      documentPayload.id,
+    );
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "issue.document_updated",
+      }),
+    );
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 
@@ -295,15 +335,32 @@ describe("document annotation routes", () => {
       status: "in_review",
       assigneeAgentId,
     });
-    mockIssueThreadInteractionService.expireStaleRequestConfirmationsForIssueDocument.mockResolvedValueOnce([
-      { id: "interaction-b", kind: "request_confirmation", status: "expired" },
-      { id: "interaction-a", kind: "request_confirmation", status: "expired" },
-    ]);
-    mockIssueService.listReviewAttention.mockResolvedValueOnce(new Map([[issueId, {
-      state: "stalled",
-      paths: [],
-      reason: "Final document-bound review paths expired",
-    }]]));
+    mockIssueThreadInteractionService.expireStaleRequestConfirmationsForIssueDocument.mockResolvedValueOnce(
+      [
+        {
+          id: "interaction-b",
+          kind: "request_confirmation",
+          status: "expired",
+        },
+        {
+          id: "interaction-a",
+          kind: "request_confirmation",
+          status: "expired",
+        },
+      ],
+    );
+    mockIssueService.listReviewAttention.mockResolvedValueOnce(
+      new Map([
+        [
+          issueId,
+          {
+            state: "stalled",
+            paths: [],
+            reason: "Final document-bound review paths expired",
+          },
+        ],
+      ]),
+    );
     mockHeartbeatService.wakeup.mockResolvedValueOnce({ id: "recovery-run" });
 
     await request(await createApp())
@@ -318,20 +375,25 @@ describe("document annotation routes", () => {
       .expect(200);
 
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledTimes(1);
-    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(assigneeAgentId, expect.objectContaining({
-      reason: "issue_review_path_lost",
-      idempotencyKey: expect.stringMatching(new RegExp(`^issue_review_path_lost:${issueId}:`)),
-      payload: expect.objectContaining({
-        issueId,
-        reviewPathConsumedRef: "interactions:interaction-a,interaction-b",
-        reviewPathRecoveryAttempt: 1,
-        maxReviewPathRecoveryAttempts: 1,
+    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+      assigneeAgentId,
+      expect.objectContaining({
+        reason: "issue_review_path_lost",
+        idempotencyKey: expect.stringMatching(
+          new RegExp(`^issue_review_path_lost:${issueId}:`),
+        ),
+        payload: expect.objectContaining({
+          issueId,
+          reviewPathConsumedRef: "interactions:interaction-a,interaction-b",
+          reviewPathRecoveryAttempt: 1,
+          maxReviewPathRecoveryAttempts: 1,
+        }),
+        contextSnapshot: expect.objectContaining({
+          source: "issue.document_updated",
+          wakeReason: "issue_review_path_lost",
+        }),
       }),
-      contextSnapshot: expect.objectContaining({
-        source: "issue.document_updated",
-        wakeReason: "issue_review_path_lost",
-      }),
-    }));
+    );
   });
 
   it("creates annotation threads, syncs references, logs activity, and does not wake the assignee", async () => {
@@ -354,14 +416,19 @@ describe("document annotation routes", () => {
       .expect(201);
 
     expect(res.body.id).toBe(annotationThread.id);
-    expect(mockIssueReferenceService.syncAnnotationComment).toHaveBeenCalledWith(annotationComment.id);
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "issue.document_annotation_thread_created",
-      details: expect.objectContaining({
-        key: "plan",
-        documentKey: "plan",
+    expect(
+      mockIssueReferenceService.syncAnnotationComment,
+    ).toHaveBeenCalledWith(annotationComment.id);
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "issue.document_annotation_thread_created",
+        details: expect.objectContaining({
+          key: "plan",
+          documentKey: "plan",
+        }),
       }),
-    }));
+    );
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 
@@ -381,31 +448,43 @@ describe("document annotation routes", () => {
     });
 
     await request(await createApp())
-      .post(`/api/issues/${issueId}/documents/plan/annotations/${annotationThread.id}/comments`)
+      .post(
+        `/api/issues/${issueId}/documents/plan/annotations/${annotationThread.id}/comments`,
+      )
       .send({ body: "Reply with PAP-2" })
       .expect(201);
-    expect(mockIssueReferenceService.syncAnnotationComment).toHaveBeenCalledWith(annotationComment.id);
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "issue.document_annotation_comment_added",
-      details: expect.objectContaining({
-        key: "plan",
-        documentKey: "plan",
+    expect(
+      mockIssueReferenceService.syncAnnotationComment,
+    ).toHaveBeenCalledWith(annotationComment.id);
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "issue.document_annotation_comment_added",
+        details: expect.objectContaining({
+          key: "plan",
+          documentKey: "plan",
+        }),
       }),
-    }));
+    );
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
 
     const resolved = await request(await createApp())
-      .patch(`/api/issues/${issueId}/documents/plan/annotations/${annotationThread.id}`)
+      .patch(
+        `/api/issues/${issueId}/documents/plan/annotations/${annotationThread.id}`,
+      )
       .send({ status: "resolved" })
       .expect(200);
     expect(resolved.body.status).toBe("resolved");
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "issue.document_annotation_thread_resolved",
-      details: expect.objectContaining({
-        key: "plan",
-        documentKey: "plan",
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "issue.document_annotation_thread_resolved",
+        details: expect.objectContaining({
+          key: "plan",
+          documentKey: "plan",
+        }),
       }),
-    }));
+    );
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 });

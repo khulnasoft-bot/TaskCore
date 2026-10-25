@@ -14,7 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/pages/tools/shared";
-import { GATEWAY_TABS, gatewayTabHref, isGatewayTabKey, type GatewayTabKey } from "./gateway-tabs";
+import {
+  GATEWAY_TABS,
+  gatewayTabHref,
+  isGatewayTabKey,
+  type GatewayTabKey,
+} from "./gateway-tabs";
 import { gatewaysQueryKey } from "./NewGatewayDialog";
 import { ConnectClientDialog } from "./ConnectClientDialog";
 import { EditGatewayDialog } from "./EditGatewayDialog";
@@ -27,7 +32,10 @@ import { GatewayAdvancedPanel } from "./panels/GatewayAdvancedPanel";
 import { CopyableGatewayUrl } from "./CopyableGatewayUrl";
 
 export function GatewayDetail() {
-  const { gatewayId = "", tab } = useParams<{ gatewayId: string; tab?: string }>();
+  const { gatewayId = "", tab } = useParams<{
+    gatewayId: string;
+    tab?: string;
+  }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { pushToast } = useToast();
@@ -35,7 +43,9 @@ export function GatewayDetail() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const [snippetOpen, setSnippetOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [createdTokens, setCreatedTokens] = useState<ToolMcpGatewayTokenCreated[]>([]);
+  const [createdTokens, setCreatedTokens] = useState<
+    ToolMcpGatewayTokenCreated[]
+  >([]);
 
   const activeTab: GatewayTabKey | null = isGatewayTabKey(tab) ? tab : null;
 
@@ -65,8 +75,11 @@ export function GatewayDetail() {
     enabled: !!selectedCompanyId,
   });
   const projectsQuery = useQuery({
-    queryKey: queryKeys.projects.list(selectedCompanyId ?? "__none__", { includeArchived: true }),
-    queryFn: () => projectsApi.list(selectedCompanyId!, { includeArchived: true }),
+    queryKey: queryKeys.projects.list(selectedCompanyId ?? "__none__", {
+      includeArchived: true,
+    }),
+    queryFn: () =>
+      projectsApi.list(selectedCompanyId!, { includeArchived: true }),
     enabled: !!selectedCompanyId,
   });
 
@@ -75,7 +88,10 @@ export function GatewayDetail() {
     [gatewaysQuery.data, gatewayId],
   );
   const profile = useMemo(
-    () => (profilesQuery.data?.profiles ?? []).find((p) => p.id === gateway?.profileId),
+    () =>
+      (profilesQuery.data?.profiles ?? []).find(
+        (p) => p.id === gateway?.profileId,
+      ),
     [profilesQuery.data, gateway?.profileId],
   );
   const apps = useMemo(
@@ -88,16 +104,23 @@ export function GatewayDetail() {
     [profile, applicationsQuery.data, connectionsQuery.data],
   );
   const agentNames = useMemo(
-    () => new Map((agentsQuery.data ?? []).map((agent) => [agent.id, agent.name])),
+    () =>
+      new Map((agentsQuery.data ?? []).map((agent) => [agent.id, agent.name])),
     [agentsQuery.data],
   );
   const projectNames = useMemo(
-    () => new Map((projectsQuery.data ?? []).map((project) => [project.id, project.name])),
+    () =>
+      new Map(
+        (projectsQuery.data ?? []).map((project) => [project.id, project.name]),
+      ),
     [projectsQuery.data],
   );
 
   function rememberCreatedToken(token: ToolMcpGatewayTokenCreated) {
-    setCreatedTokens((current) => [token, ...current.filter((item) => item.id !== token.id)]);
+    setCreatedTokens((current) => [
+      token,
+      ...current.filter((item) => item.id !== token.id),
+    ]);
   }
 
   useEffect(() => {
@@ -124,7 +147,9 @@ export function GatewayDetail() {
             : `${updated.name} is off — every client goes silent.`,
         tone: "success",
       });
-      await queryClient.invalidateQueries({ queryKey: gatewaysQueryKey(selectedCompanyId!) });
+      await queryClient.invalidateQueries({
+        queryKey: gatewaysQueryKey(selectedCompanyId!),
+      });
     },
     onError: (error) =>
       pushToast({
@@ -135,7 +160,11 @@ export function GatewayDetail() {
   });
 
   if (!selectedCompanyId) {
-    return <div className="p-6 text-sm text-muted-foreground">Select an organization to manage gateways.</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Select an organization to manage gateways.
+      </div>
+    );
   }
   if (!activeTab) {
     return <Navigate replace to={gatewayTabHref(gatewayId, "overview")} />;
@@ -150,13 +179,24 @@ export function GatewayDetail() {
     );
   }
   if (gatewaysQuery.isError) {
-    return <ErrorState error={gatewaysQuery.error} onRetry={() => gatewaysQuery.refetch()} />;
+    return (
+      <ErrorState
+        error={gatewaysQuery.error}
+        onRetry={() => gatewaysQuery.refetch()}
+      />
+    );
   }
   if (!gateway) {
     return (
       <div className="max-w-3xl p-6">
-        <p className="text-sm text-muted-foreground">We couldn’t find that gateway.</p>
-        <Button className="mt-4" variant="outline" onClick={() => navigate("/apps/gateways")}>
+        <p className="text-sm text-muted-foreground">
+          We couldn’t find that gateway.
+        </p>
+        <Button
+          className="mt-4"
+          variant="outline"
+          onClick={() => navigate("/apps/gateways")}
+        >
           Back to gateways
         </Button>
       </div>
@@ -172,8 +212,13 @@ export function GatewayDetail() {
               Apps · Gateways
             </Link>
           </div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">{gateway.name}</h1>
-          <CopyableGatewayUrl endpointPath={gateway.endpointPath} className="mt-1 max-w-xl" />
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">
+            {gateway.name}
+          </h1>
+          <CopyableGatewayUrl
+            endpointPath={gateway.endpointPath}
+            className="mt-1 max-w-xl"
+          />
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setEditing(true)}>
@@ -187,7 +232,10 @@ export function GatewayDetail() {
         </div>
       </div>
 
-      <nav className="flex items-center gap-6 overflow-x-auto border-b border-border text-sm" aria-label="Gateway tabs">
+      <nav
+        className="flex items-center gap-6 overflow-x-auto border-b border-border text-sm"
+        aria-label="Gateway tabs"
+      >
         {GATEWAY_TABS.map((item) => {
           const isActive = item.key === activeTab;
           return (

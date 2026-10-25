@@ -25,7 +25,10 @@ type IssuePropertiesPanelKeyIssue = Pick<
   | "watchdog"
 >;
 
-type IssuePropertiesPanelKeyChild = Pick<Issue, "id" | "updatedAt" | "identifier" | "title">;
+type IssuePropertiesPanelKeyChild = Pick<
+  Issue,
+  "id" | "updatedAt" | "identifier" | "title"
+>;
 
 export function buildIssuePropertiesPanelKey(
   issue: IssuePropertiesPanelKeyIssue | null | undefined,
@@ -53,10 +56,13 @@ export function buildIssuePropertiesPanelKey(
           id: issue.currentExecutionWorkspace.id,
           mode: issue.currentExecutionWorkspace.mode,
           status: issue.currentExecutionWorkspace.status,
-          projectWorkspaceId: issue.currentExecutionWorkspace.projectWorkspaceId,
+          projectWorkspaceId:
+            issue.currentExecutionWorkspace.projectWorkspaceId,
           branchName: issue.currentExecutionWorkspace.branchName,
           cwd: issue.currentExecutionWorkspace.cwd,
-          runtimeServices: (issue.currentExecutionWorkspace.runtimeServices ?? []).map((service) => ({
+          runtimeServices: (
+            issue.currentExecutionWorkspace.runtimeServices ?? []
+          ).map((service) => ({
             id: service.id,
             status: service.status,
             url: service.url,

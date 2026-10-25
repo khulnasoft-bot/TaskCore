@@ -21,7 +21,11 @@ async function main(): Promise<void> {
       .where(
         and(
           eq(heartbeatRuns.runtimeMode, "native"),
-          inArray(heartbeatRuns.status, ["queued", "running", "scheduled_retry"]),
+          inArray(heartbeatRuns.status, [
+            "queued",
+            "running",
+            "scheduled_retry",
+          ]),
         ),
       )
       .limit(1)
@@ -49,7 +53,9 @@ async function main(): Promise<void> {
     console.log(
       JSON.stringify({
         nativeRunnerRequired:
-          experimental.enableNativeRunner === true || experimental.enableOpenAiDot === true || persistedNativeRun,
+          experimental.enableNativeRunner === true ||
+          experimental.enableOpenAiDot === true ||
+          persistedNativeRun,
         rolloutEnabled: experimental.enableNativeRunner === true,
         dotRolloutEnabled: experimental.enableOpenAiDot === true,
         persistedNativeRun,

@@ -52,37 +52,70 @@ export function MobileBottomNav({ visible }: MobileBottomNavProps) {
   // it is a view inside Tasks, so its unread badge rides on Tasks. The grid
   // tracks the live count, so the bar stays evenly divided in every mix.
   const items = useMemo<MobileNavItem[]>(
-    () => !agentChatEnabled && !combinedInboxTasksEnabled ? [
-      { type: "link", to: "/dashboard", label: "Home", icon: House },
-      { type: "link", to: "/issues", label: "Tasks", icon: CircleCheck },
-      { type: "action", label: "New Task", icon: SquarePen, onClick: () => openNewIssue() },
-      { type: "link", to: "/agents/all", label: "Agents", icon: Users },
-      {
-        type: "link",
-        to: "/inbox",
-        label: "Inbox",
-        icon: Inbox,
-        badge: inboxBadge.inbox,
-      },
-    ] : [
-      { type: "link", to: "/dashboard", label: "Home", icon: House },
-      ...(agentChatEnabled
-        ? [{ type: "link", to: "/chats", label: "Chat", icon: MessageCircle } as MobileNavItem]
-        : []),
-      { type: "action", label: "New Task", icon: SquarePen, onClick: () => openNewIssue() },
-      {
-        type: "link",
-        to: "/issues",
-        label: "Tasks",
-        icon: CircleCheck,
-        badge: combinedInboxTasksEnabled ? inboxBadge.inbox : undefined,
-      },
-      { type: "link", to: "/agents/all", label: "Agents", icon: Users },
-      ...(!combinedInboxTasksEnabled
-        ? [{ type: "link", to: "/inbox", label: "Inbox", icon: Inbox, badge: inboxBadge.inbox } as MobileNavItem]
-        : []),
+    () =>
+      !agentChatEnabled && !combinedInboxTasksEnabled
+        ? [
+            { type: "link", to: "/dashboard", label: "Home", icon: House },
+            { type: "link", to: "/issues", label: "Tasks", icon: CircleCheck },
+            {
+              type: "action",
+              label: "New Task",
+              icon: SquarePen,
+              onClick: () => openNewIssue(),
+            },
+            { type: "link", to: "/agents/all", label: "Agents", icon: Users },
+            {
+              type: "link",
+              to: "/inbox",
+              label: "Inbox",
+              icon: Inbox,
+              badge: inboxBadge.inbox,
+            },
+          ]
+        : [
+            { type: "link", to: "/dashboard", label: "Home", icon: House },
+            ...(agentChatEnabled
+              ? [
+                  {
+                    type: "link",
+                    to: "/chats",
+                    label: "Chat",
+                    icon: MessageCircle,
+                  } as MobileNavItem,
+                ]
+              : []),
+            {
+              type: "action",
+              label: "New Task",
+              icon: SquarePen,
+              onClick: () => openNewIssue(),
+            },
+            {
+              type: "link",
+              to: "/issues",
+              label: "Tasks",
+              icon: CircleCheck,
+              badge: combinedInboxTasksEnabled ? inboxBadge.inbox : undefined,
+            },
+            { type: "link", to: "/agents/all", label: "Agents", icon: Users },
+            ...(!combinedInboxTasksEnabled
+              ? [
+                  {
+                    type: "link",
+                    to: "/inbox",
+                    label: "Inbox",
+                    icon: Inbox,
+                    badge: inboxBadge.inbox,
+                  } as MobileNavItem,
+                ]
+              : []),
+          ],
+    [
+      openNewIssue,
+      inboxBadge.inbox,
+      agentChatEnabled,
+      combinedInboxTasksEnabled,
     ],
-    [openNewIssue, inboxBadge.inbox, agentChatEnabled, combinedInboxTasksEnabled],
   );
 
   return (
@@ -96,7 +129,9 @@ export function MobileBottomNav({ visible }: MobileBottomNavProps) {
     >
       <div
         className="grid h-16 px-1"
-        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
+        }}
       >
         {items.map((item) => {
           if (item.type === "action") {
@@ -138,9 +173,17 @@ export function MobileBottomNav({ visible }: MobileBottomNavProps) {
               {({ isActive }) => (
                 <>
                   <span className="relative">
-                    <Icon className={cn("h-(--sz-18px) w-(--sz-18px)", isActive && "stroke-(length:--sw-2_3)")} />
+                    <Icon
+                      className={cn(
+                        "h-(--sz-18px) w-(--sz-18px)",
+                        isActive && "stroke-(length:--sw-2_3)",
+                      )}
+                    />
                     {item.badge != null && item.badge > 0 && (
-                      <Badge variant="ghost" className="absolute -right-2 -top-2 bg-primary px-1.5 text-(length:--text-nano) leading-none text-primary-foreground">
+                      <Badge
+                        variant="ghost"
+                        className="absolute -right-2 -top-2 bg-primary px-1.5 text-(length:--text-nano) leading-none text-primary-foreground"
+                      >
                         {item.badge > 99 ? "99+" : item.badge}
                       </Badge>
                     )}

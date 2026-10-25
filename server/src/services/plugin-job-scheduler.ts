@@ -159,7 +159,10 @@ export interface PluginJobScheduler {
    * @returns The created run info
    * @throws {Error} if the job is not found, not active, or already running
    */
-  triggerJob(jobId: string, trigger?: "manual" | "retry"): Promise<TriggerJobResult>;
+  triggerJob(
+    jobId: string,
+    trigger?: "manual" | "retry",
+  ): Promise<TriggerJobResult>;
 
   /**
    * Run a single scheduler tick immediately (for testing).
@@ -267,10 +270,7 @@ export function createPluginJobScheduler(
         .select()
         .from(pluginJobs)
         .where(
-          and(
-            eq(pluginJobs.status, "active"),
-            lte(pluginJobs.nextRunAt, now),
-          ),
+          and(eq(pluginJobs.status, "active"), lte(pluginJobs.nextRunAt, now)),
         );
 
       if (dueJobs.length === 0) {
@@ -413,7 +413,10 @@ export function createPluginJobScheduler(
           jobLog.error(
             {
               runId,
-              err: completeErr instanceof Error ? completeErr.message : String(completeErr),
+              err:
+                completeErr instanceof Error
+                  ? completeErr.message
+                  : String(completeErr),
             },
             "failed to record job failure",
           );
@@ -550,7 +553,10 @@ export function createPluginJobScheduler(
       } catch (completeErr) {
         jobLog.error(
           {
-            err: completeErr instanceof Error ? completeErr.message : String(completeErr),
+            err:
+              completeErr instanceof Error
+                ? completeErr.message
+                : String(completeErr),
           },
           "failed to record manual job failure",
         );
@@ -610,7 +616,12 @@ export function createPluginJobScheduler(
       const validationError = validateCron(job.schedule);
       if (validationError) {
         log.warn(
-          { jobId: job.id, jobKey: job.jobKey, schedule: job.schedule, error: validationError },
+          {
+            jobId: job.id,
+            jobKey: job.jobKey,
+            schedule: job.schedule,
+            error: validationError,
+          },
           "skipping job with invalid cron schedule",
         );
         continue;
@@ -626,7 +637,11 @@ export function createPluginJobScheduler(
           nextRunAt,
         );
         log.debug(
-          { jobId: job.id, jobKey: job.jobKey, nextRunAt: nextRunAt.toISOString() },
+          {
+            jobId: job.id,
+            jobKey: job.jobKey,
+            nextRunAt: nextRunAt.toISOString(),
+          },
           "computed nextRunAt for job",
         );
       }

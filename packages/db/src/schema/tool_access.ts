@@ -1,6 +1,4 @@
-import {
-  sql,
-} from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -82,25 +80,50 @@ export const toolApplications = pgTable(
   "tool_applications",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     applicationKey: text("application_key"),
     name: text("name").notNull(),
     description: text("description"),
     type: text("type").$type<ToolApplicationType>().notNull(),
-    status: text("status").$type<ToolApplicationStatus>().notNull().default("active"),
-    pluginId: uuid("plugin_id").references(() => plugins.id, { onDelete: "set null" }),
-    ownerAgentId: uuid("owner_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    status: text("status")
+      .$type<ToolApplicationStatus>()
+      .notNull()
+      .default("active"),
+    pluginId: uuid("plugin_id").references(() => plugins.id, {
+      onDelete: "set null",
+    }),
+    ownerAgentId: uuid("owner_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     ownerUserId: text("owner_user_id"),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_applications_company_idx").on(table.companyId),
-    index("tool_applications_company_status_idx").on(table.companyId, table.status),
-    uniqueIndex("tool_applications_company_name_uq").on(table.companyId, table.name),
-    uniqueIndex("tool_applications_company_key_uq").on(table.companyId, table.applicationKey),
+    index("tool_applications_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+    uniqueIndex("tool_applications_company_name_uq").on(
+      table.companyId,
+      table.name,
+    ),
+    uniqueIndex("tool_applications_company_key_uq").on(
+      table.companyId,
+      table.applicationKey,
+    ),
   ],
 );
 
@@ -108,7 +131,9 @@ export const toolConnections = pgTable(
   "tool_connections",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     // NO ACTION (not CASCADE) so the database itself refuses to delete an application that still
     // has connections. This closes the delete-vs-create race in DELETE
     // /tool-applications/:applicationId: a connection inserted concurrently takes a FOR KEY SHARE
@@ -117,58 +142,137 @@ export const toolConnections = pgTable(
     // than RESTRICT (checked immediately) is deliberate: it lets a company delete still cascade —
     // companies → tool_applications and companies → tool_connections both fire in one statement,
     // and the connections are gone by the time this constraint is checked.
-    applicationId: uuid("application_id").notNull().references(() => toolApplications.id, { onDelete: "no action" }),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => toolApplications.id, { onDelete: "no action" }),
     name: text("name").notNull(),
     uid: text("uid").notNull(),
-    connectionKind: text("connection_kind").$type<ToolConnectionKind>().notNull().default("managed"),
-    connectionPurpose: text("connection_purpose").$type<ToolConnectionPurpose>().notNull().default("tool"),
-    ownership: text("ownership").$type<ToolConnectionOwnership>().notNull().default("customer"),
+    connectionKind: text("connection_kind")
+      .$type<ToolConnectionKind>()
+      .notNull()
+      .default("managed"),
+    connectionPurpose: text("connection_purpose")
+      .$type<ToolConnectionPurpose>()
+      .notNull()
+      .default("tool"),
+    ownership: text("ownership")
+      .$type<ToolConnectionOwnership>()
+      .notNull()
+      .default("customer"),
     transport: text("transport").$type<ToolConnectionTransport>().notNull(),
-    authKind: text("auth_kind").$type<ToolConnectionAuthKind>().notNull().default("none"),
-    credentialSource: text("credential_source").$type<ToolConnectionCredentialSource>().notNull().default("taskcore_vault"),
-    externalCredential: jsonb("external_credential").$type<VercelConnectCredentialReference>(),
-    credentialPolicy: text("credential_policy").$type<ToolConnectionCredentialPolicy>().notNull().default("shared"),
-    status: text("status").$type<ToolConnectionStatus>().notNull().default("draft"),
+    authKind: text("auth_kind")
+      .$type<ToolConnectionAuthKind>()
+      .notNull()
+      .default("none"),
+    credentialSource: text("credential_source")
+      .$type<ToolConnectionCredentialSource>()
+      .notNull()
+      .default("taskcore_vault"),
+    externalCredential: jsonb(
+      "external_credential",
+    ).$type<VercelConnectCredentialReference>(),
+    credentialPolicy: text("credential_policy")
+      .$type<ToolConnectionCredentialPolicy>()
+      .notNull()
+      .default("shared"),
+    status: text("status")
+      .$type<ToolConnectionStatus>()
+      .notNull()
+      .default("draft"),
     enabled: boolean("enabled").notNull().default(false),
-    agentInstructions: jsonb("agent_instructions").$type<ConnectionAgentInstructions>(),
-    config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
-    transportConfig: jsonb("transport_config").$type<Record<string, unknown>>().notNull().default({}),
-    credentialRefs: jsonb("credential_refs").$type<McpConnectionCredentialRef[]>().notNull().default([]),
-    credentialSecretRefs: jsonb("credential_secret_refs").$type<ToolCredentialSecretRef[]>().notNull().default([]),
-    healthStatus: text("health_status").$type<ToolConnectionHealthStatus>().notNull().default("unchecked"),
+    agentInstructions:
+      jsonb("agent_instructions").$type<ConnectionAgentInstructions>(),
+    config: jsonb("config")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    transportConfig: jsonb("transport_config")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    credentialRefs: jsonb("credential_refs")
+      .$type<McpConnectionCredentialRef[]>()
+      .notNull()
+      .default([]),
+    credentialSecretRefs: jsonb("credential_secret_refs")
+      .$type<ToolCredentialSecretRef[]>()
+      .notNull()
+      .default([]),
+    healthStatus: text("health_status")
+      .$type<ToolConnectionHealthStatus>()
+      .notNull()
+      .default("unchecked"),
     healthMessage: text("health_message"),
     healthCheckedAt: timestamp("health_checked_at", { withTimezone: true }),
     lastHealthAt: timestamp("last_health_at", { withTimezone: true }),
-    lastCatalogRefreshAt: timestamp("last_catalog_refresh_at", { withTimezone: true }),
+    lastCatalogRefreshAt: timestamp("last_catalog_refresh_at", {
+      withTimezone: true,
+    }),
     lastError: text("last_error"),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: text("created_by_user_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    check("tool_connections_ownership_check", sql`${table.ownership} in ('platform_shared', 'platform_provisioned', 'customer', 'dcr')`),
-    check("tool_connections_transport_check", sql`${table.transport} in ('mcp_remote', 'rest_api', 'local_stdio', 'chat_sdk', 'runtime_auth')`),
-    check("tool_connections_purpose_check", sql`${table.connectionPurpose} in ('tool', 'channel', 'ai')`),
-    check("tool_connections_channel_transport_check", sql`(
+    check(
+      "tool_connections_ownership_check",
+      sql`${table.ownership} in ('platform_shared', 'platform_provisioned', 'customer', 'dcr')`,
+    ),
+    check(
+      "tool_connections_transport_check",
+      sql`${table.transport} in ('mcp_remote', 'rest_api', 'local_stdio', 'chat_sdk', 'runtime_auth')`,
+    ),
+    check(
+      "tool_connections_purpose_check",
+      sql`${table.connectionPurpose} in ('tool', 'channel', 'ai')`,
+    ),
+    check(
+      "tool_connections_channel_transport_check",
+      sql`(
       (${table.connectionPurpose} = 'tool' and ${table.transport} not in ('chat_sdk', 'runtime_auth'))
       or
       (${table.connectionPurpose} = 'channel' and (${table.transport} = 'chat_sdk' or (${table.transport} = 'rest_api' and ${table.config}->>'provider' = 'agentmail')))
       or
       (${table.connectionPurpose} = 'ai' and ${table.transport} = 'runtime_auth')
-    )`),
-    check("tool_connections_auth_kind_check", sql`${table.authKind} in ('oauth', 'api_key', 'none')`),
-    check("tool_connections_credential_source_check", sql`${table.credentialSource} in ('taskcore_vault', 'vercel_connect')`),
-    check("tool_connections_credential_source_one_of_check", sql`(
+    )`,
+    ),
+    check(
+      "tool_connections_auth_kind_check",
+      sql`${table.authKind} in ('oauth', 'api_key', 'none')`,
+    ),
+    check(
+      "tool_connections_credential_source_check",
+      sql`${table.credentialSource} in ('taskcore_vault', 'vercel_connect')`,
+    ),
+    check(
+      "tool_connections_credential_source_one_of_check",
+      sql`(
       (${table.credentialSource} = 'taskcore_vault' and ${table.externalCredential} is null)
       or
       (${table.credentialSource} = 'vercel_connect' and ${table.externalCredential} is not null and jsonb_array_length(${table.credentialRefs}) = 0 and jsonb_array_length(${table.credentialSecretRefs}) = 0)
-    )`),
-    check("tool_connections_credential_policy_check", sql`${table.credentialPolicy} in ('shared', 'per_user', 'per_user_with_fallback', 'per_agent')`),
+    )`,
+    ),
+    check(
+      "tool_connections_credential_policy_check",
+      sql`${table.credentialPolicy} in ('shared', 'per_user', 'per_user_with_fallback', 'per_agent')`,
+    ),
     index("tool_connections_company_idx").on(table.companyId),
     index("tool_connections_application_idx").on(table.applicationId),
-    index("tool_connections_company_enabled_idx").on(table.companyId, table.enabled),
-    uniqueIndex("tool_connections_company_uid_uq").on(table.companyId, table.uid),
+    index("tool_connections_company_enabled_idx").on(
+      table.companyId,
+      table.enabled,
+    ),
+    uniqueIndex("tool_connections_company_uid_uq").on(
+      table.companyId,
+      table.uid,
+    ),
     unique("tool_connections_company_id_uq").on(table.companyId, table.id),
   ],
 );
@@ -177,11 +281,15 @@ export const connectionGrants = pgTable(
   "connection_grants",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     connectionId: uuid("connection_id").notNull(),
     kind: text("kind").$type<ConnectionGrantKind>().notNull(),
     subjectUserId: text("subject_user_id"),
-    subjectAgentId: uuid("subject_agent_id").references(() => agents.id, { onDelete: "cascade" }),
+    subjectAgentId: uuid("subject_agent_id").references(() => agents.id, {
+      onDelete: "cascade",
+    }),
     providerTenant: jsonb("provider_tenant").$type<{
       name?: string;
       externalId?: string;
@@ -212,7 +320,12 @@ export const connectionGrants = pgTable(
           expiresAt?: string;
         };
       };
-      slackSearch?: { endpointId: string; workspaceId: string; slackUserId: string; clientRevision: string };
+      slackSearch?: {
+        endpointId: string;
+        workspaceId: string;
+        slackUserId: string;
+        clientRevision: string;
+      };
       github?: {
         userId: string;
         login: string;
@@ -223,7 +336,12 @@ export const connectionGrants = pgTable(
         installationIds: string[];
         installationOwnerLogins: string[];
         /** Repository metadata visible to this credential; refreshed from GitHub. */
-        repositories?: Array<{ id: string; fullName: string; installationId: string; private?: boolean }>;
+        repositories?: Array<{
+          id: string;
+          fullName: string;
+          installationId: string;
+          private?: boolean;
+        }>;
         installationUrl?: string;
         managementUrl?: string;
         appSlug?: string;
@@ -233,37 +351,85 @@ export const connectionGrants = pgTable(
         webhookHealth?: "pending" | "healthy" | "unhealthy";
       };
     }>(),
-    credentialSecretRefs: jsonb("credential_secret_refs").$type<ToolCredentialSecretRef[]>().notNull().default([]),
-    externalCredential: jsonb("external_credential").$type<VercelConnectGrantReference>(),
-    status: text("status").$type<ConnectionGrantStatus>().notNull().default("active"),
+    credentialSecretRefs: jsonb("credential_secret_refs")
+      .$type<ToolCredentialSecretRef[]>()
+      .notNull()
+      .default([]),
+    externalCredential: jsonb(
+      "external_credential",
+    ).$type<VercelConnectGrantReference>(),
+    status: text("status")
+      .$type<ConnectionGrantStatus>()
+      .notNull()
+      .default("active"),
     isDefault: boolean("is_default").notNull().default(false),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: text("created_by_user_id"),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    revokedByAgentId: uuid("revoked_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    revokedByAgentId: uuid("revoked_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     revokedByUserId: text("revoked_by_user_id"),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    check("connection_grants_kind_check", sql`${table.kind} in ('organization', 'user', 'agent')`),
-    check("connection_grants_status_check", sql`${table.status} in ('active', 'revoked', 'expired', 'needs_reauthorization')`),
-    check("connection_grants_credential_source_one_of_check", sql`${table.externalCredential} is null or jsonb_array_length(${table.credentialSecretRefs}) = 0`),
-    check("connection_grants_subject_check", sql`(${table.kind} = 'user' and ${table.subjectUserId} is not null and ${table.subjectAgentId} is null) or (${table.kind} = 'agent' and ${table.subjectAgentId} is not null and ${table.subjectUserId} is null) or (${table.kind} = 'organization' and ${table.subjectUserId} is null and ${table.subjectAgentId} is null)`),
-    check("connection_grants_default_check", sql`${table.isDefault} = false or ${table.kind} = 'organization'`),
+    check(
+      "connection_grants_kind_check",
+      sql`${table.kind} in ('organization', 'user', 'agent')`,
+    ),
+    check(
+      "connection_grants_status_check",
+      sql`${table.status} in ('active', 'revoked', 'expired', 'needs_reauthorization')`,
+    ),
+    check(
+      "connection_grants_credential_source_one_of_check",
+      sql`${table.externalCredential} is null or jsonb_array_length(${table.credentialSecretRefs}) = 0`,
+    ),
+    check(
+      "connection_grants_subject_check",
+      sql`(${table.kind} = 'user' and ${table.subjectUserId} is not null and ${table.subjectAgentId} is null) or (${table.kind} = 'agent' and ${table.subjectAgentId} is not null and ${table.subjectUserId} is null) or (${table.kind} = 'organization' and ${table.subjectUserId} is null and ${table.subjectAgentId} is null)`,
+    ),
+    check(
+      "connection_grants_default_check",
+      sql`${table.isDefault} = false or ${table.kind} = 'organization'`,
+    ),
     foreignKey({
       columns: [table.companyId, table.connectionId],
       foreignColumns: [toolConnections.companyId, toolConnections.id],
       name: "connection_grants_company_connection_fk",
     }).onDelete("cascade"),
-    index("connection_grants_company_connection_idx").on(table.companyId, table.connectionId),
-    index("connection_grants_subject_user_idx").on(table.companyId, table.subjectUserId),
-    index("connection_grants_subject_agent_idx").on(table.companyId, table.subjectAgentId),
+    index("connection_grants_company_connection_idx").on(
+      table.companyId,
+      table.connectionId,
+    ),
+    index("connection_grants_subject_user_idx").on(
+      table.companyId,
+      table.subjectUserId,
+    ),
+    index("connection_grants_subject_agent_idx").on(
+      table.companyId,
+      table.subjectAgentId,
+    ),
     unique("connection_grants_company_id_uq").on(table.companyId, table.id),
-    uniqueIndex("connection_grants_user_uq").on(table.connectionId, table.subjectUserId),
-    uniqueIndex("connection_grants_agent_uq").on(table.connectionId, table.subjectAgentId),
-    uniqueIndex("connection_grants_default_uq").on(table.connectionId).where(sql`${table.isDefault} = true and ${table.kind} = 'organization'`),
+    uniqueIndex("connection_grants_user_uq").on(
+      table.connectionId,
+      table.subjectUserId,
+    ),
+    uniqueIndex("connection_grants_agent_uq").on(
+      table.connectionId,
+      table.subjectAgentId,
+    ),
+    uniqueIndex("connection_grants_default_uq")
+      .on(table.connectionId)
+      .where(sql`${table.isDefault} = true and ${table.kind} = 'organization'`),
   ],
 );
 
@@ -271,21 +437,38 @@ export const connectionGrantMembers = pgTable(
   "connection_grant_members",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     grantId: uuid("grant_id").notNull(),
-    subjectType: text("subject_type").$type<ConnectionGrantMemberSubjectType>().notNull(),
+    subjectType: text("subject_type")
+      .$type<ConnectionGrantMemberSubjectType>()
+      .notNull(),
     subjectId: text("subject_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    check("connection_grant_members_subject_type_check", sql`${table.subjectType} in ('user')`),
+    check(
+      "connection_grant_members_subject_type_check",
+      sql`${table.subjectType} in ('user')`,
+    ),
     foreignKey({
       columns: [table.companyId, table.grantId],
       foreignColumns: [connectionGrants.companyId, connectionGrants.id],
       name: "connection_grant_members_company_grant_fk",
     }).onDelete("cascade"),
-    index("connection_grant_members_company_subject_idx").on(table.companyId, table.subjectType, table.subjectId),
-    uniqueIndex("connection_grant_members_grant_subject_uq").on(table.grantId, table.subjectType, table.subjectId),
+    index("connection_grant_members_company_subject_idx").on(
+      table.companyId,
+      table.subjectType,
+      table.subjectId,
+    ),
+    uniqueIndex("connection_grant_members_grant_subject_uq").on(
+      table.grantId,
+      table.subjectType,
+      table.subjectId,
+    ),
   ],
 );
 
@@ -293,11 +476,17 @@ export const connectionGrantDelegations = pgTable(
   "connection_grant_delegations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     grantId: uuid("grant_id").notNull(),
-    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
     createdByUserId: text("created_by_user_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     foreignKey({
@@ -305,8 +494,14 @@ export const connectionGrantDelegations = pgTable(
       foreignColumns: [connectionGrants.companyId, connectionGrants.id],
       name: "connection_grant_delegations_company_grant_fk",
     }).onDelete("cascade"),
-    index("connection_grant_delegations_company_agent_idx").on(table.companyId, table.agentId),
-    uniqueIndex("connection_grant_delegations_grant_agent_uq").on(table.grantId, table.agentId),
+    index("connection_grant_delegations_company_agent_idx").on(
+      table.companyId,
+      table.agentId,
+    ),
+    uniqueIndex("connection_grant_delegations_grant_agent_uq").on(
+      table.grantId,
+      table.agentId,
+    ),
   ],
 );
 
@@ -314,18 +509,38 @@ export const toolConnectionInstalls = pgTable(
   "tool_connection_installs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    connectionId: uuid("connection_id").notNull().references(() => toolConnections.id, { onDelete: "cascade" }),
-    targetType: text("target_type").$type<ToolConnectionInstallTargetType>().notNull(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => toolConnections.id, { onDelete: "cascade" }),
+    targetType: text("target_type")
+      .$type<ToolConnectionInstallTargetType>()
+      .notNull(),
     targetId: text("target_id").notNull(),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: text("created_by_user_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    check("tool_connection_installs_target_type_check", sql`${table.targetType} in ('company', 'agent')`),
-    index("tool_connection_installs_company_target_idx").on(table.companyId, table.targetType, table.targetId),
-    index("tool_connection_installs_connection_idx").on(table.companyId, table.connectionId),
+    check(
+      "tool_connection_installs_target_type_check",
+      sql`${table.targetType} in ('company', 'agent')`,
+    ),
+    index("tool_connection_installs_company_target_idx").on(
+      table.companyId,
+      table.targetType,
+      table.targetId,
+    ),
+    index("tool_connection_installs_connection_idx").on(
+      table.companyId,
+      table.connectionId,
+    ),
     uniqueIndex("tool_connection_installs_target_uq").on(
       table.companyId,
       table.connectionId,
@@ -339,26 +554,40 @@ export const toolOauthStates = pgTable(
   "tool_oauth_states",
   {
     state: text("state").primaryKey(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    connectionId: uuid("connection_id").notNull().references(() => toolConnections.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => toolConnections.id, { onDelete: "cascade" }),
     codeVerifier: text("code_verifier").notNull(),
     createdByActorType: text("created_by_actor_type"),
     createdByActorId: text("created_by_actor_id"),
     createdBySessionId: text("created_by_session_id"),
     subjectUserId: text("subject_user_id"),
-    subjectAgentId: uuid("subject_agent_id").references(() => agents.id, { onDelete: "cascade" }),
+    subjectAgentId: uuid("subject_agent_id").references(() => agents.id, {
+      onDelete: "cascade",
+    }),
     requestedScopes: jsonb("requested_scopes").$type<string[]>(),
     returnTo: text("return_to"),
     issueId: uuid("issue_id"),
     interactionId: uuid("interaction_id"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_oauth_states_company_idx").on(table.companyId),
     index("tool_oauth_states_connection_idx").on(table.connectionId),
-    index("tool_oauth_states_actor_idx").on(table.createdByActorType, table.createdByActorId),
-    index("tool_oauth_states_subject_agent_idx").on(table.companyId, table.subjectAgentId),
+    index("tool_oauth_states_actor_idx").on(
+      table.createdByActorType,
+      table.createdByActorId,
+    ),
+    index("tool_oauth_states_subject_agent_idx").on(
+      table.companyId,
+      table.subjectAgentId,
+    ),
     index("tool_oauth_states_expires_at_idx").on(table.expiresAt),
   ],
 );
@@ -367,41 +596,80 @@ export const toolCatalogEntries = pgTable(
   "tool_catalog_entries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    applicationId: uuid("application_id").references(() => toolApplications.id, { onDelete: "cascade" }),
-    connectionId: uuid("connection_id").notNull().references(() => toolConnections.id, { onDelete: "cascade" }),
-    entryKind: text("entry_kind").$type<ToolCatalogEntryKind>().notNull().default("tool"),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id").references(
+      () => toolApplications.id,
+      { onDelete: "cascade" },
+    ),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => toolConnections.id, { onDelete: "cascade" }),
+    entryKind: text("entry_kind")
+      .$type<ToolCatalogEntryKind>()
+      .notNull()
+      .default("tool"),
     name: text("name").notNull(),
     toolName: text("tool_name").notNull(),
     title: text("title"),
     description: text("description"),
-    inputSchema: jsonb("input_schema").$type<Record<string, unknown>>().notNull().default({}),
+    inputSchema: jsonb("input_schema")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     outputSchema: jsonb("output_schema").$type<Record<string, unknown>>(),
-    annotations: jsonb("annotations").$type<Record<string, unknown>>().notNull().default({}),
-    riskLevel: text("risk_level").$type<ToolRiskLevel>().notNull().default("read"),
+    annotations: jsonb("annotations")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    riskLevel: text("risk_level")
+      .$type<ToolRiskLevel>()
+      .notNull()
+      .default("read"),
     isReadOnly: boolean("is_read_only").notNull().default(true),
     isWrite: boolean("is_write").notNull().default(false),
     isDestructive: boolean("is_destructive").notNull().default(false),
-    status: text("status").$type<ToolCatalogEntryStatus>().notNull().default("active"),
+    status: text("status")
+      .$type<ToolCatalogEntryStatus>()
+      .notNull()
+      .default("active"),
     version: text("version"),
     versionHash: text("version_hash").notNull(),
     schemaHash: text("schema_hash"),
-    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
-    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
-    reviewedByAgentId: uuid("reviewed_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    reviewedByAgentId: uuid("reviewed_by_agent_id").references(
+      () => agents.id,
+      { onDelete: "set null" },
+    ),
     reviewedByUserId: text("reviewed_by_user_id"),
     quarantinedAt: timestamp("quarantined_at", { withTimezone: true }),
     quarantineReason: text("quarantine_reason"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_catalog_entries_company_idx").on(table.companyId),
     index("tool_catalog_entries_application_idx").on(table.applicationId),
     index("tool_catalog_entries_connection_idx").on(table.connectionId),
-    index("tool_catalog_entries_company_status_idx").on(table.companyId, table.status),
-    uniqueIndex("tool_catalog_entries_connection_name_uq").on(table.connectionId, table.name),
+    index("tool_catalog_entries_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+    uniqueIndex("tool_catalog_entries_connection_name_uq").on(
+      table.connectionId,
+      table.name,
+    ),
   ],
 );
 
@@ -409,21 +677,44 @@ export const toolProfiles = pgTable(
   "tool_profiles",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     profileKey: text("profile_key").notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    status: text("status").$type<ToolProfileStatus>().notNull().default("active"),
-    defaultAction: text("default_action").$type<ToolProfileDefaultAction>().notNull().default("deny"),
-    newToolsReviewedAt: timestamp("new_tools_reviewed_at", { withTimezone: true }),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    status: text("status")
+      .$type<ToolProfileStatus>()
+      .notNull()
+      .default("active"),
+    defaultAction: text("default_action")
+      .$type<ToolProfileDefaultAction>()
+      .notNull()
+      .default("deny"),
+    newToolsReviewedAt: timestamp("new_tools_reviewed_at", {
+      withTimezone: true,
+    }),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_profiles_company_status_idx").on(table.companyId, table.status),
-    uniqueIndex("tool_profiles_company_key_uq").on(table.companyId, table.profileKey),
-    uniqueIndex("tool_profiles_company_name_uq").on(table.companyId, table.name),
+    uniqueIndex("tool_profiles_company_key_uq").on(
+      table.companyId,
+      table.profileKey,
+    ),
+    uniqueIndex("tool_profiles_company_name_uq").on(
+      table.companyId,
+      table.name,
+    ),
   ],
 );
 
@@ -431,24 +722,57 @@ export const toolProfileEntries = pgTable(
   "tool_profile_entries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    profileId: uuid("profile_id").notNull().references(() => toolProfiles.id, { onDelete: "cascade" }),
-    selectorType: text("selector_type").$type<ToolProfileEntrySelectorType>().notNull(),
-    effect: text("effect").$type<ToolProfileEntryEffect>().notNull().default("include"),
-    applicationId: uuid("application_id").references(() => toolApplications.id, { onDelete: "cascade" }),
-    connectionId: uuid("connection_id").references(() => toolConnections.id, { onDelete: "cascade" }),
-    catalogEntryId: uuid("catalog_entry_id").references(() => toolCatalogEntries.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => toolProfiles.id, { onDelete: "cascade" }),
+    selectorType: text("selector_type")
+      .$type<ToolProfileEntrySelectorType>()
+      .notNull(),
+    effect: text("effect")
+      .$type<ToolProfileEntryEffect>()
+      .notNull()
+      .default("include"),
+    applicationId: uuid("application_id").references(
+      () => toolApplications.id,
+      { onDelete: "cascade" },
+    ),
+    connectionId: uuid("connection_id").references(() => toolConnections.id, {
+      onDelete: "cascade",
+    }),
+    catalogEntryId: uuid("catalog_entry_id").references(
+      () => toolCatalogEntries.id,
+      { onDelete: "cascade" },
+    ),
     toolName: text("tool_name"),
     riskLevel: text("risk_level").$type<ToolRiskLevel>(),
     conditions: jsonb("conditions").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_profile_entries_company_profile_idx").on(table.companyId, table.profileId),
-    index("tool_profile_entries_application_idx").on(table.companyId, table.applicationId),
-    index("tool_profile_entries_connection_idx").on(table.companyId, table.connectionId),
-    index("tool_profile_entries_catalog_entry_idx").on(table.companyId, table.catalogEntryId),
+    index("tool_profile_entries_company_profile_idx").on(
+      table.companyId,
+      table.profileId,
+    ),
+    index("tool_profile_entries_application_idx").on(
+      table.companyId,
+      table.applicationId,
+    ),
+    index("tool_profile_entries_connection_idx").on(
+      table.companyId,
+      table.connectionId,
+    ),
+    index("tool_profile_entries_catalog_entry_idx").on(
+      table.companyId,
+      table.catalogEntryId,
+    ),
   ],
 );
 
@@ -456,19 +780,38 @@ export const toolProfileBindings = pgTable(
   "tool_profile_bindings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    profileId: uuid("profile_id").notNull().references(() => toolProfiles.id, { onDelete: "cascade" }),
-    targetType: text("target_type").$type<ToolProfileBindingTargetType>().notNull(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => toolProfiles.id, { onDelete: "cascade" }),
+    targetType: text("target_type")
+      .$type<ToolProfileBindingTargetType>()
+      .notNull(),
     targetId: text("target_id").notNull(),
     priority: integer("priority").notNull().default(100),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: text("created_by_user_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_profile_bindings_company_target_idx").on(table.companyId, table.targetType, table.targetId),
+    index("tool_profile_bindings_company_target_idx").on(
+      table.companyId,
+      table.targetType,
+      table.targetId,
+    ),
     uniqueIndex("tool_profile_bindings_target_profile_uq").on(
       table.companyId,
       table.targetType,
@@ -482,73 +825,129 @@ export const toolMcpGateways = pgTable(
   "tool_mcp_gateways",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    gatewayPublicId: text("gateway_public_id").notNull().default(sql`'gw_' || replace(gen_random_uuid()::text, '-', '')`),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    gatewayPublicId: text("gateway_public_id")
+      .notNull()
+      .default(sql`'gw_' || replace(gen_random_uuid()::text, '-', '')`),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     displaySlug: text("display_slug").notNull().default(""),
     description: text("description"),
-    status: text("status").$type<ToolMcpGatewayStatus>().notNull().default("active"),
-    profileId: uuid("profile_id").notNull().references(() => toolProfiles.id, { onDelete: "restrict" }),
-    defaultProfileMode: text("default_profile_mode").$type<ToolMcpGatewayDefaultProfileMode>().notNull().default("gateway_only"),
-    contextScopeType: text("context_scope_type").$type<ToolMcpGatewayContextScopeType>().notNull().default("none"),
+    status: text("status")
+      .$type<ToolMcpGatewayStatus>()
+      .notNull()
+      .default("active"),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => toolProfiles.id, { onDelete: "restrict" }),
+    defaultProfileMode: text("default_profile_mode")
+      .$type<ToolMcpGatewayDefaultProfileMode>()
+      .notNull()
+      .default("gateway_only"),
+    contextScopeType: text("context_scope_type")
+      .$type<ToolMcpGatewayContextScopeType>()
+      .notNull()
+      .default("none"),
     contextScopeId: text("context_scope_id"),
-    agentId: uuid("agent_id").references(() => agents.id, { onDelete: "set null" }),
-    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
-    approvalIssueId: uuid("approval_issue_id").references(() => issues.id, { onDelete: "set null" }),
-    authConfig: jsonb("auth_config").$type<ToolMcpGatewayAuthConfig>().notNull().default({
-      version: 1,
-      bearer: {
-        enabled: true,
-        tokenPrefix: "pcgw",
-        defaultTtlSeconds: 7_776_000,
-        requireFiniteExpiry: true,
-        longLivedTokenRequiresOverride: true,
-      },
-      oauth: {
+    agentId: uuid("agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
+    approvalIssueId: uuid("approval_issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
+    authConfig: jsonb("auth_config")
+      .$type<ToolMcpGatewayAuthConfig>()
+      .notNull()
+      .default({
+        version: 1,
+        bearer: {
+          enabled: true,
+          tokenPrefix: "pcgw",
+          defaultTtlSeconds: 7_776_000,
+          requireFiniteExpiry: true,
+          longLivedTokenRequiresOverride: true,
+        },
+        oauth: {
+          enabled: false,
+          reservedFor: "v1_5",
+          dynamicClientRegistration: false,
+          authorizationCodePkce: false,
+        },
+      }),
+    headerPolicy: jsonb("header_policy")
+      .$type<ToolMcpGatewayHeaderPolicy>()
+      .notNull()
+      .default({
+        version: 1,
+        callerPassthrough: { enabled: false, allowedHeaders: [] },
+        staticHeaders: [],
+        generatedMetadata: { enabled: false, allowedHeaders: [] },
+        responseHeaders: {
+          forwardMcpRequiredHeaders: true,
+          forwardSafeCacheHeaders: true,
+        },
+      }),
+    metadataPolicy: jsonb("metadata_policy")
+      .$type<ToolMcpGatewayMetadataPolicy>()
+      .notNull()
+      .default({
+        version: 1,
+        forwardCompanyId: false,
+        forwardGatewayId: false,
+        forwardProjectId: false,
+        forwardIssueId: false,
+        forwardAgentId: false,
+        forwardRunId: false,
+        forwardCorrelationId: true,
+      }),
+    onDemandToolsConfig: jsonb("on_demand_tools_config")
+      .$type<ToolMcpGatewayOnDemandToolsConfig>()
+      .notNull()
+      .default({
         enabled: false,
-        reservedFor: "v1_5",
-        dynamicClientRegistration: false,
-        authorizationCodePkce: false,
-      },
+        searchToolName: "search_tools",
+        runToolName: "run_tool",
+      }),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
     }),
-    headerPolicy: jsonb("header_policy").$type<ToolMcpGatewayHeaderPolicy>().notNull().default({
-      version: 1,
-      callerPassthrough: { enabled: false, allowedHeaders: [] },
-      staticHeaders: [],
-      generatedMetadata: { enabled: false, allowedHeaders: [] },
-      responseHeaders: { forwardMcpRequiredHeaders: true, forwardSafeCacheHeaders: true },
-    }),
-    metadataPolicy: jsonb("metadata_policy").$type<ToolMcpGatewayMetadataPolicy>().notNull().default({
-      version: 1,
-      forwardCompanyId: false,
-      forwardGatewayId: false,
-      forwardProjectId: false,
-      forwardIssueId: false,
-      forwardAgentId: false,
-      forwardRunId: false,
-      forwardCorrelationId: true,
-    }),
-    onDemandToolsConfig: jsonb("on_demand_tools_config").$type<ToolMcpGatewayOnDemandToolsConfig>().notNull().default({
-      enabled: false,
-      searchToolName: "search_tools",
-      runToolName: "run_tool",
-    }),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
     createdByUserId: text("created_by_user_id"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_mcp_gateways_company_idx").on(table.companyId),
-    index("tool_mcp_gateways_company_status_idx").on(table.companyId, table.status),
+    index("tool_mcp_gateways_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
     index("tool_mcp_gateways_profile_idx").on(table.companyId, table.profileId),
     uniqueIndex("tool_mcp_gateways_public_id_uq").on(table.gatewayPublicId),
-    uniqueIndex("tool_mcp_gateways_company_slug_uq").on(table.companyId, table.slug),
-    uniqueIndex("tool_mcp_gateways_company_name_uq").on(table.companyId, table.name),
+    uniqueIndex("tool_mcp_gateways_company_slug_uq").on(
+      table.companyId,
+      table.slug,
+    ),
+    uniqueIndex("tool_mcp_gateways_company_name_uq").on(
+      table.companyId,
+      table.name,
+    ),
   ],
 );
 
@@ -556,34 +955,63 @@ export const toolMcpGatewayTokens = pgTable(
   "tool_mcp_gateway_tokens",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    gatewayId: uuid("gateway_id").notNull().references(() => toolMcpGateways.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    gatewayId: uuid("gateway_id")
+      .notNull()
+      .references(() => toolMcpGateways.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     tokenHash: text("token_hash").notNull(),
     tokenPrefix: text("token_prefix").notNull().default(""),
-    subjectType: text("subject_type").$type<ToolMcpGatewayTokenSubjectType>().notNull().default("gateway_client"),
+    subjectType: text("subject_type")
+      .$type<ToolMcpGatewayTokenSubjectType>()
+      .notNull()
+      .default("gateway_client"),
     subjectId: text("subject_id"),
     clientLabel: text("client_label").notNull().default(""),
     ownerNote: text("owner_note").notNull().default(""),
-    allowedActions: jsonb("allowed_actions").$type<ToolMcpGatewayTokenAction[]>().notNull().default(["tools/list", "tools/call"]),
+    allowedActions: jsonb("allowed_actions")
+      .$type<ToolMcpGatewayTokenAction[]>()
+      .notNull()
+      .default(["tools/list", "tools/call"]),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     expiryOverrideReason: text("expiry_override_reason"),
     expiryOverrideByUserId: text("expiry_override_by_user_id"),
-    expiryOverrideByAgentId: uuid("expiry_override_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    expiryOverrideByAgentId: uuid("expiry_override_by_agent_id").references(
+      () => agents.id,
+      { onDelete: "set null" },
+    ),
     expiryOverrideAt: timestamp("expiry_override_at", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: text("created_by_user_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     uniqueIndex("tool_mcp_gateway_tokens_token_hash_uq").on(table.tokenHash),
     index("tool_mcp_gateway_tokens_expiry_idx").on(table.expiresAt, table.id),
-    index("tool_mcp_gateway_tokens_gateway_idx").on(table.companyId, table.gatewayId),
-    index("tool_mcp_gateway_tokens_subject_idx").on(table.companyId, table.subjectType, table.subjectId),
-    index("tool_mcp_gateway_tokens_company_expires_idx").on(table.companyId, table.expiresAt),
+    index("tool_mcp_gateway_tokens_gateway_idx").on(
+      table.companyId,
+      table.gatewayId,
+    ),
+    index("tool_mcp_gateway_tokens_subject_idx").on(
+      table.companyId,
+      table.subjectType,
+      table.subjectId,
+    ),
+    index("tool_mcp_gateway_tokens_company_expires_idx").on(
+      table.companyId,
+      table.expiresAt,
+    ),
   ],
 );
 
@@ -591,24 +1019,44 @@ export const toolPolicies = pgTable(
   "tool_policies",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
     policyType: text("policy_type").$type<ToolPolicyType>().notNull(),
     priority: integer("priority").notNull().default(100),
     enabled: boolean("enabled").notNull().default(true),
-    selectors: jsonb("selectors").$type<Record<string, unknown>>().notNull().default({}),
+    selectors: jsonb("selectors")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     conditions: jsonb("conditions").$type<Record<string, unknown>>(),
     config: jsonb("config").$type<Record<string, unknown>>(),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: text("created_by_user_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_policies_company_enabled_idx").on(table.companyId, table.enabled),
-    index("tool_policies_company_type_idx").on(table.companyId, table.policyType),
-    uniqueIndex("tool_policies_company_name_uq").on(table.companyId, table.name),
+    index("tool_policies_company_enabled_idx").on(
+      table.companyId,
+      table.enabled,
+    ),
+    index("tool_policies_company_type_idx").on(
+      table.companyId,
+      table.policyType,
+    ),
+    uniqueIndex("tool_policies_company_name_uq").on(
+      table.companyId,
+      table.name,
+    ),
   ],
 );
 
@@ -616,17 +1064,38 @@ export const toolRuntimeSlots = pgTable(
   "tool_runtime_slots",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    applicationId: uuid("application_id").references(() => toolApplications.id, { onDelete: "set null" }),
-    connectionId: uuid("connection_id").references(() => toolConnections.id, { onDelete: "cascade" }),
-    projectWorkspaceId: uuid("project_workspace_id").references(() => projectWorkspaces.id, { onDelete: "set null" }),
-    executionWorkspaceId: uuid("execution_workspace_id").references(() => executionWorkspaces.id, { onDelete: "set null" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id").references(
+      () => toolApplications.id,
+      { onDelete: "set null" },
+    ),
+    connectionId: uuid("connection_id").references(() => toolConnections.id, {
+      onDelete: "cascade",
+    }),
+    projectWorkspaceId: uuid("project_workspace_id").references(
+      () => projectWorkspaces.id,
+      { onDelete: "set null" },
+    ),
+    executionWorkspaceId: uuid("execution_workspace_id").references(
+      () => executionWorkspaces.id,
+      { onDelete: "set null" },
+    ),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
     ownerScopeType: text("owner_scope_type").notNull().default("connection"),
     ownerScopeId: text("owner_scope_id"),
-    runtimeKind: text("runtime_kind").$type<ToolRuntimeKind>().notNull().default("local_stdio"),
+    runtimeKind: text("runtime_kind")
+      .$type<ToolRuntimeKind>()
+      .notNull()
+      .default("local_stdio"),
     slotKey: text("slot_key").notNull(),
-    status: text("status").$type<ToolRuntimeSlotStatus>().notNull().default("stopped"),
+    status: text("status")
+      .$type<ToolRuntimeSlotStatus>()
+      .notNull()
+      .default("stopped"),
     reuseKey: text("reuse_key"),
     workspaceScope: text("workspace_scope"),
     credentialScopeHash: text("credential_scope_hash"),
@@ -634,9 +1103,14 @@ export const toolRuntimeSlots = pgTable(
     providerRef: text("provider_ref"),
     processId: integer("process_id"),
     commandTemplateKey: text("command_template_key"),
-    healthStatus: text("health_status").$type<ToolConnectionHealthStatus>().notNull().default("unchecked"),
+    healthStatus: text("health_status")
+      .$type<ToolConnectionHealthStatus>()
+      .notNull()
+      .default("unchecked"),
     healthMessage: text("health_message"),
-    lastHealthCheckAt: timestamp("last_health_check_at", { withTimezone: true }),
+    lastHealthCheckAt: timestamp("last_health_check_at", {
+      withTimezone: true,
+    }),
     lastStartedAt: timestamp("last_started_at", { withTimezone: true }),
     startedAt: timestamp("started_at", { withTimezone: true }),
     stoppedAt: timestamp("stopped_at", { withTimezone: true }),
@@ -644,15 +1118,28 @@ export const toolRuntimeSlots = pgTable(
     idleExpiresAt: timestamp("idle_expires_at", { withTimezone: true }),
     idleDeadlineAt: timestamp("idle_deadline_at", { withTimezone: true }),
     lastError: text("last_error"),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_runtime_slots_company_idx").on(table.companyId),
     index("tool_runtime_slots_connection_idx").on(table.connectionId),
-    index("tool_runtime_slots_execution_workspace_idx").on(table.companyId, table.executionWorkspaceId),
-    uniqueIndex("tool_runtime_slots_slot_key_uq").on(table.companyId, table.slotKey),
+    index("tool_runtime_slots_execution_workspace_idx").on(
+      table.companyId,
+      table.executionWorkspaceId,
+    ),
+    uniqueIndex("tool_runtime_slots_slot_key_uq").on(
+      table.companyId,
+      table.slotKey,
+    ),
   ],
 );
 
@@ -660,25 +1147,45 @@ export const toolStdioCommandTemplates = pgTable(
   "tool_stdio_command_templates",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     templateKey: text("template_key").notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    status: text("status").$type<"active" | "disabled">().notNull().default("active"),
+    status: text("status")
+      .$type<"active" | "disabled">()
+      .notNull()
+      .default("active"),
     command: text("command").notNull(),
     args: jsonb("args").$type<string[]>().notNull().default([]),
     envKeys: jsonb("env_keys").$type<string[]>().notNull().default([]),
-    tools: jsonb("tools").$type<Array<Record<string, unknown>>>().notNull().default([]),
-    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    tools: jsonb("tools")
+      .$type<Array<Record<string, unknown>>>()
+      .notNull()
+      .default([]),
+    createdByAgentId: uuid("created_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     createdByUserId: text("created_by_user_id"),
     disabledAt: timestamp("disabled_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_stdio_command_templates_company_idx").on(table.companyId),
-    index("tool_stdio_command_templates_company_status_idx").on(table.companyId, table.status),
-    uniqueIndex("tool_stdio_command_templates_company_key_uq").on(table.companyId, table.templateKey),
+    index("tool_stdio_command_templates_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
+    uniqueIndex("tool_stdio_command_templates_company_key_uq").on(
+      table.companyId,
+      table.templateKey,
+    ),
   ],
 );
 
@@ -686,15 +1193,32 @@ export const toolGatewaySessions = pgTable(
   "tool_gateway_sessions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
-    runId: uuid("run_id").notNull().references(() => heartbeatRuns.id, { onDelete: "cascade" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
-    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
-    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, { onDelete: "set null" }),
-    gatewayTokenId: uuid("gateway_token_id").references(() => toolMcpGatewayTokens.id, { onDelete: "set null" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => heartbeatRuns.id, { onDelete: "cascade" }),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, {
+      onDelete: "set null",
+    }),
+    gatewayTokenId: uuid("gateway_token_id").references(
+      () => toolMcpGatewayTokens.id,
+      { onDelete: "set null" },
+    ),
     gatewayPublicId: text("gateway_public_id"),
-    clientSubjectType: text("client_subject_type").$type<ToolMcpGatewayTokenSubjectType>(),
+    clientSubjectType: text(
+      "client_subject_type",
+    ).$type<ToolMcpGatewayTokenSubjectType>(),
     clientSubjectId: text("client_subject_id"),
     clientName: text("client_name"),
     mcpSessionId: text("mcp_session_id"),
@@ -703,16 +1227,29 @@ export const toolGatewaySessions = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     uniqueIndex("tool_gateway_sessions_token_hash_uq").on(table.tokenHash),
-    index("tool_gateway_sessions_company_agent_idx").on(table.companyId, table.agentId),
-    index("tool_gateway_sessions_company_expires_idx").on(table.companyId, table.expiresAt),
+    index("tool_gateway_sessions_company_agent_idx").on(
+      table.companyId,
+      table.agentId,
+    ),
+    index("tool_gateway_sessions_company_expires_idx").on(
+      table.companyId,
+      table.expiresAt,
+    ),
     index("tool_gateway_sessions_run_idx").on(table.companyId, table.runId),
     index("tool_gateway_sessions_issue_idx").on(table.companyId, table.issueId),
-    index("tool_gateway_sessions_gateway_idx").on(table.companyId, table.gatewayId),
+    index("tool_gateway_sessions_gateway_idx").on(
+      table.companyId,
+      table.gatewayId,
+    ),
   ],
 );
 
@@ -720,15 +1257,23 @@ export const toolGatewayRateLimitCounters = pgTable(
   "tool_gateway_rate_limit_counters",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     counterKey: text("counter_key").notNull(),
-    windowStartAt: timestamp("window_start_at", { withTimezone: true }).notNull(),
+    windowStartAt: timestamp("window_start_at", {
+      withTimezone: true,
+    }).notNull(),
     windowMs: integer("window_ms").notNull(),
     limit: integer("limit").notNull(),
     count: integer("count").notNull().default(0),
     resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_gateway_rate_limit_counters_company_idx").on(table.companyId),
@@ -744,24 +1289,47 @@ export const toolInvocations = pgTable(
   "tool_invocations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     idempotencyKey: text("idempotency_key"),
     actorType: text("actor_type").notNull().default("system"),
     actorId: text("actor_id"),
-    agentId: uuid("agent_id").references(() => agents.id, { onDelete: "set null" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
-    runId: uuid("run_id").references(() => heartbeatRuns.id, { onDelete: "set null" }),
-    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, { onDelete: "set null" }),
-    gatewayTokenId: uuid("gateway_token_id").references(() => toolMcpGatewayTokens.id, { onDelete: "set null" }),
+    agentId: uuid("agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
+    runId: uuid("run_id").references(() => heartbeatRuns.id, {
+      onDelete: "set null",
+    }),
+    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, {
+      onDelete: "set null",
+    }),
+    gatewayTokenId: uuid("gateway_token_id").references(
+      () => toolMcpGatewayTokens.id,
+      { onDelete: "set null" },
+    ),
     gatewayPublicId: text("gateway_public_id"),
-    clientSubjectType: text("client_subject_type").$type<ToolMcpGatewayTokenSubjectType>(),
+    clientSubjectType: text(
+      "client_subject_type",
+    ).$type<ToolMcpGatewayTokenSubjectType>(),
     clientSubjectId: text("client_subject_id"),
     clientName: text("client_name"),
     mcpSessionId: text("mcp_session_id"),
     correlationId: text("correlation_id"),
-    applicationId: uuid("application_id").references(() => toolApplications.id, { onDelete: "set null" }),
-    connectionId: uuid("connection_id").references(() => toolConnections.id, { onDelete: "set null" }),
-    catalogEntryId: uuid("catalog_entry_id").references(() => toolCatalogEntries.id, { onDelete: "set null" }),
+    applicationId: uuid("application_id").references(
+      () => toolApplications.id,
+      { onDelete: "set null" },
+    ),
+    connectionId: uuid("connection_id").references(() => toolConnections.id, {
+      onDelete: "set null",
+    }),
+    catalogEntryId: uuid("catalog_entry_id").references(
+      () => toolCatalogEntries.id,
+      { onDelete: "set null" },
+    ),
     catalogVersionHash: text("catalog_version_hash"),
     catalogSchemaHash: text("catalog_schema_hash"),
     providerType: text("provider_type"),
@@ -770,14 +1338,29 @@ export const toolInvocations = pgTable(
     riskLevel: text("risk_level").$type<ToolRiskLevel>(),
     toolName: text("tool_name").notNull(),
     argumentsHash: text("arguments_hash"),
-    argumentsSummary: jsonb("arguments_summary").$type<ToolRedactedValueSummary>(),
+    argumentsSummary:
+      jsonb("arguments_summary").$type<ToolRedactedValueSummary>(),
     policyDecision: text("policy_decision").$type<ToolPolicyDecision>(),
-    matchedPolicyIds: jsonb("matched_policy_ids").$type<string[]>().notNull().default([]),
-    policyExplanation: jsonb("policy_explanation").$type<Record<string, unknown>>(),
-    credentialScopeSummary: jsonb("credential_scope_summary").$type<Record<string, unknown>>(),
-    headerPolicySummary: jsonb("header_policy_summary").$type<Record<string, unknown>>(),
-    approvalState: text("approval_state").$type<ToolInvocationApprovalState>().notNull().default("not_required"),
-    status: text("status").$type<ToolInvocationStatus>().notNull().default("pending"),
+    matchedPolicyIds: jsonb("matched_policy_ids")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    policyExplanation:
+      jsonb("policy_explanation").$type<Record<string, unknown>>(),
+    credentialScopeSummary: jsonb("credential_scope_summary").$type<
+      Record<string, unknown>
+    >(),
+    headerPolicySummary: jsonb("header_policy_summary").$type<
+      Record<string, unknown>
+    >(),
+    approvalState: text("approval_state")
+      .$type<ToolInvocationApprovalState>()
+      .notNull()
+      .default("not_required"),
+    status: text("status")
+      .$type<ToolInvocationStatus>()
+      .notNull()
+      .default("pending"),
     upstreamRequestId: text("upstream_request_id"),
     resultHash: text("result_hash"),
     resultSummary: jsonb("result_summary").$type<ToolRedactedValueSummary>(),
@@ -787,15 +1370,25 @@ export const toolInvocations = pgTable(
     errorMessage: text("error_message"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_invocations_company_created_idx").on(table.companyId, table.createdAt),
+    index("tool_invocations_company_created_idx").on(
+      table.companyId,
+      table.createdAt,
+    ),
     index("tool_invocations_run_idx").on(table.companyId, table.runId),
     index("tool_invocations_issue_idx").on(table.companyId, table.issueId),
     index("tool_invocations_gateway_idx").on(table.companyId, table.gatewayId),
-    uniqueIndex("tool_invocations_company_idempotency_uq").on(table.companyId, table.idempotencyKey),
+    uniqueIndex("tool_invocations_company_idempotency_uq").on(
+      table.companyId,
+      table.idempotencyKey,
+    ),
   ],
 );
 
@@ -803,30 +1396,61 @@ export const toolActionRequests = pgTable(
   "tool_action_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    invocationId: uuid("invocation_id").notNull().references(() => toolInvocations.id, { onDelete: "cascade" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
-    interactionId: uuid("interaction_id").references(() => issueThreadInteractions.id, { onDelete: "set null" }),
-    approvalId: uuid("approval_id").references(() => approvals.id, { onDelete: "set null" }),
-    status: text("status").$type<ToolActionRequestStatus>().notNull().default("pending"),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    invocationId: uuid("invocation_id")
+      .notNull()
+      .references(() => toolInvocations.id, { onDelete: "cascade" }),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
+    interactionId: uuid("interaction_id").references(
+      () => issueThreadInteractions.id,
+      { onDelete: "set null" },
+    ),
+    approvalId: uuid("approval_id").references(() => approvals.id, {
+      onDelete: "set null",
+    }),
+    status: text("status")
+      .$type<ToolActionRequestStatus>()
+      .notNull()
+      .default("pending"),
     canonicalArgumentsHash: text("canonical_arguments_hash").notNull(),
-    canonicalArgumentsSummary: jsonb("canonical_arguments_summary").$type<ToolRedactedValueSummary>().notNull(),
+    canonicalArgumentsSummary: jsonb("canonical_arguments_summary")
+      .$type<ToolRedactedValueSummary>()
+      .notNull(),
     signedArguments: text("signed_arguments"),
     previewMarkdown: text("preview_markdown"),
-    requestedByAgentId: uuid("requested_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    requestedByAgentId: uuid("requested_by_agent_id").references(
+      () => agents.id,
+      { onDelete: "set null" },
+    ),
     requestedByUserId: text("requested_by_user_id"),
-    resolvedByAgentId: uuid("resolved_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    resolvedByAgentId: uuid("resolved_by_agent_id").references(
+      () => agents.id,
+      { onDelete: "set null" },
+    ),
     resolvedByUserId: text("resolved_by_user_id"),
-    decidedByAgentId: uuid("decided_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
+    decidedByAgentId: uuid("decided_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
     decidedByUserId: text("decided_by_user_id"),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_action_requests_company_status_idx").on(table.companyId, table.status),
+    index("tool_action_requests_company_status_idx").on(
+      table.companyId,
+      table.status,
+    ),
     index("tool_action_requests_invocation_idx").on(table.invocationId),
     index("tool_action_requests_issue_idx").on(table.companyId, table.issueId),
   ],
@@ -836,37 +1460,80 @@ export const toolCallEvents = pgTable(
   "tool_call_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     eventType: text("event_type").$type<ToolAuditEventType>().notNull(),
     actorType: text("actor_type").notNull().default("system"),
     actorId: text("actor_id"),
-    agentId: uuid("agent_id").references(() => agents.id, { onDelete: "set null" }),
-    runId: uuid("run_id").references(() => heartbeatRuns.id, { onDelete: "set null" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
-    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, { onDelete: "set null" }),
-    gatewayTokenId: uuid("gateway_token_id").references(() => toolMcpGatewayTokens.id, { onDelete: "set null" }),
+    agentId: uuid("agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
+    runId: uuid("run_id").references(() => heartbeatRuns.id, {
+      onDelete: "set null",
+    }),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
+    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, {
+      onDelete: "set null",
+    }),
+    gatewayTokenId: uuid("gateway_token_id").references(
+      () => toolMcpGatewayTokens.id,
+      { onDelete: "set null" },
+    ),
     gatewayPublicId: text("gateway_public_id"),
-    clientSubjectType: text("client_subject_type").$type<ToolMcpGatewayTokenSubjectType>(),
+    clientSubjectType: text(
+      "client_subject_type",
+    ).$type<ToolMcpGatewayTokenSubjectType>(),
     clientSubjectId: text("client_subject_id"),
     clientName: text("client_name"),
     mcpSessionId: text("mcp_session_id"),
     correlationId: text("correlation_id"),
-    applicationId: uuid("application_id").references(() => toolApplications.id, { onDelete: "set null" }),
-    connectionId: uuid("connection_id").references(() => toolConnections.id, { onDelete: "set null" }),
-    catalogEntryId: uuid("catalog_entry_id").references(() => toolCatalogEntries.id, { onDelete: "set null" }),
-    invocationId: uuid("invocation_id").references(() => toolInvocations.id, { onDelete: "set null" }),
-    actionRequestId: uuid("action_request_id").references(() => toolActionRequests.id, { onDelete: "set null" }),
-    runtimeSlotId: uuid("runtime_slot_id").references(() => toolRuntimeSlots.id, { onDelete: "set null" }),
+    applicationId: uuid("application_id").references(
+      () => toolApplications.id,
+      { onDelete: "set null" },
+    ),
+    connectionId: uuid("connection_id").references(() => toolConnections.id, {
+      onDelete: "set null",
+    }),
+    catalogEntryId: uuid("catalog_entry_id").references(
+      () => toolCatalogEntries.id,
+      { onDelete: "set null" },
+    ),
+    invocationId: uuid("invocation_id").references(() => toolInvocations.id, {
+      onDelete: "set null",
+    }),
+    actionRequestId: uuid("action_request_id").references(
+      () => toolActionRequests.id,
+      { onDelete: "set null" },
+    ),
+    runtimeSlotId: uuid("runtime_slot_id").references(
+      () => toolRuntimeSlots.id,
+      { onDelete: "set null" },
+    ),
     toolName: text("tool_name"),
     decision: text("decision").$type<ToolPolicyDecision>(),
-    matchedPolicyIds: jsonb("matched_policy_ids").$type<string[]>().notNull().default([]),
+    matchedPolicyIds: jsonb("matched_policy_ids")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
     reasonCode: text("reason_code"),
-    policyExplanation: jsonb("policy_explanation").$type<Record<string, unknown>>(),
-    credentialScopeSummary: jsonb("credential_scope_summary").$type<Record<string, unknown>>(),
-    headerPolicySummary: jsonb("header_policy_summary").$type<Record<string, unknown>>(),
-    outcome: text("outcome").$type<ToolAuditOutcome>().notNull().default("pending"),
+    policyExplanation:
+      jsonb("policy_explanation").$type<Record<string, unknown>>(),
+    credentialScopeSummary: jsonb("credential_scope_summary").$type<
+      Record<string, unknown>
+    >(),
+    headerPolicySummary: jsonb("header_policy_summary").$type<
+      Record<string, unknown>
+    >(),
+    outcome: text("outcome")
+      .$type<ToolAuditOutcome>()
+      .notNull()
+      .default("pending"),
     latencyMs: integer("latency_ms"),
-    argumentsSummary: jsonb("arguments_summary").$type<ToolRedactedValueSummary>(),
+    argumentsSummary:
+      jsonb("arguments_summary").$type<ToolRedactedValueSummary>(),
     requestHash: text("request_hash"),
     requestSummary: jsonb("request_summary").$type<ToolRedactedValueSummary>(),
     resultHash: text("result_hash"),
@@ -877,10 +1544,15 @@ export const toolCallEvents = pgTable(
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_call_events_company_created_idx").on(table.companyId, table.createdAt),
+    index("tool_call_events_company_created_idx").on(
+      table.companyId,
+      table.createdAt,
+    ),
     index("tool_call_events_run_idx").on(table.companyId, table.runId),
     index("tool_call_events_issue_idx").on(table.companyId, table.issueId),
     index("tool_call_events_invocation_idx").on(table.invocationId),
@@ -892,30 +1564,68 @@ export const connectionTokenIssuances = pgTable(
   "connection_token_issuances",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    applicationId: uuid("application_id").references(() => toolApplications.id, { onDelete: "set null" }),
-    connectionId: uuid("connection_id").notNull().references(() => toolConnections.id, { onDelete: "cascade" }),
-    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
-    runId: uuid("run_id").references(() => heartbeatRuns.id, { onDelete: "set null" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
-    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id").references(
+      () => toolApplications.id,
+      { onDelete: "set null" },
+    ),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => toolConnections.id, { onDelete: "cascade" }),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    runId: uuid("run_id").references(() => heartbeatRuns.id, {
+      onDelete: "set null",
+    }),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
     responsibleUserId: text("responsible_user_id"),
     path: text("path").$type<ConnectionTokenIssuancePath>().notNull(),
-    requestedScope: jsonb("requested_scope").$type<string[]>().notNull().default([]),
+    requestedScope: jsonb("requested_scope")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
     issuedScope: jsonb("issued_scope").$type<string[]>().notNull().default([]),
     ttlSeconds: integer("ttl_seconds"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     tokenHash: text("token_hash"),
     outcome: text("outcome").$type<ConnectionTokenIssuanceOutcome>().notNull(),
     errorCode: text("error_code"),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("connection_token_issuances_company_created_idx").on(table.companyId, table.createdAt),
-    index("connection_token_issuances_connection_created_idx").on(table.companyId, table.connectionId, table.createdAt),
-    index("connection_token_issuances_agent_connection_idx").on(table.companyId, table.agentId, table.connectionId, table.createdAt),
-    index("connection_token_issuances_run_idx").on(table.companyId, table.runId),
+    index("connection_token_issuances_company_created_idx").on(
+      table.companyId,
+      table.createdAt,
+    ),
+    index("connection_token_issuances_connection_created_idx").on(
+      table.companyId,
+      table.connectionId,
+      table.createdAt,
+    ),
+    index("connection_token_issuances_agent_connection_idx").on(
+      table.companyId,
+      table.agentId,
+      table.connectionId,
+      table.createdAt,
+    ),
+    index("connection_token_issuances_run_idx").on(
+      table.companyId,
+      table.runId,
+    ),
     sql`CONSTRAINT connection_token_issuances_path_check CHECK (${table.path} IN ('exchange', 'oauth_access', 'static'))`,
     sql`CONSTRAINT connection_token_issuances_outcome_check CHECK (${table.outcome} IN ('success', 'denied', 'rate_limited', 'use_env_lease', 'upstream_error', 'failure'))`,
     sql`CONSTRAINT connection_token_issuances_ttl_bounds CHECK (${table.ttlSeconds} IS NULL OR (${table.ttlSeconds} >= 1 AND ${table.ttlSeconds} <= 900))`,
@@ -927,18 +1637,28 @@ export const toolRateLimitCounters = pgTable(
   "tool_rate_limit_counters",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    policyId: uuid("policy_id").notNull().references(() => toolPolicies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    policyId: uuid("policy_id")
+      .notNull()
+      .references(() => toolPolicies.id, { onDelete: "cascade" }),
     counterKey: text("counter_key").notNull(),
     scopeType: text("scope_type").notNull(),
     scopeId: text("scope_id").notNull(),
     windowKind: text("window_kind").$type<ToolRateLimitWindowKind>().notNull(),
-    windowStartAt: timestamp("window_start_at", { withTimezone: true }).notNull(),
+    windowStartAt: timestamp("window_start_at", {
+      withTimezone: true,
+    }).notNull(),
     limit: integer("limit").notNull(),
     remaining: integer("remaining").notNull(),
     resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("tool_rate_limit_counters_company_idx").on(table.companyId),
@@ -956,16 +1676,32 @@ export const toolRuntimeMetricCounters = pgTable(
   "tool_runtime_metric_counters",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     metric: text("metric").notNull(),
-    bucketStartAt: timestamp("bucket_start_at", { withTimezone: true }).notNull(),
+    bucketStartAt: timestamp("bucket_start_at", {
+      withTimezone: true,
+    }).notNull(),
     count: integer("count").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_runtime_metric_counters_company_metric_idx").on(table.companyId, table.metric, table.bucketStartAt),
-    uniqueIndex("tool_runtime_metric_counters_bucket_uq").on(table.companyId, table.metric, table.bucketStartAt),
+    index("tool_runtime_metric_counters_company_metric_idx").on(
+      table.companyId,
+      table.metric,
+      table.bucketStartAt,
+    ),
+    uniqueIndex("tool_runtime_metric_counters_bucket_uq").on(
+      table.companyId,
+      table.metric,
+      table.bucketStartAt,
+    ),
     sql`CONSTRAINT tool_runtime_metric_counters_count_nonnegative CHECK (${table.count} >= 0)`,
   ],
 );
@@ -974,24 +1710,44 @@ export const toolAccessAuditEvents = pgTable(
   "tool_access_audit_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, { onDelete: "set null" }),
-    gatewayTokenId: uuid("gateway_token_id").references(() => toolMcpGatewayTokens.id, { onDelete: "set null" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    gatewayId: uuid("gateway_id").references(() => toolMcpGateways.id, {
+      onDelete: "set null",
+    }),
+    gatewayTokenId: uuid("gateway_token_id").references(
+      () => toolMcpGatewayTokens.id,
+      { onDelete: "set null" },
+    ),
     gatewayPublicId: text("gateway_public_id"),
     clientName: text("client_name"),
     correlationId: text("correlation_id"),
-    connectionId: uuid("connection_id").references(() => toolConnections.id, { onDelete: "set null" }),
-    catalogEntryId: uuid("catalog_entry_id").references(() => toolCatalogEntries.id, { onDelete: "set null" }),
+    connectionId: uuid("connection_id").references(() => toolConnections.id, {
+      onDelete: "set null",
+    }),
+    catalogEntryId: uuid("catalog_entry_id").references(
+      () => toolCatalogEntries.id,
+      { onDelete: "set null" },
+    ),
     actorType: text("actor_type").notNull().default("system"),
     actorId: text("actor_id"),
     action: text("action").notNull(),
     outcome: text("outcome").notNull(),
     reasonCode: text("reason_code"),
-    details: jsonb("details").$type<Record<string, unknown>>().notNull().default({}),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    details: jsonb("details")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("tool_access_audit_company_created_idx").on(table.companyId, table.createdAt),
+    index("tool_access_audit_company_created_idx").on(
+      table.companyId,
+      table.createdAt,
+    ),
     index("tool_access_audit_connection_idx").on(table.connectionId),
     index("tool_access_audit_gateway_idx").on(table.companyId, table.gatewayId),
   ],

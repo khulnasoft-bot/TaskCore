@@ -74,10 +74,22 @@ export function AgingItemRow({
   const { pushToast } = useToastActions();
   const idleDays = attentionIdleDays(item, now);
   const keep = useMutation({
-    mutationFn: () => decisionQueuesApi.setKeep(companyId, item.sourceKind, item.subject.id, true),
+    mutationFn: () =>
+      decisionQueuesApi.setKeep(
+        companyId,
+        item.sourceKind,
+        item.subject.id,
+        true,
+      ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
-      pushToast({ title: "Kept on desk", body: item.subject.title ?? undefined, tone: "success" });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.attention(companyId),
+      });
+      pushToast({
+        title: "Kept on desk",
+        body: item.subject.title ?? undefined,
+        tone: "success",
+      });
     },
     onError: (error) =>
       pushToast({

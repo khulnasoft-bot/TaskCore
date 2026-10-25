@@ -33,7 +33,8 @@ export type CapabilityPlanStep =
  * real fixture ID from the command result's entity refs, so plans never hard
  * code the mock core's generated identifiers.
  */
-export const CREATED_TASK_REF = (ordinal: number): string => `$created-task:${ordinal}`;
+export const CREATED_TASK_REF = (ordinal: number): string =>
+  `$created-task:${ordinal}`;
 
 export const CREATED_TASK_REF_PATTERN = /^\$created-task:(\d+)$/;
 
@@ -42,7 +43,8 @@ export const CREATED_TASK_REF_PATTERN = /^\$created-task:(\d+)$/;
  * This lets a deterministic plan model the real two-step tool contract:
  * receive a result id, then inspect that result explicitly.
  */
-export const OPERATION_RESULT_REF = (ordinal: number): string => `$operation-result:${ordinal}`;
+export const OPERATION_RESULT_REF = (ordinal: number): string =>
+  `$operation-result:${ordinal}`;
 
 export const OPERATION_RESULT_REF_PATTERN = /^\$operation-result:(\d+)$/;
 
@@ -68,10 +70,22 @@ export interface CapabilityScenarioPlan {
 }
 
 const CHECKOUT_CAPABILITIES = [
-  { operationId: "checkout_task", reason: "Atomic task checkout is a control-plane transaction." },
-  { operationId: "route_wake", reason: "Wake routing selects the task before any agent turn." },
-  { operationId: "append_audit_record", reason: "Audit writes are never delegated to an agent tool." },
-  { operationId: "persist_run", reason: "Run persistence and replay are runtime obligations." },
+  {
+    operationId: "checkout_task",
+    reason: "Atomic task checkout is a control-plane transaction.",
+  },
+  {
+    operationId: "route_wake",
+    reason: "Wake routing selects the task before any agent turn.",
+  },
+  {
+    operationId: "append_audit_record",
+    reason: "Audit writes are never delegated to an agent tool.",
+  },
+  {
+    operationId: "persist_run",
+    reason: "Run persistence and replay are runtime obligations.",
+  },
 ];
 
 const BUDGET_CAPABILITY = {
@@ -81,7 +95,8 @@ const BUDGET_CAPABILITY = {
 
 const BLOCKER_WAKE_CAPABILITY = {
   operationId: "schedule_blocker_wake",
-  reason: "Blocker wakes are scheduled by reconciliation, not requested by the agent.",
+  reason:
+    "Blocker wakes are scheduled by reconciliation, not requested by the agent.",
 };
 
 const RECONCILE_CAPABILITY = {
@@ -112,13 +127,19 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
     restraint: false,
     controlPlaneCapabilities: [...CHECKOUT_CAPABILITIES, BUDGET_CAPABILITY],
     steps: [
-      read("get_task_context", {}, "Read the scoped wake context instead of replaying the inbox."),
+      read(
+        "get_task_context",
+        {},
+        "Read the scoped wake context instead of replaying the inbox.",
+      ),
       message(
         "The wake payload already names the task, so the inbox and identity lookups are skipped.",
       ),
       write(
         "report_progress",
-        { body: `Scoped wake handled for ${entry.id}: continuing the named task directly.` },
+        {
+          body: `Scoped wake handled for ${entry.id}: continuing the named task directly.`,
+        },
         "progress",
         "Record that the scoped wake was handled without an inbox sweep.",
       ),
@@ -129,8 +150,16 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
     restraint: false,
     controlPlaneCapabilities: [...CHECKOUT_CAPABILITIES, RECONCILE_CAPABILITY],
     steps: [
-      read("get_task_context", {}, "Confirm the task is in planning mode before writing."),
-      read("list_documents", {}, "Check whether a plan document already exists."),
+      read(
+        "get_task_context",
+        {},
+        "Confirm the task is in planning mode before writing.",
+      ),
+      read(
+        "list_documents",
+        {},
+        "Check whether a plan document already exists.",
+      ),
       write(
         "write_document",
         {
@@ -148,7 +177,8 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
         {
           interactionKind: "confirmation",
           title: "Approve the recorded plan",
-          prompt: "Approve this plan revision before any implementation task is created.",
+          prompt:
+            "Approve this plan revision before any implementation task is created.",
           continuationPolicy: "wake_assignee",
         },
         "confirm",
@@ -156,7 +186,10 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
       ),
       write(
         "request_review",
-        { summary: "Plan recorded and confirmation raised; parked for board review." },
+        {
+          summary:
+            "Plan recorded and confirmation raised; parked for board review.",
+        },
         "review",
         "Park the task in review rather than looping on a fresh plan.",
       ),
@@ -165,15 +198,21 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
 
   "bl-create-blocked-01": (entry, fixture) => ({
     restraint: false,
-    controlPlaneCapabilities: [...CHECKOUT_CAPABILITIES, BLOCKER_WAKE_CAPABILITY],
+    controlPlaneCapabilities: [
+      ...CHECKOUT_CAPABILITIES,
+      BLOCKER_WAKE_CAPABILITY,
+    ],
     steps: [
       read("get_task_context", {}, "Read the current dependency posture."),
-      message("The dependent work is created blocked, with first-class dependencies rather than prose."),
+      message(
+        "The dependent work is created blocked, with first-class dependencies rather than prose.",
+      ),
       write(
         "create_task",
         {
           title: `Dependent follow-up for ${entry.id}`,
-          description: "Created blocked so the dependency is first-class, not prose.",
+          description:
+            "Created blocked so the dependency is first-class, not prose.",
           blockedByTaskIds: [fixture.taskId],
         },
         "child",
@@ -183,7 +222,10 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
         "block_task",
         {
           reason: "Waiting on the upstream fixture dependency.",
-          blockedByTaskIds: fixture.refs.blockingTaskId === null ? [] : [fixture.refs.blockingTaskId],
+          blockedByTaskIds:
+            fixture.refs.blockingTaskId === null
+              ? []
+              : [fixture.refs.blockingTaskId],
         },
         "block",
         "Record the blocker as a first-class dependency edge.",
@@ -195,8 +237,16 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
     restraint: false,
     controlPlaneCapabilities: [...CHECKOUT_CAPABILITIES, RECONCILE_CAPABILITY],
     steps: [
-      read("get_task_context", {}, "Read the task before touching the gated capability."),
-      read("list_approvals", {}, "Check the approval queue for the pending gate."),
+      read(
+        "get_task_context",
+        {},
+        "Read the task before touching the gated capability.",
+      ),
+      read(
+        "list_approvals",
+        {},
+        "Check the approval queue for the pending gate.",
+      ),
       write(
         "request_approval",
         { approvalType: "mcp_tool_access", payload: { caseId: entry.id } },
@@ -208,7 +258,10 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
       ),
       write(
         "request_review",
-        { summary: "Parked pending the MCP tool approval; no retry loop was attempted." },
+        {
+          summary:
+            "Parked pending the MCP tool approval; no retry loop was attempted.",
+        },
         "review",
         "Park in review rather than retrying behind the gate.",
       ),
@@ -219,7 +272,11 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
     restraint: false,
     controlPlaneCapabilities: [...CHECKOUT_CAPABILITIES, RECONCILE_CAPABILITY],
     steps: [
-      read("get_task_context", {}, "Confirm the deliverable expectation before closing."),
+      read(
+        "get_task_context",
+        {},
+        "Confirm the deliverable expectation before closing.",
+      ),
       write(
         "register_deliverable",
         {
@@ -235,7 +292,10 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
       ),
       write(
         "finish_task",
-        { summary: "Deliverable registered before completion, as the artifact order requires." },
+        {
+          summary:
+            "Deliverable registered before completion, as the artifact order requires.",
+        },
         "finish",
         "Close the task only after the artifact exists.",
       ),
@@ -248,7 +308,8 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
       ...CHECKOUT_CAPABILITIES,
       {
         operationId: "route_wake",
-        reason: "Interaction continuations are routed by the control plane, not requested again.",
+        reason:
+          "Interaction continuations are routed by the control plane, not requested again.",
       },
     ],
     steps: [
@@ -271,7 +332,9 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
         "checkbox",
         "Ask for a subset selection as a checkbox interaction.",
       ),
-      message(`Subset selection for ${entry.id} is parked until the continuation wake arrives.`),
+      message(
+        `Subset selection for ${entry.id} is parked until the continuation wake arrives.`,
+      ),
     ],
   }),
 
@@ -323,12 +386,26 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
     restraint: false,
     controlPlaneCapabilities: [...CHECKOUT_CAPABILITIES, BUDGET_CAPABILITY],
     steps: [
-      read("get_task_context", {}, "Read the manager's own task context first."),
-      read("list_agents", {}, "Read the team roster through the granted discovery claim."),
-      read("search_tasks", { query: "MCK" }, "Read the team workload through the granted discovery claim."),
+      read(
+        "get_task_context",
+        {},
+        "Read the manager's own task context first.",
+      ),
+      read(
+        "list_agents",
+        {},
+        "Read the team roster through the granted discovery claim.",
+      ),
+      read(
+        "search_tasks",
+        { query: "MCK" },
+        "Read the team workload through the granted discovery claim.",
+      ),
       write(
         "report_progress",
-        { body: `Manager heartbeat for ${entry.id}: roster and workload summarised without @-mentions.` },
+        {
+          body: `Manager heartbeat for ${entry.id}: roster and workload summarised without @-mentions.`,
+        },
         "summary",
         "Summarise the roster without pinging teammates who have nothing to act on.",
       ),
@@ -337,12 +414,23 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
 
   "mh-subtask-tree-01": (entry) => ({
     restraint: false,
-    controlPlaneCapabilities: [...CHECKOUT_CAPABILITIES, BLOCKER_WAKE_CAPABILITY, RECONCILE_CAPABILITY],
+    controlPlaneCapabilities: [
+      ...CHECKOUT_CAPABILITIES,
+      BLOCKER_WAKE_CAPABILITY,
+      RECONCILE_CAPABILITY,
+    ],
     steps: [
-      read("get_task_context", {}, "Read the parent task before creating the tree."),
+      read(
+        "get_task_context",
+        {},
+        "Read the parent task before creating the tree.",
+      ),
       write(
         "create_task",
-        { title: `${entry.id} — step 1: design`, description: "First sequenced subtask." },
+        {
+          title: `${entry.id} — step 1: design`,
+          description: "First sequenced subtask.",
+        },
         "child-1",
         "Create the first subtask in the sequence.",
       ),
@@ -364,7 +452,9 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
       ),
       write(
         "report_progress",
-        { body: `Sequenced subtask tree created for ${entry.id} with chained blockers.` },
+        {
+          body: `Sequenced subtask tree created for ${entry.id} with chained blockers.`,
+        },
         "progress",
         "Record the resulting tree on the parent task.",
       ),
@@ -377,12 +467,17 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
       ...CHECKOUT_CAPABILITIES,
       {
         operationId: "route_wake",
-        reason: "The comment wake was routed here; the agent never selects its own work.",
+        reason:
+          "The comment wake was routed here; the agent never selects its own work.",
       },
     ],
     steps: [
       read("get_task_context", {}, "Read the task to answer accurately."),
-      read("get_task_history", {}, "Read the question that triggered this wake."),
+      read(
+        "get_task_history",
+        {},
+        "Read the question that triggered this wake.",
+      ),
       write(
         "answer_status_question",
         {
@@ -400,12 +495,17 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
       ...CHECKOUT_CAPABILITIES,
       {
         operationId: "append_audit_record",
-        reason: "Secret reads are audited by the control plane, never by the agent.",
+        reason:
+          "Secret reads are audited by the control plane, never by the agent.",
       },
     ],
     steps: [
       read("get_task_context", {}, "Read the task before touching any secret."),
-      read("list_secret_metadata", {}, "Read secret metadata — names and scopes only, never values."),
+      read(
+        "list_secret_metadata",
+        {},
+        "Read secret metadata — names and scopes only, never values.",
+      ),
       read(
         "read_secret_value",
         { name: "FIXTURE_API_KEY" },
@@ -424,9 +524,12 @@ const AUTHORED_PLANS: Record<string, PlanFactory> = {
 };
 
 function selectedIds(result: CapabilityJsonValue): string[] {
-  if (typeof result !== "object" || result === null || Array.isArray(result)) return [];
+  if (typeof result !== "object" || result === null || Array.isArray(result))
+    return [];
   const ids = result.selectedOptionIds;
-  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+  return Array.isArray(ids)
+    ? ids.filter((id): id is string => typeof id === "string")
+    : [];
 }
 
 /* ------------------------------------------------------------------ *
@@ -440,20 +543,34 @@ function derivedPlan(
   const controlPlaneCapabilities = [
     ...CHECKOUT_CAPABILITIES,
     ...(entry.seedKind === "budget_tight" ? [BUDGET_CAPABILITY] : []),
-    ...(entry.group === "bl" || entry.group === "mh" ? [BLOCKER_WAKE_CAPABILITY] : []),
-    ...(entry.group === "er" || entry.group === "st" ? [RECONCILE_CAPABILITY] : []),
+    ...(entry.group === "bl" || entry.group === "mh"
+      ? [BLOCKER_WAKE_CAPABILITY]
+      : []),
+    ...(entry.group === "er" || entry.group === "st"
+      ? [RECONCILE_CAPABILITY]
+      : []),
   ];
   const restraint = entry.assertionClasses.includes("restraint_no_call");
   const steps: CapabilityPlanStep[] = [
-    read("get_task_context", {}, "Read the task, wake, and budget posture before acting."),
+    read(
+      "get_task_context",
+      {},
+      "Read the task, wake, and budget posture before acting.",
+    ),
   ];
 
   if (entry.taskMode === "ask") {
     steps.push(
-      read("get_task_history", {}, "Read the comment that triggered this wake."),
+      read(
+        "get_task_history",
+        {},
+        "Read the comment that triggered this wake.",
+      ),
       write(
         "answer_status_question",
-        { body: `Answer for ${entry.id}: reported without changing task state.` },
+        {
+          body: `Answer for ${entry.id}: reported without changing task state.`,
+        },
         "answer",
         "Answer in ask mode without any state write.",
       ),
@@ -461,7 +578,9 @@ function derivedPlan(
     return { steps, controlPlaneCapabilities, restraint: true };
   }
 
-  const work = derivedWorkSteps(entry, fixture).filter((step) => availableTo(entry, step));
+  const work = derivedWorkSteps(entry, fixture).filter((step) =>
+    availableTo(entry, step),
+  );
   if (work.length === 0) {
     work.push(
       write(
@@ -482,15 +601,23 @@ function derivedPlan(
  * derived transcript is a real policy defect rather than a scripting artefact.
  * Authored plans bypass this on purpose when a denial *is* the evidence.
  */
-function availableTo(entry: CapabilityScenarioIndexEntry, step: CapabilityPlanStep): boolean {
+function availableTo(
+  entry: CapabilityScenarioIndexEntry,
+  step: CapabilityPlanStep,
+): boolean {
   if (step.kind !== "tool_call") return true;
   const descriptor = capabilitySemanticTool(step.operationId);
   if (descriptor === undefined) return false;
   if (!descriptor.taskModes.includes(entry.taskMode)) return false;
-  if (descriptor.allowedRoles !== undefined && !descriptor.allowedRoles.includes(entry.actorRole)) {
+  if (
+    descriptor.allowedRoles !== undefined &&
+    !descriptor.allowedRoles.includes(entry.actorRole)
+  ) {
     return false;
   }
-  return descriptor.requiredClaims.every((claim) => entry.scenarioClaims.includes(claim));
+  return descriptor.requiredClaims.every((claim) =>
+    entry.scenarioClaims.includes(claim),
+  );
 }
 
 function derivedWorkSteps(
@@ -500,7 +627,9 @@ function derivedWorkSteps(
   const marker = `Capability scenario ${entry.id}`;
   // Skill-test scenarios are the only place the generic escape hatch exists;
   // exercising it here is what makes the test-only warning visible in the UI.
-  const escapeHatch: CapabilityPlanStep[] = entry.scenarioClaims.includes("test:generic_api_request")
+  const escapeHatch: CapabilityPlanStep[] = entry.scenarioClaims.includes(
+    "test:generic_api_request",
+  )
     ? [
         read(
           "generic_api_request",
@@ -516,15 +645,27 @@ function derivedWorkSteps(
     case "er":
     case "rs":
       return [
-        write("report_progress", { body: `${marker}: durable progress recorded.` }, "progress",
-          "Record durable progress on the active task."),
+        write(
+          "report_progress",
+          { body: `${marker}: durable progress recorded.` },
+          "progress",
+          "Record durable progress on the active task.",
+        ),
       ];
     case "st":
       return [
-        write("report_progress", { body: `${marker}: work completed.` }, "progress",
-          "Record the outcome before changing disposition."),
-        write("finish_task", { summary: `${marker}: finished with a durable summary.` }, "finish",
-          "Move the task to its terminal disposition."),
+        write(
+          "report_progress",
+          { body: `${marker}: work completed.` },
+          "progress",
+          "Record the outcome before changing disposition.",
+        ),
+        write(
+          "finish_task",
+          { summary: `${marker}: finished with a durable summary.` },
+          "finish",
+          "Move the task to its terminal disposition.",
+        ),
       ];
     case "bl":
       return [
@@ -532,7 +673,10 @@ function derivedWorkSteps(
           "block_task",
           {
             reason: `${marker}: blocked on a first-class dependency.`,
-            blockedByTaskIds: fixture.refs.blockingTaskId === null ? [] : [fixture.refs.blockingTaskId],
+            blockedByTaskIds:
+              fixture.refs.blockingTaskId === null
+                ? []
+                : [fixture.refs.blockingTaskId],
           },
           "block",
           "Block the task with first-class dependencies rather than prose.",
@@ -542,7 +686,11 @@ function derivedWorkSteps(
     case "wk":
       return [
         ...escapeHatch,
-        read("list_documents", {}, "Check the existing document set before writing."),
+        read(
+          "list_documents",
+          {},
+          "Check the existing document set before writing.",
+        ),
         write(
           "write_document",
           {
@@ -594,7 +742,11 @@ function derivedWorkSteps(
       ];
     case "se":
       return [
-        read("search_tasks", { query: "MCK" }, "Search company tasks through the granted claim."),
+        read(
+          "search_tasks",
+          { query: "MCK" },
+          "Search company tasks through the granted claim.",
+        ),
         read("list_agents", {}, "Read the roster through the granted claim."),
       ];
     case "su":
@@ -619,8 +771,12 @@ function derivedWorkSteps(
       return referenceSurfaceSteps(entry, fixture, marker);
     default:
       return [
-        write("report_progress", { body: `${marker}: recorded.` }, "progress",
-          "Record durable progress on the active task."),
+        write(
+          "report_progress",
+          { body: `${marker}: recorded.` },
+          "progress",
+          "Record durable progress on the active task.",
+        ),
       ];
   }
 }
@@ -631,13 +787,20 @@ function approvalSteps(
   marker: string,
 ): CapabilityPlanStep[] {
   const steps: CapabilityPlanStep[] = [
-    read("list_approvals", {}, "Read the approval queue through the granted claim."),
+    read(
+      "list_approvals",
+      {},
+      "Read the approval queue through the granted claim.",
+    ),
   ];
   if (fixture.refs.approvalId !== null) {
     steps.push(
       write(
         "comment_on_approval",
-        { approvalId: fixture.refs.approvalId, body: `${marker}: context for the decision.` },
+        {
+          approvalId: fixture.refs.approvalId,
+          body: `${marker}: context for the decision.`,
+        },
         "approval-comment",
         "Comment on the approval instead of acting around it.",
       ),
@@ -686,17 +849,31 @@ function referenceSurfaceSteps(
     ];
   }
   if (entry.id.startsWith("rf-cskill-")) {
-    return [read("list_company_skills", {}, "Read the company skill library through the granted claim.")];
+    return [
+      read(
+        "list_company_skills",
+        {},
+        "Read the company skill library through the granted claim.",
+      ),
+    ];
   }
   if (entry.id.startsWith("rf-iws-")) {
     const steps: CapabilityPlanStep[] = [
-      read("get_workspace_runtime", {}, "Read the workspace services attached to this task."),
+      read(
+        "get_workspace_runtime",
+        {},
+        "Read the workspace services attached to this task.",
+      ),
     ];
     if (fixture.refs.serviceId !== null) {
       steps.push(
         write(
           "control_workspace_service",
-          { serviceId: fixture.refs.serviceId, action: "start", url: "http://127.0.0.1:4183" },
+          {
+            serviceId: fixture.refs.serviceId,
+            action: "start",
+            url: "http://127.0.0.1:4183",
+          },
           "service",
           "Start the named workspace service through its selector.",
         ),
@@ -705,10 +882,22 @@ function referenceSurfaceSteps(
     return steps;
   }
   if (entry.id.startsWith("rf-routine-")) {
-    return [read("list_routines", {}, "Read the routine set through the granted claim.")];
+    return [
+      read(
+        "list_routines",
+        {},
+        "Read the routine set through the granted claim.",
+      ),
+    ];
   }
   if (entry.id.startsWith("rf-wf-")) {
-    return [read("export_company", {}, "Preview the company export through the granted claim.")];
+    return [
+      read(
+        "export_company",
+        {},
+        "Preview the company export through the granted claim.",
+      ),
+    ];
   }
   if (entry.id.startsWith("rf-art-")) {
     return [
@@ -728,7 +917,11 @@ function referenceSurfaceSteps(
     ];
   }
   return [
-    read("list_agents", {}, "Read the roster through the granted discovery claim."),
+    read(
+      "list_agents",
+      {},
+      "Read the roster through the granted discovery claim.",
+    ),
     write(
       "report_progress",
       { body: `${marker}: reference-surface outcome recorded honestly.` },
@@ -744,7 +937,11 @@ function message(text: string): CapabilityPlanStep {
   return { kind: "agent_message", text };
 }
 
-function read(operationId: string, input: CapabilityJsonValue, summary: string): CapabilityPlanStep {
+function read(
+  operationId: string,
+  input: CapabilityJsonValue,
+  summary: string,
+): CapabilityPlanStep {
   return { kind: "tool_call", operationId, input, summary };
 }
 

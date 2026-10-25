@@ -12,10 +12,15 @@ const MIGRATION_FILE = "0195_built_in_agent_unique_marker.sql";
 const UNIQUE_INDEX = "agents_company_built_in_agent_key_unique_idx";
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 async function migrationHash() {
-  const content = await fs.promises.readFile(new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url), "utf8");
+  const content = await fs.promises.readFile(
+    new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url),
+    "utf8",
+  );
   return createHash("sha256").update(content).digest("hex");
 }
 
@@ -31,7 +36,9 @@ describeEmbeddedPostgres("built-in agent unique marker migration", () => {
   });
 
   it("resolves pre-existing duplicates and enforces uniqueness going forward", async () => {
-    const database = await startEmbeddedPostgresTestDatabase("taskcore-built-in-unique-marker-");
+    const database = await startEmbeddedPostgresTestDatabase(
+      "taskcore-built-in-unique-marker-",
+    );
     cleanups.push(database.cleanup);
     const sql = postgres(database.connectionString, { max: 1 });
     cleanups.push(async () => sql.end());

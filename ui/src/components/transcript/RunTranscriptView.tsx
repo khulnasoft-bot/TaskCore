@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TranscriptEntry } from "../../adapters";
 import type { ToolRunDecision } from "@taskcore/shared";
-import { MarkdownBody, type MarkdownExternalReferenceMap } from "../MarkdownBody";
+import {
+  MarkdownBody,
+  type MarkdownExternalReferenceMap,
+} from "../MarkdownBody";
 import { cn, formatTokens } from "../../lib/utils";
 import { runningLabelText } from "../../lib/status-colors";
 import {
@@ -16,7 +19,13 @@ import {
 import { toolTaxonomy } from "../task-chat/tool-taxonomy";
 
 /** Family glyph for a tool block/row; the taxonomy falls back to Wrench. */
-function ToolFamilyIcon({ name, className }: { name: string; className?: string }) {
+function ToolFamilyIcon({
+  name,
+  className,
+}: {
+  name: string;
+  className?: string;
+}) {
   const Icon = toolTaxonomy(name).icon;
   return <Icon className={className} />;
 }
@@ -159,13 +168,15 @@ type TranscriptBlock =
       endTs?: string;
       filePath?: string;
       hunks: Array<{
-        changeType: "add" | "remove" | "context" | "hunk" | "file_header" | "truncation";
+        changeType:
+          "add" | "remove" | "context" | "hunk" | "file_header" | "truncation";
         text: string;
       }>;
     };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -174,7 +185,9 @@ function compactWhitespace(value: string): string {
 }
 
 function truncate(value: string, max: number): string {
-  return value.length > max ? `${value.slice(0, Math.max(0, max - 1))}…` : value;
+  return value.length > max
+    ? `${value.slice(0, Math.max(0, max - 1))}…`
+    : value;
 }
 
 function humanizeLabel(value: string): string {
@@ -186,7 +199,9 @@ function humanizeLabel(value: string): string {
 
 function stripWrappedShell(command: string): string {
   const trimmed = compactWhitespace(command);
-  const shellWrapped = trimmed.match(/^(?:(?:\/bin\/)?(?:zsh|bash|sh)|cmd(?:\.exe)?(?:\s+\/d)?(?:\s+\/s)?(?:\s+\/c)?)\s+(?:-lc|\/c)\s+(.+)$/i);
+  const shellWrapped = trimmed.match(
+    /^(?:(?:\/bin\/)?(?:zsh|bash|sh)|cmd(?:\.exe)?(?:\s+\/d)?(?:\s+\/s)?(?:\s+\/c)?)\s+(?:-lc|\/c)\s+(.+)$/i,
+  );
   const inner = shellWrapped?.[1] ?? trimmed;
   const quoted = inner.match(/^(['"])([\s\S]*)\1$/);
   return compactWhitespace(quoted?.[2] ?? inner);
@@ -231,7 +246,10 @@ function extractToolUseId(input: unknown): string | undefined {
   return undefined;
 }
 
-function summarizeRecord(record: Record<string, unknown>, keys: string[]): string | null {
+function summarizeRecord(
+  record: Record<string, unknown>,
+  keys: string[],
+): string | null {
   for (const key of keys) {
     const value = record[key];
     if (typeof value === "string" && value.trim()) {
@@ -256,44 +274,79 @@ function mergeToolInput(previous: unknown, incoming: unknown): unknown {
   return incoming;
 }
 
-function summarizeToolInput(name: string, input: unknown, density: TranscriptDensity): string {
+function summarizeToolInput(
+  name: string,
+  input: unknown,
+  density: TranscriptDensity,
+): string {
   const compactMax = density === "compact" ? 72 : 120;
   if (typeof input === "string") {
-    const normalized = isCommandTool(name, input) ? stripWrappedShell(input) : compactWhitespace(input);
+    const normalized = isCommandTool(name, input)
+      ? stripWrappedShell(input)
+      : compactWhitespace(input);
     return truncate(normalized, compactMax);
   }
   const record = asRecord(input);
   if (!record) {
     const serialized = compactWhitespace(formatUnknown(input));
-    return serialized ? truncate(serialized, compactMax) : `Inspect ${name} input`;
+    return serialized
+      ? truncate(serialized, compactMax)
+      : `Inspect ${name} input`;
   }
 
-  const command = typeof record.command === "string"
-    ? record.command
-    : typeof record.cmd === "string"
-      ? record.cmd
-      : null;
+  const command =
+    typeof record.command === "string"
+      ? record.command
+      : typeof record.cmd === "string"
+        ? record.cmd
+        : null;
   if (command && isCommandTool(name, record)) {
     return truncate(stripWrappedShell(command), compactMax);
   }
 
   const direct =
-    summarizeRecord(record, ["command", "cmd", "path", "filePath", "file_path", "query", "url", "prompt", "message"])
-    ?? summarizeRecord(record, ["pattern", "name", "title", "target", "tool", "text"])
-    ?? null;
+    summarizeRecord(record, [
+      "command",
+      "cmd",
+      "path",
+      "filePath",
+      "file_path",
+      "query",
+      "url",
+      "prompt",
+      "message",
+    ]) ??
+    summarizeRecord(record, [
+      "pattern",
+      "name",
+      "title",
+      "target",
+      "tool",
+      "text",
+    ]) ??
+    null;
   if (direct) return truncate(direct, compactMax);
 
   if (Array.isArray(record.paths) && record.paths.length > 0) {
-    const first = record.paths.find((value): value is string => typeof value === "string" && value.trim().length > 0);
+    const first = record.paths.find(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0,
+    );
     if (first) {
-      return truncate(`${record.paths.length} paths, starting with ${first}`, compactMax);
+      return truncate(
+        `${record.paths.length} paths, starting with ${first}`,
+        compactMax,
+      );
     }
   }
 
   const keys = Object.keys(record);
   if (keys.length === 0) return `No ${name} input`;
   if (keys.length === 1) return truncate(`${keys[0]} payload`, compactMax);
-  return truncate(`${keys.length} fields: ${keys.slice(0, 3).join(", ")}`, compactMax);
+  return truncate(
+    `${keys.length} fields: ${keys.slice(0, 3).join(", ")}`,
+    compactMax,
+  );
 }
 
 function parseStructuredToolResult(result: string | undefined) {
@@ -310,7 +363,8 @@ function parseStructuredToolResult(result: string | undefined) {
     }
   }
 
-  const body = lines.slice(Math.min(bodyStartIndex + 1, lines.length))
+  const body = lines
+    .slice(Math.min(bodyStartIndex + 1, lines.length))
     .map((line) => compactWhitespace(line))
     .filter(Boolean)
     .join("\n");
@@ -324,14 +378,22 @@ function parseStructuredToolResult(result: string | undefined) {
 }
 
 function isCommandTool(name: string, input: unknown): boolean {
-  if (name === "command_execution" || name === "shell" || name === "shellToolCall" || name === "bash") {
+  if (
+    name === "command_execution" ||
+    name === "shell" ||
+    name === "shellToolCall" ||
+    name === "bash"
+  ) {
     return true;
   }
   if (typeof input === "string") {
     return /\b(?:bash|zsh|sh|cmd|powershell)\b/i.test(input);
   }
   const record = asRecord(input);
-  return Boolean(record && (typeof record.command === "string" || typeof record.cmd === "string"));
+  return Boolean(
+    record &&
+    (typeof record.command === "string" || typeof record.cmd === "string"),
+  );
 }
 
 function displayToolName(name: string, input: unknown): string {
@@ -339,16 +401,25 @@ function displayToolName(name: string, input: unknown): string {
   return humanizeLabel(name);
 }
 
-function summarizeToolResult(result: string | undefined, isError: boolean | undefined, density: TranscriptDensity): string {
+function summarizeToolResult(
+  result: string | undefined,
+  isError: boolean | undefined,
+  density: TranscriptDensity,
+): string {
   if (!result) return isError ? "Tool failed" : "Waiting for result";
   const structured = parseStructuredToolResult(result);
   if (structured) {
     if (structured.body) {
-      return truncate(structured.body.split("\n")[0] ?? structured.body, density === "compact" ? 84 : 140);
+      return truncate(
+        structured.body.split("\n")[0] ?? structured.body,
+        density === "compact" ? 84 : 140,
+      );
     }
     if (structured.status === "completed") return "Completed";
     if (structured.status === "failed" || structured.status === "error") {
-      return structured.exitCode ? `Failed with exit code ${structured.exitCode}` : "Failed";
+      return structured.exitCode
+        ? `Failed with exit code ${structured.exitCode}`
+        : "Failed";
     }
   }
   const lines = result
@@ -370,7 +441,9 @@ type ToolDecisionMaps = {
   byActionRequestId: Map<string, ToolRunDecision>;
 };
 
-function buildToolDecisionMaps(decisions: readonly ToolRunDecision[] | undefined): ToolDecisionMaps {
+function buildToolDecisionMaps(
+  decisions: readonly ToolRunDecision[] | undefined,
+): ToolDecisionMaps {
   const byInvocationId = new Map<string, ToolRunDecision>();
   const byActionRequestId = new Map<string, ToolRunDecision>();
   for (const decision of decisions ?? []) {
@@ -379,13 +452,19 @@ function buildToolDecisionMaps(decisions: readonly ToolRunDecision[] | undefined
       byActionRequestId.set(decision.actionRequest.id, decision);
     }
     if (decision.latestAuditEvent?.actionRequestId) {
-      byActionRequestId.set(decision.latestAuditEvent.actionRequestId, decision);
+      byActionRequestId.set(
+        decision.latestAuditEvent.actionRequestId,
+        decision,
+      );
     }
   }
   return { byInvocationId, byActionRequestId };
 }
 
-function findToolDecision(maps: ToolDecisionMaps, refs: ToolDecisionRefs): ToolRunDecision | null {
+function findToolDecision(
+  maps: ToolDecisionMaps,
+  refs: ToolDecisionRefs,
+): ToolRunDecision | null {
   if (refs.invocationId) {
     const decision = maps.byInvocationId.get(refs.invocationId);
     if (decision) return decision;
@@ -395,12 +474,18 @@ function findToolDecision(maps: ToolDecisionMaps, refs: ToolDecisionRefs): ToolR
     if (decision) return decision;
   }
   if (refs.toolUseId) {
-    return maps.byInvocationId.get(refs.toolUseId) ?? maps.byActionRequestId.get(refs.toolUseId) ?? null;
+    return (
+      maps.byInvocationId.get(refs.toolUseId) ??
+      maps.byActionRequestId.get(refs.toolUseId) ??
+      null
+    );
   }
   return null;
 }
 
-function summarizeToolDecision(decision: ToolRunDecision | null): { label: string; className: string; detail?: string } | null {
+function summarizeToolDecision(
+  decision: ToolRunDecision | null,
+): { label: string; className: string; detail?: string } | null {
   if (!decision) return null;
   if (decision.pendingAction) {
     return {
@@ -409,31 +494,64 @@ function summarizeToolDecision(decision: ToolRunDecision | null): { label: strin
       detail: `Action request ${decision.pendingAction.actionRequestId.slice(0, 8)}`,
     };
   }
-  if (decision.denialReason || decision.invocation.status === "denied" || decision.outcome === "denied") {
+  if (
+    decision.denialReason ||
+    decision.invocation.status === "denied" ||
+    decision.outcome === "denied"
+  ) {
     return {
       label: "Denied",
       className: "text-red-700 dark:text-red-300",
       detail: decision.denialReason ?? decision.reasonCode ?? undefined,
     };
   }
-  if (decision.invocation.status === "failed" || decision.invocation.status === "timed_out" || decision.outcome === "failure" || decision.outcome === "timeout") {
+  if (
+    decision.invocation.status === "failed" ||
+    decision.invocation.status === "timed_out" ||
+    decision.outcome === "failure" ||
+    decision.outcome === "timeout"
+  ) {
     return {
-      label: decision.invocation.status === "timed_out" || decision.outcome === "timeout" ? "Timed out" : "Failed",
+      label:
+        decision.invocation.status === "timed_out" ||
+        decision.outcome === "timeout"
+          ? "Timed out"
+          : "Failed",
       className: "text-red-700 dark:text-red-300",
       detail: decision.denialReason ?? decision.reasonCode ?? undefined,
     };
   }
   if (decision.actionRequest?.status === "approved") {
-    return { label: "Approved", className: "text-emerald-700 dark:text-emerald-300" };
+    return {
+      label: "Approved",
+      className: "text-emerald-700 dark:text-emerald-300",
+    };
   }
   if (decision.actionRequest?.status === "executed") {
-    return { label: "Executed", className: "text-emerald-700 dark:text-emerald-300" };
+    return {
+      label: "Executed",
+      className: "text-emerald-700 dark:text-emerald-300",
+    };
   }
-  if (decision.decision === "allow" || decision.invocation.status === "authorized" || decision.invocation.status === "executing" || decision.invocation.status === "succeeded") {
-    return { label: "Allowed", className: "text-emerald-700 dark:text-emerald-300" };
+  if (
+    decision.decision === "allow" ||
+    decision.invocation.status === "authorized" ||
+    decision.invocation.status === "executing" ||
+    decision.invocation.status === "succeeded"
+  ) {
+    return {
+      label: "Allowed",
+      className: "text-emerald-700 dark:text-emerald-300",
+    };
   }
-  if (decision.decision === "require_approval" || decision.invocation.approvalState === "pending") {
-    return { label: "Needs approval", className: "text-amber-700 dark:text-amber-300" };
+  if (
+    decision.decision === "require_approval" ||
+    decision.invocation.approvalState === "pending"
+  ) {
+    return {
+      label: "Needs approval",
+      className: "text-amber-700 dark:text-amber-300",
+    };
   }
   return {
     label: humanizeLabel(decision.invocation.status),
@@ -442,8 +560,16 @@ function summarizeToolDecision(decision: ToolRunDecision | null): { label: strin
   };
 }
 
-function parseSystemActivity(text: string): { activityId?: string; name: string; status: "running" | "completed" } | null {
-  const match = text.match(/^item (started|completed):\s*([a-z0-9_-]+)(?:\s+\(id=([^)]+)\))?$/i);
+function parseSystemActivity(
+  text: string,
+): {
+  activityId?: string;
+  name: string;
+  status: "running" | "completed";
+} | null {
+  const match = text.match(
+    /^item (started|completed):\s*([a-z0-9_-]+)(?:\s+\(id=([^)]+)\))?$/i,
+  );
   if (!match) return null;
   return {
     status: match[1].toLowerCase() === "started" ? "running" : "completed",
@@ -459,7 +585,9 @@ function shouldHideNiceModeStderr(text: string): boolean {
 
 function groupCommandBlocks(blocks: TranscriptBlock[]): TranscriptBlock[] {
   const grouped: TranscriptBlock[] = [];
-  let pending: Array<Extract<TranscriptBlock, { type: "command_group" }>["items"][number]> = [];
+  let pending: Array<
+    Extract<TranscriptBlock, { type: "command_group" }>["items"][number]
+  > = [];
   let groupTs: string | null = null;
   let groupEndTs: string | undefined;
 
@@ -507,7 +635,9 @@ function groupCommandBlocks(blocks: TranscriptBlock[]): TranscriptBlock[] {
 /** Group consecutive non-command tool blocks into a single tool_group accordion. */
 function groupToolBlocks(blocks: TranscriptBlock[]): TranscriptBlock[] {
   const grouped: TranscriptBlock[] = [];
-  let pending: Array<Extract<TranscriptBlock, { type: "tool_group" }>["items"][number]> = [];
+  let pending: Array<
+    Extract<TranscriptBlock, { type: "tool_group" }>["items"][number]
+  > = [];
   let groupTs: string | null = null;
   let groupEndTs: string | undefined;
 
@@ -549,18 +679,31 @@ function groupToolBlocks(blocks: TranscriptBlock[]): TranscriptBlock[] {
   return grouped;
 }
 
-export function normalizeTranscript(entries: TranscriptEntry[], streaming: boolean): TranscriptBlock[] {
+export function normalizeTranscript(
+  entries: TranscriptEntry[],
+  streaming: boolean,
+): TranscriptBlock[] {
   const blocks: TranscriptBlock[] = [];
-  const pendingToolBlocks = new Map<string, Extract<TranscriptBlock, { type: "tool" }>>();
-  const pendingActivityBlocks = new Map<string, Extract<TranscriptBlock, { type: "activity" }>>();
+  const pendingToolBlocks = new Map<
+    string,
+    Extract<TranscriptBlock, { type: "tool" }>
+  >();
+  const pendingActivityBlocks = new Map<
+    string,
+    Extract<TranscriptBlock, { type: "activity" }>
+  >();
 
   for (const entry of entries) {
     const previous = blocks[blocks.length - 1];
 
     if (entry.kind === "assistant" || entry.kind === "user") {
-      const isStreaming = streaming && entry.kind === "assistant" && entry.delta === true;
+      const isStreaming =
+        streaming && entry.kind === "assistant" && entry.delta === true;
       if (previous?.type === "message" && previous.role === entry.kind) {
-        previous.text += previous.text.endsWith("\n") || entry.text.startsWith("\n") ? entry.text : `\n${entry.text}`;
+        previous.text +=
+          previous.text.endsWith("\n") || entry.text.startsWith("\n")
+            ? entry.text
+            : `\n${entry.text}`;
         previous.ts = entry.ts;
         previous.streaming = previous.streaming || isStreaming;
       } else {
@@ -579,7 +722,10 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
     if (entry.kind === "thinking") {
       const isStreaming = streaming && entry.delta === true;
       if (previous?.type === "thinking") {
-        previous.text += previous.text.endsWith("\n") || entry.text.startsWith("\n") ? entry.text : `\n${entry.text}`;
+        previous.text +=
+          previous.text.endsWith("\n") || entry.text.startsWith("\n")
+            ? entry.text
+            : `\n${entry.text}`;
         previous.ts = entry.ts;
         previous.streaming = previous.streaming || isStreaming;
       } else {
@@ -595,7 +741,16 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
     }
 
     if (entry.kind === "provider_activity") {
-      blocks.push({ type: "provider_activity", ts: entry.ts, family: entry.family, eventType: entry.eventType, status: entry.status, title: entry.title, summary: entry.summary, payload: entry.payload });
+      blocks.push({
+        type: "provider_activity",
+        ts: entry.ts,
+        family: entry.family,
+        eventType: entry.eventType,
+        status: entry.status,
+        title: entry.title,
+        summary: entry.summary,
+        payload: entry.payload,
+      });
       continue;
     }
 
@@ -606,28 +761,58 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
         label: entry.complete ? "workspace diff" : "workspace changes",
         tone: "info",
         text: `${entry.totals.files} changed ${entry.totals.files === 1 ? "file" : "files"}`,
-        detail: entry.source === "runner_verified" ? "Verified from workspace" : "Reported by harness",
+        detail:
+          entry.source === "runner_verified"
+            ? "Verified from workspace"
+            : "Reported by harness",
       });
       continue;
     }
 
     if (entry.kind === "workspace_file_reference") {
-      blocks.push({ type: "event", ts: entry.ts, label: "file reference", tone: "info", text: entry.displayName, detail: entry.path });
+      blocks.push({
+        type: "event",
+        ts: entry.ts,
+        label: "file reference",
+        tone: "info",
+        text: entry.displayName,
+        detail: entry.path,
+      });
       continue;
     }
 
     if (entry.kind === "runtime_request") {
-      blocks.push({ type: "event", ts: entry.ts, label: `runtime ${entry.requestType}`, tone: entry.status === "pending" ? "warn" : "info", text: entry.prompt, detail: entry.status });
+      blocks.push({
+        type: "event",
+        ts: entry.ts,
+        label: `runtime ${entry.requestType}`,
+        tone: entry.status === "pending" ? "warn" : "info",
+        text: entry.prompt,
+        detail: entry.status,
+      });
       continue;
     }
 
     if (entry.kind === "run_result") {
-      blocks.push({ type: "event", ts: entry.ts, label: `result · ${entry.disposition}`, tone: entry.disposition === "blocked" ? "warn" : "info", text: entry.summary });
+      blocks.push({
+        type: "event",
+        ts: entry.ts,
+        label: `result · ${entry.disposition}`,
+        tone: entry.disposition === "blocked" ? "warn" : "info",
+        text: entry.summary,
+      });
       continue;
     }
 
     if (entry.kind === "run_terminal") {
-      blocks.push({ type: "event", ts: entry.ts, label: "terminal", tone: entry.runState === "failed" ? "error" : "info", text: `${entry.runState} · ${entry.disposition}`, detail: entry.stopReason });
+      blocks.push({
+        type: "event",
+        ts: entry.ts,
+        label: "terminal",
+        tone: entry.runState === "failed" ? "error" : "info",
+        text: `${entry.runState} · ${entry.disposition}`,
+        detail: entry.stopReason,
+      });
       continue;
     }
 
@@ -660,8 +845,13 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
 
     if (entry.kind === "tool_result") {
       const matched =
-        pendingToolBlocks.get(entry.toolUseId)
-        ?? [...blocks].reverse().find((block): block is Extract<TranscriptBlock, { type: "tool" }> => block.type === "tool" && block.status === "running");
+        pendingToolBlocks.get(entry.toolUseId) ??
+        [...blocks]
+          .reverse()
+          .find(
+            (block): block is Extract<TranscriptBlock, { type: "tool" }> =>
+              block.type === "tool" && block.status === "running",
+          );
 
       if (matched) {
         matched.result = entry.content;
@@ -702,7 +892,10 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
         ts: entry.ts,
         label: "result",
         tone: entry.isError ? "error" : "info",
-        text: entry.text.trim() || entry.errors[0] || (entry.isError ? "Run failed" : "Completed"),
+        text:
+          entry.text.trim() ||
+          entry.errors[0] ||
+          (entry.isError ? "Run failed" : "Completed"),
         detail:
           !entry.isError && entry.text.trim().length > 0
             ? `${formatTokens(entry.inputTokens)} / ${formatTokens(entry.outputTokens)} / $${entry.costUsd.toFixed(6)}`
@@ -737,7 +930,9 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
       }
       const activity = parseSystemActivity(entry.text);
       if (activity) {
-        const existing = activity.activityId ? pendingActivityBlocks.get(activity.activityId) : undefined;
+        const existing = activity.activityId
+          ? pendingActivityBlocks.get(activity.activityId)
+          : undefined;
         if (existing) {
           existing.status = activity.status;
           existing.ts = entry.ts;
@@ -776,10 +971,14 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
       continue;
     }
 
-    const activeCommandBlock = [...blocks].reverse().find(
-      (block): block is Extract<TranscriptBlock, { type: "tool" }> =>
-        block.type === "tool" && block.status === "running" && isCommandTool(block.name, block.input),
-    );
+    const activeCommandBlock = [...blocks]
+      .reverse()
+      .find(
+        (block): block is Extract<TranscriptBlock, { type: "tool" }> =>
+          block.type === "tool" &&
+          block.status === "running" &&
+          isCommandTool(block.name, block.input),
+      );
     if (activeCommandBlock) {
       activeCommandBlock.result = activeCommandBlock.result
         ? `${activeCommandBlock.result}${activeCommandBlock.result.endsWith("\n") || entry.text.startsWith("\n") ? entry.text : `\n${entry.text}`}`
@@ -810,7 +1009,10 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
     }
 
     if (previous?.type === "stdout") {
-      previous.text += previous.text.endsWith("\n") || entry.text.startsWith("\n") ? entry.text : `\n${entry.text}`;
+      previous.text +=
+        previous.text.endsWith("\n") || entry.text.startsWith("\n")
+          ? entry.text
+          : `\n${entry.text}`;
       previous.ts = entry.ts;
     } else {
       blocks.push({
@@ -861,28 +1063,171 @@ function transcriptBlockIdentity(block: TranscriptBlock): string {
   }
 }
 
-function TranscriptProviderActivity({ block, density }: { block: Extract<TranscriptBlock, { type: "provider_activity" }>; density: TranscriptDensity }) {
+function TranscriptProviderActivity({
+  block,
+  density,
+}: {
+  block: Extract<TranscriptBlock, { type: "provider_activity" }>;
+  density: TranscriptDensity;
+}) {
   const [open, setOpen] = useState(block.status === "running");
-  const steps = Array.isArray(block.payload.steps) ? block.payload.steps.map(asRecord).filter((value): value is Record<string, unknown> => value !== null) : [];
-  const children = Array.isArray(block.payload.children) ? block.payload.children.map(asRecord).filter((value): value is Record<string, unknown> => value !== null) : [];
-  const sources = Array.isArray(block.payload.sources) ? block.payload.sources.map(asRecord).filter((value): value is Record<string, unknown> => value !== null) : [];
-  const output = typeof block.payload.output === "string" ? block.payload.output.slice(-(8 * 1024)) : "";
-  return <div className={cn("rounded-xl border p-2", block.status === "failed" ? "border-red-500/30 bg-red-500/[0.05]" : "border-border/70 bg-muted/20")} data-provider-family={block.family}>
-    <button type="button" className="flex min-h-8 w-full items-center gap-2 text-left" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
-      <span aria-hidden="true">{block.status === "running" ? "⏳" : block.status === "failed" ? "✕" : block.status === "interrupted" ? "■" : "✓"}</span>
-      <strong className={cn("font-mono", density === "compact" ? "text-(length:--text-micro)" : "text-xs")}>{block.title}</strong>
-      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{block.summary}</span>
-      {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-    </button>
-    {open ? <div className="mt-2 space-y-2 border-l border-border pl-5 text-xs">
-      {steps.length > 0 ? <ol className="space-y-1">{steps.map((step, index) => <li key={String(step.stepId ?? index)}><span className="mr-2" aria-hidden="true">{step.status === "completed" ? "✓" : step.status === "blocked" ? "!" : "○"}</span>{String(step.body ?? "")}</li>)}</ol> : null}
-      {children.length > 0 ? <ul className="space-y-1">{children.map((child, index) => <li key={String(child.childId ?? index)}><strong>{String(child.role ?? "Child agent")}</strong> · {String(child.status ?? "unknown")}<div className="text-muted-foreground">{String(child.summary ?? "")}</div></li>)}</ul> : null}
-      {sources.length > 0 ? <ul className="space-y-1">{sources.map((source, index) => { const url = typeof source.url === "string" && /^https?:\/\//.test(source.url) ? source.url : null; return <li key={String(source.sourceId ?? index)}>{url ? <a className="underline" href={url} target="_blank" rel="noreferrer">{String(source.title ?? url)}</a> : String(source.title ?? "Unavailable source")} <span className="text-muted-foreground">Provider-reported</span></li>; })}</ul> : null}
-      {output ? <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-background p-2 font-mono">{output}</pre> : null}
-      {block.family === "provider_notice" && Array.isArray(block.payload.details) ? <dl className="space-y-1">{block.payload.details.slice(0, 64).map((value, index) => { const detail = asRecord(value); return detail && typeof detail.name === "string" && typeof detail.value === "string" ? <div key={index}><dt className="text-muted-foreground">{detail.name}</dt><dd className="whitespace-pre-wrap break-words">{detail.value}</dd></div> : null; })}</dl> : null}
-      {block.family === "model_identity" ? <div><span className="text-muted-foreground">Requested</span> {String(block.payload.requestedModel ?? "—")} · <span className="text-muted-foreground">Effective</span> {String(block.payload.effectiveModel ?? "—")}</div> : null}
-    </div> : null}
-  </div>;
+  const steps = Array.isArray(block.payload.steps)
+    ? block.payload.steps
+        .map(asRecord)
+        .filter((value): value is Record<string, unknown> => value !== null)
+    : [];
+  const children = Array.isArray(block.payload.children)
+    ? block.payload.children
+        .map(asRecord)
+        .filter((value): value is Record<string, unknown> => value !== null)
+    : [];
+  const sources = Array.isArray(block.payload.sources)
+    ? block.payload.sources
+        .map(asRecord)
+        .filter((value): value is Record<string, unknown> => value !== null)
+    : [];
+  const output =
+    typeof block.payload.output === "string"
+      ? block.payload.output.slice(-(8 * 1024))
+      : "";
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-2",
+        block.status === "failed"
+          ? "border-red-500/30 bg-red-500/[0.05]"
+          : "border-border/70 bg-muted/20",
+      )}
+      data-provider-family={block.family}
+    >
+      <button
+        type="button"
+        className="flex min-h-8 w-full items-center gap-2 text-left"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+      >
+        <span aria-hidden="true">
+          {block.status === "running"
+            ? "⏳"
+            : block.status === "failed"
+              ? "✕"
+              : block.status === "interrupted"
+                ? "■"
+                : "✓"}
+        </span>
+        <strong
+          className={cn(
+            "font-mono",
+            density === "compact" ? "text-(length:--text-micro)" : "text-xs",
+          )}
+        >
+          {block.title}
+        </strong>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+          {block.summary}
+        </span>
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
+      </button>
+      {open ? (
+        <div className="mt-2 space-y-2 border-l border-border pl-5 text-xs">
+          {steps.length > 0 ? (
+            <ol className="space-y-1">
+              {steps.map((step, index) => (
+                <li key={String(step.stepId ?? index)}>
+                  <span className="mr-2" aria-hidden="true">
+                    {step.status === "completed"
+                      ? "✓"
+                      : step.status === "blocked"
+                        ? "!"
+                        : "○"}
+                  </span>
+                  {String(step.body ?? "")}
+                </li>
+              ))}
+            </ol>
+          ) : null}
+          {children.length > 0 ? (
+            <ul className="space-y-1">
+              {children.map((child, index) => (
+                <li key={String(child.childId ?? index)}>
+                  <strong>{String(child.role ?? "Child agent")}</strong> ·{" "}
+                  {String(child.status ?? "unknown")}
+                  <div className="text-muted-foreground">
+                    {String(child.summary ?? "")}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {sources.length > 0 ? (
+            <ul className="space-y-1">
+              {sources.map((source, index) => {
+                const url =
+                  typeof source.url === "string" &&
+                  /^https?:\/\//.test(source.url)
+                    ? source.url
+                    : null;
+                return (
+                  <li key={String(source.sourceId ?? index)}>
+                    {url ? (
+                      <a
+                        className="underline"
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {String(source.title ?? url)}
+                      </a>
+                    ) : (
+                      String(source.title ?? "Unavailable source")
+                    )}{" "}
+                    <span className="text-muted-foreground">
+                      Provider-reported
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          {output ? (
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-background p-2 font-mono">
+              {output}
+            </pre>
+          ) : null}
+          {block.family === "provider_notice" &&
+          Array.isArray(block.payload.details) ? (
+            <dl className="space-y-1">
+              {block.payload.details.slice(0, 64).map((value, index) => {
+                const detail = asRecord(value);
+                return detail &&
+                  typeof detail.name === "string" &&
+                  typeof detail.value === "string" ? (
+                  <div key={index}>
+                    <dt className="text-muted-foreground">{detail.name}</dt>
+                    <dd className="whitespace-pre-wrap break-words">
+                      {detail.value}
+                    </dd>
+                  </div>
+                ) : null;
+              })}
+            </dl>
+          ) : null}
+          {block.family === "model_identity" ? (
+            <div>
+              <span className="text-muted-foreground">Requested</span>{" "}
+              {String(block.payload.requestedModel ?? "—")} ·{" "}
+              <span className="text-muted-foreground">Effective</span>{" "}
+              {String(block.payload.effectiveModel ?? "—")}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 /**
@@ -890,13 +1235,18 @@ function TranscriptProviderActivity({ block, density }: { block: Extract<Transcr
  * so earlier blocks collapsing (truncation) does not remount the survivors; a
  * per-render occurrence counter disambiguates the rare identity collision.
  */
-export function keyTranscriptBlocks(blocks: TranscriptBlock[]): Array<{ block: TranscriptBlock; key: string }> {
+export function keyTranscriptBlocks(
+  blocks: TranscriptBlock[],
+): Array<{ block: TranscriptBlock; key: string }> {
   const seen = new Map<string, number>();
   return blocks.map((block) => {
     const identity = transcriptBlockIdentity(block);
     const occurrence = seen.get(identity) ?? 0;
     seen.set(identity, occurrence + 1);
-    return { block, key: occurrence === 0 ? identity : `${identity}#${occurrence}` };
+    return {
+      block,
+      key: occurrence === 0 ? identity : `${identity}#${occurrence}`,
+    };
   });
 }
 
@@ -925,7 +1275,9 @@ function TranscriptMessageBlock({
           "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           // Match the default view's chat message body (IssueChatThread:
           // `text-sm leading-6`) so streamed text reads identically (PAP-461, A2).
-          compact ? "text-xs leading-5 text-foreground/85" : "text-sm leading-6",
+          compact
+            ? "text-xs leading-5 text-foreground/85"
+            : "text-sm leading-6",
         )}
         externalReferences={externalReferences}
       >
@@ -962,7 +1314,9 @@ function TranscriptThinkingBlock({
         // `text-(length:--text-compact) italic leading-5 text-muted-foreground/70`)
         // so streamed thinking reads identically across both views (PAP-461, A2).
         "italic text-muted-foreground/70 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        density === "compact" ? "text-(length:--text-micro) leading-5" : "text-(length:--text-compact) leading-5",
+        density === "compact"
+          ? "text-(length:--text-micro) leading-5"
+          : "text-(length:--text-compact) leading-5",
         className,
       )}
       externalReferences={externalReferences}
@@ -976,13 +1330,22 @@ function ToolDecisionBadge({ decision }: { decision: ToolRunDecision | null }) {
   const summary = summarizeToolDecision(decision);
   if (!summary) return null;
   return (
-    <span className={cn("text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)", summary.className)}>
+    <span
+      className={cn(
+        "text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)",
+        summary.className,
+      )}
+    >
       {summary.label}
     </span>
   );
 }
 
-function ToolDecisionInlineDetail({ decision }: { decision: ToolRunDecision | null }) {
+function ToolDecisionInlineDetail({
+  decision,
+}: {
+  decision: ToolRunDecision | null;
+}) {
   const summary = summarizeToolDecision(decision);
   if (!summary?.detail) return null;
   return (
@@ -992,18 +1355,32 @@ function ToolDecisionInlineDetail({ decision }: { decision: ToolRunDecision | nu
   );
 }
 
-function ToolDecisionDetails({ decision, compact }: { decision: ToolRunDecision | null; compact: boolean }) {
+function ToolDecisionDetails({
+  decision,
+  compact,
+}: {
+  decision: ToolRunDecision | null;
+  compact: boolean;
+}) {
   if (!decision) return null;
   const actionRequest = decision.actionRequest;
   return (
-    <div className={cn(
-      "rounded-lg border border-border/60 bg-background/60 p-2",
-      compact ? "text-(length:--text-micro)" : "text-xs",
-    )}>
+    <div
+      className={cn(
+        "rounded-lg border border-border/60 bg-background/60 p-2",
+        compact ? "text-(length:--text-micro)" : "text-xs",
+      )}
+    >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">Decision</span>
+        <span className="font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
+          Decision
+        </span>
         <ToolDecisionBadge decision={decision} />
-        {decision.reasonCode && <span className="font-mono text-muted-foreground">{decision.reasonCode}</span>}
+        {decision.reasonCode && (
+          <span className="font-mono text-muted-foreground">
+            {decision.reasonCode}
+          </span>
+        )}
       </div>
       {decision.denialReason && (
         <div className="mt-1 break-words text-red-700 dark:text-red-300">
@@ -1013,8 +1390,14 @@ function ToolDecisionDetails({ decision, compact }: { decision: ToolRunDecision 
       <div className="mt-2 grid gap-1 font-mono text-muted-foreground sm:grid-cols-2">
         <span>invocation {decision.invocation.id.slice(0, 8)}</span>
         <span>audit {decision.auditEvents.length}</span>
-        {actionRequest && <span>action {actionRequest.status} {actionRequest.id.slice(0, 8)}</span>}
-        {actionRequest?.interactionId && <span>card {actionRequest.interactionId.slice(0, 8)}</span>}
+        {actionRequest && (
+          <span>
+            action {actionRequest.status} {actionRequest.id.slice(0, 8)}
+          </span>
+        )}
+        {actionRequest?.interactionId && (
+          <span>card {actionRequest.interactionId.slice(0, 8)}</span>
+        )}
       </div>
       {decision.pendingAction?.previewMarkdown && (
         <MarkdownBody className="mt-2 text-(length:--text-micro) leading-5 text-foreground/75 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
@@ -1034,7 +1417,10 @@ function TranscriptToolCard({
   density: TranscriptDensity;
   decision: ToolRunDecision | null;
 }) {
-  const [open, setOpen] = useState(block.status === "error" || Boolean(decision?.pendingAction || decision?.denialReason));
+  const [open, setOpen] = useState(
+    block.status === "error" ||
+      Boolean(decision?.pendingAction || decision?.denialReason),
+  );
   const compact = density === "compact";
   const parsedResult = parseStructuredToolResult(block.result);
   const statusLabel =
@@ -1051,7 +1437,8 @@ function TranscriptToolCard({
         : "text-emerald-700 dark:text-emerald-300";
   const detailsClass = cn(
     "space-y-3",
-    block.status === "error" && "rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3",
+    block.status === "error" &&
+      "rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3",
   );
   const iconClass = cn(
     "mt-0.5 h-3.5 w-3.5 shrink-0",
@@ -1061,14 +1448,23 @@ function TranscriptToolCard({
         ? "text-emerald-600 dark:text-emerald-300"
         : "text-blue-600 dark:text-blue-300",
   );
-  const summary = block.status === "running"
-    ? summarizeToolInput(block.name, block.input, density)
-    : block.status === "completed" && parsedResult?.body
-      ? truncate(parsedResult.body.split("\n")[0] ?? parsedResult.body, compact ? 84 : 140)
-      : summarizeToolResult(block.result, block.isError, density);
+  const summary =
+    block.status === "running"
+      ? summarizeToolInput(block.name, block.input, density)
+      : block.status === "completed" && parsedResult?.body
+        ? truncate(
+            parsedResult.body.split("\n")[0] ?? parsedResult.body,
+            compact ? 84 : 140,
+          )
+        : summarizeToolResult(block.result, block.isError, density);
 
   return (
-    <div className={cn(block.status === "error" && "rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3")}>
+    <div
+      className={cn(
+        block.status === "error" &&
+          "rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3",
+      )}
+    >
       <div className="flex items-start gap-2">
         {block.status === "error" ? (
           <CircleAlert className={iconClass} />
@@ -1082,12 +1478,22 @@ function TranscriptToolCard({
             <span className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
               {block.name}
             </span>
-            <span className={cn("text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)", statusTone)}>
+            <span
+              className={cn(
+                "text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)",
+                statusTone,
+              )}
+            >
               {statusLabel}
             </span>
             <ToolDecisionBadge decision={decision} />
           </div>
-          <div className={cn("mt-1 break-words text-foreground/80", compact ? "text-xs" : "text-sm")}>
+          <div
+            className={cn(
+              "mt-1 break-words text-foreground/80",
+              compact ? "text-xs" : "text-sm",
+            )}
+          >
             {summary}
           </div>
           <ToolDecisionInlineDetail decision={decision} />
@@ -1098,13 +1504,22 @@ function TranscriptToolCard({
           onClick={() => setOpen((value) => !value)}
           aria-label={open ? "Collapse tool details" : "Expand tool details"}
         >
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          {open ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
         </button>
       </div>
       {open && (
         <div className="mt-3">
           <div className={detailsClass}>
-            <div className={cn("grid gap-3", compact ? "grid-cols-1" : "lg:grid-cols-2")}>
+            <div
+              className={cn(
+                "grid gap-3",
+                compact ? "grid-cols-1" : "lg:grid-cols-2",
+              )}
+            >
               <div>
                 <div className="mb-1 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
                   Input
@@ -1117,11 +1532,17 @@ function TranscriptToolCard({
                 <div className="mb-1 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
                   Result
                 </div>
-                <pre className={cn(
-                  "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
-                  block.status === "error" ? "text-red-700 dark:text-red-300" : "text-foreground/80",
-                )}>
-                  {block.result ? formatToolPayload(block.result) : "Waiting for result..."}
+                <pre
+                  className={cn(
+                    "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
+                    block.status === "error"
+                      ? "text-red-700 dark:text-red-300"
+                      : "text-foreground/80",
+                  )}
+                >
+                  {block.result
+                    ? formatToolPayload(block.result)
+                    : "Waiting for result..."}
                 </pre>
               </div>
             </div>
@@ -1149,14 +1570,18 @@ function TranscriptCommandGroup({
 }) {
   const [open, setOpen] = useState(false);
   const compact = density === "compact";
-  const runningItem = [...block.items].reverse().find((item) => item.status === "running");
+  const runningItem = [...block.items]
+    .reverse()
+    .find((item) => item.status === "running");
   const latestItem = block.items[block.items.length - 1] ?? null;
   const highlightedDecision =
     block.items
       .map((item) => findToolDecision(toolDecisionMaps, item))
-      .find((decision) => decision?.pendingAction || decision?.denialReason)
-    ?? block.items.map((item) => findToolDecision(toolDecisionMaps, item)).find(Boolean)
-    ?? null;
+      .find((decision) => decision?.pendingAction || decision?.denialReason) ??
+    block.items
+      .map((item) => findToolDecision(toolDecisionMaps, item))
+      .find(Boolean) ??
+    null;
   const hasError = block.items.some((item) => item.status === "error");
   const isRunning = Boolean(runningItem);
   const showExpandedErrorState = open && hasError;
@@ -1169,15 +1594,23 @@ function TranscriptCommandGroup({
     ? summarizeToolInput("command_execution", runningItem.input, density)
     : null;
   const statusTone = isRunning
-      ? "text-blue-700 dark:text-blue-300"
-      : "text-foreground/70";
+    ? "text-blue-700 dark:text-blue-300"
+    : "text-foreground/70";
 
   return (
-    <div className={cn(showExpandedErrorState && "rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3")}>
+    <div
+      className={cn(
+        showExpandedErrorState &&
+          "rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3",
+      )}
+    >
       <div
         role="button"
         tabIndex={0}
-        className={cn("flex cursor-pointer gap-2", subtitle ? "items-start" : "items-center")}
+        className={cn(
+          "flex cursor-pointer gap-2",
+          subtitle ? "items-start" : "items-center",
+        )}
         onClick={() => {
           if (hasSelectedText()) return;
           setOpen((value) => !value);
@@ -1190,21 +1623,23 @@ function TranscriptCommandGroup({
         }}
       >
         <div className={cn("flex shrink-0 items-center", subtitle && "mt-0.5")}>
-          {block.items.slice(0, Math.min(block.items.length, 3)).map((_, index) => (
-            <span
-              key={index}
-              className={cn(
-                "inline-flex h-6 w-6 items-center justify-center rounded-full border shadow-sm",
-                index > 0 && "-ml-1.5",
-                isRunning
-                  ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
-                  : "border-border/70 bg-background text-foreground/55",
-                isRunning && "animate-pulse",
-              )}
-            >
-              <TerminalSquare className="h-3.5 w-3.5" />
-            </span>
-          ))}
+          {block.items
+            .slice(0, Math.min(block.items.length, 3))
+            .map((_, index) => (
+              <span
+                key={index}
+                className={cn(
+                  "inline-flex h-6 w-6 items-center justify-center rounded-full border shadow-sm",
+                  index > 0 && "-ml-1.5",
+                  isRunning
+                    ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
+                    : "border-border/70 bg-background text-foreground/55",
+                  isRunning && "animate-pulse",
+                )}
+              >
+                <TerminalSquare className="h-3.5 w-3.5" />
+              </span>
+            ))}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-(length:--text-micro) font-semibold uppercase leading-none tracking-(--tracking-label) text-muted-foreground/70">
@@ -1217,12 +1652,23 @@ function TranscriptCommandGroup({
             </div>
           )}
           {subtitle && (
-            <div className={cn("mt-1 break-words font-mono text-foreground/85", compact ? "text-xs" : "text-sm")}>
+            <div
+              className={cn(
+                "mt-1 break-words font-mono text-foreground/85",
+                compact ? "text-xs" : "text-sm",
+              )}
+            >
               {subtitle}
             </div>
           )}
           {!subtitle && latestItem?.status === "error" && open && (
-            <div className={cn("mt-1", compact ? "text-xs" : "text-sm", statusTone)}>
+            <div
+              className={cn(
+                "mt-1",
+                compact ? "text-xs" : "text-sm",
+                statusTone,
+              )}
+            >
               Command failed
             </div>
           )}
@@ -1237,39 +1683,65 @@ function TranscriptCommandGroup({
             event.stopPropagation();
             setOpen((value) => !value);
           }}
-          aria-label={open ? "Collapse command details" : "Expand command details"}
+          aria-label={
+            open ? "Collapse command details" : "Expand command details"
+          }
         >
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          {open ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
         </button>
       </div>
       {open && (
-        <div className={cn("mt-3 space-y-3", hasError && "rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3")}>
+        <div
+          className={cn(
+            "mt-3 space-y-3",
+            hasError &&
+              "rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3",
+          )}
+        >
           {block.items.map((item, index) => (
             <div key={`${item.ts}-${index}`} className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className={cn(
-                  "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
-                  item.status === "error"
-                    ? "border-red-500/25 bg-red-500/[0.08] text-red-600 dark:text-red-300"
-                    : item.status === "running"
-                      ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
-                      : "border-border/70 bg-background text-foreground/55",
-                )}>
+                <span
+                  className={cn(
+                    "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
+                    item.status === "error"
+                      ? "border-red-500/25 bg-red-500/[0.08] text-red-600 dark:text-red-300"
+                      : item.status === "running"
+                        ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
+                        : "border-border/70 bg-background text-foreground/55",
+                  )}
+                >
                   <TerminalSquare className="h-3 w-3" />
                 </span>
-                <span className={cn("font-mono break-all", compact ? "text-(length:--text-micro)" : "text-xs")}>
+                <span
+                  className={cn(
+                    "font-mono break-all",
+                    compact ? "text-(length:--text-micro)" : "text-xs",
+                  )}
+                >
                   {summarizeToolInput("command_execution", item.input, density)}
                 </span>
               </div>
               {item.result && (
-                <pre className={cn(
-                  "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
-                  item.status === "error" ? "text-red-700 dark:text-red-300" : "text-foreground/80",
-                )}>
+                <pre
+                  className={cn(
+                    "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
+                    item.status === "error"
+                      ? "text-red-700 dark:text-red-300"
+                      : "text-foreground/80",
+                  )}
+                >
                   {formatToolPayload(item.result)}
                 </pre>
               )}
-              <ToolDecisionDetails decision={findToolDecision(toolDecisionMaps, item)} compact={compact} />
+              <ToolDecisionDetails
+                decision={findToolDecision(toolDecisionMaps, item)}
+                compact={compact}
+              />
             </div>
           ))}
         </div>
@@ -1289,15 +1761,19 @@ function TranscriptToolGroup({
 }) {
   const [open, setOpen] = useState(false);
   const compact = density === "compact";
-  const runningItem = [...block.items].reverse().find((item) => item.status === "running");
+  const runningItem = [...block.items]
+    .reverse()
+    .find((item) => item.status === "running");
   const hasError = block.items.some((item) => item.status === "error");
   const isRunning = Boolean(runningItem);
   const highlightedDecision =
     block.items
       .map((item) => findToolDecision(toolDecisionMaps, item))
-      .find((decision) => decision?.pendingAction || decision?.denialReason)
-    ?? block.items.map((item) => findToolDecision(toolDecisionMaps, item)).find(Boolean)
-    ?? null;
+      .find((decision) => decision?.pendingAction || decision?.denialReason) ??
+    block.items
+      .map((item) => findToolDecision(toolDecisionMaps, item))
+      .find(Boolean) ??
+    null;
   const uniqueNames = [...new Set(block.items.map((item) => item.name))];
   const toolLabel =
     uniqueNames.length === 1
@@ -1320,35 +1796,56 @@ function TranscriptToolGroup({
       <div
         role="button"
         tabIndex={0}
-        className={cn("flex cursor-pointer gap-2 px-3 py-2.5", subtitle ? "items-start" : "items-center")}
-        onClick={() => { if (hasSelectedText()) return; setOpen((v) => !v); }}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}
+        className={cn(
+          "flex cursor-pointer gap-2 px-3 py-2.5",
+          subtitle ? "items-start" : "items-center",
+        )}
+        onClick={() => {
+          if (hasSelectedText()) return;
+          setOpen((v) => !v);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
       >
         <div className={cn("flex shrink-0 items-center", subtitle && "mt-0.5")}>
-          {block.items.slice(0, Math.min(block.items.length, 3)).map((item, index) => {
-            const isItemRunning = item.status === "running";
-            const isItemError = item.status === "error";
-            return (
-              <span
-                key={`${item.ts}-${index}`}
-                className={cn(
-                  "inline-flex h-6 w-6 items-center justify-center rounded-full border shadow-sm",
-                  index > 0 && "-ml-1.5",
-                  isItemRunning
-                    ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
-                    : isItemError
-                      ? "border-red-500/25 bg-red-500/[0.08] text-red-600 dark:text-red-300"
-                      : "border-border/70 bg-background text-foreground/55",
-                  isItemRunning && "animate-pulse",
-                )}
-              >
-                <ToolFamilyIcon name={item.name} className="h-3.5 w-3.5" />
-              </span>
-            );
-          })}
+          {block.items
+            .slice(0, Math.min(block.items.length, 3))
+            .map((item, index) => {
+              const isItemRunning = item.status === "running";
+              const isItemError = item.status === "error";
+              return (
+                <span
+                  key={`${item.ts}-${index}`}
+                  className={cn(
+                    "inline-flex h-6 w-6 items-center justify-center rounded-full border shadow-sm",
+                    index > 0 && "-ml-1.5",
+                    isItemRunning
+                      ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
+                      : isItemError
+                        ? "border-red-500/25 bg-red-500/[0.08] text-red-600 dark:text-red-300"
+                        : "border-border/70 bg-background text-foreground/55",
+                    isItemRunning && "animate-pulse",
+                  )}
+                >
+                  <ToolFamilyIcon name={item.name} className="h-3.5 w-3.5" />
+                </span>
+              );
+            })}
         </div>
         <div className="min-w-0 flex-1">
-          <div className={cn("font-semibold uppercase leading-none tracking-(--tracking-label)", compact ? "text-(length:--text-nano)" : "text-(length:--text-micro)", "text-muted-foreground/70")}>
+          <div
+            className={cn(
+              "font-semibold uppercase leading-none tracking-(--tracking-label)",
+              compact
+                ? "text-(length:--text-nano)"
+                : "text-(length:--text-micro)",
+              "text-muted-foreground/70",
+            )}
+          >
             {title}
           </div>
           {highlightedDecision && (
@@ -1358,69 +1855,122 @@ function TranscriptToolGroup({
             </div>
           )}
           {subtitle && (
-            <div className={cn("mt-1 break-words font-mono text-foreground/85", compact ? "text-xs" : "text-sm")}>
+            <div
+              className={cn(
+                "mt-1 break-words font-mono text-foreground/85",
+                compact ? "text-xs" : "text-sm",
+              )}
+            >
               {subtitle}
             </div>
           )}
         </div>
         <button
           type="button"
-          className={cn("inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground", subtitle && "mt-0.5")}
-          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          className={cn(
+            "inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground",
+            subtitle && "mt-0.5",
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
           aria-label={open ? "Collapse tool details" : "Expand tool details"}
         >
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          {open ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
         </button>
       </div>
       {open && (
-        <div className={cn("space-y-2 border-t border-border/30 px-3 py-3", hasError && "rounded-b-xl")}>
+        <div
+          className={cn(
+            "space-y-2 border-t border-border/30 px-3 py-3",
+            hasError && "rounded-b-xl",
+          )}
+        >
           {block.items.map((item, index) => (
             <div key={`${item.ts}-${index}`} className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className={cn(
-                  "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
-                  item.status === "error"
-                    ? "border-red-500/25 bg-red-500/[0.08] text-red-600 dark:text-red-300"
-                    : item.status === "running"
-                      ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
-                      : "border-border/70 bg-background text-foreground/55",
-                )}>
+                <span
+                  className={cn(
+                    "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
+                    item.status === "error"
+                      ? "border-red-500/25 bg-red-500/[0.08] text-red-600 dark:text-red-300"
+                      : item.status === "running"
+                        ? "border-blue-500/25 bg-blue-500/[0.08] text-blue-600 dark:text-blue-300"
+                        : "border-border/70 bg-background text-foreground/55",
+                  )}
+                >
                   <ToolFamilyIcon name={item.name} className="h-3 w-3" />
                 </span>
-                <span className={cn("text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground")}>
+                <span
+                  className={cn(
+                    "text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground",
+                  )}
+                >
                   {humanizeLabel(item.name)}
                 </span>
-                <span className={cn("text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)",
-                  // Gallery feedback r1: running label uses brand blue, not cyan.
-                  item.status === "running" ? runningLabelText
-                  : item.status === "error" ? "text-red-700 dark:text-red-300"
-                  : "text-emerald-700 dark:text-emerald-300"
-                )}>
-                  {item.status === "running" ? "Running" : item.status === "error" ? "Errored" : "Completed"}
+                <span
+                  className={cn(
+                    "text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)",
+                    // Gallery feedback r1: running label uses brand blue, not cyan.
+                    item.status === "running"
+                      ? runningLabelText
+                      : item.status === "error"
+                        ? "text-red-700 dark:text-red-300"
+                        : "text-emerald-700 dark:text-emerald-300",
+                  )}
+                >
+                  {item.status === "running"
+                    ? "Running"
+                    : item.status === "error"
+                      ? "Errored"
+                      : "Completed"}
                 </span>
-                <ToolDecisionBadge decision={findToolDecision(toolDecisionMaps, item)} />
+                <ToolDecisionBadge
+                  decision={findToolDecision(toolDecisionMaps, item)}
+                />
               </div>
-              <div className={cn("grid gap-2 pl-7", compact ? "grid-cols-1" : "lg:grid-cols-2")}>
+              <div
+                className={cn(
+                  "grid gap-2 pl-7",
+                  compact ? "grid-cols-1" : "lg:grid-cols-2",
+                )}
+              >
                 <div>
-                  <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">Input</div>
+                  <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
+                    Input
+                  </div>
                   <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro) text-foreground/80">
                     {formatToolPayload(item.input) || "<empty>"}
                   </pre>
                 </div>
                 {item.result && (
                   <div>
-                    <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">Result</div>
-                    <pre className={cn(
-                      "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
-                      item.status === "error" ? "text-red-700 dark:text-red-300" : "text-foreground/80",
-                    )}>
+                    <div className="mb-0.5 text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-caps) text-muted-foreground">
+                      Result
+                    </div>
+                    <pre
+                      className={cn(
+                        "overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro)",
+                        item.status === "error"
+                          ? "text-red-700 dark:text-red-300"
+                          : "text-foreground/80",
+                      )}
+                    >
                       {formatToolPayload(item.result)}
                     </pre>
                   </div>
                 )}
               </div>
               <div className="pl-7">
-                <ToolDecisionDetails decision={findToolDecision(toolDecisionMaps, item)} compact={compact} />
+                <ToolDecisionDetails
+                  decision={findToolDecision(toolDecisionMaps, item)}
+                  compact={compact}
+                />
               </div>
             </div>
           ))}
@@ -1447,10 +1997,12 @@ function TranscriptActivityRow({
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-500" />
         </span>
       )}
-      <div className={cn(
-        "break-words text-foreground/80",
-        density === "compact" ? "text-xs leading-5" : "text-sm leading-6",
-      )}>
+      <div
+        className={cn(
+          "break-words text-foreground/80",
+          density === "compact" ? "text-xs leading-5" : "text-sm leading-6",
+        )}
+      >
         {block.name}
       </div>
     </div>
@@ -1491,14 +2043,21 @@ function TranscriptEventRow({
             <MarkdownBody
               className={cn(
                 "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 text-sky-700 dark:text-sky-300",
-                compact ? "text-(length:--text-micro) leading-5" : "text-xs leading-5",
+                compact
+                  ? "text-(length:--text-micro) leading-5"
+                  : "text-xs leading-5",
               )}
               externalReferences={externalReferences}
             >
               {block.text}
             </MarkdownBody>
           ) : (
-            <div className={cn("whitespace-pre-wrap break-words", compact ? "text-(length:--text-micro)" : "text-xs")}>
+            <div
+              className={cn(
+                "whitespace-pre-wrap break-words",
+                compact ? "text-(length:--text-micro)" : "text-xs",
+              )}
+            >
               <span className="text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-label) text-muted-foreground/70">
                 {block.label}
               </span>
@@ -1528,12 +2087,14 @@ function TranscriptDiffGroup({
 
   // Count add/remove lines (exclude context, hunk, file_header, truncation)
   const addCount = block.hunks.filter((h) => h.changeType === "add").length;
-  const removeCount = block.hunks.filter((h) => h.changeType === "remove").length;
+  const removeCount = block.hunks.filter(
+    (h) => h.changeType === "remove",
+  ).length;
   const hasChanges = addCount > 0 || removeCount > 0;
 
   // Extract a short file name from the path
   const shortFile = block.filePath
-    ? block.filePath.split("/").pop() ?? block.filePath
+    ? (block.filePath.split("/").pop() ?? block.filePath)
     : "diff";
 
   return (
@@ -1543,55 +2104,89 @@ function TranscriptDiffGroup({
         tabIndex={0}
         className="flex cursor-pointer items-center gap-2"
         onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
       >
         <GitCompare className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-        <span className={cn("text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-blue-700 dark:text-blue-300")}>
+        <span
+          className={cn(
+            "text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-blue-700 dark:text-blue-300",
+          )}
+        >
           {shortFile}
         </span>
         {hasChanges && (
           <span className="text-(length:--text-nano) tabular-nums">
-            <span className="text-emerald-600 dark:text-emerald-400">+{addCount}</span>
-            {" "}
-            <span className="text-red-600 dark:text-red-400">-{removeCount}</span>
+            <span className="text-emerald-600 dark:text-emerald-400">
+              +{addCount}
+            </span>{" "}
+            <span className="text-red-600 dark:text-red-400">
+              -{removeCount}
+            </span>
           </span>
         )}
-        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
       </div>
       {open && (
-        <pre className={cn(
-          "mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono pl-5",
-          compact ? "text-(length:--text-micro)" : "text-xs",
-        )}>
+        <pre
+          className={cn(
+            "mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono pl-5",
+            compact ? "text-(length:--text-micro)" : "text-xs",
+          )}
+        >
           {block.hunks.map((hunk, i) => {
             const key = `${i}-${hunk.changeType}`;
             switch (hunk.changeType) {
               case "remove":
                 return (
-                  <span key={key} className="block bg-red-500/[0.10] text-red-700 dark:text-red-300 -mx-2 px-2">
-                    <span className="select-none mr-2 text-red-500/60 dark:text-red-400/50">-</span>
+                  <span
+                    key={key}
+                    className="block bg-red-500/[0.10] text-red-700 dark:text-red-300 -mx-2 px-2"
+                  >
+                    <span className="select-none mr-2 text-red-500/60 dark:text-red-400/50">
+                      -
+                    </span>
                     {hunk.text}
                     {"\n"}
                   </span>
                 );
               case "add":
                 return (
-                  <span key={key} className="block bg-emerald-500/[0.10] text-emerald-700 dark:text-emerald-300 -mx-2 px-2">
-                    <span className="select-none mr-2 text-emerald-500/60 dark:text-emerald-400/50">+</span>
+                  <span
+                    key={key}
+                    className="block bg-emerald-500/[0.10] text-emerald-700 dark:text-emerald-300 -mx-2 px-2"
+                  >
+                    <span className="select-none mr-2 text-emerald-500/60 dark:text-emerald-400/50">
+                      +
+                    </span>
                     {hunk.text}
                     {"\n"}
                   </span>
                 );
               case "file_header":
                 return (
-                  <span key={key} className="block font-semibold text-blue-600 dark:text-blue-300 mt-2 first:mt-0">
+                  <span
+                    key={key}
+                    className="block font-semibold text-blue-600 dark:text-blue-300 mt-2 first:mt-0"
+                  >
                     {hunk.text}
                     {"\n"}
                   </span>
                 );
               case "truncation":
                 return (
-                  <span key={key} className="block text-muted-foreground italic mt-1">
+                  <span
+                    key={key}
+                    className="block text-muted-foreground italic mt-1"
+                  >
                     {hunk.text}
                     {"\n"}
                   </span>
@@ -1629,18 +2224,33 @@ function TranscriptStderrGroup({
         tabIndex={0}
         className="flex cursor-pointer items-center gap-2"
         onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
       >
-        <span className={cn("text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)")}>
+        <span
+          className={cn(
+            "text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)",
+          )}
+        >
           {block.lines.length} log {block.lines.length === 1 ? "line" : "lines"}
         </span>
-        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
       </div>
       {open && (
         <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro) text-amber-700/80 dark:text-amber-300/80 pl-5">
           {block.lines.map((line, i) => (
             <span key={`${line.ts}-${i}`}>
-              <span className="select-none text-amber-500/50 dark:text-amber-400/40">{i > 0 ? "\n" : ""}</span>
+              <span className="select-none text-amber-500/50 dark:text-amber-400/40">
+                {i > 0 ? "\n" : ""}
+              </span>
               {line.text}
             </span>
           ))}
@@ -1665,19 +2275,31 @@ function TranscriptSystemGroup({
         tabIndex={0}
         className="flex cursor-pointer items-center gap-2"
         onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
       >
         <TerminalSquare className="h-3.5 w-3.5 shrink-0" />
         <span className="text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-eyebrow)">
-          {block.lines.length} system {block.lines.length === 1 ? "message" : "messages"}
+          {block.lines.length} system{" "}
+          {block.lines.length === 1 ? "message" : "messages"}
         </span>
-        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
       </div>
       {open && (
         <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-(length:--text-micro) text-blue-700/80 dark:text-blue-300/80 pl-5">
           {block.lines.map((line, i) => (
             <span key={`${line.ts}-${i}`}>
-              <span className="select-none text-blue-500/40 dark:text-blue-400/30">{i > 0 ? "\n" : ""}</span>
+              <span className="select-none text-blue-500/40 dark:text-blue-400/30">
+                {i > 0 ? "\n" : ""}
+              </span>
               {line.text}
             </span>
           ))}
@@ -1710,14 +2332,20 @@ function TranscriptStdoutRow({
           onClick={() => setOpen((value) => !value)}
           aria-label={open ? "Collapse stdout" : "Expand stdout"}
         >
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          {open ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
         </button>
       </div>
       {open && (
-        <pre className={cn(
-          "mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-foreground/80",
-          density === "compact" ? "text-(length:--text-micro)" : "text-xs",
-        )}>
+        <pre
+          className={cn(
+            "mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-foreground/80",
+            density === "compact" ? "text-(length:--text-micro)" : "text-xs",
+          )}
+        >
           {block.text}
         </pre>
       )}
@@ -1729,7 +2357,10 @@ function findScrollParent(element: HTMLElement): HTMLElement | Window {
   let current = element.parentElement;
   while (current) {
     const style = window.getComputedStyle(current);
-    if (/(auto|scroll)/.test(style.overflowY) && current.scrollHeight > current.clientHeight) {
+    if (
+      /(auto|scroll)/.test(style.overflowY) &&
+      current.scrollHeight > current.clientHeight
+    ) {
       return current;
     }
     current = current.parentElement;
@@ -1753,11 +2384,16 @@ function rawEntryContent(entry: TranscriptEntry): string {
   if (entry.kind === "init") {
     return `model=${entry.model}${entry.sessionId ? ` session=${entry.sessionId}` : ""}`;
   }
-  if (entry.kind === "workspace_change") return `${entry.totals.files} files · ${entry.source} · revision ${entry.revision}`;
-  if (entry.kind === "workspace_file_reference") return `${entry.displayName}\n${entry.path}`;
-  if (entry.kind === "runtime_request") return `${entry.requestType} · ${entry.status}\n${entry.prompt}`;
-  if (entry.kind === "run_result") return `${entry.disposition}\n${entry.summary}`;
-  if (entry.kind === "run_terminal") return `${entry.runState} · ${entry.turnState} · ${entry.disposition}${entry.stopReason ? `\n${entry.stopReason}` : ""}`;
+  if (entry.kind === "workspace_change")
+    return `${entry.totals.files} files · ${entry.source} · revision ${entry.revision}`;
+  if (entry.kind === "workspace_file_reference")
+    return `${entry.displayName}\n${entry.path}`;
+  if (entry.kind === "runtime_request")
+    return `${entry.requestType} · ${entry.status}\n${entry.prompt}`;
+  if (entry.kind === "run_result")
+    return `${entry.disposition}\n${entry.summary}`;
+  if (entry.kind === "run_terminal")
+    return `${entry.runState} · ${entry.turnState} · ${entry.disposition}${entry.stopReason ? `\n${entry.stopReason}` : ""}`;
   return entry.text;
 }
 
@@ -1773,7 +2409,10 @@ function RawTranscriptView({
   const shouldVirtualize = entries.length > RAW_VIRTUALIZATION_THRESHOLD;
   const [range, setRange] = useState(() => ({
     start: 0,
-    end: Math.min(entries.length, shouldVirtualize ? RAW_INITIAL_ROWS : entries.length),
+    end: Math.min(
+      entries.length,
+      shouldVirtualize ? RAW_INITIAL_ROWS : entries.length,
+    ),
   }));
 
   useEffect(() => {
@@ -1787,22 +2426,30 @@ function RawTranscriptView({
 
     const scrollParent = findScrollParent(list);
     const updateRange = () => {
-      const scrollElement: HTMLElement | null = scrollParent === window ? null : (scrollParent as HTMLElement);
-      const scrollerTop = scrollElement ? scrollElement.getBoundingClientRect().top : 0;
-      const scrollerHeight = scrollElement ? scrollElement.clientHeight : window.innerHeight;
+      const scrollElement: HTMLElement | null =
+        scrollParent === window ? null : (scrollParent as HTMLElement);
+      const scrollerTop = scrollElement
+        ? scrollElement.getBoundingClientRect().top
+        : 0;
+      const scrollerHeight = scrollElement
+        ? scrollElement.clientHeight
+        : window.innerHeight;
       const listTop = list.getBoundingClientRect().top;
       const visibleTop = Math.max(0, scrollerTop - listTop);
       const visibleBottom = Math.max(visibleTop + scrollerHeight, 0);
-      const nextStart = Math.max(0, Math.floor(visibleTop / RAW_ESTIMATED_ROW_HEIGHT) - RAW_OVERSCAN_ROWS);
+      const nextStart = Math.max(
+        0,
+        Math.floor(visibleTop / RAW_ESTIMATED_ROW_HEIGHT) - RAW_OVERSCAN_ROWS,
+      );
       const nextEnd = Math.min(
         entries.length,
         Math.ceil(visibleBottom / RAW_ESTIMATED_ROW_HEIGHT) + RAW_OVERSCAN_ROWS,
       );
-      setRange((current) => (
+      setRange((current) =>
         current.start === nextStart && current.end === nextEnd
           ? current
-          : { start: nextStart, end: nextEnd }
-      ));
+          : { start: nextStart, end: nextEnd },
+      );
     };
 
     updateRange();
@@ -1816,20 +2463,33 @@ function RawTranscriptView({
     };
   }, [entries.length, shouldVirtualize]);
 
-  const visibleEntries = shouldVirtualize ? entries.slice(range.start, range.end) : entries;
-  const topSpacer = shouldVirtualize ? range.start * RAW_ESTIMATED_ROW_HEIGHT : 0;
-  const bottomSpacer = shouldVirtualize ? Math.max(0, entries.length - range.end) * RAW_ESTIMATED_ROW_HEIGHT : 0;
+  const visibleEntries = shouldVirtualize
+    ? entries.slice(range.start, range.end)
+    : entries;
+  const topSpacer = shouldVirtualize
+    ? range.start * RAW_ESTIMATED_ROW_HEIGHT
+    : 0;
+  const bottomSpacer = shouldVirtualize
+    ? Math.max(0, entries.length - range.end) * RAW_ESTIMATED_ROW_HEIGHT
+    : 0;
 
   return (
-    <div ref={listRef} className={cn("font-mono", compact ? "space-y-1 text-(length:--text-micro)" : "space-y-1.5 text-xs")}>
-      {topSpacer > 0 && <div aria-hidden="true" style={{ height: topSpacer }} />}
+    <div
+      ref={listRef}
+      className={cn(
+        "font-mono",
+        compact
+          ? "space-y-1 text-(length:--text-micro)"
+          : "space-y-1.5 text-xs",
+      )}
+    >
+      {topSpacer > 0 && (
+        <div aria-hidden="true" style={{ height: topSpacer }} />
+      )}
       {visibleEntries.map((entry, idx) => (
         <div
           key={`${entry.kind}-${entry.ts}-${range.start + idx}`}
-          className={cn(
-            "grid gap-x-3",
-            "grid-cols-(--gtc-16)",
-          )}
+          className={cn("grid gap-x-3", "grid-cols-(--gtc-16)")}
         >
           <span className="text-(length:--text-nano) uppercase tracking-(--tracking-caps) text-muted-foreground">
             {entry.kind}
@@ -1839,7 +2499,9 @@ function RawTranscriptView({
           </pre>
         </div>
       ))}
-      {bottomSpacer > 0 && <div aria-hidden="true" style={{ height: bottomSpacer }} />}
+      {bottomSpacer > 0 && (
+        <div aria-hidden="true" style={{ height: bottomSpacer }} />
+      )}
     </div>
   );
 }
@@ -1857,18 +2519,29 @@ export function RunTranscriptView({
   thinkingClassName,
   externalReferences,
 }: RunTranscriptViewProps) {
-  const toolDecisionMaps = useMemo(() => buildToolDecisionMaps(toolDecisions), [toolDecisions]);
+  const toolDecisionMaps = useMemo(
+    () => buildToolDecisionMaps(toolDecisions),
+    [toolDecisions],
+  );
   const blocks = useMemo(
     () => (mode === "raw" ? [] : normalizeTranscript(entries, streaming)),
     [entries, mode, streaming],
   );
   const visibleBlocks = limit ? blocks.slice(-limit) : blocks;
-  const keyedBlocks = useMemo(() => keyTranscriptBlocks(visibleBlocks), [visibleBlocks]);
+  const keyedBlocks = useMemo(
+    () => keyTranscriptBlocks(visibleBlocks),
+    [visibleBlocks],
+  );
   const visibleEntries = limit ? entries.slice(-limit) : entries;
 
   if (entries.length === 0) {
     return (
-      <div className={cn("rounded-2xl border border-dashed border-border/70 bg-background/40 p-4 text-sm text-muted-foreground", className)}>
+      <div
+        className={cn(
+          "rounded-2xl border border-dashed border-border/70 bg-background/40 p-4 text-sm text-muted-foreground",
+          className,
+        )}
+      >
         {emptyMessage}
       </div>
     );
@@ -1887,7 +2560,11 @@ export function RunTranscriptView({
       {keyedBlocks.map(({ block, key }, index) => (
         <div
           key={key}
-          className={cn(index === keyedBlocks.length - 1 && streaming && "tc-stream-block-enter")}
+          className={cn(
+            index === keyedBlocks.length - 1 &&
+              streaming &&
+              "tc-stream-block-enter",
+          )}
         >
           {block.type === "message" && (
             <TranscriptMessageBlock
@@ -1912,18 +2589,38 @@ export function RunTranscriptView({
             />
           )}
           {block.type === "command_group" && (
-            <TranscriptCommandGroup block={block} density={density} toolDecisionMaps={toolDecisionMaps} />
+            <TranscriptCommandGroup
+              block={block}
+              density={density}
+              toolDecisionMaps={toolDecisionMaps}
+            />
           )}
           {block.type === "tool_group" && (
-            <TranscriptToolGroup block={block} density={density} toolDecisionMaps={toolDecisionMaps} />
+            <TranscriptToolGroup
+              block={block}
+              density={density}
+              toolDecisionMaps={toolDecisionMaps}
+            />
           )}
-          {block.type === "diff_group" && <TranscriptDiffGroup block={block} density={density} />}
-          {block.type === "stderr_group" && <TranscriptStderrGroup block={block} density={density} />}
-          {block.type === "system_group" && <TranscriptSystemGroup block={block} density={density} />}
+          {block.type === "diff_group" && (
+            <TranscriptDiffGroup block={block} density={density} />
+          )}
+          {block.type === "stderr_group" && (
+            <TranscriptStderrGroup block={block} density={density} />
+          )}
+          {block.type === "system_group" && (
+            <TranscriptSystemGroup block={block} density={density} />
+          )}
           {block.type === "stdout" && (
-            <TranscriptStdoutRow block={block} density={density} collapseByDefault={collapseStdout} />
+            <TranscriptStdoutRow
+              block={block}
+              density={density}
+              collapseByDefault={collapseStdout}
+            />
           )}
-          {block.type === "activity" && <TranscriptActivityRow block={block} density={density} />}
+          {block.type === "activity" && (
+            <TranscriptActivityRow block={block} density={density} />
+          )}
           {block.type === "event" && (
             <TranscriptEventRow
               block={block}
@@ -1931,7 +2628,9 @@ export function RunTranscriptView({
               externalReferences={externalReferences}
             />
           )}
-          {block.type === "provider_activity" && <TranscriptProviderActivity block={block} density={density} />}
+          {block.type === "provider_activity" && (
+            <TranscriptProviderActivity block={block} density={density} />
+          )}
         </div>
       ))}
     </div>

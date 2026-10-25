@@ -28,7 +28,9 @@ export function buildNewAgentHirePayload(input: {
     role: effectiveRole,
     ...(title?.trim() ? { title: title.trim() } : {}),
     ...(reportsTo ? { reportsTo } : {}),
-    ...(selectedSkillKeys.length > 0 ? { desiredSkills: selectedSkillKeys } : {}),
+    ...(selectedSkillKeys.length > 0
+      ? { desiredSkills: selectedSkillKeys }
+      : {}),
     adapterType: configValues.adapterType,
     defaultEnvironmentId: configValues.defaultEnvironmentId ?? null,
     adapterConfig,
@@ -47,6 +49,8 @@ export function buildNewAgentHirePayload(input: {
     // The apply-existing flag is not an agent column. The server binds the fixed
     // OAuth token reference to the owner stored value with no login round trip.
     // Send it only after the owner applies an existing stored login.
-    ...(configValues.claudeApplyStoredLogin ? { applyStoredClaudeLogin: true } : {}),
+    ...(configValues.claudeApplyStoredLogin
+      ? { applyStoredClaudeLogin: true }
+      : {}),
   };
 }

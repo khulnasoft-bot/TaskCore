@@ -29,5 +29,8 @@ export function nativeRuntimeContextFixture(): NativeRuntimeContextSnapshot {
     skills: [],
     mcp: { assignmentSetId: "none", digest, bindingId: null },
   } satisfies Omit<NativeRuntimeContextSnapshot, "aggregateDigest">;
-  return { ...context, aggregateDigest: canonicalNativeRuntimeContextDigest(context) };
+  return {
+    ...context,
+    aggregateDigest: canonicalNativeRuntimeContextDigest(context),
+  };
 }

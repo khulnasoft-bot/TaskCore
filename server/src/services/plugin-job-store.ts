@@ -153,9 +153,7 @@ export function pluginJobStore(db: Db) {
         .from(pluginJobs)
         .where(eq(pluginJobs.pluginId, pluginId));
 
-      const existingByKey = new Map(
-        existingJobs.map((j) => [j.jobKey, j]),
-      );
+      const existingByKey = new Map(existingJobs.map((j) => [j.jobKey, j]));
 
       const declaredKeys = new Set<string>();
 
@@ -195,7 +193,10 @@ export function pluginJobStore(db: Db) {
 
       // Pause jobs that are no longer declared in the manifest
       for (const existing of existingJobs) {
-        if (!declaredKeys.has(existing.jobKey) && existing.status !== "paused") {
+        if (
+          !declaredKeys.has(existing.jobKey) &&
+          existing.status !== "paused"
+        ) {
           await db
             .update(pluginJobs)
             .set({ status: "paused", updatedAt: new Date() })
@@ -234,15 +235,12 @@ export function pluginJobStore(db: Db) {
     async getJobByKey(
       pluginId: string,
       jobKey: string,
-    ): Promise<(typeof pluginJobs.$inferSelect) | null> {
+    ): Promise<typeof pluginJobs.$inferSelect | null> {
       const rows = await db
         .select()
         .from(pluginJobs)
         .where(
-          and(
-            eq(pluginJobs.pluginId, pluginId),
-            eq(pluginJobs.jobKey, jobKey),
-          ),
+          and(eq(pluginJobs.pluginId, pluginId), eq(pluginJobs.jobKey, jobKey)),
         );
       return rows[0] ?? null;
     },
@@ -255,7 +253,7 @@ export function pluginJobStore(db: Db) {
      */
     async getJobById(
       jobId: string,
-    ): Promise<(typeof pluginJobs.$inferSelect) | null> {
+    ): Promise<typeof pluginJobs.$inferSelect | null> {
       const rows = await db
         .select()
         .from(pluginJobs)
@@ -272,11 +270,13 @@ export function pluginJobStore(db: Db) {
     async getJobByIdForPlugin(
       pluginId: string,
       jobId: string,
-    ): Promise<(typeof pluginJobs.$inferSelect) | null> {
+    ): Promise<typeof pluginJobs.$inferSelect | null> {
       const rows = await db
         .select()
         .from(pluginJobs)
-        .where(and(eq(pluginJobs.id, jobId), eq(pluginJobs.pluginId, pluginId)));
+        .where(
+          and(eq(pluginJobs.id, jobId), eq(pluginJobs.pluginId, pluginId)),
+        );
       return rows[0] ?? null;
     },
 
@@ -329,9 +329,7 @@ export function pluginJobStore(db: Db) {
      * @param pluginId - UUID of the owning plugin
      */
     async deleteAllJobs(pluginId: string): Promise<void> {
-      await db
-        .delete(pluginJobs)
-        .where(eq(pluginJobs.pluginId, pluginId));
+      await db.delete(pluginJobs).where(eq(pluginJobs.pluginId, pluginId));
     },
 
     // =====================================================================
@@ -409,7 +407,7 @@ export function pluginJobStore(db: Db) {
      */
     async getRunById(
       runId: string,
-    ): Promise<(typeof pluginJobRuns.$inferSelect) | null> {
+    ): Promise<typeof pluginJobRuns.$inferSelect | null> {
       const rows = await db
         .select()
         .from(pluginJobRuns)

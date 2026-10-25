@@ -2,7 +2,10 @@ import type { AgentAppearance } from "../agent-appearance.js";
 import type { AgentEnvConfig } from "./secrets.js";
 import type { RoutineVariable } from "./routine.js";
 import type { IssueCommentAuthorType, PermissionKey } from "../constants.js";
-import type { IssueCommentMetadata, IssueCommentPresentation } from "./issue.js";
+import type {
+  IssueCommentMetadata,
+  IssueCommentPresentation,
+} from "./issue.js";
 
 export interface CompanyPortabilityInclude {
   company: boolean;
@@ -283,7 +286,15 @@ export interface CompanyPortabilityExportResult {
 
 export interface CompanyPortabilityExportPreviewFile {
   path: string;
-  kind: "company" | "agent" | "skill" | "project" | "issue" | "extension" | "readme" | "other";
+  kind:
+    | "company"
+    | "agent"
+    | "skill"
+    | "project"
+    | "issue"
+    | "extension"
+    | "readme"
+    | "other";
 }
 
 export interface CompanyPortabilityExportPreviewResult {

@@ -1,4 +1,15 @@
-import { pgTable, uuid, text, timestamp, integer, numeric, index, uniqueIndex, boolean, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  integer,
+  numeric,
+  index,
+  uniqueIndex,
+  boolean,
+  jsonb,
+} from "drizzle-orm/pg-core";
 import { companies } from "./companies.js";
 import { agents } from "./agents.js";
 import { issues } from "./issues.js";
@@ -11,9 +22,13 @@ export const financeEvents = pgTable(
   "finance_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
     agentId: uuid("agent_id").references(() => agents.id),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
     projectId: uuid("project_id").references(() => projects.id),
     goalId: uuid("goal_id").references(() => goals.id),
     heartbeatRunId: uuid("heartbeat_run_id").references(() => heartbeatRuns.id),
@@ -32,36 +47,44 @@ export const financeEvents = pgTable(
     model: text("model"),
     quantity: integer("quantity"),
     unit: text("unit"),
-    amountCents: numeric("amount_cents", { precision: 24, scale: 7, mode: "number" }).notNull(),
+    amountCents: numeric("amount_cents", {
+      precision: 24,
+      scale: 7,
+      mode: "number",
+    }).notNull(),
     currency: text("currency").notNull().default("USD"),
     estimated: boolean("estimated").notNull().default(false),
     externalInvoiceId: text("external_invoice_id"),
-    metadataJson: jsonb("metadata_json").$type<Record<string, unknown> | null>(),
+    metadataJson: jsonb("metadata_json").$type<Record<
+      string,
+      unknown
+    > | null>(),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    receiptUniqueIdx: uniqueIndex("finance_events_company_receipt_idx").on(table.companyId, table.idempotencyKey),
-    companyOccurredIdx: index("finance_events_company_occurred_idx").on(table.companyId, table.occurredAt),
-    companyBillerOccurredIdx: index("finance_events_company_biller_occurred_idx").on(
+    receiptUniqueIdx: uniqueIndex("finance_events_company_receipt_idx").on(
       table.companyId,
-      table.biller,
+      table.idempotencyKey,
+    ),
+    companyOccurredIdx: index("finance_events_company_occurred_idx").on(
+      table.companyId,
       table.occurredAt,
     ),
-    companyKindOccurredIdx: index("finance_events_company_kind_occurred_idx").on(
-      table.companyId,
-      table.eventKind,
-      table.occurredAt,
-    ),
-    companyDirectionOccurredIdx: index("finance_events_company_direction_occurred_idx").on(
-      table.companyId,
-      table.direction,
-      table.occurredAt,
-    ),
-    companyHeartbeatRunIdx: index("finance_events_company_heartbeat_run_idx").on(
-      table.companyId,
-      table.heartbeatRunId,
-    ),
+    companyBillerOccurredIdx: index(
+      "finance_events_company_biller_occurred_idx",
+    ).on(table.companyId, table.biller, table.occurredAt),
+    companyKindOccurredIdx: index(
+      "finance_events_company_kind_occurred_idx",
+    ).on(table.companyId, table.eventKind, table.occurredAt),
+    companyDirectionOccurredIdx: index(
+      "finance_events_company_direction_occurred_idx",
+    ).on(table.companyId, table.direction, table.occurredAt),
+    companyHeartbeatRunIdx: index(
+      "finance_events_company_heartbeat_run_idx",
+    ).on(table.companyId, table.heartbeatRunId),
     companyCostEventIdx: index("finance_events_company_cost_event_idx").on(
       table.companyId,
       table.costEventId,

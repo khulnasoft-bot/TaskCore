@@ -3,16 +3,25 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Copy, Download } from "lucide-react";
 import { fileResourcesApi } from "@/api/file-resources";
-import { FileViewerBody, FileViewerMetadataRow } from "@/components/FileViewerSheet";
+import {
+  FileViewerBody,
+  FileViewerMetadataRow,
+} from "@/components/FileViewerSheet";
 import { Button } from "@/components/ui/button";
-import { FilePreviewModeToggle, type FilePreviewMode } from "@/components/FilePreviewModeToggle";
+import {
+  FilePreviewModeToggle,
+  type FilePreviewMode,
+} from "@/components/FilePreviewModeToggle";
 import { isHtmlPreview } from "@/lib/html-preview";
 import type { FileViewerUrlState } from "@/context/FileViewerContext";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { queryKeys } from "@/lib/queryKeys";
 import type { TaskSidePanelTabPayload } from "@/lib/task-side-panel-state";
 
-type WorkspaceFilePayload = Extract<TaskSidePanelTabPayload, { kind: "workspace-file" }>;
+type WorkspaceFilePayload = Extract<
+  TaskSidePanelTabPayload,
+  { kind: "workspace-file" }
+>;
 
 export function TaskWorkspaceFilePanel({
   issueId,
@@ -23,8 +32,13 @@ export function TaskWorkspaceFilePanel({
   payload: WorkspaceFilePayload;
   onFallbackToProject?: () => void;
 }) {
-  const [previewMode, setPreviewMode] = useState<"raw" | "rendered">("rendered");
-  useEffect(() => setPreviewMode("rendered"), [payload.path, payload.workspace, payload.workspaceId, payload.projectId]);
+  const [previewMode, setPreviewMode] = useState<"raw" | "rendered">(
+    "rendered",
+  );
+  useEffect(
+    () => setPreviewMode("rendered"),
+    [payload.path, payload.workspace, payload.workspaceId, payload.projectId],
+  );
   const [copied, setCopied] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const state: FileViewerUrlState = {
@@ -51,14 +65,34 @@ export function TaskWorkspaceFilePanel({
     ? fileResourcesApi.downloadUrl(issueId, state)
     : null;
 
-  const renderedPreview = resource && (isHtmlPreview(resource.contentType, resource.displayPath || resource.title) || isCsvFile(resource.displayPath || resource.title, resource.contentType ?? "") || /\.(md|markdown|mdown|mkdn|mkd)$/i.test(resource.displayPath || resource.title) || resource.contentType?.includes("markdown"));
+  const renderedPreview =
+    resource &&
+    (isHtmlPreview(
+      resource.contentType,
+      resource.displayPath || resource.title,
+    ) ||
+      isCsvFile(
+        resource.displayPath || resource.title,
+        resource.contentType ?? "",
+      ) ||
+      /\.(md|markdown|mdown|mkdn|mkd)$/i.test(
+        resource.displayPath || resource.title,
+      ) ||
+      resource.contentType?.includes("markdown"));
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-muted/20">
       <header className="flex min-w-0 items-start gap-2 border-b border-border bg-card px-3 py-2">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-medium" title={payload.path}>{resource?.title ?? payload.path}</h2>
-          <p className="truncate font-mono text-xs text-muted-foreground" title={payload.path}>{payload.path}</p>
+          <h2 className="truncate text-sm font-medium" title={payload.path}>
+            {resource?.title ?? payload.path}
+          </h2>
+          <p
+            className="truncate font-mono text-xs text-muted-foreground"
+            title={payload.path}
+          >
+            {payload.path}
+          </p>
           <FileViewerMetadataRow resolvedResource={resource} state={state} />
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -70,19 +104,32 @@ export function TaskWorkspaceFilePanel({
               aria-label="Copy file contents"
               title={copied ? "Copied" : "Copy file contents"}
               onClick={() => {
-                void copyTextToClipboard(contentQuery.data!.content.data).then(() => {
-                  setCopied(true);
-                  window.setTimeout(() => setCopied(false), 1800);
-                });
+                void copyTextToClipboard(contentQuery.data!.content.data).then(
+                  () => {
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1800);
+                  },
+                );
               }}
             >
               {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
             </Button>
           ) : null}
-          {renderedPreview && contentQuery.data ? <FilePreviewModeToggle mode={previewMode} onChange={setPreviewMode} label="File preview mode" /> : null}
+          {renderedPreview && contentQuery.data ? (
+            <FilePreviewModeToggle
+              mode={previewMode}
+              onChange={setPreviewMode}
+              label="File preview mode"
+            />
+          ) : null}
           {downloadUrl ? (
             <Button asChild variant="ghost" size="icon-sm">
-              <a href={downloadUrl} download={resource?.title} aria-label="Download file" title="Download file">
+              <a
+                href={downloadUrl}
+                download={resource?.title}
+                aria-label="Download file"
+                title="Download file"
+              >
                 <Download aria-hidden />
               </a>
             </Button>
@@ -90,7 +137,9 @@ export function TaskWorkspaceFilePanel({
         </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="sr-only" aria-live="polite">{announcement}</div>
+        <div className="sr-only" aria-live="polite">
+          {announcement}
+        </div>
         <FileViewerBody
           previewMode={previewMode}
           resolveQuery={resourceQuery}

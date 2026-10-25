@@ -38,7 +38,10 @@ export interface SummaryDraftStream {
 }
 
 function freshMergeRefs(): ChunkMergeRefs {
-  return { seenChunkKeys: new Set<string>(), trimmedSeqFloorByRun: new Map<string, number>() };
+  return {
+    seenChunkKeys: new Set<string>(),
+    trimmedSeqFloorByRun: new Map<string, number>(),
+  };
 }
 
 function readPayloadString(value: unknown): string | null {
@@ -99,11 +102,16 @@ export function useSummaryDraftStream(
   // Learn the generation run id from live progress/queued events for the issue.
   useCompanyLiveEvent((event: LiveEvent) => {
     if (!issueId) return;
-    if (event.type !== "heartbeat.run.progress" && event.type !== "heartbeat.run.queued") return;
+    if (
+      event.type !== "heartbeat.run.progress" &&
+      event.type !== "heartbeat.run.queued"
+    )
+      return;
     const payload = event.payload ?? {};
     if (payload.issueId !== issueId) return;
     const nextRunId = readPayloadString(payload.runId);
-    if (nextRunId) setRunId((current) => (current === nextRunId ? current : nextRunId));
+    if (nextRunId)
+      setRunId((current) => (current === nextRunId ? current : nextRunId));
   });
 
   // Fallback: resolve the active run for the generation issue when no live event
@@ -135,9 +143,19 @@ export function useSummaryDraftStream(
     if (!chunk) return;
     const ts = readPayloadString(payload.ts) ?? event.createdAt;
     const stream =
-      payload.stream === "stderr" ? "stderr" : payload.stream === "system" ? "system" : "stdout";
+      payload.stream === "stderr"
+        ? "stderr"
+        : payload.stream === "system"
+          ? "system"
+          : "stdout";
     appendChunks([
-      { ts, stream, chunk, seq: readChunkSeq(payload.seq), dedupeKey: `log:${runId}:${ts}:${stream}:${chunk}` },
+      {
+        ts,
+        stream,
+        chunk,
+        seq: readChunkSeq(payload.seq),
+        dedupeKey: `log:${runId}:${ts}:${stream}:${chunk}`,
+      },
     ]);
   });
 
@@ -150,9 +168,19 @@ export function useSummaryDraftStream(
       if (reading || cancelled) return;
       reading = true;
       try {
-        const result = await heartbeatsApi.log(runId, logOffsetRef.current, LOG_READ_LIMIT_BYTES);
+        const result = await heartbeatsApi.log(
+          runId,
+          logOffsetRef.current,
+          LOG_READ_LIMIT_BYTES,
+        );
         if (cancelled) return;
-        appendChunks(parsePersistedLogContent(runId, result.content, pendingLogRowsRef.current));
+        appendChunks(
+          parsePersistedLogContent(
+            runId,
+            result.content,
+            pendingLogRowsRef.current,
+          ),
+        );
         if (result.nextOffset !== undefined) {
           logOffsetRef.current = result.nextOffset;
         } else if (result.content.length > 0) {
@@ -166,18 +194,25 @@ export function useSummaryDraftStream(
     };
 
     void read();
-    const interval = window.setInterval(() => void read(), LOG_POLL_INTERVAL_MS);
+    const interval = window.setInterval(
+      () => void read(),
+      LOG_POLL_INTERVAL_MS,
+    );
     return () => {
       cancelled = true;
       window.clearInterval(interval);
     };
   }, [visible, runId, appendChunks]);
 
-  const parse = useMemo(() => parseSummaryDraftStream(extractAssistantOutputText(chunks)), [chunks]);
+  const parse = useMemo(
+    () => parseSummaryDraftStream(extractAssistantOutputText(chunks)),
+    [chunks],
+  );
 
-  const draft = parse.draft !== null && !parse.draftClosed
-    ? closeDanglingCodeFence(parse.draft)
-    : parse.draft;
+  const draft =
+    parse.draft !== null && !parse.draftClosed
+      ? closeDanglingCodeFence(parse.draft)
+      : parse.draft;
 
   return {
     runId,

@@ -46,11 +46,17 @@ for (const direct of [false, true])
       expect(projects).toHaveLength(1);
       expect(projects[0].workspaces).toHaveLength(2);
       if (direct) {
-        await json(await request.post(`/api/projects/${projects[0].id}/workspaces`, {
-          data: { name: "Additional repository", repoUrl: "https://github.com/octocat/git-consortium" },
-        }));
-        await expect(card.getByRole("link", { name: "Additional repository" }))
-          .toHaveAttribute("href", "https://github.com/octocat/git-consortium");
+        await json(
+          await request.post(`/api/projects/${projects[0].id}/workspaces`, {
+            data: {
+              name: "Additional repository",
+              repoUrl: "https://github.com/octocat/git-consortium",
+            },
+          }),
+        );
+        await expect(
+          card.getByRole("link", { name: "Additional repository" }),
+        ).toHaveAttribute("href", "https://github.com/octocat/git-consortium");
         await expect(card).toHaveCount(1);
       }
       await send(page, "/new");
@@ -63,7 +69,10 @@ for (const direct of [false, true])
         .toBe(1);
       await page.reload();
       await expect(card).toHaveCount(1);
-      if (direct) await expect(card.getByRole("link", { name: "Additional repository" })).toBeVisible();
+      if (direct)
+        await expect(
+          card.getByRole("link", { name: "Additional repository" }),
+        ).toBeVisible();
       await card
         .getByRole("link", { name: "Browser repositories", exact: true })
         .click();
@@ -247,7 +256,9 @@ for (const mode of ["Ask", "Plan"])
     try {
       await page.goto(f.route);
       await page.getByTestId("task-chat-composer-add").click();
-      await page.getByTestId(mode === "Plan" ? "composer-add-plan" : "composer-add-ask").click();
+      await page
+        .getByTestId(mode === "Plan" ? "composer-add-plan" : "composer-add-ask")
+        .click();
       await send(page, { action: "project", name: "Forbidden mutation" });
       await idle(request, f.chatPath);
       expect(

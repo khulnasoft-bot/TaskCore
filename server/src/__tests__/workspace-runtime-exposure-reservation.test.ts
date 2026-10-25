@@ -43,7 +43,15 @@ import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import {
   activityLog,
   companies,
@@ -62,7 +70,10 @@ import {
   RUNTIME_EXPOSURE_HMR_PORT_OFFSET,
 } from "@taskcore/shared";
 
-import type { BrokerClient, BrokerListenerRequest } from "../services/runtime-exposure/broker-client.js";
+import type {
+  BrokerClient,
+  BrokerListenerRequest,
+} from "../services/runtime-exposure/broker-client.js";
 import { readListenerBindFacts } from "../services/runtime-exposure/loopback-listener.js";
 import {
   reconcilePersistedRuntimeServicesOnStartup,
@@ -82,7 +93,8 @@ import {
  * must start clear of that lane, so this suite never seizes a pair a live
  * instance still owns.
  */
-const RUNTIME_EXPOSURE_SUITE_APP_PORT_START = RUNTIME_EXPOSURE_APP_PORT_MIN + 500;
+const RUNTIME_EXPOSURE_SUITE_APP_PORT_START =
+  RUNTIME_EXPOSURE_APP_PORT_MIN + 500;
 
 /**
  * The pair lane B holds under an open lease, and the next pair a correct
@@ -101,9 +113,10 @@ let NEXT_HMR_PORT: number;
  * must be read before that happens. Mirrors the default in
  * `resolveTaskcoreHomeDir`.
  */
-const REAL_TASKCORE_HOME = process.env.TASKCORE_TEST_HOST_HOME?.trim()
-  || process.env.TASKCORE_HOME?.trim()
-  || path.join(os.homedir(), ".taskcore");
+const REAL_TASKCORE_HOME =
+  process.env.TASKCORE_TEST_HOST_HOME?.trim() ||
+  process.env.TASKCORE_HOME?.trim() ||
+  path.join(os.homedir(), ".taskcore");
 
 /**
  * Every port a local Taskcore instance's on-disk service registry currently
@@ -125,7 +138,11 @@ async function readLocallyLeasedPorts(): Promise<Set<number>> {
   }
   for (const instanceEntry of instanceEntries) {
     if (!instanceEntry.isDirectory()) continue;
-    const registryDir = path.join(instancesDir, instanceEntry.name, "runtime-services");
+    const registryDir = path.join(
+      instancesDir,
+      instanceEntry.name,
+      "runtime-services",
+    );
     let recordEntries: Awaited<ReturnType<typeof fs.readdir>>;
     try {
       recordEntries = await fs.readdir(registryDir, { withFileTypes: true });
@@ -133,7 +150,8 @@ async function readLocallyLeasedPorts(): Promise<Set<number>> {
       continue;
     }
     for (const recordEntry of recordEntries) {
-      if (!recordEntry.isFile() || !recordEntry.name.endsWith(".json")) continue;
+      if (!recordEntry.isFile() || !recordEntry.name.endsWith(".json"))
+        continue;
       try {
         const raw = JSON.parse(
           await fs.readFile(path.join(registryDir, recordEntry.name), "utf8"),
@@ -156,7 +174,10 @@ async function readLocallyLeasedPorts(): Promise<Set<number>> {
  * and the identical helper in `workspace-runtime-exposure.test.ts`, plus the
  * `locallyLeasedPorts` check above that a listener probe alone cannot make.
  */
-async function isLoopbackPortFree(port: number, locallyLeasedPorts: Set<number>): Promise<boolean> {
+async function isLoopbackPortFree(
+  port: number,
+  locallyLeasedPorts: Set<number>,
+): Promise<boolean> {
   if (locallyLeasedPorts.has(port)) return false;
 
   const facts = await readListenerBindFacts(port);
@@ -176,16 +197,25 @@ async function isLoopbackPortFree(port: number, locallyLeasedPorts: Set<number>)
  * The first app port at or above `startAt` whose HMR companion is also free on
  * the real host right now, mirroring the allocator's own scan.
  */
-async function findFreeExposureAppPort(startAt: number, locallyLeasedPorts: Set<number>): Promise<number> {
-  for (let appPort = startAt; appPort <= RUNTIME_EXPOSURE_APP_PORT_MAX; appPort += 1) {
+async function findFreeExposureAppPort(
+  startAt: number,
+  locallyLeasedPorts: Set<number>,
+): Promise<number> {
+  for (
+    let appPort = startAt;
+    appPort <= RUNTIME_EXPOSURE_APP_PORT_MAX;
+    appPort += 1
+  ) {
     if (
-      await isLoopbackPortFree(appPort, locallyLeasedPorts)
-      && await isLoopbackPortFree(deriveViteHmrPort(appPort), locallyLeasedPorts)
+      (await isLoopbackPortFree(appPort, locallyLeasedPorts)) &&
+      (await isLoopbackPortFree(deriveViteHmrPort(appPort), locallyLeasedPorts))
     ) {
       return appPort;
     }
   }
-  throw new Error("no free app/HMR port pair available in the dedicated runtime exposure range");
+  throw new Error(
+    "no free app/HMR port pair available in the dedicated runtime exposure range",
+  );
 }
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
@@ -198,8 +228,12 @@ const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
  * away, so a fixture that reported it busy would not reproduce the bug at all.
  */
 async function isPortAvailableOnSyntheticHost(port: number): Promise<boolean> {
-  return port === LEASED_APP_PORT || port === LEASED_HMR_PORT
-    || port === NEXT_APP_PORT || port === NEXT_HMR_PORT;
+  return (
+    port === LEASED_APP_PORT ||
+    port === LEASED_HMR_PORT ||
+    port === NEXT_APP_PORT ||
+    port === NEXT_HMR_PORT
+  );
 }
 
 function createFakeBroker() {
@@ -207,24 +241,37 @@ function createFakeBroker() {
   const reservedByHandle = new Map<string, BrokerListenerRequest[]>();
   const exposedByRuntimeId = new Map<string, BrokerListenerRequest[]>();
   /** Mappings attributed to a runtime this server did not reserve. */
-  const foreignListeners: Array<{ runtimeId: string; port: number; purpose: "app" | "vite_hmr" }> = [];
+  const foreignListeners: Array<{
+    runtimeId: string;
+    port: number;
+    purpose: "app" | "vite_hmr";
+  }> = [];
 
   const broker: BrokerClient = {
     async reserve(runtimeId, requested) {
-      calls.push(`reserve:${requested.map((listener) => listener.port).join(",")}`);
+      calls.push(
+        `reserve:${requested.map((listener) => listener.port).join(",")}`,
+      );
       const handle = `handle-${runtimeId}`;
       reservedByHandle.set(handle, requested);
-      return { handle, reservedPorts: requested.map((listener) => listener.port) };
+      return {
+        handle,
+        reservedPorts: requested.map((listener) => listener.port),
+      };
     },
     async expose(runtimeId, handle) {
       calls.push("expose");
       const requested = reservedByHandle.get(handle) ?? [];
       exposedByRuntimeId.set(runtimeId, requested);
-      return { handle, publicPorts: requested.map((listener) => listener.port) };
+      return {
+        handle,
+        publicPorts: requested.map((listener) => listener.port),
+      };
     },
     async remove(runtimeId, handle) {
       calls.push(`remove:${runtimeId}`);
-      const listeners = exposedByRuntimeId.get(runtimeId) ?? reservedByHandle.get(handle) ?? [];
+      const listeners =
+        exposedByRuntimeId.get(runtimeId) ?? reservedByHandle.get(handle) ?? [];
       exposedByRuntimeId.delete(runtimeId);
       reservedByHandle.delete(handle);
       return { removedPorts: listeners.map((listener) => listener.port) };
@@ -233,7 +280,11 @@ function createFakeBroker() {
       return [
         ...foreignListeners,
         ...[...exposedByRuntimeId.entries()].flatMap(([runtimeId, listeners]) =>
-          listeners.map((listener) => ({ runtimeId, port: listener.port, purpose: listener.purpose })),
+          listeners.map((listener) => ({
+            runtimeId,
+            port: listener.port,
+            purpose: listener.purpose,
+          })),
         ),
       ];
     },
@@ -242,12 +293,16 @@ function createFakeBroker() {
   return { broker, calls, foreignListeners };
 }
 
-function installDeps(broker: BrokerClient, overrides?: {
-  isPortAvailable?: (port: number) => Promise<boolean>;
-}) {
+function installDeps(
+  broker: BrokerClient,
+  overrides?: {
+    isPortAvailable?: (port: number) => Promise<boolean>;
+  },
+) {
   setWorkspaceRuntimeExposureDepsForTests({
     broker,
-    isPortAvailable: overrides?.isPortAvailable ?? isPortAvailableOnSyntheticHost,
+    isPortAvailable:
+      overrides?.isPortAvailable ?? isPortAvailableOnSyntheticHost,
     isBrokerAvailable: async () => true,
     resolveHostname: async () => "runner.tail123.ts.net",
     probeHealth: async () => true,
@@ -276,10 +331,10 @@ const DECLARED_EXPOSE = {
 // failure identifies which executable started and which ports it bound.
 const guestNode = `'${process.execPath.replace(/'/g, "'\\''")}'`;
 const GUEST_COMMAND =
-  `${guestNode} -e "const http=require('node:http');const p=Number(process.env.PORT);`
-  + "console.log('guest-start',process.execPath,p);"
-  + "for(const q of [p,p+10000])http.createServer((_,r)=>{r.statusCode=200;r.end('ok')}).listen(q,'127.0.0.1',()=>console.log('guest-listening',q));"
-  + "setInterval(()=>{},1000)\"";
+  `${guestNode} -e "const http=require('node:http');const p=Number(process.env.PORT);` +
+  "console.log('guest-start',process.execPath,p);" +
+  "for(const q of [p,p+10000])http.createServer((_,r)=>{r.statusCode=200;r.end('ok')}).listen(q,'127.0.0.1',()=>console.log('guest-listening',q));" +
+  'setInterval(()=>{},1000)"';
 
 (embeddedPostgresSupport.supported ? describe : describe.skip)(
   "PAP-17419 leased exposure pair reservation",
@@ -311,12 +366,20 @@ const GUEST_COMMAND =
       // case runs, so the window between the probe and the guest bind stays
       // as short as possible.
       const locallyLeasedPorts = await readLocallyLeasedPorts();
-      LEASED_APP_PORT = await findFreeExposureAppPort(RUNTIME_EXPOSURE_SUITE_APP_PORT_START, locallyLeasedPorts);
+      LEASED_APP_PORT = await findFreeExposureAppPort(
+        RUNTIME_EXPOSURE_SUITE_APP_PORT_START,
+        locallyLeasedPorts,
+      );
       LEASED_HMR_PORT = deriveViteHmrPort(LEASED_APP_PORT);
-      NEXT_APP_PORT = await findFreeExposureAppPort(LEASED_APP_PORT + 1, locallyLeasedPorts);
+      NEXT_APP_PORT = await findFreeExposureAppPort(
+        LEASED_APP_PORT + 1,
+        locallyLeasedPorts,
+      );
       NEXT_HMR_PORT = deriveViteHmrPort(NEXT_APP_PORT);
 
-      workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "pap17419-workspace-"));
+      workspaceRoot = await fs.mkdtemp(
+        path.join(os.tmpdir(), "pap17419-workspace-"),
+      );
       taskcoreHome = await fs.mkdtemp(path.join(os.tmpdir(), "pap17419-home-"));
       // Redirect the local-service registry into a throwaway instance. Without
       // this the suite would write runtime-service records into the real
@@ -328,7 +391,8 @@ const GUEST_COMMAND =
     });
 
     afterAll(async () => {
-      if (previousHttpsMode === undefined) delete process.env.TASKCORE_MANAGED_RUNTIME_HTTPS;
+      if (previousHttpsMode === undefined)
+        delete process.env.TASKCORE_MANAGED_RUNTIME_HTTPS;
       else process.env.TASKCORE_MANAGED_RUNTIME_HTTPS = previousHttpsMode;
       await tempDb?.cleanup();
     });
@@ -338,7 +402,8 @@ const GUEST_COMMAND =
       await resetRuntimeServicesForTests({ terminateProcesses: true });
       if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
       else process.env.TASKCORE_HOME = previousTaskcoreHome;
-      if (previousInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+      if (previousInstanceId === undefined)
+        delete process.env.TASKCORE_INSTANCE_ID;
       else process.env.TASKCORE_INSTANCE_ID = previousInstanceId;
       await fs.rm(workspaceRoot, { recursive: true, force: true });
       await fs.rm(taskcoreHome, { recursive: true, force: true });
@@ -356,7 +421,10 @@ const GUEST_COMMAND =
      * stopped, torn-down runtime row on the leased pair, and the unrelated
      * workspace that will ask for a pair next.
      */
-    async function seedIncident(options?: { leaseStatus?: string; leasedRowStatus?: string }) {
+    async function seedIncident(options?: {
+      leaseStatus?: string;
+      leasedRowStatus?: string;
+    }) {
       const companyId = randomUUID();
       const projectId = randomUUID();
       const projectWorkspaceId = randomUUID();
@@ -370,7 +438,14 @@ const GUEST_COMMAND =
         issuePrefix: `Q${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
         requireBoardApprovalForNewAgents: false,
       });
-      await db.insert(projects).values({ id: projectId, companyId, name: "Taskcore App", status: "in_progress" });
+      await db
+        .insert(projects)
+        .values({
+          id: projectId,
+          companyId,
+          name: "Taskcore App",
+          status: "in_progress",
+        });
       await db.insert(projectWorkspaces).values({
         id: projectWorkspaceId,
         companyId,
@@ -379,7 +454,10 @@ const GUEST_COMMAND =
         cwd: workspaceRoot,
         isPrimary: true,
       });
-      for (const [id, name] of [[leasedWorkspaceId, "lane-b"], [otherWorkspaceId, "posthog-mcp"]] as const) {
+      for (const [id, name] of [
+        [leasedWorkspaceId, "lane-b"],
+        [otherWorkspaceId, "posthog-mcp"],
+      ] as const) {
         await db.insert(executionWorkspaces).values({
           id,
           companyId,
@@ -389,8 +467,14 @@ const GUEST_COMMAND =
           strategyType: "git_worktree",
           name,
           // Lane B's lease is open unless a case closes it.
-          status: id === leasedWorkspaceId ? (options?.leaseStatus ?? "active") : "active",
-          closedAt: id === leasedWorkspaceId && options?.leaseStatus === "archived" ? new Date() : null,
+          status:
+            id === leasedWorkspaceId
+              ? (options?.leaseStatus ?? "active")
+              : "active",
+          closedAt:
+            id === leasedWorkspaceId && options?.leaseStatus === "archived"
+              ? new Date()
+              : null,
           cwd: workspaceRoot,
           baseRef: "HEAD",
           branchName: name,
@@ -429,10 +513,20 @@ const GUEST_COMMAND =
         stoppedAt: new Date(),
       });
 
-      return { companyId, projectId, projectWorkspaceId, leasedWorkspaceId, otherWorkspaceId, leasedRuntimeId };
+      return {
+        companyId,
+        projectId,
+        projectWorkspaceId,
+        leasedWorkspaceId,
+        otherWorkspaceId,
+        leasedRuntimeId,
+      };
     }
 
-    function startInput(seed: Awaited<ReturnType<typeof seedIncident>>, executionWorkspaceId: string) {
+    function startInput(
+      seed: Awaited<ReturnType<typeof seedIncident>>,
+      executionWorkspaceId: string,
+    ) {
       return {
         invocationId: "pap-17419-reservation",
         actor: { id: null, name: "Taskcore", companyId: seed.companyId },
@@ -455,13 +549,20 @@ const GUEST_COMMAND =
         executionWorkspaceId,
         config: {
           workspaceRuntime: {
-            services: [{
-              name: "preview",
-              command: GUEST_COMMAND,
-              port: { type: "auto", envKey: "PORT" },
-              readiness: { type: "http", urlTemplate: "http://127.0.0.1:{{port}}", timeoutSec: 10, intervalMs: 50 },
-              expose: DECLARED_EXPOSE,
-            }],
+            services: [
+              {
+                name: "preview",
+                command: GUEST_COMMAND,
+                port: { type: "auto", envKey: "PORT" },
+                readiness: {
+                  type: "http",
+                  urlTemplate: "http://127.0.0.1:{{port}}",
+                  timeoutSec: 10,
+                  intervalMs: 50,
+                },
+                expose: DECLARED_EXPOSE,
+              },
+            ],
           },
         },
         adapterEnv: {},
@@ -480,9 +581,13 @@ const GUEST_COMMAND =
       // The incident outcome would be LEASED_APP_PORT here.
       expect(runtime.port).toBe(NEXT_APP_PORT);
       expect(runtime.port).not.toBe(LEASED_APP_PORT);
-      expect(runtime.url).toBe(`https://runner.tail123.ts.net:${NEXT_APP_PORT}`);
+      expect(runtime.url).toBe(
+        `https://runner.tail123.ts.net:${NEXT_APP_PORT}`,
+      );
       // The broker was never even asked to reserve the leased pair.
-      expect(calls.filter((call) => call.includes(String(LEASED_APP_PORT)))).toEqual([]);
+      expect(
+        calls.filter((call) => call.includes(String(LEASED_APP_PORT))),
+      ).toEqual([]);
       expect(calls[0]).toBe(`reserve:${NEXT_APP_PORT},${NEXT_HMR_PORT}`);
     }, 30_000);
 
@@ -491,12 +596,15 @@ const GUEST_COMMAND =
       const { broker, calls } = createFakeBroker();
       // A host on which the leased pair is the only free pair in the range.
       installDeps(broker, {
-        isPortAvailable: async (port) => port === LEASED_APP_PORT || port === LEASED_HMR_PORT,
+        isPortAvailable: async (port) =>
+          port === LEASED_APP_PORT || port === LEASED_HMR_PORT,
       });
 
-      await expect(startRuntimeServicesForWorkspaceControl(
-        startInput(seed, seed.otherWorkspaceId),
-      )).rejects.toThrow(/no free app\/HMR port pair available/);
+      await expect(
+        startRuntimeServicesForWorkspaceControl(
+          startInput(seed, seed.otherWorkspaceId),
+        ),
+      ).rejects.toThrow(/no free app\/HMR port pair available/);
 
       expect(calls).toEqual([]);
     }, 30_000);
@@ -519,12 +627,20 @@ const GUEST_COMMAND =
       const { broker, foreignListeners } = createFakeBroker();
       // The pair the allocator would otherwise relocate to is already published
       // by a runtime this server has no row for — the unattributable case.
-      foreignListeners.push({ runtimeId: "runtime-not-ours", port: NEXT_APP_PORT, purpose: "app" });
+      foreignListeners.push({
+        runtimeId: "runtime-not-ours",
+        port: NEXT_APP_PORT,
+        purpose: "app",
+      });
       installDeps(broker);
 
-      await expect(startRuntimeServicesForWorkspaceControl(
-        startInput(seed, seed.otherWorkspaceId),
-      )).rejects.toThrow(/no free app\/HMR port pair available|HTTPS exposure allocation denied/);
+      await expect(
+        startRuntimeServicesForWorkspaceControl(
+          startInput(seed, seed.otherWorkspaceId),
+        ),
+      ).rejects.toThrow(
+        /no free app\/HMR port pair available|HTTPS exposure allocation denied/,
+      );
     }, 30_000);
 
     it("regression 5: release makes the pair reusable by a different workspace", async () => {
@@ -546,7 +662,11 @@ const GUEST_COMMAND =
       const { broker, foreignListeners, calls } = createFakeBroker();
       // Lane B reads `stopped`/`removed`, but the host still publishes its pair
       // for someone else. Exactly the falsely-attributed state from PAP-17251.
-      foreignListeners.push({ runtimeId: "runtime-not-ours", port: LEASED_APP_PORT, purpose: "app" });
+      foreignListeners.push({
+        runtimeId: "runtime-not-ours",
+        port: LEASED_APP_PORT,
+        purpose: "app",
+      });
       installDeps(broker);
 
       const result = await reconcilePersistedRuntimeServicesOnStartup(db);
@@ -576,8 +696,12 @@ const GUEST_COMMAND =
       installDeps(broker);
 
       const [first, second] = await Promise.all([
-        startRuntimeServicesForWorkspaceControl(startInput(seed, seed.otherWorkspaceId)),
-        startRuntimeServicesForWorkspaceControl(startInput(seed, seed.leasedWorkspaceId)),
+        startRuntimeServicesForWorkspaceControl(
+          startInput(seed, seed.otherWorkspaceId),
+        ),
+        startRuntimeServicesForWorkspaceControl(
+          startInput(seed, seed.leasedWorkspaceId),
+        ),
       ]);
 
       const ports = [first[0]?.port, second[0]?.port].sort();

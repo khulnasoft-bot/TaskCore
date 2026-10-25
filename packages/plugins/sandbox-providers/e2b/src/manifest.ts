@@ -28,7 +28,8 @@ const manifest: TaskcorePluginManifestV1 = {
         properties: {
           template: {
             type: "string",
-            description: "E2B sandbox template name. Defaults to base when omitted.",
+            description:
+              "E2B sandbox template name. Defaults to base when omitted.",
             default: "base",
           },
           apiKey: {

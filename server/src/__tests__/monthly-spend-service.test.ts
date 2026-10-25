@@ -9,7 +9,9 @@ function createSelectSequenceDb(results: unknown[]) {
     where: vi.fn(() => chain),
     leftJoin: vi.fn(() => chain),
     groupBy: vi.fn(() => chain),
-    then: vi.fn((resolve: (value: unknown[]) => unknown) => Promise.resolve(resolve(pending.shift() ?? []))),
+    then: vi.fn((resolve: (value: unknown[]) => unknown) =>
+      Promise.resolve(resolve(pending.shift() ?? [])),
+    ),
   };
 
   return {
@@ -26,24 +28,28 @@ describe("monthly spend hydration", () => {
 
   it("recomputes company spentMonthlyCents from the current utc month instead of returning stale stored values", async () => {
     const dbStub = createSelectSequenceDb([
-      [{
-        id: "company-1",
-        name: "Taskcore",
-        description: null,
-        status: "active",
-        issuePrefix: "PAP",
-        issueCounter: 1,
-        budgetMonthlyCents: 5000,
-        spentMonthlyCents: 999999,
-        requireBoardApprovalForNewAgents: false,
-        logoAssetId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }],
-      [{
-        companyId: "company-1",
-        spentMonthlyCents: 420,
-      }],
+      [
+        {
+          id: "company-1",
+          name: "Taskcore",
+          description: null,
+          status: "active",
+          issuePrefix: "PAP",
+          issueCounter: 1,
+          budgetMonthlyCents: 5000,
+          spentMonthlyCents: 999999,
+          requireBoardApprovalForNewAgents: false,
+          logoAssetId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      [
+        {
+          companyId: "company-1",
+          spentMonthlyCents: 420,
+        },
+      ],
     ]);
 
     const companies = companyService(dbStub.db as any);
@@ -54,52 +60,58 @@ describe("monthly spend hydration", () => {
 
   it("recomputes agent spentMonthlyCents from the current utc month instead of returning stale stored values", async () => {
     const dbStub = createSelectSequenceDb([
-      [{
-        id: "agent-1",
-        companyId: "company-1",
-        name: "Budget Agent",
-        role: "general",
-        title: null,
-        reportsTo: null,
-        capabilities: null,
-        adapterType: "claude-local",
-        adapterConfig: {},
-        runtimeConfig: {},
-        budgetMonthlyCents: 5000,
-        spentMonthlyCents: 999999,
-        metadata: null,
-        permissions: null,
-        status: "idle",
-        pauseReason: null,
-        pausedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }],
-      [{
-        id: "agent-1",
-        companyId: "company-1",
-        name: "Budget Agent",
-        role: "general",
-        title: null,
-        reportsTo: null,
-        capabilities: null,
-        adapterType: "claude-local",
-        adapterConfig: {},
-        runtimeConfig: {},
-        budgetMonthlyCents: 5000,
-        spentMonthlyCents: 999999,
-        metadata: null,
-        permissions: null,
-        status: "idle",
-        pauseReason: null,
-        pausedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }],
-      [{
-        agentId: "agent-1",
-        spentMonthlyCents: 175,
-      }],
+      [
+        {
+          id: "agent-1",
+          companyId: "company-1",
+          name: "Budget Agent",
+          role: "general",
+          title: null,
+          reportsTo: null,
+          capabilities: null,
+          adapterType: "claude-local",
+          adapterConfig: {},
+          runtimeConfig: {},
+          budgetMonthlyCents: 5000,
+          spentMonthlyCents: 999999,
+          metadata: null,
+          permissions: null,
+          status: "idle",
+          pauseReason: null,
+          pausedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      [
+        {
+          id: "agent-1",
+          companyId: "company-1",
+          name: "Budget Agent",
+          role: "general",
+          title: null,
+          reportsTo: null,
+          capabilities: null,
+          adapterType: "claude-local",
+          adapterConfig: {},
+          runtimeConfig: {},
+          budgetMonthlyCents: 5000,
+          spentMonthlyCents: 999999,
+          metadata: null,
+          permissions: null,
+          status: "idle",
+          pauseReason: null,
+          pausedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      [
+        {
+          agentId: "agent-1",
+          spentMonthlyCents: 175,
+        },
+      ],
     ]);
 
     const agents = agentService(dbStub.db as any);

@@ -21,7 +21,10 @@ const pkg = requirePackage("../package.json") as PackageJson;
 const GIT_DESCRIBE_RE =
   /^v(?<publicVersion>\d+\.\d+\.\d+)-(?<commitsSinceTag>\d+)-g(?<sha>[0-9a-f]{7,40})(?<dirty>-dirty)?$/i;
 
-function defaultDebugLog(fields: Record<string, unknown>, message: string): void {
+function defaultDebugLog(
+  fields: Record<string, unknown>,
+  message: string,
+): void {
   if (process.env.TASKCORE_DEBUG_VERSION_RESOLUTION !== "1") return;
 
   console.debug(message, fields);
@@ -62,7 +65,8 @@ function hasGitMetadataBeforeNodeModulesBoundary(
     if (pathExists(join(current, ".git"))) return true;
 
     const parent = dirname(current);
-    if (parent === current || basename(current) === "node_modules") return false;
+    if (parent === current || basename(current) === "node_modules")
+      return false;
 
     current = parent;
   }
@@ -94,7 +98,9 @@ function normalizeErrorField(value: unknown): unknown {
   return value;
 }
 
-function compactRecord(fields: Record<string, unknown>): Record<string, unknown> {
+function compactRecord(
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(fields).filter(([, value]) => value !== undefined),
   );
@@ -124,7 +130,9 @@ function summarizeError(err: unknown): Record<string, unknown> {
       stderr: normalizeErrorField(errorLike.stderr),
       stack: errorLike.stack,
       cause:
-        errorLike.cause === undefined ? undefined : summarizeError(errorLike.cause),
+        errorLike.cause === undefined
+          ? undefined
+          : summarizeError(errorLike.cause),
     });
   }
 
@@ -160,7 +168,8 @@ export function resolveServerVersion(
   } = {},
 ): string {
   const packageVersion = opts.packageVersion ?? pkg.version ?? "0.0.0";
-  const gitDescribeCommand = opts.gitDescribeCommand ?? defaultGitDescribeCommand;
+  const gitDescribeCommand =
+    opts.gitDescribeCommand ?? defaultGitDescribeCommand;
   const debugLog = opts.debugLog ?? defaultDebugLog;
   const resolvedPackageRoot = opts.packageRoot ?? packageRoot;
 

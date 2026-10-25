@@ -9,7 +9,11 @@ function truncateIssueChangeText(value: unknown) {
 }
 
 function canonicalIdArray(value: unknown): unknown {
-  if (!Array.isArray(value) || !value.every((entry) => typeof entry === "string")) return value;
+  if (
+    !Array.isArray(value) ||
+    !value.every((entry) => typeof entry === "string")
+  )
+    return value;
   return [...new Set(value)].sort();
 }
 
@@ -33,10 +37,16 @@ export function buildIssueChanges(
     const longText =
       key === "description" ||
       (key === "title" &&
-        ((typeof from === "string" && Array.from(from).length > ISSUE_CHANGE_TEXT_BUDGET) ||
-          (typeof to === "string" && Array.from(to).length > ISSUE_CHANGE_TEXT_BUDGET)));
+        ((typeof from === "string" &&
+          Array.from(from).length > ISSUE_CHANGE_TEXT_BUDGET) ||
+          (typeof to === "string" &&
+            Array.from(to).length > ISSUE_CHANGE_TEXT_BUDGET)));
     changes[key] = longText
-      ? { from: truncateIssueChangeText(from), to: truncateIssueChangeText(to), updated: true }
+      ? {
+          from: truncateIssueChangeText(from),
+          to: truncateIssueChangeText(to),
+          updated: true,
+        }
       : { from, to };
   }
 

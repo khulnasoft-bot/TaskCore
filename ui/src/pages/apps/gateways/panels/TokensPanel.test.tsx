@@ -4,7 +4,10 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { ToolMcpGatewayToken, ToolMcpGatewayWithTokens } from "@taskcore/shared";
+import type {
+  ToolMcpGatewayToken,
+  ToolMcpGatewayWithTokens,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TokensPanel } from "./TokensPanel";
 
@@ -43,7 +46,9 @@ async function flushReact() {
   }
 }
 
-function token(overrides: Partial<ToolMcpGatewayToken> = {}): ToolMcpGatewayToken {
+function token(
+  overrides: Partial<ToolMcpGatewayToken> = {},
+): ToolMcpGatewayToken {
   return {
     id: "token-1",
     companyId: "company-1",
@@ -70,7 +75,9 @@ function token(overrides: Partial<ToolMcpGatewayToken> = {}): ToolMcpGatewayToke
   };
 }
 
-function gateway(overrides: Partial<ToolMcpGatewayWithTokens> = {}): ToolMcpGatewayWithTokens {
+function gateway(
+  overrides: Partial<ToolMcpGatewayWithTokens> = {},
+): ToolMcpGatewayWithTokens {
   return {
     id: "gateway-1",
     companyId: "company-1",
@@ -110,7 +117,9 @@ describe("TokensPanel", () => {
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
-    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-06-16T12:00:00.000Z").getTime());
+    vi.spyOn(Date, "now").mockReturnValue(
+      new Date("2026-06-16T12:00:00.000Z").getTime(),
+    );
     vi.clearAllMocks();
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -123,10 +132,14 @@ describe("TokensPanel", () => {
   });
 
   async function render(node: ReactNode) {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
-      root.render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
+      root.render(
+        <QueryClientProvider client={client}>{node}</QueryClientProvider>,
+      );
     });
     await flushReact();
   }
@@ -142,8 +155,8 @@ describe("TokensPanel", () => {
   }
 
   function clickButtonContaining(label: string) {
-    const button = [...container.querySelectorAll("button")].find(
-      (el) => el.textContent?.includes(label),
+    const button = [...container.querySelectorAll("button")].find((el) =>
+      el.textContent?.includes(label),
     );
     if (!button) throw new Error(`Button containing "${label}" not found`);
     return act(async () => {
@@ -154,7 +167,10 @@ describe("TokensPanel", () => {
   function setInput(selectorText: string, value: string) {
     const input = container.querySelector<HTMLInputElement>(selectorText);
     if (!input) throw new Error(`Input ${selectorText} not found`);
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )?.set;
     setter?.call(input, value);
     return act(async () => {
       input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -162,10 +178,17 @@ describe("TokensPanel", () => {
   }
 
   it("masks existing tokens and never renders the full secret at rest", async () => {
-    await render(<TokensPanel companyId="company-1" gateway={gateway({ tokens: [token()] })} />);
+    await render(
+      <TokensPanel
+        companyId="company-1"
+        gateway={gateway({ tokens: [token()] })}
+      />,
+    );
     expect(container.textContent).not.toContain("pcgw_live_8x4Pa•••");
     expect(container.textContent).toContain("fresh one-hour runtime token");
-    expect(container.textContent).toContain("one run may leave two revoked rows");
+    expect(container.textContent).toContain(
+      "one run may leave two revoked rows",
+    );
 
     await clickButtonContaining("Token history");
     expect(container.textContent).toContain("pcgw_live_8x4Pa•••");
@@ -173,7 +196,10 @@ describe("TokensPanel", () => {
   });
 
   it("autofills a token name, reuses it as the client label, and reveals the token once", async () => {
-    const created = { ...token({ id: "new-token" }), token: "pcgw_live_FULLSECRETVALUE" };
+    const created = {
+      ...token({ id: "new-token" }),
+      token: "pcgw_live_FULLSECRETVALUE",
+    };
     createGatewayTokenMock.mockResolvedValue(created);
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
@@ -183,11 +209,15 @@ describe("TokensPanel", () => {
     await clickButton("Issue token");
     const form = container.querySelector("form");
     if (!form) throw new Error("token form not found");
-    const nameInput = form.querySelector<HTMLInputElement>('input:not([type="date"])');
+    const nameInput = form.querySelector<HTMLInputElement>(
+      'input:not([type="date"])',
+    );
     if (!nameInput) throw new Error("token name input not found");
     expect(nameInput.value).toMatch(/^cto-agents-\d{12}$/);
     await act(async () => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
     });
     await flushReact();
 
@@ -210,8 +240,15 @@ describe("TokensPanel", () => {
   });
 
   it("gates revoke behind a typed confirmation matching the token name", async () => {
-    revokeGatewayTokenMock.mockResolvedValue(token({ revokedAt: "2026-06-16T12:00:00.000Z" }));
-    await render(<TokensPanel companyId="company-1" gateway={gateway({ tokens: [token()] })} />);
+    revokeGatewayTokenMock.mockResolvedValue(
+      token({ revokedAt: "2026-06-16T12:00:00.000Z" }),
+    );
+    await render(
+      <TokensPanel
+        companyId="company-1"
+        gateway={gateway({ tokens: [token()] })}
+      />,
+    );
 
     await clickButtonContaining("Token history");
     await clickButton("Revoke");
@@ -220,7 +257,10 @@ describe("TokensPanel", () => {
     ) as HTMLButtonElement;
     expect(confirmButton.disabled).toBe(true);
 
-    await setInput('input[aria-label="Type the token name to confirm"]', "cto-cursor");
+    await setInput(
+      'input[aria-label="Type the token name to confirm"]',
+      "cto-cursor",
+    );
     expect(confirmButton.disabled).toBe(false);
 
     await clickButton("Revoke token");
@@ -229,15 +269,20 @@ describe("TokensPanel", () => {
   });
 
   it("paginates the folded token log and labels past expiry as expired", async () => {
-    const tokens = Array.from({ length: 11 }, (_, index) => token({
-      id: `token-${index}`,
-      name: `client-${index}`,
-      tokenPrefix: `pcgw_${index}`,
-      expiresAt: index === 0 ? "2026-06-01T00:00:00.000Z" : "2026-09-01T00:00:00.000Z",
-      revokedAt: index === 0 ? "2026-06-10T00:00:00.000Z" : null,
-      createdAt: new Date(Date.UTC(2026, 5, index + 1)).toISOString(),
-    }));
-    await render(<TokensPanel companyId="company-1" gateway={gateway({ tokens })} />);
+    const tokens = Array.from({ length: 11 }, (_, index) =>
+      token({
+        id: `token-${index}`,
+        name: `client-${index}`,
+        tokenPrefix: `pcgw_${index}`,
+        expiresAt:
+          index === 0 ? "2026-06-01T00:00:00.000Z" : "2026-09-01T00:00:00.000Z",
+        revokedAt: index === 0 ? "2026-06-10T00:00:00.000Z" : null,
+        createdAt: new Date(Date.UTC(2026, 5, index + 1)).toISOString(),
+      }),
+    );
+    await render(
+      <TokensPanel companyId="company-1" gateway={gateway({ tokens })} />,
+    );
 
     expect(container.textContent).not.toContain("client-10");
     await clickButtonContaining("Token history");
@@ -245,7 +290,9 @@ describe("TokensPanel", () => {
     expect(container.textContent).toContain("client-10");
     expect(container.textContent).not.toContain("client-0");
 
-    const next = container.querySelector<HTMLButtonElement>('button[aria-label="Next token page"]');
+    const next = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Next token page"]',
+    );
     if (!next) throw new Error("next token page button not found");
     await act(async () => next.click());
 

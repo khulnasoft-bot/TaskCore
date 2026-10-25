@@ -1,4 +1,7 @@
-import { createRunnerE2EServerStopper, runnerE2EServerDetached } from "./server-stop.js";
+import {
+  createRunnerE2EServerStopper,
+  runnerE2EServerDetached,
+} from "./server-stop.js";
 import { runnerE2ETypeScriptProcessArgs } from "./web-server-command.js";
 import { qualifyLegacyClaudeCli } from "./legacy-claude-cli.js";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -6,7 +9,10 @@ import { createWriteStream } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { prepareRunnerE2EServerConfig } from "./server-config.js";
-import { installedReleaseEnvironment, installedReleaseLaunch } from "./installed-release.js";
+import {
+  installedReleaseEnvironment,
+  installedReleaseLaunch,
+} from "./installed-release.js";
 import {
   assertIsolatedServerEnvironment,
   buildTaskcoreServerEnvironment,
@@ -25,7 +31,10 @@ const taskcoreHome = required("TASKCORE_HOME");
 const configPath = required("TASKCORE_CONFIG");
 const port = required("TASKCORE_RUNNER_E2E_PORT");
 const repositoryRoot = path.resolve(import.meta.dirname, "../..");
-const taskcoreCli = path.join(repositoryRoot, "tests/runner-e2e/server-entry.ts");
+const taskcoreCli = path.join(
+  repositoryRoot,
+  "tests/runner-e2e/server-entry.ts",
+);
 const {
   controlDirectory,
   restartRequestPath,
@@ -34,50 +43,67 @@ const {
 const restartTimeoutMs = 180_000;
 const gracefulStopTimeoutMs = 30_000;
 const installedRelease = process.env.TASKCORE_RUNNER_E2E_INSTALLED_CLI
-  ? installedReleaseLaunch(process.env.TASKCORE_RUNNER_E2E_INSTALLED_CLI) : null;
-const serverEnvironment = buildTaskcoreServerEnvironment(installedRelease
-  ? installedReleaseEnvironment(process.env, repositoryRoot, path.join(temporaryRoot, "provider-bin"))
-  : process.env, {
-  NODE_ENV: "test",
-  PORT: port,
-  // Keep provider caches attempt-private without changing Playwright's browser
-  // cache lookup in the parent process.
-  XDG_CACHE_HOME: path.join(temporaryRoot, "xdg-cache"),
-  TASKCORE_HOME: taskcoreHome,
-  TASKCORE_CONFIG: configPath,
-  TASKCORE_INSTANCE_ID: required("TASKCORE_INSTANCE_ID"),
-  TASKCORE_AGENT_JWT_SECRET: required("TASKCORE_AGENT_JWT_SECRET"),
-  TASKCORE_DECISION_SIGNING_SECRET: required(
-    "TASKCORE_DECISION_SIGNING_SECRET",
-  ),
-  TASKCORE_TOOL_ACTION_SIGNING_SECRET: required(
-    "TASKCORE_TOOL_ACTION_SIGNING_SECRET",
-  ),
-  BETTER_AUTH_SECRET: required("BETTER_AUTH_SECRET"),
-  TASKCORE_BIND: "loopback",
-  TASKCORE_BIND_HOST: "127.0.0.1",
-  TASKCORE_DEPLOYMENT_MODE: process.env.TASKCORE_RUNNER_E2E_PUBLIC_MCP === "1" ? "authenticated" : "local_trusted",
-  ...(process.env.TASKCORE_RUNNER_E2E_PUBLIC_MCP === "1" ? {
-    TASKCORE_PUBLIC_URL: `http://127.0.0.1:${port}`,
-    TASKCORE_AUTH_PUBLIC_BASE_URL: `http://127.0.0.1:${port}`,
-    TASKCORE_AUTH_BASE_URL_MODE: "explicit",
-    // Use empty provider configuration as the managed homes' seed. A local
-    // operator's installed plugins, MCP connections and auth are not fixtures.
-    CODEX_HOME: path.join(temporaryRoot, "provider-config", "codex"),
-    CLAUDE_CONFIG_DIR: path.join(temporaryRoot, "provider-config", "claude"),
-  } : {}),
-  TASKCORE_DEPLOYMENT_EXPOSURE: "private",
-  SERVE_UI: "true",
-  TASKCORE_STORAGE_PROVIDER: "local_disk",
-  TASKCORE_STORAGE_LOCAL_DIR: path.join(temporaryRoot, "storage"),
-  TASKCORE_SECRETS_PROVIDER: "local_encrypted",
-  TASKCORE_SECRETS_STRICT_MODE: "true",
-  TASKCORE_DB_BACKUP_ENABLED: "false",
-  TASKCORE_DB_BACKUP_DIR: path.join(temporaryRoot, "backups"),
-  // Onboarding normally opens the app after listen. Browser ownership belongs
-  // to Playwright in this harness, so never create a developer desktop tab.
-  TASKCORE_OPEN_ON_LISTEN: "false",
-});
+  ? installedReleaseLaunch(process.env.TASKCORE_RUNNER_E2E_INSTALLED_CLI)
+  : null;
+const serverEnvironment = buildTaskcoreServerEnvironment(
+  installedRelease
+    ? installedReleaseEnvironment(
+        process.env,
+        repositoryRoot,
+        path.join(temporaryRoot, "provider-bin"),
+      )
+    : process.env,
+  {
+    NODE_ENV: "test",
+    PORT: port,
+    // Keep provider caches attempt-private without changing Playwright's browser
+    // cache lookup in the parent process.
+    XDG_CACHE_HOME: path.join(temporaryRoot, "xdg-cache"),
+    TASKCORE_HOME: taskcoreHome,
+    TASKCORE_CONFIG: configPath,
+    TASKCORE_INSTANCE_ID: required("TASKCORE_INSTANCE_ID"),
+    TASKCORE_AGENT_JWT_SECRET: required("TASKCORE_AGENT_JWT_SECRET"),
+    TASKCORE_DECISION_SIGNING_SECRET: required(
+      "TASKCORE_DECISION_SIGNING_SECRET",
+    ),
+    TASKCORE_TOOL_ACTION_SIGNING_SECRET: required(
+      "TASKCORE_TOOL_ACTION_SIGNING_SECRET",
+    ),
+    BETTER_AUTH_SECRET: required("BETTER_AUTH_SECRET"),
+    TASKCORE_BIND: "loopback",
+    TASKCORE_BIND_HOST: "127.0.0.1",
+    TASKCORE_DEPLOYMENT_MODE:
+      process.env.TASKCORE_RUNNER_E2E_PUBLIC_MCP === "1"
+        ? "authenticated"
+        : "local_trusted",
+    ...(process.env.TASKCORE_RUNNER_E2E_PUBLIC_MCP === "1"
+      ? {
+          TASKCORE_PUBLIC_URL: `http://127.0.0.1:${port}`,
+          TASKCORE_AUTH_PUBLIC_BASE_URL: `http://127.0.0.1:${port}`,
+          TASKCORE_AUTH_BASE_URL_MODE: "explicit",
+          // Use empty provider configuration as the managed homes' seed. A local
+          // operator's installed plugins, MCP connections and auth are not fixtures.
+          CODEX_HOME: path.join(temporaryRoot, "provider-config", "codex"),
+          CLAUDE_CONFIG_DIR: path.join(
+            temporaryRoot,
+            "provider-config",
+            "claude",
+          ),
+        }
+      : {}),
+    TASKCORE_DEPLOYMENT_EXPOSURE: "private",
+    SERVE_UI: "true",
+    TASKCORE_STORAGE_PROVIDER: "local_disk",
+    TASKCORE_STORAGE_LOCAL_DIR: path.join(temporaryRoot, "storage"),
+    TASKCORE_SECRETS_PROVIDER: "local_encrypted",
+    TASKCORE_SECRETS_STRICT_MODE: "true",
+    TASKCORE_DB_BACKUP_ENABLED: "false",
+    TASKCORE_DB_BACKUP_DIR: path.join(temporaryRoot, "backups"),
+    // Onboarding normally opens the app after listen. Browser ownership belongs
+    // to Playwright in this harness, so never create a developer desktop tab.
+    TASKCORE_OPEN_ON_LISTEN: "false",
+  },
+);
 assertIsolatedServerEnvironment(serverEnvironment, {
   temporaryRoot,
   taskcoreHome,
@@ -92,10 +118,18 @@ const definedServerEnvironment = Object.fromEntries(
 await Promise.all([
   mkdir(path.dirname(logPath), { recursive: true }),
   mkdir(controlDirectory, { recursive: true, mode: 0o700 }),
-  ...(process.env.TASKCORE_RUNNER_E2E_PUBLIC_MCP === "1" ? [
-    mkdir(path.join(temporaryRoot, "provider-config", "codex"), { recursive: true, mode: 0o700 }),
-    mkdir(path.join(temporaryRoot, "provider-config", "claude"), { recursive: true, mode: 0o700 }),
-  ] : []),
+  ...(process.env.TASKCORE_RUNNER_E2E_PUBLIC_MCP === "1"
+    ? [
+        mkdir(path.join(temporaryRoot, "provider-config", "codex"), {
+          recursive: true,
+          mode: 0o700,
+        }),
+        mkdir(path.join(temporaryRoot, "provider-config", "claude"), {
+          recursive: true,
+          mode: 0o700,
+        }),
+      ]
+    : []),
 ]);
 const log = createWriteStream(logPath, { flags: "a", mode: 0o600 });
 const expectedStops = new WeakSet<ChildProcess>();
@@ -130,7 +164,12 @@ async function startServer() {
   }
   const candidate = spawn(
     process.execPath,
-    installedRelease?.args ?? runnerE2ETypeScriptProcessArgs(repositoryRoot, taskcoreCli, ["onboard", "--yes", "--run"]),
+    installedRelease?.args ??
+      runnerE2ETypeScriptProcessArgs(repositoryRoot, taskcoreCli, [
+        "onboard",
+        "--yes",
+        "--run",
+      ]),
     {
       cwd: installedRelease?.cwd ?? repositoryRoot,
       env: definedServerEnvironment,
@@ -185,7 +224,9 @@ const stopServer = createRunnerE2EServerStopper({
   gracefulTimeoutMs: gracefulStopTimeoutMs,
   forcedTimeoutMs: 5_000,
   hasSpawnError: (candidate) => childErrors.has(candidate),
-  markExpectedStop: (candidate) => { expectedStops.add(candidate); },
+  markExpectedStop: (candidate) => {
+    expectedStops.add(candidate);
+  },
   log: appendLog,
 });
 
@@ -321,9 +362,20 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
 }
 
 async function supervise() {
-  const executionIds: string[] = JSON.parse(process.env.TASKCORE_RUNNER_E2E_EXECUTION_IDS ?? "[]");
-  if (executionIds.some(id => id.includes(".legacy-claude.local.") || /\.assistant-claude-(?:haiku|sonnet)\.local\./.test(id))) {
-    definedServerEnvironment.PATH = await qualifyLegacyClaudeCli(temporaryRoot, definedServerEnvironment);
+  const executionIds: string[] = JSON.parse(
+    process.env.TASKCORE_RUNNER_E2E_EXECUTION_IDS ?? "[]",
+  );
+  if (
+    executionIds.some(
+      (id) =>
+        id.includes(".legacy-claude.local.") ||
+        /\.assistant-claude-(?:haiku|sonnet)\.local\./.test(id),
+    )
+  ) {
+    definedServerEnvironment.PATH = await qualifyLegacyClaudeCli(
+      temporaryRoot,
+      definedServerEnvironment,
+    );
   }
   const databaseReservation = await prepareRunnerE2EServerConfig({
     temporaryRoot,

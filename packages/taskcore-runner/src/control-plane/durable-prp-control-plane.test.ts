@@ -20,8 +20,14 @@ import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { NativeSessionProtocolIntegrityError } from "../contracts/native-session-backend.js";
-import { createCapabilityRunnerdCodexTransport, createCapabilityRunnerdProviderEnvironment } from "../live/runnerd-codex-transport.js";
-import { ACPX_CREDENTIAL_BINDING_ENV, createAcpxSidecarHostEnvironment } from "../drivers/acpx/environment.js";
+import {
+  createCapabilityRunnerdCodexTransport,
+  createCapabilityRunnerdProviderEnvironment,
+} from "../live/runnerd-codex-transport.js";
+import {
+  ACPX_CREDENTIAL_BINDING_ENV,
+  createAcpxSidecarHostEnvironment,
+} from "../drivers/acpx/environment.js";
 import { validatePrpEvent } from "../protocol/replay-contract.js";
 import { digestTaskcoreSemanticContent } from "../semantic-tools/receipts.js";
 import {
@@ -45,15 +51,22 @@ const identity: DurableRecoveryIdentity = {
 const expectedRunnerVersion = "0.3.0";
 const expectedRunnerDigest = `sha256:${"a".repeat(64)}`;
 
-function renewalRequest(client: AuthenticatedClient, expiresAt: number): Record<string, unknown> {
+function renewalRequest(
+  client: AuthenticatedClient,
+  expiresAt: number,
+): Record<string, unknown> {
   return {
-    protocol: "taskcore.runner", version: client.welcome.version,
-    kind: "lease_renew", ...identity,
+    protocol: "taskcore.runner",
+    version: client.welcome.version,
+    kind: "lease_renew",
+    ...identity,
     connectionId: client.welcome.connectionId,
     connectionLeaseId: client.welcome.connectionLeaseId,
     payload: {
       connectionLeaseExpiresAtUnixMs: expiresAt,
-      connectionLeaseRevocationEpoch: (client.welcome.payload as Record<string, unknown>).connectionLeaseRevocationEpoch,
+      connectionLeaseRevocationEpoch: (
+        client.welcome.payload as Record<string, unknown>
+      ).connectionLeaseRevocationEpoch,
     },
   };
 }
@@ -64,13 +77,19 @@ it("renews one authenticated connection for three weeks without replacing its au
   const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
   const ttl = 6 * 60 * 60 * 1_000;
   const core = new DurablePrpControlPlane({
-    stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest,
+    stateDirectory: root,
+    identity,
+    expectedRunnerVersion,
+    expectedRunnerDigest,
     connectionLeaseTtlMs: ttl,
   });
   try {
     await core.start();
     const client = (await authenticate(core, core.issueBootstrapTicket()))!;
-    let expiry = Number((client.welcome.payload as Record<string, unknown>).connectionLeaseExpiresAtUnixMs);
+    let expiry = Number(
+      (client.welcome.payload as Record<string, unknown>)
+        .connectionLeaseExpiresAtUnixMs,
+    );
     const leaseId = client.welcome.connectionLeaseId;
     for (let hour = 0; hour < 21 * 24; hour += 3) {
       now += ttl / 2;
@@ -80,7 +99,10 @@ it("renews one authenticated connection for three weeks without replacing its au
       expect(reply.kind).toBe("lease_renewed");
       expect(reply.connectionLeaseId).toBe(leaseId);
       expect(reply.connectionId).toBe(client.welcome.connectionId);
-      const next = Number((reply.payload as Record<string, unknown>).connectionLeaseExpiresAtUnixMs);
+      const next = Number(
+        (reply.payload as Record<string, unknown>)
+          .connectionLeaseExpiresAtUnixMs,
+      );
       expect(next).toBe(now + ttl);
       // A lost reply can be retried without another authority extension.
       now += 1;
@@ -94,16 +116,24 @@ it("renews one authenticated connection for three weeks without replacing its au
     client.socket.destroy();
     await core.stop();
     const restored = new DurablePrpControlPlane({
-      stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest,
+      stateDirectory: root,
+      identity,
+      expectedRunnerVersion,
+      expectedRunnerDigest,
       connectionLeaseTtlMs: ttl,
     });
     try {
       await restored.start();
       const resumed = (await authenticate(restored, client.leaseToken!))!;
       expect(resumed.welcome.connectionLeaseId).toBe(leaseId);
-      expect((resumed.welcome.payload as Record<string, unknown>).connectionLeaseExpiresAtUnixMs).toBe(expiry);
+      expect(
+        (resumed.welcome.payload as Record<string, unknown>)
+          .connectionLeaseExpiresAtUnixMs,
+      ).toBe(expiry);
       resumed.socket.destroy();
-    } finally { await restored.stop(); }
+    } finally {
+      await restored.stop();
+    }
   } finally {
     clock.mockRestore();
     await core.stop();
@@ -111,33 +141,57 @@ it("renews one authenticated connection for three weeks without replacing its au
   }
 }, 30_000);
 
-it.each(["expired", "revoked", "wrong-run", "wrong-connection", "wrong-epoch", "future-expiry"])(
-  "cannot renew a lease with %s authority",
-  async (fault) => {
-    const root = mkdtempSync(resolve(tmpdir(), "runner-lease-denial-"));
-    const core = new DurablePrpControlPlane({ stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest });
-    let clock: ReturnType<typeof vi.spyOn> | undefined;
-    try {
-      await core.start();
-      const client = (await authenticate(core, core.issueBootstrapTicket()))!;
-      const expiry = Number((client.welcome.payload as Record<string, unknown>).connectionLeaseExpiresAtUnixMs);
-      const request = renewalRequest(client, expiry);
-      if (fault === "expired") clock = vi.spyOn(Date, "now").mockReturnValue(expiry);
-      if (fault === "revoked") Object.values(core.store.state.leases)[0]!.revokedAt = new Date().toISOString();
-      if (fault === "wrong-run") request.runId = "different-run";
-      if (fault === "wrong-connection") request.connectionId = "different-connection";
-      if (fault === "wrong-epoch") (request.payload as Record<string, unknown>).connectionLeaseRevocationEpoch = 999;
-      if (fault === "future-expiry") (request.payload as Record<string, unknown>).connectionLeaseExpiresAtUnixMs = expiry + 1;
-      sendSecure(client, request);
-      expect(await receiveSecure(client)).toBeNull();
-      expect(Object.values(core.store.state.leases)[0]!.expiresAtUnixMs).toBe(expiry);
-    } finally {
-      clock?.mockRestore();
-      await core.stop();
-      rmSync(root, { recursive: true, force: true });
-    }
-  },
-);
+it.each([
+  "expired",
+  "revoked",
+  "wrong-run",
+  "wrong-connection",
+  "wrong-epoch",
+  "future-expiry",
+])("cannot renew a lease with %s authority", async (fault) => {
+  const root = mkdtempSync(resolve(tmpdir(), "runner-lease-denial-"));
+  const core = new DurablePrpControlPlane({
+    stateDirectory: root,
+    identity,
+    expectedRunnerVersion,
+    expectedRunnerDigest,
+  });
+  let clock: ReturnType<typeof vi.spyOn> | undefined;
+  try {
+    await core.start();
+    const client = (await authenticate(core, core.issueBootstrapTicket()))!;
+    const expiry = Number(
+      (client.welcome.payload as Record<string, unknown>)
+        .connectionLeaseExpiresAtUnixMs,
+    );
+    const request = renewalRequest(client, expiry);
+    if (fault === "expired")
+      clock = vi.spyOn(Date, "now").mockReturnValue(expiry);
+    if (fault === "revoked")
+      Object.values(core.store.state.leases)[0]!.revokedAt =
+        new Date().toISOString();
+    if (fault === "wrong-run") request.runId = "different-run";
+    if (fault === "wrong-connection")
+      request.connectionId = "different-connection";
+    if (fault === "wrong-epoch")
+      (
+        request.payload as Record<string, unknown>
+      ).connectionLeaseRevocationEpoch = 999;
+    if (fault === "future-expiry")
+      (
+        request.payload as Record<string, unknown>
+      ).connectionLeaseExpiresAtUnixMs = expiry + 1;
+    sendSecure(client, request);
+    expect(await receiveSecure(client)).toBeNull();
+    expect(Object.values(core.store.state.leases)[0]!.expiresAtUnixMs).toBe(
+      expiry,
+    );
+  } finally {
+    clock?.mockRestore();
+    await core.stop();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 it("persists the initial warm attachment seed idempotently and rejects replacement", () => {
   const root = mkdtempSync(
@@ -542,9 +596,9 @@ it("preserves the controller-selected ACPX provider package root", () => {
   expect(launches[0]!.environment.TASKCORE_ACPX_PROVIDER_PACKAGE_ROOT).toBe(
     "/verified/provider-pack",
   );
-  expect(
-    launches[0]!.environment.TASKCORE_ACPX_PROVIDER_PACKAGE_MANIFEST,
-  ).toBe("/verified/provider-pack/package.json");
+  expect(launches[0]!.environment.TASKCORE_ACPX_PROVIDER_PACKAGE_MANIFEST).toBe(
+    "/verified/provider-pack/package.json",
+  );
   expect(launches[0]!.environment.NODE_PATH).toBeUndefined();
 });
 
@@ -553,47 +607,97 @@ it.each([
   ["cursor", "CURSOR_API_KEY"],
   ["cursor", "CURSOR_AUTH_TOKEN"],
   ["copilot", "COPILOT_GITHUB_TOKEN"],
-] as const)("preserves explicit %s %s binding through the actual runner launch boundary", (agent, key) => {
-  const launches: RunnerProcessLaunchSpec[] = [];
-  vi.stubEnv(key, "ambient-must-not-cross");
-  vi.stubEnv(ACPX_CREDENTIAL_BINDING_ENV, "ambient-forged-marker");
-  try {
-    for (const explicit of [true, false]) {
-      const environment = createCapabilityRunnerdProviderEnvironment({
-        provider: "acpx", identity, codexHome: "/fixture/home",
-        runtimeContextPath: "/fixture/context.json", hasRuntimeContext: false,
-        options: { acpxAgent: agent,
-          environment: explicit ? { [key]: "explicit-fixture-credential", [ACPX_CREDENTIAL_BINDING_ENV]: "caller-forged-marker", DATABASE_URL: "must-not-cross" } : undefined },
-      });
-      const handle = spawnRunner({
-        connection: { mode: "connect", connectUrl: "ws://127.0.0.1:43127" },
-        stateDirectory: "/tmp/taskcore-runner-test", identity,
-        ticket: "bootstrap-ticket", maxOutboxBytes: 256 * 1024, p0ReserveBytes: 64 * 1024,
-        runnerVersion: expectedRunnerVersion, runnerDigest: expectedRunnerDigest, environment,
-        processLauncher: spec => {
-          launches.push(spec);
-          return { child: { pid: 42, exitCode: null, signalCode: null, kill: () => true },
-            completion: Promise.resolve({ code: 0, signal: null, stdout: "", stderr: "" }) };
-        },
-      });
-      handle.restart("replacement-ticket");
-      for (const launch of launches.splice(0)) {
-        expect(launch.environment[key]).toBe(explicit ? "explicit-fixture-credential" : undefined);
-        const receipt = launch.environment[ACPX_CREDENTIAL_BINDING_ENV];
-        expect(receipt).toBeDefined();
-        expect(JSON.parse(receipt!)).toEqual({ schema: "taskcore.acpx_credential_binding.v1", agent,
-          sessionId: identity.normalizedSessionId, names: explicit ? [key] : [] });
-        expect(receipt).not.toContain("fixture-credential");
-        expect(launch.environment.DATABASE_URL).toBeUndefined();
-        const provider = createAcpxSidecarHostEnvironment(launch.environment, agent, identity.normalizedSessionId);
-        expect(provider[key]).toBe(explicit ? "explicit-fixture-credential" : undefined);
-        expect(provider[ACPX_CREDENTIAL_BINDING_ENV]).toBeUndefined();
-        expect(() => createAcpxSidecarHostEnvironment(launch.environment, agent, "stale-session"))
-          .toThrow("explicit matching session binding");
+] as const)(
+  "preserves explicit %s %s binding through the actual runner launch boundary",
+  (agent, key) => {
+    const launches: RunnerProcessLaunchSpec[] = [];
+    vi.stubEnv(key, "ambient-must-not-cross");
+    vi.stubEnv(ACPX_CREDENTIAL_BINDING_ENV, "ambient-forged-marker");
+    try {
+      for (const explicit of [true, false]) {
+        const environment = createCapabilityRunnerdProviderEnvironment({
+          provider: "acpx",
+          identity,
+          codexHome: "/fixture/home",
+          runtimeContextPath: "/fixture/context.json",
+          hasRuntimeContext: false,
+          options: {
+            acpxAgent: agent,
+            environment: explicit
+              ? {
+                  [key]: "explicit-fixture-credential",
+                  [ACPX_CREDENTIAL_BINDING_ENV]: "caller-forged-marker",
+                  DATABASE_URL: "must-not-cross",
+                }
+              : undefined,
+          },
+        });
+        const handle = spawnRunner({
+          connection: { mode: "connect", connectUrl: "ws://127.0.0.1:43127" },
+          stateDirectory: "/tmp/taskcore-runner-test",
+          identity,
+          ticket: "bootstrap-ticket",
+          maxOutboxBytes: 256 * 1024,
+          p0ReserveBytes: 64 * 1024,
+          runnerVersion: expectedRunnerVersion,
+          runnerDigest: expectedRunnerDigest,
+          environment,
+          processLauncher: (spec) => {
+            launches.push(spec);
+            return {
+              child: {
+                pid: 42,
+                exitCode: null,
+                signalCode: null,
+                kill: () => true,
+              },
+              completion: Promise.resolve({
+                code: 0,
+                signal: null,
+                stdout: "",
+                stderr: "",
+              }),
+            };
+          },
+        });
+        handle.restart("replacement-ticket");
+        for (const launch of launches.splice(0)) {
+          expect(launch.environment[key]).toBe(
+            explicit ? "explicit-fixture-credential" : undefined,
+          );
+          const receipt = launch.environment[ACPX_CREDENTIAL_BINDING_ENV];
+          expect(receipt).toBeDefined();
+          expect(JSON.parse(receipt!)).toEqual({
+            schema: "taskcore.acpx_credential_binding.v1",
+            agent,
+            sessionId: identity.normalizedSessionId,
+            names: explicit ? [key] : [],
+          });
+          expect(receipt).not.toContain("fixture-credential");
+          expect(launch.environment.DATABASE_URL).toBeUndefined();
+          const provider = createAcpxSidecarHostEnvironment(
+            launch.environment,
+            agent,
+            identity.normalizedSessionId,
+          );
+          expect(provider[key]).toBe(
+            explicit ? "explicit-fixture-credential" : undefined,
+          );
+          expect(provider[ACPX_CREDENTIAL_BINDING_ENV]).toBeUndefined();
+          expect(() =>
+            createAcpxSidecarHostEnvironment(
+              launch.environment,
+              agent,
+              "stale-session",
+            ),
+          ).toThrow("explicit matching session binding");
+        }
       }
+    } finally {
+      vi.unstubAllEnvs();
     }
-  } finally { vi.unstubAllEnvs(); }
-});
+  },
+);
 
 it("preserves file-backed AWS workload identity at the runner spawn boundary", () => {
   const launches: RunnerProcessLaunchSpec[] = [];
@@ -959,7 +1063,12 @@ function secureNonce(prefix: "P3C1" | "P3S1", counter: bigint): Buffer {
 }
 
 it.each([
-  "allow", "reject", "expire", "replace", "stop", "competing_proof",
+  "allow",
+  "reject",
+  "expire",
+  "replace",
+  "stop",
+  "competing_proof",
 ] as const)(
   "holds authenticated command admission until durable ownership settles (%s)",
   async (outcome) => {
@@ -1177,17 +1286,23 @@ async function receiveSecure(
   return value;
 }
 
-const semanticInputDigestFixtures = JSON.parse(readFileSync(
-  new URL("../../test/fixtures/semantic-input-digests.json", import.meta.url),
-  "utf8",
-)) as Array<{ name: string; input: Record<string, unknown>; digest: string }>;
+const semanticInputDigestFixtures = JSON.parse(
+  readFileSync(
+    new URL("../../test/fixtures/semantic-input-digests.json", import.meta.url),
+    "utf8",
+  ),
+) as Array<{ name: string; input: Record<string, unknown>; digest: string }>;
 
 function rawSemanticInputDigest(input: unknown): string {
   return `sha256:${createHash("sha256")
-    .update(durableRecoveryInternals.canonicalJson(input)).digest("hex")}`;
+    .update(durableRecoveryInternals.canonicalJson(input))
+    .digest("hex")}`;
 }
 
-function semanticInputEvent(sourceSeq = 1, input: Record<string, unknown> = {}): Record<string, unknown> {
+function semanticInputEvent(
+  sourceSeq = 1,
+  input: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     protocol: "taskcore.runner",
     version: 1,
@@ -1619,7 +1734,9 @@ describe("DurablePrpControlPlane", () => {
       // The launcher never executes this file. Use a small artifact so cold
       // reads of the Linux Node executable do not consume the failure deadline.
       const runnerBinary = resolve(root, "synthetic-runner");
-      writeFileSync(runnerBinary, "synthetic runner artifact\n", { mode: 0o600 });
+      writeFileSync(runnerBinary, "synthetic runner artifact\n", {
+        mode: 0o600,
+      });
       const runnerDigest = `sha256:${createHash("sha256").update(readFileSync(runnerBinary)).digest("hex")}`;
       const handler = vi.fn(async () => ({ success: true, contentItems: [] }));
       const bundle = createCapabilityRunnerdCodexTransport({
@@ -1710,19 +1827,31 @@ describe("DurablePrpControlPlane", () => {
     },
   );
 
-  it.each(semanticInputDigestFixtures.flatMap((fixture) =>
-    ["semantic_tool.input", "mcp_app.tool_input"].map((eventType) => ({ ...fixture, eventType })),
-  ))(
+  it.each(
+    semanticInputDigestFixtures.flatMap((fixture) =>
+      ["semantic_tool.input", "mcp_app.tool_input"].map((eventType) => ({
+        ...fixture,
+        eventType,
+      })),
+    ),
+  )(
     "accepts the Rust wire digest and preserves exact input: $eventType / $name",
     async ({ input, digest, eventType }) => {
       // The JSON transport normalizes negative zero before the receiver sees it.
-      const wireInput = JSON.parse(JSON.stringify(input)) as Record<string, unknown>;
+      const wireInput = JSON.parse(JSON.stringify(input)) as Record<
+        string,
+        unknown
+      >;
       const root = mkdtempSync(resolve(tmpdir(), "taskcore-prp-raw-input-"));
       const onProtocolIntegrityError = vi.fn();
       const onSemanticToolInput = vi.fn(async () => ({ result: { ok: true } }));
       const core = new DurablePrpControlPlane({
-        stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest,
-        onProtocolIntegrityError, onSemanticToolInput,
+        stateDirectory: root,
+        identity,
+        expectedRunnerVersion,
+        expectedRunnerDigest,
+        onProtocolIntegrityError,
+        onSemanticToolInput,
       });
       try {
         await core.start();
@@ -1734,34 +1863,58 @@ describe("DurablePrpControlPlane", () => {
         semantic.content.digest = digest;
         expect(rawSemanticInputDigest(input)).toBe(digest);
         sendSecure(client, event);
-        const frames = [await receiveSecure(client), await receiveSecure(client)];
-        expect(frames).toContainEqual(expect.objectContaining({
-          kind: "ack", payload: expect.objectContaining({ ackedSourceSeq: 1 }),
-        }));
-        const command = frames.find((frame) => frame?.kind === "command")!.payload as any;
-        expect(command.payload.inputDigest).toBe(digest.slice("sha256:".length));
-        expect(onSemanticToolInput).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ input: wireInput }));
+        const frames = [
+          await receiveSecure(client),
+          await receiveSecure(client),
+        ];
+        expect(frames).toContainEqual(
+          expect.objectContaining({
+            kind: "ack",
+            payload: expect.objectContaining({ ackedSourceSeq: 1 }),
+          }),
+        );
+        const command = frames.find((frame) => frame?.kind === "command")!
+          .payload as any;
+        expect(command.payload.inputDigest).toBe(
+          digest.slice("sha256:".length),
+        );
+        expect(onSemanticToolInput).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({ input: wireInput }),
+        );
         expect(core.store.state.committedEvents).toHaveLength(1);
         expect(core.store.state.committedEvents[0]?.envelope).toEqual(event);
         expect(onProtocolIntegrityError).not.toHaveBeenCalled();
         client.socket.destroy();
-      } finally { await core.stop(); rmSync(root, { recursive: true, force: true }); }
+      } finally {
+        await core.stop();
+        rmSync(root, { recursive: true, force: true });
+      }
     },
   );
 
   it.each([
-    "redacted_digest", "protected_field_tampering", "forged_digest",
-    "over_node_limit", "over_depth_limit",
+    "redacted_digest",
+    "protected_field_tampering",
+    "forged_digest",
+    "over_node_limit",
+    "over_depth_limit",
   ] as const)(
     "rejects invalid raw semantic integrity without commit, dispatch or ACK: %s",
     async (fault) => {
-      const root = mkdtempSync(resolve(tmpdir(), "taskcore-prp-raw-integrity-"));
+      const root = mkdtempSync(
+        resolve(tmpdir(), "taskcore-prp-raw-integrity-"),
+      );
       const onProtocolIntegrityError = vi.fn();
       const onCommittedEvent = vi.fn(async () => undefined);
       const onSemanticToolInput = vi.fn(async () => ({ result: { ok: true } }));
       const core = new DurablePrpControlPlane({
-        stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest,
-        onProtocolIntegrityError, onCommittedEvent, onSemanticToolInput,
+        stateDirectory: root,
+        identity,
+        expectedRunnerVersion,
+        expectedRunnerDigest,
+        onProtocolIntegrityError,
+        onCommittedEvent,
+        onSemanticToolInput,
       });
       try {
         await core.start();
@@ -1771,17 +1924,23 @@ describe("DurablePrpControlPlane", () => {
         const semantic = (event.payload as any).payload.semantic_tool;
         const redactedDigest = digestTaskcoreSemanticContent(input);
         expect(redactedDigest).not.toBe(semantic.content.digest);
-        if (fault === "redacted_digest") semantic.content.digest = redactedDigest;
-        if (fault === "forged_digest") semantic.content.digest = `sha256:${"0".repeat(64)}`;
+        if (fault === "redacted_digest")
+          semantic.content.digest = redactedDigest;
+        if (fault === "forged_digest")
+          semantic.content.digest = `sha256:${"0".repeat(64)}`;
         if (fault === "protected_field_tampering") {
           semantic.input = { ...input, password: "fixture-after" };
           // Redacted receipt hashes intentionally cannot prove byte integrity.
-          expect(digestTaskcoreSemanticContent(semantic.input)).toBe(redactedDigest);
+          expect(digestTaskcoreSemanticContent(semantic.input)).toBe(
+            redactedDigest,
+          );
         }
-        if (fault === "over_node_limit") semantic.input = { values: Array(10_001).fill(0) };
+        if (fault === "over_node_limit")
+          semantic.input = { values: Array(10_001).fill(0) };
         if (fault === "over_depth_limit") {
           let nested: unknown = {};
-          for (let depth = 0; depth < 65; depth += 1) nested = { child: nested };
+          for (let depth = 0; depth < 65; depth += 1)
+            nested = { child: nested };
           semantic.input = nested;
         }
         if (fault === "over_node_limit" || fault === "over_depth_limit") {
@@ -1789,26 +1948,37 @@ describe("DurablePrpControlPlane", () => {
           // Hash independently of the bounded helper: the limits themselves
           // must reject even a matching raw digest and keep the permanent fence.
           semantic.content.digest = `sha256:${createHash("sha256")
-            .update(JSON.stringify(semantic.input)).digest("hex")}`;
+            .update(JSON.stringify(semantic.input))
+            .digest("hex")}`;
         }
         sendSecure(client, event);
         await expect(receiveSecure(client)).resolves.toBeNull();
-        expect(onProtocolIntegrityError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
-          code: "native_event_replay_conflict", reason: "semantic_input_digest_mismatch",
-          recovery: "operator_required",
-        }));
+        expect(onProtocolIntegrityError).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({
+            code: "native_event_replay_conflict",
+            reason: "semantic_input_digest_mismatch",
+            recovery: "operator_required",
+          }),
+        );
         expect(core.store.state.ackedSourceSeq).toBe(0);
         expect(core.store.state.committedEvents).toEqual([]);
         expect(onCommittedEvent).not.toHaveBeenCalled();
         expect(onSemanticToolInput).not.toHaveBeenCalled();
-        expect(JSON.stringify(onProtocolIntegrityError.mock.calls)).not.toContain("fixture-before");
-        expect(JSON.stringify(onProtocolIntegrityError.mock.calls)).not.toContain("fixture-after");
+        expect(
+          JSON.stringify(onProtocolIntegrityError.mock.calls),
+        ).not.toContain("fixture-before");
+        expect(
+          JSON.stringify(onProtocolIntegrityError.mock.calls),
+        ).not.toContain("fixture-after");
         const replay = (await authenticate(core, client.leaseToken!))!;
         sendSecure(replay, semanticInputEvent());
         await expect(receiveSecure(replay)).resolves.toBeNull();
         expect(onProtocolIntegrityError).toHaveBeenCalledTimes(1);
         expect(onSemanticToolInput).not.toHaveBeenCalled();
-      } finally { await core.stop(); rmSync(root, { recursive: true, force: true }); }
+      } finally {
+        await core.stop();
+        rmSync(root, { recursive: true, force: true });
+      }
     },
   );
 
@@ -1820,14 +1990,24 @@ describe("DurablePrpControlPlane", () => {
       const onCommittedEvent = vi.fn(async () => undefined);
       const onSemanticToolInput = vi.fn(async () => ({ result: { ok: true } }));
       const core = new DurablePrpControlPlane({
-        stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest,
-        onProtocolIntegrityError, onCommittedEvent, onSemanticToolInput,
+        stateDirectory: root,
+        identity,
+        expectedRunnerVersion,
+        expectedRunnerDigest,
+        onProtocolIntegrityError,
+        onCommittedEvent,
+        onSemanticToolInput,
       });
       try {
         await core.start();
         const wrongRunId = "00000000-0000-4000-8000-000000000999";
-        const client = await authenticate(core, core.issueBootstrapTicket(),
-          boundary === "authentication" ? { ...identity, runId: wrongRunId } : identity);
+        const client = await authenticate(
+          core,
+          core.issueBootstrapTicket(),
+          boundary === "authentication"
+            ? { ...identity, runId: wrongRunId }
+            : identity,
+        );
         if (boundary === "authentication") {
           expect(client).toBeNull();
         } else {
@@ -1835,7 +2015,8 @@ describe("DurablePrpControlPlane", () => {
           const payload = event.payload as any;
           if (boundary === "envelope") event.runId = wrongRunId;
           if (boundary === "event") payload.runId = wrongRunId;
-          if (boundary === "correlation") payload.payload.semantic_tool.correlation.runId = wrongRunId;
+          if (boundary === "correlation")
+            payload.payload.semantic_tool.correlation.runId = wrongRunId;
           sendSecure(client!, event);
           await expect(receiveSecure(client!)).resolves.toBeNull();
         }
@@ -1844,7 +2025,10 @@ describe("DurablePrpControlPlane", () => {
         expect(onCommittedEvent).not.toHaveBeenCalled();
         expect(onSemanticToolInput).not.toHaveBeenCalled();
         expect(onProtocolIntegrityError).not.toHaveBeenCalled();
-      } finally { await core.stop(); rmSync(root, { recursive: true, force: true }); }
+      } finally {
+        await core.stop();
+        rmSync(root, { recursive: true, force: true });
+      }
     },
   );
 
@@ -1926,9 +2110,7 @@ describe("DurablePrpControlPlane", () => {
       await core.stop();
       rmSync(root, { recursive: true, force: true });
     }
-    },
-    15_000,
-  );
+  }, 15_000);
 
   it.each([
     "semantic_input_digest_mismatch",
@@ -2385,7 +2567,13 @@ describe("DurablePrpControlPlane", () => {
     const content = "日本語🦀".repeat(34_000) + "END";
     const args = { content };
     const handler = vi.fn(async () => ({ result: { content } }));
-    const options = { stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest, onSemanticToolInput: handler };
+    const options = {
+      stateDirectory: root,
+      identity,
+      expectedRunnerVersion,
+      expectedRunnerDigest,
+      onSemanticToolInput: handler,
+    };
     const core = new DurablePrpControlPlane(options);
     try {
       await core.start();
@@ -2396,16 +2584,29 @@ describe("DurablePrpControlPlane", () => {
       semantic.content.digest = rawSemanticInputDigest(args);
       sendSecure(client, event);
       const frames = [await receiveSecure(client), await receiveSecure(client)];
-      const wire = frames.find((frame) => frame?.kind === "command")!.payload as any;
+      const wire = frames.find((frame) => frame?.kind === "command")!
+        .payload as any;
       expect(wire.payload.result.content).toBe(content);
       expect(wire.payload.input).toBeUndefined();
-      expect(wire.payload.inputDigest).toBe(rawSemanticInputDigest(args).slice("sha256:".length));
+      expect(wire.payload.inputDigest).toBe(
+        rawSemanticInputDigest(args).slice("sha256:".length),
+      );
       expect(Buffer.byteLength(JSON.stringify(wire))).toBeLessThan(1024 * 1024);
-      sendSecure(client, { protocol: "taskcore.runner", version: 1, kind: "command_result", payload: {
-        commandId: wire.commandId, controllerSeq: wire.controllerSeq, commandType: wire.type,
-        status: "completed", result: { status: "delivered", callId: "call-1" },
-      } });
-      await vi.waitFor(() => expect(core.store.state.commands[0]?.status).toBe("completed"));
+      sendSecure(client, {
+        protocol: "taskcore.runner",
+        version: 1,
+        kind: "command_result",
+        payload: {
+          commandId: wire.commandId,
+          controllerSeq: wire.controllerSeq,
+          commandType: wire.type,
+          status: "completed",
+          result: { status: "delivered", callId: "call-1" },
+        },
+      });
+      await vi.waitFor(() =>
+        expect(core.store.state.commands[0]?.status).toBe("completed"),
+      );
       expect(core.semanticToolResultsSettled()).toBe(true);
       const savedDigest = core.store.state.commands[0]!.payload.inputDigest;
       core.store.state.commands[0]!.payload.inputDigest = `sha256:${"0".repeat(64)}`;
@@ -2416,57 +2617,106 @@ describe("DurablePrpControlPlane", () => {
       await reopened.stop();
       expect(handler).toHaveBeenCalledTimes(1);
       client.socket.destroy();
-    } finally { await core.stop(); rmSync(root, { recursive: true, force: true }); }
+    } finally {
+      await core.stop();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("reports an oversized semantic result without exposing its content or redispatching", async () => {
     const root = mkdtempSync(resolve(tmpdir(), "taskcore-result-limit-"));
-    const handler = vi.fn(async () => ({ result: { privateContent: "x".repeat(600_000) } }));
-    const core = new DurablePrpControlPlane({ stateDirectory: root, identity,
-      expectedRunnerVersion, expectedRunnerDigest, onSemanticToolInput: handler });
+    const handler = vi.fn(async () => ({
+      result: { privateContent: "x".repeat(600_000) },
+    }));
+    const core = new DurablePrpControlPlane({
+      stateDirectory: root,
+      identity,
+      expectedRunnerVersion,
+      expectedRunnerDigest,
+      onSemanticToolInput: handler,
+    });
     try {
       await core.start();
       const client = (await authenticate(core, core.issueBootstrapTicket()))!;
       sendSecure(client, semanticInputEvent());
-      await vi.waitFor(() => expect(core.semanticToolSettlementDiagnostics()).toMatchObject({
-        persistenceFailed: true,
-        failures: [{ callId: "call-1", operationId: "get_task_context", stage: "persist_result", code: "command_payload_too_large" }],
-      }));
+      await vi.waitFor(() =>
+        expect(core.semanticToolSettlementDiagnostics()).toMatchObject({
+          persistenceFailed: true,
+          failures: [
+            {
+              callId: "call-1",
+              operationId: "get_task_context",
+              stage: "persist_result",
+              code: "command_payload_too_large",
+            },
+          ],
+        }),
+      );
       expect(core.store.state.commands).toEqual([]);
       expect(core.semanticToolResultsSettled()).toBe(false);
-      expect(JSON.stringify(core.semanticToolSettlementDiagnostics())).not.toContain("privateContent");
+      expect(
+        JSON.stringify(core.semanticToolSettlementDiagnostics()),
+      ).not.toContain("privateContent");
       expect(handler).toHaveBeenCalledOnce();
       client.socket.destroy();
-    } finally { await core.stop(); rmSync(root, { recursive: true, force: true }); }
+    } finally {
+      await core.stop();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
-  it.each(["before_dispatch", "during_effect"] as const)("settles only proven pre-dispatch cancellation (%s)", async (stage) => {
-    const root = mkdtempSync(resolve(tmpdir(), "taskcore-tool-dispatch-boundary-"));
-    const handler = vi.fn(async () => {
-      if (stage === "before_dispatch") throw new SemanticToolNotDispatchedError();
-      throw new Error("connection lost after possibly committing a write");
-    });
-    const core = new DurablePrpControlPlane({ stateDirectory: root, identity,
-      expectedRunnerVersion, expectedRunnerDigest, onSemanticToolInput: handler });
-    try {
-      await core.start();
-      const client = (await authenticate(core, core.issueBootstrapTicket()))!;
-      sendSecure(client, semanticInputEvent());
-      await receiveSecure(client);
-      await vi.waitFor(() => expect(handler).toHaveBeenCalledTimes(1));
-      if (stage === "before_dispatch") {
-        await vi.waitFor(() => expect(core.store.state.commands).toHaveLength(1));
-        expect(core.store.state.commands[0]).toMatchObject({ type: "semantic_tool.result", payload: {
-          callId: "call-1", isError: true, result: { error: { code: "semantic_tool_not_dispatched" } },
-        } });
-      } else {
-        await vi.waitFor(() => expect(core.semanticToolSettlementDiagnostics()).toMatchObject({ persistenceFailed: true }));
-        expect(core.store.state.commands).toEqual([]);
+  it.each(["before_dispatch", "during_effect"] as const)(
+    "settles only proven pre-dispatch cancellation (%s)",
+    async (stage) => {
+      const root = mkdtempSync(
+        resolve(tmpdir(), "taskcore-tool-dispatch-boundary-"),
+      );
+      const handler = vi.fn(async () => {
+        if (stage === "before_dispatch")
+          throw new SemanticToolNotDispatchedError();
+        throw new Error("connection lost after possibly committing a write");
+      });
+      const core = new DurablePrpControlPlane({
+        stateDirectory: root,
+        identity,
+        expectedRunnerVersion,
+        expectedRunnerDigest,
+        onSemanticToolInput: handler,
+      });
+      try {
+        await core.start();
+        const client = (await authenticate(core, core.issueBootstrapTicket()))!;
+        sendSecure(client, semanticInputEvent());
+        await receiveSecure(client);
+        await vi.waitFor(() => expect(handler).toHaveBeenCalledTimes(1));
+        if (stage === "before_dispatch") {
+          await vi.waitFor(() =>
+            expect(core.store.state.commands).toHaveLength(1),
+          );
+          expect(core.store.state.commands[0]).toMatchObject({
+            type: "semantic_tool.result",
+            payload: {
+              callId: "call-1",
+              isError: true,
+              result: { error: { code: "semantic_tool_not_dispatched" } },
+            },
+          });
+        } else {
+          await vi.waitFor(() =>
+            expect(core.semanticToolSettlementDiagnostics()).toMatchObject({
+              persistenceFailed: true,
+            }),
+          );
+          expect(core.store.state.commands).toEqual([]);
+        }
+        expect(core.semanticToolResultsSettled()).toBe(false);
+        client.socket.destroy();
+      } finally {
+        await core.stop();
+        rmSync(root, { recursive: true, force: true });
       }
-      expect(core.semanticToolResultsSettled()).toBe(false);
-      client.socket.destroy();
-    } finally { await core.stop(); rmSync(root, { recursive: true, force: true }); }
-  });
+    },
+  );
 
   it("retains an uncertain semantic outcome without redispatching after a coordinator restart", async () => {
     const root = mkdtempSync(resolve(tmpdir(), "taskcore-prp-recovery-"));
@@ -2516,13 +2766,20 @@ describe("DurablePrpControlPlane", () => {
       await recovered.start();
       const client = await authenticate(recovered, leaseToken!);
       sendSecure(client!, semanticInputEvent());
-      await expect(receiveSecure(client!)).resolves.toMatchObject({ kind: "ack" });
+      await expect(receiveSecure(client!)).resolves.toMatchObject({
+        kind: "ack",
+      });
       expect(recoveredCalls).toBe(0);
       expect(recovered.semanticToolResultsSettled()).toBe(false);
       expect(recovered.semanticToolSettlementDiagnostics()).toMatchObject({
-        pending: [{ callId: "call-1", operationId: "get_task_context" }], deliveries: [],
+        pending: [{ callId: "call-1", operationId: "get_task_context" }],
+        deliveries: [],
       });
-      expect(recovered.store.state.commands.filter((entry) => entry.type === "semantic_tool.result")).toEqual([]);
+      expect(
+        recovered.store.state.commands.filter(
+          (entry) => entry.type === "semantic_tool.result",
+        ),
+      ).toEqual([]);
 
       const tampered = semanticInputEvent(2);
       const tamperedEvent = tampered.payload as Record<string, unknown>;
@@ -3591,16 +3848,29 @@ describe("DurablePrpControlPlane", () => {
 it("retires late semantic receipts without overwriting a successor journal or replaying the write", async () => {
   const root = mkdtempSync(resolve(tmpdir(), "runner-semantic-retirement-"));
   let release!: () => void;
-  const held = new Promise<void>(resolveHeld => { release = resolveHeld; });
-  const handler = vi.fn(async () => { await held; return { result: { committed: true } }; });
-  const options = { stateDirectory: root, identity, expectedRunnerVersion, expectedRunnerDigest, onSemanticToolInput: handler };
+  const held = new Promise<void>((resolveHeld) => {
+    release = resolveHeld;
+  });
+  const handler = vi.fn(async () => {
+    await held;
+    return { result: { committed: true } };
+  });
+  const options = {
+    stateDirectory: root,
+    identity,
+    expectedRunnerVersion,
+    expectedRunnerDigest,
+    onSemanticToolInput: handler,
+  };
   const core = new DurablePrpControlPlane(options);
   let successor: DurablePrpControlPlane | undefined;
   let client: AuthenticatedClient | null = null;
   let replay: AuthenticatedClient | null = null;
   try {
     await core.start();
-    expect(() => core.retireSemanticToolCallbacks()).toThrow("drained, stopped ingress");
+    expect(() => core.retireSemanticToolCallbacks()).toThrow(
+      "drained, stopped ingress",
+    );
     client = await authenticate(core, core.issueBootstrapTicket());
     sendSecure(client!, semanticInputEvent());
     await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
@@ -3610,22 +3880,35 @@ it("retires late semantic receipts without overwriting a successor journal or re
     successor = new DurablePrpControlPlane(options);
     const command = successor.queueCommand("turn.stop", {}, "successor-stop");
     release();
-    await new Promise<void>(resolveTurn => setImmediate(resolveTurn));
-    const saved = JSON.parse(readFileSync(resolve(root, "control-plane-state.json"), "utf8"));
-    expect(saved.commands.map((entry: { commandId: string }) => entry.commandId)).toEqual([command.commandId]);
+    await new Promise<void>((resolveTurn) => setImmediate(resolveTurn));
+    const saved = JSON.parse(
+      readFileSync(resolve(root, "control-plane-state.json"), "utf8"),
+    );
+    expect(
+      saved.commands.map((entry: { commandId: string }) => entry.commandId),
+    ).toEqual([command.commandId]);
     expect(successor.semanticToolResultsSettled()).toBe(false);
     await successor.start();
     replay = await authenticate(successor, successor.issueBootstrapTicket());
     sendSecure(replay!, semanticInputEvent());
-    await vi.waitFor(() => expect(successor!.store.state.ackedSourceSeq).toBe(1));
-    await new Promise<void>(resolveTurn => setImmediate(resolveTurn));
+    await vi.waitFor(() =>
+      expect(successor!.store.state.ackedSourceSeq).toBe(1),
+    );
+    await new Promise<void>((resolveTurn) => setImmediate(resolveTurn));
     expect(handler).toHaveBeenCalledOnce();
-    expect(successor.store.state.commands.some(entry => entry.type === "semantic_tool.result")).toBe(false);
+    expect(
+      successor.store.state.commands.some(
+        (entry) => entry.type === "semantic_tool.result",
+      ),
+    ).toBe(false);
   } finally {
     release();
-    client?.socket.destroy(); replay?.socket.destroy();
-    await core.stop(); await core.drainPendingConnectionProcessing();
-    await successor?.stop(); await successor?.drainPendingConnectionProcessing();
+    client?.socket.destroy();
+    replay?.socket.destroy();
+    await core.stop();
+    await core.drainPendingConnectionProcessing();
+    await successor?.stop();
+    await successor?.drainPendingConnectionProcessing();
     rmSync(root, { recursive: true, force: true });
   }
 });

@@ -11,7 +11,9 @@ describe("heartbeat run-log excerpts", () => {
     expect(appendExcerpt("ready", "\nnext")).toBe("ready\nnext");
     const full = appendExcerpt(prefix, "tail");
     expect(full).toBe(`${"x".repeat(32 * 1024 - 4)}tail`);
-    expect(appendExcerpt(full, "next")).toBe(`${"x".repeat(32 * 1024 - 8)}tailnext`);
+    expect(appendExcerpt(full, "next")).toBe(
+      `${"x".repeat(32 * 1024 - 8)}tailnext`,
+    );
   });
 
   it("respects the byte limit without splitting a multibyte character", () => {
@@ -24,17 +26,19 @@ describe("heartbeat run-log excerpts", () => {
 
 describe("heartbeat run-log payload formatting", () => {
   it("preserves ordinary values, serializes dates, and replaces unsupported values", () => {
-    expect(boundHeartbeatRunEventPayloadForStorage({
-      text: "ready",
-      count: 2,
-      flag: false,
-      empty: null,
-      at: new Date("2026-10-08T12:00:00Z"),
-      missing: undefined,
-      callback: () => "unused",
-      symbol: Symbol("unused"),
-      bigint: 1n,
-    })).toEqual({
+    expect(
+      boundHeartbeatRunEventPayloadForStorage({
+        text: "ready",
+        count: 2,
+        flag: false,
+        empty: null,
+        at: new Date("2026-10-08T12:00:00Z"),
+        missing: undefined,
+        callback: () => "unused",
+        symbol: Symbol("unused"),
+        bigint: 1n,
+      }),
+    ).toEqual({
       text: "ready",
       count: 2,
       flag: false,
@@ -49,10 +53,12 @@ describe("heartbeat run-log payload formatting", () => {
 
   it("keeps strings at the limit and reports the exact number of omitted characters", () => {
     const limit = "x".repeat(16 * 1024);
-    expect(boundHeartbeatRunEventPayloadForStorage({
-      exact: limit,
-      oversized: `${limit}end`,
-    })).toEqual({
+    expect(
+      boundHeartbeatRunEventPayloadForStorage({
+        exact: limit,
+        oversized: `${limit}end`,
+      }),
+    ).toEqual({
       exact: limit,
       oversized: `${limit}\n[truncated 3 chars]`,
     });
@@ -60,41 +66,78 @@ describe("heartbeat run-log payload formatting", () => {
 
   it("keeps the first 50 array entries and reports omitted items", () => {
     const exact = Array.from({ length: 50 }, (_, index) => index);
-    expect(boundHeartbeatRunEventPayloadForStorage({ exact, oversized: [...exact, 50, 51] }))
-      .toEqual({ exact, oversized: [...exact, { _truncated: true, omittedItems: 2 }] });
+    expect(
+      boundHeartbeatRunEventPayloadForStorage({
+        exact,
+        oversized: [...exact, 50, 51],
+      }),
+    ).toEqual({
+      exact,
+      oversized: [...exact, { _truncated: true, omittedItems: 2 }],
+    });
   });
 
   it("keeps the first 100 object keys and reports omitted keys", () => {
-    const exact = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`key${index}`, index]));
-    expect(boundHeartbeatRunEventPayloadForStorage({
-      exact,
-      oversized: { ...exact, extra1: 1, extra2: 2 },
-    })).toEqual({
+    const exact = Object.fromEntries(
+      Array.from({ length: 100 }, (_, index) => [`key${index}`, index]),
+    );
+    expect(
+      boundHeartbeatRunEventPayloadForStorage({
+        exact,
+        oversized: { ...exact, extra1: 1, extra2: 2 },
+      }),
+    ).toEqual({
       exact,
       oversized: { ...exact, _truncated: true, _omittedKeys: 2 },
     });
   });
 
   it("replaces objects at the depth limit with at most 20 key names", () => {
-    const leaf = Object.fromEntries(Array.from({ length: 25 }, (_, index) => [`key${index}`, "hidden"]));
-    const payload = { one: { two: { three: { four: { five: { six: leaf } } } } } };
+    const leaf = Object.fromEntries(
+      Array.from({ length: 25 }, (_, index) => [`key${index}`, "hidden"]),
+    );
+    const payload = {
+      one: { two: { three: { four: { five: { six: leaf } } } } },
+    };
     expect(boundHeartbeatRunEventPayloadForStorage(payload)).toEqual({
-      one: { two: { three: { four: { five: { six: {
-        _truncated: true,
-        type: "object",
-        keys: Object.keys(leaf).slice(0, 20),
-      } } } } } },
+      one: {
+        two: {
+          three: {
+            four: {
+              five: {
+                six: {
+                  _truncated: true,
+                  type: "object",
+                  keys: Object.keys(leaf).slice(0, 20),
+                },
+              },
+            },
+          },
+        },
+      },
     });
   });
 
   it("replaces arrays at the depth limit with their original length", () => {
-    const payload = { one: { two: { three: { four: { five: { six: [1, 2, 3] } } } } } };
+    const payload = {
+      one: { two: { three: { four: { five: { six: [1, 2, 3] } } } } },
+    };
     expect(boundHeartbeatRunEventPayloadForStorage(payload)).toEqual({
-      one: { two: { three: { four: { five: { six: {
-        _truncated: true,
-        type: "array",
-        originalLength: 3,
-      } } } } } },
+      one: {
+        two: {
+          three: {
+            four: {
+              five: {
+                six: {
+                  _truncated: true,
+                  type: "array",
+                  originalLength: 3,
+                },
+              },
+            },
+          },
+        },
+      },
     });
   });
 
@@ -113,7 +156,9 @@ describe("heartbeat run-log payload formatting", () => {
     const entries: unknown[] = [];
     entries.push(entries);
     const result = boundHeartbeatRunEventPayloadForStorage({ entries });
-    expect(JSON.stringify(result)).toBe('{"entries":[[[[[{"_truncated":true,"type":"array","originalLength":1}]]]]]}');
+    expect(JSON.stringify(result)).toBe(
+      '{"entries":[[[[[{"_truncated":true,"type":"array","originalLength":1}]]]]]}',
+    );
     expect(entries[0]).toBe(entries);
   });
 
@@ -145,21 +190,32 @@ describe("heartbeat run-log chunk formatting", () => {
     );
   });
 
-  it.each([1023, 1024])("preserves the image omission threshold at %i characters", (length) => {
-    const data = "A".repeat(length);
-    const chunk = `{"type":"image","source":{"type":"base64","data":"${data}"}}`;
-    expect(compactRunLogChunk(chunk)).toBe(length < 1024
-      ? chunk
-      : chunk.replace(data, `[omitted base64 image data: ${length} chars]`));
-  });
+  it.each([1023, 1024])(
+    "preserves the image omission threshold at %i characters",
+    (length) => {
+      const data = "A".repeat(length);
+      const chunk = `{"type":"image","source":{"type":"base64","data":"${data}"}}`;
+      expect(compactRunLogChunk(chunk)).toBe(
+        length < 1024
+          ? chunk
+          : chunk.replace(data, `[omitted base64 image data: ${length} chars]`),
+      );
+    },
+  );
 
   it("omits every large image consistently across repeated calls", () => {
-    const chunk = [1024, 2048].map((length) =>
-      `{"type":"image","source":{"type":"base64","data":"${"A".repeat(length)}"}}`,
-    ).join("\n");
-    const expected = [1024, 2048].map((length) =>
-      `{"type":"image","source":{"type":"base64","data":"[omitted base64 image data: ${length} chars]"}}`,
-    ).join("\n");
+    const chunk = [1024, 2048]
+      .map(
+        (length) =>
+          `{"type":"image","source":{"type":"base64","data":"${"A".repeat(length)}"}}`,
+      )
+      .join("\n");
+    const expected = [1024, 2048]
+      .map(
+        (length) =>
+          `{"type":"image","source":{"type":"base64","data":"[omitted base64 image data: ${length} chars]"}}`,
+      )
+      .join("\n");
     expect(compactRunLogChunk(chunk)).toBe(expected);
     expect(compactRunLogChunk(chunk)).toBe(expected);
   });

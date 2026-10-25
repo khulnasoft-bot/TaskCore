@@ -3,24 +3,18 @@
   "slug": "browser-use-cloud",
   "name": "Browser Use Cloud",
   "description": "Delegate browser tasks and watch them live in Taskcore.",
-  "categories": [
-    "productivity"
-  ],
+  "categories": ["productivity"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/browser-use.svg"
   },
-  "urlPatterns": [
-    "https://cloud.browser-use.com/*"
-  ],
+  "urlPatterns": ["https://cloud.browser-use.com/*"],
   "methods": [
     {
       "key": "cloud-v4",
       "transport": "rest_api",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use credentials from your provider account.",
       "defaults": {
         "serverUrl": "https://api.browser-use.com/api/v4"

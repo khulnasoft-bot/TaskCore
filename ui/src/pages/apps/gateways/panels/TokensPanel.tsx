@@ -1,6 +1,20 @@
-import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, KeyRound, Plus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Copy,
+  KeyRound,
+  Plus,
+} from "lucide-react";
 import type {
   ToolMcpGatewayToken,
   ToolMcpGatewayTokenAction,
@@ -29,16 +43,23 @@ import {
   type TokenStatus,
 } from "../gateway-helpers";
 
-const DEFAULT_ACTIONS: ToolMcpGatewayTokenAction[] = ["tools/list", "tools/call"];
+const DEFAULT_ACTIONS: ToolMcpGatewayTokenAction[] = [
+  "tools/list",
+  "tools/call",
+];
 const TOKEN_PAGE_SIZE = 10;
 
 function defaultExpiry(): string {
-  return new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 const STATUS_CLASS: Record<TokenStatus, string> = {
-  active: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  expiring: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  active:
+    "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  expiring:
+    "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   expired: "border-border bg-muted text-muted-foreground",
   revoked: "border-foreground bg-foreground text-background",
 };
@@ -59,7 +80,9 @@ function StatusBadge({ status }: { status: TokenStatus }) {
 function TokenField({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dt className="text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
       <dd className="mt-0.5 truncate text-foreground">{value}</dd>
     </div>
   );
@@ -69,9 +92,18 @@ function ExpiryValue({ token }: { token: ToolMcpGatewayToken }) {
   const expiresAt = toDate(token.expiresAt);
   if (!expiresAt) return <>No expiry</>;
   if (expiresAt.getTime() <= Date.now()) {
-    return <><span className="font-medium text-foreground">Expired</span> <RelativeTime value={token.expiresAt} /></>;
+    return (
+      <>
+        <span className="font-medium text-foreground">Expired</span>{" "}
+        <RelativeTime value={token.expiresAt} />
+      </>
+    );
   }
-  return <>Expires <RelativeTime value={token.expiresAt} /></>;
+  return (
+    <>
+      Expires <RelativeTime value={token.expiresAt} />
+    </>
+  );
 }
 
 export function TokensPanel({
@@ -89,20 +121,33 @@ export function TokensPanel({
   const [name, setName] = useState("");
   const [ownerNote, setOwnerNote] = useState("");
   const [expiresAt, setExpiresAt] = useState(defaultExpiry());
-  const [created, setCreated] = useState<ToolMcpGatewayTokenCreated | null>(null);
+  const [created, setCreated] = useState<ToolMcpGatewayTokenCreated | null>(
+    null,
+  );
   const [revealed, setRevealed] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const [revokeName, setRevokeName] = useState("");
-  const [confirmToken, setConfirmToken] = useState<{ id: string; name: string } | null>(null);
+  const [confirmToken, setConfirmToken] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: gatewaysQueryKey(companyId) });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: gatewaysQueryKey(companyId) });
   const tokens = useMemo(
-    () => [...gateway.tokens].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    () =>
+      [...gateway.tokens].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
     [gateway.tokens],
   );
   const pageCount = Math.max(1, Math.ceil(tokens.length / TOKEN_PAGE_SIZE));
-  const visibleTokens = tokens.slice((historyPage - 1) * TOKEN_PAGE_SIZE, historyPage * TOKEN_PAGE_SIZE);
+  const visibleTokens = tokens.slice(
+    (historyPage - 1) * TOKEN_PAGE_SIZE,
+    historyPage * TOKEN_PAGE_SIZE,
+  );
 
   useEffect(() => {
     setHistoryPage((current) => Math.min(current, pageCount));
@@ -141,11 +186,16 @@ export function TokensPanel({
   });
 
   const revokeMutation = useMutation({
-    mutationFn: (tokenId: string) => toolsApi.revokeGatewayToken(companyId, tokenId),
+    mutationFn: (tokenId: string) =>
+      toolsApi.revokeGatewayToken(companyId, tokenId),
     onSuccess: async (token) => {
       setConfirmToken(null);
       setRevokeName("");
-      pushToast({ title: "Token revoked", body: `${token.name} can no longer connect.`, tone: "success" });
+      pushToast({
+        title: "Token revoked",
+        body: `${token.name} can no longer connect.`,
+        tone: "success",
+      });
       await invalidate();
     },
     onError: (error) =>
@@ -163,7 +213,10 @@ export function TokensPanel({
     } catch (error) {
       pushToast({
         title: "Copy failed",
-        body: error instanceof Error ? error.message : "Clipboard access is unavailable.",
+        body:
+          error instanceof Error
+            ? error.message
+            : "Clipboard access is unavailable.",
         tone: "error",
       });
     }
@@ -190,12 +243,15 @@ export function TokensPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl space-y-1">
           <p className="text-sm text-muted-foreground">
-            Issue a reusable token for an external client. Its name is also used as the client label.
+            Issue a reusable token for an external client. Its name is also used
+            as the client label.
           </p>
           <p className="text-xs text-muted-foreground">
-            Taskcore creates a fresh one-hour runtime token when an agent run starts, then revokes it when the
-            run ends. Codex can receive the same gateway through both an app connection and the managed-gateway
-            path, so one run may leave two revoked rows. These are audit history, not repeated manual tokens.
+            Taskcore creates a fresh one-hour runtime token when an agent run
+            starts, then revokes it when the run ends. Codex can receive the
+            same gateway through both an app connection and the managed-gateway
+            path, so one run may leave two revoked rows. These are audit
+            history, not repeated manual tokens.
           </p>
         </div>
         <Button size="sm" onClick={startIssuing}>
@@ -208,17 +264,35 @@ export function TokensPanel({
         <form className="space-y-3" onSubmit={submit}>
           <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <label className="space-y-1.5 text-sm">
-              <span className="text-xs font-medium text-muted-foreground">Token name</span>
-              <Input value={name} onChange={(event) => setName(event.target.value)} required autoFocus />
-              <span className="text-xs text-muted-foreground">Also used as the client label.</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Token name
+              </span>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+                autoFocus
+              />
+              <span className="text-xs text-muted-foreground">
+                Also used as the client label.
+              </span>
             </label>
             <label className="space-y-1.5 text-sm">
-              <span className="text-xs font-medium text-muted-foreground">Expires</span>
-              <Input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} required />
+              <span className="text-xs font-medium text-muted-foreground">
+                Expires
+              </span>
+              <Input
+                type="date"
+                value={expiresAt}
+                onChange={(event) => setExpiresAt(event.target.value)}
+                required
+              />
             </label>
           </div>
           <label className="block space-y-1.5 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">Owner note (optional)</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Owner note (optional)
+            </span>
             <Input
               value={ownerNote}
               onChange={(event) => setOwnerNote(event.target.value)}
@@ -226,10 +300,19 @@ export function TokensPanel({
             />
           </label>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMinting(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setMinting(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={createMutation.isPending || !name.trim()}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={createMutation.isPending || !name.trim()}
+            >
               {createMutation.isPending ? "Issuing…" : "Issue token"}
             </Button>
           </div>
@@ -240,12 +323,20 @@ export function TokensPanel({
         <div className="space-y-2 border-y border-border py-4">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-sm font-semibold text-foreground">New token — copy now</div>
+              <div className="text-sm font-semibold text-foreground">
+                New token — copy now
+              </div>
               <div className="text-xs text-muted-foreground">
-                It is now available in Client snippets for a copy-ready configuration.
+                It is now available in Client snippets for a copy-ready
+                configuration.
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setCreated(null)} aria-label="Dismiss new token">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCreated(null)}
+              aria-label="Dismiss new token"
+            >
               Dismiss
             </Button>
           </div>
@@ -254,12 +345,22 @@ export function TokensPanel({
               {revealed ? created.token : maskedTokenLabel(created)}
             </code>
             {revealed ? (
-              <Button variant="outline" size="sm" onClick={() => void copyToken(created.token)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void copyToken(created.token)}
+              >
                 <Copy className="mr-1 h-3.5 w-3.5" />
                 Copy
               </Button>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setRevealed(true)}>Show</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRevealed(true)}
+              >
+                Show
+              </Button>
             )}
           </div>
         </div>
@@ -267,18 +368,29 @@ export function TokensPanel({
 
       <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="h-auto w-full justify-between px-0 py-1 hover:bg-transparent">
+          <Button
+            variant="ghost"
+            className="h-auto w-full justify-between px-0 py-1 hover:bg-transparent"
+          >
             <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <KeyRound className="h-4 w-4 text-muted-foreground" />
               Token history
-              <span className="font-normal text-muted-foreground">{tokens.length}</span>
+              <span className="font-normal text-muted-foreground">
+                {tokens.length}
+              </span>
             </span>
-            {historyOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {historyOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-3 pt-3">
           {tokens.length === 0 ? (
-            <p className="py-4 text-sm text-muted-foreground">No tokens have been issued for this gateway.</p>
+            <p className="py-4 text-sm text-muted-foreground">
+              No tokens have been issued for this gateway.
+            </p>
           ) : (
             <>
               <div className="hidden overflow-x-auto rounded-lg border border-border sm:block">
@@ -298,18 +410,37 @@ export function TokensPanel({
                     {visibleTokens.map((token) => {
                       const status = tokenStatus(token);
                       return (
-                        <tr key={token.id} className="border-b border-border last:border-0">
+                        <tr
+                          key={token.id}
+                          className="border-b border-border last:border-0"
+                        >
                           <td className="px-4 py-3">
-                            <div className="font-medium text-foreground">{token.name}</div>
-                            <div className="font-mono text-xs text-muted-foreground">{maskedTokenLabel(token)}</div>
+                            <div className="font-medium text-foreground">
+                              {token.name}
+                            </div>
+                            <div className="font-mono text-xs text-muted-foreground">
+                              {maskedTokenLabel(token)}
+                            </div>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">{token.clientLabel || token.ownerNote || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground"><RelativeTime value={token.createdAt} /></td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            {token.lastUsedAt ? <RelativeTime value={token.lastUsedAt} /> : "—"}
+                            {token.clientLabel || token.ownerNote || "—"}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground"><ExpiryValue token={token} /></td>
-                          <td className="px-4 py-3"><StatusBadge status={status} /></td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            <RelativeTime value={token.createdAt} />
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {token.lastUsedAt ? (
+                              <RelativeTime value={token.lastUsedAt} />
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            <ExpiryValue token={token} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusBadge status={status} />
+                          </td>
                           <td className="px-4 py-3 text-right">
                             {status !== "revoked" ? (
                               <Button
@@ -333,19 +464,44 @@ export function TokensPanel({
                 {visibleTokens.map((token) => {
                   const status = tokenStatus(token);
                   return (
-                    <div key={token.id} className="border-b border-border py-3 last:border-0">
+                    <div
+                      key={token.id}
+                      className="border-b border-border py-3 last:border-0"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="font-medium text-foreground">{token.name}</div>
-                          <div className="font-mono text-xs text-muted-foreground">{maskedTokenLabel(token)}</div>
+                          <div className="font-medium text-foreground">
+                            {token.name}
+                          </div>
+                          <div className="font-mono text-xs text-muted-foreground">
+                            {maskedTokenLabel(token)}
+                          </div>
                         </div>
                         <StatusBadge status={status} />
                       </div>
                       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                        <TokenField label="Owner" value={token.clientLabel || token.ownerNote || "—"} />
-                        <TokenField label="Created" value={<RelativeTime value={token.createdAt} />} />
-                        <TokenField label="Last used" value={token.lastUsedAt ? <RelativeTime value={token.lastUsedAt} /> : "—"} />
-                        <TokenField label="Expiry" value={<ExpiryValue token={token} />} />
+                        <TokenField
+                          label="Owner"
+                          value={token.clientLabel || token.ownerNote || "—"}
+                        />
+                        <TokenField
+                          label="Created"
+                          value={<RelativeTime value={token.createdAt} />}
+                        />
+                        <TokenField
+                          label="Last used"
+                          value={
+                            token.lastUsedAt ? (
+                              <RelativeTime value={token.lastUsedAt} />
+                            ) : (
+                              "—"
+                            )
+                          }
+                        />
+                        <TokenField
+                          label="Expiry"
+                          value={<ExpiryValue token={token} />}
+                        />
                       </dl>
                       {status !== "revoked" ? (
                         <Button
@@ -372,7 +528,9 @@ export function TokensPanel({
                       variant="ghost"
                       size="sm"
                       disabled={historyPage === 1}
-                      onClick={() => setHistoryPage((page) => Math.max(1, page - 1))}
+                      onClick={() =>
+                        setHistoryPage((page) => Math.max(1, page - 1))
+                      }
                       aria-label="Previous token page"
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -381,7 +539,9 @@ export function TokensPanel({
                       variant="ghost"
                       size="sm"
                       disabled={historyPage === pageCount}
-                      onClick={() => setHistoryPage((page) => Math.min(pageCount, page + 1))}
+                      onClick={() =>
+                        setHistoryPage((page) => Math.min(pageCount, page + 1))
+                      }
                       aria-label="Next token page"
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -395,13 +555,23 @@ export function TokensPanel({
       </Collapsible>
 
       {confirmToken ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="w-full max-w-md space-y-3 rounded-lg border border-border bg-card p-5 shadow-lg">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Revoke this token?</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Revoke this token?
+              </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Any client using <span className="font-medium text-foreground">{confirmToken.name}</span> goes
-                silent immediately. This can’t be undone. Type the token name to confirm.
+                Any client using{" "}
+                <span className="font-medium text-foreground">
+                  {confirmToken.name}
+                </span>{" "}
+                goes silent immediately. This can’t be undone. Type the token
+                name to confirm.
               </p>
             </div>
             <Input
@@ -425,7 +595,10 @@ export function TokensPanel({
               <Button
                 variant="destructive"
                 size="sm"
-                disabled={revokeName.trim() !== confirmToken.name || revokeMutation.isPending}
+                disabled={
+                  revokeName.trim() !== confirmToken.name ||
+                  revokeMutation.isPending
+                }
                 onClick={() => revokeMutation.mutate(confirmToken.id)}
               >
                 {revokeMutation.isPending ? "Revoking…" : "Revoke token"}

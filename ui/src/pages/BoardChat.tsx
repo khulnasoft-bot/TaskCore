@@ -23,9 +23,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Activity, ArrowDown, History, MessageSquarePlus, X } from "lucide-react";
+import {
+  Activity,
+  ArrowDown,
+  History,
+  MessageSquarePlus,
+  X,
+} from "lucide-react";
 import { ActivityFeed } from "../components/ActivityFeed";
-import { ChatComposer, type ChatComposerHandle } from "../components/ChatComposer";
+import {
+  ChatComposer,
+  type ChatComposerHandle,
+} from "../components/ChatComposer";
 import {
   AgentBubbleActionRow,
   agentBubbleDateLabel,
@@ -45,7 +54,6 @@ const SPLIT_MIN_PANE_PX = 280;
 /** Chat pane share of width below the divider (agent feed gets the rest). */
 const DEFAULT_CHAT_FRACTION = 2 / 3;
 
-
 /** Wrapped markdown in bubbles; pre/table scroll horizontally when needed. */
 const BOARD_CHAT_MARKDOWN_CLASS =
   "max-w-full overflow-visible [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto";
@@ -56,15 +64,24 @@ const boardChatBubbleShell =
 /** First-letter(s) fallback for an agent with no icon. */
 function agentInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
-  return (((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase()) || "A";
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "A";
 }
 
 /**
  * Icon-adjacent-to-name header rendered directly above an agent bubble —
  * the shared `[agent icon][agent name]` convention (PAP-105 / PAP-97).
  */
-function AgentBubbleHeader({ agent }: { agent: import("../components/AgentAvatar").AvatarAgent }) {
-  return <div className="mb-1 flex items-center gap-1.5 pl-1"><AgentAvatar agent={agent} size={24} /><span className="text-sm font-medium text-foreground">{agent.name}</span></div>;
+function AgentBubbleHeader({
+  agent,
+}: {
+  agent: import("../components/AgentAvatar").AvatarAgent;
+}) {
+  return (
+    <div className="mb-1 flex items-center gap-1.5 pl-1">
+      <AgentAvatar agent={agent} size={24} />
+      <span className="text-sm font-medium text-foreground">{agent.name}</span>
+    </div>
+  );
 }
 
 /** Agent-styled chat bubble containing the three-dot typing indicator. */
@@ -98,9 +115,10 @@ export function BoardChat() {
 
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [chatPaneFraction, setChatPaneFraction] = useState(DEFAULT_CHAT_FRACTION);
+  const [chatPaneFraction, setChatPaneFraction] = useState(
+    DEFAULT_CHAT_FRACTION,
+  );
   const splitDragging = useRef(false);
-
 
   useLayoutEffect(() => {
     const el = splitContainerRef.current;
@@ -142,7 +160,8 @@ export function BoardChat() {
 
       const onMouseMove = (ev: MouseEvent) => {
         if (!splitDragging.current) return;
-        const containerW = splitContainerRef.current?.clientWidth ?? containerWidth;
+        const containerW =
+          splitContainerRef.current?.clientWidth ?? containerWidth;
         const inner = containerW - SPLIT_DIVIDER_PX;
         const lower = SPLIT_MIN_PANE_PX;
         const upper = inner - SPLIT_MIN_PANE_PX;
@@ -178,7 +197,9 @@ export function BoardChat() {
   const [errorText, setErrorText] = useState("");
   const [boardIssueId, setBoardIssueId] = useState<string | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
-  const [optimisticMessage, setOptimisticMessage] = useState<string | null>(null);
+  const [optimisticMessage, setOptimisticMessage] = useState<string | null>(
+    null,
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasRestoredScrollRef = useRef(false);
@@ -217,7 +238,9 @@ export function BoardChat() {
   useEffect(() => {
     if (prevCompanyRef.current !== selectedCompanyId) {
       if (boardIssueId) {
-        queryClient.removeQueries({ queryKey: queryKeys.issues.comments(boardIssueId) });
+        queryClient.removeQueries({
+          queryKey: queryKeys.issues.comments(boardIssueId),
+        });
       }
       setBoardIssueId(null);
       setStreamingText("");
@@ -257,7 +280,9 @@ export function BoardChat() {
       } else {
         sessionStorage.removeItem(key);
       }
-    } catch { /* sessionStorage unavailable */ }
+    } catch {
+      /* sessionStorage unavailable */
+    }
   }, [input, selectedCompanyId]);
 
   const { data: agents } = useQuery({
@@ -297,7 +322,10 @@ export function BoardChat() {
       return;
     }
     const boardIssue = issues.find(
-      (i) => i.title === "Board Operations" && i.status !== "done" && i.status !== "cancelled",
+      (i) =>
+        i.title === "Board Operations" &&
+        i.status !== "done" &&
+        i.status !== "cancelled",
     );
     setBoardIssueId(boardIssue?.id ?? null);
   }, [issues]);
@@ -312,7 +340,10 @@ export function BoardChat() {
 
   const sortedComments = (comments ?? [])
     .slice()
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
 
   // Agent lookup so each bubble can show its author's name + icon header.
   const agentMap = useMemo(
@@ -331,7 +362,8 @@ export function BoardChat() {
   const voteByComment = useMemo(() => {
     const map = new Map<string, FeedbackVoteValue>();
     for (const vote of feedbackVotes ?? []) {
-      if (vote.targetType === "issue_comment") map.set(vote.targetId, vote.vote);
+      if (vote.targetType === "issue_comment")
+        map.set(vote.targetId, vote.vote);
     }
     return map;
   }, [feedbackVotes]);
@@ -456,7 +488,9 @@ export function BoardChat() {
           return;
         }
       }
-    } catch { /* sessionStorage unavailable */ }
+    } catch {
+      /* sessionStorage unavailable */
+    }
 
     container.scrollTop = container.scrollHeight;
     hasRestoredScrollRef.current = true;
@@ -489,7 +523,9 @@ export function BoardChat() {
     if (!container) return;
     let rafId: number | null = null;
     const handleScroll = () => {
-      const near = container.scrollHeight - container.scrollTop - container.clientHeight <= 80;
+      const near =
+        container.scrollHeight - container.scrollTop - container.clientHeight <=
+        80;
       wasNearBottomRef.current = near;
       if (near) setHasNewBelow(false);
 
@@ -501,7 +537,9 @@ export function BoardChat() {
             "taskcore.boardChat.scrollTop",
             String(container.scrollTop),
           );
-        } catch { /* sessionStorage unavailable */ }
+        } catch {
+          /* sessionStorage unavailable */
+        }
       });
     };
     container.addEventListener("scroll", handleScroll, { passive: true });
@@ -615,7 +653,9 @@ export function BoardChat() {
         setStreamingText("");
         setStatusText("");
         if (boardIssueId) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.issues.comments(boardIssueId) });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.issues.comments(boardIssueId),
+          });
         }
       } catch (err) {
         console.error("Board chat error:", err);
@@ -667,7 +707,12 @@ export function BoardChat() {
             "w-full md:w-auto",
             innerWidth <= 0 && "md:w-2/3",
           )}
-          style={innerWidth > 0 && containerWidth >= 2 * SPLIT_MIN_PANE_PX + SPLIT_DIVIDER_PX ? { width: leftPaneWidth } : undefined}
+          style={
+            innerWidth > 0 &&
+            containerWidth >= 2 * SPLIT_MIN_PANE_PX + SPLIT_DIVIDER_PX
+              ? { width: leftPaneWidth }
+              : undefined
+          }
         >
           <div className="relative flex shrink-0 items-center justify-between gap-2 px-4 py-3">
             <div
@@ -715,112 +760,180 @@ export function BoardChat() {
           </div>
           {/* Messages — scroll viewport flush right so the scrollbar sits on the pane/divider edge */}
           <div className="relative min-h-0 min-w-0 flex-1">
-          <div
-            ref={scrollContainerRef}
-            className="scrollbar-auto-hide absolute inset-0 overflow-y-auto overflow-x-hidden"
-          >
-            {/* pb clears the floating glass dock (PAP-131) so the last bubble can
+            <div
+              ref={scrollContainerRef}
+              className="scrollbar-auto-hide absolute inset-0 overflow-y-auto overflow-x-hidden"
+            >
+              {/* pb clears the floating glass dock (PAP-131) so the last bubble can
                  scroll fully above the composer. */}
-            <div className="flex flex-col gap-4 px-6 pt-3 pb-32">
-              {/* Typing bubble — shown unconditionally until the reveal
+              <div className="flex flex-col gap-4 px-6 pt-3 pb-32">
+                {/* Typing bubble — shown unconditionally until the reveal
                    timer fires, so the animation is guaranteed to be
                    visible even while agent/goal data is still loading. */}
-              {!welcomeRevealed && <TypingBubble />}
+                {!welcomeRevealed && <TypingBubble />}
 
-              {welcomeRevealed && ceoAgent && selectedCompany && (() => {
-                const ceoName = ceoAgent.name;
-                const companyName = selectedCompany.name;
-                const missionLine = missionText
-                  ? ` — your mission is "${missionText}".`
-                  : ".";
-                const welcomeBody =
-                  `Welcome to **${companyName}**! I'm ${ceoName}, your team lead. I've read through what you shared in the wizard${missionLine}\n\n` +
-                  `Here are a few things I can help you put on paper right now. Pick one below and I'll draft it for you using everything you told us.`;
+                {welcomeRevealed &&
+                  ceoAgent &&
+                  selectedCompany &&
+                  (() => {
+                    const ceoName = ceoAgent.name;
+                    const companyName = selectedCompany.name;
+                    const missionLine = missionText
+                      ? ` — your mission is "${missionText}".`
+                      : ".";
+                    const welcomeBody =
+                      `Welcome to **${companyName}**! I'm ${ceoName}, your team lead. I've read through what you shared in the wizard${missionLine}\n\n` +
+                      `Here are a few things I can help you put on paper right now. Pick one below and I'll draft it for you using everything you told us.`;
 
-                const userHasReplied = sortedComments.some(
-                  (c) => !c.authorAgentId && c.authorUserId !== "board-concierge",
-                );
+                    const userHasReplied = sortedComments.some(
+                      (c) =>
+                        !c.authorAgentId &&
+                        c.authorUserId !== "board-concierge",
+                    );
 
-                const chips: Array<{ label: string; prompt: string }> = [
-                  {
-                    label: "Draft an Organization Brief",
-                    prompt: `Draft a one-page Organization Brief for ${companyName} — include our mission, team roster, and first priorities.`,
-                  },
-                  {
-                    label: "Create a hiring plan",
-                    prompt: `Create a hiring plan for ${companyName}. List the next roles to hire, in priority order, with a short rationale for each.`,
-                  },
-                  {
-                    label: "Outline our first 30 days",
-                    prompt: `Outline our first 30 days. Break it into weekly priorities with who owns what.`,
-                  },
-                  {
-                    label: "Write an intro pitch",
-                    prompt: `Write a short intro pitch for ${companyName} that I could reuse for investors, customers, or recruits.`,
-                  },
-                ];
+                    const chips: Array<{ label: string; prompt: string }> = [
+                      {
+                        label: "Draft an Organization Brief",
+                        prompt: `Draft a one-page Organization Brief for ${companyName} — include our mission, team roster, and first priorities.`,
+                      },
+                      {
+                        label: "Create a hiring plan",
+                        prompt: `Create a hiring plan for ${companyName}. List the next roles to hire, in priority order, with a short rationale for each.`,
+                      },
+                      {
+                        label: "Outline our first 30 days",
+                        prompt: `Outline our first 30 days. Break it into weekly priorities with who owns what.`,
+                      },
+                      {
+                        label: "Write an intro pitch",
+                        prompt: `Write a short intro pitch for ${companyName} that I could reuse for investors, customers, or recruits.`,
+                      },
+                    ];
 
-                return (
-                  <>
-                    <div className="flex flex-col items-start">
-                      <AgentBubbleHeader agent={{ ...ceoAgent, name: ceoName }} />
+                    return (
+                      <>
+                        <div className="flex flex-col items-start">
+                          <AgentBubbleHeader
+                            agent={{ ...ceoAgent, name: ceoName }}
+                          />
+                          <div
+                            className={cn(
+                              boardChatBubbleShell,
+                              "bg-card border border-border text-foreground [border-radius:14px_14px_14px_4px]",
+                            )}
+                          >
+                            <MarkdownBody className={BOARD_CHAT_MARKDOWN_CLASS}>
+                              {welcomeBody}
+                            </MarkdownBody>
+                          </div>
+                        </div>
+                        {!userHasReplied && chipsRevealed && (
+                          <div className="flex flex-wrap gap-2 pl-1">
+                            {chips.map((chip) => (
+                              <button
+                                key={chip.label}
+                                type="button"
+                                onClick={() => {
+                                  setInput(chip.prompt);
+                                  composerRef.current?.focus();
+                                }}
+                                // design-allow(card-pattern): interactive suggestion-pill <button>, not a content card (C5a Run 3)
+                                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
+                              >
+                                {chip.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+
+                {sortedComments.map((comment) => {
+                  const isUser =
+                    !comment.authorAgentId &&
+                    comment.authorUserId !== "board-concierge";
+                  if (isUser) {
+                    return (
+                      <div key={comment.id} className="flex justify-end">
+                        <div
+                          className={cn(
+                            boardChatBubbleShell,
+                            "bg-blue-600 text-white [border-radius:14px_14px_4px_14px]",
+                          )}
+                        >
+                          {comment.body ?? ""}
+                        </div>
+                      </div>
+                    );
+                  }
+                  // Agent bubble — name/icon header above + action row below so
+                  // the room speaks the same bubble language as the task thread.
+                  const agent = comment.authorAgentId
+                    ? (agentMap.get(comment.authorAgentId) ?? null)
+                    : (ceoAgent ?? null);
+                  const agentName = agent?.name ?? "Assistant";
+                  const agentIconValue = agent?.icon ?? null;
+                  return (
+                    <div key={comment.id} className="flex flex-col items-start">
+                      <AgentBubbleHeader
+                        agent={
+                          agent ?? {
+                            id: comment.authorAgentId ?? undefined,
+                            name: agentName,
+                          }
+                        }
+                      />
                       <div
                         className={cn(
                           boardChatBubbleShell,
                           "bg-card border border-border text-foreground [border-radius:14px_14px_14px_4px]",
                         )}
                       >
-                        <MarkdownBody className={BOARD_CHAT_MARKDOWN_CLASS}>{welcomeBody}</MarkdownBody>
+                        <MarkdownBody className={BOARD_CHAT_MARKDOWN_CLASS}>
+                          {comment.body ?? ""}
+                        </MarkdownBody>
                       </div>
-                    </div>
-                    {!userHasReplied && chipsRevealed && (
-                      <div className="flex flex-wrap gap-2 pl-1">
-                        {chips.map((chip) => (
-                          <button
-                            key={chip.label}
-                            type="button"
-                            onClick={() => {
-                              setInput(chip.prompt);
-                              composerRef.current?.focus();
-                            }}
-                            // design-allow(card-pattern): interactive suggestion-pill <button>, not a content card (C5a Run 3)
-                            className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
-                          >
-                            {chip.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-
-              {sortedComments.map((comment) => {
-                const isUser = !comment.authorAgentId && comment.authorUserId !== "board-concierge";
-                if (isUser) {
-                  return (
-                    <div key={comment.id} className="flex justify-end">
-                      <div
-                        className={cn(
-                          boardChatBubbleShell,
-                          "bg-blue-600 text-white [border-radius:14px_14px_4px_14px]",
-                        )}
-                      >
-                        {comment.body ?? ""}
-                      </div>
+                      <AgentBubbleActionRow
+                        copyText={comment.body ?? ""}
+                        dateLabel={agentBubbleDateLabel(comment.createdAt)}
+                        dateTitle={formatDateTime(comment.createdAt)}
+                        anchorHref={`#comment-${comment.id}`}
+                        feedback={
+                          boardIssueId
+                            ? {
+                                activeVote:
+                                  voteByComment.get(comment.id) ?? null,
+                                sharingPreference: "prompt",
+                                termsUrl: null,
+                                onVote: (vote, options) =>
+                                  handleCommentVote(comment.id, vote, options),
+                              }
+                            : null
+                        }
+                      />
                     </div>
                   );
-                }
-                // Agent bubble — name/icon header above + action row below so
-                // the room speaks the same bubble language as the task thread.
-                const agent = comment.authorAgentId
-                  ? agentMap.get(comment.authorAgentId) ?? null
-                  : ceoAgent ?? null;
-                const agentName = agent?.name ?? "Assistant";
-                const agentIconValue = agent?.icon ?? null;
-                return (
-                  <div key={comment.id} className="flex flex-col items-start">
-                    <AgentBubbleHeader agent={agent ?? { id: comment.authorAgentId ?? undefined, name: agentName }} />
+                })}
+
+                {/* Optimistic user message — shows instantly before server persists */}
+                {optimisticMessage && (
+                  <div className="flex justify-end">
+                    <div
+                      className={cn(
+                        boardChatBubbleShell,
+                        "bg-blue-600 text-white [border-radius:14px_14px_4px_14px]",
+                      )}
+                    >
+                      {optimisticMessage}
+                    </div>
+                  </div>
+                )}
+
+                {/* Streaming response */}
+                {streamingText && (
+                  <div className="flex flex-col items-start">
+                    {ceoAgent && <AgentBubbleHeader agent={ceoAgent} />}
                     <div
                       className={cn(
                         boardChatBubbleShell,
@@ -828,99 +941,54 @@ export function BoardChat() {
                       )}
                     >
                       <MarkdownBody className={BOARD_CHAT_MARKDOWN_CLASS}>
-                        {comment.body ?? ""}
+                        {streamingText}
                       </MarkdownBody>
                     </div>
-                    <AgentBubbleActionRow
-                      copyText={comment.body ?? ""}
-                      dateLabel={agentBubbleDateLabel(comment.createdAt)}
-                      dateTitle={formatDateTime(comment.createdAt)}
-                      anchorHref={`#comment-${comment.id}`}
-                      feedback={
-                        boardIssueId
-                          ? {
-                              activeVote: voteByComment.get(comment.id) ?? null,
-                              sharingPreference: "prompt",
-                              termsUrl: null,
-                              onVote: (vote, options) =>
-                                handleCommentVote(comment.id, vote, options),
-                            }
-                          : null
-                      }
-                    />
                   </div>
-                );
-              })}
+                )}
 
-              {/* Optimistic user message — shows instantly before server persists */}
-              {optimisticMessage && (
-                <div className="flex justify-end">
-                  <div
-                    className={cn(
-                      boardChatBubbleShell,
-                      "bg-blue-600 text-white [border-radius:14px_14px_4px_14px]",
-                    )}
-                  >
-                    {optimisticMessage}
-                  </div>
-                </div>
-              )}
-
-              {/* Streaming response */}
-              {streamingText && (
-                <div className="flex flex-col items-start">
-                  {ceoAgent && (
-                    <AgentBubbleHeader agent={ceoAgent} />
-                  )}
-                  <div
-                    className={cn(
-                      boardChatBubbleShell,
-                      "bg-card border border-border text-foreground [border-radius:14px_14px_14px_4px]",
-                    )}
-                  >
-                    <MarkdownBody className={BOARD_CHAT_MARKDOWN_CLASS}>{streamingText}</MarkdownBody>
-                  </div>
-                </div>
-              )}
-
-              {/* Typing bubble — sits above the status line while the agent
+                {/* Typing bubble — sits above the status line while the agent
                    is preparing a reply but no text has streamed yet. Shows
                    alongside the user's optimistic bubble to make the
                    turn-taking feel alive. */}
-              {sending && !streamingText && <TypingBubble />}
+                {sending && !streamingText && <TypingBubble />}
 
-              {/* Status bar — always visible while sending, independent from the chat bubble */}
-              {sending && (
-                <div className="flex items-center gap-2 pl-1 text-xs text-muted-foreground">
-                  <img src="/taskcore-thinking.svg" alt="" className="inline-block shrink-0" style={{ width: 14, height: 14 }} />
-                  <span>{statusText || "Thinking..."}</span>
-                  {elapsedSec > 0 && (
-                    <span className="opacity-50">{elapsedSec.toFixed(1)}s</span>
-                  )}
-                </div>
-              )}
-
-              {/* Error notice — surfaced when the stream endpoint fails so
-                  the message doesn't silently sit with no response. */}
-              {errorText && !sending && (
-                <div
-                  role="alert"
-                  className="flex justify-start"
-                >
-                  <div
-                    className={cn(
-                      boardChatBubbleShell,
-                      "bg-destructive/10 border border-destructive/30 text-destructive [border-radius:14px_14px_14px_4px]",
+                {/* Status bar — always visible while sending, independent from the chat bubble */}
+                {sending && (
+                  <div className="flex items-center gap-2 pl-1 text-xs text-muted-foreground">
+                    <img
+                      src="/taskcore-thinking.svg"
+                      alt=""
+                      className="inline-block shrink-0"
+                      style={{ width: 14, height: 14 }}
+                    />
+                    <span>{statusText || "Thinking..."}</span>
+                    {elapsedSec > 0 && (
+                      <span className="opacity-50">
+                        {elapsedSec.toFixed(1)}s
+                      </span>
                     )}
-                  >
-                    {errorText}
                   </div>
-                </div>
-              )}
+                )}
 
-              <div ref={messagesEndRef} />
+                {/* Error notice — surfaced when the stream endpoint fails so
+                  the message doesn't silently sit with no response. */}
+                {errorText && !sending && (
+                  <div role="alert" className="flex justify-start">
+                    <div
+                      className={cn(
+                        boardChatBubbleShell,
+                        "bg-destructive/10 border border-destructive/30 text-destructive [border-radius:14px_14px_14px_4px]",
+                      )}
+                    >
+                      {errorText}
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
             </div>
-          </div>
           </div>
 
           {/* Jump-to-latest — shows when user is scrolled away and new content has arrived */}
@@ -999,7 +1067,10 @@ export function BoardChat() {
               <Activity className="h-4 w-4" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-(--sz-70vh) p-0 rounded-t-xl">
+          <SheetContent
+            side="bottom"
+            className="h-(--sz-70vh) p-0 rounded-t-xl"
+          >
             <ActivityFeed />
           </SheetContent>
         </Sheet>

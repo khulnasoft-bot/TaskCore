@@ -3,50 +3,31 @@
   "slug": "notion",
   "name": "Notion",
   "description": "Read and update pages in your Notion workspace.",
-  "categories": [
-    "content"
-  ],
+  "categories": ["content"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/notion.svg"
   },
-  "urlPatterns": [
-    "https://mcp.notion.com/*"
-  ],
+  "urlPatterns": ["https://mcp.notion.com/*"],
   "methods": [
     {
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "customer",
-        "dcr"
-      ],
+      "ownershipModes": ["customer", "dcr"],
       "whenToUse": "Use the provider-hosted connection for the quickest setup.",
       "defaults": {
         "serverUrl": "https://mcp.notion.com/mcp",
-        "scopesHint": [
-          "default"
-        ]
+        "scopesHint": ["default"]
       },
       "guidanceMd": "Connect Notion for workspace content. Share only the pages and databases agents should use.",
       "riskTier": "S3",
-      "requiredResourceFilters": [
-        "workspace",
-        "page",
-        "database"
-      ],
+      "requiredResourceFilters": ["workspace", "page", "database"],
       "credentialSources": {
         "vercelConnect": {
-          "services": [
-            "notion"
-          ],
-          "principalModes": [
-            "user"
-          ],
-          "scopes": [
-            "*"
-          ],
+          "services": ["notion"],
+          "principalModes": ["user"],
+          "scopes": ["*"],
           "header": {
             "name": "Authorization",
             "prefix": "Bearer "

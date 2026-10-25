@@ -23,7 +23,9 @@ import { errorHandler } from "../middleware/index.js";
 import { resourceMembershipService } from "../services/resource-memberships.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -31,7 +33,10 @@ if (!embeddedPostgresSupport.supported) {
   );
 }
 
-function boardActor(companyId: string, role: "admin" | "operator" | "viewer" = "viewer") {
+function boardActor(
+  companyId: string,
+  role: "admin" | "operator" | "viewer" = "viewer",
+) {
   return {
     type: "board" as const,
     userId: "user-1",
@@ -42,7 +47,10 @@ function boardActor(companyId: string, role: "admin" | "operator" | "viewer" = "
   };
 }
 
-function createApp(db: ReturnType<typeof createDb>, actor: Express.Request["actor"]) {
+function createApp(
+  db: ReturnType<typeof createDb>,
+  actor: Express.Request["actor"],
+) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -56,10 +64,14 @@ function createApp(db: ReturnType<typeof createDb>, actor: Express.Request["acto
 
 describeEmbeddedPostgres("resource membership routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-resource-memberships-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-resource-memberships-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -104,13 +116,35 @@ describeEmbeddedPostgres("resource membership routes", () => {
       },
     ]);
     await db.insert(documents).values([
-      { id: documentId, companyId, title: "Plan", latestBody: "Plan body", createdByUserId: "user-1" },
-      { id: otherDocumentId, companyId: otherCompanyId, title: "Other", latestBody: "Other body" },
+      {
+        id: documentId,
+        companyId,
+        title: "Plan",
+        latestBody: "Plan body",
+        createdByUserId: "user-1",
+      },
+      {
+        id: otherDocumentId,
+        companyId: otherCompanyId,
+        title: "Other",
+        latestBody: "Other body",
+      },
     ]);
     await db.insert(projects).values([
       { id: projectId, companyId, name: "Growth", status: "in_progress" },
-      { id: archivedProjectId, companyId, name: "Archived", status: "completed", archivedAt: new Date() },
-      { id: otherProjectId, companyId: otherCompanyId, name: "Other", status: "in_progress" },
+      {
+        id: archivedProjectId,
+        companyId,
+        name: "Archived",
+        status: "completed",
+        archivedAt: new Date(),
+      },
+      {
+        id: otherProjectId,
+        companyId: otherCompanyId,
+        name: "Other",
+        status: "in_progress",
+      },
     ]);
     await db.insert(agents).values([
       {
@@ -164,7 +198,9 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const { companyId } = await seed();
     const app = createApp(db, boardActor(companyId));
 
-    const res = await request(app).get(`/api/companies/${companyId}/resource-memberships/me`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/resource-memberships/me`,
+    );
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -185,19 +221,33 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId, "viewer"));
 
     const first = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`,
+      )
       .send({ state: "left" });
     const second = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`,
+      )
       .send({ state: "left" });
 
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ resourceType: "project", resourceId: projectId, state: "left", starredAt: null });
+    expect(first.body).toMatchObject({
+      resourceType: "project",
+      resourceId: projectId,
+      state: "left",
+      starredAt: null,
+    });
     expect(second.status).toBe(200);
 
     const rows = await db.select().from(projectMemberships);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ companyId, projectId, userId: "user-1", state: "left" });
+    expect(rows[0]).toMatchObject({
+      companyId,
+      projectId,
+      userId: "user-1",
+      state: "left",
+    });
 
     const activity = await db.select().from(activityLog);
     expect(activity).toHaveLength(1);
@@ -216,15 +266,25 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId, "viewer"));
 
     const first = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`,
+      )
       .send({ starred: true });
     const second = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`,
+      )
       .send({ starred: true });
-    const list = await request(app).get(`/api/companies/${companyId}/resource-memberships/me`);
+    const list = await request(app).get(
+      `/api/companies/${companyId}/resource-memberships/me`,
+    );
 
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ resourceType: "project", resourceId: projectId, state: "joined" });
+    expect(first.body).toMatchObject({
+      resourceType: "project",
+      resourceId: projectId,
+      state: "joined",
+    });
     expect(first.body.starredAt).toEqual(expect.any(String));
     expect(second.status).toBe(200);
     expect(second.body.starredAt).toBe(first.body.starredAt);
@@ -233,7 +293,12 @@ describeEmbeddedPostgres("resource membership routes", () => {
 
     const rows = await db.select().from(projectMemberships);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ companyId, projectId, userId: "user-1", state: "joined" });
+    expect(rows[0]).toMatchObject({
+      companyId,
+      projectId,
+      userId: "user-1",
+      state: "joined",
+    });
     expect(rows[0]?.starredAt).toBeInstanceOf(Date);
 
     const activity = await db.select().from(activityLog);
@@ -257,11 +322,15 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId));
 
     await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`,
+      )
       .send({ starred: true })
       .expect(200);
     const leave = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${projectId}`,
+      )
       .send({ state: "left" });
 
     expect(leave.status).toBe(200);
@@ -274,7 +343,11 @@ describeEmbeddedPostgres("resource membership routes", () => {
       "resource_membership.starred",
       "resource_membership.left",
     ]);
-    expect(activity[1]?.details).toMatchObject({ state: "left", starred: false, starredAt: null });
+    expect(activity[1]?.details).toMatchObject({
+      state: "left",
+      starred: false,
+      starredAt: null,
+    });
   });
 
   it("starring a left resource rejoins it", async () => {
@@ -282,15 +355,23 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId));
 
     await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`,
+      )
       .send({ state: "left" })
       .expect(200);
     const star = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`,
+      )
       .send({ starred: true });
 
     expect(star.status).toBe(200);
-    expect(star.body).toMatchObject({ resourceType: "agent", resourceId: agentId, state: "joined" });
+    expect(star.body).toMatchObject({
+      resourceType: "agent",
+      resourceId: agentId,
+      state: "joined",
+    });
     expect(star.body.starredAt).toEqual(expect.any(String));
 
     const [row] = await db.select().from(agentMemberships);
@@ -309,14 +390,20 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId));
 
     await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`,
+      )
       .send({ starred: true })
       .expect(200);
     const first = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`,
+      )
       .send({ starred: false });
     const second = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/agents/${agentId}`,
+      )
       .send({ starred: false });
 
     expect(first.status).toBe(200);
@@ -353,7 +440,9 @@ describeEmbeddedPostgres("resource membership routes", () => {
     });
     const app = createApp(db, boardActor(companyId));
 
-    const res = await request(app).get(`/api/companies/${companyId}/resource-memberships/me`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/resource-memberships/me`,
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.projectMemberships[archivedProjectId]).toBe("joined");
@@ -369,10 +458,14 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId));
 
     const projectRes = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${archivedProjectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${archivedProjectId}`,
+      )
       .send({ starred: true });
     const agentRes = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/agents/${terminatedAgentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/agents/${terminatedAgentId}`,
+      )
       .send({ starred: true });
 
     expect(projectRes.status).toBe(404);
@@ -388,7 +481,9 @@ describeEmbeddedPostgres("resource membership routes", () => {
       source: "agent_key",
     });
 
-    const res = await request(app).get(`/api/companies/${companyId}/resource-memberships/me`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/resource-memberships/me`,
+    );
 
     expect(res.status).toBe(403);
   });
@@ -398,10 +493,14 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId));
 
     const projectRes = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/projects/${otherProjectId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/projects/${otherProjectId}`,
+      )
       .send({ state: "left" });
     const agentRes = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/agents/${otherAgentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/agents/${otherAgentId}`,
+      )
       .send({ state: "left" });
 
     expect(projectRes.status).toBe(404);
@@ -431,39 +530,61 @@ describeEmbeddedPostgres("resource membership routes", () => {
 
     const [first, second] = await Promise.all([
       request(app)
-        .put(`/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`)
+        .put(
+          `/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`,
+        )
         .send({ starred: true }),
       request(app)
-        .put(`/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`)
+        .put(
+          `/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`,
+        )
         .send({ starred: true }),
     ]);
-    const list = await request(app).get(`/api/companies/${companyId}/resource-memberships/me`);
+    const list = await request(app).get(
+      `/api/companies/${companyId}/resource-memberships/me`,
+    );
 
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ resourceType: "document", resourceId: documentId, starredAt: expect.any(String) });
+    expect(first.body).toMatchObject({
+      resourceType: "document",
+      resourceId: documentId,
+      starredAt: expect.any(String),
+    });
     expect(second.status).toBe(200);
     expect(second.body.starredAt).toBe(first.body.starredAt);
     expect(list.body.starredDocumentIds).toEqual([documentId]);
     expect(list.body.documentStarredAt[documentId]).toBe(first.body.starredAt);
-    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(1);
+    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(
+      1,
+    );
 
     const unstars = await Promise.all([
       request(app)
-        .put(`/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`)
+        .put(
+          `/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`,
+        )
         .send({ starred: false }),
       request(app)
-        .put(`/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`)
+        .put(
+          `/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`,
+        )
         .send({ starred: false }),
     ]);
     expect(unstars.map((response) => response.status)).toEqual([200, 200]);
-    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(0);
+    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(
+      0,
+    );
 
     await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/documents/${documentId}`,
+      )
       .send({ starred: true })
       .expect(200);
     await db.delete(documents).where(eq(documents.id, documentId));
-    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(0);
+    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(
+      0,
+    );
 
     const activity = await db.select().from(activityLog);
     expect(activity.map((entry) => entry.action)).toEqual([
@@ -471,7 +592,10 @@ describeEmbeddedPostgres("resource membership routes", () => {
       "resource_membership.unstarred",
       "resource_membership.starred",
     ]);
-    expect(activity[0]).toMatchObject({ entityType: "document", entityId: documentId });
+    expect(activity[0]).toMatchObject({
+      entityType: "document",
+      entityId: documentId,
+    });
   });
 
   it("returns identical 404s for cross-company documents", async () => {
@@ -479,11 +603,15 @@ describeEmbeddedPostgres("resource membership routes", () => {
     const app = createApp(db, boardActor(companyId));
 
     const response = await request(app)
-      .put(`/api/companies/${companyId}/resource-memberships/me/documents/${otherDocumentId}`)
+      .put(
+        `/api/companies/${companyId}/resource-memberships/me/documents/${otherDocumentId}`,
+      )
       .send({ starred: true });
 
     expect(response.status).toBe(404);
     expect(response.body.error).toBe("Document not found");
-    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(0);
+    await expect(db.select().from(documentMemberships)).resolves.toHaveLength(
+      0,
+    );
   });
 });

@@ -13,7 +13,13 @@ import { defaultIssueFilterState } from "../lib/issue-filters";
 vi.mock("@/components/ui/popover", () => ({
   Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   PopoverTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
-  PopoverContent: ({ children, className }: { children: ReactNode; className?: string }) => (
+  PopoverContent: ({
+    children,
+    className,
+  }: {
+    children: ReactNode;
+    className?: string;
+  }) => (
     <div data-testid="popover-content" className={className}>
       {children}
     </div>
@@ -21,7 +27,10 @@ vi.mock("@/components/ui/popover", () => ({
 }));
 
 vi.mock("@/components/ui/button", () => ({
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+  Button: ({
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button type="button" {...props}>
       {children}
     </button>
@@ -29,7 +38,9 @@ vi.mock("@/components/ui/button", () => ({
 }));
 
 vi.mock("@/components/ui/checkbox", () => ({
-  Checkbox: ({ checked }: { checked?: boolean }) => <input type="checkbox" checked={checked} readOnly />,
+  Checkbox: ({ checked }: { checked?: boolean }) => (
+    <input type="checkbox" checked={checked} readOnly />
+  ),
 }));
 
 vi.mock("./StatusIcon", () => ({
@@ -71,15 +82,17 @@ describe("IssueFiltersPopover", () => {
       );
     });
 
-    const popoverContent = container.querySelector("[data-testid='popover-content']");
+    const popoverContent = container.querySelector(
+      "[data-testid='popover-content']",
+    );
     expect(popoverContent).not.toBeNull();
     expect(popoverContent?.className).toContain("overflow-y-auto");
     expect(popoverContent?.className).toContain("max-h-(--sz-calc-9)");
     expect(popoverContent?.querySelectorAll(".overflow-y-auto").length).toBe(0);
 
-    const layoutGrid = Array.from(popoverContent?.querySelectorAll("div") ?? []).find((element) =>
-      element.className.includes("md:grid-cols-3"),
-    );
+    const layoutGrid = Array.from(
+      popoverContent?.querySelectorAll("div") ?? [],
+    ).find((element) => element.className.includes("md:grid-cols-3"));
     expect(layoutGrid?.className).toContain("grid-cols-1");
     expect(popoverContent?.textContent).toContain("Live runs only");
   });
@@ -103,7 +116,9 @@ describe("IssueFiltersPopover", () => {
       );
     });
 
-    const popoverContent = container.querySelector("[data-testid='popover-content']");
+    const popoverContent = container.querySelector(
+      "[data-testid='popover-content']",
+    );
     expect(popoverContent).not.toBeNull();
     // Status section still renders, Priority section is gated off (PAP-411).
     expect(popoverContent?.textContent).toContain("Status");
@@ -130,18 +145,29 @@ describe("IssueFiltersPopover", () => {
       );
     });
 
-    const input = container.querySelector<HTMLInputElement>('input[aria-label="Search responsible"]');
+    const input = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Search responsible"]',
+    );
     expect(input).not.toBeNull();
     act(() => {
-      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       valueSetter?.call(input, "Agent 7");
       input?.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    const responsibleOptions = container.querySelector('[data-filter-options="responsible"]');
+    const responsibleOptions = container.querySelector(
+      '[data-filter-options="responsible"]',
+    );
     expect(responsibleOptions?.textContent).toContain("Agent 7");
     expect(responsibleOptions?.textContent).not.toContain("Agent 1");
-    expect(container.querySelector('[data-testid="popover-content"]')?.querySelectorAll(".overflow-y-auto").length).toBe(0);
+    expect(
+      container
+        .querySelector('[data-testid="popover-content"]')
+        ?.querySelectorAll(".overflow-y-auto").length,
+    ).toBe(0);
 
     act(() => root.unmount());
   });
@@ -170,11 +196,19 @@ describe("IssueFiltersPopover", () => {
       );
     });
 
-    const popoverContent = container.querySelector("[data-testid='popover-content']");
+    const popoverContent = container.querySelector(
+      "[data-testid='popover-content']",
+    );
     expect(popoverContent?.className).not.toContain("overflow-y-auto");
-    expect(container.querySelector('input[aria-label="Search responsible"]')).toBeNull();
-    expect(container.querySelector('[data-filter-options="responsible"]')?.className).toContain("overflow-y-auto");
-    expect(container.querySelector('[data-filter-options="projects"]')?.className).toContain("overflow-y-auto");
+    expect(
+      container.querySelector('input[aria-label="Search responsible"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-filter-options="responsible"]')?.className,
+    ).toContain("overflow-y-auto");
+    expect(
+      container.querySelector('[data-filter-options="projects"]')?.className,
+    ).toContain("overflow-y-auto");
 
     act(() => root.unmount());
   });
@@ -206,23 +240,36 @@ describe("IssueFiltersPopover", () => {
       );
     });
 
-    const categoryOptions = container.querySelector('[data-filter-options="inbox-category"]');
-    const approvalOptions = container.querySelector('[data-filter-options="inbox-approval-status"]');
+    const categoryOptions = container.querySelector(
+      '[data-filter-options="inbox-category"]',
+    );
+    const approvalOptions = container.querySelector(
+      '[data-filter-options="inbox-approval-status"]',
+    );
     expect(categoryOptions?.textContent).toContain("All categories");
-    expect(categoryOptions?.querySelector('button[aria-pressed="true"]')?.textContent).toContain("Approvals");
-    expect(approvalOptions?.querySelector('button[aria-pressed="true"]')?.textContent).toContain("Needs action");
+    expect(
+      categoryOptions?.querySelector('button[aria-pressed="true"]')
+        ?.textContent,
+    ).toContain("Approvals");
+    expect(
+      approvalOptions?.querySelector('button[aria-pressed="true"]')
+        ?.textContent,
+    ).toContain("Needs action");
 
-    const allCategoriesButton = Array.from(categoryOptions?.querySelectorAll("button") ?? [])
-      .find((button) => button.textContent?.includes("All categories"));
-    const resolvedButton = Array.from(approvalOptions?.querySelectorAll("button") ?? [])
-      .find((button) => button.textContent?.includes("Resolved"));
+    const allCategoriesButton = Array.from(
+      categoryOptions?.querySelectorAll("button") ?? [],
+    ).find((button) => button.textContent?.includes("All categories"));
+    const resolvedButton = Array.from(
+      approvalOptions?.querySelectorAll("button") ?? [],
+    ).find((button) => button.textContent?.includes("Resolved"));
     act(() => allCategoriesButton?.click());
     act(() => resolvedButton?.click());
     expect(onCategoryChange).toHaveBeenCalledWith("everything");
     expect(onApprovalStatusChange).toHaveBeenCalledWith("resolved");
 
-    const clearButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "Clear");
+    const clearButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Clear",
+    );
     act(() => clearButton?.click());
     expect(onChange).toHaveBeenCalledWith(defaultIssueFilterState);
     expect(onClear).toHaveBeenCalledTimes(1);

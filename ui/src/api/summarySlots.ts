@@ -29,7 +29,9 @@ export const summarySlotsApi = {
   get: (selector: SummarySlotSelector) =>
     api.get<GetSummarySlotResponse>(summarySlotPath(selector)),
   revisions: (selector: SummarySlotSelector) =>
-    api.get<ListSummarySlotRevisionsResponse>(summarySlotPath(selector, "/revisions")),
+    api.get<ListSummarySlotRevisionsResponse>(
+      summarySlotPath(selector, "/revisions"),
+    ),
   generate: (selector: SummarySlotSelector) =>
     api.post<GenerateSummarySlotResponse>(
       summarySlotPath(selector, "/generate"),

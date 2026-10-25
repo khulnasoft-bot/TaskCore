@@ -17,26 +17,57 @@ import {
   type ResolvedAdditionalWorkspace,
   type RunReferencedProject,
 } from "../services/heartbeat.ts";
-import type { AuthorizationActor, AuthorizationDecision } from "../services/authorization.ts";
+import type {
+  AuthorizationActor,
+  AuthorizationDecision,
+} from "../services/authorization.ts";
 import { resolveManagedProjectWorkspaceDir } from "../home-paths.ts";
 
 describe("resolveExecutionRunAdapterConfig", () => {
-  it.each(["many variables", "large value"])("keeps legacy adapter configuration compatible with %s", async kind => {
-    const env = kind === "many variables"
-      ? Object.fromEntries(Array.from({ length: 129 }, (_, index) => [`CUSTOM_${index}`, "value"]))
-      : { CUSTOM_VALUE: "x".repeat(65_536) };
-    const result = await resolveExecutionRunAdapterConfig({ companyId: "company-1", adapterType: "process", executionRunConfig: { env }, secretsSvc: {
-      resolveAdapterConfigForRuntime: vi.fn(async (_companyId, config) => ({ config, secretKeys: new Set(), manifest: [] })),
-    } as any });
-    expect(result.resolvedConfig.env).toEqual(env);
-  });
+  it.each(["many variables", "large value"])(
+    "keeps legacy adapter configuration compatible with %s",
+    async (kind) => {
+      const env =
+        kind === "many variables"
+          ? Object.fromEntries(
+              Array.from({ length: 129 }, (_, index) => [
+                `CUSTOM_${index}`,
+                "value",
+              ]),
+            )
+          : { CUSTOM_VALUE: "x".repeat(65_536) };
+      const result = await resolveExecutionRunAdapterConfig({
+        companyId: "company-1",
+        adapterType: "process",
+        executionRunConfig: { env },
+        secretsSvc: {
+          resolveAdapterConfigForRuntime: vi.fn(async (_companyId, config) => ({
+            config,
+            secretKeys: new Set(),
+            manifest: [],
+          })),
+        } as any,
+      });
+      expect(result.resolvedConfig.env).toEqual(env);
+    },
+  );
 
   it("captures scoped resolved task values and rejects configured markers", async () => {
     const key = "TASKCORE_CONFIGURED_ENV_KEYS";
     const secret = { type: "secret_ref", secretId: "pages-secret" };
     const result = await resolveExecutionRunAdapterConfig({
-      companyId: "company-1", agentId: "agent-1", environmentId: "environment-1", projectId: "project-1", routineId: "routine-1",
-      executionRunConfig: { env: { TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: secret, SHARED: "agent", [key]: '["HOST_SECRET"]' } },
+      companyId: "company-1",
+      agentId: "agent-1",
+      environmentId: "environment-1",
+      projectId: "project-1",
+      routineId: "routine-1",
+      executionRunConfig: {
+        env: {
+          TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: secret,
+          SHARED: "agent",
+          [key]: '["HOST_SECRET"]',
+        },
+      },
       environmentEnv: { SHARED: "environment", [key]: '["HOST_SECRET"]' },
       projectEnv: { SHARED: "project", [key]: '["HOST_SECRET"]' },
       routineEnv: { SHARED: "routine", [key]: '["HOST_SECRET"]' },
@@ -44,7 +75,17 @@ describe("resolveExecutionRunAdapterConfig", () => {
         resolveAdapterConfigForRuntime: vi.fn(async (companyId, config) => {
           expect(companyId).toBe("company-1");
           expect(config.env[key]).toBeUndefined();
-          return { config: { ...config, env: { ...config.env, TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: "resolved-task-secret" } }, secretKeys: new Set(["TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY"]), manifest: [] };
+          return {
+            config: {
+              ...config,
+              env: {
+                ...config.env,
+                TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: "resolved-task-secret",
+              },
+            },
+            secretKeys: new Set(["TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY"]),
+            manifest: [],
+          };
         }),
         resolveEnvBindings: vi.fn(async (companyId, env) => {
           expect(companyId).toBe("company-1");
@@ -54,7 +95,8 @@ describe("resolveExecutionRunAdapterConfig", () => {
       } as any,
     });
     expect(result.configuredTaskEnvironment).toEqual({
-      TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: "resolved-task-secret", SHARED: "routine",
+      TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: "resolved-task-secret",
+      SHARED: "routine",
     });
     expect(result.resolvedConfig.env).not.toHaveProperty(key);
     expect(result.configuredTaskEnvironment).not.toHaveProperty(key);
@@ -62,29 +104,58 @@ describe("resolveExecutionRunAdapterConfig", () => {
 
   it("does not preflight or resolve legacy GitHub token bindings for managed executions", async () => {
     const assertNoGitHubBinding = (env: Record<string, unknown>) => {
-      for (const key of Object.keys(env)) if (/^(GH_TOKEN|GITHUB_TOKEN|GH_ENTERPRISE_TOKEN|GITHUB_ENTERPRISE_TOKEN|TASKCORE_GIT_TOKEN)$/.test(key)) {
-        throw new Error("Unavailable legacy GitHub secret must not be resolved at startup");
-      }
+      for (const key of Object.keys(env))
+        if (
+          /^(GH_TOKEN|GITHUB_TOKEN|GH_ENTERPRISE_TOKEN|GITHUB_ENTERPRISE_TOKEN|TASKCORE_GIT_TOKEN)$/.test(
+            key,
+          )
+        ) {
+          throw new Error(
+            "Unavailable legacy GitHub secret must not be resolved at startup",
+          );
+        }
     };
-    const missing = { type: "user_secret_ref", key: "old-github-token", required: true };
+    const missing = {
+      type: "user_secret_ref",
+      key: "old-github-token",
+      required: true,
+    };
     const result = await resolveExecutionRunAdapterConfig({
-      companyId: "company-1", agentId: "agent-1", environmentId: "environment-1",
-      projectId: "project-1", routineId: "routine-1", managedGitHubCredentials: true,
+      companyId: "company-1",
+      agentId: "agent-1",
+      environmentId: "environment-1",
+      projectId: "project-1",
+      routineId: "routine-1",
+      managedGitHubCredentials: true,
       executionRunConfig: { env: { GH_TOKEN: missing, AGENT_VALUE: "ok" } },
       environmentEnv: { GITHUB_TOKEN: missing, ENVIRONMENT_VALUE: "ok" },
       projectEnv: { GH_ENTERPRISE_TOKEN: missing, PROJECT_VALUE: "ok" },
-      routineEnv: { GITHUB_ENTERPRISE_TOKEN: missing, TASKCORE_GIT_TOKEN: missing, ROUTINE_VALUE: "ok" },
+      routineEnv: {
+        GITHUB_ENTERPRISE_TOKEN: missing,
+        TASKCORE_GIT_TOKEN: missing,
+        ROUTINE_VALUE: "ok",
+      },
       secretsSvc: {
-        collectMissingRuntimeBindings: vi.fn(async (_companyId, env) => { assertNoGitHubBinding(env); return []; }),
+        collectMissingRuntimeBindings: vi.fn(async (_companyId, env) => {
+          assertNoGitHubBinding(env);
+          return [];
+        }),
         resolveAdapterConfigForRuntime: vi.fn(async (_companyId, config) => {
-          assertNoGitHubBinding(config.env); return { config, secretKeys: new Set(), manifest: [] };
+          assertNoGitHubBinding(config.env);
+          return { config, secretKeys: new Set(), manifest: [] };
         }),
         resolveEnvBindings: vi.fn(async (_companyId, env) => {
-          assertNoGitHubBinding(env); return { env, secretKeys: new Set(), manifest: [] };
+          assertNoGitHubBinding(env);
+          return { env, secretKeys: new Set(), manifest: [] };
         }),
       } as any,
     });
-    expect(result.resolvedConfig.env).toEqual({ AGENT_VALUE: "ok", ENVIRONMENT_VALUE: "ok", PROJECT_VALUE: "ok", ROUTINE_VALUE: "ok" });
+    expect(result.resolvedConfig.env).toEqual({
+      AGENT_VALUE: "ok",
+      ENVIRONMENT_VALUE: "ok",
+      PROJECT_VALUE: "ok",
+      ROUTINE_VALUE: "ok",
+    });
   });
   it("overlays environment, project, and routine env on top of agent env and unions secret keys", async () => {
     const resolveAdapterConfigForRuntime = vi.fn().mockResolvedValue({
@@ -189,15 +260,24 @@ describe("resolveExecutionRunAdapterConfig", () => {
         ROUTINE_ONLY: "routine-only",
       },
     });
-    expect(Array.from(result.secretKeys).sort()).toEqual(["AGENT_SECRET", "ENV_SECRET", "PROJECT_SECRET", "ROUTINE_SECRET"]);
-    expect(result.secretManifest.map((entry) => entry.secretId).sort()).toEqual([
-      "secret-agent",
-      "secret-environment",
-      "secret-project",
-      "secret-routine",
+    expect(Array.from(result.secretKeys).sort()).toEqual([
+      "AGENT_SECRET",
+      "ENV_SECRET",
+      "PROJECT_SECRET",
+      "ROUTINE_SECRET",
     ]);
+    expect(result.secretManifest.map((entry) => entry.secretId).sort()).toEqual(
+      [
+        "secret-agent",
+        "secret-environment",
+        "secret-project",
+        "secret-routine",
+      ],
+    );
     expect(JSON.stringify(result.secretManifest)).not.toContain("agent-only");
-    expect(JSON.stringify(result.secretManifest)).not.toContain("environment-only");
+    expect(JSON.stringify(result.secretManifest)).not.toContain(
+      "environment-only",
+    );
     expect(JSON.stringify(result.secretManifest)).not.toContain("project-only");
     expect(JSON.stringify(result.secretManifest)).not.toContain("routine-only");
     expect(resolveEnvBindings.mock.calls[0]?.[2]).toMatchObject({
@@ -211,21 +291,27 @@ describe("resolveExecutionRunAdapterConfig", () => {
   });
 
   it("drops TASKCORE_API_KEY bindings but forwards other TASKCORE_-named env to resolution", async () => {
-    const resolveAdapterConfigForRuntime = vi.fn(async (_companyId, config: Record<string, unknown>) => ({
-      config: {
-        ...config,
-        env: { ...(config.env as Record<string, unknown>) },
-      },
-      secretKeys: new Set<string>(),
-      manifest: [],
-    }));
-    const resolveEnvBindings = vi.fn(async (_companyId, env: Record<string, unknown>) => ({
-      env: Object.fromEntries(
-        Object.entries(env).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-      ),
-      secretKeys: new Set<string>(),
-      manifest: [],
-    }));
+    const resolveAdapterConfigForRuntime = vi.fn(
+      async (_companyId, config: Record<string, unknown>) => ({
+        config: {
+          ...config,
+          env: { ...(config.env as Record<string, unknown>) },
+        },
+        secretKeys: new Set<string>(),
+        manifest: [],
+      }),
+    );
+    const resolveEnvBindings = vi.fn(
+      async (_companyId, env: Record<string, unknown>) => ({
+        env: Object.fromEntries(
+          Object.entries(env).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          ),
+        ),
+        secretKeys: new Set<string>(),
+        manifest: [],
+      }),
+    );
 
     const result = await resolveExecutionRunAdapterConfig({
       companyId: "company-1",
@@ -239,7 +325,11 @@ describe("resolveExecutionRunAdapterConfig", () => {
       },
       executionRunConfig: {
         env: {
-          TASKCORE_API_KEY: { type: "secret_ref", secretId: "secret-api-key", version: "latest" },
+          TASKCORE_API_KEY: {
+            type: "secret_ref",
+            secretId: "secret-api-key",
+            version: "latest",
+          },
           TASKCORE_CLOUD_PROVIDER_TOKEN_AGENT: "agent-cloud",
           AGENT_ONLY: "agent-only",
         },
@@ -289,8 +379,12 @@ describe("resolveExecutionRunAdapterConfig", () => {
       TASKCORE_CLOUD_PROVIDER_TOKEN_ROUTINE: "routine-cloud",
       ROUTINE_ONLY: "routine-only",
     });
-    expect(JSON.stringify(result.resolvedConfig.env)).not.toContain("TASKCORE_API_KEY");
-    expect(JSON.stringify(result.resolvedConfig.env)).not.toContain("TASKCORE_RUNNER_NETWORK_ACCESS");
+    expect(JSON.stringify(result.resolvedConfig.env)).not.toContain(
+      "TASKCORE_API_KEY",
+    );
+    expect(JSON.stringify(result.resolvedConfig.env)).not.toContain(
+      "TASKCORE_RUNNER_NETWORK_ACCESS",
+    );
   });
 
   it("skips project env resolution when the project has no bindings", async () => {
@@ -409,36 +503,38 @@ describe("resolveExecutionRunAdapterConfig", () => {
   });
 
   it("does not let a brokered projection satisfy low-trust push preflight", async () => {
-    await expect(resolveExecutionRunAdapterConfig({
-      companyId: "company-1",
-      agentId: "agent-1",
-      issueId: "issue-1",
-      executionRunConfig: { env: {} },
-      projectEnv: null,
-      trustPreset: {
-        kind: "low_trust_review",
-        preset: LOW_TRUST_REVIEW_PRESET,
-        boundary: {
-          mode: LOW_TRUST_REVIEW_PRESET,
-          companyId: "company-1",
-          issueIds: ["issue-1"],
-          allowedSecretBindingIds: [],
+    await expect(
+      resolveExecutionRunAdapterConfig({
+        companyId: "company-1",
+        agentId: "agent-1",
+        issueId: "issue-1",
+        executionRunConfig: { env: {} },
+        projectEnv: null,
+        trustPreset: {
+          kind: "low_trust_review",
+          preset: LOW_TRUST_REVIEW_PRESET,
+          boundary: {
+            mode: LOW_TRUST_REVIEW_PRESET,
+            companyId: "company-1",
+            issueIds: ["issue-1"],
+            allowedSecretBindingIds: [],
+          },
+          sourcePresets: {},
         },
-        sourcePresets: {},
-      },
-      requiredScopedEnvBinding: {
-        keys: ["GH_TOKEN", "GITHUB_TOKEN"],
-        consumerScopes: ["agent", "project"],
-        reason: "push_write_credential_missing",
-        remediation: "Bind an explicitly allowed GitHub write credential.",
-      },
-      trustedEnvProjection: { GH_TOKEN: "brokered-github-token" },
-      trustedEnvSecretKeys: ["GH_TOKEN"],
-      secretsSvc: {
-        resolveAdapterConfigForRuntime: vi.fn(),
-        resolveEnvBindings: vi.fn(),
-      } as any,
-    })).rejects.toMatchObject({
+        requiredScopedEnvBinding: {
+          keys: ["GH_TOKEN", "GITHUB_TOKEN"],
+          consumerScopes: ["agent", "project"],
+          reason: "push_write_credential_missing",
+          remediation: "Bind an explicitly allowed GitHub write credential.",
+        },
+        trustedEnvProjection: { GH_TOKEN: "brokered-github-token" },
+        trustedEnvSecretKeys: ["GH_TOKEN"],
+        secretsSvc: {
+          resolveAdapterConfigForRuntime: vi.fn(),
+          resolveEnvBindings: vi.fn(),
+        } as any,
+      }),
+    ).rejects.toMatchObject({
       code: "configuration_incomplete",
       resultJson: {
         configurationIncomplete: { reason: "push_write_credential_missing" },
@@ -449,45 +545,52 @@ describe("resolveExecutionRunAdapterConfig", () => {
   it("blocks required missing user secrets before runtime env resolution", async () => {
     const resolveAdapterConfigForRuntime = vi.fn();
     const resolveEnvBindings = vi.fn();
-    const collectMissingRuntimeBindings = vi.fn(async (_companyId, _env, context) =>
-      context.consumerType === "agent"
-        ? [
-            {
-              consumerType: "agent",
-              consumerId: "agent-1",
-              configPath: "env.GITHUB_TOKEN",
-              envKey: "GITHUB_TOKEN",
-              bindingType: "user_secret_ref",
-              secretId: null,
-              secretName: null,
-              userSecretDefinitionId: "definition-1",
-              userSecretDefinitionKey: "github_token",
-              userSecretDefinitionName: "GitHub token",
-              responsibleUserId: context.responsibleUserId,
-              errorCode: "user_secret_missing",
-            },
-          ]
-        : [],
+    const collectMissingRuntimeBindings = vi.fn(
+      async (_companyId, _env, context) =>
+        context.consumerType === "agent"
+          ? [
+              {
+                consumerType: "agent",
+                consumerId: "agent-1",
+                configPath: "env.GITHUB_TOKEN",
+                envKey: "GITHUB_TOKEN",
+                bindingType: "user_secret_ref",
+                secretId: null,
+                secretName: null,
+                userSecretDefinitionId: "definition-1",
+                userSecretDefinitionKey: "github_token",
+                userSecretDefinitionName: "GitHub token",
+                responsibleUserId: context.responsibleUserId,
+                errorCode: "user_secret_missing",
+              },
+            ]
+          : [],
     );
 
-    await expect(resolveExecutionRunAdapterConfig({
-      companyId: "company-1",
-      agentId: "agent-1",
-      issueId: "issue-1",
-      heartbeatRunId: "run-1",
-      responsibleUserId: "user-1",
-      executionRunConfig: {
-        env: {
-          GITHUB_TOKEN: { type: "user_secret_ref", key: "github_token", required: true },
+    await expect(
+      resolveExecutionRunAdapterConfig({
+        companyId: "company-1",
+        agentId: "agent-1",
+        issueId: "issue-1",
+        heartbeatRunId: "run-1",
+        responsibleUserId: "user-1",
+        executionRunConfig: {
+          env: {
+            GITHUB_TOKEN: {
+              type: "user_secret_ref",
+              key: "github_token",
+              required: true,
+            },
+          },
         },
-      },
-      projectEnv: null,
-      secretsSvc: {
-        resolveAdapterConfigForRuntime,
-        resolveEnvBindings,
-        collectMissingRuntimeBindings,
-      } as any,
-    })).rejects.toMatchObject({
+        projectEnv: null,
+        secretsSvc: {
+          resolveAdapterConfigForRuntime,
+          resolveEnvBindings,
+          collectMissingRuntimeBindings,
+        } as any,
+      }),
+    ).rejects.toMatchObject({
       code: "configuration_incomplete",
       resultJson: {
         configurationIncomplete: {
@@ -513,56 +616,63 @@ describe("resolveExecutionRunAdapterConfig", () => {
   });
 
   it("rejects inline sensitive env values for low-trust runs", async () => {
-    await expect(resolveExecutionRunAdapterConfig({
-      companyId: "company-1",
-      agentId: "agent-1",
-      issueId: "issue-1",
-      executionRunConfig: {
-        env: {
-          OPENAI_API_KEY: "inline-secret",
+    await expect(
+      resolveExecutionRunAdapterConfig({
+        companyId: "company-1",
+        agentId: "agent-1",
+        issueId: "issue-1",
+        executionRunConfig: {
+          env: {
+            OPENAI_API_KEY: "inline-secret",
+          },
         },
-      },
-      projectEnv: null,
-      trustPreset: {
-        kind: "low_trust_review",
-        preset: LOW_TRUST_REVIEW_PRESET,
-        boundary: {
-          mode: LOW_TRUST_REVIEW_PRESET,
-          companyId: "company-1",
-          issueIds: ["issue-1"],
+        projectEnv: null,
+        trustPreset: {
+          kind: "low_trust_review",
+          preset: LOW_TRUST_REVIEW_PRESET,
+          boundary: {
+            mode: LOW_TRUST_REVIEW_PRESET,
+            companyId: "company-1",
+            issueIds: ["issue-1"],
+          },
+          sourcePresets: {},
         },
-        sourcePresets: {},
-      },
-      secretsSvc: {
-        resolveAdapterConfigForRuntime: vi.fn(),
-        resolveEnvBindings: vi.fn(),
-      } as any,
-    })).rejects.toMatchObject({
+        secretsSvc: {
+          resolveAdapterConfigForRuntime: vi.fn(),
+          resolveEnvBindings: vi.fn(),
+        } as any,
+      }),
+    ).rejects.toMatchObject({
       status: 422,
       details: { code: "low_trust_inline_sensitive_env_denied" },
     });
   });
 
   it("fails push-capability preflight when no GitHub write credential is bound at agent or project scope", async () => {
-    await expect(resolveExecutionRunAdapterConfig({
-      companyId: "company-1",
-      agentId: "agent-1",
-      issueId: "issue-1",
-      executionRunConfig: { env: { AGENT_ONLY: "agent-only" } },
-      projectEnv: { PROJECT_ONLY: "project-only" },
-      requiredScopedEnvBinding: {
-        keys: ["GH_TOKEN", "GITHUB_TOKEN"],
-        consumerScopes: ["agent", "project"],
-        reason: "push_write_credential_missing",
-        remediation: "GitHub PR workflow requires GH_TOKEN or GITHUB_TOKEN bound at project or agent scope.",
-      },
-      secretsSvc: {
-        resolveAdapterConfigForRuntime: vi.fn(),
-        resolveEnvBindings: vi.fn(),
-      } as any,
-    })).rejects.toMatchObject({
+    await expect(
+      resolveExecutionRunAdapterConfig({
+        companyId: "company-1",
+        agentId: "agent-1",
+        issueId: "issue-1",
+        executionRunConfig: { env: { AGENT_ONLY: "agent-only" } },
+        projectEnv: { PROJECT_ONLY: "project-only" },
+        requiredScopedEnvBinding: {
+          keys: ["GH_TOKEN", "GITHUB_TOKEN"],
+          consumerScopes: ["agent", "project"],
+          reason: "push_write_credential_missing",
+          remediation:
+            "GitHub PR workflow requires GH_TOKEN or GITHUB_TOKEN bound at project or agent scope.",
+        },
+        secretsSvc: {
+          resolveAdapterConfigForRuntime: vi.fn(),
+          resolveEnvBindings: vi.fn(),
+        } as any,
+      }),
+    ).rejects.toMatchObject({
       code: "configuration_incomplete",
-      message: expect.stringContaining("GitHub PR workflow requires GH_TOKEN or GITHUB_TOKEN"),
+      message: expect.stringContaining(
+        "GitHub PR workflow requires GH_TOKEN or GITHUB_TOKEN",
+      ),
       resultJson: {
         configurationIncomplete: {
           reason: "push_write_credential_missing",
@@ -598,7 +708,8 @@ describe("resolveExecutionRunAdapterConfig", () => {
         keys: ["GH_TOKEN", "GITHUB_TOKEN"],
         consumerScopes: ["agent", "project"],
         reason: "push_write_credential_missing",
-        remediation: "GitHub PR workflow requires GH_TOKEN or GITHUB_TOKEN bound at project or agent scope.",
+        remediation:
+          "GitHub PR workflow requires GH_TOKEN or GITHUB_TOKEN bound at project or agent scope.",
       },
       secretsSvc: {
         resolveAdapterConfigForRuntime,
@@ -633,7 +744,9 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
   });
 
   async function stubManagedCodexEnv(options: { seedSharedAuth: boolean }) {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-gate-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-gate-"),
+    );
     cleanupDirs.push(root);
     const taskcoreHome = path.join(root, "taskcore-home");
     const sharedCodexHome = path.join(root, "shared-codex-home");
@@ -662,9 +775,14 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
   }
 
   it("does not gate sandbox-destined runs on host credentials — the sandbox image may carry its own login", async () => {
-    const { managedAgentHome } = await stubManagedCodexEnv({ seedSharedAuth: false });
+    const { managedAgentHome } = await stubManagedCodexEnv({
+      seedSharedAuth: false,
+    });
     const resolveAdapterConfigForRuntime = vi.fn().mockResolvedValue({
-      config: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" } },
+      config: {
+        command: "codex",
+        env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" },
+      },
       secretKeys: new Set<string>(),
       manifest: [],
     });
@@ -677,7 +795,10 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
         issueId: "issue-1",
         responsibleUserId: "user-1",
         environmentDriver: "sandbox",
-        executionRunConfig: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" } },
+        executionRunConfig: {
+          command: "codex",
+          env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" },
+        },
         projectEnv: null,
         secretsSvc: {
           resolveAdapterConfigForRuntime,
@@ -691,9 +812,14 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
   });
 
   it("surfaces a configuration-incomplete blocker when a managed home has no auth and OPENAI_API_KEY is empty", async () => {
-    const { managedAgentHome } = await stubManagedCodexEnv({ seedSharedAuth: false });
+    const { managedAgentHome } = await stubManagedCodexEnv({
+      seedSharedAuth: false,
+    });
     const resolveAdapterConfigForRuntime = vi.fn().mockResolvedValue({
-      config: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" } },
+      config: {
+        command: "codex",
+        env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" },
+      },
       secretKeys: new Set<string>(),
       manifest: [],
     });
@@ -705,7 +831,10 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
         adapterType: "codex_local",
         issueId: "issue-1",
         responsibleUserId: "user-1",
-        executionRunConfig: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" } },
+        executionRunConfig: {
+          command: "codex",
+          env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" },
+        },
         projectEnv: null,
         secretsSvc: {
           resolveAdapterConfigForRuntime,
@@ -734,7 +863,10 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
         companyId: "company-1",
         agentId: "agent-1",
         adapterType: "codex_local",
-        executionRunConfig: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" } },
+        executionRunConfig: {
+          command: "codex",
+          env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" },
+        },
         projectEnv: null,
         secretsSvc: {
           resolveAdapterConfigForRuntime,
@@ -746,9 +878,17 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
   });
 
   it("dispatches normally when a per-agent OPENAI_API_KEY is resolved", async () => {
-    const { managedAgentHome } = await stubManagedCodexEnv({ seedSharedAuth: false });
+    const { managedAgentHome } = await stubManagedCodexEnv({
+      seedSharedAuth: false,
+    });
     const resolveAdapterConfigForRuntime = vi.fn().mockResolvedValue({
-      config: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "sk-agent-resolved" } },
+      config: {
+        command: "codex",
+        env: {
+          CODEX_HOME: managedAgentHome,
+          OPENAI_API_KEY: "sk-agent-resolved",
+        },
+      },
       secretKeys: new Set(["OPENAI_API_KEY"]),
       manifest: [],
     });
@@ -757,7 +897,13 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
       companyId: "company-1",
       agentId: "agent-1",
       adapterType: "codex_local",
-      executionRunConfig: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: { type: "secret_ref" } } },
+      executionRunConfig: {
+        command: "codex",
+        env: {
+          CODEX_HOME: managedAgentHome,
+          OPENAI_API_KEY: { type: "secret_ref" },
+        },
+      },
       projectEnv: null,
       secretsSvc: {
         resolveAdapterConfigForRuntime,
@@ -765,13 +911,20 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
         collectMissingRuntimeBindings: vi.fn().mockResolvedValue([]),
       } as any,
     });
-    expect(result.resolvedConfig.env).toMatchObject({ OPENAI_API_KEY: "sk-agent-resolved" });
+    expect(result.resolvedConfig.env).toMatchObject({
+      OPENAI_API_KEY: "sk-agent-resolved",
+    });
   });
 
   it("dispatches normally when the shared host home carries subscription auth", async () => {
-    const { managedAgentHome } = await stubManagedCodexEnv({ seedSharedAuth: true });
+    const { managedAgentHome } = await stubManagedCodexEnv({
+      seedSharedAuth: true,
+    });
     const resolveAdapterConfigForRuntime = vi.fn().mockResolvedValue({
-      config: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" } },
+      config: {
+        command: "codex",
+        env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" },
+      },
       secretKeys: new Set<string>(),
       manifest: [],
     });
@@ -780,7 +933,10 @@ describe("resolveExecutionRunAdapterConfig codex_local credential pre-dispatch g
       companyId: "company-1",
       agentId: "agent-1",
       adapterType: "codex_local",
-      executionRunConfig: { command: "codex", env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" } },
+      executionRunConfig: {
+        command: "codex",
+        env: { CODEX_HOME: managedAgentHome, OPENAI_API_KEY: "" },
+      },
       projectEnv: null,
       secretsSvc: {
         resolveAdapterConfigForRuntime,
@@ -819,7 +975,10 @@ describe("extractMentionedSkillIdsFromSources", () => {
   it("collects UUID skill mention ids across issue sources", () => {
     const releaseSkillId = "11111111-1111-4111-8111-111111111111";
     const browserSkillId = "22222222-2222-4222-8222-222222222222";
-    const releaseHref = buildSkillMentionHref(releaseSkillId, "release-changelog");
+    const releaseHref = buildSkillMentionHref(
+      releaseSkillId,
+      "release-changelog",
+    );
     const browserHref = buildSkillMentionHref(browserSkillId, "agent-browser");
 
     expect(
@@ -881,7 +1040,10 @@ describe("applyRunScopedMentionedSkillKeys", () => {
       command: "codex",
       taskcoreSkillSync: {
         desiredSkills: [
-          { key: "company/company-1/release-changelog", versionId: "version-1" },
+          {
+            key: "company/company-1/release-changelog",
+            versionId: "version-1",
+          },
         ],
       },
     };
@@ -894,7 +1056,10 @@ describe("applyRunScopedMentionedSkillKeys", () => {
       command: "codex",
       taskcoreSkillSync: {
         desiredSkills: [
-          { key: "company/company-1/release-changelog", versionId: "version-1" },
+          {
+            key: "company/company-1/release-changelog",
+            versionId: "version-1",
+          },
           { key: "company/company-1/security-review", versionId: null },
         ],
       },
@@ -915,7 +1080,9 @@ describe("resolveAdditionalRunWorkspaces", () => {
 
   // Build injectable dependencies. Every mentioned project is available and authorized by default.
   function buildOptions(
-    overrides: Partial<ResolveAdditionalRunWorkspacesOptions> & { mentionedIds?: string[] },
+    overrides: Partial<ResolveAdditionalRunWorkspacesOptions> & {
+      mentionedIds?: string[];
+    },
   ): ResolveAdditionalRunWorkspacesOptions {
     const mentionedIds = overrides.mentionedIds ?? [];
     const actor: AuthorizationActor = {
@@ -930,7 +1097,9 @@ describe("resolveAdditionalRunWorkspaces", () => {
     const projects: ResolveAdditionalRunWorkspacesOptions["projects"] = {
       listByIds: async (_companyId, ids) =>
         ids.map((id) => ({ id })) as unknown as Awaited<
-          ReturnType<ResolveAdditionalRunWorkspacesOptions["projects"]["listByIds"]>
+          ReturnType<
+            ResolveAdditionalRunWorkspacesOptions["projects"]["listByIds"]
+          >
         >,
     };
     const access: ResolveAdditionalRunWorkspacesOptions["access"] = {
@@ -1007,7 +1176,11 @@ describe("resolveAdditionalRunWorkspaces", () => {
 
     const result = await resolveAdditionalRunWorkspaces(issueId, null, options);
 
-    expect(result).toEqual({ additionalWorkspaces: [], warnings: [], failures: [] });
+    expect(result).toEqual({
+      additionalWorkspaces: [],
+      warnings: [],
+      failures: [],
+    });
     // The flag-off path must be inert: no mention lookup and no workspace resolution run.
     expect(mentionLookups).toBe(0);
     expect(workspaceResolves).toBe(0);
@@ -1044,18 +1217,30 @@ describe("resolveAdditionalRunWorkspaces", () => {
     expect(result.warnings).toHaveLength(1);
     expect(result.warnings[0]).toContain("project-a");
     expect(result.warnings[0]).toContain("clone exploded");
-    expect(result.failures).toEqual([{ projectId: "project-a", reason: "resolution" }]);
+    expect(result.failures).toEqual([
+      { projectId: "project-a", reason: "resolution" },
+    ]);
   });
 
   it("aggregates per-layer warnings onto the run's surfaced warnings", async () => {
     // Two valid projects sync; one is dropped by authorization and one fails to resolve. The run
     // still resolves, and both dropped projects are named in the surfaced warnings, one per layer.
     const options = buildOptions({
-      mentionedIds: ["project-a", "project-b", "denied-project", "broken-project"],
+      mentionedIds: [
+        "project-a",
+        "project-b",
+        "denied-project",
+        "broken-project",
+      ],
       access: {
         decide: async (input) =>
           input.scope?.projectId === "denied-project"
-            ? { allowed: false, action: "project:read", reason: "deny_no_grant", explanation: "denied" }
+            ? {
+                allowed: false,
+                action: "project:read",
+                reason: "deny_no_grant",
+                explanation: "denied",
+              }
             : allowDecision,
       },
       resolveProjectWorkspace: async (project) => {
@@ -1074,13 +1259,16 @@ describe("resolveAdditionalRunWorkspaces", () => {
 
     const result = await resolveAdditionalRunWorkspaces(issueId, null, options);
 
-    expect(result.additionalWorkspaces.map((workspace) => workspace.projectId)).toEqual([
-      "project-a",
-      "project-b",
-    ]);
+    expect(
+      result.additionalWorkspaces.map((workspace) => workspace.projectId),
+    ).toEqual(["project-a", "project-b"]);
     // Each dropped project is named in a surfaced warning, across both layers.
-    expect(result.warnings.some((warning) => warning.includes("denied-project"))).toBe(true);
-    expect(result.warnings.some((warning) => warning.includes("broken-project"))).toBe(true);
+    expect(
+      result.warnings.some((warning) => warning.includes("denied-project")),
+    ).toBe(true);
+    expect(
+      result.warnings.some((warning) => warning.includes("broken-project")),
+    ).toBe(true);
     // The structured failures carry the layer that dropped each project.
     expect(result.failures).toEqual([
       { projectId: "denied-project", reason: "authorization" },
@@ -1135,10 +1323,16 @@ describe("resolveAdditionalRunWorkspaces", () => {
       mentionedIds: ["anchor-project", "project-a", "project-a"],
     });
 
-    const result = await resolveAdditionalRunWorkspaces(issueId, "anchor-project", options);
+    const result = await resolveAdditionalRunWorkspaces(
+      issueId,
+      "anchor-project",
+      options,
+    );
 
     // The anchor is not a referenced drop, and a repeated mention counts once.
-    expect(result.failures).toEqual([{ projectId: "project-a", reason: "staging" }]);
+    expect(result.failures).toEqual([
+      { projectId: "project-a", reason: "staging" },
+    ]);
     expect(result.warnings).toHaveLength(1);
   });
 
@@ -1150,7 +1344,11 @@ describe("resolveAdditionalRunWorkspaces", () => {
 
     const result = await resolveAdditionalRunWorkspaces(issueId, null, options);
 
-    expect(result).toEqual({ additionalWorkspaces: [], warnings: [], failures: [] });
+    expect(result).toEqual({
+      additionalWorkspaces: [],
+      warnings: [],
+      failures: [],
+    });
   });
 });
 
@@ -1161,7 +1359,11 @@ describe("buildReferencedProjectRunObservability", () => {
       failures: [
         { projectId: "project-b", reason: "authorization" },
         { projectId: "project-c", reason: "resolution" },
-        { projectId: "project-d", reason: "staging", error: "extract failed: boom" },
+        {
+          projectId: "project-d",
+          reason: "staging",
+          error: "extract failed: boom",
+        },
       ],
     });
 
@@ -1172,7 +1374,11 @@ describe("buildReferencedProjectRunObservability", () => {
     expect(observability.referenced_project_failures).toEqual([
       { project_id: "project-b", reason: "authorization" },
       { project_id: "project-c", reason: "resolution" },
-      { project_id: "project-d", reason: "staging", error: "extract failed: boom" },
+      {
+        project_id: "project-d",
+        reason: "staging",
+        error: "extract failed: boom",
+      },
     ]);
   });
 
@@ -1190,11 +1396,19 @@ describe("buildReferencedProjectRunObservability", () => {
 
 describe("buildRunWorkspaceHints", () => {
   const anchorHints = [
-    { workspaceId: "anchor-ws", cwd: "/anchor", repoUrl: "https://example.test/anchor.git", repoRef: "main" },
+    {
+      workspaceId: "anchor-ws",
+      cwd: "/anchor",
+      repoUrl: "https://example.test/anchor.git",
+      repoRef: "main",
+    },
   ];
 
   it("returns only the anchor hints when no referenced project resolves (flag OFF, inert)", () => {
-    const hints = buildRunWorkspaceHints({ workspaceHints: anchorHints, additionalWorkspaces: [] });
+    const hints = buildRunWorkspaceHints({
+      workspaceHints: anchorHints,
+      additionalWorkspaces: [],
+    });
 
     expect(hints).toEqual(anchorHints);
   });
@@ -1211,12 +1425,23 @@ describe("buildRunWorkspaceHints", () => {
           repoRef: "main",
         },
         // The hint builder passes each field through unchanged, including a null workspaceId.
-        { cwd: "/managed/project-c", projectId: "project-c", workspaceId: null, repoUrl: null, repoRef: null },
+        {
+          cwd: "/managed/project-c",
+          projectId: "project-c",
+          workspaceId: null,
+          repoUrl: null,
+          repoRef: null,
+        },
       ],
     });
 
     expect(hints).toEqual([
-      { workspaceId: "anchor-ws", cwd: "/anchor", repoUrl: "https://example.test/anchor.git", repoRef: "main" },
+      {
+        workspaceId: "anchor-ws",
+        cwd: "/anchor",
+        repoUrl: "https://example.test/anchor.git",
+        repoRef: "main",
+      },
       {
         workspaceId: "project-b-ws",
         cwd: "/managed/project-b",
@@ -1224,7 +1449,13 @@ describe("buildRunWorkspaceHints", () => {
         repoRef: "main",
         projectId: "project-b",
       },
-      { workspaceId: null, cwd: "/managed/project-c", repoUrl: null, repoRef: null, projectId: "project-c" },
+      {
+        workspaceId: null,
+        cwd: "/managed/project-c",
+        repoUrl: null,
+        repoRef: null,
+        projectId: "project-c",
+      },
     ]);
   });
 });
@@ -1233,13 +1464,26 @@ describe("resolveAdditionalProjectWorkspace", () => {
   const companyId = "company-1";
 
   function referencedProject(projectId: string): RunReferencedProject {
-    return { projectId, project: { id: projectId } as RunReferencedProject["project"] };
+    return {
+      projectId,
+      project: { id: projectId } as RunReferencedProject["project"],
+    };
   }
 
-  type WorkspaceRow = Awaited<ReturnType<ResolveAdditionalProjectWorkspaceDeps["loadProjectWorkspaceRows"]>>[number];
+  type WorkspaceRow = Awaited<
+    ReturnType<
+      ResolveAdditionalProjectWorkspaceDeps["loadProjectWorkspaceRows"]
+    >
+  >[number];
 
   function workspaceRow(overrides: Partial<WorkspaceRow>): WorkspaceRow {
-    return { id: "workspace-x", cwd: null, repoUrl: null, repoRef: null, ...overrides } as WorkspaceRow;
+    return {
+      id: "workspace-x",
+      cwd: null,
+      repoUrl: null,
+      repoRef: null,
+      ...overrides,
+    } as WorkspaceRow;
   }
 
   // Build deps whose managed and configured resolvers are pure, so no database or filesystem runs.
@@ -1248,7 +1492,10 @@ describe("resolveAdditionalProjectWorkspace", () => {
   ): ResolveAdditionalProjectWorkspaceDeps {
     return {
       loadProjectWorkspaceRows: async () => [],
-      resolveConfiguredOrManagedProjectCwd: async (input) => ({ cwd: input.cwd ?? "/unset", warning: null }),
+      resolveConfiguredOrManagedProjectCwd: async (input) => ({
+        cwd: input.cwd ?? "/unset",
+        warning: null,
+      }),
       ensureManagedProjectWorkspace: async (input) => ({
         cwd: `/managed/${input.projectId}`,
         warning: null,
@@ -1269,7 +1516,10 @@ describe("resolveAdditionalProjectWorkspace", () => {
     });
 
     await expect(
-      resolveAdditionalProjectWorkspace({ companyId, project: referencedProject("project-b") }, deps),
+      resolveAdditionalProjectWorkspace(
+        { companyId, project: referencedProject("project-b") },
+        deps,
+      ),
     ).rejects.toThrow(/project-b/);
     // The fallback must not fabricate an empty managed directory for a project with no real source.
     expect(ensureCalls).toBe(0);
@@ -1278,8 +1528,13 @@ describe("resolveAdditionalProjectWorkspace", () => {
   it("throws when a workspace row supplies neither a checkout directory nor a repository URL", async () => {
     let ensureCalls = 0;
     const deps = buildDeps({
-      loadProjectWorkspaceRows: async () => [workspaceRow({ id: "ws-empty", cwd: null, repoUrl: null })],
-      resolveConfiguredOrManagedProjectCwd: async (input) => ({ cwd: input.cwd ?? "/unset", warning: null }),
+      loadProjectWorkspaceRows: async () => [
+        workspaceRow({ id: "ws-empty", cwd: null, repoUrl: null }),
+      ],
+      resolveConfiguredOrManagedProjectCwd: async (input) => ({
+        cwd: input.cwd ?? "/unset",
+        warning: null,
+      }),
       // directoryHasContents returns true for any path; the row must still be skipped before this runs.
       directoryHasContents: async () => true,
       ensureManagedProjectWorkspace: async (input) => {
@@ -1289,7 +1544,10 @@ describe("resolveAdditionalProjectWorkspace", () => {
     });
 
     await expect(
-      resolveAdditionalProjectWorkspace({ companyId, project: referencedProject("project-c") }, deps),
+      resolveAdditionalProjectWorkspace(
+        { companyId, project: referencedProject("project-c") },
+        deps,
+      ),
     ).rejects.toThrow(/project-c/);
     // The row without a real source neither resolves a checkout nor triggers a managed fallback.
     expect(ensureCalls).toBe(0);
@@ -1299,9 +1557,16 @@ describe("resolveAdditionalProjectWorkspace", () => {
     let ensureCalls = 0;
     const deps = buildDeps({
       loadProjectWorkspaceRows: async () => [
-        workspaceRow({ id: "ws-empty-dir", cwd: "/checkout/empty", repoUrl: null }),
+        workspaceRow({
+          id: "ws-empty-dir",
+          cwd: "/checkout/empty",
+          repoUrl: null,
+        }),
       ],
-      resolveConfiguredOrManagedProjectCwd: async (input) => ({ cwd: input.cwd ?? "/unset", warning: null }),
+      resolveConfiguredOrManagedProjectCwd: async (input) => ({
+        cwd: input.cwd ?? "/unset",
+        warning: null,
+      }),
       // The configured directory exists but holds no content, so it is not a realized workspace.
       directoryHasContents: async () => false,
       ensureManagedProjectWorkspace: async (input) => {
@@ -1311,7 +1576,10 @@ describe("resolveAdditionalProjectWorkspace", () => {
     });
 
     await expect(
-      resolveAdditionalProjectWorkspace({ companyId, project: referencedProject("project-d") }, deps),
+      resolveAdditionalProjectWorkspace(
+        { companyId, project: referencedProject("project-d") },
+        deps,
+      ),
     ).rejects.toThrow(/project-d/);
     // An empty configured directory must not mask a missing workspace, and the row has no
     // repository URL, so the managed fallback never runs.
@@ -1321,13 +1589,24 @@ describe("resolveAdditionalProjectWorkspace", () => {
   it("returns the first workspace row whose directory has content", async () => {
     const deps = buildDeps({
       loadProjectWorkspaceRows: async () => [
-        workspaceRow({ id: "ws-1", cwd: "/checkout/a", repoUrl: "https://example.test/a.git", repoRef: "main" }),
+        workspaceRow({
+          id: "ws-1",
+          cwd: "/checkout/a",
+          repoUrl: "https://example.test/a.git",
+          repoRef: "main",
+        }),
       ],
-      resolveConfiguredOrManagedProjectCwd: async (input) => ({ cwd: input.cwd ?? "/unset", warning: null }),
+      resolveConfiguredOrManagedProjectCwd: async (input) => ({
+        cwd: input.cwd ?? "/unset",
+        warning: null,
+      }),
       directoryHasContents: async (cwd) => cwd === "/checkout/a",
     });
 
-    const result = await resolveAdditionalProjectWorkspace({ companyId, project: referencedProject("project-a") }, deps);
+    const result = await resolveAdditionalProjectWorkspace(
+      { companyId, project: referencedProject("project-a") },
+      deps,
+    );
 
     expect(result).toEqual({
       cwd: "/checkout/a",
@@ -1342,9 +1621,17 @@ describe("resolveAdditionalProjectWorkspace", () => {
     let ensuredRepoUrl: string | null | undefined;
     const deps = buildDeps({
       loadProjectWorkspaceRows: async () => [
-        workspaceRow({ id: "ws-1", cwd: "/checkout/missing", repoUrl: "https://example.test/a.git", repoRef: "release" }),
+        workspaceRow({
+          id: "ws-1",
+          cwd: "/checkout/missing",
+          repoUrl: "https://example.test/a.git",
+          repoRef: "release",
+        }),
       ],
-      resolveConfiguredOrManagedProjectCwd: async (input) => ({ cwd: input.cwd ?? "/unset", warning: null }),
+      resolveConfiguredOrManagedProjectCwd: async (input) => ({
+        cwd: input.cwd ?? "/unset",
+        warning: null,
+      }),
       directoryHasContents: async () => false,
       ensureManagedProjectWorkspace: async (input) => {
         ensuredRepoUrl = input.repoUrl;
@@ -1352,7 +1639,10 @@ describe("resolveAdditionalProjectWorkspace", () => {
       },
     });
 
-    const result = await resolveAdditionalProjectWorkspace({ companyId, project: referencedProject("project-a") }, deps);
+    const result = await resolveAdditionalProjectWorkspace(
+      { companyId, project: referencedProject("project-a") },
+      deps,
+    );
 
     expect(result).toEqual({
       cwd: "/managed/project-a",
@@ -1369,8 +1659,16 @@ describe("resolveAdditionalProjectWorkspace", () => {
 describe("resolveManagedProjectWorkspaceDir isolation", () => {
   it("resolves distinct, non-nested managed dirs for two projects", () => {
     const companyId = "company-1";
-    const dirA = resolveManagedProjectWorkspaceDir({ companyId, projectId: "project-a", repoName: null });
-    const dirB = resolveManagedProjectWorkspaceDir({ companyId, projectId: "project-b", repoName: null });
+    const dirA = resolveManagedProjectWorkspaceDir({
+      companyId,
+      projectId: "project-a",
+      repoName: null,
+    });
+    const dirB = resolveManagedProjectWorkspaceDir({
+      companyId,
+      projectId: "project-b",
+      repoName: null,
+    });
 
     expect(dirA).not.toBe(dirB);
     // Neither directory is a path prefix of the other: append a separator so a shared leading
@@ -1381,10 +1679,22 @@ describe("resolveManagedProjectWorkspaceDir isolation", () => {
 
   it("keeps a project id that prefixes another project id in a sibling, non-nested dir", () => {
     const companyId = "company-1";
-    const dir = resolveManagedProjectWorkspaceDir({ companyId, projectId: "project", repoName: null });
-    const dirLonger = resolveManagedProjectWorkspaceDir({ companyId, projectId: "project-extra", repoName: null });
+    const dir = resolveManagedProjectWorkspaceDir({
+      companyId,
+      projectId: "project",
+      repoName: null,
+    });
+    const dirLonger = resolveManagedProjectWorkspaceDir({
+      companyId,
+      projectId: "project-extra",
+      repoName: null,
+    });
 
-    expect(`${dirLonger}${path.sep}`.startsWith(`${dir}${path.sep}`)).toBe(false);
-    expect(`${dir}${path.sep}`.startsWith(`${dirLonger}${path.sep}`)).toBe(false);
+    expect(`${dirLonger}${path.sep}`.startsWith(`${dir}${path.sep}`)).toBe(
+      false,
+    );
+    expect(`${dir}${path.sep}`.startsWith(`${dirLonger}${path.sep}`)).toBe(
+      false,
+    );
   });
 });

@@ -17,7 +17,9 @@ export interface AdapterLoginStartResolution<TData> {
  * provide them. Each step holds the per-flow rule; the spine holds the shared
  * order.
  */
-export interface AdapterLoginStartSpineInput<TData extends { environmentId: string }> {
+export interface AdapterLoginStartSpineInput<
+  TData extends { environmentId: string },
+> {
   req: Request;
   res: Response;
   /**
@@ -76,7 +78,9 @@ export interface AdapterLoginStartSpineInput<TData extends { environmentId: stri
  * It returns the owner and the validated body when every step passes. It returns
  * null when a step sends a response; the caller must then stop.
  */
-export async function runAdapterLoginStartSpine<TData extends { environmentId: string }>(
+export async function runAdapterLoginStartSpine<
+  TData extends { environmentId: string },
+>(
   input: AdapterLoginStartSpineInput<TData>,
 ): Promise<AdapterLoginStartResolution<TData> | null> {
   const ownerUserId = await input.deriveOwner();
@@ -89,7 +93,9 @@ export async function runAdapterLoginStartSpine<TData extends { environmentId: s
     input.req.body && typeof input.req.body === "object"
       ? (input.req.body as Record<string, unknown>)
       : {};
-  const candidate = input.requestOverrides ? { ...body, ...input.requestOverrides } : body;
+  const candidate = input.requestOverrides
+    ? { ...body, ...input.requestOverrides }
+    : body;
   const parsed = input.requestSchema.safeParse(candidate);
   if (!parsed.success) {
     input.res.status(400).json({ error: input.invalidRequestError });

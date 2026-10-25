@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
-import { execute, testEnvironment } from "@taskcore/adapter-openclaw-gateway/server";
+import {
+  execute,
+  testEnvironment,
+} from "@taskcore/adapter-openclaw-gateway/server";
 import {
   buildOpenClawGatewayConfig,
   parseOpenClawGatewayStdoutLine,
@@ -77,9 +80,16 @@ async function createMockGatewayServer(options?: {
               type: "hello-ok",
               protocol: 3,
               server: { version: "test", connId: "conn-1" },
-              features: { methods: ["connect", "agent", "agent.wait"], events: ["agent"] },
+              features: {
+                methods: ["connect", "agent", "agent.wait"],
+                events: ["agent"],
+              },
               snapshot: { version: 1, ts: Date.now() },
-              policy: { maxPayload: 1_000_000, maxBufferedBytes: 1_000_000, tickIntervalMs: 30_000 },
+              policy: {
+                maxPayload: 1_000_000,
+                maxBufferedBytes: 1_000_000,
+                tickIntervalMs: 30_000,
+              },
             },
           }),
         );
@@ -202,7 +212,8 @@ async function createMockGatewayServerWithPairing() {
       if (frame.type !== "req") return;
 
       if (frame.method === "connect") {
-        const device = frame.params?.device as Record<string, unknown> | undefined;
+        const device = frame.params?.device as
+          Record<string, unknown> | undefined;
         const deviceId = typeof device?.id === "string" ? device.id : null;
         if (deviceId) {
           lastSeenDeviceId = deviceId;
@@ -239,11 +250,21 @@ async function createMockGatewayServerWithPairing() {
               protocol: 3,
               server: { version: "test", connId: "conn-1" },
               features: {
-                methods: ["connect", "agent", "agent.wait", "device.pair.list", "device.pair.approve"],
+                methods: [
+                  "connect",
+                  "agent",
+                  "agent.wait",
+                  "device.pair.list",
+                  "device.pair.approve",
+                ],
                 events: ["agent"],
               },
               snapshot: { version: 1, ts: Date.now() },
-              policy: { maxPayload: 1_000_000, maxBufferedBytes: 1_000_000, tickIntervalMs: 30_000 },
+              policy: {
+                maxPayload: 1_000_000,
+                maxBufferedBytes: 1_000_000,
+                tickIntervalMs: 30_000,
+              },
             },
           }),
         );
@@ -265,7 +286,10 @@ async function createMockGatewayServerWithPairing() {
                       deviceId: lastSeenDeviceId ?? "device-unknown",
                     },
                   ],
-              paired: approved && lastSeenDeviceId ? [{ deviceId: lastSeenDeviceId }] : [],
+              paired:
+                approved && lastSeenDeviceId
+                  ? [{ deviceId: lastSeenDeviceId }]
+                  : [],
             },
           }),
         );
@@ -491,9 +515,15 @@ describe("openclaw gateway adapter execute", () => {
       expect(payload?.idempotencyKey).toBe("run-123");
       expect(payload?.sessionKey).toBe("taskcore:issue:issue-123");
       expect(String(payload?.message ?? "")).toContain("wake now");
-      expect(String(payload?.message ?? "")).toContain("TASKCORE_RUN_ID=run-123");
-      expect(String(payload?.message ?? "")).toContain("TASKCORE_TASK_ID=task-123");
-      expect(String(payload?.message ?? "")).toContain("## TaskCore Wake Payload");
+      expect(String(payload?.message ?? "")).toContain(
+        "TASKCORE_RUN_ID=run-123",
+      );
+      expect(String(payload?.message ?? "")).toContain(
+        "TASKCORE_TASK_ID=task-123",
+      );
+      expect(String(payload?.message ?? "")).toContain(
+        "## TaskCore Wake Payload",
+      );
       expect(String(payload?.message ?? "")).toContain(
         "Use this wake to continue the task, applying new user direction and preserving its approval gates.",
       );
@@ -501,11 +531,21 @@ describe("openclaw gateway adapter execute", () => {
         "Do not switch to another issue until you have handled this wake.",
       );
       expect(String(payload?.message ?? "")).toContain("First comment");
-      expect(String(payload?.message ?? "")).toContain("\"commentIds\":[\"comment-1\",\"comment-2\"]");
+      expect(String(payload?.message ?? "")).toContain(
+        '"commentIds":["comment-1","comment-2"]',
+      );
       expect(payload?.taskcore).toBeUndefined();
-      expect(String(payload?.message ?? "")).toContain("\"latestCommentId\":\"comment-2\"");
+      expect(String(payload?.message ?? "")).toContain(
+        '"latestCommentId":"comment-2"',
+      );
 
-      expect(logs.some((entry) => entry.includes("[openclaw-gateway:event] run=run-123 stream=assistant"))).toBe(true);
+      expect(
+        logs.some((entry) =>
+          entry.includes(
+            "[openclaw-gateway:event] run=run-123 stream=assistant",
+          ),
+        ),
+      ).toBe(true);
     } finally {
       await gateway.close();
     }
@@ -592,10 +632,16 @@ describe("openclaw gateway adapter execute", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.summary).toContain("ok");
-      expect(logs.some((entry) => entry.includes("pairing required; attempting automatic pairing approval"))).toBe(
-        true,
-      );
-      expect(logs.some((entry) => entry.includes("auto-approved pairing request"))).toBe(true);
+      expect(
+        logs.some((entry) =>
+          entry.includes(
+            "pairing required; attempting automatic pairing approval",
+          ),
+        ),
+      ).toBe(true);
+      expect(
+        logs.some((entry) => entry.includes("auto-approved pairing request")),
+      ).toBe(true);
       expect(gateway.getAgentPayload()).toBeTruthy();
     } finally {
       await gateway.close();
@@ -668,6 +714,10 @@ describe("openclaw gateway testEnvironment", () => {
     });
 
     expect(result.status).toBe("fail");
-    expect(result.checks.some((check) => check.code === "openclaw_gateway_url_missing")).toBe(true);
+    expect(
+      result.checks.some(
+        (check) => check.code === "openclaw_gateway_url_missing",
+      ),
+    ).toBe(true);
   });
 });

@@ -25,7 +25,8 @@ const AMBIENT_EXTERNAL_STATE_KEYS = [
   "TASKCORE_STORAGE_S3_PREFIX",
   "TASKCORE_STORAGE_S3_FORCE_PATH_STYLE",
 ] as const;
-const PROVIDER_SECRET_KEY = /^(?:OPENAI|ANTHROPIC|OPENROUTER|DAYTONA|XAI|GROK|CURSOR|COPILOT|GITHUB|GH)(?:_|$)/;
+const PROVIDER_SECRET_KEY =
+  /^(?:OPENAI|ANTHROPIC|OPENROUTER|DAYTONA|XAI|GROK|CURSOR|COPILOT|GITHUB|GH)(?:_|$)/;
 
 export function runnerE2EServerControlPaths(temporaryRoot: string) {
   const controlDirectory = path.join(temporaryRoot, "control");
@@ -115,13 +116,17 @@ export function buildRunnerE2EProcessEnvironment(
   for (const execution of executions) {
     const agent = execution.profile.qualificationCandidate;
     if (!agent || agent === "cursor") continue;
-    const admittedSuite = execution.suite.id === "extended-harnesses"
-      || execution.suite.id === "rich-acp-warm-continuity";
+    const admittedSuite =
+      execution.suite.id === "extended-harnesses" ||
+      execution.suite.id === "rich-acp-warm-continuity";
     if (!admittedSuite || !execution.suite.manualOnly) {
-      throw new Error("Candidate qualification requires an explicit provider qualification suite");
+      throw new Error(
+        "Candidate qualification requires an explicit provider qualification suite",
+      );
     }
     const prior = candidates.get(agent);
-    if (prior !== undefined && prior !== execution.profile.model) throw new Error("Conflicting candidate models");
+    if (prior !== undefined && prior !== execution.profile.model)
+      throw new Error("Conflicting candidate models");
     candidates.set(agent, execution.profile.model);
   }
   if (candidates.size > 0) {
@@ -131,7 +136,13 @@ export function buildRunnerE2EProcessEnvironment(
   }
   // These stories explicitly require the native API surface. Other suites
   // retain the server default or any supplied operator restriction.
-  if (executions.some((e) => isManagedHiringCase(e.suite.id, e.task.id) || chatNeedsApiTools(e.suite.id, e.task.id))) {
+  if (
+    executions.some(
+      (e) =>
+        isManagedHiringCase(e.suite.id, e.task.id) ||
+        chatNeedsApiTools(e.suite.id, e.task.id),
+    )
+  ) {
     result.TASKCORE_RUNNER_API_TOOLS_ENABLED = "true";
   }
   if (
@@ -193,9 +204,7 @@ export function assertIsolatedServerEnvironment(
     !home.startsWith(`${expected.temporaryRoot}/`) ||
     !config.startsWith(`${expected.temporaryRoot}/`)
   ) {
-    throw new Error(
-      "Taskcore server paths escape the isolated temporary root",
-    );
+    throw new Error("Taskcore server paths escape the isolated temporary root");
   }
   if (env.XDG_CACHE_HOME !== path.join(expected.temporaryRoot, "xdg-cache")) {
     throw new Error(

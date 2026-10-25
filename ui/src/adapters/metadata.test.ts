@@ -19,9 +19,7 @@ describe("adapter metadata", () => {
   it("treats registered external adapters as enabled by default", () => {
     expect(isEnabledAdapterType("external_test")).toBe(true);
 
-    expect(
-      listAdapterOptions((type) => type, [externalAdapter]),
-    ).toEqual([
+    expect(listAdapterOptions((type) => type, [externalAdapter])).toEqual([
       {
         value: "external_test",
         label: "external_test",
@@ -43,12 +41,15 @@ describe("adapter metadata", () => {
     expect(isVisualAdapterChoice("acpx_local")).toBe(false);
 
     expect(
-      listAdapterOptions((type) => type, [
-        {
-          ...externalAdapter,
-          type: "acpx_local",
-        },
-      ]),
+      listAdapterOptions(
+        (type) => type,
+        [
+          {
+            ...externalAdapter,
+            type: "acpx_local",
+          },
+        ],
+      ),
     ).toEqual([
       {
         value: "acpx_local",

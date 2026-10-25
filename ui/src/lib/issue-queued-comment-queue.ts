@@ -46,12 +46,18 @@ export function normalizeIssueQueuedCommentQueue(
         {
           comment: comment as unknown as IssueComment,
           position,
-          ...(response?.kind === "interaction" && typeof response.interactionId === "string"
-            && typeof response.interactionKind === "string" ? { source: {
-              kind: "interaction" as const, interactionId: response.interactionId,
-              interactionKind: response.interactionKind,
-              requiresFreshSession: response.requiresFreshSession === true,
-            } } : {}),
+          ...(response?.kind === "interaction" &&
+          typeof response.interactionId === "string" &&
+          typeof response.interactionKind === "string"
+            ? {
+                source: {
+                  kind: "interaction" as const,
+                  interactionId: response.interactionId,
+                  interactionKind: response.interactionKind,
+                  requiresFreshSession: response.requiresFreshSession === true,
+                },
+              }
+            : {}),
           canEdit: entry?.canEdit === true,
           canDiscard: entry?.canDiscard === true,
         },
@@ -88,9 +94,10 @@ export function normalizeIssueQueuedCommentQueue(
         ? (disposition as IssueQueuedCommentSteeringDisposition)
         : "unsupported",
     entries,
-    executionWait: typeof wait?.reason === "string" && typeof wait?.message === "string"
-      ? { reason: wait.reason, message: wait.message }
-      : null,
+    executionWait:
+      typeof wait?.reason === "string" && typeof wait?.message === "string"
+        ? { reason: wait.reason, message: wait.message }
+        : null,
   };
 }
 
@@ -154,7 +161,9 @@ export function mergePendingIssueQueuedComments(params: {
     revision: params.authoritativeQueue?.revision ?? "awaiting-server",
     protocol,
     steeringDisposition:
-      (authoritativeOwnsQueue ? params.authoritativeQueue?.steeringDisposition : undefined) ??
+      (authoritativeOwnsQueue
+        ? params.authoritativeQueue?.steeringDisposition
+        : undefined) ??
       (protocol === "taskcore_runner_v1" && targetRunId
         ? "temporarily_unavailable"
         : "unsupported"),

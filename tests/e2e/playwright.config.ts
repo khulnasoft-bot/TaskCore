@@ -7,14 +7,24 @@ import { defineConfig } from "@playwright/test";
 // even when the dev server is running on :3100 in authenticated mode.
 const PORT = Number(process.env.TASKCORE_E2E_PORT ?? 3199);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
-const TASKCORE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-e2e-home-"));
+const TASKCORE_HOME = fs.mkdtempSync(
+  path.join(os.tmpdir(), "taskcore-e2e-home-"),
+);
 const TASKCORE_INSTANCE_ID = "playwright-e2e";
-const TASKCORE_CONFIG = path.join(TASKCORE_HOME, "instances", TASKCORE_INSTANCE_ID, "config.json");
-const TASKCORE_AGENT_JWT_SECRET = process.env.TASKCORE_AGENT_JWT_SECRET ?? "playwright-e2e-agent-jwt-secret";
+const TASKCORE_CONFIG = path.join(
+  TASKCORE_HOME,
+  "instances",
+  TASKCORE_INSTANCE_ID,
+  "config.json",
+);
+const TASKCORE_AGENT_JWT_SECRET =
+  process.env.TASKCORE_AGENT_JWT_SECRET ?? "playwright-e2e-agent-jwt-secret";
 const TASKCORE_DECISION_SIGNING_SECRET =
-  process.env.TASKCORE_DECISION_SIGNING_SECRET ?? "playwright-e2e-decision-signing-secret";
+  process.env.TASKCORE_DECISION_SIGNING_SECRET ??
+  "playwright-e2e-decision-signing-secret";
 const TASKCORE_TOOL_ACTION_SIGNING_SECRET =
-  process.env.TASKCORE_TOOL_ACTION_SIGNING_SECRET ?? "playwright-e2e-tool-action-signing-secret";
+  process.env.TASKCORE_TOOL_ACTION_SIGNING_SECRET ??
+  "playwright-e2e-tool-action-signing-secret";
 const PLAYWRIGHT_CHANNEL = process.env.TASKCORE_PLAYWRIGHT_CHANNEL;
 
 process.env.TASKCORE_HOME = TASKCORE_HOME;
@@ -28,14 +38,19 @@ process.env.TASKCORE_E2E_SERVER_CONFIG ??= TASKCORE_CONFIG;
 process.env.TASKCORE_INSTANCE_ID = TASKCORE_INSTANCE_ID;
 process.env.TASKCORE_AGENT_JWT_SECRET = TASKCORE_AGENT_JWT_SECRET;
 process.env.TASKCORE_DECISION_SIGNING_SECRET = TASKCORE_DECISION_SIGNING_SECRET;
-process.env.TASKCORE_TOOL_ACTION_SIGNING_SECRET = TASKCORE_TOOL_ACTION_SIGNING_SECRET;
+process.env.TASKCORE_TOOL_ACTION_SIGNING_SECRET =
+  TASKCORE_TOOL_ACTION_SIGNING_SECRET;
 
 export default defineConfig({
   testDir: ".",
   testMatch: "**/*.spec.ts",
   // These suites target dedicated multi-user configurations/ports and are
   // intentionally not part of the default local_trusted e2e run.
-  testIgnore: ["in-feed-native/**", "multi-user.spec.ts", "multi-user-authenticated.spec.ts"],
+  testIgnore: [
+    "in-feed-native/**",
+    "multi-user.spec.ts",
+    "multi-user-authenticated.spec.ts",
+  ],
   timeout: 60_000,
   retries: 0,
   // All specs share one throwaway server, and several toggle instance-level
@@ -67,7 +82,8 @@ export default defineConfig({
     // service-worker-intercepted requests, before React can even start.
     // Build the server's first-choice static directory so a prior package build
     // cannot shadow the UI under test with stale server/ui-dist assets.
-    command: "pnpm --filter @taskcore/ui build --outDir ../server/ui-dist --emptyOutDir && node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts onboard --yes --run",
+    command:
+      "pnpm --filter @taskcore/ui build --outDir ../server/ui-dist --emptyOutDir && node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts onboard --yes --run",
     url: `${BASE_URL}/api/health`,
     // Always boot a dedicated throwaway instance for e2e so browser tests
     // never attach to the developer's active Taskcore home/server.
@@ -95,5 +111,8 @@ export default defineConfig({
     },
   },
   outputDir: "./test-results",
-  reporter: [["list"], ["html", { open: "never", outputFolder: "./playwright-report" }]],
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: "./playwright-report" }],
+  ],
 });

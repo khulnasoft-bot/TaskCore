@@ -26,7 +26,10 @@ import {
   type StoryRun,
   type StoryIssue,
 } from "./everyday-observations.js";
-import { hasPersistedSource, isSavedSourceCheckpoint } from "./everyday-interruption.js";
+import {
+  hasPersistedSource,
+  isSavedSourceCheckpoint,
+} from "./everyday-interruption.js";
 
 describe("everyday workflow grader and review timing", () => {
   it("requires nonempty persisted source evidence", () => {
@@ -69,45 +72,104 @@ describe("everyday workflow grader and review timing", () => {
 });
 
 describe("unexercised review boundary diagnostics", () => {
-  const done = { id: "parent", companyId: "company", title: "task", status: "done" };
+  const done = {
+    id: "parent",
+    companyId: "company",
+    title: "task",
+    status: "done",
+  };
   const completed = {
-    id: "run", companyId: "company", agentId: "lead", status: "succeeded",
-    nativeIssueId: "parent", finishedAt: "2026-09-19T14:47:48.134Z",
+    id: "run",
+    companyId: "company",
+    agentId: "lead",
+    status: "succeeded",
+    nativeIssueId: "parent",
+    finishedAt: "2026-09-19T14:47:48.134Z",
   };
   const child = {
-    ...done, id: "child", parentId: "parent", interactions: [{
-      id: "card", issueId: "child", kind: "request_confirmation", status: "accepted",
-      addresseeAgentId: "lead", resolvedByAgentId: "lead", resolvedByRunId: "review",
-      createdAt: "2026-09-19T14:47:04.000Z", resolvedAt: "2026-09-19T14:47:21.876Z",
-      payload: { target: { type: "custom", key: "native_completion_review", revisionId: "decision" } },
-      result: { version: 1, outcome: "accepted" },
-    }],
+    ...done,
+    id: "child",
+    parentId: "parent",
+    interactions: [
+      {
+        id: "card",
+        issueId: "child",
+        kind: "request_confirmation",
+        status: "accepted",
+        addresseeAgentId: "lead",
+        resolvedByAgentId: "lead",
+        resolvedByRunId: "review",
+        createdAt: "2026-09-19T14:47:04.000Z",
+        resolvedAt: "2026-09-19T14:47:21.876Z",
+        payload: {
+          target: {
+            type: "custom",
+            key: "native_completion_review",
+            revisionId: "decision",
+          },
+        },
+        result: { version: 1, outcome: "accepted" },
+      },
+    ],
   };
   const review = {
-    ...completed, id: "review", nativeIssueId: "child", startedAt: "2026-09-19T14:47:05.802Z",
-    contextSnapshot: { nativeReviewInteractionId: "card", nativeReviewDecisionId: "decision" },
+    ...completed,
+    id: "review",
+    nativeIssueId: "child",
+    startedAt: "2026-09-19T14:47:05.802Z",
+    contextSnapshot: {
+      nativeReviewInteractionId: "card",
+      nativeReviewDecisionId: "decision",
+    },
   };
-  const diagnose = (issues: StoryIssue[] = [done, child], runs: StoryRun[] = [completed, review]) =>
-    storyUnexercisedReviewBoundary(issues, runs, "parent", "lead");
+  const diagnose = (
+    issues: StoryIssue[] = [done, child],
+    runs: StoryRun[] = [completed, review],
+  ) => storyUnexercisedReviewBoundary(issues, runs, "parent", "lead");
   it("fails promptly with persisted proof that review preceded parent completion", () => {
     expect(diagnose()).toContain("not exercised");
   });
   it("does not preempt in-flight finalization, recovery, or unfinished work", () => {
-    expect(diagnose([done, child], [{ ...completed, status: "running" }, review])).toBeUndefined();
-    expect(storyUnexercisedReviewBoundary([{ ...done, scheduledRetry: {} }, child], [completed, review], "parent", "lead")).toBeUndefined();
-    expect(storyUnexercisedReviewBoundary([{ ...done, activeRecoveryAction: {} }, child], [completed, review], "parent", "lead")).toBeUndefined();
+    expect(
+      diagnose([done, child], [{ ...completed, status: "running" }, review]),
+    ).toBeUndefined();
+    expect(
+      storyUnexercisedReviewBoundary(
+        [{ ...done, scheduledRetry: {} }, child],
+        [completed, review],
+        "parent",
+        "lead",
+      ),
+    ).toBeUndefined();
+    expect(
+      storyUnexercisedReviewBoundary(
+        [{ ...done, activeRecoveryAction: {} }, child],
+        [completed, review],
+        "parent",
+        "lead",
+      ),
+    ).toBeUndefined();
     expect(diagnose([{ ...done, status: "blocked" }, child])).toBeUndefined();
     expect(diagnose([], [])).toBeUndefined();
   });
   it("waits when separately fetched snapshots lack review evidence or timestamps", () => {
     expect(diagnose([done, { ...child, interactions: [] }])).toBeUndefined();
     expect(diagnose([done, child], [completed])).toBeUndefined();
-    expect(diagnose([done, child], [{ ...completed, finishedAt: "" }, review])).toBeUndefined();
-    expect(diagnose([done, child], [completed, { ...review, startedAt: "" }])).toBeUndefined();
+    expect(
+      diagnose([done, child], [{ ...completed, finishedAt: "" }, review]),
+    ).toBeUndefined();
+    expect(
+      diagnose([done, child], [completed, { ...review, startedAt: "" }]),
+    ).toBeUndefined();
     expect(diagnose([done, child], [review])).toBeUndefined();
   });
   it("does not reject a completed workflow with the required timing", () => {
-    expect(diagnose([done, child], [{ ...completed, finishedAt: review.startedAt }, review])).toBeUndefined();
+    expect(
+      diagnose(
+        [done, child],
+        [{ ...completed, finishedAt: review.startedAt }, review],
+      ),
+    ).toBeUndefined();
   });
 });
 
@@ -125,7 +187,13 @@ describe("multi-round agent review handoff", () => {
         status: "rejected",
         addresseeAgentId: "lead",
         createdAt: "2026-09-17T19:07:19.277Z",
-        payload: { target: { type: "custom", key: "native_completion_review", revisionId: "decision-1" } },
+        payload: {
+          target: {
+            type: "custom",
+            key: "native_completion_review",
+            revisionId: "decision-1",
+          },
+        },
         result: { version: 1, outcome: "rejected" },
       },
       {
@@ -138,7 +206,13 @@ describe("multi-round agent review handoff", () => {
         resolvedByRunId: "review-run",
         createdAt: "2026-09-17T19:08:54.510Z",
         resolvedAt: "2026-09-17T19:09:33.722Z",
-        payload: { target: { type: "custom", key: "native_completion_review", revisionId: "decision-2" } },
+        payload: {
+          target: {
+            type: "custom",
+            key: "native_completion_review",
+            revisionId: "decision-2",
+          },
+        },
         result: {
           version: 1,
           outcome: "accepted",
@@ -146,19 +220,23 @@ describe("multi-round agent review handoff", () => {
       },
     ],
   };
-  const runs = [{
-    id: "review-run",
-    companyId: "company",
-    agentId: "lead",
-    status: "succeeded",
-    contextSnapshot: {
-      nativeReviewInteractionId: "second",
-      nativeReviewDecisionId: "decision-2",
+  const runs = [
+    {
+      id: "review-run",
+      companyId: "company",
+      agentId: "lead",
+      status: "succeeded",
+      contextSnapshot: {
+        nativeReviewInteractionId: "second",
+        nativeReviewDecisionId: "decision-2",
+      },
     },
-  }];
+  ];
 
   it("follows a later accepted repair review for the same child and lead", () => {
-    expect(storyAcceptedAgentReview(child, "first", "lead", runs)?.id).toBe("second");
+    expect(storyAcceptedAgentReview(child, "first", "lead", runs)?.id).toBe(
+      "second",
+    );
   });
 
   it("accepts a single first review when it is already accepted", () => {
@@ -186,22 +264,49 @@ describe("multi-round agent review handoff", () => {
   it("rejects accepted cards for another child, agent, or interaction kind", () => {
     const unrelated = [
       { ...child.interactions[1], issueId: "other" },
-      { ...child.interactions[1], addresseeAgentId: "other", resolvedByAgentId: "other" },
-      { ...child.interactions[1], payload: { target: { type: "custom", key: "other", revisionId: "decision-2" } } },
+      {
+        ...child.interactions[1],
+        addresseeAgentId: "other",
+        resolvedByAgentId: "other",
+      },
+      {
+        ...child.interactions[1],
+        payload: {
+          target: { type: "custom", key: "other", revisionId: "decision-2" },
+        },
+      },
       { ...child.interactions[1], resolvedByRunId: "wrong-run" },
     ];
     for (const interaction of unrelated)
       expect(
-        storyAcceptedAgentReview({ ...child, interactions: [interaction] }, "first", "lead", runs),
+        storyAcceptedAgentReview(
+          { ...child, interactions: [interaction] },
+          "first",
+          "lead",
+          runs,
+        ),
       ).toBeUndefined();
   });
 
   it("rejects a review whose decision revision does not match the reviewer run", () => {
     const bad = {
       ...child.interactions[1],
-      payload: { target: { type: "custom", key: "native_completion_review", revisionId: "wrong" } },
+      payload: {
+        target: {
+          type: "custom",
+          key: "native_completion_review",
+          revisionId: "wrong",
+        },
+      },
     };
-    expect(storyAcceptedAgentReview({ ...child, interactions: [bad] }, "second", "lead", runs)).toBeUndefined();
+    expect(
+      storyAcceptedAgentReview(
+        { ...child, interactions: [bad] },
+        "second",
+        "lead",
+        runs,
+      ),
+    ).toBeUndefined();
   });
 });
 
@@ -226,11 +331,22 @@ describe("manual everyday workflow catalog", () => {
     const selected = selectRunnerExecutions(
       parseRunnerSelectors(["--suite", "everyday-workflows"]),
     );
-    expect(selected.some((e) => e.task.id.startsWith("recover-runner"))).toBe(false);
-    for (const id of ["recover-runner", "recover-runner-safe", "recover-runner-uncertain"])
-      expect(() => selectRunnerExecutions(parseRunnerSelectors([
-        "--id", `everyday-workflows.runner-codex.local.${id}`,
-      ]))).toThrow();
+    expect(selected.some((e) => e.task.id.startsWith("recover-runner"))).toBe(
+      false,
+    );
+    for (const id of [
+      "recover-runner",
+      "recover-runner-safe",
+      "recover-runner-uncertain",
+    ])
+      expect(() =>
+        selectRunnerExecutions(
+          parseRunnerSelectors([
+            "--id",
+            `everyday-workflows.runner-codex.local.${id}`,
+          ]),
+        ),
+      ).toThrow();
     expect(selected.some((e) => e.task.id === "recover-controller")).toBe(true);
     expect(selected.some((e) => e.task.id === "stop-redirect")).toBe(true);
   });
@@ -272,7 +388,12 @@ describe("manual everyday workflow catalog", () => {
     );
     expect(remote).toHaveLength(8);
     expect(new Set(remote.map((e) => e.task.id))).toEqual(
-      new Set(["build-revise", "delegate-feedback", "recover-controller", "create-skill-studio"]),
+      new Set([
+        "build-revise",
+        "delegate-feedback",
+        "recover-controller",
+        "create-skill-studio",
+      ]),
     );
   });
 });
@@ -340,7 +461,9 @@ describe("lifecycle oracle calibrated failures", () => {
         [parent],
         [run.id],
       );
-      expect(checks.find((c) => c.id === "successful-runs")?.passed).toBe(false);
+      expect(checks.find((c) => c.id === "successful-runs")?.passed).toBe(
+        false,
+      );
       const failed = { ...run, status: "failed", errorCode };
       expect(storyUnexpectedRunFailure([failed], [run.id])).toBe(failed);
     },
@@ -352,7 +475,9 @@ describe("lifecycle oracle calibrated failures", () => {
   ])("accepts an injected interruption with %s / %s", (status, errorCode) => {
     const checks = score([{ ...run, status, errorCode }], [parent], [run.id]);
     expect(checks.find((c) => c.id === "successful-runs")?.passed).toBe(true);
-    expect(storyUnexpectedRunFailure([{ ...run, status, errorCode }], [run.id])).toBeUndefined();
+    expect(
+      storyUnexpectedRunFailure([{ ...run, status, errorCode }], [run.id]),
+    ).toBeUndefined();
   });
   it("excludes a proven pre-dispatch workspace deferral without hiding executed failures", () => {
     const deferred: StoryRun = {
@@ -558,9 +683,7 @@ describe("reply completion boundary", () => {
       },
     };
     expect(storyHasPendingAgentReview(sameAgentCards, "lead")).toBe(true);
-    expect(storyHasPendingHumanInteraction(sameAgentCards, "lead")).toBe(
-      true,
-    );
+    expect(storyHasPendingHumanInteraction(sameAgentCards, "lead")).toBe(true);
     expect(
       storyHasPendingHumanInteraction(
         {
@@ -659,7 +782,10 @@ describe("reply completion boundary", () => {
   it("keeps polling when review acceptance is durable but the parent wake is not projected yet", () => {
     const issues = [
       {
-        id: "parent", companyId: "company", title: "parent", status: "blocked",
+        id: "parent",
+        companyId: "company",
+        title: "parent",
+        status: "blocked",
         blockedTransitionAt: "2026-09-17T19:07:30.000Z",
       },
       {
@@ -668,50 +794,99 @@ describe("reply completion boundary", () => {
         companyId: "company",
         title: "child",
         status: "done",
-        interactions: [{
-          id: "review",
-          issueId: "child",
-          kind: "request_confirmation",
-          status: "accepted",
-          addresseeAgentId: "lead",
-          resolvedByAgentId: "lead",
-          resolvedByRunId: "review-run",
-          resolvedAt: "2026-09-17T19:08:10.000Z",
-          payload: { target: { type: "custom", key: "native_completion_review", revisionId: "decision" } },
-          result: { version: 1, outcome: "accepted" },
-        }],
+        interactions: [
+          {
+            id: "review",
+            issueId: "child",
+            kind: "request_confirmation",
+            status: "accepted",
+            addresseeAgentId: "lead",
+            resolvedByAgentId: "lead",
+            resolvedByRunId: "review-run",
+            resolvedAt: "2026-09-17T19:08:10.000Z",
+            payload: {
+              target: {
+                type: "custom",
+                key: "native_completion_review",
+                revisionId: "decision",
+              },
+            },
+            result: { version: 1, outcome: "accepted" },
+          },
+        ],
       },
     ];
-    const runs = [{
-      id: "review-run",
-      companyId: "company",
-      agentId: "lead",
-      status: "succeeded",
-      finishedAt: "2026-09-17T19:08:11.000Z",
-    }];
+    const runs = [
+      {
+        id: "review-run",
+        companyId: "company",
+        agentId: "lead",
+        status: "succeeded",
+        finishedAt: "2026-09-17T19:08:11.000Z",
+      },
+    ];
     expect(storyHasStrandedBlockedLeaf(issues, "lead")).toBe(true);
-    expect(storyHasDurableAgentReviewContinuation(
-      issues, "parent", "lead", runs,
-    )).toBe(true);
+    expect(
+      storyHasDurableAgentReviewContinuation(issues, "parent", "lead", runs),
+    ).toBe(true);
     for (const status of ["completed", "failed", "cancelled"]) {
-      expect(storyHasDurableAgentReviewContinuation([
-        { ...issues[0]!, wakeDiagnostics: { events: [{
-          kind: "wake_request", agentId: "lead", reason: "issue_blockers_resolved", status,
-        }] } },
-        issues[1]!,
-      ], "parent", "lead", runs)).toBe(false);
+      expect(
+        storyHasDurableAgentReviewContinuation(
+          [
+            {
+              ...issues[0]!,
+              wakeDiagnostics: {
+                events: [
+                  {
+                    kind: "wake_request",
+                    agentId: "lead",
+                    reason: "issue_blockers_resolved",
+                    status,
+                  },
+                ],
+              },
+            },
+            issues[1]!,
+          ],
+          "parent",
+          "lead",
+          runs,
+        ),
+      ).toBe(false);
     }
-    expect(storyHasDurableAgentReviewContinuation([
-      { ...issues[0]!, blockedTransitionAt: "2026-09-17T19:09:00.000Z" }, issues[1]!,
-    ], "parent", "lead", runs)).toBe(false);
+    expect(
+      storyHasDurableAgentReviewContinuation(
+        [
+          { ...issues[0]!, blockedTransitionAt: "2026-09-17T19:09:00.000Z" },
+          issues[1]!,
+        ],
+        "parent",
+        "lead",
+        runs,
+      ),
+    ).toBe(false);
   });
 
   it("still identifies a blocked parent as stranded without accepted review evidence", () => {
     const issues = [
-      { id: "parent", companyId: "company", title: "parent", status: "blocked" },
-      { id: "child", parentId: "parent", companyId: "company", title: "child", status: "done", interactions: [] },
+      {
+        id: "parent",
+        companyId: "company",
+        title: "parent",
+        status: "blocked",
+      },
+      {
+        id: "child",
+        parentId: "parent",
+        companyId: "company",
+        title: "child",
+        status: "done",
+        interactions: [],
+      },
     ];
-    expect(storyHasDurableAgentReviewContinuation(issues, "parent", "lead", [])).toBe(false);
+    expect(
+      storyHasDurableAgentReviewContinuation(issues, "parent", "lead", []),
+    ).toBe(false);
   });
 
   it.each(["deferred_issue_execution", "claimed"])(

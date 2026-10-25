@@ -1,8 +1,19 @@
 import { useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { createIssueDetailPath, withIssueDetailHeaderSeed } from "../lib/issueDetailBreadcrumb";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  createIssueDetailPath,
+  withIssueDetailHeaderSeed,
+} from "../lib/issueDetailBreadcrumb";
 import type { ProjectWorkspaceLinkedIssue } from "../lib/project-workspaces-tab";
-import { IssueQuicklookCard, QUICKLOOK_CONTENT_CLASS, quicklookAlignOffset } from "./IssueLinkQuicklook";
+import {
+  IssueQuicklookCard,
+  QUICKLOOK_CONTENT_CLASS,
+  quicklookAlignOffset,
+} from "./IssueLinkQuicklook";
 
 interface IssuesQuicklookProps {
   issue: ProjectWorkspaceLinkedIssue;

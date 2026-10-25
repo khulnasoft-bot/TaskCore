@@ -72,8 +72,9 @@ export function ContextPanel({
       <section className="pcr7-panel-section">
         <h3>Capability grants</h3>
         <p className="pcr7-muted">
-          Two vocabularies, both verbatim: the eval case records the capability it needs, the
-          fixture issues the catalog claims that unlock the matching operations.
+          Two vocabularies, both verbatim: the eval case records the capability
+          it needs, the fixture issues the catalog claims that unlock the
+          matching operations.
         </p>
         <p className="pcr7-label">Required by the eval case</p>
         <ClaimChips claims={entry.requiredGrants} testId="required-grants" />
@@ -84,8 +85,10 @@ export function ContextPanel({
       <section className="pcr7-panel-section">
         <h3>Tool exposure</h3>
         {artifact === null ? (
-          <EmptyState title="No run yet." >
-            <p className="pcr7-muted">Run the scenario to record the exposure decision.</p>
+          <EmptyState title="No run yet.">
+            <p className="pcr7-muted">
+              Run the scenario to record the exposure decision.
+            </p>
           </EmptyState>
         ) : (
           <ExposureList exposure={artifact.exposure} />
@@ -113,8 +116,12 @@ export function ContextPanel({
               <span className="pcr7-muted">none recorded</span>
             ) : (
               entry.skillElements.map((element) => (
-                <span key={`${element.file}:${element.lines}`} className="pcr7-block">
-                  <Mono>{element.file}</Mono> · {element.section} · <Mono>{element.lines}</Mono>
+                <span
+                  key={`${element.file}:${element.lines}`}
+                  className="pcr7-block"
+                >
+                  <Mono>{element.file}</Mono> · {element.section} ·{" "}
+                  <Mono>{element.lines}</Mono>
                 </span>
               ))
             )}
@@ -145,10 +152,14 @@ export function ExposureList({ exposure }: { exposure: CapabilityExposure }) {
         ))}
       </ul>
 
-      <h4 className="pcr7-label">Optional tools ({exposure.optional.length})</h4>
+      <h4 className="pcr7-label">
+        Optional tools ({exposure.optional.length})
+      </h4>
       <ul className="pcr7-exposure" data-testid="exposure-optional">
         {exposure.optional.length === 0 ? (
-          <li className="pcr7-muted">No optional operation is unlocked for this run.</li>
+          <li className="pcr7-muted">
+            No optional operation is unlocked for this run.
+          </li>
         ) : (
           exposure.optional.map((tool) => (
             <li key={tool.operationId}>
@@ -164,7 +175,9 @@ export function ExposureList({ exposure }: { exposure: CapabilityExposure }) {
         )}
       </ul>
 
-      <h4 className="pcr7-label">Control plane — no tool ({exposure.controlPlane.length})</h4>
+      <h4 className="pcr7-label">
+        Control plane — no tool ({exposure.controlPlane.length})
+      </h4>
       <ul className="pcr7-exposure" data-testid="exposure-control-plane">
         {exposure.controlPlane.map((capability) => (
           <li key={capability.operationId}>
@@ -204,7 +217,9 @@ export function AuthorizationPanel({
     return (
       <div className="pcr7-panel" data-testid="panel-authorization">
         <EmptyState title="No run yet.">
-          <p className="pcr7-muted">Run the scenario to record authorization decisions.</p>
+          <p className="pcr7-muted">
+            Run the scenario to record authorization decisions.
+          </p>
         </EmptyState>
       </div>
     );
@@ -229,7 +244,11 @@ export function AuthorizationPanel({
               key={record.sequence}
               data-testid={`authorization-row-${record.sequence}`}
               data-outcome={record.outcome}
-              onClick={onSelectRecord === undefined ? undefined : () => onSelectRecord(record.sequence)}
+              onClick={
+                onSelectRecord === undefined
+                  ? undefined
+                  : () => onSelectRecord(record.sequence)
+              }
             >
               <th scope="row">
                 <Mono>{record.operationId}</Mono>
@@ -244,7 +263,9 @@ export function AuthorizationPanel({
               </td>
               <td>
                 <Badge tone={outcomeTone(record.outcome)}>
-                  <span aria-hidden="true">{record.outcome === "allowed" ? "✓" : "✕"}</span>{" "}
+                  <span aria-hidden="true">
+                    {record.outcome === "allowed" ? "✓" : "✕"}
+                  </span>{" "}
                   {outcomeLabel(record.outcome)}
                 </Badge>
               </td>
@@ -268,14 +289,18 @@ export function AuthorizationPanel({
         </tbody>
       </table>
       <details className="pcr7-facet">
-        <summary className="pcr7-facet-summary">Full authorization records</summary>
+        <summary className="pcr7-facet-summary">
+          Full authorization records
+        </summary>
         <JsonBlock label="Records" value={records} />
       </details>
     </div>
   );
 }
 
-export function denialCount(records: readonly CapabilityAuthorizationRecord[]): number {
+export function denialCount(
+  records: readonly CapabilityAuthorizationRecord[],
+): number {
   return records.filter((record) => record.outcome !== "allowed").length;
 }
 
@@ -288,7 +313,9 @@ export function StateDiffPanel({ diff }: { diff: CapabilityStateDiff | null }) {
     return (
       <div className="pcr7-panel" data-testid="panel-diff">
         <EmptyState title="No run yet.">
-          <p className="pcr7-muted">Run the scenario to produce a before/after snapshot diff.</p>
+          <p className="pcr7-muted">
+            Run the scenario to produce a before/after snapshot diff.
+          </p>
         </EmptyState>
       </div>
     );
@@ -314,13 +341,15 @@ export function StateDiffPanel({ diff }: { diff: CapabilityStateDiff | null }) {
               {domain.rows.map((row) => (
                 <li key={row.entityId} data-change={row.change}>
                   <span className="pcr7-diff-marker">
-                    <span aria-hidden="true">{CHANGE_ICON[row.change]}</span> {CHANGE_LABEL[row.change]}
+                    <span aria-hidden="true">{CHANGE_ICON[row.change]}</span>{" "}
+                    {CHANGE_LABEL[row.change]}
                   </span>
                   <Mono>{row.entityId}</Mono>
                   <ul className="pcr7-diff-fields">
                     {row.fields.map((field) => (
                       <li key={field.field}>
-                        <Mono>{field.field}</Mono>: {field.before ?? "—"} → {field.after ?? "—"}
+                        <Mono>{field.field}</Mono>: {field.before ?? "—"} →{" "}
+                        {field.after ?? "—"}
                       </li>
                     ))}
                   </ul>
@@ -332,7 +361,10 @@ export function StateDiffPanel({ diff }: { diff: CapabilityStateDiff | null }) {
           )}
           <details className="pcr7-facet">
             <summary className="pcr7-facet-summary">Final state</summary>
-            <JsonBlock label={`${domain.domain} after`} value={domain.afterSnapshot} />
+            <JsonBlock
+              label={`${domain.domain} after`}
+              value={domain.afterSnapshot}
+            />
           </details>
         </details>
       ))}
@@ -344,12 +376,18 @@ export function StateDiffPanel({ diff }: { diff: CapabilityStateDiff | null }) {
  * Parity (§4.4).
  * --------------------------------------------------------------- */
 
-export function ParityPanel({ parity }: { parity: CapabilityParityReport | null }) {
+export function ParityPanel({
+  parity,
+}: {
+  parity: CapabilityParityReport | null;
+}) {
   if (parity === null) {
     return (
       <div className="pcr7-panel" data-testid="panel-parity">
         <EmptyState title="No run yet.">
-          <p className="pcr7-muted">Run the scenario to produce a parity verdict.</p>
+          <p className="pcr7-muted">
+            Run the scenario to produce a parity verdict.
+          </p>
         </EmptyState>
       </div>
     );
@@ -357,17 +395,33 @@ export function ParityPanel({ parity }: { parity: CapabilityParityReport | null 
   return (
     <div className="pcr7-panel" data-testid="panel-parity">
       <p className="pcr7-parity-verdict" data-testid="parity-verdict">
-        <ParityStatusBadge status={parity.verdict} testId="parity-verdict-badge" /> {parity.assertions.length}{" "}
-        assertions · {parity.assertions.filter((assertion) => assertion.status === "pass").length} pass
+        <ParityStatusBadge
+          status={parity.verdict}
+          testId="parity-verdict-badge"
+        />{" "}
+        {parity.assertions.length} assertions ·{" "}
+        {
+          parity.assertions.filter((assertion) => assertion.status === "pass")
+            .length
+        }{" "}
+        pass
       </p>
 
       <h4 className="pcr7-label">Assertions</h4>
       <ul className="pcr7-assertions">
         {parity.assertions.map((assertion) => (
-          <li key={assertion.index} data-testid={`parity-assertion-${assertion.index}`}>
+          <li
+            key={assertion.index}
+            data-testid={`parity-assertion-${assertion.index}`}
+          >
             <span className="pcr7-assertion-head">
-              <Badge tone="neutral">{ASSERTION_CLASS_LABEL[assertion.assertionClass]}</Badge>
-              <ParityStatusBadge status={assertion.status} testId={`parity-assertion-status-${assertion.index}`} />
+              <Badge tone="neutral">
+                {ASSERTION_CLASS_LABEL[assertion.assertionClass]}
+              </Badge>
+              <ParityStatusBadge
+                status={assertion.status}
+                testId={`parity-assertion-status-${assertion.index}`}
+              />
             </span>
             <p>{assertion.expectation}</p>
             {assertion.status === "fail" ? (
@@ -378,7 +432,9 @@ export function ParityPanel({ parity }: { parity: CapabilityParityReport | null 
                 </div>
                 <div>
                   <p className="pcr7-label">Observed</p>
-                  <pre className="pcr-payload pcr-payload--danger">{assertion.observed}</pre>
+                  <pre className="pcr-payload pcr-payload--danger">
+                    {assertion.observed}
+                  </pre>
                 </div>
               </div>
             ) : (
@@ -394,8 +450,8 @@ export function ParityPanel({ parity }: { parity: CapabilityParityReport | null 
       <ul className="pcr7-exposure" data-testid="parity-forbidden">
         {parity.forbidden.length === 0 ? (
           <li className="pcr7-muted">
-            This case records no forbidden operations; restraint is proven by the absence of state
-            writes in the diff.
+            This case records no forbidden operations; restraint is proven by
+            the absence of state writes in the diff.
           </li>
         ) : (
           parity.forbidden.map((check) => (
@@ -430,15 +486,20 @@ export function ParityPanel({ parity }: { parity: CapabilityParityReport | null 
 
       <h4 className="pcr7-label">Capability conformance suite</h4>
       <p data-testid="parity-eval-suite">
-        <ParityStatusBadge status={parity.evalSuite.status} testId="parity-eval-status" />{" "}
+        <ParityStatusBadge
+          status={parity.evalSuite.status}
+          testId="parity-eval-status"
+        />{" "}
         {parity.evalSuite.available ? (
           <>
-            operation <Mono>{parity.evalSuite.semanticOperation ?? "—"}</Mono>, decision{" "}
+            operation <Mono>{parity.evalSuite.semanticOperation ?? "—"}</Mono>,
+            decision{" "}
             <Mono>{parity.evalSuite.authorizationDecision ?? "—"}</Mono>
           </>
         ) : (
           <span className="pcr7-muted">
-            no Capability report is loaded; this explorer renders 7E output and never recomputes it.
+            no Capability report is loaded; this explorer renders 7E output and
+            never recomputes it.
           </span>
         )}
       </p>

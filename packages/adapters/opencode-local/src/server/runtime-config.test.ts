@@ -16,7 +16,9 @@ afterEach(async () => {
 });
 
 async function makeConfigHome(initialConfig?: Record<string, unknown>) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-test-"));
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-opencode-test-"),
+  );
   cleanupPaths.add(root);
   const configDir = path.join(root, "opencode");
   await fs.mkdir(configDir, { recursive: true });
@@ -36,7 +38,7 @@ describe("prepareOpenCodeRuntimeConfig", () => {
       permission: {
         read: "allow",
         bash: "ask",
-        "mcp__example__write": "deny",
+        mcp__example__write: "deny",
       },
       theme: "system",
     });
@@ -88,7 +90,10 @@ describe("prepareOpenCodeRuntimeConfig", () => {
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
 
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as Record<string, unknown>;
     expect(runtimeConfig).toMatchObject({
       permission: "allow",
@@ -100,7 +105,12 @@ describe("prepareOpenCodeRuntimeConfig", () => {
 
   it("reads TASKCORE_OPENCODE_PROVIDERS from process.env when absent from the run env", async () => {
     const configHome = await makeConfigHome({ permission: { read: "allow" } });
-    const providers = { bifrost: { npm: "@ai-sdk/openai-compatible", models: { "example/model-a": {} } } };
+    const providers = {
+      bifrost: {
+        npm: "@ai-sdk/openai-compatible",
+        models: { "example/model-a": {} },
+      },
+    };
     process.env.TASKCORE_OPENCODE_PROVIDERS = JSON.stringify(providers);
     try {
       const prepared = await prepareOpenCodeRuntimeConfig({
@@ -109,7 +119,10 @@ describe("prepareOpenCodeRuntimeConfig", () => {
       });
       cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
       const runtimeConfig = JSON.parse(
-        await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+        await fs.readFile(
+          path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+          "utf8",
+        ),
       ) as Record<string, unknown>;
       expect(runtimeConfig).toMatchObject({ provider: providers });
       await prepared.cleanup();
@@ -123,17 +136,27 @@ describe("prepareOpenCodeRuntimeConfig", () => {
     const providers = {
       bifrost: {
         npm: "@ai-sdk/openai-compatible",
-        options: { baseURL: "http://bifrost/v1", apiKey: "{env:ANTHROPIC_API_KEY}" },
+        options: {
+          baseURL: "http://bifrost/v1",
+          apiKey: "{env:ANTHROPIC_API_KEY}",
+        },
         models: { "example/model-a": {} },
       },
     };
     const prepared = await prepareOpenCodeRuntimeConfig({
-      env: { XDG_CONFIG_HOME: configHome, TASKCORE_OPENCODE_PROVIDERS: JSON.stringify(providers), ANTHROPIC_API_KEY: "sk-bf-REALVK" },
+      env: {
+        XDG_CONFIG_HOME: configHome,
+        TASKCORE_OPENCODE_PROVIDERS: JSON.stringify(providers),
+        ANTHROPIC_API_KEY: "sk-bf-REALVK",
+      },
       config: {},
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as { provider: { bifrost: { options: { apiKey: string } } } };
     // The {env:...} placeholder must be replaced with the literal value, so OpenCode
     // does not depend on its sandboxed process env carrying the key.
@@ -143,28 +166,47 @@ describe("prepareOpenCodeRuntimeConfig", () => {
 
   it("leaves an unresolvable {env:VAR} placeholder intact", async () => {
     const configHome = await makeConfigHome({ permission: { read: "allow" } });
-    const providers = { bifrost: { options: { apiKey: "{env:DEFINITELY_UNSET_VAR_XYZ}" }, models: { "x/y": {} } } };
+    const providers = {
+      bifrost: {
+        options: { apiKey: "{env:DEFINITELY_UNSET_VAR_XYZ}" },
+        models: { "x/y": {} },
+      },
+    };
     const prepared = await prepareOpenCodeRuntimeConfig({
-      env: { XDG_CONFIG_HOME: configHome, TASKCORE_OPENCODE_PROVIDERS: JSON.stringify(providers) },
+      env: {
+        XDG_CONFIG_HOME: configHome,
+        TASKCORE_OPENCODE_PROVIDERS: JSON.stringify(providers),
+      },
       config: {},
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as { provider: { bifrost: { options: { apiKey: string } } } };
-    expect(runtimeConfig.provider.bifrost.options.apiKey).toBe("{env:DEFINITELY_UNSET_VAR_XYZ}");
+    expect(runtimeConfig.provider.bifrost.options.apiKey).toBe(
+      "{env:DEFINITELY_UNSET_VAR_XYZ}",
+    );
     await prepared.cleanup();
   });
 
   it("pins small_model from TASKCORE_OPENCODE_SMALL_MODEL", async () => {
     const configHome = await makeConfigHome({ permission: { read: "allow" } });
     const prepared = await prepareOpenCodeRuntimeConfig({
-      env: { XDG_CONFIG_HOME: configHome, TASKCORE_OPENCODE_SMALL_MODEL: "example/model-a" },
+      env: {
+        XDG_CONFIG_HOME: configHome,
+        TASKCORE_OPENCODE_SMALL_MODEL: "example/model-a",
+      },
       config: {},
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as { small_model?: string };
     expect(runtimeConfig.small_model).toBe("example/model-a");
     await prepared.cleanup();
@@ -173,12 +215,18 @@ describe("prepareOpenCodeRuntimeConfig", () => {
   it("ignores malformed TASKCORE_OPENCODE_PROVIDERS without writing a provider block and surfaces a note", async () => {
     const configHome = await makeConfigHome({ permission: { read: "allow" } });
     const prepared = await prepareOpenCodeRuntimeConfig({
-      env: { XDG_CONFIG_HOME: configHome, TASKCORE_OPENCODE_PROVIDERS: "not json" },
+      env: {
+        XDG_CONFIG_HOME: configHome,
+        TASKCORE_OPENCODE_PROVIDERS: "not json",
+      },
       config: {},
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as Record<string, unknown>;
     expect(runtimeConfig.provider).toBeUndefined();
     expect(prepared.notes).toContain(
@@ -190,12 +238,18 @@ describe("prepareOpenCodeRuntimeConfig", () => {
   it("surfaces a note when TASKCORE_OPENCODE_PROVIDERS is valid JSON but not an object", async () => {
     const configHome = await makeConfigHome({ permission: { read: "allow" } });
     const prepared = await prepareOpenCodeRuntimeConfig({
-      env: { XDG_CONFIG_HOME: configHome, TASKCORE_OPENCODE_PROVIDERS: "[1,2,3]" },
+      env: {
+        XDG_CONFIG_HOME: configHome,
+        TASKCORE_OPENCODE_PROVIDERS: "[1,2,3]",
+      },
       config: {},
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as Record<string, unknown>;
     expect(runtimeConfig.provider).toBeUndefined();
     expect(prepared.notes).toContain(
@@ -218,7 +272,10 @@ describe("prepareOpenCodeRuntimeConfig", () => {
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as { provider?: Record<string, unknown> };
     expect(runtimeConfig.provider?.usable).toBeDefined();
     expect(runtimeConfig.provider?.bifrost).toBeUndefined();
@@ -233,13 +290,18 @@ describe("prepareOpenCodeRuntimeConfig", () => {
     const prepared = await prepareOpenCodeRuntimeConfig({
       env: {
         XDG_CONFIG_HOME: configHome,
-        TASKCORE_OPENCODE_PROVIDERS: JSON.stringify({ bifrost: "http://gateway.example/v1" }),
+        TASKCORE_OPENCODE_PROVIDERS: JSON.stringify({
+          bifrost: "http://gateway.example/v1",
+        }),
       },
       config: {},
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as Record<string, unknown>;
     expect(runtimeConfig.provider).toBeUndefined();
     expect(prepared.notes).toContain(
@@ -256,7 +318,10 @@ describe("prepareOpenCodeRuntimeConfig", () => {
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as { provider?: Record<string, { models?: Record<string, unknown> }> };
     expect(runtimeConfig.provider?.openrouter?.models).toEqual({
       "openai/gpt-oss-120b:nitro": {},
@@ -286,11 +351,18 @@ describe("prepareOpenCodeRuntimeConfig", () => {
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as { provider?: Record<string, { models?: Record<string, unknown> }> };
-    expect(runtimeConfig.provider?.openrouter?.models).toEqual(providers.openrouter.models);
+    expect(runtimeConfig.provider?.openrouter?.models).toEqual(
+      providers.openrouter.models,
+    );
     expect(
-      prepared.notes.some((note) => note.startsWith("Registered configured model")),
+      prepared.notes.some((note) =>
+        note.startsWith("Registered configured model"),
+      ),
     ).toBe(false);
     await prepared.cleanup();
   });
@@ -303,7 +375,10 @@ describe("prepareOpenCodeRuntimeConfig", () => {
     });
     cleanupPaths.add(prepared.env.XDG_CONFIG_HOME);
     const runtimeConfig = JSON.parse(
-      await fs.readFile(path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"), "utf8"),
+      await fs.readFile(
+        path.join(prepared.env.XDG_CONFIG_HOME, "opencode", "opencode.json"),
+        "utf8",
+      ),
     ) as Record<string, unknown>;
     expect(runtimeConfig.provider).toBeUndefined();
     await prepared.cleanup();

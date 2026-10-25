@@ -7,7 +7,9 @@ function parseCommaArgs(value: string): string[] {
     .filter(Boolean);
 }
 
-export function buildProcessConfig(v: CreateConfigValues): Record<string, unknown> {
+export function buildProcessConfig(
+  v: CreateConfigValues,
+): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.cwd) ac.cwd = v.cwd;
   ac.timeoutSec = 0;

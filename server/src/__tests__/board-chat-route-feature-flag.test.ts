@@ -24,7 +24,9 @@ vi.mock("../routes/authz.js", () => ({
   assertCompanyAccess: () => {},
 }));
 
-async function createApp(deploymentMode: "local_trusted" | "authenticated" = "local_trusted") {
+async function createApp(
+  deploymentMode: "local_trusted" | "authenticated" = "local_trusted",
+) {
   const { boardChatRoutes } = await import("../routes/board-chat.js");
   const app = express();
   app.use(express.json());
@@ -120,7 +122,9 @@ describe("board-chat client disconnect", () => {
 
     // Client walks away mid-stream.
     req.abort();
-    await vi.waitFor(() => expect(fakeProc.kill).toHaveBeenCalledWith("SIGTERM"));
+    await vi.waitFor(() =>
+      expect(fakeProc.kill).toHaveBeenCalledWith("SIGTERM"),
+    );
 
     // Let the subprocess close handler run so the slot is released.
     fakeProc.exitCode = 143;
@@ -135,13 +139,16 @@ describe("board-chat history role classification", () => {
 
     // The relay's own persisted replies.
     expect(
-      isConciergeReply({ authorAgentId: null, authorUserId: "board-concierge" }),
+      isConciergeReply({
+        authorAgentId: null,
+        authorUserId: "board-concierge",
+      }),
     ).toBe(true);
 
     // A human board user.
-    expect(isConciergeReply({ authorAgentId: null, authorUserId: "user-1" })).toBe(
-      false,
-    );
+    expect(
+      isConciergeReply({ authorAgentId: null, authorUserId: "user-1" }),
+    ).toBe(false);
 
     // An agent commenting on the standing issue is NOT this assistant — its
     // words must not be serialized as the assistant's own prior turns.
@@ -152,7 +159,10 @@ describe("board-chat history role classification", () => {
     // Defensive: an agent comment can never impersonate the concierge even if
     // both author fields are somehow set.
     expect(
-      isConciergeReply({ authorAgentId: "agent-1", authorUserId: "board-concierge" }),
+      isConciergeReply({
+        authorAgentId: "agent-1",
+        authorUserId: "board-concierge",
+      }),
     ).toBe(false);
   });
 });

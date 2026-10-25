@@ -58,7 +58,7 @@ The operation issue's `originKind` (`plugin:llm-wiki:operation:<type>`) tells yo
 | `ingest`              | `wiki-ingest`                                  |
 | `query`               | `wiki-query`                                   |
 | `lint`                | `wiki-lint`                                    |
-| `distill`, `backfill` | `taskcore-distill`                            |
+| `distill`, `backfill` | `taskcore-distill`                             |
 | `index`               | `index-refresh`                                |
 | `file-as-page`        | `wiki-query` (filing synthesis from an answer) |
 

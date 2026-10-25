@@ -49,7 +49,15 @@ describe("browser-code grammar", () => {
   });
 
   it("rejects a carriage return, a line feed, a NUL, and a control byte", () => {
-    for (const bad of ["ab\rcd", "ab\ncd", "ab\u0000cd", "ab\u0001cd", "ab\u007fcd", "ab cd", "ab\tcd"]) {
+    for (const bad of [
+      "ab\rcd",
+      "ab\ncd",
+      "ab\u0000cd",
+      "ab\u0001cd",
+      "ab\u007fcd",
+      "ab cd",
+      "ab\tcd",
+    ]) {
       expect(browserCodeSchema.safeParse(bad).success).toBe(false);
       expect(isValidBrowserCode(bad)).toBe(false);
     }
@@ -82,12 +90,16 @@ describe("browser-code grammar", () => {
   });
 
   it("wraps the grammar in the submit-browser-code request and rejects an extra field", () => {
-    expect(submitBrowserCodeRequestSchema.parse({ browserCode: "abc123" }).browserCode).toBe(
-      "abc123",
-    );
-    expect(submitBrowserCodeRequestSchema.safeParse({ browserCode: "a\nb" }).success).toBe(false);
     expect(
-      submitBrowserCodeRequestSchema.safeParse({ browserCode: "abc", extra: 1 }).success,
+      submitBrowserCodeRequestSchema.parse({ browserCode: "abc123" })
+        .browserCode,
+    ).toBe("abc123");
+    expect(
+      submitBrowserCodeRequestSchema.safeParse({ browserCode: "a\nb" }).success,
+    ).toBe(false);
+    expect(
+      submitBrowserCodeRequestSchema.safeParse({ browserCode: "abc", extra: 1 })
+        .success,
     ).toBe(false);
   });
 });
@@ -104,13 +116,16 @@ describe("claude setup-token owner response and completion response", () => {
       prompt: { authorizationUrl: "https://example.test/authorize" },
     });
     expect(parsed.panelMode).toBe("submitted_browser_code");
-    expect(parsed.prompt?.authorizationUrl).toBe("https://example.test/authorize");
+    expect(parsed.prompt?.authorizationUrl).toBe(
+      "https://example.test/authorize",
+    );
   });
 
   it("rejects a token on the completion response: the claim carries no token", () => {
     expect(
-      claudeSetupTokenCompletionResponseSchema.parse({ storedSessionId: "session-claim" })
-        .storedSessionId,
+      claudeSetupTokenCompletionResponseSchema.parse({
+        storedSessionId: "session-claim",
+      }).storedSessionId,
     ).toBe("session-claim");
     const withToken = claudeSetupTokenCompletionResponseSchema.safeParse({
       storedSessionId: "session-claim",
@@ -124,18 +139,22 @@ describe("agent create and hire carry an optional stored-session claim", () => {
   const base = { name: "Claude Agent", adapterType: "claude_local" as const };
 
   it("accepts a create request without a stored-session claim", () => {
-    expect(createAgentSchema.parse({ ...base }).storedSessionId).toBeUndefined();
+    expect(
+      createAgentSchema.parse({ ...base }).storedSessionId,
+    ).toBeUndefined();
   });
 
   it("accepts a create request with a stored-session claim", () => {
     expect(
-      createAgentSchema.parse({ ...base, storedSessionId: "session-claim" }).storedSessionId,
+      createAgentSchema.parse({ ...base, storedSessionId: "session-claim" })
+        .storedSessionId,
     ).toBe("session-claim");
   });
 
   it("accepts a hire request with a stored-session claim", () => {
     expect(
-      createAgentHireSchema.parse({ ...base, storedSessionId: "session-claim" }).storedSessionId,
+      createAgentHireSchema.parse({ ...base, storedSessionId: "session-claim" })
+        .storedSessionId,
     ).toBe("session-claim");
   });
 });

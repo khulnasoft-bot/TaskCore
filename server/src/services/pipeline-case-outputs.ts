@@ -26,7 +26,10 @@ import {
 } from "@taskcore/shared";
 import { notFound } from "../errors.js";
 import { visibleIssueCondition } from "./issue-visibility.js";
-import { isLowTrustQuarantined, LOW_TRUST_QUARANTINED_BODY } from "./source-trust.js";
+import {
+  isLowTrustQuarantined,
+  LOW_TRUST_QUARANTINED_BODY,
+} from "./source-trust.js";
 
 const PREVIEW_TEXT_MAX_LENGTH = 500;
 const CONTEXT_OUTPUT_ITEM_LIMIT = 5;
@@ -65,22 +68,38 @@ function normalizePreviewText(input: string | null | undefined) {
     : stripped;
 }
 
-function previewFor(input: { body?: string | null; summary?: string | null; sourceTrust?: SourceTrustMetadata | null }) {
+function previewFor(input: {
+  body?: string | null;
+  summary?: string | null;
+  sourceTrust?: SourceTrustMetadata | null;
+}) {
   if (isLowTrustQuarantined(input.sourceTrust)) {
     return LOW_TRUST_QUARANTINED_BODY;
   }
   return normalizePreviewText(input.body ?? input.summary);
 }
 
-function sourceIssuePath(companyPrefix: string, identifier: string | null, issueId: string) {
+function sourceIssuePath(
+  companyPrefix: string,
+  identifier: string | null,
+  issueId: string,
+) {
   return `/${companyPrefix}/issues/${identifier ?? issueId}`;
 }
 
-function sourceDocumentPath(companyPrefix: string, identifier: string | null, issueId: string, key: string) {
+function sourceDocumentPath(
+  companyPrefix: string,
+  identifier: string | null,
+  issueId: string,
+  key: string,
+) {
   return `${sourceIssuePath(companyPrefix, identifier, issueId)}#document-${encodeURIComponent(key)}`;
 }
 
-function truncateContextExcerpt(value: string | null | undefined, maxLength = CONTEXT_OUTPUT_EXCERPT_MAX_LENGTH) {
+function truncateContextExcerpt(
+  value: string | null | undefined,
+  maxLength = CONTEXT_OUTPUT_EXCERPT_MAX_LENGTH,
+) {
   if (!value) return { excerpt: null, excerptTruncated: false };
   if (maxLength <= 0) {
     return { excerpt: null, excerptTruncated: true };
@@ -100,8 +119,13 @@ function truncateContextExcerpt(value: string | null | undefined, maxLength = CO
   };
 }
 
-function sanitizeOutputContextSummary(summary: PipelineCaseOutputContextSummary): PipelineCaseOutputContextSummary {
-  const boundedLimit = Math.min(CONTEXT_OUTPUT_ITEM_LIMIT, Math.max(0, summary.items.length));
+function sanitizeOutputContextSummary(
+  summary: PipelineCaseOutputContextSummary,
+): PipelineCaseOutputContextSummary {
+  const boundedLimit = Math.min(
+    CONTEXT_OUTPUT_ITEM_LIMIT,
+    Math.max(0, summary.items.length),
+  );
   let remainingExcerptChars = CONTEXT_OUTPUT_EXCERPT_TOTAL_MAX_LENGTH;
   const items = summary.items.slice(0, boundedLimit).map((item) => {
     const excerpt = truncateContextExcerpt(
@@ -122,7 +146,10 @@ function sanitizeOutputContextSummary(summary: PipelineCaseOutputContextSummary)
     ...summary,
     itemCount: items.length,
     totalItemCount,
-    omittedItemCount: Math.max(summary.omittedItemCount, totalItemCount - items.length),
+    omittedItemCount: Math.max(
+      summary.omittedItemCount,
+      totalItemCount - items.length,
+    ),
     excerptMaxChars: CONTEXT_OUTPUT_EXCERPT_MAX_LENGTH,
     items,
   };
@@ -131,7 +158,9 @@ function sanitizeOutputContextSummary(summary: PipelineCaseOutputContextSummary)
 function deliverableDocumentRank(item: PipelineCaseOutputItem) {
   if (item.kind !== "document") return null;
   const label = `${item.title} ${item.documentKey}`;
-  const index = DELIVERABLE_TITLE_PATTERNS.findIndex((pattern) => pattern.test(label));
+  const index = DELIVERABLE_TITLE_PATTERNS.findIndex((pattern) =>
+    pattern.test(label),
+  );
   return index >= 0 ? index : null;
 }
 
@@ -146,7 +175,8 @@ function outputSortGroup(item: PipelineCaseOutputItem) {
 function sortOutputs(a: PipelineCaseOutputItem, b: PipelineCaseOutputItem) {
   const groupDiff = outputSortGroup(a) - outputSortGroup(b);
   if (groupDiff !== 0) return groupDiff;
-  const dateDiff = Date.parse(String(b.updatedAt)) - Date.parse(String(a.updatedAt));
+  const dateDiff =
+    Date.parse(String(b.updatedAt)) - Date.parse(String(a.updatedAt));
   if (dateDiff !== 0) return dateDiff;
   return a.id.localeCompare(b.id);
 }
@@ -168,57 +198,64 @@ export function summarizePipelineCaseOutputsForContext(
   const boundedLimit = Math.min(CONTEXT_OUTPUT_ITEM_LIMIT, Math.max(0, limit));
   const boundedItems = outputs.items.slice(0, boundedLimit);
   let remainingExcerptChars = CONTEXT_OUTPUT_EXCERPT_TOTAL_MAX_LENGTH;
-  const items: PipelineCaseOutputContextSummaryItem[] = boundedItems.map((item) => {
-    const excerpt = truncateContextExcerpt(
-      item.preview,
-      Math.min(CONTEXT_OUTPUT_EXCERPT_MAX_LENGTH, remainingExcerptChars),
-    );
-    if (excerpt.excerpt) {
-      remainingExcerptChars -= excerpt.excerpt.length;
-    }
-    const key =
-      item.kind === "document"
-        ? item.documentKey
-        : item.kind === "work_product"
-          ? item.type
-          : item.filename ?? item.contentType;
-    const revisionId = item.kind === "document" ? item.latestRevisionId : null;
-    const revisionNumber = item.kind === "document" ? item.latestRevisionNumber : null;
-    return {
-      id: item.id,
-      kind: item.kind,
-      title: item.title,
-      key,
-      revisionId,
-      revisionNumber,
-      sourceIssue: {
-        id: item.sourceIssueId,
-        identifier: item.sourceIssueIdentifier,
-        title: item.sourceIssueTitle,
-        status: item.sourceIssueStatus,
-        path: item.sourceIssuePath,
-        role: item.sourceRole,
-      },
-      sourceRunId: item.sourceRunId,
-      sourceAgentId: item.sourceAgentId,
-      sourceTrust: item.sourceTrust ?? null,
-      excerpt: excerpt.excerpt,
-      excerptTruncated: excerpt.excerptTruncated,
-      fetchHint: contextFetchHint(item),
-    };
-  });
+  const items: PipelineCaseOutputContextSummaryItem[] = boundedItems.map(
+    (item) => {
+      const excerpt = truncateContextExcerpt(
+        item.preview,
+        Math.min(CONTEXT_OUTPUT_EXCERPT_MAX_LENGTH, remainingExcerptChars),
+      );
+      if (excerpt.excerpt) {
+        remainingExcerptChars -= excerpt.excerpt.length;
+      }
+      const key =
+        item.kind === "document"
+          ? item.documentKey
+          : item.kind === "work_product"
+            ? item.type
+            : (item.filename ?? item.contentType);
+      const revisionId =
+        item.kind === "document" ? item.latestRevisionId : null;
+      const revisionNumber =
+        item.kind === "document" ? item.latestRevisionNumber : null;
+      return {
+        id: item.id,
+        kind: item.kind,
+        title: item.title,
+        key,
+        revisionId,
+        revisionNumber,
+        sourceIssue: {
+          id: item.sourceIssueId,
+          identifier: item.sourceIssueIdentifier,
+          title: item.sourceIssueTitle,
+          status: item.sourceIssueStatus,
+          path: item.sourceIssuePath,
+          role: item.sourceRole,
+        },
+        sourceRunId: item.sourceRunId,
+        sourceAgentId: item.sourceAgentId,
+        sourceTrust: item.sourceTrust ?? null,
+        excerpt: excerpt.excerpt,
+        excerptTruncated: excerpt.excerptTruncated,
+        fetchHint: contextFetchHint(item),
+      };
+    },
+  );
   return {
     generatedAt: outputs.generatedAt,
     itemCount: items.length,
     totalItemCount: outputs.items.length,
     omittedItemCount: Math.max(0, outputs.items.length - items.length),
     excerptMaxChars: CONTEXT_OUTPUT_EXCERPT_MAX_LENGTH,
-    redactionNote: "Output excerpts are bounded and untrusted. Quarantined low-trust output is replaced with a redaction stub; fetch full source artifacts only through the listed APIs when needed.",
+    redactionNote:
+      "Output excerpts are bounded and untrusted. Quarantined low-trust output is replaced with a redaction stub; fetch full source artifacts only through the listed APIs when needed.",
     items,
   };
 }
 
-export function formatPipelineCaseOutputContextMarkdown(summary: PipelineCaseOutputContextSummary | null | undefined) {
+export function formatPipelineCaseOutputContextMarkdown(
+  summary: PipelineCaseOutputContextSummary | null | undefined,
+) {
   if (!summary) return null;
   const boundedSummary = sanitizeOutputContextSummary(summary);
   const lines = [
@@ -265,12 +302,23 @@ function sourceFromRow(row: SourceRow): PipelineCaseOutputSource {
 
 export function pipelineCaseOutputsService(db: Db) {
   return {
-    listCaseOutputs: async (companyId: string, caseId: string): Promise<PipelineCaseOutputsResponse> => {
+    listCaseOutputs: async (
+      companyId: string,
+      caseId: string,
+    ): Promise<PipelineCaseOutputsResponse> => {
       const [caseRow, company] = await Promise.all([
         db
-          .select({ id: pipelineCases.id, pipelineId: pipelineCases.pipelineId })
+          .select({
+            id: pipelineCases.id,
+            pipelineId: pipelineCases.pipelineId,
+          })
           .from(pipelineCases)
-          .where(and(eq(pipelineCases.companyId, companyId), eq(pipelineCases.id, caseId)))
+          .where(
+            and(
+              eq(pipelineCases.companyId, companyId),
+              eq(pipelineCases.id, caseId),
+            ),
+          )
           .limit(1)
           .then((rows) => rows[0] ?? null),
         db
@@ -296,25 +344,38 @@ export function pipelineCaseOutputsService(db: Db) {
         })
         .from(pipelineCaseIssueLinks)
         .innerJoin(issues, eq(pipelineCaseIssueLinks.issueId, issues.id))
-        .where(and(
-          eq(pipelineCaseIssueLinks.companyId, companyId),
-          eq(pipelineCaseIssueLinks.caseId, caseId),
-          isNull(pipelineCaseIssueLinks.retiredAt),
-          eq(issues.companyId, companyId),
-          visibleIssueCondition(),
-          isNull(issues.cancelledAt),
-          ne(issues.status, "cancelled"),
-        ))
-        .orderBy(desc(pipelineCaseIssueLinks.createdAt), desc(pipelineCaseIssueLinks.id));
+        .where(
+          and(
+            eq(pipelineCaseIssueLinks.companyId, companyId),
+            eq(pipelineCaseIssueLinks.caseId, caseId),
+            isNull(pipelineCaseIssueLinks.retiredAt),
+            eq(issues.companyId, companyId),
+            visibleIssueCondition(),
+            isNull(issues.cancelledAt),
+            ne(issues.status, "cancelled"),
+          ),
+        )
+        .orderBy(
+          desc(pipelineCaseIssueLinks.createdAt),
+          desc(pipelineCaseIssueLinks.id),
+        );
 
       const sources = sourceRows.map(sourceFromRow);
-      const sourceByIssueId = new Map(sources.map((source) => [source.issueId, source]));
+      const sourceByIssueId = new Map(
+        sources.map((source) => [source.issueId, source]),
+      );
       const sourceIssueIds = sources.map((source) => source.issueId);
       const items: PipelineCaseOutputItem[] = [];
 
       if (sourceIssueIds.length > 0) {
-        const latestRevision = alias(documentRevisions, "case_output_latest_revision");
-        const workProductRun = alias(heartbeatRuns, "case_output_work_product_run");
+        const latestRevision = alias(
+          documentRevisions,
+          "case_output_latest_revision",
+        );
+        const workProductRun = alias(
+          heartbeatRuns,
+          "case_output_work_product_run",
+        );
 
         const documentRows = await db
           .select({
@@ -334,19 +395,27 @@ export function pipelineCaseOutputsService(db: Db) {
             updatedAt: documents.updatedAt,
           })
           .from(issueDocuments)
-          .innerJoin(documents, and(
-            eq(issueDocuments.documentId, documents.id),
-            eq(documents.companyId, issueDocuments.companyId),
-          ))
-          .leftJoin(latestRevision, and(
-            eq(latestRevision.id, documents.latestRevisionId),
-            eq(latestRevision.companyId, documents.companyId),
-          ))
-          .where(and(
-            eq(issueDocuments.companyId, companyId),
-            inArray(issueDocuments.issueId, sourceIssueIds),
-            notInArray(issueDocuments.key, [...SYSTEM_ISSUE_DOCUMENT_KEYS]),
-          ));
+          .innerJoin(
+            documents,
+            and(
+              eq(issueDocuments.documentId, documents.id),
+              eq(documents.companyId, issueDocuments.companyId),
+            ),
+          )
+          .leftJoin(
+            latestRevision,
+            and(
+              eq(latestRevision.id, documents.latestRevisionId),
+              eq(latestRevision.companyId, documents.companyId),
+            ),
+          )
+          .where(
+            and(
+              eq(issueDocuments.companyId, companyId),
+              inArray(issueDocuments.issueId, sourceIssueIds),
+              notInArray(issueDocuments.key, [...SYSTEM_ISSUE_DOCUMENT_KEYS]),
+            ),
+          );
 
         for (const row of documentRows) {
           const source = sourceByIssueId.get(row.issueId);
@@ -359,12 +428,17 @@ export function pipelineCaseOutputsService(db: Db) {
             title,
             sourceIssueId: source.issueId,
             sourceIssueIdentifier: source.issueIdentifier,
-            sourceIssuePath: sourceIssuePath(company.issuePrefix, source.issueIdentifier, source.issueId),
+            sourceIssuePath: sourceIssuePath(
+              company.issuePrefix,
+              source.issueIdentifier,
+              source.issueId,
+            ),
             sourceIssueTitle: source.issueTitle,
             sourceIssueStatus: source.issueStatus,
             sourceRole: source.role,
             sourceTrust,
-            sourceRunId: row.latestRevisionCreatedByRunId ?? source.createdByRunId,
+            sourceRunId:
+              row.latestRevisionCreatedByRunId ?? source.createdByRunId,
             sourceAgentId: row.updatedByAgentId ?? row.createdByAgentId,
             preview: previewFor({ body: row.latestBody, sourceTrust }),
             createdAt: row.createdAt,
@@ -375,7 +449,12 @@ export function pipelineCaseOutputsService(db: Db) {
             format: row.format,
             latestRevisionId: row.latestRevisionId,
             latestRevisionNumber: row.latestRevisionNumber,
-            documentPath: sourceDocumentPath(company.issuePrefix, source.issueIdentifier, source.issueId, row.key),
+            documentPath: sourceDocumentPath(
+              company.issuePrefix,
+              source.issueIdentifier,
+              source.issueId,
+              row.key,
+            ),
           });
         }
 
@@ -401,14 +480,19 @@ export function pipelineCaseOutputsService(db: Db) {
             updatedAt: issueWorkProducts.updatedAt,
           })
           .from(issueWorkProducts)
-          .leftJoin(workProductRun, and(
-            eq(workProductRun.id, issueWorkProducts.createdByRunId),
-            eq(workProductRun.companyId, issueWorkProducts.companyId),
-          ))
-          .where(and(
-            eq(issueWorkProducts.companyId, companyId),
-            inArray(issueWorkProducts.issueId, sourceIssueIds),
-          ));
+          .leftJoin(
+            workProductRun,
+            and(
+              eq(workProductRun.id, issueWorkProducts.createdByRunId),
+              eq(workProductRun.companyId, issueWorkProducts.companyId),
+            ),
+          )
+          .where(
+            and(
+              eq(issueWorkProducts.companyId, companyId),
+              inArray(issueWorkProducts.issueId, sourceIssueIds),
+            ),
+          );
 
         for (const row of workProductRows) {
           const source = sourceByIssueId.get(row.issueId);
@@ -420,7 +504,11 @@ export function pipelineCaseOutputsService(db: Db) {
             title: row.title,
             sourceIssueId: source.issueId,
             sourceIssueIdentifier: source.issueIdentifier,
-            sourceIssuePath: sourceIssuePath(company.issuePrefix, source.issueIdentifier, source.issueId),
+            sourceIssuePath: sourceIssuePath(
+              company.issuePrefix,
+              source.issueIdentifier,
+              source.issueId,
+            ),
             sourceIssueTitle: source.issueTitle,
             sourceIssueStatus: source.issueStatus,
             sourceRole: source.role,
@@ -457,14 +545,19 @@ export function pipelineCaseOutputsService(db: Db) {
             updatedAt: issueAttachments.updatedAt,
           })
           .from(issueAttachments)
-          .innerJoin(assets, and(
-            eq(issueAttachments.assetId, assets.id),
-            eq(assets.companyId, issueAttachments.companyId),
-          ))
-          .where(and(
-            eq(issueAttachments.companyId, companyId),
-            inArray(issueAttachments.issueId, sourceIssueIds),
-          ));
+          .innerJoin(
+            assets,
+            and(
+              eq(issueAttachments.assetId, assets.id),
+              eq(assets.companyId, issueAttachments.companyId),
+            ),
+          )
+          .where(
+            and(
+              eq(issueAttachments.companyId, companyId),
+              inArray(issueAttachments.issueId, sourceIssueIds),
+            ),
+          );
 
         for (const row of attachmentRows) {
           const source = sourceByIssueId.get(row.issueId);
@@ -476,7 +569,11 @@ export function pipelineCaseOutputsService(db: Db) {
             title: row.filename ?? "Attachment",
             sourceIssueId: source.issueId,
             sourceIssueIdentifier: source.issueIdentifier,
-            sourceIssuePath: sourceIssuePath(company.issuePrefix, source.issueIdentifier, source.issueId),
+            sourceIssuePath: sourceIssuePath(
+              company.issuePrefix,
+              source.issueIdentifier,
+              source.issueId,
+            ),
             sourceIssueTitle: source.issueTitle,
             sourceIssueStatus: source.issueStatus,
             sourceRole: source.role,
@@ -500,12 +597,14 @@ export function pipelineCaseOutputsService(db: Db) {
 
       const counts: PipelineCaseOutputsResponse["counts"] = {
         documents: items.filter((item) => item.kind === "document").length,
-        workProducts: items.filter((item) => item.kind === "work_product").length,
+        workProducts: items.filter((item) => item.kind === "work_product")
+          .length,
         attachments: items.filter((item) => item.kind === "attachment").length,
         bySourceRole: {},
       };
       for (const item of items) {
-        counts.bySourceRole[item.sourceRole] = (counts.bySourceRole[item.sourceRole] ?? 0) + 1;
+        counts.bySourceRole[item.sourceRole] =
+          (counts.bySourceRole[item.sourceRole] ?? 0) + 1;
       }
 
       return {

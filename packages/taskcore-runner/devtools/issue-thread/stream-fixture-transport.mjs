@@ -26,7 +26,8 @@ export const CAPABILITY_STREAM_FIXTURE_DELTAS = [
   "Done — every record stayed in the mock port.",
 ];
 
-export const CAPABILITY_STREAM_FIXTURE_REPLY = CAPABILITY_STREAM_FIXTURE_DELTAS.join("");
+export const CAPABILITY_STREAM_FIXTURE_REPLY =
+  CAPABILITY_STREAM_FIXTURE_DELTAS.join("");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,7 +46,8 @@ class Notifications {
 
   close() {
     this.#closed = true;
-    for (const waiter of this.#waiters.splice(0)) waiter({ value: undefined, done: true });
+    for (const waiter of this.#waiters.splice(0))
+      waiter({ value: undefined, done: true });
   }
 
   [Symbol.asyncIterator]() {
@@ -67,9 +69,19 @@ class StreamFixtureTransport {
   #interrupted = new Set();
 
   async request(method, params) {
-    if (method === "initialize") return { user: { sessionId: "stream-fixture-session" } };
-    if (method === "thread/start" || method === "thread/read" || method === "thread/resume") {
-      return { thread: { id: "stream-fixture-thread", sessionId: "stream-fixture-session" } };
+    if (method === "initialize")
+      return { user: { sessionId: "stream-fixture-session" } };
+    if (
+      method === "thread/start" ||
+      method === "thread/read" ||
+      method === "thread/resume"
+    ) {
+      return {
+        thread: {
+          id: "stream-fixture-thread",
+          sessionId: "stream-fixture-session",
+        },
+      };
     }
     if (method === "turn/start") {
       this.#turns += 1;
@@ -107,13 +119,22 @@ class StreamFixtureTransport {
   }
 
   processInfo() {
-    return { pid: 7100, processGroupId: 7100, exited: this.#closed, exitCode: null, signal: null };
+    return {
+      pid: 7100,
+      processGroupId: 7100,
+      exited: this.#closed,
+      exitCode: null,
+      signal: null,
+    };
   }
 
   async #runTurn(turnId) {
     this.#queue.push({
       method: "turn/started",
-      params: { threadId: "stream-fixture-thread", turn: { id: turnId, status: "inProgress" } },
+      params: {
+        threadId: "stream-fixture-thread",
+        turn: { id: turnId, status: "inProgress" },
+      },
     });
     await sleep(Math.floor(DELTA_INTERVAL_MS / 2));
     if (this.#closed || this.#interrupted.has(turnId)) return;
@@ -140,12 +161,19 @@ class StreamFixtureTransport {
       params: {
         threadId: "stream-fixture-thread",
         turnId,
-        item: { id: `message-${turnId}`, type: "agentMessage", text: CAPABILITY_STREAM_FIXTURE_REPLY },
+        item: {
+          id: `message-${turnId}`,
+          type: "agentMessage",
+          text: CAPABILITY_STREAM_FIXTURE_REPLY,
+        },
       },
     });
     this.#queue.push({
       method: "turn/completed",
-      params: { threadId: "stream-fixture-thread", turn: { id: turnId, status: "completed" } },
+      params: {
+        threadId: "stream-fixture-thread",
+        turn: { id: turnId, status: "completed" },
+      },
     });
   }
 }
@@ -162,5 +190,8 @@ export function capabilityStreamFixtureTransportFactory(options = {}) {
     diagnostics: [],
   };
   options.onEvidence?.(evidence);
-  return { transport: new StreamFixtureTransport(), evidence: () => ({ ...evidence }) };
+  return {
+    transport: new StreamFixtureTransport(),
+    evidence: () => ({ ...evidence }),
+  };
 }

@@ -9,7 +9,15 @@ import { FeedCard } from "./FeedCard";
 const navigate = vi.fn();
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, issueQuicklookSide: _, to, ...props }: React.ComponentProps<"a"> & { issueQuicklookSide?: string; to: string }) => (
+  Link: ({
+    children,
+    issueQuicklookSide: _,
+    to,
+    ...props
+  }: React.ComponentProps<"a"> & {
+    issueQuicklookSide?: string;
+    to: string;
+  }) => (
     <a {...props} href={to} onClick={navigate}>
       {children}
     </a>
@@ -43,9 +51,24 @@ describe("FeedCard", () => {
     container.remove();
   });
 
-  it.each([["waiting", "moved to idle"], [null, "moved to in review"]])("distinguishes waiting from review (%s)", (state, verb) => {
+  it.each([
+    ["waiting", "moved to idle"],
+    [null, "moved to in review"],
+  ])("distinguishes waiting from review (%s)", (state, verb) => {
     const root = createRoot(container);
-    act(() => root.render(<FeedCard event={{ ...event, details: { status: "in_review", externalConversationState: state } }} agentMap={new Map()} entityNameMap={new Map()} entityTitleMap={new Map()} />));
+    act(() =>
+      root.render(
+        <FeedCard
+          event={{
+            ...event,
+            details: { status: "in_review", externalConversationState: state },
+          }}
+          agentMap={new Map()}
+          entityNameMap={new Map()}
+          entityTitleMap={new Map()}
+        />,
+      ),
+    );
     expect(container.querySelector('[data-fc="verb"]')?.textContent).toBe(verb);
     act(() => root.unmount());
   });

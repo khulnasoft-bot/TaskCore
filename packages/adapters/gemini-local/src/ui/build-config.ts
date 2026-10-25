@@ -1,4 +1,7 @@
-import { buildAdapterEnvConfig, type CreateConfigValues } from "@taskcore/adapter-utils";
+import {
+  buildAdapterEnvConfig,
+  type CreateConfigValues,
+} from "@taskcore/adapter-utils";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "../index.js";
 
 function parseCommaArgs(value: string): string[] {
@@ -8,15 +11,19 @@ function parseCommaArgs(value: string): string[] {
     .filter(Boolean);
 }
 
-export function buildGeminiLocalConfig(v: CreateConfigValues): Record<string, unknown> {
+export function buildGeminiLocalConfig(
+  v: CreateConfigValues,
+): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.cwd) ac.cwd = v.cwd;
   if (v.instructionsFilePath) ac.instructionsFilePath = v.instructionsFilePath;
-  if (v.geminiEngine === "cli" || v.geminiEngine === "acp") ac.engine = v.geminiEngine;
+  if (v.geminiEngine === "cli" || v.geminiEngine === "acp")
+    ac.engine = v.geminiEngine;
   if (v.geminiEngine === "acp") {
     if (v.geminiAcpAgentCommand) ac.agentCommand = v.geminiAcpAgentCommand;
     ac.mode = v.geminiAcpMode ?? "persistent";
-    ac.nonInteractivePermissions = v.geminiAcpNonInteractivePermissions ?? "deny";
+    ac.nonInteractivePermissions =
+      v.geminiAcpNonInteractivePermissions ?? "deny";
     if (v.geminiAcpStateDir) ac.stateDir = v.geminiAcpStateDir;
     ac.warmHandleIdleMs = v.geminiAcpWarmHandleIdleMs ?? 0;
   }

@@ -13,8 +13,9 @@ vi.mock("../context/PanelContext", () => ({
   usePanel: () => ({ panelVisible: false, panelContent: null }),
 }));
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean })
-  .IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("ScrollToBottom mobile composer docking", () => {
   let host: HTMLDivElement;
@@ -64,7 +65,9 @@ describe("ScrollToBottom mobile composer docking", () => {
     );
     expect(initialButton).not.toBeNull();
     expect(initialButton?.classList).toContain("absolute");
-    expect(host.querySelector('button[aria-label="Scroll to bottom"]')).toBeNull();
+    expect(
+      host.querySelector('button[aria-label="Scroll to bottom"]'),
+    ).toBeNull();
 
     await act(async () => {
       dock.remove();
@@ -89,6 +92,8 @@ describe("ScrollToBottom mobile composer docking", () => {
     );
     expect(replacementButton).not.toBeNull();
     expect(replacementButton?.classList).toContain("absolute");
-    expect(host.querySelector('button[aria-label="Scroll to bottom"]')).toBeNull();
+    expect(
+      host.querySelector('button[aria-label="Scroll to bottom"]'),
+    ).toBeNull();
   });
 });

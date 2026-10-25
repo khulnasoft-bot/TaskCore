@@ -24,15 +24,27 @@ import { describe, expect, it } from "vitest";
  * a local build. This file guards the config those depend on.
  */
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const read = (...segments: string[]) => readFileSync(path.join(repoRoot, ...segments), "utf8");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+);
+const read = (...segments: string[]) =>
+  readFileSync(path.join(repoRoot, ...segments), "utf8");
 
 const dockerfile = read("Dockerfile");
 const agentRuntimeBase = read("docker", "agent-runtime", "Dockerfile.base");
 const compose = read("docker", "docker-compose.yml");
 const quickstartCompose = read("docker", "docker-compose.quickstart.yml");
-const ecsTaskDefinition = JSON.parse(read("docker", "ecs-task-definition.json")) as {
-  containerDefinitions: { name: string; image: string; linuxParameters?: { initProcessEnabled?: boolean } }[];
+const ecsTaskDefinition = JSON.parse(
+  read("docker", "ecs-task-definition.json"),
+) as {
+  containerDefinitions: {
+    name: string;
+    image: string;
+    linuxParameters?: { initProcessEnabled?: boolean };
+  }[];
 };
 const reapingProbe = read("scripts", "assert-orphan-reaping.sh");
 const buildTest = read("scripts", "docker-build-test.sh");
@@ -51,14 +63,24 @@ function entrypoints(source: string): string[] {
  */
 function aptPackages(source: string, stageName: string): string[] {
   const froms = [...source.matchAll(/^FROM .*$/gm)];
-  const startIdx = froms.findIndex((m) => new RegExp(`\\bAS ${stageName}\\b`).test(m[0]));
-  expect(startIdx, `Dockerfile must declare a '${stageName}' stage`).toBeGreaterThanOrEqual(0);
-  const stage = source.slice(froms[startIdx].index ?? 0, froms[startIdx + 1]?.index ?? source.length);
+  const startIdx = froms.findIndex((m) =>
+    new RegExp(`\\bAS ${stageName}\\b`).test(m[0]),
+  );
+  expect(
+    startIdx,
+    `Dockerfile must declare a '${stageName}' stage`,
+  ).toBeGreaterThanOrEqual(0);
+  const stage = source.slice(
+    froms[startIdx].index ?? 0,
+    froms[startIdx + 1]?.index ?? source.length,
+  );
   return [...stage.matchAll(/apt-get install[^\n]*/g)].flatMap((m) =>
     m[0]
       .replace(/apt-get install/, "")
       .split(/\s+/)
-      .filter((token) => token.length > 0 && !token.startsWith("-") && token !== "\\"),
+      .filter(
+        (token) => token.length > 0 && !token.startsWith("-") && token !== "\\",
+      ),
   );
 }
 
@@ -72,7 +94,10 @@ describe("server image init", () => {
 
   it("makes tini PID 1 ahead of the entrypoint", () => {
     const lines = entrypoints(dockerfile);
-    expect(lines.length, "Dockerfile must declare an ENTRYPOINT").toBeGreaterThan(0);
+    expect(
+      lines.length,
+      "Dockerfile must declare an ENTRYPOINT",
+    ).toBeGreaterThan(0);
     for (const line of lines) {
       expect(
         line,
@@ -90,7 +115,9 @@ describe("server image init", () => {
   });
 
   it("keeps the agent-runtime image's init, which the server image mirrors", () => {
-    expect(entrypoints(agentRuntimeBase)).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
+    expect(entrypoints(agentRuntimeBase)).toContain(
+      'ENTRYPOINT ["/usr/bin/tini", "--"]',
+    );
   });
 });
 
@@ -109,18 +136,26 @@ describe("deployment manifest parity", () => {
   it.each([
     ["docker-compose.yml", compose],
     ["docker-compose.quickstart.yml", quickstartCompose],
-  ])("does not also set init in %s, which would nest docker-init around tini", (_name, source) => {
-    // The image owns PID 1, so no per-orchestrator lever is needed. Setting
-    // `init: true` here as well makes tini warn it is not PID 1 on every boot.
-    expect(/^\s*init:\s*true\s*$/m.test(source)).toBe(false);
-  });
+  ])(
+    "does not also set init in %s, which would nest docker-init around tini",
+    (_name, source) => {
+      // The image owns PID 1, so no per-orchestrator lever is needed. Setting
+      // `init: true` here as well makes tini warn it is not PID 1 on every boot.
+      expect(/^\s*init:\s*true\s*$/m.test(source)).toBe(false);
+    },
+  );
 
   it("leaves ECS to inherit the image's init rather than enabling its own", () => {
     // Same reasoning as compose `init: true`: initProcessEnabled would put the
     // ECS-managed init in front of tini. Asserted rather than merely reviewed so
     // the parity decision survives the next edit to the task definition.
-    const server = ecsTaskDefinition.containerDefinitions.find((c) => c.name === "taskcore-server");
-    expect(server, "the task definition must define a taskcore-server container").toBeDefined();
+    const server = ecsTaskDefinition.containerDefinitions.find(
+      (c) => c.name === "taskcore-server",
+    );
+    expect(
+      server,
+      "the task definition must define a taskcore-server container",
+    ).toBeDefined();
     expect(server?.linuxParameters?.initProcessEnabled).toBeUndefined();
   });
 });

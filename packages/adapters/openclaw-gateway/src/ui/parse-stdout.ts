@@ -10,7 +10,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -19,7 +20,9 @@ function asString(value: unknown): string {
 }
 
 function parseAgentEventLine(line: string, ts: string): TranscriptEntry[] {
-  const match = line.match(/^\[openclaw-gateway:event\]\s+run=([^\s]+)\s+stream=([^\s]+)\s+data=(.*)$/s);
+  const match = line.match(
+    /^\[openclaw-gateway:event\]\s+run=([^\s]+)\s+stream=([^\s]+)\s+data=(.*)$/s,
+  );
   if (!match) return [{ kind: "stdout", ts, text: line }];
 
   const stream = asString(match[2]).toLowerCase();
@@ -46,7 +49,10 @@ function parseAgentEventLine(line: string, ts: string): TranscriptEntry[] {
   if (stream === "lifecycle") {
     const phase = asString(data?.phase).toLowerCase();
     const message = asString(data?.error) || asString(data?.message);
-    if ((phase === "error" || phase === "failed" || phase === "cancelled") && message) {
+    if (
+      (phase === "error" || phase === "failed" || phase === "cancelled") &&
+      message
+    ) {
       return [{ kind: "stderr", ts, text: message }];
     }
   }
@@ -54,7 +60,10 @@ function parseAgentEventLine(line: string, ts: string): TranscriptEntry[] {
   return [];
 }
 
-export function parseOpenClawGatewayStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseOpenClawGatewayStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   const normalized = normalizeOpenClawGatewayStreamLine(line);
   if (normalized.stream === "stderr") {
     return [{ kind: "stderr", ts, text: normalized.line }];
@@ -68,7 +77,13 @@ export function parseOpenClawGatewayStdoutLine(line: string, ts: string): Transc
   }
 
   if (trimmed.startsWith("[openclaw-gateway]")) {
-    return [{ kind: "system", ts, text: trimmed.replace(/^\[openclaw-gateway\]\s*/, "") }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: trimmed.replace(/^\[openclaw-gateway\]\s*/, ""),
+      },
+    ];
   }
 
   return [{ kind: "stdout", ts, text: normalized.line }];

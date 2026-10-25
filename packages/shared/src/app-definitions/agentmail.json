@@ -3,16 +3,12 @@
   "slug": "agentmail",
   "name": "AgentMail",
   "description": "Give agents email inboxes and handle each conversation as a task.",
-  "categories": [
-    "communication"
-  ],
+  "categories": ["communication"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/agentmail.svg"
   },
-  "urlPatterns": [
-    "https://console.agentmail.to/*"
-  ],
+  "urlPatterns": ["https://console.agentmail.to/*"],
   "methods": [
     {
       "key": "email-agent",
@@ -21,9 +17,7 @@
       "provider": "agentmail",
       "transport": "rest_api",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Assign an inbox to an agent and manage email conversations in tasks.",
       "credentialFields": [
         {
@@ -41,9 +35,7 @@
         "docs": "https://docs.agentmail.to/inboxes"
       },
       "riskTier": "S3",
-      "requiredResourceFilters": [
-        "inbox"
-      ]
+      "requiredResourceFilters": ["inbox"]
     }
   ]
 }

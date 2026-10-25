@@ -8,7 +8,9 @@ import { useWorkspaceIsolationControls } from "./useWorkspaceIsolationControls";
 
 const getHealth = vi.hoisted(() => vi.fn());
 vi.mock("@/api/health", () => ({ healthApi: { get: getHealth } }));
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function Control() {
   const { visible } = useWorkspaceIsolationControls();
@@ -17,7 +19,9 @@ function Control() {
 
 describe("workspace isolation visibility", () => {
   it("stays hidden until health loads and responds to operator policy changes without fetching", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     const container = document.createElement("div");
     const root = createRoot(container);
     const setPolicy = async (hiddenSettings: string[]) => {
@@ -27,7 +31,13 @@ describe("workspace isolation visibility", () => {
       });
     };
     try {
-      await act(async () => root.render(<QueryClientProvider client={client}><Control /></QueryClientProvider>));
+      await act(async () =>
+        root.render(
+          <QueryClientProvider client={client}>
+            <Control />
+          </QueryClientProvider>,
+        ),
+      );
       expect(container.querySelector("button")).toBeNull();
       await setPolicy(["workspaces.isolation"]);
       expect(container.querySelector("button")).toBeNull();

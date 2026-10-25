@@ -36,13 +36,20 @@ describe("forbidden token check", () => {
     const os = await import("node:os");
     const path = await import("node:path");
 
-    const tokensFile = path.join(os.tmpdir(), `forbidden-tokens-${Date.now()}.txt`);
+    const tokensFile = path.join(
+      os.tmpdir(),
+      `forbidden-tokens-${Date.now()}.txt`,
+    );
     fs.writeFileSync(tokensFile, "# comment\ntaskcore\ncustom-token\n");
 
     try {
-      const tokens = resolveForbiddenTokens(tokensFile, { USER: "taskcore" }, {
-        userInfo: () => ({ username: "taskcore" }),
-      });
+      const tokens = resolveForbiddenTokens(
+        tokensFile,
+        { USER: "taskcore" },
+        {
+          userInfo: () => ({ username: "taskcore" }),
+        },
+      );
 
       expect(tokens).toEqual(["taskcore", "custom-token"]);
     } finally {
@@ -70,8 +77,12 @@ describe("forbidden token check", () => {
 
     expect(exitCode).toBe(1);
     expect(exec).toHaveBeenCalledTimes(2);
-    expect(error).toHaveBeenCalledWith("ERROR: Forbidden tokens found in tracked files:\n");
+    expect(error).toHaveBeenCalledWith(
+      "ERROR: Forbidden tokens found in tracked files:\n",
+    );
     expect(error).toHaveBeenCalledWith("  server/file.ts:1:found");
-    expect(error).toHaveBeenCalledWith("\nBuild blocked. Remove the forbidden token(s) before publishing.");
+    expect(error).toHaveBeenCalledWith(
+      "\nBuild blocked. Remove the forbidden token(s) before publishing.",
+    );
   });
 });

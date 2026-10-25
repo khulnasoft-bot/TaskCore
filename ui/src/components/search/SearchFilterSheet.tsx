@@ -19,7 +19,10 @@ import {
   SORT_LABELS,
   type SearchFilters,
 } from "@/lib/search-filters";
-import { buildSearchFilterOptions, type SearchFilterDataProps } from "./SearchFilterBar";
+import {
+  buildSearchFilterOptions,
+  type SearchFilterDataProps,
+} from "./SearchFilterBar";
 import type { FilterMenuOption } from "./SearchFilterMenu";
 
 function ChipToggleGroup({
@@ -53,11 +56,20 @@ function ChipToggleGroup({
               onClick={() => onToggle(option.value)}
             >
               {option.swatch ? (
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: option.swatch }} aria-hidden />
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: option.swatch }}
+                  aria-hidden
+                />
               ) : null}
               <span>{option.label}</span>
               {typeof option.count === "number" ? (
-                <span className={cn("tabular-nums", isActive ? "opacity-80" : "text-muted-foreground/70")}>
+                <span
+                  className={cn(
+                    "tabular-nums",
+                    isActive ? "opacity-80" : "text-muted-foreground/70",
+                  )}
+                >
                   {option.count}
                 </span>
               ) : null}
@@ -119,10 +131,19 @@ export function SearchFilterSheet({
 
   function toggleAssignee(token: string) {
     const current = assigneeToken(draft, data.currentUserId);
-    update(applyAssigneeToken(draft, current === token ? undefined : token, data.currentUserId));
+    update(
+      applyAssigneeToken(
+        draft,
+        current === token ? undefined : token,
+        data.currentUserId,
+      ),
+    );
   }
 
-  function toggleSingle(dimension: "projectId" | "labelId" | "updatedWithin", value: string) {
+  function toggleSingle(
+    dimension: "projectId" | "labelId" | "updatedWithin",
+    value: string,
+  ) {
     const current = draft[dimension];
     update({ ...draft, [dimension]: current === value ? undefined : value });
   }
@@ -136,12 +157,19 @@ export function SearchFilterSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-(--sz-85vh) gap-0 rounded-t-xl p-0" data-testid="search-filter-sheet">
+      <SheetContent
+        side="bottom"
+        className="max-h-(--sz-85vh) gap-0 rounded-t-xl p-0"
+        data-testid="search-filter-sheet"
+      >
         <SheetHeader className="flex-row items-center justify-between border-b border-border">
           <SheetTitle className="text-base">Filters</SheetTitle>
           <button
             type="button"
-            className={cn("text-xs text-muted-foreground hover:text-foreground", activeCount === 0 && "invisible")}
+            className={cn(
+              "text-xs text-muted-foreground hover:text-foreground",
+              activeCount === 0 && "invisible",
+            )}
             onClick={() => update({})}
           >
             Clear all
@@ -157,12 +185,12 @@ export function SearchFilterSheet({
           />
           {/* PAP-411: Priority filter group hidden behind SHOW_TASK_PRIORITY_UI (search DSL stays intact). */}
           {SHOW_TASK_PRIORITY_UI && (
-          <ChipToggleGroup
-            title="Priority"
-            options={options.priority}
-            selected={draft.priority ?? []}
-            onToggle={(value) => toggleMulti("priority", value)}
-          />
+            <ChipToggleGroup
+              title="Priority"
+              options={options.priority}
+              selected={draft.priority ?? []}
+              onToggle={(value) => toggleMulti("priority", value)}
+            />
           )}
           <ChipToggleGroup
             title="Assignee"
@@ -189,7 +217,9 @@ export function SearchFilterSheet({
             onToggle={(value) => toggleSingle("updatedWithin", value)}
           />
           <div className="space-y-1.5">
-            <div className="text-xs font-medium text-muted-foreground">Sort by</div>
+            <div className="text-xs font-medium text-muted-foreground">
+              Sort by
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {COMPANY_SEARCH_SORTS.map((value) => (
                 <button
@@ -240,7 +270,12 @@ export function SearchFilterSheetTrigger({
   onClick: () => void;
 }) {
   return (
-    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-normal" onClick={onClick}>
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 gap-1.5 text-xs font-normal"
+      onClick={onClick}
+    >
       <SlidersHorizontal className="h-3.5 w-3.5" />
       Filters
       {activeCount > 0 ? (

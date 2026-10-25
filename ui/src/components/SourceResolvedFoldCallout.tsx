@@ -38,7 +38,9 @@ function MetaRow({
       <dt className="truncate text-(length:--text-micro) font-medium uppercase tracking-(--tracking-label) text-emerald-900/70 dark:text-emerald-200/70">
         {label}
       </dt>
-      <dd className="min-w-0 break-words text-emerald-950 dark:text-emerald-100">{children}</dd>
+      <dd className="min-w-0 break-words text-emerald-950 dark:text-emerald-100">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -48,14 +50,16 @@ export function SourceResolvedFoldCallout({
   finalizedAt,
   className,
 }: SourceResolvedFoldCalloutProps) {
-  const sourceLabel = fold.sourceIssueIdentifier ?? fold.sourceIssueId.slice(0, 8);
+  const sourceLabel =
+    fold.sourceIssueIdentifier ?? fold.sourceIssueId.slice(0, 8);
   const evidenceShort = shortenEvidenceId(fold.sameRunEvidenceId);
   const evidenceAt = isoOrLocaleString(fold.sameRunEvidenceAt);
   const silenceAgeLabel = formatSilenceAgeMs(fold.silenceAgeMs);
   const silenceStartedLabel = isoOrLocaleString(fold.silenceStartedAt);
   const cleanupLabel = formatCleanupOutcome(fold.cleanup.outcome);
   const finalizedRelative = finalizedAt ? relativeTime(finalizedAt) : null;
-  const evaluationLabel = fold.evaluationIssueIdentifier ?? fold.evaluationIssueId?.slice(0, 8);
+  const evaluationLabel =
+    fold.evaluationIssueIdentifier ?? fold.evaluationIssueId?.slice(0, 8);
 
   return (
     <section
@@ -81,14 +85,20 @@ export function SourceResolvedFoldCallout({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow)">
-            <span className="text-emerald-900 dark:text-emerald-200">SOURCE-RESOLVED FOLD</span>
-            <span className="text-muted-foreground/60" aria-hidden>·</span>
+            <span className="text-emerald-900 dark:text-emerald-200">
+              SOURCE-RESOLVED FOLD
+            </span>
+            <span className="text-muted-foreground/60" aria-hidden>
+              ·
+            </span>
             <span className="font-medium normal-case tracking-normal text-muted-foreground">
               system audit
             </span>
             {finalizedRelative ? (
               <>
-                <span className="text-muted-foreground/60" aria-hidden>·</span>
+                <span className="text-muted-foreground/60" aria-hidden>
+                  ·
+                </span>
                 <span className="font-medium normal-case tracking-normal text-muted-foreground">
                   {finalizedRelative}
                 </span>
@@ -132,7 +142,9 @@ export function SourceResolvedFoldCallout({
               {evidenceShort}
             </code>
             {evidenceAt ? (
-              <span className="text-(length:--text-micro) text-muted-foreground">at {evidenceAt}</span>
+              <span className="text-(length:--text-micro) text-muted-foreground">
+                at {evidenceAt}
+              </span>
             ) : null}
           </span>
         </MetaRow>
@@ -141,7 +153,10 @@ export function SourceResolvedFoldCallout({
             <span>
               {silenceAgeLabel}
               {silenceStartedLabel ? (
-                <span className="text-muted-foreground"> (silence started {silenceStartedLabel})</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  (silence started {silenceStartedLabel})
+                </span>
               ) : null}
             </span>
           ) : (
@@ -155,14 +170,19 @@ export function SourceResolvedFoldCallout({
           >
             <span>{cleanupLabel}</span>
             {fold.cleanup.error ? (
-              <span className="text-muted-foreground">— {fold.cleanup.error}</span>
+              <span className="text-muted-foreground">
+                — {fold.cleanup.error}
+              </span>
             ) : null}
           </span>
         </MetaRow>
         {fold.evaluationIssueId ? (
           <MetaRow label="Evaluation task">
             <Link
-              to={issueLink(fold.evaluationIssueId, fold.evaluationIssueIdentifier)}
+              to={issueLink(
+                fold.evaluationIssueId,
+                fold.evaluationIssueIdentifier,
+              )}
               className="rounded-sm font-medium underline-offset-2 hover:underline"
             >
               {evaluationLabel}

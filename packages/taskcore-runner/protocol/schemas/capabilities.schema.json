@@ -41,9 +41,16 @@
         "type": "object",
         "required": ["family", "version", "availability", "detailLevel"],
         "properties": {
-          "family": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^[a-z][a-z0-9_.-]*$" },
+          "family": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[a-z][a-z0-9_.-]*$"
+          },
           "version": { "const": 1 },
-          "availability": { "enum": ["available", "unsupported", "policy_disabled"] },
+          "availability": {
+            "enum": ["available", "unsupported", "policy_disabled"]
+          },
           "detailLevel": { "enum": ["summary", "structured"] }
         },
         "additionalProperties": false
@@ -59,7 +66,12 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["operationId", "version", "availability", "redactionDisposition"],
+            "required": [
+              "operationId",
+              "version",
+              "availability",
+              "redactionDisposition"
+            ],
             "properties": {
               "operationId": {
                 "type": "string",
@@ -68,7 +80,9 @@
                 "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
               },
               "version": { "const": 1 },
-              "availability": { "enum": ["available", "denied", "unsupported"] },
+              "availability": {
+                "enum": ["available", "denied", "unsupported"]
+              },
               "redactionDisposition": { "const": "digest_only" },
               "requiredClaims": {
                 "type": "array",

@@ -4,9 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  ONBOARDING_AGENT_STEP,
-} from "./lib/onboarding-route";
+import { ONBOARDING_AGENT_STEP } from "./lib/onboarding-route";
 
 /**
  * The third way into onboarding for a company that already exists: the "Add
@@ -32,7 +30,11 @@ vi.hoisted(() => {
   };
   if (!sheetProto.__papLauncherPatched) {
     const original = sheetProto.insertRule;
-    sheetProto.insertRule = function patched(this: CSSStyleSheet, rule: string, index?: number) {
+    sheetProto.insertRule = function patched(
+      this: CSSStyleSheet,
+      rule: string,
+      index?: number,
+    ) {
       try {
         return original.call(this, rule, index);
       } catch {
@@ -47,7 +49,9 @@ vi.hoisted(() => {
   }
 });
 
-const routeState = vi.hoisted(() => ({ companyPrefix: "PC1" as string | undefined }));
+const routeState = vi.hoisted(() => ({
+  companyPrefix: "PC1" as string | undefined,
+}));
 const dialogState = vi.hoisted(() => ({
   onboardingOpen: false,
   onboardingRouteDismissed: true,
@@ -56,7 +60,10 @@ const dialogState = vi.hoisted(() => ({
 const mockGoalsApi = vi.hoisted(() => ({ list: vi.fn() }));
 
 vi.mock("@/lib/router", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
   return {
     ...actual,
     useParams: () => ({ companyPrefix: routeState.companyPrefix }),
@@ -135,7 +142,9 @@ describe("the onboarding launcher's Add Agent button", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     routeState.companyPrefix = "PC1";
     dialogState.onboardingOpen = false;
     dialogState.onboardingRouteDismissed = true;
@@ -157,7 +166,9 @@ describe("the onboarding launcher's Add Agent button", () => {
     await settle();
 
     await act(async () => {
-      addAgentButton().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      addAgentButton().dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(dialogState.openOnboarding).toHaveBeenCalledWith({
@@ -181,7 +192,9 @@ describe("the onboarding launcher's Add Agent button", () => {
       await settle();
 
       await act(async () => {
-        addAgentButton().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        addAgentButton().dispatchEvent(
+          new MouseEvent("click", { bubbles: true }),
+        );
       });
 
       expect(dialogState.openOnboarding).toHaveBeenCalledWith({

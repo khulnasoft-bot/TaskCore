@@ -2,10 +2,18 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { toolAccessAuditEvents, toolRuntimeSlots } from "@taskcore/db";
-import type { DeploymentExposure, DeploymentMode, ToolRuntimeSlotStatus } from "@taskcore/shared";
+import type {
+  DeploymentExposure,
+  DeploymentMode,
+  ToolRuntimeSlotStatus,
+} from "@taskcore/shared";
 import { logActivity } from "./activity-log.js";
 
-const ACTIVE_SLOT_STATUSES: ToolRuntimeSlotStatus[] = ["starting", "running", "idle"];
+const ACTIVE_SLOT_STATUSES: ToolRuntimeSlotStatus[] = [
+  "starting",
+  "running",
+  "idle",
+];
 const DEFAULT_IDLE_TTL_MS = 1_000;
 const DEFAULT_STUCK_SLOT_MS = 5 * 60 * 1000;
 const DEFAULT_RESTART_BACKOFF_MS = 1_000;
@@ -72,7 +80,8 @@ function numberOption(value: number | undefined, fallback: number, min = 0) {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) return { ...(value as Record<string, unknown>) };
+  if (value && typeof value === "object" && !Array.isArray(value))
+    return { ...(value as Record<string, unknown>) };
   return {};
 }
 
@@ -97,7 +106,10 @@ function dateValue(value: unknown): Date | null {
 function redactLogLine(line: string) {
   return line
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
-    .replace(/\b(sk|pk|ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_=-]{12,}\b/g, "[REDACTED_TOKEN]")
+    .replace(
+      /\b(sk|pk|ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_=-]{12,}\b/g,
+      "[REDACTED_TOKEN]",
+    )
     .replace(/\b[A-Za-z0-9+/]{32,}={0,2}\b/g, "[REDACTED_VALUE]");
 }
 
@@ -107,13 +119,18 @@ function trimLogs(
   maxBytes: number,
 ): Array<Record<string, unknown>> {
   let next = logs.slice(-maxEntries);
-  while (Buffer.byteLength(JSON.stringify(next), "utf8") > maxBytes && next.length > 0) {
+  while (
+    Buffer.byteLength(JSON.stringify(next), "utf8") > maxBytes &&
+    next.length > 0
+  ) {
     next = next.slice(1);
   }
   return next;
 }
 
-function slotView(row: typeof toolRuntimeSlots.$inferSelect): ToolRuntimeSlotView {
+function slotView(
+  row: typeof toolRuntimeSlots.$inferSelect,
+): ToolRuntimeSlotView {
   const metadata = asRecord(row.metadata);
   return {
     id: row.id,
@@ -129,30 +146,77 @@ function slotView(row: typeof toolRuntimeSlots.$inferSelect): ToolRuntimeSlotVie
   };
 }
 
-export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervisorOptions = {}) {
+export function createToolRuntimeSupervisor(
+  db: Db,
+  options: ToolRuntimeSupervisorOptions = {},
+) {
   const deploymentMode = options.deploymentMode ?? "local_trusted";
   const deploymentExposure = options.deploymentExposure ?? "private";
   const trustedLocalStdioRuntimeHost =
-    options.trustedLocalStdioRuntimeHost
-    ?? process.env.TASKCORE_TRUSTED_MCP_RUNTIME_HOST
-    ?? process.env.TASKCORE_TOOL_RUNTIME_TRUSTED_HOST
-    ?? null;
-  const hostId = options.hostId ?? trustedLocalStdioRuntimeHost ?? process.env.HOSTNAME ?? "local-host";
+    options.trustedLocalStdioRuntimeHost ??
+    process.env.TASKCORE_TRUSTED_MCP_RUNTIME_HOST ??
+    process.env.TASKCORE_TOOL_RUNTIME_TRUSTED_HOST ??
+    null;
+  const hostId =
+    options.hostId ??
+    trustedLocalStdioRuntimeHost ??
+    process.env.HOSTNAME ??
+    "local-host";
   const idleTtlMs = numberOption(options.idleTtlMs, DEFAULT_IDLE_TTL_MS, 1);
-  const stuckSlotMs = numberOption(options.stuckSlotMs, DEFAULT_STUCK_SLOT_MS, 1);
-  const restartBackoffMs = numberOption(options.restartBackoffMs, DEFAULT_RESTART_BACKOFF_MS, 0);
-  const restartBackoffMaxMs = numberOption(options.restartBackoffMaxMs, DEFAULT_RESTART_BACKOFF_MAX_MS, 0);
-  const restartStormWindowMs = numberOption(options.restartStormWindowMs, DEFAULT_RESTART_STORM_WINDOW_MS, 1);
-  const restartStormLimit = numberOption(options.restartStormLimit, DEFAULT_RESTART_STORM_LIMIT, 1);
-  const maxCompanySlots = numberOption(options.maxCompanySlots, DEFAULT_MAX_COMPANY_SLOTS, 1);
-  const maxHostSlots = numberOption(options.maxHostSlots, DEFAULT_MAX_HOST_SLOTS, 1);
-  const maxLogEntries = numberOption(options.maxLogEntries, DEFAULT_MAX_LOG_ENTRIES, 1);
-  const maxLogBytes = numberOption(options.maxLogBytes, DEFAULT_MAX_LOG_BYTES, 1);
+  const stuckSlotMs = numberOption(
+    options.stuckSlotMs,
+    DEFAULT_STUCK_SLOT_MS,
+    1,
+  );
+  const restartBackoffMs = numberOption(
+    options.restartBackoffMs,
+    DEFAULT_RESTART_BACKOFF_MS,
+    0,
+  );
+  const restartBackoffMaxMs = numberOption(
+    options.restartBackoffMaxMs,
+    DEFAULT_RESTART_BACKOFF_MAX_MS,
+    0,
+  );
+  const restartStormWindowMs = numberOption(
+    options.restartStormWindowMs,
+    DEFAULT_RESTART_STORM_WINDOW_MS,
+    1,
+  );
+  const restartStormLimit = numberOption(
+    options.restartStormLimit,
+    DEFAULT_RESTART_STORM_LIMIT,
+    1,
+  );
+  const maxCompanySlots = numberOption(
+    options.maxCompanySlots,
+    DEFAULT_MAX_COMPANY_SLOTS,
+    1,
+  );
+  const maxHostSlots = numberOption(
+    options.maxHostSlots,
+    DEFAULT_MAX_HOST_SLOTS,
+    1,
+  );
+  const maxLogEntries = numberOption(
+    options.maxLogEntries,
+    DEFAULT_MAX_LOG_ENTRIES,
+    1,
+  );
+  const maxLogBytes = numberOption(
+    options.maxLogBytes,
+    DEFAULT_MAX_LOG_BYTES,
+    1,
+  );
   const memoryLimitMb = options.memoryLimitMb ?? null;
   const now = options.now ?? (() => new Date());
 
   function assertLocalStdioAvailable() {
-    if (deploymentMode === "authenticated" && deploymentExposure === "public" && !trustedLocalStdioRuntimeHost) {
+    if (
+      deploymentMode === "authenticated" &&
+      deploymentExposure === "public" &&
+      !trustedLocalStdioRuntimeHost
+    ) {
       throw new ToolRuntimeSupervisorError(
         403,
         "Local stdio MCP runtime is unavailable in authenticated public deployments without a trusted runtime host",
@@ -217,14 +281,14 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
   async function stopExpiredIdleSlots(companyId?: string) {
     const rows = companyId
       ? await db
-        .select()
-        .from(toolRuntimeSlots)
-        .where(eq(toolRuntimeSlots.companyId, companyId))
-        .orderBy(desc(toolRuntimeSlots.updatedAt))
+          .select()
+          .from(toolRuntimeSlots)
+          .where(eq(toolRuntimeSlots.companyId, companyId))
+          .orderBy(desc(toolRuntimeSlots.updatedAt))
       : await db
-        .select()
-        .from(toolRuntimeSlots)
-        .orderBy(desc(toolRuntimeSlots.updatedAt));
+          .select()
+          .from(toolRuntimeSlots)
+          .orderBy(desc(toolRuntimeSlots.updatedAt));
     const at = now();
     for (const row of rows) {
       if (row.status !== "idle" && row.status !== "running") continue;
@@ -275,10 +339,17 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
     agentId?: string | null;
   }) {
     const rows = await activeRows();
-    const companyCount = rows.filter((row) => row.companyId === input.companyId).length;
-    const hostCount = rows.filter((row) => stringValue(asRecord(row.metadata).hostId) === hostId).length;
+    const companyCount = rows.filter(
+      (row) => row.companyId === input.companyId,
+    ).length;
+    const hostCount = rows.filter(
+      (row) => stringValue(asRecord(row.metadata).hostId) === hostId,
+    ).length;
     if (companyCount >= maxCompanySlots || hostCount >= maxHostSlots) {
-      const reasonCode = companyCount >= maxCompanySlots ? "runtime_company_capacity_exhausted" : "runtime_host_capacity_exhausted";
+      const reasonCode =
+        companyCount >= maxCompanySlots
+          ? "runtime_company_capacity_exhausted"
+          : "runtime_host_capacity_exhausted";
       await writeAudit({
         companyId: input.companyId,
         runId: input.runId,
@@ -304,7 +375,10 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
     }
   }
 
-  function assertRestartAllowed(row: typeof toolRuntimeSlots.$inferSelect, metadata: Record<string, unknown>) {
+  function assertRestartAllowed(
+    row: typeof toolRuntimeSlots.$inferSelect,
+    metadata: Record<string, unknown>,
+  ) {
     const at = now();
     const suppressedUntil = dateValue(metadata.restartSuppressedUntil);
     if (suppressedUntil && suppressedUntil.getTime() > at.getTime()) {
@@ -326,22 +400,40 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
     }
   }
 
-  function restartMetadata(row: typeof toolRuntimeSlots.$inferSelect, metadata: Record<string, unknown>, reason: string) {
+  function restartMetadata(
+    row: typeof toolRuntimeSlots.$inferSelect,
+    metadata: Record<string, unknown>,
+    reason: string,
+  ) {
     const at = now();
     const windowStartedAt = dateValue(metadata.restartWindowStartedAt);
-    const inSameWindow = windowStartedAt && at.getTime() - windowStartedAt.getTime() <= restartStormWindowMs;
-    const restartCount = inSameWindow ? numberValue(metadata.restartCount) + 1 : 1;
+    const inSameWindow =
+      windowStartedAt &&
+      at.getTime() - windowStartedAt.getTime() <= restartStormWindowMs;
+    const restartCount = inSameWindow
+      ? numberValue(metadata.restartCount) + 1
+      : 1;
     const suppressed = restartCount > restartStormLimit;
-    const backoffMs = restartBackoffMs === 0
-      ? 0
-      : Math.min(restartBackoffMaxMs, restartBackoffMs * (2 ** Math.max(0, restartCount - 1)));
+    const backoffMs =
+      restartBackoffMs === 0
+        ? 0
+        : Math.min(
+            restartBackoffMaxMs,
+            restartBackoffMs * 2 ** Math.max(0, restartCount - 1),
+          );
     return {
       ...metadata,
       hostId,
       restartCount,
-      restartWindowStartedAt: (inSameWindow ? windowStartedAt : at)?.toISOString(),
-      restartBackoffUntil: backoffMs > 0 ? new Date(at.getTime() + backoffMs).toISOString() : null,
-      restartSuppressedUntil: suppressed ? new Date(at.getTime() + restartStormWindowMs).toISOString() : null,
+      restartWindowStartedAt: (inSameWindow
+        ? windowStartedAt
+        : at
+      )?.toISOString(),
+      restartBackoffUntil:
+        backoffMs > 0 ? new Date(at.getTime() + backoffMs).toISOString() : null,
+      restartSuppressedUntil: suppressed
+        ? new Date(at.getTime() + restartStormWindowMs).toISOString()
+        : null,
       lastRestartAt: at.toISOString(),
       lastRestartReason: reason,
       previousProviderRef: row.providerRef,
@@ -360,17 +452,18 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
   ) {
     const currentMetadata = asRecord(row.metadata);
     const countsAsRestart = input.reason !== "lazy_start";
-    if (!input.bypassBackoff && countsAsRestart) assertRestartAllowed(row, currentMetadata);
+    if (!input.bypassBackoff && countsAsRestart)
+      assertRestartAllowed(row, currentMetadata);
     const nextMetadata = countsAsRestart
       ? restartMetadata(row, currentMetadata, input.reason)
       : {
-        ...currentMetadata,
-        hostId,
-        lastStartAt: now().toISOString(),
-        lastStartReason: input.reason,
-        restartBackoffUntil: null,
-        restartSuppressedUntil: null,
-      };
+          ...currentMetadata,
+          hostId,
+          lastStartAt: now().toISOString(),
+          lastStartReason: input.reason,
+          restartBackoffUntil: null,
+          restartSuppressedUntil: null,
+        };
     if (countsAsRestart && dateValue(nextMetadata.restartSuppressedUntil)) {
       await db
         .update(toolRuntimeSlots)
@@ -398,7 +491,10 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
         429,
         "Runtime restart storm suppression is active",
         "runtime_restart_suppressed",
-        { slotId: row.id, suppressedUntil: nextMetadata.restartSuppressedUntil },
+        {
+          slotId: row.id,
+          suppressedUntil: nextMetadata.restartSuppressedUntil,
+        },
       );
     }
     const at = now();
@@ -474,7 +570,12 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
     const [existing] = await db
       .select()
       .from(toolRuntimeSlots)
-      .where(and(eq(toolRuntimeSlots.companyId, input.companyId), eq(toolRuntimeSlots.slotKey, input.connectionKey)))
+      .where(
+        and(
+          eq(toolRuntimeSlots.companyId, input.companyId),
+          eq(toolRuntimeSlots.slotKey, input.connectionKey),
+        ),
+      )
       .limit(1);
     if (existing) return existing;
     await assertCapacity({
@@ -499,7 +600,8 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
         reuseKey: input.connectionKey,
         provider: "taskcore",
         providerRef: null,
-        commandTemplateKey: input.commandTemplateKey ?? "taskcore.local-stdio-fixture",
+        commandTemplateKey:
+          input.commandTemplateKey ?? "taskcore.local-stdio-fixture",
         healthStatus: "unchecked",
         metadata: {
           fixture: "slow-stateful-stdio",
@@ -518,7 +620,11 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
 
   async function recoverIfStuck(
     row: typeof toolRuntimeSlots.$inferSelect,
-    input: { runId?: string | null; issueId?: string | null; agentId?: string | null },
+    input: {
+      runId?: string | null;
+      issueId?: string | null;
+      agentId?: string | null;
+    },
   ) {
     if (!ACTIVE_SLOT_STATUSES.includes(row.status)) return row;
     const at = now();
@@ -552,7 +658,11 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
       reasonCode: "stuck_slot_recovered",
       details: { slotKey: row.slotKey },
     });
-    return startSlot(failed, { ...input, reason: "stuck_slot_recovered", bypassBackoff: true });
+    return startSlot(failed, {
+      ...input,
+      reason: "stuck_slot_recovered",
+      bypassBackoff: true,
+    });
   }
 
   async function ensureRunningSlot(input: {
@@ -600,10 +710,16 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
       issueId: input.issueId,
       agentId: input.agentId,
     });
-    return startSlot(row, { ...input, reason: row.status === "stopped" ? "lazy_start" : "restart_after_failure" });
+    return startSlot(row, {
+      ...input,
+      reason: row.status === "stopped" ? "lazy_start" : "restart_after_failure",
+    });
   }
 
-  async function idleSlot(row: typeof toolRuntimeSlots.$inferSelect, metadata: Record<string, unknown>) {
+  async function idleSlot(
+    row: typeof toolRuntimeSlots.$inferSelect,
+    metadata: Record<string, unknown>,
+  ) {
     const at = now();
     const idleDeadline = new Date(at.getTime() + idleTtlMs);
     const [updated] = await db
@@ -650,7 +766,9 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
         slot: slotView(row),
         metadata,
         appendLog(stream, line) {
-          const logs = Array.isArray(metadata.logs) ? [...metadata.logs] as Array<Record<string, unknown>> : [];
+          const logs = Array.isArray(metadata.logs)
+            ? ([...metadata.logs] as Array<Record<string, unknown>>)
+            : [];
           logs.push({
             stream,
             line: redactLogLine(line).slice(0, 1_000),
@@ -714,7 +832,9 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
         slot: slotView(row),
         metadata,
         appendLog(stream, line) {
-          const logs = Array.isArray(metadata.logs) ? [...metadata.logs] as Array<Record<string, unknown>> : [];
+          const logs = Array.isArray(metadata.logs)
+            ? ([...metadata.logs] as Array<Record<string, unknown>>)
+            : [];
           logs.push({
             stream,
             line: redactLogLine(line).slice(0, 1_000),
@@ -752,14 +872,14 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
       await stopExpiredIdleSlots(companyId);
       const rows = companyId
         ? await db
-          .select()
-          .from(toolRuntimeSlots)
-          .where(eq(toolRuntimeSlots.companyId, companyId))
-          .orderBy(desc(toolRuntimeSlots.updatedAt))
+            .select()
+            .from(toolRuntimeSlots)
+            .where(eq(toolRuntimeSlots.companyId, companyId))
+            .orderBy(desc(toolRuntimeSlots.updatedAt))
         : await db
-          .select()
-          .from(toolRuntimeSlots)
-          .orderBy(desc(toolRuntimeSlots.updatedAt));
+            .select()
+            .from(toolRuntimeSlots)
+            .orderBy(desc(toolRuntimeSlots.updatedAt));
       return rows
         .filter((row) => ACTIVE_SLOT_STATUSES.includes(row.status))
         .map(slotView);
@@ -775,10 +895,20 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
       const [row] = await db
         .select()
         .from(toolRuntimeSlots)
-        .where(and(eq(toolRuntimeSlots.companyId, input.companyId), eq(toolRuntimeSlots.id, input.slotId)))
+        .where(
+          and(
+            eq(toolRuntimeSlots.companyId, input.companyId),
+            eq(toolRuntimeSlots.id, input.slotId),
+          ),
+        )
         .limit(1);
       if (!row) {
-        throw new ToolRuntimeSupervisorError(404, "Runtime slot not found", "runtime_slot_not_found", { slotId: input.slotId });
+        throw new ToolRuntimeSupervisorError(
+          404,
+          "Runtime slot not found",
+          "runtime_slot_not_found",
+          { slotId: input.slotId },
+        );
       }
       if (row.runtimeKind !== "local_stdio") {
         throw new ToolRuntimeSupervisorError(
@@ -823,7 +953,10 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
         runId: input.runId,
         agentId: input.agentId,
         action: "tool_runtime_slot.stopped",
-        details: { slotKey: row.slotKey, reason: input.reason ?? "explicit_stop" },
+        details: {
+          slotKey: row.slotKey,
+          reason: input.reason ?? "explicit_stop",
+        },
       });
       return slotView(stopped);
     },
@@ -838,10 +971,20 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
       const [row] = await db
         .select()
         .from(toolRuntimeSlots)
-        .where(and(eq(toolRuntimeSlots.companyId, input.companyId), eq(toolRuntimeSlots.id, input.slotId)))
+        .where(
+          and(
+            eq(toolRuntimeSlots.companyId, input.companyId),
+            eq(toolRuntimeSlots.id, input.slotId),
+          ),
+        )
         .limit(1);
       if (!row) {
-        throw new ToolRuntimeSupervisorError(404, "Runtime slot not found", "runtime_slot_not_found", { slotId: input.slotId });
+        throw new ToolRuntimeSupervisorError(
+          404,
+          "Runtime slot not found",
+          "runtime_slot_not_found",
+          { slotId: input.slotId },
+        );
       }
       if (row.runtimeKind !== "local_stdio") {
         throw new ToolRuntimeSupervisorError(
@@ -880,10 +1023,15 @@ export function createToolRuntimeSupervisor(db: Db, options: ToolRuntimeSupervis
         reasonCode: "explicit_restart",
         details: { slotKey: row.slotKey },
       });
-      const started = await startSlot(stoppedRow, { ...input, reason: "explicit_restart" });
+      const started = await startSlot(stoppedRow, {
+        ...input,
+        reason: "explicit_restart",
+      });
       return slotView(started);
     },
   };
 }
 
-export type ToolRuntimeSupervisor = ReturnType<typeof createToolRuntimeSupervisor>;
+export type ToolRuntimeSupervisor = ReturnType<
+  typeof createToolRuntimeSupervisor
+>;

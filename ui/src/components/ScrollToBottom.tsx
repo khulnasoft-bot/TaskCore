@@ -11,8 +11,10 @@ function resolveScrollTarget() {
   if (mainContent instanceof HTMLElement) {
     const overflowY = window.getComputedStyle(mainContent).overflowY;
     const usesOwnScroll =
-      (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay")
-      && mainContent.scrollHeight > mainContent.clientHeight + 1;
+      (overflowY === "auto" ||
+        overflowY === "scroll" ||
+        overflowY === "overlay") &&
+      mainContent.scrollHeight > mainContent.clientHeight + 1;
 
     if (usesOwnScroll) {
       return { type: "element" as const, element: mainContent };
@@ -24,7 +26,11 @@ function resolveScrollTarget() {
 
 function distanceFromBottom(target: ReturnType<typeof resolveScrollTarget>) {
   if (target.type === "element") {
-    return target.element.scrollHeight - target.element.scrollTop - target.element.clientHeight;
+    return (
+      target.element.scrollHeight -
+      target.element.scrollTop -
+      target.element.clientHeight
+    );
   }
 
   const scroller = document.scrollingElement ?? document.documentElement;
@@ -48,9 +54,12 @@ export function ScrollToBottom() {
     }
     const main = document.getElementById("main-content");
     if (!main) return;
-    const findDock = () => setComposerDock(
-      main.querySelector<HTMLElement>('[data-testid="task-chat-composer-dock"]'),
-    );
+    const findDock = () =>
+      setComposerDock(
+        main.querySelector<HTMLElement>(
+          '[data-testid="task-chat-composer-dock"]',
+        ),
+      );
     findDock();
     const observer = new MutationObserver(findDock);
     observer.observe(main, { childList: true, subtree: true });
@@ -80,7 +89,10 @@ export function ScrollToBottom() {
     const target = resolveScrollTarget();
 
     if (target.type === "element") {
-      target.element.scrollTo({ top: target.element.scrollHeight, behavior: "smooth" });
+      target.element.scrollTo({
+        top: target.element.scrollHeight,
+        behavior: "smooth",
+      });
       return;
     }
 

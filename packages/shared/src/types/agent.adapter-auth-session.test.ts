@@ -53,10 +53,19 @@ describe("adapter auth session contract", () => {
       failure: null,
     };
     expect(adapterAuthSessionResponseSchema.parse(valid)).toEqual(valid);
-    expect(() => adapterAuthSessionResponseSchema.parse({ ...valid, status: "unknown" })).toThrow();
+    expect(() =>
+      adapterAuthSessionResponseSchema.parse({ ...valid, status: "unknown" }),
+    ).toThrow();
     // The internal states never validate as a public response status.
-    expect(() => adapterAuthSessionResponseSchema.parse({ ...valid, status: "promoting" })).toThrow();
-    expect(() => adapterAuthSessionResponseSchema.parse({ ...valid, status: "cleanup_pending" })).toThrow();
+    expect(() =>
+      adapterAuthSessionResponseSchema.parse({ ...valid, status: "promoting" }),
+    ).toThrow();
+    expect(() =>
+      adapterAuthSessionResponseSchema.parse({
+        ...valid,
+        status: "cleanup_pending",
+      }),
+    ).toThrow();
   });
 
   it("rejects a prompt, token, or lease field on the public response", () => {
@@ -67,16 +76,38 @@ describe("adapter auth session contract", () => {
       expiresAt: null,
       failure: null,
     };
-    expect(() => adapterAuthSessionResponseSchema.parse({ ...base, prompt: { url: "x", code: "y" } })).toThrow();
-    expect(() => adapterAuthSessionResponseSchema.parse({ ...base, token: "secret" })).toThrow();
-    expect(() => adapterAuthSessionResponseSchema.parse({ ...base, providerLeaseId: "lease-1" })).toThrow();
-    expect(() => adapterAuthSessionResponseSchema.parse({ ...base, accountId: "acct-1" })).toThrow();
+    expect(() =>
+      adapterAuthSessionResponseSchema.parse({
+        ...base,
+        prompt: { url: "x", code: "y" },
+      }),
+    ).toThrow();
+    expect(() =>
+      adapterAuthSessionResponseSchema.parse({ ...base, token: "secret" }),
+    ).toThrow();
+    expect(() =>
+      adapterAuthSessionResponseSchema.parse({
+        ...base,
+        providerLeaseId: "lease-1",
+      }),
+    ).toThrow();
+    expect(() =>
+      adapterAuthSessionResponseSchema.parse({ ...base, accountId: "acct-1" }),
+    ).toThrow();
 
     // Compile-time guard: the public response type carries none of these keys.
-    const _noPrompt: AssertMissingKey<AdapterAuthSessionResponse, "prompt"> = true;
-    const _noToken: AssertMissingKey<AdapterAuthSessionResponse, "token"> = true;
-    const _noLease: AssertMissingKey<AdapterAuthSessionResponse, "providerLeaseId"> = true;
-    const _noAccount: AssertMissingKey<AdapterAuthSessionResponse, "accountId"> = true;
+    const _noPrompt: AssertMissingKey<AdapterAuthSessionResponse, "prompt"> =
+      true;
+    const _noToken: AssertMissingKey<AdapterAuthSessionResponse, "token"> =
+      true;
+    const _noLease: AssertMissingKey<
+      AdapterAuthSessionResponse,
+      "providerLeaseId"
+    > = true;
+    const _noAccount: AssertMissingKey<
+      AdapterAuthSessionResponse,
+      "accountId"
+    > = true;
     void _noPrompt;
     void _noToken;
     void _noLease;
@@ -90,15 +121,22 @@ describe("adapter auth session contract", () => {
       status: "waiting_for_user",
       expiresAt: null,
       failure: null,
-      prompt: { url: "https://auth.openai.com/codex/device", code: "ABCD-EFGHI" },
+      prompt: {
+        url: "https://auth.openai.com/codex/device",
+        code: "ABCD-EFGHI",
+      },
     };
     expect(owner.prompt?.code).toBe("ABCD-EFGHI");
   });
 
   it("maps the internal promoting state to the public waiting_for_user state", () => {
-    expect(toPublicAdapterAuthSessionStatus("promoting")).toBe("waiting_for_user");
+    expect(toPublicAdapterAuthSessionStatus("promoting")).toBe(
+      "waiting_for_user",
+    );
     expect(toPublicAdapterAuthSessionStatus("starting")).toBe("starting");
-    expect(toPublicAdapterAuthSessionStatus("authenticated")).toBe("authenticated");
+    expect(toPublicAdapterAuthSessionStatus("authenticated")).toBe(
+      "authenticated",
+    );
   });
 
   it("never projects cleanup_pending to a public status", () => {
@@ -123,6 +161,8 @@ describe("adapter auth session contract", () => {
       adapterType: "codex_local",
     });
     expect(request.environmentId).toBe(environmentId);
-    expect(() => startAdapterAuthSessionRequestSchema.parse({ environmentId })).toThrow();
+    expect(() =>
+      startAdapterAuthSessionRequestSchema.parse({ environmentId }),
+    ).toThrow();
   });
 });

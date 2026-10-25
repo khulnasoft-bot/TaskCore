@@ -43,9 +43,12 @@ export function ChatConversation({
           key={turn.turn}
           turn={turn}
           entries={artifact.timeline.filter(
-            (entry) => entry.turn === turn.turn && entry.sequence <= revealedSequence,
+            (entry) =>
+              entry.turn === turn.turn && entry.sequence <= revealedSequence,
           )}
-          settled={runningTurn !== turn.turn && turn.lastSequence <= revealedSequence}
+          settled={
+            runningTurn !== turn.turn && turn.lastSequence <= revealedSequence
+          }
           activeTurn={activeTurn}
           onOpenTurn={onOpenTurn}
         />
@@ -75,7 +78,11 @@ function TurnBlock({
 }) {
   if (entries.length === 0 && !settled) return null;
   return (
-    <li className="pcr7-chat-turn" data-testid={`chat-turn-${turn.turn}`} data-turn={turn.turn}>
+    <li
+      className="pcr7-chat-turn"
+      data-testid={`chat-turn-${turn.turn}`}
+      data-turn={turn.turn}
+    >
       {turn.turn === 0 ? (
         <p className="pcr7-chat-seed-label" data-testid="chat-seed-label">
           Session seed — the control plane did this before the first message.
@@ -103,13 +110,21 @@ function TurnBlock({
         ))}
       </ol>
       {turn.failure === null ? null : (
-        <p className="pcr7-chat-failure" role="alert" data-testid={`chat-turn-failure-${turn.turn}`}>
-          This turn stopped on a harness error: {turn.failure.message}. The activity below is
-          partial; send the turn again or reset the session.
+        <p
+          className="pcr7-chat-failure"
+          role="alert"
+          data-testid={`chat-turn-failure-${turn.turn}`}
+        >
+          This turn stopped on a harness error: {turn.failure.message}. The
+          activity below is partial; send the turn again or reset the session.
         </p>
       )}
       {settled ? (
-        <TurnStrip turn={turn} onOpen={onOpenTurn} active={activeTurn === turn.turn} />
+        <TurnStrip
+          turn={turn}
+          onOpen={onOpenTurn}
+          active={activeTurn === turn.turn}
+        />
       ) : (
         <PendingTurn turn={turn.turn} />
       )}
@@ -121,7 +136,8 @@ function PendingTurn({ turn }: { turn: number }) {
   return (
     <p className="pcr7-turn-pending" data-testid={`turn-pending-${turn}`}>
       <span className="pcr7-streaming-caret" aria-hidden="true" />
-      Turn {turn} · running — the mock control plane is still recording this turn.
+      Turn {turn} · running — the mock control plane is still recording this
+      turn.
     </p>
   );
 }

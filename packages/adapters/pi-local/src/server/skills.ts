@@ -17,12 +17,16 @@ import {
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 function asString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function resolvePiSkillsHome(config: Record<string, unknown>) {
   const env =
-    typeof config.env === "object" && config.env !== null && !Array.isArray(config.env)
+    typeof config.env === "object" &&
+    config.env !== null &&
+    !Array.isArray(config.env)
       ? (config.env as Record<string, unknown>)
       : {};
   const configuredHome = asString(env.HOME);
@@ -30,9 +34,17 @@ function resolvePiSkillsHome(config: Record<string, unknown>) {
   return path.join(home, ".pi", "agent", "skills");
 }
 
-async function buildPiSkillSnapshot(config: Record<string, unknown>): Promise<AdapterSkillSnapshot> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries);
+async function buildPiSkillSnapshot(
+  config: Record<string, unknown>,
+): Promise<AdapterSkillSnapshot> {
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    availableEntries,
+  );
   const skillsHome = resolvePiSkillsHome(config);
   const installed = await readInstalledSkillTargets(skillsHome);
   return buildPersistentSkillSnapshot({
@@ -42,13 +54,17 @@ async function buildPiSkillSnapshot(config: Record<string, unknown>): Promise<Ad
     installed,
     skillsHome,
     locationLabel: "~/.pi/agent/skills",
-    missingDetail: "Configured but not currently linked into the Pi skills home.",
-    externalConflictDetail: "Skill name is occupied by an external installation.",
+    missingDetail:
+      "Configured but not currently linked into the Pi skills home.",
+    externalConflictDetail:
+      "Skill name is occupied by an external installation.",
     externalDetail: "Installed outside Taskcore management.",
   });
 }
 
-export async function listPiSkills(ctx: AdapterSkillContext): Promise<AdapterSkillSnapshot> {
+export async function listPiSkills(
+  ctx: AdapterSkillContext,
+): Promise<AdapterSkillSnapshot> {
   return buildPiSkillSnapshot(ctx.config);
 }
 
@@ -56,7 +72,10 @@ export async function syncPiSkills(
   ctx: AdapterSkillContext,
   desiredSkills: string[],
 ): Promise<AdapterSkillSnapshot> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(ctx.config, __moduleDir);
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    ctx.config,
+    __moduleDir,
+  );
   const desiredSet = new Set([
     ...resolveLegacyTaskcoreDesiredSkillNames({}, availableEntries),
     ...desiredSkills,
@@ -64,7 +83,9 @@ export async function syncPiSkills(
   const skillsHome = resolvePiSkillsHome(ctx.config);
   await fs.mkdir(skillsHome, { recursive: true });
   const installed = await readInstalledSkillTargets(skillsHome);
-  const availableByRuntimeName = new Map(availableEntries.map((entry) => [entry.runtimeName, entry]));
+  const availableByRuntimeName = new Map(
+    availableEntries.map((entry) => [entry.runtimeName, entry]),
+  );
 
   for (const available of availableEntries) {
     if (!desiredSet.has(available.key)) continue;

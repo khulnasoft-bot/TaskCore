@@ -23,7 +23,12 @@ import { cn } from "../../lib/utils";
  * written down.
  */
 const Z_TIERS = [
-  { glyph: "z", sizeClass: "text-(length:--text-nano)", scaleTo: 0.95, reach: 1 },
+  {
+    glyph: "z",
+    sizeClass: "text-(length:--text-nano)",
+    scaleTo: 0.95,
+    reach: 1,
+  },
   { glyph: "z", sizeClass: "text-xs", scaleTo: 1.1, reach: 1.25 },
   { glyph: "Z", sizeClass: "text-sm", scaleTo: 1.25, reach: 1.5 },
 ] as const;

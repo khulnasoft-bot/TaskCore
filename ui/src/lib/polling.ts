@@ -1,5 +1,9 @@
 import { useMemo, useRef } from "react";
-import { getPageVisibility, usePageVisibility, type PageVisibility } from "./page-visibility";
+import {
+  getPageVisibility,
+  usePageVisibility,
+  type PageVisibility,
+} from "./page-visibility";
 
 /**
  * Polling-cadence and startup-jitter helpers for restore-storm mitigation
@@ -53,7 +57,10 @@ export function resolvePollingInterval(
  * Pure jitter calculator. `rng` returns a float in [0, 1) (injectable for tests).
  * Result is clamped to `[0, maxMs]` and rounded to an integer number of ms.
  */
-export function computeStartupJitterMs(maxMs: number, rng: () => number): number {
+export function computeStartupJitterMs(
+  maxMs: number,
+  rng: () => number,
+): number {
   if (maxMs <= 0) return 0;
   const clamped = Math.min(Math.max(rng(), 0), 0.999999);
   return Math.round(clamped * maxMs);
@@ -93,14 +100,19 @@ export interface VisibilityRefetchOptions extends PollingIntervalOptions {
  *   const refetchInterval = useVisibilityRefetchInterval({ visibleMs: 5000 });
  *   useQuery({ ..., refetchInterval });
  */
-export function useVisibilityRefetchInterval(options: VisibilityRefetchOptions): number | false {
+export function useVisibilityRefetchInterval(
+  options: VisibilityRefetchOptions,
+): number | false {
   const state = usePageVisibility();
   const jitterRef = useRef<number | null>(null);
   if (jitterRef.current === null) {
     if (options.jitter === false) {
       jitterRef.current = 0;
     } else {
-      const bound = Math.min(options.jitterMaxMs ?? 1_000, Math.round(options.visibleMs * 0.2));
+      const bound = Math.min(
+        options.jitterMaxMs ?? 1_000,
+        Math.round(options.visibleMs * 0.2),
+      );
       jitterRef.current = computeStartupJitterMs(bound, Math.random);
     }
   }

@@ -13,8 +13,11 @@ export async function withHumanDirectedWork(
   resolution: TrustPresetResolution,
   input: { companyId: string; agentId: string; runId: string },
 ): Promise<TrustPresetResolution> {
-  if (resolution.kind !== "low_trust_review" ||
-      resolution.boundary.companyId !== input.companyId) return resolution;
+  if (
+    resolution.kind !== "low_trust_review" ||
+    resolution.boundary.companyId !== input.companyId
+  )
+    return resolution;
 
   // One snapshot binds the live run, current assignee, and authenticated wake.
   // Reassignment cancels the old request records in the assignment transaction.
@@ -72,23 +75,51 @@ export async function withHumanDirectedWork(
  */
 export async function retainBacklogHumanAssignment(
   db: Db,
-  issue: { id: string; companyId: string; assigneeAgentId: string | null; status: string; statusVersion: number },
+  issue: {
+    id: string;
+    companyId: string;
+    assigneeAgentId: string | null;
+    status: string;
+    statusVersion: number;
+  },
   actor: { actorType: string; actorId: string },
 ) {
-  if (actor.actorType !== "user" || !actor.actorId.trim() || issue.status !== "backlog" || !issue.assigneeAgentId) return;
+  if (
+    actor.actorType !== "user" ||
+    !actor.actorId.trim() ||
+    issue.status !== "backlog" ||
+    !issue.assigneeAgentId
+  )
+    return;
   await db.transaction(async (tx) => {
     // An assignment that changed (even A -> B -> A) before this callback cannot
     // revive stale direction. Reassignment and this receipt share the issue lock.
-    const [current] = await tx.select({ id: issues.id }).from(issues).where(and(
-      eq(issues.id, issue.id), eq(issues.companyId, issue.companyId),
-      eq(issues.assigneeAgentId, issue.assigneeAgentId!), eq(issues.statusVersion, issue.statusVersion),
-    )).for("update");
+    const [current] = await tx
+      .select({ id: issues.id })
+      .from(issues)
+      .where(
+        and(
+          eq(issues.id, issue.id),
+          eq(issues.companyId, issue.companyId),
+          eq(issues.assigneeAgentId, issue.assigneeAgentId!),
+          eq(issues.statusVersion, issue.statusVersion),
+        ),
+      )
+      .for("update");
     if (!current) return;
     await tx.insert(agentWakeupRequests).values({
-      companyId: issue.companyId, agentId: issue.assigneeAgentId!, source: "assignment",
-      reason: "issue_human_assignment", status: "completed", finishedAt: new Date(),
-      requestedByActorType: "user", requestedByActorId: actor.actorId,
-      payload: { issueId: issue.id, _taskcoreWakeContext: { source: "issue.backlog_assignment" } },
+      companyId: issue.companyId,
+      agentId: issue.assigneeAgentId!,
+      source: "assignment",
+      reason: "issue_human_assignment",
+      status: "completed",
+      finishedAt: new Date(),
+      requestedByActorType: "user",
+      requestedByActorId: actor.actorId,
+      payload: {
+        issueId: issue.id,
+        _taskcoreWakeContext: { source: "issue.backlog_assignment" },
+      },
     });
   });
 }

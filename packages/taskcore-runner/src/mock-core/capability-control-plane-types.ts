@@ -85,11 +85,7 @@ export interface CapabilityFixtureDocument {
 }
 
 export type CapabilityInteractionKind =
-  | "confirmation"
-  | "checkbox"
-  | "questions"
-  | "suggest_tasks"
-  | "item_verdicts";
+  "confirmation" | "checkbox" | "questions" | "suggest_tasks" | "item_verdicts";
 
 export interface CapabilityFixtureInteraction {
   id: string;
@@ -141,7 +137,14 @@ export interface CapabilityFixtureArtifact {
 export interface CapabilityFixtureWorkProduct {
   id: string;
   taskId: string;
-  type: "artifact" | "document" | "pull_request" | "preview_url" | "runtime_service" | "commit" | "branch";
+  type:
+    | "artifact"
+    | "document"
+    | "pull_request"
+    | "preview_url"
+    | "runtime_service"
+    | "commit"
+    | "branch";
   title: string;
   metadata: CapabilityJsonValue;
   artifactId: string | null;
@@ -316,7 +319,15 @@ export interface CapabilityFixtureState {
   outOfScopeTaskIds: string[];
   comments: CapabilityFixtureComment[];
   documents: CapabilityFixtureDocument[];
-  skills?: Array<{ id: string; companyId: string; name: string; slug: string; description: string; markdown: string; versionId: string }>;
+  skills?: Array<{
+    id: string;
+    companyId: string;
+    name: string;
+    slug: string;
+    description: string;
+    markdown: string;
+    versionId: string;
+  }>;
 
   interactions: CapabilityFixtureInteraction[];
   approvals: CapabilityFixtureApproval[];
@@ -337,14 +348,22 @@ export interface CapabilityFixtureState {
 
 export interface CapabilityRunContext {
   schema: "taskcore.capability.run-context.v1";
-  company: Pick<CapabilityFixtureCompany, "id" | "name" | "issuePrefix" | "status">;
-  actor: Pick<CapabilityFixtureActor, "id" | "name" | "role" | "status" | "capabilityGrants">;
+  company: Pick<
+    CapabilityFixtureCompany,
+    "id" | "name" | "issuePrefix" | "status"
+  >;
+  actor: Pick<
+    CapabilityFixtureActor,
+    "id" | "name" | "role" | "status" | "capabilityGrants"
+  >;
   activeTask: CapabilityFixtureTask;
   ancestors: CapabilityFixtureTask[];
   wake: CapabilityWakeContext;
   capabilities: string[];
   budget: { limitCents: number; spentCents: number; remainingCents: number };
-  interactionResults: Array<Pick<CapabilityFixtureInteraction, "id" | "kind" | "status" | "result">>;
+  interactionResults: Array<
+    Pick<CapabilityFixtureInteraction, "id" | "kind" | "status" | "result">
+  >;
 }
 
 export interface CapabilityOpenFixtureRunInput extends OpenControlPlaneRunInput {
@@ -358,8 +377,19 @@ interface CapabilityBaseCommand {
 }
 
 export type CapabilitySemanticCommand =
-  | (CapabilityBaseCommand & { kind: "create_skill"; name: string; slug?: string; description: string; markdown: string })
-  | (CapabilityBaseCommand & { kind: "update_skill"; skillId: string; markdown: string; expectedVersionId: string })
+  | (CapabilityBaseCommand & {
+      kind: "create_skill";
+      name: string;
+      slug?: string;
+      description: string;
+      markdown: string;
+    })
+  | (CapabilityBaseCommand & {
+      kind: "update_skill";
+      skillId: string;
+      markdown: string;
+      expectedVersionId: string;
+    })
   | (CapabilityBaseCommand & { kind: "report_progress"; body: string })
   | (CapabilityBaseCommand & {
       kind: "write_document";
@@ -393,8 +423,18 @@ export type CapabilitySemanticCommand =
       contentRef: string;
       title: string;
     })
-  | (CapabilityBaseCommand & { kind: "reassign_task"; targetTaskId: string; assigneeActorId: string; expectedAssigneeActorId: string | null; expectedStatusVersion: number; reason: string })
-  | (CapabilityBaseCommand & { kind: "set_dependencies"; blockedByTaskIds: string[] })
+  | (CapabilityBaseCommand & {
+      kind: "reassign_task";
+      targetTaskId: string;
+      assigneeActorId: string;
+      expectedAssigneeActorId: string | null;
+      expectedStatusVersion: number;
+      reason: string;
+    })
+  | (CapabilityBaseCommand & {
+      kind: "set_dependencies";
+      blockedByTaskIds: string[];
+    })
   | (CapabilityBaseCommand & {
       kind: "create_task";
       status?: "backlog" | "todo";
@@ -499,17 +539,28 @@ export const CAPABILITY_COMMAND_REQUIRED_CLAIMS = {
   request_review: [],
   release_task: ["control_plane:release"],
   schedule_wake: ["control_plane:wakes"],
-} as const satisfies Record<CapabilitySemanticCommand["kind"], readonly string[]>;
+} as const satisfies Record<
+  CapabilitySemanticCommand["kind"],
+  readonly string[]
+>;
 
 export interface CapabilityMockControlPlanePort extends ControlPlanePort {
   start(): Promise<void>;
   stop(): Promise<void>;
-  openFixtureRun(input: CapabilityOpenFixtureRunInput): Promise<CapabilityRunContext>;
+  openFixtureRun(
+    input: CapabilityOpenFixtureRunInput,
+  ): Promise<CapabilityRunContext>;
   context(runId: string): CapabilityRunContext;
-  applyCommand(envelope: CapabilityCommandEnvelope): Promise<CapabilityCommandResult>;
-  tryApplyCommand(envelope: CapabilityCommandEnvelope): Promise<CapabilityCommandOutcome>;
+  applyCommand(
+    envelope: CapabilityCommandEnvelope,
+  ): Promise<CapabilityCommandResult>;
+  tryApplyCommand(
+    envelope: CapabilityCommandEnvelope,
+  ): Promise<CapabilityCommandOutcome>;
   snapshot(): Readonly<CapabilityFixtureState>;
-  loadSemanticToolRuntime(runId: string): CapabilitySemanticToolRuntimeSnapshot | null;
+  loadSemanticToolRuntime(
+    runId: string,
+  ): CapabilitySemanticToolRuntimeSnapshot | null;
   saveSemanticToolRuntime(
     runId: string,
     snapshot: CapabilitySemanticToolRuntimeSnapshot,
@@ -542,7 +593,9 @@ export interface CapabilityFixtureSeed {
   faults?: CapabilityFaultRule[];
 }
 
-export function createCapabilityFixtureState(seed: CapabilityFixtureSeed = {}): CapabilityFixtureState {
+export function createCapabilityFixtureState(
+  seed: CapabilityFixtureSeed = {},
+): CapabilityFixtureState {
   const company: CapabilityFixtureCompany = {
     id: "company-1",
     name: "Mock Taskcore Company",
@@ -607,7 +660,10 @@ export function createCapabilityFixtureState(seed: CapabilityFixtureSeed = {}): 
     activeRunId: null,
     company,
     actors: structuredClone(actors),
-    tasks: structuredClone(tasks).map(task => ({ ...task, statusVersion: task.statusVersion ?? 0 })),
+    tasks: structuredClone(tasks).map((task) => ({
+      ...task,
+      statusVersion: task.statusVersion ?? 0,
+    })),
     outOfScopeTaskIds: structuredClone(seed.outOfScopeTaskIds ?? []),
     comments: structuredClone(seed.comments ?? []),
     documents: structuredClone(seed.documents ?? []),

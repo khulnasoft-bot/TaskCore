@@ -43,10 +43,14 @@ export function slackClient(token: string, fetchImpl = fetch) {
         },
         // Match Slack's official WebClient encoding, including nested JSON
         // arguments. Some Web API methods reject a JSON request body.
-        body: new URLSearchParams(Object.entries(args)
-          .filter(([, value]) => value !== undefined && value !== null)
-          .map(([key, value]) => [key, typeof value === "object"
-            ? JSON.stringify(value) : String(value)])).toString(),
+        body: new URLSearchParams(
+          Object.entries(args)
+            .filter(([, value]) => value !== undefined && value !== null)
+            .map(([key, value]) => [
+              key,
+              typeof value === "object" ? JSON.stringify(value) : String(value),
+            ]),
+        ).toString(),
       });
     } catch {
       throw unprocessable(

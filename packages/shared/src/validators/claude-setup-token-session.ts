@@ -1,7 +1,10 @@
 import { aiConnectionLoginIntentSchema } from "../ai-connections.js";
 import { z } from "zod";
 import { AGENT_ADAPTER_TYPES } from "../constants.js";
-import { ADAPTER_AUTH_PANEL_MODES, SETUP_TOKEN_TRANSPORT_ADVISORY_CODE } from "../types/agent.js";
+import {
+  ADAPTER_AUTH_PANEL_MODES,
+  SETUP_TOKEN_TRANSPORT_ADVISORY_CODE,
+} from "../types/agent.js";
 import {
   adapterAuthSessionFailureSchema,
   adapterAuthSessionStatusSchema,
@@ -11,10 +14,14 @@ const isoDateTime = z.union([z.date(), z.string().datetime()]);
 
 // The transport advisory schema. A guarded confidential response carries it when
 // the login rides a non-confidential transport. The client shows a disclaimer.
-export const setupTokenTransportAdvisorySchema = z.object({
-  code: z.literal(SETUP_TOKEN_TRANSPORT_ADVISORY_CODE),
-}).strict();
-export type SetupTokenTransportAdvisory = z.infer<typeof setupTokenTransportAdvisorySchema>;
+export const setupTokenTransportAdvisorySchema = z
+  .object({
+    code: z.literal(SETUP_TOKEN_TRANSPORT_ADVISORY_CODE),
+  })
+  .strict();
+export type SetupTokenTransportAdvisory = z.infer<
+  typeof setupTokenTransportAdvisorySchema
+>;
 
 // The confirmed-overwrite capture for a replacement login. The client reads the
 // stored value metadata from the status route and passes it back when it starts
@@ -22,12 +29,15 @@ export type SetupTokenTransportAdvisory = z.infer<typeof setupTokenTransportAdvi
 // rotates the value only when the captured version still matches. The server
 // still derives the owner and the definition; this body carries no owner. A
 // missing capture starts a first-write login instead.
-export const claudeSetupTokenOverwriteSchema = z.object({
-  expectedSecretId: z.string().guid(),
-  expectedLatestVersion: z.number().int().min(1),
-}).strict();
-export type ClaudeSetupTokenOverwrite =
-  z.infer<typeof claudeSetupTokenOverwriteSchema>;
+export const claudeSetupTokenOverwriteSchema = z
+  .object({
+    expectedSecretId: z.string().guid(),
+    expectedLatestVersion: z.number().int().min(1),
+  })
+  .strict();
+export type ClaudeSetupTokenOverwrite = z.infer<
+  typeof claudeSetupTokenOverwriteSchema
+>;
 
 // The start request for a company-and-environment Claude login session. The
 // company and the owner user come from the authenticated caller, not from this
@@ -43,14 +53,17 @@ export type ClaudeSetupTokenOverwrite =
 // carries no agent id: a hire flow with no agent still starts one session. The
 // runtime does not support a caller-supplied session length, so the schema
 // exposes no `ttlSeconds` field; a legacy `ttlSeconds` fails the strict parse.
-export const startClaudeSetupTokenSessionRequestSchema = z.object({
-  aiConnection: aiConnectionLoginIntentSchema.optional(),
-  environmentId: z.string().guid(),
-  adapterType: z.enum(AGENT_ADAPTER_TYPES),
-  overwrite: claudeSetupTokenOverwriteSchema.optional(),
-}).strict();
-export type StartClaudeSetupTokenSessionRequest =
-  z.infer<typeof startClaudeSetupTokenSessionRequestSchema>;
+export const startClaudeSetupTokenSessionRequestSchema = z
+  .object({
+    aiConnection: aiConnectionLoginIntentSchema.optional(),
+    environmentId: z.string().guid(),
+    adapterType: z.enum(AGENT_ADAPTER_TYPES),
+    overwrite: claudeSetupTokenOverwriteSchema.optional(),
+  })
+  .strict();
+export type StartClaudeSetupTokenSessionRequest = z.infer<
+  typeof startClaudeSetupTokenSessionRequestSchema
+>;
 
 // The panel-mode schema. It accepts only the two known panel modes.
 export const adapterAuthPanelModeSchema = z.enum(ADAPTER_AUTH_PANEL_MODES);
@@ -63,36 +76,45 @@ const sessionIdSchema = z.string().min(1).max(256);
 // The public Claude login-session response schema. `.strict()` rejects an extra
 // field, so a prompt, a token, an account identifier, or a provider lease
 // identifier never validates.
-export const claudeSetupTokenSessionResponseSchema = z.object({
-  sessionId: sessionIdSchema,
-  environmentId: z.string().guid(),
-  status: adapterAuthSessionStatusSchema,
-  expiresAt: isoDateTime.nullable(),
-  failure: adapterAuthSessionFailureSchema.nullable(),
-  transportAdvisory: setupTokenTransportAdvisorySchema.nullable().optional(),
-}).strict();
-export type ClaudeSetupTokenSessionResponse =
-  z.infer<typeof claudeSetupTokenSessionResponseSchema>;
+export const claudeSetupTokenSessionResponseSchema = z
+  .object({
+    sessionId: sessionIdSchema,
+    environmentId: z.string().guid(),
+    status: adapterAuthSessionStatusSchema,
+    expiresAt: isoDateTime.nullable(),
+    failure: adapterAuthSessionFailureSchema.nullable(),
+    transportAdvisory: setupTokenTransportAdvisorySchema.nullable().optional(),
+  })
+  .strict();
+export type ClaudeSetupTokenSessionResponse = z.infer<
+  typeof claudeSetupTokenSessionResponseSchema
+>;
 
 // The one-time Claude login prompt schema. It carries the authorization URL the
 // user opens. It carries no server-displayed code.
-export const claudeSetupTokenSessionPromptSchema = z.object({
-  authorizationUrl: z.string().min(1),
-  transportAdvisory: setupTokenTransportAdvisorySchema.nullable().optional(),
-}).strict();
-export type ClaudeSetupTokenSessionPrompt =
-  z.infer<typeof claudeSetupTokenSessionPromptSchema>;
+export const claudeSetupTokenSessionPromptSchema = z
+  .object({
+    authorizationUrl: z.string().min(1),
+    transportAdvisory: setupTokenTransportAdvisorySchema.nullable().optional(),
+  })
+  .strict();
+export type ClaudeSetupTokenSessionPrompt = z.infer<
+  typeof claudeSetupTokenSessionPromptSchema
+>;
 
 // The owner read schema. It adds the panel mode and the one-time prompt to the
 // public response.
 export const claudeSetupTokenSessionOwnerResponseSchema =
-  claudeSetupTokenSessionResponseSchema.extend({
-    panelMode: adapterAuthPanelModeSchema,
-    prompt: claudeSetupTokenSessionPromptSchema.nullable(),
-    aiConnection: aiConnectionLoginIntentSchema.optional(),
-  }).strict();
-export type ClaudeSetupTokenSessionOwnerResponse =
-  z.infer<typeof claudeSetupTokenSessionOwnerResponseSchema>;
+  claudeSetupTokenSessionResponseSchema
+    .extend({
+      panelMode: adapterAuthPanelModeSchema,
+      prompt: claudeSetupTokenSessionPromptSchema.nullable(),
+      aiConnection: aiConnectionLoginIntentSchema.optional(),
+    })
+    .strict();
+export type ClaudeSetupTokenSessionOwnerResponse = z.infer<
+  typeof claudeSetupTokenSessionOwnerResponseSchema
+>;
 
 // The bounded maximum length of a browser code. The provider code is short. The
 // server rejects an oversized code before it reaches the live login process.
@@ -141,11 +163,14 @@ export const browserCodeSchema = z
 export type BrowserCode = z.infer<typeof browserCodeSchema>;
 
 // The submit-browser-code request schema. `.strict()` rejects an extra field.
-export const submitBrowserCodeRequestSchema = z.object({
-  browserCode: browserCodeSchema,
-}).strict();
-export type SubmitBrowserCodeRequest =
-  z.infer<typeof submitBrowserCodeRequestSchema>;
+export const submitBrowserCodeRequestSchema = z
+  .object({
+    browserCode: browserCodeSchema,
+  })
+  .strict();
+export type SubmitBrowserCodeRequest = z.infer<
+  typeof submitBrowserCodeRequestSchema
+>;
 
 // The stored-session claim schema. The `storedSessionId` is the opaque durable
 // session id. It is a non-secret claim; it carries no token.
@@ -154,20 +179,26 @@ export const storedSessionIdSchema = z.string().min(1).max(256);
 // The completion response schema. It carries the non-secret `storedSessionId`
 // claim and no token. `.strict()` rejects an extra field, so a token never
 // validates.
-export const claudeSetupTokenCompletionResponseSchema = z.object({
-  storedSessionId: storedSessionIdSchema,
-}).strict();
-export type ClaudeSetupTokenCompletionResponse =
-  z.infer<typeof claudeSetupTokenCompletionResponseSchema>;
+export const claudeSetupTokenCompletionResponseSchema = z
+  .object({
+    storedSessionId: storedSessionIdSchema,
+  })
+  .strict();
+export type ClaudeSetupTokenCompletionResponse = z.infer<
+  typeof claudeSetupTokenCompletionResponseSchema
+>;
 
 // The stored Claude OAuth token status response schema. It carries only the
 // secret id and the latest version of the owner value; it carries no token.
 // `.strict()` rejects an extra field, so a token never validates. The status
 // route returns a fixed 404 for a missing or a foreign value, so a 200 body
 // always describes a present owner value.
-export const claudeOAuthTokenStatusResponseSchema = z.object({
-  secretId: z.string().guid(),
-  latestVersion: z.number().int().min(1),
-}).strict();
-export type ClaudeOAuthTokenStatusResponse =
-  z.infer<typeof claudeOAuthTokenStatusResponseSchema>;
+export const claudeOAuthTokenStatusResponseSchema = z
+  .object({
+    secretId: z.string().guid(),
+    latestVersion: z.number().int().min(1),
+  })
+  .strict();
+export type ClaudeOAuthTokenStatusResponse = z.infer<
+  typeof claudeOAuthTokenStatusResponseSchema
+>;

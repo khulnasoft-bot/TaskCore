@@ -7,7 +7,11 @@ import {
 } from "@aws-sdk/client-s3";
 import { putS3Multipart } from "./s3-multipart.js";
 import { addAbortSignal, Readable } from "node:stream";
-import type { StorageProvider, GetObjectResult, HeadObjectResult } from "./types.js";
+import type {
+  StorageProvider,
+  GetObjectResult,
+  HeadObjectResult,
+} from "./types.js";
 import { notFound, unprocessable } from "../errors.js";
 
 interface S3ProviderConfig {
@@ -20,10 +24,7 @@ interface S3ProviderConfig {
 
 function normalizePrefix(prefix: string | undefined): string {
   if (!prefix) return "";
-  return prefix
-    .trim()
-    .replace(/^\/+/, "")
-    .replace(/\/+$/, "");
+  return prefix.trim().replace(/^\/+/, "").replace(/\/+$/, "");
 }
 
 function buildKey(prefix: string, objectKey: string): string {
@@ -43,13 +44,15 @@ async function toReadableStream(body: unknown): Promise<Readable> {
   if (typeof candidate.transformToWebStream === "function") {
     const webStream = candidate.transformToWebStream();
     const reader = webStream.getReader();
-    return Readable.from((async function* () {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) yield value;
-      }
-    })());
+    return Readable.from(
+      (async function* () {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) yield value;
+        }
+      })(),
+    );
   }
 
   if (typeof candidate.arrayBuffer === "function") {
@@ -64,7 +67,9 @@ function toDate(value: Date | undefined): Date | undefined {
   return value instanceof Date ? value : undefined;
 }
 
-export function createS3StorageProvider(config: S3ProviderConfig): StorageProvider {
+export function createS3StorageProvider(
+  config: S3ProviderConfig,
+): StorageProvider {
   const bucket = config.bucket.trim();
   const region = config.region.trim();
   if (!bucket) throw unprocessable("S3 storage bucket is required");
@@ -104,7 +109,9 @@ export function createS3StorageProvider(config: S3ProviderConfig): StorageProvid
           new GetObjectCommand({
             Bucket: bucket,
             Key: key,
-            Range: input.range ? `bytes=${input.range.start}-${input.range.end}` : undefined,
+            Range: input.range
+              ? `bytes=${input.range.start}-${input.range.end}`
+              : undefined,
           }),
           { abortSignal: input.signal },
         );
@@ -120,7 +127,8 @@ export function createS3StorageProvider(config: S3ProviderConfig): StorageProvid
         };
       } catch (err) {
         const code = (err as { name?: string }).name;
-        if (code === "NoSuchKey" || code === "NotFound") throw notFound("Object not found");
+        if (code === "NoSuchKey" || code === "NotFound")
+          throw notFound("Object not found");
         throw err;
       }
     },
@@ -145,7 +153,8 @@ export function createS3StorageProvider(config: S3ProviderConfig): StorageProvid
         };
       } catch (err) {
         const code = (err as { name?: string }).name;
-        if (code === "NoSuchKey" || code === "NotFound") return { exists: false };
+        if (code === "NoSuchKey" || code === "NotFound")
+          return { exists: false };
         throw err;
       }
     },

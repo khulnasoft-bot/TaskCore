@@ -479,23 +479,21 @@ suite("Teams same-transaction publication projection (real PostgreSQL)", () => {
   it("rejects an effect-intent UUID receipt belonging to another transfer", async () => {
     const f = await fixture("consent_sending"),
       r = await f.row();
-    await db
-      .insert(chatActions)
-      .values({
-        companyId: f.companyId,
-        endpointId: f.endpointId,
-        conversationId: f.conversationId,
-        kind: "teams_file_effect_intent",
-        providerActionId: `teams-file-effect:${r.attemptId}`,
-        status: "processed",
-        payload: {
-          schema: "taskcore.teams.file-effect-intent.v1",
-          transferId: randomUUID(),
-          publicationId: f.publicationId,
-          attemptId: r.attemptId,
-          stage: "consent",
-        },
-      });
+    await db.insert(chatActions).values({
+      companyId: f.companyId,
+      endpointId: f.endpointId,
+      conversationId: f.conversationId,
+      kind: "teams_file_effect_intent",
+      providerActionId: `teams-file-effect:${r.attemptId}`,
+      status: "processed",
+      payload: {
+        schema: "taskcore.teams.file-effect-intent.v1",
+        transferId: randomUUID(),
+        publicationId: f.publicationId,
+        attemptId: r.attemptId,
+        stage: "consent",
+      },
+    });
     await expect(f.project()).rejects.toThrow("conflicted");
     expect((await f.publication()).attempts).toBe(0);
     expect((await f.publication()).state).toBe("pending");

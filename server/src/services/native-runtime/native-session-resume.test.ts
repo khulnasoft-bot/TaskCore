@@ -414,48 +414,125 @@ describe("capability-gated connection tool refresh", () => {
   it("retains the exact provider session for an MCP-only change when the harness supports it", () => {
     const current = execution(currentRunId);
     current.runtimeContext.mcp.digest = "b".repeat(64);
-    current.runtimeContext.aggregateDigest = canonicalNativeRuntimeContextDigest(current.runtimeContext);
-    const rebound = rebindNativeSessionCheckpoint({ previousRun: previousRun(), currentExecution: current, toolRefreshOnResume: true, refreshTools: true });
-    expect(rebound).toMatchObject({ sessionId: "provider-thread-123", providerSessionId: "provider-thread-123", identity: { runId: currentRunId }, providerRecoveryPolicy: "allow_replacement_after_resume_failure" });
-    expect(rebindNativeSessionCheckpoint({ previousRun: previousRun(), currentExecution: current })).toBeNull();
-    expect(rebindNativeSessionCheckpoint({ previousRun: previousRun(), currentExecution: current, refreshTools: true, toolRefreshOnResume: false })).toBeNull();
+    current.runtimeContext.aggregateDigest =
+      canonicalNativeRuntimeContextDigest(current.runtimeContext);
+    const rebound = rebindNativeSessionCheckpoint({
+      previousRun: previousRun(),
+      currentExecution: current,
+      toolRefreshOnResume: true,
+      refreshTools: true,
+    });
+    expect(rebound).toMatchObject({
+      sessionId: "provider-thread-123",
+      providerSessionId: "provider-thread-123",
+      identity: { runId: currentRunId },
+      providerRecoveryPolicy: "allow_replacement_after_resume_failure",
+    });
+    expect(
+      rebindNativeSessionCheckpoint({
+        previousRun: previousRun(),
+        currentExecution: current,
+      }),
+    ).toBeNull();
+    expect(
+      rebindNativeSessionCheckpoint({
+        previousRun: previousRun(),
+        currentExecution: current,
+        refreshTools: true,
+        toolRefreshOnResume: false,
+      }),
+    ).toBeNull();
   });
 
-  it.each(["add", "edit", "remove"])("replaces sessions when connection instructions %s, even with live tool refresh", (change) => {
-    const block = (text: string) => ({ text, digest: createHash("sha256").update(text).digest("hex") });
-    const previous = execution(previousRunId);
-    const current = execution(currentRunId);
-    if (change !== "add") previous.runtimeContext.connectionInstructions = block("Prior connection instructions.");
-    if (change !== "remove") current.runtimeContext.connectionInstructions = block("Current connection instructions.");
-    previous.runtimeContext.aggregateDigest = canonicalNativeRuntimeContextDigest(previous.runtimeContext);
-    current.runtimeContext.aggregateDigest = canonicalNativeRuntimeContextDigest(current.runtimeContext);
-    const prior = previousRun({ nativeExecutionInput: previous });
-    expect(rebindNativeSessionCheckpoint({ previousRun: prior, currentExecution: current, toolRefreshOnResume: true, refreshTools: true })).toBeNull();
-    current.runtimeContext = previous.runtimeContext;
-    expect(rebindNativeSessionCheckpoint({ previousRun: prior, currentExecution: current })).not.toBeNull();
-  });
+  it.each(["add", "edit", "remove"])(
+    "replaces sessions when connection instructions %s, even with live tool refresh",
+    (change) => {
+      const block = (text: string) => ({
+        text,
+        digest: createHash("sha256").update(text).digest("hex"),
+      });
+      const previous = execution(previousRunId);
+      const current = execution(currentRunId);
+      if (change !== "add")
+        previous.runtimeContext.connectionInstructions = block(
+          "Prior connection instructions.",
+        );
+      if (change !== "remove")
+        current.runtimeContext.connectionInstructions = block(
+          "Current connection instructions.",
+        );
+      previous.runtimeContext.aggregateDigest =
+        canonicalNativeRuntimeContextDigest(previous.runtimeContext);
+      current.runtimeContext.aggregateDigest =
+        canonicalNativeRuntimeContextDigest(current.runtimeContext);
+      const prior = previousRun({ nativeExecutionInput: previous });
+      expect(
+        rebindNativeSessionCheckpoint({
+          previousRun: prior,
+          currentExecution: current,
+          toolRefreshOnResume: true,
+          refreshTools: true,
+        }),
+      ).toBeNull();
+      current.runtimeContext = previous.runtimeContext;
+      expect(
+        rebindNativeSessionCheckpoint({
+          previousRun: prior,
+          currentExecution: current,
+        }),
+      ).not.toBeNull();
+    },
+  );
 
   it("preserves instruction and identity fences even during a supported refresh", () => {
     const current = execution(currentRunId);
     current.runtimeContext.instructions.bundle.digest = "b".repeat(64);
-    current.runtimeContext.aggregateDigest = canonicalNativeRuntimeContextDigest(current.runtimeContext);
-    expect(rebindNativeSessionCheckpoint({ previousRun: previousRun(), currentExecution: current, toolRefreshOnResume: true, refreshTools: true })).toBeNull();
+    current.runtimeContext.aggregateDigest =
+      canonicalNativeRuntimeContextDigest(current.runtimeContext);
+    expect(
+      rebindNativeSessionCheckpoint({
+        previousRun: previousRun(),
+        currentExecution: current,
+        toolRefreshOnResume: true,
+        refreshTools: true,
+      }),
+    ).toBeNull();
     current.binding.agentId = randomUUID();
-    expect(rebindNativeSessionCheckpoint({ previousRun: previousRun(), currentExecution: current, toolRefreshOnResume: true, refreshTools: true })).toBeNull();
+    expect(
+      rebindNativeSessionCheckpoint({
+        previousRun: previousRun(),
+        currentExecution: current,
+        toolRefreshOnResume: true,
+        refreshTools: true,
+      }),
+    ).toBeNull();
   });
 
   it("rebuilds the bootstrap when refresh requires a fresh session", () => {
-    const buildExecution = vi.fn(({ normalizedSessionId: sessionId, resumedSession }) => {
-      const built = execution(currentRunId);
-      built.session.normalizedSessionId = sessionId;
-      built.task.prompt = resumedSession ? "wake delta" : "original goal and complete handoff";
-      return built;
+    const buildExecution = vi.fn(
+      ({ normalizedSessionId: sessionId, resumedSession }) => {
+        const built = execution(currentRunId);
+        built.session.normalizedSessionId = sessionId;
+        built.task.prompt = resumedSession
+          ? "wake delta"
+          : "original goal and complete handoff";
+        return built;
+      },
+    );
+    const result = buildNativeExecutionWithCheckpoint({
+      previousRun: previousRun(),
+      normalizedSessionId,
+      refreshTools: true,
+      toolRefreshOnResume: false,
+      buildExecution,
     });
-    const result = buildNativeExecutionWithCheckpoint({ previousRun: previousRun(), normalizedSessionId, refreshTools: true, toolRefreshOnResume: false, buildExecution });
     expect(result.checkpoint).toBeNull();
     expect(result.normalizedSessionId).not.toBe(normalizedSessionId);
     expect(result.execution.task.prompt).toContain("complete handoff");
-    expect(buildExecution).toHaveBeenLastCalledWith({ normalizedSessionId: result.normalizedSessionId, resumedSession: false });
+    expect(buildExecution).toHaveBeenLastCalledWith({
+      normalizedSessionId: result.normalizedSessionId,
+      resumedSession: false,
+    });
   });
 });
 
@@ -512,43 +589,35 @@ const recoveryFakeCodex = resolve(
     try {
       await mkdir(home);
       await mkdir(workspace);
-      await db
-        .insert(companies)
-        .values({
-          id: companyId,
-          name: "Cleanup topology",
-          issuePrefix: "NCT",
-        });
-      await db
-        .insert(agents)
-        .values({
-          id: agentId,
-          companyId,
-          name: "Fixture",
-          status: "active",
-          adapterType: "taskcore_runner",
-        });
-      await db
-        .insert(issues)
-        .values({
-          id: issueId,
-          companyId,
-          title: "Exact topology",
-          assigneeAgentId: agentId,
-          status: "in_progress",
-        });
-      await db
-        .insert(heartbeatRuns)
-        .values({
-          id: runId,
-          companyId,
-          agentId,
-          status: "running",
-          runtimeMode: "native",
-          nativeIssueId: issueId,
-          nativeSessionId: normalizedSessionId,
-          runnerInstanceId,
-        });
+      await db.insert(companies).values({
+        id: companyId,
+        name: "Cleanup topology",
+        issuePrefix: "NCT",
+      });
+      await db.insert(agents).values({
+        id: agentId,
+        companyId,
+        name: "Fixture",
+        status: "active",
+        adapterType: "taskcore_runner",
+      });
+      await db.insert(issues).values({
+        id: issueId,
+        companyId,
+        title: "Exact topology",
+        assigneeAgentId: agentId,
+        status: "in_progress",
+      });
+      await db.insert(heartbeatRuns).values({
+        id: runId,
+        companyId,
+        agentId,
+        status: "running",
+        runtimeMode: "native",
+        nativeIssueId: issueId,
+        nativeSessionId: normalizedSessionId,
+        runnerInstanceId,
+      });
       bundle = createCapabilityRunnerdCodexTransport({
         stateDirectory: root,
         sourceCodexHome: home,
@@ -1805,33 +1874,58 @@ describe("rebindNativeSessionCheckpoint", () => {
   );
 
   it.each([
-    ["taskcore.native-execution-input.v4", "taskcore.native-execution-input.v5"],
-    ["taskcore.native-execution-input.v5", "taskcore.native-execution-input.v4"],
-  ] as const)("retains a recoverable %s session when the constructor defaults to %s", (priorSchema, currentSchema) => {
-    const prior = previousRun();
-    const profile = prior.runnerProfileJson as Record<string, unknown>;
-    profile.nativeExecutionInput = { ...execution(previousRunId), schema: priorSchema };
-    const checkpoint = profile.sessionCheckpoint as Record<string, unknown>;
-    checkpoint.goal = { status: "paused", objective: "Preserve the existing durable work" };
-    const before = structuredClone(prior);
-    const result = buildNativeExecutionWithCheckpoint({
-      previousRun: prior,
-      normalizedSessionId,
-      buildExecution: ({ normalizedSessionId: sessionId, resumedSession }) => parseNativeExecutionInput({
-        ...execution(currentRunId), schema: currentSchema,
-        session: { ...execution(currentRunId).session, normalizedSessionId: sessionId },
-        continuationPrompt: resumedSession ? "New direction only; do not replay completed actions" : null,
-      }),
-    });
-    expect(result.execution.schema).toBe(priorSchema);
-    expect(result.normalizedSessionId).toBe(normalizedSessionId);
-    expect(result.checkpoint).toMatchObject({
-      providerSessionId: "provider-thread-123",
-      providerRecoveryPolicy: "same_session_only",
-      goal: { status: "paused", objective: "Preserve the existing durable work" },
-    });
-    expect(prior).toEqual(before);
-  });
+    [
+      "taskcore.native-execution-input.v4",
+      "taskcore.native-execution-input.v5",
+    ],
+    [
+      "taskcore.native-execution-input.v5",
+      "taskcore.native-execution-input.v4",
+    ],
+  ] as const)(
+    "retains a recoverable %s session when the constructor defaults to %s",
+    (priorSchema, currentSchema) => {
+      const prior = previousRun();
+      const profile = prior.runnerProfileJson as Record<string, unknown>;
+      profile.nativeExecutionInput = {
+        ...execution(previousRunId),
+        schema: priorSchema,
+      };
+      const checkpoint = profile.sessionCheckpoint as Record<string, unknown>;
+      checkpoint.goal = {
+        status: "paused",
+        objective: "Preserve the existing durable work",
+      };
+      const before = structuredClone(prior);
+      const result = buildNativeExecutionWithCheckpoint({
+        previousRun: prior,
+        normalizedSessionId,
+        buildExecution: ({ normalizedSessionId: sessionId, resumedSession }) =>
+          parseNativeExecutionInput({
+            ...execution(currentRunId),
+            schema: currentSchema,
+            session: {
+              ...execution(currentRunId).session,
+              normalizedSessionId: sessionId,
+            },
+            continuationPrompt: resumedSession
+              ? "New direction only; do not replay completed actions"
+              : null,
+          }),
+      });
+      expect(result.execution.schema).toBe(priorSchema);
+      expect(result.normalizedSessionId).toBe(normalizedSessionId);
+      expect(result.checkpoint).toMatchObject({
+        providerSessionId: "provider-thread-123",
+        providerRecoveryPolicy: "same_session_only",
+        goal: {
+          status: "paused",
+          objective: "Preserve the existing durable work",
+        },
+      });
+      expect(prior).toEqual(before);
+    },
+  );
 
   it("keeps a valid checkpoint and does not rebuild the resumed task", () => {
     const calls: boolean[] = [];
@@ -2128,7 +2222,10 @@ describe("rebindNativeSessionCheckpoint", () => {
     const prior = previousRun();
     const profile = prior.runnerProfileJson as Record<string, unknown>;
     const checkpoint = profile.sessionCheckpoint as Record<string, unknown>;
-    checkpoint.governedWait = { sourceEvent: { runId: previousRunId, turnId: "old-turn" }, result: { reportedWorkDisposition: "yielded" } };
+    checkpoint.governedWait = {
+      sourceEvent: { runId: previousRunId, turnId: "old-turn" },
+      result: { reportedWorkDisposition: "yielded" },
+    };
     const before = structuredClone(prior);
     const rebound = rebindNativeSessionCheckpoint({
       previousRun: prior,
@@ -2381,22 +2478,49 @@ describe("rebindNativeSessionCheckpoint", () => {
 describe("buildNativeExecutionInput wake projection", () => {
   it("uses compact Slack input only after provider resume, preserving fresh bootstrap fallback", () => {
     const base = execution(currentRunId);
-    const issue = { id: issueId, identifier: "DOT-2", title: "Old greeting", description: null, workMode: "standard" };
-    const message = { id: "wake", body: "NEW_SLACK_MESSAGE", authorType: "user", authorId: "board", sourceTrust: "user", createdByRunId: null };
+    const issue = {
+      id: issueId,
+      identifier: "DOT-2",
+      title: "Old greeting",
+      description: null,
+      workMode: "standard",
+    };
+    const message = {
+      id: "wake",
+      body: "NEW_SLACK_MESSAGE",
+      authorType: "user",
+      authorId: "board",
+      sourceTrust: "user",
+      createdByRunId: null,
+    };
     const input = buildNativeExecutionInput({
-      companyId, runId: currentRunId, agentId, issue,
+      companyId,
+      runId: currentRunId,
+      agentId,
+      issue,
       taskPrompt: "FULL_BOOTSTRAP_WITH_FILE_AND_AUTHORIZATION_INSTRUCTIONS",
       resumedSession: true,
       previousTurn: { runId: previousRunId, task: issue },
       wakePayload: {
-        reason: "External chat message received", issue,
-        externalChatProvider: "slack", checkedOutByHarness: true,
-        comments: [{ ...message, author: { type: "user", id: "board" } }], commentIds: [message.id], latestCommentId: message.id,
+        reason: "External chat message received",
+        issue,
+        externalChatProvider: "slack",
+        checkedOutByHarness: true,
+        comments: [{ ...message, author: { type: "user", id: "board" } }],
+        commentIds: [message.id],
+        latestCommentId: message.id,
         commentWindow: { requestedCount: 1, includedCount: 1, missingCount: 0 },
-        executionContinuation: { version: 1, objective: message.body, messages: [message], resumeDelta: { baseRunId: previousRunId, messages: [message] } },
+        executionContinuation: {
+          version: 1,
+          objective: message.body,
+          messages: [message],
+          resumeDelta: { baseRunId: previousRunId, messages: [message] },
+        },
       },
-      workspace: { id: currentRunId, ...base.workspace }, normalizedSessionId,
-      provider: "codex", completionContract: base.completionContract,
+      workspace: { id: currentRunId, ...base.workspace },
+      normalizedSessionId,
+      provider: "codex",
+      completionContract: base.completionContract,
       runtimeContext: nativeRuntimeContextFixture(),
     });
     expect(input.continuationPrompt).toContain(message.body);
@@ -2652,81 +2776,84 @@ describe("buildNativeExecutionInput wake projection", () => {
     );
   });
 
-  it.each([false, true])("projects wake context with the appropriate execution contract (conversation=%s)", (conversationMode) => {
-    const input = buildNativeExecutionInput({
-      companyId,
-      runId: currentRunId,
-      issue: {
-        id: issueId,
-        identifier: "DOT-146",
-        title: "Finish after child handoff",
-        description: "Use the child result.",
-        workMode: "standard",
-      },
-      taskPrompt: "Taskcore task context:\n- Issue: DOT-146",
-      wakePayload: {
-        reason: "issue_children_completed",
+  it.each([false, true])(
+    "projects wake context with the appropriate execution contract (conversation=%s)",
+    (conversationMode) => {
+      const input = buildNativeExecutionInput({
+        companyId,
+        runId: currentRunId,
         issue: {
           id: issueId,
           identifier: "DOT-146",
           title: "Finish after child handoff",
           description: "Use the child result.",
-          status: "in_progress",
-          priority: "medium",
           workMode: "standard",
         },
-        childIssueSummaries: [
-          {
-            id: "child-147",
-            identifier: "DOT-147",
-            title: "Build utility",
-            status: "done",
-            summary: "Created three files and passed 7/7 tests.",
+        taskPrompt: "Taskcore task context:\n- Issue: DOT-146",
+        wakePayload: {
+          reason: "issue_children_completed",
+          issue: {
+            id: issueId,
+            identifier: "DOT-146",
+            title: "Finish after child handoff",
+            description: "Use the child result.",
+            status: "in_progress",
+            priority: "medium",
+            workMode: "standard",
           },
-        ],
-        childIssueSummaryTruncated: false,
-        checkedOutByHarness: true,
-      },
-      resumedSession: true,
-      conversationMode,
-      agentId,
-      workspace: {
-        id: currentRunId,
-        cwd: "/workspace",
-        repoUrl: null,
-        repoRef: null,
-        branchName: null,
-      },
-      normalizedSessionId,
-      provider: "opencode",
-      model: "openrouter/z-ai/glm-5.2",
-      completionContract: {
-        id: "70000000-0000-4000-8000-000000000007",
-        sha256: `sha256:${"a".repeat(64)}`,
-        schemaVersion: "taskcore.run-result.v1",
-        contract: {
-          revision: "1",
-          objective: "Finish after the child",
-          criteria: [
-            { id: "objective", requirement: "Report the child result" },
+          childIssueSummaries: [
+            {
+              id: "child-147",
+              identifier: "DOT-147",
+              title: "Build utility",
+              status: "done",
+              summary: "Created three files and passed 7/7 tests.",
+            },
           ],
+          childIssueSummaryTruncated: false,
+          checkedOutByHarness: true,
         },
-      },
-      runtimeContext: nativeRuntimeContextFixture(),
-    });
+        resumedSession: true,
+        conversationMode,
+        agentId,
+        workspace: {
+          id: currentRunId,
+          cwd: "/workspace",
+          repoUrl: null,
+          repoRef: null,
+          branchName: null,
+        },
+        normalizedSessionId,
+        provider: "opencode",
+        model: "openrouter/z-ai/glm-5.2",
+        completionContract: {
+          id: "70000000-0000-4000-8000-000000000007",
+          sha256: `sha256:${"a".repeat(64)}`,
+          schemaVersion: "taskcore.run-result.v1",
+          contract: {
+            revision: "1",
+            objective: "Finish after the child",
+            criteria: [
+              { id: "objective", requirement: "Report the child result" },
+            ],
+          },
+        },
+        runtimeContext: nativeRuntimeContextFixture(),
+      });
 
-    expect(input.task.prompt).not.toContain("Execution contract:");
-    expect(input.task.prompt).not.toContain("Use child issues");
-    // Full bootstrap stays available if provider recovery fails after admission.
-    expect(input.task.prompt).toContain("## TaskCore Wake Payload");
-    expect(input.task.prompt).toContain("reason: issue_children_completed");
-    expect(input.task.prompt).toContain("DOT-147 Build utility (done)");
-    expect(input.task.prompt).toContain(
-      "Created three files and passed 7/7 tests.",
-    );
-    expect(input.task.prompt).toContain(
-      "Taskcore task context:\n- Issue: DOT-146",
-    );
-    expect(input.task.prompt).not.toContain("Use the child result.");
-  });
+      expect(input.task.prompt).not.toContain("Execution contract:");
+      expect(input.task.prompt).not.toContain("Use child issues");
+      // Full bootstrap stays available if provider recovery fails after admission.
+      expect(input.task.prompt).toContain("## TaskCore Wake Payload");
+      expect(input.task.prompt).toContain("reason: issue_children_completed");
+      expect(input.task.prompt).toContain("DOT-147 Build utility (done)");
+      expect(input.task.prompt).toContain(
+        "Created three files and passed 7/7 tests.",
+      );
+      expect(input.task.prompt).toContain(
+        "Taskcore task context:\n- Issue: DOT-146",
+      );
+      expect(input.task.prompt).not.toContain("Use the child result.");
+    },
+  );
 });

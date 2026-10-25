@@ -1,8 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { activityLog, agentApiKeys, companies, heartbeatRuns, issues } from "@taskcore/db";
-import { isUuidLike, PLUGIN_EVENT_TYPES, type PluginEventType } from "@taskcore/shared";
+import {
+  activityLog,
+  agentApiKeys,
+  companies,
+  heartbeatRuns,
+  issues,
+} from "@taskcore/db";
+import {
+  isUuidLike,
+  PLUGIN_EVENT_TYPES,
+  type PluginEventType,
+} from "@taskcore/shared";
 import type { PluginEvent } from "@taskcore/plugin-sdk";
 import { publishLiveEvent } from "./live-events.js";
 import { redactCurrentUserValue } from "../log-redaction.js";
@@ -12,7 +22,9 @@ import type { PluginEventBus } from "./plugin-event-bus.js";
 import { instanceSettingsService } from "./instance-settings.js";
 
 const PLUGIN_EVENT_SET: ReadonlySet<string> = new Set(PLUGIN_EVENT_TYPES);
-const ACTIVITY_ACTION_TO_PLUGIN_EVENT: Readonly<Record<string, PluginEventType>> = {
+const ACTIVITY_ACTION_TO_PLUGIN_EVENT: Readonly<
+  Record<string, PluginEventType>
+> = {
   issue_comment_added: "issue.comment.created",
   issue_comment_created: "issue.comment.created",
   issue_document_created: "issue.document.created",
@@ -32,7 +44,9 @@ let _pluginEventBus: PluginEventBus | null = null;
 /** Wire the plugin event bus so domain events are forwarded to plugins. */
 export function setPluginEventBus(bus: PluginEventBus): void {
   if (_pluginEventBus) {
-    logger.warn("setPluginEventBus called more than once, replacing existing bus");
+    logger.warn(
+      "setPluginEventBus called more than once, replacing existing bus",
+    );
   }
   _pluginEventBus = bus;
 }
@@ -44,11 +58,17 @@ function eventTypeForActivityAction(action: string): PluginEventType | null {
 
 export function publishPluginDomainEvent(event: PluginEvent): void {
   if (!_pluginEventBus) return;
-  void _pluginEventBus.emit(event).then(({ errors }) => {
-    for (const { pluginId, error } of errors) {
-      logger.warn({ pluginId, eventType: event.eventType, err: error }, "plugin event handler failed");
-    }
-  }).catch(() => {});
+  void _pluginEventBus
+    .emit(event)
+    .then(({ errors }) => {
+      for (const { pluginId, error } of errors) {
+        logger.warn(
+          { pluginId, eventType: event.eventType, err: error },
+          "plugin event handler failed",
+        );
+      }
+    })
+    .catch(() => {});
 }
 
 export interface LogActivityInput {
@@ -74,23 +94,36 @@ export interface ActivityPublication {
 
 export async function createActivityDetailsRedactor(db: Db) {
   const currentUserRedactionOptions = {
-    enabled: (await instanceSettingsService(db).getGeneral()).censorUsernameInLogs,
+    enabled: (await instanceSettingsService(db).getGeneral())
+      .censorUsernameInLogs,
   };
-  return (details: Record<string, unknown> | null) => (
-    details ? redactCurrentUserValue(sanitizeRecord(details), currentUserRedactionOptions) : null
-  );
+  return (details: Record<string, unknown> | null) =>
+    details
+      ? redactCurrentUserValue(
+          sanitizeRecord(details),
+          currentUserRedactionOptions,
+        )
+      : null;
 }
 
-export async function redactActivityDetails(db: Db, details: Record<string, unknown> | null) {
+export async function redactActivityDetails(
+  db: Db,
+  details: Record<string, unknown> | null,
+) {
   if (!details) return null;
   return (await createActivityDetailsRedactor(db))(details);
 }
 
 function readNonEmptyString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
-export async function resolveResponsibleUserIdForActivity(db: Db, input: LogActivityInput) {
+export async function resolveResponsibleUserIdForActivity(
+  db: Db,
+  input: LogActivityInput,
+) {
   if (input.responsibleUserIdOverride !== undefined) {
     return readNonEmptyString(input.responsibleUserIdOverride);
   }
@@ -101,14 +134,20 @@ export async function resolveResponsibleUserIdForActivity(db: Db, input: LogActi
     const run = await db
       .select({ responsibleUserId: heartbeatRuns.responsibleUserId })
       .from(heartbeatRuns)
-      .where(and(eq(heartbeatRuns.companyId, input.companyId), eq(heartbeatRuns.id, runId)))
+      .where(
+        and(
+          eq(heartbeatRuns.companyId, input.companyId),
+          eq(heartbeatRuns.id, runId),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
     const runResponsibleUserId = readNonEmptyString(run?.responsibleUserId);
     if (runResponsibleUserId) return runResponsibleUserId;
   }
 
-  const issueIdCandidate = readNonEmptyString(input.issueId)
-    ?? (input.entityType === "issue" ? readNonEmptyString(input.entityId) : null);
+  const issueIdCandidate =
+    readNonEmptyString(input.issueId) ??
+    (input.entityType === "issue" ? readNonEmptyString(input.entityId) : null);
   const issueId = isUuidLike(issueIdCandidate) ? issueIdCandidate : null;
   if (issueId) {
     const issue = await db
@@ -119,8 +158,9 @@ export async function resolveResponsibleUserIdForActivity(db: Db, input: LogActi
       .from(issues)
       .where(and(eq(issues.companyId, input.companyId), eq(issues.id, issueId)))
       .then((rows) => rows[0] ?? null);
-    const issueResponsibleUserId = readNonEmptyString(issue?.responsibleUserId)
-      ?? readNonEmptyString(issue?.createdByUserId);
+    const issueResponsibleUserId =
+      readNonEmptyString(issue?.responsibleUserId) ??
+      readNonEmptyString(issue?.createdByUserId);
     if (issueResponsibleUserId) return issueResponsibleUserId;
   }
 
@@ -130,13 +170,19 @@ export async function resolveResponsibleUserIdForActivity(db: Db, input: LogActi
     const apiKey = await db
       .select({ responsibleUserId: agentApiKeys.responsibleUserId })
       .from(agentApiKeys)
-      .where(and(
-        eq(agentApiKeys.companyId, input.companyId),
-        eq(agentApiKeys.id, agentApiKeyId),
-        ...(agentId && isUuidLike(agentId) ? [eq(agentApiKeys.agentId, agentId)] : []),
-      ))
+      .where(
+        and(
+          eq(agentApiKeys.companyId, input.companyId),
+          eq(agentApiKeys.id, agentApiKeyId),
+          ...(agentId && isUuidLike(agentId)
+            ? [eq(agentApiKeys.agentId, agentId)]
+            : []),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
-    const apiKeyResponsibleUserId = readNonEmptyString(apiKey?.responsibleUserId);
+    const apiKeyResponsibleUserId = readNonEmptyString(
+      apiKey?.responsibleUserId,
+    );
     if (apiKeyResponsibleUserId) return apiKeyResponsibleUserId;
   }
 
@@ -154,27 +200,38 @@ export function publishActivity(publication: ActivityPublication) {
     type: "activity.logged",
     payload: publication.payload,
   });
-  if (publication.pluginEvent) publishPluginDomainEvent(publication.pluginEvent);
+  if (publication.pluginEvent)
+    publishPluginDomainEvent(publication.pluginEvent);
 }
 
 export async function persistActivity(db: Db, input: LogActivityInput) {
-  const redactedDetails = await redactActivityDetails(db, input.details ?? null);
-  const responsibleUserId = await resolveResponsibleUserIdForActivity(db, input);
-  const [activity] = await db.insert(activityLog).values({
-    companyId: input.companyId,
-    actorType: input.actorType,
-    actorId: input.actorId,
-    action: input.action,
-    entityType: input.entityType,
-    entityId: input.entityId,
-    agentId: input.agentId ?? null,
-    runId: input.runId ?? null,
-    responsibleUserId,
-    details: redactedDetails,
-  }).returning({ id: activityLog.id });
+  const redactedDetails = await redactActivityDetails(
+    db,
+    input.details ?? null,
+  );
+  const responsibleUserId = await resolveResponsibleUserIdForActivity(
+    db,
+    input,
+  );
+  const [activity] = await db
+    .insert(activityLog)
+    .values({
+      companyId: input.companyId,
+      actorType: input.actorType,
+      actorId: input.actorId,
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      agentId: input.agentId ?? null,
+      runId: input.runId ?? null,
+      responsibleUserId,
+      details: redactedDetails,
+    })
+    .returning({ id: activityLog.id });
 
   const payload = {
-    issueId: input.issueId ?? (input.entityType === "issue" ? input.entityId : null),
+    issueId:
+      input.issueId ?? (input.entityType === "issue" ? input.entityId : null),
     actorType: input.actorType,
     actorId: input.actorId,
     action: input.action,

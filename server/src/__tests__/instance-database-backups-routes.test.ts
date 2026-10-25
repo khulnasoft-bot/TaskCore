@@ -8,7 +8,10 @@ import {
 } from "../routes/instance-database-backups.js";
 import { conflict } from "../errors.js";
 
-function createApp(actor: Record<string, unknown>, service: InstanceDatabaseBackupService) {
+function createApp(
+  actor: Record<string, unknown>,
+  service: InstanceDatabaseBackupService,
+) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -20,7 +23,9 @@ function createApp(actor: Record<string, unknown>, service: InstanceDatabaseBack
   return app;
 }
 
-function createBackupService(overrides: Partial<InstanceDatabaseBackupService> = {}): InstanceDatabaseBackupService {
+function createBackupService(
+  overrides: Partial<InstanceDatabaseBackupService> = {},
+): InstanceDatabaseBackupService {
   return {
     runManualBackup: vi.fn().mockResolvedValue({
       trigger: "manual",
@@ -54,7 +59,9 @@ describe("instance database backup routes", () => {
       service,
     );
 
-    const res = await request(app).post("/api/instance/database-backups").send({});
+    const res = await request(app)
+      .post("/api/instance/database-backups")
+      .send({});
 
     expect(res.status).toBe(201);
     expect(service.runManualBackup).toHaveBeenCalledTimes(1);
@@ -87,7 +94,10 @@ describe("instance database backup routes", () => {
       service,
     );
 
-    await request(app).post("/api/instance/database-backups").send({}).expect(201);
+    await request(app)
+      .post("/api/instance/database-backups")
+      .send({})
+      .expect(201);
 
     expect(service.runManualBackup).toHaveBeenCalledTimes(1);
   });
@@ -105,7 +115,10 @@ describe("instance database backup routes", () => {
       service,
     );
 
-    await request(app).post("/api/instance/database-backups").send({}).expect(403);
+    await request(app)
+      .post("/api/instance/database-backups")
+      .send({})
+      .expect(403);
 
     expect(service.runManualBackup).not.toHaveBeenCalled();
   });
@@ -122,14 +135,19 @@ describe("instance database backup routes", () => {
       service,
     );
 
-    await request(app).post("/api/instance/database-backups").send({}).expect(403);
+    await request(app)
+      .post("/api/instance/database-backups")
+      .send({})
+      .expect(403);
 
     expect(service.runManualBackup).not.toHaveBeenCalled();
   });
 
   it("returns conflict when another server backup is already running", async () => {
     const service = createBackupService({
-      runManualBackup: vi.fn().mockRejectedValue(conflict("Database backup already in progress")),
+      runManualBackup: vi
+        .fn()
+        .mockRejectedValue(conflict("Database backup already in progress")),
     });
     const app = createApp(
       {
@@ -141,7 +159,9 @@ describe("instance database backup routes", () => {
       service,
     );
 
-    const res = await request(app).post("/api/instance/database-backups").send({});
+    const res = await request(app)
+      .post("/api/instance/database-backups")
+      .send({});
 
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: "Database backup already in progress" });
@@ -167,10 +187,14 @@ describe("instance database backup routes", () => {
         service,
       );
 
-      const res = await request(app).post("/api/instance/database-backups").send({});
+      const res = await request(app)
+        .post("/api/instance/database-backups")
+        .send({});
 
       expect(res.status).toBe(403);
-      expect(res.body.details).toMatchObject({ code: "database_backups_platform_managed" });
+      expect(res.body.details).toMatchObject({
+        code: "database_backups_platform_managed",
+      });
       expect(service.runManualBackup).not.toHaveBeenCalled();
     });
 
@@ -187,7 +211,10 @@ describe("instance database backup routes", () => {
         service,
       );
 
-      await request(app).post("/api/instance/database-backups").send({}).expect(403);
+      await request(app)
+        .post("/api/instance/database-backups")
+        .send({})
+        .expect(403);
 
       expect(service.runManualBackup).not.toHaveBeenCalled();
     });

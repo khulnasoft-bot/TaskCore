@@ -10,7 +10,9 @@ import { emitContextIntegrityFinalEvidence } from "./context-integrity-evidence.
 const execFileAsync = promisify(execFile);
 
 async function fixtureRoot() {
-  const root = await mkdtemp(path.join(os.tmpdir(), "context-integrity-evidence-"));
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "context-integrity-evidence-"),
+  );
   await mkdir(path.join(root, "snapshots"), { recursive: true });
   await mkdir(path.join(root, "html-report"), { recursive: true });
   await mkdir(path.join(root, "blob-report"), { recursive: true });
@@ -20,7 +22,9 @@ async function fixtureRoot() {
   await writeFile(path.join(root, "html-report", "index.html"), "<html/>\n");
   const blobReport = path.join(root, "blob-report");
   await writeFile(path.join(blobReport, "report.txt"), "playwright report\n");
-  await execFileAsync("zip", ["-q", "report.zip", "report.txt"], { cwd: blobReport });
+  await execFileAsync("zip", ["-q", "report.zip", "report.txt"], {
+    cwd: blobReport,
+  });
   await rm(path.join(blobReport, "report.txt"));
   return root;
 }
@@ -31,14 +35,31 @@ describe("context integrity final evidence contract", () => {
     const uploadDir = `${privateDir}-upload`;
     try {
       await emitContextIntegrityFinalEvidence({
-        evidence: async (name, value) => writeFile(path.join(privateDir, "snapshots", name), `${JSON.stringify(value)}\n`),
-        capture: async (_id, _label, file) => writeFile(path.join(privateDir, file), "png\n"),
-        issue: { id: "issue" }, runs: [], checkpoints: [], checks: [],
+        evidence: async (name, value) =>
+          writeFile(
+            path.join(privateDir, "snapshots", name),
+            `${JSON.stringify(value)}\n`,
+          ),
+        capture: async (_id, _label, file) =>
+          writeFile(path.join(privateDir, file), "png\n"),
+        issue: { id: "issue" },
+        runs: [],
+        checkpoints: [],
+        checks: [],
       });
-      const packaged = await packageEvidence({ privateDir, uploadDir, secrets: [], expectPassScreenshot: true });
+      const packaged = await packageEvidence({
+        privateDir,
+        uploadDir,
+        secrets: [],
+        expectPassScreenshot: true,
+      });
       expect(packaged.missing).toEqual([]);
-      await expect(readFile(path.join(uploadDir, "final-state.png"), "utf8")).resolves.toBe("png\n");
-      await expect(readFile(path.join(uploadDir, "snapshots", "api-state.json"), "utf8")).resolves.toContain('"capturePhase": "final"');
+      await expect(
+        readFile(path.join(uploadDir, "final-state.png"), "utf8"),
+      ).resolves.toBe("png\n");
+      await expect(
+        readFile(path.join(uploadDir, "snapshots", "api-state.json"), "utf8"),
+      ).resolves.toContain('"capturePhase": "final"');
     } finally {
       await rm(privateDir, { recursive: true, force: true });
       await rm(uploadDir, { recursive: true, force: true });
@@ -49,11 +70,24 @@ describe("context integrity final evidence contract", () => {
     const privateDir = await fixtureRoot();
     const uploadDir = `${privateDir}-upload`;
     try {
-      await writeFile(path.join(privateDir, "context-integrity-final.png"), "png\n");
-      await writeFile(path.join(privateDir, "snapshots", "context-integrity.json"), "{}\n");
-      const packaged = await packageEvidence({ privateDir, uploadDir, secrets: [], expectPassScreenshot: true });
+      await writeFile(
+        path.join(privateDir, "context-integrity-final.png"),
+        "png\n",
+      );
+      await writeFile(
+        path.join(privateDir, "snapshots", "context-integrity.json"),
+        "{}\n",
+      );
+      const packaged = await packageEvidence({
+        privateDir,
+        uploadDir,
+        secrets: [],
+        expectPassScreenshot: true,
+      });
       expect(packaged.missing).toContain("final-state.png");
-      expect(packaged.missing).toContain(path.join("snapshots", "api-state.json"));
+      expect(packaged.missing).toContain(
+        path.join("snapshots", "api-state.json"),
+      );
     } finally {
       await rm(privateDir, { recursive: true, force: true });
       await rm(uploadDir, { recursive: true, force: true });

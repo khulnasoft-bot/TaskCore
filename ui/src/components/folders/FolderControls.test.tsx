@@ -148,7 +148,9 @@ describe("FolderControls", () => {
   it("normalizes URL selection values for folder persistence", () => {
     expect(normalizeFolderSelection(null)).toBe("all");
     expect(normalizeFolderSelection("unfiled")).toBe("unfiled");
-    expect(normalizeFolderSelection("folder-reporting")).toBe("folder-reporting");
+    expect(normalizeFolderSelection("folder-reporting")).toBe(
+      "folder-reporting",
+    );
     expect(folderSearchValue("all")).toBe("");
     expect(folderSearchValue("unfiled")).toBe("unfiled");
     expect(folderSearchValue("folder-reporting")).toBe("folder-reporting");
@@ -181,13 +183,15 @@ describe("FolderControls", () => {
     expect(container.textContent).toContain("3");
     expect(container.textContent).toContain("1");
 
-    const reportingButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Reporting"),
-    );
+    const reportingButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Reporting"));
     expect(reportingButton).toBeTruthy();
 
     act(() => {
-      reportingButton?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      reportingButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onSelect).toHaveBeenCalledWith("folder-reporting");
@@ -234,11 +238,13 @@ describe("FolderControls", () => {
       );
     });
 
-    const nameButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Reporting"),
+    const nameButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Reporting"),
     );
     act(() => {
-      nameButton?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+      nameButton?.dispatchEvent(
+        new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+      );
     });
 
     const input = container.querySelector<HTMLInputElement>("input");
@@ -247,15 +253,23 @@ describe("FolderControls", () => {
 
     act(() => {
       if (!input) return;
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       setter?.call(input, "Monthly reports");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     act(() => {
-      input?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      input?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
     });
 
-    expect(onRename).toHaveBeenCalledWith(folderResult.folders[0], "Monthly reports");
+    expect(onRename).toHaveBeenCalledWith(
+      folderResult.folders[0],
+      "Monthly reports",
+    );
   });
 
   it("moves via MoveToMenu: Unfiled, a folder, and new-folder chaining", () => {
@@ -280,34 +294,50 @@ describe("FolderControls", () => {
       );
     });
 
-    const subTrigger = Array.from(document.querySelectorAll("[data-radix-collection-item]")).find(
-      (element) => element.textContent?.includes("Move to"),
-    );
+    const subTrigger = Array.from(
+      document.querySelectorAll("[data-radix-collection-item]"),
+    ).find((element) => element.textContent?.includes("Move to"));
     expect(subTrigger).toBeTruthy();
     act(() => {
-      subTrigger?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      subTrigger?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+      );
     });
 
-    const menuItems = Array.from(document.querySelectorAll('[role="menuitem"]'));
-    const unfiledItem = menuItems.find((element) => element.textContent?.includes("Unfiled"));
-    const folderItem = menuItems.find((element) => element.textContent?.includes("Reporting"));
-    const newFolderItem = menuItems.find((element) => element.textContent?.includes("New folder"));
+    const menuItems = Array.from(
+      document.querySelectorAll('[role="menuitem"]'),
+    );
+    const unfiledItem = menuItems.find((element) =>
+      element.textContent?.includes("Unfiled"),
+    );
+    const folderItem = menuItems.find((element) =>
+      element.textContent?.includes("Reporting"),
+    );
+    const newFolderItem = menuItems.find((element) =>
+      element.textContent?.includes("New folder"),
+    );
     expect(unfiledItem).toBeTruthy();
     expect(folderItem).toBeTruthy();
     expect(newFolderItem).toBeTruthy();
 
     act(() => {
-      unfiledItem?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      unfiledItem?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onMove).toHaveBeenCalledWith(null);
 
     act(() => {
-      folderItem?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      folderItem?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onMove).toHaveBeenCalledWith("folder-reporting");
 
     act(() => {
-      newFolderItem?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      newFolderItem?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onCreateAndMove).toHaveBeenCalled();
   });
@@ -336,16 +366,24 @@ describe("FolderControls", () => {
     const nameInput = document.querySelector<HTMLInputElement>("#folder-name");
     act(() => {
       if (!nameInput) return;
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       setter?.call(nameInput, "Reporting");
       nameInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
     expect(submit?.disabled).toBe(false);
     act(() => {
-      submit?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      submit?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
-    expect(onSubmit).toHaveBeenCalledWith({ name: "Reporting", color: expect.any(String) });
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: "Reporting",
+      color: expect.any(String),
+    });
   });
 
   it("states the forgiving delete behavior and confirms", () => {
@@ -363,14 +401,18 @@ describe("FolderControls", () => {
       );
     });
 
-    expect(document.body.textContent).toContain("3 routines in this folder won't be deleted");
+    expect(document.body.textContent).toContain(
+      "3 routines in this folder won't be deleted",
+    );
     expect(document.body.textContent).toContain("They'll move to Unfiled");
 
     const confirmButton = Array.from(document.querySelectorAll("button")).find(
       (button) => button.textContent === "Delete folder",
     );
     act(() => {
-      confirmButton?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      confirmButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onConfirm).toHaveBeenCalled();
   });
@@ -401,7 +443,9 @@ describe("FolderControls", () => {
       (button) => button.textContent?.includes("Reporting"),
     );
     act(() => {
-      reportingRow?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      reportingRow?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onSelect).toHaveBeenCalledWith("folder-reporting");
@@ -426,12 +470,22 @@ describe("FolderControls", () => {
     });
 
     const body = document.body.textContent ?? "";
-    expect(body.indexOf("My Skills")).toBeLessThan(body.indexOf("Organization"));
-    expect(body.indexOf("Organization")).toBeLessThan(body.indexOf("Engineering"));
-    expect(body.indexOf("Engineering")).toBeLessThan(body.indexOf("Code Review"));
+    expect(body.indexOf("My Skills")).toBeLessThan(
+      body.indexOf("Organization"),
+    );
+    expect(body.indexOf("Organization")).toBeLessThan(
+      body.indexOf("Engineering"),
+    );
+    expect(body.indexOf("Engineering")).toBeLessThan(
+      body.indexOf("Code Review"),
+    );
     expect(body.indexOf("Code Review")).toBeLessThan(body.indexOf("Projects"));
     expect(body.indexOf("Projects")).toBeLessThan(body.indexOf("Bundled"));
-    expect(document.querySelector('[data-folder-id="engineering"] > .pl-3 [data-folder-id="code-review"]')).not.toBeNull();
+    expect(
+      document.querySelector(
+        '[data-folder-id="engineering"] > .pl-3 [data-folder-id="code-review"]',
+      ),
+    ).not.toBeNull();
   });
 
   it("persists AllUnfiledBanner dismissal across mounts", () => {
@@ -455,7 +509,9 @@ describe("FolderControls", () => {
       'button[aria-label="Dismiss folder suggestion"]',
     );
     act(() => {
-      dismissButton?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      dismissButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(container.textContent).not.toContain("Create your first folder");

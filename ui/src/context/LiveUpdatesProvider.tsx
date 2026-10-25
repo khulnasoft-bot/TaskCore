@@ -45,7 +45,10 @@ import {
   removeLiveRunById,
 } from "../lib/optimistic-issue-runs";
 import { queryKeys } from "../lib/queryKeys";
-import { extractCompanyPrefixFromPath, toCompanyRelativePath } from "../lib/company-routes";
+import {
+  extractCompanyPrefixFromPath,
+  toCompanyRelativePath,
+} from "../lib/company-routes";
 import { useLocation } from "../lib/router";
 import { agentRouteRef } from "../lib/utils";
 import { buildSameOriginWebSocketUrl } from "../lib/websocket-url";
@@ -307,20 +310,32 @@ function resolveVisibleIssueRouteContext(
 
   let issueRef = decodeURIComponent(segments[1]);
   if (segments[0] === "chats") {
-    const session = queryClient.getQueryData<Awaited<ReturnType<typeof authApi.getSession>>>(queryKeys.auth.session);
+    const session = queryClient.getQueryData<
+      Awaited<ReturnType<typeof authApi.getSession>>
+    >(queryKeys.auth.session);
     const userId = session?.user?.id ?? session?.session?.userId ?? null;
     const companyPrefix = extractCompanyPrefixFromPath(pathname);
-    const company = queryClient.getQueryData<CompanyListResult>(queryKeys.companies.list(userId))
-      ?.companies.find(item => item.issuePrefix.toUpperCase() === companyPrefix?.toUpperCase());
+    const company = queryClient
+      .getQueryData<CompanyListResult>(queryKeys.companies.list(userId))
+      ?.companies.find(
+        (item) =>
+          item.issuePrefix.toUpperCase() === companyPrefix?.toUpperCase(),
+      );
     if (!company) return null;
-    const agent = queryClient.getQueryData<Agent[]>(queryKeys.agents.list(company.id))
-      ?.find(item => item.id === issueRef || agentRouteRef(item) === issueRef);
+    const agent = queryClient
+      .getQueryData<Agent[]>(queryKeys.agents.list(company.id))
+      ?.find(
+        (item) => item.id === issueRef || agentRouteRef(item) === issueRef,
+      );
     if (!agent) return null;
-    const conversation = queryClient.getQueryData<Issue | null>(queryKeys.agentChats.detail(company.id, userId, agent.id));
+    const conversation = queryClient.getQueryData<Issue | null>(
+      queryKeys.agentChats.detail(company.id, userId, agent.id),
+    );
     if (!conversation) return null;
     issueRef = conversation.id;
   }
-  const issue = queryClient.getQueryData<Issue>(queryKeys.issues.detail(issueRef)) ?? null;
+  const issue =
+    queryClient.getQueryData<Issue>(queryKeys.issues.detail(issueRef)) ?? null;
   const issueRefs = new Set<string>([issueRef]);
   if (issue?.id) issueRefs.add(issue.id);
   if (issue?.identifier) issueRefs.add(issue.identifier);
@@ -522,19 +537,39 @@ function invalidateVisibleIssueRunQueries(
   }
 
   for (const issueRef of context.issueRefs) {
-    queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issueRef) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.issues.activity(issueRef) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.issues.runs(issueRef) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.issues.liveRuns(issueRef) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.issues.activeRun(issueRef) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.issues.detail(issueRef),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.issues.activity(issueRef),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.issues.runs(issueRef),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.issues.liveRuns(issueRef),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.issues.activeRun(issueRef),
+    });
     if (status && TERMINAL_RUN_STATUSES.has(status)) {
       // A final comment can race the last in-flight history fetch. Reconcile
       // persisted messages after the turn settles.
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.comments(issueRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.attachments(issueRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.workProducts(issueRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.workProductPullRequestRefresh(issueRef) });
-      queryClient.invalidateQueries({ queryKey: ["issues", "tree-control-state", issueRef] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.comments(issueRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.attachments(issueRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.workProducts(issueRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.workProductPullRequestRefresh(issueRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["issues", "tree-control-state", issueRef],
+      });
     }
   }
   return true;
@@ -1276,15 +1311,25 @@ function invalidateActivityQueries(
       !!currentActor.agentId &&
       actorId === currentActor.agentId);
 
-  if (action?.startsWith("ai_connection.") || action?.startsWith("connection_grant.")) {
+  if (
+    action?.startsWith("ai_connection.") ||
+    action?.startsWith("connection_grant.")
+  ) {
     queryClient.invalidateQueries({ queryKey: ["ai-connections", companyId] });
   }
 
-  if (action?.startsWith("primary_agent.") || action?.startsWith("agent.") || action?.startsWith("resource_membership.")) {
+  if (
+    action?.startsWith("primary_agent.") ||
+    action?.startsWith("agent.") ||
+    action?.startsWith("resource_membership.")
+  ) {
     queryClient.invalidateQueries({ queryKey: ["primary-agent", companyId] });
   }
 
-  if (action?.startsWith("resource_membership.") || action?.startsWith("primary_agent.")) {
+  if (
+    action?.startsWith("resource_membership.") ||
+    action?.startsWith("primary_agent.")
+  ) {
     const targetUserId = readString(details?.userId);
     if (!targetUserId || targetUserId === currentActor.userId) {
       queryClient.invalidateQueries({
@@ -1294,14 +1339,30 @@ function invalidateActivityQueries(
   }
 
   if (entityType === "issue") {
-    const chatListKey = queryKeys.agentChats.list(companyId, currentActor.userId);
-    const knownChat = entityId && queryClient.getQueryData<Issue[]>(chatListKey)?.some(chat => chat.id === entityId);
-    if (knownChat || action === "issue.conversation_opened" && ownActorActivity) {
+    const chatListKey = queryKeys.agentChats.list(
+      companyId,
+      currentActor.userId,
+    );
+    const knownChat =
+      entityId &&
+      queryClient
+        .getQueryData<Issue[]>(chatListKey)
+        ?.some((chat) => chat.id === entityId);
+    if (
+      knownChat ||
+      (action === "issue.conversation_opened" && ownActorActivity)
+    ) {
       queryClient.invalidateQueries({ queryKey: chatListKey });
     }
-    if (action === "issue.tree_hold_created" || action === "issue.tree_hold_released" || action === "issue.updated") {
+    if (
+      action === "issue.tree_hold_created" ||
+      action === "issue.tree_hold_released" ||
+      action === "issue.updated"
+    ) {
       // An ancestor hold or reparenting changes descendants' effective pause.
-      queryClient.invalidateQueries({ queryKey: ["issues", "tree-control-state"] });
+      queryClient.invalidateQueries({
+        queryKey: ["issues", "tree-control-state"],
+      });
     }
     queryClient.invalidateQueries({
       queryKey: queryKeys.issues.list(companyId),
@@ -1355,20 +1416,43 @@ function invalidateActivityQueries(
           visibleIssueCommentActivity
             ? { refetchType: "inactive" as const }
             : undefined;
-        queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(ref), ...invalidationOptions });
-        queryClient.invalidateQueries({ queryKey: queryKeys.issues.activity(ref), ...invalidationOptions });
-        if (action === "issue.comment_added" || action === "issue.conversation_session_started") {
-          queryClient.invalidateQueries({ queryKey: queryKeys.issues.comments(ref), ...invalidationOptions });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.issues.detail(ref),
+          ...invalidationOptions,
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.issues.activity(ref),
+          ...invalidationOptions,
+        });
+        if (
+          action === "issue.comment_added" ||
+          action === "issue.conversation_session_started"
+        ) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.issues.comments(ref),
+            ...invalidationOptions,
+          });
         }
-        if (action?.startsWith("issue.attachment_") || action?.startsWith("issue.work_product_")) {
+        if (
+          action?.startsWith("issue.attachment_") ||
+          action?.startsWith("issue.work_product_")
+        ) {
           // These cards are durable API objects, not streamed text. Refresh the
           // visible task too, including attachments bound to an existing comment.
-          queryClient.invalidateQueries({ queryKey: queryKeys.issues.attachments(ref) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.issues.workProducts(ref) });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.issues.attachments(ref),
+          });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.issues.workProducts(ref),
+          });
         }
         if (action === "issue.conversation_session_started") {
-          queryClient.invalidateQueries({ queryKey: ["issues", "tree-control-state", ref] });
-          queryClient.invalidateQueries({ queryKey: queryKeys.issues.interactions(ref) });
+          queryClient.invalidateQueries({
+            queryKey: ["issues", "tree-control-state", ref],
+          });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.issues.interactions(ref),
+          });
         }
         if (action && ISSUE_DOCUMENT_ACTIVITY_ACTIONS.has(action)) {
           const documentKey = readString(details?.key);
@@ -1455,18 +1539,38 @@ function invalidateActivityQueries(
   }
 
   if (entityType === "project") {
-    const sourceIssueId = readString((payload.details as Record<string, unknown> | undefined)?.sourceIssueId);
-    if (sourceIssueId) queryClient.invalidateQueries({ queryKey: queryKeys.issues.activity(sourceIssueId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.projects.all(companyId) });
-    if (entityId) queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(entityId) });
+    const sourceIssueId = readString(
+      (payload.details as Record<string, unknown> | undefined)?.sourceIssueId,
+    );
+    if (sourceIssueId)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.activity(sourceIssueId),
+      });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.projects.all(companyId),
+    });
+    if (entityId)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.detail(entityId),
+      });
     return;
   }
 
   if (entityType === "company_skill") {
-    const sourceIssueId = readString((payload.details as Record<string, unknown> | undefined)?.sourceIssueId);
-    if (sourceIssueId) queryClient.invalidateQueries({ queryKey: queryKeys.issues.activity(sourceIssueId) });
-    if (entityId) queryClient.invalidateQueries({ queryKey: queryKeys.companySkills.detail(companyId, entityId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.companySkills.list(companyId) });
+    const sourceIssueId = readString(
+      (payload.details as Record<string, unknown> | undefined)?.sourceIssueId,
+    );
+    if (sourceIssueId)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.activity(sourceIssueId),
+      });
+    if (entityId)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.companySkills.detail(companyId, entityId),
+      });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.companySkills.list(companyId),
+    });
     return;
   }
 
@@ -1615,7 +1719,9 @@ function observeRunOutcome(gate: ToastGate, event: LiveEvent): boolean {
   gate.observedRunOutcomes.delete(key);
   gate.observedRunOutcomes.add(key);
   if (gate.observedRunOutcomes.size > MAX_OBSERVED_RUN_OUTCOMES) {
-    gate.observedRunOutcomes.delete(gate.observedRunOutcomes.values().next().value!);
+    gate.observedRunOutcomes.delete(
+      gate.observedRunOutcomes.values().next().value!,
+    );
   }
   // Use the two server timestamps: delivery time is not failure time. This
   // also keeps historical failures quiet after a reload, without client clock
@@ -1673,7 +1779,11 @@ function handleLiveEvent(
   const suppressRunToast =
     event.type === "heartbeat.run.status" &&
     (observeRunOutcome(gate, event) ||
-      shouldSuppressRunStatusToastForVisibleIssue(queryClient, pathname, payload));
+      shouldSuppressRunStatusToastForVisibleIssue(
+        queryClient,
+        pathname,
+        payload,
+      ));
   const liveStatusPatch = readRunLiveStatusPatchFromPayload(
     payload,
     event.createdAt,
@@ -1860,8 +1970,15 @@ export const __liveUpdatesTestUtils = {
   shouldSuppressAgentStatusToastForVisibleIssue,
 };
 
-function canUseLiveSession(sessionStatus: string, hasSession: boolean, deploymentMode?: string) {
-  return sessionStatus === "success" && (hasSession || deploymentMode === "local_trusted");
+function canUseLiveSession(
+  sessionStatus: string,
+  hasSession: boolean,
+  deploymentMode?: string,
+) {
+  return (
+    sessionStatus === "success" &&
+    (hasSession || deploymentMode === "local_trusted")
+  );
 }
 
 export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
@@ -1882,12 +1999,23 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
     queryFn: () => authApi.getSession(),
     retry: false,
   });
-  const { data: health } = useQuery({ queryKey: queryKeys.health, queryFn: healthApi.get });
+  const { data: health } = useQuery({
+    queryKey: queryKeys.health,
+    queryFn: healthApi.get,
+  });
   const currentUserId = session?.user?.id ?? session?.session?.userId ?? null;
   const socketAuthKey = session?.session?.id ?? currentUserId ?? "signed_out";
-  const liveCompanyId = resolveLiveCompanyId(selectedCompanyId, selectedCompany?.id ?? null);
-  const canConnectSocket = canUseLiveSession(sessionStatus, session != null, health?.deploymentMode) && liveCompanyId !== null;
-  const currentActorRef = useRef<{ userId: string | null; agentId: string | null }>({
+  const liveCompanyId = resolveLiveCompanyId(
+    selectedCompanyId,
+    selectedCompany?.id ?? null,
+  );
+  const canConnectSocket =
+    canUseLiveSession(sessionStatus, session != null, health?.deploymentMode) &&
+    liveCompanyId !== null;
+  const currentActorRef = useRef<{
+    userId: string | null;
+    agentId: string | null;
+  }>({
     userId: currentUserId,
     agentId: null,
   });
@@ -1937,7 +2065,10 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
     if (wasHidden.current) {
       wasHidden.current = false;
       // Reconcile events missed while hidden, including completed runs/issues.
-      void queryClient.invalidateQueries({ type: "active" }, { cancelRefetch: false });
+      void queryClient.invalidateQueries(
+        { type: "active" },
+        { cancelRefetch: false },
+      );
     }
 
     let closed = false;
@@ -1964,7 +2095,10 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
       if (closed || pollTimer !== null) return;
       // Visible queries still need fresh state when realtime is unavailable.
       pollTimer = window.setInterval(() => {
-        void queryClient.invalidateQueries({ type: "active" }, { cancelRefetch: false });
+        void queryClient.invalidateQueries(
+          { type: "active" },
+          { cancelRefetch: false },
+        );
       }, DISCONNECTED_POLL_INTERVAL_MS);
     };
 
@@ -2005,7 +2139,10 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
         }
         // The initial page queries can finish before the first subscription,
         // too. Reconcile that gap as well as reconnects: events are not replayed.
-        void queryClient.invalidateQueries({ type: "active" }, { cancelRefetch: false });
+        void queryClient.invalidateQueries(
+          { type: "active" },
+          { cancelRefetch: false },
+        );
         reconnectAttempt = 0;
       };
 

@@ -6,6 +6,7 @@ export const goalsApi = {
   get: (id: string) => api.get<Goal>(`/goals/${id}`),
   create: (companyId: string, data: Record<string, unknown>) =>
     api.post<Goal>(`/companies/${companyId}/goals`, data),
-  update: (id: string, data: Record<string, unknown>) => api.patch<Goal>(`/goals/${id}`, data),
+  update: (id: string, data: Record<string, unknown>) =>
+    api.patch<Goal>(`/goals/${id}`, data),
   remove: (id: string) => api.delete<Goal>(`/goals/${id}`),
 };

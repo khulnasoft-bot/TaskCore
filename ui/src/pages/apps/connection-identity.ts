@@ -15,7 +15,8 @@ import type {
  * card cannot drift into three different names for the same thing.
  */
 
-export type ConnectionTypeLabel = "Personal" | "Dedicated agent" | "Organization";
+export type ConnectionTypeLabel =
+  "Personal" | "Dedicated agent" | "Organization";
 
 /** The two connection types shown throughout the product. */
 export function connectionTypeLabel(
@@ -39,7 +40,10 @@ const ORGANIZATION_NAME_SUFFIX = " for the organization";
 const LEGACY_ORGANIZATION_NAME_SUFFIX = " for the company";
 
 /** Keep organization-owned connections unmistakable anywhere their name appears. */
-export function connectionNameForGrantKind(name: string, grantKind: ConnectionGrantKind): string {
+export function connectionNameForGrantKind(
+  name: string,
+  grantKind: ConnectionGrantKind,
+): string {
   const trimmed = name.trim();
   if (grantKind !== "organization") {
     return trimmed;
@@ -49,7 +53,9 @@ export function connectionNameForGrantKind(name: string, grantKind: ConnectionGr
     return trimmed;
   }
   if (lowercased.endsWith(LEGACY_ORGANIZATION_NAME_SUFFIX)) {
-    const base = trimmed.slice(0, trimmed.length - LEGACY_ORGANIZATION_NAME_SUFFIX.length).trimEnd();
+    const base = trimmed
+      .slice(0, trimmed.length - LEGACY_ORGANIZATION_NAME_SUFFIX.length)
+      .trimEnd();
     return `${base}${ORGANIZATION_NAME_SUFFIX}`;
   }
   return `${trimmed}${ORGANIZATION_NAME_SUFFIX}`;
@@ -61,7 +67,9 @@ export function connectionNameForCredentialPolicy(
 ): string {
   return connectionNameForGrantKind(
     name,
-    connectionTypeLabel(credentialPolicy) === "Organization" ? "organization" : "user",
+    connectionTypeLabel(credentialPolicy) === "Organization"
+      ? "organization"
+      : "user",
   );
 }
 
@@ -85,9 +93,12 @@ export function grantStatusLabel(status: ConnectionGrantStatus | null): string {
   }
 }
 
-export type GrantStatusTone = "connected" | "attention" | "inactive" | "missing";
+export type GrantStatusTone =
+  "connected" | "attention" | "inactive" | "missing";
 
-export function grantStatusTone(status: ConnectionGrantStatus | null): GrantStatusTone {
+export function grantStatusTone(
+  status: ConnectionGrantStatus | null,
+): GrantStatusTone {
   switch (status) {
     case "active":
       return "connected";
@@ -112,8 +123,10 @@ export function grantAccountLabel(
 ): string {
   const tenantName = grant?.providerTenant?.name?.trim();
   if (tenantName) return tenantName;
-  if (grant?.kind === "user") return options.subjectLabel?.trim() || "Connected account";
-  if (grant?.kind === "agent") return options.subjectLabel?.trim() || "Dedicated account";
+  if (grant?.kind === "user")
+    return options.subjectLabel?.trim() || "Connected account";
+  if (grant?.kind === "agent")
+    return options.subjectLabel?.trim() || "Dedicated account";
   return "Shared credential";
 }
 
@@ -122,33 +135,55 @@ export function grantAccountLabel(
  * members" — the product never says "empty list", because that is a storage
  * detail and not how anyone thinks about who may use an identity.
  */
-export function audienceSummary(grant: Pick<ConnectionGrant, "members"> | null): string {
+export function audienceSummary(
+  grant: Pick<ConnectionGrant, "members"> | null,
+): string {
   const count = grant?.members?.length ?? 0;
   if (count === 0) return "All organization members";
   return `${count} selected ${count === 1 ? "member" : "members"}`;
 }
 
-export function audienceUserIds(grant: Pick<ConnectionGrant, "members"> | null): Set<string> {
-  return new Set((grant?.members ?? [])
-    .filter((member) => member.subjectType === "user")
-    .map((member) => member.subjectId));
+export function audienceUserIds(
+  grant: Pick<ConnectionGrant, "members"> | null,
+): Set<string> {
+  return new Set(
+    (grant?.members ?? [])
+      .filter((member) => member.subjectType === "user")
+      .map((member) => member.subjectId),
+  );
 }
 
-export function organizationGrant(grants: ConnectionGrant[]): ConnectionGrant | null {
+export function organizationGrant(
+  grants: ConnectionGrant[],
+): ConnectionGrant | null {
   // The default organization grant is the one the resolver reaches for, so it is
   // the one the Organization identity row describes.
-  return grants.find((grant) => grant.kind === "organization" && grant.isDefault)
-    ?? grants.find((grant) => grant.kind === "organization")
-    ?? null;
+  return (
+    grants.find((grant) => grant.kind === "organization" && grant.isDefault) ??
+    grants.find((grant) => grant.kind === "organization") ??
+    null
+  );
 }
 
-export function personalGrantFor(grants: ConnectionGrant[], userId: string | null): ConnectionGrant | null {
+export function personalGrantFor(
+  grants: ConnectionGrant[],
+  userId: string | null,
+): ConnectionGrant | null {
   if (!userId) return null;
-  return grants.find((grant) => grant.kind === "user" && grant.subjectUserId === userId) ?? null;
+  return (
+    grants.find(
+      (grant) => grant.kind === "user" && grant.subjectUserId === userId,
+    ) ?? null
+  );
 }
 
-export function otherPersonalGrants(grants: ConnectionGrant[], userId: string | null): ConnectionGrant[] {
-  return grants.filter((grant) => grant.kind === "user" && grant.subjectUserId !== userId);
+export function otherPersonalGrants(
+  grants: ConnectionGrant[],
+  userId: string | null,
+): ConnectionGrant[] {
+  return grants.filter(
+    (grant) => grant.kind === "user" && grant.subjectUserId !== userId,
+  );
 }
 
 export function memberLabel(

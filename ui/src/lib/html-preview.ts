@@ -1,7 +1,14 @@
 /** HTML previews are documents, never nodes in the Taskcore DOM. */
-export function isHtmlPreview(contentType: string | null | undefined, filename: string | null | undefined) {
+export function isHtmlPreview(
+  contentType: string | null | undefined,
+  filename: string | null | undefined,
+) {
   const type = contentType?.toLowerCase().split(";")[0].trim();
-  return type === "text/html" || type === "application/xhtml+xml" || /\.html?$/i.test(filename ?? "");
+  return (
+    type === "text/html" ||
+    type === "application/xhtml+xml" ||
+    /\.html?$/i.test(filename ?? "")
+  );
 }
 
 // Inline scripts support self-contained reports/charts. No origin privileges,

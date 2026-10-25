@@ -36,7 +36,9 @@ function parseConfig(value: unknown): HarnessDriverConfigValidation {
     return {
       ok: false,
       config: null,
-      issues: [{ path: "/", code: "type", message: "config must be an object" }],
+      issues: [
+        { path: "/", code: "type", message: "config must be an object" },
+      ],
     };
   }
   const config = value as Record<string, unknown>;
@@ -44,22 +46,26 @@ function parseConfig(value: unknown): HarnessDriverConfigValidation {
     return {
       ok: false,
       config: null,
-      issues: [{
-        path: "/schema",
-        code: "unsupported_schema",
-        message: `schema must be ${DETERMINISTIC_HARNESS_DRIVER_CONFIG_SCHEMA}`,
-      }],
+      issues: [
+        {
+          path: "/schema",
+          code: "unsupported_schema",
+          message: `schema must be ${DETERMINISTIC_HARNESS_DRIVER_CONFIG_SCHEMA}`,
+        },
+      ],
     };
   }
   if (config.scenario !== "semantic-tool-success") {
     return {
       ok: false,
       config: null,
-      issues: [{
-        path: "/scenario",
-        code: "unsupported_scenario",
-        message: "scenario must be semantic-tool-success",
-      }],
+      issues: [
+        {
+          path: "/scenario",
+          code: "unsupported_scenario",
+          message: "scenario must be semantic-tool-success",
+        },
+      ],
     };
   }
   return { ok: true, config: structuredClone(config), issues: [] };
@@ -71,7 +77,8 @@ export class DeterministicHarnessDriver implements HarnessDriver {
 
   constructor(config: DeterministicHarnessDriverConfig = DEFAULT_CONFIG) {
     const validation = parseConfig(config);
-    if (!validation.ok) throw new Error(validation.issues[0]?.message ?? "invalid config");
+    if (!validation.ok)
+      throw new Error(validation.issues[0]?.message ?? "invalid config");
     this.#config = structuredClone(config);
   }
 
@@ -94,12 +101,19 @@ export class DeterministicHarnessDriver implements HarnessDriver {
         runtimeRequestResolution: false,
         goals: false,
         threadLineage: false,
-        unsupported: ["steering", "runtimeRequestResolution", "goals", "threadLineage"],
+        unsupported: [
+          "steering",
+          "runtimeRequestResolution",
+          "goals",
+          "threadLineage",
+        ],
       },
     };
   }
 
-  async validateConfig(config: unknown): Promise<HarnessDriverConfigValidation> {
+  async validateConfig(
+    config: unknown,
+  ): Promise<HarnessDriverConfigValidation> {
     return parseConfig(config);
   }
 
@@ -111,19 +125,26 @@ export class DeterministicHarnessDriver implements HarnessDriver {
     snapshot: PersistedHarnessSession,
   ): Promise<HarnessSessionRecoveryResult> {
     if (
-      snapshot.driverKind !== "taskcore-deterministic"
-      || snapshot.runId === undefined
-      || snapshot.normalizedSessionId === undefined
+      snapshot.driverKind !== "taskcore-deterministic" ||
+      snapshot.runId === undefined ||
+      snapshot.normalizedSessionId === undefined
     ) {
-      return { recovered: false, reason: "snapshot does not belong to the deterministic driver" };
+      return {
+        recovered: false,
+        reason: "snapshot does not belong to the deterministic driver",
+      };
     }
     return {
       recovered: true,
-      session: new DeterministicHarnessSession({
-        runId: snapshot.runId,
-        normalizedSessionId: snapshot.normalizedSessionId,
-        workingDirectory: "/deterministic/recovered",
-      }, this.#config, snapshot),
+      session: new DeterministicHarnessSession(
+        {
+          runId: snapshot.runId,
+          normalizedSessionId: snapshot.normalizedSessionId,
+          workingDirectory: "/deterministic/recovered",
+        },
+        this.#config,
+        snapshot,
+      ),
     };
   }
 }
@@ -149,14 +170,15 @@ class DeterministicHarnessSession implements HarnessSession {
   ) {
     this.#input = structuredClone(input);
     this.#config = structuredClone(config);
-    this.#turnId = snapshot?.activeTurnId ?? snapshot?.semanticResult?.turnId ?? null;
+    this.#turnId =
+      snapshot?.activeTurnId ?? snapshot?.semanticResult?.turnId ?? null;
     this.#semanticResult = snapshot?.semanticResult?.result ?? null;
-    this.#active = snapshot?.activeTurnId !== null && snapshot?.activeTurnId !== undefined;
+    this.#active =
+      snapshot?.activeTurnId !== null && snapshot?.activeTurnId !== undefined;
     this.#recoveredActiveTurn = this.#active;
     this.#nextSourceSeq = (snapshot?.lastSourceSequence ?? 0) + 1;
-    this.#transcriptOmissionReason = snapshot === undefined
-      ? null
-      : "pre_recovery_events_not_reconstructed";
+    this.#transcriptOmissionReason =
+      snapshot === undefined ? null : "pre_recovery_events_not_reconstructed";
   }
 
   ids() {
@@ -203,9 +225,12 @@ class DeterministicHarnessSession implements HarnessSession {
     }
   }
 
-  async startTurn(input: { message: { role: "user"; text: string } }): Promise<{ turnId: string }> {
+  async startTurn(input: {
+    message: { role: "user"; text: string };
+  }): Promise<{ turnId: string }> {
     this.#assertOpen();
-    if (this.#turnId !== null) throw new Error("deterministic session accepts one turn");
+    if (this.#turnId !== null)
+      throw new Error("deterministic session accepts one turn");
     this.#turnId = `turn_${this.#input.runId}`;
     this.#active = true;
     this.#appendEvents(
@@ -244,8 +269,16 @@ class DeterministicHarnessSession implements HarnessSession {
       auditReceiptId: `audit_${this.#input.runId}`,
     });
     this.#appendEvents(
-      this.#event("mcp_app.tool_input", { semantic_tool: inputEnvelope }, { itemId }),
-      this.#event("mcp_app.tool_result", { semantic_tool: resultEnvelope }, { itemId }),
+      this.#event(
+        "mcp_app.tool_input",
+        { semantic_tool: inputEnvelope },
+        { itemId },
+      ),
+      this.#event(
+        "mcp_app.tool_result",
+        { semantic_tool: resultEnvelope },
+        { itemId },
+      ),
     );
     this.#semanticResult = completedResult();
     const terminal = completedTerminal();
@@ -279,7 +312,9 @@ class DeterministicHarnessSession implements HarnessSession {
     );
     this.#appendEvents(
       this.#event("run.result.proposed", this.#semanticResult),
-      this.#event("turn.interrupted", { reason: input.reason ?? "interrupted" }),
+      this.#event("turn.interrupted", {
+        reason: input.reason ?? "interrupted",
+      }),
       this.#event("run.terminal", cancelledTerminal(), { turn: false }),
     );
     this.#active = false;
@@ -287,11 +322,12 @@ class DeterministicHarnessSession implements HarnessSession {
 
   #settleRecoveredSemanticResult(): boolean {
     if (
-      !this.#recoveredActiveTurn
-      || !this.#active
-      || this.#turnId === null
-      || this.#semanticResult === null
-    ) return false;
+      !this.#recoveredActiveTurn ||
+      !this.#active ||
+      this.#turnId === null ||
+      this.#semanticResult === null
+    )
+      return false;
     this.#recoveredActiveTurn = false;
     // A result-first checkpoint can still carry activeTurnId when the
     // terminal checkpoint lagged behind the provider work. Preserve the
@@ -325,14 +361,19 @@ class DeterministicHarnessSession implements HarnessSession {
   }
 
   async reconcile(): Promise<Record<string, unknown>> {
-    return { active: this.#active, closed: this.#closed, eventCount: this.#events.length };
+    return {
+      active: this.#active,
+      closed: this.#closed,
+      eventCount: this.#events.length,
+    };
   }
 
   async usage(): Promise<Record<string, unknown>> {
     return {
       inputTokens: this.#turnId === null ? 0 : 12,
       outputTokens: this.#semanticResult === null ? 0 : 8,
-      totalTokens: this.#turnId === null ? 0 : this.#semanticResult === null ? 12 : 20,
+      totalTokens:
+        this.#turnId === null ? 0 : this.#semanticResult === null ? 12 : 20,
       requestCount: this.#turnId === null ? 0 : 1,
       cost: { currency: "USD", amountMicros: 0 },
     };
@@ -357,16 +398,24 @@ class DeterministicHarnessSession implements HarnessSession {
       normalizedSessionId: this.#input.normalizedSessionId,
       activeTurnId: this.#active ? this.#turnId : null,
       lastSourceSequence: this.#nextSourceSeq - 1,
-      semanticResult: this.#semanticResult === null || this.#turnId === null
-        ? null
-        : {
-            result: structuredClone(this.#semanticResult),
-            fingerprint: JSON.stringify(this.#semanticResult),
-            turnId: this.#turnId,
-          },
-      terminalTurns: this.#events.some((event) => event.eventType === "run.terminal") && this.#turnId !== null
-        ? [{ turnId: this.#turnId, fingerprint: `terminal_${this.#input.runId}` }]
-        : [],
+      semanticResult:
+        this.#semanticResult === null || this.#turnId === null
+          ? null
+          : {
+              result: structuredClone(this.#semanticResult),
+              fingerprint: JSON.stringify(this.#semanticResult),
+              turnId: this.#turnId,
+            },
+      terminalTurns:
+        this.#events.some((event) => event.eventType === "run.terminal") &&
+        this.#turnId !== null
+          ? [
+              {
+                turnId: this.#turnId,
+                fingerprint: `terminal_${this.#input.runId}`,
+              },
+            ]
+          : [],
     };
   }
 
@@ -391,7 +440,8 @@ class DeterministicHarnessSession implements HarnessSession {
 
   #event(
     eventType: PrpEvent["eventType"],
-    payload: Record<string, unknown> | PrpStructuredRunResult | PrpTerminalState,
+    payload:
+      Record<string, unknown> | PrpStructuredRunResult | PrpTerminalState,
     options: { itemId?: string; turn?: boolean } = {},
   ): PrpEvent {
     const sourceSeq = this.#nextSourceSeq++;
@@ -403,12 +453,19 @@ class DeterministicHarnessSession implements HarnessSession {
       sourceKind: "runner",
       runId: this.#input.runId,
       normalizedSessionId: this.#input.normalizedSessionId,
-      ...(options.turn === false || this.#turnId === null ? {} : { turnId: this.#turnId }),
+      ...(options.turn === false || this.#turnId === null
+        ? {}
+        : { turnId: this.#turnId }),
       ...(options.itemId === undefined ? {} : { itemId: options.itemId }),
       eventType,
       schemaVersion: 1,
-      priority: eventType === "run.terminal" || eventType === "run.result.proposed" ? 0 : 1,
-      emittedAt: new Date(Date.UTC(2026, 7, 11, 12, 0, sourceSeq)).toISOString(),
+      priority:
+        eventType === "run.terminal" || eventType === "run.result.proposed"
+          ? 0
+          : 1,
+      emittedAt: new Date(
+        Date.UTC(2026, 7, 11, 12, 0, sourceSeq),
+      ).toISOString(),
       payload: structuredClone(payload),
     } as PrpEvent;
   }
@@ -430,7 +487,9 @@ function completedResult(): PrpStructuredRunResult {
       remainingWork: [],
     },
     evidence: [],
-    verification: [{ commandOrCheck: "deterministic harness flow", status: "passed" }],
+    verification: [
+      { commandOrCheck: "deterministic harness flow", status: "passed" },
+    ],
     attentionRequests: [],
     artifacts: [],
   };
@@ -447,7 +506,10 @@ function completedTerminal(
   };
 }
 
-function interruptedResult(runId: string, summary: string): PrpStructuredRunResult {
+function interruptedResult(
+  runId: string,
+  summary: string,
+): PrpStructuredRunResult {
   return {
     schema: "taskcore.run_result.v1",
     reportedWorkDisposition: "yielded",
@@ -456,10 +518,13 @@ function interruptedResult(runId: string, summary: string): PrpStructuredRunResu
       contractRevision: "harness-driver-conformance-v1",
       objectiveSatisfied: false,
       criteria: [],
-      remainingWork: [{
-        description: "Resume the interrupted work in a live provider session.",
-        blocksCompletion: true,
-      }],
+      remainingWork: [
+        {
+          description:
+            "Resume the interrupted work in a live provider session.",
+          blocksCompletion: true,
+        },
+      ],
     },
     evidence: [],
     verification: [],

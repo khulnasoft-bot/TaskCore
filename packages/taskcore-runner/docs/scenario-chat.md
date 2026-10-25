@@ -30,15 +30,15 @@ boundary, a per-turn diff, or a per-turn verdict itself.
 
 ## What each turn records
 
-| Record | Produced by |
-| --- | --- |
-| Exposed tools (always / optional with unlocking grant / control-plane — no tool) | the 7D authorization engine |
-| Semantic calls and typed results | the 7D tool runtime |
-| Authorization decisions, missing claims, redactions | the 7D authorization engine |
-| Control-plane actions with audit and decision references | the 7C mock core |
-| State diff over the ten entity domains | immutable fixture snapshots |
-| Wake / reconciliation events | the 7C mock core's own scheduled wakes |
-| Turn parity verdict | `capabilityTurnParity` |
+| Record                                                                           | Produced by                            |
+| -------------------------------------------------------------------------------- | -------------------------------------- |
+| Exposed tools (always / optional with unlocking grant / control-plane — no tool) | the 7D authorization engine            |
+| Semantic calls and typed results                                                 | the 7D tool runtime                    |
+| Authorization decisions, missing claims, redactions                              | the 7D authorization engine            |
+| Control-plane actions with audit and decision references                         | the 7C mock core                       |
+| State diff over the ten entity domains                                           | immutable fixture snapshots            |
+| Wake / reconciliation events                                                     | the 7C mock core's own scheduled wakes |
+| Turn parity verdict                                                              | `capabilityTurnParity`                 |
 
 A turn is judged on what that turn did. A session-level expectation about work
 the board has not asked for yet would read as a failure of turn 1 rather than

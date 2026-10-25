@@ -53,24 +53,30 @@ export type ManagedRoutinesListProps = {
   reconcilingRoutineKey?: string | null;
   resettingRoutineKey?: string | null;
   onRunNow?: (routine: ManagedRoutinesListItem) => void;
-  onToggleEnabled?: (routine: ManagedRoutinesListItem, enabled: boolean) => void;
+  onToggleEnabled?: (
+    routine: ManagedRoutinesListItem,
+    enabled: boolean,
+  ) => void;
   onReconcile?: (routine: ManagedRoutinesListItem) => void;
   onReset?: (routine: ManagedRoutinesListItem) => void;
 };
 
-function managedRoutineToRow(routine: ManagedRoutinesListItem): RoutineListRowItem {
+function managedRoutineToRow(
+  routine: ManagedRoutinesListItem,
+): RoutineListRowItem {
   return {
     id: routine.key,
     title: routine.title,
     status: routine.status,
     projectId: routine.projectId ?? null,
     assigneeAgentId: routine.assigneeAgentId ?? null,
-    lastRun: routine.lastRunAt || routine.lastRunStatus
-      ? {
-          triggeredAt: routine.lastRunAt ?? null,
-          status: routine.lastRunStatus ?? null,
-        }
-      : null,
+    lastRun:
+      routine.lastRunAt || routine.lastRunStatus
+        ? {
+            triggeredAt: routine.lastRunAt ?? null,
+            status: routine.lastRunStatus ?? null,
+          }
+        : null,
   };
 }
 
@@ -93,7 +99,10 @@ export function ManagedRoutinesList({
     agents.map((agent) => [agent.id, agent]),
   );
   const projectById = new Map<string, RoutineListProjectSummary>(
-    projects.map((project) => [project.id, { name: project.name, color: project.color }]),
+    projects.map((project) => [
+      project.id,
+      { name: project.name, color: project.color },
+    ]),
   );
 
   if (routines.length === 0) {
@@ -108,10 +117,15 @@ export function ManagedRoutinesList({
     <div className="rounded-lg border border-border">
       {routines.map((routine) => {
         const row = managedRoutineToRow(routine);
-        const href = routine.href ?? (routine.routineId ? `/routines/${routine.routineId}` : "/routines");
+        const href =
+          routine.href ??
+          (routine.routineId ? `/routines/${routine.routineId}` : "/routines");
         const missingRefs = routine.missingRefs ?? [];
-        const canUseRoutine = Boolean(routine.routineId && routine.resourceKey && missingRefs.length === 0);
-        const managedBy = routine.managedByPluginDisplayName ?? pluginDisplayName;
+        const canUseRoutine = Boolean(
+          routine.routineId && routine.resourceKey && missingRefs.length === 0,
+        );
+        const managedBy =
+          routine.managedByPluginDisplayName ?? pluginDisplayName;
         const hasRepairActions = Boolean(onReconcile || onReset);
 
         return (
@@ -131,12 +145,18 @@ export function ManagedRoutinesList({
               disableToggle={!canUseRoutine}
               secondaryDetails={
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  {routine.resourceKey ? <span>{routine.resourceKey}</span> : null}
-                  {routine.cronExpression ? <span>Schedule {routine.cronExpression}</span> : null}
+                  {routine.resourceKey ? (
+                    <span>{routine.resourceKey}</span>
+                  ) : null}
+                  {routine.cronExpression ? (
+                    <span>Schedule {routine.cronExpression}</span>
+                  ) : null}
                 </span>
               }
               onRunNow={() => onRunNow?.(routine)}
-              onToggleEnabled={() => onToggleEnabled?.(routine, row.status === "active")}
+              onToggleEnabled={() =>
+                onToggleEnabled?.(routine, row.status === "active")
+              }
             />
             {hasRepairActions ? (
               <div
@@ -159,7 +179,9 @@ export function ManagedRoutinesList({
                       disabled={reconcilingRoutineKey === routine.key}
                       onClick={() => onReconcile(routine)}
                     >
-                      {reconcilingRoutineKey === routine.key ? "Reconciling..." : "Reconcile"}
+                      {reconcilingRoutineKey === routine.key
+                        ? "Reconciling..."
+                        : "Reconcile"}
                     </Button>
                   ) : null}
                   {onReset ? (
@@ -169,7 +191,9 @@ export function ManagedRoutinesList({
                       disabled={resettingRoutineKey === routine.key}
                       onClick={() => onReset(routine)}
                     >
-                      {resettingRoutineKey === routine.key ? "Resetting..." : "Reset"}
+                      {resettingRoutineKey === routine.key
+                        ? "Resetting..."
+                        : "Reset"}
                     </Button>
                   ) : null}
                 </span>

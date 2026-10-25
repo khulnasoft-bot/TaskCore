@@ -46,15 +46,21 @@ const HANDOFF_KEY_ENV = "TASKCORE_WORKSPACE_HANDOFF_KEY";
 const HANDOFF_ROOT_SECRET_ENV = "TASKCORE_WORKSPACE_HANDOFF_SECRET";
 const READINESS_TOKEN_ENV = "TASKCORE_WORKSPACE_READINESS_TOKEN";
 const EXECUTION_WORKSPACE_ID_ENV = "TASKCORE_EXECUTION_WORKSPACE_ID";
-const EXECUTION_WORKSPACE_COMPANY_ID_ENV = "TASKCORE_EXECUTION_WORKSPACE_COMPANY_ID";
+const EXECUTION_WORKSPACE_COMPANY_ID_ENV =
+  "TASKCORE_EXECUTION_WORKSPACE_COMPANY_ID";
 
 export const WORKSPACE_HANDOFF_KEY_ENV_KEY = HANDOFF_KEY_ENV;
 export const WORKSPACE_READINESS_TOKEN_ENV_KEY = READINESS_TOKEN_ENV;
-export const WORKSPACE_EXECUTION_WORKSPACE_ID_ENV_KEY = EXECUTION_WORKSPACE_ID_ENV;
-export const WORKSPACE_EXECUTION_WORKSPACE_COMPANY_ID_ENV_KEY = EXECUTION_WORKSPACE_COMPANY_ID_ENV;
-export const WORKSPACE_READINESS_TOKEN_HEADER = "x-taskcore-workspace-readiness-token";
-export const WORKSPACE_READINESS_USER_ID_HEADER = "x-taskcore-workspace-readiness-user-id";
-export const WORKSPACE_READINESS_USER_EMAIL_HEADER = "x-taskcore-workspace-readiness-user-email";
+export const WORKSPACE_EXECUTION_WORKSPACE_ID_ENV_KEY =
+  EXECUTION_WORKSPACE_ID_ENV;
+export const WORKSPACE_EXECUTION_WORKSPACE_COMPANY_ID_ENV_KEY =
+  EXECUTION_WORKSPACE_COMPANY_ID_ENV;
+export const WORKSPACE_READINESS_TOKEN_HEADER =
+  "x-taskcore-workspace-readiness-token";
+export const WORKSPACE_READINESS_USER_ID_HEADER =
+  "x-taskcore-workspace-readiness-user-id";
+export const WORKSPACE_READINESS_USER_EMAIL_HEADER =
+  "x-taskcore-workspace-readiness-user-email";
 
 export type WorkspaceHandoffTicketPayload = {
   /** Envelope version. */
@@ -132,7 +138,9 @@ function constantTimeMatches(expected: Buffer, provided: Buffer): boolean {
  * Returns null when the input is not an absolute http(s) URL, so an unparseable
  * or relative value can never accidentally compare equal.
  */
-export function normalizeWorkspaceHandoffOrigin(value: string | null | undefined): string | null {
+export function normalizeWorkspaceHandoffOrigin(
+  value: string | null | undefined,
+): string | null {
   const trimmed = value?.trim();
   if (!trimmed) return null;
   let parsed: URL;
@@ -151,7 +159,9 @@ export function normalizeWorkspaceHandoffOrigin(value: string | null | undefined
  * Anything absolute, protocol-relative, or backslash-escaped collapses to `/`.
  * A handoff must never double as an open redirect.
  */
-export function sanitizeWorkspaceHandoffRedirectPath(value: string | null | undefined): string {
+export function sanitizeWorkspaceHandoffRedirectPath(
+  value: string | null | undefined,
+): string {
   const trimmed = value?.trim();
   if (!trimmed) return "/";
   if (!trimmed.startsWith("/")) return "/";
@@ -175,7 +185,9 @@ export function deriveWorkspaceHandoffKey(input: {
   executionWorkspaceId: string;
 }): string {
   return createHmac("sha256", input.rootSecret)
-    .update(`taskcore.workspace-login-handoff.${WORKSPACE_HANDOFF_TICKET_VERSION}\n`)
+    .update(
+      `taskcore.workspace-login-handoff.${WORKSPACE_HANDOFF_TICKET_VERSION}\n`,
+    )
     .update(`${input.instanceId}\n`)
     .update(`${input.executionWorkspaceId}`)
     .digest("hex");
@@ -192,7 +204,9 @@ export function deriveWorkspaceReadinessToken(input: {
   executionWorkspaceId: string;
 }): string {
   return createHmac("sha256", input.rootSecret)
-    .update(`taskcore.workspace-readiness-probe.${WORKSPACE_HANDOFF_TICKET_VERSION}\n`)
+    .update(
+      `taskcore.workspace-readiness-probe.${WORKSPACE_HANDOFF_TICKET_VERSION}\n`,
+    )
     .update(`${input.instanceId}\n`)
     .update(`${input.executionWorkspaceId}`)
     .digest("hex");
@@ -215,33 +229,44 @@ export function resolveWorkspaceHandoffRootSecret(
   const dedicated = env[HANDOFF_ROOT_SECRET_ENV]?.trim();
   if (dedicated) return { secret: dedicated, source: "dedicated" };
 
-  const fallback = env.BETTER_AUTH_SECRET?.trim() || env.TASKCORE_AGENT_JWT_SECRET?.trim();
+  const fallback =
+    env.BETTER_AUTH_SECRET?.trim() || env.TASKCORE_AGENT_JWT_SECRET?.trim();
   if (!fallback) return null;
   return {
     secret: createHmac("sha256", fallback)
-      .update(`taskcore.workspace-login-handoff.root.${WORKSPACE_HANDOFF_TICKET_VERSION}`)
+      .update(
+        `taskcore.workspace-login-handoff.root.${WORKSPACE_HANDOFF_TICKET_VERSION}`,
+      )
       .digest("hex"),
     source: "derived",
   };
 }
 
 /** The verification key injected into this (guest) process, when present. */
-export function resolveWorkspaceHandoffLocalKey(env: NodeJS.ProcessEnv = process.env): string | null {
+export function resolveWorkspaceHandoffLocalKey(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
   return env[HANDOFF_KEY_ENV]?.trim() || null;
 }
 
 /** The readiness-probe token injected into this (guest) process, when present. */
-export function resolveWorkspaceReadinessLocalToken(env: NodeJS.ProcessEnv = process.env): string | null {
+export function resolveWorkspaceReadinessLocalToken(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
   return env[READINESS_TOKEN_ENV]?.trim() || null;
 }
 
 /** The execution workspace this (guest) process was provisioned for. */
-export function resolveWorkspaceHandoffLocalWorkspaceId(env: NodeJS.ProcessEnv = process.env): string | null {
+export function resolveWorkspaceHandoffLocalWorkspaceId(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
   return env[EXECUTION_WORKSPACE_ID_ENV]?.trim() || null;
 }
 
 /** The company whose board this (guest) workspace represents. */
-export function resolveWorkspaceHandoffLocalCompanyId(env: NodeJS.ProcessEnv = process.env): string | null {
+export function resolveWorkspaceHandoffLocalCompanyId(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
   return env[EXECUTION_WORKSPACE_COMPANY_ID_ENV]?.trim() || null;
 }
 
@@ -261,11 +286,16 @@ export function issueWorkspaceHandoffTicket(input: {
 }): { ticket: string; payload: WorkspaceHandoffTicketPayload } {
   const origin = normalizeWorkspaceHandoffOrigin(input.origin);
   if (!origin) {
-    throw new Error("Workspace login handoff needs an absolute http(s) target origin");
+    throw new Error(
+      "Workspace login handoff needs an absolute http(s) target origin",
+    );
   }
   const issuedAtMs = (input.now ?? new Date()).getTime();
   const issuedAt = Math.floor(issuedAtMs / 1000);
-  const ttlSeconds = Math.max(1, Math.floor(input.ttlSeconds ?? WORKSPACE_HANDOFF_TICKET_TTL_SECONDS));
+  const ttlSeconds = Math.max(
+    1,
+    Math.floor(input.ttlSeconds ?? WORKSPACE_HANDOFF_TICKET_TTL_SECONDS),
+  );
   const payload: WorkspaceHandoffTicketPayload = {
     v: WORKSPACE_HANDOFF_TICKET_VERSION,
     jti: input.nonce ?? randomBytes(18).toString("base64url"),
@@ -280,36 +310,53 @@ export function issueWorkspaceHandoffTicket(input: {
     exp: issuedAt + ttlSeconds,
     next: sanitizeWorkspaceHandoffRedirectPath(input.next),
   };
-  const encodedPayload = base64UrlEncode(Buffer.from(JSON.stringify(payload), "utf8"));
+  const encodedPayload = base64UrlEncode(
+    Buffer.from(JSON.stringify(payload), "utf8"),
+  );
   const signedMessage = `${WORKSPACE_HANDOFF_TICKET_VERSION}.${encodedPayload}`;
   const signature = base64UrlEncode(sign(input.key, signedMessage));
   return { ticket: `${signedMessage}.${signature}`, payload };
 }
 
 /** Absolute exchange URL for a minted ticket. */
-export function buildWorkspaceHandoffExchangeUrl(input: { origin: string; ticket: string }): string {
+export function buildWorkspaceHandoffExchangeUrl(input: {
+  origin: string;
+  ticket: string;
+}): string {
   const origin = normalizeWorkspaceHandoffOrigin(input.origin);
-  if (!origin) throw new Error("Workspace login handoff needs an absolute http(s) target origin");
+  if (!origin)
+    throw new Error(
+      "Workspace login handoff needs an absolute http(s) target origin",
+    );
   const url = new URL(`/api/auth${WORKSPACE_HANDOFF_EXCHANGE_PATH}`, origin);
   url.searchParams.set(WORKSPACE_HANDOFF_TICKET_QUERY_PARAM, input.ticket);
   return url.toString();
 }
 
-function isPayloadShape(value: unknown): value is WorkspaceHandoffTicketPayload {
+function isPayloadShape(
+  value: unknown,
+): value is WorkspaceHandoffTicketPayload {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Record<string, unknown>;
   return (
-    typeof candidate.jti === "string" && candidate.jti.length > 0
-    && typeof candidate.sub === "string" && candidate.sub.length > 0
-    && typeof candidate.email === "string" && candidate.email.length > 0
-    && typeof candidate.ws === "string" && candidate.ws.length > 0
-    && typeof candidate.cid === "string" && candidate.cid.length > 0
-    && typeof candidate.iid === "string" && candidate.iid.length > 0
-    && typeof candidate.aud === "string" && candidate.aud.length > 0
-    && typeof candidate.iss === "string"
-    && Number.isFinite(candidate.iat)
-    && Number.isFinite(candidate.exp)
-    && typeof candidate.next === "string"
+    typeof candidate.jti === "string" &&
+    candidate.jti.length > 0 &&
+    typeof candidate.sub === "string" &&
+    candidate.sub.length > 0 &&
+    typeof candidate.email === "string" &&
+    candidate.email.length > 0 &&
+    typeof candidate.ws === "string" &&
+    candidate.ws.length > 0 &&
+    typeof candidate.cid === "string" &&
+    candidate.cid.length > 0 &&
+    typeof candidate.iid === "string" &&
+    candidate.iid.length > 0 &&
+    typeof candidate.aud === "string" &&
+    candidate.aud.length > 0 &&
+    typeof candidate.iss === "string" &&
+    Number.isFinite(candidate.iat) &&
+    Number.isFinite(candidate.exp) &&
+    typeof candidate.next === "string"
   );
 }
 
@@ -349,14 +396,20 @@ export function verifyWorkspaceHandoffTicket(input: {
   if (!ticket) return { ok: false, reason: "malformed" };
   const segments = ticket.split(".");
   if (segments.length !== 3) return { ok: false, reason: "malformed" };
-  const [version, encodedPayload, encodedSignature] = segments as [string, string, string];
-  if (version !== WORKSPACE_HANDOFF_TICKET_VERSION) return { ok: false, reason: "unsupported_version" };
+  const [version, encodedPayload, encodedSignature] = segments as [
+    string,
+    string,
+    string,
+  ];
+  if (version !== WORKSPACE_HANDOFF_TICKET_VERSION)
+    return { ok: false, reason: "unsupported_version" };
 
   const providedSignature = base64UrlDecode(encodedSignature);
   if (!providedSignature) return { ok: false, reason: "malformed" };
   const expectedSignature = sign(key, `${version}.${encodedPayload}`);
   // Signature first: never parse attacker-controlled JSON we have not authenticated.
-  if (!constantTimeMatches(expectedSignature, providedSignature)) return { ok: false, reason: "bad_signature" };
+  if (!constantTimeMatches(expectedSignature, providedSignature))
+    return { ok: false, reason: "bad_signature" };
 
   const decodedPayload = base64UrlDecode(encodedPayload);
   if (!decodedPayload) return { ok: false, reason: "malformed" };
@@ -367,30 +420,44 @@ export function verifyWorkspaceHandoffTicket(input: {
     return { ok: false, reason: "malformed" };
   }
   if (!isPayloadShape(parsed)) return { ok: false, reason: "malformed" };
-  if (parsed.v !== WORKSPACE_HANDOFF_TICKET_VERSION) return { ok: false, reason: "unsupported_version" };
+  if (parsed.v !== WORKSPACE_HANDOFF_TICKET_VERSION)
+    return { ok: false, reason: "unsupported_version" };
 
   const nowSeconds = Math.floor((input.now ?? new Date()).getTime() / 1000);
-  const skew = Math.max(0, Math.floor(input.clockSkewSeconds ?? WORKSPACE_HANDOFF_CLOCK_SKEW_SECONDS));
+  const skew = Math.max(
+    0,
+    Math.floor(input.clockSkewSeconds ?? WORKSPACE_HANDOFF_CLOCK_SKEW_SECONDS),
+  );
   if (parsed.exp + skew < nowSeconds) return { ok: false, reason: "expired" };
-  if (parsed.iat - skew > nowSeconds) return { ok: false, reason: "not_yet_valid" };
+  if (parsed.iat - skew > nowSeconds)
+    return { ok: false, reason: "not_yet_valid" };
   if (parsed.exp <= parsed.iat) return { ok: false, reason: "malformed" };
 
   if (normalizeWorkspaceHandoffOrigin(parsed.aud) !== expectedOrigin) {
     return { ok: false, reason: "origin_mismatch" };
   }
-  if (parsed.iid !== expectedInstanceId) return { ok: false, reason: "instance_mismatch" };
-  if (parsed.ws !== expectedWorkspaceId) return { ok: false, reason: "workspace_mismatch" };
-  if (parsed.cid !== expectedCompanyId) return { ok: false, reason: "company_mismatch" };
+  if (parsed.iid !== expectedInstanceId)
+    return { ok: false, reason: "instance_mismatch" };
+  if (parsed.ws !== expectedWorkspaceId)
+    return { ok: false, reason: "workspace_mismatch" };
+  if (parsed.cid !== expectedCompanyId)
+    return { ok: false, reason: "company_mismatch" };
 
   return {
     ok: true,
-    payload: { ...parsed, next: sanitizeWorkspaceHandoffRedirectPath(parsed.next) },
+    payload: {
+      ...parsed,
+      next: sanitizeWorkspaceHandoffRedirectPath(parsed.next),
+    },
   };
 }
 
 /** Verification-key identifier safe to log: proves which key, reveals no key bytes. */
 export function workspaceHandoffKeyFingerprint(key: string): string {
-  return createHmac("sha256", "taskcore.workspace-login-handoff.fingerprint").update(key).digest("hex").slice(0, 12);
+  return createHmac("sha256", "taskcore.workspace-login-handoff.fingerprint")
+    .update(key)
+    .digest("hex")
+    .slice(0, 12);
 }
 
 /**

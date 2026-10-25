@@ -1,8 +1,20 @@
 import { usePrimaryAgentPresentation } from "./primary-agent/PrimaryAgentPresentation";
 import { useWorkspaceIsolationControls } from "@/hooks/useWorkspaceIsolationControls";
-import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type DragEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  type CSSProperties,
+  type DragEvent,
+} from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { AgentEnvConfig, EnvBinding, IssueWorkMode } from "@taskcore/shared";
+import type {
+  AgentEnvConfig,
+  EnvBinding,
+  IssueWorkMode,
+} from "@taskcore/shared";
 import { useDialog } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
 import { executionWorkspacesApi } from "../api/execution-workspaces";
@@ -14,7 +26,11 @@ import { agentsApi } from "../api/agents";
 import { accessApi } from "../api/access";
 import { authApi } from "../api/auth";
 import { assetsApi } from "../api/assets";
-import { buildCompanyUserInlineOptions, buildMarkdownMentionOptions, isAgentTaskTarget } from "../lib/company-members";
+import {
+  buildCompanyUserInlineOptions,
+  buildMarkdownMentionOptions,
+  isAgentTaskTarget,
+} from "../lib/company-members";
 import { queryKeys } from "../lib/queryKeys";
 import { useNavigate } from "../lib/router";
 import {
@@ -24,27 +40,57 @@ import {
 } from "../lib/project-workspace-defaults";
 import { useProjectOrder } from "../hooks/useProjectOrder";
 import { useStreamlinedUiEnabled } from "../hooks/useStreamlinedUiEnabled";
-import { getRecentAssigneeIds, getRecentAssigneeSelectionIds, sortAgentsByRecency, trackRecentAssignee, trackRecentAssigneeUser } from "../lib/recent-assignees";
-import { getLastProjectId, getRecentProjectIds, trackRecentProject } from "../lib/recent-projects";
+import {
+  getRecentAssigneeIds,
+  getRecentAssigneeSelectionIds,
+  sortAgentsByRecency,
+  trackRecentAssignee,
+  trackRecentAssigneeUser,
+} from "../lib/recent-assignees";
+import {
+  getLastProjectId,
+  getRecentProjectIds,
+  trackRecentProject,
+} from "../lib/recent-projects";
 import { recordRecentTask } from "../lib/recent-tasks";
 import { buildExecutionPolicy } from "../lib/issue-execution-policy";
 import { createUuid } from "../lib/uuid";
 import { isIssueWorkMode, nextWorkMode } from "../lib/work-mode-meta";
 import { useToastActions } from "../context/ToastContext";
-import { assigneeValueFromSelection, currentUserAssigneeOption, parseAssigneeValue } from "../lib/assignees";
+import {
+  assigneeValueFromSelection,
+  currentUserAssigneeOption,
+  parseAssigneeValue,
+} from "../lib/assignees";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Flag, PauseCircle, ListTree, X, ShieldAlert, Folder, ChevronDown, Lock } from "lucide-react";
+import {
+  FileText,
+  Flag,
+  PauseCircle,
+  ListTree,
+  X,
+  ShieldAlert,
+  Folder,
+  ChevronDown,
+  Lock,
+} from "lucide-react";
 import { TaskcoreIcon } from "./icons/taskcore-icon";
 import { cn } from "../lib/utils";
 import type { MentionOption } from "./MarkdownEditor";
 import { TaskChatComposer } from "./task-chat/TaskChatComposer";
 import { ComposerWorktreePicker } from "./task-chat/ComposerWorktreePicker";
 import { TaskChatPresentationProvider } from "./task-chat/presentation-mode";
-import { mergeComposerRunSettings, type ComposerRunSettings } from "./task-chat/composer-run-settings";
+import {
+  mergeComposerRunSettings,
+  type ComposerRunSettings,
+} from "./task-chat/composer-run-settings";
 import { useSidebar } from "../context/SidebarContext";
 import { InlineBanner } from "./InlineBanner";
-import { InlineEntitySelector, type InlineEntityOption } from "./InlineEntitySelector";
+import {
+  InlineEntitySelector,
+  type InlineEntityOption,
+} from "./InlineEntitySelector";
 import { getTrustPreset } from "../lib/trust-policy-ui";
 
 const DRAFT_KEY = "taskcore:issue-draft";
@@ -71,7 +117,12 @@ function readVisualViewportLayout(): VisualViewportLayout | null {
   const { height, offsetTop } = window.visualViewport;
   // Mobile browsers can briefly report unusable geometry while the visual
   // viewport initializes or animates. Applying it collapses the dialog.
-  if (!Number.isFinite(height) || height <= 0 || !Number.isFinite(offsetTop) || offsetTop < 0) {
+  if (
+    !Number.isFinite(height) ||
+    height <= 0 ||
+    !Number.isFinite(offsetTop) ||
+    offsetTop < 0
+  ) {
     return null;
   }
   return {
@@ -148,7 +199,10 @@ type StagedIssueFile = {
 };
 
 import { Badge } from "@/components/ui/badge";
-import { buildAssigneeAdapterOverrides, type IssueModelLane } from "../lib/issue-assignee-overrides";
+import {
+  buildAssigneeAdapterOverrides,
+  type IssueModelLane,
+} from "../lib/issue-assignee-overrides";
 
 function loadDraft(): IssueDraft | null {
   try {
@@ -200,7 +254,10 @@ function titleizeFilename(input: string) {
     .join(" ");
 }
 
-function createUniqueDocumentKey(baseKey: string, stagedFiles: StagedIssueFile[]) {
+function createUniqueDocumentKey(
+  baseKey: string,
+  stagedFiles: StagedIssueFile[],
+) {
   const existingKeys = new Set(
     stagedFiles
       .filter((file) => file.kind === "document")
@@ -225,7 +282,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isRequiredUserSecretBinding(value: unknown): value is Extract<EnvBinding, { type: "user_secret_ref" }> {
+function isRequiredUserSecretBinding(
+  value: unknown,
+): value is Extract<EnvBinding, { type: "user_secret_ref" }> {
   return (
     isRecord(value) &&
     value.type === "user_secret_ref" &&
@@ -240,7 +299,9 @@ function collectRequiredUserSecretKeysFromEnv(
   env: AgentEnvConfig | Record<string, unknown> | null | undefined,
 ): string[] {
   if (!isRecord(env)) return [];
-  return Object.values(env).flatMap((binding) => (isRequiredUserSecretBinding(binding) ? [binding.key.trim()] : []));
+  return Object.values(env).flatMap((binding) =>
+    isRequiredUserSecretBinding(binding) ? [binding.key.trim()] : [],
+  );
 }
 
 function uniqueRequiredUserSecretKeys(
@@ -249,8 +310,13 @@ function uniqueRequiredUserSecretKeys(
   return [...new Set(inputs.flatMap(collectRequiredUserSecretKeysFromEnv))];
 }
 
-function shouldWarnAboutRunUserSecrets(status: string, assigneeAgentId: string | null | undefined) {
-  return Boolean(assigneeAgentId) && (status === "todo" || status === "in_progress");
+function shouldWarnAboutRunUserSecrets(
+  status: string,
+  assigneeAgentId: string | null | undefined,
+) {
+  return (
+    Boolean(assigneeAgentId) && (status === "todo" || status === "in_progress")
+  );
 }
 
 function defaultExecutionWorkspaceModeForIssueDefaults(
@@ -258,17 +324,31 @@ function defaultExecutionWorkspaceModeForIssueDefaults(
     executionWorkspaceId?: unknown;
     executionWorkspaceMode?: unknown;
   },
-  project: { executionWorkspacePolicy?: { enabled?: boolean; defaultMode?: string | null } | null } | null | undefined,
+  project:
+    | {
+        executionWorkspacePolicy?: {
+          enabled?: boolean;
+          defaultMode?: string | null;
+        } | null;
+      }
+    | null
+    | undefined,
 ) {
-  if (typeof defaults.executionWorkspaceId === "string" && defaults.executionWorkspaceId.length > 0) {
+  if (
+    typeof defaults.executionWorkspaceId === "string" &&
+    defaults.executionWorkspaceId.length > 0
+  ) {
     return "reuse_existing";
   }
-  return typeof defaults.executionWorkspaceMode === "string" && defaults.executionWorkspaceMode.length > 0
+  return typeof defaults.executionWorkspaceMode === "string" &&
+    defaults.executionWorkspaceMode.length > 0
     ? defaults.executionWorkspaceMode
     : defaultExecutionWorkspaceModeForProject(project);
 }
 
-function isWorkModePeriodShortcut(e: Pick<React.KeyboardEvent, "code" | "ctrlKey" | "key" | "metaKey">) {
+function isWorkModePeriodShortcut(
+  e: Pick<React.KeyboardEvent, "code" | "ctrlKey" | "key" | "metaKey">,
+) {
   const isPeriod = e.code === "Period" || e.key === ".";
   return (e.metaKey || e.ctrlKey) && isPeriod;
 }
@@ -278,7 +358,8 @@ function isWorkModeEscapeShortcut(e: Pick<KeyboardEvent, "key" | "metaKey">) {
 }
 
 export function NewIssueDialog() {
-  const { visible: workspaceIsolationControlsVisible } = useWorkspaceIsolationControls();
+  const { visible: workspaceIsolationControlsVisible } =
+    useWorkspaceIsolationControls();
   const { newIssueOpen, newIssueDefaults, closeNewIssue } = useDialog();
   const visualViewportLayout = useVisualViewportLayout(newIssueOpen);
   const dialogBodyRef = useRef<HTMLDivElement>(null);
@@ -301,16 +382,20 @@ export function NewIssueDialog() {
   const [watchdogInstructions, setWatchdogInstructions] = useState("");
   const [projectId, setProjectId] = useState("");
   const [projectWorkspaceId, setProjectWorkspaceId] = useState("");
-  const [assigneeModelLane, setAssigneeModelLane] = useState<IssueModelLane>("primary");
+  const [assigneeModelLane, setAssigneeModelLane] =
+    useState<IssueModelLane>("primary");
   const [assigneeModelOverride, setAssigneeModelOverride] = useState("");
   const [assigneeThinkingEffort, setAssigneeThinkingEffort] = useState("");
   const [assigneeChrome, setAssigneeChrome] = useState(false);
-  const [executionWorkspaceMode, setExecutionWorkspaceMode] = useState<string>("shared_workspace");
-  const [selectedExecutionWorkspaceId, setSelectedExecutionWorkspaceId] = useState("");
+  const [executionWorkspaceMode, setExecutionWorkspaceMode] =
+    useState<string>("shared_workspace");
+  const [selectedExecutionWorkspaceId, setSelectedExecutionWorkspaceId] =
+    useState("");
   const [workMode, setWorkMode] = useState<IssueWorkMode>("standard");
   const [isPrivate, setIsPrivate] = useState(false);
   const { isMobile } = useSidebar();
-  const [composerSettings, setComposerSettings] = useState<ComposerRunSettings | null>(null);
+  const [composerSettings, setComposerSettings] =
+    useState<ComposerRunSettings | null>(null);
   const [stagedFiles, setStagedFiles] = useState<StagedIssueFile[]>([]);
   const [isFileDragOver, setIsFileDragOver] = useState(false);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -318,14 +403,21 @@ export function NewIssueDialog() {
   const initializationKeyRef = useRef<string | null>(null);
   const defaultAssigneePendingRef = useRef(false);
   const defaultProjectPendingRef = useRef(false);
-  const createRequestRef = useRef<{ fingerprint: string; idempotencyKey: string } | null>(null);
+  const createRequestRef = useRef<{
+    fingerprint: string;
+    idempotencyKey: string;
+  } | null>(null);
 
   const primaryAgent = usePrimaryAgentPresentation(effectiveCompanyId);
   const isSubIssueMode = Boolean(newIssueDefaults.parentId);
   const parentIssueLabel =
-    newIssueDefaults.parentIdentifier ?? (newIssueDefaults.parentId ? newIssueDefaults.parentId.slice(0, 8) : "");
-  const parentExecutionWorkspaceId = newIssueDefaults.executionWorkspaceId ?? "";
-  const parentExecutionWorkspaceLabel = newIssueDefaults.parentExecutionWorkspaceLabel ?? parentExecutionWorkspaceId;
+    newIssueDefaults.parentIdentifier ??
+    (newIssueDefaults.parentId ? newIssueDefaults.parentId.slice(0, 8) : "");
+  const parentExecutionWorkspaceId =
+    newIssueDefaults.executionWorkspaceId ?? "";
+  const parentExecutionWorkspaceLabel =
+    newIssueDefaults.parentExecutionWorkspaceLabel ??
+    parentExecutionWorkspaceId;
 
   const { data: agents } = useQuery({
     queryKey: queryKeys.agents.list(effectiveCompanyId!),
@@ -340,11 +432,12 @@ export function NewIssueDialog() {
   });
   const { data: mentionIssues } = useQuery({
     queryKey: queryKeys.issues.mentionPool(effectiveCompanyId!),
-    queryFn: () => issuesApi.list(effectiveCompanyId!, {
-      limit: 100,
-      sortField: "updated",
-      sortDir: "desc",
-    }),
+    queryFn: () =>
+      issuesApi.list(effectiveCompanyId!, {
+        limit: 100,
+        sortField: "updated",
+        sortDir: "desc",
+      }),
     enabled: Boolean(effectiveCompanyId) && newIssueOpen,
     staleTime: 60_000,
   });
@@ -370,11 +463,19 @@ export function NewIssueDialog() {
     companyId: effectiveCompanyId,
     userId: currentUserId,
   });
-  const currentProject = orderedProjects.find((project) => project.id === projectId);
+  const currentProject = orderedProjects.find(
+    (project) => project.id === projectId,
+  );
   const currentProjectExecutionWorkspacePolicy =
-    experimentalSettings?.enableIsolatedWorkspaces === true ? (currentProject?.executionWorkspacePolicy ?? null) : null;
-  const currentProjectSupportsExecutionWorkspace = Boolean(currentProjectExecutionWorkspacePolicy?.enabled);
-  const canChooseWorktrees = workspaceIsolationControlsVisible && currentProjectSupportsExecutionWorkspace;
+    experimentalSettings?.enableIsolatedWorkspaces === true
+      ? (currentProject?.executionWorkspacePolicy ?? null)
+      : null;
+  const currentProjectSupportsExecutionWorkspace = Boolean(
+    currentProjectExecutionWorkspacePolicy?.enabled,
+  );
+  const canChooseWorktrees =
+    workspaceIsolationControlsVisible &&
+    currentProjectSupportsExecutionWorkspace;
   const {
     data: reusableExecutionWorkspaces,
     isPending: worktreesLoading,
@@ -385,36 +486,62 @@ export function NewIssueDialog() {
       projectId,
       reuseEligible: true,
     }),
-    queryFn: () => executionWorkspacesApi.listSummaries(effectiveCompanyId!, {
-      projectId,
-      reuseEligible: true,
-    }),
+    queryFn: () =>
+      executionWorkspacesApi.listSummaries(effectiveCompanyId!, {
+        projectId,
+        reuseEligible: true,
+      }),
     enabled: Boolean(effectiveCompanyId) && newIssueOpen && canChooseWorktrees,
     retry: false,
   });
 
-  const { data: privacyParent, isError: parentPrivacyError, refetch: refetchParentPrivacy } = useQuery({
+  const {
+    data: privacyParent,
+    isError: parentPrivacyError,
+    refetch: refetchParentPrivacy,
+  } = useQuery({
     queryKey: queryKeys.issues.detail(newIssueDefaults.parentId ?? ""),
     queryFn: () => issuesApi.get(newIssueDefaults.parentId!),
     enabled: newIssueOpen && Boolean(newIssueDefaults.parentId),
     retry: false,
   });
   const parentPrivacyUnresolved = isSubIssueMode && !privacyParent;
-  const inheritsPrivateAccess = privacyParent?.visibility === "private" || privacyParent?.project?.visibility === "private";
-  const privateParentProject = privacyParent?.project?.visibility === "private" ? privacyParent.project : null;
-  const inheritedPrivateProject = privateParentProject ?? (!isPrivate && currentProject?.visibility === "private" ? currentProject : null);
-  const inheritedPrivacyReason = privacyParent?.visibility === "private"
-    ? `Subtask of private task ${privacyParent.title || newIssueDefaults.parentTitle || parentIssueLabel}`
-    : inheritedPrivateProject ? `In private project ${inheritedPrivateProject.name}` : undefined;
-  const effectivePrivate = isPrivate || inheritsPrivateAccess
-    || orderedProjects.some(project => project.id === projectId && project.visibility === "private");
+  const inheritsPrivateAccess =
+    privacyParent?.visibility === "private" ||
+    privacyParent?.project?.visibility === "private";
+  const privateParentProject =
+    privacyParent?.project?.visibility === "private"
+      ? privacyParent.project
+      : null;
+  const inheritedPrivateProject =
+    privateParentProject ??
+    (!isPrivate && currentProject?.visibility === "private"
+      ? currentProject
+      : null);
+  const inheritedPrivacyReason =
+    privacyParent?.visibility === "private"
+      ? `Subtask of private task ${privacyParent.title || newIssueDefaults.parentTitle || parentIssueLabel}`
+      : inheritedPrivateProject
+        ? `In private project ${inheritedPrivateProject.name}`
+        : undefined;
+  const effectivePrivate =
+    isPrivate ||
+    inheritsPrivateAccess ||
+    orderedProjects.some(
+      (project) => project.id === projectId && project.visibility === "private",
+    );
 
-  const selectedAssignee = useMemo(() => parseAssigneeValue(assigneeValue), [assigneeValue]);
+  const selectedAssignee = useMemo(
+    () => parseAssigneeValue(assigneeValue),
+    [assigneeValue],
+  );
   const selectedAssigneeAgentId = selectedAssignee.assigneeAgentId;
   const selectedAssigneeUserId = selectedAssignee.assigneeUserId;
 
   const selectedAssigneeAgent = useMemo(
-    () => (agents ?? []).find((agent) => agent.id === selectedAssigneeAgentId) ?? null,
+    () =>
+      (agents ?? []).find((agent) => agent.id === selectedAssigneeAgentId) ??
+      null,
     [agents, selectedAssigneeAgentId],
   );
   const assigneeAdapterType = selectedAssigneeAgent?.adapterType ?? null;
@@ -433,7 +560,11 @@ export function NewIssueDialog() {
       stagedFiles: pendingStagedFiles,
       navigateOnCreate,
       ...data
-    }: { companyId: string; stagedFiles: StagedIssueFile[]; navigateOnCreate?: boolean } & Record<string, unknown>) => {
+    }: {
+      companyId: string;
+      stagedFiles: StagedIssueFile[];
+      navigateOnCreate?: boolean;
+    } & Record<string, unknown>) => {
       const issue = await issuesApi.create(companyId, data);
       const failures: string[] = [];
 
@@ -441,14 +572,25 @@ export function NewIssueDialog() {
         try {
           if (stagedFile.kind === "document") {
             const body = await stagedFile.file.text();
-            await issuesApi.upsertDocument(issue.id, stagedFile.documentKey ?? "document", {
-              title: stagedFile.documentKey === "plan" ? null : (stagedFile.title ?? null),
-              format: "markdown",
-              body,
-              baseRevisionId: null,
-            });
+            await issuesApi.upsertDocument(
+              issue.id,
+              stagedFile.documentKey ?? "document",
+              {
+                title:
+                  stagedFile.documentKey === "plan"
+                    ? null
+                    : (stagedFile.title ?? null),
+                format: "markdown",
+                body,
+                baseRevisionId: null,
+              },
+            );
           } else {
-            await issuesApi.uploadAttachment(companyId, issue.id, stagedFile.file);
+            await issuesApi.uploadAttachment(
+              companyId,
+              issue.id,
+              stagedFile.file,
+            );
           }
         } catch {
           failures.push(stagedFile.file.name);
@@ -459,16 +601,30 @@ export function NewIssueDialog() {
     },
     onSuccess: ({ issue, companyId, failures, navigateOnCreate }) => {
       trackRecentProject(issue.projectId ?? "", companyId);
-      if (issue.assigneeAgentId) trackRecentAssignee(issue.assigneeAgentId, companyId);
-      if (issue.assigneeUserId) trackRecentAssigneeUser(issue.assigneeUserId, companyId);
+      if (issue.assigneeAgentId)
+        trackRecentAssignee(issue.assigneeAgentId, companyId);
+      if (issue.assigneeUserId)
+        trackRecentAssigneeUser(issue.assigneeUserId, companyId);
       if (streamlinedUiEnabled) recordRecentTask(issue, currentUserId);
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(companyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.listMineByMe(companyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.listTouchedByMe(companyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.listUnreadTouchedByMe(companyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.sidebarBadges(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.list(companyId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.listMineByMe(companyId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.listTouchedByMe(companyId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.listUnreadTouchedByMe(companyId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sidebarBadges(companyId),
+      });
       if (draftTimer.current) clearTimeout(draftTimer.current);
-      const prefix = (companies.find((company) => company.id === companyId)?.issuePrefix ?? "").trim();
+      const prefix = (
+        companies.find((company) => company.id === companyId)?.issuePrefix ?? ""
+      ).trim();
       const issueRef = issue.identifier ?? issue.id;
       const openIssueAction = prefix
         ? { label: `Open ${issueRef}`, href: `/${prefix}/issues/${issueRef}` }
@@ -490,7 +646,8 @@ export function NewIssueDialog() {
       clearDraft();
       reset();
       closeNewIssue();
-      if (navigateOnCreate) navigate(openIssueAction?.href ?? `/issues/${issueRef}`);
+      if (navigateOnCreate)
+        navigate(openIssueAction?.href ?? `/issues/${issueRef}`);
     },
   });
 
@@ -502,13 +659,16 @@ export function NewIssueDialog() {
     }, DEBOUNCE_MS);
   }, []);
 
-  const setIssueText = useCallback((nextTitle: string, nextDescription: string) => {
-    setHasTitle(Boolean(nextTitle));
-    titleRef.current = nextTitle;
-    descriptionRef.current = nextDescription;
-    setTitle(nextTitle);
-    setDescription(nextDescription);
-  }, []);
+  const setIssueText = useCallback(
+    (nextTitle: string, nextDescription: string) => {
+      setHasTitle(Boolean(nextTitle));
+      titleRef.current = nextTitle;
+      descriptionRef.current = nextDescription;
+      setTitle(nextTitle);
+      setDescription(nextDescription);
+    },
+    [],
+  );
 
   const queueDraftSave = useCallback(
     (overrides: { title?: string; description?: string } = {}) => {
@@ -611,23 +771,35 @@ export function NewIssueDialog() {
     executionWorkspaceDefaultProjectId.current = null;
 
     const draft = loadDraft();
-    defaultProjectPendingRef.current = newIssueDefaults.projectId === undefined && !newIssueDefaults.parentId;
-    defaultAssigneePendingRef.current = !newIssueDefaults.assigneeAgentId && !newIssueDefaults.assigneeUserId;
+    defaultProjectPendingRef.current =
+      newIssueDefaults.projectId === undefined && !newIssueDefaults.parentId;
+    defaultAssigneePendingRef.current =
+      !newIssueDefaults.assigneeAgentId && !newIssueDefaults.assigneeUserId;
     setComposerSettings(null);
     setIsPrivate(false);
     createIssue.reset();
     if (newIssueDefaults.parentId) {
-      const nextWorkMode = isIssueWorkMode(newIssueDefaults.workMode) ? newIssueDefaults.workMode : "standard";
+      const nextWorkMode = isIssueWorkMode(newIssueDefaults.workMode)
+        ? newIssueDefaults.workMode
+        : "standard";
       const defaultProjectId = newIssueDefaults.projectId ?? "";
-      const defaultProject = orderedProjects.find((project) => project.id === defaultProjectId);
-      const hasExplicitProjectWorkspaceId = newIssueDefaults.projectWorkspaceId !== undefined;
-      const defaultProjectWorkspaceId =
-        newIssueDefaults.projectWorkspaceId ?? defaultProjectWorkspaceIdForProject(defaultProject);
-      const defaultExecutionWorkspaceMode = defaultExecutionWorkspaceModeForIssueDefaults(
-        newIssueDefaults,
-        defaultProject,
+      const defaultProject = orderedProjects.find(
+        (project) => project.id === defaultProjectId,
       );
-      setIssueText(newIssueDefaults.title ?? "", newIssueDefaults.description ?? "");
+      const hasExplicitProjectWorkspaceId =
+        newIssueDefaults.projectWorkspaceId !== undefined;
+      const defaultProjectWorkspaceId =
+        newIssueDefaults.projectWorkspaceId ??
+        defaultProjectWorkspaceIdForProject(defaultProject);
+      const defaultExecutionWorkspaceMode =
+        defaultExecutionWorkspaceModeForIssueDefaults(
+          newIssueDefaults,
+          defaultProject,
+        );
+      setIssueText(
+        newIssueDefaults.title ?? "",
+        newIssueDefaults.description ?? "",
+      );
       setStatus(newIssueDefaults.status ?? "todo");
       setPriority(newIssueDefaults.priority ?? "");
       setProjectId(defaultProjectId);
@@ -639,19 +811,34 @@ export function NewIssueDialog() {
       setAssigneeChrome(false);
       setExecutionWorkspaceMode(defaultExecutionWorkspaceMode);
       setWorkMode(nextWorkMode);
-      setSelectedExecutionWorkspaceId(newIssueDefaults.executionWorkspaceId ?? "");
+      setSelectedExecutionWorkspaceId(
+        newIssueDefaults.executionWorkspaceId ?? "",
+      );
       executionWorkspaceDefaultProjectId.current =
-        hasExplicitProjectWorkspaceId || defaultProject ? defaultProjectId || null : null;
+        hasExplicitProjectWorkspaceId || defaultProject
+          ? defaultProjectId || null
+          : null;
     } else if (newIssueDefaults.title || newIssueDefaults.description) {
-      const nextWorkMode = isIssueWorkMode(newIssueDefaults.workMode) ? newIssueDefaults.workMode : "standard";
-      setIssueText(newIssueDefaults.title ?? "", newIssueDefaults.description ?? "");
+      const nextWorkMode = isIssueWorkMode(newIssueDefaults.workMode)
+        ? newIssueDefaults.workMode
+        : "standard";
+      setIssueText(
+        newIssueDefaults.title ?? "",
+        newIssueDefaults.description ?? "",
+      );
       setStatus(newIssueDefaults.status ?? "todo");
       setPriority(newIssueDefaults.priority ?? "");
       const defaultProjectId = newIssueDefaults.projectId ?? "";
-      const defaultProject = orderedProjects.find((project) => project.id === defaultProjectId);
-      const hasExplicitProjectWorkspaceId = newIssueDefaults.projectWorkspaceId !== undefined;
+      const defaultProject = orderedProjects.find(
+        (project) => project.id === defaultProjectId,
+      );
+      const hasExplicitProjectWorkspaceId =
+        newIssueDefaults.projectWorkspaceId !== undefined;
       setProjectId(defaultProjectId);
-      setProjectWorkspaceId(newIssueDefaults.projectWorkspaceId ?? defaultProjectWorkspaceIdForProject(defaultProject));
+      setProjectWorkspaceId(
+        newIssueDefaults.projectWorkspaceId ??
+          defaultProjectWorkspaceIdForProject(defaultProject),
+      );
       setAssigneeValue(assigneeValueFromSelection(newIssueDefaults));
       setReviewerValue("");
       setApproverValue("");
@@ -662,22 +849,38 @@ export function NewIssueDialog() {
       setAssigneeModelOverride("");
       setAssigneeThinkingEffort("");
       setAssigneeChrome(false);
-      setExecutionWorkspaceMode(defaultExecutionWorkspaceModeForIssueDefaults(newIssueDefaults, defaultProject));
+      setExecutionWorkspaceMode(
+        defaultExecutionWorkspaceModeForIssueDefaults(
+          newIssueDefaults,
+          defaultProject,
+        ),
+      );
       setWorkMode(nextWorkMode);
-      setSelectedExecutionWorkspaceId(newIssueDefaults.executionWorkspaceId ?? "");
+      setSelectedExecutionWorkspaceId(
+        newIssueDefaults.executionWorkspaceId ?? "",
+      );
       executionWorkspaceDefaultProjectId.current =
-        hasExplicitProjectWorkspaceId || newIssueDefaults.executionWorkspaceId || defaultProject
+        hasExplicitProjectWorkspaceId ||
+        newIssueDefaults.executionWorkspaceId ||
+        defaultProject
           ? defaultProjectId || null
           : null;
     } else if (draft && (draft.title.trim() || draft.description.trim())) {
       defaultAssigneePendingRef.current = false;
       defaultProjectPendingRef.current = false;
-      const nextWorkMode = isIssueWorkMode(draft.workMode) ? draft.workMode : "standard";
+      const nextWorkMode = isIssueWorkMode(draft.workMode)
+        ? draft.workMode
+        : "standard";
       const restoredProjectId = newIssueDefaults.projectId ?? draft.projectId;
-      const restoredProject = orderedProjects.find((project) => project.id === restoredProjectId);
-      const hasExplicitProjectWorkspaceId = newIssueDefaults.projectWorkspaceId !== undefined;
-      const hasExplicitExecutionWorkspaceId = newIssueDefaults.executionWorkspaceId !== undefined;
-      const hasExplicitExecutionWorkspaceMode = newIssueDefaults.executionWorkspaceMode !== undefined;
+      const restoredProject = orderedProjects.find(
+        (project) => project.id === restoredProjectId,
+      );
+      const hasExplicitProjectWorkspaceId =
+        newIssueDefaults.projectWorkspaceId !== undefined;
+      const hasExplicitExecutionWorkspaceId =
+        newIssueDefaults.executionWorkspaceId !== undefined;
+      const hasExplicitExecutionWorkspaceMode =
+        newIssueDefaults.executionWorkspaceMode !== undefined;
       setIsPrivate(draft.isPrivate ?? false);
       setIssueText(draft.title, draft.description);
       setComposerSettings(draft.composerSettings ?? null);
@@ -698,7 +901,8 @@ export function NewIssueDialog() {
       setProjectWorkspaceId(
         hasExplicitProjectWorkspaceId
           ? (newIssueDefaults.projectWorkspaceId ?? "")
-          : (draft.projectWorkspaceId ?? defaultProjectWorkspaceIdForProject(restoredProject)),
+          : (draft.projectWorkspaceId ??
+              defaultProjectWorkspaceIdForProject(restoredProject)),
       );
       setAssigneeModelLane(draft.assigneeModelLane ?? "primary");
       setAssigneeModelOverride(draft.assigneeModelOverride ?? "");
@@ -706,7 +910,10 @@ export function NewIssueDialog() {
       setAssigneeChrome(draft.assigneeChrome ?? false);
       setExecutionWorkspaceMode(
         hasExplicitExecutionWorkspaceId || hasExplicitExecutionWorkspaceMode
-          ? defaultExecutionWorkspaceModeForIssueDefaults(newIssueDefaults, restoredProject)
+          ? defaultExecutionWorkspaceModeForIssueDefaults(
+              newIssueDefaults,
+              restoredProject,
+            )
           : (draft.executionWorkspaceMode ??
               (draft.useIsolatedExecutionWorkspace
                 ? "isolated_workspace"
@@ -719,19 +926,32 @@ export function NewIssueDialog() {
           : (draft.selectedExecutionWorkspaceId ?? ""),
       );
       executionWorkspaceDefaultProjectId.current =
-        hasExplicitProjectWorkspaceId || hasExplicitExecutionWorkspaceId || draft.projectWorkspaceId || restoredProject
+        hasExplicitProjectWorkspaceId ||
+        hasExplicitExecutionWorkspaceId ||
+        draft.projectWorkspaceId ||
+        restoredProject
           ? restoredProjectId || null
           : null;
     } else {
-      setWorkMode(isIssueWorkMode(newIssueDefaults.workMode) ? newIssueDefaults.workMode : "standard");
+      setWorkMode(
+        isIssueWorkMode(newIssueDefaults.workMode)
+          ? newIssueDefaults.workMode
+          : "standard",
+      );
       const defaultProjectId = newIssueDefaults.projectId ?? "";
-      const defaultProject = orderedProjects.find((project) => project.id === defaultProjectId);
-      const hasExplicitProjectWorkspaceId = newIssueDefaults.projectWorkspaceId !== undefined;
+      const defaultProject = orderedProjects.find(
+        (project) => project.id === defaultProjectId,
+      );
+      const hasExplicitProjectWorkspaceId =
+        newIssueDefaults.projectWorkspaceId !== undefined;
       setIssueText("", "");
       setStatus(newIssueDefaults.status ?? "todo");
       setPriority(newIssueDefaults.priority ?? "");
       setProjectId(defaultProjectId);
-      setProjectWorkspaceId(newIssueDefaults.projectWorkspaceId ?? defaultProjectWorkspaceIdForProject(defaultProject));
+      setProjectWorkspaceId(
+        newIssueDefaults.projectWorkspaceId ??
+          defaultProjectWorkspaceIdForProject(defaultProject),
+      );
       setAssigneeValue(assigneeValueFromSelection(newIssueDefaults));
       setReviewerValue("");
       setApproverValue("");
@@ -742,14 +962,29 @@ export function NewIssueDialog() {
       setAssigneeModelOverride("");
       setAssigneeThinkingEffort("");
       setAssigneeChrome(false);
-      setExecutionWorkspaceMode(defaultExecutionWorkspaceModeForIssueDefaults(newIssueDefaults, defaultProject));
-      setSelectedExecutionWorkspaceId(newIssueDefaults.executionWorkspaceId ?? "");
+      setExecutionWorkspaceMode(
+        defaultExecutionWorkspaceModeForIssueDefaults(
+          newIssueDefaults,
+          defaultProject,
+        ),
+      );
+      setSelectedExecutionWorkspaceId(
+        newIssueDefaults.executionWorkspaceId ?? "",
+      );
       executionWorkspaceDefaultProjectId.current =
-        hasExplicitProjectWorkspaceId || newIssueDefaults.executionWorkspaceId || defaultProject
+        hasExplicitProjectWorkspaceId ||
+        newIssueDefaults.executionWorkspaceId ||
+        defaultProject
           ? defaultProjectId || null
           : null;
     }
-  }, [newIssueOpen, newIssueDefaults, orderedProjects, effectiveCompanyId, setIssueText]);
+  }, [
+    newIssueOpen,
+    newIssueDefaults,
+    orderedProjects,
+    effectiveCompanyId,
+    setIssueText,
+  ]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -790,10 +1025,21 @@ export function NewIssueDialog() {
     initializationKeyRef.current = null;
   }
 
-  async function handleSubmit(body: string, mode: IssueWorkMode, settings: ComposerRunSettings | null) {
+  async function handleSubmit(
+    body: string,
+    mode: IssueWorkMode,
+    settings: ComposerRunSettings | null,
+  ) {
     const currentTitle = titleRef.current.trim();
     const currentDescription = body.trim();
-    if (!effectiveCompanyId || (!currentTitle && !currentDescription) || createIssue.isPending || worktreeSelectionIncomplete || parentPrivacyUnresolved) return;
+    if (
+      !effectiveCompanyId ||
+      (!currentTitle && !currentDescription) ||
+      createIssue.isPending ||
+      worktreeSelectionIncomplete ||
+      parentPrivacyUnresolved
+    )
+      return;
     const inheritedOverrides = buildAssigneeAdapterOverrides({
       adapterType: assigneeAdapterType,
       lane: assigneeChrome ? "custom" : assigneeModelLane,
@@ -801,29 +1047,39 @@ export function NewIssueDialog() {
       thinkingEffortOverride: assigneeThinkingEffort,
       chrome: assigneeChrome,
     });
-    const selectedProject = orderedProjects.find((project) => project.id === projectId);
+    const selectedProject = orderedProjects.find(
+      (project) => project.id === projectId,
+    );
     // Hidden selectors must not submit a restored draft over the managed default.
     const executionWorkspacePolicy =
-      workspaceIsolationControlsVisible && experimentalSettings?.enableIsolatedWorkspaces === true
+      workspaceIsolationControlsVisible &&
+      experimentalSettings?.enableIsolatedWorkspaces === true
         ? (selectedProject?.executionWorkspacePolicy ?? null)
         : null;
-    const selectedReusableExecutionWorkspace = selectableReusableWorkspaces.find(
-      (workspace) => workspace.id === selectedExecutionWorkspaceId,
-    );
+    const selectedReusableExecutionWorkspace =
+      selectableReusableWorkspaces.find(
+        (workspace) => workspace.id === selectedExecutionWorkspaceId,
+      );
     const requestedExecutionWorkspaceMode =
       executionWorkspaceMode === "reuse_existing"
-        ? issueExecutionWorkspaceModeForExistingWorkspace(selectedReusableExecutionWorkspace?.mode)
+        ? issueExecutionWorkspaceModeForExistingWorkspace(
+            selectedReusableExecutionWorkspace?.mode,
+          )
         : executionWorkspaceMode;
     const executionWorkspaceSettings = executionWorkspacePolicy?.enabled
       ? { mode: requestedExecutionWorkspaceMode }
       : null;
-    const requestedProjectWorkspaceId = canChooseWorktrees && executionWorkspaceMode === "reuse_existing" && selectedReusableExecutionWorkspace
-      ? selectedReusableExecutionWorkspace.projectWorkspaceId
-      : projectWorkspaceId;
+    const requestedProjectWorkspaceId =
+      canChooseWorktrees &&
+      executionWorkspaceMode === "reuse_existing" &&
+      selectedReusableExecutionWorkspace
+        ? selectedReusableExecutionWorkspace.projectWorkspaceId
+        : projectWorkspaceId;
     // A task launched from a workspace (or its parent task) keeps that explicit
     // context. Draft-only choices are ignored while the selector is hidden.
     const contextualWorkspaceId =
-      !workspaceIsolationControlsVisible && newIssueDefaults.projectId === projectId
+      !workspaceIsolationControlsVisible &&
+      newIssueDefaults.projectId === projectId
         ? newIssueDefaults.executionWorkspaceId
         : undefined;
     const executionPolicy = buildExecutionPolicy({
@@ -831,7 +1087,11 @@ export function NewIssueDialog() {
       approverValues: approverValue ? [approverValue] : [],
     });
     const assigneeAdapterOverrides = settings
-      ? mergeComposerRunSettings(inheritedOverrides, assigneeAdapterType ?? undefined, settings)
+      ? mergeComposerRunSettings(
+          inheritedOverrides,
+          assigneeAdapterType ?? undefined,
+          settings,
+        )
       : inheritedOverrides;
     const createData = {
       companyId: effectiveCompanyId,
@@ -842,14 +1102,24 @@ export function NewIssueDialog() {
       priority: priority || "medium",
       workMode: mode,
       ...(effectivePrivate ? { visibility: "private" } : {}),
-      ...(selectedAssigneeAgentId ? { assigneeAgentId: selectedAssigneeAgentId } : {}),
-      ...(selectedAssigneeUserId ? { assigneeUserId: selectedAssigneeUserId } : {}),
-      ...(newIssueDefaults.parentId ? { parentId: newIssueDefaults.parentId } : {}),
+      ...(selectedAssigneeAgentId
+        ? { assigneeAgentId: selectedAssigneeAgentId }
+        : {}),
+      ...(selectedAssigneeUserId
+        ? { assigneeUserId: selectedAssigneeUserId }
+        : {}),
+      ...(newIssueDefaults.parentId
+        ? { parentId: newIssueDefaults.parentId }
+        : {}),
       ...(newIssueDefaults.goalId ? { goalId: newIssueDefaults.goalId } : {}),
       ...(projectId ? { projectId } : {}),
-      ...(requestedProjectWorkspaceId ? { projectWorkspaceId: requestedProjectWorkspaceId } : {}),
+      ...(requestedProjectWorkspaceId
+        ? { projectWorkspaceId: requestedProjectWorkspaceId }
+        : {}),
       ...(assigneeAdapterOverrides ? { assigneeAdapterOverrides } : {}),
-      ...(executionWorkspacePolicy?.enabled ? { executionWorkspacePreference: executionWorkspaceMode } : {}),
+      ...(executionWorkspacePolicy?.enabled
+        ? { executionWorkspacePreference: executionWorkspaceMode }
+        : {}),
       ...(canChooseWorktrees &&
       executionWorkspaceMode === "reuse_existing" &&
       selectedExecutionWorkspaceId
@@ -857,11 +1127,19 @@ export function NewIssueDialog() {
         : {}),
       ...(executionWorkspaceSettings ? { executionWorkspaceSettings } : {}),
       ...(contextualWorkspaceId
-        ? { executionWorkspaceId: contextualWorkspaceId, executionWorkspacePreference: "reuse_existing" }
+        ? {
+            executionWorkspaceId: contextualWorkspaceId,
+            executionWorkspacePreference: "reuse_existing",
+          }
         : {}),
       ...(executionPolicy ? { executionPolicy } : {}),
       ...(watchdogAgentId
-        ? { watchdog: { agentId: watchdogAgentId, instructions: watchdogInstructions.trim() || null } }
+        ? {
+            watchdog: {
+              agentId: watchdogAgentId,
+              instructions: watchdogInstructions.trim() || null,
+            },
+          }
         : {}),
     };
     // An explicit board create is a new task even when its title already exists.
@@ -893,7 +1171,10 @@ export function NewIssueDialog() {
       for (const file of files) {
         if (isTextDocumentFile(file)) {
           const baseName = fileBaseName(file.name);
-          const documentKey = createUniqueDocumentKey(slugifyDocumentKey(baseName), next);
+          const documentKey = createUniqueDocumentKey(
+            slugifyDocumentKey(baseName),
+            next,
+          );
           next.push({
             id: `${file.name}:${file.size}:${file.lastModified}:${documentKey}`,
             file,
@@ -942,35 +1223,59 @@ export function NewIssueDialog() {
     setStagedFiles((current) => current.filter((file) => file.id !== id));
   }
 
-  const currentAssignee = selectedAssigneeAgentId ? (agents ?? []).find((a) => a.id === selectedAssigneeAgentId) : null;
-  const currentAssigneeLowTrust = getTrustPreset(currentAssignee?.permissions) === "low_trust_review";
+  const currentAssignee = selectedAssigneeAgentId
+    ? (agents ?? []).find((a) => a.id === selectedAssigneeAgentId)
+    : null;
+  const currentAssigneeLowTrust =
+    getTrustPreset(currentAssignee?.permissions) === "low_trust_review";
   const neededUserSecretKeys = useMemo(() => {
-    if (!shouldWarnAboutRunUserSecrets(status, selectedAssigneeAgentId)) return [];
+    if (!shouldWarnAboutRunUserSecrets(status, selectedAssigneeAgentId))
+      return [];
     return uniqueRequiredUserSecretKeys([
-      isRecord(currentAssignee?.adapterConfig) ? (currentAssignee.adapterConfig.env as Record<string, unknown>) : null,
+      isRecord(currentAssignee?.adapterConfig)
+        ? (currentAssignee.adapterConfig.env as Record<string, unknown>)
+        : null,
       currentProject?.env ?? null,
     ]);
-  }, [currentAssignee?.adapterConfig, currentProject?.env, selectedAssigneeAgentId, status]);
+  }, [
+    currentAssignee?.adapterConfig,
+    currentProject?.env,
+    selectedAssigneeAgentId,
+    status,
+  ]);
   const selectableReusableWorkspaces = reusableExecutionWorkspaces ?? [];
-  const selectedReusableWorktree = selectableReusableWorkspaces.find((workspace) => workspace.id === selectedExecutionWorkspaceId);
-  const worktreeSelectionIncomplete = canChooseWorktrees && executionWorkspaceMode === "reuse_existing"
-    && (worktreesLoading || worktreesError || !selectedReusableWorktree);
+  const selectedReusableWorktree = selectableReusableWorkspaces.find(
+    (workspace) => workspace.id === selectedExecutionWorkspaceId,
+  );
+  const worktreeSelectionIncomplete =
+    canChooseWorktrees &&
+    executionWorkspaceMode === "reuse_existing" &&
+    (worktreesLoading || worktreesError || !selectedReusableWorktree);
   const isUsingParentExecutionWorkspace =
     isSubIssueMode && parentExecutionWorkspaceId
-      ? executionWorkspaceMode === "reuse_existing" && selectedExecutionWorkspaceId === parentExecutionWorkspaceId
+      ? executionWorkspaceMode === "reuse_existing" &&
+        selectedExecutionWorkspaceId === parentExecutionWorkspaceId
       : false;
   const showParentWorkspaceWarning =
     isSubIssueMode &&
     currentProjectSupportsExecutionWorkspace &&
     Boolean(parentExecutionWorkspaceId) &&
     !isUsingParentExecutionWorkspace;
-  const recentAssigneeIds = useMemo(() => getRecentAssigneeIds(), [newIssueOpen]);
+  const recentAssigneeIds = useMemo(
+    () => getRecentAssigneeIds(),
+    [newIssueOpen],
+  );
   const recentProjectIds = useMemo(() => getRecentProjectIds(), [newIssueOpen]);
   const assigneeOptions = useMemo<InlineEntityOption[]>(
     () => [
       ...currentUserAssigneeOption(currentUserId),
-      ...buildCompanyUserInlineOptions(companyMembers?.users, { excludeUserIds: [currentUserId] }),
-      ...sortAgentsByRecency((agents ?? []).filter(isAgentTaskTarget), recentAssigneeIds).map((agent) => ({
+      ...buildCompanyUserInlineOptions(companyMembers?.users, {
+        excludeUserIds: [currentUserId],
+      }),
+      ...sortAgentsByRecency(
+        (agents ?? []).filter(isAgentTaskTarget),
+        recentAssigneeIds,
+      ).map((agent) => ({
         id: assigneeValueFromSelection({ assigneeAgentId: agent.id }),
         label: agent.name,
         searchText: `${agent.name} ${agent.role} ${agent.title ?? ""}`,
@@ -981,29 +1286,69 @@ export function NewIssueDialog() {
   // Resolve once after the directory loads, without resetting text typed while
   // the queries were in flight or replacing an explicit/restored assignee.
   useEffect(() => {
-    if (!newIssueOpen || !effectiveCompanyId || !defaultAssigneePendingRef.current
-      || !agents || !sessionFetched || !membersFetched || primaryAgent?.loading) return;
+    if (
+      !newIssueOpen ||
+      !effectiveCompanyId ||
+      !defaultAssigneePendingRef.current ||
+      !agents ||
+      !sessionFetched ||
+      !membersFetched ||
+      primaryAgent?.loading
+    )
+      return;
     defaultAssigneePendingRef.current = false;
     const available = new Set(assigneeOptions.map((option) => option.id));
     const scopedRecents = getRecentAssigneeSelectionIds(effectiveCompanyId);
     // Older history has no company key. Agent IDs identify their company;
     // human IDs can belong to several companies and cannot be migrated safely.
-    const recents = scopedRecents.length ? scopedRecents
-      : getRecentAssigneeSelectionIds().filter((value) => value.startsWith("agent:"));
+    const recents = scopedRecents.length
+      ? scopedRecents
+      : getRecentAssigneeSelectionIds().filter((value) =>
+          value.startsWith("agent:"),
+        );
     const recent = recents.find((value) => available.has(value));
     const targets = agents.filter(isAgentTaskTarget);
-    const fallback = targets.find((agent) => agent.id === primaryAgent?.primaryAgentId)
-      ?? targets.find((agent) => agent.role === "ceo") ?? targets[0];
-    setAssigneeValue(recent ?? (fallback ? assigneeValueFromSelection({ assigneeAgentId: fallback.id }) : ""));
-  }, [newIssueOpen, effectiveCompanyId, agents, assigneeOptions, sessionFetched, membersFetched, primaryAgent?.loading, primaryAgent?.primaryAgentId]);
+    const fallback =
+      targets.find((agent) => agent.id === primaryAgent?.primaryAgentId) ??
+      targets.find((agent) => agent.role === "ceo") ??
+      targets[0];
+    setAssigneeValue(
+      recent ??
+        (fallback
+          ? assigneeValueFromSelection({ assigneeAgentId: fallback.id })
+          : ""),
+    );
+  }, [
+    newIssueOpen,
+    effectiveCompanyId,
+    agents,
+    assigneeOptions,
+    sessionFetched,
+    membersFetched,
+    primaryAgent?.loading,
+    primaryAgent?.primaryAgentId,
+  ]);
   useEffect(() => {
-    if (!newIssueOpen || !effectiveCompanyId || !defaultProjectPendingRef.current || !projects) return;
+    if (
+      !newIssueOpen ||
+      !effectiveCompanyId ||
+      !defaultProjectPendingRef.current ||
+      !projects
+    )
+      return;
     defaultProjectPendingRef.current = false;
-    const available = new Set(orderedProjects.filter((project) => !project.archivedAt).map((project) => project.id));
+    const available = new Set(
+      orderedProjects
+        .filter((project) => !project.archivedAt)
+        .map((project) => project.id),
+    );
     const last = getLastProjectId(effectiveCompanyId);
-    const remembered = last !== undefined
-      ? (available.has(last) ? last : "")
-      : (getRecentProjectIds().find((id) => available.has(id)) ?? "");
+    const remembered =
+      last !== undefined
+        ? available.has(last)
+          ? last
+          : ""
+        : (getRecentProjectIds().find((id) => available.has(id)) ?? "");
     setProjectId(remembered);
   }, [newIssueOpen, effectiveCompanyId, projects, orderedProjects]);
   const projectOptions = useMemo<InlineEntityOption[]>(
@@ -1015,18 +1360,26 @@ export function NewIssueDialog() {
       })),
     [orderedProjects],
   );
-  const stagedDocuments = stagedFiles.filter((file) => file.kind === "document");
-  const stagedAttachments = stagedFiles.filter((file) => file.kind === "attachment");
+  const stagedDocuments = stagedFiles.filter(
+    (file) => file.kind === "document",
+  );
+  const stagedAttachments = stagedFiles.filter(
+    (file) => file.kind === "attachment",
+  );
 
   const handleProjectChange = useCallback(
     (nextProjectId: string) => {
       defaultProjectPendingRef.current = false;
       trackRecentProject(nextProjectId, effectiveCompanyId ?? undefined);
       setProjectId(nextProjectId);
-      const nextProject = orderedProjects.find((project) => project.id === nextProjectId);
+      const nextProject = orderedProjects.find(
+        (project) => project.id === nextProjectId,
+      );
       executionWorkspaceDefaultProjectId.current = nextProjectId || null;
       setProjectWorkspaceId(defaultProjectWorkspaceIdForProject(nextProject));
-      setExecutionWorkspaceMode(defaultExecutionWorkspaceModeForProject(nextProject));
+      setExecutionWorkspaceMode(
+        defaultExecutionWorkspaceModeForProject(nextProject),
+      );
       setSelectedExecutionWorkspaceId("");
     },
     [orderedProjects, effectiveCompanyId],
@@ -1070,12 +1423,13 @@ export function NewIssueDialog() {
         : {}),
     };
   }, [visualViewportLayout]);
-  const entityPickerViewportStyle = useMemo<MobileEntityPickerViewportStyle>(() => {
-    if (!visualViewportLayout) return {};
-    return {
-      "--mobile-entity-picker-visual-viewport-height": `${visualViewportLayout.height}px`,
-    };
-  }, [visualViewportLayout]);
+  const entityPickerViewportStyle =
+    useMemo<MobileEntityPickerViewportStyle>(() => {
+      if (!visualViewportLayout) return {};
+      return {
+        "--mobile-entity-picker-visual-viewport-height": `${visualViewportLayout.height}px`,
+      };
+    }, [visualViewportLayout]);
 
   useEffect(() => {
     if (!visualViewportLayout?.constrained) return;
@@ -1094,7 +1448,10 @@ export function NewIssueDialog() {
     return () => window.cancelAnimationFrame(frame);
   }, [visualViewportLayout]);
 
-  const modelAgents = useMemo(() => new Map((agents ?? []).map((agent) => [agent.id, agent])), [agents]);
+  const modelAgents = useMemo(
+    () => new Map((agents ?? []).map((agent) => [agent.id, agent])),
+    [agents],
+  );
   const inheritedOverrides = buildAssigneeAdapterOverrides({
     adapterType: assigneeAdapterType,
     lane: assigneeChrome ? "custom" : assigneeModelLane,
@@ -1118,7 +1475,9 @@ export function NewIssueDialog() {
         onKeyDown={handleKeyDown}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
-          dialogBodyRef.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus();
+          dialogBodyRef.current
+            ?.querySelector<HTMLElement>('[contenteditable="true"]')
+            ?.focus();
         }}
         onEscapeKeyDown={(event) => {
           if (event.defaultPrevented) return;
@@ -1128,25 +1487,35 @@ export function NewIssueDialog() {
           } else if (createIssue.isPending) event.preventDefault();
         }}
         onPointerDownOutside={(event) => {
-          const target = event.detail.originalEvent.target as HTMLElement | null;
+          const target = event.detail.originalEvent
+            .target as HTMLElement | null;
           if (
             createIssue.isPending ||
-            target?.closest("[data-radix-popper-content-wrapper], [data-taskcore-floating-ui]")
+            target?.closest(
+              "[data-radix-popper-content-wrapper], [data-taskcore-floating-ui]",
+            )
           ) {
             event.preventDefault();
           }
         }}
       >
-        <DialogTitle className="sr-only">{isSubIssueMode ? "New sub-task" : "New task"}</DialogTitle>
+        <DialogTitle className="sr-only">
+          {isSubIssueMode ? "New sub-task" : "New task"}
+        </DialogTitle>
         <div
           ref={dialogBodyRef}
-          className={cn("min-h-0 overflow-y-auto overscroll-contain", isFileDragOver && "bg-accent/20")}
+          className={cn(
+            "min-h-0 overflow-y-auto overscroll-contain",
+            isFileDragOver && "bg-accent/20",
+          )}
           onDragEnter={handleFileDragEnter}
           onDragOver={handleFileDragOver}
           onDragLeave={handleFileDragLeave}
           onDrop={handleFileDrop}
         >
-          <TaskChatPresentationProvider mode={streamlinedUiEnabled ? "streamlined" : "production"}>
+          <TaskChatPresentationProvider
+            mode={streamlinedUiEnabled ? "streamlined" : "production"}
+          >
             <TaskChatComposer
               workMode={workMode}
               onWorkModeChange={setWorkMode}
@@ -1155,8 +1524,13 @@ export function NewIssueDialog() {
               mobile={isMobile}
               mentions={mentionOptions}
               onImageUpload={async (file) => {
-                if (!effectiveCompanyId) throw new Error("No organization selected");
-                const asset = await assetsApi.uploadImage(effectiveCompanyId, file, "issues/drafts");
+                if (!effectiveCompanyId)
+                  throw new Error("No organization selected");
+                const asset = await assetsApi.uploadImage(
+                  effectiveCompanyId,
+                  file,
+                  "issues/drafts",
+                );
                 return asset.contentPath;
               }}
               companyId={effectiveCompanyId}
@@ -1170,8 +1544,16 @@ export function NewIssueDialog() {
                 if (value === null) return;
                 defaultAssigneePendingRef.current = false;
                 const next = parseAssigneeValue(value);
-                if (next.assigneeAgentId) trackRecentAssignee(next.assigneeAgentId, effectiveCompanyId ?? undefined);
-                if (next.assigneeUserId) trackRecentAssigneeUser(next.assigneeUserId, effectiveCompanyId ?? undefined);
+                if (next.assigneeAgentId)
+                  trackRecentAssignee(
+                    next.assigneeAgentId,
+                    effectiveCompanyId ?? undefined,
+                  );
+                if (next.assigneeUserId)
+                  trackRecentAssigneeUser(
+                    next.assigneeUserId,
+                    effectiveCompanyId ?? undefined,
+                  );
                 setAssigneeValue(value);
                 setComposerSettings(null);
                 setAssigneeModelLane("primary");
@@ -1184,18 +1566,28 @@ export function NewIssueDialog() {
                 value: description,
                 onChange: handleDescriptionChange,
                 onSubmit: handleSubmit,
-                privacy: parentPrivacyUnresolved ? undefined : {
-                  private: effectivePrivate,
-                  inherited: inheritedPrivacyReason,
-                  onChange: (checked) => {
-                    setIsPrivate(checked);
-                    if (!checked && currentProject?.visibility === "private") handleProjectChange("");
-                    if (checked && !projectId && currentUserId) {
-                      const personalProject = orderedProjects.find(project => project.personalOwnerUserId === currentUserId);
-                      if (personalProject) handleProjectChange(personalProject.id);
-                    }
-                  },
-                },
+                privacy: parentPrivacyUnresolved
+                  ? undefined
+                  : {
+                      private: effectivePrivate,
+                      inherited: inheritedPrivacyReason,
+                      onChange: (checked) => {
+                        setIsPrivate(checked);
+                        if (
+                          !checked &&
+                          currentProject?.visibility === "private"
+                        )
+                          handleProjectChange("");
+                        if (checked && !projectId && currentUserId) {
+                          const personalProject = orderedProjects.find(
+                            (project) =>
+                              project.personalOwnerUserId === currentUserId,
+                          );
+                          if (personalProject)
+                            handleProjectChange(personalProject.id);
+                        }
+                      },
+                    },
                 submitLabel: isSubIssueMode ? "Create sub-task" : "Create task",
                 canSubmitWithoutBody: Boolean(title.trim()),
                 onSelectFiles: stageFiles,
@@ -1223,10 +1615,14 @@ export function NewIssueDialog() {
                             <div className="flex items-center gap-1.5">
                               <ListTree className="h-3.5 w-3.5 shrink-0" />
                               <span className="shrink-0">Sub-task of</span>
-                              <span className="font-medium text-foreground">{parentIssueLabel}</span>
+                              <span className="font-medium text-foreground">
+                                {parentIssueLabel}
+                              </span>
                             </div>
                             {newIssueDefaults.parentTitle ? (
-                              <div className="pl-5 text-foreground/80 truncate">{newIssueDefaults.parentTitle}</div>
+                              <div className="pl-5 text-foreground/80 truncate">
+                                {newIssueDefaults.parentTitle}
+                              </div>
                             ) : null}
                           </div>
                         </div>
@@ -1236,14 +1632,30 @@ export function NewIssueDialog() {
                 details: (
                   <>
                     {parentPrivacyUnresolved ? (
-                      <div role={parentPrivacyError ? "alert" : "status"} className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{parentPrivacyError ? "Couldn't check parent access." : "Checking parent access…"}</span>
-                        {parentPrivacyError ? <Button variant="ghost" size="sm" onClick={() => void refetchParentPrivacy()}>Retry</Button> : null}
+                      <div
+                        role={parentPrivacyError ? "alert" : "status"}
+                        className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"
+                      >
+                        <span>
+                          {parentPrivacyError
+                            ? "Couldn't check parent access."
+                            : "Checking parent access…"}
+                        </span>
+                        {parentPrivacyError ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void refetchParentPrivacy()}
+                          >
+                            Retry
+                          </Button>
+                        ) : null}
                       </div>
                     ) : null}
                     {worktreeSelectionIncomplete && !worktreesLoading ? (
                       <p role="alert" className="mb-2 text-xs text-destructive">
-                        {worktreesError ? "Couldn't check the selected worktree. Retry in Worktrees or choose New worktree."
+                        {worktreesError
+                          ? "Couldn't check the selected worktree. Retry in Worktrees or choose New worktree."
                           : "The selected worktree is no longer available. Choose another worktree or start a new one."}
                       </p>
                     ) : null}
@@ -1251,7 +1663,9 @@ export function NewIssueDialog() {
                       <div className="mt-4 space-y-3 rounded-lg border border-border/70 p-3">
                         {stagedDocuments.length > 0 ? (
                           <div className="space-y-2">
-                            <div className="text-xs font-medium text-muted-foreground">Documents</div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              Documents
+                            </div>
                             <div className="space-y-2">
                               {stagedDocuments.map((file) => (
                                 <div
@@ -1266,11 +1680,15 @@ export function NewIssueDialog() {
                                       >
                                         {file.documentKey}
                                       </Badge>
-                                      <span className="truncate text-sm">{file.file.name}</span>
+                                      <span className="truncate text-sm">
+                                        {file.file.name}
+                                      </span>
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">
                                       <FileText className="h-3.5 w-3.5" />
-                                      <span>{file.title || file.file.name}</span>
+                                      <span>
+                                        {file.title || file.file.name}
+                                      </span>
                                       <span>•</span>
                                       <span>{formatFileSize(file.file)}</span>
                                     </div>
@@ -1293,7 +1711,9 @@ export function NewIssueDialog() {
 
                         {stagedAttachments.length > 0 ? (
                           <div className="space-y-2">
-                            <div className="text-xs font-medium text-muted-foreground">Attachments</div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              Attachments
+                            </div>
                             <div className="space-y-2">
                               {stagedAttachments.map((file) => (
                                 <div
@@ -1303,10 +1723,14 @@ export function NewIssueDialog() {
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2">
                                       <TaskcoreIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                      <span className="truncate text-sm">{file.file.name}</span>
+                                      <span className="truncate text-sm">
+                                        {file.file.name}
+                                      </span>
                                     </div>
                                     <div className="mt-1 text-(length:--text-micro) text-muted-foreground">
-                                      {file.file.type || "application/octet-stream"} • {formatFileSize(file.file)}
+                                      {file.file.type ||
+                                        "application/octet-stream"}{" "}
+                                      • {formatFileSize(file.file)}
                                     </div>
                                   </div>
                                   <Button
@@ -1334,22 +1758,31 @@ export function NewIssueDialog() {
                         <Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
                         <span className="leading-snug">
                           Assigning implies executable intent - leave status as{" "}
-                          <span className="font-medium">Backlog</span> only to deliberately park this. The assignee will
-                          not be woken until status moves to <span className="font-medium">Todo</span> or{" "}
+                          <span className="font-medium">Backlog</span> only to
+                          deliberately park this. The assignee will not be woken
+                          until status moves to{" "}
+                          <span className="font-medium">Todo</span> or{" "}
                           <span className="font-medium">In Progress</span>.
                         </span>
                       </div>
                     ) : null}
 
                     {selectedAssigneeAgent?.status === "paused" ? (
-                      <div data-testid="new-issue-paused-assignee-note" className="mx-4 mb-2">
+                      <div
+                        data-testid="new-issue-paused-assignee-note"
+                        className="mx-4 mb-2"
+                      >
                         <InlineBanner tone="warning" icon={PauseCircle} compact>
-                          <span className="font-medium">{selectedAssigneeAgent.name}</span> is paused and will not start
-                          work on this task until it is resumed
+                          <span className="font-medium">
+                            {selectedAssigneeAgent.name}
+                          </span>{" "}
+                          is paused and will not start work on this task until
+                          it is resumed
                           {selectedAssigneeAgent.pauseReason === "import"
                             ? " — it arrived paused from an organization import"
                             : ""}
-                          . You can resume it from the task page after creating the task.
+                          . You can resume it from the task page after creating
+                          the task.
                         </InlineBanner>
                       </div>
                     ) : null}
@@ -1361,8 +1794,9 @@ export function NewIssueDialog() {
                       >
                         <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
                         <span className="leading-snug">
-                          Low-trust review agent. It can only act inside its assigned review boundary; task, project, or
-                          run policy defines the concrete scope.
+                          Low-trust review agent. It can only act inside its
+                          assigned review boundary; task, project, or run policy
+                          defines the concrete scope.
                         </span>
                       </div>
                     ) : null}
@@ -1370,17 +1804,25 @@ export function NewIssueDialog() {
                     {showParentWorkspaceWarning ? (
                       <div className="mb-2">
                         <InlineBanner tone="warning" compact>
-                          This sub-task will no longer use the parent task workspace
-                          {parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : ""}.
+                          This sub-task will no longer use the parent task
+                          workspace
+                          {parentExecutionWorkspaceLabel
+                            ? ` (${parentExecutionWorkspaceLabel})`
+                            : ""}
+                          .
                         </InlineBanner>
                       </div>
                     ) : null}
                     {effectiveCompanyId && neededUserSecretKeys.length > 0 ? (
-                      <MissingUserSecretsBanner companyId={effectiveCompanyId} definitionKeys={neededUserSecretKeys} />
+                      <MissingUserSecretsBanner
+                        companyId={effectiveCompanyId}
+                        definitionKeys={neededUserSecretKeys}
+                      />
                     ) : null}
                   </>
                 ),
-                submitDisabled: worktreeSelectionIncomplete || parentPrivacyUnresolved,
+                submitDisabled:
+                  worktreeSelectionIncomplete || parentPrivacyUnresolved,
                 contextBar: (
                   <>
                     <InlineEntitySelector
@@ -1402,27 +1844,74 @@ export function NewIssueDialog() {
                       renderTriggerValue={(option) =>
                         option && currentProject ? (
                           <>
-                            <Folder className="size-3.5 shrink-0" style={{ color: currentProject.color ?? "var(--project-seed)" }} aria-hidden />
+                            <Folder
+                              className="size-3.5 shrink-0"
+                              style={{
+                                color:
+                                  currentProject.color ?? "var(--project-seed)",
+                              }}
+                              aria-hidden
+                            />
                             <span className="truncate">{option.label}</span>
-                            {currentProject.visibility === "private" ? <Lock className="size-3 shrink-0 text-muted-foreground" aria-label="Private project" /> : null}
-                            <ChevronDown className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+                            {currentProject.visibility === "private" ? (
+                              <Lock
+                                className="size-3 shrink-0 text-muted-foreground"
+                                aria-label="Private project"
+                              />
+                            ) : null}
+                            <ChevronDown
+                              className="size-3 shrink-0 text-muted-foreground"
+                              aria-hidden
+                            />
                           </>
                         ) : (
                           <>
-                            <Folder className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                            <span className="truncate text-muted-foreground">Project</span>
-                            <ChevronDown className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+                            <Folder
+                              className="size-3.5 shrink-0 text-muted-foreground"
+                              aria-hidden
+                            />
+                            <span className="truncate text-muted-foreground">
+                              Project
+                            </span>
+                            <ChevronDown
+                              className="size-3 shrink-0 text-muted-foreground"
+                              aria-hidden
+                            />
                           </>
                         )
                       }
                       renderOption={(option) => {
-                        if (!option.id) return <><Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden /><span className="truncate">{option.label}</span></>;
-                        const project = orderedProjects.find((item) => item.id === option.id);
+                        if (!option.id)
+                          return (
+                            <>
+                              <Folder
+                                className="size-4 shrink-0 text-muted-foreground"
+                                aria-hidden
+                              />
+                              <span className="truncate">{option.label}</span>
+                            </>
+                          );
+                        const project = orderedProjects.find(
+                          (item) => item.id === option.id,
+                        );
                         return (
                           <>
-                            <Folder className="size-4 shrink-0" style={{ color: project?.color ?? "var(--project-seed)" }} aria-hidden />
-                            <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                            {project?.visibility === "private" ? <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-label="Private project" /> : null}
+                            <Folder
+                              className="size-4 shrink-0"
+                              style={{
+                                color: project?.color ?? "var(--project-seed)",
+                              }}
+                              aria-hidden
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              {option.label}
+                            </span>
+                            {project?.visibility === "private" ? (
+                              <Lock
+                                className="size-3.5 shrink-0 text-muted-foreground"
+                                aria-label="Private project"
+                              />
+                            ) : null}
                           </>
                         );
                       }}
@@ -1431,16 +1920,31 @@ export function NewIssueDialog() {
                       <ComposerWorktreePicker
                         mode={executionWorkspaceMode}
                         workspaceId={selectedExecutionWorkspaceId}
-                        selectedWorkspaceLabel={selectedReusableWorktree?.name ?? (selectedExecutionWorkspaceId === parentExecutionWorkspaceId ? newIssueDefaults.parentExecutionWorkspaceLabel : undefined)}
+                        selectedWorkspaceLabel={
+                          selectedReusableWorktree?.name ??
+                          (selectedExecutionWorkspaceId ===
+                          parentExecutionWorkspaceId
+                            ? newIssueDefaults.parentExecutionWorkspaceLabel
+                            : undefined)
+                        }
                         workspaces={selectableReusableWorkspaces}
                         onChange={(mode, workspaceId) => {
                           setExecutionWorkspaceMode(mode);
                           setSelectedExecutionWorkspaceId(workspaceId);
                           if (workspaceId) {
-                            const workspace = selectableReusableWorkspaces.find((entry) => entry.id === workspaceId);
-                            if (workspace) setProjectWorkspaceId(workspace.projectWorkspaceId ?? "");
+                            const workspace = selectableReusableWorkspaces.find(
+                              (entry) => entry.id === workspaceId,
+                            );
+                            if (workspace)
+                              setProjectWorkspaceId(
+                                workspace.projectWorkspaceId ?? "",
+                              );
                           } else {
-                            setProjectWorkspaceId(defaultProjectWorkspaceIdForProject(currentProject));
+                            setProjectWorkspaceId(
+                              defaultProjectWorkspaceIdForProject(
+                                currentProject,
+                              ),
+                            );
                           }
                         }}
                         loading={worktreesLoading}

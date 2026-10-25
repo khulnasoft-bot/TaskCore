@@ -1,5 +1,8 @@
 import { buildSlackAppManifest } from "../../packages/shared/src/slack-app-manifest";
-import type { SlackAppConfiguration, SlackRegistrationState } from "../../packages/shared/src/index";
+import type {
+  SlackAppConfiguration,
+  SlackRegistrationState,
+} from "../../packages/shared/src/index";
 import { defaultGitHubReviewPolicy } from "../../packages/shared/src/types/chat-github";
 import {
   expect,
@@ -20,7 +23,13 @@ import {
  * because those checks require real accounts and publicly reachable ingress.
  */
 
-export type Provider = "slack" | "github" | "discord" | "microsoft-teams" | "telegram" | "imessage-photon";
+export type Provider =
+  | "slack"
+  | "github"
+  | "discord"
+  | "microsoft-teams"
+  | "telegram"
+  | "imessage-photon";
 
 export const GITHUB_PRIVATE_KEY_FIXTURE =
   "-----BEGIN PRIVATE KEY-----\nlocal-e2e-key\n-----END PRIVATE KEY-----\n";
@@ -128,7 +137,10 @@ export const PROVIDER_LIFECYCLE_COPY: Record<
   Provider,
   { reconnect: string; remove: string }
 > = {
-  "imessage-photon": { reconnect: "Reconnect the same dedicated Photon number", remove: "does not delete the Photon project" },
+  "imessage-photon": {
+    reconnect: "Reconnect the same dedicated Photon number",
+    remove: "does not delete the Photon project",
+  },
   slack: {
     reconnect:
       "Reconnect verifies or replaces credentials for this same Slack app. It does not reinstall the app or change its workspace or channel membership.",
@@ -175,7 +187,9 @@ export async function json<T>(
   return (await response.json()) as T;
 }
 
-export async function seedCompanyAndAgent(request: APIRequestContext): Promise<Seed> {
+export async function seedCompanyAndAgent(
+  request: APIRequestContext,
+): Promise<Seed> {
   const company = await json<{ id: string; issuePrefix: string }>(
     await request.post("/api/companies", {
       data: { name: `Chat adapters browser E2E ${Date.now()}` },
@@ -281,10 +295,12 @@ export function endpointFixture(provider: ProviderCase, seed: Seed) {
       proactiveDirectMessages: false,
     },
     setup: {
-      slackSetupMethod: undefined as "automatic" | "manual" | "existing" | undefined,
+      slackSetupMethod: undefined as
+        "automatic" | "manual" | "existing" | undefined,
       slackRegistration: undefined as SlackRegistrationState | undefined,
       slackApp: undefined as SlackAppConfiguration | undefined,
-      slackOAuthCallbackUri: "https://taskcore.example.test/api/chat-slack/oauth/callback",
+      slackOAuthCallbackUri:
+        "https://taskcore.example.test/api/chat-slack/oauth/callback",
       step: "provider_setup",
       authorizationUrl:
         provider.provider === "telegram"
@@ -352,28 +368,64 @@ export async function installChatControlPlaneMock(
     resourceCount = 2,
     photonShared = false,
     automaticSlack = false,
-  }: { enableChatConnectors: boolean; resourceCount?: number; photonShared?: boolean; automaticSlack?: boolean },
+  }: {
+    enableChatConnectors: boolean;
+    resourceCount?: number;
+    photonShared?: boolean;
+    automaticSlack?: boolean;
+  },
 ): Promise<ChatMock> {
   const endpoint = endpointFixture(provider, seed);
   if (automaticSlack) endpoint.setup.slackSetupMethod = "automatic";
   let slackIdentityLinked = false;
   let githubAppConnected = false;
-  let githubConfiguration = { revision: 0, configuration: {
-    version: 1, toolsEnabled: false, responsibleUserId: "local-board", memberAccess: "all_linked", people: [], defaults: defaultGitHubReviewPolicy(), repositories: {},
-  }};
+  let githubConfiguration = {
+    revision: 0,
+    configuration: {
+      version: 1,
+      toolsEnabled: false,
+      responsibleUserId: "local-board",
+      memberAccess: "all_linked",
+      people: [],
+      defaults: defaultGitHubReviewPolicy(),
+      repositories: {},
+    },
+  };
   const state: ChatMock & {
     created: boolean;
     failNextGitHubEndpointRead: boolean;
   } = {
     created: false,
-    slackCreations: 0, slackInstallations: 0,
+    slackCreations: 0,
+    slackInstallations: 0,
     setSlackInstalled: () => {
       slackIdentityLinked = true;
-      endpoint.setup.slackAccount = { externalUserId: "UINSTALLER", taskcoreUserId: "local-board", status: "linked", welcomeStatus: "sent", dmChannelId: "DE2E" };
-      endpoint.setup.slackRegistration = { status: "configured", appId: "AE2E", managementUrl: "https://api.slack.com/apps/AE2E" };
-      Object.assign(endpoint, { status: "verifying", providerAccountId: "TE2E", botExternalId: "UE2E", botUsername: "maya-taskcore" });
+      endpoint.setup.slackAccount = {
+        externalUserId: "UINSTALLER",
+        taskcoreUserId: "local-board",
+        status: "linked",
+        welcomeStatus: "sent",
+        dmChannelId: "DE2E",
+      };
+      endpoint.setup.slackRegistration = {
+        status: "configured",
+        appId: "AE2E",
+        managementUrl: "https://api.slack.com/apps/AE2E",
+      };
+      Object.assign(endpoint, {
+        status: "verifying",
+        providerAccountId: "TE2E",
+        botExternalId: "UE2E",
+        botUsername: "maya-taskcore",
+      });
     },
-    setSlackUncertain: () => { endpoint.setup.slackRegistration = { status: "uncertain", errorCode: "slack_creation_uncertain", managementUrl: "https://api.slack.com/apps" }; },
+    setSlackUncertain: () => {
+      endpoint.setup.slackRegistration = {
+        status: "uncertain",
+        errorCode: "slack_creation_uncertain",
+        managementUrl: "https://api.slack.com/apps",
+      };
+    },
     failNextGitHubEndpointRead: false,
     chatEndpointListReads: 0,
     createdWithAgentId: null,
@@ -442,38 +494,115 @@ export async function installChatControlPlaneMock(
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
 
-    if (provider.provider === "github" && pathname.startsWith(`/api/chat-endpoints/${endpoint.id}/github/`)) {
+    if (
+      provider.provider === "github" &&
+      pathname.startsWith(`/api/chat-endpoints/${endpoint.id}/github/`)
+    ) {
       const operation = pathname.split("/github/")[1];
       const body = method === "GET" ? {} : bodyOf(route);
       if (operation === "configuration") {
-        if (method === "PUT") { expect(body.expectedRevision).toBe(githubConfiguration.revision); githubConfiguration = { revision: githubConfiguration.revision + 1, configuration: body.configuration as typeof githubConfiguration.configuration }; }
-        await fulfill(route, githubConfiguration); return;
+        if (method === "PUT") {
+          expect(body.expectedRevision).toBe(githubConfiguration.revision);
+          githubConfiguration = {
+            revision: githubConfiguration.revision + 1,
+            configuration:
+              body.configuration as typeof githubConfiguration.configuration,
+          };
+        }
+        await fulfill(route, githubConfiguration);
+        return;
       }
       if (operation === "progress") {
-        Object.assign(endpoint.setup, { github: { appSlug: githubAppConnected ? "maya-taskcore" : undefined, stage: body.stage, managementUrl: "https://github.com/settings/installations/2468" } });
-        await fulfill(route, endpoint); return;
+        Object.assign(endpoint.setup, {
+          github: {
+            appSlug: githubAppConnected ? "maya-taskcore" : undefined,
+            stage: body.stage,
+            managementUrl: "https://github.com/settings/installations/2468",
+          },
+        });
+        await fulfill(route, endpoint);
+        return;
       }
       if (operation === "app") {
         state.setupAttempts++;
         state.configuredCredentialKeys = Object.keys(body).sort();
-        if (state.setupAttempts === 1) { await fulfill(route, { error: "GitHub rejected the supplied App credentials." }, 422); return; }
+        if (state.setupAttempts === 1) {
+          await fulfill(
+            route,
+            { error: "GitHub rejected the supplied App credentials." },
+            422,
+          );
+          return;
+        }
         githubAppConnected = true;
-        Object.assign(endpoint, { status: "attention", botUsername: "maya-taskcore[bot]" });
-        Object.assign(endpoint.setup, { github: { stage: "install", appSlug: "maya-taskcore", installationUrl: "https://github.com/apps/maya-taskcore/installations/new", managementUrl: "https://github.com/settings/installations/2468" } });
-        await fulfill(route, endpoint); return;
+        Object.assign(endpoint, {
+          status: "attention",
+          botUsername: "maya-taskcore[bot]",
+        });
+        Object.assign(endpoint.setup, {
+          github: {
+            stage: "install",
+            appSlug: "maya-taskcore",
+            installationUrl:
+              "https://github.com/apps/maya-taskcore/installations/new",
+            managementUrl: "https://github.com/settings/installations/2468",
+          },
+        });
+        await fulfill(route, endpoint);
+        return;
       }
-      if (operation === "repositories/refresh") { state.githubRepositoryRefreshes++; await fulfill(route, resources); return; }
+      if (operation === "repositories/refresh") {
+        state.githubRepositoryRefreshes++;
+        await fulfill(route, resources);
+        return;
+      }
       if (operation === "verify") {
         const ready = githubConfiguration.configuration.toolsEnabled;
-        await fulfill(route, { ready, checks: [{ key: "tools", label: "Assigned agent’s effective GitHub tools", ok: ready, detail: ready ? "The bot tools are assigned." : "Assign this bot’s GitHub tools." }] }); return;
+        await fulfill(route, {
+          ready,
+          checks: [
+            {
+              key: "tools",
+              label: "Assigned agent’s effective GitHub tools",
+              ok: ready,
+              detail: ready
+                ? "The bot tools are assigned."
+                : "Assign this bot’s GitHub tools.",
+            },
+          ],
+        });
+        return;
       }
-      if (operation === "personal-connections") { await fulfill(route, [{ connectionId: "personal-github", name: "My GitHub", login: "octocat", enabled: true, status: "active" }]); return; }
+      if (operation === "personal-connections") {
+        await fulfill(route, [
+          {
+            connectionId: "personal-github",
+            name: "My GitHub",
+            login: "octocat",
+            enabled: true,
+            status: "active",
+          },
+        ]);
+        return;
+      }
       if (operation === "identity") {
         expect(body.connectionId).toBe("personal-github");
-        if (body.confirmedGithubUserId) { expect(body.confirmedGithubUserId).toBe("42"); state.githubIdentityConfirmed = true; }
-        await fulfill(route, { githubUserId: "42", login: "octocat", connectionId: "personal-github", avatarUrl: null }); return;
+        if (body.confirmedGithubUserId) {
+          expect(body.confirmedGithubUserId).toBe("42");
+          state.githubIdentityConfirmed = true;
+        }
+        await fulfill(route, {
+          githubUserId: "42",
+          login: "octocat",
+          connectionId: "personal-github",
+          avatarUrl: null,
+        });
+        return;
       }
-      if (operation === "reviews") { await fulfill(route, []); return; }
+      if (operation === "reviews") {
+        await fulfill(route, []);
+        return;
+      }
     }
 
     if (pathname === `/api/companies/${seed.companyId}/chat-endpoints`) {
@@ -514,8 +643,11 @@ export async function installChatControlPlaneMock(
       }
       if (method === "PATCH") {
         const body = bodyOf(route);
-        if (body.slackApp) endpoint.setup.slackApp = body.slackApp as SlackAppConfiguration;
-        if (body.slackSetupMethod) endpoint.setup.slackSetupMethod = body.slackSetupMethod as "automatic" | "manual" | "existing";
+        if (body.slackApp)
+          endpoint.setup.slackApp = body.slackApp as SlackAppConfiguration;
+        if (body.slackSetupMethod)
+          endpoint.setup.slackSetupMethod = body.slackSetupMethod as
+            "automatic" | "manual" | "existing";
         if (typeof body.allowDirectMessages === "boolean")
           state.allowDirectMessages = body.allowDirectMessages;
         if (typeof body.allowGroupChats === "boolean")
@@ -543,19 +675,35 @@ export async function installChatControlPlaneMock(
 
     if (pathname === `/api/chat-endpoints/${endpoint.id}/slack/registration`) {
       const body = bodyOf(route);
-      expect(body.credentials).toEqual({ configurationToken: "fixture-config-token" });
+      expect(body.credentials).toEqual({
+        configurationToken: "fixture-config-token",
+      });
       expect(body).not.toHaveProperty("manifest");
       state.slackCreations++;
-      endpoint.setup.slackRegistration = { status: "install", appId: "AE2E", managementUrl: "https://api.slack.com/apps/AE2E" };
-      endpoint.setup.slackAvatar = { status: "uploaded", uploadedAt: new Date().toISOString() };
-      await fulfill(route, endpoint); return;
+      endpoint.setup.slackRegistration = {
+        status: "install",
+        appId: "AE2E",
+        managementUrl: "https://api.slack.com/apps/AE2E",
+      };
+      endpoint.setup.slackAvatar = {
+        status: "uploaded",
+        uploadedAt: new Date().toISOString(),
+      };
+      await fulfill(route, endpoint);
+      return;
     }
     if (pathname === `/api/chat-endpoints/${endpoint.id}/slack/install`) {
       state.slackInstallations++;
-      await fulfill(route, { authorizationUrl: "https://slack.test/consent", expiresAt: new Date(Date.now() + 600_000).toISOString() }); return;
+      await fulfill(route, {
+        authorizationUrl: "https://slack.test/consent",
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      });
+      return;
     }
     if (pathname === `/api/chat-endpoints/${endpoint.id}/slack/resume`) {
-      state.setSlackInstalled(); await fulfill(route, endpoint); return;
+      state.setSlackInstalled();
+      await fulfill(route, endpoint);
+      return;
     }
 
     if (
@@ -595,7 +743,10 @@ export async function installChatControlPlaneMock(
       expect(["configure", "verify", "reconnect"]).toContain(action);
       if (body.action === "configure") {
         state.setupAttempts += 1;
-        if (body.credentials) state.configuredCredentialKeys = Object.keys(body.credentials as Record<string, string>).sort();
+        if (body.credentials)
+          state.configuredCredentialKeys = Object.keys(
+            body.credentials as Record<string, string>,
+          ).sort();
         if (provider.provider === "github" && !githubAppConnected) {
           const privateKey = (
             (body.credentials ?? {}) as Record<string, string>
@@ -632,7 +783,15 @@ export async function installChatControlPlaneMock(
         expect(provider.provider).toBe("slack");
       }
       if (provider.provider === "imessage-photon") {
-        expect(body.photon).toEqual(photonShared ? {allocation:"shared",projectId:"project-e2e"} : {allocation:"dedicated",projectId:"project-e2e",lineId:"line-one"});
+        expect(body.photon).toEqual(
+          photonShared
+            ? { allocation: "shared", projectId: "project-e2e" }
+            : {
+                allocation: "dedicated",
+                projectId: "project-e2e",
+                lineId: "line-one",
+              },
+        );
       }
       // Verification advances setup without replacing the identity captured by installation.
       if (provider.provider === "slack" && action === "verify") {
@@ -642,16 +801,29 @@ export async function installChatControlPlaneMock(
         return;
       }
       Object.assign(endpoint, {
-        ...(provider.provider === "imessage-photon" ? {photonAllocation: photonShared ? "shared" : "dedicated", allowGroupChats: !photonShared} : {}),
+        ...(provider.provider === "imessage-photon"
+          ? {
+              photonAllocation: photonShared ? "shared" : "dedicated",
+              allowGroupChats: !photonShared,
+            }
+          : {}),
         status: "verifying",
         providerAccountId: `account-${provider.provider}`,
         providerAccountLabel: provider.accountLabel,
-        botExternalId: provider.provider === "imessage-photon" ? photonShared ? "photon-project:project-e2e" : "+15555550100" : `bot-${provider.provider}`,
+        botExternalId:
+          provider.provider === "imessage-photon"
+            ? photonShared
+              ? "photon-project:project-e2e"
+              : "+15555550100"
+            : `bot-${provider.provider}`,
         botUsername: photonShared ? null : provider.botUsername,
         botLabel: provider.botLabel,
         setup: {
           ...endpoint.setup,
-          testStartedAt: body.action === "verify" ? new Date().toISOString() : endpoint.setup.testStartedAt,
+          testStartedAt:
+            body.action === "verify"
+              ? new Date().toISOString()
+              : endpoint.setup.testStartedAt,
           step:
             provider.provider === "slack" && body.action === "configure"
               ? "provider_setup"
@@ -662,12 +834,39 @@ export async function installChatControlPlaneMock(
       return;
     }
 
-    if (pathname === `/api/chat-endpoints/${endpoint.id}/photon/inspect` && method === "POST") {
-      expect(bodyOf(route)).toEqual({projectId:"project-e2e",projectSecret:"photon-test-secret"});
-      await fulfill(route,{projectId:"project-e2e",projectName:"Photon Test",allocation:photonShared ? "shared" : "dedicated",eligible:true,lines:photonShared ? [] : [{lineId:"line-one",phoneNumber:"+15555550100",eligible:true},{lineId:"line-two",phoneNumber:"+15555550102",eligible:true}]}); return;
+    if (
+      pathname === `/api/chat-endpoints/${endpoint.id}/photon/inspect` &&
+      method === "POST"
+    ) {
+      expect(bodyOf(route)).toEqual({
+        projectId: "project-e2e",
+        projectSecret: "photon-test-secret",
+      });
+      await fulfill(route, {
+        projectId: "project-e2e",
+        projectName: "Photon Test",
+        allocation: photonShared ? "shared" : "dedicated",
+        eligible: true,
+        lines: photonShared
+          ? []
+          : [
+              {
+                lineId: "line-one",
+                phoneNumber: "+15555550100",
+                eligible: true,
+              },
+              {
+                lineId: "line-two",
+                phoneNumber: "+15555550102",
+                eligible: true,
+              },
+            ],
+      });
+      return;
     }
     if (
-      (pathname === `/api/chat-endpoints/${endpoint.id}/test` || pathname === `/api/chat-endpoints/${endpoint.id}/finish`) &&
+      (pathname === `/api/chat-endpoints/${endpoint.id}/test` ||
+        pathname === `/api/chat-endpoints/${endpoint.id}/finish`) &&
       method === "POST"
     ) {
       Object.assign(endpoint, {
@@ -683,13 +882,22 @@ export async function installChatControlPlaneMock(
       await fulfill(route, { messageReceivedAt: null });
       return;
     }
-    if (pathname === `/api/chat-endpoints/${endpoint.id}/principals/principal-slack-self/link-intent` && method === "POST") {
-      await fulfill(route, { confirmationUrl: `https://taskcore.example.test/${seed.prefix}/chat-identity/confirm?token=e2e-self` });
+    if (
+      pathname ===
+        `/api/chat-endpoints/${endpoint.id}/principals/principal-slack-self/link-intent` &&
+      method === "POST"
+    ) {
+      await fulfill(route, {
+        confirmationUrl: `https://taskcore.example.test/${seed.prefix}/chat-identity/confirm?token=e2e-self`,
+      });
       return;
     }
     if (pathname === "/api/chat-identity-links/confirm" && method === "POST") {
       slackIdentityLinked = true;
-      await fulfill(route, { endpointId: endpoint.id, companyId: seed.companyId });
+      await fulfill(route, {
+        endpointId: endpoint.id,
+        companyId: seed.companyId,
+      });
       return;
     }
 
@@ -725,12 +933,20 @@ export async function installChatControlPlaneMock(
     ) {
       await fulfill(route, {
         principals: [
-          ...(provider.provider === "slack" && (slackIdentityLinked || endpoint.setup.step === "test") ? [{
-            id: "link-slack-self", principalId: "principal-slack-self", externalLabel: "Test operator",
-            externalDetail: "operator@slack", lastConnectAt: new Date().toISOString(),
-            taskcoreUserId: slackIdentityLinked ? "local-board" : null,
-            status: slackIdentityLinked ? "linked" : "pending",
-          }] : []),
+          ...(provider.provider === "slack" &&
+          (slackIdentityLinked || endpoint.setup.step === "test")
+            ? [
+                {
+                  id: "link-slack-self",
+                  principalId: "principal-slack-self",
+                  externalLabel: "Test operator",
+                  externalDetail: "operator@slack",
+                  lastConnectAt: new Date().toISOString(),
+                  taskcoreUserId: slackIdentityLinked ? "local-board" : null,
+                  status: slackIdentityLinked ? "linked" : "pending",
+                },
+              ]
+            : []),
           {
             id: `link-${provider.provider}`,
             principalId: `principal-${provider.provider}`,
@@ -805,7 +1021,10 @@ export async function installChatControlPlaneMock(
             externalConversationId: `external-conversation-${provider.provider}`,
             externalThreadId: `external-thread-${provider.provider}`,
             externalLabel: provider.resourceLabel,
-            externalUrl: provider.provider === "imessage-photon" ? null : provider.externalUrl,
+            externalUrl:
+              provider.provider === "imessage-photon"
+                ? null
+                : provider.externalUrl,
             isDirectMessage: provider.provider === "telegram",
             state: state.conversationState,
             lastPublicationStatus: "published",
@@ -881,9 +1100,17 @@ export async function selectMaya(page: Page) {
 
 export async function fillProviderSetup(page: Page, provider: ProviderCase) {
   if (provider.provider === "slack") {
-    await page.getByRole("button", { name: "I already created the app" }).click();
-    await expect(page.getByLabel("Bot User OAuth Token")).toHaveAttribute("type", "password");
-    await expect(page.getByLabel("Signing Secret")).toHaveAttribute("type", "password");
+    await page
+      .getByRole("button", { name: "I already created the app" })
+      .click();
+    await expect(page.getByLabel("Bot User OAuth Token")).toHaveAttribute(
+      "type",
+      "password",
+    );
+    await expect(page.getByLabel("Signing Secret")).toHaveAttribute(
+      "type",
+      "password",
+    );
     await page.getByLabel("Bot User OAuth Token").fill("xoxb-e2e-redacted");
     await page.getByLabel("Signing Secret").fill("slack-signing-secret");
   } else if (provider.provider === "github") {
@@ -999,13 +1226,28 @@ export function expectedCredentialKeys(provider: Provider): string[] {
 }
 
 export async function expectSetupRail(page: Page, newDraft = false) {
-  const rail = page.getByRole("navigation", { name: "Connection setup progress" });
+  const rail = page.getByRole("navigation", {
+    name: "Connection setup progress",
+  });
   await expect(rail).toBeVisible();
-  const labels = new URL(page.url()).searchParams.get("provider") === "slack"
-    ? newDraft
-      ? ["Choose agent", "App configuration access token", "Install Slack app", "Send a message"]
-      : ["Choose agent", "Create Slack app", "Add credentials", "Verify Slack connection", "Connect your Slack account", "Try it"]
-    : ["Choose agent", "Connect provider", "Try it"];
+  const labels =
+    new URL(page.url()).searchParams.get("provider") === "slack"
+      ? newDraft
+        ? [
+            "Choose agent",
+            "App configuration access token",
+            "Install Slack app",
+            "Send a message",
+          ]
+        : [
+            "Choose agent",
+            "Create Slack app",
+            "Add credentials",
+            "Verify Slack connection",
+            "Connect your Slack account",
+            "Try it",
+          ]
+      : ["Choose agent", "Connect provider", "Try it"];
   await expect(rail.getByRole("listitem")).toHaveCount(labels.length);
   for (const label of labels) {
     await expect(rail.getByText(label, { exact: true })).toBeVisible();
@@ -1013,25 +1255,52 @@ export async function expectSetupRail(page: Page, newDraft = false) {
 }
 
 export function expectedSlackManifest(webhookUrl: string) {
-  return JSON.stringify(buildSlackAppManifest({ app: { appName: "maya-taskcore", botName: "maya", command: "/maya" }, agentName: "Maya", webhookUrl }), null, 2);
+  return JSON.stringify(
+    buildSlackAppManifest({
+      app: { appName: "maya-taskcore", botName: "maya", command: "/maya" },
+      agentName: "Maya",
+      webhookUrl,
+    }),
+    null,
+    2,
+  );
 }
 
-export async function expectMinimumProviderSetup(page: Page, provider: ProviderCase) {
+export async function expectMinimumProviderSetup(
+  page: Page,
+  provider: ProviderCase,
+) {
   const webhookUrl = `https://taskcore.example.test/api/chat-webhooks/public-${provider.provider}/${provider.provider}`;
   if (provider.provider === "slack") {
-    const steps = page.getByRole("navigation", { name: "Connection setup progress" });
+    const steps = page.getByRole("navigation", {
+      name: "Connection setup progress",
+    });
     await steps.getByRole("button", { name: /Choose agent/ }).click();
-    await page.locator("summary:visible").filter({ hasText: "Advanced" }).click();
-    await expect(page.getByLabel("Slack app name", { exact: true })).toBeEditable();
-    await expect(page.getByLabel("Bot display name", { exact: true })).toBeEditable();
-    await expect(page.getByLabel("Slash command", { exact: true })).toBeEditable();
+    await page
+      .locator("summary:visible")
+      .filter({ hasText: "Advanced" })
+      .click();
+    await expect(
+      page.getByLabel("Slack app name", { exact: true }),
+    ).toBeEditable();
+    await expect(
+      page.getByLabel("Bot display name", { exact: true }),
+    ).toBeEditable();
+    await expect(
+      page.getByLabel("Slash command", { exact: true }),
+    ).toBeEditable();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await page.getByRole("button", { name: "View Slack App Manifest" }).click();
-    const manifest = page.getByRole("textbox", { name: "Slack app manifest", exact: true });
+    const manifest = page.getByRole("textbox", {
+      name: "Slack app manifest",
+      exact: true,
+    });
     await expect(manifest).toHaveValue(expectedSlackManifest(webhookUrl));
     await expect(manifest).toHaveAttribute("readonly", "");
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("button", { name: "Create Slack app", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create Slack app", exact: true }),
+    ).toBeVisible();
     return;
   }
 
@@ -1198,37 +1467,45 @@ export async function expectProviderTryInstructions(
   provider: ProviderCase,
 ) {
   if (provider.provider === "slack") {
-    for (const text of ["Open a channel and invite @maya-taskcore if needed.", "@maya-taskcore you there?", "Continue the conversation in the thread."]) {
+    for (const text of [
+      "Open a channel and invite @maya-taskcore if needed.",
+      "@maya-taskcore you there?",
+      "Continue the conversation in the thread.",
+    ]) {
       await expect(page.getByText(text, { exact: true })).toBeVisible();
     }
-    await expect(page.getByRole("button", { name: "Copy message" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Open Slack", exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Copy message" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Open Slack", exact: true }),
+    ).toHaveCount(0);
     return;
   }
   const expected =
     provider.provider === "github"
+      ? [
+          "Open an installed issue or pull request.",
+          "Mention @maya-taskcore in a comment.",
+          "Add another comment to continue the same task.",
+        ]
+      : provider.provider === "microsoft-teams"
         ? [
-            "Open an installed issue or pull request.",
-            "Mention @maya-taskcore in a comment.",
-            "Add another comment to continue the same task.",
+            "Open an installed channel and start a new post.",
+            "Mention @maya-taskcore in the post.",
+            "Reply once beneath the post.",
           ]
-        : provider.provider === "microsoft-teams"
+        : provider.provider === "discord"
           ? [
-              "Open an installed channel and start a new post.",
-              "Mention @maya-taskcore in the post.",
-              "Reply once beneath the post.",
+              "Open a text channel where the bot is installed.",
+              "Mention @maya-taskcore in a new root message.",
+              "Reply once inside Maya's new Discord thread.",
             ]
-          : provider.provider === "discord"
-            ? [
-                "Open a text channel where the bot is installed.",
-                "Mention @maya-taskcore in a new root message.",
-                "Reply once inside Maya's new Discord thread.",
-              ]
-            : [
-                "Open the bot's private chat.",
-                "Tap Start.",
-                "Send “Help me test this”.",
-              ];
+          : [
+              "Open the bot's private chat.",
+              "Tap Start.",
+              "Send “Help me test this”.",
+            ];
   for (const instruction of expected) {
     await expect(page.getByText(instruction, { exact: true })).toBeVisible();
   }

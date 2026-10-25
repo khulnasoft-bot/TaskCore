@@ -1,5 +1,14 @@
-import type { AggregatorAppsResponse, ArcadeDiscoverySetupInput } from "@taskcore/shared/aggregator-apps";
-import type { ComposioAppAccountInput, ComposioAppSetupInput, ComposioAppSetupResult, ComposioAppSnapshot, ComposioAppsResponse } from "@taskcore/shared";
+import type {
+  AggregatorAppsResponse,
+  ArcadeDiscoverySetupInput,
+} from "@taskcore/shared/aggregator-apps";
+import type {
+  ComposioAppAccountInput,
+  ComposioAppSetupInput,
+  ComposioAppSetupResult,
+  ComposioAppSnapshot,
+  ComposioAppsResponse,
+} from "@taskcore/shared";
 import type {
   ToolApplication,
   ConfigureRailwaySsh,
@@ -101,7 +110,13 @@ export type ToolGalleryResponse = {
 export type ToolMcpGatewaysResponse = { gateways: ToolMcpGatewayWithTokens[] };
 export type CloudConnectorEnrollmentStatus = {
   configured: boolean;
-  status: "not_configured" | "unenrolled" | "pending" | "active" | "suspended" | "unverified";
+  status:
+    | "not_configured"
+    | "unenrolled"
+    | "pending"
+    | "active"
+    | "suspended"
+    | "unverified";
   brokerBaseUrl: string;
   instanceId: string | null;
   environment: "development" | "staging" | "production";
@@ -109,13 +124,19 @@ export type CloudConnectorEnrollmentStatus = {
   verificationUrl?: string;
   expiresAt?: string;
 };
-export type CreateGatewayTokenInput = Omit<CreateToolMcpGatewayToken, "expiresAt"> & {
+export type CreateGatewayTokenInput = Omit<
+  CreateToolMcpGatewayToken,
+  "expiresAt"
+> & {
   expiresAt?: string | Date | null;
 };
 /** Gateway update payload — `companyId` is injected by the client method. */
 export type UpdateGatewayInput = Omit<UpdateToolMcpGateway, "companyId">;
 export type ReviewNewToolsInput = {
-  decisions: Array<{ catalogEntryId: string; decision: ToolProfileNewToolReviewDecision }>;
+  decisions: Array<{
+    catalogEntryId: string;
+    decision: ToolProfileNewToolReviewDecision;
+  }>;
 };
 
 export type StdioTemplateSummary = ToolStdioCommandTemplate;
@@ -158,7 +179,8 @@ export interface CreateToolConnectionInput {
 }
 
 export interface UpdateToolConnectionInput {
-  agentInstructions?: import("@taskcore/shared").ConnectionAgentInstructions | null;
+  agentInstructions?:
+    import("@taskcore/shared").ConnectionAgentInstructions | null;
   name?: string;
   status?: ToolConnection["status"];
   config?: Record<string, unknown>;
@@ -205,7 +227,10 @@ export interface ToolProfileBindingInput {
   metadata?: Record<string, unknown> | null;
 }
 
-export type UnbindToolProfileInput = Pick<ToolProfileBindingInput, "targetType" | "targetId">;
+export type UnbindToolProfileInput = Pick<
+  ToolProfileBindingInput,
+  "targetType" | "targetId"
+>;
 
 /** Redacted tool-gateway audit row (subset of `activity_log`). */
 export interface ToolGatewayAuditRow {
@@ -222,12 +247,7 @@ export interface ToolGatewayAuditRow {
 
 /** Normalized outcome for the humanized Activity feed. */
 export type ToolAuditOutcome =
-  | "allowed"
-  | "blocked"
-  | "asked_first"
-  | "waiting"
-  | "failed"
-  | "unknown";
+  "allowed" | "blocked" | "asked_first" | "waiting" | "failed" | "unknown";
 
 /**
  * Audit row enriched server-side with humanized display names and a normalized
@@ -287,20 +307,38 @@ export type ToolPolicyTestResponse = {
 
 export const toolsApi = {
   getCloudConnectorEnrollment: () =>
-    api.get<CloudConnectorEnrollmentStatus>("/tools/oauth/cloud-connector/enrollment"),
-  startCloudConnectorEnrollment: (companyId: string, label?: string, returnTo?: string) =>
-    api.post<CloudConnectorEnrollmentStatus>("/tools/oauth/cloud-connector/enrollment", { companyId, label, returnTo }),
+    api.get<CloudConnectorEnrollmentStatus>(
+      "/tools/oauth/cloud-connector/enrollment",
+    ),
+  startCloudConnectorEnrollment: (
+    companyId: string,
+    label?: string,
+    returnTo?: string,
+  ) =>
+    api.post<CloudConnectorEnrollmentStatus>(
+      "/tools/oauth/cloud-connector/enrollment",
+      { companyId, label, returnTo },
+    ),
   // --- Applications ---
   listGallery: (companyId: string) =>
     api.get<ToolGalleryResponse>(`/companies/${companyId}/tools/gallery`),
-  preflightAppMetadata: (companyId: string, galleryKey: string, methodKey?: string | null) => {
-    const query = methodKey ? `?methodKey=${encodeURIComponent(methodKey)}` : "";
+  preflightAppMetadata: (
+    companyId: string,
+    galleryKey: string,
+    methodKey?: string | null,
+  ) => {
+    const query = methodKey
+      ? `?methodKey=${encodeURIComponent(methodKey)}`
+      : "";
     return api.get<ToolAppMetadataPreflightResult>(
       `/companies/${companyId}/tools/apps/${encodeURIComponent(galleryKey)}/preflight${query}`,
     );
   },
   connectApp: (companyId: string, input: ConnectToolApp) =>
-    api.post<ConnectToolAppResult>(`/companies/${companyId}/tools/apps/connect`, input),
+    api.post<ConnectToolAppResult>(
+      `/companies/${companyId}/tools/apps/connect`,
+      input,
+    ),
   startOAuth: (
     connectionId: string,
     input: {
@@ -319,31 +357,47 @@ export const toolsApi = {
       `/companies/${companyId}/tools/apps/${connectionId}/finalize-oauth-access`,
       input,
     ),
-  finishApp: (companyId: string, connectionId: string, input: {
-    enabledCatalogEntryIds: string[];
-    askFirstCatalogEntryIds: string[];
-    reviewedCatalogEntryIds?: string[];
-    agentInstructions?: import("@taskcore/shared").ConnectionAgentInstructions | null;
-    access: "all_agents" | { agentIds: string[] };
-  }) =>
+  finishApp: (
+    companyId: string,
+    connectionId: string,
+    input: {
+      enabledCatalogEntryIds: string[];
+      askFirstCatalogEntryIds: string[];
+      reviewedCatalogEntryIds?: string[];
+      agentInstructions?:
+        import("@taskcore/shared").ConnectionAgentInstructions | null;
+      access: "all_agents" | { agentIds: string[] };
+    },
+  ) =>
     api.post<FinishToolAppResult>(
       `/companies/${companyId}/tools/apps/${connectionId}/finish`,
       input,
     ),
   listAppsAttention: (companyId: string) =>
-    api.get<ToolAppsAttentionResponse>(`/companies/${companyId}/tools/apps/attention`),
+    api.get<ToolAppsAttentionResponse>(
+      `/companies/${companyId}/tools/apps/attention`,
+    ),
   listApplications: (companyId: string) =>
-    api.get<ToolApplicationsResponse>(`/companies/${companyId}/tools/applications`),
+    api.get<ToolApplicationsResponse>(
+      `/companies/${companyId}/tools/applications`,
+    ),
   createApplication: (companyId: string, input: CreateToolApplicationInput) =>
-    api.post<ToolApplication>(`/companies/${companyId}/tools/applications`, input),
-  updateApplication: (applicationId: string, input: UpdateToolApplicationInput) =>
-    api.patch<ToolApplication>(`/tool-applications/${applicationId}`, input),
+    api.post<ToolApplication>(
+      `/companies/${companyId}/tools/applications`,
+      input,
+    ),
+  updateApplication: (
+    applicationId: string,
+    input: UpdateToolApplicationInput,
+  ) => api.patch<ToolApplication>(`/tool-applications/${applicationId}`, input),
   deleteApplication: (applicationId: string) =>
     api.delete<ToolApplication>(`/tool-applications/${applicationId}`),
 
   // --- Connections ---
   listConnections: (companyId: string) =>
-    api.get<ToolConnectionsResponse>(`/companies/${companyId}/tools/connections`),
+    api.get<ToolConnectionsResponse>(
+      `/companies/${companyId}/tools/connections`,
+    ),
   getConnection: (connectionId: string) =>
     api.get<ToolConnection>(`/tool-connections/${connectionId}`),
   // --- Installs (Phase 3b, PAP-13618): which agents carry this connection's
@@ -365,8 +419,14 @@ export const toolsApi = {
   // carries server-computed capabilities and the audience member directory, so
   // the UI never rebuilds the permission matrix from `membershipRole`.
   listConnectionGrants: (connectionId: string) =>
-    api.get<ConnectionGrantsResponse>(`/tool-connections/${connectionId}/grants`),
-  createConnectionGrantDelegation: (connectionId: string, grantId: string, agentId: string) =>
+    api.get<ConnectionGrantsResponse>(
+      `/tool-connections/${connectionId}/grants`,
+    ),
+  createConnectionGrantDelegation: (
+    connectionId: string,
+    grantId: string,
+    agentId: string,
+  ) =>
     api.post<ConnectionGrantDelegation>(
       `/tool-connections/${connectionId}/grants/${grantId}/delegations`,
       { agentId },
@@ -375,14 +435,21 @@ export const toolsApi = {
     connectionId: string,
     grantId: string,
     delegationId: string,
-  ) => api.delete<ConnectionGrantDelegation>(
-    `/tool-connections/${connectionId}/grants/${grantId}/delegations/${delegationId}`,
-  ),
+  ) =>
+    api.delete<ConnectionGrantDelegation>(
+      `/tool-connections/${connectionId}/grants/${grantId}/delegations/${delegationId}`,
+    ),
   revokeConnectionGrant: (connectionId: string, grantId: string) =>
-    api.delete<ConnectionGrant>(`/tool-connections/${connectionId}/grants/${grantId}`),
+    api.delete<ConnectionGrant>(
+      `/tool-connections/${connectionId}/grants/${grantId}`,
+    ),
   // An empty `memberUserIds` is the canonical "all organization members".
   // Replacement is atomic server-side, so this never partially widens access.
-  replaceConnectionGrantMembers: (connectionId: string, grantId: string, memberUserIds: string[]) =>
+  replaceConnectionGrantMembers: (
+    connectionId: string,
+    grantId: string,
+    memberUserIds: string[],
+  ) =>
     api.put<ConnectionGrant>(
       `/tool-connections/${connectionId}/grants/${grantId}/members`,
       { memberUserIds },
@@ -402,11 +469,17 @@ export const toolsApi = {
       input,
     ),
   createConnection: (companyId: string, input: CreateToolConnectionInput) =>
-    api.post<ToolConnection>(`/companies/${companyId}/tools/connections`, input),
+    api.post<ToolConnection>(
+      `/companies/${companyId}/tools/connections`,
+      input,
+    ),
   updateConnection: (connectionId: string, input: UpdateToolConnectionInput) =>
     api.patch<ToolConnection>(`/tool-connections/${connectionId}`, input),
   configureRailwaySsh: (connectionId: string, input: ConfigureRailwaySsh) =>
-    api.post<RailwaySshSetup | null>(`/tool-connections/${connectionId}/railway/ssh`, input),
+    api.post<RailwaySshSetup | null>(
+      `/tool-connections/${connectionId}/railway/ssh`,
+      input,
+    ),
   // Removal is a credential-revoking teardown (PAP-17119), so the response
   // carries the cleanup receipt alongside the archived connection.
   archiveConnection: (connectionId: string) =>
@@ -414,13 +487,25 @@ export const toolsApi = {
       `/tool-connections/${connectionId}`,
     ),
   checkConnectionHealth: (connectionId: string) =>
-    api.post<ToolConnectionHealthCheckResult>(`/tool-connections/${connectionId}/health-check`, {}),
-  reconnectConnection: (connectionId: string, credentialValues: Record<string, string>) =>
-    api.post<ToolConnectionHealthCheckResult>(`/tool-connections/${connectionId}/reconnect`, {
-      credentialValues,
-    }),
+    api.post<ToolConnectionHealthCheckResult>(
+      `/tool-connections/${connectionId}/health-check`,
+      {},
+    ),
+  reconnectConnection: (
+    connectionId: string,
+    credentialValues: Record<string, string>,
+  ) =>
+    api.post<ToolConnectionHealthCheckResult>(
+      `/tool-connections/${connectionId}/reconnect`,
+      {
+        credentialValues,
+      },
+    ),
   refreshCatalog: (connectionId: string) =>
-    api.post<ToolCatalogRefreshResult>(`/tool-connections/${connectionId}/catalog/refresh`, {}),
+    api.post<ToolCatalogRefreshResult>(
+      `/tool-connections/${connectionId}/catalog/refresh`,
+      {},
+    ),
   listCatalog: (connectionId: string) =>
     api.get<ToolCatalogResponse>(`/tool-connections/${connectionId}/catalog`),
   listConnectionActivity: (connectionId: string, limit = 20) =>
@@ -435,8 +520,15 @@ export const toolsApi = {
     api.get<ToolConnectionTestAgentAccessResponse>(
       `/tool-connections/${connectionId}/test-agents/${agentId}/access`,
     ),
-  setupComposioApp: (connectionId: string, toolkit: string, input: ComposioAppSetupInput) =>
-    api.post<ComposioAppSetupResult>(`/tool-connections/${connectionId}/composio/apps/${encodeURIComponent(toolkit)}/setup`, input),
+  setupComposioApp: (
+    connectionId: string,
+    toolkit: string,
+    input: ComposioAppSetupInput,
+  ) =>
+    api.post<ComposioAppSetupResult>(
+      `/tool-connections/${connectionId}/composio/apps/${encodeURIComponent(toolkit)}/setup`,
+      input,
+    ),
   listAggregatorApps: (connectionId: string) => {
     const path = `/tool-connections/${connectionId}/aggregator/apps`;
     // React Query already deduplicates within a viewing-user key. Path-only
@@ -444,17 +536,54 @@ export const toolsApi = {
     detachInflightGet(path);
     return api.get<AggregatorAppsResponse>(path, { cache: "no-store" });
   },
-  syncAggregatorApps: (connectionId: string, force = false) => api.post<AggregatorAppsResponse>(`/tool-connections/${connectionId}/aggregator/apps/sync`, { force }),
-  refreshAggregatorApps: (connectionId: string, toolkits: string[] = []) => api.post<AggregatorAppsResponse>(`/tool-connections/${connectionId}/aggregator/apps/refresh`, { toolkits }),
-  configureArcadeDiscovery: (connectionId: string, input: ArcadeDiscoverySetupInput) => api.put<AggregatorAppsResponse>(`/tool-connections/${connectionId}/aggregator/discovery`, input),
-  listComposioApps: (connectionId: string) => api.get<ComposioAppsResponse>(`/tool-connections/${connectionId}/composio/apps`),
-  syncComposioApps: (connectionId: string, force = false) => api.post<ComposioAppsResponse>(`/tool-connections/${connectionId}/composio/apps/sync`, { force }),
-  refreshComposioApps: (connectionId: string, toolkits: string[]) => api.post<ComposioAppsResponse>(`/tool-connections/${connectionId}/composio/apps/refresh`, { toolkits }),
-  manageComposioAppAccount: (connectionId: string, toolkit: string, input: ComposioAppAccountInput) =>
-    api.post<ComposioAppSetupResult & { apps: ComposioAppSnapshot[] }>(`/tool-connections/${connectionId}/composio/apps/${encodeURIComponent(toolkit)}/accounts`, input),
+  syncAggregatorApps: (connectionId: string, force = false) =>
+    api.post<AggregatorAppsResponse>(
+      `/tool-connections/${connectionId}/aggregator/apps/sync`,
+      { force },
+    ),
+  refreshAggregatorApps: (connectionId: string, toolkits: string[] = []) =>
+    api.post<AggregatorAppsResponse>(
+      `/tool-connections/${connectionId}/aggregator/apps/refresh`,
+      { toolkits },
+    ),
+  configureArcadeDiscovery: (
+    connectionId: string,
+    input: ArcadeDiscoverySetupInput,
+  ) =>
+    api.put<AggregatorAppsResponse>(
+      `/tool-connections/${connectionId}/aggregator/discovery`,
+      input,
+    ),
+  listComposioApps: (connectionId: string) =>
+    api.get<ComposioAppsResponse>(
+      `/tool-connections/${connectionId}/composio/apps`,
+    ),
+  syncComposioApps: (connectionId: string, force = false) =>
+    api.post<ComposioAppsResponse>(
+      `/tool-connections/${connectionId}/composio/apps/sync`,
+      { force },
+    ),
+  refreshComposioApps: (connectionId: string, toolkits: string[]) =>
+    api.post<ComposioAppsResponse>(
+      `/tool-connections/${connectionId}/composio/apps/refresh`,
+      { toolkits },
+    ),
+  manageComposioAppAccount: (
+    connectionId: string,
+    toolkit: string,
+    input: ComposioAppAccountInput,
+  ) =>
+    api.post<ComposioAppSetupResult & { apps: ComposioAppSnapshot[] }>(
+      `/tool-connections/${connectionId}/composio/apps/${encodeURIComponent(toolkit)}/accounts`,
+      input,
+    ),
   runTestCall: (
     connectionId: string,
-    input: { agentId: string; toolName: string; parameters?: Record<string, unknown> },
+    input: {
+      agentId: string;
+      toolName: string;
+      parameters?: Record<string, unknown>;
+    },
   ) =>
     api.post<ToolConnectionTestCallResult>(
       `/tool-connections/${connectionId}/test-calls`,
@@ -465,12 +594,24 @@ export const toolsApi = {
       `/tool-connections/${connectionId}/test-calls/${actionRequestId}`,
     ),
   importMcpJson: (companyId: string, body: { mcpJson: unknown }) =>
-    api.post<McpJsonImportPreview>(`/companies/${companyId}/tools/mcp/import-json`, body),
+    api.post<McpJsonImportPreview>(
+      `/companies/${companyId}/tools/mcp/import-json`,
+      body,
+    ),
   listStdioTemplates: (companyId: string) =>
-    api.get<StdioTemplatesResponse>(`/companies/${companyId}/tools/stdio-templates`),
+    api.get<StdioTemplatesResponse>(
+      `/companies/${companyId}/tools/stdio-templates`,
+    ),
   createStdioTemplate: (companyId: string, input: CreateStdioTemplateInput) =>
-    api.post<StdioTemplateSummary>(`/companies/${companyId}/tools/stdio-templates`, input),
-  disableStdioTemplate: (companyId: string, templateId: string, reason?: string | null) =>
+    api.post<StdioTemplateSummary>(
+      `/companies/${companyId}/tools/stdio-templates`,
+      input,
+    ),
+  disableStdioTemplate: (
+    companyId: string,
+    templateId: string,
+    reason?: string | null,
+  ) =>
     api.post<StdioTemplateSummary>(
       `/companies/${companyId}/tools/stdio-templates/${encodeURIComponent(templateId)}/disable`,
       { reason: reason ?? null },
@@ -482,29 +623,55 @@ export const toolsApi = {
   getProfileNewTools: (profileId: string) =>
     api.get<ToolProfileNewToolsReview>(`/tool-profiles/${profileId}/new-tools`),
   reviewProfileNewTools: (profileId: string, input: ReviewNewToolsInput) =>
-    api.post<ToolProfileNewToolsReviewResult>(`/tool-profiles/${profileId}/new-tools/review`, input),
+    api.post<ToolProfileNewToolsReviewResult>(
+      `/tool-profiles/${profileId}/new-tools/review`,
+      input,
+    ),
   createProfile: (companyId: string, input: CreateToolProfileInput) =>
-    api.post<ToolProfileWithDetails>(`/companies/${companyId}/tools/profiles`, input),
+    api.post<ToolProfileWithDetails>(
+      `/companies/${companyId}/tools/profiles`,
+      input,
+    ),
   updateProfile: (profileId: string, input: UpdateToolProfileInput) =>
     api.patch<ToolProfileWithDetails>(`/tool-profiles/${profileId}`, input),
   duplicateProfile: (
     profileId: string,
     input: { name: string; includeAssignments?: boolean },
-  ) => api.post<ToolProfileWithDetails>(`/tool-profiles/${profileId}/duplicate`, input),
+  ) =>
+    api.post<ToolProfileWithDetails>(
+      `/tool-profiles/${profileId}/duplicate`,
+      input,
+    ),
   deleteProfile: (
     profileId: string,
     input: { force?: boolean; reassignToProfileId?: string } = {},
   ) => api.delete<{ deleted: true }>(`/tool-profiles/${profileId}`, input),
   addProfileEntry: (profileId: string, input: ToolProfileEntryInput) =>
     api.post<ToolProfileEntry>(`/tool-profiles/${profileId}/entries`, input),
-  updateProfileEntry: (entryId: string, input: Partial<ToolProfileEntryInput>) =>
-    api.patch<ToolProfileEntry>(`/tool-profile-entries/${entryId}`, input),
+  updateProfileEntry: (
+    entryId: string,
+    input: Partial<ToolProfileEntryInput>,
+  ) => api.patch<ToolProfileEntry>(`/tool-profile-entries/${entryId}`, input),
   deleteProfileEntry: (entryId: string) =>
     api.delete<ToolProfileEntry>(`/tool-profile-entries/${entryId}`),
-  bindProfile: (companyId: string, profileId: string, input: ToolProfileBindingInput) =>
-    api.post<ToolProfileBinding>(`/companies/${companyId}/tools/profiles/${profileId}/bind`, input),
-  unbindProfile: (companyId: string, profileId: string, input: UnbindToolProfileInput) =>
-    api.post<{ unbound: number }>(`/companies/${companyId}/tools/profiles/${profileId}/unbind`, input),
+  bindProfile: (
+    companyId: string,
+    profileId: string,
+    input: ToolProfileBindingInput,
+  ) =>
+    api.post<ToolProfileBinding>(
+      `/companies/${companyId}/tools/profiles/${profileId}/bind`,
+      input,
+    ),
+  unbindProfile: (
+    companyId: string,
+    profileId: string,
+    input: UnbindToolProfileInput,
+  ) =>
+    api.post<{ unbound: number }>(
+      `/companies/${companyId}/tools/profiles/${profileId}/unbind`,
+      input,
+    ),
   getEffectiveProfilesForAgent: (companyId: string, agentId: string) =>
     api.get<ToolProfileEffectiveSummary>(
       `/companies/${companyId}/tools/profiles/effective/agents/${encodeURIComponent(agentId)}`,
@@ -512,17 +679,31 @@ export const toolsApi = {
 
   // --- Runtime ---
   listRuntimeSlots: (companyId: string) =>
-    api.get<ToolRuntimeSlotsResponse>(`/companies/${companyId}/tools/runtime-slots`),
+    api.get<ToolRuntimeSlotsResponse>(
+      `/companies/${companyId}/tools/runtime-slots`,
+    ),
   stopRuntimeSlot: (companyId: string, slotId: string) =>
-    api.post<ToolRuntimeSlot>(`/companies/${companyId}/tools/runtime-slots/${slotId}/stop`, {}),
+    api.post<ToolRuntimeSlot>(
+      `/companies/${companyId}/tools/runtime-slots/${slotId}/stop`,
+      {},
+    ),
   restartRuntimeSlot: (companyId: string, slotId: string) =>
-    api.post<ToolRuntimeSlot>(`/companies/${companyId}/tools/runtime-slots/${slotId}/restart`, {}),
+    api.post<ToolRuntimeSlot>(
+      `/companies/${companyId}/tools/runtime-slots/${slotId}/restart`,
+      {},
+    ),
   getRuntimeHealth: (companyId: string) =>
-    api.get<ToolRuntimeHealthResponse>(`/companies/${companyId}/tools/runtime-health`),
+    api.get<ToolRuntimeHealthResponse>(
+      `/companies/${companyId}/tools/runtime-health`,
+    ),
   getRunDecisionLookup: (companyId: string, runId: string) =>
-    api.get<ToolRunDecisionLookup>(`/companies/${companyId}/tools/runs/${runId}/decisions`),
+    api.get<ToolRunDecisionLookup>(
+      `/companies/${companyId}/tools/runs/${runId}/decisions`,
+    ),
   listLiveRuntimeSlots: (companyId: string) =>
-    api.get<ToolRuntimeSlot[]>(`/tool-gateway/runtime-slots?companyId=${encodeURIComponent(companyId)}`),
+    api.get<ToolRuntimeSlot[]>(
+      `/tool-gateway/runtime-slots?companyId=${encodeURIComponent(companyId)}`,
+    ),
 
   // --- Policies (trust rules + decision simulator) ---
   listPolicies: (companyId: string) =>
@@ -530,31 +711,82 @@ export const toolsApi = {
   createPolicy: (companyId: string, input: CreateToolPolicy) =>
     api.post<ToolPolicy>(`/companies/${companyId}/tools/policies`, input),
   reorderPolicies: (companyId: string, input: ReorderToolPolicies) =>
-    api.post<ToolPoliciesResponse>(`/companies/${companyId}/tools/policies/reorder`, input),
-  duplicatePolicy: (companyId: string, policyId: string, input: DuplicateToolPolicy = {}) =>
-    api.post<ToolPolicy>(`/companies/${companyId}/tools/policies/${policyId}/duplicate`, input),
-  updatePolicy: (companyId: string, policyId: string, input: UpdateToolPolicy) =>
-    api.patch<ToolPolicy>(`/companies/${companyId}/tools/policies/${policyId}`, input),
+    api.post<ToolPoliciesResponse>(
+      `/companies/${companyId}/tools/policies/reorder`,
+      input,
+    ),
+  duplicatePolicy: (
+    companyId: string,
+    policyId: string,
+    input: DuplicateToolPolicy = {},
+  ) =>
+    api.post<ToolPolicy>(
+      `/companies/${companyId}/tools/policies/${policyId}/duplicate`,
+      input,
+    ),
+  updatePolicy: (
+    companyId: string,
+    policyId: string,
+    input: UpdateToolPolicy,
+  ) =>
+    api.patch<ToolPolicy>(
+      `/companies/${companyId}/tools/policies/${policyId}`,
+      input,
+    ),
   deletePolicy: (companyId: string, policyId: string) =>
-    api.delete<ToolPolicy>(`/companies/${companyId}/tools/policies/${policyId}`),
+    api.delete<ToolPolicy>(
+      `/companies/${companyId}/tools/policies/${policyId}`,
+    ),
   listTrustRules: (companyId: string) =>
-    api.get<ToolTrustRulesResponse>(`/companies/${companyId}/tools/trust-rules`),
-  revokeTrustRule: (companyId: string, policyId: string, reason?: string | null) =>
-    api.post<ToolPolicy>(`/companies/${companyId}/tools/trust-rules/${policyId}/revoke`, {
-      reason: reason ?? null,
-    }),
-  testPolicy: (companyId: string, input: Omit<ToolAccessDecisionInput, "companyId">) =>
-    api.post<ToolPolicyTestResponse>(`/companies/${companyId}/tools/policy/test`, input),
+    api.get<ToolTrustRulesResponse>(
+      `/companies/${companyId}/tools/trust-rules`,
+    ),
+  revokeTrustRule: (
+    companyId: string,
+    policyId: string,
+    reason?: string | null,
+  ) =>
+    api.post<ToolPolicy>(
+      `/companies/${companyId}/tools/trust-rules/${policyId}/revoke`,
+      {
+        reason: reason ?? null,
+      },
+    ),
+  testPolicy: (
+    companyId: string,
+    input: Omit<ToolAccessDecisionInput, "companyId">,
+  ) =>
+    api.post<ToolPolicyTestResponse>(
+      `/companies/${companyId}/tools/policy/test`,
+      input,
+    ),
 
   // --- Review queue (Ask first) ---
-  listActionRequests: (companyId: string, status: ToolActionRequestStatus = "pending") =>
+  listActionRequests: (
+    companyId: string,
+    status: ToolActionRequestStatus = "pending",
+  ) =>
     api.get<ToolActionRequestsResponse>(
       `/companies/${companyId}/tools/action-requests?status=${encodeURIComponent(status)}`,
     ),
-  approveActionRequest: (companyId: string, actionRequestId: string, rememberAction = false) =>
-    api.post<ToolActionRequest>(`/tool-gateway/action-requests/${actionRequestId}/approve`, { companyId, rememberAction }),
-  declineActionRequest: (companyId: string, actionRequestId: string, reason?: string) =>
-    api.post<ToolActionRequest>(`/tool-gateway/action-requests/${actionRequestId}/decline`, { companyId, reason }),
+  approveActionRequest: (
+    companyId: string,
+    actionRequestId: string,
+    rememberAction = false,
+  ) =>
+    api.post<ToolActionRequest>(
+      `/tool-gateway/action-requests/${actionRequestId}/approve`,
+      { companyId, rememberAction },
+    ),
+  declineActionRequest: (
+    companyId: string,
+    actionRequestId: string,
+    reason?: string,
+  ) =>
+    api.post<ToolActionRequest>(
+      `/tool-gateway/action-requests/${actionRequestId}/decline`,
+      { companyId, reason },
+    ),
   createTrustRuleFromActionRequest: (
     companyId: string,
     actionRequestId: string,
@@ -569,13 +801,33 @@ export const toolsApi = {
   listGateways: (companyId: string) =>
     api.get<ToolMcpGatewaysResponse>(`/companies/${companyId}/tools/gateways`),
   createGateway: (companyId: string, input: CreateToolMcpGateway) =>
-    api.post<ToolMcpGatewayWithTokens>(`/companies/${companyId}/tools/gateways`, input),
-  updateGateway: (companyId: string, gatewayId: string, input: UpdateGatewayInput) =>
-    api.patch<ToolMcpGatewayWithTokens>(`/tool-gateway/gateways/${gatewayId}`, { ...input, companyId }),
-  createGatewayToken: (companyId: string, gatewayId: string, input: CreateGatewayTokenInput) =>
-    api.post<ToolMcpGatewayTokenCreated>(`/tool-gateway/gateways/${gatewayId}/tokens`, { ...input, companyId }),
+    api.post<ToolMcpGatewayWithTokens>(
+      `/companies/${companyId}/tools/gateways`,
+      input,
+    ),
+  updateGateway: (
+    companyId: string,
+    gatewayId: string,
+    input: UpdateGatewayInput,
+  ) =>
+    api.patch<ToolMcpGatewayWithTokens>(`/tool-gateway/gateways/${gatewayId}`, {
+      ...input,
+      companyId,
+    }),
+  createGatewayToken: (
+    companyId: string,
+    gatewayId: string,
+    input: CreateGatewayTokenInput,
+  ) =>
+    api.post<ToolMcpGatewayTokenCreated>(
+      `/tool-gateway/gateways/${gatewayId}/tokens`,
+      { ...input, companyId },
+    ),
   revokeGatewayToken: (companyId: string, tokenId: string) =>
-    api.post<ToolMcpGatewayToken>(`/tool-gateway/gateway-tokens/${tokenId}/revoke`, { companyId }),
+    api.post<ToolMcpGatewayToken>(
+      `/tool-gateway/gateway-tokens/${tokenId}/revoke`,
+      { companyId },
+    ),
 
   // --- Audit / Activity ---
   /**
@@ -591,11 +843,14 @@ export const toolsApi = {
     // Omitting the window is the API's canonical all-time request. This also
     // keeps the page usable during a rolling restart against an older server
     // that does not recognize the newer explicit `all` value.
-    if (params.window && params.window !== "all") search.set("window", params.window);
+    if (params.window && params.window !== "all")
+      search.set("window", params.window);
     if (params.search) search.set("search", params.search);
     if (params.cursor) search.set("cursor", params.cursor);
     search.set("limit", String(params.limit ?? 50));
-    return api.get<ToolGatewayActivityResponse>(`/tool-gateway/audit?${search.toString()}`);
+    return api.get<ToolGatewayActivityResponse>(
+      `/tool-gateway/audit?${search.toString()}`,
+    );
   },
   /** Flat audit sample (no pagination) — used by derived counters/banners. */
   listAudit: (companyId: string, limit = 100) =>

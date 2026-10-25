@@ -2,7 +2,11 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { keepPreviousDataForSameQueryTail } from "./query-placeholder-data";
 
@@ -82,11 +86,13 @@ describe("keepPreviousDataForSameQueryTail", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toBe(JSON.stringify({
-      issueId: "issue-a",
-      runs: ["run-a"],
-      isLoading: false,
-    }));
+    expect(container.textContent).toBe(
+      JSON.stringify({
+        issueId: "issue-a",
+        runs: ["run-a"],
+        isLoading: false,
+      }),
+    );
 
     await act(async () => {
       root.render(
@@ -97,11 +103,13 @@ describe("keepPreviousDataForSameQueryTail", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toBe(JSON.stringify({
-      issueId: "issue-b",
-      runs: null,
-      isLoading: true,
-    }));
+    expect(container.textContent).toBe(
+      JSON.stringify({
+        issueId: "issue-b",
+        runs: null,
+        isLoading: true,
+      }),
+    );
 
     act(() => {
       root.unmount();

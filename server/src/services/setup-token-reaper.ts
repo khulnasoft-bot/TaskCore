@@ -44,7 +44,10 @@ export interface SetupTokenReaperDeps {
 export function createSetupTokenReaper(deps: SetupTokenReaperDeps) {
   const now = deps.now ?? Date.now;
   async function sweep(): Promise<SetupTokenReapResult> {
-    return reapSetupTokenLeases({ store: deps.store, leases: deps.leases, log: deps.log }, now());
+    return reapSetupTokenLeases(
+      { store: deps.store, leases: deps.leases, log: deps.log },
+      now(),
+    );
   }
   return { sweep };
 }

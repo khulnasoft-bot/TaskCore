@@ -10,14 +10,27 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SystemNoticeTone = "neutral" | "info" | "success" | "warning" | "danger";
+export type SystemNoticeTone =
+  "neutral" | "info" | "success" | "warning" | "danger";
 
 export type SystemNoticeMetadataRow =
   | { kind: "text"; label: string; value: string }
   | { kind: "code"; label: string; value: string }
-  | { kind: "issue"; label: string; identifier: string; href?: string; title?: string }
+  | {
+      kind: "issue";
+      label: string;
+      identifier: string;
+      href?: string;
+      title?: string;
+    }
   | { kind: "agent"; label: string; name: string; href?: string }
-  | { kind: "run"; label: string; runId: string; href?: string; status?: string };
+  | {
+      kind: "run";
+      label: string;
+      runId: string;
+      href?: string;
+      status?: string;
+    };
 
 export type SystemNoticeMetadataSection = {
   title?: string;
@@ -52,8 +65,7 @@ type ToneTokens = {
 
 const TONE_TOKENS: Record<SystemNoticeTone, ToneTokens> = {
   neutral: {
-    container:
-      "border-border bg-muted/35 dark:bg-muted/20",
+    container: "border-border bg-muted/35 dark:bg-muted/20",
     iconWrap: "bg-muted text-foreground/70",
     icon: Info,
     iconClass: "text-muted-foreground",
@@ -72,7 +84,8 @@ const TONE_TOKENS: Record<SystemNoticeTone, ToneTokens> = {
   success: {
     container:
       "border-emerald-300/70 bg-emerald-50/70 dark:border-emerald-500/30 dark:bg-emerald-500/10",
-    iconWrap: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
+    iconWrap:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
     icon: CircleCheck,
     iconClass: "text-emerald-700 dark:text-emerald-300",
     label: "text-emerald-800 dark:text-emerald-200",
@@ -81,7 +94,8 @@ const TONE_TOKENS: Record<SystemNoticeTone, ToneTokens> = {
   warning: {
     container:
       "border-amber-300/70 bg-amber-50/80 dark:border-amber-500/30 dark:bg-amber-500/10",
-    iconWrap: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
+    iconWrap:
+      "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
     icon: TriangleAlert,
     iconClass: "text-amber-700 dark:text-amber-300",
     label: "text-amber-900 dark:text-amber-200",
@@ -111,7 +125,13 @@ function formatTimestamp(ts: string) {
   }
 }
 
-function MetadataRow({ row, tone }: { row: SystemNoticeMetadataRow; tone: ToneTokens }) {
+function MetadataRow({
+  row,
+  tone,
+}: {
+  row: SystemNoticeMetadataRow;
+  tone: ToneTokens;
+}) {
   return (
     <div className="grid grid-cols-(--gtc-8) gap-x-3 gap-y-0.5 px-3 py-1.5 text-xs">
       <div className="truncate text-(length:--text-micro) font-medium uppercase tracking-(--tracking-label) text-muted-foreground">
@@ -151,7 +171,12 @@ function MetadataRow({ row, tone }: { row: SystemNoticeMetadataRow; tone: ToneTo
                 );
               }
               return (
-                <span className={cn("inline-flex items-center gap-1 font-medium", tone.label)}>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 font-medium",
+                    tone.label,
+                  )}
+                >
                   {issueLabel}
                 </span>
               );
@@ -171,15 +196,22 @@ function MetadataRow({ row, tone }: { row: SystemNoticeMetadataRow; tone: ToneTo
                 );
               }
               return (
-                <span className={cn("font-medium", tone.label)}>{row.name}</span>
+                <span className={cn("font-medium", tone.label)}>
+                  {row.name}
+                </span>
               );
             case "run": {
-              const runShort = row.runId.length > 12 ? `${row.runId.slice(0, 8)}…` : row.runId;
+              const runShort =
+                row.runId.length > 12 ? `${row.runId.slice(0, 8)}…` : row.runId;
               const inner = (
                 <>
-                  <code className="rounded bg-muted px-1.5 py-0.5 text-foreground/80">{runShort}</code>
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-foreground/80">
+                    {runShort}
+                  </code>
                   {row.status ? (
-                    <span className={cn("font-sans", tone.label)}>{row.status}</span>
+                    <span className={cn("font-sans", tone.label)}>
+                      {row.status}
+                    </span>
                   ) : null}
                 </>
               );
@@ -288,7 +320,9 @@ export function SystemNotice({
             <span className={tokens.label}>{resolvedLabel}</span>
             {source ? (
               <>
-                <span className="text-muted-foreground/60" aria-hidden>·</span>
+                <span className="text-muted-foreground/60" aria-hidden>
+                  ·
+                </span>
                 {source.href ? (
                   <a
                     href={source.href}
@@ -305,14 +339,18 @@ export function SystemNotice({
             ) : null}
             {timestamp ? (
               <>
-                <span className="text-muted-foreground/60" aria-hidden>·</span>
+                <span className="text-muted-foreground/60" aria-hidden>
+                  ·
+                </span>
                 <span className="font-medium normal-case tracking-normal text-muted-foreground">
                   {formatTimestamp(timestamp)}
                 </span>
               </>
             ) : null}
           </div>
-          <div className="mt-1 break-words text-sm leading-6 text-foreground">{body}</div>
+          <div className="mt-1 break-words text-sm leading-6 text-foreground">
+            {body}
+          </div>
         </div>
         {hasDetails ? (
           <button

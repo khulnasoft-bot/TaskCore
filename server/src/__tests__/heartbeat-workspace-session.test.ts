@@ -53,7 +53,9 @@ import type { TrustPresetResolution } from "../services/trust-preset-resolver.ts
 
 const execFile = promisify(execFileCallback);
 
-function buildResolvedWorkspace(overrides: Partial<ResolvedWorkspaceForRun> = {}): ResolvedWorkspaceForRun {
+function buildResolvedWorkspace(
+  overrides: Partial<ResolvedWorkspaceForRun> = {},
+): ResolvedWorkspaceForRun {
   return {
     cwd: "/tmp/project",
     source: "project_primary",
@@ -69,7 +71,9 @@ function buildResolvedWorkspace(overrides: Partial<ResolvedWorkspaceForRun> = {}
   };
 }
 
-type WorkspaceValidationInput = Parameters<typeof assertGitSensitiveAdapterWorkspaceValid>[0];
+type WorkspaceValidationInput = Parameters<
+  typeof assertGitSensitiveAdapterWorkspaceValid
+>[0];
 
 function buildWorkspaceValidationInput(
   overrides: Partial<WorkspaceValidationInput> = {},
@@ -136,10 +140,17 @@ async function runGit(cwd: string, args: string[]) {
 }
 
 async function createGitCheckout(options: { withRemote: boolean }) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-push-preflight-"));
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-push-preflight-"),
+  );
   await runGit(root, ["init"]);
   if (options.withRemote) {
-    await runGit(root, ["remote", "add", "origin", "https://github.com/example/repo.git"]);
+    await runGit(root, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/example/repo.git",
+    ]);
   }
   return root;
 }
@@ -149,7 +160,9 @@ async function expectWorkspaceValidationFailure(
   reason: string,
   message: string,
 ) {
-  await expect(assertGitSensitiveAdapterWorkspaceValid(input)).rejects.toMatchObject({
+  await expect(
+    assertGitSensitiveAdapterWorkspaceValid(input),
+  ).rejects.toMatchObject({
     code: "workspace_validation_failed",
     message: expect.stringContaining(message),
     resultJson: {
@@ -162,7 +175,10 @@ async function expectWorkspaceValidationFailure(
   });
 }
 
-function buildAgent(adapterType: string, runtimeConfig: Record<string, unknown> = {}) {
+function buildAgent(
+  adapterType: string,
+  runtimeConfig: Record<string, unknown> = {},
+) {
   return {
     id: "agent-1",
     companyId: "company-1",
@@ -190,18 +206,27 @@ function buildAgent(adapterType: string, runtimeConfig: Record<string, unknown> 
 
 const hermesSessionCodec = {
   deserialize(raw: unknown) {
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw))
+      return null;
     const record = raw as Record<string, unknown>;
-    const sessionId = typeof record.sessionId === "string" && record.sessionId.trim() ? record.sessionId.trim() : null;
+    const sessionId =
+      typeof record.sessionId === "string" && record.sessionId.trim()
+        ? record.sessionId.trim()
+        : null;
     return sessionId ? { sessionId } : null;
   },
   serialize(params: Record<string, unknown> | null) {
     if (!params) return null;
-    const sessionId = typeof params.sessionId === "string" && params.sessionId.trim() ? params.sessionId.trim() : null;
+    const sessionId =
+      typeof params.sessionId === "string" && params.sessionId.trim()
+        ? params.sessionId.trim()
+        : null;
     return sessionId ? { sessionId } : null;
   },
   getDisplayId(params: Record<string, unknown> | null) {
-    return typeof params?.sessionId === "string" && params.sessionId.trim() ? params.sessionId.trim() : null;
+    return typeof params?.sessionId === "string" && params.sessionId.trim()
+      ? params.sessionId.trim()
+      : null;
   },
 };
 
@@ -235,7 +260,9 @@ function standardTrustResolution(): TrustPresetResolution {
   };
 }
 
-function buildIssueAncestryDb(rows: Array<{ id: string; companyId: string; parentId: string | null }>) {
+function buildIssueAncestryDb(
+  rows: Array<{ id: string; companyId: string; parentId: string | null }>,
+) {
   const queue = [...rows];
   return {
     select: () => ({
@@ -379,7 +406,9 @@ describe("assertGitSensitiveAdapterWorkspaceValid", () => {
 
   it("rejects a git worktree persisted workspace when the checked-out branch differs from the recorded branch", async () => {
     const repoRoot = await createGitCheckout({ withRemote: false });
-    const worktreeParent = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-branch-worktree-"));
+    const worktreeParent = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-branch-worktree-"),
+    );
     const worktreePath = path.join(worktreeParent, "workspace");
     const recordedBranch = "PAP-1-recorded-branch";
     const actualBranch = "PAP-1-push-pr-head";
@@ -389,7 +418,14 @@ describe("assertGitSensitiveAdapterWorkspaceValid", () => {
       await fs.writeFile(path.join(repoRoot, "README.md"), "initial\n", "utf8");
       await runGit(repoRoot, ["add", "README.md"]);
       await runGit(repoRoot, ["commit", "-m", "Initial commit"]);
-      await runGit(repoRoot, ["worktree", "add", "-b", recordedBranch, worktreePath, "HEAD"]);
+      await runGit(repoRoot, [
+        "worktree",
+        "add",
+        "-b",
+        recordedBranch,
+        worktreePath,
+        "HEAD",
+      ]);
       await runGit(worktreePath, ["checkout", "-b", actualBranch]);
 
       const input = buildWorkspaceValidationInput();
@@ -462,54 +498,94 @@ describe("assertGitSensitiveAdapterWorkspaceValid", () => {
 });
 
 describe("assertGitWorktreeBaseWorkspaceReady", () => {
-  it.each(["all_external", "mixed", "malformed"])("keeps materialization aggregation fail-closed: %s", async (kind) => {
-    const first = { schemaVersion: 1, provider: "git", operation: "clone", reason: "authentication_failed" } as const;
-    const second = kind === "all_external" ? { ...first, reason: "dns_failure" as const } :
-      kind === "malformed" ? { ...first, reason: "unknown" } : undefined;
-    const failures = [first, second].map((connectionFailure, index) => ({
-      projectWorkspaceId: `workspace-${index}`, repoUrl: "https://example.test/team/repo.git",
-      error: "Managed checkout failed", ...(connectionFailure ? { connectionFailure } : {}),
-    }));
-    const error = await assertGitWorktreeBaseWorkspaceReady({
-      requestedExecutionWorkspaceMode: "isolated_workspace",
-      config: { workspaceStrategy: { type: "git_worktree" } },
-      issue: { id: "issue-1", identifier: "TEST-1", projectId: "project-1", projectWorkspaceId: "workspace-0" },
-      base: { baseCwd: "/tmp/unused-fallback", source: "project_primary", projectId: "project-1", workspaceId: "workspace-0", repoUrl: "https://example.test/team/repo.git", repoRef: null },
-      anchor: { baseCwdFallback: true, materializationFailures: failures as never },
-    }).catch((error: unknown) => error);
-    expect(error).toMatchObject({
-      code: "workspace_validation_failed",
-      resultJson: { workspaceValidation: { reason: "git_worktree_base_materialization_failed", materializationFailures: failures } },
-    });
-    expect((error as { resultJson: Record<string, unknown> }).resultJson.connectionFailure)
-      .toEqual(kind === "all_external" ? first : undefined);
-  });
+  it.each(["all_external", "mixed", "malformed"])(
+    "keeps materialization aggregation fail-closed: %s",
+    async (kind) => {
+      const first = {
+        schemaVersion: 1,
+        provider: "git",
+        operation: "clone",
+        reason: "authentication_failed",
+      } as const;
+      const second =
+        kind === "all_external"
+          ? { ...first, reason: "dns_failure" as const }
+          : kind === "malformed"
+            ? { ...first, reason: "unknown" }
+            : undefined;
+      const failures = [first, second].map((connectionFailure, index) => ({
+        projectWorkspaceId: `workspace-${index}`,
+        repoUrl: "https://example.test/team/repo.git",
+        error: "Managed checkout failed",
+        ...(connectionFailure ? { connectionFailure } : {}),
+      }));
+      const error = await assertGitWorktreeBaseWorkspaceReady({
+        requestedExecutionWorkspaceMode: "isolated_workspace",
+        config: { workspaceStrategy: { type: "git_worktree" } },
+        issue: {
+          id: "issue-1",
+          identifier: "TEST-1",
+          projectId: "project-1",
+          projectWorkspaceId: "workspace-0",
+        },
+        base: {
+          baseCwd: "/tmp/unused-fallback",
+          source: "project_primary",
+          projectId: "project-1",
+          workspaceId: "workspace-0",
+          repoUrl: "https://example.test/team/repo.git",
+          repoRef: null,
+        },
+        anchor: {
+          baseCwdFallback: true,
+          materializationFailures: failures as never,
+        },
+      }).catch((error: unknown) => error);
+      expect(error).toMatchObject({
+        code: "workspace_validation_failed",
+        resultJson: {
+          workspaceValidation: {
+            reason: "git_worktree_base_materialization_failed",
+            materializationFailures: failures,
+          },
+        },
+      });
+      expect(
+        (error as { resultJson: Record<string, unknown> }).resultJson
+          .connectionFailure,
+      ).toEqual(kind === "all_external" ? first : undefined);
+    },
+  );
 
   it("rejects projectless isolated git worktrees that resolved to agent_home", async () => {
     const fallbackCwd = resolveDefaultAgentWorkspaceDir("agent-1");
 
-    await expect(assertGitWorktreeBaseWorkspaceReady({
-      requestedExecutionWorkspaceMode: "isolated_workspace",
-      config: { workspaceStrategy: { type: "git_worktree" } },
-      issue: {
-        id: "issue-1",
-        identifier: "PAP-1",
-        projectId: null,
-        projectWorkspaceId: null,
-        executionWorkspaceId: null,
-        executionWorkspacePreference: "isolated_workspace",
-      },
-      base: {
-        baseCwd: fallbackCwd,
-        source: "agent_home",
-        projectId: null,
-        workspaceId: null,
-        repoUrl: null,
-        repoRef: null,
-      },
-    })).rejects.toMatchObject({
+    await expect(
+      assertGitWorktreeBaseWorkspaceReady({
+        requestedExecutionWorkspaceMode: "isolated_workspace",
+        config: { workspaceStrategy: { type: "git_worktree" } },
+        issue: {
+          id: "issue-1",
+          identifier: "PAP-1",
+          projectId: null,
+          projectWorkspaceId: null,
+          executionWorkspaceId: null,
+          executionWorkspacePreference: "isolated_workspace",
+        },
+        base: {
+          baseCwd: fallbackCwd,
+          source: "agent_home",
+          projectId: null,
+          workspaceId: null,
+          repoUrl: null,
+          repoRef: null,
+        },
+      }),
+    ).rejects.toMatchObject({
       code: "workspace_validation_failed",
-      message: expect.stringContaining("needs a project / project workspace or a reusable execution workspace"),
+      message: expect.stringContaining(
+        "needs a project / project workspace or a reusable execution workspace",
+      ),
       resultJson: {
         workspaceValidation: expect.objectContaining({
           reason: "git_worktree_base_agent_home",
@@ -525,24 +601,26 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
   it("rejects operator-branch git worktrees that resolved to agent_home", async () => {
     const fallbackCwd = resolveDefaultAgentWorkspaceDir("agent-1");
 
-    await expect(assertGitWorktreeBaseWorkspaceReady({
-      requestedExecutionWorkspaceMode: "operator_branch",
-      config: { workspaceStrategy: { type: "git_worktree" } },
-      issue: {
-        id: "issue-1",
-        identifier: "PAP-1",
-        projectId: null,
-        projectWorkspaceId: null,
-      },
-      base: {
-        baseCwd: fallbackCwd,
-        source: "agent_home",
-        projectId: null,
-        workspaceId: null,
-        repoUrl: null,
-        repoRef: null,
-      },
-    })).rejects.toMatchObject({
+    await expect(
+      assertGitWorktreeBaseWorkspaceReady({
+        requestedExecutionWorkspaceMode: "operator_branch",
+        config: { workspaceStrategy: { type: "git_worktree" } },
+        issue: {
+          id: "issue-1",
+          identifier: "PAP-1",
+          projectId: null,
+          projectWorkspaceId: null,
+        },
+        base: {
+          baseCwd: fallbackCwd,
+          source: "agent_home",
+          projectId: null,
+          workspaceId: null,
+          repoUrl: null,
+          repoRef: null,
+        },
+      }),
+    ).rejects.toMatchObject({
       code: "workspace_validation_failed",
       resultJson: {
         workspaceValidation: expect.objectContaining({
@@ -554,26 +632,30 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
   });
 
   it("rejects isolated git worktrees when the resolved base is not a git checkout", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-non-git-workspace-"));
+    const cwd = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-non-git-workspace-"),
+    );
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady({
-        requestedExecutionWorkspaceMode: "isolated_workspace",
-        config: { workspaceStrategy: { type: "git_worktree" } },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-          projectId: "project-1",
-          projectWorkspaceId: "workspace-1",
-        },
-        base: {
-          baseCwd: cwd,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: "https://github.com/example/repo.git",
-          repoRef: "origin/master",
-        },
-      })).rejects.toMatchObject({
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady({
+          requestedExecutionWorkspaceMode: "isolated_workspace",
+          config: { workspaceStrategy: { type: "git_worktree" } },
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+            projectId: "project-1",
+            projectWorkspaceId: "workspace-1",
+          },
+          base: {
+            baseCwd: cwd,
+            source: "project_primary",
+            projectId: "project-1",
+            workspaceId: "workspace-1",
+            repoUrl: "https://github.com/example/repo.git",
+            repoRef: "origin/master",
+          },
+        }),
+      ).rejects.toMatchObject({
         code: "workspace_validation_failed",
         message: expect.stringContaining("is not a git checkout"),
         resultJson: {
@@ -590,66 +672,136 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
     }
   });
 
-  function configuredLocalPathInput(cwd: string): Parameters<typeof assertGitWorktreeBaseWorkspaceReady>[0] {
+  function configuredLocalPathInput(
+    cwd: string,
+  ): Parameters<typeof assertGitWorktreeBaseWorkspaceReady>[0] {
     return {
       requestedExecutionWorkspaceMode: "isolated_workspace",
       config: { workspaceStrategy: { type: "git_worktree" } },
-      issue: { id: "issue-1", identifier: null, projectId: "project-1", projectWorkspaceId: "workspace-1" },
-      base: { baseCwd: cwd, source: "project_primary", projectId: "project-1", workspaceId: "workspace-1", repoUrl: null, repoRef: null },
-      anchor: { localPathOnlyWorkspace: true, baseCwdFallback: false, materializationFailures: [] },
+      issue: {
+        id: "issue-1",
+        identifier: null,
+        projectId: "project-1",
+        projectWorkspaceId: "workspace-1",
+      },
+      base: {
+        baseCwd: cwd,
+        source: "project_primary",
+        projectId: "project-1",
+        workspaceId: "workspace-1",
+        repoUrl: null,
+        repoRef: null,
+      },
+      anchor: {
+        localPathOnlyWorkspace: true,
+        baseCwdFallback: false,
+        materializationFailures: [],
+      },
     };
   }
 
   it("marks a proven non-Git local path as an owner configuration conflict without changing the failure", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-local-path-policy-"));
+    const cwd = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-local-path-policy-"),
+    );
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady(configuredLocalPathInput(cwd))).rejects.toMatchObject({
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady(configuredLocalPathInput(cwd)),
+      ).rejects.toMatchObject({
         code: "workspace_validation_failed",
         message: expect.stringContaining("is not a git checkout"),
-        resultJson: { workspaceValidation: {
-          reason: "git_worktree_base_not_git_checkout",
-          configurationReason: "local_path_requires_git_checkout",
-        } },
+        resultJson: {
+          workspaceValidation: {
+            reason: "git_worktree_base_not_git_checkout",
+            configurationReason: "local_path_requires_git_checkout",
+          },
+        },
       });
-    } finally { await fs.rm(cwd, { recursive: true, force: true }); }
+    } finally {
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
   });
 
-  it.each(["legacy", "repository", "fallback", "materialization", "session", "unbound"])(
-    "does not mark ambiguous non-Git workspace evidence as a configuration-only failure: %s", async (kind) => {
-      const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-ambiguous-workspace-"));
+  it.each([
+    "legacy",
+    "repository",
+    "fallback",
+    "materialization",
+    "session",
+    "unbound",
+  ])(
+    "does not mark ambiguous non-Git workspace evidence as a configuration-only failure: %s",
+    async (kind) => {
+      const cwd = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-ambiguous-workspace-"),
+      );
       try {
         const input = configuredLocalPathInput(cwd);
         if (kind === "legacy") input.anchor!.localPathOnlyWorkspace = undefined;
-        if (kind === "repository") input.base.repoUrl = "https://example.com/repository.git";
+        if (kind === "repository")
+          input.base.repoUrl = "https://example.com/repository.git";
         if (kind === "fallback") input.anchor!.baseCwdFallback = true;
-        if (kind === "materialization") input.anchor!.materializationFailures = [{ projectWorkspaceId: "another-workspace", repoUrl: null, error: "checkout failed" }];
+        if (kind === "materialization")
+          input.anchor!.materializationFailures = [
+            {
+              projectWorkspaceId: "another-workspace",
+              repoUrl: null,
+              error: "checkout failed",
+            },
+          ];
         if (kind === "session") input.base.source = "task_session";
         if (kind === "unbound") input.base.workspaceId = null;
-        const error = await assertGitWorktreeBaseWorkspaceReady(input).catch((error) => error);
+        const error = await assertGitWorktreeBaseWorkspaceReady(input).catch(
+          (error) => error,
+        );
         expect(error.code).toBe("workspace_validation_failed");
-        expect(error.resultJson.workspaceValidation.configurationReason).toBeUndefined();
-      } finally { await fs.rm(cwd, { recursive: true, force: true }); }
+        expect(
+          error.resultJson.workspaceValidation.configurationReason,
+        ).toBeUndefined();
+      } finally {
+        await fs.rm(cwd, { recursive: true, force: true });
+      }
     },
   );
 
-  it.each(["missing_git", "permission", "git_error", "killed", "missing_directory"])(
-    "does not classify a Git or filesystem failure as an owner-only configuration mismatch: %s", async (kind) => {
-      const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-git-probe-failure-"));
-      const bin = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-git-probe-bin-"));
+  it.each([
+    "missing_git",
+    "permission",
+    "git_error",
+    "killed",
+    "missing_directory",
+  ])(
+    "does not classify a Git or filesystem failure as an owner-only configuration mismatch: %s",
+    async (kind) => {
+      const cwd = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-git-probe-failure-"),
+      );
+      const bin = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-git-probe-bin-"),
+      );
       try {
         if (kind !== "missing_git" && kind !== "missing_directory") {
-          const command = kind === "killed"
-            ? "kill -TERM $$"
-            : kind === "permission"
-              ? "printf '%s\\n' 'fatal: cannot open .git: Permission denied' >&2; exit 128"
-              : "printf '%s\\n' 'fatal: bad object HEAD' >&2; exit 128";
-          await fs.writeFile(path.join(bin, "git"), `#!/bin/sh\n${command}\n`, { mode: 0o755 });
+          const command =
+            kind === "killed"
+              ? "kill -TERM $$"
+              : kind === "permission"
+                ? "printf '%s\\n' 'fatal: cannot open .git: Permission denied' >&2; exit 128"
+                : "printf '%s\\n' 'fatal: bad object HEAD' >&2; exit 128";
+          await fs.writeFile(path.join(bin, "git"), `#!/bin/sh\n${command}\n`, {
+            mode: 0o755,
+          });
         }
         if (kind !== "missing_directory") vi.stubEnv("PATH", bin);
-        const input = configuredLocalPathInput(kind === "missing_directory" ? path.join(cwd, "absent") : cwd);
-        const error = await assertGitWorktreeBaseWorkspaceReady(input).catch((error) => error);
+        const input = configuredLocalPathInput(
+          kind === "missing_directory" ? path.join(cwd, "absent") : cwd,
+        );
+        const error = await assertGitWorktreeBaseWorkspaceReady(input).catch(
+          (error) => error,
+        );
         expect(error.code).toBe("workspace_validation_failed");
-        expect(error.resultJson.workspaceValidation.configurationReason).toBeUndefined();
+        expect(
+          error.resultJson.workspaceValidation.configurationReason,
+        ).toBeUndefined();
       } finally {
         vi.unstubAllEnvs();
         await fs.rm(cwd, { recursive: true, force: true });
@@ -660,21 +812,44 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
 
   it("still accepts a configured local path that is a Git checkout", async () => {
     const cwd = await createGitCheckout({ withRemote: false });
-    try { await expect(assertGitWorktreeBaseWorkspaceReady(configuredLocalPathInput(cwd))).resolves.toBeUndefined(); }
-    finally { await fs.rm(cwd, { recursive: true, force: true }); }
+    try {
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady(configuredLocalPathInput(cwd)),
+      ).resolves.toBeUndefined();
+    } finally {
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
   });
 
-  it.each(["empty_metadata", "missing_head", "damaged_head", "dangling_metadata", "ancestor_metadata", "bare_metadata"])(
-    "keeps real broken repository metadata reportable even when Git says not a repository: %s", async (kind) => {
-      const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-broken-local-repo-"));
+  it.each([
+    "empty_metadata",
+    "missing_head",
+    "damaged_head",
+    "dangling_metadata",
+    "ancestor_metadata",
+    "bare_metadata",
+  ])(
+    "keeps real broken repository metadata reportable even when Git says not a repository: %s",
+    async (kind) => {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-broken-local-repo-"),
+      );
       try {
         let cwd = root;
         if (kind === "missing_head" || kind === "damaged_head") {
           await execFile("git", ["init", root]);
-          if (kind === "missing_head") await fs.rm(path.join(root, ".git", "HEAD"));
-          else await fs.writeFile(path.join(root, ".git", "HEAD"), "damaged HEAD\n");
+          if (kind === "missing_head")
+            await fs.rm(path.join(root, ".git", "HEAD"));
+          else
+            await fs.writeFile(
+              path.join(root, ".git", "HEAD"),
+              "damaged HEAD\n",
+            );
         } else if (kind === "dangling_metadata") {
-          await fs.symlink(path.join(root, "missing-git-dir"), path.join(root, ".git"));
+          await fs.symlink(
+            path.join(root, "missing-git-dir"),
+            path.join(root, ".git"),
+          );
         } else if (kind === "bare_metadata") {
           await fs.mkdir(path.join(root, "objects"));
         } else {
@@ -684,15 +859,26 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
             await fs.mkdir(cwd);
           }
         }
-        const gitFailure = await execFile("git", ["rev-parse", "--show-toplevel"], {
-          cwd, env: { ...process.env, LC_ALL: "C" },
-        }).catch((error) => error);
+        const gitFailure = await execFile(
+          "git",
+          ["rev-parse", "--show-toplevel"],
+          {
+            cwd,
+            env: { ...process.env, LC_ALL: "C" },
+          },
+        ).catch((error) => error);
         expect(gitFailure.code).toBe(128);
         expect(gitFailure.stderr).toMatch(/^fatal: not a git repository/);
-        const failure = await assertGitWorktreeBaseWorkspaceReady(configuredLocalPathInput(cwd)).catch((error) => error);
+        const failure = await assertGitWorktreeBaseWorkspaceReady(
+          configuredLocalPathInput(cwd),
+        ).catch((error) => error);
         expect(failure.code).toBe("workspace_validation_failed");
-        expect(failure.resultJson.workspaceValidation.configurationReason).toBeUndefined();
-      } finally { await fs.rm(root, { recursive: true, force: true }); }
+        expect(
+          failure.resultJson.workspaceValidation.configurationReason,
+        ).toBeUndefined();
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
     },
   );
 
@@ -701,43 +887,52 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
     // unrelated repository, and the not-a-git-checkout probe would mask the real clone failure.
     const cwd = await createGitCheckout({ withRemote: false });
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady({
-        requestedExecutionWorkspaceMode: "isolated_workspace",
-        config: { workspaceStrategy: { type: "git_worktree" } },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-          projectId: "project-1",
-          projectWorkspaceId: "workspace-1",
-        },
-        base: {
-          baseCwd: cwd,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: "https://github.com/example/private-repo.git",
-          repoRef: "origin/master",
-        },
-        anchor: {
-          baseCwdFallback: true,
-          materializationFailures: [{
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady({
+          requestedExecutionWorkspaceMode: "isolated_workspace",
+          config: { workspaceStrategy: { type: "git_worktree" } },
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+            projectId: "project-1",
             projectWorkspaceId: "workspace-1",
+          },
+          base: {
+            baseCwd: cwd,
+            source: "project_primary",
+            projectId: "project-1",
+            workspaceId: "workspace-1",
             repoUrl: "https://github.com/example/private-repo.git",
-            error: 'Failed to prepare managed checkout for "https://github.com/example/private-repo.git": fatal: could not read Username',
-          }],
-        },
-      })).rejects.toMatchObject({
+            repoRef: "origin/master",
+          },
+          anchor: {
+            baseCwdFallback: true,
+            materializationFailures: [
+              {
+                projectWorkspaceId: "workspace-1",
+                repoUrl: "https://github.com/example/private-repo.git",
+                error:
+                  'Failed to prepare managed checkout for "https://github.com/example/private-repo.git": fatal: could not read Username',
+              },
+            ],
+          },
+        }),
+      ).rejects.toMatchObject({
         code: "workspace_validation_failed",
-        message: expect.stringContaining("could not be prepared: Failed to prepare managed checkout"),
+        message: expect.stringContaining(
+          "could not be prepared: Failed to prepare managed checkout",
+        ),
         resultJson: {
           workspaceValidation: expect.objectContaining({
             reason: "git_worktree_base_materialization_failed",
             issueId: "issue-1",
             baseCwdFallback: true,
-            materializationFailures: [expect.objectContaining({
-              projectWorkspaceId: "workspace-1",
-              error: expect.stringContaining("could not read Username"),
-            })],
+            materializationFailures: [
+              expect.objectContaining({
+                projectWorkspaceId: "workspace-1",
+                error: expect.stringContaining("could not read Username"),
+              }),
+            ],
           }),
         },
       });
@@ -749,27 +944,31 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
   it("keeps the not-a-git-checkout reason for a fallback with no failed materialization attempt", async () => {
     // A configured path that is simply unavailable is not a clone failure; the message must
     // not steer the operator toward repairing clone access.
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-unavailable-path-fallback-"));
+    const cwd = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-unavailable-path-fallback-"),
+    );
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady({
-        requestedExecutionWorkspaceMode: "isolated_workspace",
-        config: { workspaceStrategy: { type: "git_worktree" } },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-          projectId: "project-1",
-          projectWorkspaceId: "workspace-1",
-        },
-        base: {
-          baseCwd: cwd,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: null,
-          repoRef: null,
-        },
-        anchor: { baseCwdFallback: true },
-      })).rejects.toMatchObject({
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady({
+          requestedExecutionWorkspaceMode: "isolated_workspace",
+          config: { workspaceStrategy: { type: "git_worktree" } },
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+            projectId: "project-1",
+            projectWorkspaceId: "workspace-1",
+          },
+          base: {
+            baseCwd: cwd,
+            source: "project_primary",
+            projectId: "project-1",
+            workspaceId: "workspace-1",
+            repoUrl: null,
+            repoRef: null,
+          },
+          anchor: { baseCwdFallback: true },
+        }),
+      ).rejects.toMatchObject({
         code: "workspace_validation_failed",
         message: expect.stringContaining("is not a git checkout"),
         resultJson: {
@@ -786,27 +985,31 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
   it("refuses a git-checkout fallback cwd that is not the project workspace, without claiming a clone failed", async () => {
     const cwd = await createGitCheckout({ withRemote: false });
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady({
-        requestedExecutionWorkspaceMode: "isolated_workspace",
-        config: { workspaceStrategy: { type: "git_worktree" } },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-          projectId: "project-1",
-          projectWorkspaceId: "workspace-1",
-        },
-        base: {
-          baseCwd: cwd,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: null,
-          repoRef: null,
-        },
-        anchor: { baseCwdFallback: true, materializationFailures: [] },
-      })).rejects.toMatchObject({
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady({
+          requestedExecutionWorkspaceMode: "isolated_workspace",
+          config: { workspaceStrategy: { type: "git_worktree" } },
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+            projectId: "project-1",
+            projectWorkspaceId: "workspace-1",
+          },
+          base: {
+            baseCwd: cwd,
+            source: "project_primary",
+            projectId: "project-1",
+            workspaceId: "workspace-1",
+            repoUrl: null,
+            repoRef: null,
+          },
+          anchor: { baseCwdFallback: true, materializationFailures: [] },
+        }),
+      ).rejects.toMatchObject({
         code: "workspace_validation_failed",
-        message: expect.stringContaining("configured project workspace path is not available"),
+        message: expect.stringContaining(
+          "configured project workspace path is not available",
+        ),
         resultJson: {
           workspaceValidation: expect.objectContaining({
             reason: "git_worktree_base_fallback_not_project_workspace",
@@ -823,25 +1026,27 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
   it("allows isolated git worktrees when the anchor reports no fallback", async () => {
     const cwd = await createGitCheckout({ withRemote: false });
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady({
-        requestedExecutionWorkspaceMode: "isolated_workspace",
-        config: { workspaceStrategy: { type: "git_worktree" } },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-          projectId: "project-1",
-          projectWorkspaceId: "workspace-1",
-        },
-        base: {
-          baseCwd: cwd,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: "https://github.com/example/repo.git",
-          repoRef: "origin/master",
-        },
-        anchor: { baseCwdFallback: false, materializationFailures: [] },
-      })).resolves.toBeUndefined();
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady({
+          requestedExecutionWorkspaceMode: "isolated_workspace",
+          config: { workspaceStrategy: { type: "git_worktree" } },
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+            projectId: "project-1",
+            projectWorkspaceId: "workspace-1",
+          },
+          base: {
+            baseCwd: cwd,
+            source: "project_primary",
+            projectId: "project-1",
+            workspaceId: "workspace-1",
+            repoUrl: "https://github.com/example/repo.git",
+            repoRef: "origin/master",
+          },
+          anchor: { baseCwdFallback: false, materializationFailures: [] },
+        }),
+      ).resolves.toBeUndefined();
     } finally {
       await fs.rm(cwd, { recursive: true, force: true });
     }
@@ -850,50 +1055,56 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
   it("allows isolated git worktrees when the resolved base is a git checkout", async () => {
     const cwd = await createGitCheckout({ withRemote: false });
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady({
-        requestedExecutionWorkspaceMode: "isolated_workspace",
-        config: { workspaceStrategy: { type: "git_worktree" } },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-          projectId: "project-1",
-          projectWorkspaceId: "workspace-1",
-        },
-        base: {
-          baseCwd: cwd,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: "https://github.com/example/repo.git",
-          repoRef: "origin/master",
-        },
-      })).resolves.toBeUndefined();
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady({
+          requestedExecutionWorkspaceMode: "isolated_workspace",
+          config: { workspaceStrategy: { type: "git_worktree" } },
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+            projectId: "project-1",
+            projectWorkspaceId: "workspace-1",
+          },
+          base: {
+            baseCwd: cwd,
+            source: "project_primary",
+            projectId: "project-1",
+            workspaceId: "workspace-1",
+            repoUrl: "https://github.com/example/repo.git",
+            repoRef: "origin/master",
+          },
+        }),
+      ).resolves.toBeUndefined();
     } finally {
       await fs.rm(cwd, { recursive: true, force: true });
     }
   });
 
   it("does not require git for shared project-primary workspaces", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-shared-workspace-"));
+    const cwd = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-shared-workspace-"),
+    );
     try {
-      await expect(assertGitWorktreeBaseWorkspaceReady({
-        requestedExecutionWorkspaceMode: "shared_workspace",
-        config: { workspaceStrategy: { type: "git_worktree" } },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-          projectId: "project-1",
-          projectWorkspaceId: "workspace-1",
-        },
-        base: {
-          baseCwd: cwd,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: null,
-          repoRef: null,
-        },
-      })).resolves.toBeUndefined();
+      await expect(
+        assertGitWorktreeBaseWorkspaceReady({
+          requestedExecutionWorkspaceMode: "shared_workspace",
+          config: { workspaceStrategy: { type: "git_worktree" } },
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+            projectId: "project-1",
+            projectWorkspaceId: "workspace-1",
+          },
+          base: {
+            baseCwd: cwd,
+            source: "project_primary",
+            projectId: "project-1",
+            workspaceId: "workspace-1",
+            repoUrl: null,
+            repoRef: null,
+          },
+        }),
+      ).resolves.toBeUndefined();
     } finally {
       await fs.rm(cwd, { recursive: true, force: true });
     }
@@ -903,82 +1114,103 @@ describe("assertGitWorktreeBaseWorkspaceReady", () => {
     // No workspaceStrategy.type → realizeExecutionWorkspace defaults to project_primary (not git_worktree),
     // so the guard must not fire. This prevents false workspace_validation_failed for configs that omit type.
     const fallbackCwd = resolveDefaultAgentWorkspaceDir("agent-1");
-    await expect(assertGitWorktreeBaseWorkspaceReady({
-      requestedExecutionWorkspaceMode: "isolated_workspace",
-      config: {},
-      issue: {
-        id: "issue-1",
-        identifier: "PAP-1",
-        projectId: null,
-        projectWorkspaceId: null,
-      },
-      base: {
-        baseCwd: fallbackCwd,
-        source: "agent_home",
-        projectId: null,
-        workspaceId: null,
-        repoUrl: null,
-        repoRef: null,
-      },
-    })).resolves.toBeUndefined();
+    await expect(
+      assertGitWorktreeBaseWorkspaceReady({
+        requestedExecutionWorkspaceMode: "isolated_workspace",
+        config: {},
+        issue: {
+          id: "issue-1",
+          identifier: "PAP-1",
+          projectId: null,
+          projectWorkspaceId: null,
+        },
+        base: {
+          baseCwd: fallbackCwd,
+          source: "agent_home",
+          projectId: null,
+          workspaceId: null,
+          repoUrl: null,
+          repoRef: null,
+        },
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it("allows operator-branch workspace with no explicit strategy type even when base is agent_home", async () => {
     const fallbackCwd = resolveDefaultAgentWorkspaceDir("agent-1");
-    await expect(assertGitWorktreeBaseWorkspaceReady({
-      requestedExecutionWorkspaceMode: "operator_branch",
-      config: {},
-      issue: {
-        id: "issue-1",
-        identifier: "PAP-1",
-        projectId: null,
-        projectWorkspaceId: null,
-      },
-      base: {
-        baseCwd: fallbackCwd,
-        source: "agent_home",
-        projectId: null,
-        workspaceId: null,
-        repoUrl: null,
-        repoRef: null,
-      },
-    })).resolves.toBeUndefined();
+    await expect(
+      assertGitWorktreeBaseWorkspaceReady({
+        requestedExecutionWorkspaceMode: "operator_branch",
+        config: {},
+        issue: {
+          id: "issue-1",
+          identifier: "PAP-1",
+          projectId: null,
+          projectWorkspaceId: null,
+        },
+        base: {
+          baseCwd: fallbackCwd,
+          source: "agent_home",
+          projectId: null,
+          workspaceId: null,
+          repoUrl: null,
+          repoRef: null,
+        },
+      }),
+    ).resolves.toBeUndefined();
   });
 });
 
 describe("scrubGitCredentialText", () => {
   it("masks URL userinfo including tokens", () => {
-    expect(scrubGitCredentialText(
-      'fatal: unable to access "https://x-access-token:ghp_abc123@github.com/example/repo.git"',
-    )).toBe('fatal: unable to access "https://***@github.com/example/repo.git"');
+    expect(
+      scrubGitCredentialText(
+        'fatal: unable to access "https://x-access-token:ghp_abc123@github.com/example/repo.git"',
+      ),
+    ).toBe('fatal: unable to access "https://***@github.com/example/repo.git"');
   });
 
   it("masks bare-username userinfo and multiple occurrences", () => {
-    expect(scrubGitCredentialText(
-      "clone https://alice@github.com/a.git then http://token@internal.example/b.git",
-    )).toBe("clone https://***@github.com/a.git then http://***@internal.example/b.git");
-  });
-
-  it("masks userinfo on non-HTTP schemes, leaving scp-style remotes alone", () => {
-    expect(scrubGitCredentialText(
-      "fatal: cannot clone ssh://deploy:hunter2@internal.example/repo.git or git+ssh://bob@host/x.git",
-    )).toBe("fatal: cannot clone ssh://***@internal.example/repo.git or git+ssh://***@host/x.git");
-    expect(scrubGitCredentialText("fetch from git@github.com:example/repo.git failed")).toBe(
-      "fetch from git@github.com:example/repo.git failed",
+    expect(
+      scrubGitCredentialText(
+        "clone https://alice@github.com/a.git then http://token@internal.example/b.git",
+      ),
+    ).toBe(
+      "clone https://***@github.com/a.git then http://***@internal.example/b.git",
     );
   });
 
+  it("masks userinfo on non-HTTP schemes, leaving scp-style remotes alone", () => {
+    expect(
+      scrubGitCredentialText(
+        "fatal: cannot clone ssh://deploy:hunter2@internal.example/repo.git or git+ssh://bob@host/x.git",
+      ),
+    ).toBe(
+      "fatal: cannot clone ssh://***@internal.example/repo.git or git+ssh://***@host/x.git",
+    );
+    expect(
+      scrubGitCredentialText(
+        "fetch from git@github.com:example/repo.git failed",
+      ),
+    ).toBe("fetch from git@github.com:example/repo.git failed");
+  });
+
   it("masks entire URL query strings regardless of parameter names", () => {
-    expect(scrubGitCredentialText(
-      "fatal: unable to access 'https://github.com/example/repo.git?access_token=ghs_secret&ref=main'",
-    )).toBe("fatal: unable to access 'https://github.com/example/repo.git?***'");
-    expect(scrubGitCredentialText(
-      "clone https://gitlab.example/repo.git?anything=glpat-123 failed",
-    )).toBe("clone https://gitlab.example/repo.git?*** failed");
+    expect(
+      scrubGitCredentialText(
+        "fatal: unable to access 'https://github.com/example/repo.git?access_token=ghs_secret&ref=main'",
+      ),
+    ).toBe("fatal: unable to access 'https://github.com/example/repo.git?***'");
+    expect(
+      scrubGitCredentialText(
+        "clone https://gitlab.example/repo.git?anything=glpat-123 failed",
+      ),
+    ).toBe("clone https://gitlab.example/repo.git?*** failed");
   });
 
   it("leaves credential-free text unchanged", () => {
-    const text = 'Failed to clone "https://github.com/example/repo.git": exit code 128';
+    const text =
+      'Failed to clone "https://github.com/example/repo.git": exit code 128';
     expect(scrubGitCredentialText(text)).toBe(text);
     const plain = "git clone failed with exit code=128 at key step ref=main";
     expect(scrubGitCredentialText(plain)).toBe(plain);
@@ -987,17 +1219,21 @@ describe("scrubGitCredentialText", () => {
 
 describe("buildAnchorFallbackWorkspaceNotes", () => {
   it("reports materialization failures ahead of the generic no-cwd note", () => {
-    expect(buildAnchorFallbackWorkspaceNotes({
-      fallbackCwd: "/taskcore/workspaces/agent-1",
-      preferredWorkspaceWarning: null,
-      materializationFailures: [{
-        projectWorkspaceId: "workspace-1",
-        repoUrl: "https://github.com/example/private.git",
-        error: "fatal: could not read Username",
-      }],
-      missingProjectCwds: [],
-      hasConfiguredProjectCwd: false,
-    })).toEqual([
+    expect(
+      buildAnchorFallbackWorkspaceNotes({
+        fallbackCwd: "/taskcore/workspaces/agent-1",
+        preferredWorkspaceWarning: null,
+        materializationFailures: [
+          {
+            projectWorkspaceId: "workspace-1",
+            repoUrl: "https://github.com/example/private.git",
+            error: "fatal: could not read Username",
+          },
+        ],
+        missingProjectCwds: [],
+        hasConfiguredProjectCwd: false,
+      }),
+    ).toEqual([
       'Failed to prepare the project workspace checkout: fatal: could not read Username. Using fallback workspace "/taskcore/workspaces/agent-1" for this run.',
     ]);
   });
@@ -1008,51 +1244,65 @@ describe("buildAnchorFallbackWorkspaceNotes", () => {
       repoUrl: null,
       error: "clone timed out",
     };
-    expect(buildAnchorFallbackWorkspaceNotes({
-      fallbackCwd: "/fallback",
-      preferredWorkspaceWarning: null,
-      materializationFailures: [failure, { ...failure, projectWorkspaceId: "workspace-2" }],
-      missingProjectCwds: [],
-      hasConfiguredProjectCwd: false,
-    })).toEqual([
+    expect(
+      buildAnchorFallbackWorkspaceNotes({
+        fallbackCwd: "/fallback",
+        preferredWorkspaceWarning: null,
+        materializationFailures: [
+          failure,
+          { ...failure, projectWorkspaceId: "workspace-2" },
+        ],
+        missingProjectCwds: [],
+        hasConfiguredProjectCwd: false,
+      }),
+    ).toEqual([
       'Failed to prepare the project workspace checkout (clone timed out), and 1 other candidate workspace(s) also failed. Using fallback workspace "/fallback" for this run.',
     ]);
   });
 
   it("preserves the existing missing-path and no-cwd notes when nothing failed to materialize", () => {
-    expect(buildAnchorFallbackWorkspaceNotes({
-      fallbackCwd: "/fallback",
-      preferredWorkspaceWarning: "Selected project workspace \"workspace-9\" is not available on this project.",
-      materializationFailures: [],
-      missingProjectCwds: ["/missing/path"],
-      hasConfiguredProjectCwd: true,
-    })).toEqual([
+    expect(
+      buildAnchorFallbackWorkspaceNotes({
+        fallbackCwd: "/fallback",
+        preferredWorkspaceWarning:
+          'Selected project workspace "workspace-9" is not available on this project.',
+        materializationFailures: [],
+        missingProjectCwds: ["/missing/path"],
+        hasConfiguredProjectCwd: true,
+      }),
+    ).toEqual([
       'Selected project workspace "workspace-9" is not available on this project.',
       'Project workspace path "/missing/path" is not available yet. Using fallback workspace "/fallback" for this run.',
     ]);
-    expect(buildAnchorFallbackWorkspaceNotes({
-      fallbackCwd: "/fallback",
-      preferredWorkspaceWarning: null,
-      materializationFailures: [],
-      missingProjectCwds: [],
-      hasConfiguredProjectCwd: false,
-    })).toEqual([
+    expect(
+      buildAnchorFallbackWorkspaceNotes({
+        fallbackCwd: "/fallback",
+        preferredWorkspaceWarning: null,
+        materializationFailures: [],
+        missingProjectCwds: [],
+        hasConfiguredProjectCwd: false,
+      }),
+    ).toEqual([
       'Project workspace has no local cwd configured. Using fallback workspace "/fallback" for this run.',
     ]);
   });
 
   it("emits both failure and missing-path notes when a project has both kinds of candidates", () => {
-    expect(buildAnchorFallbackWorkspaceNotes({
-      fallbackCwd: "/fallback",
-      preferredWorkspaceWarning: null,
-      materializationFailures: [{
-        projectWorkspaceId: "workspace-1",
-        repoUrl: "https://github.com/example/private.git",
-        error: "authentication failed",
-      }],
-      missingProjectCwds: ["/missing/path"],
-      hasConfiguredProjectCwd: true,
-    })).toEqual([
+    expect(
+      buildAnchorFallbackWorkspaceNotes({
+        fallbackCwd: "/fallback",
+        preferredWorkspaceWarning: null,
+        materializationFailures: [
+          {
+            projectWorkspaceId: "workspace-1",
+            repoUrl: "https://github.com/example/private.git",
+            error: "authentication failed",
+          },
+        ],
+        missingProjectCwds: ["/missing/path"],
+        hasConfiguredProjectCwd: true,
+      }),
+    ).toEqual([
       'Failed to prepare the project workspace checkout: authentication failed. Using fallback workspace "/fallback" for this run.',
       'Project workspace path "/missing/path" is not available yet. Using fallback workspace "/fallback" for this run.',
     ]);
@@ -1063,14 +1313,16 @@ describe("assertPushCapabilityCheckoutValid", () => {
   it("rejects a GitHub PR workflow checkout without a configured push remote", async () => {
     const cwd = await createGitCheckout({ withRemote: false });
     try {
-      await expect(assertPushCapabilityCheckoutValid({
-        enabled: true,
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-        },
-        cwd,
-      })).rejects.toMatchObject({
+      await expect(
+        assertPushCapabilityCheckoutValid({
+          enabled: true,
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+          },
+          cwd,
+        }),
+      ).rejects.toMatchObject({
         code: "workspace_validation_failed",
         message: expect.stringContaining("has no configured push remote"),
         resultJson: {
@@ -1089,14 +1341,16 @@ describe("assertPushCapabilityCheckoutValid", () => {
   it("allows a GitHub PR workflow checkout when a push remote is configured", async () => {
     const cwd = await createGitCheckout({ withRemote: true });
     try {
-      await expect(assertPushCapabilityCheckoutValid({
-        enabled: true,
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-1",
-        },
-        cwd,
-      })).resolves.toBeUndefined();
+      await expect(
+        assertPushCapabilityCheckoutValid({
+          enabled: true,
+          issue: {
+            id: "issue-1",
+            identifier: "PAP-1",
+          },
+          cwd,
+        }),
+      ).resolves.toBeUndefined();
     } finally {
       await fs.rm(cwd, { recursive: true, force: true });
     }
@@ -1105,23 +1359,33 @@ describe("assertPushCapabilityCheckoutValid", () => {
 
 describe("requiresPushCapabilityPreflight", () => {
   it("only enables the guard when the issue explicitly mentions the GitHub PR workflow skill", () => {
-    expect(requiresPushCapabilityPreflight({
-      adapterType: "codex_local",
-      issueId: "issue-1",
-      explicitRunScopedSkillKeys: ["taskcore/bundled/software-development/github-pr-workflow"],
-    })).toBe(true);
+    expect(
+      requiresPushCapabilityPreflight({
+        adapterType: "codex_local",
+        issueId: "issue-1",
+        explicitRunScopedSkillKeys: [
+          "taskcore/bundled/software-development/github-pr-workflow",
+        ],
+      }),
+    ).toBe(true);
 
-    expect(requiresPushCapabilityPreflight({
-      adapterType: "codex_local",
-      issueId: "issue-1",
-      explicitRunScopedSkillKeys: [],
-    })).toBe(false);
+    expect(
+      requiresPushCapabilityPreflight({
+        adapterType: "codex_local",
+        issueId: "issue-1",
+        explicitRunScopedSkillKeys: [],
+      }),
+    ).toBe(false);
 
-    expect(requiresPushCapabilityPreflight({
-      adapterType: "cursor-cloud",
-      issueId: "issue-1",
-      explicitRunScopedSkillKeys: ["taskcore/bundled/software-development/github-pr-workflow"],
-    })).toBe(false);
+    expect(
+      requiresPushCapabilityPreflight({
+        adapterType: "cursor-cloud",
+        issueId: "issue-1",
+        explicitRunScopedSkillKeys: [
+          "taskcore/bundled/software-development/github-pr-workflow",
+        ],
+      }),
+    ).toBe(false);
   });
 });
 
@@ -1152,7 +1416,9 @@ describe("stripHostWorkspaceProvisionForLowTrustSandbox", () => {
       teardownCommand: "bash ./scripts/teardown-worktree.sh",
     });
     expect(result.workspaceRuntime).toBe(config.workspaceRuntime);
-    expect(config.workspaceStrategy.provisionCommand).toBe("bash ./scripts/provision-worktree.sh");
+    expect(config.workspaceStrategy.provisionCommand).toBe(
+      "bash ./scripts/provision-worktree.sh",
+    );
   });
 
   it("preserves provision commands for standard-trust runs", () => {
@@ -1163,11 +1429,13 @@ describe("stripHostWorkspaceProvisionForLowTrustSandbox", () => {
       },
     };
 
-    expect(stripHostWorkspaceProvisionForLowTrustSandbox({
-      config,
-      trustPreset: standardTrustResolution(),
-      selectedEnvironmentDriver: "sandbox",
-    })).toBe(config);
+    expect(
+      stripHostWorkspaceProvisionForLowTrustSandbox({
+        config,
+        trustPreset: standardTrustResolution(),
+        selectedEnvironmentDriver: "sandbox",
+      }),
+    ).toBe(config);
   });
 
   it("preserves provision commands when a low-trust run is not sandbox-backed", () => {
@@ -1178,11 +1446,13 @@ describe("stripHostWorkspaceProvisionForLowTrustSandbox", () => {
       },
     };
 
-    expect(stripHostWorkspaceProvisionForLowTrustSandbox({
-      config,
-      trustPreset: lowTrustResolution(),
-      selectedEnvironmentDriver: "local",
-    })).toBe(config);
+    expect(
+      stripHostWorkspaceProvisionForLowTrustSandbox({
+        config,
+        trustPreset: lowTrustResolution(),
+        selectedEnvironmentDriver: "local",
+      }),
+    ).toBe(config);
   });
 });
 
@@ -1190,20 +1460,22 @@ describe("preflightLowTrustWorkspaceIsolation", () => {
   it("fails non-sandbox low-trust runs before the caller reaches host workspace side effects", async () => {
     let hostWorkspaceSideEffectReached = false;
 
-    await expect((async () => {
-      await preflightLowTrustWorkspaceIsolation({
-        trustPreset: lowTrustResolution(),
-        isolatedWorkspacesEnabled: true,
-        effectiveExecutionWorkspaceMode: "isolated_workspace",
-        issue: {
-          companyId: "company-1",
-          id: "issue-1",
-          projectId: "project-1",
-        },
-        resolveSelectedEnvironmentDriver: async () => "local",
-      });
-      hostWorkspaceSideEffectReached = true;
-    })()).rejects.toMatchObject({
+    await expect(
+      (async () => {
+        await preflightLowTrustWorkspaceIsolation({
+          trustPreset: lowTrustResolution(),
+          isolatedWorkspacesEnabled: true,
+          effectiveExecutionWorkspaceMode: "isolated_workspace",
+          issue: {
+            companyId: "company-1",
+            id: "issue-1",
+            projectId: "project-1",
+          },
+          resolveSelectedEnvironmentDriver: async () => "local",
+        });
+        hostWorkspaceSideEffectReached = true;
+      })(),
+    ).rejects.toMatchObject({
       status: 422,
       details: expect.objectContaining({
         code: "low_trust_requires_sandbox_environment",
@@ -1214,35 +1486,39 @@ describe("preflightLowTrustWorkspaceIsolation", () => {
   });
 
   it("returns the sandbox driver for sandbox-backed low-trust runs", async () => {
-    await expect(preflightLowTrustWorkspaceIsolation({
-      trustPreset: lowTrustResolution(),
-      isolatedWorkspacesEnabled: true,
-      effectiveExecutionWorkspaceMode: "isolated_workspace",
-      issue: {
-        companyId: "company-1",
-        id: "issue-1",
-        projectId: "project-1",
-      },
-      resolveSelectedEnvironmentDriver: async () => "sandbox",
-    })).resolves.toBe("sandbox");
+    await expect(
+      preflightLowTrustWorkspaceIsolation({
+        trustPreset: lowTrustResolution(),
+        isolatedWorkspacesEnabled: true,
+        effectiveExecutionWorkspaceMode: "isolated_workspace",
+        issue: {
+          companyId: "company-1",
+          id: "issue-1",
+          projectId: "project-1",
+        },
+        resolveSelectedEnvironmentDriver: async () => "sandbox",
+      }),
+    ).resolves.toBe("sandbox");
   });
 
   it("allows child issues inside a rootIssueId low-trust boundary during workspace preflight", async () => {
-    await expect(preflightLowTrustWorkspaceIsolation({
-      db: buildIssueAncestryDb([
-        { id: "issue-child", companyId: "company-1", parentId: "issue-1" },
-        { id: "issue-1", companyId: "company-1", parentId: null },
-      ]) as any,
-      trustPreset: lowTrustResolution(),
-      isolatedWorkspacesEnabled: true,
-      effectiveExecutionWorkspaceMode: "isolated_workspace",
-      issue: {
-        companyId: "company-1",
-        id: "issue-child",
-        projectId: null,
-      },
-      resolveSelectedEnvironmentDriver: async () => "sandbox",
-    })).resolves.toBe("sandbox");
+    await expect(
+      preflightLowTrustWorkspaceIsolation({
+        db: buildIssueAncestryDb([
+          { id: "issue-child", companyId: "company-1", parentId: "issue-1" },
+          { id: "issue-1", companyId: "company-1", parentId: null },
+        ]) as any,
+        trustPreset: lowTrustResolution(),
+        isolatedWorkspacesEnabled: true,
+        effectiveExecutionWorkspaceMode: "isolated_workspace",
+        issue: {
+          companyId: "company-1",
+          id: "issue-child",
+          projectId: null,
+        },
+        resolveSelectedEnvironmentDriver: async () => "sandbox",
+      }),
+    ).resolves.toBe("sandbox");
   });
 });
 
@@ -1250,21 +1526,23 @@ describe("resolveWorkspaceAfterLowTrustPreflight", () => {
   it("fails non-sandbox low-trust runs before resolving workspaces", async () => {
     let workspaceResolverReached = false;
 
-    await expect(resolveWorkspaceAfterLowTrustPreflight({
-      trustPreset: lowTrustResolution(),
-      isolatedWorkspacesEnabled: true,
-      effectiveExecutionWorkspaceMode: "isolated_workspace",
-      issue: {
-        companyId: "company-1",
-        id: "issue-1",
-        projectId: "project-1",
-      },
-      resolveSelectedEnvironmentDriver: async () => "local",
-      resolveWorkspace: async () => {
-        workspaceResolverReached = true;
-        return buildResolvedWorkspace();
-      },
-    })).rejects.toMatchObject({
+    await expect(
+      resolveWorkspaceAfterLowTrustPreflight({
+        trustPreset: lowTrustResolution(),
+        isolatedWorkspacesEnabled: true,
+        effectiveExecutionWorkspaceMode: "isolated_workspace",
+        issue: {
+          companyId: "company-1",
+          id: "issue-1",
+          projectId: "project-1",
+        },
+        resolveSelectedEnvironmentDriver: async () => "local",
+        resolveWorkspace: async () => {
+          workspaceResolverReached = true;
+          return buildResolvedWorkspace();
+        },
+      }),
+    ).rejects.toMatchObject({
       status: 422,
       details: expect.objectContaining({
         code: "low_trust_requires_sandbox_environment",
@@ -1275,22 +1553,28 @@ describe("resolveWorkspaceAfterLowTrustPreflight", () => {
   });
 
   it("preserves standard-trust workspace resolution", async () => {
-    const workspace = buildResolvedWorkspace({ cwd: "/tmp/standard-workspace" });
+    const workspace = buildResolvedWorkspace({
+      cwd: "/tmp/standard-workspace",
+    });
 
-    await expect(resolveWorkspaceAfterLowTrustPreflight({
-      trustPreset: standardTrustResolution(),
-      isolatedWorkspacesEnabled: false,
-      effectiveExecutionWorkspaceMode: "shared_workspace",
-      issue: {
-        companyId: "company-1",
-        id: "issue-1",
-        projectId: "project-1",
-      },
-      resolveSelectedEnvironmentDriver: async () => {
-        throw new Error("standard trust should not inspect the environment driver");
-      },
-      resolveWorkspace: async () => workspace,
-    })).resolves.toEqual({
+    await expect(
+      resolveWorkspaceAfterLowTrustPreflight({
+        trustPreset: standardTrustResolution(),
+        isolatedWorkspacesEnabled: false,
+        effectiveExecutionWorkspaceMode: "shared_workspace",
+        issue: {
+          companyId: "company-1",
+          id: "issue-1",
+          projectId: "project-1",
+        },
+        resolveSelectedEnvironmentDriver: async () => {
+          throw new Error(
+            "standard trust should not inspect the environment driver",
+          );
+        },
+        resolveWorkspace: async () => workspace,
+      }),
+    ).resolves.toEqual({
       selectedEnvironmentDriver: null,
       workspace,
     });
@@ -1334,7 +1618,9 @@ describe("resolveRuntimeSessionParamsForWorkspace", () => {
         cwd: fallbackCwd,
         workspaceId: "workspace-1",
       },
-      resolvedWorkspace: buildResolvedWorkspace({ cwd: "/tmp/new-project-cwd" }),
+      resolvedWorkspace: buildResolvedWorkspace({
+        cwd: "/tmp/new-project-cwd",
+      }),
     });
 
     expect(result.sessionParams).toMatchObject({
@@ -1353,7 +1639,9 @@ describe("resolveRuntimeSessionParamsForWorkspace", () => {
         cwd: "/tmp/some-other-cwd",
         workspaceId: "workspace-1",
       },
-      resolvedWorkspace: buildResolvedWorkspace({ cwd: "/tmp/new-project-cwd" }),
+      resolvedWorkspace: buildResolvedWorkspace({
+        cwd: "/tmp/new-project-cwd",
+      }),
     });
 
     expect(result.sessionParams).toEqual({
@@ -1432,7 +1720,8 @@ describe("mergeExecutionWorkspaceMetadataForPersistence", () => {
     const metadata = mergeExecutionWorkspaceMetadataForPersistence({
       existingMetadata: null,
       source: "task_session",
-      createdByRuntime: resolveExecutionWorkspaceBranchOwnership(executionWorkspace),
+      createdByRuntime:
+        resolveExecutionWorkspaceBranchOwnership(executionWorkspace),
       strategyType: "git_worktree",
       configSnapshot: null,
       shouldReuseExisting: false,
@@ -1453,7 +1742,8 @@ describe("mergeExecutionWorkspaceMetadataForPersistence", () => {
     const metadata = mergeExecutionWorkspaceMetadataForPersistence({
       existingMetadata: { createdByRuntime: true },
       source: "task_session",
-      createdByRuntime: resolveExecutionWorkspaceBranchOwnership(executionWorkspace),
+      createdByRuntime:
+        resolveExecutionWorkspaceBranchOwnership(executionWorkspace),
       strategyType: "git_worktree",
       configSnapshot: null,
       shouldReuseExisting: false,
@@ -1466,19 +1756,21 @@ describe("mergeExecutionWorkspaceMetadataForPersistence", () => {
   });
 
   it("merges config snapshot for newly realized workspaces", () => {
-    expect(mergeExecutionWorkspaceMetadataForPersistence({
-      existingMetadata: null,
-      source: "task_session",
-      createdByRuntime: true,
-      strategyType: "project_primary",
-      configSnapshot: {
-        environmentId: "env-new",
-        provisionCommand: "bash ./scripts/provision.sh",
-      },
-      shouldReuseExisting: false,
-      baseRef: null,
-      baseRefSha: null,
-    })).toEqual({
+    expect(
+      mergeExecutionWorkspaceMetadataForPersistence({
+        existingMetadata: null,
+        source: "task_session",
+        createdByRuntime: true,
+        strategyType: "project_primary",
+        configSnapshot: {
+          environmentId: "env-new",
+          provisionCommand: "bash ./scripts/provision.sh",
+        },
+        shouldReuseExisting: false,
+        baseRef: null,
+        baseRefSha: null,
+      }),
+    ).toEqual({
       source: "task_session",
       createdByRuntime: true,
       config: {
@@ -1495,24 +1787,26 @@ describe("mergeExecutionWorkspaceMetadataForPersistence", () => {
   });
 
   it("preserves persisted config snapshot when reusing an existing workspace", () => {
-    expect(mergeExecutionWorkspaceMetadataForPersistence({
-      existingMetadata: {
-        config: {
-          environmentId: "env-old",
-          provisionCommand: "bash ./scripts/existing-provision.sh",
+    expect(
+      mergeExecutionWorkspaceMetadataForPersistence({
+        existingMetadata: {
+          config: {
+            environmentId: "env-old",
+            provisionCommand: "bash ./scripts/existing-provision.sh",
+          },
         },
-      },
-      source: "task_session",
-      createdByRuntime: false,
-      strategyType: "project_primary",
-      configSnapshot: {
-        environmentId: "env-new",
-        provisionCommand: "bash ./scripts/new-provision.sh",
-      },
-      shouldReuseExisting: true,
-      baseRef: null,
-      baseRefSha: null,
-    })).toEqual({
+        source: "task_session",
+        createdByRuntime: false,
+        strategyType: "project_primary",
+        configSnapshot: {
+          environmentId: "env-new",
+          provisionCommand: "bash ./scripts/new-provision.sh",
+        },
+        shouldReuseExisting: true,
+        baseRef: null,
+        baseRefSha: null,
+      }),
+    ).toEqual({
       config: {
         environmentId: "env-old",
         provisionCommand: "bash ./scripts/existing-provision.sh",
@@ -1523,16 +1817,18 @@ describe("mergeExecutionWorkspaceMetadataForPersistence", () => {
   });
 
   it("records the resolved base ref SHA for newly realized workspaces", () => {
-    expect(mergeExecutionWorkspaceMetadataForPersistence({
-      existingMetadata: null,
-      source: "task_session",
-      createdByRuntime: true,
-      strategyType: "project_primary",
-      configSnapshot: null,
-      shouldReuseExisting: false,
-      baseRef: "origin/main",
-      baseRefSha: "abc1234567890",
-    })).toEqual({
+    expect(
+      mergeExecutionWorkspaceMetadataForPersistence({
+        existingMetadata: null,
+        source: "task_session",
+        createdByRuntime: true,
+        strategyType: "project_primary",
+        configSnapshot: null,
+        shouldReuseExisting: false,
+        baseRef: "origin/main",
+        baseRefSha: "abc1234567890",
+      }),
+    ).toEqual({
       source: "task_session",
       createdByRuntime: true,
       baseRefSnapshot: {
@@ -1543,10 +1839,14 @@ describe("mergeExecutionWorkspaceMetadataForPersistence", () => {
   });
 });
 
-type WorkspaceConfigMetadata = ReturnType<typeof buildEffectiveRunWorkspaceConfigMetadata>;
+type WorkspaceConfigMetadata = ReturnType<
+  typeof buildEffectiveRunWorkspaceConfigMetadata
+>;
 
 function buildWorkspaceConfigMetadata(
-  overrides: Partial<Parameters<typeof buildEffectiveRunWorkspaceConfigMetadata>[0]> = {},
+  overrides: Partial<
+    Parameters<typeof buildEffectiveRunWorkspaceConfigMetadata>[0]
+  > = {},
 ) {
   return buildEffectiveRunWorkspaceConfigMetadata({
     mode: "isolated_workspace",
@@ -1585,7 +1885,9 @@ function buildWorkspaceConfigMetadata(
   });
 }
 
-function persistedWorkspaceConfigFingerprint(metadata: WorkspaceConfigMetadata) {
+function persistedWorkspaceConfigFingerprint(
+  metadata: WorkspaceConfigMetadata,
+) {
   return {
     configFingerprint: {
       version: metadata.version,
@@ -1626,7 +1928,9 @@ describe("effective run execution workspace config freshness", () => {
         desiredState: "running",
         serviceStates: { "0": "running" },
         workspaceRuntime: {
-          services: [{ name: "web", command: "pnpm dev -- --host 0.0.0.0", port: 3200 }],
+          services: [
+            { name: "web", command: "pnpm dev -- --host 0.0.0.0", port: 3200 },
+          ],
         },
       },
     });
@@ -1647,7 +1951,9 @@ describe("effective run execution workspace config freshness", () => {
     const metadata = mergeExecutionWorkspaceMetadataForPersistence({
       existingMetadata: {
         config: {
-          workspaceRuntime: { services: [{ name: "web", command: "pnpm dev", port: 3100 }] },
+          workspaceRuntime: {
+            services: [{ name: "web", command: "pnpm dev", port: 3100 }],
+          },
         },
         ...persistedWorkspaceConfigFingerprint(base),
       },
@@ -1656,7 +1962,9 @@ describe("effective run execution workspace config freshness", () => {
       strategyType: "project_primary",
       configSnapshot: {
         workspaceRuntime: {
-          services: [{ name: "web", command: "pnpm dev -- --host 0.0.0.0", port: 3200 }],
+          services: [
+            { name: "web", command: "pnpm dev -- --host 0.0.0.0", port: 3200 },
+          ],
         },
         desiredState: "running",
         serviceStates: { "0": "running" },
@@ -1670,7 +1978,9 @@ describe("effective run execution workspace config freshness", () => {
 
     expect(metadata?.config).toMatchObject({
       workspaceRuntime: {
-        services: [{ name: "web", command: "pnpm dev -- --host 0.0.0.0", port: 3200 }],
+        services: [
+          { name: "web", command: "pnpm dev -- --host 0.0.0.0", port: 3200 },
+        ],
       },
     });
     expect(metadata?.configFingerprint).toMatchObject({
@@ -1730,19 +2040,22 @@ describe("effective run execution workspace config freshness", () => {
         },
       }),
     },
-  ] as const)("replaces the workspace when $name changes", ({ category, next }) => {
-    const base = buildWorkspaceConfigMetadata();
+  ] as const)(
+    "replaces the workspace when $name changes",
+    ({ category, next }) => {
+      const base = buildWorkspaceConfigMetadata();
 
-    const decision = resolveExecutionWorkspaceConfigFreshness({
-      hasExistingWorkspace: true,
-      existingWorkspaceMetadata: persistedWorkspaceConfigFingerprint(base),
-      nextMetadata: next,
-    });
+      const decision = resolveExecutionWorkspaceConfigFreshness({
+        hasExistingWorkspace: true,
+        existingWorkspaceMetadata: persistedWorkspaceConfigFingerprint(base),
+        nextMetadata: next,
+      });
 
-    expect(decision.action).toBe("replace");
-    expect(decision.shouldReuseExisting).toBe(false);
-    expect(decision.changedCategories).toContain(category);
-  });
+      expect(decision.action).toBe("replace");
+      expect(decision.shouldReuseExisting).toBe(false);
+      expect(decision.changedCategories).toContain(category);
+    },
+  );
 
   it("keeps replacement-class drift visible when explicit reuse restores the old workspace", () => {
     const base = buildWorkspaceConfigMetadata();
@@ -1791,7 +2104,9 @@ describe("effective run execution workspace config freshness", () => {
       },
       shouldReuseExisting: policy.shouldRestoreExistingWorkspace,
       shouldRefreshConfigSnapshot: policy.shouldRefreshWorkspaceConfigSnapshot,
-      workspaceConfigMetadata: policy.shouldPersistLatestWorkspaceConfigMetadata ? next : null,
+      workspaceConfigMetadata: policy.shouldPersistLatestWorkspaceConfigMetadata
+        ? next
+        : null,
       baseRef: "origin/release",
       baseRefSha: "release-sha",
     });
@@ -1824,70 +2139,91 @@ describe("effective run execution workspace config freshness", () => {
       existingWorkspaceMetadata: persistedWorkspaceConfigFingerprint(base),
       nextMetadata: next,
     });
-    const realizeWorkspace = vi.fn(async () => ({ id: "fallback-workspace", warnings: [] }));
+    const realizeWorkspace = vi.fn(async () => ({
+      id: "fallback-workspace",
+      warnings: [],
+    }));
 
-    await expect(provisionExecutionWorkspaceForFreshnessDecision({
-      requestedShouldReuseExisting: true,
-      existingExecutionWorkspaceId: "workspace-old",
-      issueRef: { id: "issue-1", identifier: "PAP-42" },
-      runId: "run-1",
-      workspaceConfigFreshness: decision,
-      restoreExistingWorkspace: async () => {
-        throw new Error("restore command failed");
-      },
-      realizeWorkspace,
-    })).rejects.toThrow(/restore command failed/);
+    await expect(
+      provisionExecutionWorkspaceForFreshnessDecision({
+        requestedShouldReuseExisting: true,
+        existingExecutionWorkspaceId: "workspace-old",
+        issueRef: { id: "issue-1", identifier: "PAP-42" },
+        runId: "run-1",
+        workspaceConfigFreshness: decision,
+        restoreExistingWorkspace: async () => {
+          throw new Error("restore command failed");
+        },
+        realizeWorkspace,
+      }),
+    ).rejects.toThrow(/restore command failed/);
     expect(realizeWorkspace).not.toHaveBeenCalled();
   });
 
   it.each([
     { name: "missing", status: null },
     { name: "archived", status: "archived" },
-  ])("fails loudly when the inherited workspace row is $name", async ({ status }) => {
-    const reuseRequest = resolveExecutionWorkspaceReuseRequestForIssue({
-      issueExecutionWorkspaceId: "workspace-old",
-      issueExecutionWorkspacePreference: "reuse_existing",
-      existingExecutionWorkspaceStatus: status,
-    });
+  ])(
+    "fails loudly when the inherited workspace row is $name",
+    async ({ status }) => {
+      const reuseRequest = resolveExecutionWorkspaceReuseRequestForIssue({
+        issueExecutionWorkspaceId: "workspace-old",
+        issueExecutionWorkspacePreference: "reuse_existing",
+        existingExecutionWorkspaceStatus: status,
+      });
 
-    expect(reuseRequest).toEqual({
-      requestedExecutionWorkspaceId: "workspace-old",
-      requestedShouldReuseExisting: true,
-      existingExecutionWorkspaceAvailable: false,
-    });
+      expect(reuseRequest).toEqual({
+        requestedExecutionWorkspaceId: "workspace-old",
+        requestedShouldReuseExisting: true,
+        existingExecutionWorkspaceAvailable: false,
+      });
 
-    const metadata = buildWorkspaceConfigMetadata();
-    const decision = resolveExecutionWorkspaceConfigFreshness({
-      hasExistingWorkspace: reuseRequest.requestedShouldReuseExisting &&
-        reuseRequest.existingExecutionWorkspaceAvailable,
-      existingWorkspaceMetadata: null,
-      nextMetadata: metadata,
-    });
-    const realizeWorkspace = vi.fn(async () => ({ id: "fallback-workspace", warnings: [] }));
+      const metadata = buildWorkspaceConfigMetadata();
+      const decision = resolveExecutionWorkspaceConfigFreshness({
+        hasExistingWorkspace:
+          reuseRequest.requestedShouldReuseExisting &&
+          reuseRequest.existingExecutionWorkspaceAvailable,
+        existingWorkspaceMetadata: null,
+        nextMetadata: metadata,
+      });
+      const realizeWorkspace = vi.fn(async () => ({
+        id: "fallback-workspace",
+        warnings: [],
+      }));
 
-    await expect(provisionExecutionWorkspaceForFreshnessDecision({
-      requestedShouldReuseExisting: reuseRequest.requestedShouldReuseExisting,
-      existingExecutionWorkspaceId: reuseRequest.requestedExecutionWorkspaceId,
-      issueRef: { id: "issue-1", identifier: "PAP-42" },
-      runId: "run-1",
-      workspaceConfigFreshness: decision,
-      restoreExistingWorkspace: reuseRequest.existingExecutionWorkspaceAvailable
-        ? async () => ({ id: "workspace-old", warnings: [] })
-        : null,
-      realizeWorkspace,
-    })).rejects.toThrow(/could not be restored/);
-    expect(realizeWorkspace).not.toHaveBeenCalled();
-  });
+      await expect(
+        provisionExecutionWorkspaceForFreshnessDecision({
+          requestedShouldReuseExisting:
+            reuseRequest.requestedShouldReuseExisting,
+          existingExecutionWorkspaceId:
+            reuseRequest.requestedExecutionWorkspaceId,
+          issueRef: { id: "issue-1", identifier: "PAP-42" },
+          runId: "run-1",
+          workspaceConfigFreshness: decision,
+          restoreExistingWorkspace:
+            reuseRequest.existingExecutionWorkspaceAvailable
+              ? async () => ({ id: "workspace-old", warnings: [] })
+              : null,
+          realizeWorkspace,
+        }),
+      ).rejects.toThrow(/could not be restored/);
+      expect(realizeWorkspace).not.toHaveBeenCalled();
+    },
+  );
 
   it("does not mistake a projectless native run-id binding for a missing persisted workspace", () => {
-    expect(resolveNativeRecoveryExecutionWorkspaceBinding({
-      bindingId: "run-projectless",
-      persistedWorkspaceFound: false,
-    })).toBeNull();
-    expect(resolveNativeRecoveryExecutionWorkspaceBinding({
-      bindingId: "workspace-persisted",
-      persistedWorkspaceFound: true,
-    })).toBe("workspace-persisted");
+    expect(
+      resolveNativeRecoveryExecutionWorkspaceBinding({
+        bindingId: "run-projectless",
+        persistedWorkspaceFound: false,
+      }),
+    ).toBeNull();
+    expect(
+      resolveNativeRecoveryExecutionWorkspaceBinding({
+        bindingId: "workspace-persisted",
+        persistedWorkspaceFound: true,
+      }),
+    ).toBe("workspace-persisted");
   });
 
   it.each([
@@ -1916,12 +2252,19 @@ describe("effective run execution workspace config freshness", () => {
         existingWorkspaceMetadata: null,
         nextMetadata: metadata,
       });
-      const realizeWorkspace = vi.fn(async () => ({ id: "pinned-branch-workspace", warnings: [] }));
-      const restoreExistingWorkspace = vi.fn(async () => ({ id: "workspace-old", warnings: [] }));
+      const realizeWorkspace = vi.fn(async () => ({
+        id: "pinned-branch-workspace",
+        warnings: [],
+      }));
+      const restoreExistingWorkspace = vi.fn(async () => ({
+        id: "workspace-old",
+        warnings: [],
+      }));
 
       const result = await provisionExecutionWorkspaceForFreshnessDecision({
         requestedShouldReuseExisting: reuseRequest.requestedShouldReuseExisting,
-        existingExecutionWorkspaceId: reuseRequest.requestedExecutionWorkspaceId,
+        existingExecutionWorkspaceId:
+          reuseRequest.requestedExecutionWorkspaceId,
         issueRef: { id: "issue-1", identifier: "PAP-42" },
         runId: "run-1",
         workspaceConfigFreshness: decision,
@@ -1929,20 +2272,25 @@ describe("effective run execution workspace config freshness", () => {
         realizeWorkspace,
       });
 
-      expect(result.executionWorkspace).toEqual({ id: "pinned-branch-workspace", warnings: [] });
+      expect(result.executionWorkspace).toEqual({
+        id: "pinned-branch-workspace",
+        warnings: [],
+      });
       expect(result.reusedExecutionWorkspace).toBeNull();
       expect(restoreExistingWorkspace).not.toHaveBeenCalled();
     },
   );
 
   it("keeps reusing an inherited workspace whose branch matches the pinned existing branch", () => {
-    expect(resolveExecutionWorkspaceReuseRequestForIssue({
-      issueExecutionWorkspaceId: "workspace-old",
-      issueExecutionWorkspacePreference: "reuse_existing",
-      existingExecutionWorkspaceStatus: "active",
-      requestedExistingBranch: "PAP-14380-salvage-pap-9514",
-      existingExecutionWorkspaceBranchName: "PAP-14380-salvage-pap-9514",
-    })).toEqual({
+    expect(
+      resolveExecutionWorkspaceReuseRequestForIssue({
+        issueExecutionWorkspaceId: "workspace-old",
+        issueExecutionWorkspacePreference: "reuse_existing",
+        existingExecutionWorkspaceStatus: "active",
+        requestedExistingBranch: "PAP-14380-salvage-pap-9514",
+        existingExecutionWorkspaceBranchName: "PAP-14380-salvage-pap-9514",
+      }),
+    ).toEqual({
       requestedExecutionWorkspaceId: "workspace-old",
       requestedShouldReuseExisting: true,
       existingExecutionWorkspaceAvailable: true,
@@ -1956,28 +2304,41 @@ describe("effective run execution workspace config freshness", () => {
       existingWorkspaceMetadata: persistedWorkspaceConfigFingerprint(metadata),
       nextMetadata: metadata,
     });
-    const realizeWorkspace = vi.fn(async () => ({ id: "fallback-workspace", warnings: [] }));
+    const realizeWorkspace = vi.fn(async () => ({
+      id: "fallback-workspace",
+      warnings: [],
+    }));
 
-    await expect(provisionExecutionWorkspaceForFreshnessDecision({
-      requestedShouldReuseExisting: true,
-      existingExecutionWorkspaceId: "workspace-old",
-      issueRef: { id: "issue-1", identifier: "PAP-42" },
-      runId: "run-1",
-      workspaceConfigFreshness: decision,
-      restoreExistingWorkspace: async () => null,
-      realizeWorkspace,
-    })).rejects.toThrow(/could not be restored/);
+    await expect(
+      provisionExecutionWorkspaceForFreshnessDecision({
+        requestedShouldReuseExisting: true,
+        existingExecutionWorkspaceId: "workspace-old",
+        issueRef: { id: "issue-1", identifier: "PAP-42" },
+        runId: "run-1",
+        workspaceConfigFreshness: decision,
+        restoreExistingWorkspace: async () => null,
+        realizeWorkspace,
+      }),
+    ).rejects.toThrow(/could not be restored/);
     expect(realizeWorkspace).not.toHaveBeenCalled();
   });
 
   it("formats a safe workspace operation payload for config drift decisions", () => {
     const decision = resolveExecutionWorkspaceConfigFreshness({
       hasExistingWorkspace: true,
-      existingWorkspaceMetadata: persistedWorkspaceConfigFingerprint(buildWorkspaceConfigMetadata()),
+      existingWorkspaceMetadata: persistedWorkspaceConfigFingerprint(
+        buildWorkspaceConfigMetadata(),
+      ),
       nextMetadata: buildWorkspaceConfigMetadata({
         configSnapshot: {
           workspaceRuntime: {
-            services: [{ name: "web", command: "pnpm dev -- --host 0.0.0.0", port: 3200 }],
+            services: [
+              {
+                name: "web",
+                command: "pnpm dev -- --host 0.0.0.0",
+                port: 3200,
+              },
+            ],
           },
         },
       }),
@@ -1998,7 +2359,10 @@ describe("effective run execution workspace config freshness", () => {
         kind: "config_freshness",
         action: "refresh",
         changedCategories: ["lifecycleCommands", "runtimeServices"],
-        changedCategoryLabels: ["workspace lifecycle commands", "runtime services"],
+        changedCategoryLabels: [
+          "workspace lifecycle commands",
+          "runtime services",
+        ],
         reuseRequested: true,
         workspaceReused: true,
         configSnapshotRefreshed: true,
@@ -2021,15 +2385,17 @@ describe("effective run execution workspace config freshness", () => {
       nextMetadata: metadata,
     });
 
-    expect(buildWorkspaceConfigFreshnessOperation({
-      decision,
-      hasExistingWorkspace: true,
-      reuseRequested: true,
-      workspaceReused: true,
-      configSnapshotRefreshed: false,
-      previousWorkspaceId: "workspace-1",
-      activeWorkspaceId: "workspace-1",
-    })).toBeNull();
+    expect(
+      buildWorkspaceConfigFreshnessOperation({
+        decision,
+        hasExistingWorkspace: true,
+        reuseRequested: true,
+        workspaceReused: true,
+        configSnapshotRefreshed: false,
+        previousWorkspaceId: "workspace-1",
+        activeWorkspaceId: "workspace-1",
+      }),
+    ).toBeNull();
   });
 });
 
@@ -2061,19 +2427,33 @@ describe("stripWorkspaceRuntimeFromExecutionRunConfig", () => {
 
 describe("shouldResetTaskSessionForWake", () => {
   it("resets session context on assignment wake", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "issue_assigned" })).toBe(true);
+    expect(
+      shouldResetTaskSessionForWake({ wakeReason: "issue_assigned" }),
+    ).toBe(true);
   });
 
   it("preserves session context on execution review handoff wakes", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "execution_review_requested" })).toBe(false);
+    expect(
+      shouldResetTaskSessionForWake({
+        wakeReason: "execution_review_requested",
+      }),
+    ).toBe(false);
   });
 
   it("resets session context on execution approval wakes", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "execution_approval_requested" })).toBe(true);
+    expect(
+      shouldResetTaskSessionForWake({
+        wakeReason: "execution_approval_requested",
+      }),
+    ).toBe(true);
   });
 
   it("preserves session context on execution changes-requested handoff wakes", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "execution_changes_requested" })).toBe(false);
+    expect(
+      shouldResetTaskSessionForWake({
+        wakeReason: "execution_changes_requested",
+      }),
+    ).toBe(false);
   });
 
   it("preserves session context on timer heartbeats", () => {
@@ -2130,7 +2510,9 @@ describe("shouldResetTaskSessionForWake", () => {
   });
 
   it("does not reset for comment wakes", () => {
-    expect(shouldResetTaskSessionForWake({ wakeReason: "issue_commented" })).toBe(false);
+    expect(
+      shouldResetTaskSessionForWake({ wakeReason: "issue_commented" }),
+    ).toBe(false);
   });
 
   it("does not reset when wake reason is missing", () => {
@@ -2212,7 +2594,7 @@ describe("shouldResetTaskSessionForModelChange", () => {
         configuredModel: "gpt-5.4-mini",
         taskSessionParams: {
           sessionId: "thread-1",
-        __taskcoreConfiguredModel: "gpt-5.4-mini",
+          __taskcoreConfiguredModel: "gpt-5.4-mini",
         },
       }),
     ).toBe(false);
@@ -2251,10 +2633,14 @@ describe("shouldResetTaskSessionForModelChange", () => {
   });
 });
 
-type SessionConfigMetadata = Awaited<ReturnType<typeof buildEffectiveRunSessionConfigMetadata>>;
+type SessionConfigMetadata = Awaited<
+  ReturnType<typeof buildEffectiveRunSessionConfigMetadata>
+>;
 
 async function buildSessionConfigMetadata(
-  overrides: Partial<Parameters<typeof buildEffectiveRunSessionConfigMetadata>[0]> = {},
+  overrides: Partial<
+    Parameters<typeof buildEffectiveRunSessionConfigMetadata>[0]
+  > = {},
 ) {
   return buildEffectiveRunSessionConfigMetadata({
     adapterType: "codex_local",
@@ -2341,10 +2727,31 @@ function sessionParamsWithConfigMetadata(
 
 describe("effective run session config freshness", () => {
   it("resets legacy sessions after connection instructions change or disappear", async () => {
-    const first = await buildSessionConfigMetadata({ effectiveAdapterConfig: { taskcoreConnectionInstructions: { text: "Use the handbook.", digest: "before" } } });
-    for (const instructions of [null, { text: "Use the updated handbook.", digest: "after" }]) {
-      const next = await buildSessionConfigMetadata({ effectiveAdapterConfig: { taskcoreConnectionInstructions: instructions } });
-      expect(resolveTaskSessionConfigFreshness({ hasTaskSession: true, configuredModel: "gpt-5.4-mini", taskSessionParams: sessionParamsWithConfigMetadata(first), configMetadata: next }).reset).toBe(true);
+    const first = await buildSessionConfigMetadata({
+      effectiveAdapterConfig: {
+        taskcoreConnectionInstructions: {
+          text: "Use the handbook.",
+          digest: "before",
+        },
+      },
+    });
+    for (const instructions of [
+      null,
+      { text: "Use the updated handbook.", digest: "after" },
+    ]) {
+      const next = await buildSessionConfigMetadata({
+        effectiveAdapterConfig: {
+          taskcoreConnectionInstructions: instructions,
+        },
+      });
+      expect(
+        resolveTaskSessionConfigFreshness({
+          hasTaskSession: true,
+          configuredModel: "gpt-5.4-mini",
+          taskSessionParams: sessionParamsWithConfigMetadata(first),
+          configMetadata: next,
+        }).reset,
+      ).toBe(true);
     }
   });
 
@@ -2363,28 +2770,54 @@ describe("effective run session config freshness", () => {
         CUSTOM_SETTING: "original",
       },
     });
-    const first = await buildSessionConfigMetadata({ effectiveAdapterConfig: config("/tmp/ai-first"), managedAiHome: "/tmp/ai-first" });
+    const first = await buildSessionConfigMetadata({
+      effectiveAdapterConfig: config("/tmp/ai-first"),
+      managedAiHome: "/tmp/ai-first",
+    });
     const nextConfig = config("/tmp/ai-next");
-    const next = await buildSessionConfigMetadata({ effectiveAdapterConfig: nextConfig, managedAiHome: "/tmp/ai-next" });
+    const next = await buildSessionConfigMetadata({
+      effectiveAdapterConfig: nextConfig,
+      managedAiHome: "/tmp/ai-next",
+    });
     expect(next.fingerprint).toBe(first.fingerprint);
     expect(nextConfig.env.HOME).toBe("/tmp/ai-next");
-    expect(resolveTaskSessionConfigFreshness({
-      hasTaskSession: true, configuredModel: "gpt-5.4-mini",
-      taskSessionParams: sessionParamsWithConfigMetadata(first), configMetadata: next,
-    }).reset).toBe(false);
+    expect(
+      resolveTaskSessionConfigFreshness({
+        hasTaskSession: true,
+        configuredModel: "gpt-5.4-mini",
+        taskSessionParams: sessionParamsWithConfigMetadata(first),
+        configMetadata: next,
+      }).reset,
+    ).toBe(false);
     for (const changed of [
       { ...nextConfig, model: "different-model" },
       { ...nextConfig, approvalPolicy: "on-request" },
-      { ...nextConfig, managedAiConnection: { identity: "account-2:credential-generation-1" } },
-      { ...nextConfig, managedAiConnection: { identity: "account-1:credential-generation-2" } },
+      {
+        ...nextConfig,
+        managedAiConnection: { identity: "account-2:credential-generation-1" },
+      },
+      {
+        ...nextConfig,
+        managedAiConnection: { identity: "account-1:credential-generation-2" },
+      },
       { ...nextConfig, env: { ...nextConfig.env, CUSTOM_SETTING: "changed" } },
-      { ...nextConfig, env: { ...nextConfig.env, CODEX_HOME: "/custom/provider" } },
+      {
+        ...nextConfig,
+        env: { ...nextConfig.env, CODEX_HOME: "/custom/provider" },
+      },
     ]) {
-      const metadata = await buildSessionConfigMetadata({ effectiveAdapterConfig: changed, managedAiHome: "/tmp/ai-next" });
+      const metadata = await buildSessionConfigMetadata({
+        effectiveAdapterConfig: changed,
+        managedAiHome: "/tmp/ai-next",
+      });
       expect(metadata.fingerprint).not.toBe(first.fingerprint);
     }
-    const unmanagedFirst = await buildSessionConfigMetadata({ effectiveAdapterConfig: config("/custom/first") });
-    const unmanagedNext = await buildSessionConfigMetadata({ effectiveAdapterConfig: config("/custom/next") });
+    const unmanagedFirst = await buildSessionConfigMetadata({
+      effectiveAdapterConfig: config("/custom/first"),
+    });
+    const unmanagedNext = await buildSessionConfigMetadata({
+      effectiveAdapterConfig: config("/custom/next"),
+    });
     expect(unmanagedFirst.fingerprint).not.toBe(unmanagedNext.fingerprint);
   });
 
@@ -2508,7 +2941,10 @@ describe("effective run session config freshness", () => {
     const decision = resolveTaskSessionConfigFreshness({
       hasTaskSession: true,
       configuredModel: "gpt-5.4-mini",
-      taskSessionParams: sessionParamsWithConfigMetadata(base, "opencode/mimo-v2-pro-free"),
+      taskSessionParams: sessionParamsWithConfigMetadata(
+        base,
+        "opencode/mimo-v2-pro-free",
+      ),
       configMetadata: base,
     });
 
@@ -2533,7 +2969,9 @@ describe("effective run session config freshness", () => {
 
     expect(decision.reset).toBe(true);
     expect(decision.changedCategories).toEqual(metadata.categories);
-    expect(decision.reasons).toEqual(["effective run configuration fingerprint metadata is missing"]);
+    expect(decision.reasons).toEqual([
+      "effective run configuration fingerprint metadata is missing",
+    ]);
   });
 
   it("uses persisted fingerprint metadata even when an adapter codec omits it from resume params", async () => {
@@ -2644,12 +3082,16 @@ describe("effective run session config freshness", () => {
       });
 
       expect(decision.reset, testCase.name).toBe(true);
-      expect(decision.changedCategories, testCase.name).toContain(testCase.category);
+      expect(decision.changedCategories, testCase.name).toContain(
+        testCase.category,
+      );
     }
   });
 
   it("detects instructions content drift without storing the contents", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-session-fingerprint-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-session-fingerprint-"),
+    );
     const instructionsPath = path.join(root, "AGENTS.md");
     await fs.writeFile(instructionsPath, "Version one instructions.\n", "utf8");
     const base = await buildSessionConfigMetadata({
@@ -2683,13 +3125,21 @@ describe("effective run session config freshness", () => {
 
     expect(decision.reset).toBe(true);
     expect(decision.changedCategories).toContain("instructions");
-    expect(next.fingerprints.sessionFingerprint.canonicalJson).not.toContain("Version two instructions");
+    expect(next.fingerprints.sessionFingerprint.canonicalJson).not.toContain(
+      "Version two instructions",
+    );
   });
 
   it("does not read unbounded legacy instructions paths for config fingerprints", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-session-fingerprint-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-session-fingerprint-"),
+    );
     const instructionsPath = path.join(root, "AGENTS.md");
-    await fs.writeFile(instructionsPath, "Legacy direct-path instructions.\n", "utf8");
+    await fs.writeFile(
+      instructionsPath,
+      "Legacy direct-path instructions.\n",
+      "utf8",
+    );
     const metadata = await buildSessionConfigMetadata({
       effectiveAdapterConfig: {
         command: "codex",
@@ -2734,7 +3184,10 @@ describe("stripConfiguredModelFromSessionParams", () => {
   });
 
   it("returns a copy without mutating the input", () => {
-    const input = { sessionId: "thread-1", __taskcoreConfiguredModel: "gpt-5.4-mini" };
+    const input = {
+      sessionId: "thread-1",
+      __taskcoreConfiguredModel: "gpt-5.4-mini",
+    };
     const result = stripConfiguredModelFromSessionParams(input);
     expect(result).not.toBe(input);
     expect(input.__taskcoreConfiguredModel).toBe("gpt-5.4-mini");
@@ -2762,7 +3215,9 @@ describe("stripTaskcoreSessionMetadataFromSessionParams", () => {
         __taskcoreConfigFingerprint: "v1:sha256:abc",
         __taskcoreConfigFingerprintVersion: 1,
         __taskcoreConfigCategories: ["adapterConfig"],
-        __taskcoreConfigCategoryFingerprints: { adapterConfig: "v1:sha256:def" },
+        __taskcoreConfigCategoryFingerprints: {
+          adapterConfig: "v1:sha256:def",
+        },
       }),
     ).toEqual({
       sessionId: "thread-1",
@@ -2773,10 +3228,15 @@ describe("stripTaskcoreSessionMetadataFromSessionParams", () => {
 
 describe("isTaskSessionCredentialCompatible", () => {
   it("retains the server-owned identity even when the Codex codec drops it", () => {
-    const saved = { sessionId: "thread-1", taskcoreCredentialIdentity: "grant:user:generation" };
+    const saved = {
+      sessionId: "thread-1",
+      taskcoreCredentialIdentity: "grant:user:generation",
+    };
     const decoded = codexSessionCodec.deserialize(saved);
     expect(decoded).toEqual({ sessionId: "thread-1" });
-    expect(isTaskSessionCredentialCompatible(saved, "grant:user:generation")).toBe(true);
+    expect(
+      isTaskSessionCredentialCompatible(saved, "grant:user:generation"),
+    ).toBe(true);
   });
 
   it.each([
@@ -2786,12 +3246,19 @@ describe("isTaskSessionCredentialCompatible", () => {
     { taskcoreCredentialIdentity: "other-grant:user:generation" },
     { taskcoreCredentialIdentity: "grant:other-user:generation" },
     { taskcoreCredentialIdentity: "grant:user:new-generation" },
-  ])("requires the same saved grant, responsible user, and credential generation: %j", (saved) => {
-    expect(isTaskSessionCredentialCompatible(saved, "grant:user:generation")).toBe(false);
-  });
+  ])(
+    "requires the same saved grant, responsible user, and credential generation: %j",
+    (saved) => {
+      expect(
+        isTaskSessionCredentialCompatible(saved, "grant:user:generation"),
+      ).toBe(false);
+    },
+  );
 
   it("preserves unmanaged session behavior", () => {
-    expect(isTaskSessionCredentialCompatible({ sessionId: "thread-1" }, undefined)).toBe(true);
+    expect(
+      isTaskSessionCredentialCompatible({ sessionId: "thread-1" }, undefined),
+    ).toBe(true);
   });
 });
 
@@ -2813,25 +3280,36 @@ describe("normalizeSessionParams", () => {
 
 describe("deriveTaskKeyWithHeartbeatFallback", () => {
   it("returns explicit taskKey when present", () => {
-    expect(deriveTaskKeyWithHeartbeatFallback({ taskKey: "issue-123" }, null)).toBe("issue-123");
+    expect(
+      deriveTaskKeyWithHeartbeatFallback({ taskKey: "issue-123" }, null),
+    ).toBe("issue-123");
   });
 
   it("returns explicit issueId when no taskKey", () => {
-    expect(deriveTaskKeyWithHeartbeatFallback({ issueId: "issue-456" }, null)).toBe("issue-456");
+    expect(
+      deriveTaskKeyWithHeartbeatFallback({ issueId: "issue-456" }, null),
+    ).toBe("issue-456");
   });
 
   it("returns __heartbeat__ for timer wakes with no explicit key", () => {
-    expect(deriveTaskKeyWithHeartbeatFallback({ wakeSource: "timer" }, null)).toBe("__heartbeat__");
+    expect(
+      deriveTaskKeyWithHeartbeatFallback({ wakeSource: "timer" }, null),
+    ).toBe("__heartbeat__");
   });
 
   it("prefers explicit key over heartbeat fallback even on timer wakes", () => {
     expect(
-      deriveTaskKeyWithHeartbeatFallback({ wakeSource: "timer", taskKey: "issue-789" }, null),
+      deriveTaskKeyWithHeartbeatFallback(
+        { wakeSource: "timer", taskKey: "issue-789" },
+        null,
+      ),
     ).toBe("issue-789");
   });
 
   it("returns null for non-timer wakes with no explicit key", () => {
-    expect(deriveTaskKeyWithHeartbeatFallback({ wakeSource: "on_demand" }, null)).toBeNull();
+    expect(
+      deriveTaskKeyWithHeartbeatFallback({ wakeSource: "on_demand" }, null),
+    ).toBeNull();
   });
 
   it("returns null for empty context", () => {
@@ -2882,7 +3360,11 @@ describe("comment wake batching", () => {
   it("keeps connection tool refresh intent while allowing harness session recovery", () => {
     const merged = mergeCoalescedContextSnapshot(
       { issueId: "issue-1", wakeReason: "issue_commented", refreshTools: true },
-      { issueId: "issue-1", wakeReason: "issue_commented", refreshTools: false },
+      {
+        issueId: "issue-1",
+        wakeReason: "issue_commented",
+        refreshTools: false,
+      },
     );
     expect(merged.refreshTools).toBe(true);
     expect(shouldResetTaskSessionForWake(merged)).toBe(false);
@@ -3200,7 +3682,9 @@ describe("resolveNextSessionState", () => {
 
 describe("formatRuntimeWorkspaceWarningLog", () => {
   it("emits informational workspace warnings on stdout", () => {
-    expect(formatRuntimeWorkspaceWarningLog("Using fallback workspace")).toEqual({
+    expect(
+      formatRuntimeWorkspaceWarningLog("Using fallback workspace"),
+    ).toEqual({
       stream: "stdout",
       chunk: "[taskcore] Using fallback workspace\n",
     });
@@ -3216,29 +3700,29 @@ describe("prioritizeProjectWorkspaceCandidatesForRun", () => {
     ];
 
     expect(
-      prioritizeProjectWorkspaceCandidatesForRun(rows, "workspace-2").map((row) => row.id),
+      prioritizeProjectWorkspaceCandidatesForRun(rows, "workspace-2").map(
+        (row) => row.id,
+      ),
     ).toEqual(["workspace-2", "workspace-1", "workspace-3"]);
   });
 
   it("keeps the original order when no preferred workspace is selected", () => {
-    const rows = [
-      { id: "workspace-1" },
-      { id: "workspace-2" },
-    ];
+    const rows = [{ id: "workspace-1" }, { id: "workspace-2" }];
 
     expect(
-      prioritizeProjectWorkspaceCandidatesForRun(rows, null).map((row) => row.id),
+      prioritizeProjectWorkspaceCandidatesForRun(rows, null).map(
+        (row) => row.id,
+      ),
     ).toEqual(["workspace-1", "workspace-2"]);
   });
 
   it("keeps the original order when the selected workspace is missing", () => {
-    const rows = [
-      { id: "workspace-1" },
-      { id: "workspace-2" },
-    ];
+    const rows = [{ id: "workspace-1" }, { id: "workspace-2" }];
 
     expect(
-      prioritizeProjectWorkspaceCandidatesForRun(rows, "workspace-9").map((row) => row.id),
+      prioritizeProjectWorkspaceCandidatesForRun(rows, "workspace-9").map(
+        (row) => row.id,
+      ),
     ).toEqual(["workspace-1", "workspace-2"]);
   });
 });
@@ -3297,23 +3781,37 @@ describe("parseSessionCompactionPolicy", () => {
 
 describe("isWorkspaceSyncConflictFailure", () => {
   it("matches the git workspace reconciliation failure signatures", () => {
-    expect(isWorkspaceSyncConflictFailure(
-      "Failed to merge concurrent remote git histories for a5d46a8005b3 and c1042c11774a: Command failed: git merge-tree --write-tree",
-    )).toBe(true);
-    expect(isWorkspaceSyncConflictFailure(
-      "Failed to integrate concurrent remote git history for a5d46a8005b3 after multiple retries.",
-    )).toBe(true);
-    expect(isWorkspaceSyncConflictFailure(
-      "error: /tmp/restore/git-delta.bundle did not send all necessary objects",
-    )).toBe(true);
-    expect(isWorkspaceSyncConflictFailure(
-      "error: Repository lacks these prerequisite commits: 4c631700",
-    )).toBe(true);
+    expect(
+      isWorkspaceSyncConflictFailure(
+        "Failed to merge concurrent remote git histories for a5d46a8005b3 and c1042c11774a: Command failed: git merge-tree --write-tree",
+      ),
+    ).toBe(true);
+    expect(
+      isWorkspaceSyncConflictFailure(
+        "Failed to integrate concurrent remote git history for a5d46a8005b3 after multiple retries.",
+      ),
+    ).toBe(true);
+    expect(
+      isWorkspaceSyncConflictFailure(
+        "error: /tmp/restore/git-delta.bundle did not send all necessary objects",
+      ),
+    ).toBe(true);
+    expect(
+      isWorkspaceSyncConflictFailure(
+        "error: Repository lacks these prerequisite commits: 4c631700",
+      ),
+    ).toBe(true);
   });
 
   it("ignores unrelated adapter failures", () => {
-    expect(isWorkspaceSyncConflictFailure("Codex exited with code 2")).toBe(false);
-    expect(isWorkspaceSyncConflictFailure("no Codex credentials provisioned for managed home")).toBe(false);
+    expect(isWorkspaceSyncConflictFailure("Codex exited with code 2")).toBe(
+      false,
+    );
+    expect(
+      isWorkspaceSyncConflictFailure(
+        "no Codex credentials provisioned for managed home",
+      ),
+    ).toBe(false);
     expect(isWorkspaceSyncConflictFailure(null)).toBe(false);
     expect(isWorkspaceSyncConflictFailure("")).toBe(false);
   });
@@ -3322,25 +3820,40 @@ describe("isWorkspaceSyncConflictFailure", () => {
 describe("reconcileReusedExecutionWorkspaceProjectWorkspaceId", () => {
   it("backfills a null existing binding from the resolved value", () => {
     expect(
-      reconcileReusedExecutionWorkspaceProjectWorkspaceId(null, "resolved-workspace"),
+      reconcileReusedExecutionWorkspaceProjectWorkspaceId(
+        null,
+        "resolved-workspace",
+      ),
     ).toBe("resolved-workspace");
   });
 
   it("never overwrites an existing binding, even when a resolved value is present", () => {
     expect(
-      reconcileReusedExecutionWorkspaceProjectWorkspaceId("existing-workspace", "resolved-workspace"),
+      reconcileReusedExecutionWorkspaceProjectWorkspaceId(
+        "existing-workspace",
+        "resolved-workspace",
+      ),
     ).toBe("existing-workspace");
   });
 
   it("returns null when both existing and resolved are absent", () => {
-    expect(reconcileReusedExecutionWorkspaceProjectWorkspaceId(null, null)).toBeNull();
-    expect(reconcileReusedExecutionWorkspaceProjectWorkspaceId(undefined, undefined)).toBeNull();
-    expect(reconcileReusedExecutionWorkspaceProjectWorkspaceId(null, undefined)).toBeNull();
+    expect(
+      reconcileReusedExecutionWorkspaceProjectWorkspaceId(null, null),
+    ).toBeNull();
+    expect(
+      reconcileReusedExecutionWorkspaceProjectWorkspaceId(undefined, undefined),
+    ).toBeNull();
+    expect(
+      reconcileReusedExecutionWorkspaceProjectWorkspaceId(null, undefined),
+    ).toBeNull();
   });
 
   it("backfills when existing is undefined and resolved is present", () => {
     expect(
-      reconcileReusedExecutionWorkspaceProjectWorkspaceId(undefined, "resolved-workspace"),
+      reconcileReusedExecutionWorkspaceProjectWorkspaceId(
+        undefined,
+        "resolved-workspace",
+      ),
     ).toBe("resolved-workspace");
   });
 });

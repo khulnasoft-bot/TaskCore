@@ -39,15 +39,18 @@ const manifest: TaskcorePluginManifestV1 = {
           },
           namespacePrefix: {
             type: "string",
-            description: "Prefix for the per-company tenant namespace (default: taskcore-).",
+            description:
+              "Prefix for the per-company tenant namespace (default: taskcore-).",
           },
           companySlug: {
             type: "string",
-            description: "Override the auto-derived company slug used in the tenant namespace name.",
+            description:
+              "Override the auto-derived company slug used in the tenant namespace name.",
           },
           imageRegistry: {
             type: "string",
-            description: "Override the default registry for agent runtime images (default: ghcr.io/taskcore).",
+            description:
+              "Override the default registry for agent runtime images (default: ghcr.io/taskcore).",
           },
           imageAllowList: {
             type: "array",
@@ -58,7 +61,8 @@ const manifest: TaskcorePluginManifestV1 = {
           imagePullSecrets: {
             type: "array",
             items: { type: "string" },
-            description: "Names of pre-created Docker image pull secrets in the tenant namespace.",
+            description:
+              "Names of pre-created Docker image pull secrets in the tenant namespace.",
           },
           egressAllowFqdns: {
             type: "array",
@@ -74,7 +78,8 @@ const manifest: TaskcorePluginManifestV1 = {
           egressMode: {
             type: "string",
             enum: ["standard", "cilium"],
-            description: "Network policy mode. `cilium` enables FQDN-based egress filtering via CiliumNetworkPolicy.",
+            description:
+              "Network policy mode. `cilium` enables FQDN-based egress filtering via CiliumNetworkPolicy.",
           },
           runtimeClassName: {
             type: "string",
@@ -90,12 +95,14 @@ const manifest: TaskcorePluginManifestV1 = {
           jobTtlSecondsAfterFinished: {
             type: "integer",
             minimum: 0,
-            description: "Seconds after a Job completes before it is garbage-collected (default: 900).",
+            description:
+              "Seconds after a Job completes before it is garbage-collected (default: 900).",
           },
           podActivityDeadlineSec: {
             type: "integer",
             minimum: 1,
-            description: "Hard ceiling on a single run's wall-clock time (default: 3600).",
+            description:
+              "Hard ceiling on a single run's wall-clock time (default: 3600).",
           },
           adapterType: {
             type: "string",
@@ -109,10 +116,7 @@ const manifest: TaskcorePluginManifestV1 = {
               "sandbox-cr (default, alpha — requires kubernetes-sigs/agent-sandbox installed) | job (stable fallback — batch/v1 Job, one-shot entrypoint, no multi-command exec)",
           },
         },
-        anyOf: [
-          { required: ["inCluster"] },
-          { required: ["kubeconfig"] },
-        ],
+        anyOf: [{ required: ["inCluster"] }, { required: ["kubeconfig"] }],
       },
     },
   ],

@@ -89,7 +89,8 @@ export type DuplexChannelSessionOpener = (
 export const DAYTONA_DUPLEX_WRITE_ERROR_REASON = "write_error" as const;
 
 /** The typed reason a rejected host-to-sandbox write reports. */
-export type DaytonaDuplexWriteErrorReason = typeof DAYTONA_DUPLEX_WRITE_ERROR_REASON;
+export type DaytonaDuplexWriteErrorReason =
+  typeof DAYTONA_DUPLEX_WRITE_ERROR_REASON;
 
 /** The options for the Daytona duplex channel session. */
 export interface DaytonaDuplexChannelOptions {
@@ -155,7 +156,9 @@ export function buildDuplexChannelLaunchWrapper(
   diagnosticsPath: string,
 ): string {
   if (command.length === 0) {
-    throw new Error("The duplex channel launch command needs at least one argument.");
+    throw new Error(
+      "The duplex channel launch command needs at least one argument.",
+    );
   }
   const quotedCommand = command.map(shellQuote).join(" ");
   return (
@@ -194,7 +197,11 @@ export async function openDaytonaDuplexChannelSession(
       // reassembly on the read side.
       if (data.byteLength === 0) return;
       if (listener) listener(data);
-      else buffered = buffered.length === 0 ? Buffer.from(data) : Buffer.concat([buffered, data]);
+      else
+        buffered =
+          buffered.length === 0
+            ? Buffer.from(data)
+            : Buffer.concat([buffered, data]);
     },
   });
 
@@ -202,7 +209,9 @@ export async function openDaytonaDuplexChannelSession(
   // Start the gateway through the raw-mode wrapper. Raw mode with echo off stops
   // the terminal from echoing host input back as data and from translating the
   // frame newlines. The diagnostics redirect keeps the stdout frame stream clean.
-  await handle.sendInput(buildDuplexChannelLaunchWrapper(command, diagnosticsPath));
+  await handle.sendInput(
+    buildDuplexChannelLaunchWrapper(command, diagnosticsPath),
+  );
 
   // Report a host-to-sandbox write failure one time and end the channel at once.
   // The seam carries only the typed reason; the raw provider error never leaves
@@ -261,7 +270,10 @@ export async function openDaytonaDuplexChannelSession(
         );
       });
     },
-    async wait(): Promise<{ exitCode: number | null; transportClosed: boolean }> {
+    async wait(): Promise<{
+      exitCode: number | null;
+      transportClosed: boolean;
+    }> {
       const result = await handle.wait();
       if (typeof result.exitCode === "number") {
         // A numeric exit code is a real process exit. The SDK parses it from the

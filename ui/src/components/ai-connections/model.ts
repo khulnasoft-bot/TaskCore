@@ -1,6 +1,15 @@
 /** Redacted presentation contracts shared with the production API. */
-import type { AiProvider, AiAuthMethod, AiManagedConnectionSummary, AiConnectionBinding } from "@taskcore/shared";
-export type { AiProvider, AiAuthMethod, AiConnectionBinding } from "@taskcore/shared";
+import type {
+  AiProvider,
+  AiAuthMethod,
+  AiManagedConnectionSummary,
+  AiConnectionBinding,
+} from "@taskcore/shared";
+export type {
+  AiProvider,
+  AiAuthMethod,
+  AiConnectionBinding,
+} from "@taskcore/shared";
 export type AiConnectionStatus = AiManagedConnectionSummary["status"];
 
 export const AI_PROVIDERS: Record<
@@ -26,7 +35,10 @@ export const AI_PROVIDERS: Record<
   },
 };
 
-export type AiConnectionSummary = Omit<AiManagedConnectionSummary, "isDefault"> & { isDefault?: boolean };
+export type AiConnectionSummary = Omit<
+  AiManagedConnectionSummary,
+  "isDefault"
+> & { isDefault?: boolean };
 
 export interface AiConnectionRequirement {
   companyId: string;
@@ -41,12 +53,17 @@ export const AI_CONNECTION_STATUS: Record<AiConnectionStatus, string> = {
   revoked: "Revoked",
 };
 
-export function defaultAiConnectionName(ownerName: string | undefined, provider: AiProvider, method: AiAuthMethod) {
+export function defaultAiConnectionName(
+  ownerName: string | undefined,
+  provider: AiProvider,
+  method: AiAuthMethod,
+) {
   const owner = ownerName?.trim();
   const prefix = owner && owner !== "You" ? `${owner}'s` : "My";
-  const providerName = method === "subscription"
-    ? AI_PROVIDERS[provider].subscriptionName ?? AI_PROVIDERS[provider].name
-    : `${AI_PROVIDERS[provider].name} API`;
+  const providerName =
+    method === "subscription"
+      ? (AI_PROVIDERS[provider].subscriptionName ?? AI_PROVIDERS[provider].name)
+      : `${AI_PROVIDERS[provider].name} API`;
   return `${prefix} ${providerName} account`;
 }
 
@@ -63,7 +80,8 @@ export function matchesAiRequirement(
   return (
     connection.companyId === requirement.companyId &&
     connection.provider === requirement.provider &&
-    (requirement.method === undefined || connection.method === requirement.method)
+    (requirement.method === undefined ||
+      connection.method === requirement.method)
   );
 }
 
@@ -102,7 +120,9 @@ export function bindingProblem(
 ) {
   if (
     binding.provider !== requirement.provider ||
-    (binding.mode !== "responsible_user" && requirement.method !== undefined && binding.method !== requirement.method)
+    (binding.mode !== "responsible_user" &&
+      requirement.method !== undefined &&
+      binding.method !== requirement.method)
   )
     return "Choose a connection compatible with this provider and sign-in method.";
   if (binding.mode === "responsible_user")
@@ -122,8 +142,7 @@ export function bindingProblem(
     return "Choose a company-shared connection.";
   if (
     binding.mode === "delegated" &&
-    (connection.ownership !== "personal" ||
-      connection.ownerUserId !== userId)
+    (connection.ownership !== "personal" || connection.ownerUserId !== userId)
   )
     return "This credential is not shared with you. Choose a connection you can use.";
   return aiConnectionProblem(connection);

@@ -14,7 +14,10 @@ type ProfileLike = {
   metadata: unknown;
 };
 
-const TOOL_PROFILE_SCOPE_PRECEDENCE: Record<ToolProfileBindingTargetType, number> = {
+const TOOL_PROFILE_SCOPE_PRECEDENCE: Record<
+  ToolProfileBindingTargetType,
+  number
+> = {
   // Named gateways bind one concrete MCP endpoint instance, so they should
   // override broader run, agent, and company defaults when both match.
   gateway: 0,
@@ -29,23 +32,37 @@ function createdAtMillis(value: Date | string): number {
   return value instanceof Date ? value.getTime() : new Date(value).getTime();
 }
 
-export function toolProfileBindingScopePrecedence(targetType: ToolProfileBindingTargetType): number {
+export function toolProfileBindingScopePrecedence(
+  targetType: ToolProfileBindingTargetType,
+): number {
   return TOOL_PROFILE_SCOPE_PRECEDENCE[targetType];
 }
 
-export function narrowestScopeBindings<T extends BindingLike>(bindings: T[]): T[] {
+export function narrowestScopeBindings<T extends BindingLike>(
+  bindings: T[],
+): T[] {
   if (bindings.length === 0) return [];
-  const winningScope = Math.min(...bindings.map((binding) => toolProfileBindingScopePrecedence(binding.targetType)));
+  const winningScope = Math.min(
+    ...bindings.map((binding) =>
+      toolProfileBindingScopePrecedence(binding.targetType),
+    ),
+  );
   return bindings
-    .filter((binding) => toolProfileBindingScopePrecedence(binding.targetType) === winningScope)
-    .sort((a, b) =>
-      a.priority - b.priority
-      || createdAtMillis(a.createdAt) - createdAtMillis(b.createdAt)
-      || a.profileId.localeCompare(b.profileId)
+    .filter(
+      (binding) =>
+        toolProfileBindingScopePrecedence(binding.targetType) === winningScope,
+    )
+    .sort(
+      (a, b) =>
+        a.priority - b.priority ||
+        createdAtMillis(a.createdAt) - createdAtMillis(b.createdAt) ||
+        a.profileId.localeCompare(b.profileId),
     );
 }
 
-export function profileIdsInBindingOrder<T extends Pick<BindingLike, "profileId">>(bindings: T[]): string[] {
+export function profileIdsInBindingOrder<
+  T extends Pick<BindingLike, "profileId">,
+>(bindings: T[]): string[] {
   const seen = new Set<string>();
   const ordered: string[] = [];
   for (const binding of bindings) {
@@ -56,16 +73,39 @@ export function profileIdsInBindingOrder<T extends Pick<BindingLike, "profileId"
   return ordered;
 }
 
-function isWizardAppProfile(profile: ProfileLike, connectionId?: string | null): boolean {
-  if (!profile.metadata || typeof profile.metadata !== "object" || Array.isArray(profile.metadata)) return false;
+function isWizardAppProfile(
+  profile: ProfileLike,
+  connectionId?: string | null,
+): boolean {
+  if (
+    !profile.metadata ||
+    typeof profile.metadata !== "object" ||
+    Array.isArray(profile.metadata)
+  )
+    return false;
   const metadata = profile.metadata as Record<string, unknown>;
-  if (metadata.source === "connection_intent" && typeof metadata.connectionId === "string" && typeof metadata.agentId === "string") {
-    return profile.profileKey === `connection-intent:${metadata.connectionId}:${metadata.agentId}`
-      && (connectionId == null || metadata.connectionId === connectionId);
+  if (
+    metadata.source === "connection_intent" &&
+    typeof metadata.connectionId === "string" &&
+    typeof metadata.agentId === "string"
+  ) {
+    return (
+      profile.profileKey ===
+        `connection-intent:${metadata.connectionId}:${metadata.agentId}` &&
+      (connectionId == null || metadata.connectionId === connectionId)
+    );
   }
-  if (metadata.source !== "app_gallery_finish" || typeof metadata.connectionId !== "string") return false;
+  if (
+    metadata.source !== "app_gallery_finish" ||
+    typeof metadata.connectionId !== "string"
+  )
+    return false;
   if (profile.profileKey !== `app:${metadata.connectionId}`) return false;
-  return connectionId === undefined || connectionId === null || metadata.connectionId === connectionId;
+  return (
+    connectionId === undefined ||
+    connectionId === null ||
+    metadata.connectionId === connectionId
+  );
 }
 
 /**
@@ -85,14 +125,22 @@ export function effectiveToolProfileBindings<T extends BindingLike>(
     return narrowestScopeBindings(bindings);
   }
   const appProfileIds = new Set(
-    profiles.filter((profile) => isWizardAppProfile(profile, connectionId)).map((profile) => profile.id),
+    profiles
+      .filter((profile) => isWizardAppProfile(profile, connectionId))
+      .map((profile) => profile.id),
   );
-  const accessProfileIds = new Set(profiles.filter(profile => {
-    const metadata = profile.metadata as Record<string, unknown> | null;
-    return metadata?.source === "connection_intent";
-  }).map(profile => profile.id));
+  const accessProfileIds = new Set(
+    profiles
+      .filter((profile) => {
+        const metadata = profile.metadata as Record<string, unknown> | null;
+        return metadata?.source === "connection_intent";
+      })
+      .map((profile) => profile.id),
+  );
   const selected = [
-    ...narrowestScopeBindings(bindings.filter(binding => !accessProfileIds.has(binding.profileId))),
+    ...narrowestScopeBindings(
+      bindings.filter((binding) => !accessProfileIds.has(binding.profileId)),
+    ),
     ...bindings.filter((binding) => appProfileIds.has(binding.profileId)),
   ];
   const seen = new Set<string>();

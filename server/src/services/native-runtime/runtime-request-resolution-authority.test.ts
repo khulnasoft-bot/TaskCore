@@ -9,7 +9,7 @@ import {
 } from "./runtime-request-resolution-authority.js";
 
 function dbReturning(row: Record<string, unknown> | null): Db {
-  const limit = vi.fn(async () => row ? [row] : []);
+  const limit = vi.fn(async () => (row ? [row] : []));
   const query = {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
@@ -65,10 +65,13 @@ describe("native runtime request resolution authority", () => {
 
   it("treats a terminal latest event as no longer pending", async () => {
     await expect(
-      readPendingNativeRuntimeRequest(dbReturning({
-        eventType: "runtime_request.resolved",
-        payload: { prpEvent: { payload: { requestId: binding.requestId } } },
-      }), binding),
+      readPendingNativeRuntimeRequest(
+        dbReturning({
+          eventType: "runtime_request.resolved",
+          payload: { prpEvent: { payload: { requestId: binding.requestId } } },
+        }),
+        binding,
+      ),
     ).resolves.toBeNull();
   });
 
@@ -79,16 +82,20 @@ describe("native runtime request resolution authority", () => {
       turnId: "turn-1",
       resolverPolicy: "instance_admin",
     };
-    expect(() => assertNativeRuntimeRequestResolverAuthorized(pending, {
-      type: "user",
-      userId: "ordinary-member",
-      isInstanceAdmin: false,
-    })).toThrowError(NativeRuntimeRequestResolutionAuthorizationError);
-    expect(() => assertNativeRuntimeRequestResolverAuthorized(pending, {
-      type: "user",
-      userId: "instance-admin",
-      isInstanceAdmin: true,
-    })).not.toThrow();
+    expect(() =>
+      assertNativeRuntimeRequestResolverAuthorized(pending, {
+        type: "user",
+        userId: "ordinary-member",
+        isInstanceAdmin: false,
+      }),
+    ).toThrowError(NativeRuntimeRequestResolutionAuthorizationError);
+    expect(() =>
+      assertNativeRuntimeRequestResolverAuthorized(pending, {
+        type: "user",
+        userId: "instance-admin",
+        isInstanceAdmin: true,
+      }),
+    ).not.toThrow();
   });
 
   it("keeps structured questions on the existing authenticated-human policy", () => {
@@ -98,10 +105,12 @@ describe("native runtime request resolution authority", () => {
       turnId: "turn-1",
       resolverPolicy: "human_only",
     };
-    expect(() => assertNativeRuntimeRequestResolverAuthorized(pending, {
-      type: "user",
-      userId: "company-member",
-      isInstanceAdmin: false,
-    })).not.toThrow();
+    expect(() =>
+      assertNativeRuntimeRequestResolverAuthorized(pending, {
+        type: "user",
+        userId: "company-member",
+        isInstanceAdmin: false,
+      }),
+    ).not.toThrow();
   });
 });

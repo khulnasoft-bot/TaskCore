@@ -11,11 +11,22 @@ import {
   partitionGeneralServerSuites,
 } from "../general-server-shard.mjs";
 
-import { assertSelectedTests, partitionTestLines } from "../test-line-shard.mjs";
+import {
+  assertSelectedTests,
+  partitionTestLines,
+} from "../test-line-shard.mjs";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
 const script = path.join(repoRoot, "scripts", "run-vitest-stable.mjs");
-const durationsManifest = path.join(repoRoot, "scripts", "general-server-shard-durations.json");
+const durationsManifest = path.join(
+  repoRoot,
+  "scripts",
+  "general-server-shard-durations.json",
+);
 const serializedDurationsManifest = path.join(
   repoRoot,
   "scripts",
@@ -45,28 +56,55 @@ function dryRun(args, envOverrides = {}) {
 
 function dryRunJson(args, envOverrides = {}) {
   const result = dryRun(args, envOverrides);
-  assert.equal(result.status, 0, `expected success for ${args.join(" ")}: ${result.stderr}`);
+  assert.equal(
+    result.status,
+    0,
+    `expected success for ${args.join(" ")}: ${result.stderr}`,
+  );
   return JSON.parse(result.stdout);
 }
 
 const SHARD_COUNT = 12;
 const SERIALIZED_SHARD_COUNT = 9;
 
-
 test("the serialized shards form a complete, non-overlapping partition", () => {
   const shards = Array.from({ length: SERIALIZED_SHARD_COUNT }, (_, index) =>
-    dryRunJson(["--mode", "serialized", "--shard-index", String(index), "--shard-count", String(SERIALIZED_SHARD_COUNT)]),
+    dryRunJson([
+      "--mode",
+      "serialized",
+      "--shard-index",
+      String(index),
+      "--shard-count",
+      String(SERIALIZED_SHARD_COUNT),
+    ]),
   );
 
   const total = shards[0].serializedSuiteCount;
   const selected = shards.flatMap((shard) => shard.selectedSerializedSuites);
-  assert.equal(selected.length, total, "every serialized suite must be selected exactly once");
-  assert.equal(new Set(selected).size, total, "serialized shards must not overlap");
+  assert.equal(
+    selected.length,
+    total,
+    "every serialized suite must be selected exactly once",
+  );
+  assert.equal(
+    new Set(selected).size,
+    total,
+    "serialized shards must not overlap",
+  );
 });
 
 test("the general-server shards form a complete, non-overlapping partition", () => {
   const shards = Array.from({ length: SHARD_COUNT }, (_, index) =>
-    dryRunJson(["--mode", "general", "--group", "general-server", "--shard-index", String(index), "--shard-count", String(SHARD_COUNT)]),
+    dryRunJson([
+      "--mode",
+      "general",
+      "--group",
+      "general-server",
+      "--shard-index",
+      String(index),
+      "--shard-count",
+      String(SHARD_COUNT),
+    ]),
   );
 
   const total = shards[0].generalServerSuiteCount;
@@ -75,59 +113,134 @@ test("the general-server shards form a complete, non-overlapping partition", () 
   const seen = new Set();
   let selectedTotal = 0;
   for (const shard of shards) {
-    assert.equal(shard.generalServerSuiteCount, total, "suite count must be stable across shards");
+    assert.equal(
+      shard.generalServerSuiteCount,
+      total,
+      "suite count must be stable across shards",
+    );
     for (const file of shard.selectedGeneralServerSuites) {
-      assert.ok(!seen.has(file), `suite assigned to more than one shard: ${file}`);
+      assert.ok(
+        !seen.has(file),
+        `suite assigned to more than one shard: ${file}`,
+      );
       seen.add(file);
       selectedTotal += 1;
     }
   }
 
   // Every suite runs exactly once: union covers the whole set with no overlap.
-  assert.equal(selectedTotal, total, "every suite must be selected exactly once");
-  assert.equal(seen.size, total, "union of shards must cover the whole suite set");
+  assert.equal(
+    selectedTotal,
+    total,
+    "every suite must be selected exactly once",
+  );
+  assert.equal(
+    seen.size,
+    total,
+    "union of shards must cover the whole suite set",
+  );
 });
 
 test("a route/authz suite never leaks into the general-server shards", () => {
-  const shard = dryRunJson(["--mode", "general", "--group", "general-server", "--shard-index", "0", "--shard-count", SHARD_COUNT.toString()]);
+  const shard = dryRunJson([
+    "--mode",
+    "general",
+    "--group",
+    "general-server",
+    "--shard-index",
+    "0",
+    "--shard-count",
+    SHARD_COUNT.toString(),
+  ]);
   for (const file of shard.selectedGeneralServerSuites) {
     assert.ok(
-      !(file.startsWith("server/src/__tests__/") && /[^/]*(?:route|routes|authz)[^/]*\.test\.ts$/.test(file)),
+      !(
+        file.startsWith("server/src/__tests__/") &&
+        /[^/]*(?:route|routes|authz)[^/]*\.test\.ts$/.test(file)
+      ),
       `route/authz suite must stay in the serialized lane, not general-server: ${file}`,
     );
   }
 });
 
 test("general shards retain scripts and route-named suites outside the serialized directory", () => {
-  const general = dryRunJson(["--mode", "general", "--group", "general-server", "--shard-index", "0", "--shard-count", "1"]);
+  const general = dryRunJson([
+    "--mode",
+    "general",
+    "--group",
+    "general-server",
+    "--shard-index",
+    "0",
+    "--shard-count",
+    "1",
+  ]);
   for (const file of [
     "server/scripts/verify-runner-vendor-dependencies.test.mjs",
     "server/src/services/openrouter-models.test.ts",
     "server/src/routes/setup-token-route.test.ts",
-  ]) assert.ok(general.selectedGeneralServerSuites.includes(file), `missing configured server suite: ${file}`);
+  ])
+    assert.ok(
+      general.selectedGeneralServerSuites.includes(file),
+      `missing configured server suite: ${file}`,
+    );
 });
 
 test("shard flags are rejected for the workspaces-b group", () => {
-  const result = dryRun(["--mode", "general", "--group", "general-workspaces-b", "--shard-index", "0", "--shard-count", "3"]);
+  const result = dryRun([
+    "--mode",
+    "general",
+    "--group",
+    "general-workspaces-b",
+    "--shard-index",
+    "0",
+    "--shard-count",
+    "3",
+  ]);
   assert.notEqual(result.status, 0, "workspaces-b must not accept shard flags");
 });
 
 test("workspace lanes cover every non-server project in the root Vitest configuration", () => {
   const config = readFileSync(path.join(repoRoot, "vitest.config.ts"), "utf8");
-  const roots = [...config.matchAll(/^\s+"([^"]+)",?\s*$/gm)].map(match => match[1]);
-  assert.ok(roots.includes("server"), "expected the explicit root Vitest project list");
-  const expected = roots.filter(root => root !== "server")
-    .map(root => JSON.parse(readFileSync(path.join(repoRoot, root, "package.json"), "utf8")).name).sort();
+  const roots = [...config.matchAll(/^\s+"([^"]+)",?\s*$/gm)].map(
+    (match) => match[1],
+  );
+  assert.ok(
+    roots.includes("server"),
+    "expected the explicit root Vitest project list",
+  );
+  const expected = roots
+    .filter((root) => root !== "server")
+    .map(
+      (root) =>
+        JSON.parse(
+          readFileSync(path.join(repoRoot, root, "package.json"), "utf8"),
+        ).name,
+    )
+    .sort();
   const actual = ["general-workspaces-a", "general-workspaces-b"]
-    .flatMap(group => dryRunJson(["--mode", "general", "--group", group]).workspaceProjects).sort();
-  assert.deepEqual(actual, expected, "no configured project may be silently omitted or run twice");
+    .flatMap(
+      (group) =>
+        dryRunJson(["--mode", "general", "--group", group]).workspaceProjects,
+    )
+    .sort();
+  assert.deepEqual(
+    actual,
+    expected,
+    "no configured project may be silently omitted or run twice",
+  );
 });
 
 test("workspaces-a shards map to Vitest native --shard slices over a stable project list", () => {
   const shards = [0, 1].map((index) =>
     dryRunJson([
-      "--mode", "general", "--group", "general-workspaces-a",
-      "--shard-index", String(index), "--shard-count", "2",
+      "--mode",
+      "general",
+      "--group",
+      "general-workspaces-a",
+      "--shard-index",
+      String(index),
+      "--shard-count",
+      "2",
     ]),
   );
 
@@ -140,9 +253,17 @@ test("workspaces-a shards map to Vitest native --shard slices over a stable proj
   // an identical project list across jobs is what guarantees complete,
   // non-overlapping coverage of the lane.
   assert.deepEqual(shards[0].workspaceProjects, shards[1].workspaceProjects);
-  assert.ok(shards[0].workspaceProjects.length > 0, "workspaces-a must run at least one project");
+  assert.ok(
+    shards[0].workspaceProjects.length > 0,
+    "workspaces-a must run at least one project",
+  );
 
-  const unsharded = dryRunJson(["--mode", "general", "--group", "general-workspaces-a"]);
+  const unsharded = dryRunJson([
+    "--mode",
+    "general",
+    "--group",
+    "general-workspaces-a",
+  ]);
   assert.deepEqual(
     unsharded.workspaceProjects,
     shards[0].workspaceProjects,
@@ -154,7 +275,17 @@ test("workspaces-a shards map to Vitest native --shard slices over a stable proj
 test("duration-aware partition balances skewed weights better than round-robin", () => {
   // Round-robin puts all three heavy suites on shard 0 (indexes 0, 3, 6).
   const files = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
-  const durations = { a: 30000, d: 30000, g: 30000, b: 100, c: 100, e: 100, f: 100, h: 100, i: 100 };
+  const durations = {
+    a: 30000,
+    d: 30000,
+    g: 30000,
+    b: 100,
+    c: 100,
+    e: 100,
+    f: 100,
+    h: 100,
+    i: 100,
+  };
 
   const shards = partitionGeneralServerSuites(files, 3, durations);
   const totals = shards.map((shard) => shard.totalWeight);
@@ -165,29 +296,48 @@ test("duration-aware partition balances skewed weights better than round-robin",
     `expected near-even shard weights, got ${totals.join(", ")}`,
   );
   assert.equal(
-    shards.flatMap((shard) => shard.files).sort().join(","),
+    shards
+      .flatMap((shard) => shard.files)
+      .sort()
+      .join(","),
     files.join(","),
     "partition must cover every file exactly once",
   );
 });
 
 test("the partition is deterministic for identical inputs", () => {
-  const files = Array.from({ length: 50 }, (_, index) => `suite-${index}.test.ts`);
-  const durations = Object.fromEntries(files.map((file, index) => [file, (index * 37) % 5000]));
+  const files = Array.from(
+    { length: 50 },
+    (_, index) => `suite-${index}.test.ts`,
+  );
+  const durations = Object.fromEntries(
+    files.map((file, index) => [file, (index * 37) % 5000]),
+  );
 
   const first = partitionGeneralServerSuites(files, 3, durations);
   const second = partitionGeneralServerSuites(files, 3, durations);
-  assert.deepEqual(first, second, "same inputs must always produce the same partition");
+  assert.deepEqual(
+    first,
+    second,
+    "same inputs must always produce the same partition",
+  );
 });
 
 test("suites missing from the manifest get the median weight", () => {
   assert.equal(defaultSuiteWeight({ a: 100, b: 300, c: 900 }), 300);
   assert.equal(defaultSuiteWeight({ a: 100, b: 300, c: 500, d: 900 }), 400);
-  assert.equal(defaultSuiteWeight({}), 1000, "empty manifest falls back to a fixed weight");
+  assert.equal(
+    defaultSuiteWeight({}),
+    1000,
+    "empty manifest falls back to a fixed weight",
+  );
 });
 
 test("a missing or malformed manifest degrades to uniform weights", () => {
-  assert.deepEqual(loadShardDurations(path.join(repoRoot, "scripts", "no-such-manifest.json")), {});
+  assert.deepEqual(
+    loadShardDurations(path.join(repoRoot, "scripts", "no-such-manifest.json")),
+    {},
+  );
 
   const files = ["a", "b", "c", "d"];
   const shards = partitionGeneralServerSuites(files, 2, {});
@@ -197,11 +347,25 @@ test("a missing or malformed manifest degrades to uniform weights", () => {
 
 test("the checked-in manifest loads and covers most of the current suite set", () => {
   const durations = loadShardDurations(durationsManifest);
-  assert.ok(Object.keys(durations).length > 0, "manifest must parse to a non-empty duration map");
+  assert.ok(
+    Object.keys(durations).length > 0,
+    "manifest must parse to a non-empty duration map",
+  );
 
-  const shard = dryRunJson(["--mode", "general", "--group", "general-server", "--shard-index", "0", "--shard-count", "1"]);
+  const shard = dryRunJson([
+    "--mode",
+    "general",
+    "--group",
+    "general-server",
+    "--shard-index",
+    "0",
+    "--shard-count",
+    "1",
+  ]);
   const currentFiles = shard.selectedGeneralServerSuites;
-  const known = currentFiles.filter((file) => durations[file] !== undefined).length;
+  const known = currentFiles.filter(
+    (file) => durations[file] !== undefined,
+  ).length;
   assert.ok(
     known / currentFiles.length >= 0.5,
     `manifest is stale: only ${known} of ${currentFiles.length} suites have recorded durations — regenerate it from a recent PR run (see the manifest's $comment)`,
@@ -223,11 +387,23 @@ test("the chat integration suite keeps a measured duration for duration-aware fa
 
 test("the checked-in serialized manifest loads and covers most of the current suite set", () => {
   const durations = loadShardDurations(serializedDurationsManifest);
-  assert.ok(Object.keys(durations).length > 0, "manifest must parse to a non-empty duration map");
+  assert.ok(
+    Object.keys(durations).length > 0,
+    "manifest must parse to a non-empty duration map",
+  );
 
-  const shard = dryRunJson(["--mode", "serialized", "--shard-index", "0", "--shard-count", "1"]);
+  const shard = dryRunJson([
+    "--mode",
+    "serialized",
+    "--shard-index",
+    "0",
+    "--shard-count",
+    "1",
+  ]);
   const currentFiles = shard.selectedSerializedSuites;
-  const known = currentFiles.filter((file) => durations[file] !== undefined).length;
+  const known = currentFiles.filter(
+    (file) => durations[file] !== undefined,
+  ).length;
   assert.ok(
     known / currentFiles.length >= 0.5,
     `manifest is stale: only ${known} of ${currentFiles.length} suites have recorded durations — regenerate it from a recent PR run (see the manifest's $comment)`,
@@ -238,11 +414,21 @@ test("the real serialized shard partition is duration-balanced", () => {
   const durations = loadShardDurations(serializedDurationsManifest);
   const fallback = defaultSuiteWeight(durations);
   const shards = Array.from({ length: SERIALIZED_SHARD_COUNT }, (_, index) =>
-    dryRunJson(["--mode", "serialized", "--shard-index", String(index), "--shard-count", String(SERIALIZED_SHARD_COUNT)]),
+    dryRunJson([
+      "--mode",
+      "serialized",
+      "--shard-index",
+      String(index),
+      "--shard-count",
+      String(SERIALIZED_SHARD_COUNT),
+    ]),
   );
 
   const totals = shards.map((shard) =>
-    shard.selectedSerializedSuites.reduce((sum, file) => sum + (durations[file] ?? fallback), 0),
+    shard.selectedSerializedSuites.reduce(
+      (sum, file) => sum + (durations[file] ?? fallback),
+      0,
+    ),
   );
   const maxTotal = Math.max(...totals);
   const minTotal = Math.min(...totals);
@@ -262,13 +448,25 @@ test("the real shard partition is duration-balanced", () => {
   const fallback = defaultSuiteWeight(durations);
   const shards = Array.from({ length: SHARD_COUNT }, (_, index) =>
     dryRunJson(
-      ["--mode", "general", "--group", "general-server-without-chat", "--shard-index", String(index), "--shard-count", String(SHARD_COUNT)],
+      [
+        "--mode",
+        "general",
+        "--group",
+        "general-server-without-chat",
+        "--shard-index",
+        String(index),
+        "--shard-count",
+        String(SHARD_COUNT),
+      ],
       { GITHUB_WORKFLOW: "PR" },
     ),
   );
 
   const totals = shards.map((shard) =>
-    shard.selectedGeneralServerSuites.reduce((sum, file) => sum + (durations[file] ?? fallback), 0),
+    shard.selectedGeneralServerSuites.reduce(
+      (sum, file) => sum + (durations[file] ?? fallback),
+      0,
+    ),
   );
   const maxTotal = Math.max(...totals);
   const minTotal = Math.min(...totals);
@@ -289,7 +487,6 @@ test("the real shard partition is duration-balanced", () => {
   );
 });
 
-
 const chatSuitePath = "server/src/__tests__/chat-channels.integration.test.ts";
 const nativeRunnerSuitePath =
   "server/src/services/native-runtime/native-codex-runner.integration.test.ts";
@@ -303,37 +500,100 @@ const restartRecoverySuitePath =
 // shard, so together the three cover the full server group exactly.
 test("12 PR without-chat shards plus the dedicated chat and native-runner lanes cover the original server group exactly", () => {
   const prEnv = { GITHUB_WORKFLOW: "PR" };
-  const full = dryRunJson(["--mode", "general", "--group", "general-server", "--shard-index", "0", "--shard-count", "1"], prEnv);
-  const shards = Array.from({ length: 12 }, (_, index) => dryRunJson([
-    "--mode", "general", "--group", "general-server-without-chat",
-    "--shard-index", String(index), "--shard-count", "12",
-  ], prEnv));
+  const full = dryRunJson(
+    [
+      "--mode",
+      "general",
+      "--group",
+      "general-server",
+      "--shard-index",
+      "0",
+      "--shard-count",
+      "1",
+    ],
+    prEnv,
+  );
+  const shards = Array.from({ length: 12 }, (_, index) =>
+    dryRunJson(
+      [
+        "--mode",
+        "general",
+        "--group",
+        "general-server-without-chat",
+        "--shard-index",
+        String(index),
+        "--shard-count",
+        "12",
+      ],
+      prEnv,
+    ),
+  );
   const files = shards.flatMap((shard) => shard.selectedGeneralServerSuites);
   assert.ok(!files.includes(chatSuitePath));
   assert.ok(!files.includes(nativeRunnerSuitePath));
   assert.ok(!files.includes(dotRunnerSuitePath));
   assert.ok(!files.includes(restartRecoverySuitePath));
-  assert.deepEqual([...files, chatSuitePath, nativeRunnerSuitePath, dotRunnerSuitePath, restartRecoverySuitePath].sort(), full.selectedGeneralServerSuites.sort());
+  assert.deepEqual(
+    [
+      ...files,
+      chatSuitePath,
+      nativeRunnerSuitePath,
+      dotRunnerSuitePath,
+      restartRecoverySuitePath,
+    ].sort(),
+    full.selectedGeneralServerSuites.sort(),
+  );
   assert.equal(new Set(files).size, files.length);
   const defaultRun = dryRunJson([], prEnv);
-  assert.ok(defaultRun.generalServerSuiteCount === full.generalServerSuiteCount);
+  assert.ok(
+    defaultRun.generalServerSuiteCount === full.generalServerSuiteCount,
+  );
 });
 
 // The legacy group and local default must remain complete when a caller has
 // not selected a separate native lane.
-for (const [caller, envOverrides] of [["Release", { GITHUB_WORKFLOW: "Release" }], ["no ambient workflow", {}]]) {
+for (const [caller, envOverrides] of [
+  ["Release", { GITHUB_WORKFLOW: "Release" }],
+  ["no ambient workflow", {}],
+]) {
   test(`10 without-chat shards under ${caller} keep the native-runner suite and cover the server group with chat alone`, () => {
-    const full = dryRunJson(["--mode", "general", "--group", "general-server", "--shard-index", "0", "--shard-count", "1"], envOverrides);
-    const shards = Array.from({ length: 10 }, (_, index) => dryRunJson([
-      "--mode", "general", "--group", "general-server-without-chat",
-      "--shard-index", String(index), "--shard-count", "10",
-    ], envOverrides));
+    const full = dryRunJson(
+      [
+        "--mode",
+        "general",
+        "--group",
+        "general-server",
+        "--shard-index",
+        "0",
+        "--shard-count",
+        "1",
+      ],
+      envOverrides,
+    );
+    const shards = Array.from({ length: 10 }, (_, index) =>
+      dryRunJson(
+        [
+          "--mode",
+          "general",
+          "--group",
+          "general-server-without-chat",
+          "--shard-index",
+          String(index),
+          "--shard-count",
+          "10",
+        ],
+        envOverrides,
+      ),
+    );
     const files = shards.flatMap((shard) => shard.selectedGeneralServerSuites);
     assert.ok(!files.includes(chatSuitePath));
     assert.ok(files.includes(nativeRunnerSuitePath));
     assert.ok(files.includes(dotRunnerSuitePath));
     assert.ok(files.includes(restartRecoverySuitePath));
-    assert.deepEqual([...files, chatSuitePath].sort(), full.selectedGeneralServerSuites.sort());
+    assert.deepEqual(
+      [...files, chatSuitePath].sort(),
+      full.selectedGeneralServerSuites.sort(),
+    );
     assert.equal(new Set(files).size, files.length);
   });
 }
@@ -343,20 +603,59 @@ for (const [caller, envOverrides] of [["Release", { GITHUB_WORKFLOW: "Release" }
 for (const caller of ["Release", "Cloud readiness", "another caller"]) {
   test(`release server, chat, and native lanes cover every server suite once under ${caller}`, () => {
     const env = { GITHUB_WORKFLOW: caller };
-    const full = dryRunJson(["--mode", "general", "--group", "general-server", "--shard-index", "0", "--shard-count", "1"], env);
-    const files = Array.from({ length: 10 }, (_, index) => dryRunJson([
-      "--mode", "general", "--group", "general-server-without-chat-or-native-runner",
-      "--shard-index", String(index), "--shard-count", "10",
-    ], env)).flatMap((shard) => shard.selectedGeneralServerSuites);
-    const native = dryRunJson(["--mode", "general", "--group", "general-server-native-runner"], env);
-    const combined = [...files, chatSuitePath, ...native.selectedGeneralServerSuites];
-    assert.equal(new Set(combined).size, combined.length, "lanes must not overlap");
+    const full = dryRunJson(
+      [
+        "--mode",
+        "general",
+        "--group",
+        "general-server",
+        "--shard-index",
+        "0",
+        "--shard-count",
+        "1",
+      ],
+      env,
+    );
+    const files = Array.from({ length: 10 }, (_, index) =>
+      dryRunJson(
+        [
+          "--mode",
+          "general",
+          "--group",
+          "general-server-without-chat-or-native-runner",
+          "--shard-index",
+          String(index),
+          "--shard-count",
+          "10",
+        ],
+        env,
+      ),
+    ).flatMap((shard) => shard.selectedGeneralServerSuites);
+    const native = dryRunJson(
+      ["--mode", "general", "--group", "general-server-native-runner"],
+      env,
+    );
+    const combined = [
+      ...files,
+      chatSuitePath,
+      ...native.selectedGeneralServerSuites,
+    ];
+    assert.equal(
+      new Set(combined).size,
+      combined.length,
+      "lanes must not overlap",
+    );
     assert.deepEqual(combined.sort(), full.selectedGeneralServerSuites.sort());
   });
 }
 
 test("the native-runner lane runs exactly the cargo-dependent suites", () => {
-  const lane = dryRunJson(["--mode", "general", "--group", "general-server-native-runner"]);
+  const lane = dryRunJson([
+    "--mode",
+    "general",
+    "--group",
+    "general-server-native-runner",
+  ]);
   assert.deepEqual(lane.selectedGeneralServerSuites, [
     "server/src/services/native-runtime/native-codex-runner.integration.test.ts",
     dotRunnerSuitePath,
@@ -365,8 +664,21 @@ test("the native-runner lane runs exactly the cargo-dependent suites", () => {
 });
 
 test("shard flags are rejected for the native-runner group", () => {
-  const result = dryRun(["--mode", "general", "--group", "general-server-native-runner", "--shard-index", "0", "--shard-count", "2"]);
-  assert.notEqual(result.status, 0, "the native-runner lane is a single suite and must not accept shard flags");
+  const result = dryRun([
+    "--mode",
+    "general",
+    "--group",
+    "general-server-native-runner",
+    "--shard-index",
+    "0",
+    "--shard-count",
+    "2",
+  ]);
+  assert.notEqual(
+    result.status,
+    0,
+    "the native-runner lane is a single suite and must not accept shard flags",
+  );
 });
 
 // The PR-side exclusion above is safe only while the wiring it assumes holds:
@@ -375,39 +687,78 @@ test("shard flags are rejected for the native-runner group", () => {
 // with exactly one final shard, and that lane's package script routes through
 // the wrapper that runs the native-runner group.
 test("the PR workflow wiring for the native-runner lane holds", () => {
-  const prWorkflow = readFileSync(path.join(repoRoot, ".github/workflows/pr.yml"), "utf8");
-  assert.match(prWorkflow, /^name: PR$/m,
-    "renaming pr.yml silently moves the native-runner suite back into the uncached server shards");
+  const prWorkflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/pr.yml"),
+    "utf8",
+  );
+  assert.match(
+    prWorkflow,
+    /^name: PR$/m,
+    "renaming pr.yml silently moves the native-runner suite back into the uncached server shards",
+  );
 
-  const trustedWorkflow = readFileSync(path.join(repoRoot, ".github/workflows/pr-trusted.yml"), "utf8");
-  const lanes = [...trustedWorkflow.matchAll(/command: test:typescript:vitest --shard=(\d+)\/(\d+)/g)]
-    .map((match) => [Number(match[1]), Number(match[2])]);
-  assert.ok(lanes.length > 0, "expected sharded test:typescript:vitest lanes in pr-trusted.yml");
-  assert.equal(new Set(lanes.map(([, count]) => count)).size, 1, "vitest lanes must agree on the shard count");
+  const trustedWorkflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/pr-trusted.yml"),
+    "utf8",
+  );
+  const lanes = [
+    ...trustedWorkflow.matchAll(
+      /command: test:typescript:vitest --shard=(\d+)\/(\d+)/g,
+    ),
+  ].map((match) => [Number(match[1]), Number(match[2])]);
+  assert.ok(
+    lanes.length > 0,
+    "expected sharded test:typescript:vitest lanes in pr-trusted.yml",
+  );
+  assert.equal(
+    new Set(lanes.map(([, count]) => count)).size,
+    1,
+    "vitest lanes must agree on the shard count",
+  );
   const shardCount = lanes[0][1];
   assert.deepEqual(
     lanes.map(([index]) => index).sort((left, right) => left - right),
     Array.from({ length: shardCount }, (_, index) => index + 1),
     "vitest lanes must cover every shard exactly once",
   );
-  assert.equal(lanes.filter(([index, count]) => index === count).length, 1,
-    "exactly one final vitest shard carries the native-runner group");
+  assert.equal(
+    lanes.filter(([index, count]) => index === count).length,
+    1,
+    "exactly one final vitest shard carries the native-runner group",
+  );
 
   const runnerPackage = JSON.parse(
-    readFileSync(path.join(repoRoot, "packages/taskcore-runner/package.json"), "utf8"),
+    readFileSync(
+      path.join(repoRoot, "packages/taskcore-runner/package.json"),
+      "utf8",
+    ),
   );
-  assert.equal(runnerPackage.scripts["test:typescript:vitest"], "node ./scripts/run-pr-vitest-lane.mjs");
+  assert.equal(
+    runnerPackage.scripts["test:typescript:vitest"],
+    "node ./scripts/run-pr-vitest-lane.mjs",
+  );
 });
 
-const laneWrapper = path.join(repoRoot, "packages/taskcore-runner/scripts/run-pr-vitest-lane.mjs");
+const laneWrapper = path.join(
+  repoRoot,
+  "packages/taskcore-runner/scripts/run-pr-vitest-lane.mjs",
+);
 
 function wrapperPlan(args, envOverrides = {}) {
-  const result = spawnSync(process.execPath, [laneWrapper, ...args, "--dry-run"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    env: workflowEnv(envOverrides),
-  });
-  assert.equal(result.status, 0, `expected wrapper dry run to succeed for ${args.join(" ")}: ${result.stderr}`);
+  const result = spawnSync(
+    process.execPath,
+    [laneWrapper, ...args, "--dry-run"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: workflowEnv(envOverrides),
+    },
+  );
+  assert.equal(
+    result.status,
+    0,
+    `expected wrapper dry run to succeed for ${args.join(" ")}: ${result.stderr}`,
+  );
   return JSON.parse(result.stdout);
 }
 
@@ -421,55 +772,121 @@ test("the PR vitest lane wrapper runs the native-runner group exactly on the fin
     [[], {}, false],
   ]) {
     const plan = wrapperPlan(args, envOverrides);
-    assert.equal(plan.runNativeRunnerGroup, expected,
-      `args ${JSON.stringify(args)} env ${JSON.stringify(envOverrides)}`);
-    const commands = plan.plannedCommands.map((planned) => planned.args.join(" "));
-    assert.ok(commands.some((command) => command.startsWith(`exec vitest run${args.length ? ` ${args.join(" ")}` : ""}`)),
-      "the wrapper must pass shard flags through to vitest");
     assert.equal(
-      commands.some((command) => command.includes("--group general-server-native-runner")),
+      plan.runNativeRunnerGroup,
+      expected,
+      `args ${JSON.stringify(args)} env ${JSON.stringify(envOverrides)}`,
+    );
+    const commands = plan.plannedCommands.map((planned) =>
+      planned.args.join(" "),
+    );
+    assert.ok(
+      commands.some((command) =>
+        command.startsWith(
+          `exec vitest run${args.length ? ` ${args.join(" ")}` : ""}`,
+        ),
+      ),
+      "the wrapper must pass shard flags through to vitest",
+    );
+    assert.equal(
+      commands.some((command) =>
+        command.includes("--group general-server-native-runner"),
+      ),
       expected,
     );
   }
 
-  const malformed = spawnSync(process.execPath, [laneWrapper, "--shard=nonsense", "--dry-run"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    env: workflowEnv({ GITHUB_WORKFLOW: "PR" }),
-  });
-  assert.notEqual(malformed.status, 0, "a malformed shard flag must fail rather than guess a lane");
+  const malformed = spawnSync(
+    process.execPath,
+    [laneWrapper, "--shard=nonsense", "--dry-run"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: workflowEnv({ GITHUB_WORKFLOW: "PR" }),
+    },
+  );
+  assert.notEqual(
+    malformed.status,
+    0,
+    "a malformed shard flag must fail rather than guess a lane",
+  );
 });
 
-const lineShardFile = path.join(repoRoot, "server/src/__tests__/chat-channels.integration.test.ts");
-const caseAt = (line, name) => ({ name, file: lineShardFile, projectName: "@taskcore/server", location: { line, column: 3 } });
+const lineShardFile = path.join(
+  repoRoot,
+  "server/src/__tests__/chat-channels.integration.test.ts",
+);
+const caseAt = (line, name) => ({
+  name,
+  file: lineShardFile,
+  projectName: "@taskcore/server",
+  location: { line, column: 3 },
+});
 
 test("test-line shards cover nested and parameterized cases exactly once without splitting a source line", () => {
-  const cases = [caseAt(10, "suite > nested > first"), caseAt(10, "suite > nested > second"),
-    caseAt(20, "same name"), caseAt(30, "same name"), caseAt(40, "last"), caseAt(50, "new case")];
+  const cases = [
+    caseAt(10, "suite > nested > first"),
+    caseAt(10, "suite > nested > second"),
+    caseAt(20, "same name"),
+    caseAt(30, "same name"),
+    caseAt(40, "last"),
+    caseAt(50, "new case"),
+  ];
   const shards = partitionTestLines(cases, 3, lineShardFile);
-  assert.deepEqual(shards.map((shard) => shard.tests.length), [2, 2, 2]);
+  assert.deepEqual(
+    shards.map((shard) => shard.tests.length),
+    [2, 2, 2],
+  );
   assert.equal(shards.filter((shard) => shard.lines.includes(10)).length, 1);
-  assert.equal(shards.find((shard) => shard.lines.includes(10)).tests.length, 2);
+  assert.equal(
+    shards.find((shard) => shard.lines.includes(10)).tests.length,
+    2,
+  );
   assert.equal(shards.flatMap((shard) => shard.lines).length, 5);
-  assert.deepEqual(shards.flatMap((shard) => shard.tests).sort((a, b) => a.location.line - b.location.line), cases);
-  assert.deepEqual(partitionTestLines([...cases].reverse(), 3, lineShardFile).map((shard) => shard.lines), shards.map((shard) => shard.lines));
+  assert.deepEqual(
+    shards
+      .flatMap((shard) => shard.tests)
+      .sort((a, b) => a.location.line - b.location.line),
+    cases,
+  );
+  assert.deepEqual(
+    partitionTestLines([...cases].reverse(), 3, lineShardFile).map(
+      (shard) => shard.lines,
+    ),
+    shards.map((shard) => shard.lines),
+  );
 });
 
 test("line-shard collection rejects empty, foreign, or unlocated tests and invalid shard counts", () => {
   const good = caseAt(10, "valid");
-  for (const input of [[], null, [{ ...good, file: "/another.test.ts" }], [{ ...good, projectName: "wrong" }],
-    [{ ...good, location: undefined }], [{ ...good, location: { line: 0 } }], [{ ...good, name: "" }]]) {
+  for (const input of [
+    [],
+    null,
+    [{ ...good, file: "/another.test.ts" }],
+    [{ ...good, projectName: "wrong" }],
+    [{ ...good, location: undefined }],
+    [{ ...good, location: { line: 0 } }],
+    [{ ...good, name: "" }],
+  ]) {
     assert.throws(() => partitionTestLines(input, 1, lineShardFile));
   }
-  for (const count of [0, -1, 1.5, Infinity, 2]) assert.throws(() => partitionTestLines([good], count, lineShardFile));
+  for (const count of [0, -1, 1.5, Infinity, 2])
+    assert.throws(() => partitionTestLines([good], count, lineShardFile));
 });
 
 test("filtered collection must match the exact assigned case identities, including duplicates", () => {
-  const expected = [caseAt(10, "same"), caseAt(10, "same"), caseAt(20, "nested > case")];
+  const expected = [
+    caseAt(10, "same"),
+    caseAt(10, "same"),
+    caseAt(20, "nested > case"),
+  ];
   assertSelectedTests(expected, [...expected].reverse(), lineShardFile);
-  for (const actual of [expected.slice(1), [...expected, caseAt(30, "extra")],
+  for (const actual of [
+    expected.slice(1),
+    [...expected, caseAt(30, "extra")],
     [expected[0], expected[1], caseAt(20, "renamed")],
-    [expected[0], expected[1], caseAt(21, "nested > case")]]) {
+    [expected[0], expected[1], caseAt(21, "nested > case")],
+  ]) {
     assert.throws(() => assertSelectedTests(expected, actual, lineShardFile));
   }
 });

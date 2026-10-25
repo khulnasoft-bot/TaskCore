@@ -21,7 +21,9 @@ vi.mock("./MarkdownBody", () => ({
     <div
       className={className}
       data-testid="markdown-body"
-      data-external-reference-keys={externalReferences ? Object.keys(externalReferences).join(",") : ""}
+      data-external-reference-keys={
+        externalReferences ? Object.keys(externalReferences).join(",") : ""
+      }
     >
       {children}
     </div>
@@ -29,7 +31,11 @@ vi.mock("./MarkdownBody", () => ({
 }));
 
 vi.mock("./MarkdownEditor", () => ({
-  MarkdownEditor: ({ value, onChange, placeholder }: {
+  MarkdownEditor: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
@@ -60,8 +66,16 @@ vi.mock("./ApprovalCard", () => ({
     <div>
       <div>{approval.type}</div>
       <div>{String(approval.payload.title ?? "")}</div>
-      {onApprove ? <button type="button" onClick={onApprove}>Approve</button> : null}
-      {onReject ? <button type="button" onClick={onReject}>Reject</button> : null}
+      {onApprove ? (
+        <button type="button" onClick={onApprove}>
+          Approve
+        </button>
+      ) : null}
+      {onReject ? (
+        <button type="button" onClick={onReject}>
+          Reject
+        </button>
+      ) : null}
     </div>
   ),
 }));
@@ -134,14 +148,16 @@ describe("CommentThread", () => {
         <MemoryRouter>
           <CommentThread
             comments={[]}
-            linkedRuns={[{
-              runId: "run-12345678abcd",
-              status: "succeeded",
-              agentId: "agent-1",
-              createdAt: "2026-03-11T07:00:00.000Z",
-              startedAt: "2026-03-11T08:00:00.000Z",
-              finishedAt: "2026-03-11T10:00:00.000Z",
-            }]}
+            linkedRuns={[
+              {
+                runId: "run-12345678abcd",
+                status: "succeeded",
+                agentId: "agent-1",
+                createdAt: "2026-03-11T07:00:00.000Z",
+                startedAt: "2026-03-11T08:00:00.000Z",
+                finishedAt: "2026-03-11T10:00:00.000Z",
+              },
+            ]}
             agentMap={new Map([["agent-1", agent]])}
             onAdd={async () => {}}
           />
@@ -149,7 +165,9 @@ describe("CommentThread", () => {
       );
     });
 
-    const runRow = container.querySelector("#run-run-12345678abcd") as HTMLDivElement | null;
+    const runRow = container.querySelector(
+      "#run-run-12345678abcd",
+    ) as HTMLDivElement | null;
     expect(runRow).not.toBeNull();
     expect(runRow?.className).toContain("py-1.5");
     expect(runRow?.className).toContain("items-center");
@@ -158,7 +176,9 @@ describe("CommentThread", () => {
     expect(container.textContent).toContain("succeeded");
     expect(container.textContent).toContain("2h ago");
     expect(container.textContent).not.toContain("4h ago");
-    const runLink = container.querySelector('a[href="/agents/agent-1/runs/run-12345678abcd"]') as HTMLAnchorElement | null;
+    const runLink = container.querySelector(
+      'a[href="/agents/agent-1/runs/run-12345678abcd"]',
+    ) as HTMLAnchorElement | null;
     expect(runLink?.textContent).toContain("run-1234");
     expect(runLink?.className).toContain("rounded-md");
     expect(runLink?.className).toContain("px-2");
@@ -184,7 +204,9 @@ describe("CommentThread", () => {
     });
 
     expect(container.textContent).toContain("Workspace is closed.");
-    expect(container.querySelector('textarea[aria-label="Comment editor"]')).toBeNull();
+    expect(
+      container.querySelector('textarea[aria-label="Comment editor"]'),
+    ).toBeNull();
     expect(container.textContent).not.toContain("Comment");
 
     act(() => {
@@ -199,28 +221,32 @@ describe("CommentThread", () => {
       root.render(
         <MemoryRouter>
           <CommentThread
-            comments={[{
-              id: "comment-1",
-              companyId: "company-1",
-              issueId: "issue-1",
-              authorAgentId: null,
-              authorUserId: "local-board",
-              body: "Please continue validation.",
-              authorType: "user",
-              presentation: null,
-              metadata: null,
-              followUpRequested: true,
-              createdAt: new Date("2026-03-11T10:00:00.000Z"),
-              updatedAt: new Date("2026-03-11T10:00:00.000Z"),
-            }]}
-            timelineEvents={[{
-              id: "event-1",
-              actorType: "agent",
-              actorId: "agent-1",
-              createdAt: new Date("2026-03-11T10:00:00.000Z"),
-              commentId: "comment-1",
-              followUpRequested: true,
-            }]}
+            comments={[
+              {
+                id: "comment-1",
+                companyId: "company-1",
+                issueId: "issue-1",
+                authorAgentId: null,
+                authorUserId: "local-board",
+                body: "Please continue validation.",
+                authorType: "user",
+                presentation: null,
+                metadata: null,
+                followUpRequested: true,
+                createdAt: new Date("2026-03-11T10:00:00.000Z"),
+                updatedAt: new Date("2026-03-11T10:00:00.000Z"),
+              },
+            ]}
+            timelineEvents={[
+              {
+                id: "event-1",
+                actorType: "agent",
+                actorId: "agent-1",
+                createdAt: new Date("2026-03-11T10:00:00.000Z"),
+                commentId: "comment-1",
+                followUpRequested: true,
+              },
+            ]}
             onAdd={async () => {}}
           />
         </MemoryRouter>,
@@ -254,7 +280,9 @@ describe("CommentThread", () => {
 
     expect(container.textContent).not.toContain("Re-open");
 
-    const editor = container.querySelector('textarea[aria-label="Comment editor"]') as HTMLTextAreaElement | null;
+    const editor = container.querySelector(
+      'textarea[aria-label="Comment editor"]',
+    ) as HTMLTextAreaElement | null;
     const submitButton = Array.from(container.querySelectorAll("button")).find(
       (element) => element.textContent === "Comment",
     ) as HTMLButtonElement | undefined;
@@ -274,7 +302,11 @@ describe("CommentThread", () => {
       submitButton?.click();
     });
 
-    expect(onAdd).toHaveBeenCalledWith("Please pick this back up", true, undefined);
+    expect(onAdd).toHaveBeenCalledWith(
+      "Please pick this back up",
+      true,
+      undefined,
+    );
 
     act(() => {
       root.unmount();
@@ -340,7 +372,9 @@ describe("CommentThread", () => {
       );
     });
 
-    const approvalRow = container.querySelector("#approval-approval-1") as HTMLDivElement | null;
+    const approvalRow = container.querySelector(
+      "#approval-approval-1",
+    ) as HTMLDivElement | null;
     expect(approvalRow).not.toBeNull();
     expect(container.textContent).toContain("request_board_approval");
     expect(container.textContent).toContain("Approve hosting spend");
@@ -359,19 +393,21 @@ describe("CommentThread", () => {
       root.render(
         <MemoryRouter>
           <CommentThread
-            comments={[{
-              id: "comment-1",
-              companyId: "company-1",
-              issueId: "issue-1",
-              authorAgentId: null,
-              authorUserId: "user-1",
-              body: "Hello from the comment body",
-              authorType: "user",
-              presentation: null,
-              metadata: null,
-              createdAt: new Date("2026-03-11T11:00:00.000Z"),
-              updatedAt: new Date("2026-03-11T11:00:00.000Z"),
-            }]}
+            comments={[
+              {
+                id: "comment-1",
+                companyId: "company-1",
+                issueId: "issue-1",
+                authorAgentId: null,
+                authorUserId: "user-1",
+                body: "Hello from the comment body",
+                authorType: "user",
+                presentation: null,
+                metadata: null,
+                createdAt: new Date("2026-03-11T11:00:00.000Z"),
+                updatedAt: new Date("2026-03-11T11:00:00.000Z"),
+              },
+            ]}
             onAdd={async () => {}}
           />
         </MemoryRouter>,
@@ -379,7 +415,8 @@ describe("CommentThread", () => {
     });
 
     const copyButton = Array.from(container.querySelectorAll("button")).find(
-      (element) => element.getAttribute("aria-label") === "Copy comment as markdown",
+      (element) =>
+        element.getAttribute("aria-label") === "Copy comment as markdown",
     ) as HTMLButtonElement | undefined;
 
     expect(copyButton).toBeDefined();
@@ -417,19 +454,21 @@ describe("CommentThread", () => {
       root.render(
         <MemoryRouter>
           <CommentThread
-            comments={[{
-              id: "comment-ref",
-              companyId: "company-1",
-              issueId: "issue-1",
-              authorAgentId: null,
-              authorUserId: "user-1",
-              authorType: "user",
-              presentation: null,
-              metadata: null,
-              body: "See https://github.com/example/repo/pull/42 for context.",
-              createdAt: new Date("2026-03-11T11:00:00.000Z"),
-              updatedAt: new Date("2026-03-11T11:00:00.000Z"),
-            }]}
+            comments={[
+              {
+                id: "comment-ref",
+                companyId: "company-1",
+                issueId: "issue-1",
+                authorAgentId: null,
+                authorUserId: "user-1",
+                authorType: "user",
+                presentation: null,
+                metadata: null,
+                body: "See https://github.com/example/repo/pull/42 for context.",
+                createdAt: new Date("2026-03-11T11:00:00.000Z"),
+                updatedAt: new Date("2026-03-11T11:00:00.000Z"),
+              },
+            ]}
             externalReferences={{
               "https://github.com/example/repo/pull/42": {
                 providerKey: "github",
@@ -446,11 +485,16 @@ describe("CommentThread", () => {
       );
     });
 
-    const commentRow = container.querySelector("#comment-comment-ref") as HTMLDivElement | null;
+    const commentRow = container.querySelector(
+      "#comment-comment-ref",
+    ) as HTMLDivElement | null;
     expect(commentRow).not.toBeNull();
-    const markdownBody = commentRow?.querySelector('[data-testid="markdown-body"]') as HTMLElement | null;
-    expect(markdownBody?.getAttribute("data-external-reference-keys"))
-      .toContain("https://github.com/example/repo/pull/42");
+    const markdownBody = commentRow?.querySelector(
+      '[data-testid="markdown-body"]',
+    ) as HTMLElement | null;
+    expect(
+      markdownBody?.getAttribute("data-external-reference-keys"),
+    ).toContain("https://github.com/example/repo/pull/42");
 
     act(() => {
       root.unmount();

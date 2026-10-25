@@ -41,7 +41,10 @@ import type {
   DurableRecoveryCommittedEvent,
   DurableRecoveryIdentity,
 } from "../contracts/durable-recovery.js";
-import type { NativeRunIdentity, NativeTurnControlCapabilities } from "../contracts/types.js";
+import type {
+  NativeRunIdentity,
+  NativeTurnControlCapabilities,
+} from "../contracts/types.js";
 import type { PrpEvent } from "../protocol/replay-contract.js";
 import { NativeSessionCloseUnrecoverableError } from "../contracts/native-session-backend.js";
 import type {
@@ -64,12 +67,19 @@ import {
   resolveQualifiedAcpxProfile,
   type QualifiedAcpxAgent,
 } from "../drivers/acpx/qualified-profiles.js";
-import { ACPX_CREDENTIAL_BINDING_ENV, createAcpxCredentialBinding, createSanitizedAcpxSpawnInput } from "../drivers/acpx/environment.js";
+import {
+  ACPX_CREDENTIAL_BINDING_ENV,
+  createAcpxCredentialBinding,
+  createSanitizedAcpxSpawnInput,
+} from "../drivers/acpx/environment.js";
 import {
   createSanitizedAwsAgentCoreEnvironment,
   createSanitizedClaudeManagedEnvironment,
 } from "../drivers/claude-managed/environment.js";
-import { composeNativeSystemInstructions, type NativeRuntimeContextSnapshot } from "../contracts/runtime-context.js";
+import {
+  composeNativeSystemInstructions,
+  type NativeRuntimeContextSnapshot,
+} from "../contracts/runtime-context.js";
 import type {
   NativeAcpxPermissionMode,
   NativeOpenCodePermissionMode,
@@ -425,7 +435,10 @@ function rotatedRunAttachPayload(
   completionContract:
     { revision: string; criterionIds: readonly string[] } | undefined,
   runtimeContext?: NativeRuntimeContextSnapshot | null,
-  currentInstructions?: { text: string; context: NativeRuntimeContextSnapshot | null },
+  currentInstructions?: {
+    text: string;
+    context: NativeRuntimeContextSnapshot | null;
+  },
 ): Record<string, unknown> {
   const commands = Array.isArray(state.commands)
     ? state.commands.map(record)
@@ -462,19 +475,30 @@ function retargetComposedInstructions(
   current: NativeRuntimeContextSnapshot | null,
 ): string {
   const priorPrefix = prior.prompt.text;
-  const priorSuffix = composeNativeSystemInstructions(prior, "").slice(priorPrefix.length);
+  const priorSuffix = composeNativeSystemInstructions(prior, "").slice(
+    priorPrefix.length,
+  );
   // Legacy callers can supply opaque system instructions. Only the composer's
   // exact framing identifies a trusted asset block; never rewrite their text.
-  if (!instructions.startsWith(priorPrefix) || !instructions.endsWith(priorSuffix)) {
+  if (
+    !instructions.startsWith(priorPrefix) ||
+    !instructions.endsWith(priorSuffix)
+  ) {
     return instructions;
   }
   const custom = instructions.slice(priorPrefix.length, -priorSuffix.length);
   if (custom && !custom.startsWith("\n\n")) return instructions;
   // Keep custom entry bytes intact, including historical path examples or an
   // identical paragraph quoted inside the entry. Only replace the final block.
-  return (current?.prompt.text ?? priorPrefix) + custom + (current
-    ? composeNativeSystemInstructions(current, "").slice(current.prompt.text.length)
-    : "");
+  return (
+    (current?.prompt.text ?? priorPrefix) +
+    custom +
+    (current
+      ? composeNativeSystemInstructions(current, "").slice(
+          current.prompt.text.length,
+        )
+      : "")
+  );
 }
 
 function retargetRunAttachPayload(
@@ -484,7 +508,10 @@ function retargetRunAttachPayload(
   completionContract:
     { revision: string; criterionIds: readonly string[] } | undefined,
   runtimeContext?: NativeRuntimeContextSnapshot | null,
-  currentInstructions?: { text: string; context: NativeRuntimeContextSnapshot | null },
+  currentInstructions?: {
+    text: string;
+    context: NativeRuntimeContextSnapshot | null;
+  },
 ): Record<string, unknown> {
   const payload = structuredClone(seedPayload);
   const provider = record(payload.provider);
@@ -497,9 +524,16 @@ function retargetRunAttachPayload(
     if (runtimeContext !== undefined) {
       if (currentInstructions !== undefined) {
         provider.instructions = currentInstructions.context
-          ? retargetComposedInstructions(currentInstructions.text, currentInstructions.context, runtimeContext)
+          ? retargetComposedInstructions(
+              currentInstructions.text,
+              currentInstructions.context,
+              runtimeContext,
+            )
           : currentInstructions.text;
-      } else if (typeof provider.instructions === "string" && provider.runtimeContext) {
+      } else if (
+        typeof provider.instructions === "string" &&
+        provider.runtimeContext
+      ) {
         provider.instructions = retargetComposedInstructions(
           provider.instructions,
           provider.runtimeContext as NativeRuntimeContextSnapshot,
@@ -921,16 +955,24 @@ export function bridgedAcpxPermissionParams(
   threadId: string,
   turnId: string,
 ): Record<string, unknown> | null {
-  const request = record(record(record(event.envelope.payload).payload).request);
-  if (event.eventType !== "runtime_request.created"
-    || request.type !== "permission" || request.requestKind !== "permission_approval"
-    || record(request.origin).method !== "session/request_permission") return null;
+  const request = record(
+    record(record(event.envelope.payload).payload).request,
+  );
+  if (
+    event.eventType !== "runtime_request.created" ||
+    request.type !== "permission" ||
+    request.requestKind !== "permission_approval" ||
+    record(request.origin).method !== "session/request_permission"
+  )
+    return null;
   const toolCallId = record(request.details).toolCallId;
   // Match the permission adapter's 240-character bound. Never truncate, trim,
   // hash, or substitute itemId: any of those would change the correlation key.
-  const validToolCallId = typeof toolCallId === "string"
-    && toolCallId.trim().length > 0 && toolCallId.length <= 240
-    && !/[\u0000-\u001f\u007f-\u009f]/.test(toolCallId);
+  const validToolCallId =
+    typeof toolCallId === "string" &&
+    toolCallId.trim().length > 0 &&
+    toolCallId.length <= 240 &&
+    !/[\u0000-\u001f\u007f-\u009f]/.test(toolCallId);
   return {
     threadId,
     turnId,
@@ -966,8 +1008,15 @@ export function bridgedCodexQuestionParams(
   // ACPX has already normalized and bound these IDs in Rust. Reconstructing a
   // Codex form here would change option IDs and break the answer's return path.
   if (isAcpxCanonicalInputMethod(method)) {
-    return { ...common, questionSet, origin: request.origin,
-      message: questionSet.description ?? questionSet.title ?? "A tool needs your input" };
+    return {
+      ...common,
+      questionSet,
+      origin: request.origin,
+      message:
+        questionSet.description ??
+        questionSet.title ??
+        "A tool needs your input",
+    };
   }
   if (method === "mcpServer/elicitation/request") {
     const required: string[] = [];
@@ -1225,7 +1274,11 @@ export interface CapabilityRunnerdCodexTransportOptions {
   onEvidence?: (evidence: Readonly<CapabilityRunnerdProcessEvidence>) => void;
   /** Persist process ownership immediately after spawn, before waiting for
    * provider bootstrap or activating a deferred PRP registration. */
-  onSpawn?: (meta: { pid: number; processGroupId: number | null; startedAt: string }) => Promise<void>;
+  onSpawn?: (meta: {
+    pid: number;
+    processGroupId: number | null;
+    startedAt: string;
+  }) => Promise<void>;
   stateDirectory?: string;
   lifecyclePolicy?:
     | { mode: "per_turn"; idleTimeoutMs: null }
@@ -1377,15 +1430,17 @@ export function latestRunnerdSessionReadiness(
       event.eventType !== "harness.ready" &&
       event.eventType !== "session.started" &&
       event.eventType !== "session.resumed"
-    ) continue;
+    )
+      continue;
     return record(record(record(event.envelope).payload).payload);
   }
   return null;
 }
 
-export function unseenRunnerdCommittedEvents<
-  T extends { sourceSeq: number },
->(events: readonly T[], lastSourceSeq: number): T[] {
+export function unseenRunnerdCommittedEvents<T extends { sourceSeq: number }>(
+  events: readonly T[],
+  lastSourceSeq: number,
+): T[] {
   const unseen = events.filter((event) => event.sourceSeq > lastSourceSeq);
   if (unseen.length === 0) return [];
   let expectedSourceSeq = lastSourceSeq + 1;
@@ -1413,7 +1468,7 @@ export function expandRunnerdCanonicalNotifications(
     // payload after expansion, never using the envelope's kind.
     return {
       method: eventType
-        ? runnerdCanonicalNotificationMethod(eventType, params) ?? method
+        ? (runnerdCanonicalNotificationMethod(eventType, params) ?? method)
         : method,
       params,
     };
@@ -1507,19 +1562,30 @@ class NotificationQueue implements AsyncIterable<CodexRpcNotification> {
 
   push(value: CodexRpcNotification): void {
     if (this.#closed) return;
-    this.#push({ kind: "notification", value, bytes: Buffer.byteLength(JSON.stringify(value)) });
+    this.#push({
+      kind: "notification",
+      value,
+      bytes: Buffer.byteLength(JSON.stringify(value)),
+    });
   }
 
   pushControl(value: CodexRpcServerRequest, dispatch: () => void): void {
     if (this.#closed) return;
     // Count the retained request just like notification payloads. The callback
     // is internal; a provider notification cannot create a control entry.
-    this.#push({ kind: "control", dispatch, bytes: Buffer.byteLength(JSON.stringify(value)) });
+    this.#push({
+      kind: "control",
+      dispatch,
+      bytes: Buffer.byteLength(JSON.stringify(value)),
+    });
   }
 
   #push(entry: NotificationQueueEntry): void {
     if (this.#closed) return;
-    if (this.#values.length >= MAX_NOTIFICATION_COUNT || this.#bytes + entry.bytes > MAX_NOTIFICATION_BYTES) {
+    if (
+      this.#values.length >= MAX_NOTIFICATION_COUNT ||
+      this.#bytes + entry.bytes > MAX_NOTIFICATION_BYTES
+    ) {
       throw new Error("PRP provider notification queue bound exceeded");
     }
     this.#values.push(entry);
@@ -1554,7 +1620,7 @@ class NotificationQueue implements AsyncIterable<CodexRpcNotification> {
             }
             return { value: queued.value, done: false };
           }
-          await new Promise<void>(resolve => this.#waiters.push(resolve));
+          await new Promise<void>((resolve) => this.#waiters.push(resolve));
         }
       },
     };
@@ -1572,15 +1638,15 @@ function appServerThreadGoal(
   threadId: string,
 ): Record<string, unknown> | null {
   const goal = record(value);
-  const objective = typeof goal.objective === "string"
-    ? goal.objective.trim()
-    : "";
+  const objective =
+    typeof goal.objective === "string" ? goal.objective.trim() : "";
   const rawStatus = typeof goal.status === "string" ? goal.status : "";
-  const status = rawStatus === "usage_limited"
-    ? "usageLimited"
-    : rawStatus === "budget_limited"
-      ? "budgetLimited"
-      : rawStatus;
+  const status =
+    rawStatus === "usage_limited"
+      ? "usageLimited"
+      : rawStatus === "budget_limited"
+        ? "budgetLimited"
+        : rawStatus;
   if (
     objective.length === 0 ||
     ![
@@ -1592,7 +1658,8 @@ function appServerThreadGoal(
       "budgetLimited",
       "complete",
     ].includes(status)
-  ) return null;
+  )
+    return null;
 
   const epochSeconds = (timestamp: unknown): number => {
     if (typeof timestamp === "number" && Number.isFinite(timestamp)) {
@@ -1607,8 +1674,7 @@ function appServerThreadGoal(
     threadId,
     objective,
     status,
-    tokenBudget:
-      typeof goal.tokenBudget === "number" ? goal.tokenBudget : null,
+    tokenBudget: typeof goal.tokenBudget === "number" ? goal.tokenBudget : null,
     tokensUsed: typeof goal.tokensUsed === "number" ? goal.tokensUsed : 0,
     timeUsedSeconds:
       typeof goal.timeUsedSeconds === "number"
@@ -2041,7 +2107,10 @@ const activeMaintenanceRoots = new Set<string>();
 /** No absence claim about an old child; only this controller's joined work. */
 export function retainedRunnerdMaintenanceIsIdle(directory: string): boolean {
   const root = resolve(directory);
-  return !activeMaintenanceRoots.has(root) && !retainedMaintenanceOperations.has(root);
+  return (
+    !activeMaintenanceRoots.has(root) &&
+    !retainedMaintenanceOperations.has(root)
+  );
 }
 
 /** A timeout revokes cleanup authority, not ownership of an already-started
@@ -2972,10 +3041,13 @@ function acpxProviderPackageAuthority(
   const cliDirectory = dirname(sidecarScript);
   // Public server packages vendor runner dist directly, without a nested dist
   // directory or a separately published runner package.
-  if (basename(sidecarScript) === "acpx-runtime-sidecar.cjs" &&
-      basename(cliDirectory) === "cli" && basename(dirname(cliDirectory)) === "taskcore-runner" &&
-      basename(resolve(cliDirectory, "../..")) === "vendor" &&
-      basename(resolve(cliDirectory, "../../..")) === "dist") {
+  if (
+    basename(sidecarScript) === "acpx-runtime-sidecar.cjs" &&
+    basename(cliDirectory) === "cli" &&
+    basename(dirname(cliDirectory)) === "taskcore-runner" &&
+    basename(resolve(cliDirectory, "../..")) === "vendor" &&
+    basename(resolve(cliDirectory, "../../..")) === "dist"
+  ) {
     const serverRoot = resolve(cliDirectory, "../../../..");
     return { root: serverRoot, manifest: resolve(serverRoot, "package.json") };
   }
@@ -3174,8 +3246,11 @@ export function runnerCodexDynamicToolsFit(
   const supplied = [...tools, ...codexSemanticToolSpecs()];
   // Keep these bounds aligned with runner-core/provider_bridge.rs. Project
   // large optional catalogs before run.prepare; never raise the protocol caps.
-  return supplied.length <= 256 &&
-    Buffer.byteLength(JSON.stringify(authorizedToolSet(supplied)), "utf8") <= 768 * 1024;
+  return (
+    supplied.length <= 256 &&
+    Buffer.byteLength(JSON.stringify(authorizedToolSet(supplied)), "utf8") <=
+      768 * 1024
+  );
 }
 
 /**
@@ -3233,21 +3308,34 @@ export function createCapabilityRunnerdProviderEnvironment(input: {
     const providerPackageAuthority = acpxProviderPackageAuthority(sidecarPath);
     // This is the trusted runner/sidecar boundary. The provider sandbox still
     // uses createSanitizedAcpxSpawnInput and does not inherit gateway tokens.
-    const assignedGateway = nativeMcpLaunchBinding(input.options.environment ?? {});
+    const assignedGateway = nativeMcpLaunchBinding(
+      input.options.environment ?? {},
+    );
     const credentialBinding = createAcpxCredentialBinding(
-      input.options.environment, input.options.acpxAgent ?? "codex", input.identity.normalizedSessionId,
+      input.options.environment,
+      input.options.acpxAgent ?? "codex",
+      input.identity.normalizedSessionId,
     );
     return {
-      ...(assignedGateway ? {
-        TASKCORE_NATIVE_MCP_TOKEN: assignedGateway.token,
-      } : {}),
+      ...(assignedGateway
+        ? {
+            TASKCORE_NATIVE_MCP_TOKEN: assignedGateway.token,
+          }
+        : {}),
       ...createSanitizedAcpxSpawnInput(
         input.options.environment,
         input.options.acpxAgent ?? "codex",
       ).env,
-      ...(credentialBinding === undefined ? {} : { [ACPX_CREDENTIAL_BINDING_ENV]: credentialBinding }),
-      ...(input.options.acpxAgent === "grok" && input.options.environment?.TASKCORE_ACPX_GROK_AUTH_JSON_SECRET
-        ? { TASKCORE_ACPX_GROK_AUTH_JSON_SECRET: input.options.environment.TASKCORE_ACPX_GROK_AUTH_JSON_SECRET } : {}),
+      ...(credentialBinding === undefined
+        ? {}
+        : { [ACPX_CREDENTIAL_BINDING_ENV]: credentialBinding }),
+      ...(input.options.acpxAgent === "grok" &&
+      input.options.environment?.TASKCORE_ACPX_GROK_AUTH_JSON_SECRET
+        ? {
+            TASKCORE_ACPX_GROK_AUTH_JSON_SECRET:
+              input.options.environment.TASKCORE_ACPX_GROK_AUTH_JSON_SECRET,
+          }
+        : {}),
       ...commonIdentity,
       // The verified sidecar bundle cannot use import.meta.url while Node
       // executes it through /proc/self/fd. Anchor its closed provider package
@@ -3301,7 +3389,9 @@ export function resolveRunnerdAcpxPermissionMode(
 const OPEN_CODE_RUNNER_ENVIRONMENT_KEYS = new Set([
   "TASKCORE_AI_PROVIDER_KEY",
   "TASKCORE_AI_PROVIDER_URL",
-  "TASKCORE_AGENT_KEY_ID", "TASKCORE_AGENT_PUBLIC_KEY", "TASKCORE_AGENT_PRIVATE_KEY",
+  "TASKCORE_AGENT_KEY_ID",
+  "TASKCORE_AGENT_PUBLIC_KEY",
+  "TASKCORE_AGENT_PRIVATE_KEY",
   "PATH",
   "LANG",
   "LANGUAGE",
@@ -3336,18 +3426,25 @@ function createSanitizedOpenCodeRunnerEnvironment(
   source: NodeJS.ProcessEnv | undefined,
 ): NodeJS.ProcessEnv {
   const candidate = { ...process.env, ...source };
-  for (const key of ["TASKCORE_AGENT_KEY_ID", "TASKCORE_AGENT_PUBLIC_KEY", "TASKCORE_AGENT_PRIVATE_KEY"]) {
+  for (const key of [
+    "TASKCORE_AGENT_KEY_ID",
+    "TASKCORE_AGENT_PUBLIC_KEY",
+    "TASKCORE_AGENT_PRIVATE_KEY",
+  ]) {
     delete candidate[key];
     if (source?.[key] !== undefined) candidate[key] = source[key];
   }
-  return { ...configuredEnvironment(source), ...Object.fromEntries(
-    Object.entries(candidate).filter(
-      ([key, value]) =>
-        typeof value === "string" &&
-        (OPEN_CODE_RUNNER_ENVIRONMENT_KEYS.has(key) ||
-          /^LC_[A-Z0-9_]{1,32}$/.test(key)),
+  return {
+    ...configuredEnvironment(source),
+    ...Object.fromEntries(
+      Object.entries(candidate).filter(
+        ([key, value]) =>
+          typeof value === "string" &&
+          (OPEN_CODE_RUNNER_ENVIRONMENT_KEYS.has(key) ||
+            /^LC_[A-Z0-9_]{1,32}$/.test(key)),
+      ),
     ),
-  ) };
+  };
 }
 
 export function resolveSourceCodexHome(
@@ -3395,12 +3492,21 @@ export function createRunnerdCodexAppServerArgs(input: {
       HOME: input.codexHome,
       CODEX_HOME: input.codexHome,
     },
-    [...(input.readOnlyRoots ?? []), ...codexExecutableReadOnlyRoots(input.environment ?? {}, input.codexCommand)],
+    [
+      ...(input.readOnlyRoots ?? []),
+      ...codexExecutableReadOnlyRoots(
+        input.environment ?? {},
+        input.codexCommand,
+      ),
+    ],
     input.instructionWorkingCopyRoot,
   );
 }
 
-export function unwrapToolResponse(response: Record<string, unknown>, preserveEnvelope = false): {
+export function unwrapToolResponse(
+  response: Record<string, unknown>,
+  preserveEnvelope = false,
+): {
   readonly __taskcoreSemanticToolOutcome: true;
   readonly result: unknown;
   readonly isError: boolean;
@@ -3411,7 +3517,8 @@ export function unwrapToolResponse(response: Record<string, unknown>, preserveEn
   const value = record(items[0]).text;
   let result: unknown = response;
   try {
-    if (!preserveEnvelope && typeof value === "string") result = JSON.parse(value);
+    if (!preserveEnvelope && typeof value === "string")
+      result = JSON.parse(value);
   } catch {
     result = response;
   }
@@ -3433,14 +3540,22 @@ export function parseAcpxTurnControlCapabilities(
     throw new Error("ACPX turn control capabilities are malformed");
   }
   const controls = value as Record<string, unknown>;
-  if (Object.keys(controls).some(key => key !== "steering" && key !== "queuedFollowUp")
-    || typeof controls.steering !== "boolean" || typeof controls.queuedFollowUp !== "boolean") {
+  if (
+    Object.keys(controls).some(
+      (key) => key !== "steering" && key !== "queuedFollowUp",
+    ) ||
+    typeof controls.steering !== "boolean" ||
+    typeof controls.queuedFollowUp !== "boolean"
+  ) {
     throw new Error("ACPX turn control capabilities are malformed");
   }
   if (agent !== "pi" && (controls.steering || controls.queuedFollowUp)) {
     throw new Error("ACPX profile cannot advertise these turn controls");
   }
-  return { steering: controls.steering, queuedFollowUp: controls.queuedFollowUp };
+  return {
+    steering: controls.steering,
+    queuedFollowUp: controls.queuedFollowUp,
+  };
 }
 
 class DurablePrpCodexTransport implements CodexAppServerTransport {
@@ -3475,11 +3590,15 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
   #threadId = "";
   #sessionId: string | null = null;
   #providerIdentity: Record<string, unknown> | null = null;
-  #turnControls: NativeTurnControlCapabilities = { steering: false, queuedFollowUp: false };
+  #turnControls: NativeTurnControlCapabilities = {
+    steering: false,
+    queuedFollowUp: false,
+  };
 
   turnControlCapabilities(): NativeTurnControlCapabilities | null {
     if (this.options.provider !== "acpx") return null;
-    if (this.#closed || this.#failure) return { steering: false, queuedFollowUp: false };
+    if (this.#closed || this.#failure)
+      return { steering: false, queuedFollowUp: false };
     return { ...this.#turnControls };
   }
   #providerIdentityEventType:
@@ -3521,20 +3640,29 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
   readonly #traceFrameIndex = new RunnerdTraceFrameIndex();
   #pendingTraceRehydrations: PendingTraceRehydration[] = [];
   #pendingDriverTraceInterpretations: PendingDriverTraceInterpretation[] = [];
-  readonly #bridgedRuntimeInputs = new Map<string, { durableTurnId: string; permission?: boolean }>();
+  readonly #bridgedRuntimeInputs = new Map<
+    string,
+    { durableTurnId: string; permission?: boolean }
+  >();
 
   constructor(readonly options: CapabilityRunnerdCodexTransportOptions) {
     if (options.acpxMode !== undefined && options.provider !== "acpx") {
       throw new Error("acpxMode requires the ACPX provider");
     }
-    if (options.provider === "acpx") resolveAcpxProviderMode(options.acpxAgent ?? "codex", options.acpxMode);
+    if (options.provider === "acpx")
+      resolveAcpxProviderMode(options.acpxAgent ?? "codex", options.acpxMode);
     if (options.adoptExistingRunner && !options.stateDirectory?.trim()) {
       throw new Error("native_adopted_runner_state_directory_required");
     }
-    if (options.provider === "acpx" && options.acpxAgent !== undefined
-      && ["pi", "copilot"].includes(options.acpxAgent)
-      && options.acpxCandidateProfile !== options.acpxAgent) {
-      throw new Error("The candidate ACPX profile requires explicit evaluation opt-in");
+    if (
+      options.provider === "acpx" &&
+      options.acpxAgent !== undefined &&
+      ["pi", "copilot"].includes(options.acpxAgent) &&
+      options.acpxCandidateProfile !== options.acpxAgent
+    ) {
+      throw new Error(
+        "The candidate ACPX profile requires explicit evaluation opt-in",
+      );
     }
     this.#failureSignal = new Promise<never>((_resolve, reject) => {
       this.#rejectFailureSignal = reject;
@@ -3648,7 +3776,12 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
           ? params.expectedTurnId
           : this.#turnId;
       if (!text.trim()) throw new Error("turn/steer requires a message");
-      if (params.mode !== undefined && params.mode !== "steer" && params.mode !== "follow_up") throw new Error("turn/steer mode is invalid");
+      if (
+        params.mode !== undefined &&
+        params.mode !== "steer" &&
+        params.mode !== "follow_up"
+      )
+        throw new Error("turn/steer mode is invalid");
       if (expectedTurnId !== this.#turnId)
         throw new Error("turn/steer named a stale turn");
       const correlationId =
@@ -3673,44 +3806,96 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
       return {};
     }
     if (method === "thread/turns/list" || method === "thread/items/list") {
-      if (params.threadId !== this.#threadId) throw new Error("codex_history_identity_mismatch");
-      const snapshot = await this.request("thread/read", { threadId: this.#threadId, includeTurns: false });
-      const turns = record(snapshot.thread).turns as Array<Record<string, unknown>>;
+      if (params.threadId !== this.#threadId)
+        throw new Error("codex_history_identity_mismatch");
+      const snapshot = await this.request("thread/read", {
+        threadId: this.#threadId,
+        includeTurns: false,
+      });
+      const turns = record(snapshot.thread).turns as Array<
+        Record<string, unknown>
+      >;
       let data: Array<Record<string, unknown>>;
       if (method === "thread/turns/list") {
-        data = turns.map(turn => ({ ...turn, items: [], itemsView: "notLoaded" }));
+        data = turns.map((turn) => ({
+          ...turn,
+          items: [],
+          itemsView: "notLoaded",
+        }));
       } else {
-        if (!turns.some(turn => turn.id === params.turnId)) throw new Error("codex_history_unavailable: requested turn is outside the retained runner event window");
+        if (!turns.some((turn) => turn.id === params.turnId))
+          throw new Error(
+            "codex_history_unavailable: requested turn is outside the retained runner event window",
+          );
         const items = new Map<string, Record<string, unknown>>();
         let semanticResultItem: Record<string, unknown> | null = null;
         let observedTurn = "";
         let observedStart = false;
         for (const event of this.#core?.store.state.committedEvents ?? []) {
-          if (event.envelope.runId !== this.#core?.store.state.identity.runId) continue;
+          if (event.envelope.runId !== this.#core?.store.state.identity.runId)
+            continue;
           const payload = record(record(event.envelope.payload).payload);
-          if (event.eventType === "turn.started") observedTurn = String(payload.providerTurnId ?? payload.turnId ?? record(payload.turn).id ?? "");
-          if (event.eventType === "turn.started" && observedTurn === params.turnId) observedStart = true;
-          if (event.eventType === "run.result.proposed" && observedTurn === params.turnId) {
+          if (event.eventType === "turn.started")
+            observedTurn = String(
+              payload.providerTurnId ??
+                payload.turnId ??
+                record(payload.turn).id ??
+                "",
+            );
+          if (
+            event.eventType === "turn.started" &&
+            observedTurn === params.turnId
+          )
+            observedStart = true;
+          if (
+            event.eventType === "run.result.proposed" &&
+            observedTurn === params.turnId
+          ) {
             // Reconciliation can precede notification delivery. Recover the
             // runner's authoritative result with the exact retained turn,
             // rather than launching work again just to obtain a disposition.
             const id = `runner-result-${event.sourceSeq}`;
-            semanticResultItem = { turnId: observedTurn, item: { id, type: "agentMessage", text: JSON.stringify(payload) } };
+            semanticResultItem = {
+              turnId: observedTurn,
+              item: { id, type: "agentMessage", text: JSON.stringify(payload) },
+            };
           }
-          if (event.eventType !== "item.completed" || observedTurn !== params.turnId) continue;
-          const item = record(rehydrateRunnerdItemNotification(payload, this.#threadId, observedTurn).item);
-          if (typeof item.id === "string") items.set(item.id, { turnId: observedTurn, item });
+          if (
+            event.eventType !== "item.completed" ||
+            observedTurn !== params.turnId
+          )
+            continue;
+          const item = record(
+            rehydrateRunnerdItemNotification(
+              payload,
+              this.#threadId,
+              observedTurn,
+            ).item,
+          );
+          if (typeof item.id === "string")
+            items.set(item.id, { turnId: observedTurn, item });
         }
-        if (!observedStart) throw new Error("codex_history_incomplete: requested turn start is outside the retained runner event window");
+        if (!observedStart)
+          throw new Error(
+            "codex_history_incomplete: requested turn start is outside the retained runner event window",
+          );
         data = [...items.values()];
         // Runner authority wins over schema-shaped prose in an assistant item.
         if (semanticResultItem) data.push(semanticResultItem);
       }
       if (params.sortDirection === "desc") data.reverse();
       const offset = params.cursor == null ? 0 : Number(params.cursor);
-      if (!Number.isSafeInteger(offset) || offset < 0 || offset > data.length) throw new Error("codex_history_invalid_cursor");
-      const limit = typeof params.limit === "number" ? Math.max(1, Math.min(100, params.limit)) : 100;
-      return { data: data.slice(offset, offset + limit), nextCursor: offset + limit < data.length ? String(offset + limit) : null };
+      if (!Number.isSafeInteger(offset) || offset < 0 || offset > data.length)
+        throw new Error("codex_history_invalid_cursor");
+      const limit =
+        typeof params.limit === "number"
+          ? Math.max(1, Math.min(100, params.limit))
+          : 100;
+      return {
+        data: data.slice(offset, offset + limit),
+        nextCursor:
+          offset + limit < data.length ? String(offset + limit) : null,
+      };
     }
     if (method === "thread/read") {
       if (this.#core === null) {
@@ -3788,11 +3973,21 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
       // remain lazy and fail closed if their start left the retained window.
       const priorTerminals = new Map<string, Record<string, unknown>>();
       for (const event of this.#core?.store.state.committedEvents ?? []) {
-        if (event.envelope.runId !== this.#core?.store.state.identity.runId ||
-            !["turn.completed", "turn.failed", "turn.interrupted", "turn.cancelled"].includes(event.eventType)) continue;
+        if (
+          event.envelope.runId !== this.#core?.store.state.identity.runId ||
+          ![
+            "turn.completed",
+            "turn.failed",
+            "turn.interrupted",
+            "turn.cancelled",
+          ].includes(event.eventType)
+        )
+          continue;
         const payload = record(record(event.envelope.payload).payload);
-        const turnId = payload.providerTurnId ?? payload.turnId ?? record(payload.turn).id;
-        if (typeof turnId !== "string" || !turnId || turnId === this.#turnId) continue;
+        const turnId =
+          payload.providerTurnId ?? payload.turnId ?? record(payload.turn).id;
+        if (typeof turnId !== "string" || !turnId || turnId === this.#turnId)
+          continue;
         priorTerminals.set(turnId, {
           id: turnId,
           status: event.eventType.slice("turn.".length),
@@ -3829,10 +4024,7 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
       const result = await this.#commandResult("session.goal.set", params);
       const snapshot = record(result.snapshot);
       return {
-        goal: appServerThreadGoal(
-          snapshot.goal ?? result.goal,
-          this.#threadId,
-        ),
+        goal: appServerThreadGoal(snapshot.goal ?? result.goal, this.#threadId),
       };
     }
     if (method === "thread/goal/clear") {
@@ -3890,15 +4082,20 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
     const reconnectGraceMs = this.options.runnerReconnectGraceMs ?? 5_000;
     await waitForWarmAttachmentReadiness({
       graceMs: reconnectGraceMs,
-      waitForConnection: (deadline) => this.#awaitWarmRunnerConnection(deadline),
-      snapshot: (deadline) => this.#commandResult(
-        "session.snapshot",
-        {
-          quiesceForWarmAttach: true,
-        },
-        deadline,
-      ),
-      onBlocked: (blockers) => this.#diagnostic(`warm attachment awaiting quiescence: ${JSON.stringify(blockers)}`),
+      waitForConnection: (deadline) =>
+        this.#awaitWarmRunnerConnection(deadline),
+      snapshot: (deadline) =>
+        this.#commandResult(
+          "session.snapshot",
+          {
+            quiesceForWarmAttach: true,
+          },
+          deadline,
+        ),
+      onBlocked: (blockers) =>
+        this.#diagnostic(
+          `warm attachment awaiting quiescence: ${JSON.stringify(blockers)}`,
+        ),
     });
   }
 
@@ -4074,7 +4271,12 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
       throw new Error(
         `PRP runtime request ${input.requestId} is no longer pending`,
       );
-    if (!pending.permission && !("response" in input.resolution) && input.resolution.action !== "cancel" && input.resolution.action !== "decline") {
+    if (
+      !pending.permission &&
+      !("response" in input.resolution) &&
+      input.resolution.action !== "cancel" &&
+      input.resolution.action !== "decline"
+    ) {
       throw new Error(
         "runnerd-native runtime requests require a canonical question response",
       );
@@ -4088,7 +4290,9 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
       {
         requestId: input.requestId,
         turnId: pending.durableTurnId,
-        ...("response" in input.resolution ? { response: input.resolution.response } : { resolution: input.resolution }),
+        ...("response" in input.resolution
+          ? { response: input.resolution.response }
+          : { resolution: input.resolution }),
       },
       commandId,
     );
@@ -4267,7 +4471,8 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
           semanticResultsSettled: core.semanticToolResultsSettled(),
           drainStatus: lastDrain?.status ?? null,
           retainedEventsDrained:
-            record(record(lastDrain?.result).result).retainedEventsDrained ?? null,
+            record(record(lastDrain?.result).result).retainedEventsDrained ??
+            null,
         }),
     );
     return false;
@@ -4495,7 +4700,9 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
         finalProviderState,
       };
       try {
-        this.options.onDiagnostic?.(`native_session_settlement_incomplete ${JSON.stringify(settlement)}`);
+        this.options.onDiagnostic?.(
+          `native_session_settlement_incomplete ${JSON.stringify(settlement)}`,
+        );
       } catch {
         // Keep the settlement failure authoritative if its observer fails.
       }
@@ -4676,7 +4883,9 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
       provider === "codex" &&
       record(params.config).include_collaboration_mode_instructions !== false;
     const unboundBaseInstructions = String(
-      params.developerInstructions ?? params.baseInstructions ?? "You are a Taskcore agent.",
+      params.developerInstructions ??
+        params.baseInstructions ??
+        "You are a Taskcore agent.",
     );
     const baseInstructions =
       sourceRuntimeContext && runtimeContext
@@ -4715,8 +4924,10 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
         );
       }
     }
-    const selectedAcpxMode = provider === "acpx"
-      ? resolveAcpxProviderMode(acpxProfile!.agent, this.options.acpxMode) : undefined;
+    const selectedAcpxMode =
+      provider === "acpx"
+        ? resolveAcpxProviderMode(acpxProfile!.agent, this.options.acpxMode)
+        : undefined;
     const completionContract = record(params.completionContract);
     const runAttachTemplate = {
       authorizedTools: this.#authorizedTools,
@@ -4748,8 +4959,13 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
               runId: identity.runId,
               cwd: String(params.cwd ?? tmpdir()),
               instructions: baseInstructions,
-              providerPolicy: { readOnly: params.permissions === "taskcore-runner-workspace-read-only" },
-              ...(selectedAcpxMode === undefined ? {} : { mode: selectedAcpxMode }),
+              providerPolicy: {
+                readOnly:
+                  params.permissions === "taskcore-runner-workspace-read-only",
+              },
+              ...(selectedAcpxMode === undefined
+                ? {}
+                : { mode: selectedAcpxMode }),
               permissionMode: resolveRunnerdAcpxPermissionMode(
                 this.options.acpxPermissionMode,
               ),
@@ -4820,7 +5036,8 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
                           environment: this.options.environment,
                           codexHome,
                           codexCommand: this.options.codexCommand,
-                          instructionWorkingCopyRoot: runtimeContext?.instructions.workingCopy?.rootPath,
+                          instructionWorkingCopyRoot:
+                            runtimeContext?.instructions.workingCopy?.rootPath,
                           readOnlyRoots: [
                             ...trustedRuntimeReadOnlyRoots(
                               this.options.environment,
@@ -4854,8 +5071,7 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
                         )
                       : baseInstructions,
                   collaborationMode:
-                    params.permissions ===
-                    "taskcore-runner-workspace-read-only"
+                    params.permissions === "taskcore-runner-workspace-read-only"
                       ? "plan"
                       : "default",
                   ...(params.conversationMode === "prepared"
@@ -4948,7 +5164,9 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
     return this.#openedThreadResponse(params);
   }
 
-  #openedThreadResponse(params: Record<string, unknown>): Record<string, unknown> {
+  #openedThreadResponse(
+    params: Record<string, unknown>,
+  ): Record<string, unknown> {
     const provider = this.options.provider ?? "codex";
     const acpxAgent = this.options.acpxAgent ?? "codex";
     return {
@@ -4959,7 +5177,11 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
           ? {}
           : { providerIdentity: structuredClone(this.#providerIdentity) }),
         model: params.model,
-        modelProvider: openedThreadModelProvider(provider, acpxAgent, params.model),
+        modelProvider: openedThreadModelProvider(
+          provider,
+          acpxAgent,
+          params.model,
+        ),
       },
     };
   }
@@ -5292,7 +5514,10 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
         runtimeContext,
         this.options.baseInstructions === undefined
           ? undefined
-          : { text: this.options.baseInstructions, context: sourceRuntimeContext },
+          : {
+              text: this.options.baseInstructions,
+              context: sourceRuntimeContext,
+            },
       );
       if (provider === "codex") {
         // These controller-owned, token-free paths belong to the new run.
@@ -5303,7 +5528,8 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
             environment: this.options.environment,
             codexHome,
             codexCommand: this.options.codexCommand,
-            instructionWorkingCopyRoot: runtimeContext?.instructions.workingCopy?.rootPath,
+            instructionWorkingCopyRoot:
+              runtimeContext?.instructions.workingCopy?.rootPath,
             readOnlyRoots: [
               ...trustedRuntimeReadOnlyRoots(this.options.environment),
               ...(runtimeContext
@@ -5663,9 +5889,11 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
     const accepted =
       admission === null
         ? true
-        : await Promise.race([admission.settled, this.#failureSignal]).catch(() => {
-            throw new SemanticToolNotDispatchedError();
-          });
+        : await Promise.race([admission.settled, this.#failureSignal]).catch(
+            () => {
+              throw new SemanticToolNotDispatchedError();
+            },
+          );
     try {
       this.#throwIfFailed();
     } catch {
@@ -5706,7 +5934,8 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
           : {}),
       }),
       this.options.provider === "acpx" &&
-        (call.operationId === "taskcore_finish" || call.operationId === "taskcore_block"),
+        (call.operationId === "taskcore_finish" ||
+          call.operationId === "taskcore_block"),
     );
     if (call.operationId === "call_api") {
       const result = record(outcome.result);
@@ -5767,7 +5996,9 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
     };
     this.#turnStartResponsePending = true;
     let releaseStartResponse!: () => void;
-    this.#turnStartResponseSettled = new Promise<void>(resolve => { releaseStartResponse = resolve; });
+    this.#turnStartResponseSettled = new Promise<void>((resolve) => {
+      releaseStartResponse = resolve;
+    });
     this.#expectedProviderTurnId = null;
     let responseReady = false;
     try {
@@ -6012,7 +6243,6 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
     );
   }
 
-
   #pumpEvents(): void {
     const core = this.#core;
     // The controller may activate its new epoch before attachRun observes the
@@ -6028,7 +6258,8 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
     for (;;) {
       const deferredEvent =
         !this.#recoveryTurnBindingPending &&
-        (!this.#turnStartResponsePending || this.#expectedProviderTurnId !== null)
+        (!this.#turnStartResponsePending ||
+          this.#expectedProviderTurnId !== null)
           ? this.#deferredTurnStartEvents[0]
           : undefined;
       const event =
@@ -6041,16 +6272,21 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
           `PRP provider event window advanced past source sequence ${this.#eventSourceSeq + 1}`,
         );
       }
-      if (this.#recoveryTurnBindingPending && ![
-        "harness.ready", "session.started", "session.resumed",
-      ].includes(event.eventType)) {
+      if (
+        this.#recoveryTurnBindingPending &&
+        !["harness.ready", "session.started", "session.resumed"].includes(
+          event.eventType,
+        )
+      ) {
         // Reconnection can deliver mid-turn items before thread/read obtains
         // the authenticated active provider turn. Retain canonical events,
         // not notifications rehydrated with an empty/stale turn identity.
         // Identity events still advance startup; command results are consumed
         // independently, so session.snapshot cannot deadlock behind this gate.
         if (this.#deferredTurnStartEvents.length >= 4_096) {
-          throw new Error("recovery produced too many events before its turn binding");
+          throw new Error(
+            "recovery produced too many events before its turn binding",
+          );
         }
         this.#eventSourceSeq = event.sourceSeq;
         this.#deferredTurnStartEvents.push(structuredClone(event));
@@ -6117,10 +6353,16 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
         this.#applyProviderIdentityEvent(event);
         continue;
       }
-      if (event.eventType === "session.capabilities.updated" && this.options.provider === "acpx") {
+      if (
+        event.eventType === "session.capabilities.updated" &&
+        this.options.provider === "acpx"
+      ) {
         const capabilities = record(record(event.envelope.payload).payload);
         if (capabilities.turnControls !== undefined) {
-          this.#turnControls = parseAcpxTurnControlCapabilities(capabilities.turnControls, this.#evidence.acpxAgent);
+          this.#turnControls = parseAcpxTurnControlCapabilities(
+            capabilities.turnControls,
+            this.#evidence.acpxAgent,
+          );
         }
       }
       if (event.eventType === "harness.diagnostic") {
@@ -6146,25 +6388,26 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
             : "";
         const origin = record(normalizedRequest.origin);
         const method = typeof origin.method === "string" ? origin.method : "";
-        const permission = normalizedRequest.type === "permission" && normalizedRequest.requestKind === "permission_approval"
-          && method === "session/request_permission";
-        const params = permission ? bridgedAcpxPermissionParams(
-          event,
-          this.#threadId,
-          this.#turnId,
-        ) : bridgedCodexQuestionParams(
-          normalizedRequest,
-          method,
-          this.#threadId,
-          this.#turnId,
-        );
+        const permission =
+          normalizedRequest.type === "permission" &&
+          normalizedRequest.requestKind === "permission_approval" &&
+          method === "session/request_permission";
+        const params = permission
+          ? bridgedAcpxPermissionParams(event, this.#threadId, this.#turnId)
+          : bridgedCodexQuestionParams(
+              normalizedRequest,
+              method,
+              this.#threadId,
+              this.#turnId,
+            );
         if (
           requestId &&
           params &&
           (method === "item/tool/requestUserInput" ||
             method === "tool/requestUserInput" ||
             method === "mcpServer/elicitation/request" ||
-            isAcpxCanonicalInputMethod(method) || permission) &&
+            isAcpxCanonicalInputMethod(method) ||
+            permission) &&
           !this.#bridgedRuntimeInputs.has(requestId)
         ) {
           const binding = {
@@ -6184,19 +6427,32 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
               sourceEventType: event.eventType,
             },
           };
-          const threadId = this.#threadId, turnId = this.#turnId, handler = this.#handler;
+          const threadId = this.#threadId,
+            turnId = this.#turnId,
+            handler = this.#handler;
           this.#queue.pushControl(request, () => {
             // A detached controller, replaced turn or settled durable request
             // cannot acquire approval authority when a slow consumer resumes.
-            if (this.#closed || this.#failure || this.#core !== core || this.#handler !== handler
-              || this.#threadId !== threadId || this.#turnId !== turnId
-              || this.#bridgedRuntimeInputs.get(requestId) !== binding) return;
+            if (
+              this.#closed ||
+              this.#failure ||
+              this.#core !== core ||
+              this.#handler !== handler ||
+              this.#threadId !== threadId ||
+              this.#turnId !== turnId ||
+              this.#bridgedRuntimeInputs.get(requestId) !== binding
+            )
+              return;
             try {
               void handler(request).catch((error) => {
-                this.#failTransport(error instanceof Error ? error : new Error(String(error)));
+                this.#failTransport(
+                  error instanceof Error ? error : new Error(String(error)),
+                );
               });
             } catch (error) {
-              this.#failTransport(error instanceof Error ? error : new Error(String(error)));
+              this.#failTransport(
+                error instanceof Error ? error : new Error(String(error)),
+              );
             }
           });
         }
@@ -6221,17 +6477,27 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
       );
       const notifications =
         isCanonicalProviderEventType(event.eventType) && !canonicalMethod
-          ? [{ method: "taskcore/canonicalProviderEvent", params: {
-              ...(this.#threadId ? { threadId: this.#threadId } : {}),
-              ...(this.#turnId ? { turnId: this.#turnId } : {}),
-              eventType: event.eventType, payload: eventPayload,
-              itemId: event.envelope.itemId,
-            } }]
+          ? [
+              {
+                method: "taskcore/canonicalProviderEvent",
+                params: {
+                  ...(this.#threadId ? { threadId: this.#threadId } : {}),
+                  ...(this.#turnId ? { turnId: this.#turnId } : {}),
+                  eventType: event.eventType,
+                  payload: eventPayload,
+                  itemId: event.envelope.itemId,
+                },
+              },
+            ]
           : event.eventType === "provider.event"
-          ? unwrapRunnerdProviderNotifications(eventPayload)
-          : canonicalMethod
-            ? expandRunnerdCanonicalNotifications(canonicalMethod, eventPayload, event.eventType)
-            : [];
+            ? unwrapRunnerdProviderNotifications(eventPayload)
+            : canonicalMethod
+              ? expandRunnerdCanonicalNotifications(
+                  canonicalMethod,
+                  eventPayload,
+                  event.eventType,
+                )
+              : [];
       for (const payload of notifications) {
         const method = payload.method;
         if (typeof method !== "string") continue;
@@ -6266,49 +6532,56 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
                   this.#threadId,
                   this.#turnId,
                 )
-            : method === "taskcore/workspaceChange/updated"
-              ? rehydrateRunnerdWorkspaceChangeNotification(
-                  rawParams,
-                  this.#threadId,
-                  this.#turnId,
-                )
-            : method === "taskcore/runResult"
-              ? rehydrateRunnerdResultNotification(
-                  rawParams,
-                  this.#threadId,
-                  this.#turnId,
-                  typeof event.envelope.itemId === "string"
-                    ? event.envelope.itemId
-                    : "semantic-result",
-                )
-            : method === "thread/goal/updated" ||
-                method === "thread/goal/cleared"
-              ? rehydrateRunnerdGoalNotification(
-                  rawParams,
-                  this.#threadId,
-                  method,
-                )
-            : event.eventType === "item.delta"
-              ? rehydrateRunnerdDeltaNotification(rawParams, this.#threadId, this.#turnId)
-            : event.eventType !== "provider.event" &&
-                (method === "item/started" || method === "item/completed")
-              ? rehydrateRunnerdItemNotification(
-                  rawParams,
-                  this.#threadId,
-                  this.#turnId,
-                )
-            : event.eventType !== "provider.event" &&
-                (method === "turn/started" || method === "turn/completed")
-              ? rehydrateRunnerdTurnNotification(
-                  rawParams,
-                  this.#threadId,
-                  this.#turnId,
-                  method,
-                )
-              : rawParams;
+              : method === "taskcore/workspaceChange/updated"
+                ? rehydrateRunnerdWorkspaceChangeNotification(
+                    rawParams,
+                    this.#threadId,
+                    this.#turnId,
+                  )
+                : method === "taskcore/runResult"
+                  ? rehydrateRunnerdResultNotification(
+                      rawParams,
+                      this.#threadId,
+                      this.#turnId,
+                      typeof event.envelope.itemId === "string"
+                        ? event.envelope.itemId
+                        : "semantic-result",
+                    )
+                  : method === "thread/goal/updated" ||
+                      method === "thread/goal/cleared"
+                    ? rehydrateRunnerdGoalNotification(
+                        rawParams,
+                        this.#threadId,
+                        method,
+                      )
+                    : event.eventType === "item.delta"
+                      ? rehydrateRunnerdDeltaNotification(
+                          rawParams,
+                          this.#threadId,
+                          this.#turnId,
+                        )
+                      : event.eventType !== "provider.event" &&
+                          (method === "item/started" ||
+                            method === "item/completed")
+                        ? rehydrateRunnerdItemNotification(
+                            rawParams,
+                            this.#threadId,
+                            this.#turnId,
+                          )
+                        : event.eventType !== "provider.event" &&
+                            (method === "turn/started" ||
+                              method === "turn/completed")
+                          ? rehydrateRunnerdTurnNotification(
+                              rawParams,
+                              this.#threadId,
+                              this.#turnId,
+                              method,
+                            )
+                          : rawParams;
         if (
           params.turnId === undefined &&
-          typeof event.envelope.turnId === "string" && event.envelope.turnId.length > 0
+          typeof event.envelope.turnId === "string" &&
+          event.envelope.turnId.length > 0
         ) {
           params.turnId = event.envelope.turnId;
         }
@@ -6416,10 +6689,18 @@ class DurablePrpCodexTransport implements CodexAppServerTransport {
     const providerIdentity = record(started.providerIdentity);
     this.#confirmCheckpointProviderIdentity(started, event.eventType);
     if (this.options.provider === "acpx") {
-      if (descriptor.turnControls !== undefined && descriptor.agent !== (this.options.acpxAgent ?? "codex")) {
-        throw new Error("ACPX capability identity differs from the admitted profile");
+      if (
+        descriptor.turnControls !== undefined &&
+        descriptor.agent !== (this.options.acpxAgent ?? "codex")
+      ) {
+        throw new Error(
+          "ACPX capability identity differs from the admitted profile",
+        );
       }
-      this.#turnControls = parseAcpxTurnControlCapabilities(descriptor.turnControls, descriptor.agent);
+      this.#turnControls = parseAcpxTurnControlCapabilities(
+        descriptor.turnControls,
+        descriptor.agent,
+      );
     }
     if (pid !== null) {
       this.#evidence.providerPid = pid;
@@ -6860,8 +7141,9 @@ export function defaultCapabilityRunnerdBinary(): string {
   // Standalone builds use dist/live; the server vendors that compiled tree
   // directly under vendor/taskcore-runner. Resolve beside our own live module.
   const outputRoot = resolve(fileURLToPath(new URL("../", import.meta.url)));
-  const staged = resolvePackagedRunnerBinary(outputRoot)
-    ?? resolvePackagedRunnerBinary(resolve(packageRoot, "dist"));
+  const staged =
+    resolvePackagedRunnerBinary(outputRoot) ??
+    resolvePackagedRunnerBinary(resolve(packageRoot, "dist"));
   if (staged) return staged;
   return resolve(
     packageRoot,
@@ -6890,7 +7172,8 @@ function openedThreadModelProvider(
   acpxAgent: QualifiedAcpxAgent,
   model: unknown,
 ): string {
-  if (provider === "opencode" && typeof model === "string") return model.split("/", 1)[0]!;
+  if (provider === "opencode" && typeof model === "string")
+    return model.split("/", 1)[0]!;
   if (provider === "claude_managed") return "anthropic";
   if (provider === "aws_agentcore") return "aws";
   if (provider === "acpx") {
@@ -6931,7 +7214,6 @@ export const runnerdRecoveryInternals = Object.freeze({
   turnStartResponseReady,
 });
 
-
 /** Map controller asset paths to the assigned copy on the provider filesystem. */
 export function resolveRunnerdCodexSkillInputs(
   inputs: Record<string, unknown>[],
@@ -6941,13 +7223,18 @@ export function resolveRunnerdCodexSkillInputs(
   if (inputs.length > 64) throw new Error("Too many explicit skill inputs");
   const seen = new Set<string>();
   return inputs.map((input) => {
-    const assigned = context?.skills.find((skill) => skill.runtimeName === input.name);
+    const assigned = context?.skills.find(
+      (skill) => skill.runtimeName === input.name,
+    );
     if (
-      !assigned || !/^[a-zA-Z0-9_-]+$/.test(assigned.runtimeName)
-      || input.path !== resolve(assigned.bundle.rootPath, "SKILL.md")
-      || seen.has(assigned.runtimeName)
+      !assigned ||
+      !/^[a-zA-Z0-9_-]+$/.test(assigned.runtimeName) ||
+      input.path !== resolve(assigned.bundle.rootPath, "SKILL.md") ||
+      seen.has(assigned.runtimeName)
     ) {
-      throw new Error("Explicit skill input must reference a unique assigned runtime skill");
+      throw new Error(
+        "Explicit skill input must reference a unique assigned runtime skill",
+      );
     }
     seen.add(assigned.runtimeName);
     return {

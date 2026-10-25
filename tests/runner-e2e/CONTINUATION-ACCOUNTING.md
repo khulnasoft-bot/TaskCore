@@ -4,12 +4,12 @@ Explicit-only Product E2E suite: real Chromium, Taskcore server/database, runner
 and qualified Codex provider. Select `--suite continuation-accounting`. It is
 excluded from `--all`; it does not change scheduled paid coverage.
 
-| Cases | Runtime | Cells | Expected provider executions |
-|---|---|---:|---:|
-| `accounting-productive-neutral`, `accounting-productive-noisy` | Legacy and native | 4 | 5 each |
-| `accounting-exhaustion-neutral`, `accounting-exhaustion-noisy` | Legacy | 2 | 3 each |
-| `accounting-repair-stop` | Legacy | 1 | 2, plus a cancelled scheduled record |
-| `accounting-repair-approval` | Legacy | 1 | 3 |
+| Cases                                                          | Runtime           | Cells |         Expected provider executions |
+| -------------------------------------------------------------- | ----------------- | ----: | -----------------------------------: |
+| `accounting-productive-neutral`, `accounting-productive-noisy` | Legacy and native |     4 |                               5 each |
+| `accounting-exhaustion-neutral`, `accounting-exhaustion-noisy` | Legacy            |     2 |                               3 each |
+| `accounting-repair-stop`                                       | Legacy            |     1 | 2, plus a cancelled scheduled record |
+| `accounting-repair-approval`                                   | Legacy            |     1 |                                    3 |
 
 Each cell has a twelve-minute limit and existing isolated fixture cleanup.
 Browser-created tasks use public APIs/tools only. The Stop case invokes the same

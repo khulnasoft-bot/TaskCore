@@ -172,7 +172,11 @@ class LiveConsoleScriptedSession implements HarnessSession {
     return `thread-${this.#input.normalizedSessionId}`;
   }
 
-  ids(): { driverSessionId: string; providerSessionId?: string | null; displayId?: string | null } {
+  ids(): {
+    driverSessionId: string;
+    providerSessionId?: string | null;
+    displayId?: string | null;
+  } {
     return {
       driverSessionId: this.#threadId,
       providerSessionId: this.#input.normalizedSessionId,
@@ -184,30 +188,42 @@ class LiveConsoleScriptedSession implements HarnessSession {
     return this.#queue;
   }
 
-  async startTurn(input: { message: NativeUserMessage }): Promise<{ turnId: string }> {
+  async startTurn(input: {
+    message: NativeUserMessage;
+  }): Promise<{ turnId: string }> {
     if (this.#closed) throw new Error("session is closed");
     if (this.#activeTurnId !== null || this.#turnStartPending) {
       throw new Error("a turn is already active");
     }
     this.#turnCounter += 1;
     const turnId = `turn-${this.#turnCounter}`;
-    const beats = this.#turnCounter === 1
-      ? this.#input.manifest.beats
-      : (this.#input.manifest.followUpBeats ?? this.#input.manifest.beats);
+    const beats =
+      this.#turnCounter === 1
+        ? this.#input.manifest.beats
+        : (this.#input.manifest.followUpBeats ?? this.#input.manifest.beats);
     this.#turnStartPending = true;
     this.#interruptGate = new Gate();
-    this.#emit("turn.submitted", {
-      turnId,
-      text: input.message.text,
-      envelopeSchema: "taskcore.task_envelope.v1",
-    }, { turnId });
+    this.#emit(
+      "turn.submitted",
+      {
+        turnId,
+        text: input.message.text,
+        envelopeSchema: "taskcore.task_envelope.v1",
+      },
+      { turnId },
+    );
     this.#turnRunner = this.#runTurn(turnId, beats).catch((error) => {
-      this.#emit("harness.diagnostic", { message: `demo turn failed: ${String(error)}` });
+      this.#emit("harness.diagnostic", {
+        message: `demo turn failed: ${String(error)}`,
+      });
     });
     return { turnId };
   }
 
-  async steer(input: { turnId: string; message: NativeUserMessage }): Promise<void> {
+  async steer(input: {
+    turnId: string;
+    message: NativeUserMessage;
+  }): Promise<void> {
     if (!this.#input.manifest.capabilities.steering) {
       throw new HarnessCapabilityUnavailableError(
         "steering",
@@ -224,11 +240,18 @@ class LiveConsoleScriptedSession implements HarnessSession {
       });
       throw new HarnessStaleTurnError(input.turnId);
     }
-    this.#emit("item.completed", {
-      kind: "steering_acknowledgement",
-      status: "acknowledged",
-      text: input.message.text,
-    }, { turnId: input.turnId, itemId: `steer-${input.turnId}-${this.#sequence + 1}` });
+    this.#emit(
+      "item.completed",
+      {
+        kind: "steering_acknowledgement",
+        status: "acknowledged",
+        text: input.message.text,
+      },
+      {
+        turnId: input.turnId,
+        itemId: `steer-${input.turnId}-${this.#sequence + 1}`,
+      },
+    );
   }
 
   async interrupt(input: { turnId?: string; reason?: string }): Promise<void> {
@@ -248,14 +271,18 @@ class LiveConsoleScriptedSession implements HarnessSession {
     ) {
       throw new HarnessStaleTurnError(input.turnId);
     }
-    this.#emit("item.completed", {
-      kind: "interrupt_acknowledgement",
-      status: "acknowledged",
-      text: input.reason ?? "browser_operator",
-    }, {
-      ...(this.#activeTurnId === null ? {} : { turnId: this.#activeTurnId }),
-      itemId: `interrupt-${this.#sequence + 1}`,
-    });
+    this.#emit(
+      "item.completed",
+      {
+        kind: "interrupt_acknowledgement",
+        status: "acknowledged",
+        text: input.reason ?? "browser_operator",
+      },
+      {
+        ...(this.#activeTurnId === null ? {} : { turnId: this.#activeTurnId }),
+        itemId: `interrupt-${this.#sequence + 1}`,
+      },
+    );
     this.#interruptGate?.open();
   }
 
@@ -275,7 +302,9 @@ class LiveConsoleScriptedSession implements HarnessSession {
       throw new Error(`unknown runtime request ${input.requestId}`);
     }
     if (entry.outcome !== "pending") {
-      throw new HarnessOperationAlreadyTerminalError(`resolve ${input.requestId}`);
+      throw new HarnessOperationAlreadyTerminalError(
+        `resolve ${input.requestId}`,
+      );
     }
     if (input.turnId.length > 0 && input.turnId !== entry.request.turnId) {
       throw new HarnessStaleTurnError(input.turnId);
@@ -298,7 +327,8 @@ class LiveConsoleScriptedSession implements HarnessSession {
       );
     }
     const at = this.#input.now().getTime();
-    if (input.action === "get") return this.#goal === null ? null : structuredClone(this.#goal);
+    if (input.action === "get")
+      return this.#goal === null ? null : structuredClone(this.#goal);
     if (input.action === "set") {
       this.#goal = {
         threadId: this.#threadId,
@@ -324,14 +354,19 @@ class LiveConsoleScriptedSession implements HarnessSession {
         updatedAt: at,
       };
     }
-    this.#emit("item.completed", {
-      kind: this.#goal === null ? "goal_cleared" : "goal",
-      text: this.#goal === null
-        ? "Goal cleared."
-        : `Goal ${input.action === "set" ? "set" : input.action}: ${this.#goal.objective}`,
-      operation: input.action,
-      ...(this.#goal === null ? {} : { goal: structuredClone(this.#goal) }),
-    }, { itemId: `goal-${this.#sequence + 1}` });
+    this.#emit(
+      "item.completed",
+      {
+        kind: this.#goal === null ? "goal_cleared" : "goal",
+        text:
+          this.#goal === null
+            ? "Goal cleared."
+            : `Goal ${input.action === "set" ? "set" : input.action}: ${this.#goal.objective}`,
+        operation: input.action,
+        ...(this.#goal === null ? {} : { goal: structuredClone(this.#goal) }),
+      },
+      { itemId: `goal-${this.#sequence + 1}` },
+    );
     return this.#goal === null ? null : structuredClone(this.#goal);
   }
 
@@ -340,7 +375,10 @@ class LiveConsoleScriptedSession implements HarnessSession {
   }
 
   async usage(): Promise<Record<string, unknown> | null> {
-    return { inputTokens: this.#sequence * 12, outputTokens: this.#sequence * 7 };
+    return {
+      inputTokens: this.#sequence * 12,
+      outputTokens: this.#sequence * 7,
+    };
   }
 
   async snapshot(): Promise<PersistedHarnessSession> {
@@ -416,7 +454,10 @@ class LiveConsoleScriptedSession implements HarnessSession {
     } as PrpEvent);
   }
 
-  #settleRequest(entry: PendingRequestEntry, eventType: PrpEvent["eventType"]): void {
+  #settleRequest(
+    entry: PendingRequestEntry,
+    eventType: PrpEvent["eventType"],
+  ): void {
     if (entry.timer !== null) {
       clearTimeout(entry.timer);
       entry.timer = null;
@@ -433,7 +474,8 @@ class LiveConsoleScriptedSession implements HarnessSession {
   }
 
   async #sleep(ms: number): Promise<"elapsed" | "interrupted"> {
-    if (ms <= 0) return this.#interruptGate?.settled === true ? "interrupted" : "elapsed";
+    if (ms <= 0)
+      return this.#interruptGate?.settled === true ? "interrupted" : "elapsed";
     const gate = this.#interruptGate;
     return await new Promise<"elapsed" | "interrupted">((resolve) => {
       const timer = setTimeout(() => resolve("elapsed"), ms);
@@ -449,17 +491,24 @@ class LiveConsoleScriptedSession implements HarnessSession {
     return this.#interruptGate?.settled === true;
   }
 
-  async #runTurn(turnId: string, beats: readonly LiveConsoleDemoBeat[]): Promise<void> {
+  async #runTurn(
+    turnId: string,
+    beats: readonly LiveConsoleDemoBeat[],
+  ): Promise<void> {
     const manifest = this.#input.manifest;
     if (manifest.startDelayMs > 0) {
       const outcome = await this.#sleep(manifest.startDelayMs);
       if (outcome === "interrupted" || this.#closed) {
         this.#turnStartPending = false;
         this.#recordTerminalTurn(turnId, "cancelled");
-        this.#emit("turn.cancelled", {
-          turnId,
-          reason: "interrupted before the provider accepted the turn",
-        }, { turnId });
+        this.#emit(
+          "turn.cancelled",
+          {
+            turnId,
+            reason: "interrupted before the provider accepted the turn",
+          },
+          { turnId },
+        );
         return;
       }
     }
@@ -482,19 +531,28 @@ class LiveConsoleScriptedSession implements HarnessSession {
     this.#activeTurnId = null;
     if (this.#interrupted) {
       this.#recordTerminalTurn(turnId, "interrupted");
-      this.#emit("turn.interrupted", { turnId, reason: "browser_operator" }, { turnId });
+      this.#emit(
+        "turn.interrupted",
+        { turnId, reason: "browser_operator" },
+        { turnId },
+      );
       return;
     }
     if (this.#closed) return;
-    const disposition = failed || manifest.disposition === "failed" ? "failed" : "completed";
+    const disposition =
+      failed || manifest.disposition === "failed" ? "failed" : "completed";
     this.#recordTerminalTurn(turnId, disposition);
     this.#emitResult(turnId, disposition === "failed");
-    this.#emit(disposition === "failed" ? "turn.failed" : "turn.completed", {
-      turnId,
-      ...(disposition === "failed"
-        ? { message: "The demo manifest ends in a failed turn." }
-        : {}),
-    }, { turnId });
+    this.#emit(
+      disposition === "failed" ? "turn.failed" : "turn.completed",
+      {
+        turnId,
+        ...(disposition === "failed"
+          ? { message: "The demo manifest ends in a failed turn." }
+          : {}),
+      },
+      { turnId },
+    );
   }
 
   #recordTerminalTurn(turnId: string, state: string): void {
@@ -505,67 +563,100 @@ class LiveConsoleScriptedSession implements HarnessSession {
     const delay = this.#input.chunkDelayMs;
     if (beat.kind === "reasoning" || beat.kind === "assistant") {
       const itemKind = beat.kind === "reasoning" ? "reasoning" : "agentMessage";
-      this.#emit("item.started", { kind: itemKind, text: "" }, { turnId, itemId: beat.itemId });
+      this.#emit(
+        "item.started",
+        { kind: itemKind, text: "" },
+        { turnId, itemId: beat.itemId },
+      );
       let text = "";
       for (const chunk of beat.chunks) {
         if ((await this.#sleep(delay)) === "interrupted" || this.#closed) {
-          this.#emit("item.completed", {
-            kind: itemKind,
-            text,
-            status: "interrupted",
-            interrupted: true,
-          }, { turnId, itemId: beat.itemId });
+          this.#emit(
+            "item.completed",
+            {
+              kind: itemKind,
+              text,
+              status: "interrupted",
+              interrupted: true,
+            },
+            { turnId, itemId: beat.itemId },
+          );
           return false;
         }
         text += chunk;
-        this.#emit("item.delta", { kind: itemKind, text: chunk }, { turnId, itemId: beat.itemId });
+        this.#emit(
+          "item.delta",
+          { kind: itemKind, text: chunk },
+          { turnId, itemId: beat.itemId },
+        );
       }
-      this.#emit("item.completed", { kind: itemKind, text, status: "completed" }, {
-        turnId,
-        itemId: beat.itemId,
-      });
+      this.#emit(
+        "item.completed",
+        { kind: itemKind, text, status: "completed" },
+        {
+          turnId,
+          itemId: beat.itemId,
+        },
+      );
       return false;
     }
 
     if (beat.kind === "tool") {
-      this.#emit("item.started", {
-        kind: "commandExecution",
-        text: `${beat.name}: ${beat.input}`,
-        toolName: beat.name,
-        input: beat.input,
-        status: "running",
-      }, { turnId, itemId: beat.itemId });
-      const wait = beat.hold === true ? HOLD_TIMEOUT_MS : Math.max(delay, 0) * 2;
-      if ((await this.#sleep(wait)) === "interrupted" || this.#closed) {
-        this.#emit("item.completed", {
+      this.#emit(
+        "item.started",
+        {
           kind: "commandExecution",
           text: `${beat.name}: ${beat.input}`,
           toolName: beat.name,
           input: beat.input,
-          status: "interrupted",
-          interrupted: true,
-        }, { turnId, itemId: beat.itemId });
+          status: "running",
+        },
+        { turnId, itemId: beat.itemId },
+      );
+      const wait =
+        beat.hold === true ? HOLD_TIMEOUT_MS : Math.max(delay, 0) * 2;
+      if ((await this.#sleep(wait)) === "interrupted" || this.#closed) {
+        this.#emit(
+          "item.completed",
+          {
+            kind: "commandExecution",
+            text: `${beat.name}: ${beat.input}`,
+            toolName: beat.name,
+            input: beat.input,
+            status: "interrupted",
+            interrupted: true,
+          },
+          { turnId, itemId: beat.itemId },
+        );
         return false;
       }
       if (beat.failure !== undefined) {
-        this.#emit("item.failed", {
+        this.#emit(
+          "item.failed",
+          {
+            kind: "commandExecution",
+            text: `${beat.name}: ${beat.input}`,
+            toolName: beat.name,
+            input: beat.input,
+            message: beat.failure,
+            status: "failed",
+          },
+          { turnId, itemId: beat.itemId },
+        );
+        return true;
+      }
+      this.#emit(
+        "item.completed",
+        {
           kind: "commandExecution",
           text: `${beat.name}: ${beat.input}`,
           toolName: beat.name,
           input: beat.input,
-          message: beat.failure,
-          status: "failed",
-        }, { turnId, itemId: beat.itemId });
-        return true;
-      }
-      this.#emit("item.completed", {
-        kind: "commandExecution",
-        text: `${beat.name}: ${beat.input}`,
-        toolName: beat.name,
-        input: beat.input,
-        output: beat.output ?? "",
-        status: "completed",
-      }, { turnId, itemId: beat.itemId });
+          output: beat.output ?? "",
+          status: "completed",
+        },
+        { turnId, itemId: beat.itemId },
+      );
       return false;
     }
 
@@ -597,13 +688,17 @@ class LiveConsoleScriptedSession implements HarnessSession {
         }, beat.expiresAfterMs);
         unrefTimer(entry.timer);
       }
-      this.#emit("runtime_request.created", {
-        request: {
-          ...request,
-          type: request.method,
-          actions: [...beat.actions],
+      this.#emit(
+        "runtime_request.created",
+        {
+          request: {
+            ...request,
+            type: request.method,
+            actions: [...beat.actions],
+          },
         },
-      }, { turnId, itemId: beat.itemId });
+        { turnId, itemId: beat.itemId },
+      );
       await Promise.race([
         entry.gate.promise,
         this.#interruptGate?.promise ?? new Promise<void>(() => undefined),
@@ -629,13 +724,18 @@ class LiveConsoleScriptedSession implements HarnessSession {
       };
       this.#lineage.push(child);
       for (const status of beat.statuses) {
-        if ((await this.#sleep(delay)) === "interrupted" || this.#closed) return false;
+        if ((await this.#sleep(delay)) === "interrupted" || this.#closed)
+          return false;
         child.status = status;
-        this.#emit("item.completed", {
-          kind: "thread_lineage",
-          text: `Child thread ${beat.nickname} is ${status}.`,
-          thread: structuredClone(child),
-        }, { turnId, itemId: `${beat.threadId}-${status}` });
+        this.#emit(
+          "item.completed",
+          {
+            kind: "thread_lineage",
+            text: `Child thread ${beat.nickname} is ${status}.`,
+            thread: structuredClone(child),
+          },
+          { turnId, itemId: `${beat.threadId}-${status}` },
+        );
       }
       return false;
     }
@@ -688,7 +788,11 @@ class LiveConsoleScriptedSession implements HarnessSession {
       artifacts: [],
     };
     this.#semanticResult = result;
-    this.#emit("run.result.proposed", result as unknown as Record<string, unknown>, { turnId });
+    this.#emit(
+      "run.result.proposed",
+      result as unknown as Record<string, unknown>,
+      { turnId },
+    );
   }
 }
 
@@ -704,7 +808,8 @@ export class LiveConsoleScriptedDriver implements HarnessDriver {
   #session: LiveConsoleScriptedSession | null = null;
 
   constructor(options: LiveConsoleScriptedDriverOptions = {}) {
-    this.#manifest = options.manifest ??
+    this.#manifest =
+      options.manifest ??
       findLiveConsoleDemoManifest(options.manifestId ?? "completion");
     this.#chunkDelayMs = options.chunkDelayMs ?? 45;
     this.#now = options.now ?? (() => new Date());
@@ -744,12 +849,18 @@ export class LiveConsoleScriptedDriver implements HarnessDriver {
     snapshot: PersistedHarnessSession,
   ): Promise<HarnessSessionRecoveryResult> {
     if (snapshot.driverKind !== DRIVER_KIND) {
-      return { recovered: false, reason: `cannot resume driver kind ${snapshot.driverKind}` };
+      return {
+        recovered: false,
+        reason: `cannot resume driver kind ${snapshot.driverKind}`,
+      };
     }
     const runId = snapshot.runId;
     const normalizedSessionId = snapshot.normalizedSessionId;
     if (runId === undefined || normalizedSessionId === undefined) {
-      return { recovered: false, reason: "snapshot is missing its runner identity" };
+      return {
+        recovered: false,
+        reason: "snapshot is missing its runner identity",
+      };
     }
     const session = new LiveConsoleScriptedSession({
       runId,

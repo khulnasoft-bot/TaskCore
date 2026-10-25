@@ -7,7 +7,8 @@ import type {
 
 export type { CapabilityJsonValue } from "../mock-core/capability-control-plane-types.js";
 
-export type CapabilityToolDisposition = "always_agent_tool" | "optional_agent_tool";
+export type CapabilityToolDisposition =
+  "always_agent_tool" | "optional_agent_tool";
 
 export type CapabilityOptionalCatalogGroup =
   | "discovery"
@@ -31,13 +32,16 @@ export type CapabilitySideEffectClass =
   | "admin"
   | "test_escape_hatch";
 
-export type ScenarioChatdempotencyBehavior = "none" | "required" | "recommended";
+export type ScenarioChatdempotencyBehavior =
+  "none" | "required" | "recommended";
 
-export type CapabilityToolTaskMode = "standard" | "ask" | "planning" | "skill_test";
+export type CapabilityToolTaskMode =
+  "standard" | "ask" | "planning" | "skill_test";
 
 export interface CapabilityJsonSchema {
   $schema?: string;
-  type?: "object" | "array" | "string" | "number" | "integer" | "boolean" | "null";
+  type?:
+    "object" | "array" | "string" | "number" | "integer" | "boolean" | "null";
   title?: string;
   description?: string;
   properties?: Record<string, CapabilityJsonSchema>;
@@ -53,7 +57,9 @@ export interface CapabilityJsonSchema {
 export interface CapabilityRedactionRule {
   path: string;
   replacement: "[REDACTED]" | "[SECRET_VALUE]";
-  appliesTo: ReadonlyArray<"input" | "output" | "error" | "authorization_record">;
+  appliesTo: ReadonlyArray<
+    "input" | "output" | "error" | "authorization_record"
+  >;
 }
 
 export type CapabilityMockCommandMapping =
@@ -106,7 +112,8 @@ export interface CapabilityToolAuthorizationContext {
   policy?: CapabilityScenarioToolPolicy;
 }
 
-export type CapabilityAuthorizationOutcome = "exposed" | "allowed" | "denied" | "absent";
+export type CapabilityAuthorizationOutcome =
+  "exposed" | "allowed" | "denied" | "absent";
 
 export interface CapabilityAuthorizationRecord {
   schema: "taskcore.capability.authorization-record.v1";
@@ -139,7 +146,11 @@ export interface CapabilityPolicyDenial {
   schema: "taskcore.capability.tool-result.v1";
   ok: false;
   error: {
-    code: "policy_denied" | "operation_absent" | "input_invalid" | "operation_unsupported";
+    code:
+      | "policy_denied"
+      | "operation_absent"
+      | "input_invalid"
+      | "operation_unsupported";
     message: string;
     operationId: string;
     reason: string;
@@ -157,7 +168,8 @@ export interface CapabilityToolSuccess {
   authorization: CapabilityAuthorizationRecord;
 }
 
-export type CapabilityToolInvocationResult = CapabilityToolSuccess | CapabilityPolicyDenial;
+export type CapabilityToolInvocationResult =
+  CapabilityToolSuccess | CapabilityPolicyDenial;
 
 /**
  * A result intended only for the provider/model tool-response channel.
@@ -177,7 +189,8 @@ export interface CapabilityModelToolSuccess {
   authorization: CapabilityAuthorizationRecord;
 }
 
-export type CapabilityModelToolInvocationResult = CapabilityModelToolSuccess | CapabilityPolicyDenial;
+export type CapabilityModelToolInvocationResult =
+  CapabilityModelToolSuccess | CapabilityPolicyDenial;
 
 export interface CapabilityModelToolDelivery {
   /** Safe for traces, snapshots, persistence, errors, and browser payloads. */

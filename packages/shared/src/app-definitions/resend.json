@@ -3,17 +3,13 @@
   "slug": "resend",
   "name": "Resend",
   "description": "Connect Resend's provider-hosted MCP server.",
-  "categories": [
-    "communication"
-  ],
+  "categories": ["communication"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/resend.svg",
     "darkLogoUrl": "/brands/apps/resend-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.resend.com/*"
-  ],
+  "urlPatterns": ["https://mcp.resend.com/*"],
   "docsUrl": "https://resend.com/changelog/remote-mcp-server",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,15 +17,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.resend.com/mcp",
-        "scopesHint": [
-          "full_access"
-        ]
+        "scopesHint": ["full_access"]
       },
       "guidanceMd": "Connect Resend in the browser. A Resend account with access to the relevant domains.",
       "riskTier": "S3",
@@ -37,9 +29,7 @@
       "consoleLinks": {
         "docs": "https://resend.com/changelog/remote-mcp-server"
       },
-      "warnings": [
-        "A Resend account with access to the relevant domains."
-      ]
+      "warnings": ["A Resend account with access to the relevant domains."]
     }
   ]
 }

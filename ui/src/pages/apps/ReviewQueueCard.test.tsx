@@ -13,10 +13,18 @@ const pushToastMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/api/tools", () => ({
   toolsApi: {
-    listActionRequests: (companyId: string, status: string) => listActionRequestsMock(companyId, status),
-    approveActionRequest: (companyId: string, actionRequestId: string, rememberAction?: boolean) =>
-      approveActionRequestMock(companyId, actionRequestId, rememberAction),
-    createTrustRuleFromActionRequest: (companyId: string, actionRequestId: string, input: unknown) =>
+    listActionRequests: (companyId: string, status: string) =>
+      listActionRequestsMock(companyId, status),
+    approveActionRequest: (
+      companyId: string,
+      actionRequestId: string,
+      rememberAction?: boolean,
+    ) => approveActionRequestMock(companyId, actionRequestId, rememberAction),
+    createTrustRuleFromActionRequest: (
+      companyId: string,
+      actionRequestId: string,
+      input: unknown,
+    ) =>
       createTrustRuleFromActionRequestMock(companyId, actionRequestId, input),
   },
 }));
@@ -32,7 +40,9 @@ vi.mock("@/context/ToastContext", () => ({
   useToast: () => ({ pushToast: pushToastMock }),
 }));
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 async function act(callback: () => void | Promise<void>) {
   let result: void | Promise<void> = undefined;
@@ -86,8 +96,8 @@ async function flushReact() {
 }
 
 function buttonContaining(text: string): HTMLButtonElement | undefined {
-  return Array.from(document.body.querySelectorAll("button")).find(
-    (button) => button.textContent?.includes(text),
+  return Array.from(document.body.querySelectorAll("button")).find((button) =>
+    button.textContent?.includes(text),
   ) as HTMLButtonElement | undefined;
 }
 
@@ -98,8 +108,13 @@ describe("ReviewQueueCard", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    listActionRequestsMock.mockResolvedValue({ actionRequests: [pendingRequest()] });
-    approveActionRequestMock.mockResolvedValue({ ...pendingRequest().request, status: "approved" });
+    listActionRequestsMock.mockResolvedValue({
+      actionRequests: [pendingRequest()],
+    });
+    approveActionRequestMock.mockResolvedValue({
+      ...pendingRequest().request,
+      status: "approved",
+    });
     createTrustRuleFromActionRequestMock.mockResolvedValue({ id: "policy-1" });
   });
 
@@ -111,7 +126,9 @@ describe("ReviewQueueCard", () => {
   });
 
   async function render() {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -136,14 +153,22 @@ describe("ReviewQueueCard", () => {
     await render();
 
     await act(async () => {
-      buttonContaining("Always allow")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonContaining("Always allow")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
     });
     await flushReact();
 
     expect(calls).toEqual(["approve"]);
-    expect(approveActionRequestMock).toHaveBeenCalledWith("company-1", "request-1", true);
+    expect(approveActionRequestMock).toHaveBeenCalledWith(
+      "company-1",
+      "request-1",
+      true,
+    );
     expect(createTrustRuleFromActionRequestMock).not.toHaveBeenCalled();
-    expect(pushToastMock).toHaveBeenCalledWith(expect.objectContaining({ title: "Always allowed" }));
+    expect(pushToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Always allowed" }),
+    );
   });
 });

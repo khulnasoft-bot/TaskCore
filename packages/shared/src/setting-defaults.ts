@@ -32,7 +32,8 @@ export const DEFAULTABLE_GENERAL_SETTINGS = [
   "feedbackDataSharingPreference",
 ] as const;
 
-export type DefaultableGeneralSetting = (typeof DEFAULTABLE_GENERAL_SETTINGS)[number];
+export type DefaultableGeneralSetting =
+  (typeof DEFAULTABLE_GENERAL_SETTINGS)[number];
 
 export type OperatorSettingDefaults = Partial<
   Pick<InstanceGeneralSettings, DefaultableGeneralSetting>
@@ -47,14 +48,17 @@ export interface ParsedSettingDefaults {
 
 const defaultableFieldsSchema = instanceGeneralSettingsSchema
   .pick(
-    Object.fromEntries(DEFAULTABLE_GENERAL_SETTINGS.map((key) => [key, true])) as {
+    Object.fromEntries(
+      DEFAULTABLE_GENERAL_SETTINGS.map((key) => [key, true]),
+    ) as {
       [K in DefaultableGeneralSetting]: true;
     },
   )
   .partial();
 
 /** The all-schema-defaults view used to decide whether a value was chosen. */
-const schemaDefaults: InstanceGeneralSettings = instanceGeneralSettingsSchema.parse({});
+const schemaDefaults: InstanceGeneralSettings =
+  instanceGeneralSettingsSchema.parse({});
 
 /**
  * Parse a `TASKCORE_SETTING_DEFAULTS`-style JSON object.
@@ -62,8 +66,11 @@ const schemaDefaults: InstanceGeneralSettings = instanceGeneralSettingsSchema.pa
  * @throws when the JSON is malformed, not an object, or a known field carries
  * an invalid value — policy configuration fails closed.
  */
-export function parseSettingDefaults(raw: string | undefined): ParsedSettingDefaults {
-  if (raw === undefined || raw.trim() === "") return { defaults: null, unknown: [] };
+export function parseSettingDefaults(
+  raw: string | undefined,
+): ParsedSettingDefaults {
+  if (raw === undefined || raw.trim() === "")
+    return { defaults: null, unknown: [] };
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -73,7 +80,9 @@ export function parseSettingDefaults(raw: string | undefined): ParsedSettingDefa
     );
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`${SETTING_DEFAULTS_ENV_KEY} must be a JSON object of setting defaults`);
+    throw new Error(
+      `${SETTING_DEFAULTS_ENV_KEY} must be a JSON object of setting defaults`,
+    );
   }
   const known: Record<string, unknown> = {};
   const unknown: string[] = [];

@@ -19,7 +19,11 @@ function isValidTimestamp(value: string | null | undefined): value is string {
 }
 
 function restartTimestamp(health: HealthStatus | undefined): string | null {
-  return health?.devServer?.lastRestartAt ?? health?.serverInfo?.processStartedAt ?? null;
+  return (
+    health?.devServer?.lastRestartAt ??
+    health?.serverInfo?.processStartedAt ??
+    null
+  );
 }
 
 function commitLabel(health: HealthStatus | undefined): string {
@@ -44,7 +48,9 @@ function localChangesLabel(health: HealthStatus | undefined): string {
     .filter(([count]) => Number(count) > 0)
     .map(([count, label]) => `${count} ${label}`);
 
-  return parts.length > 0 ? `Local changes present (${parts.join(", ")})` : "Local changes present";
+  return parts.length > 0
+    ? `Local changes present (${parts.join(", ")})`
+    : "Local changes present";
 }
 
 function ServerInfoRow({
@@ -64,13 +70,20 @@ function ServerInfoRow({
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-foreground">{label}</span>
+        <span className="block text-sm font-medium text-foreground">
+          {label}
+        </span>
         {dateTime ? (
-          <time dateTime={dateTime} className="block break-words text-xs text-muted-foreground">
+          <time
+            dateTime={dateTime}
+            className="block break-words text-xs text-muted-foreground"
+          >
             {value}
           </time>
         ) : (
-          <span className="block break-words text-xs text-muted-foreground">{value}</span>
+          <span className="block break-words text-xs text-muted-foreground">
+            {value}
+          </span>
         )}
       </span>
     </div>
@@ -130,10 +143,18 @@ export function SidebarServerInfo() {
         icon={Clock3}
         label="Last restarted"
         value={lastRestartedLabel}
-        dateTime={!healthUnavailable && !isWaitingForHealth && restartedAtIsValid ? restartedAt : null}
+        dateTime={
+          !healthUnavailable && !isWaitingForHealth && restartedAtIsValid
+            ? restartedAt
+            : null
+        }
       />
       <ServerInfoRow icon={GitCommit} label="Running commit" value={commit} />
-      <ServerInfoRow icon={FileDiff} label="Checkout state" value={localChanges} />
+      <ServerInfoRow
+        icon={FileDiff}
+        label="Checkout state"
+        value={localChanges}
+      />
     </div>
   );
 }

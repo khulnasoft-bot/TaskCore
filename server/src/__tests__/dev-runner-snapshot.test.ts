@@ -52,7 +52,10 @@ describe("dev-runner watched snapshot", () => {
       },
     };
 
-    const snapshot = collectWatchedSnapshot({ ...createSnapshotOptions(root), fileSystem });
+    const snapshot = collectWatchedSnapshot({
+      ...createSnapshotOptions(root),
+      fileSystem,
+    });
 
     expect(snapshot.has("server/index.ts")).toBe(false);
   });
@@ -62,11 +65,18 @@ describe("dev-runner watched snapshot", () => {
     const serverDir = path.join(root, "server");
     const routesDir = path.join(serverDir, "routes");
     fs.mkdirSync(routesDir, { recursive: true });
-    fs.writeFileSync(path.join(routesDir, "health.ts"), "export const ok = true;\n", "utf8");
+    fs.writeFileSync(
+      path.join(routesDir, "health.ts"),
+      "export const ok = true;\n",
+      "utf8",
+    );
 
     const fileSystem = {
       existsSync: fs.existsSync,
-      readdirSync(target: fs.PathLike, options?: fs.ObjectEncodingOptions & { withFileTypes: true }) {
+      readdirSync(
+        target: fs.PathLike,
+        options?: fs.ObjectEncodingOptions & { withFileTypes: true },
+      ) {
         if (target === routesDir) {
           fs.rmSync(routesDir, { recursive: true, force: true });
         }
@@ -75,7 +85,10 @@ describe("dev-runner watched snapshot", () => {
       statSync: fs.statSync,
     };
 
-    const snapshot = collectWatchedSnapshot({ ...createSnapshotOptions(root), fileSystem });
+    const snapshot = collectWatchedSnapshot({
+      ...createSnapshotOptions(root),
+      fileSystem,
+    });
 
     expect(snapshot.has("server/routes/health.ts")).toBe(false);
   });
@@ -96,6 +109,8 @@ describe("dev-runner watched snapshot", () => {
   });
 
   it("reports deleted paths in diffs", () => {
-    expect(diffSnapshots(new Map([["server/deleted.ts", "1:1"]]), new Map())).toEqual(["server/deleted.ts"]);
+    expect(
+      diffSnapshots(new Map([["server/deleted.ts", "1:1"]]), new Map()),
+    ).toEqual(["server/deleted.ts"]);
   });
 });

@@ -31,18 +31,25 @@ export function WorkspaceFileLink({
 }: WorkspaceFileLinkProps) {
   const viewer = useFileViewer();
   const location = useLocation();
-  const display = typeof label !== "undefined" ? label : formatWorkspaceFileRefDisplay(workspaceFileRef);
+  const display =
+    typeof label !== "undefined"
+      ? label
+      : formatWorkspaceFileRefDisplay(workspaceFileRef);
   const canOpen = !!(onOpen || viewer);
-  const isDirectory = workspaceFileRef.resourceKind === "directory" || workspaceFileRef.path.endsWith("/");
+  const isDirectory =
+    workspaceFileRef.resourceKind === "directory" ||
+    workspaceFileRef.path.endsWith("/");
   const lineSuffix = workspaceFileRef.line
     ? ` line ${workspaceFileRef.line}${workspaceFileRef.column ? ` column ${workspaceFileRef.column}` : ""}`
     : "";
   const ariaLabel = canOpen
     ? `Open ${workspaceFileRef.path}${lineSuffix} in the ${isDirectory ? "workspace browser" : "file viewer"}`
     : `Workspace ${isDirectory ? "folder" : "file"} ${workspaceFileRef.path}${lineSuffix}`;
-  const tooltip = title ?? (canOpen
-    ? `Open ${workspaceFileRef.path}${lineSuffix} in the ${isDirectory ? "workspace browser" : "file viewer"}`
-    : `Workspace ${isDirectory ? "folder" : "file"} ${workspaceFileRef.path}${lineSuffix}`);
+  const tooltip =
+    title ??
+    (canOpen
+      ? `Open ${workspaceFileRef.path}${lineSuffix} in the ${isDirectory ? "workspace browser" : "file viewer"}`
+      : `Workspace ${isDirectory ? "folder" : "file"} ${workspaceFileRef.path}${lineSuffix}`);
 
   const deepLinkSearch = isDirectory
     ? writeFolderViewerStateToSearch(location.search, {
@@ -91,11 +98,21 @@ export function WorkspaceFileLink({
       onClick={handleClick}
     >
       {showIcon ? (
-        isDirectory
-          ? <FolderOpen aria-hidden="true" className="h-3 w-3 shrink-0 opacity-70" />
-          : <FileCode2 aria-hidden="true" className="h-3 w-3 shrink-0 opacity-70" />
+        isDirectory ? (
+          <FolderOpen
+            aria-hidden="true"
+            className="h-3 w-3 shrink-0 opacity-70"
+          />
+        ) : (
+          <FileCode2
+            aria-hidden="true"
+            className="h-3 w-3 shrink-0 opacity-70"
+          />
+        )
       ) : null}
-      <span className="max-w-full whitespace-normal break-all text-left">{display}</span>
+      <span className="max-w-full whitespace-normal break-all text-left">
+        {display}
+      </span>
     </a>
   );
 }

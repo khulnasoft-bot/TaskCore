@@ -33,19 +33,33 @@ import { assertBoardOrgAccess, getActorInfo } from "./authz.js";
 
 function sameJsonValue(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null
+  )
+    return false;
   if (Array.isArray(a) || Array.isArray(b)) {
     return (
-      Array.isArray(a)
-      && Array.isArray(b)
-      && a.length === b.length
-      && a.every((value, i) => sameJsonValue(value, b[i]))
+      Array.isArray(a) &&
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((value, i) => sameJsonValue(value, b[i]))
     );
   }
   const aKeys = Object.keys(a);
   const bKeys = new Set(Object.keys(b));
-  return aKeys.length === bKeys.size && aKeys.every((key) =>
-    bKeys.has(key) && sameJsonValue((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+  return (
+    aKeys.length === bKeys.size &&
+    aKeys.every(
+      (key) =>
+        bKeys.has(key) &&
+        sameJsonValue(
+          (a as Record<string, unknown>)[key],
+          (b as Record<string, unknown>)[key],
+        ),
+    )
   );
 }
 
@@ -64,9 +78,12 @@ async function assertNoHiddenSettingChanges(
   const current = (await getCurrent()) as Record<string, unknown>;
   for (const key of hiddenKeys) {
     if (sameJsonValue(body[key], current[key])) continue;
-    throw forbidden(`${key} is managed by the hosting operator on this instance`, {
-      code: "settings_operator_managed",
-    });
+    throw forbidden(
+      `${key} is managed by the hosting operator on this instance`,
+      {
+        code: "settings_operator_managed",
+      },
+    );
   }
 }
 
@@ -76,12 +93,18 @@ async function assertNoHiddenSettingChanges(
  * must not turn into a route error: that would report the mutation as
  * failed to the caller when it in fact succeeded. Log and swallow instead.
  */
-function publishActivitiesBestEffort(publications: ActivityPublication[], action: string) {
+function publishActivitiesBestEffort(
+  publications: ActivityPublication[],
+  action: string,
+) {
   for (const publication of publications) {
     try {
       publishActivity(publication);
     } catch (err) {
-      logger.error({ err, action, companyId: publication.companyId }, "failed to publish activity event");
+      logger.error(
+        { err, action, companyId: publication.companyId },
+        "failed to publish activity event",
+      );
     }
   }
 }
@@ -121,7 +144,11 @@ function withTaskDrainTransition<T>(run: () => Promise<T>): Promise<T> {
   return turn;
 }
 
-export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManager, prepareIdleDatabaseBackup?: () => Promise<boolean>) {
+export function instanceSettingsRoutes(
+  db: Db,
+  pluginWorkers?: PluginWorkerManager,
+  prepareIdleDatabaseBackup?: () => Promise<boolean>,
+) {
   const router = Router();
   const svc = instanceSettingsService(db);
   const environments = environmentService(db);
@@ -137,11 +164,15 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
     validate(patchInstanceSettingsSchema),
     async (req, res) => {
       assertCanManageInstanceSettings(req);
-      if (Object.prototype.hasOwnProperty.call(req.body, "defaultEnvironmentId")) {
+      if (
+        Object.prototype.hasOwnProperty.call(req.body, "defaultEnvironmentId")
+      ) {
         await assertEnvironmentSelectionForCompany(
           environments,
           "instance",
-          typeof req.body.defaultEnvironmentId === "string" ? req.body.defaultEnvironmentId : null,
+          typeof req.body.defaultEnvironmentId === "string"
+            ? req.body.defaultEnvironmentId
+            : null,
         );
       }
       // An explicit tenant write of the instance default reclassifies its
@@ -153,14 +184,24 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
       // in ONE transaction, so no partial failure can desync attribution
       // from the default (neither a stale stamp on a tenant choice, nor a
       // reconciliation default that lost its marker and can never revert).
-      const writesDefault = Object.prototype.hasOwnProperty.call(req.body, "defaultEnvironmentId");
+      const writesDefault = Object.prototype.hasOwnProperty.call(
+        req.body,
+        "defaultEnvironmentId",
+      );
       const managedSandbox = writesDefault
-        ? await environments.findManagedSandboxEnvironment(undefined, { includeArchived: true })
+        ? await environments.findManagedSandboxEnvironment(undefined, {
+            includeArchived: true,
+          })
         : null;
       const updated = await db.transaction(async (tx) => {
         if (managedSandbox?.metadata?.managedDefaultStamped === true) {
-          const { managedDefaultStamped: _cleared, ...remainingMetadata } = managedSandbox.metadata;
-          await environments.update(managedSandbox.id, { metadata: remainingMetadata }, { db: tx });
+          const { managedDefaultStamped: _cleared, ...remainingMetadata } =
+            managedSandbox.metadata;
+          await environments.update(
+            managedSandbox.id,
+            { metadata: remainingMetadata },
+            { db: tx },
+          );
         }
         return svc.update(req.body, { db: tx });
       });
@@ -213,10 +254,15 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
         Object.prototype.hasOwnProperty.call(req.body, "executionMode")
       ) {
         const current = await svc.getGeneral();
-        if ((req.body.executionMode ?? "any") !== (current.executionMode ?? "any")) {
-          throw forbidden("executionMode is platform-managed on cloud-managed instances", {
-            code: "execution_mode_platform_managed",
-          });
+        if (
+          (req.body.executionMode ?? "any") !== (current.executionMode ?? "any")
+        ) {
+          throw forbidden(
+            "executionMode is platform-managed on cloud-managed instances",
+            {
+              code: "execution_mode_platform_managed",
+            },
+          );
         }
       }
       const hidden = getHiddenSettings();
@@ -271,7 +317,8 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
         req.body,
         () => svc.getExperimental(),
         (field) =>
-          hidden.has("instance.experimental") || hidden.has(`instance.experimental.${field}`),
+          hidden.has("instance.experimental") ||
+          hidden.has(`instance.experimental.${field}`),
       );
       const updated = await svc.updateExperimental(req.body);
       const actor = getActorInfo(req);
@@ -308,15 +355,30 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
       // A checkpoint performs platform-owned backup work. Tenant owners can
       // have instance-admin elevation, but that must not grant the manual
       // backup authority which managed instances deliberately withhold.
-      if (prepareIdleDatabaseBackup && isCloudManagedInstance() && req.actor.source !== "cloud_control") {
-        throw forbidden("Backup checkpoints are platform-managed on cloud-managed instances", {
-          code: "database_backups_platform_managed",
-        });
+      if (
+        prepareIdleDatabaseBackup &&
+        isCloudManagedInstance() &&
+        req.actor.source !== "cloud_control"
+      ) {
+        throw forbidden(
+          "Backup checkpoints are platform-managed on cloud-managed instances",
+          {
+            code: "database_backups_platform_managed",
+          },
+        );
       }
-      const idleSleepSafety = await readIdleSleepSafety(db, () => heartbeat.getTaskDrainStatus(), Date.now,
+      const idleSleepSafety = await readIdleSleepSafety(
+        db,
+        () => heartbeat.getTaskDrainStatus(),
+        Date.now,
         typeof req.query.ownerId === "string" ? req.query.ownerId : undefined,
-        () => readIdleLocalWork({ backupCheckpoint: Boolean(prepareIdleDatabaseBackup) }),
-        pluginWorkers?.inspectIdleSleep?.bind(pluginWorkers), prepareIdleDatabaseBackup);
+        () =>
+          readIdleLocalWork({
+            backupCheckpoint: Boolean(prepareIdleDatabaseBackup),
+          }),
+        pluginWorkers?.inspectIdleSleep?.bind(pluginWorkers),
+        prepareIdleDatabaseBackup,
+      );
       res.json({ ...heartbeat.getTaskDrainStatus(), idleSleepSafety });
       return;
     }
@@ -339,11 +401,16 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
       // not the moment it arrived and was queued behind another transition.
       const drain = await withTaskDrainTransition(async () => {
         const prior = heartbeat.getTaskDrainStatus();
-        if (prior?.ownerId || (req.body.purpose === "idle" && prior?.draining)) {
+        if (
+          prior?.ownerId ||
+          (req.body.purpose === "idle" && prior?.draining)
+        ) {
           throw conflict("Another task drain is already active");
         }
-        const computed = heartbeat.computeTaskDrain({ ttlMs,
-          ...(req.body.purpose === "idle" ? { purpose: "idle" as const } : {}) });
+        const computed = heartbeat.computeTaskDrain({
+          ttlMs,
+          ...(req.body.purpose === "idle" ? { purpose: "idle" as const } : {}),
+        });
         // One transaction for every company's audit row, so a write that
         // succeeds for one company and fails for another never leaves a
         // partial activity history behind — either every company gets the
@@ -354,22 +421,28 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
         await db.transaction((tx) =>
           Promise.all(
             companyIds.map((companyId) =>
-              logActivity(tx as unknown as Db, {
-                companyId,
-                actorType: actor.actorType,
-                actorId: actor.actorId,
-                agentId: actor.agentId,
-                runId: actor.runId,
-                agentApiKeyId: actor.agentApiKeyId,
-                action: "instance.task_drain.started",
-                entityType: "instance_settings",
-                entityId: "default",
-                details: {
-                  startedAt: computed.startedAt,
-                  expiresAt: computed.expiresAt,
-                  ...(computed.ownerId ? { purpose: "idle", ownerId: computed.ownerId } : {}),
+              logActivity(
+                tx as unknown as Db,
+                {
+                  companyId,
+                  actorType: actor.actorType,
+                  actorId: actor.actorId,
+                  agentId: actor.agentId,
+                  runId: actor.runId,
+                  agentApiKeyId: actor.agentApiKeyId,
+                  action: "instance.task_drain.started",
+                  entityType: "instance_settings",
+                  entityId: "default",
+                  details: {
+                    startedAt: computed.startedAt,
+                    expiresAt: computed.expiresAt,
+                    ...(computed.ownerId
+                      ? { purpose: "idle", ownerId: computed.ownerId }
+                      : {}),
+                  },
                 },
-              }, postCommitActivityPublications),
+                postCommitActivityPublications,
+              ),
             ),
           ),
         );
@@ -379,7 +452,10 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
         // state at this point would desync it from the committed row.
         // Swallow a publish failure so it cannot turn a committed mutation
         // into a false 500.
-        publishActivitiesBestEffort(postCommitActivityPublications, "instance.task_drain.started");
+        publishActivitiesBestEffort(
+          postCommitActivityPublications,
+          "instance.task_drain.started",
+        );
         return computed;
       });
       res.json(drain);
@@ -398,8 +474,11 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
     // queued transition.
     const wasActive = await withTaskDrainTransition(async () => {
       const priorStatus = heartbeat.getTaskDrainStatus();
-      if ((priorStatus.ownerId || req.query.ownerId !== undefined) &&
-          (typeof req.query.ownerId !== "string" || req.query.ownerId !== priorStatus.ownerId)) {
+      if (
+        (priorStatus.ownerId || req.query.ownerId !== undefined) &&
+        (typeof req.query.ownerId !== "string" ||
+          req.query.ownerId !== priorStatus.ownerId)
+      ) {
         throw conflict("Task drain ownership changed");
       }
       // Read wasActive once, here, and use this same value for the audit
@@ -412,20 +491,24 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
       await db.transaction((tx) =>
         Promise.all(
           companyIds.map((companyId) =>
-            logActivity(tx as unknown as Db, {
-              companyId,
-              actorType: actor.actorType,
-              actorId: actor.actorId,
-              agentId: actor.agentId,
-              runId: actor.runId,
-              agentApiKeyId: actor.agentApiKeyId,
-              action: "instance.task_drain.stopped",
-              entityType: "instance_settings",
-              entityId: "default",
-              details: {
-                wasActive,
+            logActivity(
+              tx as unknown as Db,
+              {
+                companyId,
+                actorType: actor.actorType,
+                actorId: actor.actorId,
+                agentId: actor.agentId,
+                runId: actor.runId,
+                agentApiKeyId: actor.agentApiKeyId,
+                action: "instance.task_drain.stopped",
+                entityType: "instance_settings",
+                entityId: "default",
+                details: {
+                  wasActive,
+                },
               },
-            }, postCommitActivityPublications),
+              postCommitActivityPublications,
+            ),
           ),
         ),
       );
@@ -436,7 +519,10 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
       // committed, so a publish failure here must not undo a drain-stop
       // that is already correct in the database, and must not report the
       // stop as failed when it succeeded.
-      publishActivitiesBestEffort(postCommitActivityPublications, "instance.task_drain.stopped");
+      publishActivitiesBestEffort(
+        postCommitActivityPublications,
+        "instance.task_drain.stopped",
+      );
       return wasActive;
     });
     res.json({ wasActive });
@@ -500,18 +586,28 @@ export function instanceSettingsRoutes(db: Db, pluginWorkers?: PluginWorkerManag
     // as the Cloud system identity; a human instance admin calling this
     // endpoint is recorded as themselves, exactly like an in-product
     // unarchive.
-    const actor = req.actor.source === "cloud_control"
-      ? { actorType: "system" as const, actorId: "taskcore-cloud", agentId: null, runId: null }
-      : (() => {
-          const info = getActorInfo(req);
-          return {
-            actorType: info.actorType,
-            actorId: info.actorId,
-            agentId: info.agentId,
-            runId: info.runId,
-          };
-        })();
-    const updated = await companySvc.update(primaryCompanyId, { status: "active" }, actor);
+    const actor =
+      req.actor.source === "cloud_control"
+        ? {
+            actorType: "system" as const,
+            actorId: "taskcore-cloud",
+            agentId: null,
+            runId: null,
+          }
+        : (() => {
+            const info = getActorInfo(req);
+            return {
+              actorType: info.actorType,
+              actorId: info.actorId,
+              agentId: info.agentId,
+              runId: info.runId,
+            };
+          })();
+    const updated = await companySvc.update(
+      primaryCompanyId,
+      { status: "active" },
+      actor,
+    );
     res.json({ status: updated?.status ?? "active", changed: true });
   });
 

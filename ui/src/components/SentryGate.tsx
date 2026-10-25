@@ -2,7 +2,10 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { authApi } from "@/api/auth";
 import { queryKeys } from "@/lib/queryKeys";
-import { initBrowserErrorMonitoring, teardownBrowserErrorMonitoring } from "@/lib/sentry";
+import {
+  initBrowserErrorMonitoring,
+  teardownBrowserErrorMonitoring,
+} from "@/lib/sentry";
 
 /**
  * Opens the browser Sentry gate for an authorized board actor. Reads the

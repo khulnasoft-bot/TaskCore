@@ -19,9 +19,18 @@ const ENTER = "\r";
 
 const HOME = "/tmp/taskcore-adapter-login/11111111-2222-4333-8444-555555555555";
 
-const CLAUDE: LoginPtyLaunchDescriptor = { loginCommandKey: "claude", sessionHome: HOME };
-const CODEX: LoginPtyLaunchDescriptor = { loginCommandKey: "codex", sessionHome: HOME };
-const GROK: LoginPtyLaunchDescriptor = { loginCommandKey: "grok", sessionHome: HOME };
+const CLAUDE: LoginPtyLaunchDescriptor = {
+  loginCommandKey: "claude",
+  sessionHome: HOME,
+};
+const CODEX: LoginPtyLaunchDescriptor = {
+  loginCommandKey: "codex",
+  sessionHome: HOME,
+};
+const GROK: LoginPtyLaunchDescriptor = {
+  loginCommandKey: "grok",
+  sessionHome: HOME,
+};
 
 /**
  * A fake login-home filesystem. It records each path the caller asks to create
@@ -56,10 +65,13 @@ function createFakePtyHandle(
 } {
   const encoder = new TextEncoder();
   const inputs: string[] = [];
-  let resolveWait: ((value: { exitCode?: number; error?: string }) => void) | null = null;
-  const waitPromise = new Promise<{ exitCode?: number; error?: string }>((resolve) => {
-    resolveWait = resolve;
-  });
+  let resolveWait:
+    ((value: { exitCode?: number; error?: string }) => void) | null = null;
+  const waitPromise = new Promise<{ exitCode?: number; error?: string }>(
+    (resolve) => {
+      resolveWait = resolve;
+    },
+  );
   let killed = 0;
   let disconnected = 0;
   return {
@@ -67,7 +79,9 @@ function createFakePtyHandle(
       onWaitForConnection?.();
     },
     async sendInput(data: string | Uint8Array): Promise<void> {
-      inputs.push(typeof data === "string" ? data : new TextDecoder().decode(data));
+      inputs.push(
+        typeof data === "string" ? data : new TextDecoder().decode(data),
+      );
     },
     wait(): Promise<{ exitCode?: number; error?: string }> {
       return waitPromise;
@@ -123,7 +137,9 @@ function createFakeProcess(): DaytonaPtyProcess & {
     get createCount() {
       return state.createCount;
     },
-    async createPty(options: DaytonaPtyCreateOptions): Promise<DaytonaPtyHandle> {
+    async createPty(
+      options: DaytonaPtyCreateOptions,
+    ): Promise<DaytonaPtyHandle> {
       state.createCount += 1;
       state.createOptions = options;
       const handle = createFakePtyHandle(options.onData);
@@ -153,7 +169,9 @@ describe("composeLaunchLine", () => {
 
   it("composes the Codex line with exactly one encoded CODEX_HOME", () => {
     const line = composeLaunchLine(CODEX);
-    expect(line).toBe(`exec env CODEX_HOME='${HOME}' codex login --device-auth`);
+    expect(line).toBe(
+      `exec env CODEX_HOME='${HOME}' codex login --device-auth`,
+    );
     // Exactly one CODEX_HOME assignment, and the exact approved Codex command.
     expect(line.match(/CODEX_HOME=/g)).toHaveLength(1);
     expect(line.endsWith("codex login --device-auth")).toBe(true);
@@ -206,7 +224,9 @@ describe("openDaytonaLoginPtySession — session home", () => {
       `exec env CODEX_HOME='${HOME}' codex login --device-auth` + ENTER,
     );
     // The Claude line carries no CODEX_HOME; the Codex line carries exactly one.
-    expect((process.handle?.inputs[0]?.match(/CODEX_HOME=/g) ?? []).length).toBe(1);
+    expect(
+      (process.handle?.inputs[0]?.match(/CODEX_HOME=/g) ?? []).length,
+    ).toBe(1);
   });
 
   it("opens the login session when the session home already exists", async () => {
@@ -267,20 +287,31 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
     const process = createFakeProcess();
     const received: string[] = [];
 
-    const session = await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE);
+    const session = await openDaytonaLoginPtySession(
+      process,
+      createFakeHomeFs(),
+      CLAUDE,
+    );
     session.onData((chunk) => received.push(chunk));
 
     process.handle?.emitText("the url below to sign in\n");
     process.handle?.emitText("Paste code here if prompted\n");
 
-    expect(received).toEqual(["the url below to sign in\n", "Paste code here if prompted\n"]);
+    expect(received).toEqual([
+      "the url below to sign in\n",
+      "Paste code here if prompted\n",
+    ]);
   });
 
   it("buffers early output until the listener registers", async () => {
     const process = createFakeProcess();
     const received: string[] = [];
 
-    const session = await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE);
+    const session = await openDaytonaLoginPtySession(
+      process,
+      createFakeHomeFs(),
+      CLAUDE,
+    );
     process.handle?.emitText("early output ");
     process.handle?.emitText("more output");
     expect(received).toEqual([]);
@@ -292,7 +323,11 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
   it("delivers the browser code plus the Enter byte to the command", async () => {
     const process = createFakeProcess();
 
-    const session = await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE);
+    const session = await openDaytonaLoginPtySession(
+      process,
+      createFakeHomeFs(),
+      CLAUDE,
+    );
     session.write("BROWSERCODE" + ENTER);
     // The write runs through the serialized chunk chain, so it lands on a later
     // microtask. Flush the chain before the assertion.
@@ -306,7 +341,11 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
     const process = createFakeProcess();
     const received: string[] = [];
 
-    const session = await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE);
+    const session = await openDaytonaLoginPtySession(
+      process,
+      createFakeHomeFs(),
+      CLAUDE,
+    );
     session.onData((chunk) => received.push(chunk));
 
     const euro = new TextEncoder().encode("€");
@@ -319,7 +358,11 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
   it("resolves wait with the command exit code", async () => {
     const process = createFakeProcess();
 
-    const session = await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE);
+    const session = await openDaytonaLoginPtySession(
+      process,
+      createFakeHomeFs(),
+      CLAUDE,
+    );
     process.handle?.finish(9);
 
     await expect(session.wait()).resolves.toEqual({ exitCode: 9 });
@@ -328,7 +371,11 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
   it("maps an absent exit code to null", async () => {
     const process = createFakeProcess();
 
-    const session = await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE);
+    const session = await openDaytonaLoginPtySession(
+      process,
+      createFakeHomeFs(),
+      CLAUDE,
+    );
     process.handle?.finish(undefined);
 
     await expect(session.wait()).resolves.toEqual({ exitCode: null });
@@ -337,7 +384,11 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
   it("kills the child and closes the session", async () => {
     const process = createFakeProcess();
 
-    const session = await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE);
+    const session = await openDaytonaLoginPtySession(
+      process,
+      createFakeHomeFs(),
+      CLAUDE,
+    );
     session.kill();
     expect(process.handle?.killed).toBe(1);
 
@@ -348,7 +399,9 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
   it("passes the working directory to the pseudo-terminal", async () => {
     const process = createFakeProcess();
 
-    await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE, { cwd: "/workspace" });
+    await openDaytonaLoginPtySession(process, createFakeHomeFs(), CLAUDE, {
+      cwd: "/workspace",
+    });
 
     expect(process.createOptions?.cwd).toBe("/workspace");
   });
@@ -357,7 +410,9 @@ describe("openDaytonaLoginPtySession — session mechanics", () => {
 describe("createDaytonaLoginHomeFs — login-profile preamble", () => {
   // A capturing exec surface. It records each command and returns a fixed result,
   // so a test reads the exact command string the create runs.
-  function createCapturingExec(result: DaytonaExecResult): DaytonaSandboxExec & {
+  function createCapturingExec(
+    result: DaytonaExecResult,
+  ): DaytonaSandboxExec & {
     commands: string[];
   } {
     const commands: string[] = [];
@@ -394,9 +449,9 @@ describe("createDaytonaLoginHomeFs — login-profile preamble", () => {
     const fs = createDaytonaLoginHomeFs(exec);
     const process = createFakeProcess();
 
-    await expect(openDaytonaLoginPtySession(process, fs, CLAUDE)).rejects.toThrow(
-      "LOGIN_PTY_HOME_REJECTED",
-    );
+    await expect(
+      openDaytonaLoginPtySession(process, fs, CLAUDE),
+    ).rejects.toThrow("LOGIN_PTY_HOME_REJECTED");
     expect(process.createCount).toBe(0);
   });
 });
@@ -404,9 +459,13 @@ describe("createDaytonaLoginHomeFs — login-profile preamble", () => {
 describe("createDaytonaLoginPtySessionOpener", () => {
   it("opens a session for the descriptor on each call", async () => {
     const process = createFakeProcess();
-    const opener = createDaytonaLoginPtySessionOpener(process, createFakeHomeFs(), {
-      cwd: "/workspace",
-    });
+    const opener = createDaytonaLoginPtySessionOpener(
+      process,
+      createFakeHomeFs(),
+      {
+        cwd: "/workspace",
+      },
+    );
 
     const session = await opener(CLAUDE);
 

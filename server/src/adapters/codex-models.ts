@@ -6,7 +6,11 @@ const OPENAI_MODELS_ENDPOINT = "https://api.openai.com/v1/models";
 const OPENAI_MODELS_TIMEOUT_MS = 5000;
 const OPENAI_MODELS_CACHE_TTL_MS = 60_000;
 
-let cached: { keyFingerprint: string; expiresAt: number; models: AdapterModel[] } | null = null;
+let cached: {
+  keyFingerprint: string;
+  expiresAt: number;
+  models: AdapterModel[];
+} | null = null;
 
 function fingerprint(apiKey: string): string {
   return `${apiKey.length}:${apiKey.slice(-6)}`;
@@ -25,10 +29,9 @@ function dedupeModels(models: AdapterModel[]): AdapterModel[] {
 }
 
 function mergedWithFallback(models: AdapterModel[]): AdapterModel[] {
-  return dedupeModels([
-    ...models,
-    ...codexFallbackModels,
-  ]).sort((a, b) => a.id.localeCompare(b.id, "en", { numeric: true, sensitivity: "base" }));
+  return dedupeModels([...models, ...codexFallbackModels]).sort((a, b) =>
+    a.id.localeCompare(b.id, "en", { numeric: true, sensitivity: "base" }),
+  );
 }
 
 function resolveOpenAiApiKey(): string | null {
@@ -43,7 +46,10 @@ function resolveOpenAiApiKey(): string | null {
 
 async function fetchOpenAiModels(apiKey: string): Promise<AdapterModel[]> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OPENAI_MODELS_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    OPENAI_MODELS_TIMEOUT_MS,
+  );
   try {
     const response = await fetch(OPENAI_MODELS_ENDPOINT, {
       headers: {
@@ -70,7 +76,9 @@ async function fetchOpenAiModels(apiKey: string): Promise<AdapterModel[]> {
   }
 }
 
-async function loadCodexModels(options?: { forceRefresh?: boolean }): Promise<AdapterModel[]> {
+async function loadCodexModels(options?: {
+  forceRefresh?: boolean;
+}): Promise<AdapterModel[]> {
   const forceRefresh = options?.forceRefresh === true;
   const apiKey = resolveOpenAiApiKey();
   const fallback = dedupeModels(codexFallbackModels);
@@ -78,7 +86,12 @@ async function loadCodexModels(options?: { forceRefresh?: boolean }): Promise<Ad
 
   const now = Date.now();
   const keyFingerprint = fingerprint(apiKey);
-  if (!forceRefresh && cached && cached.keyFingerprint === keyFingerprint && cached.expiresAt > now) {
+  if (
+    !forceRefresh &&
+    cached &&
+    cached.keyFingerprint === keyFingerprint &&
+    cached.expiresAt > now
+  ) {
     return cached.models;
   }
 
@@ -93,7 +106,11 @@ async function loadCodexModels(options?: { forceRefresh?: boolean }): Promise<Ad
     return merged;
   }
 
-  if (cached && cached.keyFingerprint === keyFingerprint && cached.models.length > 0) {
+  if (
+    cached &&
+    cached.keyFingerprint === keyFingerprint &&
+    cached.models.length > 0
+  ) {
     return cached.models;
   }
 

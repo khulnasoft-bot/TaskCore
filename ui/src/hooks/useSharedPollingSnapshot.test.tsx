@@ -74,7 +74,11 @@ describe("useSharedPollingQuery snapshot updates", () => {
     // and is demoted to follower by the subscribe-time snapshot.
     localStorage.setItem(
       sharedPollingLeaseKey("company-b"),
-      JSON.stringify({ leader: "other-tab", expiresAt: Date.now() + 60_000, visible: true }),
+      JSON.stringify({
+        leader: "other-tab",
+        expiresAt: Date.now() + 60_000,
+        visible: true,
+      }),
     );
 
     mount("company-b");

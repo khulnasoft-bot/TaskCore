@@ -10,9 +10,15 @@ import {
 
 describe("extractKimiRuntimeEvents", () => {
   it("maps assistant content to an assistant snippet event", () => {
-    const events = extractKimiRuntimeEvents('{"role":"assistant","content":"Here is my plan"}');
+    const events = extractKimiRuntimeEvents(
+      '{"role":"assistant","content":"Here is my plan"}',
+    );
     expect(events).toEqual([
-      { eventType: "assistant", message: "Here is my plan", payload: { content: "Here is my plan" } },
+      {
+        eventType: "assistant",
+        message: "Here is my plan",
+        payload: { content: "Here is my plan" },
+      },
     ]);
   });
 
@@ -21,14 +27,26 @@ describe("extractKimiRuntimeEvents", () => {
       '{"role":"assistant","content":"running","tool_calls":[{"type":"function","id":"t1","function":{"name":"Bash","arguments":"{}"}}]}';
     const events = extractKimiRuntimeEvents(line);
     expect(events).toEqual([
-      { eventType: "assistant", message: "running", payload: { content: "running" } },
+      {
+        eventType: "assistant",
+        message: "running",
+        payload: { content: "running" },
+      },
       { eventType: "tool_call", payload: { toolName: "Bash" } },
     ]);
   });
 
   it("emits nothing for tool results, meta, and malformed lines", () => {
-    expect(extractKimiRuntimeEvents('{"role":"tool","tool_call_id":"t1","content":"done"}')).toEqual([]);
-    expect(extractKimiRuntimeEvents('{"role":"meta","type":"session.resume_hint","session_id":"s"}')).toEqual([]);
+    expect(
+      extractKimiRuntimeEvents(
+        '{"role":"tool","tool_call_id":"t1","content":"done"}',
+      ),
+    ).toEqual([]);
+    expect(
+      extractKimiRuntimeEvents(
+        '{"role":"meta","type":"session.resume_hint","session_id":"s"}',
+      ),
+    ).toEqual([]);
     expect(extractKimiRuntimeEvents("not json")).toEqual([]);
   });
 });
@@ -43,7 +61,9 @@ describe("parseKimiJsonl", () => {
     const parsed = parseKimiJsonl(stdout);
 
     expect(parsed.summary).toBe("TASKCORE_ADAPTER_TEST_OK");
-    expect(parsed.sessionId).toBe("session_769ddab9-0a25-4edd-99f4-cdfebdc90879");
+    expect(parsed.sessionId).toBe(
+      "session_769ddab9-0a25-4edd-99f4-cdfebdc90879",
+    );
     expect(parsed.errorMessage).toBeNull();
   });
 
@@ -55,7 +75,11 @@ describe("parseKimiJsonl", () => {
     const parsed = parseKimiJsonl(stdout);
 
     expect(parsed.toolCalls).toEqual([
-      { id: "tool_8c1OWyRBe68OMTbWY6NqnkMm", name: "Read", arguments: { path: "probe.txt" } },
+      {
+        id: "tool_8c1OWyRBe68OMTbWY6NqnkMm",
+        name: "Read",
+        arguments: { path: "probe.txt" },
+      },
     ]);
     expect(parsed.summary).toBe("");
   });
@@ -81,7 +105,10 @@ describe("parseKimiJsonl", () => {
     const parsed = parseKimiJsonl(stdout);
 
     expect(parsed.toolResults).toEqual([
-      { toolCallId: "tool_8c1OWyRBe68OMTbWY6NqnkMm", content: "1\thello taskcore" },
+      {
+        toolCallId: "tool_8c1OWyRBe68OMTbWY6NqnkMm",
+        content: "1\thello taskcore",
+      },
     ]);
   });
 
@@ -103,7 +130,9 @@ describe("parseKimiJsonl", () => {
       '{"role":"assistant","content":"## Update\\n\\n- Merged PR #25\\n- Burn-in continues"}',
     ].join("\n");
 
-    expect(parseKimiJsonl(stdout).summary).toBe("## Update\n\n- Merged PR #25\n- Burn-in continues");
+    expect(parseKimiJsonl(stdout).summary).toBe(
+      "## Update\n\n- Merged PR #25\n- Burn-in continues",
+    );
   });
 
   it("buildKimiRunSummary picks the last non-empty message", () => {
@@ -135,7 +164,8 @@ describe("detectKimiAuthRequired", () => {
   it("flags device-flow login hints", () => {
     const result = detectKimiAuthRequired({
       stdout: "",
-      stderr: "Not authenticated. Run `kimi login` to authenticate with a device code.",
+      stderr:
+        "Not authenticated. Run `kimi login` to authenticate with a device code.",
     });
     expect(result.requiresAuth).toBe(true);
   });
@@ -159,15 +189,24 @@ describe("detectKimiAuthRequired", () => {
 
 describe("isKimiTransientNetworkError", () => {
   it("matches DNS failures", () => {
-    expect(isKimiTransientNetworkError("", "Error: getaddrinfo ENOTFOUND api.moonshot.cn")).toBe(true);
+    expect(
+      isKimiTransientNetworkError(
+        "",
+        "Error: getaddrinfo ENOTFOUND api.moonshot.cn",
+      ),
+    ).toBe(true);
   });
 
   it("matches EAI_AGAIN", () => {
-    expect(isKimiTransientNetworkError("", "getaddrinfo EAI_AGAIN api.moonshot.cn")).toBe(true);
+    expect(
+      isKimiTransientNetworkError("", "getaddrinfo EAI_AGAIN api.moonshot.cn"),
+    ).toBe(true);
   });
 
   it("matches fetch failed", () => {
-    expect(isKimiTransientNetworkError("", "TypeError: fetch failed")).toBe(true);
+    expect(isKimiTransientNetworkError("", "TypeError: fetch failed")).toBe(
+      true,
+    );
   });
 
   it("does not match unrelated stderr", () => {
@@ -177,15 +216,30 @@ describe("isKimiTransientNetworkError", () => {
 
 describe("isKimiSessionUnrecoverableError", () => {
   it("matches unknown session", () => {
-    expect(isKimiSessionUnrecoverableError("", "Error: unknown session 'session_abc'")).toBe(true);
+    expect(
+      isKimiSessionUnrecoverableError(
+        "",
+        "Error: unknown session 'session_abc'",
+      ),
+    ).toBe(true);
   });
 
   it("matches session not found", () => {
-    expect(isKimiSessionUnrecoverableError("", "session session_abc not found on disk")).toBe(true);
+    expect(
+      isKimiSessionUnrecoverableError(
+        "",
+        "session session_abc not found on disk",
+      ),
+    ).toBe(true);
   });
 
   it("matches failed to resume", () => {
-    expect(isKimiSessionUnrecoverableError("", "failed to resume session session_abc")).toBe(true);
+    expect(
+      isKimiSessionUnrecoverableError(
+        "",
+        "failed to resume session session_abc",
+      ),
+    ).toBe(true);
   });
 
   it("does not match unrelated stderr", () => {
@@ -193,6 +247,11 @@ describe("isKimiSessionUnrecoverableError", () => {
   });
 
   it("does not match transient network errors (those go to isKimiTransientNetworkError)", () => {
-    expect(isKimiSessionUnrecoverableError("", "Error: getaddrinfo ENOTFOUND api.moonshot.cn")).toBe(false);
+    expect(
+      isKimiSessionUnrecoverableError(
+        "",
+        "Error: getaddrinfo ENOTFOUND api.moonshot.cn",
+      ),
+    ).toBe(false);
   });
 });

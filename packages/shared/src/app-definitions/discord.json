@@ -3,17 +3,13 @@
   "slug": "discord",
   "name": "Discord",
   "description": "Let people start and continue Taskcore work with an agent from Discord.",
-  "categories": [
-    "communication"
-  ],
+  "categories": ["communication"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/discord.svg",
     "darkLogoUrl": "/brands/apps/discord-dark.svg"
   },
-  "urlPatterns": [
-    "https://discord.com/*"
-  ],
+  "urlPatterns": ["https://discord.com/*"],
   "methods": [
     {
       "key": "chat-agent",
@@ -22,9 +18,7 @@
       "provider": "discord",
       "transport": "chat_sdk",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Let people in Discord start and continue work with one Taskcore agent.",
       "credentialFields": [
         {
@@ -58,9 +52,7 @@
         "docs": "https://discord.com/developers/docs/quick-start/getting-started"
       },
       "riskTier": "S3",
-      "requiredResourceFilters": [
-        "channel"
-      ]
+      "requiredResourceFilters": ["channel"]
     }
   ]
 }

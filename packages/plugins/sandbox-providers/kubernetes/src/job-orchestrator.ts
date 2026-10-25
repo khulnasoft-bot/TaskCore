@@ -1,5 +1,8 @@
 import type { KubeClients } from "./kube-client.js";
-import type { SandboxOrchestrator, SandboxStatus } from "./sandbox-orchestrator.js";
+import type {
+  SandboxOrchestrator,
+  SandboxStatus,
+} from "./sandbox-orchestrator.js";
 
 export class JobTimeoutError extends Error {
   constructor(namespace: string, name: string, timeoutMs: number) {
@@ -13,7 +16,10 @@ export async function createJob(
   namespace: string,
   manifest: Record<string, unknown>,
 ): Promise<{ uid: string }> {
-  const result = await clients.batch.createNamespacedJob({ namespace, body: manifest as never });
+  const result = await clients.batch.createNamespacedJob({
+    namespace,
+    body: manifest as never,
+  });
   const uid = (result as { metadata?: { uid?: string } }).metadata?.uid;
   if (!uid) throw new Error("Job created without a UID");
   return { uid };
@@ -26,17 +32,38 @@ export async function getJobStatus(
   namespace: string,
   name: string,
 ): Promise<JobStatus> {
-  const result = await clients.batch.readNamespacedJobStatus({ namespace, name });
+  const result = await clients.batch.readNamespacedJobStatus({
+    namespace,
+    name,
+  });
   const body = (result as Record<string, unknown>) ?? {};
   const status = (body.status as Record<string, unknown>) ?? {};
   const active = (status.active as number) ?? 0;
   const succeeded = (status.succeeded as number) ?? 0;
   const failed = (status.failed as number) ?? 0;
-  const conditions = (status.conditions as { type: string; status: string; reason?: string; message?: string }[]) ?? [];
-  const completed = conditions.find((c) => c.type === "Complete" && c.status === "True");
-  const failedCond = conditions.find((c) => c.type === "Failed" && c.status === "True");
+  const conditions =
+    (status.conditions as {
+      type: string;
+      status: string;
+      reason?: string;
+      message?: string;
+    }[]) ?? [];
+  const completed = conditions.find(
+    (c) => c.type === "Complete" && c.status === "True",
+  );
+  const failedCond = conditions.find(
+    (c) => c.type === "Failed" && c.status === "True",
+  );
   if (failedCond || failed > 0) {
-    return { phase: "Failed", complete: false, active, succeeded, failed, reason: failedCond?.reason, message: failedCond?.message };
+    return {
+      phase: "Failed",
+      complete: false,
+      active,
+      succeeded,
+      failed,
+      reason: failedCond?.reason,
+      message: failedCond?.message,
+    };
   }
   if (completed || succeeded > 0) {
     return { phase: "Succeeded", complete: true, active, succeeded, failed };
@@ -56,7 +83,12 @@ export async function findPodForJob(
     namespace,
     labelSelector: `job-name=${jobName}`,
   });
-  const items = ((result as { items?: { metadata?: { name?: string }; status?: { phase?: string } }[] }).items) ?? [];
+  const items =
+    (
+      result as {
+        items?: { metadata?: { name?: string }; status?: { phase?: string } }[];
+      }
+    ).items ?? [];
   const running = items.find((p) => p.status?.phase === "Running");
   return (running ?? items[0])?.metadata?.name ?? null;
 }
@@ -73,7 +105,10 @@ export async function streamPodLogs(
   // scraper or wrap their CLI to emit structured output on stdout. We always
   // emit chunks as "stdout"; the "stderr" callback slot in SandboxOrchestrator
   // is unused by the Job-backed implementation.
-  const result = await clients.core.readNamespacedPodLog({ namespace, name: podName });
+  const result = await clients.core.readNamespacedPodLog({
+    namespace,
+    name: podName,
+  });
   const text = (result as string) ?? "";
   if (text.length > 0) await onChunk("stdout", text);
 }
@@ -94,13 +129,17 @@ export async function waitForJobCompletion(
   clients: KubeClients,
   namespace: string,
   name: string,
-  opts: { timeoutMs: number; pollMs?: number } = { timeoutMs: 120_000, pollMs: 2000 },
+  opts: { timeoutMs: number; pollMs?: number } = {
+    timeoutMs: 120_000,
+    pollMs: 2000,
+  },
 ): Promise<JobStatus> {
   const deadline = Date.now() + opts.timeoutMs;
   const pollMs = opts.pollMs ?? 2000;
   while (Date.now() < deadline) {
     const status = await getJobStatus(clients, namespace, name);
-    if (status.phase === "Succeeded" || status.phase === "Failed") return status;
+    if (status.phase === "Succeeded" || status.phase === "Failed")
+      return status;
     await sleep(pollMs);
   }
   throw new JobTimeoutError(namespace, name, opts.timeoutMs);

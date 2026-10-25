@@ -1,7 +1,9 @@
 const PENDING_INVITE_STORAGE_KEY = "taskcore:pending-invite-token";
 
 function canUseStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return (
+    typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+  );
 }
 
 export function rememberPendingInviteToken(token: string) {
@@ -28,7 +30,9 @@ export function clearPendingInviteToken(expectedToken?: string) {
 export function getRememberedInvitePath() {
   if (!canUseStorage()) return null;
   try {
-    const token = window.localStorage.getItem(PENDING_INVITE_STORAGE_KEY)?.trim();
+    const token = window.localStorage
+      .getItem(PENDING_INVITE_STORAGE_KEY)
+      ?.trim();
     return token ? `/invite/${token}` : null;
   } catch {
     return null;

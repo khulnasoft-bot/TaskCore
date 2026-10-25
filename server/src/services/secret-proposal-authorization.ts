@@ -1,7 +1,10 @@
 import type { Db } from "@taskcore/db";
 import { forbidden, unprocessable } from "../errors.js";
 import { accessService } from "./access.js";
-import { authorizationDeniedDetails, type AuthorizationActor } from "./authorization.js";
+import {
+  authorizationDeniedDetails,
+  type AuthorizationActor,
+} from "./authorization.js";
 
 type ResolvableSecretProposal = {
   kind: string;

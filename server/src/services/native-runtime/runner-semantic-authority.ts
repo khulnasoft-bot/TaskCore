@@ -127,7 +127,8 @@ export class TaskcoreRunnerSemanticAuthority {
                   capabilities: context.agent.capabilities,
                 },
                 taskQuestionContext: await readTaskQuestionContext(this.#db, {
-                  ...this.#binding, conversationMode: isConversation(context.issue),
+                  ...this.#binding,
+                  conversationMode: isConversation(context.issue),
                 }),
                 activeTask: {
                   id: context.issue.id,

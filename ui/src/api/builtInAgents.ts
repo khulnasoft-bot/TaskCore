@@ -11,11 +11,7 @@ import { api } from "./client";
  * new agents; otherwise provisioning goes straight to `needs_setup`/`ready`.
  */
 export type BuiltInAgentStatus =
-  | "not_provisioned"
-  | "pending_approval"
-  | "needs_setup"
-  | "ready"
-  | "paused";
+  "not_provisioned" | "pending_approval" | "needs_setup" | "ready" | "paused";
 
 /**
  * Redacted bundle metadata returned alongside a built-in agent that ships a
@@ -68,10 +64,7 @@ export type BuiltInManagedResourceKind = "instructions" | "skill" | "routine";
  * - `operator_modified` — operator-edited; reconcile preserves these edits.
  */
 export type BuiltInManagedResourceStockStatus =
-  | "missing"
-  | "stock_current"
-  | "stock_update_available"
-  | "operator_modified";
+  "missing" | "stock_current" | "stock_update_available" | "operator_modified";
 
 export interface BuiltInManagedResourceState {
   resourceKind: BuiltInManagedResourceKind;
@@ -126,7 +119,8 @@ export type BuiltInResetResource = "agent" | BuiltInManagedResourceKind;
  * feature needs a built-in agent that is missing or not fully configured. The
  * configure-on-first-use modal is triggered from this signal.
  */
-export const BUILT_IN_AGENT_NOT_CONFIGURED_CODE = "built_in_agent_not_configured";
+export const BUILT_IN_AGENT_NOT_CONFIGURED_CODE =
+  "built_in_agent_not_configured";
 
 /**
  * Warning `code` returned alongside a paused built-in agent so callers can
@@ -137,8 +131,15 @@ export const BUILT_IN_AGENT_PAUSED_CODE = "built_in_agent_paused";
 export const builtInAgentsApi = {
   list: (companyId: string) =>
     api.get<BuiltInAgentState[]>(`/companies/${companyId}/built-in-agents`),
-  provision: (companyId: string, key: string, input: BuiltInAgentProvisionInput = {}) =>
-    api.post<BuiltInAgentState>(`/companies/${companyId}/built-in-agents/${key}/provision`, input),
+  provision: (
+    companyId: string,
+    key: string,
+    input: BuiltInAgentProvisionInput = {},
+  ) =>
+    api.post<BuiltInAgentState>(
+      `/companies/${companyId}/built-in-agents/${key}/provision`,
+      input,
+    ),
   /**
    * Reset built-in defaults. Pass `resources` to scope the reset to specific
    * managed resources (e.g. `["skill"]`); omit it to reset the whole agent +
@@ -157,11 +158,27 @@ export const builtInAgentsApi = {
    * `operator_modified` edits — it is the safe "apply available updates" path.
    */
   reconcile: (companyId: string, key: string) =>
-    api.post<BuiltInAgentState>(`/companies/${companyId}/built-in-agents/${key}/reconcile`, {}),
+    api.post<BuiltInAgentState>(
+      `/companies/${companyId}/built-in-agents/${key}/reconcile`,
+      {},
+    ),
   runRoutine: (companyId: string, key: string, routineKey: string) =>
-    api.post<unknown>(`/companies/${companyId}/built-in-agents/${key}/routines/${routineKey}/run`, {}),
+    api.post<unknown>(
+      `/companies/${companyId}/built-in-agents/${key}/routines/${routineKey}/run`,
+      {},
+    ),
   enableRoutineSchedule: (companyId: string, key: string, routineKey: string) =>
-    api.post<BuiltInAgentState>(`/companies/${companyId}/built-in-agents/${key}/routines/${routineKey}/enable`, {}),
-  disableRoutineSchedule: (companyId: string, key: string, routineKey: string) =>
-    api.post<BuiltInAgentState>(`/companies/${companyId}/built-in-agents/${key}/routines/${routineKey}/disable`, {}),
+    api.post<BuiltInAgentState>(
+      `/companies/${companyId}/built-in-agents/${key}/routines/${routineKey}/enable`,
+      {},
+    ),
+  disableRoutineSchedule: (
+    companyId: string,
+    key: string,
+    routineKey: string,
+  ) =>
+    api.post<BuiltInAgentState>(
+      `/companies/${companyId}/built-in-agents/${key}/routines/${routineKey}/disable`,
+      {},
+    ),
 };

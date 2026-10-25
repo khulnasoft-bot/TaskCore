@@ -1,10 +1,15 @@
 import { z } from "zod";
 
 export const folderKindSchema = z.enum(["routine", "skill"]);
-export const folderSlugSchema = z.string().trim().min(1).max(120).regex(
-  /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-  "Folder slug must contain only lowercase letters, numbers, and single hyphens",
-);
+export const folderSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "Folder slug must contain only lowercase letters, numbers, and single hyphens",
+  );
 
 export const folderSchema = z.object({
   id: z.string().guid(),
@@ -42,23 +47,27 @@ export const createFolderSchema = z.object({
   position: z.number().int().min(0).optional().nullable(),
 });
 
-export const updateFolderSchema = z.object({
-  name: z.string().trim().min(1).max(120).optional(),
-  slug: folderSlugSchema.optional(),
-  color: z.string().trim().min(1).max(80).optional().nullable(),
-  position: z.number().int().min(0).optional(),
-}).refine((value) => Object.keys(value).length > 0, {
-  message: "At least one folder field is required",
-});
+export const updateFolderSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    slug: folderSlugSchema.optional(),
+    color: z.string().trim().min(1).max(80).optional().nullable(),
+    position: z.number().int().min(0).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one folder field is required",
+  });
 
 export const moveFolderSchema = z.object({
   parentId: z.string().guid().optional().nullable(),
   position: z.number().int().min(0),
 });
 
-export const ensureMySkillFolderSchema = z.object({
-  slug: folderSlugSchema.optional().nullable(),
-}).default({});
+export const ensureMySkillFolderSchema = z
+  .object({
+    slug: folderSlugSchema.optional().nullable(),
+  })
+  .default({});
 
 export const moveFolderItemSchema = z.object({
   kind: folderKindSchema,

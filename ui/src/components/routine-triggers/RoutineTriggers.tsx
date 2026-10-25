@@ -32,7 +32,11 @@ function readDraft(key: string): TriggerDraft | null {
   try {
     const draft = JSON.parse(sessionStorage.getItem(key) ?? "null");
     return draft && ["choose", "schedule", "webhook"].includes(draft.kind)
-      ? { ...defaultTriggerDraft, ...draft, sender: draft.sender === "github" ? "github" : "custom" }
+      ? {
+          ...defaultTriggerDraft,
+          ...draft,
+          sender: draft.sender === "github" ? "github" : "custom",
+        }
       : null;
   } catch {
     return null;
@@ -340,7 +344,12 @@ function TriggerSetup({
         ...saved,
         kind: "webhook",
         sender: trigger.signingMode === "github_hmac" ? "github" : "custom",
-        signingMode: trigger.signingMode === "bearer" ? "bearer" : trigger.signingMode === "fireflies_hmac" ? "fireflies_hmac" : "app_webhook",
+        signingMode:
+          trigger.signingMode === "bearer"
+            ? "bearer"
+            : trigger.signingMode === "fireflies_hmac"
+              ? "fireflies_hmac"
+              : "app_webhook",
         created: true,
         step: saved?.step ?? 1,
         availableStep: Math.max(1, saved?.availableStep ?? 1),
@@ -524,18 +533,26 @@ function WebhookSettings({
   return (
     <div className="space-y-4">
       <WebhookUrlWarning url={trigger.webhookUrl ?? ""} />
-      {secret && (github || trigger.signingMode === "bearer" || trigger.signingMode === "app_webhook" || trigger.signingMode === "fireflies_hmac") && (
-        <AgentInstructions
-          value={webhookAgentInstructions(
-            github ? "github" : "custom",
-            routineTitle,
-            trigger.webhookUrl ?? "",
-            secret,
-            false,
-            trigger.signingMode === "bearer" ? "bearer" : trigger.signingMode === "fireflies_hmac" ? "fireflies_hmac" : "app_webhook",
-          )}
-        />
-      )}
+      {secret &&
+        (github ||
+          trigger.signingMode === "bearer" ||
+          trigger.signingMode === "app_webhook" ||
+          trigger.signingMode === "fireflies_hmac") && (
+          <AgentInstructions
+            value={webhookAgentInstructions(
+              github ? "github" : "custom",
+              routineTitle,
+              trigger.webhookUrl ?? "",
+              secret,
+              false,
+              trigger.signingMode === "bearer"
+                ? "bearer"
+                : trigger.signingMode === "fireflies_hmac"
+                  ? "fireflies_hmac"
+                  : "app_webhook",
+            )}
+          />
+        )}
       <CopyField label="Webhook URL" value={trigger.webhookUrl ?? ""} />
       {trigger.signingMode !== "none" && (
         <div className="space-y-2">

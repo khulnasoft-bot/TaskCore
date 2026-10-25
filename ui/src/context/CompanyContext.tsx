@@ -36,7 +36,10 @@ interface CompanyContextValue {
   companyListUnavailable: boolean;
   /** Re-fetches the list for the account signed in now. Pairs with the flag above. */
   retryCompanies: () => Promise<void>;
-  setSelectedCompanyId: (companyId: string, options?: CompanySelectionOptions) => void;
+  setSelectedCompanyId: (
+    companyId: string,
+    options?: CompanySelectionOptions,
+  ) => void;
   reloadCompanies: () => Promise<void>;
   createCompany: (data: {
     name: string;
@@ -50,7 +53,8 @@ const STORAGE_KEY = "taskcore.selectedCompanyId";
 // A refresh can replace consumers before a mounted provider is replaced. Keep
 // their context identity in Vite's per-module data; never store account state.
 const CompanyContext: Context<CompanyContextValue | null> =
-  import.meta.hot?.data?.companyContext ?? createContext<CompanyContextValue | null>(null);
+  import.meta.hot?.data?.companyContext ??
+  createContext<CompanyContextValue | null>(null);
 if (import.meta.hot?.data) import.meta.hot.data.companyContext = CompanyContext;
 
 export function resolveBootstrapCompanySelection(input: {
@@ -61,9 +65,10 @@ export function resolveBootstrapCompanySelection(input: {
 }) {
   if (input.companies.length === 0) return null;
 
-  const selectableCompanies = input.sidebarCompanies.length > 0
-    ? input.sidebarCompanies
-    : input.companies;
+  const selectableCompanies =
+    input.sidebarCompanies.length > 0
+      ? input.sidebarCompanies
+      : input.companies;
   // An already-selected company only needs to EXIST — not to be featured in
   // the sidebar. The Layout route-sync selects whatever company the URL names
   // (archived included, since archived pages are still routable); if this
@@ -72,10 +77,16 @@ export function resolveBootstrapCompanySelection(input: {
   // nested-update limit (the archived-company blank-screen crash). The
   // sidebar filter keeps shaping fresh boots below, where no explicit
   // selection exists yet.
-  if (input.selectedCompanyId && input.companies.some((company) => company.id === input.selectedCompanyId)) {
+  if (
+    input.selectedCompanyId &&
+    input.companies.some((company) => company.id === input.selectedCompanyId)
+  ) {
     return input.selectedCompanyId;
   }
-  if (input.storedCompanyId && selectableCompanies.some((company) => company.id === input.storedCompanyId)) {
+  if (
+    input.storedCompanyId &&
+    selectableCompanies.some((company) => company.id === input.storedCompanyId)
+  ) {
     return input.storedCompanyId;
   }
   return selectableCompanies[0]?.id ?? null;
@@ -103,28 +114,36 @@ export function shouldClearStoredCompanySelection(input: {
   errored: boolean;
 }) {
   if (input.errored) return false;
-  return !input.isLoading && !input.unauthorized && input.companies.length === 0;
+  return (
+    !input.isLoading && !input.unauthorized && input.companies.length === 0
+  );
 }
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [selectionSource, setSelectionSource] = useState<CompanySelectionSource>("bootstrap");
-  const [selectedCompanyId, setSelectedCompanyIdState] = useState<string | null>(null);
+  const [selectionSource, setSelectionSource] =
+    useState<CompanySelectionSource>("bootstrap");
+  const [selectedCompanyId, setSelectedCompanyIdState] = useState<
+    string | null
+  >(null);
 
   // Keyed by account, so there is no such thing here as "the list, but whose?".
   // A change of account changes the key, which leaves this observer pending
   // rather than holding the previous account's answer.
-  const { data: companiesResult = { companies: [], unauthorized: false }, isLoading, error } =
-    useCompanyListQuery({
-      // `retry: 1` against the shared `retry: false`, and it is load-bearing
-      // here even though an earlier measurement found retries pointless. That
-      // measurement was taken against an implementation that removed the cache
-      // entry on an account change, which made the observer rebind and issue a
-      // second request for free. Keying by account replaced that mechanism, and
-      // the free attempt went with it: without this, one blip during a switch
-      // leaves the customer with no companies until they find Try again.
-      retry: 1,
-    });
+  const {
+    data: companiesResult = { companies: [], unauthorized: false },
+    isLoading,
+    error,
+  } = useCompanyListQuery({
+    // `retry: 1` against the shared `retry: false`, and it is load-bearing
+    // here even though an earlier measurement found retries pointless. That
+    // measurement was taken against an implementation that removed the cache
+    // entry on an account change, which made the observer rebind and issue a
+    // second request for free. Keying by account replaced that mechanism, and
+    // the free attempt went with it: without this, one blip during a switch
+    // leaves the customer with no companies until they find Try again.
+    retry: 1,
+  });
   const companies = companiesResult.companies;
   const companyListUnauthorized = companiesResult.unauthorized;
   const sidebarCompanies = useMemo(
@@ -138,7 +157,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   // resolveBootstrapCompanySelection re-validates it against the incoming list,
   // so an account signing back in keeps its company while an unrelated account
   // cannot inherit it.
-  const { userId: sessionUserId, settled: isSessionSettled } = useAccountIdentity();
+  const { userId: sessionUserId, settled: isSessionSettled } =
+    useAccountIdentity();
   const observedUserIdRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
@@ -147,7 +167,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     const previousUserId = observedUserIdRef.current;
     observedUserIdRef.current = sessionUserId;
     // First settled observation is this tab's boot: no previous account to leave.
-    if (previousUserId === undefined || previousUserId === sessionUserId) return;
+    if (previousUserId === undefined || previousUserId === sessionUserId)
+      return;
 
     setSelectedCompanyIdState(null);
     setSelectionSource("bootstrap");
@@ -163,12 +184,14 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     // rather than as "no companies", which would clear the stored selection.
     if (error) return;
     if (companies.length === 0) {
-      if (shouldClearStoredCompanySelection({
-        companies,
-        isLoading: false,
-        unauthorized: companyListUnauthorized,
-        errored: error !== null,
-      })) {
+      if (
+        shouldClearStoredCompanySelection({
+          companies,
+          isLoading: false,
+          unauthorized: companyListUnauthorized,
+          errored: error !== null,
+        })
+      ) {
         if (selectedCompanyId !== null) {
           setSelectedCompanyIdState(null);
         }
@@ -196,11 +219,14 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     sidebarCompanies,
   ]);
 
-  const setSelectedCompanyId = useCallback((companyId: string, options?: CompanySelectionOptions) => {
-    setSelectedCompanyIdState(companyId);
-    setSelectionSource(options?.source ?? "manual");
-    localStorage.setItem(STORAGE_KEY, companyId);
-  }, []);
+  const setSelectedCompanyId = useCallback(
+    (companyId: string, options?: CompanySelectionOptions) => {
+      setSelectedCompanyIdState(companyId);
+      setSelectionSource(options?.source ?? "manual");
+      localStorage.setItem(STORAGE_KEY, companyId);
+    },
+    [],
+  );
 
   const reloadCompanies = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
@@ -232,8 +258,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       name: string;
       description?: string | null;
       budgetMonthlyCents?: number;
-    }) =>
-      companiesApi.create(data),
+    }) => companiesApi.create(data),
     onSuccess: (company) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
       setSelectedCompanyId(company.id);
@@ -285,7 +310,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;
+  return (
+    <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>
+  );
 }
 
 export function useCompany() {

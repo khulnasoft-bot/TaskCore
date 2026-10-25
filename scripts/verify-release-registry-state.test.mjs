@@ -43,7 +43,9 @@ test("collectInternalDependencyProblems flags missing internal versions", () => 
 
   assert.deepEqual(
     collectInternalDependencyProblems(manifest, packageDocsByName),
-    ["dependencies requires @taskcore/plugin-sdk@2026.425.0-canary.5, but npm does not expose that version"],
+    [
+      "dependencies requires @taskcore/plugin-sdk@2026.425.0-canary.5, but npm does not expose that version",
+    ],
   );
 });
 
@@ -69,7 +71,11 @@ test("collectInternalDependencyProblems accepts version-specific manifests when 
   ]);
 
   assert.deepEqual(
-    collectInternalDependencyProblems(manifest, packageDocsByName, packageManifestsByKey),
+    collectInternalDependencyProblems(
+      manifest,
+      packageDocsByName,
+      packageManifestsByKey,
+    ),
     [],
   );
 });
@@ -81,10 +87,7 @@ test("collectInternalDependencyProblems ignores peer dependency range specifiers
     },
   };
 
-  assert.deepEqual(
-    collectInternalDependencyProblems(manifest, new Map()),
-    [],
-  );
+  assert.deepEqual(collectInternalDependencyProblems(manifest, new Map()), []);
 });
 
 test("collectInternalDependencyProblems reports unfetched transitive dependency metadata neutrally", () => {
@@ -94,12 +97,9 @@ test("collectInternalDependencyProblems reports unfetched transitive dependency 
     },
   };
 
-  assert.deepEqual(
-    collectInternalDependencyProblems(manifest, new Map()),
-    [
-      "optionalDependencies requires @taskcore/browser@2026.430.0-canary.0, but npm publication metadata was not fetched for that dependency",
-    ],
-  );
+  assert.deepEqual(collectInternalDependencyProblems(manifest, new Map()), [
+    "optionalDependencies requires @taskcore/browser@2026.430.0-canary.0, but npm publication metadata was not fetched for that dependency",
+  ]);
 });
 
 test("verifyPackageRegistryState tolerates a stale root versions map when dist-tags and direct manifests are correct", () => {
@@ -233,7 +233,10 @@ test("verifyPackageRegistryProblems marks canary latest drift as non-retriable",
   });
 
   assert.equal(problems[0]?.retriable, false);
-  assert.match(problems[0]?.message ?? "", /latest dist-tag still resolves to prerelease/);
+  assert.match(
+    problems[0]?.message ?? "",
+    /latest dist-tag still resolves to prerelease/,
+  );
 });
 
 test("verifyPackageRegistryProblems accepts the nightly channel and flags nightly latest drift", () => {
@@ -263,7 +266,10 @@ test("verifyPackageRegistryProblems accepts the nightly channel and flags nightl
   });
 
   assert.equal(problems[0]?.retriable, false);
-  assert.match(problems[0]?.message ?? "", /latest dist-tag still resolves to prerelease 2026\.425\.0-nightly\.1/);
+  assert.match(
+    problems[0]?.message ?? "",
+    /latest dist-tag still resolves to prerelease 2026\.425\.0-nightly\.1/,
+  );
 });
 
 test("verifyPackageRegistryState allows intentional canary latest but still checks dependencies", () => {
@@ -341,7 +347,9 @@ test("verifyPackageRegistryState still fails when the dist-tag is stale", () => 
       targetVersion: "2026.430.0-canary.0",
       allowCanaryLatest: false,
     }),
-    ["@taskcore/ui: dist-tag canary resolves to 2026.429.0-canary.2, expected 2026.430.0-canary.0"],
+    [
+      "@taskcore/ui: dist-tag canary resolves to 2026.429.0-canary.2, expected 2026.430.0-canary.0",
+    ],
   );
 });
 
@@ -385,14 +393,17 @@ test("fetchRegistryJson times out hung requests", async () => {
     new Promise((_resolve, reject) => {
       signal.addEventListener(
         "abort",
-        () => reject(new DOMException("The operation was aborted.", "AbortError")),
+        () =>
+          reject(new DOMException("The operation was aborted.", "AbortError")),
         { once: true },
       );
     });
 
   try {
     await assert.rejects(
-      fetchRegistryJson(new URL("https://registry.npmjs.org/@taskcore%2Fui"), { timeoutMs: 1 }),
+      fetchRegistryJson(new URL("https://registry.npmjs.org/@taskcore%2Fui"), {
+        timeoutMs: 1,
+      }),
       /timed out/,
     );
   } finally {

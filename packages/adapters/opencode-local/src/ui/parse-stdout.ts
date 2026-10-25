@@ -9,7 +9,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -39,7 +40,10 @@ function errorText(value: unknown): string {
   }
 }
 
-function parseToolUse(parsed: Record<string, unknown>, ts: string): TranscriptEntry[] {
+function parseToolUse(
+  parsed: Record<string, unknown>,
+  ts: string,
+): TranscriptEntry[] {
   const part = asRecord(parsed.part);
   if (!part) return [{ kind: "system", ts, text: "tool event" }];
 
@@ -67,7 +71,8 @@ function parseToolUse(parsed: Record<string, unknown>, ts: string): TranscriptEn
   const headerParts: string[] = [`status: ${status}`];
   if (metadata) {
     for (const [key, value] of Object.entries(metadata)) {
-      if (value !== undefined && value !== null) headerParts.push(`${key}: ${value}`);
+      if (value !== undefined && value !== null)
+        headerParts.push(`${key}: ${value}`);
     }
   }
   const content = `${headerParts.join("\n")}\n\n${rawOutput}`.trim();
@@ -84,7 +89,10 @@ function parseToolUse(parsed: Record<string, unknown>, ts: string): TranscriptEn
   ];
 }
 
-export function parseOpenCodeStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseOpenCodeStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   const parsed = asRecord(safeJsonParse(line));
   if (!parsed) {
     return [{ kind: "stdout", ts, text: line }];

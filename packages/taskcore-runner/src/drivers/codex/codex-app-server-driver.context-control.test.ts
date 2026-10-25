@@ -152,13 +152,24 @@ describe("Codex app-server Codex driver", () => {
       await original.close({ reason: "policy recovery test" });
       const recovered = await driver.recoverSession?.(snapshot);
       expect(recovered).toMatchObject({ recovered: true });
-      const resumed = await recovered!.session!.events()[Symbol.asyncIterator]().next();
-      expect(first.calls.find((call) => call.method === "thread/start")?.params)
-        .toMatchObject({ approvalPolicy });
-      expect(second.calls.find((call) => call.method === "thread/resume")?.params)
-        .toMatchObject({ approvalPolicy });
-      expect(started.value).toMatchObject({ eventType: "session.started", payload: { context: { approvalPolicy } } });
-      expect(resumed.value).toMatchObject({ eventType: "session.resumed", payload: { context: { approvalPolicy } } });
+      const resumed = await recovered!
+        .session!.events()
+        [Symbol.asyncIterator]()
+        .next();
+      expect(
+        first.calls.find((call) => call.method === "thread/start")?.params,
+      ).toMatchObject({ approvalPolicy });
+      expect(
+        second.calls.find((call) => call.method === "thread/resume")?.params,
+      ).toMatchObject({ approvalPolicy });
+      expect(started.value).toMatchObject({
+        eventType: "session.started",
+        payload: { context: { approvalPolicy } },
+      });
+      expect(resumed.value).toMatchObject({
+        eventType: "session.resumed",
+        payload: { context: { approvalPolicy } },
+      });
       await recovered?.session?.close({ reason: "policy recovery complete" });
     },
   );
@@ -502,8 +513,9 @@ describe("Codex app-server Codex driver", () => {
         }),
       ]),
     );
-    expect(observed.some((event) => event.eventType === "session.failed"))
-      .toBe(false);
+    expect(observed.some((event) => event.eventType === "session.failed")).toBe(
+      false,
+    );
     await session.close({ reason: "fixture complete" });
   });
 
@@ -605,12 +617,20 @@ describe("Codex app-server Codex driver", () => {
       ).rejects.toBeInstanceOf(HarnessCapabilityUnavailableError);
       for (const action of ["set", "pause", "resume", "clear"] as const) {
         await expect(
-          unsupported.goal?.({ action, ...(action === "set" ? { objective: "Must not reach the provider" } : {}) }),
+          unsupported.goal?.({
+            action,
+            ...(action === "set"
+              ? { objective: "Must not reach the provider" }
+              : {}),
+          }),
         ).rejects.toBeInstanceOf(HarnessCapabilityUnavailableError);
       }
-      expect(unsupportedTransport.calls.filter(({ method }) =>
-        method === "thread/goal/set" || method === "thread/goal/clear",
-      )).toEqual([]);
+      expect(
+        unsupportedTransport.calls.filter(
+          ({ method }) =>
+            method === "thread/goal/set" || method === "thread/goal/clear",
+        ),
+      ).toEqual([]);
       await unsupported.close({ reason: "fixture complete" });
     }
     await session.close({ reason: "fixture complete" });
@@ -645,5 +665,4 @@ describe("Codex app-server Codex driver", () => {
       await session.close({ reason: "fixture complete" });
     }
   });
-
 });

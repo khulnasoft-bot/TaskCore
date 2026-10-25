@@ -5,7 +5,15 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { createDb, plugins } from "@taskcore/db";
 import {
   ensureLocalPluginBuilt,
@@ -38,7 +46,9 @@ vi.mock("../services/live-events.js", () => ({
 }));
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -65,7 +75,8 @@ async function createBundledPluginFixture(
   const pluginKey = `taskcore.${slug.replace(/^plugin-/, "").replace(/-/g, "_")}`;
   const packageRoot = path.join(options.rootDir ?? repoPluginRoot, slug);
   const distDir = path.join(packageRoot, "dist");
-  const isStandaloneFixture = (options.rootDir ?? repoPluginRoot) === standaloneRepoPluginRoot;
+  const isStandaloneFixture =
+    (options.rootDir ?? repoPluginRoot) === standaloneRepoPluginRoot;
   const postinstallScript = isStandaloneFixture
     ? `node ${path.relative(packageRoot, path.join(REPO_ROOT, "scripts", "link-plugin-dev-sdk.mjs"))}`
     : null;
@@ -73,21 +84,25 @@ async function createBundledPluginFixture(
   await mkdir(path.join(packageRoot, "scripts"), { recursive: true });
   await writeFile(
     path.join(packageRoot, "package.json"),
-    JSON.stringify({
-      name: packageName,
-      version: "0.1.0",
-      private: true,
-      type: "module",
-      scripts: {
-        ...(postinstallScript ? { postinstall: postinstallScript } : {}),
-        build: "node ./scripts/build.mjs",
+    JSON.stringify(
+      {
+        name: packageName,
+        version: "0.1.0",
+        private: true,
+        type: "module",
+        scripts: {
+          ...(postinstallScript ? { postinstall: postinstallScript } : {}),
+          build: "node ./scripts/build.mjs",
+        },
+        taskcorePlugin: {
+          manifest: "./dist/manifest.js",
+          worker: "./dist/worker.js",
+          ui: "./dist/ui/",
+        },
       },
-      taskcorePlugin: {
-        manifest: "./dist/manifest.js",
-        worker: "./dist/worker.js",
-        ui: "./dist/ui/",
-      },
-    }, null, 2),
+      null,
+      2,
+    ),
     "utf8",
   );
 
@@ -108,29 +123,37 @@ async function createBundledPluginFixture(
   await writeFile(
     path.join(packageRoot, "scripts", "build.mjs"),
     [
-      "import { mkdir, writeFile } from \"node:fs/promises\";",
-      "import path from \"node:path\";",
-      "import { fileURLToPath } from \"node:url\";",
+      'import { mkdir, writeFile } from "node:fs/promises";',
+      'import path from "node:path";',
+      'import { fileURLToPath } from "node:url";',
       "",
       "const scriptDir = path.dirname(fileURLToPath(import.meta.url));",
-      "const packageRoot = path.resolve(scriptDir, \"..\");",
-      "const distDir = path.join(packageRoot, \"dist\");",
-      "const uiDir = path.join(distDir, \"ui\");",
+      'const packageRoot = path.resolve(scriptDir, "..");',
+      'const distDir = path.join(packageRoot, "dist");',
+      'const uiDir = path.join(distDir, "ui");',
       `const manifest = ${JSON.stringify(manifest, null, 2)};`,
       "",
       "await mkdir(uiDir, { recursive: true });",
-      "await writeFile(path.join(distDir, \"manifest.js\"), `export default ${JSON.stringify(manifest, null, 2)};\\n`, \"utf8\");",
-      "await writeFile(path.join(distDir, \"worker.js\"), \"export {};\\n\", \"utf8\");",
-      "await writeFile(path.join(uiDir, \"index.js\"), \"export default {};\\n\", \"utf8\");",
+      'await writeFile(path.join(distDir, "manifest.js"), `export default ${JSON.stringify(manifest, null, 2)};\\n`, "utf8");',
+      'await writeFile(path.join(distDir, "worker.js"), "export {};\\n", "utf8");',
+      'await writeFile(path.join(uiDir, "index.js"), "export default {};\\n", "utf8");',
     ].join("\n"),
     "utf8",
   );
 
   if (options.buildDistImmediately) {
     await mkdir(path.join(distDir, "ui"), { recursive: true });
-    await writeFile(path.join(distDir, "manifest.js"), `export default ${JSON.stringify(manifest, null, 2)};\n`, "utf8");
+    await writeFile(
+      path.join(distDir, "manifest.js"),
+      `export default ${JSON.stringify(manifest, null, 2)};\n`,
+      "utf8",
+    );
     await writeFile(path.join(distDir, "worker.js"), "export {};\n", "utf8");
-    await writeFile(path.join(distDir, "ui", "index.js"), "export default {};\n", "utf8");
+    await writeFile(
+      path.join(distDir, "ui", "index.js"),
+      "export default {};\n",
+      "utf8",
+    );
   }
 
   return { packageName, pluginKey, packageRoot, distDir };
@@ -159,7 +182,17 @@ async function createInstallApp(db: ReturnType<typeof createDb>) {
     } as typeof req.actor;
     next();
   });
-  app.use("/api", pluginRoutes(db as never, loader as never, {} as never, undefined, {} as never, {} as never));
+  app.use(
+    "/api",
+    pluginRoutes(
+      db as never,
+      loader as never,
+      {} as never,
+      undefined,
+      {} as never,
+      {} as never,
+    ),
+  );
   app.use(errorHandler);
   return app;
 }
@@ -175,7 +208,9 @@ describe("ensureLocalPluginBuilt", () => {
   });
 
   it("skips auto-build for local plugin paths outside the repo", async () => {
-    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-plugin-outside-"));
+    const tempRoot = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-plugin-outside-"),
+    );
     const packageRoot = path.join(tempRoot, "plugin-outside");
     cleanupPaths.add(path.dirname(packageRoot));
     await mkdir(packageRoot, { recursive: true });
@@ -203,7 +238,9 @@ describe("ensureLocalPluginBuilt", () => {
     const execStub = vi.fn().mockResolvedValue({ stdout: "", stderr: "" });
     await ensureLocalPluginBuilt(
       fixture.packageRoot,
-      JSON.parse(await readFile(path.join(fixture.packageRoot, "package.json"), "utf8")) as Record<string, unknown>,
+      JSON.parse(
+        await readFile(path.join(fixture.packageRoot, "package.json"), "utf8"),
+      ) as Record<string, unknown>,
       {
         processEnv: { TASKCORE_DISABLE_PLUGIN_AUTOBUILD: "1" },
         execFileAsyncImpl: execStub,
@@ -217,44 +254,79 @@ describe("ensureLocalPluginBuilt", () => {
     undefined,
     "allowBuilds:\n  protobufjs: false\n",
     "packages:\n  - ../untrusted\ndangerouslyAllowAllBuilds: true\n",
-  ])("bootstraps standalone plugins without trusting workspace policy: %s", async (localPolicy) => {
-    const fixture = await createBundledPluginFixture("standalone", { rootDir: standaloneRepoPluginRoot });
-    cleanupPaths.add(fixture.packageRoot);
+  ])(
+    "bootstraps standalone plugins without trusting workspace policy: %s",
+    async (localPolicy) => {
+      const fixture = await createBundledPluginFixture("standalone", {
+        rootDir: standaloneRepoPluginRoot,
+      });
+      cleanupPaths.add(fixture.packageRoot);
 
-    if (localPolicy) await writeFile(path.join(fixture.packageRoot, "pnpm-workspace.yaml"), localPolicy);
-    const installArgs = ["install", "--ignore-workspace", ...(localPolicy ? ["--ignore-scripts"] : []), "--no-lockfile"];
-    const execStub = vi.fn(async (_file: string, args: readonly string[]) => {
-      if (args.join(" ") === installArgs.join(" ")) {
-        await mkdir(path.join(fixture.packageRoot, "node_modules", "@taskcore", "plugin-sdk"), { recursive: true });
-      }
-      if (args.join(" ") === "build") {
-        await mkdir(path.join(fixture.distDir, "ui"), { recursive: true });
-        await writeFile(path.join(fixture.distDir, "manifest.js"), "export default {};\n", "utf8");
-        await writeFile(path.join(fixture.distDir, "worker.js"), "export {};\n", "utf8");
-        await writeFile(path.join(fixture.distDir, "ui", "index.js"), "export default {};\n", "utf8");
-      }
-      return { stdout: "", stderr: "" };
-    });
-    await ensureLocalPluginBuilt(
-      fixture.packageRoot,
-      JSON.parse(await readFile(path.join(fixture.packageRoot, "package.json"), "utf8")) as Record<string, unknown>,
-      { execFileAsyncImpl: execStub },
-    );
+      if (localPolicy)
+        await writeFile(
+          path.join(fixture.packageRoot, "pnpm-workspace.yaml"),
+          localPolicy,
+        );
+      const installArgs = [
+        "install",
+        "--ignore-workspace",
+        ...(localPolicy ? ["--ignore-scripts"] : []),
+        "--no-lockfile",
+      ];
+      const execStub = vi.fn(async (_file: string, args: readonly string[]) => {
+        if (args.join(" ") === installArgs.join(" ")) {
+          await mkdir(
+            path.join(
+              fixture.packageRoot,
+              "node_modules",
+              "@taskcore",
+              "plugin-sdk",
+            ),
+            { recursive: true },
+          );
+        }
+        if (args.join(" ") === "build") {
+          await mkdir(path.join(fixture.distDir, "ui"), { recursive: true });
+          await writeFile(
+            path.join(fixture.distDir, "manifest.js"),
+            "export default {};\n",
+            "utf8",
+          );
+          await writeFile(
+            path.join(fixture.distDir, "worker.js"),
+            "export {};\n",
+            "utf8",
+          );
+          await writeFile(
+            path.join(fixture.distDir, "ui", "index.js"),
+            "export default {};\n",
+            "utf8",
+          );
+        }
+        return { stdout: "", stderr: "" };
+      });
+      await ensureLocalPluginBuilt(
+        fixture.packageRoot,
+        JSON.parse(
+          await readFile(
+            path.join(fixture.packageRoot, "package.json"),
+            "utf8",
+          ),
+        ) as Record<string, unknown>,
+        { execFileAsyncImpl: execStub },
+      );
 
-    expect(execStub).toHaveBeenCalledTimes(2);
-    expect(execStub).toHaveBeenNthCalledWith(
-      1,
-      "pnpm",
-      installArgs,
-      { cwd: fixture.packageRoot, timeout: 120_000 },
-    );
-    expect(execStub).toHaveBeenNthCalledWith(
-      2,
-      "pnpm",
-      ["build"],
-      { cwd: fixture.packageRoot, timeout: 120_000 },
-    );
-  });
+      expect(execStub).toHaveBeenCalledTimes(2);
+      expect(execStub).toHaveBeenNthCalledWith(1, "pnpm", installArgs, {
+        cwd: fixture.packageRoot,
+        timeout: 120_000,
+      });
+      expect(execStub).toHaveBeenNthCalledWith(2, "pnpm", ["build"], {
+        cwd: fixture.packageRoot,
+        timeout: 120_000,
+      });
+    },
+  );
 
   it("bootstraps standalone bundled plugin runtime dependencies when dist already exists", async () => {
     const fixture = await createBundledPluginFixture("standalone-runtime", {
@@ -264,12 +336,22 @@ describe("ensureLocalPluginBuilt", () => {
     cleanupPaths.add(fixture.packageRoot);
 
     const execStub = vi.fn(async () => {
-      await mkdir(path.join(fixture.packageRoot, "node_modules", "@taskcore", "plugin-sdk"), { recursive: true });
+      await mkdir(
+        path.join(
+          fixture.packageRoot,
+          "node_modules",
+          "@taskcore",
+          "plugin-sdk",
+        ),
+        { recursive: true },
+      );
       return { stdout: "", stderr: "" };
     });
     await ensureLocalPluginBuilt(
       fixture.packageRoot,
-      JSON.parse(await readFile(path.join(fixture.packageRoot, "package.json"), "utf8")) as Record<string, unknown>,
+      JSON.parse(
+        await readFile(path.join(fixture.packageRoot, "package.json"), "utf8"),
+      ) as Record<string, unknown>,
       { execFileAsyncImpl: execStub },
     );
 
@@ -285,11 +367,15 @@ describe("ensureLocalPluginBuilt", () => {
 
 describeEmbeddedPostgres("plugin install auto-build route", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const cleanupPaths = new Set<string>();
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-plugin-autobuild-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-plugin-autobuild-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -328,12 +414,16 @@ describeEmbeddedPostgres("plugin install auto-build route", () => {
   }, 60_000);
 
   it("auto-builds standalone bundled local plugins outside the root pnpm workspace", async () => {
-    const fixture = await createBundledPluginFixture("standalone-success", { rootDir: standaloneRepoPluginRoot });
+    const fixture = await createBundledPluginFixture("standalone-success", {
+      rootDir: standaloneRepoPluginRoot,
+    });
     cleanupPaths.add(fixture.packageRoot);
     const app = await createInstallApp(db);
 
     expect(existsSync(path.join(fixture.distDir, "manifest.js"))).toBe(false);
-    expect(existsSync(path.join(fixture.packageRoot, "node_modules"))).toBe(false);
+    expect(existsSync(path.join(fixture.packageRoot, "node_modules"))).toBe(
+      false,
+    );
 
     const res = await request(app)
       .post("/api/plugins/install")
@@ -345,20 +435,41 @@ describeEmbeddedPostgres("plugin install auto-build route", () => {
     expect(existsSync(path.join(fixture.distDir, "manifest.js"))).toBe(true);
     expect(existsSync(path.join(fixture.distDir, "worker.js"))).toBe(true);
     expect(existsSync(path.join(fixture.distDir, "ui", "index.js"))).toBe(true);
-    expect(existsSync(path.join(fixture.packageRoot, "node_modules", "@taskcore", "plugin-sdk"))).toBe(true);
+    expect(
+      existsSync(
+        path.join(
+          fixture.packageRoot,
+          "node_modules",
+          "@taskcore",
+          "plugin-sdk",
+        ),
+      ),
+    ).toBe(true);
     expect(mockLifecycle.load).toHaveBeenCalledTimes(1);
   }, 60_000);
 
   it("bootstraps standalone bundled local plugin runtime dependencies when dist already exists", async () => {
-    const fixture = await createBundledPluginFixture("standalone-runtime-success", {
-      rootDir: standaloneRepoPluginRoot,
-      buildDistImmediately: true,
-    });
+    const fixture = await createBundledPluginFixture(
+      "standalone-runtime-success",
+      {
+        rootDir: standaloneRepoPluginRoot,
+        buildDistImmediately: true,
+      },
+    );
     cleanupPaths.add(fixture.packageRoot);
     const app = await createInstallApp(db);
 
     expect(existsSync(path.join(fixture.distDir, "manifest.js"))).toBe(true);
-    expect(existsSync(path.join(fixture.packageRoot, "node_modules", "@taskcore", "plugin-sdk"))).toBe(false);
+    expect(
+      existsSync(
+        path.join(
+          fixture.packageRoot,
+          "node_modules",
+          "@taskcore",
+          "plugin-sdk",
+        ),
+      ),
+    ).toBe(false);
 
     const res = await request(app)
       .post("/api/plugins/install")
@@ -367,7 +478,16 @@ describeEmbeddedPostgres("plugin install auto-build route", () => {
     expect(res.status).toBe(200);
     expect(res.body.packageName).toBe(fixture.packageName);
     expect(res.body.pluginKey).toBe(fixture.pluginKey);
-    expect(existsSync(path.join(fixture.packageRoot, "node_modules", "@taskcore", "plugin-sdk"))).toBe(true);
+    expect(
+      existsSync(
+        path.join(
+          fixture.packageRoot,
+          "node_modules",
+          "@taskcore",
+          "plugin-sdk",
+        ),
+      ),
+    ).toBe(true);
     expect(mockLifecycle.load).toHaveBeenCalledTimes(1);
   }, 60_000);
 
@@ -382,15 +502,21 @@ describeEmbeddedPostgres("plugin install auto-build route", () => {
       .send({ packageName: fixture.packageRoot, isLocalPath: true });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain("does not appear to be a Taskcore plugin (no manifest found)");
-    expect(res.body.error).toContain(`pnpm --filter ${fixture.packageName} build`);
+    expect(res.body.error).toContain(
+      "does not appear to be a Taskcore plugin (no manifest found)",
+    );
+    expect(res.body.error).toContain(
+      `pnpm --filter ${fixture.packageName} build`,
+    );
     expect(existsSync(path.join(fixture.distDir, "manifest.js"))).toBe(false);
     expect(mockLifecycle.load).not.toHaveBeenCalled();
   }, 20_000);
 
   it("returns the standalone bootstrap command when auto-build is disabled for sandbox-provider plugins", async () => {
     process.env["TASKCORE_DISABLE_PLUGIN_AUTOBUILD"] = "1";
-    const fixture = await createBundledPluginFixture("standalone-disabled", { rootDir: standaloneRepoPluginRoot });
+    const fixture = await createBundledPluginFixture("standalone-disabled", {
+      rootDir: standaloneRepoPluginRoot,
+    });
     cleanupPaths.add(fixture.packageRoot);
     const app = await createInstallApp(db);
 
@@ -399,9 +525,15 @@ describeEmbeddedPostgres("plugin install auto-build route", () => {
       .send({ packageName: fixture.packageRoot, isLocalPath: true });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain("does not appear to be a Taskcore plugin (no manifest found)");
-    expect(res.body.error).toContain(path.relative(REPO_ROOT, fixture.packageRoot));
-    expect(res.body.error).toContain("pnpm install --ignore-workspace --no-lockfile && pnpm build");
+    expect(res.body.error).toContain(
+      "does not appear to be a Taskcore plugin (no manifest found)",
+    );
+    expect(res.body.error).toContain(
+      path.relative(REPO_ROOT, fixture.packageRoot),
+    );
+    expect(res.body.error).toContain(
+      "pnpm install --ignore-workspace --no-lockfile && pnpm build",
+    );
     expect(existsSync(path.join(fixture.distDir, "manifest.js"))).toBe(false);
     expect(mockLifecycle.load).not.toHaveBeenCalled();
   }, 20_000);

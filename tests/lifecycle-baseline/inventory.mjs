@@ -70,7 +70,6 @@ const runner = (pattern) =>
     pattern,
   );
 export const scenarios = [
-
   {
     id: "LCA-01",
     name: "Ordinary completion",
@@ -153,8 +152,16 @@ export const scenarios = [
     coverage: [
       grading("LCA-05"),
       unit("LCA-05"),
-      ref("unit", `${server}run-liveness.test.ts`, "mode|title and description"),
-      ref("unit", `${server}heartbeat-context-summary.test.ts`, "selects directives only"),
+      ref(
+        "unit",
+        `${server}run-liveness.test.ts`,
+        "mode|title and description",
+      ),
+      ref(
+        "unit",
+        `${server}heartbeat-context-summary.test.ts`,
+        "selects directives only",
+      ),
       ref("unit", `${native}native-execution-input.test.ts`, "LCA-05"),
       integ("activity-service", "LCA-05"),
       integ("issue-thread-interaction-routes", "plan|revision"),
@@ -228,7 +235,10 @@ export const scenarios = [
         "exhausted|another run id",
       ),
     ],
-    live: ["lifecycle-baseline:lifecycle-repair-neutral", "lifecycle-baseline:lifecycle-repair-challenge"],
+    live: [
+      "lifecycle-baseline:lifecycle-repair-neutral",
+      "lifecycle-baseline:lifecycle-repair-challenge",
+    ],
   },
   {
     id: "LCA-10",
@@ -294,19 +304,81 @@ export const scenarios = [
     live: ["runner-evals:request-task-review"],
   },
   ...[
-    ["ACCT-01", "Separate productive, repair and infrastructure allowances", "Each lane spends only its own allowance"],
-    ["ACCT-02", "False progress and exhaustion", "Comments, wording and raw tool counts cannot replenish attempts"],
-    ["ACCT-03", "Late gates", "Stop, approvals, ownership, pause and spending gates remain authoritative"],
-    ["ACCT-04", "Restart and replay accounting", "Consumed allowances and causal receipts survive restart and duplicates"],
-  ].map(([id, name, expected]) => ({ id, name, expected, coverage: [
-    ref("unit", "tests/lifecycle-baseline/accounting.test.ts", id),
-    ...(id === "ACCT-01" ? [ref("unit", "server/src/services/execution-recovery-attempt.test.ts"), integ("legacy-continuation-authority", id)] : []),
-    ...(id === "ACCT-01" || id === "ACCT-02" ? [integ("heartbeat-retry-scheduling", id)] : []),
-    ...(id === "ACCT-02" || id === "ACCT-03" ? [integ("legacy-continuation-authority", id)] : []),
-    ...(id === "ACCT-04" ? [runner("ACCT-04"), integ("legacy-continuation-authority", "ACCT-04|replay|restart|fast repair"), integ("heartbeat-retry-scheduling", "concurrent|coalesces|after restart")] : []),
-    ...(id === "ACCT-03" ? [ref("integration", "server/test-baselines/lifecycle-heartbeat.test.ts", "LCA-04 LCA-10"), integ("heartbeat-stale-queue-invalidation", "gate|cap|ownership")] : []),
-    ref("grading", "tests/runner-e2e/accounting.test.ts"),
-  ], live: ["continuation-accounting:accounting-productive-neutral", "continuation-accounting:accounting-productive-noisy", "continuation-accounting:accounting-exhaustion-neutral", "continuation-accounting:accounting-exhaustion-noisy", "continuation-accounting:accounting-repair-stop", "continuation-accounting:accounting-repair-approval"] })),
+    [
+      "ACCT-01",
+      "Separate productive, repair and infrastructure allowances",
+      "Each lane spends only its own allowance",
+    ],
+    [
+      "ACCT-02",
+      "False progress and exhaustion",
+      "Comments, wording and raw tool counts cannot replenish attempts",
+    ],
+    [
+      "ACCT-03",
+      "Late gates",
+      "Stop, approvals, ownership, pause and spending gates remain authoritative",
+    ],
+    [
+      "ACCT-04",
+      "Restart and replay accounting",
+      "Consumed allowances and causal receipts survive restart and duplicates",
+    ],
+  ].map(([id, name, expected]) => ({
+    id,
+    name,
+    expected,
+    coverage: [
+      ref("unit", "tests/lifecycle-baseline/accounting.test.ts", id),
+      ...(id === "ACCT-01"
+        ? [
+            ref(
+              "unit",
+              "server/src/services/execution-recovery-attempt.test.ts",
+            ),
+            integ("legacy-continuation-authority", id),
+          ]
+        : []),
+      ...(id === "ACCT-01" || id === "ACCT-02"
+        ? [integ("heartbeat-retry-scheduling", id)]
+        : []),
+      ...(id === "ACCT-02" || id === "ACCT-03"
+        ? [integ("legacy-continuation-authority", id)]
+        : []),
+      ...(id === "ACCT-04"
+        ? [
+            runner("ACCT-04"),
+            integ(
+              "legacy-continuation-authority",
+              "ACCT-04|replay|restart|fast repair",
+            ),
+            integ(
+              "heartbeat-retry-scheduling",
+              "concurrent|coalesces|after restart",
+            ),
+          ]
+        : []),
+      ...(id === "ACCT-03"
+        ? [
+            ref(
+              "integration",
+              "server/test-baselines/lifecycle-heartbeat.test.ts",
+              "LCA-04 LCA-10",
+            ),
+            integ("heartbeat-stale-queue-invalidation", "gate|cap|ownership"),
+          ]
+        : []),
+      ref("grading", "tests/runner-e2e/accounting.test.ts"),
+    ],
+    live: [
+      "continuation-accounting:accounting-productive-neutral",
+      "continuation-accounting:accounting-productive-noisy",
+      "continuation-accounting:accounting-exhaustion-neutral",
+      "continuation-accounting:accounting-exhaustion-noisy",
+      "continuation-accounting:accounting-repair-stop",
+      "continuation-accounting:accounting-repair-approval",
+    ],
+  })),
 ];
 export const combinations = [
   ["completion then failure/cancellation", "LCA-11"],

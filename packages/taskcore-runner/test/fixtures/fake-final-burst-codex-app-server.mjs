@@ -89,25 +89,41 @@ createInterface({ input: process.stdin }).on("line", (line) => {
           id: state.threadId,
           sessionId: "final-burst-fixture",
           status: {
-            type: Object.values(state.turns).some((turn) => turn.status === "inProgress") ? "active" : "idle",
+            type: Object.values(state.turns).some(
+              (turn) => turn.status === "inProgress",
+            )
+              ? "active"
+              : "idle",
           },
-          ...(params.includeTurns ? {
-            turns: Object.entries(state.turns).map(([turnId, turn]) => ({ id: turnId, status: turn.status })),
-          } : {}),
+          ...(params.includeTurns
+            ? {
+                turns: Object.entries(state.turns).map(([turnId, turn]) => ({
+                  id: turnId,
+                  status: turn.status,
+                })),
+              }
+            : {}),
         },
       },
     });
   } else if (method === "thread/turns/list") {
     const turns = Object.entries(state.turns).map(([turnId, turn]) => ({
-      id: turnId, status: turn.status, items: [], itemsView: "notLoaded",
+      id: turnId,
+      status: turn.status,
+      items: [],
+      itemsView: "notLoaded",
     }));
     if (params.sortDirection === "desc") turns.reverse();
     const offset = Number(params.cursor ?? 0);
     const limit = params.limit ?? 100;
-    send({ id, result: {
-      data: turns.slice(offset, offset + limit),
-      nextCursor: offset + limit < turns.length ? String(offset + limit) : null,
-    } });
+    send({
+      id,
+      result: {
+        data: turns.slice(offset, offset + limit),
+        nextCursor:
+          offset + limit < turns.length ? String(offset + limit) : null,
+      },
+    });
   } else if (method === "turn/start") {
     const turnId = `final-burst-turn-${++state.nextTurn}`;
     state.turns[turnId] = { status: "inProgress", startedAtMs: Date.now() };

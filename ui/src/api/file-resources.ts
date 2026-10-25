@@ -36,14 +36,19 @@ function buildQuery(query: FileResourceQuery | FileResourceListQuery): string {
   if (query.workspace && query.workspace !== "auto") {
     params.set("workspace", query.workspace);
   }
-  if ("mode" in query && query.mode && query.mode !== "all") params.set("mode", query.mode);
+  if ("mode" in query && query.mode && query.mode !== "all")
+    params.set("mode", query.mode);
   if ("q" in query && query.q) params.set("q", query.q);
   if ("limit" in query && query.limit) params.set("limit", String(query.limit));
-  if ("offset" in query && query.offset) params.set("offset", String(query.offset));
+  if ("offset" in query && query.offset)
+    params.set("offset", String(query.offset));
   return params.toString();
 }
 
-export function buildFileResourceDownloadUrl(issueId: string, query: FileResourceQuery): string {
+export function buildFileResourceDownloadUrl(
+  issueId: string,
+  query: FileResourceQuery,
+): string {
   const params = new URLSearchParams(buildQuery(query));
   params.set("download", "1");
   return `/api/issues/${encodeURIComponent(issueId)}/file-resources/content?${params.toString()}`;
@@ -67,13 +72,18 @@ export const fileResourcesApi = {
    * Batch preflight for auto-detected workspace file references. Callers must
    * deduplicate and chunk to the server's 100-query cap before calling.
    */
-  availability(issueId: string, queries: FileResourceQuery[]): Promise<WorkspaceFileAvailabilityResponse> {
+  availability(
+    issueId: string,
+    queries: FileResourceQuery[],
+  ): Promise<WorkspaceFileAvailabilityResponse> {
     return api.post<WorkspaceFileAvailabilityResponse>(
       `/issues/${encodeURIComponent(issueId)}/file-resources/availability`,
       {
         queries: queries.map((query) => ({
           path: query.path,
-          ...(query.workspace && query.workspace !== "auto" ? { workspace: query.workspace } : {}),
+          ...(query.workspace && query.workspace !== "auto"
+            ? { workspace: query.workspace }
+            : {}),
           ...(query.projectId && query.workspaceId
             ? { projectId: query.projectId, workspaceId: query.workspaceId }
             : {}),
@@ -82,13 +92,19 @@ export const fileResourcesApi = {
     );
   },
 
-  resolve(issueId: string, query: FileResourceQuery): Promise<ResolvedWorkspaceResource> {
+  resolve(
+    issueId: string,
+    query: FileResourceQuery,
+  ): Promise<ResolvedWorkspaceResource> {
     return api.get<ResolvedWorkspaceResource>(
       `/issues/${encodeURIComponent(issueId)}/file-resources/resolve?${buildQuery(query)}`,
     );
   },
 
-  content(issueId: string, query: FileResourceQuery): Promise<WorkspaceFileContent> {
+  content(
+    issueId: string,
+    query: FileResourceQuery,
+  ): Promise<WorkspaceFileContent> {
     return api.get<WorkspaceFileContent>(
       `/issues/${encodeURIComponent(issueId)}/file-resources/content?${buildQuery(query)}`,
     );

@@ -95,7 +95,9 @@ let tracerApiLoadFailed = false;
  * accessor never throws: a load or lookup failure logs once and returns the
  * local no-op tracer (fail open).
  */
-export function getStartupTracer(name = "taskcore.startup"): StartupTracerHandle {
+export function getStartupTracer(
+  name = "taskcore.startup",
+): StartupTracerHandle {
   try {
     const require = createRequire(import.meta.url);
     const api = require("@opentelemetry/api") as {
@@ -150,7 +152,9 @@ let traceContextApiLoadFailed = false;
  * accessor never throws: a load or lookup failure logs once and returns the
  * local no-op trace context (fail open).
  */
-export function getStartupTraceContext(name = "taskcore.startup"): StartupTraceContextHandle {
+export function getStartupTraceContext(
+  name = "taskcore.startup",
+): StartupTraceContextHandle {
   try {
     const require = createRequire(import.meta.url);
     const api = require("@opentelemetry/api") as {
@@ -203,17 +207,24 @@ export interface ParsedTraceparent {
  * `undefined` when `@opentelemetry/api` is absent, when the token holds no span
  * context, or when the span context is invalid.
  */
-export function traceparentFromContextToken(contextToken: unknown): string | undefined {
+export function traceparentFromContextToken(
+  contextToken: unknown,
+): string | undefined {
   if (contextToken === undefined || contextToken === null) return undefined;
   try {
     const require = createRequire(import.meta.url);
     const api = require("@opentelemetry/api") as {
-      trace?: { getSpanContext(context: unknown): { traceId: string; spanId: string; traceFlags: number } | undefined };
+      trace?: {
+        getSpanContext(
+          context: unknown,
+        ): { traceId: string; spanId: string; traceFlags: number } | undefined;
+      };
     };
     const spanContext = api.trace?.getSpanContext?.(contextToken);
     if (!spanContext) return undefined;
     const { traceId, spanId, traceFlags } = spanContext;
-    if (!/^[0-9a-f]{32}$/.test(traceId) || !/^[0-9a-f]{16}$/.test(spanId)) return undefined;
+    if (!/^[0-9a-f]{32}$/.test(traceId) || !/^[0-9a-f]{16}$/.test(spanId))
+      return undefined;
     const flags = (traceFlags & 0xff).toString(16).padStart(2, "0");
     return `00-${traceId}-${spanId}-${flags}`;
   } catch {
@@ -261,7 +272,10 @@ export function recordProviderPluginSpan(input: {
       traceFlags: input.parent.traceFlags,
       isRemote: true,
     };
-    const parentContext = trace.setSpanContext(context.active(), remoteSpanContext);
+    const parentContext = trace.setSpanContext(
+      context.active(),
+      remoteSpanContext,
+    );
     const tracer = trace.getTracer("taskcore.startup");
     // Pass the true start time as the OpenTelemetry `startTime` option, so the
     // span opens at its real wall-clock start. An epoch-millisecond number is a
@@ -452,7 +466,10 @@ async function bootstrapOtel(endpoint: string): Promise<void> {
   // package installed at the wrong version can still load and start, then
   // fail in a way the operator only sees in the collector, not the server
   // log. Checking first turns that into one precise, fail-open diagnostic.
-  const versionCheck = checkExactPeerVersions([...OTEL_COMMON_PACKAGES, exporterPackage]);
+  const versionCheck = checkExactPeerVersions([
+    ...OTEL_COMMON_PACKAGES,
+    exporterPackage,
+  ]);
   if (!versionCheck.ok) {
     // eslint-disable-next-line no-console
     console.warn(versionCheck.diagnostic, versionCheck.detail);
@@ -539,7 +556,10 @@ async function bootstrapOtel(endpoint: string): Promise<void> {
         // SDK's own default flush budget. unref() so the timer itself never
         // keeps the event loop alive after a fast clean shutdown.
         new Promise<void>((_, reject) => {
-          const timer = setTimeout(() => reject(new Error("OTel shutdown timed out")), 5_000);
+          const timer = setTimeout(
+            () => reject(new Error("OTel shutdown timed out")),
+            5_000,
+          );
           timer.unref?.();
         }),
       ]);

@@ -45,7 +45,11 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
     taskcoreHome = path.join(root, "taskcore-home");
     sharedCodexHome = path.join(root, "shared-codex-home");
     await fs.mkdir(sharedCodexHome, { recursive: true });
-    await fs.writeFile(path.join(sharedCodexHome, "auth.json"), '{"OPENAI_API_KEY":"sk-shared"}', "utf8");
+    await fs.writeFile(
+      path.join(sharedCodexHome, "auth.json"),
+      '{"OPENAI_API_KEY":"sk-shared"}',
+      "utf8",
+    );
 
     for (const key of ["TASKCORE_HOME", "TASKCORE_INSTANCE_ID", "CODEX_HOME"]) {
       savedEnv[key] = process.env[key];
@@ -66,11 +70,20 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
   it("seeds a stranded managed home and is a no-op on the next boot", async () => {
     const agentHome = managedAgentHome("company-1", "agent-7");
     const rows: AgentRow[] = [
-      { id: "agent-7", companyId: "company-1", adapterConfig: { env: { CODEX_HOME: agentHome, OPENAI_API_KEY: "" } } },
+      {
+        id: "agent-7",
+        companyId: "company-1",
+        adapterConfig: { env: { CODEX_HOME: agentHome, OPENAI_API_KEY: "" } },
+      },
     ];
 
     const first = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
-    expect(first).toMatchObject({ scanned: 1, seeded: 1, alreadySeeded: 0, failed: 0 });
+    expect(first).toMatchObject({
+      scanned: 1,
+      seeded: 1,
+      alreadySeeded: 0,
+      failed: 0,
+    });
     expect(first.seededAgentIds).toEqual(["agent-7"]);
     const agentAuth = path.join(agentHome, "auth.json");
     expect((await fs.lstat(agentAuth)).isSymbolicLink()).toBe(true);
@@ -79,17 +92,28 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
     );
 
     const second = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
-    expect(second).toMatchObject({ scanned: 1, seeded: 0, alreadySeeded: 1, failed: 0 });
+    expect(second).toMatchObject({
+      scanned: 1,
+      seeded: 0,
+      alreadySeeded: 1,
+      failed: 0,
+    });
   });
 
   it("does not report a backfill when shared Codex auth is missing", async () => {
     await fs.rm(path.join(sharedCodexHome, "auth.json"), { force: true });
     const agentHome = managedAgentHome("company-1", "agent-missing-source");
     const rows: AgentRow[] = [
-      { id: "agent-missing-source", companyId: "company-1", adapterConfig: { env: { CODEX_HOME: agentHome } } },
+      {
+        id: "agent-missing-source",
+        companyId: "company-1",
+        adapterConfig: { env: { CODEX_HOME: agentHome } },
+      },
     ];
 
-    const summary = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
+    const summary = await reconcileCodexLocalManagedHomesOnStartup(
+      makeDb(rows),
+    );
     expect(summary).toMatchObject({
       scanned: 1,
       seeded: 0,
@@ -103,11 +127,17 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
     const external = path.join(root, "user-codex");
     await fs.mkdir(external, { recursive: true });
     const rows: AgentRow[] = [
-      { id: "ext", companyId: "company-1", adapterConfig: { env: { CODEX_HOME: external } } },
+      {
+        id: "ext",
+        companyId: "company-1",
+        adapterConfig: { env: { CODEX_HOME: external } },
+      },
       { id: "none", companyId: "company-1", adapterConfig: { env: {} } },
     ];
 
-    const summary = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
+    const summary = await reconcileCodexLocalManagedHomesOnStartup(
+      makeDb(rows),
+    );
     expect(summary).toMatchObject({
       scanned: 2,
       seeded: 0,
@@ -115,9 +145,12 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
       noManagedHome: 1,
       failed: 0,
     });
-    expect(await fs.access(path.join(external, "auth.json")).then(() => true).catch(() => false)).toBe(
-      false,
-    );
+    expect(
+      await fs
+        .access(path.join(external, "auth.json"))
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(false);
   });
 
   it("does not write a secret-bound OPENAI_API_KEY placeholder as the API key", async () => {
@@ -137,7 +170,9 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
       },
     ];
 
-    const summary = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
+    const summary = await reconcileCodexLocalManagedHomesOnStartup(
+      makeDb(rows),
+    );
     expect(summary).toMatchObject({ scanned: 1, seeded: 1, failed: 0 });
     const agentAuth = path.join(agentHome, "auth.json");
     expect((await fs.lstat(agentAuth)).isSymbolicLink()).toBe(true);
@@ -164,14 +199,24 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
           env: {
             CODEX_HOME: agentHome,
             // Canonical secret binding shape; unresolvable at startup.
-            OPENAI_API_KEY: { type: "secret_ref", secretId: "11111111-1111-1111-1111-111111111111" },
+            OPENAI_API_KEY: {
+              type: "secret_ref",
+              secretId: "11111111-1111-1111-1111-111111111111",
+            },
           },
         },
       },
     ];
 
-    const summary = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
-    expect(summary).toMatchObject({ scanned: 1, seeded: 0, alreadySeeded: 1, failed: 0 });
+    const summary = await reconcileCodexLocalManagedHomesOnStartup(
+      makeDb(rows),
+    );
+    expect(summary).toMatchObject({
+      scanned: 1,
+      seeded: 0,
+      alreadySeeded: 1,
+      failed: 0,
+    });
 
     const agentAuth = path.join(agentHome, "auth.json");
     // The resolved-key file must remain a regular file, not be downgraded to the
@@ -188,18 +233,31 @@ describe("reconcileCodexLocalManagedHomesOnStartup", () => {
       {
         id: "agent-5",
         companyId: "company-3",
-        adapterConfig: { env: { CODEX_HOME: agentHome, OPENAI_API_KEY: "sk-plain-1" } },
+        adapterConfig: {
+          env: { CODEX_HOME: agentHome, OPENAI_API_KEY: "sk-plain-1" },
+        },
       },
     ];
 
-    const summary = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
+    const summary = await reconcileCodexLocalManagedHomesOnStartup(
+      makeDb(rows),
+    );
     expect(summary).toMatchObject({ scanned: 1, seeded: 1, failed: 0 });
-    const written = JSON.parse(await fs.readFile(path.join(agentHome, "auth.json"), "utf8"));
+    const written = JSON.parse(
+      await fs.readFile(path.join(agentHome, "auth.json"), "utf8"),
+    );
     expect(written).toEqual({ OPENAI_API_KEY: "sk-plain-1" });
 
     const second = await reconcileCodexLocalManagedHomesOnStartup(makeDb(rows));
-    expect(second).toMatchObject({ scanned: 1, seeded: 0, alreadySeeded: 1, failed: 0 });
-    expect(JSON.parse(await fs.readFile(path.join(agentHome, "auth.json"), "utf8"))).toEqual({
+    expect(second).toMatchObject({
+      scanned: 1,
+      seeded: 0,
+      alreadySeeded: 1,
+      failed: 0,
+    });
+    expect(
+      JSON.parse(await fs.readFile(path.join(agentHome, "auth.json"), "utf8")),
+    ).toEqual({
       OPENAI_API_KEY: "sk-plain-1",
     });
   });

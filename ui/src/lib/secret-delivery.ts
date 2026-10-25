@@ -21,7 +21,9 @@ export const AGENT_ACCESS_CONFIG_PATH_PREFIX = "access.";
 /** Valid env-var name / access alias (matches the server's `ENV_KEY_RE`). */
 export const SECRET_ALIAS_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-export function deliveryModeForConfigPath(configPath: string | null | undefined): SecretDeliveryMode {
+export function deliveryModeForConfigPath(
+  configPath: string | null | undefined,
+): SecretDeliveryMode {
   if (!configPath) return "config";
   if (configPath.startsWith(AGENT_ACCESS_CONFIG_PATH_PREFIX)) return "api";
   if (configPath.startsWith(ENV_CONFIG_PATH_PREFIX)) return "env";
@@ -53,7 +55,9 @@ export function deliveryModeDescription(mode: SecretDeliveryMode): string {
 }
 
 /** The env KEY / access ALIAS carried by a config path (the part after the prefix). */
-export function aliasFromConfigPath(configPath: string | null | undefined): string {
+export function aliasFromConfigPath(
+  configPath: string | null | undefined,
+): string {
   if (!configPath) return "";
   if (configPath.startsWith(AGENT_ACCESS_CONFIG_PATH_PREFIX)) {
     return configPath.slice(AGENT_ACCESS_CONFIG_PATH_PREFIX.length);
@@ -69,7 +73,9 @@ export function aliasFromConfigPath(configPath: string | null | undefined): stri
  * emitted as raw enum values (e.g. `agent_api`, `plugin_worker`) which read
  * poorly when merely capitalized; map the ones that need help explicitly.
  */
-export function consumerTypeLabel(consumerType: SecretAccessEvent["consumerType"]): string {
+export function consumerTypeLabel(
+  consumerType: SecretAccessEvent["consumerType"],
+): string {
   switch (consumerType) {
     case "agent_api":
       return "Agent API";

@@ -7,24 +7,58 @@ import type { Agent } from "@taskcore/shared";
 import { SidebarAgentChats } from "./SidebarAgentChats";
 import { queryKeys } from "@/lib/queryKeys";
 
-const state = vi.hoisted(() => ({ companyId: "company-a", navigate: vi.fn(), closeSidebar: vi.fn(), list: vi.fn() }));
-vi.mock("@/context/CompanyContext", () => ({ useCompany: () => ({ selectedCompanyId: state.companyId }) }));
-vi.mock("@/context/SidebarContext", () => ({ useSidebar: () => ({ isMobile: true, setSidebarOpen: state.closeSidebar }) }));
-vi.mock("@/lib/router", () => ({ useLocation: () => ({ pathname: "/A/dashboard" }), useNavigate: () => state.navigate }));
+const state = vi.hoisted(() => ({
+  companyId: "company-a",
+  navigate: vi.fn(),
+  closeSidebar: vi.fn(),
+  list: vi.fn(),
+}));
+vi.mock("@/context/CompanyContext", () => ({
+  useCompany: () => ({ selectedCompanyId: state.companyId }),
+}));
+vi.mock("@/context/SidebarContext", () => ({
+  useSidebar: () => ({ isMobile: true, setSidebarOpen: state.closeSidebar }),
+}));
+vi.mock("@/lib/router", () => ({
+  useLocation: () => ({ pathname: "/A/dashboard" }),
+  useNavigate: () => state.navigate,
+}));
 vi.mock("@/api/agents", () => ({ agentsApi: { list: state.list } }));
-vi.mock("@/api/auth", () => ({ authApi: { getSession: () => ({ user: { id: "user-a" } }) } }));
+vi.mock("@/api/auth", () => ({
+  authApi: { getSession: () => ({ user: { id: "user-a" } }) },
+}));
 vi.mock("@/hooks/useResourceMemberships", () => ({
   useResourceMemberships: () => ({ data: { starredAgentIds: [] } }),
   useResourceMembershipMutation: () => ({ mutate: vi.fn() }),
 }));
-vi.mock("./AgentChatSidebar", () => ({ AgentChatSidebar: ({ onOpenChat }: { onOpenChat: () => void }) => <button onClick={onOpenChat}>Chat with an agent</button> }));
+vi.mock("./AgentChatSidebar", () => ({
+  AgentChatSidebar: ({ onOpenChat }: { onOpenChat: () => void }) => (
+    <button onClick={onOpenChat}>Chat with an agent</button>
+  ),
+}));
 
 let root: Root;
 let container: HTMLDivElement;
 let client: QueryClient;
-const agent = (id: string, companyId: string) => ({ id, companyId, name: id, urlKey: id, role: "engineer", title: "Engineer", icon: null, status: "idle" } as Agent);
+const agent = (id: string, companyId: string) =>
+  ({
+    id,
+    companyId,
+    name: id,
+    urlKey: id,
+    role: "engineer",
+    title: "Engineer",
+    icon: null,
+    status: "idle",
+  }) as Agent;
 async function render() {
-  await act(async () => { root.render(<QueryClientProvider client={client}><SidebarAgentChats /></QueryClientProvider>); });
+  await act(async () => {
+    root.render(
+      <QueryClientProvider client={client}>
+        <SidebarAgentChats />
+      </QueryClientProvider>,
+    );
+  });
 }
 async function openPicker() {
   await act(async () => container.querySelector("button")!.click());
@@ -32,14 +66,28 @@ async function openPicker() {
 
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   state.companyId = "company-a";
   state.navigate.mockClear();
   state.closeSidebar.mockClear();
-  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
   client.setQueryData(queryKeys.auth.session, { user: { id: "user-a" } });
-  client.setQueryData(queryKeys.agents.list("company-a"), [agent("alice", "company-a"), agent("never-visited", "company-a")]);
-  client.setQueryData(queryKeys.agents.list("company-b"), [agent("bob", "company-b")]);
+  client.setQueryData(queryKeys.agents.list("company-a"), [
+    agent("alice", "company-a"),
+    agent("never-visited", "company-a"),
+  ]);
+  client.setQueryData(queryKeys.agents.list("company-b"), [
+    agent("bob", "company-b"),
+  ]);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -55,9 +103,15 @@ describe("SidebarAgentChats", () => {
   it("opens an unvisited agent from the full roster and closes the mobile sidebar", async () => {
     await render();
     await openPicker();
-    const options = [...document.querySelectorAll<HTMLElement>("[role=option]")];
+    const options = [
+      ...document.querySelectorAll<HTMLElement>("[role=option]"),
+    ];
     expect(options).toHaveLength(2);
-    await act(async () => options.find((item) => item.textContent?.includes("never-visited"))!.click());
+    await act(async () =>
+      options
+        .find((item) => item.textContent?.includes("never-visited"))!
+        .click(),
+    );
     expect(state.navigate).toHaveBeenCalledWith("/chats/never-visited");
     expect(state.closeSidebar).toHaveBeenCalledWith(false);
     expect(document.querySelector("[role=dialog]")).toBeNull();

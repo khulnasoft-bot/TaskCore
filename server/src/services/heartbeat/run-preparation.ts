@@ -4,19 +4,9 @@ import { externalConversationStateSql } from "../slack-conversation-state.js";
 import { githubBotConnectionIdsForRun } from "../chat-github-tools.js";
 import { isBrowserUseConnection } from "../browser-use-client.js";
 import { explicitOperatorRunIdentity } from "../run-identity.js";
-import {
-  type DurableChatWakeupRequest,
-} from "../durable-chat-wakeup.js";
+import { type DurableChatWakeupRequest } from "../durable-chat-wakeup.js";
 import { createHash } from "node:crypto";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  inArray,
-  isNull,
-  sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import {
   CHAT_PROVIDERS,
@@ -76,10 +66,7 @@ import {
   EXTERNAL_CHAT_QUESTION_RESPONSE_KEY,
   resolveExternalChatQuestionResponse,
 } from "../native-runtime/external-chat-question-response.js";
-import {
-  secretService,
-  type MissingRuntimeBinding,
-} from "../secrets.js";
+import { secretService, type MissingRuntimeBinding } from "../secrets.js";
 import { createToolGatewayService } from "../tool-gateway.js";
 import { toolAccessService } from "../tool-access.js";
 import {
@@ -106,10 +93,7 @@ import {
   readTaskcoreSkillSyncPreference,
   writeTaskcoreSkillSyncPreference,
 } from "@taskcore/adapter-utils/server-utils";
-import {
-  extractSkillMentionIds,
-  isUuidLike,
-} from "@taskcore/shared";
+import { extractSkillMentionIds, isUuidLike } from "@taskcore/shared";
 import { evaluateCodexCredentialReadiness } from "@taskcore/adapter-codex-local/server";
 import type { TrustPresetResolution } from "../trust-preset-resolver.js";
 
@@ -219,7 +203,9 @@ const LOW_TRUST_SENSITIVE_ENV_KEY_RE =
 //    the run env like any non-prefixed binding.
 const FORBIDDEN_ENV_BINDING_KEYS = new Set([
   CONFIGURED_ENVIRONMENT_KEYS,
-  "TASKCORE_AGENT_KEY_ID", "TASKCORE_AGENT_PUBLIC_KEY", "TASKCORE_AGENT_PRIVATE_KEY",
+  "TASKCORE_AGENT_KEY_ID",
+  "TASKCORE_AGENT_PUBLIC_KEY",
+  "TASKCORE_AGENT_PRIVATE_KEY",
   "TASKCORE_RUNNER_NETWORK_ACCESS",
   "TASKCORE_RUNNER_NETWORK_ROOTS",
   "TASKCORE_API_KEY",
@@ -641,7 +627,8 @@ export async function resolveExecutionRunAdapterConfig(input: {
   // host-side login never exists at all. The adapter's execute-time gate
   // remains the authority there; it probes the sandbox before failing.
   if (
-    !input.managedAiCredentials && (input.adapterType ?? null) === "codex_local" &&
+    !input.managedAiCredentials &&
+    (input.adapterType ?? null) === "codex_local" &&
     (input.environmentDriver ?? null) !== "sandbox"
   ) {
     const resolvedEnv = parseObject(resolvedConfig.env);
@@ -678,7 +665,9 @@ export async function resolveExecutionRunAdapterConfig(input: {
     // Capture resolved task values before provider credential injection or host
     // inheritance. Native-only launch limits are checked at native dispatch.
     configuredTaskEnvironment: Object.fromEntries(
-      Object.entries(parseObject(resolvedConfig.env)).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+      Object.entries(parseObject(resolvedConfig.env)).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
     ),
     secretKeys,
     secretManifest: [
@@ -935,12 +924,18 @@ export async function buildTaskcoreRuntimeMcpServers(input: {
     .filter(
       (connection) =>
         (connection.transport === "mcp_remote" ||
-          connection.transport === "local_stdio" || isBrowserUseConnection(connection)) &&
+          connection.transport === "local_stdio" ||
+          isBrowserUseConnection(connection)) &&
         !allInstalledConnectionIds.has(connection.id),
     )
     .map(({ id, name }) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const githubBotConnectionIds = await githubBotConnectionIdsForRun(input.db, input.agent.companyId, input.agent.id, input.runId);
+  const githubBotConnectionIds = await githubBotConnectionIdsForRun(
+    input.db,
+    input.agent.companyId,
+    input.agent.id,
+    input.runId,
+  );
   const assignedConnections = resolvedInstalledConnections.filter(
     (connection) =>
       permittedConnectionIds.has(connection.id) &&
@@ -952,7 +947,9 @@ export async function buildTaskcoreRuntimeMcpServers(input: {
         connection.credentialPolicy === "per_user" ||
         !isToolConnectionAttentionHealth(connection.healthStatus)) &&
       (connection.transport === "mcp_remote" ||
-        connection.transport === "local_stdio" || isBrowserUseConnection(connection) || githubBotConnectionIds.has(connection.id)),
+        connection.transport === "local_stdio" ||
+        isBrowserUseConnection(connection) ||
+        githubBotConnectionIds.has(connection.id)),
   );
   const assignedConnectionIds = new Set(
     assignedConnections.map((connection) => connection.id),
@@ -1067,8 +1064,11 @@ export async function buildTaskcoreRuntimeMcpServers(input: {
     }
   }
 
-  if (profile!.metadata?.source !== "taskcore_runner" || profile!.metadata?.agentId !== input.agent.id ||
-      profile!.metadata?.assignmentDigest !== assignmentDigest) {
+  if (
+    profile!.metadata?.source !== "taskcore_runner" ||
+    profile!.metadata?.agentId !== input.agent.id ||
+    profile!.metadata?.assignmentDigest !== assignmentDigest
+  ) {
     throw new Error("Invalid native runtime profile provenance");
   }
 
@@ -1097,7 +1097,12 @@ export async function buildTaskcoreRuntimeMcpServers(input: {
   if (gateway && !gateway.agentId) {
     await input.db
       .update(toolMcpGateways)
-      .set({ agentId: input.agent.id, contextScopeType: "agent", contextScopeId: input.agent.id, updatedAt: new Date() })
+      .set({
+        agentId: input.agent.id,
+        contextScopeType: "agent",
+        contextScopeId: input.agent.id,
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(toolMcpGateways.id, gateway.id),
@@ -1152,9 +1157,12 @@ export async function buildTaskcoreRuntimeMcpServers(input: {
     }
   }
 
-  if (gateway!.agentId !== input.agent.id || gateway!.profileId !== profile!.id ||
-      gateway!.metadata?.agentId !== input.agent.id ||
-      gateway!.metadata?.nativeRuntimeAssignmentDigest !== assignmentDigest) {
+  if (
+    gateway!.agentId !== input.agent.id ||
+    gateway!.profileId !== profile!.id ||
+    gateway!.metadata?.agentId !== input.agent.id ||
+    gateway!.metadata?.nativeRuntimeAssignmentDigest !== assignmentDigest
+  ) {
     throw new Error("Invalid native runtime gateway provenance");
   }
 
@@ -1444,15 +1452,17 @@ export async function createManagedMcpRunConfig(input: {
     resolvedAvailableInstalls.map((install) => install.id),
   );
 
-  const applicableGateways = rows.filter((gateway) =>
-    // The immutable native assignment is delivered separately. Including any
-    // historical native gateway here duplicates and broadens that assignment.
-    !Object.hasOwn(gateway.metadata ?? {}, "nativeRuntimeAssignmentDigest") && gatewayAppliesToRun({
-      gateway,
-      agentId: input.agent.id,
-      projectId: input.projectId,
-      issueId: input.issueId,
-    }),
+  const applicableGateways = rows.filter(
+    (gateway) =>
+      // The immutable native assignment is delivered separately. Including any
+      // historical native gateway here duplicates and broadens that assignment.
+      !Object.hasOwn(gateway.metadata ?? {}, "nativeRuntimeAssignmentDigest") &&
+      gatewayAppliesToRun({
+        gateway,
+        agentId: input.agent.id,
+        projectId: input.projectId,
+        issueId: input.issueId,
+      }),
   );
   const gateways = (
     await Promise.all(
@@ -2206,7 +2216,9 @@ export async function buildTaskcoreWakePayload(input: {
   );
   const issueId = readNonEmptyString(input.contextSnapshot.issueId);
   const conversationMode = input.contextSnapshot.conversationMode === true;
-  const continuationSummary = conversationMode ? null : input.continuationSummary ?? null;
+  const continuationSummary = conversationMode
+    ? null
+    : (input.continuationSummary ?? null);
   const agentMessage = parseObject(
     input.contextSnapshot[TASKCORE_AGENT_MESSAGE_KEY],
   );
@@ -2271,7 +2283,9 @@ export async function buildTaskcoreWakePayload(input: {
   const commentsById = new Map(
     commentRows.map((comment) => [comment.id, comment]),
   );
-  const issueDescription = conversationMode ? null : issueSummary?.description ?? null;
+  const issueDescription = conversationMode
+    ? null
+    : (issueSummary?.description ?? null);
   const issueDescriptionTruncated =
     issueDescription !== null &&
     issueDescription.length > MAX_INLINE_WAKE_ISSUE_DESCRIPTION_CHARS;
@@ -2502,28 +2516,35 @@ export async function buildTaskcoreWakePayload(input: {
   );
   // A resolved plan review is new user input, including in chat. Ordinary chat
   // wakes must still exclude historical plan context across /new boundaries.
-  const resolvedPlanInteraction = interactionId && interactionKind === "request_confirmation" &&
+  const resolvedPlanInteraction =
+    interactionId &&
+    interactionKind === "request_confirmation" &&
     (interactionStatus === "accepted" || interactionStatus === "rejected");
-  const planReviewContext = issueId && (!conversationMode || resolvedPlanInteraction)
-    ? await buildPlanReviewContext({
-        db: input.db,
-        companyId: input.companyId,
-        issueId,
-        issueWorkMode: conversationMode ? null : issueSummary?.workMode ?? null,
-        includeForIssueComment: !conversationMode && commentIds.length > 0,
-        includeForAnnotationDelta: !conversationMode && annotationDeltas.length > 0,
-        interactionId,
-      })
-    : null;
-  const documentReviewContext = issueId && !conversationMode
-    ? await buildDocumentReviewContext({
-        db: input.db,
-        companyId: input.companyId,
-        issueId,
-        includeForIssueComment: commentIds.length > 0,
-        includeForAnnotationDelta: annotationDeltas.length > 0,
-      })
-    : null;
+  const planReviewContext =
+    issueId && (!conversationMode || resolvedPlanInteraction)
+      ? await buildPlanReviewContext({
+          db: input.db,
+          companyId: input.companyId,
+          issueId,
+          issueWorkMode: conversationMode
+            ? null
+            : (issueSummary?.workMode ?? null),
+          includeForIssueComment: !conversationMode && commentIds.length > 0,
+          includeForAnnotationDelta:
+            !conversationMode && annotationDeltas.length > 0,
+          interactionId,
+        })
+      : null;
+  const documentReviewContext =
+    issueId && !conversationMode
+      ? await buildDocumentReviewContext({
+          db: input.db,
+          companyId: input.companyId,
+          issueId,
+          includeForIssueComment: commentIds.length > 0,
+          includeForAnnotationDelta: annotationDeltas.length > 0,
+        })
+      : null;
   const payloadTruncated =
     truncated ||
     issueDescriptionTruncated ||
@@ -2593,24 +2614,23 @@ export async function buildTaskcoreWakePayload(input: {
     chatCompletionUpdates: input.contextSnapshot.chatCompletionUpdates ?? null,
     attachmentOmissions,
     externalChatProvider,
-    recovery:
-      recoveryStillActive
-        ? {
-            cause: recoveryAction?.cause ?? recoveryCause,
-            failureSummary: readNonEmptyString(recoveryEvidence.failureSummary),
-            originalAssignee: originalAssignee
-              ? { id: originalAssignee.id, name: originalAssignee.name }
-              : originalAssigneeId
-                ? { id: originalAssigneeId, name: null }
-                : null,
-            attemptCount: recoveryAction?.attemptCount ?? null,
-            maxAttempts: recoveryAction?.maxAttempts ?? null,
-            nextAction: recoveryAction?.nextAction ?? null,
-            routingFallbackReason: readNonEmptyString(
-              recoveryEvidence.routingFallbackReason,
-            ),
-          }
-        : null,
+    recovery: recoveryStillActive
+      ? {
+          cause: recoveryAction?.cause ?? recoveryCause,
+          failureSummary: readNonEmptyString(recoveryEvidence.failureSummary),
+          originalAssignee: originalAssignee
+            ? { id: originalAssignee.id, name: originalAssignee.name }
+            : originalAssigneeId
+              ? { id: originalAssigneeId, name: null }
+              : null,
+          attemptCount: recoveryAction?.attemptCount ?? null,
+          maxAttempts: recoveryAction?.maxAttempts ?? null,
+          nextAction: recoveryAction?.nextAction ?? null,
+          routingFallbackReason: readNonEmptyString(
+            recoveryEvidence.routingFallbackReason,
+          ),
+        }
+      : null,
     issue: issueSummary
       ? {
           id: issueSummary.id,
@@ -2662,12 +2682,14 @@ export async function buildTaskcoreWakePayload(input: {
       : [],
     childIssueSummaryTruncated:
       input.contextSnapshot.childIssueSummaryTruncated === true,
-    dispositionRepair: input.contextSnapshot.legacyDispositionEpisode ? {
-      attempt: input.contextSnapshot.dispositionRepairAttempt,
-      maxAttempts: input.contextSnapshot.dispositionRepairMaxAttempts,
-      sourceRunId: input.contextSnapshot.retryOfRunId,
-      instruction: input.contextSnapshot.dispositionRepairInstruction,
-    } : null,
+    dispositionRepair: input.contextSnapshot.legacyDispositionEpisode
+      ? {
+          attempt: input.contextSnapshot.dispositionRepairAttempt,
+          maxAttempts: input.contextSnapshot.dispositionRepairMaxAttempts,
+          sourceRunId: input.contextSnapshot.retryOfRunId,
+          instruction: input.contextSnapshot.dispositionRepairInstruction,
+        }
+      : null,
     livenessContinuation:
       readNonEmptyString(input.contextSnapshot.livenessContinuationState) ||
       readNonEmptyString(
@@ -2822,7 +2844,9 @@ export function createHeartbeatRunPreparation(db: Db) {
         chatCommunicationGuidance: chatConversations.communicationGuidance,
         chatAssignedAgentId: chatEndpoints.assignedAgentId,
         // Select only the public command, never the rest of setup state.
-        chatSlackCommand: sql<string | null>`case when ${chatEndpoints.status} in ('active', 'verifying') then ${chatEndpoints.setup}->>'command' end`,
+        chatSlackCommand: sql<
+          string | null
+        >`case when ${chatEndpoints.status} in ('active', 'verifying') then ${chatEndpoints.setup}->>'command' end`,
         externalConversationState: externalConversationStateSql(),
         conversationAgentId: issues.conversationAgentId,
         conversationUserId: issues.conversationUserId,
@@ -2858,15 +2882,21 @@ export function createHeartbeatRunPreparation(db: Db) {
         updatedAt: issues.updatedAt,
       })
       .from(issues)
-      .leftJoin(chatConversations, and(
-        eq(chatConversations.companyId, issues.companyId),
-        eq(chatConversations.issueId, issues.id),
-      ))
-      .leftJoin(chatEndpoints, and(
-        eq(chatEndpoints.companyId, chatConversations.companyId),
-        eq(chatEndpoints.id, chatConversations.endpointId),
-        eq(chatEndpoints.provider, "slack"),
-      ))
+      .leftJoin(
+        chatConversations,
+        and(
+          eq(chatConversations.companyId, issues.companyId),
+          eq(chatConversations.issueId, issues.id),
+        ),
+      )
+      .leftJoin(
+        chatEndpoints,
+        and(
+          eq(chatEndpoints.companyId, chatConversations.companyId),
+          eq(chatEndpoints.id, chatConversations.endpointId),
+          eq(chatEndpoints.provider, "slack"),
+        ),
+      )
       .where(and(eq(issues.id, issueId), eq(issues.companyId, companyId)))
       .then((rows) => rows[0] ?? null);
   }
@@ -2929,7 +2959,11 @@ export function createHeartbeatRunPreparation(db: Db) {
 
   async function getRoutineEnvForExecutionIssue(
     companyId: string,
-    issueContext: { originKind: string | null; originId: string | null; originRunId: string | null } | null,
+    issueContext: {
+      originKind: string | null;
+      originId: string | null;
+      originRunId: string | null;
+    } | null,
   ) {
     if (
       !issueContext ||
@@ -3082,7 +3116,11 @@ export function createHeartbeatRunPreparation(db: Db) {
   async function resolveResponsibleUserIdForRunSeed(input: {
     companyId: string;
     contextSnapshot: Record<string, unknown>;
-    issueContext: { id: string; responsibleUserId: string | null; parentId: string | null } | null;
+    issueContext: {
+      id: string;
+      responsibleUserId: string | null;
+      parentId: string | null;
+    } | null;
     routineEnvContext: Awaited<
       ReturnType<typeof getRoutineEnvForExecutionIssue>
     >;
@@ -3174,15 +3212,18 @@ export function createHeartbeatRunPreparation(db: Db) {
     >;
   }) {
     const operatorIdentity = await explicitOperatorRunIdentity(db, input.run);
-    const responsibleUserId = operatorIdentity?.actorId ?? await resolveResponsibleUserIdForRunSeed({
-      companyId: input.run.companyId,
-      contextSnapshot: input.contextSnapshot,
-      issueContext: input.issueContext,
-      routineEnvContext: input.routineEnvContext,
-      existingRunResponsibleUserId: input.run.responsibleUserId,
-      source: input.run.invocationSource as WakeupOptions["source"],
-      triggerDetail: input.run.triggerDetail as WakeupOptions["triggerDetail"],
-    });
+    const responsibleUserId =
+      operatorIdentity?.actorId ??
+      (await resolveResponsibleUserIdForRunSeed({
+        companyId: input.run.companyId,
+        contextSnapshot: input.contextSnapshot,
+        issueContext: input.issueContext,
+        routineEnvContext: input.routineEnvContext,
+        existingRunResponsibleUserId: input.run.responsibleUserId,
+        source: input.run.invocationSource as WakeupOptions["source"],
+        triggerDetail: input.run
+          .triggerDetail as WakeupOptions["triggerDetail"],
+      }));
     if (!responsibleUserId) {
       throw new HttpError(
         422,

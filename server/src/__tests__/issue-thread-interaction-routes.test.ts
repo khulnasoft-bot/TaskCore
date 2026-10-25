@@ -50,19 +50,24 @@ const mockHeartbeatService = vi.hoisted(() => ({
   cancelRun: vi.fn(async () => null),
 }));
 const mockRequestNativeQuestionRunCancellation = vi.hoisted(() =>
-  vi.fn(async () => null as string | null)
+  vi.fn(async () => null as string | null),
 );
 
 vi.mock("../services/native-runtime/native-question-bridge.js", () => ({
   deliverNativeQuestionResponse: vi.fn(async () => "not_native"),
-  requestNativeQuestionRunCancellation: mockRequestNativeQuestionRunCancellation,
+  requestNativeQuestionRunCancellation:
+    mockRequestNativeQuestionRunCancellation,
   validateNativeQuestionResponseInput: vi.fn(),
 }));
 const mockQuestionResponseDeliveries = vi.hoisted(() => ({
   deliver: vi.fn(async () => null),
 }));
-const mockResolveTaskWatchdogMutationScope = vi.hoisted(() => vi.fn(async () => ({ kind: "none" })));
-const mockResolveCoreTrustPreset = vi.hoisted(() => vi.fn(() => ({ kind: "standard" })));
+const mockResolveTaskWatchdogMutationScope = vi.hoisted(() =>
+  vi.fn(async () => ({ kind: "none" })),
+);
+const mockResolveCoreTrustPreset = vi.hoisted(() =>
+  vi.fn(() => ({ kind: "standard" })),
+);
 const mockRunAttribution = vi.hoisted(() => ({
   value: {
     companyId: "company-1",
@@ -70,26 +75,44 @@ const mockRunAttribution = vi.hoisted(() => ({
     responsibleUserId: null,
   } as Record<string, unknown> | null,
 }));
-const mockAccessDecide = vi.hoisted(() => vi.fn(async (input: { action?: string }) => ({
-  allowed: true,
-  action: input.action,
-  reason: "allow_explicit_grant",
-  explanation: "Allowed by test grant.",
-})));
+const mockAccessDecide = vi.hoisted(() =>
+  vi.fn(async (input: { action?: string }) => ({
+    allowed: true,
+    action: input.action,
+    reason: "allow_explicit_grant",
+    explanation: "Allowed by test grant.",
+  })),
+);
 
 const mockLogActivity = vi.hoisted(() => vi.fn(async () => undefined));
 const mockReviewTransition = vi.hoisted(() => ({
-  value: null as null | { actorType: string; actorId: string; details: Record<string, unknown> },
+  value: null as null | {
+    actorType: string;
+    actorId: string;
+    details: Record<string, unknown>;
+  },
 }));
-const mockDbSelectWhere = vi.hoisted(() => vi.fn(() => ({
-  then: (onFulfilled: (rows: unknown[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
-    Promise.resolve([{ companyId: "company-1", agentId: CREATED_AGENT_ID, contextSnapshot: null }]).then(
-      onFulfilled,
-      onRejected,
-    ),
-})));
-const mockDbSelectFrom = vi.hoisted(() => vi.fn(() => ({ where: mockDbSelectWhere })));
-const mockDbSelect = vi.hoisted(() => vi.fn(() => ({ from: mockDbSelectFrom })));
+const mockDbSelectWhere = vi.hoisted(() =>
+  vi.fn(() => ({
+    then: (
+      onFulfilled: (rows: unknown[]) => unknown,
+      onRejected?: (reason: unknown) => unknown,
+    ) =>
+      Promise.resolve([
+        {
+          companyId: "company-1",
+          agentId: CREATED_AGENT_ID,
+          contextSnapshot: null,
+        },
+      ]).then(onFulfilled, onRejected),
+  })),
+);
+const mockDbSelectFrom = vi.hoisted(() =>
+  vi.fn(() => ({ where: mockDbSelectWhere })),
+);
+const mockDbSelect = vi.hoisted(() =>
+  vi.fn(() => ({ from: mockDbSelectFrom })),
+);
 
 // The per-run cross-issue influence counter runs in its own locking
 // transaction, so the route harness has to model it: the locked run row (whose
@@ -99,40 +122,52 @@ const mockCrossIssueInfluence = vi.hoisted(() => ({
   priorCount: 0,
   inserted: [] as Array<Record<string, unknown>>,
 }));
-const mockDbTransaction = vi.hoisted(() => vi.fn(async (callback: (tx: unknown) => unknown) => callback({
-  select: (selection: Record<string, unknown>) => ({
-    from: () => ({
-      where: () => {
-        if (Object.keys(selection).includes("count")) {
-          return {
-            then: (resolve: (rows: unknown[]) => unknown) =>
-              resolve([{ count: mockCrossIssueInfluence.priorCount }]),
-          };
-        }
-        const run = mockRunAttribution.value;
-        return {
-          for: () => ({
-            then: (resolve: (rows: unknown[]) => unknown) => resolve(run
-              ? [{
-                  id: run.runId ?? null,
-                  companyId: run.companyId ?? null,
-                  agentId: run.agentId ?? null,
-                  responsibleUserId: run.responsibleUserId ?? null,
-                  contextSnapshot: { issueId: mockCrossIssueInfluence.sourceIssueId },
-                }]
-              : []),
-          }),
-        };
-      },
+const mockDbTransaction = vi.hoisted(() =>
+  vi.fn(async (callback: (tx: unknown) => unknown) =>
+    callback({
+      select: (selection: Record<string, unknown>) => ({
+        from: () => ({
+          where: () => {
+            if (Object.keys(selection).includes("count")) {
+              return {
+                then: (resolve: (rows: unknown[]) => unknown) =>
+                  resolve([{ count: mockCrossIssueInfluence.priorCount }]),
+              };
+            }
+            const run = mockRunAttribution.value;
+            return {
+              for: () => ({
+                then: (resolve: (rows: unknown[]) => unknown) =>
+                  resolve(
+                    run
+                      ? [
+                          {
+                            id: run.runId ?? null,
+                            companyId: run.companyId ?? null,
+                            agentId: run.agentId ?? null,
+                            responsibleUserId: run.responsibleUserId ?? null,
+                            contextSnapshot: {
+                              issueId: mockCrossIssueInfluence.sourceIssueId,
+                            },
+                          },
+                        ]
+                      : [],
+                  ),
+              }),
+            };
+          },
+        }),
+      }),
+      insert: () => ({
+        values: async (value: Record<string, unknown>) => {
+          mockCrossIssueInfluence.inserted.push(value);
+          if (value.action === "issue.cross_issue_influence_observed")
+            mockCrossIssueInfluence.priorCount += 1;
+        },
+      }),
     }),
-  }),
-  insert: () => ({
-    values: async (value: Record<string, unknown>) => {
-      mockCrossIssueInfluence.inserted.push(value);
-      if (value.action === "issue.cross_issue_influence_observed") mockCrossIssueInfluence.priorCount += 1;
-    },
-  }),
-})));
+  ),
+);
 const mockDb = vi.hoisted(() => ({
   select: mockDbSelect,
   transaction: mockDbTransaction,
@@ -172,7 +207,11 @@ function registerModuleMocks() {
       hasPermission: vi.fn(async () => true),
     }),
     agentService: () => ({
-      getById: vi.fn(async () => ({ id: CREATED_AGENT_ID, companyId: "company-1", permissions: null })),
+      getById: vi.fn(async () => ({
+        id: CREATED_AGENT_ID,
+        companyId: "company-1",
+        permissions: null,
+      })),
       resolveByReference: vi.fn(async (_companyId: string, raw: string) => ({
         ambiguous: false,
         agent: { id: raw },
@@ -184,12 +223,18 @@ function registerModuleMocks() {
     }),
     ISSUE_LIST_DEFAULT_LIMIT: 500,
     ISSUE_LIST_MAX_LIMIT: 1000,
-    documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+    documentAnnotationService: () => ({
+      remapOpenThreadsForDocument: async () => [],
+    }),
     documentService: () => ({}),
     executionWorkspaceService: () => ({}),
     feedbackService: () => ({
       listIssueVotesForUser: vi.fn(async () => []),
-      saveIssueVote: vi.fn(async () => ({ vote: null, consentEnabledNow: false, sharingEnabled: false })),
+      saveIssueVote: vi.fn(async () => ({
+        vote: null,
+        consentEnabledNow: false,
+        sharingEnabled: false,
+      })),
     }),
     goalService: () => ({}),
     heartbeatService: () => mockHeartbeatService,
@@ -227,7 +272,10 @@ function registerModuleMocks() {
       getActiveForIssue: vi.fn(async () => null),
       upsertForIssue: vi.fn(),
       disableForIssue: vi.fn(async () => null),
-      revalidateMutationScope: vi.fn(async (scope: unknown) => ({ allowed: true, scope })),
+      revalidateMutationScope: vi.fn(async (scope: unknown) => ({
+        allowed: true,
+        scope,
+      })),
     }),
     logActivity: mockLogActivity,
     projectService: () => ({}),
@@ -267,13 +315,16 @@ function loadAppModules() {
   ]);
 }
 
-async function createApp(actor: Record<string, unknown> = {
-  type: "board",
-  userId: "local-board",
-  companyIds: ["company-1"],
-  source: "local_implicit",
-  isInstanceAdmin: false,
-}, routeOptions: Record<string, unknown> = {}) {
+async function createApp(
+  actor: Record<string, unknown> = {
+    type: "board",
+    userId: "local-board",
+    companyIds: ["company-1"],
+    source: "local_implicit",
+    isInstanceAdmin: false,
+  },
+  routeOptions: Record<string, unknown> = {},
+) {
   if (actor.type === "agent") {
     mockRunAttribution.value = {
       runId: actor.runId,
@@ -298,12 +349,14 @@ async function resolveMockInteraction(
   args: unknown[],
   interaction: Record<string, unknown>,
 ) {
-  const mutationOptions = args[4] as {
-    afterResolveInTransaction?: (
-      tx: Record<string, unknown>,
-      resolved: Record<string, unknown>,
-    ) => Promise<void>;
-  } | undefined;
+  const mutationOptions = args[4] as
+    | {
+        afterResolveInTransaction?: (
+          tx: Record<string, unknown>,
+          resolved: Record<string, unknown>,
+        ) => Promise<void>;
+      }
+    | undefined;
   await mutationOptions?.afterResolveInTransaction?.({}, interaction);
   return interaction;
 }
@@ -347,8 +400,12 @@ describe("issue thread interaction routes", () => {
     mockIssueService.getById.mockResolvedValue(createIssue());
     mockIssueService.listReviewAttention.mockResolvedValue(new Map());
     mockInteractionService.listForIssue.mockResolvedValue([]);
-    mockInteractionService.expireRequestConfirmationsSupersededByHistoricalComments.mockResolvedValue([]);
-    mockInteractionService.expirePendingInteractionsForTerminalIssue.mockResolvedValue([]);
+    mockInteractionService.expireRequestConfirmationsSupersededByHistoricalComments.mockResolvedValue(
+      [],
+    );
+    mockInteractionService.expirePendingInteractionsForTerminalIssue.mockResolvedValue(
+      [],
+    );
     mockInteractionService.getForIssue.mockResolvedValue({
       id: "interaction-withdraw",
       kind: "ask_user_questions",
@@ -360,20 +417,25 @@ describe("issue thread interaction routes", () => {
       status: "pending",
       payload: { version: 1, questions: [] },
     });
-    mockInteractionService.withdrawInteraction.mockImplementation((...args) => resolveMockInteraction(args, {
-      id: "interaction-withdraw",
-      companyId: "company-1",
-      issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      kind: "request_confirmation",
-      createdByAgentId: CREATED_AGENT_ID,
-      status: "cancelled",
-      continuationPolicy: "wake_assignee",
-      payload: { version: 1, prompt: "Proceed?" },
-      result: { version: 1, outcome: "withdrawn", reason: "Replanning" },
-    }));
+    mockInteractionService.withdrawInteraction.mockImplementation((...args) =>
+      resolveMockInteraction(args, {
+        id: "interaction-withdraw",
+        companyId: "company-1",
+        issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        kind: "request_confirmation",
+        createdByAgentId: CREATED_AGENT_ID,
+        status: "cancelled",
+        continuationPolicy: "wake_assignee",
+        payload: { version: 1, prompt: "Proceed?" },
+        result: { version: 1, outcome: "withdrawn", reason: "Replanning" },
+      }),
+    );
     mockInteractionService.recordSecretProposalExecutionResult.mockImplementation(
       async (_issue, _interactionId, _proposalId, execution) => ({
-        ...(await mockInteractionService.acceptInteraction.mock.results.at(-1)?.value)?.interaction,
+        ...(
+          await mockInteractionService.acceptInteraction.mock.results.at(-1)
+            ?.value
+        )?.interaction,
         id: _interactionId,
         companyId: "company-1",
         issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -389,7 +451,11 @@ describe("issue thread interaction routes", () => {
             configPath: "access.NEW_ALIAS",
           },
         },
-        result: { version: 1, outcome: "accepted", secretProposal: { version: 1, ...execution } },
+        result: {
+          version: 1,
+          outcome: "accepted",
+          secretProposal: { version: 1, ...execution },
+        },
       }),
     );
     mockInteractionService.create.mockResolvedValue({
@@ -476,12 +542,14 @@ describe("issue thread interaction routes", () => {
       sourceRunId: RUN_2,
       payload: {
         version: 1,
-        questions: [{
-          id: "scope",
-          prompt: "Scope?",
-          selectionMode: "single",
-          options: [{ id: "phase-1", label: "Phase 1" }],
-        }],
+        questions: [
+          {
+            id: "scope",
+            prompt: "Scope?",
+            selectionMode: "single",
+            options: [{ id: "phase-1", label: "Phase 1" }],
+          },
+        ],
       },
       result: {
         version: 1,
@@ -533,46 +601,55 @@ describe("issue thread interaction routes", () => {
       },
       newlyResolvedItemIds: ["docs"],
     });
-    mockInteractionService.cancelQuestions.mockImplementation((...args) => resolveMockInteraction(args, {
-      id: "interaction-2",
-      companyId: "company-1",
-      issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      kind: "ask_user_questions",
-      status: "cancelled",
-      continuationPolicy: "wake_assignee",
-      idempotencyKey: null,
-      sourceCommentId: "comment-2",
-      sourceRunId: RUN_2,
-      payload: {
-        version: 1,
-        questions: [{
-          id: "scope",
-          prompt: "Scope?",
-          selectionMode: "single",
-          options: [{ id: "phase-1", label: "Phase 1" }],
-        }],
-      },
-      result: {
-        version: 1,
-        answers: [],
-        cancelled: true,
-        cancellationReason: null,
-        summaryMarkdown: null,
-      },
-      createdAt: "2026-04-20T12:00:00.000Z",
-      updatedAt: "2026-04-20T12:05:00.000Z",
-      resolvedAt: "2026-04-20T12:05:00.000Z",
-    }));
+    mockInteractionService.cancelQuestions.mockImplementation((...args) =>
+      resolveMockInteraction(args, {
+        id: "interaction-2",
+        companyId: "company-1",
+        issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        kind: "ask_user_questions",
+        status: "cancelled",
+        continuationPolicy: "wake_assignee",
+        idempotencyKey: null,
+        sourceCommentId: "comment-2",
+        sourceRunId: RUN_2,
+        payload: {
+          version: 1,
+          questions: [
+            {
+              id: "scope",
+              prompt: "Scope?",
+              selectionMode: "single",
+              options: [{ id: "phase-1", label: "Phase 1" }],
+            },
+          ],
+        },
+        result: {
+          version: 1,
+          answers: [],
+          cancelled: true,
+          cancellationReason: null,
+          summaryMarkdown: null,
+        },
+        createdAt: "2026-04-20T12:00:00.000Z",
+        updatedAt: "2026-04-20T12:05:00.000Z",
+        resolvedAt: "2026-04-20T12:05:00.000Z",
+      }),
+    );
     mockDbSelect.mockImplementation(() => ({ from: mockDbSelectFrom }));
     mockDbSelectFrom.mockImplementation(() => ({ where: mockDbSelectWhere }));
     mockDbSelectWhere.mockImplementation(() => ({
-      then: (onFulfilled: (rows: unknown[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
-        Promise.resolve(mockRunAttribution.value ? [mockRunAttribution.value] : []).then(
-          onFulfilled,
-          onRejected,
-        ),
+      then: (
+        onFulfilled: (rows: unknown[]) => unknown,
+        onRejected?: (reason: unknown) => unknown,
+      ) =>
+        Promise.resolve(
+          mockRunAttribution.value ? [mockRunAttribution.value] : [],
+        ).then(onFulfilled, onRejected),
       orderBy: () => ({
-        limit: () => Promise.resolve(mockReviewTransition.value ? [mockReviewTransition.value] : []),
+        limit: () =>
+          Promise.resolve(
+            mockReviewTransition.value ? [mockReviewTransition.value] : [],
+          ),
       }),
     }));
     mockReviewTransition.value = null;
@@ -613,34 +690,77 @@ describe("issue thread interaction routes", () => {
   }, 10_000);
 
   it("normalizes a canonical-only mixed question form at the HTTP boundary", async () => {
-    const questionSet = { schema: "taskcore.question_set.v1", questions: [
-      { id: "repo", prompt: "Repository URL?", required: true, answerMode: "text" },
-      { id: "scope", prompt: "Review scope?", required: true, answerMode: "single_select", options: [{ id: "all", label: "All changes" }, { id: "selected", label: "Selected changes" }] },
-    ] };
+    const questionSet = {
+      schema: "taskcore.question_set.v1",
+      questions: [
+        {
+          id: "repo",
+          prompt: "Repository URL?",
+          required: true,
+          answerMode: "text",
+        },
+        {
+          id: "scope",
+          prompt: "Review scope?",
+          required: true,
+          answerMode: "single_select",
+          options: [
+            { id: "all", label: "All changes" },
+            { id: "selected", label: "Selected changes" },
+          ],
+        },
+      ],
+    };
     const res = await request(await createApp())
       .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions")
-      .send({ kind: "ask_user_questions", payload: { version: 1, questionSet } });
+      .send({
+        kind: "ask_user_questions",
+        payload: { version: 1, questionSet },
+      });
     expect(res.status).toBe(201);
-    expect(mockInteractionService.create).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      payload: expect.objectContaining({ questionSet, questions: [
-        expect.objectContaining({ id: "repo", options: [{ id: "taskcore_text_answer", label: "Type an answer", freeText: true }] }),
-        expect.objectContaining({ id: "scope", options: questionSet.questions[1].options }),
-      ] }),
-    }), expect.anything());
+    expect(mockInteractionService.create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          questionSet,
+          questions: [
+            expect.objectContaining({
+              id: "repo",
+              options: [
+                {
+                  id: "taskcore_text_answer",
+                  label: "Type an answer",
+                  freeText: true,
+                },
+              ],
+            }),
+            expect.objectContaining({
+              id: "scope",
+              options: questionSet.questions[1].options,
+            }),
+          ],
+        }),
+      }),
+      expect.anything(),
+    );
   });
 
   it("does not run historical-comment catch-up or queue recovery from the interaction read path", async () => {
-    mockIssueService.getById.mockResolvedValue(createIssue({
-      status: "in_review",
-      assigneeAgentId: ASSIGNEE_AGENT_ID,
-    }));
+    mockIssueService.getById.mockResolvedValue(
+      createIssue({
+        status: "in_review",
+        assigneeAgentId: ASSIGNEE_AGENT_ID,
+      }),
+    );
     mockInteractionService.listForIssue.mockResolvedValue([]);
 
     await request(await createApp())
       .get("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions")
       .expect(200);
 
-    expect(mockInteractionService.expireRequestConfirmationsSupersededByHistoricalComments).not.toHaveBeenCalled();
+    expect(
+      mockInteractionService.expireRequestConfirmationsSupersededByHistoricalComments,
+    ).not.toHaveBeenCalled();
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 
@@ -672,12 +792,14 @@ describe("issue thread interaction routes", () => {
         addresseeAgentId: ASSIGNEE_AGENT_ID,
         payload: {
           version: 1,
-          questions: [{
-            id: "scope",
-            prompt: "Which scope?",
-            selectionMode: "single",
-            options: [{ id: "phase-1", label: "Phase 1" }],
-          }],
+          questions: [
+            {
+              id: "scope",
+              prompt: "Which scope?",
+              selectionMode: "single",
+              options: [{ id: "phase-1", label: "Phase 1" }],
+            },
+          ],
         },
       });
 
@@ -691,7 +813,9 @@ describe("issue thread interaction routes", () => {
           issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
           interactionId: "interaction-addressed",
         }),
-        contextSnapshot: expect.objectContaining({ wakeReason: "interaction_pending" }),
+        contextSnapshot: expect.objectContaining({
+          wakeReason: "interaction_pending",
+        }),
       }),
     );
   });
@@ -728,12 +852,14 @@ describe("issue thread interaction routes", () => {
         resolverPolicy: "human_only",
         payload: {
           version: 1,
-          questions: [{
-            id: "scope",
-            prompt: "Which scope?",
-            selectionMode: "single",
-            options: [{ id: "phase-1", label: "Phase 1" }],
-          }],
+          questions: [
+            {
+              id: "scope",
+              prompt: "Which scope?",
+              selectionMode: "single",
+              options: [{ id: "phase-1", label: "Phase 1" }],
+            },
+          ],
         },
       });
 
@@ -778,7 +904,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-1/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-1/accept",
+      )
       .send({ selectedClientKeys: ["task-1"] });
 
     expect(res.status).toBe(200);
@@ -822,7 +950,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({
         answers: [{ questionId: "scope", optionIds: ["phase-1"] }],
       });
@@ -841,29 +971,52 @@ describe("issue thread interaction routes", () => {
     );
   });
 
-  it.each(["taskcore-id:chat-owner", "chat-owner", "taskcore-id:another-user"])("keeps chat response delivery limited to the exact owner: %s", async (userId) => {
-    const issue = createIssue({ conversationAgentId: ASSIGNEE_AGENT_ID, conversationUserId: "taskcore-id:chat-owner" });
-    mockIssueService.getById.mockResolvedValue(issue);
-    mockInteractionService.getForIssue.mockResolvedValue({
-      id: "interaction-2", kind: "ask_user_questions", status: "pending",
-      requestedResolverPolicy: "human_only", effectiveResolverPolicy: "human_only",
-      addresseeUserId: "taskcore-id:chat-owner", continuationPolicy: "wake_assignee",
-      payload: { version: 1, questions: [] },
-    });
-    const app = await createApp({ type: "board", userId, source: "cloud_tenant", companyIds: ["company-1"] });
-    const response = await request(app).post(`/api/issues/${ISSUE_ID}/interactions/interaction-2/respond`)
-      .send({ answers: [{ questionId: "scope", optionIds: ["phase-1"] }] });
-    if (userId === "taskcore-id:chat-owner") {
-      expect(response.status).toBe(200);
-      expect(mockInteractionService.answerQuestions).toHaveBeenCalledWith(expect.anything(), "interaction-2", expect.anything(), expect.objectContaining({ userId }));
-      expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith("interaction-2");
-    } else {
-      expect(response.status).toBe(403);
-      expect(mockInteractionService.answerQuestions).not.toHaveBeenCalled();
-      expect(mockQuestionResponseDeliveries.deliver).not.toHaveBeenCalled();
-      expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
-    }
-  });
+  it.each(["taskcore-id:chat-owner", "chat-owner", "taskcore-id:another-user"])(
+    "keeps chat response delivery limited to the exact owner: %s",
+    async (userId) => {
+      const issue = createIssue({
+        conversationAgentId: ASSIGNEE_AGENT_ID,
+        conversationUserId: "taskcore-id:chat-owner",
+      });
+      mockIssueService.getById.mockResolvedValue(issue);
+      mockInteractionService.getForIssue.mockResolvedValue({
+        id: "interaction-2",
+        kind: "ask_user_questions",
+        status: "pending",
+        requestedResolverPolicy: "human_only",
+        effectiveResolverPolicy: "human_only",
+        addresseeUserId: "taskcore-id:chat-owner",
+        continuationPolicy: "wake_assignee",
+        payload: { version: 1, questions: [] },
+      });
+      const app = await createApp({
+        type: "board",
+        userId,
+        source: "cloud_tenant",
+        companyIds: ["company-1"],
+      });
+      const response = await request(app)
+        .post(`/api/issues/${ISSUE_ID}/interactions/interaction-2/respond`)
+        .send({ answers: [{ questionId: "scope", optionIds: ["phase-1"] }] });
+      if (userId === "taskcore-id:chat-owner") {
+        expect(response.status).toBe(200);
+        expect(mockInteractionService.answerQuestions).toHaveBeenCalledWith(
+          expect.anything(),
+          "interaction-2",
+          expect.anything(),
+          expect.objectContaining({ userId }),
+        );
+        expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith(
+          "interaction-2",
+        );
+      } else {
+        expect(response.status).toBe(403);
+        expect(mockInteractionService.answerQuestions).not.toHaveBeenCalled();
+        expect(mockQuestionResponseDeliveries.deliver).not.toHaveBeenCalled();
+        expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
+      }
+    },
+  );
 
   it("routes wake-on-accept question answers through the same causal delivery service", async () => {
     mockInteractionService.answerQuestions.mockResolvedValueOnce({
@@ -876,16 +1029,23 @@ describe("issue thread interaction routes", () => {
       sourceCommentId: "comment-2",
       sourceRunId: RUN_2,
       payload: { version: 1, questions: [] },
-      result: { version: 1, answers: [{ questionId: "scope", optionIds: ["phase-1"] }] },
+      result: {
+        version: 1,
+        answers: [{ questionId: "scope", optionIds: ["phase-1"] }],
+      },
     });
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [{ questionId: "scope", optionIds: ["phase-1"] }] });
 
     expect(res.status).toBe(200);
-    expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith("interaction-2");
+    expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith(
+      "interaction-2",
+    );
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 
@@ -893,16 +1053,24 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-verdicts/verdicts")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-verdicts/verdicts",
+      )
       .send({
-        verdicts: [{ id: "docs", verdict: "reject", reason: "Missing examples" }],
+        verdicts: [
+          { id: "docs", verdict: "reject", reason: "Missing examples" },
+        ],
       });
 
     expect(res.status).toBe(200);
     expect(mockInteractionService.submitItemVerdicts).toHaveBeenCalledWith(
       expect.objectContaining({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }),
       "interaction-verdicts",
-      { verdicts: [{ id: "docs", verdict: "reject", reason: "Missing examples" }] },
+      {
+        verdicts: [
+          { id: "docs", verdict: "reject", reason: "Missing examples" },
+        ],
+      },
       expect.objectContaining({ userId: "local-board" }),
     );
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledTimes(1);
@@ -954,7 +1122,9 @@ describe("issue thread interaction routes", () => {
   it("allows a board user to withdraw and wakes the assignee", async () => {
     const app = await createApp();
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw",
+      )
       .send({ reason: "Replanning" });
 
     expect(res.status).toBe(200);
@@ -963,39 +1133,55 @@ describe("issue thread interaction routes", () => {
       "interaction-withdraw",
       { reason: "Replanning" },
       expect.objectContaining({ userId: "local-board" }),
-      expect.objectContaining({ afterResolveInTransaction: expect.any(Function) }),
+      expect.objectContaining({
+        afterResolveInTransaction: expect.any(Function),
+      }),
     );
-    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(ASSIGNEE_AGENT_ID, expect.objectContaining({
-      payload: expect.objectContaining({ interactionStatus: "cancelled" }),
-    }));
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "issue.thread_interaction_withdrawn",
-    }));
+    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+      ASSIGNEE_AGENT_ID,
+      expect.objectContaining({
+        payload: expect.objectContaining({ interactionStatus: "cancelled" }),
+      }),
+    );
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "issue.thread_interaction_withdrawn",
+      }),
+    );
   });
 
   it("cancels the bound native run when its question is withdrawn", async () => {
-    mockInteractionService.withdrawInteraction.mockImplementationOnce((...args) => resolveMockInteraction(args, {
-      id: "interaction-withdraw",
-      companyId: "company-1",
-      issueId: ISSUE_ID,
-      kind: "ask_user_questions",
-      createdByAgentId: CREATED_AGENT_ID,
-      sourceRunId: RUN_1,
-      status: "cancelled",
-      continuationPolicy: "none",
-      payload: { version: 1, questions: [] },
-      result: { version: 1, answers: [], cancelled: true },
-    }));
+    mockInteractionService.withdrawInteraction.mockImplementationOnce(
+      (...args) =>
+        resolveMockInteraction(args, {
+          id: "interaction-withdraw",
+          companyId: "company-1",
+          issueId: ISSUE_ID,
+          kind: "ask_user_questions",
+          createdByAgentId: CREATED_AGENT_ID,
+          sourceRunId: RUN_1,
+          status: "cancelled",
+          continuationPolicy: "none",
+          payload: { version: 1, questions: [] },
+          result: { version: 1, answers: [], cancelled: true },
+        }),
+    );
     mockRequestNativeQuestionRunCancellation.mockResolvedValueOnce(RUN_1);
 
     const res = await request(await createApp())
-      .post(`/api/issues/${ISSUE_ID}/interactions/interaction-withdraw/withdraw`)
+      .post(
+        `/api/issues/${ISSUE_ID}/interactions/interaction-withdraw/withdraw`,
+      )
       .send({ reason: "No longer needed" });
 
     expect(res.status).toBe(200);
     expect(mockRequestNativeQuestionRunCancellation).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ id: "interaction-withdraw", sourceRunId: RUN_1 }),
+      expect.objectContaining({
+        id: "interaction-withdraw",
+        sourceRunId: RUN_1,
+      }),
       { kind: "interaction_withdrawn", interactionId: "interaction-withdraw" },
     );
     expect(mockHeartbeatService.cancelRun).toHaveBeenCalledWith(
@@ -1011,23 +1197,30 @@ describe("issue thread interaction routes", () => {
   });
 
   it("keeps a durable withdrawal intent when immediate native cancellation fails", async () => {
-    mockInteractionService.withdrawInteraction.mockImplementationOnce((...args) => resolveMockInteraction(args, {
-      id: "interaction-withdraw",
-      companyId: "company-1",
-      issueId: ISSUE_ID,
-      kind: "ask_user_questions",
-      createdByAgentId: CREATED_AGENT_ID,
-      sourceRunId: RUN_1,
-      status: "cancelled",
-      continuationPolicy: "none",
-      payload: { version: 1, questions: [] },
-      result: { version: 1, answers: [], cancelled: true },
-    }));
+    mockInteractionService.withdrawInteraction.mockImplementationOnce(
+      (...args) =>
+        resolveMockInteraction(args, {
+          id: "interaction-withdraw",
+          companyId: "company-1",
+          issueId: ISSUE_ID,
+          kind: "ask_user_questions",
+          createdByAgentId: CREATED_AGENT_ID,
+          sourceRunId: RUN_1,
+          status: "cancelled",
+          continuationPolicy: "none",
+          payload: { version: 1, questions: [] },
+          result: { version: 1, answers: [], cancelled: true },
+        }),
+    );
     mockRequestNativeQuestionRunCancellation.mockResolvedValueOnce(RUN_1);
-    mockHeartbeatService.cancelRun.mockRejectedValueOnce(new Error("process unavailable"));
+    mockHeartbeatService.cancelRun.mockRejectedValueOnce(
+      new Error("process unavailable"),
+    );
 
     const res = await request(await createApp())
-      .post(`/api/issues/${ISSUE_ID}/interactions/interaction-withdraw/withdraw`)
+      .post(
+        `/api/issues/${ISSUE_ID}/interactions/interaction-withdraw/withdraw`,
+      )
       .send({ reason: "No longer needed" });
 
     expect(res.status).toBe(200);
@@ -1039,7 +1232,9 @@ describe("issue thread interaction routes", () => {
   });
 
   it("allows the creator agent to withdraw and wakes a different assignee", async () => {
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ status: "in_review", reviewPolicy: null }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({ status: "in_review", reviewPolicy: null }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: "interaction-withdraw",
       kind: "request_confirmation",
@@ -1050,28 +1245,54 @@ describe("issue thread interaction routes", () => {
       effectiveResolverPolicy: "anyone",
       payload: { version: 1, prompt: "Proceed?" },
     });
-    const app = await createApp({ type: "agent", agentId: CREATED_AGENT_ID, companyId: "company-1", runId: RUN_1 });
+    const app = await createApp({
+      type: "agent",
+      agentId: CREATED_AGENT_ID,
+      companyId: "company-1",
+      runId: RUN_1,
+    });
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw",
+      )
       .send({});
     expect(res.status).toBe(200);
-    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(ASSIGNEE_AGENT_ID, expect.anything());
+    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+      ASSIGNEE_AGENT_ID,
+      expect.anything(),
+    );
   });
 
   it("allows the assignee agent to withdraw without waking itself", async () => {
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ status: "todo" }));
-    const app = await createApp({ type: "agent", agentId: ASSIGNEE_AGENT_ID, companyId: "company-1", runId: RUN_2 });
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({ status: "todo" }),
+    );
+    const app = await createApp({
+      type: "agent",
+      agentId: ASSIGNEE_AGENT_ID,
+      companyId: "company-1",
+      runId: RUN_2,
+    });
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw",
+      )
       .send({});
     expect(res.status).toBe(200);
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 
   it("rejects withdrawal by an unrelated agent", async () => {
-    const app = await createApp({ type: "agent", agentId: "33333333-3333-4333-8333-333333333333", companyId: "company-1", runId: RUN_3 });
+    const app = await createApp({
+      type: "agent",
+      agentId: "33333333-3333-4333-8333-333333333333",
+      companyId: "company-1",
+      runId: RUN_3,
+    });
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw",
+      )
       .send({});
     expect(res.status).toBe(403);
     expect(mockInteractionService.withdrawInteraction).not.toHaveBeenCalled();
@@ -1086,25 +1307,46 @@ describe("issue thread interaction routes", () => {
       watchdogIssueId: null,
       stopFingerprint: "stop-1",
     });
-    const app = await createApp({ type: "agent", agentId: ASSIGNEE_AGENT_ID, companyId: "company-1", runId: RUN_WATCHDOG });
+    const app = await createApp({
+      type: "agent",
+      agentId: ASSIGNEE_AGENT_ID,
+      companyId: "company-1",
+      runId: RUN_WATCHDOG,
+    });
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw",
+      )
       .send({});
     expect(mockInteractionService.withdrawInteraction).toHaveBeenCalledWith(
       expect.anything(),
       "interaction-withdraw",
       {},
-      expect.objectContaining({ agentId: ASSIGNEE_AGENT_ID, runId: RUN_WATCHDOG }),
-      expect.objectContaining({ afterResolveInTransaction: expect.any(Function) }),
+      expect.objectContaining({
+        agentId: ASSIGNEE_AGENT_ID,
+        runId: RUN_WATCHDOG,
+      }),
+      expect.objectContaining({
+        afterResolveInTransaction: expect.any(Function),
+      }),
     );
     expect(res.status).toBe(200);
   });
 
   it("rejects withdrawal by low-trust actors", async () => {
-    mockResolveCoreTrustPreset.mockReturnValueOnce({ kind: "low_trust_review" });
-    const app = await createApp({ type: "agent", agentId: ASSIGNEE_AGENT_ID, companyId: "company-1", runId: RUN_LOW_TRUST });
+    mockResolveCoreTrustPreset.mockReturnValueOnce({
+      kind: "low_trust_review",
+    });
+    const app = await createApp({
+      type: "agent",
+      agentId: ASSIGNEE_AGENT_ID,
+      companyId: "company-1",
+      runId: RUN_LOW_TRUST,
+    });
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-withdraw/withdraw",
+      )
       .send({});
     expect(res.status).toBe(403);
     expect(res.body).toMatchObject({ code: "interaction_scope_denied" });
@@ -1115,7 +1357,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/cancel")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/cancel",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1125,7 +1369,9 @@ describe("issue thread interaction routes", () => {
       "interaction-2",
       {},
       expect.objectContaining({ userId: "local-board" }),
-      expect.objectContaining({ afterResolveInTransaction: expect.any(Function) }),
+      expect.objectContaining({
+        afterResolveInTransaction: expect.any(Function),
+      }),
     );
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
       ASSIGNEE_AGENT_ID,
@@ -1165,7 +1411,9 @@ describe("issue thread interaction routes", () => {
       RUN_2,
       "Cancelled while waiting for operator input",
       expect.objectContaining({
-        resultJson: expect.objectContaining({ cancelledInteractionId: "interaction-2" }),
+        resultJson: expect.objectContaining({
+          cancelledInteractionId: "interaction-2",
+        }),
       }),
     );
   });
@@ -1199,7 +1447,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-3/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-3/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1215,8 +1465,12 @@ describe("issue thread interaction routes", () => {
         }),
       }),
     );
-    expect(mockHeartbeatService.wakeup.mock.calls[0]?.[1]?.payload).not.toHaveProperty("toolAction");
-    expect(mockHeartbeatService.wakeup.mock.calls[0]?.[1]?.contextSnapshot).not.toHaveProperty("toolAction");
+    expect(
+      mockHeartbeatService.wakeup.mock.calls[0]?.[1]?.payload,
+    ).not.toHaveProperty("toolAction");
+    expect(
+      mockHeartbeatService.wakeup.mock.calls[0]?.[1]?.contextSnapshot,
+    ).not.toHaveProperty("toolAction");
   });
 
   it("executes an accepted tool-action confirmation through the gateway callback", async () => {
@@ -1248,7 +1502,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp(undefined, { approveToolActionRequest });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1265,13 +1521,16 @@ describe("issue thread interaction routes", () => {
       decision: "accepted",
       executionStatus: "executed",
       resultSummary: "Added row 42",
-      instructions: "the approved google_sheets_add_row action already ran — do not call the tool again; continue with this result.",
+      instructions:
+        "the approved google_sheets_add_row action already ran — do not call the tool again; continue with this result.",
     };
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
       ASSIGNEE_AGENT_ID,
       expect.objectContaining({
         payload: expect.objectContaining({ toolAction: expectedToolAction }),
-        contextSnapshot: expect.objectContaining({ toolAction: expectedToolAction }),
+        contextSnapshot: expect.objectContaining({
+          toolAction: expectedToolAction,
+        }),
       }),
     );
   });
@@ -1305,7 +1564,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp(undefined, { approveToolActionRequest });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action-failed/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action-failed/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1319,7 +1580,8 @@ describe("issue thread interaction routes", () => {
             decision: "accepted",
             executionStatus: "failed",
             error: "Connector timed out",
-            instructions: "the approved action ran and failed with Connector timed out; adjust your approach — a fresh call will open a new approval.",
+            instructions:
+              "the approved action ran and failed with Connector timed out; adjust your approach — a fresh call will open a new approval.",
           },
         }),
       }),
@@ -1355,7 +1617,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp(undefined, { approveToolActionRequest });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action-expired/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action-expired/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1369,7 +1633,8 @@ describe("issue thread interaction routes", () => {
             decision: "accepted",
             executionStatus: "expired",
             error: "Managed arguments changed after review",
-            instructions: "the approved shopify_update_product action expired before execution: Managed arguments changed after review; if the task still requires it, call the tool again to request a fresh approval.",
+            instructions:
+              "the approved shopify_update_product action expired before execution: Managed arguments changed after review; if the task still requires it, call the tool again to request a fresh approval.",
           },
         }),
       }),
@@ -1405,7 +1670,9 @@ describe("issue thread interaction routes", () => {
       });
 
     expect(res.status).toBe(422);
-    expect(res.body.error).toContain("payload.toolAction is server-owned metadata");
+    expect(res.body.error).toContain(
+      "payload.toolAction is server-owned metadata",
+    );
     expect(mockInteractionService.create).not.toHaveBeenCalled();
   });
 
@@ -1433,13 +1700,17 @@ describe("issue thread interaction routes", () => {
       });
 
     expect(res.status).toBe(422);
-    expect(res.body.error).toContain("payload.secretProposal is server-owned metadata");
+    expect(res.body.error).toContain(
+      "payload.secretProposal is server-owned metadata",
+    );
     expect(mockInteractionService.create).not.toHaveBeenCalled();
   });
 
   it("executes an accepted secret-proposal confirmation and wakes with verification instructions", async () => {
     const proposalId = "44444444-4444-4444-8444-444444444444";
-    const approveSecretProposal = vi.fn().mockResolvedValue({ status: "approved" });
+    const approveSecretProposal = vi
+      .fn()
+      .mockResolvedValue({ status: "approved" });
     mockInteractionService.acceptInteraction.mockResolvedValueOnce({
       interaction: {
         id: "interaction-secret-proposal",
@@ -1464,7 +1735,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp(undefined, { approveSecretProposal });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-secret-proposal/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-secret-proposal/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1475,7 +1748,9 @@ describe("issue thread interaction routes", () => {
       proposalId,
       actor: { agentId: null, userId: "local-board" },
     });
-    expect(mockInteractionService.recordSecretProposalExecutionResult).toHaveBeenCalledWith(
+    expect(
+      mockInteractionService.recordSecretProposalExecutionResult,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }),
       "interaction-secret-proposal",
       proposalId,
@@ -1498,7 +1773,9 @@ describe("issue thread interaction routes", () => {
 
   it("records a failed secret-proposal execution and posts a thread comment", async () => {
     const proposalId = "55555555-5555-4555-8555-555555555555";
-    const approveSecretProposal = vi.fn().mockRejectedValue(new Error("binding failed"));
+    const approveSecretProposal = vi
+      .fn()
+      .mockRejectedValue(new Error("binding failed"));
     mockInteractionService.acceptInteraction.mockResolvedValueOnce({
       interaction: {
         id: "interaction-secret-proposal-failed",
@@ -1523,11 +1800,15 @@ describe("issue thread interaction routes", () => {
     const app = await createApp(undefined, { approveSecretProposal });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-secret-proposal-failed/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-secret-proposal-failed/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
-    expect(mockInteractionService.recordSecretProposalExecutionResult).toHaveBeenCalledWith(
+    expect(
+      mockInteractionService.recordSecretProposalExecutionResult,
+    ).toHaveBeenCalledWith(
       expect.anything(),
       "interaction-secret-proposal-failed",
       proposalId,
@@ -1602,7 +1883,11 @@ describe("issue thread interaction routes", () => {
           prompt: "Delete selected files?",
           options: [
             { id: "file-a", label: "a.txt" },
-            { id: "file-b", label: "b.txt", description: "Generated build output" },
+            {
+              id: "file-b",
+              label: "b.txt",
+              description: "Generated build output",
+            },
           ],
         },
         result: {
@@ -1619,7 +1904,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-checkbox/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-checkbox/accept",
+      )
       .send({ selectedOptionIds: ["file-b"] });
 
     expect(res.status).toBe(200);
@@ -1641,14 +1928,26 @@ describe("issue thread interaction routes", () => {
           checkboxSelection: {
             prompt: "Delete selected files?",
             selectedOptionIds: ["file-b"],
-            selectedOptions: [{ id: "file-b", label: "b.txt", description: "Generated build output" }],
+            selectedOptions: [
+              {
+                id: "file-b",
+                label: "b.txt",
+                description: "Generated build output",
+              },
+            ],
           },
         }),
         contextSnapshot: expect.objectContaining({
           checkboxSelection: {
             prompt: "Delete selected files?",
             selectedOptionIds: ["file-b"],
-            selectedOptions: [{ id: "file-b", label: "b.txt", description: "Generated build output" }],
+            selectedOptions: [
+              {
+                id: "file-b",
+                label: "b.txt",
+                description: "Generated build output",
+              },
+            ],
           },
         }),
       }),
@@ -1682,7 +1981,11 @@ describe("issue thread interaction routes", () => {
           prompt: "Delete selected files?",
           options: [
             { id: "file-a", label: "a.txt", description: "Temporary export" },
-            { id: "file-b", label: "b.txt", description: "Generated build output" },
+            {
+              id: "file-b",
+              label: "b.txt",
+              description: "Generated build output",
+            },
           ],
         },
         result: {
@@ -1699,7 +2002,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-checkbox-empty/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-checkbox-empty/accept",
+      )
       .send({ selectedOptionIds: [] });
 
     expect(res.status).toBe(200);
@@ -1729,97 +2034,106 @@ describe("issue thread interaction routes", () => {
     { label: "explicit", targetIssueId: ISSUE_ID },
     { label: "omitted", targetIssueId: undefined },
     { label: "null", targetIssueId: null },
-  ])("forces a fresh workspace-aware session when accepting a planning confirmation with $label issueId", async ({ targetIssueId }) => {
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ workMode: "planning" }));
-    mockInteractionService.acceptInteraction.mockResolvedValueOnce({
-      interaction: {
-        id: "interaction-plan",
-        companyId: "company-1",
-        issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        kind: "request_confirmation",
-        status: "accepted",
-        continuationPolicy: "wake_assignee_on_accept",
-        idempotencyKey: "confirmation:issue:plan:revision",
-        sourceCommentId: null,
-        sourceRunId: "run-plan",
-        payload: {
-          version: 1,
-          prompt: "Approve this plan?",
-          target: {
-            type: "issue_document",
-            ...(targetIssueId !== undefined ? { issueId: targetIssueId } : {}),
-            documentId: "document-plan",
-            key: "plan",
-            revisionId: "revision-plan",
-            revisionNumber: 1,
-          },
-        },
-        result: {
-          version: 1,
-          outcome: "accepted",
-        },
-        createdAt: "2026-04-20T12:00:00.000Z",
-        updatedAt: "2026-04-20T12:05:00.000Z",
-        resolvedAt: "2026-04-20T12:05:00.000Z",
-      },
-      createdIssues: [],
-      continuationIssue: {
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        assigneeAgentId: ASSIGNEE_AGENT_ID,
-        assigneeUserId: null,
-        status: "todo",
-        workMode: "standard",
-      },
-    });
-    const app = await createApp();
-
-    const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-plan/accept")
-      .send({});
-
-    expect(res.status).toBe(200);
-    expect(mockHeartbeatService.wakeup).toHaveBeenCalledTimes(1);
-    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
-      ASSIGNEE_AGENT_ID,
-      expect.objectContaining({
-        reason: "issue_commented",
-        contextSnapshot: expect.objectContaining({
+  ])(
+    "forces a fresh workspace-aware session when accepting a planning confirmation with $label issueId",
+    async ({ targetIssueId }) => {
+      mockIssueService.getById.mockResolvedValueOnce(
+        createIssue({ workMode: "planning" }),
+      );
+      mockInteractionService.acceptInteraction.mockResolvedValueOnce({
+        interaction: {
+          id: "interaction-plan",
+          companyId: "company-1",
           issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-          interactionId: "interaction-plan",
-          interactionKind: "request_confirmation",
-          interactionStatus: "accepted",
-          planReviewInteraction: expect.objectContaining({
-            id: "interaction-plan",
-            kind: "request_confirmation",
-            status: "accepted",
-            acceptedTargetRevision: expect.objectContaining({
-              issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          kind: "request_confirmation",
+          status: "accepted",
+          continuationPolicy: "wake_assignee_on_accept",
+          idempotencyKey: "confirmation:issue:plan:revision",
+          sourceCommentId: null,
+          sourceRunId: "run-plan",
+          payload: {
+            version: 1,
+            prompt: "Approve this plan?",
+            target: {
+              type: "issue_document",
+              ...(targetIssueId !== undefined
+                ? { issueId: targetIssueId }
+                : {}),
               documentId: "document-plan",
               key: "plan",
               revisionId: "revision-plan",
               revisionNumber: 1,
-            }),
-            result: expect.objectContaining({
-              outcome: "accepted",
-            }),
-          }),
-          forceFreshSession: true,
-          workspaceRefreshReason: "accepted_plan_confirmation",
-        }),
-      }),
-    );
-    expect(mockLogActivity).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        action: "issue.updated",
-        details: expect.objectContaining({
-          source: "request_confirmation_accept",
+            },
+          },
+          result: {
+            version: 1,
+            outcome: "accepted",
+          },
+          createdAt: "2026-04-20T12:00:00.000Z",
+          updatedAt: "2026-04-20T12:05:00.000Z",
+          resolvedAt: "2026-04-20T12:05:00.000Z",
+        },
+        createdIssues: [],
+        continuationIssue: {
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          assigneeAgentId: ASSIGNEE_AGENT_ID,
+          assigneeUserId: null,
+          status: "todo",
           workMode: "standard",
-          _previous: expect.objectContaining({ workMode: "planning" }),
+        },
+      });
+      const app = await createApp();
+
+      const res = await request(app)
+        .post(
+          "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-plan/accept",
+        )
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(mockHeartbeatService.wakeup).toHaveBeenCalledTimes(1);
+      expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+        ASSIGNEE_AGENT_ID,
+        expect.objectContaining({
+          reason: "issue_commented",
+          contextSnapshot: expect.objectContaining({
+            issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            interactionId: "interaction-plan",
+            interactionKind: "request_confirmation",
+            interactionStatus: "accepted",
+            planReviewInteraction: expect.objectContaining({
+              id: "interaction-plan",
+              kind: "request_confirmation",
+              status: "accepted",
+              acceptedTargetRevision: expect.objectContaining({
+                issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                documentId: "document-plan",
+                key: "plan",
+                revisionId: "revision-plan",
+                revisionNumber: 1,
+              }),
+              result: expect.objectContaining({
+                outcome: "accepted",
+              }),
+            }),
+            forceFreshSession: true,
+            workspaceRefreshReason: "accepted_plan_confirmation",
+          }),
         }),
-      }),
-    );
-  });
+      );
+      expect(mockLogActivity).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          action: "issue.updated",
+          details: expect.objectContaining({
+            source: "request_confirmation_accept",
+            workMode: "standard",
+            _previous: expect.objectContaining({ workMode: "planning" }),
+          }),
+        }),
+      );
+    },
+  );
 
   it("does not project an explicitly different issue's approved plan into the current issue wake", async () => {
     mockInteractionService.acceptInteraction.mockResolvedValueOnce({
@@ -1847,7 +2161,9 @@ describe("issue thread interaction routes", () => {
       createdIssues: [],
     });
     const response = await request(await createApp())
-      .post(`/api/issues/${ISSUE_ID}/interactions/interaction-other-plan/accept`)
+      .post(
+        `/api/issues/${ISSUE_ID}/interactions/interaction-other-plan/accept`,
+      )
       .send({});
     expect(response.status).toBe(200);
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledTimes(1);
@@ -1861,7 +2177,9 @@ describe("issue thread interaction routes", () => {
   });
 
   it("forces a fresh workspace-aware session when accepting a plan document confirmation on a standard-work issue", async () => {
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ workMode: "standard" }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({ workMode: "standard" }),
+    );
     mockInteractionService.acceptInteraction.mockResolvedValueOnce({
       interaction: {
         id: "interaction-standard-plan",
@@ -1898,7 +2216,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-standard-plan/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-standard-plan/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1920,11 +2240,13 @@ describe("issue thread interaction routes", () => {
   });
 
   it("wakes the returned agent when accepting an agent-authored confirmation from a board review assignee", async () => {
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      assigneeAgentId: null,
-      assigneeUserId: "local-board",
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "in_review",
+        assigneeAgentId: null,
+        assigneeUserId: "local-board",
+      }),
+    );
     mockInteractionService.acceptInteraction.mockResolvedValueOnce({
       interaction: {
         id: "interaction-4",
@@ -1959,7 +2281,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-4/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-4/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -2020,7 +2344,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-3/reject")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-3/reject",
+      )
       .send({ reason: "Needs changes" });
 
     expect(res.status).toBe(200);
@@ -2061,7 +2387,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(await createApp())
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-rejected-plan/reject")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-rejected-plan/reject",
+      )
       .send({ reason: "Keep the API smaller and add a Unicode test." });
 
     expect(res.status).toBe(200);
@@ -2083,7 +2411,9 @@ describe("issue thread interaction routes", () => {
           }),
         }),
         contextSnapshot: expect.objectContaining({
-          planReviewInteraction: expect.objectContaining({ status: "rejected" }),
+          planReviewInteraction: expect.objectContaining({
+            status: "rejected",
+          }),
         }),
       }),
     );
@@ -2161,7 +2491,11 @@ describe("issue thread interaction routes", () => {
       payload: {
         version: 1,
         prompt: "Approve completion?",
-        target: { type: "custom", key: "native_completion_review", revisionId: "decision-29" },
+        target: {
+          type: "custom",
+          key: "native_completion_review",
+          revisionId: "decision-29",
+        },
       },
       result: {
         version: 1,
@@ -2174,8 +2508,12 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(await createApp())
-      .post(`/api/issues/${issue.id}/interactions/interaction-native-completion-review/reject`)
-      .send({ reason: "Run the external verification and report only that result." });
+      .post(
+        `/api/issues/${issue.id}/interactions/interaction-native-completion-review/reject`,
+      )
+      .send({
+        reason: "Run the external verification and report only that result.",
+      });
 
     expect(res.status).toBe(200);
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
@@ -2185,12 +2523,17 @@ describe("issue thread interaction routes", () => {
           nativeCompletionReview: expect.objectContaining({
             decisionId: "decision-29",
             outcome: "rejected",
-            reviewerReason: "Run the external verification and report only that result.",
-            instruction: expect.stringContaining("do not redo completed implementation"),
+            reviewerReason:
+              "Run the external verification and report only that result.",
+            instruction: expect.stringContaining(
+              "do not redo completed implementation",
+            ),
           }),
         }),
         contextSnapshot: expect.objectContaining({
-          nativeCompletionReview: expect.objectContaining({ reviewerReason: expect.any(String) }),
+          nativeCompletionReview: expect.objectContaining({
+            reviewerReason: expect.any(String),
+          }),
         }),
       }),
     );
@@ -2199,10 +2542,14 @@ describe("issue thread interaction routes", () => {
   it("overrides accept-only continuation when rejection consumes the last review path", async () => {
     const issue = createIssue({ status: "in_review" });
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.listReviewAttention.mockResolvedValue(new Map([[
-      issue.id,
-      { state: "stalled", paths: [], reason: "review path consumed" },
-    ]]));
+    mockIssueService.listReviewAttention.mockResolvedValue(
+      new Map([
+        [
+          issue.id,
+          { state: "stalled", paths: [], reason: "review path consumed" },
+        ],
+      ]),
+    );
     mockInteractionService.rejectInteraction.mockResolvedValueOnce({
       id: "interaction-last-review-path",
       companyId: "company-1",
@@ -2221,7 +2568,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(await createApp())
-      .post(`/api/issues/${issue.id}/interactions/interaction-last-review-path/reject`)
+      .post(
+        `/api/issues/${issue.id}/interactions/interaction-last-review-path/reject`,
+      )
       .send({ reason: "Needs changes" });
 
     expect(res.status).toBe(200);
@@ -2272,7 +2621,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action-rejected/reject")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool-action-rejected/reject",
+      )
       .send({ reason: "Use the sandbox sheet instead" });
 
     expect(res.status).toBe(200);
@@ -2282,13 +2633,16 @@ describe("issue thread interaction routes", () => {
       decision: "rejected",
       executionStatus: "rejected",
       declineReason: "Use the sandbox sheet instead",
-      instructions: "the action was declined: Use the sandbox sheet instead; do not retry the same call — adjust your approach or mark the task blocked/in_review with the decline reason.",
+      instructions:
+        "the action was declined: Use the sandbox sheet instead; do not retry the same call — adjust your approach or mark the task blocked/in_review with the decline reason.",
     };
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
       ASSIGNEE_AGENT_ID,
       expect.objectContaining({
         payload: expect.objectContaining({ toolAction: expectedToolAction }),
-        contextSnapshot: expect.objectContaining({ toolAction: expectedToolAction }),
+        contextSnapshot: expect.objectContaining({
+          toolAction: expectedToolAction,
+        }),
       }),
     );
   });
@@ -2319,7 +2673,9 @@ describe("issue thread interaction routes", () => {
     const app = await createApp();
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-5/reject")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-5/reject",
+      )
       .send({ reason: "Not now" });
 
     expect(res.status).toBe(200);
@@ -2361,7 +2717,9 @@ describe("issue thread interaction routes", () => {
   });
 
   it("allows a different in-scope agent run to respond when policy permits", async () => {
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ status: "todo" }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({ status: "todo" }),
+    );
     const app = await createApp({
       type: "agent",
       agentId: ASSIGNEE_AGENT_ID,
@@ -2370,7 +2728,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [{ questionId: "scope", optionIds: ["phase-1"] }] });
 
     expect(res.status).toBe(200);
@@ -2378,16 +2738,25 @@ describe("issue thread interaction routes", () => {
       expect.anything(),
       "interaction-2",
       expect.anything(),
-      expect.objectContaining({ agentId: ASSIGNEE_AGENT_ID, runId: RUN_2, userId: null }),
+      expect.objectContaining({
+        agentId: ASSIGNEE_AGENT_ID,
+        runId: RUN_2,
+        userId: null,
+      }),
     );
-    expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith("interaction-2");
+    expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith(
+      "interaction-2",
+    );
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      actorType: "agent",
-      agentId: ASSIGNEE_AGENT_ID,
-      runId: RUN_2,
-      details: expect.objectContaining({ resolutionActorKind: "agent" }),
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        actorType: "agent",
+        agentId: ASSIGNEE_AGENT_ID,
+        runId: RUN_2,
+        details: expect.objectContaining({ resolutionActorKind: "agent" }),
+      }),
+    );
   });
 
   it("allows an agent to accept another agent's pending review confirmation by default", async () => {
@@ -2396,12 +2765,14 @@ describe("issue thread interaction routes", () => {
       actorId: CREATED_AGENT_ID,
       details: { reviewInteractionId: "interaction-agent-review" },
     };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: null,
-      createdByAgentId: CREATED_AGENT_ID,
-      createdByUserId: null,
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "in_review",
+        reviewPolicy: null,
+        createdByAgentId: CREATED_AGENT_ID,
+        createdByUserId: null,
+      }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: "interaction-agent-review",
       kind: "request_confirmation",
@@ -2435,7 +2806,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-agent-review/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-agent-review/accept",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -2451,11 +2824,14 @@ describe("issue thread interaction routes", () => {
         suggestedTaskEffectsAuthorized: true,
       },
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      actorType: "agent",
-      agentId: ASSIGNEE_AGENT_ID,
-      details: expect.objectContaining({ resolutionActorKind: "agent" }),
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        actorType: "agent",
+        agentId: ASSIGNEE_AGENT_ID,
+        details: expect.objectContaining({ resolutionActorKind: "agent" }),
+      }),
+    );
   });
 
   it("allows an agent to reject a pending review confirmation by default", async () => {
@@ -2464,12 +2840,14 @@ describe("issue thread interaction routes", () => {
       actorId: CREATED_AGENT_ID,
       details: { reviewInteractionId: "interaction-agent-reject" },
     };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: null,
-      createdByAgentId: CREATED_AGENT_ID,
-      createdByUserId: null,
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "in_review",
+        reviewPolicy: null,
+        createdByAgentId: CREATED_AGENT_ID,
+        createdByUserId: null,
+      }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: "interaction-agent-reject",
       kind: "request_confirmation",
@@ -2488,7 +2866,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-agent-reject/reject")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-agent-reject/reject",
+      )
       .send({ reason: "Needs changes" });
 
     expect(res.status).toBe(200);
@@ -2509,12 +2889,14 @@ describe("issue thread interaction routes", () => {
       actorId: CREATED_AGENT_ID,
       details: { reviewInteractionId: "interaction-agent-review" },
     };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: null,
-      createdByAgentId: CREATED_AGENT_ID,
-      createdByUserId: null,
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "in_review",
+        reviewPolicy: null,
+        createdByAgentId: CREATED_AGENT_ID,
+        createdByUserId: null,
+      }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: "interaction-unrelated-confirmation",
       kind: "request_confirmation",
@@ -2533,7 +2915,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-unrelated-confirmation/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-unrelated-confirmation/accept",
+      )
       .send({});
 
     expect(res.status).toBe(403);
@@ -2550,12 +2934,14 @@ describe("issue thread interaction routes", () => {
       actorId: CREATED_AGENT_ID,
       details: { reviewInteractionId: "interaction-agent-review" },
     };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: null,
-      createdByAgentId: CREATED_AGENT_ID,
-      createdByUserId: null,
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "in_review",
+        reviewPolicy: null,
+        createdByAgentId: CREATED_AGENT_ID,
+        createdByUserId: null,
+      }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: "interaction-requester-sibling",
       kind: "request_confirmation",
@@ -2574,7 +2960,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-requester-sibling/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-requester-sibling/accept",
+      )
       .send({});
 
     expect(res.status).toBe(403);
@@ -2608,42 +2996,49 @@ describe("issue thread interaction routes", () => {
       interaction: { createdByAgentId: CREATED_AGENT_ID, sourceRunId: RUN_2 },
       code: "interaction_creator_excluded",
     },
-  ])("rejects an agent review verdict when $name", async ({ interaction, code, requesterAgentId }) => {
-    mockReviewTransition.value = {
-      actorType: "agent",
-      actorId: requesterAgentId,
-      details: { reviewInteractionId: "interaction-agent-review-scope" },
-    };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: "not_creator",
-      createdByAgentId: requesterAgentId,
-      createdByUserId: null,
-    }));
-    mockInteractionService.getForIssue.mockResolvedValueOnce({
-      id: "interaction-agent-review-scope",
-      kind: "request_confirmation",
-      status: "pending",
-      requestedResolverPolicy: "anyone",
-      effectiveResolverPolicy: "anyone",
-      payload: { version: 1, prompt: "Approve this review?" },
-      ...interaction,
-    });
-    const app = await createApp({
-      type: "agent",
-      agentId: ASSIGNEE_AGENT_ID,
-      companyId: "company-1",
-      runId: RUN_2,
-    });
+  ])(
+    "rejects an agent review verdict when $name",
+    async ({ interaction, code, requesterAgentId }) => {
+      mockReviewTransition.value = {
+        actorType: "agent",
+        actorId: requesterAgentId,
+        details: { reviewInteractionId: "interaction-agent-review-scope" },
+      };
+      mockIssueService.getById.mockResolvedValueOnce(
+        createIssue({
+          status: "in_review",
+          reviewPolicy: "not_creator",
+          createdByAgentId: requesterAgentId,
+          createdByUserId: null,
+        }),
+      );
+      mockInteractionService.getForIssue.mockResolvedValueOnce({
+        id: "interaction-agent-review-scope",
+        kind: "request_confirmation",
+        status: "pending",
+        requestedResolverPolicy: "anyone",
+        effectiveResolverPolicy: "anyone",
+        payload: { version: 1, prompt: "Approve this review?" },
+        ...interaction,
+      });
+      const app = await createApp({
+        type: "agent",
+        agentId: ASSIGNEE_AGENT_ID,
+        companyId: "company-1",
+        runId: RUN_2,
+      });
 
-    const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-agent-review-scope/accept")
-      .send({});
+      const res = await request(app)
+        .post(
+          "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-agent-review-scope/accept",
+        )
+        .send({});
 
-    expect(res.status).toBe(403);
-    expect(res.body).toMatchObject({ code });
-    expect(mockInteractionService.acceptInteraction).not.toHaveBeenCalled();
-  });
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({ code });
+      expect(mockInteractionService.acceptInteraction).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects an agent review-confirmation verdict under human_only with actionable copy", async () => {
     mockReviewTransition.value = {
@@ -2651,12 +3046,14 @@ describe("issue thread interaction routes", () => {
       actorId: CREATED_AGENT_ID,
       details: { reviewInteractionId: "interaction-human-only" },
     };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: "human_only",
-      createdByAgentId: CREATED_AGENT_ID,
-      createdByUserId: null,
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "in_review",
+        reviewPolicy: "human_only",
+        createdByAgentId: CREATED_AGENT_ID,
+        createdByUserId: null,
+      }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: "interaction-human-only",
       kind: "request_confirmation",
@@ -2675,14 +3072,19 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-human-only/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-human-only/accept",
+      )
       .send({});
 
     expect(res.status).toBe(403);
     expect(res.body).toMatchObject({
       error: "This issue-thread interaction is human-only",
       code: "interaction_human_only",
-      details: { code: "interaction_human_only", effectiveResolverPolicy: "human_only" },
+      details: {
+        code: "interaction_human_only",
+        effectiveResolverPolicy: "human_only",
+      },
     });
     expect(mockInteractionService.acceptInteraction).not.toHaveBeenCalled();
   });
@@ -2690,50 +3092,57 @@ describe("issue thread interaction routes", () => {
   it.each([
     { action: "accept", body: {} },
     { action: "reject", body: { reason: "Needs changes" } },
-  ])("rejects an agent $action verdict under human_only when a user review transition omitted the interaction binding", async ({ action, body }) => {
-    mockReviewTransition.value = {
-      actorType: "user",
-      actorId: "local-board",
-      details: { status: "in_review", _previous: { status: "in_progress" } },
-    };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: "human_only",
-      createdByAgentId: null,
-      createdByUserId: "local-board",
-    }));
-    mockInteractionService.getForIssue.mockResolvedValueOnce({
-      id: "interaction-user-review-unbound",
-      kind: "request_confirmation",
-      status: "pending",
-      createdByAgentId: null,
-      createdByUserId: "local-board",
-      sourceRunId: null,
-      requestedResolverPolicy: "board_or_agents",
-      effectiveResolverPolicy: "board_or_agents",
-      payload: { version: 1, prompt: "Approve this review?" },
-    });
-    const app = await createApp({
-      type: "agent",
-      agentId: ASSIGNEE_AGENT_ID,
-      companyId: "company-1",
-      runId: RUN_2,
-    });
+  ])(
+    "rejects an agent $action verdict under human_only when a user review transition omitted the interaction binding",
+    async ({ action, body }) => {
+      mockReviewTransition.value = {
+        actorType: "user",
+        actorId: "local-board",
+        details: { status: "in_review", _previous: { status: "in_progress" } },
+      };
+      mockIssueService.getById.mockResolvedValueOnce(
+        createIssue({
+          status: "in_review",
+          reviewPolicy: "human_only",
+          createdByAgentId: null,
+          createdByUserId: "local-board",
+        }),
+      );
+      mockInteractionService.getForIssue.mockResolvedValueOnce({
+        id: "interaction-user-review-unbound",
+        kind: "request_confirmation",
+        status: "pending",
+        createdByAgentId: null,
+        createdByUserId: "local-board",
+        sourceRunId: null,
+        requestedResolverPolicy: "board_or_agents",
+        effectiveResolverPolicy: "board_or_agents",
+        payload: { version: 1, prompt: "Approve this review?" },
+      });
+      const app = await createApp({
+        type: "agent",
+        agentId: ASSIGNEE_AGENT_ID,
+        companyId: "company-1",
+        runId: RUN_2,
+      });
 
-    const res = await request(app)
-      .post(`/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-user-review-unbound/${action}`)
-      .send(body);
+      const res = await request(app)
+        .post(
+          `/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-user-review-unbound/${action}`,
+        )
+        .send(body);
 
-    expect(res.status).toBe(403);
-    expect(res.body).toMatchObject({
-      details: {
-        code: "review_policy_denied",
-        policy: "human_only",
-      },
-    });
-    expect(mockInteractionService.acceptInteraction).not.toHaveBeenCalled();
-    expect(mockInteractionService.rejectInteraction).not.toHaveBeenCalled();
-  });
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({
+        details: {
+          code: "review_policy_denied",
+          policy: "human_only",
+        },
+      });
+      expect(mockInteractionService.acceptInteraction).not.toHaveBeenCalled();
+      expect(mockInteractionService.rejectInteraction).not.toHaveBeenCalled();
+    },
+  );
 
   it("allows an unrelated agent-resolvable confirmation under a restrictive issue review policy", async () => {
     mockReviewTransition.value = {
@@ -2741,12 +3150,14 @@ describe("issue thread interaction routes", () => {
       actorId: "local-board",
       details: { status: "in_review", _previous: { status: "in_progress" } },
     };
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "in_review",
-      reviewPolicy: "human_only",
-      createdByAgentId: null,
-      createdByUserId: "local-board",
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "in_review",
+        reviewPolicy: "human_only",
+        createdByAgentId: null,
+        createdByUserId: "local-board",
+      }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: "interaction-unrelated",
       kind: "request_confirmation",
@@ -2785,7 +3196,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-unrelated/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-unrelated/accept",
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -2803,12 +3216,14 @@ describe("issue thread interaction routes", () => {
       effectiveResolverPolicy: "board_or_agents",
       payload: { version: 1, questions: [] },
     };
-    mockInteractionService.answerQuestions.mockImplementationOnce(async (_issue, interactionId) => ({
-      ...addressed,
-      id: interactionId,
-      status: "answered",
-      result: { version: 1, answers: [] },
-    }));
+    mockInteractionService.answerQuestions.mockImplementationOnce(
+      async (_issue, interactionId) => ({
+        ...addressed,
+        id: interactionId,
+        status: "answered",
+        result: { version: 1, answers: [] },
+      }),
+    );
     mockInteractionService.getForIssue
       .mockResolvedValueOnce(addressed)
       .mockResolvedValueOnce(addressed)
@@ -2825,10 +3240,14 @@ describe("issue thread interaction routes", () => {
       runId: RUN_2,
     });
     const addressee = await request(addresseeApp)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-addressed/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-addressed/respond",
+      )
       .send({ answers: [] });
     expect(addressee.status).toBe(200);
-    expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith("interaction-addressed");
+    expect(mockQuestionResponseDeliveries.deliver).toHaveBeenCalledWith(
+      "interaction-addressed",
+    );
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
 
     const unrelatedApp = await createApp({
@@ -2838,14 +3257,18 @@ describe("issue thread interaction routes", () => {
       runId: RUN_3,
     });
     const unrelated = await request(unrelatedApp)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-addressed/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-addressed/respond",
+      )
       .send({ answers: [] });
     expect(unrelated.status).toBe(403);
     expect(unrelated.body.error).toContain("addressed agent");
 
     const boardApp = await createApp();
     const board = await request(boardApp)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-addressed/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-addressed/respond",
+      )
       .send({ answers: [] });
     expect(board.status).toBe(200);
   });
@@ -2861,10 +3284,12 @@ describe("issue thread interaction routes", () => {
       resolverPolicyProvenance: "legacy_inherited_restriction",
       payload: { version: 1, questions: [] },
     });
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "todo",
-      assigneeAgentId: CREATED_AGENT_ID,
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "todo",
+        assigneeAgentId: CREATED_AGENT_ID,
+      }),
+    );
     const app = await createApp({
       type: "agent",
       agentId: CREATED_AGENT_ID,
@@ -2872,7 +3297,9 @@ describe("issue thread interaction routes", () => {
       runId: RUN_9,
     });
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [] });
     expect(res.status).toBe(403);
     expect(res.body).toMatchObject({ code: "interaction_creator_excluded" });
@@ -2891,10 +3318,12 @@ describe("issue thread interaction routes", () => {
       effectiveResolverPolicySource: "requested",
       payload: { version: 1, questions: [] },
     });
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "todo",
-      assigneeAgentId: CREATED_AGENT_ID,
-    }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({
+        status: "todo",
+        assigneeAgentId: CREATED_AGENT_ID,
+      }),
+    );
     const app = await createApp({
       type: "agent",
       agentId: CREATED_AGENT_ID,
@@ -2903,7 +3332,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-open/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-open/respond",
+      )
       .send({ answers: [] });
 
     expect(res.status).toBe(200);
@@ -2956,41 +3387,44 @@ describe("issue thread interaction routes", () => {
       },
       service: "submitItemVerdicts",
     },
-  ])("lets the creator and same run resolve $kind through anyone", async ({
-    kind,
-    action,
-    body,
-    payload,
-    service,
-  }) => {
-    mockInteractionService.getForIssue.mockResolvedValueOnce({
-      id: `interaction-${kind}`,
-      kind,
-      status: "pending",
-      createdByAgentId: CREATED_AGENT_ID,
-      sourceRunId: RUN_9,
-      requestedResolverPolicy: "anyone",
-      effectiveResolverPolicy: "anyone",
-      payload,
-    });
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({
-      status: "todo",
-      assigneeAgentId: CREATED_AGENT_ID,
-    }));
-    const app = await createApp({
-      type: "agent",
-      agentId: CREATED_AGENT_ID,
-      companyId: "company-1",
-      runId: RUN_9,
-    });
+  ])(
+    "lets the creator and same run resolve $kind through anyone",
+    async ({ kind, action, body, payload, service }) => {
+      mockInteractionService.getForIssue.mockResolvedValueOnce({
+        id: `interaction-${kind}`,
+        kind,
+        status: "pending",
+        createdByAgentId: CREATED_AGENT_ID,
+        sourceRunId: RUN_9,
+        requestedResolverPolicy: "anyone",
+        effectiveResolverPolicy: "anyone",
+        payload,
+      });
+      mockIssueService.getById.mockResolvedValueOnce(
+        createIssue({
+          status: "todo",
+          assigneeAgentId: CREATED_AGENT_ID,
+        }),
+      );
+      const app = await createApp({
+        type: "agent",
+        agentId: CREATED_AGENT_ID,
+        companyId: "company-1",
+        runId: RUN_9,
+      });
 
-    const res = await request(app)
-      .post(`/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-${kind}/${action}`)
-      .send(body);
+      const res = await request(app)
+        .post(
+          `/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-${kind}/${action}`,
+        )
+        .send(body);
 
-    expect(res.status).toBe(200);
-    expect(mockInteractionService[service as keyof typeof mockInteractionService]).toHaveBeenCalled();
-  });
+      expect(res.status).toBe(200);
+      expect(
+        mockInteractionService[service as keyof typeof mockInteractionService],
+      ).toHaveBeenCalled();
+    },
+  );
 
   it("enforces same-run exclusion under not_creator and requires a resolver run id", async () => {
     mockInteractionService.getForIssue.mockResolvedValueOnce({
@@ -3002,7 +3436,9 @@ describe("issue thread interaction routes", () => {
       effectiveResolverPolicy: "not_creator",
       payload: { version: 1, questions: [] },
     });
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ status: "todo" }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({ status: "todo" }),
+    );
     const sameRunApp = await createApp({
       type: "agent",
       agentId: ASSIGNEE_AGENT_ID,
@@ -3010,22 +3446,32 @@ describe("issue thread interaction routes", () => {
       runId: RUN_2,
     });
     const sameRun = await request(sameRunApp)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [] });
     expect(sameRun.status).toBe(403);
-    expect(sameRun.body).toMatchObject({ code: "interaction_creator_excluded" });
+    expect(sameRun.body).toMatchObject({
+      code: "interaction_creator_excluded",
+    });
 
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ status: "todo" }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({ status: "todo" }),
+    );
     const missingRunApp = await createApp({
       type: "agent",
       agentId: ASSIGNEE_AGENT_ID,
       companyId: "company-1",
     });
     const missingRun = await request(missingRunApp)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [] });
     expect(missingRun.status).toBe(422);
-    expect(missingRun.body).toMatchObject({ code: "interaction_run_attribution_required" });
+    expect(missingRun.body).toMatchObject({
+      code: "interaction_run_attribution_required",
+    });
   });
 
   it("rejects an invalid run attribution before resolving or waking", async () => {
@@ -3048,11 +3494,15 @@ describe("issue thread interaction routes", () => {
     mockRunAttribution.value = null;
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-invalid-run/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-invalid-run/respond",
+      )
       .send({ answers: [] });
 
     expect(res.status).toBe(422);
-    expect(res.body).toMatchObject({ code: "interaction_run_attribution_required" });
+    expect(res.body).toMatchObject({
+      code: "interaction_run_attribution_required",
+    });
     expect(mockInteractionService.answerQuestions).not.toHaveBeenCalled();
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
     expect(mockLogActivity).not.toHaveBeenCalled();
@@ -3073,7 +3523,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [] });
 
     expect(res.status).toBe(404);
@@ -3099,7 +3551,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [] });
 
     expect(res.status).toBe(403);
@@ -3119,26 +3573,30 @@ describe("issue thread interaction routes", () => {
       effectiveResolverPolicy: "anyone",
       payload: {
         version: 1,
-        tasks: [{
-          clientKey: "assigned",
-          title: "Assigned child",
-          assigneeAgentId: UNRELATED_AGENT_ID,
-        }],
+        tasks: [
+          {
+            clientKey: "assigned",
+            title: "Assigned child",
+            assigneeAgentId: UNRELATED_AGENT_ID,
+          },
+        ],
       },
     });
-    mockAccessDecide.mockImplementation(async (input: { action?: string }) => input.action === "tasks:assign"
-      ? {
-          allowed: false,
-          action: input.action,
-          reason: "deny_assignment",
-          explanation: "Task assignment is not authorized.",
-        }
-      : {
-          allowed: true,
-          action: input.action,
-          reason: "allow_explicit_grant",
-          explanation: "Allowed by test grant.",
-        });
+    mockAccessDecide.mockImplementation(async (input: { action?: string }) =>
+      input.action === "tasks:assign"
+        ? {
+            allowed: false,
+            action: input.action,
+            reason: "deny_assignment",
+            explanation: "Task assignment is not authorized.",
+          }
+        : {
+            allowed: true,
+            action: input.action,
+            reason: "allow_explicit_grant",
+            explanation: "Allowed by test grant.",
+          },
+    );
     const app = await createApp({
       type: "agent",
       agentId: ASSIGNEE_AGENT_ID,
@@ -3147,11 +3605,15 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-suggest-assigned/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-suggest-assigned/accept",
+      )
       .send({ selectedClientKeys: ["assigned"] });
 
     expect(res.status).toBe(403);
-    expect(res.body).toMatchObject({ code: "interaction_governed_action_denied" });
+    expect(res.body).toMatchObject({
+      code: "interaction_governed_action_denied",
+    });
     expect(mockInteractionService.acceptInteraction).not.toHaveBeenCalled();
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
     expect(mockLogActivity).not.toHaveBeenCalled();
@@ -3175,7 +3637,11 @@ describe("issue thread interaction routes", () => {
         sourceRunId: RUN_1,
         requestedResolverPolicy: "board_or_agents",
         effectiveResolverPolicy: "board_or_agents",
-        payload: { version: 1, prompt: "Run?", toolAction: { actionRequestId: "action-1" } },
+        payload: {
+          version: 1,
+          prompt: "Run?",
+          toolAction: { actionRequestId: "action-1" },
+        },
       });
     mockIssueService.getById
       .mockResolvedValueOnce(createIssue({ status: "todo" }))
@@ -3188,16 +3654,22 @@ describe("issue thread interaction routes", () => {
     });
 
     const capped = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-1/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-1/accept",
+      )
       .send({});
     expect(capped.status).toBe(403);
     expect(capped.body.error).toContain("human-only");
 
     const toolAction = await request(app)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool/accept")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-tool/accept",
+      )
       .send({});
     expect(toolAction.status).toBe(403);
-    expect(toolAction.body).toMatchObject({ code: "interaction_governed_action_denied" });
+    expect(toolAction.body).toMatchObject({
+      code: "interaction_governed_action_denied",
+    });
   });
 
   it("lets watchdog-scoped agents use the ordinary resolver and contains low-trust agents", async () => {
@@ -3219,15 +3691,21 @@ describe("issue thread interaction routes", () => {
     });
     const watchdogApp = await createApp(actor);
     const watchdog = await request(watchdogApp)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [] });
     expect(watchdog.status).toBe(200);
     expect(mockInteractionService.answerQuestions).toHaveBeenCalledTimes(1);
 
-    mockResolveCoreTrustPreset.mockReturnValueOnce({ kind: "low_trust_review" });
+    mockResolveCoreTrustPreset.mockReturnValueOnce({
+      kind: "low_trust_review",
+    });
     const lowTrustApp = await createApp(actor);
     const lowTrust = await request(lowTrustApp)
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions/interaction-2/respond",
+      )
       .send({ answers: [] });
     expect(lowTrust.status).toBe(403);
     expect(lowTrust.body).toMatchObject({ code: "interaction_scope_denied" });
@@ -3270,12 +3748,18 @@ describe("issue thread interaction routes", () => {
     },
   ] as const;
 
-  function stubCrossIssueResolution(
-    { kind, payload }: { kind: string; payload: Record<string, unknown> },
-  ) {
+  function stubCrossIssueResolution({
+    kind,
+    payload,
+  }: {
+    kind: string;
+    payload: Record<string, unknown>;
+  }) {
     // The run authenticated below is working OTHER_ISSUE_ID, so resolving this
     // card is a cross-issue mutation even though the audience is open.
-    mockIssueService.getById.mockResolvedValueOnce(createIssue({ status: "todo" }));
+    mockIssueService.getById.mockResolvedValueOnce(
+      createIssue({ status: "todo" }),
+    );
     mockInteractionService.getForIssue.mockResolvedValueOnce({
       id: `interaction-cross-${kind}`,
       kind,
@@ -3302,7 +3786,9 @@ describe("issue thread interaction routes", () => {
       });
 
       const res = await request(app)
-        .post(`/api/issues/${ISSUE_ID}/interactions/interaction-cross-${kind}/${route}`)
+        .post(
+          `/api/issues/${ISSUE_ID}/interactions/interaction-cross-${kind}/${route}`,
+        )
         .send(body);
 
       expect(res.status).toBe(429);
@@ -3324,7 +3810,10 @@ describe("issue thread interaction routes", () => {
       expect(mockCrossIssueInfluence.inserted).toEqual([
         expect.objectContaining({
           action: "issue.cross_issue_influence_cap_rejected",
-          details: expect.objectContaining({ kind: "interaction_resolution", allowed: false }),
+          details: expect.objectContaining({
+            kind: "interaction_resolution",
+            allowed: false,
+          }),
         }),
       ]);
     },
@@ -3343,7 +3832,9 @@ describe("issue thread interaction routes", () => {
       });
 
       const res = await request(app)
-        .post(`/api/issues/${ISSUE_ID}/interactions/interaction-cross-${kind}/${route}`)
+        .post(
+          `/api/issues/${ISSUE_ID}/interactions/interaction-cross-${kind}/${route}`,
+        )
         .send(body);
 
       expect(res.status).toBe(200);
@@ -3364,7 +3855,10 @@ describe("issue thread interaction routes", () => {
   );
 
   it("does not charge a same-issue resolution even past the cap", async () => {
-    stubCrossIssueResolution({ kind: "ask_user_questions", payload: { version: 1, questions: [] } });
+    stubCrossIssueResolution({
+      kind: "ask_user_questions",
+      payload: { version: 1, questions: [] },
+    });
     mockCrossIssueInfluence.sourceIssueId = ISSUE_ID;
     mockCrossIssueInfluence.priorCount = 20;
     const app = await createApp({
@@ -3375,7 +3869,9 @@ describe("issue thread interaction routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/issues/${ISSUE_ID}/interactions/interaction-cross-ask_user_questions/respond`)
+      .post(
+        `/api/issues/${ISSUE_ID}/interactions/interaction-cross-ask_user_questions/respond`,
+      )
       .send({ answers: [] });
 
     expect(res.status).toBe(200);
@@ -3384,13 +3880,18 @@ describe("issue thread interaction routes", () => {
   });
 
   it("leaves board resolutions outside the per-run counter", async () => {
-    stubCrossIssueResolution({ kind: "ask_user_questions", payload: { version: 1, questions: [] } });
+    stubCrossIssueResolution({
+      kind: "ask_user_questions",
+      payload: { version: 1, questions: [] },
+    });
     mockCrossIssueInfluence.sourceIssueId = OTHER_ISSUE_ID;
     mockCrossIssueInfluence.priorCount = 20;
     const app = await createApp();
 
     const res = await request(app)
-      .post(`/api/issues/${ISSUE_ID}/interactions/interaction-cross-ask_user_questions/respond`)
+      .post(
+        `/api/issues/${ISSUE_ID}/interactions/interaction-cross-ask_user_questions/respond`,
+      )
       .send({ answers: [] });
 
     expect(res.status).toBe(200);

@@ -1,7 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Loader2, RotateCcw, Undo2 } from "lucide-react";
-import type { IssueReviewPolicy, StalledReviewDecisionAction } from "@taskcore/shared";
+import type {
+  IssueReviewPolicy,
+  StalledReviewDecisionAction,
+} from "@taskcore/shared";
 import { issuesApi } from "../api/issues";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
@@ -62,9 +65,15 @@ export function StalledReviewActions({
         note: note.trim() ? note.trim() : undefined,
       }),
     onSuccess: (_result, action) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issueId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.activity(issueId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.attention(companyId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.detail(issueId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.activity(issueId),
+      });
       setNote("");
       pushToast({ title: ACTION_PAST_TENSE[action], tone: "success" });
       onResolved?.(action);

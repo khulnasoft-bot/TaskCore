@@ -434,9 +434,7 @@ export class TaskcoreSemanticDispatcher {
     }
 
     const code = executed.code ?? "ok";
-    const references = normalizeTaskcoreSemanticReferences(
-      executed.references,
-    );
+    const references = normalizeTaskcoreSemanticReferences(executed.references);
     const resultReceipt = createTaskcoreSemanticResultReceipt({
       operationId: descriptor.operationId,
       callId: call.callId,
@@ -604,9 +602,7 @@ export class TaskcoreSemanticDispatcher {
       outcome: "duplicate",
       code: stored.code,
       retryable: false,
-      authorizationBoundary: taskcoreSemanticAuthorizationBoundary(
-        stored.code,
-      ),
+      authorizationBoundary: taskcoreSemanticAuthorizationBoundary(stored.code),
       operationReceiptId: stored.operationReceiptId,
       duplicateOfReceiptId: stored.operationReceiptId,
       ...(validRevision(stored.stateRevision)
@@ -647,9 +643,7 @@ export class TaskcoreSemanticDispatcher {
     }
   }
 
-  #identityDenial(
-    call: TaskcoreSemanticToolCall,
-  ): TaskcoreSemanticToolDenial {
+  #identityDenial(call: TaskcoreSemanticToolCall): TaskcoreSemanticToolDenial {
     return deepFreeze({
       ok: false,
       operationId: safeIdentity(call.operationId),

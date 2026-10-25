@@ -1,14 +1,25 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { costEvents, agents, companies, createDb, heartbeatRuns } from "@taskcore/db";
+import {
+  costEvents,
+  agents,
+  companies,
+  createDb,
+  heartbeatRuns,
+} from "@taskcore/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
-import { boundHeartbeatRunEventPayloadForStorage, heartbeatService } from "../services/heartbeat.ts";
+import {
+  boundHeartbeatRunEventPayloadForStorage,
+  heartbeatService,
+} from "../services/heartbeat.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -18,10 +29,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("heartbeat list", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-heartbeat-list-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-heartbeat-list-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -74,7 +89,10 @@ describeEmbeddedPostgres("heartbeat list", () => {
       contextSnapshot: { issueId: randomUUID() },
     });
 
-    const originalDescriptor = Object.getOwnPropertyDescriptor(heartbeatRuns, "processGroupId");
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      heartbeatRuns,
+      "processGroupId",
+    );
     Object.defineProperty(heartbeatRuns, "processGroupId", {
       value: undefined,
       configurable: true,
@@ -92,10 +110,16 @@ describeEmbeddedPostgres("heartbeat list", () => {
         continuationAttempt: 1,
         nextAction: "continue implementation",
       });
-      expect(runs[0]?.lastUsefulActionAt).toEqual(new Date("2026-04-18T12:00:00Z"));
+      expect(runs[0]?.lastUsefulActionAt).toEqual(
+        new Date("2026-04-18T12:00:00Z"),
+      );
     } finally {
       if (originalDescriptor) {
-        Object.defineProperty(heartbeatRuns, "processGroupId", originalDescriptor);
+        Object.defineProperty(
+          heartbeatRuns,
+          "processGroupId",
+          originalDescriptor,
+        );
       } else {
         delete (heartbeatRuns as Record<string, unknown>).processGroupId;
       }
@@ -146,98 +170,107 @@ describeEmbeddedPostgres("heartbeat list", () => {
     });
   });
 
-  it.each([false, true])("preserves run ownership in list rows (summary=%s)", async (summary) => {
-    const companyId = randomUUID();
-    const agentId = randomUUID();
-    const issueId = randomUUID();
-    const runId = randomUUID();
+  it.each([false, true])(
+    "preserves run ownership in list rows (summary=%s)",
+    async (summary) => {
+      const companyId = randomUUID();
+      const agentId = randomUUID();
+      const issueId = randomUUID();
+      const runId = randomUUID();
 
-    await db.insert(companies).values({
-      id: companyId,
-      name: "Taskcore",
-      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
-      requireBoardApprovalForNewAgents: false,
-    });
+      await db.insert(companies).values({
+        id: companyId,
+        name: "Taskcore",
+        issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+        requireBoardApprovalForNewAgents: false,
+      });
 
-    await db.insert(agents).values({
-      id: agentId,
-      companyId,
-      name: "CodexCoder",
-      role: "engineer",
-      status: "running",
-      adapterType: "codex_local",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: {},
-    });
+      await db.insert(agents).values({
+        id: agentId,
+        companyId,
+        name: "CodexCoder",
+        role: "engineer",
+        status: "running",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      });
 
-    await db.insert(heartbeatRuns).values({
-      id: runId,
-      companyId,
-      agentId,
-      invocationSource: "assignment",
-      status: "failed",
-      responsibleUserId: "run-owner",
-      error: "Failed after doing useful work",
-      usageJson: {
-        provider: "openai",
-        model: "gpt-5",
-        inputTokens: 123,
-      },
-      resultJson: {
-        summary: "large run summary",
-        stdout: "x".repeat(20_000),
-      },
-      sessionIdBefore: "session-before",
-      sessionIdAfter: "session-after",
-      logStore: "local",
-      logRef: "logs/run.log",
-      logSha256: "abc123",
-      externalRunId: "external-run",
-      processPid: 12345,
-      contextSnapshot: {
-        issueId,
-        wakeReason: "issue_assigned",
-      },
-    });
+      await db.insert(heartbeatRuns).values({
+        id: runId,
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        status: "failed",
+        responsibleUserId: "run-owner",
+        error: "Failed after doing useful work",
+        usageJson: {
+          provider: "openai",
+          model: "gpt-5",
+          inputTokens: 123,
+        },
+        resultJson: {
+          summary: "large run summary",
+          stdout: "x".repeat(20_000),
+        },
+        sessionIdBefore: "session-before",
+        sessionIdAfter: "session-after",
+        logStore: "local",
+        logRef: "logs/run.log",
+        logSha256: "abc123",
+        externalRunId: "external-run",
+        processPid: 12345,
+        contextSnapshot: {
+          issueId,
+          wakeReason: "issue_assigned",
+        },
+      });
 
-    const runs = await heartbeatService(db).list(companyId, undefined, 5, { summary });
+      const runs = await heartbeatService(db).list(companyId, undefined, 5, {
+        summary,
+      });
 
-    expect(runs).toHaveLength(1);
-    expect(runs[0]).toMatchObject({
-      id: runId,
-      companyId,
-      agentId,
-      status: "failed",
-      responsibleUserId: "run-owner",
-      error: "Failed after doing useful work",
-      ...(summary ? {
-        usageJson: null,
-        resultJson: null,
-        sessionIdBefore: null,
-        sessionIdAfter: null,
-        logStore: null,
-        logRef: null,
-        logSha256: null,
-        externalRunId: null,
-        processPid: null,
-      } : {}),
-      contextSnapshot: {
-        issueId,
-        wakeReason: "issue_assigned",
-      },
-    });
-  });
+      expect(runs).toHaveLength(1);
+      expect(runs[0]).toMatchObject({
+        id: runId,
+        companyId,
+        agentId,
+        status: "failed",
+        responsibleUserId: "run-owner",
+        error: "Failed after doing useful work",
+        ...(summary
+          ? {
+              usageJson: null,
+              resultJson: null,
+              sessionIdBefore: null,
+              sessionIdAfter: null,
+              logStore: null,
+              logRef: null,
+              logSha256: null,
+              externalRunId: null,
+              processPid: null,
+            }
+          : {}),
+        contextSnapshot: {
+          issueId,
+          wakeReason: "issue_assigned",
+        },
+      });
+    },
+  );
 
   it("bounds oversized legacy result json payloads on getRun", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();
     const runId = randomUUID();
-    const oversizedStdout = Array.from({ length: 8_000 }, (_, index) =>
-      `${index.toString(16).padStart(4, "0")}-${randomUUID()}`,
+    const oversizedStdout = Array.from(
+      { length: 8_000 },
+      (_, index) => `${index.toString(16).padStart(4, "0")}-${randomUUID()}`,
     ).join("|");
-    const oversizedNestedPayload = Array.from({ length: 6_000 }, (_, index) =>
-      `${index.toString(16).padStart(4, "0")}:${randomUUID()}`,
+    const oversizedNestedPayload = Array.from(
+      { length: 6_000 },
+      (_, index) => `${index.toString(16).padStart(4, "0")}:${randomUUID()}`,
     ).join("|");
     // Multibyte diagnostics can exceed the result byte budget while remaining
     // within the adapter's character bounds. Other result fields can do so too.
@@ -283,20 +316,33 @@ describeEmbeddedPostgres("heartbeat list", () => {
           privateMetadata: oversizedNestedPayload,
         },
         instructionSave: {
-          state: "unavailable", contract: "agent_files", entryFile: "AGENTS.md",
+          state: "unavailable",
+          contract: "agent_files",
+          entryFile: "AGENTS.md",
           errorCode: "AGENT_FILES_LIMIT_EXCEEDED",
-          storageWarning: "Agent storage is full. Runs can continue.".repeat(50),
+          storageWarning: "Agent storage is full. Runs can continue.".repeat(
+            50,
+          ),
           privateSyncMetadata: oversizedNestedPayload,
         },
         workspaceRestoreFailure: "restore_unsafe_archive",
-        cancellation: { source: "provider", expected: false, initiator: { type: "provider" },
-          reason: "Provider cancelled execution ".repeat(50), recordedAt: "2026-10-02T15:00:00.000Z",
-          privateMetadata: oversizedNestedPayload },
+        cancellation: {
+          source: "provider",
+          expected: false,
+          initiator: { type: "provider" },
+          reason: "Provider cancelled execution ".repeat(50),
+          recordedAt: "2026-10-02T15:00:00.000Z",
+          privateMetadata: oversizedNestedPayload,
+        },
         acpToolInventoryComplete: true,
         acpPendingToolCount: 0,
         errorFamily: "configuration",
         finalResponseRecorded: true,
-        executionBeforeRestore: { errorCode: "model_error", exitCode: 2, timedOut: false },
+        executionBeforeRestore: {
+          errorCode: "model_error",
+          exitCode: 2,
+          timedOut: false,
+        },
       },
     });
 
@@ -314,27 +360,46 @@ describeEmbeddedPostgres("heartbeat list", () => {
         retrievalTruncated: true,
       },
       instructionSave: {
-        state: "unavailable", contract: "agent_files", entryFile: "AGENTS.md",
+        state: "unavailable",
+        contract: "agent_files",
+        entryFile: "AGENTS.md",
         errorCode: "AGENT_FILES_LIMIT_EXCEEDED",
-        storageWarning: "Agent storage is full. Runs can continue.".repeat(50).slice(0, 1024),
+        storageWarning: "Agent storage is full. Runs can continue."
+          .repeat(50)
+          .slice(0, 1024),
       },
       workspaceRestoreFailure: "restore_unsafe_archive",
-      cancellation: { source: "provider", expected: false, initiator: { type: "provider" },
-        reason: "Provider cancelled execution ".repeat(50).slice(0, 512), recordedAt: "2026-10-02T15:00:00.000Z" },
+      cancellation: {
+        source: "provider",
+        expected: false,
+        initiator: { type: "provider" },
+        reason: "Provider cancelled execution ".repeat(50).slice(0, 512),
+        recordedAt: "2026-10-02T15:00:00.000Z",
+      },
       acpToolInventoryComplete: true,
       acpPendingToolCount: 0,
       errorFamily: "configuration",
       finalResponseRecorded: true,
-      executionBeforeRestore: { errorCode: "model_error", exitCode: 2, timedOut: false },
+      executionBeforeRestore: {
+        errorCode: "model_error",
+        exitCode: 2,
+        timedOut: false,
+      },
     });
     expect(typeof result?.stdout).toBe("string");
-    expect((result?.stdout as string).length).toBeLessThan(oversizedStdout.length);
+    expect((result?.stdout as string).length).toBeLessThan(
+      oversizedStdout.length,
+    );
     expect(result).not.toHaveProperty("nestedHuge");
     expect(result?.instructionSave).not.toHaveProperty("privateSyncMetadata");
     expect(result?.cancellation).not.toHaveProperty("privateMetadata");
-    expect(result?.terminalSessionFailure).not.toHaveProperty("privateMetadata");
+    expect(result?.terminalSessionFailure).not.toHaveProperty(
+      "privateMetadata",
+    );
     const diagnostic = result?.terminalSessionFailure as { details: string };
-    expect(diagnostic.details).toContain("[truncated for run retrieval; full text in run error/transcript]");
+    expect(diagnostic.details).toContain(
+      "[truncated for run retrieval; full text in run error/transcript]",
+    );
     expect(Buffer.byteLength(diagnostic.details)).toBeLessThanOrEqual(8192);
     expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThan(64 * 1024);
     expect(run?.error).toBe(terminalSessionFailure.details);

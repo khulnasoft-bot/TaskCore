@@ -127,7 +127,9 @@ export function RoutineSaveBar({
                       disabled={isSaving || disabled}
                       onClick={onSave}
                     >
-                      {isSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                      {isSaving ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      ) : null}
                       Overwrite anyway
                     </Button>
                   </TooltipTrigger>
@@ -152,7 +154,9 @@ export function RoutineSaveBar({
                 disabled={isSaving || disabled}
                 onClick={onSave}
               >
-                {isSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                {isSaving ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : null}
                 Save changes
                 <kbd className="ml-2 hidden rounded bg-foreground/10 px-1 text-(length:--text-nano) font-medium sm:inline">
                   ⌘S
@@ -173,7 +177,11 @@ export function RoutineSaveBar({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setConfirmDiscardOpen(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmDiscardOpen(false)}
+            >
               Keep editing
             </Button>
             <Button

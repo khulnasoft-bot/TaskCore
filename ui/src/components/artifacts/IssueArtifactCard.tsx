@@ -14,7 +14,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { isImageLikeOutput, isVideoLikeOutput } from "@/lib/issue-output";
-import { attachmentDownloadPath, isTextAttachment } from "@/lib/issue-attachments";
+import {
+  attachmentDownloadPath,
+  isTextAttachment,
+} from "@/lib/issue-attachments";
 import { workProductHref } from "@/lib/issue-artifacts";
 import { formatDateTime } from "@/lib/utils";
 import {
@@ -54,19 +57,22 @@ export function IssueArtifactFile(props: IssueArtifactFileProps) {
   const { metadata = null, attachmentId } = props;
   const openGallery = useContext(IssueGalleryContext);
   const openTextAttachment = useContext(TextAttachmentContext);
-  const openTextAction = openTextAttachment && attachmentId && isTextAttachment({
-    contentType: props.contentType,
-    originalFilename: props.filename,
-  }) ? (
-    <Button
-      variant="outline"
-      size="sm"
-      aria-label={`Open in tab: ${props.title}`}
-      onClick={() => openTextAttachment(attachmentId, props.filename)}
-    >
-      Open in tab
-    </Button>
-  ) : null;
+  const openTextAction =
+    openTextAttachment &&
+    attachmentId &&
+    isTextAttachment({
+      contentType: props.contentType,
+      originalFilename: props.filename,
+    }) ? (
+      <Button
+        variant="outline"
+        size="sm"
+        aria-label={`Open in tab: ${props.title}`}
+        onClick={() => openTextAttachment(attachmentId, props.filename)}
+      >
+        Open in tab
+      </Button>
+    ) : null;
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [csvRequested, setCsvRequested] = useState(false);
   const image = isImageLikeOutput(props.contentType, props.filename);

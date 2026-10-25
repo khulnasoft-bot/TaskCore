@@ -3,9 +3,7 @@
   "slug": "api-key-generic",
   "name": "API key app",
   "description": "Connect an API using a key from your provider.",
-  "categories": [
-    "other"
-  ],
+  "categories": ["other"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/api-key-generic.svg"
@@ -16,9 +14,7 @@
       "key": "api-key",
       "transport": "rest_api",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use credentials from your provider account.",
       "defaults": {},
       "guidanceMd": "Create a restricted API key and paste it here.",

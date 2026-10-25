@@ -15,7 +15,14 @@ import type { TelemetryConfig, TelemetryState } from "./types.js";
 
 // The server envelope allow-set (`validators.mjs` ENVELOPE_FIELDS). Any extra
 // top-level key would be rejected, so every emitted envelope must be a subset.
-const CONTRACT_KEYS = new Set(["app", "schemaVersion", "installId", "version", "events", "batchId"]);
+const CONTRACT_KEYS = new Set([
+  "app",
+  "schemaVersion",
+  "installId",
+  "version",
+  "events",
+  "batchId",
+]);
 
 const TEST_STATE: TelemetryState = {
   installId: "contract-install",
@@ -46,7 +53,9 @@ function sentBodies(): Array<Record<string, unknown>> {
 }
 
 function sentRawBodies(): string[] {
-  return vi.mocked(fetch).mock.calls.map((call) => String((call[1] as RequestInit).body));
+  return vi
+    .mocked(fetch)
+    .mock.calls.map((call) => String((call[1] as RequestInit).body));
 }
 
 describe("telemetry client wire contract", () => {
@@ -59,7 +68,8 @@ describe("telemetry client wire contract", () => {
     const maxEventsPerBatch = 3;
     const client = makeClient({ maxEventsPerBatch });
 
-    for (let i = 0; i < 7; i++) client.trackDynamic("plugin.telemetry.evt", { i });
+    for (let i = 0; i < 7; i++)
+      client.trackDynamic("plugin.telemetry.evt", { i });
     await client.flush();
 
     for (const body of sentBodies()) {
@@ -75,13 +85,16 @@ describe("telemetry client wire contract", () => {
     const maxEventsPerBatch = 4;
     const client = makeClient({ maxEventsPerBatch });
 
-    for (let i = 0; i < 10; i++) client.trackDynamic("plugin.telemetry.evt", { i });
+    for (let i = 0; i < 10; i++)
+      client.trackDynamic("plugin.telemetry.evt", { i });
     await client.flush();
 
     const bodies = sentBodies();
     expect(bodies.length).toBeGreaterThan(1); // proves it actually chunked
     for (const body of bodies) {
-      expect((body.events as unknown[]).length).toBeLessThanOrEqual(maxEventsPerBatch);
+      expect((body.events as unknown[]).length).toBeLessThanOrEqual(
+        maxEventsPerBatch,
+      );
     }
   });
 
@@ -91,7 +104,8 @@ describe("telemetry client wire contract", () => {
     const client = makeClient({ maxEventsPerBatch: 1000, maxBodyBytes });
 
     const blob = "y".repeat(300);
-    for (let i = 0; i < 12; i++) client.trackDynamic("plugin.telemetry.evt", { i, blob });
+    for (let i = 0; i < 12; i++)
+      client.trackDynamic("plugin.telemetry.evt", { i, blob });
     await client.flush();
 
     const raw = sentRawBodies();
@@ -107,16 +121,24 @@ describe("telemetry client wire contract", () => {
     const maxBodyBytes = 4096;
     const client = makeClient({ maxEventsPerBatch, maxBodyBytes });
 
-    for (let i = 0; i < 23; i++) client.trackDynamic("plugin.telemetry.evt", { i });
+    for (let i = 0; i < 23; i++)
+      client.trackDynamic("plugin.telemetry.evt", { i });
     await client.flush();
 
     const bodies = sentBodies();
     const raw = sentRawBodies();
-    const total = bodies.reduce((sum, b) => sum + (b.events as unknown[]).length, 0);
+    const total = bodies.reduce(
+      (sum, b) => sum + (b.events as unknown[]).length,
+      0,
+    );
     expect(total).toBe(23); // no events lost
     bodies.forEach((body, idx) => {
-      expect((body.events as unknown[]).length).toBeLessThanOrEqual(maxEventsPerBatch);
-      expect(Buffer.byteLength(raw[idx] as string)).toBeLessThanOrEqual(maxBodyBytes);
+      expect((body.events as unknown[]).length).toBeLessThanOrEqual(
+        maxEventsPerBatch,
+      );
+      expect(Buffer.byteLength(raw[idx] as string)).toBeLessThanOrEqual(
+        maxBodyBytes,
+      );
     });
   });
 });
@@ -137,7 +159,12 @@ describe("telemetry client wire contract — retry semantics", () => {
       .mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
     const client = makeClient({
-      backoff: { baseDelayMs: 1_000, maxDelayMs: 30_000, maxAttempts: 5, jitterRatio: 0.25 },
+      backoff: {
+        baseDelayMs: 1_000,
+        maxDelayMs: 30_000,
+        maxAttempts: 5,
+        jitterRatio: 0.25,
+      },
     });
 
     client.trackDynamic("plugin.telemetry.evt", { a: 1 });
@@ -176,14 +203,20 @@ describe("telemetry client wire contract — batchId identity", () => {
   it("derives a different batchId for the same events under a different installId", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
 
-    const a = makeClient(undefined, () => ({ ...TEST_STATE, installId: "install-a" }));
+    const a = makeClient(undefined, () => ({
+      ...TEST_STATE,
+      installId: "install-a",
+    }));
     a.trackDynamic("plugin.telemetry.evt", { a: 1 });
     await a.flush();
     const idA = sentBodies().at(-1)?.batchId;
 
     vi.mocked(fetch).mockClear();
 
-    const b = makeClient(undefined, () => ({ ...TEST_STATE, installId: "install-b" }));
+    const b = makeClient(undefined, () => ({
+      ...TEST_STATE,
+      installId: "install-b",
+    }));
     b.trackDynamic("plugin.telemetry.evt", { a: 1 });
     await b.flush();
     const idB = sentBodies().at(-1)?.batchId;

@@ -44,7 +44,9 @@ const PRIVATE_AND_LINK_LOCAL_EXCEPT_CIDRS = [
 // feature requires server→agent push (e.g. forced shutdown, live exec),
 // add a targeted ingress rule here scoped to the taskcore-server pod
 // selector.
-export function buildNetworkPolicyManifests(input: BuildNetworkPolicyInput): Record<string, unknown>[] {
+export function buildNetworkPolicyManifests(
+  input: BuildNetworkPolicyInput,
+): Record<string, unknown>[] {
   const denyAll = {
     apiVersion: "networking.k8s.io/v1",
     kind: "NetworkPolicy",
@@ -67,30 +69,49 @@ export function buildNetworkPolicyManifests(input: BuildNetworkPolicyInput): Rec
       labels: { "taskcore.io/managed-by": "taskcore-k8s-plugin" },
     },
     spec: {
-      podSelector: { matchLabels: input.podSelector ?? { "taskcore.io/role": "agent" } },
+      podSelector: {
+        matchLabels: input.podSelector ?? { "taskcore.io/role": "agent" },
+      },
       policyTypes: ["Egress"],
       egress: [
-        ...(input.includeBaseRules === false ? [] : [{
-          to: [
-            {
-              namespaceSelector: { matchLabels: { "kubernetes.io/metadata.name": "kube-system" } },
-              podSelector: { matchLabels: { "k8s-app": "kube-dns" } },
-            },
-          ],
-          ports: [
-            { protocol: "UDP", port: 53 },
-            { protocol: "TCP", port: 53 },
-          ],
-        }]),
-        ...(input.includeBaseRules === false ? [] : [{
-          to: [
-            {
-              namespaceSelector: { matchLabels: { "kubernetes.io/metadata.name": input.taskcoreServerNamespace } },
-              podSelector: { matchLabels: { app: "taskcore-server" } },
-            },
-          ],
-          ports: [{ protocol: "TCP", port: 3100 }],
-        }]),
+        ...(input.includeBaseRules === false
+          ? []
+          : [
+              {
+                to: [
+                  {
+                    namespaceSelector: {
+                      matchLabels: {
+                        "kubernetes.io/metadata.name": "kube-system",
+                      },
+                    },
+                    podSelector: { matchLabels: { "k8s-app": "kube-dns" } },
+                  },
+                ],
+                ports: [
+                  { protocol: "UDP", port: 53 },
+                  { protocol: "TCP", port: 53 },
+                ],
+              },
+            ]),
+        ...(input.includeBaseRules === false
+          ? []
+          : [
+              {
+                to: [
+                  {
+                    namespaceSelector: {
+                      matchLabels: {
+                        "kubernetes.io/metadata.name":
+                          input.taskcoreServerNamespace,
+                      },
+                    },
+                    podSelector: { matchLabels: { app: "taskcore-server" } },
+                  },
+                ],
+                ports: [{ protocol: "TCP", port: 3100 }],
+              },
+            ]),
         // NOTE: operator-supplied CIDRs are intentionally NOT port-scoped —
         // operators may need them for non-HTTP services (e.g. private VCS
         // mirrors, S3 endpoints, internal artifact registries). Operators
@@ -109,7 +130,7 @@ export function buildNetworkPolicyManifests(input: BuildNetworkPolicyInput): Rec
         // cluster internals or link-local metadata endpoints. Operators
         // who want exact FQDN enforcement should use `egressMode: "cilium"`.
         ...(input.egressAllowCidrs.length === 0 &&
-          (input.egressAllowFqdns?.length ?? 0) > 0
+        (input.egressAllowFqdns?.length ?? 0) > 0
           ? [
               {
                 to: [
@@ -131,9 +152,11 @@ export function buildNetworkPolicyManifests(input: BuildNetworkPolicyInput): Rec
     },
   };
 
-  (egressAllow.metadata as Record<string, unknown>).name = input.name ?? "taskcore-egress-allow";
+  (egressAllow.metadata as Record<string, unknown>).name =
+    input.name ?? "taskcore-egress-allow";
   if (input.ownerReferences) {
-    (egressAllow.metadata as Record<string, unknown>).ownerReferences = input.ownerReferences;
+    (egressAllow.metadata as Record<string, unknown>).ownerReferences =
+      input.ownerReferences;
   }
 
   return [denyAll, egressAllow];

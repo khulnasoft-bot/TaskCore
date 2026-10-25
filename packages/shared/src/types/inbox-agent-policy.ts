@@ -1,4 +1,8 @@
-export const INBOX_AGENT_POLICY_MODES = ["open", "allowlist", "disabled"] as const;
+export const INBOX_AGENT_POLICY_MODES = [
+  "open",
+  "allowlist",
+  "disabled",
+] as const;
 
 export type InboxAgentPolicyMode = (typeof INBOX_AGENT_POLICY_MODES)[number];
 

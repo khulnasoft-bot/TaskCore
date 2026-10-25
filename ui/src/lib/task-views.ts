@@ -51,26 +51,82 @@ export const TASK_VIEW_GROUPS: TaskViewGroup[] = [
   {
     label: "My work",
     views: [
-      { key: "mine", label: "Mine", surface: "inbox", inboxTab: "mine", hint: "Assigned to you or waiting on you" },
-      { key: "unread", label: "Unread", surface: "inbox", inboxTab: "unread", hint: "Tasks you touched with new activity" },
-      { key: "blocked", label: "Blocked", surface: "inbox", inboxTab: "blocked", hint: "Blocked tasks, grouped by blocker" },
-      { key: "recent", label: "Recent", surface: "inbox", inboxTab: "recent", hint: "Everything you touched lately" },
-      { key: "everything", label: "Everything", surface: "inbox", inboxTab: "all", hint: "Tasks, approvals, failed runs and join requests" },
+      {
+        key: "mine",
+        label: "Mine",
+        surface: "inbox",
+        inboxTab: "mine",
+        hint: "Assigned to you or waiting on you",
+      },
+      {
+        key: "unread",
+        label: "Unread",
+        surface: "inbox",
+        inboxTab: "unread",
+        hint: "Tasks you touched with new activity",
+      },
+      {
+        key: "blocked",
+        label: "Blocked",
+        surface: "inbox",
+        inboxTab: "blocked",
+        hint: "Blocked tasks, grouped by blocker",
+      },
+      {
+        key: "recent",
+        label: "Recent",
+        surface: "inbox",
+        inboxTab: "recent",
+        hint: "Everything you touched lately",
+      },
+      {
+        key: "everything",
+        label: "Everything",
+        surface: "inbox",
+        inboxTab: "all",
+        hint: "Tasks, approvals, failed runs and join requests",
+      },
     ],
   },
   {
     label: "Organization",
     views: [
-      { key: "all", label: "All tasks", surface: "issues", statuses: [], hint: "Every task in the organization" },
-      { key: "active", label: "Active", surface: "issues", statuses: ["todo", "in_progress", "in_review", "blocked"], hint: "Open tasks, running or not" },
-      { key: "backlog", label: "Backlog", surface: "issues", statuses: ["backlog"], hint: "Not started yet" },
-      { key: "done", label: "Done", surface: "issues", statuses: ["done", "cancelled"], hint: "Completed and cancelled" },
+      {
+        key: "all",
+        label: "All tasks",
+        surface: "issues",
+        statuses: [],
+        hint: "Every task in the organization",
+      },
+      {
+        key: "active",
+        label: "Active",
+        surface: "issues",
+        statuses: ["todo", "in_progress", "in_review", "blocked"],
+        hint: "Open tasks, running or not",
+      },
+      {
+        key: "backlog",
+        label: "Backlog",
+        surface: "issues",
+        statuses: ["backlog"],
+        hint: "Not started yet",
+      },
+      {
+        key: "done",
+        label: "Done",
+        surface: "issues",
+        statuses: ["done", "cancelled"],
+        hint: "Completed and cancelled",
+      },
     ],
   },
 ];
 
 const VIEWS_BY_KEY = new Map<TaskViewKey, TaskView>(
-  TASK_VIEW_GROUPS.flatMap((group) => group.views.map((view) => [view.key, view] as const)),
+  TASK_VIEW_GROUPS.flatMap((group) =>
+    group.views.map((view) => [view.key, view] as const),
+  ),
 );
 
 export const DEFAULT_TASK_VIEW: TaskViewKey = "mine";
@@ -86,7 +142,9 @@ export function taskView(key: TaskViewKey): TaskView {
 }
 
 /** Resolves a `?view=` value, falling back to `null` so callers can pick a default. */
-export function normalizeTaskViewKey(value: string | null | undefined): TaskViewKey | null {
+export function normalizeTaskViewKey(
+  value: string | null | undefined,
+): TaskViewKey | null {
   return isTaskViewKey(value) ? value : null;
 }
 
@@ -103,15 +161,20 @@ const VIEW_BY_INBOX_TAB: Record<InboxTab, TaskViewKey> = {
   all: "everything",
 };
 
-export function taskViewForInboxTab(tab: string | null | undefined): TaskViewKey {
-  return (tab && tab in VIEW_BY_INBOX_TAB)
+export function taskViewForInboxTab(
+  tab: string | null | undefined,
+): TaskViewKey {
+  return tab && tab in VIEW_BY_INBOX_TAB
     ? VIEW_BY_INBOX_TAB[tab as InboxTab]
     : DEFAULT_TASK_VIEW;
 }
 
 export function loadLastTaskView(): TaskViewKey {
   try {
-    return normalizeTaskViewKey(window.localStorage.getItem(TASK_LAST_VIEW_KEY)) ?? DEFAULT_TASK_VIEW;
+    return (
+      normalizeTaskViewKey(window.localStorage.getItem(TASK_LAST_VIEW_KEY)) ??
+      DEFAULT_TASK_VIEW
+    );
   } catch {
     return DEFAULT_TASK_VIEW;
   }
@@ -147,6 +210,10 @@ export function resolveInitialTaskView(
   const explicit = normalizeTaskViewKey(requested);
   // Inbox views can't apply organization filters, so a link carrying one
   // opens All tasks rather than silently dropping the filter.
-  if (hasOrganizationScopedParam && (!explicit || taskView(explicit).surface === "inbox")) return "all";
+  if (
+    hasOrganizationScopedParam &&
+    (!explicit || taskView(explicit).surface === "inbox")
+  )
+    return "all";
   return explicit ?? lastUsed;
 }

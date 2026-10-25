@@ -14,7 +14,11 @@ async function makeTempDir(prefix: string): Promise<string> {
 async function createSkillDir(root: string, name: string) {
   const skillDir = path.join(root, name);
   await fs.mkdir(skillDir, { recursive: true });
-  await fs.writeFile(path.join(skillDir, "SKILL.md"), `---\nname: ${name}\n---\n`, "utf8");
+  await fs.writeFile(
+    path.join(skillDir, "SKILL.md"),
+    `---\nname: ${name}\n---\n`,
+    "utf8",
+  );
   return skillDir;
 }
 
@@ -23,7 +27,11 @@ describe("cursor local skill sync", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -45,35 +53,58 @@ describe("cursor local skill sync", () => {
     const before = await listCursorSkills(ctx);
     expect(before.mode).toBe("persistent");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("missing");
+    expect(
+      before.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("missing");
 
     const after = await syncCursorSkills(ctx, [taskcoreKey]);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".cursor", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
+    expect(
+      after.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("installed");
+    expect(
+      (
+        await fs.lstat(path.join(home, ".cursor", "skills", "taskcore"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   });
 
   it("keeps the operational skill installed after an explicit empty replacement", async () => {
     const home = await makeTempDir("taskcore-cursor-required-skill-");
     cleanupDirs.add(home);
 
-    const snapshot = await syncCursorSkills({
-      agentId: "agent-required",
-      companyId: "company-1",
-      adapterType: "cursor",
-      config: {
-        env: { HOME: home },
-        taskcoreSkillSync: { desiredSkills: [] },
+    const snapshot = await syncCursorSkills(
+      {
+        agentId: "agent-required",
+        companyId: "company-1",
+        adapterType: "cursor",
+        config: {
+          env: { HOME: home },
+          taskcoreSkillSync: { desiredSkills: [] },
+        },
       },
-    }, []);
+      [],
+    );
 
-    expect(snapshot.desiredSkills).toEqual([taskcoreKey, "taskcore/taskcore/complain", "taskcore/taskcore/suggestion-box"]);
-    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".cursor", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
+    expect(snapshot.desiredSkills).toEqual([
+      taskcoreKey,
+      "taskcore/taskcore/complain",
+      "taskcore/taskcore/suggestion-box",
+    ]);
+    expect(
+      snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("installed");
+    expect(
+      (
+        await fs.lstat(path.join(home, ".cursor", "skills", "taskcore"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   });
 
   it("recognizes company-library runtime skills supplied outside the bundled Taskcore directory", async () => {
     const home = await makeTempDir("taskcore-cursor-runtime-skills-home-");
-    const runtimeSkills = await makeTempDir("taskcore-cursor-runtime-skills-src-");
+    const runtimeSkills = await makeTempDir(
+      "taskcore-cursor-runtime-skills-src-",
+    );
     cleanupDirs.add(home);
     cleanupDirs.add(runtimeSkills);
 
@@ -109,12 +140,19 @@ describe("cursor local skill sync", () => {
     const before = await listCursorSkills(ctx);
     expect(before.warnings).toEqual([]);
     expect(before.desiredSkills).toEqual(["ascii-heart"]);
-    expect(before.entries.find((entry) => entry.key === "ascii-heart")?.state).toBe("missing");
+    expect(
+      before.entries.find((entry) => entry.key === "ascii-heart")?.state,
+    ).toBe("missing");
 
     const after = await syncCursorSkills(ctx, ["ascii-heart"]);
     expect(after.warnings).toEqual([]);
-    expect(after.entries.find((entry) => entry.key === "ascii-heart")?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".cursor", "skills", "ascii-heart"))).isSymbolicLink()).toBe(true);
+    expect(
+      after.entries.find((entry) => entry.key === "ascii-heart")?.state,
+    ).toBe("installed");
+    expect(
+      (
+        await fs.lstat(path.join(home, ".cursor", "skills", "ascii-heart"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   });
-
 });

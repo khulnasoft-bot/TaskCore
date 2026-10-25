@@ -29,7 +29,10 @@ export function emptyRegistry(nodeIdentity: string): BrokerRegistry {
   };
 }
 
-export function loadRegistry(path: string, nodeIdentity: string): BrokerRegistry {
+export function loadRegistry(
+  path: string,
+  nodeIdentity: string,
+): BrokerRegistry {
   let raw: string;
   try {
     raw = readFileSync(path, "utf8");
@@ -48,9 +51,12 @@ export function loadRegistry(path: string, nodeIdentity: string): BrokerRegistry
   parsed.leases = parsed.leases.map((lease) => ({
     ...lease,
     state: lease.state === "reserved" ? "reserved" : "exposed",
-    expiresAtIso: typeof lease.expiresAtIso === "string" ? lease.expiresAtIso : null,
+    expiresAtIso:
+      typeof lease.expiresAtIso === "string" ? lease.expiresAtIso : null,
   }));
-  parsed.quarantinedPorts = Array.isArray(parsed.quarantinedPorts) ? parsed.quarantinedPorts : [];
+  parsed.quarantinedPorts = Array.isArray(parsed.quarantinedPorts)
+    ? parsed.quarantinedPorts
+    : [];
   return parsed;
 }
 
@@ -116,7 +122,10 @@ export function addLease(registry: BrokerRegistry, lease: LeaseRecord): void {
   registry.leases.push(lease);
 }
 
-export function removeLeaseByHandle(registry: BrokerRegistry, handle: string): LeaseRecord | null {
+export function removeLeaseByHandle(
+  registry: BrokerRegistry,
+  handle: string,
+): LeaseRecord | null {
   const index = registry.leases.findIndex((lease) => lease.handle === handle);
   if (index < 0) return null;
   const [removed] = registry.leases.splice(index, 1);
@@ -124,7 +133,10 @@ export function removeLeaseByHandle(registry: BrokerRegistry, handle: string): L
 }
 
 /** Remove expired, never-exposed reservations and return their released ports. */
-export function pruneExpiredReservations(registry: BrokerRegistry, nowIso: string): number[] {
+export function pruneExpiredReservations(
+  registry: BrokerRegistry,
+  nowIso: string,
+): number[] {
   const nowMs = Date.parse(nowIso);
   if (!Number.isFinite(nowMs)) return [];
   const released: number[] = [];
@@ -138,7 +150,10 @@ export function pruneExpiredReservations(registry: BrokerRegistry, nowIso: strin
   return released;
 }
 
-export function isPortQuarantined(registry: BrokerRegistry, port: number): boolean {
+export function isPortQuarantined(
+  registry: BrokerRegistry,
+  port: number,
+): boolean {
   return registry.quarantinedPorts.includes(port);
 }
 

@@ -46,8 +46,14 @@ describe("PRP provider-neutral semantic receipts", () => {
       retryable: false,
       authorizationBoundary: "revision" as const,
     };
-    const first = createPrpSemanticToolResultEnvelope({ ...base, callId: "call_first" });
-    const retry = createPrpSemanticToolResultEnvelope({ ...base, callId: "call_retry" });
+    const first = createPrpSemanticToolResultEnvelope({
+      ...base,
+      callId: "call_first",
+    });
+    const retry = createPrpSemanticToolResultEnvelope({
+      ...base,
+      callId: "call_retry",
+    });
 
     expect(retry.operationReceiptId).toBe(first.operationReceiptId);
     expect(retry.operationReceiptId).toMatch(/^semantic_receipt:[a-f0-9]{32}$/);
@@ -73,7 +79,9 @@ describe("PRP provider-neutral semantic receipts", () => {
     });
 
     expect(validatePrpEvent(event("mcp_app.tool_input", input)).ok).toBe(true);
-    expect(validatePrpEvent(event("mcp_app.tool_result", result)).ok).toBe(true);
+    expect(validatePrpEvent(event("mcp_app.tool_result", result)).ok).toBe(
+      true,
+    );
     expect(
       createPrpBudgetStopReason({
         receiptId: "stop_receipt_test",
@@ -82,7 +90,12 @@ describe("PRP provider-neutral semantic receipts", () => {
         retryable: true,
         decisionId: "decision_receipt_test",
         limitClass: "run_cost",
-        aggregate: { unit: "usd_micros", observed: 100, limit: 100, window: "run" },
+        aggregate: {
+          unit: "usd_micros",
+          observed: 100,
+          limit: 100,
+          window: "run",
+        },
       }),
     ).toMatchObject({
       schema: "taskcore.prp.stop_reason.v1",
@@ -119,21 +132,35 @@ describe("PRP provider-neutral semantic receipts", () => {
   });
 
   it("maps denial and conflict codes onto protocol authorization boundaries", () => {
-    expect(semanticAuthorizationBoundaryForCode("company_scope_denied")).toBe("company");
-    expect(semanticAuthorizationBoundaryForCode("actor_role_denied")).toBe("actor");
-    expect(semanticAuthorizationBoundaryForCode("document_revision_conflict")).toBe("revision");
-    expect(semanticAuthorizationBoundaryForCode("approval_required")).toBe("governed_action");
+    expect(semanticAuthorizationBoundaryForCode("company_scope_denied")).toBe(
+      "company",
+    );
+    expect(semanticAuthorizationBoundaryForCode("actor_role_denied")).toBe(
+      "actor",
+    );
+    expect(
+      semanticAuthorizationBoundaryForCode("document_revision_conflict"),
+    ).toBe("revision");
+    expect(semanticAuthorizationBoundaryForCode("approval_required")).toBe(
+      "governed_action",
+    );
   });
 });
 
 function event(
-  eventType: "mcp_app.tool_input" | "mcp_app.tool_result" | "semantic_tool.reconciled",
+  eventType:
+    "mcp_app.tool_input" | "mcp_app.tool_result" | "semantic_tool.reconciled",
   semanticTool: Record<string, unknown>,
 ): PrpEvent {
   return {
     schema: "taskcore.prp.event.v1",
     sourceEventId: `${eventType}:receipt_test`,
-    sourceSeq: eventType === "mcp_app.tool_input" ? 1 : eventType === "mcp_app.tool_result" ? 2 : 3,
+    sourceSeq:
+      eventType === "mcp_app.tool_input"
+        ? 1
+        : eventType === "mcp_app.tool_result"
+          ? 2
+          : 3,
     sourceInstanceId: "runner_receipt_test",
     sourceKind: "runner",
     runId: correlation.runId,

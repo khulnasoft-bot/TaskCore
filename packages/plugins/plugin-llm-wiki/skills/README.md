@@ -6,14 +6,14 @@ Each skill is an isolated SKILL.md describing one job — when to invoke it, the
 
 ## Skill registry
 
-| Skill | When to invoke |
-|---|---|
-| [`wiki-maintainer`](./wiki-maintainer/SKILL.md) | General LLM Wiki maintenance and tool-use guidance shared by the operation skills. |
-| [`wiki-ingest`](./wiki-ingest/SKILL.md) | A new file landed in `raw/` and the operation issue says "ingest" — turn the source into durable wiki pages. |
-| [`wiki-query`](./wiki-query/SKILL.md) | The user asked the wiki a question; answer with citations and offer to file durable synthesis back into `wiki/`. |
-| [`wiki-lint`](./wiki-lint/SKILL.md) | A lint or health-check operation — audit for contradictions, orphan pages, weak provenance, broken links, missing concept pages. |
+| Skill                                             | When to invoke                                                                                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`wiki-maintainer`](./wiki-maintainer/SKILL.md)   | General LLM Wiki maintenance and tool-use guidance shared by the operation skills.                                                          |
+| [`wiki-ingest`](./wiki-ingest/SKILL.md)           | A new file landed in `raw/` and the operation issue says "ingest" — turn the source into durable wiki pages.                                |
+| [`wiki-query`](./wiki-query/SKILL.md)             | The user asked the wiki a question; answer with citations and offer to file durable synthesis back into `wiki/`.                            |
+| [`wiki-lint`](./wiki-lint/SKILL.md)               | A lint or health-check operation — audit for contradictions, orphan pages, weak provenance, broken links, missing concept pages.            |
 | [`taskcore-distill`](./taskcore-distill/SKILL.md) | Cursor-window, distill, or backfill operation on Taskcore activity — write a wiki-insightful project page, decisions log, and history note. |
-| [`index-refresh`](./index-refresh/SKILL.md) | Refresh `wiki/index.md` so each entry has a tight, scannable summary; flag drift between the index and recent log activity. |
+| [`index-refresh`](./index-refresh/SKILL.md)       | Refresh `wiki/index.md` so each entry has a tight, scannable summary; flag drift between the index and recent log activity.                 |
 
 ## Layering
 

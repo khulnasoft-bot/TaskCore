@@ -9,13 +9,13 @@ Both paths ship in the same app and share one view contract. What separates them
 is what the session is seeded with, and whether a fixture is allowed to stand in
 for a provider.
 
-| | Preset scenario explorer | Clean-room chat |
-| --- | --- | --- |
-| Route | `#/issue/<fixtureProfile>` | `#/chat` |
-| Seed | A recorded eval case: transcript, scripted calls, parity verdicts | A company, an agent, and one blank issue |
-| Modes | `fake` (default), `replay`, `mode=live` | Live only — no fixture, no recording |
-| Tool calls | Fixed by the scenario | Chosen by the conversation |
-| Evidence drawer | Collapsed by default | Collapsed by default |
+|                 | Preset scenario explorer                                          | Clean-room chat                          |
+| --------------- | ----------------------------------------------------------------- | ---------------------------------------- |
+| Route           | `#/issue/<fixtureProfile>`                                        | `#/chat`                                 |
+| Seed            | A recorded eval case: transcript, scripted calls, parity verdicts | A company, an agent, and one blank issue |
+| Modes           | `fake` (default), `replay`, `mode=live`                           | Live only — no fixture, no recording     |
+| Tool calls      | Fixed by the scenario                                             | Chosen by the conversation               |
+| Evidence drawer | Collapsed by default                                              | Collapsed by default                     |
 
 ## What "clean room" means
 
@@ -48,11 +48,11 @@ deliverable, delegation, dependency, wake, and approval-request operations.
 
 Three grants stay withheld on purpose:
 
-| Withheld grant | Effect |
-| --- | --- |
+| Withheld grant                | Effect                                                   |
+| ----------------------------- | -------------------------------------------------------- |
 | `governance:approvals:decide` | The agent may request an approval; the board decides it. |
-| `workspace:control` | No service lifecycle changes from a chat. |
-| `test:generic_api_request` | The escape hatch stays off. |
+| `workspace:control`           | No service lifecycle changes from a chat.                |
+| `test:generic_api_request`    | The escape hatch stays off.                              |
 
 Withholding them keeps a denial reachable in a conversation nobody scripted: if
 the model reaches for one, it gets a typed denial with a named code and the mock
@@ -87,12 +87,12 @@ scenario session can never be handed to the chat route or the reverse.
 
 ## Bounds
 
-| Bound | Value |
-| --- | --- |
-| Turns per chat | 24, then a named `turn_limit` refusal that points at `New chat` |
-| Message size | 8 KiB |
-| Concurrent clean rooms | 4; the oldest yields to a new board user |
-| Turn timeout | 120 s (`CapabilityLiveSessionService` default) |
+| Bound                  | Value                                                           |
+| ---------------------- | --------------------------------------------------------------- |
+| Turns per chat         | 24, then a named `turn_limit` refusal that points at `New chat` |
+| Message size           | 8 KiB                                                           |
+| Concurrent clean rooms | 4; the oldest yields to a new board user                        |
+| Turn timeout           | 120 s (`CapabilityLiveSessionService` default)                  |
 
 ## Real-API block
 
@@ -155,13 +155,13 @@ without weakening the explicit cross-site denial.
 
 ## Verification
 
-| Surface | Command |
-| --- | --- |
-| Seed, exposure profile, and identity rotation | `pnpm --filter @taskcore/taskcore-runner test:scenarios` |
-| Clean-room HTTP routes end to end (stub provider) | included in `test:scenarios` |
-| Browser entry, blank state, evidence-on-demand, narrow layout, axe | `pnpm --filter @taskcore/taskcore-runner test:browser:issue-thread` |
-| Real Codex through real runnerd | `pnpm --filter @taskcore/taskcore-runner smoke:capability:cleanroom` |
-| Live screenshots | `pnpm --filter @taskcore/taskcore-runner recorded-evidence campaign (deferred)` |
+| Surface                                                            | Command                                                                         |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Seed, exposure profile, and identity rotation                      | `pnpm --filter @taskcore/taskcore-runner test:scenarios`                        |
+| Clean-room HTTP routes end to end (stub provider)                  | included in `test:scenarios`                                                    |
+| Browser entry, blank state, evidence-on-demand, narrow layout, axe | `pnpm --filter @taskcore/taskcore-runner test:browser:issue-thread`             |
+| Real Codex through real runnerd                                    | `pnpm --filter @taskcore/taskcore-runner smoke:capability:cleanroom`            |
+| Live screenshots                                                   | `pnpm --filter @taskcore/taskcore-runner recorded-evidence campaign (deferred)` |
 
 See the [clean-room chat tutorial](tutorials/capability-clean-room-chat.md) for the
 clean-start walkthrough, [execution modes and identity](capability-execution-modes.md)

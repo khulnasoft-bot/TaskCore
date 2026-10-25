@@ -16,7 +16,9 @@ export interface BuildJobManifestInput {
   imagePullSecrets?: string[];
 }
 
-export function buildJobManifest(input: BuildJobManifestInput): Record<string, unknown> {
+export function buildJobManifest(
+  input: BuildJobManifestInput,
+): Record<string, unknown> {
   const podLabels = {
     ...input.labels,
     "taskcore.io/role": "agent",
@@ -42,9 +44,15 @@ export function buildJobManifest(input: BuildJobManifestInput): Record<string, u
           // unnecessary attack surface.
           automountServiceAccountToken: false,
           restartPolicy: "Never",
-          ...(input.runtimeClassName ? { runtimeClassName: input.runtimeClassName } : {}),
+          ...(input.runtimeClassName
+            ? { runtimeClassName: input.runtimeClassName }
+            : {}),
           ...(input.imagePullSecrets && input.imagePullSecrets.length > 0
-            ? { imagePullSecrets: input.imagePullSecrets.map((name) => ({ name })) }
+            ? {
+                imagePullSecrets: input.imagePullSecrets.map((name) => ({
+                  name,
+                })),
+              }
             : {}),
           securityContext: {
             runAsNonRoot: true,
@@ -59,7 +67,11 @@ export function buildJobManifest(input: BuildJobManifestInput): Record<string, u
               name: "agent",
               image: input.image,
               imagePullPolicy: "IfNotPresent",
-              command: ["/usr/bin/tini", "--", "/usr/local/bin/taskcore-agent-shim"],
+              command: [
+                "/usr/bin/tini",
+                "--",
+                "/usr/local/bin/taskcore-agent-shim",
+              ],
               // HOME must point at a writable mount; the image's default
               // HOME is inside the readOnly root filesystem. Agent runtimes
               // can silently exit with code 0 and no output when HOME is
@@ -75,7 +87,10 @@ export function buildJobManifest(input: BuildJobManifestInput): Record<string, u
                 capabilities: { drop: ["ALL"] },
               },
               resources: {
-                requests: input.resources.requests ?? { cpu: "250m", memory: "512Mi" },
+                requests: input.resources.requests ?? {
+                  cpu: "250m",
+                  memory: "512Mi",
+                },
                 limits: input.resources.limits ?? { cpu: "2", memory: "4Gi" },
               },
               volumeMounts: [

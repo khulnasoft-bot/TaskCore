@@ -30,7 +30,19 @@ import {
 } from "./pipelines-schemas.js";
 import { Router, type Request } from "express";
 import { z } from "zod";
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Db } from "@taskcore/db";
 import {
@@ -54,7 +66,15 @@ import {
   routines,
 } from "@taskcore/db";
 import { validate } from "../middleware/validate.js";
-import { badRequest, conflict, forbidden, HttpError, notFound, unauthorized, unprocessable } from "../errors.js";
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  HttpError,
+  notFound,
+  unauthorized,
+  unprocessable,
+} from "../errors.js";
 import {
   PIPELINE_CASE_EVENTS_DEFAULT_LIMIT,
   PIPELINE_CASE_EVENTS_MAX_LIMIT,
@@ -119,11 +139,15 @@ type PipelineRouteDb = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
 const intakeFieldTypes = new Set(["select", "text", "multiline"]);
 
 function stageAutomationRoutineId(config: unknown) {
-  if (!config || typeof config !== "object" || Array.isArray(config)) return null;
+  if (!config || typeof config !== "object" || Array.isArray(config))
+    return null;
   const onEnter = (config as { onEnter?: unknown }).onEnter;
-  if (!onEnter || typeof onEnter !== "object" || Array.isArray(onEnter)) return null;
+  if (!onEnter || typeof onEnter !== "object" || Array.isArray(onEnter))
+    return null;
   const record = onEnter as Record<string, unknown>;
-  return record.type === "run_routine" && typeof record.routineId === "string" ? record.routineId : null;
+  return record.type === "run_routine" && typeof record.routineId === "string"
+    ? record.routineId
+    : null;
 }
 
 function readAutomationContextValue(value: unknown): string | null {
@@ -132,16 +156,23 @@ function readAutomationContextValue(value: unknown): string | null {
 
 function stageAutomationContext(config: Record<string, unknown>) {
   const onEnter = config.onEnter;
-  const record = onEnter && typeof onEnter === "object" && !Array.isArray(onEnter)
-    ? onEnter as Record<string, unknown>
-    : {};
+  const record =
+    onEnter && typeof onEnter === "object" && !Array.isArray(onEnter)
+      ? (onEnter as Record<string, unknown>)
+      : {};
   return {
     projectId: readAutomationContextValue(record.projectId),
     projectWorkspaceId: readAutomationContextValue(record.projectWorkspaceId),
-    executionWorkspaceId: readAutomationContextValue(record.executionWorkspaceId),
-    executionWorkspacePreference: readAutomationContextValue(record.executionWorkspacePreference),
+    executionWorkspaceId: readAutomationContextValue(
+      record.executionWorkspaceId,
+    ),
+    executionWorkspacePreference: readAutomationContextValue(
+      record.executionWorkspacePreference,
+    ),
     executionWorkspaceSettings:
-      record.executionWorkspaceSettings && typeof record.executionWorkspaceSettings === "object" && !Array.isArray(record.executionWorkspaceSettings)
+      record.executionWorkspaceSettings &&
+      typeof record.executionWorkspaceSettings === "object" &&
+      !Array.isArray(record.executionWorkspaceSettings)
         ? record.executionWorkspaceSettings
         : null,
   };
@@ -149,18 +180,24 @@ function stageAutomationContext(config: Record<string, unknown>) {
 
 function withDerivedStageAutomation(
   stage: typeof pipelineStages.$inferSelect,
-  routineById: Map<string, {
-    assigneeAgentId: string | null;
-    title: string;
-    description: string | null;
-    env: PipelineStageAutomation["env"];
-    latestRevisionId: string | null;
-    latestRevisionNumber: number;
-  }>,
+  routineById: Map<
+    string,
+    {
+      assigneeAgentId: string | null;
+      title: string;
+      description: string | null;
+      env: PipelineStageAutomation["env"];
+      latestRevisionId: string | null;
+      latestRevisionNumber: number;
+    }
+  >,
 ) {
-  const config = stage.config && typeof stage.config === "object" && !Array.isArray(stage.config)
-    ? { ...(stage.config as Record<string, unknown>) }
-    : {};
+  const config =
+    stage.config &&
+    typeof stage.config === "object" &&
+    !Array.isArray(stage.config)
+      ? { ...(stage.config as Record<string, unknown>) }
+      : {};
   const routineId = stageAutomationRoutineId(config);
   const routine = routineId ? routineById.get(routineId) : null;
   if (!routine) return { ...stage, config };
@@ -182,11 +219,24 @@ function withDerivedStageAutomation(
   };
 }
 
-function extractIntakeFormFields(stage: typeof pipelineStages.$inferSelect | null) {
-  const baseFields = [{ key: "title", label: "Name", type: "text", required: true, options: [] as string[] }];
-  const variables = stage?.config && typeof stage.config === "object" && !Array.isArray(stage.config)
-    ? (stage.config as { variables?: unknown }).variables
-    : null;
+function extractIntakeFormFields(
+  stage: typeof pipelineStages.$inferSelect | null,
+) {
+  const baseFields = [
+    {
+      key: "title",
+      label: "Name",
+      type: "text",
+      required: true,
+      options: [] as string[],
+    },
+  ];
+  const variables =
+    stage?.config &&
+    typeof stage.config === "object" &&
+    !Array.isArray(stage.config)
+      ? (stage.config as { variables?: unknown }).variables
+      : null;
   if (!Array.isArray(variables)) return baseFields;
 
   return [
@@ -194,44 +244,69 @@ function extractIntakeFormFields(stage: typeof pipelineStages.$inferSelect | nul
     ...variables.flatMap((raw) => {
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
       const variable = raw as Record<string, unknown>;
-      const routineName = typeof variable.name === "string" && variable.name.trim().length > 0
-        ? variable.name.trim()
-        : null;
-      const legacyKey = typeof variable.key === "string" && variable.key.trim().length > 0
-        ? variable.key.trim()
-        : null;
+      const routineName =
+        typeof variable.name === "string" && variable.name.trim().length > 0
+          ? variable.name.trim()
+          : null;
+      const legacyKey =
+        typeof variable.key === "string" && variable.key.trim().length > 0
+          ? variable.key.trim()
+          : null;
 
       const options = Array.isArray(variable.options)
-        ? variable.options.filter((option): option is string => typeof option === "string" && option.trim().length > 0)
+        ? variable.options.filter(
+            (option): option is string =>
+              typeof option === "string" && option.trim().length > 0,
+          )
         : [];
 
       // Routine variable shape (body-driven `{{name}}`): every variable on the
       // stage becomes an Add-item field; routine types map onto intake types.
       if (routineName) {
-        const rawType = typeof variable.type === "string" ? variable.type : "text";
-        const type = rawType === "select"
-          ? "select"
-          : rawType === "textarea" || rawType === "multiline"
-            ? "multiline"
-            : "text";
-        const label = typeof variable.label === "string" && variable.label.trim().length > 0
-          ? variable.label.trim()
-          : routineName;
-        return [{ key: routineName, label, type, required: variable.required === true, options }];
+        const rawType =
+          typeof variable.type === "string" ? variable.type : "text";
+        const type =
+          rawType === "select"
+            ? "select"
+            : rawType === "textarea" || rawType === "multiline"
+              ? "multiline"
+              : "text";
+        const label =
+          typeof variable.label === "string" && variable.label.trim().length > 0
+            ? variable.label.trim()
+            : routineName;
+        return [
+          {
+            key: routineName,
+            label,
+            type,
+            required: variable.required === true,
+            options,
+          },
+        ];
       }
 
       // Legacy pipeline variable shape: opt-in via `showInAddForm`, keyed by `key`.
       if (!legacyKey) return [];
       if (variable.showInAddForm !== true) return [];
-      if (typeof variable.label !== "string" || variable.label.trim().length === 0) return [];
-      const type = typeof variable.type === "string" && intakeFieldTypes.has(variable.type) ? variable.type : "text";
-      return [{
-        key: legacyKey,
-        label: variable.label,
-        type,
-        required: variable.required === true,
-        options,
-      }];
+      if (
+        typeof variable.label !== "string" ||
+        variable.label.trim().length === 0
+      )
+        return [];
+      const type =
+        typeof variable.type === "string" && intakeFieldTypes.has(variable.type)
+          ? variable.type
+          : "text";
+      return [
+        {
+          key: legacyKey,
+          label: variable.label,
+          type,
+          required: variable.required === true,
+          options,
+        },
+      ];
     }),
   ];
 }
@@ -242,7 +317,9 @@ function isPgUniqueViolation(error: unknown) {
 
 function codedConflictForUnique(error: unknown): never {
   if (isPgUniqueViolation(error)) {
-    throw conflict("Duplicate pipeline resource key", { code: "duplicate_key" });
+    throw conflict("Duplicate pipeline resource key", {
+      code: "duplicate_key",
+    });
   }
   throw error;
 }
@@ -254,7 +331,8 @@ function assertPipelineCompanyAccess(req: Request, companyId: string) {
     if (
       error instanceof HttpError &&
       error.status === 403 &&
-      (error.message.includes("another company") || error.message.includes("does not have access"))
+      (error.message.includes("another company") ||
+        error.message.includes("does not have access"))
     ) {
       throw notFound("Pipeline resource not found");
     }
@@ -265,8 +343,15 @@ function assertPipelineCompanyAccess(req: Request, companyId: string) {
 function actorForMutation(req: Request): PipelineActor {
   if (req.actor.type === "agent") {
     if (!req.actor.agentId) throw unauthorized();
-    if (!req.actor.runId) throw unprocessable("Agent pipeline mutations require a run id", { code: "run_id_required" });
-    return { type: "agent", agentId: req.actor.agentId, runId: req.actor.runId };
+    if (!req.actor.runId)
+      throw unprocessable("Agent pipeline mutations require a run id", {
+        code: "run_id_required",
+      });
+    return {
+      type: "agent",
+      agentId: req.actor.agentId,
+      runId: req.actor.runId,
+    };
   }
   if (req.actor.type === "board") {
     return { type: "user", userId: req.actor.userId ?? "board" };
@@ -294,19 +379,24 @@ function parseEventTypesQuery(value: unknown): string[] | undefined {
     .filter((item) => item.length > 0);
   if (types.length === 0) return undefined;
   if (types.length > COMPANY_CASE_EVENTS_MAX_TYPES) {
-    throw badRequest(`types accepts at most ${COMPANY_CASE_EVENTS_MAX_TYPES} values`);
+    throw badRequest(
+      `types accepts at most ${COMPANY_CASE_EVENTS_MAX_TYPES} values`,
+    );
   }
   for (const type of types) {
-    if (!/^[a-z_]{1,64}$/.test(type)) throw badRequest(`Invalid event type: ${type}`);
+    if (!/^[a-z_]{1,64}$/.test(type))
+      throw badRequest(`Invalid event type: ${type}`);
   }
   return [...new Set(types)];
 }
 
 function parseOptionalNonNegativeInteger(value: unknown, name: string) {
   if (value === undefined) return null;
-  if (Array.isArray(value)) throw badRequest(`${name} must be a single integer`);
+  if (Array.isArray(value))
+    throw badRequest(`${name} must be a single integer`);
   const raw = typeof value === "string" ? value.trim() : String(value);
-  if (!/^\d+$/.test(raw)) throw badRequest(`${name} must be a non-negative integer`);
+  if (!/^\d+$/.test(raw))
+    throw badRequest(`${name} must be a non-negative integer`);
   const parsed = Number(raw);
   if (!Number.isSafeInteger(parsed)) throw badRequest(`${name} is too large`);
   return parsed;
@@ -315,9 +405,13 @@ function parseOptionalNonNegativeInteger(value: unknown, name: string) {
 function parseCaseEventsQuery(query: Request["query"]) {
   const requestedLimit = parseOptionalNonNegativeInteger(query.limit, "limit");
   const offset = parseOptionalNonNegativeInteger(query.offset, "offset") ?? 0;
-  if (requestedLimit === 0) throw badRequest("limit must be a positive integer");
+  if (requestedLimit === 0)
+    throw badRequest("limit must be a positive integer");
   return {
-    limit: Math.min(requestedLimit ?? PIPELINE_CASE_EVENTS_DEFAULT_LIMIT, PIPELINE_CASE_EVENTS_MAX_LIMIT),
+    limit: Math.min(
+      requestedLimit ?? PIPELINE_CASE_EVENTS_DEFAULT_LIMIT,
+      PIPELINE_CASE_EVENTS_MAX_LIMIT,
+    ),
     offset,
   };
 }
@@ -392,22 +486,37 @@ function mapPipelineDocumentRevision(row: {
   return row;
 }
 
-async function getPipelineDocumentRow(db: Db, input: { companyId: string; pipelineId: string; key: string }) {
+async function getPipelineDocumentRow(
+  db: Db,
+  input: { companyId: string; pipelineId: string; key: string },
+) {
   return db
-    .select({ link: pipelineDocuments, document: documents, revision: documentRevisions })
+    .select({
+      link: pipelineDocuments,
+      document: documents,
+      revision: documentRevisions,
+    })
     .from(pipelineDocuments)
     .innerJoin(documents, eq(pipelineDocuments.documentId, documents.id))
-    .leftJoin(documentRevisions, eq(documents.latestRevisionId, documentRevisions.id))
-    .where(and(
-      eq(pipelineDocuments.companyId, input.companyId),
-      eq(pipelineDocuments.pipelineId, input.pipelineId),
-      eq(pipelineDocuments.key, input.key),
-    ))
+    .leftJoin(
+      documentRevisions,
+      eq(documents.latestRevisionId, documentRevisions.id),
+    )
+    .where(
+      and(
+        eq(pipelineDocuments.companyId, input.companyId),
+        eq(pipelineDocuments.pipelineId, input.pipelineId),
+        eq(pipelineDocuments.key, input.key),
+      ),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
 }
 
-async function listPipelineDocumentRevisions(db: Db, input: { companyId: string; pipelineId: string; key: string }) {
+async function listPipelineDocumentRevisions(
+  db: Db,
+  input: { companyId: string; pipelineId: string; key: string },
+) {
   return db
     .select({
       id: documentRevisions.id,
@@ -426,18 +535,27 @@ async function listPipelineDocumentRevisions(db: Db, input: { companyId: string;
     })
     .from(pipelineDocuments)
     .innerJoin(documents, eq(pipelineDocuments.documentId, documents.id))
-    .innerJoin(documentRevisions, eq(documentRevisions.documentId, documents.id))
-    .where(and(
-      eq(pipelineDocuments.companyId, input.companyId),
-      eq(pipelineDocuments.pipelineId, input.pipelineId),
-      eq(pipelineDocuments.key, input.key),
-    ))
+    .innerJoin(
+      documentRevisions,
+      eq(documentRevisions.documentId, documents.id),
+    )
+    .where(
+      and(
+        eq(pipelineDocuments.companyId, input.companyId),
+        eq(pipelineDocuments.pipelineId, input.pipelineId),
+        eq(pipelineDocuments.key, input.key),
+      ),
+    )
     .orderBy(desc(documentRevisions.revisionNumber))
     .then((rows) => rows.map(mapPipelineDocumentRevision));
 }
 
 function parseDocumentKey(rawKey: unknown) {
-  const parsed = issueDocumentKeySchema.safeParse(String(rawKey ?? "").trim().toLowerCase());
+  const parsed = issueDocumentKeySchema.safeParse(
+    String(rawKey ?? "")
+      .trim()
+      .toLowerCase(),
+  );
   if (!parsed.success) {
     throw badRequest("Invalid document key", parsed.error.issues);
   }
@@ -462,22 +580,45 @@ function mapPipelineCaseDocumentRevision(row: {
   return row;
 }
 
-async function getPipelineCaseDocumentRow(db: PipelineRouteDb, input: { companyId: string; caseId: string; key: string }) {
+async function getPipelineCaseDocumentRow(
+  db: PipelineRouteDb,
+  input: { companyId: string; caseId: string; key: string },
+) {
   return db
-    .select({ link: pipelineCaseDocuments, document: documents, revision: documentRevisions })
+    .select({
+      link: pipelineCaseDocuments,
+      document: documents,
+      revision: documentRevisions,
+    })
     .from(pipelineCaseDocuments)
     .innerJoin(documents, eq(pipelineCaseDocuments.documentId, documents.id))
-    .leftJoin(documentRevisions, eq(documents.latestRevisionId, documentRevisions.id))
-    .where(and(
-      eq(pipelineCaseDocuments.companyId, input.companyId),
-      eq(pipelineCaseDocuments.caseId, input.caseId),
-      eq(pipelineCaseDocuments.key, input.key),
-    ))
+    .leftJoin(
+      documentRevisions,
+      eq(documents.latestRevisionId, documentRevisions.id),
+    )
+    .where(
+      and(
+        eq(pipelineCaseDocuments.companyId, input.companyId),
+        eq(pipelineCaseDocuments.caseId, input.caseId),
+        eq(pipelineCaseDocuments.key, input.key),
+      ),
+    )
     .limit(1)
-    .then((rows: Array<{ link: typeof pipelineCaseDocuments.$inferSelect; document: typeof documents.$inferSelect; revision: typeof documentRevisions.$inferSelect | null }>) => rows[0] ?? null);
+    .then(
+      (
+        rows: Array<{
+          link: typeof pipelineCaseDocuments.$inferSelect;
+          document: typeof documents.$inferSelect;
+          revision: typeof documentRevisions.$inferSelect | null;
+        }>,
+      ) => rows[0] ?? null,
+    );
 }
 
-async function listPipelineCaseDocumentRevisions(db: Db, input: { companyId: string; caseId: string; key: string }) {
+async function listPipelineCaseDocumentRevisions(
+  db: Db,
+  input: { companyId: string; caseId: string; key: string },
+) {
   return db
     .select({
       id: documentRevisions.id,
@@ -496,21 +637,34 @@ async function listPipelineCaseDocumentRevisions(db: Db, input: { companyId: str
     })
     .from(pipelineCaseDocuments)
     .innerJoin(documents, eq(pipelineCaseDocuments.documentId, documents.id))
-    .innerJoin(documentRevisions, eq(documentRevisions.documentId, documents.id))
-    .where(and(
-      eq(pipelineCaseDocuments.companyId, input.companyId),
-      eq(pipelineCaseDocuments.caseId, input.caseId),
-      eq(pipelineCaseDocuments.key, input.key),
-    ))
+    .innerJoin(
+      documentRevisions,
+      eq(documentRevisions.documentId, documents.id),
+    )
+    .where(
+      and(
+        eq(pipelineCaseDocuments.companyId, input.companyId),
+        eq(pipelineCaseDocuments.caseId, input.caseId),
+        eq(pipelineCaseDocuments.key, input.key),
+      ),
+    )
     .orderBy(desc(documentRevisions.revisionNumber))
     .then((rows) => rows.map(mapPipelineCaseDocumentRevision));
 }
 
-async function resolveCasePipelineId(db: Db, input: { companyId: string; caseId: string }) {
+async function resolveCasePipelineId(
+  db: Db,
+  input: { companyId: string; caseId: string },
+) {
   const row = await db
     .select({ pipelineId: pipelineCases.pipelineId })
     .from(pipelineCases)
-    .where(and(eq(pipelineCases.companyId, input.companyId), eq(pipelineCases.id, input.caseId)))
+    .where(
+      and(
+        eq(pipelineCases.companyId, input.companyId),
+        eq(pipelineCases.id, input.caseId),
+      ),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
   if (!row) throw notFound("Pipeline case not found");
@@ -519,19 +673,41 @@ async function resolveCasePipelineId(db: Db, input: { companyId: string; caseId:
 
 function activityActorForPipelineRoute(actor: PipelineActor) {
   if (actor.type === "agent") {
-    return { actorType: "agent" as const, actorId: actor.agentId, agentId: actor.agentId, runId: actor.runId };
+    return {
+      actorType: "agent" as const,
+      actorId: actor.agentId,
+      agentId: actor.agentId,
+      runId: actor.runId,
+    };
   }
   if (actor.type === "user") {
-    return { actorType: "user" as const, actorId: actor.userId, agentId: null, runId: null };
+    return {
+      actorType: "user" as const,
+      actorId: actor.userId,
+      agentId: null,
+      runId: null,
+    };
   }
-  return { actorType: "system" as const, actorId: "pipeline", agentId: null, runId: null };
+  return {
+    actorType: "system" as const,
+    actorId: "pipeline",
+    agentId: null,
+    runId: null,
+  };
 }
 
 function issueIdFromPipelineRouteRunContext(contextSnapshot: unknown) {
-  if (!contextSnapshot || typeof contextSnapshot !== "object" || Array.isArray(contextSnapshot)) return null;
+  if (
+    !contextSnapshot ||
+    typeof contextSnapshot !== "object" ||
+    Array.isArray(contextSnapshot)
+  )
+    return null;
   const context = contextSnapshot as Record<string, unknown>;
   const issueId = context.issueId ?? context.taskId;
-  return typeof issueId === "string" && issueId.trim().length > 0 ? issueId.trim() : null;
+  return typeof issueId === "string" && issueId.trim().length > 0
+    ? issueId.trim()
+    : null;
 }
 
 async function sourceTrustForPipelineCaseDocumentWrite(
@@ -544,18 +720,24 @@ async function sourceTrustForPipelineCaseDocumentWrite(
 ) {
   if (input.actor.type !== "agent") return null;
 
-  const conversationSource = await resolvePipelineCaseConversationSource(dbOrTx, input.companyId, input.caseId);
+  const conversationSource = await resolvePipelineCaseConversationSource(
+    dbOrTx,
+    input.companyId,
+    input.caseId,
+  );
   let issue = conversationSource?.isActive ? conversationSource.issue : null;
 
   if (!issue) {
     const runIssueId = await dbOrTx
       .select({ contextSnapshot: heartbeatRuns.contextSnapshot })
       .from(heartbeatRuns)
-      .where(and(
-        eq(heartbeatRuns.companyId, input.companyId),
-        eq(heartbeatRuns.id, input.actor.runId),
-        eq(heartbeatRuns.agentId, input.actor.agentId),
-      ))
+      .where(
+        and(
+          eq(heartbeatRuns.companyId, input.companyId),
+          eq(heartbeatRuns.id, input.actor.runId),
+          eq(heartbeatRuns.agentId, input.actor.agentId),
+        ),
+      )
       .limit(1)
       .then((rows: Array<{ contextSnapshot: unknown }>) =>
         issueIdFromPipelineRouteRunContext(rows[0]?.contextSnapshot),
@@ -565,7 +747,12 @@ async function sourceTrustForPipelineCaseDocumentWrite(
       ? await dbOrTx
           .select()
           .from(issueRows)
-          .where(and(eq(issueRows.companyId, input.companyId), eq(issueRows.id, runIssueId)))
+          .where(
+            and(
+              eq(issueRows.companyId, input.companyId),
+              eq(issueRows.id, runIssueId),
+            ),
+          )
           .limit(1)
           .then((rows: Array<typeof issueRows.$inferSelect>) => rows[0] ?? null)
       : null;
@@ -597,7 +784,10 @@ async function assertCaseAccess(db: Db, req: Request, caseId: string) {
 }
 
 async function getStagesByKey(db: Db, pipelineId: string) {
-  const rows = await db.select().from(pipelineStages).where(eq(pipelineStages.pipelineId, pipelineId));
+  const rows = await db
+    .select()
+    .from(pipelineStages)
+    .where(eq(pipelineStages.pipelineId, pipelineId));
   return new Map(rows.map((stage) => [stage.key, stage]));
 }
 
@@ -611,22 +801,33 @@ async function writeRouteEvent(
     payload?: Record<string, unknown>;
   },
 ) {
-  const actorPatch = input.actor.type === "agent"
-    ? { actorType: "agent", actorAgentId: input.actor.agentId, runId: input.actor.runId }
-    : input.actor.type === "user"
-      ? { actorType: "user", actorUserId: input.actor.userId }
-      : { actorType: "system" };
-  const [event] = await db.insert(pipelineCaseEvents).values({
-    companyId: input.companyId,
-    caseId: input.caseId,
-    type: input.type,
-    ...actorPatch,
-    payload: input.payload ?? {},
-  }).returning();
+  const actorPatch =
+    input.actor.type === "agent"
+      ? {
+          actorType: "agent",
+          actorAgentId: input.actor.agentId,
+          runId: input.actor.runId,
+        }
+      : input.actor.type === "user"
+        ? { actorType: "user", actorUserId: input.actor.userId }
+        : { actorType: "system" };
+  const [event] = await db
+    .insert(pipelineCaseEvents)
+    .values({
+      companyId: input.companyId,
+      caseId: input.caseId,
+      type: input.type,
+      ...actorPatch,
+      payload: input.payload ?? {},
+    })
+    .returning();
   return event!;
 }
 
-async function getIssueMutationTarget(db: Db, input: { companyId: string; issueId: string }) {
+async function getIssueMutationTarget(
+  db: Db,
+  input: { companyId: string; issueId: string },
+) {
   return db
     .select({
       id: issueRows.id,
@@ -638,7 +839,12 @@ async function getIssueMutationTarget(db: Db, input: { companyId: string; issueI
       status: issueRows.status,
     })
     .from(issueRows)
-    .where(and(eq(issueRows.id, input.issueId), eq(issueRows.companyId, input.companyId)))
+    .where(
+      and(
+        eq(issueRows.id, input.issueId),
+        eq(issueRows.companyId, input.companyId),
+      ),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
 }
@@ -692,10 +898,17 @@ async function assertIssueLinkMutationAllowed(
   if (input.issue.status !== "in_progress") return;
   const runId = req.actor.runId?.trim();
   if (!runId) throw unauthorized("Agent run id required");
-  await input.issuesSvc.assertCheckoutOwner(input.issue.id, actorAgentId, runId);
+  await input.issuesSvc.assertCheckoutOwner(
+    input.issue.id,
+    actorAgentId,
+    runId,
+  );
 }
 
-export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineService>[1] = {}) {
+export function pipelineRoutes(
+  db: Db,
+  options: Parameters<typeof pipelineService>[1] = {},
+) {
   const router = Router();
   const svc = pipelineService(db, options);
   const outputsSvc = pipelineCaseOutputsService(db);
@@ -722,43 +935,60 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       .groupBy(pipelines.id)
       .orderBy(asc(pipelines.createdAt));
     const pipelineIds = rows.map((row) => row.pipeline.id);
-    const [connections, descendantActiveWorkCounts, stageRows] = await Promise.all([
-      loadPipelineConnections(db, companyId),
-      loadPipelineDescendantActiveWorkCounts(db, companyId, pipelineIds),
-      pipelineIds.length > 0
-        ? db
-        .select()
-        .from(pipelineStages)
-        .where(inArray(pipelineStages.pipelineId, pipelineIds))
-        .orderBy(asc(pipelineStages.position), asc(pipelineStages.createdAt))
-        : Promise.resolve([]),
-    ]);
+    const [connections, descendantActiveWorkCounts, stageRows] =
+      await Promise.all([
+        loadPipelineConnections(db, companyId),
+        loadPipelineDescendantActiveWorkCounts(db, companyId, pipelineIds),
+        pipelineIds.length > 0
+          ? db
+              .select()
+              .from(pipelineStages)
+              .where(inArray(pipelineStages.pipelineId, pipelineIds))
+              .orderBy(
+                asc(pipelineStages.position),
+                asc(pipelineStages.createdAt),
+              )
+          : Promise.resolve([]),
+      ]);
     const stagesByPipelineId = new Map<string, typeof stageRows>();
     for (const stage of stageRows) {
       const stages = stagesByPipelineId.get(stage.pipelineId) ?? [];
       stages.push(stage);
       stagesByPipelineId.set(stage.pipelineId, stages);
     }
-    res.json(rows.map((row) => ({
-      ...row.pipeline,
-      stageCount: row.stageCount,
-      stages: stagesByPipelineId.get(row.pipeline.id) ?? [],
-      openCaseCount: row.openCaseCount,
-      attentionCount: row.attentionCount,
-      inMotionCount: row.inMotionCount,
-      descendantActiveWorkCount: descendantActiveWorkCounts.get(row.pipeline.id) ?? 0,
-      lastActivityAt: row.lastActivityAt,
-      connections: connections.get(row.pipeline.id) ?? { upstreamPipelineIds: [], downstreamPipelineIds: [] },
-    })));
+    res.json(
+      rows.map((row) => ({
+        ...row.pipeline,
+        stageCount: row.stageCount,
+        stages: stagesByPipelineId.get(row.pipeline.id) ?? [],
+        openCaseCount: row.openCaseCount,
+        attentionCount: row.attentionCount,
+        inMotionCount: row.inMotionCount,
+        descendantActiveWorkCount:
+          descendantActiveWorkCounts.get(row.pipeline.id) ?? 0,
+        lastActivityAt: row.lastActivityAt,
+        connections: connections.get(row.pipeline.id) ?? {
+          upstreamPipelineIds: [],
+          downstreamPipelineIds: [],
+        },
+      })),
+    );
   });
 
   router.get("/companies/:companyId/pipelines-attention", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertPipelineCompanyAccess(req, companyId);
     const caller = attentionCallerFor(req);
-    const requestedLimit = parseOptionalNonNegativeInteger(req.query.limit, "limit");
-    if (requestedLimit === 0) throw badRequest("limit must be a positive integer");
-    const limit = Math.min(requestedLimit ?? PIPELINE_ATTENTION_DEFAULT_LIMIT, PIPELINE_ATTENTION_MAX_LIMIT);
+    const requestedLimit = parseOptionalNonNegativeInteger(
+      req.query.limit,
+      "limit",
+    );
+    if (requestedLimit === 0)
+      throw badRequest("limit must be a positive integer");
+    const limit = Math.min(
+      requestedLimit ?? PIPELINE_ATTENTION_DEFAULT_LIMIT,
+      PIPELINE_ATTENTION_MAX_LIMIT,
+    );
     res.json(await listPipelineAttention(db, { companyId, caller, limit }));
   });
 
@@ -766,134 +996,211 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
     const companyId = req.params.companyId as string;
     assertPipelineCompanyAccess(req, companyId);
     const types = parseEventTypesQuery(req.query.types);
-    const requestedLimit = parseOptionalNonNegativeInteger(req.query.limit, "limit");
-    if (requestedLimit === 0) throw badRequest("limit must be a positive integer");
-    const limit = Math.min(requestedLimit ?? COMPANY_CASE_EVENTS_DEFAULT_LIMIT, COMPANY_CASE_EVENTS_MAX_LIMIT);
-    const offset = parseOptionalNonNegativeInteger(req.query.offset, "offset") ?? 0;
-    res.json(await listCompanyCaseEvents(db, { companyId, types, limit, offset }));
+    const requestedLimit = parseOptionalNonNegativeInteger(
+      req.query.limit,
+      "limit",
+    );
+    if (requestedLimit === 0)
+      throw badRequest("limit must be a positive integer");
+    const limit = Math.min(
+      requestedLimit ?? COMPANY_CASE_EVENTS_DEFAULT_LIMIT,
+      COMPANY_CASE_EVENTS_MAX_LIMIT,
+    );
+    const offset =
+      parseOptionalNonNegativeInteger(req.query.offset, "offset") ?? 0;
+    res.json(
+      await listCompanyCaseEvents(db, { companyId, types, limit, offset }),
+    );
   });
 
-  router.post("/companies/:companyId/pipelines", validate(createPipelineSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertPipelineCompanyAccess(req, companyId);
-    const actor = actorForMutation(req);
-    const decision = await access.decide({
-      actor: req.actor,
-      action: "pipelines:write",
-      resource: { type: "company", companyId },
-      scope: null,
-    });
-    if (!decision.allowed) {
-      throw new HttpError(403, decision.explanation, {
-        code: decision.code ?? "pipeline_write_forbidden",
-        reason: decision.reason,
+  router.post(
+    "/companies/:companyId/pipelines",
+    validate(createPipelineSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertPipelineCompanyAccess(req, companyId);
+      const actor = actorForMutation(req);
+      const decision = await access.decide({
+        actor: req.actor,
+        action: "pipelines:write",
+        resource: { type: "company", companyId },
+        scope: null,
       });
-    }
-    try {
-      const created = await svc.createPipeline({
-        companyId,
-        key: req.body.key,
-        name: req.body.name,
-        description: req.body.description,
-        projectId: req.body.projectId,
-        enforceTransitions: req.body.enforceTransitions,
-        stages: req.body.stages?.map((stage: {
-          key: string;
-          name: string;
-          kind: PipelineStageKind;
-          position?: number;
-          config?: Record<string, unknown>;
-        }) => ({
-          ...stage,
-          kind: stage.kind as PipelineStageKind,
-          config: stage.config as PipelineStageConfig | undefined,
-        })),
-        actor,
-      });
-      res.status(201).json(created);
-    } catch (error) {
-      codedConflictForUnique(error);
-    }
-  });
+      if (!decision.allowed) {
+        throw new HttpError(403, decision.explanation, {
+          code: decision.code ?? "pipeline_write_forbidden",
+          reason: decision.reason,
+        });
+      }
+      try {
+        const created = await svc.createPipeline({
+          companyId,
+          key: req.body.key,
+          name: req.body.name,
+          description: req.body.description,
+          projectId: req.body.projectId,
+          enforceTransitions: req.body.enforceTransitions,
+          stages: req.body.stages?.map(
+            (stage: {
+              key: string;
+              name: string;
+              kind: PipelineStageKind;
+              position?: number;
+              config?: Record<string, unknown>;
+            }) => ({
+              ...stage,
+              kind: stage.kind as PipelineStageKind,
+              config: stage.config as PipelineStageConfig | undefined,
+            }),
+          ),
+          actor,
+        });
+        res.status(201).json(created);
+      } catch (error) {
+        codedConflictForUnique(error);
+      }
+    },
+  );
 
   router.get("/companies/:companyId/review-cases", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertPipelineCompanyAccess(req, companyId);
-    const pipelineId = typeof req.query.pipelineId === "string" ? req.query.pipelineId : undefined;
-    const parentCaseId = typeof req.query.parentCaseId === "string" ? req.query.parentCaseId : undefined;
-    res.json(await svc.listReviewCases({ companyId, pipelineId, parentCaseId }));
+    const pipelineId =
+      typeof req.query.pipelineId === "string"
+        ? req.query.pipelineId
+        : undefined;
+    const parentCaseId =
+      typeof req.query.parentCaseId === "string"
+        ? req.query.parentCaseId
+        : undefined;
+    res.json(
+      await svc.listReviewCases({ companyId, pipelineId, parentCaseId }),
+    );
   });
 
-  router.post("/companies/:companyId/review-cases/bulk", validate(bulkReviewSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertPipelineCompanyAccess(req, companyId);
-    const actor = actorForMutation(req);
-    const results = [];
-    for (const item of req.body.items) {
-      try {
-        results.push({ caseId: item.caseId, ok: true, result: await svc.reviewCase({ companyId, ...item, actor }) });
-      } catch (error) {
-        const httpError = error as { status?: number; message?: string; details?: unknown };
-        const details = httpError.details && typeof httpError.details === "object" && !Array.isArray(httpError.details)
-          ? httpError.details as Record<string, unknown>
-          : null;
-        results.push({
-          caseId: item.caseId,
-          ok: false,
-          error: {
-            status: httpError.status ?? 500,
-            message: httpError.message ?? "Unknown error",
-            code: typeof details?.code === "string" ? details.code : undefined,
-            details: httpError.details,
-          },
-        });
+  router.post(
+    "/companies/:companyId/review-cases/bulk",
+    validate(bulkReviewSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertPipelineCompanyAccess(req, companyId);
+      const actor = actorForMutation(req);
+      const results = [];
+      for (const item of req.body.items) {
+        try {
+          results.push({
+            caseId: item.caseId,
+            ok: true,
+            result: await svc.reviewCase({ companyId, ...item, actor }),
+          });
+        } catch (error) {
+          const httpError = error as {
+            status?: number;
+            message?: string;
+            details?: unknown;
+          };
+          const details =
+            httpError.details &&
+            typeof httpError.details === "object" &&
+            !Array.isArray(httpError.details)
+              ? (httpError.details as Record<string, unknown>)
+              : null;
+          results.push({
+            caseId: item.caseId,
+            ok: false,
+            error: {
+              status: httpError.status ?? 500,
+              message: httpError.message ?? "Unknown error",
+              code:
+                typeof details?.code === "string" ? details.code : undefined,
+              details: httpError.details,
+            },
+          });
+        }
       }
-    }
-    res.json({ results });
-  });
+      res.json({ results });
+    },
+  );
 
   router.get("/pipelines/:pipelineId", async (req, res) => {
     const pipelineId = req.params.pipelineId as string;
     const companyId = await assertPipelineAccess(db, req, pipelineId);
     const [pipeline, stages, transitions, documentKeys] = await Promise.all([
-      db.select().from(pipelines).where(and(eq(pipelines.id, pipelineId), eq(pipelines.companyId, companyId))).then((rows) => rows[0] ?? null),
-      db.select().from(pipelineStages).where(eq(pipelineStages.pipelineId, pipelineId)).orderBy(asc(pipelineStages.position)),
-      db.select().from(pipelineTransitions).where(eq(pipelineTransitions.pipelineId, pipelineId)),
-      db.select({ key: pipelineDocuments.key, documentId: pipelineDocuments.documentId })
+      db
+        .select()
+        .from(pipelines)
+        .where(
+          and(eq(pipelines.id, pipelineId), eq(pipelines.companyId, companyId)),
+        )
+        .then((rows) => rows[0] ?? null),
+      db
+        .select()
+        .from(pipelineStages)
+        .where(eq(pipelineStages.pipelineId, pipelineId))
+        .orderBy(asc(pipelineStages.position)),
+      db
+        .select()
+        .from(pipelineTransitions)
+        .where(eq(pipelineTransitions.pipelineId, pipelineId)),
+      db
+        .select({
+          key: pipelineDocuments.key,
+          documentId: pipelineDocuments.documentId,
+        })
         .from(pipelineDocuments)
-        .where(and(eq(pipelineDocuments.companyId, companyId), eq(pipelineDocuments.pipelineId, pipelineId))),
+        .where(
+          and(
+            eq(pipelineDocuments.companyId, companyId),
+            eq(pipelineDocuments.pipelineId, pipelineId),
+          ),
+        ),
     ]);
     if (!pipeline) throw notFound("Pipeline not found");
     const automationRoutineIds = stages.flatMap((stage) => {
       const routineId = stageAutomationRoutineId(stage.config);
       return routineId ? [routineId] : [];
     });
-    const routineRows = automationRoutineIds.length > 0
-      ? await db
-          .select({
-            id: routines.id,
-            assigneeAgentId: routines.assigneeAgentId,
-            title: routines.title,
-            description: routines.description,
-            env: routines.env,
-            latestRevisionId: routines.latestRevisionId,
-            latestRevisionNumber: routines.latestRevisionNumber,
-          })
-          .from(routines)
-          .where(and(eq(routines.companyId, companyId), inArray(routines.id, automationRoutineIds)))
-      : [];
-    const routineById = new Map(routineRows.map((row) => [
-      row.id,
-      {
-        assigneeAgentId: row.assigneeAgentId,
-        title: row.title,
-        description: row.description,
-        env: row.env,
-        latestRevisionId: row.latestRevisionId,
-        latestRevisionNumber: row.latestRevisionNumber,
-      },
-    ]));
-    res.json({ ...pipeline, stages: stages.map((stage) => withDerivedStageAutomation(stage, routineById)), transitions, documentKeys });
+    const routineRows =
+      automationRoutineIds.length > 0
+        ? await db
+            .select({
+              id: routines.id,
+              assigneeAgentId: routines.assigneeAgentId,
+              title: routines.title,
+              description: routines.description,
+              env: routines.env,
+              latestRevisionId: routines.latestRevisionId,
+              latestRevisionNumber: routines.latestRevisionNumber,
+            })
+            .from(routines)
+            .where(
+              and(
+                eq(routines.companyId, companyId),
+                inArray(routines.id, automationRoutineIds),
+              ),
+            )
+        : [];
+    const routineById = new Map(
+      routineRows.map((row) => [
+        row.id,
+        {
+          assigneeAgentId: row.assigneeAgentId,
+          title: row.title,
+          description: row.description,
+          env: row.env,
+          latestRevisionId: row.latestRevisionId,
+          latestRevisionNumber: row.latestRevisionNumber,
+        },
+      ]),
+    );
+    res.json({
+      ...pipeline,
+      stages: stages.map((stage) =>
+        withDerivedStageAutomation(stage, routineById),
+      ),
+      transitions,
+      documentKeys,
+    });
   });
 
   // Setup-health warnings: surface any configuration that won't actually run
@@ -903,54 +1210,85 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
   router.get("/pipelines/:pipelineId/health", async (req, res) => {
     const pipelineId = req.params.pipelineId as string;
     const companyId = await assertPipelineAccess(db, req, pipelineId);
-    const [pipeline, stages, instructionDocs, companyAgents, companyPipelines, companyStages, failedAutomationRows] = await Promise.all([
-      db.select().from(pipelines)
-        .where(and(eq(pipelines.id, pipelineId), eq(pipelines.companyId, companyId)))
+    const [
+      pipeline,
+      stages,
+      instructionDocs,
+      companyAgents,
+      companyPipelines,
+      companyStages,
+      failedAutomationRows,
+    ] = await Promise.all([
+      db
+        .select()
+        .from(pipelines)
+        .where(
+          and(eq(pipelines.id, pipelineId), eq(pipelines.companyId, companyId)),
+        )
         .then((rows) => rows[0] ?? null),
-      db.select().from(pipelineStages).where(eq(pipelineStages.pipelineId, pipelineId)).orderBy(asc(pipelineStages.position)),
-      db.select({ key: pipelineDocuments.key, body: documentRevisions.body })
+      db
+        .select()
+        .from(pipelineStages)
+        .where(eq(pipelineStages.pipelineId, pipelineId))
+        .orderBy(asc(pipelineStages.position)),
+      db
+        .select({ key: pipelineDocuments.key, body: documentRevisions.body })
         .from(pipelineDocuments)
         .innerJoin(documents, eq(pipelineDocuments.documentId, documents.id))
-        .leftJoin(documentRevisions, eq(documents.latestRevisionId, documentRevisions.id))
-        .where(and(
-          eq(pipelineDocuments.companyId, companyId),
-          eq(pipelineDocuments.pipelineId, pipelineId),
-          ilike(pipelineDocuments.key, `${STAGE_INSTRUCTIONS_PREFIX}%`),
-        )),
-      db.select({ id: agents.id, name: agents.name, status: agents.status })
+        .leftJoin(
+          documentRevisions,
+          eq(documents.latestRevisionId, documentRevisions.id),
+        )
+        .where(
+          and(
+            eq(pipelineDocuments.companyId, companyId),
+            eq(pipelineDocuments.pipelineId, pipelineId),
+            ilike(pipelineDocuments.key, `${STAGE_INSTRUCTIONS_PREFIX}%`),
+          ),
+        ),
+      db
+        .select({ id: agents.id, name: agents.name, status: agents.status })
         .from(agents)
         .where(eq(agents.companyId, companyId)),
-      db.select({ id: pipelines.id, name: pipelines.name })
+      db
+        .select({ id: pipelines.id, name: pipelines.name })
         .from(pipelines)
         .where(eq(pipelines.companyId, companyId)),
-      db.select({
-        pipelineId: pipelineStages.pipelineId,
-        key: pipelineStages.key,
-        name: pipelineStages.name,
-        kind: pipelineStages.kind,
-        config: pipelineStages.config,
-      })
+      db
+        .select({
+          pipelineId: pipelineStages.pipelineId,
+          key: pipelineStages.key,
+          name: pipelineStages.name,
+          kind: pipelineStages.kind,
+          config: pipelineStages.config,
+        })
         .from(pipelineStages)
         .innerJoin(pipelines, eq(pipelineStages.pipelineId, pipelines.id))
         .where(eq(pipelines.companyId, companyId))
         .orderBy(asc(pipelineStages.position), asc(pipelineStages.createdAt)),
-      db.select({
-        caseId: pipelineCases.id,
-        caseTitle: pipelineCases.title,
-        stageId: pipelineStages.id,
-        stageKey: pipelineStages.key,
-        stageName: pipelineStages.name,
-        error: pipelineAutomationExecutions.error,
-      })
+      db
+        .select({
+          caseId: pipelineCases.id,
+          caseTitle: pipelineCases.title,
+          stageId: pipelineStages.id,
+          stageKey: pipelineStages.key,
+          stageName: pipelineStages.name,
+          error: pipelineAutomationExecutions.error,
+        })
         .from(pipelineAutomationExecutions)
-        .innerJoin(pipelineCases, eq(pipelineAutomationExecutions.caseId, pipelineCases.id))
+        .innerJoin(
+          pipelineCases,
+          eq(pipelineAutomationExecutions.caseId, pipelineCases.id),
+        )
         .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-        .where(and(
-          eq(pipelineAutomationExecutions.companyId, companyId),
-          eq(pipelineCases.pipelineId, pipelineId),
-          eq(pipelineAutomationExecutions.status, "failed"),
-          isNull(pipelineCases.terminalKind),
-        ))
+        .where(
+          and(
+            eq(pipelineAutomationExecutions.companyId, companyId),
+            eq(pipelineCases.pipelineId, pipelineId),
+            eq(pipelineAutomationExecutions.status, "failed"),
+            isNull(pipelineCases.terminalKind),
+          ),
+        )
         .orderBy(desc(pipelineAutomationExecutions.updatedAt))
         .limit(50),
     ]);
@@ -960,42 +1298,64 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       const routineId = stageAutomationRoutineId(stage.config);
       return routineId ? [routineId] : [];
     });
-    const routineRows = automationRoutineIds.length > 0
-      ? await db
-          .select({
-            id: routines.id,
-            assigneeAgentId: routines.assigneeAgentId,
-            title: routines.title,
-            description: routines.description,
-            env: routines.env,
-            latestRevisionId: routines.latestRevisionId,
-            latestRevisionNumber: routines.latestRevisionNumber,
-          })
-          .from(routines)
-          .where(and(eq(routines.companyId, companyId), inArray(routines.id, automationRoutineIds)))
-      : [];
-    const routineById = new Map(routineRows.map((row) => [
-      row.id,
-      {
-        assigneeAgentId: row.assigneeAgentId,
-        title: row.title,
-        description: row.description,
-        env: row.env,
-        latestRevisionId: row.latestRevisionId,
-        latestRevisionNumber: row.latestRevisionNumber,
-      },
-    ]));
+    const routineRows =
+      automationRoutineIds.length > 0
+        ? await db
+            .select({
+              id: routines.id,
+              assigneeAgentId: routines.assigneeAgentId,
+              title: routines.title,
+              description: routines.description,
+              env: routines.env,
+              latestRevisionId: routines.latestRevisionId,
+              latestRevisionNumber: routines.latestRevisionNumber,
+            })
+            .from(routines)
+            .where(
+              and(
+                eq(routines.companyId, companyId),
+                inArray(routines.id, automationRoutineIds),
+              ),
+            )
+        : [];
+    const routineById = new Map(
+      routineRows.map((row) => [
+        row.id,
+        {
+          assigneeAgentId: row.assigneeAgentId,
+          title: row.title,
+          description: row.description,
+          env: row.env,
+          latestRevisionId: row.latestRevisionId,
+          latestRevisionNumber: row.latestRevisionNumber,
+        },
+      ]),
+    );
 
     const bodyByStageId = new Map<string, string>();
     for (const doc of instructionDocs) {
       if (!doc.key.startsWith(STAGE_INSTRUCTIONS_PREFIX)) continue;
-      bodyByStageId.set(doc.key.slice(STAGE_INSTRUCTIONS_PREFIX.length), doc.body ?? "");
+      bodyByStageId.set(
+        doc.key.slice(STAGE_INSTRUCTIONS_PREFIX.length),
+        doc.body ?? "",
+      );
     }
 
-    const agentsById: Record<string, { id: string; name: string | null; status: string }> = {};
+    const agentsById: Record<
+      string,
+      { id: string; name: string | null; status: string }
+    > = {};
     for (const agent of companyAgents) agentsById[agent.id] = agent;
 
-    const stagesByPipelineId = new Map<string, Array<{ key: string; name: string; kind: string; config: Record<string, unknown> | null }>>();
+    const stagesByPipelineId = new Map<
+      string,
+      Array<{
+        key: string;
+        name: string;
+        kind: string;
+        config: Record<string, unknown> | null;
+      }>
+    >();
     for (const stage of companyStages) {
       const list = stagesByPipelineId.get(stage.pipelineId) ?? [];
       list.push({
@@ -1006,33 +1366,69 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       });
       stagesByPipelineId.set(stage.pipelineId, list);
     }
-    const pipelinesById: Record<string, { id: string; name: string; stages: Array<{ key: string; name: string; kind: string; config: Record<string, unknown> | null }> }> = {};
+    const pipelinesById: Record<
+      string,
+      {
+        id: string;
+        name: string;
+        stages: Array<{
+          key: string;
+          name: string;
+          kind: string;
+          config: Record<string, unknown> | null;
+        }>;
+      }
+    > = {};
     for (const p of companyPipelines) {
-      pipelinesById[p.id] = { id: p.id, name: p.name, stages: stagesByPipelineId.get(p.id) ?? [] };
+      pipelinesById[p.id] = {
+        id: p.id,
+        name: p.name,
+        stages: stagesByPipelineId.get(p.id) ?? [],
+      };
     }
 
     const healthStages: PipelineHealthStageInput[] = stages.map((stage) => {
-      const stageWithAutomation = withDerivedStageAutomation(stage, routineById);
-      const automation = (stageWithAutomation.config as { automation?: { instructionsBody?: string | null } }).automation;
+      const stageWithAutomation = withDerivedStageAutomation(
+        stage,
+        routineById,
+      );
+      const automation = (
+        stageWithAutomation.config as {
+          automation?: { instructionsBody?: string | null };
+        }
+      ).automation;
       return {
         id: stage.id,
         key: stage.key,
         name: stage.name,
         kind: stage.kind,
-        config: (stageWithAutomation.config ?? null) as Record<string, unknown> | null,
-        instructionsBody: automation?.instructionsBody ?? bodyByStageId.get(stage.id) ?? "",
+        config: (stageWithAutomation.config ?? null) as Record<
+          string,
+          unknown
+        > | null,
+        instructionsBody:
+          automation?.instructionsBody ?? bodyByStageId.get(stage.id) ?? "",
       };
     });
-    const failedAutomations: PipelineHealthFailedAutomationInput[] = failedAutomationRows.map((row) => ({
-      stageId: row.stageId,
-      stageKey: row.stageKey,
-      stageName: row.stageName,
-      caseId: row.caseId,
-      caseTitle: row.caseTitle,
-      error: row.error,
-    }));
+    const failedAutomations: PipelineHealthFailedAutomationInput[] =
+      failedAutomationRows.map((row) => ({
+        stageId: row.stageId,
+        stageKey: row.stageKey,
+        stageName: row.stageName,
+        caseId: row.caseId,
+        caseTitle: row.caseTitle,
+        error: row.error,
+      }));
 
-    res.json(computePipelineHealth({ pipelineId, stages: healthStages, agentsById, pipelinesById, failedAutomations }));
+    res.json(
+      computePipelineHealth({
+        pipelineId,
+        stages: healthStages,
+        agentsById,
+        pipelinesById,
+        failedAutomations,
+      }),
+    );
   });
 
   router.get("/pipelines/:pipelineId/intake-form", async (req, res) => {
@@ -1053,74 +1449,107 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
     });
   });
 
-  router.patch("/pipelines/:pipelineId", validate(updatePipelineSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    actorForMutation(req);
-    const patch: Partial<typeof pipelines.$inferInsert> = { updatedAt: new Date() };
-    if (req.body.name !== undefined) patch.name = req.body.name;
-    if (req.body.description !== undefined) patch.description = req.body.description;
-    if (req.body.enforceTransitions !== undefined) patch.enforceTransitions = req.body.enforceTransitions;
-    if (req.body.archived !== undefined) patch.archivedAt = req.body.archived ? new Date() : null;
-    const [updated] = await db
-      .update(pipelines)
-      .set(patch)
-      .where(and(eq(pipelines.id, pipelineId), eq(pipelines.companyId, companyId)))
-      .returning();
-    res.json(updated);
-  });
+  router.patch(
+    "/pipelines/:pipelineId",
+    validate(updatePipelineSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      actorForMutation(req);
+      const patch: Partial<typeof pipelines.$inferInsert> = {
+        updatedAt: new Date(),
+      };
+      if (req.body.name !== undefined) patch.name = req.body.name;
+      if (req.body.description !== undefined)
+        patch.description = req.body.description;
+      if (req.body.enforceTransitions !== undefined)
+        patch.enforceTransitions = req.body.enforceTransitions;
+      if (req.body.archived !== undefined)
+        patch.archivedAt = req.body.archived ? new Date() : null;
+      const [updated] = await db
+        .update(pipelines)
+        .set(patch)
+        .where(
+          and(eq(pipelines.id, pipelineId), eq(pipelines.companyId, companyId)),
+        )
+        .returning();
+      res.json(updated);
+    },
+  );
 
-  router.post("/pipelines/:pipelineId/stages", validate(createStageSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-    try {
-      const stage = await svc.createStage({
-        companyId,
-        pipelineId,
-        key: req.body.key,
-        name: req.body.name,
-        kind: req.body.kind,
-        position: req.body.position,
-        config: req.body.config,
-        actor,
-      });
-      res.status(201).json(stage);
-    } catch (error) {
-      codedConflictForUnique(error);
-    }
-  });
+  router.post(
+    "/pipelines/:pipelineId/stages",
+    validate(createStageSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+      try {
+        const stage = await svc.createStage({
+          companyId,
+          pipelineId,
+          key: req.body.key,
+          name: req.body.name,
+          kind: req.body.kind,
+          position: req.body.position,
+          config: req.body.config,
+          actor,
+        });
+        res.status(201).json(stage);
+      } catch (error) {
+        codedConflictForUnique(error);
+      }
+    },
+  );
 
-  router.patch("/pipelines/:pipelineId/stages/:stageId", validate(updateStageSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const stageId = req.params.stageId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-    try {
-      res.json(await svc.updateStage({ companyId, pipelineId, stageId, patch: req.body, actor }));
-    } catch (error) {
-      codedConflictForUnique(error);
-    }
-  });
+  router.patch(
+    "/pipelines/:pipelineId/stages/:stageId",
+    validate(updateStageSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const stageId = req.params.stageId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+      try {
+        res.json(
+          await svc.updateStage({
+            companyId,
+            pipelineId,
+            stageId,
+            patch: req.body,
+            actor,
+          }),
+        );
+      } catch (error) {
+        codedConflictForUnique(error);
+      }
+    },
+  );
 
-  router.patch("/pipelines/:pipelineId/stages/:stageId/automation-env", validate(updateStageAutomationEnvSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const stageId = req.params.stageId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-    res.json(await svc.updateStageAutomationEnv({
-      companyId,
-      pipelineId,
-      stageId,
-      env: req.body.env,
-      baseRoutineRevisionId: req.body.baseRoutineRevisionId ?? null,
-      actor,
-    }));
-  });
+  router.patch(
+    "/pipelines/:pipelineId/stages/:stageId/automation-env",
+    validate(updateStageAutomationEnvSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const stageId = req.params.stageId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.updateStageAutomationEnv({
+          companyId,
+          pipelineId,
+          stageId,
+          env: req.body.env,
+          baseRoutineRevisionId: req.body.baseRoutineRevisionId ?? null,
+          actor,
+        }),
+      );
+    },
+  );
 
   router.delete("/pipelines/:pipelineId/stages/:stageId", async (req, res) => {
     const pipelineId = req.params.pipelineId as string;
@@ -1132,260 +1561,428 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       companyId,
       pipelineId,
       stageId,
-      moveCasesToStageId: typeof req.query.moveCasesToStageId === "string" ? req.query.moveCasesToStageId : null,
+      moveCasesToStageId:
+        typeof req.query.moveCasesToStageId === "string"
+          ? req.query.moveCasesToStageId
+          : null,
       actor,
     });
     res.json(result);
   });
 
-  router.put("/pipelines/:pipelineId/transitions", validate(replaceTransitionsSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    actorForMutation(req);
-    const byKey = await getStagesByKey(db, pipelineId);
-    const transitions = req.body.transitions.map((edge: z.infer<typeof replaceTransitionsSchema>["transitions"][number]) => {
-      const from = byKey.get(edge.fromStageKey);
-      const to = byKey.get(edge.toStageKey);
-      if (!from || !to) throw unprocessable("Transition references unknown stage", { code: "validation" });
-      return { pipelineId, fromStageId: from.id, toStageId: to.id, label: edge.label ?? null };
-    });
-    const result = await db.transaction(async (tx) => {
-      await tx.delete(pipelineTransitions).where(eq(pipelineTransitions.pipelineId, pipelineId));
-      if (req.body.enforceTransitions !== undefined) {
-        await tx.update(pipelines).set({ enforceTransitions: req.body.enforceTransitions, updatedAt: new Date() })
-          .where(and(eq(pipelines.id, pipelineId), eq(pipelines.companyId, companyId)));
-      }
-      return transitions.length ? tx.insert(pipelineTransitions).values(transitions).returning() : [];
-    });
-    res.json({ transitions: result });
-  });
+  router.put(
+    "/pipelines/:pipelineId/transitions",
+    validate(replaceTransitionsSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      actorForMutation(req);
+      const byKey = await getStagesByKey(db, pipelineId);
+      const transitions = req.body.transitions.map(
+        (
+          edge: z.infer<typeof replaceTransitionsSchema>["transitions"][number],
+        ) => {
+          const from = byKey.get(edge.fromStageKey);
+          const to = byKey.get(edge.toStageKey);
+          if (!from || !to)
+            throw unprocessable("Transition references unknown stage", {
+              code: "validation",
+            });
+          return {
+            pipelineId,
+            fromStageId: from.id,
+            toStageId: to.id,
+            label: edge.label ?? null,
+          };
+        },
+      );
+      const result = await db.transaction(async (tx) => {
+        await tx
+          .delete(pipelineTransitions)
+          .where(eq(pipelineTransitions.pipelineId, pipelineId));
+        if (req.body.enforceTransitions !== undefined) {
+          await tx
+            .update(pipelines)
+            .set({
+              enforceTransitions: req.body.enforceTransitions,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(pipelines.id, pipelineId),
+                eq(pipelines.companyId, companyId),
+              ),
+            );
+        }
+        return transitions.length
+          ? tx.insert(pipelineTransitions).values(transitions).returning()
+          : [];
+      });
+      res.json({ transitions: result });
+    },
+  );
 
   router.get("/pipelines/:pipelineId/documents/:key", async (req, res) => {
     const pipelineId = req.params.pipelineId as string;
     const key = req.params.key as string;
     const companyId = await assertPipelineAccess(db, req, pipelineId);
-    const row = await getPipelineDocumentRow(db, { companyId, pipelineId, key });
+    const row = await getPipelineDocumentRow(db, {
+      companyId,
+      pipelineId,
+      key,
+    });
     if (!row) throw notFound("Pipeline document not found");
     res.json(row);
   });
 
-  router.put("/pipelines/:pipelineId/documents/:key", validate(upsertPipelineDocumentSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const key = req.params.key as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-    const result = await db.transaction(async (tx) => {
-      const existing = await tx
-        .select({ link: pipelineDocuments, document: documents, revision: documentRevisions })
-        .from(pipelineDocuments)
-        .innerJoin(documents, eq(pipelineDocuments.documentId, documents.id))
-        .leftJoin(documentRevisions, eq(documents.latestRevisionId, documentRevisions.id))
-        .where(and(eq(pipelineDocuments.companyId, companyId), eq(pipelineDocuments.pipelineId, pipelineId), eq(pipelineDocuments.key, key)))
-        .limit(1)
-        .then((rows) => rows[0] ?? null);
+  router.put(
+    "/pipelines/:pipelineId/documents/:key",
+    validate(upsertPipelineDocumentSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const key = req.params.key as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+      const result = await db.transaction(async (tx) => {
+        const existing = await tx
+          .select({
+            link: pipelineDocuments,
+            document: documents,
+            revision: documentRevisions,
+          })
+          .from(pipelineDocuments)
+          .innerJoin(documents, eq(pipelineDocuments.documentId, documents.id))
+          .leftJoin(
+            documentRevisions,
+            eq(documents.latestRevisionId, documentRevisions.id),
+          )
+          .where(
+            and(
+              eq(pipelineDocuments.companyId, companyId),
+              eq(pipelineDocuments.pipelineId, pipelineId),
+              eq(pipelineDocuments.key, key),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
 
-      if (existing && req.body.baseRevisionId && req.body.baseRevisionId !== existing.document.latestRevisionId) {
-        throw conflict("Pipeline document was updated by someone else", {
-          code: "stale_base_revision",
-          latestRevision: existing.revision
-            ? {
-                id: existing.revision.id,
-                revisionNumber: existing.revision.revisionNumber,
-                title: existing.revision.title,
-                createdAt: existing.revision.createdAt,
-                createdByAgentId: existing.revision.createdByAgentId,
-                createdByUserId: existing.revision.createdByUserId,
-              }
-            : null,
-          latestRevisionId: existing.document.latestRevisionId,
-          latestRevisionNumber: existing.document.latestRevisionNumber,
-        });
-      }
+        if (
+          existing &&
+          req.body.baseRevisionId &&
+          req.body.baseRevisionId !== existing.document.latestRevisionId
+        ) {
+          throw conflict("Pipeline document was updated by someone else", {
+            code: "stale_base_revision",
+            latestRevision: existing.revision
+              ? {
+                  id: existing.revision.id,
+                  revisionNumber: existing.revision.revisionNumber,
+                  title: existing.revision.title,
+                  createdAt: existing.revision.createdAt,
+                  createdByAgentId: existing.revision.createdByAgentId,
+                  createdByUserId: existing.revision.createdByUserId,
+                }
+              : null,
+            latestRevisionId: existing.document.latestRevisionId,
+            latestRevisionNumber: existing.document.latestRevisionNumber,
+          });
+        }
 
-      if (!existing && req.body.baseRevisionId) {
-        throw conflict("Pipeline document does not exist yet", {
-          code: "stale_base_revision",
-          latestRevision: null,
-          latestRevisionId: null,
-          latestRevisionNumber: null,
-        });
-      }
+        if (!existing && req.body.baseRevisionId) {
+          throw conflict("Pipeline document does not exist yet", {
+            code: "stale_base_revision",
+            latestRevision: null,
+            latestRevisionId: null,
+            latestRevisionNumber: null,
+          });
+        }
 
-      const now = new Date();
-      const [document] = existing
-        ? await tx.update(documents).set({
-          title: req.body.title ?? key,
-          updatedAt: now,
-          updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-          updatedByUserId: actor.type === "user" ? actor.userId : null,
-        }).where(eq(documents.id, existing.document.id)).returning()
-        : await tx.insert(documents).values({
+        const now = new Date();
+        const [document] = existing
+          ? await tx
+              .update(documents)
+              .set({
+                title: req.body.title ?? key,
+                updatedAt: now,
+                updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+                updatedByUserId: actor.type === "user" ? actor.userId : null,
+              })
+              .where(eq(documents.id, existing.document.id))
+              .returning()
+          : await tx
+              .insert(documents)
+              .values({
+                companyId,
+                title: req.body.title ?? key,
+                latestBody: req.body.body,
+                latestRevisionNumber: 1,
+                createdByAgentId: actor.type === "agent" ? actor.agentId : null,
+                createdByUserId: actor.type === "user" ? actor.userId : null,
+                updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+                updatedByUserId: actor.type === "user" ? actor.userId : null,
+              })
+              .returning();
+        const [revision] = await tx
+          .insert(documentRevisions)
+          .values({
+            companyId,
+            documentId: document!.id,
+            revisionNumber: existing
+              ? existing.document.latestRevisionNumber + 1
+              : 1,
+            title: req.body.title ?? document!.title,
+            body: req.body.body,
+            createdByAgentId: actor.type === "agent" ? actor.agentId : null,
+            createdByUserId: actor.type === "user" ? actor.userId : null,
+            createdByRunId: actor.type === "agent" ? actor.runId : null,
+            createdAt: now,
+          })
+          .returning();
+        await tx
+          .update(documents)
+          .set({
+            latestBody: req.body.body,
+            latestRevisionId: revision!.id,
+            latestRevisionNumber: revision!.revisionNumber,
+            updatedAt: now,
+            updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+            updatedByUserId: actor.type === "user" ? actor.userId : null,
+          })
+          .where(eq(documents.id, document!.id));
+        if (!existing) {
+          await tx
+            .insert(pipelineDocuments)
+            .values({
+              companyId,
+              pipelineId,
+              documentId: document!.id,
+              key,
+              createdAt: now,
+              updatedAt: now,
+            });
+        } else {
+          await tx
+            .update(pipelineDocuments)
+            .set({ updatedAt: now })
+            .where(eq(pipelineDocuments.documentId, document!.id));
+        }
+        return {
+          document: {
+            ...document!,
+            latestBody: req.body.body,
+            latestRevisionId: revision!.id,
+            latestRevisionNumber: revision!.revisionNumber,
+            updatedAt: now,
+            updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+            updatedByUserId: actor.type === "user" ? actor.userId : null,
+          },
+          revision,
+        };
+      });
+      res.json(result);
+    },
+  );
+
+  router.get(
+    "/pipelines/:pipelineId/documents/:key/revisions",
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const key = req.params.key as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      const revisions = await listPipelineDocumentRevisions(db, {
+        companyId,
+        pipelineId,
+        key,
+      });
+      res.json(revisions);
+    },
+  );
+
+  router.post(
+    "/pipelines/:pipelineId/documents/:key/revisions/:revisionId/restore",
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const key = req.params.key as string;
+      const revisionId = req.params.revisionId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+
+      const result = await db.transaction(async (tx) => {
+        const existing = await tx
+          .select({
+            link: pipelineDocuments,
+            document: documents,
+            revision: documentRevisions,
+          })
+          .from(pipelineDocuments)
+          .innerJoin(documents, eq(pipelineDocuments.documentId, documents.id))
+          .leftJoin(
+            documentRevisions,
+            eq(documents.latestRevisionId, documentRevisions.id),
+          )
+          .where(
+            and(
+              eq(pipelineDocuments.companyId, companyId),
+              eq(pipelineDocuments.pipelineId, pipelineId),
+              eq(pipelineDocuments.key, key),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
+        if (!existing) throw notFound("Pipeline document not found");
+
+        const sourceRevision = await tx
+          .select()
+          .from(documentRevisions)
+          .where(
+            and(
+              eq(documentRevisions.id, revisionId),
+              eq(documentRevisions.documentId, existing.document.id),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
+        if (!sourceRevision)
+          throw notFound("Pipeline document revision not found");
+
+        if (existing.document.latestRevisionId === sourceRevision.id) {
+          throw conflict("Selected revision is already the latest revision", {
+            currentRevisionId: existing.document.latestRevisionId,
+          });
+        }
+
+        const now = new Date();
+        const nextRevisionNumber = existing.document.latestRevisionNumber + 1;
+        const [restoredRevision] = await tx
+          .insert(documentRevisions)
+          .values({
+            companyId,
+            documentId: existing.document.id,
+            revisionNumber: nextRevisionNumber,
+            title: sourceRevision.title ?? null,
+            format: sourceRevision.format,
+            body: sourceRevision.body,
+            changeSummary: `Restored from revision ${sourceRevision.revisionNumber}`,
+            createdByAgentId: actor.type === "agent" ? actor.agentId : null,
+            createdByUserId: actor.type === "user" ? actor.userId : null,
+            createdByRunId: actor.type === "agent" ? actor.runId : null,
+            createdAt: now,
+          })
+          .returning();
+
+        const [document] = await tx
+          .update(documents)
+          .set({
+            title: sourceRevision.title ?? null,
+            format: sourceRevision.format,
+            latestBody: sourceRevision.body,
+            latestRevisionId: restoredRevision!.id,
+            latestRevisionNumber: nextRevisionNumber,
+            updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+            updatedByUserId: actor.type === "user" ? actor.userId : null,
+            updatedAt: now,
+          })
+          .where(eq(documents.id, existing.document.id))
+          .returning();
+
+        await tx
+          .update(pipelineDocuments)
+          .set({ updatedAt: now })
+          .where(eq(pipelineDocuments.documentId, existing.document.id));
+
+        return {
+          document: { ...document!, latestRevisionId: restoredRevision!.id },
+          revision: restoredRevision!,
+          restoredFromRevisionId: sourceRevision.id,
+          restoredFromRevisionNumber: sourceRevision.revisionNumber,
+        };
+      });
+
+      res.json(result);
+    },
+  );
+
+  router.post(
+    "/pipelines/:pipelineId/cases",
+    validate(ingestCaseSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+      const result = await svc.ingestCase({
+        companyId,
+        pipelineId,
+        ...req.body,
+        actor,
+      });
+      res.status(result.created ? 201 : 200).json(result);
+    },
+  );
+
+  router.post(
+    "/pipelines/:pipelineId/cases/batch",
+    validate(batchIngestSchema),
+    async (req, res) => {
+      const pipelineId = req.params.pipelineId as string;
+      const companyId = await assertPipelineAccess(db, req, pipelineId);
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.ingestCases({
           companyId,
-          title: req.body.title ?? key,
-          latestBody: req.body.body,
-          latestRevisionNumber: 1,
-          createdByAgentId: actor.type === "agent" ? actor.agentId : null,
-          createdByUserId: actor.type === "user" ? actor.userId : null,
-          updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-          updatedByUserId: actor.type === "user" ? actor.userId : null,
-        }).returning();
-      const [revision] = await tx.insert(documentRevisions).values({
+          pipelineId,
+          items: req.body.items,
+          actor,
+        }),
+      );
+    },
+  );
+
+  router.post(
+    "/cases/:caseId/breakdown",
+    validate(breakdownCaseSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const target = await svc.resolveBreakdownTarget({ companyId, caseId });
+      await assertPipelineWriteAccess(req, {
+        access,
         companyId,
-        documentId: document!.id,
-        revisionNumber: existing ? existing.document.latestRevisionNumber + 1 : 1,
-        title: req.body.title ?? document!.title,
-        body: req.body.body,
-        createdByAgentId: actor.type === "agent" ? actor.agentId : null,
-        createdByUserId: actor.type === "user" ? actor.userId : null,
-        createdByRunId: actor.type === "agent" ? actor.runId : null,
-        createdAt: now,
-      }).returning();
-      await tx.update(documents).set({
-        latestBody: req.body.body,
-        latestRevisionId: revision!.id,
-        latestRevisionNumber: revision!.revisionNumber,
-        updatedAt: now,
-        updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-        updatedByUserId: actor.type === "user" ? actor.userId : null,
-      }).where(eq(documents.id, document!.id));
-      if (!existing) {
-        await tx.insert(pipelineDocuments).values({ companyId, pipelineId, documentId: document!.id, key, createdAt: now, updatedAt: now });
-      } else {
-        await tx.update(pipelineDocuments).set({ updatedAt: now }).where(eq(pipelineDocuments.documentId, document!.id));
-      }
-      return {
-        document: {
-          ...document!,
-          latestBody: req.body.body,
-          latestRevisionId: revision!.id,
-          latestRevisionNumber: revision!.revisionNumber,
-          updatedAt: now,
-          updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-          updatedByUserId: actor.type === "user" ? actor.userId : null,
-        },
-        revision,
-      };
-    });
-    res.json(result);
-  });
-
-  router.get("/pipelines/:pipelineId/documents/:key/revisions", async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const key = req.params.key as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    const revisions = await listPipelineDocumentRevisions(db, { companyId, pipelineId, key });
-    res.json(revisions);
-  });
-
-  router.post("/pipelines/:pipelineId/documents/:key/revisions/:revisionId/restore", async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const key = req.params.key as string;
-    const revisionId = req.params.revisionId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-
-    const result = await db.transaction(async (tx) => {
-      const existing = await tx
-        .select({ link: pipelineDocuments, document: documents, revision: documentRevisions })
-        .from(pipelineDocuments)
-        .innerJoin(documents, eq(pipelineDocuments.documentId, documents.id))
-        .leftJoin(documentRevisions, eq(documents.latestRevisionId, documentRevisions.id))
-        .where(and(eq(pipelineDocuments.companyId, companyId), eq(pipelineDocuments.pipelineId, pipelineId), eq(pipelineDocuments.key, key)))
-        .limit(1)
-        .then((rows) => rows[0] ?? null);
-      if (!existing) throw notFound("Pipeline document not found");
-
-      const sourceRevision = await tx
-        .select()
-        .from(documentRevisions)
-        .where(and(eq(documentRevisions.id, revisionId), eq(documentRevisions.documentId, existing.document.id)))
-        .limit(1)
-        .then((rows) => rows[0] ?? null);
-      if (!sourceRevision) throw notFound("Pipeline document revision not found");
-
-      if (existing.document.latestRevisionId === sourceRevision.id) {
-        throw conflict("Selected revision is already the latest revision", {
-          currentRevisionId: existing.document.latestRevisionId,
-        });
-      }
-
-      const now = new Date();
-      const nextRevisionNumber = existing.document.latestRevisionNumber + 1;
-      const [restoredRevision] = await tx.insert(documentRevisions).values({
-        companyId,
-        documentId: existing.document.id,
-        revisionNumber: nextRevisionNumber,
-        title: sourceRevision.title ?? null,
-        format: sourceRevision.format,
-        body: sourceRevision.body,
-        changeSummary: `Restored from revision ${sourceRevision.revisionNumber}`,
-        createdByAgentId: actor.type === "agent" ? actor.agentId : null,
-        createdByUserId: actor.type === "user" ? actor.userId : null,
-        createdByRunId: actor.type === "agent" ? actor.runId : null,
-        createdAt: now,
-      }).returning();
-
-      const [document] = await tx.update(documents).set({
-        title: sourceRevision.title ?? null,
-        format: sourceRevision.format,
-        latestBody: sourceRevision.body,
-        latestRevisionId: restoredRevision!.id,
-        latestRevisionNumber: nextRevisionNumber,
-        updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-        updatedByUserId: actor.type === "user" ? actor.userId : null,
-        updatedAt: now,
-      }).where(eq(documents.id, existing.document.id)).returning();
-
-      await tx.update(pipelineDocuments).set({ updatedAt: now }).where(eq(pipelineDocuments.documentId, existing.document.id));
-
-      return {
-        document: { ...document!, latestRevisionId: restoredRevision!.id },
-        revision: restoredRevision!,
-        restoredFromRevisionId: sourceRevision.id,
-        restoredFromRevisionNumber: sourceRevision.revisionNumber,
-      };
-    });
-
-    res.json(result);
-  });
-
-  router.post("/pipelines/:pipelineId/cases", validate(ingestCaseSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-    const result = await svc.ingestCase({ companyId, pipelineId, ...req.body, actor });
-    res.status(result.created ? 201 : 200).json(result);
-  });
-
-  router.post("/pipelines/:pipelineId/cases/batch", validate(batchIngestSchema), async (req, res) => {
-    const pipelineId = req.params.pipelineId as string;
-    const companyId = await assertPipelineAccess(db, req, pipelineId);
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-    res.json(await svc.ingestCases({ companyId, pipelineId, items: req.body.items, actor }));
-  });
-
-  router.post("/cases/:caseId/breakdown", validate(breakdownCaseSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const target = await svc.resolveBreakdownTarget({ companyId, caseId });
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId: target.targetPipeline.id });
-    const actor = actorForMutation(req);
-    res.json(await svc.breakdownCase({ companyId, caseId, items: req.body.items, actor }));
-  });
+        pipelineId: target.targetPipeline.id,
+      });
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.breakdownCase({
+          companyId,
+          caseId,
+          items: req.body.items,
+          actor,
+        }),
+      );
+    },
+  );
 
   router.get("/pipelines/:pipelineId/cases", async (req, res) => {
     const pipelineId = req.params.pipelineId as string;
     const companyId = await assertPipelineAccess(db, req, pipelineId);
-    const stageKey = typeof req.query.stageKey === "string" ? req.query.stageKey : undefined;
+    const stageKey =
+      typeof req.query.stageKey === "string" ? req.query.stageKey : undefined;
     const q = typeof req.query.q === "string" ? req.query.q : undefined;
-    const terminal = req.query.terminal === "true" ? true : req.query.terminal === "false" ? false : undefined;
+    const terminal =
+      req.query.terminal === "true"
+        ? true
+        : req.query.terminal === "false"
+          ? false
+          : undefined;
     const includeRetired = req.query.includeRetired === "true";
-    const parentCaseId = typeof req.query.parentCaseId === "string" ? req.query.parentCaseId : undefined;
+    const parentCaseId =
+      typeof req.query.parentCaseId === "string"
+        ? req.query.parentCaseId
+        : undefined;
     const parentCase = alias(pipelineCases, "parent_case");
     const parentPipeline = alias(pipelines, "parent_pipeline");
     const rows = await db
@@ -1406,41 +2003,64 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       })
       .from(pipelineCases)
       .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-      .leftJoin(parentCase, and(
-        eq(parentCase.companyId, companyId),
-        eq(parentCase.id, pipelineCases.parentCaseId),
-      ))
-      .leftJoin(parentPipeline, and(
-        eq(parentPipeline.companyId, companyId),
-        eq(parentPipeline.id, parentCase.pipelineId),
-      ))
-      .where(and(
-        eq(pipelineCases.companyId, companyId),
-        eq(pipelineCases.pipelineId, pipelineId),
-        stageKey ? eq(pipelineStages.key, stageKey) : undefined,
-        parentCaseId ? eq(pipelineCases.parentCaseId, parentCaseId) : undefined,
-        includeRetired ? undefined : isNull(pipelineCases.hiddenFromBoardAt),
-        terminal === true ? isNotNull(pipelineCases.terminalKind) : terminal === false ? isNull(pipelineCases.terminalKind) : undefined,
-        q ? or(ilike(pipelineCases.title, `%${q}%`), ilike(pipelineCases.summary, `%${q}%`)) : undefined,
-      ))
+      .leftJoin(
+        parentCase,
+        and(
+          eq(parentCase.companyId, companyId),
+          eq(parentCase.id, pipelineCases.parentCaseId),
+        ),
+      )
+      .leftJoin(
+        parentPipeline,
+        and(
+          eq(parentPipeline.companyId, companyId),
+          eq(parentPipeline.id, parentCase.pipelineId),
+        ),
+      )
+      .where(
+        and(
+          eq(pipelineCases.companyId, companyId),
+          eq(pipelineCases.pipelineId, pipelineId),
+          stageKey ? eq(pipelineStages.key, stageKey) : undefined,
+          parentCaseId
+            ? eq(pipelineCases.parentCaseId, parentCaseId)
+            : undefined,
+          includeRetired ? undefined : isNull(pipelineCases.hiddenFromBoardAt),
+          terminal === true
+            ? isNotNull(pipelineCases.terminalKind)
+            : terminal === false
+              ? isNull(pipelineCases.terminalKind)
+              : undefined,
+          q
+            ? or(
+                ilike(pipelineCases.title, `%${q}%`),
+                ilike(pipelineCases.summary, `%${q}%`),
+              )
+            : undefined,
+        ),
+      )
       .orderBy(asc(pipelineCases.createdAt));
     const caseIds = rows.map((row) => row.case.id);
     const [activeWork, descendantActiveWorkCounts] = await Promise.all([
       loadActiveWorkForCases(db, companyId, caseIds),
       loadDescendantActiveWorkCountsForCases(db, companyId, caseIds),
     ]);
-    res.json(rows.map((row) => ({
-      case: row.case,
-      stage: row.stage,
-      parentCase: row.parentCase?.id && row.parentPipeline?.id
-        ? {
-            case: row.parentCase,
-            pipeline: row.parentPipeline,
-          }
-        : null,
-      activeWork: activeWork.get(row.case.id) ?? null,
-      descendantActiveWorkCount: descendantActiveWorkCounts.get(row.case.id) ?? 0,
-    })));
+    res.json(
+      rows.map((row) => ({
+        case: row.case,
+        stage: row.stage,
+        parentCase:
+          row.parentCase?.id && row.parentPipeline?.id
+            ? {
+                case: row.parentCase,
+                pipeline: row.parentPipeline,
+              }
+            : null,
+        activeWork: activeWork.get(row.case.id) ?? null,
+        descendantActiveWorkCount:
+          descendantActiveWorkCounts.get(row.case.id) ?? 0,
+      })),
+    );
   });
 
   router.get("/cases/:caseId", async (req, res) => {
@@ -1455,12 +2075,21 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
     const key = parseDocumentKey(req.params.key);
     const companyId = await assertCaseAccess(db, req, caseId);
     const row = await db.transaction(async (tx) => {
-      const existing = await getPipelineCaseDocumentRow(tx, { companyId, caseId, key });
+      const existing = await getPipelineCaseDocumentRow(tx, {
+        companyId,
+        caseId,
+        key,
+      });
       if (existing || key !== "body") return existing;
       const caseRow = await tx
         .select({ summary: pipelineCases.summary })
         .from(pipelineCases)
-        .where(and(eq(pipelineCases.companyId, companyId), eq(pipelineCases.id, caseId)))
+        .where(
+          and(
+            eq(pipelineCases.companyId, companyId),
+            eq(pipelineCases.id, caseId),
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null);
       if (!caseRow?.summary?.trim()) return null;
@@ -1476,301 +2105,417 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
     res.json(row);
   });
 
-  router.put("/cases/:caseId/documents/:key", validate(upsertPipelineCaseDocumentSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const key = parseDocumentKey(req.params.key);
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const pipelineId = await resolveCasePipelineId(db, { companyId, caseId });
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
-    const sourceTrust = await sourceTrustForPipelineCaseDocumentWrite(db, { companyId, caseId, actor });
-
-    const result = await db.transaction(async (tx) => {
-      const existing = await tx
-        .select({ link: pipelineCaseDocuments, document: documents, revision: documentRevisions })
-        .from(pipelineCaseDocuments)
-        .innerJoin(documents, eq(pipelineCaseDocuments.documentId, documents.id))
-        .leftJoin(documentRevisions, eq(documents.latestRevisionId, documentRevisions.id))
-        .where(and(
-          eq(pipelineCaseDocuments.companyId, companyId),
-          eq(pipelineCaseDocuments.caseId, caseId),
-          eq(pipelineCaseDocuments.key, key),
-        ))
-        .limit(1)
-        .then((rows) => rows[0] ?? null);
-
-      if (existing && !req.body.baseRevisionId) {
-        throw conflict("Pipeline case document update requires baseRevisionId", {
-          code: "stale_base_revision",
-          latestRevisionId: existing.document.latestRevisionId,
-          latestRevisionNumber: existing.document.latestRevisionNumber,
-        });
-      }
-      if (existing && req.body.baseRevisionId !== existing.document.latestRevisionId) {
-        throw conflict("Pipeline case document was updated by someone else", {
-          code: "stale_base_revision",
-          latestRevision: existing.revision
-            ? {
-              id: existing.revision.id,
-              revisionNumber: existing.revision.revisionNumber,
-              title: existing.revision.title,
-              createdAt: existing.revision.createdAt,
-              createdByAgentId: existing.revision.createdByAgentId,
-              createdByUserId: existing.revision.createdByUserId,
-            }
-            : null,
-          latestRevisionId: existing.document.latestRevisionId,
-          latestRevisionNumber: existing.document.latestRevisionNumber,
-        });
-      }
-      if (!existing && req.body.baseRevisionId) {
-        throw conflict("Pipeline case document does not exist yet", {
-          code: "stale_base_revision",
-          latestRevision: null,
-          latestRevisionId: null,
-          latestRevisionNumber: null,
-        });
-      }
-
-      const now = new Date();
-      const [document] = existing
-        ? await tx.update(documents).set({
-          title: req.body.title ?? existing.document.title,
-          format: req.body.format,
-          updatedAt: now,
-          updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-          updatedByUserId: actor.type === "user" ? actor.userId : null,
-          sourceTrust,
-        }).where(eq(documents.id, existing.document.id)).returning()
-        : await tx.insert(documents).values({
-          companyId,
-          title: req.body.title ?? key,
-          format: req.body.format,
-          latestBody: req.body.body,
-          latestRevisionNumber: 1,
-          createdByAgentId: actor.type === "agent" ? actor.agentId : null,
-          createdByUserId: actor.type === "user" ? actor.userId : null,
-          updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-          updatedByUserId: actor.type === "user" ? actor.userId : null,
-          sourceTrust,
-          createdAt: now,
-          updatedAt: now,
-        }).returning();
-      const nextRevisionNumber = existing ? existing.document.latestRevisionNumber + 1 : 1;
-      const [revision] = await tx.insert(documentRevisions).values({
+  router.put(
+    "/cases/:caseId/documents/:key",
+    validate(upsertPipelineCaseDocumentSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const key = parseDocumentKey(req.params.key);
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const pipelineId = await resolveCasePipelineId(db, { companyId, caseId });
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
+      const sourceTrust = await sourceTrustForPipelineCaseDocumentWrite(db, {
         companyId,
-        documentId: document!.id,
-        revisionNumber: nextRevisionNumber,
-        title: req.body.title ?? document!.title,
-        format: req.body.format,
-        body: req.body.body,
-        changeSummary: req.body.changeSummary ?? null,
-        createdByAgentId: actor.type === "agent" ? actor.agentId : null,
-        createdByUserId: actor.type === "user" ? actor.userId : null,
-        createdByRunId: actor.type === "agent" ? actor.runId : null,
-        createdAt: now,
-      }).returning();
-      await tx.update(documents).set({
-        title: req.body.title ?? document!.title,
-        format: req.body.format,
-        latestBody: req.body.body,
-        latestRevisionId: revision!.id,
-        latestRevisionNumber: revision!.revisionNumber,
-        updatedAt: now,
-        updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-        updatedByUserId: actor.type === "user" ? actor.userId : null,
-        sourceTrust,
-      }).where(eq(documents.id, document!.id));
-      if (!existing) {
-        await tx.insert(pipelineCaseDocuments).values({ companyId, caseId, documentId: document!.id, key, createdAt: now, updatedAt: now });
-      } else {
-        await tx.update(pipelineCaseDocuments).set({ updatedAt: now }).where(eq(pipelineCaseDocuments.documentId, document!.id));
-      }
+        caseId,
+        actor,
+      });
 
-      if (key === "body") {
-        const conversationSource = await resolvePipelineCaseConversationSource(tx, companyId, caseId);
-        if (conversationSource?.isActive) {
-          await tx.insert(issueDocuments).values({
-            companyId,
-            issueId: conversationSource.issue.id,
-            documentId: document!.id,
-            key: PIPELINE_CASE_BODY_DOCUMENT_KEY,
-            createdAt: now,
-            updatedAt: now,
-          }).onConflictDoUpdate({
-            target: [issueDocuments.companyId, issueDocuments.issueId, issueDocuments.key],
-            set: { documentId: document!.id, updatedAt: now },
+      const result = await db.transaction(async (tx) => {
+        const existing = await tx
+          .select({
+            link: pipelineCaseDocuments,
+            document: documents,
+            revision: documentRevisions,
+          })
+          .from(pipelineCaseDocuments)
+          .innerJoin(
+            documents,
+            eq(pipelineCaseDocuments.documentId, documents.id),
+          )
+          .leftJoin(
+            documentRevisions,
+            eq(documents.latestRevisionId, documentRevisions.id),
+          )
+          .where(
+            and(
+              eq(pipelineCaseDocuments.companyId, companyId),
+              eq(pipelineCaseDocuments.caseId, caseId),
+              eq(pipelineCaseDocuments.key, key),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
+
+        if (existing && !req.body.baseRevisionId) {
+          throw conflict(
+            "Pipeline case document update requires baseRevisionId",
+            {
+              code: "stale_base_revision",
+              latestRevisionId: existing.document.latestRevisionId,
+              latestRevisionNumber: existing.document.latestRevisionNumber,
+            },
+          );
+        }
+        if (
+          existing &&
+          req.body.baseRevisionId !== existing.document.latestRevisionId
+        ) {
+          throw conflict("Pipeline case document was updated by someone else", {
+            code: "stale_base_revision",
+            latestRevision: existing.revision
+              ? {
+                  id: existing.revision.id,
+                  revisionNumber: existing.revision.revisionNumber,
+                  title: existing.revision.title,
+                  createdAt: existing.revision.createdAt,
+                  createdByAgentId: existing.revision.createdByAgentId,
+                  createdByUserId: existing.revision.createdByUserId,
+                }
+              : null,
+            latestRevisionId: existing.document.latestRevisionId,
+            latestRevisionNumber: existing.document.latestRevisionNumber,
           });
         }
+        if (!existing && req.body.baseRevisionId) {
+          throw conflict("Pipeline case document does not exist yet", {
+            code: "stale_base_revision",
+            latestRevision: null,
+            latestRevisionId: null,
+            latestRevisionNumber: null,
+          });
+        }
+
+        const now = new Date();
+        const [document] = existing
+          ? await tx
+              .update(documents)
+              .set({
+                title: req.body.title ?? existing.document.title,
+                format: req.body.format,
+                updatedAt: now,
+                updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+                updatedByUserId: actor.type === "user" ? actor.userId : null,
+                sourceTrust,
+              })
+              .where(eq(documents.id, existing.document.id))
+              .returning()
+          : await tx
+              .insert(documents)
+              .values({
+                companyId,
+                title: req.body.title ?? key,
+                format: req.body.format,
+                latestBody: req.body.body,
+                latestRevisionNumber: 1,
+                createdByAgentId: actor.type === "agent" ? actor.agentId : null,
+                createdByUserId: actor.type === "user" ? actor.userId : null,
+                updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+                updatedByUserId: actor.type === "user" ? actor.userId : null,
+                sourceTrust,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .returning();
+        const nextRevisionNumber = existing
+          ? existing.document.latestRevisionNumber + 1
+          : 1;
+        const [revision] = await tx
+          .insert(documentRevisions)
+          .values({
+            companyId,
+            documentId: document!.id,
+            revisionNumber: nextRevisionNumber,
+            title: req.body.title ?? document!.title,
+            format: req.body.format,
+            body: req.body.body,
+            changeSummary: req.body.changeSummary ?? null,
+            createdByAgentId: actor.type === "agent" ? actor.agentId : null,
+            createdByUserId: actor.type === "user" ? actor.userId : null,
+            createdByRunId: actor.type === "agent" ? actor.runId : null,
+            createdAt: now,
+          })
+          .returning();
+        await tx
+          .update(documents)
+          .set({
+            title: req.body.title ?? document!.title,
+            format: req.body.format,
+            latestBody: req.body.body,
+            latestRevisionId: revision!.id,
+            latestRevisionNumber: revision!.revisionNumber,
+            updatedAt: now,
+            updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+            updatedByUserId: actor.type === "user" ? actor.userId : null,
+            sourceTrust,
+          })
+          .where(eq(documents.id, document!.id));
+        if (!existing) {
+          await tx
+            .insert(pipelineCaseDocuments)
+            .values({
+              companyId,
+              caseId,
+              documentId: document!.id,
+              key,
+              createdAt: now,
+              updatedAt: now,
+            });
+        } else {
+          await tx
+            .update(pipelineCaseDocuments)
+            .set({ updatedAt: now })
+            .where(eq(pipelineCaseDocuments.documentId, document!.id));
+        }
+
+        if (key === "body") {
+          const conversationSource =
+            await resolvePipelineCaseConversationSource(tx, companyId, caseId);
+          if (conversationSource?.isActive) {
+            await tx
+              .insert(issueDocuments)
+              .values({
+                companyId,
+                issueId: conversationSource.issue.id,
+                documentId: document!.id,
+                key: PIPELINE_CASE_BODY_DOCUMENT_KEY,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .onConflictDoUpdate({
+                target: [
+                  issueDocuments.companyId,
+                  issueDocuments.issueId,
+                  issueDocuments.key,
+                ],
+                set: { documentId: document!.id, updatedAt: now },
+              });
+          }
+        }
+
+        const linkedIssueDocuments = await tx
+          .select({ issueId: issueDocuments.issueId, key: issueDocuments.key })
+          .from(issueDocuments)
+          .where(
+            and(
+              eq(issueDocuments.companyId, companyId),
+              eq(issueDocuments.documentId, document!.id),
+            ),
+          );
+
+        return {
+          created: !existing,
+          document: {
+            ...document!,
+            title: req.body.title ?? document!.title,
+            format: req.body.format,
+            latestBody: req.body.body,
+            latestRevisionId: revision!.id,
+            latestRevisionNumber: revision!.revisionNumber,
+            updatedAt: now,
+            updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+            updatedByUserId: actor.type === "user" ? actor.userId : null,
+            sourceTrust,
+          },
+          revision,
+          linkedIssueDocuments,
+        };
+      });
+
+      if (!result.created) {
+        await Promise.all(
+          result.linkedIssueDocuments.map((link) =>
+            documentAnnotationsSvc.remapOpenThreadsForDocument({
+              issueId: link.issueId,
+              key: link.key,
+              documentId: result.document.id,
+              nextRevisionId: result.document.latestRevisionId,
+              nextRevisionNumber: result.document.latestRevisionNumber,
+              nextBody: result.document.latestBody,
+            }),
+          ),
+        );
       }
-
-      const linkedIssueDocuments = await tx
-        .select({ issueId: issueDocuments.issueId, key: issueDocuments.key })
-        .from(issueDocuments)
-        .where(and(eq(issueDocuments.companyId, companyId), eq(issueDocuments.documentId, document!.id)));
-
-      return {
-        created: !existing,
-        document: {
-          ...document!,
-          title: req.body.title ?? document!.title,
-          format: req.body.format,
-          latestBody: req.body.body,
-          latestRevisionId: revision!.id,
-          latestRevisionNumber: revision!.revisionNumber,
-          updatedAt: now,
-          updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-          updatedByUserId: actor.type === "user" ? actor.userId : null,
-          sourceTrust,
-        },
-        revision,
-        linkedIssueDocuments,
-      };
-    });
-
-    if (!result.created) {
-      await Promise.all(result.linkedIssueDocuments.map((link) =>
-        documentAnnotationsSvc.remapOpenThreadsForDocument({
-          issueId: link.issueId,
-          key: link.key,
+      await logActivity(db, {
+        companyId,
+        ...activityActorForPipelineRoute(actor),
+        action: result.created
+          ? "pipeline.case_document_created"
+          : "pipeline.case_document_updated",
+        entityType: "pipeline_case",
+        entityId: caseId,
+        details: {
+          key,
           documentId: result.document.id,
-          nextRevisionId: result.document.latestRevisionId,
-          nextRevisionNumber: result.document.latestRevisionNumber,
-          nextBody: result.document.latestBody,
-        })
-      ));
-    }
-    await logActivity(db, {
-      companyId,
-      ...activityActorForPipelineRoute(actor),
-      action: result.created ? "pipeline.case_document_created" : "pipeline.case_document_updated",
-      entityType: "pipeline_case",
-      entityId: caseId,
-      details: {
-        key,
-        documentId: result.document.id,
-        revisionId: result.revision!.id,
-        revisionNumber: result.revision!.revisionNumber,
-        linkedIssueIds: result.linkedIssueDocuments.map((link) => link.issueId),
-      },
-    });
-    res.json({ document: result.document, revision: result.revision });
-  });
+          revisionId: result.revision!.id,
+          revisionNumber: result.revision!.revisionNumber,
+          linkedIssueIds: result.linkedIssueDocuments.map(
+            (link) => link.issueId,
+          ),
+        },
+      });
+      res.json({ document: result.document, revision: result.revision });
+    },
+  );
 
   router.get("/cases/:caseId/documents/:key/revisions", async (req, res) => {
     const caseId = req.params.caseId as string;
     const key = parseDocumentKey(req.params.key);
     const companyId = await assertCaseAccess(db, req, caseId);
-    const revisions = await listPipelineCaseDocumentRevisions(db, { companyId, caseId, key });
+    const revisions = await listPipelineCaseDocumentRevisions(db, {
+      companyId,
+      caseId,
+      key,
+    });
     res.json(revisions);
   });
 
-  router.post("/cases/:caseId/documents/:key/revisions/:revisionId/restore", async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const key = parseDocumentKey(req.params.key);
-    const revisionId = req.params.revisionId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const pipelineId = await resolveCasePipelineId(db, { companyId, caseId });
-    await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
-    const actor = actorForMutation(req);
+  router.post(
+    "/cases/:caseId/documents/:key/revisions/:revisionId/restore",
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const key = parseDocumentKey(req.params.key);
+      const revisionId = req.params.revisionId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const pipelineId = await resolveCasePipelineId(db, { companyId, caseId });
+      await assertPipelineWriteAccess(req, { access, companyId, pipelineId });
+      const actor = actorForMutation(req);
 
-    const result = await db.transaction(async (tx) => {
-      const existing = await tx
-        .select({ link: pipelineCaseDocuments, document: documents, revision: documentRevisions })
-        .from(pipelineCaseDocuments)
-        .innerJoin(documents, eq(pipelineCaseDocuments.documentId, documents.id))
-        .leftJoin(documentRevisions, eq(documents.latestRevisionId, documentRevisions.id))
-        .where(and(
-          eq(pipelineCaseDocuments.companyId, companyId),
-          eq(pipelineCaseDocuments.caseId, caseId),
-          eq(pipelineCaseDocuments.key, key),
-        ))
-        .limit(1)
-        .then((rows) => rows[0] ?? null);
-      if (!existing) throw notFound("Pipeline case document not found");
+      const result = await db.transaction(async (tx) => {
+        const existing = await tx
+          .select({
+            link: pipelineCaseDocuments,
+            document: documents,
+            revision: documentRevisions,
+          })
+          .from(pipelineCaseDocuments)
+          .innerJoin(
+            documents,
+            eq(pipelineCaseDocuments.documentId, documents.id),
+          )
+          .leftJoin(
+            documentRevisions,
+            eq(documents.latestRevisionId, documentRevisions.id),
+          )
+          .where(
+            and(
+              eq(pipelineCaseDocuments.companyId, companyId),
+              eq(pipelineCaseDocuments.caseId, caseId),
+              eq(pipelineCaseDocuments.key, key),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
+        if (!existing) throw notFound("Pipeline case document not found");
 
-      const sourceRevision = await tx
-        .select()
-        .from(documentRevisions)
-        .where(and(eq(documentRevisions.id, revisionId), eq(documentRevisions.documentId, existing.document.id)))
-        .limit(1)
-        .then((rows) => rows[0] ?? null);
-      if (!sourceRevision) throw notFound("Pipeline case document revision not found");
-      if (existing.document.latestRevisionId === sourceRevision.id) {
-        throw conflict("Selected revision is already the latest revision", {
-          currentRevisionId: existing.document.latestRevisionId,
-        });
-      }
+        const sourceRevision = await tx
+          .select()
+          .from(documentRevisions)
+          .where(
+            and(
+              eq(documentRevisions.id, revisionId),
+              eq(documentRevisions.documentId, existing.document.id),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
+        if (!sourceRevision)
+          throw notFound("Pipeline case document revision not found");
+        if (existing.document.latestRevisionId === sourceRevision.id) {
+          throw conflict("Selected revision is already the latest revision", {
+            currentRevisionId: existing.document.latestRevisionId,
+          });
+        }
 
-      const now = new Date();
-      const nextRevisionNumber = existing.document.latestRevisionNumber + 1;
-      const [restoredRevision] = await tx.insert(documentRevisions).values({
+        const now = new Date();
+        const nextRevisionNumber = existing.document.latestRevisionNumber + 1;
+        const [restoredRevision] = await tx
+          .insert(documentRevisions)
+          .values({
+            companyId,
+            documentId: existing.document.id,
+            revisionNumber: nextRevisionNumber,
+            title: sourceRevision.title ?? null,
+            format: sourceRevision.format,
+            body: sourceRevision.body,
+            changeSummary: `Restored from revision ${sourceRevision.revisionNumber}`,
+            createdByAgentId: actor.type === "agent" ? actor.agentId : null,
+            createdByUserId: actor.type === "user" ? actor.userId : null,
+            createdByRunId: actor.type === "agent" ? actor.runId : null,
+            createdAt: now,
+          })
+          .returning();
+        const [document] = await tx
+          .update(documents)
+          .set({
+            title: sourceRevision.title ?? null,
+            format: sourceRevision.format,
+            latestBody: sourceRevision.body,
+            latestRevisionId: restoredRevision!.id,
+            latestRevisionNumber: nextRevisionNumber,
+            updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
+            updatedByUserId: actor.type === "user" ? actor.userId : null,
+            updatedAt: now,
+          })
+          .where(eq(documents.id, existing.document.id))
+          .returning();
+        await tx
+          .update(pipelineCaseDocuments)
+          .set({ updatedAt: now })
+          .where(eq(pipelineCaseDocuments.documentId, existing.document.id));
+
+        const linkedIssueDocuments = await tx
+          .select({ issueId: issueDocuments.issueId, key: issueDocuments.key })
+          .from(issueDocuments)
+          .where(
+            and(
+              eq(issueDocuments.companyId, companyId),
+              eq(issueDocuments.documentId, existing.document.id),
+            ),
+          );
+
+        return {
+          document: document!,
+          revision: restoredRevision!,
+          restoredFromRevisionId: sourceRevision.id,
+          restoredFromRevisionNumber: sourceRevision.revisionNumber,
+          linkedIssueDocuments,
+        };
+      });
+
+      await Promise.all(
+        result.linkedIssueDocuments.map((link) =>
+          documentAnnotationsSvc.remapOpenThreadsForDocument({
+            issueId: link.issueId,
+            key: link.key,
+            documentId: result.document.id,
+            nextRevisionId: result.document.latestRevisionId,
+            nextRevisionNumber: result.document.latestRevisionNumber,
+            nextBody: result.document.latestBody,
+          }),
+        ),
+      );
+      await logActivity(db, {
         companyId,
-        documentId: existing.document.id,
-        revisionNumber: nextRevisionNumber,
-        title: sourceRevision.title ?? null,
-        format: sourceRevision.format,
-        body: sourceRevision.body,
-        changeSummary: `Restored from revision ${sourceRevision.revisionNumber}`,
-        createdByAgentId: actor.type === "agent" ? actor.agentId : null,
-        createdByUserId: actor.type === "user" ? actor.userId : null,
-        createdByRunId: actor.type === "agent" ? actor.runId : null,
-        createdAt: now,
-      }).returning();
-      const [document] = await tx.update(documents).set({
-        title: sourceRevision.title ?? null,
-        format: sourceRevision.format,
-        latestBody: sourceRevision.body,
-        latestRevisionId: restoredRevision!.id,
-        latestRevisionNumber: nextRevisionNumber,
-        updatedByAgentId: actor.type === "agent" ? actor.agentId : null,
-        updatedByUserId: actor.type === "user" ? actor.userId : null,
-        updatedAt: now,
-      }).where(eq(documents.id, existing.document.id)).returning();
-      await tx.update(pipelineCaseDocuments).set({ updatedAt: now }).where(eq(pipelineCaseDocuments.documentId, existing.document.id));
-
-      const linkedIssueDocuments = await tx
-        .select({ issueId: issueDocuments.issueId, key: issueDocuments.key })
-        .from(issueDocuments)
-        .where(and(eq(issueDocuments.companyId, companyId), eq(issueDocuments.documentId, existing.document.id)));
-
-      return {
-        document: document!,
-        revision: restoredRevision!,
-        restoredFromRevisionId: sourceRevision.id,
-        restoredFromRevisionNumber: sourceRevision.revisionNumber,
-        linkedIssueDocuments,
-      };
-    });
-
-    await Promise.all(result.linkedIssueDocuments.map((link) =>
-      documentAnnotationsSvc.remapOpenThreadsForDocument({
-        issueId: link.issueId,
-        key: link.key,
-        documentId: result.document.id,
-        nextRevisionId: result.document.latestRevisionId,
-        nextRevisionNumber: result.document.latestRevisionNumber,
-        nextBody: result.document.latestBody,
-      })
-    ));
-    await logActivity(db, {
-      companyId,
-      ...activityActorForPipelineRoute(actor),
-      action: "pipeline.case_document_restored",
-      entityType: "pipeline_case",
-      entityId: caseId,
-      details: {
-        key,
-        documentId: result.document.id,
-        revisionId: result.revision.id,
-        revisionNumber: result.revision.revisionNumber,
-        restoredFromRevisionId: result.restoredFromRevisionId,
-        restoredFromRevisionNumber: result.restoredFromRevisionNumber,
-        linkedIssueIds: result.linkedIssueDocuments.map((link) => link.issueId),
-      },
-    });
-    res.json(result);
-  });
+        ...activityActorForPipelineRoute(actor),
+        action: "pipeline.case_document_restored",
+        entityType: "pipeline_case",
+        entityId: caseId,
+        details: {
+          key,
+          documentId: result.document.id,
+          revisionId: result.revision.id,
+          revisionNumber: result.revision.revisionNumber,
+          restoredFromRevisionId: result.restoredFromRevisionId,
+          restoredFromRevisionNumber: result.restoredFromRevisionNumber,
+          linkedIssueIds: result.linkedIssueDocuments.map(
+            (link) => link.issueId,
+          ),
+        },
+      });
+      res.json(result);
+    },
+  );
 
   // Direct children of a case, scoped by parent rather than pipeline. Children can be
   // parented across pipelines (release -> feature -> content trees), so this must not
@@ -1783,120 +2528,209 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       .select({ case: pipelineCases, stage: pipelineStages })
       .from(pipelineCases)
       .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-      .where(and(
-        eq(pipelineCases.companyId, companyId),
-        eq(pipelineCases.parentCaseId, caseId),
-        isNull(pipelineCases.hiddenFromBoardAt),
-      ))
+      .where(
+        and(
+          eq(pipelineCases.companyId, companyId),
+          eq(pipelineCases.parentCaseId, caseId),
+          isNull(pipelineCases.hiddenFromBoardAt),
+        ),
+      )
       .orderBy(asc(pipelineCases.createdAt));
     const caseIds = rows.map((row) => row.case.id);
     const [activeWork, descendantActiveWorkCounts] = await Promise.all([
       loadActiveWorkForCases(db, companyId, caseIds),
       loadDescendantActiveWorkCountsForCases(db, companyId, caseIds),
     ]);
-    res.json(rows.map((row) => ({
-      ...row,
-      activeWork: activeWork.get(row.case.id) ?? null,
-      descendantActiveWorkCount: descendantActiveWorkCounts.get(row.case.id) ?? 0,
-    })));
+    res.json(
+      rows.map((row) => ({
+        ...row,
+        activeWork: activeWork.get(row.case.id) ?? null,
+        descendantActiveWorkCount:
+          descendantActiveWorkCounts.get(row.case.id) ?? 0,
+      })),
+    );
   });
 
-  router.patch("/cases/:caseId", validate(casePatchSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    const updated = await svc.patchCaseContent({ companyId, caseId, ...req.body, actor });
-    res.json(updated);
-  });
+  router.patch(
+    "/cases/:caseId",
+    validate(casePatchSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      const updated = await svc.patchCaseContent({
+        companyId,
+        caseId,
+        ...req.body,
+        actor,
+      });
+      res.json(updated);
+    },
+  );
 
-  router.post("/cases/:caseId/claim", validate(claimCaseSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    if (actor.type === "system") throw forbidden();
-    const claimed = await svc.claimCase({ companyId, caseId, actor, leaseMs: req.body.leaseSeconds ? req.body.leaseSeconds * 1000 : undefined });
-    res.json({ case: claimed, leaseToken: claimed.leaseToken, leaseExpiresAt: claimed.leaseExpiresAt });
-  });
+  router.post(
+    "/cases/:caseId/claim",
+    validate(claimCaseSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      if (actor.type === "system") throw forbidden();
+      const claimed = await svc.claimCase({
+        companyId,
+        caseId,
+        actor,
+        leaseMs: req.body.leaseSeconds
+          ? req.body.leaseSeconds * 1000
+          : undefined,
+      });
+      res.json({
+        case: claimed,
+        leaseToken: claimed.leaseToken,
+        leaseExpiresAt: claimed.leaseExpiresAt,
+      });
+    },
+  );
 
-  router.post("/cases/:caseId/release", validate(releaseCaseSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    if (req.body.force && actor.type === "agent") throw new HttpError(403, "Agents cannot force-release pipeline leases", { code: "forbidden" });
-    res.json(await svc.releaseCase({ companyId, caseId, actor, leaseToken: req.body.leaseToken, force: req.body.force }));
-  });
+  router.post(
+    "/cases/:caseId/release",
+    validate(releaseCaseSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      if (req.body.force && actor.type === "agent")
+        throw new HttpError(
+          403,
+          "Agents cannot force-release pipeline leases",
+          { code: "forbidden" },
+        );
+      res.json(
+        await svc.releaseCase({
+          companyId,
+          caseId,
+          actor,
+          leaseToken: req.body.leaseToken,
+          force: req.body.force,
+        }),
+      );
+    },
+  );
 
-  router.post("/cases/:caseId/transition", validate(transitionCaseSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    res.json(await svc.transitionCase({
-      companyId,
-      caseId,
-      toStageKey: req.body.toStageKey,
-      expectedVersion: req.body.expectedVersion,
-      leaseToken: req.body.leaseToken,
-      reason: req.body.reason,
-      force: req.body.force,
-      suggestionId: req.body.acceptSuggestionId,
-      actor,
-    }));
-  });
+  router.post(
+    "/cases/:caseId/transition",
+    validate(transitionCaseSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.transitionCase({
+          companyId,
+          caseId,
+          toStageKey: req.body.toStageKey,
+          expectedVersion: req.body.expectedVersion,
+          leaseToken: req.body.leaseToken,
+          reason: req.body.reason,
+          force: req.body.force,
+          suggestionId: req.body.acceptSuggestionId,
+          actor,
+        }),
+      );
+    },
+  );
 
-  router.post("/cases/:caseId/suggest-transition", validate(suggestTransitionSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    res.json(await svc.suggestTransition({ companyId, caseId, ...req.body, actor }));
-  });
+  router.post(
+    "/cases/:caseId/suggest-transition",
+    validate(suggestTransitionSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.suggestTransition({ companyId, caseId, ...req.body, actor }),
+      );
+    },
+  );
 
-  router.post("/cases/:caseId/resolve-suggestion", validate(resolveSuggestionSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    res.json(await svc.resolveSuggestion({
-      companyId,
-      caseId,
-      suggestionId: req.body.suggestionId,
-      decision: req.body.resolution,
-      expectedVersion: req.body.expectedVersion,
-      reason: req.body.reason,
-      leaseToken: req.body.leaseToken,
-      actor,
-    }));
-  });
+  router.post(
+    "/cases/:caseId/resolve-suggestion",
+    validate(resolveSuggestionSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.resolveSuggestion({
+          companyId,
+          caseId,
+          suggestionId: req.body.suggestionId,
+          decision: req.body.resolution,
+          expectedVersion: req.body.expectedVersion,
+          reason: req.body.reason,
+          leaseToken: req.body.leaseToken,
+          actor,
+        }),
+      );
+    },
+  );
 
-  router.post("/cases/:caseId/acknowledge-drift", validate(acknowledgeDriftSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    res.json(await svc.acknowledgeDrift({
-      companyId,
-      caseId,
-      expectedVersion: req.body.expectedVersion,
-      actor,
-    }));
-  });
+  router.post(
+    "/cases/:caseId/acknowledge-drift",
+    validate(acknowledgeDriftSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.acknowledgeDrift({
+          companyId,
+          caseId,
+          expectedVersion: req.body.expectedVersion,
+          actor,
+        }),
+      );
+    },
+  );
 
-  router.post("/cases/:caseId/review", validate(reviewCaseSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    res.json(await svc.reviewCase({ companyId, caseId, ...req.body, actor }));
-  });
+  router.post(
+    "/cases/:caseId/review",
+    validate(reviewCaseSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      res.json(await svc.reviewCase({ companyId, caseId, ...req.body, actor }));
+    },
+  );
 
-  router.put("/cases/:caseId/blockers", validate(blockersSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    res.json(await svc.replaceBlockers({ companyId, caseId, blockedByCaseIds: req.body.blockedByCaseIds, actor }));
-  });
+  router.put(
+    "/cases/:caseId/blockers",
+    validate(blockersSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.replaceBlockers({
+          companyId,
+          caseId,
+          blockedByCaseIds: req.body.blockedByCaseIds,
+          actor,
+        }),
+      );
+    },
+  );
 
   router.post("/cases/:caseId/open-conversation", async (req, res) => {
     const caseId = req.params.caseId as string;
     const companyId = await assertCaseAccess(db, req, caseId);
     const actor = actorForMutation(req);
-    const conversationSource = await resolvePipelineCaseConversationSource(db, companyId, caseId);
+    const conversationSource = await resolvePipelineCaseConversationSource(
+      db,
+      companyId,
+      caseId,
+    );
     if (conversationSource?.isActive) {
       res.json({ issue: conversationSource.issue, created: false });
       return;
@@ -1904,25 +2738,38 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
     const detail = await getCaseDetail(db, companyId, caseId);
     const [bodyDocumentContext, outputSummaries] = await Promise.all([
       loadPipelineConversationBodyDocumentContext(db, { companyId, caseId }),
-      outputsSvc.listCaseOutputs(companyId, caseId).then((outputs) => summarizePipelineCaseOutputsForContext(outputs)),
+      outputsSvc
+        .listCaseOutputs(companyId, caseId)
+        .then((outputs) => summarizePipelineCaseOutputsForContext(outputs)),
     ]);
     const result = await db.transaction(async (tx) => {
-      const existingConversationSource = await resolvePipelineCaseConversationSource(tx, companyId, caseId);
+      const existingConversationSource =
+        await resolvePipelineCaseConversationSource(tx, companyId, caseId);
       if (existingConversationSource?.isActive) {
         return { issue: existingConversationSource.issue, created: false };
       }
-      const [issue] = await tx.insert(issueRows).values({
-        companyId,
-        title: `Discuss: ${detail.case.title}`,
-        description: buildCaseContextMarkdown(detail, bodyDocumentContext, outputSummaries),
-        status: "todo",
-        priority: "medium",
-        parentId: existingConversationSource?.issue?.id ?? conversationSource?.issue?.id ?? null,
-        originKind: "pipeline_case_conversation",
-        originId: detail.case.id,
-        createdByAgentId: actor.type === "agent" ? actor.agentId : null,
-        createdByUserId: actor.type === "user" ? actor.userId : null,
-      }).returning();
+      const [issue] = await tx
+        .insert(issueRows)
+        .values({
+          companyId,
+          title: `Discuss: ${detail.case.title}`,
+          description: buildCaseContextMarkdown(
+            detail,
+            bodyDocumentContext,
+            outputSummaries,
+          ),
+          status: "todo",
+          priority: "medium",
+          parentId:
+            existingConversationSource?.issue?.id ??
+            conversationSource?.issue?.id ??
+            null,
+          originKind: "pipeline_case_conversation",
+          originId: detail.case.id,
+          createdByAgentId: actor.type === "agent" ? actor.agentId : null,
+          createdByUserId: actor.type === "user" ? actor.userId : null,
+        })
+        .returning();
       await tx.insert(pipelineCaseIssueLinks).values({
         companyId,
         caseId,
@@ -1931,14 +2778,17 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
         createdByRunId: actor.type === "agent" ? actor.runId : null,
       });
       if (bodyDocumentContext.bodyDocument) {
-        await tx.insert(issueDocuments).values({
-          companyId,
-          issueId: issue!.id,
-          documentId: bodyDocumentContext.bodyDocument.id,
-          key: PIPELINE_CASE_BODY_DOCUMENT_KEY,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }).onConflictDoNothing();
+        await tx
+          .insert(issueDocuments)
+          .values({
+            companyId,
+            issueId: issue!.id,
+            documentId: bodyDocumentContext.bodyDocument.id,
+            key: PIPELINE_CASE_BODY_DOCUMENT_KEY,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .onConflictDoNothing();
       }
       await writeRouteEvent(tx, {
         companyId,
@@ -1959,11 +2809,13 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       .select({ link: pipelineCaseIssueLinks, issue: issueRows })
       .from(pipelineCaseIssueLinks)
       .innerJoin(issueRows, eq(pipelineCaseIssueLinks.issueId, issueRows.id))
-      .where(and(
-        eq(pipelineCaseIssueLinks.companyId, companyId),
-        eq(pipelineCaseIssueLinks.caseId, caseId),
-        eq(issueRows.companyId, companyId),
-      ))
+      .where(
+        and(
+          eq(pipelineCaseIssueLinks.companyId, companyId),
+          eq(pipelineCaseIssueLinks.caseId, caseId),
+          eq(issueRows.companyId, companyId),
+        ),
+      )
       .orderBy(asc(pipelineCaseIssueLinks.createdAt));
     res.json(links);
   });
@@ -1974,36 +2826,50 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
     res.json(await outputsSvc.listCaseOutputs(companyId, caseId));
   });
 
-  router.post("/cases/:caseId/issue-links", validate(createIssueLinkSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    const targetIssue = await getIssueMutationTarget(db, { companyId, issueId: req.body.issueId });
-    if (!targetIssue) throw notFound("Issue not found");
-    await assertIssueLinkMutationAllowed(req, { access, issuesSvc, issue: targetIssue });
-    try {
-      const link = await db.transaction(async (tx) => {
-        const [created] = await tx.insert(pipelineCaseIssueLinks).values({
-          companyId,
-          caseId,
-          issueId: req.body.issueId,
-          role: req.body.role,
-          createdByRunId: actor.type === "agent" ? actor.runId : null,
-        }).returning();
-        await writeRouteEvent(tx, {
-          companyId,
-          caseId,
-          type: "issue_linked",
-          actor,
-          payload: { issueId: req.body.issueId, role: req.body.role },
-        });
-        return created!;
+  router.post(
+    "/cases/:caseId/issue-links",
+    validate(createIssueLinkSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      const targetIssue = await getIssueMutationTarget(db, {
+        companyId,
+        issueId: req.body.issueId,
       });
-      res.status(201).json(link);
-    } catch (error) {
-      codedConflictForUnique(error);
-    }
-  });
+      if (!targetIssue) throw notFound("Issue not found");
+      await assertIssueLinkMutationAllowed(req, {
+        access,
+        issuesSvc,
+        issue: targetIssue,
+      });
+      try {
+        const link = await db.transaction(async (tx) => {
+          const [created] = await tx
+            .insert(pipelineCaseIssueLinks)
+            .values({
+              companyId,
+              caseId,
+              issueId: req.body.issueId,
+              role: req.body.role,
+              createdByRunId: actor.type === "agent" ? actor.runId : null,
+            })
+            .returning();
+          await writeRouteEvent(tx, {
+            companyId,
+            caseId,
+            type: "issue_linked",
+            actor,
+            payload: { issueId: req.body.issueId, role: req.body.role },
+          });
+          return created!;
+        });
+        res.status(201).json(link);
+      } catch (error) {
+        codedConflictForUnique(error);
+      }
+    },
+  );
 
   router.delete("/cases/:caseId/issue-links/:linkId", async (req, res) => {
     const caseId = req.params.caseId as string;
@@ -2013,25 +2879,36 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
     const existingLink = await db
       .select({ issueId: pipelineCaseIssueLinks.issueId })
       .from(pipelineCaseIssueLinks)
-      .where(and(
-        eq(pipelineCaseIssueLinks.id, linkId),
-        eq(pipelineCaseIssueLinks.companyId, companyId),
-        eq(pipelineCaseIssueLinks.caseId, caseId),
-      ))
-      .limit(1)
-      .then((rows) => rows[0] ?? null);
-    if (!existingLink) throw notFound("Pipeline case issue link not found");
-    const targetIssue = await getIssueMutationTarget(db, { companyId, issueId: existingLink.issueId });
-    if (!targetIssue) throw notFound("Issue not found");
-    await assertIssueLinkMutationAllowed(req, { access, issuesSvc, issue: targetIssue });
-    const deleted = await db.transaction(async (tx) => {
-      const [removed] = await tx
-        .delete(pipelineCaseIssueLinks)
-        .where(and(
+      .where(
+        and(
           eq(pipelineCaseIssueLinks.id, linkId),
           eq(pipelineCaseIssueLinks.companyId, companyId),
           eq(pipelineCaseIssueLinks.caseId, caseId),
-        ))
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
+    if (!existingLink) throw notFound("Pipeline case issue link not found");
+    const targetIssue = await getIssueMutationTarget(db, {
+      companyId,
+      issueId: existingLink.issueId,
+    });
+    if (!targetIssue) throw notFound("Issue not found");
+    await assertIssueLinkMutationAllowed(req, {
+      access,
+      issuesSvc,
+      issue: targetIssue,
+    });
+    const deleted = await db.transaction(async (tx) => {
+      const [removed] = await tx
+        .delete(pipelineCaseIssueLinks)
+        .where(
+          and(
+            eq(pipelineCaseIssueLinks.id, linkId),
+            eq(pipelineCaseIssueLinks.companyId, companyId),
+            eq(pipelineCaseIssueLinks.caseId, caseId),
+          ),
+        )
         .returning();
       if (!removed) return null;
       await writeRouteEvent(tx, {
@@ -2039,8 +2916,12 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
         caseId,
         type: "issue_unlinked",
         actor,
-        payload: { issueId: removed.issueId, role: removed.role, linkId: removed.id },
-        });
+        payload: {
+          issueId: removed.issueId,
+          role: removed.role,
+          linkId: removed.id,
+        },
+      });
       return removed;
     });
     res.json({ deleted: true });
@@ -2110,51 +2991,84 @@ export function pipelineRoutes(db: Db, options: Parameters<typeof pipelineServic
       targetStageId: query.targetStageId,
     });
     if (plan.targetStage) {
-      await assertStageAutomationTargetWriteAccess(db, req, { access, companyId, stage: plan.targetStage });
+      await assertStageAutomationTargetWriteAccess(db, req, {
+        access,
+        companyId,
+        stage: plan.targetStage,
+      });
     }
     res.json(plan);
   });
 
-  router.post("/cases/:caseId/automation/retry", validate(pipelineAutomationRetryRequestSchema), async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    const actor = actorForMutation(req);
-    const plan = await svc.getAutomationRetryPlan({
-      companyId,
-      caseId,
-      scope: req.body.scope,
-      targetStageId: req.body.targetStageId,
-    });
-    if (plan.targetStage) {
-      await assertStageAutomationTargetWriteAccess(db, req, { access, companyId, stage: plan.targetStage });
-    }
-    res.json(await svc.retryStageAutomation({
-      companyId,
-      caseId,
-      scope: req.body.scope,
-      targetStageId: req.body.targetStageId,
-      expectedVersion: req.body.expectedVersion,
-      cleanup: req.body.cleanup,
-      actor,
-    }));
-  });
+  router.post(
+    "/cases/:caseId/automation/retry",
+    validate(pipelineAutomationRetryRequestSchema),
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      const actor = actorForMutation(req);
+      const plan = await svc.getAutomationRetryPlan({
+        companyId,
+        caseId,
+        scope: req.body.scope,
+        targetStageId: req.body.targetStageId,
+      });
+      if (plan.targetStage) {
+        await assertStageAutomationTargetWriteAccess(db, req, {
+          access,
+          companyId,
+          stage: plan.targetStage,
+        });
+      }
+      res.json(
+        await svc.retryStageAutomation({
+          companyId,
+          caseId,
+          scope: req.body.scope,
+          targetStageId: req.body.targetStageId,
+          expectedVersion: req.body.expectedVersion,
+          cleanup: req.body.cleanup,
+          actor,
+        }),
+      );
+    },
+  );
 
-  router.post("/cases/:caseId/automations/:automationId/retry", async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const automationId = req.params.automationId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    await assertCurrentStageAutomationTargetWriteAccess(db, req, { access, companyId, caseId, automationId });
-    const actor = actorForMutation(req);
-    res.json(await svc.retryAutomation({ companyId, caseId, automationId, actor }));
-  });
+  router.post(
+    "/cases/:caseId/automations/:automationId/retry",
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const automationId = req.params.automationId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      await assertCurrentStageAutomationTargetWriteAccess(db, req, {
+        access,
+        companyId,
+        caseId,
+        automationId,
+      });
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.retryAutomation({ companyId, caseId, automationId, actor }),
+      );
+    },
+  );
 
-  router.post("/cases/:caseId/automation/current-stage/rerun", async (req, res) => {
-    const caseId = req.params.caseId as string;
-    const companyId = await assertCaseAccess(db, req, caseId);
-    await assertCurrentStageAutomationTargetWriteAccess(db, req, { access, companyId, caseId });
-    const actor = actorForMutation(req);
-    res.json(await svc.rerunCurrentStageAutomation({ companyId, caseId, actor }));
-  });
+  router.post(
+    "/cases/:caseId/automation/current-stage/rerun",
+    async (req, res) => {
+      const caseId = req.params.caseId as string;
+      const companyId = await assertCaseAccess(db, req, caseId);
+      await assertCurrentStageAutomationTargetWriteAccess(db, req, {
+        access,
+        companyId,
+        caseId,
+      });
+      const actor = actorForMutation(req);
+      res.json(
+        await svc.rerunCurrentStageAutomation({ companyId, caseId, actor }),
+      );
+    },
+  );
 
   return router;
 }
@@ -2165,23 +3079,31 @@ async function getCaseDetail(db: Db, companyId: string, caseId: string) {
     .from(pipelineCases)
     .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
     .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
-    .where(and(eq(pipelineCases.companyId, companyId), eq(pipelineCases.id, caseId)))
+    .where(
+      and(eq(pipelineCases.companyId, companyId), eq(pipelineCases.id, caseId)),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
   if (!row) throw notFound("Pipeline case not found");
   const parentCasePromise = row.case.parentCaseId
     ? db
-      .select({ case: pipelineCases, stage: pipelineStages, pipeline: pipelines })
-      .from(pipelineCases)
-      .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-      .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
-      .where(and(
-        eq(pipelineCases.companyId, companyId),
-        eq(pipelineCases.id, row.case.parentCaseId),
-        eq(pipelines.companyId, companyId),
-      ))
-      .limit(1)
-      .then((rows) => rows[0] ?? null)
+        .select({
+          case: pipelineCases,
+          stage: pipelineStages,
+          pipeline: pipelines,
+        })
+        .from(pipelineCases)
+        .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
+        .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
+        .where(
+          and(
+            eq(pipelineCases.companyId, companyId),
+            eq(pipelineCases.id, row.case.parentCaseId),
+            eq(pipelines.companyId, companyId),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0] ?? null)
     : Promise.resolve(null);
   const [
     allowedNextStages,
@@ -2196,10 +3118,38 @@ async function getCaseDetail(db: Db, companyId: string, caseId: string) {
     liveness,
     builtFromAutomation,
   ] = await Promise.all([
-    db.select().from(pipelineStages).where(eq(pipelineStages.pipelineId, row.case.pipelineId)).orderBy(asc(pipelineStages.position)),
-    db.select().from(pipelineCaseIssueLinks).where(and(eq(pipelineCaseIssueLinks.companyId, companyId), eq(pipelineCaseIssueLinks.caseId, caseId))),
-    db.select().from(pipelineCaseBlockers).where(and(eq(pipelineCaseBlockers.companyId, companyId), eq(pipelineCaseBlockers.caseId, caseId))),
-    db.select().from(pipelineCaseBlockers).where(and(eq(pipelineCaseBlockers.companyId, companyId), eq(pipelineCaseBlockers.blockedByCaseId, caseId))),
+    db
+      .select()
+      .from(pipelineStages)
+      .where(eq(pipelineStages.pipelineId, row.case.pipelineId))
+      .orderBy(asc(pipelineStages.position)),
+    db
+      .select()
+      .from(pipelineCaseIssueLinks)
+      .where(
+        and(
+          eq(pipelineCaseIssueLinks.companyId, companyId),
+          eq(pipelineCaseIssueLinks.caseId, caseId),
+        ),
+      ),
+    db
+      .select()
+      .from(pipelineCaseBlockers)
+      .where(
+        and(
+          eq(pipelineCaseBlockers.companyId, companyId),
+          eq(pipelineCaseBlockers.caseId, caseId),
+        ),
+      ),
+    db
+      .select()
+      .from(pipelineCaseBlockers)
+      .where(
+        and(
+          eq(pipelineCaseBlockers.companyId, companyId),
+          eq(pipelineCaseBlockers.blockedByCaseId, caseId),
+        ),
+      ),
     getDirectChildrenSummary(db, companyId, caseId),
     loadActiveWorkForCases(db, companyId, [caseId]),
     loadDescendantActiveWorkCountsForCases(db, companyId, [caseId]),
@@ -2234,11 +3184,15 @@ async function getCaseDetail(db: Db, companyId: string, caseId: string) {
 }
 
 function stageAutomationId(stage: typeof pipelineStages.$inferSelect) {
-  const config = stage.config && typeof stage.config === "object" && !Array.isArray(stage.config)
-    ? stage.config as PipelineStageConfig
-    : null;
+  const config =
+    stage.config &&
+    typeof stage.config === "object" &&
+    !Array.isArray(stage.config)
+      ? (stage.config as PipelineStageConfig)
+      : null;
   const onEnter = config?.onEnter;
-  if (!onEnter || onEnter.type !== "run_routine" || !onEnter.routineId) return null;
+  if (!onEnter || onEnter.type !== "run_routine" || !onEnter.routineId)
+    return null;
   return typeof onEnter.id === "string" ? onEnter.id : `${stage.id}:on_enter`;
 }
 
@@ -2256,22 +3210,33 @@ async function loadBuiltFromAutomation(
       routine: routines,
     })
     .from(pipelineAutomationExecutions)
-    .innerJoin(pipelineCases, and(
-      eq(pipelineCases.companyId, companyId),
-      eq(pipelineCases.id, pipelineAutomationExecutions.caseId),
-    ))
-    .innerJoin(pipelines, and(
-      eq(pipelines.companyId, companyId),
-      eq(pipelines.id, pipelineCases.pipelineId),
-    ))
-    .innerJoin(routines, and(
-      eq(routines.companyId, companyId),
-      eq(routines.id, pipelineAutomationExecutions.routineId),
-    ))
-    .where(and(
-      eq(pipelineAutomationExecutions.companyId, companyId),
-      eq(pipelineAutomationExecutions.id, caseRow.automationAttemptId),
-    ))
+    .innerJoin(
+      pipelineCases,
+      and(
+        eq(pipelineCases.companyId, companyId),
+        eq(pipelineCases.id, pipelineAutomationExecutions.caseId),
+      ),
+    )
+    .innerJoin(
+      pipelines,
+      and(
+        eq(pipelines.companyId, companyId),
+        eq(pipelines.id, pipelineCases.pipelineId),
+      ),
+    )
+    .innerJoin(
+      routines,
+      and(
+        eq(routines.companyId, companyId),
+        eq(routines.id, pipelineAutomationExecutions.routineId),
+      ),
+    )
+    .where(
+      and(
+        eq(pipelineAutomationExecutions.companyId, companyId),
+        eq(pipelineAutomationExecutions.id, caseRow.automationAttemptId),
+      ),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
   if (!row) return null;
@@ -2280,7 +3245,11 @@ async function loadBuiltFromAutomation(
     .select()
     .from(pipelineStages)
     .where(eq(pipelineStages.pipelineId, row.sourcePipeline.id));
-  const stage = stages.find((candidate) => stageAutomationId(candidate) === row.execution.automationId) ?? null;
+  const stage =
+    stages.find(
+      (candidate) =>
+        stageAutomationId(candidate) === row.execution.automationId,
+    ) ?? null;
 
   return {
     execution: {
@@ -2299,11 +3268,11 @@ async function loadBuiltFromAutomation(
     },
     stage: stage
       ? {
-        id: stage.id,
-        key: stage.key,
-        name: stage.name,
-        kind: stage.kind,
-      }
+          id: stage.id,
+          key: stage.key,
+          name: stage.name,
+          kind: stage.kind,
+        }
       : null,
     case: {
       id: row.sourceCase.id,
@@ -2315,7 +3284,9 @@ async function loadBuiltFromAutomation(
 }
 
 function isLiveIssueStatus(status: string) {
-  return status === "todo" || status === "in_progress" || status === "in_review";
+  return (
+    status === "todo" || status === "in_progress" || status === "in_review"
+  );
 }
 
 function isWaitingIssueStatus(status: string) {
@@ -2332,41 +3303,70 @@ function summarizeLinkedIssue(issue: typeof issueRows.$inferSelect) {
 }
 
 function readBreakdownRequestKeys(payload: unknown): string[] {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return [];
+  if (!payload || typeof payload !== "object" || Array.isArray(payload))
+    return [];
   const keys = (payload as Record<string, unknown>).requestKeys;
   if (!Array.isArray(keys)) return [];
-  return [...new Set(keys.filter((key): key is string => typeof key === "string" && key.trim().length > 0))];
+  return [
+    ...new Set(
+      keys.filter(
+        (key): key is string =>
+          typeof key === "string" && key.trim().length > 0,
+      ),
+    ),
+  ];
 }
 
 function readStageBreakdownConfig(config: unknown) {
-  if (!config || typeof config !== "object" || Array.isArray(config)) return null;
+  if (!config || typeof config !== "object" || Array.isArray(config))
+    return null;
   const raw = (config as Record<string, unknown>).breakdown;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   return raw as Record<string, unknown>;
 }
 
 function stageHasChildrenTerminalGate(config: unknown) {
-  if (!config || typeof config !== "object" || Array.isArray(config)) return false;
+  if (!config || typeof config !== "object" || Array.isArray(config))
+    return false;
   const record = config as Record<string, unknown>;
-  return record.requireChildrenTerminal === true ||
-    (typeof record.autoAdvanceOnChildrenTerminal === "string" && record.autoAdvanceOnChildrenTerminal.trim().length > 0);
+  return (
+    record.requireChildrenTerminal === true ||
+    (typeof record.autoAdvanceOnChildrenTerminal === "string" &&
+      record.autoAdvanceOnChildrenTerminal.trim().length > 0)
+  );
 }
 
 function readStageAutomationId(stage: typeof pipelineStages.$inferSelect) {
-  if (!stage.config || typeof stage.config !== "object" || Array.isArray(stage.config)) return null;
+  if (
+    !stage.config ||
+    typeof stage.config !== "object" ||
+    Array.isArray(stage.config)
+  )
+    return null;
   const onEnterValue = (stage.config as Record<string, unknown>).onEnter;
-  if (!onEnterValue || typeof onEnterValue !== "object" || Array.isArray(onEnterValue)) return null;
+  if (
+    !onEnterValue ||
+    typeof onEnterValue !== "object" ||
+    Array.isArray(onEnterValue)
+  )
+    return null;
   const onEnter = onEnterValue as Record<string, unknown>;
   const rawId = typeof onEnter.id === "string" ? onEnter.id.trim() : "";
-  const routineId = typeof onEnter.routineId === "string" ? onEnter.routineId.trim() : "";
+  const routineId =
+    typeof onEnter.routineId === "string" ? onEnter.routineId.trim() : "";
   if (onEnter.type !== "run_routine" || routineId.length === 0) return null;
   return rawId.length > 0 ? rawId : `${stage.id}:on_enter`;
 }
 
-function readStageAutomationTargetPipelineId(stage: typeof pipelineStages.$inferSelect) {
+function readStageAutomationTargetPipelineId(
+  stage: typeof pipelineStages.$inferSelect,
+) {
   if (!readStageAutomationId(stage)) return null;
   const breakdown = readStageBreakdownConfig(stage.config);
-  const targetPipelineId = typeof breakdown?.targetPipelineId === "string" ? breakdown.targetPipelineId.trim() : "";
+  const targetPipelineId =
+    typeof breakdown?.targetPipelineId === "string"
+      ? breakdown.targetPipelineId.trim()
+      : "";
   return targetPipelineId.length > 0 ? targetPipelineId : null;
 }
 
@@ -2409,7 +3409,12 @@ async function assertCurrentStageAutomationTargetWriteAccess(
     .select({ stage: pipelineStages })
     .from(pipelineCases)
     .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-    .where(and(eq(pipelineCases.companyId, input.companyId), eq(pipelineCases.id, input.caseId)))
+    .where(
+      and(
+        eq(pipelineCases.companyId, input.companyId),
+        eq(pipelineCases.id, input.caseId),
+      ),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
   if (!row) throw notFound("Pipeline case not found");
@@ -2437,20 +3442,41 @@ function parsePermissionPreflightFingerprint(fingerprint: string | null) {
   const principalId = parts[parts.length - 3];
   const permissionKey = parts.slice(parts.length - 2).join(":");
   const automationId = parts.slice(2, parts.length - 4).join(":");
-  if (!caseId || !stageId || !automationId || !targetPipelineId || !principalId || !permissionKey) return null;
-  return { caseId, stageId, automationId, targetPipelineId, principalId, permissionKey };
+  if (
+    !caseId ||
+    !stageId ||
+    !automationId ||
+    !targetPipelineId ||
+    !principalId ||
+    !permissionKey
+  )
+    return null;
+  return {
+    caseId,
+    stageId,
+    automationId,
+    targetPipelineId,
+    principalId,
+    permissionKey,
+  };
 }
 
-async function latestBreakdownCreatedEvent(db: Db, companyId: string, caseId: string) {
+async function latestBreakdownCreatedEvent(
+  db: Db,
+  companyId: string,
+  caseId: string,
+) {
   return db
     .select()
     .from(pipelineCaseEvents)
-    .where(and(
-      eq(pipelineCaseEvents.companyId, companyId),
-      eq(pipelineCaseEvents.caseId, caseId),
-      eq(pipelineCaseEvents.type, "updated"),
-      sql`${pipelineCaseEvents.payload}->>'kind' = 'breakdown_created'`,
-    ))
+    .where(
+      and(
+        eq(pipelineCaseEvents.companyId, companyId),
+        eq(pipelineCaseEvents.caseId, caseId),
+        eq(pipelineCaseEvents.type, "updated"),
+        sql`${pipelineCaseEvents.payload}->>'kind' = 'breakdown_created'`,
+      ),
+    )
     .orderBy(desc(pipelineCaseEvents.createdAt), desc(pipelineCaseEvents.id))
     .limit(1)
     .then((rows) => rows[0] ?? null);
@@ -2459,7 +3485,10 @@ async function latestBreakdownCreatedEvent(db: Db, companyId: string, caseId: st
 async function derivePipelineCaseLiveness(
   db: Db,
   companyId: string,
-  row: { case: typeof pipelineCases.$inferSelect; stage: typeof pipelineStages.$inferSelect },
+  row: {
+    case: typeof pipelineCases.$inferSelect;
+    stage: typeof pipelineStages.$inferSelect;
+  },
 ): Promise<PipelineCaseLiveness> {
   if (row.case.terminalKind) {
     return {
@@ -2469,7 +3498,11 @@ async function derivePipelineCaseLiveness(
     };
   }
 
-  if (row.case.leaseToken && row.case.leaseExpiresAt && row.case.leaseExpiresAt.getTime() > Date.now()) {
+  if (
+    row.case.leaseToken &&
+    row.case.leaseExpiresAt &&
+    row.case.leaseExpiresAt.getTime() > Date.now()
+  ) {
     return {
       state: "live",
       reason: "lease_active",
@@ -2484,12 +3517,20 @@ async function derivePipelineCaseLiveness(
       terminalKind: pipelineCases.terminalKind,
     })
     .from(pipelineCaseBlockers)
-    .innerJoin(pipelineCases, eq(pipelineCaseBlockers.blockedByCaseId, pipelineCases.id))
-    .where(and(
-      eq(pipelineCaseBlockers.companyId, companyId),
-      eq(pipelineCaseBlockers.caseId, row.case.id),
-      or(isNull(pipelineCases.terminalKind), ne(pipelineCases.terminalKind, "done")),
-    ))
+    .innerJoin(
+      pipelineCases,
+      eq(pipelineCaseBlockers.blockedByCaseId, pipelineCases.id),
+    )
+    .where(
+      and(
+        eq(pipelineCaseBlockers.companyId, companyId),
+        eq(pipelineCaseBlockers.caseId, row.case.id),
+        or(
+          isNull(pipelineCases.terminalKind),
+          ne(pipelineCases.terminalKind, "done"),
+        ),
+      ),
+    )
     .orderBy(asc(pipelineCases.createdAt))
     .limit(1)
     .then((rows) => rows[0] ?? null);
@@ -2510,15 +3551,19 @@ async function derivePipelineCaseLiveness(
     .select({ link: pipelineCaseIssueLinks, issue: issueRows })
     .from(pipelineCaseIssueLinks)
     .innerJoin(issueRows, eq(pipelineCaseIssueLinks.issueId, issueRows.id))
-    .where(and(
-      eq(pipelineCaseIssueLinks.companyId, companyId),
-      eq(pipelineCaseIssueLinks.caseId, row.case.id),
-      inArray(pipelineCaseIssueLinks.role, ["automation", "work"]),
-      eq(issueRows.companyId, companyId),
-      isNull(issueRows.hiddenAt),
-    ))
+    .where(
+      and(
+        eq(pipelineCaseIssueLinks.companyId, companyId),
+        eq(pipelineCaseIssueLinks.caseId, row.case.id),
+        inArray(pipelineCaseIssueLinks.role, ["automation", "work"]),
+        eq(issueRows.companyId, companyId),
+        isNull(issueRows.hiddenAt),
+      ),
+    )
     .orderBy(desc(issueRows.updatedAt), desc(pipelineCaseIssueLinks.createdAt));
-  const blockedIssue = linkedIssues.find(({ issue }) => issue.status === "blocked");
+  const blockedIssue = linkedIssues.find(
+    ({ issue }) => issue.status === "blocked",
+  );
   if (blockedIssue) {
     const blocker = await db
       .select({
@@ -2529,11 +3574,13 @@ async function derivePipelineCaseLiveness(
       })
       .from(issueRelations)
       .innerJoin(issueRows, eq(issueRelations.issueId, issueRows.id))
-      .where(and(
-        eq(issueRelations.companyId, companyId),
-        eq(issueRelations.type, "blocks"),
-        eq(issueRelations.relatedIssueId, blockedIssue.issue.id),
-      ))
+      .where(
+        and(
+          eq(issueRelations.companyId, companyId),
+          eq(issueRelations.type, "blocks"),
+          eq(issueRelations.relatedIssueId, blockedIssue.issue.id),
+        ),
+      )
       .orderBy(asc(issueRows.title))
       .limit(1)
       .then((rows) => rows[0] ?? null);
@@ -2547,7 +3594,9 @@ async function derivePipelineCaseLiveness(
         : null,
     };
   }
-  const activeIssue = linkedIssues.find(({ issue }) => issue.status === "in_progress");
+  const activeIssue = linkedIssues.find(
+    ({ issue }) => issue.status === "in_progress",
+  );
   if (activeIssue) {
     return {
       state: "live",
@@ -2556,10 +3605,14 @@ async function derivePipelineCaseLiveness(
       issue: summarizeLinkedIssue(activeIssue.issue),
     };
   }
-  const waitingIssue = linkedIssues.find(({ issue }) => isWaitingIssueStatus(issue.status));
+  const waitingIssue = linkedIssues.find(({ issue }) =>
+    isWaitingIssueStatus(issue.status),
+  );
   if (waitingIssue) {
     return {
-      state: isLiveIssueStatus(waitingIssue.issue.status) ? "waiting" : "attention",
+      state: isLiveIssueStatus(waitingIssue.issue.status)
+        ? "waiting"
+        : "attention",
       reason: "linked_issue_waiting",
       message: `Linked ${waitingIssue.link.role} task is ${waitingIssue.issue.status}.`,
       issue: summarizeLinkedIssue(waitingIssue.issue),
@@ -2569,15 +3622,22 @@ async function derivePipelineCaseLiveness(
   const latestAutomation = await db
     .select()
     .from(pipelineAutomationExecutions)
-    .where(and(
-      eq(pipelineAutomationExecutions.companyId, companyId),
-      eq(pipelineAutomationExecutions.caseId, row.case.id),
-    ))
-    .orderBy(desc(pipelineAutomationExecutions.updatedAt), desc(pipelineAutomationExecutions.createdAt))
+    .where(
+      and(
+        eq(pipelineAutomationExecutions.companyId, companyId),
+        eq(pipelineAutomationExecutions.caseId, row.case.id),
+      ),
+    )
+    .orderBy(
+      desc(pipelineAutomationExecutions.updatedAt),
+      desc(pipelineAutomationExecutions.createdAt),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
   if (latestAutomation?.status === "failed") {
-    const fingerprint = latestAutomation.error?.startsWith("permission_preflight_failed:")
+    const fingerprint = latestAutomation.error?.startsWith(
+      "permission_preflight_failed:",
+    )
       ? latestAutomation.error.slice("permission_preflight_failed:".length)
       : null;
     const parsedFingerprint = parsePermissionPreflightFingerprint(fingerprint);
@@ -2597,7 +3657,8 @@ async function derivePipelineCaseLiveness(
         return {
           state: "attention",
           reason: "automation_failed",
-          message: "Pipeline automation permission has been restored; retry the failed automation ledger.",
+          message:
+            "Pipeline automation permission has been restored; retry the failed automation ledger.",
           automation: {
             automationId: latestAutomation.automationId,
             routineId: latestAutomation.routineId,
@@ -2626,36 +3687,56 @@ async function derivePipelineCaseLiveness(
 
   const breakdownConfig = readStageBreakdownConfig(row.stage.config);
   if (breakdownConfig) {
-    const breakdownEvent = await latestBreakdownCreatedEvent(db, companyId, row.case.id);
+    const breakdownEvent = await latestBreakdownCreatedEvent(
+      db,
+      companyId,
+      row.case.id,
+    );
     if (!breakdownEvent) {
       return {
         state: "attention",
         reason: "breakdown_pending",
-        message: "Breakdown stage has not recorded breakdown_created evidence yet.",
+        message:
+          "Breakdown stage has not recorded breakdown_created evidence yet.",
       };
     }
-    const expectedRequestKeys = readBreakdownRequestKeys(breakdownEvent.payload);
-    const createdRows = expectedRequestKeys.length > 0
-      ? await db
-        .select({ requestKey: pipelineCases.requestKey })
-        .from(pipelineCases)
-        .where(and(
-          eq(pipelineCases.companyId, companyId),
-          eq(pipelineCases.parentCaseId, row.case.id),
-          inArray(pipelineCases.requestKey, expectedRequestKeys),
-          isNull(pipelineCases.hiddenFromBoardAt),
-        ))
-      : [];
-    const createdRequestKeys = [...new Set(createdRows
-      .map((child) => child.requestKey)
-      .filter((key): key is string => typeof key === "string"))];
-    const missingRequestKeys = expectedRequestKeys.filter((key) => !createdRequestKeys.includes(key));
+    const expectedRequestKeys = readBreakdownRequestKeys(
+      breakdownEvent.payload,
+    );
+    const createdRows =
+      expectedRequestKeys.length > 0
+        ? await db
+            .select({ requestKey: pipelineCases.requestKey })
+            .from(pipelineCases)
+            .where(
+              and(
+                eq(pipelineCases.companyId, companyId),
+                eq(pipelineCases.parentCaseId, row.case.id),
+                inArray(pipelineCases.requestKey, expectedRequestKeys),
+                isNull(pipelineCases.hiddenFromBoardAt),
+              ),
+            )
+        : [];
+    const createdRequestKeys = [
+      ...new Set(
+        createdRows
+          .map((child) => child.requestKey)
+          .filter((key): key is string => typeof key === "string"),
+      ),
+    ];
+    const missingRequestKeys = expectedRequestKeys.filter(
+      (key) => !createdRequestKeys.includes(key),
+    );
     if (missingRequestKeys.length > 0) {
       return {
         state: "blocked",
         reason: "breakdown_incomplete",
         message: "Breakdown evidence does not match created child cases.",
-        breakdown: { expectedRequestKeys, createdRequestKeys, missingRequestKeys },
+        breakdown: {
+          expectedRequestKeys,
+          createdRequestKeys,
+          missingRequestKeys,
+        },
       };
     }
     const waitForPieces = breakdownConfig.waitForPieces === true;
@@ -2664,12 +3745,19 @@ async function derivePipelineCaseLiveness(
         state: "waiting",
         reason: "children_waiting",
         message: "Pipeline item is waiting for child items to finish.",
-        breakdown: { expectedRequestKeys, createdRequestKeys, missingRequestKeys: [] },
+        breakdown: {
+          expectedRequestKeys,
+          createdRequestKeys,
+          missingRequestKeys: [],
+        },
       };
     }
   }
 
-  if (stageHasChildrenTerminalGate(row.stage.config) && row.case.childCount !== row.case.terminalChildCount) {
+  if (
+    stageHasChildrenTerminalGate(row.stage.config) &&
+    row.case.childCount !== row.case.terminalChildCount
+  ) {
     return {
       state: "waiting",
       reason: "children_waiting",
@@ -2688,17 +3776,27 @@ async function derivePipelineCaseLiveness(
   return {
     state: "attention",
     reason: "no_action_path",
-    message: "No lease, linked work, blocker, automation retry, review, or breakdown action path is visible.",
+    message:
+      "No lease, linked work, blocker, automation retry, review, or breakdown action path is visible.",
   };
 }
 
 function buildCaseContextMarkdown(
   detail: Awaited<ReturnType<typeof getCaseDetail>>,
-  bodyDocumentContext?: Awaited<ReturnType<typeof loadPipelineConversationBodyDocumentContext>> | null,
-  outputSummaries?: ReturnType<typeof summarizePipelineCaseOutputsForContext> | null,
+  bodyDocumentContext?: Awaited<
+    ReturnType<typeof loadPipelineConversationBodyDocumentContext>
+  > | null,
+  outputSummaries?: ReturnType<
+    typeof summarizePipelineCaseOutputsForContext
+  > | null,
 ) {
-  const bodyDocumentMarkdown = formatPipelineConversationBodyDocumentContextMarkdown(bodyDocumentContext ?? null);
-  const outputMarkdown = formatPipelineCaseOutputContextMarkdown(outputSummaries ?? null);
+  const bodyDocumentMarkdown =
+    formatPipelineConversationBodyDocumentContextMarkdown(
+      bodyDocumentContext ?? null,
+    );
+  const outputMarkdown = formatPipelineCaseOutputContextMarkdown(
+    outputSummaries ?? null,
+  );
   return [
     "## Pipeline Case Context",
     "",
@@ -2722,40 +3820,55 @@ function buildCaseContextMarkdown(
     `Item link: /PAP/pipelines/${detail.pipeline.id}/items/${detail.case.id}`,
     "",
     "```json",
-    JSON.stringify({
-      pipeline: {
-        id: detail.pipeline.id,
-        key: detail.pipeline.key,
-        name: detail.pipeline.name,
-      },
-      case: {
-        id: detail.case.id,
-        caseKey: detail.case.caseKey,
-        title: detail.case.title,
-        version: detail.case.version,
-        untrustedContent: {
-          summary: detail.case.summary,
-          fields: detail.case.fields,
+    JSON.stringify(
+      {
+        pipeline: {
+          id: detail.pipeline.id,
+          key: detail.pipeline.key,
+          name: detail.pipeline.name,
+        },
+        case: {
+          id: detail.case.id,
+          caseKey: detail.case.caseKey,
+          title: detail.case.title,
+          version: detail.case.version,
+          untrustedContent: {
+            summary: detail.case.summary,
+            fields: detail.case.fields,
+          },
+        },
+        stage: {
+          id: detail.stage.id,
+          key: detail.stage.key,
+          name: detail.stage.name,
+          kind: detail.stage.kind,
         },
       },
-      stage: {
-        id: detail.stage.id,
-        key: detail.stage.key,
-        name: detail.stage.name,
-        kind: detail.stage.kind,
-      },
-    }, null, 2),
+      null,
+      2,
+    ),
     "```",
-  ].filter((line) => line !== null).join("\n");
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
 }
 
-async function getChildOutcomeSummaries(db: Db, companyId: string, caseId: string) {
+async function getChildOutcomeSummaries(
+  db: Db,
+  companyId: string,
+  caseId: string,
+) {
   const children = await db
     .select({ case: pipelineCases, stage: pipelineStages, pipeline: pipelines })
     .from(pipelineCases)
     .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
     .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
-    .where(and(eq(pipelineCases.companyId, companyId), eq(pipelineCases.parentCaseId, caseId)))
+    .where(
+      and(
+        eq(pipelineCases.companyId, companyId),
+        eq(pipelineCases.parentCaseId, caseId),
+      ),
+    )
     .orderBy(asc(pipelineCases.createdAt));
   if (children.length === 0) return [];
 
@@ -2763,35 +3876,67 @@ async function getChildOutcomeSummaries(db: Db, companyId: string, caseId: strin
   const reviewEvents = await db
     .select()
     .from(pipelineCaseEvents)
-    .where(and(
-      eq(pipelineCaseEvents.companyId, companyId),
-      inArray(pipelineCaseEvents.caseId, childIds),
-      eq(pipelineCaseEvents.type, "review_decided"),
-    ))
+    .where(
+      and(
+        eq(pipelineCaseEvents.companyId, companyId),
+        inArray(pipelineCaseEvents.caseId, childIds),
+        eq(pipelineCaseEvents.type, "review_decided"),
+      ),
+    )
     .orderBy(desc(pipelineCaseEvents.createdAt), desc(pipelineCaseEvents.id));
-  const latestReviewByCaseId = new Map<string, typeof pipelineCaseEvents.$inferSelect>();
+  const latestReviewByCaseId = new Map<
+    string,
+    typeof pipelineCaseEvents.$inferSelect
+  >();
   for (const event of reviewEvents) {
-    if (!latestReviewByCaseId.has(event.caseId)) latestReviewByCaseId.set(event.caseId, event);
+    if (!latestReviewByCaseId.has(event.caseId))
+      latestReviewByCaseId.set(event.caseId, event);
   }
 
   return children.map((row) => {
     const review = latestReviewByCaseId.get(row.case.id);
-    const reviewPayload = review?.payload && typeof review.payload === "object" && !Array.isArray(review.payload)
-      ? review.payload as Record<string, unknown>
-      : {};
-    const decision = typeof reviewPayload.decision === "string" ? reviewPayload.decision : null;
-    const reason = typeof reviewPayload.reason === "string" ? reviewPayload.reason : null;
+    const reviewPayload =
+      review?.payload &&
+      typeof review.payload === "object" &&
+      !Array.isArray(review.payload)
+        ? (review.payload as Record<string, unknown>)
+        : {};
+    const decision =
+      typeof reviewPayload.decision === "string"
+        ? reviewPayload.decision
+        : null;
+    const reason =
+      typeof reviewPayload.reason === "string" ? reviewPayload.reason : null;
     return {
       id: row.case.id,
       caseKey: row.case.caseKey,
       title: row.case.title,
       href: `/pipelines/${row.pipeline.id}/items/${row.case.id}`,
-      pipeline: { id: row.pipeline.id, key: row.pipeline.key, name: row.pipeline.name },
-      stage: { id: row.stage.id, key: row.stage.key, name: row.stage.name, kind: row.stage.kind },
+      pipeline: {
+        id: row.pipeline.id,
+        key: row.pipeline.key,
+        name: row.pipeline.name,
+      },
+      stage: {
+        id: row.stage.id,
+        key: row.stage.key,
+        name: row.stage.name,
+        kind: row.stage.kind,
+      },
       status: row.case.terminalKind ? "terminal" : "open",
       terminalKind: row.case.terminalKind,
-      approved: decision === "approve" ? true : row.case.terminalKind === "done" ? true : null,
-      rejected: decision === "reject" ? true : row.case.terminalKind === "cancelled" ? true : null,
+      approved:
+        decision === "approve"
+          ? true
+          : row.case.terminalKind === "done"
+            ? true
+            : null,
+      rejected:
+        decision === "reject"
+          ? true
+          : row.case.terminalKind === "cancelled"
+            ? true
+            : null,
       reason,
     };
   });

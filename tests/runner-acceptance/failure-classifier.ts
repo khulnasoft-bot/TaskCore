@@ -8,10 +8,10 @@ const CANDIDATE =
   /(?:assertion|matcher|expected.*observed|marker|issue status|run status|runtime mode|wrong output|missing output)/i;
 
 export function classifyFailure(error: unknown): FailureClass {
-  const message = error instanceof Error
-    ? `${error.name}: ${error.message}`
-    : String(error);
-  if (/secret.*(?:leak|plaintext|redaction)/i.test(message)) return "secret_leak";
+  const message =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  if (/secret.*(?:leak|plaintext|redaction)/i.test(message))
+    return "secret_leak";
   if (/cleanup|teardown|lease.*release/i.test(message)) {
     return TRANSIENT.test(message)
       ? "transient_infrastructure"

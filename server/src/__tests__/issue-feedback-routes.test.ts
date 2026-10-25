@@ -19,7 +19,11 @@ const mockIssueService = vi.hoisted(() => ({
 }));
 
 const mockFeedbackExportService = vi.hoisted(() => ({
-  flushPendingFeedbackTraces: vi.fn(async () => ({ attempted: 1, sent: 1, failed: 0 })),
+  flushPendingFeedbackTraces: vi.fn(async () => ({
+    attempted: 1,
+    sent: 1,
+    failed: 0,
+  })),
 }));
 const mockAccessService = vi.hoisted(() => ({
   canUser: vi.fn(),
@@ -91,7 +95,9 @@ vi.mock("../services/index.js", () => ({
   companySkillService: () => ({
     completeTestRunForIssue: vi.fn(async () => null),
   }),
-  documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+  documentAnnotationService: () => ({
+    remapOpenThreadsForDocument: async () => [],
+  }),
   documentService: () => ({}),
   executionWorkspaceService: () => mockExecutionWorkspaceService,
   goalService: () => ({}),
@@ -138,13 +144,27 @@ async function createApp(actor: Record<string, unknown>) {
     (req as any).actor = actor;
     next();
   });
-  app.use("/api", issueRoutes({} as any, {} as any, { feedbackExportService: mockFeedbackExportService }));
+  app.use(
+    "/api",
+    issueRoutes({} as any, {} as any, {
+      feedbackExportService: mockFeedbackExportService,
+    }),
+  );
   const routeErrors: string[] = [];
   app.locals.routeErrors = routeErrors;
-  app.use((error: unknown, _req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    routeErrors.push(error instanceof Error ? error.stack ?? error.message : String(error));
-    next(error);
-  });
+  app.use(
+    (
+      error: unknown,
+      _req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      routeErrors.push(
+        error instanceof Error ? (error.stack ?? error.message) : String(error),
+      );
+      next(error);
+    },
+  );
   app.use(errorHandler);
   return app;
 }
@@ -211,7 +231,9 @@ describe("issue feedback trace routes", () => {
       });
 
     expect([200, 201]).toContain(res.status);
-    expect(mockFeedbackExportService.flushPendingFeedbackTraces).toHaveBeenCalledWith({
+    expect(
+      mockFeedbackExportService.flushPendingFeedbackTraces,
+    ).toHaveBeenCalledWith({
       companyId: "company-1",
       traceId: "trace-1",
       limit: 1,
@@ -247,8 +269,13 @@ describe("issue feedback trace routes", () => {
 
     const res = await request(app).get("/api/feedback-traces/trace-1");
 
-    expect(res.status, JSON.stringify({ body: res.body, errors: app.locals.routeErrors })).toBe(404);
-    expect(mockFeedbackService.getFeedbackTraceById).toHaveBeenCalledExactlyOnceWith("trace-1", true);
+    expect(
+      res.status,
+      JSON.stringify({ body: res.body, errors: app.locals.routeErrors }),
+    ).toBe(404);
+    expect(
+      mockFeedbackService.getFeedbackTraceById,
+    ).toHaveBeenCalledExactlyOnceWith("trace-1", true);
     expect(mockFeedbackService.getFeedbackTraceBundle).not.toHaveBeenCalled();
   });
 
@@ -269,8 +296,13 @@ describe("issue feedback trace routes", () => {
 
     const res = await request(app).get("/api/feedback-traces/trace-1/bundle");
 
-    expect(res.status, JSON.stringify({ body: res.body, errors: app.locals.routeErrors })).toBe(404);
-    expect(mockFeedbackService.getFeedbackTraceBundle).toHaveBeenCalledExactlyOnceWith("trace-1");
+    expect(
+      res.status,
+      JSON.stringify({ body: res.body, errors: app.locals.routeErrors }),
+    ).toBe(404);
+    expect(
+      mockFeedbackService.getFeedbackTraceBundle,
+    ).toHaveBeenCalledExactlyOnceWith("trace-1");
     expect(mockFeedbackService.getFeedbackTraceById).not.toHaveBeenCalled();
   });
 });

@@ -51,7 +51,9 @@ const ALL_STATUSES: CompanySkillTestRunStatus[] = [
   "cancelled",
 ];
 
-function makeRunDocument(overrides: Partial<IssueDocument> & { id: string; key: string }): IssueDocument {
+function makeRunDocument(
+  overrides: Partial<IssueDocument> & { id: string; key: string },
+): IssueDocument {
   const { id, key, ...documentOverrides } = overrides;
   return {
     id,
@@ -76,7 +78,9 @@ function makeRunDocument(overrides: Partial<IssueDocument> & { id: string; key: 
   };
 }
 
-function makeRunAttachment(overrides: Partial<IssueAttachment> & { id: string }): IssueAttachment {
+function makeRunAttachment(
+  overrides: Partial<IssueAttachment> & { id: string },
+): IssueAttachment {
   const { id, ...attachmentOverrides } = overrides;
   return {
     id,
@@ -96,7 +100,8 @@ function makeRunAttachment(overrides: Partial<IssueAttachment> & { id: string })
     updatedAt: new Date("2026-01-01T00:00:00Z"),
     contentPath: overrides.contentPath ?? `/api/attachments/${id}/content`,
     openPath: overrides.openPath ?? `/api/attachments/${id}/content`,
-    downloadPath: overrides.downloadPath ?? `/api/attachments/${id}/content?download=1`,
+    downloadPath:
+      overrides.downloadPath ?? `/api/attachments/${id}/content?download=1`,
     ...attachmentOverrides,
   };
 }
@@ -110,9 +115,17 @@ function makeArtifactWorkProduct(
     originalFilename?: string;
   },
 ): IssueWorkProduct {
-  const { id, attachmentId: overrideAttachmentId, contentPath: overrideContentPath, contentType, originalFilename, ...workProductOverrides } = overrides;
+  const {
+    id,
+    attachmentId: overrideAttachmentId,
+    contentPath: overrideContentPath,
+    contentType,
+    originalFilename,
+    ...workProductOverrides
+  } = overrides;
   const attachmentId = overrideAttachmentId ?? `attachment-${id}`;
-  const contentPath = overrideContentPath ?? `/api/attachments/${attachmentId}/content`;
+  const contentPath =
+    overrideContentPath ?? `/api/attachments/${attachmentId}/content`;
   return {
     id,
     companyId: "company-1",
@@ -159,7 +172,11 @@ describe("run-status derivation", () => {
   it("polls only while non-terminal (V1 2s policy)", () => {
     expect(shouldPollRun("queued")).toBe(true);
     expect(shouldPollRun("running")).toBe(true);
-    for (const status of ["succeeded", "failed", "cancelled"] as CompanySkillTestRunStatus[]) {
+    for (const status of [
+      "succeeded",
+      "failed",
+      "cancelled",
+    ] as CompanySkillTestRunStatus[]) {
       expect(shouldPollRun(status)).toBe(false);
     }
   });
@@ -185,43 +202,67 @@ describe("run-status derivation", () => {
 
   describe("output mode", () => {
     it("succeeded with output renders the output", () => {
-      expect(runOutputMode({ status: "succeeded", outputBody: "# Result" })).toBe("output");
+      expect(
+        runOutputMode({ status: "succeeded", outputBody: "# Result" }),
+      ).toBe("output");
     });
     it("succeeded with no output renders none", () => {
-      expect(runOutputMode({ status: "succeeded", outputBody: "" })).toBe("none");
-      expect(runOutputMode({ status: "succeeded", outputBody: null })).toBe("none");
+      expect(runOutputMode({ status: "succeeded", outputBody: "" })).toBe(
+        "none",
+      );
+      expect(runOutputMode({ status: "succeeded", outputBody: null })).toBe(
+        "none",
+      );
     });
     it("failed with partial output is a draft-at-failure", () => {
-      expect(runOutputMode({ status: "failed", outputBody: "partial" })).toBe("draft");
+      expect(runOutputMode({ status: "failed", outputBody: "partial" })).toBe(
+        "draft",
+      );
     });
     it("cancelled with partial output is a draft-at-failure", () => {
-      expect(runOutputMode({ status: "cancelled", outputBody: "partial" })).toBe("draft");
+      expect(
+        runOutputMode({ status: "cancelled", outputBody: "partial" }),
+      ).toBe("draft");
     });
     it("failed with no output renders none", () => {
-      expect(runOutputMode({ status: "failed", outputBody: "   " })).toBe("none");
+      expect(runOutputMode({ status: "failed", outputBody: "   " })).toBe(
+        "none",
+      );
     });
     it("non-terminal with no output is pending, with output shows it streaming", () => {
-      expect(runOutputMode({ status: "running", outputBody: "" })).toBe("pending");
-      expect(runOutputMode({ status: "queued", outputBody: null })).toBe("pending");
-      expect(runOutputMode({ status: "running", outputBody: "live" })).toBe("output");
+      expect(runOutputMode({ status: "running", outputBody: "" })).toBe(
+        "pending",
+      );
+      expect(runOutputMode({ status: "queued", outputBody: null })).toBe(
+        "pending",
+      );
+      expect(runOutputMode({ status: "running", outputBody: "live" })).toBe(
+        "output",
+      );
     });
   });
 
   describe("test-task deep link state", () => {
     it("is enabled for a live harness issue", () => {
-      expect(testTaskLinkState({ taskExpired: false, harnessIssue: { id: "i1" } })).toEqual({
+      expect(
+        testTaskLinkState({ taskExpired: false, harnessIssue: { id: "i1" } }),
+      ).toEqual({
         enabled: true,
         reason: null,
       });
     });
     it("is disabled when the task expired", () => {
-      expect(testTaskLinkState({ taskExpired: true, harnessIssue: { id: "i1" } })).toEqual({
+      expect(
+        testTaskLinkState({ taskExpired: true, harnessIssue: { id: "i1" } }),
+      ).toEqual({
         enabled: false,
         reason: "Test task expired",
       });
     });
     it("is disabled when the harness issue was deleted", () => {
-      expect(testTaskLinkState({ taskExpired: false, harnessIssue: null })).toEqual({
+      expect(
+        testTaskLinkState({ taskExpired: false, harnessIssue: null }),
+      ).toEqual({
         enabled: false,
         reason: "Test task expired",
       });
@@ -274,7 +315,9 @@ describe("rich run output helpers", () => {
     expect(findRunOutputDocument(detail)).toBe(outputDocument);
     expect(getRunAdditionalDocuments(detail)).toEqual([notesDocument]);
     expect(getRunRawAttachments(detail)).toEqual([rawAttachment]);
-    expect(getRunMediaGalleryItems(detail).map((item) => item.id)).toEqual([promotedAttachment.id]);
+    expect(getRunMediaGalleryItems(detail).map((item) => item.id)).toEqual([
+      promotedAttachment.id,
+    ]);
   });
 
   it("adds media work products to the gallery when no matching attachment is present", () => {
@@ -373,13 +416,15 @@ describe("disabled-Run matrix", () => {
 
   it("zero files takes priority over missing agent and input", () => {
     expect(
-      evaluateRunGate({ hasAgent: false, hasInput: false, skillFileCount: 0 }).reason,
+      evaluateRunGate({ hasAgent: false, hasInput: false, skillFileCount: 0 })
+        .reason,
     ).toBe("This skill has no files to test");
   });
 
   it("missing agent takes priority over missing input", () => {
     expect(
-      evaluateRunGate({ hasAgent: false, hasInput: false, skillFileCount: 2 }).reason,
+      evaluateRunGate({ hasAgent: false, hasInput: false, skillFileCount: 2 })
+        .reason,
     ).toBe("Pick an agent to run");
   });
 });
@@ -388,16 +433,25 @@ describe("saved input editor draft state", () => {
   const savedInput = { id: "input-1", content: "existing content" };
 
   it("populates the editor when a selected input record arrives after initial render", () => {
-    const state = syncSavedInputDraftState(EMPTY_SAVED_INPUT_DRAFT_STATE, savedInput);
+    const state = syncSavedInputDraftState(
+      EMPTY_SAVED_INPUT_DRAFT_STATE,
+      savedInput,
+    );
 
     expect(selectedSavedInputDraft(state, savedInput)).toBe("existing content");
     expect(savedInputDraftDirty(state, savedInput)).toBe(false);
   });
 
   it("switches draft state when a different saved input is selected", () => {
-    const first = syncSavedInputDraftState(EMPTY_SAVED_INPUT_DRAFT_STATE, savedInput);
+    const first = syncSavedInputDraftState(
+      EMPTY_SAVED_INPUT_DRAFT_STATE,
+      savedInput,
+    );
     const secondInput = { id: "input-2", content: "second body" };
-    const second = syncSavedInputDraftState({ ...first, draft: "local edit" }, secondInput);
+    const second = syncSavedInputDraftState(
+      { ...first, draft: "local edit" },
+      secondInput,
+    );
 
     expect(second).toEqual({
       inputId: "input-2",
@@ -407,26 +461,52 @@ describe("saved input editor draft state", () => {
   });
 
   it("adopts background refetch content while the local draft is clean", () => {
-    const initial = syncSavedInputDraftState(EMPTY_SAVED_INPUT_DRAFT_STATE, savedInput);
+    const initial = syncSavedInputDraftState(
+      EMPTY_SAVED_INPUT_DRAFT_STATE,
+      savedInput,
+    );
     const updated = syncSavedInputDraftState(initial, {
       id: "input-1",
       content: "server update",
     });
 
-    expect(selectedSavedInputDraft(updated, { id: "input-1", content: "server update" })).toBe("server update");
-    expect(savedInputDraftDirty(updated, { id: "input-1", content: "server update" })).toBe(false);
+    expect(
+      selectedSavedInputDraft(updated, {
+        id: "input-1",
+        content: "server update",
+      }),
+    ).toBe("server update");
+    expect(
+      savedInputDraftDirty(updated, {
+        id: "input-1",
+        content: "server update",
+      }),
+    ).toBe(false);
   });
 
   it("preserves a dirty local draft across background refetches", () => {
-    const initial = syncSavedInputDraftState(EMPTY_SAVED_INPUT_DRAFT_STATE, savedInput);
+    const initial = syncSavedInputDraftState(
+      EMPTY_SAVED_INPUT_DRAFT_STATE,
+      savedInput,
+    );
     const dirty = { ...initial, draft: "local edit" };
     const afterRefetch = syncSavedInputDraftState(dirty, {
       id: "input-1",
       content: "server update",
     });
 
-    expect(selectedSavedInputDraft(afterRefetch, { id: "input-1", content: "server update" })).toBe("local edit");
-    expect(savedInputDraftDirty(afterRefetch, { id: "input-1", content: "server update" })).toBe(true);
+    expect(
+      selectedSavedInputDraft(afterRefetch, {
+        id: "input-1",
+        content: "server update",
+      }),
+    ).toBe("local edit");
+    expect(
+      savedInputDraftDirty(afterRefetch, {
+        id: "input-1",
+        content: "server update",
+      }),
+    ).toBe(true);
   });
 });
 
@@ -449,11 +529,28 @@ describe("interaction inline-vs-fallback routing", () => {
   });
 
   it("only answers inline interactions that are still pending", () => {
-    expect(isInteractionAnswerable({ kind: "ask_user_questions", status: "pending" })).toBe(true);
-    expect(isInteractionAnswerable({ kind: "ask_user_questions", status: "answered" })).toBe(false);
-    expect(isInteractionAnswerable({ kind: "request_confirmation", status: "accepted" })).toBe(false);
+    expect(
+      isInteractionAnswerable({
+        kind: "ask_user_questions",
+        status: "pending",
+      }),
+    ).toBe(true);
+    expect(
+      isInteractionAnswerable({
+        kind: "ask_user_questions",
+        status: "answered",
+      }),
+    ).toBe(false);
+    expect(
+      isInteractionAnswerable({
+        kind: "request_confirmation",
+        status: "accepted",
+      }),
+    ).toBe(false);
     // Fallback kinds are never answerable inline even while pending.
-    expect(isInteractionAnswerable({ kind: "suggest_tasks", status: "pending" })).toBe(false);
+    expect(
+      isInteractionAnswerable({ kind: "suggest_tasks", status: "pending" }),
+    ).toBe(false);
   });
 });
 
@@ -465,7 +562,9 @@ describe("agent picker + run labels", () => {
   });
 
   it("builds a short run id", () => {
-    expect(runShortId({ id: "abcdef01-2345-6789-abcd-ef0123456789" })).toBe("#abcdef0");
+    expect(runShortId({ id: "abcdef01-2345-6789-abcd-ef0123456789" })).toBe(
+      "#abcdef0",
+    );
   });
 
   it("finds the output document by the run's output key", () => {
@@ -477,7 +576,12 @@ describe("agent picker + run labels", () => {
       ],
     };
     expect(findOutputDocument(detail)?.body).toBe("o");
-    expect(findOutputDocument({ outputDocumentKey: "missing", documents: detail.documents })).toBeNull();
+    expect(
+      findOutputDocument({
+        outputDocumentKey: "missing",
+        documents: detail.documents,
+      }),
+    ).toBeNull();
   });
 
   describe("buildReRunRequest", () => {
@@ -592,7 +696,12 @@ describe("advanced run template helpers", () => {
   });
 
   it("keeps valid server-backed selections and the explicit No template choice", () => {
-    expect(resolveRunTemplateSelection(customTemplate.id, [defaultTemplate, customTemplate])).toEqual({
+    expect(
+      resolveRunTemplateSelection(customTemplate.id, [
+        defaultTemplate,
+        customTemplate,
+      ]),
+    ).toEqual({
       selection: "template-1",
       template: customTemplate,
       recovered: false,
@@ -605,7 +714,12 @@ describe("advanced run template helpers", () => {
   });
 
   it("recovers stale local selections to the server-backed default template", () => {
-    expect(resolveRunTemplateSelection("deleted-template", [defaultTemplate, customTemplate])).toEqual({
+    expect(
+      resolveRunTemplateSelection("deleted-template", [
+        defaultTemplate,
+        customTemplate,
+      ]),
+    ).toEqual({
       selection: DEFAULT_TEST_RUN_TEMPLATE_ID,
       template: defaultTemplate,
       recovered: true,
@@ -686,20 +800,28 @@ describe("studio landing recency helpers", () => {
 
   describe("orderRecentlyVisitedSkills", () => {
     it("orders by recency, drops stale/foreign ids, and caps at the limit", () => {
-      const skills = [makeSkill({ id: "a" }), makeSkill({ id: "b" }), makeSkill({ id: "c" })];
+      const skills = [
+        makeSkill({ id: "a" }),
+        makeSkill({ id: "b" }),
+        makeSkill({ id: "c" }),
+      ];
       const result = orderRecentlyVisitedSkills(skills, ["c", "missing", "a"]);
       expect(result.map((s) => s.id)).toEqual(["c", "a"]);
     });
 
     it("dedupes repeated ids and respects the limit", () => {
-      const skills = Array.from({ length: 8 }, (_, i) => makeSkill({ id: `s${i}` }));
+      const skills = Array.from({ length: 8 }, (_, i) =>
+        makeSkill({ id: `s${i}` }),
+      );
       const recent = ["s0", "s0", "s1", "s2", "s3", "s4", "s5"];
       const result = orderRecentlyVisitedSkills(skills, recent, 5);
       expect(result.map((s) => s.id)).toEqual(["s0", "s1", "s2", "s3", "s4"]);
     });
 
     it("returns empty when nothing matches", () => {
-      expect(orderRecentlyVisitedSkills([makeSkill({ id: "a" })], ["x", "y"])).toEqual([]);
+      expect(
+        orderRecentlyVisitedSkills([makeSkill({ id: "a" })], ["x", "y"]),
+      ).toEqual([]);
     });
   });
 
@@ -733,10 +855,9 @@ describe("studio landing recency helpers", () => {
         makeSkill({ id: "z", name: "Zebra", updatedAt: when }),
         makeSkill({ id: "a", name: "Apple", updatedAt: when }),
       ];
-      expect(orderRecentlyUpdatedSkills(skills, []).map((s) => s.name)).toEqual([
-        "Apple",
-        "Zebra",
-      ]);
+      expect(orderRecentlyUpdatedSkills(skills, []).map((s) => s.name)).toEqual(
+        ["Apple", "Zebra"],
+      );
     });
   });
 
@@ -757,7 +878,9 @@ describe("studio landing recency helpers", () => {
     });
 
     it("derives two-letter initials from a single name", () => {
-      expect(skillEditorAvatar({ ...userEditor, name: "Cher" })?.initials).toBe("CH");
+      expect(skillEditorAvatar({ ...userEditor, name: "Cher" })?.initials).toBe(
+        "CH",
+      );
     });
 
     it("falls back to a placeholder name when unnamed", () => {
@@ -770,7 +893,12 @@ describe("studio landing recency helpers", () => {
 
     it("returns null for agent edits and unattributed syncs", () => {
       expect(
-        skillEditorAvatar({ kind: "agent", id: "a1", name: "Bot", imageUrl: null }),
+        skillEditorAvatar({
+          kind: "agent",
+          id: "a1",
+          name: "Bot",
+          imageUrl: null,
+        }),
       ).toBeNull();
       expect(skillEditorAvatar(null)).toBeNull();
       expect(skillEditorAvatar(undefined)).toBeNull();

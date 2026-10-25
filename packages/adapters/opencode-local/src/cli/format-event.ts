@@ -9,7 +9,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -53,7 +54,9 @@ export function printOpenCodeStreamEvent(raw: string, _debug: boolean): void {
 
   if (type === "step_start") {
     const sessionId = asString(parsed.sessionID);
-    console.log(pc.blue(`step started${sessionId ? ` (session: ${sessionId})` : ""}`));
+    console.log(
+      pc.blue(`step started${sessionId ? ` (session: ${sessionId})` : ""}`),
+    );
     return;
   }
 
@@ -86,10 +89,13 @@ export function printOpenCodeStreamEvent(raw: string, _debug: boolean): void {
       const metaParts = [`status=${status}`];
       if (metadata) {
         for (const [key, value] of Object.entries(metadata)) {
-          if (value !== undefined && value !== null) metaParts.push(`${key}=${value}`);
+          if (value !== undefined && value !== null)
+            metaParts.push(`${key}=${value}`);
         }
       }
-      console.log((isError ? pc.red : pc.gray)(`tool_result ${metaParts.join(" ")}`));
+      console.log(
+        (isError ? pc.red : pc.gray)(`tool_result ${metaParts.join(" ")}`),
+      );
     }
 
     const output = (asString(state?.output) || asString(state?.error)).trim();
@@ -107,7 +113,11 @@ export function printOpenCodeStreamEvent(raw: string, _debug: boolean): void {
     const cost = asNumber(part?.cost, 0);
     const reason = asString(part?.reason, "step");
     console.log(pc.blue(`step finished: reason=${reason}`));
-    console.log(pc.blue(`tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`));
+    console.log(
+      pc.blue(
+        `tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`,
+      ),
+    );
     return;
   }
 

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { X } from "lucide-react";
 import { usePanel } from "../context/PanelContext";
 import { useClassicTaskInterfaceEnabled } from "../hooks/useClassicTaskInterfaceEnabled";
@@ -6,9 +12,16 @@ import { useStreamlinedUiEnabled } from "../hooks/useStreamlinedUiEnabled";
 import { cn } from "../lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SidePanelFrame, SidePanelWindowControls } from "@/components/side-panel";
+import {
+  SidePanelFrame,
+  SidePanelWindowControls,
+} from "@/components/side-panel";
 
-export function PropertiesPanel({ taskDetailLayout = false }: { taskDetailLayout?: boolean }) {
+export function PropertiesPanel({
+  taskDetailLayout = false,
+}: {
+  taskDetailLayout?: boolean;
+}) {
   const {
     panelContent,
     panelContentMode,
@@ -17,7 +30,8 @@ export function PropertiesPanel({ taskDetailLayout = false }: { taskDetailLayout
     panelMaximizeRequested,
     clearPanelMaximizeRequest,
   } = usePanel();
-  const { enabled: classicTaskInterfaceEnabled } = useClassicTaskInterfaceEnabled();
+  const { enabled: classicTaskInterfaceEnabled } =
+    useClassicTaskInterfaceEnabled();
   const { enabled: streamlinedUiEnabled } = useStreamlinedUiEnabled();
   const streamlinedTaskDetailLayout = streamlinedUiEnabled && taskDetailLayout;
 
@@ -32,7 +46,11 @@ export function PropertiesPanel({ taskDetailLayout = false }: { taskDetailLayout
         <div className="w-80 flex-1 flex flex-col min-w-(--sz-320px) min-h-0">
           <div className="flex items-center justify-between px-4 py-2 border-b border-border">
             <span className="text-sm font-medium">Properties</span>
-            <Button variant="ghost" size="icon-xs" onClick={() => setPanelVisible(false)}>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setPanelVisible(false)}
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -79,7 +97,8 @@ export const PROPERTIES_PANE_HEADER_SLOT_ID = "properties-pane-header-slot";
 export const PROPERTIES_PANE_FOOTER_SLOT_ID = "properties-pane-footer-slot";
 
 const WIDTH_STORAGE_KEY = "taskChatRedesign.propertiesPaneWidth";
-const TASK_DETAIL_WIDTH_STORAGE_KEY = "taskChatRedesign.taskDetailPropertiesPaneWidth";
+const TASK_DETAIL_WIDTH_STORAGE_KEY =
+  "taskChatRedesign.taskDetailPropertiesPaneWidth";
 const DEFAULT_PANE_WIDTH = 322;
 const TASK_DETAIL_DEFAULT_PANE_WIDTH = 434;
 const MIN_PANE_WIDTH = 260;
@@ -132,7 +151,8 @@ function clearStoredPaneWidth(storageKey: string) {
 }
 
 function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
+    return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
@@ -183,9 +203,11 @@ function ResizablePropertiesPanel({
   const asideRef = useRef<HTMLElement | null>(null);
   const widthRef = useRef(width);
   widthRef.current = width;
-  const dragStateRef = useRef<{ pointerId: number; startX: number; startWidth: number } | null>(
-    null,
-  );
+  const dragStateRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startWidth: number;
+  } | null>(null);
   const previousBodyUserSelectRef = useRef("");
   const restoreTimerRef = useRef<number | null>(null);
 
@@ -212,7 +234,8 @@ function ResizablePropertiesPanel({
 
   useEffect(
     () => () => {
-      if (restoreTimerRef.current !== null) window.clearTimeout(restoreTimerRef.current);
+      if (restoreTimerRef.current !== null)
+        window.clearTimeout(restoreTimerRef.current);
       if (dragStateRef.current !== null) {
         document.body.style.userSelect = previousBodyUserSelectRef.current;
       }
@@ -220,35 +243,44 @@ function ResizablePropertiesPanel({
     [],
   );
 
-  const endDrag = useCallback((persist: boolean) => {
-    if (dragStateRef.current === null) return;
-    dragStateRef.current = null;
-    setDragging(false);
-    document.body.style.userSelect = previousBodyUserSelectRef.current;
-    if (persist) persistPaneWidth(widthStorageKey, widthRef.current);
-  }, [widthStorageKey]);
+  const endDrag = useCallback(
+    (persist: boolean) => {
+      if (dragStateRef.current === null) return;
+      dragStateRef.current = null;
+      setDragging(false);
+      document.body.style.userSelect = previousBodyUserSelectRef.current;
+      if (persist) persistPaneWidth(widthStorageKey, widthRef.current);
+    },
+    [widthStorageKey],
+  );
 
-  const handleGripPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    // Primary button only (touch/pen report button 0 or -1 for down events).
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragStateRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startWidth: widthRef.current,
-    };
-    previousBodyUserSelectRef.current = document.body.style.userSelect;
-    document.body.style.userSelect = "none";
-    setDragging(true);
-  }, []);
+  const handleGripPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      // Primary button only (touch/pen report button 0 or -1 for down events).
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      dragStateRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startWidth: widthRef.current,
+      };
+      previousBodyUserSelectRef.current = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      setDragging(true);
+    },
+    [],
+  );
 
-  const handleGripPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragStateRef.current;
-    if (drag === null || drag.pointerId !== event.pointerId) return;
-    // The grip sits on the panel's LEFT border: moving left widens the panel.
-    setWidth(clampPaneWidth(drag.startWidth + (drag.startX - event.clientX)));
-  }, []);
+  const handleGripPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const drag = dragStateRef.current;
+      if (drag === null || drag.pointerId !== event.pointerId) return;
+      // The grip sits on the panel's LEFT border: moving left widens the panel.
+      setWidth(clampPaneWidth(drag.startWidth + (drag.startX - event.clientX)));
+    },
+    [],
+  );
 
   const handleGripPointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -290,7 +322,9 @@ function ResizablePropertiesPanel({
       // fixed position has been committed (double rAF).
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => {
-          setFixedPane((current) => (current ? { ...current, left: current.parentLeft } : current));
+          setFixedPane((current) =>
+            current ? { ...current, left: current.parentLeft } : current,
+          );
         });
       });
       return seeded;
@@ -312,7 +346,10 @@ function ResizablePropertiesPanel({
       return { ...pane, left: rowRight - widthRef.current };
     });
     clearRestoreTimer();
-    restoreTimerRef.current = window.setTimeout(finishRestore, RESTORE_FALLBACK_DELAY);
+    restoreTimerRef.current = window.setTimeout(
+      finishRestore,
+      RESTORE_FALLBACK_DELAY,
+    );
   }, [clearRestoreTimer, finishRestore]);
 
   // Deep-link maximize (LOOA-2181): the request may predate this mount (the
@@ -323,11 +360,18 @@ function ResizablePropertiesPanel({
     if (!maximizeRequested || !panelVisible) return;
     clearMaximizeRequest();
     if (!maximized) handleMaximize();
-  }, [maximizeRequested, panelVisible, maximized, handleMaximize, clearMaximizeRequest]);
+  }, [
+    maximizeRequested,
+    panelVisible,
+    maximized,
+    handleMaximize,
+    clearMaximizeRequest,
+  ]);
 
   const handleTransitionEnd = useCallback(
     (event: React.TransitionEvent<HTMLElement>) => {
-      if (event.target !== asideRef.current || event.propertyName !== "left") return;
+      if (event.target !== asideRef.current || event.propertyName !== "left")
+        return;
       // Only the restore glide needs to unfix on arrival.
       if (!maximized) finishRestore();
     },
@@ -359,7 +403,8 @@ function ResizablePropertiesPanel({
                 panelVisible ? "overflow-visible" : "overflow-hidden",
                 // The width/opacity transition would fight pointer-driven
                 // resizing, so it is suspended while dragging.
-                !dragging && "transition-(--tp-width-opacity) duration-200 ease-in-out",
+                !dragging &&
+                  "transition-(--tp-width-opacity) duration-200 ease-in-out",
               ),
         )}
         style={
@@ -407,13 +452,13 @@ function ResizablePropertiesPanel({
             contentMode="full-bleed"
             headerSize={taskDetailLayout ? "task-detail" : "default"}
             className="flex-1 border-l-0"
-            header={(
+            header={
               <div
                 id={PROPERTIES_PANE_HEADER_SLOT_ID}
                 className="flex min-w-0 flex-1 items-center self-stretch"
               />
-            )}
-            trailingControls={(
+            }
+            trailingControls={
               <SidePanelWindowControls
                 maximized={maximized}
                 closeControl={taskDetailLayout ? "close" : "toggle"}
@@ -423,14 +468,20 @@ function ResizablePropertiesPanel({
                 }}
                 onToggle={() => setPanelVisible(false)}
               />
-            )}
+            }
             footer={<div id={PROPERTIES_PANE_FOOTER_SLOT_ID} />}
           >
-            {panelContentMode === "full-bleed" ? panelContent : (
+            {panelContentMode === "full-bleed" ? (
+              panelContent
+            ) : (
               <ScrollArea className="h-full">
                 <div
                   className={cn("p-4", maximized && "mx-auto w-full px-9")}
-                  style={maximized ? { maxWidth: MAXIMIZED_CONTENT_MAX_WIDTH } : undefined}
+                  style={
+                    maximized
+                      ? { maxWidth: MAXIMIZED_CONTENT_MAX_WIDTH }
+                      : undefined
+                  }
                 >
                   {panelContent}
                 </div>

@@ -38,7 +38,8 @@ function firstSentence(body: string): string | undefined {
     .find((line) => line.length > 0);
   if (!firstLine) return undefined;
   const sentenceEnd = firstLine.search(/[.!?](\s|$)/);
-  const sentence = sentenceEnd >= 0 ? firstLine.slice(0, sentenceEnd + 1) : firstLine;
+  const sentence =
+    sentenceEnd >= 0 ? firstLine.slice(0, sentenceEnd + 1) : firstLine;
   if (sentence.length <= DETAIL_MAX_CHARS) return sentence;
   return `${sentence.slice(0, DETAIL_MAX_CHARS - 1).trimEnd()}…`;
 }
@@ -62,13 +63,19 @@ export function humanizeSystemNotice(input: {
       tone: presentationTone ?? "warning",
     };
   }
-  if (code === "configuration_incomplete" || body.includes("secret/env bindings are missing")) {
+  if (
+    code === "configuration_incomplete" ||
+    body.includes("secret/env bindings are missing")
+  ) {
     return {
       title: "Task paused — a secret/config binding is missing",
       tone: presentationTone ?? "warning",
     };
   }
-  if (code === "workspace_validation_failed" || body.includes("workspace failed validation")) {
+  if (
+    code === "workspace_validation_failed" ||
+    body.includes("workspace failed validation")
+  ) {
     return {
       title: "Task paused — workspace problem",
       tone: presentationTone ?? "warning",

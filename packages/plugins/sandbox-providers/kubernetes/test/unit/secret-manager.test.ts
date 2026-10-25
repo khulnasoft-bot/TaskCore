@@ -17,11 +17,19 @@ describe("createPerRunSecret", () => {
   it("creates a Secret with the correct name and namespace", async () => {
     const created: { body: Record<string, unknown> }[] = [];
     const clients = {
-      core: { createNamespacedSecret: vi.fn(async (args: { body: Record<string, unknown> }) => { created.push(args); }) },
+      core: {
+        createNamespacedSecret: vi.fn(
+          async (args: { body: Record<string, unknown> }) => {
+            created.push(args);
+          },
+        ),
+      },
     };
     await createPerRunSecret(clients as never, baseInput);
     expect(clients.core.createNamespacedSecret).toHaveBeenCalledOnce();
-    const body = created[0].body as { metadata: { name: string; namespace: string } };
+    const body = created[0].body as {
+      metadata: { name: string; namespace: string };
+    };
     expect(body.metadata.name).toBe("r-abcd-env");
     expect(body.metadata.namespace).toBe("taskcore-acme");
   });
@@ -29,7 +37,13 @@ describe("createPerRunSecret", () => {
   it("includes BOOTSTRAP_TOKEN and adapter env keys in stringData", async () => {
     const created: { body: Record<string, unknown> }[] = [];
     const clients = {
-      core: { createNamespacedSecret: vi.fn(async (args: { body: Record<string, unknown> }) => { created.push(args); }) },
+      core: {
+        createNamespacedSecret: vi.fn(
+          async (args: { body: Record<string, unknown> }) => {
+            created.push(args);
+          },
+        ),
+      },
     };
     await createPerRunSecret(clients as never, baseInput);
     const body = created[0].body as { stringData: Record<string, string> };
@@ -40,12 +54,22 @@ describe("createPerRunSecret", () => {
   it("sets ownerReferences to the owner resource for cascade delete", async () => {
     const created: { body: Record<string, unknown> }[] = [];
     const clients = {
-      core: { createNamespacedSecret: vi.fn(async (args: { body: Record<string, unknown> }) => { created.push(args); }) },
+      core: {
+        createNamespacedSecret: vi.fn(
+          async (args: { body: Record<string, unknown> }) => {
+            created.push(args);
+          },
+        ),
+      },
     };
     await createPerRunSecret(clients as never, baseInput);
-    const body = created[0].body as { metadata: { ownerReferences: { uid: string; controller: boolean }[] } };
+    const body = created[0].body as {
+      metadata: { ownerReferences: { uid: string; controller: boolean }[] };
+    };
     expect(body.metadata.ownerReferences).toHaveLength(1);
-    expect(body.metadata.ownerReferences[0].uid).toBe("11111111-1111-1111-1111-111111111111");
+    expect(body.metadata.ownerReferences[0].uid).toBe(
+      "11111111-1111-1111-1111-111111111111",
+    );
     expect(body.metadata.ownerReferences[0].controller).toBe(true);
   });
 

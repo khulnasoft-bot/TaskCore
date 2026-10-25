@@ -147,9 +147,7 @@
       "status": "succeeded",
       "error_code": null,
       "arguments": {
-        "channels": [
-          "C0C7SGC3VPT"
-        ],
+        "channels": ["C0C7SGC3VPT"],
         "limit": 20,
         "query": "zoo opening time"
       }
@@ -570,9 +568,7 @@
       "comment_id": "7375dc84-f2d4-429d-a8c7-9a53a166ffad",
       "state": "published",
       "provider_message_id": "1791454925.856499",
-      "attachmentIds": [
-        "41dde5e8-83f8-4fa6-862a-0009875642dc"
-      ]
+      "attachmentIds": ["41dde5e8-83f8-4fa6-862a-0009875642dc"]
     },
     {
       "id": "9f268128-4a7b-4472-9e36-dfb8e9663ae9",

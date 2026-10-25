@@ -77,7 +77,10 @@ export function boardChatRoutes(
   function loadBoardSkill(): string {
     if (_boardSkillCache) return _boardSkillCache;
     const here = path.dirname(fileURLToPath(import.meta.url));
-    const skillPath = path.resolve(here, "../../../skills/taskcore-board/SKILL.md");
+    const skillPath = path.resolve(
+      here,
+      "../../../skills/taskcore-board/SKILL.md",
+    );
     try {
       let content = fs.readFileSync(skillPath, "utf-8");
       // Strip YAML frontmatter — the model only needs the body.
@@ -114,7 +117,8 @@ export function boardChatRoutes(
     // else rather than lending the server's shell to remote users.
     if (opts.deploymentMode !== "local_trusted") {
       res.status(403).json({
-        error: "Board chat is only available on local single-operator instances",
+        error:
+          "Board chat is only available on local single-operator instances",
         code: "DEPLOYMENT_MODE_UNSUPPORTED",
       });
       return;
@@ -152,7 +156,9 @@ export function boardChatRoutes(
     // Find or create the standing "Board Operations" issue that anchors the
     // board conversation + decision log.
     if (!issueId) {
-      const companyIssues = await issueSvc.list(companyId, { q: "Board Operations" });
+      const companyIssues = await issueSvc.list(companyId, {
+        q: "Board Operations",
+      });
       const boardIssue = companyIssues.find(
         (i) =>
           i.title === "Board Operations" &&
@@ -191,10 +197,14 @@ export function boardChatRoutes(
     });
 
     // Build conversation history from recent comments (oldest first).
-    const comments = await issueSvc.listComments(resolvedIssueId, { order: "asc" });
+    const comments = await issueSvc.listComments(resolvedIssueId, {
+      order: "asc",
+    });
     const recent = comments.slice(-20);
     const history = recent
-      .map((c) => serializeTurn(isConciergeReply(c) ? "assistant" : "user", c.body))
+      .map((c) =>
+        serializeTurn(isConciergeReply(c) ? "assistant" : "user", c.body),
+      )
       .join("\n\n");
 
     const systemPrompt = loadBoardSkill();
@@ -213,13 +223,17 @@ export function boardChatRoutes(
       "X-Accel-Buffering": "no",
     });
     res.flushHeaders();
-    res.write(`data: ${JSON.stringify({ type: "start", issueId: resolvedIssueId })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ type: "start", issueId: resolvedIssueId })}\n\n`,
+    );
 
     // Resolve the API base URL the spawned process should call back into so
     // the board skill can drive the control plane.
     const localAddress = req.socket?.localAddress ?? "127.0.0.1";
     const serverAddr =
-      localAddress === "::" || localAddress === "::1" ? "127.0.0.1" : localAddress;
+      localAddress === "::" || localAddress === "::1"
+        ? "127.0.0.1"
+        : localAddress;
     const serverPort = req.socket?.localPort ?? 3100;
     const apiUrl = `http://${serverAddr}:${serverPort}`;
 
@@ -297,7 +311,9 @@ export function boardChatRoutes(
       } else {
         statusText = `Using ${toolName}...`;
       }
-      res.write(`data: ${JSON.stringify({ type: "status", text: statusText })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({ type: "status", text: statusText })}\n\n`,
+      );
     };
 
     // Parse stream-json events off stdout and forward text/status to the UI.

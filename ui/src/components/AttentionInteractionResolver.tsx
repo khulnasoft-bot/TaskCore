@@ -34,7 +34,9 @@ export function replaceResolvedInteraction(
   resolvedInteraction: IssueThreadInteraction,
 ): IssueThreadInteraction[] {
   const existing = current ?? [];
-  const index = existing.findIndex((entry) => entry.id === resolvedInteraction.id);
+  const index = existing.findIndex(
+    (entry) => entry.id === resolvedInteraction.id,
+  );
   if (index < 0) return [...existing, resolvedInteraction];
   return existing.map((entry, entryIndex) =>
     entryIndex === index ? resolvedInteraction : entry,
@@ -58,15 +60,22 @@ export function AttentionInteractionResolver({
 }: AttentionInteractionResolverProps) {
   const queryClient = useQueryClient();
 
-  const { data: interactions, isLoading, error } = useQuery({
+  const {
+    data: interactions,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: queryKeys.issues.interactions(issueId),
     queryFn: () => issuesApi.listInteractions(issueId),
     enabled: !!issueId,
-    refetchInterval: (query) => interactionReadinessRefetchInterval(query.state.data),
+    refetchInterval: (query) =>
+      interactionReadinessRefetchInterval(query.state.data),
   });
 
   const interaction = useMemo<IssueThreadInteraction | null>(() => {
-    const match = (interactions ?? []).find((entry) => entry.id === interactionId);
+    const match = (interactions ?? []).find(
+      (entry) => entry.id === interactionId,
+    );
     return match && isIssueThreadInteraction(match) ? match : null;
   }, [interactions, interactionId]);
 
@@ -81,14 +90,19 @@ export function AttentionInteractionResolver({
         (current) => replaceResolvedInteraction(current, resolvedInteraction),
       );
     }
-    queryClient.invalidateQueries({ queryKey: queryKeys.issues.interactions(issueId) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.issues.interactions(issueId),
+    });
     queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
     onResolved?.();
   };
 
   const acceptMutation = useMutation({
     mutationFn: (input: {
-      interaction: SuggestTasksInteraction | RequestConfirmationInteraction | RequestCheckboxConfirmationInteraction;
+      interaction:
+        | SuggestTasksInteraction
+        | RequestConfirmationInteraction
+        | RequestCheckboxConfirmationInteraction;
       selectedClientKeys?: string[];
       selectedOptionIds?: string[];
       rememberAction?: boolean;
@@ -108,8 +122,13 @@ export function AttentionInteractionResolver({
   });
 
   const respondMutation = useMutation({
-    mutationFn: (input: { interactionId: string; answers: AskUserQuestionsAnswer[] }) =>
-      issuesApi.respondToInteraction(issueId, input.interactionId, { answers: input.answers }),
+    mutationFn: (input: {
+      interactionId: string;
+      answers: AskUserQuestionsAnswer[];
+    }) =>
+      issuesApi.respondToInteraction(issueId, input.interactionId, {
+        answers: input.answers,
+      }),
     onSuccess: invalidate,
   });
 
@@ -122,8 +141,17 @@ export function AttentionInteractionResolver({
   const verdictsMutation = useMutation({
     mutationFn: (input: {
       interactionId: string;
-      verdicts: { id: string; verdict: RequestItemVerdictValue; reason?: string }[];
-    }) => issuesApi.submitInteractionVerdicts(issueId, input.interactionId, input.verdicts),
+      verdicts: {
+        id: string;
+        verdict: RequestItemVerdictValue;
+        reason?: string;
+      }[];
+    }) =>
+      issuesApi.submitInteractionVerdicts(
+        issueId,
+        input.interactionId,
+        input.verdicts,
+      ),
     onSuccess: invalidate,
   });
 
@@ -138,7 +166,8 @@ export function AttentionInteractionResolver({
   if (error || !interaction) {
     return (
       <p className="py-3 text-xs text-muted-foreground">
-        This decision is no longer available — it may have been resolved elsewhere.
+        This decision is no longer available — it may have been resolved
+        elsewhere.
       </p>
     );
   }
@@ -149,20 +178,46 @@ export function AttentionInteractionResolver({
       agentMap={agentMap}
       currentUserId={currentUserId}
       userLabelMap={userLabelMap}
-      onAcceptInteraction={(target, selectedClientKeys, selectedOptionIds, rememberAction) =>
-        acceptMutation.mutateAsync({ interaction: target, selectedClientKeys, selectedOptionIds, rememberAction }).then(() => undefined)
+      onAcceptInteraction={(
+        target,
+        selectedClientKeys,
+        selectedOptionIds,
+        rememberAction,
+      ) =>
+        acceptMutation
+          .mutateAsync({
+            interaction: target,
+            selectedClientKeys,
+            selectedOptionIds,
+            rememberAction,
+          })
+          .then(() => undefined)
       }
       onRejectInteraction={(target, reason) =>
-        rejectMutation.mutateAsync({ interactionId: target.id, reason }).then(() => undefined)
+        rejectMutation
+          .mutateAsync({ interactionId: target.id, reason })
+          .then(() => undefined)
       }
-      onSubmitInteractionAnswers={(target: AskUserQuestionsInteraction, answers) =>
-        respondMutation.mutateAsync({ interactionId: target.id, answers }).then(() => undefined)
+      onSubmitInteractionAnswers={(
+        target: AskUserQuestionsInteraction,
+        answers,
+      ) =>
+        respondMutation
+          .mutateAsync({ interactionId: target.id, answers })
+          .then(() => undefined)
       }
       onCancelInteraction={(target: AskUserQuestionsInteraction) =>
-        cancelMutation.mutateAsync({ interactionId: target.id }).then(() => undefined)
+        cancelMutation
+          .mutateAsync({ interactionId: target.id })
+          .then(() => undefined)
       }
-      onSubmitInteractionVerdicts={(target: RequestItemVerdictsInteraction, verdicts) =>
-        verdictsMutation.mutateAsync({ interactionId: target.id, verdicts }).then(() => undefined)
+      onSubmitInteractionVerdicts={(
+        target: RequestItemVerdictsInteraction,
+        verdicts,
+      ) =>
+        verdictsMutation
+          .mutateAsync({ interactionId: target.id, verdicts })
+          .then(() => undefined)
       }
     />
   );

@@ -22,7 +22,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 
 function readPkg(relativePath) {
-  return JSON.parse(readFileSync(resolve(repoRoot, relativePath, "package.json"), "utf8"));
+  return JSON.parse(
+    readFileSync(resolve(repoRoot, relativePath, "package.json"), "utf8"),
+  );
 }
 
 // Read all workspace packages that are BUNDLED into the CLI.
@@ -42,9 +44,7 @@ const workspacePaths = [
 
 // Workspace packages that are NOT bundled and must stay as npm dependencies.
 // These get published separately and resolved at runtime.
-const externalWorkspacePackages = new Set([
-  "@taskcore/server",
-]);
+const externalWorkspacePackages = new Set(["@taskcore/server"]);
 
 // Collect all external dependencies from all workspace packages
 const allDeps = {};
@@ -56,7 +56,8 @@ for (const pkgPath of workspacePaths) {
   const optDeps = pkg.optionalDependencies || {};
 
   for (const [name, version] of Object.entries(deps)) {
-    if (name.startsWith("@taskcore/") && !externalWorkspacePackages.has(name)) continue;
+    if (name.startsWith("@taskcore/") && !externalWorkspacePackages.has(name))
+      continue;
     if (bundledCliNpmDependencies.has(name)) continue;
     // For external workspace packages, read their version directly
     if (externalWorkspacePackages.has(name)) {
@@ -77,16 +78,25 @@ for (const pkgPath of workspacePaths) {
 }
 
 if (bundledCliNpmDependencies.has("embedded-postgres")) {
-  const requireFromDb = createRequire(resolve(repoRoot, "packages/db/package.json"));
-  const embeddedPostgresRoot = dirname(requireFromDb.resolve("embedded-postgres"));
+  const requireFromDb = createRequire(
+    resolve(repoRoot, "packages/db/package.json"),
+  );
+  const embeddedPostgresRoot = dirname(
+    requireFromDb.resolve("embedded-postgres"),
+  );
   const embeddedPostgresPackage = JSON.parse(
     readFileSync(resolve(embeddedPostgresRoot, "..", "package.json"), "utf8"),
   );
-  Object.assign(allOptionalDeps, embeddedPostgresPackage.optionalDependencies ?? {});
+  Object.assign(
+    allOptionalDeps,
+    embeddedPostgresPackage.optionalDependencies ?? {},
+  );
 }
 
 // Sort alphabetically
-const sortedDeps = Object.fromEntries(Object.entries(allDeps).sort(([a], [b]) => a.localeCompare(b)));
+const sortedDeps = Object.fromEntries(
+  Object.entries(allDeps).sort(([a], [b]) => a.localeCompare(b)),
+);
 const sortedOptDeps = Object.fromEntries(
   Object.entries(allOptionalDeps).sort(([a], [b]) => a.localeCompare(b)),
 );
@@ -120,11 +130,20 @@ if (Object.keys(sortedOptDeps).length > 0) {
 
 const output = JSON.stringify(publishPkg, null, 2) + "\n";
 const [outputFlag, outputPath, ...extraArgs] = process.argv.slice(2);
-if (extraArgs.length || (outputFlag !== undefined && (outputFlag !== "--output" || !outputPath))) {
-  throw new Error("Usage: generate-npm-package-json.mjs [--output <manifest-path>]");
+if (
+  extraArgs.length ||
+  (outputFlag !== undefined && (outputFlag !== "--output" || !outputPath))
+) {
+  throw new Error(
+    "Usage: generate-npm-package-json.mjs [--output <manifest-path>]",
+  );
 }
-const outPath = outputPath ? resolve(outputPath) : resolve(repoRoot, "cli/package.json");
+const outPath = outputPath
+  ? resolve(outputPath)
+  : resolve(repoRoot, "cli/package.json");
 writeFileSync(outPath, output);
 
-console.log(`  ✓  Generated publishable package.json (${Object.keys(sortedDeps).length} deps)`);
+console.log(
+  `  ✓  Generated publishable package.json (${Object.keys(sortedDeps).length} deps)`,
+);
 console.log(`     Version: ${cliPkg.version}`);

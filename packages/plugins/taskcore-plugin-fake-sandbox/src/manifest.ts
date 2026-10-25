@@ -37,7 +37,8 @@ const manifest: TaskcorePluginManifestV1 = {
         properties: {
           image: {
             type: "string",
-            description: "Deterministic fake image label for metadata and matching.",
+            description:
+              "Deterministic fake image label for metadata and matching.",
             default: "fake:latest",
           },
           timeoutMs: {

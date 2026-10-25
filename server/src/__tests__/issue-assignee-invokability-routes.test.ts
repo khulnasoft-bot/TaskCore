@@ -40,12 +40,19 @@ const mockHeartbeatService = vi.hoisted(() => ({
   cancelRun: vi.fn(async () => null),
 }));
 
-const mockObserveCrossIssueInfluence = vi.hoisted(() => vi.fn(async () => null));
+const mockObserveCrossIssueInfluence = vi.hoisted(() =>
+  vi.fn(async () => null),
+);
 
-vi.mock("../services/cross-issue-influence-limit.js", async (importOriginal) => ({
-  ...await importOriginal<typeof import("../services/cross-issue-influence-limit.js")>(),
-  observeCrossIssueInfluence: mockObserveCrossIssueInfluence,
-}));
+vi.mock(
+  "../services/cross-issue-influence-limit.js",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("../services/cross-issue-influence-limit.js")
+    >()),
+    observeCrossIssueInfluence: mockObserveCrossIssueInfluence,
+  }),
+);
 
 vi.mock("../services/index.js", () => ({
   companyService: () => ({
@@ -80,12 +87,18 @@ vi.mock("../services/index.js", () => ({
   companySkillService: () => ({
     completeTestRunForIssue: vi.fn(async () => null),
   }),
-  documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+  documentAnnotationService: () => ({
+    remapOpenThreadsForDocument: async () => [],
+  }),
   documentService: () => ({}),
   executionWorkspaceService: () => ({}),
   feedbackService: () => ({
     listIssueVotesForUser: vi.fn(async () => []),
-    saveIssueVote: vi.fn(async () => ({ vote: null, consentEnabledNow: false, sharingEnabled: false })),
+    saveIssueVote: vi.fn(async () => ({
+      vote: null,
+      consentEnabledNow: false,
+      sharingEnabled: false,
+    })),
   }),
   goalService: () => ({}),
   heartbeatService: () => mockHeartbeatService,
@@ -121,7 +134,9 @@ vi.mock("../services/index.js", () => ({
   issueThreadInteractionService: () => ({
     expireRequestConfirmationsSupersededByComment: vi.fn(async () => []),
     expireStaleRequestConfirmationsForIssueDocument: vi.fn(async () => []),
-    expireRequestConfirmationsSupersededByHistoricalComments: vi.fn(async () => []),
+    expireRequestConfirmationsSupersededByHistoricalComments: vi.fn(
+      async () => [],
+    ),
   }),
   logActivity: vi.fn(async () => undefined),
   projectService: () => ({}),
@@ -160,10 +175,21 @@ function agentActor(): Actor {
 // Run containment is mocked because this suite targets assignee invokability.
 function stubDb(): any {
   const query: any = {};
-  for (const method of ["select", "from", "where", "innerJoin", "leftJoin", "orderBy", "limit", "groupBy", "for"]) {
+  for (const method of [
+    "select",
+    "from",
+    "where",
+    "innerJoin",
+    "leftJoin",
+    "orderBy",
+    "limit",
+    "groupBy",
+    "for",
+  ]) {
     query[method] = () => query;
   }
-  query.then = (resolve: (rows: unknown[]) => unknown) => Promise.resolve(resolve([]));
+  query.then = (resolve: (rows: unknown[]) => unknown) =>
+    Promise.resolve(resolve([]));
   return { select: () => query };
 }
 
@@ -306,14 +332,20 @@ describe("agent delegation cycle guard", () => {
     expect(res.body.error).toContain("Delegation cycle");
     expect(res.body.details).toMatchObject({ code: "delegation_cycle" });
     expect(mockIssueService.createChild).not.toHaveBeenCalled();
-    expect(mockIssueService.findOpenAncestorCreatedByAgent).toHaveBeenCalledWith(parent.id, IDLE_AGENT_ID);
+    expect(
+      mockIssueService.findOpenAncestorCreatedByAgent,
+    ).toHaveBeenCalledWith(parent.id, IDLE_AGENT_ID);
   });
 
   it("allows the same child when no open ancestor was created by the assignee", async () => {
     const parent = makeIssue();
     mockIssueService.getById.mockResolvedValue(parent);
     mockIssueService.createChild.mockResolvedValue({
-      issue: makeIssue({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", parentId: parent.id, assigneeAgentId: IDLE_AGENT_ID }),
+      issue: makeIssue({
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        parentId: parent.id,
+        assigneeAgentId: IDLE_AGENT_ID,
+      }),
       parentBlockerAdded: false,
     });
 
@@ -333,7 +365,11 @@ describe("agent delegation cycle guard", () => {
     const parent = makeIssue({ assigneeAgentId: null });
     mockIssueService.getById.mockResolvedValue(parent);
     mockIssueService.createChild.mockResolvedValue({
-      issue: makeIssue({ id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", parentId: parent.id, assigneeAgentId: IDLE_AGENT_ID }),
+      issue: makeIssue({
+        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        parentId: parent.id,
+        assigneeAgentId: IDLE_AGENT_ID,
+      }),
       parentBlockerAdded: false,
     });
 
@@ -346,6 +382,8 @@ describe("agent delegation cycle guard", () => {
       });
 
     expect(res.status).toBe(201);
-    expect(mockIssueService.findOpenAncestorCreatedByAgent).not.toHaveBeenCalled();
+    expect(
+      mockIssueService.findOpenAncestorCreatedByAgent,
+    ).not.toHaveBeenCalled();
   });
 });

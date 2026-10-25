@@ -11,10 +11,17 @@ const mockNavigate = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/router", () => ({ useNavigate: () => mockNavigate }));
 vi.mock("@/context/CompanyContext", () => ({
-  useCompany: () => ({ selectedCompany: { name: "Taskcore", issuePrefix: "PAP" } }),
+  useCompany: () => ({
+    selectedCompany: { name: "Taskcore", issuePrefix: "PAP" },
+  }),
 }));
 vi.mock("@/context/SidebarContext", () => ({
-  useSidebar: () => ({ isMobile: false, setSidebarOpen: vi.fn(), collapsed: true, peeking: false }),
+  useSidebar: () => ({
+    isMobile: false,
+    setSidebarOpen: vi.fn(),
+    collapsed: true,
+    peeking: false,
+  }),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,7 +45,11 @@ describe("ContextualSidebarFrame", () => {
     const root = createRoot(container);
     act(() => {
       root.render(
-        <ContextualSidebarFrame surface="settings" title="Settings" icon={Settings}>
+        <ContextualSidebarFrame
+          surface="settings"
+          title="Settings"
+          icon={Settings}
+        >
           <nav>Settings links</nav>
         </ContextualSidebarFrame>,
       );
@@ -52,7 +63,11 @@ describe("ContextualSidebarFrame", () => {
     expect(container.textContent).toContain("Settings");
 
     act(() => {
-      container.querySelector<HTMLButtonElement>('button[aria-label="Back from Settings"]')?.click();
+      container
+        .querySelector<HTMLButtonElement>(
+          'button[aria-label="Back from Settings"]',
+        )
+        ?.click();
     });
     expect(mockNavigate).toHaveBeenCalledWith("/dashboard");
     act(() => root.unmount());
@@ -67,7 +82,11 @@ describe("ContextualSidebarFrame", () => {
     const root = render();
 
     act(() => {
-      container.querySelector<HTMLButtonElement>('button[aria-label="Back from Settings"]')?.click();
+      container
+        .querySelector<HTMLButtonElement>(
+          'button[aria-label="Back from Settings"]',
+        )
+        ?.click();
     });
     expect(mockNavigate).toHaveBeenCalledWith("/PAP/issues/task-1");
     act(() => root.unmount());
@@ -77,14 +96,20 @@ describe("ContextualSidebarFrame", () => {
     const root = createRoot(container);
     act(() => {
       root.render(
-        <ContextualSidebarFrame surface="skills" title="Skills" showHeader={false}>
+        <ContextualSidebarFrame
+          surface="skills"
+          title="Skills"
+          showHeader={false}
+        >
           <nav>Skill links</nav>
         </ContextualSidebarFrame>,
       );
     });
 
     expect(container.textContent).toBe("Skill links");
-    expect(container.querySelector('[aria-label="Back from Skills"]')).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Back from Skills"]'),
+    ).toBeNull();
     act(() => root.unmount());
   });
 });

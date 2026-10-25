@@ -37,32 +37,54 @@ export interface SkillFolderTreeModel {
   roots: FolderTreeNode[];
 }
 
-const RESERVED_ROOT_SYSTEM_KEYS = new Set<string>(["my", "projects", "bundled"]);
+const RESERVED_ROOT_SYSTEM_KEYS = new Set<string>([
+  "my",
+  "projects",
+  "bundled",
+]);
 
-export function isReservedRootSystemKey(systemKey: string | null | undefined): boolean {
+export function isReservedRootSystemKey(
+  systemKey: string | null | undefined,
+): boolean {
   return Boolean(systemKey && RESERVED_ROOT_SYSTEM_KEYS.has(systemKey));
 }
 
 /** True for the Bundled root or anything nested inside it (read-only subtree). */
-export function isBundledFolder(folder: Pick<FolderListItem, "path" | "systemKey">): boolean {
-  if (folder.systemKey === "bundled" || folder.systemKey?.startsWith("bundled:")) return true;
+export function isBundledFolder(
+  folder: Pick<FolderListItem, "path" | "systemKey">,
+): boolean {
+  if (
+    folder.systemKey === "bundled" ||
+    folder.systemKey?.startsWith("bundled:")
+  )
+    return true;
   return folder.path === "bundled" || folder.path.startsWith("bundled/");
 }
 
 /** True for the Projects root or anything nested inside it (auto-managed subtree). */
-export function isProjectsFolder(folder: Pick<FolderListItem, "path" | "systemKey">): boolean {
-  if (folder.systemKey === "projects" || folder.systemKey?.startsWith("project:")) return true;
+export function isProjectsFolder(
+  folder: Pick<FolderListItem, "path" | "systemKey">,
+): boolean {
+  if (
+    folder.systemKey === "projects" ||
+    folder.systemKey?.startsWith("project:")
+  )
+    return true;
   return folder.path === "projects" || folder.path.startsWith("projects/");
 }
 
 function sortNodes(nodes: FolderTreeNode[]): void {
   nodes.sort(
-    (a, b) => a.folder.position - b.folder.position || a.folder.name.localeCompare(b.folder.name),
+    (a, b) =>
+      a.folder.position - b.folder.position ||
+      a.folder.name.localeCompare(b.folder.name),
   );
   for (const node of nodes) sortNodes(node.children);
 }
 
-export function buildSkillFolderTree(folders: FolderListItem[]): SkillFolderTreeModel {
+export function buildSkillFolderTree(
+  folders: FolderListItem[],
+): SkillFolderTreeModel {
   const byId = new Map<string, FolderListItem>();
   const nodeById = new Map<string, FolderTreeNode>();
   for (const folder of folders) {
@@ -109,11 +131,22 @@ export function buildSkillFolderTree(folders: FolderListItem[]): SkillFolderTree
   if (projects) orderedRoots.push(projects);
   if (bundled) orderedRoots.push(bundled);
 
-  return { my, company, projects, bundled, byId, childrenById, roots: orderedRoots };
+  return {
+    my,
+    company,
+    projects,
+    bundled,
+    byId,
+    childrenById,
+    roots: orderedRoots,
+  };
 }
 
 /** Folder id + every descendant id (the subtree rooted at `folderId`). */
-export function subtreeFolderIds(model: SkillFolderTreeModel, folderId: string): Set<string> {
+export function subtreeFolderIds(
+  model: SkillFolderTreeModel,
+  folderId: string,
+): Set<string> {
   const out = new Set<string>([folderId]);
   const queue = [folderId];
   while (queue.length > 0) {
@@ -145,7 +178,9 @@ export function folderBreadcrumbTrail(
 }
 
 /** Human label for a reserved root, used when composing breadcrumb prefixes. */
-export function reservedRootLabel(folder: Pick<FolderListItem, "systemKey" | "name">): string {
+export function reservedRootLabel(
+  folder: Pick<FolderListItem, "systemKey" | "name">,
+): string {
   switch (folder.systemKey) {
     case "my":
       return "My Skills";
@@ -177,7 +212,9 @@ function humanizeFolderPathSegment(segment: string): string {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-export function skillFolderPathDisplayFallback(folderPath: string | null | undefined): string | null {
+export function skillFolderPathDisplayFallback(
+  folderPath: string | null | undefined,
+): string | null {
   if (!folderPath) return null;
   if (folderPath.includes(" / ")) return folderPath;
 
@@ -197,6 +234,8 @@ export function emptySkillFolderTree(): SkillFolderTreeModel {
   return buildSkillFolderTree([]);
 }
 
-export function treeFromResult(result: FolderListResult | null | undefined): SkillFolderTreeModel {
+export function treeFromResult(
+  result: FolderListResult | null | undefined,
+): SkillFolderTreeModel {
   return buildSkillFolderTree(result?.folders ?? []);
 }

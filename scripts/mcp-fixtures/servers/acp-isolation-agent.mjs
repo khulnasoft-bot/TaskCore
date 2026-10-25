@@ -14,7 +14,10 @@ function withTimeout(promise, label, timeoutMs = 5_000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => {
-      const timer = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+      const timer = setTimeout(
+        () => reject(new Error(`${label} timed out`)),
+        timeoutMs,
+      );
       timer.unref();
     }),
   ]);
@@ -57,7 +60,9 @@ async function inspectStdioServer(server) {
       new Promise((resolve, reject) => {
         const id = nextId++;
         pending.set(id, { resolve, reject });
-        child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
+        child.stdin.write(
+          `${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`,
+        );
       }),
       `MCP ${method}`,
     );
@@ -67,7 +72,9 @@ async function inspectStdioServer(server) {
     capabilities: {},
     clientInfo: { name: "taskcore-acp-isolation-fixture", version: "1.0.0" },
   });
-  child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
+  child.stdin.write(
+    `${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`,
+  );
   const toolsResult = await request("tools/list");
 
   return {
@@ -103,7 +110,9 @@ async function handleRequest(request) {
 
   if (request.method === "session/prompt") {
     const sessionId = request.params.sessionId;
-    const observations = (sessions.get(sessionId) ?? []).map((entry) => entry.observation);
+    const observations = (sessions.get(sessionId) ?? []).map(
+      (entry) => entry.observation,
+    );
     writeMessage({
       jsonrpc: "2.0",
       method: "session/update",
@@ -126,7 +135,10 @@ async function handleRequest(request) {
   }
 
   if (request.method === "session/cancel") return null;
-  if (request.method === "session/set_mode" || request.method === "session/set_config_option") {
+  if (
+    request.method === "session/set_mode" ||
+    request.method === "session/set_config_option"
+  ) {
     return {};
   }
 

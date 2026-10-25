@@ -41,13 +41,18 @@ export const pluginWebhookDeliveries = pgTable(
       .notNull()
       .references(() => plugins.id, { onDelete: "cascade" }),
     /** Company scope — NULL for instance-level webhook deliveries. */
-    companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id").references(() => companies.id, {
+      onDelete: "cascade",
+    }),
     /** Identifier matching the key in the plugin manifest's `webhooks` array. */
     webhookKey: text("webhook_key").notNull(),
     /** Optional de-duplication ID provided by the external system. */
     externalId: text("external_id"),
     /** Current delivery state. */
-    status: text("status").$type<PluginWebhookDeliveryStatus>().notNull().default("pending"),
+    status: text("status")
+      .$type<PluginWebhookDeliveryStatus>()
+      .notNull()
+      .default("pending"),
     /** Wall-clock processing duration in milliseconds. Null until delivery finishes. */
     durationMs: integer("duration_ms"),
     /** Error message if `status === "failed"`. */
@@ -55,14 +60,21 @@ export const pluginWebhookDeliveries = pgTable(
     /** Raw JSON body of the inbound HTTP request. */
     payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
     /** Relevant HTTP headers from the inbound request (e.g. signature headers). */
-    headers: jsonb("headers").$type<Record<string, string>>().notNull().default({}),
+    headers: jsonb("headers")
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     pluginIdx: index("plugin_webhook_deliveries_plugin_idx").on(table.pluginId),
-    companyIdx: index("plugin_webhook_deliveries_company_idx").on(table.companyId),
+    companyIdx: index("plugin_webhook_deliveries_company_idx").on(
+      table.companyId,
+    ),
     statusIdx: index("plugin_webhook_deliveries_status_idx").on(table.status),
     keyIdx: index("plugin_webhook_deliveries_key_idx").on(table.webhookKey),
   }),

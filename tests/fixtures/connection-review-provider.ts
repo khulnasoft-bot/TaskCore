@@ -6,7 +6,11 @@ export async function startReviewProvider(
   bearerToken?: string,
   tool?: { name: string; title: string; description: string },
 ) {
-  const captures: Array<{ method: string; toolName: string | null; authorized?: boolean }> = [];
+  const captures: Array<{
+    method: string;
+    toolName: string | null;
+    authorized?: boolean;
+  }> = [];
   const server: Server = createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
@@ -17,7 +21,8 @@ export async function startReviewProvider(
       method?: string;
       params?: { name?: string; arguments?: { query?: string } };
     };
-    const authorized = !bearerToken || req.headers.authorization === `Bearer ${bearerToken}`;
+    const authorized =
+      !bearerToken || req.headers.authorization === `Bearer ${bearerToken}`;
     captures.push({
       method: String(payload.method ?? "<unknown>"),
       toolName: payload.params?.name ?? null,
@@ -39,7 +44,9 @@ export async function startReviewProvider(
               {
                 name: tool?.name ?? "notion:list_pages",
                 title: tool?.title ?? "List fixture pages",
-                description: tool?.description ?? "Reads deterministic pages from the fake Notion provider.",
+                description:
+                  tool?.description ??
+                  "Reads deterministic pages from the fake Notion provider.",
                 annotations: { readOnlyHint: true },
                 inputSchema: {
                   type: "object",

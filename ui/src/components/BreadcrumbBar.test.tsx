@@ -3,14 +3,27 @@
 import { act, useEffect, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BreadcrumbProvider, useBreadcrumbs } from "../context/BreadcrumbContext";
+import {
+  BreadcrumbProvider,
+  useBreadcrumbs,
+} from "../context/BreadcrumbContext";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 
 const viewport = vi.hoisted(() => ({ isMobile: false }));
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, className, to }: { children: ReactNode; className?: string; to: string }) => (
-    <a className={className} href={to}>{children}</a>
+  Link: ({
+    children,
+    className,
+    to,
+  }: {
+    children: ReactNode;
+    className?: string;
+    to: string;
+  }) => (
+    <a className={className} href={to}>
+      {children}
+    </a>
   ),
 }));
 
@@ -24,7 +37,10 @@ vi.mock("../context/SidebarContext", () => ({
 }));
 
 vi.mock("../context/CompanyContext", () => ({
-  useCompany: () => ({ selectedCompanyId: "company-1", selectedCompany: { issuePrefix: "TES" } }),
+  useCompany: () => ({
+    selectedCompanyId: "company-1",
+    selectedCompany: { issuePrefix: "TES" },
+  }),
 }));
 
 vi.mock("../context/PanelContext", () => ({
@@ -54,11 +70,8 @@ function TaskBreadcrumbs({
   identifier?: string;
   sourceHref?: string;
 }) {
-  const {
-    setBreadcrumbs,
-    setBreadcrumbToolbar,
-    setBreadcrumbPanelControl,
-  } = useBreadcrumbs();
+  const { setBreadcrumbs, setBreadcrumbToolbar, setBreadcrumbPanelControl } =
+    useBreadcrumbs();
 
   useEffect(() => {
     setBreadcrumbs([
@@ -71,7 +84,11 @@ function TaskBreadcrumbs({
     ]);
     setBreadcrumbToolbar(
       onOpen ? (
-        <button type="button" aria-label="Show task side panel" onClick={onOpen}>
+        <button
+          type="button"
+          aria-label="Show task side panel"
+          onClick={onOpen}
+        >
           Show panel
         </button>
       ) : null,
@@ -118,28 +135,46 @@ describe("BreadcrumbBar", () => {
     function AgentBreadcrumb() {
       const { setBreadcrumbs } = useBreadcrumbs();
       useEffect(() => {
-        setBreadcrumbs([{
-          label: "CodexCoder",
-          leading: <span aria-label="Agent avatar">CC</span>,
-          leadingKey: "codex-avatar",
-          trailing: <button aria-label="Configure CodexCoder" onClick={configure}>Settings</button>,
-          trailingKey: "codex-settings",
-        }]);
+        setBreadcrumbs([
+          {
+            label: "CodexCoder",
+            leading: <span aria-label="Agent avatar">CC</span>,
+            leadingKey: "codex-avatar",
+            trailing: (
+              <button aria-label="Configure CodexCoder" onClick={configure}>
+                Settings
+              </button>
+            ),
+            trailingKey: "codex-settings",
+          },
+        ]);
       }, [setBreadcrumbs]);
       return <BreadcrumbBar taskDetailLayout />;
     }
-    await act(async () => root.render(<BreadcrumbProvider><AgentBreadcrumb /></BreadcrumbProvider>));
+    await act(async () =>
+      root.render(
+        <BreadcrumbProvider>
+          <AgentBreadcrumb />
+        </BreadcrumbProvider>,
+      ),
+    );
     const label = container.querySelector('[data-slot="breadcrumb-page"]');
     expect(label?.textContent).toBe("CCCodexCoder");
     expect(label?.classList.contains("items-center")).toBe(true);
     expect(label?.classList.contains("items-baseline")).toBe(false);
     expect(container.querySelector("h1")).toBeNull();
-    const settings = container.querySelector<HTMLButtonElement>('button[aria-label="Configure CodexCoder"]');
-    expect(settings?.closest('[data-slot="breadcrumb-item"]')).toBe(label?.closest('[data-slot="breadcrumb-item"]'));
+    const settings = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Configure CodexCoder"]',
+    );
+    expect(settings?.closest('[data-slot="breadcrumb-item"]')).toBe(
+      label?.closest('[data-slot="breadcrumb-item"]'),
+    );
     expect(settings?.closest('[aria-disabled="true"]')).toBeNull();
     act(() => settings?.click());
     expect(configure).toHaveBeenCalledOnce();
-    expect(container.querySelector('button[aria-label="Hide properties"]')).not.toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Hide properties"]'),
+    ).not.toBeNull();
   });
 
   it("shows only the title followed by its identifier for a company-scoped mobile task header", async () => {
@@ -152,11 +187,17 @@ describe("BreadcrumbBar", () => {
       );
     });
     expect(container.querySelector('a[href="/TES/issues"]')).toBeNull();
-    const identifier = container.querySelector('[data-slot="task-title-identifier"]');
+    const identifier = container.querySelector(
+      '[data-slot="task-title-identifier"]',
+    );
     expect(identifier?.textContent).toBe("TES-3");
-    expect(identifier?.previousElementSibling?.textContent).toBe("Hire your first engineer and create a hiring plan");
+    expect(identifier?.previousElementSibling?.textContent).toBe(
+      "Hire your first engineer and create a hiring plan",
+    );
     expect(identifier?.previousElementSibling?.className).toContain("truncate");
-    expect(container.querySelector('button[aria-label="Open sidebar"]')).not.toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Open sidebar"]'),
+    ).not.toBeNull();
   });
 
   it("renders a page toolbar in the same persistent row as the task breadcrumb", async () => {
@@ -173,7 +214,9 @@ describe("BreadcrumbBar", () => {
       'button[aria-label="Show task side panel"]',
     );
     expect(launcher).not.toBeNull();
-    expect(launcher?.closest(".h-\\(--sz-60px\\)")?.textContent).toContain("PAP-16679");
+    expect(launcher?.closest(".h-\\(--sz-60px\\)")?.textContent).toContain(
+      "PAP-16679",
+    );
 
     act(() => launcher?.click());
     expect(onOpen).toHaveBeenCalledOnce();
@@ -188,16 +231,26 @@ describe("BreadcrumbBar", () => {
       );
     });
 
-    const identifier = container.querySelector('[data-slot="task-title-identifier"]');
+    const identifier = container.querySelector(
+      '[data-slot="task-title-identifier"]',
+    );
     expect(identifier).toBeTruthy();
     expect(identifier?.className).not.toContain("absolute");
     expect(identifier?.closest(".relative")?.className).toContain("border-b");
-    expect(identifier?.closest(".relative")?.className).toContain("border-border");
-    expect(identifier?.closest(".relative")?.className).toContain("h-(--sz-60px)");
+    expect(identifier?.closest(".relative")?.className).toContain(
+      "border-border",
+    );
+    expect(identifier?.closest(".relative")?.className).toContain(
+      "h-(--sz-60px)",
+    );
 
-    const title = Array.from(container.querySelectorAll("span"))
-      .find((element) => element.textContent === "Hire your first engineer and create a hiring plan");
-    const tasksLink = container.querySelector<HTMLAnchorElement>('a[href="/issues"]');
+    const title = Array.from(container.querySelectorAll("span")).find(
+      (element) =>
+        element.textContent ===
+        "Hire your first engineer and create a hiring plan",
+    );
+    const tasksLink =
+      container.querySelector<HTMLAnchorElement>('a[href="/issues"]');
     const header = tasksLink?.closest(".relative");
     expect(header?.classList).toContain("px-4");
     expect(header?.classList).toContain("md:px-6");
@@ -221,7 +274,8 @@ describe("BreadcrumbBar", () => {
       );
     });
 
-    const rootCrumb = container.querySelector<HTMLAnchorElement>('a[href="/issues"]');
+    const rootCrumb =
+      container.querySelector<HTMLAnchorElement>('a[href="/issues"]');
     expect(rootCrumb?.classList).toContain("font-semibold");
     expect(rootCrumb?.classList).toContain("uppercase");
     expect(rootCrumb?.classList).toContain("tracking-wider");
@@ -244,7 +298,9 @@ describe("BreadcrumbBar", () => {
       'button[aria-label="Show properties"]',
     );
     expect(launcher).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Hide properties"]')).toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Hide properties"]'),
+    ).toBeNull();
 
     act(() => launcher?.click());
     expect(onToggle).toHaveBeenCalledOnce();
@@ -267,7 +323,9 @@ describe("BreadcrumbBar", () => {
     );
 
     expect(leftControl).toBeNull();
-    expect(container.querySelector('button[aria-label="Expand sidebar"]')).toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Expand sidebar"]'),
+    ).toBeNull();
     expect(rightControl?.className).toContain("size-9");
     expect(rightControl?.className).not.toContain("rounded-none");
     expect(rightControl?.className).not.toContain("h-full");

@@ -89,7 +89,8 @@ export function FoldCurtain({
     return () => observer.disconnect();
   }, []);
 
-  const shouldCurtain = hasMeasured && naturalHeight >= collapsedHeight + activationBuffer;
+  const shouldCurtain =
+    hasMeasured && naturalHeight >= collapsedHeight + activationBuffer;
   const isClipped = shouldCurtain && !expanded;
 
   const maskStyle = isClipped
@@ -100,12 +101,16 @@ export function FoldCurtain({
     : undefined;
 
   return (
-    <div className={cn("fold-curtain", className)} data-expanded={expanded ? "true" : "false"}>
+    <div
+      className={cn("fold-curtain", className)}
+      data-expanded={expanded ? "true" : "false"}
+    >
       <div
         ref={contentRef}
         className={cn(
           "fold-curtain__content relative overflow-hidden",
-          allowTransition && "motion-safe:transition-(--tp-max-height) motion-reduce:transition-none",
+          allowTransition &&
+            "motion-safe:transition-(--tp-max-height) motion-reduce:transition-none",
           contentClassName,
         )}
         style={{
@@ -114,7 +119,9 @@ export function FoldCurtain({
             : shouldCurtain
               ? `${naturalHeight}px`
               : undefined,
-          transitionDuration: allowTransition ? `${EXPAND_TRANSITION_MS}ms` : undefined,
+          transitionDuration: allowTransition
+            ? `${EXPAND_TRANSITION_MS}ms`
+            : undefined,
           transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
           ...maskStyle,
         }}
@@ -132,7 +139,10 @@ export function FoldCurtain({
               setAllowTransition(true);
               setExpanded((v) => !v);
             }}
-            className={cn("h-7 px-2 text-xs text-muted-foreground hover:text-foreground", toggleClassName)}
+            className={cn(
+              "h-7 px-2 text-xs text-muted-foreground hover:text-foreground",
+              toggleClassName,
+            )}
           >
             {expanded ? lessLabel : moreLabel}
             {expanded ? (

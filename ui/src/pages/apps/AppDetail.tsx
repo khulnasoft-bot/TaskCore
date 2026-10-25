@@ -3,7 +3,12 @@ import { aiConnectionRouterPluginKey } from "@taskcore/shared";
 import { ConnectionInstructionsSettings } from "@/features/connections/ConnectionInstructions";
 import { HonchoWorkspaceSettings } from "@/features/connections/HonchoWorkspaceSettings";
 import { BrowserUseSettingsPanel } from "./app-detail/BrowserUseSettingsPanel";
-import { isRetiredComposioConnection, RETIRED_COMPOSIO_MESSAGE, isRemoteMcpConnectorId, isRemoteMcpConnectorMethod } from "@taskcore/shared";
+import {
+  isRetiredComposioConnection,
+  RETIRED_COMPOSIO_MESSAGE,
+  isRemoteMcpConnectorId,
+  isRemoteMcpConnectorMethod,
+} from "@taskcore/shared";
 import { RemoteMcpManagement } from "@/features/connections/remote-mcp/RemoteMcpManagement";
 import { remoteMcpProviders } from "@/features/connections/remote-mcp/providers";
 import { ManagedAiConnectionDetails } from "@/components/ai-connections/ManagedAiConnectionDetails";
@@ -24,7 +29,12 @@ import {
   aiSubscriptionNeedsIsolatedLogin,
   isToolConnectionAttentionHealth as isAttentionHealthStatus,
 } from "@taskcore/shared";
-import { Navigate, useParams, useNavigate, useSearchParams } from "@/lib/router";
+import {
+  Navigate,
+  useParams,
+  useNavigate,
+  useSearchParams,
+} from "@/lib/router";
 import { useCompany } from "@/context/CompanyContext";
 import { useBreadcrumbs } from "@/context/BreadcrumbContext";
 import { useToast } from "@/context/ToastContext";
@@ -36,7 +46,10 @@ import { accessApi } from "@/api/access";
 import { buildCompanyUserProfileMap } from "@/lib/company-members";
 import { installStateFrom, type InstallState } from "@/lib/tool-installs";
 import { navigateTopLevel } from "@/lib/browserNavigation";
-import { prepareOAuthNavigation, savePendingCloudHandoff } from "@/lib/oauthHandoff";
+import {
+  prepareOAuthNavigation,
+  savePendingCloudHandoff,
+} from "@/lib/oauthHandoff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,7 +65,12 @@ import {
   appDefinitionSlug,
   type AppGalleryDisplayEntry,
 } from "./app-definition-display";
-import { appTabHref, appTabLabel, isAppTabKey, type AppTabKey } from "./app-tabs";
+import {
+  appTabHref,
+  appTabLabel,
+  isAppTabKey,
+  type AppTabKey,
+} from "./app-tabs";
 import { ConnectionProvenanceChip } from "./ConnectionProvenanceChip";
 import { IdentitiesSection } from "./app-detail/IdentitiesSection";
 import { PermissionsPanel } from "./app-detail/PermissionsPanel";
@@ -76,16 +94,40 @@ import {
 
 export { connectionAddress, connectionTransportLabel };
 
-export function AppDetail(props: { renderActions?: (connection: ToolConnection) => ReactNode; renderAgentSettings?: (connection: ToolConnection) => ReactNode; renderConnectionSettings?: (connection: ToolConnection) => ReactNode; onReconnect?: (connection: ToolConnection) => void } = {}) {
+export function AppDetail(
+  props: {
+    renderActions?: (connection: ToolConnection) => ReactNode;
+    renderAgentSettings?: (connection: ToolConnection) => ReactNode;
+    renderConnectionSettings?: (connection: ToolConnection) => ReactNode;
+    onReconnect?: (connection: ToolConnection) => void;
+  } = {},
+) {
   const { connectionId = "" } = useParams<{ connectionId: string }>();
-  const connection = useQuery({ queryKey: queryKeys.tools.connection(connectionId), queryFn: () => toolsApi.getConnection(connectionId), enabled: !!connectionId });
+  const connection = useQuery({
+    queryKey: queryKeys.tools.connection(connectionId),
+    queryFn: () => toolsApi.getConnection(connectionId),
+    enabled: !!connectionId,
+  });
   if (connection.isPending) return <p role="status">Loading connection…</p>;
   if (connection.error) return <p role="alert">{connection.error.message}</p>;
-  const pluginKey = connection.data && aiConnectionRouterPluginKey(connection.data);
-  return pluginKey ? <AiConnectionPoolConnector pluginKey={pluginKey} connection={connection.data} /> : <StandardAppDetail {...props} />;
+  const pluginKey =
+    connection.data && aiConnectionRouterPluginKey(connection.data);
+  return pluginKey ? (
+    <AiConnectionPoolConnector
+      pluginKey={pluginKey}
+      connection={connection.data}
+    />
+  ) : (
+    <StandardAppDetail {...props} />
+  );
 }
 
-function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectionSettings, onReconnect }: {
+function StandardAppDetail({
+  renderActions,
+  renderAgentSettings,
+  renderConnectionSettings,
+  onReconnect,
+}: {
   renderActions?: (connection: ToolConnection) => ReactNode;
   /** Optional agent settings within Permissions, following the access controls. */
   renderAgentSettings?: (connection: ToolConnection) => ReactNode;
@@ -93,7 +135,10 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   renderConnectionSettings?: (connection: ToolConnection) => ReactNode;
   onReconnect?: (connection: ToolConnection) => void;
 } = {}) {
-  const { connectionId = "", tab } = useParams<{ connectionId: string; tab?: string }>();
+  const { connectionId = "", tab } = useParams<{
+    connectionId: string;
+    tab?: string;
+  }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -132,12 +177,16 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   const profilesQuery = useQuery({
     queryKey: queryKeys.tools.profiles(selectedCompanyId ?? "__none__"),
     queryFn: () => toolsApi.listProfiles(selectedCompanyId!),
-    enabled: !!selectedCompanyId && (activeTab === "review" || activeTab === "permissions"),
+    enabled:
+      !!selectedCompanyId &&
+      (activeTab === "review" || activeTab === "permissions"),
   });
   const policiesQuery = useQuery({
     queryKey: queryKeys.tools.policies(selectedCompanyId ?? "__none__"),
     queryFn: () => toolsApi.listPolicies(selectedCompanyId!),
-    enabled: !!selectedCompanyId && (activeTab === "review" || activeTab === "permissions"),
+    enabled:
+      !!selectedCompanyId &&
+      (activeTab === "review" || activeTab === "permissions"),
   });
   const agentsQuery = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId ?? "__none__"),
@@ -145,7 +194,9 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
     enabled: !!selectedCompanyId && activeTab === "permissions",
   });
   const userDirectoryQuery = useQuery({
-    queryKey: queryKeys.access.companyUserDirectory(selectedCompanyId ?? "__none__"),
+    queryKey: queryKeys.access.companyUserDirectory(
+      selectedCompanyId ?? "__none__",
+    ),
     queryFn: () => accessApi.listUserDirectory(selectedCompanyId!),
     enabled: !!selectedCompanyId && !!activeTab,
   });
@@ -160,67 +211,98 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
 
   const connection = connectionQuery.data;
   const application = connection
-    ? (applicationsQuery.data?.applications ?? []).find((candidate) => candidate.id === connection.applicationId)
+    ? (applicationsQuery.data?.applications ?? []).find(
+        (candidate) => candidate.id === connection.applicationId,
+      )
     : undefined;
   const grantRows = grantsQuery.data?.grants ?? [];
-  const retainedPersonalGrant = connection?.credentialPolicy === "per_user"
-    ? grantRows.find((grant) => (
-      grant.kind === "user" && grant.subjectUserId === connection.createdByUserId
-    ))
-      ?? grantRows.find((grant) => grant.kind === "user" && grant.status === "active")
-      ?? grantRows.find((grant) => grant.kind === "user")
-      ?? null
-    : null;
-  const currentUserPersonalGrant = grantRows.find((grant) => (
-    grant.kind === "user" && grant.subjectUserId === grantsQuery.data?.currentUserId
-  )) ?? null;
-  const retainedAgentGrant = connection?.credentialPolicy === "per_agent"
-    ? grantRows.find((grant) => grant.kind === "agent" && grant.status === "active")
-      ?? grantRows.find((grant) => grant.kind === "agent")
-      ?? null
-    : null;
-  const retainedOrganizationGrant = grantRows.find((grant) => (
-    grant.kind === "organization" && grant.isDefault
-  )) ?? grantRows.find((grant) => grant.kind === "organization") ?? null;
-  const managedIdentityGrant = connection?.credentialPolicy === "per_user"
-    ? currentUserPersonalGrant ?? retainedPersonalGrant
-    : connection?.credentialPolicy === "per_agent"
-      ? retainedAgentGrant
-    : connection?.credentialPolicy === "per_user_with_fallback"
-      ? currentUserPersonalGrant ?? retainedOrganizationGrant
-      : retainedOrganizationGrant;
-  const managedPersonalUserId = managedIdentityGrant?.kind === "user"
-    ? managedIdentityGrant.subjectUserId ?? connection?.createdByUserId ?? null
-    : null;
-  const canReconnect = managedIdentityGrant?.kind === "user"
-    ? Boolean(
-      managedPersonalUserId
-      && managedPersonalUserId === grantsQuery.data?.currentUserId
-      && grantsQuery.data?.capabilities.canConnectAsCurrentUser,
-    )
-    : grantsQuery.data?.capabilities.canConfigure === true;
+  const retainedPersonalGrant =
+    connection?.credentialPolicy === "per_user"
+      ? (grantRows.find(
+          (grant) =>
+            grant.kind === "user" &&
+            grant.subjectUserId === connection.createdByUserId,
+        ) ??
+        grantRows.find(
+          (grant) => grant.kind === "user" && grant.status === "active",
+        ) ??
+        grantRows.find((grant) => grant.kind === "user") ??
+        null)
+      : null;
+  const currentUserPersonalGrant =
+    grantRows.find(
+      (grant) =>
+        grant.kind === "user" &&
+        grant.subjectUserId === grantsQuery.data?.currentUserId,
+    ) ?? null;
+  const retainedAgentGrant =
+    connection?.credentialPolicy === "per_agent"
+      ? (grantRows.find(
+          (grant) => grant.kind === "agent" && grant.status === "active",
+        ) ??
+        grantRows.find((grant) => grant.kind === "agent") ??
+        null)
+      : null;
+  const retainedOrganizationGrant =
+    grantRows.find(
+      (grant) => grant.kind === "organization" && grant.isDefault,
+    ) ??
+    grantRows.find((grant) => grant.kind === "organization") ??
+    null;
+  const managedIdentityGrant =
+    connection?.credentialPolicy === "per_user"
+      ? (currentUserPersonalGrant ?? retainedPersonalGrant)
+      : connection?.credentialPolicy === "per_agent"
+        ? retainedAgentGrant
+        : connection?.credentialPolicy === "per_user_with_fallback"
+          ? (currentUserPersonalGrant ?? retainedOrganizationGrant)
+          : retainedOrganizationGrant;
+  const managedPersonalUserId =
+    managedIdentityGrant?.kind === "user"
+      ? (managedIdentityGrant.subjectUserId ??
+        connection?.createdByUserId ??
+        null)
+      : null;
+  const canReconnect =
+    managedIdentityGrant?.kind === "user"
+      ? Boolean(
+          managedPersonalUserId &&
+          managedPersonalUserId === grantsQuery.data?.currentUserId &&
+          grantsQuery.data?.capabilities.canConnectAsCurrentUser,
+        )
+      : grantsQuery.data?.capabilities.canConfigure === true;
   const reconnectUnavailableMessage = grantsQuery.isLoading
     ? "Checking who can reconnect this identity…"
     : grantsQuery.isError
       ? "We couldn't verify who can reconnect this identity. Reload the page to try again."
-      : managedIdentityGrant?.kind === "user"
-        && managedPersonalUserId !== grantsQuery.data?.currentUserId
+      : managedIdentityGrant?.kind === "user" &&
+          managedPersonalUserId !== grantsQuery.data?.currentUserId
         ? "The person this connection belongs to must reconnect it."
         : "You don't have permission to reconnect this identity.";
   const logoEntry = useMemo(
-    () => galleryEntryFor((galleryQuery.data?.apps ?? []) as AppGalleryDisplayEntry[], connection, application),
+    () =>
+      galleryEntryFor(
+        (galleryQuery.data?.apps ?? []) as AppGalleryDisplayEntry[],
+        connection,
+        application,
+      ),
     [galleryQuery.data, connection, application],
   );
-  const brandKey = appApplicationSourceSlug(application)
-    ?? appConnectionSourceSlug(connection)
-    ?? (logoEntry ? appDefinitionSlug(logoEntry) : null);
+  const brandKey =
+    appApplicationSourceSlug(application) ??
+    appConnectionSourceSlug(connection) ??
+    (logoEntry ? appDefinitionSlug(logoEntry) : null);
   const userProfileById = useMemo(
     () => buildCompanyUserProfileMap(userDirectoryQuery.data?.users),
     [userDirectoryQuery.data],
   );
-  const owner = connection ? connectionOwnerProfile(connection, userProfileById) : null;
+  const owner = connection
+    ? connectionOwnerProfile(connection, userProfileById)
+    : null;
   const baseAppName = connection
-    ? logoEntry ? appDefinitionName(logoEntry) : humanizeConnectionDisplayName(connection)
+    ? logoEntry
+      ? appDefinitionName(logoEntry)
+      : humanizeConnectionDisplayName(connection)
     : "App";
   const appName = connection
     ? connectionDisplayNameForOwner(connection, baseAppName, owner)
@@ -229,24 +311,38 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
 
   useEffect(() => {
     if (
-      activeTab !== "permissions"
-      || searchParams.get("success") !== "1"
-      || !connection
-      || successNoticeShownFor.current === connection.id
-    ) return;
+      activeTab !== "permissions" ||
+      searchParams.get("success") !== "1" ||
+      !connection ||
+      successNoticeShownFor.current === connection.id
+    )
+      return;
     successNoticeShownFor.current = connection.id;
-    const skillSourcePath = selectedCompanyId === connection.companyId
-      && connection.status === "active"
-      && appConnectionSourceSlug(connection) === "github"
-      ? consumeSkillSourceReturn(connection.companyId)
-      : null;
+    const skillSourcePath =
+      selectedCompanyId === connection.companyId &&
+      connection.status === "active" &&
+      appConnectionSourceSlug(connection) === "github"
+        ? consumeSkillSourceReturn(connection.companyId)
+        : null;
     pushToast({
       title: `${appName} connected`,
-      body: skillSourcePath ? "Choose a repository to import your skills." : "The connection is ready. Review permissions or test an action below.",
+      body: skillSourcePath
+        ? "Choose a repository to import your skills."
+        : "The connection is ready. Review permissions or test an action below.",
       tone: "success",
     });
-    navigate(skillSourcePath ?? appTabHref(connection.id, "permissions"), { replace: true });
-  }, [activeTab, appName, connection, navigate, pushToast, searchParams, selectedCompanyId]);
+    navigate(skillSourcePath ?? appTabHref(connection.id, "permissions"), {
+      replace: true,
+    });
+  }, [
+    activeTab,
+    appName,
+    connection,
+    navigate,
+    pushToast,
+    searchParams,
+    selectedCompanyId,
+  ]);
 
   useEffect(() => {
     if (!activeTab) return;
@@ -260,7 +356,10 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
 
   const catalog = catalogQuery.data?.catalog ?? [];
   const profile = useMemo(
-    () => (profilesQuery.data?.profiles ?? []).find((p) => p.profileKey === `app:${connectionId}`),
+    () =>
+      (profilesQuery.data?.profiles ?? []).find(
+        (p) => p.profileKey === `app:${connectionId}`,
+      ),
     [profilesQuery.data, connectionId],
   );
   const enabledIds = useMemo(() => enabledCatalogIds(profile), [profile]);
@@ -269,22 +368,46 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
     [policiesQuery.data, connectionId],
   );
   const install = useMemo(
-    () => installStateFrom(installsQuery.data?.installs ?? connection?.installs),
+    () =>
+      installStateFrom(installsQuery.data?.installs ?? connection?.installs),
     [connection?.installs, installsQuery.data?.installs],
   );
-  const access = useMemo(() => accessFrom(connection?.connectionPurpose === "ai" ? undefined : profile, install), [connection?.connectionPurpose, profile, install]);
-  const managesRemoteMcpAccess = isRemoteMcpConnectorMethod(connection?.config?.sourceTemplateKey, connection?.config?.connectionMethodKey);
+  const access = useMemo(
+    () =>
+      accessFrom(
+        connection?.connectionPurpose === "ai" ? undefined : profile,
+        install,
+      ),
+    [connection?.connectionPurpose, profile, install],
+  );
+  const managesRemoteMcpAccess = isRemoteMcpConnectorMethod(
+    connection?.config?.sourceTemplateKey,
+    connection?.config?.connectionMethodKey,
+  );
   const agents = agentsQuery.data ?? [];
   const disconnectRemote = useMutation({
     mutationFn: () => toolsApi.archiveConnection(connectionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connections(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connection(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.applications(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connections(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connection(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.applications(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.apps.attention(selectedCompanyId!),
+      });
       navigate("/apps");
     },
-    onError: (error) => pushToast({ title: "Couldn't disconnect", body: error instanceof Error ? error.message : "Please try again.", tone: "error" }),
+    onError: (error) =>
+      pushToast({
+        title: "Couldn't disconnect",
+        body: error instanceof Error ? error.message : "Please try again.",
+        tone: "error",
+      }),
   });
   const [pending, setPending] = useState(false);
   const persist = useMutation({
@@ -295,24 +418,53 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
       reviewed?: Set<string>;
     }) => {
       return connection?.connectionPurpose === "ai"
-      ? toolsApi.putConnectionInstalls(connectionId, next.access.mode === "all" ? [{ targetType: "company", targetId: selectedCompanyId! }] : [...next.access.agentIds].map(targetId => ({ targetType: "agent" as const, targetId })))
-      : toolsApi.finishApp(selectedCompanyId!, connectionId, {
-        enabledCatalogEntryIds: [...next.enabled],
-        askFirstCatalogEntryIds: [...next.askFirst].filter((id) => next.enabled.has(id)),
-        ...(next.reviewed ? { reviewedCatalogEntryIds: [...next.reviewed] } : {}),
-        access: next.access.mode === "all" ? "all_agents" : { agentIds: [...next.access.agentIds] },
-      });
+        ? toolsApi.putConnectionInstalls(
+            connectionId,
+            next.access.mode === "all"
+              ? [{ targetType: "company", targetId: selectedCompanyId! }]
+              : [...next.access.agentIds].map((targetId) => ({
+                  targetType: "agent" as const,
+                  targetId,
+                })),
+          )
+        : toolsApi.finishApp(selectedCompanyId!, connectionId, {
+            enabledCatalogEntryIds: [...next.enabled],
+            askFirstCatalogEntryIds: [...next.askFirst].filter((id) =>
+              next.enabled.has(id),
+            ),
+            ...(next.reviewed
+              ? { reviewedCatalogEntryIds: [...next.reviewed] }
+              : {}),
+            access:
+              next.access.mode === "all"
+                ? "all_agents"
+                : { agentIds: [...next.access.agentIds] },
+          });
     },
     onMutate: () => setPending(true),
     onSuccess: () => {
       void installsQuery.refetch();
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.testAgentAccessesForConnection(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connection(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.catalog(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.profiles(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.policies(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connections(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.testAgentAccessesForConnection(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connection(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.catalog(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.profiles(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.policies(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connections(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.apps.attention(selectedCompanyId!),
+      });
     },
     onError: (error) =>
       pushToast({
@@ -326,12 +478,19 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const rename = useMutation({
-    mutationFn: (name: string) => toolsApi.updateConnection(connectionId, { name }),
+    mutationFn: (name: string) =>
+      toolsApi.updateConnection(connectionId, { name }),
     onSuccess: () => {
       setRenaming(false);
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connection(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connections(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connection(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connections(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.apps.attention(selectedCompanyId!),
+      });
     },
     onError: (error) =>
       pushToast({
@@ -342,7 +501,8 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   });
 
   const startOAuth = useMutation({
-    mutationFn: (input?: { asAgentId?: string }) => toolsApi.startOAuth(connectionId, input),
+    mutationFn: (input?: { asAgentId?: string }) =>
+      toolsApi.startOAuth(connectionId, input),
     onSuccess: async (start) => {
       try {
         const target = await prepareOAuthNavigation(start);
@@ -367,8 +527,12 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   });
 
   const invalidateGrants = () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.tools.connectionGrants(connectionId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.tools.connection(connectionId) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.tools.connectionGrants(connectionId),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.tools.connection(connectionId),
+    });
   };
 
   /**
@@ -379,15 +543,23 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   const startPersonalAuth = useMutation({
     mutationFn: () => {
       const subjectUserId = grantsQuery.data?.currentUserId;
-      if (!subjectUserId) throw new Error("Sign in again to connect your own account.");
-      return toolsApi.startPersonalAuthorization(selectedCompanyId!, connectionId, {
-        subjectUserId,
-        returnTo: appTabHref(connectionId, "permissions"),
-      });
+      if (!subjectUserId)
+        throw new Error("Sign in again to connect your own account.");
+      return toolsApi.startPersonalAuthorization(
+        selectedCompanyId!,
+        connectionId,
+        {
+          subjectUserId,
+          returnTo: appTabHref(connectionId, "permissions"),
+        },
+      );
     },
     onSuccess: async ({ url, handoff }) => {
       try {
-        const target = await prepareOAuthNavigation({ authorizationUrl: url, handoff });
+        const target = await prepareOAuthNavigation({
+          authorizationUrl: url,
+          handoff,
+        });
         if (target.kind === "reauthentication" && handoff) {
           savePendingCloudHandoff(handoff.session);
         }
@@ -411,42 +583,74 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   // A denied or conflicting audience save keeps the dialog open with the
   // selection intact, so the error is surfaced inline rather than as a toast.
   const [audienceError, setAudienceError] = useState<string | null>(null);
-  const [audienceOpenGrantId, setAudienceOpenGrantId] = useState<string | null>(null);
+  const [audienceOpenGrantId, setAudienceOpenGrantId] = useState<string | null>(
+    null,
+  );
   const replaceAudience = useMutation({
-    mutationFn: ({ grantId, memberUserIds }: { grantId: string; memberUserIds: string[] }) =>
-      toolsApi.replaceConnectionGrantMembers(connectionId, grantId, memberUserIds),
+    mutationFn: ({
+      grantId,
+      memberUserIds,
+    }: {
+      grantId: string;
+      memberUserIds: string[];
+    }) =>
+      toolsApi.replaceConnectionGrantMembers(
+        connectionId,
+        grantId,
+        memberUserIds,
+      ),
     onMutate: () => setAudienceError(null),
     onSuccess: (grant) => {
       invalidateGrants();
       setAudienceOpenGrantId(null);
       pushToast({
         title: "Audience saved",
-        body: (grant.members?.length ?? 0) === 0
-          ? "Every organization member can use this identity."
-          : `${grant.members?.length} ${grant.members?.length === 1 ? "member" : "members"} can use this identity.`,
+        body:
+          (grant.members?.length ?? 0) === 0
+            ? "Every organization member can use this identity."
+            : `${grant.members?.length} ${grant.members?.length === 1 ? "member" : "members"} can use this identity.`,
         tone: "success",
       });
     },
     onError: (error) =>
-      setAudienceError(error instanceof Error ? error.message : "We couldn't save that audience."),
+      setAudienceError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't save that audience.",
+      ),
   });
 
   const refreshTools = useMutation({
     mutationFn: () => toolsApi.refreshCatalog(connectionId),
     onSuccess: (result) => {
       // Discovery extends the app profile for new actions as well as the catalog.
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.profiles(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.policies(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.testAgentAccessesForConnection(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connection(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.catalog(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connections(selectedCompanyId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.profiles(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.policies(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.testAgentAccessesForConnection(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connection(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.catalog(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connections(selectedCompanyId!),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.apps.attention(selectedCompanyId!),
+      });
       pushToast({
         title: `Found ${result.discoveredCount} ${result.discoveredCount === 1 ? "action" : "actions"}`,
-        body: result.quarantinedCount > 0
-          ? `${result.quarantinedCount} new ${result.quarantinedCount === 1 ? "action needs" : "actions need"} your OK.`
-          : undefined,
+        body:
+          result.quarantinedCount > 0
+            ? `${result.quarantinedCount} new ${result.quarantinedCount === 1 ? "action needs" : "actions need"} your OK.`
+            : undefined,
         tone: "success",
       });
     },
@@ -460,20 +664,27 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   const refreshGitHubAccess = useMutation({
     mutationFn: () => toolsApi.checkConnectionHealth(connectionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connection(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.connectionGrants(connectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connection(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.connectionGrants(connectionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.apps.attention(selectedCompanyId!),
+      });
       pushToast({
         title: "GitHub access refreshed",
         body: "Account, installation, and repository access are current.",
         tone: "success",
       });
     },
-    onError: (error) => pushToast({
-      title: "Couldn't refresh GitHub access",
-      body: error instanceof Error ? error.message : "Please try again.",
-      tone: "error",
-    }),
+    onError: (error) =>
+      pushToast({
+        title: "Couldn't refresh GitHub access",
+        body: error instanceof Error ? error.message : "Please try again.",
+        tone: "error",
+      }),
   });
 
   const apply = (mutate: {
@@ -491,7 +702,9 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
 
   const reviewQuarantined = (allowedIds: string[]) => {
     const quarantinedIds = new Set(quarantined.map((entry) => entry.id));
-    const nextEnabled = new Set([...enabledIds].filter((id) => !quarantinedIds.has(id)));
+    const nextEnabled = new Set(
+      [...enabledIds].filter((id) => !quarantinedIds.has(id)),
+    );
     for (const id of allowedIds) nextEnabled.add(id);
     apply({ enabled: nextEnabled, reviewed: quarantinedIds });
   };
@@ -500,18 +713,32 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   // consolidated into Permissions, and Activity moved to the company feed.
   if (connectionId && (tab === "setup" || tab === "test")) {
     const query = searchParams.toString();
-    return <Navigate replace to={`${appTabHref(connectionId, "permissions")}${query ? `?${query}` : ""}`} />;
+    return (
+      <Navigate
+        replace
+        to={`${appTabHref(connectionId, "permissions")}${query ? `?${query}` : ""}`}
+      />
+    );
   }
   if (tab === "activity") {
     return <Navigate replace to="/activity?action=tool_" />;
   }
 
   if (!connectionId || !activeTab) {
-    return <Navigate replace to={connectionId ? appTabHref(connectionId, "permissions") : "/apps"} />;
+    return (
+      <Navigate
+        replace
+        to={connectionId ? appTabHref(connectionId, "permissions") : "/apps"}
+      />
+    );
   }
 
   if (!selectedCompanyId) {
-    return <div className="p-6 text-sm text-muted-foreground">Select an organization to manage apps.</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Select an organization to manage apps.
+      </div>
+    );
   }
   if (connectionQuery.isLoading) {
     return (
@@ -525,8 +752,14 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   if (!connection) {
     return (
       <div className="max-w-3xl p-6">
-        <p className="text-sm text-muted-foreground">We couldn't find that app.</p>
-        <Button className="mt-4" variant="outline" onClick={() => navigate("/apps")}>
+        <p className="text-sm text-muted-foreground">
+          We couldn't find that app.
+        </p>
+        <Button
+          className="mt-4"
+          variant="outline"
+          onClick={() => navigate("/apps")}
+        >
           Back to connectors
         </Button>
       </div>
@@ -534,37 +767,74 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
   }
 
   if (isRetiredComposioConnection(connection)) {
-    return <div className="max-w-4xl space-y-6 pb-12">
-      <h1 className="text-xl font-semibold">{appName}</h1>
-      <section role="status" className="space-y-3 rounded-lg border border-border bg-muted p-4">
-        <h2 className="text-sm font-semibold">Connection retired</h2>
-        <p className="text-sm text-muted-foreground">{RETIRED_COMPOSIO_MESSAGE}</p>
-        <p className="text-sm text-muted-foreground">Remove each obsolete connection separately. Removing this one does not remove other connections.</p>
-        <Button variant="outline" onClick={() => navigate("/apps/connect?source=composio")}>Add Composio MCP connection</Button>
-      </section>
-      {grantsQuery.data?.capabilities.canConfigure === true && <DangerZone
-        appName={appName}
-        removing={disconnectRemote.isPending}
-        onRemove={() => disconnectRemote.mutate()}
-      />}
-    </div>;
+    return (
+      <div className="max-w-4xl space-y-6 pb-12">
+        <h1 className="text-xl font-semibold">{appName}</h1>
+        <section
+          role="status"
+          className="space-y-3 rounded-lg border border-border bg-muted p-4"
+        >
+          <h2 className="text-sm font-semibold">Connection retired</h2>
+          <p className="text-sm text-muted-foreground">
+            {RETIRED_COMPOSIO_MESSAGE}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Remove each obsolete connection separately. Removing this one does
+            not remove other connections.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/apps/connect?source=composio")}
+          >
+            Add Composio MCP connection
+          </Button>
+        </section>
+        {grantsQuery.data?.capabilities.canConfigure === true && (
+          <DangerZone
+            appName={appName}
+            removing={disconnectRemote.isPending}
+            onRemove={() => disconnectRemote.mutate()}
+          />
+        )}
+      </div>
+    );
   }
 
-  const aiGrantRevoked = connection.connectionPurpose === "ai"
-    && grantRows.length > 0 && grantRows.every((grant) => grant.status === "revoked");
-  const status: StatusInfo = aiGrantRevoked ? { label: "Revoked", tone: "attention" } : statusFor(connection);
-  const needsReconnect = connection.requiresReauthorization
-    ?? (status.tone === "attention" && connection.healthStatus !== "unknown");
+  const aiGrantRevoked =
+    connection.connectionPurpose === "ai" &&
+    grantRows.length > 0 &&
+    grantRows.every((grant) => grant.status === "revoked");
+  const status: StatusInfo = aiGrantRevoked
+    ? { label: "Revoked", tone: "attention" }
+    : statusFor(connection);
+  const needsReconnect =
+    connection.requiresReauthorization ??
+    (status.tone === "attention" && connection.healthStatus !== "unknown");
   const quarantined = catalog.filter((e) => e.status === "quarantined");
   const active = catalog.filter((e) => e.status === "active");
   const readOnly = active.filter((e) => e.isReadOnly);
   const canChange = active.filter((e) => !e.isReadOnly);
-  const actionsContent = renderActions?.(connection) ?? (connection.connectionPurpose === "ai" ? <ManagedAiConnectionDetails connection={connection} /> : undefined);
-  const actionCount = actionsContent !== undefined ? null : catalogQuery.data ? active.length : null;
-  const reviewLoading = catalogQuery.isLoading || profilesQuery.isLoading || policiesQuery.isLoading;
-  const permissionsLoading = reviewLoading || installsQuery.isLoading || agentsQuery.isLoading;
-  const reviewFailed = catalogQuery.isError || profilesQuery.isError || policiesQuery.isError;
-  const permissionsFailed = reviewFailed || installsQuery.isError || agentsQuery.isError;
+  const actionsContent =
+    renderActions?.(connection) ??
+    (connection.connectionPurpose === "ai" ? (
+      <ManagedAiConnectionDetails connection={connection} />
+    ) : undefined);
+  const actionCount =
+    actionsContent !== undefined
+      ? null
+      : catalogQuery.data
+        ? active.length
+        : null;
+  const reviewLoading =
+    catalogQuery.isLoading ||
+    profilesQuery.isLoading ||
+    policiesQuery.isLoading;
+  const permissionsLoading =
+    reviewLoading || installsQuery.isLoading || agentsQuery.isLoading;
+  const reviewFailed =
+    catalogQuery.isError || profilesQuery.isError || policiesQuery.isError;
+  const permissionsFailed =
+    reviewFailed || installsQuery.isError || agentsQuery.isError;
 
   return (
     <div className="max-w-4xl space-y-10 pb-12">
@@ -591,149 +861,319 @@ function StandardAppDetail({ renderActions, renderAgentSettings, renderConnectio
         }}
       />
 
-      {status.tone === "attention" && connection.requiresReauthorization === false && (
-        <div role="status">
-          <p>{connection.healthMessage || "GitHub access could not be checked. Try again."}</p>
-          <Button variant="outline" disabled={refreshGitHubAccess.isPending} onClick={() => refreshGitHubAccess.mutate()}>
-            Retry access
-          </Button>
-        </div>
-      )}
+      {status.tone === "attention" &&
+        connection.requiresReauthorization === false && (
+          <div role="status">
+            <p>
+              {connection.healthMessage ||
+                "GitHub access could not be checked. Try again."}
+            </p>
+            <Button
+              variant="outline"
+              disabled={refreshGitHubAccess.isPending}
+              onClick={() => refreshGitHubAccess.mutate()}
+            >
+              Retry access
+            </Button>
+          </div>
+        )}
       {needsReconnect && (
         <ReconnectCard
           connection={connection}
           galleryEntry={logoEntry}
           canReconnect={canReconnect}
           reconnectUnavailableMessage={reconnectUnavailableMessage}
-          onReconnect={onReconnect ? () => onReconnect(connection) : (connection.connectionPurpose === "ai" || isRemoteMcpConnectorMethod(connection.config?.sourceTemplateKey, connection.config?.connectionMethodKey)) ? () => navigate(`/apps/connect?source=${connection.config?.sourceTemplateKey}&reconnect=${connection.id}`) : undefined}
+          onReconnect={
+            onReconnect
+              ? () => onReconnect(connection)
+              : connection.connectionPurpose === "ai" ||
+                  isRemoteMcpConnectorMethod(
+                    connection.config?.sourceTemplateKey,
+                    connection.config?.connectionMethodKey,
+                  )
+                ? () =>
+                    navigate(
+                      `/apps/connect?source=${connection.config?.sourceTemplateKey}&reconnect=${connection.id}`,
+                    )
+                : undefined
+          }
           onReconnected={() => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.tools.connection(connectionId) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.tools.connections(selectedCompanyId) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(selectedCompanyId) });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.tools.connection(connectionId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.tools.connections(selectedCompanyId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.apps.attention(selectedCompanyId),
+            });
           }}
         />
       )}
 
-      {activeTab === "review" && (
-        reviewFailed
-          ? <ToolsLoadError onRetry={() => {
+      {activeTab === "review" &&
+        (reviewFailed ? (
+          <ToolsLoadError
+            onRetry={() => {
               void catalogQuery.refetch();
               void profilesQuery.refetch();
               void policiesQuery.refetch();
-            }} />
-          : reviewLoading
-          ? <ToolsLoading />
-          : <ReviewPanel
-              connectionId={connectionId}
-              quarantined={quarantined}
-              pending={pending}
-              onReviewQuarantined={reviewQuarantined}
-            />
-      )}
-      {activeTab === "permissions" && (
-        permissionsFailed
-          ? <ToolsLoadError onRetry={() => {
+            }}
+          />
+        ) : reviewLoading ? (
+          <ToolsLoading />
+        ) : (
+          <ReviewPanel
+            connectionId={connectionId}
+            quarantined={quarantined}
+            pending={pending}
+            onReviewQuarantined={reviewQuarantined}
+          />
+        ))}
+      {activeTab === "permissions" &&
+        (permissionsFailed ? (
+          <ToolsLoadError
+            onRetry={() => {
               void catalogQuery.refetch();
               void profilesQuery.refetch();
               void policiesQuery.refetch();
               void installsQuery.refetch();
               void agentsQuery.refetch();
-            }} />
-          : permissionsLoading
-          ? <ToolsLoading />
-          : <div className="space-y-10">
-              {isAppAggregator(brandKey) && grantsQuery.data?.capabilities.canConfigure === true
-                ? <ConnectedAggregatorApps key={connection.id} connection={connection} /> : null}
-              {connection.config?.sourceTemplateKey === "honcho" && <HonchoWorkspaceSettings key={connection.id} connection={connection} canConfigure={grantsQuery.data?.capabilities?.canConfigure ?? false} />}
-              {renderConnectionSettings?.(connection)}
-              {connection.config?.sourceTemplateKey === "browser-use-cloud" && <BrowserUseSettingsPanel connection={connection} grants={grantsQuery.data} />}
-              {connection.config?.sourceTemplateKey === "railway" && <RailwayAccessPanel connection={connection} grants={grantsQuery.data} />}
-              {connection.config?.provider === "agentmail" && <EmailConnectionInboxes companyId={connection.companyId} connectionId={connection.id} canConfigure={grantsQuery.data?.capabilities?.canConfigure ?? false} />}
-              {connection.config?.provider === "agentmail" ? <EmailConnectionAccess companyId={connection.companyId} connectionId={connection.id} agents={agents} /> : <>
-              <IdentitiesSection
-                appName={appName}
-                credentialPolicy={connection.credentialPolicy}
-                ownerUserId={connection.createdByUserId}
-                connectedUser={owner}
-                dedicatedAgent={managedIdentityGrant?.kind === "agent"
-                  ? agents.find((agent) => agent.id === managedIdentityGrant.subjectAgentId) ?? null
-                  : null}
-                grantsQuery={grantsQuery.data}
-                loading={grantsQuery.isLoading}
-                error={grantsQuery.isError}
-                connectPending={startPersonalAuth.isPending || startOAuth.isPending}
-                audiencePending={replaceAudience.isPending}
-                audienceError={audienceError}
-                audienceGrantId={audienceOpenGrantId}
-                onOpenAudience={(grantId) => {
-                  setAudienceError(null);
-                  setAudienceOpenGrantId(grantId);
-                }}
-                onCloseAudience={() => {
-                  setAudienceOpenGrantId(null);
-                  setAudienceError(null);
-                }}
-                onConnectAsMe={() => onReconnect ? onReconnect(connection) : startPersonalAuth.mutate()}
-                onConnectOrganization={() => onReconnect ? onReconnect(connection) : startOAuth.mutate()}
-                onConnectAgent={(agentId) => startOAuth.mutate({ asAgentId: agentId })}
-                onRefreshAccess={() => refreshGitHubAccess.mutate()}
-                refreshAccessPending={refreshGitHubAccess.isPending}
-                onReplaceAudience={(grant, memberUserIds) =>
-                  replaceAudience.mutate({ grantId: grant.id, memberUserIds })}
+            }}
+          />
+        ) : permissionsLoading ? (
+          <ToolsLoading />
+        ) : (
+          <div className="space-y-10">
+            {isAppAggregator(brandKey) &&
+            grantsQuery.data?.capabilities.canConfigure === true ? (
+              <ConnectedAggregatorApps
+                key={connection.id}
+                connection={connection}
               />
-              {connection.config?.sourceTemplateKey === "composio" ? <p className="text-sm text-muted-foreground">
-                These permissions apply to all apps available through this Composio connection. Manage app accounts and sign-in in Composio.
-              </p> : null}
-              {connection.config?.sourceTemplateKey !== "composio" && isRemoteMcpConnectorMethod(connection.config?.sourceTemplateKey, connection.config?.connectionMethodKey) && <p className="text-sm text-muted-foreground">Taskcore controls access to the tools listed here. App and action permissions inside these tools are managed in {baseAppName}.</p>}
-              <PermissionsPanel
-                afterAgentAccess={<>{logoEntry?.agentInstructions && <ConnectionInstructionsSettings key={connection.id} connection={connection} provider={logoEntry.name} template={logoEntry.agentInstructions} canConfigure={grantsQuery.data?.capabilities?.canConfigure ?? false} />}{renderAgentSettings?.(connection)}</>}
-                actions={actionsContent}
-                connectionId={connectionId}
-                capabilities={grantsQuery.data?.capabilities}
-                appName={appName}
-                agents={agents}
-                access={access}
-                install={connection.connectionPurpose === "ai" || managesRemoteMcpAccess ? installStateFrom([]) : install}
-                readOnly={readOnly}
-                canChange={canChange}
-                quarantined={quarantined}
-                enabledIds={enabledIds}
-                askFirstIds={askFirstIds}
-                pending={pending}
-                refreshPending={refreshTools.isPending}
-                permissionChangeWarning={
-                  connection.credentialPolicy === "per_agent" && managedIdentityGrant?.providerTenant?.github
-                    ? "Shell Git and gh use this account for the run and are not constrained by per-tool Ask-first controls."
-                    : undefined
+            ) : null}
+            {connection.config?.sourceTemplateKey === "honcho" && (
+              <HonchoWorkspaceSettings
+                key={connection.id}
+                connection={connection}
+                canConfigure={
+                  grantsQuery.data?.capabilities?.canConfigure ?? false
                 }
-                onSaveAccess={(next) => apply({ access: connection.connectionPurpose === "ai" || managesRemoteMcpAccess ? next : accessIncludingInstalls(next, install) })}
-                onRefreshActions={() => refreshTools.mutate()}
-                onSetActionPermission={(ids, next) => apply(actionPermissionMutation(ids, next, enabledIds, askFirstIds))}
-                onReviewQuarantined={reviewQuarantined}
               />
-              <AgentConnectionAccess
-                connectionId={connectionId}
-                profiles={profilesQuery.data?.profiles ?? []}
-                policies={policiesQuery.data?.policies ?? []}
-                catalog={catalog}
+            )}
+            {renderConnectionSettings?.(connection)}
+            {connection.config?.sourceTemplateKey === "browser-use-cloud" && (
+              <BrowserUseSettingsPanel
+                connection={connection}
+                grants={grantsQuery.data}
+              />
+            )}
+            {connection.config?.sourceTemplateKey === "railway" && (
+              <RailwayAccessPanel
+                connection={connection}
+                grants={grantsQuery.data}
+              />
+            )}
+            {connection.config?.provider === "agentmail" && (
+              <EmailConnectionInboxes
+                companyId={connection.companyId}
+                connectionId={connection.id}
+                canConfigure={
+                  grantsQuery.data?.capabilities?.canConfigure ?? false
+                }
+              />
+            )}
+            {connection.config?.provider === "agentmail" ? (
+              <EmailConnectionAccess
+                companyId={connection.companyId}
+                connectionId={connection.id}
                 agents={agents}
-                canManage={grantsQuery.data?.capabilities.canConfigure === true}
-                onRemove={async (profileId) => {
-                  await toolsApi.deleteProfile(profileId);
-                  await profilesQuery.refetch();
-                  queryClient.invalidateQueries({ queryKey: queryKeys.tools.testAgentAccessesForConnection(connectionId) });
-                }}
               />
-              {managesRemoteMcpAccess && isRemoteMcpConnectorId(connection.config?.sourceTemplateKey) && <RemoteMcpManagement
-                providerName={baseAppName} canReconnect={canReconnect} canDisconnect={grantsQuery.data?.capabilities.canConfigure === true}
-                busy={disconnectRemote.isPending}
-                onReconnect={() => navigate(`/apps/connect?source=${connection.config?.sourceTemplateKey}&reconnect=${connection.id}`)}
-                onManage={() => window.open(remoteMcpProviders[connection.config?.sourceTemplateKey as keyof typeof remoteMcpProviders].dashboardUrl, "_blank", "noopener,noreferrer")}
-                onDisconnect={() => disconnectRemote.mutateAsync()}
-              />}
-              </>}
-            </div>
-      )}
+            ) : (
+              <>
+                <IdentitiesSection
+                  appName={appName}
+                  credentialPolicy={connection.credentialPolicy}
+                  ownerUserId={connection.createdByUserId}
+                  connectedUser={owner}
+                  dedicatedAgent={
+                    managedIdentityGrant?.kind === "agent"
+                      ? (agents.find(
+                          (agent) =>
+                            agent.id === managedIdentityGrant.subjectAgentId,
+                        ) ?? null)
+                      : null
+                  }
+                  grantsQuery={grantsQuery.data}
+                  loading={grantsQuery.isLoading}
+                  error={grantsQuery.isError}
+                  connectPending={
+                    startPersonalAuth.isPending || startOAuth.isPending
+                  }
+                  audiencePending={replaceAudience.isPending}
+                  audienceError={audienceError}
+                  audienceGrantId={audienceOpenGrantId}
+                  onOpenAudience={(grantId) => {
+                    setAudienceError(null);
+                    setAudienceOpenGrantId(grantId);
+                  }}
+                  onCloseAudience={() => {
+                    setAudienceOpenGrantId(null);
+                    setAudienceError(null);
+                  }}
+                  onConnectAsMe={() =>
+                    onReconnect
+                      ? onReconnect(connection)
+                      : startPersonalAuth.mutate()
+                  }
+                  onConnectOrganization={() =>
+                    onReconnect ? onReconnect(connection) : startOAuth.mutate()
+                  }
+                  onConnectAgent={(agentId) =>
+                    startOAuth.mutate({ asAgentId: agentId })
+                  }
+                  onRefreshAccess={() => refreshGitHubAccess.mutate()}
+                  refreshAccessPending={refreshGitHubAccess.isPending}
+                  onReplaceAudience={(grant, memberUserIds) =>
+                    replaceAudience.mutate({ grantId: grant.id, memberUserIds })
+                  }
+                />
+                {connection.config?.sourceTemplateKey === "composio" ? (
+                  <p className="text-sm text-muted-foreground">
+                    These permissions apply to all apps available through this
+                    Composio connection. Manage app accounts and sign-in in
+                    Composio.
+                  </p>
+                ) : null}
+                {connection.config?.sourceTemplateKey !== "composio" &&
+                  isRemoteMcpConnectorMethod(
+                    connection.config?.sourceTemplateKey,
+                    connection.config?.connectionMethodKey,
+                  ) && (
+                    <p className="text-sm text-muted-foreground">
+                      Taskcore controls access to the tools listed here. App and
+                      action permissions inside these tools are managed in{" "}
+                      {baseAppName}.
+                    </p>
+                  )}
+                <PermissionsPanel
+                  afterAgentAccess={
+                    <>
+                      {logoEntry?.agentInstructions && (
+                        <ConnectionInstructionsSettings
+                          key={connection.id}
+                          connection={connection}
+                          provider={logoEntry.name}
+                          template={logoEntry.agentInstructions}
+                          canConfigure={
+                            grantsQuery.data?.capabilities?.canConfigure ??
+                            false
+                          }
+                        />
+                      )}
+                      {renderAgentSettings?.(connection)}
+                    </>
+                  }
+                  actions={actionsContent}
+                  connectionId={connectionId}
+                  capabilities={grantsQuery.data?.capabilities}
+                  appName={appName}
+                  agents={agents}
+                  access={access}
+                  install={
+                    connection.connectionPurpose === "ai" ||
+                    managesRemoteMcpAccess
+                      ? installStateFrom([])
+                      : install
+                  }
+                  readOnly={readOnly}
+                  canChange={canChange}
+                  quarantined={quarantined}
+                  enabledIds={enabledIds}
+                  askFirstIds={askFirstIds}
+                  pending={pending}
+                  refreshPending={refreshTools.isPending}
+                  permissionChangeWarning={
+                    connection.credentialPolicy === "per_agent" &&
+                    managedIdentityGrant?.providerTenant?.github
+                      ? "Shell Git and gh use this account for the run and are not constrained by per-tool Ask-first controls."
+                      : undefined
+                  }
+                  onSaveAccess={(next) =>
+                    apply({
+                      access:
+                        connection.connectionPurpose === "ai" ||
+                        managesRemoteMcpAccess
+                          ? next
+                          : accessIncludingInstalls(next, install),
+                    })
+                  }
+                  onRefreshActions={() => refreshTools.mutate()}
+                  onSetActionPermission={(ids, next) =>
+                    apply(
+                      actionPermissionMutation(
+                        ids,
+                        next,
+                        enabledIds,
+                        askFirstIds,
+                      ),
+                    )
+                  }
+                  onReviewQuarantined={reviewQuarantined}
+                />
+                <AgentConnectionAccess
+                  connectionId={connectionId}
+                  profiles={profilesQuery.data?.profiles ?? []}
+                  policies={policiesQuery.data?.policies ?? []}
+                  catalog={catalog}
+                  agents={agents}
+                  canManage={
+                    grantsQuery.data?.capabilities.canConfigure === true
+                  }
+                  onRemove={async (profileId) => {
+                    await toolsApi.deleteProfile(profileId);
+                    await profilesQuery.refetch();
+                    queryClient.invalidateQueries({
+                      queryKey:
+                        queryKeys.tools.testAgentAccessesForConnection(
+                          connectionId,
+                        ),
+                    });
+                  }}
+                />
+                {managesRemoteMcpAccess &&
+                  isRemoteMcpConnectorId(
+                    connection.config?.sourceTemplateKey,
+                  ) && (
+                    <RemoteMcpManagement
+                      providerName={baseAppName}
+                      canReconnect={canReconnect}
+                      canDisconnect={
+                        grantsQuery.data?.capabilities.canConfigure === true
+                      }
+                      busy={disconnectRemote.isPending}
+                      onReconnect={() =>
+                        navigate(
+                          `/apps/connect?source=${connection.config?.sourceTemplateKey}&reconnect=${connection.id}`,
+                        )
+                      }
+                      onManage={() =>
+                        window.open(
+                          remoteMcpProviders[
+                            connection.config
+                              ?.sourceTemplateKey as keyof typeof remoteMcpProviders
+                          ].dashboardUrl,
+                          "_blank",
+                          "noopener,noreferrer",
+                        )
+                      }
+                      onDisconnect={() => disconnectRemote.mutateAsync()}
+                    />
+                  )}
+              </>
+            )}
+          </div>
+        ))}
     </div>
   );
 }
@@ -799,10 +1239,24 @@ export function AppDetailHeader({
                 className="h-9 w-64 text-lg font-bold"
                 autoFocus
               />
-              <Button type="submit" size="sm" disabled={renamePending || !nameDraft.trim()}>
-                {renamePending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+              <Button
+                type="submit"
+                size="sm"
+                disabled={renamePending || !nameDraft.trim()}
+              >
+                {renamePending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  "Save"
+                )}
               </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={onRenameCancel} disabled={renamePending}>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={onRenameCancel}
+                disabled={renamePending}
+              >
                 Cancel
               </Button>
             </form>
@@ -823,17 +1277,21 @@ export function AppDetailHeader({
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <StatusBadge status={status} />
-            {connection.config?.provider !== "agentmail" && actionCount !== null && (
-              <span className="text-xs text-muted-foreground">
-                {actionCount} {actionCount === 1 ? "action" : "actions"} available
-              </span>
-            )}
+            {connection.config?.provider !== "agentmail" &&
+              actionCount !== null && (
+                <span className="text-xs text-muted-foreground">
+                  {actionCount} {actionCount === 1 ? "action" : "actions"}{" "}
+                  available
+                </span>
+              )}
             {connectionDisplaySecondaryHint(connection) ? (
               <span className="text-xs text-muted-foreground">
                 {connectionDisplaySecondaryHint(connection)}
               </span>
             ) : null}
-            {unverifiedHost ? <UnverifiedServerBadge host={unverifiedHost} /> : null}
+            {unverifiedHost ? (
+              <UnverifiedServerBadge host={unverifiedHost} />
+            ) : null}
             <ConnectionProvenanceChip connection={connection} />
           </div>
         </div>
@@ -844,9 +1302,14 @@ export function AppDetailHeader({
 
 function ToolsLoading({ mcpActions = false }: { mcpActions?: boolean }) {
   return (
-    <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground" role="status">
+    <div
+      className="flex items-center gap-2 py-8 text-sm text-muted-foreground"
+      role="status"
+    >
       <Loader2 className="h-4 w-4 animate-spin" />
-      {mcpActions ? "Loading MCP actions, this may take a minute." : "Loading tools…"}
+      {mcpActions
+        ? "Loading MCP actions, this may take a minute."
+        : "Loading tools…"}
     </div>
   );
 }
@@ -854,25 +1317,33 @@ function ToolsLoading({ mcpActions = false }: { mcpActions?: boolean }) {
 function ToolsLoadError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="space-y-3 py-8">
-      <p className="text-sm text-destructive">Couldn’t load tools for this app.</p>
-      <Button size="sm" variant="outline" onClick={onRetry}>Try again</Button>
+      <p className="text-sm text-destructive">
+        Couldn’t load tools for this app.
+      </p>
+      <Button size="sm" variant="outline" onClick={onRetry}>
+        Try again
+      </Button>
     </div>
   );
 }
 
 function unverifiedRemoteHost(connection: ToolConnection): string | null {
-  const sourceTemplateKey = connection.config?.sourceTemplateKey ?? connection.transportConfig.sourceTemplateKey;
+  const sourceTemplateKey =
+    connection.config?.sourceTemplateKey ??
+    connection.transportConfig.sourceTemplateKey;
   if (
-    connection.transport !== "mcp_remote"
-    || (typeof sourceTemplateKey === "string" && sourceTemplateKey.trim())
-  ) return null;
+    connection.transport !== "mcp_remote" ||
+    (typeof sourceTemplateKey === "string" && sourceTemplateKey.trim())
+  )
+    return null;
 
-  const value = connection.config?.url
-    ?? connection.config?.endpoint
-    ?? connection.config?.remoteUrl
-    ?? connection.transportConfig.url
-    ?? connection.transportConfig.endpoint
-    ?? connection.transportConfig.remoteUrl;
+  const value =
+    connection.config?.url ??
+    connection.config?.endpoint ??
+    connection.config?.remoteUrl ??
+    connection.transportConfig.url ??
+    connection.transportConfig.endpoint ??
+    connection.transportConfig.remoteUrl;
   if (typeof value !== "string") return null;
 
   try {
@@ -888,7 +1359,12 @@ function statusFor(connection: ToolConnection): StatusInfo {
   if (connection.enabled === false || connection.status === "disabled") {
     return { label: "Paused", tone: "paused" };
   }
-  if (isAttentionHealthStatus(connection.healthStatus) || (connection.connectionPurpose === "ai" && (connection.healthStatus !== "ok" || aiSubscriptionNeedsIsolatedLogin(connection.config)))) {
+  if (
+    isAttentionHealthStatus(connection.healthStatus) ||
+    (connection.connectionPurpose === "ai" &&
+      (connection.healthStatus !== "ok" ||
+        aiSubscriptionNeedsIsolatedLogin(connection.config)))
+  ) {
     return { label: "Needs attention", tone: "attention" };
   }
   return { label: "Connected", tone: "connected" };
@@ -896,8 +1372,10 @@ function statusFor(connection: ToolConnection): StatusInfo {
 
 function StatusBadge({ status }: { status: StatusInfo }) {
   const klass: Record<StatusInfo["tone"], string> = {
-    connected: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    attention: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    connected:
+      "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    attention:
+      "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     paused: "border-border bg-muted text-muted-foreground",
   };
   return (
@@ -913,20 +1391,35 @@ function StatusBadge({ status }: { status: StatusInfo }) {
   );
 }
 
-function enabledCatalogIds(profile: ToolProfileWithDetails | undefined): Set<string> {
+function enabledCatalogIds(
+  profile: ToolProfileWithDetails | undefined,
+): Set<string> {
   const ids = new Set<string>();
   for (const entry of profile?.entries ?? []) {
-    if (entry.effect === "include" && entry.catalogEntryId) ids.add(entry.catalogEntryId);
+    if (entry.effect === "include" && entry.catalogEntryId)
+      ids.add(entry.catalogEntryId);
   }
   return ids;
 }
 
-function askFirstCatalogIds(policies: ToolPolicy[], connectionId: string): Set<string> {
+function askFirstCatalogIds(
+  policies: ToolPolicy[],
+  connectionId: string,
+): Set<string> {
   const ids = new Set<string>();
   for (const policy of policies) {
-    if (policy.policyType !== "require_approval" || policy.enabled === false) continue;
-    const config = (policy.config ?? {}) as { source?: unknown; connectionId?: unknown; catalogEntryId?: unknown };
-    if (config.source === "app_gallery_finish" && config.connectionId === connectionId && typeof config.catalogEntryId === "string") {
+    if (policy.policyType !== "require_approval" || policy.enabled === false)
+      continue;
+    const config = (policy.config ?? {}) as {
+      source?: unknown;
+      connectionId?: unknown;
+      catalogEntryId?: unknown;
+    };
+    if (
+      config.source === "app_gallery_finish" &&
+      config.connectionId === connectionId &&
+      typeof config.catalogEntryId === "string"
+    ) {
       ids.add(config.catalogEntryId);
     }
   }
@@ -956,14 +1449,19 @@ function accessFrom(
   if (bindings.some((b) => b.targetType === "company")) {
     return { mode: "all", agentIds: new Set() };
   }
-  const agentIds = new Set(bindings.filter((b) => b.targetType === "agent").map((b) => b.targetId));
+  const agentIds = new Set(
+    bindings.filter((b) => b.targetType === "agent").map((b) => b.targetId),
+  );
   if (agentIds.size > 0) return { mode: "specific", agentIds };
   return install.onAll
     ? { mode: "all", agentIds: new Set() }
     : { mode: "specific", agentIds: new Set(install.agentIds) };
 }
 
-function accessIncludingInstalls(next: AccessDraft, install: InstallState): AccessDraft {
+function accessIncludingInstalls(
+  next: AccessDraft,
+  install: InstallState,
+): AccessDraft {
   if (install.onAll || next.mode === "all") {
     return { mode: "all", agentIds: new Set() };
   }
@@ -979,13 +1477,17 @@ function galleryEntryFor(
   application: ToolApplication | undefined,
 ): AppGalleryDisplayEntry | null {
   if (!connection) return null;
-  const sourceSlug = appApplicationSourceSlug(application) ?? appConnectionSourceSlug(connection);
+  const sourceSlug =
+    appApplicationSourceSlug(application) ??
+    appConnectionSourceSlug(connection);
   if (sourceSlug) {
     const keyed = apps.find((app) => appDefinitionSlug(app) === sourceSlug);
     if (keyed) return keyed;
   }
   const name = connection.name.toLowerCase();
-  return apps.find((app) => appDefinitionName(app).toLowerCase() === name) ??
+  return (
+    apps.find((app) => appDefinitionName(app).toLowerCase() === name) ??
     apps.find((app) => appDefinitionSlug(app) === name) ??
-    null;
+    null
+  );
 }

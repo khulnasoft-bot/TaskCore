@@ -22,16 +22,23 @@ describe("supportsAdapterModelRefresh", () => {
 
 describe("resolveTaskcoreRunnerTransitionModel", () => {
   it("preserves Claude custom model IDs", () => {
-    expect(resolveTaskcoreRunnerTransitionModel("claude_local", "custom-claude-model")).toBe("custom-claude-model");
+    expect(
+      resolveTaskcoreRunnerTransitionModel(
+        "claude_local",
+        "custom-claude-model",
+      ),
+    ).toBe("custom-claude-model");
   });
   it("preserves an explicit model from codex_local", () => {
-    expect(resolveTaskcoreRunnerTransitionModel("codex_local", "gpt-5.5"))
-      .toBe("gpt-5.5");
+    expect(resolveTaskcoreRunnerTransitionModel("codex_local", "gpt-5.5")).toBe(
+      "gpt-5.5",
+    );
   });
 
   it("uses the current Codex default when the source model is blank", () => {
-    expect(resolveTaskcoreRunnerTransitionModel("codex_local", ""))
-      .toBe("gpt-5.6-sol");
+    expect(resolveTaskcoreRunnerTransitionModel("codex_local", "")).toBe(
+      "gpt-5.6-sol",
+    );
   });
 });
 
@@ -51,7 +58,11 @@ function makeEnvironment(overrides: Partial<Environment>): Environment {
   };
 }
 
-const localEnv = makeEnvironment({ id: "local-1", name: "Local", driver: "local" });
+const localEnv = makeEnvironment({
+  id: "local-1",
+  name: "Local",
+  driver: "local",
+});
 const k8sEnv = makeEnvironment({
   id: "k8s-1",
   name: "Managed K8s",
@@ -61,19 +72,28 @@ const k8sEnv = makeEnvironment({
 
 describe("resolveForcedKubernetesEnvironment", () => {
   it("does not force when executionMode is 'any' (full picker / unchanged)", () => {
-    const result = resolveForcedKubernetesEnvironment("any", [localEnv, k8sEnv]);
+    const result = resolveForcedKubernetesEnvironment("any", [
+      localEnv,
+      k8sEnv,
+    ]);
     expect(result.forced).toBe(false);
     expect(result.kubernetesEnvironment).toBeNull();
   });
 
   it("does not force when executionMode is absent (self-hoster default)", () => {
-    const result = resolveForcedKubernetesEnvironment(undefined, [localEnv, k8sEnv]);
+    const result = resolveForcedKubernetesEnvironment(undefined, [
+      localEnv,
+      k8sEnv,
+    ]);
     expect(result.forced).toBe(false);
     expect(result.kubernetesEnvironment).toBeNull();
   });
 
   it("forces and selects the Kubernetes sandbox when executionMode is 'kubernetes'", () => {
-    const result = resolveForcedKubernetesEnvironment("kubernetes", [localEnv, k8sEnv]);
+    const result = resolveForcedKubernetesEnvironment("kubernetes", [
+      localEnv,
+      k8sEnv,
+    ]);
     expect(result.forced).toBe(true);
     expect(result.kubernetesEnvironment?.id).toBe("k8s-1");
   });
@@ -84,7 +104,10 @@ describe("resolveForcedKubernetesEnvironment", () => {
       driver: "sandbox",
       config: { provider: "fake" },
     });
-    const result = resolveForcedKubernetesEnvironment("kubernetes", [localEnv, fakeSandbox]);
+    const result = resolveForcedKubernetesEnvironment("kubernetes", [
+      localEnv,
+      fakeSandbox,
+    ]);
     expect(result.forced).toBe(true);
     expect(result.kubernetesEnvironment).toBeNull();
   });

@@ -6,7 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EnforcementBanner } from "@/components/EnforcementBanner";
-import { CapabilityBadges, DecisionBadge, RiskBadge } from "@/pages/tools/shared";
+import {
+  CapabilityBadges,
+  DecisionBadge,
+  RiskBadge,
+} from "@/pages/tools/shared";
 
 /**
  * Action approval card (PAP-10787 / PAP-10778, surfaces 11/12/99).
@@ -49,7 +53,12 @@ export function BindingsTable({
   className?: string;
 }) {
   return (
-    <dl className={cn("divide-y divide-border rounded-md border border-border text-sm", className)}>
+    <dl
+      className={cn(
+        "divide-y divide-border rounded-md border border-border text-sm",
+        className,
+      )}
+    >
       {rows.map((row) => (
         <div key={row.label} className="flex gap-3 px-3 py-2">
           <dt
@@ -58,7 +67,12 @@ export function BindingsTable({
           >
             {row.label}
           </dt>
-          <dd className={cn("min-w-0 flex-1 break-all text-foreground", row.mono && "font-mono text-xs")}>
+          <dd
+            className={cn(
+              "min-w-0 flex-1 break-all text-foreground",
+              row.mono && "font-mono text-xs",
+            )}
+          >
             {row.value}
           </dd>
         </div>
@@ -130,19 +144,29 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function bindingRows(binding: ActionCardBinding, isStale: boolean): BindingRow[] {
-  const catalogValue = isStale && binding.previousCatalogSha256 ? (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
-      <span className="text-muted-foreground line-through decoration-amber-500" title="Previous catalog hash">
-        {shortSha(binding.previousCatalogSha256)}
+function bindingRows(
+  binding: ActionCardBinding,
+  isStale: boolean,
+): BindingRow[] {
+  const catalogValue =
+    isStale && binding.previousCatalogSha256 ? (
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <span
+          className="text-muted-foreground line-through decoration-amber-500"
+          title="Previous catalog hash"
+        >
+          {shortSha(binding.previousCatalogSha256)}
+        </span>
+        <span
+          className="text-amber-600 dark:text-amber-400"
+          title="Current catalog hash"
+        >
+          {shortSha(binding.catalogSha256)}
+        </span>
       </span>
-      <span className="text-amber-600 dark:text-amber-400" title="Current catalog hash">
-        {shortSha(binding.catalogSha256)}
-      </span>
-    </span>
-  ) : (
-    shortSha(binding.catalogSha256)
-  );
+    ) : (
+      shortSha(binding.catalogSha256)
+    );
 
   return [
     {
@@ -150,7 +174,9 @@ function bindingRows(binding: ActionCardBinding, isStale: boolean): BindingRow[]
       value: (
         <span>
           {binding.application}
-          <span className="ml-1.5 text-xs text-muted-foreground">manifest v{binding.manifestVersion}</span>
+          <span className="ml-1.5 text-xs text-muted-foreground">
+            manifest v{binding.manifestVersion}
+          </span>
         </span>
       ),
     },
@@ -162,7 +188,9 @@ function bindingRows(binding: ActionCardBinding, isStale: boolean): BindingRow[]
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{shortSha(binding.payloadSha256)}</span>
-          <span className="font-sans text-(length:--text-micro) uppercase tracking-normal text-muted-foreground">signed</span>
+          <span className="font-sans text-(length:--text-micro) uppercase tracking-normal text-muted-foreground">
+            signed
+          </span>
         </span>
       ),
       mono: true,
@@ -191,7 +219,8 @@ export function ActionCard({
   className,
 }: ActionCardProps) {
   const isStale = variant === "stale";
-  const json = typeof input === "string" ? input : JSON.stringify(input, null, 2);
+  const json =
+    typeof input === "string" ? input : JSON.stringify(input, null, 2);
 
   // Surface 99: buttons stack full-width in the order Approve / Deny /
   // Edit & re-sign; desktop keeps them inline as Edit & re-sign / Deny / Approve.
@@ -201,18 +230,32 @@ export function ActionCard({
       onClick={onApprove}
       disabled={isStale}
       className={mobile ? "w-full" : undefined}
-      title={isStale ? "Re-issue the request before approving — the catalog hash changed." : undefined}
+      title={
+        isStale
+          ? "Re-issue the request before approving — the catalog hash changed."
+          : undefined
+      }
     >
       Approve
     </Button>
   );
   const denyButton = (
-    <Button size="sm" variant="outline" onClick={onDeny} className={mobile ? "w-full" : undefined}>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={onDeny}
+      className={mobile ? "w-full" : undefined}
+    >
       Deny
     </Button>
   );
   const editButton = (
-    <Button size="sm" variant="outline" onClick={onEditResign} className={mobile ? "w-full" : undefined}>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={onEditResign}
+      className={mobile ? "w-full" : undefined}
+    >
       <Pencil className="mr-1 h-3.5 w-3.5" />
       Edit &amp; re-sign
     </Button>
@@ -231,14 +274,19 @@ export function ActionCard({
         {/* Header: avatar + request line + outcome pill */}
         <div className="flex items-start gap-3">
           <Avatar size="sm" className="shrink-0">
-            {agentAvatarUrl ? <AvatarImage src={agentAvatarUrl} alt={agentName} /> : null}
+            {agentAvatarUrl ? (
+              <AvatarImage src={agentAvatarUrl} alt={agentName} />
+            ) : null}
             <AvatarFallback>{initials(agentName)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="text-sm text-foreground">
-              <span className="font-medium">{agentName}</span> requested approval to call
+              <span className="font-medium">{agentName}</span> requested
+              approval to call
             </p>
-            <p className="mt-0.5 font-mono text-xs text-muted-foreground break-all">{toolName}</p>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground break-all">
+              {toolName}
+            </p>
           </div>
           <div className="shrink-0">
             <DecisionBadge decision="require_approval" />
@@ -249,7 +297,11 @@ export function ActionCard({
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-sm text-foreground">{toolName}</span>
           <RiskBadge risk={risk} />
-          <CapabilityBadges isReadOnly={isReadOnly} isWrite={isWrite} isDestructive={isDestructive} />
+          <CapabilityBadges
+            isReadOnly={isReadOnly}
+            isWrite={isWrite}
+            isDestructive={isDestructive}
+          />
         </div>
 
         {/* Stale banner (PAP-10400 hardening) */}
@@ -262,11 +314,16 @@ export function ActionCard({
         ) : null}
 
         {/* Bindings table */}
-        <BindingsTable rows={bindingRows(binding, isStale)} labelWidth={mobile ? 70 : 132} />
+        <BindingsTable
+          rows={bindingRows(binding, isStale)}
+          labelWidth={mobile ? 70 : 132}
+        />
 
         {/* JSON input */}
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">Input</p>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Input
+          </p>
           <pre className="overflow-x-auto rounded-md border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground">
             {json}
           </pre>
@@ -274,13 +331,18 @@ export function ActionCard({
 
         {/* Why I'm asking */}
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">Why I&apos;m asking</p>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Why I&apos;m asking
+          </p>
           <p className="text-sm text-muted-foreground">
             {reason}
             {policyNumber != null ? (
               <>
                 {" "}
-                <span className="font-medium text-foreground">Policy #{policyNumber}</span> requires approval here.
+                <span className="font-medium text-foreground">
+                  Policy #{policyNumber}
+                </span>{" "}
+                requires approval here.
               </>
             ) : null}
           </p>

@@ -15,7 +15,10 @@ import type {
   PluginEnvironmentValidateConfigParams,
   PluginEnvironmentValidationResult,
 } from "@taskcore/plugin-sdk";
-import { CloudflareBridgeError, createCloudflareBridgeClient } from "./bridge-client.js";
+import {
+  CloudflareBridgeError,
+  createCloudflareBridgeClient,
+} from "./bridge-client.js";
 import {
   parseCloudflareDriverConfig,
   validateCloudflareDriverConfig,
@@ -27,7 +30,10 @@ const CLOUDFLARE_EXEC_STDOUT_PREFIX = "[cloudflare exec stdout]";
 const CLOUDFLARE_EXEC_STDERR_PREFIX = "[cloudflare exec stderr]";
 
 function isLostLeaseError(error: unknown): boolean {
-  return error instanceof CloudflareBridgeError && (error.status === 404 || error.status === 409);
+  return (
+    error instanceof CloudflareBridgeError &&
+    (error.status === 404 || error.status === 409)
+  );
 }
 
 function bridgeClientFor(rawConfig: Record<string, unknown>) {
@@ -38,7 +44,9 @@ function bridgeClientFor(rawConfig: Record<string, unknown>) {
   };
 }
 
-function lostLeaseExecuteResult(error: CloudflareBridgeError): PluginEnvironmentExecuteResult {
+function lostLeaseExecuteResult(
+  error: CloudflareBridgeError,
+): PluginEnvironmentExecuteResult {
   return {
     exitCode: 1,
     timedOut: false,
@@ -52,21 +60,31 @@ function lostLeaseExecuteResult(error: CloudflareBridgeError): PluginEnvironment
 }
 
 function readIssueId(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
-function resolveWorkspaceIssueId(params: PluginEnvironmentRealizeWorkspaceParams): string | null {
+function resolveWorkspaceIssueId(
+  params: PluginEnvironmentRealizeWorkspaceParams,
+): string | null {
   const directIssueId = readIssueId(params.issueId);
   if (directIssueId) return directIssueId;
 
   const request = params.workspace.metadata?.workspaceRealizationRequest;
-  if (!request || typeof request !== "object" || Array.isArray(request)) return null;
+  if (!request || typeof request !== "object" || Array.isArray(request))
+    return null;
   return readIssueId((request as { issueId?: unknown }).issueId);
 }
 
-function wrapWorkspacePreparationError(remoteCwd: string, error: unknown): Error {
+function wrapWorkspacePreparationError(
+  remoteCwd: string,
+  error: unknown,
+): Error {
   const message = error instanceof Error ? error.message : String(error);
-  return new Error(`Failed to prepare Cloudflare sandbox workspace at ${remoteCwd}: ${message}`);
+  return new Error(
+    `Failed to prepare Cloudflare sandbox workspace at ${remoteCwd}: ${message}`,
+  );
 }
 
 function resolveRemoteCwd(
@@ -74,10 +92,16 @@ function resolveRemoteCwd(
   params: PluginEnvironmentRealizeWorkspaceParams,
 ): string {
   const leaseRemoteCwd =
-    typeof params.lease.metadata?.remoteCwd === "string" && params.lease.metadata.remoteCwd.trim().length > 0
+    typeof params.lease.metadata?.remoteCwd === "string" &&
+    params.lease.metadata.remoteCwd.trim().length > 0
       ? params.lease.metadata.remoteCwd.trim()
       : null;
-  return leaseRemoteCwd ?? params.workspace.remotePath ?? params.workspace.localPath ?? config.requestedCwd;
+  return (
+    leaseRemoteCwd ??
+    params.workspace.remotePath ??
+    params.workspace.localPath ??
+    config.requestedCwd
+  );
 }
 
 function resolveExecuteSession(
@@ -91,7 +115,8 @@ function resolveExecuteSession(
     } as const;
   }
 
-  const baseSessionId = config.sessionId.trim().length > 0 ? config.sessionId : "taskcore";
+  const baseSessionId =
+    config.sessionId.trim().length > 0 ? config.sessionId : "taskcore";
   return {
     sessionStrategy: "named" as const,
     sessionId: `${baseSessionId}-bridge`,
@@ -135,7 +160,10 @@ const plugin = definePlugin({
   },
 
   async onHealth() {
-    return { status: "ok", message: "Cloudflare sandbox provider plugin healthy" };
+    return {
+      status: "ok",
+      message: "Cloudflare sandbox provider plugin healthy",
+    };
   },
 
   async onEnvironmentValidateConfig(
@@ -201,7 +229,11 @@ const plugin = definePlugin({
         sessionId: config.sessionId,
         timeoutMs: config.timeoutMs,
       },
-      { environmentId: params.environmentId, runId: params.runId, issueId: params.issueId },
+      {
+        environmentId: params.environmentId,
+        runId: params.runId,
+        issueId: params.issueId,
+      },
     );
   },
 
@@ -214,7 +246,8 @@ const plugin = definePlugin({
         {
           providerLeaseId: params.providerLeaseId,
           requestedCwd:
-            typeof params.leaseMetadata?.remoteCwd === "string" && params.leaseMetadata.remoteCwd.trim().length > 0
+            typeof params.leaseMetadata?.remoteCwd === "string" &&
+            params.leaseMetadata.remoteCwd.trim().length > 0
               ? params.leaseMetadata.remoteCwd.trim()
               : config.requestedCwd,
           sessionStrategy: config.sessionStrategy,
@@ -322,14 +355,16 @@ const plugin = definePlugin({
       // the final stdout chunk when the inner shell exits the same tick as it
       // writes (e.g. `cat ready.json && exit 0`), so we never stream for
       // bridge control traffic — only adapter sessions get live log forwarding.
-      const isBridgeChannel = params.env?.[SANDBOX_EXEC_CHANNEL_ENV] === SANDBOX_EXEC_CHANNEL_BRIDGE;
-      const streamingOptions = pluginLogger && !isBridgeChannel
-        ? {
-            onOutput: async (stream: "stdout" | "stderr", chunk: string) => {
-              logCloudflareExecChunk(pluginLogger, stream, chunk);
-            },
-          }
-        : undefined;
+      const isBridgeChannel =
+        params.env?.[SANDBOX_EXEC_CHANNEL_ENV] === SANDBOX_EXEC_CHANNEL_BRIDGE;
+      const streamingOptions =
+        pluginLogger && !isBridgeChannel
+          ? {
+              onOutput: async (stream: "stdout" | "stderr", chunk: string) => {
+                logCloudflareExecChunk(pluginLogger, stream, chunk);
+              },
+            }
+          : undefined;
       return await client.execute(
         {
           providerLeaseId: params.lease.providerLeaseId,

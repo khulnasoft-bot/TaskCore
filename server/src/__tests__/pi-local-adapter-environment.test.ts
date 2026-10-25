@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { testEnvironment } from "@taskcore/adapter-pi-local/server";
 
-async function writeFakePiCommand(binDir: string, mode: "success" | "stale-package"): Promise<void> {
+async function writeFakePiCommand(
+  binDir: string,
+  mode: "success" | "stale-package",
+): Promise<void> {
   const commandPath = path.join(binDir, "pi");
   const script =
     mode === "success"
@@ -65,8 +68,12 @@ describe("pi_local environment diagnostics", () => {
     });
 
     expect(result.status).toBe("pass");
-    expect(result.checks.some((check) => check.code === "pi_models_discovered")).toBe(true);
-    expect(result.checks.some((check) => check.code === "pi_hello_probe_passed")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "pi_models_discovered"),
+    ).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "pi_hello_probe_passed"),
+    ).toBe(true);
     await fs.rm(root, { recursive: true, force: true });
   });
 
@@ -93,7 +100,9 @@ describe("pi_local environment diagnostics", () => {
       },
     });
 
-    const stalePackageCheck = result.checks.find((check) => check.code === "pi_package_install_failed");
+    const stalePackageCheck = result.checks.find(
+      (check) => check.code === "pi_package_install_failed",
+    );
     expect(stalePackageCheck?.level).toBe("warn");
     expect(stalePackageCheck?.hint).toContain("Remove `npm:pi-driver`");
     await fs.rm(root, { recursive: true, force: true });

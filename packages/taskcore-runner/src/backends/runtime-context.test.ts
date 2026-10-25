@@ -68,31 +68,60 @@ describe("native runtime context files", () => {
     expect(constraints).toContain(
       "Obtain one accepted result from taskcore_finish or taskcore_block before writing",
     );
-    expect(constraints).toContain("before writing the complete user-facing final response.");
-    expect(constraints).toContain("If blocked, explain why work cannot continue, name the owner and give the unblock action.");
-    for (const description of [PRP_COMPLETION_TOOL_DESCRIPTION, PRP_BLOCK_TOOL_DESCRIPTION]) {
-      expect(description).toContain("If rejected, correct the report and retry.");
-      expect(description).toContain("After acceptance, read the returned outcome");
+    expect(constraints).toContain(
+      "before writing the complete user-facing final response.",
+    );
+    expect(constraints).toContain(
+      "If blocked, explain why work cannot continue, name the owner and give the unblock action.",
+    );
+    for (const description of [
+      PRP_COMPLETION_TOOL_DESCRIPTION,
+      PRP_BLOCK_TOOL_DESCRIPTION,
+    ]) {
+      expect(description).toContain(
+        "If rejected, correct the report and retry.",
+      );
+      expect(description).toContain(
+        "After acceptance, read the returned outcome",
+      );
       expect(description).toContain("end the turn without further tool calls");
     }
-    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain("do not claim completion while gated");
-    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain("supplied link and action");
-    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain("yielded with response_wake for a response");
-    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain("monitor after set_task_monitor confirms a schedule on this task");
-    expect(PRP_BLOCK_TOOL_DESCRIPTION).toContain("its owner, and the action needed to unblock it");
+    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain(
+      "do not claim completion while gated",
+    );
+    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain(
+      "supplied link and action",
+    );
+    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain(
+      "yielded with response_wake for a response",
+    );
+    expect(PRP_COMPLETION_TOOL_DESCRIPTION).toContain(
+      "monitor after set_task_monitor confirms a schedule on this task",
+    );
+    expect(PRP_BLOCK_TOOL_DESCRIPTION).toContain(
+      "its owner, and the action needed to unblock it",
+    );
     expect(constraints).not.toContain(
       "final response exactly once before invoking",
     );
   });
 
   it("distinguishes durable Taskcore documents from requested file deliverables", () => {
-    const constraints = nativeTaskConstraints(runtimeInput("/bundle", "AGENTS.md")).join("\n");
-    expect(constraints).toContain("Taskcore documents directly with write_document");
-    expect(constraints).toContain("unless the user also requests a downloadable file");
+    const constraints = nativeTaskConstraints(
+      runtimeInput("/bundle", "AGENTS.md"),
+    ).join("\n");
+    expect(constraints).toContain(
+      "Taskcore documents directly with write_document",
+    );
+    expect(constraints).toContain(
+      "unless the user also requests a downloadable file",
+    );
     expect(constraints).toContain("register_deliverable");
     expect(constraints).toContain("deliverable:");
     expect(constraints).toContain("download link");
-    expect(constraints).toContain("returned documentHref as a clickable link in your final response");
+    expect(constraints).toContain(
+      "returned documentHref as a clickable link in your final response",
+    );
   });
 
   it("marks only authoritative answered-question envelopes as resolved in the outer task", () => {
@@ -146,7 +175,9 @@ describe("native runtime context files", () => {
     const constraints = nativeTaskConstraints(answered);
     expect(constraints.join("\n")).toContain("current user direction");
     expect(constraints.join("\n")).toContain("clarification is not approval");
-    expect(constraints.join("\n")).not.toContain("finish the original requested result");
+    expect(constraints.join("\n")).not.toContain(
+      "finish the original requested result",
+    );
     expect(constraints).toContainEqual(
       expect.stringContaining(
         "message.interactionResponses[2].response.result.answers",
@@ -358,9 +389,15 @@ describe("native runtime context files", () => {
     expect(answeredConstraint).toContain(
       "message.interactionResponses[0].response.result.answers",
     );
-    const preparedConstraint = nativeTaskConstraints({ ...input, schema: "taskcore.native-execution-input.v5" } as NativeExecutionInput)
-      .find((constraint) => constraint.includes("already authoritatively answered"));
-    expect(preparedConstraint).toContain("interactionResponses[0].response.result.answers");
+    const preparedConstraint = nativeTaskConstraints({
+      ...input,
+      schema: "taskcore.native-execution-input.v5",
+    } as NativeExecutionInput).find((constraint) =>
+      constraint.includes("already authoritatively answered"),
+    );
+    expect(preparedConstraint).toContain(
+      "interactionResponses[0].response.result.answers",
+    );
     expect(preparedConstraint).not.toContain("message.interactionResponses");
     expect(buildNativeModelEnvelope(input).interactionResponses).toEqual(
       input.interactionResponses,
@@ -394,27 +431,52 @@ describe("native runtime context files", () => {
   });
 });
 
-
 describe("explicit task skill selection", () => {
   const context = {
-    skills: [{ key: "company/onboarding", runtimeName: "first-task", bundle: { rootPath: "/assigned/content-addressed-bundle" } },
-      { key: "company/research", runtimeName: "research", bundle: { rootPath: "/assigned/research" } }],
+    skills: [
+      {
+        key: "company/onboarding",
+        runtimeName: "first-task",
+        bundle: { rootPath: "/assigned/content-addressed-bundle" },
+      },
+      {
+        key: "company/research",
+        runtimeName: "research",
+        bundle: { rootPath: "/assigned/research" },
+      },
+    ],
   } as unknown as import("../contracts/runtime-context.js").NativeRuntimeContextSnapshot;
   it("resolves the actual assigned path for initial and subsequent onboarding wakes", () => {
-    const description = "Use the `first-task` skill (/first-task) for this onboarding task, including subsequent wakes.";
+    const description =
+      "Use the `first-task` skill (/first-task) for this onboarding task, including subsequent wakes.";
     for (const _wake of ["opening", "approval", "cold resume"]) {
       expect(nativeTaskSkillInputs(description, context)).toEqual([
-        { type: "skill", name: "first-task", path: "/assigned/content-addressed-bundle/SKILL.md" },
+        {
+          type: "skill",
+          name: "first-task",
+          path: "/assigned/content-addressed-bundle/SKILL.md",
+        },
       ]);
     }
   });
   it("does not invoke skills merely because they are assigned to the agent", () => {
-    for (const description of [null, "Write a welcome note", "my first-task", "Inspect /first-task/SKILL.md", "https://example.com/first-task"]) {
+    for (const description of [
+      null,
+      "Write a welcome note",
+      "my first-task",
+      "Inspect /first-task/SKILL.md",
+      "https://example.com/first-task",
+    ]) {
       expect(nativeTaskSkillInputs(description, context)).toEqual([]);
     }
   });
   it("supports generic explicit references, deduplicates them, and ignores unassigned skills", () => {
-    expect(nativeTaskSkillInputs("$research then /research and /not-assigned", context)).toEqual([
+    expect(
+      nativeTaskSkillInputs(
+        "$research then /research and /not-assigned",
+        context,
+      ),
+    ).toEqual([
       { type: "skill", name: "research", path: "/assigned/research/SKILL.md" },
     ]);
     expect(nativeTaskSkillInputs("/first-task", null)).toEqual([]);

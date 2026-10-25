@@ -26,7 +26,9 @@ describe("ExternalObjectPill", () => {
     expect(html).toContain('data-external-status="succeeded"');
     expect(html).toContain('data-external-liveness="fresh"');
     expect(html).toContain("×4");
-    expect(html).toContain('aria-label="GitHub pull request — Succeeded: Add external refs"');
+    expect(html).toContain(
+      'aria-label="GitHub pull request — Succeeded: Add external refs"',
+    );
   });
 
   it("falls back to a non-interactive span when no URL is supplied", () => {
@@ -106,7 +108,9 @@ describe("ExternalObjectPill", () => {
     );
 
     expect(html).toContain("PR 241 - Not yet refreshed");
-    expect(html).toContain('aria-label="GitHub pull request — Not yet refreshed: acme/web#241"');
+    expect(html).toContain(
+      'aria-label="GitHub pull request — Not yet refreshed: acme/web#241"',
+    );
     expect(html).not.toContain("Not yet resolved");
   });
 
@@ -132,7 +136,9 @@ describe("ExternalObjectPill", () => {
     expect(html).not.toContain("acme/web#241</span>");
     expect(html).toContain("text-violet-600");
     expect(html).not.toContain(">Github Pull Request</span>");
-    expect(html).toContain('aria-label="Github Pull Request — Merged: acme/web#241: Add rich object presentation metadata"');
+    expect(html).toContain(
+      'aria-label="Github Pull Request — Merged: acme/web#241: Add rich object presentation metadata"',
+    );
   });
 
   it("labels generic URL link objects as URL instead of URL link", () => {
@@ -156,7 +162,9 @@ describe("ExternalObjectPill", () => {
 
 describe("ExternalObjectStatusSummary", () => {
   it("hides itself when there are no external objects", () => {
-    const html = renderToStaticMarkup(<ExternalObjectStatusSummary summary={null} />);
+    const html = renderToStaticMarkup(
+      <ExternalObjectStatusSummary summary={null} />,
+    );
     expect(html).toBe("");
   });
 
@@ -190,11 +198,56 @@ describe("ExternalObjectStatusSummary", () => {
           authRequiredCount: 0,
           unreachableCount: 0,
           objects: [
-            { id: "a", providerKey: "ci", objectType: "deployment", displayTitle: null, statusCategory: "failed", statusTone: "danger", liveness: "fresh", isTerminal: false },
-            { id: "b", providerKey: "ci", objectType: "deployment", displayTitle: null, statusCategory: "failed", statusTone: "danger", liveness: "fresh", isTerminal: false },
-            { id: "c", providerKey: "ci", objectType: "deployment", displayTitle: null, statusCategory: "failed", statusTone: "danger", liveness: "fresh", isTerminal: false },
-            { id: "d", providerKey: "github", objectType: "pull_request", displayTitle: null, statusCategory: "succeeded", statusTone: "success", liveness: "fresh", isTerminal: true },
-            { id: "e", providerKey: "github", objectType: "pull_request", displayTitle: null, statusCategory: "succeeded", statusTone: "success", liveness: "fresh", isTerminal: true },
+            {
+              id: "a",
+              providerKey: "ci",
+              objectType: "deployment",
+              displayTitle: null,
+              statusCategory: "failed",
+              statusTone: "danger",
+              liveness: "fresh",
+              isTerminal: false,
+            },
+            {
+              id: "b",
+              providerKey: "ci",
+              objectType: "deployment",
+              displayTitle: null,
+              statusCategory: "failed",
+              statusTone: "danger",
+              liveness: "fresh",
+              isTerminal: false,
+            },
+            {
+              id: "c",
+              providerKey: "ci",
+              objectType: "deployment",
+              displayTitle: null,
+              statusCategory: "failed",
+              statusTone: "danger",
+              liveness: "fresh",
+              isTerminal: false,
+            },
+            {
+              id: "d",
+              providerKey: "github",
+              objectType: "pull_request",
+              displayTitle: null,
+              statusCategory: "succeeded",
+              statusTone: "success",
+              liveness: "fresh",
+              isTerminal: true,
+            },
+            {
+              id: "e",
+              providerKey: "github",
+              objectType: "pull_request",
+              displayTitle: null,
+              statusCategory: "succeeded",
+              statusTone: "success",
+              liveness: "fresh",
+              isTerminal: true,
+            },
           ],
         }}
       />,
@@ -202,6 +255,8 @@ describe("ExternalObjectStatusSummary", () => {
     expect(html).toContain('data-external-status="failed"');
     expect(html).toContain('data-external-tone="danger"');
     expect(html).toContain(">3<");
-    expect(html).toContain("aria-label=\"External objects: 3 failed, 2 succeeded, 5 total\"");
+    expect(html).toContain(
+      'aria-label="External objects: 3 failed, 2 succeeded, 5 total"',
+    );
   });
 });

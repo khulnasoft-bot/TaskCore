@@ -4,7 +4,11 @@ import path from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import postgres from "postgres";
-import { createBufferedTextFileWriter, runDatabaseBackup, runDatabaseRestore } from "./backup-lib.js";
+import {
+  createBufferedTextFileWriter,
+  runDatabaseBackup,
+  runDatabaseRestore,
+} from "./backup-lib.js";
 import { ensurePostgresDatabase } from "./client.js";
 import {
   getEmbeddedPostgresTestSupport,
@@ -13,7 +17,9 @@ import {
 
 const cleanups: Array<() => Promise<void> | void> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 function createTempDir(prefix: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -29,7 +35,10 @@ async function createTempDatabase(): Promise<string> {
   return db.connectionString;
 }
 
-async function createSiblingDatabase(connectionString: string, databaseName: string): Promise<string> {
+async function createSiblingDatabase(
+  connectionString: string,
+  databaseName: string,
+): Promise<string> {
   const adminUrl = new URL(connectionString);
   adminUrl.pathname = "/postgres";
   await ensurePostgresDatabase(adminUrl.toString(), databaseName);
@@ -79,7 +88,9 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
     const connectionString = await createTempDatabase();
     const backupDir = createTempDir("checkpoint-pg-dump-");
     const executable = path.join(backupDir, "pg-dump-fixture");
-    fs.writeFileSync(executable, "#!/bin/sh\nprintf 'SELECT 1;\\n'\n", { mode: 0o700 });
+    fs.writeFileSync(executable, "#!/bin/sh\nprintf 'SELECT 1;\\n'\n", {
+      mode: 0o700,
+    });
     const history = path.join(backupDir, "taskcore-history.sql.gz");
     const historyBytes = gzipSync("SELECT 'history';");
     fs.writeFileSync(history, historyBytes);
@@ -89,18 +100,25 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
     const failure = new Error("fixture archive fsync failed");
     let verified = 0;
     try {
-      await expect(runDatabaseBackup({
-        connectionString, backupDir,
-        retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
-        verifyBeforePrune: async archive => {
-          verified++;
-          expect(gunzipSync(fs.readFileSync(archive)).toString()).toBe("SELECT 1;\n");
-          throw failure;
-        },
-      })).rejects.toBe(failure);
+      await expect(
+        runDatabaseBackup({
+          connectionString,
+          backupDir,
+          retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
+          verifyBeforePrune: async (archive) => {
+            verified++;
+            expect(gunzipSync(fs.readFileSync(archive)).toString()).toBe(
+              "SELECT 1;\n",
+            );
+            throw failure;
+          },
+        }),
+      ).rejects.toBe(failure);
       expect(verified).toBe(1);
       expect(fs.readFileSync(history)).toEqual(historyBytes);
-      expect(fs.readdirSync(backupDir).filter(name => name.endsWith(".sql.gz"))).toEqual(["taskcore-history.sql.gz"]);
+      expect(
+        fs.readdirSync(backupDir).filter((name) => name.endsWith(".sql.gz")),
+      ).toEqual(["taskcore-history.sql.gz"]);
     } finally {
       if (previous === undefined) delete process.env.TASKCORE_PG_DUMP_PATH;
       else process.env.TASKCORE_PG_DUMP_PATH = previous;
@@ -109,7 +127,10 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
 
   it("preserves identity generation, sequence options and progress in JavaScript backups", async () => {
     const source = await createTempDatabase();
-    const target = await createSiblingDatabase(source, "identity_restore_target");
+    const target = await createSiblingDatabase(
+      source,
+      "identity_restore_target",
+    );
     const sourceSql = postgres(source, { max: 1, onnotice: () => {} });
     const targetSql = postgres(target, { max: 1, onnotice: () => {} });
     try {
@@ -122,75 +143,111 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
         );
         INSERT INTO identity_fixture.records (value) VALUES ('one'), ('two');
       `);
-      const backup = await runDatabaseBackup({ connectionString: source, backupDir: createTempDir("identity-backup-"), backupEngine: "javascript", retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 } });
-      await runDatabaseRestore({ connectionString: target, backupFile: backup.backupFile });
-      expect(await targetSql`SELECT id::text, default_id, value FROM identity_fixture.records ORDER BY id`)
-        .toEqual([{ id: "7", default_id: 1, value: "one" }, { id: "9", default_id: 2, value: "two" }]);
-      expect(await targetSql`INSERT INTO identity_fixture.records (value) VALUES ('three') RETURNING id::text, default_id`)
-        .toEqual([{ id: "11", default_id: 3 }]);
-      await expect(targetSql`INSERT INTO identity_fixture.records (id, value) VALUES (99, 'explicit')`).rejects.toThrow("non-DEFAULT");
+      const backup = await runDatabaseBackup({
+        connectionString: source,
+        backupDir: createTempDir("identity-backup-"),
+        backupEngine: "javascript",
+        retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
+      });
+      await runDatabaseRestore({
+        connectionString: target,
+        backupFile: backup.backupFile,
+      });
+      expect(
+        await targetSql`SELECT id::text, default_id, value FROM identity_fixture.records ORDER BY id`,
+      ).toEqual([
+        { id: "7", default_id: 1, value: "one" },
+        { id: "9", default_id: 2, value: "two" },
+      ]);
+      expect(
+        await targetSql`INSERT INTO identity_fixture.records (value) VALUES ('three') RETURNING id::text, default_id`,
+      ).toEqual([{ id: "11", default_id: 3 }]);
+      await expect(
+        targetSql`INSERT INTO identity_fixture.records (id, value) VALUES (99, 'explicit')`,
+      ).rejects.toThrow("non-DEFAULT");
     } finally {
       await sourceSql.end();
       await targetSql.end();
     }
   }, 30_000);
 
-  it(
-    "keeps the newest backup for each retained calendar month",
-    async () => {
-      const sourceConnectionString = await createTempDatabase();
-      const backupDir = createTempDir("taskcore-db-backup-retention-");
-      const realDateNow = Date.now;
-      Date.now = () => Date.UTC(2026, 2, 31, 12, 0, 0);
+  it("keeps the newest backup for each retained calendar month", async () => {
+    const sourceConnectionString = await createTempDatabase();
+    const backupDir = createTempDir("taskcore-db-backup-retention-");
+    const realDateNow = Date.now;
+    Date.now = () => Date.UTC(2026, 2, 31, 12, 0, 0);
 
-      const janNewest = path.join(backupDir, "taskcore-test-2026-01-28T12-00-00.sql.gz");
-      const janOlder = path.join(backupDir, "taskcore-test-2026-01-10T12-00-00.sql.gz");
-      const decOld = path.join(backupDir, "taskcore-test-2025-12-15T12-00-00.sql.gz");
+    const janNewest = path.join(
+      backupDir,
+      "taskcore-test-2026-01-28T12-00-00.sql.gz",
+    );
+    const janOlder = path.join(
+      backupDir,
+      "taskcore-test-2026-01-10T12-00-00.sql.gz",
+    );
+    const decOld = path.join(
+      backupDir,
+      "taskcore-test-2025-12-15T12-00-00.sql.gz",
+    );
 
-      try {
-        fs.writeFileSync(janNewest, "jan-newest");
-        fs.writeFileSync(janOlder, "jan-older");
-        fs.writeFileSync(decOld, "dec-old");
+    try {
+      fs.writeFileSync(janNewest, "jan-newest");
+      fs.writeFileSync(janOlder, "jan-older");
+      fs.writeFileSync(decOld, "dec-old");
 
-        fs.utimesSync(janNewest, new Date("2026-01-28T12:00:00Z"), new Date("2026-01-28T12:00:00Z"));
-        fs.utimesSync(janOlder, new Date("2026-01-10T12:00:00Z"), new Date("2026-01-10T12:00:00Z"));
-        fs.utimesSync(decOld, new Date("2025-12-15T12:00:00Z"), new Date("2025-12-15T12:00:00Z"));
-
-        const result = await runDatabaseBackup({
-          connectionString: sourceConnectionString,
-          backupDir,
-          retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 2 },
-          filenamePrefix: "taskcore-test",
-        });
-
-        expect(result.prunedCount).toBe(2);
-        expect(fs.existsSync(janNewest)).toBe(true);
-        expect(fs.existsSync(janOlder)).toBe(false);
-        expect(fs.existsSync(decOld)).toBe(false);
-      } finally {
-        Date.now = realDateNow;
-      }
-    },
-    30_000,
-  );
-
-  it(
-    "backs up and restores large table payloads without materializing one giant string",
-    async () => {
-      const sourceConnectionString = await createTempDatabase();
-      const restoreConnectionString = await createSiblingDatabase(
-        sourceConnectionString,
-        "taskcore_restore_target",
+      fs.utimesSync(
+        janNewest,
+        new Date("2026-01-28T12:00:00Z"),
+        new Date("2026-01-28T12:00:00Z"),
       );
-      const backupDir = createTempDir("taskcore-db-backup-output-");
-      const sourceSql = postgres(sourceConnectionString, { max: 1, onnotice: () => {} });
-      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
+      fs.utimesSync(
+        janOlder,
+        new Date("2026-01-10T12:00:00Z"),
+        new Date("2026-01-10T12:00:00Z"),
+      );
+      fs.utimesSync(
+        decOld,
+        new Date("2025-12-15T12:00:00Z"),
+        new Date("2025-12-15T12:00:00Z"),
+      );
 
-      try {
-        await sourceSql.unsafe(`
+      const result = await runDatabaseBackup({
+        connectionString: sourceConnectionString,
+        backupDir,
+        retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 2 },
+        filenamePrefix: "taskcore-test",
+      });
+
+      expect(result.prunedCount).toBe(2);
+      expect(fs.existsSync(janNewest)).toBe(true);
+      expect(fs.existsSync(janOlder)).toBe(false);
+      expect(fs.existsSync(decOld)).toBe(false);
+    } finally {
+      Date.now = realDateNow;
+    }
+  }, 30_000);
+
+  it("backs up and restores large table payloads without materializing one giant string", async () => {
+    const sourceConnectionString = await createTempDatabase();
+    const restoreConnectionString = await createSiblingDatabase(
+      sourceConnectionString,
+      "taskcore_restore_target",
+    );
+    const backupDir = createTempDir("taskcore-db-backup-output-");
+    const sourceSql = postgres(sourceConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    const restoreSql = postgres(restoreConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+
+    try {
+      await sourceSql.unsafe(`
           CREATE TYPE "public"."backup_test_state" AS ENUM ('pending', 'done');
         `);
-        await sourceSql.unsafe(`
+      await sourceSql.unsafe(`
           CREATE TABLE "public"."backup_test_records" (
             "id" serial PRIMARY KEY,
             "title" text NOT NULL,
@@ -200,7 +257,7 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
             "created_at" timestamptz NOT NULL DEFAULT now()
           );
         `);
-        await sourceSql.unsafe(`
+      await sourceSql.unsafe(`
           CREATE FUNCTION "public"."backup_test_mark_done"()
           RETURNS trigger
           LANGUAGE plpgsql
@@ -216,10 +273,10 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           EXECUTE FUNCTION "public"."backup_test_mark_done"();
         `);
 
-        const payload = "x".repeat(8192);
-        for (let index = 0; index < 160; index += 1) {
-          const createdAt = new Date(Date.UTC(2026, 0, 1, 0, 0, index));
-          await sourceSql`
+      const payload = "x".repeat(8192);
+      for (let index = 0; index < 160; index += 1) {
+        const createdAt = new Date(Date.UTC(2026, 0, 1, 0, 0, index));
+        await sourceSql`
             INSERT INTO "public"."backup_test_records" (
               "title",
               "payload",
@@ -235,93 +292,102 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
               ${createdAt}
             )
           `;
-        }
+      }
 
-        const result = await runDatabaseBackup({
-          connectionString: sourceConnectionString,
-          backupDir,
-          retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
-          filenamePrefix: "taskcore-test",
-          backupEngine: "javascript",
-        });
+      const result = await runDatabaseBackup({
+        connectionString: sourceConnectionString,
+        backupDir,
+        retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
+        filenamePrefix: "taskcore-test",
+        backupEngine: "javascript",
+      });
 
-        expect(result.backupFile).toMatch(/taskcore-test-.*\.sql\.gz$/);
-        expect(result.sizeBytes).toBeGreaterThan(0);
-        expect(fs.existsSync(result.backupFile)).toBe(true);
+      expect(result.backupFile).toMatch(/taskcore-test-.*\.sql\.gz$/);
+      expect(result.sizeBytes).toBeGreaterThan(0);
+      expect(fs.existsSync(result.backupFile)).toBe(true);
 
-        await runDatabaseRestore({
-          connectionString: restoreConnectionString,
-          backupFile: result.backupFile,
-        });
+      await runDatabaseRestore({
+        connectionString: restoreConnectionString,
+        backupFile: result.backupFile,
+      });
 
-        const counts = await restoreSql.unsafe<{ count: number }[]>(`
+      const counts = await restoreSql.unsafe<{ count: number }[]>(`
           SELECT count(*)::int AS count
           FROM "public"."backup_test_records"
         `);
-        expect(counts[0]?.count).toBe(160);
+      expect(counts[0]?.count).toBe(160);
 
-        const sampleRows = await restoreSql.unsafe<{
+      const sampleRows = await restoreSql.unsafe<
+        {
           title: string;
           payload: string;
           state: string;
           metadata: { index: number; even: boolean } | string;
-        }[]>(`
+        }[]
+      >(`
           SELECT "title", "payload", "state"::text AS "state", "metadata"
           FROM "public"."backup_test_records"
           WHERE "title" IN ('row-0', 'row-159')
           ORDER BY "title"
         `);
-        expect(sampleRows.map((row) => ({
+      expect(
+        sampleRows.map((row) => ({
           ...row,
-          metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata,
-        }))).toEqual([
-          {
-            title: "row-0",
-            payload,
-            state: "pending",
-            metadata: { index: 0, even: true },
-          },
-          {
-            title: "row-159",
-            payload,
-            state: "done",
-            metadata: { index: 159, even: false },
-          },
-        ]);
+          metadata:
+            typeof row.metadata === "string"
+              ? JSON.parse(row.metadata)
+              : row.metadata,
+        })),
+      ).toEqual([
+        {
+          title: "row-0",
+          payload,
+          state: "pending",
+          metadata: { index: 0, even: true },
+        },
+        {
+          title: "row-159",
+          payload,
+          state: "done",
+          metadata: { index: 159, even: false },
+        },
+      ]);
 
-        await restoreSql.unsafe(`
+      await restoreSql.unsafe(`
           UPDATE "public"."backup_test_records"
           SET "title" = 'triggered'
           WHERE "title" = 'row-0'
         `);
-        const triggeredRows = await restoreSql.unsafe<{ state: string }[]>(`
+      const triggeredRows = await restoreSql.unsafe<{ state: string }[]>(`
           SELECT "state"::text AS "state"
           FROM "public"."backup_test_records"
           WHERE "title" = 'triggered'
         `);
-        expect(triggeredRows).toEqual([{ state: "done" }]);
-      } finally {
-        await sourceSql.end();
-        await restoreSql.end();
-      }
-    },
-    60_000,
-  );
+      expect(triggeredRows).toEqual([{ state: "done" }]);
+    } finally {
+      await sourceSql.end();
+      await restoreSql.end();
+    }
+  }, 60_000);
 
-  it(
-    "backs up and restores non-public database schemas and migration history",
-    async () => {
-      const sourceConnectionString = await createTempDatabase();
-      const restoreConnectionString = await createSiblingDatabase(
-        sourceConnectionString,
-        "taskcore_full_logical_restore_target",
-      );
-      const backupDir = createTempDir("taskcore-db-full-logical-backup-");
-      const sourceSql = postgres(sourceConnectionString, { max: 1, onnotice: () => {} });
-      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
+  it("backs up and restores non-public database schemas and migration history", async () => {
+    const sourceConnectionString = await createTempDatabase();
+    const restoreConnectionString = await createSiblingDatabase(
+      sourceConnectionString,
+      "taskcore_full_logical_restore_target",
+    );
+    const backupDir = createTempDir("taskcore-db-full-logical-backup-");
+    const sourceSql = postgres(sourceConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    const restoreSql = postgres(restoreConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
 
-      try {
-        await sourceSql.unsafe(`
+    try {
+      await sourceSql.unsafe(`
           CREATE SCHEMA IF NOT EXISTS "drizzle";
           CREATE TABLE IF NOT EXISTS "drizzle"."__drizzle_migrations" (
             "id" serial PRIMARY KEY,
@@ -331,7 +397,7 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           INSERT INTO "drizzle"."__drizzle_migrations" ("hash", "created_at")
           VALUES ('taskcore-migration-history', 1770000000000);
         `);
-        await sourceSql.unsafe(`
+      await sourceSql.unsafe(`
           CREATE TABLE "public"."backup_parent_records" (
             "id" uuid PRIMARY KEY,
             "name" text NOT NULL
@@ -339,7 +405,7 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           INSERT INTO "public"."backup_parent_records" ("id", "name")
           VALUES ('11111111-1111-4111-8111-111111111111', 'parent');
         `);
-        await sourceSql.unsafe(`
+      await sourceSql.unsafe(`
           CREATE TABLE "public"."plugin_rows" (
             "id" serial PRIMARY KEY,
             "note" text NOT NULL
@@ -353,7 +419,7 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           INSERT INTO "public"."audit_rows" ("secret_note")
           VALUES ('public-secret');
         `);
-        await sourceSql.unsafe(`
+      await sourceSql.unsafe(`
           CREATE SCHEMA "plugin_backup_scope";
           CREATE TYPE "plugin_backup_scope"."plugin_status" AS ENUM ('ready', 'done');
           CREATE TABLE "plugin_backup_scope"."plugin_rows" (
@@ -373,83 +439,93 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           VALUES ('plugin-secret');
         `);
 
-        const result = await runDatabaseBackup({
-          connectionString: sourceConnectionString,
-          backupDir,
-          retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
-          filenamePrefix: "taskcore-full-logical-test",
-          backupEngine: "javascript",
-          excludeTables: ["plugin_rows"],
-          nullifyColumns: {
-            audit_rows: ["secret_note"],
-          },
-        });
+      const result = await runDatabaseBackup({
+        connectionString: sourceConnectionString,
+        backupDir,
+        retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
+        filenamePrefix: "taskcore-full-logical-test",
+        backupEngine: "javascript",
+        excludeTables: ["plugin_rows"],
+        nullifyColumns: {
+          audit_rows: ["secret_note"],
+        },
+      });
 
-        await runDatabaseRestore({
-          connectionString: restoreConnectionString,
-          backupFile: result.backupFile,
-        });
+      await runDatabaseRestore({
+        connectionString: restoreConnectionString,
+        backupFile: result.backupFile,
+      });
 
-        const migrationRows = await restoreSql.unsafe<{ hash: string }[]>(`
+      const migrationRows = await restoreSql.unsafe<{ hash: string }[]>(`
           SELECT "hash"
           FROM "drizzle"."__drizzle_migrations"
           WHERE "hash" = 'taskcore-migration-history'
         `);
-        expect(migrationRows).toEqual([{ hash: "taskcore-migration-history" }]);
+      expect(migrationRows).toEqual([{ hash: "taskcore-migration-history" }]);
 
-        const pluginRows = await restoreSql.unsafe<{ note: string; status: string; parent_name: string }[]>(`
+      const pluginRows = await restoreSql.unsafe<
+        { note: string; status: string; parent_name: string }[]
+      >(`
           SELECT r."note", r."status"::text AS "status", p."name" AS "parent_name"
           FROM "plugin_backup_scope"."plugin_rows" r
           JOIN "public"."backup_parent_records" p ON p."id" = r."parent_id"
         `);
-        expect(pluginRows).toEqual([{ note: "first", status: "ready", parent_name: "parent" }]);
+      expect(pluginRows).toEqual([
+        { note: "first", status: "ready", parent_name: "parent" },
+      ]);
 
-        const publicCollisionRows = await restoreSql.unsafe<{ count: number }[]>(`
+      const publicCollisionRows = await restoreSql.unsafe<{ count: number }[]>(`
           SELECT count(*)::int AS count
           FROM "public"."plugin_rows"
         `);
-        expect(publicCollisionRows[0]?.count).toBe(0);
+      expect(publicCollisionRows[0]?.count).toBe(0);
 
-        const publicAuditRows = await restoreSql.unsafe<{ secret_note: string | null }[]>(`
+      const publicAuditRows = await restoreSql.unsafe<
+        { secret_note: string | null }[]
+      >(`
           SELECT "secret_note"
           FROM "public"."audit_rows"
         `);
-        expect(publicAuditRows).toEqual([{ secret_note: null }]);
+      expect(publicAuditRows).toEqual([{ secret_note: null }]);
 
-        const pluginAuditRows = await restoreSql.unsafe<{ secret_note: string | null }[]>(`
+      const pluginAuditRows = await restoreSql.unsafe<
+        { secret_note: string | null }[]
+      >(`
           SELECT "secret_note"
           FROM "plugin_backup_scope"."audit_rows"
         `);
-        expect(pluginAuditRows).toEqual([{ secret_note: "plugin-secret" }]);
+      expect(pluginAuditRows).toEqual([{ secret_note: "plugin-secret" }]);
 
-        await expect(
-          restoreSql.unsafe(`
+      await expect(
+        restoreSql.unsafe(`
             INSERT INTO "plugin_backup_scope"."plugin_rows" ("parent_id", "status", "note")
             VALUES ('11111111-1111-4111-8111-111111111111', 'done', 'first')
           `),
-        ).rejects.toThrow();
-      } finally {
-        await sourceSql.end();
-        await restoreSql.end();
-      }
-    },
-    60_000,
-  );
+      ).rejects.toThrow();
+    } finally {
+      await sourceSql.end();
+      await restoreSql.end();
+    }
+  }, 60_000);
 
-  it(
-    "preserves composite foreign key column order without duplicate referenced columns",
-    async () => {
-      const sourceConnectionString = await createTempDatabase();
-      const restoreConnectionString = await createSiblingDatabase(
-        sourceConnectionString,
-        "taskcore_composite_fk_restore_target",
-      );
-      const backupDir = createTempDir("taskcore-db-composite-fk-backup-");
-      const sourceSql = postgres(sourceConnectionString, { max: 1, onnotice: () => {} });
-      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
+  it("preserves composite foreign key column order without duplicate referenced columns", async () => {
+    const sourceConnectionString = await createTempDatabase();
+    const restoreConnectionString = await createSiblingDatabase(
+      sourceConnectionString,
+      "taskcore_composite_fk_restore_target",
+    );
+    const backupDir = createTempDir("taskcore-db-composite-fk-backup-");
+    const sourceSql = postgres(sourceConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    const restoreSql = postgres(restoreConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
 
-      try {
-        await sourceSql.unsafe(`
+    try {
+      await sourceSql.unsafe(`
           CREATE SCHEMA "plugin_composite_fk";
           CREATE TABLE "plugin_composite_fk"."content_cases" (
             "id" uuid PRIMARY KEY,
@@ -484,42 +560,50 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           );
         `);
 
-        const result = await runDatabaseBackup({
-          connectionString: sourceConnectionString,
-          backupDir,
-          retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
-          filenamePrefix: "taskcore-composite-fk-test",
-          backupEngine: "javascript",
-        });
+      const result = await runDatabaseBackup({
+        connectionString: sourceConnectionString,
+        backupDir,
+        retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
+        filenamePrefix: "taskcore-composite-fk-test",
+        backupEngine: "javascript",
+      });
 
-        await runDatabaseRestore({
-          connectionString: restoreConnectionString,
-          backupFile: result.backupFile,
-        });
+      await runDatabaseRestore({
+        connectionString: restoreConnectionString,
+        backupFile: result.backupFile,
+      });
 
-        const rows = await restoreSql.unsafe<{
+      const rows = await restoreSql.unsafe<
+        {
           signal: string;
           title: string;
           scopes: string[];
           warnings: Array<string | { code: string }>;
-        }[]>(`
+        }[]
+      >(`
           SELECT s."signal", c."title", s."scopes", s."warnings"
           FROM "plugin_composite_fk"."content_case_signals" s
           JOIN "plugin_composite_fk"."content_cases" c
             ON c."company_id" = s."company_id"
            AND c."id" = s."case_id"
         `);
-        expect(rows).toEqual([
-          {
-            signal: "signal",
-            title: "case",
-            scopes: ["upstream_import:preview", "scope with space", 'quoted "scope"', "NULL", "null"],
-            warnings: ["json warning", { code: 'quoted "value"' }],
-          },
-        ]);
+      expect(rows).toEqual([
+        {
+          signal: "signal",
+          title: "case",
+          scopes: [
+            "upstream_import:preview",
+            "scope with space",
+            'quoted "scope"',
+            "NULL",
+            "null",
+          ],
+          warnings: ["json warning", { code: 'quoted "value"' }],
+        },
+      ]);
 
-        await expect(
-          restoreSql.unsafe(`
+      await expect(
+        restoreSql.unsafe(`
             INSERT INTO "plugin_composite_fk"."content_case_signals" ("company_id", "case_id", "signal", "scopes")
             VALUES (
               '11111111-1111-4111-8111-111111111111',
@@ -528,33 +612,35 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
               ARRAY[]::text[]
             )
           `),
-        ).rejects.toThrow();
-      } finally {
-        await sourceSql.end();
-        await restoreSql.end();
-      }
-    },
-    60_000,
-  );
+      ).rejects.toThrow();
+    } finally {
+      await sourceSql.end();
+      await restoreSql.end();
+    }
+  }, 60_000);
 
-  it(
-    "restores fallback COPY data when child tables are dumped before parent tables",
-    async () => {
-      const sourceConnectionString = await createTempDatabase();
-      const restoreConnectionString = await createSiblingDatabase(
-        sourceConnectionString,
-        "taskcore_copy_fk_restore_target",
-      );
-      const backupDir = createTempDir("taskcore-db-copy-fk-backup-");
-      const sourceSql = postgres(sourceConnectionString, { max: 1, onnotice: () => {} });
-      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
-      const originalPgDumpPath = process.env.TASKCORE_PG_DUMP_PATH;
-      const originalPsqlPath = process.env.TASKCORE_PSQL_PATH;
-      process.env.TASKCORE_PG_DUMP_PATH = "/bin/false";
-      process.env.TASKCORE_PSQL_PATH = "/bin/false";
+  it("restores fallback COPY data when child tables are dumped before parent tables", async () => {
+    const sourceConnectionString = await createTempDatabase();
+    const restoreConnectionString = await createSiblingDatabase(
+      sourceConnectionString,
+      "taskcore_copy_fk_restore_target",
+    );
+    const backupDir = createTempDir("taskcore-db-copy-fk-backup-");
+    const sourceSql = postgres(sourceConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    const restoreSql = postgres(restoreConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    const originalPgDumpPath = process.env.TASKCORE_PG_DUMP_PATH;
+    const originalPsqlPath = process.env.TASKCORE_PSQL_PATH;
+    process.env.TASKCORE_PG_DUMP_PATH = "/bin/false";
+    process.env.TASKCORE_PSQL_PATH = "/bin/false";
 
-      try {
-        await sourceSql.unsafe(`
+    try {
+      await sourceSql.unsafe(`
           CREATE TABLE "public"."zzz_parent_records" (
             "id" uuid PRIMARY KEY,
             "name" text NOT NULL
@@ -574,92 +660,97 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           );
         `);
 
-        const result = await runDatabaseBackup({
-          connectionString: sourceConnectionString,
-          backupDir,
-          retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
-          filenamePrefix: "taskcore-copy-fk-test",
-          backupEngine: "auto",
-        });
+      const result = await runDatabaseBackup({
+        connectionString: sourceConnectionString,
+        backupDir,
+        retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
+        filenamePrefix: "taskcore-copy-fk-test",
+        backupEngine: "auto",
+      });
 
-        const backupSql = gunzipSync(await fs.promises.readFile(result.backupFile)).toString("utf8");
-        expect(backupSql.indexOf("-- Data for: public.aaa_child_records")).toBeGreaterThan(-1);
-        expect(backupSql.indexOf("-- Data for: public.aaa_child_records")).toBeLessThan(
-          backupSql.indexOf("-- Data for: public.zzz_parent_records"),
-        );
-        expect(backupSql).not.toContain(" FROM stdin;");
+      const backupSql = gunzipSync(
+        await fs.promises.readFile(result.backupFile),
+      ).toString("utf8");
+      expect(
+        backupSql.indexOf("-- Data for: public.aaa_child_records"),
+      ).toBeGreaterThan(-1);
+      expect(
+        backupSql.indexOf("-- Data for: public.aaa_child_records"),
+      ).toBeLessThan(
+        backupSql.indexOf("-- Data for: public.zzz_parent_records"),
+      );
+      expect(backupSql).not.toContain(" FROM stdin;");
 
-        await runDatabaseRestore({
-          connectionString: restoreConnectionString,
-          backupFile: result.backupFile,
-        });
+      await runDatabaseRestore({
+        connectionString: restoreConnectionString,
+        backupFile: result.backupFile,
+      });
 
-        const rows = await restoreSql.unsafe<{ note: string; name: string }[]>(`
+      const rows = await restoreSql.unsafe<{ note: string; name: string }[]>(`
           SELECT child."note", parent."name"
           FROM "public"."aaa_child_records" child
           JOIN "public"."zzz_parent_records" parent ON parent."id" = child."parent_id"
         `);
-        expect(rows).toEqual([{ note: "child emitted before parent", name: "parent" }]);
-      } finally {
-        if (originalPgDumpPath === undefined) {
-          delete process.env.TASKCORE_PG_DUMP_PATH;
-        } else {
-          process.env.TASKCORE_PG_DUMP_PATH = originalPgDumpPath;
-        }
-        if (originalPsqlPath === undefined) {
-          delete process.env.TASKCORE_PSQL_PATH;
-        } else {
-          process.env.TASKCORE_PSQL_PATH = originalPsqlPath;
-        }
-        await sourceSql.end();
-        await restoreSql.end();
+      expect(rows).toEqual([
+        { note: "child emitted before parent", name: "parent" },
+      ]);
+    } finally {
+      if (originalPgDumpPath === undefined) {
+        delete process.env.TASKCORE_PG_DUMP_PATH;
+      } else {
+        process.env.TASKCORE_PG_DUMP_PATH = originalPgDumpPath;
       }
-    },
-    60_000,
-  );
+      if (originalPsqlPath === undefined) {
+        delete process.env.TASKCORE_PSQL_PATH;
+      } else {
+        process.env.TASKCORE_PSQL_PATH = originalPsqlPath;
+      }
+      await sourceSql.end();
+      await restoreSql.end();
+    }
+  }, 60_000);
 
-  it(
-    "restores legacy public-only backups without migration history",
-    async () => {
-      const restoreConnectionString = await createTempDatabase();
-      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
-      const backupDir = createTempDir("taskcore-db-restore-manual-");
-      const backupFile = path.join(backupDir, "manual.sql");
+  it("restores legacy public-only backups without migration history", async () => {
+    const restoreConnectionString = await createTempDatabase();
+    const restoreSql = postgres(restoreConnectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    const backupDir = createTempDir("taskcore-db-restore-manual-");
+    const backupFile = path.join(backupDir, "manual.sql");
 
-      try {
-        await fs.promises.writeFile(
-          backupFile,
-          [
-            "-- Taskcore database backup",
-            "-- Created: 2026-04-06T00:00:00.000Z",
-            "",
-            "BEGIN;",
-            "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
-            "CREATE TABLE public.restore_stream_test (id integer primary key, payload text not null);",
-            "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
-            "INSERT INTO public.restore_stream_test (id, payload)",
-            "VALUES (1, 'hello');",
-            "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
-            "COMMIT;",
-            "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
-          ].join("\n"),
-          "utf8",
-        );
+    try {
+      await fs.promises.writeFile(
+        backupFile,
+        [
+          "-- Taskcore database backup",
+          "-- Created: 2026-04-06T00:00:00.000Z",
+          "",
+          "BEGIN;",
+          "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+          "CREATE TABLE public.restore_stream_test (id integer primary key, payload text not null);",
+          "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+          "INSERT INTO public.restore_stream_test (id, payload)",
+          "VALUES (1, 'hello');",
+          "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+          "COMMIT;",
+          "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+        ].join("\n"),
+        "utf8",
+      );
 
-        await runDatabaseRestore({
-          connectionString: restoreConnectionString,
-          backupFile,
-        });
+      await runDatabaseRestore({
+        connectionString: restoreConnectionString,
+        backupFile,
+      });
 
-        const rows = await restoreSql.unsafe<{ payload: string }[]>(`
+      const rows = await restoreSql.unsafe<{ payload: string }[]>(`
           SELECT payload
           FROM public.restore_stream_test
         `);
-        expect(rows).toEqual([{ payload: "hello" }]);
-      } finally {
-        await restoreSql.end();
-      }
-    },
-    20_000,
-  );
+      expect(rows).toEqual([{ payload: "hello" }]);
+    } finally {
+      await restoreSql.end();
+    }
+  }, 20_000);
 });

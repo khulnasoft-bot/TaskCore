@@ -84,8 +84,8 @@ export function GitHubBotManagement({
         </h2>
         <p className="text-sm text-muted-foreground">
           {endpoint.assignedAgentName} is permanently assigned to this bot.
-          GitHub messages create or continue Taskcore tasks; reviews are
-          results of those runs.
+          GitHub messages create or continue Taskcore tasks; reviews are results
+          of those runs.
         </p>
         <Link
           className="text-sm underline"

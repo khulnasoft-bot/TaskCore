@@ -1,12 +1,19 @@
-import { createPublicKey, timingSafeEqual, verify, type JsonWebKey } from "node:crypto";
+import {
+  createPublicKey,
+  timingSafeEqual,
+  verify,
+  type JsonWebKey,
+} from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { instanceSettings } from "@taskcore/db";
 
-export const CLOUD_RUNTIME_IDENTITY_HEADER = "x-taskcore-cloud-runtime-identity";
+export const CLOUD_RUNTIME_IDENTITY_HEADER =
+  "x-taskcore-cloud-runtime-identity";
 export const CLOUD_RUNTIME_IDENTITY_AUDIENCE = "taskcore-runtime-identity/v1";
 export const CLOUD_RUNTIME_IDENTITY_ISSUER = "taskcore-cloud";
-export const CLOUD_RUNTIME_IDENTITY_JWS_TYPE = "taskcore-cloud-runtime-identity+jwt";
+export const CLOUD_RUNTIME_IDENTITY_JWS_TYPE =
+  "taskcore-cloud-runtime-identity+jwt";
 
 const SINGLETON_KEY = "cloud-runtime-identity/v1";
 const MAX_ASSERTION_LIFETIME_SECONDS = 10 * 60;
@@ -56,17 +63,18 @@ function nonEmpty(value: string | undefined): string | null {
 }
 
 function exactHttpsOrigin(value: unknown): string | null {
-  if (typeof value !== "string" || value.length === 0 || value.length > 2048) return null;
+  if (typeof value !== "string" || value.length === 0 || value.length > 2048)
+    return null;
   try {
     const parsed = new URL(value);
     if (
-      parsed.protocol !== "https:"
-      || parsed.username
-      || parsed.password
-      || parsed.pathname !== "/"
-      || parsed.search
-      || parsed.hash
-      || parsed.origin !== value
+      parsed.protocol !== "https:" ||
+      parsed.username ||
+      parsed.password ||
+      parsed.pathname !== "/" ||
+      parsed.search ||
+      parsed.hash ||
+      parsed.origin !== value
     ) {
       return null;
     }
@@ -77,9 +85,10 @@ function exactHttpsOrigin(value: unknown): string | null {
 }
 
 function configuredStartupOrigin(env: NodeJS.ProcessEnv): string | null {
-  const candidate = nonEmpty(env.TASKCORE_PUBLIC_URL)
-    ?? nonEmpty(env.TASKCORE_AUTH_PUBLIC_BASE_URL)
-    ?? nonEmpty(env.TASKCORE_API_URL);
+  const candidate =
+    nonEmpty(env.TASKCORE_PUBLIC_URL) ??
+    nonEmpty(env.TASKCORE_AUTH_PUBLIC_BASE_URL) ??
+    nonEmpty(env.TASKCORE_API_URL);
   return candidate ? exactHttpsOrigin(candidate) : null;
 }
 
@@ -100,12 +109,12 @@ function parsePersistedIdentity(row: {
 }): PersistedRuntimeIdentity {
   const value = row.general;
   if (
-    value.v !== 1
-    || typeof value.stackId !== "string"
-    || typeof value.claimId !== "string"
-    || typeof value.previousOrigin !== "string"
-    || typeof value.canonicalOrigin !== "string"
-    || typeof value.stackSlug !== "string"
+    value.v !== 1 ||
+    typeof value.stackId !== "string" ||
+    typeof value.claimId !== "string" ||
+    typeof value.previousOrigin !== "string" ||
+    typeof value.canonicalOrigin !== "string" ||
+    typeof value.stackSlug !== "string"
   ) {
     throw new Error("Persisted Cloud runtime identity is malformed");
   }
@@ -119,7 +128,9 @@ function parsePersistedIdentity(row: {
   };
 }
 
-async function readPersistedIdentity(db: RuntimeIdentityDb): Promise<PersistedRuntimeIdentity | null> {
+async function readPersistedIdentity(
+  db: RuntimeIdentityDb,
+): Promise<PersistedRuntimeIdentity | null> {
   const row = await db
     .select({
       general: instanceSettings.general,
@@ -132,7 +143,10 @@ async function readPersistedIdentity(db: RuntimeIdentityDb): Promise<PersistedRu
   return row ? parsePersistedIdentity(row) : null;
 }
 
-function applyCompatibilityEnvironment(identity: CloudRuntimeIdentitySnapshot, env: NodeJS.ProcessEnv) {
+function applyCompatibilityEnvironment(
+  identity: CloudRuntimeIdentitySnapshot,
+  env: NodeJS.ProcessEnv,
+) {
   const hostname = new URL(identity.canonicalOrigin).hostname;
   env.TASKCORE_PUBLIC_URL = identity.canonicalOrigin;
   env.TASKCORE_AUTH_PUBLIC_BASE_URL = identity.canonicalOrigin;
@@ -142,28 +156,49 @@ function applyCompatibilityEnvironment(identity: CloudRuntimeIdentitySnapshot, e
 
   const existingCandidates = (() => {
     try {
-      const parsed = JSON.parse(env.TASKCORE_RUNTIME_API_CANDIDATES_JSON ?? "[]");
-      return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+      const parsed = JSON.parse(
+        env.TASKCORE_RUNTIME_API_CANDIDATES_JSON ?? "[]",
+      );
+      return Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : [];
     } catch {
       return [];
     }
   })();
   env.TASKCORE_RUNTIME_API_CANDIDATES_JSON = JSON.stringify([
     identity.canonicalOrigin,
-    ...existingCandidates.filter((candidate) => candidate !== identity.canonicalOrigin),
+    ...existingCandidates.filter(
+      (candidate) => candidate !== identity.canonicalOrigin,
+    ),
   ]);
 }
 
-function assertPersistedIdentityMatchesStack(row: PersistedRuntimeIdentity, env: NodeJS.ProcessEnv) {
+function assertPersistedIdentityMatchesStack(
+  row: PersistedRuntimeIdentity,
+  env: NodeJS.ProcessEnv,
+) {
   const configuredStackId = nonEmpty(env.TASKCORE_CLOUD_STACK_ID);
   if (!configuredStackId || configuredStackId !== row.stackId) {
-    throw new Error("Persisted Cloud runtime identity does not match TASKCORE_CLOUD_STACK_ID");
+    throw new Error(
+      "Persisted Cloud runtime identity does not match TASKCORE_CLOUD_STACK_ID",
+    );
   }
-  if (!exactHttpsOrigin(row.previousOrigin) || !exactHttpsOrigin(row.canonicalOrigin)) {
-    throw new Error("Persisted Cloud runtime identity contains an invalid origin");
+  if (
+    !exactHttpsOrigin(row.previousOrigin) ||
+    !exactHttpsOrigin(row.canonicalOrigin)
+  ) {
+    throw new Error(
+      "Persisted Cloud runtime identity contains an invalid origin",
+    );
   }
-  if (!STACK_SLUG_PATTERN.test(row.stackSlug) || new URL(row.canonicalOrigin).hostname.split(".")[0] !== row.stackSlug) {
-    throw new Error("Persisted Cloud runtime identity contains an invalid stack slug");
+  if (
+    !STACK_SLUG_PATTERN.test(row.stackSlug) ||
+    new URL(row.canonicalOrigin).hostname.split(".")[0] !== row.stackSlug
+  ) {
+    throw new Error(
+      "Persisted Cloud runtime identity contains an invalid stack slug",
+    );
   }
 }
 
@@ -199,11 +234,15 @@ export function getCloudRuntimeIdentity(): CloudRuntimeIdentitySnapshot | null {
 }
 
 /** The live canonical origin, falling back to startup configuration off Cloud. */
-export function runtimePublicOrigin(env: NodeJS.ProcessEnv = process.env): string | null {
-  if (env === process.env && currentIdentity) return currentIdentity.canonicalOrigin;
-  const candidate = nonEmpty(env.TASKCORE_PUBLIC_URL)
-    ?? nonEmpty(env.TASKCORE_AUTH_PUBLIC_BASE_URL)
-    ?? nonEmpty(env.TASKCORE_API_URL);
+export function runtimePublicOrigin(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  if (env === process.env && currentIdentity)
+    return currentIdentity.canonicalOrigin;
+  const candidate =
+    nonEmpty(env.TASKCORE_PUBLIC_URL) ??
+    nonEmpty(env.TASKCORE_AUTH_PUBLIC_BASE_URL) ??
+    nonEmpty(env.TASKCORE_API_URL);
   if (!candidate) return null;
   try {
     return new URL(candidate).origin;
@@ -218,7 +257,8 @@ export function runtimeCanonicalOrigin(): string | null {
 }
 
 function decodeJsonPart(part: string, label: string): Record<string, unknown> {
-  if (!/^[A-Za-z0-9_-]+$/.test(part)) throw new Error(`Cloud runtime identity has an invalid ${label}`);
+  if (!/^[A-Za-z0-9_-]+$/.test(part))
+    throw new Error(`Cloud runtime identity has an invalid ${label}`);
   let parsed: unknown;
   try {
     parsed = JSON.parse(Buffer.from(part, "base64url").toString("utf8"));
@@ -233,25 +273,43 @@ function decodeJsonPart(part: string, label: string): Record<string, unknown> {
 
 function publicKeyForKid(env: NodeJS.ProcessEnv, kid: string) {
   const raw = nonEmpty(env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS);
-  if (!raw) throw new Error("TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS is not configured");
+  if (!raw)
+    throw new Error("TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS is not configured");
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     throw new Error("TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS is invalid");
   }
-  const keys = parsed && typeof parsed === "object" && !Array.isArray(parsed)
-    ? (parsed as { keys?: unknown }).keys
-    : undefined;
-  if (!Array.isArray(keys)) throw new Error("TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS is invalid");
-  const matches = keys.filter((candidate): candidate is JsonWebKey & { kid: string } => {
-    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
-    const key = candidate as JsonWebKey & { kid?: unknown };
-    return key.kid === kid;
-  });
-  if (matches.length !== 1) throw new Error("Cloud runtime identity uses an unknown signing key");
+  const keys =
+    parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as { keys?: unknown }).keys
+      : undefined;
+  if (!Array.isArray(keys))
+    throw new Error("TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS is invalid");
+  const matches = keys.filter(
+    (candidate): candidate is JsonWebKey & { kid: string } => {
+      if (
+        !candidate ||
+        typeof candidate !== "object" ||
+        Array.isArray(candidate)
+      )
+        return false;
+      const key = candidate as JsonWebKey & { kid?: unknown };
+      return key.kid === kid;
+    },
+  );
+  if (matches.length !== 1)
+    throw new Error("Cloud runtime identity uses an unknown signing key");
   const jwk = matches[0];
-  if (jwk.kty !== "OKP" || jwk.crv !== "Ed25519" || jwk.use !== "sig" || jwk.alg !== "EdDSA" || !jwk.x || jwk.d) {
+  if (
+    jwk.kty !== "OKP" ||
+    jwk.crv !== "Ed25519" ||
+    jwk.use !== "sig" ||
+    jwk.alg !== "EdDSA" ||
+    !jwk.x ||
+    jwk.d
+  ) {
     throw new Error("Cloud runtime identity signing key is invalid");
   }
   return createPublicKey({ key: jwk, format: "jwk" });
@@ -269,16 +327,19 @@ function verifyClaims(input: {
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
   const header = decodeJsonPart(encodedHeader, "protected header");
   if (
-    header.alg !== "EdDSA"
-    || header.typ !== CLOUD_RUNTIME_IDENTITY_JWS_TYPE
-    || typeof header.kid !== "string"
-    || !header.kid
+    header.alg !== "EdDSA" ||
+    header.typ !== CLOUD_RUNTIME_IDENTITY_JWS_TYPE ||
+    typeof header.kid !== "string" ||
+    !header.kid
   ) {
     throw new Error("Cloud runtime identity protected header is invalid");
   }
   const key = publicKeyForKid(input.env, header.kid);
   const signature = Buffer.from(encodedSignature, "base64url");
-  const signingInput = Buffer.from(`${encodedHeader}.${encodedPayload}`, "ascii");
+  const signingInput = Buffer.from(
+    `${encodedHeader}.${encodedPayload}`,
+    "ascii",
+  );
   if (!verify(null, signingInput, key, signature)) {
     throw new Error("Cloud runtime identity signature is invalid");
   }
@@ -286,28 +347,30 @@ function verifyClaims(input: {
   const payload = decodeJsonPart(encodedPayload, "payload");
   const nowSeconds = Math.floor(input.now.getTime() / 1000);
   if (
-    payload.v !== 1
-    || payload.iss !== CLOUD_RUNTIME_IDENTITY_ISSUER
-    || payload.aud !== CLOUD_RUNTIME_IDENTITY_AUDIENCE
-    || typeof payload.sub !== "string"
-    || typeof payload.claimId !== "string"
-    || typeof payload.previousOrigin !== "string"
-    || typeof payload.canonicalOrigin !== "string"
-    || typeof payload.stackSlug !== "string"
-    || typeof payload.iat !== "number"
-    || !Number.isInteger(payload.iat)
-    || typeof payload.exp !== "number"
-    || !Number.isInteger(payload.exp)
+    payload.v !== 1 ||
+    payload.iss !== CLOUD_RUNTIME_IDENTITY_ISSUER ||
+    payload.aud !== CLOUD_RUNTIME_IDENTITY_AUDIENCE ||
+    typeof payload.sub !== "string" ||
+    typeof payload.claimId !== "string" ||
+    typeof payload.previousOrigin !== "string" ||
+    typeof payload.canonicalOrigin !== "string" ||
+    typeof payload.stackSlug !== "string" ||
+    typeof payload.iat !== "number" ||
+    !Number.isInteger(payload.iat) ||
+    typeof payload.exp !== "number" ||
+    !Number.isInteger(payload.exp)
   ) {
     throw new Error("Cloud runtime identity claims are incomplete");
   }
   if (
-    payload.exp <= nowSeconds
-    || payload.iat > nowSeconds + MAX_CLOCK_SKEW_SECONDS
-    || payload.exp <= payload.iat
-    || payload.exp - payload.iat > MAX_ASSERTION_LIFETIME_SECONDS
+    payload.exp <= nowSeconds ||
+    payload.iat > nowSeconds + MAX_CLOCK_SKEW_SECONDS ||
+    payload.exp <= payload.iat ||
+    payload.exp - payload.iat > MAX_ASSERTION_LIFETIME_SECONDS
   ) {
-    throw new Error("Cloud runtime identity assertion is expired or has an invalid lifetime");
+    throw new Error(
+      "Cloud runtime identity assertion is expired or has an invalid lifetime",
+    );
   }
   return payload as RuntimeIdentityClaims;
 }
@@ -320,43 +383,62 @@ export function verifyCloudRuntimeIdentityAssertion(input: {
   expectedPreviousOrigin: string | null;
 }): RuntimeIdentityClaims {
   const env = input.env ?? process.env;
-  const claims = verifyClaims({ compactJws: input.compactJws, env, now: input.now ?? new Date() });
+  const claims = verifyClaims({
+    compactJws: input.compactJws,
+    env,
+    now: input.now ?? new Date(),
+  });
   const configuredStackId = nonEmpty(env.TASKCORE_CLOUD_STACK_ID);
   if (!configuredStackId || claims.sub !== configuredStackId) {
-    throw new Error("Cloud runtime identity stack does not match this instance");
+    throw new Error(
+      "Cloud runtime identity stack does not match this instance",
+    );
   }
   const previousOrigin = exactHttpsOrigin(claims.previousOrigin);
   const canonicalOrigin = exactHttpsOrigin(claims.canonicalOrigin);
-  if (!previousOrigin || !canonicalOrigin || previousOrigin !== input.expectedPreviousOrigin) {
-    throw new Error("Cloud runtime identity previous or canonical origin is invalid");
+  if (
+    !previousOrigin ||
+    !canonicalOrigin ||
+    previousOrigin !== input.expectedPreviousOrigin
+  ) {
+    throw new Error(
+      "Cloud runtime identity previous or canonical origin is invalid",
+    );
   }
   if (
-    !STACK_SLUG_PATTERN.test(claims.stackSlug)
-    || new URL(canonicalOrigin).hostname.split(".")[0] !== claims.stackSlug
-    || claims.claimId.length > 256
-    || claims.claimId.trim() !== claims.claimId
-    || !claims.claimId
+    !STACK_SLUG_PATTERN.test(claims.stackSlug) ||
+    new URL(canonicalOrigin).hostname.split(".")[0] !== claims.stackSlug ||
+    claims.claimId.length > 256 ||
+    claims.claimId.trim() !== claims.claimId ||
+    !claims.claimId
   ) {
     throw new Error("Cloud runtime identity destination is invalid");
   }
   return claims;
 }
 
-function assertionsEqual(row: PersistedRuntimeIdentity, claims: RuntimeIdentityClaims): boolean {
-  const left = Buffer.from(JSON.stringify([
-    row.stackId,
-    row.claimId,
-    row.previousOrigin,
-    row.canonicalOrigin,
-    row.stackSlug,
-  ]));
-  const right = Buffer.from(JSON.stringify([
-    claims.sub,
-    claims.claimId,
-    claims.previousOrigin,
-    claims.canonicalOrigin,
-    claims.stackSlug,
-  ]));
+function assertionsEqual(
+  row: PersistedRuntimeIdentity,
+  claims: RuntimeIdentityClaims,
+): boolean {
+  const left = Buffer.from(
+    JSON.stringify([
+      row.stackId,
+      row.claimId,
+      row.previousOrigin,
+      row.canonicalOrigin,
+      row.stackSlug,
+    ]),
+  );
+  const right = Buffer.from(
+    JSON.stringify([
+      claims.sub,
+      claims.claimId,
+      claims.previousOrigin,
+      claims.canonicalOrigin,
+      claims.stackSlug,
+    ]),
+  );
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
@@ -368,7 +450,8 @@ export async function applyCloudRuntimeIdentityAssertion(input: {
   now?: Date;
 }): Promise<CloudRuntimeIdentitySnapshot> {
   const env = input.env ?? process.env;
-  if (!initialized) throw new Error("Cloud runtime identity provider is not initialized");
+  if (!initialized)
+    throw new Error("Cloud runtime identity provider is not initialized");
   const claims = verifyCloudRuntimeIdentityAssertion({
     compactJws: input.compactJws,
     env,
@@ -386,7 +469,9 @@ export async function applyCloudRuntimeIdentityAssertion(input: {
     const existing = await readPersistedIdentity(tx);
     if (existing) {
       if (!assertionsEqual(existing, claims)) {
-        throw new Error("Cloud runtime identity is already claimed by another assertion");
+        throw new Error(
+          "Cloud runtime identity is already claimed by another assertion",
+        );
       }
       return existing;
     }
@@ -411,7 +496,9 @@ export async function applyCloudRuntimeIdentityAssertion(input: {
       .onConflictDoNothing({ target: instanceSettings.singletonKey });
     const durable = await readPersistedIdentity(tx);
     if (!durable || !assertionsEqual(durable, claims)) {
-      throw new Error("Cloud runtime identity is already claimed by another assertion");
+      throw new Error(
+        "Cloud runtime identity is already claimed by another assertion",
+      );
     }
     return durable;
   });
@@ -467,7 +554,11 @@ const CLOUD_CONTROL_MAX_LIFETIME_SECONDS = 5 * 60;
  */
 const consumedControlRequestIds = new Map<string, number>();
 
-function consumeControlRequestId(requestId: string, expSeconds: number, nowMs: number): boolean {
+function consumeControlRequestId(
+  requestId: string,
+  expSeconds: number,
+  nowMs: number,
+): boolean {
   for (const [id, expiresAtMs] of consumedControlRequestIds) {
     if (expiresAtMs <= nowMs) consumedControlRequestIds.delete(id);
   }
@@ -516,16 +607,19 @@ export function verifyCloudControlAssertion(input: {
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
   const header = decodeJsonPart(encodedHeader, "protected header");
   if (
-    header.alg !== "EdDSA"
-    || header.typ !== CLOUD_CONTROL_JWS_TYPE
-    || typeof header.kid !== "string"
-    || !header.kid
+    header.alg !== "EdDSA" ||
+    header.typ !== CLOUD_CONTROL_JWS_TYPE ||
+    typeof header.kid !== "string" ||
+    !header.kid
   ) {
     throw new Error("Cloud control protected header is invalid");
   }
   const key = publicKeyForKid(env, header.kid);
   const signature = Buffer.from(encodedSignature, "base64url");
-  const signingInput = Buffer.from(`${encodedHeader}.${encodedPayload}`, "ascii");
+  const signingInput = Buffer.from(
+    `${encodedHeader}.${encodedPayload}`,
+    "ascii",
+  );
   if (!verify(null, signingInput, key, signature)) {
     throw new Error("Cloud control signature is invalid");
   }
@@ -534,47 +628,57 @@ export function verifyCloudControlAssertion(input: {
   const configuredStackId = nonEmpty(env.TASKCORE_CLOUD_STACK_ID);
   const nowSeconds = Math.floor(now.getTime() / 1000);
   if (
-    payload.v !== 1
-    || payload.iss !== CLOUD_RUNTIME_IDENTITY_ISSUER
-    || payload.aud !== CLOUD_CONTROL_AUDIENCE
-    || typeof payload.sub !== "string"
-    || typeof payload.action !== "string"
-    || typeof payload.requestId !== "string"
-    || typeof payload.iat !== "number"
-    || !Number.isInteger(payload.iat)
-    || typeof payload.exp !== "number"
-    || !Number.isInteger(payload.exp)
+    payload.v !== 1 ||
+    payload.iss !== CLOUD_RUNTIME_IDENTITY_ISSUER ||
+    payload.aud !== CLOUD_CONTROL_AUDIENCE ||
+    typeof payload.sub !== "string" ||
+    typeof payload.action !== "string" ||
+    typeof payload.requestId !== "string" ||
+    typeof payload.iat !== "number" ||
+    !Number.isInteger(payload.iat) ||
+    typeof payload.exp !== "number" ||
+    !Number.isInteger(payload.exp)
   ) {
     throw new Error("Cloud control claims are incomplete");
   }
   if (!configuredStackId || payload.sub !== configuredStackId) {
-    throw new Error("Cloud control assertion stack does not match this instance");
+    throw new Error(
+      "Cloud control assertion stack does not match this instance",
+    );
   }
   if (
-    !(CLOUD_CONTROL_ACTIONS as readonly string[]).includes(payload.action)
-    || payload.action !== input.expectedAction
+    !(CLOUD_CONTROL_ACTIONS as readonly string[]).includes(payload.action) ||
+    payload.action !== input.expectedAction
   ) {
     throw new Error("Cloud control assertion does not authorize this action");
   }
   if (
-    !payload.requestId
-    || payload.requestId.trim() !== payload.requestId
-    || payload.requestId.length > 256
+    !payload.requestId ||
+    payload.requestId.trim() !== payload.requestId ||
+    payload.requestId.length > 256
   ) {
     throw new Error("Cloud control assertion request id is invalid");
   }
   if (
-    payload.exp <= nowSeconds
-    || payload.iat > nowSeconds + MAX_CLOCK_SKEW_SECONDS
-    || payload.exp <= payload.iat
-    || payload.exp - payload.iat > CLOUD_CONTROL_MAX_LIFETIME_SECONDS
+    payload.exp <= nowSeconds ||
+    payload.iat > nowSeconds + MAX_CLOCK_SKEW_SECONDS ||
+    payload.exp <= payload.iat ||
+    payload.exp - payload.iat > CLOUD_CONTROL_MAX_LIFETIME_SECONDS
   ) {
-    throw new Error("Cloud control assertion is expired or has an invalid lifetime");
+    throw new Error(
+      "Cloud control assertion is expired or has an invalid lifetime",
+    );
   }
   // Consumed LAST, only after every other check passed: a rejected
   // assertion must not burn its request id, or an attacker could deny a
   // legitimate call by replaying a mangled copy of it first.
-  if (!consumeControlRequestId(payload.requestId, payload.exp + MAX_CLOCK_SKEW_SECONDS, now.getTime())) {
+  if (
+    !consumeControlRequestId(
+      payload.requestId,
+      payload.exp + MAX_CLOCK_SKEW_SECONDS,
+      now.getTime(),
+    )
+  ) {
     throw new Error("Cloud control assertion has already been used");
   }
   return payload as CloudControlClaims;

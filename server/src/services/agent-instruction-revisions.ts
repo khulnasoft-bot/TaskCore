@@ -38,7 +38,12 @@ import type { AuthorizationActor } from "./authorization.js";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Revision = typeof revisions.$inferSelect;
-type PluginResetActor = { type: "plugin"; pluginId: string; pluginKey: string; agentKey: string };
+type PluginResetActor = {
+  type: "plugin";
+  pluginId: string;
+  pluginKey: string;
+  agentKey: string;
+};
 type RevisionActor = AuthorizationActor | PluginResetActor;
 const { contentBase64: _contentColumn, ...revisionMetadataColumns } =
   getTableColumns(revisions);
@@ -113,34 +118,88 @@ export function agentInstructionRevisionService(db: Db) {
     actor: AuthorizationActor,
     target: InstructionTarget,
   ) {
-    return authorizeInstructionRead(tx, actor, { companyId: target.companyId, id: target.agentId });
+    return authorizeInstructionRead(tx, actor, {
+      companyId: target.companyId,
+      id: target.agentId,
+    });
   }
   // Trusted host-only reset authority. No HTTP or agent tool accepts this actor.
-  async function authorizePluginReset(tx: Tx, actor: PluginResetActor, target: InstructionTarget, agent: typeof agents.$inferSelect) {
-    const [plugin] = await tx.select().from(plugins).where(and(eq(plugins.id, actor.pluginId), eq(plugins.pluginKey, actor.pluginKey)));
-    const marker = agent.metadata?.taskcoreManagedResource as Record<string, unknown> | undefined;
-    const [binding] = await tx.select().from(pluginManagedResources).where(and(
-      eq(pluginManagedResources.pluginId, actor.pluginId), eq(pluginManagedResources.pluginKey, actor.pluginKey),
-      eq(pluginManagedResources.companyId, target.companyId), eq(pluginManagedResources.resourceKind, "agent"),
-      eq(pluginManagedResources.resourceKey, actor.agentKey), eq(pluginManagedResources.resourceId, target.agentId),
-    ));
-    if (!plugin || plugin.status !== "ready" || !plugin.manifestJson.capabilities.includes("agents.managed")
-      || !plugin.manifestJson.agents?.some((declaration) => declaration.agentKey === actor.agentKey)
-      || !binding || marker?.pluginId !== actor.pluginId || marker.pluginKey !== actor.pluginKey
-      || marker.resourceKind !== "agent" || marker.resourceKey !== actor.agentKey) {
-      throw forbidden("Plugin reset is limited to its declared, bound managed agent");
+  async function authorizePluginReset(
+    tx: Tx,
+    actor: PluginResetActor,
+    target: InstructionTarget,
+    agent: typeof agents.$inferSelect,
+  ) {
+    const [plugin] = await tx
+      .select()
+      .from(plugins)
+      .where(
+        and(
+          eq(plugins.id, actor.pluginId),
+          eq(plugins.pluginKey, actor.pluginKey),
+        ),
+      );
+    const marker = agent.metadata?.taskcoreManagedResource as
+      Record<string, unknown> | undefined;
+    const [binding] = await tx
+      .select()
+      .from(pluginManagedResources)
+      .where(
+        and(
+          eq(pluginManagedResources.pluginId, actor.pluginId),
+          eq(pluginManagedResources.pluginKey, actor.pluginKey),
+          eq(pluginManagedResources.companyId, target.companyId),
+          eq(pluginManagedResources.resourceKind, "agent"),
+          eq(pluginManagedResources.resourceKey, actor.agentKey),
+          eq(pluginManagedResources.resourceId, target.agentId),
+        ),
+      );
+    if (
+      !plugin ||
+      plugin.status !== "ready" ||
+      !plugin.manifestJson.capabilities.includes("agents.managed") ||
+      !plugin.manifestJson.agents?.some(
+        (declaration) => declaration.agentKey === actor.agentKey,
+      ) ||
+      !binding ||
+      marker?.pluginId !== actor.pluginId ||
+      marker.pluginKey !== actor.pluginKey ||
+      marker.resourceKind !== "agent" ||
+      marker.resourceKey !== actor.agentKey
+    ) {
+      throw forbidden(
+        "Plugin reset is limited to its declared, bound managed agent",
+      );
     }
-    const declared = plugin.manifestJson.agents!.find((declaration) => declaration.agentKey === actor.agentKey)!;
-    return { ...actor, declaredEntryFile: instructionPath(declared.instructions?.entryFile ?? "AGENTS.md") };
+    const declared = plugin.manifestJson.agents!.find(
+      (declaration) => declaration.agentKey === actor.agentKey,
+    )!;
+    return {
+      ...actor,
+      declaredEntryFile: instructionPath(
+        declared.instructions?.entryFile ?? "AGENTS.md",
+      ),
+    };
   }
-  async function readForPluginReset(target: InstructionTarget, actor: PluginResetActor) {
+  async function readForPluginReset(
+    target: InstructionTarget,
+    actor: PluginResetActor,
+  ) {
     return db.transaction(async (tx) => {
       const state = await lockTarget(tx, target);
       const bound = await authorizePluginReset(tx, actor, target, state.agent);
       // Preserve the formerly configured entry before an explicit stock reset.
       await currentFile(tx, target, state, bound);
-      const row = await currentFile(tx, target, { ...state, entryFile: bound.declaredEntryFile }, bound);
-      return { snapshot: row ? snapshot(row) : null, configuredEntryFile: state.entryFile };
+      const row = await currentFile(
+        tx,
+        target,
+        { ...state, entryFile: bound.declaredEntryFile },
+        bound,
+      );
+      return {
+        snapshot: row ? snapshot(row) : null,
+        configuredEntryFile: state.entryFile,
+      };
     });
   }
   async function head(tx: Tx, target: InstructionTarget, entryFile: string) {
@@ -153,20 +212,46 @@ export function agentInstructionRevisionService(db: Db) {
   }
   // The deployed revision tables are read-only upgrade input. Current bytes
   // live in the agent directory; old UUID clients receive a content ETag.
-  async function currentFile(tx: Tx, target: InstructionTarget, state: Awaited<ReturnType<typeof lockTarget>>, actor?: RevisionActor) {
+  async function currentFile(
+    tx: Tx,
+    target: InstructionTarget,
+    state: Awaited<ReturnType<typeof lockTarget>>,
+    actor?: RevisionActor,
+  ) {
     await adoptAgentFiles(tx, state.agent);
     const bytes = await readInstructionBytes(state.root, state.entryFile);
     if (bytes === null) return null;
     return currentRow(target, state.entryFile, bytes, actor);
   }
-  function currentRow(target: InstructionTarget, entryFile: string, bytes: Buffer, actor?: RevisionActor): Revision {
-    return { ...target, id: agentFileToken(bytes), entryFile, contentBase64: bytes.toString("base64"),
-      contentHash: createHash("sha256").update(bytes).digest("hex"), byteLength: bytes.length,
-      parentRevisionId: null, baseRevisionId: null, restoredFromRevisionId: null, source: "api",
-      actorAgentId: actor?.type === "agent" ? actor.agentId ?? null : null,
-      actorUserId: actor?.type === "board" ? actor.userId ?? null : null,
-      responsibleUserId: actor?.type === "board" ? actor.userId ?? null : actor?.type === "agent" ? actor.onBehalfOfUserId ?? null : null,
-      sourceRunId: actor && actor.type !== "plugin" ? actor.runId ?? null : null, createdAt: new Date(0) };
+  function currentRow(
+    target: InstructionTarget,
+    entryFile: string,
+    bytes: Buffer,
+    actor?: RevisionActor,
+  ): Revision {
+    return {
+      ...target,
+      id: agentFileToken(bytes),
+      entryFile,
+      contentBase64: bytes.toString("base64"),
+      contentHash: createHash("sha256").update(bytes).digest("hex"),
+      byteLength: bytes.length,
+      parentRevisionId: null,
+      baseRevisionId: null,
+      restoredFromRevisionId: null,
+      source: "api",
+      actorAgentId: actor?.type === "agent" ? (actor.agentId ?? null) : null,
+      actorUserId: actor?.type === "board" ? (actor.userId ?? null) : null,
+      responsibleUserId:
+        actor?.type === "board"
+          ? (actor.userId ?? null)
+          : actor?.type === "agent"
+            ? (actor.onBehalfOfUserId ?? null)
+            : null,
+      sourceRunId:
+        actor && actor.type !== "plugin" ? (actor.runId ?? null) : null,
+      createdAt: new Date(0),
+    };
   }
   async function getRevision(
     tx: Tx,
@@ -194,7 +279,9 @@ export function agentInstructionRevisionService(db: Db) {
   }
   /** Trusted orchestration read for the already authorized run target. This
    * never seeds or writes, and is not exposed through HTTP or model tools. */
-  async function readCommittedForRuntime(target: InstructionTarget): Promise<AgentInstructionSnapshot | null> {
+  async function readCommittedForRuntime(
+    target: InstructionTarget,
+  ): Promise<AgentInstructionSnapshot | null> {
     return db.transaction(async (tx) => {
       const state = await lockTarget(tx, target);
       const current = await currentFile(tx, target, state);
@@ -220,13 +307,23 @@ export function agentInstructionRevisionService(db: Db) {
     instructionPath(input.entryFile);
     const bytes = "content" in input ? instructionBytes(input.content) : null;
     const result = await db.transaction(async (tx) => {
-      const state = await lockTarget(tx, input, actor.type === "plugin" ? undefined : actor);
-      const bound = actor.type === "plugin"
-        ? await authorizePluginReset(tx, actor, input, state.agent)
-        : await authorizeInstructionCommit(tx, actor, state.agent);
+      const state = await lockTarget(
+        tx,
+        input,
+        actor.type === "plugin" ? undefined : actor,
+      );
+      const bound =
+        actor.type === "plugin"
+          ? await authorizePluginReset(tx, actor, input, state.agent)
+          : await authorizeInstructionCommit(tx, actor, state.agent);
       if (bound.type === "plugin") {
-        if (input.entryFile !== bound.declaredEntryFile) throw forbidden("Plugin reset must restore its declared entry file");
-        if (configuredEntryFile !== state.entryFile) throw conflict("Configured instruction entry changed; read the current entry and retry", { code: "INSTRUCTION_ENTRY_CHANGED", entryFile: state.entryFile });
+        if (input.entryFile !== bound.declaredEntryFile)
+          throw forbidden("Plugin reset must restore its declared entry file");
+        if (configuredEntryFile !== state.entryFile)
+          throw conflict(
+            "Configured instruction entry changed; read the current entry and retry",
+            { code: "INSTRUCTION_ENTRY_CHANGED", entryFile: state.entryFile },
+          );
         state.entryFile = input.entryFile;
       }
       if (state.entryFile !== input.entryFile)
@@ -275,10 +372,23 @@ export function agentInstructionRevisionService(db: Db) {
       }
       // A pre-upgrade run can still pin a historical UUID. Compare its bytes,
       // never let the old head project over a newer directory.
-      const legacyBase = input.baseRevisionId && current?.id !== input.baseRevisionId
-        ? await tx.select().from(revisions).where(and(owner(input, input.entryFile), eq(revisions.id, input.baseRevisionId))).then(rows => rows[0])
-        : null;
-      if ((current?.id ?? null) !== input.baseRevisionId && !(legacyBase && legacyBase.contentHash === current?.contentHash)) {
+      const legacyBase =
+        input.baseRevisionId && current?.id !== input.baseRevisionId
+          ? await tx
+              .select()
+              .from(revisions)
+              .where(
+                and(
+                  owner(input, input.entryFile),
+                  eq(revisions.id, input.baseRevisionId),
+                ),
+              )
+              .then((rows) => rows[0])
+          : null;
+      if (
+        (current?.id ?? null) !== input.baseRevisionId &&
+        !(legacyBase && legacyBase.contentHash === current?.contentHash)
+      ) {
         throw conflict(
           "Instructions changed since the base revision. Read the current entry before saving.",
           {
@@ -290,16 +400,43 @@ export function agentInstructionRevisionService(db: Db) {
       }
       await materializeInstructionBytes(state.root, state.entryFile, candidate);
       const row = currentRow(input, input.entryFile, candidate, bound);
-      await tx.insert(activityLog).values({ companyId: input.companyId,
-        actorType: bound.type === "plugin" ? "plugin" : bound.type === "board" ? "user" : "agent",
-        actorId: (bound.type === "plugin" ? bound.pluginId : bound.type === "board" ? bound.userId : bound.agentId)!,
-        agentId: bound.type === "agent" ? bound.agentId : null, runId: row.sourceRunId,
-        responsibleUserId: row.responsibleUserId, action: "agent.files_updated", entityType: "agent", entityId: input.agentId,
-        details: { path: input.entryFile, contentHash: row.contentHash, source: restored ? "legacy_restore" : (input as InstructionCommitInput).source } });
+      await tx
+        .insert(activityLog)
+        .values({
+          companyId: input.companyId,
+          actorType:
+            bound.type === "plugin"
+              ? "plugin"
+              : bound.type === "board"
+                ? "user"
+                : "agent",
+          actorId: (bound.type === "plugin"
+            ? bound.pluginId
+            : bound.type === "board"
+              ? bound.userId
+              : bound.agentId)!,
+          agentId: bound.type === "agent" ? bound.agentId : null,
+          runId: row.sourceRunId,
+          responsibleUserId: row.responsibleUserId,
+          action: "agent.files_updated",
+          entityType: "agent",
+          entityId: input.agentId,
+          details: {
+            path: input.entryFile,
+            contentHash: row.contentHash,
+            source: restored
+              ? "legacy_restore"
+              : (input as InstructionCommitInput).source,
+          },
+        });
       await bindEntry();
       return { row, changed: true };
     });
-    return { ...snapshot(result.row), changed: result.changed, materialization: "current" };
+    return {
+      ...snapshot(result.row),
+      changed: result.changed,
+      materialization: "current",
+    };
   }
 
   async function history(
@@ -408,8 +545,17 @@ export function agentInstructionRevisionService(db: Db) {
     readCommittedForRuntime,
     readCurrent,
     readForPluginReset,
-    commitPluginReset: (input: Omit<InstructionCommitInput, "source"> & { configuredEntryFile: string }, actor: PluginResetActor) =>
-      commitInternal({ ...input, source: "api" }, actor, input.configuredEntryFile),
+    commitPluginReset: (
+      input: Omit<InstructionCommitInput, "source"> & {
+        configuredEntryFile: string;
+      },
+      actor: PluginResetActor,
+    ) =>
+      commitInternal(
+        { ...input, source: "api" },
+        actor,
+        input.configuredEntryFile,
+      ),
     readRevision,
     history,
     diff,

@@ -3,7 +3,11 @@ import { NavLink } from "@/lib/router";
 import { SIDEBAR_SCROLL_RESET_STATE } from "../lib/navigation-scroll";
 import { cn, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
 import { useSidebar } from "../context/SidebarContext";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -20,7 +24,11 @@ import { Badge } from "@/components/ui/badge";
  */
 const SidebarNavExpandedContext = createContext(false);
 
-export function SidebarNavExpandedProvider({ children }: { children: ReactNode }) {
+export function SidebarNavExpandedProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <SidebarNavExpandedContext.Provider value={true}>
       {children}
@@ -110,9 +118,10 @@ export function SidebarNavItem({
       : alert
         ? "attention needed"
         : undefined;
-  const railAriaLabel = !rail || (!railStatusText && !trailingLabel)
-    ? undefined
-    : `${label}${railStatusText ? `, ${railStatusText}` : ""}${trailingLabel ? `, ${trailingLabel}` : ""}`;
+  const railAriaLabel =
+    !rail || (!railStatusText && !trailingLabel)
+      ? undefined
+      : `${label}${railStatusText ? `, ${railStatusText}` : ""}${trailingLabel ? `, ${trailingLabel}` : ""}`;
 
   const link = (
     <NavLink
@@ -120,7 +129,9 @@ export function SidebarNavItem({
       state={SIDEBAR_SCROLL_RESET_STATE}
       end={end}
       aria-label={railAriaLabel}
-      onClick={() => { if (isMobile) setSidebarOpen(false); }}
+      onClick={() => {
+        if (isMobile) setSidebarOpen(false);
+      }}
       className={({ isActive }) =>
         cn(
           // One rhythm and one inset pill highlight: mx-2 floats the row off
@@ -138,12 +149,18 @@ export function SidebarNavItem({
       <span className="relative shrink-0">
         {iconNode ?? (Icon ? <Icon className="h-4 w-4" /> : null)}
         {alert && (
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 shadow-(--shadow-extract-12)" aria-hidden="true" />
+          <span
+            className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 shadow-(--shadow-extract-12)"
+            aria-hidden="true"
+          />
         )}
         {/* Collapsed rail: numeric badge / live count collapse to a dot on the
             icon. The icon markup is untouched so it stays pixel-aligned. */}
         {rail && !alert && hasLive && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-2 w-2" aria-hidden="true">
+          <span
+            className="absolute -right-0.5 -top-0.5 flex h-2 w-2"
+            aria-hidden="true"
+          >
             <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-600 dark:bg-blue-400 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400 shadow-(--shadow-extract-12)" />
           </span>
@@ -162,10 +179,19 @@ export function SidebarNavItem({
           />
         )}
       </span>
-      <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : cn("min-w-0 flex-1 truncate", labelClassName)}>{label}</span>
+      <span
+        className={
+          rail
+            ? SIDEBAR_RAIL_HIDDEN_LABEL
+            : cn("min-w-0 flex-1 truncate", labelClassName)
+        }
+      >
+        {label}
+      </span>
       {!rail && trailing}
       {!rail && textBadge && (
-        <Badge variant="ghost"
+        <Badge
+          variant="ghost"
           className={cn(
             "ml-auto px-1.5 text-(length:--text-nano) leading-none",
             textBadgeTone === "amber"
@@ -185,13 +211,16 @@ export function SidebarNavItem({
                 <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-600 dark:bg-blue-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400" />
               </span>
-              <span className="text-(length:--text-micro) font-medium text-blue-600 dark:text-blue-400">{liveCount} live</span>
+              <span className="text-(length:--text-micro) font-medium text-blue-600 dark:text-blue-400">
+                {liveCount} live
+              </span>
             </>
           )}
         </span>
       )}
       {!rail && hasBadge && (
-        <Badge variant="ghost"
+        <Badge
+          variant="ghost"
           className={cn(
             "ml-auto px-1.5 leading-none",
             badgeTone === "danger"

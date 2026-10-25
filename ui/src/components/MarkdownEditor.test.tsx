@@ -2,8 +2,21 @@
 
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import { buildIssueReferenceHref, buildProjectMentionHref, buildRoutineMentionHref, buildSkillMentionHref } from "@taskcore/shared";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
+import {
+  buildIssueReferenceHref,
+  buildProjectMentionHref,
+  buildRoutineMentionHref,
+  buildSkillMentionHref,
+} from "@taskcore/shared";
 import {
   computeMentionMenuPosition,
   findClosestAutocompleteAnchor,
@@ -51,7 +64,10 @@ function containsUnescapedHtmlLikeTag(markdown: string) {
 vi.mock("@mdxeditor/editor", async () => {
   const React = await import("react");
 
-  function setForwardedRef<T>(ref: React.ForwardedRef<T | null>, value: T | null) {
+  function setForwardedRef<T>(
+    ref: React.ForwardedRef<T | null>,
+    value: T | null,
+  ) {
     if (typeof ref === "function") {
       ref(value);
       return;
@@ -87,29 +103,37 @@ vi.mock("@mdxeditor/editor", async () => {
       throw new Error("Rich editor render crashed");
     }
     mdxEditorMockState.markdownValues.push(markdown);
-    mdxEditorMockState.suppressHtmlProcessingValues.push(Boolean(suppressHtmlProcessing));
+    mdxEditorMockState.suppressHtmlProcessingValues.push(
+      Boolean(suppressHtmlProcessing),
+    );
     const [content, setContent] = React.useState(markdown);
     const editableRef = React.useRef<HTMLDivElement>(null);
     const onErrorRef = React.useRef(onError);
     onErrorRef.current = onError;
-    const handle = React.useMemo(() => ({
-      setMarkdown: (value: string) => setContent(value),
-      insertMarkdown: (value: string) => {
-        mdxEditorMockState.insertedMarkdownValues.push(value);
-        // Inserted markdown goes through the same importer as the mounted
-        // document, so an unescaped tag fails here in exactly the same way.
-        if (containsUnescapedHtmlLikeTag(value)) {
-          onErrorRef.current?.({ error: "Unrecognized markdown construct: html", source: value });
-          return;
-        }
-        setContent((previous) => `${previous}${value}`);
-      },
-      // The real `focus` runs its callback once a selection exists.
-      focus: (callback?: () => void) => {
-        editableRef.current?.focus();
-        callback?.();
-      },
-    }), []);
+    const handle = React.useMemo(
+      () => ({
+        setMarkdown: (value: string) => setContent(value),
+        insertMarkdown: (value: string) => {
+          mdxEditorMockState.insertedMarkdownValues.push(value);
+          // Inserted markdown goes through the same importer as the mounted
+          // document, so an unescaped tag fails here in exactly the same way.
+          if (containsUnescapedHtmlLikeTag(value)) {
+            onErrorRef.current?.({
+              error: "Unrecognized markdown construct: html",
+              source: value,
+            });
+            return;
+          }
+          setContent((previous) => `${previous}${value}`);
+        },
+        // The real `focus` runs its callback once a selection exists.
+        focus: (callback?: () => void) => {
+          editableRef.current?.focus();
+          callback?.();
+        },
+      }),
+      [],
+    );
 
     React.useEffect(() => {
       if (containsUnescapedHtmlLikeTag(markdown)) {
@@ -123,7 +147,10 @@ vi.mock("@mdxeditor/editor", async () => {
       if (mdxEditorMockState.populateDelayMs > 0) {
         // Model an import that paints its content some time after mount.
         setContent("");
-        const timer = window.setTimeout(() => setContent(markdown), mdxEditorMockState.populateDelayMs);
+        const timer = window.setTimeout(
+          () => setContent(markdown),
+          mdxEditorMockState.populateDelayMs,
+        );
         return () => window.clearTimeout(timer);
       }
       setContent(markdown);
@@ -216,15 +243,16 @@ async function flush() {
 }
 
 function clickRetryRichEditor(scope: HTMLElement) {
-  const button = Array.from(scope.querySelectorAll("button")).find((candidate) =>
-    candidate.textContent?.includes("Retry rich editor"),
+  const button = Array.from(scope.querySelectorAll("button")).find(
+    (candidate) => candidate.textContent?.includes("Retry rich editor"),
   );
   if (!button) throw new Error('"Retry rich editor" button not found');
   button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
 
 function fallbackCode(scope: HTMLElement) {
-  return scope.querySelector('[data-testid="markdown-editor-fallback-code"]')?.textContent;
+  return scope.querySelector('[data-testid="markdown-editor-fallback-code"]')
+    ?.textContent;
 }
 
 /**
@@ -408,9 +436,10 @@ describe("MarkdownEditor", () => {
       await flush();
       const editable = container.querySelector('[contenteditable="true"]');
       expect(editable).not.toBeNull();
-      const mentionObserverCountAfterInitialRender = MockMutationObserver.instances.filter(
-        (observer) => observer.observe.mock.calls.some(([target]) => target === editable),
-      ).length;
+      const mentionObserverCountAfterInitialRender =
+        MockMutationObserver.instances.filter((observer) =>
+          observer.observe.mock.calls.some(([target]) => target === editable),
+        ).length;
 
       await act(async () => {
         root.render(
@@ -428,8 +457,8 @@ describe("MarkdownEditor", () => {
       // controlled value changes. This assertion only covers the mention
       // decoration observer that attaches to the editable element itself.
       expect(
-        MockMutationObserver.instances.filter(
-          (observer) => observer.observe.mock.calls.some(([target]) => target === editable),
+        MockMutationObserver.instances.filter((observer) =>
+          observer.observe.mock.calls.some(([target]) => target === editable),
         ),
       ).toHaveLength(mentionObserverCountAfterInitialRender);
     } finally {
@@ -454,7 +483,9 @@ describe("MarkdownEditor", () => {
     });
 
     await flush();
-    expect(mdxEditorMockState.markdownValues.at(-1)).toContain("![image](https://example.com/test.png)");
+    expect(mdxEditorMockState.markdownValues.at(-1)).toContain(
+      "![image](https://example.com/test.png)",
+    );
     expect(mdxEditorMockState.markdownValues.at(-1)).not.toContain("<img");
     expect(mdxEditorMockState.suppressHtmlProcessingValues).toContain(true);
     expect(container.textContent).toContain("Before");
@@ -471,7 +502,9 @@ describe("MarkdownEditor", () => {
     await act(async () => {
       root.render(
         <MarkdownEditor
-          value={'<section data-source="paste">\n## My take\n\n<p>Benchmark notes</p>\n</section>'}
+          value={
+            '<section data-source="paste">\n## My take\n\n<p>Benchmark notes</p>\n</section>'
+          }
           onChange={() => {}}
           placeholder="Markdown body"
         />,
@@ -482,7 +515,9 @@ describe("MarkdownEditor", () => {
     expect(mdxEditorMockState.suppressHtmlProcessingValues).toContain(true);
     expect(container.querySelector("textarea")).toBeNull();
     expect(container.textContent).toContain("Benchmark notes");
-    expect(container.textContent).not.toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).not.toContain(
+      "Rich editor unavailable for this markdown",
+    );
 
     await act(async () => {
       root.unmount();
@@ -495,7 +530,9 @@ describe("MarkdownEditor", () => {
     await act(async () => {
       root.render(
         <MarkdownEditor
-          value={'<script>fetch("/api/secrets")</script>\n<iframe src="https://example.com"></iframe>\n<p onclick="steal()">Plain text</p>'}
+          value={
+            '<script>fetch("/api/secrets")</script>\n<iframe src="https://example.com"></iframe>\n<p onclick="steal()">Plain text</p>'
+          }
           onChange={() => {}}
           placeholder="Markdown body"
         />,
@@ -536,7 +573,9 @@ describe("MarkdownEditor", () => {
     const textarea = container.querySelector("textarea");
     expect(textarea).not.toBeNull();
     expect(textarea?.value).toBe("Affected versions: <= v0.3.1");
-    expect(container.textContent).toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).toContain(
+      "Rich editor unavailable for this markdown",
+    );
     expect(fallbackCode(container)).toBe("MDE-PARSE");
     expect(handleChange).not.toHaveBeenCalled();
 
@@ -547,7 +586,9 @@ describe("MarkdownEditor", () => {
 
   it("falls back to a raw textarea when the rich editor crashes during render", async () => {
     mdxEditorMockState.throwOnRender = true;
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const handleChange = vi.fn();
     const root = createRoot(container);
 
@@ -566,8 +607,12 @@ describe("MarkdownEditor", () => {
     });
     const textarea = container.querySelector("textarea");
     expect(textarea).not.toBeNull();
-    expect(textarea?.value).toBe("5. python3 circleback/sync_insights.py --input <tmp> -- writes insights/<group>/*.md");
-    expect(container.textContent).toContain("Rich editor unavailable for this markdown");
+    expect(textarea?.value).toBe(
+      "5. python3 circleback/sync_insights.py --input <tmp> -- writes insights/<group>/*.md",
+    );
+    expect(container.textContent).toContain(
+      "Rich editor unavailable for this markdown",
+    );
     expect(fallbackCode(container)).toBe("MDE-RENDER");
     expect(consoleError).toHaveBeenCalledWith(
       "Markdown rich editor failed; falling back to raw textarea",
@@ -606,7 +651,9 @@ describe("MarkdownEditor", () => {
     const textarea = container.querySelector("textarea");
     expect(textarea).not.toBeNull();
     expect(textarea?.value).toBe("Affected versions: <= v0.3.1");
-    expect(container.textContent).toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).toContain(
+      "Rich editor unavailable for this markdown",
+    );
     expect(fallbackCode(container)).toBe("MDE-EMPTY");
     expect(handleChange).not.toHaveBeenCalled();
 
@@ -616,13 +663,18 @@ describe("MarkdownEditor", () => {
   });
 
   it("keeps prose with bare angle brackets in the rich editor", async () => {
-    const value = "Affected versions: <= v0.3.1\n\nRename <name> to the real name.";
+    const value =
+      "Affected versions: <= v0.3.1\n\nRename <name> to the real name.";
     const handleChange = vi.fn();
     const root = createRoot(container);
 
     await act(async () => {
       root.render(
-        <MarkdownEditor value={value} onChange={handleChange} placeholder="Markdown body" />,
+        <MarkdownEditor
+          value={value}
+          onChange={handleChange}
+          placeholder="Markdown body"
+        />,
       );
     });
 
@@ -630,7 +682,9 @@ describe("MarkdownEditor", () => {
     await waitPastEmptyHeuristic();
 
     expect(container.querySelector("textarea")).toBeNull();
-    expect(container.textContent).not.toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).not.toContain(
+      "Rich editor unavailable for this markdown",
+    );
 
     // The editor is handed the escaped form: the placeholder is hidden from the
     // HTML tokenizer, while `<=` cannot open a tag and is left exactly as typed.
@@ -648,7 +702,8 @@ describe("MarkdownEditor", () => {
   });
 
   it("returns editor output to the parent with the transport escaping removed", async () => {
-    const value = "Affected versions: <= v0.3.1\n\nRename <name> to the real name.";
+    const value =
+      "Affected versions: <= v0.3.1\n\nRename <name> to the real name.";
     // What the real exporter emits for this document: `<` re-escaped, `<=` bare.
     mdxEditorMockState.emitMountChange =
       "Affected versions: <= v0.3.1\n\nRename \\<name> to the real name.";
@@ -657,7 +712,11 @@ describe("MarkdownEditor", () => {
 
     await act(async () => {
       root.render(
-        <MarkdownEditor value={value} onChange={handleChange} placeholder="Markdown body" />,
+        <MarkdownEditor
+          value={value}
+          onChange={handleChange}
+          placeholder="Markdown body"
+        />,
       );
     });
 
@@ -666,7 +725,9 @@ describe("MarkdownEditor", () => {
     // The parent stores the clean form — these fields feed agent prompts, so a
     // stray `\<` would leak into a prompt.
     expect(handleChange).toHaveBeenCalledWith(value);
-    expect(handleChange.mock.calls.every(([next]) => !String(next).includes("\\<"))).toBe(true);
+    expect(
+      handleChange.mock.calls.every(([next]) => !String(next).includes("\\<")),
+    ).toBe(true);
 
     await act(async () => {
       root.unmount();
@@ -679,7 +740,11 @@ describe("MarkdownEditor", () => {
 
     await act(async () => {
       root.render(
-        <MarkdownEditor value="" onChange={handleChange} placeholder="Markdown body" />,
+        <MarkdownEditor
+          value=""
+          onChange={handleChange}
+          placeholder="Markdown body"
+        />,
       );
     });
 
@@ -739,7 +804,9 @@ describe("MarkdownEditor", () => {
     await waitPastEmptyHeuristic();
 
     expect(container.querySelector("textarea")).toBeNull();
-    expect(container.textContent).not.toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).not.toContain(
+      "Rich editor unavailable for this markdown",
+    );
     expect(container.textContent).toContain("Rename <name> to the real name.");
     expect(handleChange).not.toHaveBeenCalledWith("");
 
@@ -823,7 +890,9 @@ describe("MarkdownEditor", () => {
     await waitPastEmptyHeuristic();
 
     expect(container.querySelector("textarea")).toBeNull();
-    expect(container.textContent).not.toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).not.toContain(
+      "Rich editor unavailable for this markdown",
+    );
     expect(container.textContent).toContain("Rename <name> to the real name.");
 
     await act(async () => {
@@ -857,7 +926,9 @@ describe("MarkdownEditor", () => {
       "\n\nRename \\<name> to the real name.",
     ]);
     expect(container.querySelector("textarea")).toBeNull();
-    expect(container.textContent).not.toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).not.toContain(
+      "Rich editor unavailable for this markdown",
+    );
 
     await act(async () => {
       root.unmount();
@@ -869,12 +940,18 @@ describe("MarkdownEditor", () => {
 
     await act(async () => {
       root.render(
-        <MarkdownEditor value="Intro." onChange={() => {}} placeholder="Markdown body" />,
+        <MarkdownEditor
+          value="Intro."
+          onChange={() => {}}
+          placeholder="Markdown body"
+        />,
       );
     });
     await flush();
 
-    const scope = container.querySelector('[data-testid="mdx-editor"]')?.parentElement;
+    const scope = container.querySelector(
+      '[data-testid="mdx-editor"]',
+    )?.parentElement;
     const pasted = "## Setup\n\n- Rename <name> to the real name\n";
     const event = new Event("paste", { bubbles: true, cancelable: true });
     Object.defineProperty(event, "clipboardData", {
@@ -895,7 +972,9 @@ describe("MarkdownEditor", () => {
       "## Setup\n\n- Rename \\<name> to the real name\n",
     ]);
     expect(container.querySelector("textarea")).toBeNull();
-    expect(container.textContent).not.toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).not.toContain(
+      "Rich editor unavailable for this markdown",
+    );
 
     await act(async () => {
       root.unmount();
@@ -918,7 +997,8 @@ describe("MarkdownEditor", () => {
 
     await flush();
 
-    const scope = container.querySelector('[data-testid="mdx-editor"]')?.parentElement as HTMLDivElement | null;
+    const scope = container.querySelector('[data-testid="mdx-editor"]')
+      ?.parentElement as HTMLDivElement | null;
     expect(scope).not.toBeNull();
 
     await act(async () => {
@@ -958,7 +1038,8 @@ describe("MarkdownEditor", () => {
 
     await flush();
 
-    const scope = container.querySelector('[data-testid="mdx-editor"]')?.parentElement as HTMLDivElement | null;
+    const scope = container.querySelector('[data-testid="mdx-editor"]')
+      ?.parentElement as HTMLDivElement | null;
     expect(scope).not.toBeNull();
 
     act(() => {
@@ -991,7 +1072,9 @@ describe("MarkdownEditor", () => {
     await flush();
 
     expect(container.querySelector("textarea")).toBeNull();
-    expect(container.textContent).not.toContain("Rich editor unavailable for this markdown");
+    expect(container.textContent).not.toContain(
+      "Rich editor unavailable for this markdown",
+    );
 
     await act(async () => {
       root.unmount();
@@ -1065,7 +1148,9 @@ describe("MarkdownEditor", () => {
   });
 
   it("keeps mention queries active across spaces", () => {
-    expect(findMentionMatch("Ping @Taskcore App", "Ping @Taskcore App".length)).toEqual({
+    expect(
+      findMentionMatch("Ping @Taskcore App", "Ping @Taskcore App".length),
+    ).toEqual({
       trigger: "mention",
       marker: "@",
       query: "Taskcore App",
@@ -1079,7 +1164,12 @@ describe("MarkdownEditor", () => {
   });
 
   it("keeps routine slash queries active across spaces", () => {
-    expect(findMentionMatch("/routine:Weekly release review", "/routine:Weekly release review".length)).toEqual({
+    expect(
+      findMentionMatch(
+        "/routine:Weekly release review",
+        "/routine:Weekly release review".length,
+      ),
+    ).toEqual({
       trigger: "skill",
       marker: "/",
       query: "routine:Weekly release review",
@@ -1097,49 +1187,56 @@ describe("MarkdownEditor", () => {
 
   it("keeps the same autocomplete session active while the slash query is unchanged", () => {
     const textNode = document.createTextNode("/agent");
-    expect(isSameAutocompleteSession(
-      {
-        trigger: "skill",
-        marker: "/",
-        query: "agent",
-        textNode,
-        atPos: 0,
-        endPos: 6,
-      },
-      {
-        trigger: "skill",
-        marker: "/",
-        query: "agent",
-        textNode,
-        atPos: 0,
-        endPos: 6,
-      },
-    )).toBe(true);
+    expect(
+      isSameAutocompleteSession(
+        {
+          trigger: "skill",
+          marker: "/",
+          query: "agent",
+          textNode,
+          atPos: 0,
+          endPos: 6,
+        },
+        {
+          trigger: "skill",
+          marker: "/",
+          query: "agent",
+          textNode,
+          atPos: 0,
+          endPos: 6,
+        },
+      ),
+    ).toBe(true);
 
-    expect(isSameAutocompleteSession(
-      {
-        trigger: "skill",
-        marker: "/",
-        query: "agent",
-        textNode,
-        atPos: 0,
-        endPos: 6,
-      },
-      {
-        trigger: "skill",
-        marker: "/",
-        query: "agent-browser",
-        textNode,
-        atPos: 0,
-        endPos: 14,
-      },
-    )).toBe(false);
+    expect(
+      isSameAutocompleteSession(
+        {
+          trigger: "skill",
+          marker: "/",
+          query: "agent",
+          textNode,
+          atPos: 0,
+          endPos: 6,
+        },
+        {
+          trigger: "skill",
+          marker: "/",
+          query: "agent-browser",
+          textNode,
+          atPos: 0,
+          endPos: 14,
+        },
+      ),
+    ).toBe(false);
   });
 
   it("finds skill anchors by mention metadata instead of visible text", () => {
     const editable = document.createElement("div");
     const skillLink = document.createElement("a");
-    skillLink.setAttribute("href", buildSkillMentionHref("skill-123", "agent-browser"));
+    skillLink.setAttribute(
+      "href",
+      buildSkillMentionHref("skill-123", "agent-browser"),
+    );
     skillLink.textContent = "/agent-browser ";
     editable.appendChild(skillLink);
 
@@ -1184,7 +1281,10 @@ describe("MarkdownEditor", () => {
     document.body.appendChild(editable);
 
     const skillLink = document.createElement("a");
-    skillLink.setAttribute("href", buildSkillMentionHref("skill-123", "agent-browser"));
+    skillLink.setAttribute(
+      "href",
+      buildSkillMentionHref("skill-123", "agent-browser"),
+    );
     skillLink.textContent = "/agent-browser";
     const trailingSpace = document.createTextNode(" ");
     editable.append(skillLink, trailingSpace);
@@ -1219,7 +1319,9 @@ describe("MarkdownEditor", () => {
   ) {
     const event = new Event(type, { bubbles: true, cancelable: true });
     const list = touches as unknown as TouchList;
-    Object.defineProperty(event, "touches", { value: type === "touchend" ? [] : list });
+    Object.defineProperty(event, "touches", {
+      value: type === "touchend" ? [] : list,
+    });
     Object.defineProperty(event, "changedTouches", { value: list });
     return event;
   }
@@ -1236,7 +1338,11 @@ describe("MarkdownEditor", () => {
       },
     ],
     matchText = "Taskcore App",
-  ): Promise<{ option: HTMLButtonElement; root: ReturnType<typeof createRoot>; menu: HTMLElement }> {
+  ): Promise<{
+    option: HTMLButtonElement;
+    root: ReturnType<typeof createRoot>;
+    menu: HTMLElement;
+  }> {
     const root = createRoot(container);
 
     await act(async () => {
@@ -1268,10 +1374,14 @@ describe("MarkdownEditor", () => {
     });
     await flush();
 
-    const option = Array.from(document.body.querySelectorAll('button[type="button"]'))
-      .find((node) => node.textContent?.includes(matchText)) as HTMLButtonElement | undefined;
+    const option = Array.from(
+      document.body.querySelectorAll('button[type="button"]'),
+    ).find((node) => node.textContent?.includes(matchText)) as
+      HTMLButtonElement | undefined;
     expect(option).toBeTruthy();
-    const menu = document.body.querySelector('[data-testid="mention-autocomplete-menu"]') as HTMLElement | null;
+    const menu = document.body.querySelector(
+      '[data-testid="mention-autocomplete-menu"]',
+    ) as HTMLElement | null;
     expect(menu).toBeTruthy();
     return { option: option!, root, menu: menu! };
   }
@@ -1372,7 +1482,9 @@ describe("MarkdownEditor", () => {
     const handleChange = vi.fn();
     const { option, root } = await openMentionMenuFor(handleChange);
 
-    const touchstart = createTouchEvent("touchstart", [{ clientX: 100, clientY: 50 }]);
+    const touchstart = createTouchEvent("touchstart", [
+      { clientX: 100, clientY: 50 },
+    ]);
     act(() => {
       option.dispatchEvent(touchstart);
     });
@@ -1402,7 +1514,11 @@ describe("MarkdownEditor", () => {
     expect(menu.className).toContain("overflow-y-auto");
     expect(menu.style.touchAction).toBe("pan-y");
 
-    const wheel = new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 80 });
+    const wheel = new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 80,
+    });
     act(() => {
       menu.dispatchEvent(wheel);
     });
@@ -1428,7 +1544,11 @@ describe("MarkdownEditor", () => {
         <Dialog open>
           <DialogContent>
             <DialogTitle>Create task</DialogTitle>
-            <MarkdownEditor value="@Pap" onChange={() => {}} mentions={mentions} />
+            <MarkdownEditor
+              value="@Pap"
+              onChange={() => {}}
+              mentions={mentions}
+            />
           </DialogContent>
         </Dialog>,
       );
@@ -1451,16 +1571,24 @@ describe("MarkdownEditor", () => {
     });
     await flush();
 
-    const menu = document.body.querySelector('[data-testid="mention-autocomplete-menu"]');
+    const menu = document.body.querySelector(
+      '[data-testid="mention-autocomplete-menu"]',
+    );
     expect(menu).toBeTruthy();
 
-    const wheel = new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 80 });
+    const wheel = new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 80,
+    });
     act(() => {
       menu?.dispatchEvent(wheel);
     });
     expect(wheel.defaultPrevented).toBe(false);
 
-    const touchMove = createTouchEvent("touchmove", [{ clientX: 100, clientY: 90 }]);
+    const touchMove = createTouchEvent("touchmove", [
+      { clientX: 100, clientY: 90 },
+    ]);
     act(() => {
       menu?.firstElementChild?.dispatchEvent(touchMove);
     });
@@ -1509,15 +1637,19 @@ describe("MarkdownEditor", () => {
     const { root } = await openMentionMenuFor(handleChange, mentions);
     scrollIntoView.mockClear();
 
-    const editorScope = container.querySelector('[data-testid="mdx-editor"]')?.parentElement;
+    const editorScope = container.querySelector(
+      '[data-testid="mdx-editor"]',
+    )?.parentElement;
     expect(editorScope).toBeTruthy();
 
     act(() => {
-      editorScope?.dispatchEvent(new KeyboardEvent("keydown", {
-        key: "ArrowDown",
-        bubbles: true,
-        cancelable: true,
-      }));
+      editorScope?.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "ArrowDown",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
     await flush();
 
@@ -1532,7 +1664,8 @@ describe("MarkdownEditor", () => {
         value: originalScrollIntoView,
       });
     } else {
-      delete (HTMLElement.prototype as unknown as { scrollIntoView?: unknown }).scrollIntoView;
+      delete (HTMLElement.prototype as unknown as { scrollIntoView?: unknown })
+        .scrollIntoView;
     }
   });
 

@@ -29,26 +29,32 @@ describe("runnerd artifact metadata", () => {
   });
 
   it("rejects an unknown binary metadata schema", () => {
-    expect(() => parseTaskcoreRunnerdBuildMetadata({ ...valid, schema: "runnerd/v2" }))
-      .toThrow(TaskcoreRunnerdArtifactError);
-    expect(() => parseTaskcoreRunnerdBuildMetadata({ ...valid, schema: "runnerd/v2" }))
-      .toThrow(/unsupported/);
+    expect(() =>
+      parseTaskcoreRunnerdBuildMetadata({ ...valid, schema: "runnerd/v2" }),
+    ).toThrow(TaskcoreRunnerdArtifactError);
+    expect(() =>
+      parseTaskcoreRunnerdBuildMetadata({ ...valid, schema: "runnerd/v2" }),
+    ).toThrow(/unsupported/);
   });
 
   it("rejects an invalid or mismatched explicit artifact digest before execution", async () => {
-    await expect(resolveTaskcoreRunnerdArtifact({
-      executablePath: "/does/not/matter",
-      expectedSha256: "not-a-digest",
-    })).rejects.toMatchObject({ issue: "digest_invalid" });
+    await expect(
+      resolveTaskcoreRunnerdArtifact({
+        executablePath: "/does/not/matter",
+        expectedSha256: "not-a-digest",
+      }),
+    ).rejects.toMatchObject({ issue: "digest_invalid" });
 
     const root = await mkdtemp(join(tmpdir(), "taskcore-runnerd-artifact-"));
     const executablePath = join(root, "taskcore-runnerd");
     try {
       await writeFile(executablePath, "not the expected binary");
-      await expect(resolveTaskcoreRunnerdArtifact({
-        executablePath,
-        expectedSha256: `sha256:${"0".repeat(64)}`,
-      })).rejects.toMatchObject({
+      await expect(
+        resolveTaskcoreRunnerdArtifact({
+          executablePath,
+          expectedSha256: `sha256:${"0".repeat(64)}`,
+        }),
+      ).rejects.toMatchObject({
         issue: "digest_mismatch",
         message: expect.stringContaining("observed sha256:"),
       });
@@ -63,7 +69,8 @@ describe("runnerd artifact metadata", () => {
       const root = await mkdtemp(join(tmpdir(), "taskcore-runnerd-artifact-"));
       const executablePath = join(root, "taskcore-runnerd");
       const verifiedScript = `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify(valid)}'\n`;
-      const replacementScript = "#!/bin/sh\nprintf '%s\\n' 'unverified replacement'\n";
+      const replacementScript =
+        "#!/bin/sh\nprintf '%s\\n' 'unverified replacement'\n";
       const expectedSha256 = `sha256:${createHash("sha256").update(verifiedScript).digest("hex")}`;
 
       try {
@@ -78,7 +85,9 @@ describe("runnerd artifact metadata", () => {
           },
         };
 
-        await expect(resolveTaskcoreRunnerdArtifact(input)).resolves.toMatchObject({
+        await expect(
+          resolveTaskcoreRunnerdArtifact(input),
+        ).resolves.toMatchObject({
           executablePath: canonicalExecutablePath,
           sha256: expectedSha256,
           byteSize: Buffer.byteLength(verifiedScript),

@@ -27,7 +27,10 @@ describe("ACPX verified command lease owner", () => {
     expect(open).not.toHaveBeenCalled();
     owner.command.spawn();
     expect(() => owner.command.spawn()).toThrow("already consumed");
-    await Promise.all([owner.refreshConsumedCommand(), owner.refreshConsumedCommand()]);
+    await Promise.all([
+      owner.refreshConsumedCommand(),
+      owner.refreshConsumedCommand(),
+    ]);
     expect(open).toHaveBeenCalledOnce();
     owner.command.spawn();
     expect(second.spawn).toHaveBeenCalledOnce();
@@ -46,13 +49,16 @@ describe("ACPX verified command lease owner", () => {
     let acquired!: (value: VerifiedAcpxCommandLease) => void;
     const owner = createAcpxCommandLeaseOwner(
       first,
-      () => new Promise((resolve) => {
-        acquired = resolve;
-      }),
+      () =>
+        new Promise((resolve) => {
+          acquired = resolve;
+        }),
     );
     owner.command.spawn();
     const refresh = owner.refreshConsumedCommand();
-    const rejectedRefresh = expect(refresh).rejects.toThrow("closed during refresh");
+    const rejectedRefresh = expect(refresh).rejects.toThrow(
+      "closed during refresh",
+    );
     await Promise.resolve();
     const close = owner.command.close();
     const rejectedClose = expect(close).rejects.toThrow("leases did not close");
@@ -71,7 +77,9 @@ describe("ACPX verified command lease owner", () => {
       throw new Error("installation changed");
     });
     owner.command.spawn();
-    await expect(owner.refreshConsumedCommand()).rejects.toThrow("installation changed");
+    await expect(owner.refreshConsumedCommand()).rejects.toThrow(
+      "installation changed",
+    );
     expect(() => owner.command.spawn()).toThrow("already consumed");
     await owner.command.close();
     expect(initial.close).toHaveBeenCalledOnce();

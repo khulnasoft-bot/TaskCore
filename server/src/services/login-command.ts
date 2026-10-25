@@ -21,14 +21,17 @@ export type LoginCommandKey = "claude" | "codex" | "grok";
  * host reads only this map. It never reads the key from a request, a
  * configuration, a plugin manifest, or the provider driver key.
  */
-const ADAPTER_TYPE_TO_LOGIN_COMMAND_KEY: Readonly<Record<string, LoginCommandKey>> = {
+const ADAPTER_TYPE_TO_LOGIN_COMMAND_KEY: Readonly<
+  Record<string, LoginCommandKey>
+> = {
   claude_local: "claude",
   codex_local: "codex",
   grok_local: "grok",
 };
 
 /** The fixed non-secret error an unsupported adapter type returns. */
-export const LOGIN_COMMAND_UNSUPPORTED_ADAPTER = "LOGIN_PTY_UNSUPPORTED_ADAPTER";
+export const LOGIN_COMMAND_UNSUPPORTED_ADAPTER =
+  "LOGIN_PTY_UNSUPPORTED_ADAPTER";
 /** The fixed non-secret error an invalid session home returns. */
 export const LOGIN_SESSION_HOME_INVALID = "LOGIN_PTY_INVALID_SESSION_HOME";
 
@@ -57,7 +60,9 @@ export function isLoginCommandKey(value: unknown): value is LoginCommandKey {
  * fails closed at admission. The device login opener resolves the same closed
  * map later, so admission and command resolution stay consistent.
  */
-export function isLoginCommandSupportedAdapterType(adapterType: string): boolean {
+export function isLoginCommandSupportedAdapterType(
+  adapterType: string,
+): boolean {
   return ADAPTER_TYPE_TO_LOGIN_COMMAND_KEY[adapterType] !== undefined;
 }
 
@@ -69,7 +74,8 @@ export function isLoginCommandSupportedAdapterType(adapterType: string): boolean
 export const LOGIN_SESSION_HOME_ROOT = "/tmp/taskcore-adapter-login";
 
 /** Matches one lowercase-hyphenated UUID (version 4 layout not enforced). */
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /**
  * The exact absolute path shape for a login session home. The path is the fixed

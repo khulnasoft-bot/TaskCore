@@ -32,7 +32,8 @@ function normalizeLimits(overrides = {}) {
       "maxRetainedRuns",
     ),
     maxRequestBodyBytes: positiveInteger(
-      overrides.maxRequestBodyBytes ?? LOCAL_RUNNER_BROWSER_LIMITS.maxRequestBodyBytes,
+      overrides.maxRequestBodyBytes ??
+        LOCAL_RUNNER_BROWSER_LIMITS.maxRequestBodyBytes,
       "maxRequestBodyBytes",
     ),
     maxStreamClientsPerRun: positiveInteger(
@@ -52,7 +53,11 @@ function isLoopbackAddress(address) {
     return false;
   }
   const normalized = address.toLowerCase().replace(/^::ffff:/, "");
-  if (normalized === "::1" || normalized === "[::1]" || normalized === "localhost") {
+  if (
+    normalized === "::1" ||
+    normalized === "[::1]" ||
+    normalized === "localhost"
+  ) {
     return true;
   }
   const octets = normalized.split(".");
@@ -66,22 +71,35 @@ function isLoopbackAddress(address) {
 function requestOrigin(request) {
   const host = request.headers.host;
   if (typeof host !== "string" || host.length === 0) {
-    throw new LocalRunnerHttpError(403, "Local runner requests require a loopback Host");
+    throw new LocalRunnerHttpError(
+      403,
+      "Local runner requests require a loopback Host",
+    );
   }
   const protocol = request.socket.encrypted === true ? "https:" : "http:";
   let hostUrl;
   try {
     hostUrl = new URL(`${protocol}//${host}`);
   } catch {
-    throw new LocalRunnerHttpError(403, "Local runner requests require a valid loopback Host");
+    throw new LocalRunnerHttpError(
+      403,
+      "Local runner requests require a valid loopback Host",
+    );
   }
   if (!isLoopbackAddress(hostUrl.hostname)) {
-    throw new LocalRunnerHttpError(403, "Local runner requests require a loopback Host");
+    throw new LocalRunnerHttpError(
+      403,
+      "Local runner requests require a loopback Host",
+    );
   }
   const defaultPort = protocol === "https:" ? 443 : 80;
-  const hostPort = hostUrl.port.length === 0 ? defaultPort : Number(hostUrl.port);
+  const hostPort =
+    hostUrl.port.length === 0 ? defaultPort : Number(hostUrl.port);
   if (hostPort !== request.socket.localPort) {
-    throw new LocalRunnerHttpError(403, "Local runner Host must name the listening loopback port");
+    throw new LocalRunnerHttpError(
+      403,
+      "Local runner Host must name the listening loopback port",
+    );
   }
   return hostUrl.origin;
 }
@@ -91,19 +109,32 @@ function assertTrustedTransport(request) {
     !isLoopbackAddress(request.socket.localAddress) ||
     !isLoopbackAddress(request.socket.remoteAddress)
   ) {
-    throw new LocalRunnerHttpError(403, "Local runner is available only over loopback");
+    throw new LocalRunnerHttpError(
+      403,
+      "Local runner is available only over loopback",
+    );
   }
   const expectedOrigin = requestOrigin(request);
   const origin = request.headers.origin;
-  if (Array.isArray(origin) || (typeof origin === "string" && origin !== expectedOrigin)) {
-    throw new LocalRunnerHttpError(403, "Local runner requests must be same-origin");
+  if (
+    Array.isArray(origin) ||
+    (typeof origin === "string" && origin !== expectedOrigin)
+  ) {
+    throw new LocalRunnerHttpError(
+      403,
+      "Local runner requests must be same-origin",
+    );
   }
   const fetchSite = request.headers["sec-fetch-site"];
   if (
     Array.isArray(fetchSite) ||
-    (typeof fetchSite === "string" && !["same-origin", "none"].includes(fetchSite))
+    (typeof fetchSite === "string" &&
+      !["same-origin", "none"].includes(fetchSite))
   ) {
-    throw new LocalRunnerHttpError(403, "Local runner cross-site requests are forbidden");
+    throw new LocalRunnerHttpError(
+      403,
+      "Local runner cross-site requests are forbidden",
+    );
   }
 }
 
@@ -117,7 +148,10 @@ function declaredBodyBytes(request) {
   }
   const value = Number(header);
   if (!Number.isSafeInteger(value)) {
-    throw new LocalRunnerHttpError(413, "Local runner request body is too large");
+    throw new LocalRunnerHttpError(
+      413,
+      "Local runner request body is too large",
+    );
   }
   return value;
 }
@@ -141,7 +175,10 @@ function readJson(request, maxBytes) {
     !/^application\/json(?:\s*;|$)/i.test(contentType)
   ) {
     request.resume();
-    throw new LocalRunnerHttpError(415, "Local runner request bodies must use application/json");
+    throw new LocalRunnerHttpError(
+      415,
+      "Local runner request bodies must use application/json",
+    );
   }
 
   return new Promise((resolve, reject) => {
@@ -192,11 +229,17 @@ function readJson(request, maxBytes) {
         const source = Buffer.concat(chunks, receivedBytes).toString("utf8");
         resolve(source.length === 0 ? {} : JSON.parse(source));
       } catch {
-        reject(new LocalRunnerHttpError(400, "Local runner request body must be valid JSON"));
+        reject(
+          new LocalRunnerHttpError(
+            400,
+            "Local runner request body must be valid JSON",
+          ),
+        );
       }
     };
     const onError = (error) => fail(error);
-    const onAborted = () => fail(new LocalRunnerHttpError(400, "Request body was aborted"));
+    const onAborted = () =>
+      fail(new LocalRunnerHttpError(400, "Request body was aborted"));
 
     request.on("data", onData);
     request.on("end", onEnd);
@@ -217,7 +260,8 @@ function writeRecord(response, value) {
 }
 
 function sendError(response, error, fallbackStatus = 400) {
-  const status = error instanceof LocalRunnerHttpError ? error.status : fallbackStatus;
+  const status =
+    error instanceof LocalRunnerHttpError ? error.status : fallbackStatus;
   const message = error instanceof Error ? error.message : String(error);
   json(response, status, { error: message });
 }
@@ -272,7 +316,9 @@ export function createLocalRunnerBrowserMiddleware(options = {}) {
       }
       pruneFinishedRuns(limits.maxRetainedRuns - 1);
       if (runs.size + startingRuns >= limits.maxRetainedRuns) {
-        json(response, 429, { error: "Local runner retained-run limit reached" });
+        json(response, 429, {
+          error: "Local runner retained-run limit reached",
+        });
         return;
       }
 
@@ -299,7 +345,14 @@ export function createLocalRunnerBrowserMiddleware(options = {}) {
             publish({ kind: "diagnostic", message });
           },
         });
-        const entry = { id, handle, history, clients, finished: false, trace: null };
+        const entry = {
+          id,
+          handle,
+          history,
+          clients,
+          finished: false,
+          trace: null,
+        };
         runs.set(id, entry);
         handle.completion.then(
           (trace) => {
@@ -345,8 +398,13 @@ export function createLocalRunnerBrowserMiddleware(options = {}) {
     }
     const action = match[2];
     if (request.method === "GET" && action === "events") {
-      if (!entry.finished && entry.clients.size >= limits.maxStreamClientsPerRun) {
-        json(response, 429, { error: "Local runner stream-client limit reached" });
+      if (
+        !entry.finished &&
+        entry.clients.size >= limits.maxStreamClientsPerRun
+      ) {
+        json(response, 429, {
+          error: "Local runner stream-client limit reached",
+        });
         return;
       }
       response.statusCode = 200;

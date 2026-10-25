@@ -88,7 +88,9 @@
     "events": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "https://taskcore.dev/schemas/prp/v1/event.schema.json" }
+      "items": {
+        "$ref": "https://taskcore.dev/schemas/prp/v1/event.schema.json"
+      }
     },
     "semanticTools": {
       "type": "object",
@@ -101,7 +103,9 @@
       },
       "additionalProperties": true
     },
-    "terminal": { "$ref": "https://taskcore.dev/schemas/prp/v1/terminal.schema.json" },
+    "terminal": {
+      "$ref": "https://taskcore.dev/schemas/prp/v1/terminal.schema.json"
+    },
     "observations": { "type": "object", "additionalProperties": true },
     "usage": {
       "type": "object",

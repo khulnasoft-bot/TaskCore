@@ -1,4 +1,13 @@
-import { Profiler, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Profiler,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AlertTriangle, MessageSquarePlus } from "lucide-react";
 import type {
   DocumentAnnotationAnchorState,
@@ -117,9 +126,13 @@ const NATIVE_HIGHLIGHT_NAMES: Record<NativeHighlightKind, string> = {
 
 const nativeHighlightInstances = new Map<string, NativeHighlightRanges>();
 
-function getNativeHighlightApi(): { registry: HighlightRegistry; HighlightCtor: HighlightConstructor } | null {
+function getNativeHighlightApi(): {
+  registry: HighlightRegistry;
+  HighlightCtor: HighlightConstructor;
+} | null {
   const css = (globalThis as { CSS?: { highlights?: HighlightRegistry } }).CSS;
-  const HighlightCtor = (globalThis as { Highlight?: HighlightConstructor }).Highlight;
+  const HighlightCtor = (globalThis as { Highlight?: HighlightConstructor })
+    .Highlight;
   if (!css?.highlights || typeof HighlightCtor !== "function") return null;
   return { registry: css.highlights, HighlightCtor };
 }
@@ -135,8 +148,12 @@ function emptyNativeHighlightRanges(): NativeHighlightRanges {
 
 function syncNativeHighlights(api = getNativeHighlightApi()) {
   if (!api) return;
-  for (const kind of Object.keys(NATIVE_HIGHLIGHT_NAMES) as NativeHighlightKind[]) {
-    const ranges = Array.from(nativeHighlightInstances.values()).flatMap((entry) => entry[kind]);
+  for (const kind of Object.keys(
+    NATIVE_HIGHLIGHT_NAMES,
+  ) as NativeHighlightKind[]) {
+    const ranges = Array.from(nativeHighlightInstances.values()).flatMap(
+      (entry) => entry[kind],
+    );
     const name = NATIVE_HIGHLIGHT_NAMES[kind];
     if (ranges.length === 0) {
       api.registry.delete(name);
@@ -146,7 +163,10 @@ function syncNativeHighlights(api = getNativeHighlightApi()) {
   }
 }
 
-function setNativeHighlightRanges(instanceId: string, ranges: NativeHighlightRanges) {
+function setNativeHighlightRanges(
+  instanceId: string,
+  ranges: NativeHighlightRanges,
+) {
   if (!getNativeHighlightApi()) return;
   nativeHighlightInstances.set(instanceId, ranges);
   syncNativeHighlights();
@@ -165,16 +185,24 @@ function elementFromNode(node: Node | null | undefined): HTMLElement | null {
 }
 
 function selectionTouchesEditableElement(container: HTMLElement, range: Range) {
-  for (const node of [range.startContainer, range.endContainer, range.commonAncestorContainer]) {
+  for (const node of [
+    range.startContainer,
+    range.endContainer,
+    range.commonAncestorContainer,
+  ]) {
     const element = elementFromNode(node);
     if (!element || !container.contains(element)) continue;
-    const editableElement = element.closest("input, textarea, select, [contenteditable]");
+    const editableElement = element.closest(
+      "input, textarea, select, [contenteditable]",
+    );
     if (!(editableElement instanceof HTMLElement)) continue;
     if (editableElement.matches("input, textarea, select")) return true;
-    const contentEditableValue = editableElement.getAttribute("contenteditable");
+    const contentEditableValue =
+      editableElement.getAttribute("contenteditable");
     if (
       editableElement.isContentEditable ||
-      (contentEditableValue !== null && contentEditableValue.toLowerCase() !== "false")
+      (contentEditableValue !== null &&
+        contentEditableValue.toLowerCase() !== "false")
     ) {
       return true;
     }
@@ -203,19 +231,33 @@ function intersectRects(a: DOMRect, b: DOMRect): DOMRect | null {
 
 function clipsOverflow(element: HTMLElement) {
   if (element.classList.contains("fold-curtain__content")) return true;
-  if (typeof window === "undefined" || typeof window.getComputedStyle !== "function") return false;
+  if (
+    typeof window === "undefined" ||
+    typeof window.getComputedStyle !== "function"
+  )
+    return false;
   const style = window.getComputedStyle(element);
-  return [style.overflow, style.overflowX, style.overflowY].some((value) =>
-    value === "hidden" || value === "clip" || value === "auto" || value === "scroll",
+  return [style.overflow, style.overflowX, style.overflowY].some(
+    (value) =>
+      value === "hidden" ||
+      value === "clip" ||
+      value === "auto" ||
+      value === "scroll",
   );
 }
 
-function visibleClipRectForRange(range: Range, container: HTMLElement): DOMRect | null {
+function visibleClipRectForRange(
+  range: Range,
+  container: HTMLElement,
+): DOMRect | null {
   let clipRect = container.getBoundingClientRect();
   let element = elementFromNode(range.commonAncestorContainer);
   while (element) {
     if (clipsOverflow(element)) {
-      const nextClipRect = intersectRects(clipRect, element.getBoundingClientRect());
+      const nextClipRect = intersectRects(
+        clipRect,
+        element.getBoundingClientRect(),
+      );
       if (!nextClipRect) return null;
       clipRect = nextClipRect;
     }
@@ -254,7 +296,8 @@ export function DocumentAnnotationLayer({
 }: AnnotationLayerProps) {
   const [highlightRects, setHighlightRects] = useState<HighlightRect[]>([]);
   const [hoveredThreadId, setHoveredThreadId] = useState<string | null>(null);
-  const [toolbarPosition, setToolbarPosition] = useState<ToolbarPosition | null>(null);
+  const [toolbarPosition, setToolbarPosition] =
+    useState<ToolbarPosition | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const lastCaptureSelectionRequestIdRef = useRef<number>(0);
   const lastSelectionRectRef = useRef<AnnotationAnchorRect | null>(null);
@@ -268,7 +311,12 @@ export function DocumentAnnotationLayer({
 
   const visibleThreads = useMemo(() => {
     if (!hideResolved) return threads;
-    return threads.filter((thread) => thread.status !== "resolved" || thread.anchorState === "orphaned" || thread.id === focusedThreadId);
+    return threads.filter(
+      (thread) =>
+        thread.status !== "resolved" ||
+        thread.anchorState === "orphaned" ||
+        thread.id === focusedThreadId,
+    );
   }, [threads, hideResolved, focusedThreadId]);
 
   const computeHighlightRects = useCallback(() => {
@@ -333,7 +381,11 @@ export function DocumentAnnotationLayer({
         anchorState: thread.anchorState,
         focused: isFocused,
         selectedText: thread.selectedText,
-        nativeKind: nativeHighlightKind({ focused: isFocused, stale: isStale, resolved: isResolved }),
+        nativeKind: nativeHighlightKind({
+          focused: isFocused,
+          stale: isStale,
+          resolved: isResolved,
+        }),
       });
     }
     // Keep the in-progress (pending) comment selection brightly highlighted so the
@@ -350,22 +402,41 @@ export function DocumentAnnotationLayer({
     }
     setNativeHighlightRanges(nativeHighlightInstanceId, nativeRanges);
     setHighlightRects(next);
-    const activeId = pendingHighlightText ? PENDING_HIGHLIGHT_THREAD_ID : focusedThreadId;
-    const activeRects = activeId ? next.filter((rect) => rect.threadId === activeId) : [];
-    const activeRect = activeRects.find((rect) => rect.isTail) ?? activeRects[0];
-    onAnchorRectChange?.(activeRect ? {
-      top: activeRect.top,
-      left: activeRect.left,
-      width: activeRect.width,
-      height: activeRect.height,
-    } : null);
-  }, [containerRef, focusedThreadId, nativeHighlightInstanceId, onAnchorRectChange, pendingHighlightText, visibleThreads]);
+    const activeId = pendingHighlightText
+      ? PENDING_HIGHLIGHT_THREAD_ID
+      : focusedThreadId;
+    const activeRects = activeId
+      ? next.filter((rect) => rect.threadId === activeId)
+      : [];
+    const activeRect =
+      activeRects.find((rect) => rect.isTail) ?? activeRects[0];
+    onAnchorRectChange?.(
+      activeRect
+        ? {
+            top: activeRect.top,
+            left: activeRect.left,
+            width: activeRect.width,
+            height: activeRect.height,
+          }
+        : null,
+    );
+  }, [
+    containerRef,
+    focusedThreadId,
+    nativeHighlightInstanceId,
+    onAnchorRectChange,
+    pendingHighlightText,
+    visibleThreads,
+  ]);
 
   useLayoutEffect(() => {
     computeHighlightRects();
   }, [computeHighlightRects]);
 
-  useEffect(() => () => clearNativeHighlightRanges(nativeHighlightInstanceId), [nativeHighlightInstanceId]);
+  useEffect(
+    () => () => clearNativeHighlightRanges(nativeHighlightInstanceId),
+    [nativeHighlightInstanceId],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -386,34 +457,50 @@ export function DocumentAnnotationLayer({
     window.addEventListener("resize", handleResizeOrScroll);
     window.addEventListener("scroll", handleResizeOrScroll, true);
 
-    const resizeObserver = typeof window.ResizeObserver === "function"
-      ? new window.ResizeObserver(schedule)
-      : null;
+    const resizeObserver =
+      typeof window.ResizeObserver === "function"
+        ? new window.ResizeObserver(schedule)
+        : null;
     if (resizeObserver && container) resizeObserver.observe(container);
     if (resizeObserver && overlay) resizeObserver.observe(overlay);
 
-    const mutationObserver = typeof window.MutationObserver === "function" && container
-      ? new window.MutationObserver((mutations) => {
-        if (selectionDebugEnabled) {
-          const markdownMutations = mutations.filter((mutation) =>
-            Boolean(elementFromNode(mutation.target)?.closest(".taskcore-markdown")),
-          );
-          if (markdownMutations.length > 0) recordMarkdownMutations(markdownMutations.length);
-        }
-        const onlyLayerMutations = mutations.every((mutation) => {
-          const target = elementFromNode(mutation.target);
-          return !!target?.closest(".taskcore-doc-annotation-layer, .taskcore-doc-annotation-visual-layer");
-        });
-        if (!onlyLayerMutations) schedule();
-      })
-      : null;
+    const mutationObserver =
+      typeof window.MutationObserver === "function" && container
+        ? new window.MutationObserver((mutations) => {
+            if (selectionDebugEnabled) {
+              const markdownMutations = mutations.filter((mutation) =>
+                Boolean(
+                  elementFromNode(mutation.target)?.closest(
+                    ".taskcore-markdown",
+                  ),
+                ),
+              );
+              if (markdownMutations.length > 0)
+                recordMarkdownMutations(markdownMutations.length);
+            }
+            const onlyLayerMutations = mutations.every((mutation) => {
+              const target = elementFromNode(mutation.target);
+              return !!target?.closest(
+                ".taskcore-doc-annotation-layer, .taskcore-doc-annotation-visual-layer",
+              );
+            });
+            if (!onlyLayerMutations) schedule();
+          })
+        : null;
     if (mutationObserver && container) {
       mutationObserver.observe(container, {
         childList: true,
         characterData: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ["class", "style", "data-state", "open", "hidden", "aria-expanded"],
+        attributeFilter: [
+          "class",
+          "style",
+          "data-state",
+          "open",
+          "hidden",
+          "aria-expanded",
+        ],
       });
     }
 
@@ -434,18 +521,25 @@ export function DocumentAnnotationLayer({
     const overlay = overlayRef.current;
     if (!container || !overlay) return null;
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed)
+      return null;
     const range = selection.getRangeAt(0);
     if (!container.contains(range.commonAncestorContainer)) return null;
     if (selectionTouchesEditableElement(container, range)) return null;
     const containerOffset = getContainerTextOffset(container, range);
     if (!containerOffset) return null;
-    const anchor = buildAnchorFromContainerSelection({ markdown, containerOffset });
+    const anchor = buildAnchorFromContainerSelection({
+      markdown,
+      containerOffset,
+    });
     if (!anchor) return null;
     const overlayRect = overlay.getBoundingClientRect();
     const rect = range.getBoundingClientRect();
     const top = Math.max(0, rect.top - overlayRect.top - 36);
-    const left = Math.max(0, rect.left - overlayRect.left + rect.width / 2 - 80);
+    const left = Math.max(
+      0,
+      rect.left - overlayRect.left + rect.width / 2 - 80,
+    );
     setToolbarPosition({ top, left });
     lastSelectionRectRef.current = {
       top: rect.top - overlayRect.top,
@@ -463,15 +557,22 @@ export function DocumentAnnotationLayer({
     if (typeof document === "undefined") return;
     const handleSelectionChange = () => {
       const selection = window.getSelection();
-      const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+      const range =
+        selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
       const selectionIsActive = Boolean(
-        selection && !selection.isCollapsed && range && containerRef.current?.contains(range.commonAncestorContainer),
+        selection &&
+        !selection.isCollapsed &&
+        range &&
+        containerRef.current?.contains(range.commonAncestorContainer),
       );
       if (selectionDebugEnabled) recordSelectionChange(selectionIsActive);
       const captureStartedAt = selectionDebugEnabled ? performance.now() : 0;
       const anchor = captureSelection();
       if (selectionDebugEnabled) {
-        recordCaptureSelection(performance.now() - captureStartedAt, Boolean(anchor));
+        recordCaptureSelection(
+          performance.now() - captureStartedAt,
+          Boolean(anchor),
+        );
       }
       if (!anchor) {
         onPendingAnchorChange(null);
@@ -481,28 +582,45 @@ export function DocumentAnnotationLayer({
       onPendingAnchorChange(anchor);
     };
     document.addEventListener("selectionchange", handleSelectionChange);
-    return () => document.removeEventListener("selectionchange", handleSelectionChange);
-  }, [captureSelection, containerRef, onPendingAnchorChange, selectionDebugEnabled]);
+    return () =>
+      document.removeEventListener("selectionchange", handleSelectionChange);
+  }, [
+    captureSelection,
+    containerRef,
+    onPendingAnchorChange,
+    selectionDebugEnabled,
+  ]);
 
   useEffect(() => {
     if (captureSelectionRequestId === undefined) return;
     if (captureSelectionRequestId === 0) return;
-    if (lastCaptureSelectionRequestIdRef.current === captureSelectionRequestId) return;
+    if (lastCaptureSelectionRequestIdRef.current === captureSelectionRequestId)
+      return;
     lastCaptureSelectionRequestIdRef.current = captureSelectionRequestId;
     const anchor = captureSelection();
     if (anchor) {
       onPendingAnchorChange(anchor);
-      if (lastSelectionRectRef.current) onRequestComment(anchor, lastSelectionRectRef.current);
+      if (lastSelectionRectRef.current)
+        onRequestComment(anchor, lastSelectionRectRef.current);
     }
-  }, [captureSelectionRequestId, captureSelection, onPendingAnchorChange, onRequestComment]);
+  }, [
+    captureSelectionRequestId,
+    captureSelection,
+    onPendingAnchorChange,
+    onRequestComment,
+  ]);
 
   const handleAddComment = () => {
-    if (pendingAnchor && lastSelectionRectRef.current) onRequestComment(pendingAnchor, lastSelectionRectRef.current);
+    if (pendingAnchor && lastSelectionRectRef.current)
+      onRequestComment(pendingAnchor, lastSelectionRectRef.current);
   };
 
   const content = (
     <>
-      <div className="taskcore-doc-annotation-visual-layer pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+      <div
+        className="taskcore-doc-annotation-visual-layer pointer-events-none absolute inset-0 z-0"
+        aria-hidden="true"
+      >
         <div className="relative h-full w-full">
           {highlightRects.map((rect, index) => {
             const isFocused = rect.focused;
@@ -558,7 +676,9 @@ export function DocumentAnnotationLayer({
                 }}
                 onMouseEnter={() => setHoveredThreadId(rect.threadId)}
                 onMouseLeave={() =>
-                  setHoveredThreadId((current) => (current === rect.threadId ? null : current))
+                  setHoveredThreadId((current) =>
+                    current === rect.threadId ? null : current,
+                  )
                 }
                 onMouseDown={(event) => {
                   event.preventDefault();
@@ -607,9 +727,11 @@ export function DocumentAnnotationLayer({
                 className="h-7 gap-1 px-2 text-xs"
                 onClick={handleAddComment}
                 disabled={newCommentDisabled}
-                title={newCommentDisabled
-                  ? newCommentDisabledReason ?? undefined
-                  : "Add comment on selection (⌘⇧M)"}
+                title={
+                  newCommentDisabled
+                    ? (newCommentDisabledReason ?? undefined)
+                    : "Add comment on selection (⌘⇧M)"
+                }
               >
                 <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden="true" />
                 Comment
@@ -625,5 +747,7 @@ export function DocumentAnnotationLayer({
     <Profiler id="DocumentAnnotationLayer" onRender={recordAnnotationCommit}>
       {content}
     </Profiler>
-  ) : content;
+  ) : (
+    content
+  );
 }

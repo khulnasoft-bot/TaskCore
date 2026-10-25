@@ -7,7 +7,7 @@ const reasons = [
   "ai_connection_incompatible",
   "ai_connection_unavailable",
 ] as const;
-type AiConnectionConfigurationReason = typeof reasons[number];
+type AiConnectionConfigurationReason = (typeof reasons)[number];
 const failures = new WeakMap<Error, AiConnectionConfigurationReason>();
 
 /** Preserve the existing HTTP error while recording an explicit selection rejection. */
@@ -22,10 +22,16 @@ export function aiConnectionConfigurationFailure(
 }
 
 /** Only owned producers supply this evidence; matching names or HTTP codes do not. */
-export function readAiConnectionConfigurationFailure(error: unknown): AiConnectionConfigurationReason | null {
-  return error instanceof Error ? failures.get(error) ?? null : null;
+export function readAiConnectionConfigurationFailure(
+  error: unknown,
+): AiConnectionConfigurationReason | null {
+  return error instanceof Error ? (failures.get(error) ?? null) : null;
 }
 
-export function isAiConnectionConfigurationReason(value: unknown): value is AiConnectionConfigurationReason {
-  return typeof value === "string" && reasons.some((reason) => reason === value);
+export function isAiConnectionConfigurationReason(
+  value: unknown,
+): value is AiConnectionConfigurationReason {
+  return (
+    typeof value === "string" && reasons.some((reason) => reason === value)
+  );
 }

@@ -6,7 +6,9 @@ import {
   sortWorkspaceRoutinesByName,
 } from "./workspace-routines";
 
-function createRoutine(overrides: Partial<RoutineListItem> = {}): RoutineListItem {
+function createRoutine(
+  overrides: Partial<RoutineListItem> = {},
+): RoutineListItem {
   return {
     id: "routine-1",
     companyId: "company-1",
@@ -45,12 +47,21 @@ describe("workspace routine helpers", () => {
   it("matches routines with explicit workspace variables", () => {
     const routine = createRoutine({
       variables: [
-        { name: "workspaceBranch", label: null, type: "text", defaultValue: null, required: true, options: [] },
+        {
+          name: "workspaceBranch",
+          label: null,
+          type: "text",
+          defaultValue: null,
+          required: true,
+          options: [],
+        },
       ],
     });
 
     expect(routineHasWorkspaceSpecificVariables(routine)).toBe(true);
-    expect(getWorkspaceSpecificRoutineVariableNames(routine)).toEqual(["workspaceBranch"]);
+    expect(getWorkspaceSpecificRoutineVariableNames(routine)).toEqual([
+      "workspaceBranch",
+    ]);
   });
 
   it("matches routines that reference workspace variables in templates", () => {
@@ -59,14 +70,23 @@ describe("workspace routine helpers", () => {
       description: "Check branch {{workspaceBranch}}",
     });
 
-    expect(getWorkspaceSpecificRoutineVariableNames(routine)).toEqual(["workspaceBranch"]);
+    expect(getWorkspaceSpecificRoutineVariableNames(routine)).toEqual([
+      "workspaceBranch",
+    ]);
   });
 
   it("ignores routines with only non-workspace variables", () => {
     const routine = createRoutine({
       title: "Review {{repo}}",
       variables: [
-        { name: "repo", label: null, type: "text", defaultValue: null, required: true, options: [] },
+        {
+          name: "repo",
+          label: null,
+          type: "text",
+          defaultValue: null,
+          required: true,
+          options: [],
+        },
       ],
     });
 
@@ -92,11 +112,13 @@ describe("workspace routine helpers", () => {
       }),
     ];
 
-    expect(sortWorkspaceRoutinesByName(routines).map((routine) => routine.id)).toEqual([
-      "routine-1",
-      "routine-3",
+    expect(
+      sortWorkspaceRoutinesByName(routines).map((routine) => routine.id),
+    ).toEqual(["routine-1", "routine-3", "routine-2"]);
+    expect(routines.map((routine) => routine.id)).toEqual([
       "routine-2",
+      "routine-3",
+      "routine-1",
     ]);
-    expect(routines.map((routine) => routine.id)).toEqual(["routine-2", "routine-3", "routine-1"]);
   });
 });

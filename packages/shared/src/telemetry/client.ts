@@ -48,7 +48,9 @@ function stableStringify(value: unknown): string {
  * server hint is honored rather than ignored. The HTTP-date form is
  * intentionally not parsed.
  */
-function parseRetryAfterMs(response: { headers?: { get?(name: string): string | null } }): number | undefined {
+function parseRetryAfterMs(response: {
+  headers?: { get?(name: string): string | null };
+}): number | undefined {
   const raw = response.headers?.get?.("retry-after");
   if (!raw) return undefined;
   const seconds = Number(raw);
@@ -115,7 +117,10 @@ export class TelemetryClient {
    * Tracks first-party Taskcore telemetry events registered in the generated
    * backend event schema.
    */
-  track<K extends TelemetryEventName>(eventName: K, ...args: TrackArgs<K>): void {
+  track<K extends TelemetryEventName>(
+    eventName: K,
+    ...args: TrackArgs<K>
+  ): void {
     if (!this.isRegisteredEventName(eventName)) return;
     const [dimensions] = args;
     this.enqueue(eventName, dimensions);
@@ -209,7 +214,10 @@ export class TelemetryClient {
     this.splitByBytes(chunk.slice(mid), out);
   }
 
-  private buildEnvelope(events: TelemetryEvent[], batchId?: string): TelemetryEventEnvelope {
+  private buildEnvelope(
+    events: TelemetryEvent[],
+    batchId?: string,
+  ): TelemetryEventEnvelope {
     const state = this.getState();
     return {
       app: this.config.app ?? "taskcore",
@@ -269,7 +277,9 @@ export class TelemetryClient {
    * terminal failure or after `maxAttempts` the batch is dropped-and-logged.
    */
   private async attemptSend(batch: PendingBatch): Promise<void> {
-    const body = JSON.stringify(this.buildEnvelope(batch.events, batch.batchId));
+    const body = JSON.stringify(
+      this.buildEnvelope(batch.events, batch.batchId),
+    );
     const outcome = this.classifyOutcome(await this.postEnvelope(body));
 
     if (outcome.kind === "ok") return;
@@ -306,8 +316,14 @@ export class TelemetryClient {
   }
 
   private classifyOutcome(
-    result: { kind: "ok" } | { kind: "status"; status: number; retryAfterMs?: number } | { kind: "network" },
-  ): { kind: "ok" } | { kind: "retry"; retryAfterMs?: number } | { kind: "terminal"; status: number } {
+    result:
+      | { kind: "ok" }
+      | { kind: "status"; status: number; retryAfterMs?: number }
+      | { kind: "network" },
+  ):
+    | { kind: "ok" }
+    | { kind: "retry"; retryAfterMs?: number }
+    | { kind: "terminal"; status: number } {
     if (result.kind === "ok") return { kind: "ok" };
     if (result.kind === "network") return { kind: "retry" };
     if (this.isRetryableStatus(result.status)) {
@@ -410,9 +426,14 @@ export class TelemetryClient {
    */
   private async postEnvelope(
     body: string,
-  ): Promise<{ kind: "ok" } | { kind: "status"; status: number; retryAfterMs?: number } | { kind: "network" }> {
+  ): Promise<
+    | { kind: "ok" }
+    | { kind: "status"; status: number; retryAfterMs?: number }
+    | { kind: "network" }
+  > {
     const endpoints = this.resolveEndpoints();
-    let lastTransient: { kind: "status"; status: number; retryAfterMs?: number } | undefined;
+    let lastTransient:
+      { kind: "status"; status: number; retryAfterMs?: number } | undefined;
     for (const endpoint of endpoints) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
@@ -424,7 +445,11 @@ export class TelemetryClient {
           signal: controller.signal,
         });
         if (response.ok) return { kind: "ok" };
-        const status = { kind: "status" as const, status: response.status, retryAfterMs: parseRetryAfterMs(response) };
+        const status = {
+          kind: "status" as const,
+          status: response.status,
+          retryAfterMs: parseRetryAfterMs(response),
+        };
         // Transient upstream 5xx: remember it and try the next endpoint.
         if (this.isTransientServerStatus(response.status)) {
           lastTransient = status;
@@ -457,7 +482,10 @@ export class TelemetryClient {
       void this.flush();
     }, intervalMs);
     // Allow the process to exit even if the interval is still active
-    if (typeof this.flushInterval === "object" && "unref" in this.flushInterval) {
+    if (
+      typeof this.flushInterval === "object" &&
+      "unref" in this.flushInterval
+    ) {
       this.flushInterval.unref();
     }
   }

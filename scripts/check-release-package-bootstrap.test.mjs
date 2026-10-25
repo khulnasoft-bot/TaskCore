@@ -33,7 +33,9 @@ test("manifest changes only validate newly release-enabled packages relative to 
   ];
   const baseReleaseState = {
     source: "manifest",
-    byDir: new Map([["packages/a", { name: "@taskcore/a", publishFromCi: true }]]),
+    byDir: new Map([
+      ["packages/a", { name: "@taskcore/a", publishFromCi: true }],
+    ]),
   };
 
   const changedPackages = collectReleasePackagesForChangedPaths(
@@ -71,7 +73,10 @@ test("npm E404 failures are treated as missing packages", () => {
 });
 
 test("non-404 npm failures are treated as registry errors", () => {
-  assert.equal(classifyNpmViewFailure("npm error code EAI_AGAIN"), "registry_error");
+  assert.equal(
+    classifyNpmViewFailure("npm error code EAI_AGAIN"),
+    "registry_error",
+  );
   assert.equal(classifyNpmViewFailure("npm error code E429"), "registry_error");
 });
 
@@ -81,24 +86,29 @@ test("base release state falls back to public packages when manifest is absent",
     { dir: "packages/b", name: "@taskcore/b", publishFromCi: true },
   ];
 
-  const baseReleaseState = getBaseReleaseState("base-sha", releasePackages, (_revision, filePath) => {
-    if (filePath === "scripts/release-package-manifest.json") {
+  const baseReleaseState = getBaseReleaseState(
+    "base-sha",
+    releasePackages,
+    (_revision, filePath) => {
+      if (filePath === "scripts/release-package-manifest.json") {
+        return null;
+      }
+
+      if (filePath === "packages/a/package.json") {
+        return JSON.stringify({ name: "@taskcore/a", private: false });
+      }
+
+      if (filePath === "packages/b/package.json") {
+        return JSON.stringify({ name: "@taskcore/b", private: true });
+      }
+
       return null;
-    }
-
-    if (filePath === "packages/a/package.json") {
-      return JSON.stringify({ name: "@taskcore/a", private: false });
-    }
-
-    if (filePath === "packages/b/package.json") {
-      return JSON.stringify({ name: "@taskcore/b", private: true });
-    }
-
-    return null;
-  });
+    },
+  );
 
   assert.equal(baseReleaseState?.source, "public-packages");
-  assert.deepEqual([...baseReleaseState.byDir.entries()], [
-    ["packages/a", { name: "@taskcore/a", publishFromCi: true }],
-  ]);
+  assert.deepEqual(
+    [...baseReleaseState.byDir.entries()],
+    [["packages/a", { name: "@taskcore/a", publishFromCi: true }]],
+  );
 });

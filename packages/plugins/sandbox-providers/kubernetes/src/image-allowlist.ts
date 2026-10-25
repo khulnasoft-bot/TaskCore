@@ -34,8 +34,12 @@ export function resolveImage(
   config: ResolveImageConfig,
 ): string {
   if (target.imageOverride) {
-    if (!config.imageAllowList.some((p) => globMatch(p, target.imageOverride!))) {
-      throw new Error(`Image override "${target.imageOverride}" is not in allowlist`);
+    if (
+      !config.imageAllowList.some((p) => globMatch(p, target.imageOverride!))
+    ) {
+      throw new Error(
+        `Image override "${target.imageOverride}" is not in allowlist`,
+      );
     }
     return target.imageOverride;
   }
@@ -54,6 +58,7 @@ function rewriteRegistry(image: string, registry: string): string {
   const path = colonIdx >= 0 ? image.slice(0, colonIdx) : image;
   const segments = path.split("/");
   // Strip the host+org (first two segments), keep the image name
-  const imageName = segments.slice(2).join("/") || segments[segments.length - 1];
+  const imageName =
+    segments.slice(2).join("/") || segments[segments.length - 1];
   return `${cleanRegistry}/${imageName}${tag}`;
 }

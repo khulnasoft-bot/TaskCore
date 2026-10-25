@@ -19,8 +19,10 @@ export const MAX_TURN_CONTINUATION_RETRY_REASON = "max_turns_continuation";
 export const WORKSPACE_BUSY_RETRY_REASON = "workspace_busy";
 export const AI_CONNECTION_POOL_WAIT_RETRY_REASON = "ai_connection_pool_wait";
 export const AI_CONNECTION_BUSY_RETRY_REASON = "ai_connection_busy";
-export const INTERACTION_CONTINUATION_INFRA_RETRY_REASON = "interaction_continuation_infra_retry";
-export const INTERACTION_CONTINUATION_INFRA_WAKE_REASON = "interaction_continuation_infra_retry";
+export const INTERACTION_CONTINUATION_INFRA_RETRY_REASON =
+  "interaction_continuation_infra_retry";
+export const INTERACTION_CONTINUATION_INFRA_WAKE_REASON =
+  "interaction_continuation_infra_retry";
 export const WAKE_COMMENT_IDS_KEY = "wakeCommentIds";
 export const RESOLVED_INTERACTION_CONTINUATION_STATUSES = new Set([
   "accepted",
@@ -42,7 +44,8 @@ export function isNonAssigneeWorkspaceBusyRetry(
   return (
     (retryReason === WORKSPACE_BUSY_RETRY_REASON &&
       contextSnapshot.workspaceBusyDeferredWhileAssignee === false) ||
-    ((retryReason === AI_CONNECTION_BUSY_RETRY_REASON || retryReason === AI_CONNECTION_POOL_WAIT_RETRY_REASON) &&
+    ((retryReason === AI_CONNECTION_BUSY_RETRY_REASON ||
+      retryReason === AI_CONNECTION_POOL_WAIT_RETRY_REASON) &&
       contextSnapshot.aiConnectionBusyDeferredWhileAssignee === false)
   );
 }
@@ -90,12 +93,15 @@ export function allowsIssueInteractionWake(
   return Boolean(deriveCommentId(contextSnapshot));
 }
 
-export function isResolvedInteractionContinuationWakeContext(contextSnapshot: unknown): boolean {
+export function isResolvedInteractionContinuationWakeContext(
+  contextSnapshot: unknown,
+): boolean {
   const context = parseObject(contextSnapshot);
   const interactionId = readNonEmptyString(context.interactionId);
   const interactionStatus = readNonEmptyString(context.interactionStatus);
   if (!interactionId || !interactionStatus) return false;
-  if (!RESOLVED_INTERACTION_CONTINUATION_STATUSES.has(interactionStatus)) return false;
+  if (!RESOLVED_INTERACTION_CONTINUATION_STATUSES.has(interactionStatus))
+    return false;
 
   const mutation = readNonEmptyString(context.mutation);
   const wakeReason = readNonEmptyString(context.wakeReason);

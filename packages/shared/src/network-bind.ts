@@ -1,4 +1,8 @@
-import type { BindMode, DeploymentExposure, DeploymentMode } from "./constants.js";
+import type {
+  BindMode,
+  DeploymentExposure,
+  DeploymentMode,
+} from "./constants.js";
 
 export const LOOPBACK_BIND_HOST = "127.0.0.1";
 export const ALL_INTERFACES_BIND_HOST = "0.0.0.0";
@@ -10,7 +14,11 @@ function normalizeHost(host: string | null | undefined): string | undefined {
 
 export function isLoopbackHost(host: string | null | undefined): boolean {
   const normalized = normalizeHost(host)?.toLowerCase();
-  return normalized === "127.0.0.1" || normalized === "localhost" || normalized === "::1";
+  return (
+    normalized === "127.0.0.1" ||
+    normalized === "localhost" ||
+    normalized === "::1"
+  );
 }
 
 export function isAllInterfacesHost(host: string | null | undefined): boolean {
@@ -48,13 +56,23 @@ export function validateConfiguredBindMode(input: {
 
   if (bind === "custom" && !customBindHost) {
     const legacyHost = normalizeHost(input.host);
-    if (!legacyHost || isLoopbackHost(legacyHost) || isAllInterfacesHost(legacyHost)) {
+    if (
+      !legacyHost ||
+      isLoopbackHost(legacyHost) ||
+      isAllInterfacesHost(legacyHost)
+    ) {
       errors.push("server.customBindHost is required when server.bind=custom");
     }
   }
 
-  if (input.deploymentMode === "authenticated" && input.deploymentExposure === "public" && bind === "tailnet") {
-    errors.push("server.bind=tailnet is only supported for authenticated/private deployments");
+  if (
+    input.deploymentMode === "authenticated" &&
+    input.deploymentExposure === "public" &&
+    bind === "tailnet"
+  ) {
+    errors.push(
+      "server.bind=tailnet is only supported for authenticated/private deployments",
+    );
   }
 
   return errors;
@@ -71,11 +89,18 @@ export function resolveRuntimeBind(input: {
   customBindHost?: string;
   errors: string[];
 } {
-  const bind = input.bind ?? inferBindModeFromHost(input.host, { tailnetBindHost: input.tailnetBindHost });
+  const bind =
+    input.bind ??
+    inferBindModeFromHost(input.host, {
+      tailnetBindHost: input.tailnetBindHost,
+    });
   const legacyHost = normalizeHost(input.host);
   const customBindHost =
     normalizeHost(input.customBindHost) ??
-    (bind === "custom" && legacyHost && !isLoopbackHost(legacyHost) && !isAllInterfacesHost(legacyHost)
+    (bind === "custom" &&
+    legacyHost &&
+    !isLoopbackHost(legacyHost) &&
+    !isAllInterfacesHost(legacyHost)
       ? legacyHost
       : undefined);
 
@@ -83,23 +108,34 @@ export function resolveRuntimeBind(input: {
     case "loopback":
       return { bind, host: LOOPBACK_BIND_HOST, customBindHost, errors: [] };
     case "lan":
-      return { bind, host: ALL_INTERFACES_BIND_HOST, customBindHost, errors: [] };
+      return {
+        bind,
+        host: ALL_INTERFACES_BIND_HOST,
+        customBindHost,
+        errors: [],
+      };
     case "custom":
       return customBindHost
         ? { bind, host: customBindHost, customBindHost, errors: [] }
-        : { bind, host: legacyHost ?? LOOPBACK_BIND_HOST, errors: ["server.customBindHost is required when server.bind=custom"] };
+        : {
+            bind,
+            host: legacyHost ?? LOOPBACK_BIND_HOST,
+            errors: [
+              "server.customBindHost is required when server.bind=custom",
+            ],
+          };
     case "tailnet": {
       const tailnetBindHost = normalizeHost(input.tailnetBindHost);
       return tailnetBindHost
         ? { bind, host: tailnetBindHost, customBindHost, errors: [] }
         : {
-          bind,
-          host: legacyHost ?? LOOPBACK_BIND_HOST,
-          customBindHost,
-          errors: [
-            "server.bind=tailnet requires a detected Tailscale address or TASKCORE_TAILNET_BIND_HOST",
-          ],
-        };
+            bind,
+            host: legacyHost ?? LOOPBACK_BIND_HOST,
+            customBindHost,
+            errors: [
+              "server.bind=tailnet requires a detected Tailscale address or TASKCORE_TAILNET_BIND_HOST",
+            ],
+          };
     }
   }
 }

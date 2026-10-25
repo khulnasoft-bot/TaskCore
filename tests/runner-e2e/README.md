@@ -1075,15 +1075,15 @@ existing qualified profile. Evidence labels
 this setup `post-onboarding-runtime-switch`; it does not claim a native wizard
 path exists. Legacy setup is labeled `production-wizard`.
 
-| First response / control | Complete journey |
-| --- | --- |
-| `interview-first-response` | `interview-plan-accept` |
-| `clear-task-first-response` | `task-card-accept` |
-| | `accept-while-running` |
-| `ambiguous-task-first-response` | `task-reply-accept` |
-| `plain-message-first-response` | `clarify-propose-accept` |
-| `plan-first-response` | `revise-accept` |
-| `ordinary-task-control` | `reject-no-execution` |
+| First response / control        | Complete journey         |
+| ------------------------------- | ------------------------ |
+| `interview-first-response`      | `interview-plan-accept`  |
+| `clear-task-first-response`     | `task-card-accept`       |
+|                                 | `accept-while-running`   |
+| `ambiguous-task-first-response` | `task-reply-accept`      |
+| `plain-message-first-response`  | `clarify-propose-accept` |
+| `plan-first-response`           | `revise-accept`          |
+| `ordinary-task-control`         | `reject-no-execution`    |
 
 The ordinary control creates a separate, normally assigned task for the same
 onboarded agent without invoking `/first-task`. Fixed garden-club facts and a
@@ -1209,7 +1209,6 @@ identities and instruction hashes before comparing; dirty working trees are
 explicitly marked. Do not pool results with mismatched configurations or treat
 infrastructure failures as behavioral successes. Daytona,
 simulated-user models and prompt optimization are intentionally deferred.
-
 
 `accept-while-running` clicks a confirmation as soon as its source run exposes
 one, without the usual wait for that run to settle. It retains the normal
@@ -1542,6 +1541,7 @@ The separate Runner Evals `extended-harnesses` campaign lives in the private
 mock control plane. Neither suite substitutes for the other.
 
 The explicit-only `confirmation-replies` suite also includes `unanswered-question-return` for native Claude and Codex (three provider turns). The browser asks a saved color question, dismisses and reopens the fresh form, sends an unrelated message, verifies the reply while the original stays pending, reloads, reopens the history entry, submits Blue, and verifies the saved answer plus a later agent acknowledgement. After dismissing the fresh form and before and after reload, the history card is the only pending-question reminder; the composer has no duplicate pending-input badge. It checks that no tasks were created. Unique, UI-ready screenshots show each checkpoint; individual checks are included in the report. This is a bounded mechanical workflow check, not broader semantic answer-quality qualification.
+
 ## Direct blocker guidance
 
 `blocker-guidance` is an explicit-only Product E2E suite for the production
@@ -1550,11 +1550,11 @@ cells). Native runners omit this operational skill and are deliberately outside
 this suite. This is behavior coverage for PR #14188, not a native recovery or
 connection-authorization qualification.
 
-| Case | User outcome |
-| --- | --- |
-| `human-authority` | A tenant administrator action waits for human direction without assigning work to a manager who lacks access. |
-| `hiring-permission` | A worker without hiring permission asks for authorized direction; no agent or hire approval is created. |
-| `requester-scope` | A confidentiality conflict produces a human-input question the requesting user can answer while the worker retains the task. |
+| Case                | User outcome                                                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `human-authority`   | A tenant administrator action waits for human direction without assigning work to a manager who lacks access.                |
+| `hiring-permission` | A worker without hiring permission asks for authorized direction; no agent or hire approval is created.                      |
+| `requester-scope`   | A confidentiality conflict produces a human-input question the requesting user can answer while the worker retains the task. |
 
 Each cell creates an ordinary worker and a manager with assignment permission
 but no hiring permission or external administrator capability. Both receive the
@@ -1630,7 +1630,6 @@ the evaluated checkout byte for byte. The skill snapshot and provider run eviden
 are retained privately alongside the grading checkpoints for failure diagnosis.
 Claude receives a fresh provider home and config directory inside the disposable
 workspace so a user's installed skill cannot shadow the managed skill under test.
-
 
 ## Production hiring templates
 

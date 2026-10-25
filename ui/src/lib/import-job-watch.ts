@@ -19,11 +19,17 @@ export interface StoredImportJob {
   pauseAutomations: boolean;
 }
 
-export function importJobStorageKey(companyId: string, packageName: string): string {
+export function importJobStorageKey(
+  companyId: string,
+  packageName: string,
+): string {
   return `${STORAGE_PREFIX}:${companyId}:${packageName}`;
 }
 
-export function writeStoredImportJob(storageKey: string, value: StoredImportJob): void {
+export function writeStoredImportJob(
+  storageKey: string,
+  value: StoredImportJob,
+): void {
   try {
     sessionStorage.setItem(storageKey, JSON.stringify(value));
   } catch {
@@ -58,12 +64,15 @@ export function readStoredImportJob(
         try {
           const parsed: unknown = JSON.parse(raw);
           if (
-            typeof parsed === "object" && parsed !== null &&
+            typeof parsed === "object" &&
+            parsed !== null &&
             typeof (parsed as { jobId?: unknown }).jobId === "string"
           ) {
             return {
               jobId: (parsed as { jobId: string }).jobId,
-              pauseAutomations: (parsed as { pauseAutomations?: unknown }).pauseAutomations === true,
+              pauseAutomations:
+                (parsed as { pauseAutomations?: unknown }).pauseAutomations ===
+                true,
               storageKey: key,
             };
           }

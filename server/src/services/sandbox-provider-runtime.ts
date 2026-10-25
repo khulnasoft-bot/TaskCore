@@ -93,20 +93,33 @@ export interface SandboxExecuteResult {
 export interface SandboxProvider {
   readonly provider: SandboxEnvironmentProvider;
   readonly supportsReusableLeases?: boolean;
-  validateConfig(config: SandboxEnvironmentConfig): Promise<SandboxProviderValidationResult>;
+  validateConfig(
+    config: SandboxEnvironmentConfig,
+  ): Promise<SandboxProviderValidationResult>;
   probe(config: SandboxEnvironmentConfig): Promise<EnvironmentProbeResult>;
   acquireLease(input: AcquireSandboxLeaseInput): Promise<SandboxLeaseHandle>;
-  resumeLease(input: ResumeSandboxLeaseInput): Promise<SandboxLeaseHandle | null>;
+  resumeLease(
+    input: ResumeSandboxLeaseInput,
+  ): Promise<SandboxLeaseHandle | null>;
   /** Explicit stop-only support. Absence must never fall back to release/destroy. */
-  stopLease?(input: DestroySandboxLeaseInput): Promise<{ providerLeaseId: string; state: "stopped" }>;
+  stopLease?(
+    input: DestroySandboxLeaseInput,
+  ): Promise<{ providerLeaseId: string; state: "stopped" }>;
   releaseLease(input: ReleaseSandboxLeaseInput): Promise<void>;
   destroyLease(input: DestroySandboxLeaseInput): Promise<void>;
   matchesReusableLease(input: {
     config: SandboxEnvironmentConfig;
-    lease: { providerLeaseId: string | null; metadata: Record<string, unknown> | null };
+    lease: {
+      providerLeaseId: string | null;
+      metadata: Record<string, unknown> | null;
+    };
   }): boolean;
-  configFromLeaseMetadata(metadata: Record<string, unknown>): SandboxEnvironmentConfig | null;
-  prepareWorkspace?(input: PrepareSandboxWorkspaceInput): Promise<PreparedSandboxWorkspace>;
+  configFromLeaseMetadata(
+    metadata: Record<string, unknown>,
+  ): SandboxEnvironmentConfig | null;
+  prepareWorkspace?(
+    input: PrepareSandboxWorkspaceInput,
+  ): Promise<PreparedSandboxWorkspace>;
   execute?(input: SandboxExecuteInput): Promise<SandboxExecuteResult>;
 }
 
@@ -115,11 +128,15 @@ function assertProviderConfig<T extends SandboxEnvironmentConfig>(
   config: SandboxEnvironmentConfig,
 ): asserts config is T {
   if (config.provider !== provider) {
-    throw new Error(`Sandbox provider "${provider}" received config for provider "${config.provider}".`);
+    throw new Error(
+      `Sandbox provider "${provider}" received config for provider "${config.provider}".`,
+    );
   }
 }
 
-function buildFakeSandboxProbe(config: FakeSandboxEnvironmentConfig): EnvironmentProbeResult {
+function buildFakeSandboxProbe(
+  config: FakeSandboxEnvironmentConfig,
+): EnvironmentProbeResult {
   return {
     ok: true,
     driver: "sandbox",
@@ -136,7 +153,9 @@ class FakeSandboxProvider implements SandboxProvider {
   readonly provider = "fake" as const;
   readonly supportsReusableLeases = false;
 
-  async validateConfig(config: SandboxEnvironmentConfig): Promise<SandboxProviderValidationResult> {
+  async validateConfig(
+    config: SandboxEnvironmentConfig,
+  ): Promise<SandboxProviderValidationResult> {
     assertProviderConfig<FakeSandboxEnvironmentConfig>(this.provider, config);
     return {
       ok: true,
@@ -149,16 +168,24 @@ class FakeSandboxProvider implements SandboxProvider {
     };
   }
 
-  async probe(config: SandboxEnvironmentConfig): Promise<EnvironmentProbeResult> {
+  async probe(
+    config: SandboxEnvironmentConfig,
+  ): Promise<EnvironmentProbeResult> {
     assertProviderConfig<FakeSandboxEnvironmentConfig>(this.provider, config);
     return buildFakeSandboxProbe(config);
   }
 
-  async acquireLease(input: AcquireSandboxLeaseInput): Promise<SandboxLeaseHandle> {
-    assertProviderConfig<FakeSandboxEnvironmentConfig>(this.provider, input.config);
-    const providerLeaseId = input.config.reuseLease && this.supportsReusableLeases
-      ? `sandbox://fake/${input.environmentId}/${input.executionWorkspaceId ?? "workspace"}/${input.agentId ?? "agent"}`
-      : `sandbox://fake/${input.heartbeatRunId}/${randomUUID()}`;
+  async acquireLease(
+    input: AcquireSandboxLeaseInput,
+  ): Promise<SandboxLeaseHandle> {
+    assertProviderConfig<FakeSandboxEnvironmentConfig>(
+      this.provider,
+      input.config,
+    );
+    const providerLeaseId =
+      input.config.reuseLease && this.supportsReusableLeases
+        ? `sandbox://fake/${input.environmentId}/${input.executionWorkspaceId ?? "workspace"}/${input.agentId ?? "agent"}`
+        : `sandbox://fake/${input.heartbeatRunId}/${randomUUID()}`;
 
     return {
       providerLeaseId,
@@ -170,8 +197,13 @@ class FakeSandboxProvider implements SandboxProvider {
     };
   }
 
-  async resumeLease(input: ResumeSandboxLeaseInput): Promise<SandboxLeaseHandle | null> {
-    assertProviderConfig<FakeSandboxEnvironmentConfig>(this.provider, input.config);
+  async resumeLease(
+    input: ResumeSandboxLeaseInput,
+  ): Promise<SandboxLeaseHandle | null> {
+    assertProviderConfig<FakeSandboxEnvironmentConfig>(
+      this.provider,
+      input.config,
+    );
     return {
       providerLeaseId: input.providerLeaseId,
       metadata: {
@@ -183,9 +215,15 @@ class FakeSandboxProvider implements SandboxProvider {
     };
   }
 
-  async stopLease(input: DestroySandboxLeaseInput): Promise<{ providerLeaseId: string; state: "stopped" }> {
-    assertProviderConfig<FakeSandboxEnvironmentConfig>(this.provider, input.config);
-    if (!input.providerLeaseId?.startsWith("sandbox://fake/")) throw new Error("Fake sandbox stop needs its exact allocation.");
+  async stopLease(
+    input: DestroySandboxLeaseInput,
+  ): Promise<{ providerLeaseId: string; state: "stopped" }> {
+    assertProviderConfig<FakeSandboxEnvironmentConfig>(
+      this.provider,
+      input.config,
+    );
+    if (!input.providerLeaseId?.startsWith("sandbox://fake/"))
+      throw new Error("Fake sandbox stop needs its exact allocation.");
     // The fake provider owns no process or filesystem; its explicit stop receipt
     // models the lifecycle without invoking its ordinary release or destroy.
     return { providerLeaseId: input.providerLeaseId, state: "stopped" };
@@ -201,9 +239,15 @@ class FakeSandboxProvider implements SandboxProvider {
 
   matchesReusableLease(input: {
     config: SandboxEnvironmentConfig;
-    lease: { providerLeaseId: string | null; metadata: Record<string, unknown> | null };
+    lease: {
+      providerLeaseId: string | null;
+      metadata: Record<string, unknown> | null;
+    };
   }): boolean {
-    assertProviderConfig<FakeSandboxEnvironmentConfig>(this.provider, input.config);
+    assertProviderConfig<FakeSandboxEnvironmentConfig>(
+      this.provider,
+      input.config,
+    );
     return (
       typeof input.lease.providerLeaseId === "string" &&
       input.lease.providerLeaseId.length > 0 &&
@@ -213,8 +257,13 @@ class FakeSandboxProvider implements SandboxProvider {
     );
   }
 
-  configFromLeaseMetadata(metadata: Record<string, unknown>): SandboxEnvironmentConfig | null {
-    if (metadata.provider !== this.provider || typeof metadata.image !== "string") {
+  configFromLeaseMetadata(
+    metadata: Record<string, unknown>,
+  ): SandboxEnvironmentConfig | null {
+    if (
+      metadata.provider !== this.provider ||
+      typeof metadata.image !== "string"
+    ) {
       return null;
     }
     return {
@@ -231,9 +280,10 @@ class FakeSandboxProvider implements SandboxProvider {
 // system at the environment-runtime layer.
 // ---------------------------------------------------------------------------
 
-const registeredSandboxProviders = new Map<SandboxEnvironmentProvider, SandboxProvider>([
-  ["fake", new FakeSandboxProvider()],
-]);
+const registeredSandboxProviders = new Map<
+  SandboxEnvironmentProvider,
+  SandboxProvider
+>([["fake", new FakeSandboxProvider()]]);
 
 /**
  * Returns a built-in sandbox provider, or null if the provider key is not
@@ -241,13 +291,18 @@ const registeredSandboxProviders = new Map<SandboxEnvironmentProvider, SandboxPr
  * resolved through the plugin worker manager at the environment-runtime level.
  */
 export function getSandboxProvider(provider: string): SandboxProvider | null {
-  return registeredSandboxProviders.get(provider as SandboxEnvironmentProvider) ?? null;
+  return (
+    registeredSandboxProviders.get(provider as SandboxEnvironmentProvider) ??
+    null
+  );
 }
 
 export function requireSandboxProvider(provider: string): SandboxProvider {
   const sandboxProvider = getSandboxProvider(provider);
   if (!sandboxProvider) {
-    throw new Error(`Sandbox provider "${provider}" is not registered as a built-in provider.`);
+    throw new Error(
+      `Sandbox provider "${provider}" is not registered as a built-in provider.`,
+    );
   }
   return sandboxProvider;
 }
@@ -274,7 +329,10 @@ export function sandboxConfigFromLeaseMetadata(
   lease: Pick<{ metadata: Record<string, unknown> | null }, "metadata">,
 ): SandboxEnvironmentConfig | null {
   const metadata = lease.metadata ?? {};
-  const provider = typeof metadata.provider === "string" ? getSandboxProvider(metadata.provider) : null;
+  const provider =
+    typeof metadata.provider === "string"
+      ? getSandboxProvider(metadata.provider)
+      : null;
   return provider?.configFromLeaseMetadata(metadata) ?? null;
 }
 
@@ -288,7 +346,8 @@ export function sandboxConfigFromLeaseMetadataLoose(
   lease: Pick<{ metadata: Record<string, unknown> | null }, "metadata">,
 ): SandboxEnvironmentConfig | null {
   const metadata = lease.metadata ?? {};
-  const providerKey = typeof metadata.provider === "string" ? metadata.provider : null;
+  const providerKey =
+    typeof metadata.provider === "string" ? metadata.provider : null;
   if (!providerKey) return null;
 
   // Try built-in provider first.
@@ -306,7 +365,10 @@ export function sandboxConfigFromLeaseMetadataLoose(
 
 export function findReusableSandboxProviderLeaseId(input: {
   config: SandboxEnvironmentConfig;
-  leases: Array<{ providerLeaseId: string | null; metadata: Record<string, unknown> | null }>;
+  leases: Array<{
+    providerLeaseId: string | null;
+    metadata: Record<string, unknown> | null;
+  }>;
 }): string | null {
   const provider = getSandboxProvider(input.config.provider);
   if (!provider) {
@@ -367,7 +429,11 @@ export async function acquireSandboxProviderLease(input: {
   requestedExpiresAt?: string | null;
 }): Promise<SandboxLeaseHandle> {
   const provider = requireSandboxProvider(input.config.provider);
-  if (provider.supportsReusableLeases && input.config.reuseLease && input.reusableProviderLeaseId) {
+  if (
+    provider.supportsReusableLeases &&
+    input.config.reuseLease &&
+    input.reusableProviderLeaseId
+  ) {
     const resumedLease = await provider.resumeLease({
       config: input.config,
       providerLeaseId: input.reusableProviderLeaseId,

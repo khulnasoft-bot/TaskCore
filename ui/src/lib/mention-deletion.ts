@@ -16,11 +16,17 @@ import { parseMentionChipHref } from "./mention-chips";
 
 export type MentionDeletionDirection = "backward" | "forward";
 
-function isMentionLinkNode(node: LexicalNode | null | undefined): node is LinkNode {
-  return Boolean(node && $isLinkNode(node) && parseMentionChipHref(node.getURL()));
+function isMentionLinkNode(
+  node: LexicalNode | null | undefined,
+): node is LinkNode {
+  return Boolean(
+    node && $isLinkNode(node) && parseMentionChipHref(node.getURL()),
+  );
 }
 
-function findMentionLinkNode(node: LexicalNode | null | undefined): LinkNode | null {
+function findMentionLinkNode(
+  node: LexicalNode | null | undefined,
+): LinkNode | null {
   if (!node) return null;
   if (isMentionLinkNode(node)) return node;
 
@@ -33,13 +39,17 @@ function findMentionLinkNode(node: LexicalNode | null | undefined): LinkNode | n
   return null;
 }
 
-function findMentionLinkNodeAtPoint(point: PointType, direction: MentionDeletionDirection): LinkNode | null {
+function findMentionLinkNodeAtPoint(
+  point: PointType,
+  direction: MentionDeletionDirection,
+): LinkNode | null {
   const node = point.getNode();
   const directMention = findMentionLinkNode(node);
   if (directMention) return directMention;
 
   if (point.type === "element" && $isElementNode(node)) {
-    const childIndex = direction === "backward" ? point.offset - 1 : point.offset;
+    const childIndex =
+      direction === "backward" ? point.offset - 1 : point.offset;
     if (childIndex < 0) return null;
     return findMentionLinkNode(node.getChildAtIndex(childIndex));
   }
@@ -57,7 +67,9 @@ function findMentionLinkNodeAtPoint(point: PointType, direction: MentionDeletion
   return null;
 }
 
-export function findMentionLinkForDeletion(direction: MentionDeletionDirection): LinkNode | null {
+export function findMentionLinkForDeletion(
+  direction: MentionDeletionDirection,
+): LinkNode | null {
   const selection = $getSelection();
   if (!selection) return null;
 
@@ -79,7 +91,9 @@ export function findMentionLinkForDeletion(direction: MentionDeletionDirection):
   return findMentionLinkNodeAtPoint(selection.anchor, direction);
 }
 
-export function deleteSelectedMentionChip(direction: MentionDeletionDirection): boolean {
+export function deleteSelectedMentionChip(
+  direction: MentionDeletionDirection,
+): boolean {
   const mentionNode = findMentionLinkForDeletion(direction);
   if (!mentionNode) return false;
 
@@ -114,7 +128,10 @@ export function deleteSelectedMentionChip(direction: MentionDeletionDirection): 
   return true;
 }
 
-function handleMentionDelete(direction: MentionDeletionDirection, event: KeyboardEvent | null): boolean {
+function handleMentionDelete(
+  direction: MentionDeletionDirection,
+  event: KeyboardEvent | null,
+): boolean {
   const didDelete = deleteSelectedMentionChip(direction);
   if (!didDelete) return false;
 
@@ -129,13 +146,15 @@ export const mentionDeletionPlugin = realmPlugin({
       (editor) =>
         editor.registerCommand(
           KEY_BACKSPACE_COMMAND,
-          (event) => handleMentionDelete("backward", event as KeyboardEvent | null),
+          (event) =>
+            handleMentionDelete("backward", event as KeyboardEvent | null),
           COMMAND_PRIORITY_HIGH,
         ),
       (editor) =>
         editor.registerCommand(
           KEY_DELETE_COMMAND,
-          (event) => handleMentionDelete("forward", event as KeyboardEvent | null),
+          (event) =>
+            handleMentionDelete("forward", event as KeyboardEvent | null),
           COMMAND_PRIORITY_HIGH,
         ),
     ]);

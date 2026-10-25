@@ -19,7 +19,9 @@ import { TooltipProvider } from "./ui/tooltip";
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 async function act(callback: () => void | Promise<void>) {
   if (typeof reactAct === "function") {
@@ -33,14 +35,20 @@ async function act(callback: () => void | Promise<void>) {
   await result;
 }
 
-function renderPanel(governance: InteractionResolverGovernance = {}, onChange = vi.fn()) {
+function renderPanel(
+  governance: InteractionResolverGovernance = {},
+  onChange = vi.fn(),
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
     root?.render(
       <TooltipProvider>
-        <InteractionGovernancePanel governance={governance} onChange={onChange} />
+        <InteractionGovernancePanel
+          governance={governance}
+          onChange={onChange}
+        />
       </TooltipProvider>,
     );
   });
@@ -67,9 +75,13 @@ describe("InteractionGovernancePanel", () => {
   it("presents Anyone as the visible default for a company with no overrides", () => {
     const { host } = renderPanel();
 
-    const defaultSelect = host.querySelector('[data-testid="governance-request_confirmation-default"]');
+    const defaultSelect = host.querySelector(
+      '[data-testid="governance-request_confirmation-default"]',
+    );
     expect(defaultSelect?.textContent).toContain("Anyone (default)");
-    const cap = host.querySelector('[data-testid="governance-request_confirmation-cap"]');
+    const cap = host.querySelector(
+      '[data-testid="governance-request_confirmation-cap"]',
+    );
     expect(cap?.textContent).toContain("No cap");
   });
 
@@ -78,7 +90,9 @@ describe("InteractionGovernancePanel", () => {
     const copy = host.textContent ?? "";
 
     expect(copy).toContain("Thread interactions are open by default");
-    expect(copy).toContain("the board or any agent, including the one that asked");
+    expect(copy).toContain(
+      "the board or any agent, including the one that asked",
+    );
     expect(copy).not.toContain("Board only");
     expect(copy).not.toContain("always require the board");
     // Governed tool approvals keep their human-only guarantee.
@@ -92,14 +106,18 @@ describe("InteractionGovernancePanel", () => {
     });
 
     expect(
-      host.querySelector('[data-testid="governance-request_confirmation-default"]')?.textContent,
+      host.querySelector(
+        '[data-testid="governance-request_confirmation-default"]',
+      )?.textContent,
     ).toContain("Human only");
     expect(
-      host.querySelector('[data-testid="governance-request_confirmation-cap"]')?.textContent,
+      host.querySelector('[data-testid="governance-request_confirmation-cap"]')
+        ?.textContent,
     ).toContain("Anyone except creator");
     // Untouched kinds still read as open.
     expect(
-      host.querySelector('[data-testid="governance-suggest_tasks-default"]')?.textContent,
+      host.querySelector('[data-testid="governance-suggest_tasks-default"]')
+        ?.textContent,
     ).toContain("Anyone (default)");
   });
 
@@ -113,7 +131,9 @@ describe("InteractionGovernancePanel", () => {
     const { host } = renderPanel();
 
     for (const kind of INTERACTION_KINDS) {
-      expect(triggerText(host, `governance-${kind}-default`)).toBe("Anyone (default)");
+      expect(triggerText(host, `governance-${kind}-default`)).toBe(
+        "Anyone (default)",
+      );
       expect(triggerText(host, `governance-${kind}-cap`)).toBe("No cap");
     }
   });
@@ -123,10 +143,16 @@ describe("InteractionGovernancePanel", () => {
       request_confirmation: { defaultPolicy: "human_only", cap: "not_creator" },
     });
 
-    expect(triggerText(host, "governance-request_confirmation-default")).toBe("Human only");
-    expect(triggerText(host, "governance-request_confirmation-cap")).toBe("Anyone except creator");
+    expect(triggerText(host, "governance-request_confirmation-default")).toBe(
+      "Human only",
+    );
+    expect(triggerText(host, "governance-request_confirmation-cap")).toBe(
+      "Anyone except creator",
+    );
     // The effect prose belongs to the option list, never the trigger.
-    expect(host.textContent).not.toContain("New cards wait for a person on the board");
+    expect(host.textContent).not.toContain(
+      "New cards wait for a person on the board",
+    );
     expect(host.textContent).not.toContain("narrowed to exclude its creator");
     expect(host.textContent).not.toContain("New cards are open");
   });
@@ -139,7 +165,9 @@ describe("InteractionGovernancePanel", () => {
     expect(trigger).toBeTruthy();
 
     await act(() => {
-      trigger?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+      trigger?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
+      );
     });
 
     const listbox = document.querySelector('[data-slot="select-content"]');
@@ -148,11 +176,14 @@ describe("InteractionGovernancePanel", () => {
     expect(listText).toContain(
       "New cards are open — the board or any agent can respond, including the one that asked.",
     );
-    expect(listText).toContain("New cards wait for a person on the board. Agents are turned away.");
+    expect(listText).toContain(
+      "New cards wait for a person on the board. Agents are turned away.",
+    );
     // Each option keeps a label-only typeahead value so keyboard search does not
     // match the effect prose.
     expect(
-      Array.from(listbox?.querySelectorAll('[data-slot="select-item"]') ?? []).length,
+      Array.from(listbox?.querySelectorAll('[data-slot="select-item"]') ?? [])
+        .length,
     ).toBe(3);
     // Reflow guard: the popover is capped so long prose wraps instead of
     // stretching past a narrow viewport.
@@ -184,7 +215,9 @@ describe("InteractionGovernancePanel", () => {
         </TooltipProvider>,
       );
     });
-    expect(container.textContent).toContain("Failed to save interaction governance");
+    expect(container.textContent).toContain(
+      "Failed to save interaction governance",
+    );
   });
 });
 
@@ -207,7 +240,14 @@ describe("toGovernanceSelectValue", () => {
 
 describe("applyGovernanceChange", () => {
   it("stores a narrowing override", () => {
-    expect(applyGovernanceChange({}, "request_confirmation", "defaultPolicy", "human_only")).toEqual({
+    expect(
+      applyGovernanceChange(
+        {},
+        "request_confirmation",
+        "defaultPolicy",
+        "human_only",
+      ),
+    ).toEqual({
       request_confirmation: { defaultPolicy: "human_only" },
     });
   });
@@ -217,7 +257,12 @@ describe("applyGovernanceChange", () => {
       request_confirmation: { defaultPolicy: "human_only" },
     };
     expect(
-      applyGovernanceChange(current, "request_confirmation", "defaultPolicy", GOVERNANCE_UNSET),
+      applyGovernanceChange(
+        current,
+        "request_confirmation",
+        "defaultPolicy",
+        GOVERNANCE_UNSET,
+      ),
     ).toEqual({});
     // Immutable: the caller's map is untouched.
     expect(current.request_confirmation?.defaultPolicy).toBe("human_only");
@@ -227,7 +272,14 @@ describe("applyGovernanceChange", () => {
     const current: InteractionResolverGovernance = {
       request_confirmation: { defaultPolicy: "human_only", cap: "not_creator" },
     };
-    expect(applyGovernanceChange(current, "request_confirmation", "cap", GOVERNANCE_UNSET)).toEqual({
+    expect(
+      applyGovernanceChange(
+        current,
+        "request_confirmation",
+        "cap",
+        GOVERNANCE_UNSET,
+      ),
+    ).toEqual({
       request_confirmation: { defaultPolicy: "human_only" },
     });
   });

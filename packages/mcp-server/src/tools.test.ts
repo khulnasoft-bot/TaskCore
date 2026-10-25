@@ -13,7 +13,9 @@ function makeClient() {
 }
 
 function getTool(name: string) {
-  const tool = createToolDefinitions(makeClient()).find((candidate) => candidate.name === name);
+  const tool = createToolDefinitions(makeClient()).find(
+    (candidate) => candidate.name === name,
+  );
   if (!tool) throw new Error(`Missing tool ${name}`);
   return tool;
 }
@@ -31,9 +33,7 @@ describe("taskcore MCP tools", () => {
   });
 
   it("adds auth headers and run id to mutating requests", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ ok: true }),
-    );
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreUpdateIssue");
@@ -46,16 +46,22 @@ describe("taskcore MCP tools", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toBe("http://localhost:3100/api/issues/PAP-1135");
     expect(init.method).toBe("PATCH");
-    expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer token-123");
+    expect((init.headers as Record<string, string>)["Authorization"]).toBe(
+      "Bearer token-123",
+    );
     expect((init.headers as Record<string, string>)["X-Taskcore-Run-Id"]).toBe(
       "33333333-3333-3333-3333-333333333333",
     );
   });
 
   it("lists the company skill library with the default company id", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse([{ key: "taskcore/bundled/product/wireframe", name: "wireframe" }]),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        mockJsonResponse([
+          { key: "taskcore/bundled/product/wireframe", name: "wireframe" },
+        ]),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreListSkills");
@@ -70,9 +76,9 @@ describe("taskcore MCP tools", () => {
   });
 
   it("uses default company id for company-scoped list tools", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse([{ id: "issue-1" }]),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(mockJsonResponse([{ id: "issue-1" }]));
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreListIssues");
@@ -87,9 +93,11 @@ describe("taskcore MCP tools", () => {
   });
 
   it("uses default agent id for checkout requests", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ id: "PAP-1135", status: "in_progress" }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        mockJsonResponse({ id: "PAP-1135", status: "in_progress" }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreCheckoutIssue");
@@ -105,9 +113,9 @@ describe("taskcore MCP tools", () => {
   });
 
   it("allows create issue requests to omit status so the API applies assignee defaults", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ id: "issue-1", status: "todo" }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(mockJsonResponse({ id: "issue-1", status: "todo" }));
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreCreateIssue");
@@ -131,9 +139,11 @@ describe("taskcore MCP tools", () => {
   });
 
   it("defaults issue document format to markdown", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ key: "plan", latestRevisionNumber: 2 }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        mockJsonResponse({ key: "plan", latestRevisionNumber: 2 }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreUpsertIssueDocument");
@@ -151,27 +161,32 @@ describe("taskcore MCP tools", () => {
   });
 
   it("controls issue workspace services through the current execution workspace", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(mockJsonResponse({
-        currentExecutionWorkspace: {
-          id: "44444444-4444-4444-8444-444444444444",
-          runtimeServices: [],
-        },
-      }))
-      .mockResolvedValueOnce(mockJsonResponse({
-        operation: { id: "operation-1" },
-        workspace: {
-          id: "44444444-4444-4444-8444-444444444444",
-          runtimeServices: [
-            {
-              id: "55555555-5555-4555-8555-555555555555",
-              serviceName: "web",
-              status: "running",
-              url: "http://127.0.0.1:5173",
-            },
-          ],
-        },
-      }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        mockJsonResponse({
+          currentExecutionWorkspace: {
+            id: "44444444-4444-4444-8444-444444444444",
+            runtimeServices: [],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        mockJsonResponse({
+          operation: { id: "operation-1" },
+          workspace: {
+            id: "44444444-4444-4444-8444-444444444444",
+            runtimeServices: [
+              {
+                id: "55555555-5555-4555-8555-555555555555",
+                serviceName: "web",
+                status: "running",
+                url: "http://127.0.0.1:5173",
+              },
+            ],
+          },
+        }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreControlIssueWorkspaceServices");
@@ -182,11 +197,19 @@ describe("taskcore MCP tools", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    const [lookupUrl, lookupInit] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(lookupUrl)).toBe("http://localhost:3100/api/issues/PAP-1135/heartbeat-context");
+    const [lookupUrl, lookupInit] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(String(lookupUrl)).toBe(
+      "http://localhost:3100/api/issues/PAP-1135/heartbeat-context",
+    );
     expect(lookupInit.method).toBe("GET");
 
-    const [controlUrl, controlInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const [controlUrl, controlInit] = fetchMock.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
     expect(String(controlUrl)).toBe(
       "http://localhost:3100/api/execution-workspaces/44444444-4444-4444-8444-444444444444/runtime-services/restart",
     );
@@ -197,8 +220,8 @@ describe("taskcore MCP tools", () => {
   });
 
   it("waits for an issue workspace runtime service URL", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(mockJsonResponse({
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockJsonResponse({
         currentExecutionWorkspace: {
           id: "44444444-4444-4444-8444-444444444444",
           runtimeServices: [
@@ -211,7 +234,8 @@ describe("taskcore MCP tools", () => {
             },
           ],
         },
-      }));
+      }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreWaitForIssueWorkspaceService");
@@ -226,9 +250,11 @@ describe("taskcore MCP tools", () => {
   });
 
   it("creates suggest_tasks interactions with the expected issue-scoped payload", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ id: "interaction-1", kind: "suggest_tasks" }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        mockJsonResponse({ id: "interaction-1", kind: "suggest_tasks" }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreSuggestTasks");
@@ -242,7 +268,9 @@ describe("taskcore MCP tools", () => {
     });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe("http://localhost:3100/api/issues/PAP-1135/interactions");
+    expect(String(url)).toBe(
+      "http://localhost:3100/api/issues/PAP-1135/interactions",
+    );
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       kind: "suggest_tasks",
@@ -256,15 +284,18 @@ describe("taskcore MCP tools", () => {
   });
 
   it("creates request_confirmation interactions with plan target payloads", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ id: "interaction-1", kind: "request_confirmation" }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        mockJsonResponse({ id: "interaction-1", kind: "request_confirmation" }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreRequestConfirmation");
     await tool.execute({
       issueId: "PAP-1135",
-      idempotencyKey: "confirmation:PAP-1135:plan:33333333-3333-4333-8333-333333333333",
+      idempotencyKey:
+        "confirmation:PAP-1135:plan:33333333-3333-4333-8333-333333333333",
       title: "Plan approval",
       payload: {
         version: 1,
@@ -284,12 +315,15 @@ describe("taskcore MCP tools", () => {
     });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe("http://localhost:3100/api/issues/PAP-1135/interactions");
+    expect(String(url)).toBe(
+      "http://localhost:3100/api/issues/PAP-1135/interactions",
+    );
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       kind: "request_confirmation",
       continuationPolicy: "none",
-      idempotencyKey: "confirmation:PAP-1135:plan:33333333-3333-4333-8333-333333333333",
+      idempotencyKey:
+        "confirmation:PAP-1135:plan:33333333-3333-4333-8333-333333333333",
       title: "Plan approval",
       payload: {
         version: 1,
@@ -311,7 +345,10 @@ describe("taskcore MCP tools", () => {
 
   it("creates request_checkbox_confirmation interactions with checkbox payloads", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ id: "interaction-1", kind: "request_checkbox_confirmation" }),
+      mockJsonResponse({
+        id: "interaction-1",
+        kind: "request_checkbox_confirmation",
+      }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -339,7 +376,9 @@ describe("taskcore MCP tools", () => {
     });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe("http://localhost:3100/api/issues/PAP-1135/interactions");
+    expect(String(url)).toBe(
+      "http://localhost:3100/api/issues/PAP-1135/interactions",
+    );
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       kind: "request_checkbox_confirmation",
@@ -366,9 +405,9 @@ describe("taskcore MCP tools", () => {
   });
 
   it("creates approvals with the expected company-scoped payload", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      mockJsonResponse({ id: "approval-1" }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(mockJsonResponse({ id: "approval-1" }));
     vi.stubGlobal("fetch", fetchMock);
 
     const tool = getTool("taskcoreCreateApproval");

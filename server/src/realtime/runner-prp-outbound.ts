@@ -12,8 +12,7 @@ const MAX_FRAME_BYTES = 4 * 1024 * 1024;
 const RECONNECT_DELAYS_MS = [250, 500, 1_000, 2_000, 5_000] as const;
 
 export type RunnerIngressFailureCode =
-  | "runner_ingress_unavailable"
-  | "runner_ingress_auth_failed";
+  "runner_ingress_unavailable" | "runner_ingress_auth_failed";
 
 export class RunnerIngressConnectionError extends Error {
   constructor(
@@ -107,7 +106,9 @@ function validateEndpoint(endpoint: RunnerIngressEndpoint): void {
   }
 }
 
-function endpointHeaders(endpoint: RunnerIngressEndpoint): Record<string, string> {
+function endpointHeaders(
+  endpoint: RunnerIngressEndpoint,
+): Record<string, string> {
   const headers: Record<string, string> = {};
   for (const header of endpoint.secretHeaders) {
     if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(header.name) || !header.value) {
@@ -253,7 +254,8 @@ export function connectRunnerPrpIngress(input: {
   recoveryGraceMs?: number;
   random?: () => number;
   onStateChange?: (
-    state: "connecting" | "authenticated" | "reconnecting" | "failed" | "closed",
+    state:
+      "connecting" | "authenticated" | "reconnecting" | "failed" | "closed",
     failureCode?: RunnerIngressFailureCode,
   ) => void;
 }): RunnerPrpOutboundHandle {
@@ -366,11 +368,15 @@ export function connectRunnerPrpIngress(input: {
           failureReject(terminal);
           return;
         }
-        const base = RECONNECT_DELAYS_MS[
-          Math.min(attempt, RECONNECT_DELAYS_MS.length - 1)
-        ]!;
+        const base =
+          RECONNECT_DELAYS_MS[
+            Math.min(attempt, RECONNECT_DELAYS_MS.length - 1)
+          ]!;
         attempt += 1;
-        await delay(Math.max(1, Math.round(base * (0.75 + random() * 0.5))), abort.signal);
+        await delay(
+          Math.max(1, Math.round(base * (0.75 + random() * 0.5))),
+          abort.signal,
+        );
       }
     }
   })();

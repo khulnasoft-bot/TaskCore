@@ -19,7 +19,9 @@ vi.mock("./InlineEntitySelector", () => ({
 }));
 
 vi.mock("./ApprovalCard", () => ({
-  ApprovalCard: ({ approval }: { approval: Approval }) => <div>{approval.type}</div>,
+  ApprovalCard: ({ approval }: { approval: Approval }) => (
+    <div>{approval.type}</div>
+  ),
 }));
 
 vi.mock("@/plugins/slots", () => ({
@@ -57,22 +59,24 @@ describe("CommentThread external object decoration (integration)", () => {
           <ThemeProvider>
             <MemoryRouter>
               <CommentThread
-                comments={[{
-                  id: "comment-mixed",
-                  companyId: "company-1",
-                  issueId: "issue-1",
-                  authorAgentId: null,
-                  authorUserId: "user-1",
-                  authorType: "user",
-                  presentation: null,
-                  metadata: null,
-                  body: [
-                    "Tracked: https://github.com/example/repo/pull/77",
-                    "Untracked: https://elsewhere.example.com/page",
-                  ].join("\n\n"),
-                  createdAt: new Date("2026-04-24T12:00:00.000Z"),
-                  updatedAt: new Date("2026-04-24T12:00:00.000Z"),
-                }]}
+                comments={[
+                  {
+                    id: "comment-mixed",
+                    companyId: "company-1",
+                    issueId: "issue-1",
+                    authorAgentId: null,
+                    authorUserId: "user-1",
+                    authorType: "user",
+                    presentation: null,
+                    metadata: null,
+                    body: [
+                      "Tracked: https://github.com/example/repo/pull/77",
+                      "Untracked: https://elsewhere.example.com/page",
+                    ].join("\n\n"),
+                    createdAt: new Date("2026-04-24T12:00:00.000Z"),
+                    updatedAt: new Date("2026-04-24T12:00:00.000Z"),
+                  },
+                ]}
                 externalReferences={{
                   "https://github.com/example/repo/pull/77": {
                     providerKey: "github",
@@ -94,17 +98,27 @@ describe("CommentThread external object decoration (integration)", () => {
     const resolvedLink = container.querySelector(
       'a[href="https://github.com/example/repo/pull/77"]',
     );
-    expect(resolvedLink, "resolved URL should be wrapped by the external-link decorator").not.toBeNull();
+    expect(
+      resolvedLink,
+      "resolved URL should be wrapped by the external-link decorator",
+    ).not.toBeNull();
     expect(resolvedLink?.getAttribute("data-external-link")).toBe("resolved");
     expect(resolvedLink?.getAttribute("data-external-status")).toBe("open");
-    expect(resolvedLink?.classList.contains("taskcore-markdown-external-ref")).toBe(true);
+    expect(
+      resolvedLink?.classList.contains("taskcore-markdown-external-ref"),
+    ).toBe(true);
 
     const unknownLink = container.querySelector(
       'a[href="https://elsewhere.example.com/page"]',
     );
-    expect(unknownLink, "unknown URL should still render as a plain link").not.toBeNull();
+    expect(
+      unknownLink,
+      "unknown URL should still render as a plain link",
+    ).not.toBeNull();
     expect(unknownLink?.getAttribute("data-external-link")).toBeNull();
-    expect(unknownLink?.classList.contains("taskcore-markdown-external-ref")).toBe(false);
+    expect(
+      unknownLink?.classList.contains("taskcore-markdown-external-ref"),
+    ).toBe(false);
 
     act(() => {
       root.unmount();

@@ -11,7 +11,10 @@ import {
 
 describe("Runner acceptance failure classification", () => {
   it.each([
-    ["assertion runtime mode expected legacy observed native", "candidate_failure"],
+    [
+      "assertion runtime mode expected legacy observed native",
+      "candidate_failure",
+    ],
     ["provider connection timed out", "transient_infrastructure"],
     ["provider unsupported by this runner", "permanent_infrastructure"],
     ["secret redaction leak in result", "secret_leak"],
@@ -32,31 +35,43 @@ describe("Runner acceptance redaction", () => {
   const secretShapedValue = ["sk", "proj", "fixturevalue1234567890"].join("-");
 
   it("deduplicates and orders known sensitive values longest first", () => {
-    expect(normalizedSensitiveValues([" short ", undefined, "long-value", "short"]))
-      .toEqual(["long-value", "short"]);
+    expect(
+      normalizedSensitiveValues([" short ", undefined, "long-value", "short"]),
+    ).toEqual(["long-value", "short"]);
   });
 
   it("redacts exact values, secret shapes, and structured sensitive fields", () => {
-    expect(redactText(
-      `value=${fakeSensitiveValue} shaped=${secretShapedValue}`,
-      [fakeSensitiveValue],
-    )).toBe("value=[REDACTED] shaped=[REDACTED]");
-    expect(sanitizeJson({
-      nested: { accessToken: fakeSensitiveValue },
-      detail: `received ${secretShapedValue}`,
-    }, [fakeSensitiveValue])).toEqual({
+    expect(
+      redactText(`value=${fakeSensitiveValue} shaped=${secretShapedValue}`, [
+        fakeSensitiveValue,
+      ]),
+    ).toBe("value=[REDACTED] shaped=[REDACTED]");
+    expect(
+      sanitizeJson(
+        {
+          nested: { accessToken: fakeSensitiveValue },
+          detail: `received ${secretShapedValue}`,
+        },
+        [fakeSensitiveValue],
+      ),
+    ).toEqual({
       nested: { accessToken: "[REDACTED]" },
       detail: "received [REDACTED]",
     });
   });
 
   it("detects exact, shaped, and sensitive-key leaks without scanning files", () => {
-    expect(findSensitiveValue(fakeSensitiveValue, [fakeSensitiveValue]))
-      .toBe("exact sensitive value");
+    expect(findSensitiveValue(fakeSensitiveValue, [fakeSensitiveValue])).toBe(
+      "exact sensitive value",
+    );
     expect(findSensitiveValue(secretShapedValue)).toBe("secret-shaped value");
-    expect(findSensitiveJsonValue({ password: "fixture-password" }))
-      .toBe("sensitive field password");
-    expect(findSensitiveJsonValue({ schema: "taskcore.runner-acceptance.result/v1" }))
-      .toBeNull();
+    expect(findSensitiveJsonValue({ password: "fixture-password" })).toBe(
+      "sensitive field password",
+    );
+    expect(
+      findSensitiveJsonValue({
+        schema: "taskcore.runner-acceptance.result/v1",
+      }),
+    ).toBeNull();
   });
 });

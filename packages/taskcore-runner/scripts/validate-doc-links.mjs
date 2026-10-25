@@ -33,7 +33,11 @@ function withoutFencedCode(markdown) {
 function linksIn(markdown) {
   const links = [];
   const pattern = /(?<!!)\[[^\]]+\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
-  for (let match = pattern.exec(withoutFencedCode(markdown)); match; match = pattern.exec(withoutFencedCode(markdown))) {
+  for (
+    let match = pattern.exec(withoutFencedCode(markdown));
+    match;
+    match = pattern.exec(withoutFencedCode(markdown))
+  ) {
     links.push(match[1]);
   }
   return links;
@@ -82,33 +86,46 @@ const markdownFiles = (
 for (const file of markdownFiles.sort()) {
   const markdown = await readFile(file, "utf8");
   for (const { line, tag } of wrapperMarkupIn(markdown)) {
-    errors.push(`${relative(packageRoot, file)}:${line} -> leaked generation-wrapper markup ${tag}`);
+    errors.push(
+      `${relative(packageRoot, file)}:${line} -> leaked generation-wrapper markup ${tag}`,
+    );
   }
   for (const rawLink of linksIn(markdown)) {
     if (/^(?:https?:|mailto:|skill:)/.test(rawLink)) {
       continue;
     }
     const [rawPath, fragment] = rawLink.split("#", 2);
-    let target = rawPath.length === 0 ? file : resolve(dirname(file), decodeURIComponent(rawPath));
+    let target =
+      rawPath.length === 0
+        ? file
+        : resolve(dirname(file), decodeURIComponent(rawPath));
     if (await exists(resolve(target, "index.md"))) {
       target = resolve(target, "index.md");
     }
     if (!(await exists(target))) {
-      errors.push(`${relative(packageRoot, file)} -> ${rawLink} (missing target)`);
+      errors.push(
+        `${relative(packageRoot, file)} -> ${rawLink} (missing target)`,
+      );
       continue;
     }
     if (fragment && target.endsWith(".md")) {
       const targetMarkdown = await readFile(target, "utf8");
       if (!anchorsIn(targetMarkdown).has(decodeURIComponent(fragment))) {
-        errors.push(`${relative(packageRoot, file)} -> ${rawLink} (missing heading)`);
+        errors.push(
+          `${relative(packageRoot, file)} -> ${rawLink} (missing heading)`,
+        );
       }
     }
   }
 }
 
 if (errors.length > 0) {
-  process.stderr.write(`Documentation link validation failed:\n- ${errors.join("\n- ")}\n`);
+  process.stderr.write(
+    `Documentation link validation failed:\n- ${errors.join("\n- ")}\n`,
+  );
   process.exitCode = 1;
 } else {
-  process.stdout.write(`Documentation link validation passed (${markdownFiles.length} files).\n`);
+  process.stdout.write(
+    `Documentation link validation passed (${markdownFiles.length} files).\n`,
+  );
 }

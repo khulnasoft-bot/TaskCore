@@ -17,7 +17,11 @@ describe("log redaction", () => {
 
     const result = redactCurrentUserText(input, {
       userNames: [userName],
-      homeDirs: [`/Users/${userName}`, `/home/${userName}`, `C:\\Users\\${userName}`],
+      homeDirs: [
+        `/Users/${userName}`,
+        `/home/${userName}`,
+        `C:\\Users\\${userName}`,
+      ],
     });
 
     expect(result).toContain(`cwd=/Users/${maskedUserName}/taskcore`);
@@ -45,17 +49,20 @@ describe("log redaction", () => {
   it("recursively redacts nested event payloads", () => {
     const userName = "taskcoreuser";
     const maskedUserName = maskUserNameForLogs(userName);
-    const result = redactCurrentUserValue({
-      cwd: `/Users/${userName}/taskcore`,
-      prompt: `open /Users/${userName}/taskcore/ui`,
-      nested: {
-        author: userName,
+    const result = redactCurrentUserValue(
+      {
+        cwd: `/Users/${userName}/taskcore`,
+        prompt: `open /Users/${userName}/taskcore/ui`,
+        nested: {
+          author: userName,
+        },
+        values: [userName, `/home/${userName}/project`],
       },
-      values: [userName, `/home/${userName}/project`],
-    }, {
-      userNames: [userName],
-      homeDirs: [`/Users/${userName}`, `/home/${userName}`],
-    });
+      {
+        userNames: [userName],
+        homeDirs: [`/Users/${userName}`, `/home/${userName}`],
+      },
+    );
 
     expect(result).toEqual({
       cwd: `/Users/${maskedUserName}/taskcore`,

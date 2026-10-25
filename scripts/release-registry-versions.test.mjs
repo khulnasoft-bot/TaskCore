@@ -97,7 +97,10 @@ ${fnCall}
 
 test("fetch prints a JSON version map and treats missing packages as empty", () => {
   const fixture = makeFixture();
-  const result = runScript(["fetch", "@taskcore/present", "@taskcore/missing"], fixture);
+  const result = runScript(
+    ["fetch", "@taskcore/present", "@taskcore/missing"],
+    fixture,
+  );
 
   assert.equal(result.status, 0);
   const map = JSON.parse(result.stdout);
@@ -120,7 +123,10 @@ test("assert-absent succeeds when no package has the version", () => {
   );
 
   assert.equal(result.status, 0);
-  assert.match(result.calls, /^npm view @taskcore\/absent@2026\.707\.2 version$/m);
+  assert.match(
+    result.calls,
+    /^npm view @taskcore\/absent@2026\.707\.2 version$/m,
+  );
 });
 
 test("assert-absent fails and names packages that already have the version", () => {
@@ -131,18 +137,28 @@ test("assert-absent fails and names packages that already have the version", () 
   );
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /npm version @taskcore\/present@2026\.707\.2 already exists\./);
+  assert.match(
+    result.stderr,
+    /npm version @taskcore\/present@2026\.707\.2 already exists\./,
+  );
   assert.doesNotMatch(result.stderr, /@taskcore\/absent@/);
 });
 
 test("invalid concurrency fails instead of skipping registry checks", () => {
   const fixture = makeFixture();
-  const result = runScript(["assert-absent", "2026.707.2", "@taskcore/present"], fixture, {
-    RELEASE_REGISTRY_CONCURRENCY: "0",
-  });
+  const result = runScript(
+    ["assert-absent", "2026.707.2", "@taskcore/present"],
+    fixture,
+    {
+      RELEASE_REGISTRY_CONCURRENCY: "0",
+    },
+  );
 
   assert.equal(result.status, 2);
-  assert.match(result.stderr, /RELEASE_REGISTRY_CONCURRENCY must be a positive integer\./);
+  assert.match(
+    result.stderr,
+    /RELEASE_REGISTRY_CONCURRENCY must be a positive integer\./,
+  );
   assert.equal(result.calls, "");
 });
 
@@ -178,9 +194,13 @@ test("next_canary_version reads RELEASE_PACKAGE_VERSIONS_FILE without calling np
     }),
   );
 
-  const result = runReleaseLibHelper('next_canary_version 2026.707.1 "@taskcore/a"', fixture, {
-    RELEASE_PACKAGE_VERSIONS_FILE: versionsFile,
-  });
+  const result = runReleaseLibHelper(
+    'next_canary_version 2026.707.1 "@taskcore/a"',
+    fixture,
+    {
+      RELEASE_PACKAGE_VERSIONS_FILE: versionsFile,
+    },
+  );
 
   assert.equal(result.status, 0);
   assert.equal(result.output, "2026.707.1-canary.5");
@@ -189,7 +209,10 @@ test("next_canary_version reads RELEASE_PACKAGE_VERSIONS_FILE without calling np
 
 test("next_stable_version falls back to npm view without a versions file", () => {
   const fixture = makeFixture();
-  const result = runReleaseLibHelper('next_stable_version 2026-07-07 "@taskcore/present"', fixture);
+  const result = runReleaseLibHelper(
+    'next_stable_version 2026-07-07 "@taskcore/present"',
+    fixture,
+  );
 
   assert.equal(result.status, 0);
   assert.equal(result.output, "2026.707.2");
@@ -202,7 +225,11 @@ test("next_prerelease_version counts per channel so nightly numbering ignores ca
   writeFileSync(
     versionsFile,
     JSON.stringify({
-      "@taskcore/a": ["2026.707.1-canary.4", "2026.707.1-nightly.0", "2026.707.1-nightly.1"],
+      "@taskcore/a": [
+        "2026.707.1-canary.4",
+        "2026.707.1-nightly.0",
+        "2026.707.1-nightly.1",
+      ],
     }),
   );
 
@@ -223,7 +250,11 @@ test("next_prerelease_version counts beta numbering independently of other chann
   writeFileSync(
     versionsFile,
     JSON.stringify({
-      "@taskcore/a": ["2026.707.1-canary.4", "2026.707.1-nightly.3", "2026.707.1-beta.0"],
+      "@taskcore/a": [
+        "2026.707.1-canary.4",
+        "2026.707.1-nightly.3",
+        "2026.707.1-beta.0",
+      ],
     }),
   );
 
@@ -251,7 +282,10 @@ test("next_prerelease_version rejects unknown channels", () => {
 
 test("prerelease_tag_name namespaces tags by channel", () => {
   const fixture = makeFixture();
-  const result = runReleaseLibHelper("prerelease_tag_name nightly 2026.707.1-nightly.2", fixture);
+  const result = runReleaseLibHelper(
+    "prerelease_tag_name nightly 2026.707.1-nightly.2",
+    fixture,
+  );
 
   assert.equal(result.status, 0);
   assert.equal(result.output.trim(), "nightly/v2026.707.1-nightly.2");

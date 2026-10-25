@@ -35,8 +35,10 @@ export function SwipeToArchive({
 
   useEffect(() => {
     return () => {
-      if (archiveTimeoutRef.current !== null) window.clearTimeout(archiveTimeoutRef.current);
-      if (suppressClickTimeoutRef.current !== null) window.clearTimeout(suppressClickTimeoutRef.current);
+      if (archiveTimeoutRef.current !== null)
+        window.clearTimeout(archiveTimeoutRef.current);
+      if (suppressClickTimeoutRef.current !== null)
+        window.clearTimeout(suppressClickTimeoutRef.current);
       archiveTimeoutRef.current = null;
       suppressClickTimeoutRef.current = null;
       startPointRef.current = null;
@@ -103,7 +105,13 @@ export function SwipeToArchive({
   };
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (disabled || isCollapsing || archiveTimeoutRef.current !== null || event.touches.length !== 1) return;
+    if (
+      disabled ||
+      isCollapsing ||
+      archiveTimeoutRef.current !== null ||
+      event.touches.length !== 1
+    )
+      return;
     clearArchiveTimeout();
     clearClickSuppression();
     const touch = event.touches[0];
@@ -141,7 +149,10 @@ export function SwipeToArchive({
       return;
     }
 
-    const maxSwipe = widthRef.current > 0 ? widthRef.current * MAX_SWIPE : Number.POSITIVE_INFINITY;
+    const maxSwipe =
+      widthRef.current > 0
+        ? widthRef.current * MAX_SWIPE
+        : Number.POSITIVE_INFINITY;
     event.preventDefault();
     setIsDragging(true);
     const nextOffset = Math.max(deltaX, -maxSwipe);
@@ -152,7 +163,8 @@ export function SwipeToArchive({
   const handleTouchEnd = () => {
     if (disabled || isCollapsing || archiveTimeoutRef.current !== null) return;
     const shouldCommit =
-      widthRef.current > 0 && Math.abs(offsetXRef.current) >= widthRef.current * COMMIT_THRESHOLD;
+      widthRef.current > 0 &&
+      Math.abs(offsetXRef.current) >= widthRef.current * COMMIT_THRESHOLD;
     if (shouldCommit) {
       releaseClickSuppressionSoon();
       commitArchive();
@@ -168,16 +180,22 @@ export function SwipeToArchive({
     reset();
   };
 
-  const archiveReveal = widthRef.current > 0 ? Math.min(Math.abs(offsetX) / widthRef.current, 1) : 0;
+  const archiveReveal =
+    widthRef.current > 0
+      ? Math.min(Math.abs(offsetX) / widthRef.current, 1)
+      : 0;
 
   return (
     <div
       ref={containerRef}
       className={cn("relative overflow-hidden touch-pan-y", className)}
       style={{
-        height: lockedHeight === null ? undefined : isCollapsing ? 0 : lockedHeight,
+        height:
+          lockedHeight === null ? undefined : isCollapsing ? 0 : lockedHeight,
         opacity: isCollapsing ? 0 : 1,
-        transition: isCollapsing ? "height 200ms ease, opacity 200ms ease" : undefined,
+        transition: isCollapsing
+          ? "height 200ms ease, opacity 200ms ease"
+          : undefined,
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

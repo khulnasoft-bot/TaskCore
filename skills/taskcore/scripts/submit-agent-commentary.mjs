@@ -13,40 +13,60 @@ async function readBounded(stream, maxBytes) {
     if (bytes > maxBytes) throw new Error("Input too large");
     chunks.push(chunk);
   }
-  return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(Buffer.concat(chunks));
+  return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+    Buffer.concat(chunks),
+  );
 }
 
 try {
   const [kind, idempotencyKey = randomUUID()] = process.argv.slice(2);
-  if (kind !== "complaint" && kind !== "suggestion") throw new Error("Invalid kind");
+  if (kind !== "complaint" && kind !== "suggestion")
+    throw new Error("Invalid kind");
   // Bound bytes before decoding; JavaScript string length matches the server's ceiling.
   const body = await readBounded(process.stdin, 4 * MAX_BODY_LENGTH);
-  if (!body.trim() || body.length > MAX_BODY_LENGTH) throw new Error("Invalid body");
-  const { TASKCORE_API_URL, TASKCORE_API_KEY, TASKCORE_COMPANY_ID, TASKCORE_RUN_ID } = process.env;
-  if (!TASKCORE_API_URL || !TASKCORE_API_KEY || !UUID.test(TASKCORE_COMPANY_ID ?? "") || !UUID.test(TASKCORE_RUN_ID ?? "")) {
+  if (!body.trim() || body.length > MAX_BODY_LENGTH)
+    throw new Error("Invalid body");
+  const {
+    TASKCORE_API_URL,
+    TASKCORE_API_KEY,
+    TASKCORE_COMPANY_ID,
+    TASKCORE_RUN_ID,
+  } = process.env;
+  if (
+    !TASKCORE_API_URL ||
+    !TASKCORE_API_KEY ||
+    !UUID.test(TASKCORE_COMPANY_ID ?? "") ||
+    !UUID.test(TASKCORE_RUN_ID ?? "")
+  ) {
     throw new Error("Missing run context");
   }
   const apiUrl = TASKCORE_API_URL.replace(/\/+$/, "").replace(/\/api$/, "");
-  const response = await fetch(`${apiUrl}/api/companies/${TASKCORE_COMPANY_ID}/agent-commentary`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${TASKCORE_API_KEY}`,
-      "X-Taskcore-Run-Id": TASKCORE_RUN_ID,
+  const response = await fetch(
+    `${apiUrl}/api/companies/${TASKCORE_COMPANY_ID}/agent-commentary`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${TASKCORE_API_KEY}`,
+        "X-Taskcore-Run-Id": TASKCORE_RUN_ID,
+      },
+      body: JSON.stringify({ kind, body, idempotencyKey }),
+      // Never forward run credentials through redirects. Bound the entire HTTP attempt.
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
     },
-    body: JSON.stringify({ kind, body, idempotencyKey }),
-    // Never forward run credentials through redirects. Bound the entire HTTP attempt.
-    redirect: "error",
-    signal: AbortSignal.timeout(10_000),
-  });
+  );
   if (response.status !== 200 && response.status !== 201) {
     await response.body?.cancel();
     throw new Error("Submission failed");
   }
   const acknowledgement = JSON.parse(await readBounded(response.body, 4096));
-  if (typeof acknowledgement.id !== "string" || !acknowledgement.id) throw new Error("Invalid acknowledgement");
+  if (typeof acknowledgement.id !== "string" || !acknowledgement.id)
+    throw new Error("Invalid acknowledgement");
   console.log("Feedback stored.");
 } catch {
   // No exception text: transport errors may contain credentials or submitted text.
-  console.error("Feedback could not be confirmed. Ignore this failure, do not retry, and continue the primary task.");
+  console.error(
+    "Feedback could not be confirmed. Ignore this failure, do not retry, and continue the primary task.",
+  );
 }

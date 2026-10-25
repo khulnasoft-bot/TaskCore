@@ -1,7 +1,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { idleOrphanSpoolPath, registerIdleSpoolDirectory } from "./idle-local-work.js";
+import {
+  idleOrphanSpoolPath,
+  registerIdleSpoolDirectory,
+} from "./idle-local-work.js";
 
 /**
  * One orphan pending-cleanup record. The acquire builds it when the conditional
@@ -86,10 +89,13 @@ function recordFileName(record: DeferredOrphanCleanupRecord): string {
   return `${hash}${RECORD_FILE_SUFFIX}`;
 }
 
-function isDeferredOrphanCleanupRecord(value: unknown): value is DeferredOrphanCleanupRecord {
+function isDeferredOrphanCleanupRecord(
+  value: unknown,
+): value is DeferredOrphanCleanupRecord {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
-  const stringOrNull = (field: unknown) => field === null || typeof field === "string";
+  const stringOrNull = (field: unknown) =>
+    field === null || typeof field === "string";
   return (
     typeof candidate.companyId === "string" &&
     typeof candidate.environmentId === "string" &&
@@ -139,7 +145,9 @@ async function writeFileDurable(absPath: string, data: string): Promise<void> {
  * durable server state under the instance root. A caller can override the
  * directory for a test.
  */
-export function createSandboxOrphanCleanupSpool(spoolDir?: string): SandboxOrphanCleanupSpool {
+export function createSandboxOrphanCleanupSpool(
+  spoolDir?: string,
+): SandboxOrphanCleanupSpool {
   const dir = spoolDir ?? idleOrphanSpoolPath();
   registerIdleSpoolDirectory(dir);
 

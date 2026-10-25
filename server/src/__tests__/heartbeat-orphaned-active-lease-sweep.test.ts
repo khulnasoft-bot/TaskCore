@@ -1,6 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   costEvents,
   agents,
@@ -16,7 +25,9 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const mockTelemetryClient = vi.hoisted(() => ({ track: vi.fn() }));
-vi.mock("../telemetry.ts", () => ({ getTelemetryClient: () => mockTelemetryClient }));
+vi.mock("../telemetry.ts", () => ({
+  getTelemetryClient: () => mockTelemetryClient,
+}));
 
 vi.mock("../middleware/logger.js", () => ({
   logger: {
@@ -34,10 +45,15 @@ vi.mock("../middleware/logger.js", () => ({
 }));
 
 import { logger } from "../middleware/logger.ts";
-import { heartbeatService, type HeartbeatEnvironmentRuntime } from "../services/heartbeat.ts";
+import {
+  heartbeatService,
+  type HeartbeatEnvironmentRuntime,
+} from "../services/heartbeat.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -49,10 +65,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-orphaned-active-lease-sweep-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-orphaned-active-lease-sweep-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -160,43 +180,89 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
 
   const oldEnough = () => new Date(Date.now() - 60 * 60 * 1000);
 
-  it.each([false, true])("releases an interrupted local run's bookkeeping lease (deleted environment: %s)", async (deletedEnvironment) => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    await db.delete(environments).where(eq(environments.driver, "local"));
-    await db.update(environments).set({ driver: "local", config: {} }).where(eq(environments.id, environmentId));
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "interrupted" });
-    const leaseId = randomUUID();
-    await db.insert(environmentLeases).values({
-      id: leaseId, companyId, environmentId, heartbeatRunId: runId,
-      status: "active", leasePolicy: "ephemeral", provider: "local",
-      providerLeaseId: null, metadata: { driver: "local" }, updatedAt: oldEnough(),
-    });
-    if (deletedEnvironment) await db.delete(environments).where(eq(environments.id, environmentId));
+  it.each([false, true])(
+    "releases an interrupted local run's bookkeeping lease (deleted environment: %s)",
+    async (deletedEnvironment) => {
+      const { companyId, agentId, environmentId } =
+        await seedCompanyAgentAndEnvironment();
+      await db.delete(environments).where(eq(environments.driver, "local"));
+      await db
+        .update(environments)
+        .set({ driver: "local", config: {} })
+        .where(eq(environments.id, environmentId));
+      const runId = await insertHeartbeatRun({
+        companyId,
+        agentId,
+        status: "interrupted",
+      });
+      const leaseId = randomUUID();
+      await db.insert(environmentLeases).values({
+        id: leaseId,
+        companyId,
+        environmentId,
+        heartbeatRunId: runId,
+        status: "active",
+        leasePolicy: "ephemeral",
+        provider: "local",
+        providerLeaseId: null,
+        metadata: { driver: "local" },
+        updatedAt: oldEnough(),
+      });
+      if (deletedEnvironment)
+        await db.delete(environments).where(eq(environments.id, environmentId));
 
-    await heartbeatService(db).reapOrphanedRuns({ staleThresholdMs: 0 });
+      await heartbeatService(db).reapOrphanedRuns({ staleThresholdMs: 0 });
 
-    expect(await leaseRow(leaseId)).toMatchObject({ status: "expired", cleanupStatus: "success" });
-    expect((await leaseRow(leaseId))?.releasedAt).toBeInstanceOf(Date);
-  });
+      expect(await leaseRow(leaseId)).toMatchObject({
+        status: "expired",
+        cleanupStatus: "success",
+      });
+      expect((await leaseRow(leaseId))?.releasedAt).toBeInstanceOf(Date);
+    },
+  );
 
   it("does not discard an unexpected provider resource from a local lease", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
     await db.delete(environments).where(eq(environments.driver, "local"));
-    await db.update(environments).set({ driver: "local", config: {} }).where(eq(environments.id, environmentId));
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "interrupted" });
-    const leaseId = await insertActiveLease({ companyId, environmentId, heartbeatRunId: runId,
-      updatedAt: oldEnough(), provider: "local", providerLeaseId: "unexpected-resource" });
-    await db.update(environmentLeases).set({ leasePolicy: "ephemeral", metadata: { driver: "local" } })
+    await db
+      .update(environments)
+      .set({ driver: "local", config: {} })
+      .where(eq(environments.id, environmentId));
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "interrupted",
+    });
+    const leaseId = await insertActiveLease({
+      companyId,
+      environmentId,
+      heartbeatRunId: runId,
+      updatedAt: oldEnough(),
+      provider: "local",
+      providerLeaseId: "unexpected-resource",
+    });
+    await db
+      .update(environmentLeases)
+      .set({ leasePolicy: "ephemeral", metadata: { driver: "local" } })
       .where(eq(environmentLeases.id, leaseId));
 
     await heartbeatService(db).reapOrphanedRuns({ staleThresholdMs: 0 });
 
-    expect(await leaseRow(leaseId)).toMatchObject({ status: "pending_cleanup", cleanupStatus: "failed" });
+    expect(await leaseRow(leaseId)).toMatchObject({
+      status: "pending_cleanup",
+      cleanupStatus: "failed",
+    });
   });
 
   it("test_flips_an_active_lease_when_its_run_is_failed", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "failed" });
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "failed",
+    });
     const leaseId = await insertActiveLease({
       companyId,
       environmentId,
@@ -205,7 +271,9 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
     });
 
     const heartbeat = heartbeatService(db);
-    const result = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const result = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
 
     expect(result).toEqual({ recovered: 1 });
     const row = await leaseRow(leaseId);
@@ -213,8 +281,13 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
   });
 
   it("test_keeps_an_active_lease_when_its_run_is_running", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "running" });
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "running",
+    });
     const leaseId = await insertActiveLease({
       companyId,
       environmentId,
@@ -223,7 +296,9 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
     });
 
     const heartbeat = heartbeatService(db);
-    const result = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const result = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
 
     expect(result).toEqual({ recovered: 0 });
     const row = await leaseRow(leaseId);
@@ -240,7 +315,9 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
     });
 
     const heartbeat = heartbeatService(db);
-    const result = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const result = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
 
     expect(result).toEqual({ recovered: 1 });
     const row = await leaseRow(leaseId);
@@ -257,7 +334,9 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
     });
 
     const heartbeat = heartbeatService(db);
-    const result = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const result = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
 
     expect(result).toEqual({ recovered: 0 });
     const row = await leaseRow(leaseId);
@@ -265,8 +344,13 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
   });
 
   it("test_keeps_a_retained_lease_unchanged", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "failed" });
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "failed",
+    });
     const leaseId = await insertActiveLease({
       companyId,
       environmentId,
@@ -276,7 +360,9 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
     });
 
     const heartbeat = heartbeatService(db);
-    const result = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const result = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
 
     expect(result).toEqual({ recovered: 0 });
     const row = await leaseRow(leaseId);
@@ -284,8 +370,13 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
   });
 
   it("test_skips_a_lease_when_another_live_lease_holds_the_same_provider_lease_id", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "failed" });
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "failed",
+    });
     const sharedProviderLeaseId = "sandbox://fake/shared-resource";
     const orphanedLeaseId = await insertActiveLease({
       companyId,
@@ -305,7 +396,9 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
     });
 
     const heartbeat = heartbeatService(db);
-    const result = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const result = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
 
     expect(result).toEqual({ recovered: 0 });
     const row = await leaseRow(orphanedLeaseId);
@@ -313,8 +406,13 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
   });
 
   it("test_defers_a_guarded_lease_instead_of_leaving_it_at_the_front_of_the_page", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "failed" });
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "failed",
+    });
     const sharedProviderLeaseId = "sandbox://fake/shared-resource";
     const orphanedLeaseId = await insertActiveLease({
       companyId,
@@ -384,14 +482,18 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
 
     const heartbeat = heartbeatService(db);
 
-    const firstTick = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const firstTick = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
     expect(firstTick).toEqual({ recovered: 0 });
     const eligibleAfterFirstTick = await leaseRow(eligibleLeaseId);
     expect(eligibleAfterFirstTick?.status).toBe("active");
 
     // The guarded rows moved out of the stale page on the first tick, so
     // the second tick reaches the eligible orphan behind them.
-    const secondTick = await heartbeat.sweepOrphanedActiveLeases({ backoffMs: 5 * 60 * 1000 });
+    const secondTick = await heartbeat.sweepOrphanedActiveLeases({
+      backoffMs: 5 * 60 * 1000,
+    });
     expect(secondTick).toEqual({ recovered: 1 });
     const eligibleAfterSecondTick = await leaseRow(eligibleLeaseId);
     expect(eligibleAfterSecondTick?.status).toBe("pending_cleanup");
@@ -414,8 +516,13 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
   });
 
   it("test_stops_the_recovered_sandbox_on_the_same_reaper_tick", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "failed" });
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "failed",
+    });
     const leaseId = await insertActiveLease({
       companyId,
       environmentId,
@@ -423,16 +530,18 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
       updatedAt: oldEnough(),
     });
 
-    const destroyRunLease = vi.fn(async ({ lease }: { lease: { id: string } }) => {
-      const now = new Date();
-      const row = await db
-        .update(environmentLeases)
-        .set({ status: "expired", cleanupStatus: "success", updatedAt: now })
-        .where(eq(environmentLeases.id, lease.id))
-        .returning()
-        .then((rows) => rows[0] ?? null);
-      return row ? { ...row, status: "expired" as const } : null;
-    });
+    const destroyRunLease = vi.fn(
+      async ({ lease }: { lease: { id: string } }) => {
+        const now = new Date();
+        const row = await db
+          .update(environmentLeases)
+          .set({ status: "expired", cleanupStatus: "success", updatedAt: now })
+          .where(eq(environmentLeases.id, lease.id))
+          .returning()
+          .then((rows) => rows[0] ?? null);
+        return row ? { ...row, status: "expired" as const } : null;
+      },
+    );
     const heartbeat = heartbeatService(db, {
       environmentRuntime: {
         destroyRunLease,
@@ -450,8 +559,13 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
   });
 
   it("test_stops_the_recovered_sandbox_on_the_startup_call", async () => {
-    const { companyId, agentId, environmentId } = await seedCompanyAgentAndEnvironment();
-    const runId = await insertHeartbeatRun({ companyId, agentId, status: "failed" });
+    const { companyId, agentId, environmentId } =
+      await seedCompanyAgentAndEnvironment();
+    const runId = await insertHeartbeatRun({
+      companyId,
+      agentId,
+      status: "failed",
+    });
     const leaseId = await insertActiveLease({
       companyId,
       environmentId,
@@ -459,16 +573,18 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
       updatedAt: oldEnough(),
     });
 
-    const destroyRunLease = vi.fn(async ({ lease }: { lease: { id: string } }) => {
-      const now = new Date();
-      const row = await db
-        .update(environmentLeases)
-        .set({ status: "expired", cleanupStatus: "success", updatedAt: now })
-        .where(eq(environmentLeases.id, lease.id))
-        .returning()
-        .then((rows) => rows[0] ?? null);
-      return row ? { ...row, status: "expired" as const } : null;
-    });
+    const destroyRunLease = vi.fn(
+      async ({ lease }: { lease: { id: string } }) => {
+        const now = new Date();
+        const row = await db
+          .update(environmentLeases)
+          .set({ status: "expired", cleanupStatus: "success", updatedAt: now })
+          .where(eq(environmentLeases.id, lease.id))
+          .returning()
+          .then((rows) => rows[0] ?? null);
+        return row ? { ...row, status: "expired" as const } : null;
+      },
+    );
     const heartbeat = heartbeatService(db, {
       environmentRuntime: {
         destroyRunLease,
@@ -513,11 +629,16 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
       });
 
       // The reaper isolates the sweep, so the reaper itself still resolves.
-      await expect(heartbeat.reapOrphanedRuns({ staleThresholdMs: 0 })).resolves.toBeDefined();
+      await expect(
+        heartbeat.reapOrphanedRuns({ staleThresholdMs: 0 }),
+      ).resolves.toBeDefined();
 
       const sweepCall = vi
         .mocked(logger.error)
-        .mock.calls.find((call) => call[1] === "orphaned active environment lease sweep failed");
+        .mock.calls.find(
+          (call) =>
+            call[1] === "orphaned active environment lease sweep failed",
+        );
       expect(sweepCall).toBeDefined();
       const record = sweepCall?.[0] as Record<string, unknown>;
 
@@ -527,7 +648,9 @@ describeEmbeddedPostgres("heartbeat sweepOrphanedActiveLeases", () => {
       expect(record).not.toHaveProperty("errorCode");
       expect(record).not.toHaveProperty("message");
       expect(record).not.toHaveProperty("stack");
-      expect(record).toMatchObject({ errorKind: "orphaned_active_lease_sweep_failed" });
+      expect(record).toMatchObject({
+        errorKind: "orphaned_active_lease_sweep_failed",
+      });
     } finally {
       selectSpy.mockRestore();
     }

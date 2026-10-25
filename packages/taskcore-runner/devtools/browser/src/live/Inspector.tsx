@@ -70,13 +70,20 @@ export function Inspector({
       events.filter((event) => {
         if (facet !== null && event.eventType !== facet) return false;
         if (filter.length === 0) return true;
-        return JSON.stringify(event).toLowerCase().includes(filter.toLowerCase());
+        return JSON.stringify(event)
+          .toLowerCase()
+          .includes(filter.toLowerCase());
       }),
     [events, facet, filter],
   );
 
   return (
-    <Tabs tabs={TABS} value={tab} onValueChange={setTab} label="Protocol inspector">
+    <Tabs
+      tabs={TABS}
+      value={tab}
+      onValueChange={setTab}
+      label="Protocol inspector"
+    >
       {tab === "events" ? (
         <div className="ui-inspector-events">
           <label className="ui-visually-hidden" htmlFor="inspector-filter">
@@ -131,9 +138,13 @@ export function Inspector({
                   <summary className="ui-inspector-row">
                     <code className="ui-seq">{event.sourceSeq}</code>
                     <code>{event.eventType}</code>
-                    <code className="ui-inspector-id">{event.itemId ?? event.turnId ?? "—"}</code>
+                    <code className="ui-inspector-id">
+                      {event.itemId ?? event.turnId ?? "—"}
+                    </code>
                   </summary>
-                  <pre className="ui-payload">{JSON.stringify(event, null, 2)}</pre>
+                  <pre className="ui-payload">
+                    {JSON.stringify(event, null, 2)}
+                  </pre>
                   <CopyButton
                     label={`Copy event ${event.sourceSeq} payload`}
                     value={JSON.stringify(event, null, 2)}
@@ -157,25 +168,33 @@ export function Inspector({
               </dd>
             </div>
           ))}
-          {(snapshot?.requests.length ?? 0) === 0 ? <p>No runtime requests yet.</p> : null}
+          {(snapshot?.requests.length ?? 0) === 0 ? (
+            <p>No runtime requests yet.</p>
+          ) : null}
         </dl>
       ) : null}
 
       {tab === "capabilities" ? (
         <ul className="ui-capability-list" data-testid="inspector-capabilities">
-          {capabilityRows(state?.capabilities ?? { resume: false, typedEvents: false, steering: false, interruption: false, structuredResult: false }).map(
-            (row) => (
-              <li key={row.name}>
-                <span>{row.name}</span>
-                <Badge tone={row.supported ? "success" : "warning"}>
-                  {row.supported ? "supported" : "unsupported"}
-                </Badge>
-                {row.diagnostic === null ? null : (
-                  <p className="ui-capability-diagnostic">{row.diagnostic}</p>
-                )}
-              </li>
-            ),
-          )}
+          {capabilityRows(
+            state?.capabilities ?? {
+              resume: false,
+              typedEvents: false,
+              steering: false,
+              interruption: false,
+              structuredResult: false,
+            },
+          ).map((row) => (
+            <li key={row.name}>
+              <span>{row.name}</span>
+              <Badge tone={row.supported ? "success" : "warning"}>
+                {row.supported ? "supported" : "unsupported"}
+              </Badge>
+              {row.diagnostic === null ? null : (
+                <p className="ui-capability-diagnostic">{row.diagnostic}</p>
+              )}
+            </li>
+          ))}
         </ul>
       ) : null}
 
@@ -209,7 +228,9 @@ export function Inspector({
             <dt>Connection</dt>
             <dd>
               {connection}
-              {connection === "reconnecting" ? ` (attempt ${reconnectAttempt})` : ""}
+              {connection === "reconnecting"
+                ? ` (attempt ${reconnectAttempt})`
+                : ""}
             </dd>
           </div>
           <div>
@@ -219,7 +240,11 @@ export function Inspector({
           <div>
             <dt>Live and replay reducer</dt>
             <dd data-testid="replay-parity">
-              {replayParity === null ? "not compared yet" : replayParity ? "match" : "mismatch"}
+              {replayParity === null
+                ? "not compared yet"
+                : replayParity
+                  ? "match"
+                  : "mismatch"}
             </dd>
           </div>
         </dl>

@@ -57,7 +57,10 @@ export interface BuildNativeExecutionInput {
   /** Additive source ownership emitted by the server task/wake builders. */
   turnContext?: unknown;
   resumedSession?: boolean;
-  previousTurn?: { runId: string; task: { title: string; description: string | null } } | null;
+  previousTurn?: {
+    runId: string;
+    task: { title: string; description: string | null };
+  } | null;
   conversationMode?: boolean;
   agentId: string;
   agentKeyId?: string;
@@ -69,7 +72,13 @@ export interface BuildNativeExecutionInput {
     branchName: string | null;
   };
   normalizedSessionId: string | null;
-  provider?: "codex" | "opencode" | "claude_managed" | "aws_agentcore" | "acpx" | "openai_dot";
+  provider?:
+    | "codex"
+    | "opencode"
+    | "claude_managed"
+    | "aws_agentcore"
+    | "acpx"
+    | "openai_dot";
   dotBinding?: DotBindingSnapshot;
   acpxAgent?: NativeAcpxAgent;
   codexApprovalPolicy?: NativeCodexApprovalPolicy;
@@ -105,22 +114,47 @@ export interface BuildNativeExecutionInput {
   };
   runtimeContext: NativeRuntimeContextSnapshot;
 }
-export function buildNativeExecutionInput(input: BuildNativeExecutionInput & { provider: "openai_dot"; dotBinding: DotBindingSnapshot }): NativeExecutionInputV6;
-export function buildNativeExecutionInput(input: BuildNativeExecutionInput & { provider?: Exclude<BuildNativeExecutionInput["provider"], "openai_dot"> }): NativeExecutionInputV5;
-export function buildNativeExecutionInput(input: BuildNativeExecutionInput): NativeExecutionInputV5 | NativeExecutionInputV6;
-export function buildNativeExecutionInput(input: BuildNativeExecutionInput): NativeExecutionInputV5 | NativeExecutionInputV6 {
-  if (input.issue.workMode !== "standard" && input.issue.workMode !== "planning" && input.issue.workMode !== "ask") {
-    throw new Error("native_execution_input_invalid: issue work mode must be standard, planning, or ask");
+export function buildNativeExecutionInput(
+  input: BuildNativeExecutionInput & {
+    provider: "openai_dot";
+    dotBinding: DotBindingSnapshot;
+  },
+): NativeExecutionInputV6;
+export function buildNativeExecutionInput(
+  input: BuildNativeExecutionInput & {
+    provider?: Exclude<BuildNativeExecutionInput["provider"], "openai_dot">;
+  },
+): NativeExecutionInputV5;
+export function buildNativeExecutionInput(
+  input: BuildNativeExecutionInput,
+): NativeExecutionInputV5 | NativeExecutionInputV6;
+export function buildNativeExecutionInput(
+  input: BuildNativeExecutionInput,
+): NativeExecutionInputV5 | NativeExecutionInputV6 {
+  if (
+    input.issue.workMode !== "standard" &&
+    input.issue.workMode !== "planning" &&
+    input.issue.workMode !== "ask"
+  ) {
+    throw new Error(
+      "native_execution_input_invalid: issue work mode must be standard, planning, or ask",
+    );
   }
-  const mode = resolveTaskcoreRunnerCursorMode(input.provider, input.acpxAgent, input.acpxSessionMode);
-  const executionMode = input.executionMode
-    ?? (input.issue.workMode === "planning" ? "plan" : "default");
-  const acpxProfile = input.provider === "acpx"
-    ? resolveQualifiedAcpxProfile(
-        input.acpxAgent ?? "codex",
-        input.model ?? "",
-      )
-    : null;
+  const mode = resolveTaskcoreRunnerCursorMode(
+    input.provider,
+    input.acpxAgent,
+    input.acpxSessionMode,
+  );
+  const executionMode =
+    input.executionMode ??
+    (input.issue.workMode === "planning" ? "plan" : "default");
+  const acpxProfile =
+    input.provider === "acpx"
+      ? resolveQualifiedAcpxProfile(
+          input.acpxAgent ?? "codex",
+          input.model ?? "",
+        )
+      : null;
   // Answers are materialized from the authoritative interaction only for this
   // invocation; do not persist a duplicate answer in the durable wake snapshot.
   const wake =
@@ -143,20 +177,28 @@ export function buildNativeExecutionInput(input: BuildNativeExecutionInput): Nat
   // Keep prior choices available even when this continuation starts a fresh
   // provider session; never recover them from model prose or a transcript.
   const answerChain = question
-    ? input.interactionResponses?.filter((response) =>
-        response.kind === "ask_user_questions" &&
-        response.response.status === "answered" &&
-        typeof (response.response.result as Record<string, unknown> | undefined)
-          ?.summaryMarkdown === "string")
+    ? input.interactionResponses?.filter(
+        (response) =>
+          response.kind === "ask_user_questions" &&
+          response.response.status === "answered" &&
+          typeof (
+            response.response.result as Record<string, unknown> | undefined
+          )?.summaryMarkdown === "string",
+      )
     : null;
   const answerSummary =
-    answerChain && answerChain.length > 1 &&
+    answerChain &&
+    answerChain.length > 1 &&
     answerChain.at(-1)?.interactionId === question?.interactionId
-      ? answerChain.map((response, index) => {
-          const label = index === answerChain.length - 1
-            ? "Latest answered question" : `Earlier answer ${index + 1}`;
-          return `${label}:\n${(response.response.result as Record<string, unknown>).summaryMarkdown}`;
-        }).join("\n\n")
+      ? answerChain
+          .map((response, index) => {
+            const label =
+              index === answerChain.length - 1
+                ? "Latest answered question"
+                : `Earlier answer ${index + 1}`;
+            return `${label}:\n${(response.response.result as Record<string, unknown>).summaryMarkdown}`;
+          })
+          .join("\n\n")
       : answerResult?.summaryMarkdown;
   const wakePayload =
     question && typeof answerSummary === "string"
@@ -170,15 +212,18 @@ export function buildNativeExecutionInput(input: BuildNativeExecutionInput): Nat
       : input.wakePayload;
   // Build the full bootstrap through the same owner as legacy adapters.
   // Verified native resume selection stays at the existing session boundary.
-  const { taskContextNote, wakePrompt } = selectTaskcorePromptSections({
-    taskcoreTaskMarkdownAssignment: input.taskPrompt,
-    taskcoreWake: wakePayload,
-    conversationMode: input.conversationMode,
-  }, {
-    resumedSession: false,
-    includeCommunicationGuidance: false,
-    nativeWakeReaderAvailable: true,
-  });
+  const { taskContextNote, wakePrompt } = selectTaskcorePromptSections(
+    {
+      taskcoreTaskMarkdownAssignment: input.taskPrompt,
+      taskcoreWake: wakePayload,
+      conversationMode: input.conversationMode,
+    },
+    {
+      resumedSession: false,
+      includeCommunicationGuidance: false,
+      nativeWakeReaderAvailable: true,
+    },
+  );
   const externalChatTurn =
     isTaskcoreExternalChatContractTurn(wakePayload) ||
     isTaskcoreExternalChatQuestionResponseTurn(wakePayload);
@@ -194,23 +239,36 @@ export function buildNativeExecutionInput(input: BuildNativeExecutionInput): Nat
   ]
     .filter((section) => section.length > 0)
     .join("\n\n");
-  const completionSources = !externalChatTurn && !input.conversationMode && input.taskPrompt.trim()
-    ? verifiedCompletionSources(input.turnContext, input.completionContract.sources ?? [])
-    : [];
+  const completionSources =
+    !externalChatTurn && !input.conversationMode && input.taskPrompt.trim()
+      ? verifiedCompletionSources(
+          input.turnContext,
+          input.completionContract.sources ?? [],
+        )
+      : [];
   const prepared = {
     schema: "taskcore.native-execution-input.v5",
-    ...((input.initialCommunicationGuidance || input.freshSessionHandoff) ? {
-      initialCommunicationGuidance: [input.initialCommunicationGuidance, input.freshSessionHandoff].filter(Boolean).join("\n\n"),
-    } : {}),
-    ...(input.resumedSession && input.previousTurn && !input.conversationMode ? {
-      continuationPrompt: buildNativeContinuationPrompt({
-        wakePayload: input.wakePayload,
-        previousRunId: input.previousTurn.runId,
-        previousIssue: input.previousTurn.task,
-        allowExternalChat: true,
-        issue: input.issue,
-      }),
-    } : {}),
+    ...(input.initialCommunicationGuidance || input.freshSessionHandoff
+      ? {
+          initialCommunicationGuidance: [
+            input.initialCommunicationGuidance,
+            input.freshSessionHandoff,
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+        }
+      : {}),
+    ...(input.resumedSession && input.previousTurn && !input.conversationMode
+      ? {
+          continuationPrompt: buildNativeContinuationPrompt({
+            wakePayload: input.wakePayload,
+            previousRunId: input.previousTurn.runId,
+            previousIssue: input.previousTurn.task,
+            allowExternalChat: true,
+            issue: input.issue,
+          }),
+        }
+      : {}),
     executionMode,
     planningContext: input.planningContext ?? null,
     binding: {
@@ -242,87 +300,117 @@ export function buildNativeExecutionInput(input: BuildNativeExecutionInput): Nat
     },
     session: {
       normalizedSessionId: input.normalizedSessionId,
-      driverKind: input.provider === "opencode"
-        ? "opencode_server"
-        : input.provider === "claude_managed"
-          ? "claude_managed_agents_api"
-          : input.provider === "aws_agentcore"
-            ? "aws_agentcore_harness_api"
-        : input.provider === "acpx"
-            ? "acpx_runtime"
-            : "codex_app_server",
+      driverKind:
+        input.provider === "opencode"
+          ? "opencode_server"
+          : input.provider === "claude_managed"
+            ? "claude_managed_agents_api"
+            : input.provider === "aws_agentcore"
+              ? "aws_agentcore_harness_api"
+              : input.provider === "acpx"
+                ? "acpx_runtime"
+                : "codex_app_server",
       protocolVersion: 1,
-      lifecyclePolicy: input.lifecyclePolicy ?? { mode: "per_turn", idleTimeoutMs: null },
+      lifecyclePolicy: input.lifecyclePolicy ?? {
+        mode: "per_turn",
+        idleTimeoutMs: null,
+      },
     },
-    provider: input.provider === "claude_managed"
-      ? {
-          kind: "claude_managed",
-          model: input.model,
-          managedProfile: input.managedProfile,
-          maxSessionListCostUsd: input.maxSessionListCostUsd,
-        }
-      : input.provider === "aws_agentcore"
+    provider:
+      input.provider === "claude_managed"
         ? {
-            kind: "aws_agentcore",
+            kind: "claude_managed",
             model: input.model,
-            agentCoreProfile: input.agentCoreProfile,
-            maxEstimatedSessionCostUsd: input.maxEstimatedSessionCostUsd,
-            invocationLimits: input.invocationLimits,
+            managedProfile: input.managedProfile,
+            maxSessionListCostUsd: input.maxSessionListCostUsd,
           }
-      : input.provider === "acpx"
-      ? {
-          kind: "acpx",
-          agent: acpxProfile!.agent,
-          model: input.model,
-          permissionMode: input.acpxPermissionMode ?? "approve-all",
-          ...(mode === undefined ? {} : { mode }),
-          profile: {
-            driverKind: acpxProfile!.driverKind,
-            protocolVersion: acpxProfile!.protocolVersion,
-            acpxVersion: acpxProfile!.acpxVersion,
-            agent: acpxProfile!.agent,
-            agentProfileVersion: acpxProfile!.agentProfileVersion,
-            agentServerPackage: acpxProfile!.agentServerPackage,
-            agentServerVersion: acpxProfile!.agentServerVersion,
-            agentRuntimePackage: acpxProfile!.agentRuntimePackage,
-            agentRuntimeVersion: acpxProfile!.agentRuntimeVersion,
-            commandDigest: acpxProfile!.commandDigest,
-          },
-        }
-      : input.provider === "opencode"
-        ? {
-            kind: "opencode",
-            model: input.model,
-            permissionMode: input.opencodePermissionMode ?? "allow",
-          }
-        : {
-            kind: "codex",
-            model: input.model ?? null,
-            approvalPolicy: input.codexApprovalPolicy ?? "never",
-            ...(input.codexReasoningEffort ? { reasoningEffort: input.codexReasoningEffort } : {}),
-          },
+        : input.provider === "aws_agentcore"
+          ? {
+              kind: "aws_agentcore",
+              model: input.model,
+              agentCoreProfile: input.agentCoreProfile,
+              maxEstimatedSessionCostUsd: input.maxEstimatedSessionCostUsd,
+              invocationLimits: input.invocationLimits,
+            }
+          : input.provider === "acpx"
+            ? {
+                kind: "acpx",
+                agent: acpxProfile!.agent,
+                model: input.model,
+                permissionMode: input.acpxPermissionMode ?? "approve-all",
+                ...(mode === undefined ? {} : { mode }),
+                profile: {
+                  driverKind: acpxProfile!.driverKind,
+                  protocolVersion: acpxProfile!.protocolVersion,
+                  acpxVersion: acpxProfile!.acpxVersion,
+                  agent: acpxProfile!.agent,
+                  agentProfileVersion: acpxProfile!.agentProfileVersion,
+                  agentServerPackage: acpxProfile!.agentServerPackage,
+                  agentServerVersion: acpxProfile!.agentServerVersion,
+                  agentRuntimePackage: acpxProfile!.agentRuntimePackage,
+                  agentRuntimeVersion: acpxProfile!.agentRuntimeVersion,
+                  commandDigest: acpxProfile!.commandDigest,
+                },
+              }
+            : input.provider === "opencode"
+              ? {
+                  kind: "opencode",
+                  model: input.model,
+                  permissionMode: input.opencodePermissionMode ?? "allow",
+                }
+              : {
+                  kind: "codex",
+                  model: input.model ?? null,
+                  approvalPolicy: input.codexApprovalPolicy ?? "never",
+                  ...(input.codexReasoningEffort
+                    ? { reasoningEffort: input.codexReasoningEffort }
+                    : {}),
+                },
     completionContract: {
       id: input.completionContract.id,
       sha256: input.completionContract.sha256,
       schemaVersion: input.completionContract.schemaVersion,
       contract: input.completionContract.contract,
     },
-    ...(completionSources.length ? { completionSources: {
-      promptSha256: createHash("sha256").update(taskPrompt).digest("hex"),
-      contractRevision: input.completionContract.contract.revision,
-      criteria: completionSources,
-    } } : {}),
+    ...(completionSources.length
+      ? {
+          completionSources: {
+            promptSha256: createHash("sha256").update(taskPrompt).digest("hex"),
+            contractRevision: input.completionContract.contract.revision,
+            criteria: completionSources,
+          },
+        }
+      : {}),
     interactionResponses: input.interactionResponses ?? [],
     credentialBindings: [],
     runtimeContext: input.runtimeContext,
   };
-  return parseNativeExecutionInput(input.provider === "openai_dot" ? { ...prepared,
-    schema: "taskcore.native-execution-input.v6", provider: { kind: "openai_dot", model: null, binding: input.dotBinding },
-    workspace: { access: "none", cwd: null, repoUrl: null, repoRef: null, branchName: null },
-    session: { ...prepared.session, driverKind: "openai_dot_mcp", lifecyclePolicy: { mode: "per_turn", idleTimeoutMs: null } }
-  } : prepared) as NativeExecutionInputV5 | NativeExecutionInputV6;
+  return parseNativeExecutionInput(
+    input.provider === "openai_dot"
+      ? {
+          ...prepared,
+          schema: "taskcore.native-execution-input.v6",
+          provider: {
+            kind: "openai_dot",
+            model: null,
+            binding: input.dotBinding,
+          },
+          workspace: {
+            access: "none",
+            cwd: null,
+            repoUrl: null,
+            repoRef: null,
+            branchName: null,
+          },
+          session: {
+            ...prepared.session,
+            driverKind: "openai_dot_mcp",
+            lifecyclePolicy: { mode: "per_turn", idleTimeoutMs: null },
+          },
+        }
+      : prepared,
+  ) as NativeExecutionInputV5 | NativeExecutionInputV6;
 }
-
 
 /** Verify source identities and revisions, never guess provenance from requirement text. */
 function verifiedCompletionSources(
@@ -334,8 +422,19 @@ function verifiedCompletionSources(
   if (context.version !== 1) return [];
   return sources.filter(({ source }) => {
     if (source.kind === "description") {
-      return context.assignment?.owner === "task_markdown" && context.assignment.description?.id === source.id && context.assignment.description.revision === source.revision;
+      return (
+        context.assignment?.owner === "task_markdown" &&
+        context.assignment.description?.id === source.id &&
+        context.assignment.description.revision === source.revision
+      );
     }
-    return context.events?.owner === "wake_prompt" && Array.isArray(context.events.comments) && context.events.comments.some((comment) => comment.id === source.id && comment.revision === source.revision);
+    return (
+      context.events?.owner === "wake_prompt" &&
+      Array.isArray(context.events.comments) &&
+      context.events.comments.some(
+        (comment) =>
+          comment.id === source.id && comment.revision === source.revision,
+      )
+    );
   });
 }

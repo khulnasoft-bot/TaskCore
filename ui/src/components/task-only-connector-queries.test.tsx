@@ -20,10 +20,12 @@ const chatId = `chat:${taskId}`;
 
 function ConnectorQueries({ issueId }: { issueId: string }) {
   const { binding, isLoading } = useIssueChatBinding(companyId, issueId);
-  return <>
-    <output>{binding ? "bound" : isLoading ? "loading" : "unbound"}</output>
-    <EmailTaskActivity companyId={companyId} issueId={issueId} />
-  </>;
+  return (
+    <>
+      <output>{binding ? "bound" : isLoading ? "loading" : "unbound"}</output>
+      <EmailTaskActivity companyId={companyId} issueId={issueId} />
+    </>
+  );
 }
 
 describe("task-only connector queries", () => {
@@ -32,11 +34,13 @@ describe("task-only connector queries", () => {
   let client: QueryClient;
 
   async function render(issueId: string) {
-    flushSync(() => root.render(
-      <QueryClientProvider client={client}>
-        <ConnectorQueries issueId={issueId} />
-      </QueryClientProvider>,
-    ));
+    flushSync(() =>
+      root.render(
+        <QueryClientProvider client={client}>
+          <ConnectorQueries issueId={issueId} />
+        </QueryClientProvider>,
+      ),
+    );
     for (let i = 0; i < 5; i += 1) {
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     }
@@ -59,12 +63,15 @@ describe("task-only connector queries", () => {
     container.remove();
   });
 
-  it.each([chatId, ""])("does not request task connectors for %s", async (id) => {
-    await render(id);
-    expect(api.getIssueBinding).not.toHaveBeenCalled();
-    expect(api.thread).not.toHaveBeenCalled();
-    expect(container.textContent).toBe("unbound");
-  });
+  it.each([chatId, ""])(
+    "does not request task connectors for %s",
+    async (id) => {
+      await render(id);
+      expect(api.getIssueBinding).not.toHaveBeenCalled();
+      expect(api.thread).not.toHaveBeenCalled();
+      expect(container.textContent).toBe("unbound");
+    },
+  );
 
   it("resumes task queries when navigating from an agent chat to a task", async () => {
     await render(taskId);
@@ -85,10 +92,18 @@ describe("task-only connector queries", () => {
   });
 
   it("does not display cached task connector data for an agent chat", async () => {
-    client.setQueryData(["issue-chat-binding", companyId, chatId], { endpointId: "stale-endpoint" });
+    client.setQueryData(["issue-chat-binding", companyId, chatId], {
+      endpointId: "stale-endpoint",
+    });
     client.setQueryData(["email-thread", companyId, chatId], {
       messages: [],
-      publications: [{ id: "stale-publication", outcome: "failed", error: "Stale task delivery" }],
+      publications: [
+        {
+          id: "stale-publication",
+          outcome: "failed",
+          error: "Stale task delivery",
+        },
+      ],
     });
     await render(chatId);
     expect(container.textContent).toBe("unbound");

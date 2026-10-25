@@ -45,12 +45,18 @@ export function wrapCommandWithEnv(
   command: string[],
   env: Record<string, string> | undefined | null,
 ): string[] {
-  const entries = Object.entries(env && typeof env === "object" ? env : {}).filter(
+  const entries = Object.entries(
+    env && typeof env === "object" ? env : {},
+  ).filter(
     ([key, value]) =>
-      typeof value === "string" && key !== "PATH" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(key),
+      typeof value === "string" &&
+      key !== "PATH" &&
+      /^[A-Za-z_][A-Za-z0-9_]*$/.test(key),
   );
   if (entries.length === 0) return command;
-  const exports = entries.map(([k, v]) => `export ${k}=${shQuote(v)};`).join(" ");
+  const exports = entries
+    .map(([k, v]) => `export ${k}=${shQuote(v)};`)
+    .join(" ");
   return ["/bin/sh", "-c", `${exports} exec ${command.map(shQuote).join(" ")}`];
 }
 
@@ -84,11 +90,14 @@ export async function execInPod(
   const stdoutStream = new PassThrough();
   const stderrStream = new PassThrough();
 
-  const stdinPayload: Buffer | null =
-    Buffer.isBuffer(stdin) ? stdin
-    : typeof stdin === "string" && stdin.length > 0 ? Buffer.from(stdin, "utf-8")
+  const stdinPayload: Buffer | null = Buffer.isBuffer(stdin)
+    ? stdin
+    : typeof stdin === "string" && stdin.length > 0
+      ? Buffer.from(stdin, "utf-8")
+      : null;
+  const stdinStream: PassThrough | null = stdinPayload
+    ? new PassThrough()
     : null;
-  const stdinStream: PassThrough | null = stdinPayload ? new PassThrough() : null;
 
   // When stdin is provided, wrap the command so its stdin is bounded by
   // `head -c <N>`. Any program reading stdin (`cat`, `claude --print -`,
@@ -104,7 +113,11 @@ export async function execInPod(
   // if the input is ever non-ASCII — UTF-8 multi-byte sequences would
   // give a byte count that differs from JS character count.
   const effectiveCommand = stdinPayload
-    ? ["/bin/sh", "-c", `head -c ${stdinPayload.length} | ${command.map(shQuote).join(" ")}`]
+    ? [
+        "/bin/sh",
+        "-c",
+        `head -c ${stdinPayload.length} | ${command.map(shQuote).join(" ")}`,
+      ]
     : command;
 
   let stdoutData = "";
@@ -112,158 +125,188 @@ export async function execInPod(
   let stdoutBytes = 0;
   let stderrBytes = 0;
 
-  return await new Promise<{ exitCode: number; stdout: string; stderr: string }>(
-    (resolve, reject) => {
-      let ws: WebSocketLike | null = null;
-      let resolved = false;
-      let pendingExitCode: number | null = null;
-      let stdoutEnded = false;
-      let stderrEnded = false;
+  return await new Promise<{
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+  }>((resolve, reject) => {
+    let ws: WebSocketLike | null = null;
+    let resolved = false;
+    let pendingExitCode: number | null = null;
+    let stdoutEnded = false;
+    let stderrEnded = false;
 
-      // The k8s client writes stdout/stderr to our PassThroughs synchronously
-      // and calls statusCallback in the same WS message handler. But `data`
-      // events on the PassThroughs fire on process.nextTick, so resolving
-      // inside statusCallback captures stdoutData/stderrData BEFORE the final
-      // bytes have been appended. Wait for both streams' `end` events (which
-      // the k8s client triggers via `stream.end()` when it processes the
-      // status frame) so all buffered data has been drained into our string
-      // accumulators before resolving.
-      //
-      // Watchdog: if the WebSocket drops silently after setup (network blip,
-      // pod OOM-killed mid-exec, apiserver restart) the statusCallback never
-      // fires and the stream `end` events never arrive. Without a timer the
-      // calling worker hangs forever. Reject with a clear error so the caller
-      // can retry or surface the failure.
-      let watchdog: ReturnType<typeof setTimeout> | null = null;
-      if (typeof timeoutMs === "number" && timeoutMs > 0) {
-        watchdog = setTimeout(() => {
-          if (resolved) return;
-          resolved = true;
-          try { ws?.close(); } catch { /* ignore */ }
-          reject(new Error(
+    // The k8s client writes stdout/stderr to our PassThroughs synchronously
+    // and calls statusCallback in the same WS message handler. But `data`
+    // events on the PassThroughs fire on process.nextTick, so resolving
+    // inside statusCallback captures stdoutData/stderrData BEFORE the final
+    // bytes have been appended. Wait for both streams' `end` events (which
+    // the k8s client triggers via `stream.end()` when it processes the
+    // status frame) so all buffered data has been drained into our string
+    // accumulators before resolving.
+    //
+    // Watchdog: if the WebSocket drops silently after setup (network blip,
+    // pod OOM-killed mid-exec, apiserver restart) the statusCallback never
+    // fires and the stream `end` events never arrive. Without a timer the
+    // calling worker hangs forever. Reject with a clear error so the caller
+    // can retry or surface the failure.
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    if (typeof timeoutMs === "number" && timeoutMs > 0) {
+      watchdog = setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        try {
+          ws?.close();
+        } catch {
+          /* ignore */
+        }
+        reject(
+          new Error(
             `execInPod timed out after ${timeoutMs}ms (pod=${podName}, container=${containerName}, cmd0=${effectiveCommand[0] ?? ""}). The WebSocket likely dropped before the command produced a status frame.`,
-          ));
-        }, timeoutMs);
+          ),
+        );
+      }, timeoutMs);
+    }
+
+    const tryFinish = () => {
+      if (resolved) return;
+      if (pendingExitCode === null) return;
+      if (!stdoutEnded || !stderrEnded) return;
+      resolved = true;
+      if (watchdog) clearTimeout(watchdog);
+      try {
+        ws?.close();
+      } catch {
+        /* ignore */
       }
+      resolve({
+        exitCode: pendingExitCode,
+        stdout: stdoutData,
+        stderr: stderrData,
+      });
+    };
 
-      const tryFinish = () => {
-        if (resolved) return;
-        if (pendingExitCode === null) return;
-        if (!stdoutEnded || !stderrEnded) return;
-        resolved = true;
-        if (watchdog) clearTimeout(watchdog);
-        try { ws?.close(); } catch { /* ignore */ }
-        resolve({ exitCode: pendingExitCode, stdout: stdoutData, stderr: stderrData });
-      };
+    // Fail the whole exec closed, tearing down the WebSocket so the pod stops
+    // streaming. Used by the stdout cap below; the `resolved` guard makes it a
+    // no-op if the exec already finished.
+    const failClosed = (err: Error) => {
+      if (resolved) return;
+      resolved = true;
+      if (watchdog) clearTimeout(watchdog);
+      try {
+        ws?.close();
+      } catch {
+        /* ignore */
+      }
+      reject(err);
+    };
 
-      // Fail the whole exec closed, tearing down the WebSocket so the pod stops
-      // streaming. Used by the stdout cap below; the `resolved` guard makes it a
-      // no-op if the exec already finished.
-      const failClosed = (err: Error) => {
-        if (resolved) return;
-        resolved = true;
-        if (watchdog) clearTimeout(watchdog);
-        try { ws?.close(); } catch { /* ignore */ }
-        reject(err);
-      };
-
-      // Accumulate stdout inside the executor so the cap can reject before an
-      // unbounded pod payload exhausts memory. Once resolved (finished, timed
-      // out, or capped) further chunks are dropped rather than appended.
-      stdoutStream.on("data", (chunk: Buffer) => {
-        if (resolved) return;
-        if (typeof maxStdoutBytes === "number" && maxStdoutBytes >= 0) {
-          stdoutBytes += chunk.length;
-          if (stdoutBytes > maxStdoutBytes) {
-            failClosed(new Error(
+    // Accumulate stdout inside the executor so the cap can reject before an
+    // unbounded pod payload exhausts memory. Once resolved (finished, timed
+    // out, or capped) further chunks are dropped rather than appended.
+    stdoutStream.on("data", (chunk: Buffer) => {
+      if (resolved) return;
+      if (typeof maxStdoutBytes === "number" && maxStdoutBytes >= 0) {
+        stdoutBytes += chunk.length;
+        if (stdoutBytes > maxStdoutBytes) {
+          failClosed(
+            new Error(
               `execInPod stdout exceeded the ${maxStdoutBytes}-byte cap (pod=${podName}, container=${containerName}); the sandbox produced more output than the buffer allows.`,
-            ));
-            return;
-          }
+            ),
+          );
+          return;
         }
-        try {
-          stdoutData += chunk.toString("utf-8");
-        } catch (err) {
-          // Belt-and-suspenders: even under an explicit cap (or with none set),
-          // never let a `+=` RangeError at V8's max string length escape this
-          // listener as an uncaught exception.
-          failClosed(err instanceof Error ? err : new Error(String(err)));
-        }
-      });
+      }
+      try {
+        stdoutData += chunk.toString("utf-8");
+      } catch (err) {
+        // Belt-and-suspenders: even under an explicit cap (or with none set),
+        // never let a `+=` RangeError at V8's max string length escape this
+        // listener as an uncaught exception.
+        failClosed(err instanceof Error ? err : new Error(String(err)));
+      }
+    });
 
-      // stderr is pod-controlled too — bound it with the same fail-closed policy
-      // and, unconditionally, guard the `+=` so a max-string-length `RangeError`
-      // can never escape this listener as an uncaught (worker-crashing) exception.
-      stderrStream.on("data", (chunk: Buffer) => {
-        if (resolved) return;
-        if (typeof maxStderrBytes === "number" && maxStderrBytes >= 0) {
-          stderrBytes += chunk.length;
-          if (stderrBytes > maxStderrBytes) {
-            failClosed(new Error(
+    // stderr is pod-controlled too — bound it with the same fail-closed policy
+    // and, unconditionally, guard the `+=` so a max-string-length `RangeError`
+    // can never escape this listener as an uncaught (worker-crashing) exception.
+    stderrStream.on("data", (chunk: Buffer) => {
+      if (resolved) return;
+      if (typeof maxStderrBytes === "number" && maxStderrBytes >= 0) {
+        stderrBytes += chunk.length;
+        if (stderrBytes > maxStderrBytes) {
+          failClosed(
+            new Error(
               `execInPod stderr exceeded the ${maxStderrBytes}-byte cap (pod=${podName}, container=${containerName}); the sandbox produced more output than the buffer allows.`,
-            ));
-            return;
-          }
+            ),
+          );
+          return;
         }
-        try {
-          stderrData += chunk.toString("utf-8");
-        } catch (err) {
-          failClosed(err instanceof Error ? err : new Error(String(err)));
+      }
+      try {
+        stderrData += chunk.toString("utf-8");
+      } catch (err) {
+        failClosed(err instanceof Error ? err : new Error(String(err)));
+      }
+    });
+
+    stdoutStream.on("end", () => {
+      stdoutEnded = true;
+      tryFinish();
+    });
+    stderrStream.on("end", () => {
+      stderrEnded = true;
+      tryFinish();
+    });
+
+    const execPromise = exec.exec(
+      namespace,
+      podName,
+      containerName,
+      effectiveCommand,
+      stdoutStream,
+      stderrStream,
+      stdinStream,
+      false, // tty=false: keep stdout/stderr on separate channels
+      (status) => {
+        if (status.status === "Success") {
+          pendingExitCode = 0;
+        } else {
+          const causes = status.details?.causes ?? [];
+          const exitCodeCause = causes.find(
+            (c: { reason?: string; message?: string }) =>
+              c.reason === "ExitCode",
+          );
+          pendingExitCode = exitCodeCause?.message
+            ? Number(exitCodeCause.message)
+            : 1;
         }
+        tryFinish();
+      },
+    );
+
+    execPromise
+      .then((webSocket) => {
+        ws = webSocket as unknown as WebSocketLike;
+        if (stdinStream && stdinPayload) {
+          // Remove the default `end -> ws.close()` listener that k8s client
+          // attaches in handleStandardInput; it tears down the connection
+          // before the pod's command can finish flushing. We manage ws
+          // closure inside `tryFinish()` instead.
+          stdinStream.removeAllListeners("end");
+          stdinStream.end(stdinPayload);
+        } else if (stdinStream) {
+          stdinStream.removeAllListeners("end");
+          stdinStream.end();
+        }
+      })
+      .catch((err) => {
+        if (resolved) return;
+        resolved = true;
+        if (watchdog) clearTimeout(watchdog);
+        reject(err);
       });
-
-      stdoutStream.on("end", () => { stdoutEnded = true; tryFinish(); });
-      stderrStream.on("end", () => { stderrEnded = true; tryFinish(); });
-
-      const execPromise = exec.exec(
-        namespace,
-        podName,
-        containerName,
-        effectiveCommand,
-        stdoutStream,
-        stderrStream,
-        stdinStream,
-        false, // tty=false: keep stdout/stderr on separate channels
-        (status) => {
-          if (status.status === "Success") {
-            pendingExitCode = 0;
-          } else {
-            const causes = status.details?.causes ?? [];
-            const exitCodeCause = causes.find(
-              (c: { reason?: string; message?: string }) =>
-                c.reason === "ExitCode",
-            );
-            pendingExitCode = exitCodeCause?.message
-              ? Number(exitCodeCause.message)
-              : 1;
-          }
-          tryFinish();
-        },
-      );
-
-      execPromise
-        .then((webSocket) => {
-          ws = webSocket as unknown as WebSocketLike;
-          if (stdinStream && stdinPayload) {
-            // Remove the default `end -> ws.close()` listener that k8s client
-            // attaches in handleStandardInput; it tears down the connection
-            // before the pod's command can finish flushing. We manage ws
-            // closure inside `tryFinish()` instead.
-            stdinStream.removeAllListeners("end");
-            stdinStream.end(stdinPayload);
-          } else if (stdinStream) {
-            stdinStream.removeAllListeners("end");
-            stdinStream.end();
-          }
-        })
-        .catch((err) => {
-          if (resolved) return;
-          resolved = true;
-          if (watchdog) clearTimeout(watchdog);
-          reject(err);
-        });
-    },
-  );
+  });
 }
 
 /**
@@ -316,129 +359,165 @@ export async function execInPodStreaming(
   let stderrData = "";
   let stderrBytes = 0;
 
-  return await new Promise<{ exitCode: number; stderr: string }>((resolve, reject) => {
-    let ws: WebSocketLike | null = null;
-    let resolved = false;
-    let pendingExitCode: number | null = null;
-    let stdoutDone = false;
-    let stderrEnded = false;
+  return await new Promise<{ exitCode: number; stderr: string }>(
+    (resolve, reject) => {
+      let ws: WebSocketLike | null = null;
+      let resolved = false;
+      let pendingExitCode: number | null = null;
+      let stdoutDone = false;
+      let stderrEnded = false;
 
-    let watchdog: ReturnType<typeof setTimeout> | null = null;
-    if (typeof io.timeoutMs === "number" && io.timeoutMs > 0) {
-      watchdog = setTimeout(() => {
-        if (resolved) return;
-        resolved = true;
-        try { ws?.close(); } catch { /* ignore */ }
-        reject(new Error(
-          `execInPodStreaming timed out after ${io.timeoutMs}ms (pod=${podName}, container=${containerName}, cmd0=${command[0] ?? ""}). The WebSocket likely dropped before the command produced a status frame.`,
-        ));
-      }, io.timeoutMs);
-    }
-
-    const tryFinish = () => {
-      if (resolved) return;
-      if (pendingExitCode === null) return;
-      if (!stdoutDone || !stderrEnded) return;
-      resolved = true;
-      if (watchdog) clearTimeout(watchdog);
-      try { ws?.close(); } catch { /* ignore */ }
-      resolve({ exitCode: pendingExitCode, stderr: stderrData });
-    };
-
-    // Fail the whole exec closed, tearing down the WebSocket so the pod stops
-    // streaming. Fired by a sink error (e.g. the caller's disk guard tripping)
-    // or a stream error; the `resolved` guard makes it a no-op once finished.
-    const failClosed = (err: Error) => {
-      if (resolved) return;
-      resolved = true;
-      if (watchdog) clearTimeout(watchdog);
-      try { ws?.close(); } catch { /* ignore */ }
-      try { stdinStream?.destroy(); } catch { /* ignore */ }
-      reject(err);
-    };
-
-    // Pipe stdout to the caller sink (streamed to disk), or drain it if the
-    // caller wants none. Piping with the default `end: true` ends the sink when
-    // the pod's stdout closes, so the sink's `finish` marks the archive fully
-    // written. A sink error (the caller's streamed-bytes guard, a full disk)
-    // fails the exec closed and stops the pod.
-    if (io.stdout) {
-      const sink = io.stdout;
-      sink.on("error", failClosed);
-      stdoutStream.on("error", failClosed);
-      sink.on("finish", () => { stdoutDone = true; tryFinish(); });
-      stdoutStream.pipe(sink);
-    } else {
-      stdoutStream.on("data", () => { /* drain */ });
-      stdoutStream.on("end", () => { stdoutDone = true; tryFinish(); });
-      stdoutStream.on("error", failClosed);
-    }
-
-    // stderr is pod-controlled — bound it with the same fail-closed policy as
-    // execInPod and guard the `+=` so a max-string-length RangeError can never
-    // escape as an uncaught (worker-crashing) exception.
-    stderrStream.on("data", (chunk: Buffer) => {
-      if (resolved) return;
-      if (typeof io.maxStderrBytes === "number" && io.maxStderrBytes >= 0) {
-        stderrBytes += chunk.length;
-        if (stderrBytes > io.maxStderrBytes) {
-          failClosed(new Error(
-            `execInPodStreaming stderr exceeded the ${io.maxStderrBytes}-byte cap (pod=${podName}, container=${containerName}); the sandbox produced more diagnostics than the buffer allows.`,
-          ));
-          return;
-        }
-      }
-      try {
-        stderrData += chunk.toString("utf-8");
-      } catch (err) {
-        failClosed(err instanceof Error ? err : new Error(String(err)));
-      }
-    });
-    stderrStream.on("end", () => { stderrEnded = true; tryFinish(); });
-
-    const execPromise = exec.exec(
-      namespace,
-      podName,
-      containerName,
-      command,
-      stdoutStream,
-      stderrStream,
-      stdinStream,
-      false, // tty=false: keep stdout/stderr on separate channels
-      (status) => {
-        if (status.status === "Success") {
-          pendingExitCode = 0;
-        } else {
-          const causes = status.details?.causes ?? [];
-          const exitCodeCause = causes.find(
-            (c: { reason?: string; message?: string }) => c.reason === "ExitCode",
+      let watchdog: ReturnType<typeof setTimeout> | null = null;
+      if (typeof io.timeoutMs === "number" && io.timeoutMs > 0) {
+        watchdog = setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          try {
+            ws?.close();
+          } catch {
+            /* ignore */
+          }
+          reject(
+            new Error(
+              `execInPodStreaming timed out after ${io.timeoutMs}ms (pod=${podName}, container=${containerName}, cmd0=${command[0] ?? ""}). The WebSocket likely dropped before the command produced a status frame.`,
+            ),
           );
-          pendingExitCode = exitCodeCause?.message ? Number(exitCodeCause.message) : 1;
-        }
-        tryFinish();
-      },
-    );
+        }, io.timeoutMs);
+      }
 
-    execPromise
-      .then((webSocket) => {
-        ws = webSocket as unknown as WebSocketLike;
-        if (stdinStream && io.stdin) {
-          // Strip the default `end -> ws.close()` listener (see execInPod) so
-          // EOF on our stdin only signals the pod, then stream the caller's
-          // source into the exec stdin channel. A source error fails closed.
-          stdinStream.removeAllListeners("end");
-          io.stdin.on("error", failClosed);
-          io.stdin.pipe(stdinStream);
-        } else if (stdinStream) {
-          stdinStream.removeAllListeners("end");
-          stdinStream.end();
+      const tryFinish = () => {
+        if (resolved) return;
+        if (pendingExitCode === null) return;
+        if (!stdoutDone || !stderrEnded) return;
+        resolved = true;
+        if (watchdog) clearTimeout(watchdog);
+        try {
+          ws?.close();
+        } catch {
+          /* ignore */
         }
-      })
-      .catch((err) => {
+        resolve({ exitCode: pendingExitCode, stderr: stderrData });
+      };
+
+      // Fail the whole exec closed, tearing down the WebSocket so the pod stops
+      // streaming. Fired by a sink error (e.g. the caller's disk guard tripping)
+      // or a stream error; the `resolved` guard makes it a no-op once finished.
+      const failClosed = (err: Error) => {
         if (resolved) return;
         resolved = true;
         if (watchdog) clearTimeout(watchdog);
+        try {
+          ws?.close();
+        } catch {
+          /* ignore */
+        }
+        try {
+          stdinStream?.destroy();
+        } catch {
+          /* ignore */
+        }
         reject(err);
+      };
+
+      // Pipe stdout to the caller sink (streamed to disk), or drain it if the
+      // caller wants none. Piping with the default `end: true` ends the sink when
+      // the pod's stdout closes, so the sink's `finish` marks the archive fully
+      // written. A sink error (the caller's streamed-bytes guard, a full disk)
+      // fails the exec closed and stops the pod.
+      if (io.stdout) {
+        const sink = io.stdout;
+        sink.on("error", failClosed);
+        stdoutStream.on("error", failClosed);
+        sink.on("finish", () => {
+          stdoutDone = true;
+          tryFinish();
+        });
+        stdoutStream.pipe(sink);
+      } else {
+        stdoutStream.on("data", () => {
+          /* drain */
+        });
+        stdoutStream.on("end", () => {
+          stdoutDone = true;
+          tryFinish();
+        });
+        stdoutStream.on("error", failClosed);
+      }
+
+      // stderr is pod-controlled — bound it with the same fail-closed policy as
+      // execInPod and guard the `+=` so a max-string-length RangeError can never
+      // escape as an uncaught (worker-crashing) exception.
+      stderrStream.on("data", (chunk: Buffer) => {
+        if (resolved) return;
+        if (typeof io.maxStderrBytes === "number" && io.maxStderrBytes >= 0) {
+          stderrBytes += chunk.length;
+          if (stderrBytes > io.maxStderrBytes) {
+            failClosed(
+              new Error(
+                `execInPodStreaming stderr exceeded the ${io.maxStderrBytes}-byte cap (pod=${podName}, container=${containerName}); the sandbox produced more diagnostics than the buffer allows.`,
+              ),
+            );
+            return;
+          }
+        }
+        try {
+          stderrData += chunk.toString("utf-8");
+        } catch (err) {
+          failClosed(err instanceof Error ? err : new Error(String(err)));
+        }
       });
-  });
+      stderrStream.on("end", () => {
+        stderrEnded = true;
+        tryFinish();
+      });
+
+      const execPromise = exec.exec(
+        namespace,
+        podName,
+        containerName,
+        command,
+        stdoutStream,
+        stderrStream,
+        stdinStream,
+        false, // tty=false: keep stdout/stderr on separate channels
+        (status) => {
+          if (status.status === "Success") {
+            pendingExitCode = 0;
+          } else {
+            const causes = status.details?.causes ?? [];
+            const exitCodeCause = causes.find(
+              (c: { reason?: string; message?: string }) =>
+                c.reason === "ExitCode",
+            );
+            pendingExitCode = exitCodeCause?.message
+              ? Number(exitCodeCause.message)
+              : 1;
+          }
+          tryFinish();
+        },
+      );
+
+      execPromise
+        .then((webSocket) => {
+          ws = webSocket as unknown as WebSocketLike;
+          if (stdinStream && io.stdin) {
+            // Strip the default `end -> ws.close()` listener (see execInPod) so
+            // EOF on our stdin only signals the pod, then stream the caller's
+            // source into the exec stdin channel. A source error fails closed.
+            stdinStream.removeAllListeners("end");
+            io.stdin.on("error", failClosed);
+            io.stdin.pipe(stdinStream);
+          } else if (stdinStream) {
+            stdinStream.removeAllListeners("end");
+            stdinStream.end();
+          }
+        })
+        .catch((err) => {
+          if (resolved) return;
+          resolved = true;
+          if (watchdog) clearTimeout(watchdog);
+          reject(err);
+        });
+    },
+  );
 }

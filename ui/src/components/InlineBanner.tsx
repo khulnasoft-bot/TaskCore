@@ -56,14 +56,20 @@ export function InlineBanner({
       )}
     >
       <div className="flex items-start gap-2.5">
-        {Icon && <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
+        {Icon && (
+          <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        )}
         <div className="space-y-1 text-sm">
           {title && <p className="font-medium leading-tight">{title}</p>}
-          {children && <div className="leading-snug opacity-90">{children}</div>}
+          {children && (
+            <div className="leading-snug opacity-90">{children}</div>
+          )}
         </div>
       </div>
       {actions && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 pl-6 sm:pl-0">{actions}</div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 pl-6 sm:pl-0">
+          {actions}
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,14 @@
 import { gradeAgentmailSetup } from "./agentmail-setup-evidence.js";
-import { CONNECTION_GUIDANCE_SUITE, CONNECTION_GUIDANCE_BUDGET_CENTS } from "./connection-guidance-cases.js";
-import { gradeConnectionGuidanceDecline, hasConnectionGuidanceDeclineReply, explainsConnectionUnavailable, type ConnectionGuidanceDeclineInput } from "./connection-guidance-evidence.js";
+import {
+  CONNECTION_GUIDANCE_SUITE,
+  CONNECTION_GUIDANCE_BUDGET_CENTS,
+} from "./connection-guidance-cases.js";
+import {
+  gradeConnectionGuidanceDecline,
+  hasConnectionGuidanceDeclineReply,
+  explainsConnectionUnavailable,
+  type ConnectionGuidanceDeclineInput,
+} from "./connection-guidance-evidence.js";
 import { expect, type Page } from "@playwright/test";
 import { runnerApiToolsEnabled } from "../../server/src/services/native-runtime/runner-api-rollout.js";
 import { spawn } from "node:child_process";
@@ -17,17 +25,31 @@ import type { LiveFixtureValues } from "./live-fixtures.js";
 import type { MatrixExecution } from "./types.js";
 import { submitTaskReply } from "./user-actions.js";
 import { createTaskFromPromptThroughUi } from "./plan-task-ui.js";
-import { waitForTaskChatRendered, waitForTaskIdentity } from "./continuation-screenshot.js";
-import { hasPersistedSource, isSavedSourceCheckpoint } from "./everyday-interruption.js";
+import {
+  waitForTaskChatRendered,
+  waitForTaskIdentity,
+} from "./continuation-screenshot.js";
+import {
+  hasPersistedSource,
+  isSavedSourceCheckpoint,
+} from "./everyday-interruption.js";
 import { setupAggregatorFixture } from "./aggregator-fixture.js";
-import { gradeProviderChoice, gradeProviderOutcome, requireProviderAccessCard } from "./connection-routing-evidence.js";
+import {
+  gradeProviderChoice,
+  gradeProviderOutcome,
+  requireProviderAccessCard,
+} from "./connection-routing-evidence.js";
 import { setupConnectionReview } from "./connection-reviews.js";
 import {
   pendingStoryDecision,
   StoryDecisionError,
   type StoryInteraction,
 } from "./everyday-decisions.js";
-import { LATE_REQUIREMENT, SLUGIFY_REVISION, requiresEverydayArtifactOracle } from "./everyday-cases.js";
+import {
+  LATE_REQUIREMENT,
+  SLUGIFY_REVISION,
+  requiresEverydayArtifactOracle,
+} from "./everyday-cases.js";
 import {
   isActiveStoryRun,
   isStoryWorkspaceDeferral,
@@ -65,10 +87,17 @@ export interface EverydayEvidence {
   fixtureConfiguration?: {
     apiToolsEnabled: boolean;
     aiConnection?: LiveFixtureValues["aiConnection"];
-    connectionGuidanceBudgets?: { companyMonthlyCents: unknown; agentMonthlyCents: unknown };
+    connectionGuidanceBudgets?: {
+      companyMonthlyCents: unknown;
+      agentMonthlyCents: unknown;
+    };
   };
   documents?: Row[];
-  declineGradeEvidence?: { capturedAt: string; input: ConnectionGuidanceDeclineInput; checks: StoryCheck[] };
+  declineGradeEvidence?: {
+    capturedAt: string;
+    input: ConnectionGuidanceDeclineInput;
+    checks: StoryCheck[];
+  };
   checks: StoryCheck[];
   timeline: Array<{ at: string; action: string; detail?: unknown }>;
   issues: Array<StoryIssue & Row>;
@@ -165,11 +194,14 @@ export async function runEverydayFlow(input: Input) {
   let review: Awaited<ReturnType<typeof setupConnectionReview>> | undefined;
   let project = fixtures.project;
   const caseId = execution.task.id;
-  const providerChoice = caseId === "provider-decline" || caseId === "provider-second";
+  const providerChoice =
+    caseId === "provider-decline" || caseId === "provider-second";
   const nativeProviderCase = caseId === "provider-native";
-  let aggregatorFixture: Awaited<ReturnType<typeof setupAggregatorFixture>> | undefined;
+  let aggregatorFixture:
+    Awaited<ReturnType<typeof setupAggregatorFixture>> | undefined;
   const agentmailSetup = caseId === "agentmail-setup";
-  const decliningConnection = caseId === "connection-decline" || nativeProviderCase || agentmailSetup;
+  const decliningConnection =
+    caseId === "connection-decline" || nativeProviderCase || agentmailSetup;
   const declining = decliningConnection || caseId === "service-decline";
   let decisionId: string | undefined;
   let decisionResolvedAt: string | undefined;
@@ -177,14 +209,16 @@ export async function runEverydayFlow(input: Input) {
   let providerAccessDecision: { id: string; connectionId: string } | undefined;
   let stoppedWorkspace: Record<string, string> | undefined;
   let settledAgentReply: Row | undefined;
-  let reviewHandoffBoundary: {
-    childId: string;
-    assigneeAgentId: string | null | undefined;
-    interactionId: string;
-    interactionCreatedAt?: string;
-    parentRunId?: string;
-    parentBlockedObserved: boolean;
-  } | undefined;
+  let reviewHandoffBoundary:
+    | {
+        childId: string;
+        assigneeAgentId: string | null | undefined;
+        interactionId: string;
+        interactionCreatedAt?: string;
+        parentRunId?: string;
+        parentBlockedObserved: boolean;
+      }
+    | undefined;
   async function workspaceFiles() {
     const workspaceRoot = input.workspacePath;
     const files: Record<string, string> = {};
@@ -248,9 +282,19 @@ export async function runEverydayFlow(input: Input) {
     `/${prefix}/issues/${issue.identifier ?? issue.id}`;
   async function openTask(issue: StoryIssue) {
     await page.goto(taskUrl(issue), { waitUntil: "domcontentloaded" });
-    await waitForTaskIdentity(page, taskUrl(issue), issue.identifier ?? issue.id);
+    await waitForTaskIdentity(
+      page,
+      taskUrl(issue),
+      issue.identifier ?? issue.id,
+    );
     if (providerChoice || nativeProviderCase) {
-      await expect(page.locator('[data-testid="task-chat-thread"], [data-testid="thread-root"]').first()).toBeVisible({timeout:30_000});
+      await expect(
+        page
+          .locator(
+            '[data-testid="task-chat-thread"], [data-testid="thread-root"]',
+          )
+          .first(),
+      ).toBeVisible({ timeout: 30_000 });
       await expect(page.getByTestId("issue-chat-skeleton")).toHaveCount(0);
     } else await waitForTaskChatRendered(page);
   }
@@ -302,14 +346,27 @@ export async function runEverydayFlow(input: Input) {
       commentIds: added.map((c) => c.id),
     });
   }
-  function declineInput(state: Pick<EverydayEvidence, "issues" | "runs">): ConnectionGuidanceDeclineInput | undefined {
-    if (execution.suite.id !== CONNECTION_GUIDANCE_SUITE ||
-      (caseId !== "service-decline" && caseId !== "connection-decline" && caseId !== "provider-decline")) return;
-    const issue = state.issues.find(i => i.id === parent?.id);
+  function declineInput(
+    state: Pick<EverydayEvidence, "issues" | "runs">,
+  ): ConnectionGuidanceDeclineInput | undefined {
+    if (
+      execution.suite.id !== CONNECTION_GUIDANCE_SUITE ||
+      (caseId !== "service-decline" &&
+        caseId !== "connection-decline" &&
+        caseId !== "provider-decline")
+    )
+      return;
+    const issue = state.issues.find((i) => i.id === parent?.id);
     return {
-      caseId, decisionId: decisionId ?? "", decisions: issue?.interactions as any ?? [],
-      leadAgentId: fixtures.agent.id, issueId: parent?.id ?? "", replies: issue?.comments ?? [],
-      runs: state.runs, marker: (caseId === "provider-decline" ? "CONTACTS_" : "SERVICE_") + nonce,
+      caseId,
+      decisionId: decisionId ?? "",
+      decisions: (issue?.interactions as any) ?? [],
+      leadAgentId: fixtures.agent.id,
+      issueId: parent?.id ?? "",
+      replies: issue?.comments ?? [],
+      runs: state.runs,
+      marker:
+        (caseId === "provider-decline" ? "CONTACTS_" : "SERVICE_") + nonce,
       // Readiness never grades these external observations. They are filled at the grading boundary below.
       sameConnections: false,
     };
@@ -318,12 +375,23 @@ export async function runEverydayFlow(input: Input) {
     const settledState = await pollUntil({
       label: `everyday ${caseId} settled`,
       deadlineAt: input.deadlineAt,
-      timeoutDetail: (state) => state && (
-        storyReviewContinuationTimeoutDetail(
-          state.issues, parent?.id ?? "", fixtures.agent.id, state.runs,
+      timeoutDetail: (state) =>
+        state &&
+        (storyReviewContinuationTimeoutDetail(
+          state.issues,
+          parent?.id ?? "",
+          fixtures.agent.id,
+          state.runs,
           observableAgentIds(state),
-        ) ?? (storyHasDurableServiceContinuation(state.issues, parent?.id ?? "", fixtures.agent.id, state.runs)
-          ? "task is Blocked without an active continuation after resolved service approval" : undefined)),
+        ) ??
+          (storyHasDurableServiceContinuation(
+            state.issues,
+            parent?.id ?? "",
+            fixtures.agent.id,
+            state.runs,
+          )
+            ? "task is Blocked without an active continuation after resolved service approval"
+            : undefined)),
       intervalMs: 1000,
       load: refresh,
       accept: (state) =>
@@ -337,7 +405,8 @@ export async function runEverydayFlow(input: Input) {
         state.runs.some(
           (r) => Date.parse(r.finishedAt ?? "") >= lastSubmissionAt,
         ) &&
-        (!declineInput(state) || hasConnectionGuidanceDeclineReply(declineInput(state)!)) &&
+        (!declineInput(state) ||
+          hasConnectionGuidanceDeclineReply(declineInput(state)!)) &&
         (!expectedAgentReply ||
           storyHasAgentReply(
             state.issues.find((issue) => issue.id === parent?.id),
@@ -346,7 +415,10 @@ export async function runEverydayFlow(input: Input) {
           )),
       reject: (state) => {
         if (state.runs.length > 12) return "bounded execution count exceeded";
-        const bad = storyUnexpectedRunFailure(state.runs, ev.allowedInterruptedRuns);
+        const bad = storyUnexpectedRunFailure(
+          state.runs,
+          ev.allowedInterruptedRuns,
+        );
         if (bad)
           return `native execution failed ${bad.errorCode ?? ""}: ${bad.error ?? bad.status}`;
         if (
@@ -356,14 +428,22 @@ export async function runEverydayFlow(input: Input) {
           return;
         if (
           state.runs.length &&
-          storyHasStrandedBlockedLeaf(state.issues, observableAgentIds(state)) &&
+          storyHasStrandedBlockedLeaf(
+            state.issues,
+            observableAgentIds(state),
+          ) &&
           !storyHasDurableAgentReviewContinuation(
             state.issues,
             parent?.id ?? "",
             fixtures.agent.id,
             state.runs,
           ) &&
-          !storyHasDurableServiceContinuation(state.issues, parent?.id ?? "", fixtures.agent.id, state.runs)
+          !storyHasDurableServiceContinuation(
+            state.issues,
+            parent?.id ?? "",
+            fixtures.agent.id,
+            state.runs,
+          )
         )
           return "task is Blocked without an active continuation";
         if (
@@ -377,7 +457,9 @@ export async function runEverydayFlow(input: Input) {
       },
     });
     if (expectedAgentReply) {
-      const issue = settledState.issues.find((candidate) => candidate.id === parent?.id);
+      const issue = settledState.issues.find(
+        (candidate) => candidate.id === parent?.id,
+      );
       const reply = issue?.comments?.find(
         (comment) =>
           comment.authorAgentId === fixtures.agent.id &&
@@ -437,7 +519,12 @@ export async function runEverydayFlow(input: Input) {
       );
       return;
     }
-    note("delivery-selected", { attachmentId: delivery.id, issueId: delivery.issueId, sha256: delivery.sha256, after });
+    note("delivery-selected", {
+      attachmentId: delivery.id,
+      issueId: delivery.issueId,
+      sha256: delivery.sha256,
+      after,
+    });
     await download(delivery.issueId, mode, phase, delivery.id);
   }
 
@@ -468,7 +555,8 @@ export async function runEverydayFlow(input: Input) {
     const attachment = selectedAttachmentId
       ? zips.find((a) => a.id === selectedAttachmentId)
       : zips[zips.length - 1];
-    if (!attachment) throw new Error("Selected delivery is no longer available");
+    if (!attachment)
+      throw new Error("Selected delivery is no longer available");
     const issue = ev.issues.find((i) => i.id === issueId)!;
     await openTask(issue);
     const links = page.locator(
@@ -483,12 +571,16 @@ export async function runEverydayFlow(input: Input) {
     await file.saveAs(target);
     const bytes = await readFile(target);
     const digest = createHash("sha256").update(bytes).digest("hex");
-    const result = await runCommand(process.env.PYTHON ?? "python3", [
-      path.join(import.meta.dirname, "everyday-artifact.py"),
-      target,
-      "--mode",
-      mode,
-    ], Math.max(1, Math.min(60_000, input.deadlineAt - Date.now())));
+    const result = await runCommand(
+      process.env.PYTHON ?? "python3",
+      [
+        path.join(import.meta.dirname, "everyday-artifact.py"),
+        target,
+        "--mode",
+        mode,
+      ],
+      Math.max(1, Math.min(60_000, input.deadlineAt - Date.now())),
+    );
     const oracle = JSON.parse(result.stdout) as { checks: StoryCheck[] };
     ev.checks.push(
       ...oracle.checks.map((c) => ({ ...c, id: `${phase}.${c.id}` })),
@@ -517,7 +609,9 @@ export async function runEverydayFlow(input: Input) {
   ) {
     const filePath = path.join(input.workspacePath, "slugify.py");
     const bytes = await pollUntil({
-      label: requireActive ? "active run with saved source" : "saved source after interruption",
+      label: requireActive
+        ? "active run with saved source"
+        : "saved source after interruption",
       deadlineAt: Math.min(input.deadlineAt, Date.now() + maxWaitMs),
       intervalMs: 500,
       load: async () => {
@@ -530,7 +624,10 @@ export async function runEverydayFlow(input: Input) {
           ? isSavedSourceCheckpoint(active, source)
           : hasPersistedSource(source),
     });
-    if (!bytes.source) throw new Error("Saved source was not available at the controlled boundary");
+    if (!bytes.source)
+      throw new Error(
+        "Saved source was not available at the controlled boundary",
+      );
     await input.evidence(evidenceName, {
       body: bytes.source.toString("utf8"),
       sha256: createHash("sha256").update(bytes.source).digest("hex"),
@@ -542,7 +639,11 @@ export async function runEverydayFlow(input: Input) {
     });
   }
   async function sourceReady() {
-    await recordSource("source-saved-before-interruption", "source-before-interruption.json", true);
+    await recordSource(
+      "source-saved-before-interruption",
+      "source-before-interruption.json",
+      true,
+    );
   }
   async function prepareStopBoundary() {
     // Providers can finish a short first turn before the browser can click
@@ -550,10 +651,16 @@ export async function runEverydayFlow(input: Input) {
     // composer and use that fresh run as the controlled interruption boundary.
     // Save the checkpoint even if a fast provider has already finished. Do
     // not shorten the normal source-creation budget to manufacture a timeout.
-    await recordSource("source-saved-before-interruption", "source-before-interruption.json");
+    await recordSource(
+      "source-saved-before-interruption",
+      "source-before-interruption.json",
+    );
     await refresh();
     if (ev.runs.some(isActiveStoryRun)) return;
-    await submitTaskReply(page, `${SLUGIFY_REVISION}\nContinue working until the source file is saved.`);
+    await submitTaskReply(
+      page,
+      `${SLUGIFY_REVISION}\nContinue working until the source file is saved.`,
+    );
     note("stop-boundary-continuation-submitted");
     await recordSource(
       "source-saved-before-interruption",
@@ -587,18 +694,30 @@ export async function runEverydayFlow(input: Input) {
       "catalog.ts",
     ];
     if (execution.suite.id === CONNECTION_GUIDANCE_SUITE) {
-      harnessFiles.push("connection-guidance-cases.ts", "connection-guidance-evidence.ts");
+      harnessFiles.push(
+        "connection-guidance-cases.ts",
+        "connection-guidance-evidence.ts",
+      );
       const [company, agent] = await Promise.all([
         api.get<Row>("/api/companies/" + fixtures.company.id),
         api.get<Row>("/api/agents/" + fixtures.agent.id),
       ]);
       ev.fixtureConfiguration!.connectionGuidanceBudgets = {
-        companyMonthlyCents: company.budgetMonthlyCents, agentMonthlyCents: agent.budgetMonthlyCents,
+        companyMonthlyCents: company.budgetMonthlyCents,
+        agentMonthlyCents: agent.budgetMonthlyCents,
       };
-      const budgetsMatch = company.budgetMonthlyCents === CONNECTION_GUIDANCE_BUDGET_CENTS &&
+      const budgetsMatch =
+        company.budgetMonthlyCents === CONNECTION_GUIDANCE_BUDGET_CENTS &&
         agent.budgetMonthlyCents === CONNECTION_GUIDANCE_BUDGET_CENTS;
-      check("guidance-budget-hard-stops", budgetsMatch, "Public company and lead records retain both 1,000-cent hard stops before task creation.");
-      if (!budgetsMatch) throw new Error("Connection guidance budget admission failed before task creation");
+      check(
+        "guidance-budget-hard-stops",
+        budgetsMatch,
+        "Public company and lead records retain both 1,000-cent hard stops before task creation.",
+      );
+      if (!budgetsMatch)
+        throw new Error(
+          "Connection guidance budget admission failed before task creation",
+        );
     }
     ev.harnessDigest = createHash("sha256")
       .update(
@@ -616,15 +735,27 @@ export async function runEverydayFlow(input: Input) {
     if (requiresEverydayArtifactOracle(caseId)) {
       try {
         const sandbox = await runCommand(process.env.PYTHON ?? "python3", [
-          path.join(import.meta.dirname, "everyday-artifact.py"), "--preflight",
+          path.join(import.meta.dirname, "everyday-artifact.py"),
+          "--preflight",
         ]);
         if (sandbox.code !== 0) throw new Error(sandbox.stdout);
-        note("artifact-sandbox-qualified", { isolation: "docker", network: "none" });
+        note("artifact-sandbox-qualified", {
+          isolation: "docker",
+          network: "none",
+        });
       } catch (error) {
-        throw new Error(`Artifact sandbox qualification failed before task creation: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+        throw new Error(
+          `Artifact sandbox qualification failed before task creation: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
       }
     }
-    if (!project && !caseId.startsWith("service-") && !decliningConnection && !providerChoice) {
+    if (
+      !project &&
+      !caseId.startsWith("service-") &&
+      !decliningConnection &&
+      !providerChoice
+    ) {
       project = await api.post(
         `/api/companies/${fixtures.company.id}/projects`,
         {
@@ -684,17 +815,47 @@ export async function runEverydayFlow(input: Input) {
         marker: `Pages: Roadmap, Meeting notes. Verification code: SERVICE_${nonce}`,
         authenticated: true,
       });
-    if (providerChoice || nativeProviderCase || (execution.suite.id === CONNECTION_GUIDANCE_SUITE && Boolean(review))) {
-      if (caseId === "provider-second" || (execution.suite.id === CONNECTION_GUIDANCE_SUITE && caseId === "provider-decline")) aggregatorFixture = await setupAggregatorFixture(api, fixtures.company.id, fixtures.agent.id, `CONTACTS_${nonce}`, execution.suite.id === CONNECTION_GUIDANCE_SUITE);
-      const state = await api.get<{connections:Row[]}>(`/api/companies/${fixtures.company.id}/tools/connections`);
-      initialConnections = state.connections.map(c=>c.id);
-      if (aggregatorFixture && execution.suite.id === CONNECTION_GUIDANCE_SUITE) {
-        await input.evidence("provider-initial-access.json", aggregatorFixture.initialAccess);
-        check("provider-not-installed-before-choice", !aggregatorFixture.initialAccess.installed && aggregatorFixture.initialAccess.allowedToolIds.length === 0,
-          "The company connection is configured, but this agent has no installed or allowed HubSpot tool before the decision.");
+    if (
+      providerChoice ||
+      nativeProviderCase ||
+      (execution.suite.id === CONNECTION_GUIDANCE_SUITE && Boolean(review))
+    ) {
+      if (
+        caseId === "provider-second" ||
+        (execution.suite.id === CONNECTION_GUIDANCE_SUITE &&
+          caseId === "provider-decline")
+      )
+        aggregatorFixture = await setupAggregatorFixture(
+          api,
+          fixtures.company.id,
+          fixtures.agent.id,
+          `CONTACTS_${nonce}`,
+          execution.suite.id === CONNECTION_GUIDANCE_SUITE,
+        );
+      const state = await api.get<{ connections: Row[] }>(
+        `/api/companies/${fixtures.company.id}/tools/connections`,
+      );
+      initialConnections = state.connections.map((c) => c.id);
+      if (
+        aggregatorFixture &&
+        execution.suite.id === CONNECTION_GUIDANCE_SUITE
+      ) {
+        await input.evidence(
+          "provider-initial-access.json",
+          aggregatorFixture.initialAccess,
+        );
+        check(
+          "provider-not-installed-before-choice",
+          !aggregatorFixture.initialAccess.installed &&
+            aggregatorFixture.initialAccess.allowedToolIds.length === 0,
+          "The company connection is configured, but this agent has no installed or allowed HubSpot tool before the decision.",
+        );
       }
     }
-    if (agentmailSetup) await api.patch("/api/instance/settings/experimental", { enableChatConnectors: true });
+    if (agentmailSetup)
+      await api.patch("/api/instance/settings/experimental", {
+        enableChatConnectors: true,
+      });
     if (decliningConnection) {
       const state = await api.get<{ connections: Row[] }>(
         `/api/companies/${fixtures.company.id}/tools/connections`,
@@ -726,14 +887,18 @@ export async function runEverydayFlow(input: Input) {
         deadlineAt: input.deadlineAt,
         load: refresh,
         accept: (state) => {
-          const child = state.issues.find((issue) => issue.parentId === parent!.id);
+          const child = state.issues.find(
+            (issue) => issue.parentId === parent!.id,
+          );
           const interaction = child?.interactions?.find(
             (candidate) =>
               ["pending", "accepted"].includes(String(candidate.status)) &&
               candidate.addresseeAgentId === fixtures.agent.id &&
               candidate.effectiveResolverPolicy !== "human_only",
           );
-          const parentIssue = state.issues.find((issue) => issue.id === parent!.id);
+          const parentIssue = state.issues.find(
+            (issue) => issue.id === parent!.id,
+          );
           const reviewRun = interaction?.resolvedByRunId
             ? state.runs.find((run) => run.id === interaction.resolvedByRunId)
             : undefined;
@@ -754,20 +919,20 @@ export async function runEverydayFlow(input: Input) {
             ) ||
             Boolean(
               parentIssue &&
-                storyIssueHasBlockedTimelineBefore(
-                  parentIssue,
-                  reviewRun?.startedAt ?? undefined,
-                ),
+              storyIssueHasBlockedTimelineBefore(
+                parentIssue,
+                reviewRun?.startedAt ?? undefined,
+              ),
             ) ||
             Boolean(parentRun && storyRunReportsDependencyBlock(parentRun));
           return Boolean(
-              parentIssue &&
-              ["blocked", "done"].includes(parentIssue.status) &&
-              ["in_review", "done"].includes(String(child?.status)) &&
-              interaction &&
-              parentBlockedEvidence &&
-              parentRun &&
-              (parentIssue.status === "blocked" || reviewRun),
+            parentIssue &&
+            ["blocked", "done"].includes(parentIssue.status) &&
+            ["in_review", "done"].includes(String(child?.status)) &&
+            interaction &&
+            parentBlockedEvidence &&
+            parentRun &&
+            (parentIssue.status === "blocked" || reviewRun),
           );
         },
         reject: (state) => {
@@ -776,10 +941,17 @@ export async function runEverydayFlow(input: Input) {
           );
           return failed
             ? `Review handoff prerequisite failed: ${failed.errorCode}: ${failed.error}`
-            : storyUnexercisedReviewBoundary(state.issues, state.runs, parent!.id, fixtures.agent.id);
+            : storyUnexercisedReviewBoundary(
+                state.issues,
+                state.runs,
+                parent!.id,
+                fixtures.agent.id,
+              );
         },
       });
-      const child = boundary.issues.find((issue) => issue.parentId === parent!.id)!;
+      const child = boundary.issues.find(
+        (issue) => issue.parentId === parent!.id,
+      )!;
       const interaction = child.interactions!.find(
         (candidate) =>
           ["pending", "accepted"].includes(String(candidate.status)) &&
@@ -824,7 +996,8 @@ export async function runEverydayFlow(input: Input) {
         childId: child.id,
         childAssigneeAgentId: child.assigneeAgentId,
         interactionId: interaction.id,
-        parentStatus: boundary.issues.find((issue) => issue.id === parent!.id)?.status,
+        parentStatus: boundary.issues.find((issue) => issue.id === parent!.id)
+          ?.status,
         parentRunId: parentRun?.id,
         parentRunFinishedAt: parentRun?.finishedAt,
         interactionCreatedAt: interaction.createdAt,
@@ -866,10 +1039,7 @@ export async function runEverydayFlow(input: Input) {
       note("late-feedback-delivered-to-child", { childId: child.id });
       await openParent();
     }
-    if (
-      caseId === "recover-controller" ||
-      caseId === "stop-redirect"
-    ) {
+    if (caseId === "recover-controller" || caseId === "stop-redirect") {
       if (execution.environment.id === "daytona") {
         // A completed, downloaded first version is an observable remote persistence checkpoint.
         await settled();
@@ -904,7 +1074,10 @@ export async function runEverydayFlow(input: Input) {
           accept: Boolean,
           intervalMs: 250,
         });
-        await recordSource("source-saved-after-interruption", "source-after-interruption.json");
+        await recordSource(
+          "source-saved-after-interruption",
+          "source-after-interruption.json",
+        );
         stoppedWorkspace = await workspaceFiles();
         note("stopped-workspace-snapshot", stoppedWorkspace);
         await reply(
@@ -923,64 +1096,150 @@ export async function runEverydayFlow(input: Input) {
     }
     if (providerChoice) {
       const rows = await pollUntil({
-        label: "external-provider choice", deadlineAt: input.deadlineAt,
+        label: "external-provider choice",
+        deadlineAt: input.deadlineAt,
         load: async () => {
-          const runs = await api.get<StoryRun[]>(`/api/issues/${parent!.id}/runs`);
-          const failure = runs.find(run => ["failed", "timed_out"].includes(run.status));
-          if (failure) throw new Error(`Stopped waiting for external-provider choice: agent failed before selection: ${failure.error ?? failure.status}`);
-          const rows = await api.get<Row[]>(`/api/issues/${parent!.id}/interactions`);
+          const runs = await api.get<StoryRun[]>(
+            `/api/issues/${parent!.id}/runs`,
+          );
+          const failure = runs.find((run) =>
+            ["failed", "timed_out"].includes(run.status),
+          );
+          if (failure)
+            throw new Error(
+              `Stopped waiting for external-provider choice: agent failed before selection: ${failure.error ?? failure.status}`,
+            );
+          const rows = await api.get<Row[]>(
+            `/api/issues/${parent!.id}/interactions`,
+          );
           const issue = await api.get<StoryIssue>(`/api/issues/${parent!.id}`);
-          if (!rows.some(row=>row.status==="pending") && ["done", "blocked", "cancelled"].includes(issue.status)) throw new Error(`Stopped waiting for external-provider choice: task reached ${issue.status} without asking the user`);
+          if (
+            !rows.some((row) => row.status === "pending") &&
+            ["done", "blocked", "cancelled"].includes(issue.status)
+          )
+            throw new Error(
+              `Stopped waiting for external-provider choice: task reached ${issue.status} without asking the user`,
+            );
           return rows;
         },
-        accept: rows => rows.some(row=>row.status==="pending"),
+        accept: (rows) => rows.some((row) => row.status === "pending"),
       });
-      const decision = gradeProviderChoice(rows as any, aggregatorFixture?.invocationCount() ?? 0);
+      const decision = gradeProviderChoice(
+        rows as any,
+        aggregatorFixture?.invocationCount() ?? 0,
+      );
       decisionId = decision.interaction.id;
-      check("provider-disclosed-before-choice", true, "Ranked external providers and None were offered before any call.");
+      check(
+        "provider-disclosed-before-choice",
+        true,
+        "Ranked external providers and None were offered before any call.",
+      );
       // Exercise durable selection across a real controller restart and browser reload.
       await input.restart();
       await openParent();
-      const choice = page.getByRole("radio", {name: caseId === "provider-decline" ? /None for now/ : /^Arcade/});
-      await expect(choice).toBeVisible();
-      await input.capture("provider-choice", "External service choice after restart", "provider-choice.png");
-      await choice.click();
-      await page.getByRole("button", {name:"Submit answers",exact:true}).click();
-      await pollUntil({label:"provider choice saved", deadlineAt:input.deadlineAt,
-        load:()=>api.get<Row[]>(`/api/issues/${parent!.id}/interactions`),
-        accept:rows=>rows.some(row=>row.id===decisionId && row.status==="answered"),
+      const choice = page.getByRole("radio", {
+        name: caseId === "provider-decline" ? /None for now/ : /^Arcade/,
       });
-      note("provider-choice-submitted", {interactionId:decisionId, selected:caseId === "provider-decline" ? "none" : "via:arcade:hubspot"});
-      if (execution.suite.id === CONNECTION_GUIDANCE_SUITE && caseId === "provider-second") {
+      await expect(choice).toBeVisible();
+      await input.capture(
+        "provider-choice",
+        "External service choice after restart",
+        "provider-choice.png",
+      );
+      await choice.click();
+      await page
+        .getByRole("button", { name: "Submit answers", exact: true })
+        .click();
+      await pollUntil({
+        label: "provider choice saved",
+        deadlineAt: input.deadlineAt,
+        load: () => api.get<Row[]>(`/api/issues/${parent!.id}/interactions`),
+        accept: (rows) =>
+          rows.some(
+            (row) => row.id === decisionId && row.status === "answered",
+          ),
+      });
+      note("provider-choice-submitted", {
+        interactionId: decisionId,
+        selected: caseId === "provider-decline" ? "none" : "via:arcade:hubspot",
+      });
+      if (
+        execution.suite.id === CONNECTION_GUIDANCE_SUITE &&
+        caseId === "provider-second"
+      ) {
         const rows = await pollUntil({
-          label: "selected Arcade access request", deadlineAt: input.deadlineAt,
+          label: "selected Arcade access request",
+          deadlineAt: input.deadlineAt,
           load: async () => ({
-            rows: await api.get<Row[]>(`/api/issues/${parent!.id}/interactions`),
+            rows: await api.get<Row[]>(
+              `/api/issues/${parent!.id}/interactions`,
+            ),
             issue: await api.get<StoryIssue>(`/api/issues/${parent!.id}`),
             calls: aggregatorFixture!.invocationCount(),
             runs: await api.get<StoryRun[]>(`/api/issues/${parent!.id}/runs`),
           }),
-          accept: state => state.rows.some(row => row.id !== decisionId && row.status === "pending"),
-          reject: state => state.calls > 0 ? "Provider ran before tool-access approval"
-            : state.runs.some(run => ["failed", "timed_out"].includes(run.status)) ? "Agent failed before tool-access approval"
-            : ["done", "blocked", "cancelled"].includes(state.issue.status) ? "Task ended without the required access request" : undefined,
+          accept: (state) =>
+            state.rows.some(
+              (row) => row.id !== decisionId && row.status === "pending",
+            ),
+          reject: (state) =>
+            state.calls > 0
+              ? "Provider ran before tool-access approval"
+              : state.runs.some((run) =>
+                    ["failed", "timed_out"].includes(run.status),
+                  )
+                ? "Agent failed before tool-access approval"
+                : ["done", "blocked", "cancelled"].includes(state.issue.status)
+                  ? "Task ended without the required access request"
+                  : undefined,
         });
-        const card = requireProviderAccessCard({ rows: rows.rows as any, decisionId: decisionId!, connectionId: aggregatorFixture!.connectionId,
-          agentId: fixtures.agent.id, catalogEntryIds: aggregatorFixture!.catalogEntryIds, calls: rows.calls });
-        providerAccessDecision = { id: card.id, connectionId: aggregatorFixture!.connectionId };
+        const card = requireProviderAccessCard({
+          rows: rows.rows as any,
+          decisionId: decisionId!,
+          connectionId: aggregatorFixture!.connectionId,
+          agentId: fixtures.agent.id,
+          catalogEntryIds: aggregatorFixture!.catalogEntryIds,
+          calls: rows.calls,
+        });
+        providerAccessDecision = {
+          id: card.id,
+          connectionId: aggregatorFixture!.connectionId,
+        };
         await openParent();
         const accessCard = page.getByTestId("connection-intent-access-request");
         await expect(accessCard).toHaveCount(1);
-        await expect(accessCard.getByText("Hubspot_ListContacts", { exact: true })).toBeVisible();
-        await input.capture("provider-access", "Separate HubSpot tool-access approval", "provider-access.png");
-        check("no-call-before-provider-access", aggregatorFixture!.invocationCount() === 0, "Selecting a provider alone did not expose or execute its tool.");
-        await accessCard.getByRole("button", { name: "Grant access", exact: true }).click();
-        await pollUntil({ label: "Arcade access grant saved", deadlineAt: input.deadlineAt,
+        await expect(
+          accessCard.getByText("Hubspot_ListContacts", { exact: true }),
+        ).toBeVisible();
+        await input.capture(
+          "provider-access",
+          "Separate HubSpot tool-access approval",
+          "provider-access.png",
+        );
+        check(
+          "no-call-before-provider-access",
+          aggregatorFixture!.invocationCount() === 0,
+          "Selecting a provider alone did not expose or execute its tool.",
+        );
+        await accessCard
+          .getByRole("button", { name: "Grant access", exact: true })
+          .click();
+        await pollUntil({
+          label: "Arcade access grant saved",
+          deadlineAt: input.deadlineAt,
           load: () => api.get<Row[]>(`/api/issues/${parent!.id}/interactions`),
-          accept: rows => rows.some(row => row.id === card.id && row.status === "accepted"
-            && row.result?.connectionId === aggregatorFixture!.connectionId),
+          accept: (rows) =>
+            rows.some(
+              (row) =>
+                row.id === card.id &&
+                row.status === "accepted" &&
+                row.result?.connectionId === aggregatorFixture!.connectionId,
+            ),
         });
-        note("provider-access-granted", { interactionId: card.id, connectionId: aggregatorFixture!.connectionId });
+        note("provider-access-granted", {
+          interactionId: card.id,
+          connectionId: aggregatorFixture!.connectionId,
+        });
       }
     }
     if (review || decliningConnection) {
@@ -1018,7 +1277,14 @@ export async function runEverydayFlow(input: Input) {
         interactions.interactions,
         review
           ? { kind: "tool", connectionId: review.connectionId }
-          : { kind: "connection", serviceSlug: agentmailSetup ? "agentmail" : nativeProviderCase ? "jira" : "notion" },
+          : {
+              kind: "connection",
+              serviceSlug: agentmailSetup
+                ? "agentmail"
+                : nativeProviderCase
+                  ? "jira"
+                  : "notion",
+            },
       );
       await expect(
         page.getByRole("button", {
@@ -1044,20 +1310,39 @@ export async function runEverydayFlow(input: Input) {
         await page.reload();
         const form = page.getByTestId("agentmail-inline-setup");
         await expect(form).toBeVisible();
-        const card = page.getByTestId("connection-intent-focus-target").filter({ has: form });
-        const rows = await api.get<Parameters<typeof gradeAgentmailSetup>[0]["interactions"]>(`/api/issues/${parent!.id}/interactions`);
+        const card = page
+          .getByTestId("connection-intent-focus-target")
+          .filter({ has: form });
+        const rows = await api.get<
+          Parameters<typeof gradeAgentmailSetup>[0]["interactions"]
+        >(`/api/issues/${parent!.id}/interactions`);
         const checks = gradeAgentmailSetup({
           // This harness boots a dedicated local_trusted instance.
-          interactions: rows, agentId: fixtures.agent.id, userId: "local-board",
+          interactions: rows,
+          agentId: fixtures.agent.id,
+          userId: "local-board",
           visible: await form.isVisible(),
-          inputTypes: await card.locator("input").evaluateAll(inputs => inputs.map(input => input.getAttribute("type") ?? "text")),
-          keyLink: await form.getByRole("link", { name: "Get an AgentMail API key" }).getAttribute("href"),
-          accessSelectorCount: await card.locator('[role="radiogroup"], [role="combobox"], select').count(),
+          inputTypes: await card
+            .locator("input")
+            .evaluateAll((inputs) =>
+              inputs.map((input) => input.getAttribute("type") ?? "text"),
+            ),
+          keyLink: await form
+            .getByRole("link", { name: "Get an AgentMail API key" })
+            .getAttribute("href"),
+          accessSelectorCount: await card
+            .locator('[role="radiogroup"], [role="combobox"], select')
+            .count(),
           dialogCount: await page.getByRole("dialog").count(),
         });
         ev.checks.push(...checks);
-        await input.capture("agentmail-inline-key", "AgentMail API-key card after reload", "agentmail-inline-key.png");
-        if (checks.some(result => !result.passed)) throw new Error("AgentMail inline setup evidence failed");
+        await input.capture(
+          "agentmail-inline-key",
+          "AgentMail API-key card after reload",
+          "agentmail-inline-key.png",
+        );
+        if (checks.some((result) => !result.passed))
+          throw new Error("AgentMail inline setup evidence failed");
       }
       if (review)
         check(
@@ -1109,8 +1394,11 @@ export async function runEverydayFlow(input: Input) {
       });
     }
     await settled(
-      caseId === "stop-redirect" ? `Reference ${nonce}`
-        : caseId === "provider-second" ? `CONTACTS_${nonce}` : undefined,
+      caseId === "stop-redirect"
+        ? `Reference ${nonce}`
+        : caseId === "provider-second"
+          ? `CONTACTS_${nonce}`
+          : undefined,
     );
     if (caseId === "create-skill-studio") {
       const createdSkills = await api.get<Row[]>(
@@ -1121,7 +1409,9 @@ export async function runEverydayFlow(input: Input) {
       );
       check(
         "skill-persisted",
-        Boolean(created && String(created.name) === "release-readiness-checklist"),
+        Boolean(
+          created && String(created.name) === "release-readiness-checklist",
+        ),
         "The runner-created skill is present in the company library after the run.",
       );
       if (created) {
@@ -1132,17 +1422,37 @@ export async function runEverydayFlow(input: Input) {
         await expect(card).toHaveCount(1);
         await expect(card).toBeVisible();
         await card.getByRole("button").click();
-        await expect(page.getByRole("heading", { name: "release-readiness-checklist" })).toBeVisible();
-        await expect(page.getByText("Verify checks.", { exact: true })).toBeVisible();
-        check("feed-card-opened", true, "The task thread card opened the created skill sidebar.");
-        const openStudio = page.getByRole("button", { name: "Open in Skill Studio", exact: true });
+        await expect(
+          page.getByRole("heading", { name: "release-readiness-checklist" }),
+        ).toBeVisible();
+        await expect(
+          page.getByText("Verify checks.", { exact: true }),
+        ).toBeVisible();
+        check(
+          "feed-card-opened",
+          true,
+          "The task thread card opened the created skill sidebar.",
+        );
+        const openStudio = page.getByRole("button", {
+          name: "Open in Skill Studio",
+          exact: true,
+        });
         await expect(openStudio).toBeVisible();
         await openStudio.click();
-        await expect(page).toHaveURL(new RegExp(`/skills/studio/${created.id}$`));
+        await expect(page).toHaveURL(
+          new RegExp(`/skills/studio/${created.id}$`),
+        );
         // Studio's skill selector identifies the resource. Headings inside the
         // authored document can differ from its canonical skill name.
-        await expect(page.getByRole("combobox").filter({ hasText: "release-readiness-checklist" })).toBeVisible();
-        const editor = page.getByRole("textbox", { name: "editable markdown", exact: true });
+        await expect(
+          page
+            .getByRole("combobox")
+            .filter({ hasText: "release-readiness-checklist" }),
+        ).toBeVisible();
+        const editor = page.getByRole("textbox", {
+          name: "editable markdown",
+          exact: true,
+        });
         await editor.click();
         await editor.press("ControlOrMeta+End");
         await editor.press("Enter");
@@ -1152,10 +1462,12 @@ export async function runEverydayFlow(input: Input) {
         await pollUntil({
           label: "Skill Studio edit persisted",
           deadlineAt: Math.min(input.deadlineAt, Date.now() + 30_000),
-          load: () => api.get<Row>(
-            `/api/companies/${fixtures.company.id}/skills/${encodeURIComponent(String(created.id))}`,
-          ),
-          accept: (detail) => JSON.stringify(detail).includes("Studio edit marker: verified"),
+          load: () =>
+            api.get<Row>(
+              `/api/companies/${fixtures.company.id}/skills/${encodeURIComponent(String(created.id))}`,
+            ),
+          accept: (detail) =>
+            JSON.stringify(detail).includes("Studio edit marker: verified"),
         });
         const detail = await api.get<Row>(
           `/api/companies/${fixtures.company.id}/skills/${encodeURIComponent(String(created.id))}`,
@@ -1165,7 +1477,11 @@ export async function runEverydayFlow(input: Input) {
           JSON.stringify(detail).includes("Studio edit marker: verified"),
           "The Skill Studio edit remains in the persisted skill after returning to the page.",
         );
-        check("studio-opened", true, "The skill detail opened in Skill Studio.");
+        check(
+          "studio-opened",
+          true,
+          "The skill detail opened in Skill Studio.",
+        );
         await page.goBack();
         await expect(page).toHaveURL(new RegExp(`/issues/`));
         const returnedCard = page.getByRole("article", {
@@ -1173,32 +1489,73 @@ export async function runEverydayFlow(input: Input) {
         });
         await expect(returnedCard).toBeVisible();
         await returnedCard.getByRole("button").click();
-        await expect(page.getByRole("heading", { name: "release-readiness-checklist" })).toBeVisible();
-        await expect(page.getByText("Studio edit marker: verified", { exact: true })).toBeVisible();
-        check("return-content-persisted", true, "Returning to the task shows the saved Skill Studio edit.");
+        await expect(
+          page.getByRole("heading", { name: "release-readiness-checklist" }),
+        ).toBeVisible();
+        await expect(
+          page.getByText("Studio edit marker: verified", { exact: true }),
+        ).toBeVisible();
+        check(
+          "return-content-persisted",
+          true,
+          "Returning to the task shows the saved Skill Studio edit.",
+        );
       }
     }
     if (providerChoice) {
-      const issue = ev.issues.find(i=>i.id===parent!.id)!;
-      const state = await api.get<{connections:Row[]}>(`/api/companies/${fixtures.company.id}/tools/connections`);
-      ev.checks.push(...gradeProviderOutcome({rows:issue.interactions as any, decisionId:decisionId!, accessDecision:providerAccessDecision,
-        selected:caseId === "provider-decline" ? "none" : "via:arcade:hubspot", calls:aggregatorFixture?.invocationCount() ?? 0,
-        response: (issue.comments ?? []).filter((c:Row)=>c.authorAgentId).map((c:Row)=>c.body).join("\n"), marker:`CONTACTS_${nonce}`,
-        sameConnections:isDeepStrictEqual(state.connections.map(c=>c.id).sort(), initialConnections.sort()),
-      }));
+      const issue = ev.issues.find((i) => i.id === parent!.id)!;
+      const state = await api.get<{ connections: Row[] }>(
+        `/api/companies/${fixtures.company.id}/tools/connections`,
+      );
+      ev.checks.push(
+        ...gradeProviderOutcome({
+          rows: issue.interactions as any,
+          decisionId: decisionId!,
+          accessDecision: providerAccessDecision,
+          selected:
+            caseId === "provider-decline" ? "none" : "via:arcade:hubspot",
+          calls: aggregatorFixture?.invocationCount() ?? 0,
+          response: (issue.comments ?? [])
+            .filter((c: Row) => c.authorAgentId)
+            .map((c: Row) => c.body)
+            .join("\n"),
+          marker: `CONTACTS_${nonce}`,
+          sameConnections: isDeepStrictEqual(
+            state.connections.map((c) => c.id).sort(),
+            initialConnections.sort(),
+          ),
+        }),
+      );
     }
-    if (execution.suite.id === CONNECTION_GUIDANCE_SUITE &&
-      (caseId === "service-decline" || caseId === "connection-decline" || caseId === "provider-decline")) {
-      const state = await api.get<{ connections: Row[] }>("/api/companies/" + fixtures.company.id + "/tools/connections");
+    if (
+      execution.suite.id === CONNECTION_GUIDANCE_SUITE &&
+      (caseId === "service-decline" ||
+        caseId === "connection-decline" ||
+        caseId === "provider-decline")
+    ) {
+      const state = await api.get<{ connections: Row[] }>(
+        "/api/companies/" + fixtures.company.id + "/tools/connections",
+      );
       const gradeInput = structuredClone({
         ...declineInput(ev)!,
-        calls: review?.invocationCount() ?? aggregatorFixture?.invocationCount(),
-        sameConnections: isDeepStrictEqual(state.connections.map(c => c.id).sort(), initialConnections.sort()),
+        calls:
+          review?.invocationCount() ?? aggregatorFixture?.invocationCount(),
+        sameConnections: isDeepStrictEqual(
+          state.connections.map((c) => c.id).sort(),
+          initialConnections.sort(),
+        ),
       });
       const checks = gradeConnectionGuidanceDecline(gradeInput);
       // Keep the actual assertion input independent of the later final/cleanup refreshes.
-      ev.declineGradeEvidence = { capturedAt: new Date().toISOString(), input: gradeInput, checks: structuredClone(checks) };
-      await input.evidence("connection-guidance-decline-grade.json", ev.declineGradeEvidence);
+      ev.declineGradeEvidence = {
+        capturedAt: new Date().toISOString(),
+        input: gradeInput,
+        checks: structuredClone(checks),
+      };
+      await input.evidence(
+        "connection-guidance-decline-grade.json",
+        ev.declineGradeEvidence,
+      );
       ev.checks.push(...checks);
     }
     if (declining) {
@@ -1219,8 +1576,7 @@ export async function runEverydayFlow(input: Input) {
       const text = replies.map((c: Row) => String(c.body ?? "")).join("\n");
       check(
         "decline-visible-explanation",
-        replies.length > 0 &&
-          explainsConnectionUnavailable(text),
+        replies.length > 0 && explainsConnectionUnavailable(text),
         "A new agent response explains the missing access after the saved decline.",
       );
       check(
@@ -1370,8 +1726,8 @@ export async function runEverydayFlow(input: Input) {
       );
     } else if (caseId === "agent-review-handoff") {
       const children = ev.issues.filter((i) => i.parentId === parent!.id);
-      const child = children.find((candidate) =>
-        candidate.id === reviewHandoffBoundary?.childId,
+      const child = children.find(
+        (candidate) => candidate.id === reviewHandoffBoundary?.childId,
       );
       const interaction = storyAcceptedAgentReview(
         child,
@@ -1424,9 +1780,9 @@ export async function runEverydayFlow(input: Input) {
           Boolean(parentContinuationRun) &&
           Boolean(
             parentContinuationRun?.finishedAt &&
-              parentContinuationRun.startedAt &&
-              Date.parse(parentContinuationRun.finishedAt) >=
-                Date.parse(parentContinuationRun.startedAt),
+            parentContinuationRun.startedAt &&
+            Date.parse(parentContinuationRun.finishedAt) >=
+              Date.parse(parentContinuationRun.startedAt),
           ),
         "The parent continuation starts after review acceptance and finishes successfully.",
       );
@@ -1601,7 +1957,11 @@ export async function runEverydayFlow(input: Input) {
     );
     if (providerChoice || nativeProviderCase) await openParent();
     else {
-      await waitForTaskIdentity(page, taskUrl(parent!), parent!.identifier ?? parent!.id);
+      await waitForTaskIdentity(
+        page,
+        taskUrl(parent!),
+        parent!.identifier ?? parent!.id,
+      );
       await waitForTaskChatRendered(page);
     }
     const latestAgentComment = ev.issues
@@ -1681,13 +2041,22 @@ export async function runEverydayFlow(input: Input) {
     try {
       await input.evidence("everyday-workflow.json", ev);
       await input.evidence("api-state.json", {
-        capturePhase: "everyday-final", issue: parent, runs: ev.runs,
-        issues: ev.issues, checks: ev.checks,
+        capturePhase: "everyday-final",
+        issue: parent,
+        runs: ev.runs,
+        issues: ev.issues,
+        checks: ev.checks,
       });
-      if (aggregatorFixture) await input.evidence("aggregator-provider-calls.json", { calls: aggregatorFixture.captures });
+      if (aggregatorFixture)
+        await input.evidence("aggregator-provider-calls.json", {
+          calls: aggregatorFixture.captures,
+        });
     } finally {
-      try { await aggregatorFixture?.close(); }
-      finally { await review?.close(); }
+      try {
+        await aggregatorFixture?.close();
+      } finally {
+        await review?.close();
+      }
     }
   }
 }

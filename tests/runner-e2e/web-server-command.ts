@@ -18,6 +18,15 @@ export function runnerE2EWebServerCommand(repositoryRoot: string) {
 }
 
 // Keep the supervisor's child PID equal to the actual TypeScript process.
-export function runnerE2ETypeScriptProcessArgs(repositoryRoot: string, entry: string, args: string[] = []) {
-  return ["--import", path.join(repositoryRoot, "cli/node_modules/tsx/dist/loader.mjs"), entry, ...args];
+export function runnerE2ETypeScriptProcessArgs(
+  repositoryRoot: string,
+  entry: string,
+  args: string[] = [],
+) {
+  return [
+    "--import",
+    path.join(repositoryRoot, "cli/node_modules/tsx/dist/loader.mjs"),
+    entry,
+    ...args,
+  ];
 }

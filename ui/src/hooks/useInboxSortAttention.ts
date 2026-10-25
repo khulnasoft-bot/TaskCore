@@ -4,11 +4,7 @@ export const INBOX_SORT_IDLE_COMMIT_MS = 150_000;
 export const INBOX_SORT_HIDDEN_COMMIT_MS = 30_000;
 
 export type InboxSortCommitReason =
-  | "mount"
-  | "idle"
-  | "visibility"
-  | "view-identity-change"
-  | "manual-refresh";
+  "mount" | "idle" | "visibility" | "view-identity-change" | "manual-refresh";
 
 type UseInboxSortAttentionOptions = {
   viewIdentity: string;
@@ -25,7 +21,9 @@ export type InboxSortAttention = {
 };
 
 function isDocumentVisible(): boolean {
-  return typeof document === "undefined" || document.visibilityState === "visible";
+  return (
+    typeof document === "undefined" || document.visibilityState === "visible"
+  );
 }
 
 /**
@@ -120,7 +118,8 @@ export function useInboxSortAttention({
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [clearIdleTimer, hiddenCommitMs, restartIdleTimer]);
 
   return { noteInteraction, commitManualRefresh };

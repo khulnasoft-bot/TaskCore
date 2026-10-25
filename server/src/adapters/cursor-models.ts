@@ -67,7 +67,10 @@ function collectFromJsonValue(value: unknown, target: AdapterModel[]) {
   }
 }
 
-export function parseCursorModelsOutput(stdout: string, stderr: string): AdapterModel[] {
+export function parseCursorModelsOutput(
+  stdout: string,
+  stderr: string,
+): AdapterModel[] {
   const models: AdapterModel[] = [];
   const combined = `${stdout}\n${stderr}`;
 
@@ -123,15 +126,23 @@ function defaultCursorModelsRunner(): CursorModelsCommandResult {
   };
 }
 
-let cursorModelsRunner: () => CursorModelsCommandResult = defaultCursorModelsRunner;
+let cursorModelsRunner: () => CursorModelsCommandResult =
+  defaultCursorModelsRunner;
 
 function fetchCursorModelsFromCli(): AdapterModel[] {
   const result = cursorModelsRunner();
   const { stdout, stderr } = result;
-  if (result.hasError && stdout.trim().length === 0 && stderr.trim().length === 0) {
+  if (
+    result.hasError &&
+    stdout.trim().length === 0 &&
+    stderr.trim().length === 0
+  ) {
     return [];
   }
-  if ((result.status ?? 1) !== 0 && !/available models?:/i.test(`${stdout}\n${stderr}`)) {
+  if (
+    (result.status ?? 1) !== 0 &&
+    !/available models?:/i.test(`${stdout}\n${stderr}`)
+  ) {
     return [];
   }
 
@@ -165,6 +176,8 @@ export function resetCursorModelsCacheForTests() {
   cached = null;
 }
 
-export function setCursorModelsRunnerForTests(runner: (() => CursorModelsCommandResult) | null) {
+export function setCursorModelsRunnerForTests(
+  runner: (() => CursorModelsCommandResult) | null,
+) {
   cursorModelsRunner = runner ?? defaultCursorModelsRunner;
 }

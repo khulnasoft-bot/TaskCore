@@ -71,7 +71,9 @@ export const WHIMSY_ROTATE_MS = 10_000;
  * Informative labels (taxonomy verbs, "Thinking", "Responding", "Queued")
  * always keep their copy — whimsy never replaces signal.
  */
-export function isGenericStatusLabel(label: string | undefined | null): boolean {
+export function isGenericStatusLabel(
+  label: string | undefined | null,
+): boolean {
   const raw = (label ?? "").trim().toLowerCase();
   return raw === "running" || raw === "working";
 }

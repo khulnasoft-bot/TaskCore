@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 
-import type { PrpEvent, PrpRequest } from "../../../src/protocol/replay-contract";
+import type {
+  PrpEvent,
+  PrpRequest,
+} from "../../../src/protocol/replay-contract";
 import type { SessionSnapshot } from "../../../src/reducer/session-reducer";
 import type {
   LocalRunnerRunMetadata,
@@ -90,11 +93,18 @@ type LocalRunnerStreamRecord =
 
 const browserFixtures = Object.entries(fixtureFiles)
   .map(([path, source]): BrowserFixture => {
-    const key = path.split("/").at(-1)?.replace(/\.json$/, "") ?? path;
+    const key =
+      path
+        .split("/")
+        .at(-1)
+        ?.replace(/\.json$/, "") ?? path;
     const parsed = JSON.parse(source) as { name?: string };
     return { key, label: parsed.name ?? key, source };
   })
-  .sort((left, right) => fixtureOrder.indexOf(left.key) - fixtureOrder.indexOf(right.key));
+  .sort(
+    (left, right) =>
+      fixtureOrder.indexOf(left.key) - fixtureOrder.indexOf(right.key),
+  );
 
 function terminalTone(snapshot: SessionSnapshot) {
   if (snapshot.integrity === "gap_detected") {
@@ -111,7 +121,9 @@ function terminalTone(snapshot: SessionSnapshot) {
 
 function humanizeProtocolLabel(value: string): string {
   const words = value.replaceAll(/[_-]/g, " ");
-  return words.length === 0 ? words : `${words[0]?.toUpperCase()}${words.slice(1)}`;
+  return words.length === 0
+    ? words
+    : `${words[0]?.toUpperCase()}${words.slice(1)}`;
 }
 
 function liveStatusTone(status: LiveStatus, snapshot: SessionSnapshot | null) {
@@ -175,7 +187,10 @@ function SnapshotSummary({
       {snapshot.proposedResult ? (
         <div className="result-summary" data-testid="result-summary">
           <span>
-            Reported {humanizeProtocolLabel(snapshot.proposedResult.reportedWorkDisposition)}
+            Reported{" "}
+            {humanizeProtocolLabel(
+              snapshot.proposedResult.reportedWorkDisposition,
+            )}
           </span>
           <p>{snapshot.proposedResult.summary}</p>
         </div>
@@ -183,14 +198,17 @@ function SnapshotSummary({
 
       {snapshot.gaps.length > 0 ? (
         <div className="diagnostic" role="status">
-          Missing source sequence {snapshot.gaps.flatMap((gap) => gap.missing).join(", ")}.
-          Replay remains inspectable but is not complete.
+          Missing source sequence{" "}
+          {snapshot.gaps.flatMap((gap) => gap.missing).join(", ")}. Replay
+          remains inspectable but is not complete.
         </div>
       ) : null}
 
       <div className="timeline-heading">
         <h3>Ordered timeline</h3>
-        <span>{snapshot.duplicateEventIds.length} duplicate events ignored</span>
+        <span>
+          {snapshot.duplicateEventIds.length} duplicate events ignored
+        </span>
       </div>
       <ol className="timeline" data-testid="timeline">
         {snapshot.timeline.map((event) => (
@@ -201,7 +219,9 @@ function SnapshotSummary({
             <div>
               <div className="timeline-title">
                 <code>{event.eventType}</code>
-                <time dateTime={event.emittedAt}>{event.emittedAt.slice(11, 23)}</time>
+                <time dateTime={event.emittedAt}>
+                  {event.emittedAt.slice(11, 23)}
+                </time>
               </div>
               <p>{event.summary}</p>
             </div>
@@ -281,7 +301,11 @@ function LiveRunner() {
         metadata?: LocalRunnerRunMetadata;
         error?: string;
       };
-      if (!startResponse.ok || started.id === undefined || started.metadata === undefined) {
+      if (
+        !startResponse.ok ||
+        started.id === undefined ||
+        started.metadata === undefined
+      ) {
         throw new Error(started.error ?? "The local runner did not start.");
       }
       setRunId(started.id);
@@ -290,7 +314,9 @@ function LiveRunner() {
       snapshotRef.current = initial;
       setStatus("running");
 
-      const streamResponse = await fetch(`/api/localRunner/runs/${started.id}/events`);
+      const streamResponse = await fetch(
+        `/api/localRunner/runs/${started.id}/events`,
+      );
       if (!streamResponse.ok || streamResponse.body === null) {
         throw new Error("The live event stream did not open.");
       }
@@ -304,12 +330,18 @@ function LiveRunner() {
         buffered = lines.pop() ?? "";
         for (const line of lines) {
           if (line.trim().length > 0) {
-            handleRecord(JSON.parse(line) as LocalRunnerStreamRecord, started.metadata);
+            handleRecord(
+              JSON.parse(line) as LocalRunnerStreamRecord,
+              started.metadata,
+            );
           }
         }
         if (part.done) {
           if (buffered.trim().length > 0) {
-            handleRecord(JSON.parse(buffered) as LocalRunnerStreamRecord, started.metadata);
+            handleRecord(
+              JSON.parse(buffered) as LocalRunnerStreamRecord,
+              started.metadata,
+            );
           }
           break;
         }
@@ -320,7 +352,10 @@ function LiveRunner() {
     }
   }
 
-  function handleRecord(record: LocalRunnerStreamRecord, metadata: LocalRunnerRunMetadata) {
+  function handleRecord(
+    record: LocalRunnerStreamRecord,
+    metadata: LocalRunnerRunMetadata,
+  ) {
     if (record.kind === "event") {
       const current = snapshotRef.current;
       if (current === null) {
@@ -379,7 +414,8 @@ function LiveRunner() {
         <CardHeader>
           <CardTitle id="live-controls-title">Local runner controls</CardTitle>
           <CardDescription>
-            Start one Rust runner and one scripted fake harness. No network or model is used.
+            Start one Rust runner and one scripted fake harness. No network or
+            model is used.
           </CardDescription>
         </CardHeader>
         <CardContent className="editor-content">
@@ -388,7 +424,9 @@ function LiveRunner() {
             id="live-scenario"
             value={scenario}
             disabled={status === "starting" || status === "running"}
-            onChange={(event) => setScenario(event.target.value as LocalRunnerScenario)}
+            onChange={(event) =>
+              setScenario(event.target.value as LocalRunnerScenario)
+            }
           >
             {liveScenarios.map((candidate) => (
               <option key={candidate.key} value={candidate.key}>
@@ -406,7 +444,9 @@ function LiveRunner() {
             </Button>
             <Button
               type="button"
-              disabled={status !== "running" || snapshot?.turnState !== "running"}
+              disabled={
+                status !== "running" || snapshot?.turnState !== "running"
+              }
               onClick={() => void postAction("interrupt")}
             >
               Interrupt turn
@@ -488,18 +528,28 @@ function LiveRunner() {
             </div>
           ) : null}
           {diagnostic ? <p className="diagnostic">{diagnostic}</p> : null}
-          {error ? <p className="validation-errors" role="alert">{error}</p> : null}
+          {error ? (
+            <p className="validation-errors" role="alert">
+              {error}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
       <section className="replay-panel" aria-live="polite">
         {snapshot ? (
-          <SnapshotSummary snapshot={snapshot} label="Validated live snapshot" />
+          <SnapshotSummary
+            snapshot={snapshot}
+            label="Validated live snapshot"
+          />
         ) : (
           <div className="empty-live-state">
             <p className="eyebrow">Validated live snapshot</p>
             <h2>Start a local run</h2>
-            <p>Each incoming event will pass the Replay validator before the reducer applies it.</p>
+            <p>
+              Each incoming event will pass the Replay validator before the
+              reducer applies it.
+            </p>
           </div>
         )}
       </section>
@@ -514,7 +564,9 @@ function StaticReplay() {
   }
   const [selectedFixture, setSelectedFixture] = useState(defaultFixture.key);
   const [source, setSource] = useState(defaultFixture.source);
-  const [replay, setReplay] = useState(() => replayReplayFixtureText(defaultFixture.source));
+  const [replay, setReplay] = useState(() =>
+    replayReplayFixtureText(defaultFixture.source),
+  );
   const selected = useMemo(
     () => browserFixtures.find((fixture) => fixture.key === selectedFixture),
     [selectedFixture],
@@ -536,7 +588,8 @@ function StaticReplay() {
         <CardHeader>
           <CardTitle id="fixture-editor-title">Fixture input</CardTitle>
           <CardDescription>
-            Choose a conformance case or edit the JSON, then validate and replay it.
+            Choose a conformance case or edit the JSON, then validate and replay
+            it.
           </CardDescription>
         </CardHeader>
         <CardContent className="editor-content">
@@ -561,7 +614,10 @@ function StaticReplay() {
           />
           <div className="editor-actions">
             <span>{selected?.label ?? "Edited fixture"}</span>
-            <Button type="button" onClick={() => setReplay(replayReplayFixtureText(source))}>
+            <Button
+              type="button"
+              onClick={() => setReplay(replayReplayFixtureText(source))}
+            >
               Validate &amp; replay
             </Button>
           </div>
@@ -570,7 +626,10 @@ function StaticReplay() {
 
       <section className="replay-panel" aria-live="polite">
         {replay.ok ? (
-          <SnapshotSummary snapshot={replay.snapshot} label="Static replay snapshot" />
+          <SnapshotSummary
+            snapshot={replay.snapshot}
+            label="Static replay snapshot"
+          />
         ) : (
           <div className="validation-errors" role="alert">
             <Badge tone="danger">Validation failed</Badge>

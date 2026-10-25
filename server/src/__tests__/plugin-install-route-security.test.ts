@@ -10,11 +10,26 @@
  */
 import express from "express";
 import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { createDb, plugins } from "@taskcore/db";
 import { pluginLoader, REPO_ROOT } from "../services/plugin-loader.js";
 import {
@@ -43,7 +58,9 @@ vi.mock("../services/live-events.js", () => ({
 }));
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -71,7 +88,10 @@ type FixturePlugin = {
  * Create a valid, already-built plugin package (dist written directly, so no
  * pnpm auto-build runs during install) at an arbitrary directory.
  */
-async function createBuiltPluginFixture(parentDir: string, nameSuffix: string): Promise<FixturePlugin> {
+async function createBuiltPluginFixture(
+  parentDir: string,
+  nameSuffix: string,
+): Promise<FixturePlugin> {
   const slug = `plugin-install-guard-${nameSuffix}-${randomUUID().slice(0, 8)}`;
   const packageName = `@taskcore/${slug}`;
   const pluginKey = `taskcore.${slug.replace(/^plugin-/, "").replace(/-/g, "_")}`;
@@ -81,16 +101,20 @@ async function createBuiltPluginFixture(parentDir: string, nameSuffix: string): 
   await mkdir(distDir, { recursive: true });
   await writeFile(
     path.join(packageRoot, "package.json"),
-    JSON.stringify({
-      name: packageName,
-      version: "0.1.0",
-      private: true,
-      type: "module",
-      taskcorePlugin: {
-        manifest: "./dist/manifest.js",
-        worker: "./dist/worker.js",
+    JSON.stringify(
+      {
+        name: packageName,
+        version: "0.1.0",
+        private: true,
+        type: "module",
+        taskcorePlugin: {
+          manifest: "./dist/manifest.js",
+          worker: "./dist/worker.js",
+        },
       },
-    }, null, 2),
+      null,
+      2,
+    ),
     "utf8",
   );
 
@@ -140,19 +164,33 @@ async function createInstallApp(db: ReturnType<typeof createDb>) {
     } as typeof req.actor;
     next();
   });
-  app.use("/api", pluginRoutes(db as never, loader as never, {} as never, undefined, {} as never, {} as never));
+  app.use(
+    "/api",
+    pluginRoutes(
+      db as never,
+      loader as never,
+      {} as never,
+      undefined,
+      {} as never,
+      {} as never,
+    ),
+  );
   app.use(errorHandler);
   return app;
 }
 
 describeEmbeddedPostgres("plugin install route security floor", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const cleanupPaths = new Set<string>();
   const originalManagedConfig = process.env["TASKCORE_MANAGED_CONFIG"];
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-plugin-install-guard-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-plugin-install-guard-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -184,7 +222,9 @@ describeEmbeddedPostgres("plugin install route security floor", () => {
         .send({ packageName: "taskcore-plugin-anything", version: "1.0.0" });
 
       expect(res.status).toBe(403);
-      expect(res.body.error).toContain("npm installs are disabled on cloud-managed instances");
+      expect(res.body.error).toContain(
+        "npm installs are disabled on cloud-managed instances",
+      );
       expect(mockLifecycle.load).not.toHaveBeenCalled();
     });
 
@@ -207,7 +247,9 @@ describeEmbeddedPostgres("plugin install route security floor", () => {
 
     it("rejects localPath installs from outside the bundled catalog root", async () => {
       process.env["TASKCORE_MANAGED_CONFIG"] = CLOUD_MANAGED_CONFIG;
-      const outsideDir = await mkdtemp(path.join(os.tmpdir(), "guard-outside-"));
+      const outsideDir = await mkdtemp(
+        path.join(os.tmpdir(), "guard-outside-"),
+      );
       cleanupPaths.add(outsideDir);
       const fixture = await createBuiltPluginFixture(outsideDir, "outside");
       const app = await createInstallApp(db);
@@ -239,11 +281,19 @@ describeEmbeddedPostgres("plugin install route security floor", () => {
 
     it("rejects a symlink inside the catalog root that points outside it", async () => {
       process.env["TASKCORE_MANAGED_CONFIG"] = CLOUD_MANAGED_CONFIG;
-      const outsideDir = await mkdtemp(path.join(os.tmpdir(), "guard-symlink-target-"));
+      const outsideDir = await mkdtemp(
+        path.join(os.tmpdir(), "guard-symlink-target-"),
+      );
       cleanupPaths.add(outsideDir);
-      const fixture = await createBuiltPluginFixture(outsideDir, "symlink-target");
+      const fixture = await createBuiltPluginFixture(
+        outsideDir,
+        "symlink-target",
+      );
 
-      const linkPath = path.join(repoPluginRoot, `guard-sneaky-link-${randomUUID().slice(0, 8)}`);
+      const linkPath = path.join(
+        repoPluginRoot,
+        `guard-sneaky-link-${randomUUID().slice(0, 8)}`,
+      );
       cleanupPaths.add(linkPath);
       await symlink(fixture.packageRoot, linkPath, "dir");
       const app = await createInstallApp(db);
@@ -319,11 +369,19 @@ describeEmbeddedPostgres("plugin install route security floor", () => {
     });
 
     it("canonicalizes traversal segments before installing (self-hosted)", async () => {
-      const outsideDir = await mkdtemp(path.join(os.tmpdir(), "guard-traversal-"));
+      const outsideDir = await mkdtemp(
+        path.join(os.tmpdir(), "guard-traversal-"),
+      );
       cleanupPaths.add(outsideDir);
       const fixture = await createBuiltPluginFixture(outsideDir, "traversal");
       const slug = path.basename(fixture.packageRoot);
-      const traversalPath = path.join(outsideDir, "..", path.basename(outsideDir), ".", slug);
+      const traversalPath = path.join(
+        outsideDir,
+        "..",
+        path.basename(outsideDir),
+        ".",
+        slug,
+      );
       const app = await createInstallApp(db);
 
       const res = await request(app)
@@ -337,7 +395,9 @@ describeEmbeddedPostgres("plugin install route security floor", () => {
     }, 30_000);
 
     it("resolves symlinked localPath installs to the real target (self-hosted)", async () => {
-      const outsideDir = await mkdtemp(path.join(os.tmpdir(), "guard-selfhosted-symlink-"));
+      const outsideDir = await mkdtemp(
+        path.join(os.tmpdir(), "guard-selfhosted-symlink-"),
+      );
       cleanupPaths.add(outsideDir);
       const fixture = await createBuiltPluginFixture(outsideDir, "symlinked");
       const linkPath = path.join(outsideDir, "linked-plugin");
@@ -376,7 +436,9 @@ describeEmbeddedPostgres("plugin install route security floor", () => {
       // in the test environment) — proving the 403 floor did not trigger.
       const res = await request(app)
         .post("/api/plugins/install")
-        .send({ packageName: `taskcore-plugin-guard-missing-${randomUUID().slice(0, 8)}` });
+        .send({
+          packageName: `taskcore-plugin-guard-missing-${randomUUID().slice(0, 8)}`,
+        });
 
       expect(res.status).toBe(400);
       expect(res.body.error).toContain("npm install failed");

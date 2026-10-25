@@ -38,11 +38,18 @@ export function ZeroResultsRecovery({
     >
       <FilterX className="h-10 w-10 text-muted-foreground" aria-hidden />
       <div className="space-y-1">
-        <div className="text-base font-semibold">No results with these filters</div>
+        <div className="text-base font-semibold">
+          No results with these filters
+        </div>
         <p className="text-sm text-muted-foreground">
-          {unfilteredTotal === 1 ? "1 result matches" : `${unfilteredTotal} results match`}
+          {unfilteredTotal === 1
+            ? "1 result matches"
+            : `${unfilteredTotal} results match`}
           {query ? <> &ldquo;{query}&rdquo;</> : null}, but your{" "}
-          {activeCount === 1 ? "active filter hides" : `${activeCount} active filters hide`} all of them.
+          {activeCount === 1
+            ? "active filter hides"
+            : `${activeCount} active filters hide`}{" "}
+          all of them.
         </p>
       </div>
 
@@ -56,16 +63,23 @@ export function ZeroResultsRecovery({
               key={`${suggestion.filter}:${suggestion.values.join(",")}`}
               type="button"
               className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left text-sm hover:border-foreground/30 hover:bg-accent/40"
-              onClick={() => onChange(clearFilterDimension(filters, suggestion.filter))}
+              onClick={() =>
+                onChange(clearFilterDimension(filters, suggestion.filter))
+              }
             >
               <span className="min-w-0 truncate">
                 Remove{" "}
                 <span className="font-medium">
-                  {describeLoosenSuggestion(suggestion.filter, suggestion.values, lookups)}
+                  {describeLoosenSuggestion(
+                    suggestion.filter,
+                    suggestion.values,
+                    lookups,
+                  )}
                 </span>
               </span>
               <span className="shrink-0 tabular-nums text-emerald-600 dark:text-emerald-400">
-                +{suggestion.additionalCount} {suggestion.additionalCount === 1 ? "result" : "results"}
+                +{suggestion.additionalCount}{" "}
+                {suggestion.additionalCount === 1 ? "result" : "results"}
               </span>
             </button>
           ))}

@@ -3,9 +3,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const VALID_TEMPLATES = ["default", "connector", "workspace", "environment"] as const;
+const VALID_TEMPLATES = [
+  "default",
+  "connector",
+  "workspace",
+  "environment",
+] as const;
 type PluginTemplate = (typeof VALID_TEMPLATES)[number];
-const VALID_CATEGORIES = new Set(["connector", "workspace", "automation", "ui", "environment"] as const);
+const VALID_CATEGORIES = new Set([
+  "connector",
+  "workspace",
+  "automation",
+  "ui",
+  "environment",
+] as const);
 
 export interface ScaffoldPluginOptions {
   pluginName: string;
@@ -41,7 +52,9 @@ function packageToManifestId(pluginName: string): string {
 
 /** Build a human-readable display name from package name tokens. */
 function makeDisplayName(pluginName: string): string {
-  const raw = packageToDirName(pluginName).replace(/[._-]+/g, " ").trim();
+  const raw = packageToDirName(pluginName)
+    .replace(/[._-]+/g, " ")
+    .trim();
   return raw
     .split(/\s+/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -71,7 +84,12 @@ function formatFileDependency(absPath: string): string {
 }
 
 function getLocalSdkPackagePath(): string {
-  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "sdk");
+  return path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "sdk",
+  );
 }
 
 function getRepoRootFromSdkPath(sdkPath: string): string {
@@ -84,7 +102,10 @@ function getLocalSharedPackagePath(sdkPath: string): string {
 
 function isInsideDir(targetPath: string, parentPath: string): boolean {
   const relative = path.relative(parentPath, targetPath);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
 }
 
 function packLocalPackage(packagePath: string, outputDir: string): string {
@@ -104,7 +125,10 @@ function packLocalPackage(packagePath: string, outputDir: string): string {
 
   fs.mkdirSync(sdkBundleDir, { recursive: true });
   execFileSync("pnpm", ["build"], { cwd: packagePath, stdio: "pipe" });
-  execFileSync("pnpm", ["pack", "--pack-destination", sdkBundleDir], { cwd: packagePath, stdio: "pipe" });
+  execFileSync("pnpm", ["pack", "--pack-destination", sdkBundleDir], {
+    cwd: packagePath,
+    stdio: "pipe",
+  });
 
   const tarballPath = path.join(sdkBundleDir, tarballFileName);
   if (!fs.existsSync(tarballPath)) {
@@ -123,15 +147,21 @@ function packLocalPackage(packagePath: string, outputDir: string): string {
 export function scaffoldPluginProject(options: ScaffoldPluginOptions): string {
   const template = options.template ?? "default";
   if (!VALID_TEMPLATES.includes(template)) {
-    throw new Error(`Invalid template '${template}'. Expected one of: ${VALID_TEMPLATES.join(", ")}`);
+    throw new Error(
+      `Invalid template '${template}'. Expected one of: ${VALID_TEMPLATES.join(", ")}`,
+    );
   }
 
   if (!isValidPluginName(options.pluginName)) {
-    throw new Error("Invalid plugin name. Must be lowercase and may include scope, dots, underscores, or hyphens.");
+    throw new Error(
+      "Invalid plugin name. Must be lowercase and may include scope, dots, underscores, or hyphens.",
+    );
   }
 
   if (options.category && !VALID_CATEGORIES.has(options.category)) {
-    throw new Error(`Invalid category '${options.category}'. Expected one of: ${[...VALID_CATEGORIES].join(", ")}`);
+    throw new Error(
+      `Invalid category '${options.category}'. Expected one of: ${[...VALID_CATEGORIES].join(", ")}`,
+    );
   }
 
   const outputDir = path.resolve(options.outputDir);
@@ -139,19 +169,30 @@ export function scaffoldPluginProject(options: ScaffoldPluginOptions): string {
     throw new Error(`Directory already exists: ${outputDir}`);
   }
 
-  const displayName = options.displayName ?? makeDisplayName(options.pluginName);
+  const displayName =
+    options.displayName ?? makeDisplayName(options.pluginName);
   const description = options.description ?? "A Taskcore plugin";
   const author = options.author ?? "Plugin Author";
-  const category = options.category ?? (template === "workspace" ? "workspace" : template === "environment" ? "environment" : "connector");
+  const category =
+    options.category ??
+    (template === "workspace"
+      ? "workspace"
+      : template === "environment"
+        ? "environment"
+        : "connector");
   const manifestId = packageToManifestId(options.pluginName);
-  const localSdkPath = path.resolve(options.sdkPath ?? getLocalSdkPackagePath());
+  const localSdkPath = path.resolve(
+    options.sdkPath ?? getLocalSdkPackagePath(),
+  );
   const localSharedPath = getLocalSharedPackagePath(localSdkPath);
   const repoRoot = getRepoRootFromSdkPath(localSdkPath);
   const useWorkspaceSdk = isInsideDir(outputDir, repoRoot);
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  const packedSharedTarball = useWorkspaceSdk ? null : packLocalPackage(localSharedPath, outputDir);
+  const packedSharedTarball = useWorkspaceSdk
+    ? null
+    : packLocalPackage(localSharedPath, outputDir);
   const sdkDependency = useWorkspaceSdk
     ? "workspace:*"
     : `file:${toPosixPath(path.relative(outputDir, packLocalPackage(localSdkPath, outputDir)))}`;
@@ -166,32 +207,33 @@ export function scaffoldPluginProject(options: ScaffoldPluginOptions): string {
       build: "node ./esbuild.config.mjs",
       "build:rollup": "rollup -c",
       dev: "node ./esbuild.config.mjs --watch",
-      "dev:ui": "taskcore-plugin-dev-server --root . --ui-dir dist/ui --port 4177",
+      "dev:ui":
+        "taskcore-plugin-dev-server --root . --ui-dir dist/ui --port 4177",
       test: "vitest run --config ./vitest.config.ts",
-      typecheck: "tsc --noEmit"
+      typecheck: "tsc --noEmit",
     },
     taskcorePlugin: {
       manifest: "./dist/manifest.js",
       worker: "./dist/worker.js",
-      ui: "./dist/ui/"
+      ui: "./dist/ui/",
     },
     keywords: ["taskcore", "plugin", category],
     author,
     license: "MIT",
     ...(packedSharedTarball
       ? {
-        pnpm: {
-          overrides: {
-            "@taskcore/shared": `file:${toPosixPath(path.relative(outputDir, packedSharedTarball))}`,
+          pnpm: {
+            overrides: {
+              "@taskcore/shared": `file:${toPosixPath(path.relative(outputDir, packedSharedTarball))}`,
+            },
           },
-        },
-      }
+        }
       : {}),
     devDependencies: {
       ...(packedSharedTarball
         ? {
-          "@taskcore/shared": `file:${toPosixPath(path.relative(outputDir, packedSharedTarball))}`,
-        }
+            "@taskcore/shared": `file:${toPosixPath(path.relative(outputDir, packedSharedTarball))}`,
+          }
         : {}),
       "@taskcore/plugin-sdk": sdkDependency,
       "@rollup/plugin-node-resolve": "^16.0.1",
@@ -202,14 +244,17 @@ export function scaffoldPluginProject(options: ScaffoldPluginOptions): string {
       rollup: "^4.38.0",
       tslib: "^2.8.1",
       typescript: "^5.7.3",
-      vitest: "^3.0.5"
+      vitest: "^3.0.5",
     },
     peerDependencies: {
-      react: ">=18"
-    }
+      react: ">=18",
+    },
   };
 
-  writeFile(path.join(outputDir, "package.json"), `${JSON.stringify(packageJson, null, 2)}\n`);
+  writeFile(
+    path.join(outputDir, "package.json"),
+    `${JSON.stringify(packageJson, null, 2)}\n`,
+  );
 
   const tsconfig = {
     compilerOptions: {
@@ -224,13 +269,16 @@ export function scaffoldPluginProject(options: ScaffoldPluginOptions): string {
       declarationMap: true,
       sourceMap: true,
       outDir: "dist",
-      rootDir: "."
+      rootDir: ".",
     },
     include: ["src", "tests"],
-    exclude: ["dist", "node_modules"]
+    exclude: ["dist", "node_modules"],
   };
 
-  writeFile(path.join(outputDir, "tsconfig.json"), `${JSON.stringify(tsconfig, null, 2)}\n`);
+  writeFile(
+    path.join(outputDir, "tsconfig.json"),
+    `${JSON.stringify(tsconfig, null, 2)}\n`,
+  );
 
   writeFile(
     path.join(outputDir, "esbuild.config.mjs"),
@@ -677,9 +725,11 @@ When this package is installed from a local path, Taskcore watches that rebuilt
 output and reloads the plugin worker. Local installs run trusted code from this
 folder on your machine.
 
-${sdkDependency.startsWith("file:")
-  ? `This scaffold snapshots \`@taskcore/plugin-sdk\` and \`@taskcore/shared\` from a local Taskcore checkout at:\n\n\`${toPosixPath(localSdkPath)}\`\n\nThe packed tarballs live in \`.taskcore-sdk/\` for local development. Before publishing this plugin, switch those dependencies to published package versions once they are available on npm.\n\n`
-  : ""}
+${
+  sdkDependency.startsWith("file:")
+    ? `This scaffold snapshots \`@taskcore/plugin-sdk\` and \`@taskcore/shared\` from a local Taskcore checkout at:\n\n\`${toPosixPath(localSdkPath)}\`\n\nThe packed tarballs live in \`.taskcore-sdk/\` for local development. Before publishing this plugin, switch those dependencies to published package versions once they are available on npm.\n\n`
+    : ""
+}
 
 ## Install Into Taskcore
 
@@ -694,7 +744,10 @@ taskcore plugin install ${shellQuote(toPosixPath(outputDir))}
 `,
   );
 
-  writeFile(path.join(outputDir, ".gitignore"), "dist\nnode_modules\n.taskcore-sdk\n");
+  writeFile(
+    path.join(outputDir, ".gitignore"),
+    "dist\nnode_modules\n.taskcore-sdk\n",
+  );
 
   return outputDir;
 }

@@ -1,5 +1,11 @@
 /** The live Dot connection prompt; callers supply an in-memory, expiring pairing code. */
-export function buildDotSetupPrompt({ companyId, agentId, resourceUrl, pairingCode, expiresAt }: {
+export function buildDotSetupPrompt({
+  companyId,
+  agentId,
+  resourceUrl,
+  pairingCode,
+  expiresAt,
+}: {
   companyId: string;
   agentId: string;
   resourceUrl: string;

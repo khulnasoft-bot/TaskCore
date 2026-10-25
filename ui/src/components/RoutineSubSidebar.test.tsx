@@ -10,7 +10,11 @@ vi.mock("@/lib/router", () => ({
     to,
     children,
     ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string; children: ReactNode; replace?: boolean }) => {
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    to: string;
+    children: ReactNode;
+    replace?: boolean;
+  }) => {
     const { replace: _replace, ...rest } = props as Record<string, unknown>;
     return (
       <a href={to} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
@@ -79,7 +83,9 @@ describe("RoutineSubSidebar", () => {
       "Activity",
       "History",
     ]);
-    const groupLabels = Array.from(container.querySelectorAll("p")).map((p) => p.textContent);
+    const groupLabels = Array.from(container.querySelectorAll("p")).map(
+      (p) => p.textContent,
+    );
     expect(groupLabels).toContain("Routine");
     expect(groupLabels).toContain("Operate");
   });
@@ -100,7 +106,9 @@ describe("RoutineSubSidebar", () => {
 
   it("shows a dirty marker only on dirty editable sections", () => {
     renderSidebar({ dirty: ["overview", "delivery"] });
-    const dirtyMarkers = container.querySelectorAll('[aria-label="Unsaved changes"]');
+    const dirtyMarkers = container.querySelectorAll(
+      '[aria-label="Unsaved changes"]',
+    );
     expect(dirtyMarkers.length).toBe(2);
   });
 

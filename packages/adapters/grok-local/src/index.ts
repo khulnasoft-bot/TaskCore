@@ -10,7 +10,9 @@ export const models = [
   { id: "grok-4.5", label: "Grok 4.5" },
 ];
 
-export function grokLocalReasoningEffortsForModel(model: string): readonly string[] {
+export function grokLocalReasoningEffortsForModel(
+  model: string,
+): readonly string[] {
   return model.trim() === "grok-4.7" || model.trim() === "grok-4.6"
     ? ["low", "medium", "high", "xhigh"]
     : ["low", "medium", "high"];

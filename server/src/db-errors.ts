@@ -12,9 +12,16 @@ const MAX_CAUSE_DEPTH = 4;
  * `constraint` under node-postgres, and is not always surfaced at all, so fall
  * back to the driver message.
  */
-export function isUniqueViolation(error: unknown, constraintName?: string): boolean {
+export function isUniqueViolation(
+  error: unknown,
+  constraintName?: string,
+): boolean {
   let current: unknown = error;
-  for (let depth = 0; depth < MAX_CAUSE_DEPTH && current && typeof current === "object"; depth += 1) {
+  for (
+    let depth = 0;
+    depth < MAX_CAUSE_DEPTH && current && typeof current === "object";
+    depth += 1
+  ) {
     const candidate = current as {
       code?: unknown;
       constraint?: unknown;
@@ -26,7 +33,11 @@ export function isUniqueViolation(error: unknown, constraintName?: string): bool
       if (!constraintName) return true;
       const constraint = candidate.constraint ?? candidate.constraint_name;
       if (constraint === constraintName) return true;
-      if (typeof candidate.message === "string" && candidate.message.includes(constraintName)) return true;
+      if (
+        typeof candidate.message === "string" &&
+        candidate.message.includes(constraintName)
+      )
+        return true;
     }
     current = candidate.cause;
   }
@@ -43,7 +54,11 @@ export function isUniqueViolation(error: unknown, constraintName?: string): bool
  */
 export function isForeignKeyViolation(error: unknown): boolean {
   let current: unknown = error;
-  for (let depth = 0; depth < MAX_CAUSE_DEPTH && current && typeof current === "object"; depth += 1) {
+  for (
+    let depth = 0;
+    depth < MAX_CAUSE_DEPTH && current && typeof current === "object";
+    depth += 1
+  ) {
     const candidate = current as { code?: unknown; cause?: unknown };
     if (candidate.code === FOREIGN_KEY_VIOLATION) return true;
     current = candidate.cause;

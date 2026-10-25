@@ -7,31 +7,53 @@ import { inboxDismissalService, logActivity } from "../services/index.js";
 
 const ITEM_KEY_RE = /^(approval|join|run|attention):.+$/;
 
-const inboxDismissalSchema = z.object({
-  itemKey: z.string().trim().min(1).regex(ITEM_KEY_RE, "Unsupported inbox item key"),
-  kind: z.enum(["dismiss", "snooze"]).default("dismiss"),
-  snoozedUntil: z.string().trim().optional(),
-}).superRefine((value, ctx) => {
-  if (value.kind === "dismiss") {
-    if (value.snoozedUntil != null) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["snoozedUntil"], message: "Dismissals must not include snoozedUntil" });
+const inboxDismissalSchema = z
+  .object({
+    itemKey: z
+      .string()
+      .trim()
+      .min(1)
+      .regex(ITEM_KEY_RE, "Unsupported inbox item key"),
+    kind: z.enum(["dismiss", "snooze"]).default("dismiss"),
+    snoozedUntil: z.string().trim().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.kind === "dismiss") {
+      if (value.snoozedUntil != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["snoozedUntil"],
+          message: "Dismissals must not include snoozedUntil",
+        });
+      }
+      return;
     }
-    return;
-  }
 
-  if (!value.snoozedUntil) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["snoozedUntil"], message: "Snooze requires snoozedUntil" });
-    return;
-  }
-  const timestamp = new Date(value.snoozedUntil).getTime();
-  if (!Number.isFinite(timestamp)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["snoozedUntil"], message: "snoozedUntil must be an ISO timestamp" });
-    return;
-  }
-  if (timestamp <= Date.now()) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["snoozedUntil"], message: "snoozedUntil must be in the future" });
-  }
-});
+    if (!value.snoozedUntil) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["snoozedUntil"],
+        message: "Snooze requires snoozedUntil",
+      });
+      return;
+    }
+    const timestamp = new Date(value.snoozedUntil).getTime();
+    if (!Number.isFinite(timestamp)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["snoozedUntil"],
+        message: "snoozedUntil must be an ISO timestamp",
+      });
+      return;
+    }
+    if (timestamp <= Date.now()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["snoozedUntil"],
+        message: "snoozedUntil must be in the future",
+      });
+    }
+  });
 
 function requireBoardUser(req: Request, res: Response) {
   if (req.actor.type !== "board") {
@@ -68,9 +90,15 @@ export function inboxDismissalRoutes(db: Db) {
       const userId = requireBoardUser(req, res);
       if (!userId) return;
 
-      const dismissal = req.body.kind === "snooze"
-        ? await svc.snooze(companyId, userId, req.body.itemKey, new Date(req.body.snoozedUntil))
-        : await svc.dismiss(companyId, userId, req.body.itemKey, new Date());
+      const dismissal =
+        req.body.kind === "snooze"
+          ? await svc.snooze(
+              companyId,
+              userId,
+              req.body.itemKey,
+              new Date(req.body.snoozedUntil),
+            )
+          : await svc.dismiss(companyId, userId, req.body.itemKey, new Date());
       const actor = getActorInfo(req);
       await logActivity(db, {
         companyId,
@@ -79,7 +107,8 @@ export function inboxDismissalRoutes(db: Db) {
         agentId: actor.agentId,
         runId: actor.runId,
         agentApiKeyId: actor.agentApiKeyId,
-        action: dismissal.kind === "snooze" ? "inbox.snoozed" : "inbox.dismissed",
+        action:
+          dismissal.kind === "snooze" ? "inbox.snoozed" : "inbox.dismissed",
         entityType: "company",
         entityId: companyId,
         details: {
@@ -95,43 +124,46 @@ export function inboxDismissalRoutes(db: Db) {
     },
   );
 
-  router.delete("/companies/:companyId/inbox-dismissals/:itemKey", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    const userId = requireBoardUser(req, res);
-    if (!userId) return;
+  router.delete(
+    "/companies/:companyId/inbox-dismissals/:itemKey",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      const userId = requireBoardUser(req, res);
+      if (!userId) return;
 
-    const itemKey = req.params.itemKey as string;
-    if (!ITEM_KEY_RE.test(itemKey)) {
-      res.status(400).json({ error: "Unsupported inbox item key" });
-      return;
-    }
+      const itemKey = req.params.itemKey as string;
+      if (!ITEM_KEY_RE.test(itemKey)) {
+        res.status(400).json({ error: "Unsupported inbox item key" });
+        return;
+      }
 
-    const restored = await svc.restore(companyId, userId, itemKey);
-    if (restored) {
-      const actor = getActorInfo(req);
-      await logActivity(db, {
-        companyId,
-        actorType: actor.actorType,
-        actorId: actor.actorId,
-        agentId: actor.agentId,
-        runId: actor.runId,
-        agentApiKeyId: actor.agentApiKeyId,
-        action: "inbox.restored",
-        entityType: "company",
-        entityId: companyId,
-        details: {
-          userId,
-          itemKey: restored.itemKey,
-          kind: restored.kind,
-          dismissedAt: restored.dismissedAt,
-          snoozedUntil: restored.snoozedUntil,
-        },
-      });
-    }
+      const restored = await svc.restore(companyId, userId, itemKey);
+      if (restored) {
+        const actor = getActorInfo(req);
+        await logActivity(db, {
+          companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          agentId: actor.agentId,
+          runId: actor.runId,
+          agentApiKeyId: actor.agentApiKeyId,
+          action: "inbox.restored",
+          entityType: "company",
+          entityId: companyId,
+          details: {
+            userId,
+            itemKey: restored.itemKey,
+            kind: restored.kind,
+            dismissedAt: restored.dismissedAt,
+            snoozedUntil: restored.snoozedUntil,
+          },
+        });
+      }
 
-    res.status(204).send();
-  });
+      res.status(204).send();
+    },
+  );
 
   return router;
 }

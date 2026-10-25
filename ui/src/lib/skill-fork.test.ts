@@ -28,7 +28,9 @@ function original(
   };
 }
 
-function fork(over: Partial<CompanySkillForkSummary> = {}): CompanySkillForkSummary {
+function fork(
+  over: Partial<CompanySkillForkSummary> = {},
+): CompanySkillForkSummary {
   return {
     ...original(),
     id: "fork-1",
@@ -46,7 +48,9 @@ function fork(over: Partial<CompanySkillForkSummary> = {}): CompanySkillForkSumm
 
 describe("shortSha", () => {
   it("shortens a full hex sha to 7 chars", () => {
-    expect(shortSha("0123456789abcdef0123456789abcdef01234567")).toBe("0123456");
+    expect(shortSha("0123456789abcdef0123456789abcdef01234567")).toBe(
+      "0123456",
+    );
   });
   it("leaves branch/tag names intact", () => {
     expect(shortSha("main")).toBe("main");
@@ -62,27 +66,43 @@ describe("shortSha", () => {
 describe("formatForkSourceName", () => {
   it("extracts owner/repo from a github url", () => {
     expect(
-      formatForkSourceName({ sourceType: "github", sourceLocator: "https://github.com/anthropics/skills" }),
+      formatForkSourceName({
+        sourceType: "github",
+        sourceLocator: "https://github.com/anthropics/skills",
+      }),
     ).toBe("anthropics/skills");
   });
   it("extracts owner/repo from github shorthand with subpath and ref", () => {
     expect(
-      formatForkSourceName({ sourceType: "github", sourceLocator: "anthropics/skills/some/path#main" }),
+      formatForkSourceName({
+        sourceType: "github",
+        sourceLocator: "anthropics/skills/some/path#main",
+      }),
     ).toBe("anthropics/skills");
   });
   it("strips .git and ssh scheme", () => {
     expect(
-      formatForkSourceName({ sourceType: "github", sourceLocator: "git@github.com:anthropics/skills.git" }),
+      formatForkSourceName({
+        sourceType: "github",
+        sourceLocator: "git@github.com:anthropics/skills.git",
+      }),
     ).toBe("anthropics/skills");
   });
   it("cleans a url source", () => {
     expect(
-      formatForkSourceName({ sourceType: "url", sourceLocator: "https://example.com/skill/" }),
+      formatForkSourceName({
+        sourceType: "url",
+        sourceLocator: "https://example.com/skill/",
+      }),
     ).toBe("example.com/skill");
   });
   it("falls back to a source-type label when no locator", () => {
-    expect(formatForkSourceName({ sourceType: "skills_sh", sourceLocator: null })).toBe("skills.sh");
-    expect(formatForkSourceName({ sourceType: "catalog", sourceLocator: null })).toBe("the catalog");
+    expect(
+      formatForkSourceName({ sourceType: "skills_sh", sourceLocator: null }),
+    ).toBe("skills.sh");
+    expect(
+      formatForkSourceName({ sourceType: "catalog", sourceLocator: null }),
+    ).toBe("the catalog");
   });
 });
 
@@ -91,7 +111,9 @@ describe("formatLineageLabel", () => {
     expect(formatLineageLabel(original())).toBe("anthropics/skills @ 0123456");
   });
   it("omits the sha clause when no ref is present", () => {
-    expect(formatLineageLabel(original({ sourceRef: null }))).toBe("anthropics/skills");
+    expect(formatLineageLabel(original({ sourceRef: null }))).toBe(
+      "anthropics/skills",
+    );
   });
 });
 
@@ -104,7 +126,9 @@ describe("pickReusableFork", () => {
     expect(pickReusableFork([fork({ diverged: true })])).toBeNull();
   });
   it("ignores forks created by other actors", () => {
-    expect(pickReusableFork([fork({ createdByCurrentActor: false })])).toBeNull();
+    expect(
+      pickReusableFork([fork({ createdByCurrentActor: false })]),
+    ).toBeNull();
   });
   it("returns null with no forks", () => {
     expect(pickReusableFork([])).toBeNull();
@@ -126,8 +150,24 @@ describe("agentUsageSentence", () => {
 describe("reassignTargetIds", () => {
   it("maps usage agents to their ids", () => {
     const agents: CompanySkillUsageAgent[] = [
-      { id: "a1", name: "One", urlKey: "one", adapterType: "claude", desired: true, actualState: null, versionId: null },
-      { id: "a2", name: "Two", urlKey: "two", adapterType: "codex", desired: true, actualState: null, versionId: null },
+      {
+        id: "a1",
+        name: "One",
+        urlKey: "one",
+        adapterType: "claude",
+        desired: true,
+        actualState: null,
+        versionId: null,
+      },
+      {
+        id: "a2",
+        name: "Two",
+        urlKey: "two",
+        adapterType: "codex",
+        desired: true,
+        actualState: null,
+        versionId: null,
+      },
     ];
     expect(reassignTargetIds(agents)).toEqual(["a1", "a2"]);
   });

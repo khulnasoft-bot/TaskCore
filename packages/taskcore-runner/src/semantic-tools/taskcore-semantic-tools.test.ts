@@ -9,7 +9,10 @@ import type {
   TaskcoreSemanticStoredOutcome,
   TaskcoreSemanticToolCall,
 } from "./types.js";
-import { TASKCORE_SEMANTIC_REDACTED, redactTaskcoreSemanticValue } from "./redaction.js";
+import {
+  TASKCORE_SEMANTIC_REDACTED,
+  redactTaskcoreSemanticValue,
+} from "./redaction.js";
 import {
   validatePrpEvent,
   type PrpEvent,
@@ -25,18 +28,38 @@ const correlation = {
 
 describe("run-scoped semantic tool authority", () => {
   it("masks qualified credential fields and standalone opaque bearer values in audit copies", () => {
-    expect(redactTaskcoreSemanticValue({ authorizationHeader: "abcdefghijkl", apiKeyProduction: "sensitivevalue", body: "Bearer abcdefghijkl" }))
-      .toEqual({ authorizationHeader: TASKCORE_SEMANTIC_REDACTED, apiKeyProduction: TASKCORE_SEMANTIC_REDACTED, body: TASKCORE_SEMANTIC_REDACTED });
+    expect(
+      redactTaskcoreSemanticValue({
+        authorizationHeader: "abcdefghijkl",
+        apiKeyProduction: "sensitivevalue",
+        body: "Bearer abcdefghijkl",
+      }),
+    ).toEqual({
+      authorizationHeader: TASKCORE_SEMANTIC_REDACTED,
+      apiKeyProduction: TASKCORE_SEMANTIC_REDACTED,
+      body: TASKCORE_SEMANTIC_REDACTED,
+    });
   });
   it("preserves credential-related prose and metadata in diagnostic copies", () => {
     const value = {
       body: "Use a secret manager for credential handling and bearer authentication with bearer tokens.",
-      tokenBudget: 4000, tokenPolicy: "least privilege", credentialHandling: "harness",
+      tokenBudget: 4000,
+      tokenPolicy: "least privilege",
+      credentialHandling: "harness",
     };
     expect(redactTaskcoreSemanticValue(value)).toEqual(value);
-    expect(redactTaskcoreSemanticValue({ credentials: { provider: "opaque-value" }, passwordValue: "opaque-value" }))
-      .toEqual({ credentials: TASKCORE_SEMANTIC_REDACTED, passwordValue: TASKCORE_SEMANTIC_REDACTED });
-    expect(redactTaskcoreSemanticValue({ body: "Bearer opaque-credential-value" })).toEqual({ body: TASKCORE_SEMANTIC_REDACTED });
+    expect(
+      redactTaskcoreSemanticValue({
+        credentials: { provider: "opaque-value" },
+        passwordValue: "opaque-value",
+      }),
+    ).toEqual({
+      credentials: TASKCORE_SEMANTIC_REDACTED,
+      passwordValue: TASKCORE_SEMANTIC_REDACTED,
+    });
+    expect(
+      redactTaskcoreSemanticValue({ body: "Bearer opaque-credential-value" }),
+    ).toEqual({ body: TASKCORE_SEMANTIC_REDACTED });
   });
 
   it("projects only bound and currently authorized actions", async () => {
@@ -128,14 +151,14 @@ describe("run-scoped semantic tool authority", () => {
       dispatcher.dispatch(call("search_tasks", { companyId: "forged" })),
     ).resolves.toMatchObject({ ok: false, error: { code: "input_invalid" } });
     await expect(
-      dispatcher.dispatch(
-        call("search_tasks", { query }),
-      ),
+      dispatcher.dispatch(call("search_tasks", { query })),
     ).resolves.toMatchObject({
       ok: true,
     });
     expect(executions).toBe(1);
-    expect(JSON.stringify(dispatcher.authorizationRecords())).not.toContain("intentional-credential");
+    expect(JSON.stringify(dispatcher.authorizationRecords())).not.toContain(
+      "intentional-credential",
+    );
   });
 
   it("redacts binding output and emits schema-valid digest-only receipts", async () => {
@@ -192,7 +215,10 @@ describe("run-scoped semantic tool authority", () => {
 
   it("replays exact mutation retries and rejects key reuse with changed input", async () => {
     let executions = 0;
-    const input = { ...writeDocumentInput(), body: "Credential handling: Authorization: Bearer intentional-document-credential" };
+    const input = {
+      ...writeDocumentInput(),
+      body: "Credential handling: Authorization: Bearer intentional-document-credential",
+    };
     const store = new MemoryIdempotencyStore();
     const dispatcher = new TaskcoreSemanticDispatcher({
       contextProvider: () => runContext(),
@@ -245,7 +271,9 @@ describe("run-scoped semantic tool authority", () => {
       error: { code: "idempotency_conflict" },
     });
     expect(executions).toBe(1);
-    expect(JSON.stringify(dispatcher.authorizationRecords())).not.toContain("intentional-document-credential");
+    expect(JSON.stringify(dispatcher.authorizationRecords())).not.toContain(
+      "intentional-document-credential",
+    );
     if (!first.ok || !retry.ok) throw new Error("expected successes");
     expect(retry.resultReceipt.operationReceiptId).toBe(
       first.resultReceipt.operationReceiptId,

@@ -16,11 +16,14 @@ describe("Codex CI sandbox trust boundary", () => {
     ["everyday-workflows.runner-codex.daytona.build-revise", false],
     ["core-compatibility.legacy-codex.local.message-marker", false],
     ["core-compatibility.runner-acpx-codex.local.message-marker", true],
-  ] as const)("qualifies the native local Codex sandbox for %s: %s", (id, expected) => {
-    const execution = runnerMatrix.find((cell) => cell.id === id);
-    expect(execution, id).toBeDefined();
-    expect(requiresCodexCiSandbox(execution!)).toBe(expected);
-  });
+  ] as const)(
+    "qualifies the native local Codex sandbox for %s: %s",
+    (id, expected) => {
+      const execution = runnerMatrix.find((cell) => cell.id === id);
+      expect(execution, id).toBeDefined();
+      expect(requiresCodexCiSandbox(execution!)).toBe(expected);
+    },
+  );
 
   it("keeps trusted CI provisioning in sync with every catalog cell", async () => {
     const workflow = await readFile(
@@ -34,14 +37,26 @@ describe("Codex CI sandbox trust boundary", () => {
       /^matrix\.environmentId == 'local' && \(matrix\.profileId == '[^']+'(?: \|\| matrix\.profileId == '[^']+')*\)$/,
     );
     const provisionedProfiles = new Set(
-      [...condition!.matchAll(/matrix\.profileId == '([^']+)'/g)].map((match) => match[1]),
+      [...condition!.matchAll(/matrix\.profileId == '([^']+)'/g)].map(
+        (match) => match[1],
+      ),
     );
     expect([...provisionedProfiles].sort()).toEqual(
-      [...new Set(runnerMatrix.filter(cell => cell.task.flow !== "provider_connection").filter(requiresCodexCiSandbox).map((cell) => cell.profile.id))].sort(),
+      [
+        ...new Set(
+          runnerMatrix
+            .filter((cell) => cell.task.flow !== "provider_connection")
+            .filter(requiresCodexCiSandbox)
+            .map((cell) => cell.profile.id),
+        ),
+      ].sort(),
     );
-    for (const cell of runnerMatrix.filter(cell => cell.task.flow !== "provider_connection")) {
+    for (const cell of runnerMatrix.filter(
+      (cell) => cell.task.flow !== "provider_connection",
+    )) {
       expect(
-        cell.environment.id === "local" && provisionedProfiles.has(cell.profile.id),
+        cell.environment.id === "local" &&
+          provisionedProfiles.has(cell.profile.id),
         cell.id,
       ).toBe(requiresCodexCiSandbox(cell));
     }
@@ -55,7 +70,9 @@ describe("Codex CI sandbox trust boundary", () => {
     expect(source).not.toMatch(
       /execFileSync\(["']sudo|apparmor_parser|flags=\(unconfined\)/,
     );
-    expect(source).toMatch(/"sandbox",\s*"--permission-profile",\s*"taskcore-e2e-probe"/);
+    expect(source).toMatch(
+      /"sandbox",\s*"--permission-profile",\s*"taskcore-e2e-probe"/,
+    );
     expect(source).toContain(
       "permissions.taskcore-e2e-probe.network.enabled=false",
     );
@@ -94,12 +111,25 @@ describe("Codex CI sandbox trust boundary", () => {
 });
 
 it("prepares the artifact oracle for exactly the stories that execute downloads", async () => {
-  const workflow = await readFile(path.join(root, ".github/workflows/runner-full-stack-e2e.yml"), "utf8");
-  const condition = workflow.match(/- name: Prepare pinned Python artifact oracle image\n\s+if: ([^\n]+)/)?.[1];
+  const workflow = await readFile(
+    path.join(root, ".github/workflows/runner-full-stack-e2e.yml"),
+    "utf8",
+  );
+  const condition = workflow.match(
+    /- name: Prepare pinned Python artifact oracle image\n\s+if: ([^\n]+)/,
+  )?.[1];
   expect(condition).toContain("matrix.suiteId == 'everyday-workflows'");
-  const cases = new Set([...condition!.matchAll(/matrix\.caseId == '([^']+)'/g)].map((match) => match[1]));
-  for (const cell of runnerMatrix.filter((cell) => cell.suite.id === "everyday-workflows")) {
-    expect(cases.has(cell.task.id), cell.id).toBe(requiresEverydayArtifactOracle(cell.task.id));
+  const cases = new Set(
+    [...condition!.matchAll(/matrix\.caseId == '([^']+)'/g)].map(
+      (match) => match[1],
+    ),
+  );
+  for (const cell of runnerMatrix.filter(
+    (cell) => cell.suite.id === "everyday-workflows",
+  )) {
+    expect(cases.has(cell.task.id), cell.id).toBe(
+      requiresEverydayArtifactOracle(cell.task.id),
+    );
   }
   expect(requiresEverydayArtifactOracle("agent-review-handoff")).toBe(true);
   expect(requiresEverydayArtifactOracle("create-skill-studio")).toBe(false);

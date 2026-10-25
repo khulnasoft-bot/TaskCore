@@ -115,7 +115,9 @@ export function isImageAttachment(ref: AttachmentRef): boolean {
 
 /** Kind icon + short label for a filename; unknown extensions get File/"File". */
 export function fileKindForName(name: string): FileKind {
-  return KIND_BY_EXTENSION[extensionOf(name)] ?? { icon: FileIcon, label: "File" };
+  return (
+    KIND_BY_EXTENSION[extensionOf(name)] ?? { icon: FileIcon, label: "File" }
+  );
 }
 
 export function fileKindForAttachment(ref: AttachmentRef): FileKind {
@@ -123,7 +125,8 @@ export function fileKindForAttachment(ref: AttachmentRef): FileKind {
   if (byName.label !== "File") return byName;
 
   const contentType = normalizedContentType(ref.contentType);
-  if (contentType === "application/pdf") return { icon: FileText, label: "PDF" };
+  if (contentType === "application/pdf")
+    return { icon: FileText, label: "PDF" };
   if (contentType === "application/json" || contentType.endsWith("+json")) {
     return { icon: FileCode, label: "JSON" };
   }
@@ -131,8 +134,10 @@ export function fileKindForAttachment(ref: AttachmentRef): FileKind {
     return { icon: FileSpreadsheet, label: "CSV" };
   }
   if (contentType.startsWith("text/")) return { icon: FileText, label: "Text" };
-  if (contentType.startsWith("audio/")) return { icon: FileAudio, label: "Audio" };
-  if (contentType.startsWith("video/")) return { icon: FileVideo, label: "Video" };
+  if (contentType.startsWith("audio/"))
+    return { icon: FileAudio, label: "Audio" };
+  if (contentType.startsWith("video/"))
+    return { icon: FileVideo, label: "Video" };
   if (contentType.includes("zip") || contentType.includes("archive")) {
     return { icon: FileArchive, label: "Archive" };
   }
@@ -158,26 +163,31 @@ export interface AttachmentRef {
 }
 
 function attachmentIdFromUrl(url: string): string | null {
-  return /\/api\/(?:attachments|assets)\/([^/?]+)\/content/.exec(url)?.[1] ?? null;
+  return (
+    /\/api\/(?:attachments|assets)\/([^/?]+)\/content/.exec(url)?.[1] ?? null
+  );
 }
 
 export function hydrateAttachmentRefs(
   refs: AttachmentRef[],
   attachments: AttachmentRecord[],
 ): AttachmentRef[] {
-  const byId = new Map(attachments.map((attachment) => [attachment.id, attachment]));
+  const byId = new Map(
+    attachments.map((attachment) => [attachment.id, attachment]),
+  );
   const byPath = new Map(
     attachments.flatMap((attachment) => [
       [attachment.contentPath, attachment] as const,
-      ...(attachment.openPath ? [[attachment.openPath, attachment] as const] : []),
+      ...(attachment.openPath
+        ? [[attachment.openPath, attachment] as const]
+        : []),
     ]),
   );
 
   return refs.map((ref) => {
     const cleanUrl = ref.url.split("?")[0];
     const record =
-      byPath.get(cleanUrl) ??
-      byId.get(attachmentIdFromUrl(ref.url) ?? "");
+      byPath.get(cleanUrl) ?? byId.get(attachmentIdFromUrl(ref.url) ?? "");
     if (!record) return ref;
     return {
       ...ref,
@@ -204,7 +214,8 @@ const IMAGE_EMBED_RE = /!\[((?:\\.|[^\]\\])*)\]\(([^()\s]+)\)/g;
 
 function isStandaloneImageEmbedLine(line: string): boolean {
   return (
-    line.replace(IMAGE_EMBED_RE, "").trim().length === 0 && line.trim().length > 0
+    line.replace(IMAGE_EMBED_RE, "").trim().length === 0 &&
+    line.trim().length > 0
   );
 }
 
@@ -263,9 +274,12 @@ export function extractAttachmentRefs(body: string): ExtractedAttachmentRefs {
   if (refs.length === 0) return { refs, text: body };
 
   const kept = body.split("\n").filter((line) => {
-    const withoutLinks = line.replace(ATTACHMENT_LINK_RE, (full, name: string, url: string) => {
-      return seen.has(url) ? "" : full;
-    });
+    const withoutLinks = line.replace(
+      ATTACHMENT_LINK_RE,
+      (full, name: string, url: string) => {
+        return seen.has(url) ? "" : full;
+      },
+    );
     return withoutLinks.trim().length > 0 || line.trim().length === 0;
   });
   // Collapse the blank run left behind where a link-only line was removed.

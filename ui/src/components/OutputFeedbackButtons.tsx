@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import type { FeedbackDataSharingPreference, FeedbackVoteValue } from "@taskcore/shared";
+import type {
+  FeedbackDataSharingPreference,
+  FeedbackVoteValue,
+} from "@taskcore/shared";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,7 +29,10 @@ export function OutputFeedbackButtons({
   disabled?: boolean;
   sharingPreference?: FeedbackDataSharingPreference;
   termsUrl?: string | null;
-  onVote: (vote: FeedbackVoteValue, options?: { allowSharing?: boolean; reason?: string }) => Promise<void>;
+  onVote: (
+    vote: FeedbackVoteValue,
+    options?: { allowSharing?: boolean; reason?: string },
+  ) => Promise<void>;
   rightSlot?: React.ReactNode;
   inline?: boolean;
 }) {
@@ -37,9 +43,13 @@ export function OutputFeedbackButtons({
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [downvoteReason, setDownvoteReason] = useState("");
-  const [collectingDownvoteReason, setCollectingDownvoteReason] = useState(false);
-  const [downvoteAllowSharing, setDownvoteAllowSharing] = useState<boolean | undefined>(undefined);
-  const [optimisticVote, setOptimisticVote] = useState<FeedbackVoteValue | null>(null);
+  const [collectingDownvoteReason, setCollectingDownvoteReason] =
+    useState(false);
+  const [downvoteAllowSharing, setDownvoteAllowSharing] = useState<
+    boolean | undefined
+  >(undefined);
+  const [optimisticVote, setOptimisticVote] =
+    useState<FeedbackVoteValue | null>(null);
   const visibleVote = optimisticVote ?? activeVote ?? null;
 
   useEffect(() => {
@@ -79,7 +89,9 @@ export function OutputFeedbackButtons({
       setPendingVote({
         vote,
         ...(reason ? { reason } : {}),
-        ...(behavior?.keepReasonPromptOpen ? { keepReasonPromptOpen: true } : {}),
+        ...(behavior?.keepReasonPromptOpen
+          ? { keepReasonPromptOpen: true }
+          : {}),
       });
       return;
     }
@@ -111,16 +123,21 @@ export function OutputFeedbackButtons({
 
   return (
     <>
-      <div className={cn(
-        "flex items-center gap-2",
-        inline ? "justify-end" : "mt-3 border-t border-border/60 pt-3",
-      )}>
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          inline ? "justify-end" : "mt-3 border-t border-border/60 pt-3",
+        )}
+      >
         <Button
           type="button"
           size="sm"
           variant="outline"
           disabled={disabled || isSaving}
-          className={cn(visibleVote === "up" && "border-green-600/50 bg-green-500/10 text-green-700")}
+          className={cn(
+            visibleVote === "up" &&
+              "border-green-600/50 bg-green-500/10 text-green-700",
+          )}
           onClick={() => handleVote("up")}
         >
           <ThumbsUp className="mr-1.5 h-3.5 w-3.5" />
@@ -131,7 +148,10 @@ export function OutputFeedbackButtons({
           size="sm"
           variant="outline"
           disabled={disabled || isSaving}
-          className={cn(visibleVote === "down" && "border-amber-600/50 bg-amber-500/10 text-amber-800")}
+          className={cn(
+            visibleVote === "down" &&
+              "border-amber-600/50 bg-amber-500/10 text-amber-800",
+          )}
           onClick={() => handleVote("down")}
         >
           <ThumbsDown className="mr-1.5 h-3.5 w-3.5" />
@@ -141,7 +161,9 @@ export function OutputFeedbackButtons({
       </div>
       {collectingDownvoteReason ? (
         <div className="mt-2 rounded-md border border-border/60 bg-accent/20 p-3">
-          <div className="mb-2 text-sm font-medium">What could have been better?</div>
+          <div className="mb-2 text-sm font-medium">
+            What could have been better?
+          </div>
           <Textarea
             value={downvoteReason}
             onChange={(event) => setDownvoteReason(event.target.value)}
@@ -193,23 +215,21 @@ export function OutputFeedbackButtons({
           <DialogHeader>
             <DialogTitle>Save your feedback sharing preference</DialogTitle>
             <DialogDescription>
-              Choose whether voted AI outputs can be shared with Taskcore Labs. This
-              answer becomes the default for future thumbs up and thumbs down votes.
+              Choose whether voted AI outputs can be shared with Taskcore Labs.
+              This answer becomes the default for future thumbs up and thumbs
+              down votes.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
+            <p>This vote is always saved locally.</p>
             <p>
-              This vote is always saved locally.
+              Choose{" "}
+              <span className="font-medium text-foreground">Always allow</span>{" "}
+              to share this vote and future voted AI outputs. Choose{" "}
+              <span className="font-medium text-foreground">Don't allow</span>{" "}
+              to keep this vote and future votes local.
             </p>
-            <p>
-              Choose <span className="font-medium text-foreground">Always allow</span> to share
-              this vote and future voted AI outputs. Choose{" "}
-              <span className="font-medium text-foreground">Don't allow</span> to keep this vote
-              and future votes local.
-            </p>
-            <p>
-              You can change this later in Settings &gt; General.
-            </p>
+            <p>You can change this later in Settings &gt; General.</p>
             {termsUrl ? (
               <a
                 href={termsUrl}
@@ -233,7 +253,9 @@ export function OutputFeedbackButtons({
                 }
                 void submitVote(
                   pendingVote.vote,
-                  pendingVote.reason ? { reason: pendingVote.reason } : undefined,
+                  pendingVote.reason
+                    ? { reason: pendingVote.reason }
+                    : undefined,
                   { keepReasonPromptOpen: pendingVote.keepReasonPromptOpen },
                 );
               }}
@@ -252,7 +274,9 @@ export function OutputFeedbackButtons({
                   pendingVote.vote,
                   {
                     allowSharing: true,
-                    ...(pendingVote.reason ? { reason: pendingVote.reason } : {}),
+                    ...(pendingVote.reason
+                      ? { reason: pendingVote.reason }
+                      : {}),
                   },
                   { keepReasonPromptOpen: pendingVote.keepReasonPromptOpen },
                 );

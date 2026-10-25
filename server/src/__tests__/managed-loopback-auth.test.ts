@@ -8,7 +8,9 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -16,7 +18,11 @@ if (!embeddedPostgresSupport.supported) {
   );
 }
 
-function authRequest(origin: string, path: string, init?: RequestInit): Request {
+function authRequest(
+  origin: string,
+  path: string,
+  init?: RequestInit,
+): Request {
   return new Request(`${origin}/api/auth${path}`, {
     ...init,
     headers: {
@@ -38,10 +44,14 @@ function sessionCookie(response: Response): string {
 describeEmbeddedPostgres("managed runtime loopback auth cookies", () => {
   const publicOrigin = "https://worktree.example.test";
   const loopbackOrigin = "http://127.0.0.1:42013";
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-managed-loopback-auth-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-managed-loopback-auth-",
+    );
   }, 20_000);
 
   afterAll(async () => {
@@ -62,37 +72,46 @@ describeEmbeddedPostgres("managed runtime loopback auth cookies", () => {
       authPublicBaseUrl: publicOrigin,
       authDisableSignUp: false,
     } as Config;
-    const auth = createBetterAuthInstance(db, config, [publicOrigin, loopbackOrigin]);
+    const auth = createBetterAuthInstance(db, config, [
+      publicOrigin,
+      loopbackOrigin,
+    ]);
     const credentials = {
       name: "Loopback Operator",
       email: "loopback-operator@example.test",
       password: "correct-horse-battery-staple",
     };
 
-    const signUpResponse = await auth.handler(authRequest(publicOrigin, "/sign-up/email", {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    }));
+    const signUpResponse = await auth.handler(
+      authRequest(publicOrigin, "/sign-up/email", {
+        method: "POST",
+        body: JSON.stringify(credentials),
+      }),
+    );
     expect(signUpResponse.status).toBe(200);
     expect(sessionCookie(signUpResponse)).toMatch(/;\s*Secure(?:;|$)/i);
 
-    const signInResponse = await auth.handler(authRequest(loopbackOrigin, "/sign-in/email", {
-      method: "POST",
-      body: JSON.stringify({
-        email: credentials.email,
-        password: credentials.password,
+    const signInResponse = await auth.handler(
+      authRequest(loopbackOrigin, "/sign-in/email", {
+        method: "POST",
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password,
+        }),
       }),
-    }));
+    );
     expect(signInResponse.status).toBe(200);
     const loopbackCookie = sessionCookie(signInResponse);
     expect(loopbackCookie).not.toMatch(/;\s*Secure(?:;|$)/i);
 
-    const getSessionResponse = await auth.handler(authRequest(loopbackOrigin, "/get-session", {
-      method: "GET",
-      headers: {
-        cookie: loopbackCookie.split(";", 1)[0],
-      },
-    }));
+    const getSessionResponse = await auth.handler(
+      authRequest(loopbackOrigin, "/get-session", {
+        method: "GET",
+        headers: {
+          cookie: loopbackCookie.split(";", 1)[0],
+        },
+      }),
+    );
     expect(getSessionResponse.status).toBe(200);
     await expect(getSessionResponse.json()).resolves.toMatchObject({
       user: { email: credentials.email },

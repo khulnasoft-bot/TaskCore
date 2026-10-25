@@ -33,8 +33,14 @@ describe("buildProjectListMetricMaps", () => {
       ],
     );
 
-    expect(budgetByProjectId.get("p1")).toEqual({ amountCents: 120_000, windowKind: "calendar_month_utc" });
-    expect(budgetByProjectId.get("p2")).toEqual({ amountCents: 50_000, windowKind: "lifetime" });
+    expect(budgetByProjectId.get("p1")).toEqual({
+      amountCents: 120_000,
+      windowKind: "calendar_month_utc",
+    });
+    expect(budgetByProjectId.get("p2")).toEqual({
+      amountCents: 50_000,
+      windowKind: "lifetime",
+    });
   });
 
   it("omits zero/negative budgets so they do not surface as 'set'", () => {

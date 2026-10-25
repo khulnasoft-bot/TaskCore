@@ -25,8 +25,12 @@ export function MembershipAction({
 }: MembershipActionProps) {
   const isLeft = state === "left";
   const label = pending
-    ? pendingState === "left" ? "Leaving..." : "Joining..."
-    : isLeft ? "Join" : "Leave";
+    ? pendingState === "left"
+      ? "Leaving..."
+      : "Joining..."
+    : isLeft
+      ? "Join"
+      : "Leave";
   const ariaLabel = `${isLeft ? "Join" : "Leave"} ${resourceName}`;
   const Icon = pending ? Loader2 : isLeft ? LogIn : LogOut;
 
@@ -57,7 +61,9 @@ export function MembershipAction({
         onClick={handleClick}
         className="w-(--sz-66px)"
       >
-        <Icon className={cn("h-3 w-3", pending && "motion-safe:animate-spin")} />
+        <Icon
+          className={cn("h-3 w-3", pending && "motion-safe:animate-spin")}
+        />
         <span>{label}</span>
       </Button>
     </span>

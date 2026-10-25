@@ -26,14 +26,34 @@ describeEmbeddedPostgres("issue list status query parsing", () => {
     const company = await seedCompanyWithBoardAccess(ctx.db, "Status parsing");
     const companyId = company.companyId;
     await ctx.db.insert(issues).values([
-      { id: randomUUID(), companyId, title: "Todo", status: "todo", priority: "medium" },
-      { id: randomUUID(), companyId, title: "In progress", status: "in_progress", priority: "medium" },
-      { id: randomUUID(), companyId, title: "Done", status: "done", priority: "medium" },
+      {
+        id: randomUUID(),
+        companyId,
+        title: "Todo",
+        status: "todo",
+        priority: "medium",
+      },
+      {
+        id: randomUUID(),
+        companyId,
+        title: "In progress",
+        status: "in_progress",
+        priority: "medium",
+      },
+      {
+        id: randomUUID(),
+        companyId,
+        title: "Done",
+        status: "done",
+        priority: "medium",
+      },
     ]);
     const res = await request(routeApp(ctx.db, company.actor, issueRoutes))
       .get(`/api/companies/${companyId}/issues${query}`)
       .expect(200);
-    return (res.body as { status: string }[]).map((issue) => issue.status).sort();
+    return (res.body as { status: string }[])
+      .map((issue) => issue.status)
+      .sort();
   }
 
   it("accepts a single ?status=todo", async () => {
@@ -41,16 +61,25 @@ describeEmbeddedPostgres("issue list status query parsing", () => {
   });
 
   it("accepts comma-separated ?status=todo,in_progress", async () => {
-    expect(await listStatuses("?status=todo,in_progress")).toEqual(["in_progress", "todo"]);
+    expect(await listStatuses("?status=todo,in_progress")).toEqual([
+      "in_progress",
+      "todo",
+    ]);
   });
 
   it("accepts repeated ?status=todo&status=in_progress", async () => {
-    expect(await listStatuses("?status=todo&status=in_progress")).toEqual(["in_progress", "todo"]);
+    expect(await listStatuses("?status=todo&status=in_progress")).toEqual([
+      "in_progress",
+      "todo",
+    ]);
   });
 
   it("accepts mixed array and CSV ?status=todo,in_progress&status=done", async () => {
-    expect(await listStatuses("?status=todo,in_progress&status=done"))
-      .toEqual(["done", "in_progress", "todo"]);
+    expect(await listStatuses("?status=todo,in_progress&status=done")).toEqual([
+      "done",
+      "in_progress",
+      "todo",
+    ]);
   });
 
   it("returns every status when ?status is absent", async () => {

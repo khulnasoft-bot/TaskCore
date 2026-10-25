@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { aiProviderRoutingSchema, aiRoutingHarness, isAiRoutingCompatible, type AiProviderRouting } from "./ai-provider-routing.js";
+import {
+  aiProviderRoutingSchema,
+  aiRoutingHarness,
+  isAiRoutingCompatible,
+  type AiProviderRouting,
+} from "./ai-provider-routing.js";
 
 /** Runtime authentication is a separate transport, never a tool or channel. */
 export const connectionPurposeTransportSchema = z.discriminatedUnion(
@@ -9,14 +14,24 @@ export const connectionPurposeTransportSchema = z.discriminatedUnion(
       connectionPurpose: z.literal("tool"),
       transport: z.enum(["mcp_remote", "rest_api", "local_stdio"]),
     }),
-    z.object({
-      connectionPurpose: z.literal("channel"),
-      transport: z.enum(["chat_sdk", "rest_api"]),
-      config: z.object({ provider: z.string().optional() }).passthrough().optional(),
-    }).refine(
-      (connection) => connection.transport === "chat_sdk" || connection.config?.provider === "agentmail",
-      { message: "REST channel connections require the AgentMail provider", path: ["config", "provider"] },
-    ),
+    z
+      .object({
+        connectionPurpose: z.literal("channel"),
+        transport: z.enum(["chat_sdk", "rest_api"]),
+        config: z
+          .object({ provider: z.string().optional() })
+          .passthrough()
+          .optional(),
+      })
+      .refine(
+        (connection) =>
+          connection.transport === "chat_sdk" ||
+          connection.config?.provider === "agentmail",
+        {
+          message: "REST channel connections require the AgentMail provider",
+          path: ["config", "provider"],
+        },
+      ),
     z.object({
       connectionPurpose: z.literal("ai"),
       transport: z.literal("runtime_auth"),
@@ -40,13 +55,15 @@ export type AiProvider = z.infer<typeof aiProviderSchema>;
 export type AiAuthMethod = z.infer<typeof aiAuthMethodSchema>;
 const requirement = { provider: aiProviderSchema, method: aiAuthMethodSchema };
 export const aiConnectionBindingSchema = z.discriminatedUnion("mode", [
-  z.object({
-    provider: aiProviderSchema,
-    // Retained on the wire for older servers during rolling upgrades. The
-    // responsible user's provider default determines the actual run method.
-    method: aiAuthMethodSchema,
-    mode: z.literal("responsible_user"),
-  }).strict(),
+  z
+    .object({
+      provider: aiProviderSchema,
+      // Retained on the wire for older servers during rolling upgrades. The
+      // responsible user's provider default determines the actual run method.
+      method: aiAuthMethodSchema,
+      mode: z.literal("responsible_user"),
+    })
+    .strict(),
   z
     .object({
       ...requirement,
@@ -66,7 +83,9 @@ export const aiConnectionBindingSchema = z.discriminatedUnion("mode", [
     .strict(),
 ]);
 export type AiConnectionBinding = z.infer<typeof aiConnectionBindingSchema>;
-export const aiConnectionMetadataSchema = z.object({ ...requirement, routing: aiProviderRoutingSchema.optional() }).strict();
+export const aiConnectionMetadataSchema = z
+  .object({ ...requirement, routing: aiProviderRoutingSchema.optional() })
+  .strict();
 export type AiConnectionMetadata = z.infer<typeof aiConnectionMetadataSchema>;
 
 /** Existing integrations only. This table describes compatibility, never routing. */
@@ -79,7 +98,12 @@ export const AI_CONNECTION_CAPABILITIES: Record<
     >;
   }
 > = {
-  google: { name: "Google", methods: { api_key: { adapters: ["gemini_local"], envKey: "GEMINI_API_KEY" } } },
+  google: {
+    name: "Google",
+    methods: {
+      api_key: { adapters: ["gemini_local"], envKey: "GEMINI_API_KEY" },
+    },
+  },
   anthropic: {
     name: "Claude",
     methods: {
@@ -119,15 +143,33 @@ export function isAiConnectionCompatible(
   acpxAgent?: unknown,
 ): boolean {
   adapterType = aiRoutingHarness(adapterType, runnerProvider, acpxAgent);
-  if ("routing" in requirement && requirement.routing) return requirement.method === "api_key" && isAiRoutingCompatible(requirement.routing, adapterType);
+  if ("routing" in requirement && requirement.routing)
+    return (
+      requirement.method === "api_key" &&
+      isAiRoutingCompatible(requirement.routing, adapterType)
+    );
   // A fixed binding contains identity only. The service checks authoritative
   // connection metadata before resolving credentials or running the harness.
-  if ("mode" in requirement && requirement.mode !== "responsible_user" && requirement.method === "api_key")
-    return ["claude_local", "codex_local", "opencode_local", "hermes_local", "gemini_local", "grok_local"].includes(adapterType);
+  if (
+    "mode" in requirement &&
+    requirement.mode !== "responsible_user" &&
+    requirement.method === "api_key"
+  )
+    return [
+      "claude_local",
+      "codex_local",
+      "opencode_local",
+      "hermes_local",
+      "gemini_local",
+      "grok_local",
+    ].includes(adapterType);
   const methods = AI_CONNECTION_CAPABILITIES[requirement.provider].methods;
-  const candidates = "mode" in requirement && requirement.mode === "responsible_user"
-    ? Object.values(methods)
-    : requirement.method ? [methods[requirement.method]] : [];
+  const candidates =
+    "mode" in requirement && requirement.mode === "responsible_user"
+      ? Object.values(methods)
+      : requirement.method
+        ? [methods[requirement.method]]
+        : [];
   return (
     candidates.some((method) => method?.adapters.includes(adapterType)) &&
     (requirement.provider !== "openrouter" ||
@@ -194,12 +236,33 @@ export const createAiConnectionSchema = z
   .superRefine((v, ctx) => {
     if (!AI_CONNECTION_CAPABILITIES[v.provider].methods[v.method])
       ctx.addIssue({ code: "custom", message: "Unsupported sign-in method" });
-    if (v.routing && (v.method !== "api_key" || (v.routing.kind === "openrouter" && v.provider !== "openrouter") || (v.routing.kind === "bedrock" && v.provider !== "anthropic")))
-      ctx.addIssue({ code: "custom", message: "Routing requires the matching provider and API authentication." });
-    if (v.routing && ["gateway", "local"].includes(v.routing.kind) && v.provider !== (v.routing.protocol === "messages" ? "anthropic" : "openai"))
-      ctx.addIssue({ code: "custom", message: "The provider must match the endpoint’s API format." });
+    if (
+      v.routing &&
+      (v.method !== "api_key" ||
+        (v.routing.kind === "openrouter" && v.provider !== "openrouter") ||
+        (v.routing.kind === "bedrock" && v.provider !== "anthropic"))
+    )
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Routing requires the matching provider and API authentication.",
+      });
+    if (
+      v.routing &&
+      ["gateway", "local"].includes(v.routing.kind) &&
+      v.provider !==
+        (v.routing.protocol === "messages" ? "anthropic" : "openai")
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "The provider must match the endpoint’s API format.",
+      });
     if (v.routing?.auth === "none") {
-      if (v.apiKey || v.loginSessionId) ctx.addIssue({ code: "custom", message: "Provide only the selected authentication method." });
+      if (v.apiKey || v.loginSessionId)
+        ctx.addIssue({
+          code: "custom",
+          message: "Provide only the selected authentication method.",
+        });
       return;
     }
     if (
@@ -234,7 +297,9 @@ export type AiConnectionLoginIntent = z.infer<
 export const localAiConnectionSchema = aiConnectionLoginIntentSchema.extend({
   localSessionId: z.string().uuid().optional(),
 });
-export const localAiLoginStartSchema = aiConnectionLoginIntentSchema.extend({ restart: z.boolean().optional() });
+export const localAiLoginStartSchema = aiConnectionLoginIntentSchema.extend({
+  restart: z.boolean().optional(),
+});
 export interface LocalAiLoginStatus {
   status: "ready" | "sign_in_required" | "expired";
   authorizationUrl?: string;
@@ -249,9 +314,14 @@ export interface LocalAiLoginAttempt {
 }
 
 /** Preview-era copies of rotating local credentials must be reconnected. */
-export function aiSubscriptionNeedsIsolatedLogin(config: Record<string, unknown> | undefined): boolean {
+export function aiSubscriptionNeedsIsolatedLogin(
+  config: Record<string, unknown> | undefined,
+): boolean {
   const metadata = aiConnectionMetadataSchema.safeParse(config?.ai);
-  return metadata.success && metadata.data.method === "subscription" &&
+  return (
+    metadata.success &&
+    metadata.data.method === "subscription" &&
     (metadata.data.provider === "openai" || metadata.data.provider === "xai") &&
-    config?.aiIsolatedSubscription !== true;
+    config?.aiIsolatedSubscription !== true
+  );
 }

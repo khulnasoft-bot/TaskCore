@@ -4,9 +4,15 @@ import { describeRunRetryState, formatRetryReason } from "./runRetryState";
 describe("runRetryState", () => {
   it("formats internal retry reasons for operators", () => {
     expect(formatRetryReason("transient_failure")).toBe("Transient failure");
-    expect(formatRetryReason("native_provider_overloaded")).toBe("Model at capacity");
-    expect(formatRetryReason("issue_continuation_needed")).toBe("Continuation needed");
-    expect(formatRetryReason("max_turns_continuation")).toBe("Max-turn continuation");
+    expect(formatRetryReason("native_provider_overloaded")).toBe(
+      "Model at capacity",
+    );
+    expect(formatRetryReason("issue_continuation_needed")).toBe(
+      "Continuation needed",
+    );
+    expect(formatRetryReason("max_turns_continuation")).toBe(
+      "Max-turn continuation",
+    );
     expect(formatRetryReason("custom_reason")).toBe("custom reason");
   });
 
@@ -49,13 +55,15 @@ describe("runRetryState", () => {
         retryOfRunId: "run-1",
         scheduledRetryAttempt: 4,
         scheduledRetryReason: "transient_failure",
-        retryExhaustedReason: "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
+        retryExhaustedReason:
+          "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
       }),
     ).toMatchObject({
       kind: "exhausted",
       badgeLabel: "Retry exhausted",
       detail: "Attempt 4 · Transient failure · Automatic retries exhausted",
-      secondary: "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued Manual intervention required.",
+      secondary:
+        "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued Manual intervention required.",
     });
   });
 });

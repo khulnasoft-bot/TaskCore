@@ -6,12 +6,14 @@ const mockProbePluginSandboxProviderDriver = vi.hoisted(() => vi.fn());
 const mockResolvePluginSandboxProviderDriverByKey = vi.hoisted(() => vi.fn());
 const mockRuntimeAcquireRunLease = vi.hoisted(() => vi.fn());
 const mockRuntimeReleaseRunLease = vi.hoisted(() => vi.fn());
-const mockEnvironmentRuntimeService = vi.hoisted(() => vi.fn(() => ({
-  acquireRunLease: mockRuntimeAcquireRunLease,
-  getDriver: vi.fn(() => ({
-    releaseRunLease: mockRuntimeReleaseRunLease,
+const mockEnvironmentRuntimeService = vi.hoisted(() =>
+  vi.fn(() => ({
+    acquireRunLease: mockRuntimeAcquireRunLease,
+    getDriver: vi.fn(() => ({
+      releaseRunLease: mockRuntimeReleaseRunLease,
+    })),
   })),
-})));
+);
 
 vi.mock("@taskcore/adapter-utils/ssh", () => ({
   ensureSshWorkspaceReady: mockEnsureSshWorkspaceReady,
@@ -20,7 +22,8 @@ vi.mock("@taskcore/adapter-utils/ssh", () => ({
 vi.mock("../services/plugin-environment-driver.js", () => ({
   probePluginEnvironmentDriver: mockProbePluginEnvironmentDriver,
   probePluginSandboxProviderDriver: mockProbePluginSandboxProviderDriver,
-  resolvePluginSandboxProviderDriverByKey: mockResolvePluginSandboxProviderDriverByKey,
+  resolvePluginSandboxProviderDriverByKey:
+    mockResolvePluginSandboxProviderDriverByKey,
 }));
 
 vi.mock("../services/environment-runtime.js", () => ({
@@ -91,7 +94,8 @@ describe("probeEnvironment", () => {
     expect(result).toEqual({
       ok: true,
       driver: "ssh",
-      summary: "Connected to ssh-user@ssh.example.test and verified the remote workspace path.",
+      summary:
+        "Connected to ssh-user@ssh.example.test and verified the remote workspace path.",
       details: {
         host: "ssh.example.test",
         port: 2222,
@@ -146,22 +150,26 @@ describe("probeEnvironment", () => {
     });
     const workerManager = {} as any;
 
-    const result = await probeEnvironment({} as any, {
-      id: "env-sandbox-plugin",
-      companyId: "company-1",
-      name: "Fake Plugin Sandbox",
-      description: null,
-      driver: "sandbox",
-      status: "active",
-      config: {
-        provider: "fake-plugin",
-        image: "fake:test",
-        reuseLease: false,
+    const result = await probeEnvironment(
+      {} as any,
+      {
+        id: "env-sandbox-plugin",
+        companyId: "company-1",
+        name: "Fake Plugin Sandbox",
+        description: null,
+        driver: "sandbox",
+        status: "active",
+        config: {
+          provider: "fake-plugin",
+          image: "fake:test",
+          reuseLease: false,
+        },
+        metadata: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
-      metadata: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }, { pluginWorkerManager: workerManager });
+      { pluginWorkerManager: workerManager },
+    );
 
     expect(result.ok).toBe(true);
     expect(mockProbePluginSandboxProviderDriver).toHaveBeenCalledWith({
@@ -242,25 +250,31 @@ describe("probeEnvironment", () => {
       summary: "Connected to daytona sandbox taskcore-probe.",
     });
     expect(mockProbePluginSandboxProviderDriver).not.toHaveBeenCalled();
-    expect(mockRuntimeAcquireRunLease).toHaveBeenCalledWith(expect.objectContaining({
-      companyId: "company-1",
-      issueId: null,
-      agentId: null,
-      heartbeatRunId: null,
-      persistedExecutionWorkspace: null,
-      adapterType: null,
-      applyCustomImageTemplate: true,
-    }));
-    expect(mockRuntimeAcquireRunLease.mock.calls[0]?.[0].environment.config).toMatchObject({
+    expect(mockRuntimeAcquireRunLease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: "company-1",
+        issueId: null,
+        agentId: null,
+        heartbeatRunId: null,
+        persistedExecutionWorkspace: null,
+        adapterType: null,
+        applyCustomImageTemplate: true,
+      }),
+    );
+    expect(
+      mockRuntimeAcquireRunLease.mock.calls[0]?.[0].environment.config,
+    ).toMatchObject({
       provider: "daytona",
       image: "daytonaio/sandbox:0.8.0",
       reuseLease: false,
       archiveOnRelease: true,
     });
-    expect(mockRuntimeReleaseRunLease).toHaveBeenCalledWith(expect.objectContaining({
-      lease: expect.objectContaining({ id: "lease-1" }),
-      status: "released",
-    }));
+    expect(mockRuntimeReleaseRunLease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lease: expect.objectContaining({ id: "lease-1" }),
+        status: "released",
+      }),
+    );
   });
 
   it("routes plugin environment probes through the plugin worker host", async () => {
@@ -274,22 +288,26 @@ describe("probeEnvironment", () => {
     });
     const workerManager = {} as any;
 
-    const result = await probeEnvironment({} as any, {
-      id: "env-plugin",
-      companyId: "company-1",
-      name: "Plugin Sandbox",
-      description: null,
-      driver: "plugin",
-      status: "active",
-      config: {
-        pluginKey: "acme.environments",
-        driverKey: "sandbox",
-        driverConfig: { template: "base" },
+    const result = await probeEnvironment(
+      {} as any,
+      {
+        id: "env-plugin",
+        companyId: "company-1",
+        name: "Plugin Sandbox",
+        description: null,
+        driver: "plugin",
+        status: "active",
+        config: {
+          pluginKey: "acme.environments",
+          driverKey: "sandbox",
+          driverConfig: { template: "base" },
+        },
+        metadata: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
-      metadata: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }, { pluginWorkerManager: workerManager });
+      { pluginWorkerManager: workerManager },
+    );
 
     expect(result.ok).toBe(true);
     expect(mockProbePluginEnvironmentDriver).toHaveBeenCalledWith({

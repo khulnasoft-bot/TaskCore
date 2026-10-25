@@ -15,12 +15,22 @@ describe("issue references", () => {
   });
 
   it("parses relative and absolute issue hrefs", () => {
-    expect(parseIssueReferenceHref("/issues/PAP-123")).toEqual({ identifier: "PAP-123" });
-    expect(parseIssueReferenceHref("/PAP/issues/pap-456")).toEqual({ identifier: "PAP-456" });
-    expect(parseIssueReferenceHref("https://taskcore.ing/PAP/issues/pap-789#comment-1")).toEqual({
+    expect(parseIssueReferenceHref("/issues/PAP-123")).toEqual({
+      identifier: "PAP-123",
+    });
+    expect(parseIssueReferenceHref("/PAP/issues/pap-456")).toEqual({
+      identifier: "PAP-456",
+    });
+    expect(
+      parseIssueReferenceHref(
+        "https://taskcore.ing/PAP/issues/pap-789#comment-1",
+      ),
+    ).toEqual({
       identifier: "PAP-789",
     });
-    expect(parseIssueReferenceHref("https://taskcore.ing/projects/PAP-789")).toBeNull();
+    expect(
+      parseIssueReferenceHref("https://taskcore.ing/projects/PAP-789"),
+    ).toBeNull();
   });
 
   it("builds canonical issue hrefs", () => {
@@ -28,9 +38,18 @@ describe("issue references", () => {
   });
 
   it("finds identifiers and issue paths in plain text", () => {
-    expect(findIssueReferenceMatches("See PAP-1, /issues/PC1A2-2, and https://x.test/PAP/issues/pc1a2-3.")).toEqual([
+    expect(
+      findIssueReferenceMatches(
+        "See PAP-1, /issues/PC1A2-2, and https://x.test/PAP/issues/pc1a2-3.",
+      ),
+    ).toEqual([
       { index: 4, length: 5, identifier: "PAP-1", matchedText: "PAP-1" },
-      { index: 11, length: 15, identifier: "PC1A2-2", matchedText: "/issues/PC1A2-2" },
+      {
+        index: 11,
+        length: 15,
+        identifier: "PC1A2-2",
+        matchedText: "/issues/PC1A2-2",
+      },
       {
         index: 32,
         length: 33,
@@ -41,13 +60,22 @@ describe("issue references", () => {
   });
 
   it("trims unmatched square brackets from issue path tokens", () => {
-    expect(findIssueReferenceMatches("See /issues/PAP-123] for context.")).toEqual([
-      { index: 4, length: 15, identifier: "PAP-123", matchedText: "/issues/PAP-123" },
+    expect(
+      findIssueReferenceMatches("See /issues/PAP-123] for context."),
+    ).toEqual([
+      {
+        index: 4,
+        length: 15,
+        identifier: "PAP-123",
+        matchedText: "/issues/PAP-123",
+      },
     ]);
   });
 
   it("extracts and dedupes references from markdown", () => {
-    expect(extractIssueReferenceIdentifiers("PAP-1 [again](/issues/pap-1) PAP-2")).toEqual(["PAP-1", "PAP-2"]);
+    expect(
+      extractIssueReferenceIdentifiers("PAP-1 [again](/issues/pap-1) PAP-2"),
+    ).toEqual(["PAP-1", "PAP-2"]);
   });
 
   it("ignores inline code and fenced code blocks", () => {
@@ -64,6 +92,9 @@ describe("issue references", () => {
       "Final /issues/PAP-5 mention.",
     ].join("\n");
 
-    expect(extractIssueReferenceIdentifiers(markdown)).toEqual(["PAP-1", "PAP-5"]);
+    expect(extractIssueReferenceIdentifiers(markdown)).toEqual([
+      "PAP-1",
+      "PAP-5",
+    ]);
   });
 });

@@ -31,7 +31,8 @@ export type TaskcoreRunnerCompatibilityIssueCode =
 
 export interface TaskcoreRunnerCompatibilityIssue {
   readonly code: TaskcoreRunnerCompatibilityIssueCode;
-  readonly component?: TaskcoreRunnerCompatibilityComponent | "evalCorpus" | "provider";
+  readonly component?:
+    TaskcoreRunnerCompatibilityComponent | "evalCorpus" | "provider";
   readonly expected?: string;
   readonly received?: string;
   readonly operationId?: string;
@@ -46,7 +47,9 @@ export interface TaskcoreProviderCompatibility {
 
 export interface TaskcoreRunnerCompatibilityRequirement {
   readonly consumer: string;
-  readonly components?: Partial<Readonly<Record<TaskcoreRunnerCompatibilityComponent, number>>>;
+  readonly components?: Partial<
+    Readonly<Record<TaskcoreRunnerCompatibilityComponent, number>>
+  >;
   readonly evalCorpusVersion?: number;
   readonly requiredOperationIds?: readonly string[];
   readonly provider?: TaskcoreProviderCompatibility;
@@ -66,7 +69,9 @@ export class TaskcoreRunnerCompatibilityError extends Error {
         .join("; ")}`,
     );
     this.name = "TaskcoreRunnerCompatibilityError";
-    this.issues = Object.freeze(issues.map((issue) => Object.freeze({ ...issue })));
+    this.issues = Object.freeze(
+      issues.map((issue) => Object.freeze({ ...issue })),
+    );
   }
 }
 
@@ -80,9 +85,9 @@ export function assertTaskcoreRunnerCompatibility(
 ): typeof TASKCORE_RUNNER_COMPATIBILITY {
   const issues: TaskcoreRunnerCompatibilityIssue[] = [];
 
-  for (const [component, received] of Object.entries(requirement.components ?? {}) as Array<
-    [TaskcoreRunnerCompatibilityComponent, number]
-  >) {
+  for (const [component, received] of Object.entries(
+    requirement.components ?? {},
+  ) as Array<[TaskcoreRunnerCompatibilityComponent, number]>) {
     const expected = TASKCORE_RUNNER_COMPATIBILITY.components[component];
     if (received !== expected) {
       issues.push({
@@ -98,8 +103,8 @@ export function assertTaskcoreRunnerCompatibility(
   if (requirement.evalCorpusVersion !== undefined) {
     const { minimum, maximum } = TASKCORE_RUNNER_COMPATIBILITY.evalCorpus;
     if (
-      requirement.evalCorpusVersion < minimum
-      || requirement.evalCorpusVersion > maximum
+      requirement.evalCorpusVersion < minimum ||
+      requirement.evalCorpusVersion > maximum
     ) {
       issues.push({
         code: "eval_corpus_version_unsupported",
@@ -111,7 +116,9 @@ export function assertTaskcoreRunnerCompatibility(
     }
   }
 
-  const requiredOperations = [...new Set(requirement.requiredOperationIds ?? [])].sort();
+  const requiredOperations = [
+    ...new Set(requirement.requiredOperationIds ?? []),
+  ].sort();
   const knownOperations: string[] = [];
   for (const operationId of requiredOperations) {
     if (capabilityCanonicalOperation(operationId) === undefined) {
@@ -130,7 +137,8 @@ export function assertTaskcoreRunnerCompatibility(
     issues.push({
       code: "provider_capabilities_missing",
       component: "provider",
-      message: "required operations need an explicit provider capability declaration",
+      message:
+        "required operations need an explicit provider capability declaration",
     });
   } else if (requirement.provider !== undefined) {
     const supported = new Set(requirement.provider.supportedOperationIds);

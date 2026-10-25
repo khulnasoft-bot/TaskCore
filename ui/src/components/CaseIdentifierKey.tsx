@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import { Check } from "lucide-react";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
@@ -23,20 +29,28 @@ export function CaseCopyableToken({
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 
-  const handleCopy = useCallback((event: MouseEvent<HTMLButtonElement>) => {
-    if (stopPropagation) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    void copyTextToClipboard(value).then(() => {
-      setCopied(true);
-      clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 1500);
-    });
-  }, [stopPropagation, value]);
+  const handleCopy = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      if (stopPropagation) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      void copyTextToClipboard(value).then(() => {
+        setCopied(true);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setCopied(false), 1500);
+      });
+    },
+    [stopPropagation, value],
+  );
 
   return (
-    <span className={cn("relative inline-flex min-w-0 max-w-full", containerClassName)}>
+    <span
+      className={cn(
+        "relative inline-flex min-w-0 max-w-full",
+        containerClassName,
+      )}
+    >
       <button
         type="button"
         className={cn(
@@ -77,7 +91,10 @@ export function CaseIdentifierKey({
 }) {
   return (
     <span
-      className={cn("inline-flex min-w-0 max-w-full items-center gap-2 whitespace-nowrap", className)}
+      className={cn(
+        "inline-flex min-w-0 max-w-full items-center gap-2 whitespace-nowrap",
+        className,
+      )}
       data-case-identity-group="true"
     >
       <CaseCopyableToken

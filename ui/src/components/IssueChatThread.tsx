@@ -1,10 +1,16 @@
-import { DispositionRecoveryNotice, useDispositionRecoverySnapshot } from "./DispositionRecoveryNotice";
+import {
+  DispositionRecoveryNotice,
+  useDispositionRecoverySnapshot,
+} from "./DispositionRecoveryNotice";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { TaskcoreIcon } from "@/components/icons/taskcore-icon";
 import type { ComposerRunSettings } from "./task-chat/composer-run-settings";
 import { ComposerRunSettingsPicker } from "./task-chat/ComposerRunSettingsPicker";
 import { ComposerAddMenu, ComposerModeChip } from "./task-chat/ComposerAddMenu";
-import { TaskChatPausedTakeover, type TaskComposerPause } from "./task-chat/TaskChatPausedTakeover";
+import {
+  TaskChatPausedTakeover,
+  type TaskComposerPause,
+} from "./task-chat/TaskChatPausedTakeover";
 import { useEmailComment } from "./EmailMessageCard";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import type {
@@ -216,10 +222,7 @@ import { buildAgentMentionHref } from "@taskcore/shared";
 import { useComposerStop } from "@/hooks/useComposerStop";
 import { cn, formatDateTime, formatShortDate } from "../lib/utils";
 import { liveBlueBadge } from "../lib/status-colors";
-import {
-  nextWorkMode,
-  workModeMetaFor,
-} from "../lib/work-mode-meta";
+import { nextWorkMode, workModeMetaFor } from "../lib/work-mode-meta";
 import {
   Tooltip,
   TooltipContent,
@@ -1304,7 +1307,14 @@ function IssueChatChainOfThought({
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground/80">
               {agentId ? (
-                <AgentAvatar agent={agentId ? agentMap?.get(agentId) ?? { id: agentId } : undefined} size={16} />
+                <AgentAvatar
+                  agent={
+                    agentId
+                      ? (agentMap?.get(agentId) ?? { id: agentId })
+                      : undefined
+                  }
+                  size={16}
+                />
               ) : isActive ? (
                 <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
               ) : (
@@ -2035,7 +2045,8 @@ function IssueChatUserMessage({
     ? custom.sourceTrust
     : null;
   const followUpRequested = custom.followUpRequested === true;
-  const sentFromIMessage = isIssueCommentMetadata(custom.commentMetadata) &&
+  const sentFromIMessage =
+    isIssueCommentMetadata(custom.commentMetadata) &&
     custom.commentMetadata.sourceChannel === "imessage-photon";
   const queueReason =
     typeof custom.queueReason === "string" ? custom.queueReason : null;
@@ -2440,7 +2451,16 @@ function IssueChatAssistantMessage({
     !isRunning &&
     (hasCommentText || deleted);
 
-  const agentAvatar = <AgentAvatar agent={agentId ? agentMap?.get(agentId) ?? { id: agentId, name: authorName } : { name: authorName }} size={32} />;
+  const agentAvatar = (
+    <AgentAvatar
+      agent={
+        agentId
+          ? (agentMap?.get(agentId) ?? { id: agentId, name: authorName })
+          : { name: authorName }
+      }
+      size={32}
+    />
+  );
 
   const messageActionBar = (
     <div className="mt-2 flex items-center gap-1">
@@ -2567,7 +2587,14 @@ function IssueChatAssistantMessage({
           <div className="mb-1 flex items-center gap-1.5 px-1">
             <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
               {agentId ? (
-                <AgentAvatar agent={agentId ? agentMap?.get(agentId) ?? { id: agentId } : undefined} size={16} />
+                <AgentAvatar
+                  agent={
+                    agentId
+                      ? (agentMap?.get(agentId) ?? { id: agentId })
+                      : undefined
+                  }
+                  size={16}
+                />
               ) : (
                 <Avatar size="sm" className="size-5">
                   <AvatarFallback className="text-(length:--text-nano)">
@@ -2719,7 +2746,14 @@ function IssueChatAssistantMessage({
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground/80">
                         {agentId ? (
-                          <AgentAvatar agent={agentId ? agentMap?.get(agentId) ?? { id: agentId } : undefined} size={16} />
+                          <AgentAvatar
+                            agent={
+                              agentId
+                                ? (agentMap?.get(agentId) ?? { id: agentId })
+                                : undefined
+                            }
+                            size={16}
+                          />
                         ) : (
                           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
                         )}
@@ -3090,9 +3124,19 @@ function ExpiredRequestConfirmationActivity({
       ) : (
         <div className="flex items-start gap-2.5 py-1">
           {actorAgentId ? (
-            <AgentAvatar agent={agentMap?.get(actorAgentId) ?? { id: actorAgentId, name: actorName }} size={32} />
+            <AgentAvatar
+              agent={
+                agentMap?.get(actorAgentId) ?? {
+                  id: actorAgentId,
+                  name: actorName,
+                }
+              }
+              size={32}
+            />
           ) : (
-            <Avatar size="sm" className="mt-0.5"><AvatarFallback>{initialsForName(actorName)}</AvatarFallback></Avatar>
+            <Avatar size="sm" className="mt-0.5">
+              <AvatarFallback>{initialsForName(actorName)}</AvatarFallback>
+            </Avatar>
           )}
           {rowContent}
         </div>
@@ -3495,9 +3539,14 @@ function CompactSystemNoticeRow({
   );
 }
 
-function SystemNoticeCommentRow(props: { message: ThreadMessage; anchorId?: string }) {
+function SystemNoticeCommentRow(props: {
+  message: ThreadMessage;
+  anchorId?: string;
+}) {
   const custom = props.message.metadata.custom as Record<string, unknown>;
-  const email = useEmailComment(typeof custom.commentId === "string" ? custom.commentId : props.message.id);
+  const email = useEmailComment(
+    typeof custom.commentId === "string" ? custom.commentId : props.message.id,
+  );
   return email ?? <SystemNoticeCommentContent {...props} />;
 }
 function SystemNoticeCommentContent({
@@ -3615,7 +3664,15 @@ function SystemNoticeCommentContent({
   };
 
   if (authorType === "system" && recoverySnapshot) {
-    return <div id={anchorId}><DispositionRecoveryNotice snapshot={recoverySnapshot} createdAt={toValidIsoString(message.createdAt)} defaultExpanded={presentation?.detailsDefaultOpen} /></div>;
+    return (
+      <div id={anchorId}>
+        <DispositionRecoveryNotice
+          snapshot={recoverySnapshot}
+          createdAt={toValidIsoString(message.createdAt)}
+          defaultExpanded={presentation?.detailsDefaultOpen}
+        />
+      </div>
+    );
   }
 
   if (staleSuccessfulRunHandoffNotice) {
@@ -3815,11 +3872,20 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
 
   if (custom.kind === "event" && actorName) {
     const isAgent = actorType === "agent";
-    const agentIcon = isAgent && actorId ? agentMap?.get(actorId)?.icon : undefined;
-    const isCurrentUser = actorType === "user" && !!currentUserId && actorId === currentUserId;
-    const rowIcon = isAgent
-      ? <AgentAvatar agent={actorId ? agentMap?.get(actorId) ?? { id: actorId } : undefined} size={16} />
-      : <ClipboardList className="h-3 w-3" />;
+    const agentIcon =
+      isAgent && actorId ? agentMap?.get(actorId)?.icon : undefined;
+    const isCurrentUser =
+      actorType === "user" && !!currentUserId && actorId === currentUserId;
+    const rowIcon = isAgent ? (
+      <AgentAvatar
+        agent={
+          actorId ? (agentMap?.get(actorId) ?? { id: actorId }) : undefined
+        }
+        size={16}
+      />
+    ) : (
+      <ClipboardList className="h-3 w-3" />
+    );
     const handoffResolvers: HandoffChipResolvers = {
       agentMap,
       currentUserId,
@@ -3914,8 +3980,19 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
       ? (agentMap?.get(runAgentId)?.name ?? runAgentId.slice(0, 8))
       : null);
   const runAgentIcon = runAgentId ? agentMap?.get(runAgentId)?.icon : undefined;
-  if (custom.kind === "run" && runId && runAgentId && displayedRunAgentName && runStatus) {
-    const rowIcon = <AgentAvatar agent={agentMap?.get(runAgentId) ?? { id: runAgentId }} size={16} />;
+  if (
+    custom.kind === "run" &&
+    runId &&
+    runAgentId &&
+    displayedRunAgentName &&
+    runStatus
+  ) {
+    const rowIcon = (
+      <AgentAvatar
+        agent={agentMap?.get(runAgentId) ?? { id: runAgentId }}
+        size={16}
+      />
+    );
 
     return (
       <IssueChatMetadataRow anchorId={anchorId} icon={rowIcon}>
@@ -4690,12 +4767,20 @@ const IssueChatComposer = forwardRef<
     const key = sharedDraftKey && loadDraftRecoveryKey(sharedDraftKey);
     return key ? { sourceKey: sharedDraftKey!, key, persisted: true } : null;
   }, [sharedDraftKey]);
-  const [newRecovery, setDraftRecovery] = useState<{ sourceKey: string; key: string; persisted: boolean } | null>(null);
-  const draftRecovery = newRecovery?.sourceKey === sharedDraftKey ? newRecovery : restoredRecovery;
+  const [newRecovery, setDraftRecovery] = useState<{
+    sourceKey: string;
+    key: string;
+    persisted: boolean;
+  } | null>(null);
+  const draftRecovery =
+    newRecovery?.sourceKey === sharedDraftKey ? newRecovery : restoredRecovery;
   const draftKey = draftRecovery?.key ?? sharedDraftKey;
   // Keep the active buffer through send completion. Re-entering a task may
   // return to its shared draft after an empty recovery has been retired.
-  useEffect(() => setDraftRecovery(restoredRecovery), [sharedDraftKey, restoredRecovery]);
+  useEffect(
+    () => setDraftRecovery(restoredRecovery),
+    [sharedDraftKey, restoredRecovery],
+  );
   const retiredDraftKeyRef = useRef<string | undefined>(undefined);
   // Initialize before StrictMode's mount cleanup can flush an empty value over
   // the stored draft. The effect below handles subsequent task-key changes.
@@ -4716,7 +4801,10 @@ const IssueChatComposer = forwardRef<
   }, [draftKey]);
   const bodyRef = useRef(body);
   bodyRef.current = body;
-  const reconciledSubmissionRef = useRef<{ draftKey: string | undefined; attemptId: string } | null>(null);
+  const reconciledSubmissionRef = useRef<{
+    draftKey: string | undefined;
+    attemptId: string;
+  } | null>(null);
   const pendingDraftRef = useRef<{
     draftKey: string;
     attemptId: string;
@@ -4724,19 +4812,27 @@ const IssueChatComposer = forwardRef<
     submittedAttachmentIds: string[];
   } | null>(null);
   function changeBody(update: string | ((current: string) => string)) {
-    const value = typeof update === "function" ? update(bodyRef.current) : update;
+    const value =
+      typeof update === "function" ? update(bodyRef.current) : update;
     bodyRef.current = value;
     setBody(value);
     const pending = pendingDraftRef.current;
-    if (!pending || pending.draftKey !== draftKey ||
-        loadDraftSubmission(pending.draftKey)?.attemptId !== pending.attemptId) return;
+    if (
+      !pending ||
+      pending.draftKey !== draftKey ||
+      loadDraftSubmission(pending.draftKey)?.attemptId !== pending.attemptId
+    )
+      return;
     // Persist the next draft while delivery is pending, before navigation or a
     // lost response can turn the original submission into an uncertain one.
-    saveDraft(pending.draftKey,
+    saveDraft(
+      pending.draftKey,
       value ? `${pending.submittedBody}\n\n${value}` : pending.submittedBody,
-      pending.attemptId);
+      pending.attemptId,
+    );
     saveDraftSubmission(pending.draftKey, {
-      attemptId: pending.attemptId, reviewed: false,
+      attemptId: pending.attemptId,
+      reviewed: false,
       nextDraftOffset: pending.submittedBody.length + (value ? 2 : 0),
       submittedAttachmentIds: pending.submittedAttachmentIds,
     });
@@ -4771,9 +4867,13 @@ const IssueChatComposer = forwardRef<
     setComposerAttachmentState(next);
     const pending = pendingDraftRef.current;
     if (pending && pending.draftKey === draftKey) {
-      saveDraftAttachments(pending.draftKey, next
-        .filter(item => item.status === "attached" && item.attachmentId)
-        .map(item => ({ ...item, inline: item.inline === true })), pending.attemptId);
+      saveDraftAttachments(
+        pending.draftKey,
+        next
+          .filter((item) => item.status === "attached" && item.attachmentId)
+          .map((item) => ({ ...item, inline: item.inline === true })),
+        pending.attemptId,
+      );
     }
   }
   const dragDepthRef = useRef(0);
@@ -4782,7 +4882,9 @@ const IssueChatComposer = forwardRef<
   const [reassignTarget, setReassignTarget] = useState(
     effectiveSuggestedAssigneeValue,
   );
-  const [runSettings, setRunSettings] = useState<ComposerRunSettings | null>(null);
+  const [runSettings, setRunSettings] = useState<ComposerRunSettings | null>(
+    null,
+  );
   useEffect(() => setRunSettings(null), [draftKey, currentAssigneeValue]);
   const [noAssigneeDialogOpen, setNoAssigneeDialogOpen] = useState(false);
   const [dismissedCoachToken, setDismissedCoachToken] = useState<string | null>(
@@ -4833,7 +4935,11 @@ const IssueChatComposer = forwardRef<
   }
 
   useEffect(() => {
-    if (!draftKey || (draftRecovery?.key === draftKey && !draftRecovery.persisted)) return;
+    if (
+      !draftKey ||
+      (draftRecovery?.key === draftKey && !draftRecovery.persisted)
+    )
+      return;
     setBody(loadDraft(draftKey));
     setComposerAttachments(
       loadDraftAttachments(draftKey).map((item) => ({
@@ -4848,39 +4954,82 @@ const IssueChatComposer = forwardRef<
   // A server receipt for this exact request settles a restored submission.
   // Text equality is not delivery proof: users may intentionally repeat text.
   useEffect(() => {
-    if (!uncertainSubmission || !confirmedSubmissionIds.has(uncertainSubmission.attemptId)) return;
+    if (
+      !uncertainSubmission ||
+      !confirmedSubmissionIds.has(uncertainSubmission.attemptId)
+    )
+      return;
     const { attemptId } = uncertainSubmission;
     const reconciled = reconciledSubmissionRef.current;
-    if (reconciled && reconciled.draftKey === draftKey && reconciled.attemptId === attemptId) return;
-    const nextDraft = uncertainSubmission.nextDraftOffset === undefined
-      ? "" : bodyRef.current.slice(uncertainSubmission.nextDraftOffset);
+    if (
+      reconciled &&
+      reconciled.draftKey === draftKey &&
+      reconciled.attemptId === attemptId
+    )
+      return;
+    const nextDraft =
+      uncertainSubmission.nextDraftOffset === undefined
+        ? ""
+        : bodyRef.current.slice(uncertainSubmission.nextDraftOffset);
     const submittedIds = uncertainSubmission.submittedAttachmentIds;
     let nextAttachments = submittedIds
-      ? composerAttachmentsRef.current.filter(item => !item.attachmentId || !submittedIds.includes(item.attachmentId))
+      ? composerAttachmentsRef.current.filter(
+          (item) =>
+            !item.attachmentId || !submittedIds.includes(item.attachmentId),
+        )
       : [];
     if (draftKey) {
       const retained = loadDraftSubmission(draftKey);
       // Settle storage from its own snapshot, never from this tab's stale copy.
       // A different retained attempt is owned by its original tab.
-      if (retained?.attemptId === attemptId) settleDraftSubmission(draftKey, attemptId);
+      if (retained?.attemptId === attemptId)
+        settleDraftSubmission(draftKey, attemptId);
       const storedDraft = loadDraftIfAvailable(draftKey);
-      const storedAttachments = loadDraftAttachments(draftKey).filter(item => !submittedIds?.includes(item.attachmentId));
+      const storedAttachments = loadDraftAttachments(draftKey).filter(
+        (item) => !submittedIds?.includes(item.attachmentId),
+      );
       const foreignAttempt = retained && retained.attemptId !== attemptId;
-      const differentAttachments = JSON.stringify(nextAttachments.map(item => item.attachmentId).sort()) !==
-        JSON.stringify(storedAttachments.map(item => item.attachmentId).sort());
-      if (storedDraft !== null && (foreignAttempt || !retained || storedDraft !== nextDraft || differentAttachments)) {
+      const differentAttachments =
+        JSON.stringify(
+          nextAttachments.map((item) => item.attachmentId).sort(),
+        ) !==
+        JSON.stringify(
+          storedAttachments.map((item) => item.attachmentId).sort(),
+        );
+      if (
+        storedDraft !== null &&
+        (foreignAttempt ||
+          !retained ||
+          storedDraft !== nextDraft ||
+          differentAttachments)
+      ) {
         // Text has no cross-tab ordering. Preserve each buffer separately. When
         // both snapshots describe the same text, retain all attachment receipts.
-        if (!foreignAttempt && (storedDraft === nextDraft || storedDraft === bodyRef.current)) {
-          const ids = new Set(nextAttachments.map(item => item.attachmentId));
-          const combined = [...nextAttachments, ...storedAttachments.filter(item => !ids.has(item.attachmentId)).map(item => ({
-            ...item, size: item.size ?? 0, id: `receipt:${item.attachmentId}`, status: "attached" as const,
-          }))];
+        if (
+          !foreignAttempt &&
+          (storedDraft === nextDraft || storedDraft === bodyRef.current)
+        ) {
+          const ids = new Set(nextAttachments.map((item) => item.attachmentId));
+          const combined = [
+            ...nextAttachments,
+            ...storedAttachments
+              .filter((item) => !ids.has(item.attachmentId))
+              .map((item) => ({
+                ...item,
+                size: item.size ?? 0,
+                id: `receipt:${item.attachmentId}`,
+                status: "attached" as const,
+              })),
+          ];
           // Each draft is limited to 20 receipts. If their union exceeds that,
           // keep the local selection here and the other selection in shared storage.
           if (combined.length <= 20) nextAttachments = combined;
         }
-        const recovered = preserveDraftInTab(sharedDraftKey!, nextDraft, nextAttachments);
+        const recovered = preserveDraftInTab(
+          sharedDraftKey!,
+          nextDraft,
+          nextAttachments,
+        );
         // Fence old effect cleanups before switching keys or updating bodyRef.
         retiredDraftKeyRef.current = draftKey;
         setDraftRecovery({ sourceKey: sharedDraftKey!, ...recovered });
@@ -4896,7 +5045,8 @@ const IssueChatComposer = forwardRef<
 
   useEffect(() => {
     if (
-      !draftKey || retiredDraftKeyRef.current === draftKey ||
+      !draftKey ||
+      retiredDraftKeyRef.current === draftKey ||
       submitting ||
       composerAttachments !== composerAttachmentsRef.current
     )
@@ -4920,7 +5070,11 @@ const IssueChatComposer = forwardRef<
   useEffect(() => {
     return () => {
       if (draftTimer.current) clearTimeout(draftTimer.current);
-      if (draftKey && retiredDraftKeyRef.current !== draftKey && !submittingRef.current)
+      if (
+        draftKey &&
+        retiredDraftKeyRef.current !== draftKey &&
+        !submittingRef.current
+      )
         saveDraft(draftKey, bodyRef.current);
     };
   }, [draftKey]);
@@ -4928,7 +5082,8 @@ const IssueChatComposer = forwardRef<
   useEffect(() => {
     if (!draftKey) return;
     const flushDraft = () => {
-      if (retiredDraftKeyRef.current !== draftKey && !submittingRef.current) saveDraft(draftKey, bodyRef.current);
+      if (retiredDraftKeyRef.current !== draftKey && !submittingRef.current)
+        saveDraft(draftKey, bodyRef.current);
     };
     window.addEventListener("beforeunload", flushDraft);
     return () => window.removeEventListener("beforeunload", flushDraft);
@@ -5061,22 +5216,42 @@ const IssueChatComposer = forwardRef<
       if (draftKey) {
         saveDraft(draftKey, trimmed);
         saveDraftSubmission(draftKey, { attemptId, reviewed: false });
-        pendingDraftRef.current = { draftKey, attemptId, submittedBody: trimmed, submittedAttachmentIds: attachmentIds };
+        pendingDraftRef.current = {
+          draftKey,
+          attemptId,
+          submittedBody: trimmed,
+          submittedAttachmentIds: attachmentIds,
+        };
         changeBody(bodyRef.current);
       }
       // assistant-ui thread.append is fire-and-forget. Await the actual Board
       // mutation; it already owns optimistic echo and durable error handling.
       const sendPromise = runSettings
-        ? onSend(submittedBody, reopen, reassignment,
-            attachmentIds.length ? attachmentIds : undefined, attemptId, runSettings)
-        : onSend(submittedBody, reopen, reassignment,
-            attachmentIds.length ? attachmentIds : undefined, attemptId);
+        ? onSend(
+            submittedBody,
+            reopen,
+            reassignment,
+            attachmentIds.length ? attachmentIds : undefined,
+            attemptId,
+            runSettings,
+          )
+        : onSend(
+            submittedBody,
+            reopen,
+            reassignment,
+            attachmentIds.length ? attachmentIds : undefined,
+            attemptId,
+          );
       queueViewportRestore(viewportSnapshot);
       await sendPromise;
       // Settle the captured task even if the user navigated away. The exact
       // attempt guard preserves any newer submission in this or another tab.
-      if (draftKey) settleDraftSubmission(draftKey, attemptId,
-        mountedTaskKey.current === draftKey ? bodyRef.current : undefined);
+      if (draftKey)
+        settleDraftSubmission(
+          draftKey,
+          attemptId,
+          mountedTaskKey.current === draftKey ? bodyRef.current : undefined,
+        );
       if (mountedTaskKey.current !== draftKey) return;
       setComposerAttachments((current) =>
         current.filter((item) => !submittedAttachmentKeys.has(item.id)),
@@ -5088,7 +5263,8 @@ const IssueChatComposer = forwardRef<
       const nextDraft = bodyRef.current;
       if (attemptId && error instanceof CommentSubmissionUnknownError) {
         const uncertain = {
-          attemptId, reviewed: false,
+          attemptId,
+          reviewed: false,
           nextDraftOffset: trimmed.length + (nextDraft ? 2 : 0),
           submittedAttachmentIds: attachmentIds,
         };
@@ -5101,7 +5277,8 @@ const IssueChatComposer = forwardRef<
       if (draftKey) saveDraft(draftKey, restoredBody, attemptId ?? undefined);
       setBody(restoredBody);
     } finally {
-      if (pendingDraftRef.current?.attemptId === attemptId) pendingDraftRef.current = null;
+      if (pendingDraftRef.current?.attemptId === attemptId)
+        pendingDraftRef.current = null;
       setSubmitting(false);
       queueViewportRestore(viewportSnapshot);
     }
@@ -5347,7 +5524,12 @@ const IssueChatComposer = forwardRef<
   }
 
   if (composerPause) {
-    return <TaskChatPausedTakeover {...composerPause} hasDraft={Boolean(body.trim() || attachedFiles.length)} />;
+    return (
+      <TaskChatPausedTakeover
+        {...composerPause}
+        hasDraft={Boolean(body.trim() || attachedFiles.length)}
+      />
+    );
   }
 
   if (composerDisabledReason) {
@@ -5413,8 +5595,11 @@ const IssueChatComposer = forwardRef<
 
       {draftRecovery && draftRecovery.sourceKey === sharedDraftKey ? (
         <p role="status" className="mb-3 text-sm text-muted-foreground">
-          Another tab changed the saved draft. This draft is kept separately in this tab.
-          {!draftRecovery.persisted ? " Browser storage is unavailable; copy your text before leaving." : " It will be restored if you reload this tab."}
+          Another tab changed the saved draft. This draft is kept separately in
+          this tab.
+          {!draftRecovery.persisted
+            ? " Browser storage is unavailable; copy your text before leaving."
+            : " It will be restored if you reload this tab."}
         </p>
       ) : null}
       {uncertainSubmission ? (
@@ -5598,21 +5783,40 @@ const IssueChatComposer = forwardRef<
       <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="mr-auto flex items-center gap-2">
           {canAcceptFiles ? (
-            <input ref={attachInputRef} type="file" className="hidden" onChange={handleAttachFile} />
+            <input
+              ref={attachInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleAttachFile}
+            />
           ) : null}
-          <ComposerAddMenu mode={pendingWorkMode}
+          <ComposerAddMenu
+            mode={pendingWorkMode}
             onModeChange={canToggleWorkMode ? setPendingWorkMode : undefined}
-            onAttachFile={canAcceptFiles ? () => attachInputRef.current?.click() : undefined}
+            onAttachFile={
+              canAcceptFiles ? () => attachInputRef.current?.click() : undefined
+            }
             attachDisabled={attaching}
             disabled={!!uncertainSubmission}
-            triggerTestId="issue-chat-composer-add" menuTestId="issue-chat-composer-add-menu" />
-          <ComposerModeChip mode={pendingWorkMode}
-            onRemove={canToggleWorkMode ? () => setPendingWorkMode("standard") : undefined}
+            triggerTestId="issue-chat-composer-add"
+            menuTestId="issue-chat-composer-add-menu"
+          />
+          <ComposerModeChip
+            mode={pendingWorkMode}
+            onRemove={
+              canToggleWorkMode
+                ? () => setPendingWorkMode("standard")
+                : undefined
+            }
             disabled={!!uncertainSubmission}
-            testId="issue-chat-composer-work-mode-chip" />
+            testId="issue-chat-composer-work-mode-chip"
+          />
         </div>
 
-        {enableReassign && reassignOptions.length > 0 && companyId && agentMap ? (
+        {enableReassign &&
+        reassignOptions.length > 0 &&
+        companyId &&
+        agentMap ? (
           <ComposerRunSettingsPicker
             companyId={companyId}
             assigneeValue={reassignTarget}
@@ -5625,8 +5829,16 @@ const IssueChatComposer = forwardRef<
             onAssigneeChange={setReassignTarget}
             triggerRef={reassignTriggerRef}
             renderAssigneeIdentity={(value) => {
-              const selected = value.startsWith("agent:") ? agentMap.get(value.slice(6)) : null;
-              return selected ? <AgentAvatar agent={selected} size={16} className="size-4 shrink-0" /> : null;
+              const selected = value.startsWith("agent:")
+                ? agentMap.get(value.slice(6))
+                : null;
+              return selected ? (
+                <AgentAvatar
+                  agent={selected}
+                  size={16}
+                  className="size-4 shrink-0"
+                />
+              ) : null;
             }}
           />
         ) : enableReassign && reassignOptions.length > 0 ? (
@@ -5652,7 +5864,11 @@ const IssueChatComposer = forwardRef<
               return (
                 <>
                   {agent ? (
-                    <AgentAvatar agent={agent} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
+                    <AgentAvatar
+                      agent={agent}
+                      size={16}
+                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                    />
                   ) : null}
                   <span className="truncate">{option.label}</span>
                 </>
@@ -5668,7 +5884,11 @@ const IssueChatComposer = forwardRef<
               return (
                 <>
                   {agent ? (
-                    <AgentAvatar agent={agent} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
+                    <AgentAvatar
+                      agent={agent}
+                      size={16}
+                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                    />
                   ) : null}
                   <span className="truncate">{option.label}</span>
                 </>
@@ -6092,10 +6312,24 @@ export function IssueChatThread({
   }
 
   const sendComposerComment = useCallback<IssueChatThreadProps["onAdd"]>(
-    (body, reopen, reassignment, attachmentIds, clientRequestId, runSettings) => {
+    (
+      body,
+      reopen,
+      reassignment,
+      attachmentIds,
+      clientRequestId,
+      runSettings,
+    ) => {
       pendingSubmitScrollRef.current = true;
       return runSettings
-        ? onAdd(body, reopen, reassignment, attachmentIds, clientRequestId, runSettings)
+        ? onAdd(
+            body,
+            reopen,
+            reassignment,
+            attachmentIds,
+            clientRequestId,
+            runSettings,
+          )
         : onAdd(body, reopen, reassignment, attachmentIds, clientRequestId);
     },
     [onAdd],
@@ -6762,10 +6996,18 @@ export function IssueChatThread({
                 onImageUpload={imageUploadHandler}
                 onAttachImage={onAttachImage}
                 draftKey={draftKey}
-                confirmedSubmissionIds={new Set(comments.filter((comment) =>
-                  comment.authorUserId === currentUserId && comment.clientRequestId &&
-                  !("clientStatus" in comment && comment.clientStatus)
-                ).map((comment) => comment.clientRequestId!))}
+                confirmedSubmissionIds={
+                  new Set(
+                    comments
+                      .filter(
+                        (comment) =>
+                          comment.authorUserId === currentUserId &&
+                          comment.clientRequestId &&
+                          !("clientStatus" in comment && comment.clientStatus),
+                      )
+                      .map((comment) => comment.clientRequestId!),
+                  )
+                }
                 enableReassign={enableReassign}
                 reassignOptions={reassignOptions}
                 currentAssigneeValue={currentAssigneeValue}

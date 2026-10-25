@@ -1,6 +1,9 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ToolMcpGatewayContextScopeType, ToolProfileWithDetails } from "@taskcore/shared";
+import type {
+  ToolMcpGatewayContextScopeType,
+  ToolProfileWithDetails,
+} from "@taskcore/shared";
 import { toolsApi } from "@/api/tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +19,8 @@ import { useToast } from "@/context/ToastContext";
 import { queryKeys } from "@/lib/queryKeys";
 import { allowedToolsLabel } from "./gateway-helpers";
 
-export const gatewaysQueryKey = (companyId: string) => ["tools", "gateways", companyId] as const;
+export const gatewaysQueryKey = (companyId: string) =>
+  ["tools", "gateways", companyId] as const;
 
 /**
  * "New gateway" dialog. A gateway is one safe MCP endpoint that exposes only
@@ -50,7 +54,8 @@ export function NewGatewayDialog({
   );
 
   useEffect(() => {
-    if (open && !profileId && activeProfiles[0]) setProfileId(activeProfiles[0].id);
+    if (open && !profileId && activeProfiles[0])
+      setProfileId(activeProfiles[0].id);
   }, [open, profileId, activeProfiles]);
 
   const createMutation = useMutation({
@@ -63,8 +68,14 @@ export function NewGatewayDialog({
         contextScopeType: "company" satisfies ToolMcpGatewayContextScopeType,
       }),
     onSuccess: async (gateway) => {
-      pushToast({ title: "Gateway created", body: gateway.name, tone: "success" });
-      await queryClient.invalidateQueries({ queryKey: gatewaysQueryKey(companyId) });
+      pushToast({
+        title: "Gateway created",
+        body: gateway.name,
+        tone: "success",
+      });
+      await queryClient.invalidateQueries({
+        queryKey: gatewaysQueryKey(companyId),
+      });
       setName("");
       setDescription("");
       onOpenChange(false);
@@ -94,13 +105,15 @@ export function NewGatewayDialog({
         <DialogHeader>
           <DialogTitle>New gateway</DialogTitle>
           <DialogDescription>
-            One safe MCP endpoint that exposes only the apps in its access profile. Hand it to a client
-            like Cursor or Claude Desktop.
+            One safe MCP endpoint that exposes only the apps in its access
+            profile. Hand it to a client like Cursor or Claude Desktop.
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-4" onSubmit={submit}>
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Name</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Name
+            </span>
             <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -110,7 +123,9 @@ export function NewGatewayDialog({
             />
           </label>
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Access profile</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Access profile
+            </span>
             <select
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={profileId}
@@ -128,11 +143,14 @@ export function NewGatewayDialog({
               ))}
             </select>
             <span className="text-xs text-muted-foreground">
-              The profile decides which tools this gateway allows. You can change it later.
+              The profile decides which tools this gateway allows. You can
+              change it later.
             </span>
           </label>
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Description (optional)</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Description (optional)
+            </span>
             <textarea
               className="min-h-16 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={description}
@@ -146,12 +164,21 @@ export function NewGatewayDialog({
             </p>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={createMutation.isPending || noProfiles || !name.trim() || !profileId}
+              disabled={
+                createMutation.isPending ||
+                noProfiles ||
+                !name.trim() ||
+                !profileId
+              }
             >
               {createMutation.isPending ? "Creating…" : "Create gateway"}
             </Button>

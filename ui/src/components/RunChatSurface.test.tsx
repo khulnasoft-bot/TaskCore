@@ -49,7 +49,9 @@ afterEach(() => {
 describe("RunChatSurface thread presentation", () => {
   it("renders the graduated issue thread without a chat-flag branch", async () => {
     const { container, cleanup } = await renderSurface();
-    expect(container.querySelector('[data-testid="nux-thread"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="nux-thread"]'),
+    ).not.toBeNull();
     await cleanup();
   });
 });

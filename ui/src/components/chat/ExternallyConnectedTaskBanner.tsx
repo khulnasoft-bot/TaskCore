@@ -111,7 +111,8 @@ const filePhaseLabels: Record<ChatFileTransferPhase, string> = {
 
 export function useIssueChatBinding(companyId: string, issueId: string) {
   const { enabled } = useChatConnectorsEnabled();
-  const queryEnabled = enabled && Boolean(companyId && issueId) && !issueId.startsWith("chat:");
+  const queryEnabled =
+    enabled && Boolean(companyId && issueId) && !issueId.startsWith("chat:");
   const query = useQuery({
     queryKey: ["issue-chat-binding", companyId, issueId],
     queryFn: () => chatEndpointsApi.getIssueBinding(issueId),
@@ -496,7 +497,8 @@ function ConnectedTaskComposer({
               Connected to {providerNames[binding.provider]}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {binding.externalLabel} · {binding.provider === "slack"
+              {binding.externalLabel} ·{" "}
+              {binding.provider === "slack"
                 ? "Messages you send here and agent replies are also posted to Slack."
                 : "Agent assignment is fixed for this external task."}
             </p>

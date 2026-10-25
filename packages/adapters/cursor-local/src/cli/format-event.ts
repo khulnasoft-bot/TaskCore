@@ -2,7 +2,8 @@ import pc from "picocolors";
 import { normalizeCursorStreamLine } from "../shared/stream.js";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -94,13 +95,17 @@ function printAssistantMessage(messageRaw: unknown): void {
     }
 
     if (type === "tool_result") {
-      const isError = part.is_error === true || asString(part.status).toLowerCase() === "error";
+      const isError =
+        part.is_error === true ||
+        asString(part.status).toLowerCase() === "error";
       const contentText =
         asString(part.output) ||
         asString(part.text) ||
         asString(part.result) ||
         stringifyUnknown(part.output ?? part.result ?? part.text ?? part);
-      console.log((isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`));
+      console.log(
+        (isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`),
+      );
       if (contentText) console.log((isError ? pc.red : pc.gray)(contentText));
     }
   }
@@ -108,7 +113,10 @@ function printAssistantMessage(messageRaw: unknown): void {
 
 function printToolCallEventTopLevel(parsed: Record<string, unknown>): void {
   const subtype = asString(parsed.subtype).trim().toLowerCase();
-  const callId = asString(parsed.call_id, asString(parsed.callId, asString(parsed.id, "")));
+  const callId = asString(
+    parsed.call_id,
+    asString(parsed.callId, asString(parsed.id, "")),
+  );
   const toolCall = asRecord(parsed.tool_call ?? parsed.toolCall);
   if (!toolCall) {
     console.log(pc.yellow(`tool_call${subtype ? `: ${subtype}` : ""}`));
@@ -137,14 +145,20 @@ function printToolCallEventTopLevel(parsed: Record<string, unknown>): void {
     payload.error !== undefined;
 
   if (subtype === "started" || subtype === "start") {
-    console.log(pc.yellow(`tool_call: ${toolName}${callId ? ` (${callId})` : ""}`));
+    console.log(
+      pc.yellow(`tool_call: ${toolName}${callId ? ` (${callId})` : ""}`),
+    );
     if (args !== undefined) {
       console.log(pc.gray(stringifyUnknown(args)));
     }
     return;
   }
 
-  if (subtype === "completed" || subtype === "complete" || subtype === "finished") {
+  if (
+    subtype === "completed" ||
+    subtype === "complete" ||
+    subtype === "finished"
+  ) {
     const header = `tool_result${isError ? " (error)" : ""}${callId ? ` (${callId})` : ""}`;
     console.log((isError ? pc.red : pc.cyan)(header));
     if (result !== undefined) {
@@ -153,7 +167,9 @@ function printToolCallEventTopLevel(parsed: Record<string, unknown>): void {
     return;
   }
 
-  console.log(pc.yellow(`tool_call: ${toolName}${subtype ? ` (${subtype})` : ""}`));
+  console.log(
+    pc.yellow(`tool_call: ${toolName}${subtype ? ` (${subtype})` : ""}`),
+  );
 }
 
 function printLegacyToolEvent(part: Record<string, unknown>): void {
@@ -217,7 +233,10 @@ export function printCursorStreamEvent(raw: string, _debug: boolean): void {
         asString(parsed.sessionId) ||
         asString(parsed.sessionID);
       const model = asString(parsed.model);
-      const details = [sessionId ? `session: ${sessionId}` : "", model ? `model: ${model}` : ""]
+      const details = [
+        sessionId ? `session: ${sessionId}` : "",
+        model ? `model: ${model}` : "",
+      ]
         .filter(Boolean)
         .join(", ");
       console.log(pc.blue(`Cursor init${details ? ` (${details})` : ""}`));
@@ -238,7 +257,9 @@ export function printCursorStreamEvent(raw: string, _debug: boolean): void {
   }
 
   if (type === "thinking") {
-    const text = asString(parsed.text).trim() || asString(asRecord(parsed.delta)?.text).trim();
+    const text =
+      asString(parsed.text).trim() ||
+      asString(asRecord(parsed.delta)?.text).trim();
     if (text) console.log(pc.gray(`thinking: ${text}`));
     return;
   }
@@ -251,26 +272,46 @@ export function printCursorStreamEvent(raw: string, _debug: boolean): void {
   if (type === "result") {
     const usage = asRecord(parsed.usage);
     const input = asNumber(usage?.input_tokens, asNumber(usage?.inputTokens));
-    const output = asNumber(usage?.output_tokens, asNumber(usage?.outputTokens));
+    const output = asNumber(
+      usage?.output_tokens,
+      asNumber(usage?.outputTokens),
+    );
     const cached = asNumber(
       usage?.cached_input_tokens,
-      asNumber(usage?.cachedInputTokens, asNumber(usage?.cache_read_input_tokens)),
+      asNumber(
+        usage?.cachedInputTokens,
+        asNumber(usage?.cache_read_input_tokens),
+      ),
     );
-    const cost = asNumber(parsed.total_cost_usd, asNumber(parsed.cost_usd, asNumber(parsed.cost)));
+    const cost = asNumber(
+      parsed.total_cost_usd,
+      asNumber(parsed.cost_usd, asNumber(parsed.cost)),
+    );
     const subtype = asString(parsed.subtype, "result");
-    const isError = parsed.is_error === true || subtype === "error" || subtype === "failed";
+    const isError =
+      parsed.is_error === true || subtype === "error" || subtype === "failed";
 
     console.log(pc.blue(`result: subtype=${subtype}`));
-    console.log(pc.blue(`tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`));
+    console.log(
+      pc.blue(
+        `tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`,
+      ),
+    );
     const resultText = asString(parsed.result).trim();
-    if (resultText) console.log((isError ? pc.red : pc.green)(`assistant: ${resultText}`));
-    const errors = Array.isArray(parsed.errors) ? parsed.errors.map((value) => stringifyUnknown(value)).filter(Boolean) : [];
+    if (resultText)
+      console.log((isError ? pc.red : pc.green)(`assistant: ${resultText}`));
+    const errors = Array.isArray(parsed.errors)
+      ? parsed.errors.map((value) => stringifyUnknown(value)).filter(Boolean)
+      : [];
     if (errors.length > 0) console.log(pc.red(`errors: ${errors.join(" | ")}`));
     return;
   }
 
   if (type === "error") {
-    const message = asString(parsed.message) || stringifyUnknown(parsed.error ?? parsed.detail) || line;
+    const message =
+      asString(parsed.message) ||
+      stringifyUnknown(parsed.error ?? parsed.detail) ||
+      line;
     console.log(pc.red(`error: ${message}`));
     return;
   }
@@ -278,7 +319,9 @@ export function printCursorStreamEvent(raw: string, _debug: boolean): void {
   // Compatibility with older stream-json event shapes.
   if (type === "step_start") {
     const sessionId = asString(parsed.sessionID);
-    console.log(pc.blue(`step started${sessionId ? ` (session: ${sessionId})` : ""}`));
+    console.log(
+      pc.blue(`step started${sessionId ? ` (session: ${sessionId})` : ""}`),
+    );
     return;
   }
 
@@ -309,7 +352,11 @@ export function printCursorStreamEvent(raw: string, _debug: boolean): void {
     const cached = asNumber(cache?.read);
     const cost = asNumber(part?.cost);
     console.log(pc.blue(`step finished: reason=${reason}`));
-    console.log(pc.blue(`tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`));
+    console.log(
+      pc.blue(
+        `tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`,
+      ),
+    );
     return;
   }
 

@@ -37,7 +37,9 @@ export function getUiParserSource(adapterType: string): string | undefined {
  * On cache miss, attempt on-demand extraction from the plugin store.
  * Makes the ui-parser.js endpoint self-healing.
  */
-export function getOrExtractUiParserSource(adapterType: string): string | undefined {
+export function getOrExtractUiParserSource(
+  adapterType: string,
+): string | undefined {
   const cached = uiParserCache.get(adapterType);
   if (cached) return cached;
 
@@ -60,7 +62,9 @@ export function getOrExtractUiParserSource(adapterType: string): string | undefi
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-function resolvePackageDir(record: Pick<AdapterPluginRecord, "localPath" | "packageName">): string {
+function resolvePackageDir(
+  record: Pick<AdapterPluginRecord, "localPath" | "packageName">,
+): string {
   return record.localPath
     ? path.resolve(record.localPath)
     : path.resolve(getAdapterPluginsDir(), "node_modules", record.packageName);
@@ -72,7 +76,9 @@ function resolvePackageEntryPoint(packageDir: string): string {
 
   if (pkg.exports && typeof pkg.exports === "object" && pkg.exports["."]) {
     const exp = pkg.exports["."];
-    return typeof exp === "string" ? exp : (exp.import ?? exp.default ?? "index.js");
+    return typeof exp === "string"
+      ? exp
+      : (exp.import ?? exp.default ?? "index.js");
   }
   return pkg.main ?? "index.js";
 }
@@ -90,7 +96,11 @@ function extractUiParserSource(
   const pkgJsonPath = path.join(packageDir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
 
-  if (!pkg.exports || typeof pkg.exports !== "object" || !pkg.exports["./ui-parser"]) {
+  if (
+    !pkg.exports ||
+    typeof pkg.exports !== "object" ||
+    !pkg.exports["./ui-parser"]
+  ) {
     return undefined;
   }
 
@@ -99,7 +109,11 @@ function extractUiParserSource(
     const major = contractVersion.split(".")[0];
     if (major !== SUPPORTED_PARSER_CONTRACT) {
       logger.warn(
-        { packageName, contractVersion, supported: `${SUPPORTED_PARSER_CONTRACT}.x` },
+        {
+          packageName,
+          contractVersion,
+          supported: `${SUPPORTED_PARSER_CONTRACT}.x`,
+        },
         "Adapter declares unsupported UI parser contract version — skipping UI parser",
       );
       return undefined;
@@ -112,12 +126,16 @@ function extractUiParserSource(
   }
 
   const uiParserExp = pkg.exports["./ui-parser"];
-  const uiParserFile = typeof uiParserExp === "string"
-    ? uiParserExp
-    : (uiParserExp.import ?? uiParserExp.default);
+  const uiParserFile =
+    typeof uiParserExp === "string"
+      ? uiParserExp
+      : (uiParserExp.import ?? uiParserExp.default);
   const uiParserPath = path.resolve(packageDir, uiParserFile);
 
-  if (!uiParserPath.startsWith(packageDir + path.sep) && uiParserPath !== packageDir) {
+  if (
+    !uiParserPath.startsWith(packageDir + path.sep) &&
+    uiParserPath !== packageDir
+  ) {
     logger.warn(
       { packageName, uiParserFile },
       "UI parser path escapes package directory — skipping",
@@ -137,7 +155,10 @@ function extractUiParserSource(
     );
     return source;
   } catch (err) {
-    logger.warn({ err, packageName, uiParserFile }, "Failed to read UI parser from adapter package");
+    logger.warn(
+      { err, packageName, uiParserFile },
+      "Failed to read UI parser from adapter package",
+    );
     return undefined;
   }
 }
@@ -146,13 +167,16 @@ function extractUiParserSource(
 // Load / reload
 // ---------------------------------------------------------------------------
 
-export function validateAdapterModule(mod: unknown, packageName: string): ServerAdapterModule {
+export function validateAdapterModule(
+  mod: unknown,
+  packageName: string,
+): ServerAdapterModule {
   const m = mod as Record<string, unknown>;
   const createServerAdapter = m.createServerAdapter;
   if (typeof createServerAdapter !== "function") {
     throw new Error(
       `Package "${packageName}" does not export createServerAdapter(). ` +
-      `Ensure the package's main entry exports a createServerAdapter function.`,
+        `Ensure the package's main entry exports a createServerAdapter function.`,
     );
   }
 
@@ -190,7 +214,16 @@ export async function loadExternalAdapterPackage(
   const modulePath = path.resolve(packageDir, entryPoint);
   const uiParserSource = extractUiParserSource(packageDir, packageName);
 
-  logger.info({ packageName, packageDir, entryPoint, modulePath, hasUiParser: !!uiParserSource }, "Loading external adapter package");
+  logger.info(
+    {
+      packageName,
+      packageDir,
+      entryPoint,
+      modulePath,
+      hasUiParser: !!uiParserSource,
+    },
+    "Loading external adapter package",
+  );
 
   const mod = await import(pathToFileURL(modulePath).href);
   const adapterModule = validateAdapterModule(mod, packageName);
@@ -202,9 +235,14 @@ export async function loadExternalAdapterPackage(
   return adapterModule;
 }
 
-async function loadFromRecord(record: AdapterPluginRecord): Promise<ServerAdapterModule | null> {
+async function loadFromRecord(
+  record: AdapterPluginRecord,
+): Promise<ServerAdapterModule | null> {
   try {
-    return await loadExternalAdapterPackage(record.packageName, record.localPath);
+    return await loadExternalAdapterPackage(
+      record.packageName,
+      record.localPath,
+    );
   } catch (err) {
     logger.warn(
       { err, packageName: record.packageName, type: record.type },
@@ -234,7 +272,8 @@ export async function reloadExternalAdapter(
   // to be evicted from its internal registry first.
   try {
     // @ts-expect-error -- Bun internal module cache
-    const bunCache = globalThis.Bun?.__moduleCache as Map<string, unknown> | undefined;
+    const bunCache = globalThis.Bun?.__moduleCache as
+      Map<string, unknown> | undefined;
     if (bunCache) {
       bunCache.delete(fileUrl);
       bunCache.delete(modulePath);

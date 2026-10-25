@@ -9,7 +9,9 @@ import { serverVersion } from "./version.js";
 
 let client: TelemetryClient | null = null;
 
-export function initTelemetry(fileConfig?: { enabled?: boolean }): TelemetryClient | null {
+export function initTelemetry(fileConfig?: {
+  enabled?: boolean;
+}): TelemetryClient | null {
   if (client) return client;
 
   const config = resolveTelemetryConfig(fileConfig);

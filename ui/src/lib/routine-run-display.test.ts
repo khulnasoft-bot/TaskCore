@@ -3,8 +3,22 @@ import type { RoutineVariable } from "@taskcore/shared";
 import { dedupedTriggerLabel, runRowSubtitle } from "./routine-run-display";
 
 const variables: RoutineVariable[] = [
-  { name: "customer", label: null, type: "text", defaultValue: null, required: true, options: [] },
-  { name: "retries", label: null, type: "number", defaultValue: null, required: false, options: [] },
+  {
+    name: "customer",
+    label: null,
+    type: "text",
+    defaultValue: null,
+    required: true,
+    options: [],
+  },
+  {
+    name: "retries",
+    label: null,
+    type: "number",
+    defaultValue: null,
+    required: false,
+    options: [],
+  },
 ];
 
 describe("runRowSubtitle", () => {
@@ -13,7 +27,11 @@ describe("runRowSubtitle", () => {
       {
         status: "succeeded",
         failureReason: null,
-        triggerPayload: { customer: "Acme", retries: 3, TASKCORE_RUN_ID: "ignored" },
+        triggerPayload: {
+          customer: "Acme",
+          retries: 3,
+          TASKCORE_RUN_ID: "ignored",
+        },
       },
       variables,
     );
@@ -22,7 +40,11 @@ describe("runRowSubtitle", () => {
 
   it("only includes declared routine variables, not builtin payload keys", () => {
     const subtitle = runRowSubtitle(
-      { status: "succeeded", failureReason: null, triggerPayload: { TASKCORE_RUN_ID: "x" } },
+      {
+        status: "succeeded",
+        failureReason: null,
+        triggerPayload: { TASKCORE_RUN_ID: "x" },
+      },
       variables,
     );
     expect(subtitle).toBe("");
@@ -30,7 +52,11 @@ describe("runRowSubtitle", () => {
 
   it("shows the failure reason for failed runs", () => {
     const subtitle = runRowSubtitle(
-      { status: "failed", failureReason: "Cron timed out", triggerPayload: { customer: "Acme" } },
+      {
+        status: "failed",
+        failureReason: "Cron timed out",
+        triggerPayload: { customer: "Acme" },
+      },
       variables,
     );
     expect(subtitle).toBe("Cron timed out");
@@ -46,13 +72,20 @@ describe("runRowSubtitle", () => {
 
   it("returns empty when there is no payload", () => {
     expect(
-      runRowSubtitle({ status: "succeeded", failureReason: null, triggerPayload: null }, variables),
+      runRowSubtitle(
+        { status: "succeeded", failureReason: null, triggerPayload: null },
+        variables,
+      ),
     ).toBe("");
   });
 
   it("labels an activity-gated skip", () => {
     const subtitle = runRowSubtitle(
-      { status: "skipped", failureReason: "no_external_activity", triggerPayload: null },
+      {
+        status: "skipped",
+        failureReason: "no_external_activity",
+        triggerPayload: null,
+      },
       variables,
     );
     expect(subtitle).toBe("Skipped — no activity since last run");
@@ -60,13 +93,20 @@ describe("runRowSubtitle", () => {
 
   it("labels other known skip reasons", () => {
     expect(
-      runRowSubtitle({ status: "skipped", failureReason: "paused", triggerPayload: null }, variables),
+      runRowSubtitle(
+        { status: "skipped", failureReason: "paused", triggerPayload: null },
+        variables,
+      ),
     ).toBe("Skipped — routine paused");
   });
 
   it("falls back to variable values for a skip with no known reason", () => {
     const subtitle = runRowSubtitle(
-      { status: "skipped", failureReason: null, triggerPayload: { customer: "Acme" } },
+      {
+        status: "skipped",
+        failureReason: null,
+        triggerPayload: { customer: "Acme" },
+      },
       variables,
     );
     expect(subtitle).toBe('customer="Acme"');
@@ -75,11 +115,15 @@ describe("runRowSubtitle", () => {
 
 describe("dedupedTriggerLabel", () => {
   it("drops the label when it merely restates the kind", () => {
-    expect(dedupedTriggerLabel({ kind: "schedule", label: "schedule" })).toBeNull();
+    expect(
+      dedupedTriggerLabel({ kind: "schedule", label: "schedule" }),
+    ).toBeNull();
   });
 
   it("keeps a meaningful custom label", () => {
-    expect(dedupedTriggerLabel({ kind: "schedule", label: "Nightly sync" })).toBe("Nightly sync");
+    expect(
+      dedupedTriggerLabel({ kind: "schedule", label: "Nightly sync" }),
+    ).toBe("Nightly sync");
   });
 
   it("returns null for missing labels or triggers", () => {

@@ -2,7 +2,7 @@
 
 The semantic tool catalog is the transport-neutral surface an agent may call. It
 is a frozen set of JSON-schema descriptors — no HTTP method, path, or provider
-detail. Provider-specific shapes are produced only by *bindings*, so every
+detail. Provider-specific shapes are produced only by _bindings_, so every
 provider sees the same operation set.
 
 Each protocol action is single-sourced in its own module under
@@ -41,18 +41,18 @@ by src/catalog/catalog-docs.test.ts; update the catalog, not the numbers. -->
 
 ### Optional tools (26), by group
 
-| Group | Tools |
-| --- | --- |
-| discovery | `search_tasks`, `list_agents`, `list_projects`, `list_goals` |
-| delegation_dependencies | `create_task`, `reassign_task`, `set_dependencies` |
-| governance | `list_approvals`, `request_approval`, `decide_approval`, `comment_on_approval` |
-| cases | `list_cases`, `upsert_case` |
-| workspace_runtime | `get_workspace_runtime`, `control_workspace_service` |
-| routines | `list_routines`, `manage_routine` |
-| company_skills | `create_skill`, `update_skill`, `list_company_skills`, `sync_company_skills` |
-| secrets | `list_secret_metadata`, `read_secret_value` |
-| portability_admin | `export_company`, `administer_company` |
-| test_escape_hatch | `generic_api_request` |
+| Group                   | Tools                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| discovery               | `search_tasks`, `list_agents`, `list_projects`, `list_goals`                   |
+| delegation_dependencies | `create_task`, `reassign_task`, `set_dependencies`                             |
+| governance              | `list_approvals`, `request_approval`, `decide_approval`, `comment_on_approval` |
+| cases                   | `list_cases`, `upsert_case`                                                    |
+| workspace_runtime       | `get_workspace_runtime`, `control_workspace_service`                           |
+| routines                | `list_routines`, `manage_routine`                                              |
+| company_skills          | `create_skill`, `update_skill`, `list_company_skills`, `sync_company_skills`   |
+| secrets                 | `list_secret_metadata`, `read_secret_value`                                    |
+| portability_admin       | `export_company`, `administer_company`                                         |
+| test_escape_hatch       | `generic_api_request`                                                          |
 
 ## Descriptor shape
 
@@ -64,8 +64,8 @@ input/output JSON schemas, `disposition`, an optional `optionalGroup`,
 rules, and an abstract `mockCommandMapping`.
 
 The `mockCommandMapping` is one of `context_read`, `snapshot_read`,
-`semantic_command`, `operation_result`, or `mock_extension` — describing *what*
-the tool does against the mock, never *how* a transport would carry it.
+`semantic_command`, `operation_result`, or `mock_extension` — describing _what_
+the tool does against the mock, never _how_ a transport would carry it.
 
 ## Transport neutrality
 
@@ -73,9 +73,9 @@ Bindings, not descriptors, produce provider shapes, both derived from the same
 `visibleTools.tools` array:
 
 - `CapabilityFakeAgentToolBinding` emits `{operationId, description, inputSchema,
-  outputSchema}`.
+outputSchema}`.
 - `CapabilityCodexToolBinding` emits `{type: "function", name, description, strict:
-  true, parameters}`.
+true, parameters}`.
 
 Because both bindings derive from one array, the fake-agent and Codex operation
 surfaces are byte-identical. The [conformance suite](capability-eval-conformance.md)

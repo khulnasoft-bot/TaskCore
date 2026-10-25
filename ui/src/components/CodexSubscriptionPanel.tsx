@@ -8,11 +8,7 @@ interface CodexSubscriptionPanelProps {
   error?: string | null;
 }
 
-const WINDOW_PRIORITY = [
-  "5hlimit",
-  "weeklylimit",
-  "credits",
-] as const;
+const WINDOW_PRIORITY = ["5hlimit", "weeklylimit", "credits"] as const;
 
 function normalizeLabel(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -22,14 +18,22 @@ function orderedWindows(windows: QuotaWindow[]): QuotaWindow[] {
   return [...windows].sort((a, b) => {
     const aBase = normalizeLabel(a.label).replace(/^gpt53codexspark/, "");
     const bBase = normalizeLabel(b.label).replace(/^gpt53codexspark/, "");
-    const aIndex = WINDOW_PRIORITY.indexOf(aBase as (typeof WINDOW_PRIORITY)[number]);
-    const bIndex = WINDOW_PRIORITY.indexOf(bBase as (typeof WINDOW_PRIORITY)[number]);
-    return (aIndex === -1 ? WINDOW_PRIORITY.length : aIndex) - (bIndex === -1 ? WINDOW_PRIORITY.length : bIndex);
+    const aIndex = WINDOW_PRIORITY.indexOf(
+      aBase as (typeof WINDOW_PRIORITY)[number],
+    );
+    const bIndex = WINDOW_PRIORITY.indexOf(
+      bBase as (typeof WINDOW_PRIORITY)[number],
+    );
+    return (
+      (aIndex === -1 ? WINDOW_PRIORITY.length : aIndex) -
+      (bIndex === -1 ? WINDOW_PRIORITY.length : bIndex)
+    );
   });
 }
 
 function detailText(window: QuotaWindow): string | null {
-  if (typeof window.detail === "string" && window.detail.trim().length > 0) return window.detail.trim();
+  if (typeof window.detail === "string" && window.detail.trim().length > 0)
+    return window.detail.trim();
   if (!window.resetsAt) return null;
   const formatted = new Date(window.resetsAt).toLocaleString(undefined, {
     month: "short",
@@ -59,8 +63,12 @@ export function CodexSubscriptionPanel({
   error = null,
 }: CodexSubscriptionPanelProps) {
   const ordered = orderedWindows(windows);
-  const accountWindows = ordered.filter((window) => !isModelSpecific(window.label));
-  const modelWindows = ordered.filter((window) => isModelSpecific(window.label));
+  const accountWindows = ordered.filter(
+    (window) => !isModelSpecific(window.label),
+  );
+  const modelWindows = ordered.filter((window) =>
+    isModelSpecific(window.label),
+  );
 
   return (
     <div className="border border-border px-4 py-4">
@@ -121,9 +129,13 @@ function QuotaWindowRow({ window }: { window: QuotaWindow }) {
     return (
       <div className="border border-border px-3.5 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-medium text-foreground">{window.label}</div>
+          <div className="text-sm font-medium text-foreground">
+            {window.label}
+          </div>
           {window.valueLabel ? (
-            <div className="text-sm font-semibold tabular-nums text-foreground">{window.valueLabel}</div>
+            <div className="text-sm font-semibold tabular-nums text-foreground">
+              {window.valueLabel}
+            </div>
           ) : null}
         </div>
         {detail ? (
@@ -137,7 +149,9 @@ function QuotaWindowRow({ window }: { window: QuotaWindow }) {
     <div className="border border-border px-3.5 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-foreground">{window.label}</div>
+          <div className="text-sm font-medium text-foreground">
+            {window.label}
+          </div>
           {detail ? (
             <div className="mt-1 text-xs text-muted-foreground">{detail}</div>
           ) : null}
@@ -149,8 +163,13 @@ function QuotaWindowRow({ window }: { window: QuotaWindow }) {
 
       <div className="mt-3 h-2 overflow-hidden bg-muted">
         <div
-          className={cn("h-full transition-(--tp-width) duration-200", fillClass(window.usedPercent))}
-          style={{ width: `${Math.max(0, Math.min(100, window.usedPercent))}%` }}
+          className={cn(
+            "h-full transition-(--tp-width) duration-200",
+            fillClass(window.usedPercent),
+          )}
+          style={{
+            width: `${Math.max(0, Math.min(100, window.usedPercent))}%`,
+          }}
         />
       </div>
     </div>

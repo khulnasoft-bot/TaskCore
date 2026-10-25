@@ -47,9 +47,18 @@ export function issuePrefixSuffixForAttempt(attempt: number) {
 export function isIssuePrefixConflict(error: unknown) {
   const seen = new Set<unknown>();
   let current = error;
-  while (typeof current === "object" && current !== null && !seen.has(current)) {
+  while (
+    typeof current === "object" &&
+    current !== null &&
+    !seen.has(current)
+  ) {
     seen.add(current);
-    const maybe = current as { code?: string; constraint?: string; constraint_name?: string; cause?: unknown };
+    const maybe = current as {
+      code?: string;
+      constraint?: string;
+      constraint_name?: string;
+      cause?: unknown;
+    };
     const constraint = maybe.constraint ?? maybe.constraint_name;
     if (maybe.code === "23505" && constraint === "companies_issue_prefix_idx") {
       return true;
@@ -129,14 +138,25 @@ export async function rekeyCompanyIssueIdentifiers(
 
   const rekeyedIssues = await tx
     .update(issues)
-    .set({ identifier: sql`${toPrefix} || substring(${issues.identifier} from ${tailStart})` })
-    .where(and(eq(issues.companyId, companyId), matchesLegacyHead(issues.identifier)))
+    .set({
+      identifier: sql`${toPrefix} || substring(${issues.identifier} from ${tailStart})`,
+    })
+    .where(
+      and(
+        eq(issues.companyId, companyId),
+        matchesLegacyHead(issues.identifier),
+      ),
+    )
     .returning({ id: issues.id });
 
   const rekeyedCases = await tx
     .update(cases)
-    .set({ identifier: sql`${toPrefix} || substring(${cases.identifier} from ${tailStart})` })
-    .where(and(eq(cases.companyId, companyId), matchesLegacyHead(cases.identifier)))
+    .set({
+      identifier: sql`${toPrefix} || substring(${cases.identifier} from ${tailStart})`,
+    })
+    .where(
+      and(eq(cases.companyId, companyId), matchesLegacyHead(cases.identifier)),
+    )
     .returning({ id: cases.id });
 
   return { issues: rekeyedIssues.length, cases: rekeyedCases.length };

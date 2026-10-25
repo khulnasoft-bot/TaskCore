@@ -25,7 +25,9 @@ describe("adapter-defaults (built-in)", () => {
   });
 
   it("throws on unknown adapter type", () => {
-    expect(() => getAdapterDefaults("nonexistent_local")).toThrow(/unknown adapter type/i);
+    expect(() => getAdapterDefaults("nonexistent_local")).toThrow(
+      /unknown adapter type/i,
+    );
   });
 
   it("KNOWN_ADAPTER_TYPES contains all 6 supported adapters", () => {
@@ -88,7 +90,12 @@ describe("getAdapterDefaults", () => {
 
   it("throws when a supplied registry entry is missing runtimeImage", () => {
     const registry: AdapterRegistryEntry[] = [
-      { adapterType: "opencode_local", envKeys: [], allowFqdns: [], probeCommand: ["x"] },
+      {
+        adapterType: "opencode_local",
+        envKeys: [],
+        allowFqdns: [],
+        probeCommand: ["x"],
+      },
     ];
     expect(() => getAdapterDefaults("opencode_local", registry)).toThrow(
       /missing required runtime field: runtimeImage/,
@@ -113,7 +120,10 @@ describe("buildAdapterEnv", () => {
       envKeys: ["ANTHROPIC_API_KEY"],
       allowFqdns: [],
       probeCommand: ["x"],
-      defaultEnv: { ANTHROPIC_BASE_URL: "http://bifrost:8080", ANTHROPIC_API_KEY: "should-be-overridden" },
+      defaultEnv: {
+        ANTHROPIC_BASE_URL: "http://bifrost:8080",
+        ANTHROPIC_API_KEY: "should-be-overridden",
+      },
     };
     const env = buildAdapterEnv(defaults, { ANTHROPIC_API_KEY: "sk-real" });
     expect(env).toEqual({
@@ -135,14 +145,24 @@ describe("buildAdapterEnv", () => {
 
 describe("resolveRunAdapterType", () => {
   it("prefers the run/agent adapter when provided (mixed-harness env)", () => {
-    expect(resolveRunAdapterType("pi_local", "opencode_local")).toBe("pi_local");
+    expect(resolveRunAdapterType("pi_local", "opencode_local")).toBe(
+      "pi_local",
+    );
   });
   it("falls back to the environment default when the run adapter is missing/blank", () => {
-    expect(resolveRunAdapterType(undefined, "opencode_local")).toBe("opencode_local");
-    expect(resolveRunAdapterType(null, "opencode_local")).toBe("opencode_local");
-    expect(resolveRunAdapterType("   ", "opencode_local")).toBe("opencode_local");
+    expect(resolveRunAdapterType(undefined, "opencode_local")).toBe(
+      "opencode_local",
+    );
+    expect(resolveRunAdapterType(null, "opencode_local")).toBe(
+      "opencode_local",
+    );
+    expect(resolveRunAdapterType("   ", "opencode_local")).toBe(
+      "opencode_local",
+    );
   });
   it("trims the run adapter", () => {
-    expect(resolveRunAdapterType("  pi_local  ", "opencode_local")).toBe("pi_local");
+    expect(resolveRunAdapterType("  pi_local  ", "opencode_local")).toBe(
+      "pi_local",
+    );
   });
 });

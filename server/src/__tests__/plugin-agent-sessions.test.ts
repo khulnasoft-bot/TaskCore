@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { publishLiveEvent } from "../services/live-events.js";
 
 const mockWakeup = vi.hoisted(() => vi.fn());
-const mockHeartbeatService = vi.hoisted(() => vi.fn(() => ({ wakeup: mockWakeup })));
+const mockHeartbeatService = vi.hoisted(() =>
+  vi.fn(() => ({ wakeup: mockWakeup })),
+);
 
 vi.mock("../services/heartbeat.js", () => ({
   heartbeatService: mockHeartbeatService,
@@ -31,7 +33,8 @@ function createSessionLookupDb(session: {
   const query = {
     from: () => query,
     where: () => query,
-    then: (resolve: (rows: typeof session[]) => unknown) => Promise.resolve(resolve([session])),
+    then: (resolve: (rows: (typeof session)[]) => unknown) =>
+      Promise.resolve(resolve([session])),
   };
   return {
     select: () => query,

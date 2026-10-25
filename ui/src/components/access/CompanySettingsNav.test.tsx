@@ -5,7 +5,10 @@ import { flushSync } from "react-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "@/lib/queryKeys";
-import { CompanySettingsNav, getCompanySettingsTab } from "./CompanySettingsNav";
+import {
+  CompanySettingsNav,
+  getCompanySettingsTab,
+} from "./CompanySettingsNav";
 
 let currentPathname = "/company/settings";
 const navigateMock = vi.hoisted(() => vi.fn());
@@ -17,7 +20,9 @@ vi.mock("@/lib/router", () => ({
 }));
 
 vi.mock("@/components/ui/tabs", () => ({
-  Tabs: ({ children }: { children: React.ReactNode }) => <div data-testid="tabs-root">{children}</div>,
+  Tabs: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="tabs-root">{children}</div>
+  ),
 }));
 
 vi.mock("@/components/PageTabBar", () => ({
@@ -68,25 +73,49 @@ describe("CompanySettingsNav", () => {
   it("maps company settings routes to the expected shared tab value", () => {
     expect(getCompanySettingsTab("/company/settings")).toBe("general");
     expect(getCompanySettingsTab("/PAP/company/settings")).toBe("general");
-    expect(getCompanySettingsTab("/company/settings/environments")).toBe("instance-environments");
+    expect(getCompanySettingsTab("/company/settings/environments")).toBe(
+      "instance-environments",
+    );
     expect(getCompanySettingsTab("/company/export")).toBe("export");
     expect(getCompanySettingsTab("/PAP/company/export")).toBe("export");
     expect(getCompanySettingsTab("/company/import")).toBe("import");
     expect(getCompanySettingsTab("/PAP/company/import")).toBe("import");
     expect(getCompanySettingsTab("/company/settings/members")).toBe("members");
-    expect(getCompanySettingsTab("/PAP/company/settings/members")).toBe("members");
+    expect(getCompanySettingsTab("/PAP/company/settings/members")).toBe(
+      "members",
+    );
     expect(getCompanySettingsTab("/company/settings/access")).toBe("members");
-    expect(getCompanySettingsTab("/PAP/company/settings/access")).toBe("members");
+    expect(getCompanySettingsTab("/PAP/company/settings/access")).toBe(
+      "members",
+    );
     expect(getCompanySettingsTab("/company/settings/invites")).toBe("members");
-    expect(getCompanySettingsTab("/PAP/company/settings/secrets")).toBe("secrets");
-    expect(getCompanySettingsTab("/company/settings/instance/profile")).toBe("instance-profile");
-    expect(getCompanySettingsTab("/PAP/company/settings/instance/general")).toBe("general");
-    expect(getCompanySettingsTab("/company/settings/instance/environments")).toBe("instance-environments");
-    expect(getCompanySettingsTab("/company/settings/instance/access")).toBe("instance-access");
-    expect(getCompanySettingsTab("/PAP/company/settings/instance/access")).toBe("instance-access");
-    expect(getCompanySettingsTab("/company/settings/instance/experimental")).toBe("instance-experimental");
-    expect(getCompanySettingsTab("/PAP/company/settings/instance/plugins/example")).toBe("instance-plugins");
-    expect(getCompanySettingsTab("/company/settings/instance/adapters")).toBe("instance-adapters");
+    expect(getCompanySettingsTab("/PAP/company/settings/secrets")).toBe(
+      "secrets",
+    );
+    expect(getCompanySettingsTab("/company/settings/instance/profile")).toBe(
+      "instance-profile",
+    );
+    expect(
+      getCompanySettingsTab("/PAP/company/settings/instance/general"),
+    ).toBe("general");
+    expect(
+      getCompanySettingsTab("/company/settings/instance/environments"),
+    ).toBe("instance-environments");
+    expect(getCompanySettingsTab("/company/settings/instance/access")).toBe(
+      "instance-access",
+    );
+    expect(getCompanySettingsTab("/PAP/company/settings/instance/access")).toBe(
+      "instance-access",
+    );
+    expect(
+      getCompanySettingsTab("/company/settings/instance/experimental"),
+    ).toBe("instance-experimental");
+    expect(
+      getCompanySettingsTab("/PAP/company/settings/instance/plugins/example"),
+    ).toBe("instance-plugins");
+    expect(getCompanySettingsTab("/company/settings/instance/adapters")).toBe(
+      "instance-adapters",
+    );
   });
 
   function renderNav(
@@ -94,7 +123,9 @@ describe("CompanySettingsNav", () => {
     hiddenSettings?: string[],
     cloud?: { managed: boolean },
   ) {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     queryClient.setQueryData(queryKeys.health, {
       status: "ok",
       ...(hiddenSettings ? { hiddenSettings } : {}),
@@ -157,9 +188,9 @@ describe("CompanySettingsNav", () => {
       renderNav(root, ["instance.plugins"]);
     });
 
-    const renderedValues = pageTabBarMock.mock.calls.at(-1)?.[0]?.items?.map(
-      (item: { value: string }) => item.value,
-    );
+    const renderedValues = pageTabBarMock.mock.calls
+      .at(-1)?.[0]
+      ?.items?.map((item: { value: string }) => item.value);
     expect(renderedValues).toEqual([
       "general",
       "export",
@@ -186,9 +217,9 @@ describe("CompanySettingsNav", () => {
       renderNav(root, ["company.import", "company.secrets"]);
     });
 
-    const renderedValues = pageTabBarMock.mock.calls.at(-1)?.[0]?.items?.map(
-      (item: { value: string }) => item.value,
-    );
+    const renderedValues = pageTabBarMock.mock.calls
+      .at(-1)?.[0]
+      ?.items?.map((item: { value: string }) => item.value);
     expect(renderedValues).not.toContain("import");
     expect(renderedValues).not.toContain("secrets");
     expect(renderedValues).toContain("export");
@@ -207,9 +238,9 @@ describe("CompanySettingsNav", () => {
       renderNav(root, undefined, { managed: true });
     });
 
-    const renderedValues = pageTabBarMock.mock.calls.at(-1)?.[0]?.items?.map(
-      (item: { value: string }) => item.value,
-    );
+    const renderedValues = pageTabBarMock.mock.calls
+      .at(-1)?.[0]
+      ?.items?.map((item: { value: string }) => item.value);
     expect(renderedValues).not.toContain("import");
     expect(renderedValues).toContain("export");
 

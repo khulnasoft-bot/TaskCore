@@ -22,7 +22,8 @@ export function Conversation({
   const scrollToBottom = React.useCallback((smooth: boolean) => {
     const viewport = viewportRef.current;
     if (viewport === null) return;
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
     viewport.scrollTo({
       top: viewport.scrollHeight,
       behavior: smooth && !reduceMotion ? "smooth" : "auto",

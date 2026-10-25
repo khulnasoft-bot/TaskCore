@@ -28,7 +28,8 @@ vi.mock("@/api/tools", () => ({
     archiveConnection: (connectionId: string) =>
       archiveConnectionMock(connectionId),
     getCloudConnectorEnrollment: () => getCloudConnectorEnrollmentMock(),
-    startCloudConnectorEnrollment: (companyId: string, label?: string) => startCloudConnectorEnrollmentMock(companyId, label),
+    startCloudConnectorEnrollment: (companyId: string, label?: string) =>
+      startCloudConnectorEnrollmentMock(companyId, label),
   },
 }));
 
@@ -168,7 +169,9 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
     listConnectionsMock.mockResolvedValue({ connections: [] });
     listProfilesMock.mockResolvedValue({ profiles: [] });
     listUserDirectoryMock.mockResolvedValue({ users: [] });
-    archiveConnectionMock.mockResolvedValue(connection({ id: "c-deleted", status: "archived" }));
+    archiveConnectionMock.mockResolvedValue(
+      connection({ id: "c-deleted", status: "archived" }),
+    );
     getCloudConnectorEnrollmentMock.mockResolvedValue({
       configured: true,
       status: "active",
@@ -188,7 +191,9 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
   });
 
   async function renderApps() {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -218,14 +223,20 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
       tr.textContent?.includes("GitHub"),
     );
     row?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(mockNavigate).toHaveBeenCalledWith("/apps/app/app-github/permissions");
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/apps/app/app-github/permissions",
+    );
 
     mockNavigate.mockClear();
-    const connectButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Connect") && !button.textContent.includes("Connect an app"),
+    const connectButton = Array.from(container.querySelectorAll("button")).find(
+      (button) =>
+        button.textContent?.includes("Connect") &&
+        !button.textContent.includes("Connect an app"),
     );
     connectButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(mockNavigate).toHaveBeenCalledWith("/apps/app/app-github/permissions");
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/apps/app/app-github/permissions",
+    );
   });
 
   it("renders every account with its owner, status, actions, and direct edit navigation", async () => {
@@ -253,21 +264,41 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
           healthStatus: "error",
           lastUsedAt: new Date("2026-06-09T00:00:00Z"),
         }),
-        connection({ id: "c-attention-2", applicationId: "app-slack", name: "Slack Team", healthStatus: "healthy" }),
-        connection({ id: "c-paused", applicationId: "app-notion", name: "Notion", enabled: false }),
+        connection({
+          id: "c-attention-2",
+          applicationId: "app-slack",
+          name: "Slack Team",
+          healthStatus: "healthy",
+        }),
+        connection({
+          id: "c-paused",
+          applicationId: "app-notion",
+          name: "Notion",
+          enabled: false,
+        }),
       ],
     });
     listAppsAttentionMock.mockResolvedValue({
       apps: [
         {
-          connection: connection({ id: "c-attention", applicationId: "app-slack", name: "Slack", healthStatus: "error" }),
+          connection: connection({
+            id: "c-attention",
+            applicationId: "app-slack",
+            name: "Slack",
+            healthStatus: "error",
+          }),
           healthNeedsAttention: true,
           quarantinedCatalogEntryCount: 0,
           pendingActionRequestCount: 0,
           reasons: ["health"],
         },
         {
-          connection: connection({ id: "c-attention-2", applicationId: "app-slack", name: "Slack Team", healthStatus: "healthy" }),
+          connection: connection({
+            id: "c-attention-2",
+            applicationId: "app-slack",
+            name: "Slack Team",
+            healthStatus: "healthy",
+          }),
           healthNeedsAttention: false,
           quarantinedCatalogEntryCount: 1,
           pendingActionRequestCount: 0,
@@ -283,16 +314,18 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
       ],
     });
     listUserDirectoryMock.mockResolvedValue({
-      users: [{
-        principalId: "user-1",
-        status: "active",
-        user: {
-          id: "user-1",
-          name: "Dotta",
-          email: "dotta@example.com",
-          image: "https://example.com/dotta.png",
+      users: [
+        {
+          principalId: "user-1",
+          status: "active",
+          user: {
+            id: "user-1",
+            name: "Dotta",
+            email: "dotta@example.com",
+            image: "https://example.com/dotta.png",
+          },
         },
-      }],
+      ],
     });
 
     await renderApps();
@@ -308,8 +341,18 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
     expect(text).toContain("Needs attention (1)");
     expect(text).toContain("1 connection needs attention");
     // 3. New header columns are present.
-    const headers = Array.from(container.querySelectorAll("th")).map((th) => th.textContent?.trim());
-    expect(headers).toEqual(["Connection", "Type", "Connected by", "Status", "Actions", "Last used", ""]);
+    const headers = Array.from(container.querySelectorAll("th")).map((th) =>
+      th.textContent?.trim(),
+    );
+    expect(headers).toEqual([
+      "Connection",
+      "Type",
+      "Connected by",
+      "Status",
+      "Actions",
+      "Last used",
+      "",
+    ]);
     expect(text).toContain("Personal");
     expect(text).toContain("Organization");
     // 4. Actions column reflects enabled catalog entries per account; missing profile => 0 on.
@@ -318,16 +361,25 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
     // 5. Last used renders a relative timestamp when present, dash when absent.
     expect(text).toContain("—");
     // 6. Multi-account apps appear once per connection and edit the selected account directly.
-    expect(Array.from(container.querySelectorAll("tbody tr")).filter((tr) => tr.textContent?.includes("Slack"))).toHaveLength(2);
-    const slackRow = Array.from(container.querySelectorAll("tbody tr")).find((tr) =>
-      tr.textContent?.includes("Slack"),
+    expect(
+      Array.from(container.querySelectorAll("tbody tr")).filter((tr) =>
+        tr.textContent?.includes("Slack"),
+      ),
+    ).toHaveLength(2);
+    const slackRow = Array.from(container.querySelectorAll("tbody tr")).find(
+      (tr) => tr.textContent?.includes("Slack"),
     );
     slackRow?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(mockNavigate).toHaveBeenCalledWith("/apps/c-attention/permissions");
     // 7. Button labels are honest: broken health says Reconnect, healthy/paused say Edit.
     const rowButtonLabel = (name: string, exact = false) =>
       Array.from(container.querySelectorAll("tbody tr"))
-        .find((tr) => exact ? tr.textContent?.includes(name) && !tr.textContent?.includes("Slack Team") : tr.textContent?.includes(name))
+        .find((tr) =>
+          exact
+            ? tr.textContent?.includes(name) &&
+              !tr.textContent?.includes("Slack Team")
+            : tr.textContent?.includes(name),
+        )
         ?.querySelector("td:last-child button")?.textContent;
     expect(rowButtonLabel("GitHub")).toBe("Permissions");
     expect(rowButtonLabel("Slack", true)).toBe("Reconnect");
@@ -336,7 +388,9 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
     expect(text).toContain("Dotta’s GitHub");
     expect(text).toContain("Slack for the organization");
     expect(text).toContain("Slack Team for the organization");
-    expect(container.querySelector('[title="Dotta"] [data-slot="avatar"]')).toBeTruthy();
+    expect(
+      container.querySelector('[title="Dotta"] [data-slot="avatar"]'),
+    ).toBeTruthy();
     // Custom account labels remain untouched.
     expect(text).toContain("Slack Team");
   });
@@ -351,12 +405,22 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
       applications: [application({ id: "app-github", name: "GitHub" })],
     });
     listConnectionsMock.mockResolvedValue({
-      connections: [connection({ id: "c-healthy", applicationId: "app-github", healthStatus: "healthy" })],
+      connections: [
+        connection({
+          id: "c-healthy",
+          applicationId: "app-github",
+          healthStatus: "healthy",
+        }),
+      ],
     });
     listAppsAttentionMock.mockResolvedValue({
       apps: [
         {
-          connection: connection({ id: "c-healthy", applicationId: "app-github", healthStatus: "healthy" }),
+          connection: connection({
+            id: "c-healthy",
+            applicationId: "app-github",
+            healthStatus: "healthy",
+          }),
           healthNeedsAttention: false,
           quarantinedCatalogEntryCount: 2,
           pendingActionRequestCount: 0,
@@ -386,7 +450,13 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
       applications: [application({ id: "app-github", name: "GitHub" })],
     });
     listConnectionsMock.mockResolvedValue({
-      connections: [connection({ id: "c-github", applicationId: "app-github", name: "GitHub" })],
+      connections: [
+        connection({
+          id: "c-github",
+          applicationId: "app-github",
+          name: "GitHub",
+        }),
+      ],
     });
 
     await renderApps();
@@ -404,9 +474,9 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
     expect(archiveConnectionMock).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Delete GitHub connection?");
 
-    const confirmButton = Array.from(document.body.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Delete connection",
-    );
+    const confirmButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Delete connection");
     expect(confirmButton).toBeTruthy();
 
     await act(async () => {
@@ -424,15 +494,22 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
     );
   });
 
-
   it("reports the remaining active connections after deleting one", async () => {
     listApplicationsMock.mockResolvedValue({
       applications: [application({ id: "app-github", name: "GitHub" })],
     });
     listConnectionsMock.mockResolvedValue({
       connections: [
-        connection({ id: "c-github-primary", applicationId: "app-github", name: "GitHub" }),
-        connection({ id: "c-github-secondary", applicationId: "app-github", name: "GitHub Team" }),
+        connection({
+          id: "c-github-primary",
+          applicationId: "app-github",
+          name: "GitHub",
+        }),
+        connection({
+          id: "c-github-secondary",
+          applicationId: "app-github",
+          name: "GitHub Team",
+        }),
       ],
     });
 
@@ -449,9 +526,9 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
       "Agents can still use GitHub through 1 other active connection.",
     );
 
-    const confirmButton = Array.from(document.body.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Delete connection",
-    );
+    const confirmButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Delete connection");
     await act(async () => {
       confirmButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -473,7 +550,11 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
     });
     listConnectionsMock.mockResolvedValue({
       connections: [
-        connection({ id: "c-github-primary", applicationId: "app-github", name: "GitHub" }),
+        connection({
+          id: "c-github-primary",
+          applicationId: "app-github",
+          name: "GitHub",
+        }),
         connection({
           id: "c-github-disabled",
           applicationId: "app-github",
@@ -497,11 +578,13 @@ describe("Connections table (M1b / PAP-13254 door 2)", () => {
       "The saved credentials are deleted and agents lose access immediately.",
     );
     expect(document.body.textContent).toContain("needs a new sign-in or key");
-    expect(document.body.textContent).not.toContain("Agents can still use GitHub");
-
-    const confirmButton = Array.from(document.body.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Delete connection",
+    expect(document.body.textContent).not.toContain(
+      "Agents can still use GitHub",
     );
+
+    const confirmButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Delete connection");
     await act(async () => {
       confirmButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });

@@ -26,14 +26,14 @@ bytes against the supplied digest, and invokes that exact executable with
 `assertTaskcoreRunnerEvalCompatibility` checks the complete join before any
 provider process starts:
 
-| Dimension | V1 rule |
-| --- | --- |
-| Package | Exact package version matches loaded build metadata. |
-| Binary | runnerd package version and binary-artifact contract match the package. |
-| PRP | Package, runnerd, and consumer version ranges have a common version. |
-| Semantic catalog | Contract version and canonical content digest both match. |
-| Harness driver | Contract and negotiated PRP versions match and every required capability is explicitly true. |
-| Native output | Consumer and runnerd both select `taskcore-runner/native-execution/v1`. |
+| Dimension        | V1 rule                                                                                      |
+| ---------------- | -------------------------------------------------------------------------------------------- |
+| Package          | Exact package version matches loaded build metadata.                                         |
+| Binary           | runnerd package version and binary-artifact contract match the package.                      |
+| PRP              | Package, runnerd, and consumer version ranges have a common version.                         |
+| Semantic catalog | Contract version and canonical content digest both match.                                    |
+| Harness driver   | Contract and negotiated PRP versions match and every required capability is explicitly true. |
+| Native output    | Consumer and runnerd both select `taskcore-runner/native-execution/v1`.                      |
 
 Failures use `taskcore_runner_eval_incompatible` and include all detected
 component issues with expected and received values. A catalog, driver, or PRP

@@ -18,13 +18,16 @@ export type CompanySearchRateLimiter = {
   consume(actor: CompanySearchRateLimitActor): CompanySearchRateLimitResult;
 };
 
-export function createCompanySearchRateLimiter(options: {
-  windowMs?: number;
-  maxRequests?: number;
-  now?: () => number;
-} = {}): CompanySearchRateLimiter {
+export function createCompanySearchRateLimiter(
+  options: {
+    windowMs?: number;
+    maxRequests?: number;
+    now?: () => number;
+  } = {},
+): CompanySearchRateLimiter {
   const windowMs = options.windowMs ?? COMPANY_SEARCH_RATE_LIMIT_WINDOW_MS;
-  const maxRequests = options.maxRequests ?? COMPANY_SEARCH_RATE_LIMIT_MAX_REQUESTS;
+  const maxRequests =
+    options.maxRequests ?? COMPANY_SEARCH_RATE_LIMIT_MAX_REQUESTS;
   const now = options.now ?? Date.now;
   const hitsByKey = new Map<string, number[]>();
 
@@ -37,7 +40,9 @@ export function createCompanySearchRateLimiter(options: {
       const currentTime = now();
       const cutoff = currentTime - windowMs;
       const actorKey = key(actor);
-      const recentHits = (hitsByKey.get(actorKey) ?? []).filter((hit) => hit > cutoff);
+      const recentHits = (hitsByKey.get(actorKey) ?? []).filter(
+        (hit) => hit > cutoff,
+      );
 
       if (recentHits.length >= maxRequests) {
         const oldestHit = recentHits[0] ?? currentTime;
@@ -46,7 +51,10 @@ export function createCompanySearchRateLimiter(options: {
           allowed: false,
           limit: maxRequests,
           remaining: 0,
-          retryAfterSeconds: Math.max(1, Math.ceil((oldestHit + windowMs - currentTime) / 1000)),
+          retryAfterSeconds: Math.max(
+            1,
+            Math.ceil((oldestHit + windowMs - currentTime) / 1000),
+          ),
         };
       }
 

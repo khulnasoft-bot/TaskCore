@@ -85,7 +85,10 @@ function capabilityMatches(presented, expectedHash) {
   // Length is compared first because `timingSafeEqual` throws on a mismatch;
   // both operands are fixed-width digests, so this never short-circuits on a
   // secret-dependent branch.
-  return digest.length === expectedHash.length && timingSafeEqual(digest, expectedHash);
+  return (
+    digest.length === expectedHash.length &&
+    timingSafeEqual(digest, expectedHash)
+  );
 }
 
 function parseCookies(request) {
@@ -95,7 +98,10 @@ function parseCookies(request) {
   for (const segment of source.split(";")) {
     const separator = segment.indexOf("=");
     if (separator < 1) continue;
-    cookies.set(segment.slice(0, separator).trim(), segment.slice(separator + 1).trim());
+    cookies.set(
+      segment.slice(0, separator).trim(),
+      segment.slice(separator + 1).trim(),
+    );
   }
   return cookies;
 }
@@ -104,10 +110,19 @@ function presentedCapability(request, surface) {
   return parseCookies(request).get(CAPABILITY_COOKIES[surface]) ?? "";
 }
 
-function capabilityCookie(request, surface, value, maxAgeSeconds = CAPABILITY_MAX_AGE_SECONDS) {
+function capabilityCookie(
+  request,
+  surface,
+  value,
+  maxAgeSeconds = CAPABILITY_MAX_AGE_SECONDS,
+) {
   const forwardedProtocol = request.headers["x-forwarded-proto"];
-  const secure = String(Array.isArray(forwardedProtocol) ? forwardedProtocol[0] : forwardedProtocol ?? "")
-    .toLowerCase() === "https";
+  const secure =
+    String(
+      Array.isArray(forwardedProtocol)
+        ? forwardedProtocol[0]
+        : (forwardedProtocol ?? ""),
+    ).toLowerCase() === "https";
   return `${CAPABILITY_COOKIES[surface]}=${value}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly${
     secure ? "; Secure" : ""
   }; SameSite=Strict`;
@@ -117,17 +132,26 @@ async function importDistRunnerModule(relativePath) {
   return import(new URL(`../dist/${relativePath}`, import.meta.url).href);
 }
 
-export async function loadCapabilityIssueThreadRunner(importModule = importDistRunnerModule) {
-  const [cleanRoom, liveSession, turnStream, issueThread, fixtureState, liveConsole, devtools] =
-    await Promise.all([
-      importModule("live/clean-room.js"),
-      importModule("live/live-session.js"),
-      importModule("live/turn-stream.js"),
-      importModule("issue-thread/index.js"),
-      importModule("mock-core/capability-control-plane-types.js"),
-      importModule("mock-core/live-console-demo-server.js"),
-      importModule("devtools/index.js"),
-    ]);
+export async function loadCapabilityIssueThreadRunner(
+  importModule = importDistRunnerModule,
+) {
+  const [
+    cleanRoom,
+    liveSession,
+    turnStream,
+    issueThread,
+    fixtureState,
+    liveConsole,
+    devtools,
+  ] = await Promise.all([
+    importModule("live/clean-room.js"),
+    importModule("live/live-session.js"),
+    importModule("live/turn-stream.js"),
+    importModule("issue-thread/index.js"),
+    importModule("mock-core/capability-control-plane-types.js"),
+    importModule("mock-core/live-console-demo-server.js"),
+    importModule("devtools/index.js"),
+  ]);
 
   // This package-owned server intentionally depends on private demo/live modules.
   // Keep that dependency explicit instead of widening the package's public root.
@@ -135,9 +159,12 @@ export async function loadCapabilityIssueThreadRunner(importModule = importDistR
     CAPABILITY_TURN_STREAM_HEADERS: turnStream.CAPABILITY_TURN_STREAM_HEADERS,
     CAPABILITY_TURN_STREAM_SCHEMA: turnStream.CAPABILITY_TURN_STREAM_SCHEMA,
     CapabilityLiveSessionService: liveSession.CapabilityLiveSessionService,
-    InMemoryCapabilityLiveSessionStore: liveSession.InMemoryCapabilityLiveSessionStore,
-    assertLiveConsoleLoopbackBindHost: liveConsole.assertLiveConsoleLoopbackBindHost,
-    createCapabilityCleanRoomSessionInput: cleanRoom.createCapabilityCleanRoomSessionInput,
+    InMemoryCapabilityLiveSessionStore:
+      liveSession.InMemoryCapabilityLiveSessionStore,
+    assertLiveConsoleLoopbackBindHost:
+      liveConsole.assertLiveConsoleLoopbackBindHost,
+    createCapabilityCleanRoomSessionInput:
+      cleanRoom.createCapabilityCleanRoomSessionInput,
     createCapabilityFixtureState: fixtureState.createCapabilityFixtureState,
     encodeCapabilityTurnStreamFrame: turnStream.encodeCapabilityTurnStreamFrame,
     projectCapabilityIssueThread: issueThread.projectCapabilityIssueThread,
@@ -147,10 +174,17 @@ export async function loadCapabilityIssueThreadRunner(importModule = importDistR
 }
 
 function scratchRoot() {
-  return process.env.TASKCORE_RUN_SCRATCH_DIR ?? process.env.TASKCORE_SCRATCH_DIR ?? tmpdir();
+  return (
+    process.env.TASKCORE_RUN_SCRATCH_DIR ??
+    process.env.TASKCORE_SCRATCH_DIR ??
+    tmpdir()
+  );
 }
 
-async function createWorkingDirectory(root, prefix = "capability-issue-thread-") {
+async function createWorkingDirectory(
+  root,
+  prefix = "capability-issue-thread-",
+) {
   // Managed previews can outlive the heartbeat that launched them. Taskcore
   // removes that heartbeat's scratch directory when the run ends, so ensure
   // the inherited parent still exists before every later session is minted.
@@ -162,7 +196,11 @@ async function createWorkingDirectory(root, prefix = "capability-issue-thread-")
 function issueThreadSeed(runner, scenario) {
   return runner.createCapabilityFixtureState({
     epochMs: Date.UTC(2026, 7, 9, 9, 0, 0),
-    company: { id: "company-1", name: "Mock Taskcore Company", issuePrefix: "MCK" },
+    company: {
+      id: "company-1",
+      name: "Mock Taskcore Company",
+      issuePrefix: "MCK",
+    },
     actors: [
       {
         id: "actor-1",
@@ -204,82 +242,171 @@ class RouteError extends Error {
 }
 
 function harnessConfiguration(source, fallbackModel) {
-  const provider = source.provider === undefined ? "codex" : String(source.provider).trim();
-  if (provider !== "codex" && provider !== "opencode" && provider !== "claude_managed" && provider !== "aws_agentcore" && provider !== "acpx") {
-    throw new RouteError(400, "invalid_provider", "Provider must be codex, opencode, claude_managed, aws_agentcore, or acpx.");
+  const provider =
+    source.provider === undefined ? "codex" : String(source.provider).trim();
+  if (
+    provider !== "codex" &&
+    provider !== "opencode" &&
+    provider !== "claude_managed" &&
+    provider !== "aws_agentcore" &&
+    provider !== "acpx"
+  ) {
+    throw new RouteError(
+      400,
+      "invalid_provider",
+      "Provider must be codex, opencode, claude_managed, aws_agentcore, or acpx.",
+    );
   }
   const rawModel = source.model === undefined ? fallbackModel : source.model;
-  const model = rawModel === undefined || rawModel === null ? "" : String(rawModel).trim();
-  if (model.length > 256) throw new RouteError(400, "invalid_model", "Model is too long.");
+  const model =
+    rawModel === undefined || rawModel === null ? "" : String(rawModel).trim();
+  if (model.length > 256)
+    throw new RouteError(400, "invalid_model", "Model is too long.");
   if (provider === "opencode" && (!model || !model.includes("/"))) {
-    throw new RouteError(400, "invalid_model", "OpenCode requires a provider/model value.");
+    throw new RouteError(
+      400,
+      "invalid_model",
+      "OpenCode requires a provider/model value.",
+    );
   }
   if (provider === "claude_managed" && model !== "claude-sonnet-5") {
-    throw new RouteError(400, "invalid_model", "Claude Managed requires exact model claude-sonnet-5.");
+    throw new RouteError(
+      400,
+      "invalid_model",
+      "Claude Managed requires exact model claude-sonnet-5.",
+    );
   }
-  if (provider === "aws_agentcore" && model !== "global.anthropic.claude-sonnet-4-6") {
-    throw new RouteError(400, "invalid_model", "AWS AgentCore requires exact model global.anthropic.claude-sonnet-4-6.");
+  if (
+    provider === "aws_agentcore" &&
+    model !== "global.anthropic.claude-sonnet-4-6"
+  ) {
+    throw new RouteError(
+      400,
+      "invalid_model",
+      "AWS AgentCore requires exact model global.anthropic.claude-sonnet-4-6.",
+    );
   }
-  const acpxAgent = source.acpxAgent === undefined ? "codex" : String(source.acpxAgent).trim();
+  const acpxAgent =
+    source.acpxAgent === undefined ? "codex" : String(source.acpxAgent).trim();
   if (provider === "acpx") {
     if (!ACPX_AGENTS.has(acpxAgent)) {
-      throw new RouteError(400, "invalid_acpx_agent", "ACPX agent must be claude or codex.");
+      throw new RouteError(
+        400,
+        "invalid_acpx_agent",
+        "ACPX agent must be claude or codex.",
+      );
     }
     if (!model) {
-      throw new RouteError(400, "invalid_model", "ACPX requires an explicit model.");
+      throw new RouteError(
+        400,
+        "invalid_model",
+        "ACPX requires an explicit model.",
+      );
     }
   }
-  const requestedManagedProfileId = source.managedProfileId === undefined || source.managedProfileId === null
-    ? "default"
-    : String(source.managedProfileId).trim();
-  const configuredManagedProfileId = process.env.TASKCORE_CLAUDE_MANAGED_PROFILE_ID?.trim();
-  const managedProfileId = provider === "claude_managed" && requestedManagedProfileId === "default" && configuredManagedProfileId
-    ? configuredManagedProfileId
-    : requestedManagedProfileId;
-  const maxSessionListCostUsd = source.maxSessionListCostUsd === undefined || source.maxSessionListCostUsd === null
-    ? 1
-    : Number(source.maxSessionListCostUsd);
+  const requestedManagedProfileId =
+    source.managedProfileId === undefined || source.managedProfileId === null
+      ? "default"
+      : String(source.managedProfileId).trim();
+  const configuredManagedProfileId =
+    process.env.TASKCORE_CLAUDE_MANAGED_PROFILE_ID?.trim();
+  const managedProfileId =
+    provider === "claude_managed" &&
+    requestedManagedProfileId === "default" &&
+    configuredManagedProfileId
+      ? configuredManagedProfileId
+      : requestedManagedProfileId;
+  const maxSessionListCostUsd =
+    source.maxSessionListCostUsd === undefined ||
+    source.maxSessionListCostUsd === null
+      ? 1
+      : Number(source.maxSessionListCostUsd);
   if (provider === "claude_managed" && !managedProfileId) {
-    throw new RouteError(400, "invalid_managed_profile", "Claude Managed requires a qualified profile ID.");
+    throw new RouteError(
+      400,
+      "invalid_managed_profile",
+      "Claude Managed requires a qualified profile ID.",
+    );
   }
-  if (provider === "claude_managed" && (!Number.isFinite(maxSessionListCostUsd) || maxSessionListCostUsd <= 0)) {
-    throw new RouteError(400, "invalid_spend_cap", "Claude Managed requires a positive session spend ceiling.");
+  if (
+    provider === "claude_managed" &&
+    (!Number.isFinite(maxSessionListCostUsd) || maxSessionListCostUsd <= 0)
+  ) {
+    throw new RouteError(
+      400,
+      "invalid_spend_cap",
+      "Claude Managed requires a positive session spend ceiling.",
+    );
   }
-  const requestedAgentCoreProfileId = source.agentCoreProfileId === undefined || source.agentCoreProfileId === null
-    ? "default"
-    : String(source.agentCoreProfileId).trim();
-  const configuredAgentCoreProfileId = process.env.TASKCORE_AWS_AGENTCORE_PROFILE_ID?.trim();
-  const agentCoreProfileId = provider === "aws_agentcore" && requestedAgentCoreProfileId === "default" && configuredAgentCoreProfileId
-    ? configuredAgentCoreProfileId
-    : requestedAgentCoreProfileId;
-  const maxEstimatedSessionCostUsd = source.maxEstimatedSessionCostUsd === undefined || source.maxEstimatedSessionCostUsd === null
-    ? 1
-    : Number(source.maxEstimatedSessionCostUsd);
+  const requestedAgentCoreProfileId =
+    source.agentCoreProfileId === undefined ||
+    source.agentCoreProfileId === null
+      ? "default"
+      : String(source.agentCoreProfileId).trim();
+  const configuredAgentCoreProfileId =
+    process.env.TASKCORE_AWS_AGENTCORE_PROFILE_ID?.trim();
+  const agentCoreProfileId =
+    provider === "aws_agentcore" &&
+    requestedAgentCoreProfileId === "default" &&
+    configuredAgentCoreProfileId
+      ? configuredAgentCoreProfileId
+      : requestedAgentCoreProfileId;
+  const maxEstimatedSessionCostUsd =
+    source.maxEstimatedSessionCostUsd === undefined ||
+    source.maxEstimatedSessionCostUsd === null
+      ? 1
+      : Number(source.maxEstimatedSessionCostUsd);
   if (provider === "aws_agentcore" && !agentCoreProfileId) {
-    throw new RouteError(400, "invalid_agentcore_profile", "AWS AgentCore requires a qualified profile ID.");
+    throw new RouteError(
+      400,
+      "invalid_agentcore_profile",
+      "AWS AgentCore requires a qualified profile ID.",
+    );
   }
-  if (provider === "aws_agentcore" && (!Number.isFinite(maxEstimatedSessionCostUsd) || maxEstimatedSessionCostUsd <= 0)) {
-    throw new RouteError(400, "invalid_spend_cap", "AWS AgentCore requires a positive session spend ceiling.");
+  if (
+    provider === "aws_agentcore" &&
+    (!Number.isFinite(maxEstimatedSessionCostUsd) ||
+      maxEstimatedSessionCostUsd <= 0)
+  ) {
+    throw new RouteError(
+      400,
+      "invalid_spend_cap",
+      "AWS AgentCore requires a positive session spend ceiling.",
+    );
   }
-  const suppliedLifecycle = source.lifecyclePolicy && typeof source.lifecyclePolicy === "object"
-    ? source.lifecyclePolicy
-    : source;
-  const lifecycleMode = suppliedLifecycle.mode === undefined
-    ? source.lifecycleMode === undefined ? "warm" : String(source.lifecycleMode).trim()
-    : String(suppliedLifecycle.mode).trim();
+  const suppliedLifecycle =
+    source.lifecyclePolicy && typeof source.lifecyclePolicy === "object"
+      ? source.lifecyclePolicy
+      : source;
+  const lifecycleMode =
+    suppliedLifecycle.mode === undefined
+      ? source.lifecycleMode === undefined
+        ? "warm"
+        : String(source.lifecycleMode).trim()
+      : String(suppliedLifecycle.mode).trim();
   if (lifecycleMode !== "per_turn" && lifecycleMode !== "warm") {
-    throw new RouteError(400, "invalid_lifecycle_mode", "Execution mode must be per_turn or warm.");
+    throw new RouteError(
+      400,
+      "invalid_lifecycle_mode",
+      "Execution mode must be per_turn or warm.",
+    );
   }
   let lifecyclePolicy;
   if (lifecycleMode === "per_turn") {
     lifecyclePolicy = { mode: "per_turn", idleTimeoutMs: null };
   } else {
-    const rawIdleTimeout = suppliedLifecycle.idleTimeoutMs === undefined
-      ? source.idleTimeoutMs
-      : suppliedLifecycle.idleTimeoutMs;
-    const idleTimeoutMs = rawIdleTimeout === undefined ? 300_000 : Number(rawIdleTimeout);
+    const rawIdleTimeout =
+      suppliedLifecycle.idleTimeoutMs === undefined
+        ? source.idleTimeoutMs
+        : suppliedLifecycle.idleTimeoutMs;
+    const idleTimeoutMs =
+      rawIdleTimeout === undefined ? 300_000 : Number(rawIdleTimeout);
     if (!Number.isSafeInteger(idleTimeoutMs) || idleTimeoutMs <= 0) {
-      throw new RouteError(400, "invalid_idle_timeout", "Warm idle timeout must be a positive integer.");
+      throw new RouteError(
+        400,
+        "invalid_idle_timeout",
+        "Warm idle timeout must be a positive integer.",
+      );
     }
     lifecyclePolicy = { mode: "warm", idleTimeoutMs };
   }
@@ -287,24 +414,41 @@ function harnessConfiguration(source, fallbackModel) {
     provider,
     model: model || null,
     ...(provider === "acpx" ? { acpxAgent } : {}),
-    ...(provider === "claude_managed" ? { managedProfileId, maxSessionListCostUsd } : {}),
-    ...(provider === "aws_agentcore" ? { agentCoreProfileId, maxEstimatedSessionCostUsd } : {}),
+    ...(provider === "claude_managed"
+      ? { managedProfileId, maxSessionListCostUsd }
+      : {}),
+    ...(provider === "aws_agentcore"
+      ? { agentCoreProfileId, maxEstimatedSessionCostUsd }
+      : {}),
     lifecyclePolicy,
   };
 }
 
 function resolveManagedProfile(configuration) {
-  const profileId = process.env.TASKCORE_CLAUDE_MANAGED_PROFILE_ID?.trim() || configuration.managedProfileId;
+  const profileId =
+    process.env.TASKCORE_CLAUDE_MANAGED_PROFILE_ID?.trim() ||
+    configuration.managedProfileId;
   if (profileId !== configuration.managedProfileId) {
-    throw new RouteError(400, "managed_profile_not_found", "The selected Claude Managed profile is not configured on this Runner Lab server.");
+    throw new RouteError(
+      400,
+      "managed_profile_not_found",
+      "The selected Claude Managed profile is not configured on this Runner Lab server.",
+    );
   }
   const anthropicAgentId = process.env.ANTHROPIC_MANAGED_AGENT_ID?.trim();
   const agentVersion = process.env.ANTHROPIC_MANAGED_AGENT_VERSION?.trim();
   const environmentId = process.env.ANTHROPIC_MANAGED_ENVIRONMENT_ID?.trim();
-  const canonicalAgentVersion = agentVersion !== undefined
-    && /^[1-9][0-9]*$/.test(agentVersion)
-    && BigInt(agentVersion) <= 2_147_483_647n;
-  if (!process.env.ANTHROPIC_API_KEY || !profileId || !anthropicAgentId || !canonicalAgentVersion || !environmentId) {
+  const canonicalAgentVersion =
+    agentVersion !== undefined &&
+    /^[1-9][0-9]*$/.test(agentVersion) &&
+    BigInt(agentVersion) <= 2_147_483_647n;
+  if (
+    !process.env.ANTHROPIC_API_KEY ||
+    !profileId ||
+    !anthropicAgentId ||
+    !canonicalAgentVersion ||
+    !environmentId
+  ) {
     throw new RouteError(
       503,
       "managed_profile_unavailable",
@@ -324,12 +468,21 @@ function resolveManagedProfile(configuration) {
 function resolveAgentCoreProfile(configuration) {
   const required = (name) => {
     const value = process.env[name]?.trim();
-    if (!value) throw new RouteError(503, "agentcore_profile_unavailable", `AWS AgentCore profile is missing ${name}. Run aws-agentcore:provision and aws-agentcore:lab.`);
+    if (!value)
+      throw new RouteError(
+        503,
+        "agentcore_profile_unavailable",
+        `AWS AgentCore profile is missing ${name}. Run aws-agentcore:provision and aws-agentcore:lab.`,
+      );
     return value;
   };
   const profileId = required("TASKCORE_AWS_AGENTCORE_PROFILE_ID");
   if (profileId !== configuration.agentCoreProfileId) {
-    throw new RouteError(400, "agentcore_profile_not_found", "The selected AWS AgentCore profile is not configured on this Runner Lab server.");
+    throw new RouteError(
+      400,
+      "agentcore_profile_not_found",
+      "The selected AWS AgentCore profile is not configured on this Runner Lab server.",
+    );
   }
   return {
     profileId,
@@ -346,7 +499,9 @@ function resolveAgentCoreProfile(configuration) {
     contextBucket: required("TASKCORE_AWS_AGENTCORE_CONTEXT_BUCKET"),
     contextPrefix: required("TASKCORE_AWS_AGENTCORE_CONTEXT_PREFIX"),
     contextKmsKeyArn: required("TASKCORE_AWS_AGENTCORE_CONTEXT_KMS_KEY_ARN"),
-    qualificationRevision: required("TASKCORE_AWS_AGENTCORE_QUALIFICATION_REVISION"),
+    qualificationRevision: required(
+      "TASKCORE_AWS_AGENTCORE_QUALIFICATION_REVISION",
+    ),
     eventExpiryDays: 90,
     maxEstimatedSessionCostUsd: configuration.maxEstimatedSessionCostUsd,
     maxIterations: 8,
@@ -389,7 +544,8 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       const runner = await load();
       runner.assertLiveConsoleLoopbackBindHost(bindHost);
       const workingDirectory =
-        options.workingDirectory ?? (await createWorkingDirectory(workingDirectoryRoot));
+        options.workingDirectory ??
+        (await createWorkingDirectory(workingDirectoryRoot));
       const service = new runner.CapabilityLiveSessionService({
         store: new runner.InMemoryCapabilityLiveSessionStore(),
         ...(options.transportFactory === undefined
@@ -418,7 +574,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       fixtureProfile: entry.scenario,
     });
     return runner.toCapabilityPublicThreadView(projected, {
-      withheldValues: [snapshot.providerThreadId, snapshot.providerSessionId ?? ""],
+      withheldValues: [
+        snapshot.providerThreadId,
+        snapshot.providerSessionId ?? "",
+      ],
     });
   }
 
@@ -430,16 +589,20 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
   function liveView(runner, entry) {
     const snapshot = entry.session.snapshot();
     const provider = snapshot.config.provider ?? "codex";
-    const expectedAgentLabel = provider === "claude_managed" ? "Claude Agent"
-      : provider === "opencode" ? "Real OpenCode"
-      : provider === "aws_agentcore" ? "Real AWS AgentCore"
-      : provider === "acpx"
-        ? `Real ${snapshot.config.acpxAgent === "claude" ? "Claude" : snapshot.config.acpxAgent === "codex" ? "Codex" : "Pi"} via ACPX`
-        : "Real Codex";
+    const expectedAgentLabel =
+      provider === "claude_managed"
+        ? "Claude Agent"
+        : provider === "opencode"
+          ? "Real OpenCode"
+          : provider === "aws_agentcore"
+            ? "Real AWS AgentCore"
+            : provider === "acpx"
+              ? `Real ${snapshot.config.acpxAgent === "claude" ? "Claude" : snapshot.config.acpxAgent === "codex" ? "Codex" : "Pi"} via ACPX`
+              : "Real Codex";
     const projected = view(runner, entry);
     if (
-      projected.mode !== "live"
-      || projected.identity.agentLabel !== expectedAgentLabel
+      projected.mode !== "live" ||
+      projected.identity.agentLabel !== expectedAgentLabel
     ) {
       throw new RouteError(
         500,
@@ -456,7 +619,11 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     for await (const chunk of request) {
       total += chunk.length;
       if (total > MAX_MESSAGE_BYTES * 4) {
-        throw new RouteError(413, "request_too_large", "Request body exceeds the server limit.");
+        throw new RouteError(
+          413,
+          "request_too_large",
+          "Request body exceeds the server limit.",
+        );
       }
       chunks.push(chunk);
     }
@@ -474,7 +641,13 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     response.end(JSON.stringify(payload));
   }
 
-  async function createSession(runner, service, scenario, workingDirectory, capabilityHash) {
+  async function createSession(
+    runner,
+    service,
+    scenario,
+    workingDirectory,
+    capabilityHash,
+  ) {
     const session = await service.create({
       seed: issueThreadSeed(runner, scenario),
       workingDirectory,
@@ -482,7 +655,9 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       taskId: "task-31",
       actorId: "actor-1",
       companyId: "company-1",
-      ...(options.requestedModel === undefined ? {} : { requestedModel: options.requestedModel }),
+      ...(options.requestedModel === undefined
+        ? {}
+        : { requestedModel: options.requestedModel }),
     });
     const entry = {
       session,
@@ -505,7 +680,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     const entry = sessions.get(sessionId);
     if (entry === undefined) return;
     await service.stop(sessionId, reason).catch(() => undefined);
-    entry.connection = { state: "suspended", attempt: entry.connection.attempt };
+    entry.connection = {
+      state: "suspended",
+      attempt: entry.connection.attempt,
+    };
   }
 
   /**
@@ -522,20 +700,32 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     }
   }
 
-  async function createCleanRoomSession(runner, service, capabilityHash, configuration) {
-    const open = [...sessions.values()].filter((entry) =>
-      entry.surface === "cleanroom" && entry.session.snapshot().status !== "suspended",
+  async function createCleanRoomSession(
+    runner,
+    service,
+    capabilityHash,
+    configuration,
+  ) {
+    const open = [...sessions.values()].filter(
+      (entry) =>
+        entry.surface === "cleanroom" &&
+        entry.session.snapshot().status !== "suspended",
     );
     // Bounded concurrency: the oldest clean room yields rather than refusing a
     // new board user, because an abandoned chat is the likelier tenant here.
-    for (const stale of open.slice(0, Math.max(0, open.length - (MAX_CLEAN_ROOM_SESSIONS - 1)))) {
+    for (const stale of open.slice(
+      0,
+      Math.max(0, open.length - (MAX_CLEAN_ROOM_SESSIONS - 1)),
+    )) {
       await retire(service, stale.session.id, "clean-room capacity");
     }
     const workingDirectory = await createWorkingDirectory(
       workingDirectoryRoot,
       "capability-clean-room-",
     );
-    const { identity, input } = runner.createCapabilityCleanRoomSessionInput({ workingDirectory });
+    const { identity, input } = runner.createCapabilityCleanRoomSessionInput({
+      workingDirectory,
+    });
     let session;
     try {
       session = await service.create({
@@ -544,15 +734,21 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
         ...(configuration.provider === "claude_managed"
           ? { managedProfile: resolveManagedProfile(configuration) }
           : {}),
-        ...(configuration.provider === "acpx" ? { acpxAgent: configuration.acpxAgent } : {}),
+        ...(configuration.provider === "acpx"
+          ? { acpxAgent: configuration.acpxAgent }
+          : {}),
         ...(configuration.provider === "aws_agentcore"
           ? { agentCoreProfile: resolveAgentCoreProfile(configuration) }
           : {}),
         lifecyclePolicy: configuration.lifecyclePolicy,
-        ...(configuration.model === null ? {} : { requestedModel: configuration.model }),
+        ...(configuration.model === null
+          ? {}
+          : { requestedModel: configuration.model }),
       });
     } catch (error) {
-      await rm(workingDirectory, { recursive: true, force: true }).catch(() => undefined);
+      await rm(workingDirectory, { recursive: true, force: true }).catch(
+        () => undefined,
+      );
       throw error;
     }
     const entry = {
@@ -577,25 +773,39 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     const configuration = {
       provider: snapshot.config.provider ?? "codex",
       model: snapshot.config.requestedModel ?? null,
-      ...(snapshot.config.managedProfile === undefined ? {} : {
-        managedProfileId: snapshot.config.managedProfile.profileId,
-        maxSessionListCostUsd: snapshot.config.managedProfile.maxSessionListCostUsd,
-      }),
-      ...(snapshot.config.agentCoreProfile === undefined ? {} : {
-        agentCoreProfileId: snapshot.config.agentCoreProfile.profileId,
-        maxEstimatedSessionCostUsd: snapshot.config.agentCoreProfile.maxEstimatedSessionCostUsd,
-      }),
-      lifecyclePolicy: snapshot.config.lifecyclePolicy ?? { mode: "per_turn", idleTimeoutMs: null },
+      ...(snapshot.config.managedProfile === undefined
+        ? {}
+        : {
+            managedProfileId: snapshot.config.managedProfile.profileId,
+            maxSessionListCostUsd:
+              snapshot.config.managedProfile.maxSessionListCostUsd,
+          }),
+      ...(snapshot.config.agentCoreProfile === undefined
+        ? {}
+        : {
+            agentCoreProfileId: snapshot.config.agentCoreProfile.profileId,
+            maxEstimatedSessionCostUsd:
+              snapshot.config.agentCoreProfile.maxEstimatedSessionCostUsd,
+          }),
+      lifecyclePolicy: snapshot.config.lifecyclePolicy ?? {
+        mode: "per_turn",
+        idleTimeoutMs: null,
+      },
     };
     if (
-      entry.configuration !== undefined
-      && (entry.configuration.provider !== configuration.provider
-        || entry.configuration.model !== configuration.model
-        || entry.configuration.managedProfileId !== configuration.managedProfileId
-        || entry.configuration.maxSessionListCostUsd !== configuration.maxSessionListCostUsd
-        || entry.configuration.agentCoreProfileId !== configuration.agentCoreProfileId
-        || entry.configuration.maxEstimatedSessionCostUsd !== configuration.maxEstimatedSessionCostUsd
-        || JSON.stringify(entry.configuration.lifecyclePolicy) !== JSON.stringify(configuration.lifecyclePolicy))
+      entry.configuration !== undefined &&
+      (entry.configuration.provider !== configuration.provider ||
+        entry.configuration.model !== configuration.model ||
+        entry.configuration.managedProfileId !==
+          configuration.managedProfileId ||
+        entry.configuration.maxSessionListCostUsd !==
+          configuration.maxSessionListCostUsd ||
+        entry.configuration.agentCoreProfileId !==
+          configuration.agentCoreProfileId ||
+        entry.configuration.maxEstimatedSessionCostUsd !==
+          configuration.maxEstimatedSessionCostUsd ||
+        JSON.stringify(entry.configuration.lifecyclePolicy) !==
+          JSON.stringify(configuration.lifecyclePolicy))
     ) {
       throw new RouteError(
         500,
@@ -607,23 +817,35 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       sessionId: entry.session.id,
       surface: "cleanroom",
       identity: entry.identity,
-      limits: { maxTurns: MAX_TURNS_PER_SESSION, maxMessageBytes: MAX_MESSAGE_BYTES },
+      limits: {
+        maxTurns: MAX_TURNS_PER_SESSION,
+        maxMessageBytes: MAX_MESSAGE_BYTES,
+      },
       turns: entry.turns,
       configuration,
       runtime: {
         providerSessionId: snapshot.providerSessionId ?? null,
         driverSessionId: snapshot.providerThreadId ?? null,
         runnerPid: snapshot.process?.runnerPid ?? null,
-        providerPid: configuration.provider === "claude_managed" || configuration.provider === "aws_agentcore"
-          ? null
-          : snapshot.process?.providerPid ?? snapshot.process?.codexPid ?? null,
+        providerPid:
+          configuration.provider === "claude_managed" ||
+          configuration.provider === "aws_agentcore"
+            ? null
+            : (snapshot.process?.providerPid ??
+              snapshot.process?.codexPid ??
+              null),
         sidecarPid: snapshot.process?.sidecarPid ?? null,
         agentPid: snapshot.process?.agentPid ?? null,
         providerVersion: snapshot.process?.providerVersion ?? null,
         agentServerVersion: snapshot.process?.agentServerVersion ?? null,
         agentRuntimeVersion: snapshot.process?.agentRuntimeVersion ?? null,
         acpProtocolVersion: snapshot.process?.acpProtocolVersion ?? null,
-        executionKind: snapshot.process?.providerExecutionKind ?? (configuration.provider === "claude_managed" || configuration.provider === "aws_agentcore" ? "remote_service" : "local_process"),
+        executionKind:
+          snapshot.process?.providerExecutionKind ??
+          (configuration.provider === "claude_managed" ||
+          configuration.provider === "aws_agentcore"
+            ? "remote_service"
+            : "local_process"),
         status: snapshot.status,
       },
       view: liveView(runner, entry),
@@ -633,12 +855,18 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
   function payload(runner, entry) {
     return entry.surface === "cleanroom"
       ? cleanRoomPayload(runner, entry)
-      : { sessionId: entry.session.id, surface: "issue", view: view(runner, entry) };
+      : {
+          sessionId: entry.session.id,
+          surface: "issue",
+          view: view(runner, entry),
+        };
   }
 
   /** The clean room keeps its live-only guard on every frame, not just the last. */
   function frameView(runner, entry) {
-    return entry.surface === "cleanroom" ? liveView(runner, entry) : view(runner, entry);
+    return entry.surface === "cleanroom"
+      ? liveView(runner, entry)
+      : view(runner, entry);
   }
 
   /**
@@ -658,7 +886,9 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
    */
   async function streamTurn(runner, entry, message, request, response) {
     response.statusCode = 200;
-    for (const [name, value] of Object.entries(runner.CAPABILITY_TURN_STREAM_HEADERS)) {
+    for (const [name, value] of Object.entries(
+      runner.CAPABILITY_TURN_STREAM_HEADERS,
+    )) {
       response.setHeader(name, value);
     }
     // Headers before the first frame: a client that waits for them must not be
@@ -705,8 +935,14 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     };
 
     const unsubscribe = entry.session.subscribe((event) => {
-      if (finished || event.kind === "terminal" || event.kind === "error") return;
-      pendingReason = event.kind === "delta" ? "delta" : event.reason === "stop_requested" ? "stop_requested" : "activity";
+      if (finished || event.kind === "terminal" || event.kind === "error")
+        return;
+      pendingReason =
+        event.kind === "delta"
+          ? "delta"
+          : event.reason === "stop_requested"
+            ? "stop_requested"
+            : "activity";
       pendingTurnId = event.turnId;
       if (scheduled === null) scheduled = setImmediate(flush);
     });
@@ -716,7 +952,9 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     // socket nobody is reading.
     const onDisconnect = () => {
       if (finished) return;
-      void entry.session.interrupt("client disconnected").catch(() => undefined);
+      void entry.session
+        .interrupt("client disconnected")
+        .catch(() => undefined);
     };
     request.on("aborted", onDisconnect);
     response.on("close", onDisconnect);
@@ -758,7 +996,11 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
     }
   }
 
-  const middleware = async function capabilityIssueThreadMiddleware(request, response, next) {
+  const middleware = async function capabilityIssueThreadMiddleware(
+    request,
+    response,
+    next,
+  ) {
     const url = new URL(request.url ?? "/", "http://capability.local");
     if (!url.pathname.startsWith(`${ROUTE_PREFIX}/`)) {
       next();
@@ -769,21 +1011,48 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       const route = url.pathname.slice(ROUTE_PREFIX.length + 1);
       const body = request.method === "POST" ? await readBody(request) : {};
       const requestedId =
-        typeof body.sessionId === "string" ? body.sessionId : url.searchParams.get("sessionId");
+        typeof body.sessionId === "string"
+          ? body.sessionId
+          : url.searchParams.get("sessionId");
       const scenario =
-        typeof body.scenario === "string" ? body.scenario : url.searchParams.get("scenario") ?? "hb-baseline";
-      const requestedHarness = harnessConfiguration({
-        provider: body.provider ?? url.searchParams.get("provider") ?? undefined,
-        model: body.model ?? url.searchParams.get("model") ?? undefined,
-        acpxAgent: body.acpxAgent ?? url.searchParams.get("acpxAgent") ?? undefined,
-        managedProfileId: body.managedProfileId ?? url.searchParams.get("managedProfileId") ?? undefined,
-        maxSessionListCostUsd: body.maxSessionListCostUsd ?? url.searchParams.get("maxSessionListCostUsd") ?? undefined,
-        agentCoreProfileId: body.agentCoreProfileId ?? url.searchParams.get("agentCoreProfileId") ?? undefined,
-        maxEstimatedSessionCostUsd: body.maxEstimatedSessionCostUsd ?? url.searchParams.get("maxEstimatedSessionCostUsd") ?? undefined,
-        lifecyclePolicy: body.lifecyclePolicy,
-        lifecycleMode: body.lifecycleMode ?? url.searchParams.get("lifecycleMode") ?? undefined,
-        idleTimeoutMs: body.idleTimeoutMs ?? url.searchParams.get("idleTimeoutMs") ?? undefined,
-      }, options.requestedModel);
+        typeof body.scenario === "string"
+          ? body.scenario
+          : (url.searchParams.get("scenario") ?? "hb-baseline");
+      const requestedHarness = harnessConfiguration(
+        {
+          provider:
+            body.provider ?? url.searchParams.get("provider") ?? undefined,
+          model: body.model ?? url.searchParams.get("model") ?? undefined,
+          acpxAgent:
+            body.acpxAgent ?? url.searchParams.get("acpxAgent") ?? undefined,
+          managedProfileId:
+            body.managedProfileId ??
+            url.searchParams.get("managedProfileId") ??
+            undefined,
+          maxSessionListCostUsd:
+            body.maxSessionListCostUsd ??
+            url.searchParams.get("maxSessionListCostUsd") ??
+            undefined,
+          agentCoreProfileId:
+            body.agentCoreProfileId ??
+            url.searchParams.get("agentCoreProfileId") ??
+            undefined,
+          maxEstimatedSessionCostUsd:
+            body.maxEstimatedSessionCostUsd ??
+            url.searchParams.get("maxEstimatedSessionCostUsd") ??
+            undefined,
+          lifecyclePolicy: body.lifecyclePolicy,
+          lifecycleMode:
+            body.lifecycleMode ??
+            url.searchParams.get("lifecycleMode") ??
+            undefined,
+          idleTimeoutMs:
+            body.idleTimeoutMs ??
+            url.searchParams.get("idleTimeoutMs") ??
+            undefined,
+        },
+        options.requestedModel,
+      );
 
       /**
        * Resolves the caller's own session, or `undefined`.
@@ -799,7 +1068,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
         if (existing === undefined) return { state: "absent" };
         if (
           existing.surface !== surface ||
-          !capabilityMatches(presentedCapability(request, surface), existing.capabilityHash)
+          !capabilityMatches(
+            presentedCapability(request, surface),
+            existing.capabilityHash,
+          )
         ) {
           return { state: "denied" };
         }
@@ -827,10 +1099,24 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
         const capabilityHash = sha256(capability);
         const entry =
           surface === "cleanroom"
-            ? await createCleanRoomSession(runner, service, capabilityHash, requestedHarness)
-            : await createSession(runner, service, scenario, workingDirectory, capabilityHash);
+            ? await createCleanRoomSession(
+                runner,
+                service,
+                capabilityHash,
+                requestedHarness,
+              )
+            : await createSession(
+                runner,
+                service,
+                scenario,
+                workingDirectory,
+                capabilityHash,
+              );
         if (!reuse) {
-          response.setHeader("set-cookie", capabilityCookie(request, surface, capability));
+          response.setHeader(
+            "set-cookie",
+            capabilityCookie(request, surface, capability),
+          );
         }
         return entry;
       };
@@ -844,7 +1130,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
           send(response, 404, { error: "unknown_session" });
           return;
         }
-        const entry = owned.state === "owned" ? owned.entry : await mint("cleanroom", { rotate: false });
+        const entry =
+          owned.state === "owned"
+            ? owned.entry
+            : await mint("cleanroom", { rotate: false });
         send(response, 200, cleanRoomPayload(runner, entry));
         return;
       }
@@ -872,7 +1161,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
           send(response, 404, { error: "unknown_session" });
           return;
         }
-        const entry = owned.state === "owned" ? owned.entry : await mint("issue", { rotate: false });
+        const entry =
+          owned.state === "owned"
+            ? owned.entry
+            : await mint("issue", { rotate: false });
         send(response, 200, payload(runner, entry));
         return;
       }
@@ -887,10 +1179,14 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       // and the capability is then checked against that record — so `message`,
       // `interrupt`, `reconnect`, `reset`, and `interaction` are all mediated,
       // not just the routes that create sessions.
-      const located = requestedId === null ? undefined : sessions.get(requestedId);
+      const located =
+        requestedId === null ? undefined : sessions.get(requestedId);
       const entry =
         located !== undefined &&
-        capabilityMatches(presentedCapability(request, located.surface), located.capabilityHash)
+        capabilityMatches(
+          presentedCapability(request, located.surface),
+          located.capabilityHash,
+        )
           ? located
           : undefined;
       if (entry === undefined) {
@@ -899,7 +1195,11 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       }
 
       if (route === "devtools" && request.method === "GET") {
-        send(response, 200, runner.projectCapabilityDevtools(entry.session.snapshot()));
+        send(
+          response,
+          200,
+          runner.projectCapabilityDevtools(entry.session.snapshot()),
+        );
         return;
       }
 
@@ -907,12 +1207,19 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
         const snapshot = entry.session.snapshot();
         const revision = Number(body.revision);
         const seedState = JSON.parse(snapshot.config.seedState);
-        const selected = (snapshot.stateHistory ?? []).find((item) => item.revision === revision) ??
+        const selected =
+          (snapshot.stateHistory ?? []).find(
+            (item) => item.revision === revision,
+          ) ??
           (seedState.revision === revision
             ? { revision, state: snapshot.config.seedState }
             : undefined);
         if (selected === undefined) {
-          throw new RouteError(404, "unknown_revision", "The requested state revision is not retained.");
+          throw new RouteError(
+            404,
+            "unknown_revision",
+            "The requested state revision is not retained.",
+          );
         }
         const seed = JSON.parse(selected.state);
         seed.lifecycle = "stopped";
@@ -938,7 +1245,9 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
             seed,
             workingDirectory: forkDirectory,
             provider: snapshot.config.provider ?? "codex",
-            ...(snapshot.config.acpxAgent === undefined ? {} : { acpxAgent: snapshot.config.acpxAgent }),
+            ...(snapshot.config.acpxAgent === undefined
+              ? {}
+              : { acpxAgent: snapshot.config.acpxAgent }),
             scenario: snapshot.config.scenario,
             capabilities: snapshot.config.capabilities,
             explicitClaims: snapshot.config.explicitClaims,
@@ -957,10 +1266,16 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
               : { agentCoreProfile: snapshot.config.agentCoreProfile }),
           });
         } catch (error) {
-          await rm(forkDirectory, { recursive: true, force: true }).catch(() => undefined);
+          await rm(forkDirectory, { recursive: true, force: true }).catch(
+            () => undefined,
+          );
           throw error;
         }
-        await retire(service, entry.session.id, `forked from revision ${revision}`);
+        await retire(
+          service,
+          entry.session.id,
+          `forked from revision ${revision}`,
+        );
         const forkEntry = {
           ...entry,
           session: fork,
@@ -969,13 +1284,17 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
           turns: 0,
           createdAt: Date.now(),
           capabilityHash,
-          identity: entry.identity === null
-            ? null
-            : { ...entry.identity, token: randomBytes(4).toString("hex") },
+          identity:
+            entry.identity === null
+              ? null
+              : { ...entry.identity, token: randomBytes(4).toString("hex") },
           connection: { state: "connected", attempt: 0 },
         };
         sessions.set(fork.id, forkEntry);
-        response.setHeader("set-cookie", capabilityCookie(request, entry.surface, capability));
+        response.setHeader(
+          "set-cookie",
+          capabilityCookie(request, entry.surface, capability),
+        );
         send(response, 201, payload(runner, forkEntry));
         return;
       }
@@ -995,7 +1314,11 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       } else if (route === "message") {
         const message = String(body.message ?? "");
         if (Buffer.byteLength(message, "utf8") > MAX_MESSAGE_BYTES) {
-          throw new RouteError(413, "message_too_large", "Message exceeds the server limit.");
+          throw new RouteError(
+            413,
+            "message_too_large",
+            "Message exceeds the server limit.",
+          );
         }
         if (entry.turns >= MAX_TURNS_PER_SESSION) {
           throw new RouteError(
@@ -1012,8 +1335,8 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
       } else if (route === "interrupt") {
         await entry.session.interrupt("operator stopped the turn");
       } else if (route === "managed-budget") {
-        const requestedCap = body.maxSessionListCostUsd ??
-          body.maxEstimatedSessionCostUsd;
+        const requestedCap =
+          body.maxSessionListCostUsd ?? body.maxEstimatedSessionCostUsd;
         const nextCap = Number(requestedCap);
         if (!Number.isFinite(nextCap) || nextCap <= 0) {
           throw new RouteError(
@@ -1046,7 +1369,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
         send(response, 200, { deleted: true, sessionId: entry.session.id });
         return;
       } else if (route === "reconnect") {
-        entry.connection = { state: "reconnecting", attempt: entry.connection.attempt + 1 };
+        entry.connection = {
+          state: "reconnecting",
+          attempt: entry.connection.attempt + 1,
+        };
         await entry.session.reconnect();
         entry.connection = { state: "connected", attempt: 0 };
       } else if (route === "reset") {
@@ -1105,7 +1431,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
         return;
       }
       if (error instanceof RouteError) {
-        send(response, error.status, { error: error.code, message: error.message });
+        send(response, error.status, {
+          error: error.code,
+          message: error.message,
+        });
         return;
       }
       send(response, 500, {
@@ -1128,7 +1457,10 @@ export function createCapabilityIssueThreadMiddleware(options = {}) {
 
 export function capabilityIssueThreadServerPlugin(options = {}) {
   async function mount(server, host) {
-    const middleware = createCapabilityIssueThreadMiddleware({ ...options, bindHost: host });
+    const middleware = createCapabilityIssueThreadMiddleware({
+      ...options,
+      bindHost: host,
+    });
     await middleware.prepare(host);
     server.middlewares.use(middleware);
     server.httpServer?.once("close", () => void middleware.close());
@@ -1137,11 +1469,25 @@ export function capabilityIssueThreadServerPlugin(options = {}) {
     name: "taskcore-runner-capability-issue-thread-server",
     async configureServer(server) {
       const host = server.config.server.host;
-      await mount(server, typeof host === "string" ? host : host === true ? "0.0.0.0" : "127.0.0.1");
+      await mount(
+        server,
+        typeof host === "string"
+          ? host
+          : host === true
+            ? "0.0.0.0"
+            : "127.0.0.1",
+      );
     },
     async configurePreviewServer(server) {
       const host = server.config.preview.host;
-      await mount(server, typeof host === "string" ? host : host === true ? "0.0.0.0" : "127.0.0.1");
+      await mount(
+        server,
+        typeof host === "string"
+          ? host
+          : host === true
+            ? "0.0.0.0"
+            : "127.0.0.1",
+      );
     },
   };
 }

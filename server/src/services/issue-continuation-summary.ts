@@ -1,7 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { documents, issueDocuments, issues } from "@taskcore/db";
-import { ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY, type SourceTrustMetadata } from "@taskcore/shared";
+import {
+  ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
+  type SourceTrustMetadata,
+} from "@taskcore/shared";
 import { documentService } from "./documents.js";
 import { summarizeRunErrorForModel } from "./heartbeat-run-summary.js";
 
@@ -9,7 +12,8 @@ export { ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY };
 export const ISSUE_CONTINUATION_SUMMARY_TITLE = "Continuation Summary";
 export const ISSUE_CONTINUATION_SUMMARY_MAX_BODY_CHARS = 8_000;
 const SUMMARY_SECTION_MAX_CHARS = 1_200;
-const PATH_CANDIDATE_RE = /(?:^|[\s`"'(])((?:server|ui|packages|doc|scripts|\.github)\/[A-Za-z0-9._/-]+)/g;
+const PATH_CANDIDATE_RE =
+  /(?:^|[\s`"'(])((?:server|ui|packages|doc|scripts|\.github)\/[A-Za-z0-9._/-]+)/g;
 const WAITING_FOR_REVIEW_OR_APPROVAL_RE =
   /\bwait(?:ing)? for\b.{0,160}\b(?:review(?:er)?(?: feedback)?|approval|board|human|user|operator)\b/i;
 
@@ -56,11 +60,20 @@ function truncateText(value: string, maxChars: number) {
 }
 
 function asNonEmptyString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
-function readResultSummary(resultJson: Record<string, unknown> | null | undefined) {
-  if (!resultJson || typeof resultJson !== "object" || Array.isArray(resultJson)) return null;
+function readResultSummary(
+  resultJson: Record<string, unknown> | null | undefined,
+) {
+  if (
+    !resultJson ||
+    typeof resultJson !== "object" ||
+    Array.isArray(resultJson)
+  )
+    return null;
   return (
     asNonEmptyString(resultJson.summary) ??
     asNonEmptyString(resultJson.result) ??
@@ -70,10 +83,16 @@ function readResultSummary(resultJson: Record<string, unknown> | null | undefine
   );
 }
 
-function extractMarkdownSection(markdown: string | null | undefined, heading: string) {
+function extractMarkdownSection(
+  markdown: string | null | undefined,
+  heading: string,
+) {
   if (!markdown) return null;
   const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`^##\\s+${escaped}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`, "im");
+  const re = new RegExp(
+    `^##\\s+${escaped}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
+    "im",
+  );
   const match = re.exec(markdown);
   const section = match?.[1]?.trim();
   return section ? truncateText(section, SUMMARY_SECTION_MAX_CHARS) : null;
@@ -95,19 +114,35 @@ function extractPathCandidates(...texts: Array<string | null | undefined>) {
 
 function inferMode(issue: IssueSummaryInput, run: RunSummaryInput) {
   if (issue.status === "done" || issue.status === "in_review") return "review";
-  if (run.status === "failed" || run.status === "timed_out" || run.status === "cancelled" || run.status === "interrupted") return "implementation";
+  if (
+    run.status === "failed" ||
+    run.status === "timed_out" ||
+    run.status === "cancelled" ||
+    run.status === "interrupted"
+  )
+    return "implementation";
   if (issue.status === "backlog" || issue.status === "todo") return "plan";
   return "implementation";
 }
 
-function inferNextAction(issue: IssueSummaryInput, run: RunSummaryInput, previousNextAction: string | null) {
-  if (issue.status === "done") return "Review the completed issue output and close any remaining follow-up comments.";
-  if (issue.status === "in_review") return "Wait for reviewer feedback or approval before continuing executor work.";
+function inferNextAction(
+  issue: IssueSummaryInput,
+  run: RunSummaryInput,
+  previousNextAction: string | null,
+) {
+  if (issue.status === "done")
+    return "Review the completed issue output and close any remaining follow-up comments.";
+  if (issue.status === "in_review")
+    return "Wait for reviewer feedback or approval before continuing executor work.";
   if (run.status === "failed" || run.status === "timed_out") {
     return "Inspect the failed run, fix the cause, and resume from the most recent concrete action above.";
   }
-  if (run.status === "cancelled") return "Confirm the cancellation reason before starting another run.";
-  return previousNextAction ?? "Resume implementation from the acceptance criteria, latest comments, and this summary.";
+  if (run.status === "cancelled")
+    return "Confirm the cancellation reason before starting another run.";
+  return (
+    previousNextAction ??
+    "Resume implementation from the acceptance criteria, latest comments, and this summary."
+  );
 }
 
 function bulletList(items: string[], empty: string) {
@@ -118,17 +153,23 @@ function bulletList(items: string[], empty: string) {
 function extractPreviousNextAction(previousBody: string | null | undefined) {
   const section = extractMarkdownSection(previousBody, "Next Action");
   if (!section) return null;
-  return section
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^[-*]\s+/, "").trim())
-    .find(Boolean) ?? null;
+  return (
+    section
+      .split(/\r?\n/)
+      .map((line) => line.replace(/^[-*]\s+/, "").trim())
+      .find(Boolean) ?? null
+  );
 }
 
-export function extractContinuationSummaryNextAction(body: string | null | undefined) {
+export function extractContinuationSummaryNextAction(
+  body: string | null | undefined,
+) {
   return extractPreviousNextAction(body);
 }
 
-export function continuationSummaryParksExecutor(body: string | null | undefined) {
+export function continuationSummaryParksExecutor(
+  body: string | null | undefined,
+) {
   const nextAction = extractContinuationSummaryNextAction(body);
   if (!nextAction) return false;
   return WAITING_FOR_REVIEW_OR_APPROVAL_RE.test(nextAction);
@@ -143,23 +184,47 @@ export function buildContinuationSummaryMarkdown(input: {
   const { issue, run, agent } = input;
   const resultSummary = readResultSummary(run.resultJson);
   const terminalFailure = run.resultJson?.terminalSessionFailure;
-  const terminalFailureCategory = terminalFailure && typeof terminalFailure === "object" && !Array.isArray(terminalFailure)
-    ? ((terminalFailure as Record<string, unknown>).category ?? "unknown")
-    : null;
-  const modelError = summarizeRunErrorForModel(run.error, terminalFailureCategory);
+  const terminalFailureCategory =
+    terminalFailure &&
+    typeof terminalFailure === "object" &&
+    !Array.isArray(terminalFailure)
+      ? ((terminalFailure as Record<string, unknown>).category ?? "unknown")
+      : null;
+  const modelError = summarizeRunErrorForModel(
+    run.error,
+    terminalFailureCategory,
+  );
   const recentActions = [
     `Run \`${run.id}\` finished with status \`${run.status}\`${run.finishedAt ? ` at ${run.finishedAt.toISOString()}` : ""}.`,
-    resultSummary ? truncateText(resultSummary, SUMMARY_SECTION_MAX_CHARS) : "No adapter-provided result summary was captured for this run.",
+    resultSummary
+      ? truncateText(resultSummary, SUMMARY_SECTION_MAX_CHARS)
+      : "No adapter-provided result summary was captured for this run.",
   ];
   if (modelError) {
-    recentActions.push(`Latest run error${run.errorCode ? ` (${run.errorCode})` : ""}: ${truncateText(modelError, 500)}`);
+    recentActions.push(
+      `Latest run error${run.errorCode ? ` (${run.errorCode})` : ""}: ${truncateText(modelError, 500)}`,
+    );
   }
 
-  const paths = extractPathCandidates(resultSummary, run.stdoutExcerpt, run.stderrExcerpt, input.previousSummaryBody);
-  const objective = extractMarkdownSection(issue.description, "Objective") ?? issue.description?.trim() ?? "No objective captured.";
-  const acceptanceCriteria = extractMarkdownSection(issue.description, "Acceptance Criteria") ?? "No explicit acceptance criteria captured.";
+  const paths = extractPathCandidates(
+    resultSummary,
+    run.stdoutExcerpt,
+    run.stderrExcerpt,
+    input.previousSummaryBody,
+  );
+  const objective =
+    extractMarkdownSection(issue.description, "Objective") ??
+    issue.description?.trim() ??
+    "No objective captured.";
+  const acceptanceCriteria =
+    extractMarkdownSection(issue.description, "Acceptance Criteria") ??
+    "No explicit acceptance criteria captured.";
   const mode = inferMode(issue, run);
-  const nextAction = inferNextAction(issue, run, extractPreviousNextAction(input.previousSummaryBody));
+  const nextAction = inferNextAction(
+    issue,
+    run,
+    extractPreviousNextAction(input.previousSummaryBody),
+  );
 
   const body = [
     "# Continuation Summary",
@@ -185,7 +250,10 @@ export function buildContinuationSummaryMarkdown(input: {
     "",
     "## Files / Routes Touched",
     "",
-    bulletList(paths.map((path) => `\`${path}\``), "No file or route paths were detected in the captured run summary."),
+    bulletList(
+      paths.map((path) => `\`${path}\``),
+      "No file or route paths were detected in the captured run summary.",
+    ),
     "",
     "## Commands Run",
     "",
@@ -201,7 +269,9 @@ export function buildContinuationSummaryMarkdown(input: {
     "",
     bulletList(
       run.error
-        ? [`Latest run ended with \`${run.status}\`; inspect the error before continuing.`]
+        ? [
+            `Latest run ended with \`${run.status}\`; inspect the error before continuing.`,
+          ]
         : ["No new blocker was recorded by the latest run."],
       "No blockers or decisions captured.",
     ),
@@ -230,7 +300,12 @@ export async function getIssueContinuationSummaryDocument(
     })
     .from(issueDocuments)
     .innerJoin(documents, eq(issueDocuments.documentId, documents.id))
-    .where(and(eq(issueDocuments.issueId, issueId), eq(issueDocuments.key, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY)))
+    .where(
+      and(
+        eq(issueDocuments.issueId, issueId),
+        eq(issueDocuments.key, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY),
+      ),
+    )
     .then((rows) => rows[0] ?? null);
 
   if (!row) return null;

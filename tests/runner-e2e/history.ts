@@ -112,8 +112,12 @@ export function buildRunnerCampaign(input: {
         selected: suiteExpected.length,
         executed,
         passed,
-        failed: suiteExpected.length - passed - suiteResults.filter(r => isIncompleteFirstTaskResult(r)).length,
-        incomplete: suiteResults.filter(r => isIncompleteFirstTaskResult(r)).length,
+        failed:
+          suiteExpected.length -
+          passed -
+          suiteResults.filter((r) => isIncompleteFirstTaskResult(r)).length,
+        incomplete: suiteResults.filter((r) => isIncompleteFirstTaskResult(r))
+          .length,
         retries: suiteResults.reduce(
           (total, result) => total + Math.max(0, result.attempt - 1),
           0,
@@ -177,8 +181,11 @@ export function buildRunnerCampaign(input: {
     selected: expected.length,
     executed: results.filter((result) => result.attempt > 0).length,
     passed,
-    failed: expected.length - passed - results.filter(r => isIncompleteFirstTaskResult(r)).length,
-    incomplete: results.filter(r => isIncompleteFirstTaskResult(r)).length,
+    failed:
+      expected.length -
+      passed -
+      results.filter((r) => isIncompleteFirstTaskResult(r)).length,
+    incomplete: results.filter((r) => isIncompleteFirstTaskResult(r)).length,
     retries: results.reduce(
       (total, result) => total + Math.max(0, result.attempt - 1),
       0,
@@ -219,7 +226,9 @@ export function campaignHistoryRecord(
       caseId: result.caseId,
       provider: result.provider,
       model: result.model,
-      status: isIncompleteFirstTaskResult(result) ? "incomplete" : result.status,
+      status: isIncompleteFirstTaskResult(result)
+        ? "incomplete"
+        : result.status,
       durationMs: result.durationMs,
       attempt: result.attempt,
       cleanup: result.cleanup,
@@ -262,7 +271,11 @@ export function mergeRunnerHistory(
   for (const candidate of campaigns) {
     for (const suite of candidate.suites) {
       latestBySuite[suite.suiteId] ??= candidate.campaignId;
-      if (suite.complete && suite.failed === 0 && (suite.incomplete ?? 0) === 0) {
+      if (
+        suite.complete &&
+        suite.failed === 0 &&
+        (suite.incomplete ?? 0) === 0
+      ) {
         latestGreenBySuite[suite.suiteId] ??= candidate.campaignId;
       }
     }
@@ -273,7 +286,10 @@ export function mergeRunnerHistory(
     latestCampaignId: campaigns[0]?.campaignId ?? null,
     latestGreenCampaignId:
       campaigns.find(
-        (candidate) => candidate.complete && candidate.failed === 0 && (candidate.incomplete ?? 0) === 0,
+        (candidate) =>
+          candidate.complete &&
+          candidate.failed === 0 &&
+          (candidate.incomplete ?? 0) === 0,
       )?.campaignId ?? null,
     latestBySuite,
     latestGreenBySuite,

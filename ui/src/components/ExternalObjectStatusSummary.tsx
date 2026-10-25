@@ -6,7 +6,10 @@ import {
   externalObjectIconForCategory,
   externalObjectIconForKey,
 } from "../lib/external-objects";
-import { externalObjectStatusBadge, externalObjectStatusBadgeDefault } from "../lib/status-colors";
+import {
+  externalObjectStatusBadge,
+  externalObjectStatusBadgeDefault,
+} from "../lib/status-colors";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { cn } from "../lib/utils";
 
@@ -20,19 +23,27 @@ interface ExternalObjectStatusSummaryProps {
 function dominantCategory(summary: ExternalObjectSummary): string {
   // Prefer the first object that matches the highestSeverity tone, since the
   // server has already ranked them server-side.
-  const match = summary.objects.find((object) => object.statusTone === summary.highestSeverity);
+  const match = summary.objects.find(
+    (object) => object.statusTone === summary.highestSeverity,
+  );
   return match?.statusCategory ?? "unknown";
 }
 
 function dominantObject(summary: ExternalObjectSummary) {
-  return summary.objects.find((object) => object.statusTone === summary.highestSeverity) ?? null;
+  return (
+    summary.objects.find(
+      (object) => object.statusTone === summary.highestSeverity,
+    ) ?? null
+  );
 }
 
 function buildBreakdownTitle(summary: ExternalObjectSummary): string {
   const parts: string[] = [];
   for (const [category, count] of Object.entries(summary.byStatusCategory)) {
     if (!count) continue;
-    parts.push(`${count} ${externalObjectCategoryLabel(category).toLowerCase()}`);
+    parts.push(
+      `${count} ${externalObjectCategoryLabel(category).toLowerCase()}`,
+    );
   }
   if (summary.staleCount > 0) parts.push(`${summary.staleCount} stale`);
   parts.push(`${summary.total} total`);
@@ -58,11 +69,15 @@ export function ExternalObjectStatusSummary({
 
   const object = dominantObject(summary);
   const category = object?.statusCategory ?? dominantCategory(summary);
-  const Icon = externalObjectIconForKey(object?.statusIconKey) ?? externalObjectIconForCategory(category);
-  const badgeClass = externalObjectStatusBadge[category] ?? externalObjectStatusBadgeDefault;
+  const Icon =
+    externalObjectIconForKey(object?.statusIconKey) ??
+    externalObjectIconForCategory(category);
+  const badgeClass =
+    externalObjectStatusBadge[category] ?? externalObjectStatusBadgeDefault;
   const dominantCount = externalObjectDominantCount(summary);
   const title = buildBreakdownTitle(summary);
-  const animateClass = category === "running" && !reducedMotion ? "animate-spin" : "";
+  const animateClass =
+    category === "running" && !reducedMotion ? "animate-spin" : "";
 
   return (
     <span
@@ -78,7 +93,10 @@ export function ExternalObjectStatusSummary({
       data-external-status={category}
       data-external-tone={tone}
     >
-      <Icon aria-hidden="true" className={cn("h-3 w-3 shrink-0", animateClass)} />
+      <Icon
+        aria-hidden="true"
+        className={cn("h-3 w-3 shrink-0", animateClass)}
+      />
       <span>{dominantCount > 0 ? dominantCount : total}</span>
     </span>
   );

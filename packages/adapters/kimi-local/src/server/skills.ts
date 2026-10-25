@@ -17,7 +17,9 @@ import {
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 function asString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 /**
@@ -26,19 +28,30 @@ function asString(value: unknown): string | null {
  */
 function resolveKimiSkillsHome(config: Record<string, unknown>) {
   const env =
-    typeof config.env === "object" && config.env !== null && !Array.isArray(config.env)
+    typeof config.env === "object" &&
+    config.env !== null &&
+    !Array.isArray(config.env)
       ? (config.env as Record<string, unknown>)
       : {};
-  const kimiCodeHome = asString(env.KIMI_CODE_HOME) ?? asString(process.env.KIMI_CODE_HOME);
+  const kimiCodeHome =
+    asString(env.KIMI_CODE_HOME) ?? asString(process.env.KIMI_CODE_HOME);
   if (kimiCodeHome) return path.join(path.resolve(kimiCodeHome), "skills");
   const configuredHome = asString(env.HOME);
   const home = configuredHome ? path.resolve(configuredHome) : os.homedir();
   return path.join(home, ".kimi-code", "skills");
 }
 
-async function buildKimiSkillSnapshot(config: Record<string, unknown>): Promise<AdapterSkillSnapshot> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries);
+async function buildKimiSkillSnapshot(
+  config: Record<string, unknown>,
+): Promise<AdapterSkillSnapshot> {
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    availableEntries,
+  );
   const skillsHome = resolveKimiSkillsHome(config);
   const installed = await readInstalledSkillTargets(skillsHome);
   return buildPersistentSkillSnapshot({
@@ -48,13 +61,17 @@ async function buildKimiSkillSnapshot(config: Record<string, unknown>): Promise<
     installed,
     skillsHome,
     locationLabel: "~/.kimi-code/skills",
-    missingDetail: "Configured but not currently linked into the Kimi skills home.",
-    externalConflictDetail: "Skill name is occupied by an external installation.",
+    missingDetail:
+      "Configured but not currently linked into the Kimi skills home.",
+    externalConflictDetail:
+      "Skill name is occupied by an external installation.",
     externalDetail: "Installed outside Taskcore management.",
   });
 }
 
-export async function listKimiSkills(ctx: AdapterSkillContext): Promise<AdapterSkillSnapshot> {
+export async function listKimiSkills(
+  ctx: AdapterSkillContext,
+): Promise<AdapterSkillSnapshot> {
   return buildKimiSkillSnapshot(ctx.config);
 }
 
@@ -62,7 +79,10 @@ export async function syncKimiSkills(
   ctx: AdapterSkillContext,
   desiredSkills: string[],
 ): Promise<AdapterSkillSnapshot> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(ctx.config, __moduleDir);
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    ctx.config,
+    __moduleDir,
+  );
   const desiredSet = new Set([
     ...resolveLegacyTaskcoreDesiredSkillNames({}, availableEntries),
     ...desiredSkills,
@@ -70,7 +90,9 @@ export async function syncKimiSkills(
   const skillsHome = resolveKimiSkillsHome(ctx.config);
   await fs.mkdir(skillsHome, { recursive: true });
   const installed = await readInstalledSkillTargets(skillsHome);
-  const availableByRuntimeName = new Map(availableEntries.map((entry) => [entry.runtimeName, entry]));
+  const availableByRuntimeName = new Map(
+    availableEntries.map((entry) => [entry.runtimeName, entry]),
+  );
 
   for (const available of availableEntries) {
     if (!desiredSet.has(available.key)) continue;

@@ -25,9 +25,7 @@ import {
 // This is an opt-in local filesystem benchmark, not a CPU-isolated performance
 // assertion. Repetitions share the host's background load and filesystem caches.
 const enabled = process.env.TASKCORE_FINAL_BURST_BENCHMARK === "1";
-const repetitions = Number(
-  process.env.TASKCORE_FINAL_BURST_REPETITIONS ?? "1",
-);
+const repetitions = Number(process.env.TASKCORE_FINAL_BURST_REPETITIONS ?? "1");
 if (
   enabled &&
   (!Number.isInteger(repetitions) || repetitions < 1 || repetitions > 5)

@@ -47,7 +47,9 @@ import { agentService } from "../services/agents.js";
 import { ROUTABLE_BLOCKED_ROLLOUT_AT } from "../services/routable-blocked.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -57,10 +59,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("attention service", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-attention-service-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-attention-service-",
+    );
     db = createDb(tempDb.connectionString);
   }, 30_000);
 
@@ -170,7 +176,10 @@ describeEmbeddedPostgres("attention service", () => {
     executionState?: Record<string, unknown> | null;
     updatedAt?: Date;
     createdAt?: Date;
-    unblockDescriptor?: { owner: { userId: string } | "board"; action: string } | null;
+    unblockDescriptor?: {
+      owner: { userId: string } | "board";
+      action: string;
+    } | null;
     blockedTransitionAt?: Date | null;
     visibility?: "open" | "private";
     privacyRootIssueId?: string | null;
@@ -259,11 +268,19 @@ describeEmbeddedPostgres("attention service", () => {
       addedByUserId: "board-user",
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
 
-    expect(feed.items.some((item) => item.subject.id === harnessIssueId)).toBe(false);
+    expect(feed.items.some((item) => item.subject.id === harnessIssueId)).toBe(
+      false,
+    );
     expect(feed.countsBySourceKind.review ?? 0).toBe(0);
-    expect(feed.items.flatMap((item) => item.queues).some((queue) => queue.key === "internal-review")).toBe(false);
+    expect(
+      feed.items
+        .flatMap((item) => item.queues)
+        .some((queue) => queue.key === "internal-review"),
+    ).toBe(false);
   });
 
   it("returns ranked decision-only items for every active source and excludes non-human or transient rows", async () => {
@@ -533,7 +550,8 @@ describeEmbeddedPostgres("attention service", () => {
       agentId: workerId,
       seq: 1,
       eventType: "lifecycle",
-      message: "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
+      message:
+        "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
       payload: { retryReason: "transient_failure", maxAttempts: 4 },
       createdAt: new Date("2026-07-09T12:09:01.000Z"),
     });
@@ -621,7 +639,9 @@ describeEmbeddedPostgres("attention service", () => {
       },
     ]);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
 
     expect(feed.totalCount).toBe(11);
     expect(feed.countsBySourceKind).toMatchObject({
@@ -636,17 +656,19 @@ describeEmbeddedPostgres("attention service", () => {
       budget_alert: 2,
       agent_error_alert: 1,
     });
-    expect(feed.items.map((item) => item.sourceKind)).toEqual(expect.arrayContaining([
-      "approval",
-      "issue_thread_interaction",
-      "join_request",
-      "recovery_action",
-      "blocker_attention",
-      "review",
-      "failed_run",
-      "budget_alert",
-      "agent_error_alert",
-    ]));
+    expect(feed.items.map((item) => item.sourceKind)).toEqual(
+      expect.arrayContaining([
+        "approval",
+        "issue_thread_interaction",
+        "join_request",
+        "recovery_action",
+        "blocker_attention",
+        "review",
+        "failed_run",
+        "budget_alert",
+        "agent_error_alert",
+      ]),
+    );
     for (const item of feed.items) {
       expect(item.dedupKey).toBeTruthy();
       expect(item.dismissalKey).toBe(`attention:${item.dedupKey}`);
@@ -656,37 +678,81 @@ describeEmbeddedPostgres("attention service", () => {
       expect(item.decisionVerbs.length).toBeGreaterThan(0);
       expect(item.rank).toBeGreaterThan(0);
     }
-    expect(feed.items.some((item) => item.subject.title === "Revision requested")).toBe(false);
-    expect(feed.items.some((item) => item.sourceKind === "productivity_review")).toBe(false);
-    expect(feed.items.some((item) => item.subject.title === "Agent productivity review excluded")).toBe(false);
-    const legacyReviews = await db.select().from(issues).where(eq(issues.originKind, "issue_productivity_review"));
+    expect(
+      feed.items.some((item) => item.subject.title === "Revision requested"),
+    ).toBe(false);
+    expect(
+      feed.items.some((item) => item.sourceKind === "productivity_review"),
+    ).toBe(false);
+    expect(
+      feed.items.some(
+        (item) => item.subject.title === "Agent productivity review excluded",
+      ),
+    ).toBe(false);
+    const legacyReviews = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.originKind, "issue_productivity_review"));
     expect(legacyReviews).toHaveLength(2);
-    expect(legacyReviews).toEqual(expect.arrayContaining([
-      expect.objectContaining({ title: "Human productivity review", status: "todo", assigneeUserId: "board-user", parentId: productivitySourceIssueId }),
-      expect.objectContaining({ title: "Agent productivity review excluded", status: "todo", assigneeAgentId: workerId, parentId: agentProductivitySourceIssueId }),
-    ]));
-    expect(feed.items.some((item) => item.subject.title === "Agent review excluded")).toBe(false);
-    expect(feed.items.some((item) =>
-      item.sourceKind === "failed_run" && item.subject.metadata?.errorCode === "provider_quota"
-    )).toBe(false);
-    expect(feed.items.find((item) => item.sourceKind === "approval")?.detail).toMatchObject({
+    expect(legacyReviews).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Human productivity review",
+          status: "todo",
+          assigneeUserId: "board-user",
+          parentId: productivitySourceIssueId,
+        }),
+        expect.objectContaining({
+          title: "Agent productivity review excluded",
+          status: "todo",
+          assigneeAgentId: workerId,
+          parentId: agentProductivitySourceIssueId,
+        }),
+      ]),
+    );
+    expect(
+      feed.items.some((item) => item.subject.title === "Agent review excluded"),
+    ).toBe(false);
+    expect(
+      feed.items.some(
+        (item) =>
+          item.sourceKind === "failed_run" &&
+          item.subject.metadata?.errorCode === "provider_quota",
+      ),
+    ).toBe(false);
+    expect(
+      feed.items.find((item) => item.sourceKind === "approval")?.detail,
+    ).toMatchObject({
       kind: "approval",
       approvalType: "hire_agent",
       summaryExcerpt: "Hire Designer",
     });
-    expect(feed.items.find((item) => item.sourceKind === "issue_thread_interaction")?.detail).toMatchObject({
+    expect(
+      feed.items.find((item) => item.sourceKind === "issue_thread_interaction")
+        ?.detail,
+    ).toMatchObject({
       kind: "questions",
       questionCount: 0,
     });
-    expect(feed.items.find((item) => item.sourceKind === "blocker_attention")?.detail).toMatchObject({
+    expect(
+      feed.items.find((item) => item.sourceKind === "blocker_attention")
+        ?.detail,
+    ).toMatchObject({
       kind: "blocker",
       blockingIssue: null,
       blockedTaskCount: 1,
     });
-    expect(feed.items.find((item) => item.sourceKind === "blocker_attention")?.subject.id).toBe(blockerLeafId);
-    expect(feed.items.find((item) =>
-      item.sourceKind === "review" && item.subject.title === "Stalled review blocker"
-    )).toMatchObject({
+    expect(
+      feed.items.find((item) => item.sourceKind === "blocker_attention")
+        ?.subject.id,
+    ).toBe(blockerLeafId);
+    expect(
+      feed.items.find(
+        (item) =>
+          item.sourceKind === "review" &&
+          item.subject.title === "Stalled review blocker",
+      ),
+    ).toMatchObject({
       whyNow: expect.stringContaining("without a maintained"),
       // A stalled review resolves in-row on the /decisions card (PAP-16080 §4.4).
       inlineResolvable: true,
@@ -697,18 +763,31 @@ describeEmbeddedPostgres("attention service", () => {
         }),
       }),
       decisionVerbs: expect.arrayContaining([
-        expect.objectContaining({ id: "choose_review_path", label: "Choose review path" }),
+        expect.objectContaining({
+          id: "choose_review_path",
+          label: "Choose review path",
+        }),
       ]),
     });
-    expect(feed.items.find((item) => item.sourceKind === "failed_run")?.detail).toMatchObject({
+    expect(
+      feed.items.find((item) => item.sourceKind === "failed_run")?.detail,
+    ).toMatchObject({
       kind: "failed_run",
       agentName: "Worker",
       failureReasonExcerpt: "adapter failed",
     });
-    expect(feed.items.find((item) =>
-      item.sourceKind === "budget_alert" && item.detail?.kind === "budget" && item.detail.observedPercent === 100
-    )).toBeTruthy();
-    expect(feed.items.find((item) => item.sourceKind === "agent_error_alert")?.detail).toMatchObject({
+    expect(
+      feed.items.find(
+        (item) =>
+          item.sourceKind === "budget_alert" &&
+          item.detail?.kind === "budget" &&
+          item.detail.observedPercent === 100,
+      ),
+    ).toBeTruthy();
+    expect(
+      feed.items.find((item) => item.sourceKind === "agent_error_alert")
+        ?.detail,
+    ).toMatchObject({
       kind: "agent_error",
       agentName: "Broken Agent",
       failureReasonExcerpt: "adapter config missing",
@@ -798,16 +877,20 @@ describeEmbeddedPostgres("attention service", () => {
     await agentService(db).pause(pausedReviewerId);
     await agentService(db).terminate(terminatedReviewerId);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
     const interactionTitles = feed.items
       .filter((item) => item.sourceKind === "issue_thread_interaction")
       .map((item) => item.subject.title);
 
-    expect(interactionTitles).toEqual(expect.arrayContaining([
-      "Board question",
-      "Paused reviewer question",
-      "Terminated reviewer question",
-    ]));
+    expect(interactionTitles).toEqual(
+      expect.arrayContaining([
+        "Board question",
+        "Paused reviewer question",
+        "Terminated reviewer question",
+      ]),
+    );
     expect(interactionTitles).not.toContain("Active reviewer question");
   });
 
@@ -888,11 +971,17 @@ describeEmbeddedPostgres("attention service", () => {
     });
     await agentService(db).pause(reviewerId);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const otherUserFeed = await attentionService(db).list(companyId, { userId: "other-user" });
-    const audienceByTitle = new Map(feed.items
-      .filter((item) => item.sourceKind === "issue_thread_interaction")
-      .map((item) => [item.subject.title, item.resolverAudience]));
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const otherUserFeed = await attentionService(db).list(companyId, {
+      userId: "other-user",
+    });
+    const audienceByTitle = new Map(
+      feed.items
+        .filter((item) => item.sourceKind === "issue_thread_interaction")
+        .map((item) => [item.subject.title, item.resolverAudience]),
+    );
 
     expect(audienceByTitle.get("Open question")).toMatchObject({
       requestedResolverPolicy: "anyone",
@@ -919,48 +1008,148 @@ describeEmbeddedPostgres("attention service", () => {
       addresseeUserId: "board-user",
       effectiveResolverPolicy: "human_only",
     });
-    expect(otherUserFeed.items.some((item) => item.subject.title === "User-addressed question")).toBe(false);
+    expect(
+      otherUserFeed.items.some(
+        (item) => item.subject.title === "User-addressed question",
+      ),
+    ).toBe(false);
     // Non-interaction rows carry no resolver policy at all.
-    expect(feed.items.find((item) => item.sourceKind !== "issue_thread_interaction")?.resolverAudience)
-      .toBeNull();
+    expect(
+      feed.items.find((item) => item.sourceKind !== "issue_thread_interaction")
+        ?.resolverAudience,
+    ).toBeNull();
   });
 
   it("reads one compact row per exhausted run despite thousands of historical receipts", async () => {
     const { companyId, workerId, reviewerId } = await seedCompany("MEM");
     const other = await seedCompany("OTH");
-    await db.update(agents).set({ status: "terminated" }).where(eq(agents.id, reviewerId));
+    await db
+      .update(agents)
+      .set({ status: "terminated" })
+      .where(eq(agents.id, reviewerId));
     const issueId = await insertIssue({
-      companyId, identifier: "MEM-1", title: "Failed task", status: "in_progress",
+      companyId,
+      identifier: "MEM-1",
+      title: "Failed task",
+      status: "in_progress",
     });
     const taskId = await insertIssue({
-      companyId, identifier: "MEM-2", title: "Timed out task", status: "in_progress",
+      companyId,
+      identifier: "MEM-2",
+      title: "Timed out task",
+      status: "in_progress",
     });
-    const [failedId, timedOutId, succeededId, terminatedId, foreignId, noReceiptId] =
-      Array.from({ length: 6 }, () => randomUUID());
+    const [
+      failedId,
+      timedOutId,
+      succeededId,
+      terminatedId,
+      foreignId,
+      noReceiptId,
+    ] = Array.from({ length: 6 }, () => randomUUID());
     const createdAt = new Date("2026-07-09T12:00:00.000Z");
-    await db.insert(heartbeatRuns).values([
-      { id: failedId, companyId, agentId: workerId, status: "failed", contextSnapshot: { issueId, prompt: "x".repeat(32_000) } },
-      { id: timedOutId, companyId, agentId: workerId, status: "timed_out", contextSnapshot: { taskId, prompt: "y".repeat(32_000) } },
-      { id: succeededId, companyId, agentId: workerId, status: "succeeded" },
-      { id: terminatedId, companyId, agentId: reviewerId, status: "failed" },
-      { id: foreignId, companyId: other.companyId, agentId: other.workerId, status: "failed" },
-      { id: noReceiptId, companyId, agentId: workerId, status: "failed" },
-    ].map((run) => ({ ...run, createdAt, updatedAt: createdAt, finishedAt: createdAt })));
+    await db.insert(heartbeatRuns).values(
+      [
+        {
+          id: failedId,
+          companyId,
+          agentId: workerId,
+          status: "failed",
+          contextSnapshot: { issueId, prompt: "x".repeat(32_000) },
+        },
+        {
+          id: timedOutId,
+          companyId,
+          agentId: workerId,
+          status: "timed_out",
+          contextSnapshot: { taskId, prompt: "y".repeat(32_000) },
+        },
+        { id: succeededId, companyId, agentId: workerId, status: "succeeded" },
+        { id: terminatedId, companyId, agentId: reviewerId, status: "failed" },
+        {
+          id: foreignId,
+          companyId: other.companyId,
+          agentId: other.workerId,
+          status: "failed",
+        },
+        { id: noReceiptId, companyId, agentId: workerId, status: "failed" },
+      ].map((run) => ({
+        ...run,
+        createdAt,
+        updatedAt: createdAt,
+        finishedAt: createdAt,
+      })),
+    );
     for (let batch = 0; batch < 5; batch += 1) {
-      await db.insert(heartbeatRunEvents).values(Array.from({ length: 500 }, (_, index) => ({
-        companyId, agentId: workerId, runId: failedId, seq: batch * 500 + index + 1,
-        eventType: "lifecycle", message: `Bounded retry exhausted receipt ${batch * 500 + index + 1}`,
-      })));
+      await db.insert(heartbeatRunEvents).values(
+        Array.from({ length: 500 }, (_, index) => ({
+          companyId,
+          agentId: workerId,
+          runId: failedId,
+          seq: batch * 500 + index + 1,
+          eventType: "lifecycle",
+          message: `Bounded retry exhausted receipt ${batch * 500 + index + 1}`,
+        })),
+      );
     }
     await db.insert(heartbeatRunEvents).values([
-      { companyId, agentId: workerId, runId: timedOutId, seq: 1, eventType: "lifecycle", message: "Bounded retry exhausted timeout" },
-      { companyId, agentId: workerId, runId: succeededId, seq: 1, eventType: "lifecycle", message: "Bounded retry exhausted success" },
-      { companyId, agentId: reviewerId, runId: terminatedId, seq: 1, eventType: "lifecycle", message: "Bounded retry exhausted terminated" },
-      { companyId: other.companyId, agentId: other.workerId, runId: foreignId, seq: 1, eventType: "lifecycle", message: "Bounded retry exhausted other company" },
+      {
+        companyId,
+        agentId: workerId,
+        runId: timedOutId,
+        seq: 1,
+        eventType: "lifecycle",
+        message: "Bounded retry exhausted timeout",
+      },
+      {
+        companyId,
+        agentId: workerId,
+        runId: succeededId,
+        seq: 1,
+        eventType: "lifecycle",
+        message: "Bounded retry exhausted success",
+      },
+      {
+        companyId,
+        agentId: reviewerId,
+        runId: terminatedId,
+        seq: 1,
+        eventType: "lifecycle",
+        message: "Bounded retry exhausted terminated",
+      },
+      {
+        companyId: other.companyId,
+        agentId: other.workerId,
+        runId: foreignId,
+        seq: 1,
+        eventType: "lifecycle",
+        message: "Bounded retry exhausted other company",
+      },
       // A newer event must not replace the latest matching, company-scoped receipt.
-      { companyId: other.companyId, agentId: other.workerId, runId: failedId, seq: 2501, eventType: "lifecycle", message: "Bounded retry exhausted foreign receipt" },
-      { companyId, agentId: workerId, runId: failedId, seq: 2502, eventType: "stdout", message: "Bounded retry exhausted quoted output" },
-      { companyId, agentId: workerId, runId: failedId, seq: 2503, eventType: "lifecycle", message: "Unrelated lifecycle event" },
+      {
+        companyId: other.companyId,
+        agentId: other.workerId,
+        runId: failedId,
+        seq: 2501,
+        eventType: "lifecycle",
+        message: "Bounded retry exhausted foreign receipt",
+      },
+      {
+        companyId,
+        agentId: workerId,
+        runId: failedId,
+        seq: 2502,
+        eventType: "stdout",
+        message: "Bounded retry exhausted quoted output",
+      },
+      {
+        companyId,
+        agentId: workerId,
+        runId: failedId,
+        seq: 2503,
+        eventType: "lifecycle",
+        message: "Unrelated lifecycle event",
+      },
     ]);
 
     // Assert the database result itself: JavaScript feed deduplication used to
@@ -971,15 +1160,26 @@ describeEmbeddedPostgres("attention service", () => {
       exhaustionMessage: "Bounded retry exhausted receipt 2500",
       contextSnapshot: { issueId, taskId: null },
     });
-    expect(rows.find((row) => row.id === timedOutId)?.contextSnapshot).toEqual({ issueId: null, taskId });
+    expect(rows.find((row) => row.id === timedOutId)?.contextSnapshot).toEqual({
+      issueId: null,
+      taskId,
+    });
     expect(Buffer.byteLength(JSON.stringify(rows))).toBeLessThan(4096);
 
     const feed = await attentionService(db).list(companyId, {
-      includeDismissed: true, all: true, allowUnscopedAll: true,
+      includeDismissed: true,
+      all: true,
+      allowUnscopedAll: true,
     });
-    const failures = feed.items.filter((item) => item.sourceKind === "failed_run");
-    expect(failures.map((item) => item.subject.id).sort()).toEqual([failedId, timedOutId].sort());
-    expect(failures.find((item) => item.subject.id === timedOutId)?.relatedIssue?.id).toBe(taskId);
+    const failures = feed.items.filter(
+      (item) => item.sourceKind === "failed_run",
+    );
+    expect(failures.map((item) => item.subject.id).sort()).toEqual(
+      [failedId, timedOutId].sort(),
+    );
+    expect(
+      failures.find((item) => item.subject.id === timedOutId)?.relatedIssue?.id,
+    ).toBe(taskId);
   });
 
   it("suppresses failed-run attention after a newer run for the same issue", async () => {
@@ -1024,13 +1224,18 @@ describeEmbeddedPostgres("attention service", () => {
       agentId: workerId,
       seq: 1,
       eventType: "lifecycle",
-      message: "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
+      message:
+        "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
       createdAt: new Date("2026-07-09T12:00:01.000Z"),
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
 
-    expect(feed.items.filter((item) => item.sourceKind === "failed_run")).toEqual([]);
+    expect(
+      feed.items.filter((item) => item.sourceKind === "failed_run"),
+    ).toEqual([]);
   });
 
   it("enriches interaction details with project, workspace, plan metadata, and images", async () => {
@@ -1040,7 +1245,12 @@ describeEmbeddedPostgres("attention service", () => {
     const issueId = randomUUID();
     const planDocumentId = randomUUID();
     const planRevisionId = randomUUID();
-    const imageAssetIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    const imageAssetIds = [
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+    ];
 
     await db.insert(projects).values({
       id: projectId,
@@ -1074,7 +1284,8 @@ describeEmbeddedPostgres("attention service", () => {
       companyId,
       title: "Launch Plan",
       format: "markdown",
-      latestBody: "# Summary\n\nThis plan explains the launch checklist, rollout owner, QA gates, and risk controls for the homepage release.",
+      latestBody:
+        "# Summary\n\nThis plan explains the launch checklist, rollout owner, QA gates, and risk controls for the homepage release.",
       latestRevisionId: planRevisionId,
       latestRevisionNumber: 2,
     });
@@ -1085,18 +1296,56 @@ describeEmbeddedPostgres("attention service", () => {
       key: "plan",
     });
     await db.insert(assets).values([
-      { id: imageAssetIds[0], companyId, provider: "local_disk", objectKey: "img-1", contentType: "image/png", byteSize: 10, sha256: "a".repeat(64), originalFilename: "one.png" },
-      { id: imageAssetIds[1], companyId, provider: "local_disk", objectKey: "img-2", contentType: "image/jpeg", byteSize: 10, sha256: "b".repeat(64), originalFilename: "two.jpg" },
-      { id: imageAssetIds[2], companyId, provider: "local_disk", objectKey: "img-3", contentType: "image/gif", byteSize: 10, sha256: "c".repeat(64), originalFilename: "three.gif" },
-      { id: imageAssetIds[3], companyId, provider: "local_disk", objectKey: "img-4", contentType: "image/png", byteSize: 10, sha256: "d".repeat(64), originalFilename: "four.png" },
+      {
+        id: imageAssetIds[0],
+        companyId,
+        provider: "local_disk",
+        objectKey: "img-1",
+        contentType: "image/png",
+        byteSize: 10,
+        sha256: "a".repeat(64),
+        originalFilename: "one.png",
+      },
+      {
+        id: imageAssetIds[1],
+        companyId,
+        provider: "local_disk",
+        objectKey: "img-2",
+        contentType: "image/jpeg",
+        byteSize: 10,
+        sha256: "b".repeat(64),
+        originalFilename: "two.jpg",
+      },
+      {
+        id: imageAssetIds[2],
+        companyId,
+        provider: "local_disk",
+        objectKey: "img-3",
+        contentType: "image/gif",
+        byteSize: 10,
+        sha256: "c".repeat(64),
+        originalFilename: "three.gif",
+      },
+      {
+        id: imageAssetIds[3],
+        companyId,
+        provider: "local_disk",
+        objectKey: "img-4",
+        contentType: "image/png",
+        byteSize: 10,
+        sha256: "d".repeat(64),
+        originalFilename: "four.png",
+      },
     ]);
-    await db.insert(issueAttachments).values(imageAssetIds.map((assetId, index) => ({
-      companyId,
-      issueId,
-      assetId,
-      createdAt: new Date(`2026-07-09T12:0${index}:30.000Z`),
-      updatedAt: new Date(`2026-07-09T12:0${index}:30.000Z`),
-    })));
+    await db.insert(issueAttachments).values(
+      imageAssetIds.map((assetId, index) => ({
+        companyId,
+        issueId,
+        assetId,
+        createdAt: new Date(`2026-07-09T12:0${index}:30.000Z`),
+        updatedAt: new Date(`2026-07-09T12:0${index}:30.000Z`),
+      })),
+    );
 
     const planInteractionId = randomUUID();
     const questionsInteractionId = randomUUID();
@@ -1117,7 +1366,12 @@ describeEmbeddedPostgres("attention service", () => {
           prompt: "Approve plan?",
           acceptLabel: "Approve plan",
           rejectLabel: "Request changes",
-          target: { type: "issue_document", issueId, key: "plan", revisionId: planRevisionId },
+          target: {
+            type: "issue_document",
+            issueId,
+            key: "plan",
+            revisionId: planRevisionId,
+          },
         },
         createdAt: new Date("2026-07-09T12:01:00.000Z"),
         updatedAt: new Date("2026-07-09T12:01:00.000Z"),
@@ -1133,8 +1387,18 @@ describeEmbeddedPostgres("attention service", () => {
         payload: {
           version: 1,
           questions: [
-            { id: "q1", prompt: "Which auth provider should we use?", selectionMode: "single", options: [] },
-            { id: "q2", prompt: "Should we add a fallback?", selectionMode: "single", options: [] },
+            {
+              id: "q1",
+              prompt: "Which auth provider should we use?",
+              selectionMode: "single",
+              options: [],
+            },
+            {
+              id: "q2",
+              prompt: "Should we add a fallback?",
+              selectionMode: "single",
+              options: [],
+            },
           ],
         },
         createdAt: new Date("2026-07-09T12:02:00.000Z"),
@@ -1148,7 +1412,13 @@ describeEmbeddedPostgres("attention service", () => {
         status: "pending",
         continuationPolicy: "wake_assignee",
         title: "Tasks",
-        payload: { version: 1, tasks: [{ clientKey: "t1", title: "Build API" }, { clientKey: "t2", title: "Wire UI" }] },
+        payload: {
+          version: 1,
+          tasks: [
+            { clientKey: "t1", title: "Build API" },
+            { clientKey: "t2", title: "Wire UI" },
+          ],
+        },
         createdAt: new Date("2026-07-09T12:03:00.000Z"),
         updatedAt: new Date("2026-07-09T12:03:00.000Z"),
       },
@@ -1160,7 +1430,14 @@ describeEmbeddedPostgres("attention service", () => {
         status: "pending",
         continuationPolicy: "wake_assignee",
         title: "Checkbox",
-        payload: { version: 1, prompt: "Select rollout regions", options: [{ id: "us", label: "US" }, { id: "eu", label: "EU" }] },
+        payload: {
+          version: 1,
+          prompt: "Select rollout regions",
+          options: [
+            { id: "us", label: "US" },
+            { id: "eu", label: "EU" },
+          ],
+        },
         createdAt: new Date("2026-07-09T12:04:00.000Z"),
         updatedAt: new Date("2026-07-09T12:04:00.000Z"),
       },
@@ -1172,19 +1449,35 @@ describeEmbeddedPostgres("attention service", () => {
         status: "pending",
         continuationPolicy: "wake_assignee",
         title: "Verdicts",
-        payload: { version: 1, prompt: "Approve these screenshots", items: [{ id: "one", label: "One" }, { id: "two", label: "Two" }] },
+        payload: {
+          version: 1,
+          prompt: "Approve these screenshots",
+          items: [
+            { id: "one", label: "One" },
+            { id: "two", label: "Two" },
+          ],
+        },
         createdAt: new Date("2026-07-09T12:05:00.000Z"),
         updatedAt: new Date("2026-07-09T12:05:00.000Z"),
       },
     ]);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const interactionItems = feed.items.filter((item) => item.sourceKind === "issue_thread_interaction");
-    const detailsByKind = new Map(interactionItems.map((item) => [item.detail?.kind, item]));
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const interactionItems = feed.items.filter(
+      (item) => item.sourceKind === "issue_thread_interaction",
+    );
+    const detailsByKind = new Map(
+      interactionItems.map((item) => [item.detail?.kind, item]),
+    );
 
     const planItem = detailsByKind.get("plan_approval");
     expect(planItem?.subject.title).toBe("Plan approval - Approve launch plan");
-    expect(planItem?.subject.metadata).toMatchObject({ isPlanTarget: true, targetDocumentKey: "plan" });
+    expect(planItem?.subject.metadata).toMatchObject({
+      isPlanTarget: true,
+      targetDocumentKey: "plan",
+    });
     expect(planItem?.decisionVerbs).toEqual([
       expect.objectContaining({ id: "accept", label: "Approve plan" }),
       expect.objectContaining({ id: "reject", label: "Request changes" }),
@@ -1196,13 +1489,18 @@ describeEmbeddedPostgres("attention service", () => {
       icon: "rocket",
     });
     expect(planItem?.project?.urlKey).toEqual(expect.any(String));
-    expect(planItem?.workspace).toEqual({ id: workspaceId, name: "Preview workspace" });
+    expect(planItem?.workspace).toEqual({
+      id: workspaceId,
+      name: "Preview workspace",
+    });
     expect(planItem?.detail).toMatchObject({
       kind: "plan_approval",
       issueTitle: "Approve launch plan",
       planTitle: "Launch Plan",
       summaryExcerpt: expect.stringContaining("launch checklist"),
-      images: imageAssetIds.slice(0, 3).map((assetId) => ({ assetId, alt: expect.any(String) })),
+      images: imageAssetIds
+        .slice(0, 3)
+        .map((assetId) => ({ assetId, alt: expect.any(String) })),
     });
     expect(detailsByKind.get("questions")?.detail).toMatchObject({
       kind: "questions",
@@ -1274,13 +1572,19 @@ describeEmbeddedPostgres("attention service", () => {
         continuationPolicy: "wake_assignee",
         createdByAgentId: workerId,
         title: "Select rollout",
-        payload: { version: 1, prompt: "Select rollout", options: [{ id: "one", label: "One" }] },
+        payload: {
+          version: 1,
+          prompt: "Select rollout",
+          options: [{ id: "one", label: "One" }],
+        },
         createdAt: new Date("2026-07-09T12:01:00.000Z"),
         updatedAt: new Date("2026-07-09T12:01:00.000Z"),
       },
     ]);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
     const interactionIds = feed.items
       .filter((item) => item.sourceKind === "issue_thread_interaction")
       .map((item) => item.subject.id);
@@ -1309,20 +1613,31 @@ describeEmbeddedPostgres("attention service", () => {
       dismissedAt: new Date("2026-07-09T13:00:00.000Z"),
     });
 
-    await expect(attentionService(db).list(companyId, { userId: "board-user" }))
-      .resolves.toMatchObject({ totalCount: 1 }); // agent_error_alert from seed
-    const includeDismissedFeed = await attentionService(db).list(companyId, { userId: "board-user", includeDismissed: true });
+    await expect(
+      attentionService(db).list(companyId, { userId: "board-user" }),
+    ).resolves.toMatchObject({ totalCount: 1 }); // agent_error_alert from seed
+    const includeDismissedFeed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+      includeDismissed: true,
+    });
     expect(includeDismissedFeed.totalCount).toBe(2);
-    expect(includeDismissedFeed.items.find((item) => item.dedupKey === `approval:${approvalId}`)?.dismissal)
-      .toMatchObject({ kind: "dismiss", isActive: true, snoozedUntil: null });
+    expect(
+      includeDismissedFeed.items.find(
+        (item) => item.dedupKey === `approval:${approvalId}`,
+      )?.dismissal,
+    ).toMatchObject({ kind: "dismiss", isActive: true, snoozedUntil: null });
 
     await db
       .update(approvals)
       .set({ updatedAt: new Date("2026-07-09T14:00:00.000Z") })
       .where(eq(approvals.id, approvalId));
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    expect(feed.items.some((item) => item.dedupKey === `approval:${approvalId}`)).toBe(true);
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    expect(
+      feed.items.some((item) => item.dedupKey === `approval:${approvalId}`),
+    ).toBe(true);
   });
 
   it("delivers a structured human unblock descriptor once per blocked transition", async () => {
@@ -1337,11 +1652,20 @@ describeEmbeddedPostgres("attention service", () => {
       blockedTransitionAt: transitionAt,
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const items = feed.items.filter((item) => item.dedupKey === `blocked-owner:${issueId}:${transitionAt.toISOString()}`);
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const items = feed.items.filter(
+      (item) =>
+        item.dedupKey ===
+        `blocked-owner:${issueId}:${transitionAt.toISOString()}`,
+    );
 
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ sourceKind: "blocker_attention", whyNow: "Approve the exception" });
+    expect(items[0]).toMatchObject({
+      sourceKind: "blocker_attention",
+      whyNow: "Approve the exception",
+    });
   });
 
   it("keeps legacy blocker attention visible for pre-rollout blocked issues", async () => {
@@ -1354,9 +1678,13 @@ describeEmbeddedPostgres("attention service", () => {
       blockedTransitionAt: new Date(ROUTABLE_BLOCKED_ROLLOUT_AT.getTime() - 1),
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
 
-    expect(feed.items.some((item) => item.dedupKey === `blocker:${issueId}`)).toBe(true);
+    expect(
+      feed.items.some((item) => item.dedupKey === `blocker:${issueId}`),
+    ).toBe(true);
   });
 
   // Regression: both blocker_attention call sites fell back to the blocked
@@ -1372,8 +1700,12 @@ describeEmbeddedPostgres("attention service", () => {
       blockedTransitionAt: new Date(ROUTABLE_BLOCKED_ROLLOUT_AT.getTime() - 1),
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const row = feed.items.find((item) => item.dedupKey === `blocker:${issueId}`);
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const row = feed.items.find(
+      (item) => item.dedupKey === `blocker:${issueId}`,
+    );
 
     expect(row).toBeTruthy();
     expect(row?.detail).toMatchObject({ kind: "blocker", blockingIssue: null });
@@ -1402,8 +1734,12 @@ describeEmbeddedPostgres("attention service", () => {
       type: "blocks",
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    expect(feed.items.some((item) => item.sourceKind === "blocker_attention")).toBe(false);
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    expect(
+      feed.items.some((item) => item.sourceKind === "blocker_attention"),
+    ).toBe(false);
   });
 
   it("suppresses a mixed blocker tree when any blocker is live", async () => {
@@ -1415,21 +1751,47 @@ describeEmbeddedPostgres("attention service", () => {
       status: "blocked",
     });
     const blockerIds = await Promise.all([
-      insertIssue({ companyId, identifier: "ATL-2", title: "Live phase one", status: "in_progress" }),
-      insertIssue({ companyId, identifier: "ATL-3", title: "Live phase two", status: "in_progress" }),
-      insertIssue({ companyId, identifier: "ATL-4", title: "Live phase three", status: "in_progress" }),
-      insertIssue({ companyId, identifier: "ATL-5", title: "Stopped phase", status: "todo" }),
+      insertIssue({
+        companyId,
+        identifier: "ATL-2",
+        title: "Live phase one",
+        status: "in_progress",
+      }),
+      insertIssue({
+        companyId,
+        identifier: "ATL-3",
+        title: "Live phase two",
+        status: "in_progress",
+      }),
+      insertIssue({
+        companyId,
+        identifier: "ATL-4",
+        title: "Live phase three",
+        status: "in_progress",
+      }),
+      insertIssue({
+        companyId,
+        identifier: "ATL-5",
+        title: "Stopped phase",
+        status: "todo",
+      }),
     ]);
-    await db.insert(issueRelations).values(blockerIds.map((issueId) => ({
-      companyId,
-      issueId,
-      relatedIssueId: blockedId,
-      type: "blocks" as const,
-    })));
+    await db.insert(issueRelations).values(
+      blockerIds.map((issueId) => ({
+        companyId,
+        issueId,
+        relatedIssueId: blockedId,
+        type: "blocks" as const,
+      })),
+    );
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
 
-    expect(feed.items.filter((item) => item.sourceKind === "blocker_attention")).toEqual([]);
+    expect(
+      feed.items.filter((item) => item.sourceKind === "blocker_attention"),
+    ).toEqual([]);
   });
 
   it("emits one terminal-blocker row with a cycle-safe transitive blocked-work count", async () => {
@@ -1467,18 +1829,41 @@ describeEmbeddedPostgres("attention service", () => {
       parentId: blockedId,
     });
     await db.insert(issueRelations).values([
-      { companyId, issueId: terminalId, relatedIssueId: blockedId, type: "blocks" },
-      { companyId, issueId: blockedId, relatedIssueId: transitiveId, type: "blocks" },
+      {
+        companyId,
+        issueId: terminalId,
+        relatedIssueId: blockedId,
+        type: "blocks",
+      },
+      {
+        companyId,
+        issueId: blockedId,
+        relatedIssueId: transitiveId,
+        type: "blocks",
+      },
       // Corrupt legacy cycles must not inflate or hang the count.
-      { companyId, issueId: transitiveId, relatedIssueId: blockedId, type: "blocks" },
+      {
+        companyId,
+        issueId: transitiveId,
+        relatedIssueId: blockedId,
+        type: "blocks",
+      },
     ]);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const rows = feed.items.filter((item) => item.sourceKind === "blocker_attention");
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const rows = feed.items.filter(
+      (item) => item.sourceKind === "blocker_attention",
+    );
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
-      subject: { id: terminalId, identifier: "ATC-1", title: "Choose migration owner" },
+      subject: {
+        id: terminalId,
+        identifier: "ATC-1",
+        title: "Choose migration owner",
+      },
       relatedIssue: { id: blockedId },
       whyNow: "Blocks 3 tasks and needs human attention.",
       detail: { kind: "blocker", blockingIssue: null, blockedTaskCount: 3 },
@@ -1514,18 +1899,51 @@ describeEmbeddedPostgres("attention service", () => {
       title: "Light blocked root",
       status: "blocked",
     });
-    await insertIssue({ companyId, identifier: "ATR-5", title: "Heavy child one", status: "todo", parentId: heavyBlockedId });
-    await insertIssue({ companyId, identifier: "ATR-6", title: "Heavy child two", status: "todo", parentId: heavyBlockedId });
+    await insertIssue({
+      companyId,
+      identifier: "ATR-5",
+      title: "Heavy child one",
+      status: "todo",
+      parentId: heavyBlockedId,
+    });
+    await insertIssue({
+      companyId,
+      identifier: "ATR-6",
+      title: "Heavy child two",
+      status: "todo",
+      parentId: heavyBlockedId,
+    });
     await db.insert(issueRelations).values([
-      { companyId, issueId: heavyTerminalId, relatedIssueId: heavyBlockedId, type: "blocks" },
-      { companyId, issueId: lightTerminalId, relatedIssueId: lightBlockedId, type: "blocks" },
+      {
+        companyId,
+        issueId: heavyTerminalId,
+        relatedIssueId: heavyBlockedId,
+        type: "blocks",
+      },
+      {
+        companyId,
+        issueId: lightTerminalId,
+        relatedIssueId: lightBlockedId,
+        type: "blocks",
+      },
     ]);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const rows = feed.items.filter((item) => item.sourceKind === "blocker_attention");
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const rows = feed.items.filter(
+      (item) => item.sourceKind === "blocker_attention",
+    );
 
-    expect(rows.map((item) => item.subject.id)).toEqual([heavyTerminalId, lightTerminalId]);
-    expect(rows.map((item) => item.detail?.kind === "blocker" ? item.detail.blockedTaskCount : null)).toEqual([3, 1]);
+    expect(rows.map((item) => item.subject.id)).toEqual([
+      heavyTerminalId,
+      lightTerminalId,
+    ]);
+    expect(
+      rows.map((item) =>
+        item.detail?.kind === "blocker" ? item.detail.blockedTaskCount : null,
+      ),
+    ).toEqual([3, 1]);
   });
 
   it("does not name the blocked task as its own blocker on a human-owned unblock row", async () => {
@@ -1540,9 +1958,13 @@ describeEmbeddedPostgres("attention service", () => {
       blockedTransitionAt: transitionAt,
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
     const row = feed.items.find(
-      (item) => item.dedupKey === `blocked-owner:${issueId}:${transitionAt.toISOString()}`,
+      (item) =>
+        item.dedupKey ===
+        `blocked-owner:${issueId}:${transitionAt.toISOString()}`,
     );
 
     expect(row?.detail).toMatchObject({ kind: "blocker", blockingIssue: null });
@@ -1560,9 +1982,17 @@ describeEmbeddedPostgres("attention service", () => {
       blockedTransitionAt: transitionAt,
     });
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
 
-    expect(feed.items.some((item) => item.dedupKey === `blocked-owner:${issueId}:${transitionAt.toISOString()}`)).toBe(false);
+    expect(
+      feed.items.some(
+        (item) =>
+          item.dedupKey ===
+          `blocked-owner:${issueId}:${transitionAt.toISOString()}`,
+      ),
+    ).toBe(false);
   });
 
   it("returns one pending approval row when the approval is linked to multiple tasks", async () => {
@@ -1570,8 +2000,20 @@ describeEmbeddedPostgres("attention service", () => {
     const approvalId = randomUUID();
     const firstIssueId = "00000000-0000-4000-8000-000000000001";
     const secondIssueId = "00000000-0000-4000-8000-000000000002";
-    await insertIssue({ companyId, id: firstIssueId, identifier: "ATM-1", title: "First task", status: "in_progress" });
-    await insertIssue({ companyId, id: secondIssueId, identifier: "ATM-2", title: "Second task", status: "in_progress" });
+    await insertIssue({
+      companyId,
+      id: firstIssueId,
+      identifier: "ATM-1",
+      title: "First task",
+      status: "in_progress",
+    });
+    await insertIssue({
+      companyId,
+      id: secondIssueId,
+      identifier: "ATM-2",
+      title: "Second task",
+      status: "in_progress",
+    });
     await db.insert(approvals).values({
       id: approvalId,
       companyId,
@@ -1584,8 +2026,12 @@ describeEmbeddedPostgres("attention service", () => {
       { companyId, issueId: firstIssueId, approvalId },
     ]);
 
-    const feed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const approvalItems = feed.items.filter((item) => item.dedupKey === `approval:${approvalId}`);
+    const feed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const approvalItems = feed.items.filter(
+      (item) => item.dedupKey === `approval:${approvalId}`,
+    );
 
     expect(approvalItems).toHaveLength(1);
     expect(approvalItems[0]?.subject.metadata?.issueId).toBe(firstIssueId);
@@ -1612,20 +2058,38 @@ describeEmbeddedPostgres("attention service", () => {
       snoozedUntil: new Date("2099-01-02T00:00:00.000Z"),
     });
 
-    await expect(attentionService(db).list(companyId, { userId: "board-user" }))
-      .resolves.toMatchObject({ totalCount: 1 }); // agent_error_alert from seed
-    const hiddenFeed = await attentionService(db).list(companyId, { userId: "board-user", includeDismissed: true });
-    expect(hiddenFeed.items.find((item) => item.dedupKey === `approval:${approvalId}`)?.dismissal)
-      .toMatchObject({ kind: "snooze", isActive: true, snoozedUntil: "2099-01-02T00:00:00.000Z" });
+    await expect(
+      attentionService(db).list(companyId, { userId: "board-user" }),
+    ).resolves.toMatchObject({ totalCount: 1 }); // agent_error_alert from seed
+    const hiddenFeed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+      includeDismissed: true,
+    });
+    expect(
+      hiddenFeed.items.find(
+        (item) => item.dedupKey === `approval:${approvalId}`,
+      )?.dismissal,
+    ).toMatchObject({
+      kind: "snooze",
+      isActive: true,
+      snoozedUntil: "2099-01-02T00:00:00.000Z",
+    });
 
     await db
       .update(inboxDismissals)
       .set({ snoozedUntil: new Date("2020-01-01T00:00:00.000Z") })
       .where(eq(inboxDismissals.itemKey, `attention:approval:${approvalId}`));
 
-    const visibleFeed = await attentionService(db).list(companyId, { userId: "board-user" });
-    const visibleApproval = visibleFeed.items.find((item) => item.dedupKey === `approval:${approvalId}`);
-    expect(visibleApproval?.dismissal).toMatchObject({ kind: "snooze", isActive: false });
+    const visibleFeed = await attentionService(db).list(companyId, {
+      userId: "board-user",
+    });
+    const visibleApproval = visibleFeed.items.find(
+      (item) => item.dedupKey === `approval:${approvalId}`,
+    );
+    expect(visibleApproval?.dismissal).toMatchObject({
+      kind: "snooze",
+      isActive: false,
+    });
     expect(visibleApproval).toBeTruthy();
   });
 
@@ -1654,24 +2118,50 @@ describeEmbeddedPostgres("attention service", () => {
     const wheneverId = randomUUID();
     const snoozedId = randomUUID();
     const decisionValues = [
-      { id: expiringSoonId, ruleKey: "release.soon", title: "Expires sooner", updatedAt: new Date(now - 60_000), expiresAt: new Date(now + 60 * 60_000) },
-      { id: expiringLaterId, ruleKey: "release.later", title: "Expires later", updatedAt: new Date(now - 2 * 60_000), expiresAt: new Date(now + 2 * 60 * 60_000) },
-      { id: wheneverId, ruleKey: "release.whenever", title: "Can wait", updatedAt: new Date(now), expiresAt: new Date(now + 30 * 60_000) },
-      { id: snoozedId, ruleKey: "release.snoozed", title: "Snoozed", updatedAt: new Date(now - 3 * 60_000), expiresAt: new Date(now + 15 * 60_000) },
+      {
+        id: expiringSoonId,
+        ruleKey: "release.soon",
+        title: "Expires sooner",
+        updatedAt: new Date(now - 60_000),
+        expiresAt: new Date(now + 60 * 60_000),
+      },
+      {
+        id: expiringLaterId,
+        ruleKey: "release.later",
+        title: "Expires later",
+        updatedAt: new Date(now - 2 * 60_000),
+        expiresAt: new Date(now + 2 * 60 * 60_000),
+      },
+      {
+        id: wheneverId,
+        ruleKey: "release.whenever",
+        title: "Can wait",
+        updatedAt: new Date(now),
+        expiresAt: new Date(now + 30 * 60_000),
+      },
+      {
+        id: snoozedId,
+        ruleKey: "release.snoozed",
+        title: "Snoozed",
+        updatedAt: new Date(now - 3 * 60_000),
+        expiresAt: new Date(now + 15 * 60_000),
+      },
     ];
-    await db.insert(decisions).values(decisionValues.map((value) => ({
-      ...value,
-      companyId,
-      originAgentId: workerId,
-      originIssueId,
-      originRunId: runId,
-      body: value.title,
-      options: [],
-      status: "open",
-      signedSpec: "test",
-      targetSnapshots: {},
-      createdAt: value.updatedAt,
-    })));
+    await db.insert(decisions).values(
+      decisionValues.map((value) => ({
+        ...value,
+        companyId,
+        originAgentId: workerId,
+        originIssueId,
+        originRunId: runId,
+        body: value.title,
+        options: [],
+        status: "open",
+        signedSpec: "test",
+        targetSnapshots: {},
+        createdAt: value.updatedAt,
+      })),
+    );
 
     const queueId = randomUUID();
     await db.insert(decisionQueues).values({
@@ -1682,27 +2172,28 @@ describeEmbeddedPostgres("attention service", () => {
       createdByType: "user",
       createdByUserId: "board-user",
     });
-    await db.insert(decisionQueueItems).values([expiringSoonId, expiringLaterId].map((sourceId) => ({
-      companyId,
-      queueId,
-      sourceKind: "decision",
-      sourceId,
-      addedByType: "user",
-      addedByUserId: "board-user",
-    })));
-    await db.insert(decisionTriage).values([
-      expiringSoonId,
-      expiringLaterId,
-      snoozedId,
-    ].map((sourceId) => ({
-      companyId,
-      sourceKind: "decision",
-      sourceId,
-      decideBy: "today",
-      setByType: "agent",
-      setByAgentId: workerId,
-      snoozedUntil: sourceId === snoozedId ? new Date(now + 60 * 60_000) : null,
-    })));
+    await db.insert(decisionQueueItems).values(
+      [expiringSoonId, expiringLaterId].map((sourceId) => ({
+        companyId,
+        queueId,
+        sourceKind: "decision",
+        sourceId,
+        addedByType: "user",
+        addedByUserId: "board-user",
+      })),
+    );
+    await db.insert(decisionTriage).values(
+      [expiringSoonId, expiringLaterId, snoozedId].map((sourceId) => ({
+        companyId,
+        sourceKind: "decision",
+        sourceId,
+        decideBy: "today",
+        setByType: "agent",
+        setByAgentId: workerId,
+        snoozedUntil:
+          sourceId === snoozedId ? new Date(now + 60 * 60_000) : null,
+      })),
+    );
     await db.insert(decisionTriage).values({
       companyId,
       sourceKind: "decision",
@@ -1722,7 +2213,10 @@ describeEmbeddedPostgres("attention service", () => {
       createdAt: new Date(now + 5 * 60_000),
       updatedAt: new Date(now + 5 * 60_000),
     });
-    await db.update(agents).set({ updatedAt: new Date(now - 5 * 60_000) }).where(eq(agents.id, errorAgentId));
+    await db
+      .update(agents)
+      .set({ updatedAt: new Date(now - 5 * 60_000) })
+      .where(eq(agents.id, errorAgentId));
 
     const feed = await attentionService(db).list(companyId, {
       userId: "board-user",
@@ -1738,22 +2232,32 @@ describeEmbeddedPostgres("attention service", () => {
       new Date(now).getUTCDate(),
     );
     const expectedBadge = feed.items.filter(
-      (item) => new Date(item.createdAt).getTime() >= startOfUtcDay || item.decideBy === "today",
+      (item) =>
+        new Date(item.createdAt).getTime() >= startOfUtcDay ||
+        item.decideBy === "today",
     ).length;
     expect(expectedBadge).toBeGreaterThanOrEqual(2);
     expect(feed.deskBadgeCount).toBe(expectedBadge);
-    expect(feed.items.some((item) => item.subject.id === snoozedId)).toBe(false);
+    expect(feed.items.some((item) => item.subject.id === snoozedId)).toBe(
+      false,
+    );
     expect(feed.items.slice(0, 3).map((item) => item.subject.id)).toEqual([
       expiringSoonId,
       expiringLaterId,
       wheneverId,
     ]);
-    const erroredAgentIndex = feed.items.findIndex((item) => item.subject.id === errorAgentId);
-    const approvalIndex = feed.items.findIndex((item) => item.subject.id === approvalId);
+    const erroredAgentIndex = feed.items.findIndex(
+      (item) => item.subject.id === errorAgentId,
+    );
+    const approvalIndex = feed.items.findIndex(
+      (item) => item.subject.id === approvalId,
+    );
     expect(erroredAgentIndex).toBeGreaterThan(-1);
     expect(erroredAgentIndex).toBeLessThan(approvalIndex);
 
-    const enriched = feed.items.find((item) => item.subject.id === expiringSoonId);
+    const enriched = feed.items.find(
+      (item) => item.subject.id === expiringSoonId,
+    );
     expect(enriched).toMatchObject({
       expiresAt: decisionValues[0]!.expiresAt.toISOString(),
       ruleKey: "release.soon",
@@ -1775,7 +2279,9 @@ describeEmbeddedPostgres("attention service", () => {
       limit: 1,
     });
     expect(firstPage).toMatchObject({ totalCount: 2, deskBadgeCount: 2 });
-    expect(firstPage.items.map((item) => item.subject.id)).toEqual([expiringSoonId]);
+    expect(firstPage.items.map((item) => item.subject.id)).toEqual([
+      expiringSoonId,
+    ]);
     expect(firstPage.nextCursor).toBeTruthy();
     const secondPage = await attentionService(db).list(companyId, {
       userId: "board-user",
@@ -1784,7 +2290,9 @@ describeEmbeddedPostgres("attention service", () => {
       limit: 1,
       cursor: firstPage.nextCursor!,
     });
-    expect(secondPage.items.map((item) => item.subject.id)).toEqual([expiringLaterId]);
+    expect(secondPage.items.map((item) => item.subject.id)).toEqual([
+      expiringLaterId,
+    ]);
     expect(secondPage.nextCursor).toBeNull();
 
     const completeSnapshot = await attentionService(db).list(companyId, {
@@ -1793,7 +2301,10 @@ describeEmbeddedPostgres("attention service", () => {
       sort: "decide",
       all: true,
     });
-    expect(completeSnapshot.items.map((item) => item.subject.id)).toEqual([expiringSoonId, expiringLaterId]);
+    expect(completeSnapshot.items.map((item) => item.subject.id)).toEqual([
+      expiringSoonId,
+      expiringLaterId,
+    ]);
     expect(completeSnapshot.nextCursor).toBeNull();
 
     const dateFiltered = await attentionService(db).list(companyId, {
@@ -1802,15 +2313,19 @@ describeEmbeddedPostgres("attention service", () => {
       activitySince: new Date(now - 90_000).toISOString(),
       activityUntil: new Date(now).toISOString(),
     });
-    expect(dateFiltered.items.map((item) => item.subject.id)).toEqual([expiringSoonId]);
+    expect(dateFiltered.items.map((item) => item.subject.id)).toEqual([
+      expiringSoonId,
+    ]);
 
     const withSnoozed = await attentionService(db).list(companyId, {
       userId: "board-user",
       includeDismissed: true,
       limit: 20,
     });
-    expect(withSnoozed.items.find((item) => item.subject.id === snoozedId)?.snoozedUntil)
-      .toBe(new Date(now + 60 * 60_000).toISOString());
+    expect(
+      withSnoozed.items.find((item) => item.subject.id === snoozedId)
+        ?.snoozedUntil,
+    ).toBe(new Date(now + 60 * 60_000).toISOString());
   });
 
   it("returns a complete queue snapshot beyond the normal page limit", async () => {
@@ -1835,14 +2350,16 @@ describeEmbeddedPostgres("attention service", () => {
       updatedAt: new Date(Date.UTC(2026, 7, 2, 12, 0, index)),
     }));
     await db.insert(approvals).values(approvalRows);
-    await db.insert(decisionQueueItems).values(approvalRows.map((approval) => ({
-      companyId,
-      queueId,
-      sourceKind: "approval",
-      sourceId: approval.id,
-      addedByType: "user",
-      addedByUserId: "board-user",
-    })));
+    await db.insert(decisionQueueItems).values(
+      approvalRows.map((approval) => ({
+        companyId,
+        queueId,
+        sourceKind: "approval",
+        sourceId: approval.id,
+        addedByType: "user",
+        addedByUserId: "board-user",
+      })),
+    );
 
     const firstPage = await attentionService(db).list(companyId, {
       userId: "board-user",
@@ -1857,7 +2374,9 @@ describeEmbeddedPostgres("attention service", () => {
       all: true,
     });
     expect(completeSnapshot.items).toHaveLength(101);
-    expect(new Set(completeSnapshot.items.map((item) => item.id)).size).toBe(101);
+    expect(new Set(completeSnapshot.items.map((item) => item.id)).size).toBe(
+      101,
+    );
     expect(completeSnapshot.nextCursor).toBeNull();
 
     const internalSnapshot = await attentionService(db).list(companyId, {
@@ -1865,19 +2384,26 @@ describeEmbeddedPostgres("attention service", () => {
       all: true,
       allowUnscopedAll: true,
     });
-    const internalSnapshotIds = new Set(internalSnapshot.items.map((item) => item.subject.id));
-    expect(approvalRows.every((approval) => internalSnapshotIds.has(approval.id))).toBe(true);
+    const internalSnapshotIds = new Set(
+      internalSnapshot.items.map((item) => item.subject.id),
+    );
+    expect(
+      approvalRows.every((approval) => internalSnapshotIds.has(approval.id)),
+    ).toBe(true);
     expect(internalSnapshot.items.length).toBeGreaterThan(100);
     expect(internalSnapshot.nextCursor).toBeNull();
 
-    await expect(attentionService(db).list(companyId, { userId: "board-user", all: true }))
-      .rejects.toThrow("all requires a queue filter");
-    await expect(attentionService(db).list(companyId, {
-      userId: "board-user",
-      queue: "bulk-review",
-      all: true,
-      limit: 25,
-    })).rejects.toThrow("all cannot be combined with cursor or limit");
+    await expect(
+      attentionService(db).list(companyId, { userId: "board-user", all: true }),
+    ).rejects.toThrow("all requires a queue filter");
+    await expect(
+      attentionService(db).list(companyId, {
+        userId: "board-user",
+        queue: "bulk-review",
+        all: true,
+        limit: 25,
+      }),
+    ).rejects.toThrow("all cannot be combined with cursor or limit");
   });
 
   it("does not apply the open-decision safety limit to complete snapshots", async () => {
@@ -1897,31 +2423,37 @@ describeEmbeddedPostgres("attention service", () => {
       status: "succeeded",
       contextSnapshot: { issueId: originIssueId },
     });
-    await db.insert(decisions).values(["First decision", "Second decision"].map((title) => ({
-      id: randomUUID(),
-      companyId,
-      originAgentId: workerId,
-      originIssueId,
-      originRunId: runId,
-      title,
-      body: title,
-      options: [],
-      status: "open" as const,
-      expiresAt: new Date("2026-08-10T00:00:00.000Z"),
-      signedSpec: "test",
-      targetSnapshots: {},
-    })));
+    await db.insert(decisions).values(
+      ["First decision", "Second decision"].map((title) => ({
+        id: randomUUID(),
+        companyId,
+        originAgentId: workerId,
+        originIssueId,
+        originRunId: runId,
+        title,
+        body: title,
+        options: [],
+        status: "open" as const,
+        expiresAt: new Date("2026-08-10T00:00:00.000Z"),
+        signedSpec: "test",
+        targetSnapshots: {},
+      })),
+    );
 
     const svc = attentionService(db, { openDecisionLimit: 1 });
     const limited = await svc.list(companyId, { userId: "board-user" });
-    expect(limited.items.filter((item) => item.sourceKind === "decision")).toHaveLength(1);
+    expect(
+      limited.items.filter((item) => item.sourceKind === "decision"),
+    ).toHaveLength(1);
 
     const complete = await svc.list(companyId, {
       userId: "board-user",
       all: true,
       allowUnscopedAll: true,
     });
-    expect(complete.items.filter((item) => item.sourceKind === "decision")).toHaveLength(2);
+    expect(
+      complete.items.filter((item) => item.sourceKind === "decision"),
+    ).toHaveLength(2);
     expect(complete.nextCursor).toBeNull();
   });
 
@@ -1947,23 +2479,33 @@ describeEmbeddedPostgres("attention service", () => {
 
     const thisWeekId = randomUUID();
     const nextWeekId = randomUUID();
-    await db.insert(decisions).values([
-      { id: thisWeekId, title: "This week", expiresAt: new Date("2026-08-09T12:00:00.000Z") },
-      { id: nextWeekId, title: "Next week", expiresAt: new Date("2026-08-03T12:00:00.000Z") },
-    ].map((value) => ({
-      ...value,
-      companyId,
-      originAgentId: workerId,
-      originIssueId,
-      originRunId: runId,
-      body: value.title,
-      options: [],
-      status: "open" as const,
-      signedSpec: "test",
-      targetSnapshots: {},
-      createdAt: new Date(now),
-      updatedAt: new Date(now),
-    })));
+    await db.insert(decisions).values(
+      [
+        {
+          id: thisWeekId,
+          title: "This week",
+          expiresAt: new Date("2026-08-09T12:00:00.000Z"),
+        },
+        {
+          id: nextWeekId,
+          title: "Next week",
+          expiresAt: new Date("2026-08-03T12:00:00.000Z"),
+        },
+      ].map((value) => ({
+        ...value,
+        companyId,
+        originAgentId: workerId,
+        originIssueId,
+        originRunId: runId,
+        body: value.title,
+        options: [],
+        status: "open" as const,
+        signedSpec: "test",
+        targetSnapshots: {},
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
+      })),
+    );
     await db.insert(decisionTriage).values([
       {
         companyId,
@@ -1984,14 +2526,22 @@ describeEmbeddedPostgres("attention service", () => {
       },
     ]);
 
-    const feed = await attentionService(db, { now: () => now }).list(companyId, {
-      userId: "board-user",
-      sort: "decide",
-      limit: 20,
-    });
-    const decisionItems = feed.items.filter((item) => item.sourceKind === "decision");
+    const feed = await attentionService(db, { now: () => now }).list(
+      companyId,
+      {
+        userId: "board-user",
+        sort: "decide",
+        limit: 20,
+      },
+    );
+    const decisionItems = feed.items.filter(
+      (item) => item.sourceKind === "decision",
+    );
 
-    expect(decisionItems.map((item) => item.subject.id)).toEqual([thisWeekId, nextWeekId]);
+    expect(decisionItems.map((item) => item.subject.id)).toEqual([
+      thisWeekId,
+      nextWeekId,
+    ]);
     expect(decisionItems[0]).toMatchObject({
       decideBy: "this_week",
       expiresAt: "2026-08-09T12:00:00.000Z",
@@ -2032,9 +2582,13 @@ describeEmbeddedPostgres("attention service", () => {
       runId: null,
     };
 
-    await request(app(board)).get(`/api/companies/${companyId}/attention`).expect(200);
+    await request(app(board))
+      .get(`/api/companies/${companyId}/attention`)
+      .expect(200);
     const completeFeed = await request(app(board))
-      .get(`/api/companies/${companyId}/attention?includeDismissed=true&all=true`)
+      .get(
+        `/api/companies/${companyId}/attention?includeDismissed=true&all=true`,
+      )
       .expect(200);
     expect(completeFeed.body.nextCursor).toBeNull();
     await request(app(board))
@@ -2043,7 +2597,9 @@ describeEmbeddedPostgres("attention service", () => {
     await request(app(board))
       .get(`/api/companies/${companyId}/attention?sort=oldest`)
       .expect(400, { error: "sort must be 'activity' or 'decide'" });
-    await request(app(agent)).get(`/api/companies/${companyId}/attention`).expect(403);
+    await request(app(agent))
+      .get(`/api/companies/${companyId}/attention`)
+      .expect(403);
   });
 
   it("omits private issue review items for a non-member board user", async () => {
@@ -2069,9 +2625,14 @@ describeEmbeddedPostgres("attention service", () => {
       companyIds: [companyId],
       isInstanceAdmin: false,
     };
-    const feed = await attentionService(db).list(companyId, { userId: actor.userId, actor });
+    const feed = await attentionService(db).list(companyId, {
+      userId: actor.userId,
+      actor,
+    });
 
-    expect(feed.items.map((item) => item.subject.title)).not.toContain("Confidential review");
+    expect(feed.items.map((item) => item.subject.title)).not.toContain(
+      "Confidential review",
+    );
     expect(JSON.stringify(feed)).not.toContain(privateIssueId);
   });
 
@@ -2134,13 +2695,16 @@ describeEmbeddedPostgres("attention service", () => {
       createdAt: idleAt,
       updatedAt: idleAt,
     });
-    const [queue] = await db.insert(decisionQueues).values({
-      companyId,
-      key: "fast-aging",
-      title: "Fast aging",
-      retentionDays: 10,
-      createdByType: "system",
-    }).returning();
+    const [queue] = await db
+      .insert(decisionQueues)
+      .values({
+        companyId,
+        key: "fast-aging",
+        title: "Fast aging",
+        retentionDays: 10,
+        createdByType: "system",
+      })
+      .returning();
     await db.insert(decisionQueueItems).values({
       companyId,
       queueId: queue!.id,
@@ -2149,18 +2713,30 @@ describeEmbeddedPostgres("attention service", () => {
       addedByType: "system",
     });
 
-    const feed = await attentionService(db, { now: () => now }).list(companyId, {
-      userId: "board-user",
-      limit: 100,
-    });
-    const byKey = new Map(feed.items.map((item) => [`${item.sourceKind}:${item.subject.id}`, item]));
+    const feed = await attentionService(db, { now: () => now }).list(
+      companyId,
+      {
+        userId: "board-user",
+        limit: 100,
+      },
+    );
+    const byKey = new Map(
+      feed.items.map((item) => [`${item.sourceKind}:${item.subject.id}`, item]),
+    );
     for (const key of [
       `approval:${approvalId}`,
       `issue_thread_interaction:${interactionId}`,
       `review:${reviewIssueId}`,
     ]) {
-      expect(byKey.get(key)).toMatchObject({ shelf: true, retentionDays: 30, archivedAt: null });
+      expect(byKey.get(key)).toMatchObject({
+        shelf: true,
+        retentionDays: 30,
+        archivedAt: null,
+      });
     }
-    expect(byKey.get(`approval:${queueApprovalId}`)).toMatchObject({ shelf: true, retentionDays: 10 });
+    expect(byKey.get(`approval:${queueApprovalId}`)).toMatchObject({
+      shelf: true,
+      retentionDays: 10,
+    });
   });
 });

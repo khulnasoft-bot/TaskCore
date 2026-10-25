@@ -13,44 +13,80 @@ import {
 
 describe("Codex security configuration", () => {
   it("allows only the registered private instruction directory while keeping shared context read-only", () => {
-    const args = createIsolatedCodexAppServerArgs({ HOME: "/host/home" }, ["/runtime/immutable-context"], "/runtime/instruction-edits/run-1").join("\n");
+    const args = createIsolatedCodexAppServerArgs(
+      { HOME: "/host/home" },
+      ["/runtime/immutable-context"],
+      "/runtime/instruction-edits/run-1",
+    ).join("\n");
     expect(args).toContain('"/runtime/instruction-edits/run-1"="write"');
     expect(args).toContain('"/runtime/immutable-context"="read"');
     expect(args).not.toContain('"/runtime"="write"');
     expect(args).toContain('"/host/home"="none"');
-    expect(createIsolatedCodexAppServerArgs({ TASKCORE_INSTRUCTION_ROOT: "/host/home" }).join("\n"))
-      .not.toContain('"/host/home"="write"');
+    expect(
+      createIsolatedCodexAppServerArgs({
+        TASKCORE_INSTRUCTION_ROOT: "/host/home",
+      }).join("\n"),
+    ).not.toContain('"/host/home"="write"');
   });
 
   it("exposes AGENT_HOME only when it matches the controller-registered writable directory", () => {
     const root = "/agent-files/run-1";
-    const registered = createIsolatedCodexAppServerArgs({ AGENT_HOME: root, HOME: "/provider" }, [], root).join("\n");
+    const registered = createIsolatedCodexAppServerArgs(
+      { AGENT_HOME: root, HOME: "/provider" },
+      [],
+      root,
+    ).join("\n");
     expect(registered).toContain('AGENT_HOME="/agent-files/run-1"');
     expect(registered).toContain('"/provider"="none"');
-    expect(createIsolatedCodexAppServerArgs({ AGENT_HOME: "/arbitrary" }, [], root).join("\n")).not.toContain("AGENT_HOME");
-    expect(createIsolatedCodexAppServerArgs({ AGENT_HOME: root }).join("\n")).not.toContain("AGENT_HOME");
+    expect(
+      createIsolatedCodexAppServerArgs(
+        { AGENT_HOME: "/arbitrary" },
+        [],
+        root,
+      ).join("\n"),
+    ).not.toContain("AGENT_HOME");
+    expect(
+      createIsolatedCodexAppServerArgs({ AGENT_HOME: root }).join("\n"),
+    ).not.toContain("AGENT_HOME");
   });
 
   it("makes the installed npm Codex native sandbox executable readable without exposing its parent workspace", () => {
     const command = evalProviderTransportOptions("codex").codexCommand!;
-    const manifest = createRequire(command).resolve(`@openai/codex-${process.platform}-${process.arch}/package.json`);
+    const manifest = createRequire(command).resolve(
+      `@openai/codex-${process.platform}-${process.arch}/package.json`,
+    );
     const vendor = resolve(dirname(manifest), "vendor");
-    const roots = codexExecutableReadOnlyRoots({ HOME: "/private-provider-home", PATH: "/usr/bin" }, command);
+    const roots = codexExecutableReadOnlyRoots(
+      { HOME: "/private-provider-home", PATH: "/usr/bin" },
+      command,
+    );
     expect(roots).toContain(vendor);
     expect(roots).toContain(process.execPath);
     expect(roots).not.toContain(dirname(manifest));
     expect(roots).not.toContain("/private-provider-home");
-    const args = createIsolatedCodexAppServerArgs({ HOME: "/private-provider-home" }, roots).join("\n");
+    const args = createIsolatedCodexAppServerArgs(
+      { HOME: "/private-provider-home" },
+      roots,
+    ).join("\n");
     expect(args).toContain(`${JSON.stringify(vendor)}="read"`);
     expect(args).toContain('"/private-provider-home"="none"');
   });
 
   it("preserves target DNS symlink resources without opening all of /run", () => {
-    const source = { TASKCORE_RUNNER_NETWORK_ACCESS: "enabled", TASKCORE_RUNNER_NETWORK_ROOTS: '["/run/systemd/resolve/stub-resolv.conf","/etc/ssl/certs"]' };
+    const source = {
+      TASKCORE_RUNNER_NETWORK_ACCESS: "enabled",
+      TASKCORE_RUNNER_NETWORK_ROOTS:
+        '["/run/systemd/resolve/stub-resolv.conf","/etc/ssl/certs"]',
+    };
     const args = createIsolatedCodexAppServerArgs(source).join("\n");
     expect(args).toContain('"/run/systemd/resolve/stub-resolv.conf"="read"');
     expect(args).not.toContain('"/run"="read"');
-    expect(codexNetworkReadOnlyRoots({ ...source, TASKCORE_RUNNER_NETWORK_ACCESS: "disabled" })).toEqual([]);
+    expect(
+      codexNetworkReadOnlyRoots({
+        ...source,
+        TASKCORE_RUNNER_NETWORK_ACCESS: "disabled",
+      }),
+    ).toEqual([]);
   });
 
   it("requires the controller's network decision even when GitHub credentials exist", () => {
@@ -63,7 +99,10 @@ describe("Codex security configuration", () => {
 
   it("honors an explicit network restriction independently of GitHub", () => {
     for (const GH_TOKEN of [undefined, "managed-token"]) {
-      const args = createIsolatedCodexAppServerArgs({ GH_TOKEN, TASKCORE_RUNNER_NETWORK_ACCESS: "disabled" }).join("\n");
+      const args = createIsolatedCodexAppServerArgs({
+        GH_TOKEN,
+        TASKCORE_RUNNER_NETWORK_ACCESS: "disabled",
+      }).join("\n");
       expect(args).toContain("network.enabled=false");
       expect(args).not.toContain("network.enabled=true");
     }
@@ -71,13 +110,35 @@ describe("Codex security configuration", () => {
 
   it("restores host Git resources without exposing the provider home", () => {
     const args = createIsolatedCodexAppServerArgs({
-      HOME: "/provider", CODEX_HOME: "/provider", PATH: "/usr/bin:/bin", TASKCORE_GITHUB_AUTH_MODE: "host",
-      OPENAI_API_KEY: "must-not-cross", DATABASE_URL: "must-not-cross", TASKCORE_API_KEY: "must-not-cross",
-      TASKCORE_GITHUB_HOST_HOME: "/legacy", GH_CONFIG_DIR: "/legacy/.config/gh",
-      SSH_AUTH_SOCK: "/agent/socket", TASKCORE_GIT_METADATA_ROOTS: '["/repo/.git","/repo/.git"]',
+      HOME: "/provider",
+      CODEX_HOME: "/provider",
+      PATH: "/usr/bin:/bin",
+      TASKCORE_GITHUB_AUTH_MODE: "host",
+      OPENAI_API_KEY: "must-not-cross",
+      DATABASE_URL: "must-not-cross",
+      TASKCORE_API_KEY: "must-not-cross",
+      TASKCORE_GITHUB_HOST_HOME: "/legacy",
+      GH_CONFIG_DIR: "/legacy/.config/gh",
+      SSH_AUTH_SOCK: "/agent/socket",
+      TASKCORE_GIT_METADATA_ROOTS: '["/repo/.git","/repo/.git"]',
     }).join("\n");
-    const allowlist = JSON.parse(args.split("\n").find((arg) => arg.startsWith("shell_environment_policy.include_only="))!.split("=", 2)[1]!);
-    expect(allowlist).toEqual(["GH_CONFIG_DIR", "HOME", "TASKCORE_GITHUB_AUTH_MODE", "TASKCORE_GITHUB_HOST_HOME", "TASKCORE_GIT_METADATA_ROOTS", "PATH", "SSH_AUTH_SOCK"]);
+    const allowlist = JSON.parse(
+      args
+        .split("\n")
+        .find((arg) =>
+          arg.startsWith("shell_environment_policy.include_only="),
+        )!
+        .split("=", 2)[1]!,
+    );
+    expect(allowlist).toEqual([
+      "GH_CONFIG_DIR",
+      "HOME",
+      "TASKCORE_GITHUB_AUTH_MODE",
+      "TASKCORE_GITHUB_HOST_HOME",
+      "TASKCORE_GIT_METADATA_ROOTS",
+      "PATH",
+      "SSH_AUTH_SOCK",
+    ]);
     expect(args).not.toContain("must-not-cross");
     expect(args).not.toContain("OPENAI_API_KEY");
     expect(args).not.toContain("DATABASE_URL");
@@ -131,7 +192,9 @@ describe("Codex security configuration", () => {
     expect(serialized).toContain('":workspace_roots"={"."="write"}');
     expect(serialized).toContain('":workspace_roots"={"."="read"}');
     expect(serialized).toContain("network.enabled=true");
-    expect(serialized).toContain('shell_environment_policy.include_only=["LANG","TASKCORE_RUNNER_NETWORK_ACCESS","PATH"]');
+    expect(serialized).toContain(
+      'shell_environment_policy.include_only=["LANG","TASKCORE_RUNNER_NETWORK_ACCESS","PATH"]',
+    );
     expect(serialized).toContain('PATH="/safe/bin"');
     expect(serialized).toContain('LANG="C.UTF-8"');
     expect(serialized).not.toContain("OPENAI_API_KEY");
@@ -169,7 +232,8 @@ describe("Codex security configuration", () => {
 
   it("isolates managed launcher profiles and never serializes broker capabilities or host API credentials", () => {
     const serialized = createIsolatedCodexAppServerArgs({
-      HOME: "/isolated/provider", CODEX_HOME: "/isolated/provider",
+      HOME: "/isolated/provider",
+      CODEX_HOME: "/isolated/provider",
       PATH: "/runtime/run-B:/safe/bin",
       TASKCORE_GITHUB_LAUNCHER_DIR: "/runtime/run-B",
       TASKCORE_GITHUB_BROKER_TOKEN: "private-run-capability",
@@ -203,7 +267,10 @@ describe("Codex security configuration", () => {
   });
 
   it("uses the outer sandbox for default-mode commands only when the controller authorizes it", () => {
-    const source = { TASKCORE_RUNNER_EXTERNAL_SANDBOX: "1", TASKCORE_RUNNER_NETWORK_ACCESS: "enabled" };
+    const source = {
+      TASKCORE_RUNNER_EXTERNAL_SANDBOX: "1",
+      TASKCORE_RUNNER_NETWORK_ACCESS: "enabled",
+    };
     const externalArgs = createIsolatedCodexAppServerArgs(source);
     const serializedExternalArgs = externalArgs.join("\n");
     expect(externalArgs).toContain(
@@ -230,13 +297,7 @@ describe("Codex security configuration", () => {
       permissions: "taskcore-runner-external-sandbox",
     });
     expect(
-      createSecuredCodexThreadParams(
-        "/workspace",
-        "plan",
-        true,
-        false,
-        source,
-      ),
+      createSecuredCodexThreadParams("/workspace", "plan", true, false, source),
     ).toMatchObject({
       permissions: "taskcore-runner-workspace-read-only",
     });

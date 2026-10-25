@@ -11,12 +11,19 @@
 /** Valid SSE event types for plugin streams. */
 export type StreamEventType = "message" | "open" | "close" | "error";
 
-export type StreamSubscriber = (event: unknown, eventType: StreamEventType) => void;
+export type StreamSubscriber = (
+  event: unknown,
+  eventType: StreamEventType,
+) => void;
 
 /**
  * Composite key for stream subscriptions: pluginId:channel:companyId
  */
-function streamKey(pluginId: string, channel: string, companyId: string): string {
+function streamKey(
+  pluginId: string,
+  channel: string,
+  companyId: string,
+): string {
   return `${pluginId}:${channel}:${companyId}`;
 }
 
@@ -69,7 +76,13 @@ export function createPluginStreamBus(): PluginStreamBus {
       };
     },
 
-    publish(pluginId, channel, companyId, event, eventType: StreamEventType = "message") {
+    publish(
+      pluginId,
+      channel,
+      companyId,
+      event,
+      eventType: StreamEventType = "message",
+    ) {
       const key = streamKey(pluginId, channel, companyId);
       const set = subscribers.get(key);
       if (!set) return;

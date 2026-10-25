@@ -11,16 +11,27 @@ async function failureMessage(response: APIResponse, method: string) {
 
 /** Preserve HTTP status independently of diagnostic response text. */
 export class RunnerApiHttpError extends Error {
-  constructor(readonly status: number, message: string) { super(message); this.name = "RunnerApiHttpError"; }
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "RunnerApiHttpError";
+  }
 }
 
 /** Admission-only diagnostics. Never retain the rejected value or its cause. */
 export class RemoteAdmissionReadError extends Error {
   constructor(
     readonly endpoint: "issue" | "run" | "leases",
-    readonly failureClass: "candidate_failure" | "transient_infrastructure" | "permanent_infrastructure",
+    readonly failureClass:
+      | "candidate_failure"
+      | "transient_infrastructure"
+      | "permanent_infrastructure",
   ) {
-    super(`Remote admission ${endpoint} read failed (${failureClass}); diagnostics withheld`);
+    super(
+      `Remote admission ${endpoint} read failed (${failureClass}); diagnostics withheld`,
+    );
     this.name = "RemoteAdmissionReadError";
   }
 }
@@ -29,9 +40,13 @@ export class RunnerApi {
   readonly baseURL: string;
   private browserCookie?: string;
 
-  setBrowserSession(cookie: string) { this.browserCookie = cookie; }
+  setBrowserSession(cookie: string) {
+    this.browserCookie = cookie;
+  }
   private sessionOptions() {
-    return this.browserCookie ? { headers: { Cookie: this.browserCookie, Origin: this.baseURL } } : {};
+    return this.browserCookie
+      ? { headers: { Cookie: this.browserCookie, Origin: this.baseURL } }
+      : {};
   }
 
   constructor(readonly request: APIRequestContext) {
@@ -41,13 +56,23 @@ export class RunnerApi {
   }
 
   async get<T>(path: string, options?: { timeout: number }): Promise<T> {
-    const response = await this.request.get(path, { ...this.sessionOptions(), ...options });
-    if (!response.ok()) throw new RunnerApiHttpError(response.status(), await failureMessage(response, "GET"));
+    const response = await this.request.get(path, {
+      ...this.sessionOptions(),
+      ...options,
+    });
+    if (!response.ok())
+      throw new RunnerApiHttpError(
+        response.status(),
+        await failureMessage(response, "GET"),
+      );
     return response.json() as Promise<T>;
   }
 
   async post<T>(path: string, data?: unknown): Promise<T> {
-    const response = await this.request.post(path, { data, ...this.sessionOptions() });
+    const response = await this.request.post(path, {
+      data,
+      ...this.sessionOptions(),
+    });
     if (!response.ok()) throw new Error(await failureMessage(response, "POST"));
     return response.json() as Promise<T>;
   }
@@ -60,7 +85,10 @@ export class RunnerApi {
   async postSensitive<T>(path: string, data: unknown): Promise<T> {
     const response = await fetch(new URL(path, this.baseURL), {
       method: "POST",
-      headers: { "content-type": "application/json", ...this.sessionOptions().headers },
+      headers: {
+        "content-type": "application/json",
+        ...this.sessionOptions().headers,
+      },
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -72,7 +100,10 @@ export class RunnerApi {
   }
 
   async patch<T>(path: string, data: unknown): Promise<T> {
-    const response = await this.request.patch(path, { data, ...this.sessionOptions() });
+    const response = await this.request.patch(path, {
+      data,
+      ...this.sessionOptions(),
+    });
     if (!response.ok())
       throw new Error(await failureMessage(response, "PATCH"));
     return response.json() as Promise<T>;
@@ -92,7 +123,9 @@ export class RunnerApi {
     } else if (current.status() !== 404) {
       throw new Error(await failureMessage(current, "GET"));
     }
-    const saved = await this.request.put(path, { data: { path: "AGENTS.md", content, baseHash } });
+    const saved = await this.request.put(path, {
+      data: { path: "AGENTS.md", content, baseHash },
+    });
     if (!saved.ok()) throw new Error(await failureMessage(saved, "PUT"));
   }
 
@@ -108,8 +141,14 @@ export class RunnerApi {
 }
 
 export class ObservedStateTimeout extends Error {
-  constructor(label: string, readonly failureClass: "candidate_failure" | "transient_infrastructure", detail?: string) {
-    super(`Timed out waiting for ${label}; ${detail ?? "the observed state did not satisfy the condition"}. See the saved state evidence.`);
+  constructor(
+    label: string,
+    readonly failureClass: "candidate_failure" | "transient_infrastructure",
+    detail?: string,
+  ) {
+    super(
+      `Timed out waiting for ${label}; ${detail ?? "the observed state did not satisfy the condition"}. See the saved state evidence.`,
+    );
     this.name = "ObservedStateTimeout";
   }
 }
@@ -149,7 +188,10 @@ export async function pollUntil<T>(input: {
     );
   }
   if (lastError instanceof Error) {
-    throw new Error(`Timed out waiting for ${input.label}: ${lastError.message}`, { cause: lastError });
+    throw new Error(
+      `Timed out waiting for ${input.label}: ${lastError.message}`,
+      { cause: lastError },
+    );
   }
   throw new ObservedStateTimeout(
     input.label,

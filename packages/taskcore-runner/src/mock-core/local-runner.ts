@@ -43,7 +43,10 @@ const fakeHarnessBinary = resolve(
   packageRoot,
   `runner/target/debug/fake-harness${executableSuffix}`,
 );
-const scriptRoot = resolve(packageRoot, "protocol/fixtures/local-runner/scripts");
+const scriptRoot = resolve(
+  packageRoot,
+  "protocol/fixtures/local-runner/scripts",
+);
 
 interface RunnerEventMessage {
   kind: "event";
@@ -65,9 +68,7 @@ interface RunnerDiagnosticMessage {
 }
 
 type RunnerStreamMessage =
-  | RunnerEventMessage
-  | RunnerCommandReceiptMessage
-  | RunnerDiagnosticMessage;
+  RunnerEventMessage | RunnerCommandReceiptMessage | RunnerDiagnosticMessage;
 
 interface RunnerStreamEnvelope {
   schema: "taskcore.runner.stream.v1";
@@ -156,7 +157,9 @@ function metadata(scenario: LocalRunnerScenario): LocalRunnerRunMetadata {
   };
 }
 
-function processExitFromEvent(event: PrpEvent): LocalRunnerProcessExitFact | null {
+function processExitFromEvent(
+  event: PrpEvent,
+): LocalRunnerProcessExitFact | null {
   if (event.eventType !== "harness.exited") {
     return null;
   }
@@ -196,10 +199,12 @@ class LocalRunnerController implements LocalRunnerRunHandle {
     this.metadata = metadata(options.scenario);
     this.#onEvent = options.onEvent;
     this.#onDiagnostic = options.onDiagnostic;
-    this.completion = new Promise<LocalRunnerRunTrace>((resolveCompletion, rejectCompletion) => {
-      this.#completionResolve = resolveCompletion;
-      this.#completionReject = rejectCompletion;
-    });
+    this.completion = new Promise<LocalRunnerRunTrace>(
+      (resolveCompletion, rejectCompletion) => {
+        this.#completionResolve = resolveCompletion;
+        this.#completionReject = rejectCompletion;
+      },
+    );
 
     const scriptPath = resolve(scriptRoot, `${options.scenario}.json`);
     const args = [
@@ -237,15 +242,19 @@ class LocalRunnerController implements LocalRunnerRunHandle {
     this.#process.on("exit", (code, signal) => this.#finish(code, signal));
   }
 
-  static async start(options: StartLocalRunnerScenarioOptions): Promise<LocalRunnerController> {
+  static async start(
+    options: StartLocalRunnerScenarioOptions,
+  ): Promise<LocalRunnerController> {
     if (!LOCAL_RUNNER_SCENARIOS.includes(options.scenario)) {
       throw new Error(`Unsupported Local runner scenario: ${options.scenario}`);
     }
-    await Promise.all([access(runnerBinary), access(fakeHarnessBinary)]).catch(() => {
-      throw new Error(
-        `Local runner Rust binaries are missing. Run pnpm --filter @taskcore/taskcore-runner build:rust first. PATH entries: ${(process.env.PATH ?? "").split(delimiter).length}.`,
-      );
-    });
+    await Promise.all([access(runnerBinary), access(fakeHarnessBinary)]).catch(
+      () => {
+        throw new Error(
+          `Local runner Rust binaries are missing. Run pnpm --filter @taskcore/taskcore-runner build:rust first. PATH entries: ${(process.env.PATH ?? "").split(delimiter).length}.`,
+        );
+      },
+    );
     const controller = new LocalRunnerController(options);
     await controller.#initialize();
     return controller;
@@ -261,7 +270,9 @@ class LocalRunnerController implements LocalRunnerRunHandle {
     await this.#writeCommand(this.#turnCommand, true);
   }
 
-  async interrupt(reason = "operator_requested"): Promise<LocalRunnerCommandReceipt> {
+  async interrupt(
+    reason = "operator_requested",
+  ): Promise<LocalRunnerCommandReceipt> {
     return this.#sendCommand("turn.interrupt", {
       turnId: `turn_${this.metadata.identity.runId}`,
       reason,
@@ -292,7 +303,9 @@ class LocalRunnerController implements LocalRunnerRunHandle {
           this.#eventWaiters = this.#eventWaiters.filter(
             (candidate) => candidate !== waiter,
           );
-          rejectEvent(new Error("Timed out waiting for a Local runner runner event"));
+          rejectEvent(
+            new Error("Timed out waiting for a Local runner runner event"),
+          );
         }, timeoutMs),
       };
       this.#eventWaiters.push(waiter);
@@ -312,7 +325,10 @@ class LocalRunnerController implements LocalRunnerRunHandle {
     }
   }
 
-  #makeCommand(type: PrpCommand["type"], payload: Record<string, unknown>): PrpCommand {
+  #makeCommand(
+    type: PrpCommand["type"],
+    payload: Record<string, unknown>,
+  ): PrpCommand {
     const controllerSeq = this.#nextControllerSeq;
     this.#nextControllerSeq += 1;
     return {
@@ -342,7 +358,9 @@ class LocalRunnerController implements LocalRunnerRunHandle {
       !this.#process.stdin.writable
     ) {
       return Promise.reject(
-        new Error("This request expired because the local run already finished. Start a new run."),
+        new Error(
+          "This request expired because the local run already finished. Start a new run.",
+        ),
       );
     }
     if (recordCommand) {
@@ -395,13 +413,16 @@ class LocalRunnerController implements LocalRunnerRunHandle {
       }
       this.#events.push(structuredClone(validation.event));
       if (validation.event.eventType === "runtime_request.created") {
-        const request = (validation.event.payload as Record<string, unknown>).request;
+        const request = (validation.event.payload as Record<string, unknown>)
+          .request;
         if (typeof request === "object" && request !== null) {
           this.#requests.push(structuredClone(request as PrpRequest));
         }
       }
       this.#onEvent?.(validation.event);
-      const resolved = this.#eventWaiters.filter((waiter) => waiter.predicate(validation.event));
+      const resolved = this.#eventWaiters.filter((waiter) =>
+        waiter.predicate(validation.event),
+      );
       this.#eventWaiters = this.#eventWaiters.filter(
         (waiter) => !resolved.includes(waiter),
       );
@@ -442,8 +463,12 @@ class LocalRunnerController implements LocalRunnerRunHandle {
     if (this.#settled) {
       return;
     }
-    const resultEvent = this.#events.find((event) => event.eventType === "run.result.proposed");
-    const harnessExitEvent = this.#events.find((event) => event.eventType === "harness.exited");
+    const resultEvent = this.#events.find(
+      (event) => event.eventType === "run.result.proposed",
+    );
+    const harnessExitEvent = this.#events.find(
+      (event) => event.eventType === "harness.exited",
+    );
     const trace: LocalRunnerRunTrace = {
       ...this.metadata,
       schema: "taskcore.runner.local-runner.trace.v1",
@@ -456,7 +481,9 @@ class LocalRunnerController implements LocalRunnerRunHandle {
           ? null
           : structuredClone(resultEvent.payload as PrpStructuredRunResult),
       harnessProcessExit:
-        harnessExitEvent === undefined ? null : processExitFromEvent(harnessExitEvent),
+        harnessExitEvent === undefined
+          ? null
+          : processExitFromEvent(harnessExitEvent),
       runnerProcessExit: { code, signal },
       runnerDiagnostics: [...this.#diagnostics],
     };
@@ -509,7 +536,9 @@ export async function runLocalRunnerScenario(
     const receipt = await handle.sendDuplicateTurnCommand();
     if (receipt.status !== "duplicate") {
       handle.stop();
-      throw new Error(`Expected duplicate command receipt, got ${receipt.status}`);
+      throw new Error(
+        `Expected duplicate command receipt, got ${receipt.status}`,
+      );
     }
   }
   if (options.scenario === "permission-input") {
@@ -517,17 +546,29 @@ export async function runLocalRunnerScenario(
       (event) =>
         event.eventType === "runtime_request.created" &&
         (event.payload as Record<string, unknown>).request !== undefined &&
-        ((event.payload as Record<string, unknown>).request as Record<string, unknown>)
-          .requestId === "request_local_runner_permission",
+        (
+          (event.payload as Record<string, unknown>).request as Record<
+            string,
+            unknown
+          >
+        ).requestId === "request_local_runner_permission",
     );
-    await handle.resolveRequest("request_local_runner_permission", { decision: "allow" });
+    await handle.resolveRequest("request_local_runner_permission", {
+      decision: "allow",
+    });
     await handle.waitForEvent(
       (event) =>
         event.eventType === "runtime_request.created" &&
-        ((event.payload as Record<string, unknown>).request as Record<string, unknown>)
-          ?.requestId === "request_local_runner_input",
+        (
+          (event.payload as Record<string, unknown>).request as Record<
+            string,
+            unknown
+          >
+        )?.requestId === "request_local_runner_input",
     );
-    await handle.resolveRequest("request_local_runner_input", { text: "local-runner-live-trace" });
+    await handle.resolveRequest("request_local_runner_input", {
+      text: "local-runner-live-trace",
+    });
   }
   if (options.scenario === "interrupted") {
     await handle.waitForEvent(
@@ -540,7 +581,9 @@ export async function runLocalRunnerScenario(
   return handle.completion;
 }
 
-export function localRunnerTraceAsFixture(trace: LocalRunnerRunTrace): PrpFixture {
+export function localRunnerTraceAsFixture(
+  trace: LocalRunnerRunTrace,
+): PrpFixture {
   if (trace.result === null) {
     throw new Error("A replay fixture requires a structured semantic result");
   }

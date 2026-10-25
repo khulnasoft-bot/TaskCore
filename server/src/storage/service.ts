@@ -1,7 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { Readable } from "node:stream";
-import type { StorageService, StorageProvider, PutFileInput, PutFileResult } from "./types.js";
+import type {
+  StorageService,
+  StorageProvider,
+  PutFileInput,
+  PutFileResult,
+} from "./types.js";
 import { badRequest, forbidden, unprocessable } from "../errors.js";
 
 const MAX_SEGMENT_LENGTH = 120;
@@ -58,7 +63,11 @@ function hashBuffer(input: Buffer): string {
   return createHash("sha256").update(input).digest("hex");
 }
 
-function buildObjectKey(companyId: string, namespace: string, originalFilename: string | null): string {
+function buildObjectKey(
+  companyId: string,
+  namespace: string,
+  originalFilename: string | null,
+): string {
   const ns = normalizeNamespace(namespace);
   const now = new Date();
   const year = String(now.getUTCFullYear());
@@ -83,21 +92,37 @@ function assertPutFileInput(input: PutFileInput): void {
   if (!(input.body instanceof Buffer) && !(input.body instanceof Readable)) {
     throw unprocessable("body must be a Buffer or Readable");
   }
-  if (!Buffer.isBuffer(input.body) && (!("byteSize" in input) || !Number.isSafeInteger(input.byteSize) || input.byteSize < 0 || !/^[0-9a-f]{64}$/.test(input.sha256))) {
-    throw unprocessable("Streamed files require an exact byte size and SHA-256");
+  if (
+    !Buffer.isBuffer(input.body) &&
+    (!("byteSize" in input) ||
+      !Number.isSafeInteger(input.byteSize) ||
+      input.byteSize < 0 ||
+      !/^[0-9a-f]{64}$/.test(input.sha256))
+  ) {
+    throw unprocessable(
+      "Streamed files require an exact byte size and SHA-256",
+    );
   }
   if (("byteSize" in input ? input.byteSize : input.body.length) <= 0) {
     throw unprocessable("File is empty");
   }
 }
 
-export function createStorageService(provider: StorageProvider): StorageService {
+export function createStorageService(
+  provider: StorageProvider,
+): StorageService {
   return {
     provider: provider.id,
 
     async putFile(input: PutFileInput): Promise<PutFileResult> {
       assertPutFileInput(input);
-      const objectKey = input.objectKey ?? buildObjectKey(input.companyId, input.namespace, input.originalFilename);
+      const objectKey =
+        input.objectKey ??
+        buildObjectKey(
+          input.companyId,
+          input.namespace,
+          input.originalFilename,
+        );
       ensureCompanyPrefix(input.companyId, objectKey);
       const byteSize = "byteSize" in input ? input.byteSize : input.body.length;
       const contentType = input.contentType.trim().toLowerCase();

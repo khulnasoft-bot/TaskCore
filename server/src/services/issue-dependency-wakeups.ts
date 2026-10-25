@@ -27,10 +27,15 @@ const IN_FLIGHT_DEPENDENCY_WAKE_STATUSES = [
   "claimed",
 ] as const;
 
-const IDEMPOTENT_DEPENDENCY_WAKE_STATUS_SET = new Set<string>(IDEMPOTENT_DEPENDENCY_WAKE_STATUSES);
-const IN_FLIGHT_DEPENDENCY_WAKE_STATUS_SET = new Set<string>(IN_FLIGHT_DEPENDENCY_WAKE_STATUSES);
+const IDEMPOTENT_DEPENDENCY_WAKE_STATUS_SET = new Set<string>(
+  IDEMPOTENT_DEPENDENCY_WAKE_STATUSES,
+);
+const IN_FLIGHT_DEPENDENCY_WAKE_STATUS_SET = new Set<string>(
+  IN_FLIGHT_DEPENDENCY_WAKE_STATUSES,
+);
 
-export type IssueBlockersResolvedWakeCycleInput = Date | string | null | undefined;
+export type IssueBlockersResolvedWakeCycleInput =
+  Date | string | null | undefined;
 
 export type IssueBlockersResolvedReadyStateInput = {
   dependentIssueId: string;
@@ -47,9 +52,10 @@ export function formatIssueBlockersResolvedWakeCycle(
   blockedTransitionAt: IssueBlockersResolvedWakeCycleInput,
 ): string {
   if (blockedTransitionAt == null || blockedTransitionAt === "") return "none";
-  const parsed = blockedTransitionAt instanceof Date
-    ? blockedTransitionAt
-    : new Date(blockedTransitionAt);
+  const parsed =
+    blockedTransitionAt instanceof Date
+      ? blockedTransitionAt
+      : new Date(blockedTransitionAt);
   if (Number.isNaN(parsed.getTime())) return "none";
   return parsed.toISOString();
 }
@@ -58,14 +64,22 @@ function uniqueSortedBlockerIssueIds(blockerIssueIds: string[]): string[] {
   return [...new Set(blockerIssueIds.filter(Boolean))].sort();
 }
 
-function hashBlockerReadyStateDigest(sortedBlockerIssueIds: string[], cycle: string | null): string {
-  const payload = cycle == null
-    ? sortedBlockerIssueIds.join(",")
-    : `${sortedBlockerIssueIds.join(",")}\n${cycle}`;
+function hashBlockerReadyStateDigest(
+  sortedBlockerIssueIds: string[],
+  cycle: string | null,
+): string {
+  const payload =
+    cycle == null
+      ? sortedBlockerIssueIds.join(",")
+      : `${sortedBlockerIssueIds.join(",")}\n${cycle}`;
   return createHash("sha256").update(payload).digest("hex").slice(0, 32);
 }
 
-function buildStateKey(dependentIssueId: string, digest: string, blockerCount: number): string {
+function buildStateKey(
+  dependentIssueId: string,
+  digest: string,
+  blockerCount: number,
+): string {
   return [
     ISSUE_BLOCKERS_RESOLVED_WAKE_REASON,
     "state",
@@ -101,7 +115,9 @@ export function buildIssueBlockersResolvedWakeStateKeyWithoutCycle(input: {
   dependentIssueId: string;
   blockerIssueIds: string[];
 }) {
-  const sortedBlockerIssueIds = uniqueSortedBlockerIssueIds(input.blockerIssueIds);
+  const sortedBlockerIssueIds = uniqueSortedBlockerIssueIds(
+    input.blockerIssueIds,
+  );
   return buildStateKey(
     input.dependentIssueId,
     hashBlockerReadyStateDigest(sortedBlockerIssueIds, null),
@@ -118,8 +134,12 @@ export function buildIssueBlockersResolvedWakeStateKeyWithoutCycle(input: {
  * wake. All three emit paths (route-time, finalize-time, periodic backstop) use
  * this key so they share one idempotency rule.
  */
-export function buildIssueBlockersResolvedWakeStateKey(input: IssueBlockersResolvedReadyStateInput) {
-  const sortedBlockerIssueIds = uniqueSortedBlockerIssueIds(input.blockerIssueIds);
+export function buildIssueBlockersResolvedWakeStateKey(
+  input: IssueBlockersResolvedReadyStateInput,
+) {
+  const sortedBlockerIssueIds = uniqueSortedBlockerIssueIds(
+    input.blockerIssueIds,
+  );
   const cycle = formatIssueBlockersResolvedWakeCycle(input.blockedTransitionAt);
   return buildStateKey(
     input.dependentIssueId,
@@ -128,11 +148,14 @@ export function buildIssueBlockersResolvedWakeStateKey(input: IssueBlockersResol
   );
 }
 
-function parseWakeCycleDate(blockedTransitionAt: IssueBlockersResolvedWakeCycleInput): Date | null {
+function parseWakeCycleDate(
+  blockedTransitionAt: IssueBlockersResolvedWakeCycleInput,
+): Date | null {
   if (blockedTransitionAt == null || blockedTransitionAt === "") return null;
-  const parsed = blockedTransitionAt instanceof Date
-    ? blockedTransitionAt
-    : new Date(blockedTransitionAt);
+  const parsed =
+    blockedTransitionAt instanceof Date
+      ? blockedTransitionAt
+      : new Date(blockedTransitionAt);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
 }
@@ -199,14 +222,12 @@ export async function findExistingIssueBlockersResolvedWakeForReadyState(
   const oldStateKey = buildIssueBlockersResolvedWakeStateKeyWithoutCycle(input);
   const legacyKeyList = [
     ...new Set(
-      input.blockerIssueIds
-        .filter(Boolean)
-        .map((resolvedBlockerIssueId) =>
-          buildIssueBlockersResolvedWakeIdempotencyKey({
-            dependentIssueId: input.dependentIssueId,
-            resolvedBlockerIssueId,
-          }),
-        ),
+      input.blockerIssueIds.filter(Boolean).map((resolvedBlockerIssueId) =>
+        buildIssueBlockersResolvedWakeIdempotencyKey({
+          dependentIssueId: input.dependentIssueId,
+          resolvedBlockerIssueId,
+        }),
+      ),
     ),
   ];
   const lookupKeys = [...new Set([cycleKey, oldStateKey, ...legacyKeyList])];

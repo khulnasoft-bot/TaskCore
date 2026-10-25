@@ -30,7 +30,9 @@ const NAME = "auth.json";
 const home = process.argv[1];
 const max = Number.parseInt(process.argv[2], 10);
 const expectedUid =
-  process.argv[3] !== undefined ? Number.parseInt(process.argv[3], 10) : process.getuid();
+  process.argv[3] !== undefined
+    ? Number.parseInt(process.argv[3], 10)
+    : process.getuid();
 
 function fail() {
   process.stderr.write("AUTH_READ_FAILED\n");
@@ -55,7 +57,9 @@ for (const part of parts) {
   try {
     dfd = fs.openSync(
       `/proc/self/fd/${dfd}/${part}`,
-      fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW,
+      fs.constants.O_RDONLY |
+        fs.constants.O_DIRECTORY |
+        fs.constants.O_NOFOLLOW,
     );
   } catch {
     fail();
@@ -66,7 +70,10 @@ for (const part of parts) {
 // open, so a symlink credential fails and a missing credential fails.
 let ffd;
 try {
-  ffd = fs.openSync(`/proc/self/fd/${dfd}/${NAME}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  ffd = fs.openSync(
+    `/proc/self/fd/${dfd}/${NAME}`,
+    fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
+  );
 } catch {
   fail();
 }

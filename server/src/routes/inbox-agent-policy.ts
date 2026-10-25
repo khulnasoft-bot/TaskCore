@@ -3,7 +3,11 @@ import type { Db } from "@taskcore/db";
 import { updateInboxAgentPolicySchema } from "@taskcore/shared";
 import { forbidden, notFound, unauthorized } from "../errors.js";
 import { validate } from "../middleware/validate.js";
-import { accessService, inboxAgentPolicyService, logActivity } from "../services/index.js";
+import {
+  accessService,
+  inboxAgentPolicyService,
+  logActivity,
+} from "../services/index.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 
 export function inboxAgentPolicyRoutes(db: Db) {
@@ -12,20 +16,34 @@ export function inboxAgentPolicyRoutes(db: Db) {
   const policies = inboxAgentPolicyService(db);
 
   function selfUserId(req: Request) {
-    if (req.actor.type !== "board" || !req.actor.userId) throw unauthorized("Board user context required");
+    if (req.actor.type !== "board" || !req.actor.userId)
+      throw unauthorized("Board user context required");
     return req.actor.userId;
   }
 
   async function assertAdmin(req: Request, companyId: string) {
     assertCompanyAccess(req, companyId);
     if (req.actor.type === "board") {
-      if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
+      if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+        return;
       if (!req.actor.userId) throw unauthorized("Board user context required");
-      if (await access.canUser(companyId, req.actor.userId, "users:manage_permissions")) return;
+      if (
+        await access.canUser(
+          companyId,
+          req.actor.userId,
+          "users:manage_permissions",
+        )
+      )
+        return;
     } else if (
-      req.actor.type === "agent"
-      && req.actor.agentId
-      && await access.hasPermission(companyId, "agent", req.actor.agentId, "users:manage_permissions")
+      req.actor.type === "agent" &&
+      req.actor.agentId &&
+      (await access.hasPermission(
+        companyId,
+        "agent",
+        req.actor.agentId,
+        "users:manage_permissions",
+      ))
     ) {
       return;
     }
@@ -65,11 +83,14 @@ export function inboxAgentPolicyRoutes(db: Db) {
     return policy;
   }
 
-  router.get("/companies/:companyId/users/me/inbox-agent-policy", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    res.json(await policies.get(companyId, selfUserId(req)));
-  });
+  router.get(
+    "/companies/:companyId/users/me/inbox-agent-policy",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      res.json(await policies.get(companyId, selfUserId(req)));
+    },
+  );
 
   router.put(
     "/companies/:companyId/users/me/inbox-agent-policy",
@@ -81,13 +102,16 @@ export function inboxAgentPolicyRoutes(db: Db) {
     },
   );
 
-  router.get("/companies/:companyId/users/:userId/inbox-agent-policy", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    const userId = req.params.userId as string;
-    await assertAdmin(req, companyId);
-    await assertActiveUserMembership(companyId, userId);
-    res.json(await policies.get(companyId, userId));
-  });
+  router.get(
+    "/companies/:companyId/users/:userId/inbox-agent-policy",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      const userId = req.params.userId as string;
+      await assertAdmin(req, companyId);
+      await assertActiveUserMembership(companyId, userId);
+      res.json(await policies.get(companyId, userId));
+    },
+  );
 
   router.put(
     "/companies/:companyId/users/:userId/inbox-agent-policy",

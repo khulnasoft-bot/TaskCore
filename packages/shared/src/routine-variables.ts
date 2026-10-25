@@ -3,13 +3,15 @@ import type { RoutineVariable } from "./types/routine.js";
 // Tolerate markdown-escaped underscores (`\_`) inside placeholders. WYSIWYG markdown
 // editors (e.g. MDXEditor) serialize `_` between word chars as `\_` to prevent
 // reparse-as-emphasis, so a user-typed `{{pr_url}}` is stored as `{{pr\_url}}`.
-const ROUTINE_VARIABLE_MATCHER = /\{\{\s*([A-Za-z](?:\\_|[A-Za-z0-9_])*)\s*\}\}/g;
+const ROUTINE_VARIABLE_MATCHER =
+  /\{\{\s*([A-Za-z](?:\\_|[A-Za-z0-9_])*)\s*\}\}/g;
 
 function unescapeRoutineVariableName(raw: string): string {
   return raw.replace(/\\_/g, "_");
 }
 
-type RoutineTemplateInput = string | null | undefined | Array<string | null | undefined>;
+type RoutineTemplateInput =
+  string | null | undefined | Array<string | null | undefined>;
 
 /**
  * Built-in variable names that are automatically available in routine templates
@@ -50,7 +52,11 @@ export function isValidRoutineVariableName(name: string): boolean {
 }
 
 export function isRoutineDateVariableName(name: string): boolean {
-  return isValidRoutineVariableName(name) && name.length > "Date".length && name.endsWith("Date");
+  return (
+    isValidRoutineVariableName(name) &&
+    name.length > "Date".length &&
+    name.endsWith("Date")
+  );
 }
 
 export function isValidRoutineDateString(value: string): boolean {
@@ -82,10 +88,15 @@ export function isValidRoutineDateString(value: string): boolean {
 
 function normalizeRoutineTemplateInput(input: RoutineTemplateInput): string[] {
   const templates = Array.isArray(input) ? input : [input];
-  return templates.filter((template): template is string => typeof template === "string" && template.length > 0);
+  return templates.filter(
+    (template): template is string =>
+      typeof template === "string" && template.length > 0,
+  );
 }
 
-export function extractRoutineVariableNames(template: RoutineTemplateInput): string[] {
+export function extractRoutineVariableNames(
+  template: RoutineTemplateInput,
+): string[] {
   const found = new Set<string>();
   for (const source of normalizeRoutineTemplateInput(template)) {
     for (const match of source.matchAll(ROUTINE_VARIABLE_MATCHER)) {
@@ -113,14 +124,21 @@ export function syncRoutineVariablesWithTemplate(
   template: RoutineTemplateInput,
   existing: RoutineVariable[] | null | undefined,
 ): RoutineVariable[] {
-  const names = extractRoutineVariableNames(template).filter((name) => !isBuiltinRoutineVariable(name));
-  const existingByName = new Map((existing ?? []).map((variable) => [variable.name, variable]));
-  return names.map((name) => existingByName.get(name) ?? defaultRoutineVariable(name));
+  const names = extractRoutineVariableNames(template).filter(
+    (name) => !isBuiltinRoutineVariable(name),
+  );
+  const existingByName = new Map(
+    (existing ?? []).map((variable) => [variable.name, variable]),
+  );
+  return names.map(
+    (name) => existingByName.get(name) ?? defaultRoutineVariable(name),
+  );
 }
 
 export function stringifyRoutineVariableValue(value: unknown): string {
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   if (value == null) return "";
   try {
     return JSON.stringify(value);
@@ -135,9 +153,12 @@ export function interpolateRoutineTemplate(
 ): string | null {
   if (template == null) return null;
   if (!values || Object.keys(values).length === 0) return template;
-  return template.replace(ROUTINE_VARIABLE_MATCHER, (match, rawName: string) => {
-    const name = unescapeRoutineVariableName(rawName);
-    if (!(name in values)) return match;
-    return stringifyRoutineVariableValue(values[name]);
-  });
+  return template.replace(
+    ROUTINE_VARIABLE_MATCHER,
+    (match, rawName: string) => {
+      const name = unescapeRoutineVariableName(rawName);
+      if (!(name in values)) return match;
+      return stringifyRoutineVariableValue(values[name]);
+    },
+  );
 }

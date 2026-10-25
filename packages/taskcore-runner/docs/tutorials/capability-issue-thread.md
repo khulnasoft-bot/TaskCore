@@ -112,27 +112,27 @@ Swap the `shot` value to seed any of the twelve contract states — each one is 
 different item type or interaction state from the
 [issue-thread UX contract](../design/capability-issue-thread-ux-contract.md):
 
-| `shot=` | What it shows |
-| --- | --- |
-| `thread-baseline` | User message, model prose, a durable `Recorded to mock thread` comment, and a collapsed tool strip. |
-| `turn-streaming` | A streaming turn with the composer in its `streaming` state (input editable, Stop primary). |
-| `interaction-question-pending` | An inline `ask_user_questions` card that refuses an incomplete submit. |
-| `interaction-confirmation-pending` | A revision-bound confirmation that requires a reject reason. |
-| `interaction-resolved-mixed` | Accepted, rejected, expired, and stale interactions as durable history. |
-| `denial-optional-tool` | A verbatim typed denial with its Evidence badge and no protected data. |
-| `document-revision` | A document revision card bound to the mock document. |
-| `deliverable-registered` | A registered deliverable reporting one size in one unit. |
-| `disposition-terminal` | A terminal disposition that disables the composer. |
-| `debug-panel-open` | The eight-section Evidence panel opened on the authorization records. |
-| `reconnect-banner` | The reconnect banner and its `Reconnected` confirmation. |
-| `replay-mode` | The replay progress strip with `Step back`, `Next turn`, and `Play all`. |
+| `shot=`                            | What it shows                                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `thread-baseline`                  | User message, model prose, a durable `Recorded to mock thread` comment, and a collapsed tool strip. |
+| `turn-streaming`                   | A streaming turn with the composer in its `streaming` state (input editable, Stop primary).         |
+| `interaction-question-pending`     | An inline `ask_user_questions` card that refuses an incomplete submit.                              |
+| `interaction-confirmation-pending` | A revision-bound confirmation that requires a reject reason.                                        |
+| `interaction-resolved-mixed`       | Accepted, rejected, expired, and stale interactions as durable history.                             |
+| `denial-optional-tool`             | A verbatim typed denial with its Evidence badge and no protected data.                              |
+| `document-revision`                | A document revision card bound to the mock document.                                                |
+| `deliverable-registered`           | A registered deliverable reporting one size in one unit.                                            |
+| `disposition-terminal`             | A terminal disposition that disables the composer.                                                  |
+| `debug-panel-open`                 | The eight-section Evidence panel opened on the authorization records.                               |
+| `reconnect-banner`                 | The reconnect banner and its `Reconnected` confirmation.                                            |
+| `replay-mode`                      | The replay progress strip with `Step back`, `Next turn`, and `Play all`.                            |
 
 Open the Evidence panel (or the `Evidence` segment on a phone). Its eight
 sections stay in a fixed order: Tools exposed, Calls & results, Authorization,
 Control plane, Runner & events, State diff, Traceability, Parity. The Tools
 section separates `Agent tool — always`, `Agent tool — granted` (with its
 grant), and a `Control plane (not exposed to the agent)` list — what the model
-*cannot* call is first-class evidence. Every strip, denial, and card deep-links
+_cannot_ call is first-class evidence. Every strip, denial, and card deep-links
 into its record, and each record links back to its thread anchor.
 
 Resize the browser below 768px: the page collapses to a `Thread` / `Evidence`

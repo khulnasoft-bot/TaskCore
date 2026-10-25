@@ -8,7 +8,10 @@ import {
   redactCapabilityToolResult,
 } from "../live/evidence-redaction.js";
 import { toCapabilityPublicThreadView } from "./public-view.js";
-import { CAPABILITY_ISSUE_THREAD_VIEW_SCHEMA, type CapabilityIssueThreadSnapshot } from "./types.js";
+import {
+  CAPABILITY_ISSUE_THREAD_VIEW_SCHEMA,
+  type CapabilityIssueThreadSnapshot,
+} from "./types.js";
 
 /**
  * Track 7U, finding 1, at the unit level.
@@ -71,7 +74,12 @@ function projectedView(): CapabilityIssueThreadSnapshot {
         ],
       },
     ],
-    composer: { state: "ready", helper: null, reason: null, pendingInteractionId: null },
+    composer: {
+      state: "ready",
+      helper: null,
+      reason: null,
+      pendingInteractionId: null,
+    },
     evidence: {
       tools: [],
       calls: [
@@ -115,10 +123,13 @@ function projectedView(): CapabilityIssueThreadSnapshot {
 
 describe("Capability public issue-thread DTO", () => {
   it("copies by allowlist, so a field added to the projection cannot ship", () => {
-    const view = projectedView() as CapabilityIssueThreadSnapshot & { leakedTop?: string };
+    const view = projectedView() as CapabilityIssueThreadSnapshot & {
+      leakedTop?: string;
+    };
     view.leakedTop = CANARY;
     (view.issue as unknown as Record<string, string>).leakedIssue = CANARY;
-    (view.turns[0]!.items[0] as unknown as Record<string, string>).leakedItem = CANARY;
+    (view.turns[0]!.items[0] as unknown as Record<string, string>).leakedItem =
+      CANARY;
 
     const encoded = JSON.stringify(toCapabilityPublicThreadView(view));
 
@@ -133,10 +144,17 @@ describe("Capability public issue-thread DTO", () => {
     const item = published.turns[0]!.items[0]!;
 
     expect(item.kind).toBe("tool_activity");
-    if (item.kind !== "tool_activity") throw new Error("expected a tool activity item");
+    if (item.kind !== "tool_activity")
+      throw new Error("expected a tool activity item");
     expect(item.input).toEqual({ fields: ["body"] });
-    expect(item.result).toEqual({ ok: true, stateRevision: 2, result: { entityRefs: [] } });
-    expect(JSON.stringify(published.evidence.calls[0]!.result)).not.toContain(CANARY);
+    expect(item.result).toEqual({
+      ok: true,
+      stateRevision: 2,
+      result: { entityRefs: [] },
+    });
+    expect(JSON.stringify(published.evidence.calls[0]!.result)).not.toContain(
+      CANARY,
+    );
   });
 
   it("replaces provider identifiers with in-view aliases everywhere they appear", () => {
@@ -146,13 +164,17 @@ describe("Capability public issue-thread DTO", () => {
     expect(published.turns[0]!.id).toBe("turn-1");
     expect(published.evidence.calls[0]!.id).toBe("call-1");
     expect(published.evidence.calls[0]!.turnId).toBe("turn-1");
-    expect(published.evidence.calls[0]!.threadAnchorId).toBe("item-call-call-1");
+    expect(published.evidence.calls[0]!.threadAnchorId).toBe(
+      "item-call-call-1",
+    );
     expect(published.turns[0]!.items[0]!.id).toBe("item-call-call-1");
     // The anchor and the record it points at still agree, which is the whole
     // reason aliases are used instead of dropping the ids.
-    expect(published.turns[0]!.items[0]!.kind === "tool_activity"
-      ? published.turns[0]!.items[0]!.evidenceRef.recordId
-      : null).toBe("call-1");
+    expect(
+      published.turns[0]!.items[0]!.kind === "tool_activity"
+        ? published.turns[0]!.items[0]!.evidenceRef.recordId
+        : null,
+    ).toBe("call-1");
     expect(encoded).not.toContain(PROVIDER_TURN);
     expect(encoded).not.toContain(PROVIDER_CALL);
   });
@@ -194,9 +216,12 @@ describe("Capability public issue-thread DTO", () => {
     });
 
     const published = toCapabilityPublicThreadView(view);
-    const item = published.turns[0]!.items.find((entry) => entry.kind === "provider_activity");
+    const item = published.turns[0]!.items.find(
+      (entry) => entry.kind === "provider_activity",
+    );
     expect(item?.kind).toBe("provider_activity");
-    if (item?.kind !== "provider_activity") throw new Error("expected provider activity");
+    if (item?.kind !== "provider_activity")
+      throw new Error("expected provider activity");
     const payload = item.payload as Record<string, unknown>;
     expect(String(payload.output)).toHaveLength(8 * 1024);
     expect(payload.outputBytes).toBe(9_007);
@@ -220,7 +245,9 @@ describe("Capability evidence redaction", () => {
 
     expect(redacted).toEqual({ event: "assistant_delta" });
     expect(JSON.stringify(redacted)).not.toContain(CANARY);
-    expect(capabilityEvidenceDetail("provider_event", redacted)).toBe("provider event · assistant_delta");
+    expect(capabilityEvidenceDetail("provider_event", redacted)).toBe(
+      "provider event · assistant_delta",
+    );
   });
 
   it("recognizes progress notifications without retaining their text", () => {
@@ -265,7 +292,8 @@ describe("Capability evidence redaction", () => {
         item: {
           type: "commandExecution",
           source: "unifiedExecStartup",
-          command: "/bin/bash -lc 'curl -H \"Authorization: Bearer hidden-token\" --token pcp_1234567890 https://example.test && printf ok'",
+          command:
+            "/bin/bash -lc 'curl -H \"Authorization: Bearer hidden-token\" --token pcp_1234567890 https://example.test && printf ok'",
           aggregatedOutput: CANARY,
         },
       },
@@ -309,13 +337,19 @@ describe("Capability evidence redaction", () => {
   });
 
   it("collapses an unknown provider method rather than echoing it", () => {
-    expect(redactCapabilityEvidenceData("provider_event", { method: `x/${CANARY}` })).toEqual({
+    expect(
+      redactCapabilityEvidenceData("provider_event", { method: `x/${CANARY}` }),
+    ).toEqual({
       event: "other",
     });
   });
 
   it("withholds provider diagnostics and provider thread identity", () => {
-    expect(redactCapabilityEvidenceData("diagnostic", { message: `TASKCORE_API_KEY=${CANARY}` })).toEqual({
+    expect(
+      redactCapabilityEvidenceData("diagnostic", {
+        message: `TASKCORE_API_KEY=${CANARY}`,
+      }),
+    ).toEqual({
       diagnostic: "withheld",
     });
     expect(
@@ -326,7 +360,11 @@ describe("Capability evidence redaction", () => {
         providerSessionId: `session_${CANARY}`,
         mode: "live_codex",
       }),
-    ).toEqual({ action: "started", sessionId: "session-1", mode: "live_codex" });
+    ).toEqual({
+      action: "started",
+      sessionId: "session-1",
+      mode: "live_codex",
+    });
   });
 
   it("drops process identifiers while keeping the transport transition", () => {
@@ -338,7 +376,11 @@ describe("Capability evidence redaction", () => {
         runnerPid: 7100,
         codexPid: 7200,
       }),
-    ).toEqual({ action: "transport_closed", reason: "reconnect", runnerExited: true });
+    ).toEqual({
+      action: "transport_closed",
+      reason: "reconnect",
+      runnerExited: true,
+    });
   });
 
   it("keeps only the tool-call fields the catalog declares", () => {
@@ -349,7 +391,9 @@ describe("Capability evidence redaction", () => {
       input: { body: CANARY, idempotencyKey: "k", providerSecret: CANARY },
     });
 
-    expect(redacted.input).toEqual({ fields: ["body", "idempotencyKey", "1 undeclared"] });
+    expect(redacted.input).toEqual({
+      fields: ["body", "idempotencyKey", "1 undeclared"],
+    });
     expect(JSON.stringify(redacted)).not.toContain(CANARY);
     expect(JSON.stringify(redacted)).not.toContain("providerSecret");
   });
@@ -359,7 +403,10 @@ describe("Capability evidence redaction", () => {
       callId: "call-2",
       operationId: "finish_task",
       beforeRevision: 4,
-      input: { summary: "Spike wired to the mock control plane.", secret: CANARY },
+      input: {
+        summary: "Spike wired to the mock control plane.",
+        secret: CANARY,
+      },
     });
 
     expect(redacted.input).toEqual({
@@ -421,15 +468,25 @@ describe("Capability evidence redaction", () => {
   });
 
   it("reports undeclared arguments as a count rather than by name", () => {
-    expect(capabilityAllowlistedInputFields("report_progress", { body: "x", oops: 1, alsoOops: 2 })).toEqual([
-      "body",
-      "2 undeclared",
-    ]);
-    expect(capabilityAllowlistedInputFields("not_a_tool", { anything: 1 })).toEqual(["1 undeclared"]);
+    expect(
+      capabilityAllowlistedInputFields("report_progress", {
+        body: "x",
+        oops: 1,
+        alsoOops: 2,
+      }),
+    ).toEqual(["body", "2 undeclared"]);
+    expect(
+      capabilityAllowlistedInputFields("not_a_tool", { anything: 1 }),
+    ).toEqual(["1 undeclared"]);
   });
 
   it("returns nothing for an unlisted evidence kind", () => {
-    expect(redactCapabilityEvidenceData("cleanup", { reason: "shutdown", authorityCleared: true })).toEqual({
+    expect(
+      redactCapabilityEvidenceData("cleanup", {
+        reason: "shutdown",
+        authorityCleared: true,
+      }),
+    ).toEqual({
       reason: "shutdown",
       authorityCleared: true,
     });

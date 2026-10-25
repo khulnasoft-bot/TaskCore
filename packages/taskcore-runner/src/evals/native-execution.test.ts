@@ -1,5 +1,13 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,34 +31,63 @@ describe("taskcore-runner/native-execution/v1", () => {
     const packageRoot = fileURLToPath(new URL("../../", import.meta.url));
     const run = promisify(execFile);
     try {
-      await cp(join(packageRoot, "protocol"), join(root, "protocol"), { recursive: true });
+      await cp(join(packageRoot, "protocol"), join(root, "protocol"), {
+        recursive: true,
+      });
       await mkdir(join(root, "scripts"));
-      for (const script of ["generate-semantic-contracts.mjs", "generate-protocol-manifest.mjs", "protocol-contract.mjs"]) {
-        await cp(join(packageRoot, "scripts", script), join(root, "scripts", script));
+      for (const script of [
+        "generate-semantic-contracts.mjs",
+        "generate-protocol-manifest.mjs",
+        "protocol-contract.mjs",
+      ]) {
+        await cp(
+          join(packageRoot, "scripts", script),
+          join(root, "scripts", script),
+        );
       }
-      await symlink(join(packageRoot, "node_modules"), join(root, "node_modules"), "dir");
-      await writeFile(join(root, "package.json"), JSON.stringify({ type: "module" }));
+      await symlink(
+        join(packageRoot, "node_modules"),
+        join(root, "node_modules"),
+        "dir",
+      );
+      await writeFile(
+        join(root, "package.json"),
+        JSON.stringify({ type: "module" }),
+      );
       await mkdir(join(root, "dist/semantic-tools"), { recursive: true });
       await mkdir(join(root, "dist/evals"), { recursive: true });
       await mkdir(join(root, "generated/capability"), { recursive: true });
       // Materialize current source exports without requiring a previous package build.
-      await writeFile(join(root, "dist/semantic-tools/provider-neutral.js"),
-        `export const serializeCapabilityGeneratedSemanticContracts = () => ${JSON.stringify(serializeCapabilityGeneratedSemanticContracts())};`);
-      await writeFile(join(root, "dist/evals/build-metadata.js"),
-        `export const TASKCORE_RUNNER_BUILD_METADATA = ${JSON.stringify(TASKCORE_RUNNER_BUILD_METADATA)};`);
-      const fixturePath = join(root, "protocol/fixtures/evals/native-execution-seeded.json");
+      await writeFile(
+        join(root, "dist/semantic-tools/provider-neutral.js"),
+        `export const serializeCapabilityGeneratedSemanticContracts = () => ${JSON.stringify(serializeCapabilityGeneratedSemanticContracts())};`,
+      );
+      await writeFile(
+        join(root, "dist/evals/build-metadata.js"),
+        `export const TASKCORE_RUNNER_BUILD_METADATA = ${JSON.stringify(TASKCORE_RUNNER_BUILD_METADATA)};`,
+      );
+      const fixturePath = join(
+        root,
+        "protocol/fixtures/evals/native-execution-seeded.json",
+      );
       const fixture = JSON.parse(await readFile(fixturePath, "utf8"));
       fixture.runner.catalogSha256 = `sha256:${"0".repeat(64)}`;
       await writeFile(fixturePath, `${JSON.stringify(fixture, null, 2)}\n`);
       // Leave a stale manifest even if the restored fixture bytes happen to match the original.
       await writeFile(join(root, "protocol/manifest.json"), "{}\n");
       const generator = join(root, "scripts/generate-semantic-contracts.mjs");
-      await expect(run(process.execPath, [generator, "--check"])).rejects.toThrow();
+      await expect(
+        run(process.execPath, [generator, "--check"]),
+      ).rejects.toThrow();
       await run(process.execPath, [generator]);
-      expect(JSON.parse(await readFile(fixturePath, "utf8")).runner.catalogSha256)
-        .toBe(TASKCORE_RUNNER_BUILD_METADATA.semanticCatalog.sha256);
+      expect(
+        JSON.parse(await readFile(fixturePath, "utf8")).runner.catalogSha256,
+      ).toBe(TASKCORE_RUNNER_BUILD_METADATA.semanticCatalog.sha256);
       await run(process.execPath, [generator, "--check"]);
-      await run(process.execPath, [join(root, "scripts/generate-protocol-manifest.mjs"), "--check"]);
+      await run(process.execPath, [
+        join(root, "scripts/generate-protocol-manifest.mjs"),
+        "--check",
+      ]);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -74,12 +111,17 @@ describe("taskcore-runner/native-execution/v1", () => {
     const bundle = await loadTaskcoreNativeExecutionFixture();
     expect(bundle.provenance).toBe("seeded");
     expect(bundle.semanticTools.results).toEqual([
-      expect.objectContaining({ outcome: "denied", callId: "call_evals_seeded" }),
+      expect.objectContaining({
+        outcome: "denied",
+        callId: "call_evals_seeded",
+      }),
     ]);
     expect(bundle.semanticTools.denials).toHaveLength(1);
     expect(bundle.transcript).toMatchObject({ complete: true, eventCount: 4 });
     expect(bundle.usage.cost).toEqual({ currency: "USD", amountMicros: 0 });
-    expect(bundle.runner.package).toEqual(TASKCORE_RUNNER_BUILD_METADATA.package);
+    expect(bundle.runner.package).toEqual(
+      TASKCORE_RUNNER_BUILD_METADATA.package,
+    );
     expect(bundle.runner.catalogSha256).toBe(
       TASKCORE_RUNNER_BUILD_METADATA.semanticCatalog.sha256,
     );
@@ -110,28 +152,42 @@ describe("taskcore-runner/native-execution/v1", () => {
 
   it("rejects unknown native schema versions", async () => {
     const bundle = await loadTaskcoreNativeExecutionFixture();
-    expect(() => parseTaskcoreNativeExecution({ ...bundle, schema: "taskcore-runner/native-execution/v2" }))
-      .toThrow(/unsupported schema/);
+    expect(() =>
+      parseTaskcoreNativeExecution({
+        ...bundle,
+        schema: "taskcore-runner/native-execution/v2",
+      }),
+    ).toThrow(/unsupported schema/);
   });
 
   it("rejects a terminal that conflicts with the event stream", async () => {
     const bundle = await loadTaskcoreNativeExecutionFixture();
-    expect(() => parseTaskcoreNativeExecution({
-      ...bundle,
-      terminal: { ...bundle.terminal, runTerminalState: "failed" },
-    })).toThrow(/must equal the run\.terminal event payload/);
+    expect(() =>
+      parseTaskcoreNativeExecution({
+        ...bundle,
+        terminal: { ...bundle.terminal, runTerminalState: "failed" },
+      }),
+    ).toThrow(/must equal the run\.terminal event payload/);
   });
 
   it("rejects missing denial receipts and incomplete transcript ambiguity", async () => {
     const bundle = await loadTaskcoreNativeExecutionFixture();
-    expect(() => parseTaskcoreNativeExecution({
-      ...bundle,
-      semanticTools: { ...bundle.semanticTools, denials: [] },
-    })).toThrow(/needs a denial receipt/);
-    expect(() => parseTaskcoreNativeExecution({
-      ...bundle,
-      transcript: { ...bundle.transcript, complete: false, omissionReason: null },
-    })).toThrow(/omissionReason.*required/);
+    expect(() =>
+      parseTaskcoreNativeExecution({
+        ...bundle,
+        semanticTools: { ...bundle.semanticTools, denials: [] },
+      }),
+    ).toThrow(/needs a denial receipt/);
+    expect(() =>
+      parseTaskcoreNativeExecution({
+        ...bundle,
+        transcript: {
+          ...bundle.transcript,
+          complete: false,
+          omissionReason: null,
+        },
+      }),
+    ).toThrow(/omissionReason.*required/);
   });
 
   it("rejects semantic indexes that reinterpret or omit PRP tool events", async () => {
@@ -141,21 +197,25 @@ describe("taskcore-runner/native-execution/v1", () => {
       semantic_tool: { outcome: string };
     };
     resultPayload.semantic_tool.outcome = "succeeded";
-    expect(() => parseTaskcoreNativeExecution(mismatched))
-      .toThrow(/does not match semantic envelope/);
+    expect(() => parseTaskcoreNativeExecution(mismatched)).toThrow(
+      /does not match semantic envelope/,
+    );
 
     const mismatchedCorrelation = structuredClone(bundle);
     const inputPayload = mismatchedCorrelation.events[0]!.payload as {
       semantic_tool: { correlation: { runId: string } };
     };
     inputPayload.semantic_tool.correlation.runId = "other_run";
-    expect(() => parseTaskcoreNativeExecution(mismatchedCorrelation))
-      .toThrow(/correlation\.runId.*enclosing event/);
+    expect(() => parseTaskcoreNativeExecution(mismatchedCorrelation)).toThrow(
+      /correlation\.runId.*enclosing event/,
+    );
 
-    expect(() => parseTaskcoreNativeExecution({
-      ...bundle,
-      semanticTools: { ...bundle.semanticTools, calls: [] },
-    })).toThrow(/no matching call|tool-input event .* is not indexed/);
+    expect(() =>
+      parseTaskcoreNativeExecution({
+        ...bundle,
+        semanticTools: { ...bundle.semanticTools, calls: [] },
+      }),
+    ).toThrow(/no matching call|tool-input event .* is not indexed/);
   });
 
   it("rejects a non-interrupted terminal bundle with an unresolved semantic call", async () => {
@@ -168,8 +228,9 @@ describe("taskcore-runner/native-execution/v1", () => {
     );
     unresolved.transcript.eventCount = unresolved.events.length;
 
-    expect(() => parseTaskcoreNativeExecution(unresolved))
-      .toThrow(/requires exactly one result for every semantic call/);
+    expect(() => parseTaskcoreNativeExecution(unresolved)).toThrow(
+      /requires exactly one result for every semantic call/,
+    );
   });
 
   it("allows an unresolved semantic call only for interrupted or cancelled states", async () => {
@@ -189,7 +250,8 @@ describe("taskcore-runner/native-execution/v1", () => {
       const terminalEvent = unfinished.events.find(
         (event) => event.eventType === "run.terminal",
       );
-      if (terminalEvent === undefined) throw new Error("fixture is missing its terminal event");
+      if (terminalEvent === undefined)
+        throw new Error("fixture is missing its terminal event");
       terminalEvent.payload = structuredClone(unfinished.terminal);
 
       expect(parseTaskcoreNativeExecution(unfinished)).toMatchObject({
@@ -203,15 +265,17 @@ describe("taskcore-runner/native-execution/v1", () => {
     const bundle = await loadTaskcoreNativeExecutionFixture();
     const events = structuredClone(bundle.events);
     events[1] = { ...events[1]!, sourceSeq: 1 };
-    expect(() => parseTaskcoreNativeExecution({ ...bundle, events }))
-      .toThrow(/must be ordered after 1/);
+    expect(() => parseTaskcoreNativeExecution({ ...bundle, events })).toThrow(
+      /must be ordered after 1/,
+    );
 
     const duplicateIds = structuredClone(bundle.events);
     duplicateIds[1] = {
       ...duplicateIds[1]!,
       sourceEventId: duplicateIds[0]!.sourceEventId,
     };
-    expect(() => parseTaskcoreNativeExecution({ ...bundle, events: duplicateIds }))
-      .toThrow(/sourceEventId.*unique/);
+    expect(() =>
+      parseTaskcoreNativeExecution({ ...bundle, events: duplicateIds }),
+    ).toThrow(/sourceEventId.*unique/);
   });
 });

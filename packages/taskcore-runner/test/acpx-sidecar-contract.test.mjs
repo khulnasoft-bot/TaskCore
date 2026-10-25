@@ -70,11 +70,25 @@ test("rich activity has a closed display-only envelope and explicit run/turn sco
   for (const field of ["runId", "turnId"]) {
     assert.equal(validate({ ...message, [field]: null }), false);
   }
-  for (const eventType of ["turn.completed", "run.result.proposed", "semantic_tool.input", "unknown"]) {
-    assert.equal(validate({ ...message, payload: { ...message.payload, eventType } }), false);
+  for (const eventType of [
+    "turn.completed",
+    "run.result.proposed",
+    "semantic_tool.input",
+    "unknown",
+  ]) {
+    assert.equal(
+      validate({ ...message, payload: { ...message.payload, eventType } }),
+      false,
+    );
   }
   for (const field of ["sourceRef", "priority", "runId"]) {
-    assert.equal(validate({ ...message, payload: { ...message.payload, [field]: "forged" } }), false);
+    assert.equal(
+      validate({
+        ...message,
+        payload: { ...message.payload, [field]: "forged" },
+      }),
+      false,
+    );
   }
 });
 
@@ -126,12 +140,25 @@ function error() {
 }
 
 test("turn control schema preserves explicit modes and rejects open-ended dispatch", () => {
-  const message = { protocolVersion, id: 1, command: "turn.steer", params: {
-    turnId: "turn-1", controlId: "control-1", mode: "follow_up", message: "Then validate",
-  } };
+  const message = {
+    protocolVersion,
+    id: 1,
+    command: "turn.steer",
+    params: {
+      turnId: "turn-1",
+      controlId: "control-1",
+      mode: "follow_up",
+      message: "Then validate",
+    },
+  };
   assert.equal(validate(message), true, JSON.stringify(validate.errors));
-  for (const params of [ { ...message.params, mode: "cancel" }, { ...message.params, method: "arbitrary" },
-    { ...message.params, controlId: "" }, { ...message.params, turnId: "wrong turn" }, { ...message.params, mode: undefined } ]) {
+  for (const params of [
+    { ...message.params, mode: "cancel" },
+    { ...message.params, method: "arbitrary" },
+    { ...message.params, controlId: "" },
+    { ...message.params, turnId: "wrong turn" },
+    { ...message.params, mode: undefined },
+  ]) {
     assert.equal(validate({ ...message, params }), false);
   }
 });
@@ -140,11 +167,40 @@ test("turn control schema preserves explicit modes and rejects open-ended dispat
 // Pi validates native provenance before creating these boundary/history fields.
 test("Pi native empty message boundaries and replay history fit the strict sidecar envelope", () => {
   for (const payload of [
-    { type: "text_delta", stream: "output", text: "", messageId: "message-1", piMessageBoundary: { phase: "start" } },
-    { type: "text_delta", stream: "output", text: "", messageId: "message-1", piMessageBoundary: { phase: "end", stopReason: "toolUse" } },
-    { type: "text_delta", stream: "output", text: "Prior assistant reply", messageId: "history-1", piMessageHistory: true },
+    {
+      type: "text_delta",
+      stream: "output",
+      text: "",
+      messageId: "message-1",
+      piMessageBoundary: { phase: "start" },
+    },
+    {
+      type: "text_delta",
+      stream: "output",
+      text: "",
+      messageId: "message-1",
+      piMessageBoundary: { phase: "end", stopReason: "toolUse" },
+    },
+    {
+      type: "text_delta",
+      stream: "output",
+      text: "Prior assistant reply",
+      messageId: "history-1",
+      piMessageHistory: true,
+    },
   ]) {
-    assert.equal(validate({ ...messages[2], payload }), true, JSON.stringify(validate.errors));
-    assert.equal(validate({ ...messages[2], payload, piMessageBoundary: { phase: "start" } }), false);
+    assert.equal(
+      validate({ ...messages[2], payload }),
+      true,
+      JSON.stringify(validate.errors),
+    );
+    assert.equal(
+      validate({
+        ...messages[2],
+        payload,
+        piMessageBoundary: { phase: "start" },
+      }),
+      false,
+    );
   }
 });

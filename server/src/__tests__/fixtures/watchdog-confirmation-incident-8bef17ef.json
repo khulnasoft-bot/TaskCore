@@ -46,9 +46,7 @@
     "allowedOperations": [
       "resolve_eligible_request_confirmation_plan_interactions"
     ],
-    "deniedOperations": [
-      "resolve_board_only_or_security_sensitive_approvals"
-    ]
+    "deniedOperations": ["resolve_board_only_or_security_sensitive_approvals"]
   },
   "stopSnapshot": {
     "version": 2,
@@ -98,10 +96,30 @@
     "result": { "version": 1, "outcome": "accepted" }
   },
   "descendantPathAtVerification": [
-    { "identifier": "PAP-17159", "id": "99c136ef-c48e-45ec-8854-22b7eb5cd512", "relation": "watchdog_for", "status": "done" },
-    { "identifier": "PAP-17100", "id": "80f77c6d-87b5-4585-b1a6-eaf2b68667de", "relation": "watched_root", "status": "blocked" },
-    { "identifier": "PAP-17104", "id": "bebf57a9-1ad4-4e63-a454-ae6f28d14a99", "relation": "child", "status": "blocked" },
-    { "identifier": "PAP-17237", "id": "1c2d9fb4-f9d1-4dc3-baaa-7fc5971b52d4", "relation": "child", "status": "done" }
+    {
+      "identifier": "PAP-17159",
+      "id": "99c136ef-c48e-45ec-8854-22b7eb5cd512",
+      "relation": "watchdog_for",
+      "status": "done"
+    },
+    {
+      "identifier": "PAP-17100",
+      "id": "80f77c6d-87b5-4585-b1a6-eaf2b68667de",
+      "relation": "watched_root",
+      "status": "blocked"
+    },
+    {
+      "identifier": "PAP-17104",
+      "id": "bebf57a9-1ad4-4e63-a454-ae6f28d14a99",
+      "relation": "child",
+      "status": "blocked"
+    },
+    {
+      "identifier": "PAP-17237",
+      "id": "1c2d9fb4-f9d1-4dc3-baaa-7fc5971b52d4",
+      "relation": "child",
+      "status": "done"
+    }
   ],
   "verification": {
     "historicalInteractionStillPending": false,

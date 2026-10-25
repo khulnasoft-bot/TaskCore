@@ -2,23 +2,25 @@ import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import postgres from "postgres";
-import {
-  applyPendingMigrations,
-  inspectMigrations,
-} from "./client.js";
+import { applyPendingMigrations, inspectMigrations } from "./client.js";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
 } from "./test-embedded-postgres.js";
 
-const DERIVED_ATTRIBUTION_MIGRATION = "0132_issue_comment_derived_attribution_fast.sql";
+const DERIVED_ATTRIBUTION_MIGRATION =
+  "0132_issue_comment_derived_attribution_fast.sql";
 
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 async function createTempDatabase(): Promise<string> {
-  const db = await startEmbeddedPostgresTestDatabase("taskcore-derived-attribution-");
+  const db = await startEmbeddedPostgresTestDatabase(
+    "taskcore-derived-attribution-",
+  );
   cleanups.push(db.cleanup);
   return db.connectionString;
 }
@@ -41,7 +43,9 @@ async function makeDerivedAttributionMigrationPending(
   `;
 }
 
-async function dropDerivedAttributionSchema(sql: ReturnType<typeof postgres>): Promise<void> {
+async function dropDerivedAttributionSchema(
+  sql: ReturnType<typeof postgres>,
+): Promise<void> {
   await sql`ALTER TABLE "issue_comments" DROP CONSTRAINT IF EXISTS "issue_comments_derived_author_agent_id_agents_id_fk"`;
   await sql`ALTER TABLE "issue_comments" DROP CONSTRAINT IF EXISTS "issue_comments_derived_created_by_run_id_heartbeat_runs_id_fk"`;
   await sql`ALTER TABLE "issue_comments" DROP COLUMN IF EXISTS "derived_author_agent_id"`;
@@ -49,7 +53,10 @@ async function dropDerivedAttributionSchema(sql: ReturnType<typeof postgres>): P
   await sql`ALTER TABLE "issue_comments" DROP COLUMN IF EXISTS "derived_author_source"`;
 }
 
-async function createSeedGraph(sql: ReturnType<typeof postgres>, label: string) {
+async function createSeedGraph(
+  sql: ReturnType<typeof postgres>,
+  label: string,
+) {
   const companyId = randomUUID();
   const agentId = randomUUID();
   const issueId = randomUUID();
@@ -75,8 +82,12 @@ async function createSeedGraph(sql: ReturnType<typeof postgres>, label: string) 
   return { companyId, agentId, issueId, runId };
 }
 
-async function expectDerivedAttributionSchema(sql: ReturnType<typeof postgres>): Promise<void> {
-  const columns = await sql<{ column_name: string; data_type: string; is_nullable: string }[]>`
+async function expectDerivedAttributionSchema(
+  sql: ReturnType<typeof postgres>,
+): Promise<void> {
+  const columns = await sql<
+    { column_name: string; data_type: string; is_nullable: string }[]
+  >`
     SELECT "column_name", "data_type", "is_nullable"
     FROM "information_schema"."columns"
     WHERE "table_schema" = 'public'
@@ -89,9 +100,21 @@ async function expectDerivedAttributionSchema(sql: ReturnType<typeof postgres>):
     ORDER BY "column_name"
   `;
   expect(columns).toEqual([
-    { column_name: "derived_author_agent_id", data_type: "uuid", is_nullable: "YES" },
-    { column_name: "derived_author_source", data_type: "text", is_nullable: "YES" },
-    { column_name: "derived_created_by_run_id", data_type: "uuid", is_nullable: "YES" },
+    {
+      column_name: "derived_author_agent_id",
+      data_type: "uuid",
+      is_nullable: "YES",
+    },
+    {
+      column_name: "derived_author_source",
+      data_type: "text",
+      is_nullable: "YES",
+    },
+    {
+      column_name: "derived_created_by_run_id",
+      data_type: "uuid",
+      is_nullable: "YES",
+    },
   ]);
 
   const constraints = await sql<{ conname: string; delete_rule: string }[]>`
@@ -134,51 +157,50 @@ if (!embeddedPostgresSupport.supported) {
 }
 
 describeEmbeddedPostgres("issue comment derived attribution migration", () => {
-  it(
-    "fresh installs include the relocated schema and no deleted 0126 migration",
-    async () => {
-      const connectionString = await createTempDatabase();
-      const state = await inspectMigrations(connectionString);
+  it("fresh installs include the relocated schema and no deleted 0126 migration", async () => {
+    const connectionString = await createTempDatabase();
+    const state = await inspectMigrations(connectionString);
 
-      expect(state.status).toBe("upToDate");
-      expect(state.availableMigrations).not.toContain("0126_issue_comment_derived_attribution.sql");
-      expect(state.availableMigrations).toContain(DERIVED_ATTRIBUTION_MIGRATION);
+    expect(state.status).toBe("upToDate");
+    expect(state.availableMigrations).not.toContain(
+      "0126_issue_comment_derived_attribution.sql",
+    );
+    expect(state.availableMigrations).toContain(DERIVED_ATTRIBUTION_MIGRATION);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        await expectDerivedAttributionSchema(sql);
-        const supportIndexes = await sql<{ indexname: string }[]>`
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      await expectDerivedAttributionSchema(sql);
+      const supportIndexes = await sql<{ indexname: string }[]>`
           SELECT "indexname"
           FROM "pg_indexes"
           WHERE "schemaname" = 'public'
             AND "indexname" = 'issue_comments_derived_attribution_backfill_idx'
         `;
-        expect(supportIndexes).toEqual([]);
-      } finally {
-        await sql.end();
-      }
-    },
-    20_000,
-  );
+      expect(supportIndexes).toEqual([]);
+    } finally {
+      await sql.end();
+    }
+  }, 20_000);
 
-  it(
-    "is idempotent for a database that already has 0126 schema and data",
-    async () => {
-      const connectionString = await createTempDatabase();
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      const alreadyBackfilledCommentId = randomUUID();
-      const timingTierCommentId = randomUUID();
-      const realUserCommentId = randomUUID();
+  it("is idempotent for a database that already has 0126 schema and data", async () => {
+    const connectionString = await createTempDatabase();
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    const alreadyBackfilledCommentId = randomUUID();
+    const timingTierCommentId = randomUUID();
+    const realUserCommentId = randomUUID();
 
-      try {
-        await makeDerivedAttributionMigrationPending(sql);
-        const { companyId, agentId, issueId, runId } = await createSeedGraph(sql, "OLD126");
-        await sql`
+    try {
+      await makeDerivedAttributionMigrationPending(sql);
+      const { companyId, agentId, issueId, runId } = await createSeedGraph(
+        sql,
+        "OLD126",
+      );
+      await sql`
           INSERT INTO "user" ("id", "name", "email", "email_verified", "created_at", "updated_at")
           VALUES ('real-user', 'Real User', 'real-user@example.test', true, now(), now())
           ON CONFLICT ("id") DO NOTHING
         `;
-        await sql`
+      await sql`
           INSERT INTO "issue_comments" (
             "id",
             "company_id",
@@ -195,27 +217,32 @@ describeEmbeddedPostgres("issue comment derived attribution migration", () => {
             (${timingTierCommentId}, ${companyId}, ${issueId}, 'local-board', NULL, ${agentId}, ${runId}, 'run_window_unique', 'timing tier'),
             (${realUserCommentId}, ${companyId}, ${issueId}, 'real-user', ${runId}, NULL, NULL, NULL, 'human comment')
         `;
-      } finally {
-        await sql.end();
-      }
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: [DERIVED_ATTRIBUTION_MIGRATION],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: [DERIVED_ATTRIBUTION_MIGRATION],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const rows = await verifySql<{
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const rows = await verifySql<
+        {
           id: string;
           derived_author_agent_id: string | null;
           derived_created_by_run_id: string | null;
           derived_author_source: string | null;
-        }[]>`
+        }[]
+      >`
           SELECT
             "id",
             "derived_author_agent_id",
@@ -226,48 +253,47 @@ describeEmbeddedPostgres("issue comment derived attribution migration", () => {
           ORDER BY "body"
         `;
 
-        expect(rows).toEqual([
-          expect.objectContaining({
-            id: alreadyBackfilledCommentId,
-            derived_author_source: "run_id",
-          }),
-          {
-            id: realUserCommentId,
-            derived_author_agent_id: null,
-            derived_created_by_run_id: null,
-            derived_author_source: null,
-          },
-          {
-            id: timingTierCommentId,
-            derived_author_agent_id: null,
-            derived_created_by_run_id: null,
-            derived_author_source: null,
-          },
-        ]);
-      } finally {
-        await verifySql.end();
-      }
+      expect(rows).toEqual([
+        expect.objectContaining({
+          id: alreadyBackfilledCommentId,
+          derived_author_source: "run_id",
+        }),
+        {
+          id: realUserCommentId,
+          derived_author_agent_id: null,
+          derived_created_by_run_id: null,
+          derived_author_source: null,
+        },
+        {
+          id: timingTierCommentId,
+          derived_author_agent_id: null,
+          derived_created_by_run_id: null,
+          derived_author_source: null,
+        },
+      ]);
+    } finally {
+      await verifySql.end();
+    }
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
-    },
-    20_000,
-  );
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
+  }, 20_000);
 
-  it(
-    "completes a partially backfilled pre-0131 database",
-    async () => {
-      const connectionString = await createTempDatabase();
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      const eligibleCommentId = randomUUID();
-      const deletedUserCommentId = randomUUID();
-      const agentAuthoredCommentId = randomUUID();
+  it("completes a partially backfilled pre-0131 database", async () => {
+    const connectionString = await createTempDatabase();
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    const eligibleCommentId = randomUUID();
+    const deletedUserCommentId = randomUUID();
+    const agentAuthoredCommentId = randomUUID();
 
-      try {
-        await dropDerivedAttributionSchema(sql);
-        await makeDerivedAttributionMigrationPending(sql);
-        const { companyId, agentId, issueId, runId } = await createSeedGraph(sql, "PARTIAL");
-        await sql`
+    try {
+      await dropDerivedAttributionSchema(sql);
+      await makeDerivedAttributionMigrationPending(sql);
+      const { companyId, agentId, issueId, runId } = await createSeedGraph(
+        sql,
+        "PARTIAL",
+      );
+      await sql`
           INSERT INTO "issue_comments" (
             "id",
             "company_id",
@@ -280,7 +306,7 @@ describeEmbeddedPostgres("issue comment derived attribution migration", () => {
             (${eligibleCommentId}, ${companyId}, ${issueId}, 'local-board', ${runId}, 'eligible local-board'),
             (${deletedUserCommentId}, ${companyId}, ${issueId}, 'deleted-user', ${runId}, 'eligible deleted user')
         `;
-        await sql`
+      await sql`
           INSERT INTO "issue_comments" (
             "id",
             "company_id",
@@ -292,21 +318,26 @@ describeEmbeddedPostgres("issue comment derived attribution migration", () => {
           )
           VALUES (${agentAuthoredCommentId}, ${companyId}, ${issueId}, ${agentId}, 'local-board', ${runId}, 'already agent-authored')
         `;
-      } finally {
-        await sql.end();
-      }
+    } finally {
+      await sql.end();
+    }
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        await expectDerivedAttributionSchema(verifySql);
-        const rows = await verifySql<{
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      await expectDerivedAttributionSchema(verifySql);
+      const rows = await verifySql<
+        {
           id: string;
           derived_author_agent_id: string | null;
           derived_created_by_run_id: string | null;
           derived_author_source: string | null;
-        }[]>`
+        }[]
+      >`
           SELECT
             "id",
             "derived_author_agent_id",
@@ -317,29 +348,27 @@ describeEmbeddedPostgres("issue comment derived attribution migration", () => {
           ORDER BY "body"
         `;
 
-        expect(rows).toEqual([
-          {
-            id: agentAuthoredCommentId,
-            derived_author_agent_id: null,
-            derived_created_by_run_id: null,
-            derived_author_source: null,
-          },
-          expect.objectContaining({
-            id: deletedUserCommentId,
-            derived_author_source: "run_id",
-          }),
-          expect.objectContaining({
-            id: eligibleCommentId,
-            derived_author_source: "run_id",
-          }),
-        ]);
-      } finally {
-        await verifySql.end();
-      }
+      expect(rows).toEqual([
+        {
+          id: agentAuthoredCommentId,
+          derived_author_agent_id: null,
+          derived_created_by_run_id: null,
+          derived_author_source: null,
+        },
+        expect.objectContaining({
+          id: deletedUserCommentId,
+          derived_author_source: "run_id",
+        }),
+        expect.objectContaining({
+          id: eligibleCommentId,
+          derived_author_source: "run_id",
+        }),
+      ]);
+    } finally {
+      await verifySql.end();
+    }
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
-    },
-    20_000,
-  );
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
+  }, 20_000);
 });

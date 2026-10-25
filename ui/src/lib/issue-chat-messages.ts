@@ -20,11 +20,10 @@ import {
 import type { IssueTimelineEvent } from "./issue-timeline-events";
 import { isLiveIssueRun } from "./liveIssueIds";
 import { findUIAdapter } from "../adapters/registry";
-import {
-  summarizeNotice,
-} from "./transcriptPresentation";
+import { summarizeNotice } from "./transcriptPresentation";
 
-type JsonValue = null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
+type JsonValue =
+  null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
 type JsonObject = { [key: string]: JsonValue };
 
 export interface IssueChatComment extends IssueComment {
@@ -101,10 +100,34 @@ export interface IssueChatTranscriptEntry {
   outputTokens?: number;
   cachedTokens?: number;
   costUsd?: number;
-  changeType?: "add" | "remove" | "context" | "hunk" | "file_header" | "truncation";
-  family?: "plan" | "tool_execution" | "research" | "delegation" | "model_identity" | "context" | "artifact" | "review" | "hook" | "memory" | "safety" | "terminal" | "wait" | "provider_notice";
+  changeType?:
+    "add" | "remove" | "context" | "hunk" | "file_header" | "truncation";
+  family?:
+    | "plan"
+    | "tool_execution"
+    | "research"
+    | "delegation"
+    | "model_identity"
+    | "context"
+    | "artifact"
+    | "review"
+    | "hook"
+    | "memory"
+    | "safety"
+    | "terminal"
+    | "wait"
+    | "provider_notice";
   eventType?: string;
-  status?: "running" | "completed" | "failed" | "interrupted" | "informational" | "pending" | "resolved" | "expired" | "cancelled";
+  status?:
+    | "running"
+    | "completed"
+    | "failed"
+    | "interrupted"
+    | "informational"
+    | "pending"
+    | "resolved"
+    | "expired"
+    | "cancelled";
   title?: string;
   summary?: string;
   payload?: Record<string, unknown>;
@@ -117,7 +140,9 @@ const ISSUE_CHAT_TRANSCRIPT_MAX_VISIBLE_ENTRIES = 30;
 // adapter without a declaration keeps the long-standing 30-entry window.
 // Resolved through the registry so shared code never branches on adapter
 // identities.
-function issueChatTranscriptMaxVisibleEntries(adapterType: string | null | undefined): number {
+function issueChatTranscriptMaxVisibleEntries(
+  adapterType: string | null | undefined,
+): number {
   if (!adapterType) return ISSUE_CHAT_TRANSCRIPT_MAX_VISIBLE_ENTRIES;
   return (
     findUIAdapter(adapterType)?.transcriptPresentation?.maxVisibleEntries ??
@@ -153,29 +178,42 @@ function fingerprintThreadMessage(message: ThreadMessage) {
   return JSON.stringify(message);
 }
 
-function issueChatMessageCustom(message: ThreadMessage): Record<string, unknown> {
+function issueChatMessageCustom(
+  message: ThreadMessage,
+): Record<string, unknown> {
   const custom = message.metadata?.custom;
   return custom && typeof custom === "object" && !Array.isArray(custom)
-    ? custom as Record<string, unknown>
+    ? (custom as Record<string, unknown>)
     : {};
 }
 
 function isLiveRunThreadMessage(message: ThreadMessage) {
-  return message.role === "assistant"
-    && message.status?.type === "running"
-    && issueChatMessageCustom(message)["kind"] === "live-run";
+  return (
+    message.role === "assistant" &&
+    message.status?.type === "running" &&
+    issueChatMessageCustom(message)["kind"] === "live-run"
+  );
 }
 
-export function preserveReadableStreamingRetraction(previousText: string, nextText: string) {
+export function preserveReadableStreamingRetraction(
+  previousText: string,
+  nextText: string,
+) {
   if (!previousText || !nextText) return nextText;
 
-  if (nextText.length >= previousText.length && nextText.startsWith(previousText)) {
+  if (
+    nextText.length >= previousText.length &&
+    nextText.startsWith(previousText)
+  ) {
     return revealCompleteStreamingWords(previousText, nextText);
   }
 
   const overlapLength = longestSuffixPrefixOverlap(previousText, nextText);
   if (overlapLength >= 8 && overlapLength < previousText.length) {
-    const removedPrefix = previousText.slice(0, previousText.length - overlapLength);
+    const removedPrefix = previousText.slice(
+      0,
+      previousText.length - overlapLength,
+    );
     if (isQuietStreamingRemovalBoundary(removedPrefix)) {
       return nextText;
     }
@@ -183,7 +221,10 @@ export function preserveReadableStreamingRetraction(previousText: string, nextTe
     return nextText;
   }
 
-  if (nextText.length >= previousText.length || !previousText.startsWith(nextText)) {
+  if (
+    nextText.length >= previousText.length ||
+    !previousText.startsWith(nextText)
+  ) {
     return revealCompleteStreamingWords(previousText, nextText);
   }
 
@@ -196,7 +237,10 @@ export function preserveReadableStreamingRetraction(previousText: string, nextTe
 }
 
 function revealCompleteStreamingWords(previousText: string, nextText: string) {
-  if (nextText.length <= previousText.length || !nextText.startsWith(previousText)) {
+  if (
+    nextText.length <= previousText.length ||
+    !nextText.startsWith(previousText)
+  ) {
     return nextText;
   }
 
@@ -237,7 +281,11 @@ function smoothLiveRunRetractions(
   message: ThreadMessage,
   previousMessage: ThreadMessage | undefined,
 ): ThreadMessage {
-  if (!previousMessage || !isLiveRunThreadMessage(message) || !isLiveRunThreadMessage(previousMessage)) {
+  if (
+    !previousMessage ||
+    !isLiveRunThreadMessage(message) ||
+    !isLiveRunThreadMessage(previousMessage)
+  ) {
     return message;
   }
 
@@ -248,7 +296,10 @@ function smoothLiveRunRetractions(
     const previousPart = previousMessage.content[index];
     if (previousPart?.type !== part.type) return part;
 
-    const text = preserveReadableStreamingRetraction(previousPart.text, part.text);
+    const text = preserveReadableStreamingRetraction(
+      previousPart.text,
+      part.text,
+    );
     if (text === part.text) return part;
 
     changed = true;
@@ -290,7 +341,9 @@ export function stabilizeThreadMessages(
   };
 }
 
-function sortByCreated<T extends { createdAt: Date | string; id: string }>(items: readonly T[]) {
+function sortByCreated<T extends { createdAt: Date | string; id: string }>(
+  items: readonly T[],
+) {
   return [...items].sort((a, b) => {
     const diff = toTimestamp(a.createdAt) - toTimestamp(b.createdAt);
     if (diff !== 0) return diff;
@@ -311,10 +364,10 @@ function dedupeInteractionsById(
     const previousUpdatedAt = toTimestamp(previous.updatedAt);
     const nextUpdatedAt = toTimestamp(interaction.updatedAt);
     if (
-      nextUpdatedAt > previousUpdatedAt
-      || (nextUpdatedAt === previousUpdatedAt
-        && previous.status === "pending"
-        && interaction.status !== "pending")
+      nextUpdatedAt > previousUpdatedAt ||
+      (nextUpdatedAt === previousUpdatedAt &&
+        previous.status === "pending" &&
+        interaction.status !== "pending")
     ) {
       byId.set(interaction.id, interaction);
     }
@@ -360,18 +413,24 @@ export function latestSameRunHandoffTimestamp(args: {
     })),
   ];
   const barrierAtMs = barrierItems
-    .filter((item) => item.createdAtMs > interactionCreatedAtMs && item.runId !== sourceRunId)
+    .filter(
+      (item) =>
+        item.createdAtMs > interactionCreatedAtMs && item.runId !== sourceRunId,
+    )
     .reduce<number | null>(
       (earliest, item) =>
-        earliest === null ? item.createdAtMs : Math.min(earliest, item.createdAtMs),
+        earliest === null
+          ? item.createdAtMs
+          : Math.min(earliest, item.createdAtMs),
       null,
     );
 
   return handoffItems
-    .filter((item) =>
-      item.createdAtMs > interactionCreatedAtMs
-      && item.runId === sourceRunId
-      && (barrierAtMs === null || item.createdAtMs < barrierAtMs)
+    .filter(
+      (item) =>
+        item.createdAtMs > interactionCreatedAtMs &&
+        item.runId === sourceRunId &&
+        (barrierAtMs === null || item.createdAtMs < barrierAtMs),
     )
     .reduce<number | null>(
       (latest, item) =>
@@ -393,10 +452,9 @@ function normalizeJsonValue(input: unknown): JsonValue {
     return input.map((entry) => normalizeJsonValue(entry));
   }
   if (typeof input === "object" && input) {
-    const entries = Object.entries(input as Record<string, unknown>).map(([key, value]) => [
-      key,
-      normalizeJsonValue(value),
-    ]);
+    const entries = Object.entries(input as Record<string, unknown>).map(
+      ([key, value]) => [key, normalizeJsonValue(value)],
+    );
     return Object.fromEntries(entries) as JsonObject;
   }
   return String(input);
@@ -427,10 +485,10 @@ function mergePartText(
   if (!previous.text) return next.text;
   if (!next.text) return previous.text;
   if (
-    previous.text.endsWith("\n")
-    || next.text.startsWith("\n")
-    || previous.text.endsWith(" ")
-    || next.text.startsWith(" ")
+    previous.text.endsWith("\n") ||
+    next.text.startsWith("\n") ||
+    previous.text.endsWith(" ") ||
+    next.text.startsWith(" ")
   ) {
     return `${previous.text}${next.text}`;
   }
@@ -444,18 +502,20 @@ function formatDiffBlock(lines: string[]) {
 }
 
 function isIssueChatRenderableTranscriptEntry(entry: IssueChatTranscriptEntry) {
-  return entry.kind !== "init"
-    && entry.kind !== "stderr"
-    && entry.kind !== "stdout"
-    && entry.kind !== "system"
+  return (
+    entry.kind !== "init" &&
+    entry.kind !== "stderr" &&
+    entry.kind !== "stdout" &&
+    entry.kind !== "system" &&
     // The classic task interface intentionally remains unchanged. Structured
     // PRP surfaces are rendered by TaskChatThread and remain available in run
     // details when the classic interface is enabled.
-    && entry.kind !== "workspace_change"
-    && entry.kind !== "workspace_file_reference"
-    && entry.kind !== "runtime_request"
-    && entry.kind !== "run_result"
-    && entry.kind !== "run_terminal";
+    entry.kind !== "workspace_change" &&
+    entry.kind !== "workspace_file_reference" &&
+    entry.kind !== "runtime_request" &&
+    entry.kind !== "run_result" &&
+    entry.kind !== "run_terminal"
+  );
 }
 
 function compactIssueChatTranscript(
@@ -472,9 +532,9 @@ function compactIssueChatTranscript(
 
   let startPos = Math.max(0, renderable.length - maxVisibleEntries);
   while (
-    startPos > 0
-    && renderable[startPos]?.entry.kind === "diff"
-    && renderable[startPos - 1]?.entry.kind === "diff"
+    startPos > 0 &&
+    renderable[startPos]?.entry.kind === "diff" &&
+    renderable[startPos - 1]?.entry.kind === "diff"
   ) {
     startPos -= 1;
   }
@@ -490,7 +550,10 @@ function compactIssueChatTranscript(
     if (entry?.kind !== "tool_result" || !entry.toolUseId) continue;
     for (let scan = pos - 1; scan >= 0; scan -= 1) {
       const candidate = renderable[scan]?.entry;
-      if (candidate?.kind === "tool_call" && candidate.toolUseId === entry.toolUseId) {
+      if (
+        candidate?.kind === "tool_call" &&
+        candidate.toolUseId === entry.toolUseId
+      ) {
         keptRenderablePositions.add(scan);
         break;
       }
@@ -503,7 +566,9 @@ function compactIssueChatTranscript(
     if (fullIndex !== undefined) keptFullIndices.add(fullIndex);
   }
 
-  const compactedEntries = entries.filter((_entry, index) => keptFullIndices.has(index));
+  const compactedEntries = entries.filter((_entry, index) =>
+    keptFullIndices.has(index),
+  );
   return compactedEntries;
 }
 
@@ -518,7 +583,12 @@ function createAssistantMetadata(custom: Record<string, unknown>) {
 }
 
 function effectiveCommentAuthorAgentId(comment: IssueChatComment) {
-  return comment.authorAgentId ?? comment.runAgentId ?? comment.derivedAuthorAgentId ?? null;
+  return (
+    comment.authorAgentId ??
+    comment.runAgentId ??
+    comment.derivedAuthorAgentId ??
+    null
+  );
 }
 
 function effectiveCommentRunId(comment: IssueChatComment) {
@@ -542,13 +612,18 @@ function authorNameForComment(
 ) {
   const authorAgentId = effectiveCommentAuthorAgentId(comment);
   if (authorAgentId) {
-    return agentMap?.get(authorAgentId)?.name ?? (options?.isSystemNotice ? "Taskcore" : authorAgentId.slice(0, 8));
+    return (
+      agentMap?.get(authorAgentId)?.name ??
+      (options?.isSystemNotice ? "Taskcore" : authorAgentId.slice(0, 8))
+    );
   }
   const authorUserId = comment.authorUserId ?? null;
   if (!authorUserId) return options?.isSystemNotice ? "Taskcore" : "You";
   const userLabel = userLabelMap?.get(authorUserId)?.trim();
   if (userLabel) return userLabel;
-  return formatAssigneeUserLabel(authorUserId, currentUserId, userLabelMap) ?? "You";
+  return (
+    formatAssigneeUserLabel(authorUserId, currentUserId, userLabelMap) ?? "You"
+  );
 }
 
 function formatStatusLabel(status: string) {
@@ -563,7 +638,14 @@ function createCommentMessage(args: {
   companyId?: string | null;
   projectId?: string | null;
 }): ThreadMessage {
-  const { comment, agentMap, currentUserId, userLabelMap, companyId, projectId } = args;
+  const {
+    comment,
+    agentMap,
+    currentUserId,
+    userLabelMap,
+    companyId,
+    projectId,
+  } = args;
   const createdAt = toDate(comment.createdAt);
   const isSystemAuthor = comment.authorType === "system";
   // Presentation can route a comment to the system-notice renderer even when it
@@ -571,11 +653,18 @@ function createCommentMessage(args: {
   // collapse like a system notice while keeping the real author's name/link.
   // Comments without a presentation keep today's routing (graceful fallback for
   // old data both directions).
-  const renderAsSystemNotice = isSystemAuthor || comment.presentation?.kind === "system_notice";
+  const renderAsSystemNotice =
+    isSystemAuthor || comment.presentation?.kind === "system_notice";
   const authorAgentId = effectiveCommentAuthorAgentId(comment);
-  const authorName = authorNameForComment(comment, agentMap, currentUserId, userLabelMap, {
-    isSystemNotice: isSystemAuthor,
-  });
+  const authorName = authorNameForComment(
+    comment,
+    agentMap,
+    currentUserId,
+    userLabelMap,
+    {
+      isSystemNotice: isSystemAuthor,
+    },
+  );
   const custom = {
     kind: renderAsSystemNotice ? "system_notice" : "comment",
     commentId: comment.id,
@@ -598,7 +687,9 @@ function createCommentMessage(args: {
     followUpRequested: comment.followUpRequested === true,
     presentation: comment.presentation ?? null,
     commentMetadata: comment.metadata ?? null,
-    deletedAt: comment.deletedAt ? toDate(comment.deletedAt).toISOString() : null,
+    deletedAt: comment.deletedAt
+      ? toDate(comment.deletedAt).toISOString()
+      : null,
     deletedByType: comment.deletedByType ?? null,
     deletedByAgentId: comment.deletedByAgentId ?? null,
     deletedByUserId: comment.deletedByUserId ?? null,
@@ -648,14 +739,21 @@ function createTimelineEventMessage(args: {
   userLabelMap?: ReadonlyMap<string, string> | null;
 }) {
   const { event, agentMap, currentUserId, userLabelMap } = args;
-  const actorName = event.actorType === "agent"
-    ? (agentMap?.get(event.actorId)?.name ?? event.actorId.slice(0, 8))
-    : event.actorType === "system"
-      ? "System"
-      : (formatAssigneeUserLabel(event.actorId, currentUserId, userLabelMap) ?? "Board");
+  const actorName =
+    event.actorType === "agent"
+      ? (agentMap?.get(event.actorId)?.name ?? event.actorId.slice(0, 8))
+      : event.actorType === "system"
+        ? "System"
+        : (formatAssigneeUserLabel(
+            event.actorId,
+            currentUserId,
+            userLabelMap,
+          ) ?? "Board");
 
   const lines: string[] = [
-    event.followUpRequested ? `${actorName} requested follow-up` : `${actorName} updated this issue`,
+    event.followUpRequested
+      ? `${actorName} requested follow-up`
+      : `${actorName} updated this issue`,
   ];
   if (event.statusChange) {
     lines.push(
@@ -664,11 +762,21 @@ function createTimelineEventMessage(args: {
   }
   if (event.assigneeChange) {
     const from = event.assigneeChange.from.agentId
-      ? (agentMap?.get(event.assigneeChange.from.agentId)?.name ?? event.assigneeChange.from.agentId.slice(0, 8))
-      : (formatAssigneeUserLabel(event.assigneeChange.from.userId, currentUserId, userLabelMap) ?? "Unassigned");
+      ? (agentMap?.get(event.assigneeChange.from.agentId)?.name ??
+        event.assigneeChange.from.agentId.slice(0, 8))
+      : (formatAssigneeUserLabel(
+          event.assigneeChange.from.userId,
+          currentUserId,
+          userLabelMap,
+        ) ?? "Unassigned");
     const to = event.assigneeChange.to.agentId
-      ? (agentMap?.get(event.assigneeChange.to.agentId)?.name ?? event.assigneeChange.to.agentId.slice(0, 8))
-      : (formatAssigneeUserLabel(event.assigneeChange.to.userId, currentUserId, userLabelMap) ?? "Unassigned");
+      ? (agentMap?.get(event.assigneeChange.to.agentId)?.name ??
+        event.assigneeChange.to.agentId.slice(0, 8))
+      : (formatAssigneeUserLabel(
+          event.assigneeChange.to.userId,
+          currentUserId,
+          userLabelMap,
+        ) ?? "Unassigned");
     lines.push(`Assignee: ${from} -> ${to}`);
   }
   if (event.workspaceChange) {
@@ -705,7 +813,9 @@ function createInteractionMessage(interaction: IssueThreadInteraction) {
     id: `interaction:${interaction.id}`,
     role: "system",
     createdAt: toDate(interaction.createdAt),
-    content: [{ type: "text", text: buildIssueThreadInteractionSummary(interaction) }],
+    content: [
+      { type: "text", text: buildIssueThreadInteractionSummary(interaction) },
+    ],
     metadata: {
       custom: {
         kind: "interaction",
@@ -737,7 +847,9 @@ export function isCoTSegmentActive(args: {
   return segmentIndex === segmentCount - 1;
 }
 
-function computeSegmentTimings(entries: readonly IssueChatTranscriptEntry[]): SegmentTiming[] {
+function computeSegmentTimings(
+  entries: readonly IssueChatTranscriptEntry[],
+): SegmentTiming[] {
   const timings: SegmentTiming[] = [];
   let inSegment = false;
   let segStart = 0;
@@ -752,7 +864,8 @@ function computeSegmentTimings(entries: readonly IssueChatTranscriptEntry[]): Se
       entry.kind === "tool_result" ||
       entry.kind === "diff" ||
       entry.kind === "provider_activity" ||
-      (entry.kind === "result" && ((entry.isError && !!entry.errors?.length) || !!entry.text));
+      (entry.kind === "result" &&
+        ((entry.isError && !!entry.errors?.length) || !!entry.text));
     const isText = entry.kind === "assistant" && !!entry.text;
 
     if (isCoT) {
@@ -802,9 +915,14 @@ function runDurationLabel(run: {
 }) {
   const start = run.startedAt ?? run.createdAt;
   const end = run.finishedAt ?? null;
-  const durationMs = end ? Math.max(0, toTimestamp(end) - toTimestamp(start)) : null;
+  const durationMs = end
+    ? Math.max(0, toTimestamp(end) - toTimestamp(start))
+    : null;
   const durationText = formatDurationWords(durationMs);
-  const stopReason = typeof run.resultJson?.stopReason === "string" ? run.resultJson.stopReason : null;
+  const stopReason =
+    typeof run.resultJson?.stopReason === "string"
+      ? run.resultJson.stopReason
+      : null;
   switch (run.status) {
     case "succeeded":
       return durationText ? `Worked for ${durationText}` : "Finished work";
@@ -815,10 +933,14 @@ function runDurationLabel(run: {
       return durationText ? `Timed out after ${durationText}` : "Run timed out";
     case "cancelled":
       if (isOperatorInterruptedRun(run.resultJson, run.errorCode)) {
-        return durationText ? `Interrupted by board after ${durationText}` : "Interrupted by board";
+        return durationText
+          ? `Interrupted by board after ${durationText}`
+          : "Interrupted by board";
       }
       if (stopReason === "paused") {
-        return durationText ? `Paused by board after ${durationText}` : "Paused by board";
+        return durationText
+          ? `Paused by board after ${durationText}`
+          : "Paused by board";
       }
       return durationText ? `Cancelled after ${durationText}` : "Run cancelled";
     case "queued":
@@ -830,13 +952,24 @@ function runDurationLabel(run: {
   }
 }
 
-function createHistoricalRunMessage(run: IssueChatLinkedRun, agentMap?: Map<string, Agent>) {
-  const agentName = run.agentName ?? agentMap?.get(run.agentId)?.name ?? run.agentId.slice(0, 8);
+function createHistoricalRunMessage(
+  run: IssueChatLinkedRun,
+  agentMap?: Map<string, Agent>,
+) {
+  const agentName =
+    run.agentName ??
+    agentMap?.get(run.agentId)?.name ??
+    run.agentId.slice(0, 8);
   const message: ThreadSystemMessage = {
     id: `run:${run.runId}`,
     role: "system",
     createdAt: toDate(runTimestamp(run)),
-    content: [{ type: "text", text: `${agentName} run ${run.runId.slice(0, 8)} ${formatStatusLabel(run.status)}` }],
+    content: [
+      {
+        type: "text",
+        text: `${agentName} run ${run.runId.slice(0, 8)} ${formatStatusLabel(run.status)}`,
+      },
+    ],
     metadata: {
       custom: {
         kind: "run",
@@ -845,8 +978,11 @@ function createHistoricalRunMessage(run: IssueChatLinkedRun, agentMap?: Map<stri
         runAgentId: run.agentId,
         runAgentName: agentName,
         runStatus: run.status,
-      execution: run.execution,
-        runOperatorInterrupted: isOperatorInterruptedRun(run.resultJson, run.errorCode),
+        execution: run.execution,
+        runOperatorInterrupted: isOperatorInterruptedRun(
+          run.resultJson,
+          run.errorCode,
+        ),
       },
     },
   };
@@ -860,15 +996,23 @@ function createHistoricalTranscriptMessage(args: {
   agentMap?: Map<string, Agent>;
 }) {
   const { run, transcript, hasOutput, agentMap } = args;
-  const agentName = run.agentName ?? agentMap?.get(run.agentId)?.name ?? run.agentId.slice(0, 8);
-  const compactedTranscript = compactIssueChatTranscript(transcript, issueChatTranscriptMaxVisibleEntries(run.adapterType));
-  const { parts, notices, segments } = buildAssistantPartsFromTranscript(compactedTranscript);
+  const agentName =
+    run.agentName ??
+    agentMap?.get(run.agentId)?.name ??
+    run.agentId.slice(0, 8);
+  const compactedTranscript = compactIssueChatTranscript(
+    transcript,
+    issueChatTranscriptMaxVisibleEntries(run.adapterType),
+  );
+  const { parts, notices, segments } =
+    buildAssistantPartsFromTranscript(compactedTranscript);
   const waitingText = hasOutput ? "" : "Run finished";
-  const content = parts.length > 0
-    ? parts
-    : waitingText
-      ? [{ type: "text", text: waitingText } satisfies TextMessagePart]
-      : [];
+  const content =
+    parts.length > 0
+      ? parts
+      : waitingText
+        ? [{ type: "text", text: waitingText } satisfies TextMessagePart]
+        : [];
 
   const message: ThreadAssistantMessage = {
     id: `run-assistant:${run.runId}`,
@@ -884,7 +1028,10 @@ function createHistoricalTranscriptMessage(args: {
       runAgentName: agentName,
       runStatus: run.status,
       execution: run.execution,
-      runOperatorInterrupted: isOperatorInterruptedRun(run.resultJson, run.errorCode),
+      runOperatorInterrupted: isOperatorInterruptedRun(
+        run.resultJson,
+        run.errorCode,
+      ),
       notices,
       waitingText,
       chainOfThoughtLabel: runDurationLabel(run),
@@ -894,12 +1041,22 @@ function createHistoricalTranscriptMessage(args: {
   return message;
 }
 
-export function buildAssistantPartsFromTranscript(entries: readonly IssueChatTranscriptEntry[]): {
-  parts: Array<TextMessagePart | ReasoningMessagePart | ToolCallMessagePart<JsonObject, unknown>>;
+export function buildAssistantPartsFromTranscript(
+  entries: readonly IssueChatTranscriptEntry[],
+): {
+  parts: Array<
+    | TextMessagePart
+    | ReasoningMessagePart
+    | ToolCallMessagePart<JsonObject, unknown>
+  >;
   notices: string[];
   segments: SegmentTiming[];
 } {
-  const orderedParts: Array<TextMessagePart | ReasoningMessagePart | ToolCallMessagePart<JsonObject, unknown>> = [];
+  const orderedParts: Array<
+    | TextMessagePart
+    | ReasoningMessagePart
+    | ToolCallMessagePart<JsonObject, unknown>
+  > = [];
   const toolParts = new Map<string, ToolCallMessagePart<JsonObject, unknown>>();
   const toolIndices = new Map<string, number>();
   const notices: string[] = [];
@@ -946,7 +1103,9 @@ export function buildAssistantPartsFromTranscript(entries: readonly IssueChatTra
         toolName: "taskcore_provider_activity",
         args,
         argsText: "",
-        ...(entry.status === "running" ? {} : { result: { status: entry.status ?? "informational" } }),
+        ...(entry.status === "running"
+          ? {}
+          : { result: { status: entry.status ?? "informational" } }),
       });
       continue;
     }
@@ -978,10 +1137,11 @@ export function buildAssistantPartsFromTranscript(entries: readonly IssueChatTra
     if (entry.kind === "tool_result") {
       const toolCallId = entry.toolUseId || `tool-result-${index}`;
       const existing = toolParts.get(toolCallId);
-      const existingResult = typeof existing?.result === "string" ? existing.result : "";
+      const existingResult =
+        typeof existing?.result === "string" ? existing.result : "";
       const result = entry.delta
         ? `${existingResult}${entry.content ?? ""}`
-        : (entry.content || existingResult);
+        : entry.content || existingResult;
       const nextPart: ToolCallMessagePart<JsonObject, unknown> = {
         type: "tool-call",
         toolCallId,
@@ -1010,7 +1170,10 @@ export function buildAssistantPartsFromTranscript(entries: readonly IssueChatTra
     if (entry.kind === "result") {
       if (entry.isError && entry.errors?.length) {
         for (const error of entry.errors) {
-          orderedParts.push({ type: "reasoning", text: `Run error: ${summarizeNotice(error)}` });
+          orderedParts.push({
+            type: "reasoning",
+            text: `Run error: ${summarizeNotice(error)}`,
+          });
         }
       } else if (entry.text) {
         orderedParts.push({
@@ -1026,14 +1189,22 @@ export function buildAssistantPartsFromTranscript(entries: readonly IssueChatTra
 
   flushPendingDiff();
 
-  const mergedParts: Array<TextMessagePart | ReasoningMessagePart | ToolCallMessagePart<JsonObject, unknown>> = [];
+  const mergedParts: Array<
+    | TextMessagePart
+    | ReasoningMessagePart
+    | ToolCallMessagePart<JsonObject, unknown>
+  > = [];
   for (const part of orderedParts) {
     if (part.type === "tool-call") {
       mergedParts.push(part);
       continue;
     }
     const previous = mergedParts.at(-1);
-    if (previous && previous.type === part.type && previous.parentId === part.parentId) {
+    if (
+      previous &&
+      previous.type === part.type &&
+      previous.parentId === part.parentId
+    ) {
       mergedParts[mergedParts.length - 1] = {
         ...previous,
         text: mergePartText(previous, part),
@@ -1069,8 +1240,12 @@ function normalizeLiveRuns(
       triggerDetail: activeRun.triggerDetail,
       contextCommentId: activeRun.contextCommentId,
       contextWakeCommentId: activeRun.contextWakeCommentId,
-      startedAt: activeRun.startedAt ? toDate(activeRun.startedAt).toISOString() : null,
-      finishedAt: activeRun.finishedAt ? toDate(activeRun.finishedAt).toISOString() : null,
+      startedAt: activeRun.startedAt
+        ? toDate(activeRun.startedAt).toISOString()
+        : null,
+      finishedAt: activeRun.finishedAt
+        ? toDate(activeRun.finishedAt).toISOString()
+        : null,
       createdAt: toDate(activeRun.createdAt).toISOString(),
       agentId: activeRun.agentId,
       agentName: activeRun.agentName,
@@ -1081,7 +1256,9 @@ function normalizeLiveRuns(
       livenessState: activeRun.livenessState,
       livenessReason: activeRun.livenessReason,
       continuationAttempt: activeRun.continuationAttempt,
-      lastUsefulActionAt: activeRun.lastUsefulActionAt ? toDate(activeRun.lastUsefulActionAt).toISOString() : null,
+      lastUsefulActionAt: activeRun.lastUsefulActionAt
+        ? toDate(activeRun.lastUsefulActionAt).toISOString()
+        : null,
       nextAction: activeRun.nextAction,
       outputSilence: activeRun.outputSilence,
       currentStatusMessage: activeRun.currentStatusMessage ?? null,
@@ -1095,7 +1272,9 @@ function normalizeLiveRuns(
         : null,
     });
   }
-  return [...deduped.values()].sort((a, b) => toTimestamp(a.createdAt) - toTimestamp(b.createdAt));
+  return [...deduped.values()].sort(
+    (a, b) => toTimestamp(a.createdAt) - toTimestamp(b.createdAt),
+  );
 }
 
 function createLiveRunMessage(args: {
@@ -1103,8 +1282,12 @@ function createLiveRunMessage(args: {
   transcript: readonly IssueChatTranscriptEntry[];
 }) {
   const { run, transcript } = args;
-  const compactedTranscript = compactIssueChatTranscript(transcript, issueChatTranscriptMaxVisibleEntries(run.adapterType));
-  const { parts, notices, segments } = buildAssistantPartsFromTranscript(compactedTranscript);
+  const compactedTranscript = compactIssueChatTranscript(
+    transcript,
+    issueChatTranscriptMaxVisibleEntries(run.adapterType),
+  );
+  const { parts, notices, segments } =
+    buildAssistantPartsFromTranscript(compactedTranscript);
   const waitingText =
     run.status === "queued"
       ? "Queued..."
@@ -1148,12 +1331,19 @@ export function isRedundantAiRecoveryNotice(
   comment: IssueChatComment,
   interactions: readonly IssueThreadInteraction[] = [],
 ): boolean {
-  return comment.presentation?.kind === "system_notice"
-    && ["AI connection needs attention", "Configuration incomplete"].includes(comment.presentation.title ?? "")
-    && Boolean(comment.metadata?.sourceRunId)
-    && interactions.some((interaction) => interaction.kind === "connection_intent"
-      && interaction.payload.purpose === "ai"
-      && interaction.sourceRunId === comment.metadata?.sourceRunId);
+  return (
+    comment.presentation?.kind === "system_notice" &&
+    ["AI connection needs attention", "Configuration incomplete"].includes(
+      comment.presentation.title ?? "",
+    ) &&
+    Boolean(comment.metadata?.sourceRunId) &&
+    interactions.some(
+      (interaction) =>
+        interaction.kind === "connection_intent" &&
+        interaction.payload.purpose === "ai" &&
+        interaction.sourceRunId === comment.metadata?.sourceRunId,
+    )
+  );
 }
 
 export function buildIssueChatMessages(args: {
@@ -1200,7 +1390,14 @@ export function buildIssueChatMessages(args: {
     orderedMessages.push({
       createdAtMs: toTimestamp(comment.createdAt),
       order: 1,
-      message: createCommentMessage({ comment, agentMap, currentUserId, userLabelMap, companyId, projectId }),
+      message: createCommentMessage({
+        comment,
+        agentMap,
+        currentUserId,
+        userLabelMap,
+        companyId,
+        projectId,
+      }),
     });
   }
 
@@ -1208,23 +1405,26 @@ export function buildIssueChatMessages(args: {
   // same interaction. Collapse by id before constructing messages, preferring
   // the newest/terminal snapshot so a resolved connection card updates in its
   // existing thread slot instead of flashing a duplicate beside itself.
-  for (const interaction of sortByCreated(dedupeInteractionsById(interactions))) {
+  for (const interaction of sortByCreated(
+    dedupeInteractionsById(interactions),
+  )) {
     // A card IssueThreadInteractionCard never renders — a degenerate
     // `ask_user_questions` (e.g. the onboarding `Test / A` placeholder) or a
     // stale sibling superseded by a newer question (PAP-437) — is skipped here so
     // it leaves no empty message slot in the thread (PAP-424, plan from PAP-420).
     if (shouldHideInteractionCard(interaction)) continue;
     const createdAtMs = toTimestamp(interaction.createdAt);
-    const handoffAtMs = interaction.kind === "request_confirmation" && interaction.sourceRunId
-      ? latestSameRunHandoffTimestamp({
-        interactionCreatedAtMs: createdAtMs,
-        sourceRunId: interaction.sourceRunId,
-        comments,
-        timelineEvents,
-        linkedRuns,
-        liveRuns,
-      })
-      : null;
+    const handoffAtMs =
+      interaction.kind === "request_confirmation" && interaction.sourceRunId
+        ? latestSameRunHandoffTimestamp({
+            interactionCreatedAtMs: createdAtMs,
+            sourceRunId: interaction.sourceRunId,
+            comments,
+            timelineEvents,
+            linkedRuns,
+            liveRuns,
+          })
+        : null;
     orderedMessages.push({
       createdAtMs: handoffAtMs ?? createdAtMs,
       order: 2,
@@ -1236,13 +1436,21 @@ export function buildIssueChatMessages(args: {
     orderedMessages.push({
       createdAtMs: toTimestamp(event.createdAt),
       order: 0,
-      message: createTimelineEventMessage({ event, agentMap, currentUserId, userLabelMap }),
+      message: createTimelineEventMessage({
+        event,
+        agentMap,
+        currentUserId,
+        userLabelMap,
+      }),
     });
   }
 
-  for (const run of [...linkedRuns].sort((a, b) => toTimestamp(runTimestamp(a)) - toTimestamp(runTimestamp(b)))) {
+  for (const run of [...linkedRuns].sort(
+    (a, b) => toTimestamp(runTimestamp(a)) - toTimestamp(runTimestamp(b)),
+  )) {
     const transcript = transcriptsByRunId?.get(run.runId) ?? [];
-    const hasRunOutput = transcript.length > 0 || (hasOutputForRun?.(run.runId) ?? false);
+    const hasRunOutput =
+      transcript.length > 0 || (hasOutputForRun?.(run.runId) ?? false);
     if (hasRunOutput || run.status !== "succeeded") {
       // Always use the transcript message for non-succeeded runs (even before
       // transcript data loads) so the message type and fold header are stable
@@ -1267,7 +1475,12 @@ export function buildIssueChatMessages(args: {
     });
   }
 
-  for (const run of normalizeLiveRuns(liveRuns, activeRun, issueId, issueStatus)) {
+  for (const run of normalizeLiveRuns(
+    liveRuns,
+    activeRun,
+    issueId,
+    issueStatus,
+  )) {
     orderedMessages.push({
       createdAtMs: toTimestamp(run.startedAt ?? run.createdAt),
       order: 3,

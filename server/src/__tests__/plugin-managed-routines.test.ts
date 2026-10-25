@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   activityLog,
   agentConfigRevisions,
@@ -28,7 +36,9 @@ import { buildHostServices } from "../services/plugin-host-services.js";
 import { routineService } from "../services/routines.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 function createEventBusStub() {
   return {
@@ -56,43 +66,51 @@ function manifest(): TaskcorePluginManifestV1 {
     categories: ["automation"],
     capabilities: ["agents.managed", "projects.managed", "routines.managed"],
     entrypoints: { worker: "./dist/worker.js" },
-    agents: [{
-      agentKey: "wiki-maintainer",
-      displayName: "Wiki Maintainer",
-      role: "engineer",
-      adapterType: "process",
-      adapterConfig: { command: "pnpm wiki:maintain" },
-    }],
-    projects: [{
-      projectKey: "operations",
-      displayName: "Plugin Operations",
-      description: "Plugin operation inspection",
-      status: "in_progress",
-    }],
-    routines: [{
-      routineKey: "nightly-lint",
-      title: "Nightly lint",
-      description: "Lint plugin state",
-      assigneeRef: { resourceKind: "agent", resourceKey: "wiki-maintainer" },
-      projectRef: { resourceKind: "project", resourceKey: "operations" },
-      status: "active",
-      priority: "medium",
-      concurrencyPolicy: "coalesce_if_active",
-      catchUpPolicy: "skip_missed",
-      activityGatePolicy: "require_external_activity",
-      activityGateScope: "project",
-      triggers: [{
-        kind: "schedule",
-        label: "Nightly",
-        cronExpression: "0 3 * * *",
-        timezone: "UTC",
-      }],
-      issueTemplate: {
-        surfaceVisibility: "plugin_operation",
-        originId: "operation:nightly-lint",
-        billingCode: "plugin-test:nightly-lint",
+    agents: [
+      {
+        agentKey: "wiki-maintainer",
+        displayName: "Wiki Maintainer",
+        role: "engineer",
+        adapterType: "process",
+        adapterConfig: { command: "pnpm wiki:maintain" },
       },
-    }],
+    ],
+    projects: [
+      {
+        projectKey: "operations",
+        displayName: "Plugin Operations",
+        description: "Plugin operation inspection",
+        status: "in_progress",
+      },
+    ],
+    routines: [
+      {
+        routineKey: "nightly-lint",
+        title: "Nightly lint",
+        description: "Lint plugin state",
+        assigneeRef: { resourceKind: "agent", resourceKey: "wiki-maintainer" },
+        projectRef: { resourceKind: "project", resourceKey: "operations" },
+        status: "active",
+        priority: "medium",
+        concurrencyPolicy: "coalesce_if_active",
+        catchUpPolicy: "skip_missed",
+        activityGatePolicy: "require_external_activity",
+        activityGateScope: "project",
+        triggers: [
+          {
+            kind: "schedule",
+            label: "Nightly",
+            cronExpression: "0 3 * * *",
+            timezone: "UTC",
+          },
+        ],
+        issueTemplate: {
+          surfaceVisibility: "plugin_operation",
+          originId: "operation:nightly-lint",
+          billingCode: "plugin-test:nightly-lint",
+        },
+      },
+    ],
   };
 }
 
@@ -104,10 +122,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("plugin-managed routines", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-plugin-managed-routines-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-plugin-managed-routines-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -153,18 +175,34 @@ describeEmbeddedPostgres("plugin-managed routines", () => {
       status: "ready",
       installOrder: 1,
     });
-    const services = buildHostServices(db, pluginId, pluginManifest.id, createEventBusStub(), undefined, {
-      manifest: pluginManifest,
-    });
+    const services = buildHostServices(
+      db,
+      pluginId,
+      pluginManifest.id,
+      createEventBusStub(),
+      undefined,
+      {
+        manifest: pluginManifest,
+      },
+    );
     return { companyId, pluginId, pluginManifest, services };
   }
 
   it("resolves routine agent and project refs by stable managed keys", async () => {
     const { companyId, services } = await seedCompanyAndPlugin();
-    const agent = await services.agents.managedReconcile({ companyId, agentKey: "wiki-maintainer" });
-    const project = await services.projects.reconcileManaged({ companyId, projectKey: "operations" });
+    const agent = await services.agents.managedReconcile({
+      companyId,
+      agentKey: "wiki-maintainer",
+    });
+    const project = await services.projects.reconcileManaged({
+      companyId,
+      projectKey: "operations",
+    });
 
-    const created = await services.routines.managedReconcile({ companyId, routineKey: "nightly-lint" });
+    const created = await services.routines.managedReconcile({
+      companyId,
+      routineKey: "nightly-lint",
+    });
 
     expect(created.status).toBe("created");
     expect(created.routine).toMatchObject({
@@ -180,7 +218,10 @@ describeEmbeddedPostgres("plugin-managed routines", () => {
       }),
     });
 
-    const [trigger] = await db.select().from(routineTriggers).where(eq(routineTriggers.routineId, created.routineId!));
+    const [trigger] = await db
+      .select()
+      .from(routineTriggers)
+      .where(eq(routineTriggers.routineId, created.routineId!));
     expect(trigger).toMatchObject({
       kind: "schedule",
       cronExpression: "0 3 * * *",
@@ -191,28 +232,43 @@ describeEmbeddedPostgres("plugin-managed routines", () => {
   it("returns missing refs until the operator repairs them and preserves routine edits on reconcile", async () => {
     const { companyId, services } = await seedCompanyAndPlugin();
 
-    const missing = await services.routines.managedReconcile({ companyId, routineKey: "nightly-lint" });
+    const missing = await services.routines.managedReconcile({
+      companyId,
+      routineKey: "nightly-lint",
+    });
     expect(missing.status).toBe("missing_refs");
     expect(missing.missingRefs).toEqual([
-      expect.objectContaining({ resourceKind: "agent", resourceKey: "wiki-maintainer" }),
-      expect.objectContaining({ resourceKind: "project", resourceKey: "operations" }),
+      expect.objectContaining({
+        resourceKind: "agent",
+        resourceKey: "wiki-maintainer",
+      }),
+      expect.objectContaining({
+        resourceKind: "project",
+        resourceKey: "operations",
+      }),
     ]);
 
-    const [agent] = await db.insert(agents).values({
-      companyId,
-      name: "Operator-selected maintainer",
-      role: "engineer",
-      status: "idle",
-      adapterType: "process",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: {},
-    }).returning();
-    const [project] = await db.insert(projects).values({
-      companyId,
-      name: "Operator-selected project",
-      status: "in_progress",
-    }).returning();
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        companyId,
+        name: "Operator-selected maintainer",
+        role: "engineer",
+        status: "idle",
+        adapterType: "process",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      })
+      .returning();
+    const [project] = await db
+      .insert(projects)
+      .values({
+        companyId,
+        name: "Operator-selected project",
+        status: "in_progress",
+      })
+      .returning();
 
     const repaired = await services.routines.managedReconcile({
       companyId,
@@ -231,23 +287,42 @@ describeEmbeddedPostgres("plugin-managed routines", () => {
       .set({ title: "Operator renamed lint", updatedAt: new Date() })
       .where(eq(routines.id, repaired.routineId!));
 
-    const reconciled = await services.routines.managedReconcile({ companyId, routineKey: "nightly-lint" });
+    const reconciled = await services.routines.managedReconcile({
+      companyId,
+      routineKey: "nightly-lint",
+    });
     expect(reconciled.status).toBe("resolved");
     expect(reconciled.routine?.title).toBe("Operator renamed lint");
   });
 
   it("creates routine operation issues with plugin visibility and managed project scoping", async () => {
     const { companyId, services } = await seedCompanyAndPlugin();
-    const agent = await services.agents.managedReconcile({ companyId, agentKey: "wiki-maintainer" });
-    const project = await services.projects.reconcileManaged({ companyId, projectKey: "operations" });
-    const routine = await services.routines.managedReconcile({ companyId, routineKey: "nightly-lint" });
+    const agent = await services.agents.managedReconcile({
+      companyId,
+      agentKey: "wiki-maintainer",
+    });
+    const project = await services.projects.reconcileManaged({
+      companyId,
+      projectKey: "operations",
+    });
+    const routine = await services.routines.managedReconcile({
+      companyId,
+      routineKey: "nightly-lint",
+    });
     const wakeup = vi.fn(async () => ({ id: randomUUID() }));
     const routinesSvc = routineService(db, { heartbeat: { wakeup } });
 
-    const run = await routinesSvc.runRoutine(routine.routineId!, { source: "manual" }, { userId: "board-user" });
+    const run = await routinesSvc.runRoutine(
+      routine.routineId!,
+      { source: "manual" },
+      { userId: "board-user" },
+    );
 
     expect(run.status).toBe("issue_created");
-    const [issue] = await db.select().from(issues).where(eq(issues.id, run.linkedIssueId!));
+    const [issue] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, run.linkedIssueId!));
     expect(issue).toMatchObject({
       originKind: "plugin:taskcore.managed-routines-test:operation",
       originId: "operation:nightly-lint",
@@ -255,8 +330,11 @@ describeEmbeddedPostgres("plugin-managed routines", () => {
       projectId: project.projectId,
       assigneeAgentId: agent.agentId,
     });
-    expect(wakeup).toHaveBeenCalledWith(agent.agentId, expect.objectContaining({
-      reason: "issue_assigned",
-    }));
+    expect(wakeup).toHaveBeenCalledWith(
+      agent.agentId,
+      expect.objectContaining({
+        reason: "issue_assigned",
+      }),
+    );
   });
 });

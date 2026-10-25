@@ -5,7 +5,10 @@ import {
   isImageAttachment,
   type CaseAttachmentRef,
 } from "@/api/cases";
-import { ImageGalleryModal, type GalleryMediaItem } from "@/components/ImageGalleryModal";
+import {
+  ImageGalleryModal,
+  type GalleryMediaItem,
+} from "@/components/ImageGalleryModal";
 import { cn } from "@/lib/utils";
 
 function humanBytes(size: number): string {
@@ -20,7 +23,11 @@ function humanBytes(size: number): string {
  * lightbox; non-image assets fall back to a labelled file tile. No
  * variation-picker (out of scope).
  */
-export function CaseAttachmentsGallery({ attachments }: { attachments: CaseAttachmentRef[] }) {
+export function CaseAttachmentsGallery({
+  attachments,
+}: {
+  attachments: CaseAttachmentRef[];
+}) {
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   // The lightbox only navigates across image attachments.
@@ -45,12 +52,16 @@ export function CaseAttachmentsGallery({ attachments }: { attachments: CaseAttac
         {attachments.map((attachment) => {
           const isImage = isImageAttachment(attachment);
           const filename = attachment.asset.originalFilename ?? "attachment";
-          const imageIdx = isImage ? imageItems.findIndex((i) => i.id === attachment.id) : -1;
+          const imageIdx = isImage
+            ? imageItems.findIndex((i) => i.id === attachment.id)
+            : -1;
           return (
             <button
               key={attachment.id}
               type="button"
-              onClick={() => isImage && imageIdx >= 0 && setGalleryIndex(imageIdx)}
+              onClick={() =>
+                isImage && imageIdx >= 0 && setGalleryIndex(imageIdx)
+              }
               disabled={!isImage}
               title={filename}
               className={cn(
@@ -68,7 +79,9 @@ export function CaseAttachmentsGallery({ attachments }: { attachments: CaseAttac
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-muted-foreground">
                   <FileText className="h-6 w-6" aria-hidden />
-                  <span className="w-full truncate text-center text-(length:--text-micro)">{filename}</span>
+                  <span className="w-full truncate text-center text-(length:--text-micro)">
+                    {filename}
+                  </span>
                 </div>
               )}
               <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/60 to-transparent px-1.5 py-1 text-(length:--text-nano) text-white/90">

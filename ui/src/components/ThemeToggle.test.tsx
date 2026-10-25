@@ -93,7 +93,9 @@ describe("ThemeToggle", () => {
     const onAfterToggle = vi.fn();
     const root = createRoot(container);
     await act(async () => {
-      root.render(<ThemeToggle variant="menu-action" onAfterToggle={onAfterToggle} />);
+      root.render(
+        <ThemeToggle variant="menu-action" onAfterToggle={onAfterToggle} />,
+      );
     });
     await flushReact();
 

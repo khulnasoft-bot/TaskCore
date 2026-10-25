@@ -2,21 +2,9 @@ import { deriveTaskKey } from "./run-preparation.js";
 import { retryIdempotentDatabaseOperation } from "../../database-retry.js";
 import { isConversation } from "../agent-conversations.js";
 import fs from "node:fs/promises";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  getTableColumns,
-  gt,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gt, or, sql } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import {
-  type BillingType,
-  type CostStatus,
-} from "@taskcore/shared";
+import { type BillingType, type CostStatus } from "@taskcore/shared";
 import {
   agents,
   agentConfigRevisions,
@@ -34,10 +22,7 @@ import type {
   AdapterSessionCodec,
   UsageSummary,
 } from "../../adapters/index.js";
-import {
-  parseObject,
-  asNumber,
-} from "../../adapters/utils.js";
+import { parseObject, asNumber } from "../../adapters/utils.js";
 import {
   HEARTBEAT_RUN_RESULT_OUTPUT_MAX_CHARS,
   HEARTBEAT_RUN_RESULT_SUMMARY_MAX_CHARS,
@@ -68,10 +53,22 @@ const heartbeatRunListColumns = {
   invocationSource: heartbeatRuns.invocationSource,
   triggerDetail: heartbeatRuns.triggerDetail,
   status: heartbeatRuns.status,
-  inputTokens: sql<number | null>`(${heartbeatRuns.usageJson} ->> 'inputTokens')::numeric`.as("inputTokens"),
-  cachedInputTokens: sql<number | null>`(${heartbeatRuns.usageJson} ->> 'cachedInputTokens')::numeric`.as("cachedInputTokens"),
-  outputTokens: sql<number | null>`(${heartbeatRuns.usageJson} ->> 'outputTokens')::numeric`.as("outputTokens"),
-  totalTokens: sql<number | null>`(${heartbeatRuns.usageJson} ->> 'totalTokens')::numeric`.as("totalTokens"),
+  inputTokens: sql<
+    number | null
+  >`(${heartbeatRuns.usageJson} ->> 'inputTokens')::numeric`.as("inputTokens"),
+  cachedInputTokens: sql<
+    number | null
+  >`(${heartbeatRuns.usageJson} ->> 'cachedInputTokens')::numeric`.as(
+    "cachedInputTokens",
+  ),
+  outputTokens: sql<
+    number | null
+  >`(${heartbeatRuns.usageJson} ->> 'outputTokens')::numeric`.as(
+    "outputTokens",
+  ),
+  totalTokens: sql<
+    number | null
+  >`(${heartbeatRuns.usageJson} ->> 'totalTokens')::numeric`.as("totalTokens"),
   costUsd: sql<number | null>`coalesce(
     (${heartbeatRuns.resultJson} ->> 'costUsd')::numeric,
     (${heartbeatRuns.resultJson} ->> 'cost_usd')::numeric,
@@ -135,13 +132,31 @@ const heartbeatRunListContextColumns = {
     ${heartbeatRuns.issueId}::text,
     ${heartbeatRuns.contextSnapshot} ->> 'issueId'
   )`.as("contextIssueId"),
-  contextTaskId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'taskId'`.as("contextTaskId"),
-  contextTaskKey: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'taskKey'`.as("contextTaskKey"),
-  contextCommentId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'commentId'`.as("contextCommentId"),
-  contextWakeCommentId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeCommentId'`.as("contextWakeCommentId"),
-  contextWakeReason: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeReason'`.as("contextWakeReason"),
-  contextWakeSource: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeSource'`.as("contextWakeSource"),
-  contextWakeTriggerDetail: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeTriggerDetail'`.as("contextWakeTriggerDetail"),
+  contextTaskId: sql<
+    string | null
+  >`${heartbeatRuns.contextSnapshot} ->> 'taskId'`.as("contextTaskId"),
+  contextTaskKey: sql<
+    string | null
+  >`${heartbeatRuns.contextSnapshot} ->> 'taskKey'`.as("contextTaskKey"),
+  contextCommentId: sql<
+    string | null
+  >`${heartbeatRuns.contextSnapshot} ->> 'commentId'`.as("contextCommentId"),
+  contextWakeCommentId: sql<
+    string | null
+  >`${heartbeatRuns.contextSnapshot} ->> 'wakeCommentId'`.as(
+    "contextWakeCommentId",
+  ),
+  contextWakeReason: sql<
+    string | null
+  >`${heartbeatRuns.contextSnapshot} ->> 'wakeReason'`.as("contextWakeReason"),
+  contextWakeSource: sql<
+    string | null
+  >`${heartbeatRuns.contextSnapshot} ->> 'wakeSource'`.as("contextWakeSource"),
+  contextWakeTriggerDetail: sql<
+    string | null
+  >`${heartbeatRuns.contextSnapshot} ->> 'wakeTriggerDetail'`.as(
+    "contextWakeTriggerDetail",
+  ),
 } as const;
 
 const heartbeatRunListResultColumns = {
@@ -183,7 +198,10 @@ const diagnosticRetrievalTitleBytes = 1024;
 
 const diagnosticRetrievalDetailsBytes = 8192;
 
-function boundedRunDiagnosticText(field: "title" | "details", maxBytes: number) {
+function boundedRunDiagnosticText(
+  field: "title" | "details",
+  maxBytes: number,
+) {
   const value = sql`${heartbeatRuns.resultJson} #>> ARRAY['terminalSessionFailure', ${field}]`;
   return sql`case when octet_length(${value}) <= ${maxBytes} then ${value}
     else left(${value}, ${Math.floor((maxBytes - 100) / 4)})
@@ -856,7 +874,9 @@ const HERMES_ADAPTER_TYPE = "hermes_local";
 const HERMES_SESSION_ID_REGEX =
   /^(?:\d{8}_\d{6}_[A-Za-z0-9_-]{4,}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
 
-export function requiresCanonicalSessionIds(adapterType: string | null | undefined) {
+export function requiresCanonicalSessionIds(
+  adapterType: string | null | undefined,
+) {
   return adapterType === HERMES_ADAPTER_TYPE;
 }
 
@@ -1089,17 +1109,24 @@ export function createHeartbeatRunState(db: Db) {
 
   async function getRun(
     runId: string,
-    opts?: { unsafeFullResultJson?: boolean; includeExecutionEvidence?: boolean },
+    opts?: {
+      unsafeFullResultJson?: boolean;
+      includeExecutionEvidence?: boolean;
+    },
   ) {
     const safeForLegacyEncoding =
       !opts?.unsafeFullResultJson && (await hasUnsafeTextProjectionDatabase());
     const columns = opts?.unsafeFullResultJson
       ? getTableColumns(heartbeatRuns)
-      : safeForLegacyEncoding ? heartbeatRunSqlAsciiSafeColumns : heartbeatRunSafeColumns;
+      : safeForLegacyEncoding
+        ? heartbeatRunSqlAsciiSafeColumns
+        : heartbeatRunSafeColumns;
     return db
-      .select(opts?.includeExecutionEvidence
-        ? { ...columns, resultJson: heartbeatRunExecutionEvidenceColumn }
-        : columns)
+      .select(
+        opts?.includeExecutionEvidence
+          ? { ...columns, resultJson: heartbeatRunExecutionEvidenceColumn }
+          : columns,
+      )
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId))
       .then((rows) => rows[0] ?? null);
@@ -1232,7 +1259,11 @@ export function createHeartbeatRunState(db: Db) {
     });
     const previousRawUsage = readRawUsageTotals(previousRun?.usageJson);
     return {
-      normalizedUsage: normalizeAdapterRunUsage(rawUsage, previousRawUsage, usageBasis),
+      normalizedUsage: normalizeAdapterRunUsage(
+        rawUsage,
+        previousRawUsage,
+        usageBasis,
+      ),
       previousRawUsage,
       derivedFromSessionTotals: previousRawUsage !== null,
     };
@@ -1306,8 +1337,11 @@ export function createHeartbeatRunState(db: Db) {
     const latestRawUsage = readRawUsageTotals(latestRun?.usageJson);
     // Historical Codex/Gemini raw input includes cache reads. Only add the
     // separate cache counter when the writer explicitly saved exclusive input.
-    const latestRawInputTokens = (latestRawUsage?.inputTokens ?? 0) +
-      (latestRun?.usageJson?.rawInputIncludesCached === false ? latestRawUsage?.cachedInputTokens ?? 0 : 0);
+    const latestRawInputTokens =
+      (latestRawUsage?.inputTokens ?? 0) +
+      (latestRun?.usageJson?.rawInputIncludesCached === false
+        ? (latestRawUsage?.cachedInputTokens ?? 0)
+        : 0);
     const sessionAgeHours =
       latestRun && oldestRun
         ? Math.max(
@@ -1358,7 +1392,12 @@ export function createHeartbeatRunState(db: Db) {
       readNonEmptyString(latestSummary?.summary) ??
       readNonEmptyString(latestSummary?.result) ??
       readNonEmptyString(latestSummary?.message) ??
-      readNonEmptyString(summarizeRunErrorForModel(latestRun.error, latestRun.terminalFailureCategory));
+      readNonEmptyString(
+        summarizeRunErrorForModel(
+          latestRun.error,
+          latestRun.terminalFailureCategory,
+        ),
+      );
 
     const handoffMarkdown = [
       "Taskcore session handoff:",
@@ -1529,41 +1568,71 @@ export function createHeartbeatRunState(db: Db) {
     lastError: string | null;
   }) {
     return db.transaction(async (tx) => {
-      const [issue] = await tx.select().from(issues).where(and(sql`${issues.id}::text = ${input.taskKey}`, eq(issues.companyId, input.companyId))).for("update");
+      const [issue] = await tx
+        .select()
+        .from(issues)
+        .where(
+          and(
+            sql`${issues.id}::text = ${input.taskKey}`,
+            eq(issues.companyId, input.companyId),
+          ),
+        )
+        .for("update");
       if (isConversation(issue)) {
-        const [run] = input.lastRunId ? await tx.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, input.lastRunId)) : [];
-        if (run?.status === "cancelled" || run?.contextSnapshot?.conversationSessionGeneration !== issue.conversationSessionGeneration) return null;
+        const [run] = input.lastRunId
+          ? await tx
+              .select()
+              .from(heartbeatRuns)
+              .where(eq(heartbeatRuns.id, input.lastRunId))
+          : [];
+        if (
+          run?.status === "cancelled" ||
+          run?.contextSnapshot?.conversationSessionGeneration !==
+            issue.conversationSessionGeneration
+        )
+          return null;
       }
-    const existing = await tx.select().from(agentTaskSessions).where(and(eq(agentTaskSessions.companyId, input.companyId), eq(agentTaskSessions.agentId, input.agentId), eq(agentTaskSessions.adapterType, input.adapterType), eq(agentTaskSessions.taskKey, input.taskKey))).then((rows) => rows[0] ?? null);
-    if (existing) {
+      const existing = await tx
+        .select()
+        .from(agentTaskSessions)
+        .where(
+          and(
+            eq(agentTaskSessions.companyId, input.companyId),
+            eq(agentTaskSessions.agentId, input.agentId),
+            eq(agentTaskSessions.adapterType, input.adapterType),
+            eq(agentTaskSessions.taskKey, input.taskKey),
+          ),
+        )
+        .then((rows) => rows[0] ?? null);
+      if (existing) {
+        return tx
+          .update(agentTaskSessions)
+          .set({
+            sessionParamsJson: input.sessionParamsJson,
+            sessionDisplayId: input.sessionDisplayId,
+            lastRunId: input.lastRunId,
+            lastError: input.lastError,
+            updatedAt: new Date(),
+          })
+          .where(eq(agentTaskSessions.id, existing.id))
+          .returning()
+          .then((rows) => rows[0] ?? null);
+      }
+
       return tx
-        .update(agentTaskSessions)
-        .set({
+        .insert(agentTaskSessions)
+        .values({
+          companyId: input.companyId,
+          agentId: input.agentId,
+          adapterType: input.adapterType,
+          taskKey: input.taskKey,
           sessionParamsJson: input.sessionParamsJson,
           sessionDisplayId: input.sessionDisplayId,
           lastRunId: input.lastRunId,
           lastError: input.lastError,
-          updatedAt: new Date(),
         })
-        .where(eq(agentTaskSessions.id, existing.id))
         .returning()
         .then((rows) => rows[0] ?? null);
-    }
-
-    return tx
-      .insert(agentTaskSessions)
-      .values({
-        companyId: input.companyId,
-        agentId: input.agentId,
-        adapterType: input.adapterType,
-        taskKey: input.taskKey,
-        sessionParamsJson: input.sessionParamsJson,
-        sessionDisplayId: input.sessionDisplayId,
-        lastRunId: input.lastRunId,
-        lastError: input.lastError,
-      })
-      .returning()
-      .then((rows) => rows[0] ?? null);
     });
   }
 
@@ -1613,13 +1682,29 @@ export function createHeartbeatRunState(db: Db) {
 
     return db.transaction(async (tx) => {
       if (opts?.taskKey && opts.expectedRunId) {
-        const [issue] = await tx.select().from(issues).where(sql`${issues.id}::text = ${opts.taskKey}`).for("update");
+        const [issue] = await tx
+          .select()
+          .from(issues)
+          .where(sql`${issues.id}::text = ${opts.taskKey}`)
+          .for("update");
         if (isConversation(issue)) {
-          const [run] = await tx.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, opts.expectedRunId));
-          if (run?.status === "cancelled" || run?.contextSnapshot?.conversationSessionGeneration !== issue.conversationSessionGeneration) return 0;
+          const [run] = await tx
+            .select()
+            .from(heartbeatRuns)
+            .where(eq(heartbeatRuns.id, opts.expectedRunId));
+          if (
+            run?.status === "cancelled" ||
+            run?.contextSnapshot?.conversationSessionGeneration !==
+              issue.conversationSessionGeneration
+          )
+            return 0;
         }
       }
-      return tx.delete(agentTaskSessions).where(and(...conditions)).returning().then((rows) => rows.length);
+      return tx
+        .delete(agentTaskSessions)
+        .where(and(...conditions))
+        .returning()
+        .then((rows) => rows.length);
     });
   }
 

@@ -1,5 +1,8 @@
 import { DEFAULT_CODEX_LOCAL_MODEL } from "@taskcore/adapter-codex-local";
-import { claudeLocalReasoningEffortsForModel, DEFAULT_CLAUDE_LOCAL_MODEL } from "@taskcore/adapter-claude-local";
+import {
+  claudeLocalReasoningEffortsForModel,
+  DEFAULT_CLAUDE_LOCAL_MODEL,
+} from "@taskcore/adapter-claude-local";
 import { grokLocalReasoningEffortsForModel } from "@taskcore/adapter-grok-local";
 import { codexReasoningEffortOptions } from "./codex-reasoning-effort";
 import { PROVIDER_ENV_KEYS } from "./provider-credential";
@@ -29,7 +32,11 @@ export function setupProviderKeys(adapter: string) {
 export function setupEfforts(adapter: string, model = ""): string[] {
   switch (adapter) {
     case "claude_local":
-      return [...claudeLocalReasoningEffortsForModel(model || DEFAULT_CLAUDE_LOCAL_MODEL)];
+      return [
+        ...claudeLocalReasoningEffortsForModel(
+          model || DEFAULT_CLAUDE_LOCAL_MODEL,
+        ),
+      ];
     case "codex_local":
       return codexReasoningEffortOptions(model || DEFAULT_CODEX_LOCAL_MODEL)
         .map((option) => option.value)

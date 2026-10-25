@@ -17,21 +17,31 @@ const CLOUD_ENV = {
 describe("isCloudPinnedPrimaryCompany", () => {
   it("matches only the derived primary company of a cloud-managed instance", () => {
     expect(isCloudPinnedPrimaryCompany(PRIMARY_ID, CLOUD_ENV)).toBe(true);
-    expect(isCloudPinnedPrimaryCompany("some-other-company", CLOUD_ENV)).toBe(false);
+    expect(isCloudPinnedPrimaryCompany("some-other-company", CLOUD_ENV)).toBe(
+      false,
+    );
     // Self-hosted: no cloud signal, never primary.
-    expect(isCloudPinnedPrimaryCompany(PRIMARY_ID, {} as NodeJS.ProcessEnv)).toBe(false);
+    expect(
+      isCloudPinnedPrimaryCompany(PRIMARY_ID, {} as NodeJS.ProcessEnv),
+    ).toBe(false);
   });
 });
 
 describe("notifyCloudOfPrimaryCompanyLifecycleChange", () => {
   it("rings the harness doorbell with the tenant token and stack id", async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ outcome: "archived" }), { status: 200 }));
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ outcome: "archived" }), { status: 200 }),
+    );
     await notifyCloudOfPrimaryCompanyLifecycleChange(PRIMARY_ID, {
       env: CLOUD_ENV,
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchImpl.mock.calls[0]! as unknown as [string, RequestInit];
+    const [url, init] = fetchImpl.mock.calls[0]! as unknown as [
+      string,
+      RequestInit,
+    ];
     expect(url).toBe("https://cloud.example.test/v1/tenant/lifecycle-changed");
     expect(init.method).toBe("POST");
     const headers = new Headers(init.headers);
@@ -46,7 +56,10 @@ describe("notifyCloudOfPrimaryCompanyLifecycleChange", () => {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     await notifyCloudOfPrimaryCompanyLifecycleChange(PRIMARY_ID, {
-      env: { ...CLOUD_ENV, TASKCORE_CLOUD_API_ORIGIN: undefined } as NodeJS.ProcessEnv,
+      env: {
+        ...CLOUD_ENV,
+        TASKCORE_CLOUD_API_ORIGIN: undefined,
+      } as NodeJS.ProcessEnv,
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     await notifyCloudOfPrimaryCompanyLifecycleChange(PRIMARY_ID, {
@@ -77,7 +90,12 @@ describe("notifyCloudOfPrimaryCompanyLifecycleChange", () => {
   it("does not retry once the harness answered, even non-2xx", async () => {
     // Any answer means the harness heard the ring; it does its own
     // verified read-back, so a 4xx outcome is final.
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ error: "stack_not_found" }), { status: 404 }));
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: "stack_not_found" }), {
+          status: 404,
+        }),
+    );
     await notifyCloudOfPrimaryCompanyLifecycleChange(PRIMARY_ID, {
       env: CLOUD_ENV,
       fetchImpl: fetchImpl as unknown as typeof fetch,

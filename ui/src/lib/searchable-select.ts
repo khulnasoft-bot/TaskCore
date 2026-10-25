@@ -19,7 +19,11 @@ function fuzzyWordSubsequenceScore(word: string, token: string): number | null {
   let lastIndex = -1;
   let gaps = 0;
 
-  for (let wordIndex = 0; wordIndex < word.length && tokenIndex < token.length; wordIndex += 1) {
+  for (
+    let wordIndex = 0;
+    wordIndex < word.length && tokenIndex < token.length;
+    wordIndex += 1
+  ) {
     if (word[wordIndex] !== token[tokenIndex]) continue;
     if (firstIndex === -1) {
       firstIndex = wordIndex;
@@ -35,7 +39,9 @@ function fuzzyWordSubsequenceScore(word: string, token: string): number | null {
   const spread = lastIndex - firstIndex + 1;
   if (spread > token.length * 2) return null;
 
-  return 32 + gaps * 2 + firstIndex + Math.max(0, word.length - token.length) * 0.5;
+  return (
+    32 + gaps * 2 + firstIndex + Math.max(0, word.length - token.length) * 0.5
+  );
 }
 
 function scoreTokenAgainstText(text: string, token: string): number | null {
@@ -75,7 +81,10 @@ function scoreTokenAgainstText(text: string, token: string): number | null {
   const initials = words.map((word) => word[0]).join("");
   if (token.length <= 4) {
     if (initials.startsWith(token)) {
-      bestScore = Math.min(bestScore, 28 + (initials.length - token.length) * 0.25);
+      bestScore = Math.min(
+        bestScore,
+        28 + (initials.length - token.length) * 0.25,
+      );
     } else {
       const initialsIndex = initials.indexOf(token);
       if (initialsIndex >= 0) {
@@ -87,7 +96,10 @@ function scoreTokenAgainstText(text: string, token: string): number | null {
   return Number.isFinite(bestScore) ? bestScore : null;
 }
 
-export function scoreFuzzyTextFields(fields: readonly FuzzySearchField[], query: string): number | null {
+export function scoreFuzzyTextFields(
+  fields: readonly FuzzySearchField[],
+  query: string,
+): number | null {
   const queryTokens = searchWords(query);
   if (queryTokens.length === 0) return 0;
 
@@ -100,7 +112,10 @@ export function scoreFuzzyTextFields(fields: readonly FuzzySearchField[], query:
       const text = field.text ?? "";
       const score = scoreTokenAgainstText(text, token);
       if (score === null) return;
-      bestTokenScore = Math.min(bestTokenScore, score + (field.weight ?? fieldIndex * 20));
+      bestTokenScore = Math.min(
+        bestTokenScore,
+        score + (field.weight ?? fieldIndex * 20),
+      );
     });
 
     if (!Number.isFinite(bestTokenScore)) return null;
@@ -110,7 +125,10 @@ export function scoreFuzzyTextFields(fields: readonly FuzzySearchField[], query:
   return totalScore;
 }
 
-export function scoreFuzzyTextMatch(text: string, query: string): number | null {
+export function scoreFuzzyTextMatch(
+  text: string,
+  query: string,
+): number | null {
   return scoreFuzzyTextFields([{ text }], query);
 }
 

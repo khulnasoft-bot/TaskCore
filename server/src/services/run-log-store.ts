@@ -36,13 +36,25 @@ export interface RunLogFinalizeSummary {
 }
 
 export interface RunLogStore {
-  begin(input: { companyId: string; agentId: string; runId: string }): Promise<RunLogHandle>;
+  begin(input: {
+    companyId: string;
+    agentId: string;
+    runId: string;
+  }): Promise<RunLogHandle>;
   append(
     handle: RunLogHandle,
-    event: { stream: "stdout" | "stderr" | "system"; chunk: string; ts: string; seq?: number },
+    event: {
+      stream: "stdout" | "stderr" | "system";
+      chunk: string;
+      ts: string;
+      seq?: number;
+    },
   ): Promise<number>;
   finalize(handle: RunLogHandle): Promise<RunLogFinalizeSummary>;
-  read(handle: RunLogHandle, opts?: RunLogReadOptions): Promise<RunLogReadResult>;
+  read(
+    handle: RunLogHandle,
+    opts?: RunLogReadOptions,
+  ): Promise<RunLogReadResult>;
   // Optional so existing fakes/fixtures keep compiling: uploads every dirty
   // in-flight mirror immediately (graceful-shutdown path). No-op when the
   // in-flight mirror is not enabled.
@@ -101,11 +113,14 @@ export interface DurableRunLogStoreOptions {
 // the whole in-flight log. Finalize retires the in-flight bookkeeping (waiting
 // out any upload already on the wire) before writing the complete file, so a
 // stale partial can never overwrite a finalized log.
-export function createDurableRunLogStore(options: DurableRunLogStoreOptions): RunLogStore {
+export function createDurableRunLogStore(
+  options: DurableRunLogStoreOptions,
+): RunLogStore {
   const { basePath } = options;
   const s3 = options.s3;
   const s3Prefix = normalizeKeyPrefix(s3?.keyPrefix);
-  const inflightMirrorMs = s3?.inflightMirrorMs && s3.inflightMirrorMs > 0 ? s3.inflightMirrorMs : 0;
+  const inflightMirrorMs =
+    s3?.inflightMirrorMs && s3.inflightMirrorMs > 0 ? s3.inflightMirrorMs : 0;
   // A run owns the write handle returned by begin(). Diagnostics can be
   // dispatched without awaiting the rest of onLog (DB progress/live events),
   // but finalize must include every file append already accepted on that handle.
@@ -132,7 +147,10 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
   }
   const inflightMirrors = new Map<string, InflightMirrorEntry>();
 
-  function mirrorInflightNow(logRef: string, entry: InflightMirrorEntry): Promise<boolean> {
+  function mirrorInflightNow(
+    logRef: string,
+    entry: InflightMirrorEntry,
+  ): Promise<boolean> {
     entry.dirty = false;
     const upload = (async () => {
       const absPath = resolveWithin(basePath, logRef);
@@ -149,32 +167,40 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
         contentLength: stat.size,
       });
       return true;
-    })().catch((err) => {
-      // Best-effort like the finalize mirror: a failing upload must never
-      // break the run, but a persistently broken mirror should be visible.
-      console.warn(
-        `[run-log-store] Failed to mirror in-flight run log to object storage (key: ${s3Key(logRef)}):`,
-        err,
-      );
-      // Re-dirty so the tail retries next interval even without new appends;
-      // the lastMirrorAt stamp below bounds retries to one per interval.
-      entry.dirty = true;
-      return false;
-    }).finally(() => {
-      // Stamp AFTER the attempt so a slow or failing endpoint self-throttles
-      // to one attempt per interval instead of hot-looping.
-      entry.lastMirrorAt = Date.now();
-      entry.upload = null;
-      if (entry.dirty) scheduleInflightMirror(logRef, entry);
-    });
+    })()
+      .catch((err) => {
+        // Best-effort like the finalize mirror: a failing upload must never
+        // break the run, but a persistently broken mirror should be visible.
+        console.warn(
+          `[run-log-store] Failed to mirror in-flight run log to object storage (key: ${s3Key(logRef)}):`,
+          err,
+        );
+        // Re-dirty so the tail retries next interval even without new appends;
+        // the lastMirrorAt stamp below bounds retries to one per interval.
+        entry.dirty = true;
+        return false;
+      })
+      .finally(() => {
+        // Stamp AFTER the attempt so a slow or failing endpoint self-throttles
+        // to one attempt per interval instead of hot-looping.
+        entry.lastMirrorAt = Date.now();
+        entry.upload = null;
+        if (entry.dirty) scheduleInflightMirror(logRef, entry);
+      });
     entry.upload = upload;
     return upload;
   }
 
-  function scheduleInflightMirror(logRef: string, entry: InflightMirrorEntry): void {
+  function scheduleInflightMirror(
+    logRef: string,
+    entry: InflightMirrorEntry,
+  ): void {
     if (inflightMirrors.get(logRef) !== entry) return;
     if (entry.timer || entry.upload) return;
-    const delay = Math.max(0, inflightMirrorMs - (Date.now() - entry.lastMirrorAt));
+    const delay = Math.max(
+      0,
+      inflightMirrorMs - (Date.now() - entry.lastMirrorAt),
+    );
     entry.timer = setTimeout(() => {
       entry.timer = null;
       void mirrorInflightNow(logRef, entry);
@@ -190,7 +216,12 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
       // First mirror lands one full interval after the first append: a run
       // that finalizes sooner is covered by the finalize upload, and this
       // keeps the steady-state cost at one PUT per interval per active run.
-      entry = { dirty: false, lastMirrorAt: Date.now(), timer: null, upload: null };
+      entry = {
+        dirty: false,
+        lastMirrorAt: Date.now(),
+        timer: null,
+        upload: null,
+      };
       inflightMirrors.set(logRef, entry);
     }
     entry.dirty = true;
@@ -227,7 +258,11 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
     // abortable stream avoids an uncancellable stat before opening the file.
     const chunks: Buffer[] = [];
     try {
-      const stream = createReadStream(filePath, { start, end: start + limitBytes, signal });
+      const stream = createReadStream(filePath, {
+        start,
+        end: start + limitBytes,
+        signal,
+      });
       for await (const chunk of stream) {
         chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       }
@@ -240,7 +275,8 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
     signal?.throwIfAborted();
     const bytes = Buffer.concat(chunks);
     const content = bytes.subarray(0, limitBytes).toString("utf8");
-    const nextOffset = bytes.length > limitBytes ? start + limitBytes : undefined;
+    const nextOffset =
+      bytes.length > limitBytes ? start + limitBytes : undefined;
     return { content, nextOffset };
   }
 
@@ -263,9 +299,14 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
     // must short-circuit to an empty read instead of clamping end up to
     // start and requesting `bytes=total-total`.
     const end = Math.min(start + limitBytes - 1, total - 1);
-    if (total === 0 || start > end) return { content: "", nextOffset: start < total ? start : undefined };
+    if (total === 0 || start > end)
+      return { content: "", nextOffset: start < total ? start : undefined };
 
-    const result = await s3.provider.getObject({ objectKey: key, range: { start, end }, signal });
+    const result = await s3.provider.getObject({
+      objectKey: key,
+      range: { start, end },
+      signal,
+    });
     // Destroy a body that stalls after headers arrive, including a body
     // returned just after the caller cancelled the request.
     if (signal) addAbortSignal(signal, result.stream);
@@ -300,10 +341,13 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
       await retireInflightMirror(relPath);
       // Retries share a run ID. Never truncate their earlier evidence. On a
       // new pod, restore the durable prefix before opening another attempt.
-      const exists = await fs.stat(absPath).then(() => true, (error) => {
-        if (error.code === "ENOENT") return false;
-        throw error;
-      });
+      const exists = await fs.stat(absPath).then(
+        () => true,
+        (error) => {
+          if (error.code === "ENOENT") return false;
+          throw error;
+        },
+      );
       if (!exists && s3) {
         const key = s3Key(relPath);
         const head = await s3.provider.headObject({ objectKey: key });
@@ -311,15 +355,25 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
           const temporary = `${absPath}.${randomUUID()}.restore`;
           try {
             const object = await s3.provider.getObject({ objectKey: key });
-            await pipeline(object.stream, createWriteStream(temporary, { flags: "wx", mode: 0o600 }));
-            if (typeof head.contentLength === "number" && (await fs.stat(temporary)).size !== head.contentLength) {
-              throw new Error("Durable run log restore returned an incomplete prefix");
+            await pipeline(
+              object.stream,
+              createWriteStream(temporary, { flags: "wx", mode: 0o600 }),
+            );
+            if (
+              typeof head.contentLength === "number" &&
+              (await fs.stat(temporary)).size !== head.contentLength
+            ) {
+              throw new Error(
+                "Durable run log restore returned an incomplete prefix",
+              );
             }
             // Publish the complete prefix without replacing a file another
             // attempt has already restored and started appending to.
-            await fs.link(temporary, absPath).catch((error: NodeJS.ErrnoException) => {
-              if (error.code !== "EEXIST") throw error;
-            });
+            await fs
+              .link(temporary, absPath)
+              .catch((error: NodeJS.ErrnoException) => {
+                if (error.code !== "EEXIST") throw error;
+              });
           } finally {
             await fs.rm(temporary, { force: true });
           }
@@ -341,7 +395,9 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
         // Monotonic per-run sequence so readers can dedupe and order records
         // even when several identical chunks share the same millisecond ts
         // (common for ACP-style token deltas).
-        ...(typeof event.seq === "number" && Number.isFinite(event.seq) ? { seq: event.seq } : {}),
+        ...(typeof event.seq === "number" && Number.isFinite(event.seq)
+          ? { seq: event.seq }
+          : {}),
       });
       const persisted = `${line}\n`;
       let pending = pendingAppends.get(handle);
@@ -363,7 +419,8 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
 
     async finalize(handle) {
       if (handle.store !== "local_file") return { bytes: 0, compressed: false };
-      if (abandonedHandles.has(handle)) return { bytes: null, sha256: null, compressed: false };
+      if (abandonedHandles.has(handle))
+        return { bytes: null, sha256: null, compressed: false };
       // Close admission before the first await. Drain file writes only, not
       // heartbeat's later DB/live-event persistence, then freeze one consistent
       // byte count, hash, and durable copy. Late diagnostics cannot mutate it.
@@ -382,7 +439,9 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
         // that write eventually finishes. Terminal run status can still settle.
         abandonedHandles.add(handle);
         void retireInflightMirror(handle.logRef).catch(() => undefined);
-        console.warn("[run-log-store] Pending log writes did not settle within 3000ms; final log size and hash are unknown.");
+        console.warn(
+          "[run-log-store] Pending log writes did not settle within 3000ms; final log size and hash are unknown.",
+        );
         return { bytes: null, sha256: null, compressed: false };
       }
       await retireInflightMirror(handle.logRef);
@@ -426,7 +485,12 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
       const absPath = resolveWithin(basePath, handle.logRef);
       const offset = opts?.offset ?? 0;
       const limitBytes = opts?.limitBytes ?? 256_000;
-      const local = await readLocalRange(absPath, offset, limitBytes, opts?.signal);
+      const local = await readLocalRange(
+        absPath,
+        offset,
+        limitBytes,
+        opts?.signal,
+      );
       if (local) return local;
       // Local file gone (pod rolled) -> serve from the S3 mirror if configured.
       return readS3Range(handle.logRef, offset, limitBytes, opts?.signal);
@@ -462,7 +526,11 @@ export function createDurableRunLogStore(options: DurableRunLogStoreOptions): Ru
           }
         }
       };
-      await Promise.all([...inflightMirrors].map(([logRef, entry]) => flushEntry(logRef, entry)));
+      await Promise.all(
+        [...inflightMirrors].map(([logRef, entry]) =>
+          flushEntry(logRef, entry),
+        ),
+      );
     },
   };
 }
@@ -487,12 +555,16 @@ function resolveRunLogS3(): DurableRunLogStoreOptions["s3"] {
   // Opt-in in-flight tail mirroring: at most one partial upload per interval
   // per active run, so a crash loses at most one interval's tail. Unset/0
   // keeps the historical finalize-only mirroring.
-  const inflightSeconds = Number.parseFloat(process.env.RUN_LOG_S3_INFLIGHT_MIRROR_SECONDS ?? "");
+  const inflightSeconds = Number.parseFloat(
+    process.env.RUN_LOG_S3_INFLIGHT_MIRROR_SECONDS ?? "",
+  );
   return {
     provider,
     keyPrefix: process.env.RUN_LOG_S3_PREFIX?.trim() || "run-logs",
     inflightMirrorMs:
-      Number.isFinite(inflightSeconds) && inflightSeconds > 0 ? Math.round(inflightSeconds * 1000) : undefined,
+      Number.isFinite(inflightSeconds) && inflightSeconds > 0
+        ? Math.round(inflightSeconds * 1000)
+        : undefined,
   };
 }
 
@@ -500,7 +572,9 @@ let cachedStore: RunLogStore | null = null;
 
 export function getRunLogStore() {
   if (cachedStore) return cachedStore;
-  const basePath = process.env.RUN_LOG_BASE_PATH ?? path.resolve(resolveTaskcoreInstanceRoot(), "data", "run-logs");
+  const basePath =
+    process.env.RUN_LOG_BASE_PATH ??
+    path.resolve(resolveTaskcoreInstanceRoot(), "data", "run-logs");
   cachedStore = createDurableRunLogStore({ basePath, s3: resolveRunLogS3() });
   return cachedStore;
 }

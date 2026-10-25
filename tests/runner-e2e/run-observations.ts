@@ -13,14 +13,18 @@ export async function collectRunEvents<T extends { seq?: number }>(
     for (const event of page) {
       const seq = event?.seq;
       if (!Number.isSafeInteger(seq) || seq <= afterSeq) {
-        throw new Error("Run event evidence has a missing or non-increasing sequence");
+        throw new Error(
+          "Run event evidence has a missing or non-increasing sequence",
+        );
       }
       afterSeq = seq;
       events.push(event as T);
     }
     if (page.length < pageSize) return events;
   }
-  throw new Error("Run event evidence exceeded 100 pages; refusing incomplete evidence");
+  throw new Error(
+    "Run event evidence exceeded 100 pages; refusing incomplete evidence",
+  );
 }
 
 export interface ObservableRunState {
@@ -106,17 +110,23 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
-export function reasoningProjectionFailures(events: readonly ObservableRunEvent[]): string[] {
+export function reasoningProjectionFailures(
+  events: readonly ObservableRunEvent[],
+): string[] {
   const misclassified = events.filter((event) => {
     const envelope = record(record(event.payload).prpEvent);
     const payload = record(envelope.payload);
-    return envelope.eventType === "item.delta" &&
+    return (
+      envelope.eventType === "item.delta" &&
       payload.kind === "agentMessage" &&
-      record(payload.update).kind === "reasoning";
+      record(payload.update).kind === "reasoning"
+    );
   });
-  return misclassified.length === 0 ? [] : [
-    `provider reasoning was projected as assistant text in ${misclassified.length} durable events`,
-  ];
+  return misclassified.length === 0
+    ? []
+    : [
+        `provider reasoning was projected as assistant text in ${misclassified.length} durable events`,
+      ];
 }
 
 export function isNonExecutingReviewFenceRun(run: ObservableRunState) {

@@ -1,6 +1,7 @@
 export const RESOURCE_MEMBERSHIP_STATES = ["joined", "left"] as const;
 
-export type ResourceMembershipState = (typeof RESOURCE_MEMBERSHIP_STATES)[number];
+export type ResourceMembershipState =
+  (typeof RESOURCE_MEMBERSHIP_STATES)[number];
 export type ResourceMembershipResourceType = "project" | "agent" | "document";
 
 export interface ResourceMemberships {

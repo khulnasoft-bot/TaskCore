@@ -18,7 +18,9 @@ afterEach(async () => {
 
 async function resolverPolicyMigrationStatements(): Promise<string[]> {
   const migrationSql = await readFile(
-    fileURLToPath(new URL("./migrations/0218_mushy_jack_murdock.sql", import.meta.url)),
+    fileURLToPath(
+      new URL("./migrations/0218_mushy_jack_murdock.sql", import.meta.url),
+    ),
     "utf8",
   );
   return migrationSql
@@ -29,7 +31,9 @@ async function resolverPolicyMigrationStatements(): Promise<string[]> {
 
 d("issue interaction resolver policy migration", () => {
   it("replays safely and completes a partial prior run", async () => {
-    const dbh = await startEmbeddedPostgresTestDatabase("resolver-policy-migration-");
+    const dbh = await startEmbeddedPostgresTestDatabase(
+      "resolver-policy-migration-",
+    );
     cleanups.push(() => dbh.cleanup());
     const sql = postgres(dbh.connectionString, { max: 1, onnotice: () => {} });
     cleanups.push(async () => {
@@ -96,13 +100,15 @@ d("issue interaction resolver policy migration", () => {
     expect(statements.length).toBeGreaterThan(0);
     for (const statement of statements) await sql.unsafe(statement);
 
-    const rowsAfterFirstRun = await sql<{
-      id: string;
-      requested_resolver_policy: string;
-      effective_resolver_policy: string;
-      resolver_policy_provenance: string;
-      effective_resolver_policy_source: string;
-    }[]>`
+    const rowsAfterFirstRun = await sql<
+      {
+        id: string;
+        requested_resolver_policy: string;
+        effective_resolver_policy: string;
+        resolver_policy_provenance: string;
+        effective_resolver_policy_source: string;
+      }[]
+    >`
       SELECT
         "id",
         "requested_resolver_policy",

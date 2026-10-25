@@ -89,7 +89,10 @@ export function encodeClaudeCwd(cwd: string): string {
   return cwd.replace(/[^a-zA-Z0-9-]/g, "-");
 }
 
-export function resolveClaudeConfigDir(env: NodeJS.ProcessEnv = process.env, override?: string): string {
+export function resolveClaudeConfigDir(
+  env: NodeJS.ProcessEnv = process.env,
+  override?: string,
+): string {
   if (override && override.trim().length > 0) return path.resolve(override);
   const fromEnv = env.CLAUDE_CONFIG_DIR;
   if (typeof fromEnv === "string" && fromEnv.trim().length > 0) {
@@ -98,7 +101,11 @@ export function resolveClaudeConfigDir(env: NodeJS.ProcessEnv = process.env, ove
   return path.join(os.homedir(), ".claude");
 }
 
-export function jsonlPathFor(input: { claudeConfigDir: string; cwd: string; sessionId: string }): string {
+export function jsonlPathFor(input: {
+  claudeConfigDir: string;
+  cwd: string;
+  sessionId: string;
+}): string {
   return path.join(
     input.claudeConfigDir,
     "projects",
@@ -109,7 +116,10 @@ export function jsonlPathFor(input: { claudeConfigDir: string; cwd: string; sess
 
 export function classifyRow(
   row: ClaudeSessionRowInput,
-  opts: { claudeConfigDir: string; readJsonl: (filePath: string) => string | null },
+  opts: {
+    claudeConfigDir: string;
+    readJsonl: (filePath: string) => string | null;
+  },
 ): SessionClassification & { jsonlPath?: string } {
   if (!row.sessionId) return { kind: "skipped_no_session_id" };
   if (row.isRemote) return { kind: "skipped_remote" };
@@ -216,7 +226,10 @@ function readDatabaseUrlFromConfig(configPath: string): string {
       connectionString?: string;
     };
   };
-  if (parsed.database?.mode === "postgres" && parsed.database.connectionString) {
+  if (
+    parsed.database?.mode === "postgres" &&
+    parsed.database.connectionString
+  ) {
     return parsed.database.connectionString;
   }
   const port = parsed.database?.embeddedPostgresPort ?? 54329;
@@ -229,7 +242,9 @@ function defaultConfigPath(): string | null {
   if (process.env.TASKCORE_HOME) {
     candidates.push(path.join(process.env.TASKCORE_HOME, "config.json"));
   }
-  candidates.push(path.join(home, ".taskcore", "instances", "default", "config.json"));
+  candidates.push(
+    path.join(home, ".taskcore", "instances", "default", "config.json"),
+  );
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) return candidate;
   }
@@ -240,7 +255,12 @@ function readJsonlSafe(filePath: string): string | null {
   try {
     return fs.readFileSync(filePath, "utf8");
   } catch (error) {
-    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "ENOENT") {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: string }).code === "ENOENT"
+    ) {
       return null;
     }
     throw error;
@@ -262,7 +282,9 @@ function extractSessionParams(row: Row): ClaudeSessionRowInput {
       ? (params.sessionId as string)
       : null;
   const cwd =
-    typeof params.cwd === "string" && params.cwd.length > 0 ? (params.cwd as string) : null;
+    typeof params.cwd === "string" && params.cwd.length > 0
+      ? (params.cwd as string)
+      : null;
   const isRemote =
     "remoteExecution" in params &&
     params.remoteExecution !== null &&
@@ -292,7 +314,10 @@ async function main(argv: string[]): Promise<void> {
       "Unable to resolve database URL. Pass --database-url or --config <taskcore config.json>.",
     );
   }
-  const claudeConfigDir = resolveClaudeConfigDir(process.env, args.claudeConfigDir ?? undefined);
+  const claudeConfigDir = resolveClaudeConfigDir(
+    process.env,
+    args.claudeConfigDir ?? undefined,
+  );
 
   const db = createDb(databaseUrl);
   const closableDb = db as typeof db & {
@@ -310,7 +335,11 @@ async function main(argv: string[]): Promise<void> {
     deleted: 0,
     dryRun: args.dryRun,
     healedPairs: [] as HealedPair[],
-    skippedRemotePairs: [] as Array<{ rowId: string; agentId: string; taskKey: string }>,
+    skippedRemotePairs: [] as Array<{
+      rowId: string;
+      agentId: string;
+      taskKey: string;
+    }>,
   };
 
   const log = (line: string) => {
@@ -422,7 +451,12 @@ async function main(argv: string[]): Promise<void> {
       const ids = toDelete.map((pair) => pair.rowId);
       const result = await db
         .delete(agentTaskSessions)
-        .where(sql`${agentTaskSessions.id} IN (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`)
+        .where(
+          sql`${agentTaskSessions.id} IN (${sql.join(
+            ids.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        )
         .returning({ id: agentTaskSessions.id });
       summary.deleted = result.length;
       log(`Deleted ${result.length} rows.`);
@@ -450,12 +484,13 @@ const invokedDirectly =
   typeof process !== "undefined" &&
   Array.isArray(process.argv) &&
   process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+  path.resolve(process.argv[1]) ===
+    path.resolve(new URL(import.meta.url).pathname);
 
 if (invokedDirectly) {
   main(process.argv.slice(2)).catch((error) => {
     process.stderr.write(
-      `${error instanceof Error ? error.stack ?? error.message : String(error)}\n`,
+      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
     );
     process.exit(1);
   });

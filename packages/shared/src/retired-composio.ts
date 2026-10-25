@@ -3,8 +3,11 @@ export function isRetiredComposioConnection(connection: {
   transport: string;
   config?: Record<string, unknown> | null;
 }): boolean {
-  return (connection.config?.sourceTemplateKey === "composio" && connection.transport === "rest_api")
-    || connection.config?.provider === "composio";
+  return (
+    (connection.config?.sourceTemplateKey === "composio" &&
+      connection.transport === "rest_api") ||
+    connection.config?.provider === "composio"
+  );
 }
 
 export const RETIRED_COMPOSIO_MESSAGE =

@@ -19,7 +19,7 @@ const ALLOWED_FAILURE_CLASSES = new Set<FailureClass>([
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
@@ -36,7 +36,10 @@ function textField(value: Record<string, unknown>, key: string): string | null {
   return typeof candidate === "string" ? candidate : null;
 }
 
-function numericField(value: Record<string, unknown>, key: string): number | null {
+function numericField(
+  value: Record<string, unknown>,
+  key: string,
+): number | null {
   const candidate = field(value, key);
   return typeof candidate === "number" && Number.isFinite(candidate)
     ? candidate
@@ -52,10 +55,7 @@ function safeSensitivePayloadError(value: unknown): string | null {
   }
 }
 
-function validationErrors(
-  value: unknown,
-  cell: RunnerAcceptanceCell,
-) {
+function validationErrors(value: unknown, cell: RunnerAcceptanceCell) {
   const errors: string[] = [];
   const result = record(value);
   if (!result) return ["result must be an object"];
@@ -77,10 +77,10 @@ function validationErrors(
   const startedAt = textField(result, "startedAt");
   const finishedAt = textField(result, "finishedAt");
   if (
-    startedAt === null
-    || finishedAt === null
-    || !Number.isFinite(Date.parse(startedAt))
-    || !Number.isFinite(Date.parse(finishedAt))
+    startedAt === null ||
+    finishedAt === null ||
+    !Number.isFinite(Date.parse(startedAt)) ||
+    !Number.isFinite(Date.parse(finishedAt))
   ) {
     errors.push("timestamps must be valid ISO-compatible values");
   }
@@ -89,14 +89,18 @@ function validationErrors(
     errors.push("status must be passed or failed");
   }
   const failureClass = field(result, "failureClass");
-  if (failureClass !== undefined && !ALLOWED_FAILURE_CLASSES.has(failureClass as FailureClass)) {
+  if (
+    failureClass !== undefined &&
+    !ALLOWED_FAILURE_CLASSES.has(failureClass as FailureClass)
+  ) {
     errors.push("failureClass is unsupported");
   }
   const error = field(result, "error");
   if (error !== undefined && typeof error !== "string") {
     errors.push("error must be a string when present");
   }
-  if (field(result, "redaction") !== "passed") errors.push("redaction did not pass");
+  if (field(result, "redaction") !== "passed")
+    errors.push("redaction did not pass");
   const sensitivePayloadError = safeSensitivePayloadError(value);
   if (sensitivePayloadError) errors.push(sensitivePayloadError);
 
@@ -135,16 +139,20 @@ function validationErrors(
     if (!outcome) errors.push(`missing assertion ${assertionId}`);
     else if (!outcome.passed) errors.push(`failed assertion ${assertionId}`);
   }
-  const unknownAssertions = [...outcomes.keys()]
-    .filter((id) => !cell.assertions.includes(id));
+  const unknownAssertions = [...outcomes.keys()].filter(
+    (id) => !cell.assertions.includes(id),
+  );
   if (unknownAssertions.length > 0) {
-    errors.push(`unknown assertions: ${redactText(unknownAssertions.join(", "))}`);
+    errors.push(
+      `unknown assertions: ${redactText(unknownAssertions.join(", "))}`,
+    );
   }
   if (status !== "passed") {
     errors.push(
       typeof error === "string" && error.length > 0
         ? redactText(error)
-        : typeof failureClass === "string" && ALLOWED_FAILURE_CLASSES.has(failureClass as FailureClass)
+        : typeof failureClass === "string" &&
+            ALLOWED_FAILURE_CLASSES.has(failureClass as FailureClass)
           ? failureClass
           : "acceptance cell failed",
     );
@@ -169,38 +177,43 @@ function normalizedResult(
   return {
     schema: RESULT_SCHEMA,
     cellId: cell.id,
-    attempt: attempt !== null && Number.isSafeInteger(attempt) && attempt >= 1
-      ? attempt
-      : 0,
+    attempt:
+      attempt !== null && Number.isSafeInteger(attempt) && attempt >= 1
+        ? attempt
+        : 0,
     status: status === "passed" ? "passed" : "failed",
-    ...(typeof failureClass === "string" && ALLOWED_FAILURE_CLASSES.has(failureClass as FailureClass)
+    ...(typeof failureClass === "string" &&
+    ALLOWED_FAILURE_CLASSES.has(failureClass as FailureClass)
       ? { failureClass: failureClass as FailureClass }
       : {}),
     ...(error ? { error: redactText(error) } : {}),
     startedAt: startedAt === null ? "" : redactText(startedAt),
     finishedAt: finishedAt === null ? "" : redactText(finishedAt),
-    durationMs: durationMs !== null && durationMs >= 0
-      ? durationMs
-      : 0,
+    durationMs: durationMs !== null && durationMs >= 0 ? durationMs : 0,
     redaction: field(result, "redaction") === "passed" ? "passed" : "failed",
     assertions: cell.assertions.flatMap((id) => {
       const assertion = assertions
         .map(record)
         .find((candidate) => candidate && textField(candidate, "id") === id);
       return assertion
-        ? [{
-            id,
-            passed: field(assertion, "passed") === true,
-            ...(typeof field(assertion, "detail") === "string"
-              ? { detail: redactText(field(assertion, "detail") as string) }
-              : {}),
-          }]
+        ? [
+            {
+              id,
+              passed: field(assertion, "passed") === true,
+              ...(typeof field(assertion, "detail") === "string"
+                ? { detail: redactText(field(assertion, "detail") as string) }
+                : {}),
+            },
+          ]
         : [];
     }),
   };
 }
 
-function missingResult(cell: RunnerAcceptanceCell, generatedAt: string): AggregatedAcceptanceResult {
+function missingResult(
+  cell: RunnerAcceptanceCell,
+  generatedAt: string,
+): AggregatedAcceptanceResult {
   return {
     schema: "taskcore.runner-acceptance.result/v1",
     cellId: cell.id,
@@ -225,7 +238,10 @@ export function buildRunnerAcceptanceReport(input: {
 }): RunnerAcceptanceReport {
   const cells = input.cells ?? runnerAcceptanceMatrix;
   const generatedAt = input.generatedAt ?? new Date().toISOString();
-  const candidates = new Map<string, Array<{ index: number; value: unknown }>>();
+  const candidates = new Map<
+    string,
+    Array<{ index: number; value: unknown }>
+  >();
   for (const [index, value] of input.results.entries()) {
     const result = record(value);
     const cellId = result ? textField(result, "cellId") : null;
@@ -244,11 +260,15 @@ export function buildRunnerAcceptanceReport(input: {
       const rightAttempt = numericField(rightRecord, "attempt") ?? 0;
       const leftFinishedAt = textField(leftRecord, "finishedAt");
       const rightFinishedAt = textField(rightRecord, "finishedAt");
-      const leftFinishedTime = leftFinishedAt === null ? 0 : Date.parse(leftFinishedAt) || 0;
-      const rightFinishedTime = rightFinishedAt === null ? 0 : Date.parse(rightFinishedAt) || 0;
-      return rightAttempt - leftAttempt
-        || rightFinishedTime - leftFinishedTime
-        || left.index - right.index;
+      const leftFinishedTime =
+        leftFinishedAt === null ? 0 : Date.parse(leftFinishedAt) || 0;
+      const rightFinishedTime =
+        rightFinishedAt === null ? 0 : Date.parse(rightFinishedAt) || 0;
+      return (
+        rightAttempt - leftAttempt ||
+        rightFinishedTime - leftFinishedTime ||
+        left.index - right.index
+      );
     });
     const candidate = attempts[0];
     if (!candidate) return missingResult(cell, generatedAt);
@@ -261,9 +281,13 @@ export function buildRunnerAcceptanceReport(input: {
   });
 
   const knownCellIds = new Set(cells.map(({ id }) => id));
-  const unknownCellIds = [...candidates.keys()].filter((id) => !knownCellIds.has(id));
+  const unknownCellIds = [...candidates.keys()].filter(
+    (id) => !knownCellIds.has(id),
+  );
   if (unknownCellIds.length > 0) {
-    throw new Error(`Results reference unknown acceptance cells: ${unknownCellIds.join(", ")}`);
+    throw new Error(
+      `Results reference unknown acceptance cells: ${unknownCellIds.join(", ")}`,
+    );
   }
 
   return {
@@ -273,7 +297,10 @@ export function buildRunnerAcceptanceReport(input: {
     selected: selected.length,
     passed: selected.filter(({ valid }) => valid).length,
     failed: selected.filter(({ valid }) => !valid).length,
-    retries: selected.reduce((sum, result) => sum + Math.max(0, result.attempt - 1), 0),
+    retries: selected.reduce(
+      (sum, result) => sum + Math.max(0, result.attempt - 1),
+      0,
+    ),
     results: selected,
   };
 }
@@ -290,8 +317,10 @@ export function renderRunnerAcceptanceMarkdown(report: RunnerAcceptanceReport) {
     "",
     "| Cell | Attempt | Result | Duration | Detail |",
     "|---|---:|---|---:|---|",
-    ...report.results.map((result) =>
-      `| ${escapeMarkdown(result.cellId)} | ${result.attempt} | ${result.valid ? "pass" : "fail"} | ${Math.round(result.durationMs / 1000)}s | ${escapeMarkdown(result.validationErrors.join("; ") || "ok")} |`),
+    ...report.results.map(
+      (result) =>
+        `| ${escapeMarkdown(result.cellId)} | ${result.attempt} | ${result.valid ? "pass" : "fail"} | ${Math.round(result.durationMs / 1000)}s | ${escapeMarkdown(result.validationErrors.join("; ") || "ok")} |`,
+    ),
     "",
   ].join("\n");
 }
@@ -306,11 +335,13 @@ function xml(value: unknown) {
 }
 
 export function renderRunnerAcceptanceJUnit(report: RunnerAcceptanceReport) {
-  const cases = report.results.map((result) => {
-    const failure = result.valid
-      ? ""
-      : `<failure message="${xml(result.validationErrors.join("; "))}"/>`;
-    return `<testcase classname="runner-acceptance" name="${xml(result.cellId)}" time="${result.durationMs / 1000}">${failure}</testcase>`;
-  }).join("");
+  const cases = report.results
+    .map((result) => {
+      const failure = result.valid
+        ? ""
+        : `<failure message="${xml(result.validationErrors.join("; "))}"/>`;
+      return `<testcase classname="runner-acceptance" name="${xml(result.cellId)}" time="${result.durationMs / 1000}">${failure}</testcase>`;
+    })
+    .join("");
   return `<?xml version="1.0" encoding="UTF-8"?><testsuite name="Runner acceptance" tests="${report.selected}" failures="${report.failed}">${cases}</testsuite>\n`;
 }

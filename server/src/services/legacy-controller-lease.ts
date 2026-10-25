@@ -24,55 +24,90 @@ export async function renewLegacyControllerLease(
   run: Pick<Run, "id" | "companyId" | "controllerBootId">,
   stage?: "dispatching",
 ): Promise<boolean> {
-  const [renewed] = await db.update(heartbeatRuns).set({
-    controllerLeaseExpiresAt: sql`clock_timestamp() + interval '60 seconds'`,
-    ...(stage ? { executionStage: stage } : {}),
-  }).where(and(
-    eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.companyId, run.companyId),
-    eq(heartbeatRuns.runtimeMode, "legacy"), eq(heartbeatRuns.status, "running"),
-    eq(heartbeatRuns.controllerBootId, legacyControllerBootId),
-    gt(heartbeatRuns.controllerLeaseExpiresAt, sql`clock_timestamp()`),
-  )).returning({ id: heartbeatRuns.id });
+  const [renewed] = await db
+    .update(heartbeatRuns)
+    .set({
+      controllerLeaseExpiresAt: sql`clock_timestamp() + interval '60 seconds'`,
+      ...(stage ? { executionStage: stage } : {}),
+    })
+    .where(
+      and(
+        eq(heartbeatRuns.id, run.id),
+        eq(heartbeatRuns.companyId, run.companyId),
+        eq(heartbeatRuns.runtimeMode, "legacy"),
+        eq(heartbeatRuns.status, "running"),
+        eq(heartbeatRuns.controllerBootId, legacyControllerBootId),
+        gt(heartbeatRuns.controllerLeaseExpiresAt, sql`clock_timestamp()`),
+      ),
+    )
+    .returning({ id: heartbeatRuns.id });
   return Boolean(renewed);
 }
 
-export async function hasLiveLegacyController(db: Db, run: Run): Promise<boolean> {
+export async function hasLiveLegacyController(
+  db: Db,
+  run: Run,
+): Promise<boolean> {
   if (run.runtimeMode === "native" || !run.controllerBootId) return false;
-  const [owner] = await db.select({ id: heartbeatRuns.id }).from(heartbeatRuns).where(and(
-    eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.companyId, run.companyId),
-    eq(heartbeatRuns.status, "running"),
-    gt(heartbeatRuns.controllerLeaseExpiresAt, sql`clock_timestamp()`),
-  ));
+  const [owner] = await db
+    .select({ id: heartbeatRuns.id })
+    .from(heartbeatRuns)
+    .where(
+      and(
+        eq(heartbeatRuns.id, run.id),
+        eq(heartbeatRuns.companyId, run.companyId),
+        eq(heartbeatRuns.status, "running"),
+        gt(heartbeatRuns.controllerLeaseExpiresAt, sql`clock_timestamp()`),
+      ),
+    );
   return Boolean(owner);
 }
 
 /** Atomically revoke an expired controller. Renewal and revocation serialize on
  * the run row. Expiry permits cleanup, never dispatch of a replacement agent. */
-export async function revokeExpiredLegacyController(db: Db, run: Run): Promise<boolean> {
+export async function revokeExpiredLegacyController(
+  db: Db,
+  run: Run,
+): Promise<boolean> {
   if (run.runtimeMode === "native" || !run.controllerBootId) return true;
-  const [revoked] = await db.update(heartbeatRuns).set({
-    controllerBootId: randomUUID(),
-    controllerLeaseExpiresAt: sql`clock_timestamp() + interval '60 seconds'`,
-  }).where(and(
-    eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.companyId, run.companyId),
-    eq(heartbeatRuns.status, "running"),
-    eq(heartbeatRuns.controllerBootId, run.controllerBootId),
-    lte(heartbeatRuns.controllerLeaseExpiresAt, sql`clock_timestamp()`),
-  )).returning({ id: heartbeatRuns.id });
+  const [revoked] = await db
+    .update(heartbeatRuns)
+    .set({
+      controllerBootId: randomUUID(),
+      controllerLeaseExpiresAt: sql`clock_timestamp() + interval '60 seconds'`,
+    })
+    .where(
+      and(
+        eq(heartbeatRuns.id, run.id),
+        eq(heartbeatRuns.companyId, run.companyId),
+        eq(heartbeatRuns.status, "running"),
+        eq(heartbeatRuns.controllerBootId, run.controllerBootId),
+        lte(heartbeatRuns.controllerLeaseExpiresAt, sql`clock_timestamp()`),
+      ),
+    )
+    .returning({ id: heartbeatRuns.id });
   return Boolean(revoked);
 }
 
 /** Abort the adapter if the controller cannot renew. Bound each check by the
  * lease duration even when the database connection never settles. */
-export function watchLegacyControllerLease(db: Db, run: Run, controller: AbortController) {
+export function watchLegacyControllerLease(
+  db: Db,
+  run: Run,
+  controller: AbortController,
+) {
   if (run.runtimeMode === "native" || !run.controllerBootId) {
     return { stop() {}, async assertOwned(_stage?: "dispatching") {} };
   }
   let stopped = false;
   let pending = false;
-  const lost = () => { if (!stopped) controller.abort(new Error("Legacy controller lease lost")); };
-  let deadline = setTimeout(lost, Math.max(0,
-    (run.controllerLeaseExpiresAt?.getTime() ?? 0) - Date.now()));
+  const lost = () => {
+    if (!stopped) controller.abort(new Error("Legacy controller lease lost"));
+  };
+  let deadline = setTimeout(
+    lost,
+    Math.max(0, (run.controllerLeaseExpiresAt?.getTime() ?? 0) - Date.now()),
+  );
   deadline.unref();
   const assertOwned = async (stage?: "dispatching") => {
     if (stopped) return;
@@ -85,7 +120,10 @@ export function watchLegacyControllerLease(db: Db, run: Run, controller: AbortCo
     });
     let renewed: boolean;
     try {
-      renewed = await Promise.race([renewLegacyControllerLease(db, run, stage), aborted]);
+      renewed = await Promise.race([
+        renewLegacyControllerLease(db, run, stage),
+        aborted,
+      ]);
     } finally {
       controller.signal.removeEventListener("abort", onAbort);
     }
@@ -97,15 +135,29 @@ export function watchLegacyControllerLease(db: Db, run: Run, controller: AbortCo
     controller.signal.throwIfAborted();
     if (!stopped) {
       clearTimeout(deadline);
-      deadline = setTimeout(lost, Math.max(0, LEGACY_CONTROLLER_LEASE_MS - (Date.now() - startedAt)));
+      deadline = setTimeout(
+        lost,
+        Math.max(0, LEGACY_CONTROLLER_LEASE_MS - (Date.now() - startedAt)),
+      );
       deadline.unref();
     }
   };
   const timer = setInterval(() => {
     if (pending || stopped) return;
     pending = true;
-    void assertOwned().catch(lost).finally(() => { pending = false; });
+    void assertOwned()
+      .catch(lost)
+      .finally(() => {
+        pending = false;
+      });
   }, LEGACY_CONTROLLER_RENEW_MS);
   timer.unref();
-  return { assertOwned, stop() { stopped = true; clearInterval(timer); clearTimeout(deadline); } };
+  return {
+    assertOwned,
+    stop() {
+      stopped = true;
+      clearInterval(timer);
+      clearTimeout(deadline);
+    },
+  };
 }

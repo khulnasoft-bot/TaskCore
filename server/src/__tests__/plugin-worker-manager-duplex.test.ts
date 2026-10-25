@@ -7,7 +7,10 @@ import {
   createPluginWorkerHandle,
 } from "../services/plugin-worker-manager.js";
 
-const FIXTURES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
+const FIXTURES_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "fixtures",
+);
 const DUPLEX_CHANNEL_WORKER_ENTRYPOINT = path.join(
   FIXTURES_DIR,
   "plugin-worker-duplex-channel.cjs",
@@ -203,7 +206,10 @@ describe("plugin worker manager duplex channel route", () => {
       session.onData((chunk) => chunks.push(new TextDecoder().decode(chunk)));
       // The discriminator survives the worker exit notification, so the host wait
       // resolves with the transport-close mark and no exit code.
-      await expect(session.wait()).resolves.toEqual({ exitCode: null, transportClosed: true });
+      await expect(session.wait()).resolves.toEqual({
+        exitCode: null,
+        transportClosed: true,
+      });
       expect(chunks).toEqual(["one"]);
       await session.close();
     } finally {
@@ -283,7 +289,9 @@ describe("plugin worker manager duplex channel route", () => {
       ).rejects.toThrow("DUPLEX_CHANNEL_OPEN_FAILED");
       // The terminalize closed the route by the host route id and the worker
       // acknowledged the close, so a later open is admitted.
-      const session = await handle.openDuplexChannel(duplexOpenInput({ mode: "normal" }));
+      const session = await handle.openDuplexChannel(
+        duplexOpenInput({ mode: "normal" }),
+      );
       expect(session).toBeDefined();
       await session.close();
     } finally {
@@ -296,10 +304,16 @@ describe("plugin worker manager duplex channel route", () => {
     try {
       await handle.start();
       const routeA = await handle.openDuplexChannel(
-        duplexOpenInput({ workerSessionId: "ws-A", data: [{ chunk: "a-1" }], exitCode: 0 }, "company-A"),
+        duplexOpenInput(
+          { workerSessionId: "ws-A", data: [{ chunk: "a-1" }], exitCode: 0 },
+          "company-A",
+        ),
       );
       const routeB = await handle.openDuplexChannel(
-        duplexOpenInput({ workerSessionId: "ws-B", data: [{ chunk: "b-1" }], exitCode: 0 }, "company-B"),
+        duplexOpenInput(
+          { workerSessionId: "ws-B", data: [{ chunk: "b-1" }], exitCode: 0 },
+          "company-B",
+        ),
       );
       const aChunks: string[] = [];
       const bChunks: string[] = [];
@@ -321,10 +335,14 @@ describe("plugin worker manager duplex channel route", () => {
   it("reports an explicit route-busy result when the aggregate ceiling is full", async () => {
     // A process-scoped ceiling of one slot. The manager injects one shared
     // controller into every worker; the test injects a small one directly.
-    const handle = makeDuplexHandle({ duplexRouteSlots: createDuplexRouteSlotController(1) });
+    const handle = makeDuplexHandle({
+      duplexRouteSlots: createDuplexRouteSlotController(1),
+    });
     try {
       await handle.start();
-      const first = await handle.openDuplexChannel(duplexOpenInput({ workerSessionId: "ws-A" }));
+      const first = await handle.openDuplexChannel(
+        duplexOpenInput({ workerSessionId: "ws-A" }),
+      );
       // The ceiling is full, so the second open rejects with the fixed route-busy
       // error before it reaches the worker. An active channel never downgrades.
       await expect(
@@ -332,7 +350,9 @@ describe("plugin worker manager duplex channel route", () => {
       ).rejects.toThrow("DUPLEX_CHANNEL_ROUTE_BUSY");
       // Closing the first route releases its slot, so a later open is admitted.
       await first.close();
-      const third = await handle.openDuplexChannel(duplexOpenInput({ workerSessionId: "ws-C" }));
+      const third = await handle.openDuplexChannel(
+        duplexOpenInput({ workerSessionId: "ws-C" }),
+      );
       await third.close();
     } finally {
       await handle.stop().catch(() => undefined);
@@ -344,7 +364,10 @@ describe("plugin worker manager duplex channel route", () => {
     try {
       await handle.start();
       const first = await handle.openDuplexChannel(
-        duplexOpenInput({ workerSessionId: "ws-A", emitAfterCloseChunk: "after-close" }),
+        duplexOpenInput({
+          workerSessionId: "ws-A",
+          emitAfterCloseChunk: "after-close",
+        }),
       );
       const chunks: string[] = [];
       first.onData((chunk) => chunks.push(new TextDecoder().decode(chunk)));
@@ -358,10 +381,16 @@ describe("plugin worker manager duplex channel route", () => {
       // The worker is still alive: a new open on the same worker succeeds and
       // delivers its own data.
       const second = await handle.openDuplexChannel(
-        duplexOpenInput({ workerSessionId: "ws-B", data: [{ chunk: "b-1" }], exitCode: 0 }),
+        duplexOpenInput({
+          workerSessionId: "ws-B",
+          data: [{ chunk: "b-1" }],
+          exitCode: 0,
+        }),
       );
       const secondChunks: string[] = [];
-      second.onData((chunk) => secondChunks.push(new TextDecoder().decode(chunk)));
+      second.onData((chunk) =>
+        secondChunks.push(new TextDecoder().decode(chunk)),
+      );
       await expect(second.wait()).resolves.toEqual({ exitCode: 0 });
       expect(secondChunks).toEqual(["b-1"]);
       await second.close();
@@ -895,7 +924,10 @@ describe("plugin worker manager duplex channel route", () => {
       const session = await handle.openDuplexChannel(
         duplexOpenInput({ workerSessionId: "ws-A", echoInput: true }),
       );
-      const allByteValues = Uint8Array.from({ length: 256 }, (_, value) => value);
+      const allByteValues = Uint8Array.from(
+        { length: 256 },
+        (_, value) => value,
+      );
       const received: Uint8Array[] = [];
       session.onData((chunk) => received.push(chunk));
 
@@ -910,7 +942,9 @@ describe("plugin worker manager duplex channel route", () => {
       await vi.waitFor(() => expect(received.length).toBe(1));
       const echoPrefix = new TextEncoder().encode("echo:");
       const echoed = received[0]!;
-      expect(echoed.byteLength).toBe(echoPrefix.byteLength + allByteValues.byteLength);
+      expect(echoed.byteLength).toBe(
+        echoPrefix.byteLength + allByteValues.byteLength,
+      );
       expect(echoed.subarray(0, echoPrefix.byteLength)).toEqual(echoPrefix);
       expect(echoed.subarray(echoPrefix.byteLength)).toEqual(allByteValues);
       await session.close();
@@ -927,7 +961,9 @@ describe("plugin worker manager duplex channel route", () => {
     const handle = makeDuplexHandle();
     try {
       await handle.start();
-      const session = await handle.openDuplexChannel(duplexOpenInput({ mode: "normal" }));
+      const session = await handle.openDuplexChannel(
+        duplexOpenInput({ mode: "normal" }),
+      );
       const waitResult = session.wait();
       await handle.stop();
       // A worker exit closes the one route and resolves the wait with the fixed

@@ -37,9 +37,12 @@ function githubRepoLabel(value: string | null | undefined): string | null {
   }
 
   const sshMatch = raw.match(/^git@[^:]+:([^/]+)\/([^/#?]+)(?:[/?#]|$)/i);
-  if (sshMatch?.[1] && sshMatch[2]) return `${sshMatch[1]}/${cleanRepoName(sshMatch[2])}`;
+  if (sshMatch?.[1] && sshMatch[2])
+    return `${sshMatch[1]}/${cleanRepoName(sshMatch[2])}`;
 
-  const githubPathMatch = raw.match(/github\.com[:/]([^/]+)\/([^/#?]+)(?:[/?#]|$)/i);
+  const githubPathMatch = raw.match(
+    /github\.com[:/]([^/]+)\/([^/#?]+)(?:[/?#]|$)/i,
+  );
   if (githubPathMatch?.[1] && githubPathMatch[2]) {
     return `${githubPathMatch[1]}/${cleanRepoName(githubPathMatch[2])}`;
   }
@@ -89,23 +92,39 @@ function displayCatalogSourceLabel(label: string | null | undefined) {
   return trimmed;
 }
 
-export function buildAgentSkillSourceMeta(skill: SourceSkill): AgentSkillSourceMeta {
+export function buildAgentSkillSourceMeta(
+  skill: SourceSkill,
+): AgentSkillSourceMeta {
   if (skill.sourceBadge === "github" || skill.sourceType === "github") {
-    const repo = githubRepoLabel(skill.sourceLabel) ?? githubRepoLabel(skill.sourceLocator);
+    const repo =
+      githubRepoLabel(skill.sourceLabel) ??
+      githubRepoLabel(skill.sourceLocator);
     return { icon: GithubIcon, label: repo ? `GitHub · ${repo}` : "GitHub" };
   }
 
   if (skill.sourceBadge === "skills_sh" || skill.sourceType === "skills_sh") {
-    const repo = githubRepoLabel(skill.sourceLabel) ?? githubRepoLabel(skill.sourceLocator);
-    return { icon: GithubIcon, label: repo ? `skills.sh · ${repo}` : "skills.sh" };
+    const repo =
+      githubRepoLabel(skill.sourceLabel) ??
+      githubRepoLabel(skill.sourceLocator);
+    return {
+      icon: GithubIcon,
+      label: repo ? `skills.sh · ${repo}` : "skills.sh",
+    };
   }
 
   if (skill.sourceBadge === "url" || skill.sourceType === "url") {
-    return { icon: Link2, label: hostLabel(skill.sourceLabel) ?? hostLabel(skill.sourceLocator) ?? "URL" };
+    return {
+      icon: Link2,
+      label:
+        hostLabel(skill.sourceLabel) ?? hostLabel(skill.sourceLocator) ?? "URL",
+    };
   }
 
   if (skill.sourceBadge === "taskcore") {
-    return { icon: TaskcoreIcon, label: skill.sourceLabel?.trim() || "Taskcore managed" };
+    return {
+      icon: TaskcoreIcon,
+      label: skill.sourceLabel?.trim() || "Taskcore managed",
+    };
   }
 
   if (skill.sourceBadge === "catalog" || skill.sourceType === "catalog") {

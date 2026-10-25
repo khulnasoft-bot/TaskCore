@@ -1,4 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ShortcutEntry {
   keys: string[];
@@ -84,7 +89,9 @@ export function KeyboardShortcutsCheatsheetContent() {
                   key={shortcut.label + shortcut.keys.join()}
                   className="flex items-center justify-between gap-4"
                 >
-                  <span className="text-sm text-foreground/90">{shortcut.label}</span>
+                  <span className="text-sm text-foreground/90">
+                    {shortcut.label}
+                  </span>
                   <div className="flex items-center gap-1">
                     {shortcut.keys.map((key, i) => (
                       <span key={key} className="flex items-center gap-1">
@@ -105,7 +112,8 @@ export function KeyboardShortcutsCheatsheetContent() {
       </div>
       <div className="border-t border-border px-5 py-3">
         <p className="text-xs text-muted-foreground">
-          Press <KeyCap>Esc</KeyCap> to close &middot; Shortcuts are disabled in text fields
+          Press <KeyCap>Esc</KeyCap> to close &middot; Shortcuts are disabled in
+          text fields
         </p>
       </div>
     </>
@@ -121,7 +129,10 @@ export function KeyboardShortcutsCheatsheet({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden" showCloseButton={false}>
+      <DialogContent
+        className="sm:max-w-md gap-0 p-0 overflow-hidden"
+        showCloseButton={false}
+      >
         <DialogHeader className="px-5 pt-5 pb-3">
           <DialogTitle className="text-base">Keyboard shortcuts</DialogTitle>
         </DialogHeader>

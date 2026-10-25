@@ -1,7 +1,19 @@
-import { ACPX_DRIVER_KIND, ACPX_DRIVER_PROTOCOL_VERSION, QUALIFIED_ACPX_VERSION, QUALIFIED_ACPX_PROFILE_DATA } from "./generated-profiles.js";
-export { ACPX_DRIVER_KIND, ACPX_DRIVER_PROTOCOL_VERSION, QUALIFIED_ACPX_VERSION } from "./generated-profiles.js";
+import {
+  ACPX_DRIVER_KIND,
+  ACPX_DRIVER_PROTOCOL_VERSION,
+  QUALIFIED_ACPX_VERSION,
+  QUALIFIED_ACPX_PROFILE_DATA,
+} from "./generated-profiles.js";
+export {
+  ACPX_DRIVER_KIND,
+  ACPX_DRIVER_PROTOCOL_VERSION,
+  QUALIFIED_ACPX_VERSION,
+} from "./generated-profiles.js";
 
-import type { NativeAcpxAgent, NativeAcpxProfileSnapshot } from "../../contracts/native-execution.js";
+import type {
+  NativeAcpxAgent,
+  NativeAcpxProfileSnapshot,
+} from "../../contracts/native-execution.js";
 
 export type QualifiedAcpxAgent = NativeAcpxAgent;
 
@@ -43,7 +55,11 @@ export function resolveQualifiedAcpxProfile(
 ): QualifiedAcpxProfile {
   const profile = QUALIFIED_ACPX_PROFILES[agent];
   if (!requestedModel.trim()) throw new Error("ACPX model must not be empty");
-  return { ...structuredClone(profile), qualificationModel: requestedModel, reportedModelId: requestedModel };
+  return {
+    ...structuredClone(profile),
+    qualificationModel: requestedModel,
+    reportedModelId: requestedModel,
+  };
 }
 
 function deepFreeze<T>(value: T): T {

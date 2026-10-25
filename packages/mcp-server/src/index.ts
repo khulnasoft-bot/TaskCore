@@ -4,7 +4,9 @@ import { TaskcoreApiClient } from "./client.js";
 import { readConfigFromEnv, type TaskcoreMcpConfig } from "./config.js";
 import { createToolDefinitions } from "./tools.js";
 
-export function createTaskcoreMcpServer(config: TaskcoreMcpConfig = readConfigFromEnv()) {
+export function createTaskcoreMcpServer(
+  config: TaskcoreMcpConfig = readConfigFromEnv(),
+) {
   const server = new McpServer({
     name: "taskcore",
     version: "0.1.0",
@@ -23,7 +25,9 @@ export function createTaskcoreMcpServer(config: TaskcoreMcpConfig = readConfigFr
   };
 }
 
-export async function runServer(config: TaskcoreMcpConfig = readConfigFromEnv()) {
+export async function runServer(
+  config: TaskcoreMcpConfig = readConfigFromEnv(),
+) {
   const { server } = createTaskcoreMcpServer(config);
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -54,13 +54,21 @@ const WAITING_MESSAGES = [
   "Should wake up soon...",
 ];
 
-function getCyclingMessage(messages: string[], elapsed: number, agentName: string): string {
+function getCyclingMessage(
+  messages: string[],
+  elapsed: number,
+  agentName: string,
+): string {
   // Cycle through messages every 5 seconds
   const idx = Math.floor(elapsed / 5) % messages.length;
   return `${agentName} · ${messages[idx]}`;
 }
 
-function getRunStatusMessage(status: string, agentName: string, elapsed: number): string {
+function getRunStatusMessage(
+  status: string,
+  agentName: string,
+  elapsed: number,
+): string {
   switch (status) {
     case "queued":
       return getCyclingMessage(QUEUED_MESSAGES, elapsed, agentName);
@@ -102,10 +110,7 @@ export function OnboardingChat({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const {
-    data: rawComments,
-    isLoading,
-  } = useQuery({
+  const { data: rawComments, isLoading } = useQuery({
     queryKey: queryKeys.issues.comments(taskId),
     queryFn: () => issuesApi.listComments(taskId),
     refetchInterval: 4000,
@@ -146,10 +151,15 @@ export function OnboardingChat({
     // Find the cutoff — the later of the user's last message or the ignore marker
     let cutoffIdx = -1;
     for (let i = comments.length - 1; i >= 0; i--) {
-      if (comments[i].authorUserId) { cutoffIdx = i; break; }
+      if (comments[i].authorUserId) {
+        cutoffIdx = i;
+        break;
+      }
     }
     if (ignoreBeforeCommentId) {
-      const ignoreIdx = comments.findIndex((c) => c.id === ignoreBeforeCommentId);
+      const ignoreIdx = comments.findIndex(
+        (c) => c.id === ignoreBeforeCommentId,
+      );
       if (ignoreIdx >= 0) cutoffIdx = Math.max(cutoffIdx, ignoreIdx);
     }
 
@@ -159,46 +169,62 @@ export function OnboardingChat({
       if (c.authorAgentId && detectHiringPlan(c.body)) {
         setDetectedPlanCommentId(c.id);
         // Fetch the full plan document — it has richer role descriptions
-        issuesApi.getDocument(taskId, "plan").then((doc) => {
-          onPlanDetected(doc.body ?? c.body);
-        }).catch(() => {
-          onPlanDetected(c.body);
-        });
+        issuesApi
+          .getDocument(taskId, "plan")
+          .then((doc) => {
+            onPlanDetected(doc.body ?? c.body);
+          })
+          .catch(() => {
+            onPlanDetected(c.body);
+          });
         break;
       }
     }
-  }, [comments, onPlanDetected, detectedPlanCommentId, ignoreBeforeCommentId, taskId]);
+  }, [
+    comments,
+    onPlanDetected,
+    detectedPlanCommentId,
+    ignoreBeforeCommentId,
+    taskId,
+  ]);
 
-  const sendMessage = useCallback(async (body: string) => {
-    const trimmed = body.trim();
-    if (!trimmed || sending) return;
-    setSending(true);
-    try {
-      // Ensure the task is assigned to the CEO and in_progress before commenting.
+  const sendMessage = useCallback(
+    async (body: string) => {
+      const trimmed = body.trim();
+      if (!trimmed || sending) return;
+      setSending(true);
       try {
-        await issuesApi.update(taskId, { assigneeUserId: null });
-      } catch { /* may already be null */ }
-      try {
-        await issuesApi.update(taskId, {
-          assigneeAgentId: agentId,
-          status: "in_progress",
+        // Ensure the task is assigned to the CEO and in_progress before commenting.
+        try {
+          await issuesApi.update(taskId, { assigneeUserId: null });
+        } catch {
+          /* may already be null */
+        }
+        try {
+          await issuesApi.update(taskId, {
+            assigneeAgentId: agentId,
+            status: "in_progress",
+          });
+        } catch {
+          /* may already be assigned */
+        }
+
+        await issuesApi.addComment(taskId, trimmed, true, true);
+        setInput("");
+        // Clear detected plan — user is asking for revisions
+        const latestId = comments?.[comments.length - 1]?.id ?? null;
+        setIgnoreBeforeCommentId(latestId);
+        setDetectedPlanCommentId(null);
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.issues.comments(taskId),
         });
-      } catch { /* may already be assigned */ }
-
-      await issuesApi.addComment(taskId, trimmed, true, true);
-      setInput("");
-      // Clear detected plan — user is asking for revisions
-      const latestId = comments?.[comments.length - 1]?.id ?? null;
-      setIgnoreBeforeCommentId(latestId);
-      setDetectedPlanCommentId(null);
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.issues.comments(taskId),
-      });
-    } finally {
-      setSending(false);
-      inputRef.current?.focus();
-    }
-  }, [sending, taskId, agentId, queryClient, comments]);
+      } finally {
+        setSending(false);
+        inputRef.current?.focus();
+      }
+    },
+    [sending, taskId, agentId, queryClient, comments],
+  );
 
   const handleSend = useCallback(() => {
     sendMessage(input);
@@ -218,7 +244,9 @@ export function OnboardingChat({
   const lastComment = comments?.[comments.length - 1];
   const isWaitingForAgent =
     lastComment && lastComment.authorUserId && !lastComment.authorAgentId;
-  const hasActiveRun = activeRun && (activeRun.status === "queued" || activeRun.status === "running");
+  const hasActiveRun =
+    activeRun &&
+    (activeRun.status === "queued" || activeRun.status === "running");
   const showStatus = isWaitingForAgent || hasActiveRun;
 
   // Elapsed timer — ticks every second while waiting
@@ -226,14 +254,19 @@ export function OnboardingChat({
   const waitingSince = useMemo(() => {
     if (!showStatus || !lastComment) return null;
     // Use the user's last message timestamp as the start time
-    if (lastComment.authorUserId) return new Date(lastComment.createdAt).getTime();
+    if (lastComment.authorUserId)
+      return new Date(lastComment.createdAt).getTime();
     // If an active run exists, use its creation time
-    if (hasActiveRun && activeRun.createdAt) return new Date(activeRun.createdAt).getTime();
+    if (hasActiveRun && activeRun.createdAt)
+      return new Date(activeRun.createdAt).getTime();
     return null;
   }, [showStatus, lastComment, hasActiveRun, activeRun]);
 
   useEffect(() => {
-    if (!waitingSince) { setElapsed(0); return; }
+    if (!waitingSince) {
+      setElapsed(0);
+      return;
+    }
     setElapsed(Math.floor((Date.now() - waitingSince) / 1000));
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - waitingSince) / 1000));
@@ -241,9 +274,10 @@ export function OnboardingChat({
     return () => clearInterval(interval);
   }, [waitingSince]);
 
-  const elapsedStr = elapsed >= 60
-    ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`
-    : `${elapsed}s`;
+  const elapsedStr =
+    elapsed >= 60
+      ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`
+      : `${elapsed}s`;
 
   if (isLoading) {
     return (
@@ -275,8 +309,7 @@ export function OnboardingChat({
         />
         {comments?.map((comment) => {
           const isAgent = Boolean(comment.authorAgentId);
-          const isPlan =
-            detectedPlanCommentId === comment.id;
+          const isPlan = detectedPlanCommentId === comment.id;
           return (
             <div
               key={comment.id}
@@ -291,9 +324,7 @@ export function OnboardingChat({
                 <span
                   className={cn(
                     "text-(length:--text-nano) font-medium uppercase tracking-wide",
-                    isAgent
-                      ? "text-muted-foreground"
-                      : "text-foreground/70",
+                    isAgent ? "text-muted-foreground" : "text-foreground/70",
                   )}
                 >
                   {isAgent ? agentName : "You"}
@@ -371,7 +402,11 @@ export function OnboardingChat({
           ref={inputRef}
           type="text"
           className="flex-1 rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
-          placeholder={detectedPlanCommentId ? `Ask ${agentName} to revise the plan...` : `Message ${agentName}...`}
+          placeholder={
+            detectedPlanCommentId
+              ? `Ask ${agentName} to revise the plan...`
+              : `Message ${agentName}...`
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -409,13 +444,19 @@ function WelcomeMessage({
   onDiscuss: () => void;
   onStart: () => void;
 }) {
-  const [phase, setPhase] = useState<"waking" | "composing" | "message" | "chips">("waking");
+  const [phase, setPhase] = useState<
+    "waking" | "composing" | "message" | "chips"
+  >("waking");
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("composing"), 2500);
     const t2 = setTimeout(() => setPhase("message"), 5500);
     const t3 = setTimeout(() => setPhase("chips"), 6500);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, []);
 
   const showMessage = phase === "message" || phase === "chips";
@@ -432,13 +473,15 @@ function WelcomeMessage({
             </span>
           </div>
           <p>
-            Hi! Thanks for bringing me on to lead <strong>{companyName}</strong>.
+            Hi! Thanks for bringing me on to lead <strong>{companyName}</strong>
+            .
           </p>
           <p className="mt-1">
             Our mission is: <em>{companyGoal}</em>
           </p>
           <p className="mt-1">
-            I'm ready to put together a plan for who we should bring on. Want me to get started?
+            I'm ready to put together a plan for who we should bring on. Want me
+            to get started?
           </p>
         </div>
       )}
@@ -462,9 +505,7 @@ function WelcomeMessage({
       )}
 
       {/* Typing indicator — anchored at bottom of scroll area, before real status messages */}
-      {!showMessage && (
-        <div className="flex-1" />
-      )}
+      {!showMessage && <div className="flex-1" />}
       {!showMessage && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground px-3 py-2">
           <span className="relative flex h-2.5 w-2.5 shrink-0">

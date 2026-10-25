@@ -4,7 +4,11 @@ import type { AcpxExtensionInput } from "./profile-extensions.js";
 
 export interface AcpxToolEvidence {
   tool(event: unknown): void;
-  permission(request: unknown, requestId: string, offeredActions: readonly string[]): ((outcome: string) => void) | undefined;
+  permission(
+    request: unknown,
+    requestId: string,
+    offeredActions: readonly string[],
+  ): ((outcome: string) => void) | undefined;
 }
 
 export interface AcpxToolEvidenceBinding {
@@ -22,7 +26,12 @@ export interface AcpxActivityAdapter {
   toolExecutionId?(nativeId: string): string;
   inputToolIdentity?(input: AcpxExtensionInput): string | undefined;
   createToolEvidence?(binding: AcpxToolEvidenceBinding): AcpxToolEvidence;
-  usageNotice?(before: unknown, after: unknown, requestId: string, turnId: string): CanonicalProviderEvent | null;
+  usageNotice?(
+    before: unknown,
+    after: unknown,
+    requestId: string,
+    turnId: string,
+  ): CanonicalProviderEvent | null;
 }
 
 const adapters: Readonly<Record<string, AcpxActivityAdapter | undefined>> = {
@@ -30,6 +39,10 @@ const adapters: Readonly<Record<string, AcpxActivityAdapter | undefined>> = {
 };
 const noActivity: AcpxActivityAdapter = Object.freeze({});
 
-export function acpxProfileActivity(agent: string | null | undefined): AcpxActivityAdapter {
-  return agent && Object.hasOwn(adapters, agent) ? adapters[agent]! : noActivity;
+export function acpxProfileActivity(
+  agent: string | null | undefined,
+): AcpxActivityAdapter {
+  return agent && Object.hasOwn(adapters, agent)
+    ? adapters[agent]!
+    : noActivity;
 }

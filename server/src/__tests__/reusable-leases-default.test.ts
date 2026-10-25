@@ -6,7 +6,9 @@ import { getSandboxProvider } from "../services/sandbox-provider-runtime.ts";
 // when the provider declares supportsReusableLeases === true. This helper
 // mirrors that guard, so the tests can compare the presentation default with
 // the execution decision.
-function executionSupportsReusableLeases(declared: boolean | undefined): boolean {
+function executionSupportsReusableLeases(
+  declared: boolean | undefined,
+): boolean {
   return declared === true;
 }
 
@@ -35,9 +37,9 @@ describe("reusable leases default", () => {
     const absent = getEnvironmentCapabilities(["codex_local"], {
       sandboxProviders: { "no-reuse-plugin": { displayName: "No Reuse" } },
     });
-    expect(absent.sandboxProviders["no-reuse-plugin"].supportsReusableLeases).toBe(
-      executionSupportsReusableLeases(undefined),
-    );
+    expect(
+      absent.sandboxProviders["no-reuse-plugin"].supportsReusableLeases,
+    ).toBe(executionSupportsReusableLeases(undefined));
 
     // Plug-in provider whose manifest declares reusable leases.
     const declared = getEnvironmentCapabilities(["codex_local"], {
@@ -45,8 +47,8 @@ describe("reusable leases default", () => {
         "reuse-plugin": { displayName: "Reuse", supportsReusableLeases: true },
       },
     });
-    expect(declared.sandboxProviders["reuse-plugin"].supportsReusableLeases).toBe(
-      executionSupportsReusableLeases(true),
-    );
+    expect(
+      declared.sandboxProviders["reuse-plugin"].supportsReusableLeases,
+    ).toBe(executionSupportsReusableLeases(true));
   });
 });

@@ -26,38 +26,45 @@ export const ONBOARDING_FIRST_TASK_OPENING_QUESTION_ID = "first-task-opening";
 export const ONBOARDING_FIRST_TASK_OPENING_INTERVIEW_OPTION_ID = "interview";
 export const ONBOARDING_FIRST_TASK_OPENING_TASK_OPTION_ID = "task";
 
-const openingQuestionFileSchema = z.object({
-  prompt: z.string().trim().min(1).max(4000),
-  helpText: z.string().trim().max(4000).nullable().optional(),
-  submitLabel: z.string().trim().max(120).nullable().optional(),
-  options: z.array(askUserQuestionsQuestionOptionSchema).length(2),
-}).superRefine((value, ctx) => {
-  const ids = value.options.map((option) => option.id);
-  if (!ids.includes(ONBOARDING_FIRST_TASK_OPENING_INTERVIEW_OPTION_ID)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `opening-question.json must keep an option with id "${ONBOARDING_FIRST_TASK_OPENING_INTERVIEW_OPTION_ID}"`,
-      path: ["options"],
-    });
-  }
-  const taskOption = value.options.find((option) => option.id === ONBOARDING_FIRST_TASK_OPENING_TASK_OPTION_ID);
-  if (!taskOption) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `opening-question.json must keep an option with id "${ONBOARDING_FIRST_TASK_OPENING_TASK_OPTION_ID}"`,
-      path: ["options"],
-    });
-  } else if (taskOption.freeText !== true) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `the "${ONBOARDING_FIRST_TASK_OPENING_TASK_OPTION_ID}" option must set freeText: true so the user can describe their task`,
-      path: ["options"],
-    });
-  }
-});
+const openingQuestionFileSchema = z
+  .object({
+    prompt: z.string().trim().min(1).max(4000),
+    helpText: z.string().trim().max(4000).nullable().optional(),
+    submitLabel: z.string().trim().max(120).nullable().optional(),
+    options: z.array(askUserQuestionsQuestionOptionSchema).length(2),
+  })
+  .superRefine((value, ctx) => {
+    const ids = value.options.map((option) => option.id);
+    if (!ids.includes(ONBOARDING_FIRST_TASK_OPENING_INTERVIEW_OPTION_ID)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `opening-question.json must keep an option with id "${ONBOARDING_FIRST_TASK_OPENING_INTERVIEW_OPTION_ID}"`,
+        path: ["options"],
+      });
+    }
+    const taskOption = value.options.find(
+      (option) => option.id === ONBOARDING_FIRST_TASK_OPENING_TASK_OPTION_ID,
+    );
+    if (!taskOption) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `opening-question.json must keep an option with id "${ONBOARDING_FIRST_TASK_OPENING_TASK_OPTION_ID}"`,
+        path: ["options"],
+      });
+    } else if (taskOption.freeText !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `the "${ONBOARDING_FIRST_TASK_OPENING_TASK_OPTION_ID}" option must set freeText: true so the user can describe their task`,
+        path: ["options"],
+      });
+    }
+  });
 
 function resolveFirstTaskAssetUrl(relativePath: string) {
-  return new URL(`../onboarding-assets/first-task/${relativePath}`, import.meta.url);
+  return new URL(
+    `../onboarding-assets/first-task/${relativePath}`,
+    import.meta.url,
+  );
 }
 
 async function loadFirstTaskAsset(relativePath: string): Promise<string> {
@@ -78,12 +85,17 @@ export function fillFirstTaskPlaceholders(
     out = out.split("{{agentName}}").join(name);
   } else {
     out = out
-      .split("{{agentName}}, ").join("")
-      .split("{{agentName}} ").join("")
-      .split("{{agentName}}").join("");
+      .split("{{agentName}}, ")
+      .join("")
+      .split("{{agentName}} ")
+      .join("")
+      .split("{{agentName}}")
+      .join("");
   }
   const org = organizationName?.trim();
-  out = out.split("{{organizationName}}").join(org && org.length > 0 ? org : "your organization");
+  out = out
+    .split("{{organizationName}}")
+    .join(org && org.length > 0 ? org : "your organization");
   return out;
 }
 
@@ -126,7 +138,12 @@ export async function buildOnboardingFirstTaskBrief(options: {
   usePlanProposal: boolean;
 }): Promise<string> {
   const brief = await loadFirstTaskAsset("brief.md");
-  return brief.replace("{{proposalMode}}", options.usePlanProposal ? "plan" : "confirmation").trim();
+  return brief
+    .replace(
+      "{{proposalMode}}",
+      options.usePlanProposal ? "plan" : "confirmation",
+    )
+    .trim();
 }
 
 // Layer B — the chief-of-staff persona seeded over the first agent's entry

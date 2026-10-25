@@ -70,7 +70,12 @@ function SearchResultRowImpl({
         className={cn(ROW_BASE, "py-3", isActive && "bg-muted/40", className)}
         data-result-type="agent"
       >
-        <AgentAvatar agent={agentsById?.get(result.id) ?? { id: result.id, name: result.title }} size={24} />
+        <AgentAvatar
+          agent={
+            agentsById?.get(result.id) ?? { id: result.id, name: result.title }
+          }
+          size={24}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <span className="truncate text-sm font-medium">{result.title}</span>
@@ -125,7 +130,9 @@ function SearchResultRowImpl({
         <TaskcoreIcon className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <span className="truncate text-sm font-medium text-foreground">{result.title}</span>
+            <span className="truncate text-sm font-medium text-foreground">
+              {result.title}
+            </span>
             <span className="shrink-0 text-xs text-muted-foreground">
               {artifact.issueIdentifier}
             </span>
@@ -141,11 +148,17 @@ function SearchResultRowImpl({
           ) : null}
           <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground sm:hidden">
             <span className="truncate">{artifact.issueTitle}</span>
-            {updated ? <span className="ml-auto shrink-0 tabular-nums">{updated}</span> : null}
+            {updated ? (
+              <span className="ml-auto shrink-0 tabular-nums">{updated}</span>
+            ) : null}
           </div>
         </div>
         <div className="ml-2 hidden shrink-0 flex-col items-end gap-2 sm:flex">
-          {updated ? <span className="text-xs tabular-nums text-muted-foreground">{updated}</span> : null}
+          {updated ? (
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {updated}
+            </span>
+          ) : null}
           {result.previewImageUrl ? (
             <img
               src={result.previewImageUrl}
@@ -163,11 +176,15 @@ function SearchResultRowImpl({
   const issue = result.issue;
   if (!issue) return null;
   const assigneeName = issue.assigneeAgentId
-    ? agentsById?.get(issue.assigneeAgentId)?.name ?? null
+    ? (agentsById?.get(issue.assigneeAgentId)?.name ?? null)
     : null;
   const updated = formatRelativeTime(result.updatedAt ?? issue.updatedAt);
-  const titleHighlights = result.snippets.find((snippet) => snippet.field === "title")?.highlights;
-  const bodySnippets = result.snippets.filter((snippet) => snippet.field !== "title").slice(0, 2);
+  const titleHighlights = result.snippets.find(
+    (snippet) => snippet.field === "title",
+  )?.highlights;
+  const bodySnippets = result.snippets
+    .filter((snippet) => snippet.field !== "title")
+    .slice(0, 2);
   const previewImageUrl = result.previewImageUrl;
   const hasRightRail = previewImageUrl || assigneeName || updated;
 
@@ -179,7 +196,10 @@ function SearchResultRowImpl({
       data-result-type="issue"
     >
       <div className="mt-1 shrink-0">
-        <StatusIcon status={issue.status} externalConversationState={issue.externalConversationState} />
+        <StatusIcon
+          status={issue.status}
+          externalConversationState={issue.externalConversationState}
+        />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-1">
@@ -206,8 +226,12 @@ function SearchResultRowImpl({
         ))}
         {hasRightRail ? (
           <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground sm:hidden">
-            {assigneeName ? <span className="truncate">{assigneeName}</span> : null}
-            {updated ? <span className="ml-auto tabular-nums">{updated}</span> : null}
+            {assigneeName ? (
+              <span className="truncate">{assigneeName}</span>
+            ) : null}
+            {updated ? (
+              <span className="ml-auto tabular-nums">{updated}</span>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -215,7 +239,17 @@ function SearchResultRowImpl({
         <div className="ml-2 hidden shrink-0 flex-col items-end gap-2 sm:flex">
           {assigneeName || updated ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {assigneeName ? <AgentIdentity agent={agentsById?.get(result.issue?.assigneeAgentId ?? "") ?? { id: result.issue?.assigneeAgentId ?? undefined, name: assigneeName }} size="sm" /> : null}
+              {assigneeName ? (
+                <AgentIdentity
+                  agent={
+                    agentsById?.get(result.issue?.assigneeAgentId ?? "") ?? {
+                      id: result.issue?.assigneeAgentId ?? undefined,
+                      name: assigneeName,
+                    }
+                  }
+                  size="sm"
+                />
+              ) : null}
               {updated ? <span className="tabular-nums">{updated}</span> : null}
             </div>
           ) : null}
@@ -244,7 +278,13 @@ interface SnippetLineProps {
   multiline?: boolean;
 }
 
-function SnippetLine({ text, highlights, field, fallbackLabel, multiline = false }: SnippetLineProps) {
+function SnippetLine({
+  text,
+  highlights,
+  field,
+  fallbackLabel,
+  multiline = false,
+}: SnippetLineProps) {
   const { Icon, label } = snippetStyle(field, fallbackLabel);
   return (
     <div
@@ -254,18 +294,21 @@ function SnippetLine({ text, highlights, field, fallbackLabel, multiline = false
       )}
     >
       <Icon
-        className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground/60", multiline && "mt-0.5")}
+        className={cn(
+          "h-3.5 w-3.5 shrink-0 text-muted-foreground/60",
+          multiline && "mt-0.5",
+        )}
         aria-hidden
       />
-      <span
-        className="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-(length:--text-nano) font-medium uppercase tracking-wide text-muted-foreground"
-      >
+      <span className="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-(length:--text-nano) font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <HighlightedText
         text={text}
         highlights={highlights}
-        className={multiline ? "line-clamp-2 leading-relaxed" : "line-clamp-1 truncate"}
+        className={
+          multiline ? "line-clamp-2 leading-relaxed" : "line-clamp-1 truncate"
+        }
       />
     </div>
   );

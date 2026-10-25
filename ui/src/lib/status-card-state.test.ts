@@ -6,7 +6,10 @@ import {
   STATUS_CARD_LIFECYCLE_PRESENTATION,
 } from "./status-card-state";
 
-type LifecycleInput = Pick<StatusCard, "state" | "archivedAt" | "generatingIssueId" | "pendingChangeCount">;
+type LifecycleInput = Pick<
+  StatusCard,
+  "state" | "archivedAt" | "generatingIssueId" | "pendingChangeCount"
+>;
 
 function card(overrides: Partial<LifecycleInput>): LifecycleInput {
   return {
@@ -20,38 +23,65 @@ function card(overrides: Partial<LifecycleInput>): LifecycleInput {
 
 describe("deriveStatusCardLifecycle", () => {
   it("maps compiling", () => {
-    expect(deriveStatusCardLifecycle(card({ state: "compiling" }))).toBe("compiling");
+    expect(deriveStatusCardLifecycle(card({ state: "compiling" }))).toBe(
+      "compiling",
+    );
   });
 
   it("maps a clean active card to fresh", () => {
-    expect(deriveStatusCardLifecycle(card({ state: "active", pendingChangeCount: 0 }))).toBe("fresh");
+    expect(
+      deriveStatusCardLifecycle(
+        card({ state: "active", pendingChangeCount: 0 }),
+      ),
+    ).toBe("fresh");
   });
 
   it("maps an active card with pending changes to stale", () => {
-    expect(deriveStatusCardLifecycle(card({ state: "active", pendingChangeCount: 5 }))).toBe("stale");
+    expect(
+      deriveStatusCardLifecycle(
+        card({ state: "active", pendingChangeCount: 5 }),
+      ),
+    ).toBe("stale");
   });
 
   it("maps an in-flight generation to updating", () => {
-    expect(deriveStatusCardLifecycle(card({ generatingIssueId: "issue-1", pendingChangeCount: 3 }))).toBe("updating");
+    expect(
+      deriveStatusCardLifecycle(
+        card({ generatingIssueId: "issue-1", pendingChangeCount: 3 }),
+      ),
+    ).toBe("updating");
   });
 
   it("maps error and paused states", () => {
     expect(deriveStatusCardLifecycle(card({ state: "error" }))).toBe("error");
-    expect(deriveStatusCardLifecycle(card({ state: "paused_budget" }))).toBe("paused_budget");
-    expect(deriveStatusCardLifecycle(card({ state: "paused_hours" }))).toBe("paused_hours");
+    expect(deriveStatusCardLifecycle(card({ state: "paused_budget" }))).toBe(
+      "paused_budget",
+    );
+    expect(deriveStatusCardLifecycle(card({ state: "paused_hours" }))).toBe(
+      "paused_hours",
+    );
   });
 
   it("archived wins over every other state", () => {
     expect(
       deriveStatusCardLifecycle(
-        card({ state: "error", archivedAt: "2026-07-22T00:00:00.000Z", generatingIssueId: "x", pendingChangeCount: 9 }),
+        card({
+          state: "error",
+          archivedAt: "2026-07-22T00:00:00.000Z",
+          generatingIssueId: "x",
+          pendingChangeCount: 9,
+        }),
       ),
     ).toBe("archived");
   });
 
   it("has a presentation entry for every lifecycle", () => {
     for (const lifecycle of Object.keys(STATUS_CARD_LIFECYCLE_PRESENTATION)) {
-      expect(STATUS_CARD_LIFECYCLE_PRESENTATION[lifecycle as keyof typeof STATUS_CARD_LIFECYCLE_PRESENTATION].label).toBeTruthy();
+      expect(
+        STATUS_CARD_LIFECYCLE_PRESENTATION[
+          lifecycle as keyof typeof STATUS_CARD_LIFECYCLE_PRESENTATION
+        ].label,
+      ).toBeTruthy();
     }
   });
 });
@@ -73,10 +103,14 @@ describe("describeRefreshPolicy", () => {
   });
 
   it("describes an interval policy", () => {
-    expect(describeRefreshPolicy({ ...base, mode: "interval", intervalMinutes: 15 })).toBe("every 15m if changed");
+    expect(
+      describeRefreshPolicy({ ...base, mode: "interval", intervalMinutes: 15 }),
+    ).toBe("every 15m if changed");
   });
 
   it("describes a reactive policy", () => {
-    expect(describeRefreshPolicy({ ...base, mode: "reactive", debounceSeconds: 60 })).toBe("on change (60s)");
+    expect(
+      describeRefreshPolicy({ ...base, mode: "reactive", debounceSeconds: 60 }),
+    ).toBe("on change (60s)");
   });
 });

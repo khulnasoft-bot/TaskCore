@@ -8,13 +8,15 @@ describe("native heartbeat cancellation authority", () => {
   it("does not enter native cancellation for a direct-adapter run", async () => {
     const cancel = vi.fn();
 
-    await expect(cancelHeartbeatNativeRun({
-      db: {} as Db,
-      runId: "legacy-run",
-      reason: "Cancelled by control plane",
-      runtimeMode: "legacy",
-      cancel,
-    })).resolves.toEqual({ decision: null, auditId: null });
+    await expect(
+      cancelHeartbeatNativeRun({
+        db: {} as Db,
+        runId: "legacy-run",
+        reason: "Cancelled by control plane",
+        runtimeMode: "legacy",
+        cancel,
+      }),
+    ).resolves.toEqual({ decision: null, auditId: null });
 
     expect(cancel).not.toHaveBeenCalled();
   });
@@ -26,13 +28,15 @@ describe("native heartbeat cancellation authority", () => {
       auditId: "audit-1",
     }));
 
-    await expect(cancelHeartbeatNativeRun({
-      db,
-      runId: "run-1",
-      reason: "Cancelled due to agent pause",
-      runtimeMode: "native",
-      cancel,
-    })).resolves.toMatchObject({ auditId: "audit-1" });
+    await expect(
+      cancelHeartbeatNativeRun({
+        db,
+        runId: "run-1",
+        reason: "Cancelled due to agent pause",
+        runtimeMode: "native",
+        cancel,
+      }),
+    ).resolves.toMatchObject({ auditId: "audit-1" });
 
     expect(cancel).toHaveBeenCalledWith(
       "run-1",
@@ -47,39 +51,42 @@ describe("native heartbeat cancellation authority", () => {
       auditId: null,
     }));
 
-    await expect(cancelHeartbeatNativeRun({
-      db: {} as Db,
-      runId: "run-2",
-      reason: "Cancelled because the agent was terminated",
-      runtimeMode: "native",
-      cancel,
-    })).rejects.toThrow("native_cancellation_outcome_not_audited");
+    await expect(
+      cancelHeartbeatNativeRun({
+        db: {} as Db,
+        runId: "run-2",
+        reason: "Cancelled because the agent was terminated",
+        runtimeMode: "native",
+        cancel,
+      }),
+    ).rejects.toThrow("native_cancellation_outcome_not_audited");
   });
 
   it("keeps generalized executor cancellation scoped to the requested authority", () => {
-    expect(resolveNativeCancellationStatus({
-      scope: "run",
-      priorIssueStatus: "in_progress",
-      agentId: "remote-runner",
-    })).toMatchObject({
+    expect(
+      resolveNativeCancellationStatus({
+        scope: "run",
+        priorIssueStatus: "in_progress",
+        agentId: "remote-runner",
+      }),
+    ).toMatchObject({
       statusAction: "preserve",
       toStatus: "in_progress",
       reasonCode: "cancellation_run_only",
       effects: [{ kind: "release_run_resources" }],
     });
 
-    expect(resolveNativeCancellationStatus({
-      scope: "issue",
-      priorIssueStatus: "in_progress",
-      agentId: "remote-runner",
-    })).toMatchObject({
+    expect(
+      resolveNativeCancellationStatus({
+        scope: "issue",
+        priorIssueStatus: "in_progress",
+        agentId: "remote-runner",
+      }),
+    ).toMatchObject({
       statusAction: "cancelled",
       toStatus: "cancelled",
       reasonCode: "cancellation_issue_authorized",
-      effects: [
-        { kind: "release_checkout" },
-        { kind: "cancel_continuations" },
-      ],
+      effects: [{ kind: "release_checkout" }, { kind: "cancel_continuations" }],
     });
   });
 });

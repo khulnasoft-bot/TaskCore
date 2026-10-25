@@ -76,11 +76,11 @@ the button. The chip becomes `rejected — turn already ended` and offers
 
 Run each demo chat and press **Stop**:
 
-| Demo chat | When to press Stop | Expected result |
-| --- | --- | --- |
-| Interrupt before start | right away | `Cancelled before start`, and no answer item is created |
-| Interrupt during generation | while text streams | the stream stops, the partial text stays, and an interrupted divider appears |
-| Interrupt during a tool call | while the tool runs | the tool keeps its last status and shows no result |
+| Demo chat                    | When to press Stop  | Expected result                                                              |
+| ---------------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| Interrupt before start       | right away          | `Cancelled before start`, and no answer item is created                      |
+| Interrupt during generation  | while text streams  | the stream stops, the partial text stays, and an interrupted divider appears |
+| Interrupt during a tool call | while the tool runs | the tool keeps its last status and shows no result                           |
 
 The session is never replaced. After a stop you can simply send again.
 

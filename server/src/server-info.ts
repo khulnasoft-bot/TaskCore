@@ -1,5 +1,9 @@
 import { execFileSync } from "node:child_process";
-import type { ServerGitInfo, ServerGitLocalChanges, ServerInfoSnapshot } from "@taskcore/shared";
+import type {
+  ServerGitInfo,
+  ServerGitLocalChanges,
+  ServerInfoSnapshot,
+} from "@taskcore/shared";
 import { parseBuildCommit, readBuildCommit } from "./build-commit.js";
 
 export type { ServerGitInfo, ServerInfoSnapshot };
@@ -34,15 +38,11 @@ function defaultGitStatusCommand() {
 }
 
 function defaultGitBranchCommand() {
-  return execFileSync(
-    "git",
-    ["symbolic-ref", "--quiet", "--short", "HEAD"],
-    {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: 1500,
-    },
-  );
+  return execFileSync("git", ["symbolic-ref", "--quiet", "--short", "HEAD"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+    timeout: 1500,
+  });
 }
 
 function parseGitLocalChanges(output: string): ServerGitLocalChanges {
@@ -60,19 +60,23 @@ function parseGitLocalChanges(output: string): ServerGitLocalChanges {
       continue;
     }
     if (indexStatus !== " " && indexStatus !== "?") stagedFileCount += 1;
-    if (worktreeStatus !== " " && worktreeStatus !== "?") unstagedFileCount += 1;
+    if (worktreeStatus !== " " && worktreeStatus !== "?")
+      unstagedFileCount += 1;
   }
 
   return {
     available: true,
-    hasLocalChanges: stagedFileCount + unstagedFileCount + untrackedFileCount > 0,
+    hasLocalChanges:
+      stagedFileCount + unstagedFileCount + untrackedFileCount > 0,
     stagedFileCount,
     unstagedFileCount,
     untrackedFileCount,
   };
 }
 
-function getGitLocalChanges(gitStatusCommand: GitCommand): ServerGitLocalChanges {
+function getGitLocalChanges(
+  gitStatusCommand: GitCommand,
+): ServerGitLocalChanges {
   try {
     return parseGitLocalChanges(gitStatusCommand());
   } catch {
@@ -101,7 +105,9 @@ function parseGitInfo(
     shortSha,
     branchName,
     subject: subject.trim() || "No commit subject",
-    committedAt: Number.isNaN(committedAtTime) ? null : new Date(committedAtTime).toISOString(),
+    committedAt: Number.isNaN(committedAtTime)
+      ? null
+      : new Date(committedAtTime).toISOString(),
     localChanges,
   };
 }

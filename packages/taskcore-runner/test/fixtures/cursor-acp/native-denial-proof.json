@@ -38,9 +38,7 @@
   "permissionResponseDeliveredAt": "2026-09-28T20:52:10.919Z",
   "originalOracleResult": {
     "passed": false,
-    "failures": [
-      "no_observed_delivered_denial_of_write"
-    ]
+    "failures": ["no_observed_delivered_denial_of_write"]
   },
   "offlineOracleResult": {
     "passed": true,

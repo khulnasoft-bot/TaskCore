@@ -149,17 +149,28 @@ describe("TaskChatRunnerTurn", () => {
     (phase) => {
       const execution = { phase } as ExecutionProjection;
       render([], "running", "run-1", undefined, false, false, execution);
-      expect(container.querySelector('[data-testid="task-chat-turn-status-header"]')?.textContent)
-        .toContain("Working for");
-      expect(container.querySelector('[data-testid="task-chat-current-activity-label"]')?.textContent)
-        .toBe("Thinking");
+      expect(
+        container.querySelector('[data-testid="task-chat-turn-status-header"]')
+          ?.textContent,
+      ).toContain("Working for");
+      expect(
+        container.querySelector(
+          '[data-testid="task-chat-current-activity-label"]',
+        )?.textContent,
+      ).toBe("Thinking");
       render([], "succeeded", "run-1", undefined, false, false, execution);
-      expect(container.querySelector('[data-testid="task-chat-turn-status-header"]')?.textContent)
-        .toContain("Worked");
-      expect(container.querySelector('[data-testid="task-chat-current-activity"]')).toBeNull();
+      expect(
+        container.querySelector('[data-testid="task-chat-turn-status-header"]')
+          ?.textContent,
+      ).toContain("Worked");
+      expect(
+        container.querySelector('[data-testid="task-chat-current-activity"]'),
+      ).toBeNull();
       render([], "failed", "run-1", undefined, false, false, execution);
-      expect(container.querySelector('[data-testid="task-chat-turn-status-header"]')?.textContent)
-        .toContain("Stopped");
+      expect(
+        container.querySelector('[data-testid="task-chat-turn-status-header"]')
+          ?.textContent,
+      ).toContain("Stopped");
       expect(container.textContent).not.toContain("Reconnecting");
     },
   );
@@ -242,14 +253,21 @@ describe("TaskChatRunnerTurn", () => {
         detail: "STREAM-1\n",
       },
     ]);
-    const commentary = container.querySelector('[data-testid="task-chat-phase-interstitial"]');
-    const activity = container.querySelector('[data-testid="task-chat-activity-viewport"]');
+    const commentary = container.querySelector(
+      '[data-testid="task-chat-phase-interstitial"]',
+    );
+    const activity = container.querySelector(
+      '[data-testid="task-chat-activity-viewport"]',
+    );
     expect(commentary?.textContent).toContain("Running the exact command now.");
     expect(activity?.textContent).toContain("Running a command");
     expect(activity?.textContent).toContain("STREAM-$i");
-    expect(container.querySelector('[data-testid="task-chat-current-activity"]')).toBeNull();
-    expect(commentary?.compareDocumentPosition(activity!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-
+    expect(
+      container.querySelector('[data-testid="task-chat-current-activity"]'),
+    ).toBeNull();
+    expect(commentary?.compareDocumentPosition(activity!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it("keeps the timer at the top and moves resumed Thinking below completed activity", () => {
@@ -278,13 +296,20 @@ describe("TaskChatRunnerTurn", () => {
       },
     ]);
 
-    const header = container.querySelector('[data-testid="task-chat-turn-status-header"]');
-    const activity = container.querySelector('[data-testid="task-chat-activity-viewport"]');
+    const header = container.querySelector(
+      '[data-testid="task-chat-turn-status-header"]',
+    );
+    const activity = container.querySelector(
+      '[data-testid="task-chat-activity-viewport"]',
+    );
     expect(header?.textContent).toContain("Working for");
     expect(activity?.textContent).toBe("Thinking");
-    expect(header?.compareDocumentPosition(activity!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(container.querySelector('[data-testid="task-chat-current-activity"]')).toBeNull();
-
+    expect(header?.compareDocumentPosition(activity!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(
+      container.querySelector('[data-testid="task-chat-current-activity"]'),
+    ).toBeNull();
   });
 
   it("keeps earlier commentary mounted when later commentary streams", () => {
@@ -386,12 +411,43 @@ describe("TaskChatRunnerTurn", () => {
   });
 
   it("keeps a visible fallback when completion tools are filtered before the final reply", () => {
-    render([{ id: "finish", kind: "tool", name: "taskcore_finish", status: "in_progress" }]);
-    expect(container.querySelector('[data-testid="task-chat-current-activity"]')?.textContent).toContain("Thinking");
-    expect(container.querySelector('[data-testid="task-chat-activity-phase"]')).toBeNull();
-    render([{ id: "finish-provider", kind: "protocol", surface: "provider_activity", family: "tool_execution", eventType: "tool.execution.started", status: "running", title: "Finish", details: [{ label: "Name", value: "taskcore_finish" }], steps: [], links: [], children: [] }]);
-    expect(container.querySelector('[data-testid="task-chat-current-activity"]')?.textContent).toContain("Thinking");
-    expect(container.querySelector('[data-testid="task-chat-activity-phase"]')).toBeNull();
+    render([
+      {
+        id: "finish",
+        kind: "tool",
+        name: "taskcore_finish",
+        status: "in_progress",
+      },
+    ]);
+    expect(
+      container.querySelector('[data-testid="task-chat-current-activity"]')
+        ?.textContent,
+    ).toContain("Thinking");
+    expect(
+      container.querySelector('[data-testid="task-chat-activity-phase"]'),
+    ).toBeNull();
+    render([
+      {
+        id: "finish-provider",
+        kind: "protocol",
+        surface: "provider_activity",
+        family: "tool_execution",
+        eventType: "tool.execution.started",
+        status: "running",
+        title: "Finish",
+        details: [{ label: "Name", value: "taskcore_finish" }],
+        steps: [],
+        links: [],
+        children: [],
+      },
+    ]);
+    expect(
+      container.querySelector('[data-testid="task-chat-current-activity"]')
+        ?.textContent,
+    ).toContain("Thinking");
+    expect(
+      container.querySelector('[data-testid="task-chat-activity-phase"]'),
+    ).toBeNull();
   });
 
   it("surfaces native activity transport failure while retrying", () => {
@@ -468,7 +524,7 @@ describe("TaskChatRunnerTurn", () => {
     );
     expect(
       rows[0]
-        ?.querySelector('[data-activity-icon] svg')
+        ?.querySelector("[data-activity-icon] svg")
         ?.parentElement?.classList.contains("size-5"),
     ).toBe(true);
   });
@@ -502,13 +558,22 @@ describe("TaskChatRunnerTurn", () => {
         )
         ?.click(),
     );
-    const history = container.querySelector('[data-testid="task-chat-runner-activity-list"]');
-    expect(container.querySelector('[data-testid="task-chat-runner-activity-rail"]')).toBeNull();
+    const history = container.querySelector(
+      '[data-testid="task-chat-runner-activity-list"]',
+    );
+    expect(
+      container.querySelector('[data-testid="task-chat-runner-activity-rail"]'),
+    ).toBeNull();
     expect(history?.querySelectorAll("li")).toHaveLength(2);
     expect(history?.textContent).toContain("ThoughtInspect the current card.");
-    expect(history?.textContent).toContain("ThinkingKeep the canonical revision atomic.");
-    expect(container.querySelector('[data-testid="task-chat-runner-activity-detail"]')).toBeNull();
-
+    expect(history?.textContent).toContain(
+      "ThinkingKeep the canonical revision atomic.",
+    );
+    expect(
+      container.querySelector(
+        '[data-testid="task-chat-runner-activity-detail"]',
+      ),
+    ).toBeNull();
   });
 
   it("renders only the current reasoning block as active", () => {
@@ -544,9 +609,14 @@ describe("TaskChatRunnerTurn", () => {
         ?.click(),
     );
 
-    expect(container.querySelector('[data-activity-item-id="old-reasoning"]')?.textContent).toContain("ThoughtInspect the current card.");
-    expect(container.querySelector('[data-activity-item-id="current-reasoning"]')?.textContent).toContain("ThinkingVerify the updated state.");
-
+    expect(
+      container.querySelector('[data-activity-item-id="old-reasoning"]')
+        ?.textContent,
+    ).toContain("ThoughtInspect the current card.");
+    expect(
+      container.querySelector('[data-activity-item-id="current-reasoning"]')
+        ?.textContent,
+    ).toContain("ThinkingVerify the updated state.");
   });
 
   it("does not let a textless reasoning lifecycle remove sticky commentary", () => {
@@ -577,9 +647,8 @@ describe("TaskChatRunnerTurn", () => {
       container.querySelector('[data-testid="task-chat-current-activity"]'),
     ).toBeNull();
     expect(
-      container.querySelector(
-        '[data-testid="task-chat-activity-viewport"]',
-      )?.textContent,
+      container.querySelector('[data-testid="task-chat-activity-viewport"]')
+        ?.textContent,
     ).toBe("Thinking");
   });
 
@@ -611,7 +680,9 @@ describe("TaskChatRunnerTurn", () => {
     const disclosure = container.querySelector<HTMLButtonElement>(
       '[data-testid="task-chat-activity-phase-toggle"]',
     );
-    expect(disclosure?.getAttribute("aria-label")).toContain("Expand 1 activity");
+    expect(disclosure?.getAttribute("aria-label")).toContain(
+      "Expand 1 activity",
+    );
     act(() => disclosure?.click());
     const history = container.querySelector(
       '[data-testid="task-chat-runner-activity-list"]',
@@ -622,7 +693,7 @@ describe("TaskChatRunnerTurn", () => {
     ).not.toBeNull();
     expect(
       history
-        ?.querySelector('[data-activity-icon] svg')
+        ?.querySelector("[data-activity-icon] svg")
         ?.parentElement?.classList.contains("size-5"),
     ).toBe(true);
   });
@@ -654,7 +725,11 @@ describe("TaskChatRunnerTurn", () => {
     expect(activity?.textContent).toContain(
       "site:openai.com model guide GPT-5.4",
     );
-    expect(activity?.querySelector("[data-activity-family]")?.getAttribute("data-activity-family")).toBe("research");
+    expect(
+      activity
+        ?.querySelector("[data-activity-family]")
+        ?.getAttribute("data-activity-family"),
+    ).toBe("research");
   });
 
   it("has a purpose-built current-activity presentation for every provider family", () => {
@@ -790,9 +865,12 @@ describe("TaskChatRunnerTurn", () => {
       const activity = container.querySelector(
         '[data-testid="task-chat-activity-viewport"]',
       );
-      expect(activity?.querySelector("[data-activity-family]")?.getAttribute("data-activity-family"), entry.family).toBe(
+      expect(
+        activity
+          ?.querySelector("[data-activity-family]")
+          ?.getAttribute("data-activity-family"),
         entry.family,
-      );
+      ).toBe(entry.family);
       expect(activity?.textContent, entry.family).toContain(entry.expected);
     }
   });
@@ -869,9 +947,7 @@ describe("TaskChatRunnerTurn", () => {
     );
     expect(activity?.textContent).toContain("Referenced a file");
     expect(activity?.textContent).toContain("ui/src/App.tsx:42");
-    const icon = activity?.querySelector(
-      '[data-activity-icon] svg',
-    );
+    const icon = activity?.querySelector("[data-activity-icon] svg");
     expect(icon).not.toBeNull();
     expect(icon?.parentElement?.classList.contains("size-5")).toBe(true);
     expect(icon?.parentElement?.classList.contains("justify-center")).toBe(
@@ -1221,7 +1297,7 @@ describe("TaskChatRunnerTurn", () => {
     );
     expect(
       container
-        .querySelector('[data-activity-icon] svg')
+        .querySelector("[data-activity-icon] svg")
         ?.parentElement?.classList.contains("size-5"),
     ).toBe(true);
   });

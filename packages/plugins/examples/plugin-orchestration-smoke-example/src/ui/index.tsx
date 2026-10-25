@@ -49,18 +49,33 @@ const buttonStyle = {
 function SurfaceRows({ data }: { data: SurfaceStatus }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <div style={rowStyle}><span>Status</span><strong>{data.status}</strong></div>
-      <div style={rowStyle}><span>Namespace</span><code>{data.databaseNamespace}</code></div>
-      <div style={rowStyle}><span>Routes</span><code>{data.routeKeys.join(", ")}</code></div>
-      <div style={rowStyle}><span>Capabilities</span><strong>{data.capabilities.length}</strong></div>
+      <div style={rowStyle}>
+        <span>Status</span>
+        <strong>{data.status}</strong>
+      </div>
+      <div style={rowStyle}>
+        <span>Namespace</span>
+        <code>{data.databaseNamespace}</code>
+      </div>
+      <div style={rowStyle}>
+        <span>Routes</span>
+        <code>{data.routeKeys.join(", ")}</code>
+      </div>
+      <div style={rowStyle}>
+        <span>Capabilities</span>
+        <strong>{data.capabilities.length}</strong>
+      </div>
     </div>
   );
 }
 
 export function DashboardWidget({ context }: PluginWidgetProps) {
-  const { data, loading, error } = usePluginData<SurfaceStatus>("surface-status", {
-    companyId: context.companyId,
-  });
+  const { data, loading, error } = usePluginData<SurfaceStatus>(
+    "surface-status",
+    {
+      companyId: context.companyId,
+    },
+  );
 
   if (loading) return <div>Loading orchestration smoke status...</div>;
   if (error) return <div>Orchestration smoke error: {error.message}</div>;
@@ -76,10 +91,13 @@ export function DashboardWidget({ context }: PluginWidgetProps) {
 }
 
 export function IssuePanel({ context }: PluginDetailTabProps) {
-  const { data, loading, error, refresh } = usePluginData<SurfaceStatus>("surface-status", {
-    companyId: context.companyId,
-    issueId: context.entityId,
-  });
+  const { data, loading, error, refresh } = usePluginData<SurfaceStatus>(
+    "surface-status",
+    {
+      companyId: context.companyId,
+      issueId: context.entityId,
+    },
+  );
   const initialize = usePluginAction("initialize-smoke");
 
   if (loading) return <div>Loading orchestration smoke...</div>;
@@ -93,7 +111,10 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
         <button
           style={buttonStyle}
           onClick={async () => {
-            await initialize({ companyId: context.companyId, issueId: context.entityId });
+            await initialize({
+              companyId: context.companyId,
+              issueId: context.entityId,
+            });
             refresh();
           }}
         >
@@ -103,11 +124,28 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
       <SurfaceRows data={data} />
       {data.summary ? (
         <div style={{ display: "grid", gap: 4 }}>
-          <div style={rowStyle}><span>Child</span><code>{data.summary.childIssueId ?? "none"}</code></div>
-          <div style={rowStyle}><span>Blocker</span><code>{data.summary.blockerIssueId ?? "none"}</code></div>
-          <div style={rowStyle}><span>Billing</span><code>{data.summary.billingCode}</code></div>
-          <div style={rowStyle}><span>Subtree</span><strong>{data.summary.subtreeIssueIds.length}</strong></div>
-          <div style={rowStyle}><span>Wakeup</span><strong>{data.summary.wakeupQueued ? "queued" : "not queued"}</strong></div>
+          <div style={rowStyle}>
+            <span>Child</span>
+            <code>{data.summary.childIssueId ?? "none"}</code>
+          </div>
+          <div style={rowStyle}>
+            <span>Blocker</span>
+            <code>{data.summary.blockerIssueId ?? "none"}</code>
+          </div>
+          <div style={rowStyle}>
+            <span>Billing</span>
+            <code>{data.summary.billingCode}</code>
+          </div>
+          <div style={rowStyle}>
+            <span>Subtree</span>
+            <strong>{data.summary.subtreeIssueIds.length}</strong>
+          </div>
+          <div style={rowStyle}>
+            <span>Wakeup</span>
+            <strong>
+              {data.summary.wakeupQueued ? "queued" : "not queued"}
+            </strong>
+          </div>
         </div>
       ) : (
         <div>No smoke run recorded for this issue.</div>
@@ -117,12 +155,16 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
 }
 
 export function SettingsPage({ context }: PluginSettingsPageProps) {
-  const { data, loading, error } = usePluginData<SurfaceStatus>("surface-status", {
-    companyId: context.companyId,
-  });
+  const { data, loading, error } = usePluginData<SurfaceStatus>(
+    "surface-status",
+    {
+      companyId: context.companyId,
+    },
+  );
 
   if (loading) return <div>Loading orchestration smoke settings...</div>;
-  if (error) return <div>Orchestration smoke settings error: {error.message}</div>;
+  if (error)
+    return <div>Orchestration smoke settings error: {error.message}</div>;
   if (!data) return null;
 
   return (

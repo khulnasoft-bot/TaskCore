@@ -1,4 +1,8 @@
-import { readThreadScrollAnchor, threadScrollAnchorDelta, type ThreadScrollAnchor } from "./scroll-anchor";
+import {
+  readThreadScrollAnchor,
+  threadScrollAnchorDelta,
+  type ThreadScrollAnchor,
+} from "./scroll-anchor";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useTaskChatScrollNavigation } from "./scroll-navigation";
 
@@ -11,7 +15,9 @@ function scrollingElement(): Element | null {
 function windowPinned(): boolean {
   const el = scrollingElement();
   if (!el) return true;
-  return el.scrollHeight - window.scrollY - window.innerHeight <= PIN_THRESHOLD_PX;
+  return (
+    el.scrollHeight - window.scrollY - window.innerHeight <= PIN_THRESHOLD_PX
+  );
 }
 
 function scrollWindowToBottom(): void {
@@ -30,18 +36,26 @@ function scrollWindowToBottom(): void {
  * The conversation enables this hook after navigation has settled and before
  * its coordinated reveal, so initial positioning happens before paint.
  */
-export function useWindowAutoFollow(contentKey: unknown, enabled: boolean): void {
+export function useWindowAutoFollow(
+  contentKey: unknown,
+  enabled: boolean,
+): void {
   const pinnedRef = useRef(true);
   const lastScrollYRef = useRef(window.scrollY);
   const navigation = useTaskChatScrollNavigation();
   const initialPositionApplied = useRef(false);
-  const appliedNavigation = useRef({ key: navigation.key, hash: navigation.hash });
+  const appliedNavigation = useRef({
+    key: navigation.key,
+    hash: navigation.hash,
+  });
   const anchorRef = useRef<ThreadScrollAnchor | null>(null);
   const rememberAnchor = () => {
     lastScrollYRef.current = window.scrollY;
     const root = document.querySelector('[data-testid="task-chat-thread"]');
-    if (root) anchorRef.current = readThreadScrollAnchor(root, 0, window.innerHeight);
-    if (initialPositionApplied.current) navigation.remember(window.scrollY, anchorRef.current);
+    if (root)
+      anchorRef.current = readThreadScrollAnchor(root, 0, window.innerHeight);
+    if (initialPositionApplied.current)
+      navigation.remember(window.scrollY, anchorRef.current);
   };
   const reconcile = () => {
     if (pinnedRef.current) scrollWindowToBottom();
@@ -49,7 +63,8 @@ export function useWindowAutoFollow(contentKey: unknown, enabled: boolean): void
       const root = document.querySelector('[data-testid="task-chat-thread"]');
       if (root) {
         const delta = threadScrollAnchorDelta(root, anchorRef.current, 0);
-        if (delta) window.scrollTo({ top: window.scrollY + delta, behavior: "auto" });
+        if (delta)
+          window.scrollTo({ top: window.scrollY + delta, behavior: "auto" });
       }
     }
     rememberAnchor();
@@ -61,7 +76,9 @@ export function useWindowAutoFollow(contentKey: unknown, enabled: boolean): void
       // Content or viewport growth can leave a gap below the old bottom before
       // ResizeObserver runs. Only an upward scroll gives up existing follow
       // intent; a scroll event at the same position must not strand the output.
-      pinnedRef.current = windowPinned() || (pinnedRef.current && window.scrollY >= lastScrollYRef.current);
+      pinnedRef.current =
+        windowPinned() ||
+        (pinnedRef.current && window.scrollY >= lastScrollYRef.current);
       rememberAnchor();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -98,13 +115,21 @@ export function useWindowAutoFollow(contentKey: unknown, enabled: boolean): void
   // Follow new content only when already pinned; otherwise hold position.
   useLayoutEffect(() => {
     if (!enabled) return;
-    if (appliedNavigation.current.key !== navigation.key || appliedNavigation.current.hash !== navigation.hash) {
-      appliedNavigation.current = { key: navigation.key, hash: navigation.hash };
+    if (
+      appliedNavigation.current.key !== navigation.key ||
+      appliedNavigation.current.hash !== navigation.hash
+    ) {
+      appliedNavigation.current = {
+        key: navigation.key,
+        hash: navigation.hash,
+      };
       initialPositionApplied.current = false;
     }
     if (navigation.ready && !initialPositionApplied.current) {
       const root = document.querySelector('[data-testid="task-chat-thread"]');
-      const top = root ? navigation.initialPosition(root, 0, window.scrollY) : null;
+      const top = root
+        ? navigation.initialPosition(root, 0, window.scrollY)
+        : null;
       if (top !== null) {
         window.scrollTo({ top, behavior: "auto" });
         pinnedRef.current = windowPinned();
@@ -130,7 +155,13 @@ export function useWindowAutoFollow(contentKey: unknown, enabled: boolean): void
 
 /** Mount below TaskChatScrollReady so mobile navigation also waits for targets
  * fetched after the conversation's first reveal. */
-export function TaskChatWindowScroll({ contentKey, enabled }: { contentKey: unknown; enabled: boolean }) {
+export function TaskChatWindowScroll({
+  contentKey,
+  enabled,
+}: {
+  contentKey: unknown;
+  enabled: boolean;
+}) {
   useWindowAutoFollow(contentKey, enabled);
   return null;
 }

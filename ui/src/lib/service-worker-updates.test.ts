@@ -20,7 +20,12 @@ function fakeContainer(opts: { controlled: boolean }) {
   const emit = (type: string) => {
     for (const listener of listeners.get(type) ?? []) listener();
   };
-  return { container: container as unknown as ServiceWorkerContainer, registration, emit, listeners };
+  return {
+    container: container as unknown as ServiceWorkerContainer,
+    registration,
+    emit,
+    listeners,
+  };
 }
 
 function fakeDocument(initialVisibility: DocumentVisibilityState = "visible") {
@@ -38,7 +43,13 @@ function fakeDocument(initialVisibility: DocumentVisibilityState = "visible") {
   const emit = (type: string) => {
     for (const listener of listeners.get(type) ?? []) listener();
   };
-  return { doc: doc as unknown as Document & { visibilityState: DocumentVisibilityState }, emit, listeners };
+  return {
+    doc: doc as unknown as Document & {
+      visibilityState: DocumentVisibilityState;
+    },
+    emit,
+    listeners,
+  };
 }
 
 describe("startServiceWorkerUpdates", () => {
@@ -113,9 +124,15 @@ describe("startServiceWorkerUpdates", () => {
   });
 
   it("checks for updates when the tab becomes visible", async () => {
-    const { container, registration, emit } = fakeContainer({ controlled: true });
+    const { container, registration, emit } = fakeContainer({
+      controlled: true,
+    });
     const docState = fakeDocument("hidden");
-    startServiceWorkerUpdates({ container, documentRef: docState.doc, reload: vi.fn() });
+    startServiceWorkerUpdates({
+      container,
+      documentRef: docState.doc,
+      reload: vi.fn(),
+    });
     await vi.waitFor(() => expect(container.register).toHaveBeenCalled());
     // Let the register() promise settle so the registration is captured.
     await Promise.resolve();
@@ -144,7 +161,9 @@ describe("startServiceWorkerUpdates", () => {
   });
 
   it("stops listening and ticking after cleanup", async () => {
-    const { container, registration, emit, listeners } = fakeContainer({ controlled: true });
+    const { container, registration, emit, listeners } = fakeContainer({
+      controlled: true,
+    });
     const docState = fakeDocument();
     const reload = vi.fn();
     const stop = startServiceWorkerUpdates({
@@ -165,6 +184,8 @@ describe("startServiceWorkerUpdates", () => {
   });
 
   it("is a no-op without a service worker container", () => {
-    expect(() => startServiceWorkerUpdates({ reload: vi.fn() })()).not.toThrow();
+    expect(() =>
+      startServiceWorkerUpdates({ reload: vi.fn() })(),
+    ).not.toThrow();
   });
 });

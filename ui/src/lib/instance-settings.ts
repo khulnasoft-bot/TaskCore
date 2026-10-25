@@ -4,7 +4,11 @@ export const DEFAULT_INSTANCE_SETTINGS_PATH = `${INSTANCE_SETTINGS_PATH_PREFIX}/
 const LEGACY_INSTANCE_SETTINGS_PATH_PREFIX = "/instance/settings";
 const LEGACY_SETTINGS_PATH_PREFIX = "/settings";
 
-function splitPath(rawPath: string): { pathname: string; search: string; hash: string } {
+function splitPath(rawPath: string): {
+  pathname: string;
+  search: string;
+  hash: string;
+} {
   const match = rawPath.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/);
   return {
     pathname: match?.[1] ?? rawPath,
@@ -13,7 +17,11 @@ function splitPath(rawPath: string): { pathname: string; search: string; hash: s
   };
 }
 
-function normalizePathForMatching(rawPath: string): { pathname: string; search: string; hash: string } {
+function normalizePathForMatching(rawPath: string): {
+  pathname: string;
+  search: string;
+  hash: string;
+} {
   const { pathname, search, hash } = splitPath(rawPath);
   const segments = pathname.split("/").filter(Boolean);
   const first = segments[0]?.toLowerCase();
@@ -38,7 +46,10 @@ function instanceSettingsSuffix(pathname: string): string | null {
     return pathname.slice(INSTANCE_SETTINGS_PATH_PREFIX.length);
   }
 
-  if (pathname === LEGACY_INSTANCE_SETTINGS_PATH_PREFIX || pathname === "/instance") {
+  if (
+    pathname === LEGACY_INSTANCE_SETTINGS_PATH_PREFIX ||
+    pathname === "/instance"
+  ) {
     return "/general";
   }
   if (pathname.startsWith(`${LEGACY_INSTANCE_SETTINGS_PATH_PREFIX}/`)) {
@@ -53,7 +64,9 @@ function instanceSettingsSuffix(pathname: string): string | null {
   return null;
 }
 
-export function normalizeRememberedInstanceSettingsPath(rawPath: string | null): string {
+export function normalizeRememberedInstanceSettingsPath(
+  rawPath: string | null,
+): string {
   if (!rawPath) return DEFAULT_INSTANCE_SETTINGS_PATH;
 
   const { pathname, search, hash } = normalizePathForMatching(rawPath);

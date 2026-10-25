@@ -1,6 +1,12 @@
 import { ExternalLink, Loader2, Play, ScrollText, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { cn } from "../lib/utils";
 import type { WorkspaceAccessState } from "../lib/workspace-access-state";
 
@@ -19,7 +25,10 @@ import type { WorkspaceAccessState } from "../lib/workspace-access-state";
  * and `degraded` the "todo" (amber) tone; the icon variants are the contrast-
  * corrected pair the token layer already tunes per mode.
  */
-type ActiveWorkspaceAccessState = Exclude<WorkspaceAccessState["state"], "stopped">;
+type ActiveWorkspaceAccessState = Exclude<
+  WorkspaceAccessState["state"],
+  "stopped"
+>;
 
 const STATE_BADGE_CLASSES: Record<ActiveWorkspaceAccessState, string> = {
   provisioning: "border-border text-muted-foreground",
@@ -90,7 +99,8 @@ export function WorkspaceAccessCard({
                 STATE_BADGE_CLASSES[access.state],
               )}
             >
-              {(access.state === "repairing" || access.state === "provisioning") && (
+              {(access.state === "repairing" ||
+                access.state === "provisioning") && (
                 <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
               )}
               {STATE_LABELS[access.state]}
@@ -110,13 +120,16 @@ export function WorkspaceAccessCard({
             {isBusy && !isWaiting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Icon className={cn("mr-2 h-4 w-4", isWaiting && "animate-spin")} />
+              <Icon
+                className={cn("mr-2 h-4 w-4", isWaiting && "animate-spin")}
+              />
             )}
             {access.action.label}
           </Button>
           {access.state === "ready" && !access.handoffAvailable ? (
             <span className="text-xs text-muted-foreground">
-              Signs in with the snapshot-local credentials captured when this clone was made.
+              Signs in with the snapshot-local credentials captured when this
+              clone was made.
             </span>
           ) : null}
           {access.state === "ready" && access.handoffAvailable ? (
@@ -126,14 +139,24 @@ export function WorkspaceAccessCard({
           ) : null}
         </div>
         {errorMessage ? (
-          <p data-testid="workspace-access-error" className="text-sm text-destructive">
+          <p
+            data-testid="workspace-access-error"
+            className="text-sm text-destructive"
+          >
             {errorMessage}
           </p>
         ) : null}
         {access.secondaryNotice && SecondaryNoticeIcon ? (
-          <div data-testid="workspace-access-secondary-notice" className="flex flex-col gap-1.5 text-sm">
-            <p className="font-medium text-destructive">{access.secondaryNotice.title}</p>
-            <p className="text-muted-foreground">{access.secondaryNotice.description}</p>
+          <div
+            data-testid="workspace-access-secondary-notice"
+            className="flex flex-col gap-1.5 text-sm"
+          >
+            <p className="font-medium text-destructive">
+              {access.secondaryNotice.title}
+            </p>
+            <p className="text-muted-foreground">
+              {access.secondaryNotice.description}
+            </p>
             <Button
               type="button"
               variant="link"

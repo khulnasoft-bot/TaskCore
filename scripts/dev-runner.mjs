@@ -1,12 +1,22 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { fileURLToPath } from "node:url";
-import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.mjs";
+import {
+  createCapturedOutputBuffer,
+  parseJsonResponseWithLimit,
+} from "./dev-runner-output.mjs";
 import { shouldTrackDevServerPath } from "./dev-runner-paths.mjs";
 
 const mode = process.argv[2] === "watch" ? "watch" : "dev";
@@ -15,8 +25,15 @@ const scanIntervalMs = 1500;
 const autoRestartPollIntervalMs = 2500;
 const gracefulShutdownTimeoutMs = 10_000;
 const changedPathSampleLimit = 5;
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const devServerStatusFilePath = path.join(repoRoot, ".taskcore", "dev-server-status.json");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const devServerStatusFilePath = path.join(
+  repoRoot,
+  ".taskcore",
+  "dev-server-status.json",
+);
 const devServerStatusToken = mode === "dev" ? randomUUID() : null;
 const devServerStatusTokenHeader = "x-taskcore-dev-server-status-token";
 
@@ -51,9 +68,7 @@ const ignoredDirectoryNames = new Set([
   "ui-dist",
 ]);
 
-const ignoredRelativePaths = new Set([
-  ".taskcore/dev-server-status.json",
-]);
+const ignoredRelativePaths = new Set([".taskcore/dev-server-status.json"]);
 
 const tailscaleAuthFlagNames = new Set([
   "--tailscale-auth",
@@ -99,7 +114,9 @@ if (tailscaleAuth) {
   env.TASKCORE_DEPLOYMENT_EXPOSURE = "private";
   env.TASKCORE_AUTH_BASE_URL_MODE = "auto";
   env.HOST = "0.0.0.0";
-  console.log("[taskcore] dev mode: authenticated/private (tailscale-friendly) on 0.0.0.0");
+  console.log(
+    "[taskcore] dev mode: authenticated/private (tailscale-friendly) on 0.0.0.0",
+  );
 } else {
   console.log("[taskcore] dev mode: local_trusted (default)");
 }
@@ -235,14 +252,18 @@ function writeDevServerStatus() {
   const changedPaths = [...dirtyPaths].sort();
   writeFileSync(
     devServerStatusFilePath,
-    `${JSON.stringify({
-      dirty: changedPaths.length > 0 || pendingMigrations.length > 0,
-      lastChangedAt,
-      changedPathCount: changedPaths.length,
-      changedPathsSample: changedPaths.slice(0, changedPathSampleLimit),
-      pendingMigrations,
-      lastRestartAt,
-    }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        dirty: changedPaths.length > 0 || pendingMigrations.length > 0,
+        lastChangedAt,
+        changedPathCount: changedPaths.length,
+        changedPathsSample: changedPaths.slice(0, changedPathSampleLimit),
+        pendingMigrations,
+        lastRestartAt,
+      },
+      null,
+      2,
+    )}\n`,
     "utf8",
   );
 }
@@ -291,7 +312,14 @@ async function runPnpm(args, options = {}) {
 
 async function getMigrationStatusPayload() {
   const status = await runPnpm(
-    ["--filter", "@taskcore/db", "exec", "tsx", "src/migration-status.ts", "--json"],
+    [
+      "--filter",
+      "@taskcore/db",
+      "exec",
+      "tsx",
+      "src/migration-status.ts",
+      "--json",
+    ],
     { env },
   );
   if (status.code !== 0) {
@@ -318,8 +346,11 @@ async function getMigrationStatusPayload() {
 async function refreshPendingMigrations() {
   const payload = await getMigrationStatusPayload();
   pendingMigrations =
-    payload.status === "needsMigrations" && Array.isArray(payload.pendingMigrations)
-      ? payload.pendingMigrations.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
+    payload.status === "needsMigrations" &&
+    Array.isArray(payload.pendingMigrations)
+      ? payload.pendingMigrations.filter(
+          (entry) => typeof entry === "string" && entry.trim().length > 0,
+        )
       : [];
   writeDevServerStatus();
   return payload;
@@ -327,7 +358,8 @@ async function refreshPendingMigrations() {
 
 async function maybePreflightMigrations(options = {}) {
   const interactive = options.interactive ?? mode === "watch";
-  const autoApply = options.autoApply ?? env.TASKCORE_MIGRATION_AUTO_APPLY === "true";
+  const autoApply =
+    options.autoApply ?? env.TASKCORE_MIGRATION_AUTO_APPLY === "true";
   const exitOnDecline = options.exitOnDecline ?? mode === "watch";
 
   const payload = await refreshPendingMigrations();
@@ -389,10 +421,9 @@ async function maybePreflightMigrations(options = {}) {
 
 async function buildPluginSdk() {
   console.log("[taskcore] building plugin sdk...");
-  const result = await runPnpm(
-    ["--filter", "@taskcore/plugin-sdk", "build"],
-    { stdio: "inherit" },
-  );
+  const result = await runPnpm(["--filter", "@taskcore/plugin-sdk", "build"], {
+    stdio: "inherit",
+  });
   if (result.signal) {
     exitForSignal(result.signal);
     return;
@@ -433,7 +464,9 @@ async function scanForBackendChanges() {
 async function getDevHealthPayload() {
   const serverPort = env.PORT ?? process.env.PORT ?? "3100";
   const response = await fetch(`http://127.0.0.1:${serverPort}/api/health`, {
-    headers: devServerStatusToken ? { [devServerStatusTokenHeader]: devServerStatusToken } : undefined,
+    headers: devServerStatusToken
+      ? { [devServerStatusTokenHeader]: devServerStatusToken }
+      : undefined,
   });
   if (!response.ok) {
     throw new Error(`Health request failed (${response.status})`);

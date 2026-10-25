@@ -21,7 +21,9 @@ const FUTURE = new Date("2026-02-01T01:00:00.000Z");
 
 // An in-memory reaper store. The test seeds rows directly, so no database runs.
 function createMemoryReaperStore(): AdapterAuthReaperStore & {
-  seed(row: Partial<AdapterAuthSessionRow> & Pick<AdapterAuthSessionRow, "id">): AdapterAuthSessionRow;
+  seed(
+    row: Partial<AdapterAuthSessionRow> & Pick<AdapterAuthSessionRow, "id">,
+  ): AdapterAuthSessionRow;
 } {
   const rows = new Map<string, AdapterAuthSessionRow>();
   const isActive = (status: AdapterAuthSessionRow["status"]) =>
@@ -58,7 +60,9 @@ function createMemoryReaperStore(): AdapterAuthReaperStore & {
       );
     },
     async listCleanupPendingSessions() {
-      return [...rows.values()].filter((row) => row.status === "cleanup_pending");
+      return [...rows.values()].filter(
+        (row) => row.status === "cleanup_pending",
+      );
     },
     async listLeaseReferences() {
       return [...rows.values()]
@@ -69,24 +73,33 @@ function createMemoryReaperStore(): AdapterAuthReaperStore & {
       const row = rows.get(input.sessionId);
       if (!row) return;
       row.status = input.status;
-      if (input.failureReason !== undefined) row.failureReason = input.failureReason;
+      if (input.failureReason !== undefined)
+        row.failureReason = input.failureReason;
       if (input.finishedAt !== undefined) row.finishedAt = input.finishedAt;
-      if (input.promotionExpiresAt !== undefined) row.promotionExpiresAt = input.promotionExpiresAt;
+      if (input.promotionExpiresAt !== undefined)
+        row.promotionExpiresAt = input.promotionExpiresAt;
     },
     async compareAndSetStatus(input) {
       const row = rows.get(input.sessionId);
       if (!row || !input.expectedStatuses.includes(row.status)) return false;
       row.status = input.status;
-      if (input.failureReason !== undefined) row.failureReason = input.failureReason;
+      if (input.failureReason !== undefined)
+        row.failureReason = input.failureReason;
       if (input.finishedAt !== undefined) row.finishedAt = input.finishedAt;
-      if (input.promotionExpiresAt !== undefined) row.promotionExpiresAt = input.promotionExpiresAt;
+      if (input.promotionExpiresAt !== undefined)
+        row.promotionExpiresAt = input.promotionExpiresAt;
       return true;
     },
     async get(sessionId) {
       const row = rows.get(sessionId);
       return row ? { ...row } : null;
     },
-    async withCompanyAdapterPromotionLock(_companyId, _startedByUserId, _adapterType, fn) {
+    async withCompanyAdapterPromotionLock(
+      _companyId,
+      _startedByUserId,
+      _adapterType,
+      fn,
+    ) {
       // The in-memory store runs on a single event loop, so it needs no real
       // lock. The pass-through keeps the reaper contract satisfied.
       return fn();
@@ -130,7 +143,9 @@ describe("device login reaper", () => {
 
     const result = await reaper.sweep();
 
-    expect(deleteCalls).toEqual([{ environmentId, providerLeaseId: "lease-1" }]);
+    expect(deleteCalls).toEqual([
+      { environmentId, providerLeaseId: "lease-1" },
+    ]);
     expect(result.expiredTimedOut).toBe(1);
     const row = await store.get(seeded.id);
     expect(row?.status).toBe("timed_out");
@@ -194,7 +209,9 @@ describe("device login reaper", () => {
     const result = await reaper.sweep();
 
     // The stale claim is reclaimed: the reaper deletes the sandbox and times out.
-    expect(deleteCalls).toEqual([{ environmentId, providerLeaseId: "lease-1" }]);
+    expect(deleteCalls).toEqual([
+      { environmentId, providerLeaseId: "lease-1" },
+    ]);
     expect(result.expiredTimedOut).toBe(1);
     expect((await store.get(seeded.id))?.status).toBe("timed_out");
   });
@@ -269,8 +286,16 @@ describe("device login reaper", () => {
     });
     const { runtime, deleteCalls } = createFakeRuntime({
       tagged: [
-        { environmentId, providerLeaseId: "linked-1", sessionId: "linked-session" },
-        { environmentId, providerLeaseId: "orphan-1", sessionId: "orphan-session" },
+        {
+          environmentId,
+          providerLeaseId: "linked-1",
+          sessionId: "linked-session",
+        },
+        {
+          environmentId,
+          providerLeaseId: "orphan-1",
+          sessionId: "orphan-session",
+        },
       ],
     });
     const reaper = createDeviceLoginReaper({ store, runtime, now: () => NOW });
@@ -278,7 +303,9 @@ describe("device login reaper", () => {
     const result = await reaper.sweep();
 
     // Only the orphan lease is deleted; the referenced lease is untouched.
-    expect(deleteCalls).toEqual([{ environmentId, providerLeaseId: "orphan-1" }]);
+    expect(deleteCalls).toEqual([
+      { environmentId, providerLeaseId: "orphan-1" },
+    ]);
     expect(result.orphanLeasesDeleted).toBe(1);
   });
 
@@ -287,7 +314,13 @@ describe("device login reaper", () => {
     const environmentId = randomUUID();
     let attempt = 0;
     const { runtime, deleteCalls } = createFakeRuntime({
-      tagged: [{ environmentId, providerLeaseId: "orphan-1", sessionId: "orphan-session" }],
+      tagged: [
+        {
+          environmentId,
+          providerLeaseId: "orphan-1",
+          sessionId: "orphan-session",
+        },
+      ],
       deleteImpl: async () => {
         attempt += 1;
         if (attempt === 1) throw new Error("provider delete rejected");
@@ -316,7 +349,13 @@ describe("device login reaper", () => {
     });
     // The delete is idempotent: an already-gone sandbox returns not_found.
     const { runtime } = createFakeRuntime({
-      tagged: [{ environmentId, providerLeaseId: "orphan-1", sessionId: "orphan-session" }],
+      tagged: [
+        {
+          environmentId,
+          providerLeaseId: "orphan-1",
+          sessionId: "orphan-session",
+        },
+      ],
       deleteImpl: async () => ({ outcome: "not_found" }),
     });
     const reaper = createDeviceLoginReaper({ store, runtime, now: () => NOW });

@@ -62,7 +62,10 @@ export async function sendPtyInputInChunks(
   payload: string | Uint8Array,
   onError?: () => void,
 ): Promise<void> {
-  const bytes = typeof payload === "string" ? PTY_INPUT_TEXT_ENCODER.encode(payload) : payload;
+  const bytes =
+    typeof payload === "string"
+      ? PTY_INPUT_TEXT_ENCODER.encode(payload)
+      : payload;
   for (let offset = 0; offset < bytes.length; offset += PTY_INPUT_CHUNK_BYTES) {
     const chunk = bytes.subarray(offset, offset + PTY_INPUT_CHUNK_BYTES);
     try {

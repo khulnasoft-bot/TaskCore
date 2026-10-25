@@ -8,58 +8,90 @@ import {
   normalizeHumanRole,
   resolveHumanInviteRole,
 } from "../services/company-member-roles.js";
-import { NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS, newStandardAgentGrantScope } from "../services/agent-permissions.js";
+import {
+  NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS,
+  newStandardAgentGrantScope,
+} from "../services/agent-permissions.js";
 
 const invitedAgentId = "agent-1";
-const defaultAgentGrants = NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS.map((permissionKey) => ({
-  permissionKey,
-  scope: newStandardAgentGrantScope(permissionKey, invitedAgentId),
-}));
+const defaultAgentGrants = NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS.map(
+  (permissionKey) => ({
+    permissionKey,
+    scope: newStandardAgentGrantScope(permissionKey, invitedAgentId),
+  }),
+);
 
 describe("agentJoinGrantsFromDefaults", () => {
   it("adds all new-agent grants when invite defaults do not specify grants", () => {
-    expect(agentJoinGrantsFromDefaults(null, invitedAgentId)).toEqual(defaultAgentGrants);
+    expect(agentJoinGrantsFromDefaults(null, invitedAgentId)).toEqual(
+      defaultAgentGrants,
+    );
   });
 
   it("preserves invite agent grants and appends the missing defaults", () => {
     expect(
-      agentJoinGrantsFromDefaults({
-        agent: {
-          grants: [
-            {
-              permissionKey: "agents:create",
-              scope: null,
-            },
-          ],
+      agentJoinGrantsFromDefaults(
+        {
+          agent: {
+            grants: [
+              {
+                permissionKey: "agents:create",
+                scope: null,
+              },
+            ],
+          },
         },
-      }, invitedAgentId),
-    ).toEqual([{ permissionKey: "agents:create", scope: null }, ...defaultAgentGrants]);
+        invitedAgentId,
+      ),
+    ).toEqual([
+      { permissionKey: "agents:create", scope: null },
+      ...defaultAgentGrants,
+    ]);
   });
 
   it("does not duplicate tasks:assign when invite defaults already include it", () => {
     expect(
-      agentJoinGrantsFromDefaults({
-        agent: {
-          grants: [
-            {
-              permissionKey: "tasks:assign",
-              scope: { projectId: "project-1" },
-            },
-          ],
+      agentJoinGrantsFromDefaults(
+        {
+          agent: {
+            grants: [
+              {
+                permissionKey: "tasks:assign",
+                scope: { projectId: "project-1" },
+              },
+            ],
+          },
         },
-      }, invitedAgentId),
+        invitedAgentId,
+      ),
     ).toEqual([
       { permissionKey: "tasks:assign", scope: { projectId: "project-1" } },
-      ...defaultAgentGrants.filter((grant) => grant.permissionKey !== "tasks:assign"),
+      ...defaultAgentGrants.filter(
+        (grant) => grant.permissionKey !== "tasks:assign",
+      ),
     ]);
   });
 
   it("preserves an explicit scoped agent configuration grant", () => {
-    expect(agentJoinGrantsFromDefaults({
-      agent: { grants: [{ permissionKey: "agents:configure", scope: { agentIds: ["agent-1"] } }] },
-    }, invitedAgentId)).toEqual([
+    expect(
+      agentJoinGrantsFromDefaults(
+        {
+          agent: {
+            grants: [
+              {
+                permissionKey: "agents:configure",
+                scope: { agentIds: ["agent-1"] },
+              },
+            ],
+          },
+        },
+        invitedAgentId,
+      ),
+    ).toEqual([
       { permissionKey: "agents:configure", scope: { agentIds: ["agent-1"] } },
-      ...defaultAgentGrants.filter((grant) => grant.permissionKey !== "agents:configure"),
+      ...defaultAgentGrants.filter(
+        (grant) => grant.permissionKey !== "agents:configure",
+      ),
     ]);
   });
 });
@@ -133,7 +165,9 @@ describe("human invite roles", () => {
   });
 
   it("falls back to role grants when human invite defaults omit explicit grants", () => {
-    expect(humanJoinGrantsFromDefaults(null, "operator")).toEqual(grantsForHumanRole("operator"));
+    expect(humanJoinGrantsFromDefaults(null, "operator")).toEqual(
+      grantsForHumanRole("operator"),
+    );
   });
 
   it("preserves explicit human invite grants", () => {

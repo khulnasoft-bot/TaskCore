@@ -79,8 +79,12 @@ describe("provider trace channel integrity", () => {
       "rust_native",
       "typescript_runnerd_rehydration",
     ]);
-    expect(providerTraceRequiredChannels("opencode")).toEqual(["typescript_opencode_native"]);
-    expect(providerTraceRequiredChannels("acpx")).toEqual(["typescript_acpx_native"]);
+    expect(providerTraceRequiredChannels("opencode")).toEqual([
+      "typescript_opencode_native",
+    ]);
+    expect(providerTraceRequiredChannels("acpx")).toEqual([
+      "typescript_acpx_native",
+    ]);
   });
 
   function completeChannel(channel: string, raw = Buffer.from("{}")) {
@@ -157,11 +161,13 @@ describe("provider trace retention", () => {
 
   function expiredTraceDb() {
     const row = expiredTraceRow();
-    const returning = vi.fn(async () => [{
-      ...row,
-      status: "expired",
-      deletedAt: new Date("2026-08-31T12:00:00.000Z"),
-    }]);
+    const returning = vi.fn(async () => [
+      {
+        ...row,
+        status: "expired",
+        deletedAt: new Date("2026-08-31T12:00:00.000Z"),
+      },
+    ]);
     const db = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
@@ -186,7 +192,9 @@ describe("provider trace retention", () => {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => {
-            const result = Promise.resolve(selectRows()) as Promise<Array<typeof row>> & {
+            const result = Promise.resolve(selectRows()) as Promise<
+              Array<typeof row>
+            > & {
               limit: (count: number) => Promise<Array<typeof row>>;
             };
             result.limit = vi.fn(async () => selectRows());
@@ -204,8 +212,14 @@ describe("provider trace retention", () => {
             return {
               returning: execute,
               then: <TResult1 = Array<typeof row>, TResult2 = never>(
-                onfulfilled?: ((value: Array<typeof row>) => TResult1 | PromiseLike<TResult1>) | null,
-                onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+                onfulfilled?:
+                  | ((
+                      value: Array<typeof row>,
+                    ) => TResult1 | PromiseLike<TResult1>)
+                  | null,
+                onrejected?:
+                  | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
+                  | null,
               ) => execute().then(onfulfilled, onrejected),
             };
           }),
@@ -248,8 +262,14 @@ describe("provider trace retention", () => {
             return {
               returning: execute,
               then: <TResult1 = Array<typeof row>, TResult2 = never>(
-                onfulfilled?: ((value: Array<typeof row>) => TResult1 | PromiseLike<TResult1>) | null,
-                onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+                onfulfilled?:
+                  | ((
+                      value: Array<typeof row>,
+                    ) => TResult1 | PromiseLike<TResult1>)
+                  | null,
+                onrejected?:
+                  | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
+                  | null,
               ) => execute().then(onfulfilled, onrejected),
             };
           }),
@@ -264,32 +284,50 @@ describe("provider trace retention", () => {
     read: (store: ReturnType<typeof providerTraceStore>) => Promise<unknown>;
   }> = [
     { name: "inspect", read: (store) => store.inspect("run-1", "company-1") },
-    { name: "readExactEntries", read: (store) => store.readExactEntries("run-1", "company-1") },
-    { name: "revealFrame", read: (store) => store.revealFrame("run-1", "company-1", 1) },
+    {
+      name: "readExactEntries",
+      read: (store) => store.readExactEntries("run-1", "company-1"),
+    },
+    {
+      name: "revealFrame",
+      read: (store) => store.revealFrame("run-1", "company-1", 1),
+    },
     { name: "download", read: (store) => store.download("run-1", "company-1") },
   ];
 
-  it.each(rawReaders)("denies and expires raw trace access through $name", async ({ name, read }) => {
-    mockUnlink.mockReset();
-    mockUnlink.mockResolvedValue(undefined);
-    const { db, returning } = expiredTraceDb();
-    const store = providerTraceStore(db as never);
+  it.each(rawReaders)(
+    "denies and expires raw trace access through $name",
+    async ({ name, read }) => {
+      mockUnlink.mockReset();
+      mockUnlink.mockResolvedValue(undefined);
+      const { db, returning } = expiredTraceDb();
+      const store = providerTraceStore(db as never);
 
-    const result = await read(store);
+      const result = await read(store);
 
-    expect(result).toEqual(name === "inspect" ? { trace: null, entries: [] } : null);
-    expect(returning).toHaveBeenCalledOnce();
-  });
+      expect(result).toEqual(
+        name === "inspect" ? { trace: null, entries: [] } : null,
+      );
+      expect(returning).toHaveBeenCalledOnce();
+    },
+  );
 
   it("keeps an expired row denied and retries failed raw-file cleanup", async () => {
-    const unlinkError = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    const unlinkError = Object.assign(new Error("permission denied"), {
+      code: "EACCES",
+    });
     mockUnlink.mockReset();
     mockUnlink.mockRejectedValueOnce(unlinkError).mockResolvedValue(undefined);
     const { db, row } = statefulExpiredTraceDb();
     const store = providerTraceStore(db as never);
 
-    await expect(store.inspect("run-1", "company-1")).rejects.toThrow("permission denied");
-    expect(row()).toMatchObject({ status: "expired", deletedAt: expect.any(Date) });
+    await expect(store.inspect("run-1", "company-1")).rejects.toThrow(
+      "permission denied",
+    );
+    expect(row()).toMatchObject({
+      status: "expired",
+      deletedAt: expect.any(Date),
+    });
 
     await expect(store.inspect("run-1", "company-1")).resolves.toEqual({
       trace: null,
@@ -304,12 +342,14 @@ describe("provider trace retention", () => {
     const { db } = statefulExpiredTraceDb();
     const store = providerTraceStore(db as never);
 
-    await expect(store.prepare({
-      runId: "run-1",
-      companyId: "company-1",
-      provider: "codex",
-      requestedBy: "user-1",
-    })).rejects.toThrow("provider_trace_unavailable");
+    await expect(
+      store.prepare({
+        runId: "run-1",
+        companyId: "company-1",
+        provider: "codex",
+        requestedBy: "user-1",
+      }),
+    ).rejects.toThrow("provider_trace_unavailable");
   });
 
   it("does not let concurrent finalization overwrite expiry or strand raw files", async () => {

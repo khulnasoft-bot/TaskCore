@@ -4,7 +4,15 @@ import os from "node:os";
 import path from "node:path";
 import express from "express";
 import request from "supertest";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { companies, createDb } from "@taskcore/db";
 import {
   getEmbeddedPostgresTestSupport,
@@ -73,14 +81,21 @@ vi.mock("../services/index.js", () => ({
 const spoolRemovalFailure = vi.hoisted(() => ({ error: null as Error | null }));
 const assemblyFailure = vi.hoisted(() => ({ error: null as Error | null }));
 vi.mock("../services/company-import-transfers.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../services/company-import-transfers.js")>();
+  const actual =
+    await importOriginal<
+      typeof import("../services/company-import-transfers.js")
+    >();
   return {
     ...actual,
     removeImportTransferSpool: async (spoolRoot: string, runId: string) => {
       if (spoolRemovalFailure.error) throw spoolRemovalFailure.error;
       return actual.removeImportTransferSpool(spoolRoot, runId);
     },
-    assembleImportTransferZip: async (spoolRoot: string, runId: string, partCount: number) => {
+    assembleImportTransferZip: async (
+      spoolRoot: string,
+      runId: string,
+      partCount: number,
+    ) => {
       if (assemblyFailure.error) throw assemblyFailure.error;
       return actual.assembleImportTransferZip(spoolRoot, runId, partCount);
     },
@@ -121,7 +136,10 @@ function crc32(bytes: Uint8Array) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function buildStoreZip(files: Record<string, string>, rootPath: string): Buffer {
+function buildStoreZip(
+  files: Record<string, string>,
+  rootPath: string,
+): Buffer {
   const encoder = new TextEncoder();
   const localChunks: Buffer[] = [];
   const centralChunks: Buffer[] = [];
@@ -193,7 +211,9 @@ function buildFixtureZip(): Buffer {
 function sliceIntoParts(zip: Buffer, partSizeBytes: number): Buffer[] {
   const parts: Buffer[] = [];
   for (let offset = 0; offset < zip.length; offset += partSizeBytes) {
-    parts.push(zip.subarray(offset, Math.min(offset + partSizeBytes, zip.length)));
+    parts.push(
+      zip.subarray(offset, Math.min(offset + partSizeBytes, zip.length)),
+    );
   }
   return parts;
 }
@@ -222,7 +242,9 @@ const importMeta = {
 };
 
 describeEmbeddedPostgres("company import transfer routes", () => {
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let db!: ReturnType<typeof createDb>;
   let spoolRoot!: string;
   let app!: express.Express;
@@ -233,29 +255,45 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     const routeModulePath = `../routes/companies.js?company-import-transfer-routes-${appImportCounter}`;
     const middlewareModulePath = `../middleware/index.js?company-import-transfer-routes-${appImportCounter}`;
     const [{ companyRoutes }, { errorHandler }] = await Promise.all([
-      import(routeModulePath) as Promise<typeof import("../routes/companies.js")>,
-      import(middlewareModulePath) as Promise<typeof import("../middleware/index.js")>,
+      import(routeModulePath) as Promise<
+        typeof import("../routes/companies.js")
+      >,
+      import(middlewareModulePath) as Promise<
+        typeof import("../middleware/index.js")
+      >,
     ]);
     const built = express();
     built.use(express.json());
     built.use((req, _res, next) => {
       const header = req.headers[TEST_USER_HEADER];
-      const userId = typeof header === "string" && header.length > 0 ? header : "board-user-a";
+      const userId =
+        typeof header === "string" && header.length > 0
+          ? header
+          : "board-user-a";
       (req as any).actor = boardActor(userId);
       next();
     });
-    built.use("/api/companies", companyRoutes(db, undefined, { importTransferSpoolRoot: spoolRoot }));
+    built.use(
+      "/api/companies",
+      companyRoutes(db, undefined, { importTransferSpoolRoot: spoolRoot }),
+    );
     built.use(errorHandler);
     return built;
   }
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-import-transfer-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-import-transfer-routes-",
+    );
     db = createDb(tempDb.connectionString);
     // The mocked import result points at this company; the ledger's
     // company_id foreign key needs the row to exist.
-    await db.insert(companies).values({ id: companyId, name: "Chunked Import Target" });
-    spoolRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-import-transfer-spool-"));
+    await db
+      .insert(companies)
+      .values({ id: companyId, name: "Chunked Import Target" });
+    spoolRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-import-transfer-spool-"),
+    );
     app = await createApp();
   });
 
@@ -275,7 +313,12 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     });
   });
 
-  function putPart(transferId: string, index: number, bytes: Buffer, userId?: string) {
+  function putPart(
+    transferId: string,
+    index: number,
+    bytes: Buffer,
+    userId?: string,
+  ) {
     let req = request(app)
       .put(`/api/companies/import/transfers/${transferId}/parts/${index}`)
       .set("content-type", "application/octet-stream");
@@ -288,7 +331,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 3));
     expect(slices.length).toBe(3);
 
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     expect(created.status).toBe(200);
     const transferId = created.body.transferId as string;
     expect(transferId).toMatch(/^[0-9a-f-]{36}$/);
@@ -300,7 +345,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     expect((await putPart(transferId, 2, slices[2]!)).status).toBe(200);
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
 
-    const midway = await request(app).get(`/api/companies/import/transfers/${transferId}`);
+    const midway = await request(app).get(
+      `/api/companies/import/transfers/${transferId}`,
+    );
     expect(midway.status).toBe(200);
     expect(midway.body.totalParts).toBe(3);
     expect(midway.body.completedParts).toBe(2);
@@ -316,7 +363,8 @@ describeEmbeddedPostgres("company import transfer routes", () => {
 
     // The assembled zip fed the existing import pipeline unchanged.
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
-    const importBody = mockCompanyPortabilityService.importBundle.mock.calls[0]![0];
+    const importBody =
+      mockCompanyPortabilityService.importBundle.mock.calls[0]![0];
     expect(importBody.source.type).toBe("inline");
     expect(importBody.source.files["COMPANY.md"]).toContain("Chunked Import");
     expect(importBody.target).toEqual(importMeta.target);
@@ -329,12 +377,17 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // single-shot upload route.
     expect(mockLogActivity).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ action: "company.imported", entityId: companyId }),
+      expect.objectContaining({
+        action: "company.imported",
+        entityId: companyId,
+      }),
     );
     // Spool is deleted on success.
     await expect(fs.stat(path.join(spoolRoot, transferId))).rejects.toThrow();
 
-    const finished = await request(app).get(`/api/companies/import/transfers/${transferId}`);
+    const finished = await request(app).get(
+      `/api/companies/import/transfers/${transferId}`,
+    );
     expect(finished.body.status).toBe("completed");
     expect(finished.body.missingParts).toEqual([]);
   });
@@ -347,7 +400,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     });
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 3));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -360,8 +415,11 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     expect(previewed.body.plan).toEqual({ companyAction: "update" });
 
     // The assembled zip fed the existing preview pipeline unchanged.
-    expect(mockCompanyPortabilityService.previewImport).toHaveBeenCalledTimes(1);
-    const previewBody = mockCompanyPortabilityService.previewImport.mock.calls[0]![0];
+    expect(mockCompanyPortabilityService.previewImport).toHaveBeenCalledTimes(
+      1,
+    );
+    const previewBody =
+      mockCompanyPortabilityService.previewImport.mock.calls[0]![0];
     expect(previewBody.source.type).toBe("inline");
     expect(previewBody.source.files["COMPANY.md"]).toContain("Chunked Import");
     expect(previewBody.target).toEqual(importMeta.target);
@@ -371,8 +429,12 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // and no part needs re-uploading before the apply.
     const run = (await companyTransferRunService.getRun(db, transferId))!;
     expect(run.status).not.toBe("completed");
-    await expect(fs.stat(path.join(spoolRoot, transferId))).resolves.toBeDefined();
-    const status = await request(app).get(`/api/companies/import/transfers/${transferId}`);
+    await expect(
+      fs.stat(path.join(spoolRoot, transferId)),
+    ).resolves.toBeDefined();
+    const status = await request(app).get(
+      `/api/companies/import/transfers/${transferId}`,
+    );
     expect(status.body.missingParts).toEqual([]);
 
     const applied = await request(app)
@@ -380,13 +442,17 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       .send(importMeta);
     expect(applied.status).toBe(200);
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("completed");
   });
 
   it("refuses to preview while parts are missing", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 3));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 1, slices[1]!)).status).toBe(200);
 
@@ -401,7 +467,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("refuses to preview while an apply holds the claim and leaves the spool untouched", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -410,7 +478,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // Claim the run as an in-flight apply would: the preview must refuse
     // before reading the spool the apply is assembling (and deleting on
     // success) rather than race it.
-    expect(await companyTransferRunService.claimApply(db, transferId)).toBe(true);
+    expect(await companyTransferRunService.claimApply(db, transferId)).toBe(
+      true,
+    );
     try {
       const previewed = await request(app)
         .post(`/api/companies/import/transfers/${transferId}/preview`)
@@ -418,23 +488,35 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       expect(previewed.status).toBe(409);
       expect(previewed.body.error).toContain("apply is in progress");
     } finally {
-      await companyTransferRunService.releaseApplyClaim(db, transferId, "test release");
+      await companyTransferRunService.releaseApplyClaim(
+        db,
+        transferId,
+        "test release",
+      );
     }
     expect(mockCompanyPortabilityService.previewImport).not.toHaveBeenCalled();
     // Every part file survived for the apply to read.
     for (const [index] of slices.entries()) {
-      await expect(fs.stat(path.join(spoolRoot, transferId, `part-${index}`))).resolves.toBeDefined();
+      await expect(
+        fs.stat(path.join(spoolRoot, transferId, `part-${index}`)),
+      ).resolves.toBeDefined();
     }
   });
 
   it("refuses to preview an already-applied transfer", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, zip.length);
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
     expect(
-      (await request(app).post(`/api/companies/import/transfers/${transferId}/apply`).send(importMeta)).status,
+      (
+        await request(app)
+          .post(`/api/companies/import/transfers/${transferId}/apply`)
+          .send(importMeta)
+      ).status,
     ).toBe(200);
 
     const previewed = await request(app)
@@ -448,12 +530,16 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("returns 410 for a preview against a swept transfer", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
 
     const later = new Date(Date.now() + 25 * 60 * 60 * 1000);
-    const swept = await sweepAbandonedImportTransferSpools(db, spoolRoot, { now: later });
+    const swept = await sweepAbandonedImportTransferSpools(db, spoolRoot, {
+      now: later,
+    });
     expect(swept.swept).toBeGreaterThanOrEqual(1);
 
     const previewed = await request(app)
@@ -462,13 +548,17 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     expect(previewed.status).toBe(410);
     expect(previewed.body.error).toContain("expired");
     expect(mockCompanyPortabilityService.previewImport).not.toHaveBeenCalled();
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("cancelled");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("cancelled");
   });
 
   it("returns a clean conflict when an apply completes and sweeps the spool mid-preview-assembly", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -479,16 +569,24 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // the preview is assembling it. The stale initial read comes from a
     // one-shot getRunForActor stub; the ledger itself already says completed
     // and the assembly blows up the way missing part files would.
-    expect(await companyTransferRunService.claimApply(db, transferId)).toBe(true);
+    expect(await companyTransferRunService.claimApply(db, transferId)).toBe(
+      true,
+    );
     await companyTransferRunService.complete(db, transferId);
-    const completedRun = (await companyTransferRunService.getRun(db, transferId))!;
+    const completedRun = (await companyTransferRunService.getRun(
+      db,
+      transferId,
+    ))!;
     expect(completedRun.status).toBe("completed");
     const staleRead = vi
       .spyOn(companyTransferRunService, "getRunForActor")
       .mockResolvedValueOnce({ ...completedRun, status: "running" });
-    assemblyFailure.error = Object.assign(new Error("ENOENT: no such file or directory, open 'part-0'"), {
-      code: "ENOENT",
-    });
+    assemblyFailure.error = Object.assign(
+      new Error("ENOENT: no such file or directory, open 'part-0'"),
+      {
+        code: "ENOENT",
+      },
+    );
     try {
       const previewed = await request(app)
         .post(`/api/companies/import/transfers/${transferId}/preview`)
@@ -503,13 +601,17 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     expect(mockCompanyPortabilityService.previewImport).not.toHaveBeenCalled();
     // Preview stayed read-only: the run keeps the terminal state the apply
     // gave it.
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("completed");
   });
 
   it("applies through the async import job machinery when requested", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -542,14 +644,18 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // "applying", or it would be unusable until a restart.
     const firstZip = buildFixtureZip();
     const first = declareTransfer(firstZip, Math.ceil(firstZip.length / 2));
-    const firstCreated = await request(app).post("/api/companies/import/transfers").send(first.body);
+    const firstCreated = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(first.body);
     const firstId = firstCreated.body.transferId as string;
     for (const [index, slice] of first.slices.entries()) {
       expect((await putPart(firstId, index, slice)).status).toBe(200);
     }
     const secondZip = buildFixtureZip();
     const second = declareTransfer(secondZip, Math.ceil(secondZip.length / 2));
-    const secondCreated = await request(app).post("/api/companies/import/transfers").send(second.body);
+    const secondCreated = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(second.body);
     const secondId = secondCreated.body.transferId as string;
     for (const [index, slice] of second.slices.entries()) {
       expect((await putPart(secondId, index, slice)).status).toBe(200);
@@ -578,7 +684,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       .send(importMeta);
     expect(refused.status).toBe(409);
     // The refused transfer is failed (retryable), never stranded applying.
-    expect((await companyTransferRunService.getRun(db, secondId))!.status).toBe("failed");
+    expect((await companyTransferRunService.getRun(db, secondId))!.status).toBe(
+      "failed",
+    );
 
     releaseImport!();
     let job: Record<string, any> | undefined;
@@ -589,20 +697,26 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     expect(job?.status).toBe("succeeded");
-    expect((await companyTransferRunService.getRun(db, firstId))!.status).toBe("completed");
+    expect((await companyTransferRunService.getRun(db, firstId))!.status).toBe(
+      "completed",
+    );
 
     // After the first import settles, the refused transfer applies cleanly.
     const retried = await request(app)
       .post(`/api/companies/import/transfers/${secondId}/apply`)
       .send(importMeta);
     expect(retried.status).toBe(200);
-    expect((await companyTransferRunService.getRun(db, secondId))!.status).toBe("completed");
+    expect((await companyTransferRunService.getRun(db, secondId))!.status).toBe(
+      "completed",
+    );
   });
 
   it("freezes part uploads while an apply holds the claim", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -611,14 +725,20 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // Claim the run as an in-flight apply would, then retry a part upload:
     // the route must refuse before touching the spool, and the previously
     // uploaded part file must survive untouched for the apply to read.
-    expect(await companyTransferRunService.claimApply(db, transferId)).toBe(true);
+    expect(await companyTransferRunService.claimApply(db, transferId)).toBe(
+      true,
+    );
     const frozen = await putPart(transferId, 0, slices[0]!);
     expect(frozen.status).toBe(409);
     expect(frozen.body.error).toContain("apply is in progress");
     await expect(
       fs.stat(path.join(spoolRoot, transferId, "part-0")),
     ).resolves.toBeDefined();
-    await companyTransferRunService.releaseApplyClaim(db, transferId, "test release");
+    await companyTransferRunService.releaseApplyClaim(
+      db,
+      transferId,
+      "test release",
+    );
   });
 
   it("rejects declarations that are inconsistent or over the limits", async () => {
@@ -652,7 +772,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("rejects a part whose bytes do not match the declaration and records nothing", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
 
     // Right length, wrong content -> sha mismatch.
@@ -665,7 +787,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     const wrongLength = await putPart(transferId, 0, slices[0]!.subarray(1));
     expect(wrongLength.status).toBe(422);
 
-    const status = await request(app).get(`/api/companies/import/transfers/${transferId}`);
+    const status = await request(app).get(
+      `/api/companies/import/transfers/${transferId}`,
+    );
     expect(status.body.completedParts).toBe(0);
     expect(status.body.missingParts).toEqual([0, 1]);
     const run = (await companyTransferRunService.getRun(db, transferId))!;
@@ -675,7 +799,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("treats a re-upload of a completed part as a no-op success", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
 
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
@@ -690,7 +816,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("refuses to apply while parts are missing", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 3));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
 
@@ -700,17 +828,23 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     expect(applied.status).toBe(409);
     expect(applied.body.missingParts).toEqual([1, 2]);
     expect(mockCompanyPortabilityService.importBundle).not.toHaveBeenCalled();
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).not.toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).not.toBe("completed");
   });
 
   it("resumes a re-declared transfer with its prior progress", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 3));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
 
-    const redeclared = await request(app).post("/api/companies/import/transfers").send(body);
+    const redeclared = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     expect(redeclared.status).toBe(200);
     expect(redeclared.body.transferId).toBe(transferId);
     expect(redeclared.body.missingParts).toEqual([1, 2]);
@@ -720,11 +854,17 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("reports an already-applied transfer on re-declaration", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, zip.length);
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
     expect(
-      (await request(app).post(`/api/companies/import/transfers/${transferId}/apply`).send(importMeta)).status,
+      (
+        await request(app)
+          .post(`/api/companies/import/transfers/${transferId}/apply`)
+          .send(importMeta)
+      ).status,
     ).toBe(200);
 
     // The rejection names the company the completed apply created so the
@@ -734,18 +874,26 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       name: "Taskcore",
       issuePrefix: "PAPA",
     });
-    const redeclared = await request(app).post("/api/companies/import/transfers").send(body);
+    const redeclared = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     expect(redeclared.status).toBe(200);
     expect(redeclared.body.transferId).toBe(transferId);
     expect(redeclared.body.alreadyCompleted).toBe(true);
     expect(redeclared.body.missingParts).toEqual([]);
     expect(mockCompanyService.getById).toHaveBeenCalledWith(companyId);
-    expect(redeclared.body.company).toEqual({ id: companyId, name: "Taskcore", issuePrefix: "PAPA" });
+    expect(redeclared.body.company).toEqual({
+      id: companyId,
+      name: "Taskcore",
+      issuePrefix: "PAPA",
+    });
 
     // A company deleted since the apply (or an attach that never happened)
     // degrades to company: null, never a 500.
     mockCompanyService.getById.mockResolvedValue(null);
-    const redeclaredAfterDelete = await request(app).post("/api/companies/import/transfers").send(body);
+    const redeclaredAfterDelete = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     expect(redeclaredAfterDelete.status).toBe(200);
     expect(redeclaredAfterDelete.body.alreadyCompleted).toBe(true);
     expect(redeclaredAfterDelete.body.company).toBeNull();
@@ -759,7 +907,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("keeps a completed run completed when post-success spool cleanup fails", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -774,12 +924,17 @@ describeEmbeddedPostgres("company import transfer routes", () => {
         .post(`/api/companies/import/transfers/${transferId}/apply`)
         .send(importMeta);
       expect(applied.status).toBe(200);
-      expect(applied.body.company).toEqual({ id: companyId, action: "updated" });
+      expect(applied.body.company).toEqual({
+        id: companyId,
+        action: "updated",
+      });
     } finally {
       spoolRemovalFailure.error = null;
     }
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("completed");
 
     // A follow-up apply short-circuits on the completed run instead of
     // claiming it for a duplicate import.
@@ -788,27 +943,37 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       .send(importMeta);
     expect(reApplied.status).toBe(409);
     expect(reApplied.body.error).toContain("already been applied");
-    const redeclared = await request(app).post("/api/companies/import/transfers").send(body);
+    const redeclared = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     expect(redeclared.body.transferId).toBe(transferId);
     expect(redeclared.body.alreadyCompleted).toBe(true);
     // The import pipeline never ran a second time.
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("completed");
 
     // The leftover spool from the failed cleanup is not stranded: the sweep
     // collects terminal-run spools immediately, no idle wait, and the run
     // keeps its terminal status.
-    await expect(fs.stat(path.join(spoolRoot, transferId))).resolves.toBeDefined();
+    await expect(
+      fs.stat(path.join(spoolRoot, transferId)),
+    ).resolves.toBeDefined();
     const swept = await sweepAbandonedImportTransferSpools(db, spoolRoot);
     expect(swept.swept).toBeGreaterThanOrEqual(1);
     await expect(fs.stat(path.join(spoolRoot, transferId))).rejects.toThrow();
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("completed");
   });
 
   it("settles the run completed even when attaching the imported company fails", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -829,7 +994,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       attachSpy.mockRestore();
     }
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("completed");
 
     const reApplied = await request(app)
       .post(`/api/companies/import/transfers/${transferId}/apply`)
@@ -842,8 +1009,13 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
     // Per-part hashes are honest, but the declared whole-file hash is not.
-    const lying = { ...body, zipSha256: sha256Hex(Buffer.from("something else entirely")) };
-    const created = await request(app).post("/api/companies/import/transfers").send(lying);
+    const lying = {
+      ...body,
+      zipSha256: sha256Hex(Buffer.from("something else entirely")),
+    };
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(lying);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -864,7 +1036,9 @@ describeEmbeddedPostgres("company import transfer routes", () => {
   it("hides transfers from other actors", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
 
     const otherStatus = await request(app)
@@ -872,7 +1046,12 @@ describeEmbeddedPostgres("company import transfer routes", () => {
       .set(TEST_USER_HEADER, "board-user-b");
     expect(otherStatus.status).toBe(404);
 
-    const otherUpload = await putPart(transferId, 0, slices[0]!, "board-user-b");
+    const otherUpload = await putPart(
+      transferId,
+      0,
+      slices[0]!,
+      "board-user-b",
+    );
     expect(otherUpload.status).toBe(404);
 
     const otherApply = await request(app)
@@ -882,47 +1061,65 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     expect(otherApply.status).toBe(404);
 
     // Malformed ids never reach the filesystem or the database.
-    const malformed = await request(app).get("/api/companies/import/transfers/..%2Fescape");
+    const malformed = await request(app).get(
+      "/api/companies/import/transfers/..%2Fescape",
+    );
     expect(malformed.status).toBe(404);
   });
 
   it("sweeps abandoned spools and cancels their open runs", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
 
     // Fresh activity: nothing to sweep at the real threshold.
-    expect(await sweepAbandonedImportTransferSpools(db, spoolRoot)).toEqual({ swept: 0 });
-    await expect(fs.stat(path.join(spoolRoot, transferId))).resolves.toBeDefined();
+    expect(await sweepAbandonedImportTransferSpools(db, spoolRoot)).toEqual({
+      swept: 0,
+    });
+    await expect(
+      fs.stat(path.join(spoolRoot, transferId)),
+    ).resolves.toBeDefined();
 
     // 25 hours later the run saw no activity: spool deleted, run cancelled.
     // Cancelled — not failed — so no apply can claim the run in the window
     // between the status flip and the spool deletion (claimApply accepts
     // failed runs but never cancelled ones).
     const later = new Date(Date.now() + 25 * 60 * 60 * 1000);
-    const swept = await sweepAbandonedImportTransferSpools(db, spoolRoot, { now: later });
+    const swept = await sweepAbandonedImportTransferSpools(db, spoolRoot, {
+      now: later,
+    });
     expect(swept.swept).toBeGreaterThanOrEqual(1);
     await expect(fs.stat(path.join(spoolRoot, transferId))).rejects.toThrow();
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("cancelled");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("cancelled");
 
     // A redeclaration after the sweep starts a FRESH run — the cancelled run
     // is never resumed — with every part missing again, matching the part
     // upload's 410 "re-create it" contract.
-    const redeclared = await request(app).post("/api/companies/import/transfers").send(body);
+    const redeclared = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     expect(redeclared.status).toBe(200);
     expect(redeclared.body.transferId).not.toBe(transferId);
     expect(redeclared.body.alreadyCompleted).toBe(false);
     expect(redeclared.body.missingParts).toEqual([0, 1]);
     // The swept run itself stays terminal.
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("cancelled");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("cancelled");
   });
 
   it("skips the sweep when the run saw activity after the staleness read", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
 
@@ -930,32 +1127,46 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // — as if a part upload bumped the row right after that read — while the
     // guarded UPDATE sees the fresh row in the database and must miss.
     const real = (await companyTransferRunService.getRun(db, transferId))!;
-    const staleRead = vi.spyOn(companyTransferRunService, "getRun").mockResolvedValue({
-      ...real,
-      updatedAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
-    });
+    const staleRead = vi
+      .spyOn(companyTransferRunService, "getRun")
+      .mockResolvedValue({
+        ...real,
+        updatedAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+      });
     try {
-      expect(await sweepAbandonedImportTransferSpools(db, spoolRoot)).toEqual({ swept: 0 });
+      expect(await sweepAbandonedImportTransferSpools(db, spoolRoot)).toEqual({
+        swept: 0,
+      });
     } finally {
       staleRead.mockRestore();
     }
 
     // The spool survived and the run is still open.
-    await expect(fs.stat(path.join(spoolRoot, transferId))).resolves.toBeDefined();
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("running");
+    await expect(
+      fs.stat(path.join(spoolRoot, transferId)),
+    ).resolves.toBeDefined();
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("running");
   });
 
   it("returns 410 for a part upload against a swept transfer and records nothing", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     expect((await putPart(transferId, 0, slices[0]!)).status).toBe(200);
 
     const later = new Date(Date.now() + 25 * 60 * 60 * 1000);
-    const swept = await sweepAbandonedImportTransferSpools(db, spoolRoot, { now: later });
+    const swept = await sweepAbandonedImportTransferSpools(db, spoolRoot, {
+      now: later,
+    });
     expect(swept.swept).toBeGreaterThanOrEqual(1);
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("cancelled");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("cancelled");
 
     const upload = await putPart(transferId, 1, slices[1]!);
     expect(upload.status).toBe(410);
@@ -963,13 +1174,17 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     expect(run.status).toBe("cancelled");
     expect(run.completedParts).toEqual(["part-0"]);
     // The stray part file was discarded, not left half-spooled.
-    await expect(fs.stat(path.join(spoolRoot, transferId, "part-1"))).rejects.toThrow();
+    await expect(
+      fs.stat(path.join(spoolRoot, transferId, "part-1")),
+    ).rejects.toThrow();
   });
 
   it("runs exactly one of two concurrent applies", async () => {
     const zip = buildFixtureZip();
     const { body, slices } = declareTransfer(zip, Math.ceil(zip.length / 2));
-    const created = await request(app).post("/api/companies/import/transfers").send(body);
+    const created = await request(app)
+      .post("/api/companies/import/transfers")
+      .send(body);
     const transferId = created.body.transferId as string;
     for (const [index, slice] of slices.entries()) {
       expect((await putPart(transferId, index, slice)).status).toBe(200);
@@ -979,17 +1194,29 @@ describeEmbeddedPostgres("company import transfer routes", () => {
     // claim while the winner is still importing.
     mockCompanyPortabilityService.importBundle.mockImplementation(async () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
-      return { company: { id: companyId, action: "updated" }, agents: [], warnings: [] };
+      return {
+        company: { id: companyId, action: "updated" },
+        agents: [],
+        warnings: [],
+      };
     });
 
     const [first, second] = await Promise.all([
-      request(app).post(`/api/companies/import/transfers/${transferId}/apply`).send(importMeta),
-      request(app).post(`/api/companies/import/transfers/${transferId}/apply`).send(importMeta),
+      request(app)
+        .post(`/api/companies/import/transfers/${transferId}/apply`)
+        .send(importMeta),
+      request(app)
+        .post(`/api/companies/import/transfers/${transferId}/apply`)
+        .send(importMeta),
     ]);
-    expect([first.status, second.status].sort((a, b) => a - b)).toEqual([200, 409]);
+    expect([first.status, second.status].sort((a, b) => a - b)).toEqual([
+      200, 409,
+    ]);
     // The non-idempotent import ran exactly once and the claim settled.
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
-    expect((await companyTransferRunService.getRun(db, transferId))!.status).toBe("completed");
+    expect(
+      (await companyTransferRunService.getRun(db, transferId))!.status,
+    ).toBe("completed");
     await expect(fs.stat(path.join(spoolRoot, transferId))).rejects.toThrow();
   });
 });

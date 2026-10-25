@@ -109,7 +109,10 @@ describe("optimistic issue comments", () => {
       ],
     );
 
-    expect(merged.map((comment) => comment.id)).toEqual(["optimistic-1", "comment-2"]);
+    expect(merged.map((comment) => comment.id)).toEqual([
+      "optimistic-1",
+      "comment-2",
+    ]);
   });
 
   it("reconciles an optimistic comment with its canonical server copy", () => {
@@ -119,7 +122,12 @@ describe("optimistic issue comments", () => {
       body: "Do not flash twice",
       authorUserId: "board-1",
     });
-    const { clientId: _clientId, clientStatus: _clientStatus, queueTargetRunId: _queueTargetRunId, ...persisted } = optimistic;
+    const {
+      clientId: _clientId,
+      clientStatus: _clientStatus,
+      queueTargetRunId: _queueTargetRunId,
+      ...persisted
+    } = optimistic;
 
     const merged = mergeIssueComments(
       [{ ...persisted, id: "comment-1" }],
@@ -143,7 +151,12 @@ describe("optimistic issue comments", () => {
       body: "Same text",
       authorUserId: "board-1",
     });
-    const { clientId: _clientId, clientStatus: _clientStatus, queueTargetRunId: _queueTargetRunId, ...persisted } = first;
+    const {
+      clientId: _clientId,
+      clientStatus: _clientStatus,
+      queueTargetRunId: _queueTargetRunId,
+      ...persisted
+    } = first;
 
     const merged = mergeIssueComments(
       [{ ...persisted, id: "comment-1" }],
@@ -193,7 +206,9 @@ describe("optimistic issue comments", () => {
     const result = takeOptimisticIssueComment([first, second], first.clientId);
 
     expect(result.comment?.body).toBe("First");
-    expect(result.comments.map((comment) => comment.clientId)).toEqual([second.clientId]);
+    expect(result.comments.map((comment) => comment.clientId)).toEqual([
+      second.clientId,
+    ]);
   });
 
   it("upserts confirmed comments without creating duplicates", () => {
@@ -279,7 +294,11 @@ describe("optimistic issue comments", () => {
       ],
     ]);
 
-    expect(flattened.map((comment) => comment.id)).toEqual(["comment-1", "comment-2", "comment-3"]);
+    expect(flattened.map((comment) => comment.id)).toEqual([
+      "comment-1",
+      "comment-2",
+      "comment-3",
+    ]);
   });
 
   it("returns no next page param when the last page is missing", () => {
@@ -324,7 +343,8 @@ describe("optimistic issue comments", () => {
 
   it("loads remaining comment pages until the terminal partial page", async () => {
     const fetchPage = vi.fn(async (afterCommentId: string) => {
-      if (afterCommentId === "comment-3") return [{ id: "comment-2" }, { id: "comment-1" }];
+      if (afterCommentId === "comment-3")
+        return [{ id: "comment-2" }, { id: "comment-1" }];
       if (afterCommentId === "comment-1") return [{ id: "comment-0" }];
       return [];
     });
@@ -339,7 +359,9 @@ describe("optimistic issue comments", () => {
     expect(fetchPage).toHaveBeenCalledTimes(2);
     expect(fetchPage).toHaveBeenNthCalledWith(1, "comment-3");
     expect(fetchPage).toHaveBeenNthCalledWith(2, "comment-1");
-    expect(loaded.pages.map((page) => page.map((comment) => comment.id))).toEqual([
+    expect(
+      loaded.pages.map((page) => page.map((comment) => comment.id)),
+    ).toEqual([
       ["comment-4", "comment-3"],
       ["comment-2", "comment-1"],
       ["comment-0"],
@@ -435,7 +457,10 @@ describe("optimistic issue comments", () => {
       },
     );
 
-    expect(nextPages[0]?.map((comment) => comment.id)).toEqual(["comment-4", "comment-3"]);
+    expect(nextPages[0]?.map((comment) => comment.id)).toEqual([
+      "comment-4",
+      "comment-3",
+    ]);
     expect(nextPages[1]?.map((comment) => comment.id)).toEqual(["comment-1"]);
   });
 
@@ -728,7 +753,9 @@ describe("optimistic issue comments", () => {
     expect(next?.assigneeUserId).toBe("board-2");
     expect(next?.labelIds).toEqual(["label-2"]);
     expect(next?.labels?.map((label) => label.id)).toEqual(["label-2"]);
-    expect(next?.blockedBy?.map((relation) => relation.id)).toEqual(["issue-3"]);
+    expect(next?.blockedBy?.map((relation) => relation.id)).toEqual([
+      "issue-3",
+    ]);
     expect(next?.parentId).toBe("issue-4");
     expect(next?.ancestors).toBeUndefined();
     expect(next?.projectId).toBe("project-2");
@@ -738,9 +765,22 @@ describe("optimistic issue comments", () => {
   });
 
   it("matches issues by either uuid or identifier reference", () => {
-    expect(matchesIssueRef({ id: "issue-1", identifier: "PAP-1" } as const, ["issue-1"])).toBe(true);
-    expect(matchesIssueRef({ id: "issue-1", identifier: "PAP-1" } as const, ["PAP-1"])).toBe(true);
-    expect(matchesIssueRef({ id: "issue-1", identifier: "PAP-1" } as const, ["issue-2", "PAP-2"])).toBe(false);
+    expect(
+      matchesIssueRef({ id: "issue-1", identifier: "PAP-1" } as const, [
+        "issue-1",
+      ]),
+    ).toBe(true);
+    expect(
+      matchesIssueRef({ id: "issue-1", identifier: "PAP-1" } as const, [
+        "PAP-1",
+      ]),
+    ).toBe(true);
+    expect(
+      matchesIssueRef({ id: "issue-1", identifier: "PAP-1" } as const, [
+        "issue-2",
+        "PAP-2",
+      ]),
+    ).toBe(false);
   });
 
   it("applies optimistic field updates across cached issue collections", () => {
@@ -835,7 +875,11 @@ describe("optimistic issue comments", () => {
       },
     ];
 
-    const next = applyOptimisticIssueFieldUpdateToCollection(issues, ["PAP-1"], { assigneeAgentId: "agent-9" });
+    const next = applyOptimisticIssueFieldUpdateToCollection(
+      issues,
+      ["PAP-1"],
+      { assigneeAgentId: "agent-9" },
+    );
 
     expect(next?.[0]?.assigneeAgentId).toBe("agent-9");
     expect(next?.[1]?.assigneeAgentId).toBe("agent-2");

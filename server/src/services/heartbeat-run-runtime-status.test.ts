@@ -30,16 +30,20 @@ describe("heartbeat run runtime status store", () => {
     });
 
     expect(status?.message).toContain("***REDACTED***");
-    expect(status?.message.length).toBeLessThanOrEqual(MAX_HEARTBEAT_RUN_RUNTIME_STATUS_MESSAGE_CHARS);
+    expect(status?.message.length).toBeLessThanOrEqual(
+      MAX_HEARTBEAT_RUN_RUNTIME_STATUS_MESSAGE_CHARS,
+    );
     expect(status?.currentToolName).toContain("***REDACTED***");
     expect(status?.lastAssistantSnippet).toContain("***REDACTED***");
     expect(status?.lastEventAt).toEqual(new Date("2026-06-24T00:00:05.000Z"));
-    expect(getHeartbeatRunRuntimeStatus("run-1", {
-      companyId: "company-1",
-      issueId: "issue-1",
-      agentId: "agent-1",
-      now: new Date("2026-06-24T00:00:30.000Z"),
-    })).toMatchObject({
+    expect(
+      getHeartbeatRunRuntimeStatus("run-1", {
+        companyId: "company-1",
+        issueId: "issue-1",
+        agentId: "agent-1",
+        now: new Date("2026-06-24T00:00:30.000Z"),
+      }),
+    ).toMatchObject({
       companyId: "company-1",
       issueId: "issue-1",
       agentId: "agent-1",
@@ -49,11 +53,15 @@ describe("heartbeat run runtime status store", () => {
       lastAssistantSnippet: expect.stringContaining("***REDACTED***"),
       lastEventAt: new Date("2026-06-24T00:00:05.000Z"),
     });
-    expect(getHeartbeatRunRuntimeStatus("run-1", { companyId: "other-company" })).toBeNull();
-    expect(getHeartbeatRunRuntimeStatus("run-1", {
-      companyId: "company-1",
-      now: new Date("2026-06-24T00:02:00.001Z"),
-    })).toBeNull();
+    expect(
+      getHeartbeatRunRuntimeStatus("run-1", { companyId: "other-company" }),
+    ).toBeNull();
+    expect(
+      getHeartbeatRunRuntimeStatus("run-1", {
+        companyId: "company-1",
+        now: new Date("2026-06-24T00:02:00.001Z"),
+      }),
+    ).toBeNull();
     expect(getHeartbeatRunRuntimeStatus("run-1")).toBeNull();
   });
 
@@ -102,10 +110,12 @@ describe("heartbeat run runtime status store", () => {
       updatedAt: new Date("2026-06-24T00:00:45.000Z"),
       lastEventAt: new Date("2026-06-24T00:00:45.000Z"),
     });
-    expect(getHeartbeatRunRuntimeStatus("run-1", {
-      companyId: "company-1",
-      now: new Date("2026-06-24T00:02:00.000Z"),
-    })).toMatchObject({ message: "Using Bash" });
+    expect(
+      getHeartbeatRunRuntimeStatus("run-1", {
+        companyId: "company-1",
+        now: new Date("2026-06-24T00:02:00.000Z"),
+      }),
+    ).toMatchObject({ message: "Using Bash" });
   });
 
   it("touch does not move timestamps backwards", () => {
@@ -189,6 +199,8 @@ describe("heartbeat run runtime status store", () => {
     const now = new Date("2026-06-24T00:01:31.000Z");
     expect(sweepExpiredHeartbeatRunRuntimeStatuses(now)).toBe(1);
     expect(getHeartbeatRunRuntimeStatus("stale-run")).toBeNull();
-    expect(getHeartbeatRunRuntimeStatus("fresh-run", { now })).toMatchObject({ runId: "fresh-run" });
+    expect(getHeartbeatRunRuntimeStatus("fresh-run", { now })).toMatchObject({
+      runId: "fresh-run",
+    });
   });
 });

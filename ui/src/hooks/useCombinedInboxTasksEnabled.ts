@@ -1,16 +1,32 @@
 import { useContext } from "react";
 import type { InstanceExperimentalSettings } from "@taskcore/shared";
-import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientContext,
+  useQuery,
+} from "@tanstack/react-query";
 import { instanceSettingsApi } from "@/api/instanceSettings";
 import { queryKeys } from "@/lib/queryKeys";
 import { resolveStreamlinedUiEnabled } from "./useStreamlinedUiEnabled";
 
 /** On only when opted in and the streamlined shell (which hosts it) is on. */
 export function resolveCombinedInboxTasksEnabled(
-  settings: Partial<Pick<InstanceExperimentalSettings, "enableCombinedInboxTasks" | "enableStreamlinedUi">> | null | undefined,
+  settings:
+    | Partial<
+        Pick<
+          InstanceExperimentalSettings,
+          "enableCombinedInboxTasks" | "enableStreamlinedUi"
+        >
+      >
+    | null
+    | undefined,
 ): boolean {
-  return settings?.enableCombinedInboxTasks === true
-    && resolveStreamlinedUiEnabled({ enableStreamlinedUi: settings.enableStreamlinedUi ?? true });
+  return (
+    settings?.enableCombinedInboxTasks === true &&
+    resolveStreamlinedUiEnabled({
+      enableStreamlinedUi: settings.enableStreamlinedUi ?? true,
+    })
+  );
 }
 
 let detachedClient: QueryClient | null = null;
@@ -27,7 +43,10 @@ function getDetachedClient(): QueryClient {
  * before until an instance opts in. The merged Tasks page only exists in the
  * streamlined shell, so the legacy shell always reports it off.
  */
-export function useCombinedInboxTasksEnabled(): { enabled: boolean; loaded: boolean } {
+export function useCombinedInboxTasksEnabled(): {
+  enabled: boolean;
+  loaded: boolean;
+} {
   const contextClient = useContext(QueryClientContext);
   const query = useQuery(
     {

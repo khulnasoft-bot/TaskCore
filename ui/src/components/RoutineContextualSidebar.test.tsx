@@ -48,7 +48,9 @@ vi.mock("./ContextualSidebarFrame", () => ({
 }));
 
 vi.mock("./SidebarNavItem", () => ({
-  SidebarNavItem: ({ to, label }: { to: string; label: string }) => <a href={to}>{label}</a>,
+  SidebarNavItem: ({ to, label }: { to: string; label: string }) => (
+    <a href={to}>{label}</a>
+  ),
 }));
 
 describe("routine contextual navigation", () => {
@@ -68,7 +70,9 @@ describe("routine contextual navigation", () => {
 
   it("builds stable routine detail destinations", () => {
     expect(routineDetailHref("routine-1")).toBe("/routines/routine-1/overview");
-    expect(routineDetailHref("routine-1", "triggers")).toBe("/routines/routine-1/triggers");
+    expect(routineDetailHref("routine-1", "triggers")).toBe(
+      "/routines/routine-1/triggers",
+    );
     expect(routineDetailHref("routine-1", "runs")).toBe(
       "/routines/routine-1/runs",
     );
@@ -78,23 +82,43 @@ describe("routine contextual navigation", () => {
   });
 
   it("defaults and resolves legacy operation routes locally without remembering a prior section", () => {
-    expect(resolveRoutineDetailDestination({ routineId: "routine-1" }))
-      .toBe("/routines/routine-1/overview");
-    expect(resolveRoutineDetailDestination({ routineId: "routine-1", section: "unknown" }))
-      .toBe("/routines/routine-1/overview");
-    expect(resolveRoutineDetailDestination({ routineId: "routine-1", section: "runs" }))
-      .toBe("/routines/routine-1/runs");
-    expect(resolveRoutineDetailDestination({ routineId: "routine-1", legacyTab: "activity" }))
-      .toBe("/routines/routine-1/activity");
+    expect(resolveRoutineDetailDestination({ routineId: "routine-1" })).toBe(
+      "/routines/routine-1/overview",
+    );
+    expect(
+      resolveRoutineDetailDestination({
+        routineId: "routine-1",
+        section: "unknown",
+      }),
+    ).toBe("/routines/routine-1/overview");
+    expect(
+      resolveRoutineDetailDestination({
+        routineId: "routine-1",
+        section: "runs",
+      }),
+    ).toBe("/routines/routine-1/runs");
+    expect(
+      resolveRoutineDetailDestination({
+        routineId: "routine-1",
+        legacyTab: "activity",
+      }),
+    ).toBe("/routines/routine-1/activity");
   });
 
   it("renders the routine contextual sidebar with configuration and operation links", () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    flushSync(() => root.render(
-      <QueryClientProvider client={queryClient}>
-        <RoutineContextualSidebar routineId="routine-1" title="Weekly release review" />
-      </QueryClientProvider>,
-    ));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    flushSync(() =>
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <RoutineContextualSidebar
+            routineId="routine-1"
+            title="Weekly release review"
+          />
+        </QueryClientProvider>,
+      ),
+    );
 
     const frame = container.querySelector("aside");
     expect(frame?.getAttribute("data-surface")).toBe("routine");
@@ -103,12 +127,20 @@ describe("routine contextual navigation", () => {
     expect(frame?.getAttribute("data-show-header")).toBe("false");
     expect(frame?.classList).toContain("bg-background");
     expect(frame?.classList).toContain("border-r");
-    expect(container.querySelector('a[href="/routines/routine-1/overview"]')?.textContent).toBe("Overview");
-    expect(container.querySelector('a[href="/routines/routine-1/triggers"]')?.textContent).toBe("Triggers");
-    expect(container.querySelector('a[href="/routines/routine-1/runs"]'))
-      .not.toBeNull();
-    expect(container.querySelector('a[href="/routines/routine-1/activity"]'))
-      .not.toBeNull();
+    expect(
+      container.querySelector('a[href="/routines/routine-1/overview"]')
+        ?.textContent,
+    ).toBe("Overview");
+    expect(
+      container.querySelector('a[href="/routines/routine-1/triggers"]')
+        ?.textContent,
+    ).toBe("Triggers");
+    expect(
+      container.querySelector('a[href="/routines/routine-1/runs"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('a[href="/routines/routine-1/activity"]'),
+    ).not.toBeNull();
     expect(container.textContent).not.toContain("History");
   });
 });

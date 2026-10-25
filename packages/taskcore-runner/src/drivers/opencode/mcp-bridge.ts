@@ -1,5 +1,10 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
 
 import {
@@ -47,7 +52,8 @@ const DEFAULT_MAX_BODY_BYTES = 1_048_576;
 
 export function canonicalOpenCodeMcpToolName(name: string): string {
   const trimmed = name.trim();
-  if (trimmed === PRP_COMPLETION_TOOL_NAME || trimmed === PRP_BLOCK_TOOL_NAME) return trimmed;
+  if (trimmed === PRP_COMPLETION_TOOL_NAME || trimmed === PRP_BLOCK_TOOL_NAME)
+    return trimmed;
   for (const prefix of ["taskcore__", "taskcore_", "taskcore."]) {
     if (trimmed.startsWith(prefix)) return trimmed.slice(prefix.length);
   }
@@ -60,9 +66,17 @@ export async function startOpenCodeMcpBridge(
   const secret = options.secret ?? randomBytes(32).toString("base64url");
   const tools = normalizeTools(options.tools ?? []);
   const privateTools = normalizeTools(options.privateTools ?? [], false);
-  const admittedTools = [...tools, ...privateTools.filter((candidate) => !tools.some((tool) => tool.name === candidate.name))];
+  const admittedTools = [
+    ...tools,
+    ...privateTools.filter(
+      (candidate) => !tools.some((tool) => tool.name === candidate.name),
+    ),
+  ];
   const validators = compileValidators(admittedTools);
-  const calls = new Map<string, { fingerprint: string; promise: Promise<unknown> }>();
+  const calls = new Map<
+    string,
+    { fingerprint: string; promise: Promise<unknown> }
+  >();
   const controllers = new Map<string, AbortController>();
   const server = createServer((request, response) => {
     void handleRequest(request, response, {
@@ -74,7 +88,8 @@ export async function startOpenCodeMcpBridge(
       controllers,
       handler: options.handler,
       timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      privateToolTimeoutMs: options.privateToolTimeoutMs ?? options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      privateToolTimeoutMs:
+        options.privateToolTimeoutMs ?? options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       privateToolNames: new Set(privateTools.map((tool) => tool.name)),
       maxBodyBytes: options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES,
     });
@@ -108,28 +123,48 @@ function normalizeTools(
   const tools: OpenCodeMcpToolDefinition[] = [];
   const seen = new Set<string>();
   for (const raw of input) {
-    const name = typeof raw.name === "string" ? canonicalOpenCodeMcpToolName(raw.name) : "";
+    const name =
+      typeof raw.name === "string"
+        ? canonicalOpenCodeMcpToolName(raw.name)
+        : "";
     if (!name || seen.has(name)) continue;
-    const inputSchema = isRecord(raw.inputSchema) ? structuredClone(raw.inputSchema) : { type: "object" };
+    const inputSchema = isRecord(raw.inputSchema)
+      ? structuredClone(raw.inputSchema)
+      : { type: "object" };
     tools.push({
       name,
-      ...(typeof raw.description === "string" ? { description: raw.description } : {}),
+      ...(typeof raw.description === "string"
+        ? { description: raw.description }
+        : {}),
       inputSchema,
     });
     seen.add(name);
   }
-  if (includeTerminalTools) for (const terminal of [
-    { name: PRP_COMPLETION_TOOL_NAME, description: PRP_COMPLETION_TOOL_DESCRIPTION, inputSchema: PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA },
-    { name: PRP_BLOCK_TOOL_NAME, description: PRP_BLOCK_TOOL_DESCRIPTION, inputSchema: PRP_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA },
-  ]) {
-    if (!seen.has(terminal.name)) tools.push(terminal);
-  }
+  if (includeTerminalTools)
+    for (const terminal of [
+      {
+        name: PRP_COMPLETION_TOOL_NAME,
+        description: PRP_COMPLETION_TOOL_DESCRIPTION,
+        inputSchema: PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA,
+      },
+      {
+        name: PRP_BLOCK_TOOL_NAME,
+        description: PRP_BLOCK_TOOL_DESCRIPTION,
+        inputSchema: PRP_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA,
+      },
+    ]) {
+      if (!seen.has(terminal.name)) tools.push(terminal);
+    }
   return tools;
 }
 
-function compileValidators(tools: readonly OpenCodeMcpToolDefinition[]): Map<string, ValidateFunction> {
+function compileValidators(
+  tools: readonly OpenCodeMcpToolDefinition[],
+): Map<string, ValidateFunction> {
   const ajv = new Ajv2020({ allErrors: true, strict: false });
-  return new Map(tools.map((tool) => [tool.name, ajv.compile(tool.inputSchema)]));
+  return new Map(
+    tools.map((tool) => [tool.name, ajv.compile(tool.inputSchema)]),
+  );
 }
 
 async function handleRequest(
@@ -220,43 +255,79 @@ async function handleRequest(
   const rawName = typeof params.name === "string" ? params.name : "";
   const tool = canonicalOpenCodeMcpToolName(rawName);
   if (!context.admittedTools.some((entry) => entry.name === tool)) {
-    writeRpc(response, id, { isError: true, content: [{ type: "text", text: "Unsupported tool." }] });
+    writeRpc(response, id, {
+      isError: true,
+      content: [{ type: "text", text: "Unsupported tool." }],
+    });
     return;
   }
-  const callId = typeof id === "string" || typeof id === "number" ? String(id) : randomBytes(12).toString("hex");
+  const callId =
+    typeof id === "string" || typeof id === "number"
+      ? String(id)
+      : randomBytes(12).toString("hex");
   const args = params.arguments ?? {};
   const validator = context.validators.get(tool);
   if (validator === undefined || !validator(args)) {
-    const detail = validator?.errors?.map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`).join("; ");
+    const detail = validator?.errors
+      ?.map(
+        (error) =>
+          `${error.instancePath || "/"} ${error.message ?? "is invalid"}`,
+      )
+      .join("; ");
     writeRpc(response, id, {
       isError: true,
-      content: [{ type: "text", text: `Invalid tool input${detail ? `: ${detail}` : "."}` }],
+      content: [
+        {
+          type: "text",
+          text: `Invalid tool input${detail ? `: ${detail}` : "."}`,
+        },
+      ],
     });
     return;
   }
   const fingerprint = canonicalJson({ tool, args });
   const existing = context.calls.get(callId);
   if (existing && existing.fingerprint !== fingerprint) {
-    writeRpc(response, id, { isError: true, content: [{ type: "text", text: "Duplicate call identity conflict." }] });
+    writeRpc(response, id, {
+      isError: true,
+      content: [{ type: "text", text: "Duplicate call identity conflict." }],
+    });
     return;
   }
   const controller = existing === undefined ? new AbortController() : undefined;
-  const execution = existing?.promise ?? withCancellationAndTimeout(
-    context.handler({ tool, callId, arguments: structuredClone(args), signal: controller!.signal }),
-    controller!,
-    context.privateToolNames.has(tool) ? context.privateToolTimeoutMs : context.timeoutMs,
-  );
+  const execution =
+    existing?.promise ??
+    withCancellationAndTimeout(
+      context.handler({
+        tool,
+        callId,
+        arguments: structuredClone(args),
+        signal: controller!.signal,
+      }),
+      controller!,
+      context.privateToolNames.has(tool)
+        ? context.privateToolTimeoutMs
+        : context.timeoutMs,
+    );
   if (!existing) {
-    if (context.calls.size >= 2_048) context.calls.delete(context.calls.keys().next().value!);
+    if (context.calls.size >= 2_048)
+      context.calls.delete(context.calls.keys().next().value!);
     context.calls.set(callId, { fingerprint, promise: execution });
     context.controllers.set(callId, controller!);
-    void execution.finally(() => context.controllers.delete(callId)).catch(() => undefined);
+    void execution
+      .finally(() => context.controllers.delete(callId))
+      .catch(() => undefined);
   }
   try {
     const result = await execution;
-    writeRpc(response, id, { content: [{ type: "text", text: safeJson(result) }] });
+    writeRpc(response, id, {
+      content: [{ type: "text", text: safeJson(result) }],
+    });
   } catch (error) {
-    writeRpc(response, id, { isError: true, content: [{ type: "text", text: safeError(error) }] });
+    writeRpc(response, id, {
+      isError: true,
+      content: [{ type: "text", text: safeError(error) }],
+    });
   }
 }
 
@@ -264,7 +335,9 @@ function authorized(value: string | undefined, secret: string): boolean {
   if (!value?.startsWith("Bearer ")) return false;
   const supplied = Buffer.from(value.slice(7));
   const expected = Buffer.from(secret);
-  return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+  return (
+    supplied.length === expected.length && timingSafeEqual(supplied, expected)
+  );
 }
 
 function readBody(request: IncomingMessage, maxBytes: number): Promise<string> {
@@ -287,14 +360,26 @@ function readBody(request: IncomingMessage, maxBytes: number): Promise<string> {
 
 function parseMessage(body: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(body);
-  if (!isRecord(parsed) || parsed.jsonrpc !== "2.0") throw new Error("Invalid JSON-RPC request");
+  if (!isRecord(parsed) || parsed.jsonrpc !== "2.0")
+    throw new Error("Invalid JSON-RPC request");
   return parsed;
 }
 
-function writeRpc(response: ServerResponse, id: unknown, result?: unknown, error?: unknown): void {
+function writeRpc(
+  response: ServerResponse,
+  id: unknown,
+  result?: unknown,
+  error?: unknown,
+): void {
   response.statusCode = 200;
   response.setHeader("Content-Type", "application/json");
-  response.end(JSON.stringify({ jsonrpc: "2.0", id, ...(error === undefined ? { result } : { error }) }));
+  response.end(
+    JSON.stringify({
+      jsonrpc: "2.0",
+      id,
+      ...(error === undefined ? { result } : { error }),
+    }),
+  );
 }
 
 function rpcError(code: number, message: string) {
@@ -307,7 +392,9 @@ function setSecurityHeaders(response: ServerResponse): void {
 }
 
 function closeServer(server: Server): Promise<void> {
-  return new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  return new Promise((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
 }
 
 function withCancellationAndTimeout<T>(
@@ -324,7 +411,8 @@ function withCancellationAndTimeout<T>(
       controller.signal.removeEventListener("abort", onAbort);
       callback();
     };
-    const onAbort = () => finish(() => reject(new Error("Taskcore tool call cancelled")));
+    const onAbort = () =>
+      finish(() => reject(new Error("Taskcore tool call cancelled")));
     const timer = setTimeout(() => {
       finish(() => reject(new Error("Taskcore tool call timed out")));
       controller.abort();
@@ -339,7 +427,10 @@ function withCancellationAndTimeout<T>(
 }
 
 function safeError(error: unknown): string {
-  return (error instanceof Error ? error.message : String(error)).slice(0, 2_000);
+  return (error instanceof Error ? error.message : String(error)).slice(
+    0,
+    2_000,
+  );
 }
 
 function safeJson(value: unknown): string {
@@ -349,7 +440,11 @@ function safeJson(value: unknown): string {
 
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (isRecord(value)) return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  if (isRecord(value))
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+      .join(",")}}`;
   return JSON.stringify(value) ?? "undefined";
 }
 

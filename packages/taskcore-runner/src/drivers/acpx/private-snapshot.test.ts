@@ -68,7 +68,11 @@ describe("private ACPX package snapshots", () => {
       await expect(createAcpxPrivateSnapshot([source], handle)).rejects.toThrow(
         "ACPX runtime executable must be a bounded executable file",
       );
-      expect(allocate.mock.calls.every(([size]) => size <= MAX_ACPX_RUNTIME_EXECUTABLE_BYTES)).toBe(true);
+      expect(
+        allocate.mock.calls.every(
+          ([size]) => size <= MAX_ACPX_RUNTIME_EXECUTABLE_BYTES,
+        ),
+      ).toBe(true);
       expect(read).not.toHaveBeenCalled();
     } finally {
       allocate.mockRestore();

@@ -8,13 +8,16 @@ import type {
 } from "@taskcore/shared";
 import { asString, parseObject } from "../adapters/utils.js";
 
-export type ParsedExecutionWorkspaceMode = Exclude<ExecutionWorkspaceMode, "inherit" | "reuse_existing">;
+export type ParsedExecutionWorkspaceMode = Exclude<
+  ExecutionWorkspaceMode,
+  "inherit" | "reuse_existing"
+>;
 
-export const WORKSPACE_WORKTREE_REQUIRES_PROJECT_CODE = "workspace_worktree_requires_project";
+export const WORKSPACE_WORKTREE_REQUIRES_PROJECT_CODE =
+  "workspace_worktree_requires_project";
 export const WORKSPACE_WORKTREE_REQUIRES_PROJECT_REMEDIATION =
   "Attach a project to the task, or bind a reusable execution workspace, then retry.";
-export const WORKSPACE_WORKTREE_REQUIRES_PROJECT_MESSAGE =
-  `This task is set to run in an isolated git worktree, but it has no project and no reusable execution workspace to create the worktree from. ${WORKSPACE_WORKTREE_REQUIRES_PROJECT_REMEDIATION}`;
+export const WORKSPACE_WORKTREE_REQUIRES_PROJECT_MESSAGE = `This task is set to run in an isolated git worktree, but it has no project and no reusable execution workspace to create the worktree from. ${WORKSPACE_WORKTREE_REQUIRES_PROJECT_REMEDIATION}`;
 
 type WorkspaceStrategyType = ExecutionWorkspaceStrategy["type"];
 
@@ -25,30 +28,55 @@ export type UnrunnableWorktreeIssueRef = {
   executionWorkspacePreference?: string | null;
 };
 
-function cloneRecord(value: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
+function cloneRecord(
+  value: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
   if (!value) return null;
   return { ...value };
 }
 
-function parseExecutionWorkspaceStrategy(raw: unknown): ExecutionWorkspaceStrategy | null {
+function parseExecutionWorkspaceStrategy(
+  raw: unknown,
+): ExecutionWorkspaceStrategy | null {
   const parsed = parseObject(raw);
   const type = asString(parsed.type, "");
-  if (type !== "project_primary" && type !== "git_worktree" && type !== "adapter_managed" && type !== "cloud_sandbox") {
+  if (
+    type !== "project_primary" &&
+    type !== "git_worktree" &&
+    type !== "adapter_managed" &&
+    type !== "cloud_sandbox"
+  ) {
     return null;
   }
   return {
     type,
-    ...(typeof parsed.baseRef === "string" || parsed.baseRef === null ? { baseRef: parsed.baseRef } : {}),
-    ...(typeof parsed.branchTemplate === "string" || parsed.branchTemplate === null ? { branchTemplate: parsed.branchTemplate } : {}),
-    ...(typeof parsed.existingBranch === "string" && parsed.existingBranch.trim().length > 0
+    ...(typeof parsed.baseRef === "string" || parsed.baseRef === null
+      ? { baseRef: parsed.baseRef }
+      : {}),
+    ...(typeof parsed.branchTemplate === "string" ||
+    parsed.branchTemplate === null
+      ? { branchTemplate: parsed.branchTemplate }
+      : {}),
+    ...(typeof parsed.existingBranch === "string" &&
+    parsed.existingBranch.trim().length > 0
       ? { existingBranch: parsed.existingBranch.trim() }
       : {}),
-    ...(typeof parsed.worktreeParentDir === "string" || parsed.worktreeParentDir === null ? { worktreeParentDir: parsed.worktreeParentDir } : {}),
-    ...(typeof parsed.provisionCommand === "string" || parsed.provisionCommand === null ? { provisionCommand: parsed.provisionCommand } : {}),
-    ...(typeof parsed.runtimeProvisionCommand === "string" || parsed.runtimeProvisionCommand === null
+    ...(typeof parsed.worktreeParentDir === "string" ||
+    parsed.worktreeParentDir === null
+      ? { worktreeParentDir: parsed.worktreeParentDir }
+      : {}),
+    ...(typeof parsed.provisionCommand === "string" ||
+    parsed.provisionCommand === null
+      ? { provisionCommand: parsed.provisionCommand }
+      : {}),
+    ...(typeof parsed.runtimeProvisionCommand === "string" ||
+    parsed.runtimeProvisionCommand === null
       ? { runtimeProvisionCommand: parsed.runtimeProvisionCommand }
       : {}),
-    ...(typeof parsed.teardownCommand === "string" || parsed.teardownCommand === null ? { teardownCommand: parsed.teardownCommand } : {}),
+    ...(typeof parsed.teardownCommand === "string" ||
+    parsed.teardownCommand === null
+      ? { teardownCommand: parsed.teardownCommand }
+      : {}),
   };
 }
 
@@ -58,7 +86,12 @@ export function resolveEffectiveWorkspaceStrategyType(
 ): WorkspaceStrategyType {
   const workspaceStrategy = parseObject(config?.workspaceStrategy);
   const type = asString(workspaceStrategy.type, "");
-  if (type === "project_primary" || type === "git_worktree" || type === "adapter_managed" || type === "cloud_sandbox") {
+  if (
+    type === "project_primary" ||
+    type === "git_worktree" ||
+    type === "adapter_managed" ||
+    type === "cloud_sandbox"
+  ) {
     return type;
   }
   // Default mirrors workspace-runtime.ts realizeExecutionWorkspace: missing type -> "project_primary".
@@ -84,8 +117,13 @@ export function resolvePinnedIssueWorkspaceStrategyType(input: {
   return input.mode === "agent_default" ? "adapter_managed" : "project_primary";
 }
 
-export function hasReusableExecutionWorkspaceBinding(issue: UnrunnableWorktreeIssueRef): boolean {
-  return Boolean(issue.executionWorkspaceId && issue.executionWorkspacePreference === "reuse_existing");
+export function hasReusableExecutionWorkspaceBinding(
+  issue: UnrunnableWorktreeIssueRef,
+): boolean {
+  return Boolean(
+    issue.executionWorkspaceId &&
+    issue.executionWorkspacePreference === "reuse_existing",
+  );
 }
 
 export function isUnrunnableWorktreeCombo(input: {
@@ -95,26 +133,41 @@ export function isUnrunnableWorktreeCombo(input: {
   reusableExecutionWorkspaceAvailable?: boolean | null;
   hasResolvablePriorSessionWorkspace?: boolean | null;
 }): boolean {
-  if (input.resolvedMode !== "isolated_workspace" && input.resolvedMode !== "operator_branch") return false;
+  if (
+    input.resolvedMode !== "isolated_workspace" &&
+    input.resolvedMode !== "operator_branch"
+  )
+    return false;
   if (input.resolvedStrategy !== "git_worktree") return false;
   if (input.issue.projectId || input.issue.projectWorkspaceId) return false;
   const hasReusableWorkspace =
-    input.reusableExecutionWorkspaceAvailable ?? hasReusableExecutionWorkspaceBinding(input.issue);
+    input.reusableExecutionWorkspaceAvailable ??
+    hasReusableExecutionWorkspaceBinding(input.issue);
   if (hasReusableWorkspace) return false;
   return input.hasResolvablePriorSessionWorkspace !== true;
 }
 
-export function parseProjectExecutionWorkspacePolicy(raw: unknown): ProjectExecutionWorkspacePolicy | null {
+export function parseProjectExecutionWorkspacePolicy(
+  raw: unknown,
+): ProjectExecutionWorkspacePolicy | null {
   const parsed = parseObject(raw);
   if (Object.keys(parsed).length === 0) return null;
   const enabled = typeof parsed.enabled === "boolean" ? parsed.enabled : false;
-  const workspaceStrategy = parseExecutionWorkspaceStrategy(parsed.workspaceStrategy);
+  const workspaceStrategy = parseExecutionWorkspaceStrategy(
+    parsed.workspaceStrategy,
+  );
   const defaultMode = asString(parsed.defaultMode, "");
   const defaultProjectWorkspaceId =
-    typeof parsed.defaultProjectWorkspaceId === "string" ? parsed.defaultProjectWorkspaceId : undefined;
+    typeof parsed.defaultProjectWorkspaceId === "string"
+      ? parsed.defaultProjectWorkspaceId
+      : undefined;
   const allowIssueOverride =
-    typeof parsed.allowIssueOverride === "boolean" ? parsed.allowIssueOverride : undefined;
-  const sharedWorkspaceConcurrency = parseSharedWorkspaceConcurrency(parsed.sharedWorkspaceConcurrency);
+    typeof parsed.allowIssueOverride === "boolean"
+      ? parsed.allowIssueOverride
+      : undefined;
+  const sharedWorkspaceConcurrency = parseSharedWorkspaceConcurrency(
+    parsed.sharedWorkspaceConcurrency,
+  );
   const normalizedDefaultMode = (() => {
     if (
       defaultMode === "shared_workspace" ||
@@ -135,23 +188,57 @@ export function parseProjectExecutionWorkspacePolicy(raw: unknown): ProjectExecu
     ...(allowIssueOverride !== undefined ? { allowIssueOverride } : {}),
     ...(defaultProjectWorkspaceId ? { defaultProjectWorkspaceId } : {}),
     ...(workspaceStrategy ? { workspaceStrategy } : {}),
-    ...(parsed.workspaceRuntime && typeof parsed.workspaceRuntime === "object" && !Array.isArray(parsed.workspaceRuntime)
-      ? { workspaceRuntime: { ...(parsed.workspaceRuntime as Record<string, unknown>) } }
+    ...(parsed.workspaceRuntime &&
+    typeof parsed.workspaceRuntime === "object" &&
+    !Array.isArray(parsed.workspaceRuntime)
+      ? {
+          workspaceRuntime: {
+            ...(parsed.workspaceRuntime as Record<string, unknown>),
+          },
+        }
       : {}),
-    ...(parsed.branchPolicy && typeof parsed.branchPolicy === "object" && !Array.isArray(parsed.branchPolicy)
-      ? { branchPolicy: { ...(parsed.branchPolicy as Record<string, unknown>) } }
+    ...(parsed.branchPolicy &&
+    typeof parsed.branchPolicy === "object" &&
+    !Array.isArray(parsed.branchPolicy)
+      ? {
+          branchPolicy: { ...(parsed.branchPolicy as Record<string, unknown>) },
+        }
       : {}),
-    ...(parsed.pullRequestPolicy && typeof parsed.pullRequestPolicy === "object" && !Array.isArray(parsed.pullRequestPolicy)
-      ? { pullRequestPolicy: { ...(parsed.pullRequestPolicy as Record<string, unknown>) } }
+    ...(parsed.pullRequestPolicy &&
+    typeof parsed.pullRequestPolicy === "object" &&
+    !Array.isArray(parsed.pullRequestPolicy)
+      ? {
+          pullRequestPolicy: {
+            ...(parsed.pullRequestPolicy as Record<string, unknown>),
+          },
+        }
       : {}),
-    ...(parsed.runtimePolicy && typeof parsed.runtimePolicy === "object" && !Array.isArray(parsed.runtimePolicy)
-      ? { runtimePolicy: { ...(parsed.runtimePolicy as Record<string, unknown>) } }
+    ...(parsed.runtimePolicy &&
+    typeof parsed.runtimePolicy === "object" &&
+    !Array.isArray(parsed.runtimePolicy)
+      ? {
+          runtimePolicy: {
+            ...(parsed.runtimePolicy as Record<string, unknown>),
+          },
+        }
       : {}),
-    ...(parsed.cleanupPolicy && typeof parsed.cleanupPolicy === "object" && !Array.isArray(parsed.cleanupPolicy)
-      ? { cleanupPolicy: { ...(parsed.cleanupPolicy as Record<string, unknown>) } }
+    ...(parsed.cleanupPolicy &&
+    typeof parsed.cleanupPolicy === "object" &&
+    !Array.isArray(parsed.cleanupPolicy)
+      ? {
+          cleanupPolicy: {
+            ...(parsed.cleanupPolicy as Record<string, unknown>),
+          },
+        }
       : {}),
-    ...(parsed.authorizationPolicy && typeof parsed.authorizationPolicy === "object" && !Array.isArray(parsed.authorizationPolicy)
-      ? { authorizationPolicy: { ...(parsed.authorizationPolicy as Record<string, unknown>) } }
+    ...(parsed.authorizationPolicy &&
+    typeof parsed.authorizationPolicy === "object" &&
+    !Array.isArray(parsed.authorizationPolicy)
+      ? {
+          authorizationPolicy: {
+            ...(parsed.authorizationPolicy as Record<string, unknown>),
+          },
+        }
       : {}),
   };
 }
@@ -213,8 +300,12 @@ export function parseIssueExecutionWorkspaceSettings(
 ): IssueExecutionWorkspaceSettings | null {
   const parsed = parseObject(raw);
   if (Object.keys(parsed).length === 0) return null;
-  const workspaceStrategy = parseExecutionWorkspaceStrategy(parsed.workspaceStrategy);
-  const sharedWorkspaceConcurrency = parseSharedWorkspaceConcurrency(parsed.sharedWorkspaceConcurrency);
+  const workspaceStrategy = parseExecutionWorkspaceStrategy(
+    parsed.workspaceStrategy,
+  );
+  const sharedWorkspaceConcurrency = parseSharedWorkspaceConcurrency(
+    parsed.sharedWorkspaceConcurrency,
+  );
   const mode = asString(parsed.mode, "");
   const normalizedMode = (() => {
     if (
@@ -234,25 +325,38 @@ export function parseIssueExecutionWorkspaceSettings(
   const networkEgress = parseObject(parsed.networkEgress);
   const allowFqdns = Array.isArray(networkEgress.allowFqdns)
     ? networkEgress.allowFqdns
-      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-      .map((value) => value.trim().toLowerCase())
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
+        .map((value) => value.trim().toLowerCase())
     : [];
   const allowCidrs = Array.isArray(networkEgress.allowCidrs)
     ? networkEgress.allowCidrs
-      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-      .map((value) => value.trim())
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
+        .map((value) => value.trim())
     : [];
   return {
     ...(normalizedMode
       ? { mode: normalizedMode as IssueExecutionWorkspaceSettings["mode"] }
       : {}),
     ...(sharedWorkspaceConcurrency ? { sharedWorkspaceConcurrency } : {}),
-    ...(options.includeEnvironmentId && (typeof parsed.environmentId === "string" || parsed.environmentId === null)
+    ...(options.includeEnvironmentId &&
+    (typeof parsed.environmentId === "string" || parsed.environmentId === null)
       ? { environmentId: parsed.environmentId }
       : {}),
     ...(workspaceStrategy ? { workspaceStrategy } : {}),
-    ...(parsed.workspaceRuntime && typeof parsed.workspaceRuntime === "object" && !Array.isArray(parsed.workspaceRuntime)
-      ? { workspaceRuntime: { ...(parsed.workspaceRuntime as Record<string, unknown>) } }
+    ...(parsed.workspaceRuntime &&
+    typeof parsed.workspaceRuntime === "object" &&
+    !Array.isArray(parsed.workspaceRuntime)
+      ? {
+          workspaceRuntime: {
+            ...(parsed.workspaceRuntime as Record<string, unknown>),
+          },
+        }
       : {}),
     ...(allowFqdns.length > 0 || allowCidrs.length > 0
       ? { networkEgress: { allowFqdns, allowCidrs } }
@@ -272,10 +376,7 @@ export function selectEnvironmentExecutionWorkspaceSettings(
 }
 
 export type ExecutionWorkspaceEnvironmentSource =
-  | "agent"
-  | "instance"
-  | "default"
-  | "managed";
+  "agent" | "instance" | "default" | "managed";
 
 export type ExecutionWorkspaceEnvironmentResolution = {
   environmentId: string;
@@ -326,13 +427,19 @@ export function resolveExecutionWorkspaceEnvironmentId(input: {
       source: "default",
     };
   })();
-  if (input.managedSandboxOnly !== true || resolved.environmentId !== input.localDefaultEnvironmentId) {
+  if (
+    input.managedSandboxOnly !== true ||
+    resolved.environmentId !== input.localDefaultEnvironmentId
+  ) {
     return resolved;
   }
   if (!input.managedSandboxEnvironmentId) {
     throw new ManagedSandboxUnavailableError();
   }
-  return { environmentId: input.managedSandboxEnvironmentId, source: "managed" };
+  return {
+    environmentId: input.managedSandboxEnvironmentId,
+    source: "managed",
+  };
 }
 
 export function defaultIssueExecutionWorkspaceSettingsForProject(
@@ -357,7 +464,11 @@ export function issueExecutionWorkspaceModeForPersistedWorkspace(
   if (mode === null || mode === undefined) {
     return "agent_default";
   }
-  if (mode === "isolated_workspace" || mode === "operator_branch" || mode === "shared_workspace") {
+  if (
+    mode === "isolated_workspace" ||
+    mode === "operator_branch" ||
+    mode === "shared_workspace"
+  ) {
     return mode;
   }
   if (mode === "adapter_managed" || mode === "cloud_sandbox") {
@@ -376,9 +487,12 @@ export function resolveExecutionWorkspaceMode(input: {
     return issueMode;
   }
   if (input.projectPolicy?.enabled) {
-    if (input.projectPolicy.defaultMode === "isolated_workspace") return "isolated_workspace";
-    if (input.projectPolicy.defaultMode === "operator_branch") return "operator_branch";
-    if (input.projectPolicy.defaultMode === "adapter_default") return "agent_default";
+    if (input.projectPolicy.defaultMode === "isolated_workspace")
+      return "isolated_workspace";
+    if (input.projectPolicy.defaultMode === "operator_branch")
+      return "operator_branch";
+    if (input.projectPolicy.defaultMode === "adapter_default")
+      return "agent_default";
     return "shared_workspace";
   }
   if (input.legacyUseProjectWorkspace === false) {
@@ -387,17 +501,25 @@ export function resolveExecutionWorkspaceMode(input: {
   return "shared_workspace";
 }
 
-function parseSharedWorkspaceConcurrency(raw: unknown): SharedWorkspaceConcurrency | undefined {
-  return raw === "auto" || raw === "serialize" || raw === "allow" ? raw : undefined;
+function parseSharedWorkspaceConcurrency(
+  raw: unknown,
+): SharedWorkspaceConcurrency | undefined {
+  return raw === "auto" || raw === "serialize" || raw === "allow"
+    ? raw
+    : undefined;
 }
 
 export function resolveSharedWorkspaceConcurrency(input: {
   projectPolicy: ProjectExecutionWorkspacePolicy | null;
   issueSettings: IssueExecutionWorkspaceSettings | null;
 }): SharedWorkspaceConcurrency {
-  return input.issueSettings?.sharedWorkspaceConcurrency
-    ?? (input.projectPolicy?.enabled ? input.projectPolicy.sharedWorkspaceConcurrency : undefined)
-    ?? "auto";
+  return (
+    input.issueSettings?.sharedWorkspaceConcurrency ??
+    (input.projectPolicy?.enabled
+      ? input.projectPolicy.sharedWorkspaceConcurrency
+      : undefined) ??
+    "auto"
+  );
 }
 
 export function buildExecutionWorkspaceAdapterConfig(input: {
@@ -414,23 +536,37 @@ export function buildExecutionWorkspaceAdapterConfig(input: {
     input.issueSettings?.workspaceStrategy ||
     input.issueSettings?.workspaceRuntime,
   );
-  const hasWorkspaceControl = projectHasPolicy || issueHasWorkspaceOverrides || input.legacyUseProjectWorkspace === false;
+  const hasWorkspaceControl =
+    projectHasPolicy ||
+    issueHasWorkspaceOverrides ||
+    input.legacyUseProjectWorkspace === false;
 
   if (hasWorkspaceControl) {
     if (input.mode === "isolated_workspace") {
-      const projectStrategy = projectHasPolicy ? input.projectPolicy?.workspaceStrategy : undefined;
+      const projectStrategy = projectHasPolicy
+        ? input.projectPolicy?.workspaceStrategy
+        : undefined;
       const issueStrategy = input.issueSettings?.workspaceStrategy;
       // An issue that changes its branch still needs the project's setup hooks.
       // Do not carry those defaults into a different execution strategy.
-      const strategy = issueStrategy && projectStrategy?.type === issueStrategy.type
-        ? { ...projectStrategy, ...issueStrategy }
-        : issueStrategy ?? projectStrategy ??
-        parseExecutionWorkspaceStrategy(nextConfig.workspaceStrategy) ??
-        ({ type: "git_worktree" } satisfies ExecutionWorkspaceStrategy);
-      if (issueStrategy?.existingBranch && issueStrategy.branchTemplate === undefined && strategy !== issueStrategy) {
+      const strategy =
+        issueStrategy && projectStrategy?.type === issueStrategy.type
+          ? { ...projectStrategy, ...issueStrategy }
+          : (issueStrategy ??
+            projectStrategy ??
+            parseExecutionWorkspaceStrategy(nextConfig.workspaceStrategy) ??
+            ({ type: "git_worktree" } satisfies ExecutionWorkspaceStrategy));
+      if (
+        issueStrategy?.existingBranch &&
+        issueStrategy.branchTemplate === undefined &&
+        strategy !== issueStrategy
+      ) {
         delete strategy.branchTemplate;
       }
-      nextConfig.workspaceStrategy = strategy as unknown as Record<string, unknown>;
+      nextConfig.workspaceStrategy = strategy as unknown as Record<
+        string,
+        unknown
+      >;
     } else {
       delete nextConfig.workspaceStrategy;
     }
@@ -438,9 +574,11 @@ export function buildExecutionWorkspaceAdapterConfig(input: {
     if (input.mode === "agent_default") {
       delete nextConfig.workspaceRuntime;
     } else if (input.issueSettings?.workspaceRuntime) {
-      nextConfig.workspaceRuntime = cloneRecord(input.issueSettings.workspaceRuntime) ?? undefined;
+      nextConfig.workspaceRuntime =
+        cloneRecord(input.issueSettings.workspaceRuntime) ?? undefined;
     } else if (input.projectPolicy?.workspaceRuntime) {
-      nextConfig.workspaceRuntime = cloneRecord(input.projectPolicy.workspaceRuntime) ?? undefined;
+      nextConfig.workspaceRuntime =
+        cloneRecord(input.projectPolicy.workspaceRuntime) ?? undefined;
     }
   }
 

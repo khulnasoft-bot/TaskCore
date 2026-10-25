@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, gt, gte, inArray, ne, notInArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  ne,
+  notInArray,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import {
   agents,
@@ -21,7 +32,10 @@ import {
 import { issueRecoveryActionService } from "../../../services/issue-recovery-actions.js";
 import { RECOVERY_ORIGIN_KINDS } from "../../../services/recovery/origins.js";
 import { isTerminalIssueStatus } from "../domain/policy.js";
-import type { WatchdogRunReader, WatchdogWriter } from "../application/ports.js";
+import type {
+  WatchdogRunReader,
+  WatchdogWriter,
+} from "../application/ports.js";
 import type {
   EvaluationIssueSnapshot,
   FoldOutcome,
@@ -32,8 +46,11 @@ import type {
   WatchdogDecisionRecord,
 } from "../application/types.js";
 
-const STALE_ACTIVE_RUN_EVALUATION_ORIGIN_KIND = RECOVERY_ORIGIN_KINDS.staleActiveRunEvaluation;
-const RECOVERY_ORIGIN_KIND_VALUES = new Set<string>(Object.values(RECOVERY_ORIGIN_KINDS));
+const STALE_ACTIVE_RUN_EVALUATION_ORIGIN_KIND =
+  RECOVERY_ORIGIN_KINDS.staleActiveRunEvaluation;
+const RECOVERY_ORIGIN_KIND_VALUES = new Set<string>(
+  Object.values(RECOVERY_ORIGIN_KINDS),
+);
 
 function isRecoveryOriginKind(originKind: string | null): boolean {
   return originKind !== null && RECOVERY_ORIGIN_KIND_VALUES.has(originKind);
@@ -65,7 +82,9 @@ function toRunSnapshot(row: typeof heartbeatRuns.$inferSelect): RunSnapshot {
   };
 }
 
-export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & WatchdogWriter {
+export function createPostgresWatchdogAdapter(
+  db: Db,
+): WatchdogRunReader & WatchdogWriter {
   const issuesSvc = issueService(db);
   const recoveryActionsSvc = issueRecoveryActionService(db);
 
@@ -79,7 +98,9 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
       .from(heartbeatRuns)
       .where(
         and(
-          input.companyId ? eq(heartbeatRuns.companyId, input.companyId) : undefined,
+          input.companyId
+            ? eq(heartbeatRuns.companyId, input.companyId)
+            : undefined,
           eq(heartbeatRuns.status, "running"),
           sql`coalesce(${heartbeatRuns.lastOutputAt}, ${heartbeatRuns.processStartedAt}, ${heartbeatRuns.startedAt}, ${heartbeatRuns.createdAt}) <= ${input.suspicionBefore.toISOString()}::timestamptz`,
         ),
@@ -91,35 +112,60 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
 
     if (input.issueCreatedAtGte) {
       const issueCreatedAtGte = input.issueCreatedAtGte;
-      const issueIds = [...new Set(candidates.flatMap((run) => {
-        return run.sourceIssueId ? [run.sourceIssueId] : [];
-      }))];
+      const issueIds = [
+        ...new Set(
+          candidates.flatMap((run) => {
+            return run.sourceIssueId ? [run.sourceIssueId] : [];
+          }),
+        ),
+      ];
       const eligibleIssueIds = new Set(
         issueIds.length > 0
-          ? (await db.select({ id: issues.id }).from(issues).where(and(
-              inArray(issues.id, issueIds),
-              gte(issues.createdAt, issueCreatedAtGte),
-            ))).map((issue) => issue.id)
+          ? (
+              await db
+                .select({ id: issues.id })
+                .from(issues)
+                .where(
+                  and(
+                    inArray(issues.id, issueIds),
+                    gte(issues.createdAt, issueCreatedAtGte),
+                  ),
+                )
+            ).map((issue) => issue.id)
           : [],
       );
       candidates = candidates.filter((run) => {
-        return run.sourceIssueId !== null && eligibleIssueIds.has(run.sourceIssueId);
+        return (
+          run.sourceIssueId !== null && eligibleIssueIds.has(run.sourceIssueId)
+        );
       });
     }
 
     return candidates;
   }
 
-  async function findRunForCompany(companyId: string, runId: string): Promise<RunSnapshot | null> {
+  async function findRunForCompany(
+    companyId: string,
+    runId: string,
+  ): Promise<RunSnapshot | null> {
     const [row] = await db
       .select()
       .from(heartbeatRuns)
-      .where(and(eq(heartbeatRuns.id, runId), eq(heartbeatRuns.companyId, companyId)))
+      .where(
+        and(
+          eq(heartbeatRuns.id, runId),
+          eq(heartbeatRuns.companyId, companyId),
+        ),
+      )
       .limit(1);
     return row ? toRunSnapshot(row) : null;
   }
 
-  async function findLatestDecision(companyId: string, runId: string, now: Date) {
+  async function findLatestDecision(
+    companyId: string,
+    runId: string,
+    now: Date,
+  ) {
     const [quietUntilRows, dismissedRows] = await Promise.all([
       db
         .select({
@@ -131,7 +177,10 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
           and(
             eq(heartbeatRunWatchdogDecisions.companyId, companyId),
             eq(heartbeatRunWatchdogDecisions.runId, runId),
-            inArray(heartbeatRunWatchdogDecisions.decision, ["snooze", "continue"]),
+            inArray(heartbeatRunWatchdogDecisions.decision, [
+              "snooze",
+              "continue",
+            ]),
             gt(heartbeatRunWatchdogDecisions.snoozedUntil, now),
           ),
         )
@@ -144,7 +193,10 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
           and(
             eq(heartbeatRunWatchdogDecisions.companyId, companyId),
             eq(heartbeatRunWatchdogDecisions.runId, runId),
-            eq(heartbeatRunWatchdogDecisions.decision, "dismissed_false_positive"),
+            eq(
+              heartbeatRunWatchdogDecisions.decision,
+              "dismissed_false_positive",
+            ),
           ),
         )
         .limit(1),
@@ -152,9 +204,13 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
     const quietUntilRow = quietUntilRows[0];
     return {
       dismissedFalsePositive: dismissedRows.length > 0,
-      quietUntilDecision: quietUntilRow && quietUntilRow.snoozedUntil
-        ? { decision: quietUntilRow.decision as "snooze" | "continue", snoozedUntil: quietUntilRow.snoozedUntil }
-        : null,
+      quietUntilDecision:
+        quietUntilRow && quietUntilRow.snoozedUntil
+          ? {
+              decision: quietUntilRow.decision as "snooze" | "continue",
+              snoozedUntil: quietUntilRow.snoozedUntil,
+            }
+          : null,
     };
   }
 
@@ -171,7 +227,10 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
     };
   }
 
-  async function findOpenStaleRunEvaluation(companyId: string, runId: string): Promise<EvaluationIssueSnapshot | null> {
+  async function findOpenStaleRunEvaluation(
+    companyId: string,
+    runId: string,
+  ): Promise<EvaluationIssueSnapshot | null> {
     const [row] = await db
       .select(selectEvaluationIssueSnapshot())
       .from(issues)
@@ -188,7 +247,10 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
     return row ?? null;
   }
 
-  async function findEvaluationIssueById(companyId: string, issueId: string): Promise<EvaluationIssueSnapshot | null> {
+  async function findEvaluationIssueById(
+    companyId: string,
+    issueId: string,
+  ): Promise<EvaluationIssueSnapshot | null> {
     const [row] = await db
       .select(selectEvaluationIssueSnapshot())
       .from(issues)
@@ -197,12 +259,15 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
     return row ?? null;
   }
 
-  async function findLatestSameRunTerminalEvidence(companyId: string, input: {
-    runId: string;
-    sourceIssueId: string;
-    sourceIssueStatus: string;
-    evidenceAfter: Date | null;
-  }) {
+  async function findLatestSameRunTerminalEvidence(
+    companyId: string,
+    input: {
+      runId: string;
+      sourceIssueId: string;
+      sourceIssueStatus: string;
+      evidenceAfter: Date | null;
+    },
+  ) {
     if (!isTerminalIssueStatus(input.sourceIssueStatus)) return null;
     const activityPredicates = [
       eq(activityLog.companyId, companyId),
@@ -217,35 +282,69 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
     }
 
     const activity = await db
-      .select({ id: activityLog.id, createdAt: activityLog.createdAt, action: activityLog.action })
+      .select({
+        id: activityLog.id,
+        createdAt: activityLog.createdAt,
+        action: activityLog.action,
+      })
       .from(activityLog)
       .where(and(...activityPredicates))
       .orderBy(desc(activityLog.createdAt))
       .limit(1)
       .then((rows) => rows[0] ?? null);
 
-    return activity ? { kind: "activity" as const, id: activity.id, createdAt: activity.createdAt, action: activity.action } : null;
+    return activity
+      ? {
+          kind: "activity" as const,
+          id: activity.id,
+          createdAt: activity.createdAt,
+          action: activity.action,
+        }
+      : null;
   }
 
-  async function findSourceIssue(companyId: string, issueId: string): Promise<SourceIssueSnapshot | null> {
+  async function findSourceIssue(
+    companyId: string,
+    issueId: string,
+  ): Promise<SourceIssueSnapshot | null> {
     const [row] = await db
-      .select({ id: issues.id, identifier: issues.identifier, status: issues.status, originKind: issues.originKind })
+      .select({
+        id: issues.id,
+        identifier: issues.identifier,
+        status: issues.status,
+        originKind: issues.originKind,
+      })
       .from(issues)
-      .where(and(eq(issues.companyId, companyId), eq(issues.id, issueId), visibleIssueCondition()))
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.id, issueId),
+          visibleIssueCondition(),
+        ),
+      )
       .limit(1);
-    return row ? { ...row, isRecoveryOriginKind: isRecoveryOriginKind(row.originKind) } : null;
+    return row
+      ? { ...row, isRecoveryOriginKind: isRecoveryOriginKind(row.originKind) }
+      : null;
   }
 
   async function findRunningAgent(companyId: string, agentId: string) {
     const [row] = await db
-      .select({ id: agents.id, companyId: agents.companyId, adapterType: agents.adapterType })
+      .select({
+        id: agents.id,
+        companyId: agents.companyId,
+        adapterType: agents.adapterType,
+      })
       .from(agents)
       .where(and(eq(agents.id, agentId), eq(agents.companyId, companyId)))
       .limit(1);
     return row ?? null;
   }
 
-  async function recordDecision(companyId: string, input: RecordDecisionInput): Promise<WatchdogDecisionRecord> {
+  async function recordDecision(
+    companyId: string,
+    input: RecordDecisionInput,
+  ): Promise<WatchdogDecisionRecord> {
     const [row] = await db
       .insert(heartbeatRunWatchdogDecisions)
       .values({
@@ -264,14 +363,19 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
     await logActivity(db, {
       companyId,
       actorType: input.actor.type === "agent" ? "agent" : "user",
-      actorId: input.actor.type === "agent"
-        ? input.actor.agentId ?? "agent"
-        : input.actor.type === "board"
-          ? input.actor.userId ?? "board"
-          : "unknown",
-      agentId: input.actor.type === "agent" ? input.actor.agentId ?? null : null,
+      actorId:
+        input.actor.type === "agent"
+          ? (input.actor.agentId ?? "agent")
+          : input.actor.type === "board"
+            ? (input.actor.userId ?? "board")
+            : "unknown",
+      agentId:
+        input.actor.type === "agent" ? (input.actor.agentId ?? null) : null,
       runId: input.runId,
-      action: input.decision === "snooze" ? "heartbeat.watchdog_snoozed" : "heartbeat.watchdog_decision_recorded",
+      action:
+        input.decision === "snooze"
+          ? "heartbeat.watchdog_snoozed"
+          : "heartbeat.watchdog_decision_recorded",
       entityType: "heartbeat_run",
       entityId: input.runId,
       details: {
@@ -283,11 +387,18 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
       },
     });
 
-    return { ...row, decision: row.decision as WatchdogDecisionRecord["decision"] };
+    return {
+      ...row,
+      decision: row.decision as WatchdogDecisionRecord["decision"],
+    };
   }
 
-  async function foldSourceResolvedRun(companyId: string, input: FoldSourceResolvedRunInput): Promise<FoldOutcome> {
-    const finalRunStatus = input.sourceIssue.status === "cancelled" ? "cancelled" : "succeeded";
+  async function foldSourceResolvedRun(
+    companyId: string,
+    input: FoldSourceResolvedRunInput,
+  ): Promise<FoldOutcome> {
+    const finalRunStatus =
+      input.sourceIssue.status === "cancelled" ? "cancelled" : "succeeded";
     const postCommitIssueActions: IssuePostCommitAction[] = [];
     const resultJson = {
       ...parseObject(input.run.resultJson),
@@ -317,11 +428,13 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
           resultJson,
           updatedAt: input.now,
         })
-        .where(and(
-          eq(heartbeatRuns.id, input.run.id),
-          eq(heartbeatRuns.companyId, companyId),
-          eq(heartbeatRuns.status, "running"),
-        ))
+        .where(
+          and(
+            eq(heartbeatRuns.id, input.run.id),
+            eq(heartbeatRuns.companyId, companyId),
+            eq(heartbeatRuns.status, "running"),
+          ),
+        )
         .returning();
       if (!updatedRun) return null;
 
@@ -334,12 +447,14 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
             error: null,
             updatedAt: input.now,
           })
-          .where(and(
-            eq(agentWakeupRequests.id, input.run.wakeupRequestId),
-            eq(agentWakeupRequests.companyId, companyId),
-            // A late success fold cannot restore cancelled assignment authority.
-            ne(agentWakeupRequests.status, "cancelled"),
-          ));
+          .where(
+            and(
+              eq(agentWakeupRequests.id, input.run.wakeupRequestId),
+              eq(agentWakeupRequests.companyId, companyId),
+              // A late success fold cannot restore cancelled assignment authority.
+              ne(agentWakeupRequests.status, "cancelled"),
+            ),
+          );
       }
 
       await tx
@@ -350,13 +465,18 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
           executionLockedAt: null,
           updatedAt: input.now,
         })
-        .where(and(
-          eq(issues.id, input.sourceIssue.id),
-          eq(issues.companyId, companyId),
-          eq(issues.executionRunId, input.run.id),
-        ));
+        .where(
+          and(
+            eq(issues.id, input.sourceIssue.id),
+            eq(issues.companyId, companyId),
+            eq(issues.executionRunId, input.run.id),
+          ),
+        );
 
-      if (input.existingEvaluation && !isTerminalIssueStatus(input.existingEvaluation.status)) {
+      if (
+        input.existingEvaluation &&
+        !isTerminalIssueStatus(input.existingEvaluation.status)
+      ) {
         const updatedEvaluation = await issuesSvc.update(
           input.existingEvaluation.id,
           { status: "done" },
@@ -365,16 +485,24 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
           postCommitIssueActions,
         );
         if (!updatedEvaluation) {
-          throw new Error("Evaluation issue disappeared during source-resolved watchdog fold");
+          throw new Error(
+            "Evaluation issue disappeared during source-resolved watchdog fold",
+          );
         }
-        await issuesSvc.addComment(input.existingEvaluation.id, [
-          "Source-resolved watchdog fold.",
-          "",
-          `- Source issue: ${input.sourceIssue.identifier ?? input.sourceIssue.id}`,
-          `- Run: \`${input.run.id}\``,
-          `- Same-run evidence: \`${input.evidence.kind}:${input.evidence.id}\` at ${input.evidence.createdAt.toISOString()}`,
-          "- Outcome: false positive; the source issue already reached a terminal disposition from this run.",
-        ].join("\n"), { runId: input.run.id }, undefined, tx);
+        await issuesSvc.addComment(
+          input.existingEvaluation.id,
+          [
+            "Source-resolved watchdog fold.",
+            "",
+            `- Source issue: ${input.sourceIssue.identifier ?? input.sourceIssue.id}`,
+            `- Run: \`${input.run.id}\``,
+            `- Same-run evidence: \`${input.evidence.kind}:${input.evidence.id}\` at ${input.evidence.createdAt.toISOString()}`,
+            "- Outcome: false positive; the source issue already reached a terminal disposition from this run.",
+          ].join("\n"),
+          { runId: input.run.id },
+          undefined,
+          tx,
+        );
       }
 
       const activeRecoveryAction = await recoveryActionsSvc.getActiveForIssue(
@@ -383,14 +511,18 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
         tx,
       );
       if (activeRecoveryAction?.kind === "active_run_watchdog") {
-        await recoveryActionsSvc.resolveActiveForIssue({
-          companyId,
-          sourceIssueId: input.sourceIssue.id,
-          actionId: activeRecoveryAction.id,
-          status: "resolved",
-          outcome: "false_positive",
-          resolutionNote: "Source issue reached a terminal disposition through durable same-run activity; watchdog folded as source-resolved.",
-        }, tx);
+        await recoveryActionsSvc.resolveActiveForIssue(
+          {
+            companyId,
+            sourceIssueId: input.sourceIssue.id,
+            actionId: activeRecoveryAction.id,
+            status: "resolved",
+            outcome: "false_positive",
+            resolutionNote:
+              "Source issue reached a terminal disposition through durable same-run activity; watchdog folded as source-resolved.",
+          },
+          tx,
+        );
       }
 
       const [decision] = await tx
@@ -400,7 +532,8 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
           runId: input.run.id,
           evaluationIssueId: input.existingEvaluation?.id ?? null,
           decision: "dismissed_false_positive",
-          reason: "Source issue already reached a terminal disposition through durable same-run activity.",
+          reason:
+            "Source issue already reached a terminal disposition through durable same-run activity.",
           createdByRunId: input.run.id,
         })
         .returning();
@@ -442,21 +575,29 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
       const [runningCountRow] = await tx
         .select({ count: sql<number>`count(*)::int` })
         .from(heartbeatRuns)
-        .where(and(
-          eq(heartbeatRuns.companyId, companyId),
-          eq(heartbeatRuns.agentId, input.run.agentId),
-          eq(heartbeatRuns.status, "running"),
-        ));
+        .where(
+          and(
+            eq(heartbeatRuns.companyId, companyId),
+            eq(heartbeatRuns.agentId, input.run.agentId),
+            eq(heartbeatRuns.status, "running"),
+          ),
+        );
       const runningCount = Number(runningCountRow?.count ?? 0);
       const nextAgentStatus = runningCount > 0 ? "running" : "idle";
       await tx
         .update(agents)
-        .set({ status: nextAgentStatus, lastHeartbeatAt: new Date(), updatedAt: new Date() })
-        .where(and(
-          eq(agents.id, input.run.agentId),
-          eq(agents.companyId, companyId),
-          notInArray(agents.status, ["paused", "terminated"]),
-        ));
+        .set({
+          status: nextAgentStatus,
+          lastHeartbeatAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(agents.id, input.run.agentId),
+            eq(agents.companyId, companyId),
+            notInArray(agents.status, ["paused", "terminated"]),
+          ),
+        );
 
       return updatedRun;
     });
@@ -470,7 +611,10 @@ export function createPostgresWatchdogAdapter(db: Db): WatchdogRunReader & Watch
     // watchdog fold's caller, so fire it and do not await it.
     void emitAgentTaskRun(db, finalizedRun);
 
-    return { kind: "folded", evaluationIssueId: input.existingEvaluation?.id ?? null };
+    return {
+      kind: "folded",
+      evaluationIssueId: input.existingEvaluation?.id ?? null,
+    };
   }
 
   return {

@@ -18,7 +18,9 @@ export interface ArtifactFileChipProps {
 function artifactFileDisplay(ref: WorkspaceFileRef) {
   if (!ref.projectName) return ref.displayPath;
   const prefix = `${ref.projectName} / `;
-  return ref.displayPath.startsWith(prefix) ? ref.displayPath : `${prefix}${ref.displayPath}`;
+  return ref.displayPath.startsWith(prefix)
+    ? ref.displayPath
+    : `${prefix}${ref.displayPath}`;
 }
 
 export function ArtifactFileChip({
@@ -30,7 +32,10 @@ export function ArtifactFileChip({
   title,
 }: ArtifactFileChipProps) {
   const viewer = useFileViewer();
-  const display = typeof label !== "undefined" ? label : artifactFileDisplay(workspaceFileRef);
+  const display =
+    typeof label !== "undefined"
+      ? label
+      : artifactFileDisplay(workspaceFileRef);
   const canOpen = !!(onOpen || viewer);
   const lineSuffix = workspaceFileRef.line
     ? ` line ${workspaceFileRef.line}${workspaceFileRef.column ? ` column ${workspaceFileRef.column}` : ""}`
@@ -38,9 +43,11 @@ export function ArtifactFileChip({
   const ariaLabel = canOpen
     ? `Open ${workspaceFileRef.displayPath}${lineSuffix} in the file viewer`
     : `Workspace file ${workspaceFileRef.displayPath}${lineSuffix}`;
-  const tooltip = title ?? (canOpen
-    ? `Open ${workspaceFileRef.displayPath}${lineSuffix} in the file viewer`
-    : `Workspace file ${workspaceFileRef.displayPath}${lineSuffix}`);
+  const tooltip =
+    title ??
+    (canOpen
+      ? `Open ${workspaceFileRef.displayPath}${lineSuffix} in the file viewer`
+      : `Workspace file ${workspaceFileRef.displayPath}${lineSuffix}`);
 
   const classNames = cn(
     "taskcore-artifact-file-chip inline-flex items-center gap-1 rounded-sm border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-xs leading-tight text-foreground/90 align-middle no-underline hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -49,8 +56,12 @@ export function ArtifactFileChip({
   );
   const content = (
     <>
-      {showIcon ? <FileCode2 aria-hidden="true" className="h-3 w-3 shrink-0 opacity-70" /> : null}
-      <span className="max-w-full whitespace-normal break-all text-left">{display}</span>
+      {showIcon ? (
+        <FileCode2 aria-hidden="true" className="h-3 w-3 shrink-0 opacity-70" />
+      ) : null}
+      <span className="max-w-full whitespace-normal break-all text-left">
+        {display}
+      </span>
     </>
   );
 
@@ -61,14 +72,19 @@ export function ArtifactFileChip({
     if (event.button !== 0) return;
     if (onOpen) onOpen(workspaceFileRef);
     else {
-      const workspace = workspaceFileRef.workspaceKind === "execution_workspace" ? "execution" : "project";
+      const workspace =
+        workspaceFileRef.workspaceKind === "execution_workspace"
+          ? "execution"
+          : "project";
       viewer?.open({
         path: workspaceFileRef.relativePath,
         line: workspaceFileRef.line ?? null,
         column: workspaceFileRef.column ?? null,
         workspace,
         projectId: workspaceFileRef.projectId ?? null,
-        workspaceId: workspaceFileRef.projectId ? workspaceFileRef.workspaceId : null,
+        workspaceId: workspaceFileRef.projectId
+          ? workspaceFileRef.workspaceId
+          : null,
       });
     }
   };

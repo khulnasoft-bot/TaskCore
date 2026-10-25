@@ -13,11 +13,14 @@ function act(callback: () => void) {
   flushSync(callback);
 }
 
-function accessState(overrides: Partial<WorkspaceAccessState> = {}): WorkspaceAccessState {
+function accessState(
+  overrides: Partial<WorkspaceAccessState> = {},
+): WorkspaceAccessState {
   return {
     state: "ready",
     title: "Ready",
-    description: "Opening the workspace signs you in to the cloned board without a password.",
+    description:
+      "Opening the workspace signs you in to the cloned board without a password.",
     action: { kind: "open", label: "Open workspace" },
     handoffAvailable: true,
     ...overrides,
@@ -36,7 +39,9 @@ describe("WorkspaceAccessCard", () => {
     document.body.innerHTML = "";
   });
 
-  function renderCard(props: Partial<Parameters<typeof WorkspaceAccessCard>[0]> = {}) {
+  function renderCard(
+    props: Partial<Parameters<typeof WorkspaceAccessCard>[0]> = {},
+  ) {
     const handlers = {
       onOpen: vi.fn(),
       onStart: vi.fn(),
@@ -45,7 +50,9 @@ describe("WorkspaceAccessCard", () => {
     };
     const root = createRoot(container);
     act(() => {
-      root.render(<WorkspaceAccessCard access={accessState()} {...handlers} {...props} />);
+      root.render(
+        <WorkspaceAccessCard access={accessState()} {...handlers} {...props} />,
+      );
     });
     const button = container.querySelector("button");
     return { ...handlers, root, button };
@@ -59,7 +66,9 @@ describe("WorkspaceAccessCard", () => {
 
   it("renders the ready state and opens without asking for a password", () => {
     const { onOpen, root } = renderCard();
-    const card = container.querySelector("[data-testid='workspace-access-card']");
+    const card = container.querySelector(
+      "[data-testid='workspace-access-card']",
+    );
     expect(card?.getAttribute("data-state")).toBe("ready");
     expect(container.textContent).toContain("Ready");
     expect(container.textContent).toContain("single-use login handoff");
@@ -77,7 +86,8 @@ describe("WorkspaceAccessCard", () => {
       access: accessState({
         secondaryNotice: {
           title: "Repair failed",
-          description: "The repair stopped during managed_restart. The pre-repair backup was kept.",
+          description:
+            "The repair stopped during managed_restart. The pre-repair backup was kept.",
           action: { kind: "view_logs", label: "View repair log" },
         },
       }),
@@ -87,8 +97,11 @@ describe("WorkspaceAccessCard", () => {
     const logButton = findButton("View repair log");
     expect(openButton).toBeDefined();
     expect(logButton).toBeDefined();
-    expect(container.querySelector("[data-testid='workspace-access-secondary-notice']")?.textContent)
-      .toContain("pre-repair backup was kept");
+    expect(
+      container.querySelector(
+        "[data-testid='workspace-access-secondary-notice']",
+      )?.textContent,
+    ).toContain("pre-repair backup was kept");
 
     act(() => openButton!.click());
     act(() => logButton!.click());
@@ -101,10 +114,13 @@ describe("WorkspaceAccessCard", () => {
     const { root } = renderCard({
       access: accessState({
         handoffAvailable: false,
-        description: "Opening the board will ask for the credentials captured in this snapshot.",
+        description:
+          "Opening the board will ask for the credentials captured in this snapshot.",
       }),
     });
-    expect(container.textContent).toContain("snapshot-local credentials captured");
+    expect(container.textContent).toContain(
+      "snapshot-local credentials captured",
+    );
     expect(container.textContent).not.toContain("single-use login handoff");
     act(() => root.unmount());
   });
@@ -163,7 +179,8 @@ describe("WorkspaceAccessCard", () => {
     });
     expect(findButton("Repair in progress")?.disabled).toBe(true);
     expect(
-      container.querySelector("[data-testid='workspace-access-badge']")?.textContent,
+      container.querySelector("[data-testid='workspace-access-badge']")
+        ?.textContent,
     ).toContain("Repairing");
     act(() => root.unmount());
   });
@@ -178,7 +195,9 @@ describe("WorkspaceAccessCard", () => {
       }),
     });
 
-    const badge = container.querySelector("[data-testid='workspace-access-badge']");
+    const badge = container.querySelector(
+      "[data-testid='workspace-access-badge']",
+    );
     expect(badge).toBeNull();
     expect(container.querySelector(".animate-spin")).toBeNull();
     expect(findButton("Start workspace")).toBeDefined();
@@ -190,7 +209,8 @@ describe("WorkspaceAccessCard", () => {
       access: accessState({
         state: "failed",
         title: "Database provisioning failed",
-        description: "The clone failed during restore. Repairing replaces only the isolated database.",
+        description:
+          "The clone failed during restore. Repairing replaces only the isolated database.",
         action: { kind: "repair", label: "Repair workspace" },
       }),
       errorMessage: "Failed to open the workspace.",
@@ -198,7 +218,8 @@ describe("WorkspaceAccessCard", () => {
     expect(container.textContent).toContain("Database provisioning failed");
     expect(container.textContent).toContain("failed during restore");
     expect(
-      container.querySelector("[data-testid='workspace-access-error']")?.textContent,
+      container.querySelector("[data-testid='workspace-access-error']")
+        ?.textContent,
     ).toContain("Failed to open the workspace.");
     act(() => root.unmount());
   });

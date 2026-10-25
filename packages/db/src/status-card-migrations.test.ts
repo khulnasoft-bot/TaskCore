@@ -15,7 +15,9 @@ const MIGRATION_FILES = [
 ] as const;
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("status card migrations", () => {
   afterEach(async () => {
@@ -27,7 +29,9 @@ describeEmbeddedPostgres("status card migrations", () => {
   // default. This suite has not tripped yet only because it replays fewer
   // statements than its neighbours — it is the same latent failure.
   it("can be reapplied after the schema already exists", async () => {
-    const database = await startEmbeddedPostgresTestDatabase("taskcore-status-card-migrations-");
+    const database = await startEmbeddedPostgresTestDatabase(
+      "taskcore-status-card-migrations-",
+    );
     cleanups.push(database.cleanup);
     const sql = postgres(database.connectionString, { max: 1 });
     cleanups.push(async () => sql.end());

@@ -15,23 +15,27 @@ afterEach(() => {
 describe("http adapter execute", () => {
   it("delivers the complete runtime connection descriptor and shared guidance", async () => {
     const onDispatch = vi.fn();
-    guardedFetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
-      expect(onDispatch).toHaveBeenCalledOnce();
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      expect(body.taskcoreRuntimeTools).toEqual({
-        version: 1,
-        guidance: CONNECTION_INTENT_AGENT_GUIDANCE,
-        mcpEndpoint: "https://taskcore.test/mcp/runtime-tools",
-        rest: {
-          connectionsSearch: "https://taskcore.test/runtime-tools/connections/search",
-          connectionRequest: "https://taskcore.test/runtime-tools/connections/request",
-        },
-        bearerToken: "run-token",
-        expiresAt: "2026-08-26T15:00:00.000Z",
-        tools: ["connections_search", "connection_request"],
-      });
-      return new Response(null, { status: 204 });
-    });
+    guardedFetchMock.mockImplementation(
+      async (_url: string, init?: RequestInit) => {
+        expect(onDispatch).toHaveBeenCalledOnce();
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        expect(body.taskcoreRuntimeTools).toEqual({
+          version: 1,
+          guidance: CONNECTION_INTENT_AGENT_GUIDANCE,
+          mcpEndpoint: "https://taskcore.test/mcp/runtime-tools",
+          rest: {
+            connectionsSearch:
+              "https://taskcore.test/runtime-tools/connections/search",
+            connectionRequest:
+              "https://taskcore.test/runtime-tools/connections/request",
+          },
+          bearerToken: "run-token",
+          expiresAt: "2026-08-26T15:00:00.000Z",
+          tools: ["connections_search", "connection_request"],
+        });
+        return new Response(null, { status: 204 });
+      },
+    );
 
     await execute({
       runId: "run-1",
@@ -55,8 +59,10 @@ describe("http adapter execute", () => {
         guidance: CONNECTION_INTENT_AGENT_GUIDANCE,
         mcpEndpoint: "https://taskcore.test/mcp/runtime-tools",
         rest: {
-          connectionsSearch: "https://taskcore.test/runtime-tools/connections/search",
-          connectionRequest: "https://taskcore.test/runtime-tools/connections/request",
+          connectionsSearch:
+            "https://taskcore.test/runtime-tools/connections/search",
+          connectionRequest:
+            "https://taskcore.test/runtime-tools/connections/request",
         },
         bearerToken: "run-token",
         expiresAt: "2026-08-26T15:00:00.000Z",
@@ -71,24 +77,51 @@ describe("http adapter execute", () => {
   });
 
   it("sends the server snapshot instead of a configured payload instruction block", async () => {
-    const snapshot = { text: "Use the release handbook.", digest: "server-digest" };
-    guardedFetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body)).connectionInstructions).toEqual(snapshot);
-      return new Response(null, { status: 204 });
-    });
-    await execute({ runId: "run-1", agent: { id: "agent-1", companyId: "company-1", name: "Agent", adapterType: "http", adapterConfig: {} }, runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
-      config: { url: "https://example.test/webhook", payloadTemplate: { connectionInstructions: { text: "forged" } } }, context: { connectionInstructions: snapshot }, onLog: async () => {},
+    const snapshot = {
+      text: "Use the release handbook.",
+      digest: "server-digest",
+    };
+    guardedFetchMock.mockImplementation(
+      async (_url: string, init?: RequestInit) => {
+        expect(JSON.parse(String(init?.body)).connectionInstructions).toEqual(
+          snapshot,
+        );
+        return new Response(null, { status: 204 });
+      },
+    );
+    await execute({
+      runId: "run-1",
+      agent: {
+        id: "agent-1",
+        companyId: "company-1",
+        name: "Agent",
+        adapterType: "http",
+        adapterConfig: {},
+      },
+      runtime: {
+        sessionId: null,
+        sessionParams: null,
+        sessionDisplayId: null,
+        taskKey: null,
+      },
+      config: {
+        url: "https://example.test/webhook",
+        payloadTemplate: { connectionInstructions: { text: "forged" } },
+      },
+      context: { connectionInstructions: snapshot },
+      onLog: async () => {},
     });
     expect(guardedFetchMock).toHaveBeenCalledOnce();
   });
 
   it("reports configured request timeout as timed_out", async () => {
     guardedFetchMock.mockImplementation(
-      (_url: string, init?: RequestInit) => new Promise((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => {
-          reject(new DOMException("Aborted", "AbortError"));
-        });
-      }),
+      (_url: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        }),
     );
 
     const result = await execute({

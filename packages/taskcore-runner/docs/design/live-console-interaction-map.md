@@ -64,14 +64,14 @@ Transcript rules:
 
 Composer states (one state machine, one visible primary action):
 
-| State | Trigger | Primary action | Notes |
-|---|---|---|---|
-| `idle` | no active turn | **Send** (`turn.submitted`) | textarea enabled |
-| `submitting` | send clicked, no `turn.accepted` yet | disabled, spinner in button | keep text visible |
-| `active-turn` | `turn.started` for my turn | **Steer** (see §2) + **Stop** icon-button | composer relabels; input stays enabled for steering |
-| `interrupting` | stop clicked | both disabled, "Stopping…" | see §3 |
-| `disconnected` | transport lost | disabled + reconnect banner | see §7 |
-| `terminal` | `session.closed`/`session.failed` | disabled + replay affordance | see §7 |
+| State          | Trigger                              | Primary action                            | Notes                                               |
+| -------------- | ------------------------------------ | ----------------------------------------- | --------------------------------------------------- |
+| `idle`         | no active turn                       | **Send** (`turn.submitted`)               | textarea enabled                                    |
+| `submitting`   | send clicked, no `turn.accepted` yet | disabled, spinner in button               | keep text visible                                   |
+| `active-turn`  | `turn.started` for my turn           | **Steer** (see §2) + **Stop** icon-button | composer relabels; input stays enabled for steering |
+| `interrupting` | stop clicked                         | both disabled, "Stopping…"                | see §3                                              |
+| `disconnected` | transport lost                       | disabled + reconnect banner               | see §7                                              |
+| `terminal`     | `session.closed`/`session.failed`    | disabled + replay affordance              | see §7                                              |
 
 Composer behavior: `Enter` submits, `Shift+Enter` inserts newline. Textarea
 auto-grows to 8 lines, then scrolls. The active state is announced via a
@@ -90,11 +90,11 @@ While a turn is active the composer's primary action is **Steer** and sends
 2. **Stale-turn rejection is a first-class outcome, not an error toast.** If
    the turn completed/failed/was interrupted between typing and send, the
    driver rejects on `expectedTurnId` mismatch. The chip flips to `rejected —
-   turn already ended`, with the composed text preserved in an inline
+turn already ended`, with the composed text preserved in an inline
    **"Send as new message"** action (Forgiveness: one keystroke recovers the
    intent; never discard typed input).
 3. The pending chip must resolve to exactly one of `acknowledged`, `rejected
-   (stale turn)`, or `failed (diagnostic)` — no indefinite pending. If the
+(stale turn)`, or `failed (diagnostic)` — no indefinite pending. If the
    transport drops mid-steer, resolve to `failed` with the reconnect banner.
 4. `aria-live="polite"` announces ack/rejection with the same copy as the
    visual chip.
@@ -107,11 +107,11 @@ misclick (Fitts: minimum 2.75rem target, `--space-3` gap).
 
 Race matrix (all three must be visually distinguishable — spec test contract):
 
-| Race | UI before | UI after |
-|---|---|---|
-| interrupt **before start** (`turn.submitted`, no `turn.started`) | composer `submitting` | pending turn card resolves to `turn.cancelled` state: "Cancelled before start" |
-| interrupt **during generation** | streaming assistant item | stream stops in place; item keeps partial text with an "interrupted" divider; `turn.interrupted` badge on the turn group |
-| interrupt **during tool** | tool item running | tool item resolves to interrupted state with its last known status; no fabricated tool result |
+| Race                                                             | UI before                | UI after                                                                                                                 |
+| ---------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| interrupt **before start** (`turn.submitted`, no `turn.started`) | composer `submitting`    | pending turn card resolves to `turn.cancelled` state: "Cancelled before start"                                           |
+| interrupt **during generation**                                  | streaming assistant item | stream stops in place; item keeps partial text with an "interrupted" divider; `turn.interrupted` badge on the turn group |
+| interrupt **during tool**                                        | tool item running        | tool item resolves to interrupted state with its last known status; no fabricated tool result                            |
 
 Rules:
 
@@ -190,7 +190,7 @@ Capability gating (spec-critical):
 1. If the installed app-server does not advertise goal support, the whole menu
    renders disabled with the **exact diagnostic** from capability negotiation
    (e.g. `Goal operations unsupported: app-server 0.132.0 does not advertise
-   goals capability`) — copied verbatim into tooltip and inspector. Never hide
+goals capability`) — copied verbatim into tooltip and inspector. Never hide
    the control silently (discoverability of the gap is a deliverable) and
    never fabricate a client-side goal.
 2. Partial support (some verbs missing) disables only the missing verbs, same
@@ -263,7 +263,7 @@ Right-rail panel with four tabs:
   timestamps; row links to the transcript card.
 - **Capabilities:** negotiated capability/version table (steer, interrupt,
   goals, child threads, usage…), each row `supported / unsupported —
-  <exact diagnostic>`. This is the authoritative view backing every disabled
+<exact diagnostic>`. This is the authoritative view backing every disabled
   control in §5/§6.
 - **Session:** identities (runId, normalizedSessionId, thread ids,
   sourceInstanceId), sequence/cursor state, gap detection status, usage

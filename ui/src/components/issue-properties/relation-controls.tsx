@@ -34,17 +34,19 @@ export function RemovableIssueReferencePill({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const locked = isLockedIssueStub(issue);
   const issueLabel = locked
-    ? issue.identifier ?? "Private task"
-    : issue.identifier ?? issue.title;
+    ? (issue.identifier ?? "Private task")
+    : (issue.identifier ?? issue.title);
   const confirmLabel = locked
-    ? issue.identifier ?? "this private task"
+    ? (issue.identifier ?? "this private task")
     : issue.identifier
       ? `${issue.identifier}: ${issue.title}`
       : issue.title;
   const chipClassName = cn(
     "taskcore-mention-chip taskcore-mention-chip--issue",
     "inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs no-underline",
-    !locked && issue.identifier && "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
+    !locked &&
+      issue.identifier &&
+      "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
   );
   // A private blocker referenced from a task you *can* see: show the locked chip
   // (never a title/link) but keep the detach affordance so you aren't stuck
@@ -94,7 +96,10 @@ export function RemovableIssueReferencePill({
                   </Link>
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuItem variant="destructive" onSelect={openRemoveConfirmation}>
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={openRemoveConfirmation}
+              >
                 <X className="h-4 w-4" />
                 Remove blocker
               </DropdownMenuItem>
@@ -146,7 +151,9 @@ export function RemovableIssueReferencePill({
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="outline">Cancel</Button>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
             </DialogClose>
             <Button type="button" variant="destructive" onClick={confirmRemove}>
               Remove blocker
@@ -173,7 +180,9 @@ export function ExpandRelationListButton({
       type="button"
       className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
       onClick={onClick}
-      aria-label={expanded ? "Show fewer items" : `Show ${hiddenCount} more items`}
+      aria-label={
+        expanded ? "Show fewer items" : `Show ${hiddenCount} more items`
+      }
     >
       {expanded ? "Show less" : `Show ${hiddenCount} more`}
     </button>

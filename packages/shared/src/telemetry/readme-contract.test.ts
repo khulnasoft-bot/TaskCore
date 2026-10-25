@@ -12,7 +12,9 @@ describe("telemetry README contract", () => {
     expect(generatedTelemetry.SCHEMA_VERSION).toBeDefined();
     expect(generatedTelemetry.makeEvent).toBeTypeOf("function");
     expect(generatedTelemetry.makeBatch).toBeTypeOf("function");
-    expect(readme).toContain("`SCHEMA_VERSION`, `makeEvent()`, and `makeBatch()`");
+    expect(readme).toContain(
+      "`SCHEMA_VERSION`, `makeEvent()`, and `makeBatch()`",
+    );
     expect(readme).not.toContain("createTaskcoreTelemetryEvent");
     expect(readme).not.toContain("createTaskcoreTelemetryEnvelope");
   });

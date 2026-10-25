@@ -1,5 +1,14 @@
 import * as cloudIdentity from "../cloud-runtime-identity.js";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { randomUUID } from "node:crypto";
 import { upsertIssueDocumentSchema } from "@taskcore/shared";
 import { and, eq, inArray } from "drizzle-orm";
@@ -19,17 +28,25 @@ import {
   issues,
 } from "@taskcore/db";
 import { startEmbeddedPostgresTestDatabase } from "../../__tests__/helpers/embedded-postgres.js";
-import { initializeRunIdentity, reserveSteeredIdentity, reconcileSteeredIdentity } from "../run-identity.js";
+import {
+  initializeRunIdentity,
+  reserveSteeredIdentity,
+  reconcileSteeredIdentity,
+} from "../run-identity.js";
 import { documentService } from "../documents.js";
 import { issueService } from "../issues.js";
 import { TaskcoreRunnerToolAuthority } from "./taskcore-runner-tool-authority.js";
 import { createAssignedMcpTools } from "./assigned-mcp-tools.js";
 import type { ToolGatewayService } from "../tool-gateway.js";
 import { READ_CURRENT_WAKE_COMMENTS_TOOL_NAME } from "./current-wake-comments.js";
-import { CAPABILITY_SEMANTIC_TOOL_CATALOG, runnerCodexDynamicToolsFit } from "../../vendor/taskcore-runner/index.js";
+import {
+  CAPABILITY_SEMANTIC_TOOL_CATALOG,
+  runnerCodexDynamicToolsFit,
+} from "../../vendor/taskcore-runner/index.js";
 
 describe("TaskcoreRunnerToolAuthority", () => {
-  const credentialDocumentBody = "Use a secret manager for credential handling.\nAuthorization: Bearer intentional-document-credential";
+  const credentialDocumentBody =
+    "Use a secret manager for credential handling.\nAuthorization: Bearer intentional-document-credential";
   let temporary: Awaited<
     ReturnType<typeof startEmbeddedPostgresTestDatabase>
   > | null = null;
@@ -104,24 +121,59 @@ describe("TaskcoreRunnerToolAuthority", () => {
       runId,
     });
     expect(authority.definitions()).toHaveLength(44);
-    expect(authority.definitions().map(tool => tool.name)).not.toContain("read_chat_attachment");
-    expect(authority.definitions().map(tool => tool.name)).not.toContain("read_current_wake_comments");
-    const questions = authority.definitions().find(tool => tool.name === "request_human_input")!;
-    expect(questions.description).toContain("ask only the next unanswered question");
+    expect(authority.definitions().map((tool) => tool.name)).not.toContain(
+      "read_chat_attachment",
+    );
+    expect(authority.definitions().map((tool) => tool.name)).not.toContain(
+      "read_current_wake_comments",
+    );
+    const questions = authority
+      .definitions()
+      .find((tool) => tool.name === "request_human_input")!;
+    expect(questions.description).toContain(
+      "ask only the next unanswered question",
+    );
     expect(questions.description).toContain("Never fabricate answers");
     expect(questions.description).toContain("resolve-from-comment");
-    expect(questions.description).toContain("Existing resolver permissions still apply");
+    expect(questions.description).toContain(
+      "Existing resolver permissions still apply",
+    );
     expect(questions.description).toContain("Do not fabricate answer links");
-    expect(JSON.stringify(questions.inputSchema)).toContain("at least two meaningful options");
-    expect(questions.inputSchema).toMatchObject({ properties: { payload: { properties: { questionSet: {
-      properties: { questions: { items: { properties: { answerMode: { enum: ["single_select", "multi_select", "text"] } } } } },
-    } } } } });
+    expect(JSON.stringify(questions.inputSchema)).toContain(
+      "at least two meaningful options",
+    );
+    expect(questions.inputSchema).toMatchObject({
+      properties: {
+        payload: {
+          properties: {
+            questionSet: {
+              properties: {
+                questions: {
+                  items: {
+                    properties: {
+                      answerMode: {
+                        enum: ["single_select", "multi_select", "text"],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
     expect(authority.definitions().map((tool) => tool.name)).toEqual(
       expect.arrayContaining([
         "connections_search",
-        "connection_request", "create_project", "list_project_repositories", "list_projects",
-        "search_api", "call_api", "hire_agent",
+        "connection_request",
+        "create_project",
+        "list_project_repositories",
+        "list_projects",
+        "search_api",
+        "call_api",
+        "hire_agent",
         "get_task_context",
         "get_task_history",
         "search_tasks",
@@ -181,19 +233,60 @@ describe("TaskcoreRunnerToolAuthority", () => {
   });
 
   it("returns public task URLs from the current claimed origin in context and search results", async () => {
-    const origin = vi.spyOn(cloudIdentity, "runtimeCanonicalOrigin").mockReturnValue("https://board.example");
-    const authority = new TaskcoreRunnerToolAuthority(db, { companyId, agentId, issueId, runId });
+    const origin = vi
+      .spyOn(cloudIdentity, "runtimeCanonicalOrigin")
+      .mockReturnValue("https://board.example");
+    const authority = new TaskcoreRunnerToolAuthority(db, {
+      companyId,
+      agentId,
+      issueId,
+      runId,
+    });
     try {
-      expect(await authority.execute({ tool: "get_task_context", callId: "public-task-url", arguments: {} }))
-        .toMatchObject({ activeTask: { id: issueId, url: `https://board.example/issues/${issueId}` } });
-      expect(await authority.execute({ tool: "search_tasks", callId: "search-public-task-url", arguments: { query: "Exercise real runner tools" } }))
-        .toMatchObject({ tasks: expect.arrayContaining([expect.objectContaining({ id: issueId, url: `https://board.example/issues/${issueId}` })]) });
+      expect(
+        await authority.execute({
+          tool: "get_task_context",
+          callId: "public-task-url",
+          arguments: {},
+        }),
+      ).toMatchObject({
+        activeTask: {
+          id: issueId,
+          url: `https://board.example/issues/${issueId}`,
+        },
+      });
+      expect(
+        await authority.execute({
+          tool: "search_tasks",
+          callId: "search-public-task-url",
+          arguments: { query: "Exercise real runner tools" },
+        }),
+      ).toMatchObject({
+        tasks: expect.arrayContaining([
+          expect.objectContaining({
+            id: issueId,
+            url: `https://board.example/issues/${issueId}`,
+          }),
+        ]),
+      });
       origin.mockReturnValue("https://renamed.example");
-      expect(await authority.execute({ tool: "get_task_context", callId: "renamed-task-url", arguments: {} }))
-        .toMatchObject({ activeTask: { url: `https://renamed.example/issues/${issueId}` } });
+      expect(
+        await authority.execute({
+          tool: "get_task_context",
+          callId: "renamed-task-url",
+          arguments: {},
+        }),
+      ).toMatchObject({
+        activeTask: { url: `https://renamed.example/issues/${issueId}` },
+      });
       origin.mockReturnValue("https://localhost");
-      expect(await authority.execute({ tool: "get_task_context", callId: "unsafe-task-url", arguments: {} }))
-        .toMatchObject({ activeTask: { url: null } });
+      expect(
+        await authority.execute({
+          tool: "get_task_context",
+          callId: "unsafe-task-url",
+          arguments: {},
+        }),
+      ).toMatchObject({ activeTask: { url: null } });
     } finally {
       origin.mockRestore();
     }
@@ -206,41 +299,102 @@ describe("TaskcoreRunnerToolAuthority", () => {
     const otherCompanyId = randomUUID();
     const foreignChildId = randomUUID();
     const hiddenChildIds = Array.from({ length: 101 }, () => randomUUID());
-    await db.insert(companies).values({ id: otherCompanyId, name: "Other company", issuePrefix: "OTHER" });
+    await db
+      .insert(companies)
+      .values({
+        id: otherCompanyId,
+        name: "Other company",
+        issuePrefix: "OTHER",
+      });
     await db.insert(issues).values([
-      { id: completedChildId, companyId, parentId: issueId, title: "Existing completed draft", status: "done", assigneeAgentId: agentId },
-      { id: activeChildId, companyId, parentId: issueId, title: "Existing active review", status: "in_progress", assigneeAgentId: agentId },
+      {
+        id: completedChildId,
+        companyId,
+        parentId: issueId,
+        title: "Existing completed draft",
+        status: "done",
+        assigneeAgentId: agentId,
+      },
+      {
+        id: activeChildId,
+        companyId,
+        parentId: issueId,
+        title: "Existing active review",
+        status: "in_progress",
+        assigneeAgentId: agentId,
+      },
       { id: unrelatedId, companyId, title: "Unrelated task", status: "todo" },
       // Even inconsistent imported data cannot expose another company's task.
-      { id: foreignChildId, companyId: otherCompanyId, parentId: issueId, title: "Foreign child", status: "todo" },
+      {
+        id: foreignChildId,
+        companyId: otherCompanyId,
+        parentId: issueId,
+        title: "Foreign child",
+        status: "todo",
+      },
       // Hidden rows must neither enter context nor consume the visible child limit.
-      ...hiddenChildIds.map((id) => ({ id, companyId, parentId: issueId, title: "Hidden child",
-        hiddenAt: new Date(), createdAt: new Date(Date.now() + 1000) })),
+      ...hiddenChildIds.map((id) => ({
+        id,
+        companyId,
+        parentId: issueId,
+        title: "Hidden child",
+        hiddenAt: new Date(),
+        createdAt: new Date(Date.now() + 1000),
+      })),
     ]);
     try {
-      const authority = new TaskcoreRunnerToolAuthority(db, { companyId, agentId, issueId, runId });
-      const context = await authority.execute({ tool: "get_task_context", callId: "context-existing-children", arguments: {} });
+      const authority = new TaskcoreRunnerToolAuthority(db, {
+        companyId,
+        agentId,
+        issueId,
+        runId,
+      });
+      const context = await authority.execute({
+        tool: "get_task_context",
+        callId: "context-existing-children",
+        arguments: {},
+      });
       expect(context).toMatchObject({
         childTasks: expect.arrayContaining([
-          expect.objectContaining({ id: completedChildId, status: "done", parentId: issueId }),
-          expect.objectContaining({ id: activeChildId, status: "in_progress", assigneeAgentId: agentId }),
+          expect.objectContaining({
+            id: completedChildId,
+            status: "done",
+            parentId: issueId,
+          }),
+          expect.objectContaining({
+            id: activeChildId,
+            status: "in_progress",
+            assigneeAgentId: agentId,
+          }),
         ]),
         childTasksTruncated: false,
-        delegationGuidance: expect.stringContaining("Reuse existing child tasks"),
+        delegationGuidance: expect.stringContaining(
+          "Reuse existing child tasks",
+        ),
       });
       expect(JSON.stringify(context)).not.toContain(foreignChildId);
       expect(JSON.stringify(context)).not.toContain(unrelatedId);
-      for (const id of hiddenChildIds) expect(JSON.stringify(context)).not.toContain(id);
+      for (const id of hiddenChildIds)
+        expect(JSON.stringify(context)).not.toContain(id);
     } finally {
-      await db.delete(issues).where(inArray(issues.id, [completedChildId, activeChildId, unrelatedId, foreignChildId, ...hiddenChildIds]));
+      await db
+        .delete(issues)
+        .where(
+          inArray(issues.id, [
+            completedChildId,
+            activeChildId,
+            unrelatedId,
+            foreignChildId,
+            ...hiddenChildIds,
+          ]),
+        );
       await db.delete(companies).where(eq(companies.id, otherCompanyId));
     }
   });
 
   it("advertises API tools by default and preserves direct-chat file tools when disabled", () => {
     const previousEnabled = process.env.TASKCORE_RUNNER_API_TOOLS_ENABLED;
-    const previousCompanies =
-      process.env.TASKCORE_RUNNER_API_TOOLS_COMPANY_IDS;
+    const previousCompanies = process.env.TASKCORE_RUNNER_API_TOOLS_COMPANY_IDS;
     const createAuthority = () =>
       new TaskcoreRunnerToolAuthority(db, {
         companyId,
@@ -282,15 +436,28 @@ describe("TaskcoreRunnerToolAuthority", () => {
           "hire_agent",
         ]),
       );
-      const hire = createAuthority().definitions().find((tool) => tool.name === "hire_agent")!;
-      const hireSchema = hire.inputSchema as { properties: Record<string, unknown> };
-      expect(hireSchema.properties).toEqual(expect.objectContaining({ name: expect.any(Object), role: expect.any(Object) }));
+      const hire = createAuthority()
+        .definitions()
+        .find((tool) => tool.name === "hire_agent")!;
+      const hireSchema = hire.inputSchema as {
+        properties: Record<string, unknown>;
+      };
+      expect(hireSchema.properties).toEqual(
+        expect.objectContaining({
+          name: expect.any(Object),
+          role: expect.any(Object),
+        }),
+      );
       expect(hireSchema.properties).not.toHaveProperty("adapterConfig");
       expect(hireSchema.properties).not.toHaveProperty("env");
 
       process.env.TASKCORE_RUNNER_API_TOOLS_ENABLED = "false";
-      const disabledNames = createAuthority().definitions().map((tool) => tool.name);
-      expect(disabledNames).toEqual(expect.arrayContaining(requiredChatFileTools));
+      const disabledNames = createAuthority()
+        .definitions()
+        .map((tool) => tool.name);
+      expect(disabledNames).toEqual(
+        expect.arrayContaining(requiredChatFileTools),
+      );
       for (const name of ["search_api", "call_api", "hire_agent"]) {
         expect(disabledNames).not.toContain(name);
       }
@@ -341,10 +508,16 @@ describe("TaskcoreRunnerToolAuthority", () => {
         },
       } as const;
       const first = await authority.execute(call);
-      expect(first).toMatchObject({ ok: true, status: 201, apiOperationId: "POST /api/companies/{companyId}/agent-hires" });
+      expect(first).toMatchObject({
+        ok: true,
+        status: 201,
+        apiOperationId: "POST /api/companies/{companyId}/agent-hires",
+      });
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(String(url)).toBe(`http://runner-test.invalid/api/companies/${companyId}/agent-hires`);
+      expect(String(url)).toBe(
+        `http://runner-test.invalid/api/companies/${companyId}/agent-hires`,
+      );
       const body = JSON.parse(String(request.body));
       expect(body).toMatchObject({
         name: "QA teammate",
@@ -355,7 +528,12 @@ describe("TaskcoreRunnerToolAuthority", () => {
         inheritRuntimeFrom: "caller",
         reportsTo: agentId,
         sourceIssueId: issueId,
-        instructionsBundle: { entryFile: "AGENTS.md", files: { "AGENTS.md": "Use the assigned workspace and report findings." } },
+        instructionsBundle: {
+          entryFile: "AGENTS.md",
+          files: {
+            "AGENTS.md": "Use the assigned workspace and report findings.",
+          },
+        },
       });
       expect(body).not.toHaveProperty("adapterConfig");
       expect(body).not.toHaveProperty("runtimeConfig");
@@ -364,11 +542,15 @@ describe("TaskcoreRunnerToolAuthority", () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       fetchMock.mockRestore();
-      if (previousEnabled === undefined) delete process.env.TASKCORE_RUNNER_API_TOOLS_ENABLED;
+      if (previousEnabled === undefined)
+        delete process.env.TASKCORE_RUNNER_API_TOOLS_ENABLED;
       else process.env.TASKCORE_RUNNER_API_TOOLS_ENABLED = previousEnabled;
-      if (previousCompanies === undefined) delete process.env.TASKCORE_RUNNER_API_TOOLS_COMPANY_IDS;
-      else process.env.TASKCORE_RUNNER_API_TOOLS_COMPANY_IDS = previousCompanies;
-      if (previousSecret === undefined) delete process.env.TASKCORE_AGENT_JWT_SECRET;
+      if (previousCompanies === undefined)
+        delete process.env.TASKCORE_RUNNER_API_TOOLS_COMPANY_IDS;
+      else
+        process.env.TASKCORE_RUNNER_API_TOOLS_COMPANY_IDS = previousCompanies;
+      if (previousSecret === undefined)
+        delete process.env.TASKCORE_AGENT_JWT_SECRET;
       else process.env.TASKCORE_AGENT_JWT_SECRET = previousSecret;
     }
   });
@@ -376,36 +558,99 @@ describe("TaskcoreRunnerToolAuthority", () => {
   it("dispatches cross-task Markdown documents that pass route validation and persist revisions", async () => {
     vi.stubEnv("TASKCORE_AGENT_JWT_SECRET", "document-test-secret");
     const taskId = randomUUID();
-    await db.insert(issues).values({ id: taskId, companyId, title: "Cross-task document target", status: "todo" });
+    await db
+      .insert(issues)
+      .values({
+        id: taskId,
+        companyId,
+        title: "Cross-task document target",
+        status: "todo",
+      });
     const service = documentService(db);
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, request) => {
-      expect(String(url)).toBe(`http://runner-test.invalid/api/issues/${taskId}/documents/notes`);
-      expect(new Headers(request?.headers).get("authorization")).toMatch(/^Bearer /);
-      // Use the real route validator and persistence service, so a missing
-      // required format or stale base revision cannot be hidden by a spy.
-      const body = upsertIssueDocumentSchema.parse(JSON.parse(String(request?.body)));
-      const saved = await service.upsertIssueDocument({ issueId: taskId, key: "notes", ...body,
-        createdByAgentId: agentId, createdByRunId: runId });
-      return new Response(JSON.stringify(saved.document), { status: 200, headers: { "content-type": "application/json" } });
-    });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (url, request) => {
+        expect(String(url)).toBe(
+          `http://runner-test.invalid/api/issues/${taskId}/documents/notes`,
+        );
+        expect(new Headers(request?.headers).get("authorization")).toMatch(
+          /^Bearer /,
+        );
+        // Use the real route validator and persistence service, so a missing
+        // required format or stale base revision cannot be hidden by a spy.
+        const body = upsertIssueDocumentSchema.parse(
+          JSON.parse(String(request?.body)),
+        );
+        const saved = await service.upsertIssueDocument({
+          issueId: taskId,
+          key: "notes",
+          ...body,
+          createdByAgentId: agentId,
+          createdByRunId: runId,
+        });
+        return new Response(JSON.stringify(saved.document), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      });
     try {
-      const authority = new TaskcoreRunnerToolAuthority(db, { companyId, agentId, issueId, runId,
-        apiToolsEnabled: true, apiUrl: "http://runner-test.invalid" });
-      const first = { tool: "write_task_document", callId: "cross-task-document-create", arguments: {
-        taskId, key: "notes", title: "Notes", body: "# First revision", baseRevisionId: null,
-      } };
-      expect(await authority.execute(first)).toMatchObject({ ok: true, status: 200 });
+      const authority = new TaskcoreRunnerToolAuthority(db, {
+        companyId,
+        agentId,
+        issueId,
+        runId,
+        apiToolsEnabled: true,
+        apiUrl: "http://runner-test.invalid",
+      });
+      const first = {
+        tool: "write_task_document",
+        callId: "cross-task-document-create",
+        arguments: {
+          taskId,
+          key: "notes",
+          title: "Notes",
+          body: "# First revision",
+          baseRevisionId: null,
+        },
+      };
+      expect(await authority.execute(first)).toMatchObject({
+        ok: true,
+        status: 200,
+      });
       const saved = await service.getIssueDocumentByKey(taskId, "notes");
-      expect(saved).toMatchObject({ format: "markdown", body: "# First revision" });
-      expect(await authority.execute({ ...first, callId: "cross-task-document-update", arguments: {
-        ...first.arguments, body: "# Second revision", baseRevisionId: saved!.latestRevisionId,
-      } })).toMatchObject({ ok: true, status: 200 });
-      expect(await service.getIssueDocumentByKey(taskId, "notes")).toMatchObject({ body: "# Second revision" });
-      expect(await service.listIssueDocumentRevisions(taskId, "notes")).toHaveLength(2);
-      const tooLong = await authority.execute({ ...first, callId: "cross-task-document-long-title", arguments: {
-        ...first.arguments, title: "x".repeat(201),
-      } });
-      expect(tooLong).toMatchObject({ outcome: "failed", code: "runner_bridge_invalid_arguments" });
+      expect(saved).toMatchObject({
+        format: "markdown",
+        body: "# First revision",
+      });
+      expect(
+        await authority.execute({
+          ...first,
+          callId: "cross-task-document-update",
+          arguments: {
+            ...first.arguments,
+            body: "# Second revision",
+            baseRevisionId: saved!.latestRevisionId,
+          },
+        }),
+      ).toMatchObject({ ok: true, status: 200 });
+      expect(
+        await service.getIssueDocumentByKey(taskId, "notes"),
+      ).toMatchObject({ body: "# Second revision" });
+      expect(
+        await service.listIssueDocumentRevisions(taskId, "notes"),
+      ).toHaveLength(2);
+      const tooLong = await authority.execute({
+        ...first,
+        callId: "cross-task-document-long-title",
+        arguments: {
+          ...first.arguments,
+          title: "x".repeat(201),
+        },
+      });
+      expect(tooLong).toMatchObject({
+        outcome: "failed",
+        code: "runner_bridge_invalid_arguments",
+      });
       expect(fetchMock).toHaveBeenCalledTimes(2);
     } finally {
       fetchMock.mockRestore();
@@ -474,139 +719,174 @@ describe("TaskcoreRunnerToolAuthority", () => {
     },
   );
 
-  it.each(["choice", "text", "mixed"] as const)("executes the advertised %s question once on the bound reviewed task", async (answerMode) => {
-    const binding = {
-      companyId: randomUUID(),
-      agentId: randomUUID(),
-      issueId: randomUUID(),
-      runId: randomUUID(),
-    };
-    await db.insert(companies).values({
-      id: binding.companyId,
-      name: "Question invocation",
-      issuePrefix: answerMode === "choice" ? "RQA" : answerMode === "text" ? "RQT" : "RQM",
-    });
-    await db.insert(agents).values({
-      id: binding.agentId,
-      companyId: binding.companyId,
-      name: "Question agent",
-      adapterType: "taskcore_runner",
-      status: "active",
-    });
-    await db.insert(issues).values({
-      id: binding.issueId,
-      companyId: binding.companyId,
-      title: "Question on reviewed task",
-      status: "in_review",
-      workMode: "standard",
-      reviewPolicy: "human_only",
-      assigneeAgentId: binding.agentId,
-    });
-    await db.insert(heartbeatRuns).values({
-      id: binding.runId,
-      companyId: binding.companyId,
-      agentId: binding.agentId,
-      status: "running",
-      runtimeMode: "native",
-      nativeIssueId: binding.issueId,
-      invocationSource: "assignment",
-      triggerDetail: "system",
-      contextSnapshot: { issueId: binding.issueId },
-    });
-    await db
-      .update(issues)
-      .set({ executionRunId: binding.runId })
-      .where(eq(issues.id, binding.issueId));
-    const authority = new TaskcoreRunnerToolAuthority(db, binding);
-    const advertised = authority
-      .definitions()
-      .find((tool) => tool.name === "request_human_input")!;
-    expect(advertised.description).toContain("payload.questionSet");
-    const questions = [
-      {
-        id: "color",
-        prompt: "Choose one color",
-        selectionMode: "single",
-        required: true,
-        options: [
-          { id: "amber", label: "Amber" },
-          { id: "cobalt", label: "Cobalt" },
-        ],
-      },
-    ];
-    const payloadDescription = (advertised.inputSchema as {
-      properties: { payload: { description: string } };
-    }).properties.payload.description;
-    expect(payloadDescription).toContain("at least two meaningful options");
-    expect(payloadDescription).toContain("questionSet");
-    expect(payloadDescription).not.toContain("use exactly");
-    const payload = answerMode === "choice"
-      ? { version: 1, questions }
-      : {
-          version: 1,
-          questionSet: {
-            schema: "taskcore.question_set.v1",
-            questions: [
-              { id: "goal", prompt: "What should we accomplish?", answerMode: "text", required: true },
-              ...(answerMode === "mixed" ? [{ id: "color", prompt: "Choose one color", answerMode: "single_select", required: true, options: questions[0].options }] : []),
-            ],
-          },
-        };
-    const call = {
-      tool: "request_human_input",
-      callId: "advertised-question",
-      arguments: {
-        idempotencyKey: "advertised-question",
-        interactionKind: "questions",
-        title: "Choose one color",
-        prompt: "Choose one color",
-        continuationPolicy: "wake_assignee",
-        payload,
-      },
-    };
-    const first = await authority.execute(call);
-    expect(first).toMatchObject({
-      disposition: "applied",
-      interaction: {
+  it.each(["choice", "text", "mixed"] as const)(
+    "executes the advertised %s question once on the bound reviewed task",
+    async (answerMode) => {
+      const binding = {
+        companyId: randomUUID(),
+        agentId: randomUUID(),
+        issueId: randomUUID(),
+        runId: randomUUID(),
+      };
+      await db.insert(companies).values({
+        id: binding.companyId,
+        name: "Question invocation",
+        issuePrefix:
+          answerMode === "choice"
+            ? "RQA"
+            : answerMode === "text"
+              ? "RQT"
+              : "RQM",
+      });
+      await db.insert(agents).values({
+        id: binding.agentId,
         companyId: binding.companyId,
-        issueId: binding.issueId,
-        sourceRunId: binding.runId,
-        kind: "ask_user_questions",
-        status: "pending",
-        continuationPolicy: "wake_assignee",
-        payload,
-      },
-    });
-    await expect(
-      authority.execute({ ...call, callId: "advertised-question-replay" }),
-    ).resolves.toEqual(first);
-    const rows = await db
-      .select()
-      .from(issueThreadInteractions)
-      .where(eq(issueThreadInteractions.issueId, binding.issueId));
-    expect(rows).toHaveLength(1);
-    expect((rows[0].payload as { questions: { id: string }[] }).questions.map((question) => question.id))
-      .toEqual(answerMode === "choice" ? ["color"] : answerMode === "text" ? ["goal"] : ["goal", "color"]);
-    const [task] = await db
-      .select()
-      .from(issues)
-      .where(eq(issues.id, binding.issueId));
-    expect(task).toMatchObject({
-      status: "in_review",
-      reviewPolicy: "human_only",
-      assigneeAgentId: binding.agentId,
-      executionRunId: binding.runId,
-    });
-    const entries = await db
-      .select()
-      .from(activityLog)
-      .where(eq(activityLog.entityId, binding.issueId));
-    expect(
-      entries.filter(
-        (entry) => entry.action === "issue.thread_interaction_created",
-      ),
-    ).toHaveLength(1);
-  });
+        name: "Question agent",
+        adapterType: "taskcore_runner",
+        status: "active",
+      });
+      await db.insert(issues).values({
+        id: binding.issueId,
+        companyId: binding.companyId,
+        title: "Question on reviewed task",
+        status: "in_review",
+        workMode: "standard",
+        reviewPolicy: "human_only",
+        assigneeAgentId: binding.agentId,
+      });
+      await db.insert(heartbeatRuns).values({
+        id: binding.runId,
+        companyId: binding.companyId,
+        agentId: binding.agentId,
+        status: "running",
+        runtimeMode: "native",
+        nativeIssueId: binding.issueId,
+        invocationSource: "assignment",
+        triggerDetail: "system",
+        contextSnapshot: { issueId: binding.issueId },
+      });
+      await db
+        .update(issues)
+        .set({ executionRunId: binding.runId })
+        .where(eq(issues.id, binding.issueId));
+      const authority = new TaskcoreRunnerToolAuthority(db, binding);
+      const advertised = authority
+        .definitions()
+        .find((tool) => tool.name === "request_human_input")!;
+      expect(advertised.description).toContain("payload.questionSet");
+      const questions = [
+        {
+          id: "color",
+          prompt: "Choose one color",
+          selectionMode: "single",
+          required: true,
+          options: [
+            { id: "amber", label: "Amber" },
+            { id: "cobalt", label: "Cobalt" },
+          ],
+        },
+      ];
+      const payloadDescription = (
+        advertised.inputSchema as {
+          properties: { payload: { description: string } };
+        }
+      ).properties.payload.description;
+      expect(payloadDescription).toContain("at least two meaningful options");
+      expect(payloadDescription).toContain("questionSet");
+      expect(payloadDescription).not.toContain("use exactly");
+      const payload =
+        answerMode === "choice"
+          ? { version: 1, questions }
+          : {
+              version: 1,
+              questionSet: {
+                schema: "taskcore.question_set.v1",
+                questions: [
+                  {
+                    id: "goal",
+                    prompt: "What should we accomplish?",
+                    answerMode: "text",
+                    required: true,
+                  },
+                  ...(answerMode === "mixed"
+                    ? [
+                        {
+                          id: "color",
+                          prompt: "Choose one color",
+                          answerMode: "single_select",
+                          required: true,
+                          options: questions[0].options,
+                        },
+                      ]
+                    : []),
+                ],
+              },
+            };
+      const call = {
+        tool: "request_human_input",
+        callId: "advertised-question",
+        arguments: {
+          idempotencyKey: "advertised-question",
+          interactionKind: "questions",
+          title: "Choose one color",
+          prompt: "Choose one color",
+          continuationPolicy: "wake_assignee",
+          payload,
+        },
+      };
+      const first = await authority.execute(call);
+      expect(first).toMatchObject({
+        disposition: "applied",
+        interaction: {
+          companyId: binding.companyId,
+          issueId: binding.issueId,
+          sourceRunId: binding.runId,
+          kind: "ask_user_questions",
+          status: "pending",
+          continuationPolicy: "wake_assignee",
+          payload,
+        },
+      });
+      await expect(
+        authority.execute({ ...call, callId: "advertised-question-replay" }),
+      ).resolves.toEqual(first);
+      const rows = await db
+        .select()
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.issueId, binding.issueId));
+      expect(rows).toHaveLength(1);
+      expect(
+        (rows[0].payload as { questions: { id: string }[] }).questions.map(
+          (question) => question.id,
+        ),
+      ).toEqual(
+        answerMode === "choice"
+          ? ["color"]
+          : answerMode === "text"
+            ? ["goal"]
+            : ["goal", "color"],
+      );
+      const [task] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, binding.issueId));
+      expect(task).toMatchObject({
+        status: "in_review",
+        reviewPolicy: "human_only",
+        assigneeAgentId: binding.agentId,
+        executionRunId: binding.runId,
+      });
+      const entries = await db
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.entityId, binding.issueId));
+      expect(
+        entries.filter(
+          (entry) => entry.action === "issue.thread_interaction_created",
+        ),
+      ).toHaveLength(1);
+    },
+  );
 
   it("does not project a foreign-company task through approval context", async () => {
     const foreignCompanyId = "00000000-0000-4000-8000-000000000211";
@@ -658,79 +938,184 @@ describe("TaskcoreRunnerToolAuthority", () => {
   });
 
   it("rejects Dot artifact publication from instance state before reading a file", async () => {
-    const [actor] = await db.select().from(agents).where(eq(agents.id, agentId));
-    await db.update(agents).set({ adapterConfig: { ...actor.adapterConfig, dotWorkspaceAccess: true } }).where(eq(agents.id, agentId));
-    const authority = new TaskcoreRunnerToolAuthority(db, { companyId, agentId, issueId, runId,
-      dotRuntime: true, workspaceBridge: true, workspaceRoot: "/tmp/fixture-workspace" });
+    const [actor] = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.id, agentId));
+    await db
+      .update(agents)
+      .set({
+        adapterConfig: { ...actor.adapterConfig, dotWorkspaceAccess: true },
+      })
+      .where(eq(agents.id, agentId));
+    const authority = new TaskcoreRunnerToolAuthority(db, {
+      companyId,
+      agentId,
+      issueId,
+      runId,
+      dotRuntime: true,
+      workspaceBridge: true,
+      workspaceRoot: "/tmp/fixture-workspace",
+    });
     try {
-      for (const contentRef of [".taskcore/.env", "nested/.taskcore/config.json"]) {
-        await expect(authority.execute({ tool: "register_deliverable", callId: contentRef, arguments: {
-          idempotencyKey: contentRef, filename: "config.txt", title: "Config", contentType: "text/plain",
-          byteSize: 10, sha256: "0".repeat(64), contentRef,
-        } })).rejects.toThrow("runner_workspace_instance_state_denied");
+      for (const contentRef of [
+        ".taskcore/.env",
+        "nested/.taskcore/config.json",
+      ]) {
+        await expect(
+          authority.execute({
+            tool: "register_deliverable",
+            callId: contentRef,
+            arguments: {
+              idempotencyKey: contentRef,
+              filename: "config.txt",
+              title: "Config",
+              contentType: "text/plain",
+              byteSize: 10,
+              sha256: "0".repeat(64),
+              contentRef,
+            },
+          }),
+        ).rejects.toThrow("runner_workspace_instance_state_denied");
       }
     } finally {
-      await db.update(agents).set({ adapterConfig: actor.adapterConfig }).where(eq(agents.id, agentId));
+      await db
+        .update(agents)
+        .set({ adapterConfig: actor.adapterConfig })
+        .where(eq(agents.id, agentId));
     }
   });
 
   it("fits large assigned catalogs alongside workspace and completion tools without dropping task tools", async () => {
-    const listToolsForNamedGateway = vi.fn().mockResolvedValue(Array.from({ length: 224 }, (_, i) => ({
-      name: `app.action_${i}`, displayName: `Action ${i}`, description: "Read a fixture",
-      parametersSchema: { type: "object", properties: {} }, risk: "read",
-    })));
+    const listToolsForNamedGateway = vi.fn().mockResolvedValue(
+      Array.from({ length: 224 }, (_, i) => ({
+        name: `app.action_${i}`,
+        displayName: `Action ${i}`,
+        description: "Read a fixture",
+        parametersSchema: { type: "object", properties: {} },
+        risk: "read",
+      })),
+    );
     const assignedMcpTools = await createAssignedMcpTools({
       gateway: { listToolsForNamedGateway } as unknown as ToolGatewayService,
-      gatewayPublicId: "fixture", bearerToken: "fixture-token",
+      gatewayPublicId: "fixture",
+      bearerToken: "fixture-token",
     });
-    const binding = { companyId, agentId, issueId, runId, workspaceRoot: "/tmp/fixture-workspace" };
+    const binding = {
+      companyId,
+      agentId,
+      issueId,
+      runId,
+      workspaceRoot: "/tmp/fixture-workspace",
+    };
     const baseline = new TaskcoreRunnerToolAuthority(db, binding).definitions();
-    expect(runnerCodexDynamicToolsFit([...baseline, ...assignedMcpTools.definitions()])).toBe(false);
-    const authority = new TaskcoreRunnerToolAuthority(db, { ...binding, assignedMcpTools });
+    expect(
+      runnerCodexDynamicToolsFit([
+        ...baseline,
+        ...assignedMcpTools.definitions(),
+      ]),
+    ).toBe(false);
+    const authority = new TaskcoreRunnerToolAuthority(db, {
+      ...binding,
+      assignedMcpTools,
+    });
     const tools = authority.definitions();
     expect(runnerCodexDynamicToolsFit(tools)).toBe(true);
     expect(tools).toEqual(expect.arrayContaining(baseline));
-    expect(tools.filter(tool => String(tool.name).startsWith("app_"))).toEqual([]);
-    expect(tools.map(tool => tool.name)).toEqual(expect.arrayContaining([
-      "taskcore_search_assigned_tools", "taskcore_call_assigned_tool", "register_deliverable",
-    ]));
-    const call = { tool: "taskcore_search_assigned_tools", callId: "discover", arguments: { query: "Action 223" } };
-    await expect(authority.execute(call)).resolves.toMatchObject({ tools: [expect.objectContaining({ description: "Action 223: Read a fixture" })] });
+    expect(
+      tools.filter((tool) => String(tool.name).startsWith("app_")),
+    ).toEqual([]);
+    expect(tools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining([
+        "taskcore_search_assigned_tools",
+        "taskcore_call_assigned_tool",
+        "register_deliverable",
+      ]),
+    );
+    const call = {
+      tool: "taskcore_search_assigned_tools",
+      callId: "discover",
+      arguments: { query: "Action 223" },
+    };
+    await expect(authority.execute(call)).resolves.toMatchObject({
+      tools: [
+        expect.objectContaining({ description: "Action 223: Read a fixture" }),
+      ],
+    });
     listToolsForNamedGateway.mockClear();
-    await db.update(heartbeatRuns).set({ status: "succeeded" }).where(eq(heartbeatRuns.id, runId));
+    await db
+      .update(heartbeatRuns)
+      .set({ status: "succeeded" })
+      .where(eq(heartbeatRuns.id, runId));
     try {
-      await expect(authority.execute(call)).rejects.toThrow("taskcore_runner_tool_binding_not_authorized");
+      await expect(authority.execute(call)).rejects.toThrow(
+        "taskcore_runner_tool_binding_not_authorized",
+      );
       expect(listToolsForNamedGateway).not.toHaveBeenCalled();
     } finally {
-      await db.update(heartbeatRuns).set({ status: "running" }).where(eq(heartbeatRuns.id, runId));
+      await db
+        .update(heartbeatRuns)
+        .set({ status: "running" })
+        .where(eq(heartbeatRuns.id, runId));
     }
   });
 
   it("relays assigned MCP calls only while the native run still owns its task", async () => {
-    const tool = { name: "app_mem0_recall", description: "Recall memory", inputSchema: { type: "object" } };
+    const tool = {
+      name: "app_mem0_recall",
+      description: "Recall memory",
+      inputSchema: { type: "object" },
+    };
     const execute = vi.fn().mockResolvedValue({ content: "synthetic memory" });
     const authority = new TaskcoreRunnerToolAuthority(db, {
-      companyId, agentId, issueId, runId,
-      assignedMcpTools: { definitions: () => [tool], has: (name) => name === tool.name, execute },
+      companyId,
+      agentId,
+      issueId,
+      runId,
+      assignedMcpTools: {
+        definitions: () => [tool],
+        has: (name) => name === tool.name,
+        execute,
+      },
     });
     expect(authority.definitions()).toContainEqual(tool);
-    const call = { tool: tool.name, callId: "assigned-mcp", arguments: { query: "compass" } };
-    await expect(authority.execute(call)).resolves.toEqual({ content: "synthetic memory" });
+    const call = {
+      tool: tool.name,
+      callId: "assigned-mcp",
+      arguments: { query: "compass" },
+    };
+    await expect(authority.execute(call)).resolves.toEqual({
+      content: "synthetic memory",
+    });
     expect(execute).toHaveBeenCalledWith(call, "standard");
-    await db.update(issues).set({ workMode: "ask" }).where(eq(issues.id, issueId));
+    await db
+      .update(issues)
+      .set({ workMode: "ask" })
+      .where(eq(issues.id, issueId));
     try {
       await authority.execute(call);
       expect(execute).toHaveBeenLastCalledWith(call, "ask");
     } finally {
-      await db.update(issues).set({ workMode: "standard" }).where(eq(issues.id, issueId));
+      await db
+        .update(issues)
+        .set({ workMode: "standard" })
+        .where(eq(issues.id, issueId));
     }
     execute.mockClear();
-    await db.update(heartbeatRuns).set({ status: "succeeded" }).where(eq(heartbeatRuns.id, runId));
+    await db
+      .update(heartbeatRuns)
+      .set({ status: "succeeded" })
+      .where(eq(heartbeatRuns.id, runId));
     try {
-      await expect(authority.execute(call)).rejects.toThrow("taskcore_runner_tool_binding_not_authorized");
+      await expect(authority.execute(call)).rejects.toThrow(
+        "taskcore_runner_tool_binding_not_authorized",
+      );
       expect(execute).not.toHaveBeenCalled();
     } finally {
-      await db.update(heartbeatRuns).set({ status: "running" }).where(eq(heartbeatRuns.id, runId));
+      await db
+        .update(heartbeatRuns)
+        .set({ status: "running" })
+        .where(eq(heartbeatRuns.id, runId));
     }
   });
 
@@ -777,7 +1162,12 @@ describe("TaskcoreRunnerToolAuthority", () => {
     const progressActivity = await db
       .select()
       .from(activityLog)
-      .where(and(eq(activityLog.entityId, issueId), eq(activityLog.action, "issue.comment_added")));
+      .where(
+        and(
+          eq(activityLog.entityId, issueId),
+          eq(activityLog.action, "issue.comment_added"),
+        ),
+      );
     expect(progressActivity).toHaveLength(1);
     expect(progressActivity[0]).toMatchObject({
       action: "issue.comment_added",
@@ -899,8 +1289,9 @@ describe("TaskcoreRunnerToolAuthority", () => {
         .from(documents)
         .where(eq(documents.companyId, companyId)),
     ).toHaveLength(1);
-    expect(await documentService(db).getIssueDocumentByKey(issueId, "plan"))
-      .toMatchObject({ body: credentialDocumentBody });
+    expect(
+      await documentService(db).getIssueDocumentByKey(issueId, "plan"),
+    ).toMatchObject({ body: credentialDocumentBody });
     const documentActivity = await db
       .select()
       .from(activityLog)
@@ -1073,8 +1464,21 @@ describe("TaskcoreRunnerToolAuthority", () => {
       },
     });
     const prerequisiteId = (prerequisite as { task: { id: string } }).task.id;
-    expect(await db.select().from(activityLog).where(eq(activityLog.entityId, prerequisiteId)))
-      .toEqual(expect.arrayContaining([expect.objectContaining({ action: "issue.created", agentId, runId, companyId })]));
+    expect(
+      await db
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.entityId, prerequisiteId)),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "issue.created",
+          agentId,
+          runId,
+          companyId,
+        }),
+      ]),
+    );
     const dependent = await authority.execute({
       tool: "create_task",
       callId: "create-dependent",
@@ -1189,8 +1593,12 @@ describe("TaskcoreRunnerToolAuthority", () => {
       }),
     ).rejects.toThrow("taskcore_runner_tool_idempotency_conflict");
 
-    const creationEvents = (await db.select().from(activityLog).where(eq(activityLog.entityId, prerequisiteId)))
-      .filter(event => event.action === "issue.created");
+    const creationEvents = (
+      await db
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.entityId, prerequisiteId))
+    ).filter((event) => event.action === "issue.created");
     expect(creationEvents).toHaveLength(1);
 
     const foreignCompanyId = "00000000-0000-4000-8000-000000000201";
@@ -1345,43 +1753,139 @@ describe("TaskcoreRunnerToolAuthority", () => {
     const issueId = "00000000-0000-4000-8000-000000000120";
     const runId = "00000000-0000-4000-8000-000000000121";
 
-    await db.insert(issues).values({ id: issueId, companyId, title: "Identity delegation",
-      status: "in_progress", assigneeAgentId: agentId });
-    await db.insert(heartbeatRuns).values({ id: runId, companyId, agentId,
-      status: "running", runtimeMode: "native", nativeIssueId: issueId,
-      invocationSource: "assignment", triggerDetail: "system", contextSnapshot: { issueId } });
-    await db.update(issues).set({ executionRunId: runId }).where(eq(issues.id, issueId));
-    await db.insert(authUsers).values(["person-a", "person-b"].map(id => ({ id, name: id, email: `${id}@example.test`, createdAt: new Date(), updatedAt: new Date() })));
-    await db.insert(companyMemberships).values(["person-a", "person-b"].map(principalId => ({ companyId, principalType: "user", principalId, status: "active", membershipRole: "operator" })));
+    await db
+      .insert(issues)
+      .values({
+        id: issueId,
+        companyId,
+        title: "Identity delegation",
+        status: "in_progress",
+        assigneeAgentId: agentId,
+      });
+    await db
+      .insert(heartbeatRuns)
+      .values({
+        id: runId,
+        companyId,
+        agentId,
+        status: "running",
+        runtimeMode: "native",
+        nativeIssueId: issueId,
+        invocationSource: "assignment",
+        triggerDetail: "system",
+        contextSnapshot: { issueId },
+      });
+    await db
+      .update(issues)
+      .set({ executionRunId: runId })
+      .where(eq(issues.id, issueId));
+    await db
+      .insert(authUsers)
+      .values(
+        ["person-a", "person-b"].map((id) => ({
+          id,
+          name: id,
+          email: `${id}@example.test`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })),
+      );
+    await db
+      .insert(companyMemberships)
+      .values(
+        ["person-a", "person-b"].map((principalId) => ({
+          companyId,
+          principalType: "user",
+          principalId,
+          status: "active",
+          membershipRole: "operator",
+        })),
+      );
     const origin = await initializeRunIdentity(db, {
-      companyId, runId, issueId, responsibleUserId: "person-a", cause: "instruction",
+      companyId,
+      runId,
+      issueId,
+      responsibleUserId: "person-a",
+      cause: "instruction",
     });
-    const [message] = await db.insert(issueComments).values({
-      companyId, issueId, body: "New instruction", authorUserId: "person-b",
-    }).returning();
-    const authority = new TaskcoreRunnerToolAuthority(db, { companyId, agentId, issueId, runId });
-    const call = { tool: "create_task", callId: "identity-child", arguments: {
-      idempotencyKey: "identity-child", title: "Keep the initiating identity",
-      responsibleUserId: "forged-user", originIdentityContextId: "forged-context",
-    } };
-    const first = await authority.execute(call) as { task: { id: string } };
-    const pending = await reserveSteeredIdentity(db, { companyId, runId, issueId, messageId: message.id });
+    const [message] = await db
+      .insert(issueComments)
+      .values({
+        companyId,
+        issueId,
+        body: "New instruction",
+        authorUserId: "person-b",
+      })
+      .returning();
+    const authority = new TaskcoreRunnerToolAuthority(db, {
+      companyId,
+      agentId,
+      issueId,
+      runId,
+    });
+    const call = {
+      tool: "create_task",
+      callId: "identity-child",
+      arguments: {
+        idempotencyKey: "identity-child",
+        title: "Keep the initiating identity",
+        responsibleUserId: "forged-user",
+        originIdentityContextId: "forged-context",
+      },
+    };
+    const first = (await authority.execute(call)) as { task: { id: string } };
+    const pending = await reserveSteeredIdentity(db, {
+      companyId,
+      runId,
+      issueId,
+      messageId: message.id,
+    });
     await reconcileSteeredIdentity(db, pending!);
-    await expect(authority.execute({ ...call, callId: "identity-child-replay" })).resolves.toEqual(first);
-    const [child] = await db.select().from(issues).where(eq(issues.id, first.task.id));
-    expect(child).toMatchObject({ originRunId: runId, originIdentityContextId: origin.id,
-      continuationIdentityContextId: origin.id });
-    const second = await authority.execute({ ...call, callId: "identity-child-b", arguments: {
-      idempotencyKey: "identity-child-b", title: "Use the next instruction identity",
-    } }) as { task: { id: string } };
-    const [nextChild] = await db.select().from(issues).where(eq(issues.id, second.task.id));
+    await expect(
+      authority.execute({ ...call, callId: "identity-child-replay" }),
+    ).resolves.toEqual(first);
+    const [child] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, first.task.id));
+    expect(child).toMatchObject({
+      originRunId: runId,
+      originIdentityContextId: origin.id,
+      continuationIdentityContextId: origin.id,
+    });
+    const second = (await authority.execute({
+      ...call,
+      callId: "identity-child-b",
+      arguments: {
+        idempotencyKey: "identity-child-b",
+        title: "Use the next instruction identity",
+      },
+    })) as { task: { id: string } };
+    const [nextChild] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, second.task.id));
     expect(nextChild.originIdentityContextId).toBe(pending!.id);
-    await authority.execute({ tool: "request_human_input", callId: "identity-approval", arguments: {
-      idempotencyKey: "identity-approval", interactionKind: "confirmation", title: "Approve continuation",
-      prompt: "Continue?", continuationPolicy: "wake_assignee", payload: {},
-    } });
-    const interactions = await db.select().from(issueThreadInteractions).where(eq(issueThreadInteractions.issueId, issueId));
-    expect(interactions.find((row) => row.title === "Approve continuation")?.sourceIdentityContextId).toBe(pending!.id);
+    await authority.execute({
+      tool: "request_human_input",
+      callId: "identity-approval",
+      arguments: {
+        idempotencyKey: "identity-approval",
+        interactionKind: "confirmation",
+        title: "Approve continuation",
+        prompt: "Continue?",
+        continuationPolicy: "wake_assignee",
+        payload: {},
+      },
+    });
+    const interactions = await db
+      .select()
+      .from(issueThreadInteractions)
+      .where(eq(issueThreadInteractions.issueId, issueId));
+    expect(
+      interactions.find((row) => row.title === "Approve continuation")
+        ?.sourceIdentityContextId,
+    ).toBe(pending!.id);
   });
 
   it("fails closed once the run is no longer active", async () => {

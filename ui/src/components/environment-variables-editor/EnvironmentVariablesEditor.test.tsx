@@ -3,7 +3,16 @@
 import { useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { CompanySecret, EnvBinding } from "@taskcore/shared";
 import { EnvironmentVariablesEditor } from "./index";
 import { SecretPicker } from "./SecretPicker";
@@ -33,7 +42,10 @@ afterAll(() => {
   globalThis.PointerEvent = OriginalPointerEvent as any;
 });
 
-function makeSecret(id: string, overrides: Partial<CompanySecret> = {}): CompanySecret {
+function makeSecret(
+  id: string,
+  overrides: Partial<CompanySecret> = {},
+): CompanySecret {
   return {
     id,
     companyId: "co",
@@ -72,8 +84,20 @@ async function flush() {
 // Radix DropdownMenu opens/selects on the pointerdown→pointerup sequence, not a
 // bare click; drive both so jsdom exercises the real dismissal-layer path.
 function pointerClick(el: Element) {
-  el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0 }));
-  el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, button: 0 }));
+  el.dispatchEvent(
+    new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    }),
+  );
+  el.dispatchEvent(
+    new PointerEvent("pointerup", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    }),
+  );
   (el as HTMLElement).click();
 }
 
@@ -133,14 +157,22 @@ describe("EnvironmentVariablesEditor", () => {
     vi.restoreAllMocks();
   });
 
-  const secrets = [makeSecret("s1", { name: "GITHUB_TOKEN", latestVersion: 3 })];
+  const secrets = [
+    makeSecret("s1", { name: "GITHUB_TOKEN", latestVersion: 3 }),
+  ];
 
   function nameInputs() {
-    return [...container.querySelectorAll<HTMLInputElement>('input[aria-label="Variable name"]')];
+    return [
+      ...container.querySelectorAll<HTMLInputElement>(
+        'input[aria-label="Variable name"]',
+      ),
+    ];
   }
 
   function saveButton() {
-    return [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === "Save")!;
+    return [...container.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Save",
+    )!;
   }
 
   it("renders header + a row per binding, no trailing ghost row", () => {
@@ -172,7 +204,11 @@ describe("EnvironmentVariablesEditor", () => {
     render(
       <EnvironmentVariablesEditor
         value={{
-          RESEND_API_KEY: { type: "secret_ref", secretId: "long", version: "latest" },
+          RESEND_API_KEY: {
+            type: "secret_ref",
+            secretId: "long",
+            version: "latest",
+          },
         }}
         secrets={[longSecret]}
         onChange={() => {}}
@@ -181,8 +217,12 @@ describe("EnvironmentVariablesEditor", () => {
     );
 
     const combobox = container.querySelector<HTMLElement>('[role="combobox"]')!;
-    const selectedLabel = combobox.querySelector<HTMLElement>("[title] span.truncate");
-    const versionTag = container.querySelector<HTMLButtonElement>('button[aria-label="Version"]')!;
+    const selectedLabel = combobox.querySelector<HTMLElement>(
+      "[title] span.truncate",
+    );
+    const versionTag = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Version"]',
+    )!;
 
     expect(versionTag.textContent).toBe("latest");
     expect(combobox.className).toContain("has-[>svg]:!pr-24");
@@ -191,14 +231,30 @@ describe("EnvironmentVariablesEditor", () => {
   });
 
   it("shows the empty state with no bindings", () => {
-    render(<EnvironmentVariablesEditor value={{}} secrets={secrets} onChange={() => {}} onCreateSecret={async () => secrets[0]} />);
+    render(
+      <EnvironmentVariablesEditor
+        value={{}}
+        secrets={secrets}
+        onChange={() => {}}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
     expect(container.textContent).toContain("No environment variables");
     expect(nameInputs()).toHaveLength(0);
   });
 
   it("appends a row when + Add variable is clicked", async () => {
-    render(<EnvironmentVariablesEditor value={{}} secrets={secrets} onChange={() => {}} onCreateSecret={async () => secrets[0]} />);
-    const addButton = [...container.querySelectorAll("button")].find((b) => b.textContent?.includes("Add variable"))!;
+    render(
+      <EnvironmentVariablesEditor
+        value={{}}
+        secrets={secrets}
+        onChange={() => {}}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
+    const addButton = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Add variable"),
+    )!;
     addButton.click();
     await flush();
     expect(nameInputs()).toHaveLength(1);
@@ -206,8 +262,17 @@ describe("EnvironmentVariablesEditor", () => {
 
   it("does not emit when + Add variable only creates an empty draft row", async () => {
     const onChange = vi.fn();
-    render(<EnvironmentVariablesEditor value={{}} secrets={secrets} onChange={onChange} onCreateSecret={async () => secrets[0]} />);
-    const addButton = [...container.querySelectorAll("button")].find((b) => b.textContent?.includes("Add variable"))!;
+    render(
+      <EnvironmentVariablesEditor
+        value={{}}
+        secrets={secrets}
+        onChange={onChange}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
+    const addButton = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Add variable"),
+    )!;
     addButton.click();
     await flush();
     expect(nameInputs()).toHaveLength(1);
@@ -216,9 +281,21 @@ describe("EnvironmentVariablesEditor", () => {
 
   it("saves plain bindings only when Save is clicked", async () => {
     const onChange = vi.fn();
-    render(<EnvironmentVariablesEditor value={{ FOO: { type: "plain", value: "" } }} secrets={secrets} onChange={onChange} onCreateSecret={async () => secrets[0]} />);
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    render(
+      <EnvironmentVariablesEditor
+        value={{ FOO: { type: "plain", value: "" } }}
+        secrets={secrets}
+        onChange={onChange}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(valueInput, "bar");
     valueInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
@@ -226,7 +303,9 @@ describe("EnvironmentVariablesEditor", () => {
     expect(container.textContent).toContain("Unsaved changes");
     saveButton().click();
     await flush();
-    expect(onChange).toHaveBeenLastCalledWith({ FOO: { type: "plain", value: "bar" } });
+    expect(onChange).toHaveBeenLastCalledWith({
+      FOO: { type: "plain", value: "bar" },
+    });
   });
 
   it("flushes unsaved editor changes before an enclosing form submits", async () => {
@@ -255,15 +334,20 @@ describe("EnvironmentVariablesEditor", () => {
     }
 
     render(<FormHarness />);
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(valueInput, "bar");
     valueInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
 
-    const outerSave = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
-      button.textContent?.includes("Outer save"),
-    )!;
+    const outerSave = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.includes("Outer save"))!;
     outerSave.click();
     await flush();
 
@@ -293,15 +377,20 @@ describe("EnvironmentVariablesEditor", () => {
     }
 
     render(<SaveButtonHarness />);
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(valueInput, "bar");
     valueInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
 
-    const outerSave = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
-      button.textContent?.includes("Save settings"),
-    )!;
+    const outerSave = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.includes("Save settings"))!;
     outerSave.click();
     await flush();
 
@@ -309,19 +398,33 @@ describe("EnvironmentVariablesEditor", () => {
   });
 
   it("makes unsaved fields and save controls prominent while editing", async () => {
-    render(<EnvironmentVariablesEditor value={{ FOO: { type: "plain", value: "" } }} secrets={secrets} onChange={() => {}} onCreateSecret={async () => secrets[0]} />);
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    render(
+      <EnvironmentVariablesEditor
+        value={{ FOO: { type: "plain", value: "" } }}
+        secrets={secrets}
+        onChange={() => {}}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(valueInput, "bar");
     valueInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
 
-    const unsavedBar = [...container.querySelectorAll<HTMLElement>('[role="status"]')].find((node) =>
-      node.textContent?.includes("Unsaved changes"),
-    );
+    const unsavedBar = [
+      ...container.querySelectorAll<HTMLElement>('[role="status"]'),
+    ].find((node) => node.textContent?.includes("Unsaved changes"));
     const valueCell = valueInput.closest<HTMLDivElement>(".relative.flex");
     const save = saveButton();
-    const revert = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === "Revert")!;
+    const revert = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.trim() === "Revert")!;
 
     expect(unsavedBar?.className).toContain("bg-amber-500/10");
     expect(valueCell?.className).toContain("border-amber-500/70");
@@ -333,29 +436,43 @@ describe("EnvironmentVariablesEditor", () => {
   it("lists which variables changed in the unsaved-changes banner", async () => {
     render(
       <EnvironmentVariablesEditor
-        value={{ FOO: { type: "plain", value: "old" }, BAR: { type: "plain", value: "keep" } }}
+        value={{
+          FOO: { type: "plain", value: "old" },
+          BAR: { type: "plain", value: "keep" },
+        }}
         secrets={secrets}
         onChange={() => {}}
         onCreateSecret={async () => secrets[0]}
       />,
     );
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
 
     // Edit FOO's value.
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
     setter.call(valueInput, "new");
     valueInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
     expect(container.textContent).toContain("Edited: FOO");
 
     // Remove BAR.
-    const removeButtons = [...container.querySelectorAll<HTMLButtonElement>('button[aria-label^="Remove"]')];
+    const removeButtons = [
+      ...container.querySelectorAll<HTMLButtonElement>(
+        'button[aria-label^="Remove"]',
+      ),
+    ];
     removeButtons.at(-1)!.click();
     await flush();
     expect(container.textContent).toContain("Removed: BAR");
 
     // Add a brand-new variable.
-    const addButton = [...container.querySelectorAll("button")].find((b) => b.textContent?.includes("Add variable"))!;
+    const addButton = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Add variable"),
+    )!;
     addButton.click();
     await flush();
     const newNameInput = nameInputs().at(-1)!;
@@ -375,8 +492,17 @@ describe("EnvironmentVariablesEditor", () => {
       <EnvironmentVariablesEditor
         value={{
           "  PADDED_NAME  ": { type: "plain", value: "x" },
-          DANGLING_SECRET: { type: "secret_ref", secretId: "", version: "latest" },
-          DANGLING_USER_SECRET: { type: "user_secret_ref", key: "", version: "latest", required: true },
+          DANGLING_SECRET: {
+            type: "secret_ref",
+            secretId: "",
+            version: "latest",
+          },
+          DANGLING_USER_SECRET: {
+            type: "user_secret_ref",
+            key: "",
+            version: "latest",
+            required: true,
+          },
         }}
         secrets={secrets}
         onChange={() => {}}
@@ -404,29 +530,46 @@ describe("EnvironmentVariablesEditor", () => {
 
     expect(dispatchBeforeUnload()).toBe(false);
 
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(valueInput, "bar");
     valueInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
     expect(dispatchBeforeUnload()).toBe(true);
 
-    const revert = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent?.trim() === "Revert",
-    )!;
+    const revert = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.trim() === "Revert")!;
     revert.click();
     await flush();
     expect(dispatchBeforeUnload()).toBe(false);
   });
 
   it("marks a newly typed variable name as unsaved before saving", async () => {
-    render(<EnvironmentVariablesEditor value={{}} secrets={secrets} onChange={() => {}} onCreateSecret={async () => secrets[0]} />);
-    const addButton = [...container.querySelectorAll("button")].find((b) => b.textContent?.includes("Add variable"))!;
+    render(
+      <EnvironmentVariablesEditor
+        value={{}}
+        secrets={secrets}
+        onChange={() => {}}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
+    const addButton = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Add variable"),
+    )!;
     addButton.click();
     await flush();
 
     const nameInput = nameInputs()[0]!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(nameInput, "API_TOKEN");
     nameInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
@@ -449,12 +592,17 @@ describe("EnvironmentVariablesEditor", () => {
         onCreateSecret={async () => secrets[0]}
       />,
     );
-    const addButton = [...container.querySelectorAll("button")].find((b) => b.textContent?.includes("Add variable"))!;
+    const addButton = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Add variable"),
+    )!;
     addButton.click();
     await flush();
 
     const newNameInput = nameInputs().at(-1)!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(newNameInput, "ca");
     newNameInput.dispatchEvent(new Event("input", { bubbles: true }));
     newNameInput.focus();
@@ -494,7 +642,9 @@ describe("EnvironmentVariablesEditor", () => {
   it("keeps the active row mounted when a manual save echo returns an equivalent value", async () => {
     const onChange = vi.fn();
     const emptyValue: Record<string, EnvBinding> = {};
-    const savedValue: Record<string, EnvBinding> = { API_TOKEN: { type: "plain", value: "secret-value" } };
+    const savedValue: Record<string, EnvBinding> = {
+      API_TOKEN: { type: "plain", value: "secret-value" },
+    };
     render(
       <EnvironmentVariablesEditor
         value={emptyValue}
@@ -503,17 +653,24 @@ describe("EnvironmentVariablesEditor", () => {
         onCreateSecret={async () => secrets[0]}
       />,
     );
-    const addButton = [...container.querySelectorAll("button")].find((b) => b.textContent?.includes("Add variable"))!;
+    const addButton = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Add variable"),
+    )!;
     addButton.click();
     await flush();
 
     const [nameInput] = nameInputs();
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(nameInput, "API_TOKEN");
     nameInput.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
 
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
     setter.call(valueInput, "secret-value");
     valueInput.dispatchEvent(new Event("input", { bubbles: true }));
     valueInput.focus();
@@ -535,13 +692,26 @@ describe("EnvironmentVariablesEditor", () => {
     await flush();
 
     expect(document.activeElement).toBe(valueInput);
-    expect(container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')).toBe(valueInput);
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[aria-label="Variable value"]',
+      ),
+    ).toBe(valueInput);
   });
 
   it("emits undefined when the last binding is removed", async () => {
     const onChange = vi.fn();
-    render(<EnvironmentVariablesEditor value={{ FOO: { type: "plain", value: "x" } }} secrets={secrets} onChange={onChange} onCreateSecret={async () => secrets[0]} />);
-    const removeButton = container.querySelector<HTMLButtonElement>('button[aria-label^="Remove"]')!;
+    render(
+      <EnvironmentVariablesEditor
+        value={{ FOO: { type: "plain", value: "x" } }}
+        secrets={secrets}
+        onChange={onChange}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
+    const removeButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label^="Remove"]',
+    )!;
     removeButton.click();
     await flush();
     expect(onChange).not.toHaveBeenCalled();
@@ -560,28 +730,46 @@ describe("EnvironmentVariablesEditor", () => {
         disabled
       />,
     );
-    expect(container.querySelector<HTMLInputElement>('input[aria-label="Variable name"]')!.disabled).toBe(true);
-    expect(container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!.disabled).toBe(true);
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[aria-label="Variable name"]',
+      )!.disabled,
+    ).toBe(true);
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[aria-label="Variable value"]',
+      )!.disabled,
+    ).toBe(true);
   });
 
   it("renders name warnings as a row spanning the name and value columns", () => {
     render(
       <EnvironmentVariablesEditor
-        value={{ TASKCORE_PAGE_BASE_URL: { type: "plain", value: "https://pages.taskcore.ing" } }}
+        value={{
+          TASKCORE_PAGE_BASE_URL: {
+            type: "plain",
+            value: "https://pages.taskcore.ing",
+          },
+        }}
         secrets={secrets}
         onChange={() => {}}
         onCreateSecret={async () => secrets[0]}
       />,
     );
 
-    const nameInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable name"]')!;
-    const warning = [...container.querySelectorAll<HTMLParagraphElement>("p")].find((node) =>
-      node.textContent?.includes("Reserved prefix"),
-    );
+    const nameInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable name"]',
+    )!;
+    const warning = [
+      ...container.querySelectorAll<HTMLParagraphElement>("p"),
+    ].find((node) => node.textContent?.includes("Reserved prefix"));
 
     expect(warning, "reserved-prefix warning should render").toBeTruthy();
     expect(nameInput.getAttribute("aria-describedby")).toBe(warning!.id);
-    expect(warning!.parentElement?.contains(nameInput), "warning should stay in the row grid").toBe(true);
+    expect(
+      warning!.parentElement?.contains(nameInput),
+      "warning should stay in the row grid",
+    ).toBe(true);
     expect(warning!.parentElement).not.toBe(nameInput.parentElement);
     expect(warning!.className).toContain("col-span-2");
     expect(warning!.className).toContain("@[40rem]/env:row-start-2");
@@ -589,15 +777,31 @@ describe("EnvironmentVariablesEditor", () => {
 
   it("bulk-imports a dotenv paste into an empty name field", async () => {
     const onChange = vi.fn();
-    render(<EnvironmentVariablesEditor value={{}} secrets={secrets} onChange={onChange} onCreateSecret={async () => secrets[0]} />);
+    render(
+      <EnvironmentVariablesEditor
+        value={{}}
+        secrets={secrets}
+        onChange={onChange}
+        onCreateSecret={async () => secrets[0]}
+      />,
+    );
     // Add an empty row to paste into.
-    const addButton = [...container.querySelectorAll("button")].find((b) => b.textContent?.includes("Add variable"))!;
+    const addButton = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Add variable"),
+    )!;
     addButton.click();
     await flush();
     const nameInput = nameInputs()[0]!;
-    const clipboardData = { getData: () => "A=1\nB=2\nC=3" } as unknown as DataTransfer;
-    const pasteEvent = new Event("paste", { bubbles: true, cancelable: true }) as unknown as ClipboardEvent;
-    Object.defineProperty(pasteEvent, "clipboardData", { value: clipboardData });
+    const clipboardData = {
+      getData: () => "A=1\nB=2\nC=3",
+    } as unknown as DataTransfer;
+    const pasteEvent = new Event("paste", {
+      bubbles: true,
+      cancelable: true,
+    }) as unknown as ClipboardEvent;
+    Object.defineProperty(pasteEvent, "clipboardData", {
+      value: clipboardData,
+    });
     nameInput.dispatchEvent(pasteEvent);
     await flush();
     expect(onChange).not.toHaveBeenCalled();
@@ -626,14 +830,19 @@ describe("EnvironmentVariablesEditor", () => {
     await flush();
 
     const targetNameInput = nameInputs().at(-1)!;
-    const pasteEvent = new Event("paste", { bubbles: true, cancelable: true }) as unknown as ClipboardEvent;
+    const pasteEvent = new Event("paste", {
+      bubbles: true,
+      cancelable: true,
+    }) as unknown as ClipboardEvent;
     Object.defineProperty(pasteEvent, "clipboardData", {
       value: { getData: () => "A=new" } as unknown as DataTransfer,
     });
     targetNameInput.dispatchEvent(pasteEvent);
     await flush();
 
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
     const valueCell = valueInput.closest<HTMLDivElement>(".relative.flex");
     expect(valueInput.value).toBe("new");
     expect(valueCell?.className).toContain("border-amber-500/70");
@@ -650,15 +859,24 @@ describe("EnvironmentVariablesEditor", () => {
         onCreateSecret={async () => secrets[0]}
       />,
     );
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
     expect(valueInput.type).toBe("password"); // auto-masked
-    const storeButton = container.querySelector<HTMLButtonElement>('button[title^="This value looks sensitive"]');
-    expect(storeButton, "sensitive Store-as-secret affordance should render").toBeTruthy();
+    const storeButton = container.querySelector<HTMLButtonElement>(
+      'button[title^="This value looks sensitive"]',
+    );
+    expect(
+      storeButton,
+      "sensitive Store-as-secret affordance should render",
+    ).toBeTruthy();
     storeButton!.click();
     await flush();
     // The store popover carries the typed value forward (not discarded).
     expect(document.body.textContent).toContain("Store value as secret");
-    const secretValueField = document.querySelector<HTMLInputElement>('input[aria-label="Secret value"]');
+    const secretValueField = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Secret value"]',
+    );
     expect(secretValueField?.value).toBe("supersecretvalue");
   });
 
@@ -678,14 +896,20 @@ describe("EnvironmentVariablesEditor", () => {
     const combobox = container.querySelector<HTMLElement>('[role="combobox"]')!;
     combobox.focus();
     await flush();
-    const createItem = [...document.querySelectorAll<HTMLElement>("[cmdk-item]")].find((el) =>
-      el.textContent?.includes("Create"),
-    );
-    expect(createItem, "create item should be present in the open picker").toBeTruthy();
+    const createItem = [
+      ...document.querySelectorAll<HTMLElement>("[cmdk-item]"),
+    ].find((el) => el.textContent?.includes("Create"));
+    expect(
+      createItem,
+      "create item should be present in the open picker",
+    ).toBeTruthy();
     createItem!.click();
     await flush();
     // The create-secret popover is open (heading rendered) and stays open.
-    expect(document.body.textContent, "create-secret popover should open").toContain("Create secret");
+    expect(
+      document.body.textContent,
+      "create-secret popover should open",
+    ).toContain("Create secret");
     expect(
       document.querySelector('input[aria-label="Secret name"]'),
       "create-secret name field should render",
@@ -716,13 +940,19 @@ describe("EnvironmentVariablesEditor", () => {
     const combobox = container.querySelector<HTMLElement>('[role="combobox"]')!;
     combobox.focus();
     await flush();
-    const createItem = [...document.querySelectorAll<HTMLElement>("[cmdk-item]")].find((el) =>
-      el.textContent?.includes("Create"),
-    );
-    expect(createItem, "create item should be present in the open picker").toBeTruthy();
+    const createItem = [
+      ...document.querySelectorAll<HTMLElement>("[cmdk-item]"),
+    ].find((el) => el.textContent?.includes("Create"));
+    expect(
+      createItem,
+      "create item should be present in the open picker",
+    ).toBeTruthy();
     createItem!.click();
     await flush();
-    expect(document.body.textContent, "create-secret popover should open").toContain("Create secret");
+    expect(
+      document.body.textContent,
+      "create-secret popover should open",
+    ).toContain("Create secret");
 
     // Simulate the picker's animation-delayed focus-return landing on a control
     // that lives inside the value cell (the source-switch trigger is a stable
@@ -731,8 +961,13 @@ describe("EnvironmentVariablesEditor", () => {
     // flag) and then a focusin on the in-anchor control — exactly the sequence
     // Radix reads as a `focusOutside`. Without the guard this dismisses the
     // create popover; with it, the popover survives.
-    const sourceButton = container.querySelector<HTMLElement>('button[aria-label="Value source"]')!;
-    expect(sourceButton, "in-anchor Value source control should exist").toBeTruthy();
+    const sourceButton = container.querySelector<HTMLElement>(
+      'button[aria-label="Value source"]',
+    )!;
+    expect(
+      sourceButton,
+      "in-anchor Value source control should exist",
+    ).toBeTruthy();
     sourceButton.focus();
     await flush();
 
@@ -755,29 +990,42 @@ describe("EnvironmentVariablesEditor", () => {
     // the ⋯ menu (the sensitive-value inline button is a separate path).
     render(
       <EnvironmentVariablesEditor
-        value={{ API_BASE_URL: { type: "plain", value: "https://example.com" } }}
+        value={{
+          API_BASE_URL: { type: "plain", value: "https://example.com" },
+        }}
         secrets={secrets}
         onChange={() => {}}
         onCreateSecret={async () => secrets[0]}
       />,
     );
     // The value is non-sensitive, so no inline Store-as-secret button — only ⋯.
-    expect(container.querySelector('button[title^="This value looks sensitive"]')).toBeNull();
-    const overflow = container.querySelector<HTMLButtonElement>('button[aria-label="More actions"]');
-    expect(overflow, "⋯ overflow menu should render for a non-sensitive text row").toBeTruthy();
+    expect(
+      container.querySelector('button[title^="This value looks sensitive"]'),
+    ).toBeNull();
+    const overflow = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="More actions"]',
+    );
+    expect(
+      overflow,
+      "⋯ overflow menu should render for a non-sensitive text row",
+    ).toBeTruthy();
     pointerClick(overflow!);
     await flush();
-    const storeItem = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) =>
-      el.textContent?.includes("Store as secret"),
-    );
-    expect(storeItem, "Store as secret… menu item should be present").toBeTruthy();
+    const storeItem = [
+      ...document.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    ].find((el) => el.textContent?.includes("Store as secret"));
+    expect(
+      storeItem,
+      "Store as secret… menu item should be present",
+    ).toBeTruthy();
     pointerClick(storeItem!);
     await flush();
     // The store popover is open (heading rendered) and stays open — it must not
     // be dismissed by the menu's focus-return.
-    expect(document.body.textContent, "store-as-secret popover should open").toContain(
-      "Store value as secret",
-    );
+    expect(
+      document.body.textContent,
+      "store-as-secret popover should open",
+    ).toContain("Store value as secret");
     expect(
       document.querySelector('input[aria-label="Secret value"]'),
       "store-as-secret value field should render",
@@ -801,24 +1049,35 @@ describe("EnvironmentVariablesEditor", () => {
         onCreateSecret={async () => secrets[0]}
       />,
     );
-    const sourceButton = container.querySelector<HTMLButtonElement>('button[aria-label="Value source"]');
+    const sourceButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Value source"]',
+    );
     expect(sourceButton, "Value source dropdown should render").toBeTruthy();
     pointerClick(sourceButton!);
     settleFakeTimers();
-    const secretItem = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) =>
-      el.textContent?.includes("Organization secret"),
-    );
-    expect(secretItem, "Organization secret menu item should be present").toBeTruthy();
+    const secretItem = [
+      ...document.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    ].find((el) => el.textContent?.includes("Organization secret"));
+    expect(
+      secretItem,
+      "Organization secret menu item should be present",
+    ).toBeTruthy();
     pointerClick(secretItem!);
     settleFakeTimers();
     // The store popover is open (heading rendered) and stays open — it must not
     // be dismissed by the menu's focus-return.
-    expect(document.body.textContent, "store-as-secret popover should open").toContain(
-      "Store value as secret",
-    );
+    expect(
+      document.body.textContent,
+      "store-as-secret popover should open",
+    ).toContain("Store value as secret");
     // The current value is carried forward (masked), not discarded.
-    const secretValueField = document.querySelector<HTMLInputElement>('input[aria-label="Secret value"]');
-    expect(secretValueField, "store-as-secret value field should render").toBeTruthy();
+    const secretValueField = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Secret value"]',
+    );
+    expect(
+      secretValueField,
+      "store-as-secret value field should render",
+    ).toBeTruthy();
     expect(secretValueField!.value).toBe("production");
   });
 
@@ -832,13 +1091,18 @@ describe("EnvironmentVariablesEditor", () => {
         onCreateSecret={async () => secrets[0]}
       />,
     );
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    )!;
     expect(valueInput.type).toBe("password"); // auto-masked while the hint shows
 
     const dismissButton = container.querySelector<HTMLButtonElement>(
       'button[aria-label="Dismiss sensitive-value suggestion"]',
     );
-    expect(dismissButton, "dismiss affordance should render alongside the hint").toBeTruthy();
+    expect(
+      dismissButton,
+      "dismiss affordance should render alongside the hint",
+    ).toBeTruthy();
     dismissButton!.click();
     await flush();
 
@@ -848,16 +1112,22 @@ describe("EnvironmentVariablesEditor", () => {
       "store-as-secret hint should be dismissed",
     ).toBeNull();
     expect(
-      container.querySelector('button[aria-label="Dismiss sensitive-value suggestion"]'),
+      container.querySelector(
+        'button[aria-label="Dismiss sensitive-value suggestion"]',
+      ),
     ).toBeNull();
     expect(
-      container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!.type,
+      container.querySelector<HTMLInputElement>(
+        'input[aria-label="Variable value"]',
+      )!.type,
     ).toBe("text");
 
     // Dismissal is a local UI concern — the emitted plain value is unchanged.
     const lastEmit = onChange.mock.calls.at(-1)?.[0];
     if (lastEmit) {
-      expect(lastEmit).toEqual({ STRIPE_API_KEY: { type: "plain", value: "supersecretvalue" } });
+      expect(lastEmit).toEqual({
+        STRIPE_API_KEY: { type: "plain", value: "supersecretvalue" },
+      });
     }
   });
 
@@ -869,9 +1139,18 @@ describe("EnvironmentVariablesEditor", () => {
       <SecretPicker
         secretId=""
         secrets={[
-          makeSecret("provider-key", { name: cloudProviderKey, key: cloudProviderKey }),
-          makeSecret("migration-key", { name: cloudMigrationKey, key: cloudMigrationKey }),
-          makeSecret("plain-key", { name: "taskcore-page-aws-access-key-id", key: "taskcore-page-aws-access-key-id" }),
+          makeSecret("provider-key", {
+            name: cloudProviderKey,
+            key: cloudProviderKey,
+          }),
+          makeSecret("migration-key", {
+            name: cloudMigrationKey,
+            key: cloudMigrationKey,
+          }),
+          makeSecret("plain-key", {
+            name: "taskcore-page-aws-access-key-id",
+            key: "taskcore-page-aws-access-key-id",
+          }),
         ]}
         onSelect={onSelect}
         onCreateNew={() => {}}
@@ -887,7 +1166,8 @@ describe("EnvironmentVariablesEditor", () => {
       [...document.querySelectorAll<HTMLElement>("[cmdk-item]")].find((el) =>
         el.textContent?.includes(text),
       );
-    const rowTitle = (item: HTMLElement | undefined) => item?.querySelector<HTMLElement>("[title]")?.getAttribute("title");
+    const rowTitle = (item: HTMLElement | undefined) =>
+      item?.querySelector<HTMLElement>("[title]")?.getAttribute("title");
 
     expect(rowTitle(itemByText("taskcore-cloud"))).toBe("/taskcore-cloud");
     expect(rowTitle(itemByText("taskcore-page-aws-access-key-id"))).toBe(
@@ -900,8 +1180,12 @@ describe("EnvironmentVariablesEditor", () => {
 
     itemByText("prod")!.click();
     await flush();
-    expect(rowTitle(itemByText("provider"))).toBe("/taskcore-cloud/prod/provider");
-    expect(rowTitle(itemByText("migration"))).toBe("/taskcore-cloud/prod/migration");
+    expect(rowTitle(itemByText("provider"))).toBe(
+      "/taskcore-cloud/prod/provider",
+    );
+    expect(rowTitle(itemByText("migration"))).toBe(
+      "/taskcore-cloud/prod/migration",
+    );
 
     itemByText("provider")!.click();
     await flush();
@@ -923,7 +1207,10 @@ describe("EnvironmentVariablesEditor", () => {
             name: "/taskcore-cloud/prod/provider/aws-access-key-id",
             key: "/taskcore-cloud/prod/provider/aws-access-key-id",
           }),
-          makeSecret("migration-key", { name: cloudMigrationKey, key: cloudMigrationKey }),
+          makeSecret("migration-key", {
+            name: cloudMigrationKey,
+            key: cloudMigrationKey,
+          }),
         ]}
         onSelect={() => {}}
         onCreateNew={() => {}}
@@ -937,15 +1224,22 @@ describe("EnvironmentVariablesEditor", () => {
     expect(document.body.textContent).toContain("taskcore-cloud");
     expect(document.body.textContent).not.toContain("postgres-url");
 
-    const search = document.querySelector<HTMLInputElement>('input[placeholder="Search secrets…"]')!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const search = document.querySelector<HTMLInputElement>(
+      'input[placeholder="Search secrets…"]',
+    )!;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(search, "postgres");
     search.dispatchEvent(new Event("input", { bubbles: true }));
     await flush();
 
-    const match = [...document.querySelectorAll<HTMLElement>("[cmdk-item]")].find((el) =>
-      el.textContent?.includes(cloudMigrationKey),
-    );
-    expect(match?.querySelector<HTMLElement>("[title]")?.getAttribute("title")).toBe(cloudMigrationKey);
+    const match = [
+      ...document.querySelectorAll<HTMLElement>("[cmdk-item]"),
+    ].find((el) => el.textContent?.includes(cloudMigrationKey));
+    expect(
+      match?.querySelector<HTMLElement>("[title]")?.getAttribute("title"),
+    ).toBe(cloudMigrationKey);
   });
 });

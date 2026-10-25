@@ -4,10 +4,12 @@ const path = require("path");
 const fs = require("fs");
 
 const repoRoot = path.resolve(__dirname, "..");
-const playwright = require(path.join(
-  repoRoot,
-  "node_modules/.pnpm/playwright@1.58.2/node_modules/playwright/index.js",
-));
+const playwright = require(
+  path.join(
+    repoRoot,
+    "node_modules/.pnpm/playwright@1.58.2/node_modules/playwright/index.js",
+  ),
+);
 
 const STORYBOOK_BASE = process.env.STORYBOOK_URL ?? "http://localhost:6006";
 const OUT_DIR = path.resolve(repoRoot, "tmp/pap-9134-recovery-screens");
@@ -37,7 +39,10 @@ const STORIES = [
 ];
 
 const THEMES = [
-  { name: "light", apply: () => document.documentElement.classList.remove("dark") },
+  {
+    name: "light",
+    apply: () => document.documentElement.classList.remove("dark"),
+  },
   { name: "dark", apply: () => document.documentElement.classList.add("dark") },
 ];
 
@@ -54,8 +59,13 @@ const THEMES = [
         for (const theme of THEMES) {
           const page = await context.newPage();
           const url = `${STORYBOOK_BASE}/iframe.html?id=${story.id}&viewMode=story`;
-          await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
-          await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
+          await page.goto(url, {
+            waitUntil: "domcontentloaded",
+            timeout: 30_000,
+          });
+          await page
+            .waitForLoadState("networkidle", { timeout: 30_000 })
+            .catch(() => {});
           await page.evaluate((darkTheme) => {
             const html = document.documentElement;
             if (darkTheme) {

@@ -38,9 +38,12 @@ export function classifyCodexNotification(input: {
   turnId: string | null;
 } {
   const { params, method } = input;
-  const isInformation = informational.has(method) ||
+  const isInformation =
+    informational.has(method) ||
     (method === "taskcore/canonicalProviderEvent" &&
-      ["provider.notice.recorded", "harness.diagnostic"].includes(String(params.eventType)));
+      ["provider.notice.recorded", "harness.diagnostic"].includes(
+        String(params.eventType),
+      ));
   const threads = [
     params.threadId,
     record(params.thread).id,
@@ -91,7 +94,5 @@ export function classifyCodexNotification(input: {
       method.startsWith("taskcore/") ? "invalid_authority" : "descendant",
     );
   }
-  return result(
-    isInformation ? "unrelated_information" : "invalid_authority",
-  );
+  return result(isInformation ? "unrelated_information" : "invalid_authority");
 }

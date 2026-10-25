@@ -1,12 +1,26 @@
-import { issueExecutionMonitorPolicySchema, PROVIDER_QUOTA_MONITOR_SERVICE_NAME } from "@taskcore/shared";
+import {
+  issueExecutionMonitorPolicySchema,
+  PROVIDER_QUOTA_MONITOR_SERVICE_NAME,
+} from "@taskcore/shared";
 import type { issues } from "@taskcore/db";
 import { z } from "zod";
 import { forbidden, unprocessable } from "../errors.js";
 import type { accessService } from "./access.js";
-import { authorizationDeniedDetails, type AuthorizationActor } from "./authorization.js";
-import { applyIssueMonitorPolicyTransition, normalizeIssueExecutionPolicy, parseIssueExecutionState, redactIssueMonitorExternalRef, setIssueExecutionPolicyMonitorScheduledBy } from "./issue-execution-policy.js";
+import {
+  authorizationDeniedDetails,
+  type AuthorizationActor,
+} from "./authorization.js";
+import {
+  applyIssueMonitorPolicyTransition,
+  normalizeIssueExecutionPolicy,
+  parseIssueExecutionState,
+  redactIssueMonitorExternalRef,
+  setIssueExecutionPolicyMonitorScheduledBy,
+} from "./issue-execution-policy.js";
 
-type NormalizedExecutionPolicy = ReturnType<typeof normalizeIssueExecutionPolicy>;
+type NormalizedExecutionPolicy = ReturnType<
+  typeof normalizeIssueExecutionPolicy
+>;
 
 export function monitorPoliciesEqual(
   left: NormalizedExecutionPolicy | null,
@@ -108,16 +122,28 @@ export function summarizeIssueMonitor(
   };
 }
 
-export const setTaskMonitorSchema = z.object({
-  taskId: z.string().uuid().optional(),
-  idempotencyKey: z.string().trim().min(1).max(240),
-  monitor: issueExecutionMonitorPolicySchema.omit({ scheduledBy: true }).extend({
-    notes: z.string().trim().min(1).max(500),
-  }).strict().refine(monitor => monitor.serviceName !== PROVIDER_QUOTA_MONITOR_SERVICE_NAME, {
-    message: "This serviceName is reserved for server-owned quota recovery; use a different service name for an ordinary task check",
-    path: ["serviceName"],
-  }).nullable(),
-}).strict();
+export const setTaskMonitorSchema = z
+  .object({
+    taskId: z.string().uuid().optional(),
+    idempotencyKey: z.string().trim().min(1).max(240),
+    monitor: issueExecutionMonitorPolicySchema
+      .omit({ scheduledBy: true })
+      .extend({
+        notes: z.string().trim().min(1).max(500),
+      })
+      .strict()
+      .refine(
+        (monitor) =>
+          monitor.serviceName !== PROVIDER_QUOTA_MONITOR_SERVICE_NAME,
+        {
+          message:
+            "This serviceName is reserved for server-owned quota recovery; use a different service name for an ordinary task check",
+          path: ["serviceName"],
+        },
+      )
+      .nullable(),
+  })
+  .strict();
 
 /** Caller holds the issue lock; merge only monitor state, never review policy. */
 export function prepareIssueMonitorUpdate(
@@ -129,15 +155,25 @@ export function prepareIssueMonitorUpdate(
   if (monitor && Date.parse(monitor.nextCheckAt) <= now.getTime()) {
     throw unprocessable("Monitor nextCheckAt must be in the future");
   }
-  if (monitor?.timeoutAt && Date.parse(monitor.timeoutAt) <= Date.parse(monitor.nextCheckAt)) {
+  if (
+    monitor?.timeoutAt &&
+    Date.parse(monitor.timeoutAt) <= Date.parse(monitor.nextCheckAt)
+  ) {
     throw unprocessable("Monitor timeoutAt must be later than nextCheckAt");
   }
   const previousPolicy = normalizeIssueExecutionPolicy(issue.executionPolicy);
-  const policy = applyActorMonitorScheduledBy(normalizeIssueExecutionPolicy({
-    ...previousPolicy, monitor,
-  }), actor.type === "board" ? "user" : "agent");
+  const policy = applyActorMonitorScheduledBy(
+    normalizeIssueExecutionPolicy({
+      ...previousPolicy,
+      monitor,
+    }),
+    actor.type === "board" ? "user" : "agent",
+  );
   const transition = applyIssueMonitorPolicyTransition({
-    issue, policy, previousPolicy, requestedAssigneePatch: {},
+    issue,
+    policy,
+    previousPolicy,
+    requestedAssigneePatch: {},
     actor: { agentId: actor.agentId ?? null, userId: actor.userId ?? null },
     monitorExplicitlyUpdated: true,
   });
@@ -146,7 +182,10 @@ export function prepareIssueMonitorUpdate(
   const storedPolicy = { ...(issue.executionPolicy ?? {}) };
   if (policy?.monitor) storedPolicy.monitor = policy.monitor;
   else delete storedPolicy.monitor;
-  return { ...transition.patch, executionPolicy: Object.keys(storedPolicy).length ? storedPolicy : null } as Partial<typeof issues.$inferInsert>;
+  return {
+    ...transition.patch,
+    executionPolicy: Object.keys(storedPolicy).length ? storedPolicy : null,
+  } as Partial<typeof issues.$inferInsert>;
 }
 
 /** Timestamp presence alone is not authority to park a native task. */
@@ -155,12 +194,22 @@ export function eligibleIssueMonitorWait(
   agentId: string,
   now = new Date(),
 ): string | null {
-  if (issue.assigneeAgentId !== agentId || issue.assigneeUserId ||
-      !["in_progress", "in_review"].includes(issue.status) || !issue.monitorNextCheckAt) return null;
+  if (
+    issue.assigneeAgentId !== agentId ||
+    issue.assigneeUserId ||
+    !["in_progress", "in_review"].includes(issue.status) ||
+    !issue.monitorNextCheckAt
+  )
+    return null;
   const monitor = normalizeIssueExecutionPolicy(issue.executionPolicy)?.monitor;
-  if (!monitor || monitor.serviceName === PROVIDER_QUOTA_MONITOR_SERVICE_NAME ||
-      Date.parse(monitor.nextCheckAt) !== issue.monitorNextCheckAt.getTime() ||
-      (monitor.timeoutAt && Date.parse(monitor.timeoutAt) <= now.getTime()) ||
-      (monitor.maxAttempts != null && issue.monitorAttemptCount >= monitor.maxAttempts)) return null;
+  if (
+    !monitor ||
+    monitor.serviceName === PROVIDER_QUOTA_MONITOR_SERVICE_NAME ||
+    Date.parse(monitor.nextCheckAt) !== issue.monitorNextCheckAt.getTime() ||
+    (monitor.timeoutAt && Date.parse(monitor.timeoutAt) <= now.getTime()) ||
+    (monitor.maxAttempts != null &&
+      issue.monitorAttemptCount >= monitor.maxAttempts)
+  )
+    return null;
   return issue.monitorNextCheckAt.toISOString();
 }

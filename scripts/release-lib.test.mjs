@@ -6,12 +6,21 @@ import { join } from "node:path";
 import test from "node:test";
 
 const repoRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
-const releaseWorkflow = readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8");
+const releaseWorkflow = readFileSync(
+  new URL("../.github/workflows/release.yml", import.meta.url),
+  "utf8",
+);
 
 function workflowVerifyBudget() {
   return {
-    verifyAttempts: Number(releaseWorkflow.match(/^  NPM_PUBLISH_VERIFY_ATTEMPTS: "(\d+)"$/m)?.[1]),
-    verifyDelaySeconds: Number(releaseWorkflow.match(/^  NPM_PUBLISH_VERIFY_DELAY_SECONDS: "(\d+)"$/m)?.[1]),
+    verifyAttempts: Number(
+      releaseWorkflow.match(/^  NPM_PUBLISH_VERIFY_ATTEMPTS: "(\d+)"$/m)?.[1],
+    ),
+    verifyDelaySeconds: Number(
+      releaseWorkflow.match(
+        /^  NPM_PUBLISH_VERIFY_DELAY_SECONDS: "(\d+)"$/m,
+      )?.[1],
+    ),
   };
 }
 
@@ -174,9 +183,7 @@ exec npm "$@"
   const sleepStub = visibilityPackages
     ? ""
     : `sleep() { printf 'sleep %s\\n' "$*" >> "$FAKE_CALL_LOG"; }`;
-  const packageInfo = (
-    visibilityPackages ?? ["@taskcore/example"]
-  )
+  const packageInfo = (visibilityPackages ?? ["@taskcore/example"])
     .map((name) => `packages/example\\t${name}\\t1.2.3`)
     .join("\\n");
   const script = `
@@ -233,7 +240,10 @@ test("publish_package_to_npm returns after a successful pnpm publish", () => {
   const result = runPublishHelper({ pnpmMode: "success" });
 
   assert.equal(result.status, 0);
-  assert.match(result.calls, /^pnpm publish --no-git-checks --tag canary --access public$/m);
+  assert.match(
+    result.calls,
+    /^pnpm publish --no-git-checks --tag canary --access public$/m,
+  );
   assert.doesNotMatch(result.calls, /npm view/);
   assert.doesNotMatch(result.calls, /--provenance=false/);
 });
@@ -255,7 +265,10 @@ test("publish_package_to_npm uses trusted publishing from the bundled staging di
 });
 
 test("publish_package_to_npm retries bundled directory tlog failures without provenance", () => {
-  const result = runPublishHelper({ pnpmMode: "tlog-then-success", publishTool: "npm" });
+  const result = runPublishHelper({
+    pnpmMode: "tlog-then-success",
+    publishTool: "npm",
+  });
 
   assert.equal(result.status, 0);
   assert.match(result.calls, /^npm view @taskcore\/example@1\.2\.3 version$/m);
@@ -277,7 +290,10 @@ test("publish_package_to_npm retries duplicate tlog failures without provenance"
 });
 
 test("publish_package_to_npm treats a duplicate tlog failure as complete when npm exposes the version", () => {
-  const result = runPublishHelper({ pnpmMode: "tlog-always-fails", npmVersionExists: true });
+  const result = runPublishHelper({
+    pnpmMode: "tlog-always-fails",
+    npmVersionExists: true,
+  });
 
   assert.equal(result.status, 0);
   assert.match(result.calls, /^npm view @taskcore\/example@1\.2\.3 version$/m);
@@ -293,7 +309,10 @@ test("publish_package_to_npm does not retry unrelated publish failures", () => {
 });
 
 test("publish_package_to_npm does not mask failures when caller has no pipefail", () => {
-  const result = runPublishHelper({ pnpmMode: "non-tlog-failure", callerPipefail: false });
+  const result = runPublishHelper({
+    pnpmMode: "non-tlog-failure",
+    callerPipefail: false,
+  });
 
   assert.notEqual(result.status, 0);
   assert.doesNotMatch(result.calls, /npm view/);
@@ -301,7 +320,10 @@ test("publish_package_to_npm does not mask failures when caller has no pipefail"
 });
 
 test("publish_package_to_npm does not retry stable publishes without provenance", () => {
-  const result = runPublishHelper({ pnpmMode: "tlog-then-success", distTag: "latest" });
+  const result = runPublishHelper({
+    pnpmMode: "tlog-then-success",
+    distTag: "latest",
+  });
 
   assert.notEqual(result.status, 0);
   assert.match(result.calls, /^npm view @taskcore\/example@1\.2\.3 version$/m);
@@ -316,16 +338,25 @@ test("wait_for_npm_package_versions confirms registry visibility after a publish
   });
 
   assert.equal(result.status, 0);
-  assert.match(result.calls, /^pnpm publish --no-git-checks --tag canary --access public$/m);
+  assert.match(
+    result.calls,
+    /^pnpm publish --no-git-checks --tag canary --access public$/m,
+  );
   assert.match(result.calls, /^npm view @taskcore\/example@1\.2\.3 version$/m);
 });
 
 test("wait_for_npm_package_versions blocks the release and names the straggler", () => {
-  const result = runPublishHelper({ pnpmMode: "success", waitForRegistry: true });
+  const result = runPublishHelper({
+    pnpmMode: "success",
+    waitForRegistry: true,
+  });
 
   assert.notEqual(result.status, 0);
   assert.match(result.calls, /^npm view @taskcore\/example@1\.2\.3 version$/m);
-  assert.match(result.output, /did not become registry-visible: @taskcore\/example@1\.2\.3/);
+  assert.match(
+    result.output,
+    /did not become registry-visible: @taskcore\/example@1\.2\.3/,
+  );
 });
 
 test("wait_for_npm_package_versions polls every package concurrently", () => {
@@ -348,7 +379,8 @@ test("wait_for_npm_package_versions polls every package concurrently", () => {
 test("the workflow budget tolerates the observed 15-minute 20-second registry delay", () => {
   const budget = workflowVerifyBudget();
   assert.ok(budget.verifyDelaySeconds > 0);
-  const delayedCheck = Math.ceil((15 * 60 + 20) / budget.verifyDelaySeconds) + 1;
+  const delayedCheck =
+    Math.ceil((15 * 60 + 20) / budget.verifyDelaySeconds) + 1;
   const result = runPublishHelper({
     pnpmMode: "success",
     waitForRegistry: true,
@@ -391,8 +423,14 @@ test("the workflow budget fails closed after the last registry check", () => {
   assert.notEqual(result.status, 0);
   assert.match(result.output, /did not become registry-visible/);
   assert.equal(result.calls.match(/^pnpm publish /gm)?.length, 1);
-  assert.equal(result.calls.match(/^npm view /gm)?.length, budget.verifyAttempts);
-  assert.equal(result.calls.match(/^sleep /gm)?.length, budget.verifyAttempts - 1);
+  assert.equal(
+    result.calls.match(/^npm view /gm)?.length,
+    budget.verifyAttempts,
+  );
+  assert.equal(
+    result.calls.match(/^sleep /gm)?.length,
+    budget.verifyAttempts - 1,
+  );
 });
 
 test("every publish job budgets for build time and four delayed packages", () => {
@@ -400,9 +438,21 @@ test("every publish job budgets for build time and four delayed packages", () =>
   const pollingSeconds = (verifyAttempts - 1) * verifyDelaySeconds;
   const requiredSeconds = 30 * 60 + 4 * pollingSeconds;
 
-  for (const job of ["publish_canary", "publish_nightly", "publish_beta", "publish_stable"]) {
-    const body = releaseWorkflow.split(`\n  ${job}:\n`)[1]?.split(/\n  [a-z_]+:\n/)[0] ?? "";
-    const timeoutMinutes = Number(body.match(/^    timeout-minutes: (\d+)$/m)?.[1]);
-    assert.ok(timeoutMinutes * 60 > requiredSeconds, `${job} must leave time beyond build and polling`);
+  for (const job of [
+    "publish_canary",
+    "publish_nightly",
+    "publish_beta",
+    "publish_stable",
+  ]) {
+    const body =
+      releaseWorkflow.split(`\n  ${job}:\n`)[1]?.split(/\n  [a-z_]+:\n/)[0] ??
+      "";
+    const timeoutMinutes = Number(
+      body.match(/^    timeout-minutes: (\d+)$/m)?.[1],
+    );
+    assert.ok(
+      timeoutMinutes * 60 > requiredSeconds,
+      `${job} must leave time beyond build and polling`,
+    );
   }
 });

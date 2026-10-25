@@ -17,7 +17,9 @@ import {
 import { buildHostServices } from "../services/plugin-host-services.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 function createEventBusStub() {
   return {
@@ -45,15 +47,19 @@ function manifest(): TaskcorePluginManifestV1 {
     categories: ["automation"],
     capabilities: ["skills.managed"],
     entrypoints: { worker: "./dist/worker.js" },
-    skills: [{
-      skillKey: "wiki-maintainer",
-      displayName: "Wiki Maintainer Skill",
-      description: "Use LLM Wiki tools to maintain company knowledge.",
-      files: [{
-        path: "references/wiki-style.md",
-        content: "# Wiki style\n\nKeep pages cited and terse.\n",
-      }],
-    }],
+    skills: [
+      {
+        skillKey: "wiki-maintainer",
+        displayName: "Wiki Maintainer Skill",
+        description: "Use LLM Wiki tools to maintain company knowledge.",
+        files: [
+          {
+            path: "references/wiki-style.md",
+            content: "# Wiki style\n\nKeep pages cited and terse.\n",
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -65,10 +71,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("plugin-managed skills", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-plugin-managed-skills-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-plugin-managed-skills-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -103,9 +113,16 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
       status: "ready",
       installOrder: 1,
     });
-    const services = buildHostServices(db, pluginId, pluginManifest.id, createEventBusStub(), undefined, {
-      manifest: pluginManifest,
-    });
+    const services = buildHostServices(
+      db,
+      pluginId,
+      pluginManifest.id,
+      createEventBusStub(),
+      undefined,
+      {
+        manifest: pluginManifest,
+      },
+    );
     return { companyId, pluginId, pluginManifest, services };
   }
 
@@ -124,7 +141,10 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
       sourceType: "catalog",
       fileInventory: expect.arrayContaining([
         expect.objectContaining({ path: "SKILL.md", kind: "skill" }),
-        expect.objectContaining({ path: "references/wiki-style.md", kind: "reference" }),
+        expect.objectContaining({
+          path: "references/wiki-style.md",
+          kind: "reference",
+        }),
       ]),
     });
 
@@ -146,7 +166,10 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
 
   it("preserves operator edits during reconcile and restores manifest defaults on reset", async () => {
     const { companyId, services } = await seedCompanyAndPlugin();
-    const created = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const created = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(created.skillId).toBeTruthy();
 
     await db
@@ -158,25 +181,36 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
       })
       .where(eq(companySkills.id, created.skillId!));
 
-    const reconciled = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const reconciled = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(reconciled.status).toBe("resolved");
     expect(reconciled.skill).toMatchObject({
       name: "Custom Wiki Skill",
       markdown: "# Custom instructions\n",
     });
 
-    const reset = await services.skills.managedReset({ companyId, skillKey: "wiki-maintainer" });
+    const reset = await services.skills.managedReset({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(reset.status).toBe("reset");
     expect(reset.skill).toMatchObject({
       name: "Wiki Maintainer Skill",
       description: "Use LLM Wiki tools to maintain company knowledge.",
     });
-    expect(reset.skill?.markdown).toContain("key: \"plugin/taskcore-managed-skills-test/wiki-maintainer\"");
+    expect(reset.skill?.markdown).toContain(
+      'key: "plugin/taskcore-managed-skills-test/wiki-maintainer"',
+    );
   });
 
   it("does not rewrite managed skill bindings when defaults are unchanged", async () => {
     const { companyId, services } = await seedCompanyAndPlugin();
-    const created = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const created = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(created.skillId).toBeTruthy();
 
     const [binding] = await db.select().from(pluginManagedResources);
@@ -186,19 +220,29 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
       .set({ updatedAt: oldUpdatedAt })
       .where(eq(pluginManagedResources.id, binding.id));
 
-    const reconciled = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const reconciled = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     const [bindingAfter] = await db.select().from(pluginManagedResources);
 
     expect(reconciled.status).toBe("resolved");
-    expect(bindingAfter.updatedAt.toISOString()).toBe(oldUpdatedAt.toISOString());
+    expect(bindingAfter.updatedAt.toISOString()).toBe(
+      oldUpdatedAt.toISOString(),
+    );
   });
 
   it("relinks an existing canonical skill without overwriting operator edits", async () => {
     const { companyId, services } = await seedCompanyAndPlugin();
-    const created = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const created = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(created.skillId).toBeTruthy();
 
-    await db.delete(pluginManagedResources).where(eq(pluginManagedResources.resourceId, created.skillId!));
+    await db
+      .delete(pluginManagedResources)
+      .where(eq(pluginManagedResources.resourceId, created.skillId!));
     await db
       .update(companySkills)
       .set({
@@ -208,7 +252,10 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
       })
       .where(eq(companySkills.id, created.skillId!));
 
-    const relinked = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const relinked = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
 
     expect(relinked.status).toBe("relinked");
     expect(relinked.skillId).toBe(created.skillId);
@@ -229,7 +276,10 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
 
   it("reports drift when installed skill files differ from plugin defaults", async () => {
     const { companyId, services } = await seedCompanyAndPlugin();
-    const created = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const created = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(created.defaultDrift).toBeNull();
 
     await db
@@ -240,11 +290,17 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
       })
       .where(eq(companySkills.id, created.skillId!));
 
-    const drifted = await services.skills.managedReconcile({ companyId, skillKey: "wiki-maintainer" });
+    const drifted = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(drifted.status).toBe("resolved");
     expect(drifted.defaultDrift).toEqual({ changedFiles: ["SKILL.md"] });
 
-    const reset = await services.skills.managedReset({ companyId, skillKey: "wiki-maintainer" });
+    const reset = await services.skills.managedReset({
+      companyId,
+      skillKey: "wiki-maintainer",
+    });
     expect(reset.defaultDrift).toBeNull();
   });
 
@@ -269,13 +325,18 @@ describeEmbeddedPostgres("plugin-managed skills", () => {
     ];
     const { companyId, services } = await seedCompanyAndPlugin(pluginManifest);
 
-    const created = await services.skills.managedReconcile({ companyId, skillKey: "markdown-skill" });
+    const created = await services.skills.managedReconcile({
+      companyId,
+      skillKey: "markdown-skill",
+    });
 
     expect(created.status).toBe("created");
     expect(created.skill).toMatchObject({
       key: "plugin/taskcore-managed-skills-test/markdown-skill",
       name: "markdown-skill",
     });
-    expect(created.skill?.markdown).toContain("key: \"plugin/taskcore-managed-skills-test/markdown-skill\"");
+    expect(created.skill?.markdown).toContain(
+      'key: "plugin/taskcore-managed-skills-test/markdown-skill"',
+    );
   });
 });

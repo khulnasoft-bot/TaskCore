@@ -30,7 +30,10 @@ export function companyListQueryOptions(userId: string | null) {
       try {
         return { companies: await companiesApi.list(), unauthorized: false };
       } catch (err) {
-        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        if (
+          err instanceof ApiError &&
+          (err.status === 401 || err.status === 403)
+        ) {
           return { companies: [], unauthorized: true };
         }
         throw err;
@@ -73,9 +76,17 @@ const sessionQueryOptions = {
  * So: settled on success only. A failed session lookup leaves the list unfetched
  * until the query recovers, which it does on the next refetch.
  */
-export function useAccountIdentity(): { userId: string | null; settled: boolean; failed: boolean } {
+export function useAccountIdentity(): {
+  userId: string | null;
+  settled: boolean;
+  failed: boolean;
+} {
   const { data: session, isSuccess, isError } = useQuery(sessionQueryOptions);
-  return { userId: session?.user.id ?? null, settled: isSuccess, failed: isError };
+  return {
+    userId: session?.user.id ?? null,
+    settled: isSuccess,
+    failed: isError,
+  };
 }
 
 /**
@@ -85,7 +96,11 @@ export function useAccountIdentity(): { userId: string | null; settled: boolean;
  * applied on top of it either way.
  */
 export function useCompanyListQuery(
-  options: { enabled?: boolean; staleTime?: number; retry?: number | boolean } = {},
+  options: {
+    enabled?: boolean;
+    staleTime?: number;
+    retry?: number | boolean;
+  } = {},
 ) {
   const { userId, settled } = useAccountIdentity();
   const query = useQuery<CompanyListResult>({
@@ -122,10 +137,12 @@ export function useCompanyListQuery(
  * must be obtained, and if it cannot be obtained the caller must fail rather
  * than guess.
  */
-export async function resolveAccountUserId(queryClient: QueryClient): Promise<string | null> {
-  const state = queryClient.getQueryState<Awaited<ReturnType<typeof authApi.getSession>>>(
-    queryKeys.auth.session,
-  );
+export async function resolveAccountUserId(
+  queryClient: QueryClient,
+): Promise<string | null> {
+  const state = queryClient.getQueryState<
+    Awaited<ReturnType<typeof authApi.getSession>>
+  >(queryKeys.auth.session);
   // `isInvalidated` matters as much as `status` here. Invalidation is how the
   // app says "this is the previous account's answer" — InviteLanding invalidates
   // the session immediately after a sign-in and resolves an identity in the next
@@ -135,7 +152,10 @@ export async function resolveAccountUserId(queryClient: QueryClient): Promise<st
   if (state?.status === "success" && !state.isInvalidated) {
     return state.data?.user.id ?? null;
   }
-  const session = await queryClient.fetchQuery({ ...sessionQueryOptions, staleTime: 0 });
+  const session = await queryClient.fetchQuery({
+    ...sessionQueryOptions,
+    staleTime: 0,
+  });
   return session?.user.id ?? null;
 }
 

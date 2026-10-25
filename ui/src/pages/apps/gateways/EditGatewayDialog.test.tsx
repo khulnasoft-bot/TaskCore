@@ -4,7 +4,10 @@ import { type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ToolMcpGatewayWithTokens, ToolProfileWithDetails } from "@taskcore/shared";
+import type {
+  ToolMcpGatewayWithTokens,
+  ToolProfileWithDetails,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EditGatewayDialog } from "./EditGatewayDialog";
 
@@ -12,7 +15,9 @@ const updateGatewayMock = vi.hoisted(() => vi.fn());
 const pushToastMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/api/tools", () => ({
-  toolsApi: { updateGateway: (...args: unknown[]) => updateGatewayMock(...args) },
+  toolsApi: {
+    updateGateway: (...args: unknown[]) => updateGatewayMock(...args),
+  },
 }));
 
 vi.mock("@/context/ToastContext", () => ({
@@ -20,15 +25,26 @@ vi.mock("@/context/ToastContext", () => ({
 }));
 
 vi.mock("@/components/ui/dialog", () => ({
-  Dialog: ({ open, children }: { open: boolean; children: ReactNode }) => open ? <div>{children}</div> : null,
-  DialogContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  DialogDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
-  DialogFooter: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  DialogHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Dialog: ({ open, children }: { open: boolean; children: ReactNode }) =>
+    open ? <div>{children}</div> : null,
+  DialogContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  DialogFooter: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogHeader: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function gateway(): ToolMcpGatewayWithTokens {
   return {
@@ -116,9 +132,15 @@ describe("EditGatewayDialog", () => {
 
   it("updates an editable gateway name, description, and access profile", async () => {
     const existing = gateway();
-    updateGatewayMock.mockResolvedValue({ ...existing, name: "Shared Notion", profileId: "profile-2" });
+    updateGatewayMock.mockResolvedValue({
+      ...existing,
+      name: "Shared Notion",
+      profileId: "profile-2",
+    });
     const onOpenChange = vi.fn();
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
     flushSync(() => {
       root.render(
@@ -126,7 +148,10 @@ describe("EditGatewayDialog", () => {
           <EditGatewayDialog
             companyId="company-1"
             gateway={existing}
-            profiles={[profile("profile-1", "Original"), profile("profile-2", "Shared tools")]}
+            profiles={[
+              profile("profile-1", "Original"),
+              profile("profile-2", "Shared tools"),
+            ]}
             open
             onOpenChange={onOpenChange}
           />
@@ -134,14 +159,23 @@ describe("EditGatewayDialog", () => {
       );
     });
 
-    const nameInput = container.querySelector<HTMLInputElement>('input[required]');
-    const descriptionInput = container.querySelector<HTMLTextAreaElement>("textarea");
+    const nameInput =
+      container.querySelector<HTMLInputElement>("input[required]");
+    const descriptionInput =
+      container.querySelector<HTMLTextAreaElement>("textarea");
     const profileSelect = container.querySelector<HTMLSelectElement>("select");
     const form = container.querySelector("form");
-    if (!nameInput || !descriptionInput || !profileSelect || !form) throw new Error("gateway edit form missing");
+    if (!nameInput || !descriptionInput || !profileSelect || !form)
+      throw new Error("gateway edit form missing");
 
-    const inputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-    const textareaSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+    const inputSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )?.set;
+    const textareaSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      "value",
+    )?.set;
     flushSync(() => {
       inputSetter?.call(nameInput, "Shared Notion");
       nameInput.dispatchEvent(new Event("input", { bubbles: true }));
@@ -155,7 +189,9 @@ describe("EditGatewayDialog", () => {
       profileSelect.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
     await flushReact();
 
     expect(updateGatewayMock).toHaveBeenCalledWith("company-1", "gateway-1", {

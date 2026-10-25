@@ -37,7 +37,11 @@ function finishTurn(turnId, toolResult) {
     params: {
       threadId: state.threadId,
       turnId,
-      item: { id: `message-${turnId}`, type: "agentMessage", text: `Tool result: ${JSON.stringify(toolResult)}` },
+      item: {
+        id: `message-${turnId}`,
+        type: "agentMessage",
+        text: `Tool result: ${JSON.stringify(toolResult)}`,
+      },
     },
   });
   state.turns[turnId] = "completed";
@@ -59,7 +63,10 @@ function finishTurn(turnId, toolResult) {
   });
   send({
     method: "turn/completed",
-    params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
+    params: {
+      threadId: state.threadId,
+      turn: { id: turnId, status: "completed" },
+    },
   });
 }
 
@@ -83,15 +90,22 @@ function handleRequest(message) {
   }
   if (method === "thread/turns/list") {
     const turns = Object.entries(state.turns).map(([turnId, status]) => ({
-      id: turnId, status, items: [], itemsView: "notLoaded",
+      id: turnId,
+      status,
+      items: [],
+      itemsView: "notLoaded",
     }));
     if (params.sortDirection === "desc") turns.reverse();
     const offset = Number(params.cursor ?? 0);
     const limit = params.limit ?? 100;
-    send({ id, result: {
-      data: turns.slice(offset, offset + limit),
-      nextCursor: offset + limit < turns.length ? String(offset + limit) : null,
-    } });
+    send({
+      id,
+      result: {
+        data: turns.slice(offset, offset + limit),
+        nextCursor:
+          offset + limit < turns.length ? String(offset + limit) : null,
+      },
+    });
     return;
   }
   if (method === "thread/read") {
@@ -101,10 +115,19 @@ function handleRequest(message) {
         thread: {
           id: state.threadId,
           sessionId: state.sessionId,
-          status: { type: Object.values(state.turns).includes("inProgress") ? "active" : "idle" },
-          ...(params.includeTurns ? {
-            turns: Object.entries(state.turns).map(([turnId, status]) => ({ id: turnId, status })),
-          } : {}),
+          status: {
+            type: Object.values(state.turns).includes("inProgress")
+              ? "active"
+              : "idle",
+          },
+          ...(params.includeTurns
+            ? {
+                turns: Object.entries(state.turns).map(([turnId, status]) => ({
+                  id: turnId,
+                  status,
+                })),
+              }
+            : {}),
           tokenUsage: {
             total: {
               inputTokens: state.nextTurn * 10,
@@ -144,7 +167,10 @@ function handleRequest(message) {
     send({ id, result: { turn: { id: turnId, status: "inProgress" } } });
     send({
       method: "turn/started",
-      params: { threadId: state.threadId, turn: { id: turnId, status: "inProgress" } },
+      params: {
+        threadId: state.threadId,
+        turn: { id: turnId, status: "inProgress" },
+      },
     });
     const toolRequestId = `tool-${turnId}`;
     pendingTools.set(toolRequestId, turnId);
@@ -171,11 +197,17 @@ function handleRequest(message) {
     send({ id, result: {} });
     send({
       method: "turn/completed",
-      params: { threadId: state.threadId, turn: { id: turnId, status: "interrupted" } },
+      params: {
+        threadId: state.threadId,
+        turn: { id: turnId, status: "interrupted" },
+      },
     });
     return;
   }
-  send({ id, error: { code: -32601, message: `unsupported method ${method}` } });
+  send({
+    id,
+    error: { code: -32601, message: `unsupported method ${method}` },
+  });
 }
 
 function handle(message) {

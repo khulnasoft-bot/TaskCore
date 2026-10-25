@@ -33,7 +33,13 @@ export function BuiltInLifecycleChip({
           : "Needs adapter/model setup before the feature can run"
       }
     >
-      {isPendingApproval ? (compact ? "Approval" : "Pending approval") : compact ? "Setup" : "Needs setup"}
+      {isPendingApproval
+        ? compact
+          ? "Approval"
+          : "Pending approval"
+        : compact
+          ? "Setup"
+          : "Needs setup"}
     </Badge>
   );
 }

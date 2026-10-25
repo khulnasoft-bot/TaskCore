@@ -18,7 +18,8 @@ export const INTERNAL_FIELD_KEYS = new Set([
   "thisChanged",
 ]);
 
-type StageLookup = Map<string, string> | Record<string, string> | PipelineStage[] | undefined;
+type StageLookup =
+  Map<string, string> | Record<string, string> | PipelineStage[] | undefined;
 
 export interface PipelineChildRow {
   case: PipelineCase;
@@ -50,14 +51,21 @@ function readString(value: unknown) {
 }
 
 function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
-function stageNameFromLookup(stages: StageLookup, keyOrId: string | null | undefined) {
+function stageNameFromLookup(
+  stages: StageLookup,
+  keyOrId: string | null | undefined,
+) {
   if (!keyOrId) return null;
   if (!stages) return null;
   if (Array.isArray(stages)) {
-    const stage = stages.find((candidate) => candidate.key === keyOrId || candidate.id === keyOrId);
+    const stage = stages.find(
+      (candidate) => candidate.key === keyOrId || candidate.id === keyOrId,
+    );
     return stage?.name ?? null;
   }
   if (stages instanceof Map) return stages.get(keyOrId) ?? null;
@@ -100,12 +108,19 @@ export function formatFieldValue(value: unknown): string {
   if (typeof value === "string") return value;
   const record = readRecord(value);
   if (record) {
-    return readString(record.label) ?? readString(record.name) ?? readString(record.title) ?? "Added details";
+    return (
+      readString(record.label) ??
+      readString(record.name) ??
+      readString(record.title) ??
+      "Added details"
+    );
   }
   return String(value);
 }
 
-export function displayPipelineItemFields(fields: Record<string, unknown> | null | undefined) {
+export function displayPipelineItemFields(
+  fields: Record<string, unknown> | null | undefined,
+) {
   return Object.entries(fields ?? {})
     .filter(([key]) => !INTERNAL_FIELD_KEYS.has(key))
     .map(([key, value]) => ({
@@ -115,11 +130,15 @@ export function displayPipelineItemFields(fields: Record<string, unknown> | null
     }));
 }
 
-export type PipelineItemDisplayField = ReturnType<typeof displayPipelineItemFields>[number];
+export type PipelineItemDisplayField = ReturnType<
+  typeof displayPipelineItemFields
+>[number];
 
 const LONG_FIELD_CHARACTER_THRESHOLD = 180;
 
-export function isLongPipelineItemField(field: Pick<PipelineItemDisplayField, "value">) {
+export function isLongPipelineItemField(
+  field: Pick<PipelineItemDisplayField, "value">,
+) {
   const value = field.value.trim();
   if (!value || value === "None") return false;
   return value.includes("\n") || value.length >= LONG_FIELD_CHARACTER_THRESHOLD;
@@ -143,9 +162,14 @@ type PipelineConversationAssigneeIssue = Pick<
   "id" | "parentId" | "assigneeAgentId" | "assigneeUserId" | "createdByAgentId"
 >;
 
-function sourceIssueAssigneeValue(issue: PipelineConversationAssigneeIssue | null | undefined) {
+function sourceIssueAssigneeValue(
+  issue: PipelineConversationAssigneeIssue | null | undefined,
+) {
   if (!issue) return "";
-  return assigneeValueFromSelection(issue) || assigneeValueFromSelection({ assigneeAgentId: issue.createdByAgentId });
+  return (
+    assigneeValueFromSelection(issue) ||
+    assigneeValueFromSelection({ assigneeAgentId: issue.createdByAgentId })
+  );
 }
 
 export function pipelineConversationStarterAssigneeValue(input: {
@@ -154,7 +178,9 @@ export function pipelineConversationStarterAssigneeValue(input: {
   issueLinks?: PipelineCaseIssueLinkWithIssue[] | null;
 }) {
   const conversationIssue = input.conversationIssue ?? null;
-  const currentAssigneeValue = assigneeValueFromSelection(conversationIssue ?? {});
+  const currentAssigneeValue = assigneeValueFromSelection(
+    conversationIssue ?? {},
+  );
   if (currentAssigneeValue) return currentAssigneeValue;
 
   const source = input.conversationSource;
@@ -170,11 +196,15 @@ export function pipelineConversationStarterAssigneeValue(input: {
   const parentSource = conversationIssue?.parentId
     ? sourceLinks.find((link) => link.issue.id === conversationIssue.parentId)
     : null;
-  const linkedSource = parentSource ?? sourceLinks.find((link) => sourceIssueAssigneeValue(link.issue));
+  const linkedSource =
+    parentSource ??
+    sourceLinks.find((link) => sourceIssueAssigneeValue(link.issue));
   return sourceIssueAssigneeValue(linkedSource?.issue);
 }
 
-function treeNodeToChildRow(node: PipelineCaseTreeNode): PipelineChildRow | null {
+function treeNodeToChildRow(
+  node: PipelineCaseTreeNode,
+): PipelineChildRow | null {
   const pipelineId = node.pipeline?.id;
   const stage = node.stage;
   if (!pipelineId || !stage) return null;
@@ -190,7 +220,10 @@ function treeNodeToChildRow(node: PipelineCaseTreeNode): PipelineChildRow | null
       terminalKind: node.terminalKind ?? null,
       childCount:
         node.rollup?.total ??
-        node.childGroups?.reduce((count, group) => count + (group.cases?.length ?? 0), 0) ??
+        node.childGroups?.reduce(
+          (count, group) => count + (group.cases?.length ?? 0),
+          0,
+        ) ??
         0,
       createdAt: node.createdAt,
       updatedAt: node.updatedAt,
@@ -210,7 +243,9 @@ export function normalizePipelineChildRows(value: unknown): PipelineChildRow[] {
   if (Array.isArray(value)) {
     return value.filter((row): row is PipelineChildRow => {
       const candidate = row as Partial<PipelineChildRow>;
-      return Boolean(candidate.case?.id && candidate.case.pipelineId && candidate.stage?.id);
+      return Boolean(
+        candidate.case?.id && candidate.case.pipelineId && candidate.stage?.id,
+      );
     });
   }
 
@@ -223,14 +258,19 @@ export function normalizePipelineChildRows(value: unknown): PipelineChildRow[] {
     .filter((row): row is PipelineChildRow => Boolean(row));
 }
 
-export function getPendingTransitionBannerState(item: Pick<PipelineCase, "pendingSuggestion" | "fields">, stages?: StageLookup) {
+export function getPendingTransitionBannerState(
+  item: Pick<PipelineCase, "pendingSuggestion" | "fields">,
+  stages?: StageLookup,
+) {
   const fields = item.fields ?? {};
   if (fields.suggestionResolution || fields.changeAcknowledgedAt) {
     return { visible: false as const, reason: "resolved" as const };
   }
   const suggestion = item.pendingSuggestion ?? null;
-  const toStageKey = suggestion?.toStageKey ?? readString(fields.nextSuggestedStageId);
-  if (!toStageKey) return { visible: false as const, reason: "no_next_stage" as const };
+  const toStageKey =
+    suggestion?.toStageKey ?? readString(fields.nextSuggestedStageId);
+  if (!toStageKey)
+    return { visible: false as const, reason: "no_next_stage" as const };
   return {
     visible: true as const,
     suggestionId: suggestion?.id ?? null,
@@ -240,13 +280,20 @@ export function getPendingTransitionBannerState(item: Pick<PipelineCase, "pendin
   };
 }
 
-export function itemHasChangedNotice(item: Pick<PipelineCase, "fields"> & {
-  thisChanged?: unknown;
-  changeAcknowledgedAt?: unknown;
-}) {
+export function itemHasChangedNotice(
+  item: Pick<PipelineCase, "fields"> & {
+    thisChanged?: unknown;
+    changeAcknowledgedAt?: unknown;
+  },
+) {
   const fields = item.fields ?? {};
   if (item.changeAcknowledgedAt || fields.changeAcknowledgedAt) return null;
-  if (item.thisChanged || fields.thisChanged || fields.upstreamChanged || fields.upstreamDrift) {
+  if (
+    item.thisChanged ||
+    fields.thisChanged ||
+    fields.upstreamChanged ||
+    fields.upstreamDrift
+  ) {
     return {
       title: "This changed",
       body: "Upstream work changed after this item was created. Review the latest details before continuing.",
@@ -277,7 +324,11 @@ export function changedNoticeFromEvents(events: PipelineCaseEvent[]) {
   };
 }
 
-function stageName(event: PipelineCaseEvent, stages: StageLookup, side: "from" | "to") {
+function stageName(
+  event: PipelineCaseEvent,
+  stages: StageLookup,
+  side: "from" | "to",
+) {
   const enrichedStage = side === "from" ? event.fromStage : event.toStage;
   if (enrichedStage?.name) return enrichedStage.name;
   const stageId = side === "from" ? event.fromStageId : event.toStageId;
@@ -302,10 +353,17 @@ function movementReason(payload: Record<string, unknown>) {
   return reason;
 }
 
-function movementClass(event: PipelineCaseEvent, payload: Record<string, unknown>) {
+function movementClass(
+  event: PipelineCaseEvent,
+  payload: Record<string, unknown>,
+) {
   const raw = readString(payload.transitionClass)?.toLowerCase();
   if (raw === "auto" || raw === "automatic") return "automatic";
-  if (event.actorType === "system" && readString(payload.reason) === "children_terminal") return "automatic";
+  if (
+    event.actorType === "system" &&
+    readString(payload.reason) === "children_terminal"
+  )
+    return "automatic";
   if (raw === "manual") return "manual";
   return raw;
 }
@@ -320,18 +378,29 @@ function humanizeReason(reason: string) {
   return humanizeKey(reason).replace(/^./, (char) => char.toLowerCase());
 }
 
-export function formatPipelineItemEvent(event: PipelineCaseEvent, stages?: StageLookup) {
-  const kind = event.type.startsWith("case.") ? event.type.slice("case.".length) : event.type;
+export function formatPipelineItemEvent(
+  event: PipelineCaseEvent,
+  stages?: StageLookup,
+) {
+  const kind = event.type.startsWith("case.")
+    ? event.type.slice("case.".length)
+    : event.type;
   const payload = event.payload ?? {};
   if (kind === "ingested") return "Item added.";
   if (kind === "updated") {
-    if (payload.action === "stage_automation_rerun_requested") return "Stage automation re-run requested.";
+    if (payload.action === "stage_automation_rerun_requested")
+      return "Stage automation re-run requested.";
     return "Item details updated.";
   }
   if (kind === "transitioned") {
     const from = stageName(event, stages, "from");
     const to = stageName(event, stages, "to");
-    const movement = from && to ? `Moved from ${from} to ${to}` : to ? `Moved to ${to}` : "Moved to another stage";
+    const movement =
+      from && to
+        ? `Moved from ${from} to ${to}`
+        : to
+          ? `Moved to ${to}`
+          : "Moved to another stage";
     const reason = movementReason(payload);
     const transitionClass = movementClass(event, payload);
     if (transitionClass === "automatic") {
@@ -345,7 +414,8 @@ export function formatPipelineItemEvent(event: PipelineCaseEvent, stages?: Stage
   }
   if (kind === "suggested" || kind === "transition_suggested") {
     const suggestion = readRecord(payload.suggestion);
-    const toStageKey = readString(suggestion?.toStageKey) ?? readString(payload.toStageKey);
+    const toStageKey =
+      readString(suggestion?.toStageKey) ?? readString(payload.toStageKey);
     const to = stageNameFromLookup(stages, toStageKey) ?? "the next stage";
     return `Suggested moving to ${to}.`;
   }
@@ -358,7 +428,8 @@ export function formatPipelineItemEvent(event: PipelineCaseEvent, stages?: Stage
   if (kind === "reviewed" || kind === "review_decided") {
     const decision = readDecision(payload);
     if (decision === "request_changes") return "Review requested changes.";
-    if (decision === "drop" || decision === "reject") return "Review removed this item.";
+    if (decision === "drop" || decision === "reject")
+      return "Review removed this item.";
     if (decision === "approve") return "Review approved this item.";
     return "Review completed.";
   }
@@ -370,7 +441,8 @@ export function formatPipelineItemEvent(event: PipelineCaseEvent, stages?: Stage
   if (kind === "children_terminal") return "Built-from items completed.";
   if (kind === "upstream_drift") {
     const upstreamCaseKey = readString(payload.upstreamCaseKey);
-    if (upstreamCaseKey) return `Upstream change detected from ${upstreamCaseKey}.`;
+    if (upstreamCaseKey)
+      return `Upstream change detected from ${upstreamCaseKey}.`;
     return "Upstream change detected.";
   }
   if (kind === "drift_acknowledged") return "Upstream change acknowledged.";
@@ -384,6 +456,7 @@ export function formatPipelineItemEvent(event: PipelineCaseEvent, stages?: Stage
     return `Automation needs attention${reason ? ` — ${humanizeReason(reason)}` : ""}.`;
   }
   if (kind === "claimed") return "Work started.";
-  if (kind === "lease_released" || kind === "lease_expired") return "Work handoff cleared.";
+  if (kind === "lease_released" || kind === "lease_expired")
+    return "Work handoff cleared.";
   return "Activity recorded.";
 }

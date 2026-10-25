@@ -14,8 +14,15 @@ import { piLocalUIAdapter } from "./pi-local";
 import { openClawGatewayUIAdapter } from "./openclaw-gateway";
 import { processUIAdapter } from "./process";
 import { httpUIAdapter } from "./http";
-import { loadDynamicParser, invalidateDynamicParser, setDynamicParserResultNotifier } from "./dynamic-loader";
-import { SchemaConfigFields, buildSchemaAdapterConfig } from "./schema-config-fields";
+import {
+  loadDynamicParser,
+  invalidateDynamicParser,
+  setDynamicParserResultNotifier,
+} from "./dynamic-loader";
+import {
+  SchemaConfigFields,
+  buildSchemaAdapterConfig,
+} from "./schema-config-fields";
 
 const uiAdapters: UIAdapterModule[] = [];
 const adaptersByType = new Map<string, UIAdapterModule>();
@@ -77,7 +84,9 @@ function registerBuiltInUIAdapters() {
 }
 
 export function registerUIAdapter(adapter: UIAdapterModule): void {
-  const existingIndex = uiAdapters.findIndex((entry) => entry.type === adapter.type);
+  const existingIndex = uiAdapters.findIndex(
+    (entry) => entry.type === adapter.type,
+  );
   if (existingIndex >= 0) {
     uiAdapters.splice(existingIndex, 1, adapter);
   } else {
@@ -161,11 +170,11 @@ export function syncExternalAdapters(
   }[],
 ): void {
   const enabledExternalTypes = new Set(
-    serverAdapters.filter((a) => !a.disabled && !a.overrideDisabled).map((a) => a.type),
+    serverAdapters
+      .filter((a) => !a.disabled && !a.overrideDisabled)
+      .map((a) => a.type),
   );
-  const allExternalTypes = new Set(
-    serverAdapters.map((a) => a.type),
-  );
+  const allExternalTypes = new Set(serverAdapters.map((a) => a.type));
 
   // ── Builtin override lifecycle ──────────────────────────────────────────
 
@@ -238,7 +247,8 @@ export function syncExternalAdapters(
     let loadStarted = false;
     // Use the existing built-in parser as fallback (if any) so we don't
     // regress to the generic process parser while the dynamic one loads.
-    const fallbackParser = existing?.parseStdoutLine ?? processUIAdapter.parseStdoutLine;
+    const fallbackParser =
+      existing?.parseStdoutLine ?? processUIAdapter.parseStdoutLine;
 
     registerUIAdapter({
       type,
@@ -254,7 +264,8 @@ export function syncExternalAdapters(
                 parseStdoutLine: parserModule.parseStdoutLine,
                 createStdoutParser: parserModule.createStdoutParser,
                 ConfigFields: existing?.ConfigFields ?? SchemaConfigFields,
-                buildAdapterConfig: existing?.buildAdapterConfig ?? buildSchemaAdapterConfig,
+                buildAdapterConfig:
+                  existing?.buildAdapterConfig ?? buildSchemaAdapterConfig,
               });
             }
           });
@@ -262,7 +273,8 @@ export function syncExternalAdapters(
         return fallbackParser(line, ts);
       },
       ConfigFields: existing?.ConfigFields ?? SchemaConfigFields,
-      buildAdapterConfig: existing?.buildAdapterConfig ?? buildSchemaAdapterConfig,
+      buildAdapterConfig:
+        existing?.buildAdapterConfig ?? buildSchemaAdapterConfig,
     });
   }
 }

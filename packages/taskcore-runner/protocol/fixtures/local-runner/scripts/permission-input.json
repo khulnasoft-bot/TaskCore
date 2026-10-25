@@ -17,7 +17,10 @@
         ]
       }
     },
-    { "kind": "await_resolution", "request_id": "request_local_runner_permission" },
+    {
+      "kind": "await_resolution",
+      "request_id": "request_local_runner_permission"
+    },
     {
       "kind": "request",
       "request": {
@@ -61,7 +64,10 @@
         },
         "evidence": [],
         "verification": [
-          { "commandOrCheck": "permission and input round trip", "status": "passed" }
+          {
+            "commandOrCheck": "permission and input round trip",
+            "status": "passed"
+          }
         ],
         "attentionRequests": [],
         "artifacts": []

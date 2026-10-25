@@ -15,7 +15,11 @@ const execFileAsync = promisify(execFile);
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
 const workspacePath = path.join(repoRoot, "pnpm-workspace.yaml");
-const releasePackageMapPath = path.join(repoRoot, "scripts", "release-package-map.mjs");
+const releasePackageMapPath = path.join(
+  repoRoot,
+  "scripts",
+  "release-package-map.mjs",
+);
 
 function parseWorkspaceEntries(workspaceText) {
   // Keep this aligned with the repo's block-sequence `packages:` format in
@@ -138,11 +142,11 @@ async function prepareAndBuildPackage(pkg) {
     const installArgs = existsSync(packageLockfilePath)
       ? ["install", "--ignore-workspace", "--frozen-lockfile"]
       : [
-        "install",
-        "--ignore-workspace",
-        "--no-lockfile",
-        // Standalone packages intentionally avoid committed lockfile churn in the repo.
-      ];
+          "install",
+          "--ignore-workspace",
+          "--no-lockfile",
+          // Standalone packages intentionally avoid committed lockfile churn in the repo.
+        ];
 
     await runCaptured("pnpm", installArgs, pkgDir, log);
 
@@ -221,12 +225,17 @@ export async function runWithConcurrency(items, limit, worker) {
 }
 
 async function main() {
-  const workspaceEntries = parseWorkspaceEntries(readFileSync(workspacePath, "utf8"));
-  const standalonePackages = listPublicPackages()
-    .filter(({ dir }) => !isWorkspacePackage(dir, workspaceEntries));
+  const workspaceEntries = parseWorkspaceEntries(
+    readFileSync(workspacePath, "utf8"),
+  );
+  const standalonePackages = listPublicPackages().filter(
+    ({ dir }) => !isWorkspacePackage(dir, workspaceEntries),
+  );
 
   if (standalonePackages.length === 0) {
-    console.log("  i No standalone public packages detected outside the pnpm workspace");
+    console.log(
+      "  i No standalone public packages detected outside the pnpm workspace",
+    );
     return;
   }
 
@@ -254,7 +263,8 @@ async function main() {
 }
 
 const invokedDirectly =
-  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (invokedDirectly) {
   main().catch((error) => {

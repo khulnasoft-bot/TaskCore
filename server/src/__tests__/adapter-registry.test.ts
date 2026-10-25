@@ -1,4 +1,7 @@
-import { probeAcpxClaudeInstallation, probeAcpxCursorInstallation } from "@taskcore/taskcore-runner/live";
+import {
+  probeAcpxClaudeInstallation,
+  probeAcpxCursorInstallation,
+} from "@taskcore/taskcore-runner/live";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { buildSandboxNpmInstallCommand } from "@taskcore/adapter-utils";
 import type { ServerAdapterModule } from "../adapters/index.js";
@@ -24,11 +27,24 @@ vi.mock("@taskcore/taskcore-runner/live", () => ({
 }));
 
 it("advertises tool-refresh recovery for the selected legacy harness", () => {
-  for (const type of ["claude_local", "codex_local", "grok_local", "gemini_local", "kimi_local", "cursor", "opencode_local", "pi_local"]) {
+  for (const type of [
+    "claude_local",
+    "codex_local",
+    "grok_local",
+    "gemini_local",
+    "kimi_local",
+    "cursor",
+    "opencode_local",
+    "pi_local",
+  ]) {
     expect(requireServerAdapter(type).supportsToolRefreshOnResume).toBe(true);
-    expect(requireServerAdapter(type).sessionManagement?.supportsSessionResume).toBe(true);
+    expect(
+      requireServerAdapter(type).sessionManagement?.supportsSessionResume,
+    ).toBe(true);
   }
-  expect(requireServerAdapter("process").supportsToolRefreshOnResume).toBeUndefined();
+  expect(
+    requireServerAdapter("process").supportsToolRefreshOnResume,
+  ).toBeUndefined();
 });
 
 const externalAdapter: ServerAdapterModule = {
@@ -157,7 +173,9 @@ describe("server adapter registry", () => {
         entries: [],
         warnings: [],
       }),
-      getConfigSchema: () => ({ fields: [{ key: "provider", label: "Provider", type: "text" }] }),
+      getConfigSchema: () => ({
+        fields: [{ key: "provider", label: "Provider", type: "text" }],
+      }),
       detectModel: async () => ({
         model: "hermes-model",
         provider: "openrouter",
@@ -184,8 +202,12 @@ describe("server adapter registry", () => {
 
     registerServerAdapter(hermesLocalExternalAdapter);
 
-    expect(requireServerAdapter("hermes_local")).toBe(hermesLocalExternalAdapter);
-    expect(findActiveServerAdapter("hermes_local")?.supportsLocalAgentJwt).toBe(true);
+    expect(requireServerAdapter("hermes_local")).toBe(
+      hermesLocalExternalAdapter,
+    );
+    expect(findActiveServerAdapter("hermes_local")?.supportsLocalAgentJwt).toBe(
+      true,
+    );
 
     unregisterServerAdapter("hermes_local");
 
@@ -193,8 +215,12 @@ describe("server adapter registry", () => {
 
     registerServerAdapter(hermesGatewayExternalAdapter);
 
-    expect(requireServerAdapter("hermes_gateway")).toBe(hermesGatewayExternalAdapter);
-    expect(findActiveServerAdapter("hermes_gateway")?.supportsLocalAgentJwt).toBe(false);
+    expect(requireServerAdapter("hermes_gateway")).toBe(
+      hermesGatewayExternalAdapter,
+    );
+    expect(
+      findActiveServerAdapter("hermes_gateway")?.supportsLocalAgentJwt,
+    ).toBe(false);
 
     unregisterServerAdapter("hermes_gateway");
 
@@ -259,92 +285,152 @@ describe("server adapter registry", () => {
     expect(result).toMatchObject({
       adapterType: "taskcore_runner",
       status: "fail",
-      checks: [{
-        code: "taskcore_runner_claude_managed_profile_required",
-        level: "error",
-      }],
+      checks: [
+        {
+          code: "taskcore_runner_claude_managed_profile_required",
+          level: "error",
+        },
+      ],
     });
   });
 
   it.each([
-    ["claude_managed", {
-      managedProfileId: "managed-primary",
-      managedAgentsRetentionAcknowledged: true,
-    }, "claude_managed_profile_selected"],
-    ["aws_agentcore", {
-      agentCoreProfileId: "agentcore-primary",
-      agentCoreRetentionAcknowledged: true,
-    }, "aws_agentcore_profile_selected"],
-  ] as const)("accepts a complete %s profile selection", async (provider, config, code) => {
-    const result = await requireServerAdapter("taskcore_runner").testEnvironment({
-      companyId: "company-1",
-      adapterType: "taskcore_runner",
-      config: { provider, ...config },
-    });
-
-    expect(result).toMatchObject({
-      adapterType: "taskcore_runner",
-      status: "warn",
-      checks: expect.arrayContaining([expect.objectContaining({ code, level: "info" })]),
-    });
-  });
-
-  it.each([
-    ["claude", "claude-sonnet-5"],
-  ] as const)("does not claim runtime readiness from the remote ACPX %s platform alone", async (acpxAgent, model) => {
-    const result = await requireServerAdapter("taskcore_runner").testEnvironment({
-      companyId: "company-1",
-      adapterType: "taskcore_runner",
-      config: { provider: "acpx", acpxAgent, model },
-      executionTarget: {
-        kind: "remote",
-        transport: "sandbox",
-        remoteCwd: "/workspace",
-        providerKey: "test-provider",
-        runner: { execute: vi.fn().mockResolvedValue({ exitCode: 0, timedOut: false, stdout: "Linux\nx86_64\n" }) },
+    [
+      "claude_managed",
+      {
+        managedProfileId: "managed-primary",
+        managedAgentsRetentionAcknowledged: true,
       },
-    });
+      "claude_managed_profile_selected",
+    ],
+    [
+      "aws_agentcore",
+      {
+        agentCoreProfileId: "agentcore-primary",
+        agentCoreRetentionAcknowledged: true,
+      },
+      "aws_agentcore_profile_selected",
+    ],
+  ] as const)(
+    "accepts a complete %s profile selection",
+    async (provider, config, code) => {
+      const result = await requireServerAdapter(
+        "taskcore_runner",
+      ).testEnvironment({
+        companyId: "company-1",
+        adapterType: "taskcore_runner",
+        config: { provider, ...config },
+      });
 
-    expect(result).toMatchObject({
-      adapterType: "taskcore_runner",
-      status: "warn",
-      checks: [{ code: "acpx_remote_runtime_unverified", level: "warn" }],
-    });
-  });
+      expect(result).toMatchObject({
+        adapterType: "taskcore_runner",
+        status: "warn",
+        checks: expect.arrayContaining([
+          expect.objectContaining({ code, level: "info" }),
+        ]),
+      });
+    },
+  );
 
-  it.each([true, false])("checks actual local ACPX installation readiness (%s)", async (ready) => {
-    const probe = vi.mocked(probeAcpxClaudeInstallation);
-    if (ready) probe.mockResolvedValueOnce(undefined);
-    else probe.mockRejectedValueOnce(new Error("Runtime package integrity verification failed"));
-    const result = await requireServerAdapter("taskcore_runner").testEnvironment({
-      companyId: "company-1", adapterType: "taskcore_runner",
-      config: { provider: "acpx", acpxAgent: "claude", model: "custom-claude-model" },
-    });
-    expect(probe).toHaveBeenLastCalledWith("custom-claude-model");
-    expect(result).toMatchObject({
-      status: ready ? "pass" : "fail",
-      checks: [expect.objectContaining({ code: ready ? "acpx_runtime_ready" : "acpx_runtime_unavailable" })],
-    });
-  });
+  it.each([["claude", "claude-sonnet-5"]] as const)(
+    "does not claim runtime readiness from the remote ACPX %s platform alone",
+    async (acpxAgent, model) => {
+      const result = await requireServerAdapter(
+        "taskcore_runner",
+      ).testEnvironment({
+        companyId: "company-1",
+        adapterType: "taskcore_runner",
+        config: { provider: "acpx", acpxAgent, model },
+        executionTarget: {
+          kind: "remote",
+          transport: "sandbox",
+          remoteCwd: "/workspace",
+          providerKey: "test-provider",
+          runner: {
+            execute: vi
+              .fn()
+              .mockResolvedValue({
+                exitCode: 0,
+                timedOut: false,
+                stdout: "Linux\nx86_64\n",
+              }),
+          },
+        },
+      });
 
-  it.each([true, false])("checks ordinary Cursor runtime readiness (%s)", async (ready) => {
-    const probe = vi.mocked(probeAcpxCursorInstallation);
-    if (ready) probe.mockResolvedValueOnce(undefined);
-    else probe.mockRejectedValueOnce(new Error("Run taskcore runtime setup cursor"));
-    const model = "gpt-5.6-luna[context=272k,reasoning=medium,fast=false]";
-    const result = await requireServerAdapter("taskcore_runner").testEnvironment({
-      companyId: "company-1", adapterType: "taskcore_runner",
-      config: { provider: "acpx", acpxAgent: "cursor", model },
-    });
-    expect(probe).toHaveBeenLastCalledWith(model);
-    expect(result).toMatchObject({
-      status: ready ? "pass" : "fail",
-      checks: [expect.objectContaining({ code: ready ? "acpx_runtime_ready" : "acpx_runtime_unavailable" })],
-    });
-  });
+      expect(result).toMatchObject({
+        adapterType: "taskcore_runner",
+        status: "warn",
+        checks: [{ code: "acpx_remote_runtime_unverified", level: "warn" }],
+      });
+    },
+  );
+
+  it.each([true, false])(
+    "checks actual local ACPX installation readiness (%s)",
+    async (ready) => {
+      const probe = vi.mocked(probeAcpxClaudeInstallation);
+      if (ready) probe.mockResolvedValueOnce(undefined);
+      else
+        probe.mockRejectedValueOnce(
+          new Error("Runtime package integrity verification failed"),
+        );
+      const result = await requireServerAdapter(
+        "taskcore_runner",
+      ).testEnvironment({
+        companyId: "company-1",
+        adapterType: "taskcore_runner",
+        config: {
+          provider: "acpx",
+          acpxAgent: "claude",
+          model: "custom-claude-model",
+        },
+      });
+      expect(probe).toHaveBeenLastCalledWith("custom-claude-model");
+      expect(result).toMatchObject({
+        status: ready ? "pass" : "fail",
+        checks: [
+          expect.objectContaining({
+            code: ready ? "acpx_runtime_ready" : "acpx_runtime_unavailable",
+          }),
+        ],
+      });
+    },
+  );
+
+  it.each([true, false])(
+    "checks ordinary Cursor runtime readiness (%s)",
+    async (ready) => {
+      const probe = vi.mocked(probeAcpxCursorInstallation);
+      if (ready) probe.mockResolvedValueOnce(undefined);
+      else
+        probe.mockRejectedValueOnce(
+          new Error("Run taskcore runtime setup cursor"),
+        );
+      const model = "gpt-5.6-luna[context=272k,reasoning=medium,fast=false]";
+      const result = await requireServerAdapter(
+        "taskcore_runner",
+      ).testEnvironment({
+        companyId: "company-1",
+        adapterType: "taskcore_runner",
+        config: { provider: "acpx", acpxAgent: "cursor", model },
+      });
+      expect(probe).toHaveBeenLastCalledWith(model);
+      expect(result).toMatchObject({
+        status: ready ? "pass" : "fail",
+        checks: [
+          expect.objectContaining({
+            code: ready ? "acpx_runtime_ready" : "acpx_runtime_unavailable",
+          }),
+        ],
+      });
+    },
+  );
 
   it("keeps the ACPX Pi profile unavailable", async () => {
-    const result = await requireServerAdapter("taskcore_runner").testEnvironment({
+    const result = await requireServerAdapter(
+      "taskcore_runner",
+    ).testEnvironment({
       companyId: "company-1",
       adapterType: "taskcore_runner",
       config: {
@@ -362,13 +448,25 @@ describe("server adapter registry", () => {
   it("reports qualification-only readiness for an exact host-authorized candidate", async () => {
     const key = "TASKCORE_RUNNER_ACPX_QUALIFICATION";
     const previous = process.env[key];
-    process.env[key] = JSON.stringify([{ agent: "copilot", model: "exact-model" }]);
+    process.env[key] = JSON.stringify([
+      { agent: "copilot", model: "exact-model" },
+    ]);
     try {
-      const result = await requireServerAdapter("taskcore_runner").testEnvironment({
-        companyId: "company-1", adapterType: "taskcore_runner",
-        config: { provider: "acpx", acpxAgent: "copilot", model: "exact-model" },
+      const result = await requireServerAdapter(
+        "taskcore_runner",
+      ).testEnvironment({
+        companyId: "company-1",
+        adapterType: "taskcore_runner",
+        config: {
+          provider: "acpx",
+          acpxAgent: "copilot",
+          model: "exact-model",
+        },
       });
-      expect(result).toMatchObject({ status: "warn", checks: [{ code: "acpx_candidate_qualification_only" }] });
+      expect(result).toMatchObject({
+        status: "warn",
+        checks: [{ code: "acpx_candidate_qualification_only" }],
+      });
     } finally {
       if (previous === undefined) delete process.env[key];
       else process.env[key] = previous;
@@ -382,37 +480,57 @@ describe("server adapter registry", () => {
     const expectedRunnerCodexInstall = `if ! command -v 'codex' >/dev/null 2>&1; then ${buildSandboxNpmInstallCommand("@openai/codex@0.160.0")}; fi`;
     const expectedRunnerOpenCodeInstall = `if ! command -v 'opencode' >/dev/null 2>&1; then ${buildSandboxNpmInstallCommand("opencode-ai@1.18.34")}; fi`;
 
-    expect(findActiveServerAdapter("claude_local")?.getRuntimeCommandSpec?.({})).toEqual({
+    expect(
+      findActiveServerAdapter("claude_local")?.getRuntimeCommandSpec?.({}),
+    ).toEqual({
       command: "claude",
       detectCommand: "claude",
       installCommand: expectedClaudeInstall,
     });
-    expect(findActiveServerAdapter("codex_local")?.getRuntimeCommandSpec?.({})).toEqual({
+    expect(
+      findActiveServerAdapter("codex_local")?.getRuntimeCommandSpec?.({}),
+    ).toEqual({
       command: "codex",
       detectCommand: "codex",
       installCommand: expectedCodexInstall,
     });
-    expect(findActiveServerAdapter("gemini_local")?.getRuntimeCommandSpec?.({})).toEqual({
+    expect(
+      findActiveServerAdapter("gemini_local")?.getRuntimeCommandSpec?.({}),
+    ).toEqual({
       command: "gemini",
       detectCommand: "gemini",
       installCommand: expectedGeminiInstall,
     });
-    expect(findActiveServerAdapter("opencode_local")?.getRuntimeCommandSpec?.({})).toEqual({
+    expect(
+      findActiveServerAdapter("opencode_local")?.getRuntimeCommandSpec?.({}),
+    ).toEqual({
       command: "opencode",
       detectCommand: "opencode",
       installCommand: expectedOpenCodeInstall,
     });
-    expect(findActiveServerAdapter("taskcore_runner")?.getRuntimeCommandSpec?.({ provider: "codex" })).toEqual({
+    expect(
+      findActiveServerAdapter("taskcore_runner")?.getRuntimeCommandSpec?.({
+        provider: "codex",
+      }),
+    ).toEqual({
       command: "codex",
       detectCommand: "codex",
       installCommand: expectedRunnerCodexInstall,
     });
-    expect(findActiveServerAdapter("taskcore_runner")?.getRuntimeCommandSpec?.({ provider: "opencode" })).toEqual({
+    expect(
+      findActiveServerAdapter("taskcore_runner")?.getRuntimeCommandSpec?.({
+        provider: "opencode",
+      }),
+    ).toEqual({
       command: "opencode",
       detectCommand: "opencode",
       installCommand: expectedRunnerOpenCodeInstall,
     });
-    expect(findActiveServerAdapter("taskcore_runner")?.getRuntimeCommandSpec?.({ provider: "acpx" })).toEqual({
+    expect(
+      findActiveServerAdapter("taskcore_runner")?.getRuntimeCommandSpec?.({
+        provider: "acpx",
+      }),
+    ).toEqual({
       command: "taskcore-runnerd",
       detectCommand: null,
       installCommand: null,
@@ -460,7 +578,9 @@ describe("server adapter registry", () => {
     expect(setOverridePaused("claude_local", true)).toBe(true);
 
     expect(findActiveServerAdapter("claude_local")).not.toBe(plugin);
-    expect(await listAdapterModels("claude_local")).toEqual(builtIn?.models ?? []);
+    expect(await listAdapterModels("claude_local")).toEqual(
+      builtIn?.models ?? [],
+    );
     expect(await detectAdapterModel("claude_local")).toBeNull();
     expect(detectModel).toHaveBeenCalledTimes(1);
   });
@@ -513,7 +633,9 @@ describe("resolveExternalAdapterRegistration", () => {
 
     expect(resolved.sessionManagement).toBeDefined();
     expect(resolved.sessionManagement?.supportsSessionResume).toBe(true);
-    expect(resolved.sessionManagement?.nativeContextManagement).toBe("confirmed");
+    expect(resolved.sessionManagement?.nativeContextManagement).toBe(
+      "confirmed",
+    );
   });
 
   it("leaves sessionManagement undefined when neither module nor registry provides one", () => {

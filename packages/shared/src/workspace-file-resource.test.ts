@@ -10,16 +10,34 @@ const workspaceId = "22222222-2222-4222-8222-222222222222";
 describe("workspace file availability schemas", () => {
   it("accepts at most 100 resource queries", () => {
     const query = { path: "src/app.ts", workspace: "auto" as const };
-    expect(workspaceFileAvailabilityRequestSchema.safeParse({ queries: Array.from({ length: 100 }, () => query) }).success).toBe(true);
-    expect(workspaceFileAvailabilityRequestSchema.safeParse({ queries: Array.from({ length: 101 }, () => query) }).success).toBe(false);
+    expect(
+      workspaceFileAvailabilityRequestSchema.safeParse({
+        queries: Array.from({ length: 100 }, () => query),
+      }).success,
+    ).toBe(true);
+    expect(
+      workspaceFileAvailabilityRequestSchema.safeParse({
+        queries: Array.from({ length: 101 }, () => query),
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects malformed paths and incomplete targets", () => {
-    expect(workspaceFileAvailabilityRequestSchema.safeParse({ queries: [{ path: "src/\u0000app.ts" }] }).success).toBe(false);
-    expect(workspaceFileAvailabilityRequestSchema.safeParse({ queries: [{ path: "src/app.ts", projectId }] }).success).toBe(false);
-    expect(workspaceFileAvailabilityRequestSchema.safeParse({
-      queries: [{ path: "src/app.ts", projectId, workspaceId }],
-    }).success).toBe(true);
+    expect(
+      workspaceFileAvailabilityRequestSchema.safeParse({
+        queries: [{ path: "src/\u0000app.ts" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      workspaceFileAvailabilityRequestSchema.safeParse({
+        queries: [{ path: "src/app.ts", projectId }],
+      }).success,
+    ).toBe(false);
+    expect(
+      workspaceFileAvailabilityRequestSchema.safeParse({
+        queries: [{ path: "src/app.ts", projectId, workspaceId }],
+      }).success,
+    ).toBe(true);
   });
 
   it("parses normalized openable and unavailable results", () => {
@@ -27,7 +45,12 @@ describe("workspace file availability schemas", () => {
       kind: "workspace_file_availability",
       results: [
         {
-          query: { path: "src/app.ts", workspace: "project", projectId: null, workspaceId: null },
+          query: {
+            path: "src/app.ts",
+            workspace: "project",
+            projectId: null,
+            workspaceId: null,
+          },
           openable: true,
           resource: {
             kind: "file",
@@ -42,11 +65,20 @@ describe("workspace file availability schemas", () => {
             contentType: "text/plain; charset=utf-8",
             byteSize: 12,
             previewKind: "text",
-            capabilities: { preview: true, download: true, listChildren: false },
+            capabilities: {
+              preview: true,
+              download: true,
+              listChildren: false,
+            },
           },
         },
         {
-          query: { path: "missing.ts", workspace: "auto", projectId: null, workspaceId: null },
+          query: {
+            path: "missing.ts",
+            workspace: "auto",
+            projectId: null,
+            workspaceId: null,
+          },
           openable: false,
           unavailableReason: "not_found",
           resource: null,
@@ -54,6 +86,9 @@ describe("workspace file availability schemas", () => {
       ],
     });
 
-    expect(parsed.results.map((result) => result.openable)).toEqual([true, false]);
+    expect(parsed.results.map((result) => result.openable)).toEqual([
+      true,
+      false,
+    ]);
   });
 });

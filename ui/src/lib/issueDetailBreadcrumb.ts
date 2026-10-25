@@ -43,41 +43,55 @@ const ISSUE_DETAIL_SOURCE_QUERY_PARAM = "from";
 const ISSUE_DETAIL_BREADCRUMB_HREF_QUERY_PARAM = "fromHref";
 const ISSUE_DETAIL_STORAGE_KEY_PREFIX = "taskcore:issue-detail-breadcrumb:";
 
-function isIssueDetailBreadcrumb(value: unknown): value is IssueDetailBreadcrumb {
+function isIssueDetailBreadcrumb(
+  value: unknown,
+): value is IssueDetailBreadcrumb {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<IssueDetailBreadcrumb>;
-  return typeof candidate.label === "string" && typeof candidate.href === "string";
+  return (
+    typeof candidate.label === "string" && typeof candidate.href === "string"
+  );
 }
 
 function isIssueDetailSource(value: unknown): value is IssueDetailSource {
   return value === "issues" || value === "inbox";
 }
 
-function isIssueDetailHeaderSeed(value: unknown): value is IssueDetailHeaderSeed {
+function isIssueDetailHeaderSeed(
+  value: unknown,
+): value is IssueDetailHeaderSeed {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<IssueDetailHeaderSeed>;
   const hasOriginKind =
-    candidate.originKind === undefined || typeof candidate.originKind === "string";
+    candidate.originKind === undefined ||
+    typeof candidate.originKind === "string";
   const hasOriginId =
-    candidate.originId === undefined || candidate.originId === null || typeof candidate.originId === "string";
+    candidate.originId === undefined ||
+    candidate.originId === null ||
+    typeof candidate.originId === "string";
   const hasBlockerAttention =
-    candidate.blockerAttention === undefined
-    || (typeof candidate.blockerAttention === "object" && candidate.blockerAttention !== null);
+    candidate.blockerAttention === undefined ||
+    (typeof candidate.blockerAttention === "object" &&
+      candidate.blockerAttention !== null);
   return (
-    typeof candidate.id === "string"
-    && (candidate.identifier === null || typeof candidate.identifier === "string")
-    && typeof candidate.title === "string"
-    && typeof candidate.status === "string"
-    && hasBlockerAttention
-    && typeof candidate.priority === "string"
-    && (candidate.projectId === null || typeof candidate.projectId === "string")
-    && (candidate.projectName === null || typeof candidate.projectName === "string")
-    && hasOriginKind
-    && hasOriginId
+    typeof candidate.id === "string" &&
+    (candidate.identifier === null ||
+      typeof candidate.identifier === "string") &&
+    typeof candidate.title === "string" &&
+    typeof candidate.status === "string" &&
+    hasBlockerAttention &&
+    typeof candidate.priority === "string" &&
+    (candidate.projectId === null || typeof candidate.projectId === "string") &&
+    (candidate.projectName === null ||
+      typeof candidate.projectName === "string") &&
+    hasOriginKind &&
+    hasOriginId
   );
 }
 
-function createIssueDetailHeaderSeed(issue: IssueDetailHeaderSeedSource): IssueDetailHeaderSeed {
+function createIssueDetailHeaderSeed(
+  issue: IssueDetailHeaderSeedSource,
+): IssueDetailHeaderSeed {
   return {
     id: issue.id,
     identifier: issue.identifier ?? null,
@@ -92,7 +106,10 @@ function createIssueDetailHeaderSeed(issue: IssueDetailHeaderSeedSource): IssueD
   };
 }
 
-export function withIssueDetailHeaderSeed(state: unknown, issue: IssueDetailHeaderSeedSource): IssueDetailLocationState {
+export function withIssueDetailHeaderSeed(
+  state: unknown,
+  issue: IssueDetailHeaderSeedSource,
+): IssueDetailLocationState {
   const headerSeed = createIssueDetailHeaderSeed(issue);
   if (typeof state !== "object" || state === null) {
     return { issueDetailHeaderSeed: headerSeed };
@@ -104,7 +121,9 @@ export function withIssueDetailHeaderSeed(state: unknown, issue: IssueDetailHead
   };
 }
 
-export function readIssueDetailHeaderSeed(state: unknown): IssueDetailHeaderSeed | null {
+export function readIssueDetailHeaderSeed(
+  state: unknown,
+): IssueDetailHeaderSeed | null {
   if (typeof state !== "object" || state === null) return null;
   const candidate = (state as IssueDetailLocationState).issueDetailHeaderSeed;
   return isIssueDetailHeaderSeed(candidate) ? candidate : null;
@@ -116,14 +135,18 @@ function readIssueDetailSource(state: unknown): IssueDetailSource | null {
   return isIssueDetailSource(source) ? source : null;
 }
 
-function readIssueDetailSourceFromSearch(search?: string): IssueDetailSource | null {
+function readIssueDetailSourceFromSearch(
+  search?: string,
+): IssueDetailSource | null {
   if (!search) return null;
   const params = new URLSearchParams(search);
   const source = params.get(ISSUE_DETAIL_SOURCE_QUERY_PARAM);
   return isIssueDetailSource(source) ? source : null;
 }
 
-function readIssueDetailBreadcrumbHrefFromSearch(search?: string): string | null {
+function readIssueDetailBreadcrumbHrefFromSearch(
+  search?: string,
+): string | null {
   if (!search) return null;
   const params = new URLSearchParams(search);
   const href = params.get(ISSUE_DETAIL_BREADCRUMB_HREF_QUERY_PARAM);
@@ -142,14 +165,16 @@ function inferIssueDetailSource(
   state: Partial<IssueDetailLocationState> | null,
   breadcrumb: IssueDetailBreadcrumb | null,
 ): IssueDetailSource | null {
-  if (isIssueDetailSource(state?.issueDetailSource)) return state.issueDetailSource;
+  if (isIssueDetailSource(state?.issueDetailSource))
+    return state.issueDetailSource;
   if (!breadcrumb) return null;
   if (breadcrumb.href.includes("/inbox")) return "inbox";
   // Since PAP-670 the inbox is a set of views on /issues, so the href alone no
   // longer separates the two sources — the view key does.
   if (isInboxBackedTaskViewHref(breadcrumb.href)) return "inbox";
   if (breadcrumb.label === "Inbox") return "inbox";
-  if (breadcrumb.label === "Tasks" || breadcrumb.href.includes("/issues")) return "issues";
+  if (breadcrumb.label === "Tasks" || breadcrumb.href.includes("/issues"))
+    return "issues";
   return null;
 }
 
@@ -169,7 +194,9 @@ export function createIssueDetailLocationState(
   };
 }
 
-export function armIssueDetailInboxQuickArchive(state: unknown): IssueDetailLocationState {
+export function armIssueDetailInboxQuickArchive(
+  state: unknown,
+): IssueDetailLocationState {
   if (typeof state !== "object" || state === null) {
     return { issueDetailInboxQuickArchiveArmed: true };
   }
@@ -180,10 +207,14 @@ export function armIssueDetailInboxQuickArchive(state: unknown): IssueDetailLoca
   };
 }
 
-function readStoredIssueDetailLocationState(issuePathId: string): IssueDetailLocationState | null {
+function readStoredIssueDetailLocationState(
+  issuePathId: string,
+): IssueDetailLocationState | null {
   if (typeof window === "undefined" || !window.sessionStorage) return null;
 
-  const raw = window.sessionStorage.getItem(`${ISSUE_DETAIL_STORAGE_KEY_PREFIX}${issuePathId}`);
+  const raw = window.sessionStorage.getItem(
+    `${ISSUE_DETAIL_STORAGE_KEY_PREFIX}${issuePathId}`,
+  );
   if (!raw) return null;
 
   try {
@@ -199,7 +230,8 @@ function readStoredIssueDetailLocationState(issuePathId: string): IssueDetailLoc
     return {
       issueDetailBreadcrumb: breadcrumb,
       issueDetailSource: source,
-      issueDetailInboxQuickArchiveArmed: parsed.issueDetailInboxQuickArchiveArmed === true,
+      issueDetailInboxQuickArchiveArmed:
+        parsed.issueDetailInboxQuickArchiveArmed === true,
       issueDetailHeaderSeed: headerSeed,
     };
   } catch {
@@ -214,14 +246,18 @@ function normalizeIssueDetailLocationState(
   if (typeof state === "object" && state !== null) {
     const candidate = (state as IssueDetailLocationState).issueDetailBreadcrumb;
     if (isIssueDetailBreadcrumb(candidate)) {
-      const source = inferIssueDetailSource(state as Partial<IssueDetailLocationState>, candidate);
+      const source = inferIssueDetailSource(
+        state as Partial<IssueDetailLocationState>,
+        candidate,
+      );
       if (!source) return null;
       const headerSeed = readIssueDetailHeaderSeed(state) ?? undefined;
       return {
         issueDetailBreadcrumb: candidate,
         issueDetailSource: source,
         issueDetailInboxQuickArchiveArmed:
-          (state as IssueDetailLocationState).issueDetailInboxQuickArchiveArmed === true,
+          (state as IssueDetailLocationState)
+            .issueDetailInboxQuickArchiveArmed === true,
         issueDetailHeaderSeed: headerSeed,
       };
     }
@@ -232,13 +268,19 @@ function normalizeIssueDetailLocationState(
   if (!source) return null;
 
   return {
-    issueDetailBreadcrumb: href ? { ...breadcrumbForSource(source), href } : breadcrumbForSource(source),
+    issueDetailBreadcrumb: href
+      ? { ...breadcrumbForSource(source), href }
+      : breadcrumbForSource(source),
     issueDetailSource: source,
     issueDetailInboxQuickArchiveArmed: false,
   };
 }
 
-export function rememberIssueDetailLocationState(issuePathId: string, state: unknown, search?: string): void {
+export function rememberIssueDetailLocationState(
+  issuePathId: string,
+  state: unknown,
+  search?: string,
+): void {
   if (typeof window === "undefined" || !window.sessionStorage) return;
 
   const normalized = normalizeIssueDetailLocationState(state, search);
@@ -257,7 +299,10 @@ export function createIssueDetailPath(issuePathId: string): string {
 export function hasLegacyIssueDetailQuery(search?: string): boolean {
   if (!search) return false;
   const params = new URLSearchParams(search);
-  return params.has(ISSUE_DETAIL_SOURCE_QUERY_PARAM) || params.has(ISSUE_DETAIL_BREADCRUMB_HREF_QUERY_PARAM);
+  return (
+    params.has(ISSUE_DETAIL_SOURCE_QUERY_PARAM) ||
+    params.has(ISSUE_DETAIL_BREADCRUMB_HREF_QUERY_PARAM)
+  );
 }
 
 export function readIssueDetailLocationState(
@@ -276,10 +321,16 @@ export function readIssueDetailBreadcrumb(
   state: unknown,
   search?: string,
 ): IssueDetailBreadcrumb | null {
-  return readIssueDetailLocationState(issuePathId, state, search)?.issueDetailBreadcrumb ?? null;
+  return (
+    readIssueDetailLocationState(issuePathId, state, search)
+      ?.issueDetailBreadcrumb ?? null
+  );
 }
 
 export function shouldArmIssueDetailInboxQuickArchive(state: unknown): boolean {
   if (typeof state !== "object" || state === null) return false;
-  return (state as IssueDetailLocationState).issueDetailInboxQuickArchiveArmed === true;
+  return (
+    (state as IssueDetailLocationState).issueDetailInboxQuickArchiveArmed ===
+    true
+  );
 }

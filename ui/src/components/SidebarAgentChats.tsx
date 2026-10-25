@@ -32,7 +32,13 @@ export function SidebarAgentChats() {
 }
 
 // A scope change unmounts the picker, including its open state and search.
-function CompanyAgentChats({ companyId, userId }: { companyId: string | null; userId?: string }) {
+function CompanyAgentChats({
+  companyId,
+  userId,
+}: {
+  companyId: string | null;
+  userId?: string;
+}) {
   const agentsQuery = useQuery({
     queryKey: queryKeys.agents.list(companyId!),
     queryFn: () => agentsApi.list(companyId!),
@@ -48,7 +54,9 @@ function CompanyAgentChats({ companyId, userId }: { companyId: string | null; us
   const stars = memberships.data?.starredAgentIds ?? [];
   const location = useLocation();
   const activeRef = location.pathname.match(/\/chats\/([^/]+)/)?.[1];
-  const active = agents.find((agent) => agent.id === activeRef || agentRouteRef(agent) === activeRef);
+  const active = agents.find(
+    (agent) => agent.id === activeRef || agentRouteRef(agent) === activeRef,
+  );
   return (
     <>
       <AgentChatSidebar
@@ -61,7 +69,8 @@ function CompanyAgentChats({ companyId, userId }: { companyId: string | null; us
           mutation.mutate({
             resourceType: "agent",
             resourceId: id,
-            resourceName: agents.find((agent) => agent.id === id)?.name ?? "Agent",
+            resourceName:
+              agents.find((agent) => agent.id === id)?.name ?? "Agent",
             starred: !stars.includes(id),
           });
         }}
@@ -72,7 +81,9 @@ function CompanyAgentChats({ companyId, userId }: { companyId: string | null; us
         onOpenChange={setPickerOpen}
         loading={agentsQuery.isPending}
         error={agentsQuery.error}
-        onRetry={() => { void agentsQuery.refetch(); }}
+        onRetry={() => {
+          void agentsQuery.refetch();
+        }}
         onSelect={(agent) => {
           if (isMobile) setSidebarOpen(false);
           navigate(`/chats/${encodeURIComponent(agentRouteRef(agent))}`);

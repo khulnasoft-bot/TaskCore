@@ -13,7 +13,8 @@ import { logActivity } from "./activity-log.js";
 
 export const PROVIDER_TRACE_MAX_BYTES = 64 * 1024 * 1024;
 export const PROVIDER_TRACE_RETENTION_MS = 24 * 60 * 60 * 1_000;
-const EXPIRED_PROVIDER_TRACE_REF = "00000000-0000-0000-0000-000000000000.ndjson";
+const EXPIRED_PROVIDER_TRACE_REF =
+  "00000000-0000-0000-0000-000000000000.ndjson";
 
 export function providerTraceRequiredChannels(provider: string): string[] {
   if (provider === "opencode") return ["typescript_opencode_native"];
@@ -268,7 +269,10 @@ export function assessProviderTraceEntries(
 
 export function providerTraceStore(db: Db) {
   async function removeTraceFiles(traceRef: string) {
-    for (const filePath of [tracePath(traceRef), rehydrationTracePath(traceRef)]) {
+    for (const filePath of [
+      tracePath(traceRef),
+      rehydrationTracePath(traceRef),
+    ]) {
       try {
         await fs.unlink(filePath);
       } catch (error) {
@@ -289,11 +293,13 @@ export function providerTraceStore(db: Db) {
           deletedAt: now,
           updatedAt: now,
         })
-        .where(and(
-          eq(providerTraceRecords.id, row.id),
-          isNull(providerTraceRecords.deletedAt),
-          lte(providerTraceRecords.expiresAt, now),
-        ))
+        .where(
+          and(
+            eq(providerTraceRecords.id, row.id),
+            isNull(providerTraceRecords.deletedAt),
+            lte(providerTraceRecords.expiresAt, now),
+          ),
+        )
         .returning()
         .then((rows) => rows[0] ?? null);
       if (!updated) return null;
@@ -316,11 +322,13 @@ export function providerTraceStore(db: Db) {
           traceRef: EXPIRED_PROVIDER_TRACE_REF,
           updatedAt: now,
         })
-        .where(and(
-          eq(providerTraceRecords.id, expired.id),
-          lte(providerTraceRecords.expiresAt, now),
-          eq(providerTraceRecords.traceRef, expired.traceRef),
-        ));
+        .where(
+          and(
+            eq(providerTraceRecords.id, expired.id),
+            lte(providerTraceRecords.expiresAt, now),
+            eq(providerTraceRecords.traceRef, expired.traceRef),
+          ),
+        );
       expired = { ...expired, traceRef: EXPIRED_PROVIDER_TRACE_REF };
     }
     if (newlyExpired) {
@@ -434,8 +442,8 @@ export function providerTraceStore(db: Db) {
     const now = new Date();
     if (row.deletedAt) {
       if (
-        row.expiresAt.getTime() <= now.getTime()
-        && row.traceRef !== EXPIRED_PROVIDER_TRACE_REF
+        row.expiresAt.getTime() <= now.getTime() &&
+        row.traceRef !== EXPIRED_PROVIDER_TRACE_REF
       ) {
         await expireRow(row, now);
       }
@@ -481,11 +489,13 @@ export function providerTraceStore(db: Db) {
           reason: failureReason ?? "trace_sidecar_missing",
           updatedAt,
         })
-        .where(and(
-          eq(providerTraceRecords.id, row.id),
-          isNull(providerTraceRecords.deletedAt),
-          gt(providerTraceRecords.expiresAt, updatedAt),
-        ))
+        .where(
+          and(
+            eq(providerTraceRecords.id, row.id),
+            isNull(providerTraceRecords.deletedAt),
+            gt(providerTraceRecords.expiresAt, updatedAt),
+          ),
+        )
         .returning()
         .then((rows) => rows[0] ?? null);
       if (!finalized) await getReadableByRun(runId, companyId);
@@ -524,11 +534,13 @@ export function providerTraceStore(db: Db) {
         reason: failureReason ?? integrity.reason,
         updatedAt,
       })
-      .where(and(
-        eq(providerTraceRecords.id, row.id),
-        isNull(providerTraceRecords.deletedAt),
-        gt(providerTraceRecords.expiresAt, updatedAt),
-      ))
+      .where(
+        and(
+          eq(providerTraceRecords.id, row.id),
+          isNull(providerTraceRecords.deletedAt),
+          gt(providerTraceRecords.expiresAt, updatedAt),
+        ),
+      )
       .returning()
       .then((rows) => rows[0] ?? null);
     if (!finalized) await getReadableByRun(runId, companyId);

@@ -67,7 +67,9 @@ export async function decideGrokAuthMerge(
           : error instanceof Error
             ? error.message
             : String(error);
-    throw new Error(`${options.errorLabel} decision predicate failed: ${detail}`);
+    throw new Error(
+      `${options.errorLabel} decision predicate failed: ${detail}`,
+    );
   }
   // `execFile` resolved, so the predicate exited 0. The predicate always
   // exits 10, 20, 21, or 22, so a clean exit 0 is unexpected; fail loud.

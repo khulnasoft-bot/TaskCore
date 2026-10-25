@@ -35,23 +35,25 @@ export interface EnvironmentDriverCapabilitySupport {
   readonly supportedCapabilities: ReadonlySet<SandboxCapabilityKey>;
 }
 
-const NO_CAPABILITY_SUPPORT: ReadonlySet<SandboxCapabilityKey> = new Set<SandboxCapabilityKey>();
+const NO_CAPABILITY_SUPPORT: ReadonlySet<SandboxCapabilityKey> =
+  new Set<SandboxCapabilityKey>();
 
 // The nine capability keys, written out here as literal strings. This module
 // does not import `environment-runtime.ts` as a value (see the module comment
 // above), so it cannot read `SANDBOX_CAPABILITY_KEYS` from there. Keep this
 // list equal to that list.
-const ALL_CAPABILITY_SUPPORT: ReadonlySet<SandboxCapabilityKey> = new Set<SandboxCapabilityKey>([
-  "reusableLeases",
-  "nativeSyncIn",
-  "nativeSyncOut",
-  "persistentProcessSessions",
-  "independentControlCommands",
-  "incrementalSessionOutput",
-  "concurrentSyncOperations",
-  "duplexCommandStream",
-  "runnerWebSocketIngress",
-]);
+const ALL_CAPABILITY_SUPPORT: ReadonlySet<SandboxCapabilityKey> =
+  new Set<SandboxCapabilityKey>([
+    "reusableLeases",
+    "nativeSyncIn",
+    "nativeSyncOut",
+    "persistentProcessSessions",
+    "independentControlCommands",
+    "incrementalSessionOutput",
+    "concurrentSyncOperations",
+    "duplexCommandStream",
+    "runnerWebSocketIngress",
+  ]);
 
 /**
  * The static capability support for the four environment drivers.
@@ -130,7 +132,10 @@ export interface EnvironmentDriverTraits {
  * EnvironmentDriverTraits} for what each field means and which consumer reads
  * it.
  */
-export const ENVIRONMENT_DRIVER_TRAITS: Record<EnvironmentDriver, EnvironmentDriverTraits> = {
+export const ENVIRONMENT_DRIVER_TRAITS: Record<
+  EnvironmentDriver,
+  EnvironmentDriverTraits
+> = {
   local: {
     driver: "local",
     realizesWorkspace: true,

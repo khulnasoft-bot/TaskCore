@@ -8,7 +8,8 @@ export interface CompanyUserProfile {
   image: string | null;
 }
 
-type CompanyUserRecord = Pick<CompanyMember, "principalId" | "status" | "user">
+type CompanyUserRecord =
+  | Pick<CompanyMember, "principalId" | "status" | "user">
   | CompanyUserDirectoryEntry;
 
 function fallbackUserLabel(userId: string): string {
@@ -16,7 +17,9 @@ function fallbackUserLabel(userId: string): string {
   return userId.slice(0, 5);
 }
 
-function baseMemberLabel(member: Pick<CompanyUserRecord, "principalId" | "user">): string {
+function baseMemberLabel(
+  member: Pick<CompanyUserRecord, "principalId" | "user">,
+): string {
   const name = member.user?.name?.trim();
   if (name) return name;
   const email = member.user?.email?.trim();
@@ -32,10 +35,14 @@ function activeUniqueMembers(members: CompanyUserRecord[] | null | undefined) {
       byId.set(member.principalId, member);
     }
   }
-  return [...byId.values()].sort((left, right) => baseMemberLabel(left).localeCompare(baseMemberLabel(right)));
+  return [...byId.values()].sort((left, right) =>
+    baseMemberLabel(left).localeCompare(baseMemberLabel(right)),
+  );
 }
 
-export function buildCompanyUserLabelMap(members: CompanyUserRecord[] | null | undefined): Map<string, string> {
+export function buildCompanyUserLabelMap(
+  members: CompanyUserRecord[] | null | undefined,
+): Map<string, string> {
   const labels = new Map<string, string>();
   for (const member of members ?? []) {
     labels.set(member.principalId, baseMemberLabel(member));
@@ -61,7 +68,9 @@ export function buildCompanyUserInlineOptions(
   options?: { excludeUserIds?: Iterable<string | null | undefined> },
 ): InlineEntityOption[] {
   const exclude = new Set(
-    [...(options?.excludeUserIds ?? [])].filter((value): value is string => Boolean(value)),
+    [...(options?.excludeUserIds ?? [])].filter((value): value is string =>
+      Boolean(value),
+    ),
   );
 
   return activeUniqueMembers(members)
@@ -69,7 +78,9 @@ export function buildCompanyUserInlineOptions(
     .map((member) => ({
       id: `user:${member.principalId}`,
       label: baseMemberLabel(member),
-      searchText: [member.user?.name, member.user?.email, member.principalId].filter(Boolean).join(" "),
+      searchText: [member.user?.name, member.user?.email, member.principalId]
+        .filter(Boolean)
+        .join(" "),
     }));
 }
 
@@ -85,7 +96,8 @@ export function buildCompanyUserMentionOptions(
 }
 
 export function isAgentTaskTarget(
-  agent: Pick<Agent, "status"> & Partial<Pick<Agent, "orgChainHealth" | "appearance">>,
+  agent: Pick<Agent, "status"> &
+    Partial<Pick<Agent, "orgChainHealth" | "appearance">>,
 ): boolean {
   return (
     agent.status !== "terminated" &&
@@ -116,7 +128,13 @@ export function buildIssueMentionOptions(
 }
 
 export function buildMarkdownMentionOptions(args: {
-  agents?: Array<Pick<Agent, "id" | "name" | "status" | "icon"> & Partial<Pick<Agent, "orgChainHealth" | "appearance">>> | null | undefined;
+  agents?:
+    | Array<
+        Pick<Agent, "id" | "name" | "status" | "icon"> &
+          Partial<Pick<Agent, "orgChainHealth" | "appearance">>
+      >
+    | null
+    | undefined;
   projects?: Array<Pick<Project, "id" | "name" | "color">> | null | undefined;
   members?: CompanyUserRecord[] | null | undefined;
   issues?: Array<Pick<Issue, "id" | "identifier" | "title">> | null | undefined;

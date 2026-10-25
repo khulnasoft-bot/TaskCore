@@ -13,7 +13,10 @@ import type {
   CapabilityThreadItem,
   CapabilityThreadTurn,
 } from "./types.js";
-import { CAPABILITY_ISSUE_THREAD_VIEW_SCHEMA, capabilityFormatBytes } from "./types.js";
+import {
+  CAPABILITY_ISSUE_THREAD_VIEW_SCHEMA,
+  capabilityFormatBytes,
+} from "./types.js";
 
 export const CAPABILITY_UI_SHOT_SLUGS = [
   "thread-baseline",
@@ -76,13 +79,15 @@ function baseEvidence(): CapabilityEvidenceModel {
             operationId: "get_task_context",
             disposition: "always_agent_tool",
             grant: null,
-            description: "Read the checked-out mock task, ancestors, wake, and budget.",
+            description:
+              "Read the checked-out mock task, ancestors, wake, and budget.",
           },
           {
             operationId: "report_progress",
             disposition: "always_agent_tool",
             grant: null,
-            description: "Append a durable progress comment to the mock thread.",
+            description:
+              "Append a durable progress comment to the mock thread.",
           },
           {
             operationId: "write_document",
@@ -100,7 +105,8 @@ function baseEvidence(): CapabilityEvidenceModel {
             operationId: "register_deliverable",
             disposition: "always_agent_tool",
             grant: null,
-            description: "Register an artifact-backed deliverable on the mock task.",
+            description:
+              "Register an artifact-backed deliverable on the mock task.",
           },
           {
             operationId: "finish_task",
@@ -124,19 +130,22 @@ function baseEvidence(): CapabilityEvidenceModel {
             operationId: "create_task",
             disposition: "control_plane_owned",
             grant: null,
-            description: "Not exposed: this fixture withholds su:read_or_write.",
+            description:
+              "Not exposed: this fixture withholds su:read_or_write.",
           },
           {
             operationId: "decide_approval",
             disposition: "control_plane_owned",
             grant: null,
-            description: "Not exposed: approval decisions stay with the control plane.",
+            description:
+              "Not exposed: approval decisions stay with the control plane.",
           },
           {
             operationId: "generic_api_request",
             disposition: "control_plane_owned",
             grant: null,
-            description: "Not exposed: the mock escape hatch is disabled by default.",
+            description:
+              "Not exposed: the mock escape hatch is disabled by default.",
           },
         ],
       },
@@ -163,7 +172,8 @@ function baseEvidence(): CapabilityEvidenceModel {
         turnId: "turn-1",
         operationId: "report_progress",
         version: 1,
-        providerRequest: 'tools/call report_progress {"body":"Read the mock task…"}',
+        providerRequest:
+          'tools/call report_progress {"body":"Read the mock task…"}',
         dispatchedCommand: "control_plane.applyCommand(report_progress)",
         outcome: "ok",
         result: { commandKind: "report_progress", stateRevision: 2 },
@@ -175,10 +185,15 @@ function baseEvidence(): CapabilityEvidenceModel {
         turnId: "turn-2",
         operationId: "write_document",
         version: 1,
-        providerRequest: 'tools/call write_document {"key":"plan","baseRevisionId":"rev-3"}',
+        providerRequest:
+          'tools/call write_document {"key":"plan","baseRevisionId":"rev-3"}',
         dispatchedCommand: "control_plane.applyCommand(write_document)",
         outcome: "ok",
-        result: { commandKind: "write_document", revision: 4, stateRevision: 3 },
+        result: {
+          commandKind: "write_document",
+          revision: 4,
+          stateRevision: 3,
+        },
         redactions: ["workspace_path"],
         threadAnchorId: "item-tool-3",
       },
@@ -248,7 +263,8 @@ function baseEvidence(): CapabilityEvidenceModel {
         turnId: "turn-2",
         category: "idempotency",
         outcome: "duplicate",
-        reason: "Retry of write_document reused command-3 without a second mutation.",
+        reason:
+          "Retry of write_document reused command-3 without a second mutation.",
         stateRevision: 3,
         threadAnchorId: null,
       },
@@ -257,7 +273,8 @@ function baseEvidence(): CapabilityEvidenceModel {
         turnId: "turn-3",
         category: "budget",
         outcome: "allowed",
-        reason: "Actor budget 412 of 1000 cents recorded; hard stop not reached.",
+        reason:
+          "Actor budget 412 of 1000 cents recorded; hard stop not reached.",
         stateRevision: 4,
         threadAnchorId: null,
       },
@@ -380,7 +397,8 @@ function baseEvidence(): CapabilityEvidenceModel {
       {
         id: "parity-1",
         turnId: "turn-1",
-        assertion: "get_task_context returns the checked-out task and wake reason",
+        assertion:
+          "get_task_context returns the checked-out task and wake reason",
         verdict: "pass",
         note: null,
       },
@@ -439,8 +457,7 @@ function baselineTurns(): CapabilityThreadTurn[] {
           id: "item-agent-1",
           at: at(0, 18),
           author: AGENT,
-          body:
-            "Reading the checked-out task first so I quote its real state rather than guessing.",
+          body: "Reading the checked-out task first so I quote its real state rather than guessing.",
           streaming: false,
         },
         {
@@ -449,9 +466,14 @@ function baselineTurns(): CapabilityThreadTurn[] {
           at: at(0, 20),
           status: "ok",
           operationId: "get_task_context",
-          summary: "Read MCK-31 · status in_progress · wake issue_blockers_resolved",
+          summary:
+            "Read MCK-31 · status in_progress · wake issue_blockers_resolved",
           input: { taskId: "task-31" },
-          result: { identifier: "MCK-31", status: "in_progress", stateRevision: 1 },
+          result: {
+            identifier: "MCK-31",
+            status: "in_progress",
+            stateRevision: 1,
+          },
           evidenceRef: { section: "calls", recordId: "call-1" },
         },
         {
@@ -461,7 +483,9 @@ function baselineTurns(): CapabilityThreadTurn[] {
           status: "ok",
           operationId: "report_progress",
           summary: "Recorded a progress comment · state revision 2",
-          input: { body: "Read the mock task and confirmed the runner spike scope." },
+          input: {
+            body: "Read the mock task and confirmed the runner spike scope.",
+          },
           result: { commandKind: "report_progress", stateRevision: 2 },
           evidenceRef: { section: "calls", recordId: "call-2" },
         },
@@ -470,8 +494,7 @@ function baselineTurns(): CapabilityThreadTurn[] {
           id: "item-comment-1",
           at: at(0, 31),
           author: AGENT,
-          body:
-            "Runner spike is scoped to the mock control plane. Next I will draft the plan document revision.",
+          body: "Runner spike is scoped to the mock control plane. Next I will draft the plan document revision.",
           operationId: "report_progress",
           evidenceRef: { section: "calls", recordId: "call-2" },
         },
@@ -508,7 +531,11 @@ function baselineTurns(): CapabilityThreadTurn[] {
           operationId: "write_document",
           summary: "plan · revision 3 → 4",
           input: { key: "plan", baseRevisionId: "rev-3" },
-          result: { commandKind: "write_document", revision: 4, stateRevision: 3 },
+          result: {
+            commandKind: "write_document",
+            revision: 4,
+            stateRevision: 3,
+          },
           evidenceRef: { section: "calls", recordId: "call-3" },
         },
       ],
@@ -533,8 +560,7 @@ function baselineTurns(): CapabilityThreadTurn[] {
           id: "item-agent-3",
           at: at(4, 11),
           author: AGENT,
-          body:
-            "Revision 4 folds both open questions into the acceptance section and leaves the process boundary unchanged.",
+          body: "Revision 4 folds both open questions into the acceptance section and leaves the process boundary unchanged.",
           streaming: false,
         },
       ],
@@ -552,7 +578,8 @@ function baseline(): CapabilityIssueThreadSnapshot {
       runnerLabel: "In-process runner",
       runnerAttached: true,
       controlPlaneLabel: "Mock Taskcore",
-      controlPlaneTooltip: "All issue records are mock. No real Taskcore API is reachable.",
+      controlPlaneTooltip:
+        "All issue records are mock. No real Taskcore API is reachable.",
       replaySource: null,
     },
     issue: {
@@ -641,16 +668,21 @@ function confirmationCard(
     interactionId: "ix-confirmation-plan-01",
     interactionKind: "confirmation",
     title: "Approve plan revision 4",
-    prompt: "Revision 4 folds both scoping answers into the acceptance section.",
+    prompt:
+      "Revision 4 folds both scoping answers into the acceptance section.",
     payload: {
       kind: "confirmation",
-      targetSummary: "plan · r4 — acceptance section rewritten, process boundary unchanged",
+      targetSummary:
+        "plan · r4 — acceptance section rewritten, process boundary unchanged",
       acceptLabel: "Approve revision 4",
       rejectLabel: "Request changes",
       requireRejectReason: true,
     },
     state,
-    target: { label: "plan · r4", href: "#/issue/hb-baseline?panel=state&rec=diff-turn-2" },
+    target: {
+      label: "plan · r4",
+      href: "#/issue/hb-baseline?panel=state&rec=diff-turn-2",
+    },
     stateLabel: "Waiting for you",
     resolvedSummary: [],
     reason: null,
@@ -681,7 +713,8 @@ const INTERACTION_AUTHORIZATION: CapabilityEvidenceModel["authorization"] = [
     phase: "invocation",
     allowed: true,
     code: "allowed",
-    reason: "Interaction kind confirmation is permitted by scenario hb-baseline.",
+    reason:
+      "Interaction kind confirmation is permitted by scenario hb-baseline.",
     claimsConsidered: ["task:read", "interactions:request"],
     redactions: [],
     stateChangeRef: "state-rev-4",
@@ -699,7 +732,9 @@ function withInteractionAuthorization(
   return snapshot;
 }
 
-function lastTurn(snapshot: CapabilityIssueThreadSnapshot): CapabilityThreadTurn {
+function lastTurn(
+  snapshot: CapabilityIssueThreadSnapshot,
+): CapabilityThreadTurn {
   const turn = snapshot.turns.at(-1);
   if (turn === undefined) {
     throw new Error("Capability fixture has no turns");
@@ -707,7 +742,9 @@ function lastTurn(snapshot: CapabilityIssueThreadSnapshot): CapabilityThreadTurn
   return turn;
 }
 
-const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThreadSnapshot>> = {
+const BUILDERS: Partial<
+  Record<CapabilityUiShotSlug, () => CapabilityIssueThreadSnapshot>
+> = {
   "thread-baseline": baseline,
 
   "turn-streaming": () => {
@@ -826,8 +863,12 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
           title: "Approve plan revision 5",
           state: "rejected",
           stateLabel: "Changes requested",
-          reason: "Split the acceptance section before I approve the process boundary change.",
-          target: { label: "plan · r5", href: "#/issue/hb-baseline?panel=state&rec=diff-turn-2" },
+          reason:
+            "Split the acceptance section before I approve the process boundary change.",
+          target: {
+            label: "plan · r5",
+            href: "#/issue/hb-baseline?panel=state&rec=diff-turn-2",
+          },
           evidenceRef: { section: "authorization", recordId: "authz-ix-2" },
         }),
         "item-ix-3",
@@ -854,7 +895,10 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
           title: "One scoping question",
           state: "superseded_by_comment",
           stateLabel: "Superseded by a later comment",
-          supersededBy: { label: "comment-19", href: "#/issue/hb-baseline?rec=item-comment-1" },
+          supersededBy: {
+            label: "comment-19",
+            href: "#/issue/hb-baseline?rec=item-comment-1",
+          },
           evidenceRef: { section: "authorization", recordId: "authz-ix-1" },
         }),
         "item-ix-5",
@@ -882,8 +926,7 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
         id: "item-agent-3b",
         at: at(4, 29),
         author: AGENT,
-        body:
-          "Task creation is not available to me in this scenario, so I recorded the follow-up in the plan document instead.",
+        body: "Task creation is not available to me in this scenario, so I recorded the follow-up in the plan document instead.",
         streaming: false,
       },
     );
@@ -905,7 +948,8 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
       turnId: "turn-3",
       operationId: "create_task",
       version: 1,
-      providerRequest: 'tools/call create_task {"title":"Follow-up: process cleanup"}',
+      providerRequest:
+        'tools/call create_task {"title":"Follow-up: process cleanup"}',
       dispatchedCommand: "rejected before dispatch",
       outcome: "denied",
       result: { code: "required_claim_missing" },
@@ -946,7 +990,10 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
         operationId: "register_deliverable",
         // Same formatter as the deliverable card so the two never disagree.
         summary: `spike-trace.json registered · ${capabilityFormatBytes(deliverableBytes)}`,
-        input: { filename: "spike-trace.json", contentType: "application/json" },
+        input: {
+          filename: "spike-trace.json",
+          contentType: "application/json",
+        },
         result: { commandKind: "register_deliverable", stateRevision: 4 },
         evidenceRef: { section: "calls", recordId: "call-5" },
       },
@@ -967,7 +1014,8 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
       turnId: "turn-3",
       operationId: "register_deliverable",
       version: 1,
-      providerRequest: 'tools/call register_deliverable {"filename":"spike-trace.json"}',
+      providerRequest:
+        'tools/call register_deliverable {"filename":"spike-trace.json"}',
       dispatchedCommand: "control_plane.applyCommand(register_deliverable)",
       outcome: "ok",
       result: { commandKind: "register_deliverable", stateRevision: 4 },
@@ -998,7 +1046,7 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
             additions: 12,
             deletions: 0,
             binary: false,
-            diff: "diff --git a/packages/runner/src/workspace-events.ts b/packages/runner/src/workspace-events.ts\n--- /dev/null\n+++ b/packages/runner/src/workspace-events.ts\n@@ -1,0 +1,12 @@\n+export const WORKSPACE_DIFF_SCHEMA = \\\"taskcore.workspace.diff.v1\\\";\n+\n+export function recordWorkspaceDiff() {\n+  return { complete: true };\n+}\n",
+            diff: 'diff --git a/packages/runner/src/workspace-events.ts b/packages/runner/src/workspace-events.ts\n--- /dev/null\n+++ b/packages/runner/src/workspace-events.ts\n@@ -1,0 +1,12 @@\n+export const WORKSPACE_DIFF_SCHEMA = \\"taskcore.workspace.diff.v1\\";\n+\n+export function recordWorkspaceDiff() {\n+  return { complete: true };\n+}\n',
           },
           {
             path: "packages/runner/src/index.ts",
@@ -1055,9 +1103,11 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
         mediaType: "text/markdown",
         presentation: "document",
         line: null,
-        preview: "# TaskCore Runner Protocol\n\nThe runner projects provider activity into durable, provider-neutral events.\n\n## Workspace references\n\nA local Markdown link becomes a `workspace.file.referenced` event only after the runner verifies that the target stays inside the authorized workspace.\n",
+        preview:
+          "# TaskCore Runner Protocol\n\nThe runner projects provider activity into durable, provider-neutral events.\n\n## Workspace references\n\nA local Markdown link becomes a `workspace.file.referenced` event only after the runner verifies that the target stays inside the authorized workspace.\n",
         previewTruncated: false,
-        contentDigest: "sha256:2e7d2c03a9507ae265ecf5b5356885a53393a2029d241e48b76e557868953c97",
+        contentDigest:
+          "sha256:2e7d2c03a9507ae265ecf5b5356885a53393a2029d241e48b76e557868953c97",
       },
     });
     return snapshot;
@@ -1085,8 +1135,7 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
         at: at(4, 40),
         operationId: "finish_task",
         status: "done",
-        body:
-          "Spike is wired to the mock control plane. Plan revision 4 is approved and the trace is registered as a deliverable.",
+        body: "Spike is wired to the mock control plane. Plan revision 4 is approved and the trace is registered as a deliverable.",
         blockerOwner: null,
         evidenceRef: { section: "calls", recordId: "call-6" },
       },
@@ -1138,7 +1187,10 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
       runnerAttached: false,
       replaySource: "fake",
     };
-    snapshot.turns = snapshot.turns.map((turn) => ({ ...turn, mode: "replay" as const }));
+    snapshot.turns = snapshot.turns.map((turn) => ({
+      ...turn,
+      mode: "replay" as const,
+    }));
     snapshot.replay = { ordinal: 12, total: 18 };
     snapshot.composer = {
       state: "disabled",
@@ -1150,32 +1202,407 @@ const BUILDERS: Partial<Record<CapabilityUiShotSlug, () => CapabilityIssueThread
   },
 };
 
-type ProviderFixtureFamily = Extract<CapabilityThreadItem, { kind: "provider_activity" }>["family"];
+type ProviderFixtureFamily = Extract<
+  CapabilityThreadItem,
+  { kind: "provider_activity" }
+>["family"];
 
-const PROVIDER_SCENARIOS: Record<string, { family: ProviderFixtureFamily; eventType: string; title: string; payload: Record<string, CapabilityJsonValue> }> = {
-  "pe-structured-plan": { family: "plan", eventType: "plan.updated", title: "Plan", payload: { schema: "taskcore.plan.updated.v1", planId: "plan-1", revision: 2, explanation: "Implementation plan regenerated after review.", complete: true, syncStatus: "conflict", documentRevision: 4, steps: [{ stepId: "step-1", body: "Add canonical schemas", status: "completed" }, { stepId: "step-2", body: "Wire provider normalization", status: "in_progress" }, { stepId: "step-3", body: "Resolve concurrent plan edit", status: "blocked" }] } },
-  "te-command-execution": { family: "tool_execution", eventType: "tool.execution.completed", title: "Run", payload: { schema: "taskcore.tool.execution.v1", executionId: "exec-1", transport: "process", operation: "execute", name: "pnpm test", target: null, namespace: null, readOnly: false, status: "completed", durationMs: 1842, exitCode: 0, progress: null, output: "Tests: 48 passed\nOutput retained at the canonical boundary.", outputBytes: 58, outputTruncated: false, outputDigest: "sha256:fixture" } },
-  "mp-mcp-progress": { family: "tool_execution", eventType: "tool.execution.progressed", title: "MCP · search_tasks", payload: { schema: "taskcore.tool.execution.v1", executionId: "mcp-1", transport: "mcp", operation: "search", name: "search_tasks", target: null, namespace: "taskcore", readOnly: true, status: "running", durationMs: 340, exitCode: null, progress: "Scanned 18 authorized tasks", output: "", outputBytes: 0, outputTruncated: false, outputDigest: "sha256:fixture" } },
-  "rs-web-research": { family: "research", eventType: "research.completed", title: "Research", payload: { schema: "taskcore.research.v1", researchId: "research-1", action: "search", status: "completed", query: "PRP event streaming", url: null, pattern: null, sources: [{ sourceId: "source-1", url: "https://example.com/prp", title: "Protocol notes", snippet: "Provider-reported source excerpt." }, { sourceId: "source-bad", url: null, title: "Unavailable malformed source", snippet: null }] } },
-  "da-subagent-delegation": { family: "delegation", eventType: "delegation.updated", title: "Delegation", payload: { schema: "taskcore.delegation.v1", delegationId: "delegate-1", action: "wait", status: "waiting", children: [{ childId: "child-1", role: "Protocol mapper", model: "gpt-5", status: "completed", summary: "Mapped notifications", activitySummary: "12 events" }, { childId: "child-2", role: "UI verifier", model: "gpt-5", status: "running", summary: "Checking mobile layout", activitySummary: "2 scenarios" }] } },
-  "mr-model-routing": { family: "model_identity", eventType: "model.route.changed", title: "Model rerouted", payload: { schema: "taskcore.model.route_changed.v1", routeId: "route-1", provider: "openai", requestedModel: "gpt-5", fromModel: "gpt-5", effectiveModel: "gpt-5.1", reason: "Capacity routing", usageBoundaryId: "usage-2" } },
-  "cc-context-compaction": { family: "context", eventType: "context.compacted", title: "Context compacted", payload: { schema: "taskcore.context.compacted.v1", compactionId: "compact-1", reason: "context window", preTokens: 118000, postTokens: 32000, sameSession: true } },
-  "ag-generated-artifact": { family: "artifact", eventType: "artifact.generated", title: "Generated artifact", payload: { schema: "taskcore.artifact.generated.v1", artifactId: "artifact-1", status: "completed", reference: "artifacts/architecture.png", mediaType: "image/png", registered: true, transparentBackground: false, failure: null } },
-  "rv-review-mode": { family: "review", eventType: "review.mode.changed", title: "Provider review mode", payload: { schema: "taskcore.review.mode_changed.v1", reviewId: "review-1", state: "entered", scope: "workspace changes" } },
-  "hk-hook-lifecycle": { family: "hook", eventType: "hook.completed", title: "Hook", payload: { schema: "taskcore.hook.v1", hookId: "hook-1", event: "post-tool", scope: "workspace", status: "failed", blocking: true, durationMs: 81, summary: "Formatting policy rejected the change." } },
-  "mc-memory-citations": { family: "memory", eventType: "memory.citation.referenced", title: "Memory citation", payload: { schema: "taskcore.memory.citation.v1", citationId: "citation-1", messageItemId: "message-1", label: "Prior architecture decision", available: true, reference: "taskcore://memory/decision-4" } },
-  "sr-safety-review": { family: "safety", eventType: "safety.review.completed", title: "Safety review", payload: { schema: "taskcore.safety.review.v1", reviewId: "safety-1", targetExecutionId: "exec-4", status: "completed", decision: "denied", summary: "Execution requires user approval." } },
-  "ti-terminal-input": { family: "terminal", eventType: "terminal.input.sent", title: "Terminal input", payload: { schema: "taskcore.terminal.input_sent.v1", executionId: "exec-5", origin: "agent", inputClass: "control", byteCount: 1 } },
-  "wt-intentional-wait": { family: "wait", eventType: "wait.completed", title: "Intentional wait", payload: { schema: "taskcore.wait.v1", waitId: "wait-1", reason: "timer", status: "interrupted", plannedDurationMs: 30000, elapsedDurationMs: 8200 } },
-  "pn-provider-notices": { family: "provider_notice", eventType: "provider.notice.recorded", title: "Provider notice", payload: { schema: "taskcore.provider.notice.v1", noticeId: "notice-1", severity: "warning", category: "deprecation", scope: "environment", recoverable: true, userActionable: false, summary: "A provider option is deprecated; the turn can continue." } },
-  "ax-acpx-lifecycle": { family: "context", eventType: "acpx.session.restored", title: "ACPX session lifecycle", payload: { provider: "acpx", driver: "acpx_runtime", agent: "pi", acpxVersion: "0.13.1", acpProtocolVersion: 1, acpxRecordId: "acpx_record_fixture", providerSessionId: "pi_session_fixture", runnerPid: 48121, sidecarPid: 48122, agentPid: 48123, coldTurnMs: 1850, warmTurnMs: 410, restoredTurnMs: 920, warmPidContinuous: true, restoredSessionContinuous: true, status: "completed", summary: "A warm second run retained the ACP child; per-turn suspension later loaded the same persistent ACP session." } },
-  "ax-acpx-permissions": { family: "safety", eventType: "acpx.permission.resolved", title: "ACPX permission", payload: { provider: "acpx", nativeAgent: "claude", extensionAgent: "pi", requestKinds: ["command_approval", "file_approval"], decisions: ["accept", "accept_for_session", "decline", "cancel"], waitedMs: 86400000, contentRetained: false, processLossDisposition: "recoverably_blocked", status: "completed", summary: "Native Claude and Pi-extension requests use the same durable, exactly-once Taskcore approval path." } },
-  "ax-acpx-tools": { family: "tool_execution", eventType: "acpx.semantic_tool.completed", title: "ACPX semantic tools", payload: { provider: "acpx", bridge: "loopback_authenticated", operationId: "report_progress", callId: "acpx-call-4", catalogRevision: 3, duplicateDeliveries: 2, executionCount: 1, staleCatalogDenied: true, unauthorizedCallDenied: true, finishAndBlockStructured: true, status: "completed", summary: "The current attached run catalog remained authoritative across MCP refresh and ACP session reload." } },
-  "ax-acpx-events": { family: "model_identity", eventType: "acpx.event.normalized", title: "ACPX normalized events", payload: { provider: "acpx", agent: "claude", requestedModel: "claude-sonnet-5", effectiveModel: "claude-sonnet-5", mapped: ["assistant_delta", "tool_progress", "workspace_diff", "file_reference", "plan.updated", "usage"], hiddenReasoningRetained: false, rawAcpRetained: false, replayDuplicates: 0, unknownVariant: "provider.notice.recorded", status: "completed", summary: "Bounded ACP notifications were normalized once with run, turn, item, sequence, and model attribution." } },
-  "ax-acpx-failures": { family: "provider_notice", eventType: "acpx.failure.recorded", title: "ACPX failure isolation", payload: { provider: "acpx", failures: ["missing_auth", "unsupported_model", "profile_digest_mismatch", "malformed_frame", "oversized_update", "agent_crash", "hung_prompt"], descendantsReaped: ["sidecar", "acp_server", "agent"], credentialValuesRetained: false, rawPayloadRetained: false, status: "failed", summary: "Qualification and runtime failures fail closed, redact diagnostics, block unsafe recovery, and reap the full process group." } },
+const PROVIDER_SCENARIOS: Record<
+  string,
+  {
+    family: ProviderFixtureFamily;
+    eventType: string;
+    title: string;
+    payload: Record<string, CapabilityJsonValue>;
+  }
+> = {
+  "pe-structured-plan": {
+    family: "plan",
+    eventType: "plan.updated",
+    title: "Plan",
+    payload: {
+      schema: "taskcore.plan.updated.v1",
+      planId: "plan-1",
+      revision: 2,
+      explanation: "Implementation plan regenerated after review.",
+      complete: true,
+      syncStatus: "conflict",
+      documentRevision: 4,
+      steps: [
+        {
+          stepId: "step-1",
+          body: "Add canonical schemas",
+          status: "completed",
+        },
+        {
+          stepId: "step-2",
+          body: "Wire provider normalization",
+          status: "in_progress",
+        },
+        {
+          stepId: "step-3",
+          body: "Resolve concurrent plan edit",
+          status: "blocked",
+        },
+      ],
+    },
+  },
+  "te-command-execution": {
+    family: "tool_execution",
+    eventType: "tool.execution.completed",
+    title: "Run",
+    payload: {
+      schema: "taskcore.tool.execution.v1",
+      executionId: "exec-1",
+      transport: "process",
+      operation: "execute",
+      name: "pnpm test",
+      target: null,
+      namespace: null,
+      readOnly: false,
+      status: "completed",
+      durationMs: 1842,
+      exitCode: 0,
+      progress: null,
+      output: "Tests: 48 passed\nOutput retained at the canonical boundary.",
+      outputBytes: 58,
+      outputTruncated: false,
+      outputDigest: "sha256:fixture",
+    },
+  },
+  "mp-mcp-progress": {
+    family: "tool_execution",
+    eventType: "tool.execution.progressed",
+    title: "MCP · search_tasks",
+    payload: {
+      schema: "taskcore.tool.execution.v1",
+      executionId: "mcp-1",
+      transport: "mcp",
+      operation: "search",
+      name: "search_tasks",
+      target: null,
+      namespace: "taskcore",
+      readOnly: true,
+      status: "running",
+      durationMs: 340,
+      exitCode: null,
+      progress: "Scanned 18 authorized tasks",
+      output: "",
+      outputBytes: 0,
+      outputTruncated: false,
+      outputDigest: "sha256:fixture",
+    },
+  },
+  "rs-web-research": {
+    family: "research",
+    eventType: "research.completed",
+    title: "Research",
+    payload: {
+      schema: "taskcore.research.v1",
+      researchId: "research-1",
+      action: "search",
+      status: "completed",
+      query: "PRP event streaming",
+      url: null,
+      pattern: null,
+      sources: [
+        {
+          sourceId: "source-1",
+          url: "https://example.com/prp",
+          title: "Protocol notes",
+          snippet: "Provider-reported source excerpt.",
+        },
+        {
+          sourceId: "source-bad",
+          url: null,
+          title: "Unavailable malformed source",
+          snippet: null,
+        },
+      ],
+    },
+  },
+  "da-subagent-delegation": {
+    family: "delegation",
+    eventType: "delegation.updated",
+    title: "Delegation",
+    payload: {
+      schema: "taskcore.delegation.v1",
+      delegationId: "delegate-1",
+      action: "wait",
+      status: "waiting",
+      children: [
+        {
+          childId: "child-1",
+          role: "Protocol mapper",
+          model: "gpt-5",
+          status: "completed",
+          summary: "Mapped notifications",
+          activitySummary: "12 events",
+        },
+        {
+          childId: "child-2",
+          role: "UI verifier",
+          model: "gpt-5",
+          status: "running",
+          summary: "Checking mobile layout",
+          activitySummary: "2 scenarios",
+        },
+      ],
+    },
+  },
+  "mr-model-routing": {
+    family: "model_identity",
+    eventType: "model.route.changed",
+    title: "Model rerouted",
+    payload: {
+      schema: "taskcore.model.route_changed.v1",
+      routeId: "route-1",
+      provider: "openai",
+      requestedModel: "gpt-5",
+      fromModel: "gpt-5",
+      effectiveModel: "gpt-5.1",
+      reason: "Capacity routing",
+      usageBoundaryId: "usage-2",
+    },
+  },
+  "cc-context-compaction": {
+    family: "context",
+    eventType: "context.compacted",
+    title: "Context compacted",
+    payload: {
+      schema: "taskcore.context.compacted.v1",
+      compactionId: "compact-1",
+      reason: "context window",
+      preTokens: 118000,
+      postTokens: 32000,
+      sameSession: true,
+    },
+  },
+  "ag-generated-artifact": {
+    family: "artifact",
+    eventType: "artifact.generated",
+    title: "Generated artifact",
+    payload: {
+      schema: "taskcore.artifact.generated.v1",
+      artifactId: "artifact-1",
+      status: "completed",
+      reference: "artifacts/architecture.png",
+      mediaType: "image/png",
+      registered: true,
+      transparentBackground: false,
+      failure: null,
+    },
+  },
+  "rv-review-mode": {
+    family: "review",
+    eventType: "review.mode.changed",
+    title: "Provider review mode",
+    payload: {
+      schema: "taskcore.review.mode_changed.v1",
+      reviewId: "review-1",
+      state: "entered",
+      scope: "workspace changes",
+    },
+  },
+  "hk-hook-lifecycle": {
+    family: "hook",
+    eventType: "hook.completed",
+    title: "Hook",
+    payload: {
+      schema: "taskcore.hook.v1",
+      hookId: "hook-1",
+      event: "post-tool",
+      scope: "workspace",
+      status: "failed",
+      blocking: true,
+      durationMs: 81,
+      summary: "Formatting policy rejected the change.",
+    },
+  },
+  "mc-memory-citations": {
+    family: "memory",
+    eventType: "memory.citation.referenced",
+    title: "Memory citation",
+    payload: {
+      schema: "taskcore.memory.citation.v1",
+      citationId: "citation-1",
+      messageItemId: "message-1",
+      label: "Prior architecture decision",
+      available: true,
+      reference: "taskcore://memory/decision-4",
+    },
+  },
+  "sr-safety-review": {
+    family: "safety",
+    eventType: "safety.review.completed",
+    title: "Safety review",
+    payload: {
+      schema: "taskcore.safety.review.v1",
+      reviewId: "safety-1",
+      targetExecutionId: "exec-4",
+      status: "completed",
+      decision: "denied",
+      summary: "Execution requires user approval.",
+    },
+  },
+  "ti-terminal-input": {
+    family: "terminal",
+    eventType: "terminal.input.sent",
+    title: "Terminal input",
+    payload: {
+      schema: "taskcore.terminal.input_sent.v1",
+      executionId: "exec-5",
+      origin: "agent",
+      inputClass: "control",
+      byteCount: 1,
+    },
+  },
+  "wt-intentional-wait": {
+    family: "wait",
+    eventType: "wait.completed",
+    title: "Intentional wait",
+    payload: {
+      schema: "taskcore.wait.v1",
+      waitId: "wait-1",
+      reason: "timer",
+      status: "interrupted",
+      plannedDurationMs: 30000,
+      elapsedDurationMs: 8200,
+    },
+  },
+  "pn-provider-notices": {
+    family: "provider_notice",
+    eventType: "provider.notice.recorded",
+    title: "Provider notice",
+    payload: {
+      schema: "taskcore.provider.notice.v1",
+      noticeId: "notice-1",
+      severity: "warning",
+      category: "deprecation",
+      scope: "environment",
+      recoverable: true,
+      userActionable: false,
+      summary: "A provider option is deprecated; the turn can continue.",
+    },
+  },
+  "ax-acpx-lifecycle": {
+    family: "context",
+    eventType: "acpx.session.restored",
+    title: "ACPX session lifecycle",
+    payload: {
+      provider: "acpx",
+      driver: "acpx_runtime",
+      agent: "pi",
+      acpxVersion: "0.13.1",
+      acpProtocolVersion: 1,
+      acpxRecordId: "acpx_record_fixture",
+      providerSessionId: "pi_session_fixture",
+      runnerPid: 48121,
+      sidecarPid: 48122,
+      agentPid: 48123,
+      coldTurnMs: 1850,
+      warmTurnMs: 410,
+      restoredTurnMs: 920,
+      warmPidContinuous: true,
+      restoredSessionContinuous: true,
+      status: "completed",
+      summary:
+        "A warm second run retained the ACP child; per-turn suspension later loaded the same persistent ACP session.",
+    },
+  },
+  "ax-acpx-permissions": {
+    family: "safety",
+    eventType: "acpx.permission.resolved",
+    title: "ACPX permission",
+    payload: {
+      provider: "acpx",
+      nativeAgent: "claude",
+      extensionAgent: "pi",
+      requestKinds: ["command_approval", "file_approval"],
+      decisions: ["accept", "accept_for_session", "decline", "cancel"],
+      waitedMs: 86400000,
+      contentRetained: false,
+      processLossDisposition: "recoverably_blocked",
+      status: "completed",
+      summary:
+        "Native Claude and Pi-extension requests use the same durable, exactly-once Taskcore approval path.",
+    },
+  },
+  "ax-acpx-tools": {
+    family: "tool_execution",
+    eventType: "acpx.semantic_tool.completed",
+    title: "ACPX semantic tools",
+    payload: {
+      provider: "acpx",
+      bridge: "loopback_authenticated",
+      operationId: "report_progress",
+      callId: "acpx-call-4",
+      catalogRevision: 3,
+      duplicateDeliveries: 2,
+      executionCount: 1,
+      staleCatalogDenied: true,
+      unauthorizedCallDenied: true,
+      finishAndBlockStructured: true,
+      status: "completed",
+      summary:
+        "The current attached run catalog remained authoritative across MCP refresh and ACP session reload.",
+    },
+  },
+  "ax-acpx-events": {
+    family: "model_identity",
+    eventType: "acpx.event.normalized",
+    title: "ACPX normalized events",
+    payload: {
+      provider: "acpx",
+      agent: "claude",
+      requestedModel: "claude-sonnet-5",
+      effectiveModel: "claude-sonnet-5",
+      mapped: [
+        "assistant_delta",
+        "tool_progress",
+        "workspace_diff",
+        "file_reference",
+        "plan.updated",
+        "usage",
+      ],
+      hiddenReasoningRetained: false,
+      rawAcpRetained: false,
+      replayDuplicates: 0,
+      unknownVariant: "provider.notice.recorded",
+      status: "completed",
+      summary:
+        "Bounded ACP notifications were normalized once with run, turn, item, sequence, and model attribution.",
+    },
+  },
+  "ax-acpx-failures": {
+    family: "provider_notice",
+    eventType: "acpx.failure.recorded",
+    title: "ACPX failure isolation",
+    payload: {
+      provider: "acpx",
+      failures: [
+        "missing_auth",
+        "unsupported_model",
+        "profile_digest_mismatch",
+        "malformed_frame",
+        "oversized_update",
+        "agent_crash",
+        "hung_prompt",
+      ],
+      descendantsReaped: ["sidecar", "acp_server", "agent"],
+      credentialValuesRetained: false,
+      rawPayloadRetained: false,
+      status: "failed",
+      summary:
+        "Qualification and runtime failures fail closed, redact diagnostics, block unsafe recovery, and reap the full process group.",
+    },
+  },
 };
 
-function providerScenario(slug: string, spec: (typeof PROVIDER_SCENARIOS)[string]): CapabilityIssueThreadSnapshot {
+function providerScenario(
+  slug: string,
+  spec: (typeof PROVIDER_SCENARIOS)[string],
+): CapabilityIssueThreadSnapshot {
   const snapshot = baseline();
   snapshot.issue.fixtureProfile = slug;
   snapshot.issue.scenarioId = slug;
@@ -1183,12 +1610,56 @@ function providerScenario(slug: string, spec: (typeof PROVIDER_SCENARIOS)[string
   const turn = lastTurn(snapshot);
   const base = spec.payload;
   turn.items.push(
-    { kind: "provider_activity", id: `${slug}-active`, at: at(4, 10), family: spec.family, eventType: spec.eventType.replace(/completed$/, "started"), status: "running", title: spec.title, summary: "Activity started", payload: { ...base, status: "running" }, evidenceRef: { section: "runner", recordId: `${slug}-e1` } },
-    { kind: "provider_activity", id: `${slug}-final`, at: at(4, 20), family: spec.family, eventType: spec.eventType, status: spec.payload.status === "failed" ? "failed" : spec.payload.status === "interrupted" ? "interrupted" : "completed", title: spec.title, summary: typeof spec.payload.summary === "string" ? spec.payload.summary : "Activity completed", payload: base, evidenceRef: { section: "runner", recordId: `${slug}-e2` } },
+    {
+      kind: "provider_activity",
+      id: `${slug}-active`,
+      at: at(4, 10),
+      family: spec.family,
+      eventType: spec.eventType.replace(/completed$/, "started"),
+      status: "running",
+      title: spec.title,
+      summary: "Activity started",
+      payload: { ...base, status: "running" },
+      evidenceRef: { section: "runner", recordId: `${slug}-e1` },
+    },
+    {
+      kind: "provider_activity",
+      id: `${slug}-final`,
+      at: at(4, 20),
+      family: spec.family,
+      eventType: spec.eventType,
+      status:
+        spec.payload.status === "failed"
+          ? "failed"
+          : spec.payload.status === "interrupted"
+            ? "interrupted"
+            : "completed",
+      title: spec.title,
+      summary:
+        typeof spec.payload.summary === "string"
+          ? spec.payload.summary
+          : "Activity completed",
+      payload: base,
+      evidenceRef: { section: "runner", recordId: `${slug}-e2` },
+    },
   );
   snapshot.evidence.runner.push(
-    { id: `${slug}-e1`, turnId: turn.id, kind: spec.eventType, ordinal: snapshot.evidence.runner.length + 1, detail: `${spec.title} · active`, details: [{ label: "State", value: "running" }] },
-    { id: `${slug}-e2`, turnId: turn.id, kind: spec.eventType, ordinal: snapshot.evidence.runner.length + 2, detail: `${spec.title} · terminal`, details: [{ label: "Event", value: spec.eventType }] },
+    {
+      id: `${slug}-e1`,
+      turnId: turn.id,
+      kind: spec.eventType,
+      ordinal: snapshot.evidence.runner.length + 1,
+      detail: `${spec.title} · active`,
+      details: [{ label: "State", value: "running" }],
+    },
+    {
+      id: `${slug}-e2`,
+      turnId: turn.id,
+      kind: spec.eventType,
+      ordinal: snapshot.evidence.runner.length + 2,
+      detail: `${spec.title} · terminal`,
+      details: [{ label: "Event", value: spec.eventType }],
+    },
   );
   return snapshot;
 }
@@ -1202,13 +1673,17 @@ export function capabilityIssueThreadFixture(
   slug: string = "thread-baseline",
   fixtureProfile: string = CAPABILITY_DEFAULT_FIXTURE_PROFILE,
 ): CapabilityIssueThreadSnapshot {
-  const effectiveSlug = slug === "thread-baseline" && fixtureProfile === "wc-workspace-changes"
-    ? "workspace-file-changes"
-    : slug === "thread-baseline" && fixtureProfile === "fr-file-reference"
-      ? "workspace-file-reference"
-    : fixtureProfile in PROVIDER_SCENARIOS ? fixtureProfile
-    : slug;
-  const build = BUILDERS[effectiveSlug as CapabilityUiShotSlug] ?? BUILDERS["thread-baseline"];
+  const effectiveSlug =
+    slug === "thread-baseline" && fixtureProfile === "wc-workspace-changes"
+      ? "workspace-file-changes"
+      : slug === "thread-baseline" && fixtureProfile === "fr-file-reference"
+        ? "workspace-file-reference"
+        : fixtureProfile in PROVIDER_SCENARIOS
+          ? fixtureProfile
+          : slug;
+  const build =
+    BUILDERS[effectiveSlug as CapabilityUiShotSlug] ??
+    BUILDERS["thread-baseline"];
   const snapshot = build!();
   snapshot.issue.fixtureProfile = fixtureProfile;
   return snapshot;

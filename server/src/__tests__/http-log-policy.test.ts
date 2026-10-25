@@ -61,9 +61,19 @@ describe("isPrivateWebhookHttpRequest", () => {
 
 describe("isSecretSensitiveHttpRequest", () => {
   it("protects Slack registration, installation, recovery, and all callback methods", () => {
-    for (const suffix of ["registration", "install", "resume"]) expect(isSecretSensitiveHttpRequest("POST", `/api/chat-endpoints/id/slack/${suffix}`)).toBe(true);
-    for (const method of ["GET", "POST", "DELETE"]) for (const path of ["/api/chat-slack/oauth/callback?code=canary", "https://taskcore.test/API/CHAT-SLACK/OAUTH/callback?code=canary"])
-      expect(isSecretSensitiveHttpRequest(method, path)).toBe(true);
+    for (const suffix of ["registration", "install", "resume"])
+      expect(
+        isSecretSensitiveHttpRequest(
+          "POST",
+          `/api/chat-endpoints/id/slack/${suffix}`,
+        ),
+      ).toBe(true);
+    for (const method of ["GET", "POST", "DELETE"])
+      for (const path of [
+        "/api/chat-slack/oauth/callback?code=canary",
+        "https://taskcore.test/API/CHAT-SLACK/OAUTH/callback?code=canary",
+      ])
+        expect(isSecretSensitiveHttpRequest(method, path)).toBe(true);
   });
   it("identifies credential-bearing chat setup mutations", () => {
     expect(

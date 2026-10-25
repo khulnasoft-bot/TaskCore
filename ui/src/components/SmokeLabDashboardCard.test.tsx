@@ -98,7 +98,9 @@ describe("SmokeLabDashboardCard", () => {
   });
 
   async function render() {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -114,7 +116,9 @@ describe("SmokeLabDashboardCard", () => {
     getExperimentalMock.mockResolvedValue({ enableSmokeLab: false });
     await render();
 
-    expect(container.querySelector('[data-testid="smoke-lab-dashboard-card"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="smoke-lab-dashboard-card"]'),
+    ).toBeNull();
     expect(container.textContent).not.toContain("Integration smoke");
     expect(listRunsMock).not.toHaveBeenCalled();
   });
@@ -122,7 +126,9 @@ describe("SmokeLabDashboardCard", () => {
   it("renders the card with failing paths and a link to the Smoke Lab tab when enabled", async () => {
     await render();
 
-    const card = container.querySelector<HTMLAnchorElement>('[data-testid="smoke-lab-dashboard-card"]');
+    const card = container.querySelector<HTMLAnchorElement>(
+      '[data-testid="smoke-lab-dashboard-card"]',
+    );
     expect(card).not.toBeNull();
     expect(card?.getAttribute("href")).toBe("/apps/advanced/smoke-lab");
     expect(container.textContent).toContain("Integration smoke");

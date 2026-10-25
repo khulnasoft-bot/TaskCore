@@ -13,7 +13,10 @@ type RouteErrorBoundaryState = {
   error: Error | null;
 };
 
-class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryInnerProps, RouteErrorBoundaryState> {
+class RouteErrorBoundaryInner extends Component<
+  RouteErrorBoundaryInnerProps,
+  RouteErrorBoundaryState
+> {
   override state: RouteErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: unknown): RouteErrorBoundaryState {
@@ -21,8 +24,14 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryInnerProps, Ro
   }
 
   override componentDidCatch(error: unknown, info: ErrorInfo): void {
-    console.error("Page render failed", { error, componentStack: info.componentStack });
-    captureBrowserException(error, { boundary: "route", componentStack: info.componentStack });
+    console.error("Page render failed", {
+      error,
+      componentStack: info.componentStack,
+    });
+    captureBrowserException(error, {
+      boundary: "route",
+      componentStack: info.componentStack,
+    });
   }
 
   override componentDidUpdate(prevProps: RouteErrorBoundaryInnerProps): void {
@@ -43,7 +52,8 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryInnerProps, Ro
         <div>
           <h1 className="text-lg font-semibold">This page hit an error</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Something went wrong while rendering this page. You can go back and try again, or reload.
+            Something went wrong while rendering this page. You can go back and
+            try again, or reload.
           </p>
         </div>
         <pre className="overflow-auto rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive whitespace-pre-wrap">

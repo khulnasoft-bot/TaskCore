@@ -6,9 +6,19 @@ import { fileURLToPath } from "node:url";
 
 const execFileAsync = promisify(execFile);
 
-const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const executable = process.platform === "win32" ? "taskcore-runnerd.exe" : "taskcore-runnerd";
-const source = path.join(packageRoot, "runner", "target", "release", executable);
+const packageRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const executable =
+  process.platform === "win32" ? "taskcore-runnerd.exe" : "taskcore-runnerd";
+const source = path.join(
+  packageRoot,
+  "runner",
+  "target",
+  "release",
+  executable,
+);
 const destinationDirectory = path.join(packageRoot, "dist", "bin");
 const destination = path.join(destinationDirectory, executable);
 

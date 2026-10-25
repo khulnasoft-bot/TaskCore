@@ -39,7 +39,11 @@ import { conflict, notFound } from "../errors.js";
  */
 function isPluginKeyConflict(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false;
-  const err = error as { code?: string; constraint?: string; constraint_name?: string };
+  const err = error as {
+    code?: string;
+    constraint?: string;
+    constraint_name?: string;
+  };
   const constraint = err.constraint ?? err.constraint_name;
   return err.code === "23505" && constraint === "plugins_plugin_key_idx";
 }
@@ -83,7 +87,9 @@ export function pluginRegistryService(db: Db) {
 
   async function nextInstallOrder(): Promise<number> {
     const result = await db
-      .select({ maxOrder: sql<number>`coalesce(max(${plugins.installOrder}), 0)` })
+      .select({
+        maxOrder: sql<number>`coalesce(max(${plugins.installOrder}), 0)`,
+      })
       .from(plugins);
     return (result[0]?.maxOrder ?? 0) + 1;
   }
@@ -96,11 +102,7 @@ export function pluginRegistryService(db: Db) {
     // ----- Read -----------------------------------------------------------
 
     /** List all registered plugins ordered by install order. */
-    list: () =>
-      db
-        .select()
-        .from(plugins)
-        .orderBy(asc(plugins.installOrder)),
+    list: () => db.select().from(plugins).orderBy(asc(plugins.installOrder)),
 
     /**
      * List installed plugins (excludes soft-deleted/uninstalled).
@@ -136,7 +138,10 @@ export function pluginRegistryService(db: Db) {
      * manifest from the package.  This method persists the plugin row and
      * assigns the next install order.
      */
-    install: async (input: InstallPlugin, manifest: TaskcorePluginManifestV1) => {
+    install: async (
+      input: InstallPlugin,
+      manifest: TaskcorePluginManifestV1,
+    ) => {
       const existing = await getByKey(manifest.id);
       if (existing) {
         if (existing.status !== "uninstalled") {
@@ -208,11 +213,15 @@ export function pluginRegistryService(db: Db) {
       const plugin = await getById(id);
       if (!plugin) throw notFound("Plugin not found");
 
-      const setClause: Partial<typeof plugins.$inferInsert> & { updatedAt: Date } = {
+      const setClause: Partial<typeof plugins.$inferInsert> & {
+        updatedAt: Date;
+      } = {
         updatedAt: new Date(),
       };
-      if (data.packageName !== undefined) setClause.packageName = data.packageName;
-      if (data.packagePath !== undefined) setClause.packagePath = data.packagePath;
+      if (data.packageName !== undefined)
+        setClause.packageName = data.packageName;
+      if (data.packagePath !== undefined)
+        setClause.packagePath = data.packagePath;
       if (data.status !== undefined) {
         setClause.status = data.status;
         setClause.lastError = null;
@@ -292,7 +301,12 @@ export function pluginRegistryService(db: Db) {
       db
         .select()
         .from(pluginConfig)
-        .where(and(eq(pluginConfig.pluginId, pluginId), eq(pluginConfig.companyId, companyId)))
+        .where(
+          and(
+            eq(pluginConfig.pluginId, pluginId),
+            eq(pluginConfig.companyId, companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null),
 
     /**
@@ -322,14 +336,23 @@ export function pluginRegistryService(db: Db) {
      * If a config row already exists for the plugin/company pair it is replaced;
      * otherwise a new row is inserted.
      */
-    upsertConfig: async (pluginId: string, companyId: string, input: UpsertPluginConfig) => {
+    upsertConfig: async (
+      pluginId: string,
+      companyId: string,
+      input: UpsertPluginConfig,
+    ) => {
       const plugin = await getById(pluginId);
       if (!plugin) throw notFound("Plugin not found");
 
       const existing = await db
         .select()
         .from(pluginConfig)
-        .where(and(eq(pluginConfig.pluginId, pluginId), eq(pluginConfig.companyId, companyId)))
+        .where(
+          and(
+            eq(pluginConfig.pluginId, pluginId),
+            eq(pluginConfig.companyId, companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
 
       if (existing) {
@@ -340,7 +363,12 @@ export function pluginRegistryService(db: Db) {
             lastError: null,
             updatedAt: new Date(),
           })
-          .where(and(eq(pluginConfig.pluginId, pluginId), eq(pluginConfig.companyId, companyId)))
+          .where(
+            and(
+              eq(pluginConfig.pluginId, pluginId),
+              eq(pluginConfig.companyId, companyId),
+            ),
+          )
           .returning()
           .then((rows) => rows[0]);
       }
@@ -360,14 +388,23 @@ export function pluginRegistryService(db: Db) {
      * Partially update a plugin's company-scoped configuration via shallow merge.
      * If no config row exists yet one is created with the supplied values.
      */
-    patchConfig: async (pluginId: string, companyId: string, input: PatchPluginConfig) => {
+    patchConfig: async (
+      pluginId: string,
+      companyId: string,
+      input: PatchPluginConfig,
+    ) => {
       const plugin = await getById(pluginId);
       if (!plugin) throw notFound("Plugin not found");
 
       const existing = await db
         .select()
         .from(pluginConfig)
-        .where(and(eq(pluginConfig.pluginId, pluginId), eq(pluginConfig.companyId, companyId)))
+        .where(
+          and(
+            eq(pluginConfig.pluginId, pluginId),
+            eq(pluginConfig.companyId, companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
 
       if (existing) {
@@ -379,7 +416,12 @@ export function pluginRegistryService(db: Db) {
             lastError: null,
             updatedAt: new Date(),
           })
-          .where(and(eq(pluginConfig.pluginId, pluginId), eq(pluginConfig.companyId, companyId)))
+          .where(
+            and(
+              eq(pluginConfig.pluginId, pluginId),
+              eq(pluginConfig.companyId, companyId),
+            ),
+          )
           .returning()
           .then((rows) => rows[0]);
       }
@@ -399,11 +441,20 @@ export function pluginRegistryService(db: Db) {
      * Record an error against a plugin's config (e.g. validation failure
      * against the plugin's instanceConfigSchema).
      */
-    setConfigError: async (pluginId: string, companyId: string, lastError: string | null) => {
+    setConfigError: async (
+      pluginId: string,
+      companyId: string,
+      lastError: string | null,
+    ) => {
       const rows = await db
         .update(pluginConfig)
         .set({ lastError, updatedAt: new Date() })
-        .where(and(eq(pluginConfig.pluginId, pluginId), eq(pluginConfig.companyId, companyId)))
+        .where(
+          and(
+            eq(pluginConfig.pluginId, pluginId),
+            eq(pluginConfig.companyId, companyId),
+          ),
+        )
         .returning();
 
       if (rows.length === 0) throw notFound("Plugin config not found");
@@ -414,7 +465,12 @@ export function pluginRegistryService(db: Db) {
     deleteConfig: async (pluginId: string, companyId: string) => {
       const rows = await db
         .delete(pluginConfig)
-        .where(and(eq(pluginConfig.pluginId, pluginId), eq(pluginConfig.companyId, companyId)))
+        .where(
+          and(
+            eq(pluginConfig.pluginId, pluginId),
+            eq(pluginConfig.companyId, companyId),
+          ),
+        )
         .returning();
 
       return rows[0] ?? null;
@@ -423,21 +479,32 @@ export function pluginRegistryService(db: Db) {
     // ----- Company settings ----------------------------------------------
 
     /** Retrieve company-scoped plugin settings. */
-    getCompanySettings: (pluginId: string, companyId: string): Promise<PluginCompanySettings | null> =>
+    getCompanySettings: (
+      pluginId: string,
+      companyId: string,
+    ): Promise<PluginCompanySettings | null> =>
       db
         .select()
         .from(pluginCompanySettings)
-        .where(and(
-          eq(pluginCompanySettings.pluginId, pluginId),
-          eq(pluginCompanySettings.companyId, companyId),
-        ))
-        .then((rows) => rows[0] ?? null) as Promise<PluginCompanySettings | null>,
+        .where(
+          and(
+            eq(pluginCompanySettings.pluginId, pluginId),
+            eq(pluginCompanySettings.companyId, companyId),
+          ),
+        )
+        .then(
+          (rows) => rows[0] ?? null,
+        ) as Promise<PluginCompanySettings | null>,
 
     /** Create or replace company-scoped plugin settings. */
     upsertCompanySettings: async (
       pluginId: string,
       companyId: string,
-      input: { enabled?: boolean; settingsJson: Record<string, unknown>; lastError?: string | null },
+      input: {
+        enabled?: boolean;
+        settingsJson: Record<string, unknown>;
+        lastError?: string | null;
+      },
     ): Promise<PluginCompanySettings> => {
       const plugin = await getById(pluginId);
       if (!plugin) throw notFound("Plugin not found");
@@ -445,10 +512,12 @@ export function pluginRegistryService(db: Db) {
       const existing = await db
         .select()
         .from(pluginCompanySettings)
-        .where(and(
-          eq(pluginCompanySettings.pluginId, pluginId),
-          eq(pluginCompanySettings.companyId, companyId),
-        ))
+        .where(
+          and(
+            eq(pluginCompanySettings.pluginId, pluginId),
+            eq(pluginCompanySettings.companyId, companyId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
 
       if (existing) {
@@ -489,8 +558,10 @@ export function pluginRegistryService(db: Db) {
      */
     listEntities: (pluginId: string, query?: PluginEntityQuery) => {
       const conditions = [eq(pluginEntities.pluginId, pluginId)];
-      if (query?.entityType) conditions.push(eq(pluginEntities.entityType, query.entityType));
-      if (query?.externalId) conditions.push(eq(pluginEntities.externalId, query.externalId));
+      if (query?.entityType)
+        conditions.push(eq(pluginEntities.entityType, query.entityType));
+      if (query?.externalId)
+        conditions.push(eq(pluginEntities.externalId, query.externalId));
 
       return db
         .select()
@@ -550,7 +621,10 @@ export function pluginRegistryService(db: Db) {
      */
     upsertEntity: async (
       pluginId: string,
-      input: Omit<typeof pluginEntities.$inferInsert, "id" | "pluginId" | "createdAt" | "updatedAt">,
+      input: Omit<
+        typeof pluginEntities.$inferInsert,
+        "id" | "pluginId" | "createdAt" | "updatedAt"
+      >,
     ) => {
       // Drizzle doesn't support pg-specific onConflictDoUpdate easily in the insert() call
       // with complex where clauses, so we do it manually.
@@ -639,7 +713,9 @@ export function pluginRegistryService(db: Db) {
       db
         .select()
         .from(pluginJobs)
-        .where(and(eq(pluginJobs.pluginId, pluginId), eq(pluginJobs.jobKey, jobKey)))
+        .where(
+          and(eq(pluginJobs.pluginId, pluginId), eq(pluginJobs.jobKey, jobKey)),
+        )
         .then((rows) => rows[0] ?? null),
 
     /**
@@ -658,7 +734,9 @@ export function pluginRegistryService(db: Db) {
       const existing = await db
         .select()
         .from(pluginJobs)
-        .where(and(eq(pluginJobs.pluginId, pluginId), eq(pluginJobs.jobKey, jobKey)))
+        .where(
+          and(eq(pluginJobs.pluginId, pluginId), eq(pluginJobs.jobKey, jobKey)),
+        )
         .then((rows) => rows[0] ?? null);
 
       if (existing) {

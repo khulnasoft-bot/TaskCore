@@ -7,7 +7,10 @@ import { formatReplayReplay, replayReplayFixtureText } from "./replay.js";
 describe("Replay replay tracer", () => {
   it("formats the validated reducer snapshot for CLI consumers", async () => {
     const source = await readFile(
-      new URL("../../protocol/fixtures/replay/happy-path.json", import.meta.url),
+      new URL(
+        "../../protocol/fixtures/replay/happy-path.json",
+        import.meta.url,
+      ),
       "utf8",
     );
     const result = replayReplayFixtureText(source);

@@ -1,6 +1,8 @@
 export type NativeRuntimeMode = "legacy" | "native";
-export const NATIVE_FINALIZATION_SCHEMA = "taskcore.native-finalization.v1" as const;
-export type NativeReportedWorkDisposition = "done" | "blocked" | "needs_review" | "yielded";
+export const NATIVE_FINALIZATION_SCHEMA =
+  "taskcore.native-finalization.v1" as const;
+export type NativeReportedWorkDisposition =
+  "done" | "blocked" | "needs_review" | "yielded";
 export type NativeRunTerminalState = "succeeded" | "failed" | "cancelled";
 
 export interface NativeFinalizationResultV1 {

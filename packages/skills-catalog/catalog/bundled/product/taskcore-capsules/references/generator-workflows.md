@@ -18,13 +18,13 @@ The mirrored contract below was source-mined from the external prototype at comm
 
 ## Choose a Workflow
 
-| Need | Preferred workflow |
-| --- | --- |
-| Canonical hero brand image | Hero capsule bank reference |
-| One agent's profile mark | Seeded identicon/profile-pill prototype; read `identicon-prototyper.md` |
-| Repeatable marketing motif | External graphic-generator with explicit seed |
-| Quick public-doc example | Website embedded generator |
-| Product UI state | Existing `AgentCapsule` and status helpers |
+| Need                       | Preferred workflow                                                      |
+| -------------------------- | ----------------------------------------------------------------------- |
+| Canonical hero brand image | Hero capsule bank reference                                             |
+| One agent's profile mark   | Seeded identicon/profile-pill prototype; read `identicon-prototyper.md` |
+| Repeatable marketing motif | External graphic-generator with explicit seed                           |
+| Quick public-doc example   | Website embedded generator                                              |
+| Product UI state           | Existing `AgentCapsule` and status helpers                              |
 
 ## Website Embedded Generator
 

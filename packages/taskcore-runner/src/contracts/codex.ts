@@ -139,8 +139,9 @@ export function createCodexTaskEnvelope(input: {
     objective: input.objective,
     completionContract: {
       revision: input.contractRevision ?? "codex-demo-v1",
-      criteria:
-        input.criteria ?? [{ id: "objective", requirement: "Complete the objective safely." }],
+      criteria: input.criteria ?? [
+        { id: "objective", requirement: "Complete the objective safely." },
+      ],
     },
     constraints: input.constraints ?? [
       "Do not discover or invoke skills.",
@@ -155,15 +156,19 @@ export function createCodexTaskEnvelope(input: {
 export const CODEX_RESULT_OUTPUT_SCHEMA = PRP_COMPLETION_RESULT_OUTPUT_SCHEMA;
 /** @deprecated Use PRP_BLOCK_RESULT_OUTPUT_SCHEMA. */
 export const CODEX_BLOCK_RESULT_OUTPUT_SCHEMA = PRP_BLOCK_RESULT_OUTPUT_SCHEMA;
-export const CODEX_RESULT_PROVIDER_INPUT_SCHEMA = PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA;
-export const CODEX_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA = PRP_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA;
+export const CODEX_RESULT_PROVIDER_INPUT_SCHEMA =
+  PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA;
+export const CODEX_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA =
+  PRP_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA;
 
 export function isSkilllessCodexContext(
   context: CodexModelContextSnapshot,
   options: { dynamicTools: boolean } = { dynamicTools: true },
 ): boolean {
   const serialized = JSON.stringify(context).toLowerCase();
-  const expectedTools = options.dynamicTools ? [...CODEX_SEMANTIC_TOOL_NAMES] : [];
+  const expectedTools = options.dynamicTools
+    ? [...CODEX_SEMANTIC_TOOL_NAMES]
+    : [];
   return (
     context.instructionSources.length === 0 &&
     context.baseInstructions === CODEX_SKILLLESS_BASE_INSTRUCTIONS &&

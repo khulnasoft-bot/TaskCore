@@ -1,9 +1,21 @@
 import { TextAttachmentContext } from "@/context/TextAttachmentContext";
 import { isTextAttachment } from "@/lib/issue-attachments";
-import { useContext, useMemo, useState, type DragEvent, type ReactNode } from "react";
+import {
+  useContext,
+  useMemo,
+  useState,
+  type DragEvent,
+  type ReactNode,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IssueAttachment } from "@taskcore/shared";
-import { Download, ExternalLink, FileText, Maximize2, Trash2 } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  FileText,
+  Maximize2,
+  Trash2,
+} from "lucide-react";
 import { TaskcoreIcon } from "./icons/taskcore-icon";
 import { Button } from "@/components/ui/button";
 import { FoldCurtain } from "./FoldCurtain";
@@ -60,7 +72,17 @@ function AttachmentActions({
 }) {
   const openText = useContext(TextAttachmentContext);
   const openInPanel = (event: React.MouseEvent) => {
-    if (openText && isTextAttachment(attachment) && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); openText(attachment.id, attachmentFilename(attachment)); }
+    if (
+      openText &&
+      isTextAttachment(attachment) &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      openText(attachment.id, attachmentFilename(attachment));
+    }
   };
   const filename = attachmentFilename(attachment);
   return (
@@ -77,12 +99,21 @@ function AttachmentActions({
         </Button>
       ) : null}
       <Button asChild variant="ghost" size="icon-sm" title="Open in new tab">
-        <a href={attachmentOpenPath(attachment)} onClick={openInPanel} target="_blank" rel="noreferrer" aria-label={`Open ${filename}`}>
+        <a
+          href={attachmentOpenPath(attachment)}
+          onClick={openInPanel}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Open ${filename}`}
+        >
           <ExternalLink className="h-4 w-4" />
         </a>
       </Button>
       <Button asChild variant="ghost" size="icon-sm" title="Download">
-        <a href={attachmentDownloadPath(attachment)} aria-label={`Download ${filename}`}>
+        <a
+          href={attachmentDownloadPath(attachment)}
+          aria-label={`Download ${filename}`}
+        >
           <Download className="h-4 w-4" />
         </a>
       </Button>
@@ -121,7 +152,17 @@ function MarkdownAttachmentCard({
 }) {
   const openText = useContext(TextAttachmentContext);
   const openInPanel = (event: React.MouseEvent) => {
-    if (openText && isTextAttachment(attachment) && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); openText(attachment.id, attachmentFilename(attachment)); }
+    if (
+      openText &&
+      isTextAttachment(attachment) &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      openText(attachment.id, attachmentFilename(attachment));
+    }
   };
   const filename = attachmentFilename(attachment);
   const { data, isLoading, error } = useQuery({
@@ -130,25 +171,46 @@ function MarkdownAttachmentCard({
   });
 
   return (
-    <div id={`attachment-${attachment.id}`} className="scroll-mt-20 rounded-lg border border-border p-3">
+    <div
+      id={`attachment-${attachment.id}`}
+      className="scroll-mt-20 rounded-lg border border-border p-3"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <a href={attachmentOpenPath(attachment)} onClick={openInPanel} className="truncate text-sm font-medium hover:underline" title={filename}>{filename}</a>
+            <a
+              href={attachmentOpenPath(attachment)}
+              onClick={openInPanel}
+              className="truncate text-sm font-medium hover:underline"
+              title={filename}
+            >
+              {filename}
+            </a>
           </div>
           <AttachmentMeta attachment={attachment} />
         </div>
-        <AttachmentActions attachment={attachment} onDelete={onDelete} deletePending={deletePending} />
+        <AttachmentActions
+          attachment={attachment}
+          onDelete={onDelete}
+          deletePending={deletePending}
+        />
       </div>
       <div className="mt-3 rounded-md hover:bg-accent/10">
         {isLoading ? (
-          <p className="px-1 py-2 text-xs text-muted-foreground">Loading preview...</p>
+          <p className="px-1 py-2 text-xs text-muted-foreground">
+            Loading preview...
+          </p>
         ) : error ? (
-          <p className="px-1 py-2 text-xs text-destructive">Could not load markdown preview.</p>
+          <p className="px-1 py-2 text-xs text-destructive">
+            Could not load markdown preview.
+          </p>
         ) : (
           <FoldCurtain>
-            <MarkdownBody className="taskcore-edit-in-place-content min-h-(--sz-220px) text-sm leading-7" softBreaks={false}>
+            <MarkdownBody
+              className="taskcore-edit-in-place-content min-h-(--sz-220px) text-sm leading-7"
+              softBreaks={false}
+            >
               {data ?? ""}
             </MarkdownBody>
           </FoldCurtain>
@@ -171,11 +233,16 @@ function VideoAttachmentCard({
 }) {
   const filename = attachmentFilename(attachment);
   return (
-    <Card id={`attachment-${attachment.id}`} className="block scroll-mt-20 overflow-hidden py-0">
+    <Card
+      id={`attachment-${attachment.id}`}
+      className="block scroll-mt-20 overflow-hidden py-0"
+    >
       <OutputVideoPlayer src={attachment.contentPath} title={filename} />
       <div className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
-          <p className="break-words text-sm font-semibold text-foreground">{filename}</p>
+          <p className="break-words text-sm font-semibold text-foreground">
+            {filename}
+          </p>
           <AttachmentMeta attachment={attachment} />
         </div>
         <AttachmentActions
@@ -200,15 +267,29 @@ function GenericAttachmentRow({
 }) {
   const openText = useContext(TextAttachmentContext);
   const openInPanel = (event: React.MouseEvent) => {
-    if (openText && isTextAttachment(attachment) && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); openText(attachment.id, attachmentFilename(attachment)); }
+    if (
+      openText &&
+      isTextAttachment(attachment) &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      openText(attachment.id, attachmentFilename(attachment));
+    }
   };
   const filename = attachmentFilename(attachment);
   return (
-    <Card id={`attachment-${attachment.id}`} className="flex-row scroll-mt-20 items-center gap-2.5 p-2">
+    <Card
+      id={`attachment-${attachment.id}`}
+      className="flex-row scroll-mt-20 items-center gap-2.5 p-2"
+    >
       <OutputFileTile contentType={attachment.contentType} />
       <div className="min-w-0 flex-1">
         <a
-          href={attachmentOpenPath(attachment)} onClick={openInPanel}
+          href={attachmentOpenPath(attachment)}
+          onClick={openInPanel}
           target="_blank"
           rel="noreferrer"
           className="block truncate text-sm font-medium text-foreground hover:underline"
@@ -217,10 +298,15 @@ function GenericAttachmentRow({
           {filename}
         </a>
         <p className="truncate text-(length:--text-micro) text-muted-foreground">
-          Attachment · {attachment.contentType} · {formatBytes(attachment.byteSize)}
+          Attachment · {attachment.contentType} ·{" "}
+          {formatBytes(attachment.byteSize)}
         </p>
       </div>
-      <AttachmentActions attachment={attachment} onDelete={onDelete} deletePending={deletePending} />
+      <AttachmentActions
+        attachment={attachment}
+        onDelete={onDelete}
+        deletePending={deletePending}
+      />
     </Card>
   );
 }
@@ -239,7 +325,12 @@ export function IssueAttachmentsSection({
   onDrop,
 }: IssueAttachmentsSectionProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const { imageAttachments, markdownAttachments, videoAttachments, genericAttachments } = useMemo(() => {
+  const {
+    imageAttachments,
+    markdownAttachments,
+    videoAttachments,
+    genericAttachments,
+  } = useMemo(() => {
     const images: IssueAttachment[] = [];
     const markdown: IssueAttachment[] = [];
     const videos: IssueAttachment[] = [];
@@ -260,7 +351,8 @@ export function IssueAttachmentsSection({
     };
   }, [attachments]);
 
-  const requestDelete = (attachmentId: string) => setConfirmDeleteId(attachmentId);
+  const requestDelete = (attachmentId: string) =>
+    setConfirmDeleteId(attachmentId);
   const confirmDelete = (attachmentId: string) => {
     if (!onDelete) return;
     onDelete(attachmentId);
@@ -280,16 +372,21 @@ export function IssueAttachmentsSection({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <TaskcoreIcon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-          <h3 className="text-sm font-medium text-muted-foreground">Attachments</h3>
-          <span className="text-xs text-muted-foreground">{attachments.length}</span>
+          <TaskcoreIcon
+            className="h-3.5 w-3.5 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Attachments
+          </h3>
+          <span className="text-xs text-muted-foreground">
+            {attachments.length}
+          </span>
         </div>
         {uploadButton}
       </div>
 
-      {error && (
-        <p className="text-xs text-destructive">{error}</p>
-      )}
+      {error && <p className="text-xs text-destructive">{error}</p>}
 
       {imageAttachments.length > 0 && (
         <div className="grid grid-cols-4 gap-2">
@@ -395,14 +492,30 @@ export function IssueAttachmentsSection({
         </div>
       )}
 
-      {onDelete && confirmDeleteId && !imageAttachments.some((attachment) => attachment.id === confirmDeleteId) ? (
+      {onDelete &&
+      confirmDeleteId &&
+      !imageAttachments.some(
+        (attachment) => attachment.id === confirmDeleteId,
+      ) ? (
         <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3">
-          <p className="text-sm font-medium text-destructive">Delete this attachment? This cannot be undone.</p>
+          <p className="text-sm font-medium text-destructive">
+            Delete this attachment? This cannot be undone.
+          </p>
           <div className="flex shrink-0 items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteId(null)} disabled={deletePending}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmDeleteId(null)}
+              disabled={deletePending}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => confirmDelete(confirmDeleteId)} disabled={deletePending}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => confirmDelete(confirmDeleteId)}
+              disabled={deletePending}
+            >
               {deletePending ? "Deleting..." : "Delete"}
             </Button>
           </div>

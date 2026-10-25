@@ -68,13 +68,18 @@ function SidebarSectionHeader({
   headerAction,
   label,
   menu,
-}: Pick<SidebarSectionProps, "collapsible" | "headerAction" | "label" | "menu">) {
+}: Pick<
+  SidebarSectionProps,
+  "collapsible" | "headerAction" | "label" | "menu"
+>) {
   const { isMobile } = useSidebar();
   const [menuOpen, setMenuOpen] = useState(false);
   const hasMenu = Boolean(
-    menu && ((menu.actions?.length ?? 0) > 0 || (menu.radioChoices?.length ?? 0) > 0),
+    menu &&
+    ((menu.actions?.length ?? 0) > 0 || (menu.radioChoices?.length ?? 0) > 0),
   );
-  const labelClassName = "text-(length:--text-nano) font-medium uppercase tracking-widest font-mono text-muted-foreground/60";
+  const labelClassName =
+    "text-(length:--text-nano) font-medium uppercase tracking-widest font-mono text-muted-foreground/60";
   const headerControlVisibilityClassName = isMobile
     ? "opacity-100"
     : "opacity-0 group-hover/sidebar-section:opacity-100 group-focus-within/sidebar-section:opacity-100";
@@ -127,7 +132,10 @@ function SidebarSectionHeader({
             );
           }
           return (
-            <DropdownMenuItem key={`${action.label}-${index}`} onSelect={action.onSelect}>
+            <DropdownMenuItem
+              key={`${action.label}-${index}`}
+              onSelect={action.onSelect}
+            >
               {content}
             </DropdownMenuItem>
           );
@@ -148,7 +156,9 @@ function SidebarSectionHeader({
       </DropdownMenuContent>
     </DropdownMenu>
   ) : (
-    <div className="inline-flex min-w-0 max-w-full items-center px-1 py-0.5">{headerContent}</div>
+    <div className="inline-flex min-w-0 max-w-full items-center px-1 py-0.5">
+      {headerContent}
+    </div>
   );
 
   return (
@@ -160,7 +170,9 @@ function SidebarSectionHeader({
               type="button"
               data-slot="icon-button"
               className="absolute -left-4 flex h-5 w-5 items-center justify-center rounded-sm outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-              aria-label={collapsible.open ? `Collapse ${label}` : `Expand ${label}`}
+              aria-label={
+                collapsible.open ? `Collapse ${label}` : `Expand ${label}`
+              }
             >
               <ChevronRight className={caretClassName} aria-hidden="true" />
             </button>
@@ -193,7 +205,9 @@ export function SidebarSection({
   const { collapsed, peeking } = useSidebar();
   const forceExpanded = useSidebarNavExpanded();
   const rail = collapsed && !peeking && !forceExpanded;
-  const content = <div className="flex flex-col gap-0.5 mt-0.5">{children}</div>;
+  const content = (
+    <div className="flex flex-col gap-0.5 mt-0.5">{children}</div>
+  );
 
   // Collapsed rail: the section header would only show a clipped sliver of its
   // label, so replace it with a thin divider. The label stays in the a11y tree,
@@ -220,7 +234,10 @@ export function SidebarSection({
 
   if (collapsible) {
     return (
-      <Collapsible open={collapsible.open} onOpenChange={collapsible.onOpenChange}>
+      <Collapsible
+        open={collapsible.open}
+        onOpenChange={collapsible.onOpenChange}
+      >
         <SidebarSectionHeader
           label={label}
           collapsible={collapsible}
@@ -234,7 +251,11 @@ export function SidebarSection({
 
   return (
     <div>
-      <SidebarSectionHeader label={label} menu={menu} headerAction={headerAction} />
+      <SidebarSectionHeader
+        label={label}
+        menu={menu}
+        headerAction={headerAction}
+      />
       {content}
     </div>
   );

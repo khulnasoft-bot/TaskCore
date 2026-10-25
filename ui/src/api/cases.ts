@@ -1,4 +1,8 @@
-import type { DocumentRevision, IssueDocument, IssueLabel } from "@taskcore/shared";
+import type {
+  DocumentRevision,
+  IssueDocument,
+  IssueLabel,
+} from "@taskcore/shared";
 import { api } from "./client";
 
 // -----------------------------------------------------------------------------
@@ -17,7 +21,10 @@ export const CASE_STATUSES = [
 export type CaseStatus = (typeof CASE_STATUSES)[number];
 
 /** Statuses hidden by the list's default `Active` filter. */
-export const TERMINAL_CASE_STATUSES: readonly CaseStatus[] = ["done", "cancelled"];
+export const TERMINAL_CASE_STATUSES: readonly CaseStatus[] = [
+  "done",
+  "cancelled",
+];
 
 export type CaseLinkRole = "origin" | "work" | "reference";
 
@@ -222,7 +229,11 @@ export interface ListCasesParams {
   limit?: number;
 }
 
-function appendAll(search: URLSearchParams, key: string, values: readonly string[] | undefined) {
+function appendAll(
+  search: URLSearchParams,
+  key: string,
+  values: readonly string[] | undefined,
+) {
   for (const value of values ?? []) search.append(key, value);
 }
 
@@ -249,7 +260,11 @@ export interface PatchCaseInput {
   labelIds?: string[];
 }
 
-export function caseDocumentToIssueDocument(caseId: string, key: string, document: CaseDocument): IssueDocument {
+export function caseDocumentToIssueDocument(
+  caseId: string,
+  key: string,
+  document: CaseDocument,
+): IssueDocument {
   return {
     id: document.id,
     companyId: document.companyId,
@@ -273,7 +288,11 @@ export function caseDocumentToIssueDocument(caseId: string, key: string, documen
   };
 }
 
-export function caseRevisionToDocumentRevision(caseId: string, key: string, revision: CaseDocumentRevision): DocumentRevision {
+export function caseRevisionToDocumentRevision(
+  caseId: string,
+  key: string,
+  revision: CaseDocumentRevision,
+): DocumentRevision {
   return {
     id: revision.id,
     companyId: revision.companyId ?? "",
@@ -294,39 +313,66 @@ export function caseRevisionToDocumentRevision(caseId: string, key: string, revi
 export const casesApi = {
   list: (companyId: string, params: ListCasesParams = {}) =>
     api.get<CaseSummary[]>(`/companies/${companyId}/cases${toQuery(params)}`),
-  get: (idOrIdentifier: string) => api.get<CaseDetail>(`/cases/${idOrIdentifier}`),
+  get: (idOrIdentifier: string) =>
+    api.get<CaseDetail>(`/cases/${idOrIdentifier}`),
   patch: (idOrIdentifier: string, input: PatchCaseInput) =>
     api.patch<CaseDetail>(`/cases/${idOrIdentifier}`, input),
   listEvents: (idOrIdentifier: string, limit = 100) =>
     api.get<CaseEvent[]>(`/cases/${idOrIdentifier}/events?limit=${limit}`),
   listChildren: (companyId: string, parentId: string) =>
-    api.get<CaseSummary[]>(`/companies/${companyId}/cases${toQuery({ parent: parentId, limit: 200 })}`),
+    api.get<CaseSummary[]>(
+      `/companies/${companyId}/cases${toQuery({ parent: parentId, limit: 200 })}`,
+    ),
   getDocument: (idOrIdentifier: string, key: string) =>
-    api.get<CaseDocument & { key: string; body: string }>(`/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}`),
+    api.get<CaseDocument & { key: string; body: string }>(
+      `/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}`,
+    ),
   upsertDocument: (
     idOrIdentifier: string,
     key: string,
-    data: { title?: string | null; format?: string; body: string; baseRevisionId?: string | null },
+    data: {
+      title?: string | null;
+      format?: string;
+      body: string;
+      baseRevisionId?: string | null;
+    },
   ) =>
-    api.put<{ document: CaseDocument & { key: string; body: string }; revision: CaseDocumentRevision }>(
-      `/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}`,
-      data,
-    ),
+    api.put<{
+      document: CaseDocument & { key: string; body: string };
+      revision: CaseDocumentRevision;
+    }>(`/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}`, data),
   lockDocument: (idOrIdentifier: string, key: string) =>
-    api.post<CaseDocument & { key: string; body: string }>(`/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/lock`, {}),
+    api.post<CaseDocument & { key: string; body: string }>(
+      `/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/lock`,
+      {},
+    ),
   unlockDocument: (idOrIdentifier: string, key: string) =>
-    api.post<CaseDocument & { key: string; body: string }>(`/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/unlock`, {}),
-  restoreDocumentRevision: (idOrIdentifier: string, key: string, revisionId: string) =>
+    api.post<CaseDocument & { key: string; body: string }>(
+      `/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/unlock`,
+      {},
+    ),
+  restoreDocumentRevision: (
+    idOrIdentifier: string,
+    key: string,
+    revisionId: string,
+  ) =>
     api.post<{
       document: CaseDocument & { key: string; body: string };
       revision: CaseDocumentRevision;
       restoredFromRevisionId: string;
       restoredFromRevisionNumber: number;
-    }>(`/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/revisions/${revisionId}/restore`, {}),
+    }>(
+      `/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/revisions/${revisionId}/restore`,
+      {},
+    ),
   deleteDocument: (idOrIdentifier: string, key: string) =>
-    api.delete<{ ok: true }>(`/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}`),
+    api.delete<{ ok: true }>(
+      `/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}`,
+    ),
   listRevisions: (idOrIdentifier: string, key: string) =>
-    api.get<CaseDocumentRevisions>(`/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/revisions`),
+    api.get<CaseDocumentRevisions>(
+      `/cases/${idOrIdentifier}/documents/${encodeURIComponent(key)}/revisions`,
+    ),
   listForIssue: (issueIdOrIdentifier: string) =>
     api.get<IssueCaseLink[]>(`/issues/${issueIdOrIdentifier}/cases`),
 };

@@ -1,4 +1,7 @@
-import { buildAdapterEnvConfig, type CreateConfigValues } from "@taskcore/adapter-utils";
+import {
+  buildAdapterEnvConfig,
+  type CreateConfigValues,
+} from "@taskcore/adapter-utils";
 
 function parseCommaArgs(value: string): string[] {
   return value
@@ -7,7 +10,9 @@ function parseCommaArgs(value: string): string[] {
     .filter(Boolean);
 }
 
-export function buildOpenCodeLocalConfig(v: CreateConfigValues): Record<string, unknown> {
+export function buildOpenCodeLocalConfig(
+  v: CreateConfigValues,
+): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.cwd) ac.cwd = v.cwd;
   if (v.instructionsFilePath) ac.instructionsFilePath = v.instructionsFilePath;

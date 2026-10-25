@@ -1,6 +1,4 @@
-import {
-  CapabilityMockControlPlaneAdapter,
-} from "../mock-core/capability-mock-control-plane-adapter.js";
+import { CapabilityMockControlPlaneAdapter } from "../mock-core/capability-mock-control-plane-adapter.js";
 import type {
   CapabilityFixtureSeed,
   CapabilityFixtureState,
@@ -138,13 +136,19 @@ export const CAPABILITY_HIGH_RISK_SEMANTIC_VECTORS = Object.freeze([
     id: "terminal-with-dependency",
     worldId: "terminal-blocked",
     operationId: "finish_task",
-    input: { idempotencyKey: "terminal-with-dependency", summary: "Independent work is complete." },
+    input: {
+      idempotencyKey: "terminal-with-dependency",
+      summary: "Independent work is complete.",
+    },
   },
   {
     id: "terminal-finish",
     worldId: "terminal",
     operationId: "finish_task",
-    input: { idempotencyKey: "terminal-finish", summary: "Semantic work complete." },
+    input: {
+      idempotencyKey: "terminal-finish",
+      summary: "Semantic work complete.",
+    },
   },
 ] as const satisfies readonly SemanticConformanceVector[]);
 
@@ -179,7 +183,10 @@ export class CapabilityMockSemanticConformanceAdapter implements SemanticConform
       await port.openFixtureRun(world.run);
       opened.set(world.id, {
         port,
-        dispatcher: new CapabilitySemanticDispatcher(port, world.dispatcherOptions),
+        dispatcher: new CapabilitySemanticDispatcher(
+          port,
+          world.dispatcherOptions,
+        ),
         runId: world.run.identity.runId,
         taskId: world.run.identity.issueId,
       });
@@ -187,10 +194,13 @@ export class CapabilityMockSemanticConformanceAdapter implements SemanticConform
     return new CapabilityMockSemanticConformanceAdapter(opened);
   }
 
-  async execute(vector: SemanticConformanceVector): Promise<SemanticConformanceObservation> {
+  async execute(
+    vector: SemanticConformanceVector,
+  ): Promise<SemanticConformanceObservation> {
     const worldId = vector.worldId ?? "default";
     const world = this.worlds.get(worldId);
-    if (world === undefined) throw new Error(`semantic_conformance_world_missing:${worldId}`);
+    if (world === undefined)
+      throw new Error(`semantic_conformance_world_missing:${worldId}`);
     const before = world.port.snapshot();
     const result = await world.dispatcher.dispatch({
       runId: world.runId,
@@ -246,14 +256,19 @@ export function normalizeCapabilitySemanticObservation(input: {
 }): SemanticConformanceObservation {
   const { result, before, after, taskId } = input;
   const run = after.runs.find((candidate) => candidate.taskId === taskId);
-  if (run === undefined) throw new Error(`semantic_conformance_run_missing:${taskId}`);
+  if (run === undefined)
+    throw new Error(`semantic_conformance_run_missing:${taskId}`);
   const idempotencyKey = idempotencyKeyFrom(input.semanticInput);
-  const disposition = result.ok && isRecord(result.result) ? result.result.disposition : undefined;
-  const code = result.ok && disposition === "duplicate"
-    ? "duplicate"
-    : result.ok
-      ? "ok"
-      : result.denial.controlPlaneCode ?? result.denial.code;
+  const disposition =
+    result.ok && isRecord(result.result)
+      ? result.result.disposition
+      : undefined;
+  const code =
+    result.ok && disposition === "duplicate"
+      ? "duplicate"
+      : result.ok
+        ? "ok"
+        : (result.denial.controlPlaneCode ?? result.denial.code);
   const effects = result.ok ? normalizeEffects(result.result) : [];
   const authorization = result.ok
     ? { outcome: "allowed" as const }
@@ -296,9 +311,10 @@ export function normalizeCapabilitySemanticObservation(input: {
     authorization,
     state: projectSemanticState(after, taskId),
     effects,
-    audit: after.audit.length > before.audit.length
-      ? [{ outcome: "recorded" as const }]
-      : [],
+    audit:
+      after.audit.length > before.audit.length
+        ? [{ outcome: "recorded" as const }]
+        : [],
     receipt: {
       schema: receipt.schema,
       schemaVersion: receipt.schemaVersion,
@@ -323,7 +339,8 @@ function projectSemanticState(
   taskId: string,
 ): SemanticConformanceJsonValue {
   const task = state.tasks.find((candidate) => candidate.id === taskId);
-  if (task === undefined) throw new Error(`semantic_conformance_task_missing:${taskId}`);
+  if (task === undefined)
+    throw new Error(`semantic_conformance_task_missing:${taskId}`);
   return {
     task: { status: task.status },
     comments: state.comments
@@ -334,7 +351,10 @@ function projectSemanticState(
       .map((document) => ({
         key: document.key,
         title: document.title,
-        body: document.revisions.find((revision) => revision.id === document.latestRevisionId)?.body ?? "",
+        body:
+          document.revisions.find(
+            (revision) => revision.id === document.latestRevisionId,
+          )?.body ?? "",
         revisionCount: document.revisions.length,
       }))
       .sort((left, right) => left.key.localeCompare(right.key)),
@@ -359,23 +379,33 @@ function projectSemanticState(
 function normalizeEffects(
   result: unknown,
 ): readonly SemanticConformanceJsonValue[] {
-  if (typeof result !== "object" || result === null || Array.isArray(result)) return [];
+  if (typeof result !== "object" || result === null || Array.isArray(result))
+    return [];
   const record = result as Record<string, unknown>;
   const entityRefs = Array.isArray(record.entityRefs)
-    ? record.entityRefs.filter((value): value is string => typeof value === "string")
+    ? record.entityRefs.filter(
+        (value): value is string => typeof value === "string",
+      )
     : [];
-  const scheduledWakeIds = Array.isArray(record.scheduledWakeIds) ? record.scheduledWakeIds : [];
-  return [{
-    disposition:
-      typeof record.disposition === "string" ? record.disposition : null,
-    entityKinds: [...new Set(entityRefs.map((reference) => reference.split(":", 1)[0]))].sort(),
-    scheduledWakeCount: scheduledWakeIds.length,
-  }];
+  const scheduledWakeIds = Array.isArray(record.scheduledWakeIds)
+    ? record.scheduledWakeIds
+    : [];
+  return [
+    {
+      disposition:
+        typeof record.disposition === "string" ? record.disposition : null,
+      entityKinds: [
+        ...new Set(entityRefs.map((reference) => reference.split(":", 1)[0])),
+      ].sort(),
+      scheduledWakeCount: scheduledWakeIds.length,
+    },
+  ];
 }
 
 function idempotencyKeyFrom(value: unknown): string | null {
   if (!isRecord(value)) return null;
-  return typeof value.idempotencyKey === "string" && value.idempotencyKey.length > 0
+  return typeof value.idempotencyKey === "string" &&
+    value.idempotencyKey.length > 0
     ? value.idempotencyKey
     : null;
 }
@@ -412,31 +442,46 @@ function mockWorld(
   return {
     id,
     seed: {
-      company: { id: ids.companyId, name: "Semantic Conformance", issuePrefix: "SCF" },
-      actors: [{
-        id: ids.actorId,
-        companyId: ids.companyId,
-        name: "Conformance Engineer",
-        role: "approver",
-        status: "active",
-        budgetId: `budget-${id}`,
-        capabilityGrants: capabilities,
-      }],
-      tasks: blockerTaskId === undefined
-        ? [activeTask]
-        : [activeTask, {
-            ...activeTask,
-            id: blockerTaskId,
-            identifier: "SCF-blocker",
-            title: "Unresolved semantic blocker",
-            assigneeActorId: null,
-          }],
-      blockers: blockerTaskId === undefined ? [] : [{
-        id: "fixture-blocker-terminal",
-        taskId,
-        blockedByTaskId: blockerTaskId,
-        createdAt: "2026-08-09T00:00:00.000Z",
-      }],
+      company: {
+        id: ids.companyId,
+        name: "Semantic Conformance",
+        issuePrefix: "SCF",
+      },
+      actors: [
+        {
+          id: ids.actorId,
+          companyId: ids.companyId,
+          name: "Conformance Engineer",
+          role: "approver",
+          status: "active",
+          budgetId: `budget-${id}`,
+          capabilityGrants: capabilities,
+        },
+      ],
+      tasks:
+        blockerTaskId === undefined
+          ? [activeTask]
+          : [
+              activeTask,
+              {
+                ...activeTask,
+                id: blockerTaskId,
+                identifier: "SCF-blocker",
+                title: "Unresolved semantic blocker",
+                assigneeActorId: null,
+              },
+            ],
+      blockers:
+        blockerTaskId === undefined
+          ? []
+          : [
+              {
+                id: "fixture-blocker-terminal",
+                taskId,
+                blockedByTaskId: blockerTaskId,
+                createdAt: "2026-08-09T00:00:00.000Z",
+              },
+            ],
       outOfScopeTaskIds,
     },
     run: {

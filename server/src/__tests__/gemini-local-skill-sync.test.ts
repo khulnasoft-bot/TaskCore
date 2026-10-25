@@ -16,7 +16,11 @@ describe("gemini local skill sync", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -38,10 +42,18 @@ describe("gemini local skill sync", () => {
     const before = await listGeminiSkills(ctx);
     expect(before.mode).toBe("persistent");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("missing");
+    expect(
+      before.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("missing");
 
     const after = await syncGeminiSkills(ctx, [taskcoreKey]);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".gemini", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
+    expect(
+      after.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("installed");
+    expect(
+      (
+        await fs.lstat(path.join(home, ".gemini", "skills", "taskcore"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   });
 });

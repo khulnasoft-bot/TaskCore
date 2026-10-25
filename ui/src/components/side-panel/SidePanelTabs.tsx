@@ -96,10 +96,12 @@ function SortableSidePanelTab({
         closable={tab.closable}
         disabled={tab.disabled}
         tabRef={sortable.setActivatorNodeRef}
-        dragHandleProps={{
-          ...sortable.attributes,
-          ...sortable.listeners,
-        } as ButtonHTMLAttributes<HTMLButtonElement>}
+        dragHandleProps={
+          {
+            ...sortable.attributes,
+            ...sortable.listeners,
+          } as ButtonHTMLAttributes<HTMLButtonElement>
+        }
         onSelect={onSelect}
         onClose={onClose}
         onAuxClick={onAuxClick}
@@ -141,25 +143,36 @@ export function SidePanelTabs({
   const addControlRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
   const tabIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
 
   function findTabElement(tabId: string, selector: "wrapper" | "target") {
-    const attribute = selector === "wrapper"
-      ? "data-side-panel-tab-wrapper"
-      : "data-side-panel-tab-target";
-    return Array.from(
-      scrollRef.current?.querySelectorAll<HTMLElement>(`[${attribute}]`) ?? [],
-    ).find((element) => element.getAttribute(attribute) === tabId) ?? null;
+    const attribute =
+      selector === "wrapper"
+        ? "data-side-panel-tab-wrapper"
+        : "data-side-panel-tab-target";
+    return (
+      Array.from(
+        scrollRef.current?.querySelectorAll<HTMLElement>(`[${attribute}]`) ??
+          [],
+      ).find((element) => element.getAttribute(attribute) === tabId) ?? null
+    );
   }
 
   useEffect(() => {
     if (!activeTabId) return;
     const element = findTabElement(activeTabId, "wrapper");
-    const reducedMotion = typeof window.matchMedia === "function"
-      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    element?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "nearest", inline: "nearest" });
+    const reducedMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element?.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
     // `findTabElement` only reads the committed tab DOM for this active id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabId]);
@@ -171,12 +184,16 @@ export function SidePanelTabs({
       return;
     }
     const updateEndFade = () => {
-      const remainingScroll = element.scrollWidth - element.clientWidth - element.scrollLeft;
+      const remainingScroll =
+        element.scrollWidth - element.clientWidth - element.scrollLeft;
       setShowEndFade(remainingScroll > 1);
     };
     updateEndFade();
     element.addEventListener("scroll", updateEndFade, { passive: true });
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateEndFade);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateEndFade);
     observer?.observe(element);
     if (element.firstElementChild) observer?.observe(element.firstElementChild);
     return () => {
@@ -189,7 +206,11 @@ export function SidePanelTabs({
     window.requestAnimationFrame(() => {
       if (!tabId) {
         addButtonRef.current?.focus();
-        addControlRef.current?.querySelector<HTMLElement>("button, [href], input, [tabindex]:not([tabindex='-1'])")?.focus();
+        addControlRef.current
+          ?.querySelector<HTMLElement>(
+            "button, [href], input, [tabindex]:not([tabindex='-1'])",
+          )
+          ?.focus();
         return;
       }
       const tab = findTabElement(tabId, "target") as HTMLButtonElement | null;
@@ -201,14 +222,23 @@ export function SidePanelTabs({
     const index = tabIds.indexOf(tabId);
     const nextFocus = tabIds[index + 1] ?? tabIds[index - 1] ?? null;
     onCloseTab(tabId);
-    setAnnouncement(nextFocus ? "Tab closed." : "Last tab closed. Choose something to open.");
+    setAnnouncement(
+      nextFocus ? "Tab closed." : "Last tab closed. Choose something to open.",
+    );
     focusTab(nextFocus);
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, tabId: string) {
+  function handleKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    tabId: string,
+  ) {
     const index = tabIds.indexOf(tabId);
     if (index < 0) return;
-    if (event.altKey && event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+    if (
+      event.altKey &&
+      event.shiftKey &&
+      (event.key === "ArrowLeft" || event.key === "ArrowRight")
+    ) {
       if (!onReorderTabs) return;
       event.preventDefault();
       const target = event.key === "ArrowLeft" ? index - 1 : index + 1;
@@ -217,19 +247,22 @@ export function SidePanelTabs({
       const [moved] = ordered.splice(index, 1);
       ordered.splice(target, 0, moved!);
       onReorderTabs(ordered);
-      setAnnouncement(`Moved ${tabs[index]?.label ?? "tab"} to position ${target + 1} of ${tabs.length}.`);
+      setAnnouncement(
+        `Moved ${tabs[index]?.label ?? "tab"} to position ${target + 1} of ${tabs.length}.`,
+      );
       focusTab(tabId);
       return;
     }
-    const targetIndex = event.key === "ArrowLeft"
-      ? Math.max(0, index - 1)
-      : event.key === "ArrowRight"
-        ? Math.min(tabIds.length - 1, index + 1)
-        : event.key === "Home"
-          ? 0
-          : event.key === "End"
-            ? tabIds.length - 1
-            : -1;
+    const targetIndex =
+      event.key === "ArrowLeft"
+        ? Math.max(0, index - 1)
+        : event.key === "ArrowRight"
+          ? Math.min(tabIds.length - 1, index + 1)
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? tabIds.length - 1
+              : -1;
     if (targetIndex < 0 || targetIndex === index) return;
     event.preventDefault();
     const targetId = tabIds[targetIndex]!;
@@ -238,7 +271,8 @@ export function SidePanelTabs({
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    if (!onReorderTabs || !event.over || event.active.id === event.over.id) return;
+    if (!onReorderTabs || !event.over || event.active.id === event.over.id)
+      return;
     const from = tabIds.indexOf(String(event.active.id));
     const to = tabIds.indexOf(String(event.over.id));
     if (from < 0 || to < 0) return;
@@ -246,20 +280,26 @@ export function SidePanelTabs({
     const [moved] = ordered.splice(from, 1);
     ordered.splice(to, 0, moved!);
     onReorderTabs(ordered);
-    setAnnouncement(`Moved ${tabs[from]?.label ?? "tab"} to position ${to + 1} of ${tabs.length}.`);
+    setAnnouncement(
+      `Moved ${tabs[from]?.label ?? "tab"} to position ${to + 1} of ${tabs.length}.`,
+    );
   }
 
   return (
-    <div className={cn(
-      "flex min-w-0 flex-1 items-center",
-      appearance === "streamlined-task" ? "gap-0" : "gap-1",
-      className,
-    )}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-1 items-center",
+        appearance === "streamlined-task" ? "gap-0" : "gap-1",
+        className,
+      )}
+    >
       <div
         ref={scrollRef}
         role="tablist"
         aria-orientation="horizontal"
-        data-scroll-end-fade={appearance === "streamlined-task" && showEndFade ? "true" : undefined}
+        data-scroll-end-fade={
+          appearance === "streamlined-task" && showEndFade ? "true" : undefined
+        }
         className={cn(
           "side-panel-tabs-scroll min-w-0 flex-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           appearance === "streamlined-task"
@@ -267,16 +307,25 @@ export function SidePanelTabs({
             : "overflow-x-auto",
         )}
       >
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
-            <div className={cn(
-              "flex items-center",
-              appearance === "streamlined-task"
-                ? tabs.length === 1
-                  ? "w-full gap-0"
-                  : "w-max min-w-full gap-0"
-                : "min-w-max gap-1 py-1",
-            )}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={tabIds}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div
+              className={cn(
+                "flex items-center",
+                appearance === "streamlined-task"
+                  ? tabs.length === 1
+                    ? "w-full gap-0"
+                    : "w-max min-w-full gap-0"
+                  : "min-w-max gap-1 py-1",
+              )}
+            >
               {tabs.map((tab, index) => (
                 <SortableSidePanelTab
                   key={tab.id}
@@ -289,9 +338,9 @@ export function SidePanelTabs({
                   showLeadingSeparator={
                     appearance === "streamlined-task"
                       ? index > 0
-                      : index > 0
-                        && tab.id !== activeTabId
-                        && tabs[index - 1]?.id !== activeTabId
+                      : index > 0 &&
+                        tab.id !== activeTabId &&
+                        tabs[index - 1]?.id !== activeTabId
                   }
                   onSelect={() => onActiveTabChange(tab.id)}
                   onClose={() => closeTab(tab.id)}
@@ -307,7 +356,11 @@ export function SidePanelTabs({
           </SortableContext>
         </DndContext>
       </div>
-      {addControl ? <div ref={addControlRef} className="shrink-0">{addControl}</div> : (onAddTab ? (
+      {addControl ? (
+        <div ref={addControlRef} className="shrink-0">
+          {addControl}
+        </div>
+      ) : onAddTab ? (
         <Button
           ref={addButtonRef}
           type="button"
@@ -325,8 +378,10 @@ export function SidePanelTabs({
         >
           <Plus aria-hidden />
         </Button>
-      ) : null)}
-      <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
+      ) : null}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </div>
     </div>
   );
 }

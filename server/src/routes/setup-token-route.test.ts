@@ -65,7 +65,13 @@ const FULL_LOGIN_URL =
   `&state=${URL_STATE_QUERY}`;
 const SANITIZED_LOGIN_URL = "https://claude.com/cai/oauth/authorize";
 
-const SECRET_MARKERS = [BROWSER_CODE, URL_CODE_QUERY, URL_STATE_QUERY, MINTED_TOKEN, "TOKENSECRETxyz789"];
+const SECRET_MARKERS = [
+  BROWSER_CODE,
+  URL_CODE_QUERY,
+  URL_STATE_QUERY,
+  MINTED_TOKEN,
+  "TOKENSECRETxyz789",
+];
 
 function expectNoSecret(text: string): void {
   for (const marker of SECRET_MARKERS) {
@@ -90,7 +96,10 @@ const mockEnvironmentService = vi.hoisted(() => ({
 const mockResolvePluginSandboxProviderDriverByKey = vi.hoisted(() => vi.fn());
 const mockLogActivity = vi.hoisted(() => vi.fn());
 const mockHeartbeatService = vi.hoisted(() => ({ wakeup: vi.fn() }));
-const mockIssueService = vi.hoisted(() => ({ getById: vi.fn(), getByIdentifier: vi.fn() }));
+const mockIssueService = vi.hoisted(() => ({
+  getById: vi.fn(),
+  getByIdentifier: vi.fn(),
+}));
 const mockInstanceSettingsService = vi.hoisted(() => ({
   get: vi.fn(),
   getExperimental: vi.fn(),
@@ -98,7 +107,9 @@ const mockInstanceSettingsService = vi.hoisted(() => ({
   listCompanyIds: vi.fn(),
 }));
 const mockRunSecretRedactionRegistry = vi.hoisted(() => ({
-  redactForRun: vi.fn(async (_companyId: string, _runId: string, value: unknown) => value),
+  redactForRun: vi.fn(
+    async (_companyId: string, _runId: string, value: unknown) => value,
+  ),
 }));
 // The narrow secrets service the status route calls. The route reads only
 // `readClaudeOAuthUserSecretStatus`; a test drives its result to prove the route
@@ -122,31 +133,40 @@ const CLAUDE_LOGIN_CAPABILITY = {
 } as const;
 
 function registerModuleMocks(): void {
-  vi.doMock("../routes/authz.js", async () => vi.importActual("../routes/authz.js"));
+  vi.doMock("../routes/authz.js", async () =>
+    vi.importActual("../routes/authz.js"),
+  );
   vi.doMock("../services/secrets.js", async () => {
-    const actual = await vi.importActual<typeof import("../services/secrets.js")>(
-      "../services/secrets.js",
-    );
+    const actual = await vi.importActual<
+      typeof import("../services/secrets.js")
+    >("../services/secrets.js");
     return { ...actual, secretService: () => mockSecretService };
   });
-  vi.doMock("../services/agents.js", () => ({ agentService: () => mockAgentService }));
+  vi.doMock("../services/agents.js", () => ({
+    agentService: () => mockAgentService,
+  }));
   vi.doMock("../services/environments.js", () => ({
     environmentService: () => mockEnvironmentService,
   }));
   vi.doMock("../services/plugin-environment-driver.js", async () => {
-    const actual = await vi.importActual<typeof import("../services/plugin-environment-driver.js")>(
-      "../services/plugin-environment-driver.js",
-    );
+    const actual = await vi.importActual<
+      typeof import("../services/plugin-environment-driver.js")
+    >("../services/plugin-environment-driver.js");
     return {
       ...actual,
-      resolvePluginSandboxProviderDriverByKey: mockResolvePluginSandboxProviderDriverByKey,
+      resolvePluginSandboxProviderDriverByKey:
+        mockResolvePluginSandboxProviderDriverByKey,
     };
   });
-  vi.doMock("../services/heartbeat.js", () => ({ heartbeatService: () => mockHeartbeatService }));
+  vi.doMock("../services/heartbeat.js", () => ({
+    heartbeatService: () => mockHeartbeatService,
+  }));
   vi.doMock("../services/instance-settings.js", () => ({
     instanceSettingsService: () => mockInstanceSettingsService,
   }));
-  vi.doMock("../services/issues.js", () => ({ issueService: () => mockIssueService }));
+  vi.doMock("../services/issues.js", () => ({
+    issueService: () => mockIssueService,
+  }));
   vi.doMock("../services/run-secret-redaction.js", () => ({
     createRunSecretRedactionRegistry: () => mockRunSecretRedactionRegistry,
   }));
@@ -172,7 +192,9 @@ function registerModuleMocks(): void {
     issueService: () => mockIssueService,
     logActivity: mockLogActivity,
     secretService: () => ({}),
-    syncInstructionsBundleConfigFromFilePath: vi.fn((_agent: unknown, config: unknown) => config),
+    syncInstructionsBundleConfigFromFilePath: vi.fn(
+      (_agent: unknown, config: unknown) => config,
+    ),
     workspaceOperationService: () => ({}),
   }));
   // The start-route guard reads the login capability from the registry. The
@@ -206,7 +228,10 @@ function useOwner(userId: string = OWNER_USER_ID): void {
 // board user with an explicit company allow-list, so `hasCompanyAccess` denies a
 // company that is not on the list. A test uses this actor to prove the
 // cross-company read returns the fixed not-found error, not a membership oracle.
-function useCompanyMember(userId: string = OWNER_USER_ID, companyIds: string[] = [COMPANY_ID]): void {
+function useCompanyMember(
+  userId: string = OWNER_USER_ID,
+  companyIds: string[] = [COMPANY_ID],
+): void {
   currentActor = {
     type: "board",
     userId,
@@ -233,9 +258,10 @@ interface TransportHandle {
   // The overwrite capture the session scope carried on each secret write. A
   // first-write login records null; a confirmed-overwrite login records the
   // captured expected secret id and version.
-  overwriteCaptures: Array<
-    { expectedSecretId: string; expectedLatestVersion: number } | null
-  >;
+  overwriteCaptures: Array<{
+    expectedSecretId: string;
+    expectedLatestVersion: number;
+  } | null>;
   // Every cleanup record the store persisted. A test asserts the route writes no
   // empty environment scope, so a rejected environment never reaches the store.
   records: SetupTokenCleanupRecord[];
@@ -250,7 +276,9 @@ interface TransportHandle {
  * internal error, or leaves the process pending. The lease manager, the store,
  * and the secret writer are in-memory and hold no secret in a durable sink.
  */
-function buildTransport(opts: { onSubmit?: "complete" | "throw" | "pending" } = {}): TransportHandle {
+function buildTransport(
+  opts: { onSubmit?: "complete" | "throw" | "pending" } = {},
+): TransportHandle {
   const mode = opts.onSubmit ?? "complete";
   const submittedCodes: string[] = [];
   // The owner-bound secret writer records only the token it received in memory,
@@ -258,9 +286,10 @@ function buildTransport(opts: { onSubmit?: "complete" | "throw" | "pending" } = 
   // records the overwrite capture from the session scope, so a test proves the
   // start route threads the capture into the immutable scope.
   const secretWrites: string[] = [];
-  const overwriteCaptures: Array<
-    { expectedSecretId: string; expectedLatestVersion: number } | null
-  > = [];
+  const overwriteCaptures: Array<{
+    expectedSecretId: string;
+    expectedLatestVersion: number;
+  } | null> = [];
   const completeCredential: SetupTokenSecretWriter = async (input) => {
     secretWrites.push(input.token);
     overwriteCaptures.push(input.scope.confirmedOverwrite ?? null);
@@ -284,7 +313,12 @@ function buildTransport(opts: { onSubmit?: "complete" | "throw" | "pending" } = 
     },
     async consumeStoredClaim(identity) {
       const row = rows.get(identity.sessionId);
-      if (!row || row.state !== "stored" || row.boundAt !== null || row.deadline <= Date.now()) {
+      if (
+        !row ||
+        row.state !== "stored" ||
+        row.boundAt !== null ||
+        row.deadline <= Date.now()
+      ) {
         return null;
       }
       row.boundAt = Date.now();
@@ -319,7 +353,10 @@ function buildTransport(opts: { onSubmit?: "complete" | "throw" | "pending" } = 
     async releaseById() {},
   };
   const factoryInvocations = { count: 0 };
-  const factory: SetupTokenLoginProcessFactory = ({ onPrompt, onCredential }) => {
+  const factory: SetupTokenLoginProcessFactory = ({
+    onPrompt,
+    onCredential,
+  }) => {
     factoryInvocations.count += 1;
     onPrompt({ url: FULL_LOGIN_URL });
     let resolveDone!: (outcome: SetupTokenLoginOutcome) => void;
@@ -366,22 +403,33 @@ interface AppHandle {
   logLines: string[];
 }
 
-async function createApp(opts: {
-  deploymentMode?: "local_trusted" | "authenticated";
-  confidentialProxyAllowlist?: string[];
-  confidentialEdgeTlsTerminated?: boolean;
-  transport?: TransportHandle;
-} = {}): Promise<AppHandle> {
-  const [{ agentRoutes }, { errorHandler }, pinoModule, pinoHttpModule, redactModule] =
-    await Promise.all([
-      vi.importActual<typeof import("../routes/agents.js")>("../routes/agents.js"),
-      vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
-      vi.importActual<typeof import("pino")>("pino"),
-      vi.importActual<typeof import("pino-http")>("pino-http"),
-      vi.importActual<typeof import("../middleware/redact-sensitive.js")>(
-        "../middleware/redact-sensitive.js",
-      ),
-    ]);
+async function createApp(
+  opts: {
+    deploymentMode?: "local_trusted" | "authenticated";
+    confidentialProxyAllowlist?: string[];
+    confidentialEdgeTlsTerminated?: boolean;
+    transport?: TransportHandle;
+  } = {},
+): Promise<AppHandle> {
+  const [
+    { agentRoutes },
+    { errorHandler },
+    pinoModule,
+    pinoHttpModule,
+    redactModule,
+  ] = await Promise.all([
+    vi.importActual<typeof import("../routes/agents.js")>(
+      "../routes/agents.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
+    vi.importActual<typeof import("pino")>("pino"),
+    vi.importActual<typeof import("pino-http")>("pino-http"),
+    vi.importActual<typeof import("../middleware/redact-sensitive.js")>(
+      "../middleware/redact-sensitive.js",
+    ),
+  ]);
   const { pino } = pinoModule;
   const { pinoHttp } = pinoHttpModule;
   const { redactSensitive } = redactModule;
@@ -402,7 +450,9 @@ async function createApp(opts: {
     logger: captureLogger,
     customProps(req, res) {
       if (res.statusCode < 400) return {};
-      const ctx = (res as unknown as { __errorContext?: Record<string, unknown> }).__errorContext;
+      const ctx = (
+        res as unknown as { __errorContext?: Record<string, unknown> }
+      ).__errorContext;
       if (ctx) {
         return {
           errorContext: ctx.error,
@@ -420,7 +470,11 @@ async function createApp(opts: {
       if (body && typeof body === "object" && Object.keys(body).length > 0) {
         props.reqBody = redactSensitive(body);
       }
-      if (params && typeof params === "object" && Object.keys(params).length > 0) {
+      if (
+        params &&
+        typeof params === "object" &&
+        Object.keys(params).length > 0
+      ) {
         props.reqParams = redactSensitive(params);
       }
       if (query && typeof query === "object" && Object.keys(query).length > 0) {
@@ -474,7 +528,9 @@ beforeEach(() => {
   // `claude_local` and no capability for any other type. A test overrides this to
   // prove the guard reads the capability, not the adapter name.
   mockFindActiveServerAdapter.mockImplementation((type: string) =>
-    type === "claude_local" ? { type, loginCapability: CLAUDE_LOGIN_CAPABILITY } : undefined,
+    type === "claude_local"
+      ? { type, loginCapability: CLAUDE_LOGIN_CAPABILITY }
+      : undefined,
   );
   // The default owner has no stored Claude value. A test overrides this to prove
   // the status route returns the metadata for a present owner value.
@@ -505,7 +561,10 @@ beforeEach(() => {
   mockResolvePluginSandboxProviderDriverByKey.mockImplementation(
     async ({ driverKey }: { driverKey: string }) =>
       driverKey === "daytona"
-        ? { plugin: { id: "plugin-daytona" }, driver: { supportsLoginPty: true } }
+        ? {
+            plugin: { id: "plugin-daytona" },
+            driver: { supportsLoginPty: true },
+          }
         : null,
   );
 });
@@ -523,7 +582,10 @@ const COMPANY_BASE = `/api/companies/${COMPANY_ID}/setup-token-login-sessions`;
 // body names the Claude adapter and the resolved sandbox environment.
 async function startCompanySession(
   app: express.Express,
-  body: Record<string, unknown> = { environmentId: ENVIRONMENT_ID, adapterType: "claude_local" },
+  body: Record<string, unknown> = {
+    environmentId: ENVIRONMENT_ID,
+    adapterType: "claude_local",
+  },
 ): Promise<request.Response> {
   return request(app).post(COMPANY_BASE).send(body);
 }
@@ -550,10 +612,14 @@ describe("company-and-environment setup-token route — full path", () => {
     expectNoSecret(JSON.stringify(startRes.body));
 
     // The store persisted the resolved environment, never an empty value.
-    expect(transport.records.map((r) => r.environmentId)).toEqual([ENVIRONMENT_ID]);
+    expect(transport.records.map((r) => r.environmentId)).toEqual([
+      ENVIRONMENT_ID,
+    ]);
 
     // Read the public status. It carries no prompt and no secret.
-    const statusRes = await request(app).get(`${COMPANY_BASE}/${sessionId}`).send();
+    const statusRes = await request(app)
+      .get(`${COMPANY_BASE}/${sessionId}`)
+      .send();
     expect(statusRes.status, JSON.stringify(statusRes.body)).toBe(200);
     expect(statusRes.body.status).toBe("waiting_for_user");
     expect(statusRes.body.environmentId).toBe(ENVIRONMENT_ID);
@@ -561,7 +627,9 @@ describe("company-and-environment setup-token route — full path", () => {
     expectNoSecret(JSON.stringify(statusRes.body));
 
     // Read the prompt. The owner response carries the full URL, with no-store.
-    const promptRes = await request(app).get(`${COMPANY_BASE}/${sessionId}/prompt`).send();
+    const promptRes = await request(app)
+      .get(`${COMPANY_BASE}/${sessionId}/prompt`)
+      .send();
     expect(promptRes.status, JSON.stringify(promptRes.body)).toBe(200);
     expect(promptRes.body.authorizationUrl).toBe(FULL_LOGIN_URL);
     expect(promptRes.headers["cache-control"]).toBe("no-store");
@@ -583,7 +651,9 @@ describe("company-and-environment setup-token route — full path", () => {
 
     // Read the completion. The owner response carries the non-secret
     // storedSessionId and no token, with no-store.
-    const completionRes = await request(app).post(`${COMPANY_BASE}/${sessionId}/completion`).send();
+    const completionRes = await request(app)
+      .post(`${COMPANY_BASE}/${sessionId}/completion`)
+      .send();
     expect(completionRes.status, JSON.stringify(completionRes.body)).toBe(200);
     expect(completionRes.body.storedSessionId).toBe(sessionId);
     expect(completionRes.body.token).toBeUndefined();
@@ -615,7 +685,10 @@ describe("company-and-environment setup-token route — object-level authorizati
     const paths: Array<() => request.Test> = [
       () => request(app).get(`${COMPANY_BASE}/${sessionId}`).send(),
       () => request(app).get(`${COMPANY_BASE}/${sessionId}/prompt`).send(),
-      () => request(app).post(`${COMPANY_BASE}/${sessionId}/code`).send({ browserCode: BROWSER_CODE }),
+      () =>
+        request(app)
+          .post(`${COMPANY_BASE}/${sessionId}/code`)
+          .send({ browserCode: BROWSER_CODE }),
       () => request(app).post(`${COMPANY_BASE}/${sessionId}/completion`).send(),
     ];
     for (const call of paths) {
@@ -630,14 +703,18 @@ describe("company-and-environment setup-token route — object-level authorizati
     // identical for a foreign, an already-terminal, and a missing session, so it
     // is not an existence oracle. The route cancels nothing for a foreign id: the
     // scope check throws before the cancel runs, so the session stays active.
-    const cancelRes = await request(app).post(`${COMPANY_BASE}/${sessionId}/cancel`).send();
+    const cancelRes = await request(app)
+      .post(`${COMPANY_BASE}/${sessionId}/cancel`)
+      .send();
     expect(cancelRes.status).toBe(200);
     expectNoSecret(JSON.stringify(cancelRes.body));
 
     // The owner reads the session again. It is still active, so the cross-owner
     // cancel did not terminate it.
     useOwner(OWNER_USER_ID);
-    const ownerStatus = await request(app).get(`${COMPANY_BASE}/${sessionId}`).send();
+    const ownerStatus = await request(app)
+      .get(`${COMPANY_BASE}/${sessionId}`)
+      .send();
     expect(ownerStatus.status).toBe(200);
     expect(ownerStatus.body.status).toBe("waiting_for_user");
 
@@ -655,7 +732,9 @@ describe("company-and-environment setup-token route — object-level authorizati
     // session belongs to the first company, so the read returns the not-found
     // error and never confirms the session across a company boundary.
     const crossCompanyBase = `/api/companies/${OTHER_COMPANY_ID}/setup-token-login-sessions`;
-    const res = await request(app).get(`${crossCompanyBase}/${sessionId}`).send();
+    const res = await request(app)
+      .get(`${crossCompanyBase}/${sessionId}`)
+      .send();
     expect(res.status).toBe(404);
     expect(res.body.error).toBe(SETUP_TOKEN_SESSION_NOT_FOUND);
   });
@@ -675,7 +754,10 @@ describe("company-and-environment setup-token route — object-level authorizati
     // The full login URL rides in this owner response, the same way it rides in
     // the guarded `.../prompt` response — this is not a public, secret-free
     // surface, so it is not checked against `expectNoSecret`.
-    expect(active.body.prompt).toEqual({ authorizationUrl: FULL_LOGIN_URL, transportAdvisory: null });
+    expect(active.body.prompt).toEqual({
+      authorizationUrl: FULL_LOGIN_URL,
+      transportAdvisory: null,
+    });
     expect(active.headers["cache-control"]).toBe("no-store, private");
   });
 
@@ -699,7 +781,9 @@ describe("company-and-environment setup-token route — object-level authorizati
 
     // The same owner under a different company holds no active session there.
     const crossCompanyBase = `/api/companies/${OTHER_COMPANY_ID}/setup-token-login-sessions`;
-    const otherCompany = await request(app).get(`${crossCompanyBase}/active`).send();
+    const otherCompany = await request(app)
+      .get(`${crossCompanyBase}/active`)
+      .send();
     expect(otherCompany.status).toBe(404);
     expect(otherCompany.body.error).toBe(SETUP_TOKEN_SESSION_NOT_FOUND);
   });
@@ -722,8 +806,12 @@ describe("company-and-environment setup-token route — object-level authorizati
     const paths: Array<() => request.Test> = [
       () => request(app).get(`${crossCompanyBase}/${sessionId}`).send(),
       () => request(app).get(`${crossCompanyBase}/${sessionId}/prompt`).send(),
-      () => request(app).post(`${crossCompanyBase}/${sessionId}/code`).send({ browserCode: BROWSER_CODE }),
-      () => request(app).post(`${crossCompanyBase}/${sessionId}/completion`).send(),
+      () =>
+        request(app)
+          .post(`${crossCompanyBase}/${sessionId}/code`)
+          .send({ browserCode: BROWSER_CODE }),
+      () =>
+        request(app).post(`${crossCompanyBase}/${sessionId}/completion`).send(),
       () => request(app).post(`${crossCompanyBase}/${sessionId}/cancel`).send(),
     ];
     for (const call of paths) {
@@ -769,7 +857,10 @@ describe("company-and-environment setup-token route — object-level authorizati
       type === "gemini_local"
         ? {
             type,
-            loginCapability: { ...CLAUDE_LOGIN_CAPABILITY, panelMode: "displayed_code" },
+            loginCapability: {
+              ...CLAUDE_LOGIN_CAPABILITY,
+              panelMode: "displayed_code",
+            },
           }
         : undefined,
     );
@@ -781,7 +872,9 @@ describe("company-and-environment setup-token route — object-level authorizati
       adapterType: "gemini_local",
     });
     expect(res.status, JSON.stringify(res.body)).toBe(400);
-    expect(res.body.error).toBe("This adapter does not support a setup-token login.");
+    expect(res.body.error).toBe(
+      "This adapter does not support a setup-token login.",
+    );
     // The route rejected the adapter before any sandbox, lease, or store side
     // effect: no cleanup record, no lease acquire, no pseudo-terminal start, and
     // no environment or provider guard call.
@@ -801,19 +894,25 @@ describe("company-and-environment setup-token route — idempotent cancel", () =
     const sessionId = startRes.body.sessionId as string;
 
     // The first cancel terminates the active session and returns success.
-    const firstCancel = await request(app).post(`${COMPANY_BASE}/${sessionId}/cancel`).send();
+    const firstCancel = await request(app)
+      .post(`${COMPANY_BASE}/${sessionId}/cancel`)
+      .send();
     expect(firstCancel.status).toBe(200);
     expect(firstCancel.headers["cache-control"]).toBe("no-store");
     await settle();
 
     // The server removed the terminal session, so the status read now returns the
     // not-found error. This is the state the panel used to poll forever.
-    const statusRes = await request(app).get(`${COMPANY_BASE}/${sessionId}`).send();
+    const statusRes = await request(app)
+      .get(`${COMPANY_BASE}/${sessionId}`)
+      .send();
     expect(statusRes.status).toBe(404);
 
     // The repeat cancel finds no record. It returns the same 200 success instead
     // of a hard 404, so the client can stop the poll.
-    const repeatCancel = await request(app).post(`${COMPANY_BASE}/${sessionId}/cancel`).send();
+    const repeatCancel = await request(app)
+      .post(`${COMPANY_BASE}/${sessionId}/cancel`)
+      .send();
     expect(repeatCancel.status).toBe(200);
     expect(repeatCancel.headers["cache-control"]).toBe("no-store");
     expectNoSecret(JSON.stringify(repeatCancel.body));
@@ -861,10 +960,20 @@ describe("company-and-environment setup-token route — fail-closed environment"
     const { app } = await createApp({ transport });
 
     const cases = [
-      { id: ENVIRONMENT_ID, driver: "sandbox", status: "archived", config: { provider: "kubernetes" } },
+      {
+        id: ENVIRONMENT_ID,
+        driver: "sandbox",
+        status: "archived",
+        config: { provider: "kubernetes" },
+      },
       { id: ENVIRONMENT_ID, driver: "local", status: "active", config: {} },
       { id: ENVIRONMENT_ID, driver: "ssh", status: "active", config: {} },
-      { id: ENVIRONMENT_ID, driver: "sandbox", status: "active", config: { provider: "fake" } },
+      {
+        id: ENVIRONMENT_ID,
+        driver: "sandbox",
+        status: "active",
+        config: { provider: "fake" },
+      },
     ];
     for (const environment of cases) {
       mockEnvironmentService.getById.mockResolvedValueOnce(environment);
@@ -880,11 +989,15 @@ describe("company-and-environment setup-token route — fail-closed environment"
     const { app } = await createApp({ transport });
     // The environment binds to another company only, so the request company does
     // not own it. The guard fails closed before the session starts.
-    mockEnvironmentService.listBoundCompanyIds.mockResolvedValue([OTHER_COMPANY_ID]);
+    mockEnvironmentService.listBoundCompanyIds.mockResolvedValue([
+      OTHER_COMPANY_ID,
+    ]);
 
     const res = await startCompanySession(app);
     expect(res.status).toBe(403);
-    expect(res.body.error).toBe("The selected environment belongs to another company.");
+    expect(res.body.error).toBe(
+      "The selected environment belongs to another company.",
+    );
     // No rejected environment reached the store.
     expect(transport.records).toEqual([]);
   });
@@ -895,7 +1008,10 @@ describe("company-and-environment setup-token route — fail-closed environment"
     // The environment binds to the request company and another company. A shared
     // managed sandbox binds to many companies at once, so a co-owned binding
     // stays open to the request company.
-    mockEnvironmentService.listBoundCompanyIds.mockResolvedValue([OTHER_COMPANY_ID, COMPANY_ID]);
+    mockEnvironmentService.listBoundCompanyIds.mockResolvedValue([
+      OTHER_COMPANY_ID,
+      COMPANY_ID,
+    ]);
 
     const res = await startCompanySession(app);
     expect(res.status).toBe(201);
@@ -934,7 +1050,9 @@ describe("company-and-environment setup-token route — browser-code grammar", (
     const sessionId = startRes.body.sessionId as string;
 
     // A missing code.
-    const missing = await request(app).post(`${COMPANY_BASE}/${sessionId}/code`).send({});
+    const missing = await request(app)
+      .post(`${COMPANY_BASE}/${sessionId}/code`)
+      .send({});
     expect(missing.status).toBe(400);
 
     // An oversized code (one character over the bounded maximum).
@@ -1018,10 +1136,14 @@ describe("company-and-environment setup-token route — advisory transport", () 
 
     // The prompt over plain HTTP surfaces the URL with the advisory. The URL
     // query is the owner-only confidential value, so the body holds it by design.
-    const promptRes = await request(app).get(`${COMPANY_BASE}/${sessionId}/prompt`).send();
+    const promptRes = await request(app)
+      .get(`${COMPANY_BASE}/${sessionId}/prompt`)
+      .send();
     expect(promptRes.status).toBe(200);
     expect(promptRes.body.authorizationUrl).toBe(FULL_LOGIN_URL);
-    expect(promptRes.body.transportAdvisory).toEqual({ code: SETUP_TOKEN_TRANSPORT_ADVISORY_CODE });
+    expect(promptRes.body.transportAdvisory).toEqual({
+      code: SETUP_TOKEN_TRANSPORT_ADVISORY_CODE,
+    });
 
     // The code over plain HTTP proceeds. The code reaches the process and the
     // response carries the advisory.
@@ -1029,7 +1151,9 @@ describe("company-and-environment setup-token route — advisory transport", () 
       .post(`${COMPANY_BASE}/${sessionId}/code`)
       .send({ browserCode: BROWSER_CODE });
     expect(codeRes.status).toBe(200);
-    expect(codeRes.body.transportAdvisory).toEqual({ code: SETUP_TOKEN_TRANSPORT_ADVISORY_CODE });
+    expect(codeRes.body.transportAdvisory).toEqual({
+      code: SETUP_TOKEN_TRANSPORT_ADVISORY_CODE,
+    });
     expect(transport.submittedCodes).toEqual([BROWSER_CODE]);
     expectNoSecret(JSON.stringify(codeRes.body));
   });
@@ -1051,7 +1175,9 @@ describe("company-and-environment setup-token route — advisory transport", () 
     const startRes = await startCompanySession(app);
     const sessionId = startRes.body.sessionId as string;
 
-    const promptRes = await request(app).get(`${COMPANY_BASE}/${sessionId}/prompt`).send();
+    const promptRes = await request(app)
+      .get(`${COMPANY_BASE}/${sessionId}/prompt`)
+      .send();
     expect(promptRes.status).toBe(200);
     expect(promptRes.body.authorizationUrl).toBe(FULL_LOGIN_URL);
     expect(promptRes.body.transportAdvisory).toBeNull();
@@ -1088,10 +1214,9 @@ describe("company-and-environment stored-token status route", () => {
     expect(res.body).toEqual({ secretId: STORED_SECRET_ID, latestVersion: 3 });
     expect(res.headers["cache-control"]).toBe("no-store");
     // The owner comes from the actor, never from the request.
-    expect(mockSecretService.readClaudeOAuthUserSecretStatus).toHaveBeenCalledWith(
-      COMPANY_ID,
-      OWNER_USER_ID,
-    );
+    expect(
+      mockSecretService.readClaudeOAuthUserSecretStatus,
+    ).toHaveBeenCalledWith(COMPANY_ID, OWNER_USER_ID);
     // The response carries no token.
     expectNoSecret(JSON.stringify(res.body));
   });
@@ -1112,7 +1237,9 @@ describe("company-and-environment stored-token status route", () => {
     // not-found as an owner with no value.
     mockSecretService.readClaudeOAuthUserSecretStatus.mockImplementation(
       async (_companyId: string, ownerUserId: string) =>
-        ownerUserId === OWNER_USER_ID ? { secretId: STORED_SECRET_ID, latestVersion: 1 } : null,
+        ownerUserId === OWNER_USER_ID
+          ? { secretId: STORED_SECRET_ID, latestVersion: 1 }
+          : null,
     );
     const { app } = await createApp({});
 
@@ -1139,7 +1266,9 @@ describe("company-and-environment stored-token status route", () => {
     expect(res.body.error).toBe(SETUP_TOKEN_SESSION_NOT_FOUND);
     expect(res.headers["cache-control"]).toBe("no-store");
     // The route never reads the owner value for a non-member.
-    expect(mockSecretService.readClaudeOAuthUserSecretStatus).not.toHaveBeenCalled();
+    expect(
+      mockSecretService.readClaudeOAuthUserSecretStatus,
+    ).not.toHaveBeenCalled();
   });
 });
 
@@ -1151,7 +1280,10 @@ describe("company-and-environment login overwrite capture", () => {
     const startRes = await startCompanySession(app, {
       environmentId: ENVIRONMENT_ID,
       adapterType: "claude_local",
-      overwrite: { expectedSecretId: STORED_SECRET_ID, expectedLatestVersion: 2 },
+      overwrite: {
+        expectedSecretId: STORED_SECRET_ID,
+        expectedLatestVersion: 2,
+      },
     });
     expect(startRes.status, JSON.stringify(startRes.body)).toBe(201);
     const sessionId = startRes.body.sessionId as string;

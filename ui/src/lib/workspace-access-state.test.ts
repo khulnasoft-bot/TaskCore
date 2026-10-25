@@ -1,11 +1,16 @@
-import type { WorkspaceOperation, WorkspaceRuntimeService } from "@taskcore/shared";
+import type {
+  WorkspaceOperation,
+  WorkspaceRuntimeService,
+} from "@taskcore/shared";
 import { describe, expect, it } from "vitest";
 import {
   describeWorkspaceReadinessCause,
   resolveWorkspaceAccessState,
 } from "./workspace-access-state";
 
-function runtimeService(overrides: Partial<WorkspaceRuntimeService> = {}): WorkspaceRuntimeService {
+function runtimeService(
+  overrides: Partial<WorkspaceRuntimeService> = {},
+): WorkspaceRuntimeService {
   return {
     id: "runtime-1",
     companyId: "company-1",
@@ -38,7 +43,9 @@ function runtimeService(overrides: Partial<WorkspaceRuntimeService> = {}): Works
   };
 }
 
-function operation(overrides: Partial<WorkspaceOperation> = {}): WorkspaceOperation {
+function operation(
+  overrides: Partial<WorkspaceOperation> = {},
+): WorkspaceOperation {
   return {
     id: "op-1",
     companyId: "company-1",
@@ -84,7 +91,11 @@ describe("resolveWorkspaceAccessState", () => {
     const access = resolveWorkspaceAccessState({
       runtimeServices: [runtimeService()],
       operations: [
-        operation({ phase: "workspace_repair", status: "running", metadata: { repairPhase: "full_reseed" } }),
+        operation({
+          phase: "workspace_repair",
+          status: "running",
+          metadata: { repairPhase: "full_reseed" },
+        }),
       ],
     });
     expect(access.state).toBe("repairing");
@@ -97,10 +108,17 @@ describe("resolveWorkspaceAccessState", () => {
     const access = resolveWorkspaceAccessState({
       runtimeServices: [],
       operations: [
-        operation({ phase: "workspace_repair", status: "failed", metadata: { repairPhase: "readiness_validation" } }),
+        operation({
+          phase: "workspace_repair",
+          status: "failed",
+          metadata: { repairPhase: "readiness_validation" },
+        }),
       ],
     });
-    expect(access).toMatchObject({ state: "failed", action: { kind: "view_logs" } });
+    expect(access).toMatchObject({
+      state: "failed",
+      action: { kind: "view_logs" },
+    });
     expect(access.title).toBe("Repair failed");
     expect(access.description).toContain("readiness_validation");
     expect(access.description).toContain("backup");
@@ -108,7 +126,9 @@ describe("resolveWorkspaceAccessState", () => {
 
   it("returns to ready after a failed repair when a newer healthy runtime is serving", () => {
     const access = resolveWorkspaceAccessState({
-      runtimeServices: [runtimeService({ startedAt: new Date("2026-08-19T00:03:00.000Z") })],
+      runtimeServices: [
+        runtimeService({ startedAt: new Date("2026-08-19T00:03:00.000Z") }),
+      ],
       operations: [
         operation({
           phase: "workspace_repair",
@@ -133,7 +153,9 @@ describe("resolveWorkspaceAccessState", () => {
 
   it("returns to ready when a serving runtime has subsequently reported ready", () => {
     const access = resolveWorkspaceAccessState({
-      runtimeServices: [runtimeService({ startedAt: new Date("2026-08-19T00:01:00.000Z") })],
+      runtimeServices: [
+        runtimeService({ startedAt: new Date("2026-08-19T00:01:00.000Z") }),
+      ],
       operations: [
         operation({
           phase: "workspace_repair",
@@ -167,7 +189,9 @@ describe("resolveWorkspaceAccessState", () => {
 
   it("keeps a newer failed repair primary even when an older runtime is healthy", () => {
     const access = resolveWorkspaceAccessState({
-      runtimeServices: [runtimeService({ startedAt: new Date("2026-08-19T00:01:00.000Z") })],
+      runtimeServices: [
+        runtimeService({ startedAt: new Date("2026-08-19T00:01:00.000Z") }),
+      ],
       operations: [
         operation({
           phase: "workspace_repair",
@@ -177,7 +201,10 @@ describe("resolveWorkspaceAccessState", () => {
       ],
     });
 
-    expect(access).toMatchObject({ state: "failed", action: { kind: "view_logs" } });
+    expect(access).toMatchObject({
+      state: "failed",
+      action: { kind: "view_logs" },
+    });
     expect(access.secondaryNotice).toBeUndefined();
   });
 
@@ -186,22 +213,35 @@ describe("resolveWorkspaceAccessState", () => {
       runtimeServices: [],
       operations: [operation({ status: "running" })],
     });
-    expect(access).toMatchObject({ state: "provisioning", action: { kind: "wait" } });
+    expect(access).toMatchObject({
+      state: "provisioning",
+      action: { kind: "wait" },
+    });
     expect(access.title).toBe("Provisioning database");
   });
 
   it("offers a repair when provisioning failed, naming the seed phase", () => {
     const access = resolveWorkspaceAccessState({
       runtimeServices: [],
-      operations: [operation({ status: "failed", metadata: { seedFailurePhase: "restore" } })],
+      operations: [
+        operation({
+          status: "failed",
+          metadata: { seedFailurePhase: "restore" },
+        }),
+      ],
     });
-    expect(access).toMatchObject({ state: "failed", action: { kind: "repair", label: "Repair workspace" } });
+    expect(access).toMatchObject({
+      state: "failed",
+      action: { kind: "repair", label: "Repair workspace" },
+    });
     expect(access.description).toContain("restore");
   });
 
   it("returns to ready after a failed seed when a later repair succeeded and a healthy runtime is serving", () => {
     const access = resolveWorkspaceAccessState({
-      runtimeServices: [runtimeService({ startedAt: new Date("2026-08-20T00:18:00.000Z") })],
+      runtimeServices: [
+        runtimeService({ startedAt: new Date("2026-08-20T00:18:00.000Z") }),
+      ],
       operations: [
         operation({
           id: "repair-1",
@@ -229,8 +269,12 @@ describe("resolveWorkspaceAccessState", () => {
         action: { kind: "view_logs", label: "View provisioning log" },
       },
     });
-    expect(access.secondaryNotice?.description).toContain("manifest_verification");
-    expect(access.secondaryNotice?.description).toContain("later became usable");
+    expect(access.secondaryNotice?.description).toContain(
+      "manifest_verification",
+    );
+    expect(access.secondaryNotice?.description).toContain(
+      "later became usable",
+    );
   });
 
   it("does not offer repair for a stale failed seed after a later successful repair", () => {
@@ -297,8 +341,13 @@ describe("resolveWorkspaceAccessState", () => {
         },
       },
     });
-    expect(access).toMatchObject({ state: "validating", action: { kind: "wait" } });
-    expect(access.description).toContain("restored no organization or issue rows");
+    expect(access).toMatchObject({
+      state: "validating",
+      action: { kind: "wait" },
+    });
+    expect(access.description).toContain(
+      "restored no organization or issue rows",
+    );
   });
 
   it("degrades a verified clone whose database regressed and offers one repair", () => {
@@ -324,7 +373,10 @@ describe("resolveWorkspaceAccessState", () => {
         },
       },
     });
-    expect(access).toMatchObject({ state: "degraded", action: { kind: "repair" } });
+    expect(access).toMatchObject({
+      state: "degraded",
+      action: { kind: "repair" },
+    });
     expect(access.description).toContain("isolated database is not answering");
   });
 
@@ -345,10 +397,19 @@ describe("resolveWorkspaceAccessState", () => {
   it("offers start when nothing is running", () => {
     expect(
       resolveWorkspaceAccessState({
-        runtimeServices: [runtimeService({ status: "stopped", healthStatus: "unknown", url: null })],
+        runtimeServices: [
+          runtimeService({
+            status: "stopped",
+            healthStatus: "unknown",
+            url: null,
+          }),
+        ],
         operations: [],
       }),
-    ).toMatchObject({ state: "stopped", action: { kind: "start", label: "Start workspace" } });
+    ).toMatchObject({
+      state: "stopped",
+      action: { kind: "start", label: "Start workspace" },
+    });
 
     expect(
       resolveWorkspaceAccessState({
@@ -362,7 +423,13 @@ describe("resolveWorkspaceAccessState", () => {
   it("shows provisioning only while a runtime service is actually starting", () => {
     expect(
       resolveWorkspaceAccessState({
-        runtimeServices: [runtimeService({ status: "starting", healthStatus: "unknown", url: null })],
+        runtimeServices: [
+          runtimeService({
+            status: "starting",
+            healthStatus: "unknown",
+            url: null,
+          }),
+        ],
         operations: [],
         handoffFailure: { reason: "runtime_not_running" },
       }),
@@ -377,7 +444,10 @@ describe("resolveWorkspaceAccessState", () => {
       runtimeServices: [runtimeService({ healthStatus: "unhealthy" })],
       operations: [operation()],
     });
-    expect(access).toMatchObject({ state: "degraded", action: { kind: "repair" } });
+    expect(access).toMatchObject({
+      state: "degraded",
+      action: { kind: "repair" },
+    });
   });
 
   it("treats a running service with no URL as not yet serving", () => {
@@ -389,8 +459,12 @@ describe("resolveWorkspaceAccessState", () => {
   });
 
   it("handles missing operations and services without throwing", () => {
-    expect(resolveWorkspaceAccessState({ runtimeServices: null, operations: undefined }).state)
-      .toBe("stopped");
+    expect(
+      resolveWorkspaceAccessState({
+        runtimeServices: null,
+        operations: undefined,
+      }).state,
+    ).toBe("stopped");
   });
 });
 
@@ -418,9 +492,12 @@ describe("describeWorkspaceReadinessCause", () => {
   });
 
   it("falls back to the reason and finally to null", () => {
-    expect(describeWorkspaceReadinessCause({ reason: "runtime_not_running" }))
-      .toContain("No healthy runtime service");
-    expect(describeWorkspaceReadinessCause({ reason: "something_new" })).toBeNull();
+    expect(
+      describeWorkspaceReadinessCause({ reason: "runtime_not_running" }),
+    ).toContain("No healthy runtime service");
+    expect(
+      describeWorkspaceReadinessCause({ reason: "something_new" }),
+    ).toBeNull();
     expect(describeWorkspaceReadinessCause(null)).toBeNull();
   });
 });

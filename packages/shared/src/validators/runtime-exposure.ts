@@ -59,8 +59,12 @@ export const runtimeExposureStatusSchema = z
   })
   .strict();
 
-export type RuntimeExposureConfigInput = z.infer<typeof runtimeExposureConfigSchema>;
-export type RuntimeExposureStatusInput = z.infer<typeof runtimeExposureStatusSchema>;
+export type RuntimeExposureConfigInput = z.infer<
+  typeof runtimeExposureConfigSchema
+>;
+export type RuntimeExposureStatusInput = z.infer<
+  typeof runtimeExposureStatusSchema
+>;
 
 /**
  * Default exposure config used when a project/workspace enables HTTPS exposure
@@ -117,7 +121,10 @@ const RUNTIME_EXPOSURE_CONFIG_KEYS = [
  * Pre-existing `expose` keys that describe the *backend* URL rather than the
  * exposure, and may legitimately sit next to a `tailscale_https` declaration.
  */
-const RUNTIME_EXPOSURE_TRANSPORT_KEYS = ["urlTemplate", "tailscaleHttps"] as const;
+const RUNTIME_EXPOSURE_TRANSPORT_KEYS = [
+  "urlTemplate",
+  "tailscaleHttps",
+] as const;
 
 /**
  * Read the declared intent off an `expose` block.
@@ -125,13 +132,17 @@ const RUNTIME_EXPOSURE_TRANSPORT_KEYS = ["urlTemplate", "tailscaleHttps"] as con
  * An explicit negative always wins over an explicit positive so a deliberate
  * opt-out can never be re-enabled by a stale `type` left in the same block.
  */
-export function readRuntimeExposureIntent(value: unknown): RuntimeExposureIntent {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return "unset";
+export function readRuntimeExposureIntent(
+  value: unknown,
+): RuntimeExposureIntent {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return "unset";
   const expose = value as Record<string, unknown>;
   // Deliberate opt-outs, checked first.
   if (expose.tailscaleHttps === false) return "disabled";
   if (expose.type === "none") return "disabled";
-  if (expose.type === "tailscale_https" || expose.tailscaleHttps === true) return "enabled";
+  if (expose.type === "tailscale_https" || expose.tailscaleHttps === true)
+    return "enabled";
   return "unset";
 }
 
@@ -148,12 +159,19 @@ export function resolveDeclaredRuntimeExposureConfig(
 ): RuntimeExposureConfigInput | null {
   if (readRuntimeExposureIntent(value) !== "enabled") return null;
   const expose = value as Record<string, unknown>;
-  const known = new Set<string>([...RUNTIME_EXPOSURE_CONFIG_KEYS, ...RUNTIME_EXPOSURE_TRANSPORT_KEYS]);
+  const known = new Set<string>([
+    ...RUNTIME_EXPOSURE_CONFIG_KEYS,
+    ...RUNTIME_EXPOSURE_TRANSPORT_KEYS,
+  ]);
   const unknownKeys = Object.keys(expose).filter((key) => !known.has(key));
   if (unknownKeys.length > 0) {
-    throw new Error(`Unsupported expose field(s): ${unknownKeys.sort().join(", ")}`);
+    throw new Error(
+      `Unsupported expose field(s): ${unknownKeys.sort().join(", ")}`,
+    );
   }
-  const merged: Record<string, unknown> = { ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE };
+  const merged: Record<string, unknown> = {
+    ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
+  };
   for (const key of RUNTIME_EXPOSURE_CONFIG_KEYS) {
     if (expose[key] !== undefined) merged[key] = expose[key];
   }

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { LiveRunForIssue } from "../api/heartbeats";
 import type { IssueChatLinkedRun } from "./issue-chat-messages";
-import { MAX_ISSUE_CHAT_TRANSCRIPT_RUNS, resolveIssueChatTranscriptRuns } from "./issueChatTranscriptRuns";
+import {
+  MAX_ISSUE_CHAT_TRANSCRIPT_RUNS,
+  resolveIssueChatTranscriptRuns,
+} from "./issueChatTranscriptRuns";
 
 function linkedRun(n: number, isoDate: string): IssueChatLinkedRun {
   return {
@@ -74,10 +77,20 @@ describe("resolveIssueChatTranscriptRuns", () => {
       linkedRun(i, new Date(Date.UTC(2026, 0, 1, 0, i)).toISOString()),
     );
     const liveRuns = [
-      { id: "live-1", status: "running", adapterType: "claude_local", logBytes: null, lastOutputBytes: 10 },
+      {
+        id: "live-1",
+        status: "running",
+        adapterType: "claude_local",
+        logBytes: null,
+        lastOutputBytes: 10,
+      },
     ] as unknown as LiveRunForIssue[];
 
-    const runs = resolveIssueChatTranscriptRuns({ linkedRuns, liveRuns, limit: 5 });
+    const runs = resolveIssueChatTranscriptRuns({
+      linkedRuns,
+      liveRuns,
+      limit: 5,
+    });
 
     const ids = runs.map((r) => r.id);
     // The live run is always present; linked runs fill the remaining slots.

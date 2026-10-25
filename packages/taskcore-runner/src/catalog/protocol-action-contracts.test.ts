@@ -4,9 +4,15 @@ import { describe, expect, it } from "vitest";
 import { TASKCORE_PROTOCOL_ACTIONS } from "../protocol-actions/index.js";
 
 describe("canonical Taskcore protocol action contracts", () => {
-  const ajv = new Ajv2020({ allErrors: true, allowUnionTypes: true, strict: false });
+  const ajv = new Ajv2020({
+    allErrors: true,
+    allowUnionTypes: true,
+    strict: false,
+  });
 
-  it.each(TASKCORE_PROTOCOL_ACTIONS.map((action) => [action.id, action] as const))(
+  it.each(
+    TASKCORE_PROTOCOL_ACTIONS.map((action) => [action.id, action] as const),
+  )(
     "%s has a schema-valid canonical example and every declared projection",
     (operationId, action) => {
       expect(action.canonical.operationId).toBe(operationId);
@@ -19,20 +25,28 @@ describe("canonical Taskcore protocol action contracts", () => {
       if (action.live !== null) {
         expect(action.live.descriptor.operationId).toBe(operationId);
         expect(
-          ajv.validate(action.live.descriptor.inputSchema, action.examples.call.input),
+          ajv.validate(
+            action.live.descriptor.inputSchema,
+            action.examples.call.input,
+          ),
           JSON.stringify(ajv.errors),
         ).toBe(true);
         expect(
-          ajv.validate(action.live.descriptor.outputSchema, action.examples.success.result),
+          ajv.validate(
+            action.live.descriptor.outputSchema,
+            action.examples.success.result,
+          ),
           JSON.stringify(ajv.errors),
         ).toBe(true);
       }
 
       if (action.scenario !== null) {
-        const scenarioProperties = action.scenario.descriptor.inputSchema.properties ?? {};
-        const scenarioCall = "scenarioCall" in action.examples
-          ? action.examples.scenarioCall
-          : action.examples.call;
+        const scenarioProperties =
+          action.scenario.descriptor.inputSchema.properties ?? {};
+        const scenarioCall =
+          "scenarioCall" in action.examples
+            ? action.examples.scenarioCall
+            : action.examples.call;
         const scenarioOutput = {
           schema: "taskcore.capability.tool-result.v1",
           ok: true,
@@ -46,7 +60,9 @@ describe("canonical Taskcore protocol action contracts", () => {
         expect(action.scenario.descriptor.operationId).toBe(operationId);
         expect(scenarioCall.operationId).toBe(operationId);
         expect(
-          Object.keys(scenarioCall.input).filter((key) => !(key in scenarioProperties)),
+          Object.keys(scenarioCall.input).filter(
+            (key) => !(key in scenarioProperties),
+          ),
         ).toEqual([]);
         if (action.scenario.descriptor.idempotency === "required") {
           expect(action.examples).toHaveProperty("scenarioCall");
@@ -56,7 +72,10 @@ describe("canonical Taskcore protocol action contracts", () => {
           expect(scenarioCall).not.toHaveProperty("idempotencyKey");
         }
         expect(
-          ajv.validate(action.scenario.descriptor.inputSchema, scenarioCall.input),
+          ajv.validate(
+            action.scenario.descriptor.inputSchema,
+            scenarioCall.input,
+          ),
           JSON.stringify(ajv.errors),
         ).toBe(true);
         expect(

@@ -24,16 +24,22 @@ describe("opencode_local environment diagnostics", () => {
       },
     });
 
-    expect(result.checks.some((check) => check.code === "opencode_cwd_invalid")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "opencode_cwd_invalid"),
+    ).toBe(true);
     expect(result.checks.some((check) => check.level === "error")).toBe(true);
     expect(result.status).toBe("fail");
   });
 
   it("treats an empty OPENAI_API_KEY override as missing", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-env-empty-key-"));
+    const cwd = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-opencode-env-empty-key-"),
+    );
     // This case tests environment precedence, not model-discovery retry delays.
     const fakeOpencode = path.join(cwd, "opencode");
-    await fs.writeFile(fakeOpencode, "#!/bin/sh\necho openai/test-model\n", { mode: 0o755 });
+    await fs.writeFile(fakeOpencode, "#!/bin/sh\necho openai/test-model\n", {
+      mode: 0o755,
+    });
     const originalOpenAiKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "sk-host-value";
 
@@ -51,7 +57,9 @@ describe("opencode_local environment diagnostics", () => {
         },
       });
 
-      const missingCheck = result.checks.find((check) => check.code === "opencode_openai_api_key_missing");
+      const missingCheck = result.checks.find(
+        (check) => check.code === "opencode_openai_api_key_missing",
+      );
       expect(missingCheck).toBeTruthy();
       expect(missingCheck?.hint).toContain("empty");
     } finally {
@@ -65,13 +73,17 @@ describe("opencode_local environment diagnostics", () => {
   }, 10_000);
 
   it("classifies ProviderModelNotFoundError probe output as model-unavailable warning", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-env-probe-cwd-"));
-    const binDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-env-probe-bin-"));
+    const cwd = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-opencode-env-probe-cwd-"),
+    );
+    const binDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-opencode-env-probe-bin-"),
+    );
     const fakeOpencode = path.join(binDir, "opencode");
     const script = [
       "#!/bin/sh",
       "echo 'ProviderModelNotFoundError: ProviderModelNotFoundError' 1>&2",
-      "echo 'data: { providerID: \"openai\", modelID: \"gpt-5.3-codex\", suggestions: [] }' 1>&2",
+      'echo \'data: { providerID: "openai", modelID: "gpt-5.3-codex", suggestions: [] }\' 1>&2',
       "exit 1",
       "",
     ].join("\n");
@@ -90,7 +102,9 @@ describe("opencode_local environment diagnostics", () => {
         },
       });
 
-      const modelCheck = result.checks.find((check) => check.code === "opencode_hello_probe_model_unavailable");
+      const modelCheck = result.checks.find(
+        (check) => check.code === "opencode_hello_probe_model_unavailable",
+      );
       expect(modelCheck).toBeTruthy();
       expect(modelCheck?.level).toBe("warn");
       expect(result.status).toBe("warn");

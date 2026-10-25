@@ -1,5 +1,8 @@
 import type { UIAdapterModule } from "../types";
-import { parseHermesStdoutLine, buildHermesConfig } from "@taskcore/hermes-taskcore-adapter/ui";
+import {
+  parseHermesStdoutLine,
+  buildHermesConfig,
+} from "@taskcore/hermes-taskcore-adapter/ui";
 import { SchemaConfigFields } from "../schema-config-fields";
 
 export const hermesLocalUIAdapter: UIAdapterModule = {

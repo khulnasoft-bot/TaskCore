@@ -160,17 +160,17 @@ Current Vercel storage model (2026):
 
 Fit against Taskcore:
 
-| Vercel store/integration | Taskcore use | Works today? | Required work |
-| --- | --- | --- | --- |
-| Neon Postgres (Marketplace) | `DATABASE_URL` for runtime; `DATABASE_MIGRATION_URL` for migrations | Yes | Provision integration; map pooled URL to runtime and unpooled URL to migrations; run migrations as a deploy step |
-| Supabase/Aurora/Prisma Postgres | Same as above | Yes, if standard Postgres and TLS work | Verify driver compatibility and pooled/direct URLs |
-| Vercel Blob | Attachments, avatars, uploaded artifacts | Yes | Provider implemented: shared constant, config, registry, provider, tests, docs |
-| AWS S3 (Marketplace) | Attachments and artifacts through the existing S3 provider | Probably | Verify the Marketplace OIDC credential shape works with the AWS SDK default chain; otherwise wire credentials explicitly or use Blob |
-| Upstash Redis / Redis | None today | Not used | Only needed if realtime fan-out, distributed scheduler locks, or shared rate limiting are added |
-| Global Config (formerly Edge Config) | None today | Not used | Only for small runtime flags; never secrets or per-company data |
-| Vercel Functions + Cron | Scheduler/agent execution replacement | No, not without redesign | Move ticks to Cron/Queues/Workflows and move agent execution to remote runners or a worker |
-| Vercel WebSockets (beta) | Live events, transcripts, terminal | Partial | Test upgrade through the chosen deployment; add reconnect and pub/sub; verify duration limits |
-| Vercel environment variables | Secrets and config | Yes | Use `TASKCORE_SECRETS_MASTER_KEY` so no key file is needed; keep `BETTER_AUTH_SECRET` in Vercel |
+| Vercel store/integration             | Taskcore use                                                        | Works today?                           | Required work                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Neon Postgres (Marketplace)          | `DATABASE_URL` for runtime; `DATABASE_MIGRATION_URL` for migrations | Yes                                    | Provision integration; map pooled URL to runtime and unpooled URL to migrations; run migrations as a deploy step                     |
+| Supabase/Aurora/Prisma Postgres      | Same as above                                                       | Yes, if standard Postgres and TLS work | Verify driver compatibility and pooled/direct URLs                                                                                   |
+| Vercel Blob                          | Attachments, avatars, uploaded artifacts                            | Yes                                    | Provider implemented: shared constant, config, registry, provider, tests, docs                                                       |
+| AWS S3 (Marketplace)                 | Attachments and artifacts through the existing S3 provider          | Probably                               | Verify the Marketplace OIDC credential shape works with the AWS SDK default chain; otherwise wire credentials explicitly or use Blob |
+| Upstash Redis / Redis                | None today                                                          | Not used                               | Only needed if realtime fan-out, distributed scheduler locks, or shared rate limiting are added                                      |
+| Global Config (formerly Edge Config) | None today                                                          | Not used                               | Only for small runtime flags; never secrets or per-company data                                                                      |
+| Vercel Functions + Cron              | Scheduler/agent execution replacement                               | No, not without redesign               | Move ticks to Cron/Queues/Workflows and move agent execution to remote runners or a worker                                           |
+| Vercel WebSockets (beta)             | Live events, transcripts, terminal                                  | Partial                                | Test upgrade through the chosen deployment; add reconnect and pub/sub; verify duration limits                                        |
+| Vercel environment variables         | Secrets and config                                                  | Yes                                    | Use `TASKCORE_SECRETS_MASTER_KEY` so no key file is needed; keep `BETTER_AUTH_SECRET` in Vercel                                      |
 
 Storage provider implementation for Vercel Blob (completed):
 
@@ -194,12 +194,12 @@ now selectable without changing the storage abstraction.
 
 ## 4. Deployment Options
 
-| Option | UI | API / control plane | Data | Realtime | Recommendation |
-| --- | --- | --- | --- | --- | --- |
-| A. Split + Vercel stores | Vercel static | Persistent container | Neon Postgres + Blob/S3 | Polling fallback; proxy WebSocket if supported | Recommended near-term Vercel path |
-| B. Single-origin container | Built into server | Same container | Marketplace stores or self-hosted | Native WebSockets | Recommended default |
-| C. Hybrid Vercel app + worker | Vercel static | Vercel Function for HTTP; external worker for runs | Neon Postgres + Blob | Vercel WS beta + external pub/sub | Only after an API/worker split |
-| D. Full Vercel port | Vercel | Vercel Functions + Cron/Queues/Workflows | Neon Postgres + Blob | Beta WebSockets + Redis pub/sub | Separate engineering project |
+| Option                        | UI                | API / control plane                                | Data                              | Realtime                                       | Recommendation                    |
+| ----------------------------- | ----------------- | -------------------------------------------------- | --------------------------------- | ---------------------------------------------- | --------------------------------- |
+| A. Split + Vercel stores      | Vercel static     | Persistent container                               | Neon Postgres + Blob/S3           | Polling fallback; proxy WebSocket if supported | Recommended near-term Vercel path |
+| B. Single-origin container    | Built into server | Same container                                     | Marketplace stores or self-hosted | Native WebSockets                              | Recommended default               |
+| C. Hybrid Vercel app + worker | Vercel static     | Vercel Function for HTTP; external worker for runs | Neon Postgres + Blob              | Vercel WS beta + external pub/sub              | Only after an API/worker split    |
+| D. Full Vercel port           | Vercel            | Vercel Functions + Cron/Queues/Workflows           | Neon Postgres + Blob              | Beta WebSockets + Redis pub/sub                | Separate engineering project      |
 
 ### Option A: Vercel UI, persistent server, Vercel stores
 
@@ -431,27 +431,32 @@ UI-only; it does not deploy the server.
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/sw.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
       "source": "/",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" }
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        }
       ]
     }
   ],
@@ -587,21 +592,21 @@ Runtime, Option D:
 
 ## 8. Risks
 
-| Risk | Impact | Mitigation |
-| --- | --- | --- |
-| Split origin breaks auth or cookies | Login loops, failed mutations | Use host-scoped cookies and test all auth flows; prefer Option B if failures appear |
-| WebSocket rewrite unsupported or unstable | Realtime falls back to polling; terminal/transcripts break | Verify each surface; use Option B for full fidelity |
-| Vercel proxy body limit | Attachments fail | Test max upload; keep uploads on server origin or raise limits |
-| Blob provider mismatch | Uploads or range reads fail | Implement the provider contract and tests before switching |
-| Blob private auth outside Vercel | 401s on the control plane | Use `BLOB_READ_WRITE_TOKEN` in the server secret manager |
-| S3 Marketplace OIDC not resolvable by AWS SDK | Storage startup failure | Verify the credential shape; wire explicitly or use Blob |
-| Neon pooled URL used for migrations | Migration failures, advisory-lock issues | Use `DATABASE_URL_UNPOOLED` for migrations |
-| Marketplace service unavailable | Uploads, DB, or cache outage | Prefer a multi-AZ provider; keep backups and a fallback storage path |
-| Root build runs Rust/server | Build timeout or failure | Always use the filtered UI build command |
-| Node version mismatch | Install/build failure | Set `NODE_VERSION=24` and keep `engines` aligned |
-| Public server reachable without protection | Security exposure | Terminate TLS, require auth, restrict ingress, and keep secrets out of the UI project |
-| Large entry chunk (about 6.8 MB minified) | Slow first load on mobile | Track bundle size; code splitting is a separate UI task |
-| Vercel on critical path | Board outage when Vercel is degraded | Keep Option B available as the production fallback |
+| Risk                                          | Impact                                                     | Mitigation                                                                            |
+| --------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Split origin breaks auth or cookies           | Login loops, failed mutations                              | Use host-scoped cookies and test all auth flows; prefer Option B if failures appear   |
+| WebSocket rewrite unsupported or unstable     | Realtime falls back to polling; terminal/transcripts break | Verify each surface; use Option B for full fidelity                                   |
+| Vercel proxy body limit                       | Attachments fail                                           | Test max upload; keep uploads on server origin or raise limits                        |
+| Blob provider mismatch                        | Uploads or range reads fail                                | Implement the provider contract and tests before switching                            |
+| Blob private auth outside Vercel              | 401s on the control plane                                  | Use `BLOB_READ_WRITE_TOKEN` in the server secret manager                              |
+| S3 Marketplace OIDC not resolvable by AWS SDK | Storage startup failure                                    | Verify the credential shape; wire explicitly or use Blob                              |
+| Neon pooled URL used for migrations           | Migration failures, advisory-lock issues                   | Use `DATABASE_URL_UNPOOLED` for migrations                                            |
+| Marketplace service unavailable               | Uploads, DB, or cache outage                               | Prefer a multi-AZ provider; keep backups and a fallback storage path                  |
+| Root build runs Rust/server                   | Build timeout or failure                                   | Always use the filtered UI build command                                              |
+| Node version mismatch                         | Install/build failure                                      | Set `NODE_VERSION=24` and keep `engines` aligned                                      |
+| Public server reachable without protection    | Security exposure                                          | Terminate TLS, require auth, restrict ingress, and keep secrets out of the UI project |
+| Large entry chunk (about 6.8 MB minified)     | Slow first load on mobile                                  | Track bundle size; code splitting is a separate UI task                               |
+| Vercel on critical path                       | Board outage when Vercel is degraded                       | Keep Option B available as the production fallback                                    |
 
 ## 9. Decisions Needed
 

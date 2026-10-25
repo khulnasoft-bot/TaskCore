@@ -11,17 +11,30 @@ import {
 
 const support = await getEmbeddedPostgresTestSupport();
 const run = promisify(execFile);
-const fixture = fileURLToPath(new URL("./__fixtures__/postgres-connection-recovery.mjs", import.meta.url));
+const fixture = fileURLToPath(
+  new URL("./__fixtures__/postgres-connection-recovery.mjs", import.meta.url),
+);
 
 describe.skipIf(!support.supported)("postgres connection recovery", () => {
   let database: EmbeddedPostgresTestDatabase;
   beforeAll(async () => {
-    database = await startEmbeddedPostgresTestDatabase("taskcore-driver-recovery-");
+    database = await startEmbeddedPostgresTestDatabase(
+      "taskcore-driver-recovery-",
+    );
   }, EMBEDDED_POSTGRES_TEST_TIMEOUT_MS);
-  afterAll(async () => { await database?.cleanup(); });
+  afterAll(async () => {
+    await database?.cleanup();
+  });
 
   for (const format of ["esm", "cjs"]) {
-    for (const scenario of ["transaction", "transaction-closed", "savepoint", "reserve", "transaction-queue", "reserve-queue"]) {
+    for (const scenario of [
+      "transaction",
+      "transaction-closed",
+      "savepoint",
+      "reserve",
+      "transaction-queue",
+      "reserve-queue",
+    ]) {
       it(`${format}: rejects disconnected ${scenario} work and recovers the pool`, async () => {
         // A driver timer used to crash the whole process. A child also detects
         // hangs without leaving broken connections in the Vitest worker.

@@ -9,9 +9,17 @@ import type {
   CodexRpcServerRequest,
 } from "../drivers/codex/app-server-transport.js";
 import { redactCodexDiagnostic } from "../drivers/codex/app-server-transport.js";
-import { codexSemanticToolSpecs, createSkilllessCodexThreadConfig } from "../drivers/codex/codex-app-server-driver.js";
+import {
+  codexSemanticToolSpecs,
+  createSkilllessCodexThreadConfig,
+} from "../drivers/codex/codex-app-server-driver.js";
 import { createCodexTaskEnvelope } from "../contracts/codex.js";
-import { codexToolAcceptsResult, isCodexSemanticTool, isRetainableCodexPayload, rejectedCodexToolCall } from "../drivers/codex/codex-boundaries.js";
+import {
+  codexToolAcceptsResult,
+  isCodexSemanticTool,
+  isRetainableCodexPayload,
+  rejectedCodexToolCall,
+} from "../drivers/codex/codex-boundaries.js";
 import { validateCodexResultProposal } from "../mock-core/codex-runner.js";
 import {
   resolveQualifiedAcpxProfile,
@@ -29,7 +37,10 @@ import type {
 } from "../mock-core/capability-control-plane-types.js";
 import { CapabilityMockControlPlaneAdapter } from "../mock-core/capability-mock-control-plane-adapter.js";
 import { CapabilitySemanticDispatcher } from "../semantic-tools/dispatcher.js";
-import { CAPABILITY_DISCOVERY_GATEWAY_DEFINITIONS, type CapabilityToolExposureMode } from "../semantic-tools/discovery.js";
+import {
+  CAPABILITY_DISCOVERY_GATEWAY_DEFINITIONS,
+  type CapabilityToolExposureMode,
+} from "../semantic-tools/discovery.js";
 import type {
   CapabilitySemanticAuthorizationRecord,
   CapabilitySemanticScenarioPolicy,
@@ -64,9 +75,13 @@ const LIVE_COMPLETION_CONTRACT = Object.freeze({
   criterionIds: ["objective"],
 });
 const LIVE_COMPLETION_ENVELOPE = createCodexTaskEnvelope({
-  objective: "Complete the current requested action without exceeding mock semantic authority.",
+  objective:
+    "Complete the current requested action without exceeding mock semantic authority.",
   contractRevision: LIVE_COMPLETION_CONTRACT.revision,
-  criteria: LIVE_COMPLETION_CONTRACT.criterionIds.map((id) => ({ id, requirement: "Complete the current requested action." })),
+  criteria: LIVE_COMPLETION_CONTRACT.criterionIds.map((id) => ({
+    id,
+    requirement: "Complete the current requested action.",
+  })),
 });
 const LIVE_BASE_INSTRUCTIONS = [
   "You are operating one mock Taskcore issue through typed semantic tools.",
@@ -131,7 +146,12 @@ export interface CapabilityLiveSessionConfigSnapshot {
   requestedModel?: string;
   /** Safe harness identity used by server-side projections and eval metadata. */
   provider?: "codex" | "opencode" | "claude_managed" | "aws_agentcore" | "acpx";
-  driver?: "codex_app_server" | "opencode_server" | "claude_managed_agents_api" | "aws_agentcore_harness_api" | "acpx_runtime";
+  driver?:
+    | "codex_app_server"
+    | "opencode_server"
+    | "claude_managed_agents_api"
+    | "aws_agentcore_harness_api"
+    | "acpx_runtime";
   providerVersion?: string | null;
   acpxAgent?: QualifiedAcpxAgent;
   acpxProfile?: QualifiedAcpxProfile;
@@ -176,7 +196,8 @@ export interface CapabilityLiveSessionConfigSnapshot {
   toolExposure?: CapabilityToolExposureMode;
 }
 
-export type CapabilityLiveAttemptStatus = "running" | "succeeded" | "failed" | "terminated";
+export type CapabilityLiveAttemptStatus =
+  "running" | "succeeded" | "failed" | "terminated";
 
 export interface CapabilityLiveAttemptSnapshot {
   attemptId: string;
@@ -429,7 +450,9 @@ export type CapabilityLiveTurnEvent =
       message: string;
     };
 
-export type CapabilityLiveTurnListener = (event: CapabilityLiveTurnEvent) => void;
+export type CapabilityLiveTurnListener = (
+  event: CapabilityLiveTurnEvent,
+) => void;
 
 type CapabilityLiveUsageMeasurement = Extract<
   CapabilityLiveTurnEvent,
@@ -437,17 +460,21 @@ type CapabilityLiveUsageMeasurement = Extract<
 >["usage"];
 
 interface CapabilityLiveTurnUsageObservations {
-  reported: { usage: CapabilityLiveUsageMeasurement; exactDelta: boolean } | null;
+  reported: {
+    usage: CapabilityLiveUsageMeasurement;
+    exactDelta: boolean;
+  } | null;
   raw: CapabilityLiveUsageMeasurement | null;
   terminal: CapabilityLiveUsageMeasurement | null;
 }
 
 /** Distributive `Omit`, so each event variant keeps its own discriminated shape. */
-type CapabilityLiveTurnEventInput = CapabilityLiveTurnEvent extends infer Variant
-  ? Variant extends CapabilityLiveTurnEvent
-    ? Omit<Variant, "seq" | "at">
-    : never
-  : never;
+type CapabilityLiveTurnEventInput =
+  CapabilityLiveTurnEvent extends infer Variant
+    ? Variant extends CapabilityLiveTurnEvent
+      ? Omit<Variant, "seq" | "at">
+      : never
+    : never;
 
 /** Bound on interim events per turn; terminal and error always get through. */
 export const CAPABILITY_LIVE_TURN_EVENT_LIMIT = 4_000;
@@ -468,7 +495,9 @@ async function captureWorkspaceBaselineBeforeAdmission(
       new Promise<null>((resolveTimeout) => {
         timeout = setTimeout(() => {
           resolveTimeout(null);
-          controller.abort(new Error("workspace baseline admission deadline exceeded"));
+          controller.abort(
+            new Error("workspace baseline admission deadline exceeded"),
+          );
         }, CAPABILITY_WORKSPACE_BASELINE_DEADLINE_MS);
       }),
     ]);
@@ -546,7 +575,7 @@ interface PendingTurnCompletion {
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -567,11 +596,14 @@ function nonNegativeInteger(value: number | undefined, name: string): number {
 }
 
 function requireNonEmpty(value: string, name: string): string {
-  if (value.trim().length === 0) throw new Error(`capability_live_${name}_required`);
+  if (value.trim().length === 0)
+    throw new Error(`capability_live_${name}_required`);
   return value;
 }
 
-function providerTurnStatus(value: unknown): CapabilityLiveTurnResult["status"] | null {
+function providerTurnStatus(
+  value: unknown,
+): CapabilityLiveTurnResult["status"] | null {
   const status = text(value).toLowerCase();
   if (status === "completed") return "completed";
   if (status === "failed") return "failed";
@@ -586,20 +618,39 @@ export function assertCapabilityLiveSessionSnapshot(
 ): asserts value is CapabilityLiveSessionSnapshot {
   const snapshot = record(value);
   if (snapshot.schema !== LIVE_SESSION_SCHEMA) {
-    throw new Error("capability_live_checkpoint_corrupt: unsupported snapshot schema");
+    throw new Error(
+      "capability_live_checkpoint_corrupt: unsupported snapshot schema",
+    );
   }
-  for (const name of ["sessionId", "providerThreadId", "mockState", "createdAt", "updatedAt"] as const) {
+  for (const name of [
+    "sessionId",
+    "providerThreadId",
+    "mockState",
+    "createdAt",
+    "updatedAt",
+  ] as const) {
     if (text(snapshot[name]).length === 0) {
       throw new Error(`capability_live_checkpoint_corrupt: missing ${name}`);
     }
   }
-  if (!Number.isSafeInteger(snapshot.revision) || Number(snapshot.revision) < 1) {
+  if (
+    !Number.isSafeInteger(snapshot.revision) ||
+    Number(snapshot.revision) < 1
+  ) {
     throw new Error("capability_live_checkpoint_corrupt: invalid revision");
   }
   const authority = record(snapshot.authority);
-  for (const name of ["runId", "companyId", "actorId", "taskId", "sessionId"] as const) {
+  for (const name of [
+    "runId",
+    "companyId",
+    "actorId",
+    "taskId",
+    "sessionId",
+  ] as const) {
     if (text(authority[name]).length === 0) {
-      throw new Error(`capability_live_checkpoint_corrupt: missing authority.${name}`);
+      throw new Error(
+        `capability_live_checkpoint_corrupt: missing authority.${name}`,
+      );
     }
   }
   if (authority.sessionId !== snapshot.sessionId) {
@@ -609,7 +660,9 @@ export function assertCapabilityLiveSessionSnapshot(
     const binding = record(snapshot.providerRunBinding);
     for (const name of ["runId", "turnId", "itemId"] as const) {
       if (text(binding[name]).length === 0) {
-        throw new Error(`capability_live_checkpoint_corrupt: missing providerRunBinding.${name}`);
+        throw new Error(
+          `capability_live_checkpoint_corrupt: missing providerRunBinding.${name}`,
+        );
       }
     }
   }
@@ -619,92 +672,179 @@ export function assertCapabilityLiveSessionSnapshot(
     persistedProvider !== undefined &&
     persistedProvider !== "codex" &&
     persistedProvider !== "opencode" &&
-    persistedProvider !== "claude_managed"
-    && persistedProvider !== "aws_agentcore"
-    && persistedProvider !== "acpx"
+    persistedProvider !== "claude_managed" &&
+    persistedProvider !== "aws_agentcore" &&
+    persistedProvider !== "acpx"
   ) {
-    throw new Error("capability_live_checkpoint_corrupt: invalid config.provider");
+    throw new Error(
+      "capability_live_checkpoint_corrupt: invalid config.provider",
+    );
   }
   const provider = persistedProvider ?? "codex";
-  const expectedDriver = provider === "opencode"
-    ? "opencode_server"
-    : provider === "claude_managed" ? "claude_managed_agents_api"
-    : provider === "aws_agentcore" ? "aws_agentcore_harness_api"
-    : provider === "acpx" ? "acpx_runtime" : "codex_app_server";
+  const expectedDriver =
+    provider === "opencode"
+      ? "opencode_server"
+      : provider === "claude_managed"
+        ? "claude_managed_agents_api"
+        : provider === "aws_agentcore"
+          ? "aws_agentcore_harness_api"
+          : provider === "acpx"
+            ? "acpx_runtime"
+            : "codex_app_server";
   if (config.driver !== undefined && config.driver !== expectedDriver) {
-    throw new Error("capability_live_checkpoint_corrupt: provider/driver mismatch");
+    throw new Error(
+      "capability_live_checkpoint_corrupt: provider/driver mismatch",
+    );
   }
   if (persistedProvider !== undefined && config.driver === undefined) {
-    throw new Error("capability_live_checkpoint_corrupt: missing config.driver");
+    throw new Error(
+      "capability_live_checkpoint_corrupt: missing config.driver",
+    );
   }
   if (config.requestedModel !== undefined) {
     const requestedModel = text(config.requestedModel);
     if (requestedModel.trim().length === 0) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid config.requestedModel");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid config.requestedModel",
+      );
     }
     if (provider === "opencode" && !requestedModel.includes("/")) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid OpenCode model");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid OpenCode model",
+      );
     }
-  } else if (provider === "opencode" || provider === "claude_managed" || provider === "aws_agentcore" || provider === "acpx") {
-    throw new Error(`capability_live_checkpoint_corrupt: missing ${provider === "opencode" ? "OpenCode" : provider === "claude_managed" ? "Claude Agent" : provider === "aws_agentcore" ? "AWS AgentCore" : "ACPX"} model`);
+  } else if (
+    provider === "opencode" ||
+    provider === "claude_managed" ||
+    provider === "aws_agentcore" ||
+    provider === "acpx"
+  ) {
+    throw new Error(
+      `capability_live_checkpoint_corrupt: missing ${provider === "opencode" ? "OpenCode" : provider === "claude_managed" ? "Claude Agent" : provider === "aws_agentcore" ? "AWS AgentCore" : "ACPX"} model`,
+    );
   }
   if (provider === "acpx") {
     const agent = config.acpxAgent;
-    if (agent !== "pi" && agent !== "claude" && agent !== "codex" && agent !== "grok" && agent !== "cursor" && agent !== "copilot") {
-      throw new Error("capability_live_checkpoint_corrupt: invalid config.acpxAgent");
+    if (
+      agent !== "pi" &&
+      agent !== "claude" &&
+      agent !== "codex" &&
+      agent !== "grok" &&
+      agent !== "cursor" &&
+      agent !== "copilot"
+    ) {
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid config.acpxAgent",
+      );
     }
-    const expected = resolveQualifiedAcpxProfile(agent, text(config.requestedModel));
-    if (JSON.stringify(record(config.acpxProfile)) !== JSON.stringify(expected)) {
+    const expected = resolveQualifiedAcpxProfile(
+      agent,
+      text(config.requestedModel),
+    );
+    if (
+      JSON.stringify(record(config.acpxProfile)) !== JSON.stringify(expected)
+    ) {
       throw new Error("capability_live_checkpoint_corrupt: ACPX profile drift");
     }
   }
   if (provider === "claude_managed") {
     const profile = record(config.managedProfile);
-    for (const field of ["profileId", "anthropicAgentId", "agentVersion", "environmentId"] as const) {
+    for (const field of [
+      "profileId",
+      "anthropicAgentId",
+      "agentVersion",
+      "environmentId",
+    ] as const) {
       if (text(profile[field]).trim().length === 0) {
-        throw new Error(`capability_live_checkpoint_corrupt: missing managedProfile.${field}`);
+        throw new Error(
+          `capability_live_checkpoint_corrupt: missing managedProfile.${field}`,
+        );
       }
     }
     if (profile.betaVersion !== "managed-agents-2026-04-01") {
-      throw new Error("capability_live_checkpoint_corrupt: invalid Managed Agents beta version");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid Managed Agents beta version",
+      );
     }
-    if (typeof profile.maxSessionListCostUsd !== "number" || profile.maxSessionListCostUsd <= 0) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid managed session spend ceiling");
+    if (
+      typeof profile.maxSessionListCostUsd !== "number" ||
+      profile.maxSessionListCostUsd <= 0
+    ) {
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid managed session spend ceiling",
+      );
     }
   }
   if (provider === "aws_agentcore") {
     const profile = record(config.agentCoreProfile);
-    for (const field of ["profileId", "region", "accountId", "harnessArn", "harnessVersion", "endpointArn", "endpointQualifier", "agentRuntimeArn", "memoryArn", "memoryId", "invocationRoleArn", "contextBucket", "contextPrefix", "contextKmsKeyArn", "qualificationRevision"] as const) {
+    for (const field of [
+      "profileId",
+      "region",
+      "accountId",
+      "harnessArn",
+      "harnessVersion",
+      "endpointArn",
+      "endpointQualifier",
+      "agentRuntimeArn",
+      "memoryArn",
+      "memoryId",
+      "invocationRoleArn",
+      "contextBucket",
+      "contextPrefix",
+      "contextKmsKeyArn",
+      "qualificationRevision",
+    ] as const) {
       if (text(profile[field]).trim().length === 0) {
-        throw new Error(`capability_live_checkpoint_corrupt: missing agentCoreProfile.${field}`);
+        throw new Error(
+          `capability_live_checkpoint_corrupt: missing agentCoreProfile.${field}`,
+        );
       }
     }
-    if (profile.eventExpiryDays !== 90) throw new Error("capability_live_checkpoint_corrupt: invalid AgentCore Memory expiry");
-    for (const field of ["maxIterations", "maxOutputTokens", "timeoutSeconds"] as const) {
-      if (!Number.isSafeInteger(profile[field]) || Number(profile[field]) <= 0) {
-        throw new Error(`capability_live_checkpoint_corrupt: invalid agentCoreProfile.${field}`);
+    if (profile.eventExpiryDays !== 90)
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid AgentCore Memory expiry",
+      );
+    for (const field of [
+      "maxIterations",
+      "maxOutputTokens",
+      "timeoutSeconds",
+    ] as const) {
+      if (
+        !Number.isSafeInteger(profile[field]) ||
+        Number(profile[field]) <= 0
+      ) {
+        throw new Error(
+          `capability_live_checkpoint_corrupt: invalid agentCoreProfile.${field}`,
+        );
       }
     }
   }
   if (
     config.providerVersion !== undefined &&
     config.providerVersion !== null &&
-    (typeof config.providerVersion !== "string" || config.providerVersion.trim().length === 0)
+    (typeof config.providerVersion !== "string" ||
+      config.providerVersion.trim().length === 0)
   ) {
-    throw new Error("capability_live_checkpoint_corrupt: invalid config.providerVersion");
+    throw new Error(
+      "capability_live_checkpoint_corrupt: invalid config.providerVersion",
+    );
   }
   if (config.lifecyclePolicy !== undefined) {
     const lifecyclePolicy = record(config.lifecyclePolicy);
     if (lifecyclePolicy.mode === "per_turn") {
       if (lifecyclePolicy.idleTimeoutMs !== null) {
-        throw new Error("capability_live_checkpoint_corrupt: per-turn idle timeout must be null");
+        throw new Error(
+          "capability_live_checkpoint_corrupt: per-turn idle timeout must be null",
+        );
       }
     } else if (
-      lifecyclePolicy.mode !== "warm"
-      || !Number.isSafeInteger(lifecyclePolicy.idleTimeoutMs)
-      || Number(lifecyclePolicy.idleTimeoutMs) <= 0
+      lifecyclePolicy.mode !== "warm" ||
+      !Number.isSafeInteger(lifecyclePolicy.idleTimeoutMs) ||
+      Number(lifecyclePolicy.idleTimeoutMs) <= 0
     ) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid lifecycle policy");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid lifecycle policy",
+      );
     }
   }
   if (typeof snapshot.mockState !== "string") {
@@ -713,7 +853,9 @@ export function assertCapabilityLiveSessionSnapshot(
   try {
     JSON.parse(snapshot.mockState);
   } catch {
-    throw new Error("capability_live_checkpoint_corrupt: invalid mockState JSON");
+    throw new Error(
+      "capability_live_checkpoint_corrupt: invalid mockState JSON",
+    );
   }
   if (snapshot.attempts !== undefined && !Array.isArray(snapshot.attempts)) {
     throw new Error("capability_live_checkpoint_corrupt: invalid attempts");
@@ -725,14 +867,18 @@ export function assertCapabilityLiveSessionSnapshot(
     if (
       attemptId.length === 0 ||
       attemptIds.has(attemptId) ||
-      !["running", "succeeded", "failed", "terminated"].includes(text(attempt.status)) ||
+      !["running", "succeeded", "failed", "terminated"].includes(
+        text(attempt.status),
+      ) ||
       text(attempt.startedAt).length === 0
     ) {
       throw new Error("capability_live_checkpoint_corrupt: invalid attempt");
     }
     const resumeOf = attempt.resumeOf === null ? null : text(attempt.resumeOf);
     if (resumeOf !== null && !attemptIds.has(resumeOf)) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid attempt lineage");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid attempt lineage",
+      );
     }
     attemptIds.add(attemptId);
   }
@@ -740,10 +886,17 @@ export function assertCapabilityLiveSessionSnapshot(
     snapshot.currentAttemptId !== undefined &&
     !attemptIds.has(text(snapshot.currentAttemptId))
   ) {
-    throw new Error("capability_live_checkpoint_corrupt: invalid current attempt");
+    throw new Error(
+      "capability_live_checkpoint_corrupt: invalid current attempt",
+    );
   }
-  if (snapshot.terminalTurns !== undefined && !Array.isArray(snapshot.terminalTurns)) {
-    throw new Error("capability_live_checkpoint_corrupt: invalid terminalTurns");
+  if (
+    snapshot.terminalTurns !== undefined &&
+    !Array.isArray(snapshot.terminalTurns)
+  ) {
+    throw new Error(
+      "capability_live_checkpoint_corrupt: invalid terminalTurns",
+    );
   }
   const terminalTurnIds = new Set<string>();
   for (const value of snapshot.terminalTurns ?? []) {
@@ -752,15 +905,22 @@ export function assertCapabilityLiveSessionSnapshot(
     if (
       turnId.length === 0 ||
       terminalTurnIds.has(turnId) ||
-      !["completed", "failed", "interrupted", "cancelled"].includes(text(terminal.status)) ||
+      !["completed", "failed", "interrupted", "cancelled"].includes(
+        text(terminal.status),
+      ) ||
       text(terminal.reconciledByAttemptId).length === 0 ||
       text(terminal.observedAt).length === 0
     ) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid terminal fact");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid terminal fact",
+      );
     }
     terminalTurnIds.add(turnId);
   }
-  if (snapshot.usageLedger !== undefined && !Array.isArray(snapshot.usageLedger)) {
+  if (
+    snapshot.usageLedger !== undefined &&
+    !Array.isArray(snapshot.usageLedger)
+  ) {
     throw new Error("capability_live_checkpoint_corrupt: invalid usageLedger");
   }
   const usageReceiptIds = new Set<string>();
@@ -773,7 +933,9 @@ export function assertCapabilityLiveSessionSnapshot(
       text(receipt.attemptId).length === 0 ||
       text(receipt.observedAt).length === 0
     ) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid usage receipt");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid usage receipt",
+      );
     }
     for (const name of [
       "providerCalls",
@@ -785,32 +947,49 @@ export function assertCapabilityLiveSessionSnapshot(
       "costNanodollars",
     ] as const) {
       if (!Number.isSafeInteger(receipt[name]) || Number(receipt[name]) < 0) {
-        throw new Error("capability_live_checkpoint_corrupt: invalid usage receipt");
+        throw new Error(
+          "capability_live_checkpoint_corrupt: invalid usage receipt",
+        );
       }
     }
     usageReceiptIds.add(receiptId);
   }
-  if (snapshot.usageUnavailable !== undefined && !Array.isArray(snapshot.usageUnavailable)) {
-    throw new Error("capability_live_checkpoint_corrupt: invalid unavailable usage");
+  if (
+    snapshot.usageUnavailable !== undefined &&
+    !Array.isArray(snapshot.usageUnavailable)
+  ) {
+    throw new Error(
+      "capability_live_checkpoint_corrupt: invalid unavailable usage",
+    );
   }
   const unavailableTurnIds = new Set<string>();
   for (const value of snapshot.usageUnavailable ?? []) {
     const unavailable = record(value);
     const turnId = text(unavailable.turnId);
-    if (config.provider !== "acpx" || unavailable.agent !== config.acpxAgent
-      || !["pi", "cursor", "copilot"].includes(text(unavailable.agent))
-      || !turnId || turnId.length > 512 || unavailableTurnIds.has(turnId)
-      || !text(unavailable.attemptId) || text(unavailable.attemptId).length > 512
-      || !text(unavailable.observedAt)
-      || unavailable.reason !== "provider_did_not_report_usage"
-      || unavailable.tokenUsage !== null || unavailable.costNanodollars !== null) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid unavailable usage");
+    if (
+      config.provider !== "acpx" ||
+      unavailable.agent !== config.acpxAgent ||
+      !["pi", "cursor", "copilot"].includes(text(unavailable.agent)) ||
+      !turnId ||
+      turnId.length > 512 ||
+      unavailableTurnIds.has(turnId) ||
+      !text(unavailable.attemptId) ||
+      text(unavailable.attemptId).length > 512 ||
+      !text(unavailable.observedAt) ||
+      unavailable.reason !== "provider_did_not_report_usage" ||
+      unavailable.tokenUsage !== null ||
+      unavailable.costNanodollars !== null
+    ) {
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid unavailable usage",
+      );
     }
     unavailableTurnIds.add(turnId);
   }
   if (
     snapshot.stateHistory !== undefined &&
-    (!Array.isArray(snapshot.stateHistory) || snapshot.stateHistory.length > 256)
+    (!Array.isArray(snapshot.stateHistory) ||
+      snapshot.stateHistory.length > 256)
   ) {
     throw new Error("capability_live_checkpoint_corrupt: invalid stateHistory");
   }
@@ -824,40 +1003,54 @@ export function assertCapabilityLiveSessionSnapshot(
       (revision.turnId !== null && typeof revision.turnId !== "string") ||
       typeof revision.state !== "string"
     ) {
-      throw new Error("capability_live_checkpoint_corrupt: invalid state revision");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid state revision",
+      );
     }
     try {
       JSON.parse(revision.state);
     } catch {
-      throw new Error("capability_live_checkpoint_corrupt: invalid state revision JSON");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: invalid state revision JSON",
+      );
     }
   }
 }
 
 export function reconcileCapabilityLiveUsage(
   snapshot: CapabilityLiveSessionSnapshot,
-): Omit<CapabilityLiveUsageReceipt, "receiptId" | "attemptId" | "providerResponseId" | "turnId" | "observedAt"> {
-  const unique = new Map((snapshot.usageLedger ?? []).map((receipt) => [receipt.receiptId, receipt]));
-  return [...unique.values()].reduce((total, receipt) => ({
-    providerCalls: total.providerCalls + receipt.providerCalls,
-    providerRequests: total.providerRequests + receipt.providerRequests,
-    inputTokens: total.inputTokens + receipt.inputTokens,
-    outputTokens: total.outputTokens + receipt.outputTokens,
-    cachedInputTokens: total.cachedInputTokens + receipt.cachedInputTokens,
-    reasoningTokens: total.reasoningTokens + receipt.reasoningTokens,
-    costNanodollars: total.costNanodollars + receipt.costNanodollars,
-  }), {
-    providerCalls: 0,
-    providerRequests: 0,
-    inputTokens: 0,
-    outputTokens: 0,
-    cachedInputTokens: 0,
-    reasoningTokens: 0,
-    costNanodollars: 0,
-  });
+): Omit<
+  CapabilityLiveUsageReceipt,
+  "receiptId" | "attemptId" | "providerResponseId" | "turnId" | "observedAt"
+> {
+  const unique = new Map(
+    (snapshot.usageLedger ?? []).map((receipt) => [receipt.receiptId, receipt]),
+  );
+  return [...unique.values()].reduce(
+    (total, receipt) => ({
+      providerCalls: total.providerCalls + receipt.providerCalls,
+      providerRequests: total.providerRequests + receipt.providerRequests,
+      inputTokens: total.inputTokens + receipt.inputTokens,
+      outputTokens: total.outputTokens + receipt.outputTokens,
+      cachedInputTokens: total.cachedInputTokens + receipt.cachedInputTokens,
+      reasoningTokens: total.reasoningTokens + receipt.reasoningTokens,
+      costNanodollars: total.costNanodollars + receipt.costNanodollars,
+    }),
+    {
+      providerCalls: 0,
+      providerRequests: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cachedInputTokens: 0,
+      reasoningTokens: 0,
+      costNanodollars: 0,
+    },
+  );
 }
 
-function dynamicToolSpec(definition: CapabilitySemanticToolDefinition): Record<string, unknown> {
+function dynamicToolSpec(
+  definition: CapabilitySemanticToolDefinition,
+): Record<string, unknown> {
   return {
     name: definition.name,
     description: definition.description,
@@ -866,9 +1059,13 @@ function dynamicToolSpec(definition: CapabilitySemanticToolDefinition): Record<s
 }
 
 function discoveryToolSpecs(): Record<string, unknown>[] {
-  return CAPABILITY_DISCOVERY_GATEWAY_DEFINITIONS.map(({ name, description, inputSchema }) => ({
-    name, description, inputSchema,
-  }));
+  return CAPABILITY_DISCOVERY_GATEWAY_DEFINITIONS.map(
+    ({ name, description, inputSchema }) => ({
+      name,
+      description,
+      inputSchema,
+    }),
+  );
 }
 
 function userInput(message: string): Record<string, unknown> {
@@ -877,13 +1074,19 @@ function userInput(message: string): Record<string, unknown> {
 
 function terminalStatus(value: unknown): CapabilityLiveTurnResult["status"] {
   const status = text(value, "completed");
-  return status === "failed" || status === "interrupted" || status === "cancelled"
+  return status === "failed" ||
+    status === "interrupted" ||
+    status === "cancelled"
     ? status
     : "completed";
 }
 
-function pendingInteractions(port: CapabilityMockControlPlaneAdapter): CapabilityFixtureInteraction[] {
-  return port.snapshot().interactions.filter((interaction) => interaction.status === "pending");
+function pendingInteractions(
+  port: CapabilityMockControlPlaneAdapter,
+): CapabilityFixtureInteraction[] {
+  return port
+    .snapshot()
+    .interactions.filter((interaction) => interaction.status === "pending");
 }
 
 export class CapabilityLiveSessionService {
@@ -895,28 +1098,43 @@ export class CapabilityLiveSessionService {
 
   constructor(options: CapabilityLiveSessionServiceOptions = {}) {
     this.#store = options.store ?? new InMemoryCapabilityLiveSessionStore();
-    this.#transportFactory = options.transportFactory ?? createCapabilityRunnerdCodexTransport;
+    this.#transportFactory =
+      options.transportFactory ?? createCapabilityRunnerdCodexTransport;
     this.#transportOptions = options.transportOptions ?? {};
     this.#now = options.now ?? (() => new Date());
   }
 
-  async create(input: CreateCapabilityLiveSessionInput = {}): Promise<CapabilityLiveSession> {
-    if (input.provider === "acpx" && input.acpxAgent !== undefined
-      && ["pi", "copilot"].includes(input.acpxAgent)
-      && this.#transportOptions.acpxCandidateProfile !== input.acpxAgent) {
-      throw new Error("The candidate ACPX profile requires explicit evaluation opt-in");
+  async create(
+    input: CreateCapabilityLiveSessionInput = {},
+  ): Promise<CapabilityLiveSession> {
+    if (
+      input.provider === "acpx" &&
+      input.acpxAgent !== undefined &&
+      ["pi", "copilot"].includes(input.acpxAgent) &&
+      this.#transportOptions.acpxCandidateProfile !== input.acpxAgent
+    ) {
+      throw new Error(
+        "The candidate ACPX profile requires explicit evaluation opt-in",
+      );
     }
     if (input.provider === "claude_managed" && !input.managedProfile) {
-      throw new Error("Claude Managed live sessions require a qualified managed profile");
+      throw new Error(
+        "Claude Managed live sessions require a qualified managed profile",
+      );
     }
     if (input.provider === "aws_agentcore" && !input.agentCoreProfile) {
-      throw new Error("AWS AgentCore live sessions require a qualified AgentCore profile");
+      throw new Error(
+        "AWS AgentCore live sessions require a qualified AgentCore profile",
+      );
     }
     if (
-      (input.provider === "claude_managed" || input.provider === "aws_agentcore") &&
+      (input.provider === "claude_managed" ||
+        input.provider === "aws_agentcore") &&
       !input.requestedModel?.trim()
     ) {
-      throw new Error("Managed live sessions require an explicit qualified model");
+      throw new Error(
+        "Managed live sessions require an explicit qualified model",
+      );
     }
     const port = new CapabilityMockControlPlaneAdapter(input.seed);
     const seedState = port.serialize();
@@ -924,9 +1142,13 @@ export class CapabilityLiveSessionService {
     const state = port.snapshot();
     const sessionId = input.sessionId ?? randomUUID();
     const runId = input.runId ?? randomUUID();
-    const acpxProfile = input.provider === "acpx"
-      ? resolveQualifiedAcpxProfile(input.acpxAgent ?? "codex", requireNonEmpty(input.requestedModel ?? "", "requested_model"))
-      : null;
+    const acpxProfile =
+      input.provider === "acpx"
+        ? resolveQualifiedAcpxProfile(
+            input.acpxAgent ?? "codex",
+            requireNonEmpty(input.requestedModel ?? "", "requested_model"),
+          )
+        : null;
     const capabilities = [...(input.capabilities ?? [])];
     const scenario = input.scenario ?? { id: "capability-live-default" };
     const authority: CapabilityLiveAuthoritySnapshot = {
@@ -958,24 +1180,32 @@ export class CapabilityLiveSessionService {
       config: {
         workingDirectory: input.workingDirectory ?? process.cwd(),
         provider: input.provider ?? "codex",
-        driver: input.provider === "opencode"
-          ? "opencode_server"
-          : input.provider === "claude_managed"
-            ? "claude_managed_agents_api"
-            : input.provider === "aws_agentcore"
-              ? "aws_agentcore_harness_api"
-          : input.provider === "acpx" ? "acpx_runtime" : "codex_app_server",
-        providerVersion: input.provider === "opencode"
-          ? "1.18.34"
-          : input.provider === "claude_managed"
-            ? input.managedProfile!.agentVersion
-            : input.provider === "aws_agentcore"
-              ? input.agentCoreProfile!.qualificationRevision
-          : input.provider === "acpx" ? acpxProfile!.acpxVersion : null,
-        ...(acpxProfile === null ? {} : {
-          acpxAgent: acpxProfile.agent,
-          acpxProfile: structuredClone(acpxProfile),
-        }),
+        driver:
+          input.provider === "opencode"
+            ? "opencode_server"
+            : input.provider === "claude_managed"
+              ? "claude_managed_agents_api"
+              : input.provider === "aws_agentcore"
+                ? "aws_agentcore_harness_api"
+                : input.provider === "acpx"
+                  ? "acpx_runtime"
+                  : "codex_app_server",
+        providerVersion:
+          input.provider === "opencode"
+            ? "1.18.34"
+            : input.provider === "claude_managed"
+              ? input.managedProfile!.agentVersion
+              : input.provider === "aws_agentcore"
+                ? input.agentCoreProfile!.qualificationRevision
+                : input.provider === "acpx"
+                  ? acpxProfile!.acpxVersion
+                  : null,
+        ...(acpxProfile === null
+          ? {}
+          : {
+              acpxAgent: acpxProfile.agent,
+              acpxProfile: structuredClone(acpxProfile),
+            }),
         ...(input.managedProfile === undefined
           ? {}
           : { managedProfile: structuredClone(input.managedProfile) }),
@@ -984,13 +1214,21 @@ export class CapabilityLiveSessionService {
           : { agentCoreProfile: structuredClone(input.agentCoreProfile) }),
         ...(input.requestedModel === undefined
           ? {}
-          : { requestedModel: requireNonEmpty(input.requestedModel, "requested_model") }),
+          : {
+              requestedModel: requireNonEmpty(
+                input.requestedModel,
+                "requested_model",
+              ),
+            }),
         scenario,
         capabilities,
         explicitClaims: authority.explicitClaims,
         seedState,
         turnTimeoutMs: input.turnTimeoutMs ?? 120_000,
-        lifecyclePolicy: input.lifecyclePolicy ?? { mode: "warm", idleTimeoutMs: 300_000 },
+        lifecyclePolicy: input.lifecyclePolicy ?? {
+          mode: "warm",
+          idleTimeoutMs: 300_000,
+        },
         toolExposure: input.toolExposure ?? "eager",
       },
       store: this.#store,
@@ -1007,7 +1245,8 @@ export class CapabilityLiveSessionService {
     const live = this.#sessions.get(sessionId);
     if (live !== undefined) return live;
     const snapshot = await this.#store.load(sessionId);
-    if (snapshot === null) throw new Error(`capability live session ${sessionId} was not found`);
+    if (snapshot === null)
+      throw new Error(`capability live session ${sessionId} was not found`);
     assertCapabilityLiveSessionSnapshot(snapshot);
     const session = await CapabilityLiveSession.restore({
       snapshot,
@@ -1025,32 +1264,45 @@ export class CapabilityLiveSessionService {
    * successor durably before runnerd/Codex is started, then restores only the
    * provider thread named by that checkpoint.
    */
-  async resume(input: ResumeCapabilityLiveSessionInput): Promise<CapabilityLiveSession> {
+  async resume(
+    input: ResumeCapabilityLiveSessionInput,
+  ): Promise<CapabilityLiveSession> {
     requireNonEmpty(input.attemptId, "attempt_id");
     requireNonEmpty(input.resumeOf, "resume_of");
-    if (input.attemptId === input.resumeOf) throw new Error("capability_live_resume_cycle");
+    if (input.attemptId === input.resumeOf)
+      throw new Error("capability_live_resume_cycle");
     if (this.#sessions.has(input.sessionId)) {
       throw new Error("capability_live_resume_requires_new_worker");
     }
     const snapshot = await this.#store.load(input.sessionId);
     if (snapshot === null) {
-      throw new Error("capability_live_resume_checkpoint_missing: refusing to open a second provider session");
+      throw new Error(
+        "capability_live_resume_checkpoint_missing: refusing to open a second provider session",
+      );
     }
     assertCapabilityLiveSessionSnapshot(snapshot);
-    const attempts = structuredClone(snapshot.attempts ?? [{
-      attemptId: snapshot.authority.runId,
-      resumeOf: null,
-      status: "running" as const,
-      startedAt: snapshot.createdAt,
-      finishedAt: null,
-      failureCode: null,
-    }]);
-    const currentAttemptId = snapshot.currentAttemptId ?? attempts.at(-1)?.attemptId;
-    if (currentAttemptId !== input.resumeOf) throw new Error("capability_live_resume_binding_mismatch");
+    const attempts = structuredClone(
+      snapshot.attempts ?? [
+        {
+          attemptId: snapshot.authority.runId,
+          resumeOf: null,
+          status: "running" as const,
+          startedAt: snapshot.createdAt,
+          finishedAt: null,
+          failureCode: null,
+        },
+      ],
+    );
+    const currentAttemptId =
+      snapshot.currentAttemptId ?? attempts.at(-1)?.attemptId;
+    if (currentAttemptId !== input.resumeOf)
+      throw new Error("capability_live_resume_binding_mismatch");
     if (attempts.some((attempt) => attempt.attemptId === input.attemptId)) {
       throw new Error("capability_live_resume_attempt_exists");
     }
-    const previous = attempts.find((attempt) => attempt.attemptId === input.resumeOf);
+    const previous = attempts.find(
+      (attempt) => attempt.attemptId === input.resumeOf,
+    );
     if (previous === undefined || previous.status !== "running") {
       throw new Error("capability_live_resume_source_not_running");
     }
@@ -1073,9 +1325,11 @@ export class CapabilityLiveSessionService {
       status: "starting",
       attempts,
       currentAttemptId: input.attemptId,
-      ...(input.turnTimeoutMs === undefined ? {} : {
-        config: { ...snapshot.config, turnTimeoutMs: input.turnTimeoutMs },
-      }),
+      ...(input.turnTimeoutMs === undefined
+        ? {}
+        : {
+            config: { ...snapshot.config, turnTimeoutMs: input.turnTimeoutMs },
+          }),
     };
     await this.#store.save(prepared);
     try {
@@ -1090,9 +1344,11 @@ export class CapabilityLiveSessionService {
       return session;
     } catch (error) {
       const failedAt = this.#now().toISOString();
-      const latest = await this.#store.load(input.sessionId) ?? prepared;
+      const latest = (await this.#store.load(input.sessionId)) ?? prepared;
       const failedAttempts = structuredClone(latest.attempts ?? []);
-      const failed = failedAttempts.find((attempt) => attempt.attemptId === input.attemptId);
+      const failed = failedAttempts.find(
+        (attempt) => attempt.attemptId === input.attemptId,
+      );
       if (failed !== undefined) {
         failed.status = "failed";
         failed.finishedAt = failedAt;
@@ -1122,12 +1378,16 @@ export class CapabilityLiveSessionService {
     // not disposable state.  Suspending preserves its provider checkpoint and
     // authority binding so selecting it from history can restore it safely.
     await session.suspend("reset archived prior session");
-    const seedPort = CapabilityMockControlPlaneAdapter.restore(config.seedState);
+    const seedPort = CapabilityMockControlPlaneAdapter.restore(
+      config.seedState,
+    );
     return this.create({
       seed: seedPort.snapshot(),
       workingDirectory: config.workingDirectory,
       provider: config.provider ?? "codex",
-      ...(config.requestedModel === undefined ? {} : { requestedModel: config.requestedModel }),
+      ...(config.requestedModel === undefined
+        ? {}
+        : { requestedModel: config.requestedModel }),
       ...(config.managedProfile === undefined
         ? {}
         : { managedProfile: config.managedProfile }),
@@ -1138,18 +1398,27 @@ export class CapabilityLiveSessionService {
       capabilities: config.capabilities,
       explicitClaims: config.explicitClaims,
       turnTimeoutMs: config.turnTimeoutMs,
-      lifecyclePolicy: config.lifecyclePolicy ?? { mode: "per_turn", idleTimeoutMs: null },
+      lifecyclePolicy: config.lifecyclePolicy ?? {
+        mode: "per_turn",
+        idleTimeoutMs: null,
+      },
       toolExposure: config.toolExposure ?? "eager",
     });
   }
 
-  async stop(sessionId: string, reason = "operator stopped session"): Promise<CapabilityLiveSessionSnapshot> {
+  async stop(
+    sessionId: string,
+    reason = "operator stopped session",
+  ): Promise<CapabilityLiveSessionSnapshot> {
     const session = await this.restore(sessionId);
     await session.suspend(reason);
     return session.snapshot();
   }
 
-  async shutdown(sessionId: string, reason = "service shutdown"): Promise<void> {
+  async shutdown(
+    sessionId: string,
+    reason = "service shutdown",
+  ): Promise<void> {
     const session = this.#sessions.get(sessionId);
     if (session === undefined) return;
     await session.suspend(reason);
@@ -1167,7 +1436,10 @@ interface OpenSessionOptions {
   attemptId: string;
 }
 
-interface RestoreSessionOptions extends Omit<OpenSessionOptions, "port" | "authority" | "config" | "attemptId"> {
+interface RestoreSessionOptions extends Omit<
+  OpenSessionOptions,
+  "port" | "authority" | "config" | "attemptId"
+> {
   snapshot: CapabilityLiveSessionSnapshot;
 }
 
@@ -1212,12 +1484,17 @@ export class CapabilityLiveSession {
   #eventSeq = 0;
   #turnEventCount = 0;
   #turnUsageEventCount = 0;
-  readonly #usageObservationsByTurn = new Map<string, CapabilityLiveTurnUsageObservations>();
+  readonly #usageObservationsByTurn = new Map<
+    string,
+    CapabilityLiveTurnUsageObservations
+  >();
   #latestCumulativeUsage: Record<string, unknown> = {};
   #idleTimer: ReturnType<typeof setTimeout> | null = null;
   readonly #loadedOperationIds = new Set<string>();
 
-  private constructor(options: OpenSessionOptions & { snapshot?: CapabilityLiveSessionSnapshot }) {
+  private constructor(
+    options: OpenSessionOptions & { snapshot?: CapabilityLiveSessionSnapshot },
+  ) {
     this.#port = options.port;
     this.#authority = structuredClone(options.authority);
     this.#config = structuredClone(options.config);
@@ -1233,49 +1510,80 @@ export class CapabilityLiveSession {
     this.#updatedAt = options.snapshot?.updatedAt ?? this.#createdAt;
     this.#transcript = structuredClone(options.snapshot?.transcript ?? []);
     this.#evidence = structuredClone(options.snapshot?.evidence ?? []);
-    this.#priorAuthorizationRecords = structuredClone(options.snapshot?.authorizationRecords ?? []);
-    const initialAttemptId = options.snapshot?.currentAttemptId ?? options.attemptId;
-    this.#attempts = structuredClone(options.snapshot?.attempts ?? [{
-      attemptId: initialAttemptId,
-      resumeOf: null,
-      status: "running",
-      startedAt: this.#createdAt,
-      finishedAt: null,
-      failureCode: null,
-    }]);
+    this.#priorAuthorizationRecords = structuredClone(
+      options.snapshot?.authorizationRecords ?? [],
+    );
+    const initialAttemptId =
+      options.snapshot?.currentAttemptId ?? options.attemptId;
+    this.#attempts = structuredClone(
+      options.snapshot?.attempts ?? [
+        {
+          attemptId: initialAttemptId,
+          resumeOf: null,
+          status: "running",
+          startedAt: this.#createdAt,
+          finishedAt: null,
+          failureCode: null,
+        },
+      ],
+    );
     this.#currentAttemptId = initialAttemptId;
-    this.#terminalTurns = structuredClone(options.snapshot?.terminalTurns ?? []);
+    this.#terminalTurns = structuredClone(
+      options.snapshot?.terminalTurns ?? [],
+    );
     this.#usageLedger = structuredClone(options.snapshot?.usageLedger ?? []);
-    this.#usageUnavailable = structuredClone(options.snapshot?.usageUnavailable ?? []);
-    this.#stateHistory = structuredClone(options.snapshot?.stateHistory ?? [{
-      revision: this.#port.snapshot().revision,
-      at: this.#createdAt,
-      turnId: null,
-      operationId: "session.open",
-      state: this.#port.serialize(),
-    }]);
-    this.#workspaceDiffs = structuredClone(options.snapshot?.workspaceDiffs ?? []);
-    this.#workspaceFileReferences = structuredClone(options.snapshot?.workspaceFileReferences ?? []);
-    for (const operationId of options.snapshot?.loadedOperationIds ?? []) this.#loadedOperationIds.add(operationId);
+    this.#usageUnavailable = structuredClone(
+      options.snapshot?.usageUnavailable ?? [],
+    );
+    this.#stateHistory = structuredClone(
+      options.snapshot?.stateHistory ?? [
+        {
+          revision: this.#port.snapshot().revision,
+          at: this.#createdAt,
+          turnId: null,
+          operationId: "session.open",
+          state: this.#port.serialize(),
+        },
+      ],
+    );
+    this.#workspaceDiffs = structuredClone(
+      options.snapshot?.workspaceDiffs ?? [],
+    );
+    this.#workspaceFileReferences = structuredClone(
+      options.snapshot?.workspaceFileReferences ?? [],
+    );
+    for (const operationId of options.snapshot?.loadedOperationIds ?? [])
+      this.#loadedOperationIds.add(operationId);
     this.#providerThreadId = options.snapshot?.providerThreadId ?? "";
     this.#providerSessionId = options.snapshot?.providerSessionId ?? null;
-    this.#providerModel = options.snapshot?.providerModel === undefined
-      ? undefined
-      : structuredClone(options.snapshot.providerModel);
+    this.#providerModel =
+      options.snapshot?.providerModel === undefined
+        ? undefined
+        : structuredClone(options.snapshot.providerModel);
     if (options.snapshot?.semanticResult) {
-      const validation = validateCodexResultProposal(options.snapshot.semanticResult, LIVE_COMPLETION_ENVELOPE);
-      if (validation.status !== "accepted") throw new Error("capability_live_invalid_semantic_result_checkpoint");
-      this.#semanticResult = jsonValue(validation.result) as Record<string, CapabilityJsonValue>;
+      const validation = validateCodexResultProposal(
+        options.snapshot.semanticResult,
+        LIVE_COMPLETION_ENVELOPE,
+      );
+      if (validation.status !== "accepted")
+        throw new Error("capability_live_invalid_semantic_result_checkpoint");
+      this.#semanticResult = jsonValue(validation.result) as Record<
+        string,
+        CapabilityJsonValue
+      >;
     }
     this.#activeTurnId = options.snapshot?.activeTurnId ?? null;
-    this.#providerRunBinding = options.snapshot?.providerRunBinding === undefined
-      ? null
-      : structuredClone(options.snapshot.providerRunBinding);
+    this.#providerRunBinding =
+      options.snapshot?.providerRunBinding === undefined
+        ? null
+        : structuredClone(options.snapshot.providerRunBinding);
     this.#revision = options.snapshot?.revision ?? 0;
     this.#entryCounter = this.#transcript.length + this.#evidence.length;
   }
 
-  static async open(options: OpenSessionOptions): Promise<CapabilityLiveSession> {
+  static async open(
+    options: OpenSessionOptions,
+  ): Promise<CapabilityLiveSession> {
     const session = new CapabilityLiveSession(options);
     try {
       await session.#connect(false);
@@ -1286,14 +1594,20 @@ export class CapabilityLiveSession {
     return session;
   }
 
-  static async restore(options: RestoreSessionOptions): Promise<CapabilityLiveSession> {
+  static async restore(
+    options: RestoreSessionOptions,
+  ): Promise<CapabilityLiveSession> {
     if (options.snapshot.schema !== LIVE_SESSION_SCHEMA) {
       throw new Error("unsupported Capability live session snapshot");
     }
     if (!options.snapshot.authority.active) {
-      throw new Error("capability session authority was cleared and cannot be resumed");
+      throw new Error(
+        "capability session authority was cleared and cannot be resumed",
+      );
     }
-    const port = CapabilityMockControlPlaneAdapter.restore(options.snapshot.mockState);
+    const port = CapabilityMockControlPlaneAdapter.restore(
+      options.snapshot.mockState,
+    );
     if (port.snapshot().lifecycle !== "running") await port.start();
     const session = new CapabilityLiveSession({
       ...options,
@@ -1301,7 +1615,8 @@ export class CapabilityLiveSession {
       authority: options.snapshot.authority,
       config: options.snapshot.config,
       snapshot: options.snapshot,
-      attemptId: options.snapshot.currentAttemptId ?? options.snapshot.authority.runId,
+      attemptId:
+        options.snapshot.currentAttemptId ?? options.snapshot.authority.runId,
     });
     try {
       await session.#connect(true);
@@ -1338,7 +1653,8 @@ export class CapabilityLiveSession {
 
   #emit(event: CapabilityLiveTurnEventInput): void {
     if (event.kind === "usage") {
-      if (this.#turnUsageEventCount >= CAPABILITY_LIVE_USAGE_EVENT_LIMIT) return;
+      if (this.#turnUsageEventCount >= CAPABILITY_LIVE_USAGE_EVENT_LIMIT)
+        return;
       this.#turnUsageEventCount += 1;
     } else if (event.kind === "delta" || event.kind === "activity") {
       if (this.#turnEventCount >= CAPABILITY_LIVE_TURN_EVENT_LIMIT) return;
@@ -1368,7 +1684,11 @@ export class CapabilityLiveSession {
     const waiter = this.#turnWaiter;
     if (waiter === null || waiter.assistantText.length === 0) return;
     if (waiter.draftId === null) {
-      waiter.draftId = this.#appendTranscript("assistant", waiter.assistantText, turnId);
+      waiter.draftId = this.#appendTranscript(
+        "assistant",
+        waiter.assistantText,
+        turnId,
+      );
       return;
     }
     const draft = this.#transcript.find((entry) => entry.id === waiter.draftId);
@@ -1382,13 +1702,18 @@ export class CapabilityLiveSession {
    * interrupted turn keeps whatever it had streamed; a turn that produced
    * nothing leaves no empty card behind.
    */
-  #settleAssistantDraft(waiter: TurnWaiter, assistantText: string, turnId: string): void {
+  #settleAssistantDraft(
+    waiter: TurnWaiter,
+    assistantText: string,
+    turnId: string,
+  ): void {
     const index =
       waiter.draftId === null
         ? -1
         : this.#transcript.findIndex((entry) => entry.id === waiter.draftId);
     if (index < 0) {
-      if (assistantText.length > 0) this.#appendTranscript("assistant", assistantText, turnId);
+      if (assistantText.length > 0)
+        this.#appendTranscript("assistant", assistantText, turnId);
       return;
     }
     if (assistantText.length === 0) {
@@ -1429,16 +1754,23 @@ export class CapabilityLiveSession {
       transcript: structuredClone(this.#transcript),
       evidence: structuredClone(this.#evidence),
       authorizationRecords: structuredClone(records),
-      process: this.#processEvidence === null ? null : structuredClone(this.#processEvidence),
+      process:
+        this.#processEvidence === null
+          ? null
+          : structuredClone(this.#processEvidence),
       networkEvidence: {
         realTaskcoreRequests: 0,
-        childTaskcoreEnvironmentKeys: childKeys.filter((key) => key.startsWith("TASKCORE_")),
+        childTaskcoreEnvironmentKeys: childKeys.filter((key) =>
+          key.startsWith("TASKCORE_"),
+        ),
       },
       attempts: structuredClone(this.#attempts),
       currentAttemptId: this.#currentAttemptId,
       terminalTurns: structuredClone(this.#terminalTurns),
       usageLedger: structuredClone(this.#usageLedger),
-      ...(this.#usageUnavailable.length === 0 ? {} : { usageUnavailable: structuredClone(this.#usageUnavailable) }),
+      ...(this.#usageUnavailable.length === 0
+        ? {}
+        : { usageUnavailable: structuredClone(this.#usageUnavailable) }),
       stateHistory: structuredClone(this.#stateHistory),
       workspaceDiffs: structuredClone(this.#workspaceDiffs),
       workspaceFileReferences: structuredClone(this.#workspaceFileReferences),
@@ -1446,29 +1778,49 @@ export class CapabilityLiveSession {
     };
   }
 
-  async recordUsage(input: RecordCapabilityLiveUsageInput): Promise<"committed" | "duplicate"> {
+  async recordUsage(
+    input: RecordCapabilityLiveUsageInput,
+  ): Promise<"committed" | "duplicate"> {
     const receiptId = requireNonEmpty(input.receiptId, "usage_receipt_id");
     const receipt: CapabilityLiveUsageReceipt = {
       receiptId,
       attemptId: this.#currentAttemptId,
       providerResponseId: input.providerResponseId ?? null,
       turnId: input.turnId ?? this.#activeTurnId,
-      providerCalls: nonNegativeInteger(input.providerCalls ?? 1, "provider_calls"),
-      providerRequests: nonNegativeInteger(input.providerRequests, "provider_requests"),
+      providerCalls: nonNegativeInteger(
+        input.providerCalls ?? 1,
+        "provider_calls",
+      ),
+      providerRequests: nonNegativeInteger(
+        input.providerRequests,
+        "provider_requests",
+      ),
       inputTokens: nonNegativeInteger(input.inputTokens, "input_tokens"),
       outputTokens: nonNegativeInteger(input.outputTokens, "output_tokens"),
-      cachedInputTokens: nonNegativeInteger(input.cachedInputTokens, "cached_input_tokens"),
-      reasoningTokens: nonNegativeInteger(input.reasoningTokens, "reasoning_tokens"),
-      costNanodollars: nonNegativeInteger(input.costNanodollars, "cost_nanodollars"),
+      cachedInputTokens: nonNegativeInteger(
+        input.cachedInputTokens,
+        "cached_input_tokens",
+      ),
+      reasoningTokens: nonNegativeInteger(
+        input.reasoningTokens,
+        "reasoning_tokens",
+      ),
+      costNanodollars: nonNegativeInteger(
+        input.costNanodollars,
+        "cost_nanodollars",
+      ),
       observedAt: this.#now().toISOString(),
     };
-    const existing = this.#usageLedger.find((candidate) => candidate.receiptId === receiptId);
+    const existing = this.#usageLedger.find(
+      (candidate) => candidate.receiptId === receiptId,
+    );
     if (existing !== undefined) {
-      const comparable = (value: CapabilityLiveUsageReceipt) => JSON.stringify({
-        ...value,
-        attemptId: undefined,
-        observedAt: undefined,
-      });
+      const comparable = (value: CapabilityLiveUsageReceipt) =>
+        JSON.stringify({
+          ...value,
+          attemptId: undefined,
+          observedAt: undefined,
+        });
       if (comparable(existing) !== comparable(receipt)) {
         throw new Error("capability_live_usage_receipt_conflict");
       }
@@ -1483,7 +1835,9 @@ export class CapabilityLiveSession {
     status: Exclude<CapabilityLiveAttemptStatus, "running" | "terminated">,
     failureCode: string | null = null,
   ): Promise<CapabilityLiveSessionSnapshot> {
-    const attempt = this.#attempts.find((candidate) => candidate.attemptId === this.#currentAttemptId);
+    const attempt = this.#attempts.find(
+      (candidate) => candidate.attemptId === this.#currentAttemptId,
+    );
     if (attempt === undefined || attempt.status !== "running") {
       throw new Error("capability_live_attempt_not_running");
     }
@@ -1497,9 +1851,13 @@ export class CapabilityLiveSession {
     }
     attempt.status = status;
     attempt.finishedAt = this.#now().toISOString();
-    attempt.failureCode = status === "failed"
-      ? requireNonEmpty(failureCode ?? "attempt_failed", "attempt_failure_code")
-      : null;
+    attempt.failureCode =
+      status === "failed"
+        ? requireNonEmpty(
+            failureCode ?? "attempt_failed",
+            "attempt_failure_code",
+          )
+        : null;
     await this.#persist();
     return this.snapshot();
   }
@@ -1510,11 +1868,16 @@ export class CapabilityLiveSession {
     options: { allowMissingUsage?: boolean } = {},
   ): Promise<CapabilityLiveTurnResult> {
     const value = message.trim();
-    if (value.length === 0) throw new Error("Capability live messages cannot be empty");
+    if (value.length === 0)
+      throw new Error("Capability live messages cannot be empty");
     if (this.#status === "suspended" || this.#transport === null) {
       await this.#connect(true);
     }
-    if (this.#transport === null || this.#status === "closed" || this.#status === "failed") {
+    if (
+      this.#transport === null ||
+      this.#status === "closed" ||
+      this.#status === "failed"
+    ) {
       throw new Error("Capability live session is not connected");
     }
     if (
@@ -1573,7 +1936,9 @@ export class CapabilityLiveSession {
       admissionFailure ??= error;
     }
     if (this.#pendingTurnAdmission !== admission) {
-      throw new Error("Capability live turn admission was abandoned during teardown");
+      throw new Error(
+        "Capability live turn admission was abandoned during teardown",
+      );
     }
     if (admissionFailure !== null) {
       return this.#failTurnAdmission(admission, userEntryId, admissionFailure);
@@ -1626,7 +1991,9 @@ export class CapabilityLiveSession {
     }
     if (this.#pendingTurnAdmission !== admission) {
       await terminal.catch(() => undefined);
-      throw new Error("Capability live turn start completed after admission teardown");
+      throw new Error(
+        "Capability live turn start completed after admission teardown",
+      );
     }
     const turnId = text(record(response.turn).id);
     if (turnId.length === 0) {
@@ -1643,7 +2010,9 @@ export class CapabilityLiveSession {
     this.#bindAdmissionUser(userEntryId, turnId);
     const draftId = (this.#turnWaiter as TurnWaiter | null)?.draftId ?? null;
     const draft =
-      draftId === null ? undefined : this.#transcript.find((entry) => entry.id === draftId);
+      draftId === null
+        ? undefined
+        : this.#transcript.find((entry) => entry.id === draftId);
     if (draft !== undefined && draft.turnId === null) draft.turnId = turnId;
     try {
       await this.#persist();
@@ -1675,28 +2044,33 @@ export class CapabilityLiveSession {
       this.#releaseTurnAdmission(admission);
       result = await terminal;
     }
-    const workspaceFileReferences = await discoverTaskcoreWorkspaceFileReferences(
-      this.#config.workingDirectory,
-      result.assistantText,
-      result.turnId,
-    );
+    const workspaceFileReferences =
+      await discoverTaskcoreWorkspaceFileReferences(
+        this.#config.workingDirectory,
+        result.assistantText,
+        result.turnId,
+      );
     for (const reference of workspaceFileReferences) {
       this.#workspaceFileReferences.push({
         turnId: result.turnId,
         at: this.#now().toISOString(),
         reference: {
           ...reference,
-          preview: reference.preview === null ? null : redactCodexDiagnostic(reference.preview),
+          preview:
+            reference.preview === null
+              ? null
+              : redactCodexDiagnostic(reference.preview),
         },
       });
     }
-    const workspaceDiff = workspaceBefore === null
-      ? null
-      : diffTaskcoreWorkspace(
-          workspaceBefore,
-          await captureTaskcoreWorkspace(this.#config.workingDirectory),
-          `${this.id}:${result.turnId}:workspace`,
-        );
+    const workspaceDiff =
+      workspaceBefore === null
+        ? null
+        : diffTaskcoreWorkspace(
+            workspaceBefore,
+            await captureTaskcoreWorkspace(this.#config.workingDirectory),
+            `${this.id}:${result.turnId}:workspace`,
+          );
     if (workspaceDiff !== null) {
       this.#workspaceDiffs.push({
         turnId: result.turnId,
@@ -1712,7 +2086,8 @@ export class CapabilityLiveSession {
     }
     await this.#captureTurnUsage(
       result.turnId,
-      result.status !== "completed" || options.allowMissingUsage === true ||
+      result.status !== "completed" ||
+        options.allowMissingUsage === true ||
         (this.#config.provider === "acpx" && this.#config.acpxAgent === "grok"),
     );
     await this.#persist();
@@ -1721,12 +2096,16 @@ export class CapabilityLiveSession {
   }
 
   async #afterTurnSettled(): Promise<void> {
-    const policy = this.#config.lifecyclePolicy ?? { mode: "per_turn" as const, idleTimeoutMs: null };
+    const policy = this.#config.lifecyclePolicy ?? {
+      mode: "per_turn" as const,
+      idleTimeoutMs: null,
+    };
     if (policy.mode === "per_turn") {
       await this.suspend("per-turn lifecycle completed");
       return;
     }
-    this.#status = this.pendingInteractions().length > 0 ? "waiting_input" : "warm_idle";
+    this.#status =
+      this.pendingInteractions().length > 0 ? "waiting_input" : "warm_idle";
     this.#armIdleTimer(policy.idleTimeoutMs);
     await this.#persist();
   }
@@ -1749,7 +2128,8 @@ export class CapabilityLiveSession {
   }
 
   async #captureTurnUsage(turnId: string, allowEmpty = false): Promise<void> {
-    if (this.#transport === null) throw new Error("capability_live_usage_transport_missing");
+    if (this.#transport === null)
+      throw new Error("capability_live_usage_transport_missing");
     const initial = this.#usageObservationsByTurn.get(turnId);
     // An explicit whole-turn delta is already complete. Other providers can
     // publish one or more rawResponse receipts after turn/completed, so retain
@@ -1762,34 +2142,42 @@ export class CapabilityLiveSession {
       }
     }
     const captured = this.#usageObservationsByTurn.get(turnId);
-    const reportedTokens = (captured?.reported?.usage.inputTokens ?? 0)
-      + (captured?.reported?.usage.outputTokens ?? 0);
-    const needsRead = captured === undefined || (
-      captured.reported?.exactDelta !== true
-      && captured.raw === null
-      && captured.terminal === null
-      && reportedTokens === 0
-    );
-    const read = needsRead ? await this.#transport.request("thread/read", {
-      threadId: this.#providerThreadId,
-      includeTurns: true,
-    }) : {};
+    const reportedTokens =
+      (captured?.reported?.usage.inputTokens ?? 0) +
+      (captured?.reported?.usage.outputTokens ?? 0);
+    const needsRead =
+      captured === undefined ||
+      (captured.reported?.exactDelta !== true &&
+        captured.raw === null &&
+        captured.terminal === null &&
+        reportedTokens === 0);
+    const read = needsRead
+      ? await this.#transport.request("thread/read", {
+          threadId: this.#providerThreadId,
+          includeTurns: true,
+        })
+      : {};
     const thread = record(read.thread);
     const usage = record(thread.tokenUsage ?? read.tokenUsage);
-    const cumulativeNotification = Object.keys(this.#latestCumulativeUsage).length > 0
-      ? this.#latestCumulativeUsage
-      : undefined;
-    const readTotal = usage.total ?? usage.totalTokenUsage ?? usage.total_token_usage;
+    const cumulativeNotification =
+      Object.keys(this.#latestCumulativeUsage).length > 0
+        ? this.#latestCumulativeUsage
+        : undefined;
+    const readTotal =
+      usage.total ?? usage.totalTokenUsage ?? usage.total_token_usage;
     // If the current turn produced no usable observation, thread/read is the
     // freshest authority. A prior turn's cached notification is only a final
     // compatibility fallback.
-    const total = record(needsRead
-      ? readTotal ?? cumulativeNotification
-      : cumulativeNotification ?? readTotal);
+    const total = record(
+      needsRead
+        ? (readTotal ?? cumulativeNotification)
+        : (cumulativeNotification ?? readTotal),
+    );
     const integer = (...names: string[]): number => {
       for (const name of names) {
         const value = total[name];
-        if (Number.isSafeInteger(value) && Number(value) >= 0) return Number(value);
+        if (Number.isSafeInteger(value) && Number(value) >= 0)
+          return Number(value);
       }
       return 0;
     };
@@ -1798,7 +2186,11 @@ export class CapabilityLiveSession {
       inputTokens: integer("inputTokens", "input_tokens"),
       outputTokens: integer("outputTokens", "output_tokens"),
       cachedInputTokens: integer("cachedInputTokens", "cached_input_tokens"),
-      reasoningTokens: integer("reasoningOutputTokens", "reasoningTokens", "reasoning_output_tokens"),
+      reasoningTokens: integer(
+        "reasoningOutputTokens",
+        "reasoningTokens",
+        "reasoning_output_tokens",
+      ),
       costNanodollars: 0,
     };
     const prior = reconcileCapabilityLiveUsage(this.snapshot());
@@ -1806,30 +2198,52 @@ export class CapabilityLiveSession {
       providerRequests: 1,
       inputTokens: Math.max(0, cumulative.inputTokens - prior.inputTokens),
       outputTokens: Math.max(0, cumulative.outputTokens - prior.outputTokens),
-      cachedInputTokens: Math.max(0, cumulative.cachedInputTokens - prior.cachedInputTokens),
-      reasoningTokens: Math.max(0, cumulative.reasoningTokens - prior.reasoningTokens),
+      cachedInputTokens: Math.max(
+        0,
+        cumulative.cachedInputTokens - prior.cachedInputTokens,
+      ),
+      reasoningTokens: Math.max(
+        0,
+        cumulative.reasoningTokens - prior.reasoningTokens,
+      ),
       costNanodollars: 0,
     };
     const reported = captured?.reported?.usage;
-    const usableReported = reported !== undefined
-      && reported.inputTokens + reported.outputTokens > 0
-      ? reported
-      : undefined;
-    const selected = captured?.reported?.exactDelta === true
-      ? reported
-      : captured?.raw ?? captured?.terminal ?? usableReported ?? cumulativeFallback;
-    const selectedWithReportedCost = selected === undefined
-      ? undefined
-      : {
-          ...selected,
-          costNanodollars: Math.max(selected.costNanodollars, reported?.costNanodollars ?? 0),
-        };
-    const missingTokens = (selectedWithReportedCost?.inputTokens ?? 0)
-      + (selectedWithReportedCost?.outputTokens ?? 0) === 0;
+    const usableReported =
+      reported !== undefined && reported.inputTokens + reported.outputTokens > 0
+        ? reported
+        : undefined;
+    const selected =
+      captured?.reported?.exactDelta === true
+        ? reported
+        : (captured?.raw ??
+          captured?.terminal ??
+          usableReported ??
+          cumulativeFallback);
+    const selectedWithReportedCost =
+      selected === undefined
+        ? undefined
+        : {
+            ...selected,
+            costNanodollars: Math.max(
+              selected.costNanodollars,
+              reported?.costNanodollars ?? 0,
+            ),
+          };
+    const missingTokens =
+      (selectedWithReportedCost?.inputTokens ?? 0) +
+        (selectedWithReportedCost?.outputTokens ?? 0) ===
+      0;
     const candidate = this.#config.acpxAgent;
-    if (missingTokens && this.#config.provider === "acpx"
-      && (candidate === "pi" || candidate === "cursor" || candidate === "copilot")
-      && (candidate === "cursor" || this.#transportOptions.acpxCandidateProfile === candidate)) {
+    if (
+      missingTokens &&
+      this.#config.provider === "acpx" &&
+      (candidate === "pi" ||
+        candidate === "cursor" ||
+        candidate === "copilot") &&
+      (candidate === "cursor" ||
+        this.#transportOptions.acpxCandidateProfile === candidate)
+    ) {
       // Native candidate wrappers can complete a turn without a usage receipt,
       // including entitlement-denied turns. Retain the actual result for the
       // oracle without inventing tokens, charges, or a successful model call.
@@ -1847,19 +2261,26 @@ export class CapabilityLiveSession {
       return;
     }
     if (missingTokens && !allowEmpty) {
-      throw new Error(`capability_live_usage_missing:${JSON.stringify({
-        captured: captured !== undefined,
-        needsRead,
-        readKeys: Object.keys(read).sort(),
-        threadKeys: Object.keys(thread).sort(),
-        usageKeys: Object.keys(usage).sort(),
-        totalKeys: Object.keys(total).sort(),
-      })}`);
+      throw new Error(
+        `capability_live_usage_missing:${JSON.stringify({
+          captured: captured !== undefined,
+          needsRead,
+          readKeys: Object.keys(read).sort(),
+          threadKeys: Object.keys(thread).sort(),
+          usageKeys: Object.keys(usage).sort(),
+          totalKeys: Object.keys(total).sort(),
+        })}`,
+      );
     }
     // Grok 1.0.13 does not report verified token/cost measurements. Do not
     // synthesize a zero receipt from the fallback when nothing was observed.
-    if (this.#config.provider === "acpx" && this.#config.acpxAgent === "grok" &&
-        (captured?.reported ?? captured?.raw ?? captured?.terminal) == null && Object.keys(total).length === 0) return;
+    if (
+      this.#config.provider === "acpx" &&
+      this.#config.acpxAgent === "grok" &&
+      (captured?.reported ?? captured?.raw ?? captured?.terminal) == null &&
+      Object.keys(total).length === 0
+    )
+      return;
     const finalUsage = selectedWithReportedCost ?? cumulativeFallback;
     await this.recordUsage({
       receiptId: `${turnId}:usage`,
@@ -1880,7 +2301,10 @@ export class CapabilityLiveSession {
    * state-history entry so it is replayable as part of the conversation rather
    * than an out-of-band API console.
    */
-  async invokeTool(operationId: string, input: unknown): Promise<CapabilityLiveToolInvocationResult> {
+  async invokeTool(
+    operationId: string,
+    input: unknown,
+  ): Promise<CapabilityLiveToolInvocationResult> {
     if (this.#status === "closed" || this.#status === "failed") {
       throw new Error("Capability live session is not connected");
     }
@@ -1895,7 +2319,11 @@ export class CapabilityLiveSession {
     const callId = `devtools-call-${randomUUID()}`;
     const argumentsValue = jsonValue(input);
     const beforeRevision = this.#port.snapshot().revision;
-    this.#appendTranscript("user", `DevTools invoked \`${operationId}\`.`, turnId);
+    this.#appendTranscript(
+      "user",
+      `DevTools invoked \`${operationId}\`.`,
+      turnId,
+    );
     this.#appendEvidence("tool_call", turnId, {
       callId,
       operationId,
@@ -1929,7 +2357,8 @@ export class CapabilityLiveSession {
   }
 
   #releaseTurnAdmission(admission: PendingTurnAdmission): void {
-    if (this.#pendingTurnAdmission === admission) this.#pendingTurnAdmission = null;
+    if (this.#pendingTurnAdmission === admission)
+      this.#pendingTurnAdmission = null;
     admission.settle();
   }
 
@@ -1971,17 +2400,25 @@ export class CapabilityLiveSession {
     userEntryId: string,
   ): Promise<CapabilityLiveTurnResult> {
     const cancellation = admission.cancellation;
-    if (cancellation === null) throw new Error("turn admission was not interrupted");
-    const turnId = this.#activeTurnId
-      ?? `turn_admission_${randomUUID().replaceAll("-", "")}`;
+    if (cancellation === null)
+      throw new Error("turn admission was not interrupted");
+    const turnId =
+      this.#activeTurnId ??
+      `turn_admission_${randomUUID().replaceAll("-", "")}`;
     this.#bindAdmissionUser(userEntryId, turnId);
-    const completion = this.#turnWaiter === null
-      ? {
-          waiter: null,
-          result: { turnId, status: "interrupted" as const, assistantText: "" },
-        }
-      : this.#completeTurn(turnId, "interrupted");
-    if (completion.waiter === null) this.#recordTerminalFact(turnId, "interrupted");
+    const completion =
+      this.#turnWaiter === null
+        ? {
+            waiter: null,
+            result: {
+              turnId,
+              status: "interrupted" as const,
+              assistantText: "",
+            },
+          }
+        : this.#completeTurn(turnId, "interrupted");
+    if (completion.waiter === null)
+      this.#recordTerminalFact(turnId, "interrupted");
     const resumeLifecycle =
       cancellation.resumeLifecycle &&
       this.#transport === admission.transport &&
@@ -2071,22 +2508,35 @@ export class CapabilityLiveSession {
   }
 
   #armTurnWaiter(): Promise<Omit<CapabilityLiveTurnResult, "snapshot">> {
-    if (this.#turnWaiter !== null) throw new Error("Capability live session already has a turn waiter");
-    const terminal = new Promise<Omit<CapabilityLiveTurnResult, "snapshot">>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        const waiter = this.#turnWaiter;
-        this.#turnWaiter = null;
-        if (waiter !== null) {
-          this.#emit({
-            turnId: this.#activeTurnId,
-            kind: "error",
-            message: `Capability Codex turn timed out after ${this.#config.turnTimeoutMs}ms`,
-          });
-        }
-        reject(new Error(`Capability Codex turn timed out after ${this.#config.turnTimeoutMs}ms`));
-      }, this.#config.turnTimeoutMs);
-      this.#turnWaiter = { resolve, reject, timer, assistantText: "", draftId: null };
-    });
+    if (this.#turnWaiter !== null)
+      throw new Error("Capability live session already has a turn waiter");
+    const terminal = new Promise<Omit<CapabilityLiveTurnResult, "snapshot">>(
+      (resolve, reject) => {
+        const timer = setTimeout(() => {
+          const waiter = this.#turnWaiter;
+          this.#turnWaiter = null;
+          if (waiter !== null) {
+            this.#emit({
+              turnId: this.#activeTurnId,
+              kind: "error",
+              message: `Capability Codex turn timed out after ${this.#config.turnTimeoutMs}ms`,
+            });
+          }
+          reject(
+            new Error(
+              `Capability Codex turn timed out after ${this.#config.turnTimeoutMs}ms`,
+            ),
+          );
+        }, this.#config.turnTimeoutMs);
+        this.#turnWaiter = {
+          resolve,
+          reject,
+          timer,
+          assistantText: "",
+          draftId: null,
+        };
+      },
+    );
     // A caller may await this promise only after another `await` of its own
     // (see `reconcileActiveTurn`). The timer above can reject before that
     // point, so attach a no-op handler here, at creation, on every call
@@ -2111,18 +2561,29 @@ export class CapabilityLiveSession {
       throw error;
     }
     const result = await terminal;
-    if (result.turnId !== turnId) throw new Error("capability_live_provider_session_drift: terminal turn mismatch");
+    if (result.turnId !== turnId)
+      throw new Error(
+        "capability_live_provider_session_drift: terminal turn mismatch",
+      );
     await this.#persist();
     await this.#afterTurnSettled();
     return { ...result, snapshot: this.snapshot() };
   }
 
-  async interrupt(reason = "operator interrupted turn"): Promise<CapabilityLiveSessionSnapshot> {
+  async interrupt(
+    reason = "operator interrupted turn",
+  ): Promise<CapabilityLiveSessionSnapshot> {
     if (this.#transport === null) return this.snapshot();
     if (this.#activeTurnId === null && this.#pendingTurnAdmission !== null) {
-      this.#pendingTurnAdmission.cancellation = { reason, resumeLifecycle: true };
+      this.#pendingTurnAdmission.cancellation = {
+        reason,
+        resumeLifecycle: true,
+      };
       this.#status = "stopping";
-      this.#appendEvidence("session", null, { action: "stop_requested", reason });
+      this.#appendEvidence("session", null, {
+        action: "stop_requested",
+        reason,
+      });
       this.#emit({ turnId: null, kind: "activity", reason: "stop_requested" });
       await this.#persist();
       return this.snapshot();
@@ -2130,7 +2591,10 @@ export class CapabilityLiveSession {
     if (this.#activeTurnId === null) return this.snapshot();
     this.#status = "stopping";
     const turnId = this.#activeTurnId;
-    this.#appendEvidence("session", turnId, { action: "stop_requested", reason });
+    this.#appendEvidence("session", turnId, {
+      action: "stop_requested",
+      reason,
+    });
     this.#emit({ turnId, kind: "activity", reason: "stop_requested" });
     await this.#transport.request("turn/interrupt", {
       threadId: this.#providerThreadId,
@@ -2206,11 +2670,14 @@ export class CapabilityLiveSession {
     return this.snapshot();
   }
 
-  async resolveInteraction(input: CapabilityInteractionResolution): Promise<CapabilityLiveTurnResult> {
+  async resolveInteraction(
+    input: CapabilityInteractionResolution,
+  ): Promise<CapabilityLiveTurnResult> {
     const interaction = pendingInteractions(this.#port).find(
       (candidate) => candidate.id === input.interactionId,
     );
-    if (interaction === undefined) throw new Error("interaction is not pending in this session");
+    if (interaction === undefined)
+      throw new Error("interaction is not pending in this session");
     const outcome = await this.#port.tryApplyCommand({
       runId: this.#authority.runId,
       idempotencyKey: `capability-live-interaction:${input.interactionId}:${input.outcome}`,
@@ -2221,7 +2688,8 @@ export class CapabilityLiveSession {
         result: input.result,
       },
     });
-    if (!outcome.ok) throw new Error(`${outcome.error.code}: ${outcome.error.message}`);
+    if (!outcome.ok)
+      throw new Error(`${outcome.error.code}: ${outcome.error.message}`);
     this.#recordStateRevision(null, "resolve_human_input");
     this.#appendEvidence("interaction", null, {
       interactionId: input.interactionId,
@@ -2231,14 +2699,17 @@ export class CapabilityLiveSession {
       stateRevision: outcome.result.stateRevision,
     });
     await this.#persist();
-    return this.sendMessage(JSON.stringify({
-      schema: "taskcore.semantic-interaction-result.v1",
-      interactionId: input.interactionId,
-      kind: interaction.kind,
-      outcome: input.outcome,
-      result: input.result,
-      instruction: "Continue using this typed interaction result in the same mock issue session.",
-    }));
+    return this.sendMessage(
+      JSON.stringify({
+        schema: "taskcore.semantic-interaction-result.v1",
+        interactionId: input.interactionId,
+        kind: interaction.kind,
+        outcome: input.outcome,
+        result: input.result,
+        instruction:
+          "Continue using this typed interaction result in the same mock issue session.",
+      }),
+    );
   }
 
   async reconnect(): Promise<void> {
@@ -2247,7 +2718,9 @@ export class CapabilityLiveSession {
       this.#turnWaiter !== null ||
       this.#pendingTurnAdmission !== null
     ) {
-      throw new Error("stop the active turn before reconnecting the Codex transport");
+      throw new Error(
+        "stop the active turn before reconnecting the Codex transport",
+      );
     }
     await this.#disconnect("reconnect");
     await this.#connect(true);
@@ -2344,9 +2817,13 @@ export class CapabilityLiveSession {
   }
 
   async #connect(resume: boolean): Promise<void> {
-    const provider = this.#config.provider ?? this.#transportOptions.provider ?? "codex";
+    const provider =
+      this.#config.provider ?? this.#transportOptions.provider ?? "codex";
     this.#status = resume ? "restoring" : "starting";
-    const identityDigest = createHash("sha256").update(this.id).digest("hex").slice(0, 20);
+    const identityDigest = createHash("sha256")
+      .update(this.id)
+      .digest("hex")
+      .slice(0, 20);
     const providerRunBinding = this.#providerRunBinding ?? {
       runId: this.#authority.runId,
       turnId: `turn_lab_${identityDigest}`,
@@ -2359,16 +2836,22 @@ export class CapabilityLiveSession {
     const baseInstructions = [
       this.#transportOptions.baseInstructions ?? LIVE_BASE_INSTRUCTIONS,
       "",
-      "Native completion report contract: " + JSON.stringify(LIVE_COMPLETION_CONTRACT),
+      "Native completion report contract: " +
+        JSON.stringify(LIVE_COMPLETION_CONTRACT),
       "For taskcore_finish or taskcore_block, use that exact contract revision and criterion IDs. These tools report the current provider run result; they do not change mock task state. Mock task mutations still require separately authorized semantic tools and an explicit user request.",
     ].join("\n");
     const authorizedTools = this.#dispatcher.listTools(this.#authority.runId);
-    const tools = (this.#config.toolExposure ?? "eager") === "lazy"
-      ? authorizedTools.filter((tool) => tool.annotations.exposure === "always")
-      : authorizedTools;
+    const tools =
+      (this.#config.toolExposure ?? "eager") === "lazy"
+        ? authorizedTools.filter(
+            (tool) => tool.annotations.exposure === "always",
+          )
+        : authorizedTools;
     const semanticTools = [
       ...tools.map(dynamicToolSpec),
-      ...((this.#config.toolExposure ?? "eager") === "lazy" ? discoveryToolSpecs() : []),
+      ...((this.#config.toolExposure ?? "eager") === "lazy"
+        ? discoveryToolSpecs()
+        : []),
     ];
     const transportBundle = this.#transportFactory({
       ...this.#transportOptions,
@@ -2382,9 +2865,11 @@ export class CapabilityLiveSession {
               this.#transportOptions.opencodePermissionMode ?? "deny",
           }
         : {}),
-      ...(provider === "acpx" && this.#config.acpxAgent ? {
-        acpxAgent: this.#config.acpxAgent,
-      } : {}),
+      ...(provider === "acpx" && this.#config.acpxAgent
+        ? {
+            acpxAgent: this.#config.acpxAgent,
+          }
+        : {}),
       ...(provider === "claude_managed" && this.#config.managedProfile
         ? {
             managedProfile: {
@@ -2403,10 +2888,17 @@ export class CapabilityLiveSession {
             },
           }
         : {}),
-      lifecyclePolicy: this.#config.lifecyclePolicy ?? { mode: "per_turn", idleTimeoutMs: null },
+      lifecyclePolicy: this.#config.lifecyclePolicy ?? {
+        mode: "per_turn",
+        idleTimeoutMs: null,
+      },
       resumeActiveTurnId: resume ? this.#activeTurnId : null,
       ...(resume ? { resumeDynamicTools: semanticTools } : {}),
-      stateDirectory: resolve(this.#config.workingDirectory, ".taskcore-runner-prp", identityDigest),
+      stateDirectory: resolve(
+        this.#config.workingDirectory,
+        ".taskcore-runner-prp",
+        identityDigest,
+      ),
       prpIdentity: {
         runnerInstanceId: `runner_lab_${identityDigest}`,
         environmentLeaseId: `lease_lab_${identityDigest}`,
@@ -2428,7 +2920,9 @@ export class CapabilityLiveSession {
     });
     this.#transport = transportBundle.transport;
     this.#processEvidence = structuredClone(transportBundle.evidence());
-    this.#transport.setServerRequestHandler((request) => this.#handleServerRequest(request));
+    this.#transport.setServerRequestHandler((request) =>
+      this.#handleServerRequest(request),
+    );
     const initialized = await this.#transport.request("initialize", {
       clientInfo: {
         name: "taskcore-runner",
@@ -2451,21 +2945,31 @@ export class CapabilityLiveSession {
       });
       const thread = record(read.thread);
       if (text(thread.id) !== this.#providerThreadId) {
-        throw new Error("capability_live_provider_session_drift: thread/read identity mismatch");
+        throw new Error(
+          "capability_live_provider_session_drift: thread/read identity mismatch",
+        );
       }
       const readSessionId = text(thread.sessionId);
       if (
-        this.#providerSessionId !== null
-        && readSessionId.length > 0
-        && readSessionId !== this.#providerSessionId
+        this.#providerSessionId !== null &&
+        readSessionId.length > 0 &&
+        readSessionId !== this.#providerSessionId
       ) {
-        throw new Error("capability_live_provider_session_drift: thread/read session mismatch");
+        throw new Error(
+          "capability_live_provider_session_drift: thread/read session mismatch",
+        );
       }
       if (this.#activeTurnId !== null) {
-        const turns = Array.isArray(thread.turns) ? thread.turns.map(record) : [];
-        const recoveredTurn = turns.find((turn) => text(turn.id) === this.#activeTurnId);
+        const turns = Array.isArray(thread.turns)
+          ? thread.turns.map(record)
+          : [];
+        const recoveredTurn = turns.find(
+          (turn) => text(turn.id) === this.#activeTurnId,
+        );
         if (recoveredTurn === undefined) {
-          throw new Error("capability_live_provider_session_drift: checkpointed active turn missing");
+          throw new Error(
+            "capability_live_provider_session_drift: checkpointed active turn missing",
+          );
         }
         const recoveredTerminal = providerTurnStatus(recoveredTurn.status);
         if (recoveredTerminal !== null) {
@@ -2475,37 +2979,49 @@ export class CapabilityLiveSession {
       }
       const resumed = await this.#transport.request("thread/resume", {
         threadId: this.#providerThreadId,
-        ...(this.#config.requestedModel === undefined ? {} : { model: this.#config.requestedModel }),
+        ...(this.#config.requestedModel === undefined
+          ? {}
+          : { model: this.#config.requestedModel }),
         cwd: this.#config.workingDirectory,
         config: createSkilllessCodexThreadConfig(this.#config.workingDirectory),
         permissions: CODEX_PERMISSION_PROFILE,
         runtimeWorkspaceRoots: [this.#config.workingDirectory],
-        ...(provider === "codex" ? { developerInstructions: baseInstructions } : { baseInstructions }),
+        ...(provider === "codex"
+          ? { developerInstructions: baseInstructions }
+          : { baseInstructions }),
         persistExtendedHistory: true,
       });
       const resumedThread = record(resumed.thread);
       if (text(resumedThread.id) !== this.#providerThreadId) {
-        throw new Error("capability_live_provider_session_drift: thread/resume identity mismatch");
+        throw new Error(
+          "capability_live_provider_session_drift: thread/resume identity mismatch",
+        );
       }
       const resumedSessionId = text(resumedThread.sessionId);
       if (
-        this.#providerSessionId !== null
-        && resumedSessionId.length > 0
-        && resumedSessionId !== this.#providerSessionId
+        this.#providerSessionId !== null &&
+        resumedSessionId.length > 0 &&
+        resumedSessionId !== this.#providerSessionId
       ) {
-        throw new Error("capability_live_provider_session_drift: thread/resume session mismatch");
+        throw new Error(
+          "capability_live_provider_session_drift: thread/resume session mismatch",
+        );
       }
       this.#providerSessionId = resumedSessionId || this.#providerSessionId;
       this.#captureProviderModel(resumed);
     } else {
       const opened = await this.#transport.request("thread/start", {
         cwd: this.#config.workingDirectory,
-        ...(this.#config.requestedModel === undefined ? {} : { model: this.#config.requestedModel }),
+        ...(this.#config.requestedModel === undefined
+          ? {}
+          : { model: this.#config.requestedModel }),
         config: createSkilllessCodexThreadConfig(this.#config.workingDirectory),
         permissions: CODEX_PERMISSION_PROFILE,
         runtimeWorkspaceRoots: [this.#config.workingDirectory],
         approvalPolicy: "never",
-        ...(provider === "codex" ? { developerInstructions: baseInstructions } : { baseInstructions }),
+        ...(provider === "codex"
+          ? { developerInstructions: baseInstructions }
+          : { baseInstructions }),
         completionContract: LIVE_COMPLETION_CONTRACT,
         dynamicTools: [...semanticTools, ...codexSemanticToolSpecs()],
         experimentalRawEvents: true,
@@ -2513,8 +3029,12 @@ export class CapabilityLiveSession {
       });
       const thread = record(opened.thread);
       this.#providerThreadId = text(thread.id);
-      if (this.#providerThreadId.length === 0) throw new Error("Codex thread response omitted thread.id");
-      this.#providerSessionId = text(thread.sessionId) || text(record(initialized.user).sessionId) || null;
+      if (this.#providerThreadId.length === 0)
+        throw new Error("Codex thread response omitted thread.id");
+      this.#providerSessionId =
+        text(thread.sessionId) ||
+        text(record(initialized.user).sessionId) ||
+        null;
       this.#captureProviderModel(opened);
     }
     this.#status = this.#activeTurnId === null ? "idle" : "running";
@@ -2536,7 +3056,8 @@ export class CapabilityLiveSession {
     const thread = record(response.thread);
     const id = text(response.model, text(thread.model));
     const provider = text(response.modelProvider, text(thread.modelProvider));
-    if (id.length > 0 && provider.length > 0) this.#providerModel = { id, provider };
+    if (id.length > 0 && provider.length > 0)
+      this.#providerModel = { id, provider };
   }
 
   async #disconnect(reason: string): Promise<void> {
@@ -2562,11 +3083,15 @@ export class CapabilityLiveSession {
     await this.#port.stop().catch(() => undefined);
   }
 
-  async #handleServerRequest(request: CodexRpcServerRequest): Promise<Record<string, unknown>> {
+  async #handleServerRequest(
+    request: CodexRpcServerRequest,
+  ): Promise<Record<string, unknown>> {
     if (request.method !== "item/tool/call") {
       return {
         success: false,
-        contentItems: [{ type: "inputText", text: "Unsupported Codex client request." }],
+        contentItems: [
+          { type: "inputText", text: "Unsupported Codex client request." },
+        ],
       };
     }
     const operationId = text(request.params.tool);
@@ -2586,7 +3111,10 @@ export class CapabilityLiveSession {
     ) {
       this.#activeTurnId = turnId;
     }
-    const terminalReplay = this.#isDurableTerminalReplay(turnId, request.params.arguments);
+    const terminalReplay = this.#isDurableTerminalReplay(
+      turnId,
+      request.params.arguments,
+    );
     if (
       threadId !== this.#providerThreadId ||
       turnId.length === 0 ||
@@ -2595,31 +3123,74 @@ export class CapabilityLiveSession {
     ) {
       return {
         success: false,
-        contentItems: [{ type: "inputText", text: "Tool call was outside the active Capability thread and turn." }],
+        contentItems: [
+          {
+            type: "inputText",
+            text: "Tool call was outside the active Capability thread and turn.",
+          },
+        ],
       };
     }
     if (isCodexSemanticTool(operationId)) {
       // Native completion is an advisory run report. It cannot mutate the mock
       // task, bypass semantic claims, or substitute for provider turn settlement.
-      if (terminalReplay || !isRetainableCodexPayload(request.params.arguments)) {
-        return rejectedCodexToolCall("Native completion requires a bounded active-turn report.");
+      if (
+        terminalReplay ||
+        !isRetainableCodexPayload(request.params.arguments)
+      ) {
+        return rejectedCodexToolCall(
+          "Native completion requires a bounded active-turn report.",
+        );
       }
-      const validation = validateCodexResultProposal(request.params.arguments, LIVE_COMPLETION_ENVELOPE);
-      if (validation.status !== "accepted" || !codexToolAcceptsResult(operationId, validation.result)) {
-        return rejectedCodexToolCall("Native completion must match the current completion contract and tool disposition.");
+      const validation = validateCodexResultProposal(
+        request.params.arguments,
+        LIVE_COMPLETION_ENVELOPE,
+      );
+      if (
+        validation.status !== "accepted" ||
+        !codexToolAcceptsResult(operationId, validation.result)
+      ) {
+        return rejectedCodexToolCall(
+          "Native completion must match the current completion contract and tool disposition.",
+        );
       }
-      const result = jsonValue(validation.result) as Record<string, CapabilityJsonValue>;
-      if (this.#semanticResult !== null && JSON.stringify(this.#semanticResult) !== JSON.stringify(result)) {
-        return rejectedCodexToolCall("A different native completion report was already accepted for this turn.");
+      const result = jsonValue(validation.result) as Record<
+        string,
+        CapabilityJsonValue
+      >;
+      if (
+        this.#semanticResult !== null &&
+        JSON.stringify(this.#semanticResult) !== JSON.stringify(result)
+      ) {
+        return rejectedCodexToolCall(
+          "A different native completion report was already accepted for this turn.",
+        );
       }
-      const runResult = liveRunResultFeedback(operationId, request.params.arguments, LIVE_COMPLETION_CONTRACT.revision);
+      const runResult = liveRunResultFeedback(
+        operationId,
+        request.params.arguments,
+        LIVE_COMPLETION_CONTRACT.revision,
+      );
       if (!runResult?.ok) {
-        return rejectedCodexToolCall("Native completion does not satisfy the current run result contract.");
+        return rejectedCodexToolCall(
+          "Native completion does not satisfy the current run result contract.",
+        );
       }
       this.#semanticResult = result;
       const revision = this.#port.snapshot().revision;
-      this.#appendEvidence("tool_call", turnId, { callId, operationId, input: jsonValue(request.params.arguments), beforeRevision: revision });
-      this.#appendEvidence("tool_result", turnId, { callId, operationId, result: jsonValue(runResult), beforeRevision: revision, afterRevision: revision });
+      this.#appendEvidence("tool_call", turnId, {
+        callId,
+        operationId,
+        input: jsonValue(request.params.arguments),
+        beforeRevision: revision,
+      });
+      this.#appendEvidence("tool_result", turnId, {
+        callId,
+        operationId,
+        result: jsonValue(runResult),
+        beforeRevision: revision,
+        afterRevision: revision,
+      });
       await this.#persist();
       return this.#codexToolResponse(runResult);
     }
@@ -2629,18 +3200,49 @@ export class CapabilityLiveSession {
         const discovered = this.#dispatcher.discoverTools(
           this.#authority.runId,
           text(args.query),
-          { ...(text(args.namespace) ? { namespace: text(args.namespace) } : {}), ...(typeof args.limit === "number" ? { limit: args.limit } : {}) },
+          {
+            ...(text(args.namespace)
+              ? { namespace: text(args.namespace) }
+              : {}),
+            ...(typeof args.limit === "number" ? { limit: args.limit } : {}),
+          },
         );
-        for (const operation of discovered.operations) this.#loadedOperationIds.add(operation.name);
+        for (const operation of discovered.operations)
+          this.#loadedOperationIds.add(operation.name);
         this.#appendEvidence("tool_discovery", turnId, {
-          action: "loaded", query: discovered.query, namespace: discovered.namespace ?? "",
-          operationIds: discovered.operations.map((operation) => operation.name),
+          action: "loaded",
+          query: discovered.query,
+          namespace: discovered.namespace ?? "",
+          operationIds: discovered.operations.map(
+            (operation) => operation.name,
+          ),
         });
         await this.#persist();
-        return { success: true, contentItems: [{ type: "inputText", text: JSON.stringify(discovered) }] };
+        return {
+          success: true,
+          contentItems: [
+            { type: "inputText", text: JSON.stringify(discovered) },
+          ],
+        };
       } catch (error) {
-        this.#appendEvidence("tool_discovery", turnId, { action: "rejected", query: text(args.query), namespace: text(args.namespace), operationIds: [] });
-        return { success: false, contentItems: [{ type: "inputText", text: error instanceof Error ? error.message : "Capability discovery failed." }] };
+        this.#appendEvidence("tool_discovery", turnId, {
+          action: "rejected",
+          query: text(args.query),
+          namespace: text(args.namespace),
+          operationIds: [],
+        });
+        return {
+          success: false,
+          contentItems: [
+            {
+              type: "inputText",
+              text:
+                error instanceof Error
+                  ? error.message
+                  : "Capability discovery failed.",
+            },
+          ],
+        };
       }
     }
     let semanticOperationId = operationId;
@@ -2650,7 +3252,15 @@ export class CapabilityLiveSession {
       semanticOperationId = text(args.operationId);
       semanticInput = args.input;
       if (!this.#loadedOperationIds.has(semanticOperationId)) {
-        return { success: false, contentItems: [{ type: "inputText", text: "Operation was not loaded by discover_capabilities." }] };
+        return {
+          success: false,
+          contentItems: [
+            {
+              type: "inputText",
+              text: "Operation was not loaded by discover_capabilities.",
+            },
+          ],
+        };
       }
     }
     const beforeRevision = this.#port.snapshot().revision;
@@ -2668,7 +3278,9 @@ export class CapabilityLiveSession {
       input: semanticInput,
     });
     this.#recordStateRevision(turnId, semanticOperationId);
-    const replayDisposition = result.ok ? text(record(result.result).disposition) : "";
+    const replayDisposition = result.ok
+      ? text(record(result.result).disposition)
+      : "";
     this.#appendEvidence("tool_result", turnId, {
       callId,
       operationId: semanticOperationId,
@@ -2681,7 +3293,12 @@ export class CapabilityLiveSession {
       await this.#persist();
       return {
         success: false,
-        contentItems: [{ type: "inputText", text: "Terminal-turn replay did not resolve to a durable duplicate." }],
+        contentItems: [
+          {
+            type: "inputText",
+            text: "Terminal-turn replay did not resolve to a durable duplicate.",
+          },
+        ],
       };
     }
     if (terminalReplay) {
@@ -2701,33 +3318,45 @@ export class CapabilityLiveSession {
 
   #isDurableTerminalReplay(turnId: string, input: unknown): boolean {
     if (turnId.length === 0 || this.#activeTurnId !== null) return false;
-    if (this.#terminalTurns.some(
-      (candidate) => candidate.turnId === this.#durableReplayTurnId(turnId),
-    )) return false;
-    const terminal = this.#terminalTurns.find((candidate) => candidate.turnId === turnId);
+    if (
+      this.#terminalTurns.some(
+        (candidate) => candidate.turnId === this.#durableReplayTurnId(turnId),
+      )
+    )
+      return false;
+    const terminal = this.#terminalTurns.find(
+      (candidate) => candidate.turnId === turnId,
+    );
     if (
       terminal?.status !== "interrupted" ||
       terminal.reconciledByAttemptId !== this.#currentAttemptId
-    ) return false;
+    )
+      return false;
     const idempotencyKey = text(record(input).idempotencyKey);
     if (idempotencyKey.length === 0) return false;
     const scope = `${this.#authority.runId}:semantic-command`;
-    return this.#port.snapshot().idempotency.some(
-      (entry) => entry.scope === scope && entry.key === idempotencyKey,
-    );
+    return this.#port
+      .snapshot()
+      .idempotency.some(
+        (entry) => entry.scope === scope && entry.key === idempotencyKey,
+      );
   }
 
   #durableReplayTurnId(interruptedTurnId: string): string {
     return `${interruptedTurnId}:durable-duplicate-replay`;
   }
 
-  #codexToolResponse(result: { readonly ok: boolean }): Record<string, unknown> {
+  #codexToolResponse(result: {
+    readonly ok: boolean;
+  }): Record<string, unknown> {
     return {
       success: result.ok,
-      contentItems: [{
-        type: "inputText",
-        text: JSON.stringify(result),
-      }],
+      contentItems: [
+        {
+          type: "inputText",
+          text: JSON.stringify(result),
+        },
+      ],
     };
   }
 
@@ -2758,17 +3387,31 @@ export class CapabilityLiveSession {
 
   async #handleNotification(notification: CodexRpcNotification): Promise<void> {
     const params = notification.params;
-    if (notification.method === "taskcore/canonicalProviderEvent"
-      && params.eventType === "provider.notice.recorded") {
+    if (
+      notification.method === "taskcore/canonicalProviderEvent" &&
+      params.eventType === "provider.notice.recorded"
+    ) {
       const notice = normalizeProviderNotice(params, {
-        provider: this.#config.provider, agent: this.#config.acpxAgent,
-        threadId: this.#providerThreadId, turnId: this.#activeTurnId,
+        provider: this.#config.provider,
+        agent: this.#config.acpxAgent,
+        threadId: this.#providerThreadId,
+        turnId: this.#activeTurnId,
       });
-      if (notice && !this.#evidence.some(entry => entry.turnId === this.#activeTurnId
-        && entry.kind === "provider_event" && entry.data.canonical === true
-        && record(entry.data.payload).category === record(notice.payload).category)) {
+      if (
+        notice &&
+        !this.#evidence.some(
+          (entry) =>
+            entry.turnId === this.#activeTurnId &&
+            entry.kind === "provider_event" &&
+            entry.data.canonical === true &&
+            record(entry.data.payload).category ===
+              record(notice.payload).category,
+        )
+      ) {
         this.#appendEvidence("provider_event", this.#activeTurnId, {
-          canonicalEventType: notice.eventType, itemId: notice.itemId, payload: notice.payload,
+          canonicalEventType: notice.eventType,
+          itemId: notice.itemId,
+          payload: notice.payload,
         });
         try {
           await this.#persist();
@@ -2783,8 +3426,14 @@ export class CapabilityLiveSession {
     const turn = record(params.turn);
     const item = record(params.item);
     const turnId = text(params.turnId, text(turn.id));
-    const providerEvent = capabilityProviderEventCategory(notification.method, params);
-    for (const canonical of canonicalProviderEventsFromCodex(notification.method, params)) {
+    const providerEvent = capabilityProviderEventCategory(
+      notification.method,
+      params,
+    );
+    for (const canonical of canonicalProviderEventsFromCodex(
+      notification.method,
+      params,
+    )) {
       this.#appendEvidence("provider_event", turnId || this.#activeTurnId, {
         canonicalEventType: canonical.eventType,
         itemId: canonical.itemId,
@@ -2794,7 +3443,10 @@ export class CapabilityLiveSession {
     if (notification.method === "thread/tokenUsage/updated") {
       const tokenUsage = record(params.tokenUsage);
       this.#latestCumulativeUsage = record(
-        tokenUsage.total ?? tokenUsage.totalTokenUsage ?? tokenUsage.total_token_usage ?? tokenUsage,
+        tokenUsage.total ??
+          tokenUsage.totalTokenUsage ??
+          tokenUsage.total_token_usage ??
+          tokenUsage,
       );
       const runDelta = record(tokenUsage.runDelta ?? params.runDelta);
       if (turnId.length > 0) {
@@ -2803,22 +3455,28 @@ export class CapabilityLiveSession {
             tokenUsage.runDeltaAvailable === true) &&
           Object.keys(runDelta).length > 0;
         const committed = reconcileCapabilityLiveUsage(this.snapshot());
-        const integer = (source: Record<string, unknown>, ...names: string[]): number => {
+        const integer = (
+          source: Record<string, unknown>,
+          ...names: string[]
+        ): number => {
           for (const name of names) {
             const value = source[name];
-            if (Number.isSafeInteger(value) && Number(value) >= 0) return Number(value);
+            if (Number.isSafeInteger(value) && Number(value) >= 0)
+              return Number(value);
           }
           return 0;
         };
         const costNanodollars = (source: Record<string, unknown>): number => {
           const providerCostUsd = source.providerCostUsd;
-          return typeof providerCostUsd === "number"
-            && Number.isFinite(providerCostUsd)
-            && providerCostUsd >= 0
+          return typeof providerCostUsd === "number" &&
+            Number.isFinite(providerCostUsd) &&
+            providerCostUsd >= 0
             ? Math.round(providerCostUsd * 1_000_000_000)
             : 0;
         };
-        const measurement = (source: Record<string, unknown>): CapabilityLiveUsageMeasurement => ({
+        const measurement = (
+          source: Record<string, unknown>,
+        ): CapabilityLiveUsageMeasurement => ({
           providerRequests: integer(source, "requests", "providerRequests"),
           inputTokens: integer(source, "inputTokens", "input_tokens"),
           outputTokens: integer(source, "outputTokens", "output_tokens"),
@@ -2840,12 +3498,31 @@ export class CapabilityLiveSession {
         });
         const cumulativeMeasurement = measurement(this.#latestCumulativeUsage);
         const cumulativeDelta: CapabilityLiveUsageMeasurement = {
-          providerRequests: Math.max(0, cumulativeMeasurement.providerRequests - committed.providerRequests),
-          inputTokens: Math.max(0, cumulativeMeasurement.inputTokens - committed.inputTokens),
-          outputTokens: Math.max(0, cumulativeMeasurement.outputTokens - committed.outputTokens),
-          cachedInputTokens: Math.max(0, cumulativeMeasurement.cachedInputTokens - committed.cachedInputTokens),
-          reasoningTokens: Math.max(0, cumulativeMeasurement.reasoningTokens - committed.reasoningTokens),
-          costNanodollars: Math.max(0, cumulativeMeasurement.costNanodollars - committed.costNanodollars),
+          providerRequests: Math.max(
+            0,
+            cumulativeMeasurement.providerRequests - committed.providerRequests,
+          ),
+          inputTokens: Math.max(
+            0,
+            cumulativeMeasurement.inputTokens - committed.inputTokens,
+          ),
+          outputTokens: Math.max(
+            0,
+            cumulativeMeasurement.outputTokens - committed.outputTokens,
+          ),
+          cachedInputTokens: Math.max(
+            0,
+            cumulativeMeasurement.cachedInputTokens -
+              committed.cachedInputTokens,
+          ),
+          reasoningTokens: Math.max(
+            0,
+            cumulativeMeasurement.reasoningTokens - committed.reasoningTokens,
+          ),
+          costNanodollars: Math.max(
+            0,
+            cumulativeMeasurement.costNanodollars - committed.costNanodollars,
+          ),
         };
         const explicitDelta = measurement(runDelta);
         const usage: CapabilityLiveUsageMeasurement = {
@@ -2854,8 +3531,12 @@ export class CapabilityLiveSession {
             runDeltaAvailable ? explicitDelta.providerRequests : 0,
             cumulativeDelta.providerRequests,
           ),
-          inputTokens: runDeltaAvailable ? explicitDelta.inputTokens : cumulativeDelta.inputTokens,
-          outputTokens: runDeltaAvailable ? explicitDelta.outputTokens : cumulativeDelta.outputTokens,
+          inputTokens: runDeltaAvailable
+            ? explicitDelta.inputTokens
+            : cumulativeDelta.inputTokens,
+          outputTokens: runDeltaAvailable
+            ? explicitDelta.outputTokens
+            : cumulativeDelta.outputTokens,
           cachedInputTokens: runDeltaAvailable
             ? explicitDelta.cachedInputTokens
             : cumulativeDelta.cachedInputTokens,
@@ -2883,29 +3564,48 @@ export class CapabilityLiveSession {
       method: notification.method,
       params: jsonValue(params),
     });
-    if (notification.method === "rawResponse/completed" || notification.method === "turn/completed") {
+    if (
+      notification.method === "rawResponse/completed" ||
+      notification.method === "turn/completed"
+    ) {
       const rawUsage = record(params.usage);
       // Current Codex builds may omit turnId from rawResponse/completed. Turns
       // are serialized by this session, so the active or just-terminal turn is
       // the unambiguous owner of that usage receipt.
-      const usageTurnId = turnId || this.#activeTurnId || this.#terminalTurns.at(-1)?.turnId || "";
+      const usageTurnId =
+        turnId ||
+        this.#activeTurnId ||
+        this.#terminalTurns.at(-1)?.turnId ||
+        "";
       if (usageTurnId.length > 0 && Object.keys(rawUsage).length > 0) {
         const observations = this.#usageObservationsByTurn.get(usageTurnId) ?? {
           reported: null,
           raw: null,
           terminal: null,
         };
-        const value = (name: string): number => Number.isSafeInteger(rawUsage[name]) && Number(rawUsage[name]) >= 0 ? Number(rawUsage[name]) : 0;
+        const value = (name: string): number =>
+          Number.isSafeInteger(rawUsage[name]) && Number(rawUsage[name]) >= 0
+            ? Number(rawUsage[name])
+            : 0;
         if (notification.method === "rawResponse/completed") {
-          const base = observations.raw ?? { providerRequests: 0, inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, reasoningTokens: 0, costNanodollars: 0 };
+          const base = observations.raw ?? {
+            providerRequests: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            cachedInputTokens: 0,
+            reasoningTokens: 0,
+            costNanodollars: 0,
+          };
           this.#usageObservationsByTurn.set(usageTurnId, {
             ...observations,
             raw: {
               providerRequests: base.providerRequests + 1,
               inputTokens: base.inputTokens + value("inputTokens"),
               outputTokens: base.outputTokens + value("outputTokens"),
-              cachedInputTokens: base.cachedInputTokens + value("cachedInputTokens"),
-              reasoningTokens: base.reasoningTokens + value("reasoningOutputTokens"),
+              cachedInputTokens:
+                base.cachedInputTokens + value("cachedInputTokens"),
+              reasoningTokens:
+                base.reasoningTokens + value("reasoningOutputTokens"),
               costNanodollars: base.costNanodollars,
             },
           });
@@ -2932,10 +3632,18 @@ export class CapabilityLiveSession {
         action: "budget_reached",
         stopReason: "provider_quota",
       });
-      this.#emit({ turnId: turnId || this.#activeTurnId, kind: "activity", reason: "provider_budget_reached" });
+      this.#emit({
+        turnId: turnId || this.#activeTurnId,
+        kind: "activity",
+        reason: "provider_budget_reached",
+      });
     } else if (notification.method === "turn/started") {
       if (turnId.length > 0) this.#activeTurnId = turnId;
-      this.#emit({ turnId: turnId || this.#activeTurnId, kind: "activity", reason: "turn_started" });
+      this.#emit({
+        turnId: turnId || this.#activeTurnId,
+        kind: "activity",
+        reason: "turn_started",
+      });
     } else if (notification.method === "item/agentMessage/delta") {
       if (this.#turnWaiter !== null) {
         this.#turnWaiter.assistantText += text(params.delta);
@@ -2943,8 +3651,11 @@ export class CapabilityLiveSession {
       }
     } else if (
       providerEvent.endsWith("_delta") ||
-      (providerEvent.endsWith("_started") && providerEvent !== "item_started") ||
-      (providerEvent.endsWith("_completed") && providerEvent !== "item_completed" && providerEvent !== "turn_completed")
+      (providerEvent.endsWith("_started") &&
+        providerEvent !== "item_started") ||
+      (providerEvent.endsWith("_completed") &&
+        providerEvent !== "item_completed" &&
+        providerEvent !== "turn_completed")
     ) {
       // Reasoning, planning, command-output, and file-change progress used to
       // be retained only for diagnostics. Emitting an activity frame here lets
@@ -2955,7 +3666,10 @@ export class CapabilityLiveSession {
         kind: "activity",
         reason: providerEvent,
       });
-    } else if (notification.method === "item/completed" && text(item.type) === "agentMessage") {
+    } else if (
+      notification.method === "item/completed" &&
+      text(item.type) === "agentMessage"
+    ) {
       const assistantText = text(item.text);
       if (assistantText.length > 0 && this.#turnWaiter !== null) {
         this.#turnWaiter.assistantText = assistantText;
@@ -3039,10 +3753,16 @@ export class CapabilityLiveSession {
     return { waiter, result: { turnId, status, assistantText } };
   }
 
-  #recordTerminalFact(turnId: string, status: CapabilityLiveTurnResult["status"]): void {
-    const existing = this.#terminalTurns.find((terminal) => terminal.turnId === turnId);
+  #recordTerminalFact(
+    turnId: string,
+    status: CapabilityLiveTurnResult["status"],
+  ): void {
+    const existing = this.#terminalTurns.find(
+      (terminal) => terminal.turnId === turnId,
+    );
     if (existing !== undefined) {
-      if (existing.status !== status) throw new Error("capability_live_terminal_fact_conflict");
+      if (existing.status !== status)
+        throw new Error("capability_live_terminal_fact_conflict");
       return;
     }
     this.#terminalTurns.push({
@@ -3063,11 +3783,14 @@ export class CapabilityLiveSession {
     this.#status = "failed";
     // Whatever the turn had already streamed stays in the transcript; a failed
     // turn should read as an interrupted reply, not as one that never spoke.
-    if (turnId !== null) this.#settleAssistantDraft(waiter, waiter.assistantText.trim(), turnId);
+    if (turnId !== null)
+      this.#settleAssistantDraft(waiter, waiter.assistantText.trim(), turnId);
     this.#emit({
       turnId,
       kind: "error",
-      message: redactCodexDiagnostic(error instanceof Error ? error.message : String(error)),
+      message: redactCodexDiagnostic(
+        error instanceof Error ? error.message : String(error),
+      ),
     });
     waiter.reject(error instanceof Error ? error : new Error(String(error)));
   }
@@ -3105,9 +3828,13 @@ export class CapabilityLiveSession {
       kind,
       at: this.#now().toISOString(),
       turnId,
-      data: redactCapabilityEvidenceData(kind, jsonValue(data) as Record<string, unknown>),
+      data: redactCapabilityEvidenceData(
+        kind,
+        jsonValue(data) as Record<string, unknown>,
+      ),
     });
-    if (this.#evidence.length > 2_000) this.#evidence.splice(0, this.#evidence.length - 2_000);
+    if (this.#evidence.length > 2_000)
+      this.#evidence.splice(0, this.#evidence.length - 2_000);
   }
 
   #recordStateRevision(turnId: string | null, operationId: string): void {
@@ -3140,7 +3867,12 @@ export class CapabilityLiveSession {
 
 export function capabilityInteractionKindFromMock(
   kind: CapabilityInteractionKind,
-): "ask_user_questions" | "request_confirmation" | "request_checkbox_confirmation" | "request_item_verdicts" | "suggest_tasks" {
+):
+  | "ask_user_questions"
+  | "request_confirmation"
+  | "request_checkbox_confirmation"
+  | "request_item_verdicts"
+  | "suggest_tasks" {
   if (kind === "questions") return "ask_user_questions";
   if (kind === "confirmation") return "request_confirmation";
   if (kind === "checkbox") return "request_checkbox_confirmation";

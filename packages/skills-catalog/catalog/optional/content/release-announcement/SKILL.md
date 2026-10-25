@@ -120,15 +120,15 @@ and pass `baseRevisionId` when updating an existing body document.
 
 ## Determine the audience and channel first
 
-| Audience | Best channel | Tone |
-|---|---|---|
-| Existing power users | Changelog, in-app note | Terse, factual, links |
-| Engineering teams adopting your API | Release notes, dev blog | Examples, migration steps, version pins |
-| Prospective customers | Landing page, marketing blog | Story arc, problem → solution, social proof |
-| Broad audience | Social post, email newsletter | One-sentence pitch, link to depth |
-| Internal team | Slack/Discord post | What changed, who to ping if it breaks |
+| Audience                            | Best channel                  | Tone                                        |
+| ----------------------------------- | ----------------------------- | ------------------------------------------- |
+| Existing power users                | Changelog, in-app note        | Terse, factual, links                       |
+| Engineering teams adopting your API | Release notes, dev blog       | Examples, migration steps, version pins     |
+| Prospective customers               | Landing page, marketing blog  | Story arc, problem → solution, social proof |
+| Broad audience                      | Social post, email newsletter | One-sentence pitch, link to depth           |
+| Internal team                       | Slack/Discord post            | What changed, who to ping if it breaks      |
 
-Pick the audience for *this* writeup. One release often needs several writeups; do not blend them.
+Pick the audience for _this_ writeup. One release often needs several writeups; do not blend them.
 
 ## Universal structure
 
@@ -148,18 +148,23 @@ Everything else is depth that supports those three.
 ## v1.42.0 — 2026-05-26
 
 ### Added
+
 - <feature> — <one-line user benefit>. ([#1234](link))
 
 ### Changed
+
 - <change> — <one-line impact>. ([#1235](link))
 
 ### Fixed
+
 - <bug> — <one-line user-visible symptom>. ([#1236](link))
 
 ### Deprecated
+
 - <thing>. Replaced by <thing>. Removal planned for v<x>.
 
 ### Breaking
+
 - <change>. **Migration:** <one-line> or <link to guide>.
 ```
 

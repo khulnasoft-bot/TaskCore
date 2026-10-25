@@ -155,7 +155,10 @@ export function pluginManifestValidator(): PluginManifestValidator {
       const result = this.parse(input);
 
       if (!result.success) {
-        throw badRequest(`Invalid plugin manifest: ${result.errors}`, result.details);
+        throw badRequest(
+          `Invalid plugin manifest: ${result.errors}`,
+          result.details,
+        );
       }
 
       return result.manifest;

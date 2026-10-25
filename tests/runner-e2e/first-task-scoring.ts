@@ -1,5 +1,12 @@
-import { isBlockedUnstartedWake, isTerminalUnstartedWake } from "./non-execution-wake.js";
-import { firstTaskRejection, firstTaskRejectionReplyRecorded, isFirstTaskRejectionCancellation } from "./first-task-rejection.js";
+import {
+  isBlockedUnstartedWake,
+  isTerminalUnstartedWake,
+} from "./non-execution-wake.js";
+import {
+  firstTaskRejection,
+  firstTaskRejectionReplyRecorded,
+  isFirstTaskRejectionCancellation,
+} from "./first-task-rejection.js";
 import { answerableRuntimeRunIds } from "./runtime-question-readiness.js";
 import { sanitizeJson } from "./redaction.js";
 import { createHash } from "node:crypto";
@@ -72,15 +79,28 @@ export function snapshotInstruction(
 }
 /** Only user-visible affirmative proposals count; incidental task nouns do not. */
 function hasTaskProposal(text: string, confirmationCard = false) {
-  const affirmative = text.split(/(?<=[.!?])\s+/).filter((sentence) =>
-    !/\b(?:no\s+(?:(?:new|child)\s+)?(?:subtask|task)|(?:not|never|won['’]t|don['’]t|without)\b[^.!?]{0,80}\b(?:subtask|task))\b/i.test(sentence),
-  ).join("\n");
-  return /\b(?:approve|accept|propose|proposed|proposing|proposal|suggest|suggested|suggesting|recommend|recommended|recommending|create|creating|set up)\b[\s\S]{0,160}\b(?:subtask|task)\b/i.test(affirmative) ||
+  const affirmative = text
+    .split(/(?<=[.!?])\s+/)
+    .filter(
+      (sentence) =>
+        !/\b(?:no\s+(?:(?:new|child)\s+)?(?:subtask|task)|(?:not|never|won['’]t|don['’]t|without)\b[^.!?]{0,80}\b(?:subtask|task))\b/i.test(
+          sentence,
+        ),
+    )
+    .join("\n");
+  return (
+    /\b(?:approve|accept|propose|proposed|proposing|proposal|suggest|suggested|suggesting|recommend|recommended|recommending|create|creating|set up)\b[\s\S]{0,160}\b(?:subtask|task)\b/i.test(
+      affirmative,
+    ) ||
     /\b(?:subtask|task)\b[^.!?\n]{0,30}\bproposal\b/i.test(affirmative) ||
-    (confirmationCard && (
-      /\b(?:I|we)(?:['’]ll| will)\s+(?:save|attach|write|make|open|create)\b[^.!?]{0,160}\b(?:(?:new|child)\s+task|subtask)\b/i.test(affirmative) ||
-      /\b(?:subtask|task)\s+(?:I|we)(?:['’]ll| will)\s+(?:create|open|set up)\b/i.test(affirmative)
-    ));
+    (confirmationCard &&
+      (/\b(?:I|we)(?:['’]ll| will)\s+(?:save|attach|write|make|open|create)\b[^.!?]{0,160}\b(?:(?:new|child)\s+task|subtask)\b/i.test(
+        affirmative,
+      ) ||
+        /\b(?:subtask|task)\s+(?:I|we)(?:['’]ll| will)\s+(?:create|open|set up)\b/i.test(
+          affirmative,
+        )))
+  );
 }
 
 export const activeRuns = (runs: Row[]) =>
@@ -172,32 +192,71 @@ function isPlanningDocument(document: Row): boolean {
   );
 }
 function isVerifiedAttachment(a: Row): boolean {
-  return a.contentVerified === true && typeof a.body === "string" && a.contentSha256 === digestText(a.body);
+  return (
+    a.contentVerified === true &&
+    typeof a.body === "string" &&
+    a.contentSha256 === digestText(a.body)
+  );
 }
 function attachmentDocument(a: Row): Row {
-  return { ...a, key: String(a.originalFilename ?? a.filename ?? "").replace(/\.(?:md|txt)$/i, ""), title: a.title ?? a.originalFilename ?? a.filename };
+  return {
+    ...a,
+    key: String(a.originalFilename ?? a.filename ?? "").replace(
+      /\.(?:md|txt)$/i,
+      "",
+    ),
+    title: a.title ?? a.originalFilename ?? a.filename,
+  };
 }
 function isPlanningAttachment(a: Row): boolean {
   return isVerifiedAttachment(a) && isPlanningDocument(attachmentDocument(a));
 }
 function verifiedFirstTaskOutputs(checkpoint: FirstTaskCheckpoint): Row[] {
-  return [...checkpoint.documents, ...(checkpoint.attachments ?? []).filter(isVerifiedAttachment).map(attachmentDocument)];
+  return [
+    ...checkpoint.documents,
+    ...(checkpoint.attachments ?? [])
+      .filter(isVerifiedAttachment)
+      .map(attachmentDocument),
+  ];
 }
 /** Provider identities, not generic sessionReused flags, prove continuity. */
-export function gradeNativeSessionContinuity(runs: Row[], issueId: string): FirstTaskCheck {
-  const parent = [...new Map(runs.filter((run) => run.nativeIssueId === issueId).map((run) => [run.id, run])).values()];
+export function gradeNativeSessionContinuity(
+  runs: Row[],
+  issueId: string,
+): FirstTaskCheck {
+  const parent = [
+    ...new Map(
+      runs
+        .filter((run) => run.nativeIssueId === issueId)
+        .map((run) => [run.id, run]),
+    ).values(),
+  ];
   const identities = parent.map((run) => ({
     run: run.id,
     session: run.nativeSessionId,
     provider: run.runnerProfileJson?.sessionCheckpoint?.providerSessionId,
-    workspace: run.runnerProfileJson?.nativeExecutionInput?.binding?.executionWorkspaceId,
+    workspace:
+      run.runnerProfileJson?.nativeExecutionInput?.binding
+        ?.executionWorkspaceId,
   }));
-  const passed = parent.length >= 2 && ["session", "provider", "workspace"].every((key) =>
-    identities.every((identity) => typeof identity[key as "session"] === "string" && identity[key as "session"].length > 0) &&
-    new Set(identities.map((identity) => identity[key as "session"])).size === 1,
-  );
-  return { id: "native-session-continuity", passed, evidence: ["finished"],
-    detail: `Same-task follow-ups must retain native/provider/workspace identities: ${JSON.stringify(identities)}` };
+  const passed =
+    parent.length >= 2 &&
+    ["session", "provider", "workspace"].every(
+      (key) =>
+        identities.every(
+          (identity) =>
+            typeof identity[key as "session"] === "string" &&
+            identity[key as "session"].length > 0,
+        ) &&
+        new Set(identities.map((identity) => identity[key as "session"]))
+          .size === 1,
+    );
+  return {
+    id: "native-session-continuity",
+    passed,
+    evidence: ["finished"],
+    detail: `Same-task follow-ups must retain native/provider/workspace identities: ${JSON.stringify(identities)}`,
+  };
 }
 
 export function gradeFirstTask(e: FirstTaskEvidence): FirstTaskCheck[] {
@@ -220,10 +279,9 @@ export function gradeFirstTask(e: FirstTaskEvidence): FirstTaskCheck[] {
   const first = e.checkpoints.find((c) => c.phase === "response");
   const last = e.checkpoints.at(-1);
   const approval = e.checkpoints.find((c) => c.phase === "accepted");
-  const rejection =
-    firstTaskRejection(e)
-      ? e.checkpoints.find((c) => c.phase === "rejected")
-      : undefined;
+  const rejection = firstTaskRejection(e)
+    ? e.checkpoints.find((c) => c.phase === "rejected")
+    : undefined;
   const extras = (c: FirstTaskCheckpoint) =>
     c.tasks.filter((t) => !e.initialTaskIds.includes(t.id));
   const seeded = new Set(e.checkpoints[0]?.comments.map((c) => c.id));
@@ -233,12 +291,11 @@ export function gradeFirstTask(e: FirstTaskEvidence): FirstTaskCheck[] {
     "recorded-response",
     Boolean(
       first &&
-        replies(first).length +
-          first.interactions.filter(
-            (i) =>
-              !e.checkpoints[0]?.interactions.some((old) => old.id === i.id),
-          ).length >
-          0,
+      replies(first).length +
+        first.interactions.filter(
+          (i) => !e.checkpoints[0]?.interactions.some((old) => old.id === i.id),
+        ).length >
+        0,
     ),
     "An agent response or structured interaction was recorded",
     first ? [first.id] : [],
@@ -300,14 +357,29 @@ export function gradeFirstTask(e: FirstTaskEvidence): FirstTaskCheck[] {
   if (["task", "message"].includes(scenario.opening))
     add(
       "subtask-proposal",
-      [text, ...first.documents.filter(isPlanningDocument)
-        .map((d) => `${d.title ?? ""}\n${d.body ?? ""}`)]
-        .some((visible) => hasTaskProposal(visible)) ||
-      first.interactions.some((i) =>
-        ["request_confirmation", "request_checkbox_confirmation"].includes(i.kind) &&
-        hasTaskProposal([i.title, i.summary, i.payload?.prompt, i.payload?.detailsMarkdown]
-          .filter(Boolean).join("\n"), true),
-      ),
+      [
+        text,
+        ...first.documents
+          .filter(isPlanningDocument)
+          .map((d) => `${d.title ?? ""}\n${d.body ?? ""}`),
+      ].some((visible) => hasTaskProposal(visible)) ||
+        first.interactions.some(
+          (i) =>
+            ["request_confirmation", "request_checkbox_confirmation"].includes(
+              i.kind,
+            ) &&
+            hasTaskProposal(
+              [
+                i.title,
+                i.summary,
+                i.payload?.prompt,
+                i.payload?.detailsMarkdown,
+              ]
+                .filter(Boolean)
+                .join("\n"),
+              true,
+            ),
+        ),
       "Propose a task for the concrete request",
       [first.id],
     );
@@ -357,18 +429,32 @@ export function gradeFirstTask(e: FirstTaskEvidence): FirstTaskCheck[] {
     );
   }
   if (e.caseId === "accept-while-running") {
-    const accepted = approval?.interactions.find(i => i.status === "accepted" &&
-      ["request_confirmation", "request_checkbox_confirmation"].includes(i.kind));
-    const source = last.runs.find(r => r.id === accepted?.sourceRunId);
+    const accepted = approval?.interactions.find(
+      (i) =>
+        i.status === "accepted" &&
+        ["request_confirmation", "request_checkbox_confirmation"].includes(
+          i.kind,
+        ),
+    );
+    const source = last.runs.find((r) => r.id === accepted?.sourceRunId);
     const acceptedAt = Date.parse(accepted?.resolvedAt ?? "");
     const startedAt = Date.parse(source?.startedAt ?? "");
     const finishedAt = Date.parse(source?.finishedAt ?? "");
-    const overlapped = Number.isFinite(acceptedAt) && Number.isFinite(startedAt) &&
-      Number.isFinite(finishedAt) && startedAt <= acceptedAt && acceptedAt < finishedAt;
-    add("accepted-while-running", overlapped,
+    const overlapped =
+      Number.isFinite(acceptedAt) &&
+      Number.isFinite(startedAt) &&
+      Number.isFinite(finishedAt) &&
+      startedAt <= acceptedAt &&
+      acceptedAt < finishedAt;
+    add(
+      "accepted-while-running",
+      overlapped,
       "The persisted approval resolution must fall inside its source run's actual execution interval",
       approval ? [approval.id, last.id] : [last.id],
-      overlapped ? undefined : "The recording did not prove acceptance during the source run; the concurrency regression was not exercised.");
+      overlapped
+        ? undefined
+        : "The recording did not prove acceptance during the source run; the concurrency regression was not exercised.",
+    );
   }
   if (!scenario.firstResponseOnly && e.caseId !== "reject-no-execution") {
     const notReached = approval
@@ -458,23 +544,49 @@ export function gradeFirstTask(e: FirstTaskEvidence): FirstTaskCheck[] {
     );
   add(
     "provider-runs-succeeded",
-    last.runs.length > 0 && last.runs.every((r) => r.status === "succeeded" || isBlockedUnstartedWake(r) ||
-      isTerminalUnstartedWake(r, last.tasks) ||
-      (isFirstTaskRejectionCancellation(r, e, last.tasks) && firstTaskRejectionReplyRecorded(e, last.comments, [r])) ||
-      (scenario.firstResponseOnly && r.status === "running" && answerableRuntimeRunIds(last.interactions).has(r.id))),
+    last.runs.length > 0 &&
+      last.runs.every(
+        (r) =>
+          r.status === "succeeded" ||
+          isBlockedUnstartedWake(r) ||
+          isTerminalUnstartedWake(r, last.tasks) ||
+          (isFirstTaskRejectionCancellation(r, e, last.tasks) &&
+            firstTaskRejectionReplyRecorded(e, last.comments, [r])) ||
+          (scenario.firstResponseOnly &&
+            r.status === "running" &&
+            answerableRuntimeRunIds(last.interactions).has(r.id)),
+      ),
     "Runs succeeded, were suppressed before execution, stopped with a recorded refusal response, or paused on an answerable first-response native question",
     [last.id],
   );
-  if (e.runtimeSettings?.adapterType === "taskcore_runner" &&
-    ["task-reply-accept", "task-card-accept"].includes(e.caseId) && last.phase === "finished") {
-    checks.push({ ...gradeNativeSessionContinuity(e.checkpoints.flatMap((checkpoint) => checkpoint.runs), e.onboardingIssueId), evidence: [last.id] });
+  if (
+    e.runtimeSettings?.adapterType === "taskcore_runner" &&
+    ["task-reply-accept", "task-card-accept"].includes(e.caseId) &&
+    last.phase === "finished"
+  ) {
+    checks.push({
+      ...gradeNativeSessionContinuity(
+        e.checkpoints.flatMap((checkpoint) => checkpoint.runs),
+        e.onboardingIssueId,
+      ),
+      evidence: [last.id],
+    });
   }
   if (e.runtimeSettings?.completionDeliveryProbe && last) {
-    const worker = last.tasks.find(t => t.parentId === e.onboardingIssueId) ?? {};
-    checks.push(...completionDelivery({ sourceId: e.onboardingIssueId, worker, documents: last.documents,
-      comments: last.comments, runs: last.runs, marker: scenario.marker,
-      renderedLinks: e.runtimeSettings.completionRenderedLinks as Array<{ commentId: string; href: string }> | undefined,
-    }).checks.map(check => ({ ...check, evidence: [last.id] })));
+    const worker =
+      last.tasks.find((t) => t.parentId === e.onboardingIssueId) ?? {};
+    checks.push(
+      ...completionDelivery({
+        sourceId: e.onboardingIssueId,
+        worker,
+        documents: last.documents,
+        comments: last.comments,
+        runs: last.runs,
+        marker: scenario.marker,
+        renderedLinks: e.runtimeSettings.completionRenderedLinks as
+          Array<{ commentId: string; href: string }> | undefined,
+      }).checks.map((check) => ({ ...check, evidence: [last.id] })),
+    );
   }
   return checks;
 }

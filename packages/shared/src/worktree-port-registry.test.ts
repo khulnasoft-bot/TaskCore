@@ -12,7 +12,9 @@ import {
 const temporaryRoots: string[] = [];
 
 function makeTemporaryRoot(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-port-registry-lock-"));
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "taskcore-port-registry-lock-"),
+  );
   temporaryRoots.push(root);
   return root;
 }
@@ -90,7 +92,11 @@ function startFakeOwnershipProbe(token: string): {
       if (ownedResponseSeen) return Promise.resolve();
       return new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => {
-          reject(new Error("Timed out waiting for the fake ownership probe to answer \"owned\"."));
+          reject(
+            new Error(
+              'Timed out waiting for the fake ownership probe to answer "owned".',
+            ),
+          );
         }, timeoutMs);
         ownedWaiters.push(() => {
           clearTimeout(timer);
@@ -98,10 +104,11 @@ function startFakeOwnershipProbe(token: string): {
         });
       });
     },
-    close: () => new Promise<void>((resolve) => {
-      worker.once("exit", () => resolve());
-      worker.postMessage("stop");
-    }),
+    close: () =>
+      new Promise<void>((resolve) => {
+        worker.once("exit", () => resolve());
+        worker.postMessage("stop");
+      }),
   };
 }
 

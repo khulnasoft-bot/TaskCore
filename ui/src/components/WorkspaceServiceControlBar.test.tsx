@@ -44,18 +44,22 @@ describe("WorkspaceServiceControlBar", () => {
     await act(() => {
       root.render(
         <WorkspaceServiceControlBar
-          services={[{
-            key: "web",
-            name: "Web",
-            state: "running",
-            healthStatus: "healthy",
-            url: "http://127.0.0.1:3100",
-          }]}
+          services={[
+            {
+              key: "web",
+              name: "Web",
+              state: "running",
+              healthStatus: "healthy",
+              url: "http://127.0.0.1:3100",
+            },
+          ]}
           onAction={() => {}}
         />,
       );
     });
-    return container.querySelector<HTMLButtonElement>('button[aria-label="Copy URL"]')!;
+    return container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Copy URL"]',
+    )!;
   }
 
   it("shows success only after the URL reaches the clipboard", async () => {
@@ -84,26 +88,36 @@ describe("WorkspaceServiceControlBar", () => {
   });
 
   it("reserves the desktop URL segment across service states", async () => {
-    const renderService = async (state: "stopped" | "running", url: string | null) => {
+    const renderService = async (
+      state: "stopped" | "running",
+      url: string | null,
+    ) => {
       await act(() => {
         root.render(
           <WorkspaceServiceControlBar
-            services={[{
-              key: "web",
-              name: "Web",
-              state,
-              healthStatus: state === "running" ? "healthy" : null,
-              url,
-              port: 3100,
-            }]}
+            services={[
+              {
+                key: "web",
+                name: "Web",
+                state,
+                healthStatus: state === "running" ? "healthy" : null,
+                url,
+                port: 3100,
+              },
+            ]}
             onAction={() => {}}
           />,
         );
       });
 
-      const urlText = state === "running"
-        ? container.querySelector<HTMLAnchorElement>('a[href="http://127.0.0.1:3100"]')
-        : Array.from(container.querySelectorAll("span")).find((element) => element.textContent === ":3100");
+      const urlText =
+        state === "running"
+          ? container.querySelector<HTMLAnchorElement>(
+              'a[href="http://127.0.0.1:3100"]',
+            )
+          : Array.from(container.querySelectorAll("span")).find(
+              (element) => element.textContent === ":3100",
+            );
       return urlText?.parentElement;
     };
 
@@ -112,7 +126,10 @@ describe("WorkspaceServiceControlBar", () => {
     expect(stoppedSegment?.classList.contains("w-56")).toBe(true);
     expect(stoppedSegment?.classList.contains("shrink-0")).toBe(true);
 
-    const runningSegment = await renderService("running", "http://127.0.0.1:3100");
+    const runningSegment = await renderService(
+      "running",
+      "http://127.0.0.1:3100",
+    );
     expect(runningSegment).not.toBeNull();
     expect(runningSegment?.className).toBe(stoppedSegment?.className);
   });
@@ -123,19 +140,24 @@ describe("WorkspaceServiceControlBar", () => {
     // its non-standard port, and an unverified exposure must render no anchor at
     // all — an `http://` fallback link is the failure this feature prevents.
     const httpsUrl = "https://taskcore-dev.tail29c1aa.ts.net:42010";
-    const renderExposed = async (url: string | null, exposureState: "ready" | "pending") => {
+    const renderExposed = async (
+      url: string | null,
+      exposureState: "ready" | "pending",
+    ) => {
       await act(() => {
         root.render(
           <WorkspaceServiceControlBar
-            services={[{
-              key: "taskcore-dev",
-              name: "taskcore-dev",
-              state: "running",
-              healthStatus: "healthy",
-              url,
-              port: 42_010,
-              exposureState,
-            }]}
+            services={[
+              {
+                key: "taskcore-dev",
+                name: "taskcore-dev",
+                state: "running",
+                healthStatus: "healthy",
+                url,
+                port: 42_010,
+                exposureState,
+              },
+            ]}
             onAction={() => {}}
           />,
         );
@@ -143,20 +165,31 @@ describe("WorkspaceServiceControlBar", () => {
     };
 
     await renderExposed(httpsUrl, "ready");
-    const links = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[href]"));
+    const links = Array.from(
+      container.querySelectorAll<HTMLAnchorElement>("a[href]"),
+    );
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) expect(link.getAttribute("href")).toBe(httpsUrl);
     // The port is what makes a preview reachable, so it must stay visible.
-    expect(container.textContent).toContain("taskcore-dev.tail29c1aa.ts.net:42010");
+    expect(container.textContent).toContain(
+      "taskcore-dev.tail29c1aa.ts.net:42010",
+    );
     // Scoped to hrefs, titles, and text: an SVG `xmlns` is not a launch link.
-    const advertisedUrls = () => [
-      ...Array.from(container.querySelectorAll("a[href]"), (el) => el.getAttribute("href")),
-      ...Array.from(container.querySelectorAll("[title]"), (el) => el.getAttribute("title")),
-      container.textContent,
-    ].join(" ");
+    const advertisedUrls = () =>
+      [
+        ...Array.from(container.querySelectorAll("a[href]"), (el) =>
+          el.getAttribute("href"),
+        ),
+        ...Array.from(container.querySelectorAll("[title]"), (el) =>
+          el.getAttribute("title"),
+        ),
+        container.textContent,
+      ].join(" ");
     expect(advertisedUrls()).not.toContain("http://");
 
-    const copyButton = container.querySelector<HTMLButtonElement>('button[aria-label="Copy URL"]')!;
+    const copyButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Copy URL"]',
+    )!;
     await act(async () => {
       copyButton.click();
       await Promise.resolve();
@@ -174,14 +207,17 @@ describe("WorkspaceServiceControlBar", () => {
     await act(() => {
       root.render(
         <WorkspaceServiceControlBar
-          services={[{
-            key: "web",
-            name: "Web",
-            state: "running",
-            healthStatus: "healthy",
-            exposureState: "cleanup_pending",
-            exposureDetail: "HTTPS cleanup pending · Restart the host broker before reusing this port.",
-          }]}
+          services={[
+            {
+              key: "web",
+              name: "Web",
+              state: "running",
+              healthStatus: "healthy",
+              exposureState: "cleanup_pending",
+              exposureDetail:
+                "HTTPS cleanup pending · Restart the host broker before reusing this port.",
+            },
+          ]}
           onAction={() => {}}
         />,
       );
@@ -193,39 +229,49 @@ describe("WorkspaceServiceControlBar", () => {
   });
 
   it.each([
-    ["failed", "HTTPS unavailable · Check the Tailscale broker and node HTTPS configuration."],
-    ["cleanup_pending", "HTTPS cleanup pending · Restart the host broker before reusing this port."],
-  ] as const)("keeps the full %s remediation visible in the multi-service popover", async (exposureState, exposureDetail) => {
-    await act(() => {
-      root.render(
-        <WorkspaceServiceControlBar
-          services={[
-            {
-              key: "web",
-              name: "Web",
-              state: "running",
-              healthStatus: "healthy",
-              exposureState,
-              exposureDetail,
-            },
-            {
-              key: "api",
-              name: "API",
-              state: "stopped",
-              port: 42001,
-            },
-          ]}
-          defaultServicesOpen
-          onAction={() => {}}
-        />,
-      );
-    });
+    [
+      "failed",
+      "HTTPS unavailable · Check the Tailscale broker and node HTTPS configuration.",
+    ],
+    [
+      "cleanup_pending",
+      "HTTPS cleanup pending · Restart the host broker before reusing this port.",
+    ],
+  ] as const)(
+    "keeps the full %s remediation visible in the multi-service popover",
+    async (exposureState, exposureDetail) => {
+      await act(() => {
+        root.render(
+          <WorkspaceServiceControlBar
+            services={[
+              {
+                key: "web",
+                name: "Web",
+                state: "running",
+                healthStatus: "healthy",
+                exposureState,
+                exposureDetail,
+              },
+              {
+                key: "api",
+                name: "API",
+                state: "stopped",
+                port: 42001,
+              },
+            ]}
+            defaultServicesOpen
+            onAction={() => {}}
+          />,
+        );
+      });
 
-    const detail = Array.from(document.body.querySelectorAll("span"))
-      .find((element) => element.textContent === exposureDetail);
-    expect(detail).toBeDefined();
-    expect(detail?.classList.contains("text-destructive")).toBe(true);
-    expect(detail?.classList.contains("truncate")).toBe(false);
-    expect(detail?.classList.contains("whitespace-normal")).toBe(true);
-  });
+      const detail = Array.from(document.body.querySelectorAll("span")).find(
+        (element) => element.textContent === exposureDetail,
+      );
+      expect(detail).toBeDefined();
+      expect(detail?.classList.contains("text-destructive")).toBe(true);
+      expect(detail?.classList.contains("truncate")).toBe(false);
+      expect(detail?.classList.contains("whitespace-normal")).toBe(true);
+    },
+  );
 });

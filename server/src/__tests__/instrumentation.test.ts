@@ -40,17 +40,24 @@ describe("resolveProtocol", () => {
     [undefined, "grpc", "@opentelemetry/exporter-trace-otlp-grpc"],
     ["", "grpc", "@opentelemetry/exporter-trace-otlp-grpc"],
     ["grpc", "grpc", "@opentelemetry/exporter-trace-otlp-grpc"],
-    ["http/protobuf", "http/protobuf", "@opentelemetry/exporter-trace-otlp-proto"],
+    [
+      "http/protobuf",
+      "http/protobuf",
+      "@opentelemetry/exporter-trace-otlp-proto",
+    ],
     ["http/json", "http/json", "@opentelemetry/exporter-trace-otlp-http"],
     ["HTTP/JSON", "http/json", "@opentelemetry/exporter-trace-otlp-http"],
-  ])("maps OTEL_EXPORTER_OTLP_PROTOCOL=%s to %s", async (raw, protocol, packageName) => {
-    if (raw === undefined) delete process.env[PROTOCOL_ENV];
-    else process.env[PROTOCOL_ENV] = raw;
+  ])(
+    "maps OTEL_EXPORTER_OTLP_PROTOCOL=%s to %s",
+    async (raw, protocol, packageName) => {
+      if (raw === undefined) delete process.env[PROTOCOL_ENV];
+      else process.env[PROTOCOL_ENV] = raw;
 
-    const { resolveProtocol } = await importFreshInstrumentation();
+      const { resolveProtocol } = await importFreshInstrumentation();
 
-    expect(resolveProtocol()).toEqual({ protocol, packageName });
-  });
+      expect(resolveProtocol()).toEqual({ protocol, packageName });
+    },
+  );
 
   it("warns and falls back to grpc on an unrecognized protocol", async () => {
     process.env[PROTOCOL_ENV] = "carrier-pigeon";
@@ -61,7 +68,9 @@ describe("resolveProtocol", () => {
     const { resolveProtocol } = await importFreshInstrumentation();
 
     expect(resolveProtocol().protocol).toBe("grpc");
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("carrier-pigeon"));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("carrier-pigeon"),
+    );
   });
 });
 
@@ -92,9 +101,13 @@ describe("checkExactPeerVersions", () => {
   it("passes when the installed version matches the declared version exactly", async () => {
     const { checkExactPeerVersions } = await importFreshInstrumentation();
     const require = createRequire(import.meta.url);
-    const vitestVersion = (require("vitest/package.json") as { version: string }).version;
+    const vitestVersion = (
+      require("vitest/package.json") as { version: string }
+    ).version;
 
-    const result = checkExactPeerVersions(["vitest"], { vitest: vitestVersion });
+    const result = checkExactPeerVersions(["vitest"], {
+      vitest: vitestVersion,
+    });
 
     expect(result).toEqual({ ok: true });
   });
@@ -102,13 +115,18 @@ describe("checkExactPeerVersions", () => {
   it("reports a package as missing when it cannot be resolved", async () => {
     const { checkExactPeerVersions } = await importFreshInstrumentation();
 
-    const result = checkExactPeerVersions(["@taskcore/does-not-exist-anywhere"], {
-      "@taskcore/does-not-exist-anywhere": "1.0.0",
-    });
+    const result = checkExactPeerVersions(
+      ["@taskcore/does-not-exist-anywhere"],
+      {
+        "@taskcore/does-not-exist-anywhere": "1.0.0",
+      },
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.diagnostic).toContain("@opentelemetry/* packages are not installed");
+      expect(result.diagnostic).toContain(
+        "@opentelemetry/* packages are not installed",
+      );
       expect(result.diagnostic).toContain("@taskcore/does-not-exist-anywhere");
     }
   });
@@ -116,7 +134,9 @@ describe("checkExactPeerVersions", () => {
   it("reports a package as mismatched when the installed version differs from the declared version", async () => {
     const { checkExactPeerVersions } = await importFreshInstrumentation();
     const require = createRequire(import.meta.url);
-    const vitestVersion = (require("vitest/package.json") as { version: string }).version;
+    const vitestVersion = (
+      require("vitest/package.json") as { version: string }
+    ).version;
 
     const result = checkExactPeerVersions(["vitest"], {
       vitest: "0.0.0-not-the-installed-version",
@@ -124,9 +144,13 @@ describe("checkExactPeerVersions", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.diagnostic).toContain("a package is installed at an unsupported version");
+      expect(result.diagnostic).toContain(
+        "a package is installed at an unsupported version",
+      );
       expect(result.diagnostic).toContain(`vitest@${vitestVersion}`);
-      expect(result.diagnostic).toContain("expected 0.0.0-not-the-installed-version");
+      expect(result.diagnostic).toContain(
+        "expected 0.0.0-not-the-installed-version",
+      );
     }
   });
 });
@@ -181,9 +205,12 @@ describe("bootstrapOtel post-gate load failure", () => {
     // that passed the gate but failed to load.
     const FAKE_ROOT = "/fake-otel-pkg";
     const require = createRequire(import.meta.url);
-    const peerDependencies = (
-      require("../../package.json") as { peerDependencies?: Record<string, string> }
-    ).peerDependencies ?? {};
+    const peerDependencies =
+      (
+        require("../../package.json") as {
+          peerDependencies?: Record<string, string>;
+        }
+      ).peerDependencies ?? {};
 
     vi.resetModules();
     vi.doMock("node:fs", async (importOriginal) => {
@@ -191,10 +218,15 @@ describe("bootstrapOtel post-gate load failure", () => {
       return {
         ...actual,
         existsSync: (path: unknown) =>
-          String(path).startsWith(FAKE_ROOT) ? true : actual.existsSync(path as never),
+          String(path).startsWith(FAKE_ROOT)
+            ? true
+            : actual.existsSync(path as never),
         readFileSync: (path: unknown, options?: unknown) => {
           const asString = String(path);
-          if (asString.startsWith(FAKE_ROOT) && asString.endsWith("package.json")) {
+          if (
+            asString.startsWith(FAKE_ROOT) &&
+            asString.endsWith("package.json")
+          ) {
             const name = decodeURIComponent(
               asString.slice(FAKE_ROOT.length + 1, -"/package.json".length),
             );
@@ -256,7 +288,8 @@ describe("getStartupTracer", () => {
   it("loads no OTel SDK package when the endpoint is unset", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const { getStartupTracer, instrumentationReady } = await importFreshInstrumentation();
+    const { getStartupTracer, instrumentationReady } =
+      await importFreshInstrumentation();
 
     // The endpoint is unset, so the bootstrap never runs and no SDK package
     // import is attempted; readiness resolves at once.
@@ -272,7 +305,9 @@ describe("getStartupTracer", () => {
     // The bootstrap "packages are not installed" diagnostic must not fire on
     // this path. That message comes only from the endpoint-set bootstrap.
     for (const call of warn.mock.calls) {
-      expect(String(call[0])).not.toContain("@opentelemetry/* packages are not installed");
+      expect(String(call[0])).not.toContain(
+        "@opentelemetry/* packages are not installed",
+      );
     }
   });
 });
@@ -314,7 +349,8 @@ const otelSdk = (() => {
   }
 })();
 
-const hrTimeToMs = (time: [number, number]): number => time[0] * 1000 + time[1] / 1e6;
+const hrTimeToMs = (time: [number, number]): number =>
+  time[0] * 1000 + time[1] / 1e6;
 
 describe.skipIf(!otelSdk)("recordProviderPluginSpan native duration", () => {
   it("opens the span at the true start time and ends it at the true end time", async () => {
@@ -325,7 +361,8 @@ describe.skipIf(!otelSdk)("recordProviderPluginSpan native duration", () => {
     });
     api.trace.setGlobalTracerProvider(provider);
     try {
-      const { recordProviderPluginSpan } = await import("../instrumentation.js");
+      const { recordProviderPluginSpan } =
+        await import("../instrumentation.js");
       const startTimeMs = Date.now() - 4500;
       const endTimeMs = startTimeMs + 4500;
       recordProviderPluginSpan({
@@ -343,10 +380,16 @@ describe.skipIf(!otelSdk)("recordProviderPluginSpan native duration", () => {
       expect(finished).toHaveLength(1);
       const span = finished[0]!;
       expect(span.name).toBe("sandbox.daytona.ensureDirectory");
-      expect(Math.round(hrTimeToMs(span.startTime as [number, number]))).toBe(startTimeMs);
-      expect(Math.round(hrTimeToMs(span.endTime as [number, number]))).toBe(endTimeMs);
+      expect(Math.round(hrTimeToMs(span.startTime as [number, number]))).toBe(
+        startTimeMs,
+      );
+      expect(Math.round(hrTimeToMs(span.endTime as [number, number]))).toBe(
+        endTimeMs,
+      );
       // The native width equals the true wall-clock difference, not near zero.
-      expect(Math.round(hrTimeToMs(span.duration as [number, number]))).toBe(4500);
+      expect(Math.round(hrTimeToMs(span.duration as [number, number]))).toBe(
+        4500,
+      );
     } finally {
       api.trace.disable();
     }
@@ -360,7 +403,8 @@ describe.skipIf(!otelSdk)("recordProviderPluginSpan native duration", () => {
     });
     api.trace.setGlobalTracerProvider(provider);
     try {
-      const { recordProviderPluginSpan } = await import("../instrumentation.js");
+      const { recordProviderPluginSpan } =
+        await import("../instrumentation.js");
       recordProviderPluginSpan({
         name: "sandbox.daytona.pack",
         parent: {
@@ -373,7 +417,9 @@ describe.skipIf(!otelSdk)("recordProviderPluginSpan native duration", () => {
       const finished = exporter.getFinishedSpans();
       expect(finished).toHaveLength(1);
       // The synchronous open-and-end path yields a near-zero native width.
-      expect(hrTimeToMs(finished[0]!.duration as [number, number])).toBeLessThan(1000);
+      expect(
+        hrTimeToMs(finished[0]!.duration as [number, number]),
+      ).toBeLessThan(1000);
     } finally {
       api.trace.disable();
     }

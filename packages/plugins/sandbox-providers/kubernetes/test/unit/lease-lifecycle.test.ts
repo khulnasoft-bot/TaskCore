@@ -39,7 +39,9 @@ describe("checkLeaseResumable (sandbox-cr backend)", () => {
   it("resumes a live lease whose Sandbox is Ready and pod is Running", async () => {
     const clients = {
       custom: {
-        getNamespacedCustomObject: vi.fn().mockResolvedValue(readySandboxCr("pc-abc-pod")),
+        getNamespacedCustomObject: vi
+          .fn()
+          .mockResolvedValue(readySandboxCr("pc-abc-pod")),
       },
       core: {
         readNamespacedPod: vi.fn().mockResolvedValue({
@@ -55,7 +57,11 @@ describe("checkLeaseResumable (sandbox-cr backend)", () => {
       readyTimeoutMs: 1_000,
       pollMs: 10,
     });
-    expect(result).toEqual({ resumable: true, podName: "pc-abc-pod", phase: "Running" });
+    expect(result).toEqual({
+      resumable: true,
+      podName: "pc-abc-pod",
+      phase: "Running",
+    });
     expect(clients.core.readNamespacedPod).toHaveBeenCalledWith({
       namespace: "taskcore-acme",
       name: "pc-abc-pod",
@@ -64,7 +70,9 @@ describe("checkLeaseResumable (sandbox-cr backend)", () => {
 
   it("is not resumable when the Sandbox CR is gone (404)", async () => {
     const clients = {
-      custom: { getNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()) },
+      custom: {
+        getNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()),
+      },
       core: { readNamespacedPod: vi.fn() },
     };
     const result = await checkLeaseResumable(clients as never, {
@@ -86,7 +94,12 @@ describe("checkLeaseResumable (sandbox-cr backend)", () => {
           status: {
             phase: "Failed",
             conditions: [
-              { type: "Failed", status: "True", reason: "ImagePullFailed", message: "no image" },
+              {
+                type: "Failed",
+                status: "True",
+                reason: "ImagePullFailed",
+                message: "no image",
+              },
             ],
           },
         }),
@@ -128,7 +141,9 @@ describe("checkLeaseResumable (sandbox-cr backend)", () => {
   it("is not resumable when the backing pod is gone (404)", async () => {
     const clients = {
       custom: {
-        getNamespacedCustomObject: vi.fn().mockResolvedValue(readySandboxCr("pc-abc-pod")),
+        getNamespacedCustomObject: vi
+          .fn()
+          .mockResolvedValue(readySandboxCr("pc-abc-pod")),
       },
       core: { readNamespacedPod: vi.fn().mockRejectedValue(notFound()) },
     };
@@ -140,13 +155,16 @@ describe("checkLeaseResumable (sandbox-cr backend)", () => {
       pollMs: 10,
     });
     expect(result.resumable).toBe(false);
-    if (!result.resumable) expect(result.reason).toMatch(/pc-abc-pod no longer exists/);
+    if (!result.resumable)
+      expect(result.reason).toMatch(/pc-abc-pod no longer exists/);
   });
 
   it("is not resumable when the pod is being torn down (deletionTimestamp set)", async () => {
     const clients = {
       custom: {
-        getNamespacedCustomObject: vi.fn().mockResolvedValue(readySandboxCr("pc-abc-pod")),
+        getNamespacedCustomObject: vi
+          .fn()
+          .mockResolvedValue(readySandboxCr("pc-abc-pod")),
       },
       core: {
         readNamespacedPod: vi.fn().mockResolvedValue({
@@ -169,12 +187,16 @@ describe("checkLeaseResumable (sandbox-cr backend)", () => {
   it("rethrows unexpected (non-404) pod read errors", async () => {
     const clients = {
       custom: {
-        getNamespacedCustomObject: vi.fn().mockResolvedValue(readySandboxCr("pc-abc-pod")),
+        getNamespacedCustomObject: vi
+          .fn()
+          .mockResolvedValue(readySandboxCr("pc-abc-pod")),
       },
       core: {
         readNamespacedPod: vi
           .fn()
-          .mockRejectedValue(Object.assign(new Error("forbidden"), { code: 403 })),
+          .mockRejectedValue(
+            Object.assign(new Error("forbidden"), { code: 403 }),
+          ),
       },
     };
     await expect(
@@ -193,11 +215,15 @@ describe("checkLeaseResumable (job backend)", () => {
   it("resumes a Running Job lease", async () => {
     const clients = {
       batch: {
-        readNamespacedJobStatus: vi.fn().mockResolvedValue({ status: { active: 1 } }),
+        readNamespacedJobStatus: vi
+          .fn()
+          .mockResolvedValue({ status: { active: 1 } }),
       },
       core: {
         listNamespacedPod: vi.fn().mockResolvedValue({
-          items: [{ metadata: { name: "pc-job-pod" }, status: { phase: "Running" } }],
+          items: [
+            { metadata: { name: "pc-job-pod" }, status: { phase: "Running" } },
+          ],
         }),
       },
     };
@@ -206,7 +232,11 @@ describe("checkLeaseResumable (job backend)", () => {
       name: "pc-job",
       backend: "job",
     });
-    expect(result).toEqual({ resumable: true, podName: "pc-job-pod", phase: "Running" });
+    expect(result).toEqual({
+      resumable: true,
+      podName: "pc-job-pod",
+      phase: "Running",
+    });
   });
 
   it("is not resumable when the Job is gone (404)", async () => {
@@ -227,7 +257,10 @@ describe("checkLeaseResumable (job backend)", () => {
     const clients = {
       batch: {
         readNamespacedJobStatus: vi.fn().mockResolvedValue({
-          status: { succeeded: 1, conditions: [{ type: "Complete", status: "True" }] },
+          status: {
+            succeeded: 1,
+            conditions: [{ type: "Complete", status: "True" }],
+          },
         }),
       },
       core: { listNamespacedPod: vi.fn() },
@@ -306,7 +339,9 @@ describe("destroyLeaseResources", () => {
 
   it("is idempotent: every 404 is treated as success", async () => {
     const clients = {
-      custom: { deleteNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()) },
+      custom: {
+        deleteNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()),
+      },
       batch: { deleteNamespacedJob: vi.fn() },
       core: {
         deleteNamespacedPod: vi.fn().mockRejectedValue(notFound()),
@@ -330,7 +365,9 @@ describe("destroyLeaseResources", () => {
       custom: {
         deleteNamespacedCustomObject: vi
           .fn()
-          .mockRejectedValue(Object.assign(new Error("forbidden"), { code: 403 })),
+          .mockRejectedValue(
+            Object.assign(new Error("forbidden"), { code: 403 }),
+          ),
       },
       batch: { deleteNamespacedJob: vi.fn() },
       core: { deleteNamespacedPod: vi.fn(), deleteNamespacedSecret: vi.fn() },

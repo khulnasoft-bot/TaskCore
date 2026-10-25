@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { announcementIdSchema, type Announcement } from "@taskcore/shared";
 import { announcementsApi } from "@/api/announcements";
-import { announcementStoragePrefix, readAnnouncementDismissals, saveAnnouncementDismissal } from "@/lib/announcement-dismissals";
+import {
+  announcementStoragePrefix,
+  readAnnouncementDismissals,
+  saveAnnouncementDismissal,
+} from "@/lib/announcement-dismissals";
 
 export const ANNOUNCEMENT_SETTLE_MS = 3000;
 interface Options {
@@ -15,7 +19,10 @@ export function useAnnouncement(options: Options) {
   const { userId, enabled } = options;
   const latest = useRef(options);
   latest.current = options;
-  const [state, setState] = useState<{ userId: string; announcement: Announcement } | null>(null);
+  const [state, setState] = useState<{
+    userId: string;
+    announcement: Announcement;
+  } | null>(null);
   const dismissRef = useRef<(id: string) => void>(() => {});
 
   useEffect(() => {
@@ -29,8 +36,13 @@ export function useAnnouncement(options: Options) {
     const warned = new Set<string>();
     const prefix = announcementStoragePrefix(userId);
     let channel: BroadcastChannel | null = null;
-    try { channel = new BroadcastChannel(prefix); } catch { /* storage events still synchronize tabs */ }
-    const active = () => !disposed && latest.current.userId === userId && latest.current.enabled;
+    try {
+      channel = new BroadcastChannel(prefix);
+    } catch {
+      /* storage events still synchronize tabs */
+    }
+    const active = () =>
+      !disposed && latest.current.userId === userId && latest.current.enabled;
 
     async function sync(id: string, savedLocally = true) {
       if (!active() || writes.has(id) || !latest.current.companyId) return;
@@ -38,7 +50,11 @@ export function useAnnouncement(options: Options) {
       writes.set(id, controller);
       const timer = setTimeout(() => controller.abort(), 10_000);
       try {
-        await announcementsApi.dismiss(id, latest.current.companyId, controller.signal);
+        await announcementsApi.dismiss(
+          id,
+          latest.current.companyId,
+          controller.signal,
+        );
         if (active()) saveAnnouncementDismissal(userId!, id, false);
       } catch {
         if (active() && !warned.has(id)) {
@@ -72,40 +88,67 @@ export function useAnnouncement(options: Options) {
       const currentGeneration = generation;
       const controller = new AbortController();
       fetchController = controller;
-      const stillCurrent = () => active() && generation === currentGeneration && !controller.signal.aborted;
+      const stillCurrent = () =>
+        active() &&
+        generation === currentGeneration &&
+        !controller.signal.aborted;
       let settled = false;
       let loaded = false;
       let candidate: Announcement | null = null;
       const show = () => {
         if (!stillCurrent() || !settled || !loaded) return;
-        if (candidate && !readAnnouncementDismissals(userId!).has(candidate.id)
-          && (!candidate.expiresAt || Date.parse(candidate.expiresAt) > Date.now())) {
+        if (
+          candidate &&
+          !readAnnouncementDismissals(userId!).has(candidate.id) &&
+          (!candidate.expiresAt || Date.parse(candidate.expiresAt) > Date.now())
+        ) {
           setState({ userId: userId!, announcement: candidate });
         }
       };
-      settleTimer = setTimeout(() => { settled = true; show(); }, ANNOUNCEMENT_SETTLE_MS);
-      void flush();
-      void announcementsApi.current(controller.signal).then((value) => {
-        candidate = value;
-        loaded = true;
+      settleTimer = setTimeout(() => {
+        settled = true;
         show();
-      }).catch(() => { /* Optional content stays absent when state is unknown. */ });
+      }, ANNOUNCEMENT_SETTLE_MS);
+      void flush();
+      void announcementsApi
+        .current(controller.signal)
+        .then((value) => {
+          candidate = value;
+          loaded = true;
+          show();
+        })
+        .catch(() => {
+          /* Optional content stays absent when state is unknown. */
+        });
     }
 
     function receive() {
       const dismissed = readAnnouncementDismissals(userId!);
-      setState((previous) => previous?.userId === userId && dismissed.has(previous.announcement.id) ? null : previous);
+      setState((previous) =>
+        previous?.userId === userId && dismissed.has(previous.announcement.id)
+          ? null
+          : previous,
+      );
     }
-    function onStorage(event: StorageEvent) { if (event.key?.startsWith(prefix)) receive(); }
-    function onVisibility() { if (document.visibilityState === "hidden") suspend(); else resume(); }
-    function onOnline() { void flush(); }
-    if (channel) channel.onmessage = (event) => {
-      const id = announcementIdSchema.safeParse(event.data);
-      if (!id.success) return;
-      // BroadcastChannel also works when persistent storage is unavailable.
-      if (!readAnnouncementDismissals(userId!).has(id.data)) saveAnnouncementDismissal(userId!, id.data, true);
-      receive();
-    };
+    function onStorage(event: StorageEvent) {
+      if (event.key?.startsWith(prefix)) receive();
+    }
+    function onVisibility() {
+      if (document.visibilityState === "hidden") suspend();
+      else resume();
+    }
+    function onOnline() {
+      void flush();
+    }
+    if (channel)
+      channel.onmessage = (event) => {
+        const id = announcementIdSchema.safeParse(event.data);
+        if (!id.success) return;
+        // BroadcastChannel also works when persistent storage is unavailable.
+        if (!readAnnouncementDismissals(userId!).has(id.data))
+          saveAnnouncementDismissal(userId!, id.data, true);
+        receive();
+      };
     dismissRef.current = (id) => {
       if (!active()) return;
       const savedLocally = saveAnnouncementDismissal(userId, id, true);
@@ -113,7 +156,11 @@ export function useAnnouncement(options: Options) {
       // Invalidate any response that started before this dismissal.
       generation++;
       fetchController?.abort();
-      try { channel?.postMessage(id); } catch { /* Storage events are the fallback. */ }
+      try {
+        channel?.postMessage(id);
+      } catch {
+        /* Storage events are the fallback. */
+      }
       void sync(id, savedLocally);
     };
     // Window focus also changes for browser chrome and adjacent app panes.
@@ -136,7 +183,8 @@ export function useAnnouncement(options: Options) {
     };
   }, [userId, enabled]);
 
-  const announcement = enabled && state?.userId === userId ? state.announcement : null;
+  const announcement =
+    enabled && state?.userId === userId ? state.announcement : null;
   useEffect(() => {
     if (!announcement?.expiresAt) return;
     let timer: ReturnType<typeof setTimeout>;
@@ -148,5 +196,8 @@ export function useAnnouncement(options: Options) {
     check();
     return () => clearTimeout(timer);
   }, [announcement]);
-  return { announcement, dismiss: useCallback((id: string) => dismissRef.current(id), []) };
+  return {
+    announcement,
+    dismiss: useCallback((id: string) => dismissRef.current(id), []),
+  };
 }

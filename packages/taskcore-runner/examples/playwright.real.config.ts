@@ -12,7 +12,8 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
   },
   webServer: {
-    command: "pnpm exec vite --config vite.sdk.config.ts --host 127.0.0.1 --port 4193",
+    command:
+      "pnpm exec vite --config vite.sdk.config.ts --host 127.0.0.1 --port 4193",
     env: {
       TASKCORE_LIVE_CONSOLE_DRIVER: "codex",
       TASKCORE_LIVE_CONSOLE_MAX_SESSIONS: "8",

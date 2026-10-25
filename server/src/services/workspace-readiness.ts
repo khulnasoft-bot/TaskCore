@@ -50,7 +50,9 @@ type SeedManifestSummary = {
  * `TASKCORE_CONFIG` is the authoritative pointer a seeded worktree is started
  * with; the cwd fallback covers a guest launched without it.
  */
-export function resolveWorkspaceSeedMarkerDir(env: NodeJS.ProcessEnv = process.env): string {
+export function resolveWorkspaceSeedMarkerDir(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
   const configPath = env.TASKCORE_CONFIG?.trim();
   if (configPath) return path.dirname(path.resolve(configPath));
   return path.resolve(process.cwd(), ".taskcore");
@@ -61,24 +63,38 @@ function readSeedManifestSummary(markerDir: string): SeedManifestSummary {
   if (existsSync(manifestPath)) {
     let manifest: Record<string, unknown>;
     try {
-      manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+      manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<
+        string,
+        unknown
+      >;
     } catch {
       // A manifest we cannot parse is evidence of an interrupted write, which is
       // a failure — never a silent "assume seeded".
-      return { state: "failed", phase: null, mode: null, failurePhase: "seed_manifest_unreadable" };
+      return {
+        state: "failed",
+        phase: null,
+        mode: null,
+        failurePhase: "seed_manifest_unreadable",
+      };
     }
     const rawState = typeof manifest.state === "string" ? manifest.state : null;
     const state: WorkspaceSeedReadinessState =
-      rawState === "pending" || rawState === "running" || rawState === "verified" || rawState === "failed"
+      rawState === "pending" ||
+      rawState === "running" ||
+      rawState === "verified" ||
+      rawState === "failed"
         ? rawState
         : "unknown";
     const phase = typeof manifest.phase === "string" ? manifest.phase : null;
-    const mode = manifest.seedMode === "minimal" || manifest.seedMode === "full" ? manifest.seedMode : null;
+    const mode =
+      manifest.seedMode === "minimal" || manifest.seedMode === "full"
+        ? manifest.seedMode
+        : null;
     return {
       state,
       phase,
       mode,
-      failurePhase: state === "failed" ? phase ?? "unknown" : null,
+      failurePhase: state === "failed" ? (phase ?? "unknown") : null,
     };
   }
 
@@ -86,10 +102,20 @@ function readSeedManifestSummary(markerDir: string): SeedManifestSummary {
   // absence of both markers on an already-running instance, means an adopted
   // legacy clone whose completeness this probe cannot prove.
   if (existsSync(path.join(markerDir, LEGACY_SEED_PENDING_BASENAME))) {
-    return { state: "pending", phase: "pending", mode: null, failurePhase: null };
+    return {
+      state: "pending",
+      phase: "pending",
+      mode: null,
+      failurePhase: null,
+    };
   }
   if (existsSync(path.join(markerDir, LEGACY_SEED_COMPLETE_BASENAME))) {
-    return { state: "unknown", phase: "legacy_complete_marker", mode: null, failurePhase: null };
+    return {
+      state: "unknown",
+      phase: "legacy_complete_marker",
+      mode: null,
+      failurePhase: null,
+    };
   }
   return { state: "absent", phase: null, mode: null, failurePhase: null };
 }
@@ -111,7 +137,8 @@ export function resolveWorkspaceReadinessState(input: {
   if (input.seedState === "failed") return "failed";
   if (input.seedState === "pending") return "provisioning";
   if (input.seedState === "running") return "provisioning";
-  if (!input.databaseReady) return input.seedState === "verified" ? "degraded" : "provisioning";
+  if (!input.databaseReady)
+    return input.seedState === "verified" ? "degraded" : "provisioning";
   if (!input.cloneDataReady || !input.authHandoffReady) {
     return input.seedState === "verified" ? "degraded" : "validating";
   }
@@ -129,7 +156,11 @@ export function resolveWorkspaceReadinessState(input: {
  * to treat "no clone" as "broken clone". Detection is by evidence on disk or
  * injected identity, never by a branch-name or path heuristic.
  */
-let managedWorkspaceInstanceCache: { markerDir: string; value: boolean; checkedAtMs: number } | null = null;
+let managedWorkspaceInstanceCache: {
+  markerDir: string;
+  value: boolean;
+  checkedAtMs: number;
+} | null = null;
 
 /**
  * How long the marker-file answer is reused. `/api/health` is polled by the dev
@@ -152,15 +183,16 @@ export function isManagedWorkspaceInstance(
   const markerDir = resolveWorkspaceSeedMarkerDir(env);
   const cached = managedWorkspaceInstanceCache;
   if (
-    cached
-    && cached.markerDir === markerDir
-    && now() - cached.checkedAtMs < MANAGED_WORKSPACE_DETECTION_TTL_MS
+    cached &&
+    cached.markerDir === markerDir &&
+    now() - cached.checkedAtMs < MANAGED_WORKSPACE_DETECTION_TTL_MS
   ) {
     return cached.value;
   }
-  const value = existsSync(path.join(markerDir, WORKSPACE_SEED_MANIFEST_BASENAME))
-    || existsSync(path.join(markerDir, LEGACY_SEED_PENDING_BASENAME))
-    || existsSync(path.join(markerDir, LEGACY_SEED_COMPLETE_BASENAME));
+  const value =
+    existsSync(path.join(markerDir, WORKSPACE_SEED_MANIFEST_BASENAME)) ||
+    existsSync(path.join(markerDir, LEGACY_SEED_PENDING_BASENAME)) ||
+    existsSync(path.join(markerDir, LEGACY_SEED_COMPLETE_BASENAME));
   managedWorkspaceInstanceCache = { markerDir, value, checkedAtMs: now() };
   return value;
 }
@@ -180,7 +212,9 @@ export type WorkspaceReadinessDeps = {
  * Assemble this instance's readiness. Never throws: a probe that cannot read the
  * database must report `databaseReady: false`, not fail the health endpoint.
  */
-export async function resolveWorkspaceReadiness(deps: WorkspaceReadinessDeps): Promise<WorkspaceReadiness> {
+export async function resolveWorkspaceReadiness(
+  deps: WorkspaceReadinessDeps,
+): Promise<WorkspaceReadiness> {
   const env = deps.env ?? process.env;
   const seed = readSeedManifestSummary(resolveWorkspaceSeedMarkerDir(env));
   const instanceId = resolveTaskcoreInstanceId();
@@ -192,7 +226,8 @@ export async function resolveWorkspaceReadiness(deps: WorkspaceReadinessDeps): P
   const companyId = resolveWorkspaceHandoffLocalCompanyId(env);
   const handoffKeyPresent = Boolean(resolveWorkspaceHandoffLocalKey(env));
   const handoffUserId = deps.handoffSubject?.userId.trim() || null;
-  const handoffUserEmail = deps.handoffSubject?.email.trim().toLowerCase() || null;
+  const handoffUserEmail =
+    deps.handoffSubject?.email.trim().toLowerCase() || null;
 
   let databaseReady = false;
   let cloneDataReady = false;
@@ -222,7 +257,10 @@ export async function resolveWorkspaceReadiness(deps: WorkspaceReadinessDeps): P
         cloneDataReady = clonedRows > 0;
         if (!cloneDataReady) probeFailurePhase ??= "clone_data_missing";
       } catch (error) {
-        logger.warn({ err: error }, "workspace readiness clone-data probe failed");
+        logger.warn(
+          { err: error },
+          "workspace readiness clone-data probe failed",
+        );
         probeFailurePhase ??= "clone_data_unreadable";
       }
 
@@ -244,15 +282,21 @@ export async function resolveWorkspaceReadiness(deps: WorkspaceReadinessDeps): P
               eq(companyMemberships.status, "active"),
               eq(companyMemberships.companyId, companyId),
               ...(handoffUserId ? [eq(authUsers.id, handoffUserId)] : []),
-              ...(handoffUserEmail ? [sql`lower(${authUsers.email}) = ${handoffUserEmail}`] : []),
+              ...(handoffUserEmail
+                ? [sql`lower(${authUsers.email}) = ${handoffUserEmail}`]
+                : []),
             ),
           )
           .limit(1)
           .then((rows) => rows.length);
         clonedAdminPresent = eligibleUsers > 0;
-        if (!clonedAdminPresent) probeFailurePhase ??= "cloned_membership_missing";
+        if (!clonedAdminPresent)
+          probeFailurePhase ??= "cloned_membership_missing";
       } catch (error) {
-        logger.warn({ err: error }, "workspace readiness identity probe failed");
+        logger.warn(
+          { err: error },
+          "workspace readiness identity probe failed",
+        );
         probeFailurePhase ??= "cloned_identity_unreadable";
       }
     }
@@ -261,13 +305,14 @@ export async function resolveWorkspaceReadiness(deps: WorkspaceReadinessDeps): P
   }
 
   const authHandoffReady = Boolean(
-    handoffKeyPresent
-    && executionWorkspaceId
-    && companyId
-    && clonedAdminPresent,
+    handoffKeyPresent &&
+    executionWorkspaceId &&
+    companyId &&
+    clonedAdminPresent,
   );
   if (!companyId) probeFailurePhase ??= "workspace_company_not_configured";
-  if (!executionWorkspaceId) probeFailurePhase ??= "workspace_identity_not_configured";
+  if (!executionWorkspaceId)
+    probeFailurePhase ??= "workspace_identity_not_configured";
   if (!handoffKeyPresent) probeFailurePhase ??= "auth_handoff_not_configured";
 
   const state = resolveWorkspaceReadinessState({
@@ -291,6 +336,7 @@ export async function resolveWorkspaceReadiness(deps: WorkspaceReadinessDeps): P
     companyId,
     // A seed-recorded failure phase is more specific than anything this probe
     // can infer, so it wins.
-    failurePhase: seed.failurePhase ?? (state === "ready" ? null : probeFailurePhase),
+    failurePhase:
+      seed.failurePhase ?? (state === "ready" ? null : probeFailurePhase),
   };
 }

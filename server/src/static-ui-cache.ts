@@ -15,5 +15,7 @@ import path from "node:path";
  */
 export function staticUiCacheControl(filePath: string): "no-cache" | undefined {
   const basename = path.basename(filePath);
-  return basename === "index.html" || basename === "sw.js" ? "no-cache" : undefined;
+  return basename === "index.html" || basename === "sw.js"
+    ? "no-cache"
+    : undefined;
 }

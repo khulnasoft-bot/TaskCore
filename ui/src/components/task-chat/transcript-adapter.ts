@@ -376,19 +376,29 @@ function providerActivityItem(
       label: titleCaseKey(key),
       value: clip(
         value,
-        entry.family === "provider_notice" && (key === "summary" || key === "message")
+        entry.family === "provider_notice" &&
+          (key === "summary" || key === "message")
           ? 4000
-          : key === "message" || key === "summary" || key === "reason" ? 320 : 160,
+          : key === "message" || key === "summary" || key === "reason"
+            ? 320
+            : 160,
       ),
       mono: /(?:id|model|target|reference|url|code|bytes)$/i.test(key),
     });
   }
 
-  if (entry.family === "provider_notice" && Array.isArray(entry.payload.details)) {
+  if (
+    entry.family === "provider_notice" &&
+    Array.isArray(entry.payload.details)
+  ) {
     for (const raw of entry.payload.details.slice(0, 64)) {
       const detail = objectRecord(raw);
       if (typeof detail.name === "string" && typeof detail.value === "string") {
-        details.push({ label: clip(detail.name, 160), value: clip(detail.value, 4000), mono: false });
+        details.push({
+          label: clip(detail.name, 160),
+          value: clip(detail.value, 4000),
+          mono: false,
+        });
       }
     }
   }
@@ -1190,7 +1200,8 @@ export function taskcoreRunnerActivityItems(
           item.surface === "provider_activity" &&
           item.family === "tool_execution" &&
           providerItemDetail(item, "Name") === "taskcore_finish"
-        ) return false;
+        )
+          return false;
         if (
           hasAggregateWorkspaceChange &&
           item.surface === "provider_activity" &&
@@ -1266,16 +1277,28 @@ export function taskcoreRunnerAcceptedResponseWake(
     result.acceptedResponseWake?.runId !== runId ||
     !result.acceptedResponseWake.sourceEventId.trim() ||
     !result.summary.trim()
-  ) return undefined;
-  if (parsed.some((item) =>
-    item.kind === "protocol" &&
-    item.surface === "runtime_request" && item.status === "pending",
-  )) return undefined;
-  return parsed.some((item) =>
-    item.kind === "protocol" && item.surface === "run_terminal" &&
-    item.id === `${runId}:terminal` && item.runState === "succeeded" &&
-    item.turnState === "completed" && item.disposition === "yielded",
-  ) ? result : undefined;
+  )
+    return undefined;
+  if (
+    parsed.some(
+      (item) =>
+        item.kind === "protocol" &&
+        item.surface === "runtime_request" &&
+        item.status === "pending",
+    )
+  )
+    return undefined;
+  return parsed.some(
+    (item) =>
+      item.kind === "protocol" &&
+      item.surface === "run_terminal" &&
+      item.id === `${runId}:terminal` &&
+      item.runState === "succeeded" &&
+      item.turnState === "completed" &&
+      item.disposition === "yielded",
+  )
+    ? result
+    : undefined;
 }
 
 /** Resolve a terminal reply without presenting ordinary yielded waits as answers. */
@@ -1593,8 +1616,7 @@ function phaseSummary(
               : `Read from Taskcore ${count} times`;
           break;
         case "task_operation":
-          text =
-            count === 1 ? "Used Taskcore" : `Used Taskcore ${count} times`;
+          text = count === 1 ? "Used Taskcore" : `Used Taskcore ${count} times`;
           break;
         default:
           text = count === 1 ? "Used a tool" : `Used ${count} tools`;

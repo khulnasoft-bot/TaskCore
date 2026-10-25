@@ -5,8 +5,10 @@ import { isSafeNativeChatProgressEventType } from "./safe-native-chat-progress.j
 const CHAT_PUBLICATION_PRESENTATION_COMMIT_EVENT = "run.presentation.resolved";
 
 function isChatPublicationCommitEventType(eventType: string): boolean {
-  return eventType === CHAT_PUBLICATION_PRESENTATION_COMMIT_EVENT ||
-    isSafeNativeChatProgressEventType(eventType);
+  return (
+    eventType === CHAT_PUBLICATION_PRESENTATION_COMMIT_EVENT ||
+    isSafeNativeChatProgressEventType(eventType)
+  );
 }
 
 /**

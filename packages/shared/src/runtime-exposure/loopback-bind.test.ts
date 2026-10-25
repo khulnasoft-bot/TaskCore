@@ -21,9 +21,9 @@ describe("forceLoopbackBindInCommand", () => {
     expect(forceLoopbackBindInCommand("pnpm dev --bind tailnet")).toBe(
       "pnpm dev --bind loopback",
     );
-    expect(forceLoopbackBindInCommand("pnpm dev --bind custom --bind-host 10.0.0.4")).toBe(
-      "pnpm dev --bind loopback",
-    );
+    expect(
+      forceLoopbackBindInCommand("pnpm dev --bind custom --bind-host 10.0.0.4"),
+    ).toBe("pnpm dev --bind loopback");
   });
 
   it("is idempotent, so a re-start of an already-rewritten service is stable", () => {
@@ -32,9 +32,9 @@ describe("forceLoopbackBindInCommand", () => {
   });
 
   it("handles the =-separated spelling", () => {
-    expect(forceLoopbackBindInCommand("pnpm dev --bind=lan --bind-host=0.0.0.0")).toBe(
-      "pnpm dev --bind loopback",
-    );
+    expect(
+      forceLoopbackBindInCommand("pnpm dev --bind=lan --bind-host=0.0.0.0"),
+    ).toBe("pnpm dev --bind loopback");
   });
 
   it("adds an explicit loopback bind when the command selects none", () => {
@@ -75,7 +75,9 @@ describe("forceLoopbackBindInCommand", () => {
   });
 
   it("uses the loopback preset without turning it into a custom bind", () => {
-    expect(forceLoopbackBindInCommand("pnpm dev")).toBe("pnpm dev --bind loopback");
+    expect(forceLoopbackBindInCommand("pnpm dev")).toBe(
+      "pnpm dev --bind loopback",
+    );
     expect(RUNTIME_EXPOSURE_BIND_HOST).toBe("127.0.0.1");
   });
 });
@@ -86,12 +88,16 @@ describe("commandSelectsBindMode", () => {
     expect(commandSelectsBindMode("pnpm dev --bind=lan")).toBe(true);
     expect(commandSelectsBindMode("pnpm dev --bind-host 10.0.0.1")).toBe(true);
     expect(commandSelectsBindMode("pnpm dev:once --tailscale-auth")).toBe(true);
-    expect(commandSelectsBindMode("pnpm dev:once --authenticated-private")).toBe(true);
+    expect(
+      commandSelectsBindMode("pnpm dev:once --authenticated-private"),
+    ).toBe(true);
   });
 
   it("is false for a command with no bind selection", () => {
     expect(commandSelectsBindMode("pnpm dev")).toBe(false);
-    expect(commandSelectsBindMode('python3 -m http.server "$PORT"')).toBe(false);
+    expect(commandSelectsBindMode('python3 -m http.server "$PORT"')).toBe(
+      false,
+    );
   });
 });
 
@@ -99,29 +105,43 @@ describe("isTaskcoreDevRunnerCommand", () => {
   it("matches the real managed dev commands", () => {
     expect(isTaskcoreDevRunnerCommand("pnpm dev --bind lan")).toBe(true);
     expect(isTaskcoreDevRunnerCommand("pnpm dev")).toBe(true);
-    expect(isTaskcoreDevRunnerCommand("pnpm dev:once --tailscale-auth")).toBe(true);
+    expect(isTaskcoreDevRunnerCommand("pnpm dev:once --tailscale-auth")).toBe(
+      true,
+    );
     expect(isTaskcoreDevRunnerCommand("pnpm dev:watch")).toBe(true);
     expect(isTaskcoreDevRunnerCommand("npm run dev --bind lan")).toBe(true);
     expect(isTaskcoreDevRunnerCommand("yarn dev")).toBe(true);
-    expect(isTaskcoreDevRunnerCommand("node /tmp/x/dev-runner.mjs --bind lan")).toBe(true);
-    expect(isTaskcoreDevRunnerCommand("tsx ../scripts/dev-runner.ts watch")).toBe(true);
+    expect(
+      isTaskcoreDevRunnerCommand("node /tmp/x/dev-runner.mjs --bind lan"),
+    ).toBe(true);
+    expect(
+      isTaskcoreDevRunnerCommand("tsx ../scripts/dev-runner.ts watch"),
+    ).toBe(true);
   });
 
   it("does not match unrelated commands that merely use --bind", () => {
-    expect(isTaskcoreDevRunnerCommand('python3 -m http.server "$PORT" --bind 127.0.0.1')).toBe(false);
+    expect(
+      isTaskcoreDevRunnerCommand(
+        'python3 -m http.server "$PORT" --bind 127.0.0.1',
+      ),
+    ).toBe(false);
     expect(isTaskcoreDevRunnerCommand("node -e 'listen()'")).toBe(false);
     expect(isTaskcoreDevRunnerCommand("pnpm build")).toBe(false);
     expect(isTaskcoreDevRunnerCommand("pnpm develop")).toBe(false);
-    expect(isTaskcoreDevRunnerCommand("./my-dev-runnerish --bind lan")).toBe(false);
+    expect(isTaskcoreDevRunnerCommand("./my-dev-runnerish --bind lan")).toBe(
+      false,
+    );
   });
 });
 
 describe("rewriteUrlHostToLoopback", () => {
   it("redirects a MagicDNS probe target to loopback, keeping port and path", () => {
-    expect(rewriteUrlHostToLoopback("http://taskcore-dev:42003/api/health")).toBe(
-      "http://127.0.0.1:42003/api/health",
+    expect(
+      rewriteUrlHostToLoopback("http://taskcore-dev:42003/api/health"),
+    ).toBe("http://127.0.0.1:42003/api/health");
+    expect(rewriteUrlHostToLoopback("http://taskcore-dev:42003")).toBe(
+      "http://127.0.0.1:42003/",
     );
-    expect(rewriteUrlHostToLoopback("http://taskcore-dev:42003")).toBe("http://127.0.0.1:42003/");
   });
 
   it("leaves an already-loopback target alone", () => {

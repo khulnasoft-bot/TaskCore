@@ -13,11 +13,7 @@ export interface FrontmatterBlock {
 }
 
 export type FrontmatterRoundTripIssueKind =
-  | "anchor"
-  | "alias"
-  | "comment"
-  | "quoted_key"
-  | "tag";
+  "anchor" | "alias" | "comment" | "quoted_key" | "tag";
 
 export interface FrontmatterRoundTripIssue {
   kind: FrontmatterRoundTripIssueKind;
@@ -45,15 +41,19 @@ const skillMetadataValueSchema: z.ZodType<unknown> = z.lazy(() =>
     z.null(),
     z.array(skillMetadataValueSchema),
     z.record(z.string(), skillMetadataValueSchema),
-  ])
+  ]),
 );
 
-export const skillFrontmatterSchema = z.object({
-  name: z.string().regex(SKILL_FRONTMATTER_SLUG_RE, "Expected a lowercase URL slug."),
-  description: z.string().min(1),
-  "allowed-tools": z.array(z.string()).optional(),
-  metadata: z.record(z.string(), skillMetadataValueSchema).optional(),
-}).passthrough();
+export const skillFrontmatterSchema = z
+  .object({
+    name: z
+      .string()
+      .regex(SKILL_FRONTMATTER_SLUG_RE, "Expected a lowercase URL slug."),
+    description: z.string().min(1),
+    "allowed-tools": z.array(z.string()).optional(),
+    metadata: z.record(z.string(), skillMetadataValueSchema).optional(),
+  })
+  .passthrough();
 
 export const skillFrontmatterKnownKeys = [
   "name",
@@ -62,7 +62,9 @@ export const skillFrontmatterKnownKeys = [
   "metadata",
 ] as const;
 
-export function isPlainRecord(value: unknown): value is Record<string, unknown> {
+export function isPlainRecord(
+  value: unknown,
+): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -115,7 +117,9 @@ export function getSkillFrontmatterUnknownKeys(value: Record<string, unknown>) {
   return Object.keys(value).filter((key) => !known.has(key));
 }
 
-export function detectFrontmatterRoundTripIssues(rawYaml: string): FrontmatterRoundTripIssue[] {
+export function detectFrontmatterRoundTripIssues(
+  rawYaml: string,
+): FrontmatterRoundTripIssue[] {
   const issues: FrontmatterRoundTripIssue[] = [];
   const lines = rawYaml.split("\n");
 
@@ -130,7 +134,8 @@ export function detectFrontmatterRoundTripIssues(rawYaml: string): FrontmatterRo
         kind: "comment",
         line: index + 1,
         column: contentStart + 1,
-        message: "Comments are not preserved by the frontmatter field serializer.",
+        message:
+          "Comments are not preserved by the frontmatter field serializer.",
       });
       continue;
     }
@@ -141,7 +146,8 @@ export function detectFrontmatterRoundTripIssues(rawYaml: string): FrontmatterRo
         kind: "comment",
         line: index + 1,
         column: inlineComment + 1,
-        message: "Inline comments are not preserved by the frontmatter field serializer.",
+        message:
+          "Inline comments are not preserved by the frontmatter field serializer.",
       });
     }
 
@@ -151,7 +157,8 @@ export function detectFrontmatterRoundTripIssues(rawYaml: string): FrontmatterRo
         kind: "quoted_key",
         line: index + 1,
         column: line.indexOf(quotedKey[1]!) + 1,
-        message: "Quoted YAML keys cannot be round-tripped by the frontmatter parser.",
+        message:
+          "Quoted YAML keys cannot be round-tripped by the frontmatter parser.",
       });
     }
 
@@ -161,7 +168,8 @@ export function detectFrontmatterRoundTripIssues(rawYaml: string): FrontmatterRo
         kind: "anchor",
         line: index + 1,
         column: anchor + 1,
-        message: "YAML anchors cannot be round-tripped by the frontmatter parser.",
+        message:
+          "YAML anchors cannot be round-tripped by the frontmatter parser.",
       });
     }
 
@@ -171,7 +179,8 @@ export function detectFrontmatterRoundTripIssues(rawYaml: string): FrontmatterRo
         kind: "alias",
         line: index + 1,
         column: alias + 1,
-        message: "YAML aliases cannot be round-tripped by the frontmatter parser.",
+        message:
+          "YAML aliases cannot be round-tripped by the frontmatter parser.",
       });
     }
 
@@ -205,7 +214,9 @@ export function joinFrontmatterBlock(block: FrontmatterBlock): string {
  * as returned by {@link splitFrontmatterBlock}) into a plain object. Lenient:
  * unparseable input yields `{}` rather than throwing.
  */
-export function parseFrontmatterFields(frontmatterText: string): Record<string, unknown> {
+export function parseFrontmatterFields(
+  frontmatterText: string,
+): Record<string, unknown> {
   return parseYamlFrontmatter(frontmatterText);
 }
 
@@ -229,7 +240,9 @@ export interface FrontmatterAnalysis {
  * reproduces the original block exactly — this is the load-bearing round-trip
  * safety gate for the Skill Studio FrontmatterPanel (PAP-13145 Option B).
  */
-export function analyzeFrontmatterBlock(frontmatterText: string): FrontmatterAnalysis {
+export function analyzeFrontmatterBlock(
+  frontmatterText: string,
+): FrontmatterAnalysis {
   const issues = detectFrontmatterRoundTripIssues(frontmatterText);
   const parsed = parseYamlFrontmatter(frontmatterText);
   let canRoundTrip = issues.length === 0;
@@ -274,9 +287,9 @@ function assertSerializableRecord(value: Record<string, unknown>) {
 
 function assertSerializableValue(value: unknown): SerializableFrontmatterValue {
   if (
-    value === null
-    || typeof value === "string"
-    || typeof value === "boolean"
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
   ) {
     return value;
   }
@@ -297,7 +310,10 @@ function assertSerializableValue(value: unknown): SerializableFrontmatterValue {
   throw new TypeError(`Unsupported frontmatter value type: ${typeof value}`);
 }
 
-function stringifyYamlRecord(record: Record<string, SerializableFrontmatterValue>, indentLevel: number): string[] {
+function stringifyYamlRecord(
+  record: Record<string, SerializableFrontmatterValue>,
+  indentLevel: number,
+): string[] {
   const lines: string[] = [];
   for (const [key, value] of Object.entries(record)) {
     assertYamlKey(key);
@@ -306,7 +322,11 @@ function stringifyYamlRecord(record: Record<string, SerializableFrontmatterValue
   return lines;
 }
 
-function stringifyYamlProperty(key: string, value: SerializableFrontmatterValue, indentLevel: number): string[] {
+function stringifyYamlProperty(
+  key: string,
+  value: SerializableFrontmatterValue,
+  indentLevel: number,
+): string[] {
   const indent = " ".repeat(indentLevel);
   if (Array.isArray(value)) {
     if (value.length === 0) return [`${indent}${key}: []`];
@@ -323,7 +343,10 @@ function stringifyYamlProperty(key: string, value: SerializableFrontmatterValue,
   return [`${indent}${key}: ${stringifyYamlScalar(value)}`];
 }
 
-function stringifyYamlArray(values: SerializableFrontmatterValue[], indentLevel: number): string[] {
+function stringifyYamlArray(
+  values: SerializableFrontmatterValue[],
+  indentLevel: number,
+): string[] {
   const indent = " ".repeat(indentLevel);
   const lines: string[] = [];
   for (const value of values) {
@@ -358,7 +381,11 @@ function stringifyYamlArray(values: SerializableFrontmatterValue[], indentLevel:
   return lines;
 }
 
-function stringifyBlockScalarProperty(key: string, value: string, indentLevel: number) {
+function stringifyBlockScalarProperty(
+  key: string,
+  value: string,
+  indentLevel: number,
+) {
   const indent = " ".repeat(indentLevel);
   return [
     `${indent}${key}: ${blockScalarIndicator(value)}`,
@@ -385,7 +412,13 @@ function indentBlockScalarValue(value: string, indentLevel: number) {
   return value.split("\n").map((line) => `${indent}${line}`);
 }
 
-function stringifyYamlScalar(value: Exclude<SerializableFrontmatterValue, SerializableFrontmatterValue[] | Record<string, SerializableFrontmatterValue>>) {
+function stringifyYamlScalar(
+  value: Exclude<
+    SerializableFrontmatterValue,
+    | SerializableFrontmatterValue[]
+    | Record<string, SerializableFrontmatterValue>
+  >,
+) {
   if (value === null) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
@@ -396,7 +429,13 @@ function stringifyYamlScalar(value: Exclude<SerializableFrontmatterValue, Serial
 function isPlainYamlScalar(value: string) {
   if (value.length === 0) return false;
   if (value.trim() !== value) return false;
-  if (value === "null" || value === "~" || value === "true" || value === "false") return false;
+  if (
+    value === "null" ||
+    value === "~" ||
+    value === "true" ||
+    value === "false"
+  )
+    return false;
   if (value === "[]" || value === "{}") return false;
   if (/^-?\d+(\.\d+)?$/u.test(value)) return false;
   if (/["'[\]{}#,>&*!|@`]/u.test(value)) return false;
@@ -410,7 +449,9 @@ function assertYamlKey(key: string) {
   }
 }
 
-function isSerializableRecord(value: SerializableFrontmatterValue): value is Record<string, SerializableFrontmatterValue> {
+function isSerializableRecord(
+  value: SerializableFrontmatterValue,
+): value is Record<string, SerializableFrontmatterValue> {
   return isPlainRecord(value);
 }
 
@@ -422,38 +463,53 @@ function findRoundTripPattern(line: string, pattern: RegExp) {
 
 function parseYamlFrontmatter(raw: string): Record<string, unknown> {
   const prepared = prepareYamlLines(raw);
-  const firstContentIndex = prepared.findIndex((line) => !line.isBlank && !line.isComment);
+  const firstContentIndex = prepared.findIndex(
+    (line) => !line.isBlank && !line.isComment,
+  );
   if (firstContentIndex < 0) return {};
-  const parsed = parseYamlBlock(prepared, firstContentIndex, prepared[firstContentIndex]!.indent);
+  const parsed = parseYamlBlock(
+    prepared,
+    firstContentIndex,
+    prepared[firstContentIndex]!.indent,
+  );
   return isPlainRecord(parsed.value) ? parsed.value : {};
 }
 
 function prepareYamlLines(raw: string) {
-  return raw
-    .split("\n")
-    .map((line) => ({
-      indent: line.match(/^ */)?.[0].length ?? 0,
-      raw: line,
-      content: line.trim(),
-      isBlank: line.trim().length === 0,
-      isComment: line.trim().startsWith("#"),
-    }));
+  return raw.split("\n").map((line) => ({
+    indent: line.match(/^ */)?.[0].length ?? 0,
+    raw: line,
+    content: line.trim(),
+    isBlank: line.trim().length === 0,
+    isComment: line.trim().startsWith("#"),
+  }));
 }
 
 function parseYamlBlock(
-  lines: Array<{ indent: number; raw: string; content: string; isBlank: boolean; isComment: boolean }>,
+  lines: Array<{
+    indent: number;
+    raw: string;
+    content: string;
+    isBlank: boolean;
+    isComment: boolean;
+  }>,
   startIndex: number,
   indentLevel: number,
 ): { value: unknown; nextIndex: number } {
   let index = startIndex;
-  while (index < lines.length && (lines[index]!.isBlank || lines[index]!.isComment)) {
+  while (
+    index < lines.length &&
+    (lines[index]!.isBlank || lines[index]!.isComment)
+  ) {
     index += 1;
   }
   if (index >= lines.length || lines[index]!.indent < indentLevel) {
     return { value: {}, nextIndex: index };
   }
 
-  const isArray = lines[index]!.indent === indentLevel && lines[index]!.content.startsWith("-");
+  const isArray =
+    lines[index]!.indent === indentLevel &&
+    lines[index]!.content.startsWith("-");
   if (isArray) {
     const values: unknown[] = [];
     while (index < lines.length) {
@@ -475,7 +531,12 @@ function parseYamlBlock(
       }
 
       if (isYamlBlockScalarIndicator(remainder)) {
-        const block = parseYamlBlockScalar(lines, index, indentLevel, remainder);
+        const block = parseYamlBlockScalar(
+          lines,
+          index,
+          indentLevel,
+          remainder,
+        );
         values.push(block.value);
         index = block.nextIndex;
         continue;
@@ -483,10 +544,10 @@ function parseYamlBlock(
 
       const inlineObjectSeparator = remainder.indexOf(":");
       if (
-        inlineObjectSeparator > 0
-        && !remainder.startsWith("\"")
-        && !remainder.startsWith("{")
-        && !remainder.startsWith("[")
+        inlineObjectSeparator > 0 &&
+        !remainder.startsWith('"') &&
+        !remainder.startsWith("{") &&
+        !remainder.startsWith("[")
       ) {
         const key = remainder.slice(0, inlineObjectSeparator).trim();
         const rawValue = remainder.slice(inlineObjectSeparator + 1).trim();
@@ -554,7 +615,13 @@ function isYamlBlockScalarIndicator(rawValue: string) {
 }
 
 function parseYamlBlockScalar(
-  lines: Array<{ indent: number; raw: string; content: string; isBlank: boolean; isComment: boolean }>,
+  lines: Array<{
+    indent: number;
+    raw: string;
+    content: string;
+    isBlank: boolean;
+    isComment: boolean;
+  }>,
   startIndex: number,
   parentIndent: number,
   indicator: string,
@@ -567,11 +634,16 @@ function parseYamlBlockScalar(
       ? "-"
       : "";
   let index = startIndex;
-  const collected: Array<{ indent: number; raw: string; isBlank: boolean }> = [];
+  const collected: Array<{ indent: number; raw: string; isBlank: boolean }> =
+    [];
   while (index < lines.length) {
     const line = lines[index]!;
     if (!line.isBlank && line.indent <= parentIndent) break;
-    collected.push({ indent: line.indent, raw: line.raw, isBlank: line.isBlank });
+    collected.push({
+      indent: line.indent,
+      raw: line.raw,
+      isBlank: line.isBlank,
+    });
     index += 1;
   }
 
@@ -579,13 +651,14 @@ function parseYamlBlockScalar(
   if (contentLines.length === 0) return { value: "", nextIndex: index };
 
   const blockIndent = Math.min(...contentLines.map((line) => line.indent));
-  const normalizedLines = collected.map((line) => (
-    line.isBlank ? "" : line.raw.slice(Math.min(blockIndent, line.raw.length))
-  ));
+  const normalizedLines = collected.map((line) =>
+    line.isBlank ? "" : line.raw.slice(Math.min(blockIndent, line.raw.length)),
+  );
 
-  const baseValue = style === "|"
-    ? normalizedLines.join("\n")
-    : foldYamlBlockScalarLines(normalizedLines);
+  const baseValue =
+    style === "|"
+      ? normalizedLines.join("\n")
+      : foldYamlBlockScalarLines(normalizedLines);
 
   return {
     value: applyYamlBlockChomp(baseValue, chomp),
@@ -634,7 +707,7 @@ function parseYamlScalar(rawValue: string): unknown {
   if (trimmed === "{}") return {};
   if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
   if (
-    trimmed.startsWith("\"") ||
+    trimmed.startsWith('"') ||
     trimmed.startsWith("[") ||
     trimmed.startsWith("{")
   ) {

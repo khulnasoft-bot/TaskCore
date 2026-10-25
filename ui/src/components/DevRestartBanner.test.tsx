@@ -62,8 +62,9 @@ function render() {
 describe("DevRestartBanner", () => {
   it("confirms and requests an immediate restart while waiting for live runs", async () => {
     const node = render();
-    const button = [...node.querySelectorAll("button")]
-      .find((entry) => entry.textContent?.includes("Restart now"));
+    const button = [...node.querySelectorAll("button")].find((entry) =>
+      entry.textContent?.includes("Restart now"),
+    );
 
     expect(node.textContent).toContain("Waiting for 1 live run to finish");
     expect(button).toBeTruthy();
@@ -72,7 +73,9 @@ describe("DevRestartBanner", () => {
       button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(window.confirm).toHaveBeenCalledWith("Restart Taskcore now? This may interrupt 1 live run.");
+    expect(window.confirm).toHaveBeenCalledWith(
+      "Restart Taskcore now? This may interrupt 1 live run.",
+    );
     expect(mockHealthApi.requestDevServerRestart).toHaveBeenCalledTimes(1);
     expect(node.textContent).toContain("Restart requested");
   });
@@ -80,8 +83,9 @@ describe("DevRestartBanner", () => {
   it("does not request restart when confirmation is declined", async () => {
     vi.mocked(window.confirm).mockReturnValue(false);
     const node = render();
-    const button = [...node.querySelectorAll("button")]
-      .find((entry) => entry.textContent?.includes("Restart now"));
+    const button = [...node.querySelectorAll("button")].find((entry) =>
+      entry.textContent?.includes("Restart now"),
+    );
 
     await act(async () => {
       button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -93,8 +97,9 @@ describe("DevRestartBanner", () => {
   it("re-enables the manual restart action when a request does not refresh the page", async () => {
     vi.useFakeTimers();
     const node = render();
-    const button = [...node.querySelectorAll("button")]
-      .find((entry) => entry.textContent?.includes("Restart now")) as HTMLButtonElement | undefined;
+    const button = [...node.querySelectorAll("button")].find((entry) =>
+      entry.textContent?.includes("Restart now"),
+    ) as HTMLButtonElement | undefined;
 
     await act(async () => {
       button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));

@@ -48,7 +48,9 @@ const REGISTRY: Record<string, AdapterDefaults> = {
   },
 };
 
-export const KNOWN_ADAPTER_TYPES: ReadonlySet<string> = new Set(Object.keys(REGISTRY));
+export const KNOWN_ADAPTER_TYPES: ReadonlySet<string> = new Set(
+  Object.keys(REGISTRY),
+);
 
 function fromRegistryEntry(entry: AdapterRegistryEntry): AdapterDefaults {
   // Only runtimeImage is strictly required. The array fields are optional and
@@ -81,7 +83,9 @@ export function getAdapterDefaults(
   if (registry && registry.length > 0) {
     const entry = registry.find((e) => e.adapterType === adapterType);
     if (!entry) {
-      throw new Error(`Adapter "${adapterType}" is not in the configured adapter registry`);
+      throw new Error(
+        `Adapter "${adapterType}" is not in the configured adapter registry`,
+      );
     }
     return fromRegistryEntry(entry);
   }
@@ -101,7 +105,8 @@ export function resolveRunAdapterType(
   runAdapterType: string | null | undefined,
   configAdapterType: string,
 ): string {
-  const trimmed = typeof runAdapterType === "string" ? runAdapterType.trim() : "";
+  const trimmed =
+    typeof runAdapterType === "string" ? runAdapterType.trim() : "";
   return trimmed.length > 0 ? trimmed : configAdapterType;
 }
 

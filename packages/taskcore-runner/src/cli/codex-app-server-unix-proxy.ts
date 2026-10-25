@@ -70,9 +70,7 @@ try {
       }
       const maskLength = masked ? 4 : 0;
       if (networkBuffer.length < offset + maskLength + length) return;
-      const mask = masked
-        ? networkBuffer.subarray(offset, offset + 4)
-        : null;
+      const mask = masked ? networkBuffer.subarray(offset, offset + 4) : null;
       offset += maskLength;
       const payload = Buffer.from(
         networkBuffer.subarray(offset, offset + length),
@@ -120,7 +118,9 @@ try {
         .match(/^sec-websocket-accept:\s*(.+)$/im)?.[1]
         ?.trim();
       if (accept !== expectedAccept)
-        throw new Error("Codex app-server returned an invalid WebSocket accept value");
+        throw new Error(
+          "Codex app-server returned an invalid WebSocket accept value",
+        );
       connected = true;
       process.stdin.setEncoding("utf8");
       process.stdin.on("data", (chunk: string) => {
@@ -142,6 +142,8 @@ try {
     process.exitCode = 1;
   });
 } catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? error.message : String(error)}\n`,
+  );
   process.exitCode = 1;
 }

@@ -9,8 +9,8 @@ export class AcpxApprovalRequiredError extends Error {
   constructor() {
     super(
       "Approval required. This operation is not an automatically allowed Taskcore action, " +
-      "and this runner has no interactive approval handler. Review the operation and " +
-      "update the agent's permission setting before retrying.",
+        "and this runner has no interactive approval handler. Review the operation and " +
+        "update the agent's permission setting before retrying.",
     );
     this.name = "AcpxApprovalRequiredError";
   }
@@ -21,10 +21,20 @@ export class AcpxApprovalRequiredError extends Error {
 // task, and handoff workflow; governance decisions, generic APIs, and workspace
 // controls deliberately stay outside it. Asking a human does not approve work.
 const AUTOMATIC_TASKCORE_WORKFLOW_ACTIONS = new Set([
-  "report_progress", "answer_status_question", "write_document",
-  "request_human_input", "register_deliverable", "finish_task", "block_task",
-  "set_task_title", "request_review", "create_task", "reassign_task", "set_dependencies",
-  "create_project", "request_approval",
+  "report_progress",
+  "answer_status_question",
+  "write_document",
+  "request_human_input",
+  "register_deliverable",
+  "finish_task",
+  "block_task",
+  "set_task_title",
+  "request_review",
+  "create_task",
+  "reassign_task",
+  "set_dependencies",
+  "create_project",
+  "request_approval",
 ]);
 
 /** Exact SDK rules for the run's runner-owned Taskcore MCP connection. */
@@ -44,14 +54,16 @@ export function claudeTaskcorePermissionRules(
     // canonical side-effect class distinguishes those reads from decisions.
     const liveAction = capabilityCanonicalOperation(name);
     const isRead = liveAction
-      ? liveAction.surfaces.includes("live") && liveAction.sideEffectClass === "read"
+      ? liveAction.surfaces.includes("live") &&
+        liveAction.sideEffectClass === "read"
       : action?.effect === "read";
     // This only bypasses the provider's redundant permission prompt. The
     // authenticated bridge and controller still validate run authority,
     // company scope, claims, task mode, and governed-action approvals.
-    return isRead || (action && (
-      mode === "approve-taskcore" && AUTOMATIC_TASKCORE_WORKFLOW_ACTIONS.has(name)
-    ))
+    return isRead ||
+      (action &&
+        mode === "approve-taskcore" &&
+        AUTOMATIC_TASKCORE_WORKFLOW_ACTIONS.has(name))
       ? [`mcp__taskcore__${name}`]
       : [];
   });

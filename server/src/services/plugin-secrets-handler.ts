@@ -6,7 +6,11 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { companySecretBindings } from "@taskcore/db";
-import type { EnvSecretRefBinding, SecretProjectionClass, SecretVersionSelector } from "@taskcore/shared";
+import type {
+  EnvSecretRefBinding,
+  SecretProjectionClass,
+  SecretVersionSelector,
+} from "@taskcore/shared";
 import { envBindingSecretRefSchema } from "@taskcore/shared";
 import {
   collectSecretRefPaths,
@@ -21,7 +25,8 @@ import { unprocessable } from "../errors.js";
 // ---------------------------------------------------------------------------
 
 function invalidSecretRef(secretRef: unknown): Error {
-  const rendered = typeof secretRef === "string" ? secretRef : JSON.stringify(secretRef);
+  const rendered =
+    typeof secretRef === "string" ? secretRef : JSON.stringify(secretRef);
   const err = new Error(
     `Invalid secret reference for plugin: ${rendered ?? "<empty>"}. Use { type: "secret_ref", secretId, version? }`,
   );
@@ -99,7 +104,10 @@ export function extractSecretRefBindingsFromConfig(
 
   const secretPaths = collectSecretRefPaths(schema);
   for (const dotPath of secretPaths) {
-    const current = readConfigValueAtPath(configJson as Record<string, unknown>, dotPath);
+    const current = readConfigValueAtPath(
+      configJson as Record<string, unknown>,
+      dotPath,
+    );
     const binding = assertSecretRefBinding(current, dotPath, true);
     if (binding) addRef(binding, dotPath);
   }
@@ -111,7 +119,9 @@ export function extractSecretRefBindingsFromConfig(
       return;
     }
     if (Array.isArray(value)) {
-      value.forEach((item, index) => walk(item, path ? `${path}.${index}` : String(index)));
+      value.forEach((item, index) =>
+        walk(item, path ? `${path}.${index}` : String(index)),
+      );
       return;
     }
     if (!isPlainRecord(value)) return;
@@ -129,7 +139,11 @@ export function extractSecretRefsFromConfig(
   configJson: unknown,
   schema?: Record<string, unknown> | null,
 ): Set<string> {
-  return new Set(extractSecretRefBindingsFromConfig(configJson, schema).map((ref) => ref.secretId));
+  return new Set(
+    extractSecretRefBindingsFromConfig(configJson, schema).map(
+      (ref) => ref.secretId,
+    ),
+  );
 }
 
 /** Backward-compatible helper returning secret IDs grouped by config path. */
@@ -179,7 +193,9 @@ function createRateLimiter(maxAttempts: number, windowMs: number) {
     check(key: string): boolean {
       const now = Date.now();
       const windowStart = now - windowMs;
-      const existing = (attempts.get(key) ?? []).filter((ts) => ts > windowStart);
+      const existing = (attempts.get(key) ?? []).filter(
+        (ts) => ts > windowStart,
+      );
       if (existing.length >= maxAttempts) return false;
       existing.push(now);
       attempts.set(key, existing);
@@ -258,28 +274,33 @@ export function createPluginSecretsHandler(
       }
 
       const binding = bindings[0]!;
-      return secretService(db).resolveSecretValue(companyId, bindingRef.secretId, versionSelector, {
-        bindingContext: {
-          consumerType: "plugin",
-          consumerId: pluginId,
-          configPath: binding.configPath,
-          actorType: params.actorType ?? "plugin",
-          actorId: params.actorId ?? pluginId,
-          issueId: params.issueId ?? null,
-          heartbeatRunId: params.heartbeatRunId ?? null,
-          pluginId,
+      return secretService(db).resolveSecretValue(
+        companyId,
+        bindingRef.secretId,
+        versionSelector,
+        {
+          bindingContext: {
+            consumerType: "plugin",
+            consumerId: pluginId,
+            configPath: binding.configPath,
+            actorType: params.actorType ?? "plugin",
+            actorId: params.actorId ?? pluginId,
+            issueId: params.issueId ?? null,
+            heartbeatRunId: params.heartbeatRunId ?? null,
+            pluginId,
+          },
+          accessContext: {
+            consumerType: "plugin_worker",
+            consumerId: pluginId,
+            configPath: binding.configPath,
+            actorType: params.actorType ?? "plugin",
+            actorId: params.actorId ?? pluginId,
+            issueId: params.issueId ?? null,
+            heartbeatRunId: params.heartbeatRunId ?? null,
+            pluginId,
+          },
         },
-        accessContext: {
-          consumerType: "plugin_worker",
-          consumerId: pluginId,
-          configPath: binding.configPath,
-          actorType: params.actorType ?? "plugin",
-          actorId: params.actorId ?? pluginId,
-          issueId: params.issueId ?? null,
-          heartbeatRunId: params.heartbeatRunId ?? null,
-          pluginId,
-        },
-      });
+      );
     },
   };
 }

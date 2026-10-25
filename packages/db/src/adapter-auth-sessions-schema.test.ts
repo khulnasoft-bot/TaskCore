@@ -11,17 +11,23 @@ type PgTable = Parameters<typeof getTableConfig>[0];
 const ACTIVE_INDEX = "adapter_auth_sessions_company_owner_adapter_active_uq";
 
 function findIndex(table: PgTable, indexName: string) {
-  return getTableConfig(table).indexes.find((candidate) => candidate.config.name === indexName);
+  return getTableConfig(table).indexes.find(
+    (candidate) => candidate.config.name === indexName,
+  );
 }
 
 function indexColumns(table: PgTable, indexName: string): string[] {
   const index = findIndex(table, indexName);
   if (!index) return [];
-  return index.config.columns.map((column) => (column as { name: string }).name);
+  return index.config.columns.map(
+    (column) => (column as { name: string }).name,
+  );
 }
 
 function column(table: PgTable, columnName: string) {
-  return getTableConfig(table).columns.find((candidate) => candidate.name === columnName);
+  return getTableConfig(table).columns.find(
+    (candidate) => candidate.name === columnName,
+  );
 }
 
 function columnIsNotNull(table: PgTable, columnName: string): boolean {
@@ -32,7 +38,9 @@ function columnIsNotNull(table: PgTable, columnName: string): boolean {
 // so a later re-generation with a different name does not break the test.
 function activeIndexMigrationSql(): string {
   const migrationsDir = new URL("./migrations/", import.meta.url);
-  const files = fs.readdirSync(migrationsDir).filter((name) => name.endsWith(".sql"));
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter((name) => name.endsWith(".sql"));
   for (const name of files) {
     const content = fs.readFileSync(new URL(name, migrationsDir), "utf8");
     if (content.includes(ACTIVE_INDEX)) {
@@ -57,7 +65,9 @@ describe("adapter auth sessions schema", () => {
   });
 
   it("keeps the owner principal non-null and drops the environment from the key", () => {
-    expect(columnIsNotNull(adapterAuthSessions, "started_by_user_id")).toBe(true);
+    expect(columnIsNotNull(adapterAuthSessions, "started_by_user_id")).toBe(
+      true,
+    );
     const activeColumns = indexColumns(adapterAuthSessions, ACTIVE_INDEX);
     expect(activeColumns).toContain("started_by_user_id");
     expect(activeColumns).not.toContain("environment_id");
@@ -65,16 +75,21 @@ describe("adapter auth sessions schema", () => {
 
   it("adds the public session id, non-null and unique", () => {
     expect(column(adapterAuthSessions, "public_session_id")).toBeDefined();
-    expect(columnIsNotNull(adapterAuthSessions, "public_session_id")).toBe(true);
+    expect(columnIsNotNull(adapterAuthSessions, "public_session_id")).toBe(
+      true,
+    );
     const uniqueOnPublicSessionId = findIndex(
       adapterAuthSessions,
       "adapter_auth_sessions_public_session_id_uq",
     );
     expect(uniqueOnPublicSessionId).toBeDefined();
     expect(uniqueOnPublicSessionId?.config.unique).toBe(true);
-    expect(indexColumns(adapterAuthSessions, "adapter_auth_sessions_public_session_id_uq")).toEqual([
-      "public_session_id",
-    ]);
+    expect(
+      indexColumns(
+        adapterAuthSessions,
+        "adapter_auth_sessions_public_session_id_uq",
+      ),
+    ).toEqual(["public_session_id"]);
   });
 
   it("adds the claim marker, nullable", () => {
@@ -103,8 +118,18 @@ describe("adapter auth sessions schema", () => {
     // The durable store keeps only ids, the state, the lease reference, and the
     // deadlines. It never holds the prompt, the login URL, the browser code, the
     // token, or a process chunk.
-    const names = getTableConfig(adapterAuthSessions).columns.map((c) => c.name);
-    const forbidden = ["token", "code", "url", "secret", "credential", "prompt", "output"];
+    const names = getTableConfig(adapterAuthSessions).columns.map(
+      (c) => c.name,
+    );
+    const forbidden = [
+      "token",
+      "code",
+      "url",
+      "secret",
+      "credential",
+      "prompt",
+      "output",
+    ];
     for (const name of names) {
       for (const needle of forbidden) {
         expect(name.includes(needle)).toBe(false);
@@ -121,10 +146,15 @@ describe("adapter auth sessions schema", () => {
     );
     // The new non-null column and the unique index are in the migration.
     expect(sql).toContain('"public_session_id" varchar(128) NOT NULL');
-    expect(sql).toContain(`CREATE UNIQUE INDEX "adapter_auth_sessions_public_session_id_uq"`);
+    expect(sql).toContain(
+      `CREATE UNIQUE INDEX "adapter_auth_sessions_public_session_id_uq"`,
+    );
     // The removed state and the non-active states stay out of the predicate.
     const predicate = sql.slice(sql.indexOf(ACTIVE_INDEX));
-    const whereClause = predicate.slice(predicate.indexOf("WHERE"), predicate.indexOf(";"));
+    const whereClause = predicate.slice(
+      predicate.indexOf("WHERE"),
+      predicate.indexOf(";"),
+    );
     expect(whereClause).not.toContain("'persisting'");
     expect(whereClause).not.toContain("'stored'");
     expect(whereClause).not.toContain("'completed'");

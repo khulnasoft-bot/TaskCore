@@ -109,7 +109,12 @@ const TOOL_KINDS = new Set([
   "update_plan",
 ]);
 
-const ASSISTANT_KINDS = new Set(["agentMessage", "assistant", "assistantMessage", "message"]);
+const ASSISTANT_KINDS = new Set([
+  "agentMessage",
+  "assistant",
+  "assistantMessage",
+  "message",
+]);
 
 export function transcriptRole(kind: string): TranscriptRole {
   if (kind === "reasoning") return "reasoning";
@@ -144,15 +149,18 @@ interface ItemFacts {
 
 function displayValue(value: unknown): string | null {
   if (typeof value === "string" && value.length > 0) return value;
-  if (Array.isArray(value) && value.length > 0) return value.map(String).join(" ");
-  if (value !== null && typeof value === "object") return JSON.stringify(value, null, 2);
+  if (Array.isArray(value) && value.length > 0)
+    return value.map(String).join(" ");
+  if (value !== null && typeof value === "object")
+    return JSON.stringify(value, null, 2);
   return null;
 }
 
 function collectItemFacts(events: readonly PrpEvent[]): Map<string, ItemFacts> {
   const facts = new Map<string, ItemFacts>();
   for (const event of events) {
-    if (event.itemId === undefined || !event.eventType.startsWith("item.")) continue;
+    if (event.itemId === undefined || !event.eventType.startsWith("item."))
+      continue;
     const payload = payloadRecord(event.payload);
     const current = facts.get(event.itemId) ?? {
       interrupted: false,
@@ -168,22 +176,28 @@ function collectItemFacts(events: readonly PrpEvent[]): Map<string, ItemFacts> {
     if (payload.interrupted === true || payload.status === "interrupted") {
       current.interrupted = true;
     }
-    current.toolName = payloadText(payload.toolName)
-      ?? displayValue(providerItem.command)
-      ?? payloadText(providerItem.name)
-      ?? current.toolName;
-    current.input = payloadText(payload.input)
-      ?? displayValue(providerItem.command)
-      ?? displayValue(providerItem.arguments)
-      ?? current.input;
-    current.output = payloadText(payload.output)
-      ?? payloadText(providerItem.aggregatedOutput)
-      ?? payloadText(providerUpdate.output)
-      ?? current.output;
+    current.toolName =
+      payloadText(payload.toolName) ??
+      displayValue(providerItem.command) ??
+      payloadText(providerItem.name) ??
+      current.toolName;
+    current.input =
+      payloadText(payload.input) ??
+      displayValue(providerItem.command) ??
+      displayValue(providerItem.arguments) ??
+      current.input;
+    current.output =
+      payloadText(payload.output) ??
+      payloadText(providerItem.aggregatedOutput) ??
+      payloadText(providerUpdate.output) ??
+      current.output;
     if (event.eventType === "item.failed") {
       current.failure = payloadText(payload.message) ?? "The item failed.";
     }
-    if (event.eventType === "item.completed" || event.eventType === "item.failed") {
+    if (
+      event.eventType === "item.completed" ||
+      event.eventType === "item.failed"
+    ) {
       current.terminal = true;
     }
     current.debugEvents.push({
@@ -220,7 +234,9 @@ export function runtimeRequestSubmission(
 function requestActions(details: unknown): string[] {
   const record = payloadRecord(details);
   return Array.isArray(record.actions)
-    ? record.actions.filter((action): action is string => typeof action === "string")
+    ? record.actions.filter(
+        (action): action is string => typeof action === "string",
+      )
     : [];
 }
 
@@ -236,7 +252,9 @@ export function buildTranscript(
   const items = new Map(snapshot.items.map((item) => [item.itemId, item]));
   const seenItems = new Set<string>();
   const entries: TranscriptEntry[] = [];
-  const eventsById = new Map(events.map((event) => [event.sourceEventId, event]));
+  const eventsById = new Map(
+    events.map((event) => [event.sourceEventId, event]),
+  );
 
   for (const timelineEntry of snapshot.timeline) {
     const event = eventsById.get(timelineEntry.sourceEventId);
@@ -249,17 +267,24 @@ export function buildTranscript(
         key: `user:${timelineEntry.sourceEventId}`,
         position,
         turnId: typeof payload.turnId === "string" ? payload.turnId : null,
-        text: payloadText(payload.text) ?? "(no message text in the canonical event)",
+        text:
+          payloadText(payload.text) ??
+          "(no message text in the canonical event)",
       });
       continue;
     }
 
     if (
-      ["turn.completed", "turn.failed", "turn.interrupted", "turn.cancelled"].includes(
-        timelineEntry.eventType,
-      )
+      [
+        "turn.completed",
+        "turn.failed",
+        "turn.interrupted",
+        "turn.cancelled",
+      ].includes(timelineEntry.eventType)
     ) {
-      const state = timelineEntry.eventType.split(".").at(-1) as TranscriptTurnEntry["state"];
+      const state = timelineEntry.eventType
+        .split(".")
+        .at(-1) as TranscriptTurnEntry["state"];
       entries.push({
         kind: "turn",
         key: `turn:${timelineEntry.sourceEventId}`,
@@ -276,7 +301,8 @@ export function buildTranscript(
 
     if (timelineEntry.eventType === "runtime_request.created") {
       const request = payloadRecord(payload.request ?? payload);
-      const requestId = typeof request.requestId === "string" ? request.requestId : "";
+      const requestId =
+        typeof request.requestId === "string" ? request.requestId : "";
       const projected = snapshot.requests.find(
         (candidate) => candidate.requestId === requestId,
       );
@@ -291,10 +317,14 @@ export function buildTranscript(
         key: `request:${requestId}`,
         position,
         requestId,
-        requestKind: typeof request.requestKind === "string" ? request.requestKind : "runtime",
+        requestKind:
+          typeof request.requestKind === "string"
+            ? request.requestKind
+            : "runtime",
         type: typeof request.type === "string" ? request.type : "runtime",
         prompt: payloadText(request.prompt) ?? "Runtime request",
-        status: (projected?.status ?? "pending") as TranscriptRequestEntry["status"],
+        status: (projected?.status ??
+          "pending") as TranscriptRequestEntry["status"],
         actions: requestActions(request),
         details: payloadRecord(request.details),
         resolvedAction: payloadText(payloadRecord(resolution?.payload).action),
@@ -352,7 +382,13 @@ export type ComposerState =
   | "terminal";
 
 export interface ComposerStateInput {
-  connection: "idle" | "connecting" | "connected" | "reconnecting" | "disconnected" | "terminal";
+  connection:
+    | "idle"
+    | "connecting"
+    | "connected"
+    | "reconnecting"
+    | "disconnected"
+    | "terminal";
   submitting: boolean;
   interrupting: boolean;
   activeTurnId: string | null;
@@ -361,8 +397,12 @@ export interface ComposerStateInput {
 
 /** One state machine with exactly one visible primary action. */
 export function composerState(input: ComposerStateInput): ComposerState {
-  if (input.sessionState === "closed" || input.sessionState === "failed") return "terminal";
-  if (input.connection === "disconnected" || input.connection === "reconnecting") {
+  if (input.sessionState === "closed" || input.sessionState === "failed")
+    return "terminal";
+  if (
+    input.connection === "disconnected" ||
+    input.connection === "reconnecting"
+  ) {
     return "disconnected";
   }
   if (input.interrupting) return "interrupting";
@@ -391,29 +431,42 @@ export function goalAvailability(
   const unsupported = capabilities.unsupported ?? [];
   if (capabilities.goals !== true) {
     const reason = unsupported[0] ?? GOAL_UNSUPPORTED_FALLBACK;
-    return (["set", "get", "pause", "resume", "clear"] as GoalOperation[]).map((operation) => ({
-      operation,
-      enabled: false,
-      reason,
-    }));
-  }
-  return (["set", "get", "pause", "resume", "clear"] as GoalOperation[]).map((operation) => {
-    if (operation === "set") return { operation, enabled: true, reason: null };
-    if (goalStatus === null) {
-      return {
+    return (["set", "get", "pause", "resume", "clear"] as GoalOperation[]).map(
+      (operation) => ({
         operation,
         enabled: false,
-        reason: "No goal is set on this thread yet.",
-      };
-    }
-    if (operation === "pause" && goalStatus !== "active") {
-      return { operation, enabled: false, reason: `The goal is already ${goalStatus}.` };
-    }
-    if (operation === "resume" && goalStatus === "active") {
-      return { operation, enabled: false, reason: "The goal is already active." };
-    }
-    return { operation, enabled: true, reason: null };
-  });
+        reason,
+      }),
+    );
+  }
+  return (["set", "get", "pause", "resume", "clear"] as GoalOperation[]).map(
+    (operation) => {
+      if (operation === "set")
+        return { operation, enabled: true, reason: null };
+      if (goalStatus === null) {
+        return {
+          operation,
+          enabled: false,
+          reason: "No goal is set on this thread yet.",
+        };
+      }
+      if (operation === "pause" && goalStatus !== "active") {
+        return {
+          operation,
+          enabled: false,
+          reason: `The goal is already ${goalStatus}.`,
+        };
+      }
+      if (operation === "resume" && goalStatus === "active") {
+        return {
+          operation,
+          enabled: false,
+          reason: "The goal is already active.",
+        };
+      }
+      return { operation, enabled: true, reason: null };
+    },
+  );
 }
 
 export interface CapabilityRow {
@@ -422,7 +475,9 @@ export interface CapabilityRow {
   diagnostic: string | null;
 }
 
-export function capabilityRows(capabilities: RunnerCapabilities): CapabilityRow[] {
+export function capabilityRows(
+  capabilities: RunnerCapabilities,
+): CapabilityRow[] {
   const unsupported = capabilities.unsupported ?? [];
   const rows: Array<[string, boolean | undefined]> = [
     ["steer", capabilities.steering],
@@ -442,7 +497,8 @@ export function capabilityRows(capabilities: RunnerCapabilities): CapabilityRow[
     diagnostic:
       supported === true
         ? null
-        : (unsupported.find((entry) => entry.toLowerCase().includes(name.split(" ")[0]!)) ??
-          `${name} is not advertised by this app-server`),
+        : (unsupported.find((entry) =>
+            entry.toLowerCase().includes(name.split(" ")[0]!),
+          ) ?? `${name} is not advertised by this app-server`),
   }));
 }

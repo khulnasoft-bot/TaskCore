@@ -10,7 +10,11 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { SidePanelLauncherItem, SidePanelLauncherSection } from "./types";
 
@@ -34,7 +38,10 @@ function LauncherContent({
   placeholder,
   emptyMessage,
   panel,
-}: Pick<SidePanelLauncherProps, "sections" | "onSelect" | "placeholder" | "emptyMessage"> & { panel: boolean }) {
+}: Pick<
+  SidePanelLauncherProps,
+  "sections" | "onSelect" | "placeholder" | "emptyMessage"
+> & { panel: boolean }) {
   return (
     <Command className={cn(panel && "border border-border shadow-sm")}>
       <CommandInput placeholder={placeholder} aria-label={placeholder} />
@@ -45,13 +52,19 @@ function LauncherContent({
             {sectionIndex > 0 ? <CommandSeparator /> : null}
             <CommandGroup heading={section.label}>
               {section.loading ? (
-                <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground" role="status">
+                <div
+                  className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground"
+                  role="status"
+                >
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                   Loading…
                 </div>
               ) : null}
               {section.error ? (
-                <div className="flex items-start gap-2 px-2 py-3 text-sm text-muted-foreground" role="status">
+                <div
+                  className="flex items-start gap-2 px-2 py-3 text-sm text-muted-foreground"
+                  role="status"
+                >
                   <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                   <span>{section.error}</span>
                 </div>
@@ -65,17 +78,28 @@ function LauncherContent({
                   onSelect={() => onSelect(item)}
                   className="min-h-10"
                 >
-                  {item.icon ? <span className="flex size-4 shrink-0 items-center justify-center">{item.icon}</span> : null}
+                  {item.icon ? (
+                    <span className="flex size-4 shrink-0 items-center justify-center">
+                      {item.icon}
+                    </span>
+                  ) : null}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{item.label}</span>
-                    {(item.description || item.disabledReason) ? (
+                    {item.description || item.disabledReason ? (
                       <span className="block truncate text-xs text-muted-foreground">
                         {item.disabledReason ?? item.description}
                       </span>
                     ) : null}
                   </span>
-                  {item.alreadyOpen ? <Check className="size-4 text-muted-foreground" aria-label="Already open" /> : null}
-                  {item.shortcut ? <CommandShortcut>{item.shortcut}</CommandShortcut> : null}
+                  {item.alreadyOpen ? (
+                    <Check
+                      className="size-4 text-muted-foreground"
+                      aria-label="Already open"
+                    />
+                  ) : null}
+                  {item.shortcut ? (
+                    <CommandShortcut>{item.shortcut}</CommandShortcut>
+                  ) : null}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -120,7 +144,13 @@ export function SidePanelLauncher({
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-        <PopoverContent align="start" className={cn("w-(--side-panel-launcher-width) overflow-hidden p-0", className)}>
+        <PopoverContent
+          align="start"
+          className={cn(
+            "w-(--side-panel-launcher-width) overflow-hidden p-0",
+            className,
+          )}
+        >
           <div className="sr-only">
             <h2>{title}</h2>
             <p>{description}</p>
@@ -132,7 +162,12 @@ export function SidePanelLauncher({
   }
 
   return (
-    <div className={cn("mx-auto flex h-full w-full max-w-xl flex-col justify-center gap-4 p-4", className)}>
+    <div
+      className={cn(
+        "mx-auto flex h-full w-full max-w-xl flex-col justify-center gap-4 p-4",
+        className,
+      )}
+    >
       <div className="space-y-1 text-center">
         <h2 className="text-sm font-semibold">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>

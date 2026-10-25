@@ -5,7 +5,8 @@ const manifest: TaskcorePluginManifestV1 = {
   apiVersion: 1,
   version: "0.1.0",
   displayName: "Plugin Orchestration Smoke Example",
-  description: "First-party smoke plugin that exercises Taskcore orchestration-grade plugin APIs.",
+  description:
+    "First-party smoke plugin that exercises Taskcore orchestration-grade plugin APIs.",
   author: "Taskcore",
   categories: ["automation", "ui"],
   capabilities: [
@@ -24,16 +25,16 @@ const manifest: TaskcorePluginManifestV1 = {
     "issues.orchestration.read",
     "ui.dashboardWidget.register",
     "ui.detailTab.register",
-    "instance.settings.register"
+    "instance.settings.register",
   ],
   entrypoints: {
     worker: "./dist/worker.js",
-    ui: "./dist/ui"
+    ui: "./dist/ui",
   },
   database: {
     namespaceSlug: "orchestration_smoke",
     migrationsDir: "migrations",
-    coreReadTables: ["issues"]
+    coreReadTables: ["issues"],
   },
   apiRoutes: [
     {
@@ -43,7 +44,7 @@ const manifest: TaskcorePluginManifestV1 = {
       auth: "board-or-agent",
       capability: "api.routes.register",
       checkoutPolicy: "required-for-agent-in-progress",
-      companyResolution: { from: "issue", param: "issueId" }
+      companyResolution: { from: "issue", param: "issueId" },
     },
     {
       routeKey: "summary",
@@ -51,8 +52,8 @@ const manifest: TaskcorePluginManifestV1 = {
       path: "/issues/:issueId/smoke",
       auth: "board-or-agent",
       capability: "api.routes.register",
-      companyResolution: { from: "issue", param: "issueId" }
-    }
+      companyResolution: { from: "issue", param: "issueId" },
+    },
   ],
   ui: {
     slots: [
@@ -60,23 +61,23 @@ const manifest: TaskcorePluginManifestV1 = {
         type: "dashboardWidget",
         id: "health-widget",
         displayName: "Orchestration Smoke Health",
-        exportName: "DashboardWidget"
+        exportName: "DashboardWidget",
       },
       {
         type: "taskDetailView",
         id: "issue-panel",
         displayName: "Orchestration Smoke",
         exportName: "IssuePanel",
-        entityTypes: ["issue"]
+        entityTypes: ["issue"],
       },
       {
         type: "settingsPage",
         id: "settings",
         displayName: "Orchestration Smoke",
-        exportName: "SettingsPage"
-      }
-    ]
-  }
+        exportName: "SettingsPage",
+      },
+    ],
+  },
 };
 
 export default manifest;

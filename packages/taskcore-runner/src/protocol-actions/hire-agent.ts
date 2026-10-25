@@ -13,13 +13,15 @@ export const hireAgentAction = {
     disabledByDefault: false,
     realBindingStatus: "live_codex",
     realServiceBinding: "TaskcoreRunnerToolAuthority",
-    prpEvidence: "Authenticated PRP tool input/result and agent-hire state diff with activity record.",
+    prpEvidence:
+      "Authenticated PRP tool input/result and agent-hire state diff with activity record.",
     prpBindingStatus: "bound",
     legacyAliases: [],
   },
   documentation: {
     title: "Hire a native agent",
-    description: "Create a persistent native Runner teammate with an identity and persona. The teammate reports to the caller and inherits the caller's native runtime; provider, adapter, environment, and credential settings are selected by Taskcore and are never caller-supplied here.",
+    description:
+      "Create a persistent native Runner teammate with an identity and persona. The teammate reports to the caller and inherits the caller's native runtime; provider, adapter, environment, and credential settings are selected by Taskcore and are never caller-supplied here.",
     note: "Use list_agents first when a suitable teammate may already exist.",
   },
   examples: {
@@ -40,7 +42,8 @@ export const hireAgentAction = {
       operationId: "hire_agent",
       version: 1,
       title: "Hire a native agent",
-      description: "Create a persistent native Runner teammate with an identity and persona. The teammate reports to the caller and inherits the caller's native runtime; provider, adapter, environment, and credential settings are selected by Taskcore and are never caller-supplied here. Reuse a suitable teammate from list_agents when possible.",
+      description:
+        "Create a persistent native Runner teammate with an identity and persona. The teammate reports to the caller and inherits the caller's native runtime; provider, adapter, environment, and credential settings are selected by Taskcore and are never caller-supplied here. Reuse a suitable teammate from list_agents when possible.",
       exposure: "optional",
       requiredClaims: ["delegation:agents:create"],
       allowedModes: ["standard", "skill_test"],
@@ -48,7 +51,23 @@ export const hireAgentAction = {
         type: "object",
         properties: {
           name: { type: "string", minLength: 1, maxLength: 200 },
-          role: { type: "string", enum: ["ceo", "cto", "cmo", "cfo", "security", "engineer", "designer", "pm", "qa", "devops", "researcher", "general"] },
+          role: {
+            type: "string",
+            enum: [
+              "ceo",
+              "cto",
+              "cmo",
+              "cfo",
+              "security",
+              "engineer",
+              "designer",
+              "pm",
+              "qa",
+              "devops",
+              "researcher",
+              "general",
+            ],
+          },
           title: { type: ["string", "null"], maxLength: 300 },
           capabilities: { type: ["string", "null"], maxLength: 2000 },
           instructions: { type: ["string", "null"], maxLength: 20000 },

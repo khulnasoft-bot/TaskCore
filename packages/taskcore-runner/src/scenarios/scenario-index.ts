@@ -13,7 +13,8 @@ import type {
   CapabilitySkillElement,
 } from "../scenarios/scenario-explorer-types.js";
 
-const GENERATED_HEADER = "# GENERATED FILE — DO NOT EDIT. Run pnpm generate:capability-inventory.";
+const GENERATED_HEADER =
+  "# GENERATED FILE — DO NOT EDIT. Run pnpm generate:capability-inventory.";
 
 interface CapabilityTraceabilityRow {
   id: string;
@@ -71,41 +72,88 @@ const DISCOVERY_CLAIMS = [
   "discovery:goals:read",
 ];
 const DELEGATION_CLAIMS = ["delegation:tasks:create", "dependencies:write"];
-const GOVERNANCE_READ_CLAIMS = ["governance:approvals:read", "governance:approvals:comment"];
-const GOVERNANCE_REQUEST_CLAIMS = [...GOVERNANCE_READ_CLAIMS, "governance:approvals:request"];
-const GOVERNANCE_DECIDE_CLAIMS = [...GOVERNANCE_REQUEST_CLAIMS, "governance:approvals:decide"];
+const GOVERNANCE_READ_CLAIMS = [
+  "governance:approvals:read",
+  "governance:approvals:comment",
+];
+const GOVERNANCE_REQUEST_CLAIMS = [
+  ...GOVERNANCE_READ_CLAIMS,
+  "governance:approvals:request",
+];
+const GOVERNANCE_DECIDE_CLAIMS = [
+  ...GOVERNANCE_REQUEST_CLAIMS,
+  "governance:approvals:decide",
+];
 
 /**
  * Fixture-level defaults. Every fixture named by the manifest has an entry;
  * `capabilityScenarioProfileCoverage` proves it.
  */
 const FIXTURE_PROFILES: Record<string, Partial<CapabilityScenarioProfile>> = {
-  "baseline": {},
-  "approval-approved": { seed: "approval_decided", claims: GOVERNANCE_DECIDE_CLAIMS, actorRole: "board" },
-  "approval-denied": { seed: "approval_decided", claims: GOVERNANCE_READ_CLAIMS },
+  baseline: {},
+  "approval-approved": {
+    seed: "approval_decided",
+    claims: GOVERNANCE_DECIDE_CLAIMS,
+    actorRole: "board",
+  },
+  "approval-denied": {
+    seed: "approval_decided",
+    claims: GOVERNANCE_READ_CLAIMS,
+  },
   "blocked-dedup": { seed: "blocker_graph" },
   "blocker-graph": { seed: "blocker_graph", claims: DELEGATION_CLAIMS },
   "budget-critical": { seed: "budget_tight" },
   "checkout-conflict": { seed: "checkout_conflict" },
-  "children-done": { seed: "children_done", claims: DELEGATION_CLAIMS, wakeReason: "blockers_resolved" },
-  "continuation-wake": { seed: "interaction_pending", wakeReason: "interaction_resolved" },
-  "crossteam": { seed: "second_actor", actorRole: "manager", claims: DISCOVERY_CLAIMS },
+  "children-done": {
+    seed: "children_done",
+    claims: DELEGATION_CLAIMS,
+    wakeReason: "blockers_resolved",
+  },
+  "continuation-wake": {
+    seed: "interaction_pending",
+    wakeReason: "interaction_resolved",
+  },
+  crossteam: {
+    seed: "second_actor",
+    actorRole: "manager",
+    claims: DISCOVERY_CLAIMS,
+  },
   "deliverable-file": { seed: "deliverable_pending" },
-  "dependency-blocked-wake": { seed: "blocker_graph", wakeReason: "issue_commented" },
+  "dependency-blocked-wake": {
+    seed: "blocker_graph",
+    wakeReason: "issue_commented",
+  },
   "done-evidence": { seed: "deliverable_pending" },
   "empty-inbox": {},
-  "env-blocked-task": { seed: "workspace_service", claims: ["workspace:read", "workspace:control"] },
+  "env-blocked-task": {
+    seed: "workspace_service",
+    claims: ["workspace:read", "workspace:control"],
+  },
   "ephemeral-artifacts-task": { seed: "deliverable_pending" },
   "exec-not-participant": { seed: "second_actor", actorRole: "reviewer" },
-  "exec-participant": { seed: "second_actor", actorRole: "reviewer", claims: DISCOVERY_CLAIMS },
+  "exec-participant": {
+    seed: "second_actor",
+    actorRole: "reviewer",
+    claims: DISCOVERY_CLAIMS,
+  },
   "handback-comment": { seed: "comment_wake", wakeReason: "issue_commented" },
   "issue-detail": {},
-  "mcp-approval-gate": { seed: "approval_pending", claims: GOVERNANCE_REQUEST_CLAIMS },
-  "mcp-approval-path-missing": { seed: "baseline", claims: GOVERNANCE_READ_CLAIMS },
+  "mcp-approval-gate": {
+    seed: "approval_pending",
+    claims: GOVERNANCE_REQUEST_CLAIMS,
+  },
+  "mcp-approval-path-missing": {
+    seed: "baseline",
+    claims: GOVERNANCE_READ_CLAIMS,
+  },
   "mention-directive": { seed: "comment_wake", wakeReason: "issue_commented" },
   "mention-fyi": { seed: "comment_wake", wakeReason: "issue_commented" },
   "patch-fault-close": { seed: "baseline", wakeReason: "scheduled_retry" },
-  "plan-annotations": { seed: "document_draft", taskMode: "planning", wakeReason: "interaction_resolved" },
+  "plan-annotations": {
+    seed: "document_draft",
+    taskMode: "planning",
+    wakeReason: "interaction_resolved",
+  },
   "recovery-processlost": { seed: "baseline", wakeReason: "resume" },
   "skill-test-task": {
     seed: "skill_test",
@@ -117,9 +165,18 @@ const FIXTURE_PROFILES: Record<string, Partial<CapabilityScenarioProfile>> = {
     },
   },
   "stale-plan": { seed: "document_draft", taskMode: "planning" },
-  "stale-target": { seed: "interaction_pending", wakeReason: "interaction_resolved" },
-  "superseded-interaction": { seed: "interaction_pending", wakeReason: "issue_commented" },
-  "toolchain-verify-task": { seed: "workspace_service", claims: ["workspace:read", "workspace:control"] },
+  "stale-target": {
+    seed: "interaction_pending",
+    wakeReason: "interaction_resolved",
+  },
+  "superseded-interaction": {
+    seed: "interaction_pending",
+    wakeReason: "issue_commented",
+  },
+  "toolchain-verify-task": {
+    seed: "workspace_service",
+    claims: ["workspace:read", "workspace:control"],
+  },
   "wake-comment": { seed: "comment_wake", wakeReason: "issue_commented" },
 };
 
@@ -152,7 +209,10 @@ const CASE_PROFILES: Record<string, Partial<CapabilityScenarioProfile>> = {
   "wk-ask-mode-01": { taskMode: "ask" },
   "wk-plan-directive-01": { taskMode: "planning" },
   "wk-plan-directive-02": { taskMode: "planning" },
-  "wk-plan-accepted-01": { taskMode: "planning", wakeReason: "interaction_resolved" },
+  "wk-plan-accepted-01": {
+    taskMode: "planning",
+    wakeReason: "interaction_resolved",
+  },
   "wk-plan-annotation-01": { taskMode: "planning" },
   "wk-resume-delta-01": { wakeReason: "resume" },
   "wk-recovery-processlost-01": { wakeReason: "resume" },
@@ -163,7 +223,10 @@ const CASE_PROFILES: Record<string, Partial<CapabilityScenarioProfile>> = {
     policy: { allowSecretValueAccess: true },
   },
   "bl-create-blocked-01": { claims: DELEGATION_CLAIMS },
-  "rs-dependency-blocked-wake-01": { taskMode: "ask", wakeReason: "issue_commented" },
+  "rs-dependency-blocked-wake-01": {
+    taskMode: "ask",
+    wakeReason: "issue_commented",
+  },
   "mh-plan-confirm-01": { taskMode: "planning", claims: DELEGATION_CLAIMS },
   "ap-approval-wake-01": {
     actorRole: "board",
@@ -196,8 +259,12 @@ export function capabilityScenarioProfile(row: {
 }): CapabilityScenarioProfile {
   const fixtureProfile = FIXTURE_PROFILES[row.fixture] ?? {};
   const caseProfile = CASE_PROFILES[row.id] ?? {};
-  const actorRole = caseProfile.actorRole ?? fixtureProfile.actorRole ?? DEFAULT_PROFILE.actorRole;
-  const taskMode = caseProfile.taskMode ?? fixtureProfile.taskMode ?? DEFAULT_PROFILE.taskMode;
+  const actorRole =
+    caseProfile.actorRole ??
+    fixtureProfile.actorRole ??
+    DEFAULT_PROFILE.actorRole;
+  const taskMode =
+    caseProfile.taskMode ?? fixtureProfile.taskMode ?? DEFAULT_PROFILE.taskMode;
   const claims =
     caseProfile.claims ??
     fixtureProfile.claims ??
@@ -207,7 +274,10 @@ export function capabilityScenarioProfile(row: {
   return {
     actorRole,
     taskMode,
-    wakeReason: caseProfile.wakeReason ?? fixtureProfile.wakeReason ?? DEFAULT_PROFILE.wakeReason,
+    wakeReason:
+      caseProfile.wakeReason ??
+      fixtureProfile.wakeReason ??
+      DEFAULT_PROFILE.wakeReason,
     seed: caseProfile.seed ?? fixtureProfile.seed ?? DEFAULT_PROFILE.seed,
     claims: liveClaims(claims, taskMode, actorRole),
     policy: caseProfile.policy ?? fixtureProfile.policy,
@@ -231,7 +301,8 @@ function liveClaims(
       (tool) =>
         tool.requiredClaims.includes(claim) &&
         tool.taskModes.includes(taskMode) &&
-        (tool.allowedRoles === undefined || tool.allowedRoles.includes(actorRole)),
+        (tool.allowedRoles === undefined ||
+          tool.allowedRoles.includes(actorRole)),
     );
     if (!usable) live.delete(claim);
   }
@@ -252,11 +323,16 @@ export function capabilityScenarioProfileCoverage(): readonly string[] {
  * index. Accepts the generated-header prefix so callers can pass the file
  * verbatim (`readFile` in Node, a bundled `?raw` import in the browser).
  */
-export function buildCapabilityScenarioIndex(manifestSource: string): CapabilityScenarioIndex {
+export function buildCapabilityScenarioIndex(
+  manifestSource: string,
+): CapabilityScenarioIndex {
   const body = manifestSource.startsWith("#")
     ? manifestSource.slice(manifestSource.indexOf("\n") + 1)
     : manifestSource;
-  const parsed = JSON.parse(body) as { schemaVersion: number; rows: CapabilityTraceabilityRow[] };
+  const parsed = JSON.parse(body) as {
+    schemaVersion: number;
+    rows: CapabilityTraceabilityRow[];
+  };
   if (parsed.schemaVersion !== 2 || !Array.isArray(parsed.rows)) {
     throw new Error("Capability traceability manifest is not schema version 2");
   }
@@ -264,7 +340,8 @@ export function buildCapabilityScenarioIndex(manifestSource: string): Capability
     .map((row) => toEntry(row))
     .sort((left, right) => left.id.localeCompare(right.id));
   const counts = new Map<string, number>();
-  for (const entry of entries) counts.set(entry.group, (counts.get(entry.group) ?? 0) + 1);
+  for (const entry of entries)
+    counts.set(entry.group, (counts.get(entry.group) ?? 0) + 1);
   return Object.freeze({
     schema: "taskcore.capability.scenario-index.v1",
     generatedFrom: "spec/capability/eval-traceability.yaml",

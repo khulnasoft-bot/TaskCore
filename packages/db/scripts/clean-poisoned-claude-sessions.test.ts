@@ -73,9 +73,9 @@ describe("classifyJsonlText", () => {
 
 describe("encodeClaudeCwd", () => {
   it("mirrors the claude-local adapter encoding rule", () => {
-    expect(encodeClaudeCwd("/Users/dj/.taskcore/instances/default/workspaces/abc")).toBe(
-      "-Users-dj--taskcore-instances-default-workspaces-abc",
-    );
+    expect(
+      encodeClaudeCwd("/Users/dj/.taskcore/instances/default/workspaces/abc"),
+    ).toBe("-Users-dj--taskcore-instances-default-workspaces-abc");
   });
 });
 
@@ -86,18 +86,24 @@ describe("jsonlPathFor", () => {
       cwd: "/Users/dj/work",
       sessionId: "abc-123",
     });
-    expect(result).toBe(path.join("/tmp/.claude", "projects", "-Users-dj-work", "abc-123.jsonl"));
+    expect(result).toBe(
+      path.join("/tmp/.claude", "projects", "-Users-dj-work", "abc-123.jsonl"),
+    );
   });
 });
 
 describe("resolveClaudeConfigDir", () => {
   it("prefers the explicit override", () => {
-    expect(resolveClaudeConfigDir({}, "/tmp/custom")).toBe(path.resolve("/tmp/custom"));
+    expect(resolveClaudeConfigDir({}, "/tmp/custom")).toBe(
+      path.resolve("/tmp/custom"),
+    );
   });
   it("uses CLAUDE_CONFIG_DIR when no override is given", () => {
-    expect(resolveClaudeConfigDir({ CLAUDE_CONFIG_DIR: "/tmp/from-env" } as NodeJS.ProcessEnv)).toBe(
-      path.resolve("/tmp/from-env"),
-    );
+    expect(
+      resolveClaudeConfigDir({
+        CLAUDE_CONFIG_DIR: "/tmp/from-env",
+      } as NodeJS.ProcessEnv),
+    ).toBe(path.resolve("/tmp/from-env"));
   });
   it("falls back to ~/.claude when no override and no env var", () => {
     const result = resolveClaudeConfigDir({} as NodeJS.ProcessEnv);

@@ -20,7 +20,7 @@ export function validateHeifDimensions(body: Buffer): void {
   let branded = false;
   const visit = (start: number, end: number, depth: number) => {
     if (depth > 8) throw new Error("HEIF metadata nesting is too deep");
-    for (let at = start; at < end; ) {
+    for (let at = start; at < end;) {
       if (++boxes > 4096 || end - at < 8)
         throw new Error("Invalid HEIF box structure");
       let size = body.readUInt32BE(at);

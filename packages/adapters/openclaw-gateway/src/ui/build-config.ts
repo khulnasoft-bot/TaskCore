@@ -5,14 +5,17 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
   if (!trimmed) return null;
   try {
     const parsed = JSON.parse(trimmed);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
+      return null;
     return parsed as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
-export function buildOpenClawGatewayConfig(v: CreateConfigValues): Record<string, unknown> {
+export function buildOpenClawGatewayConfig(
+  v: CreateConfigValues,
+): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
 
   // Required / Primary fields
@@ -30,14 +33,19 @@ export function buildOpenClawGatewayConfig(v: CreateConfigValues): Record<string
   if (typeof v.waitTimeoutMs === "number") ac.waitTimeoutMs = v.waitTimeoutMs;
 
   // Device auth fields
-  if (typeof v.disableDeviceAuth === "boolean") ac.disableDeviceAuth = v.disableDeviceAuth;
-  if (typeof v.autoPairOnFirstConnect === "boolean") ac.autoPairOnFirstConnect = v.autoPairOnFirstConnect;
+  if (typeof v.disableDeviceAuth === "boolean")
+    ac.disableDeviceAuth = v.disableDeviceAuth;
+  if (typeof v.autoPairOnFirstConnect === "boolean")
+    ac.autoPairOnFirstConnect = v.autoPairOnFirstConnect;
   if (v.devicePrivateKeyPem) ac.devicePrivateKeyPem = v.devicePrivateKeyPem;
 
   // Gateway identity fields
   if (v.role) ac.role = v.role;
   if (v.scopes) {
-    const parsed = v.scopes.split(",").map((s) => s.trim()).filter(Boolean);
+    const parsed = v.scopes
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (parsed.length > 0) ac.scopes = parsed;
   }
 

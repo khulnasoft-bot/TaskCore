@@ -36,7 +36,10 @@ export function TaskChatBubbleActions({
   const label = failed ? "Couldn’t copy message" : "Copy message";
 
   return (
-    <div className="flex items-center gap-0.5" data-testid="task-chat-bubble-actions">
+    <div
+      className="flex items-center gap-0.5"
+      data-testid="task-chat-bubble-actions"
+    >
       <button
         type="button"
         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

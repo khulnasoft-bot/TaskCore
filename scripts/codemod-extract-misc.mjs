@@ -179,54 +179,62 @@ function registerGtrToken(unescapedValue, sourceNote) {
 function registerTpToken(unescapedValue, sourceNote) {
   const slug = slugify(unescapedValue.replace(/,/g, " "));
   const name = `tp-${slug}`;
-  if (!tpTokens.has(name)) tpTokens.set(name, { value: unescapedValue, comment: sourceNote });
+  if (!tpTokens.has(name))
+    tpTokens.set(name, { value: unescapedValue, comment: sourceNote });
   return name;
 }
 
 function registerZToken(rawNum, sourceNote) {
   const name = `z-${rawNum}`;
-  if (!zTokens.has(name)) zTokens.set(name, { value: rawNum, comment: sourceNote });
+  if (!zTokens.has(name))
+    zTokens.set(name, { value: rawNum, comment: sourceNote });
   return name;
 }
 
 function registerSToken(unescapedValue, sourceNote) {
   const slug = slugify(unescapedValue);
   const name = `s-${slug}`;
-  if (!sTokens.has(name)) sTokens.set(name, { value: unescapedValue, comment: sourceNote });
+  if (!sTokens.has(name))
+    sTokens.set(name, { value: unescapedValue, comment: sourceNote });
   return name;
 }
 
 function registerEToken(unescapedValue, sourceNote) {
   const slug = slugify(unescapedValue);
   const name = `e-${slug}`;
-  if (!eTokens.has(name)) eTokens.set(name, { value: unescapedValue, comment: sourceNote });
+  if (!eTokens.has(name))
+    eTokens.set(name, { value: unescapedValue, comment: sourceNote });
   return name;
 }
 
 function registerVaToken(unescapedValue, sourceNote) {
   const slug = slugify(unescapedValue);
   const name = `va-${slug}`;
-  if (!vaTokens.has(name)) vaTokens.set(name, { value: unescapedValue, comment: sourceNote });
+  if (!vaTokens.has(name))
+    vaTokens.set(name, { value: unescapedValue, comment: sourceNote });
   return name;
 }
 
 function registerSwToken(unescapedValue, sourceNote) {
   const slug = slugify(unescapedValue);
   const name = `sw-${slug}`;
-  if (!swTokens.has(name)) swTokens.set(name, { value: unescapedValue, comment: sourceNote });
+  if (!swTokens.has(name))
+    swTokens.set(name, { value: unescapedValue, comment: sourceNote });
   return name;
 }
 
 function registerBlurToken(unescapedValue, sourceNote) {
   const slug = slugify(unescapedValue);
   const name = `blur-${slug}`;
-  if (!blurTokens.has(name)) blurTokens.set(name, { value: unescapedValue, comment: sourceNote });
+  if (!blurTokens.has(name))
+    blurTokens.set(name, { value: unescapedValue, comment: sourceNote });
   return name;
 }
 
 const gradientByValue = new Map();
 function registerGradientToken(unescapedValue, sourceNote) {
-  if (gradientByValue.has(unescapedValue)) return gradientByValue.get(unescapedValue);
+  if (gradientByValue.has(unescapedValue))
+    return gradientByValue.get(unescapedValue);
   gradientCounter += 1;
   const name = `gradient-extract-${gradientCounter}`;
   gradientTokens.set(name, { value: unescapedValue, comment: sourceNote });
@@ -236,7 +244,8 @@ function registerGradientToken(unescapedValue, sourceNote) {
 
 const dropShadowByValue = new Map();
 function registerDropShadowToken(unescapedValue, sourceNote) {
-  if (dropShadowByValue.has(unescapedValue)) return dropShadowByValue.get(unescapedValue);
+  if (dropShadowByValue.has(unescapedValue))
+    return dropShadowByValue.get(unescapedValue);
   dropShadowCounter += 1;
   const name = `drop-shadow-extract-${dropShadowCounter}`;
   dropShadowTokens.set(name, { value: unescapedValue, comment: sourceNote });
@@ -273,7 +282,8 @@ function registerResolvedVarToken(varName, fallbackRaw, sourceNote) {
   const name = `${bare}-resolved`;
   const fallback = resolveThemeColor(fallbackRaw);
   const value = `var(${varName}, ${fallback})`;
-  if (!resolvedVarTokens.has(name)) resolvedVarTokens.set(name, { value, comment: sourceNote });
+  if (!resolvedVarTokens.has(name))
+    resolvedVarTokens.set(name, { value, comment: sourceNote });
   return name;
 }
 
@@ -284,9 +294,18 @@ function registerResolvedVarToken(varName, fallbackRaw, sourceNote) {
 // variant prefixes (`data-[state=open]:`, `sm:`, etc.).
 const BOUNDARY = String.raw`(?<=^|[\s"'\`{:])`;
 
-const GRID_COLS_RE = new RegExp(`${BOUNDARY}(!?)grid-cols-\\[([^\\]]+)\\]`, "g");
-const GRID_ROWS_RE = new RegExp(`${BOUNDARY}(!?)grid-rows-\\[([^\\]]+)\\]`, "g");
-const TRANSITION_RE = new RegExp(`${BOUNDARY}(!?)transition-\\[([^\\]]+)\\]`, "g");
+const GRID_COLS_RE = new RegExp(
+  `${BOUNDARY}(!?)grid-cols-\\[([^\\]]+)\\]`,
+  "g",
+);
+const GRID_ROWS_RE = new RegExp(
+  `${BOUNDARY}(!?)grid-rows-\\[([^\\]]+)\\]`,
+  "g",
+);
+const TRANSITION_RE = new RegExp(
+  `${BOUNDARY}(!?)transition-\\[([^\\]]+)\\]`,
+  "g",
+);
 const Z_RE = new RegExp(`${BOUNDARY}(!?)z-\\[([0-9]+)\\]`, "g");
 const SCALE_RE = new RegExp(`${BOUNDARY}(!?)scale-\\[([^\\]]+)\\]`, "g");
 const EASE_RE = new RegExp(`${BOUNDARY}(!?)ease-\\[([^\\]]+)\\]`, "g");
@@ -299,8 +318,14 @@ const STROKE_RE = new RegExp(`${BOUNDARY}(!?)stroke-\\[([^\\]]+)\\]`, "g");
 // `backdrop-` prefix means `blur` doesn't start at a class-token BOUNDARY,
 // so it needs its own alternative rather than relying on the shared
 // boundary-anchored pattern).
-const BLUR_RE = new RegExp(`${BOUNDARY}(!?)(backdrop-blur|blur)-\\[([^\\]]+)\\]`, "g");
-const DROP_SHADOW_RE = new RegExp(`${BOUNDARY}(!?)drop-shadow-\\[([^\\]]+)\\]`, "g");
+const BLUR_RE = new RegExp(
+  `${BOUNDARY}(!?)(backdrop-blur|blur)-\\[([^\\]]+)\\]`,
+  "g",
+);
+const DROP_SHADOW_RE = new RegExp(
+  `${BOUNDARY}(!?)drop-shadow-\\[([^\\]]+)\\]`,
+  "g",
+);
 
 // bg-[linear-gradient(...)] / bg-[radial-gradient(...)] / bg-[conic-gradient(...)]
 // - continuing Batch 1's --gradient-extract-* family (see registerGradientToken).
@@ -428,12 +453,15 @@ function rewriteFile(filePath, relPath) {
   // fallback expression and corrupt it - the fallback regex requires a
   // literal comma so there's no real ambiguity, but ordering fallback-first
   // keeps the intent explicit and avoids relying on regex engine match order).
-  content = content.replace(VAR_FALLBACK_RE, (match, bang, util, varName, fallbackRaw) => {
-    const sourceNote = `Extracted from ${relPath} (${util}-[var(${varName},${fallbackRaw})]).`;
-    const name = registerResolvedVarToken(varName, fallbackRaw, sourceNote);
-    siteCount++;
-    return `${bang}${util}-(--${name})`;
-  });
+  content = content.replace(
+    VAR_FALLBACK_RE,
+    (match, bang, util, varName, fallbackRaw) => {
+      const sourceNote = `Extracted from ${relPath} (${util}-[var(${varName},${fallbackRaw})]).`;
+      const name = registerResolvedVarToken(varName, fallbackRaw, sourceNote);
+      siteCount++;
+      return `${bang}${util}-(--${name})`;
+    },
+  );
 
   content = content.replace(VAR_NOFALLBACK_RE, (match, bang, util, varName) => {
     siteCount++;
@@ -472,7 +500,8 @@ function main() {
   // ── index.css token block ──────────────────────────────────────────
   const cssPath = resolve(UI_SRC, "index.css");
   const cssOriginal = readFileSync(cssPath, "utf8");
-  const marker = "/* ── Extracted verbatim MISC tokens (Phase 2 Batch 4, design/token-extraction) ── */";
+  const marker =
+    "/* ── Extracted verbatim MISC tokens (Phase 2 Batch 4, design/token-extraction) ── */";
   let cssNext = cssOriginal;
   let cssChanged = false;
 
@@ -493,40 +522,90 @@ function main() {
   if (!cssOriginal.includes(marker) && anyTokens) {
     const lines = [];
     lines.push(marker);
-    lines.push("/* Batch 4/4 (final sweep): grid track lists, transition-property");
-    lines.push("   lists, z-index, scale, easing, vertical-align, stroke-width, blur,");
-    lines.push("   drop-shadow, and half-migrated var(x, fallback) color forms,");
-    lines.push("   verbatim (no normalizing - the human scale-collapse decision comes");
-    lines.push("   later per DESIGN.md/TOKEN-AUDIT.md). --gtc-* and --gtr-* and --tp-* are");
-    lines.push("   sequentially numbered / slugged since their content (track lists,");
+    lines.push(
+      "/* Batch 4/4 (final sweep): grid track lists, transition-property",
+    );
+    lines.push(
+      "   lists, z-index, scale, easing, vertical-align, stroke-width, blur,",
+    );
+    lines.push(
+      "   drop-shadow, and half-migrated var(x, fallback) color forms,",
+    );
+    lines.push(
+      "   verbatim (no normalizing - the human scale-collapse decision comes",
+    );
+    lines.push(
+      "   later per DESIGN.md/TOKEN-AUDIT.md). --gtc-* and --gtr-* and --tp-* are",
+    );
+    lines.push(
+      "   sequentially numbered / slugged since their content (track lists,",
+    );
     lines.push("   property lists) is not safely nameable by value alone.");
     lines.push("");
     lines.push("   drop-shadow (a CSS filter function) gets its own");
-    lines.push("   --drop-shadow-extract-* family, kept separate from Batch 3's");
-    lines.push("   --shadow-extract-* box-shadow family per that batch's logged");
+    lines.push(
+      "   --drop-shadow-extract-* family, kept separate from Batch 3's",
+    );
+    lines.push(
+      "   --shadow-extract-* box-shadow family per that batch's logged",
+    );
     lines.push("   human-decision note.");
     lines.push("");
-    lines.push("   *-resolved wrapper tokens hold a verbatim var(--x, fallback)");
-    lines.push("   expression for sites where Tailwind v4's paren-with-fallback-comma");
-    lines.push("   shorthand does not parse (confirmed unsupported in this batch's");
-    lines.push("   Step 0 syntax spike). theme(colors.a.b) fallbacks were resolved to");
-    lines.push("   the equivalent var(--token) form the Tailwind build already");
-    lines.push("   compiles them to today (inspected byte-for-byte from the built");
-    lines.push("   storybook-static CSS before this codemod ran: theme(colors.muted.DEFAULT)");
-    lines.push("   -> var(--muted), theme(colors.muted.foreground) -> var(--muted-foreground)).");
+    lines.push(
+      "   *-resolved wrapper tokens hold a verbatim var(--x, fallback)",
+    );
+    lines.push(
+      "   expression for sites where Tailwind v4's paren-with-fallback-comma",
+    );
+    lines.push(
+      "   shorthand does not parse (confirmed unsupported in this batch's",
+    );
+    lines.push(
+      "   Step 0 syntax spike). theme(colors.a.b) fallbacks were resolved to",
+    );
+    lines.push(
+      "   the equivalent var(--token) form the Tailwind build already",
+    );
+    lines.push(
+      "   compiles them to today (inspected byte-for-byte from the built",
+    );
+    lines.push(
+      "   storybook-static CSS before this codemod ran: theme(colors.muted.DEFAULT)",
+    );
+    lines.push(
+      "   -> var(--muted), theme(colors.muted.foreground) -> var(--muted-foreground)).",
+    );
     lines.push("");
-    lines.push("   --gradient-extract-* here CONTINUES Batch 1's counter (Batch 1 minted");
-    lines.push("   1 through 24) rather than restarting it - these 2 sites use");
-    lines.push("   hsl(var(...))/color-mix(...) CSS-native color functions rather than raw");
-    lines.push("   hex/rgb literals, which is why Batch 1's hand-audited color-literal");
-    lines.push("   table did not catch them, but they are still value-bearing gradient");
+    lines.push(
+      "   --gradient-extract-* here CONTINUES Batch 1's counter (Batch 1 minted",
+    );
+    lines.push(
+      "   1 through 24) rather than restarting it - these 2 sites use",
+    );
+    lines.push(
+      "   hsl(var(...))/color-mix(...) CSS-native color functions rather than raw",
+    );
+    lines.push(
+      "   hex/rgb literals, which is why Batch 1's hand-audited color-literal",
+    );
+    lines.push(
+      "   table did not catch them, but they are still value-bearing gradient",
+    );
     lines.push("   brackets in scope for this batch's final sweep.");
     lines.push("");
-    lines.push("   Allowlist (sites intentionally left as-is - see ALLOWLIST doc-comment");
-    lines.push("   at the end of this file for the machine-readable list consumed by");
+    lines.push(
+      "   Allowlist (sites intentionally left as-is - see ALLOWLIST doc-comment",
+    );
+    lines.push(
+      "   at the end of this file for the machine-readable list consumed by",
+    );
     lines.push("   scripts/check-token-gates.mjs):");
-    lines.push("   allow ui/src/components/ui/dialog.tsx — tw-animate-css plugin utilities (zoom-in-[0.97] etc.) are dead/no-op classes today (plugin not installed, verified via built-CSS grep); nothing to tokenize without visually changing a currently-inert class");
-    lines.push("   allow ui/src/components/ui/alert-dialog.tsx — same tw-animate-css dead-class situation as dialog.tsx");
+    lines.push(
+      "   allow ui/src/components/ui/dialog.tsx — tw-animate-css plugin utilities (zoom-in-[0.97] etc.) are dead/no-op classes today (plugin not installed, verified via built-CSS grep); nothing to tokenize without visually changing a currently-inert class",
+    );
+    lines.push(
+      "   allow ui/src/components/ui/alert-dialog.tsx — same tw-animate-css dead-class situation as dialog.tsx",
+    );
     lines.push("*/");
     lines.push(":root {");
     for (const [name, { value, comment }] of gtcTokens) {
@@ -588,8 +667,12 @@ function main() {
   console.log(`  New --blur-*:               ${blurTokens.size}`);
   console.log(`  New --drop-shadow-extract-*: ${dropShadowTokens.size}`);
   console.log(`  New *-resolved wrapper:      ${resolvedVarTokens.size}`);
-  console.log(`  New --gradient-extract-* (continuing Batch 1): ${gradientTokens.size}`);
-  console.log(`  index.css token block:      ${cssChanged ? "added" : "already present or nothing to add (idempotent no-op)"}`);
+  console.log(
+    `  New --gradient-extract-* (continuing Batch 1): ${gradientTokens.size}`,
+  );
+  console.log(
+    `  index.css token block:      ${cssChanged ? "added" : "already present or nothing to add (idempotent no-op)"}`,
+  );
   if (changedFiles.length) {
     console.log(`\n  Changed files:`);
     for (const f of changedFiles) console.log(`    - ${f}`);

@@ -131,13 +131,15 @@ function listFiles() {
 // its own hex-literal sweep; the same guard applies here). A real color
 // literal is preceded by a delimiter (quote, colon, paren, comma,
 // whitespace, backtick, template `${`) or sits at the start of the string.
-const HEX_COLOR_RE = /(?<![a-zA-Z0-9_/])#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
+const HEX_COLOR_RE =
+  /(?<![a-zA-Z0-9_/])#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
 
 // rgb()/rgba()/hsl()/hsla()/oklch() with a LITERAL first argument (a digit,
 // a `.` decimal, or a `%` — i.e. not `var(` or `calc(` immediately inside).
 // `hsl(var(--x)/0.16)` must NOT match (var() reference); `rgba(0,0,0,0.5)`
 // MUST match (literal numeric channels).
-const COLOR_FN_LITERAL_RE = /\b(?:rgb|rgba|hsl|hsla|oklch)\(\s*(?!var\()[0-9.%-]/g;
+const COLOR_FN_LITERAL_RE =
+  /\b(?:rgb|rgba|hsl|hsla|oklch)\(\s*(?!var\()[0-9.%-]/g;
 
 function findColorLiteralIssues(content) {
   const issues = [];
@@ -177,10 +179,12 @@ const VARIANT_WORD_RE =
 // conic-gradient/cubic-bezier/rgba/rgb/hsl/hsla/oklch). Pure CSS KEYWORDS
 // (e.g. `inherit`, `auto`, `pointer`) do NOT match and are not gated here
 // (they're a separate, allowlisted concern — see `rounded-[inherit]`).
-const VALUE_UNIT_RE = /^-?[0-9.]+(?:px|rem|em|vh|vw|dvh|dvw|svh|svw|ch|%|deg|s|ms|fr)?$/;
+const VALUE_UNIT_RE =
+  /^-?[0-9.]+(?:px|rem|em|vh|vw|dvh|dvw|svh|svw|ch|%|deg|s|ms|fr)?$/;
 const VALUE_FUNC_RE =
   /^(?:calc|min|max|clamp|var|env|linear-gradient|radial-gradient|conic-gradient|cubic-bezier|rgba?|hsla?|oklch|color-mix)\(/;
-const HEX_ONLY_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const HEX_ONLY_RE =
+  /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
 function bracketCarriesValue(raw) {
   const trimmed = raw.trim();
@@ -191,8 +195,14 @@ function bracketCarriesValue(raw) {
   // grid track list `56px_56px_24px_minmax(0,1fr)` that doesn't itself
   // start with one of the above, or `translate-y-[-50%]`-style negative
   // percentages already covered by VALUE_UNIT_RE) also counts.
-  if (/[0-9](?:px|rem|em|vh|vw|dvh|dvw|svh|svw|ch|%|deg|fr)\b/.test(trimmed)) return true;
-  if (/\b(?:calc|min|max|clamp|var|env|linear-gradient|radial-gradient|conic-gradient|cubic-bezier|rgba?|hsla?|oklch|color-mix)\(/.test(trimmed)) return true;
+  if (/[0-9](?:px|rem|em|vh|vw|dvh|dvw|svh|svw|ch|%|deg|fr)\b/.test(trimmed))
+    return true;
+  if (
+    /\b(?:calc|min|max|clamp|var|env|linear-gradient|radial-gradient|conic-gradient|cubic-bezier|rgba?|hsla?|oklch|color-mix)\(/.test(
+      trimmed,
+    )
+  )
+    return true;
   if (HEX_COLOR_RE.test(trimmed)) return true;
   return false;
 }
@@ -210,9 +220,16 @@ function findArbitraryBracketIssues(content) {
     // some malformed/edge case. In practice BRACKET_RE's utility-name
     // capture group only ever contains real utility names (data-[...] etc.
     // are matched with `word` = "data", "group-data", "has", etc.).
-    const precedingContext = content.slice(Math.max(0, m.index - 1), m.index + word.length + 1);
+    const precedingContext = content.slice(
+      Math.max(0, m.index - 1),
+      m.index + word.length + 1,
+    );
     if (VARIANT_WORD_RE.test(precedingContext)) continue;
-    if (/^(?:data|has|aria|supports|group-data|group-has-data|group-aria|peer-data|peer-aria|group-has-data-slot|in|not)$/.test(word)) {
+    if (
+      /^(?:data|has|aria|supports|group-data|group-has-data|group-aria|peer-data|peer-aria|group-has-data-slot|in|not)$/.test(
+        word,
+      )
+    ) {
       continue;
     }
 
@@ -224,7 +241,8 @@ function findArbitraryBracketIssues(content) {
 }
 
 // ── Gate 3: raw font-size declarations ──────────────────────────────────
-const FONT_SIZE_CLASS_RE = /\btext-\[(?:[0-9.]+(?:px|rem|em)|[0-9.]+\/[0-9.]+)\]/g;
+const FONT_SIZE_CLASS_RE =
+  /\btext-\[(?:[0-9.]+(?:px|rem|em)|[0-9.]+\/[0-9.]+)\]/g;
 // A raw literal font-size value: starts with a digit (px/rem/em number) —
 // EXCLUDES `fontSize: "var(--text-micro)"`-style token references, which start
 // with `var(` and are the desired post-extraction form, not a violation.
@@ -283,13 +301,25 @@ function main() {
     }
 
     for (const issue of g1) {
-      violations.gate1.push({ file: relPathPosix, line: lineNumberAt(content, issue.index), snippet: issue.snippet });
+      violations.gate1.push({
+        file: relPathPosix,
+        line: lineNumberAt(content, issue.index),
+        snippet: issue.snippet,
+      });
     }
     for (const issue of g2) {
-      violations.gate2.push({ file: relPathPosix, line: lineNumberAt(content, issue.index), snippet: issue.snippet });
+      violations.gate2.push({
+        file: relPathPosix,
+        line: lineNumberAt(content, issue.index),
+        snippet: issue.snippet,
+      });
     }
     for (const issue of g3) {
-      violations.gate3.push({ file: relPathPosix, line: lineNumberAt(content, issue.index), snippet: issue.snippet });
+      violations.gate3.push({
+        file: relPathPosix,
+        line: lineNumberAt(content, issue.index),
+        snippet: issue.snippet,
+      });
     }
   }
 
@@ -302,17 +332,28 @@ function main() {
     });
   }
 
-  const totalViolations = Object.values(violations).reduce((total, gate) => total + gate.length, 0);
+  const totalViolations = Object.values(violations).reduce(
+    (total, gate) => total + gate.length,
+    0,
+  );
 
   console.log("check-token-gates summary");
   console.log(`  Files scanned:                 ${files.length}`);
   console.log(`  Allowlist entries loaded:      ${allowlist.length}`);
   console.log(`  Allowlisted issues skipped:    ${allowlistedSkips}`);
   console.log("");
-  console.log(`  Gate 1 (color literals):       ${violations.gate1.length === 0 ? "CLEAN" : `${violations.gate1.length} violation(s)`}`);
-  console.log(`  Gate 2 (arbitrary bracket vals): ${violations.gate2.length === 0 ? "CLEAN" : `${violations.gate2.length} violation(s)`}`);
-  console.log(`  Gate 3 (raw font-size):        ${violations.gate3.length === 0 ? "CLEAN" : `${violations.gate3.length} violation(s)`}`);
-  console.log(`  Gate 4 (legacy hsl(var())):    ${violations.gate4.length === 0 ? "CLEAN" : `${violations.gate4.length} violation(s)`}`);
+  console.log(
+    `  Gate 1 (color literals):       ${violations.gate1.length === 0 ? "CLEAN" : `${violations.gate1.length} violation(s)`}`,
+  );
+  console.log(
+    `  Gate 2 (arbitrary bracket vals): ${violations.gate2.length === 0 ? "CLEAN" : `${violations.gate2.length} violation(s)`}`,
+  );
+  console.log(
+    `  Gate 3 (raw font-size):        ${violations.gate3.length === 0 ? "CLEAN" : `${violations.gate3.length} violation(s)`}`,
+  );
+  console.log(
+    `  Gate 4 (legacy hsl(var())):    ${violations.gate4.length === 0 ? "CLEAN" : `${violations.gate4.length} violation(s)`}`,
+  );
 
   if (totalViolations > 0) {
     console.log("\nViolations:\n");

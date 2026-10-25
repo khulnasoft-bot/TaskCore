@@ -14,9 +14,15 @@ export async function captureLoadedContinuation(
 }
 
 /** A task title is mutable while an agent runs. Match the route and visible stable identifier. */
-export async function waitForTaskIdentity(page: Page, taskPath: string, identifier: string, timeout = 30_000) {
-  await expect(page).toHaveURL(url => url.pathname === taskPath, { timeout });
-  const currentIdentifier = page.getByRole("navigation", { name: "breadcrumb" })
+export async function waitForTaskIdentity(
+  page: Page,
+  taskPath: string,
+  identifier: string,
+  timeout = 30_000,
+) {
+  await expect(page).toHaveURL((url) => url.pathname === taskPath, { timeout });
+  const currentIdentifier = page
+    .getByRole("navigation", { name: "breadcrumb" })
     .locator('[aria-current="page"] [data-slot="task-title-identifier"]');
   await expect(currentIdentifier).toBeVisible({ timeout });
   await expect(currentIdentifier).toHaveText(identifier, { timeout });
@@ -31,10 +37,20 @@ export async function waitForTaskChatRendered(
 ) {
   const thread = page.getByTestId("task-chat-thread");
   await expect(thread).toBeVisible({ timeout });
-  await expect(thread.locator(':scope > [aria-busy="false"]')).toBeVisible({ timeout });
-  await expect(thread.getByTestId("task-chat-history-loading")).toHaveCount(0, { timeout });
+  await expect(thread.locator(':scope > [aria-busy="false"]')).toBeVisible({
+    timeout,
+  });
+  await expect(thread.getByTestId("task-chat-history-loading")).toHaveCount(0, {
+    timeout,
+  });
   if (title !== undefined)
-    await expect(thread.getByRole("heading", { name: title, exact: true })).toBeVisible({ timeout });
+    await expect(
+      thread.getByRole("heading", { name: title, exact: true }),
+    ).toBeVisible({ timeout });
   if (expectedVisibleText !== undefined)
-    await expect(thread.getByTestId("task-chat-agent-bubble").filter({ hasText: expectedVisibleText })).toHaveCount(1, { timeout });
+    await expect(
+      thread
+        .getByTestId("task-chat-agent-bubble")
+        .filter({ hasText: expectedVisibleText }),
+    ).toHaveCount(1, { timeout });
 }

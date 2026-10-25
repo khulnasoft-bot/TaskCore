@@ -53,20 +53,21 @@ const MAX_ENTITY_REFS = 64;
  * itself provider surface, so it is mapped to a fixed vocabulary and anything
  * unrecognised collapses to `other` instead of being echoed.
  */
-const PROVIDER_EVENT_CATEGORIES: Readonly<Record<string, string>> = Object.freeze({
-  "turn/started": "turn_started",
-  "turn/completed": "turn_completed",
-  "turn/failed": "turn_failed",
-  "item/started": "item_started",
-  "item/completed": "item_completed",
-  "item/agentMessage/delta": "assistant_delta",
-  "item/reasoning/delta": "reasoning_delta",
-  "item/reasoning/summaryTextDelta": "reasoning_delta",
-  "item/reasoning/textDelta": "reasoning_delta",
-  "item/plan/delta": "plan_delta",
-  "item/commandExecution/outputDelta": "command_output_delta",
-  "item/fileChange/outputDelta": "file_change_delta",
-});
+const PROVIDER_EVENT_CATEGORIES: Readonly<Record<string, string>> =
+  Object.freeze({
+    "turn/started": "turn_started",
+    "turn/completed": "turn_completed",
+    "turn/failed": "turn_failed",
+    "item/started": "item_started",
+    "item/completed": "item_completed",
+    "item/agentMessage/delta": "assistant_delta",
+    "item/reasoning/delta": "reasoning_delta",
+    "item/reasoning/summaryTextDelta": "reasoning_delta",
+    "item/reasoning/textDelta": "reasoning_delta",
+    "item/plan/delta": "plan_delta",
+    "item/commandExecution/outputDelta": "command_output_delta",
+    "item/fileChange/outputDelta": "file_change_delta",
+  });
 
 /**
  * Provider notifications are reduced to this fixed vocabulary at ingestion.
@@ -74,14 +75,15 @@ const PROVIDER_EVENT_CATEGORIES: Readonly<Record<string, string>> = Object.freez
  * progress events deserve an immediate browser frame without duplicating the
  * protocol-method allowlist.
  */
-const PROVIDER_ITEM_CATEGORIES: Readonly<Record<string, string>> = Object.freeze({
-  commandExecution: "command",
-  fileChange: "file_change",
-  reasoning: "reasoning",
-  plan: "plan",
-  mcpToolCall: "tool",
-  dynamicToolCall: "tool",
-});
+const PROVIDER_ITEM_CATEGORIES: Readonly<Record<string, string>> =
+  Object.freeze({
+    commandExecution: "command",
+    fileChange: "file_change",
+    reasoning: "reasoning",
+    plan: "plan",
+    mcpToolCall: "tool",
+    dynamicToolCall: "tool",
+  });
 
 export function capabilityProviderEventCategory(
   method: string,
@@ -90,7 +92,8 @@ export function capabilityProviderEventCategory(
   if (method === "item/started" || method === "item/completed") {
     const item = asRecord(params?.item);
     const category = PROVIDER_ITEM_CATEGORIES[asString(item.type)];
-    if (category !== undefined) return `${category}_${method.endsWith("started") ? "started" : "completed"}`;
+    if (category !== undefined)
+      return `${category}_${method.endsWith("started") ? "started" : "completed"}`;
   }
   return PROVIDER_EVENT_CATEGORIES[method] ?? "other";
 }
@@ -103,11 +106,29 @@ const DISPOSITION_OPERATIONS: ReadonlySet<string> = new Set([
 ]);
 
 /** Result fields the projection reads. Everything else is provider/mock payload. */
-const RESULT_FIELDS = ["commandId", "commandKind", "disposition", "revision", "stateRevision"] as const;
+const RESULT_FIELDS = [
+  "commandId",
+  "commandKind",
+  "disposition",
+  "revision",
+  "stateRevision",
+] as const;
 
-const SESSION_FIELDS = ["action", "sessionId", "mode", "runner", "controlPlane", "reason"] as const;
+const SESSION_FIELDS = [
+  "action",
+  "sessionId",
+  "mode",
+  "runner",
+  "controlPlane",
+  "reason",
+] as const;
 const PROCESS_FIELDS = ["action", "reason"] as const;
-const CLEANUP_FIELDS = ["reason", "authorityCleared", "mockStopped", "processExited"] as const;
+const CLEANUP_FIELDS = [
+  "reason",
+  "authorityCleared",
+  "mockStopped",
+  "processExited",
+] as const;
 
 const CATALOG_OPERATION_IDS: ReadonlySet<string> = new Set(
   CAPABILITY_SEMANTIC_TOOL_CATALOG.map((descriptor) => descriptor.operationId),
@@ -144,16 +165,28 @@ function commandPreview(item: Record<string, unknown>): string | null {
   command = command
     .replace(/bearer\s+[a-z0-9._-]+/gi, "Bearer [redacted]")
     .replace(/\b(?:sk|pcp)_[a-z0-9._-]{8,}\b/gi, "[redacted]")
-    .replace(/((?:api[_-]?key|access[_-]?token|auth[_-]?token|password|secret)\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s]+)/gi, "$1[redacted]")
-    .replace(/(--(?:api-key|token|password|secret)\s+)(?:"[^"]*"|'[^']*'|[^\s]+)/gi, "$1[redacted]");
+    .replace(
+      /((?:api[_-]?key|access[_-]?token|auth[_-]?token|password|secret)\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s]+)/gi,
+      "$1[redacted]",
+    )
+    .replace(
+      /(--(?:api-key|token|password|secret)\s+)(?:"[^"]*"|'[^']*'|[^\s]+)/gi,
+      "$1[redacted]",
+    );
   return command;
 }
 
-const SECRET_FIELD = /(?:api[_-]?key|access[_-]?token|auth[_-]?token|password|secret|credential)/i;
+const SECRET_FIELD =
+  /(?:api[_-]?key|access[_-]?token|auth[_-]?token|password|secret|credential)/i;
 
-function safeProviderValue(value: unknown, key = "", depth = 0): CapabilityJsonValue {
+function safeProviderValue(
+  value: unknown,
+  key = "",
+  depth = 0,
+): CapabilityJsonValue {
   if (SECRET_FIELD.test(key)) return "[redacted]";
-  if (value === null || typeof value === "boolean" || typeof value === "number") return value;
+  if (value === null || typeof value === "boolean" || typeof value === "number")
+    return value;
   if (typeof value === "string") {
     return clamp(
       value
@@ -164,13 +197,18 @@ function safeProviderValue(value: unknown, key = "", depth = 0): CapabilityJsonV
   }
   if (depth >= 5) return "[nested value omitted]";
   if (Array.isArray(value)) {
-    return value.slice(0, 64).map((entry) => safeProviderValue(entry, key, depth + 1));
+    return value
+      .slice(0, 64)
+      .map((entry) => safeProviderValue(entry, key, depth + 1));
   }
   if (typeof value === "object" && value !== null) {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
         .slice(0, 64)
-        .map(([childKey, childValue]) => [childKey, safeProviderValue(childValue, childKey, depth + 1)]),
+        .map(([childKey, childValue]) => [
+          childKey,
+          safeProviderValue(childValue, childKey, depth + 1),
+        ]),
     );
   }
   return String(value);
@@ -185,7 +223,11 @@ function providerActivityDetails(
   if (command !== null) details.command = command;
   for (const name of ["status", "exitCode", "durationMs"] as const) {
     const value = item[name];
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
       details[name] = value;
     }
   }
@@ -194,7 +236,8 @@ function providerActivityDetails(
     const namespace = asString(item.namespace);
     if (tool) details.tool = clamp(tool, 240);
     if (namespace) details.namespace = clamp(namespace, 240);
-    if ("arguments" in item) details.arguments = safeProviderValue(item.arguments, "arguments");
+    if ("arguments" in item)
+      details.arguments = safeProviderValue(item.arguments, "arguments");
     if (event === "tool_completed" && "result" in item) {
       details.result = safeProviderValue(item.result, "result");
     }
@@ -214,8 +257,10 @@ function copyFields(
   const result: Record<string, CapabilityJsonValue> = {};
   for (const name of names) {
     const value = data[name];
-    if (typeof value === "string") result[name] = clamp(value, MAX_DISPOSITION_CHARS);
-    else if (typeof value === "number" || typeof value === "boolean") result[name] = value;
+    if (typeof value === "string")
+      result[name] = clamp(value, MAX_DISPOSITION_CHARS);
+    else if (typeof value === "number" || typeof value === "boolean")
+      result[name] = value;
   }
   return result;
 }
@@ -225,23 +270,31 @@ function copyFields(
  * carried. A name the catalog does not declare is reported as its own count
  * rather than echoed, so a model-invented argument name never reaches a reader.
  */
-export function capabilityAllowlistedInputFields(operationId: string, input: unknown): string[] {
+export function capabilityAllowlistedInputFields(
+  operationId: string,
+  input: unknown,
+): string[] {
   const declared = CATALOG_INPUT_FIELDS.get(operationId) ?? new Set<string>();
   const present = Object.keys(asRecord(input));
   const known = present.filter((name) => declared.has(name)).sort();
   const unknownCount = present.length - known.length;
-  const fields = unknownCount > 0 ? [...known, `${unknownCount} undeclared`] : known;
+  const fields =
+    unknownCount > 0 ? [...known, `${unknownCount} undeclared`] : known;
   return fields.slice(0, MAX_FIELD_NAMES);
 }
 
-function redactToolInput(operationId: string, input: unknown): Record<string, CapabilityJsonValue> {
+function redactToolInput(
+  operationId: string,
+  input: unknown,
+): Record<string, CapabilityJsonValue> {
   const summary: Record<string, CapabilityJsonValue> = {
     fields: capabilityAllowlistedInputFields(operationId, input),
   };
   if (!DISPOSITION_OPERATIONS.has(operationId)) return summary;
   const record = asRecord(input);
   const body = asString(record.summary) || asString(record.reason);
-  if (body.length > 0) summary.dispositionSummary = clamp(body, MAX_DISPOSITION_CHARS);
+  if (body.length > 0)
+    summary.dispositionSummary = clamp(body, MAX_DISPOSITION_CHARS);
   return summary;
 }
 
@@ -252,7 +305,9 @@ function redactToolInput(operationId: string, input: unknown): Record<string, Ca
  * comment text, search hits — are dropped wholesale; the UI needs the fact of
  * the call, not its contents.
  */
-export function redactCapabilityToolResult(result: unknown): Record<string, CapabilityJsonValue> {
+export function redactCapabilityToolResult(
+  result: unknown,
+): Record<string, CapabilityJsonValue> {
   const record = asRecord(result);
   const inner = asRecord(record.result);
   const denial = asRecord(record.denial);
@@ -263,7 +318,8 @@ export function redactCapabilityToolResult(result: unknown): Record<string, Capa
     : [];
   const redacted: Record<string, CapabilityJsonValue> = {
     ok: record.ok === true,
-    stateRevision: typeof record.stateRevision === "number" ? record.stateRevision : 0,
+    stateRevision:
+      typeof record.stateRevision === "number" ? record.stateRevision : 0,
     result: { ...copyFields(inner, RESULT_FIELDS), entityRefs },
   };
   if (record.ok === false) {
@@ -289,14 +345,23 @@ export function redactCapabilityEvidenceData(
   switch (kind) {
     case "provider_event": {
       const canonicalEventType = asString(data.canonicalEventType);
-      if (/^(?:plan\.updated|tool\.execution\.(?:started|progressed|completed)|research\.(?:started|progressed|completed)|delegation\.(?:started|updated|completed)|model\.(?:route\.changed|verification\.updated)|context\.compacted|artifact\.(?:viewed|generated)|review\.mode\.changed|hook\.(?:started|completed)|memory\.citation\.referenced|safety\.review\.(?:started|completed)|terminal\.input\.sent|wait\.(?:started|completed)|provider\.notice\.recorded)$/.test(canonicalEventType)) {
+      if (
+        /^(?:plan\.updated|tool\.execution\.(?:started|progressed|completed)|research\.(?:started|progressed|completed)|delegation\.(?:started|updated|completed)|model\.(?:route\.changed|verification\.updated)|context\.compacted|artifact\.(?:viewed|generated)|review\.mode\.changed|hook\.(?:started|completed)|memory\.citation\.referenced|safety\.review\.(?:started|completed)|terminal\.input\.sent|wait\.(?:started|completed)|provider\.notice\.recorded)$/.test(
+          canonicalEventType,
+        )
+      ) {
         const payload = asRecord(data.payload);
-        const safePayload = safeProviderValue(payload, "payload") as Record<string, CapabilityJsonValue>;
+        const safePayload = safeProviderValue(payload, "payload") as Record<
+          string,
+          CapabilityJsonValue
+        >;
         if (typeof payload.output === "string") {
           const redactedOutput = safeProviderValue(payload.output, "output");
-          safePayload.output = typeof redactedOutput === "string" && redactedOutput.length > MAX_CANONICAL_OUTPUT_CHARS
-            ? redactedOutput.slice(-MAX_CANONICAL_OUTPUT_CHARS)
-            : redactedOutput;
+          safePayload.output =
+            typeof redactedOutput === "string" &&
+            redactedOutput.length > MAX_CANONICAL_OUTPUT_CHARS
+              ? redactedOutput.slice(-MAX_CANONICAL_OUTPUT_CHARS)
+              : redactedOutput;
         }
         return {
           event: canonicalEventType,
@@ -305,7 +370,10 @@ export function redactCapabilityEvidenceData(
           payload: safePayload,
         };
       }
-      const event = capabilityProviderEventCategory(asString(data.method), asRecord(data.params));
+      const event = capabilityProviderEventCategory(
+        asString(data.method),
+        asRecord(data.params),
+      );
       const item = asRecord(asRecord(data.params).item);
       return {
         event,
@@ -322,13 +390,22 @@ export function redactCapabilityEvidenceData(
       return copyFields(data, SESSION_FIELDS);
     case "process":
       // Process ids are host detail; only the transport transition survives.
-      return { ...copyFields(data, PROCESS_FIELDS), runnerExited: data.runnerExited === true };
+      return {
+        ...copyFields(data, PROCESS_FIELDS),
+        runnerExited: data.runnerExited === true,
+      };
     case "cleanup":
       return copyFields(data, CLEANUP_FIELDS);
     case "tool_exposure":
       return {
-        operationIds: (Array.isArray(data.operationIds) ? data.operationIds : [])
-          .filter((id): id is string => typeof id === "string" && CATALOG_OPERATION_IDS.has(id))
+        operationIds: (Array.isArray(data.operationIds)
+          ? data.operationIds
+          : []
+        )
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && CATALOG_OPERATION_IDS.has(id),
+          )
           .sort(),
         scenarioId: clamp(asString(data.scenarioId), 120),
       };
@@ -337,8 +414,14 @@ export function redactCapabilityEvidenceData(
         action: clamp(asString(data.action), 80),
         query: clamp(asString(data.query), 500),
         namespace: clamp(asString(data.namespace), 120),
-        operationIds: (Array.isArray(data.operationIds) ? data.operationIds : [])
-          .filter((id): id is string => typeof id === "string" && CATALOG_OPERATION_IDS.has(id))
+        operationIds: (Array.isArray(data.operationIds)
+          ? data.operationIds
+          : []
+        )
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && CATALOG_OPERATION_IDS.has(id),
+          )
           .sort(),
       };
     case "tool_call": {
@@ -346,17 +429,22 @@ export function redactCapabilityEvidenceData(
       return {
         callId: asString(data.callId),
         operationId,
-        beforeRevision: typeof data.beforeRevision === "number" ? data.beforeRevision : 0,
+        beforeRevision:
+          typeof data.beforeRevision === "number" ? data.beforeRevision : 0,
         input: redactToolInput(operationId, data.input),
       };
     }
     case "tool_result": {
-      const beforeRevision = typeof data.beforeRevision === "number" ? data.beforeRevision : 0;
+      const beforeRevision =
+        typeof data.beforeRevision === "number" ? data.beforeRevision : 0;
       return {
         callId: asString(data.callId),
         operationId: asString(data.operationId),
         beforeRevision,
-        afterRevision: typeof data.afterRevision === "number" ? data.afterRevision : beforeRevision,
+        afterRevision:
+          typeof data.afterRevision === "number"
+            ? data.afterRevision
+            : beforeRevision,
         result: redactCapabilityToolResult(data.result),
       };
     }
@@ -367,7 +455,8 @@ export function redactCapabilityEvidenceData(
         interactionId: asString(data.interactionId),
         interactionKind: asString(data.interactionKind),
         outcome: asString(data.outcome),
-        stateRevision: typeof data.stateRevision === "number" ? data.stateRevision : 0,
+        stateRevision:
+          typeof data.stateRevision === "number" ? data.stateRevision : 0,
       };
     default:
       return {};
@@ -385,7 +474,9 @@ export function capabilityEvidenceDetail(
 ): string {
   const value = (name: string): string => {
     const entry = data[name];
-    return typeof entry === "string" || typeof entry === "number" ? String(entry) : "";
+    return typeof entry === "string" || typeof entry === "number"
+      ? String(entry)
+      : "";
   };
   switch (kind) {
     case "provider_event":
@@ -399,11 +490,15 @@ export function capabilityEvidenceDetail(
     case "cleanup":
       return `cleanup · ${data.authorityCleared === true ? "authority cleared" : "recorded"}`;
     case "tool_exposure": {
-      const ids = Array.isArray(data.operationIds) ? data.operationIds.length : 0;
+      const ids = Array.isArray(data.operationIds)
+        ? data.operationIds.length
+        : 0;
       return `tool exposure · ${ids} operation${ids === 1 ? "" : "s"}`;
     }
     case "tool_discovery": {
-      const ids = Array.isArray(data.operationIds) ? data.operationIds.length : 0;
+      const ids = Array.isArray(data.operationIds)
+        ? data.operationIds.length
+        : 0;
       return `tool discovery · ${value("action") || "searched"} · ${ids} loaded`;
     }
     case "tool_call": {
@@ -440,15 +535,24 @@ export function capabilityEvidenceDetails(
 ): CapabilityEvidenceDetailRow[] {
   const rows: CapabilityEvidenceDetailRow[] = [];
   const add = (label: string, value: CapabilityJsonValue | undefined): void => {
-    if (typeof value === "string" && value.length > 0) rows.push({ label, value });
+    if (typeof value === "string" && value.length > 0)
+      rows.push({ label, value });
     else if (typeof value === "number" || typeof value === "boolean") {
       rows.push({ label, value: String(value) });
     }
   };
-  const addList = (label: string, value: CapabilityJsonValue | undefined): void => {
+  const addList = (
+    label: string,
+    value: CapabilityJsonValue | undefined,
+  ): void => {
     if (!Array.isArray(value)) return;
-    const entries = value.filter((entry): entry is string => typeof entry === "string");
-    rows.push({ label, value: entries.length === 0 ? "none" : entries.join(", ") });
+    const entries = value.filter(
+      (entry): entry is string => typeof entry === "string",
+    );
+    rows.push({
+      label,
+      value: entries.length === 0 ? "none" : entries.join(", "),
+    });
   };
 
   switch (kind) {
@@ -494,7 +598,10 @@ export function capabilityEvidenceDetails(
       add("Operation", data.operationId);
       add("Before revision", data.beforeRevision);
       addList("Input fields", input.fields as CapabilityJsonValue | undefined);
-      add("Disposition summary", input.dispositionSummary as CapabilityJsonValue | undefined);
+      add(
+        "Disposition summary",
+        input.dispositionSummary as CapabilityJsonValue | undefined,
+      );
       break;
     }
     case "tool_result": {
@@ -505,7 +612,10 @@ export function capabilityEvidenceDetails(
       add("Before revision", data.beforeRevision);
       add("After revision", data.afterRevision);
       add("Outcome", result.ok === true ? "ok" : "denied");
-      add("State revision", result.stateRevision as CapabilityJsonValue | undefined);
+      add(
+        "State revision",
+        result.stateRevision as CapabilityJsonValue | undefined,
+      );
       add("Command", value.commandId as CapabilityJsonValue | undefined);
       add("Command kind", value.commandKind as CapabilityJsonValue | undefined);
       add("Disposition", value.disposition as CapabilityJsonValue | undefined);

@@ -1,7 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { readConfigFromEnv, type GoogleSheetsMcpConfig } from "./config.js";
-import { createGoogleSheetsClient, type GoogleSheetsClient } from "./google-client.js";
+import {
+  createGoogleSheetsClient,
+  type GoogleSheetsClient,
+} from "./google-client.js";
 import { createToolDefinitions } from "./tools.js";
 
 export interface CreateGoogleSheetsMcpServerOptions {
@@ -17,7 +20,8 @@ export function createGoogleSheetsMcpServer(
     version: "0.1.0",
   });
 
-  const client = options.client ?? createGoogleSheetsClient(config.serviceAccount);
+  const client =
+    options.client ?? createGoogleSheetsClient(config.serviceAccount);
   const tools = createToolDefinitions({
     client,
     allowedSpreadsheetIds: config.allowedSpreadsheetIds,
@@ -43,7 +47,9 @@ export function createGoogleSheetsMcpServer(
   };
 }
 
-export async function runServer(config: GoogleSheetsMcpConfig = readConfigFromEnv()) {
+export async function runServer(
+  config: GoogleSheetsMcpConfig = readConfigFromEnv(),
+) {
   const { server } = createGoogleSheetsMcpServer(config);
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -39,9 +39,7 @@ function readPlainEnvValue(value: unknown): string | null {
 }
 
 type ApiKeyBinding =
-  | { kind: "plain"; value: string }
-  | { kind: "secret" }
-  | { kind: "none" };
+  { kind: "plain"; value: string } | { kind: "secret" } | { kind: "none" };
 
 /**
  * Classifies an `OPENAI_API_KEY` env binding so reconciliation can tell the

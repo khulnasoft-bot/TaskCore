@@ -54,7 +54,12 @@ describe("listReadyPluginEnvironmentDrivers sandbox capability projection", () =
 
   it("test_capabilities_propagate_from_manifest_to_ready_driver_projection", async () => {
     mockRegistry.list.mockResolvedValue([
-      { id: PLUGIN_ID, pluginKey: PLUGIN_KEY, status: "ready", manifestJson: manifest },
+      {
+        id: PLUGIN_ID,
+        pluginKey: PLUGIN_KEY,
+        status: "ready",
+        manifestJson: manifest,
+      },
     ]);
     const workerManager = {
       isRunning: vi.fn(() => true),

@@ -20,8 +20,16 @@ import { useSignOut } from "@/hooks/useSignOut";
 import { useStagingCommit } from "@/hooks/useStagingCommit";
 import { userProfilePath } from "@/lib/userProfileLinks";
 import { useSidebar } from "../context/SidebarContext";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -85,7 +93,13 @@ function MenuAction({
   if (href) {
     if (external) {
       return (
-        <a href={href} target="_blank" rel="noreferrer" className={className} onClick={onClick}>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className={className}
+          onClick={onClick}
+        >
           {content}
         </a>
       );
@@ -124,7 +138,8 @@ export function SidebarAccountMenu({
   // Invites live on the Members page (or in Cloud's People settings). Hide the
   // shortcut when the hosting operator hides either surface, and until the
   // health response resolves so a hidden surface never flashes.
-  const { hidden: hiddenSettings, loaded: hiddenSettingsLoaded } = useHiddenSettings();
+  const { hidden: hiddenSettings, loaded: hiddenSettingsLoaded } =
+    useHiddenSettings();
   // On Cloud the shortcut exists only for the current stack's owner/admin and
   // only once the stack metadata is known; the in-app Invites tab is never a
   // fallback there because it drives a different invitation flow.
@@ -133,7 +148,11 @@ export function SidebarAccountMenu({
   // to boards with role-default access (company owner/admin/operator,
   // instance admins, local boards). The server checks the actual grants.
   const canInviteMembers = useCanInviteCompanyMembers(!isCloud);
-  const inviteHref = isCloud ? cloudInviteUrl : canInviteMembers ? INVITES_PATH : null;
+  const inviteHref = isCloud
+    ? cloudInviteUrl
+    : canInviteMembers
+      ? INVITES_PATH
+      : null;
   const showInvite =
     hiddenSettingsLoaded &&
     inviteHref !== null &&
@@ -155,7 +174,10 @@ export function SidebarAccountMenu({
 
   const displayName = session?.user.name?.trim() || "Board";
   const secondaryLabel =
-    session?.user.email?.trim() || (deploymentMode === "authenticated" ? "Signed in" : "Local workspace board");
+    session?.user.email?.trim() ||
+    (deploymentMode === "authenticated"
+      ? "Signed in"
+      : "Local workspace board");
   const initials = deriveInitials(displayName);
   const profileHref = userProfilePath(session?.user);
 
@@ -182,10 +204,19 @@ export function SidebarAccountMenu({
               aria-label="Open account menu"
             >
               <Avatar size="sm">
-                {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
+                {session?.user.image ? (
+                  <AvatarImage src={session.user.image} alt={displayName} />
+                ) : null}
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
-              <span className={cn("min-w-0 flex-1 truncate", rail && SIDEBAR_RAIL_HIDDEN_LABEL)}>{displayName}</span>
+              <span
+                className={cn(
+                  "min-w-0 flex-1 truncate",
+                  rail && SIDEBAR_RAIL_HIDDEN_LABEL,
+                )}
+              >
+                {displayName}
+              </span>
             </button>
           </PopoverTrigger>
           <PopoverContent
@@ -203,8 +234,12 @@ export function SidebarAccountMenu({
                 className="absolute inset-0 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               />
               <Avatar className="pointer-events-none relative size-9">
-                {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
-                <AvatarFallback className="text-xs text-foreground">{initials}</AvatarFallback>
+                {session?.user.image ? (
+                  <AvatarImage src={session.user.image} alt={displayName} />
+                ) : null}
+                <AvatarFallback className="text-xs text-foreground">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
               <div className="pointer-events-none relative min-w-0 flex-1">
                 <h2 className="truncate text-sm font-semibold leading-(--profile-popover-label-line-height) text-foreground">
@@ -251,13 +286,17 @@ export function SidebarAccountMenu({
                 external
                 onClick={() => setOpen(false)}
               />
-              <ThemeToggle variant="compact-menu-action" onAfterToggle={() => setOpen(false)} />
+              <ThemeToggle
+                variant="compact-menu-action"
+                onAfterToggle={() => setOpen(false)}
+              />
               {deploymentMode === "authenticated" ? (
                 <button
                   type="button"
                   className={cn(
                     "flex h-(--profile-popover-row-height) w-full items-center gap-(--profile-popover-row-gap) rounded-lg px-2.5 text-left text-(length:--text-compact) font-medium leading-(--profile-popover-label-line-height) text-foreground transition-colors hover:bg-destructive/10",
-                    signOutMutation.isPending && "cursor-not-allowed opacity-60",
+                    signOutMutation.isPending &&
+                      "cursor-not-allowed opacity-60",
                   )}
                   onClick={handleSignOut}
                   disabled={signOutMutation.isPending}

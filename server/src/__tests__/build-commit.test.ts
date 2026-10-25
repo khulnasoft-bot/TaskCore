@@ -3,9 +3,9 @@ import { parseBuildCommit, readBuildCommit } from "../build-commit.js";
 
 describe("parseBuildCommit", () => {
   it("normalizes a full deployment commit", () => {
-    expect(parseBuildCommit("  ABCDEF0123456789ABCDEF0123456789ABCDEF01\n")).toBe(
-      "abcdef0123456789abcdef0123456789abcdef01",
-    );
+    expect(
+      parseBuildCommit("  ABCDEF0123456789ABCDEF0123456789ABCDEF01\n"),
+    ).toBe("abcdef0123456789abcdef0123456789abcdef01");
   });
 
   it("rejects truncated and malformed commits", () => {
@@ -17,28 +17,36 @@ describe("parseBuildCommit", () => {
 describe("readBuildCommit", () => {
   it("reads the built server stamp in npm packages without a deployment marker", () => {
     const commit = "0123456789abcdef0123456789abcdef01234567";
-    expect(readBuildCommit({
-      environmentCommit: null,
-      buildCommitPath: "/app/.taskcore-build-commit",
-      buildInfoPath: "/app/server/dist/build-info.json",
-      readTextFile: (path) => {
-        if (path.endsWith(".taskcore-build-commit")) throw new Error("ENOENT");
-        return JSON.stringify({ commit });
-      },
-    })).toBe(commit);
+    expect(
+      readBuildCommit({
+        environmentCommit: null,
+        buildCommitPath: "/app/.taskcore-build-commit",
+        buildInfoPath: "/app/server/dist/build-info.json",
+        readTextFile: (path) => {
+          if (path.endsWith(".taskcore-build-commit"))
+            throw new Error("ENOENT");
+          return JSON.stringify({ commit });
+        },
+      }),
+    ).toBe(commit);
   });
 
   it.each(["invalid json", "null", '{"commit":"short"}', '{"commit":42}'])(
-    "fails open on an invalid server stamp: %s", (stamp) => {
-      expect(readBuildCommit({
-        environmentCommit: null,
-        readTextFile: () => stamp,
-      })).toBeNull();
+    "fails open on an invalid server stamp: %s",
+    (stamp) => {
+      expect(
+        readBuildCommit({
+          environmentCommit: null,
+          readTextFile: () => stamp,
+        }),
+      ).toBeNull();
     },
   );
 
   it("prefers an explicit environment commit", () => {
-    const readTextFile = vi.fn(() => "ffffffffffffffffffffffffffffffffffffffff");
+    const readTextFile = vi.fn(
+      () => "ffffffffffffffffffffffffffffffffffffffff",
+    );
 
     expect(
       readBuildCommit({

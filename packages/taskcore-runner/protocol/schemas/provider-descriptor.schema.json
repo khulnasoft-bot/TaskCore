@@ -32,17 +32,11 @@
       ]
     },
     "model": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "maxLength": 240
     },
     "executionKind": {
-      "enum": [
-        "local_process",
-        "remote_service"
-      ]
+      "enum": ["local_process", "remote_service"]
     },
     "providerVersion": {
       "type": "string",
@@ -57,24 +51,15 @@
       ]
     },
     "providerSessionId": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "maxLength": 240
     },
     "processId": {
-      "type": [
-        "integer",
-        "null"
-      ],
+      "type": ["integer", "null"],
       "minimum": 1
     },
     "agentProcessId": {
-      "type": [
-        "integer",
-        "null"
-      ],
+      "type": ["integer", "null"],
       "minimum": 1
     },
     "endpointArn": {
@@ -96,13 +81,7 @@
       "const": 90
     },
     "agent": {
-      "enum": [
-        "pi",
-        "claude",
-        "codex",
-        "cursor",
-        "copilot"
-      ]
+      "enum": ["pi", "claude", "codex", "cursor", "copilot"]
     },
     "requestedModel": {
       "type": "string",
@@ -123,24 +102,15 @@
       "maxLength": 120
     },
     "agentRuntimePackage": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "maxLength": 240
     },
     "agentRuntimeVersion": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "maxLength": 120
     },
     "acpxRecordId": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "maxLength": 240
     },
     "turnControls": {
@@ -239,9 +209,7 @@
         }
       },
       "then": {
-        "required": [
-          "service"
-        ],
+        "required": ["service"],
         "properties": {
           "processId": {
             "const": null
@@ -270,9 +238,7 @@
             "const": "claude_managed"
           }
         },
-        "required": [
-          "provider"
-        ]
+        "required": ["provider"]
       },
       "then": {
         "properties": {
@@ -280,9 +246,7 @@
             "const": "anthropic_managed_agents"
           }
         },
-        "required": [
-          "service"
-        ]
+        "required": ["service"]
       }
     },
     {
@@ -292,9 +256,7 @@
             "const": "aws_agentcore"
           }
         },
-        "required": [
-          "provider"
-        ]
+        "required": ["provider"]
       },
       "then": {
         "properties": {
@@ -318,9 +280,7 @@
             "const": "acpx"
           }
         },
-        "required": [
-          "provider"
-        ]
+        "required": ["provider"]
       },
       "then": {
         "required": [
@@ -341,15 +301,10 @@
             "const": "openai_dot"
           }
         },
-        "required": [
-          "provider"
-        ]
+        "required": ["provider"]
       },
       "then": {
-        "required": [
-          "service",
-          "providerSessionId"
-        ],
+        "required": ["service", "providerSessionId"],
         "properties": {
           "service": {
             "const": "openai_dot"
@@ -370,10 +325,7 @@
   "$defs": {
     "turnControls": {
       "type": "object",
-      "required": [
-        "steering",
-        "queuedFollowUp"
-      ],
+      "required": ["steering", "queuedFollowUp"],
       "properties": {
         "steering": {
           "type": "boolean"

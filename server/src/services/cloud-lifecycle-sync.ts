@@ -40,7 +40,9 @@ export function isCloudPinnedPrimaryCompany(
   env: CloudInstanceEnv = process.env,
 ): boolean {
   const stackId = getCloudStackContext(env)?.stackId;
-  return Boolean(stackId) && cloudTenantPrimaryCompanyId(stackId!) === companyId;
+  return (
+    Boolean(stackId) && cloudTenantPrimaryCompanyId(stackId!) === companyId
+  );
 }
 
 /**
@@ -94,7 +96,10 @@ export async function notifyCloudOfPrimaryCompanyLifecycleChange(
       }
     } catch (err) {
       if (attempt >= RETRY_DELAYS_MS.length) {
-        logger.warn({ err, url }, "Cloud lifecycle doorbell unreachable; giving up");
+        logger.warn(
+          { err, url },
+          "Cloud lifecycle doorbell unreachable; giving up",
+        );
         return;
       }
     }

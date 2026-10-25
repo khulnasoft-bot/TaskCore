@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync, chmodSync, linkSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+  mkdirSync,
+  symlinkSync,
+  chmodSync,
+  linkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -42,17 +50,25 @@ describe("decodeAuthReadOutput", () => {
   });
 
   it("rejects a non-base64 payload", () => {
-    expect(() => decodeAuthReadOutput("not*base64*text")).toThrow(DEVICE_LOGIN_AUTH_READ_ERROR);
+    expect(() => decodeAuthReadOutput("not*base64*text")).toThrow(
+      DEVICE_LOGIN_AUTH_READ_ERROR,
+    );
   });
 
   it("rejects a wrong-padding payload", () => {
     // A single stray character is not a multiple of four, so it is malformed.
-    expect(() => decodeAuthReadOutput("QQ")).toThrow(DEVICE_LOGIN_AUTH_READ_ERROR);
+    expect(() => decodeAuthReadOutput("QQ")).toThrow(
+      DEVICE_LOGIN_AUTH_READ_ERROR,
+    );
   });
 
   it("rejects a decoded payload over the bound", () => {
-    const oversize = Buffer.alloc(MAX_AUTH_JSON_BYTES + 1, 0x61).toString("base64");
-    expect(() => decodeAuthReadOutput(oversize)).toThrow(DEVICE_LOGIN_AUTH_READ_ERROR);
+    const oversize = Buffer.alloc(MAX_AUTH_JSON_BYTES + 1, 0x61).toString(
+      "base64",
+    );
+    expect(() => decodeAuthReadOutput(oversize)).toThrow(
+      DEVICE_LOGIN_AUTH_READ_ERROR,
+    );
   });
 });
 
@@ -68,8 +84,16 @@ describeLinux("the descriptor-bound read helper script", () => {
 
   // Run the helper against `home`. An explicit `expectedUid` forces the owner
   // check; the production caller omits it and the helper uses its own uid.
-  function runScript(home: string, expectedUid?: number): { status: number | null; stdout: string } {
-    const args = ["-e", DEVICE_LOGIN_AUTH_READ_SCRIPT, home, String(MAX_AUTH_JSON_BYTES)];
+  function runScript(
+    home: string,
+    expectedUid?: number,
+  ): { status: number | null; stdout: string } {
+    const args = [
+      "-e",
+      DEVICE_LOGIN_AUTH_READ_SCRIPT,
+      home,
+      String(MAX_AUTH_JSON_BYTES),
+    ];
     if (expectedUid !== undefined) args.push(String(expectedUid));
     const result = spawnSync("node", args, { encoding: "utf8" });
     return { status: result.status, stdout: result.stdout ?? "" };
@@ -137,7 +161,9 @@ describeLinux("the descriptor-bound read helper script", () => {
   it("rejects an oversize credential", () => {
     const home = makeHome("oversize");
     const file = path.join(home, AUTH_JSON_FILE_NAME);
-    writeFileSync(file, Buffer.alloc(MAX_AUTH_JSON_BYTES + 1, 0x61), { mode: 0o600 });
+    writeFileSync(file, Buffer.alloc(MAX_AUTH_JSON_BYTES + 1, 0x61), {
+      mode: 0o600,
+    });
     chmodSync(file, 0o600);
     expect(runScript(home).status).not.toBe(0);
   });
@@ -189,7 +215,9 @@ describeLinux("the descriptor-bound read helper script", () => {
 
     const first = runScript(home);
     expect(first.status).toBe(0);
-    expect(Buffer.from(first.stdout.trim(), "base64").toString("utf8")).toBe('{"good":true}');
+    expect(Buffer.from(first.stdout.trim(), "base64").toString("utf8")).toBe(
+      '{"good":true}',
+    );
 
     // The attacker tree carries a same-shape credential.
     const evil = path.join(base, "evil");
@@ -218,7 +246,9 @@ describeLinux("the descriptor-bound read helper script", () => {
     linkSync(backing, path.join(home, AUTH_JSON_FILE_NAME));
     const { status, stdout } = runScript(home);
     expect(status).toBe(0);
-    expect(Buffer.from(stdout.trim(), "base64").toString("utf8")).toBe('{"ok":true}');
+    expect(Buffer.from(stdout.trim(), "base64").toString("utf8")).toBe(
+      '{"ok":true}',
+    );
   });
 });
 
@@ -239,7 +269,11 @@ describeLinux("runDescriptorBoundAuthRead", () => {
   // directory before it runs the helper.
   function createLocalRuntime(localHome: string) {
     return {
-      async execute(input: { command: string; args?: string[]; bypassSession?: boolean }) {
+      async execute(input: {
+        command: string;
+        args?: string[];
+        bypassSession?: boolean;
+      }) {
         expect(input.command).toBe("node");
         expect(input.bypassSession).toBe(true);
         const args = [...(input.args ?? [])];
@@ -248,13 +282,18 @@ describeLinux("runDescriptorBoundAuthRead", () => {
         // session home is the third argument.
         args[2] = localHome;
         const result = spawnSync("node", args, { encoding: "utf8" });
-        return { exitCode: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+        return {
+          exitCode: result.status,
+          stdout: result.stdout ?? "",
+          stderr: result.stderr ?? "",
+        };
       },
     };
   }
 
   // A syntactically valid session home. The wrapper revalidates the shape.
-  const VALID_HOME = "/tmp/taskcore-adapter-login/11111111-1111-1111-1111-111111111111";
+  const VALID_HOME =
+    "/tmp/taskcore-adapter-login/11111111-1111-1111-1111-111111111111";
 
   it("returns the credential bytes on a valid read", async () => {
     const localHome = mkdtempSync(path.join(root, "valid-"));

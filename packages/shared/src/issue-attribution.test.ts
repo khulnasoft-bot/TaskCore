@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { deriveOriginatingActor, deriveResponsibleUser } from "./issue-attribution.js";
+import {
+  deriveOriginatingActor,
+  deriveResponsibleUser,
+} from "./issue-attribution.js";
 
 describe("deriveResponsibleUser", () => {
   it("prefers an explicit responsible user", () => {
@@ -60,7 +63,11 @@ describe("deriveOriginatingActor", () => {
         createdByAgentId: "agent-claude",
         responsibleUserId: "user-responsible",
       }),
-    ).toEqual({ kind: "user", id: "user-responsible", viaAgentId: "agent-claude" });
+    ).toEqual({
+      kind: "user",
+      id: "user-responsible",
+      viaAgentId: "agent-claude",
+    });
   });
 
   it("falls back to the creating agent when no responsible user is known", () => {

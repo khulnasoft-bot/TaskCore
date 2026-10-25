@@ -6,14 +6,8 @@ import type {
   AgentRole,
   AgentStatus,
 } from "../constants.js";
-import type {
-  CompanyMembership,
-  PrincipalPermissionGrant,
-} from "./access.js";
-import type {
-  TrustAuthorizationPolicy,
-  TrustPreset,
-} from "../trust-policy.js";
+import type { CompanyMembership, PrincipalPermissionGrant } from "./access.js";
+import type { TrustAuthorizationPolicy, TrustPreset } from "../trust-policy.js";
 import type { AgentOrgChainHealth } from "../agent-eligibility.js";
 import type { AgentApiKeyScope } from "../validators/agent.js";
 
@@ -67,7 +61,8 @@ export interface AgentInstructionsBundle {
 
 export interface AgentAccessState {
   canAssignTasks: boolean;
-  taskAssignSource: "simple_default" | "explicit_grant" | "agent_creator" | "ceo_role" | "none";
+  taskAssignSource:
+    "simple_default" | "explicit_grant" | "agent_creator" | "ceo_role" | "none";
   membership: CompanyMembership | null;
   grants: PrincipalPermissionGrant[];
 }
@@ -149,7 +144,8 @@ export const ADAPTER_AUTH_SESSION_STATUSES = [
   "timed_out",
   "cancelled",
 ] as const;
-export type AdapterAuthSessionStatus = (typeof ADAPTER_AUTH_SESSION_STATUSES)[number];
+export type AdapterAuthSessionStatus =
+  (typeof ADAPTER_AUTH_SESSION_STATUSES)[number];
 
 // The internal status union. It extends the public union with two server-only
 // states. The server never returns these two states in a public response.
@@ -250,8 +246,10 @@ export type AdapterAuthPanelMode = (typeof ADAPTER_AUTH_PANEL_MODES)[number];
 // non-blocking disclaimer and the login still proceeds. A confidential transport
 // (direct TLS, a local-trusted loopback, or an allowlisted TLS proxy) carries no
 // advisory.
-export const SETUP_TOKEN_TRANSPORT_ADVISORY_CODE = "insecure_transport" as const;
-export type SetupTokenTransportAdvisoryCode = typeof SETUP_TOKEN_TRANSPORT_ADVISORY_CODE;
+export const SETUP_TOKEN_TRANSPORT_ADVISORY_CODE =
+  "insecure_transport" as const;
+export type SetupTokenTransportAdvisoryCode =
+  typeof SETUP_TOKEN_TRANSPORT_ADVISORY_CODE;
 
 // The advisory signal on a setup-token confidential response. A `null` or an
 // absent value means the transport is confidential and needs no disclaimer.
@@ -289,8 +287,7 @@ export interface ClaudeSetupTokenSessionResponse {
 // The owner read of a Claude login session. It adds the panel mode and the
 // one-time prompt to the public response. Only the owner principal that started
 // the session reads this shape.
-export interface ClaudeSetupTokenSessionOwnerResponse
-  extends ClaudeSetupTokenSessionResponse {
+export interface ClaudeSetupTokenSessionOwnerResponse extends ClaudeSetupTokenSessionResponse {
   aiConnection?: AiConnectionLoginIntent;
   panelMode: AdapterAuthPanelMode;
   prompt: ClaudeSetupTokenSessionPrompt | null;
@@ -342,7 +339,8 @@ export interface AdapterAuthSignalResponse {
   status: AdapterAuthSignal;
 }
 
-export type AgentInstructionSource = "seed" | "board" | "api" | "tool" | "cleanup" | "restore";
+export type AgentInstructionSource =
+  "seed" | "board" | "api" | "tool" | "cleanup" | "restore";
 export interface AgentInstructionRevision {
   id: string;
   companyId: string;

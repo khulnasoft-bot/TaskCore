@@ -16,12 +16,12 @@ default, while operators can inspect command input, output, provider items,
 delta updates, event ids, sequence numbers, and timestamps. Long chat and
 command content wraps at mobile widths without horizontal page scrolling.
 
-| Import | Purpose |
-| --- | --- |
-| `@taskcore/taskcore-runner` | Protocol, reducer, and existing package contracts |
-| `@taskcore/taskcore-runner/browser` | Framework-free HTTP/SSE client, protocol types, transcript projection |
-| `@taskcore/taskcore-runner/react` | Hook, reference console, and reusable React components |
-| `@taskcore/taskcore-runner/styles.css` | Scoped light-theme token and component styles |
+| Import                                 | Purpose                                                               |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| `@taskcore/taskcore-runner`            | Protocol, reducer, and existing package contracts                     |
+| `@taskcore/taskcore-runner/browser`    | Framework-free HTTP/SSE client, protocol types, transcript projection |
+| `@taskcore/taskcore-runner/react`      | Hook, reference console, and reusable React components                |
+| `@taskcore/taskcore-runner/styles.css` | Scoped light-theme token and component styles                         |
 
 React and React DOM are peer dependencies. The extracted surface adds no
 runtime dependency. It is client-only: it uses `window`, `sessionStorage`,
@@ -53,7 +53,11 @@ import { useRunnerConsole } from "@taskcore/taskcore-runner/react";
 
 function Console() {
   const runner = useRunnerConsole({ baseUrl: "/api/liveConsole" });
-  return <p>{runner.connection}: {runner.replayParity ? "match" : "waiting"}</p>;
+  return (
+    <p>
+      {runner.connection}: {runner.replayParity ? "match" : "waiting"}
+    </p>
+  );
 }
 ```
 
@@ -106,10 +110,14 @@ dark theme, toast layer, or virtualized transcript in this version.
 ```tsx
 const runner = useRunnerConsole({
   baseUrl: "/runner",
-  fetchImpl: (input, init) => fetch(input, {
-    ...init,
-    headers: { ...Object.fromEntries(new Headers(init?.headers)), "x-app-session": appSession },
-  }),
+  fetchImpl: (input, init) =>
+    fetch(input, {
+      ...init,
+      headers: {
+        ...Object.fromEntries(new Headers(init?.headers)),
+        "x-app-session": appSession,
+      },
+    }),
   eventSourceFactory: (url) => new EventSource(url),
 });
 ```
@@ -125,16 +133,16 @@ validates its workspace server-side and redacts provider paths and credentials.
 `styles.css` declares a light-only `color-scheme` and all visual values under
 `.pcr-root`. The shipped foreground/surface pairs are:
 
-| Foreground | Surface | Contrast |
-| --- | --- | ---: |
-| `--pcr-foreground` | `--pcr-background` | 16.4:1 |
-| `--pcr-card-foreground` | `--pcr-card` | 17.6:1 |
-| `--pcr-primary-foreground` | `--pcr-primary` | 15.6:1 |
-| `--pcr-muted-foreground` | `--pcr-muted` | 5.0:1 |
-| `--pcr-success` | `--pcr-success-surface` | 6.5:1 |
-| `--pcr-warning` | `--pcr-warning-surface` | 5.4:1 |
-| `--pcr-danger` | `--pcr-danger-surface` | 6.2:1 |
-| `--pcr-accent` | `--pcr-accent-surface` | 5.5:1 |
+| Foreground                 | Surface                 | Contrast |
+| -------------------------- | ----------------------- | -------: |
+| `--pcr-foreground`         | `--pcr-background`      |   16.4:1 |
+| `--pcr-card-foreground`    | `--pcr-card`            |   17.6:1 |
+| `--pcr-primary-foreground` | `--pcr-primary`         |   15.6:1 |
+| `--pcr-muted-foreground`   | `--pcr-muted`           |    5.0:1 |
+| `--pcr-success`            | `--pcr-success-surface` |    6.5:1 |
+| `--pcr-warning`            | `--pcr-warning-surface` |    5.4:1 |
+| `--pcr-danger`             | `--pcr-danger-surface`  |    6.2:1 |
+| `--pcr-accent`             | `--pcr-accent-surface`  |    5.5:1 |
 
 When a consumer overrides either side of a pair, that consumer owns a new
 contrast check. Keep normal text at 4.5:1 or better. Motion respects

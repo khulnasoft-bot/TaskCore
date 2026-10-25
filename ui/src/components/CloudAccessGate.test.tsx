@@ -2,26 +2,52 @@
 
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
-import { focusManager, QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query";
+import {
+  focusManager,
+  QueryClient,
+  QueryClientProvider,
+  QueryObserver,
+} from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CloudAccessGate } from "./CloudAccessGate";
 import { queryKeys } from "@/lib/queryKeys";
 import { ApiUnavailableError } from "@/api/response";
 
 vi.mock("@/lib/router", () => ({
-  useLocation: () => ({ pathname: "/CON/agents/conan/instructions", search: "?tab=edit", hash: "#draft" }),
+  useLocation: () => ({
+    pathname: "/CON/agents/conan/instructions",
+    search: "?tab=edit",
+    hash: "#draft",
+  }),
   Navigate: ({ to }: { to: string }) => <div data-redirect={to} />,
-  Outlet: () => <textarea aria-label="Instructions" defaultValue="Unsaved instructions" />,
+  Outlet: () => (
+    <textarea aria-label="Instructions" defaultValue="Unsaved instructions" />
+  ),
 }));
-vi.mock("@/components/AnimatedTaskcoreIcon", () => ({ TaskcoreLoading: () => <div>Loading…</div> }));
-vi.mock("@/components/CloudSignIn", () => ({ CloudSignIn: () => <div>Sign in to Cloud</div> }));
-vi.mock("@/components/BootstrapPendingPage", () => ({ BootstrapPendingPage: () => <div>Set up instance</div> }));
+vi.mock("@/components/AnimatedTaskcoreIcon", () => ({
+  TaskcoreLoading: () => <div>Loading…</div>,
+}));
+vi.mock("@/components/CloudSignIn", () => ({
+  CloudSignIn: () => <div>Sign in to Cloud</div>,
+}));
+vi.mock("@/components/BootstrapPendingPage", () => ({
+  BootstrapPendingPage: () => <div>Set up instance</div>,
+}));
 
 const responses: Record<string, unknown> = {
-  "/api/health": { status: "ok", deploymentMode: "authenticated", bootstrapStatus: "ready" },
+  "/api/health": {
+    status: "ok",
+    deploymentMode: "authenticated",
+    bootstrapStatus: "ready",
+  },
   "/api/auth/get-session": {
     session: { id: "session", userId: "user" },
-    user: { id: "user", name: "Operator", email: "operator@example.com", image: null },
+    user: {
+      id: "user",
+      name: "Operator",
+      email: "operator@example.com",
+      image: null,
+    },
     sentryDsn: null,
   },
   "/api/cli-auth/me": { isInstanceAdmin: false, companyIds: ["company"] },
@@ -43,7 +69,8 @@ describe("CloudAccessGate restart recovery", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     failingPath = null;
-    failure = () => new Response("<!doctype html><h1>Restarting</h1>", { status: 200 });
+    failure = () =>
+      new Response("<!doctype html><h1>Restarting</h1>", { status: 200 });
     fetchMock.mockImplementation(async (path: string) => {
       if (path === failingPath) return failure();
       if (!(path in responses)) throw new Error(`Unexpected request: ${path}`);
@@ -53,7 +80,9 @@ describe("CloudAccessGate restart recovery", () => {
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
-    client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+    client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
   });
 
   afterEach(() => {
@@ -72,51 +101,71 @@ describe("CloudAccessGate restart recovery", () => {
   }
 
   async function render() {
-    flushSync(() => root.render(<QueryClientProvider client={client}><CloudAccessGate /></QueryClientProvider>));
+    flushSync(() =>
+      root.render(
+        <QueryClientProvider client={client}>
+          <CloudAccessGate />
+        </QueryClientProvider>,
+      ),
+    );
     await flushReact();
   }
 
-  it.each(checks)("recovers from an HTML response on %s without navigating", async (path) => {
-    failingPath = path;
-    await render();
-    expect(container.textContent).toContain("Reconnecting to Taskcore");
-    expect(container.textContent).not.toContain("Unexpected token");
-    expect(container.querySelector("[data-redirect]")).toBeNull();
-    expect(container.querySelector("textarea")).toBeNull();
-    const callsBeforeRetry = fetchMock.mock.calls.filter(([url]) => url === path).length;
-    await vi.advanceTimersByTimeAsync(4_000);
-    expect(fetchMock.mock.calls.filter(([url]) => url === path)).toHaveLength(callsBeforeRetry);
+  it.each(checks)(
+    "recovers from an HTML response on %s without navigating",
+    async (path) => {
+      failingPath = path;
+      await render();
+      expect(container.textContent).toContain("Reconnecting to Taskcore");
+      expect(container.textContent).not.toContain("Unexpected token");
+      expect(container.querySelector("[data-redirect]")).toBeNull();
+      expect(container.querySelector("textarea")).toBeNull();
+      const callsBeforeRetry = fetchMock.mock.calls.filter(
+        ([url]) => url === path,
+      ).length;
+      await vi.advanceTimersByTimeAsync(4_000);
+      expect(fetchMock.mock.calls.filter(([url]) => url === path)).toHaveLength(
+        callsBeforeRetry,
+      );
 
-    failingPath = null;
-    await vi.advanceTimersByTimeAsync(1_100);
-    await flushReact();
-    expect(container.querySelector("textarea")).not.toBeNull();
-    expect(container.textContent).not.toContain("Reconnecting");
-    const callsAfterRecovery = fetchMock.mock.calls.length;
-    await vi.advanceTimersByTimeAsync(15_000);
-    expect(fetchMock).toHaveBeenCalledTimes(callsAfterRecovery);
-    expect(fetchMock.mock.calls.every(([, init]) => !init.method || init.method === "GET")).toBe(true);
-  });
+      failingPath = null;
+      await vi.advanceTimersByTimeAsync(1_100);
+      await flushReact();
+      expect(container.querySelector("textarea")).not.toBeNull();
+      expect(container.textContent).not.toContain("Reconnecting");
+      const callsAfterRecovery = fetchMock.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(fetchMock).toHaveBeenCalledTimes(callsAfterRecovery);
+      expect(
+        fetchMock.mock.calls.every(
+          ([, init]) => !init.method || init.method === "GET",
+        ),
+      ).toBe(true);
+    },
+  );
 
-  it.each(checks)("preserves a mounted editor through an outage on %s", async (path, queryKey) => {
-    await render();
-    const editor = container.querySelector("textarea")!;
-    editor.value = "Keep my unsaved changes";
-    failingPath = path;
-    failure = () => new Response("Bad gateway", { status: 502 });
-    await client.refetchQueries({ queryKey });
-    await flushReact();
-    expect(container.querySelector("textarea")).toBe(editor);
-    expect(editor.value).toBe("Keep my unsaved changes");
-    expect(container.textContent).toContain("Reconnecting automatically");
+  it.each(checks)(
+    "preserves a mounted editor through an outage on %s",
+    async (path, queryKey) => {
+      await render();
+      const editor = container.querySelector("textarea")!;
+      editor.value = "Keep my unsaved changes";
+      failingPath = path;
+      failure = () => new Response("Bad gateway", { status: 502 });
+      await client.refetchQueries({ queryKey });
+      await flushReact();
+      expect(container.querySelector("textarea")).toBe(editor);
+      expect(editor.value).toBe("Keep my unsaved changes");
+      expect(container.textContent).toContain("Reconnecting automatically");
 
-    failingPath = null;
-    await vi.advanceTimersByTimeAsync(5_100);
-    await flushReact();
-    expect(container.querySelector("textarea")).toBe(editor);
-    expect(editor.value).toBe("Keep my unsaved changes");
-    expect(container.textContent).not.toContain("Reconnecting");
-  });
+      failingPath = null;
+      await vi.advanceTimersByTimeAsync(5_100);
+      await flushReact();
+      expect(container.querySelector("textarea")).toBe(editor);
+      expect(editor.value).toBe("Keep my unsaved changes");
+      expect(container.textContent).not.toContain("Reconnecting");
+    },
+  );
 
   it.each(checks)("keeps retrying %s while the tab is hidden", async (path) => {
     focusManager.setFocused(false);
@@ -131,11 +180,18 @@ describe("CloudAccessGate restart recovery", () => {
 
   it("waits for ready health before opening the board even when access checks succeed", async () => {
     failingPath = "/api/health";
-    failure = () => Response.json({ status: "starting", deploymentMode: "authenticated", bootstrapStatus: "ready" });
+    failure = () =>
+      Response.json({
+        status: "starting",
+        deploymentMode: "authenticated",
+        bootstrapStatus: "ready",
+      });
     await render();
     expect(container.querySelector("textarea")).toBeNull();
     expect(container.textContent).toContain("Reconnecting");
-    expect(fetchMock.mock.calls.map(([path]) => path)).toEqual(checks.map(([path]) => path));
+    expect(fetchMock.mock.calls.map(([path]) => path)).toEqual(
+      checks.map(([path]) => path),
+    );
     await vi.advanceTimersByTimeAsync(5_100);
     expect(container.querySelector("textarea")).toBeNull();
     failingPath = null;
@@ -146,7 +202,9 @@ describe("CloudAccessGate restart recovery", () => {
   });
 
   it("supports manual retry while startup health is pending", async () => {
-    fetchMock.mockResolvedValueOnce(Response.json({ status: "starting", deploymentMode: "local_trusted" }));
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ status: "starting", deploymentMode: "local_trusted" }),
+    );
     await render();
     expect(container.querySelector("textarea")).toBeNull();
     container.querySelector("button")!.click();
@@ -158,9 +216,13 @@ describe("CloudAccessGate restart recovery", () => {
     await render();
     const editor = container.querySelector("textarea")!;
     editor.value = "Keep my unsaved changes";
-    fetchMock.mockResolvedValueOnce(Response.json({
-      status: "starting", deploymentMode: "authenticated", bootstrapStatus: "ready",
-    }));
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        status: "starting",
+        deploymentMode: "authenticated",
+        bootstrapStatus: "ready",
+      }),
+    );
     await client.refetchQueries({ queryKey: queryKeys.health });
     await flushReact();
     expect(container.querySelector("textarea")).toBe(editor);
@@ -192,8 +254,15 @@ describe("CloudAccessGate restart recovery", () => {
   });
 
   it("refreshes other failed reads after access checks recover", async () => {
-    const read = vi.fn().mockRejectedValueOnce(new ApiUnavailableError(503)).mockResolvedValue([]);
-    const observer = new QueryObserver(client, { queryKey: ["companies", "test"], queryFn: read, retry: false });
+    const read = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiUnavailableError(503))
+      .mockResolvedValue([]);
+    const observer = new QueryObserver(client, {
+      queryKey: ["companies", "test"],
+      queryFn: read,
+      retry: false,
+    });
     const unsubscribe = observer.subscribe(() => {});
     failingPath = "/api/health";
     await render();
@@ -210,7 +279,9 @@ describe("CloudAccessGate restart recovery", () => {
     await render();
     failingPath = "/api/cli-auth/me";
     failure = () => Response.json({ error: "Forbidden" }, { status: 403 });
-    await client.refetchQueries({ queryKey: queryKeys.access.currentBoardAccess });
+    await client.refetchQueries({
+      queryKey: queryKeys.access.currentBoardAccess,
+    });
     await flushReact();
     expect(container.textContent).toContain("Unable to load Taskcore");
     expect(container.textContent).not.toContain("reconnect automatically");
@@ -231,7 +302,8 @@ describe("CloudAccessGate restart recovery", () => {
     await client.refetchQueries({ queryKey: queryKeys.auth.session });
     await flushReact();
     expect(container.querySelector("textarea")).toBeNull();
-    expect(container.querySelector("[data-redirect]")?.getAttribute("data-redirect"))
-      .toBe("/auth?next=%2FCON%2Fagents%2Fconan%2Finstructions%3Ftab%3Dedit");
+    expect(
+      container.querySelector("[data-redirect]")?.getAttribute("data-redirect"),
+    ).toBe("/auth?next=%2FCON%2Fagents%2Fconan%2Finstructions%3Ftab%3Dedit");
   });
 });

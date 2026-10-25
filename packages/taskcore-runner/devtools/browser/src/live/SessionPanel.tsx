@@ -66,15 +66,26 @@ export function ManifestList({
                 {manifest.scenarios.map((scenario) => (
                   <Badge key={scenario}>{scenario}</Badge>
                 ))}
-                <Badge tone={lastOutcome[manifest.id] === undefined ? "neutral" : "success"}>
+                <Badge
+                  tone={
+                    lastOutcome[manifest.id] === undefined
+                      ? "neutral"
+                      : "success"
+                  }
+                >
                   {lastOutcome[manifest.id] ?? "not run"}
                 </Badge>
               </span>
             </button>
             {manifest.id === selectedId ? (
               <>
-                <details className="ui-disclosure" data-testid="expected-observations">
-                  <summary className="ui-disclosure-summary">Expected observations</summary>
+                <details
+                  className="ui-disclosure"
+                  data-testid="expected-observations"
+                >
+                  <summary className="ui-disclosure-summary">
+                    Expected observations
+                  </summary>
                   <ol className="ui-observation-list">
                     {manifest.expectedObservations.map((observation) => (
                       <li key={observation}>{observation}</li>
@@ -122,8 +133,13 @@ export function ConnectionBlock({
       </h2>
       <div className="ui-status-row">
         <span>Connection</span>
-        <Badge tone={CONNECTION_TONE[connection]} data-testid="connection-status">
-          {connection === "reconnecting" ? `reconnecting (attempt ${reconnectAttempt})` : connection}
+        <Badge
+          tone={CONNECTION_TONE[connection]}
+          data-testid="connection-status"
+        >
+          {connection === "reconnecting"
+            ? `reconnecting (attempt ${reconnectAttempt})`
+            : connection}
         </Badge>
       </div>
       <div className="ui-status-row">
@@ -195,7 +211,10 @@ export function GoalBlock({
     interruption: false,
     structuredResult: false,
   };
-  const availability = goalAvailability(capabilities, state?.goal?.status ?? null);
+  const availability = goalAvailability(
+    capabilities,
+    state?.goal?.status ?? null,
+  );
   const unsupported = capabilities.goals !== true;
   const unsupportedReason = availability[0]?.reason ?? null;
 
@@ -210,7 +229,9 @@ export function GoalBlock({
           label="Goal"
           disabled={unsupported || state === null}
           disabledReason={
-            state === null ? "Start a session before changing the goal." : unsupportedReason
+            state === null
+              ? "Start a session before changing the goal."
+              : unsupportedReason
           }
           items={availability.map((entry) => ({
             id: entry.operation,
@@ -226,13 +247,17 @@ export function GoalBlock({
       </div>
       {state === null ? null : state.goal === null ? (
         <p className="ui-goal-empty" data-testid="goal-banner">
-          {unsupported ? "Goal operations are unsupported here." : "No goal set"}
+          {unsupported
+            ? "Goal operations are unsupported here."
+            : "No goal set"}
         </p>
       ) : (
         <div className="ui-goal-banner" data-testid="goal-banner">
           <p className="ui-goal-objective">{state.goal.objective}</p>
           <div className="ui-status-row">
-            <Badge tone={state.goal.status === "active" ? "success" : "warning"}>
+            <Badge
+              tone={state.goal.status === "active" ? "success" : "warning"}
+            >
               {state.goal.status}
             </Badge>
             <time dateTime={new Date(state.goal.updatedAt).toISOString()}>
@@ -248,7 +273,11 @@ export function GoalBlock({
         description="The goal is durable on the thread and every change is also a transcript event."
         footer={
           <>
-            <Button type="button" className="ui-button--quiet" onClick={() => setDialogOpen(false)}>
+            <Button
+              type="button"
+              className="ui-button--quiet"
+              onClick={() => setDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -295,7 +324,9 @@ export function LineageTree({
 
   function onKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
     const rows = [
-      ...(treeRef.current?.querySelectorAll<HTMLButtonElement>('[role="treeitem"]') ?? []),
+      ...(treeRef.current?.querySelectorAll<HTMLButtonElement>(
+        '[role="treeitem"]',
+      ) ?? []),
     ];
     const index = rows.indexOf(document.activeElement as HTMLButtonElement);
     if (event.key === "ArrowDown") {
@@ -320,7 +351,9 @@ export function LineageTree({
         data-testid="lineage-tree"
         onKeyDown={onKeyDown}
       >
-        {lineage.length === 0 ? <li className="ui-tree-empty">No threads yet.</li> : null}
+        {lineage.length === 0 ? (
+          <li className="ui-tree-empty">No threads yet.</li>
+        ) : null}
         {lineage.map((entry) => (
           <li key={entry.threadId} role="none" data-depth={entry.depth}>
             <button
@@ -330,9 +363,15 @@ export function LineageTree({
               aria-selected={entry.threadId === current}
               className="ui-tree-row"
               data-testid={`thread-${entry.threadId}`}
-              onClick={() => onSelect(entry.depth === 0 ? null : entry.threadId)}
+              onClick={() =>
+                onSelect(entry.depth === 0 ? null : entry.threadId)
+              }
             >
-              <span className="ui-state-dot" data-state={entry.status} aria-hidden="true" />
+              <span
+                className="ui-state-dot"
+                data-state={entry.status}
+                aria-hidden="true"
+              />
               <code>{entry.nickname ?? entry.threadId}</code>
               <span className="ui-tree-state">
                 {THREAD_STATE_LABEL[entry.status] ?? entry.status}

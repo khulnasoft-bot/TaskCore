@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CaseCopyableToken } from "@/components/CaseIdentifierKey";
 
-type CaseRelationRow = Pick<CaseSummary, "id" | "identifier" | "title" | "caseType" | "status"> & {
+type CaseRelationRow = Pick<
+  CaseSummary,
+  "id" | "identifier" | "title" | "caseType" | "status"
+> & {
   key?: string | null;
 };
 
@@ -30,7 +33,8 @@ export function CaseChildrenTree({
   }
 
   const shouldCap = maxVisible != null && children.length > maxVisible;
-  const visibleChildren = shouldCap && !expanded ? children.slice(0, maxVisible) : children;
+  const visibleChildren =
+    shouldCap && !expanded ? children.slice(0, maxVisible) : children;
   const hiddenCount = children.length - visibleChildren.length;
 
   return (
@@ -49,8 +53,12 @@ export function CaseChildrenTree({
                 containerClassName="shrink-0"
                 stopPropagation
               />
-              <span className="min-w-0 flex-1 truncate" title={child.title}>{child.title}</span>
-              <Badge variant="secondary" className="shrink-0">{child.caseType}</Badge>
+              <span className="min-w-0 flex-1 truncate" title={child.title}>
+                {child.title}
+              </span>
+              <Badge variant="secondary" className="shrink-0">
+                {child.caseType}
+              </Badge>
               <StatusBadge status={child.status} />
             </Link>
           </li>

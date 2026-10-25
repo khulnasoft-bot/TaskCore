@@ -22,7 +22,10 @@ describe("canonical operation-groups specification", () => {
     const variants = [
       {
         name: "catalog",
-        value: { ...input, canonicalOperations: input.canonicalOperations.slice(1) },
+        value: {
+          ...input,
+          canonicalOperations: input.canonicalOperations.slice(1),
+        },
       },
       {
         name: "alias",
@@ -42,7 +45,8 @@ describe("canonical operation-groups specification", () => {
         name: "generated contract",
         value: {
           ...input,
-          generatedContractOperationIds: input.generatedContractOperationIds.slice(1),
+          generatedContractOperationIds:
+            input.generatedContractOperationIds.slice(1),
         },
       },
       {
@@ -63,18 +67,25 @@ describe("canonical operation-groups specification", () => {
       input.source.behaviorGroups.flatMap((group) => group.operationIds),
     );
     expect(behaviorOperationIds).toEqual(
-      new Set(input.canonicalOperations.map((operation) => operation.operationId)),
+      new Set(
+        input.canonicalOperations.map((operation) => operation.operationId),
+      ),
     );
     expect(input.source.behaviorGroups).toHaveLength(16);
     expect(input.scenarios).toHaveLength(106);
-    expect(new Set(input.scenarios.map((scenario) => scenario.id)).size).toBe(106);
+    expect(new Set(input.scenarios.map((scenario) => scenario.id)).size).toBe(
+      106,
+    );
     expect(input.eventTypes).toHaveLength(105);
     expect(input.commandTypes).toHaveLength(18);
   });
 
   it("keeps the checked-in Markdown byte-identical to the generated contract", () => {
     const current = readFileSync(
-      resolve(operationGroupsPackageRoot(), "spec/taskcore-agent-operation-groups.md"),
+      resolve(
+        operationGroupsPackageRoot(),
+        "spec/taskcore-agent-operation-groups.md",
+      ),
       "utf8",
     );
     expect(current).toBe(renderOperationGroupsDocument(input));

@@ -1,7 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createGoogleSheetsMcpHttpServer, type GoogleSheetsMcpHttpServer } from "./http.js";
+import {
+  createGoogleSheetsMcpHttpServer,
+  type GoogleSheetsMcpHttpServer,
+} from "./http.js";
 import type { GoogleSheetsMcpConfig } from "./config.js";
 import type { GoogleSheetsClient } from "./google-client.js";
 
@@ -23,17 +26,25 @@ function makeConfig(): GoogleSheetsMcpConfig {
   return {
     serviceAccount: {
       client_email: "service@example.test",
-      private_key: "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----",
+      private_key:
+        "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----",
     },
     allowedSpreadsheetIds: ["sheet-1"],
-    secretRedactions: ["service@example.test", "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----"],
+    secretRedactions: [
+      "service@example.test",
+      "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----",
+    ],
   };
 }
 
 function makeClient(): GoogleSheetsClient {
   return {
     listSpreadsheets: vi.fn().mockResolvedValue([
-      { spreadsheetId: "sheet-1", title: "Budget", spreadsheetUrl: "https://docs.google.com/spreadsheets/d/sheet-1" },
+      {
+        spreadsheetId: "sheet-1",
+        title: "Budget",
+        spreadsheetUrl: "https://docs.google.com/spreadsheets/d/sheet-1",
+      },
     ]),
     getSpreadsheetInfo: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
@@ -44,7 +55,10 @@ function makeClient(): GoogleSheetsClient {
     readValues: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
       range: "Sheet1!A1:B2",
-      values: [["name", "amount"], ["paper", 12]],
+      values: [
+        ["name", "amount"],
+        ["paper", 12],
+      ],
     }),
     searchRows: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
@@ -52,14 +66,34 @@ function makeClient(): GoogleSheetsClient {
       query: "paper",
       matches: [{ rowIndex: 2, values: ["paper", 12] }],
     }),
-    appendRows: vi.fn().mockResolvedValue({ spreadsheetId: "sheet-1", range: "Sheet1!A:B", updatedRows: 1 }),
-    updateValues: vi.fn().mockResolvedValue({ spreadsheetId: "sheet-1", range: "Sheet1!A2:B2", updatedRows: 1 }),
+    appendRows: vi.fn().mockResolvedValue({
+      spreadsheetId: "sheet-1",
+      range: "Sheet1!A:B",
+      updatedRows: 1,
+    }),
+    updateValues: vi.fn().mockResolvedValue({
+      spreadsheetId: "sheet-1",
+      range: "Sheet1!A2:B2",
+      updatedRows: 1,
+    }),
     addSheetTab: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
-      sheet: { sheetId: 1, title: "New", index: 1, rowCount: null, columnCount: null },
+      sheet: {
+        sheetId: 1,
+        title: "New",
+        index: 1,
+        rowCount: null,
+        columnCount: null,
+      },
     }),
-    clearValues: vi.fn().mockResolvedValue({ spreadsheetId: "sheet-1", range: "Sheet1!A2:B2" }),
-    deleteRows: vi.fn().mockResolvedValue({ spreadsheetId: "sheet-1", sheetId: 0, deletedRows: 1 }),
+    clearValues: vi
+      .fn()
+      .mockResolvedValue({ spreadsheetId: "sheet-1", range: "Sheet1!A2:B2" }),
+    deleteRows: vi.fn().mockResolvedValue({
+      spreadsheetId: "sheet-1",
+      sheetId: 0,
+      deletedRows: 1,
+    }),
   };
 }
 
@@ -75,10 +109,17 @@ async function startServer(token?: string) {
   return { googleClient, base: `http://127.0.0.1:${port}` };
 }
 
-async function mcpClient(base: string, headers?: Record<string, string>, path = "/mcp") {
-  const transport = new StreamableHTTPClientTransport(new URL(`${base}${path}`), {
-    requestInit: headers ? { headers } : undefined,
-  });
+async function mcpClient(
+  base: string,
+  headers?: Record<string, string>,
+  path = "/mcp",
+) {
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`${base}${path}`),
+    {
+      requestInit: headers ? { headers } : undefined,
+    },
+  );
   const client = new Client({ name: "test", version: "0.0.0" });
   await client.connect(transport);
   return client;
@@ -117,7 +158,10 @@ describe("Google Sheets MCP HTTP server", () => {
         },
       });
 
-      expect(googleClient.readValues).toHaveBeenCalledWith("sheet-1", "Sheet1!A1:B2");
+      expect(googleClient.readValues).toHaveBeenCalledWith(
+        "sheet-1",
+        "Sheet1!A1:B2",
+      );
       expect(result.content).toEqual([
         expect.objectContaining({
           type: "text",

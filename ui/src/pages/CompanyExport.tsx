@@ -38,7 +38,11 @@ import {
 import { useAgentOrder } from "../hooks/useAgentOrder";
 import { useProjectOrder } from "../hooks/useProjectOrder";
 import { buildPortableSidebarOrder } from "../lib/company-portability-sidebar";
-import { getPortableFileDataUrl, getPortableFileText, isPortableImageFile } from "../lib/portable-files";
+import {
+  getPortableFileDataUrl,
+  getPortableFileText,
+  isPortableImageFile,
+} from "../lib/portable-files";
 import {
   Download,
   LoaderCircle,
@@ -98,11 +102,16 @@ function filterTaskcoreYaml(yaml: string, checkedFiles: Set<string>): string {
   const out: string[] = [];
 
   // Sections whose entries are slug-keyed and should be filtered
-  const filterableSections = new Set(["agents", "projects", "tasks", "routines"]);
+  const filterableSections = new Set([
+    "agents",
+    "projects",
+    "tasks",
+    "routines",
+  ]);
   const sidebarSections = new Set(["agents", "projects"]);
 
   let currentSection: string | null = null; // top-level key (e.g. "agents")
-  let currentEntry: string | null = null;   // slug under that section
+  let currentEntry: string | null = null; // slug under that section
   let includeEntry = true;
   let currentSidebarList: string | null = null;
   let currentSidebarHeaderLine: string | null = null;
@@ -161,7 +170,8 @@ function filterTaskcoreYaml(yaml: string, checkedFiles: Set<string>): string {
       if (sidebarMatch && !line.startsWith("    ")) {
         flushSidebarSection();
         const sidebarKey = sidebarMatch[1];
-        currentSidebarList = sidebarKey && sidebarSections.has(sidebarKey) ? sidebarKey : null;
+        currentSidebarList =
+          sidebarKey && sidebarSections.has(sidebarKey) ? sidebarKey : null;
         currentSidebarHeaderLine = currentSidebarList ? line : null;
         continue;
       }
@@ -214,9 +224,14 @@ function filterTaskcoreYaml(yaml: string, checkedFiles: Set<string>): string {
   flushSection();
 
   let filtered = out.join("\n");
-  const logoPathMatch = filtered.match(/^\s{2}logoPath:\s*["']?([^"'\n]+)["']?\s*$/m);
+  const logoPathMatch = filtered.match(
+    /^\s{2}logoPath:\s*["']?([^"'\n]+)["']?\s*$/m,
+  );
   if (logoPathMatch && !checkedFiles.has(logoPathMatch[1]!)) {
-    filtered = filtered.replace(/^\s{2}logoPath:\s*["']?([^"'\n]+)["']?\s*\n?/m, "");
+    filtered = filtered.replace(
+      /^\s{2}logoPath:\s*["']?([^"'\n]+)["']?\s*\n?/m,
+      "",
+    );
   }
 
   return filtered;
@@ -229,7 +244,8 @@ function filterTree(nodes: FileTreeNode[], query: string): FileTreeNode[] {
   return nodes
     .map((node) => {
       if (node.kind === "file") {
-        return node.name.toLowerCase().includes(lower) || node.path.toLowerCase().includes(lower)
+        return node.name.toLowerCase().includes(lower) ||
+          node.path.toLowerCase().includes(lower)
           ? node
           : null;
       }
@@ -242,13 +258,19 @@ function filterTree(nodes: FileTreeNode[], query: string): FileTreeNode[] {
 }
 
 /** Collect all ancestor dir paths for files that match a filter */
-function collectMatchedParentDirs(nodes: FileTreeNode[], query: string): Set<string> {
+function collectMatchedParentDirs(
+  nodes: FileTreeNode[],
+  query: string,
+): Set<string> {
   const dirs = new Set<string>();
   const lower = query.toLowerCase();
 
   function walk(node: FileTreeNode, ancestors: string[]) {
     if (node.kind === "file") {
-      if (node.name.toLowerCase().includes(lower) || node.path.toLowerCase().includes(lower)) {
+      if (
+        node.name.toLowerCase().includes(lower) ||
+        node.path.toLowerCase().includes(lower)
+      ) {
         for (const a of ancestors) dirs.add(a);
       }
     } else {
@@ -275,7 +297,11 @@ function paginateTaskNodes(
   limit: number,
   searchQuery: string,
   selectedFile: string | null,
-): { nodes: FileTreeNode[]; totalTaskChildren: number; visibleTaskChildren: number } {
+): {
+  nodes: FileTreeNode[];
+  totalTaskChildren: number;
+  visibleTaskChildren: number;
+} {
   let totalTaskChildren = 0;
   let visibleTaskChildren = 0;
 
@@ -291,12 +317,13 @@ function paginateTaskNodes(
 
       for (const child of node.children) {
         const childFiles = collectAllPaths([child], "file");
-        const containsSelected = selectedFile !== null && childFiles.has(selectedFile);
-        const isSearchMatch = searchQuery && (
-          child.name.toLowerCase().includes(lower) ||
-          child.path.toLowerCase().includes(lower) ||
-          [...childFiles].some((p) => p.toLowerCase().includes(lower))
-        );
+        const containsSelected =
+          selectedFile !== null && childFiles.has(selectedFile);
+        const isSearchMatch =
+          searchQuery &&
+          (child.name.toLowerCase().includes(lower) ||
+            child.path.toLowerCase().includes(lower) ||
+            [...childFiles].some((p) => p.toLowerCase().includes(lower)));
         if (containsSelected || isSearchMatch) {
           pinned.push(child);
         } else {
@@ -331,7 +358,8 @@ function filterExportForDownload(
 ): Record<string, CompanyPortabilityFileEntry> {
   const filteredFiles: Record<string, CompanyPortabilityFileEntry> = {};
   for (const path of Object.keys(files)) {
-    if (selectedFiles.has(path)) filteredFiles[path] = effectiveFiles[path] ?? files[path]!;
+    if (selectedFiles.has(path))
+      filteredFiles[path] = effectiveFiles[path] ?? files[path]!;
   }
   return filteredFiles;
 }
@@ -341,7 +369,11 @@ function downloadZip(
   selectedFiles: Set<string>,
   effectiveFiles: Record<string, CompanyPortabilityFileEntry>,
 ) {
-  const filteredFiles = filterExportForDownload(exported.files, selectedFiles, effectiveFiles);
+  const filteredFiles = filterExportForDownload(
+    exported.files,
+    selectedFiles,
+    effectiveFiles,
+  );
   const zipBytes = createZipArchive(filteredFiles, exported.rootPath);
   const zipBuffer = new ArrayBuffer(zipBytes.byteLength);
   new Uint8Array(zipBuffer).set(zipBytes);
@@ -382,7 +414,9 @@ function FrontmatterCard({
                       type="button"
                       className={cn(
                         "inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 text-xs",
-                        key === "skills" && onSkillClick && "cursor-pointer hover:bg-accent/50 hover:border-foreground/30 transition-colors",
+                        key === "skills" &&
+                          onSkillClick &&
+                          "cursor-pointer hover:bg-accent/50 hover:border-foreground/30 transition-colors",
                       )}
                       onClick={() => key === "skills" && onSkillClick?.(item)}
                     >
@@ -404,8 +438,15 @@ function FrontmatterCard({
 // ── Client-side README generation ────────────────────────────────────
 
 const ROLE_LABELS: Record<string, string> = {
-  ceo: "CEO", cto: "CTO", cmo: "CMO", cfo: "CFO", coo: "COO",
-  vp: "VP", manager: "Manager", engineer: "Engineer", agent: "Agent",
+  ceo: "CEO",
+  cto: "CTO",
+  cmo: "CMO",
+  cfo: "CFO",
+  coo: "COO",
+  vp: "VP",
+  manager: "Manager",
+  engineer: "Engineer",
+  agent: "Agent",
 };
 
 /**
@@ -425,7 +466,11 @@ function generateReadmeFromSelection(
   const tasks = manifest.issues.filter((t) => slugs.tasks.has(t.slug));
   const skills = manifest.skills.filter((s) => {
     // Skill files live under skills/{key}/...
-    return [...checkedFiles].some((f) => f.startsWith(`skills/${s.key}/`) || f.startsWith(`skills/`) && f.includes(`/${s.slug}/`));
+    return [...checkedFiles].some(
+      (f) =>
+        f.startsWith(`skills/${s.key}/`) ||
+        (f.startsWith(`skills/`) && f.includes(`/${s.slug}/`)),
+    );
   });
 
   const lines: string[] = [];
@@ -493,7 +538,9 @@ function generateReadmeFromSelection(
   lines.push("See [Taskcore](https://taskcore.ing) for more information.");
   lines.push("");
   lines.push("---");
-  lines.push(`Exported from [Taskcore](https://taskcore.ing) on ${new Date().toISOString().split("T")[0]}`);
+  lines.push(
+    `Exported from [Taskcore](https://taskcore.ing) on ${new Date().toISOString().split("T")[0]}`,
+  );
   lines.push("");
 
   return lines.join("\n");
@@ -513,11 +560,16 @@ export function resolveExportPreviewImageSrc(input: {
   // Preview generation deliberately avoids the comparatively expensive PNG
   // renderer. Use the independently generated SVG endpoint so the README
   // never shows a broken image; downloaded bundles still contain the PNG.
-  if (src.replace(/^\.\//, "") === "images/org-chart.png" && orgChartPreviewUrl) {
+  if (
+    src.replace(/^\.\//, "") === "images/org-chart.png" &&
+    orgChartPreviewUrl
+  ) {
     return orgChartPreviewUrl;
   }
 
-  const dir = selectedFile.includes("/") ? selectedFile.slice(0, selectedFile.lastIndexOf("/") + 1) : "";
+  const dir = selectedFile.includes("/")
+    ? selectedFile.slice(0, selectedFile.lastIndexOf("/") + 1)
+    : "";
   const resolved = dir + src;
   const entry = allFiles[resolved] ?? allFiles[src];
   if (!entry) return null;
@@ -539,18 +591,30 @@ function ExportPreviewPane({
 }) {
   if (!selectedFile || content === null) {
     return (
-      <EmptyState icon={Package} message="Select a file to preview its contents." />
+      <EmptyState
+        icon={Package}
+        message="Select a file to preview its contents."
+      />
     );
   }
 
   const textContent = getPortableFileText(content);
   const isMarkdown = selectedFile.endsWith(".md") && textContent !== null;
-  const parsed = isMarkdown && textContent ? parseFrontmatter(textContent) : null;
-  const imageSrc = isPortableImageFile(selectedFile, content) ? getPortableFileDataUrl(selectedFile, content) : null;
+  const parsed =
+    isMarkdown && textContent ? parseFrontmatter(textContent) : null;
+  const imageSrc = isPortableImageFile(selectedFile, content)
+    ? getPortableFileDataUrl(selectedFile, content)
+    : null;
 
   // Resolve relative image paths within the export package (e.g. images/org-chart.png)
   const resolveImageSrc = isMarkdown
-    ? (src: string) => resolveExportPreviewImageSrc({ src, selectedFile, allFiles, orgChartPreviewUrl })
+    ? (src: string) =>
+        resolveExportPreviewImageSrc({
+          src,
+          selectedFile,
+          allFiles,
+          orgChartPreviewUrl,
+        })
     : undefined;
 
   return (
@@ -562,13 +626,31 @@ function ExportPreviewPane({
         {parsed ? (
           <>
             <FrontmatterCard data={parsed.data} onSkillClick={onSkillClick} />
-            {parsed.body.trim() && <MarkdownBody resolveImageSrc={resolveImageSrc} softBreaks={false} linkIssueReferences={false}>{parsed.body}</MarkdownBody>}
+            {parsed.body.trim() && (
+              <MarkdownBody
+                resolveImageSrc={resolveImageSrc}
+                softBreaks={false}
+                linkIssueReferences={false}
+              >
+                {parsed.body}
+              </MarkdownBody>
+            )}
           </>
         ) : isMarkdown ? (
-          <MarkdownBody resolveImageSrc={resolveImageSrc} softBreaks={false} linkIssueReferences={false}>{textContent ?? ""}</MarkdownBody>
+          <MarkdownBody
+            resolveImageSrc={resolveImageSrc}
+            softBreaks={false}
+            linkIssueReferences={false}
+          >
+            {textContent ?? ""}
+          </MarkdownBody>
         ) : imageSrc ? (
           <div className="flex min-h-(--sz-520px) items-center justify-center rounded-lg border border-border bg-accent/10 p-6">
-            <img src={imageSrc} alt={selectedFile} className="max-h-(--sz-480px) max-w-full object-contain" />
+            <img
+              src={imageSrc}
+              alt={selectedFile}
+              className="max-h-(--sz-480px) max-w-full object-contain"
+            />
           </div>
         ) : textContent !== null ? (
           <pre className="overflow-x-auto whitespace-pre-wrap break-words border-0 bg-transparent p-0 font-mono text-sm text-foreground">
@@ -592,7 +674,9 @@ function filePathFromLocation(pathname: string): string | null {
   const relativePathname = toCompanyRelativePath(pathname);
   const idx = relativePathname.indexOf(marker);
   if (idx === -1) return null;
-  const filePath = decodeURIComponent(relativePathname.slice(idx + marker.length));
+  const filePath = decodeURIComponent(
+    relativePathname.slice(idx + marker.length),
+  );
   return filePath || null;
 }
 
@@ -652,7 +736,8 @@ export function CompanyExport() {
     enabled: !!selectedCompanyId,
   });
 
-  const [exportData, setExportData] = useState<CompanyPortabilityExportPreviewResult | null>(null);
+  const [exportData, setExportData] =
+    useState<CompanyPortabilityExportPreviewResult | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<ExportCategorySelection>(() => ({
@@ -675,10 +760,7 @@ export function CompanyExport() {
     () => agents.filter((agent: Agent) => agent.status !== "terminated"),
     [agents],
   );
-  const visibleProjects = useMemo(
-    () => projects,
-    [projects],
-  );
+  const visibleProjects = useMemo(() => projects, [projects]);
   const { orderedAgents } = useAgentOrder({
     agents: visibleAgents,
     companyId: selectedCompanyId,
@@ -690,12 +772,13 @@ export function CompanyExport() {
     userId: currentUserId,
   });
   const sidebarOrder = useMemo(
-    () => buildPortableSidebarOrder({
-      agents: visibleAgents,
-      orderedAgents,
-      projects: visibleProjects,
-      orderedProjects,
-    }),
+    () =>
+      buildPortableSidebarOrder({
+        agents: visibleAgents,
+        orderedAgents,
+        projects: visibleProjects,
+        orderedProjects,
+      }),
     [orderedAgents, orderedProjects, visibleAgents, visibleProjects],
   );
   const includeIssues = categories.tasks || categories.routines;
@@ -740,11 +823,25 @@ export function CompanyExport() {
   }, [selectedCompany?.name, setBreadcrumbs]);
 
   const exportPreviewMutation = useMutation({
-    mutationFn: ({ includeIssues: withIssues, includeSkills, signal }: ExportPreviewMutationInput) =>
-      companiesApi.exportPreview(selectedCompanyId!, {
-        include: { company: true, agents: true, projects: true, issues: withIssues, skills: includeSkills },
-        sidebarOrder,
-      }, { signal }),
+    mutationFn: ({
+      includeIssues: withIssues,
+      includeSkills,
+      signal,
+    }: ExportPreviewMutationInput) =>
+      companiesApi.exportPreview(
+        selectedCompanyId!,
+        {
+          include: {
+            company: true,
+            agents: true,
+            projects: true,
+            issues: withIssues,
+            skills: includeSkills,
+          },
+          sidebarOrder,
+        },
+        { signal },
+      ),
     onSuccess: (result, request) => {
       if (request.requestId !== previewRequestIdRef.current) return;
       setExportData(result);
@@ -752,7 +849,8 @@ export function CompanyExport() {
       const tree = buildFileTree(result.files);
       const topDirs = new Set<string>();
       for (const node of tree) {
-        if (node.kind === "dir" && node.name !== "tasks") topDirs.add(node.path);
+        if (node.kind === "dir" && node.name !== "tasks")
+          topDirs.add(node.path);
       }
 
       // If URL contains a deep-linked file path, select it and expand ancestors
@@ -763,9 +861,10 @@ export function CompanyExport() {
         setExpandedDirs(new Set([...topDirs, ...ancestors]));
       } else {
         // Default to README.md if present, otherwise fall back to first file
-        const defaultFile = "README.md" in result.files
-          ? "README.md"
-          : Object.keys(result.files)[0];
+        const defaultFile =
+          "README.md" in result.files
+            ? "README.md"
+            : Object.keys(result.files)[0];
         if (defaultFile) {
           selectFile(defaultFile, true);
         }
@@ -773,7 +872,11 @@ export function CompanyExport() {
       }
     },
     onError: (err, request) => {
-      if (request.requestId !== previewRequestIdRef.current || isAbortError(err)) return;
+      if (
+        request.requestId !== previewRequestIdRef.current ||
+        isAbortError(err)
+      )
+        return;
       pushToast({
         tone: "error",
         title: "Export failed",
@@ -801,7 +904,13 @@ export function CompanyExport() {
   const downloadMutation = useMutation({
     mutationFn: () =>
       companiesApi.exportBundle(selectedCompanyId!, {
-        include: { company: true, agents: true, projects: true, issues: includeIssues, skills: categories.skills },
+        include: {
+          company: true,
+          agents: true,
+          projects: true,
+          issues: includeIssues,
+          skills: categories.skills,
+        },
         selectedFiles: Array.from(checkedFiles).sort(),
         sidebarOrder,
       }),
@@ -818,7 +927,10 @@ export function CompanyExport() {
       pushToast({
         tone: "error",
         title: "Export failed",
-        body: err instanceof Error ? err.message : "Failed to build export package.",
+        body:
+          err instanceof Error
+            ? err.message
+            : "Failed to build export package.",
       });
     },
   });
@@ -834,10 +946,13 @@ export function CompanyExport() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyId, includeIssues, categories.skills]);
 
-  useEffect(() => () => {
-    previewRequestIdRef.current += 1;
-    previewAbortControllerRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      previewRequestIdRef.current += 1;
+      previewAbortControllerRef.current?.abort();
+    },
+    [],
+  );
 
   const tree = useMemo(
     () => (exportData ? buildFileTree(exportData.files) : []),
@@ -862,21 +977,30 @@ export function CompanyExport() {
   const categoryCounts = useMemo(
     () =>
       exportData
-        ? countExportFilesByCategory(Object.keys(exportData.files), exportData.manifest.issues)
+        ? countExportFilesByCategory(
+            Object.keys(exportData.files),
+            exportData.manifest.issues,
+          )
         : null,
     [exportData],
   );
 
-  const { displayTree, totalTaskChildren, visibleTaskChildren } = useMemo(() => {
-    let result = tree;
-    if (treeSearch) result = filterTree(result, treeSearch);
-    const paginated = paginateTaskNodes(result, taskLimit, treeSearch, selectedFile);
-    return {
-      displayTree: paginated.nodes,
-      totalTaskChildren: paginated.totalTaskChildren,
-      visibleTaskChildren: paginated.visibleTaskChildren,
-    };
-  }, [tree, treeSearch, taskLimit, selectedFile]);
+  const { displayTree, totalTaskChildren, visibleTaskChildren } =
+    useMemo(() => {
+      let result = tree;
+      if (treeSearch) result = filterTree(result, treeSearch);
+      const paginated = paginateTaskNodes(
+        result,
+        taskLimit,
+        treeSearch,
+        selectedFile,
+      );
+      return {
+        displayTree: paginated.nodes,
+        totalTaskChildren: paginated.totalTaskChildren,
+        visibleTaskChildren: paginated.visibleTaskChildren,
+      };
+    }, [tree, treeSearch, taskLimit, selectedFile]);
 
   // Files the current toggles exclude render dimmed, so a toggle's effect is
   // visible in the tree. Directories dim once none of their files export.
@@ -910,13 +1034,18 @@ export function CompanyExport() {
     // Filter .taskcore.yaml
     const yamlPath = exportData.taskcoreExtensionPath;
     if (yamlPath && typeof exportData.files[yamlPath] === "string") {
-      filtered[yamlPath] = filterTaskcoreYaml(exportData.files[yamlPath], checkedFiles);
+      filtered[yamlPath] = filterTaskcoreYaml(
+        exportData.files[yamlPath],
+        checkedFiles,
+      );
     }
 
     // Regenerate README.md based on checked selection
     if (typeof exportData.files["README.md"] === "string") {
-      const companyName = exportData.manifest.company?.name ?? selectedCompany?.name ?? "Company";
-      const companyDescription = exportData.manifest.company?.description ?? null;
+      const companyName =
+        exportData.manifest.company?.name ?? selectedCompany?.name ?? "Company";
+      const companyDescription =
+        exportData.manifest.company?.description ?? null;
       filtered["README.md"] = generateReadmeFromSelection(
         exportData.manifest,
         checkedFiles,
@@ -1011,7 +1140,8 @@ export function CompanyExport() {
   }
 
   function handleDownload() {
-    if (!exportData || checkedFiles.size === 0 || downloadMutation.isPending) return;
+    if (!exportData || checkedFiles.size === 0 || downloadMutation.isPending)
+      return;
     downloadMutation.mutate();
   }
 
@@ -1024,7 +1154,9 @@ export function CompanyExport() {
   }
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Package} message="Select an organization to export." />;
+    return (
+      <EmptyState icon={Package} message="Select an organization to export." />
+    );
   }
 
   if (exportPreviewMutation.isPending && !exportData) {
@@ -1087,7 +1219,8 @@ export function CompanyExport() {
               {selectedCompany?.name ?? "Organization"} export
             </span>
             <span className="text-muted-foreground">
-              Exporting {selectedCount.toLocaleString()} of {totalFiles.toLocaleString()} file{totalFiles === 1 ? "" : "s"}
+              Exporting {selectedCount.toLocaleString()} of{" "}
+              {totalFiles.toLocaleString()} file{totalFiles === 1 ? "" : "s"}
               {selectedCount > 0 && ` (~${formatBytes(estimatedZipBytes)})`}
             </span>
             {warnings.length > 0 && (
@@ -1100,11 +1233,11 @@ export function CompanyExport() {
             size="sm"
             onClick={handleDownload}
             disabled={
-              selectedCount === 0
-              || downloadMutation.isPending
-              || exportPreviewMutation.isPending
-              || exportPreviewMutation.isError
-              || previewCancelled
+              selectedCount === 0 ||
+              downloadMutation.isPending ||
+              exportPreviewMutation.isPending ||
+              exportPreviewMutation.isError ||
+              previewCancelled
             }
           >
             <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -1119,7 +1252,9 @@ export function CompanyExport() {
       {warnings.length > 0 && (
         <div className="mx-5 mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3">
           {warnings.map((w) => (
-            <div key={w} className="text-xs text-amber-500">{w}</div>
+            <div key={w} className="text-xs text-amber-500">
+              {w}
+            </div>
           ))}
         </div>
       )}
@@ -1127,13 +1262,17 @@ export function CompanyExport() {
       {/* Export fidelity: data the bundle will not carry */}
       {fidelityReport && fidelityReport.warnings.length > 0 && (
         <div className="mx-5 mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-          <h3 className="mb-1.5 text-xs font-medium">Not included in this export</h3>
+          <h3 className="mb-1.5 text-xs font-medium">
+            Not included in this export
+          </h3>
           {fidelityReport.warnings.map((warning) => (
             <div
               key={warning.code}
               className={cn(
                 "text-xs",
-                warning.severity === "blocker" ? "font-medium text-destructive" : "text-amber-500",
+                warning.severity === "blocker"
+                  ? "font-medium text-destructive"
+                  : "text-amber-500",
               )}
             >
               {warning.message}
@@ -1149,21 +1288,33 @@ export function CompanyExport() {
             <h2 className="text-base font-semibold">Package files</h2>
           </div>
           <div className="border-b border-border px-4 py-3 shrink-0">
-            <h3 className="mb-2 text-xs font-medium text-muted-foreground">What to include</h3>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5" role="group" aria-label="What to include">
+            <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+              What to include
+            </h3>
+            <div
+              className="grid grid-cols-2 gap-x-4 gap-y-1.5"
+              role="group"
+              aria-label="What to include"
+            >
               {EXPORT_CATEGORY_ORDER.map((key) => {
                 const isAttachments = key === "attachments";
-                const disabled = isAttachments && !isAttachmentsCategoryEnabled(categories);
+                const disabled =
+                  isAttachments && !isAttachmentsCategoryEnabled(categories);
                 const checked = categories[key] && !disabled;
                 const count = categoryCounts?.[key] ?? 0;
-                const countLoaded = exportData.manifest.includes.issues
-                  || (key !== "tasks" && key !== "routines" && key !== "attachments");
+                const countLoaded =
+                  exportData.manifest.includes.issues ||
+                  (key !== "tasks" &&
+                    key !== "routines" &&
+                    key !== "attachments");
                 return (
                   <label
                     key={key}
                     className={cn(
                       "flex items-center gap-2 text-sm",
-                      disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                      disabled
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer",
                     )}
                     title={
                       disabled
@@ -1179,7 +1330,9 @@ export function CompanyExport() {
                       className="accent-foreground"
                       data-export-category={key}
                     />
-                    <span className="min-w-0 truncate">{EXPORT_CATEGORY_LABELS[key]}</span>
+                    <span className="min-w-0 truncate">
+                      {EXPORT_CATEGORY_LABELS[key]}
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       {countLoaded ? count.toLocaleString() : "—"}
                     </span>
@@ -1247,12 +1400,20 @@ export function CompanyExport() {
               <div className="flex max-w-md flex-col items-center gap-3">
                 <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Updating export preview…</p>
+                  <p className="text-sm font-medium">
+                    Updating export preview…
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Large task histories can take a minute. You can untick Tasks or cancel this update.
+                    Large task histories can take a minute. You can untick Tasks
+                    or cancel this update.
                   </p>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={handleCancelPreview}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelPreview}
+                >
                   <X />
                   Cancel update
                 </Button>
@@ -1265,12 +1426,20 @@ export function CompanyExport() {
             >
               <div className="flex max-w-md flex-col items-center gap-3">
                 <div>
-                  <p className="text-sm font-medium">Preview update cancelled</p>
+                  <p className="text-sm font-medium">
+                    Preview update cancelled
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    The previous preview remains available. Retry when you are ready.
+                    The previous preview remains available. Retry when you are
+                    ready.
                   </p>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={startPreviewRequest}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={startPreviewRequest}
+                >
                   <RotateCcw />
                   Retry preview
                 </Button>
@@ -1284,12 +1453,19 @@ export function CompanyExport() {
             >
               <div className="flex max-w-md flex-col items-center gap-3">
                 <div>
-                  <p className="text-sm font-medium text-destructive">Export preview failed</p>
+                  <p className="text-sm font-medium text-destructive">
+                    Export preview failed
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {previewErrorMessage(exportPreviewMutation.error)}
                   </p>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={startPreviewRequest}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={startPreviewRequest}
+                >
                   <RotateCcw />
                   Retry preview
                 </Button>

@@ -24,7 +24,10 @@ vi.mock("@/context/SidebarContext", () => ({
 
 vi.mock("@/lib/router", () => ({
   useNavigate: () => navigateMock,
-  useSearchParams: () => [new URLSearchParams(currentSearch), setSearchParamsMock],
+  useSearchParams: () => [
+    new URLSearchParams(currentSearch),
+    setSearchParamsMock,
+  ],
 }));
 
 vi.mock("./AuditFeed", () => ({
@@ -41,14 +44,34 @@ vi.mock("./AuditFeed", () => ({
 }));
 
 vi.mock("./AuditRuns", () => ({
-  AuditRuns: ({ companyId, routineId }: { companyId: string; routineId?: string }) => (
-    <div data-testid="audit-runs" data-company={companyId} data-routine={routineId} />
+  AuditRuns: ({
+    companyId,
+    routineId,
+  }: {
+    companyId: string;
+    routineId?: string;
+  }) => (
+    <div
+      data-testid="audit-runs"
+      data-company={companyId}
+      data-routine={routineId}
+    />
   ),
 }));
 
 vi.mock("./RoutineAuditActivity", () => ({
-  RoutineAuditActivity: ({ companyId, routineId }: { companyId: string; routineId: string }) => (
-    <div data-testid="routine-audit-activity" data-company={companyId} data-routine={routineId} />
+  RoutineAuditActivity: ({
+    companyId,
+    routineId,
+  }: {
+    companyId: string;
+    routineId: string;
+  }) => (
+    <div
+      data-testid="routine-audit-activity"
+      data-company={companyId}
+      data-routine={routineId}
+    />
   ),
 }));
 
@@ -65,7 +88,10 @@ vi.mock("@/pages/Costs", () => ({
 
 vi.mock("@/pages/Timeline", () => ({
   Timeline: ({ embedded }: { embedded?: boolean }) => (
-    <div data-testid="audit-timeline" data-embedded={String(embedded ?? false)} />
+    <div
+      data-testid="audit-timeline"
+      data-embedded={String(embedded ?? false)}
+    />
   ),
 }));
 
@@ -88,7 +114,9 @@ describe("AuditHub", () => {
     vi.clearAllMocks();
   });
 
-  function render(section: "activity" | "runs" | "costs" | "budgets" | "timeline") {
+  function render(
+    section: "activity" | "runs" | "costs" | "budgets" | "timeline",
+  ) {
     root = createRoot(container);
     flushSync(() => root.render(<AuditHub section={section} />));
   }
@@ -103,7 +131,9 @@ describe("AuditHub", () => {
     expect(container.textContent).toContain("Costs");
     expect(container.textContent).toContain("Budgets");
     expect(container.textContent).toContain("Timeline");
-    const feed = container.querySelector<HTMLElement>('[data-testid="audit-feed"]');
+    const feed = container.querySelector<HTMLElement>(
+      '[data-testid="audit-feed"]',
+    );
     expect(feed?.dataset.mode).toBe("agents");
     expect(feed?.dataset.agent).toBe("agent-1");
     expect(feed?.dataset.run).toBe("run-1");
@@ -117,7 +147,9 @@ describe("AuditHub", () => {
     render("activity");
 
     expect(container.querySelector('[data-testid="audit-feed"]')).toBeNull();
-    const activity = container.querySelector<HTMLElement>('[data-testid="routine-audit-activity"]');
+    const activity = container.querySelector<HTMLElement>(
+      '[data-testid="routine-audit-activity"]',
+    );
     expect(activity?.dataset.company).toBe("company-1");
     expect(activity?.dataset.routine).toBe("routine-1");
   });
@@ -126,7 +158,9 @@ describe("AuditHub", () => {
     currentSearch = "entityType=routine&entityId=routine-1";
     render("runs");
 
-    const runs = container.querySelector<HTMLElement>('[data-testid="audit-runs"]');
+    const runs = container.querySelector<HTMLElement>(
+      '[data-testid="audit-runs"]',
+    );
     expect(runs?.dataset.company).toBe("company-1");
     expect(runs?.dataset.routine).toBe("routine-1");
   });
@@ -134,16 +168,27 @@ describe("AuditHub", () => {
   it("renders Timeline as the section after Budgets", () => {
     render("timeline");
 
-    const labels = Array.from(container.querySelectorAll<HTMLElement>('[role="tab"]'))
-      .map((tab) => tab.textContent?.trim());
-    expect(labels).toEqual(["Activity", "Runs", "Costs", "Budgets", "Timeline"]);
-    expect(container.querySelector<HTMLElement>('[data-testid="audit-timeline"]')?.dataset.embedded)
-      .toBe("true");
+    const labels = Array.from(
+      container.querySelectorAll<HTMLElement>('[role="tab"]'),
+    ).map((tab) => tab.textContent?.trim());
+    expect(labels).toEqual([
+      "Activity",
+      "Runs",
+      "Costs",
+      "Budgets",
+      "Timeline",
+    ]);
+    expect(
+      container.querySelector<HTMLElement>('[data-testid="audit-timeline"]')
+        ?.dataset.embedded,
+    ).toBe("true");
   });
 
   it("renders Costs and Budgets as intentional peer sections", () => {
     render("budgets");
-    let costs = container.querySelector<HTMLElement>('[data-testid="audit-costs"]');
+    let costs = container.querySelector<HTMLElement>(
+      '[data-testid="audit-costs"]',
+    );
     expect(costs?.dataset.initialTab).toBe("budgets");
     expect(costs?.dataset.lockTab).toBe("true");
 
@@ -158,12 +203,17 @@ describe("AuditHub", () => {
     currentSearch = "entityType=routine&entityId=routine-1";
     render("activity");
 
-    const runsTab = Array.from(container.querySelectorAll<HTMLElement>('[role="tab"]'))
-      .find((tab) => tab.textContent?.trim() === "Runs");
+    const runsTab = Array.from(
+      container.querySelectorAll<HTMLElement>('[role="tab"]'),
+    ).find((tab) => tab.textContent?.trim() === "Runs");
     expect(runsTab).toBeTruthy();
     flushSync(() => {
-      runsTab!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
-      runsTab!.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }));
+      runsTab!.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+      );
+      runsTab!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, button: 0 }),
+      );
     });
     expect(navigateMock).toHaveBeenCalledWith(
       "/activity/runs?entityType=routine&entityId=routine-1",

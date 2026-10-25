@@ -13,9 +13,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { createIssueDetailLocationState } from "@/lib/issueDetailBreadcrumb";
 import { Link } from "@/lib/router";
-import {
-  routineDetailHref,
-} from "./RoutineContextualSidebar";
+import { routineDetailHref } from "./RoutineContextualSidebar";
 import { useRoutineDetail } from "./routine-sections/context";
 
 export type RoutineScheduleSummary = {
@@ -31,15 +29,27 @@ export function formatRoutineTimestamp(value: Date | string) {
   });
 }
 
-export function summarizeRoutineSchedule(triggers: RoutineTrigger[]): RoutineScheduleSummary {
-  const schedules = triggers.filter((trigger) => trigger.kind === "schedule" && trigger.enabled);
-  const nextRunAt = schedules
-    .map((trigger) => trigger.nextRunAt ? new Date(trigger.nextRunAt) : null)
-    .filter((value): value is Date => value !== null && Number.isFinite(value.getTime()))
-    .sort((left, right) => left.getTime() - right.getTime())[0] ?? null;
+export function summarizeRoutineSchedule(
+  triggers: RoutineTrigger[],
+): RoutineScheduleSummary {
+  const schedules = triggers.filter(
+    (trigger) => trigger.kind === "schedule" && trigger.enabled,
+  );
+  const nextRunAt =
+    schedules
+      .map((trigger) =>
+        trigger.nextRunAt ? new Date(trigger.nextRunAt) : null,
+      )
+      .filter(
+        (value): value is Date =>
+          value !== null && Number.isFinite(value.getTime()),
+      )
+      .sort((left, right) => left.getTime() - right.getTime())[0] ?? null;
 
   if (schedules.length === 0) {
-    const webhooks = triggers.filter((trigger) => trigger.kind === "webhook" && trigger.enabled);
+    const webhooks = triggers.filter(
+      (trigger) => trigger.kind === "webhook" && trigger.enabled,
+    );
     if (webhooks.length > 0) {
       return {
         label: `${webhooks.length} active webhook${webhooks.length === 1 ? "" : "s"}`,
@@ -47,25 +57,36 @@ export function summarizeRoutineSchedule(triggers: RoutineTrigger[]): RoutineSch
         nextRunAt: null,
       };
     }
-    return { label: "No active schedule", detail: "Manual runs only", nextRunAt: null };
+    return {
+      label: "No active schedule",
+      detail: "Manual runs only",
+      nextRunAt: null,
+    };
   }
 
   const first = schedules[0]!;
   return {
-    label: schedules.length === 1 ? "1 active schedule" : `${schedules.length} active schedules`,
+    label:
+      schedules.length === 1
+        ? "1 active schedule"
+        : `${schedules.length} active schedules`,
     detail: first.cronExpression
       ? `${first.cronExpression}${first.timezone ? ` · ${first.timezone}` : ""}`
-      : first.label ?? "Scheduled trigger",
+      : (first.label ?? "Scheduled trigger"),
     nextRunAt,
   };
 }
 
 function normalizeIssueStatus(value: string): IssueStatus {
-  return ISSUE_STATUSES.includes(value as IssueStatus) ? value as IssueStatus : "todo";
+  return ISSUE_STATUSES.includes(value as IssueStatus)
+    ? (value as IssueStatus)
+    : "todo";
 }
 
 function normalizeIssuePriority(value: string): IssuePriority {
-  return ISSUE_PRIORITIES.includes(value as IssuePriority) ? value as IssuePriority : "medium";
+  return ISSUE_PRIORITIES.includes(value as IssuePriority)
+    ? (value as IssuePriority)
+    : "medium";
 }
 
 /** Display-only adapter for the canonical task row; run summaries intentionally carry compact task data. */
@@ -132,17 +153,24 @@ function OverviewFact({
         <span>{label}</span>
       </div>
       <div className="min-w-0 text-sm font-medium text-foreground">{value}</div>
-      {detail ? <div className="min-w-0 text-xs text-muted-foreground">{detail}</div> : null}
+      {detail ? (
+        <div className="min-w-0 text-xs text-muted-foreground">{detail}</div>
+      ) : null}
     </div>
   );
 }
 
 export function RoutineOverview() {
-  const { routine, routineRuns, currentAssignee, hasLiveRun } = useRoutineDetail();
+  const { routine, routineRuns, currentAssignee, hasLiveRun } =
+    useRoutineDetail();
   const schedule = summarizeRoutineSchedule(routine.triggers);
-  const hasWebhook = routine.triggers.some((trigger) => trigger.kind === "webhook" && trigger.enabled);
+  const hasWebhook = routine.triggers.some(
+    (trigger) => trigger.kind === "webhook" && trigger.enabled,
+  );
   const sortedRuns = [...(routineRuns ?? [])].sort(
-    (left, right) => new Date(right.triggeredAt).getTime() - new Date(left.triggeredAt).getTime(),
+    (left, right) =>
+      new Date(right.triggeredAt).getTime() -
+      new Date(left.triggeredAt).getTime(),
   );
   const lastRun = sortedRuns[0] ?? null;
   const recentRuns = sortedRuns.slice(0, 5);
@@ -151,11 +179,12 @@ export function RoutineOverview() {
     routineDetailHref(routine.id),
     "issues",
   );
-  const automationState = routine.status === "archived"
-    ? "archived"
-    : !routine.assigneeAgentId
-      ? "draft"
-      : routine.status;
+  const automationState =
+    routine.status === "archived"
+      ? "archived"
+      : !routine.assigneeAgentId
+        ? "draft"
+        : routine.status;
 
   return (
     <div className="flex flex-col gap-6" data-routine-overview-mode="read">
@@ -175,34 +204,67 @@ export function RoutineOverview() {
         <OverviewFact
           icon={Clock3}
           label="Next run"
-          value={schedule.nextRunAt ? formatRoutineTimestamp(schedule.nextRunAt) : hasWebhook ? "On webhook delivery" : "Not scheduled"}
-          detail={schedule.nextRunAt ? "Scheduled" : hasWebhook ? "Waiting for an incoming request" : "Add or enable a schedule"}
+          value={
+            schedule.nextRunAt
+              ? formatRoutineTimestamp(schedule.nextRunAt)
+              : hasWebhook
+                ? "On webhook delivery"
+                : "Not scheduled"
+          }
+          detail={
+            schedule.nextRunAt
+              ? "Scheduled"
+              : hasWebhook
+                ? "Waiting for an incoming request"
+                : "Add or enable a schedule"
+          }
         />
         <OverviewFact
           icon={Play}
           label="Last run"
-          value={lastRun ? <StatusBadge status={lastRun.status} /> : "No runs yet"}
-          detail={lastRun ? formatRoutineTimestamp(lastRun.triggeredAt) : "Run manually or wait for a trigger"}
+          value={
+            lastRun ? <StatusBadge status={lastRun.status} /> : "No runs yet"
+          }
+          detail={
+            lastRun
+              ? formatRoutineTimestamp(lastRun.triggeredAt)
+              : "Run manually or wait for a trigger"
+          }
         />
       </div>
 
-      <section className="flex flex-col gap-2" aria-labelledby="routine-agent-heading">
-        <h2 id="routine-agent-heading" className="text-sm font-semibold">Default agent</h2>
+      <section
+        className="flex flex-col gap-2"
+        aria-labelledby="routine-agent-heading"
+      >
+        <h2 id="routine-agent-heading" className="text-sm font-semibold">
+          Default agent
+        </h2>
         {currentAssignee ? (
           <Link
             to={`/agents/${currentAssignee.urlKey ?? currentAssignee.id}`}
             className="flex w-fit items-center gap-2 rounded-md text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <UserRound className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <UserRound
+              className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             {currentAssignee.name}
           </Link>
         ) : (
-          <p className="text-sm text-muted-foreground">No default agent. Automatic triggers remain paused.</p>
+          <p className="text-sm text-muted-foreground">
+            No default agent. Automatic triggers remain paused.
+          </p>
         )}
       </section>
 
-      <section className="flex flex-col gap-2" aria-labelledby="routine-description-heading">
-        <h2 id="routine-description-heading" className="text-sm font-semibold">Description</h2>
+      <section
+        className="flex flex-col gap-2"
+        aria-labelledby="routine-description-heading"
+      >
+        <h2 id="routine-description-heading" className="text-sm font-semibold">
+          Description
+        </h2>
         {routine.description?.trim() ? (
           <MarkdownBody className="text-sm text-foreground" linkIssueReferences>
             {routine.description}
@@ -212,11 +274,21 @@ export function RoutineOverview() {
         )}
       </section>
 
-      <section className="flex flex-col gap-2" aria-labelledby="routine-recent-runs-heading">
+      <section
+        className="flex flex-col gap-2"
+        aria-labelledby="routine-recent-runs-heading"
+      >
         <div className="flex items-center justify-between gap-3">
-          <h2 id="routine-recent-runs-heading" className="text-sm font-semibold">Recent runs</h2>
+          <h2
+            id="routine-recent-runs-heading"
+            className="text-sm font-semibold"
+          >
+            Recent runs
+          </h2>
           <Button variant="ghost" size="sm" asChild>
-            <Link to={routineDetailHref(routine.id, "runs")}>View all runs</Link>
+            <Link to={routineDetailHref(routine.id, "runs")}>
+              View all runs
+            </Link>
           </Button>
         </div>
         {recentRuns.length === 0 ? (
@@ -225,30 +297,48 @@ export function RoutineOverview() {
           </p>
         ) : (
           <div className="flex flex-col gap-0.5">
-            {recentRuns.map((run) => run.linkedIssue ? (
-              <IssueRow
-                key={run.id}
-                issue={routineRunIssue(run.linkedIssue, run, routine.companyId, routine.projectId)}
-                issueLinkState={detailOrigin}
-                presentation="task"
-                metadata={(
-                  <span className="flex items-center gap-2">
-                    <StatusBadge status={run.status} />
-                    <span className="font-mono text-xs text-muted-foreground">{formatRoutineTimestamp(run.triggeredAt)}</span>
+            {recentRuns.map((run) =>
+              run.linkedIssue ? (
+                <IssueRow
+                  key={run.id}
+                  issue={routineRunIssue(
+                    run.linkedIssue,
+                    run,
+                    routine.companyId,
+                    routine.projectId,
+                  )}
+                  issueLinkState={detailOrigin}
+                  presentation="task"
+                  metadata={
+                    <span className="flex items-center gap-2">
+                      <StatusBadge status={run.status} />
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {formatRoutineTimestamp(run.triggeredAt)}
+                      </span>
+                    </span>
+                  }
+                />
+              ) : (
+                <div
+                  key={run.id}
+                  className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-sm"
+                >
+                  <StatusBadge status={run.status} />
+                  <span className="min-w-0 flex-1 truncate">
+                    {run.trigger?.label ?? "Routine run"}
                   </span>
-                )}
-              />
-            ) : (
-              <div key={run.id} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-sm">
-                <StatusBadge status={run.status} />
-                <span className="min-w-0 flex-1 truncate">{run.trigger?.label ?? "Routine run"}</span>
-                <span className="shrink-0 font-mono text-xs text-muted-foreground">{formatRoutineTimestamp(run.triggeredAt)}</span>
-              </div>
-            ))}
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                    {formatRoutineTimestamp(run.triggeredAt)}
+                  </span>
+                </div>
+              ),
+            )}
           </div>
         )}
         <Button variant="link" size="sm" className="w-fit px-0" asChild>
-          <Link to={routineDetailHref(routine.id, "activity")}>View routine activity</Link>
+          <Link to={routineDetailHref(routine.id, "activity")}>
+            View routine activity
+          </Link>
         </Button>
       </section>
     </div>

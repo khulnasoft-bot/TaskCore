@@ -4,7 +4,11 @@ const eventName = "taskcore:recent-agent-chats";
 const key = (company: string, user?: string | null) =>
   `taskcore.recentAgentChats:${company}:${user ?? "__local_board__"}`;
 const memory = new Map<string, string>();
-const issueKey = (company: string, user: string | null | undefined, agentId: string) =>
+const issueKey = (
+  company: string,
+  user: string | null | undefined,
+  agentId: string,
+) =>
   `taskcore.recentAgentChatIssue:${company}:${user ?? "__local_board__"}:${agentId}`;
 const rememberedIssues = new Map<string, string>();
 function read(storageKey: string): string {
@@ -62,10 +66,18 @@ export function recordAgentChatVisit(
   }
   window.dispatchEvent(new Event(eventName));
 }
-export function recordedAgentChatIssueId(company: string, user: string | null | undefined, agentId: string): string | null {
+export function recordedAgentChatIssueId(
+  company: string,
+  user: string | null | undefined,
+  agentId: string,
+): string | null {
   const storageIssueKey = issueKey(company, user, agentId);
   try {
-    return window.localStorage.getItem(storageIssueKey) ?? rememberedIssues.get(storageIssueKey) ?? null;
+    return (
+      window.localStorage.getItem(storageIssueKey) ??
+      rememberedIssues.get(storageIssueKey) ??
+      null
+    );
   } catch {
     return rememberedIssues.get(storageIssueKey) ?? null;
   }
@@ -87,13 +99,13 @@ export function useRecentAgentChats(company: string, user?: string | null) {
     useSyncExternalStore(subscribe, getSnapshot, () => "[]"),
   );
 }
-export function orderChatAgents<T extends Pick<Agent, "id" | "name" | "createdAt">>(
-  agents: T[],
-  stars: string[],
-  recent: string[],
-) {
-  const firstAgent = [...agents].sort((a, b) =>
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() || a.id.localeCompare(b.id),
+export function orderChatAgents<
+  T extends Pick<Agent, "id" | "name" | "createdAt">,
+>(agents: T[], stars: string[], recent: string[]) {
+  const firstAgent = [...agents].sort(
+    (a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+      a.id.localeCompare(b.id),
   )[0];
   return [
     ...agents

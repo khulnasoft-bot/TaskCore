@@ -3,8 +3,15 @@ import { Lock, type LucideIcon } from "lucide-react";
 import { Link } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SkillCardIcon, type SkillIconCard } from "../../components/SkillCardIcon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  SkillCardIcon,
+  type SkillIconCard,
+} from "../../components/SkillCardIcon";
 import type { AgentSkillSearchFields } from "./agent-skill-filter";
 
 export type AgentSkillRowVariant = "enabled" | "available" | "readonly";
@@ -73,7 +80,9 @@ export function AgentSkillRow({
       <SkillCardIcon card={data.icon} size={32} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">{data.name}</span>
+          <span className="truncate text-sm font-medium text-foreground">
+            {data.name}
+          </span>
           {badge ? <span className="shrink-0">{badge}</span> : null}
           {data.chip ? (
             <span className="hidden shrink-0 items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-(length:--text-nano) capitalize text-muted-foreground sm:inline-flex">
@@ -82,7 +91,9 @@ export function AgentSkillRow({
           ) : null}
         </div>
         {data.summary ? (
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{data.summary}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {data.summary}
+          </p>
         ) : null}
         {data.sourceMeta && SourceIcon ? (
           <p className="mt-0.5 flex min-w-0 items-center gap-1 text-(length:--text-nano) text-muted-foreground/80">
@@ -120,7 +131,10 @@ export function AgentSkillRow({
   );
 
   const trailing = readOnly ? (
-    <Lock className="h-4 w-4 shrink-0 text-muted-foreground/60" aria-label="Read-only" />
+    <Lock
+      className="h-4 w-4 shrink-0 text-muted-foreground/60"
+      aria-label="Read-only"
+    />
   ) : (
     (() => {
       const toggle = (
@@ -151,7 +165,9 @@ export function AgentSkillRow({
       {accessory && !readOnly ? (
         // `order-last` + `w-full` push the picker below the name/toggle line on
         // mobile; on `sm+` it sits inline between the leading area and the toggle.
-        <div className="order-last w-full shrink-0 sm:order-none sm:w-auto">{accessory}</div>
+        <div className="order-last w-full shrink-0 sm:order-none sm:w-auto">
+          {accessory}
+        </div>
       ) : null}
       {trailing}
     </div>

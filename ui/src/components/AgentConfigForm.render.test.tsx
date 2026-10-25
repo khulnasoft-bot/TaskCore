@@ -5,11 +5,20 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Agent, Environment, UserSecretDefinition } from "@taskcore/shared";
+import type {
+  Agent,
+  Environment,
+  UserSecretDefinition,
+} from "@taskcore/shared";
 import { getEnvironmentCapabilities } from "@taskcore/shared";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "../context/ToastContext";
-import { AgentConfigForm, AdapterLoginPanel, subtractPersistedOverlay, type AdapterLoginDescriptor } from "./AgentConfigForm";
+import {
+  AgentConfigForm,
+  AdapterLoginPanel,
+  subtractPersistedOverlay,
+  type AdapterLoginDescriptor,
+} from "./AgentConfigForm";
 import { defaultCreateValues } from "./agent-config-defaults";
 import { buildNewAgentHirePayload } from "../lib/new-agent-hire-payload";
 import { ApiError } from "../api/client";
@@ -41,7 +50,9 @@ const mockAgentsApi = vi.hoisted(() => ({
 // session for the caller.
 function noActiveSession() {
   return Promise.reject(
-    new ApiError("Adapter login session not found", 404, { error: "Adapter login session not found" }),
+    new ApiError("Adapter login session not found", 404, {
+      error: "Adapter login session not found",
+    }),
   );
 }
 
@@ -108,17 +119,20 @@ vi.mock("../adapters", () => ({
     // adapter, so a test can assert the plumbing without rendering a real
     // adapter's fields.
     ConfigFields: (props: AdapterConfigFieldsProps) => {
-      if (type === "taskcore_runner") return <CodexLocalConfigFields {...props} />;
+      if (type === "taskcore_runner")
+        return <CodexLocalConfigFields {...props} />;
       const { adapterType, hideInstructionsFile, managedSandboxOnly } = props;
-      return adapterType === "hermes_gateway"
-        ? <div data-testid="hermes-gateway-config-fields">Hermes Gateway fields</div>
-        : (
-          <div
-            data-testid="adapter-config-fields"
-            data-hide-instructions-file={String(hideInstructionsFile === true)}
-            data-managed-sandbox-only={String(managedSandboxOnly === true)}
-          />
-        );
+      return adapterType === "hermes_gateway" ? (
+        <div data-testid="hermes-gateway-config-fields">
+          Hermes Gateway fields
+        </div>
+      ) : (
+        <div
+          data-testid="adapter-config-fields"
+          data-hide-instructions-file={String(hideInstructionsFile === true)}
+          data-managed-sandbox-only={String(managedSandboxOnly === true)}
+        />
+      );
     },
     buildAdapterConfig: (values: { model?: string }) => ({
       model: values.model || undefined,
@@ -134,15 +148,30 @@ vi.mock("../adapters", () => ({
 const mockLoginProjections = vi.hoisted(
   () =>
     new Map<string, { panelMode: string; timeoutPolicy: string }>([
-      ["codex_local", { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" }],
-      ["grok_local", { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" }],
-      ["claude_local", { panelMode: "submitted_browser_code", timeoutPolicy: "fixed" }],
+      [
+        "codex_local",
+        { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" },
+      ],
+      [
+        "grok_local",
+        { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" },
+      ],
+      [
+        "claude_local",
+        { panelMode: "submitted_browser_code", timeoutPolicy: "fixed" },
+      ],
       // A third adapter, not a built-in, with a projected displayed-code login.
-      ["vendor_local", { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" }],
+      [
+        "vendor_local",
+        { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" },
+      ],
       // A non-built-in adapter with a submitted-browser-code login. Every login
       // runs on a real pseudo-terminal, so the gate requires the provider pty
       // capability from the login capability, not the adapter name.
-      ["pty_vendor_local", { panelMode: "submitted_browser_code", timeoutPolicy: "fixed" }],
+      [
+        "pty_vendor_local",
+        { panelMode: "submitted_browser_code", timeoutPolicy: "fixed" },
+      ],
     ]),
 );
 
@@ -254,7 +283,10 @@ function makeEnvironment(overrides: Partial<Environment>): Environment {
 }
 
 function setInputValue(input: HTMLInputElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )?.set;
   setter?.call(input, value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
@@ -296,13 +328,17 @@ async function renderForm(
               onSave={onSave}
               hidePromptTemplate
               content={options.content}
-              environmentVariablesPlacement={options.environmentVariablesPlacement}
+              environmentVariablesPlacement={
+                options.environmentVariablesPlacement
+              }
               hideInlineSave={options.hideInlineSave}
               onDirtyChange={options.onDirtyChange}
               onSaveActionChange={options.onSaveActionChange}
               onCancelActionChange={options.onCancelActionChange}
               showAdapterTypeField={false}
-              showAdapterTestEnvironmentButton={options.showAdapterTestEnvironmentButton ?? false}
+              showAdapterTestEnvironmentButton={
+                options.showAdapterTestEnvironmentButton ?? false
+              }
             />
           </TooltipProvider>
         </ToastProvider>
@@ -349,7 +385,9 @@ async function renderCreateForm(
               onChange={onChange}
               hidePromptTemplate
               showAdapterTypeField={false}
-              showAdapterTestEnvironmentButton={options.showAdapterTestEnvironmentButton ?? false}
+              showAdapterTestEnvironmentButton={
+                options.showAdapterTestEnvironmentButton ?? false
+              }
             />
           </TooltipProvider>
         </ToastProvider>
@@ -394,7 +432,8 @@ const GROK_AUTH_MISSING_RESULT = {
     {
       code: "grok_hello_probe_auth_required",
       level: "warn",
-      message: "Grok CLI could not answer the hello probe because authentication is missing.",
+      message:
+        "Grok CLI could not answer the hello probe because authentication is missing.",
     },
     {
       code: "adapter_auth_missing",
@@ -439,12 +478,15 @@ const CLAUDE_AUTH_MISSING_RESULT = {
 // The provider capabilities the form fetches. Daytona advertises the
 // setup-token login capability; E2B does not. The Claude login panel shows only
 // for a provider with the capability.
-const SANDBOX_CAPABILITIES = getEnvironmentCapabilities(["claude_local", "codex_local"], {
-  sandboxProviders: {
-    daytona: { supportsLoginPty: true, displayName: "Daytona" },
-    e2b: { supportsLoginPty: false, displayName: "E2B" },
+const SANDBOX_CAPABILITIES = getEnvironmentCapabilities(
+  ["claude_local", "codex_local"],
+  {
+    sandboxProviders: {
+      daytona: { supportsLoginPty: true, displayName: "Daytona" },
+      e2b: { supportsLoginPty: false, displayName: "E2B" },
+    },
   },
-});
+);
 
 function findButton(container: HTMLElement, label: string) {
   return Array.from(container.querySelectorAll("button")).find(
@@ -486,7 +528,11 @@ async function renderVendorSandbox(agentOverrides: Partial<Agent> = {}) {
         config: { provider: "daytona" },
       }),
     ],
-    { adapterType: "vendor_local", defaultEnvironmentId: "sandbox-1", ...agentOverrides },
+    {
+      adapterType: "vendor_local",
+      defaultEnvironmentId: "sandbox-1",
+      ...agentOverrides,
+    },
     { showAdapterTestEnvironmentButton: true },
   );
 }
@@ -506,7 +552,11 @@ async function renderGrokSandbox(agentOverrides: Partial<Agent> = {}) {
         config: { provider: "daytona" },
       }),
     ],
-    { adapterType: "grok_local", defaultEnvironmentId: "sandbox-1", ...agentOverrides },
+    {
+      adapterType: "grok_local",
+      defaultEnvironmentId: "sandbox-1",
+      ...agentOverrides,
+    },
     { showAdapterTestEnvironmentButton: true },
   );
 }
@@ -522,7 +572,11 @@ async function renderClaudeSandbox(agentOverrides: Partial<Agent> = {}) {
         config: { provider: "daytona" },
       }),
     ],
-    { adapterType: "claude_local", defaultEnvironmentId: "sandbox-1", ...agentOverrides },
+    {
+      adapterType: "claude_local",
+      defaultEnvironmentId: "sandbox-1",
+      ...agentOverrides,
+    },
     { showAdapterTestEnvironmentButton: true },
   );
 }
@@ -540,7 +594,11 @@ async function renderCreateClaudeSandbox(
         config: { provider: "daytona" },
       }),
     ],
-    { adapterType: "claude_local", defaultEnvironmentId: "sandbox-1", ...valueOverrides },
+    {
+      adapterType: "claude_local",
+      defaultEnvironmentId: "sandbox-1",
+      ...valueOverrides,
+    },
     { showAdapterTestEnvironmentButton: true },
   );
 }
@@ -600,11 +658,17 @@ async function renderStatefulCreateClaudeSandbox(environments: Environment[]) {
   return { container, root, valuesRef };
 }
 
-async function selectEnvironment(container: HTMLElement, environmentId: string) {
+async function selectEnvironment(
+  container: HTMLElement,
+  environmentId: string,
+) {
   const select = container.querySelector("select");
   await act(async () => {
     if (select) {
-      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        "value",
+      )?.set;
       setter?.call(select, environmentId);
       select.dispatchEvent(new Event("change", { bubbles: true }));
     }
@@ -662,16 +726,26 @@ describe("AgentConfigForm environment selector", () => {
       checks: [],
       testedAt: new Date(0).toISOString(),
     });
-    mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableEnvironments: true });
-    mockInstanceSettingsApi.getGeneral.mockResolvedValue({ executionMode: "any" });
+    mockInstanceSettingsApi.get.mockResolvedValue({
+      defaultEnvironmentId: null,
+    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableEnvironments: true,
+    });
+    mockInstanceSettingsApi.getGeneral.mockResolvedValue({
+      executionMode: "any",
+    });
     mockEnvironmentsApi.capabilities.mockResolvedValue(SANDBOX_CAPABILITIES);
     mockSecretsApi.list.mockResolvedValue([]);
     mockSecretsApi.listProposals.mockResolvedValue([]);
     // Default: the caller has no active session. A resume test overrides this
     // with a resolved session body.
-    mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(noActiveSession);
-    mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(noActiveSession);
+    mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(
+      noActiveSession,
+    );
+    mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(
+      noActiveSession,
+    );
     mockAgentsApi.startAdapterAuthLogin.mockResolvedValue({
       sessionId: "session-1",
       environmentId: "sandbox-1",
@@ -746,44 +820,96 @@ describe("AgentConfigForm environment selector", () => {
     const dirty = vi.fn();
     let save: (() => void) | null = null;
     let discard: (() => void) | null = null;
-    const result = await renderForm([], {}, {
-      content: "secrets", environmentVariablesPlacement: "secrets", hideInlineSave: true,
-      onDirtyChange: dirty,
-      onSaveActionChange: action => { save = action; },
-      onCancelActionChange: action => { discard = action; },
-    });
+    const result = await renderForm(
+      [],
+      {},
+      {
+        content: "secrets",
+        environmentVariablesPlacement: "secrets",
+        hideInlineSave: true,
+        onDirtyChange: dirty,
+        onSaveActionChange: (action) => {
+          save = action;
+        },
+        onCancelActionChange: (action) => {
+          discard = action;
+        },
+      },
+    );
     roots.push(result.root);
-    const add = [...result.container.querySelectorAll("button")].find(button => button.textContent?.trim() === "Add variable")!;
+    const add = [...result.container.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "Add variable",
+    )!;
     await act(async () => add.click());
     await act(async () => {
-      setInputValue(result.container.querySelector<HTMLInputElement>('input[aria-label="Variable name"]')!, "ONBOARDING_SMOKE");
-      setInputValue(result.container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]')!, "true");
+      setInputValue(
+        result.container.querySelector<HTMLInputElement>(
+          'input[aria-label="Variable name"]',
+        )!,
+        "ONBOARDING_SMOKE",
+      );
+      setInputValue(
+        result.container.querySelector<HTMLInputElement>(
+          'input[aria-label="Variable value"]',
+        )!,
+        "true",
+      );
     });
     await flushReact();
     expect(dirty).toHaveBeenLastCalledWith(true);
-    expect([...result.container.querySelectorAll("button")].some(button => button.textContent?.trim() === "Save")).toBe(false);
-    await act(async () => { await save?.(); });
-    expect(result.onSave).toHaveBeenCalledWith(expect.objectContaining({ adapterConfig: expect.objectContaining({ env: { ONBOARDING_SMOKE: { type: "plain", value: "true" } } }) }));
+    expect(
+      [...result.container.querySelectorAll("button")].some(
+        (button) => button.textContent?.trim() === "Save",
+      ),
+    ).toBe(false);
+    await act(async () => {
+      await save?.();
+    });
+    expect(result.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterConfig: expect.objectContaining({
+          env: { ONBOARDING_SMOKE: { type: "plain", value: "true" } },
+        }),
+      }),
+    );
     await act(async () => discard?.());
     await flushReact();
     expect(dirty).toHaveBeenLastCalledWith(false);
-    expect(result.container.querySelector('input[aria-label="Variable name"]')).toBeNull();
+    expect(
+      result.container.querySelector('input[aria-label="Variable name"]'),
+    ).toBeNull();
   });
 
   it("reads and saves Pi thinking effort using the Pi runtime key", async () => {
-    const result = await renderForm([], { adapterType: "pi_local", adapterConfig: { model: "openrouter/anthropic/claude-sonnet-4.6", thinking: "high" } });
+    const result = await renderForm([], {
+      adapterType: "pi_local",
+      adapterConfig: {
+        model: "openrouter/anthropic/claude-sonnet-4.6",
+        thinking: "high",
+      },
+    });
     roots.push(result.root);
-    const effort = [...result.container.querySelectorAll("button")].find(button => button.textContent?.trim() === "high")!;
+    const effort = [...result.container.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "high",
+    )!;
     expect(effort).toBeTruthy();
     await act(async () => effort.click());
     await flushReact();
-    const low = [...document.querySelectorAll("button")].find(button => button.textContent?.trim() === "lowlow")!;
+    const low = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "lowlow",
+    )!;
     expect(low).toBeTruthy();
     await act(async () => low.click());
     await flushReact();
-    const save = [...result.container.querySelectorAll("button")].find(button => button.textContent?.trim() === "Save")!;
+    const save = [...result.container.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "Save",
+    )!;
     await act(async () => save.click());
-    expect(result.onSave).toHaveBeenCalledWith(expect.objectContaining({ adapterConfig: expect.objectContaining({ thinking: "low" }) }));
+    expect(result.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterConfig: expect.objectContaining({ thinking: "low" }),
+      }),
+    );
     expect(result.onSave.mock.calls[0][0].adapterConfig.effort).toBeUndefined();
   });
 
@@ -791,54 +917,91 @@ describe("AgentConfigForm environment selector", () => {
     ["Codex", "codex", undefined, DEFAULT_CODEX_LOCAL_MODEL],
     ["ACP agents", "acpx", "claude", "claude-sonnet-5"],
     ["Claude Managed", "claude_managed", undefined, "claude-sonnet-5"],
-  ])("saves the %s harness default without the previous OpenCode model prefix", async (label, provider, acpxAgent, model) => {
-    const accountList = vi.spyOn(aiConnectionsApi, "list").mockResolvedValue({
-      currentUserId: "you",
-      canManageConnections: true,
-      connections: [],
-    });
-    try {
-      const result = await renderForm([], {
-        adapterType: "taskcore_runner",
-        adapterConfig: { provider: "opencode", model: "openrouter/anthropic/claude-sonnet-4.6" },
-        runtimeConfig: { aiConnection: { mode: "responsible_user", provider: "openrouter", method: "api_key" } },
+  ])(
+    "saves the %s harness default without the previous OpenCode model prefix",
+    async (label, provider, acpxAgent, model) => {
+      const accountList = vi.spyOn(aiConnectionsApi, "list").mockResolvedValue({
+        currentUserId: "you",
+        canManageConnections: true,
+        connections: [],
       });
-      roots.push(result.root);
-      await act(async () => {
-        result.container.querySelector('[aria-label="Harness"]')!
-          .dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-      });
-      await flushReact();
-      const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')]
-        .find(element => element.textContent === label)!;
-      expect(option).toBeTruthy();
-      await act(async () => {
-        option.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-      });
-      await flushReact();
-      await clickByText(result.container, "Save");
-      expect(result.onSave).toHaveBeenCalledWith(expect.objectContaining({
-        adapterConfig: expect.objectContaining({ provider, model, ...(acpxAgent ? { acpxAgent } : {}) }),
-      }));
-    } finally {
-      accountList.mockRestore();
-    }
-  });
+      try {
+        const result = await renderForm([], {
+          adapterType: "taskcore_runner",
+          adapterConfig: {
+            provider: "opencode",
+            model: "openrouter/anthropic/claude-sonnet-4.6",
+          },
+          runtimeConfig: {
+            aiConnection: {
+              mode: "responsible_user",
+              provider: "openrouter",
+              method: "api_key",
+            },
+          },
+        });
+        roots.push(result.root);
+        await act(async () => {
+          result.container
+            .querySelector('[aria-label="Harness"]')!
+            .dispatchEvent(
+              new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+            );
+        });
+        await flushReact();
+        const option = [
+          ...document.querySelectorAll<HTMLElement>('[role="option"]'),
+        ].find((element) => element.textContent === label)!;
+        expect(option).toBeTruthy();
+        await act(async () => {
+          option.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+          );
+        });
+        await flushReact();
+        await clickByText(result.container, "Save");
+        expect(result.onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            adapterConfig: expect.objectContaining({
+              provider,
+              model,
+              ...(acpxAgent ? { acpxAgent } : {}),
+            }),
+          }),
+        );
+      } finally {
+        accountList.mockRestore();
+      }
+    },
+  );
 
   it("saves Grok 4.7 reasoning effort using the runtime key", async () => {
-    const result = await renderForm([], { adapterType: "grok_local", adapterConfig: { model: "grok-4.7", reasoningEffort: "high" } });
+    const result = await renderForm([], {
+      adapterType: "grok_local",
+      adapterConfig: { model: "grok-4.7", reasoningEffort: "high" },
+    });
     roots.push(result.root);
-    const effort = [...result.container.querySelectorAll("button")].find(button => button.textContent?.trim() === "High")!;
+    const effort = [...result.container.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "High",
+    )!;
     expect(effort).toBeTruthy();
     await act(async () => effort.click());
     await flushReact();
-    const xhigh = [...document.querySelectorAll("button")].find(button => button.textContent?.trim() === "X-Highxhigh")!;
+    const xhigh = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "X-Highxhigh",
+    )!;
     expect(xhigh).toBeTruthy();
     await act(async () => xhigh.click());
     await flushReact();
-    const save = [...result.container.querySelectorAll("button")].find(button => button.textContent?.trim() === "Save")!;
+    const save = [...result.container.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "Save",
+    )!;
     await act(async () => save.click());
-    expect(result.onSave).toHaveBeenCalledWith(expect.objectContaining({ adapterConfig: expect.objectContaining({ reasoningEffort: "xhigh" }) }));
+    expect(result.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterConfig: expect.objectContaining({ reasoningEffort: "xhigh" }),
+      }),
+    );
     expect(result.onSave.mock.calls[0][0].adapterConfig.effort).toBeUndefined();
   });
 
@@ -869,8 +1032,9 @@ describe("AgentConfigForm environment selector", () => {
     roots.push(result.root);
 
     expect(result.container.textContent).toContain("gpt-6-astra");
-    const effortButton = Array.from(result.container.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "Ultra");
+    const effortButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Ultra");
     expect(effortButton).not.toBeUndefined();
 
     await act(async () => {
@@ -878,8 +1042,9 @@ describe("AgentConfigForm environment selector", () => {
     });
     await flushReact();
 
-    const effortChoices = Array.from(document.body.querySelectorAll("button"))
-      .map((button) => button.textContent?.replace(/\s+/g, "").trim());
+    const effortChoices = Array.from(
+      document.body.querySelectorAll("button"),
+    ).map((button) => button.textContent?.replace(/\s+/g, "").trim());
     expect(effortChoices).toContain("Maxmax");
     expect(effortChoices).toContain("Ultraultra");
     expect(effortChoices).not.toContain("Minimalminimal");
@@ -901,24 +1066,27 @@ describe("AgentConfigForm environment selector", () => {
     );
     roots.push(result.root);
 
-    const modelButton = Array.from(result.container.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "gpt-5.6-sol");
+    const modelButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "gpt-5.6-sol");
     expect(modelButton).not.toBeUndefined();
     await act(async () => {
       modelButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
 
-    const astraOption = Array.from(document.body.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "gpt-6-astra");
+    const astraOption = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "gpt-6-astra");
     expect(astraOption).not.toBeUndefined();
     await act(async () => {
       astraOption!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flushReact();
 
-    const saveButton = Array.from(result.container.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "Save");
+    const saveButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Save");
     expect(saveButton).not.toBeUndefined();
     await act(async () => {
       saveButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -931,10 +1099,18 @@ describe("AgentConfigForm environment selector", () => {
   });
 
   it("names the Claude default for new and existing agents without pinning it", async () => {
-    const environments = [makeEnvironment({ id: "local-1", name: "Local", driver: "local" })];
-    const existing = await renderForm(environments, { adapterType: "claude_local", adapterConfig: {} });
+    const environments = [
+      makeEnvironment({ id: "local-1", name: "Local", driver: "local" }),
+    ];
+    const existing = await renderForm(environments, {
+      adapterType: "claude_local",
+      adapterConfig: {},
+    });
     roots.push(existing.root);
-    const created = await renderCreateForm(environments, { adapterType: "claude_local", model: "" });
+    const created = await renderCreateForm(environments, {
+      adapterType: "claude_local",
+      model: "",
+    });
     roots.push(created.root);
     expect(existing.container.textContent).toContain("Default (claude-opus-5)");
     expect(created.container.textContent).toContain("Default (claude-opus-5)");
@@ -959,7 +1135,9 @@ describe("AgentConfigForm environment selector", () => {
     roots.push(result.root);
 
     expect(result.container.textContent).toContain("Secret access");
-    expect(result.container.textContent).toContain("No secrets are bound to this agent yet.");
+    expect(result.container.textContent).toContain(
+      "No secrets are bound to this agent yet.",
+    );
     expect(result.container.textContent).not.toContain("Environment variables");
   });
 
@@ -983,7 +1161,9 @@ describe("AgentConfigForm environment selector", () => {
     expect(selector?.textContent).toContain("Default: Local");
     expect(selector?.textContent).toContain("E2B · sandbox");
     expect(text).not.toContain("Execution");
-    expect(text).not.toContain("Leave this unset to inherit the instance default");
+    expect(text).not.toContain(
+      "Leave this unset to inherit the instance default",
+    );
     expect(text).not.toContain("Inherit instance default");
   });
 
@@ -1055,7 +1235,9 @@ describe("AgentConfigForm environment selector", () => {
   });
 
   it("labels the platform-managed instance default by name, without the driver key", async () => {
-    mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: "managed-1" });
+    mockInstanceSettingsApi.get.mockResolvedValue({
+      defaultEnvironmentId: "managed-1",
+    });
     const result = await renderForm([
       makeEnvironment({
         id: "managed-1",
@@ -1082,29 +1264,38 @@ describe("AgentConfigForm environment selector", () => {
         adapterType: "hermes_gateway",
         adapterConfig: {
           apiBaseUrl: "http://127.0.0.1:8642",
-          apiKey: { type: "secret_ref", secretId: "11111111-1111-4111-8111-111111111111" },
+          apiKey: {
+            type: "secret_ref",
+            secretId: "11111111-1111-4111-8111-111111111111",
+          },
         },
       },
     );
     roots.push(result.root);
 
-    expect(result.container.querySelector('[data-testid="hermes-gateway-config-fields"]')).toBeTruthy();
+    expect(
+      result.container.querySelector(
+        '[data-testid="hermes-gateway-config-fields"]',
+      ),
+    ).toBeTruthy();
     expect(result.container.textContent).toContain("Hermes Gateway fields");
   });
 
   it("tests a Codex agent after clearing the primary model to the adapter default", async () => {
-    const result = await renderForm([
-      makeEnvironment({ id: "local-1", name: "Local", driver: "local" }),
-    ], {
-      adapterConfig: { model: "gpt-5.4" },
-    }, {
-      showAdapterTestEnvironmentButton: true,
-    });
+    const result = await renderForm(
+      [makeEnvironment({ id: "local-1", name: "Local", driver: "local" })],
+      {
+        adapterConfig: { model: "gpt-5.4" },
+      },
+      {
+        showAdapterTestEnvironmentButton: true,
+      },
+    );
     roots.push(result.root);
 
-    const modelButton = Array.from(result.container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "gpt-5.4",
-    );
+    const modelButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "gpt-5.4");
     expect(modelButton).toBeTruthy();
 
     await act(async () => {
@@ -1112,9 +1303,9 @@ describe("AgentConfigForm environment selector", () => {
     });
     await flushReact();
 
-    const defaultButton = Array.from(document.body.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Default",
-    );
+    const defaultButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Default");
     expect(defaultButton).toBeTruthy();
 
     await act(async () => {
@@ -1122,9 +1313,9 @@ describe("AgentConfigForm environment selector", () => {
     });
     await flushReact();
 
-    const testButton = Array.from(result.container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Test",
-    );
+    const testButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Test");
     expect(testButton).toBeTruthy();
 
     await act(async () => {
@@ -1136,26 +1327,32 @@ describe("AgentConfigForm environment selector", () => {
     expect(mockAgentsApi.testEnvironment.mock.calls[0]?.[2]).toMatchObject({
       adapterConfig: {},
     });
-    const adapterConfig = (mockAgentsApi.testEnvironment.mock.calls[0]?.[2] as {
-      adapterConfig: Record<string, unknown>;
-    }).adapterConfig;
+    const adapterConfig = (
+      mockAgentsApi.testEnvironment.mock.calls[0]?.[2] as {
+        adapterConfig: Record<string, unknown>;
+      }
+    ).adapterConfig;
     expect(adapterConfig).not.toHaveProperty("model");
-    expect(result.container.textContent).not.toContain("Cannot read properties of undefined");
+    expect(result.container.textContent).not.toContain(
+      "Cannot read properties of undefined",
+    );
   });
 
   it("omits undefined adapter config entries when testing a create form with the default model", async () => {
-    const result = await renderCreateForm([
-      makeEnvironment({ id: "local-1", name: "Local", driver: "local" }),
-    ], {
-      model: "",
-    }, {
-      showAdapterTestEnvironmentButton: true,
-    });
+    const result = await renderCreateForm(
+      [makeEnvironment({ id: "local-1", name: "Local", driver: "local" })],
+      {
+        model: "",
+      },
+      {
+        showAdapterTestEnvironmentButton: true,
+      },
+    );
     roots.push(result.root);
 
-    const testButton = Array.from(result.container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Test",
-    );
+    const testButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Test");
     expect(testButton).toBeTruthy();
 
     await act(async () => {
@@ -1167,26 +1364,32 @@ describe("AgentConfigForm environment selector", () => {
     expect(mockAgentsApi.testEnvironment.mock.calls[0]?.[2]).toMatchObject({
       adapterConfig: {},
     });
-    const adapterConfig = (mockAgentsApi.testEnvironment.mock.calls[0]?.[2] as {
-      adapterConfig: Record<string, unknown>;
-    }).adapterConfig;
+    const adapterConfig = (
+      mockAgentsApi.testEnvironment.mock.calls[0]?.[2] as {
+        adapterConfig: Record<string, unknown>;
+      }
+    ).adapterConfig;
     expect(adapterConfig).not.toHaveProperty("model");
   });
 
   it("flushes pending environment variable edits before testing adapter config", async () => {
-    const result = await renderForm([
-      makeEnvironment({ id: "local-1", name: "Local", driver: "local" }),
-    ], {
-      adapterConfig: {
-        model: "gpt-5.4",
-        env: { API_TOKEN: { type: "plain", value: "old-token" } },
+    const result = await renderForm(
+      [makeEnvironment({ id: "local-1", name: "Local", driver: "local" })],
+      {
+        adapterConfig: {
+          model: "gpt-5.4",
+          env: { API_TOKEN: { type: "plain", value: "old-token" } },
+        },
       },
-    }, {
-      showAdapterTestEnvironmentButton: true,
-    });
+      {
+        showAdapterTestEnvironmentButton: true,
+      },
+    );
     roots.push(result.root);
 
-    const valueInput = result.container.querySelector<HTMLInputElement>('input[aria-label="Variable value"]');
+    const valueInput = result.container.querySelector<HTMLInputElement>(
+      'input[aria-label="Variable value"]',
+    );
     expect(valueInput).toBeTruthy();
 
     await act(async () => {
@@ -1194,9 +1397,9 @@ describe("AgentConfigForm environment selector", () => {
     });
     await flushReact();
 
-    const testButton = Array.from(result.container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Test",
-    );
+    const testButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Test");
     expect(testButton).toBeTruthy();
 
     await act(async () => {
@@ -1219,20 +1422,24 @@ describe("AgentConfigForm environment selector", () => {
   });
 
   it("surfaces request failures instead of converting them into model test checks", async () => {
-    mockAgentsApi.testEnvironment.mockRejectedValueOnce(new Error("Network unavailable"));
+    mockAgentsApi.testEnvironment.mockRejectedValueOnce(
+      new Error("Network unavailable"),
+    );
 
-    const result = await renderForm([
-      makeEnvironment({ id: "local-1", name: "Local", driver: "local" }),
-    ], {
-      adapterConfig: { model: "gpt-5.4" },
-    }, {
-      showAdapterTestEnvironmentButton: true,
-    });
+    const result = await renderForm(
+      [makeEnvironment({ id: "local-1", name: "Local", driver: "local" })],
+      {
+        adapterConfig: { model: "gpt-5.4" },
+      },
+      {
+        showAdapterTestEnvironmentButton: true,
+      },
+    );
     roots.push(result.root);
 
-    const testButton = Array.from(result.container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Test",
-    );
+    const testButton = Array.from(
+      result.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Test");
     expect(testButton).toBeTruthy();
 
     await act(async () => {
@@ -1303,7 +1510,9 @@ describe("AgentConfigForm environment selector", () => {
     // URL. It shows no browser-code input, so the dispatcher picked the panel
     // from the projected `displayed_code` mode.
     expect(result.container.textContent).toContain("WXYZ-1234");
-    expect(result.container.querySelector('input[aria-label="Browser code"]')).toBeFalsy();
+    expect(
+      result.container.querySelector('input[aria-label="Browser code"]'),
+    ).toBeFalsy();
   });
 
   it("shows the login affordance and the displayed-code panel for a Grok sandbox with a projected login capability", async () => {
@@ -1323,7 +1532,9 @@ describe("AgentConfigForm environment selector", () => {
     await startLogin(result.container);
 
     expect(result.container.textContent).toContain("WXYZ-1234");
-    expect(result.container.querySelector('input[aria-label="Browser code"]')).toBeFalsy();
+    expect(
+      result.container.querySelector('input[aria-label="Browser code"]'),
+    ).toBeFalsy();
   });
 
   it("hides the Login button before Test and shows it after the adapter_auth_missing check for a Claude sandbox", async () => {
@@ -1402,7 +1613,9 @@ describe("AgentConfigForm environment selector", () => {
     // adapter is not `claude_local`, but its login runs on a pseudo-terminal.
     // The E2B provider reports no pty capability, so the panel stays hidden even
     // after the auth-missing check.
-    mockAgentsApi.testEnvironment.mockResolvedValue(PTY_VENDOR_AUTH_MISSING_RESULT);
+    mockAgentsApi.testEnvironment.mockResolvedValue(
+      PTY_VENDOR_AUTH_MISSING_RESULT,
+    );
     const result = await renderForm(
       [
         makeEnvironment({ id: "local-1", name: "Local", driver: "local" }),
@@ -1427,7 +1640,9 @@ describe("AgentConfigForm environment selector", () => {
     // The same non-Claude pseudo-terminal adapter on Daytona. Daytona advertises
     // the pty capability, so the panel shows. This confirms the gate follows the
     // provider capability, not the adapter name.
-    mockAgentsApi.testEnvironment.mockResolvedValue(PTY_VENDOR_AUTH_MISSING_RESULT);
+    mockAgentsApi.testEnvironment.mockResolvedValue(
+      PTY_VENDOR_AUTH_MISSING_RESULT,
+    );
     const result = await renderForm(
       [
         makeEnvironment({ id: "local-1", name: "Local", driver: "local" }),
@@ -1469,7 +1684,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     function LiftedFeedbackHarness() {
@@ -1618,11 +1836,17 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
 
-    expect(mockAgentsApi.startAdapterAuthLogin).toHaveBeenCalledWith("company-1", "codex_local", {
-      environmentId: "sandbox-1",
-    });
+    expect(mockAgentsApi.startAdapterAuthLogin).toHaveBeenCalledWith(
+      "company-1",
+      "codex_local",
+      {
+        environmentId: "sandbox-1",
+      },
+    );
     expect(result.container.textContent).toContain("WXYZ-1234");
-    expect(result.container.textContent).toContain("https://auth.example.test/device");
+    expect(result.container.textContent).toContain(
+      "https://auth.example.test/device",
+    );
   });
 
   it("shows the loading state while the session starts and the prompt is not ready", async () => {
@@ -1657,7 +1881,9 @@ describe("AgentConfigForm environment selector", () => {
     await clickElement(findByAriaLabel(result.container, "Copy URL"));
 
     expect(mockClipboard.copyTextToClipboard).toHaveBeenCalledWith("WXYZ-1234");
-    expect(mockClipboard.copyTextToClipboard).toHaveBeenCalledWith("https://auth.example.test/device");
+    expect(mockClipboard.copyTextToClipboard).toHaveBeenCalledWith(
+      "https://auth.example.test/device",
+    );
 
     // Code above URL, and the numbering agrees. Opening the page is what leaves
     // this screen for a form that wants the code from it, so the code is read
@@ -1668,7 +1894,9 @@ describe("AgentConfigForm environment selector", () => {
     expect(labels).toEqual(["1. Code", "2. Authentication URL"]);
 
     const codeIndex = result.container.textContent!.indexOf("WXYZ-1234");
-    const urlIndex = result.container.textContent!.indexOf("https://auth.example.test/device");
+    const urlIndex = result.container.textContent!.indexOf(
+      "https://auth.example.test/device",
+    );
     expect(codeIndex).toBeGreaterThan(-1);
     expect(urlIndex).toBeGreaterThan(codeIndex);
   });
@@ -1704,7 +1932,8 @@ describe("AgentConfigForm environment selector", () => {
     // Wait for the next status poll, which returns no prompt.
     const start = Date.now();
     while (mockAgentsApi.getAdapterAuthLoginStatus.mock.calls.length < 2) {
-      if (Date.now() - start > 6000) throw new Error("the status poll did not run a second time");
+      if (Date.now() - start > 6000)
+        throw new Error("the status poll did not run a second time");
       await flushReact();
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
@@ -1712,7 +1941,9 @@ describe("AgentConfigForm environment selector", () => {
 
     // The panel latched the prompt, so the code and the URL stay visible.
     expect(result.container.textContent).toContain("WXYZ-1234");
-    expect(result.container.textContent).toContain("https://auth.example.test/device");
+    expect(result.container.textContent).toContain(
+      "https://auth.example.test/device",
+    );
   });
 
   it("shows a Cancel affordance while a login is active and cancels the session", async () => {
@@ -1754,7 +1985,10 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await startLogin(result.container);
-    expect(findButton(result.container, "Cancel"), "the login should be active").toBeTruthy();
+    expect(
+      findButton(result.container, "Cancel"),
+      "the login should be active",
+    ).toBeTruthy();
 
     mockAgentsApi.cancelAdapterAuthLogin.mockClear();
     await act(async () => {
@@ -1765,38 +1999,95 @@ describe("AgentConfigForm environment selector", () => {
   });
 
   it("recovers a previous-environment sign-in only after explicit successful cancellation", async () => {
-    const intent = { provider: "xai", method: "subscription", name: "My Grok subscription", ownership: "personal", agentIds: [], allAgents: true } as const;
-    mockAgentsApi.getActiveAdapterAuthLoginSession.mockResolvedValueOnce({
-      sessionId: "previous-login", environmentId: "previous-sandbox", aiConnection: intent,
-      status: "waiting_for_user", prompt: null,
-    }).mockImplementation(noActiveSession);
-    mockAgentsApi.cancelAdapterAuthLogin.mockRejectedValueOnce(new Error("Network unavailable"));
+    const intent = {
+      provider: "xai",
+      method: "subscription",
+      name: "My Grok subscription",
+      ownership: "personal",
+      agentIds: [],
+      allAgents: true,
+    } as const;
+    mockAgentsApi.getActiveAdapterAuthLoginSession
+      .mockResolvedValueOnce({
+        sessionId: "previous-login",
+        environmentId: "previous-sandbox",
+        aiConnection: intent,
+        status: "waiting_for_user",
+        prompt: null,
+      })
+      .mockImplementation(noActiveSession);
+    mockAgentsApi.cancelAdapterAuthLogin.mockRejectedValueOnce(
+      new Error("Network unavailable"),
+    );
     const container = document.createElement("div");
     document.body.appendChild(container);
-    const root = createRoot(container); roots.push(root);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-    await act(async () => {
-      root.render(<QueryClientProvider client={queryClient}><ToastProvider><TooltipProvider>
-        <AdapterLoginPanel companyId="company-1" adapterType="grok_local" environmentId="new-sandbox"
-          aiConnection={{ ...intent, agentIds: [] }} chrome="onboarding" autoStart />
-      </TooltipProvider></ToastProvider></QueryClientProvider>);
+    const root = createRoot(container);
+    roots.push(root);
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
-    await flushUntil(() => Boolean(findButton(container, "Cancel previous sign-in and retry")));
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <TooltipProvider>
+              <AdapterLoginPanel
+                companyId="company-1"
+                adapterType="grok_local"
+                environmentId="new-sandbox"
+                aiConnection={{ ...intent, agentIds: [] }}
+                chrome="onboarding"
+                autoStart
+              />
+            </TooltipProvider>
+          </ToastProvider>
+        </QueryClientProvider>,
+      );
+    });
+    await flushUntil(() =>
+      Boolean(findButton(container, "Cancel previous sign-in and retry")),
+    );
     expect(mockAgentsApi.startAdapterAuthLogin).not.toHaveBeenCalled();
     expect(mockAgentsApi.cancelAdapterAuthLogin).not.toHaveBeenCalled();
-    await act(async () => findButton(container, "Cancel previous sign-in and retry")!.click());
-    await flushUntil(() => container.textContent?.includes("Could not cancel") ?? false);
+    await act(async () =>
+      findButton(container, "Cancel previous sign-in and retry")!.click(),
+    );
+    await flushUntil(
+      () => container.textContent?.includes("Could not cancel") ?? false,
+    );
     expect(mockAgentsApi.startAdapterAuthLogin).not.toHaveBeenCalled();
     let release!: () => void;
-    mockAgentsApi.cancelAdapterAuthLogin.mockImplementationOnce(() => new Promise<void>((resolve) => { release = resolve; }));
-    await act(async () => findButton(container, "Cancel previous sign-in and retry")!.click());
+    mockAgentsApi.cancelAdapterAuthLogin.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    await act(async () =>
+      findButton(container, "Cancel previous sign-in and retry")!.click(),
+    );
     await flushReact();
-    expect(findButton(container, "Cancel previous sign-in and retry")!.disabled).toBe(true);
+    expect(
+      findButton(container, "Cancel previous sign-in and retry")!.disabled,
+    ).toBe(true);
     expect(mockAgentsApi.startAdapterAuthLogin).not.toHaveBeenCalled();
     await act(async () => release());
-    await flushUntil(() => mockAgentsApi.startAdapterAuthLogin.mock.calls.length === 1);
-    expect(mockAgentsApi.cancelAdapterAuthLogin).toHaveBeenLastCalledWith("company-1", "grok_local", "previous-login");
-    expect(mockAgentsApi.startAdapterAuthLogin).toHaveBeenCalledWith("company-1", "grok_local", { environmentId: "new-sandbox", aiConnection: intent });
+    await flushUntil(
+      () => mockAgentsApi.startAdapterAuthLogin.mock.calls.length === 1,
+    );
+    expect(mockAgentsApi.cancelAdapterAuthLogin).toHaveBeenLastCalledWith(
+      "company-1",
+      "grok_local",
+      "previous-login",
+    );
+    expect(mockAgentsApi.startAdapterAuthLogin).toHaveBeenCalledWith(
+      "company-1",
+      "grok_local",
+      { environmentId: "new-sandbox", aiConnection: intent },
+    );
     queryClient.clear();
   });
 
@@ -1812,7 +2103,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -1834,7 +2128,9 @@ describe("AgentConfigForm environment selector", () => {
     });
     // Wait for the card itself, then assert it is actually there: an absence
     // check over an empty render passes for the wrong reason.
-    await flushUntil(() => container.textContent?.includes("authorization code") ?? false);
+    await flushUntil(
+      () => container.textContent?.includes("authorization code") ?? false,
+    );
     expect(container.textContent).toContain("authorization code");
 
     expect(findButton(container, "Cancel")).toBeFalsy();
@@ -1859,7 +2155,10 @@ describe("AgentConfigForm environment selector", () => {
       expiresAt: null,
       failure: null,
       prompt: null,
-      codexAccountBinding: { secretId: "secret-bind-1", companyIdentityDiffers: true },
+      codexAccountBinding: {
+        secretId: "secret-bind-1",
+        companyIdentityDiffers: true,
+      },
     });
     const onAccountBinding = vi.fn();
     const container = document.createElement("div");
@@ -1867,7 +2166,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -1896,7 +2198,12 @@ describe("AgentConfigForm environment selector", () => {
     });
     // The panel narrates the bind as its own state, separate from the login's
     // success line — the bind is a second save that can still fail.
-    await flushUntil(() => container.textContent?.includes("Agent bound to the signed-in account") ?? false);
+    await flushUntil(
+      () =>
+        container.textContent?.includes(
+          "Agent bound to the signed-in account",
+        ) ?? false,
+    );
   });
 
   it("a failed bind save renders an explicit Retry instead of silently latching the claim", async () => {
@@ -1918,7 +2225,10 @@ describe("AgentConfigForm environment selector", () => {
       expiresAt: null,
       failure: null,
       prompt: null,
-      codexAccountBinding: { secretId: "secret-bind-2", companyIdentityDiffers: true },
+      codexAccountBinding: {
+        secretId: "secret-bind-2",
+        companyIdentityDiffers: true,
+      },
     });
     const onAccountBinding = vi
       .fn()
@@ -1929,7 +2239,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -1949,14 +2262,22 @@ describe("AgentConfigForm environment selector", () => {
         </QueryClientProvider>,
       );
     });
-    await flushUntil(() => container.textContent?.includes("Could not bind this agent") ?? false);
+    await flushUntil(
+      () =>
+        container.textContent?.includes("Could not bind this agent") ?? false,
+    );
     const retry = findButton(container, "Retry");
     expect(retry).toBeTruthy();
 
     await act(async () => {
       retry!.click();
     });
-    await flushUntil(() => container.textContent?.includes("Agent bound to the signed-in account") ?? false);
+    await flushUntil(
+      () =>
+        container.textContent?.includes(
+          "Agent bound to the signed-in account",
+        ) ?? false,
+    );
     expect(onAccountBinding).toHaveBeenCalledTimes(2);
     expect(onAccountBinding).toHaveBeenLastCalledWith({
       secretId: "secret-bind-2",
@@ -2005,7 +2326,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -2063,7 +2387,10 @@ describe("AgentConfigForm environment selector", () => {
       expiresAt: null,
       failure: null,
       prompt: null,
-      codexAccountBinding: { secretId: "secret-serialize", companyIdentityDiffers: true },
+      codexAccountBinding: {
+        secretId: "secret-serialize",
+        companyIdentityDiffers: true,
+      },
     });
     let releaseSave: (() => void) | null = null;
     const onAccountBinding = vi.fn(
@@ -2077,7 +2404,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -2097,7 +2427,9 @@ describe("AgentConfigForm environment selector", () => {
         </QueryClientProvider>,
       );
     });
-    await flushUntil(() => container.textContent?.includes("Binding this agent") ?? false);
+    await flushUntil(
+      () => container.textContent?.includes("Binding this agent") ?? false,
+    );
     const signInWhileSaving = findButton(container, "Sign in");
     expect(signInWhileSaving).toBeTruthy();
     expect(signInWhileSaving!.disabled).toBe(true);
@@ -2105,7 +2437,12 @@ describe("AgentConfigForm environment selector", () => {
     await act(async () => {
       releaseSave?.();
     });
-    await flushUntil(() => container.textContent?.includes("Agent bound to the signed-in account") ?? false);
+    await flushUntil(
+      () =>
+        container.textContent?.includes(
+          "Agent bound to the signed-in account",
+        ) ?? false,
+    );
     const signInAfterSave = findButton(container, "Sign in");
     expect(signInAfterSave!.disabled).toBe(false);
   });
@@ -2123,7 +2460,10 @@ describe("AgentConfigForm environment selector", () => {
       expiresAt: null,
       failure: null,
       prompt: null,
-      codexAccountBinding: { secretId: "secret-keep-edits", companyIdentityDiffers: true },
+      codexAccountBinding: {
+        secretId: "secret-keep-edits",
+        companyIdentityDiffers: true,
+      },
     });
     const releaseSaves: Array<() => void> = [];
     const onSave = vi.fn(
@@ -2147,14 +2487,19 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     // The harness swaps the agent object the way the page does after a save
     // refresh: same mounted form, new agent identity.
     let refreshAgent: (agent: Agent) => void = () => {};
     function RefreshHarness() {
-      const [agent, setAgent] = useState(() => makeAgent({ defaultEnvironmentId: "sandbox-1" }));
+      const [agent, setAgent] = useState(() =>
+        makeAgent({ defaultEnvironmentId: "sandbox-1" }),
+      );
       refreshAgent = setAgent;
       return (
         <AgentConfigForm
@@ -2185,7 +2530,9 @@ describe("AgentConfigForm environment selector", () => {
     await flushUntil(() => onSave.mock.calls.length > 0);
 
     // Rename the agent while the bind save is still in flight.
-    const nameInput = container.querySelector<HTMLInputElement>('input[placeholder="Agent name"]');
+    const nameInput = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Agent name"]',
+    );
     expect(nameInput).toBeTruthy();
     setInputValue(nameInput!, "Renamed during bind");
     await flushReact();
@@ -2202,7 +2549,9 @@ describe("AgentConfigForm environment selector", () => {
     });
     await flushReact();
     expect(
-      container.querySelector<HTMLInputElement>('input[placeholder="Agent name"]')!.value,
+      container.querySelector<HTMLInputElement>(
+        'input[placeholder="Agent name"]',
+      )!.value,
     ).toBe("Renamed during bind");
 
     // An ordinary Save in that window still carries the binding.
@@ -2215,10 +2564,8 @@ describe("AgentConfigForm environment selector", () => {
     await flushReact();
     expect(onSave.mock.calls.length).toBeGreaterThan(1);
     const racingPatch = onSave.mock.calls.at(-1)![0] as Record<string, unknown>;
-    const racingEnv = (racingPatch.adapterConfig as Record<string, unknown>).env as Record<
-      string,
-      unknown
-    >;
+    const racingEnv = (racingPatch.adapterConfig as Record<string, unknown>)
+      .env as Record<string, unknown>;
     expect(racingEnv.CODEX_HOME).toEqual({
       type: "secret_ref",
       secretId: "secret-keep-edits",
@@ -2235,7 +2582,10 @@ describe("AgentConfigForm environment selector", () => {
       refreshAgent(
         makeAgent({
           defaultEnvironmentId: "sandbox-1",
-          adapterConfig: persistedPatch.adapterConfig as Record<string, unknown>,
+          adapterConfig: persistedPatch.adapterConfig as Record<
+            string,
+            unknown
+          >,
         }),
       );
     });
@@ -2244,7 +2594,9 @@ describe("AgentConfigForm environment selector", () => {
     // The rename survives the refresh instead of reverting to the refreshed
     // agent's name.
     expect(
-      container.querySelector<HTMLInputElement>('input[placeholder="Agent name"]')!.value,
+      container.querySelector<HTMLInputElement>(
+        'input[placeholder="Agent name"]',
+      )!.value,
     ).toBe("Renamed during bind");
   });
 
@@ -2274,11 +2626,15 @@ describe("AgentConfigForm environment selector", () => {
     roots.push(result.root);
 
     await runTest(result.container);
-    await flushUntil(() => (result.container.textContent ?? "").includes("RESUME-1"));
+    await flushUntil(() =>
+      (result.container.textContent ?? "").includes("RESUME-1"),
+    );
 
     // The prompt from the resumed read shows without a fresh start.
     expect(result.container.textContent).toContain("RESUME-1");
-    expect(result.container.textContent).toContain("https://auth.example.test/resumed");
+    expect(result.container.textContent).toContain(
+      "https://auth.example.test/resumed",
+    );
     expect(mockAgentsApi.startAdapterAuthLogin).not.toHaveBeenCalled();
     // The panel polls the resumed session id, not a freshly started one.
     expect(mockAgentsApi.getAdapterAuthLoginStatus).toHaveBeenCalledWith(
@@ -2297,7 +2653,10 @@ describe("AgentConfigForm environment selector", () => {
     roots.push(result.root);
 
     await runTest(result.container);
-    await flushUntil(() => mockAgentsApi.getActiveAdapterAuthLoginSession.mock.calls.length > 0);
+    await flushUntil(
+      () =>
+        mockAgentsApi.getActiveAdapterAuthLoginSession.mock.calls.length > 0,
+    );
     await flushReact();
 
     expect(mockAgentsApi.startAdapterAuthLogin).not.toHaveBeenCalled();
@@ -2305,9 +2664,13 @@ describe("AgentConfigForm environment selector", () => {
 
     await startLogin(result.container);
 
-    expect(mockAgentsApi.startAdapterAuthLogin).toHaveBeenCalledWith("company-1", "codex_local", {
-      environmentId: "sandbox-1",
-    });
+    expect(mockAgentsApi.startAdapterAuthLogin).toHaveBeenCalledWith(
+      "company-1",
+      "codex_local",
+      {
+        environmentId: "sandbox-1",
+      },
+    );
   });
 
   it("releases a resumed session after an unrecoverable resume error, waiting for the cancel response", async () => {
@@ -2333,14 +2696,15 @@ describe("AgentConfigForm environment selector", () => {
     let resolveCancel!: () => void;
     mockAgentsApi.cancelAdapterAuthLogin.mockReturnValue(
       new Promise((resolve) => {
-        resolveCancel = () => resolve({
-          sessionId: "resumed-session-1",
-          environmentId: "sandbox-1",
-          status: "cancelled",
-          expiresAt: null,
-          failure: null,
-          prompt: null,
-        });
+        resolveCancel = () =>
+          resolve({
+            sessionId: "resumed-session-1",
+            environmentId: "sandbox-1",
+            status: "cancelled",
+            expiresAt: null,
+            failure: null,
+            prompt: null,
+          });
       }),
     );
     const result = await renderCodexSandbox();
@@ -2348,7 +2712,9 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await flushUntil(() =>
-      mockAgentsApi.cancelAdapterAuthLogin.mock.calls.some((call) => call[2] === "resumed-session-1"),
+      mockAgentsApi.cancelAdapterAuthLogin.mock.calls.some(
+        (call) => call[2] === "resumed-session-1",
+      ),
     );
 
     // The cancel call fired, but the panel still shows the resumed login as
@@ -2356,7 +2722,9 @@ describe("AgentConfigForm environment selector", () => {
     expect(findButton(result.container, "Cancel")).toBeTruthy();
 
     resolveCancel();
-    await flushUntil(() => findButton(result.container, "Sign in")?.disabled === false);
+    await flushUntil(
+      () => findButton(result.container, "Sign in")?.disabled === false,
+    );
 
     expect(findButton(result.container, "Cancel")).toBeFalsy();
     expect(findButton(result.container, "Sign in")?.disabled).toBe(false);
@@ -2370,7 +2738,9 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
 
-    const live = result.container.querySelector('[role="status"][aria-live="polite"]');
+    const live = result.container.querySelector(
+      '[role="status"][aria-live="polite"]',
+    );
     expect(live).toBeTruthy();
     expect(live?.textContent).toContain("WXYZ-1234");
   });
@@ -2383,7 +2753,9 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
 
-    const link = result.container.querySelector('a[href="https://auth.example.test/device"]');
+    const link = result.container.querySelector(
+      'a[href="https://auth.example.test/device"]',
+    );
     expect(link).toBeTruthy();
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toBe("noreferrer noopener");
@@ -2429,7 +2801,10 @@ describe("AgentConfigForm environment selector", () => {
       environmentId: "sandbox-1",
       status: "failed",
       expiresAt: null,
-      failure: { reason: "device_rejected", message: "The device rejected the code." },
+      failure: {
+        reason: "device_rejected",
+        message: "The device rejected the code.",
+      },
       prompt: null,
     });
     const result = await renderCodexSandbox();
@@ -2439,7 +2814,9 @@ describe("AgentConfigForm environment selector", () => {
     await startLogin(result.container);
 
     expect(result.container.textContent).toContain("Login failed");
-    expect(result.container.textContent).toContain("The device rejected the code.");
+    expect(result.container.textContent).toContain(
+      "The device rejected the code.",
+    );
   });
 
   it("renders the timed-out terminal state", async () => {
@@ -2472,7 +2849,10 @@ describe("AgentConfigForm environment selector", () => {
     const select = result.container.querySelector("select");
     await act(async () => {
       if (select) {
-        const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+        const setter = Object.getOwnPropertyDescriptor(
+          HTMLSelectElement.prototype,
+          "value",
+        )?.set;
         setter?.call(select, "");
         select.dispatchEvent(new Event("change", { bubbles: true }));
       }
@@ -2490,15 +2870,22 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
     await flushUntil(() =>
-      (result.container.textContent ?? "").includes("https://claude.example.test/authorize"),
+      (result.container.textContent ?? "").includes(
+        "https://claude.example.test/authorize",
+      ),
     );
 
-    expect(mockAgentsApi.startClaudeSetupTokenLogin).toHaveBeenCalledWith("company-1", {
-      environmentId: "sandbox-1",
-    });
+    expect(mockAgentsApi.startClaudeSetupTokenLogin).toHaveBeenCalledWith(
+      "company-1",
+      {
+        environmentId: "sandbox-1",
+      },
+    );
     // The panel shows the authorization URL and a browser-code input. It never
     // shows a server-displayed code.
-    expect(result.container.textContent).toContain("https://claude.example.test/authorize");
+    expect(result.container.textContent).toContain(
+      "https://claude.example.test/authorize",
+    );
     expect(
       result.container.querySelector('input[aria-label="Browser code"]'),
     ).toBeTruthy();
@@ -2521,14 +2908,18 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await startLogin(result.container);
-    await flushUntil(() => (result.container.textContent ?? "").includes("not encrypted"));
+    await flushUntil(() =>
+      (result.container.textContent ?? "").includes("not encrypted"),
+    );
 
     // The disclaimer states the transport risk in plain language.
     expect(result.container.textContent).toContain("not encrypted");
     expect(result.container.textContent).toContain("clear text");
     // The login still proceeds: the panel shows the URL and the browser-code
     // input, so the disclaimer never blocks the flow.
-    expect(result.container.textContent).toContain("https://claude.example.test/authorize");
+    expect(result.container.textContent).toContain(
+      "https://claude.example.test/authorize",
+    );
     expect(
       result.container.querySelector('input[aria-label="Browser code"]'),
     ).toBeTruthy();
@@ -2542,7 +2933,9 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
     await flushUntil(() =>
-      Boolean(result.container.querySelector('input[aria-label="Browser code"]')),
+      Boolean(
+        result.container.querySelector('input[aria-label="Browser code"]'),
+      ),
     );
 
     const input = result.container.querySelector<HTMLInputElement>(
@@ -2553,11 +2946,9 @@ describe("AgentConfigForm environment selector", () => {
     await clickByText(result.container, "Submit");
     await flushReact();
 
-    expect(mockAgentsApi.submitClaudeSetupTokenBrowserCode).toHaveBeenCalledWith(
-      "company-1",
-      "claude-session-1",
-      "BROWSERCODE-9",
-    );
+    expect(
+      mockAgentsApi.submitClaudeSetupTokenBrowserCode,
+    ).toHaveBeenCalledWith("company-1", "claude-session-1", "BROWSERCODE-9");
     // The panel clears the browser code after submit, so the secret does not
     // linger in the input.
     const clearedInput = result.container.querySelector<HTMLInputElement>(
@@ -2580,7 +2971,9 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await startLogin(result.container);
-    await flushUntil(() => (result.container.textContent ?? "").includes("Authenticated"));
+    await flushUntil(() =>
+      (result.container.textContent ?? "").includes("Authenticated"),
+    );
 
     expect(mockAgentsApi.completeClaudeSetupTokenLogin).toHaveBeenCalledWith(
       "company-1",
@@ -2619,10 +3012,16 @@ describe("AgentConfigForm environment selector", () => {
     // `CLAUDE_CODE_OAUTH_TOKEN` binding and the non-secret claim to the form.
     await runTest(result.container);
     await startLogin(result.container);
-    await flushUntil(() => result.valuesRef.current.claudeStoredSessionId != null);
+    await flushUntil(
+      () => result.valuesRef.current.claudeStoredSessionId != null,
+    );
 
-    expect(result.valuesRef.current.claudeStoredSessionId).toBe("stored-session-1");
-    expect("CLAUDE_CODE_OAUTH_TOKEN" in (result.valuesRef.current.envBindings ?? {})).toBe(true);
+    expect(result.valuesRef.current.claudeStoredSessionId).toBe(
+      "stored-session-1",
+    );
+    expect(
+      "CLAUDE_CODE_OAUTH_TOKEN" in (result.valuesRef.current.envBindings ?? {}),
+    ).toBe(true);
 
     // Change the effective environment. The reset drops the claim and the
     // binding, so the create request cannot send a claim for the old target.
@@ -2677,7 +3076,10 @@ describe("AgentConfigForm environment selector", () => {
       updatedAt: new Date(0),
     });
     const staleList = [makeDefinition("OTHER_SECRET")];
-    const freshList = [makeDefinition("OTHER_SECRET"), makeDefinition("CLAUDE_CODE_OAUTH_TOKEN")];
+    const freshList = [
+      makeDefinition("OTHER_SECRET"),
+      makeDefinition("CLAUDE_CODE_OAUTH_TOKEN"),
+    ];
     mockSecretsApi.listUserSecretDefinitions.mockReset();
     mockSecretsApi.listUserSecretDefinitions
       .mockResolvedValueOnce(staleList)
@@ -2696,24 +3098,40 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await startLogin(result.container);
-    await flushUntil(() => result.valuesRef.current.claudeStoredSessionId != null);
+    await flushUntil(
+      () => result.valuesRef.current.claudeStoredSessionId != null,
+    );
 
     // The login bound the fixed Claude token row.
-    expect("CLAUDE_CODE_OAUTH_TOKEN" in (result.valuesRef.current.envBindings ?? {})).toBe(true);
+    expect(
+      "CLAUDE_CODE_OAUTH_TOKEN" in (result.valuesRef.current.envBindings ?? {}),
+    ).toBe(true);
 
     // The invalidation refetched the definitions, so the stale list no longer
     // drives the row.
-    await flushUntil(() => mockSecretsApi.listUserSecretDefinitions.mock.calls.length >= 2);
+    await flushUntil(
+      () => mockSecretsApi.listUserSecretDefinitions.mock.calls.length >= 2,
+    );
     await flushUntil(() => {
       const inputs = Array.from(result.container.querySelectorAll("input"));
-      return inputs.some((input) => (input as HTMLInputElement).value === "CLAUDE_CODE_OAUTH_TOKEN");
+      return inputs.some(
+        (input) =>
+          (input as HTMLInputElement).value === "CLAUDE_CODE_OAUTH_TOKEN",
+      );
     });
 
     // Vacuous-pass guard: the bound row rendered.
     const inputs = Array.from(result.container.querySelectorAll("input"));
-    expect(inputs.some((input) => (input as HTMLInputElement).value === "CLAUDE_CODE_OAUTH_TOKEN")).toBe(true);
+    expect(
+      inputs.some(
+        (input) =>
+          (input as HTMLInputElement).value === "CLAUDE_CODE_OAUTH_TOKEN",
+      ),
+    ).toBe(true);
     // The row shows no false missing-definition error.
-    expect(result.container.textContent ?? "").not.toContain("no longer exists");
+    expect(result.container.textContent ?? "").not.toContain(
+      "no longer exists",
+    );
   });
 
   it("reports the non-secret stored-session claim to the parent on success", async () => {
@@ -2732,7 +3150,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -2769,7 +3190,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -2791,7 +3215,9 @@ describe("AgentConfigForm environment selector", () => {
     });
     // Wait for the card itself, then assert it is actually there: an absence
     // check over an empty render passes for the wrong reason.
-    await flushUntil(() => container.textContent?.includes("authorization code") ?? false);
+    await flushUntil(
+      () => container.textContent?.includes("authorization code") ?? false,
+    );
     expect(container.textContent).toContain("authorization code");
 
     expect(findButton(container, "Cancel")).toBeFalsy();
@@ -2809,7 +3235,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -2835,7 +3264,9 @@ describe("AgentConfigForm environment selector", () => {
     expect(onApplyStored).toHaveBeenCalledTimes(1);
     // The panel shows the applied confirmation and hides the apply affordance.
     await flushUntil(() =>
-      (container.textContent ?? "").includes("The saved Claude login is bound to this agent now."),
+      (container.textContent ?? "").includes(
+        "The saved Claude login is bound to this agent now.",
+      ),
     );
     expect(findButton(container, "Use saved login")).toBeUndefined();
     // The apply-existing path never starts a login round trip.
@@ -2851,7 +3282,10 @@ describe("AgentConfigForm environment selector", () => {
     const root = createRoot(container);
     roots.push(root);
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     await act(async () => {
@@ -2882,7 +3316,10 @@ describe("AgentConfigForm environment selector", () => {
       sessionId: "claude-session-1",
       environmentId: "sandbox-1",
       status: "failed",
-      failure: { reason: "rejected", message: "the provider rejected the browser code" },
+      failure: {
+        reason: "rejected",
+        message: "the provider rejected the browser code",
+      },
       expiresAt: null,
     });
     const result = await renderClaudeSandbox();
@@ -2900,7 +3337,9 @@ describe("AgentConfigForm environment selector", () => {
     expect(findButton(result.container, "Sign in")?.disabled).toBe(false);
     // The panel never shows the provider failure message, which could carry a
     // secret.
-    expect(result.container.textContent).not.toContain("the provider rejected the browser code");
+    expect(result.container.textContent).not.toContain(
+      "the provider rejected the browser code",
+    );
   });
 
   it("returns to its start state on a server timed_out state", async () => {
@@ -2957,12 +3396,17 @@ describe("AgentConfigForm environment selector", () => {
 
     // The panel shows no credential material: no authorization URL and no
     // browser-code input.
-    expect(result.container.textContent).not.toContain("https://claude.example.test/authorize");
-    expect(result.container.querySelector('input[aria-label="Browser code"]')).toBeFalsy();
+    expect(result.container.textContent).not.toContain(
+      "https://claude.example.test/authorize",
+    );
+    expect(
+      result.container.querySelector('input[aria-label="Browser code"]'),
+    ).toBeFalsy();
 
     // The stale polling stopped. The status call count stays fixed after the
     // failure, so the panel does not poll a session the server removed.
-    const statusCallsAtFailure = mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length;
+    const statusCallsAtFailure =
+      mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length;
     await new Promise((resolve) => setTimeout(resolve, 2500));
     await flushReact();
     expect(mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length).toBe(
@@ -2978,7 +3422,9 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
     await flushUntil(() =>
-      (result.container.textContent ?? "").includes("https://claude.example.test/authorize"),
+      (result.container.textContent ?? "").includes(
+        "https://claude.example.test/authorize",
+      ),
     );
 
     expect(findButton(result.container, "Cancel")).toBeTruthy();
@@ -2994,8 +3440,12 @@ describe("AgentConfigForm environment selector", () => {
     // browser-code input are gone.
     expect(findButton(result.container, "Sign in")?.disabled).toBe(false);
     expect(findButton(result.container, "Cancel")).toBeFalsy();
-    expect(result.container.textContent).not.toContain("https://claude.example.test/authorize");
-    expect(result.container.querySelector('input[aria-label="Browser code"]')).toBeFalsy();
+    expect(result.container.textContent).not.toContain(
+      "https://claude.example.test/authorize",
+    );
+    expect(
+      result.container.querySelector('input[aria-label="Browser code"]'),
+    ).toBeFalsy();
   });
 
   it("treats a 404 cancel the same as success and returns to its start state", async () => {
@@ -3014,7 +3464,9 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
     await flushUntil(() =>
-      (result.container.textContent ?? "").includes("https://claude.example.test/authorize"),
+      (result.container.textContent ?? "").includes(
+        "https://claude.example.test/authorize",
+      ),
     );
 
     await clickByText(result.container, "Cancel");
@@ -3029,9 +3481,15 @@ describe("AgentConfigForm environment selector", () => {
     // message remains.
     expect(findButton(result.container, "Sign in")?.disabled).toBe(false);
     expect(findButton(result.container, "Cancel")).toBeFalsy();
-    expect(result.container.textContent).not.toContain("https://claude.example.test/authorize");
-    expect(result.container.querySelector('input[aria-label="Browser code"]')).toBeFalsy();
-    expect(result.container.textContent).not.toContain("Could not cancel the login.");
+    expect(result.container.textContent).not.toContain(
+      "https://claude.example.test/authorize",
+    );
+    expect(
+      result.container.querySelector('input[aria-label="Browser code"]'),
+    ).toBeFalsy();
+    expect(result.container.textContent).not.toContain(
+      "Could not cancel the login.",
+    );
   });
 
   it("does not cancel an active login session when the panel unmounts", async () => {
@@ -3044,7 +3502,9 @@ describe("AgentConfigForm environment selector", () => {
     await runTest(result.container);
     await startLogin(result.container);
     await flushUntil(() =>
-      (result.container.textContent ?? "").includes("https://claude.example.test/authorize"),
+      (result.container.textContent ?? "").includes(
+        "https://claude.example.test/authorize",
+      ),
     );
     // The login is active before the unmount.
     expect(findButton(result.container, "Cancel")).toBeTruthy();
@@ -3089,10 +3549,14 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await flushUntil(() =>
-      (result.container.textContent ?? "").includes("https://claude.example.test/resumed"),
+      (result.container.textContent ?? "").includes(
+        "https://claude.example.test/resumed",
+      ),
     );
 
-    expect(result.container.textContent).toContain("https://claude.example.test/resumed");
+    expect(result.container.textContent).toContain(
+      "https://claude.example.test/resumed",
+    );
     expect(mockAgentsApi.startClaudeSetupTokenLogin).not.toHaveBeenCalled();
     expect(mockAgentsApi.getClaudeSetupTokenLoginStatus).toHaveBeenCalledWith(
       "company-1",
@@ -3108,7 +3572,11 @@ describe("AgentConfigForm environment selector", () => {
     roots.push(result.root);
 
     await runTest(result.container);
-    await flushUntil(() => mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mock.calls.length > 0);
+    await flushUntil(
+      () =>
+        mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mock.calls.length >
+        0,
+    );
     await flushReact();
 
     expect(mockAgentsApi.startClaudeSetupTokenLogin).not.toHaveBeenCalled();
@@ -3135,7 +3603,9 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await flushUntil(() =>
-      (result.container.textContent ?? "").includes("https://claude.example.test/resumed"),
+      (result.container.textContent ?? "").includes(
+        "https://claude.example.test/resumed",
+      ),
     );
 
     await clickByText(result.container, "Cancel");
@@ -3195,7 +3665,9 @@ describe("AgentConfigForm environment selector", () => {
     expect(findButton(result.container, "Sign in")?.disabled).toBe(true);
 
     resolveCancel();
-    await flushUntil(() => findButton(result.container, "Sign in")?.disabled === false);
+    await flushUntil(
+      () => findButton(result.container, "Sign in")?.disabled === false,
+    );
 
     expect(findButton(result.container, "Cancel")).toBeFalsy();
     expect(findButton(result.container, "Sign in")?.disabled).toBe(false);
@@ -3213,7 +3685,9 @@ describe("AgentConfigForm environment selector", () => {
     const serverDeadlineMs = 5 * 60_000;
     const expiresAtIso = new Date(baseNowMs + serverDeadlineMs).toISOString();
     try {
-      mockAgentsApi.testEnvironment.mockResolvedValue(CLAUDE_AUTH_MISSING_RESULT);
+      mockAgentsApi.testEnvironment.mockResolvedValue(
+        CLAUDE_AUTH_MISSING_RESULT,
+      );
       // The status never reaches a terminal state, and the prompt route returns
       // 404 forever, so the authorization URL never surfaces. The status route
       // carries `expiresAt`, which drives the client cutoff. Without the client
@@ -3270,7 +3744,10 @@ describe("AgentConfigForm environment selector", () => {
       const root = createRoot(container);
       roots.push(root);
       const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
       });
       await act(async () => {
         root.render(
@@ -3299,20 +3776,22 @@ describe("AgentConfigForm environment selector", () => {
       await clickFake(container, "Sign in");
 
       // The login is active: both polls have run at least once.
-      const statusCallsAtStart = mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length;
-      const promptCallsAtStart = mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length;
+      const statusCallsAtStart =
+        mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length;
+      const promptCallsAtStart =
+        mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length;
       expect(statusCallsAtStart).toBeGreaterThanOrEqual(1);
       expect(promptCallsAtStart).toBeGreaterThanOrEqual(1);
 
       // Advance six seconds: both polls run again, so polling is active. The panel
       // has not timed out yet.
       await advanceFake(6_000);
-      expect(mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length).toBeGreaterThan(
-        statusCallsAtStart,
-      );
-      expect(mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length).toBeGreaterThan(
-        promptCallsAtStart,
-      );
+      expect(
+        mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length,
+      ).toBeGreaterThan(statusCallsAtStart);
+      expect(
+        mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length,
+      ).toBeGreaterThan(promptCallsAtStart);
       expect(container.textContent).not.toContain("The login timed out");
 
       // Advance past the old fixed sixty-second cutoff. The panel does NOT time
@@ -3339,15 +3818,17 @@ describe("AgentConfigForm environment selector", () => {
       expect(findButton(container, "Cancel")).toBeFalsy();
 
       // Both polls stopped. A further ten seconds adds no new poll call.
-      const statusCallsAtTimeout = mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length;
-      const promptCallsAtTimeout = mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length;
+      const statusCallsAtTimeout =
+        mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length;
+      const promptCallsAtTimeout =
+        mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length;
       await advanceFake(10_000);
-      expect(mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length).toBe(
-        statusCallsAtTimeout,
-      );
-      expect(mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length).toBe(
-        promptCallsAtTimeout,
-      );
+      expect(
+        mockAgentsApi.getClaudeSetupTokenLoginStatus.mock.calls.length,
+      ).toBe(statusCallsAtTimeout);
+      expect(
+        mockAgentsApi.getClaudeSetupTokenLoginPrompt.mock.calls.length,
+      ).toBe(promptCallsAtTimeout);
     } finally {
       vi.useRealTimers();
     }
@@ -3362,7 +3843,9 @@ describe("AgentConfigForm environment selector", () => {
     await startLogin(result.container);
     await flushUntil(() =>
       Boolean(
-        result.container.querySelector('a[href="https://claude.example.test/authorize"]'),
+        result.container.querySelector(
+          'a[href="https://claude.example.test/authorize"]',
+        ),
       ),
     );
 
@@ -3395,7 +3878,9 @@ describe("AgentConfigForm environment selector", () => {
 
     await runTest(result.container);
     await startLogin(result.container);
-    await flushUntil(() => (result.container.textContent ?? "").includes("Authenticated"));
+    await flushUntil(() =>
+      (result.container.textContent ?? "").includes("Authenticated"),
+    );
 
     expect(result.container.textContent).toContain("Authenticated");
     expect(result.container.textContent).not.toContain("sk-ant-SECRET-TOKEN");
@@ -3429,14 +3914,24 @@ describe("AgentConfigForm create-mode Claude OAuth binding", () => {
     mockAgentsApi.adapterModels.mockResolvedValue([]);
     mockAgentsApi.detectModel.mockResolvedValue(null);
     mockAgentsApi.list.mockResolvedValue([]);
-    mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableEnvironments: true });
-    mockInstanceSettingsApi.getGeneral.mockResolvedValue({ executionMode: "any" });
+    mockInstanceSettingsApi.get.mockResolvedValue({
+      defaultEnvironmentId: null,
+    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableEnvironments: true,
+    });
+    mockInstanceSettingsApi.getGeneral.mockResolvedValue({
+      executionMode: "any",
+    });
     mockEnvironmentsApi.capabilities.mockResolvedValue(SANDBOX_CAPABILITIES);
     mockSecretsApi.list.mockResolvedValue([]);
     mockSecretsApi.listProposals.mockResolvedValue([]);
-    mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(noActiveSession);
-    mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(noActiveSession);
+    mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(
+      noActiveSession,
+    );
+    mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(
+      noActiveSession,
+    );
     mockAgentsApi.testEnvironment.mockResolvedValue(CLAUDE_AUTH_MISSING_RESULT);
     mockAgentsApi.startClaudeSetupTokenLogin.mockResolvedValue({
       sessionId: "claude-session-1",
@@ -3490,17 +3985,25 @@ describe("AgentConfigForm create-mode Claude OAuth binding", () => {
     );
 
     const values = mergedCreateValues(
-      { adapterType: "claude_local", defaultEnvironmentId: "sandbox-1", envBindings: {} },
+      {
+        adapterType: "claude_local",
+        defaultEnvironmentId: "sandbox-1",
+        envBindings: {},
+      },
       result.onChange,
     );
     expect(values.claudeStoredSessionId).toBe("stored-session-1");
     const bindings = values.envBindings as Record<string, unknown>;
-    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(FIXED_CLAUDE_OAUTH_BINDING);
+    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(
+      FIXED_CLAUDE_OAUTH_BINDING,
+    );
   });
 
   it("preserves unrelated environment bindings when it adds the fixed binding", async () => {
     const seedBindings = { EXISTING_VAR: { type: "plain", value: "keep-me" } };
-    const result = await renderCreateClaudeSandbox({ envBindings: seedBindings });
+    const result = await renderCreateClaudeSandbox({
+      envBindings: seedBindings,
+    });
     roots.push(result.root);
 
     await runTest(result.container);
@@ -3517,7 +4020,9 @@ describe("AgentConfigForm create-mode Claude OAuth binding", () => {
     );
     const bindings = values.envBindings as Record<string, unknown>;
     expect(bindings.EXISTING_VAR).toEqual({ type: "plain", value: "keep-me" });
-    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(FIXED_CLAUDE_OAUTH_BINDING);
+    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(
+      FIXED_CLAUDE_OAUTH_BINDING,
+    );
   });
 
   it("never puts a token value in the fixed binding", async () => {
@@ -3536,7 +4041,10 @@ describe("AgentConfigForm create-mode Claude OAuth binding", () => {
       { adapterType: "claude_local", envBindings: {} },
       result.onChange,
     );
-    const bindings = values.envBindings as Record<string, Record<string, unknown>>;
+    const bindings = values.envBindings as Record<
+      string,
+      Record<string, unknown>
+    >;
     // The fixed binding is a reference. It carries no `value` field, so the
     // adapter config never holds the token value.
     expect(bindings.CLAUDE_CODE_OAUTH_TOKEN.type).toBe("user_secret_ref");
@@ -3570,7 +4078,6 @@ describe("AgentConfigForm create-mode Claude OAuth binding", () => {
       ),
     ).toBe(false);
   });
-
 });
 
 // Render the edit-mode form for an existing Claude agent in a sandbox
@@ -3629,14 +4136,24 @@ describe("AgentConfigForm edit-mode Claude OAuth binding", () => {
     mockAgentsApi.adapterModels.mockResolvedValue([]);
     mockAgentsApi.detectModel.mockResolvedValue(null);
     mockAgentsApi.list.mockResolvedValue([]);
-    mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableEnvironments: true });
-    mockInstanceSettingsApi.getGeneral.mockResolvedValue({ executionMode: "any" });
+    mockInstanceSettingsApi.get.mockResolvedValue({
+      defaultEnvironmentId: null,
+    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableEnvironments: true,
+    });
+    mockInstanceSettingsApi.getGeneral.mockResolvedValue({
+      executionMode: "any",
+    });
     mockEnvironmentsApi.capabilities.mockResolvedValue(SANDBOX_CAPABILITIES);
     mockSecretsApi.list.mockResolvedValue([]);
     mockSecretsApi.listProposals.mockResolvedValue([]);
-    mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(noActiveSession);
-    mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(noActiveSession);
+    mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(
+      noActiveSession,
+    );
+    mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(
+      noActiveSession,
+    );
     mockAgentsApi.testEnvironment.mockResolvedValue(CLAUDE_AUTH_MISSING_RESULT);
     mockAgentsApi.startClaudeSetupTokenLogin.mockResolvedValue({
       sessionId: "claude-session-1",
@@ -3688,11 +4205,16 @@ describe("AgentConfigForm edit-mode Claude OAuth binding", () => {
     // A stored login sends one agent-update patch. The patch replaces the adapter
     // config, and its env holds the fixed binding, so the agent keeps the binding
     // without a manual step.
-    const patch = result.onSave.mock.calls.at(-1)![0] as Record<string, unknown>;
+    const patch = result.onSave.mock.calls.at(-1)![0] as Record<
+      string,
+      unknown
+    >;
     expect(patch.replaceAdapterConfig).toBe(true);
     const adapterConfig = patch.adapterConfig as Record<string, unknown>;
     const bindings = adapterConfig.env as Record<string, unknown>;
-    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(FIXED_CLAUDE_OAUTH_BINDING);
+    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(
+      FIXED_CLAUDE_OAUTH_BINDING,
+    );
     // The persisted patch never carries a token value.
     expect(JSON.stringify(adapterConfig.env)).not.toContain("sk-ant");
     // An update can never consume the fresh login's stored-session claim -- only
@@ -3705,7 +4227,9 @@ describe("AgentConfigForm edit-mode Claude OAuth binding", () => {
 
   it("keeps every unrelated existing binding when it adds the fixed binding", async () => {
     const result = await renderEditClaudeSandbox({
-      adapterConfig: { env: { EXISTING_VAR: { type: "plain", value: "keep-me" } } },
+      adapterConfig: {
+        env: { EXISTING_VAR: { type: "plain", value: "keep-me" } },
+      },
     });
     roots.push(result.root);
 
@@ -3713,13 +4237,17 @@ describe("AgentConfigForm edit-mode Claude OAuth binding", () => {
     await startLogin(result.container);
     await flushUntil(() => result.onSave.mock.calls.length > 0);
 
-    const patch = result.onSave.mock.calls.at(-1)![0] as Record<string, unknown>;
+    const patch = result.onSave.mock.calls.at(-1)![0] as Record<
+      string,
+      unknown
+    >;
     const adapterConfig = patch.adapterConfig as Record<string, unknown>;
     const bindings = adapterConfig.env as Record<string, unknown>;
     expect(bindings.EXISTING_VAR).toEqual({ type: "plain", value: "keep-me" });
-    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(FIXED_CLAUDE_OAUTH_BINDING);
+    expect(bindings.CLAUDE_CODE_OAUTH_TOKEN).toEqual(
+      FIXED_CLAUDE_OAUTH_BINDING,
+    );
   });
-
 });
 
 describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
@@ -3742,7 +4270,9 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
 
   /** Every `Field` renders its label in a `<label>`, so this reads the form. */
   function fieldLabels(container: HTMLElement) {
-    return Array.from(container.querySelectorAll("label")).map((label) => label.textContent?.trim() ?? "");
+    return Array.from(container.querySelectorAll("label")).map(
+      (label) => label.textContent?.trim() ?? "",
+    );
   }
 
   function choosePathButtons(container: HTMLElement) {
@@ -3755,8 +4285,12 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
     mockAgentsApi.adapterModels.mockResolvedValue([]);
     mockAgentsApi.detectModel.mockResolvedValue(null);
     mockAgentsApi.list.mockResolvedValue([]);
-    mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
-    mockInstanceSettingsApi.getGeneral.mockResolvedValue({ executionMode: "any" });
+    mockInstanceSettingsApi.get.mockResolvedValue({
+      defaultEnvironmentId: null,
+    });
+    mockInstanceSettingsApi.getGeneral.mockResolvedValue({
+      executionMode: "any",
+    });
     mockEnvironmentsApi.capabilities.mockResolvedValue(SANDBOX_CAPABILITIES);
     mockSecretsApi.list.mockResolvedValue([]);
     mockSecretsApi.listProposals.mockResolvedValue([]);
@@ -3784,7 +4318,12 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
 
     await act(async () => {
       for (const button of result.container.querySelectorAll("button")) {
-        if (["Advanced", "Advanced Run Policy"].includes(button.textContent?.trim() ?? "")) button.click();
+        if (
+          ["Advanced", "Advanced Run Policy"].includes(
+            button.textContent?.trim() ?? "",
+          )
+        )
+          button.click();
       }
     });
     await flushReact();
@@ -3796,22 +4335,40 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
     expect(labels).toContain("ACP state directory");
     expect(choosePathButtons(result.container).length).toBeGreaterThan(0);
 
-    const adapterFields = result.container.querySelector('[data-testid="adapter-config-fields"]');
-    expect(adapterFields?.getAttribute("data-managed-sandbox-only")).toBe("false");
-    expect(adapterFields?.getAttribute("data-hide-instructions-file")).toBe("false");
+    const adapterFields = result.container.querySelector(
+      '[data-testid="adapter-config-fields"]',
+    );
+    expect(adapterFields?.getAttribute("data-managed-sandbox-only")).toBe(
+      "false",
+    );
+    expect(adapterFields?.getAttribute("data-hide-instructions-file")).toBe(
+      "false",
+    );
   });
 
   it("hides the host path and execution-engine fields for claude_local when the policy is on", async () => {
     setManagedSandboxOnly(true);
     const result = await renderForm(
-      [makeEnvironment({ id: "managed-1", name: "Managed", driver: "sandbox", config: { provider: "daytona" } })],
+      [
+        makeEnvironment({
+          id: "managed-1",
+          name: "Managed",
+          driver: "sandbox",
+          config: { provider: "daytona" },
+        }),
+      ],
       { adapterType: "claude_local", adapterConfig: MANAGED_AGENT_CONFIG },
     );
     roots.push(result.root);
 
     await act(async () => {
       for (const button of result.container.querySelectorAll("button")) {
-        if (["Advanced", "Advanced Run Policy"].includes(button.textContent?.trim() ?? "")) button.click();
+        if (
+          ["Advanced", "Advanced Run Policy"].includes(
+            button.textContent?.trim() ?? "",
+          )
+        )
+          button.click();
       }
     });
     await flushReact();
@@ -3830,14 +4387,26 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
   it("keeps the non-path ACP controls visible when the policy hides the engine choice", async () => {
     setManagedSandboxOnly(true);
     const result = await renderForm(
-      [makeEnvironment({ id: "managed-1", name: "Managed", driver: "sandbox", config: { provider: "daytona" } })],
+      [
+        makeEnvironment({
+          id: "managed-1",
+          name: "Managed",
+          driver: "sandbox",
+          config: { provider: "daytona" },
+        }),
+      ],
       { adapterType: "claude_local", adapterConfig: MANAGED_AGENT_CONFIG },
     );
     roots.push(result.root);
 
     await act(async () => {
       for (const button of result.container.querySelectorAll("button")) {
-        if (["Advanced", "Advanced Run Policy"].includes(button.textContent?.trim() ?? "")) button.click();
+        if (
+          ["Advanced", "Advanced Run Policy"].includes(
+            button.textContent?.trim() ?? "",
+          )
+        )
+          button.click();
       }
     });
     await flushReact();
@@ -3849,7 +4418,9 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
   it("keeps the host-path fields hidden while the policy is still loading", async () => {
     // A cold cache resolves the policy to false on the first render. The gate
     // fails closed so a managed instance never flashes a stored host path.
-    mockInstanceSettingsApi.getExperimental.mockImplementation(() => new Promise(() => {}));
+    mockInstanceSettingsApi.getExperimental.mockImplementation(
+      () => new Promise(() => {}),
+    );
     const result = await renderForm(
       [makeEnvironment({ id: "local-1", name: "Local", driver: "local" })],
       { adapterType: "claude_local", adapterConfig: MANAGED_AGENT_CONFIG },
@@ -3858,7 +4429,12 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
 
     await act(async () => {
       for (const button of result.container.querySelectorAll("button")) {
-        if (["Advanced", "Advanced Run Policy"].includes(button.textContent?.trim() ?? "")) button.click();
+        if (
+          ["Advanced", "Advanced Run Policy"].includes(
+            button.textContent?.trim() ?? "",
+          )
+        )
+          button.click();
       }
     });
     await flushReact();
@@ -3873,14 +4449,26 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
   it("hides the command field and forces the instructions-file gate for codex_local when the policy is on", async () => {
     setManagedSandboxOnly(true);
     const result = await renderForm(
-      [makeEnvironment({ id: "managed-1", name: "Managed", driver: "sandbox", config: { provider: "daytona" } })],
+      [
+        makeEnvironment({
+          id: "managed-1",
+          name: "Managed",
+          driver: "sandbox",
+          config: { provider: "daytona" },
+        }),
+      ],
       { adapterType: "codex_local", adapterConfig: MANAGED_AGENT_CONFIG },
     );
     roots.push(result.root);
 
     await act(async () => {
       for (const button of result.container.querySelectorAll("button")) {
-        if (["Advanced", "Advanced Run Policy"].includes(button.textContent?.trim() ?? "")) button.click();
+        if (
+          ["Advanced", "Advanced Run Policy"].includes(
+            button.textContent?.trim() ?? "",
+          )
+        )
+          button.click();
       }
     });
     await flushReact();
@@ -3889,9 +4477,15 @@ describe("AgentConfigForm managed-sandbox-only host surfaces", () => {
     expect(labels).not.toContain("Command");
     expect(choosePathButtons(result.container)).toHaveLength(0);
 
-    const adapterFields = result.container.querySelector('[data-testid="adapter-config-fields"]');
-    expect(adapterFields?.getAttribute("data-managed-sandbox-only")).toBe("true");
-    expect(adapterFields?.getAttribute("data-hide-instructions-file")).toBe("true");
+    const adapterFields = result.container.querySelector(
+      '[data-testid="adapter-config-fields"]',
+    );
+    expect(adapterFields?.getAttribute("data-managed-sandbox-only")).toBe(
+      "true",
+    );
+    expect(adapterFields?.getAttribute("data-hide-instructions-file")).toBe(
+      "true",
+    );
   });
 });
 
@@ -3909,17 +4503,25 @@ describe("subtractPersistedOverlay", () => {
     // would keep it falsely dirty after the refresh subtracts the snapshot —
     // a false "Unsaved changes" state and a redundant full-config save.
     const persisted = overlayWith({
-      env: { CODEX_HOME: { type: "secret_ref", secretId: "s-1", version: "latest" } },
+      env: {
+        CODEX_HOME: { type: "secret_ref", secretId: "s-1", version: "latest" },
+      },
     });
     const current = overlayWith({
-      env: { CODEX_HOME: { type: "secret_ref", secretId: "s-1", version: "latest" } },
+      env: {
+        CODEX_HOME: { type: "secret_ref", secretId: "s-1", version: "latest" },
+      },
     });
-    expect(subtractPersistedOverlay(current, persisted).adapterConfig).toEqual({});
+    expect(subtractPersistedOverlay(current, persisted).adapterConfig).toEqual(
+      {},
+    );
   });
 
   it("keeps an entry the user changed after the snapshot", () => {
     const persisted = overlayWith({
-      env: { CODEX_HOME: { type: "secret_ref", secretId: "s-1", version: "latest" } },
+      env: {
+        CODEX_HOME: { type: "secret_ref", secretId: "s-1", version: "latest" },
+      },
     });
     const current = overlayWith({
       env: {
@@ -3947,7 +4549,9 @@ describe("subtractPersistedOverlay", () => {
     const persisted = overlayWith({ args: ["--flag", "value"] });
     const equal = overlayWith({ args: ["--flag", "value"] });
     const changed = overlayWith({ args: ["--flag", "other"] });
-    expect(subtractPersistedOverlay(equal, persisted).adapterConfig).toEqual({});
+    expect(subtractPersistedOverlay(equal, persisted).adapterConfig).toEqual(
+      {},
+    );
     expect(subtractPersistedOverlay(changed, persisted).adapterConfig).toEqual({
       args: ["--flag", "other"],
     });

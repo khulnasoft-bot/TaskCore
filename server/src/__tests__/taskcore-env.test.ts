@@ -9,16 +9,20 @@ const ORIGINAL_HOST = process.env.HOST;
 const ORIGINAL_PORT = process.env.PORT;
 
 afterEach(() => {
-  if (ORIGINAL_TASKCORE_RUNTIME_API_URL === undefined) delete process.env.TASKCORE_RUNTIME_API_URL;
+  if (ORIGINAL_TASKCORE_RUNTIME_API_URL === undefined)
+    delete process.env.TASKCORE_RUNTIME_API_URL;
   else process.env.TASKCORE_RUNTIME_API_URL = ORIGINAL_TASKCORE_RUNTIME_API_URL;
 
-  if (ORIGINAL_TASKCORE_API_URL === undefined) delete process.env.TASKCORE_API_URL;
+  if (ORIGINAL_TASKCORE_API_URL === undefined)
+    delete process.env.TASKCORE_API_URL;
   else process.env.TASKCORE_API_URL = ORIGINAL_TASKCORE_API_URL;
 
-  if (ORIGINAL_TASKCORE_LISTEN_HOST === undefined) delete process.env.TASKCORE_LISTEN_HOST;
+  if (ORIGINAL_TASKCORE_LISTEN_HOST === undefined)
+    delete process.env.TASKCORE_LISTEN_HOST;
   else process.env.TASKCORE_LISTEN_HOST = ORIGINAL_TASKCORE_LISTEN_HOST;
 
-  if (ORIGINAL_TASKCORE_LISTEN_PORT === undefined) delete process.env.TASKCORE_LISTEN_PORT;
+  if (ORIGINAL_TASKCORE_LISTEN_PORT === undefined)
+    delete process.env.TASKCORE_LISTEN_PORT;
   else process.env.TASKCORE_LISTEN_PORT = ORIGINAL_TASKCORE_LISTEN_PORT;
 
   if (ORIGINAL_HOST === undefined) delete process.env.HOST;

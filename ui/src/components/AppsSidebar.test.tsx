@@ -115,19 +115,32 @@ describe("AppsSidebar", () => {
     vi.clearAllMocks();
   });
 
-  it.each([AppsSidebar, ProductionAppsSidebar])("shows chat navigation in place of browse and review", async (Sidebar) => {
-    route.pathname = "/SLA/apps/chat/endpoint-a/conversations";
-    const root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    await act(async () => root.render(<QueryClientProvider client={queryClient}><Sidebar /></QueryClientProvider>));
-    await flushReact();
-    expect(container.textContent).not.toMatch(/Browse|Review/);
-    for (const tab of ["settings", "access", "conversations", "activity"]) {
-      expect(container.querySelector(`[data-to="/apps/chat/endpoint-a/${tab}"]`)).not.toBeNull();
-    }
-    await act(async () => root.unmount());
-    queryClient.clear();
-  });
+  it.each([AppsSidebar, ProductionAppsSidebar])(
+    "shows chat navigation in place of browse and review",
+    async (Sidebar) => {
+      route.pathname = "/SLA/apps/chat/endpoint-a/conversations";
+      const root = createRoot(container);
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      await act(async () =>
+        root.render(
+          <QueryClientProvider client={queryClient}>
+            <Sidebar />
+          </QueryClientProvider>,
+        ),
+      );
+      await flushReact();
+      expect(container.textContent).not.toMatch(/Browse|Review/);
+      for (const tab of ["settings", "access", "conversations", "activity"]) {
+        expect(
+          container.querySelector(`[data-to="/apps/chat/endpoint-a/${tab}"]`),
+        ).not.toBeNull();
+      }
+      await act(async () => root.unmount());
+      queryClient.clear();
+    },
+  );
 
   it("renders the consolidated connector and review doors without a redundant contextual heading", async () => {
     const root = createRoot(container);
@@ -145,11 +158,17 @@ describe("AppsSidebar", () => {
     await flushReact();
 
     expect(container.textContent).not.toContain("Apps");
-    expect(container.querySelector('nav[aria-label="Connectors"]')).not.toBeNull();
+    expect(
+      container.querySelector('nav[aria-label="Connectors"]'),
+    ).not.toBeNull();
     expect(container.textContent).not.toContain("Developer");
-    expect(container.textContent).not.toContain("Advanced setup for developers");
+    expect(container.textContent).not.toContain(
+      "Advanced setup for developers",
+    );
     expect(container.textContent).not.toContain("Most teams");
-    expect(container.textContent).not.toMatch(/you (?:won'?t|will not) need this/i);
+    expect(container.textContent).not.toMatch(
+      /you (?:won'?t|will not) need this/i,
+    );
     // Paste-config discovery now lives inside the custom connector row;
     // assert both advanced setup items remain absent at the item level below.
 
@@ -175,23 +194,34 @@ describe("AppsSidebar", () => {
       expect.objectContaining({ label: "Applications" }),
     );
     expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
-      expect.objectContaining({ to: "/apps/advanced/gateways", label: "Gateways" }),
+      expect.objectContaining({
+        to: "/apps/advanced/gateways",
+        label: "Gateways",
+      }),
     );
     expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
-      expect.objectContaining({ to: "/apps/advanced/profiles", label: "Profiles" }),
+      expect.objectContaining({
+        to: "/apps/advanced/profiles",
+        label: "Profiles",
+      }),
     );
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Rules" }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Health" }));
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Rules" }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Health" }),
+    );
     expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ to: "/apps/advanced/audit" }),
     );
-    expect(container.querySelector('[data-slot="contextual-sidebar-nav"]')?.className).toBe(
-      contextualSidebarStyles.nav,
-    );
     expect(
-      Array.from(container.querySelectorAll('[data-slot="contextual-sidebar-group"]')).every(
-        (group) => group.className === contextualSidebarStyles.group,
-      ),
+      container.querySelector('[data-slot="contextual-sidebar-nav"]')
+        ?.className,
+    ).toBe(contextualSidebarStyles.nav);
+    expect(
+      Array.from(
+        container.querySelectorAll('[data-slot="contextual-sidebar-group"]'),
+      ).every((group) => group.className === contextualSidebarStyles.group),
     ).toBe(true);
 
     await act(async () => {

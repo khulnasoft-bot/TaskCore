@@ -42,7 +42,9 @@ describe("sendPtyInputInChunks", () => {
     await sendPtyInputInChunks(recorder.sendInput, "a small frame\n");
 
     expect(recorder.chunks).toHaveLength(1);
-    expect(recorder.chunks[0]?.length).toBeLessThanOrEqual(PTY_MESSAGE_CAP_BYTES);
+    expect(recorder.chunks[0]?.length).toBeLessThanOrEqual(
+      PTY_MESSAGE_CAP_BYTES,
+    );
   });
 
   it("splits a payload above the cap into more than one send, each at or below the cap", async () => {
@@ -126,9 +128,13 @@ describe("sendPtyInputInChunks", () => {
 
     // A payload above the cap, so the chunker would fire more than one chunk with
     // no fail-fast. The loop stops after the first rejected chunk.
-    await sendPtyInputInChunks(sendInput, new Uint8Array(150_416).fill(65), () => {
-      errorCount += 1;
-    });
+    await sendPtyInputInChunks(
+      sendInput,
+      new Uint8Array(150_416).fill(65),
+      () => {
+        errorCount += 1;
+      },
+    );
 
     // The loop sent one chunk, learned the rejection, and started no later send.
     expect(chunks).toHaveLength(1);

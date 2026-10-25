@@ -9,12 +9,17 @@ import {
   trackInteractionResolved,
   trackInstallCompleted,
 } from "@taskcore/shared/telemetry";
-import type { EventDimensionsMap, TelemetryClient } from "@taskcore/shared/telemetry";
+import type {
+  EventDimensionsMap,
+  TelemetryClient,
+} from "@taskcore/shared/telemetry";
 
 function createClient(): TelemetryClient {
   return {
     track: vi.fn(),
-    hashPrivateRef: vi.fn((value: string) => createHash("sha256").update(value).digest("hex").slice(0, 16)),
+    hashPrivateRef: vi.fn((value: string) =>
+      createHash("sha256").update(value).digest("hex").slice(0, 16),
+    ),
   } as unknown as TelemetryClient;
 }
 
@@ -41,7 +46,10 @@ describe("shared telemetry agent events", () => {
     const client = createClient();
 
     trackAgentCreated(client, {
-      agentRole: runtimeValue<EventDimensionsMap["agent.created"]["agent_role"]>("coder"),
+      agentRole:
+        runtimeValue<EventDimensionsMap["agent.created"]["agent_role"]>(
+          "coder",
+        ),
       agentId: "44444444-4444-4444-8444-444444444444",
     });
 
@@ -93,7 +101,10 @@ describe("shared telemetry agent events", () => {
     });
 
     expect(client.hashPrivateRef).toHaveBeenCalledWith(rawTaskId);
-    const sentDimensions = vi.mocked(client.track).mock.calls[0]?.[1] as Record<string, unknown>;
+    const sentDimensions = vi.mocked(client.track).mock.calls[0]?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(sentDimensions.task_id).toMatch(/^[0-9a-f]{16}$/);
     expect(sentDimensions.task_id).not.toBe(rawTaskId);
     expect(JSON.stringify(sentDimensions)).not.toContain(rawTaskId);
@@ -134,7 +145,10 @@ describe("shared telemetry agent events", () => {
     });
 
     expect(client.hashPrivateRef).toHaveBeenCalledWith(rawTaskId);
-    const sentDimensions = vi.mocked(client.track).mock.calls[0]?.[1] as Record<string, unknown>;
+    const sentDimensions = vi.mocked(client.track).mock.calls[0]?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(sentDimensions).toMatchObject({
       agent_id: "44444444-4444-4444-8444-444444444444",
       state: "succeeded",
@@ -182,17 +196,24 @@ describe("shared telemetry agent events", () => {
     const client = createClient();
 
     trackInteractionResolved(client, {
-      interactionKind: runtimeValue<EventDimensionsMap["interaction.resolved"]["interaction_kind"]>(
-        "single_confirmation",
-      ),
+      interactionKind: runtimeValue<
+        EventDimensionsMap["interaction.resolved"]["interaction_kind"]
+      >("single_confirmation"),
       status: "accepted",
-      resolvedByKind: runtimeValue<EventDimensionsMap["interaction.resolved"]["resolved_by_kind"]>("operator"),
+      resolvedByKind:
+        runtimeValue<
+          EventDimensionsMap["interaction.resolved"]["resolved_by_kind"]
+        >("operator"),
       resolutionReason: "accepted",
       createdByKind: "agent",
-      creatorAgentRole: runtimeValue<EventDimensionsMap["interaction.resolved"]["creator_agent_role"]>("coder"),
-      continuationPolicy: runtimeValue<EventDimensionsMap["interaction.resolved"]["continuation_policy"]>(
-        "wake_everyone",
-      ),
+      creatorAgentRole:
+        runtimeValue<
+          EventDimensionsMap["interaction.resolved"]["creator_agent_role"]
+        >("coder"),
+      continuationPolicy:
+        runtimeValue<
+          EventDimensionsMap["interaction.resolved"]["continuation_policy"]
+        >("wake_everyone"),
       targetType: "issue_document",
       optionCount: 2,
       selectedOptionCount: 1,

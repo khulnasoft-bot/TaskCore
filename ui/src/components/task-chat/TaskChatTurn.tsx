@@ -88,26 +88,33 @@ export function TaskChatTurn({
         data-testid="task-chat-turn"
         data-settled={item.settled ? "true" : "false"}
       >
-        {item.agentName || !item.historical ? <div
-          className="flex min-h-8 w-full min-w-0 items-center gap-2 pb-1 pt-1.5 text-sm text-muted-foreground"
-          data-testid="task-chat-turn-summary"
-          data-turn-position="identity"
-        >
-          {item.agentName ? (
-            <TaskChatAgentIdentity
-              agentName={item.agentName}
-              agentIcon={item.agentIcon} agent={item.agent}
-            />
-          ) : null}
-          {!item.historical ? <span className="min-w-0 truncate">
-            {item.continuedAfterSteering ? "Continued after steering · " : ""}
-            {item.summary.durationLabel
-              ? `${item.summary.failed ? "Stopped" : "Worked"} for ${item.summary.durationLabel}`
-              : item.summary.failed
-                ? "Stopped"
-                : "Worked"}
-          </span> : null}
-        </div> : null}
+        {item.agentName || !item.historical ? (
+          <div
+            className="flex min-h-8 w-full min-w-0 items-center gap-2 pb-1 pt-1.5 text-sm text-muted-foreground"
+            data-testid="task-chat-turn-summary"
+            data-turn-position="identity"
+          >
+            {item.agentName ? (
+              <TaskChatAgentIdentity
+                agentName={item.agentName}
+                agentIcon={item.agentIcon}
+                agent={item.agent}
+              />
+            ) : null}
+            {!item.historical ? (
+              <span className="min-w-0 truncate">
+                {item.continuedAfterSteering
+                  ? "Continued after steering · "
+                  : ""}
+                {item.summary.durationLabel
+                  ? `${item.summary.failed ? "Stopped" : "Worked"} for ${item.summary.durationLabel}`
+                  : item.summary.failed
+                    ? "Stopped"
+                    : "Worked"}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         {item.items.length > 0 ? (
           <div
             className="flex min-w-0 flex-col gap-2 py-1"
@@ -206,11 +213,13 @@ export function TaskChatTurn({
         <SummaryIcon className="h-3.5 w-3.5 shrink-0" />
       ) : null}
       <span>
-        {item.historical ? "Activity" : item.standaloneHeader && item.summary.durationLabel
-          ? `${item.summary.failed ? "Stopped" : "Worked"} for ${item.summary.durationLabel}`
-          : item.summary.failed
-            ? "Stopped"
-            : "Worked"}
+        {item.historical
+          ? "Activity"
+          : item.standaloneHeader && item.summary.durationLabel
+            ? `${item.summary.failed ? "Stopped" : "Worked"} for ${item.summary.durationLabel}`
+            : item.summary.failed
+              ? "Stopped"
+              : "Worked"}
       </span>
       {!item.standaloneHeader && turnSummaryMetrics(item.summary) ? (
         // Time/tools/tokens is demoted, not deleted (PAP-502): it stays in the
@@ -274,9 +283,10 @@ export function TaskChatTurn({
       >
         <div>
           <div className="flex flex-col gap-2 pt-1">
-            {historyMounted && foldedItems.map((child) => (
-              <div key={child.id}>{renderChild(child)}</div>
-            ))}
+            {historyMounted &&
+              foldedItems.map((child) => (
+                <div key={child.id}>{renderChild(child)}</div>
+              ))}
           </div>
         </div>
       </div>

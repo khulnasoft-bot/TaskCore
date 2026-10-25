@@ -9,39 +9,68 @@ import {
 describe("instance settings service", () => {
   it("keeps OpenAI Dot opt-in and persists its setting independently of its prerequisites", () => {
     expect(normalizeExperimentalSettings({}).enableOpenAiDot).toBe(false);
-    const enabled = applyExperimentalSettingsPatch({}, { enableOpenAiDot: true });
-    expect(normalizeExperimentalSettings(JSON.parse(JSON.stringify(enabled)))).toMatchObject({
-      enableOpenAiDot: true, enablePublicMcp: false,
+    const enabled = applyExperimentalSettingsPatch(
+      {},
+      { enableOpenAiDot: true },
+    );
+    expect(
+      normalizeExperimentalSettings(JSON.parse(JSON.stringify(enabled))),
+    ).toMatchObject({
+      enableOpenAiDot: true,
+      enablePublicMcp: false,
     });
-    expect(applyExperimentalSettingsPatch(enabled, { enableOpenAiDot: false }).enableOpenAiDot).toBe(false);
+    expect(
+      applyExperimentalSettingsPatch(enabled, { enableOpenAiDot: false })
+        .enableOpenAiDot,
+    ).toBe(false);
   });
   it("keeps chat connectors opt-in across legacy storage and patches without disabling Apps", () => {
-    for (const stored of [undefined, {}, { enableApps: true }, { enableConferenceRoomChat: true }]) {
-      expect(normalizeExperimentalSettings(stored).enableChatConnectors).toBe(false);
+    for (const stored of [
+      undefined,
+      {},
+      { enableApps: true },
+      { enableConferenceRoomChat: true },
+    ]) {
+      expect(normalizeExperimentalSettings(stored).enableChatConnectors).toBe(
+        false,
+      );
     }
-    const enabled = applyExperimentalSettingsPatch({}, { enableChatConnectors: true });
-    expect(normalizeExperimentalSettings(JSON.parse(JSON.stringify(enabled))).enableChatConnectors).toBe(true);
-    const disabled = applyExperimentalSettingsPatch(enabled, { enableChatConnectors: false });
-    expect(disabled).toMatchObject({ enableApps: true, enableChatConnectors: false });
+    const enabled = applyExperimentalSettingsPatch(
+      {},
+      { enableChatConnectors: true },
+    );
+    expect(
+      normalizeExperimentalSettings(JSON.parse(JSON.stringify(enabled)))
+        .enableChatConnectors,
+    ).toBe(true);
+    const disabled = applyExperimentalSettingsPatch(enabled, {
+      enableChatConnectors: false,
+    });
+    expect(disabled).toMatchObject({
+      enableApps: true,
+      enableChatConnectors: false,
+    });
   });
   it("ignores retired experimental flags without resetting current settings", () => {
-    expect(normalizeExperimentalSettings({
-      enableEnvironments: true,
-      enableNativeRunner: false,
-      enableAiConnectionRouters: false,
-      enableManagedSandboxOnly: false,
-      enableIsolatedWorkspaces: true,
-      enableIssuePlanDecompositions: true,
-      enableExperimentalFileViewer: true,
-      enableBuiltInAgents: true,
-      enableGoalsSidebarLink: true,
-      enableServerInfoDebugView: true,
-      enableTaskcoreDeveloperMode: true,
-      autoRestartDevServerWhenIdle: true,
-      enableWorkspaceBranchReconcileForward: true,
-      enableWorkspaceDirtyQuarantineRepair: false,
-      enableNewestFirstIssueThread: true,
-    })).toEqual({
+    expect(
+      normalizeExperimentalSettings({
+        enableEnvironments: true,
+        enableNativeRunner: false,
+        enableAiConnectionRouters: false,
+        enableManagedSandboxOnly: false,
+        enableIsolatedWorkspaces: true,
+        enableIssuePlanDecompositions: true,
+        enableExperimentalFileViewer: true,
+        enableBuiltInAgents: true,
+        enableGoalsSidebarLink: true,
+        enableServerInfoDebugView: true,
+        enableTaskcoreDeveloperMode: true,
+        autoRestartDevServerWhenIdle: true,
+        enableWorkspaceBranchReconcileForward: true,
+        enableWorkspaceDirtyQuarantineRepair: false,
+        enableNewestFirstIssueThread: true,
+      }),
+    ).toEqual({
       enableEnvironments: true,
       enableNativeRunner: false,
       enableAiConnectionRouters: false,
@@ -51,7 +80,7 @@ describe("instance settings service", () => {
       enableStreamlinedLeftNavigation: true,
       enableStreamlinedUi: true,
       enableApps: true,
-    enableMcpAggregators: true,
+      enableMcpAggregators: true,
       enableAgentChat: false,
       enablePublicMcp: false,
       enableOpenAiDot: false,
@@ -89,19 +118,29 @@ describe("instance settings service", () => {
   });
 
   it("defaults streamlined UI on without inheriting the retired navigation preference", () => {
-    expect(normalizeExperimentalSettings(undefined).enableStreamlinedUi).toBe(true);
+    expect(normalizeExperimentalSettings(undefined).enableStreamlinedUi).toBe(
+      true,
+    );
     expect(normalizeExperimentalSettings({}).enableStreamlinedUi).toBe(true);
     expect(
-      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: false }).enableStreamlinedUi,
+      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: false })
+        .enableStreamlinedUi,
     ).toBe(true);
-    expect(normalizeExperimentalSettings({ enableStreamlinedUi: false }).enableStreamlinedUi).toBe(false);
+    expect(
+      normalizeExperimentalSettings({ enableStreamlinedUi: false })
+        .enableStreamlinedUi,
+    ).toBe(false);
   });
 
   it("keeps Apps on for empty, legacy, and explicitly disabled stored settings", () => {
     expect(normalizeExperimentalSettings(undefined).enableApps).toBe(true);
     expect(normalizeExperimentalSettings({}).enableApps).toBe(true);
-    expect(normalizeExperimentalSettings({ enablePipelines: true }).enableApps).toBe(true);
-    expect(normalizeExperimentalSettings({ enableApps: false }).enableApps).toBe(true);
+    expect(
+      normalizeExperimentalSettings({ enablePipelines: true }).enableApps,
+    ).toBe(true);
+    expect(
+      normalizeExperimentalSettings({ enableApps: false }).enableApps,
+    ).toBe(true);
   });
 
   it("retains the deprecated ingress key for stored-settings compatibility", () => {
@@ -112,38 +151,55 @@ describe("instance settings service", () => {
   });
 
   it("defaults enableConferenceRoomChat to false for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableConferenceRoomChat).toBe(false);
-    expect(normalizeExperimentalSettings({}).enableConferenceRoomChat).toBe(false);
+    expect(
+      normalizeExperimentalSettings(undefined).enableConferenceRoomChat,
+    ).toBe(false);
+    expect(normalizeExperimentalSettings({}).enableConferenceRoomChat).toBe(
+      false,
+    );
     // Rows persisted before the flag existed (PAP-137) must normalize to off.
     expect(
-      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: true }).enableConferenceRoomChat,
+      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: true })
+        .enableConferenceRoomChat,
     ).toBe(false);
   });
 
   it("defaults enableClassicTaskInterface to false for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableClassicTaskInterface).toBe(false);
-    expect(normalizeExperimentalSettings({}).enableClassicTaskInterface).toBe(false);
+    expect(
+      normalizeExperimentalSettings(undefined).enableClassicTaskInterface,
+    ).toBe(false);
+    expect(normalizeExperimentalSettings({}).enableClassicTaskInterface).toBe(
+      false,
+    );
     // The retired enableTaskChatRedesign key must not bleed into the new flag:
     // an install that had the chat redesign ON opted into chat-style, which is
     // now the default — not into the classic view.
     expect(
-      normalizeExperimentalSettings({ enableTaskChatRedesign: true }).enableClassicTaskInterface,
+      normalizeExperimentalSettings({ enableTaskChatRedesign: true })
+        .enableClassicTaskInterface,
     ).toBe(false);
     expect(
-      normalizeExperimentalSettings({ enableClassicTaskInterface: true }).enableClassicTaskInterface,
+      normalizeExperimentalSettings({ enableClassicTaskInterface: true })
+        .enableClassicTaskInterface,
     ).toBe(true);
   });
 
   it("defaults enableSimplifiedEnglishInteractions to false for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableSimplifiedEnglishInteractions).toBe(false);
-    expect(normalizeExperimentalSettings({}).enableSimplifiedEnglishInteractions).toBe(false);
+    expect(
+      normalizeExperimentalSettings(undefined)
+        .enableSimplifiedEnglishInteractions,
+    ).toBe(false);
+    expect(
+      normalizeExperimentalSettings({}).enableSimplifiedEnglishInteractions,
+    ).toBe(false);
     expect(
       normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: true })
         .enableSimplifiedEnglishInteractions,
     ).toBe(false);
     expect(
-      normalizeExperimentalSettings({ enableSimplifiedEnglishInteractions: true })
-        .enableSimplifiedEnglishInteractions,
+      normalizeExperimentalSettings({
+        enableSimplifiedEnglishInteractions: true,
+      }).enableSimplifiedEnglishInteractions,
     ).toBe(true);
   });
 
@@ -151,21 +207,31 @@ describe("instance settings service", () => {
     expect(normalizeExperimentalSettings(undefined).enableSmokeLab).toBe(false);
     expect(normalizeExperimentalSettings({}).enableSmokeLab).toBe(false);
     expect(
-      normalizeExperimentalSettings({ enableExternalObjects: true }).enableSmokeLab,
+      normalizeExperimentalSettings({ enableExternalObjects: true })
+        .enableSmokeLab,
     ).toBe(false);
   });
 
   it("defaults enableServerInfoDebugView to false for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableServerInfoDebugView).toBe(false);
-    expect(normalizeExperimentalSettings({}).enableServerInfoDebugView).toBe(false);
     expect(
-      normalizeExperimentalSettings({ autoRestartDevServerWhenIdle: true }).enableServerInfoDebugView,
+      normalizeExperimentalSettings(undefined).enableServerInfoDebugView,
+    ).toBe(false);
+    expect(normalizeExperimentalSettings({}).enableServerInfoDebugView).toBe(
+      false,
+    );
+    expect(
+      normalizeExperimentalSettings({ autoRestartDevServerWhenIdle: true })
+        .enableServerInfoDebugView,
     ).toBe(false);
   });
 
   it("defaults enableTaskcoreDeveloperMode to false for empty and legacy settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableTaskcoreDeveloperMode).toBe(false);
-    expect(normalizeExperimentalSettings({}).enableTaskcoreDeveloperMode).toBe(false);
+    expect(
+      normalizeExperimentalSettings(undefined).enableTaskcoreDeveloperMode,
+    ).toBe(false);
+    expect(normalizeExperimentalSettings({}).enableTaskcoreDeveloperMode).toBe(
+      false,
+    );
     expect(
       normalizeExperimentalSettings({ enableServerInfoDebugView: true })
         .enableTaskcoreDeveloperMode,
@@ -173,33 +239,52 @@ describe("instance settings service", () => {
   });
 
   it("defaults enableGoalsSidebarLink to false for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableGoalsSidebarLink).toBe(false);
-    expect(normalizeExperimentalSettings({}).enableGoalsSidebarLink).toBe(false);
     expect(
-      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: true }).enableGoalsSidebarLink,
+      normalizeExperimentalSettings(undefined).enableGoalsSidebarLink,
+    ).toBe(false);
+    expect(normalizeExperimentalSettings({}).enableGoalsSidebarLink).toBe(
+      false,
+    );
+    expect(
+      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: true })
+        .enableGoalsSidebarLink,
     ).toBe(false);
   });
 
   it("defaults enableDecisions to false for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableDecisions).toBe(false);
+    expect(normalizeExperimentalSettings(undefined).enableDecisions).toBe(
+      false,
+    );
     expect(normalizeExperimentalSettings({}).enableDecisions).toBe(false);
     expect(
-      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: true }).enableDecisions,
+      normalizeExperimentalSettings({ enableStreamlinedLeftNavigation: true })
+        .enableDecisions,
     ).toBe(false);
   });
 
   it("defaults workspace branch repair settings to true for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableWorkspaceBranchReconcileForward).toBe(true);
-    expect(normalizeExperimentalSettings({}).enableWorkspaceBranchReconcileForward).toBe(true);
+    expect(
+      normalizeExperimentalSettings(undefined)
+        .enableWorkspaceBranchReconcileForward,
+    ).toBe(true);
+    expect(
+      normalizeExperimentalSettings({}).enableWorkspaceBranchReconcileForward,
+    ).toBe(true);
     expect(
       normalizeExperimentalSettings({ enableExperimentalFileViewer: true })
         .enableWorkspaceBranchReconcileForward,
     ).toBe(true);
-    expect(normalizeExperimentalSettings(undefined).enableWorkspaceDirtyQuarantineRepair).toBe(true);
-    expect(normalizeExperimentalSettings({}).enableWorkspaceDirtyQuarantineRepair).toBe(true);
     expect(
-      normalizeExperimentalSettings({ enableWorkspaceBranchReconcileForward: false })
+      normalizeExperimentalSettings(undefined)
         .enableWorkspaceDirtyQuarantineRepair,
+    ).toBe(true);
+    expect(
+      normalizeExperimentalSettings({}).enableWorkspaceDirtyQuarantineRepair,
+    ).toBe(true);
+    expect(
+      normalizeExperimentalSettings({
+        enableWorkspaceBranchReconcileForward: false,
+      }).enableWorkspaceDirtyQuarantineRepair,
     ).toBe(true);
   });
 
@@ -208,30 +293,47 @@ describe("instance settings service", () => {
     // re-normalizes; emulate that to prove the flag survives the roundtrip
     // without disturbing other settings.
     const current = normalizeExperimentalSettings({});
-    const enabled = normalizeExperimentalSettings({ ...current, enableConferenceRoomChat: true });
+    const enabled = normalizeExperimentalSettings({
+      ...current,
+      enableConferenceRoomChat: true,
+    });
     expect(enabled.enableConferenceRoomChat).toBe(true);
     expect(enabled.enableStreamlinedLeftNavigation).toBe(true);
 
-    const disabled = normalizeExperimentalSettings({ ...enabled, enableConferenceRoomChat: false });
+    const disabled = normalizeExperimentalSettings({
+      ...enabled,
+      enableConferenceRoomChat: false,
+    });
     expect(disabled).toEqual(current);
   });
 
   it("rejects non-boolean enableConferenceRoomChat values back to the default", () => {
     expect(
-      normalizeExperimentalSettings({ enableConferenceRoomChat: "yes" }).enableConferenceRoomChat,
+      normalizeExperimentalSettings({ enableConferenceRoomChat: "yes" })
+        .enableConferenceRoomChat,
     ).toBe(false);
   });
 
   it("defaults enableBuiltInAgents to false for empty and legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableBuiltInAgents).toBe(false);
+    expect(normalizeExperimentalSettings(undefined).enableBuiltInAgents).toBe(
+      false,
+    );
     expect(normalizeExperimentalSettings({}).enableBuiltInAgents).toBe(false);
-    expect(normalizeExperimentalSettings({ enableExternalObjects: true }).enableBuiltInAgents).toBe(false);
+    expect(
+      normalizeExperimentalSettings({ enableExternalObjects: true })
+        .enableBuiltInAgents,
+    ).toBe(false);
   });
 
   it("preserves enableBetaSkills and defaults it off for legacy stored settings", () => {
-    expect(normalizeExperimentalSettings(undefined).enableBetaSkills).toBe(false);
+    expect(normalizeExperimentalSettings(undefined).enableBetaSkills).toBe(
+      false,
+    );
     expect(normalizeExperimentalSettings({}).enableBetaSkills).toBe(false);
-    expect(normalizeExperimentalSettings({ enableBetaSkills: true }).enableBetaSkills).toBe(true);
+    expect(
+      normalizeExperimentalSettings({ enableBetaSkills: true })
+        .enableBetaSkills,
+    ).toBe(true);
   });
 
   it("sets worktree run execution activation fields on a false to true transition", () => {
@@ -250,8 +352,12 @@ describe("instance settings service", () => {
     );
 
     expect(next.enableWorktreeRunExecution).toBe(true);
-    expect(next.worktreeRunExecutionActivatedAt).toBe("2026-07-10T12:00:00.000Z");
-    expect(next.worktreeRunExecutionActivationInstanceId).toBe("worktree-instance");
+    expect(next.worktreeRunExecutionActivatedAt).toBe(
+      "2026-07-10T12:00:00.000Z",
+    );
+    expect(next.worktreeRunExecutionActivationInstanceId).toBe(
+      "worktree-instance",
+    );
   });
 
   it("clears worktree run execution activation fields on a true to false transition", () => {
@@ -310,7 +416,9 @@ describe("instance settings service", () => {
       },
     );
 
-    expect(secondActivation.worktreeRunExecutionActivatedAt).toBe("2026-07-10T12:05:00.000Z");
+    expect(secondActivation.worktreeRunExecutionActivatedAt).toBe(
+      "2026-07-10T12:05:00.000Z",
+    );
     expect(secondActivation.worktreeRunExecutionActivatedAt).not.toBe(
       firstActivation.worktreeRunExecutionActivatedAt,
     );
@@ -420,7 +528,8 @@ describe("instance settings service", () => {
       reason: "settings_read_error",
     });
 
-    const getExperimental = vi.fn<() => Promise<InstanceExperimentalSettings>>();
+    const getExperimental =
+      vi.fn<() => Promise<InstanceExperimentalSettings>>();
     await expect(
       resolveWorktreeRunExecutionActivationState({
         getExperimental,
@@ -436,5 +545,4 @@ describe("instance settings service", () => {
     });
     expect(getExperimental).not.toHaveBeenCalled();
   });
-
 });

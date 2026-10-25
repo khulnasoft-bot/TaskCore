@@ -56,13 +56,17 @@ function parseOptionalJson(raw: string | undefined | null): unknown {
 }
 
 async function callRuntimeConnectionTool(
-  endpointEnv: "TASKCORE_RUNTIME_TOOLS_CONNECTIONS_SEARCH_URL" | "TASKCORE_RUNTIME_TOOLS_CONNECTION_REQUEST_URL",
+  endpointEnv:
+    | "TASKCORE_RUNTIME_TOOLS_CONNECTIONS_SEARCH_URL"
+    | "TASKCORE_RUNTIME_TOOLS_CONNECTION_REQUEST_URL",
   body: unknown,
 ) {
   const endpoint = process.env[endpointEnv]?.trim();
   const token = process.env.TASKCORE_RUNTIME_TOOLS_TOKEN?.trim();
   if (!endpoint || !token) {
-    throw new Error("Connection intent tools are available only inside an active Taskcore heartbeat run");
+    throw new Error(
+      "Connection intent tools are available only inside an active Taskcore heartbeat run",
+    );
   }
   const response = await fetch(endpoint, {
     method: "POST",
@@ -74,11 +78,12 @@ async function callRuntimeConnectionTool(
     body: JSON.stringify(body),
   });
   const text = await response.text();
-  const parsed = text ? JSON.parse(text) as unknown : null;
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!response.ok) {
-    const message = parsed && typeof parsed === "object" && "error" in parsed
-      ? String((parsed as { error: unknown }).error)
-      : `Runtime connection tool failed with ${response.status}`;
+    const message =
+      parsed && typeof parsed === "object" && "error" in parsed
+        ? String((parsed as { error: unknown }).error)
+        : `Runtime connection tool failed with ${response.status}`;
     throw new Error(message);
   }
   return parsed;
@@ -128,13 +133,17 @@ const upsertDocumentToolSchema = z.object({
   baseRevisionId: z.string().guid().nullable().optional(),
 });
 
-const createIssueToolSchema = z.object({
-  companyId: companyIdOptional,
-}).merge(createIssueInputSchema);
+const createIssueToolSchema = z
+  .object({
+    companyId: companyIdOptional,
+  })
+  .merge(createIssueInputSchema);
 
-const updateIssueToolSchema = z.object({
-  issueId: issueIdSchema,
-}).merge(updateIssueSchema);
+const updateIssueToolSchema = z
+  .object({
+    issueId: issueIdSchema,
+  })
+  .merge(updateIssueSchema);
 
 const checkoutIssueToolSchema = z.object({
   issueId: issueIdSchema,
@@ -142,9 +151,11 @@ const checkoutIssueToolSchema = z.object({
   expectedStatuses: checkoutIssueSchema.shape.expectedStatuses.optional(),
 });
 
-const addCommentToolSchema = z.object({
-  issueId: issueIdSchema,
-}).merge(addIssueCommentSchema);
+const addCommentToolSchema = z
+  .object({
+    issueId: issueIdSchema,
+  })
+  .merge(addIssueCommentSchema);
 
 const createSuggestTasksToolSchema = z.object({
   issueId: issueIdSchema,
@@ -153,7 +164,9 @@ const createSuggestTasksToolSchema = z.object({
   sourceRunId: z.string().guid().nullable().optional(),
   title: z.string().trim().max(240).nullable().optional(),
   summary: z.string().trim().max(1000).nullable().optional(),
-  continuationPolicy: issueThreadInteractionContinuationPolicySchema.optional().default("wake_assignee"),
+  continuationPolicy: issueThreadInteractionContinuationPolicySchema
+    .optional()
+    .default("wake_assignee"),
   payload: suggestTasksPayloadSchema,
 });
 
@@ -164,7 +177,9 @@ const createAskUserQuestionsToolSchema = z.object({
   sourceRunId: z.string().guid().nullable().optional(),
   title: z.string().trim().max(240).nullable().optional(),
   summary: z.string().trim().max(1000).nullable().optional(),
-  continuationPolicy: issueThreadInteractionContinuationPolicySchema.optional().default("wake_assignee"),
+  continuationPolicy: issueThreadInteractionContinuationPolicySchema
+    .optional()
+    .default("wake_assignee"),
   payload: askUserQuestionsPayloadSchema,
 });
 
@@ -175,7 +190,9 @@ const createRequestConfirmationToolSchema = z.object({
   sourceRunId: z.string().guid().nullable().optional(),
   title: z.string().trim().max(240).nullable().optional(),
   summary: z.string().trim().max(1000).nullable().optional(),
-  continuationPolicy: issueThreadInteractionContinuationPolicySchema.optional().default("none"),
+  continuationPolicy: issueThreadInteractionContinuationPolicySchema
+    .optional()
+    .default("none"),
   payload: requestConfirmationPayloadSchema,
 });
 
@@ -186,7 +203,9 @@ const createRequestCheckboxConfirmationToolSchema = z.object({
   sourceRunId: z.string().guid().nullable().optional(),
   title: z.string().trim().max(240).nullable().optional(),
   summary: z.string().trim().max(1000).nullable().optional(),
-  continuationPolicy: issueThreadInteractionContinuationPolicySchema.optional().default("wake_assignee"),
+  continuationPolicy: issueThreadInteractionContinuationPolicySchema
+    .optional()
+    .default("wake_assignee"),
   payload: requestCheckboxConfirmationPayloadSchema,
 });
 
@@ -197,9 +216,11 @@ const approvalDecisionSchema = z.object({
   payloadJson: z.string().optional(),
 });
 
-const createApprovalToolSchema = z.object({
-  companyId: companyIdOptional,
-}).merge(createApprovalSchema);
+const createApprovalToolSchema = z
+  .object({
+    companyId: companyIdOptional,
+  })
+  .merge(createApprovalSchema);
 
 const apiRequestSchema = z.object({
   method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
@@ -213,10 +234,12 @@ const workspaceRuntimeControlTargetSchema = z.object({
   serviceIndex: z.number().int().nonnegative().optional().nullable(),
 });
 
-const issueWorkspaceRuntimeControlSchema = z.object({
-  issueId: issueIdSchema,
-  action: z.enum(["start", "stop", "restart"]),
-}).merge(workspaceRuntimeControlTargetSchema);
+const issueWorkspaceRuntimeControlSchema = z
+  .object({
+    issueId: issueIdSchema,
+    action: z.enum(["start", "stop", "restart"]),
+  })
+  .merge(workspaceRuntimeControlTargetSchema);
 
 const waitForIssueWorkspaceServiceSchema = z.object({
   issueId: issueIdSchema,
@@ -229,16 +252,26 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function readCurrentExecutionWorkspace(context: unknown): Record<string, unknown> | null {
+function readCurrentExecutionWorkspace(
+  context: unknown,
+): Record<string, unknown> | null {
   if (!context || typeof context !== "object") return null;
-  const workspace = (context as { currentExecutionWorkspace?: unknown }).currentExecutionWorkspace;
-  return workspace && typeof workspace === "object" ? workspace as Record<string, unknown> : null;
+  const workspace = (context as { currentExecutionWorkspace?: unknown })
+    .currentExecutionWorkspace;
+  return workspace && typeof workspace === "object"
+    ? (workspace as Record<string, unknown>)
+    : null;
 }
 
-function readWorkspaceRuntimeServices(workspace: Record<string, unknown> | null): Array<Record<string, unknown>> {
+function readWorkspaceRuntimeServices(
+  workspace: Record<string, unknown> | null,
+): Array<Record<string, unknown>> {
   const raw = workspace?.runtimeServices;
   return Array.isArray(raw)
-    ? raw.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+    ? raw.filter(
+        (entry): entry is Record<string, unknown> =>
+          Boolean(entry) && typeof entry === "object",
+      )
     : [];
 }
 
@@ -247,18 +280,34 @@ function selectRuntimeService(
   input: { runtimeServiceId?: string | null; serviceName?: string | null },
 ) {
   if (input.runtimeServiceId) {
-    return services.find((service) => service.id === input.runtimeServiceId) ?? null;
+    return (
+      services.find((service) => service.id === input.runtimeServiceId) ?? null
+    );
   }
   if (input.serviceName) {
-    return services.find((service) => service.serviceName === input.serviceName) ?? null;
+    return (
+      services.find((service) => service.serviceName === input.serviceName) ??
+      null
+    );
   }
-  return services.find((service) => service.status === "running" || service.status === "starting")
-    ?? services[0]
-    ?? null;
+  return (
+    services.find(
+      (service) =>
+        service.status === "running" || service.status === "starting",
+    ) ??
+    services[0] ??
+    null
+  );
 }
 
-async function getIssueWorkspaceRuntime(client: TaskcoreApiClient, issueId: string) {
-  const context = await client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}/heartbeat-context`);
+async function getIssueWorkspaceRuntime(
+  client: TaskcoreApiClient,
+  issueId: string,
+) {
+  const context = await client.requestJson(
+    "GET",
+    `/issues/${encodeURIComponent(issueId)}/heartbeat-context`,
+  );
   const workspace = readCurrentExecutionWorkspace(context);
   return {
     context,
@@ -267,25 +316,29 @@ async function getIssueWorkspaceRuntime(client: TaskcoreApiClient, issueId: stri
   };
 }
 
-export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition[] {
+export function createToolDefinitions(
+  client: TaskcoreApiClient,
+): ToolDefinition[] {
   return [
     makeTool(
       "connections_search",
       CONNECTIONS_SEARCH_TOOL_DESCRIPTION,
       connectionsSearchInputSchema,
-      async (input) => callRuntimeConnectionTool(
-        "TASKCORE_RUNTIME_TOOLS_CONNECTIONS_SEARCH_URL",
-        input,
-      ),
+      async (input) =>
+        callRuntimeConnectionTool(
+          "TASKCORE_RUNTIME_TOOLS_CONNECTIONS_SEARCH_URL",
+          input,
+        ),
     ),
     makeTool(
       "connection_request",
       CONNECTION_REQUEST_TOOL_DESCRIPTION,
       connectionRequestInputSchema,
-      async (input) => callRuntimeConnectionTool(
-        "TASKCORE_RUNTIME_TOOLS_CONNECTION_REQUEST_URL",
-        input,
-      ),
+      async (input) =>
+        callRuntimeConnectionTool(
+          "TASKCORE_RUNTIME_TOOLS_CONNECTION_REQUEST_URL",
+          input,
+        ),
     ),
     makeTool(
       "taskcoreMe",
@@ -303,21 +356,34 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       "taskcoreListAgents",
       "List agents in a company",
       z.object({ companyId: companyIdOptional }),
-      async ({ companyId }) => client.requestJson("GET", `/companies/${client.resolveCompanyId(companyId)}/agents`),
+      async ({ companyId }) =>
+        client.requestJson(
+          "GET",
+          `/companies/${client.resolveCompanyId(companyId)}/agents`,
+        ),
     ),
     makeTool(
       "taskcoreListSkills",
       "List the company skill library (all installed skills, independent of which agents have them enabled)",
       z.object({ companyId: companyIdOptional }),
-      async ({ companyId }) => client.requestJson("GET", `/companies/${client.resolveCompanyId(companyId)}/skills`),
+      async ({ companyId }) =>
+        client.requestJson(
+          "GET",
+          `/companies/${client.resolveCompanyId(companyId)}/skills`,
+        ),
     ),
     makeTool(
       "taskcoreGetAgent",
       "Get a single agent by id",
       z.object({ agentId: z.string().min(1), companyId: companyIdOptional }),
       async ({ agentId, companyId }) => {
-        const qs = companyId ? `?companyId=${encodeURIComponent(companyId)}` : "";
-        return client.requestJson("GET", `/agents/${encodeURIComponent(agentId)}${qs}`);
+        const qs = companyId
+          ? `?companyId=${encodeURIComponent(companyId)}`
+          : "";
+        return client.requestJson(
+          "GET",
+          `/agents/${encodeURIComponent(agentId)}${qs}`,
+        );
       },
     ),
     makeTool(
@@ -328,26 +394,39 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
         const companyId = client.resolveCompanyId(input.companyId);
         const params = new URLSearchParams();
         for (const [key, value] of Object.entries(input)) {
-          if (key === "companyId" || value === undefined || value === null) continue;
+          if (key === "companyId" || value === undefined || value === null)
+            continue;
           params.set(key, String(value));
         }
         const qs = params.toString();
-        return client.requestJson("GET", `/companies/${companyId}/issues${qs ? `?${qs}` : ""}`);
+        return client.requestJson(
+          "GET",
+          `/companies/${companyId}/issues${qs ? `?${qs}` : ""}`,
+        );
       },
     ),
     makeTool(
       "taskcoreGetIssue",
       "Get a single issue by UUID or identifier",
       z.object({ issueId: issueIdSchema }),
-      async ({ issueId }) => client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}`),
+      async ({ issueId }) =>
+        client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}`),
     ),
     makeTool(
       "taskcoreGetHeartbeatContext",
       "Get compact heartbeat context for an issue",
-      z.object({ issueId: issueIdSchema, wakeCommentId: z.string().guid().optional() }),
+      z.object({
+        issueId: issueIdSchema,
+        wakeCommentId: z.string().guid().optional(),
+      }),
       async ({ issueId, wakeCommentId }) => {
-        const qs = wakeCommentId ? `?wakeCommentId=${encodeURIComponent(wakeCommentId)}` : "";
-        return client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}/heartbeat-context${qs}`);
+        const qs = wakeCommentId
+          ? `?wakeCommentId=${encodeURIComponent(wakeCommentId)}`
+          : "";
+        return client.requestJson(
+          "GET",
+          `/issues/${encodeURIComponent(issueId)}/heartbeat-context${qs}`,
+        );
       },
     ),
     makeTool(
@@ -360,7 +439,10 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
         if (order) params.set("order", order);
         if (limit) params.set("limit", String(limit));
         const qs = params.toString();
-        return client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}/comments${qs ? `?${qs}` : ""}`);
+        return client.requestJson(
+          "GET",
+          `/issues/${encodeURIComponent(issueId)}/comments${qs ? `?${qs}` : ""}`,
+        );
       },
     ),
     makeTool(
@@ -368,26 +450,40 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       "Get a specific issue comment by id",
       z.object({ issueId: issueIdSchema, commentId: z.string().guid() }),
       async ({ issueId, commentId }) =>
-        client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}/comments/${encodeURIComponent(commentId)}`),
+        client.requestJson(
+          "GET",
+          `/issues/${encodeURIComponent(issueId)}/comments/${encodeURIComponent(commentId)}`,
+        ),
     ),
     makeTool(
       "taskcoreListIssueApprovals",
       "List approvals linked to an issue",
       z.object({ issueId: issueIdSchema }),
-      async ({ issueId }) => client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}/approvals`),
+      async ({ issueId }) =>
+        client.requestJson(
+          "GET",
+          `/issues/${encodeURIComponent(issueId)}/approvals`,
+        ),
     ),
     makeTool(
       "taskcoreListDocuments",
       "List issue documents",
       z.object({ issueId: issueIdSchema }),
-      async ({ issueId }) => client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}/documents`),
+      async ({ issueId }) =>
+        client.requestJson(
+          "GET",
+          `/issues/${encodeURIComponent(issueId)}/documents`,
+        ),
     ),
     makeTool(
       "taskcoreGetDocument",
       "Get one issue document by key",
       z.object({ issueId: issueIdSchema, key: documentKeySchema }),
       async ({ issueId, key }) =>
-        client.requestJson("GET", `/issues/${encodeURIComponent(issueId)}/documents/${encodeURIComponent(key)}`),
+        client.requestJson(
+          "GET",
+          `/issues/${encodeURIComponent(issueId)}/documents/${encodeURIComponent(key)}`,
+        ),
     ),
     makeTool(
       "taskcoreListDocumentRevisions",
@@ -403,15 +499,24 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       "taskcoreListProjects",
       "List projects in a company",
       z.object({ companyId: companyIdOptional }),
-      async ({ companyId }) => client.requestJson("GET", `/companies/${client.resolveCompanyId(companyId)}/projects`),
+      async ({ companyId }) =>
+        client.requestJson(
+          "GET",
+          `/companies/${client.resolveCompanyId(companyId)}/projects`,
+        ),
     ),
     makeTool(
       "taskcoreGetProject",
       "Get a project by id or company-scoped short reference",
       z.object({ projectId: projectIdSchema, companyId: companyIdOptional }),
       async ({ projectId, companyId }) => {
-        const qs = companyId ? `?companyId=${encodeURIComponent(companyId)}` : "";
-        return client.requestJson("GET", `/projects/${encodeURIComponent(projectId)}${qs}`);
+        const qs = companyId
+          ? `?companyId=${encodeURIComponent(companyId)}`
+          : "";
+        return client.requestJson(
+          "GET",
+          `/projects/${encodeURIComponent(projectId)}${qs}`,
+        );
       },
     ),
     makeTool(
@@ -426,7 +531,10 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       issueWorkspaceRuntimeControlSchema,
       async ({ issueId, action, ...target }) => {
         const runtime = await getIssueWorkspaceRuntime(client, issueId);
-        const workspaceId = typeof runtime.workspace?.id === "string" ? runtime.workspace.id : null;
+        const workspaceId =
+          typeof runtime.workspace?.id === "string"
+            ? runtime.workspace.id
+            : null;
         if (!workspaceId) {
           throw new Error("Issue has no current execution workspace");
         }
@@ -443,11 +551,19 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       waitForIssueWorkspaceServiceSchema,
       async ({ issueId, runtimeServiceId, serviceName, timeoutSeconds }) => {
         const deadline = Date.now() + (timeoutSeconds ?? 60) * 1000;
-        let latest: Awaited<ReturnType<typeof getIssueWorkspaceRuntime>> | null = null;
+        let latest: Awaited<
+          ReturnType<typeof getIssueWorkspaceRuntime>
+        > | null = null;
         while (Date.now() <= deadline) {
           latest = await getIssueWorkspaceRuntime(client, issueId);
-          const service = selectRuntimeService(latest.runtimeServices, { runtimeServiceId, serviceName });
-          if (service?.status === "running" && service.healthStatus !== "unhealthy") {
+          const service = selectRuntimeService(latest.runtimeServices, {
+            runtimeServiceId,
+            serviceName,
+          });
+          if (
+            service?.status === "running" &&
+            service.healthStatus !== "unhealthy"
+          ) {
             return {
               workspace: latest.workspace,
               service,
@@ -467,13 +583,18 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       "taskcoreListGoals",
       "List goals in a company",
       z.object({ companyId: companyIdOptional }),
-      async ({ companyId }) => client.requestJson("GET", `/companies/${client.resolveCompanyId(companyId)}/goals`),
+      async ({ companyId }) =>
+        client.requestJson(
+          "GET",
+          `/companies/${client.resolveCompanyId(companyId)}/goals`,
+        ),
     ),
     makeTool(
       "taskcoreGetGoal",
       "Get a goal by id",
       z.object({ goalId: goalIdSchema }),
-      async ({ goalId }) => client.requestJson("GET", `/goals/${encodeURIComponent(goalId)}`),
+      async ({ goalId }) =>
+        client.requestJson("GET", `/goals/${encodeURIComponent(goalId)}`),
     ),
     makeTool(
       "taskcoreListApprovals",
@@ -481,7 +602,10 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       z.object({ companyId: companyIdOptional, status: z.string().optional() }),
       async ({ companyId, status }) => {
         const qs = status ? `?status=${encodeURIComponent(status)}` : "";
-        return client.requestJson("GET", `/companies/${client.resolveCompanyId(companyId)}/approvals${qs}`);
+        return client.requestJson(
+          "GET",
+          `/companies/${client.resolveCompanyId(companyId)}/approvals${qs}`,
+        );
       },
     ),
     makeTool(
@@ -489,114 +613,169 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       "Create a board approval request, optionally linked to one or more issues",
       createApprovalToolSchema,
       async ({ companyId, ...body }) =>
-        client.requestJson("POST", `/companies/${client.resolveCompanyId(companyId)}/approvals`, {
-          body,
-        }),
+        client.requestJson(
+          "POST",
+          `/companies/${client.resolveCompanyId(companyId)}/approvals`,
+          {
+            body,
+          },
+        ),
     ),
     makeTool(
       "taskcoreGetApproval",
       "Get an approval by id",
       z.object({ approvalId: approvalIdSchema }),
-      async ({ approvalId }) => client.requestJson("GET", `/approvals/${encodeURIComponent(approvalId)}`),
+      async ({ approvalId }) =>
+        client.requestJson(
+          "GET",
+          `/approvals/${encodeURIComponent(approvalId)}`,
+        ),
     ),
     makeTool(
       "taskcoreGetApprovalIssues",
       "List issues linked to an approval",
       z.object({ approvalId: approvalIdSchema }),
-      async ({ approvalId }) => client.requestJson("GET", `/approvals/${encodeURIComponent(approvalId)}/issues`),
+      async ({ approvalId }) =>
+        client.requestJson(
+          "GET",
+          `/approvals/${encodeURIComponent(approvalId)}/issues`,
+        ),
     ),
     makeTool(
       "taskcoreListApprovalComments",
       "List comments for an approval",
       z.object({ approvalId: approvalIdSchema }),
-      async ({ approvalId }) => client.requestJson("GET", `/approvals/${encodeURIComponent(approvalId)}/comments`),
+      async ({ approvalId }) =>
+        client.requestJson(
+          "GET",
+          `/approvals/${encodeURIComponent(approvalId)}/comments`,
+        ),
     ),
     makeTool(
       "taskcoreCreateIssue",
       "Create a new issue",
       createIssueToolSchema,
       async ({ companyId, ...body }) =>
-        client.requestJson("POST", `/companies/${client.resolveCompanyId(companyId)}/issues`, { body }),
+        client.requestJson(
+          "POST",
+          `/companies/${client.resolveCompanyId(companyId)}/issues`,
+          { body },
+        ),
     ),
     makeTool(
       "taskcoreUpdateIssue",
       "Patch an issue, optionally including a comment; include resume=true when intentionally requesting follow-up on resumable closed work",
       updateIssueToolSchema,
       async ({ issueId, ...body }) =>
-        client.requestJson("PATCH", `/issues/${encodeURIComponent(issueId)}`, { body }),
+        client.requestJson("PATCH", `/issues/${encodeURIComponent(issueId)}`, {
+          body,
+        }),
     ),
     makeTool(
       "taskcoreCheckoutIssue",
       "Checkout an issue for an agent",
       checkoutIssueToolSchema,
       async ({ issueId, agentId, expectedStatuses }) =>
-        client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/checkout`, {
-          body: {
-            agentId: client.resolveAgentId(agentId),
-            expectedStatuses: expectedStatuses ?? ["todo", "backlog", "blocked"],
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/checkout`,
+          {
+            body: {
+              agentId: client.resolveAgentId(agentId),
+              expectedStatuses: expectedStatuses ?? [
+                "todo",
+                "backlog",
+                "blocked",
+              ],
+            },
           },
-        }),
+        ),
     ),
     makeTool(
       "taskcoreReleaseIssue",
       "Release an issue checkout",
       z.object({ issueId: issueIdSchema }),
-      async ({ issueId }) => client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/release`, { body: {} }),
+      async ({ issueId }) =>
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/release`,
+          { body: {} },
+        ),
     ),
     makeTool(
       "taskcoreAddComment",
       "Add a comment to an issue; include resume=true when intentionally requesting follow-up on resumable closed work",
       addCommentToolSchema,
       async ({ issueId, ...body }) =>
-        client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/comments`, { body }),
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/comments`,
+          { body },
+        ),
     ),
     makeTool(
       "taskcoreSuggestTasks",
       "Create a suggest_tasks interaction on an issue",
       createSuggestTasksToolSchema,
       async ({ issueId, ...body }) =>
-        client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/interactions`, {
-          body: {
-            kind: "suggest_tasks",
-            ...body,
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/interactions`,
+          {
+            body: {
+              kind: "suggest_tasks",
+              ...body,
+            },
           },
-        }),
+        ),
     ),
     makeTool(
       "taskcoreAskUserQuestions",
       "Create an ask_user_questions interaction on an issue",
       createAskUserQuestionsToolSchema,
       async ({ issueId, ...body }) =>
-        client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/interactions`, {
-          body: {
-            kind: "ask_user_questions",
-            ...body,
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/interactions`,
+          {
+            body: {
+              kind: "ask_user_questions",
+              ...body,
+            },
           },
-        }),
+        ),
     ),
     makeTool(
       "taskcoreRequestConfirmation",
       "Create a request_confirmation interaction on an issue",
       createRequestConfirmationToolSchema,
       async ({ issueId, ...body }) =>
-        client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/interactions`, {
-          body: {
-            kind: "request_confirmation",
-            ...body,
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/interactions`,
+          {
+            body: {
+              kind: "request_confirmation",
+              ...body,
+            },
           },
-        }),
+        ),
     ),
     makeTool(
       "taskcoreRequestCheckboxConfirmation",
       "Create a request_checkbox_confirmation interaction on an issue",
       createRequestCheckboxConfirmationToolSchema,
       async ({ issueId, ...body }) =>
-        client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/interactions`, {
-          body: {
-            kind: "request_checkbox_confirmation",
-            ...body,
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/interactions`,
+          {
+            body: {
+              kind: "request_checkbox_confirmation",
+              ...body,
+            },
           },
-        }),
+        ),
     ),
     makeTool(
       "taskcoreUpsertIssueDocument",
@@ -629,9 +808,13 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       "Link an approval to an issue",
       z.object({ issueId: issueIdSchema }).merge(linkIssueApprovalSchema),
       async ({ issueId, approvalId }) =>
-        client.requestJson("POST", `/issues/${encodeURIComponent(issueId)}/approvals`, {
-          body: { approvalId },
-        }),
+        client.requestJson(
+          "POST",
+          `/issues/${encodeURIComponent(issueId)}/approvals`,
+          {
+            body: { approvalId },
+          },
+        ),
     ),
     makeTool(
       "taskcoreUnlinkIssueApproval",
@@ -670,9 +853,13 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       "Add a comment to an approval",
       z.object({ approvalId: approvalIdSchema, body: z.string().min(1) }),
       async ({ approvalId, body }) =>
-        client.requestJson("POST", `/approvals/${encodeURIComponent(approvalId)}/comments`, {
-          body: { body },
-        }),
+        client.requestJson(
+          "POST",
+          `/approvals/${encodeURIComponent(approvalId)}/comments`,
+          {
+            body: { body },
+          },
+        ),
     ),
     makeTool(
       "taskcoreApiRequest",
@@ -680,7 +867,9 @@ export function createToolDefinitions(client: TaskcoreApiClient): ToolDefinition
       apiRequestSchema,
       async ({ method, path, jsonBody }) => {
         if (!path.startsWith("/") || path.includes("..")) {
-          throw new Error("path must start with / and be relative to /api, and must not contain '..'");
+          throw new Error(
+            "path must start with / and be relative to /api, and must not contain '..'",
+          );
         }
         return client.requestJson(method, path, {
           body: parseOptionalJson(jsonBody),

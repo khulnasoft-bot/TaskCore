@@ -67,7 +67,8 @@ const DEFAULT_ADMIN_REMEDIATION =
 const PLATFORM_TITLES: Record<string, string> = {
   skill_authentication_required: "Sign in to manage skills.",
   skill_company_boundary_denied: "This skill belongs to another organization.",
-  skill_workspace_boundary_denied: "This skill source is outside an allowed workspace.",
+  skill_workspace_boundary_denied:
+    "This skill source is outside an allowed workspace.",
   skill_source_validation_failed: "This skill source failed validation.",
   skill_unsafe_content_blocked: "This skill contains unsafe content.",
   skill_secret_handling_blocked: "This skill exposes a secret value.",
@@ -77,7 +78,8 @@ const PLATFORM_TITLES: Record<string, string> = {
 /** Default remediation copy per platform-invariant code — framed as a fix, never a grant. */
 const PLATFORM_REMEDIATIONS: Record<string, string> = {
   skill_authentication_required: "Sign in and try again.",
-  skill_company_boundary_denied: "Open the skill from the organization that owns it.",
+  skill_company_boundary_denied:
+    "Open the skill from the organization that owns it.",
   skill_workspace_boundary_denied:
     "Import from a configured Taskcore workspace or the organization managed-skill directory.",
   skill_source_validation_failed: "Fix the flagged source and retry.",
@@ -88,7 +90,9 @@ const PLATFORM_REMEDIATIONS: Record<string, string> = {
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function asString(value: unknown): string | null {
@@ -114,9 +118,9 @@ export function classifySkillDenial(
 
   // State B — explicit company-policy denial. Resolvable by an administrator.
   const isPolicyDenial =
-    code === SKILL_POLICY_DENIAL_CODE
-    || reason === "explicit_rule"
-    || reason === "policy_default";
+    code === SKILL_POLICY_DENIAL_CODE ||
+    reason === "explicit_rule" ||
+    reason === "policy_default";
   if (isPolicyDenial) {
     const title = actionLabel
       ? `${actionLabel} is restricted by your organization policy.`
@@ -143,18 +147,21 @@ export function classifySkillDenial(
 
   // State C — non-configurable platform-safety invariant. Never waivable.
   const isPlatformInvariant =
-    (code !== null && (SKILL_PLATFORM_INVARIANT_CODES as readonly string[]).includes(code))
-    || reason === "platform_invariant";
+    (code !== null &&
+      (SKILL_PLATFORM_INVARIANT_CODES as readonly string[]).includes(code)) ||
+    reason === "platform_invariant";
   if (isPlatformInvariant) {
     return {
       state: "platform",
       code,
       reason,
-      title: (code && PLATFORM_TITLES[code]) ?? "This action is blocked by a platform safety rule.",
+      title:
+        (code && PLATFORM_TITLES[code]) ??
+        "This action is blocked by a platform safety rule.",
       remediation:
-        remediation
-        ?? (code && PLATFORM_REMEDIATIONS[code])
-        ?? "Fix the flagged issue and try again.",
+        remediation ??
+        (code && PLATFORM_REMEDIATIONS[code]) ??
+        "Fix the flagged issue and try again.",
     };
   }
 

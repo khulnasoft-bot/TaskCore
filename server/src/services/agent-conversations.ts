@@ -66,10 +66,11 @@ export function isConversationExecutionWake(
   issue: ConversationIdentity | null | undefined,
   reason: string | null | undefined,
 ): boolean {
-  return isConversation(issue) && (
-    reason === "issue_blockers_resolved" ||
-    reason === "issue_children_completed" ||
-    reason === "issue_unblock_requested"
+  return (
+    isConversation(issue) &&
+    (reason === "issue_blockers_resolved" ||
+      reason === "issue_children_completed" ||
+      reason === "issue_unblock_requested")
   );
 }
 
@@ -178,13 +179,30 @@ export async function prepareConversationTurn(
         .where(eq(issueComments.id, comment.id));
       // Questions from the previous session must not keep occupying the
       // composer or wake the old topic, even if they survive normal comments.
-      const expiredQuestions = await tx.update(issueThreadInteractions).set({
-        status: "expired", resolvedAt: new Date(), updatedAt: new Date(),
-        resolvedByUserId: comment.authorUserId,
-        result: { version: 1, outcome: "withdrawn", reason: "New conversation session", answers: [], summaryMarkdown: null },
-      }).where(and(eq(issueThreadInteractions.companyId, issue.companyId),
-        eq(issueThreadInteractions.issueId, issue.id), eq(issueThreadInteractions.status, "pending"),
-        eq(issueThreadInteractions.kind, "ask_user_questions"))).returning({ id: issueThreadInteractions.id });
+      const expiredQuestions = await tx
+        .update(issueThreadInteractions)
+        .set({
+          status: "expired",
+          resolvedAt: new Date(),
+          updatedAt: new Date(),
+          resolvedByUserId: comment.authorUserId,
+          result: {
+            version: 1,
+            outcome: "withdrawn",
+            reason: "New conversation session",
+            answers: [],
+            summaryMarkdown: null,
+          },
+        })
+        .where(
+          and(
+            eq(issueThreadInteractions.companyId, issue.companyId),
+            eq(issueThreadInteractions.issueId, issue.id),
+            eq(issueThreadInteractions.status, "pending"),
+            eq(issueThreadInteractions.kind, "ask_user_questions"),
+          ),
+        )
+        .returning({ id: issueThreadInteractions.id });
       publication = (
         await persistActivity(tx as unknown as Db, {
           companyId: issue.companyId,
@@ -194,7 +212,11 @@ export async function prepareConversationTurn(
           entityType: "issue",
           entityId: issue.id,
           runId: run.id,
-          details: { generation, boundaryCommentId: comment.id, expiredInteractionIds: expiredQuestions.map((row) => row.id) },
+          details: {
+            generation,
+            boundaryCommentId: comment.id,
+            expiredInteractionIds: expiredQuestions.map((row) => row.id),
+          },
         })
       ).publication;
       // Deliberately do not touch agentRuntimeState or sessions belonging to other tasks.
@@ -212,17 +234,29 @@ export async function prepareConversationTurn(
     // Keep that provenance, but do not mistake already answered later messages
     // for new work. Only advance through a successful, durably answered turn in
     // this same session; queued, failed, or response-less turns do not qualify.
-    if (context.interactionKind === "ask_user_questions" && context.interactionStatus === "answered"
-      && typeof context.interactionId === "string" && typeof context.conversationReplyBoundaryCommentId !== "string") {
-      const [answered] = await tx.select({ id: issueThreadInteractions.id }).from(issueThreadInteractions).where(and(
-        eq(issueThreadInteractions.id, context.interactionId), eq(issueThreadInteractions.companyId, run.companyId),
-        eq(issueThreadInteractions.issueId, issueId), eq(issueThreadInteractions.kind, "ask_user_questions"),
-        eq(issueThreadInteractions.status, "answered"),
-      ));
+    if (
+      context.interactionKind === "ask_user_questions" &&
+      context.interactionStatus === "answered" &&
+      typeof context.interactionId === "string" &&
+      typeof context.conversationReplyBoundaryCommentId !== "string"
+    ) {
+      const [answered] = await tx
+        .select({ id: issueThreadInteractions.id })
+        .from(issueThreadInteractions)
+        .where(
+          and(
+            eq(issueThreadInteractions.id, context.interactionId),
+            eq(issueThreadInteractions.companyId, run.companyId),
+            eq(issueThreadInteractions.issueId, issueId),
+            eq(issueThreadInteractions.kind, "ask_user_questions"),
+            eq(issueThreadInteractions.status, "answered"),
+          ),
+        );
       if (answered) {
-        const progress = await tx.select({
-          id: issueComments.id,
-          handled: sql<boolean>`exists (select 1 from ${heartbeatRuns} completed
+        const progress = await tx
+          .select({
+            id: issueComments.id,
+            handled: sql<boolean>`exists (select 1 from ${heartbeatRuns} completed
             where completed.company_id = ${run.companyId}::uuid and completed.agent_id = ${issue.conversationAgentId}::uuid
               and completed.status = 'succeeded' and completed.context_snapshot->>'issueId' = ${issueId}
               and completed.context_snapshot->>'conversationSessionGeneration' = ${String(generation)}
@@ -233,26 +267,51 @@ export async function prepareConversationTurn(
                 or exists (select 1 from issue_thread_interactions question where question.company_id = ${run.companyId}::uuid
                   and question.issue_id = ${issueId}::uuid and question.source_run_id = completed.id
                   and question.created_by_agent_id = ${issue.conversationAgentId}::uuid)))`,
-        }).from(issueComments).where(and(
-          eq(issueComments.companyId, run.companyId), eq(issueComments.issueId, issueId),
-          isNull(issueComments.deletedAt), isNull(issueComments.createdByRunId), isNull(issueComments.authorAgentId),
-          sql`${issueComments.authorUserId} is not null`,
-          comment ? sql`(${issueComments.createdAt}, ${issueComments.id}) > (select cursor.created_at, cursor.id from issue_comments cursor where cursor.id = ${comment.id}::uuid)` : sql`false`,
-        )).orderBy(issueComments.createdAt, issueComments.id);
+          })
+          .from(issueComments)
+          .where(
+            and(
+              eq(issueComments.companyId, run.companyId),
+              eq(issueComments.issueId, issueId),
+              isNull(issueComments.deletedAt),
+              isNull(issueComments.createdByRunId),
+              isNull(issueComments.authorAgentId),
+              sql`${issueComments.authorUserId} is not null`,
+              comment
+                ? sql`(${issueComments.createdAt}, ${issueComments.id}) > (select cursor.created_at, cursor.id from issue_comments cursor where cursor.id = ${comment.id}::uuid)`
+                : sql`false`,
+            ),
+          )
+          .orderBy(issueComments.createdAt, issueComments.id);
         let replyBoundary = commentId;
         let firstUnhandled: string | null = null;
         for (const candidate of progress) {
-          if (!candidate.handled) { firstUnhandled = candidate.id; break; }
+          if (!candidate.handled) {
+            firstUnhandled = candidate.id;
+            break;
+          }
           replyBoundary = candidate.id;
         }
         context.conversationReplyBoundaryCommentId = replyBoundary;
         // Freeze the visible history too. Include prior replies, but never pull
         // an unhandled or newly arriving message into this historical answer.
-        const [replayThrough] = await tx.select({ id: issueComments.id }).from(issueComments).where(and(
-          eq(issueComments.companyId, run.companyId), eq(issueComments.issueId, issueId), isNull(issueComments.deletedAt),
-          firstUnhandled ? sql`(${issueComments.createdAt}, ${issueComments.id}) < (select cursor.created_at, cursor.id from issue_comments cursor where cursor.id = ${firstUnhandled}::uuid)` : undefined,
-        )).orderBy(desc(issueComments.createdAt), desc(issueComments.id)).limit(1);
-        context.conversationReplayThroughCommentId = replayThrough?.id ?? commentId;
+        const [replayThrough] = await tx
+          .select({ id: issueComments.id })
+          .from(issueComments)
+          .where(
+            and(
+              eq(issueComments.companyId, run.companyId),
+              eq(issueComments.issueId, issueId),
+              isNull(issueComments.deletedAt),
+              firstUnhandled
+                ? sql`(${issueComments.createdAt}, ${issueComments.id}) < (select cursor.created_at, cursor.id from issue_comments cursor where cursor.id = ${firstUnhandled}::uuid)`
+                : undefined,
+            ),
+          )
+          .orderBy(desc(issueComments.createdAt), desc(issueComments.id))
+          .limit(1);
+        context.conversationReplayThroughCommentId =
+          replayThrough?.id ?? commentId;
       }
     }
     await tx
@@ -313,19 +372,27 @@ export async function settleConversationTurn(
       .limit(1);
     // Native question/plan waits use the durable interaction as the reply;
     // their terminal prose is deliberately not materialized as a comment.
-    const [interaction] = !response && context.conversationReset !== true
-      ? await tx.select({ id: issueThreadInteractions.id })
-          .from(issueThreadInteractions)
-          .where(and(
-            eq(issueThreadInteractions.companyId, run.companyId),
-            eq(issueThreadInteractions.issueId, issueId),
-            eq(issueThreadInteractions.sourceRunId, run.id),
-            eq(issueThreadInteractions.createdByAgentId, issue.conversationAgentId!),
-            eq(issueThreadInteractions.status, "pending"),
-          ))
-          .limit(1)
-      : [];
-    if (!response && !interaction && context.conversationReset !== true) return false;
+    const [interaction] =
+      !response && context.conversationReset !== true
+        ? await tx
+            .select({ id: issueThreadInteractions.id })
+            .from(issueThreadInteractions)
+            .where(
+              and(
+                eq(issueThreadInteractions.companyId, run.companyId),
+                eq(issueThreadInteractions.issueId, issueId),
+                eq(issueThreadInteractions.sourceRunId, run.id),
+                eq(
+                  issueThreadInteractions.createdByAgentId,
+                  issue.conversationAgentId!,
+                ),
+                eq(issueThreadInteractions.status, "pending"),
+              ),
+            )
+            .limit(1)
+        : [];
+    if (!response && !interaction && context.conversationReset !== true)
+      return false;
     if (
       context.conversationSessionGeneration !==
       issue.conversationSessionGeneration
@@ -491,27 +558,64 @@ export async function undeliveredConversationComments(
 }
 
 /** A user's /new resumes this chat without replaying the stopped turn. */
-export async function resumeConversationForReset(db: Db, comment: typeof issueComments.$inferSelect) {
+export async function resumeConversationForReset(
+  db: Db,
+  comment: typeof issueComments.$inferSelect,
+) {
   if (!comment.authorUserId || !isConversationReset(comment.body)) return;
   const publications: ActivityPublication[] = [];
   await db.transaction(async (tx) => {
-    const [issue] = await tx.select().from(issues).where(and(
-      eq(issues.id, comment.issueId), eq(issues.companyId, comment.companyId),
-    )).for("update");
-    if (!isConversation(issue) || comment.conversationSessionGeneration != null) return;
-    const released = await tx.update(issueTreeHolds).set({
-      status: "released", releasedAt: new Date(), updatedAt: new Date(),
-      releasedByActorType: "user", releasedByUserId: comment.authorUserId,
-      releaseReason: "Resumed by /new", releaseMetadata: { commentId: comment.id, wakeAgents: false },
-    }).where(and(eq(issueTreeHolds.companyId, issue.companyId),
-      eq(issueTreeHolds.rootIssueId, issue.id), eq(issueTreeHolds.mode, "pause"),
-      eq(issueTreeHolds.status, "active"))).returning();
+    const [issue] = await tx
+      .select()
+      .from(issues)
+      .where(
+        and(
+          eq(issues.id, comment.issueId),
+          eq(issues.companyId, comment.companyId),
+        ),
+      )
+      .for("update");
+    if (!isConversation(issue) || comment.conversationSessionGeneration != null)
+      return;
+    const released = await tx
+      .update(issueTreeHolds)
+      .set({
+        status: "released",
+        releasedAt: new Date(),
+        updatedAt: new Date(),
+        releasedByActorType: "user",
+        releasedByUserId: comment.authorUserId,
+        releaseReason: "Resumed by /new",
+        releaseMetadata: { commentId: comment.id, wakeAgents: false },
+      })
+      .where(
+        and(
+          eq(issueTreeHolds.companyId, issue.companyId),
+          eq(issueTreeHolds.rootIssueId, issue.id),
+          eq(issueTreeHolds.mode, "pause"),
+          eq(issueTreeHolds.status, "active"),
+        ),
+      )
+      .returning();
     for (const hold of released) {
-      publications.push((await persistActivity(tx as unknown as Db, {
-        companyId: issue.companyId, actorType: "user", actorId: comment.authorUserId!,
-        action: "issue.tree_hold_released", entityType: "issue", entityId: issue.id,
-        details: { holdId: hold.id, mode: "pause", reason: "Resumed by /new", commentId: comment.id },
-      })).publication);
+      publications.push(
+        (
+          await persistActivity(tx as unknown as Db, {
+            companyId: issue.companyId,
+            actorType: "user",
+            actorId: comment.authorUserId!,
+            action: "issue.tree_hold_released",
+            entityType: "issue",
+            entityId: issue.id,
+            details: {
+              holdId: hold.id,
+              mode: "pause",
+              reason: "Resumed by /new",
+              commentId: comment.id,
+            },
+          })
+        ).publication,
+      );
     }
   });
   for (const publication of publications) publishActivity(publication);

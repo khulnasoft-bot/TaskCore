@@ -32,9 +32,22 @@ function createSelectChain(rowsForTable: (table: unknown) => unknown[]) {
 
 function createDbState(input: {
   agent: { id: string; companyId: string; status?: string };
-  agentKey?: { id: string; agentId: string; companyId: string; keyHash: string; responsibleUserId?: string | null };
-  run?: { id: string; companyId: string; agentId: string; responsibleUserId?: string | null;
-    status?: string; contextSnapshot?: Record<string, unknown>; resultJson?: Record<string, unknown> };
+  agentKey?: {
+    id: string;
+    agentId: string;
+    companyId: string;
+    keyHash: string;
+    responsibleUserId?: string | null;
+  };
+  run?: {
+    id: string;
+    companyId: string;
+    agentId: string;
+    responsibleUserId?: string | null;
+    status?: string;
+    contextSnapshot?: Record<string, unknown>;
+    resultJson?: Record<string, unknown>;
+  };
 }) {
   const activity: Array<Record<string, unknown>> = [];
   const agentRow = {
@@ -94,7 +107,10 @@ function createDbState(input: {
   return { db, activity };
 }
 
-function createApp(db: any, deploymentMode: "authenticated" | "local_trusted" = "authenticated") {
+function createApp(
+  db: any,
+  deploymentMode: "authenticated" | "local_trusted" = "authenticated",
+) {
   const app = express();
   app.use(express.json());
   app.use(
@@ -148,15 +164,23 @@ function craftAgentJwtWithoutResponsibleClaim(input: {
     iss: "taskcore",
     aud: "taskcore-api",
   };
-  const headerB64 = Buffer.from(JSON.stringify(header), "utf8").toString("base64url");
-  const claimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString("base64url");
+  const headerB64 = Buffer.from(JSON.stringify(header), "utf8").toString(
+    "base64url",
+  );
+  const claimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString(
+    "base64url",
+  );
   const signingInput = `${headerB64}.${claimsB64}`;
   // Sign with the same per-instance, per-company key the server derives. The
   // instance defaults to "default" (beforeEach clears TASKCORE_INSTANCE_ID),
   // matching the live control plane this middleware test exercises. This helper
   // only omits the responsible_user_id claim — it is not a cross-instance token.
-  const signingKey = createHmac("sha256", input.secret).update(`jwt:default:${input.companyId}`).digest("hex");
-  const signature = createHmac("sha256", signingKey).update(signingInput).digest("base64url");
+  const signingKey = createHmac("sha256", input.secret)
+    .update(`jwt:default:${input.companyId}`)
+    .digest("hex");
+  const signature = createHmac("sha256", signingKey)
+    .update(signingInput)
+    .digest("base64url");
   return `${signingInput}.${signature}`;
 }
 
@@ -174,11 +198,14 @@ describe("agent auth middleware", () => {
   });
 
   afterEach(() => {
-    if (originalSecret === undefined) delete process.env.TASKCORE_AGENT_JWT_SECRET;
+    if (originalSecret === undefined)
+      delete process.env.TASKCORE_AGENT_JWT_SECRET;
     else process.env.TASKCORE_AGENT_JWT_SECRET = originalSecret;
-    if (originalTtl === undefined) delete process.env.TASKCORE_AGENT_JWT_TTL_SECONDS;
+    if (originalTtl === undefined)
+      delete process.env.TASKCORE_AGENT_JWT_TTL_SECONDS;
     else process.env.TASKCORE_AGENT_JWT_TTL_SECONDS = originalTtl;
-    if (originalInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+    if (originalInstanceId === undefined)
+      delete process.env.TASKCORE_INSTANCE_ID;
     else process.env.TASKCORE_INSTANCE_ID = originalInstanceId;
   });
 
@@ -187,60 +214,103 @@ describe("agent auth middleware", () => {
     { status: "running", conversationMode: false, requested: true },
     { status: "cancelled", conversationMode: true, requested: false },
     { status: "running", conversationMode: true, requested: true },
-  ])("revokes writes but preserves reads for a stopped run: %j", async ({ status, conversationMode, requested }) => {
-    const agentId = randomUUID();
-    const companyId = randomUUID();
-    const runId = randomUUID();
-    const { db } = createDbState({ agent: { id: agentId, companyId }, run: {
-      id: runId, companyId, agentId, status, contextSnapshot: { conversationMode },
-      resultJson: requested ? { executionCancellation: { state: "requested" } } : {},
-    } });
-    const token = createLocalAgentJwt(agentId, companyId, "grok_local", runId, null);
-    const client = createApp(db);
-    const endpoint = `/companies/${companyId}/issues/${randomUUID()}`;
-    const write = await request(client).patch(endpoint).set("Authorization", `Bearer ${token}`).send({ status: "done" });
-    expect(write.status).toBe(403);
-    expect(write.body.code).toBe(conversationMode ? "conversation_turn_cancelled" : "agent_run_cancelled");
-    const read = await request(client).get(endpoint).set("Authorization", `Bearer ${token}`);
-    expect(read.status).toBe(200);
-    expect(read.body.readable).toBe(true);
-  });
+  ])(
+    "revokes writes but preserves reads for a stopped run: %j",
+    async ({ status, conversationMode, requested }) => {
+      const agentId = randomUUID();
+      const companyId = randomUUID();
+      const runId = randomUUID();
+      const { db } = createDbState({
+        agent: { id: agentId, companyId },
+        run: {
+          id: runId,
+          companyId,
+          agentId,
+          status,
+          contextSnapshot: { conversationMode },
+          resultJson: requested
+            ? { executionCancellation: { state: "requested" } }
+            : {},
+        },
+      });
+      const token = createLocalAgentJwt(
+        agentId,
+        companyId,
+        "grok_local",
+        runId,
+        null,
+      );
+      const client = createApp(db);
+      const endpoint = `/companies/${companyId}/issues/${randomUUID()}`;
+      const write = await request(client)
+        .patch(endpoint)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ status: "done" });
+      expect(write.status).toBe(403);
+      expect(write.body.code).toBe(
+        conversationMode
+          ? "conversation_turn_cancelled"
+          : "agent_run_cancelled",
+      );
+      const read = await request(client)
+        .get(endpoint)
+        .set("Authorization", `Bearer ${token}`);
+      expect(read.status).toBe(200);
+      expect(read.body.readable).toBe(true);
+    },
+  );
 
   it("keeps header-less local requests as the implicit board actor with their run id", async () => {
     const runId = randomUUID();
-    const { db } = createDbState({ agent: { id: randomUUID(), companyId: randomUUID() } });
+    const { db } = createDbState({
+      agent: { id: randomUUID(), companyId: randomUUID() },
+    });
 
     const res = await request(createApp(db, "local_trusted"))
       .get("/actor")
       .set("X-Taskcore-Run-Id", runId);
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ type: "board", userId: "local-board", runId });
+    expect(res.body).toMatchObject({
+      type: "board",
+      userId: "local-board",
+      runId,
+    });
   });
 
   it.each([
     ["empty bearer token", "Bearer   ", "Empty bearer token"],
     ["unverified token", "Bearer not-a-token", "Agent token did not verify"],
-  ])("rejects %s instead of retaining the implicit local-board actor", async (_label, authorization, error) => {
-    const { db } = createDbState({ agent: { id: randomUUID(), companyId: randomUUID() } });
-    let commentWrites = 0;
-    const app = createApp(db, "local_trusted");
-    app.post("/comments", (_req, res) => {
-      commentWrites += 1;
-      res.status(201).json({ ok: true });
-    });
+  ])(
+    "rejects %s instead of retaining the implicit local-board actor",
+    async (_label, authorization, error) => {
+      const { db } = createDbState({
+        agent: { id: randomUUID(), companyId: randomUUID() },
+      });
+      let commentWrites = 0;
+      const app = createApp(db, "local_trusted");
+      app.post("/comments", (_req, res) => {
+        commentWrites += 1;
+        res.status(201).json({ ok: true });
+      });
 
-    const res = await request(app).post("/comments").set("Authorization", authorization).send({ body: "reply" });
+      const res = await request(app)
+        .post("/comments")
+        .set("Authorization", authorization)
+        .send({ body: "reply" });
 
-    expect(res.status).toBe(401);
-    expect(res.body.error).toContain(error);
-    expect(commentWrites).toBe(0);
-  });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toContain(error);
+      expect(commentWrites).toBe(0);
+    },
+  );
 
   it.each(["authenticated", "local_trusted"] as const)(
     "leaves webhook authentication to the trigger in %s mode",
     async (deploymentMode) => {
-      const { db } = createDbState({ agent: { id: randomUUID(), companyId: randomUUID() } });
+      const { db } = createDbState({
+        agent: { id: randomUUID(), companyId: randomUUID() },
+      });
       const res = await request(createApp(db, deploymentMode))
         .post(`/api/routine-triggers/public/${"a".repeat(24)}/fire`)
         .set("Authorization", "Bearer routine-secret")
@@ -255,13 +325,19 @@ describe("agent auth middleware", () => {
     "/api/routine-triggers/public/not-a-public-id/fire",
     `/api/routine-triggers/public/${"a".repeat(24)}/fire/extra`,
   ])("does not bypass actor authentication for %s", async (path) => {
-    const { db } = createDbState({ agent: { id: randomUUID(), companyId: randomUUID() } });
-    const res = await request(createApp(db)).post(path).set("Authorization", "Bearer routine-secret");
+    const { db } = createDbState({
+      agent: { id: randomUUID(), companyId: randomUUID() },
+    });
+    const res = await request(createApp(db))
+      .post(path)
+      .set("Authorization", "Bearer routine-secret");
     expect(res.status).toBe(401);
   });
 
   it("leaves public MCP gateway bearers for the gateway protocol to validate", async () => {
-    const { db } = createDbState({ agent: { id: randomUUID(), companyId: randomUUID() } });
+    const { db } = createDbState({
+      agent: { id: randomUUID(), companyId: randomUUID() },
+    });
     const publicId = `gw_${"a".repeat(32)}`;
 
     const res = await request(createApp(db, "local_trusted"))
@@ -274,7 +350,9 @@ describe("agent auth middleware", () => {
   });
 
   it("does not bypass actor authentication for lookalike MCP gateway paths", async () => {
-    const { db } = createDbState({ agent: { id: randomUUID(), companyId: randomUUID() } });
+    const { db } = createDbState({
+      agent: { id: randomUUID(), companyId: randomUUID() },
+    });
 
     const res = await request(createApp(db, "local_trusted"))
       .post("/mcp/gateways/not-a-public-id")
@@ -288,27 +366,46 @@ describe("agent auth middleware", () => {
   it.each([
     ["terminated", "Agent is terminated"],
     ["pending_approval", "Agent is pending approval"],
-  ])("rejects a %s agent JWT instead of retaining local-board", async (status, error) => {
-    const companyId = randomUUID();
-    const agentId = randomUUID();
-    const runId = randomUUID();
-    const { db } = createDbState({ agent: { id: agentId, companyId, status } });
-    const token = createLocalAgentJwt(agentId, companyId, "codex_local", runId, "user-1");
+  ])(
+    "rejects a %s agent JWT instead of retaining local-board",
+    async (status, error) => {
+      const companyId = randomUUID();
+      const agentId = randomUUID();
+      const runId = randomUUID();
+      const { db } = createDbState({
+        agent: { id: agentId, companyId, status },
+      });
+      const token = createLocalAgentJwt(
+        agentId,
+        companyId,
+        "codex_local",
+        runId,
+        "user-1",
+      );
 
-    const res = await request(createApp(db, "local_trusted"))
-      .get("/actor")
-      .set("Authorization", `Bearer ${token}`);
+      const res = await request(createApp(db, "local_trusted"))
+        .get("/actor")
+        .set("Authorization", `Bearer ${token}`);
 
-    expect(res.status).toBe(401);
-    expect(res.body.error).toContain(error);
-  });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toContain(error);
+    },
+  );
 
   it("rejects an agent JWT when the agent record belongs to another company", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();
     const runId = randomUUID();
-    const { db } = createDbState({ agent: { id: agentId, companyId: randomUUID() } });
-    const token = createLocalAgentJwt(agentId, companyId, "codex_local", runId, "user-1");
+    const { db } = createDbState({
+      agent: { id: agentId, companyId: randomUUID() },
+    });
+    const token = createLocalAgentJwt(
+      agentId,
+      companyId,
+      "codex_local",
+      runId,
+      "user-1",
+    );
 
     const res = await request(createApp(db, "local_trusted"))
       .get("/actor")
@@ -348,7 +445,13 @@ describe("agent auth middleware", () => {
       agent: { id: agentId, companyId },
       run: { id: runId, companyId, agentId, responsibleUserId: "user-row" },
     });
-    const token = createLocalAgentJwt(agentId, companyId, "codex_local", runId, "user-claim");
+    const token = createLocalAgentJwt(
+      agentId,
+      companyId,
+      "codex_local",
+      runId,
+      "user-claim",
+    );
 
     const res = await request(createApp(db))
       .get("/actor")
@@ -375,10 +478,17 @@ describe("agent auth middleware", () => {
       agent: { id: agentId, companyId },
       run: { id: runId, companyId, agentId, responsibleUserId: "user-claim" },
     });
-    const token = createLocalAgentJwt(agentId, companyId, "codex_local", runId, "user-claim", {
-      kind: "skill_test",
-      issueId,
-    });
+    const token = createLocalAgentJwt(
+      agentId,
+      companyId,
+      "codex_local",
+      runId,
+      "user-claim",
+      {
+        kind: "skill_test",
+        issueId,
+      },
+    );
 
     const res = await request(createApp(db))
       .get("/actor")
@@ -404,7 +514,13 @@ describe("agent auth middleware", () => {
       agent: { id: agentId, companyId },
       run: { id: runId, companyId, agentId, responsibleUserId: "user-claim" },
     });
-    const token = createLocalAgentJwt(agentId, companyId, "codex_local", runId, "user-claim");
+    const token = createLocalAgentJwt(
+      agentId,
+      companyId,
+      "codex_local",
+      runId,
+      "user-claim",
+    );
 
     const res = await request(createApp(db))
       .get("/actor")
@@ -466,7 +582,13 @@ describe("agent auth middleware", () => {
     });
 
     process.env.TASKCORE_INSTANCE_ID = "pap-12899-worktree";
-    const forkToken = createLocalAgentJwt(agentId, companyId, "codex_local", runId, "user-claim");
+    const forkToken = createLocalAgentJwt(
+      agentId,
+      companyId,
+      "codex_local",
+      runId,
+      "user-claim",
+    );
     expect(forkToken).not.toBeNull();
 
     process.env.TASKCORE_INSTANCE_ID = "default";

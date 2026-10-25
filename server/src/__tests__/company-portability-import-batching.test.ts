@@ -34,7 +34,9 @@ import { randomUUID } from "node:crypto";
 // PORTABILITY_IMPORT_BENCH=1) reports wall-clock and statement counts at scale.
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 // Tables whose insert statements we count, keyed by a readable label.
 const COUNTED_TABLES: Array<[string, unknown]> = [
@@ -77,17 +79,25 @@ function instrumentInserts(db: Record<string, unknown>): InsertCounts {
     return null;
   };
   const patchInsert = (target: Record<string, unknown>) => {
-    const original = (target.insert as (table: unknown) => unknown).bind(target);
+    const original = (target.insert as (table: unknown) => unknown).bind(
+      target,
+    );
     target.insert = (table: unknown) => {
       counts.total += 1;
       const label = labelFor(table);
-      if (label) counts.byTable.set(label, (counts.byTable.get(label) ?? 0) + 1);
+      if (label)
+        counts.byTable.set(label, (counts.byTable.get(label) ?? 0) + 1);
       return original(table);
     };
   };
   patchInsert(db);
-  const originalTransaction = (db.transaction as (fn: unknown, config?: unknown) => unknown).bind(db);
-  db.transaction = (fn: (tx: Record<string, unknown>) => unknown, config?: unknown) =>
+  const originalTransaction = (
+    db.transaction as (fn: unknown, config?: unknown) => unknown
+  ).bind(db);
+  db.transaction = (
+    fn: (tx: Record<string, unknown>) => unknown,
+    config?: unknown,
+  ) =>
     originalTransaction((tx: Record<string, unknown>) => {
       patchInsert(tx);
       return fn(tx);
@@ -100,18 +110,22 @@ function instrumentInserts(db: Record<string, unknown>): InsertCounts {
 // block algorithm the exporter uses to guarantee a round-trip-compatible bundle.
 function renderYamlScalar(value: unknown): string {
   if (value === null) return "null";
-  if (typeof value === "boolean" || typeof value === "number") return String(value);
+  if (typeof value === "boolean" || typeof value === "number")
+    return String(value);
   return JSON.stringify(value);
 }
 
 function isRenderableScalar(value: unknown): boolean {
   return (
-    value === null
-    || typeof value === "string"
-    || typeof value === "boolean"
-    || typeof value === "number"
-    || (Array.isArray(value) && value.length === 0)
-    || (value !== null && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    typeof value === "number" ||
+    (Array.isArray(value) && value.length === 0) ||
+    (value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === 0)
   );
 }
 
@@ -163,12 +177,28 @@ function buildSyntheticBundle(options: SyntheticBundleOptions): {
   files: Record<string, CompanyPortabilityFileEntry>;
 } {
   const files: Record<string, CompanyPortabilityFileEntry> = {};
-  files["COMPANY.md"] = ['---', 'schema: "agentcompanies/v1"', 'name: "Batching Bench Co"', '---', '', 'Synthetic import bundle.', ''].join("\n");
+  files["COMPANY.md"] = [
+    "---",
+    'schema: "agentcompanies/v1"',
+    'name: "Batching Bench Co"',
+    "---",
+    "",
+    "Synthetic import bundle.",
+    "",
+  ].join("\n");
 
   const tasks: Record<string, unknown> = {};
   for (let i = 1; i <= options.issueCount; i += 1) {
     const slug = `task-${String(i).padStart(4, "0")}`;
-    files[`tasks/${slug}/TASK.md`] = ['---', `name: "Task ${i}"`, "kind: task", '---', '', `Description body for task ${i}. `.repeat(6), ''].join("\n");
+    files[`tasks/${slug}/TASK.md`] = [
+      "---",
+      `name: "Task ${i}"`,
+      "kind: task",
+      "---",
+      "",
+      `Description body for task ${i}. `.repeat(6),
+      "",
+    ].join("\n");
 
     const comments = [];
     for (let c = 0; c < options.commentsPerIssue; c += 1) {
@@ -181,8 +211,14 @@ function buildSyntheticBundle(options: SyntheticBundleOptions): {
     for (let d = 0; d < options.documentsPerIssue; d += 1) {
       const key = d === 0 ? "spec" : `doc-${d + 1}`;
       const docPath = `tasks/${slug}/documents/${key}.md`;
-      files[docPath] = `# ${key}\n\n${`Document body for task ${i} ${key}. `.repeat(8)}`;
-      taskDocuments.push({ key, title: key, format: "markdown", path: docPath });
+      files[docPath] =
+        `# ${key}\n\n${`Document body for task ${i} ${key}. `.repeat(8)}`;
+      taskDocuments.push({
+        key,
+        title: key,
+        format: "markdown",
+        path: docPath,
+      });
     }
 
     tasks[slug] = {
@@ -209,12 +245,28 @@ function buildTouchedIssuesBundle(issueCount: number): {
   files: Record<string, CompanyPortabilityFileEntry>;
 } {
   const files: Record<string, CompanyPortabilityFileEntry> = {};
-  files["COMPANY.md"] = ['---', 'schema: "agentcompanies/v1"', 'name: "Inbox Flood Co"', '---', '', 'Synthetic import bundle.', ''].join("\n");
+  files["COMPANY.md"] = [
+    "---",
+    'schema: "agentcompanies/v1"',
+    'name: "Inbox Flood Co"',
+    "---",
+    "",
+    "Synthetic import bundle.",
+    "",
+  ].join("\n");
 
   const tasks: Record<string, unknown> = {};
   for (let i = 1; i <= issueCount; i += 1) {
     const slug = `task-${String(i).padStart(4, "0")}`;
-    files[`tasks/${slug}/TASK.md`] = ['---', `name: "Task ${i}"`, "kind: task", '---', '', `Body for task ${i}.`, ''].join("\n");
+    files[`tasks/${slug}/TASK.md`] = [
+      "---",
+      `name: "Task ${i}"`,
+      "kind: task",
+      "---",
+      "",
+      `Body for task ${i}.`,
+      "",
+    ].join("\n");
     tasks[slug] = {
       status: "todo",
       priority: "medium",
@@ -228,12 +280,16 @@ function buildTouchedIssuesBundle(issueCount: number): {
 }
 
 describeEmbeddedPostgres("company import batches inserts", () => {
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let db!: ReturnType<typeof createDb>;
   let counts!: InsertCounts;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-import-batching-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-import-batching-",
+    );
     db = createDb(tempDb.connectionString);
     counts = instrumentInserts(db as unknown as Record<string, unknown>);
   }, 30_000);
@@ -250,14 +306,30 @@ describeEmbeddedPostgres("company import batches inserts", () => {
     const issueCount = 50;
     const commentsPerIssue = 2;
     const documentsPerIssue = 1;
-    const bundle = buildSyntheticBundle({ issueCount, commentsPerIssue, documentsPerIssue });
+    const bundle = buildSyntheticBundle({
+      issueCount,
+      commentsPerIssue,
+      documentsPerIssue,
+    });
     const portability = companyPortabilityService(db);
 
     const result = await portability.importBundle(
       {
-        source: { type: "inline", rootPath: bundle.rootPath, files: bundle.files },
-        include: { company: true, agents: false, projects: false, issues: true },
-        target: { mode: "new_company", newCompanyName: "Batching Regression Co" },
+        source: {
+          type: "inline",
+          rootPath: bundle.rootPath,
+          files: bundle.files,
+        },
+        include: {
+          company: true,
+          agents: false,
+          projects: false,
+          issues: true,
+        },
+        target: {
+          mode: "new_company",
+          newCompanyName: "Batching Regression Co",
+        },
         collisionStrategy: "rename",
       },
       "user-batching-regression",
@@ -310,8 +382,17 @@ describeEmbeddedPostgres("company import batches inserts", () => {
 
     const result = await portability.importBundle(
       {
-        source: { type: "inline", rootPath: bundle.rootPath, files: bundle.files },
-        include: { company: true, agents: false, projects: false, issues: true },
+        source: {
+          type: "inline",
+          rootPath: bundle.rootPath,
+          files: bundle.files,
+        },
+        include: {
+          company: true,
+          agents: false,
+          projects: false,
+          issues: true,
+        },
         target: { mode: "new_company", newCompanyName: "Inbox Flood Co" },
         collisionStrategy: "rename",
       },
@@ -334,19 +415,25 @@ describeEmbeddedPostgres("company import batches inserts", () => {
         archivedByActorType: issueInboxArchives.archivedByActorType,
       })
       .from(issueInboxArchives)
-      .where(and(
-        eq(issueInboxArchives.companyId, companyId),
-        eq(issueInboxArchives.userId, importingUserId),
-      ));
+      .where(
+        and(
+          eq(issueInboxArchives.companyId, companyId),
+          eq(issueInboxArchives.userId, importingUserId),
+        ),
+      );
     expect(new Set(archives.map((row) => row.issueId))).toEqual(importedIds);
-    expect(archives.every((row) => row.archivedByActorType === "user")).toBe(true);
+    expect(archives.every((row) => row.archivedByActorType === "user")).toBe(
+      true,
+    );
 
     const issuesSvc = issueService(db);
 
     // Sanity: the imported issues really are "touched by me" (their user comment
     // was re-attributed to the importing user), so without the archive filter
     // they would all flood the inbox.
-    const touched = await issuesSvc.list(companyId, { touchedByUserId: importingUserId });
+    const touched = await issuesSvc.list(companyId, {
+      touchedByUserId: importingUserId,
+    });
     expect(new Set(touched.map((issue) => issue.id))).toEqual(importedIds);
 
     // The inbox "mine" query (touched AND not inbox-archived) returns none of
@@ -370,7 +457,9 @@ describeEmbeddedPostgres("company import batches inserts", () => {
       inboxArchivedByUserId: importingUserId,
     });
     expect(mineAfterCreate.map((issue) => issue.id)).toContain(fresh.id);
-    expect(mineAfterCreate.filter((issue) => importedIds.has(issue.id))).toEqual([]);
+    expect(
+      mineAfterCreate.filter((issue) => importedIds.has(issue.id)),
+    ).toEqual([]);
   });
 
   it("imports in_progress issues with a null startedAt", async () => {
@@ -395,23 +484,25 @@ describeEmbeddedPostgres("company import batches inserts", () => {
       permissions: {},
     });
 
-    await issueService(db).importIssues(companyId, [{
-      id: randomUUID(),
-      ref: "carried-over",
-      projectId: null,
-      projectWorkspaceId: null,
-      title: "Carried-over work",
-      description: null,
-      assigneeAgentId: agentId,
-      status: "in_progress",
-      priority: "medium",
-      billingCode: null,
-      assigneeAdapterOverrides: null,
-      executionWorkspaceSettings: null,
-      labelIds: [],
-      monitorNotes: null,
-      monitorScheduledBy: null,
-    }]);
+    await issueService(db).importIssues(companyId, [
+      {
+        id: randomUUID(),
+        ref: "carried-over",
+        projectId: null,
+        projectWorkspaceId: null,
+        title: "Carried-over work",
+        description: null,
+        assigneeAgentId: agentId,
+        status: "in_progress",
+        priority: "medium",
+        billingCode: null,
+        assigneeAdapterOverrides: null,
+        executionWorkspaceSettings: null,
+        labelIds: [],
+        monitorNotes: null,
+        monitorScheduledBy: null,
+      },
+    ]);
 
     const [imported] = await db
       .select({ status: issues.status, startedAt: issues.startedAt })
@@ -425,8 +516,25 @@ describeEmbeddedPostgres("company import batches inserts", () => {
 
   it("preserves bundle timestamps and parent hierarchy through a real import", async () => {
     const files: Record<string, CompanyPortabilityFileEntry> = {};
-    files["COMPANY.md"] = ['---', 'schema: "agentcompanies/v1"', 'name: "Timestamp Fidelity Co"', '---', '', 'Synthetic import bundle.', ''].join("\n");
-    const taskFile = (name: string) => ['---', `name: "${name}"`, "kind: task", '---', '', `${name} body.`, ''].join("\n");
+    files["COMPANY.md"] = [
+      "---",
+      'schema: "agentcompanies/v1"',
+      'name: "Timestamp Fidelity Co"',
+      "---",
+      "",
+      "Synthetic import bundle.",
+      "",
+    ].join("\n");
+    const taskFile = (name: string) =>
+      [
+        "---",
+        `name: "${name}"`,
+        "kind: task",
+        "---",
+        "",
+        `${name} body.`,
+        "",
+      ].join("\n");
     files["tasks/a-child/TASK.md"] = taskFile("Child");
     files["tasks/m-grandchild/TASK.md"] = taskFile("Grandchild");
     files["tasks/z-parent/TASK.md"] = taskFile("Parent");
@@ -442,11 +550,13 @@ describeEmbeddedPostgres("company import batches inserts", () => {
           parent: "z-parent",
           createdAt: "2026-01-05T00:00:00.000Z",
           updatedAt: "2026-03-05T00:00:00.000Z",
-          comments: [{
-            body: "Older than the preserved updatedAt.",
-            authorType: "system",
-            createdAt: "2026-02-01T00:00:00.000Z",
-          }],
+          comments: [
+            {
+              body: "Older than the preserved updatedAt.",
+              authorType: "system",
+              createdAt: "2026-02-01T00:00:00.000Z",
+            },
+          ],
         },
         "m-grandchild": {
           status: "todo",
@@ -461,11 +571,13 @@ describeEmbeddedPostgres("company import batches inserts", () => {
           createdAt: "2026-01-01T00:00:00.000Z",
           updatedAt: "2026-03-01T00:00:00.000Z",
           completedAt: "2026-02-20T00:00:00.000Z",
-          comments: [{
-            body: "Newer than the preserved updatedAt.",
-            authorType: "system",
-            createdAt: "2026-04-01T00:00:00.000Z",
-          }],
+          comments: [
+            {
+              body: "Newer than the preserved updatedAt.",
+              authorType: "system",
+              createdAt: "2026-04-01T00:00:00.000Z",
+            },
+          ],
         },
       },
     });
@@ -474,8 +586,16 @@ describeEmbeddedPostgres("company import batches inserts", () => {
     const result = await portability.importBundle(
       {
         source: { type: "inline", rootPath: "timestamp-fidelity", files },
-        include: { company: true, agents: false, projects: false, issues: true },
-        target: { mode: "new_company", newCompanyName: "Timestamp Fidelity Co" },
+        include: {
+          company: true,
+          agents: false,
+          projects: false,
+          issues: true,
+        },
+        target: {
+          mode: "new_company",
+          newCompanyName: "Timestamp Fidelity Co",
+        },
         collisionStrategy: "rename",
       },
       "user-timestamp-fidelity",
@@ -520,19 +640,37 @@ describeEmbeddedPostgres("company import batches inserts", () => {
     // A little slack absorbs clock drift between this process and Postgres.
     const importStart = Date.now() - 1_000;
     const files: Record<string, CompanyPortabilityFileEntry> = {};
-    files["COMPANY.md"] = ['---', 'schema: "agentcompanies/v1"', 'name: "Legacy Shape Co"', '---', '', 'Synthetic import bundle.', ''].join("\n");
-    files["tasks/legacy-task/TASK.md"] = ['---', 'name: "Legacy task"', "kind: task", '---', '', 'Legacy body.', ''].join("\n");
+    files["COMPANY.md"] = [
+      "---",
+      'schema: "agentcompanies/v1"',
+      'name: "Legacy Shape Co"',
+      "---",
+      "",
+      "Synthetic import bundle.",
+      "",
+    ].join("\n");
+    files["tasks/legacy-task/TASK.md"] = [
+      "---",
+      'name: "Legacy task"',
+      "kind: task",
+      "---",
+      "",
+      "Legacy body.",
+      "",
+    ].join("\n");
     files[".taskcore.yaml"] = renderTaskcoreYaml({
       schemaVersion: 6,
       tasks: {
         "legacy-task": {
           status: "todo",
           priority: "medium",
-          comments: [{
-            body: "Predates the import.",
-            authorType: "system",
-            createdAt: "2026-01-01T00:00:00.000Z",
-          }],
+          comments: [
+            {
+              body: "Predates the import.",
+              authorType: "system",
+              createdAt: "2026-01-01T00:00:00.000Z",
+            },
+          ],
         },
       },
     });
@@ -541,7 +679,12 @@ describeEmbeddedPostgres("company import batches inserts", () => {
     const result = await portability.importBundle(
       {
         source: { type: "inline", rootPath: "legacy-shape", files },
-        include: { company: true, agents: false, projects: false, issues: true },
+        include: {
+          company: true,
+          agents: false,
+          projects: false,
+          issues: true,
+        },
         target: { mode: "new_company", newCompanyName: "Legacy Shape Co" },
         collisionStrategy: "rename",
       },
@@ -571,13 +714,29 @@ describeEmbeddedPostgres("company import batches inserts", () => {
 
   it("rolls back the whole work-product batch when a later chunk fails", async () => {
     // Seed a real company + issue to hang work products off of.
-    const bundle = buildSyntheticBundle({ issueCount: 1, commentsPerIssue: 0, documentsPerIssue: 0 });
+    const bundle = buildSyntheticBundle({
+      issueCount: 1,
+      commentsPerIssue: 0,
+      documentsPerIssue: 0,
+    });
     const portability = companyPortabilityService(db);
     const seeded = await portability.importBundle(
       {
-        source: { type: "inline", rootPath: bundle.rootPath, files: bundle.files },
-        include: { company: true, agents: false, projects: false, issues: true },
-        target: { mode: "new_company", newCompanyName: "Work Product Atomicity Co" },
+        source: {
+          type: "inline",
+          rootPath: bundle.rootPath,
+          files: bundle.files,
+        },
+        include: {
+          company: true,
+          agents: false,
+          projects: false,
+          issues: true,
+        },
+        target: {
+          mode: "new_company",
+          newCompanyName: "Work Product Atomicity Co",
+        },
         collisionStrategy: "rename",
       },
       "user-work-product-atomicity",
@@ -590,7 +749,10 @@ describeEmbeddedPostgres("company import batches inserts", () => {
       .limit(1);
     expect(issueRow?.id).toBeTruthy();
 
-    const buildRow = (issueId: string, index: number): ImportIssueWorkProductRow => ({
+    const buildRow = (
+      issueId: string,
+      index: number,
+    ): ImportIssueWorkProductRow => ({
       companyId,
       issueId,
       projectId: null,
@@ -619,7 +781,9 @@ describeEmbeddedPostgres("company import batches inserts", () => {
     for (let i = 0; i < 500; i += 1) rows.push(buildRow(issueRow!.id, i));
     rows.push(buildRow(randomUUID(), 500));
 
-    await expect(workProductService(db).createManyForImport(rows)).rejects.toThrow();
+    await expect(
+      workProductService(db).createManyForImport(rows),
+    ).rejects.toThrow();
 
     const [{ workProductRows }] = await db
       .select({ workProductRows: sql<number>`count(*)::int` })
@@ -635,17 +799,35 @@ describeEmbeddedPostgres("company import batches inserts", () => {
       const issueCount = 500;
       const commentsPerIssue = 5;
       const documentsPerIssue = 1;
-      const bundle = buildSyntheticBundle({ issueCount, commentsPerIssue, documentsPerIssue });
+      const bundle = buildSyntheticBundle({
+        issueCount,
+        commentsPerIssue,
+        documentsPerIssue,
+      });
       const totalRows =
-        issueCount + issueCount * commentsPerIssue + issueCount * documentsPerIssue * 3;
+        issueCount +
+        issueCount * commentsPerIssue +
+        issueCount * documentsPerIssue * 3;
       const portability = companyPortabilityService(db);
 
       const startedAt = performance.now();
       const result = await portability.importBundle(
         {
-          source: { type: "inline", rootPath: bundle.rootPath, files: bundle.files },
-          include: { company: true, agents: false, projects: false, issues: true },
-          target: { mode: "new_company", newCompanyName: "Batching Benchmark Co" },
+          source: {
+            type: "inline",
+            rootPath: bundle.rootPath,
+            files: bundle.files,
+          },
+          include: {
+            company: true,
+            agents: false,
+            projects: false,
+            issues: true,
+          },
+          target: {
+            mode: "new_company",
+            newCompanyName: "Batching Benchmark Co",
+          },
           collisionStrategy: "rename",
         },
         "user-batching-benchmark",
@@ -659,12 +841,12 @@ describeEmbeddedPostgres("company import batches inserts", () => {
 
       // eslint-disable-next-line no-console
       console.log(
-        `[import-batching-bench] ${issueCount} issues x ${commentsPerIssue} comments x ${documentsPerIssue} doc\n`
-          + `  wall-clock: ${elapsedMs.toFixed(0)}ms\n`
-          + `  insert statements (after batching): ${afterStatements}\n`
-          + `  insert statements (before, one per row): ~${beforeStatements}\n`
-          + `  reduction: ${(beforeStatements / Math.max(1, afterStatements)).toFixed(0)}x\n`
-          + `  per-table insert statements: ${JSON.stringify(perTable)}`,
+        `[import-batching-bench] ${issueCount} issues x ${commentsPerIssue} comments x ${documentsPerIssue} doc\n` +
+          `  wall-clock: ${elapsedMs.toFixed(0)}ms\n` +
+          `  insert statements (after batching): ${afterStatements}\n` +
+          `  insert statements (before, one per row): ~${beforeStatements}\n` +
+          `  reduction: ${(beforeStatements / Math.max(1, afterStatements)).toFixed(0)}x\n` +
+          `  per-table insert statements: ${JSON.stringify(perTable)}`,
       );
 
       const companyId = result.company.id;

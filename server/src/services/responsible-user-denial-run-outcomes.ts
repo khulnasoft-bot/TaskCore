@@ -10,7 +10,9 @@ import { publishLiveEvent } from "./live-events.js";
 export function normalizeResponsibleUserDenialCode(
   code: unknown,
 ): ResponsibleUserDenialCode | null {
-  return typeof code === "string" && isResponsibleUserDenialCode(code) ? code : null;
+  return typeof code === "string" && isResponsibleUserDenialCode(code)
+    ? code
+    : null;
 }
 
 export async function recordResponsibleUserDenialOnActiveRun(
@@ -31,7 +33,8 @@ export async function recordResponsibleUserDenialOnActiveRun(
     inArray(heartbeatRuns.status, ["queued", "running"]),
   ];
   if (input.agentId) conditions.push(eq(heartbeatRuns.agentId, input.agentId));
-  if (input.companyId) conditions.push(eq(heartbeatRuns.companyId, input.companyId));
+  if (input.companyId)
+    conditions.push(eq(heartbeatRuns.companyId, input.companyId));
 
   const updated = await db
     .update(heartbeatRuns)
@@ -56,8 +59,12 @@ export async function recordResponsibleUserDenialOnActiveRun(
       triggerDetail: updated.triggerDetail,
       error: updated.error ?? null,
       errorCode: updated.errorCode ?? null,
-      startedAt: updated.startedAt ? new Date(updated.startedAt).toISOString() : null,
-      finishedAt: updated.finishedAt ? new Date(updated.finishedAt).toISOString() : null,
+      startedAt: updated.startedAt
+        ? new Date(updated.startedAt).toISOString()
+        : null,
+      finishedAt: updated.finishedAt
+        ? new Date(updated.finishedAt).toISOString()
+        : null,
     },
   });
 

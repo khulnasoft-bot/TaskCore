@@ -1,6 +1,11 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, extname, isAbsolute, relative, resolve } from "node:path";
 
@@ -25,7 +30,8 @@ const TURN_DEADLINE_MS = 30_000;
 const SECURE_CAPABILITY_COOKIE = "__Host-taskcore_scenario-chat";
 const TAILNET_HTTP_CAPABILITY_COOKIE = "taskcore_scenario-chat";
 
-const FORBIDDEN_ENV_NAME = /^(?:TASKCORE_|GITHUB_|AWS_|GOOGLE_|AZURE_)|(?:API_KEY|TOKEN|SECRET|PASSWORD|DATABASE_URL|CODEX_HOME)$/i;
+const FORBIDDEN_ENV_NAME =
+  /^(?:TASKCORE_|GITHUB_|AWS_|GOOGLE_|AZURE_)|(?:API_KEY|TOKEN|SECRET|PASSWORD|DATABASE_URL|CODEX_HOME)$/i;
 
 const CONTENT_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -86,7 +92,7 @@ function shortHash(value: string): string {
 
 function header(req: IncomingMessage, name: string): string {
   const value = req.headers[name];
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function requestIdentity(req: IncomingMessage): string {
@@ -101,7 +107,10 @@ function parseCookies(req: IncomingMessage): Map<string, string> {
   for (const item of header(req, "cookie").split(";")) {
     const separator = item.indexOf("=");
     if (separator <= 0) continue;
-    result.set(item.slice(0, separator).trim(), item.slice(separator + 1).trim());
+    result.set(
+      item.slice(0, separator).trim(),
+      item.slice(separator + 1).trim(),
+    );
   }
   return result;
 }
@@ -138,7 +147,10 @@ function applySecurityHeaders(res: ServerResponse): void {
   );
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  );
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Strict-Transport-Security", "max-age=31536000");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -155,17 +167,32 @@ function sendJson(res: ServerResponse, status: number, value: unknown): void {
 }
 
 function sendError(res: ServerResponse, error: RequestFailure): void {
-  sendJson(res, error.status, { error: { code: error.code, message: error.message } });
+  sendJson(res, error.status, {
+    error: { code: error.code, message: error.message },
+  });
 }
 
-async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  const mediaType = header(req, "content-type").split(";", 1)[0]?.trim().toLowerCase();
+async function readJsonBody(
+  req: IncomingMessage,
+): Promise<Record<string, unknown>> {
+  const mediaType = header(req, "content-type")
+    .split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
   if (mediaType !== "application/json") {
-    throw new RequestFailure(415, "json_required", "Mutation requests require application/json.");
+    throw new RequestFailure(
+      415,
+      "json_required",
+      "Mutation requests require application/json.",
+    );
   }
   const declaredLength = Number(header(req, "content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > REQUEST_BODY_BYTES) {
-    throw new RequestFailure(413, "request_too_large", "Request body exceeds the 64 KiB limit.");
+    throw new RequestFailure(
+      413,
+      "request_too_large",
+      "Request body exceeds the 64 KiB limit.",
+    );
   }
   const chunks: Buffer[] = [];
   let total = 0;
@@ -180,24 +207,43 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
     chunks.push(buffer);
   }
   if (exceeded) {
-    throw new RequestFailure(413, "request_too_large", "Request body exceeds the 64 KiB limit.");
+    throw new RequestFailure(
+      413,
+      "request_too_large",
+      "Request body exceeds the 64 KiB limit.",
+    );
   }
   try {
     const parsed: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
       throw new Error("not an object");
     }
     return parsed as Record<string, unknown>;
   } catch {
-    throw new RequestFailure(400, "invalid_json", "Request body must be a JSON object.");
+    throw new RequestFailure(
+      400,
+      "invalid_json",
+      "Request body must be a JSON object.",
+    );
   }
 }
 
-function exactKeys(body: Record<string, unknown>, expected: readonly string[]): void {
+function exactKeys(
+  body: Record<string, unknown>,
+  expected: readonly string[],
+): void {
   const expectedSet = new Set(expected);
   const unknown = Object.keys(body).find((key) => !expectedSet.has(key));
   if (unknown) {
-    throw new RequestFailure(422, "unexpected_field", "Request contains an unsupported field.");
+    throw new RequestFailure(
+      422,
+      "unexpected_field",
+      "Request contains an unsupported field.",
+    );
   }
 }
 
@@ -207,7 +253,14 @@ function withDeadline<T>(promise: Promise<T>): Promise<T> {
     promise,
     new Promise<never>((_resolve, reject) => {
       timer = setTimeout(
-        () => reject(new RequestFailure(504, "turn_timeout", "The turn exceeded its 30 second deadline.")),
+        () =>
+          reject(
+            new RequestFailure(
+              504,
+              "turn_timeout",
+              "The turn exceeded its 30 second deadline.",
+            ),
+          ),
         TURN_DEADLINE_MS,
       );
     }),
@@ -218,21 +271,39 @@ function withDeadline<T>(promise: Promise<T>): Promise<T> {
 
 function assertArtifactBounds(artifact: CapabilityChatSessionArtifact): void {
   if (artifact.timeline.length > MAX_SESSION_EVENTS) {
-    throw new RequestFailure(507, "event_limit", "The session exceeded its retained event limit.");
+    throw new RequestFailure(
+      507,
+      "event_limit",
+      "The session exceeded its retained event limit.",
+    );
   }
-  if (Buffer.byteLength(JSON.stringify(artifact)) > MAX_SERIALIZED_STATE_BYTES) {
-    throw new RequestFailure(507, "state_limit", "The session exceeded its serialized state limit.");
+  if (
+    Buffer.byteLength(JSON.stringify(artifact)) > MAX_SERIALIZED_STATE_BYTES
+  ) {
+    throw new RequestFailure(
+      507,
+      "state_limit",
+      "The session exceeded its serialized state limit.",
+    );
   }
 }
 
-export function forbiddenScenarioChatEnvironmentNames(env: NodeJS.ProcessEnv): string[] {
-  return Object.keys(env).filter((name) => FORBIDDEN_ENV_NAME.test(name)).sort();
+export function forbiddenScenarioChatEnvironmentNames(
+  env: NodeJS.ProcessEnv,
+): string[] {
+  return Object.keys(env)
+    .filter((name) => FORBIDDEN_ENV_NAME.test(name))
+    .sort();
 }
 
-export function assertScenarioChatEnvironmentSafe(env: NodeJS.ProcessEnv): void {
+export function assertScenarioChatEnvironmentSafe(
+  env: NodeJS.ProcessEnv,
+): void {
   const forbidden = forbiddenScenarioChatEnvironmentNames(env);
   if (forbidden.length > 0) {
-    throw new Error(`Scenario chat refused forbidden environment names: ${forbidden.join(", ")}`);
+    throw new Error(
+      `Scenario chat refused forbidden environment names: ${forbidden.join(", ")}`,
+    );
   }
 }
 
@@ -257,20 +328,29 @@ export class ScenarioChatDemoRuntime {
     this.publicOrigin = new URL(options.publicOrigin);
     this.secureTransport = this.publicOrigin.protocol === "https:";
     if (
-      !this.secureTransport
-      && !(this.publicOrigin.protocol === "http:" && options.allowInsecureHttp === true)
+      !this.secureTransport &&
+      !(
+        this.publicOrigin.protocol === "http:" &&
+        options.allowInsecureHttp === true
+      )
     ) {
-      throw new Error("SCENARIO_CHAT_PUBLIC_ORIGIN must use HTTPS unless tailnet HTTP is explicitly enabled");
+      throw new Error(
+        "SCENARIO_CHAT_PUBLIC_ORIGIN must use HTTPS unless tailnet HTTP is explicitly enabled",
+      );
     }
     this.capabilityCookieName = this.secureTransport
       ? SECURE_CAPABILITY_COOKIE
       : TAILNET_HTTP_CAPABILITY_COOKIE;
     this.basePath = normalizeBasePath(options.basePath);
     this.commitSha = options.commitSha.trim() || "unknown";
-    this.packageRoot = options.packageRoot ?? resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+    this.packageRoot =
+      options.packageRoot ??
+      resolve(dirname(fileURLToPath(import.meta.url)), "../..");
     this.staticRoot = resolve(this.packageRoot, "dist-scenarios");
     this.now = options.now ?? Date.now;
-    this.logRecord = options.log ?? ((record) => process.stdout.write(`${JSON.stringify(record)}\n`));
+    this.logRecord =
+      options.log ??
+      ((record) => process.stdout.write(`${JSON.stringify(record)}\n`));
   }
 
   async initialize(): Promise<void> {
@@ -298,7 +378,8 @@ export class ScenarioChatDemoRuntime {
   health(): Record<string, unknown> {
     return {
       status: this.ready && !this.closing ? "ok" : "unavailable",
-      ready: this.ready && !this.closing && this.sessions.size < MAX_ACTIVE_SESSIONS,
+      ready:
+        this.ready && !this.closing && this.sessions.size < MAX_ACTIVE_SESSIONS,
       commitSha: this.commitSha,
       controlPlane: "capability-mock",
       providerAuthentication: "server-side",
@@ -333,19 +414,25 @@ export class ScenarioChatDemoRuntime {
   async expireSessions(): Promise<number> {
     const now = this.now();
     const expired = [...this.sessions.values()].filter(
-      (record) => now - record.lastActiveAt >= SESSION_IDLE_MS || now - record.createdAt >= SESSION_LIFETIME_MS,
+      (record) =>
+        now - record.lastActiveAt >= SESSION_IDLE_MS ||
+        now - record.createdAt >= SESSION_LIFETIME_MS,
     );
     for (const record of expired) this.sessions.delete(record.id);
     await Promise.allSettled(expired.map((record) => record.chat.close()));
     return expired.length;
   }
 
-  private async openConcreteMockSession(entry: CapabilityScenarioIndexEntry): Promise<CapabilityChatSession> {
+  private async openConcreteMockSession(
+    entry: CapabilityScenarioIndexEntry,
+  ): Promise<CapabilityChatSession> {
     const fixture = capabilityScenarioFixture(entry);
     // The concrete adapter choice is fixed here. No request or environment
     // value can supply a module, URL, path, or alternate control plane.
     const adapter = new CapabilityMockControlPlaneAdapter(fixture.seed);
-    return await CapabilityChatSession.openWithMockAdapter(entry, adapter, { mode: "fake" });
+    return await CapabilityChatSession.openWithMockAdapter(entry, adapter, {
+      mode: "fake",
+    });
   }
 
   private stripBasePath(rawPath: string): string {
@@ -358,37 +445,63 @@ export class ScenarioChatDemoRuntime {
 
   private assertProxyAdmission(req: IncomingMessage): void {
     if (header(req, "x-scenario-chat-proxy") !== "v1") {
-      throw new RequestFailure(403, "trusted_proxy_required", "Request did not arrive through the trusted proxy.");
+      throw new RequestFailure(
+        403,
+        "trusted_proxy_required",
+        "Request did not arrive through the trusted proxy.",
+      );
     }
     const forwardedProtocol = header(req, "x-forwarded-proto").toLowerCase();
     if (forwardedProtocol !== this.publicOrigin.protocol.slice(0, -1)) {
-      throw new RequestFailure(403, "transport_denied", "Forwarded transport is not allowed.");
+      throw new RequestFailure(
+        403,
+        "transport_denied",
+        "Forwarded transport is not allowed.",
+      );
     }
     const forwardedHost = header(req, "x-forwarded-host").toLowerCase();
     if (forwardedHost !== this.publicOrigin.host.toLowerCase()) {
-      throw new RequestFailure(403, "host_denied", "Forwarded host is not allowed.");
+      throw new RequestFailure(
+        403,
+        "host_denied",
+        "Forwarded host is not allowed.",
+      );
     }
   }
 
   private assertMutationAdmission(req: IncomingMessage): void {
     this.assertProxyAdmission(req);
     if (header(req, "origin") !== this.publicOrigin.origin) {
-      throw new RequestFailure(403, "origin_denied", "Request origin is not allowed.");
+      throw new RequestFailure(
+        403,
+        "origin_denied",
+        "Request origin is not allowed.",
+      );
     }
     if (
       header(req, "sec-fetch-site").toLowerCase() !== "same-origin" ||
       header(req, "sec-fetch-mode").toLowerCase() !== "cors" ||
       header(req, "sec-fetch-dest").toLowerCase() !== "empty"
     ) {
-      throw new RequestFailure(403, "fetch_metadata_denied", "Mutation request metadata is not allowed.");
+      throw new RequestFailure(
+        403,
+        "fetch_metadata_denied",
+        "Mutation request metadata is not allowed.",
+      );
     }
   }
 
   private enforceRate(key: string, limit: number, windowMs = 60_000): void {
     const now = this.now();
-    const bucket = (this.rateBuckets.get(key) ?? []).filter((timestamp) => now - timestamp < windowMs);
+    const bucket = (this.rateBuckets.get(key) ?? []).filter(
+      (timestamp) => now - timestamp < windowMs,
+    );
     if (bucket.length >= limit) {
-      throw new RequestFailure(429, "rate_limited", "Request rate limit exceeded.");
+      throw new RequestFailure(
+        429,
+        "rate_limited",
+        "Request rate limit exceeded.",
+      );
     }
     bucket.push(now);
     this.rateBuckets.set(key, bucket);
@@ -396,7 +509,12 @@ export class ScenarioChatDemoRuntime {
 
   private requireSession(req: IncomingMessage, id: string): SessionRecord {
     const record = this.sessions.get(id);
-    if (!record) throw new RequestFailure(404, "session_not_found", "Session was not found.");
+    if (!record)
+      throw new RequestFailure(
+        404,
+        "session_not_found",
+        "Session was not found.",
+      );
     const capability = parseCookies(req).get(this.capabilityCookieName) ?? "";
     const capabilityHash = sha256(capability);
     const identityHash = shortHash(requestIdentity(req));
@@ -406,25 +524,52 @@ export class ScenarioChatDemoRuntime {
       !timingSafeEqual(capabilityHash, record.capabilityHash) ||
       identityHash !== record.identityHash
     ) {
-      throw new RequestFailure(404, "session_not_found", "Session was not found.");
+      throw new RequestFailure(
+        404,
+        "session_not_found",
+        "Session was not found.",
+      );
     }
     const now = this.now();
-    if (now - record.lastActiveAt >= SESSION_IDLE_MS || now - record.createdAt >= SESSION_LIFETIME_MS) {
+    if (
+      now - record.lastActiveAt >= SESSION_IDLE_MS ||
+      now - record.createdAt >= SESSION_LIFETIME_MS
+    ) {
       this.sessions.delete(record.id);
       void record.chat.close();
-      throw new RequestFailure(404, "session_not_found", "Session was not found.");
+      throw new RequestFailure(
+        404,
+        "session_not_found",
+        "Session was not found.",
+      );
     }
     record.lastActiveAt = now;
     return record;
   }
 
-  private async createSession(req: IncomingMessage, res: ServerResponse, body: Record<string, unknown>): Promise<void> {
+  private async createSession(
+    req: IncomingMessage,
+    res: ServerResponse,
+    body: Record<string, unknown>,
+  ): Promise<void> {
     exactKeys(body, ["scenarioId"]);
-    const scenarioId = typeof body.scenarioId === "string" ? body.scenarioId : "";
-    const entry = this.scenarioIndex?.entries.find((candidate) => candidate.id === scenarioId);
-    if (!entry) throw new RequestFailure(422, "scenario_unknown", "Scenario is not available.");
+    const scenarioId =
+      typeof body.scenarioId === "string" ? body.scenarioId : "";
+    const entry = this.scenarioIndex?.entries.find(
+      (candidate) => candidate.id === scenarioId,
+    );
+    if (!entry)
+      throw new RequestFailure(
+        422,
+        "scenario_unknown",
+        "Scenario is not available.",
+      );
     if (this.sessions.size >= MAX_ACTIVE_SESSIONS) {
-      throw new RequestFailure(429, "session_capacity", "The active session limit has been reached.");
+      throw new RequestFailure(
+        429,
+        "session_capacity",
+        "The active session limit has been reached.",
+      );
     }
     const identityHash = shortHash(requestIdentity(req));
     this.enforceRate("global:create", 40);
@@ -448,7 +593,11 @@ export class ScenarioChatDemoRuntime {
       "Set-Cookie",
       scenarioChatCapabilityCookieForOrigin(this.publicOrigin, capability),
     );
-    sendJson(res, 201, { sessionId: record.id, artifact, nextPrompt: chat.nextPrompt() });
+    sendJson(res, 201, {
+      sessionId: record.id,
+      artifact,
+      nextPrompt: chat.nextPrompt(),
+    });
   }
 
   private async runTurn(
@@ -459,20 +608,33 @@ export class ScenarioChatDemoRuntime {
   ): Promise<void> {
     exactKeys(body, ["prompt"]);
     if (typeof body.prompt !== "string" || body.prompt.trim() === "") {
-      throw new RequestFailure(422, "prompt_required", "Prompt must be a non-empty string.");
+      throw new RequestFailure(
+        422,
+        "prompt_required",
+        "Prompt must be a non-empty string.",
+      );
     }
     const prompt = body.prompt.trim();
     if (Buffer.byteLength(prompt, "utf8") > PROMPT_BYTES) {
-      throw new RequestFailure(422, "prompt_too_large", "Prompt exceeds the 16 KiB limit.");
+      throw new RequestFailure(
+        422,
+        "prompt_too_large",
+        "Prompt exceeds the 16 KiB limit.",
+      );
     }
-    if (record.activeTurn) throw new RequestFailure(409, "turn_active", "A turn is already active.");
+    if (record.activeTurn)
+      throw new RequestFailure(409, "turn_active", "A turn is already active.");
     this.enforceRate("global:turn", 120);
     this.enforceRate(`${record.identityHash}:turn`, 30);
     record.activeTurn = true;
     try {
       const artifact = await withDeadline(record.chat.send(prompt));
       assertArtifactBounds(artifact);
-      sendJson(res, 200, { sessionId: record.id, artifact, nextPrompt: record.chat.nextPrompt() });
+      sendJson(res, 200, {
+        sessionId: record.id,
+        artifact,
+        nextPrompt: record.chat.nextPrompt(),
+      });
     } catch (error) {
       if (error instanceof RequestFailure && error.code === "turn_timeout") {
         this.sessions.delete(record.id);
@@ -484,21 +646,33 @@ export class ScenarioChatDemoRuntime {
     }
   }
 
-  private async replaySession(res: ServerResponse, record: SessionRecord): Promise<void> {
-    if (record.activeTurn) throw new RequestFailure(409, "turn_active", "A turn is already active.");
+  private async replaySession(
+    res: ServerResponse,
+    record: SessionRecord,
+  ): Promise<void> {
+    if (record.activeTurn)
+      throw new RequestFailure(409, "turn_active", "A turn is already active.");
     this.enforceRate("global:turn", 120);
     this.enforceRate(`${record.identityHash}:turn`, 30);
     record.activeTurn = true;
     try {
       const artifact = await withDeadline(record.chat.replay());
       assertArtifactBounds(artifact);
-      sendJson(res, 200, { sessionId: record.id, artifact, nextPrompt: record.chat.nextPrompt() });
+      sendJson(res, 200, {
+        sessionId: record.id,
+        artifact,
+        nextPrompt: record.chat.nextPrompt(),
+      });
     } finally {
       record.activeTurn = false;
     }
   }
 
-  private async resetSession(req: IncomingMessage, res: ServerResponse, record: SessionRecord): Promise<void> {
+  private async resetSession(
+    req: IncomingMessage,
+    res: ServerResponse,
+    record: SessionRecord,
+  ): Promise<void> {
     this.enforceRate(`${record.identityHash}:reset`, 10);
     this.sessions.delete(record.id);
     const entry = record.chat.entry;
@@ -522,10 +696,17 @@ export class ScenarioChatDemoRuntime {
       "Set-Cookie",
       scenarioChatCapabilityCookieForOrigin(this.publicOrigin, capability),
     );
-    sendJson(res, 200, { sessionId: replacement.id, artifact, nextPrompt: chat.nextPrompt() });
+    sendJson(res, 200, {
+      sessionId: replacement.id,
+      artifact,
+      nextPrompt: chat.nextPrompt(),
+    });
   }
 
-  private async deleteSession(res: ServerResponse, record: SessionRecord): Promise<void> {
+  private async deleteSession(
+    res: ServerResponse,
+    record: SessionRecord,
+  ): Promise<void> {
     this.sessions.delete(record.id);
     await record.chat.close();
     res.setHeader(
@@ -535,13 +716,24 @@ export class ScenarioChatDemoRuntime {
     sendJson(res, 200, { closed: true });
   }
 
-  private async serveStatic(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
+  private async serveStatic(
+    req: IncomingMessage,
+    res: ServerResponse,
+    pathname: string,
+  ): Promise<void> {
     this.assertProxyAdmission(req);
     if (req.method !== "GET" && req.method !== "HEAD") {
-      throw new RequestFailure(405, "method_not_allowed", "Method is not allowed.");
+      throw new RequestFailure(
+        405,
+        "method_not_allowed",
+        "Method is not allowed.",
+      );
     }
     const decoded = decodeURIComponent(pathname);
-    const relativePath = decoded === "/" ? "scenario-explorer/index.html" : decoded.replace(/^\/+/, "");
+    const relativePath =
+      decoded === "/"
+        ? "scenario-explorer/index.html"
+        : decoded.replace(/^\/+/, "");
     const filePath = resolve(this.staticRoot, relativePath);
     const relativeToRoot = relative(this.staticRoot, filePath);
     if (relativeToRoot.startsWith("..") || isAbsolute(relativeToRoot)) {
@@ -554,26 +746,40 @@ export class ScenarioChatDemoRuntime {
       throw new RequestFailure(404, "not_found", "Resource was not found.");
     }
     if (relativePath === "scenario-explorer/index.html") {
-      const html = body.toString("utf8").replace(
-        "</head>",
-        '<meta name="scenario-chat-api-base" content="api/capability" /></head>',
-      );
+      const html = body
+        .toString("utf8")
+        .replace(
+          "</head>",
+          '<meta name="scenario-chat-api-base" content="api/capability" /></head>',
+        );
       body = Buffer.from(html);
     }
     applySecurityHeaders(res);
     res.statusCode = 200;
-    res.setHeader("Content-Type", CONTENT_TYPES[extname(filePath).toLowerCase()] ?? "application/octet-stream");
+    res.setHeader(
+      "Content-Type",
+      CONTENT_TYPES[extname(filePath).toLowerCase()] ??
+        "application/octet-stream",
+    );
     res.setHeader("Content-Length", body.length);
     res.end(req.method === "HEAD" ? undefined : body);
   }
 
-  private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  private async handle(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<void> {
     const startedAt = this.now();
     const requestId = randomBytes(8).toString("hex");
     let route = "unknown";
     let outcome = "error";
     try {
-      if (this.closing) throw new RequestFailure(503, "shutting_down", "Service is shutting down.");
+      if (this.closing)
+        throw new RequestFailure(
+          503,
+          "shutting_down",
+          "Service is shutting down.",
+        );
       const url = new URL(req.url ?? "/", "http://scenario-chat.invalid");
       const pathname = this.stripBasePath(url.pathname);
       if (pathname === "/api/capability/health" && req.method === "GET") {
@@ -594,8 +800,11 @@ export class ScenarioChatDemoRuntime {
           outcome = "created";
           return;
         }
-        const match = pathname.match(/^\/api\/capability\/sessions\/([a-f0-9]{32})(?:\/(turn|replay|reset))?$/);
-        if (!match) throw new RequestFailure(404, "not_found", "Route was not found.");
+        const match = pathname.match(
+          /^\/api\/capability\/sessions\/([a-f0-9]{32})(?:\/(turn|replay|reset))?$/,
+        );
+        if (!match)
+          throw new RequestFailure(404, "not_found", "Route was not found.");
         const record = this.requireSession(req, match[1]!);
         const action = match[2] ?? "session";
         route = action;
@@ -621,15 +830,24 @@ export class ScenarioChatDemoRuntime {
           outcome = "closed";
           return;
         }
-        throw new RequestFailure(405, "method_not_allowed", "Method is not allowed.");
+        throw new RequestFailure(
+          405,
+          "method_not_allowed",
+          "Method is not allowed.",
+        );
       }
       route = "static";
       await this.serveStatic(req, res, pathname);
       outcome = "ok";
     } catch (error) {
-      const failure = error instanceof RequestFailure
-        ? error
-        : new RequestFailure(500, "internal_error", "The request could not be completed.");
+      const failure =
+        error instanceof RequestFailure
+          ? error
+          : new RequestFailure(
+              500,
+              "internal_error",
+              "The request could not be completed.",
+            );
       if (!res.headersSent) sendError(res, failure);
       outcome = failure.code;
     } finally {
@@ -651,7 +869,8 @@ async function main(): Promise<void> {
   assertScenarioChatEnvironmentSafe(process.env);
   const socketPath = process.env.SCENARIO_CHAT_SOCKET_PATH?.trim();
   const publicOrigin = process.env.SCENARIO_CHAT_PUBLIC_ORIGIN?.trim();
-  if (!socketPath || !isAbsolute(socketPath)) throw new Error("SCENARIO_CHAT_SOCKET_PATH must be absolute");
+  if (!socketPath || !isAbsolute(socketPath))
+    throw new Error("SCENARIO_CHAT_SOCKET_PATH must be absolute");
   if (!publicOrigin) throw new Error("SCENARIO_CHAT_PUBLIC_ORIGIN is required");
   const runtime = new ScenarioChatDemoRuntime({
     publicOrigin,
@@ -666,7 +885,9 @@ async function main(): Promise<void> {
 
   const stop = async (signal: string): Promise<void> => {
     clearInterval(expiryTimer);
-    process.stdout.write(`${JSON.stringify({ timestamp: new Date().toISOString(), event: "shutdown", signal })}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ timestamp: new Date().toISOString(), event: "shutdown", signal })}\n`,
+    );
     server.close();
     await runtime.shutdown();
     process.exit(0);
@@ -681,28 +902,35 @@ async function main(): Promise<void> {
       resolveListen();
     });
   });
-  process.stdout.write(`${JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event: "ready",
-    controlPlane: "capability-mock",
-    commitSha: runtime.commitSha,
-    networkEgress: "denied",
-  })}\n`);
+  process.stdout.write(
+    `${JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: "ready",
+      controlPlane: "capability-mock",
+      commitSha: runtime.commitSha,
+      networkEgress: "denied",
+    })}\n`,
+  );
 }
 
 const entryPath = process.argv[1] ? resolve(process.argv[1]) : "";
 if (entryPath === fileURLToPath(import.meta.url)) {
   void main().catch((error) => {
-    process.stderr.write(`${JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: "startup_failed",
-      code:
-        typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
-          ? error.code
-          : error instanceof Error
-            ? error.name
-            : "Error",
-    })}\n`);
+    process.stderr.write(
+      `${JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: "startup_failed",
+        code:
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof error.code === "string"
+            ? error.code
+            : error instanceof Error
+              ? error.name
+              : "Error",
+      })}\n`,
+    );
     process.exitCode = 1;
   });
 }

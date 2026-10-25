@@ -1,4 +1,9 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createKvDemoMcpServer } from "./index.js";
 import { renderStatePage } from "./render.js";
@@ -39,7 +44,8 @@ function sendHtml(res: ServerResponse, status: number, html: string): void {
 
 function presentedToken(req: IncomingMessage): string | null {
   const header = req.headers.authorization;
-  if (header && header.startsWith("Bearer ")) return header.slice("Bearer ".length).trim();
+  if (header && header.startsWith("Bearer "))
+    return header.slice("Bearer ".length).trim();
   return null;
 }
 
@@ -71,14 +77,19 @@ async function handleMcp(
   } catch (error) {
     sendJson(res, 400, {
       jsonrpc: "2.0",
-      error: { code: -32700, message: error instanceof Error ? error.message : "Parse error" },
+      error: {
+        code: -32700,
+        message: error instanceof Error ? error.message : "Parse error",
+      },
       id: null,
     });
     return;
   }
 
   const { server } = createKvDemoMcpServer(store);
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
   res.on("close", () => {
     void transport.close();
     void server.close();
@@ -87,7 +98,9 @@ async function handleMcp(
   await transport.handleRequest(req, res, parsedBody);
 }
 
-export function createKvDemoHttpServer(options: KvDemoHttpOptions = {}): KvDemoHttpServer {
+export function createKvDemoHttpServer(
+  options: KvDemoHttpOptions = {},
+): KvDemoHttpServer {
   const store = options.store ?? new KvStore();
   const requiredToken = options.token?.trim() || null;
 
@@ -96,16 +109,27 @@ export function createKvDemoHttpServer(options: KvDemoHttpOptions = {}): KvDemoH
       try {
         const url = new URL(req.url ?? "/", "http://localhost");
 
-        if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+        if (
+          req.method === "GET" &&
+          (url.pathname === "/" || url.pathname === "/index.html")
+        ) {
           const snapshot = requiredToken
             ? { entries: [], count: 0, revision: 0 }
             : store.snapshot();
-          sendHtml(res, 200, renderStatePage(snapshot, { tokenRequired: Boolean(requiredToken) }));
+          sendHtml(
+            res,
+            200,
+            renderStatePage(snapshot, {
+              tokenRequired: Boolean(requiredToken),
+            }),
+          );
           return;
         }
 
         if (requiredToken && presentedToken(req) !== requiredToken) {
-          sendJson(res, 401, { error: "Unauthorized. Provide the KV_DEMO_TOKEN." });
+          sendJson(res, 401, {
+            error: "Unauthorized. Provide the KV_DEMO_TOKEN.",
+          });
           return;
         }
 
@@ -123,7 +147,9 @@ export function createKvDemoHttpServer(options: KvDemoHttpOptions = {}): KvDemoH
         sendJson(res, 404, { error: "Not found." });
       } catch (error) {
         if (!res.headersSent) {
-          sendJson(res, 500, { error: error instanceof Error ? error.message : "Internal error." });
+          sendJson(res, 500, {
+            error: error instanceof Error ? error.message : "Internal error.",
+          });
         } else {
           res.end();
         }

@@ -7,7 +7,10 @@ import {
   createPromoteDueScheduledRetries,
   createPromoteScheduledRetry,
 } from "./application/use-cases.js";
-import type { RunDispatchWriter, ScheduledRetryReader } from "./application/ports.js";
+import type {
+  RunDispatchWriter,
+  ScheduledRetryReader,
+} from "./application/ports.js";
 
 export {
   MAX_TURN_CONTINUATION_RETRY_REASON,
@@ -64,7 +67,9 @@ export function createRunDispatch(db: Db, deps: RunDispatchDeps = {}) {
   });
 
   return {
-    evaluateScheduledRetryGate: createEvaluateScheduledRetryGate({ reader: adapter }),
+    evaluateScheduledRetryGate: createEvaluateScheduledRetryGate({
+      reader: adapter,
+    }),
     promoteScheduledRetry,
     promoteDueScheduledRetries: createPromoteDueScheduledRetries({
       reader: adapter,
@@ -73,9 +78,10 @@ export function createRunDispatch(db: Db, deps: RunDispatchDeps = {}) {
     cancelStaleQueuedRun: createCancelStaleQueuedRun({
       writer: adapter,
     }),
-    dispatchResolvedInteractionIfCurrent: createDispatchResolvedInteractionIfCurrent({
-      writer: adapter,
-    }),
+    dispatchResolvedInteractionIfCurrent:
+      createDispatchResolvedInteractionIfCurrent({
+        writer: adapter,
+      }),
   };
 }
 

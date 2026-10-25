@@ -3,26 +3,20 @@
   "slug": "telem",
   "name": "Telem.AI",
   "description": "Search the web and read pages across many search providers with one API key.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/telem.svg",
     "darkLogoUrl": "/brands/apps/telem-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.telem.ai/*"
-  ],
+  "urlPatterns": ["https://mcp.telem.ai/*"],
   "docsUrl": "https://docs.telem.ai",
   "methods": [
     {
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Connect with a Telem API key.",
       "defaults": {
         "serverUrl": "https://mcp.telem.ai/mcp"

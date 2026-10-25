@@ -11,7 +11,12 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { createServer } from "node:net";
-import { Agent as HttpAgent, createServer as createHttpServer, request as requestHttp, type IncomingMessage } from "node:http";
+import {
+  Agent as HttpAgent,
+  createServer as createHttpServer,
+  request as requestHttp,
+  type IncomingMessage,
+} from "node:http";
 import { Agent as HttpsAgent, request as requestHttps } from "node:https";
 import { getCACertificates } from "node:tls";
 import { pipeline } from "node:stream/promises";
@@ -91,12 +96,15 @@ type DynamicToolHandler = (call: {
   arguments: unknown;
 }) => Promise<unknown>;
 
-export type OpenCodeCompletionFeedback = (result: PrpStructuredRunResult, call: {
-  tool: string;
-  callId: string;
-  threadId: string;
-  turnId: string;
-}) => Promise<string>;
+export type OpenCodeCompletionFeedback = (
+  result: PrpStructuredRunResult,
+  call: {
+    tool: string;
+    callId: string;
+    threadId: string;
+    turnId: string;
+  },
+) => Promise<string>;
 
 export interface OpenCodeServerDriverOptions {
   model: string;
@@ -486,7 +494,8 @@ class OpenCodeHarnessSession implements HarnessSession {
     this.#dynamicToolHandler = input.dynamicToolHandler;
     this.#completionFeedback = input.completionFeedback;
     this.#now = input.now;
-    this.#sendFullContext = input.snapshot === null && this.#conversationMode !== "prepared";
+    this.#sendFullContext =
+      input.snapshot === null && this.#conversationMode !== "prepared";
     this.#sourceSequence = input.snapshot?.lastSourceSequence ?? 0;
     this.#activeTurnId = input.snapshot?.activeTurnId ?? null;
     const restored = input.snapshot?.semanticResult ?? null;
@@ -957,7 +966,9 @@ class OpenCodeHarnessSession implements HarnessSession {
       let settle: (() => void) | undefined;
       try {
         if (this.#closed || this.#completionSettlement)
-          throw new Error("A completion is already settling or the session is closed");
+          throw new Error(
+            "A completion is already settling or the session is closed",
+          );
         const validation = validatePrpStructuredRunResult(call.arguments);
         if (!validation.ok) throw new Error("Invalid semantic result");
         if (
@@ -977,22 +988,37 @@ class OpenCodeHarnessSession implements HarnessSession {
             "Semantic result completion contract revision does not match",
           );
         }
-        const expectedIds = this.#taskEnvelope.completionContract.criteria.map((criterion) => criterion.id);
-        const receivedIds = validation.result.completionClaim.criteria.map((criterion) => criterion.criterionId);
-        if (receivedIds.length !== expectedIds.length || new Set(receivedIds).size !== receivedIds.length || receivedIds.some((id) => !expectedIds.includes(id))) {
+        const expectedIds = this.#taskEnvelope.completionContract.criteria.map(
+          (criterion) => criterion.id,
+        );
+        const receivedIds = validation.result.completionClaim.criteria.map(
+          (criterion) => criterion.criterionId,
+        );
+        if (
+          receivedIds.length !== expectedIds.length ||
+          new Set(receivedIds).size !== receivedIds.length ||
+          receivedIds.some((id) => !expectedIds.includes(id))
+        ) {
           // Reject at the tool boundary so the provider can repair its claim.
           // Emitting a bad result here kills runnerd's strict outer validation.
-          throw new Error(`Semantic result criteria must contain exactly these criterionIds, once each: ${JSON.stringify(expectedIds)}. Keep contractRevision ${JSON.stringify(this.#taskEnvelope.completionContract.revision)}.`);
+          throw new Error(
+            `Semantic result criteria must contain exactly these criterionIds, once each: ${JSON.stringify(expectedIds)}. Keep contractRevision ${JSON.stringify(this.#taskEnvelope.completionContract.revision)}.`,
+          );
         }
         const fingerprint = canonicalJson(validation.result);
         if (this.#resultFingerprint && this.#resultFingerprint !== fingerprint)
           throw new Error("A different semantic result was already committed");
-        this.#completionSettlement = new Promise<void>(resolve => { settle = resolve; });
+        this.#completionSettlement = new Promise<void>((resolve) => {
+          settle = resolve;
+        });
         // Wait for the bound controller before committing or resolving the
         // provider call. A rejection remains repairable in this same turn.
         const feedback = this.#completionFeedback
           ? await this.#completionFeedback(validation.result, {
-              tool, callId: call.callId, threadId: this.#providerSessionId, turnId,
+              tool,
+              callId: call.callId,
+              threadId: this.#providerSessionId,
+              turnId,
             })
           : "Semantic completion accepted.";
         if (typeof feedback !== "string" || !feedback.trim())
@@ -1027,11 +1053,20 @@ class OpenCodeHarnessSession implements HarnessSession {
       } catch (error) {
         // A rejected semantic call still completes its tool activity item.
         // Otherwise a later question can appear to have an in-flight tool.
-        this.#emit("item.completed", {
-          kind: "dynamicToolCall",
-          item: { type: "tool_result", id: call.callId, tool_use_id: call.callId,
-            is_error: true, error: error instanceof Error ? error.message : String(error) },
-        }, { turnId, itemId: call.callId });
+        this.#emit(
+          "item.completed",
+          {
+            kind: "dynamicToolCall",
+            item: {
+              type: "tool_result",
+              id: call.callId,
+              tool_use_id: call.callId,
+              is_error: true,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          },
+          { turnId, itemId: call.callId },
+        );
         throw error;
       } finally {
         if (settle) {
@@ -1324,8 +1359,15 @@ class OpenCodeHarnessSession implements HarnessSession {
           }
           const type = text(record(event).type);
           const properties = record(record(event).properties);
-          if (type === "session.idle" || type === "session.error"
-            || (type === "session.status" && text(record(record(event).properties).status && record(record(record(event).properties).status).type) === "idle")) {
+          if (
+            type === "session.idle" ||
+            type === "session.error" ||
+            (type === "session.status" &&
+              text(
+                record(record(event).properties).status &&
+                  record(record(record(event).properties).status).type,
+              ) === "idle")
+          ) {
             // Do not seal the turn while its bound controller is deciding a
             // finishing call. Acceptance/rejection and the tool result must
             // precede the provider's terminal event.
@@ -1529,7 +1571,8 @@ class OpenCodeHarnessSession implements HarnessSession {
       // reports it. A later turn that reuses the same native message id
       // legitimately reclaims ownership; a stale message never sees this
       // branch again, so its recorded owner never changes.
-      if (messageId && role && turnId) this.#messageTurnIds.set(messageId, turnId);
+      if (messageId && role && turnId)
+        this.#messageTurnIds.set(messageId, turnId);
       const owningTurnId = messageId
         ? (this.#messageTurnIds.get(messageId) ?? turnId)
         : turnId;
@@ -1976,26 +2019,53 @@ class OpenCodeHarnessSession implements HarnessSession {
 }
 
 /** Retain the reusable gateway key in the runner; the harness gets a session-scoped capability. */
-async function startOpenCodeProviderProxy(baseUrl: string, key: string, model: string, environment: NodeJS.ProcessEnv) {
-  const upstreamUrl = new URL(`${baseUrl.replace(/\/+$/, "")}/chat/completions`);
+async function startOpenCodeProviderProxy(
+  baseUrl: string,
+  key: string,
+  model: string,
+  environment: NodeJS.ProcessEnv,
+) {
+  const upstreamUrl = new URL(
+    `${baseUrl.replace(/\/+$/, "")}/chat/completions`,
+  );
   const token = randomBytes(32).toString("base64url");
   // Agent-local settings keep one runtime's transport configuration out of other sessions.
   const proxyEnv = {
-    HTTP_PROXY: environment.http_proxy ?? environment.HTTP_PROXY ?? environment.all_proxy ?? environment.ALL_PROXY,
-    HTTPS_PROXY: environment.https_proxy ?? environment.HTTPS_PROXY ?? environment.http_proxy ?? environment.HTTP_PROXY ?? environment.all_proxy ?? environment.ALL_PROXY,
+    HTTP_PROXY:
+      environment.http_proxy ??
+      environment.HTTP_PROXY ??
+      environment.all_proxy ??
+      environment.ALL_PROXY,
+    HTTPS_PROXY:
+      environment.https_proxy ??
+      environment.HTTPS_PROXY ??
+      environment.http_proxy ??
+      environment.HTTP_PROXY ??
+      environment.all_proxy ??
+      environment.ALL_PROXY,
     NO_PROXY: environment.no_proxy ?? environment.NO_PROXY,
   };
   const ca = [...getCACertificates("default")];
-  if (environment.SSL_CERT_FILE) ca.push(await readFile(environment.SSL_CERT_FILE, "utf8"));
+  if (environment.SSL_CERT_FILE)
+    ca.push(await readFile(environment.SSL_CERT_FILE, "utf8"));
   if (environment.SSL_CERT_DIR) {
-    for (const entry of await readdir(environment.SSL_CERT_DIR, { withFileTypes: true })) {
+    for (const entry of await readdir(environment.SSL_CERT_DIR, {
+      withFileTypes: true,
+    })) {
       if (!entry.isDirectory()) {
-        const certificate = await readFile(join(environment.SSL_CERT_DIR, entry.name), "utf8");
-        if (certificate.includes("-----BEGIN CERTIFICATE-----")) ca.push(certificate);
+        const certificate = await readFile(
+          join(environment.SSL_CERT_DIR, entry.name),
+          "utf8",
+        );
+        if (certificate.includes("-----BEGIN CERTIFICATE-----"))
+          ca.push(certificate);
       }
     }
   }
-  const agent = upstreamUrl.protocol === "https:" ? new HttpsAgent({ proxyEnv, ca }) : new HttpAgent({ proxyEnv });
+  const agent =
+    upstreamUrl.protocol === "https:"
+      ? new HttpsAgent({ proxyEnv, ca })
+      : new HttpAgent({ proxyEnv });
   const controllers = new Set<AbortController>();
   const server = createHttpServer((request, response) => {
     const controller = new AbortController();
@@ -2022,19 +2092,36 @@ async function startOpenCodeProviderProxy(baseUrl: string, key: string, model: s
       }
       const body = Buffer.concat(chunks);
       let payload: Record<string, unknown>;
-      try { payload = JSON.parse(body.toString("utf8")); }
-      catch { response.writeHead(400).end(); return; }
+      try {
+        payload = JSON.parse(body.toString("utf8"));
+      } catch {
+        response.writeHead(400).end();
+        return;
+      }
       if (!payload || typeof payload !== "object" || payload.model !== model) {
         response.writeHead(400).end();
         return;
       }
       const upstream = await new Promise<IncomingMessage>((resolve, reject) => {
-        const outgoing = (upstreamUrl.protocol === "https:" ? requestHttps : requestHttp)(upstreamUrl, {
-          method: "POST",
-          agent,
-          headers: { "Content-Type": "application/json", "Content-Length": body.length, ...(key ? { Authorization: `Bearer ${key}` } : {}) },
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(600_000)]),
-        }, resolve);
+        const outgoing = (
+          upstreamUrl.protocol === "https:" ? requestHttps : requestHttp
+        )(
+          upstreamUrl,
+          {
+            method: "POST",
+            agent,
+            headers: {
+              "Content-Type": "application/json",
+              "Content-Length": body.length,
+              ...(key ? { Authorization: `Bearer ${key}` } : {}),
+            },
+            signal: AbortSignal.any([
+              controller.signal,
+              AbortSignal.timeout(600_000),
+            ]),
+          },
+          resolve,
+        );
         outgoing.once("error", reject);
         outgoing.end(body);
       });
@@ -2045,23 +2132,37 @@ async function startOpenCodeProviderProxy(baseUrl: string, key: string, model: s
         throw new Error("Provider redirects are not supported");
       }
       const headers: Record<string, string> = {};
-      for (const name of ["content-type", "content-encoding", "cache-control", "retry-after"]) {
+      for (const name of [
+        "content-type",
+        "content-encoding",
+        "cache-control",
+        "retry-after",
+      ]) {
         const value = upstream.headers[name];
         if (typeof value === "string") headers[name] = value;
       }
       response.writeHead(status, headers);
       await pipeline(upstream, response);
-    })().catch(() => {
-      if (!response.headersSent) response.writeHead(502).end("Provider request failed");
-      else response.destroy();
-    }).finally(() => controllers.delete(controller));
+    })()
+      .catch(() => {
+        if (!response.headersSent)
+          response.writeHead(502).end("Provider request failed");
+        else response.destroy();
+      })
+      .finally(() => controllers.delete(controller));
   });
   try {
     await new Promise<void>((resolve, reject) => {
       server.once("error", reject);
-      server.listen(0, "127.0.0.1", () => { server.off("error", reject); resolve(); });
+      server.listen(0, "127.0.0.1", () => {
+        server.off("error", reject);
+        resolve();
+      });
     });
-  } catch (error) { agent.destroy(); throw error; }
+  } catch (error) {
+    agent.destroy();
+    throw error;
+  }
   const address = server.address();
   if (!address || typeof address === "string") {
     server.close();
@@ -2074,7 +2175,10 @@ async function startOpenCodeProviderProxy(baseUrl: string, key: string, model: s
     close: async () => {
       for (const controller of controllers) controller.abort();
       agent.destroy();
-      await new Promise<void>((resolve) => { server.close(() => resolve()); server.closeAllConnections(); });
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+        server.closeAllConnections();
+      });
     },
   };
 }
@@ -2131,8 +2235,15 @@ async function startRuntime(input: {
     input.options.environment ?? process.env,
   );
   const identityKey = input.options.environment?.TASKCORE_AGENT_PRIVATE_KEY;
-  const identityValues = identityKey ? [identityKey, JSON.stringify(identityKey).slice(1, -1),
-    ...identityKey.split(/\r?\n/).filter(line => line && !line.startsWith("-----"))] : [];
+  const identityValues = identityKey
+    ? [
+        identityKey,
+        JSON.stringify(identityKey).slice(1, -1),
+        ...identityKey
+          .split(/\r?\n/)
+          .filter((line) => line && !line.startsWith("-----")),
+      ]
+    : [];
   const sensitiveValues = [
     ...identityValues,
     password,
@@ -2156,13 +2267,22 @@ async function startRuntime(input: {
   if (instructionRoot) externalDirectories[`${instructionRoot}/**`] = "allow";
   const [modelProvider, ...modelIdParts] = input.options.model.split("/");
   const providerModelId = modelIdParts.join("/");
-  const providerProxy = modelProvider === "taskcore" && input.options.environment?.TASKCORE_AI_PROVIDER_URL
-    ? await startOpenCodeProviderProxy(input.options.environment.TASKCORE_AI_PROVIDER_URL, input.options.environment.TASKCORE_AI_PROVIDER_KEY ?? "", providerModelId, input.options.environment).catch(async error => {
-        await bridge.close().catch(() => {});
-        await rm(isolatedHome, { recursive: true, force: true }).catch(() => {});
-        throw error;
-      })
-    : null;
+  const providerProxy =
+    modelProvider === "taskcore" &&
+    input.options.environment?.TASKCORE_AI_PROVIDER_URL
+      ? await startOpenCodeProviderProxy(
+          input.options.environment.TASKCORE_AI_PROVIDER_URL,
+          input.options.environment.TASKCORE_AI_PROVIDER_KEY ?? "",
+          providerModelId,
+          input.options.environment,
+        ).catch(async (error) => {
+          await bridge.close().catch(() => {});
+          await rm(isolatedHome, { recursive: true, force: true }).catch(
+            () => {},
+          );
+          throw error;
+        })
+      : null;
   if (providerProxy) {
     sensitiveValues.push(providerProxy.token);
     input.trace?.addSensitiveValues([providerProxy.token]);
@@ -2183,14 +2303,16 @@ async function startRuntime(input: {
       // provider instead of silently falling back or rejecting a newer model.
       provider: {
         [modelProvider!]: {
-          ...(providerProxy ? {
-            npm: "@ai-sdk/openai-compatible",
-            name: "Taskcore connection",
-            options: {
-              baseURL: providerProxy.baseURL,
-              apiKey: providerProxy.token,
-            },
-          } : {}),
+          ...(providerProxy
+            ? {
+                npm: "@ai-sdk/openai-compatible",
+                name: "Taskcore connection",
+                options: {
+                  baseURL: providerProxy.baseURL,
+                  apiKey: providerProxy.token,
+                },
+              }
+            : {}),
           models: {
             [providerModelId]: { name: providerModelId },
           },
@@ -2244,11 +2366,26 @@ async function startRuntime(input: {
         OPENCODE_DISABLE_PROJECT_CONFIG: "true",
         OPENCODE_SERVER_USERNAME: username,
         OPENCODE_SERVER_PASSWORD: password,
-        ...(providerProxy ? { NO_PROXY: [input.options.environment?.no_proxy ?? input.options.environment?.NO_PROXY, "127.0.0.1", "localhost"].filter(Boolean).join(",") } : {}),
+        ...(providerProxy
+          ? {
+              NO_PROXY: [
+                input.options.environment?.no_proxy ??
+                  input.options.environment?.NO_PROXY,
+                "127.0.0.1",
+                "localhost",
+              ]
+                .filter(Boolean)
+                .join(","),
+            }
+          : {}),
       },
     );
     const isolateProcessGroup = input.options.isolateProcessGroup ?? true;
-    const stdio: Array<"ignore" | "pipe" | number> = ["ignore", "ignore", "pipe"];
+    const stdio: Array<"ignore" | "pipe" | number> = [
+      "ignore",
+      "ignore",
+      "pipe",
+    ];
     if (input.options.commandFd !== undefined) {
       while (stdio.length <= input.options.commandFd) stdio.push("ignore");
       stdio[input.options.commandFd] = input.options.commandFd;
@@ -2261,7 +2398,8 @@ async function startRuntime(input: {
         cwd: input.cwd,
         env: environment,
         stdio,
-        detached: globalThis.process.platform !== "win32" && isolateProcessGroup,
+        detached:
+          globalThis.process.platform !== "win32" && isolateProcessGroup,
       },
     );
     if (child.pid !== undefined) {
@@ -2342,7 +2480,11 @@ async function startRuntime(input: {
       close: async (closeInput = {}) => {
         await providerProxy?.close();
         await bridge.close().catch(() => {});
-        if (providerChild.exitCode === null && providerChild.signalCode === null && providerChild.pid) {
+        if (
+          providerChild.exitCode === null &&
+          providerChild.signalCode === null &&
+          providerChild.pid
+        ) {
           try {
             if (globalThis.process.platform === "win32" || !isolateProcessGroup)
               providerChild.kill("SIGTERM");
@@ -2352,7 +2494,11 @@ async function startRuntime(input: {
           }
         }
         await waitForExit(providerChild, 2_000);
-        if (providerChild.exitCode === null && providerChild.signalCode === null && providerChild.pid) {
+        if (
+          providerChild.exitCode === null &&
+          providerChild.signalCode === null &&
+          providerChild.pid
+        ) {
           try {
             if (globalThis.process.platform === "win32" || !isolateProcessGroup)
               providerChild.kill("SIGKILL");
@@ -2390,53 +2536,51 @@ export function normalizeOpenCodeQuestionSet(
   nativeQuestions: Record<string, unknown>[],
   metadata: Record<string, unknown> = {},
 ): TaskcoreQuestionSet {
-  const questions = nativeQuestions.map(
-    (question, index): TaskcoreQuestion => {
-      const options = (Array.isArray(question.options) ? question.options : [])
-        .map(record)
-        .slice(0, 128)
-        .map((option, optionIndex) => ({
-          id: text(option.id, `option-${optionIndex + 1}`).slice(0, 160),
-          label: text(
-            option.label,
-            text(option.value, `Option ${optionIndex + 1}`),
-          ).slice(0, 1_000),
-          ...(text(option.description)
-            ? { description: text(option.description).slice(0, 4_000) }
-            : {}),
-        }));
-      return {
-        id: openCodeQuestionId(question, index),
-        ...(text(question.header)
-          ? { header: text(question.header).slice(0, 1_000) }
+  const questions = nativeQuestions.map((question, index): TaskcoreQuestion => {
+    const options = (Array.isArray(question.options) ? question.options : [])
+      .map(record)
+      .slice(0, 128)
+      .map((option, optionIndex) => ({
+        id: text(option.id, `option-${optionIndex + 1}`).slice(0, 160),
+        label: text(
+          option.label,
+          text(option.value, `Option ${optionIndex + 1}`),
+        ).slice(0, 1_000),
+        ...(text(option.description)
+          ? { description: text(option.description).slice(0, 4_000) }
           : {}),
-        prompt: text(
-          question.question,
-          text(question.prompt, `Question ${index + 1}`),
-        ).slice(0, 4_000),
-        ...(text(question.description)
-          ? { helpText: text(question.description).slice(0, 4_000) }
-          : {}),
-        required: question.required === true,
-        answerMode:
-          options.length === 0
-            ? "text"
-            : question.multiple === true
-              ? "multi_select"
-              : "single_select",
-        ...(options.length > 0 ? { options } : {}),
-        ...(question.custom === true || question.allowCustom === true
-          ? {
-              customAnswer: {
-                enabled: true,
-                label: "Other",
-                placeholder: "Enter another answer",
-              },
-            }
-          : {}),
-      };
-    },
-  );
+      }));
+    return {
+      id: openCodeQuestionId(question, index),
+      ...(text(question.header)
+        ? { header: text(question.header).slice(0, 1_000) }
+        : {}),
+      prompt: text(
+        question.question,
+        text(question.prompt, `Question ${index + 1}`),
+      ).slice(0, 4_000),
+      ...(text(question.description)
+        ? { helpText: text(question.description).slice(0, 4_000) }
+        : {}),
+      required: question.required === true,
+      answerMode:
+        options.length === 0
+          ? "text"
+          : question.multiple === true
+            ? "multi_select"
+            : "single_select",
+      ...(options.length > 0 ? { options } : {}),
+      ...(question.custom === true || question.allowCustom === true
+        ? {
+            customAnswer: {
+              enabled: true,
+              label: "Other",
+              placeholder: "Enter another answer",
+            },
+          }
+        : {}),
+    };
+  });
   return parseTaskcoreQuestionSet({
     schema: TASKCORE_QUESTION_SET_SCHEMA,
     title: text(metadata.title, "OpenCode needs your input").slice(0, 1_000),
@@ -2740,7 +2884,9 @@ function sanitizedEnvironment(
   overrides: Record<string, string>,
 ): NodeJS.ProcessEnv {
   const allowed = [
-    "TASKCORE_AGENT_KEY_ID", "TASKCORE_AGENT_PUBLIC_KEY", "TASKCORE_AGENT_PRIVATE_KEY",
+    "TASKCORE_AGENT_KEY_ID",
+    "TASKCORE_AGENT_PUBLIC_KEY",
+    "TASKCORE_AGENT_PRIVATE_KEY",
     "PATH",
     "LANG",
     "LC_ALL",

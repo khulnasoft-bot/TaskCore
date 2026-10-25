@@ -7,11 +7,16 @@ import { forbidden, notFound } from "../errors.js";
 import { assertCompanyAccess, hasCompanyAccess } from "./authz.js";
 import { parseProjectExecutionWorkspacePolicy } from "../services/execution-workspace-policy.js";
 import { isLowTrustRuntimeManagementAllowed } from "../services/low-trust-runtime-containment.js";
-import { resolveCoreTrustPreset, type TrustPresetResolution } from "../services/trust-preset-resolver.js";
+import {
+  resolveCoreTrustPreset,
+  type TrustPresetResolution,
+} from "../services/trust-preset-resolver.js";
 import { WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUSES } from "../services/workspace-runtime-leases.js";
 import { readObject } from "../lib/objects.js";
 
-const WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUS_LIST: string[] = [...WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUSES];
+const WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUS_LIST: string[] = [
+  ...WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUSES,
+];
 
 /**
  * Identity of the actor authorized to drive a workspace runtime control, resolved once
@@ -26,20 +31,29 @@ export type WorkspaceRuntimeControlAuthorization = {
 
 function readRunIssueId(context: Record<string, unknown> | null) {
   const directIssueId = context?.issueId;
-  if (typeof directIssueId === "string" && isUuidLike(directIssueId)) return directIssueId;
+  if (typeof directIssueId === "string" && isUuidLike(directIssueId))
+    return directIssueId;
   const taskcoreIssue = readObject(context?.taskcoreIssue);
   const nestedIssueId = taskcoreIssue?.id;
-  return typeof nestedIssueId === "string" && isUuidLike(nestedIssueId) ? nestedIssueId : null;
+  return typeof nestedIssueId === "string" && isUuidLike(nestedIssueId)
+    ? nestedIssueId
+    : null;
 }
 
-async function listReportingSubtreeAgentIds(db: Db, companyId: string, actorAgentId: string) {
+async function listReportingSubtreeAgentIds(
+  db: Db,
+  companyId: string,
+  actorAgentId: string,
+) {
   const companyAgents = await db
     .select({
       id: agents.id,
       reportsTo: agents.reportsTo,
     })
     .from(agents)
-    .where(and(eq(agents.companyId, companyId), ne(agents.status, "terminated")));
+    .where(
+      and(eq(agents.companyId, companyId), ne(agents.status, "terminated")),
+    );
 
   const reportsByManager = new Map<string, string[]>();
   for (const agent of companyAgents) {
@@ -102,11 +116,13 @@ async function assertAgentCanManageRuntimeServicesForWorkspace(
           contextSnapshot: heartbeatRuns.contextSnapshot,
         })
         .from(heartbeatRuns)
-        .where(and(
-          eq(heartbeatRuns.id, req.actor.runId),
-          eq(heartbeatRuns.companyId, input.companyId),
-          eq(heartbeatRuns.agentId, actorAgent.id),
-        ))
+        .where(
+          and(
+            eq(heartbeatRuns.id, req.actor.runId),
+            eq(heartbeatRuns.companyId, input.companyId),
+            eq(heartbeatRuns.agentId, actorAgent.id),
+          ),
+        )
         .then((rows) => rows[0] ?? null)
     : null;
   const runContext = readObject(actorRun?.contextSnapshot);
@@ -134,11 +150,16 @@ async function assertAgentCanManageRuntimeServicesForWorkspace(
           projectExecutionWorkspacePolicy: projects.executionWorkspacePolicy,
         })
         .from(issues)
-        .leftJoin(projects, and(eq(projects.id, issues.projectId), eq(projects.companyId, issues.companyId)))
-        .where(and(
-          eq(issues.id, runIssueId),
-          eq(issues.companyId, input.companyId),
-        ))
+        .leftJoin(
+          projects,
+          and(
+            eq(projects.id, issues.projectId),
+            eq(projects.companyId, issues.companyId),
+          ),
+        )
+        .where(
+          and(eq(issues.id, runIssueId), eq(issues.companyId, input.companyId)),
+        )
         .then((rows) => rows[0] ?? null)
     : null;
 
@@ -146,24 +167,33 @@ async function assertAgentCanManageRuntimeServicesForWorkspace(
     assertLowTrustCanManageRuntimeForIssue({
       actorAgent,
       issue: runScopedIssue,
-      projectExecutionWorkspacePolicy: runScopedIssue.projectExecutionWorkspacePolicy,
+      projectExecutionWorkspacePolicy:
+        runScopedIssue.projectExecutionWorkspacePolicy,
       runExecutionPolicy,
     });
   }
 
   const workspaceScopeConditions = [
-    input.projectWorkspaceId ? eq(issues.projectWorkspaceId, input.projectWorkspaceId) : null,
-    input.executionWorkspaceId ? eq(issues.executionWorkspaceId, input.executionWorkspaceId) : null,
+    input.projectWorkspaceId
+      ? eq(issues.projectWorkspaceId, input.projectWorkspaceId)
+      : null,
+    input.executionWorkspaceId
+      ? eq(issues.executionWorkspaceId, input.executionWorkspaceId)
+      : null,
     input.sourceIssueId ? eq(issues.id, input.sourceIssueId) : null,
-  ].filter((condition): condition is NonNullable<typeof condition> => condition !== null);
+  ].filter(
+    (condition): condition is NonNullable<typeof condition> =>
+      condition !== null,
+  );
 
   if (workspaceScopeConditions.length === 0) {
     throw forbidden("Missing permission to manage workspace runtime services");
   }
 
-  const workspaceScopeCondition = workspaceScopeConditions.length === 1
-    ? workspaceScopeConditions[0]!
-    : or(...workspaceScopeConditions);
+  const workspaceScopeCondition =
+    workspaceScopeConditions.length === 1
+      ? workspaceScopeConditions[0]!
+      : or(...workspaceScopeConditions);
 
   const linkedScopeIssues = await db
     .select({
@@ -174,19 +204,28 @@ async function assertAgentCanManageRuntimeServicesForWorkspace(
       projectExecutionWorkspacePolicy: projects.executionWorkspacePolicy,
     })
     .from(issues)
-    .leftJoin(projects, and(eq(projects.id, issues.projectId), eq(projects.companyId, issues.companyId)))
-    .where(and(
-      eq(issues.companyId, input.companyId),
-      isNull(issues.hiddenAt),
-      inArray(issues.status, WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUS_LIST),
-      workspaceScopeCondition,
-    ));
+    .leftJoin(
+      projects,
+      and(
+        eq(projects.id, issues.projectId),
+        eq(projects.companyId, issues.companyId),
+      ),
+    )
+    .where(
+      and(
+        eq(issues.companyId, input.companyId),
+        isNull(issues.hiddenAt),
+        inArray(issues.status, WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUS_LIST),
+        workspaceScopeCondition,
+      ),
+    );
 
   for (const linkedScopeIssue of linkedScopeIssues) {
     assertLowTrustCanManageRuntimeForIssue({
       actorAgent,
       issue: linkedScopeIssue,
-      projectExecutionWorkspacePolicy: linkedScopeIssue.projectExecutionWorkspacePolicy,
+      projectExecutionWorkspacePolicy:
+        linkedScopeIssue.projectExecutionWorkspacePolicy,
       runExecutionPolicy,
     });
   }
@@ -195,7 +234,11 @@ async function assertAgentCanManageRuntimeServicesForWorkspace(
     return { runIssueId };
   }
 
-  const eligibleAgentIds = await listReportingSubtreeAgentIds(db, input.companyId, actorAgent.id);
+  const eligibleAgentIds = await listReportingSubtreeAgentIds(
+    db,
+    input.companyId,
+    actorAgent.id,
+  );
   const linkedIssue = await db
     .select({
       id: issues.id,
@@ -205,21 +248,30 @@ async function assertAgentCanManageRuntimeServicesForWorkspace(
       projectExecutionWorkspacePolicy: projects.executionWorkspacePolicy,
     })
     .from(issues)
-    .leftJoin(projects, and(eq(projects.id, issues.projectId), eq(projects.companyId, issues.companyId)))
-    .where(and(
-      eq(issues.companyId, input.companyId),
-      isNull(issues.hiddenAt),
-      inArray(issues.status, WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUS_LIST),
-      inArray(issues.assigneeAgentId, eligibleAgentIds),
-      workspaceScopeCondition,
-    ))
+    .leftJoin(
+      projects,
+      and(
+        eq(projects.id, issues.projectId),
+        eq(projects.companyId, issues.companyId),
+      ),
+    )
+    .where(
+      and(
+        eq(issues.companyId, input.companyId),
+        isNull(issues.hiddenAt),
+        inArray(issues.status, WORKSPACE_RUNTIME_ELIGIBLE_ISSUE_STATUS_LIST),
+        inArray(issues.assigneeAgentId, eligibleAgentIds),
+        workspaceScopeCondition,
+      ),
+    )
     .then((rows) => rows[0] ?? null);
 
   if (linkedIssue) {
     assertLowTrustCanManageRuntimeForIssue({
       actorAgent,
       issue: linkedIssue,
-      projectExecutionWorkspacePolicy: linkedIssue.projectExecutionWorkspacePolicy,
+      projectExecutionWorkspacePolicy:
+        linkedIssue.projectExecutionWorkspacePolicy,
       runExecutionPolicy,
     });
     return { runIssueId };
@@ -251,11 +303,15 @@ function assertLowTrustCanManageRuntimeForActor(input: {
       : null,
   });
   if (resolution.kind === "denied") {
-    throw forbidden(`Low-trust runtime service access denied: ${resolution.detail}`);
+    throw forbidden(
+      `Low-trust runtime service access denied: ${resolution.detail}`,
+    );
   }
   if (resolution.kind !== "low_trust_review") return resolution;
   if (isLowTrustRuntimeManagementAllowed(resolution)) return resolution;
-  throw forbidden("Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage");
+  throw forbidden(
+    "Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage",
+  );
 }
 
 function assertLowTrustCanManageRuntimeForIssue(input: {
@@ -282,7 +338,9 @@ function assertLowTrustCanManageRuntimeForIssue(input: {
     project: input.issue.projectId
       ? {
           companyId: input.issue.companyId,
-          executionWorkspacePolicy: parseProjectExecutionWorkspacePolicy(input.projectExecutionWorkspacePolicy),
+          executionWorkspacePolicy: parseProjectExecutionWorkspacePolicy(
+            input.projectExecutionWorkspacePolicy,
+          ),
         }
       : null,
     issue: {
@@ -297,11 +355,15 @@ function assertLowTrustCanManageRuntimeForIssue(input: {
       : null,
   });
   if (resolution.kind === "denied") {
-    throw forbidden(`Low-trust runtime service access denied: ${resolution.detail}`);
+    throw forbidden(
+      `Low-trust runtime service access denied: ${resolution.detail}`,
+    );
   }
   if (resolution.kind !== "low_trust_review") return;
   if (isLowTrustRuntimeManagementAllowed(resolution)) return;
-  throw forbidden("Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage");
+  throw forbidden(
+    "Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage",
+  );
 }
 
 export async function assertCanManageProjectWorkspaceRuntimeServices(
@@ -336,7 +398,11 @@ export async function assertCanManageExecutionWorkspaceRuntimeServices(
   if (req.actor.type === "board") {
     return { actorType: "board", agentId: null, runId: null, issueId: null };
   }
-  const { runIssueId } = await assertAgentCanManageRuntimeServicesForWorkspace(db, req, input);
+  const { runIssueId } = await assertAgentCanManageRuntimeServicesForWorkspace(
+    db,
+    req,
+    input,
+  );
   return {
     actorType: req.actor.type,
     agentId: req.actor.agentId ?? null,

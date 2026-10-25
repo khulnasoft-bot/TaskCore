@@ -30,7 +30,9 @@ const RETRY_REASON_LABELS: Record<string, string> = {
 };
 
 function readNonEmptyString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function joinFragments(parts: Array<string | null>) {
@@ -44,30 +46,42 @@ export function formatRetryReason(reason: string | null | undefined) {
   return RETRY_REASON_LABELS[normalized] ?? normalized.replace(/_/g, " ");
 }
 
-export function describeRunRetryState(run: RetryAwareRun): RunRetryStateSummary | null {
+export function describeRunRetryState(
+  run: RetryAwareRun,
+): RunRetryStateSummary | null {
   const attempt =
-    typeof run.scheduledRetryAttempt === "number" && Number.isFinite(run.scheduledRetryAttempt) && run.scheduledRetryAttempt > 0
+    typeof run.scheduledRetryAttempt === "number" &&
+    Number.isFinite(run.scheduledRetryAttempt) &&
+    run.scheduledRetryAttempt > 0
       ? run.scheduledRetryAttempt
       : null;
   const attemptLabel = attempt ? `Attempt ${attempt}` : null;
   const reasonLabel = formatRetryReason(run.scheduledRetryReason);
   const retryOfRunId = readNonEmptyString(run.retryOfRunId);
   const exhaustedReason = readNonEmptyString(run.retryExhaustedReason);
-  const dueAt = run.scheduledRetryAt ? formatDateTime(run.scheduledRetryAt) : null;
-  const isMaxTurnContinuation = run.scheduledRetryReason === "max_turns_continuation";
+  const dueAt = run.scheduledRetryAt
+    ? formatDateTime(run.scheduledRetryAt)
+    : null;
+  const isMaxTurnContinuation =
+    run.scheduledRetryReason === "max_turns_continuation";
   const hasRetryMetadata =
-    Boolean(retryOfRunId)
-    || Boolean(reasonLabel)
-    || Boolean(dueAt)
-    || Boolean(attemptLabel)
-    || Boolean(exhaustedReason);
+    Boolean(retryOfRunId) ||
+    Boolean(reasonLabel) ||
+    Boolean(dueAt) ||
+    Boolean(attemptLabel) ||
+    Boolean(exhaustedReason);
 
   if (!hasRetryMetadata) return null;
 
   if (run.status === "scheduled_retry") {
     return {
       kind: "scheduled",
-      badgeLabel: run.scheduledRetryReason === "ai_connection_pool_wait" ? "Pool exhausted" : isMaxTurnContinuation ? "Continuation scheduled" : "Retry scheduled",
+      badgeLabel:
+        run.scheduledRetryReason === "ai_connection_pool_wait"
+          ? "Pool exhausted"
+          : isMaxTurnContinuation
+            ? "Continuation scheduled"
+            : "Retry scheduled",
       tone: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
       detail: joinFragments([attemptLabel, reasonLabel]),
       secondary: dueAt
@@ -80,9 +94,15 @@ export function describeRunRetryState(run: RetryAwareRun): RunRetryStateSummary 
   if (exhaustedReason) {
     return {
       kind: "exhausted",
-      badgeLabel: isMaxTurnContinuation ? "Continuation exhausted" : "Retry exhausted",
+      badgeLabel: isMaxTurnContinuation
+        ? "Continuation exhausted"
+        : "Retry exhausted",
       tone: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      detail: joinFragments([attemptLabel, reasonLabel, "Automatic retries exhausted"]),
+      detail: joinFragments([
+        attemptLabel,
+        reasonLabel,
+        "Automatic retries exhausted",
+      ]),
       secondary: exhaustedReason.includes("Manual intervention required")
         ? exhaustedReason
         : `${exhaustedReason} Manual intervention required.`,

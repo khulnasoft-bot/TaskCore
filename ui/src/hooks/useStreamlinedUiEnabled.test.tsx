@@ -50,8 +50,12 @@ describe("useStreamlinedUiEnabled", () => {
     expect(resolveStreamlinedUiEnabled(undefined)).toBe(true);
     expect(resolveStreamlinedUiEnabled(null)).toBe(true);
 
-    mockInstanceSettingsApi.getExperimental.mockImplementation(() => new Promise(() => {}));
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    mockInstanceSettingsApi.getExperimental.mockImplementation(
+      () => new Promise(() => {}),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     flushSync(() => {
       root.render(
         <QueryClientProvider client={queryClient}>
@@ -64,8 +68,12 @@ describe("useStreamlinedUiEnabled", () => {
   });
 
   it("uses the legacy shell only for an explicit false value", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableStreamlinedUi: false });
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableStreamlinedUi: false,
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     flushSync(() => {
       root.render(
         <QueryClientProvider client={queryClient}>
@@ -76,7 +84,11 @@ describe("useStreamlinedUiEnabled", () => {
     await flushReact();
 
     expect(host.textContent).toBe("false:true");
-    expect(resolveStreamlinedUiEnabled({ enableStreamlinedUi: true })).toBe(true);
-    expect(resolveStreamlinedUiEnabled({ enableStreamlinedUi: false })).toBe(false);
+    expect(resolveStreamlinedUiEnabled({ enableStreamlinedUi: true })).toBe(
+      true,
+    );
+    expect(resolveStreamlinedUiEnabled({ enableStreamlinedUi: false })).toBe(
+      false,
+    );
   });
 });

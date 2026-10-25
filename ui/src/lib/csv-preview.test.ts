@@ -3,12 +3,22 @@ import { isCsvFile, parseCsv } from "./csv-preview";
 
 describe("CSV preview parsing", () => {
   it("handles BOM, CRLF, quoted commas, escaped quotes and multiline cells", () => {
-    expect(parseCsv('\uFEFFName,Notes,Amount\r\n"Lee, Sam","Said ""hello""\nagain",12\r\n')).toEqual([
-      ["Name", "Notes", "Amount"], ["Lee, Sam", 'Said "hello"\nagain', "12"],
+    expect(
+      parseCsv(
+        '\uFEFFName,Notes,Amount\r\n"Lee, Sam","Said ""hello""\nagain",12\r\n',
+      ),
+    ).toEqual([
+      ["Name", "Notes", "Amount"],
+      ["Lee, Sam", 'Said "hello"\nagain', "12"],
     ]);
   });
   it("preserves trailing empty fields, blank records and uneven rows", () => {
-    expect(parseCsv("a,b\n1,\n\n2,3,4")).toEqual([["a", "b"], ["1", ""], [""], ["2", "3", "4"]]);
+    expect(parseCsv("a,b\n1,\n\n2,3,4")).toEqual([
+      ["a", "b"],
+      ["1", ""],
+      [""],
+      ["2", "3", "4"],
+    ]);
     expect(parseCsv("")).toEqual([]);
     expect(parseCsv("a,b")).toEqual([["a", "b"]]);
   });

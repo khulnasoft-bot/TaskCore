@@ -13,8 +13,10 @@ type BuildInvocationEnvForLogsOptions = {
   resolvedCommandEnvKey?: string;
 };
 
-export const runningProcesses: Map<string, { child: ChildProcess; graceSec: number; processGroupId: number | null }> =
-  serverUtils.runningProcesses;
+export const runningProcesses: Map<
+  string,
+  { child: ChildProcess; graceSec: number; processGroupId: number | null }
+> = serverUtils.runningProcesses;
 export const MAX_CAPTURE_BYTES = serverUtils.MAX_CAPTURE_BYTES;
 export const MAX_EXCERPT_BYTES = serverUtils.MAX_EXCERPT_BYTES;
 export const parseObject = serverUtils.parseObject;
@@ -88,7 +90,11 @@ export async function runChildProcess(
     timeoutSec: number;
     graceSec: number;
     onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
-    onSpawn?: (meta: { pid: number; processGroupId: number | null; startedAt: string }) => Promise<void>;
+    onSpawn?: (meta: {
+      pid: number;
+      processGroupId: number | null;
+      startedAt: string;
+    }) => Promise<void>;
   },
 ): Promise<RunProcessResult> {
   return _runChildProcess(runId, command, args, {

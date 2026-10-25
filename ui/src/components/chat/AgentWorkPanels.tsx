@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpDown, File, FileText, Image, Search, Video } from "lucide-react";
+import {
+  ArrowUpDown,
+  File,
+  FileText,
+  Image,
+  Search,
+  Video,
+} from "lucide-react";
 import type { CompanyArtifact, Issue } from "@taskcore/shared";
 import { artifactsApi } from "@/api/artifacts";
 import { issuesApi } from "@/api/issues";
@@ -9,7 +16,11 @@ import { IssueFiltersPopover } from "@/components/IssueFiltersPopover";
 import { StatusIcon } from "@/components/StatusIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   applyIssueFilters,
   countActiveIssueFilters,
@@ -50,20 +61,41 @@ export function sortAgentTasks(
   return [...tasks].sort((a, b) => {
     switch (field) {
       case "status":
-        return sign * (issueStatusOrder.indexOf(a.status) - issueStatusOrder.indexOf(b.status));
+        return (
+          sign *
+          (issueStatusOrder.indexOf(a.status) -
+            issueStatusOrder.indexOf(b.status))
+        );
       case "title":
         return sign * a.title.localeCompare(b.title);
       case "created":
-        return sign * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        return (
+          sign *
+          (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        );
       default:
-        return sign * (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+        return (
+          sign *
+          (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())
+        );
     }
   });
 }
 
-function PanelMessage({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "error" }) {
+function PanelMessage({
+  children,
+  tone = "muted",
+}: {
+  children: React.ReactNode;
+  tone?: "muted" | "error";
+}) {
   return (
-    <p className={cn("px-1 py-6 text-center text-sm", tone === "error" ? "text-destructive" : "text-muted-foreground")}>
+    <p
+      className={cn(
+        "px-1 py-6 text-center text-sm",
+        tone === "error" ? "text-destructive" : "text-muted-foreground",
+      )}
+    >
       {children}
     </p>
   );
@@ -94,9 +126,14 @@ export function AgentTaskCard({ task }: { task: Issue }) {
         </span>
       </div>
       <div className="flex items-center gap-1.5 pl-6 text-xs text-muted-foreground">
-        <span className="font-mono">{task.identifier ?? task.id.slice(0, 8)}</span>
+        <span className="font-mono">
+          {task.identifier ?? task.id.slice(0, 8)}
+        </span>
         <span aria-hidden>·</span>
-        <time dateTime={new Date(task.updatedAt).toISOString()} title={new Date(task.updatedAt).toLocaleString()}>
+        <time
+          dateTime={new Date(task.updatedAt).toISOString()}
+          title={new Date(task.updatedAt).toLocaleString()}
+        >
           {relativeTime(task.updatedAt)}
         </time>
       </div>
@@ -115,18 +152,21 @@ export function AgentTasksPanel({
   excludeIssueId?: string;
 }) {
   const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<IssueFilterState>(defaultIssueFilterState);
+  const [filters, setFilters] = useState<IssueFilterState>(
+    defaultIssueFilterState,
+  );
   const [sortField, setSortField] = useState<AgentTaskSortField>("updated");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const tasksQuery = useQuery({
     queryKey: queryKeys.issues.listParticipatedByAgent(companyId, agentId),
-    queryFn: () => issuesApi.list(companyId, {
-      participantAgentId: agentId,
-      sortField: "updated",
-      sortDir: "desc",
-      limit: AGENT_TASK_LIMIT,
-    }),
+    queryFn: () =>
+      issuesApi.list(companyId, {
+        participantAgentId: agentId,
+        sortField: "updated",
+        sortDir: "desc",
+        limit: AGENT_TASK_LIMIT,
+      }),
   });
   const projectsQuery = useQuery({
     queryKey: queryKeys.projects.list(companyId),
@@ -138,14 +178,22 @@ export function AgentTasksPanel({
     const scoped = (tasksQuery.data ?? []).filter((task) => {
       if (task.id === excludeIssueId) return false;
       if (!needle) return true;
-      return task.title.toLowerCase().includes(needle)
-        || (task.identifier ?? "").toLowerCase().includes(needle);
+      return (
+        task.title.toLowerCase().includes(needle) ||
+        (task.identifier ?? "").toLowerCase().includes(needle)
+      );
     });
-    return sortAgentTasks(applyIssueFilters(scoped, filters), sortField, sortDir);
+    return sortAgentTasks(
+      applyIssueFilters(scoped, filters),
+      sortField,
+      sortDir,
+    );
   }, [tasksQuery.data, excludeIssueId, query, filters, sortField, sortDir]);
 
   const activeFilterCount = countActiveIssueFilters(filters);
-  const total = (tasksQuery.data ?? []).filter((task) => task.id !== excludeIssueId).length;
+  const total = (tasksQuery.data ?? []).filter(
+    (task) => task.id !== excludeIssueId,
+  ).length;
   // Search and filters run on the most recently updated tasks only.
   const capped = (tasksQuery.data?.length ?? 0) >= AGENT_TASK_LIMIT;
 
@@ -164,9 +212,14 @@ export function AgentTasksPanel({
         </div>
         <IssueFiltersPopover
           state={filters}
-          onChange={(patch) => setFilters((current) => ({ ...current, ...patch }))}
+          onChange={(patch) =>
+            setFilters((current) => ({ ...current, ...patch }))
+          }
           activeFilterCount={activeFilterCount}
-          projects={projectsQuery.data?.map((project) => ({ id: project.id, name: project.name }))}
+          projects={projectsQuery.data?.map((project) => ({
+            id: project.id,
+            name: project.name,
+          }))}
           enableExternalObjectFilters={false}
           buttonVariant="outline"
           iconOnly
@@ -174,7 +227,13 @@ export function AgentTasksPanel({
         />
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Sort" aria-label="Sort tasks">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              title="Sort"
+              aria-label="Sort tasks"
+            >
               <ArrowUpDown className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>
@@ -186,19 +245,28 @@ export function AgentTasksPanel({
                   type="button"
                   className={cn(
                     "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
-                    sortField === field ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/50",
+                    sortField === field
+                      ? "bg-accent/50 text-foreground"
+                      : "text-muted-foreground hover:bg-accent/50",
                   )}
                   onClick={() => {
-                    if (sortField === field) setSortDir(sortDir === "asc" ? "desc" : "asc");
+                    if (sortField === field)
+                      setSortDir(sortDir === "asc" ? "desc" : "asc");
                     else {
                       setSortField(field);
-                      setSortDir(field === "updated" || field === "created" ? "desc" : "asc");
+                      setSortDir(
+                        field === "updated" || field === "created"
+                          ? "desc"
+                          : "asc",
+                      );
                     }
                   }}
                 >
                   <span>{label}</span>
                   {sortField === field ? (
-                    <span className="text-xs text-muted-foreground">{sortDir === "asc" ? "↑" : "↓"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {sortDir === "asc" ? "↑" : "↓"}
+                    </span>
                   ) : null}
                 </button>
               ))}
@@ -210,7 +278,9 @@ export function AgentTasksPanel({
       {tasksQuery.isPending ? (
         <PanelMessage>Loading tasks…</PanelMessage>
       ) : tasksQuery.isError ? (
-        <PanelMessage tone="error">Could not load this agent's tasks.</PanelMessage>
+        <PanelMessage tone="error">
+          Could not load this agent's tasks.
+        </PanelMessage>
       ) : total === 0 ? (
         <PanelMessage>This agent hasn't worked on any tasks yet.</PanelMessage>
       ) : visible.length === 0 ? (
@@ -221,7 +291,9 @@ export function AgentTasksPanel({
         </PanelMessage>
       ) : (
         <div className="flex flex-col gap-2">
-          {visible.map((task) => <AgentTaskCard key={task.id} task={task} />)}
+          {visible.map((task) => (
+            <AgentTaskCard key={task.id} task={task} />
+          ))}
           {capped ? (
             <p className="px-1 text-xs text-muted-foreground">
               Showing the {AGENT_TASK_LIMIT} most recently updated tasks.
@@ -236,11 +308,15 @@ export function AgentTasksPanel({
 function ArtifactKindIcon({ artifact }: { artifact: CompanyArtifact }) {
   const className = "mt-0.5 h-4 w-4 shrink-0 text-muted-foreground";
   switch (artifact.mediaKind) {
-    case "image": return <Image className={className} aria-hidden />;
-    case "video": return <Video className={className} aria-hidden />;
+    case "image":
+      return <Image className={className} aria-hidden />;
+    case "video":
+      return <Video className={className} aria-hidden />;
     case "text":
-    case "document": return <FileText className={className} aria-hidden />;
-    default: return <File className={className} aria-hidden />;
+    case "document":
+      return <FileText className={className} aria-hidden />;
+    default:
+      return <File className={className} aria-hidden />;
   }
 }
 
@@ -257,7 +333,10 @@ export function AgentArtifactCard({ artifact }: { artifact: CompanyArtifact }) {
     >
       <div className="flex min-w-0 items-start gap-2">
         <ArtifactKindIcon artifact={artifact} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={artifact.title}>
+        <span
+          className="min-w-0 flex-1 truncate text-sm font-medium text-foreground"
+          title={artifact.title}
+        >
           {artifact.title}
         </span>
       </div>
@@ -279,7 +358,11 @@ async function listAgentArtifacts(companyId: string, agentId: string) {
   const artifacts: CompanyArtifact[] = [];
   let cursor: string | undefined;
   for (let page = 0; page < ARTIFACT_MAX_PAGES; page += 1) {
-    const response = await artifactsApi.list(companyId, { agentId, limit: ARTIFACT_PAGE_SIZE, cursor });
+    const response = await artifactsApi.list(companyId, {
+      agentId,
+      limit: ARTIFACT_PAGE_SIZE,
+      cursor,
+    });
     artifacts.push(...response.artifacts);
     if (!response.nextCursor) return { artifacts, truncated: false };
     cursor = response.nextCursor;
@@ -287,21 +370,40 @@ async function listAgentArtifacts(companyId: string, agentId: string) {
   return { artifacts, truncated: true };
 }
 
-export function AgentArtifactsPanel({ companyId, agentId }: { companyId: string; agentId: string }) {
+export function AgentArtifactsPanel({
+  companyId,
+  agentId,
+}: {
+  companyId: string;
+  agentId: string;
+}) {
   const artifactsQuery = useQuery({
     queryKey: queryKeys.artifacts.byAgent(companyId, agentId),
     queryFn: () => listAgentArtifacts(companyId, agentId),
   });
 
-  if (artifactsQuery.isPending) return <PanelMessage>Loading artifacts…</PanelMessage>;
-  if (artifactsQuery.isError) return <PanelMessage tone="error">Could not load this agent's artifacts.</PanelMessage>;
+  if (artifactsQuery.isPending)
+    return <PanelMessage>Loading artifacts…</PanelMessage>;
+  if (artifactsQuery.isError)
+    return (
+      <PanelMessage tone="error">
+        Could not load this agent's artifacts.
+      </PanelMessage>
+    );
   const { artifacts, truncated } = artifactsQuery.data;
-  if (artifacts.length === 0) return <PanelMessage>This agent hasn't produced any artifacts yet.</PanelMessage>;
+  if (artifacts.length === 0)
+    return (
+      <PanelMessage>This agent hasn't produced any artifacts yet.</PanelMessage>
+    );
   return (
     <section className="flex flex-col gap-2" aria-label="Agent artifacts">
-      {artifacts.map((artifact) => <AgentArtifactCard key={artifact.id} artifact={artifact} />)}
+      {artifacts.map((artifact) => (
+        <AgentArtifactCard key={artifact.id} artifact={artifact} />
+      ))}
       {truncated ? (
-        <p className="px-1 text-xs text-muted-foreground">Showing this agent's {artifacts.length} most recent artifacts.</p>
+        <p className="px-1 text-xs text-muted-foreground">
+          Showing this agent's {artifacts.length} most recent artifacts.
+        </p>
       ) : null}
     </section>
   );

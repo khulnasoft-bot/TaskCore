@@ -31,7 +31,9 @@ const DIRTY: RoutineHistoryDirtyFieldDescriptor[] = [
   { key: "description", label: "the description" },
 ];
 
-function renderBar(props: Partial<React.ComponentProps<typeof RoutineSaveBar>>) {
+function renderBar(
+  props: Partial<React.ComponentProps<typeof RoutineSaveBar>>,
+) {
   const handlers = {
     onSave: vi.fn(),
     onDiscard: vi.fn(),
@@ -66,7 +68,9 @@ describe("RoutineSaveBar", () => {
   it("invokes onSave on Cmd/Ctrl+S while dirty", () => {
     const handlers = renderBar({ dirtyFields: DIRTY });
     act(() => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", metaKey: true }));
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "s", metaKey: true }),
+      );
     });
     expect(handlers.onSave).toHaveBeenCalledTimes(1);
   });
@@ -74,7 +78,9 @@ describe("RoutineSaveBar", () => {
   it("does not invoke onSave on Cmd+S when clean", () => {
     const handlers = renderBar({ dirtyFields: [] });
     act(() => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", metaKey: true }));
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "s", metaKey: true }),
+      );
     });
     expect(handlers.onSave).not.toHaveBeenCalled();
   });
@@ -83,8 +89,12 @@ describe("RoutineSaveBar", () => {
     const handlers = renderBar({ dirtyFields: DIRTY, saveConflict: true });
     expect(container.textContent).toContain("Routine changed elsewhere");
     const buttons = Array.from(container.querySelectorAll("button"));
-    const reload = buttons.find((button) => button.textContent?.includes("Reload latest"));
-    const overwrite = buttons.find((button) => button.textContent?.includes("Overwrite anyway"));
+    const reload = buttons.find((button) =>
+      button.textContent?.includes("Reload latest"),
+    );
+    const overwrite = buttons.find((button) =>
+      button.textContent?.includes("Overwrite anyway"),
+    );
     expect(reload).toBeTruthy();
     expect(overwrite).toBeTruthy();
     act(() => {

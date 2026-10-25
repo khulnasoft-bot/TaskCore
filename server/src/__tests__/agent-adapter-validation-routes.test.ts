@@ -31,8 +31,12 @@ const mockCompanySkillService = vi.hoisted(() => ({
 }));
 
 const mockSecretService = vi.hoisted(() => ({
-  normalizeAdapterConfigForPersistence: vi.fn(async (_companyId: string, config: Record<string, unknown>) => config),
-  resolveAdapterConfigForRuntime: vi.fn(async (_companyId: string, config: Record<string, unknown>) => ({ config })),
+  normalizeAdapterConfigForPersistence: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => config,
+  ),
+  resolveAdapterConfigForRuntime: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => ({ config }),
+  ),
   syncEnvBindingsForTarget: vi.fn(),
 }));
 
@@ -67,7 +71,12 @@ const mockApprovalService = vi.hoisted(() => ({
 const mockInstanceSettingsService = vi.hoisted(() => ({
   get: vi.fn(async () => ({ defaultEnvironmentId: null })),
   getGeneral: vi.fn(async () => ({ censorUsernameInLogs: false })),
-  getExperimental: vi.fn(async (): Promise<{ enableNativeRunner: boolean; enableOpenAiDot?: boolean }> => ({ enableNativeRunner: false })),
+  getExperimental: vi.fn(
+    async (): Promise<{
+      enableNativeRunner: boolean;
+      enableOpenAiDot?: boolean;
+    }> => ({ enableNativeRunner: false }),
+  ),
 }));
 
 const mockManagedAgentProfileService = vi.hoisted(() => ({
@@ -175,8 +184,12 @@ const missingAdapterType = "missing_adapter_validation_test";
 
 async function createApp(actorOverride: Record<string, unknown> = {}) {
   const [{ agentRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/agents.js")>("../routes/agents.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/agents.js")>(
+      "../routes/agents.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -212,7 +225,8 @@ async function requestApp(
   app: express.Express,
   buildRequest: (baseUrl: string) => request.Test,
 ) {
-  const { createServer } = await vi.importActual<typeof import("node:http")>("node:http");
+  const { createServer } =
+    await vi.importActual<typeof import("node:http")>("node:http");
   const server = createServer(app);
   try {
     await new Promise<void>((resolve) => {
@@ -263,7 +277,9 @@ describe("agent routes adapter validation", () => {
     mockAccessService.setPrincipalPermission.mockResolvedValue(undefined);
     mockLogActivity.mockResolvedValue(undefined);
     mockSecretService.syncEnvBindingsForTarget.mockResolvedValue(undefined);
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: false });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: false,
+    });
     mockManagedAgentProfileService.requireQualified.mockResolvedValue({
       id: "managed-primary",
       companyId: "company-1",
@@ -274,33 +290,39 @@ describe("agent routes adapter validation", () => {
       companyId: "company-1",
       enabled: true,
     });
-    mockAgentInstructionsService.materializeManagedBundle.mockImplementation(async (agent: { adapterConfig: unknown }) => ({
-      adapterConfig: agent.adapterConfig,
-    }));
-    mockAgentService.create.mockImplementation(async (_companyId: string, input: Record<string, unknown>) => ({
-      id: String(input.id ?? "11111111-1111-4111-8111-111111111111"),
-      companyId: "company-1",
-      name: String(input.name ?? "Agent"),
-      urlKey: "agent",
-      role: String(input.role ?? "general"),
-      title: null,
-      icon: null,
-      status: "idle",
-      reportsTo: null,
-      capabilities: null,
-      adapterType: String(input.adapterType ?? "process"),
-      adapterConfig: (input.adapterConfig as Record<string, unknown> | undefined) ?? {},
-      runtimeConfig: (input.runtimeConfig as Record<string, unknown> | undefined) ?? {},
-      budgetMonthlyCents: 0,
-      spentMonthlyCents: 0,
-      pauseReason: null,
-      pausedAt: null,
-      permissions: { canCreateAgents: false },
-      lastHeartbeatAt: null,
-      metadata: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
+    mockAgentInstructionsService.materializeManagedBundle.mockImplementation(
+      async (agent: { adapterConfig: unknown }) => ({
+        adapterConfig: agent.adapterConfig,
+      }),
+    );
+    mockAgentService.create.mockImplementation(
+      async (_companyId: string, input: Record<string, unknown>) => ({
+        id: String(input.id ?? "11111111-1111-4111-8111-111111111111"),
+        companyId: "company-1",
+        name: String(input.name ?? "Agent"),
+        urlKey: "agent",
+        role: String(input.role ?? "general"),
+        title: null,
+        icon: null,
+        status: "idle",
+        reportsTo: null,
+        capabilities: null,
+        adapterType: String(input.adapterType ?? "process"),
+        adapterConfig:
+          (input.adapterConfig as Record<string, unknown> | undefined) ?? {},
+        runtimeConfig:
+          (input.runtimeConfig as Record<string, unknown> | undefined) ?? {},
+        budgetMonthlyCents: 0,
+        spentMonthlyCents: 0,
+        pauseReason: null,
+        pausedAt: null,
+        permissions: { canCreateAgents: false },
+        lastHeartbeatAt: null,
+        metadata: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
     mockAgentService.getById.mockResolvedValue({
       id: "11111111-1111-4111-8111-111111111111",
       companyId: "company-1",
@@ -326,10 +348,12 @@ describe("agent routes adapter validation", () => {
       updatedAt: new Date(),
     });
     mockAgentService.getConfigRevision.mockResolvedValue(null);
-    mockAgentService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...(await mockAgentService.getById()),
-      ...patch,
-    }));
+    mockAgentService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...(await mockAgentService.getById()),
+        ...patch,
+      }),
+    );
     await unregisterTestAdapter("external_test");
     await unregisterTestAdapter(missingAdapterType);
   });
@@ -341,21 +365,48 @@ describe("agent routes adapter validation", () => {
 
   it("selects and refreshes the runner provider catalog independently", async () => {
     const adapters = await import("../adapters/index.js");
-    const list = vi.spyOn(adapters, "listAdapterModels").mockImplementation(async (type) => [{ id: type, label: type }]);
-    const refresh = vi.spyOn(adapters, "refreshAdapterModels").mockImplementation(async (type) => [{ id: `${type}-fresh`, label: type }]);
+    const list = vi
+      .spyOn(adapters, "listAdapterModels")
+      .mockImplementation(async (type) => [{ id: type, label: type }]);
+    const refresh = vi
+      .spyOn(adapters, "refreshAdapterModels")
+      .mockImplementation(async (type) => [
+        { id: `${type}-fresh`, label: type },
+      ]);
     try {
       const app = await createApp();
-      for (const [provider, adapter] of [["acpx", "claude_local"], ["codex", "codex_local"], ["opencode", "opencode_local"]]) {
-        const res = await requestApp(app, (baseUrl) => request(baseUrl).get(`/api/companies/company-1/adapters/taskcore_runner/models?provider=${provider}`));
+      for (const [provider, adapter] of [
+        ["acpx", "claude_local"],
+        ["codex", "codex_local"],
+        ["opencode", "opencode_local"],
+      ]) {
+        const res = await requestApp(app, (baseUrl) =>
+          request(baseUrl).get(
+            `/api/companies/company-1/adapters/taskcore_runner/models?provider=${provider}`,
+          ),
+        );
         expect(res.status).toBe(200);
         expect(res.body).toEqual([{ id: adapter, label: adapter }]);
-        const refreshed = await requestApp(app, (baseUrl) => request(baseUrl).get(`/api/companies/company-1/adapters/taskcore_runner/models?provider=${provider}&refresh=true`));
+        const refreshed = await requestApp(app, (baseUrl) =>
+          request(baseUrl).get(
+            `/api/companies/company-1/adapters/taskcore_runner/models?provider=${provider}&refresh=true`,
+          ),
+        );
         expect(refreshed.status).toBe(200);
-        expect(refreshed.body).toEqual([{ id: `${adapter}-fresh`, label: adapter }]);
+        expect(refreshed.body).toEqual([
+          { id: `${adapter}-fresh`, label: adapter },
+        ]);
       }
-      const invalid = await requestApp(app, (baseUrl) => request(baseUrl).get("/api/companies/company-1/adapters/taskcore_runner/models?provider=acpx_codex"));
+      const invalid = await requestApp(app, (baseUrl) =>
+        request(baseUrl).get(
+          "/api/companies/company-1/adapters/taskcore_runner/models?provider=acpx_codex",
+        ),
+      );
       expect(invalid.status).toBe(422);
-    } finally { list.mockRestore(); refresh.mockRestore(); }
+    } finally {
+      list.mockRestore();
+      refresh.mockRestore();
+    }
   });
 
   it("creates agents for dynamically registered external adapter types", async () => {
@@ -364,12 +415,10 @@ describe("agent routes adapter validation", () => {
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
-      request(baseUrl)
-        .post("/api/companies/company-1/agents")
-        .send({
-          name: "External Agent",
-          adapterType: "external_test",
-        }),
+      request(baseUrl).post("/api/companies/company-1/agents").send({
+        name: "External Agent",
+        adapterType: "external_test",
+      }),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
@@ -379,19 +428,20 @@ describe("agent routes adapter validation", () => {
   it("does not inject CODEX_HOME or OPENAI_API_KEY when creating a keyless codex_local agent", async () => {
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
-      request(baseUrl)
-        .post("/api/companies/company-1/agents")
-        .send({
-          name: "Codex Agent",
-          adapterType: "codex_local",
-          adapterConfig: {},
-        }),
+      request(baseUrl).post("/api/companies/company-1/agents").send({
+        name: "Codex Agent",
+        adapterType: "codex_local",
+        adapterConfig: {},
+      }),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
-    const createInput = mockAgentService.create.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const createInput = mockAgentService.create.mock.calls.at(
+      -1,
+    )?.[1] as Record<string, unknown>;
     const adapterConfig = createInput.adapterConfig as Record<string, unknown>;
-    const env = (adapterConfig.env as Record<string, unknown> | undefined) ?? {};
+    const env =
+      (adapterConfig.env as Record<string, unknown> | undefined) ?? {};
     expect(env.OPENAI_API_KEY).toBeUndefined();
     expect(env.CODEX_HOME).toBeUndefined();
   });
@@ -407,9 +457,13 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    const patch = mockAgentService.update.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const patch = mockAgentService.update.mock.calls.at(-1)?.[1] as Record<
+      string,
+      unknown
+    >;
     const adapterConfig = patch.adapterConfig as Record<string, unknown>;
-    const env = (adapterConfig.env as Record<string, unknown> | undefined) ?? {};
+    const env =
+      (adapterConfig.env as Record<string, unknown> | undefined) ?? {};
     expect(env.OPENAI_API_KEY).toBeUndefined();
     expect(env.CODEX_HOME).toBeUndefined();
   });
@@ -433,7 +487,14 @@ describe("agent routes adapter validation", () => {
       reportsTo: null,
       capabilities: null,
       adapterType: "claude_local",
-      adapterConfig: { env: { CLAUDE_CODE_OAUTH_TOKEN: { type: "user_secret_ref", key: "CLAUDE_CODE_OAUTH_TOKEN" } } },
+      adapterConfig: {
+        env: {
+          CLAUDE_CODE_OAUTH_TOKEN: {
+            type: "user_secret_ref",
+            key: "CLAUDE_CODE_OAUTH_TOKEN",
+          },
+        },
+      },
       runtimeConfig: {},
       budgetMonthlyCents: 0,
       spentMonthlyCents: 0,
@@ -456,13 +517,18 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    const patch = mockAgentService.update.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const patch = mockAgentService.update.mock.calls.at(-1)?.[1] as Record<
+      string,
+      unknown
+    >;
     // The route forwards the requested adapter type, so the service can see the
     // adapter move.
     expect(patch.adapterType).toBe("process");
     // The route does not re-inject the fixed binding from the prior config, so
     // the service invariant sees the removal.
-    const env = ((patch.adapterConfig as Record<string, unknown>).env as Record<string, unknown> | undefined) ?? {};
+    const env =
+      ((patch.adapterConfig as Record<string, unknown>).env as
+        Record<string, unknown> | undefined) ?? {};
     expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
   });
 
@@ -482,11 +548,16 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    const patch = mockAgentService.update.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const patch = mockAgentService.update.mock.calls.at(-1)?.[1] as Record<
+      string,
+      unknown
+    >;
     const adapterConfig = patch.adapterConfig as Record<string, unknown>;
     const env = adapterConfig.env as Record<string, unknown>;
     expect(env.OPENAI_API_KEY).toBe("sk-test-key");
-    expect(String(env.CODEX_HOME)).toContain(`/companies/company-1/agents/${agentId}/codex-home`);
+    expect(String(env.CODEX_HOME)).toContain(
+      `/companies/company-1/agents/${agentId}/codex-home`,
+    );
   });
 
   it("allows codex_local agents to share the host Codex home", async () => {
@@ -507,7 +578,9 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
-    const createInput = mockAgentService.create.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const createInput = mockAgentService.create.mock.calls.at(
+      -1,
+    )?.[1] as Record<string, unknown>;
     const adapterConfig = createInput.adapterConfig as Record<string, unknown>;
     const env = adapterConfig.env as Record<string, unknown>;
     expect(env.CODEX_HOME).toBe(sharedHome);
@@ -530,17 +603,22 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
-    const createInput = mockAgentService.create.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const createInput = mockAgentService.create.mock.calls.at(
+      -1,
+    )?.[1] as Record<string, unknown>;
     const agentId = String(createInput.id);
     const adapterConfig = createInput.adapterConfig as Record<string, unknown>;
     const env = adapterConfig.env as Record<string, unknown>;
     expect(env.OPENAI_API_KEY).toBe("sk-test-key");
-    expect(String(env.CODEX_HOME)).toContain(`/companies/company-1/agents/${agentId}/codex-home`);
+    expect(String(env.CODEX_HOME)).toContain(
+      `/companies/company-1/agents/${agentId}/codex-home`,
+    );
   });
 
   it("restores a saved agent's redacted CODEX_HOME before testing its adapter", async () => {
     const agentId = "11111111-1111-4111-8111-111111111111";
-    const storedHome = "/taskcore/companies/company-1/agents/agent-1/codex-home";
+    const storedHome =
+      "/taskcore/companies/company-1/agents/agent-1/codex-home";
     mockAgentService.getById.mockResolvedValue({
       ...(await mockAgentService.getById()),
       id: agentId,
@@ -552,15 +630,21 @@ describe("agent routes adapter validation", () => {
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
       request(baseUrl)
-        .post("/api/companies/company-1/adapters/external_test/test-environment")
+        .post(
+          "/api/companies/company-1/adapters/external_test/test-environment",
+        )
         .send({
           agentId,
-          adapterConfig: { env: { CODEX_HOME: { type: "plain", value: "***REDACTED***" } } },
+          adapterConfig: {
+            env: { CODEX_HOME: { type: "plain", value: "***REDACTED***" } },
+          },
         }),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(mockSecretService.normalizeAdapterConfigForPersistence).toHaveBeenCalledWith(
+    expect(
+      mockSecretService.normalizeAdapterConfigForPersistence,
+    ).toHaveBeenCalledWith(
       "company-1",
       { env: { CODEX_HOME: storedHome } },
       expect.objectContaining({ adapterType: "external_test" }),
@@ -573,30 +657,36 @@ describe("agent routes adapter validation", () => {
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
       request(baseUrl)
-        .post("/api/companies/company-1/adapters/external_test/test-environment")
+        .post(
+          "/api/companies/company-1/adapters/external_test/test-environment",
+        )
         .send({
           agentId: "11111111-1111-4111-8111-111111111111",
-          adapterConfig: { env: { CODEX_HOME: { type: "plain", value: "***REDACTED***" } } },
+          adapterConfig: {
+            env: { CODEX_HOME: { type: "plain", value: "***REDACTED***" } },
+          },
         }),
     );
 
     expect(res.status).toBe(422);
-    expect(mockSecretService.normalizeAdapterConfigForPersistence).not.toHaveBeenCalled();
+    expect(
+      mockSecretService.normalizeAdapterConfigForPersistence,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects unknown adapter types even when schema accepts arbitrary strings", async () => {
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
-      request(baseUrl)
-        .post("/api/companies/company-1/agents")
-        .send({
-          name: "Missing Adapter",
-          adapterType: missingAdapterType,
-        }),
+      request(baseUrl).post("/api/companies/company-1/agents").send({
+        name: "Missing Adapter",
+        adapterType: missingAdapterType,
+      }),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(422);
-    expect(String(res.body.error ?? res.body.message ?? "")).toContain(`Unknown adapter type: ${missingAdapterType}`);
+    expect(String(res.body.error ?? res.body.message ?? "")).toContain(
+      `Unknown adapter type: ${missingAdapterType}`,
+    );
   });
 
   it("refuses to create an agent on an adapter the instance has disabled", async () => {
@@ -606,7 +696,9 @@ describe("agent routes adapter validation", () => {
     // registry", so the refusal belongs here, where it can name the choices.
     const { registerServerAdapter } = await import("../adapters/index.js");
     registerServerAdapter(externalAdapter);
-    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue(["external_test"]);
+    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue([
+      "external_test",
+    ]);
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
@@ -617,7 +709,9 @@ describe("agent routes adapter validation", () => {
 
     expect(res.status, JSON.stringify(res.body)).toBe(422);
     const message = String(res.body.error ?? res.body.message ?? "");
-    expect(message).toContain('Adapter "external_test" is not available on this instance');
+    expect(message).toContain(
+      'Adapter "external_test" is not available on this instance',
+    );
     // The message must be actionable: it names what CAN be chosen.
     expect(message).toMatch(/Available adapters?: .+/);
     expect(mockAgentService.create).not.toHaveBeenCalled();
@@ -626,7 +720,9 @@ describe("agent routes adapter validation", () => {
   it("refuses to switch an existing agent onto a disabled adapter", async () => {
     const { registerServerAdapter } = await import("../adapters/index.js");
     registerServerAdapter(externalAdapter);
-    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue(["external_test"]);
+    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue([
+      "external_test",
+    ]);
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
@@ -645,13 +741,18 @@ describe("agent routes adapter validation", () => {
   it("still lets an agent already on a disabled adapter be edited", async () => {
     // Disabling an adapter must not make the agents that already use it
     // uneditable — only NEW selections of it are refused.
-    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue(["codex_local"]);
+    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue([
+      "codex_local",
+    ]);
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
       request(baseUrl)
         .patch("/api/agents/11111111-1111-4111-8111-111111111111")
-        .send({ adapterType: "codex_local", adapterConfig: { model: "gpt-5.4" } }),
+        .send({
+          adapterType: "codex_local",
+          adapterConfig: { model: "gpt-5.4" },
+        }),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -660,7 +761,9 @@ describe("agent routes adapter validation", () => {
   it("still creates an agent on an adapter that is registered and enabled", async () => {
     const { registerServerAdapter } = await import("../adapters/index.js");
     registerServerAdapter(externalAdapter);
-    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue(["some_other_adapter"]);
+    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue([
+      "some_other_adapter",
+    ]);
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
@@ -673,7 +776,10 @@ describe("agent routes adapter validation", () => {
   });
 
   it("rejects a new taskcore_runner selection while the rollout flag is off", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: false, enableOpenAiDot: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: false,
+      enableOpenAiDot: true,
+    });
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
       request(baseUrl)
@@ -682,12 +788,16 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(422);
-    expect(res.body.details).toMatchObject({ code: "taskcore_runner_rollout_disabled" });
+    expect(res.body.details).toMatchObject({
+      code: "taskcore_runner_rollout_disabled",
+    });
     expect(mockAgentService.create).not.toHaveBeenCalled();
   });
 
   it("allows a new taskcore_runner selection while the rollout flag is on", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: true,
+    });
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
       request(baseUrl)
@@ -698,7 +808,10 @@ describe("agent routes adapter validation", () => {
           adapterConfig: {
             provider: "codex",
             taskcoreSkillSync: {
-              desiredSkills: ["taskcore/taskcore/taskcore", "company-1/reviewer"],
+              desiredSkills: [
+                "taskcore/taskcore/taskcore",
+                "company-1/reviewer",
+              ],
             },
           },
         }),
@@ -718,69 +831,185 @@ describe("agent routes adapter validation", () => {
       }),
       expect.any(Object),
     );
-    expect(mockAgentInstructionsService.materializeManagedBundle).toHaveBeenCalledWith(
+    expect(
+      mockAgentInstructionsService.materializeManagedBundle,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({ adapterType: "taskcore_runner" }),
       expect.any(Object),
-      expect.objectContaining({ entryFile: "AGENTS.md", replaceExisting: false }),
+      expect.objectContaining({
+        entryFile: "AGENTS.md",
+        replaceExisting: false,
+      }),
     );
   });
 
-  it.each(["dotAttachmentAccess", "dotWorkspaceAccess", "dotBindingId"])("refuses an agent granting itself the operator-owned Dot setting %s", async key => {
-    const app = await createApp({ type: "agent", agentId: "11111111-1111-4111-8111-111111111111", companyId: "company-1", source: "agent_jwt" });
-    const response = await requestApp(app, baseUrl => request(baseUrl).patch("/api/agents/11111111-1111-4111-8111-111111111111").send({ adapterConfig: { [key]: key === "dotBindingId" ? "another-binding" : true } }));
-    expect(response.status, JSON.stringify(response.body)).toBe(403);
-    expect(mockAgentService.update).not.toHaveBeenCalled();
-  });
+  it.each(["dotAttachmentAccess", "dotWorkspaceAccess", "dotBindingId"])(
+    "refuses an agent granting itself the operator-owned Dot setting %s",
+    async (key) => {
+      const app = await createApp({
+        type: "agent",
+        agentId: "11111111-1111-4111-8111-111111111111",
+        companyId: "company-1",
+        source: "agent_jwt",
+      });
+      const response = await requestApp(app, (baseUrl) =>
+        request(baseUrl)
+          .patch("/api/agents/11111111-1111-4111-8111-111111111111")
+          .send({
+            adapterConfig: {
+              [key]: key === "dotBindingId" ? "another-binding" : true,
+            },
+          }),
+      );
+      expect(response.status, JSON.stringify(response.body)).toBe(403);
+      expect(mockAgentService.update).not.toHaveBeenCalled();
+    },
+  );
   it("allows an operator to configure Dot attachment access separately", async () => {
     const app = await createApp();
-    const response = await requestApp(app, baseUrl => request(baseUrl).patch("/api/agents/11111111-1111-4111-8111-111111111111").send({ adapterConfig: { dotAttachmentAccess: true, dotWorkspaceAccess: false } }));
+    const response = await requestApp(app, (baseUrl) =>
+      request(baseUrl)
+        .patch("/api/agents/11111111-1111-4111-8111-111111111111")
+        .send({
+          adapterConfig: {
+            dotAttachmentAccess: true,
+            dotWorkspaceAccess: false,
+          },
+        }),
+    );
     expect(response.status, JSON.stringify(response.body)).toBe(200);
-    expect(mockAgentService.update).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ adapterConfig: expect.objectContaining({ dotAttachmentAccess: true, dotWorkspaceAccess: false }) }), expect.anything());
+    expect(mockAgentService.update).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        adapterConfig: expect.objectContaining({
+          dotAttachmentAccess: true,
+          dotWorkspaceAccess: false,
+        }),
+      }),
+      expect.anything(),
+    );
   });
 
-  it.each(["create", "hire", "convert"])("saves an unpaired Dot configuration independently of the Runner rollout for %s while refusing task admission", async mode => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: false, enableOpenAiDot: true });
-    const app = await createApp();
-    const config = { provider: "openai_dot", lifecycleMode: "per_turn", allowUnmeteredProvider: true };
-    const response = await requestApp(app, baseUrl => mode === "create"
-      ? request(baseUrl).post("/api/companies/company-1/agents").send({ name: "Dot", adapterType: "taskcore_runner", adapterConfig: config })
-      : mode === "hire" ? request(baseUrl).post("/api/companies/company-1/agent-hires").send({ name: "Dot", role: "engineer", adapterType: "taskcore_runner", adapterConfig: config })
-      : request(baseUrl).patch("/api/agents/11111111-1111-4111-8111-111111111111").send({ adapterType: "taskcore_runner", replaceAdapterConfig: true, adapterConfig: config }));
-    expect(response.status, JSON.stringify(response.body)).toBe(mode === "convert" ? 200 : 201);
-    const saved = mode === "hire" ? response.body.agent : response.body;
-    expect(saved.adapterConfig).toMatchObject(config);
-    expect(saved.adapterConfig.model).toBeUndefined();
-    expect(saved.adapterConfig.codexPermissionMode).toBeUndefined();
-    const { resolveTaskcoreRunnerProviderProfile } = await import("../services/native-runtime/provider-profile.js");
-    expect(() => resolveTaskcoreRunnerProviderProfile(saved.adapterConfig)).toThrow(expect.objectContaining({ code: "taskcore_runner_dot_config_invalid" }));
-  });
+  it.each(["create", "hire", "convert"])(
+    "saves an unpaired Dot configuration independently of the Runner rollout for %s while refusing task admission",
+    async (mode) => {
+      mockInstanceSettingsService.getExperimental.mockResolvedValue({
+        enableNativeRunner: false,
+        enableOpenAiDot: true,
+      });
+      const app = await createApp();
+      const config = {
+        provider: "openai_dot",
+        lifecycleMode: "per_turn",
+        allowUnmeteredProvider: true,
+      };
+      const response = await requestApp(app, (baseUrl) =>
+        mode === "create"
+          ? request(baseUrl)
+              .post("/api/companies/company-1/agents")
+              .send({
+                name: "Dot",
+                adapterType: "taskcore_runner",
+                adapterConfig: config,
+              })
+          : mode === "hire"
+            ? request(baseUrl)
+                .post("/api/companies/company-1/agent-hires")
+                .send({
+                  name: "Dot",
+                  role: "engineer",
+                  adapterType: "taskcore_runner",
+                  adapterConfig: config,
+                })
+            : request(baseUrl)
+                .patch("/api/agents/11111111-1111-4111-8111-111111111111")
+                .send({
+                  adapterType: "taskcore_runner",
+                  replaceAdapterConfig: true,
+                  adapterConfig: config,
+                }),
+      );
+      expect(response.status, JSON.stringify(response.body)).toBe(
+        mode === "convert" ? 200 : 201,
+      );
+      const saved = mode === "hire" ? response.body.agent : response.body;
+      expect(saved.adapterConfig).toMatchObject(config);
+      expect(saved.adapterConfig.model).toBeUndefined();
+      expect(saved.adapterConfig.codexPermissionMode).toBeUndefined();
+      const { resolveTaskcoreRunnerProviderProfile } =
+        await import("../services/native-runtime/provider-profile.js");
+      expect(() =>
+        resolveTaskcoreRunnerProviderProfile(saved.adapterConfig),
+      ).toThrow(
+        expect.objectContaining({ code: "taskcore_runner_dot_config_invalid" }),
+      );
+    },
+  );
 
-  it.each(["create", "hire", "convert"])("rejects a new Dot selection when only the general Runner rollout is enabled for %s", async mode => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: true, enableOpenAiDot: false });
-    const app = await createApp();
-    const body = { name: "Dot", role: "engineer", adapterType: "taskcore_runner", adapterConfig: { provider: "openai_dot", allowUnmeteredProvider: true } };
-    const response = await requestApp(app, baseUrl => mode === "convert"
-      ? request(baseUrl).patch("/api/agents/11111111-1111-4111-8111-111111111111").send(body)
-      : request(baseUrl).post(`/api/companies/company-1/${mode === "hire" ? "agent-hires" : "agents"}`).send(body));
-    expect(response.status, JSON.stringify(response.body)).toBe(422);
-    expect(response.body.details).toMatchObject({ code: "taskcore_runner_dot_disabled" });
-    expect(mockAgentService.create).not.toHaveBeenCalled();
-    expect(mockAgentService.update).not.toHaveBeenCalled();
-  });
+  it.each(["create", "hire", "convert"])(
+    "rejects a new Dot selection when only the general Runner rollout is enabled for %s",
+    async (mode) => {
+      mockInstanceSettingsService.getExperimental.mockResolvedValue({
+        enableNativeRunner: true,
+        enableOpenAiDot: false,
+      });
+      const app = await createApp();
+      const body = {
+        name: "Dot",
+        role: "engineer",
+        adapterType: "taskcore_runner",
+        adapterConfig: { provider: "openai_dot", allowUnmeteredProvider: true },
+      };
+      const response = await requestApp(app, (baseUrl) =>
+        mode === "convert"
+          ? request(baseUrl)
+              .patch("/api/agents/11111111-1111-4111-8111-111111111111")
+              .send(body)
+          : request(baseUrl)
+              .post(
+                `/api/companies/company-1/${mode === "hire" ? "agent-hires" : "agents"}`,
+              )
+              .send(body),
+      );
+      expect(response.status, JSON.stringify(response.body)).toBe(422);
+      expect(response.body.details).toMatchObject({
+        code: "taskcore_runner_dot_disabled",
+      });
+      expect(mockAgentService.create).not.toHaveBeenCalled();
+      expect(mockAgentService.update).not.toHaveBeenCalled();
+    },
+  );
 
   it("requires the general Runner rollout when changing an existing Dot to Codex", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: false, enableOpenAiDot: true });
-    mockAgentService.getById.mockResolvedValue({ ...(await mockAgentService.getById()), adapterType: "taskcore_runner", adapterConfig: { provider: "openai_dot", allowUnmeteredProvider: true } });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: false,
+      enableOpenAiDot: true,
+    });
+    mockAgentService.getById.mockResolvedValue({
+      ...(await mockAgentService.getById()),
+      adapterType: "taskcore_runner",
+      adapterConfig: { provider: "openai_dot", allowUnmeteredProvider: true },
+    });
     const app = await createApp();
-    const response = await requestApp(app, baseUrl => request(baseUrl).patch("/api/agents/11111111-1111-4111-8111-111111111111")
-      .send({ adapterConfig: { provider: "codex" }, replaceAdapterConfig: true }));
+    const response = await requestApp(app, (baseUrl) =>
+      request(baseUrl)
+        .patch("/api/agents/11111111-1111-4111-8111-111111111111")
+        .send({
+          adapterConfig: { provider: "codex" },
+          replaceAdapterConfig: true,
+        }),
+    );
     expect(response.status, JSON.stringify(response.body)).toBe(422);
-    expect(response.body.details).toMatchObject({ code: "taskcore_runner_rollout_disabled" });
+    expect(response.body.details).toMatchObject({
+      code: "taskcore_runner_rollout_disabled",
+    });
     expect(mockAgentService.update).not.toHaveBeenCalled();
   });
 
   it("normalizes legacy skills and permissions when switching to taskcore_runner", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: true,
+    });
     const existing = await mockAgentService.getById();
     mockAgentService.getById.mockResolvedValue({
       ...existing,
@@ -797,7 +1026,11 @@ describe("agent routes adapter validation", () => {
     const res = await requestApp(app, (baseUrl) =>
       request(baseUrl)
         .patch("/api/agents/11111111-1111-4111-8111-111111111111")
-        .send({ adapterType: "taskcore_runner", replaceAdapterConfig: true, adapterConfig: {} }),
+        .send({
+          adapterType: "taskcore_runner",
+          replaceAdapterConfig: true,
+          adapterConfig: {},
+        }),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -818,7 +1051,9 @@ describe("agent routes adapter validation", () => {
   });
 
   it("uses the Codex default when a codex_local conversion has no model", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: true,
+    });
     const app = await createApp();
 
     const res = await requestApp(app, (baseUrl) =>
@@ -842,7 +1077,9 @@ describe("agent routes adapter validation", () => {
   });
 
   it("converts Claude to ACPX Claude while retaining its model", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: true,
+    });
     const existing = await mockAgentService.getById();
     mockAgentService.getById.mockResolvedValue({
       ...existing,
@@ -862,11 +1099,17 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.adapterConfig).toMatchObject({ provider: "acpx", acpxAgent: "claude", model: "claude-sonnet-4-6" });
+    expect(res.body.adapterConfig).toMatchObject({
+      provider: "acpx",
+      acpxAgent: "claude",
+      model: "claude-sonnet-4-6",
+    });
   });
 
   it("accepts qualified local and managed providers on fresh runner agents and hires", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableNativeRunner: true,
+    });
     const app = await createApp();
     const createResponse = await requestApp(app, (baseUrl) =>
       request(baseUrl)
@@ -920,15 +1163,21 @@ describe("agent routes adapter validation", () => {
         }),
     );
 
-    expect(createResponse.status, JSON.stringify(createResponse.body)).toBe(201);
-    expect(hireResponse.status, JSON.stringify(hireResponse.body)).toBe(201);
-    expect(managedResponse.status, JSON.stringify(managedResponse.body)).toBe(201);
-    expect(agentCoreResponse.status, JSON.stringify(agentCoreResponse.body)).toBe(201);
-    expect(mockAgentService.create).toHaveBeenCalledTimes(4);
-    expect(mockManagedAgentProfileService.requireQualified).toHaveBeenCalledWith(
-      "company-1",
-      "managed-primary",
+    expect(createResponse.status, JSON.stringify(createResponse.body)).toBe(
+      201,
     );
+    expect(hireResponse.status, JSON.stringify(hireResponse.body)).toBe(201);
+    expect(managedResponse.status, JSON.stringify(managedResponse.body)).toBe(
+      201,
+    );
+    expect(
+      agentCoreResponse.status,
+      JSON.stringify(agentCoreResponse.body),
+    ).toBe(201);
+    expect(mockAgentService.create).toHaveBeenCalledTimes(4);
+    expect(
+      mockManagedAgentProfileService.requireQualified,
+    ).toHaveBeenCalledWith("company-1", "managed-primary");
     expect(mockRemoteAgentProfileService.requireQualified).toHaveBeenCalledWith(
       "company-1",
       "agentcore-primary",
@@ -984,32 +1233,36 @@ describe("agent routes adapter validation", () => {
   ])(
     "rejects a managed-provider selection with a %s",
     async (_label, service, adapterConfig, failure, expectedStatus) => {
-      mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableNativeRunner: true });
+      mockInstanceSettingsService.getExperimental.mockResolvedValue({
+        enableNativeRunner: true,
+      });
       const app = await createApp();
       const { conflict, notFound } = await import("../errors.js");
-      const error = failure === "not_found"
-        ? notFound("Managed provider profile not found")
-        : conflict(
-            failure === "disabled"
-              ? "Managed provider profile is not enabled and qualified"
-              : "Managed provider profile configuration does not match its qualified revision",
-          );
-      const profileService = service === "managed"
-        ? mockManagedAgentProfileService
-        : mockRemoteAgentProfileService;
+      const error =
+        failure === "not_found"
+          ? notFound("Managed provider profile not found")
+          : conflict(
+              failure === "disabled"
+                ? "Managed provider profile is not enabled and qualified"
+                : "Managed provider profile configuration does not match its qualified revision",
+            );
+      const profileService =
+        service === "managed"
+          ? mockManagedAgentProfileService
+          : mockRemoteAgentProfileService;
       profileService.requireQualified.mockRejectedValueOnce(error);
 
       const response = await requestApp(app, (baseUrl) =>
-        request(baseUrl)
-          .post("/api/companies/company-1/agents")
-          .send({
-            name: "Invalid Managed Selection",
-            adapterType: "taskcore_runner",
-            adapterConfig,
-          }),
+        request(baseUrl).post("/api/companies/company-1/agents").send({
+          name: "Invalid Managed Selection",
+          adapterType: "taskcore_runner",
+          adapterConfig,
+        }),
       );
 
-      expect(response.status, JSON.stringify(response.body)).toBe(expectedStatus);
+      expect(response.status, JSON.stringify(response.body)).toBe(
+        expectedStatus,
+      );
       expect(profileService.requireQualified).toHaveBeenCalledWith(
         "company-1",
         service === "managed"
@@ -1041,8 +1294,14 @@ describe("agent routes adapter validation", () => {
     );
 
     expect(ordinaryEdit.status, JSON.stringify(ordinaryEdit.body)).toBe(200);
-    expect(providerChange.status, JSON.stringify(providerChange.body)).toBe(200);
-    expect(providerChange.body.adapterConfig).toMatchObject({ provider: "acpx", acpxAgent: "claude", model: "historical" });
+    expect(providerChange.status, JSON.stringify(providerChange.body)).toBe(
+      200,
+    );
+    expect(providerChange.body.adapterConfig).toMatchObject({
+      provider: "acpx",
+      acpxAgent: "claude",
+      model: "historical",
+    });
   });
 
   it.each([

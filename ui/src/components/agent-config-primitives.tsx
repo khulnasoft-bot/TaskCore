@@ -24,43 +24,68 @@ export const help: Record<string, string> = {
   title: "Job title shown in the org chart.",
   role: "Organizational role. Determines position and capabilities.",
   reportsTo: "The agent this one reports to in the org hierarchy.",
-  capabilities: "Describes what this agent can do. Shown in the org chart and used for task routing.",
-  adapterType: "How this agent runs: local CLI (Claude/Codex/OpenCode), OpenClaw Gateway, spawned process, or generic HTTP webhook.",
+  capabilities:
+    "Describes what this agent can do. Shown in the org chart and used for task routing.",
+  adapterType:
+    "How this agent runs: local CLI (Claude/Codex/OpenCode), OpenClaw Gateway, spawned process, or generic HTTP webhook.",
   cwd: "Deprecated legacy working directory fallback for local adapters. Existing agents may still carry this value, but new configurations should use project workspaces instead.",
-  promptTemplate: "Sent on every heartbeat. Keep this small and dynamic. Use it for current-task framing, not large static instructions. Supports {{ agent.id }}, {{ agent.name }}, {{ agent.role }} and other template variables.",
+  promptTemplate:
+    "Sent on every heartbeat. Keep this small and dynamic. Use it for current-task framing, not large static instructions. Supports {{ agent.id }}, {{ agent.name }}, {{ agent.role }} and other template variables.",
   model: "Override the default model used by the adapter.",
-  thinkingEffort: "Control model reasoning depth. Supported values vary by adapter/model.",
+  thinkingEffort:
+    "Control model reasoning depth. Supported values vary by adapter/model.",
   chrome: "Enable Claude's Chrome integration by passing --chrome.",
-  dangerouslySkipPermissions: "Run unattended by auto-approving adapter permission prompts when supported.",
-  dangerouslyBypassSandbox: "Run Codex without sandbox restrictions. Required for filesystem/network access.",
+  dangerouslySkipPermissions:
+    "Run unattended by auto-approving adapter permission prompts when supported.",
+  dangerouslyBypassSandbox:
+    "Run Codex without sandbox restrictions. Required for filesystem/network access.",
   search: "Enable Codex web search capability during runs.",
-  fastMode: "Enable Codex Fast mode. This burns credits/tokens much faster and is supported on GPT-6, GPT-5.6, GPT-5.5, GPT-5.4, and manual Codex model IDs.",
-  workspaceStrategy: "How Taskcore should realize an execution workspace for this agent. Keep project_primary for normal cwd execution, or use git_worktree for issue-scoped isolated checkouts.",
-  workspaceBaseRef: "Base git ref used when creating a worktree branch. Leave blank to use the resolved workspace ref or HEAD.",
-  workspaceBranchTemplate: "Template for naming derived branches. Supports {{issue.identifier}}, {{issue.title}}, {{agent.name}}, {{project.id}}, {{workspace.repoRef}}, and {{slug}}.",
-  worktreeParentDir: "Directory where derived worktrees should be created. Absolute, ~-prefixed, and repo-relative paths are supported.",
-  runtimeServicesJson: "Optional workspace runtime service definitions. Use this for shared app servers, workers, or other long-lived companion processes attached to the workspace.",
-  maxTurnsPerRun: "Maximum number of agentic turns (tool calls) per heartbeat run.",
+  fastMode:
+    "Enable Codex Fast mode. This burns credits/tokens much faster and is supported on GPT-6, GPT-5.6, GPT-5.5, GPT-5.4, and manual Codex model IDs.",
+  workspaceStrategy:
+    "How Taskcore should realize an execution workspace for this agent. Keep project_primary for normal cwd execution, or use git_worktree for issue-scoped isolated checkouts.",
+  workspaceBaseRef:
+    "Base git ref used when creating a worktree branch. Leave blank to use the resolved workspace ref or HEAD.",
+  workspaceBranchTemplate:
+    "Template for naming derived branches. Supports {{issue.identifier}}, {{issue.title}}, {{agent.name}}, {{project.id}}, {{workspace.repoRef}}, and {{slug}}.",
+  worktreeParentDir:
+    "Directory where derived worktrees should be created. Absolute, ~-prefixed, and repo-relative paths are supported.",
+  runtimeServicesJson:
+    "Optional workspace runtime service definitions. Use this for shared app servers, workers, or other long-lived companion processes attached to the workspace.",
+  maxTurnsPerRun:
+    "Maximum number of agentic turns (tool calls) per heartbeat run.",
   command: "The command to execute (e.g. node, python).",
-  localCommand: "Override the path to the CLI command you want the adapter to call (e.g. /usr/local/bin/claude, codex, opencode).",
+  localCommand:
+    "Override the path to the CLI command you want the adapter to call (e.g. /usr/local/bin/claude, codex, opencode).",
   args: "Command-line arguments, comma-separated.",
   extraArgs: "Extra CLI arguments for local adapters, comma-separated.",
-  envVars: "Environment variables injected into the adapter process. Use plain values or secret references.",
+  envVars:
+    "Environment variables injected into the adapter process. Use plain values or secret references.",
   secretAccess:
     "Secrets this agent can reach. Env-var bindings are injected at run start; API-access bindings are fetched on demand via the run-bound agent API and never written to the environment.",
-  bootstrapPrompt: "Only sent when Taskcore starts a fresh session. Use this for stable setup guidance that should not be repeated on every heartbeat.",
-  payloadTemplateJson: "Optional JSON merged into remote adapter request payloads before Taskcore adds its standard wake and workspace fields.",
+  bootstrapPrompt:
+    "Only sent when Taskcore starts a fresh session. Use this for stable setup guidance that should not be repeated on every heartbeat.",
+  payloadTemplateJson:
+    "Optional JSON merged into remote adapter request payloads before Taskcore adds its standard wake and workspace fields.",
   webhookUrl: "The URL that receives POST requests when the agent is invoked.",
-  heartbeatInterval: "Run this agent automatically on a timer. Useful for periodic tasks like checking for new work.",
+  heartbeatInterval:
+    "Run this agent automatically on a timer. Useful for periodic tasks like checking for new work.",
   intervalSec: "Seconds between automatic heartbeat invocations.",
-  timeoutSec: "Maximum seconds a run can take before being terminated. 0 means no timeout.",
-  graceSec: "Seconds to wait after sending interrupt before force-killing the process.",
-  wakeOnDemand: "Allow this agent to be woken by assignments, API calls, UI actions, or automated systems.",
+  timeoutSec:
+    "Maximum seconds a run can take before being terminated. 0 means no timeout.",
+  graceSec:
+    "Seconds to wait after sending interrupt before force-killing the process.",
+  wakeOnDemand:
+    "Allow this agent to be woken by assignments, API calls, UI actions, or automated systems.",
   cooldownSec: "Minimum seconds between consecutive heartbeat runs.",
-  maxConcurrentRuns: "Maximum number of heartbeat runs that can execute simultaneously for this agent.",
-  maxTurnContinuationEnabled: "Automatically queue bounded continuation runs when an adapter stops because its per-run turn cap was exhausted.",
-  maxTurnContinuationMaxAttempts: "Maximum automatic continuations after one max-turn stop. This is separate from max turns per run.",
-  maxTurnContinuationDelaySec: "Seconds to wait before starting each max-turn continuation.",
+  maxConcurrentRuns:
+    "Maximum number of heartbeat runs that can execute simultaneously for this agent.",
+  maxTurnContinuationEnabled:
+    "Automatically queue bounded continuation runs when an adapter stops because its per-run turn cap was exhausted.",
+  maxTurnContinuationMaxAttempts:
+    "Maximum automatic continuations after one max-turn stop. This is separate from max turns per run.",
+  maxTurnContinuationDelaySec:
+    "Seconds to wait before starting each max-turn continuation.",
   budgetMonthlyCents: "Monthly spending limit in cents. 0 means no limit.",
 };
 
@@ -76,7 +101,10 @@ export function HintIcon({ text }: { text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button type="button" className="inline-flex text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+        <button
+          type="button"
+          className="inline-flex text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+        >
           <HelpCircle className="h-3 w-3" />
         </button>
       </TooltipTrigger>
@@ -87,7 +115,16 @@ export function HintIcon({ text }: { text: string }) {
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode; configSection?: import("../adapters/types").AdapterConfigSection }) {
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+  configSection?: import("../adapters/types").AdapterConfigSection;
+}) {
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
@@ -161,10 +198,7 @@ export function ToggleWithNumber({
           <span className="text-xs text-muted-foreground">{label}</span>
           {hint && <HintIcon text={hint} />}
         </div>
-        <ToggleSwitch
-          checked={checked}
-          onCheckedChange={onCheckedChange}
-        />
+        <ToggleSwitch checked={checked} onCheckedChange={onCheckedChange} />
       </div>
       {showNumber && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -206,7 +240,11 @@ export function CollapsibleSection({
         className="flex items-center gap-2 w-full px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-accent/30 transition-colors"
         onClick={onToggle}
       >
-        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {open ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
         {icon}
         {title}
       </button>
@@ -240,7 +278,9 @@ export function AutoExpandTextarea({
     el.style.height = `${Math.max(minHeight, el.scrollHeight)}px`;
   }, [minHeight]);
 
-  useEffect(() => { adjustHeight(); }, [value, adjustHeight]);
+  useEffect(() => {
+    adjustHeight();
+  }, [value, adjustHeight]);
 
   return (
     <textarea
@@ -270,7 +310,10 @@ export function DraftInput({
   onCommit: (v: string) => void;
   immediate?: boolean;
   className?: string;
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "className">) {
+} & Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "value" | "onChange" | "className"
+>) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
 
@@ -321,7 +364,9 @@ export function DraftTextarea({
     el.style.height = `${Math.max(minHeight, el.scrollHeight)}px`;
   }, [minHeight]);
 
-  useEffect(() => { adjustHeight(); }, [draft, adjustHeight]);
+  useEffect(() => {
+    adjustHeight();
+  }, [draft, adjustHeight]);
 
   return (
     <textarea
@@ -355,7 +400,10 @@ export function DraftNumberInput({
   onCommit: (v: number) => void;
   immediate?: boolean;
   className?: string;
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "className" | "type">) {
+} & Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "value" | "onChange" | "className" | "type"
+>) {
   const [draft, setDraft] = useState(String(value));
   useEffect(() => setDraft(String(value)), [value]);
 
@@ -397,8 +445,8 @@ export function ChoosePathButton() {
           <DialogHeader>
             <DialogTitle>Specify path manually</DialogTitle>
             <DialogDescription>
-              Browser security blocks apps from reading full local paths via a file picker.
-              Copy the absolute path and paste it into the input.
+              Browser security blocks apps from reading full local paths via a
+              file picker. Copy the absolute path and paste it into the input.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-sm">
@@ -406,7 +454,9 @@ export function ChoosePathButton() {
               <p className="font-medium">macOS (Finder)</p>
               <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
                 <li>Find the folder in Finder.</li>
-                <li>Hold <kbd>Option</kbd> and right-click the folder.</li>
+                <li>
+                  Hold <kbd>Option</kbd> and right-click the folder.
+                </li>
                 <li>Click "Copy &lt;folder name&gt; as Pathname".</li>
                 <li>Paste the result into the path input.</li>
               </ol>
@@ -418,7 +468,9 @@ export function ChoosePathButton() {
               <p className="font-medium">Windows (File Explorer)</p>
               <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
                 <li>Find the folder in File Explorer.</li>
-                <li>Hold <kbd>Shift</kbd> and right-click the folder.</li>
+                <li>
+                  Hold <kbd>Shift</kbd> and right-click the folder.
+                </li>
                 <li>Click "Copy as path".</li>
                 <li>Paste the result into the path input.</li>
               </ol>
@@ -429,8 +481,12 @@ export function ChoosePathButton() {
             <section className="space-y-1.5">
               <p className="font-medium">Terminal fallback (macOS/Linux)</p>
               <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
-                <li>Run <code>cd /path/to/folder</code>.</li>
-                <li>Run <code>pwd</code>.</li>
+                <li>
+                  Run <code>cd /path/to/folder</code>.
+                </li>
+                <li>
+                  Run <code>pwd</code>.
+                </li>
                 <li>Copy the output and paste it into the path input.</li>
               </ol>
             </section>
@@ -449,7 +505,15 @@ export function ChoosePathButton() {
 /**
  * Label + input rendered on the same line (inline layout for compact fields).
  */
-export function InlineField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function InlineField({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-1.5 shrink-0">

@@ -94,7 +94,7 @@ export class FastUploadInterceptor {
         // some other way, perhaps before we started tracking).
         return { action: "passthrough", reason: "chunk without prior init" };
       }
-      if (state.totalChars + base64.length > MAX_BUFFER_BYTES * 4 / 3) {
+      if (state.totalChars + base64.length > (MAX_BUFFER_BYTES * 4) / 3) {
         // base64 is ~4/3 of binary size; cap memory.
         this.buffers.delete(b64Path);
         return { action: "passthrough", reason: "buffer cap exceeded" };
@@ -111,7 +111,10 @@ export class FastUploadInterceptor {
       const b64Path = `${targetPath}.taskcore-upload.b64`;
       const state = this.buffers.get(b64Path);
       if (!state) {
-        return { action: "passthrough", reason: "finalize without buffered state" };
+        return {
+          action: "passthrough",
+          reason: "finalize without buffered state",
+        };
       }
       this.buffers.delete(b64Path);
       // Decode in one go. base64.decode handles concatenated base64 strings

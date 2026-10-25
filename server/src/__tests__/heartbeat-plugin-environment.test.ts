@@ -2,7 +2,15 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   agents,
   companies,
@@ -22,15 +30,17 @@ import { heartbeatService } from "../services/heartbeat.ts";
 import { instanceSettingsService } from "../services/instance-settings.ts";
 import type { PluginWorkerManager } from "../services/plugin-worker-manager.ts";
 
-const adapterExecute = vi.hoisted(() => vi.fn(async () => ({
-  exitCode: 0,
-  signal: null,
-  timedOut: false,
-  sessionParams: { sessionId: "session-1" },
-  sessionDisplayId: "session-1",
-  provider: "test",
-  model: "test-model",
-})));
+const adapterExecute = vi.hoisted(() =>
+  vi.fn(async () => ({
+    exitCode: 0,
+    signal: null,
+    timedOut: false,
+    sessionParams: { sessionId: "session-1" },
+    sessionDisplayId: "session-1",
+    provider: "test",
+    model: "test-model",
+  })),
+);
 
 vi.mock("../adapters/index.js", () => ({
   getServerAdapter: () => ({
@@ -47,7 +57,9 @@ vi.mock("../adapters/index.js", () => ({
 }));
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -61,7 +73,9 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
-    const started = await startEmbeddedPostgresTestDatabase("heartbeat-plugin-environment");
+    const started = await startEmbeddedPostgresTestDatabase(
+      "heartbeat-plugin-environment",
+    );
     stopDb = started.stop;
     db = createDb(started.connectionString);
   }, 20_000);
@@ -70,7 +84,8 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
     adapterExecute.mockClear();
     while (tempRoots.length > 0) {
       const root = tempRoots.pop();
-      if (root) await rm(root, { recursive: true, force: true }).catch(() => undefined);
+      if (root)
+        await rm(root, { recursive: true, force: true }).catch(() => undefined);
     }
   });
 
@@ -87,7 +102,9 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
     const pluginId = randomUUID();
     const pluginKey = `acme.environments.${pluginId}`;
     const agentId = randomUUID();
-    const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-plugin-env-heartbeat-"));
+    const workspaceRoot = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-plugin-env-heartbeat-"),
+    );
     tempRoots.push(workspaceRoot);
     const workerManager = {
       isRunning: vi.fn((id: string) => id === pluginId),
@@ -169,7 +186,7 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
       name: "Plugin Sandbox",
       driver: "plugin",
       status: "active",
-        config: {
+      config: {
         pluginKey,
         driverKey: "sandbox",
         driverConfig: {
@@ -194,7 +211,9 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
       updatedAt: new Date(),
     });
 
-    const heartbeat = heartbeatService(db, { pluginWorkerManager: workerManager });
+    const heartbeat = heartbeatService(db, {
+      pluginWorkerManager: workerManager,
+    });
     const run = await heartbeat.wakeup(agentId, {
       source: "on_demand",
       triggerDetail: "manual",
@@ -202,44 +221,59 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
     });
 
     expect(run).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(run!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 5_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(run!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 5_000 },
+    );
 
-    expect(workerManager.call).toHaveBeenNthCalledWith(1, pluginId, "environmentAcquireLease", {
-      driverKey: "sandbox",
-      companyId,
-      environmentId,
-      executionWorkspaceId: expect.any(String),
-      executionWorkspaceSettings: null,
-      issueId: null,
-      config: { template: "base" },
-      agentId,
-      runId: run!.id,
-      workspaceMode: "shared_workspace",
-      // Pins the HEARTBEAT-path lease call forwarding the AGENT's adapter type
-      // (per-run adapter / mixed-harness envs). environment-runtime.ts has two
-      // drivers calling environmentAcquireLease; regressions here previously
-      // shipped by editing only the non-heartbeat one.
-      adapterType: "codex_local",
-    });
-    await vi.waitFor(() => {
-      expect(workerManager.call).toHaveBeenCalledWith(pluginId, "environmentReleaseLease", {
+    expect(workerManager.call).toHaveBeenNthCalledWith(
+      1,
+      pluginId,
+      "environmentAcquireLease",
+      {
         driverKey: "sandbox",
         companyId,
         environmentId,
+        executionWorkspaceId: expect.any(String),
+        executionWorkspaceSettings: null,
         issueId: null,
         config: { template: "base" },
-        providerLeaseId: "plugin-heartbeat-lease",
-        leaseMetadata: expect.objectContaining({
-          driver: "plugin",
+        agentId,
+        runId: run!.id,
+        workspaceMode: "shared_workspace",
+        // Pins the HEARTBEAT-path lease call forwarding the AGENT's adapter type
+        // (per-run adapter / mixed-harness envs). environment-runtime.ts has two
+        // drivers calling environmentAcquireLease; regressions here previously
+        // shipped by editing only the non-heartbeat one.
+        adapterType: "codex_local",
+      },
+    );
+    await vi.waitFor(
+      () => {
+        expect(workerManager.call).toHaveBeenCalledWith(
           pluginId,
-          pluginKey,
-          driverKey: "sandbox",
-        }),
-      });
-    }, { timeout: 5_000 });
+          "environmentReleaseLease",
+          {
+            driverKey: "sandbox",
+            companyId,
+            environmentId,
+            issueId: null,
+            config: { template: "base" },
+            providerLeaseId: "plugin-heartbeat-lease",
+            leaseMetadata: expect.objectContaining({
+              driver: "plugin",
+              pluginId,
+              pluginKey,
+              driverKey: "sandbox",
+            }),
+          },
+        );
+      },
+      { timeout: 5_000 },
+    );
     expect(adapterExecute).toHaveBeenCalledTimes(1);
   }, 15_000);
 
@@ -256,25 +290,35 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
     const workspaceBId = randomUUID();
     const agentAId = randomUUID();
     const agentBId = randomUUID();
-    const workspaceRootA = await mkdtemp(path.join(os.tmpdir(), "taskcore-plugin-env-company-a-"));
-    const workspaceRootB = await mkdtemp(path.join(os.tmpdir(), "taskcore-plugin-env-company-b-"));
+    const workspaceRootA = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-plugin-env-company-a-"),
+    );
+    const workspaceRootB = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-plugin-env-company-b-"),
+    );
     tempRoots.push(workspaceRootA, workspaceRootB);
     const workerManager = {
       isRunning: vi.fn((id: string) => id === pluginId),
-      call: vi.fn(async (_pluginId: string, method: string, payload: Record<string, unknown>) => {
-        if (method === "environmentAcquireLease") {
-          return {
-            providerLeaseId: `plugin-heartbeat-lease-${String(payload.environmentId)}`,
-            metadata: {
-              remoteCwd: `/workspace/${String(payload.environmentId)}`,
-            },
-          };
-        }
-        if (method === "environmentReleaseLease") {
-          return undefined;
-        }
-        throw new Error(`Unexpected plugin environment method: ${method}`);
-      }),
+      call: vi.fn(
+        async (
+          _pluginId: string,
+          method: string,
+          payload: Record<string, unknown>,
+        ) => {
+          if (method === "environmentAcquireLease") {
+            return {
+              providerLeaseId: `plugin-heartbeat-lease-${String(payload.environmentId)}`,
+              metadata: {
+                remoteCwd: `/workspace/${String(payload.environmentId)}`,
+              },
+            };
+          }
+          if (method === "environmentReleaseLease") {
+            return undefined;
+          }
+          throw new Error(`Unexpected plugin environment method: ${method}`);
+        },
+      ),
     } as unknown as PluginWorkerManager;
 
     await db.insert(plugins).values({
@@ -338,7 +382,9 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
         updatedAt: new Date(),
       },
     ]);
-    await instanceSettingsService(db).update({ defaultEnvironmentId: sharedEnvironmentId });
+    await instanceSettingsService(db).update({
+      defaultEnvironmentId: sharedEnvironmentId,
+    });
 
     await db.insert(companies).values([
       {
@@ -431,7 +477,9 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
       },
     ]);
 
-    const heartbeat = heartbeatService(db, { pluginWorkerManager: workerManager });
+    const heartbeat = heartbeatService(db, {
+      pluginWorkerManager: workerManager,
+    });
     const sharedRun = await heartbeat.wakeup(agentAId, {
       source: "on_demand",
       triggerDetail: "manual",
@@ -445,38 +493,44 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
 
     expect(sharedRun).not.toBeNull();
     expect(overrideRun).not.toBeNull();
-    await vi.waitFor(async () => {
-      const [latestShared, latestOverride] = await Promise.all([
-        heartbeat.getRun(sharedRun!.id),
-        heartbeat.getRun(overrideRun!.id),
-      ]);
-      expect(latestShared?.status).toBe("succeeded");
-      expect(latestOverride?.status).toBe("succeeded");
-    }, { timeout: 5_000 });
+    await vi.waitFor(
+      async () => {
+        const [latestShared, latestOverride] = await Promise.all([
+          heartbeat.getRun(sharedRun!.id),
+          heartbeat.getRun(overrideRun!.id),
+        ]);
+        expect(latestShared?.status).toBe("succeeded");
+        expect(latestOverride?.status).toBe("succeeded");
+      },
+      { timeout: 5_000 },
+    );
 
-    const acquireCalls = workerManager.call.mock.calls
-      .filter(([, method]) => method === "environmentAcquireLease");
+    const acquireCalls = workerManager.call.mock.calls.filter(
+      ([, method]) => method === "environmentAcquireLease",
+    );
     const acquirePayloads = acquireCalls.map(([, , payload]) => payload);
 
     expect(acquireCalls).toHaveLength(2);
-    expect(acquirePayloads).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        companyId: companyAId,
-        environmentId: sharedEnvironmentId,
-        config: { template: "shared" },
-        agentId: agentAId,
-        runId: sharedRun!.id,
-        adapterType: "codex_local",
-      }),
-      expect.objectContaining({
-        companyId: companyBId,
-        environmentId: overrideEnvironmentId,
-        config: { template: "override" },
-        agentId: agentBId,
-        runId: overrideRun!.id,
-        adapterType: "codex_local",
-      }),
-    ]));
+    expect(acquirePayloads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          companyId: companyAId,
+          environmentId: sharedEnvironmentId,
+          config: { template: "shared" },
+          agentId: agentAId,
+          runId: sharedRun!.id,
+          adapterType: "codex_local",
+        }),
+        expect.objectContaining({
+          companyId: companyBId,
+          environmentId: overrideEnvironmentId,
+          config: { template: "override" },
+          agentId: agentBId,
+          runId: overrideRun!.id,
+          adapterType: "codex_local",
+        }),
+      ]),
+    );
   }, 15_000);
 
   it("ignores stale non-reused workspace environment config in favor of the assignee selection", async () => {
@@ -490,24 +544,32 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
     const agentId = randomUUID();
     const issueId = randomUUID();
     const staleExecutionWorkspaceId = randomUUID();
-    const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-plugin-env-issue-"));
+    const workspaceRoot = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-plugin-env-issue-"),
+    );
     tempRoots.push(workspaceRoot);
     const workerManager = {
       isRunning: vi.fn((id: string) => id === pluginId),
-      call: vi.fn(async (_pluginId: string, method: string, payload: Record<string, unknown>) => {
-        if (method === "environmentAcquireLease") {
-          return {
-            providerLeaseId: `plugin-heartbeat-lease-${String(payload.environmentId)}`,
-            metadata: {
-              remoteCwd: `/workspace/${String(payload.environmentId)}`,
-            },
-          };
-        }
-        if (method === "environmentReleaseLease") {
-          return undefined;
-        }
-        throw new Error(`Unexpected plugin environment method: ${method}`);
-      }),
+      call: vi.fn(
+        async (
+          _pluginId: string,
+          method: string,
+          payload: Record<string, unknown>,
+        ) => {
+          if (method === "environmentAcquireLease") {
+            return {
+              providerLeaseId: `plugin-heartbeat-lease-${String(payload.environmentId)}`,
+              metadata: {
+                remoteCwd: `/workspace/${String(payload.environmentId)}`,
+              },
+            };
+          }
+          if (method === "environmentReleaseLease") {
+            return undefined;
+          }
+          throw new Error(`Unexpected plugin environment method: ${method}`);
+        },
+      ),
     } as unknown as PluginWorkerManager;
 
     await instanceSettingsService(db).updateExperimental({
@@ -656,7 +718,9 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
       updatedAt: new Date(),
     });
 
-    const heartbeat = heartbeatService(db, { pluginWorkerManager: workerManager });
+    const heartbeat = heartbeatService(db, {
+      pluginWorkerManager: workerManager,
+    });
     const run = await heartbeat.wakeup(agentId, {
       source: "assignment",
       triggerDetail: "manual",
@@ -664,23 +728,31 @@ describeEmbeddedPostgres("heartbeat plugin environments", () => {
     });
 
     expect(run).not.toBeNull();
-    await vi.waitFor(async () => {
-      const latest = await heartbeat.getRun(run!.id);
-      expect(latest?.status).toBe("succeeded");
-    }, { timeout: 5_000 });
+    await vi.waitFor(
+      async () => {
+        const latest = await heartbeat.getRun(run!.id);
+        expect(latest?.status).toBe("succeeded");
+      },
+      { timeout: 5_000 },
+    );
 
-    expect(workerManager.call).toHaveBeenNthCalledWith(1, pluginId, "environmentAcquireLease", {
-      driverKey: "sandbox",
-      companyId,
-      environmentId: newEnvironmentId,
-      executionWorkspaceId: expect.any(String),
-      executionWorkspaceSettings: { mode: "shared_workspace" },
-      issueId,
-      config: { template: "new" },
-      agentId,
-      runId: run!.id,
-      workspaceMode: "shared_workspace",
-      adapterType: "codex_local",
-    });
+    expect(workerManager.call).toHaveBeenNthCalledWith(
+      1,
+      pluginId,
+      "environmentAcquireLease",
+      {
+        driverKey: "sandbox",
+        companyId,
+        environmentId: newEnvironmentId,
+        executionWorkspaceId: expect.any(String),
+        executionWorkspaceSettings: { mode: "shared_workspace" },
+        issueId,
+        config: { template: "new" },
+        agentId,
+        runId: run!.id,
+        workspaceMode: "shared_workspace",
+        adapterType: "codex_local",
+      },
+    );
   }, 15_000);
 });

@@ -17,17 +17,19 @@ const schemaDir = fileURLToPath(new URL("./schema", import.meta.url));
 
 type JournalEntry = { idx: number; tag: string };
 
-async function readNewestSnapshot(): Promise<{ file: string; snapshot: Record<string, unknown> }> {
+async function readNewestSnapshot(): Promise<{
+  file: string;
+  snapshot: Record<string, unknown>;
+}> {
   const journal = JSON.parse(
     await readFile(path.join(migrationsDir, "meta", "_journal.json"), "utf8"),
   ) as { entries: JournalEntry[] };
   const newest = journal.entries.at(-1);
   if (!newest) throw new Error("migration journal has no entries");
   const file = `${String(newest.idx).padStart(4, "0")}_snapshot.json`;
-  const snapshot = JSON.parse(await readFile(path.join(migrationsDir, "meta", file), "utf8")) as Record<
-    string,
-    unknown
-  >;
+  const snapshot = JSON.parse(
+    await readFile(path.join(migrationsDir, "meta", file), "utf8"),
+  ) as Record<string, unknown>;
   return { file, snapshot };
 }
 
@@ -35,17 +37,18 @@ async function readNewestSnapshot(): Promise<{ file: string; snapshot: Record<st
 // so the test imports the same set rather than the hand-maintained barrel — a
 // table missing from the barrel must not hide from this check.
 async function importSchemaModules(): Promise<Record<string, unknown>> {
-  const files = (await readdir(schemaDir)).filter((file) => file.endsWith(".ts")).sort();
+  const files = (await readdir(schemaDir))
+    .filter((file) => file.endsWith(".ts"))
+    .sort();
   const exports: Record<string, unknown> = {};
   // The barrel re-exports the same table objects the per-table modules export,
   // so dedupe by identity: serializing one table twice trips drizzle-kit's
   // duplicate-index guard.
   const seen = new Set<unknown>();
   for (const file of files) {
-    const module = (await import(pathToFileURL(path.join(schemaDir, file)).href)) as Record<
-      string,
-      unknown
-    >;
+    const module = (await import(
+      pathToFileURL(path.join(schemaDir, file)).href
+    )) as Record<string, unknown>;
     for (const [name, value] of Object.entries(module)) {
       if (typeof value === "object" && value !== null) {
         if (seen.has(value)) continue;
@@ -60,7 +63,10 @@ async function importSchemaModules(): Promise<Record<string, unknown>> {
 describe("migration snapshot drift", () => {
   it("keeps the newest snapshot in sync with the drizzle schema", async () => {
     const { file, snapshot } = await readNewestSnapshot();
-    const current = generateDrizzleJson(await importSchemaModules(), snapshot.id as string);
+    const current = generateDrizzleJson(
+      await importSchemaModules(),
+      snapshot.id as string,
+    );
     const statements = await generateMigration(
       snapshot as Parameters<typeof generateMigration>[0],
       current as Parameters<typeof generateMigration>[1],

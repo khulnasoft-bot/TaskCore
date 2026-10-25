@@ -34,7 +34,9 @@ export interface ExternalObjectMentionSource {
   propertyKey?: string | null;
 }
 
-export function formatExternalObjectMentionSourceLabel(source: ExternalObjectMentionSource): string {
+export function formatExternalObjectMentionSourceLabel(
+  source: ExternalObjectMentionSource,
+): string {
   switch (source.sourceKind) {
     case "title":
       return "Title";
@@ -43,9 +45,13 @@ export function formatExternalObjectMentionSourceLabel(source: ExternalObjectMen
     case "comment":
       return "Comment";
     case "document":
-      return source.documentKey ? `Document: ${source.documentKey}` : "Document";
+      return source.documentKey
+        ? `Document: ${source.documentKey}`
+        : "Document";
     case "property":
-      return source.propertyKey ? `Property: ${source.propertyKey}` : "Property";
+      return source.propertyKey
+        ? `Property: ${source.propertyKey}`
+        : "Property";
     case "plugin":
       return "Plugin";
   }

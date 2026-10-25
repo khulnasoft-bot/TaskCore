@@ -39,18 +39,32 @@ export class QueuedCommentMutationForbiddenError extends Error {
   }
 }
 
-function requireMutationTarget(queue: QueuedCommentQueueSnapshot, queueId: string, revision: string): void {
+function requireMutationTarget(
+  queue: QueuedCommentQueueSnapshot,
+  queueId: string,
+  revision: string,
+): void {
   if (queue.queueId !== queueId) {
-    throw new QueuedCommentMutationError("queued_comment_stale_queue", "The queued message targets a stale queue");
+    throw new QueuedCommentMutationError(
+      "queued_comment_stale_queue",
+      "The queued message targets a stale queue",
+    );
   }
   if (queue.revision !== revision) {
-    throw new QueuedCommentMutationError("queued_comment_revision_conflict", "The queued messages changed in another session");
+    throw new QueuedCommentMutationError(
+      "queued_comment_revision_conflict",
+      "The queued messages changed in another session",
+    );
   }
 }
 
 async function updateQueueRunCommentIdsGuarded(
   tx: QueuedCommentQueueTransaction,
-  input: { queueRun: QueuedCommentRunRow | null; ids: string[]; updatedAt: Date },
+  input: {
+    queueRun: QueuedCommentRunRow | null;
+    ids: string[];
+    updatedAt: Date;
+  },
 ): Promise<QueuedCommentRunRow | null> {
   if (!input.queueRun) return null;
   const updated = await tx.updateQueueRunCommentIds({
@@ -60,7 +74,10 @@ async function updateQueueRunCommentIdsGuarded(
     updatedAt: input.updatedAt,
   });
   if (!updated) {
-    throw new QueuedCommentMutationError("queued_comment_already_dispatching", "The queued message is already being dispatched");
+    throw new QueuedCommentMutationError(
+      "queued_comment_already_dispatching",
+      "The queued message is already being dispatched",
+    );
   }
   return updated;
 }
@@ -80,18 +97,29 @@ export type EditQueuedCommentResult = {
   activityPublication: QueuedCommentActivityPublication;
 };
 
-export function createEditQueuedComment(deps: { issueLock: QueuedCommentIssueLockWriter }) {
-  return async function editQueuedComment(input: EditQueuedCommentInput): Promise<EditQueuedCommentResult> {
+export function createEditQueuedComment(deps: {
+  issueLock: QueuedCommentIssueLockWriter;
+}) {
+  return async function editQueuedComment(
+    input: EditQueuedCommentInput,
+  ): Promise<EditQueuedCommentResult> {
     return deps.issueLock.withLockedQueue(
       { issue: input.issue, actor: input.actor, queueId: input.queueId },
       async (locked, tx) => {
         requireMutationTarget(locked.queue, input.queueId, input.revision);
-        const entry = locked.queue.entries.find((candidate) => candidate.comment.id === input.commentId);
+        const entry = locked.queue.entries.find(
+          (candidate) => candidate.comment.id === input.commentId,
+        );
         if (!entry) {
-          throw new QueuedCommentMutationError("queued_comment_not_pending", "The queued message is no longer pending");
+          throw new QueuedCommentMutationError(
+            "queued_comment_not_pending",
+            "The queued message is no longer pending",
+          );
         }
         if (!entry.canEdit) {
-          throw new QueuedCommentMutationForbiddenError("Only the queued message author can edit it");
+          throw new QueuedCommentMutationForbiddenError(
+            "Only the queued message author can edit it",
+          );
         }
 
         const updated = await tx.updateCommentBody({
@@ -101,13 +129,21 @@ export function createEditQueuedComment(deps: { issueLock: QueuedCommentIssueLoc
           updatedAt: input.now,
         });
         if (!updated) {
-          throw new QueuedCommentMutationError("queued_comment_not_pending", "The queued message is no longer pending");
+          throw new QueuedCommentMutationError(
+            "queued_comment_not_pending",
+            "The queued message is no longer pending",
+          );
         }
-        await tx.touchIssueUpdatedAt({ issueId: input.issue.id, updatedAt: input.now });
+        await tx.touchIssueUpdatedAt({
+          issueId: input.issue.id,
+          updatedAt: input.now,
+        });
         await tx.syncCommentReferences(input.commentId);
         await tx.syncCommentExternalObjectsSafely(input.commentId);
 
-        const ids = locked.queue.entries.map((candidate) => candidate.comment.id);
+        const ids = locked.queue.entries.map(
+          (candidate) => candidate.comment.id,
+        );
         const updatedQueueRun = await updateQueueRunCommentIdsGuarded(tx, {
           queueRun: locked.queueRun,
           ids,
@@ -158,15 +194,24 @@ export type ReorderQueuedCommentsResult = {
   activityPublication: QueuedCommentActivityPublication;
 };
 
-export function createReorderQueuedComments(deps: { issueLock: QueuedCommentIssueLockWriter }) {
-  return async function reorderQueuedComments(input: ReorderQueuedCommentsInput): Promise<ReorderQueuedCommentsResult> {
+export function createReorderQueuedComments(deps: {
+  issueLock: QueuedCommentIssueLockWriter;
+}) {
+  return async function reorderQueuedComments(
+    input: ReorderQueuedCommentsInput,
+  ): Promise<ReorderQueuedCommentsResult> {
     return deps.issueLock.withLockedQueue(
       { issue: input.issue, actor: input.actor, queueId: input.queueId },
       async (locked, tx) => {
         requireMutationTarget(locked.queue, input.queueId, input.revision);
 
-        const currentIds = locked.queue.entries.map((entry) => entry.comment.id);
-        const reorderDecision = decideQueuedCommentReorder({ currentIds, orderedIds: input.orderedCommentIds });
+        const currentIds = locked.queue.entries.map(
+          (entry) => entry.comment.id,
+        );
+        const reorderDecision = decideQueuedCommentReorder({
+          currentIds,
+          orderedIds: input.orderedCommentIds,
+        });
         if (reorderDecision.kind === "mismatch") {
           throw new QueuedCommentMutationError(
             "queued_comment_order_mismatch",
@@ -243,8 +288,12 @@ export type DiscardQueuedCommentResult = {
   activityPublication: QueuedCommentActivityPublication | null;
 };
 
-export function createDiscardQueuedComment(deps: { issueLock: QueuedCommentIssueLockWriter }) {
-  return async function discardQueuedComment(input: DiscardQueuedCommentInput): Promise<DiscardQueuedCommentResult> {
+export function createDiscardQueuedComment(deps: {
+  issueLock: QueuedCommentIssueLockWriter;
+}) {
+  return async function discardQueuedComment(
+    input: DiscardQueuedCommentInput,
+  ): Promise<DiscardQueuedCommentResult> {
     return deps.issueLock.withLockedQueue(
       { issue: input.issue, actor: input.actor, queueId: input.queueId },
       async (locked, tx) => {
@@ -252,9 +301,14 @@ export function createDiscardQueuedComment(deps: { issueLock: QueuedCommentIssue
           requireMutationTarget(locked.queue, input.queueId, input.revision);
         }
 
-        const entry = locked.queue.entries.find((candidate) => candidate.comment.id === input.commentId);
+        const entry = locked.queue.entries.find(
+          (candidate) => candidate.comment.id === input.commentId,
+        );
         if (!entry) {
-          throw new QueuedCommentMutationError("queued_comment_not_pending", "The queued message is no longer pending");
+          throw new QueuedCommentMutationError(
+            "queued_comment_not_pending",
+            "The queued message is no longer pending",
+          );
         }
         const owns = decideQueuedCommentActorOwnsEntry({
           actorType: input.actor.actorType,
@@ -264,17 +318,27 @@ export function createDiscardQueuedComment(deps: { issueLock: QueuedCommentIssue
           authorUserId: entry.comment.authorUserId,
         });
         if (!owns) {
-          throw new QueuedCommentMutationForbiddenError("Only the queued message author can discard it");
+          throw new QueuedCommentMutationForbiddenError(
+            "Only the queued message author can discard it",
+          );
         }
 
-        const deleted = await tx.deleteComment({ issueId: input.issue.id, commentId: input.commentId });
+        const deleted = await tx.deleteComment({
+          issueId: input.issue.id,
+          commentId: input.commentId,
+        });
         if (!deleted) {
-          throw new QueuedCommentMutationError("queued_comment_not_pending", "The queued message is no longer pending");
+          throw new QueuedCommentMutationError(
+            "queued_comment_not_pending",
+            "The queued message is no longer pending",
+          );
         }
         await tx.deleteCommentReferenceSource(input.commentId);
         await tx.syncCommentExternalObjectsSafely(input.commentId);
 
-        const remainingIds = locked.queue.entries.map((candidate) => candidate.comment.id).filter((id) => id !== input.commentId);
+        const remainingIds = locked.queue.entries
+          .map((candidate) => candidate.comment.id)
+          .filter((id) => id !== input.commentId);
         const queueBecomesEmpty = remainingIds.length === 0;
 
         let cancelledRun: { id: string } | null = null;
@@ -306,7 +370,10 @@ export function createDiscardQueuedComment(deps: { issueLock: QueuedCommentIssue
               updatedAt: input.now,
             });
           } else {
-            await tx.touchIssueUpdatedAt({ issueId: input.issue.id, updatedAt: input.now });
+            await tx.touchIssueUpdatedAt({
+              issueId: input.issue.id,
+              updatedAt: input.now,
+            });
           }
         } else {
           nextWake = await tx.updateWakeQueuedCommentIds({
@@ -320,7 +387,10 @@ export function createDiscardQueuedComment(deps: { issueLock: QueuedCommentIssue
             ids: remainingIds,
             updatedAt: input.now,
           });
-          await tx.touchIssueUpdatedAt({ issueId: input.issue.id, updatedAt: input.now });
+          await tx.touchIssueUpdatedAt({
+            issueId: input.issue.id,
+            updatedAt: input.now,
+          });
         }
 
         const queue = await tx.buildQueueSnapshot({
@@ -328,7 +398,9 @@ export function createDiscardQueuedComment(deps: { issueLock: QueuedCommentIssue
           actor: input.actor,
           wake: queueBecomesEmpty ? null : nextWake,
           state: queueBecomesEmpty ? null : locked.state,
-          queueRun: queueBecomesEmpty ? null : (nextQueueRun ?? locked.queueRun),
+          queueRun: queueBecomesEmpty
+            ? null
+            : (nextQueueRun ?? locked.queueRun),
           activeRun: locked.activeRun,
         });
 

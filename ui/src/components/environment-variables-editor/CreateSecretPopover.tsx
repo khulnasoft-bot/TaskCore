@@ -45,14 +45,21 @@ export function SecretPopoverForm({
   const trimmedName = name.trim();
   const nameError = (() => {
     if (!trimmedName) return touched ? "Name is required" : null;
-    if (!SECRET_NAME_RE.test(trimmedName)) return "Use lowercase letters, digits and _";
-    if (existingSecretNames?.some((existing) => existing.toLowerCase() === trimmedName)) {
+    if (!SECRET_NAME_RE.test(trimmedName))
+      return "Use lowercase letters, digits and _";
+    if (
+      existingSecretNames?.some(
+        (existing) => existing.toLowerCase() === trimmedName,
+      )
+    ) {
       return "A secret with this name already exists";
     }
     return null;
   })();
-  const valueError = value.length === 0 ? (touched ? "Value is required" : null) : null;
-  const canSubmit = !submitting && trimmedName.length > 0 && value.length > 0 && !nameError;
+  const valueError =
+    value.length === 0 ? (touched ? "Value is required" : null) : null;
+  const canSubmit =
+    !submitting && trimmedName.length > 0 && value.length > 0 && !nameError;
 
   async function handleSubmit() {
     setTouched(true);
@@ -62,7 +69,11 @@ export function SecretPopoverForm({
     try {
       await onSubmit(trimmedName, value);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to create secret");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to create secret",
+      );
       setSubmitting(false);
     }
   }
@@ -76,16 +87,23 @@ export function SecretPopoverForm({
         <PopoverTitle className="text-sm font-medium">{heading}</PopoverTitle>
         {mode === "store" ? (
           <PopoverDescription className="text-(length:--text-micro) text-muted-foreground">
-            Moves the typed value into an encrypted organization secret and binds{" "}
-            <span className="font-mono">{initialName || "this variable"}</span> to it.
+            Moves the typed value into an encrypted organization secret and
+            binds{" "}
+            <span className="font-mono">{initialName || "this variable"}</span>{" "}
+            to it.
           </PopoverDescription>
         ) : null}
       </div>
 
       <label className="block space-y-1">
-        <span className="text-(length:--text-micro) font-medium text-muted-foreground">Name</span>
+        <span className="text-(length:--text-micro) font-medium text-muted-foreground">
+          Name
+        </span>
         <input
-          className={cn(fieldClass, nameError && "border-destructive focus-visible:ring-destructive/40")}
+          className={cn(
+            fieldClass,
+            nameError && "border-destructive focus-visible:ring-destructive/40",
+          )}
           value={name}
           autoFocus
           spellCheck={false}
@@ -101,14 +119,25 @@ export function SecretPopoverForm({
             }
           }}
         />
-        {nameError ? <span className="block text-(length:--text-micro) text-destructive">{nameError}</span> : null}
+        {nameError ? (
+          <span className="block text-(length:--text-micro) text-destructive">
+            {nameError}
+          </span>
+        ) : null}
       </label>
 
       <label className="block space-y-1">
-        <span className="text-(length:--text-micro) font-medium text-muted-foreground">Value</span>
+        <span className="text-(length:--text-micro) font-medium text-muted-foreground">
+          Value
+        </span>
         <div className="relative">
           <input
-            className={cn(fieldClass, "pr-8", valueError && "border-destructive focus-visible:ring-destructive/40")}
+            className={cn(
+              fieldClass,
+              "pr-8",
+              valueError &&
+                "border-destructive focus-visible:ring-destructive/40",
+            )}
             type={reveal ? "text" : "password"}
             value={value}
             readOnly={mode === "store"}
@@ -116,7 +145,11 @@ export function SecretPopoverForm({
             placeholder={mode === "create" ? "value" : undefined}
             aria-label="Secret value"
             aria-invalid={valueError ? true : undefined}
-            onChange={mode === "create" ? (event) => setValue(event.target.value) : undefined}
+            onChange={
+              mode === "create"
+                ? (event) => setValue(event.target.value)
+                : undefined
+            }
           />
           <button
             type="button"
@@ -124,19 +157,40 @@ export function SecretPopoverForm({
             aria-label={reveal ? "Hide value" : "Show value"}
             onClick={() => setReveal((prev) => !prev)}
           >
-            {reveal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {reveal ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
           </button>
         </div>
-        {valueError ? <span className="block text-(length:--text-micro) text-destructive">{valueError}</span> : null}
+        {valueError ? (
+          <span className="block text-(length:--text-micro) text-destructive">
+            {valueError}
+          </span>
+        ) : null}
       </label>
 
-      {error ? <p className="text-(length:--text-micro) text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="text-(length:--text-micro) text-destructive">{error}</p>
+      ) : null}
 
       <div className="flex items-center justify-end gap-2 pt-0.5">
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={submitting}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </Button>
-        <Button type="button" size="sm" onClick={() => void handleSubmit()} disabled={!canSubmit}>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => void handleSubmit()}
+          disabled={!canSubmit}
+        >
           {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
           {ctaLabel}
         </Button>
@@ -146,11 +200,15 @@ export function SecretPopoverForm({
 }
 
 /** Create a brand-new secret from the fuzzy picker's creatable item (§6.4/§6.5). */
-export function CreateSecretPopover(props: Omit<SecretPopoverFormProps, "mode">) {
+export function CreateSecretPopover(
+  props: Omit<SecretPopoverFormProps, "mode">,
+) {
   return <SecretPopoverForm mode="create" {...props} />;
 }
 
 /** Store a typed Text value as a secret and bind the row (replaces "Seal", §6.5). */
-export function ConvertToSecretPopover(props: Omit<SecretPopoverFormProps, "mode">) {
+export function ConvertToSecretPopover(
+  props: Omit<SecretPopoverFormProps, "mode">,
+) {
   return <SecretPopoverForm mode="store" {...props} />;
 }

@@ -8,10 +8,14 @@ import {
 } from "./proc-listener.js";
 
 // 42010 == 0xA41A. /proc stores IPv4 little-endian: 127.0.0.1 -> 0100007F.
-const LOOPBACK_ROW = "   0: 0100007F:A41A 00000000:0000 0A 00000000:00000000 00:00000000 00000000   999        0 12345 1";
-const WILDCARD_ROW = "   1: 00000000:A41A 00000000:0000 0A 00000000:00000000 00:00000000 00000000   999        0 12346 1";
-const OTHERUID_ROW = "   2: 0100007F:A41A 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 12347 1";
-const HEADER = "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode";
+const LOOPBACK_ROW =
+  "   0: 0100007F:A41A 00000000:0000 0A 00000000:00000000 00:00000000 00000000   999        0 12345 1";
+const WILDCARD_ROW =
+  "   1: 00000000:A41A 00000000:0000 0A 00000000:00000000 00:00000000 00000000   999        0 12346 1";
+const OTHERUID_ROW =
+  "   2: 0100007F:A41A 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 12347 1";
+const HEADER =
+  "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode";
 
 describe("proc listener parsing", () => {
   it("classifies loopback vs wildcard addresses", () => {
@@ -40,8 +44,14 @@ describe("proc listener parsing", () => {
   it("distinguishes two different sockets on the same port and uid", () => {
     // Same port, same uid, different socket: only the inode changes. This is the
     // substitution the broker must be able to detect.
-    const first = listenerFactsForPort(parseProcNetTable(`${HEADER}\n${LOOPBACK_ROW}`), [], 42010);
-    const replaced = parseProcNetTable(`${HEADER}\n${LOOPBACK_ROW.replace(" 12345 ", " 55555 ")}`);
+    const first = listenerFactsForPort(
+      parseProcNetTable(`${HEADER}\n${LOOPBACK_ROW}`),
+      [],
+      42010,
+    );
+    const replaced = parseProcNetTable(
+      `${HEADER}\n${LOOPBACK_ROW.replace(" 12345 ", " 55555 ")}`,
+    );
     const second = listenerFactsForPort(replaced, [], 42010);
     expect(second.uids).toEqual(first.uids);
     expect(second.loopbackOnly).toBe(first.loopbackOnly);
@@ -57,7 +67,10 @@ describe("proc listener parsing", () => {
     expect(listenerFactsForPort(rows, rows6, 42010).inodes).toEqual(
       listenerFactsForPort(rows, rows6, 42010).inodes,
     );
-    expect(listenerFactsForPort(rows, rows6, 42010).inodes).toEqual(["12300", "12345"]);
+    expect(listenerFactsForPort(rows, rows6, 42010).inodes).toEqual([
+      "12300",
+      "12345",
+    ]);
   });
 
   it("flags a wildcard bind as not loopback-only", () => {

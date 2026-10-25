@@ -33,7 +33,12 @@ export interface BuiltInAgentGateProps {
  * - paused → amber banner + Resume over the (stale) children
  * - ready → children
  */
-export function BuiltInAgentGate({ agentKey, companyId, featureLabel, children }: BuiltInAgentGateProps) {
+export function BuiltInAgentGate({
+  agentKey,
+  companyId,
+  featureLabel,
+  children,
+}: BuiltInAgentGateProps) {
   const queryClient = useQueryClient();
   const [configureOpen, setConfigureOpen] = useState(false);
 
@@ -41,26 +46,36 @@ export function BuiltInAgentGate({ agentKey, companyId, featureLabel, children }
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),
   });
-  const builtInAgentsEnabled = experimentalQuery.data?.enableBuiltInAgents === true;
+  const builtInAgentsEnabled =
+    experimentalQuery.data?.enableBuiltInAgents === true;
   const { data: states, isLoading: statesLoading } = useQuery({
     queryKey: queryKeys.builtInAgents.list(companyId ?? "__none__"),
     queryFn: () => builtInAgentsApi.list(companyId!),
     enabled: Boolean(companyId && builtInAgentsEnabled),
   });
 
-  const state: BuiltInAgentState | undefined = states?.find((entry) => entry.definition.key === agentKey);
+  const state: BuiltInAgentState | undefined = states?.find(
+    (entry) => entry.definition.key === agentKey,
+  );
 
   const resume = useMutation({
-    mutationFn: (agentId: string) => agentsApi.resume(agentId, companyId ?? undefined),
+    mutationFn: (agentId: string) =>
+      agentsApi.resume(agentId, companyId ?? undefined),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.builtInAgents.list(companyId ?? "__none__") });
-      if (companyId) queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.builtInAgents.list(companyId ?? "__none__"),
+      });
+      if (companyId)
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.list(companyId),
+        });
     },
   });
 
   // Unknown key or still resolving the company — fail open to the feature.
   if (!companyId) return <>{children}</>;
-  if ((experimentalQuery.isLoading || statesLoading) && !states) return <PageSkeleton variant="detail" />;
+  if ((experimentalQuery.isLoading || statesLoading) && !states)
+    return <PageSkeleton variant="detail" />;
   if (!state) return <>{children}</>;
 
   const label = featureLabel ?? state.definition.displayName;
@@ -97,7 +112,9 @@ export function BuiltInAgentGate({ agentKey, companyId, featureLabel, children }
   }
 
   if (state.status === "paused" && state.agent) {
-    const pausedAt = state.agent.pausedAt ? relativeTime(state.agent.pausedAt) : null;
+    const pausedAt = state.agent.pausedAt
+      ? relativeTime(state.agent.pausedAt)
+      : null;
     return (
       <div className="space-y-4">
         <InlineBanner

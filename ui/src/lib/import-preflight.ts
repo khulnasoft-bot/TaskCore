@@ -14,7 +14,8 @@ const utf8 = new TextEncoder();
 
 // Fixed serialization overhead of a base64 entry object around its data and
 // contentType values: {"encoding":"base64","data":"…","contentType":"…"}.
-const BASE64_ENTRY_STRUCTURE_BYTES = '{"encoding":"base64","data":"","contentType":""}'.length;
+const BASE64_ENTRY_STRUCTURE_BYTES =
+  '{"encoding":"base64","data":"","contentType":""}'.length;
 
 // Allowance for everything in the request body besides the files map itself
 // (rootPath, include flags, target, collision strategy, adapter overrides,
@@ -27,8 +28,13 @@ export const REQUEST_ENVELOPE_ALLOWANCE_BYTES = 256 * 1024;
 // base64 payload plus its object structure for blobs (base64 and MIME types
 // are ASCII, one byte per character).
 function fileEntryInlineBytes(entry: CompanyPortabilityFileEntry): number {
-  if (typeof entry === "string") return utf8.encode(JSON.stringify(entry)).length;
-  return BASE64_ENTRY_STRUCTURE_BYTES + entry.data.length + (entry.contentType?.length ?? 0);
+  if (typeof entry === "string")
+    return utf8.encode(JSON.stringify(entry)).length;
+  return (
+    BASE64_ENTRY_STRUCTURE_BYTES +
+    entry.data.length +
+    (entry.contentType?.length ?? 0)
+  );
 }
 
 /**
@@ -40,11 +46,16 @@ function fileEntryInlineBytes(entry: CompanyPortabilityFileEntry): number {
  * Mirrored by `estimateInlineImportBytes` in cli/src/commands/client/company.ts
  * (the CLI cannot import from ui/) — keep the math on both sides in sync.
  */
-export function estimateInlineImportBytes(files: Record<string, CompanyPortabilityFileEntry>): number {
+export function estimateInlineImportBytes(
+  files: Record<string, CompanyPortabilityFileEntry>,
+): number {
   let total = REQUEST_ENVELOPE_ALLOWANCE_BYTES;
   for (const [filePath, entry] of Object.entries(files)) {
     // "path": entry,  → key bytes + colon + comma.
-    total += utf8.encode(JSON.stringify(filePath)).length + 2 + fileEntryInlineBytes(entry);
+    total +=
+      utf8.encode(JSON.stringify(filePath)).length +
+      2 +
+      fileEntryInlineBytes(entry);
   }
   return total;
 }
@@ -53,7 +64,9 @@ export function stripBlobFiles(
   files: Record<string, CompanyPortabilityFileEntry>,
 ): Record<string, CompanyPortabilityFileEntry> {
   return Object.fromEntries(
-    Object.entries(files).filter(([filePath]) => !isBlobStoreFilePath(filePath)),
+    Object.entries(files).filter(
+      ([filePath]) => !isBlobStoreFilePath(filePath),
+    ),
   );
 }
 
@@ -75,7 +88,9 @@ export function buildInlineImportPreflight(
   return {
     estimatedBytes,
     tooLarge: true,
-    canDropAttachments: bytesWithoutBlobs < estimatedBytes && bytesWithoutBlobs <= INLINE_IMPORT_MAX_BYTES,
+    canDropAttachments:
+      bytesWithoutBlobs < estimatedBytes &&
+      bytesWithoutBlobs <= INLINE_IMPORT_MAX_BYTES,
   };
 }
 

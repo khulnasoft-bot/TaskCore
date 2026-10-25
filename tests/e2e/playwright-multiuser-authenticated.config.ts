@@ -1,7 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
 const PORT = Number(process.env.TASKCORE_E2E_PORT ?? 3105);
-const BASE_URL = process.env.TASKCORE_E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
+const BASE_URL =
+  process.env.TASKCORE_E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: ".",
@@ -24,5 +25,8 @@ export default defineConfig({
     },
   ],
   outputDir: "./test-results",
-  reporter: [["list"], ["html", { open: "never", outputFolder: "./playwright-report" }]],
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: "./playwright-report" }],
+  ],
 });

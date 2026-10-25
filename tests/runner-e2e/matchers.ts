@@ -27,7 +27,12 @@ export interface MatcherObservation {
   runtimeMode?: string;
   environment?: string;
   files?: Record<string, string>;
-  artifacts?: Array<{ name: string; mimeType?: string; content?: string; contentVerified?: boolean }>;
+  artifacts?: Array<{
+    name: string;
+    mimeType?: string;
+    content?: string;
+    contentVerified?: boolean;
+  }>;
   json?: unknown;
 }
 
@@ -132,14 +137,18 @@ export async function evaluateMatcher(
       actual = undefined;
       passed = false;
     }
-  } else if (matcher.kind === "artifact_exists" || matcher.kind === "artifact_exact") {
+  } else if (
+    matcher.kind === "artifact_exists" ||
+    matcher.kind === "artifact_exact"
+  ) {
     actual = observation.artifacts ?? [];
     passed = (observation.artifacts ?? []).some(
       (artifact) =>
         artifact.name === matcher.name &&
         (!matcher.mimeType || artifact.mimeType === matcher.mimeType) &&
         (matcher.kind === "artifact_exists" ||
-          (artifact.contentVerified === true && artifact.content === matcher.expected)),
+          (artifact.contentVerified === true &&
+            artifact.content === matcher.expected)),
     );
   } else if (matcher.kind === "json_path") {
     actual = readJsonPath(observation.json, matcher.path);
@@ -169,22 +178,33 @@ export async function evaluateMatchers(
   );
 }
 
-
 export function persistedFinalRunMessage(
-  comments: Array<{ id: string; createdByRunId?: string | null; body?: string | null }>,
-  run: { id: string; runtimeMode?: string; resultJson?: Record<string, unknown> | null },
+  comments: Array<{
+    id: string;
+    createdByRunId?: string | null;
+    body?: string | null;
+  }>,
+  run: {
+    id: string;
+    runtimeMode?: string;
+    resultJson?: Record<string, unknown> | null;
+  },
 ): string {
-  const runComments = comments.filter(comment => comment.createdByRunId === run.id);
+  const runComments = comments.filter(
+    (comment) => comment.createdByRunId === run.id,
+  );
   const decision = run.resultJson?.presentationDecision;
-  const selectedId = decision && typeof decision === "object" && !Array.isArray(decision)
-    ? (decision as Record<string, unknown>).commentId : null;
+  const selectedId =
+    decision && typeof decision === "object" && !Array.isArray(decision)
+      ? (decision as Record<string, unknown>).commentId
+      : null;
   // Read the persisted comment selected for the user, not a finish summary or
   // attachment preparation message. Missing selected evidence must still fail.
   if (typeof selectedId === "string") {
-    return runComments.find(comment => comment.id === selectedId)?.body ?? "";
+    return runComments.find((comment) => comment.id === selectedId)?.body ?? "";
   }
   // Native finalization can publish a deliverable-preparation comment before
   // its response decision. That earlier comment is not the selected reply.
   if (run.runtimeMode === "native") return "";
-  return runComments.map(comment => comment.body ?? "").join("\n");
+  return runComments.map((comment) => comment.body ?? "").join("\n");
 }

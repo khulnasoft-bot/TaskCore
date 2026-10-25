@@ -38,7 +38,10 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 1, c
   await fs.chmod(commandPath, 0o755);
 }
 
-async function writeFailingCodexCommand(commandPath: string, errorMessage: string): Promise<void> {
+async function writeFailingCodexCommand(
+  commandPath: string,
+  errorMessage: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 console.log(JSON.stringify({ type: "error", message: ${JSON.stringify(errorMessage)} }));
 process.exit(1);
@@ -64,7 +67,9 @@ type LogEntry = {
   chunk: string;
 };
 
-const fakeCodexAuthJson = JSON.stringify({ OPENAI_API_KEY: "sk-test-codex-local" });
+const fakeCodexAuthJson = JSON.stringify({
+  OPENAI_API_KEY: "sk-test-codex-local",
+});
 
 const codexHomeOverrides: Array<string | undefined> = [];
 
@@ -81,7 +86,11 @@ async function seedSharedCodexAuth(homeRoot: string): Promise<void> {
   codexHomeOverrides.push(process.env.CODEX_HOME);
   process.env.CODEX_HOME = sharedCodexHome;
   await fs.mkdir(sharedCodexHome, { recursive: true });
-  await fs.writeFile(path.join(sharedCodexHome, "auth.json"), `${fakeCodexAuthJson}\n`, "utf8");
+  await fs.writeFile(
+    path.join(sharedCodexHome, "auth.json"),
+    `${fakeCodexAuthJson}\n`,
+    "utf8",
+  );
 }
 
 function createLocalSandboxRunner() {
@@ -106,11 +115,15 @@ function createLocalSandboxRunner() {
           cwd: input.cwd ?? process.cwd(),
           env: input.env ?? {},
           stdin: input.stdin,
-          timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
           graceSec: 5,
           onLog: input.onLog ?? (async () => {}),
           onSpawn: input.onSpawn
-            ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            ? async (meta) =>
+                input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
             : undefined,
         },
       );
@@ -120,7 +133,9 @@ function createLocalSandboxRunner() {
 
 describe("codex execute", () => {
   it("uses a Taskcore-managed CODEX_HOME outside worktree mode while preserving shared auth and config", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-default-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-default-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -136,8 +151,16 @@ describe("codex execute", () => {
     );
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(sharedCodexHome, { recursive: true });
-    await fs.writeFile(path.join(sharedCodexHome, "auth.json"), `${fakeCodexAuthJson}\n`, "utf8");
-    await fs.writeFile(path.join(sharedCodexHome, "config.toml"), 'model = "codex-mini-latest"\n', "utf8");
+    await fs.writeFile(
+      path.join(sharedCodexHome, "auth.json"),
+      `${fakeCodexAuthJson}\n`,
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(sharedCodexHome, "config.toml"),
+      'model = "codex-mini-latest"\n',
+      "utf8",
+    );
     await writeFakeCodexCommand(commandPath);
 
     const previousHome = process.env.HOME;
@@ -186,20 +209,32 @@ describe("codex execute", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
-      expect(result.usage).toEqual({ inputTokens: 1, cachedInputTokens: 0, outputTokens: 1 });
+      expect(result.usage).toEqual({
+        inputTokens: 1,
+        cachedInputTokens: 0,
+        outputTokens: 1,
+      });
       expect(result.usageBasis).toBe("per_run");
       expect(result.costUsd).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.codexHome).toBe(managedCodexHome);
 
       const managedAuth = path.join(managedCodexHome, "auth.json");
       const managedConfig = path.join(managedCodexHome, "config.toml");
       expect((await fs.lstat(managedAuth)).isSymbolicLink()).toBe(true);
-      expect(await fs.realpath(managedAuth)).toBe(await fs.realpath(path.join(sharedCodexHome, "auth.json")));
+      expect(await fs.realpath(managedAuth)).toBe(
+        await fs.realpath(path.join(sharedCodexHome, "auth.json")),
+      );
       expect((await fs.lstat(managedConfig)).isFile()).toBe(true);
-      expect(await fs.readFile(managedConfig, "utf8")).toBe('model = "codex-mini-latest"\n');
-      await expect(fs.lstat(path.join(sharedCodexHome, "companies", "company-1"))).rejects.toThrow();
+      expect(await fs.readFile(managedConfig, "utf8")).toBe(
+        'model = "codex-mini-latest"\n',
+      );
+      await expect(
+        fs.lstat(path.join(sharedCodexHome, "companies", "company-1")),
+      ).rejects.toThrow();
       expect(logs).toContainEqual(
         expect.objectContaining({
           stream: "stdout",
@@ -211,9 +246,11 @@ describe("codex execute", () => {
       else process.env.HOME = previousHome;
       if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
       else process.env.TASKCORE_HOME = previousTaskcoreHome;
-      if (previousTaskcoreInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+      if (previousTaskcoreInstanceId === undefined)
+        delete process.env.TASKCORE_INSTANCE_ID;
       else process.env.TASKCORE_INSTANCE_ID = previousTaskcoreInstanceId;
-      if (previousTaskcoreInWorktree === undefined) delete process.env.TASKCORE_IN_WORKTREE;
+      if (previousTaskcoreInWorktree === undefined)
+        delete process.env.TASKCORE_IN_WORKTREE;
       else process.env.TASKCORE_IN_WORKTREE = previousTaskcoreInWorktree;
       if (previousCodexHome === undefined) delete process.env.CODEX_HOME;
       else process.env.CODEX_HOME = previousCodexHome;
@@ -222,7 +259,9 @@ describe("codex execute", () => {
   });
 
   it("writes managed MCP gateways into Codex config and warns on overlapping direct entries without logging tokens", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-managed-mcp-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-managed-mcp-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -238,13 +277,17 @@ describe("codex execute", () => {
     );
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(sharedCodexHome, { recursive: true });
-    await fs.writeFile(path.join(sharedCodexHome, "auth.json"), `${fakeCodexAuthJson}\n`, "utf8");
+    await fs.writeFile(
+      path.join(sharedCodexHome, "auth.json"),
+      `${fakeCodexAuthJson}\n`,
+      "utf8",
+    );
     await fs.writeFile(
       path.join(sharedCodexHome, "config.toml"),
       [
         'model = "codex-mini-latest"',
         "",
-        '[mcp_servers.github]',
+        "[mcp_servers.github]",
         'url = "https://raw.example/mcp"',
         "",
       ].join("\n"),
@@ -308,17 +351,25 @@ describe("codex execute", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       const configText = capture.codexConfigContents ?? "";
       expect(configText).toContain("[mcp_servers.github]");
-      expect(configText).toContain("[mcp_servers.\"taskcore-github\"]");
-      expect(configText).toContain('url = "http://taskcore.local:3100/api/tool-gateway/gateways/gateway-1/mcp"');
-      expect(configText).toContain('Authorization = "Bearer pcgw_secret-managed-token"');
+      expect(configText).toContain('[mcp_servers."taskcore-github"]');
+      expect(configText).toContain(
+        'url = "http://taskcore.local:3100/api/tool-gateway/gateways/gateway-1/mcp"',
+      );
+      expect(configText).toContain(
+        'Authorization = "Bearer pcgw_secret-managed-token"',
+      );
       expect(logs).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             stream: "stderr",
-            chunk: expect.stringContaining("Taskcore cannot enforce policies for that direct entry"),
+            chunk: expect.stringContaining(
+              "Taskcore cannot enforce policies for that direct entry",
+            ),
           }),
         ]),
       );
@@ -328,9 +379,11 @@ describe("codex execute", () => {
       else process.env.HOME = previousHome;
       if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
       else process.env.TASKCORE_HOME = previousTaskcoreHome;
-      if (previousTaskcoreApiUrl === undefined) delete process.env.TASKCORE_API_URL;
+      if (previousTaskcoreApiUrl === undefined)
+        delete process.env.TASKCORE_API_URL;
       else process.env.TASKCORE_API_URL = previousTaskcoreApiUrl;
-      if (previousTaskcoreRuntimeApiUrl === undefined) delete process.env.TASKCORE_RUNTIME_API_URL;
+      if (previousTaskcoreRuntimeApiUrl === undefined)
+        delete process.env.TASKCORE_RUNTIME_API_URL;
       else process.env.TASKCORE_RUNTIME_API_URL = previousTaskcoreRuntimeApiUrl;
       if (previousCodexHome === undefined) delete process.env.CODEX_HOME;
       else process.env.CODEX_HOME = previousCodexHome;
@@ -339,7 +392,9 @@ describe("codex execute", () => {
   });
 
   it("emits a command note that Codex auto-applies repo-scoped AGENTS.md files", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-notes-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-notes-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -380,7 +435,9 @@ describe("codex execute", () => {
         authToken: "run-jwt-token",
         onLog: async () => {},
         onMeta: async (meta) => {
-          commandNotes = Array.isArray(meta.commandNotes) ? meta.commandNotes : [];
+          commandNotes = Array.isArray(meta.commandNotes)
+            ? meta.commandNotes
+            : [];
         },
       });
 
@@ -397,7 +454,9 @@ describe("codex execute", () => {
   });
 
   it("logs HOME and the resolved executable path in invocation metadata", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-meta-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-meta-"),
+    );
     const workspace = path.join(root, "workspace");
     const binDir = path.join(root, "bin");
     const commandPath = path.join(binDir, "codex");
@@ -463,7 +522,9 @@ describe("codex execute", () => {
   });
 
   it("injects bridge env into sandbox-managed remote runs", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-sandbox-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-sandbox-"),
+    );
     const localWorkspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "sandbox");
     const binDir = path.join(root, "bin");
@@ -524,8 +585,12 @@ describe("codex execute", () => {
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
-      expect(capture.codexHome).toBe(path.join(remoteWorkspace, ".taskcore-runtime", "codex", "home"));
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
+      expect(capture.codexHome).toBe(
+        path.join(remoteWorkspace, ".taskcore-runtime", "codex", "home"),
+      );
       expect(capture.taskcoreApiUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
       expect(capture.taskcoreApiKey).not.toBe("run-jwt-token");
       expect(capture.taskcoreApiBridgeMode).toBe("queue_v1");
@@ -538,29 +603,186 @@ describe("codex execute", () => {
     }
   });
 
-  it.each([false, true])("delivers oversized wake context through stdin (sandbox=%s)", async (sandbox) => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-wake-"));
+  it.each([false, true])(
+    "delivers oversized wake context through stdin (sandbox=%s)",
+    async (sandbox) => {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-codex-execute-wake-"),
+      );
+      const workspace = path.join(root, "workspace");
+      const commandPath = path.join(root, "codex");
+      const capturePath = path.join(root, "capture.json");
+      await fs.mkdir(workspace, { recursive: true });
+      await writeFakeCodexCommand(commandPath);
+
+      const description =
+        "begin " + "full wake context ".repeat(16_384) + " end";
+      expect(Buffer.byteLength(description)).toBeGreaterThan(128 * 1024);
+      const previousHome = process.env.HOME;
+      process.env.HOME = root;
+      await seedSharedCodexAuth(root);
+
+      try {
+        const result = await execute({
+          runId: "run-wake",
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Codex Coder",
+            adapterType: "codex_local",
+            adapterConfig: { engine: "cli" },
+          },
+          runtime: {
+            sessionId: null,
+            sessionParams: null,
+            sessionDisplayId: null,
+            taskKey: null,
+          },
+          config: {
+            engine: "cli",
+            command: commandPath,
+            cwd: workspace,
+            env: {
+              TASKCORE_TEST_CAPTURE_PATH: capturePath,
+              TASKCORE_WAKE_PAYLOAD_JSON: description,
+            },
+            promptTemplate: "Follow the taskcore heartbeat.",
+          },
+          context: {
+            issueId: "issue-1",
+            taskId: "issue-1",
+            wakeReason: "issue_commented",
+            wakeCommentId: "comment-2",
+            taskcoreWake: {
+              reason: "issue_commented",
+              issue: {
+                id: "issue-1",
+                identifier: "PAP-874",
+                title: "Wake context test",
+                description,
+                status: "in_progress",
+                priority: "medium",
+              },
+              commentIds: ["comment-1", "comment-2"],
+              latestCommentId: "comment-2",
+              comments: [
+                {
+                  id: "comment-1",
+                  issueId: "issue-1",
+                  body: "First comment",
+                  bodyTruncated: false,
+                  createdAt: "2026-03-28T14:35:00.000Z",
+                  author: { type: "user", id: "user-1" },
+                },
+                {
+                  id: "comment-2",
+                  issueId: "issue-1",
+                  body: "Second comment",
+                  bodyTruncated: false,
+                  createdAt: "2026-03-28T14:35:10.000Z",
+                  author: { type: "user", id: "user-1" },
+                },
+              ],
+              commentWindow: {
+                requestedCount: 2,
+                includedCount: 2,
+                missingCount: 0,
+              },
+              truncated: false,
+              fallbackFetchNeeded: false,
+            },
+          },
+          executionTarget: sandbox
+            ? {
+                kind: "remote",
+                transport: "sandbox",
+                providerKey: "test",
+                environmentId: "env-1",
+                leaseId: "lease-1",
+                remoteCwd: workspace,
+                timeoutMs: 30_000,
+                runner: createLocalSandboxRunner(),
+              }
+            : undefined,
+          authToken: "run-jwt-token",
+          onLog: async () => {},
+        });
+
+        expect(result.exitCode).toBe(0);
+        expect(result.errorMessage).toBeNull();
+
+        const capture = JSON.parse(
+          await fs.readFile(capturePath, "utf8"),
+        ) as CapturePayload;
+        expect(capture.taskcoreEnvKeys).not.toContain(
+          "TASKCORE_WAKE_PAYLOAD_JSON",
+        );
+        expect(capture.taskcoreWakePayloadJson).toBeNull();
+        expect(capture.prompt).toContain(description);
+        expect(capture.prompt).toContain("- reason: issue_commented");
+        expect(capture.prompt).toContain("## TaskCore Wake Payload");
+        expect(capture.prompt).toContain(
+          "Use this wake to continue the task, applying new user direction and preserving its approval gates.",
+        );
+        expect(capture.prompt).toContain(
+          "Do not switch to another issue until you have handled this wake.",
+        );
+        expect(capture.prompt).toContain(
+          "acknowledge the latest comment and explain how it changes your next action.",
+        );
+        expect(capture.prompt).toContain("First comment");
+        expect(capture.prompt).toContain("Second comment");
+      } finally {
+        if (previousHome === undefined) delete process.env.HOME;
+        else process.env.HOME = previousHome;
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("keeps real assignment markdown and current wake events single-owned at the CLI boundary", async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-context-owner-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeCodexCommand(commandPath);
-
-    const description = "begin " + "full wake context ".repeat(16_384) + " end";
-    expect(Buffer.byteLength(description)).toBeGreaterThan(128 * 1024);
-    const previousHome = process.env.HOME;
-    process.env.HOME = root;
-    await seedSharedCodexAuth(root);
-
+    const markdown = buildTaskcoreTaskMarkdown({
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-900",
+        title: "Repeat phrase Repeat phrase",
+        description: "Repeat phrase Repeat phrase",
+      },
+      wakeComments: [
+        { id: "comment-a", body: "Same event body." },
+        { id: "comment-b", body: "Same event body." },
+      ],
+      includeWakeComments: false,
+    });
+    const historicalMarkdown = buildTaskcoreTaskMarkdown({
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-900",
+        title: "Repeat phrase Repeat phrase",
+        description: "Repeat phrase Repeat phrase",
+      },
+      wakeComments: [
+        { id: "comment-a", body: "Same event body." },
+        { id: "comment-b", body: "Same event body." },
+      ],
+    });
     try {
-      const result = await execute({
-        runId: "run-wake",
+      await execute({
+        runId: "run-context-owner",
         agent: {
           id: "agent-1",
           companyId: "company-1",
-          name: "Codex Coder",
+          name: "Codex",
           adapterType: "codex_local",
-          adapterConfig: { engine: "cli" },
+          adapterConfig: {},
         },
         runtime: {
           sessionId: null,
@@ -572,124 +794,9 @@ describe("codex execute", () => {
           engine: "cli",
           command: commandPath,
           cwd: workspace,
-          env: {
-            TASKCORE_TEST_CAPTURE_PATH: capturePath,
-            TASKCORE_WAKE_PAYLOAD_JSON: description,
-          },
-          promptTemplate: "Follow the taskcore heartbeat.",
-        },
-        context: {
-          issueId: "issue-1",
-          taskId: "issue-1",
-          wakeReason: "issue_commented",
-          wakeCommentId: "comment-2",
-          taskcoreWake: {
-            reason: "issue_commented",
-            issue: {
-              id: "issue-1",
-              identifier: "PAP-874",
-              title: "Wake context test",
-              description,
-              status: "in_progress",
-              priority: "medium",
-            },
-            commentIds: ["comment-1", "comment-2"],
-            latestCommentId: "comment-2",
-            comments: [
-              {
-                id: "comment-1",
-                issueId: "issue-1",
-                body: "First comment",
-                bodyTruncated: false,
-                createdAt: "2026-03-28T14:35:00.000Z",
-                author: { type: "user", id: "user-1" },
-              },
-              {
-                id: "comment-2",
-                issueId: "issue-1",
-                body: "Second comment",
-                bodyTruncated: false,
-                createdAt: "2026-03-28T14:35:10.000Z",
-                author: { type: "user", id: "user-1" },
-              },
-            ],
-            commentWindow: {
-              requestedCount: 2,
-              includedCount: 2,
-              missingCount: 0,
-            },
-            truncated: false,
-            fallbackFetchNeeded: false,
-          },
-        },
-        executionTarget: sandbox ? {
-          kind: "remote",
-          transport: "sandbox",
-          providerKey: "test",
-          environmentId: "env-1",
-          leaseId: "lease-1",
-          remoteCwd: workspace,
-          timeoutMs: 30_000,
-          runner: createLocalSandboxRunner(),
-        } : undefined,
-        authToken: "run-jwt-token",
-        onLog: async () => {},
-      });
-
-      expect(result.exitCode).toBe(0);
-      expect(result.errorMessage).toBeNull();
-
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
-      expect(capture.taskcoreEnvKeys).not.toContain("TASKCORE_WAKE_PAYLOAD_JSON");
-      expect(capture.taskcoreWakePayloadJson).toBeNull();
-      expect(capture.prompt).toContain(description);
-      expect(capture.prompt).toContain("- reason: issue_commented");
-      expect(capture.prompt).toContain("## TaskCore Wake Payload");
-      expect(capture.prompt).toContain("Use this wake to continue the task, applying new user direction and preserving its approval gates.");
-      expect(capture.prompt).toContain("Do not switch to another issue until you have handled this wake.");
-      expect(capture.prompt).toContain(
-        "acknowledge the latest comment and explain how it changes your next action.",
-      );
-      expect(capture.prompt).toContain("First comment");
-      expect(capture.prompt).toContain("Second comment");
-    } finally {
-      if (previousHome === undefined) delete process.env.HOME;
-      else process.env.HOME = previousHome;
-      await fs.rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("keeps real assignment markdown and current wake events single-owned at the CLI boundary", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-context-owner-"));
-    const workspace = path.join(root, "workspace");
-    const commandPath = path.join(root, "codex");
-    const capturePath = path.join(root, "capture.json");
-    await fs.mkdir(workspace, { recursive: true });
-    await writeFakeCodexCommand(commandPath);
-    const markdown = buildTaskcoreTaskMarkdown({
-      issue: { id: "issue-1", identifier: "PAP-900", title: "Repeat phrase Repeat phrase", description: "Repeat phrase Repeat phrase" },
-      wakeComments: [
-        { id: "comment-a", body: "Same event body." },
-        { id: "comment-b", body: "Same event body." },
-      ],
-      includeWakeComments: false,
-    });
-    const historicalMarkdown = buildTaskcoreTaskMarkdown({
-      issue: { id: "issue-1", identifier: "PAP-900", title: "Repeat phrase Repeat phrase", description: "Repeat phrase Repeat phrase" },
-      wakeComments: [
-        { id: "comment-a", body: "Same event body." },
-        { id: "comment-b", body: "Same event body." },
-      ],
-    });
-    try {
-      await execute({
-        runId: "run-context-owner",
-        agent: { id: "agent-1", companyId: "company-1", name: "Codex", adapterType: "codex_local", adapterConfig: {} },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
-        config: {
-          engine: "cli", command: commandPath, cwd: workspace,
           env: { TASKCORE_TEST_CAPTURE_PATH: capturePath },
-          promptTemplate: "Custom template keeps {{taskcoreTaskMarkdown}} and {{taskcoreWakePrompt}}.",
+          promptTemplate:
+            "Custom template keeps {{taskcoreTaskMarkdown}} and {{taskcoreWakePrompt}}.",
         },
         context: {
           issueId: "issue-1",
@@ -697,48 +804,103 @@ describe("codex execute", () => {
           taskcoreTaskMarkdownAssignment: markdown,
           taskcoreWake: {
             reason: "issue_commented",
-            issue: { id: "issue-1", identifier: "PAP-900", title: "Repeat phrase Repeat phrase", description: "Repeat phrase Repeat phrase", status: "in_progress" },
+            issue: {
+              id: "issue-1",
+              identifier: "PAP-900",
+              title: "Repeat phrase Repeat phrase",
+              description: "Repeat phrase Repeat phrase",
+              status: "in_progress",
+            },
             executionContinuation: {
               version: 1,
               companyId: "company-1",
               issueId: "issue-1",
-              trigger: { reason: "issue_commented", interactionId: null, sourceRunId: null },
+              trigger: {
+                reason: "issue_commented",
+                interactionId: null,
+                sourceRunId: null,
+              },
               originCommentIds: [],
               objective: "Repeat phrase Repeat phrase",
-              objectiveSource: { kind: "description", id: "issue-1", revision: "2e2ed64c2ca5be0343f591d037a6f40a0b9cee733fedb7fdafa69e4158299957" },
+              objectiveSource: {
+                kind: "description",
+                id: "issue-1",
+                revision:
+                  "2e2ed64c2ca5be0343f591d037a6f40a0b9cee733fedb7fdafa69e4158299957",
+              },
               messages: [],
               interactionOutcomes: [],
               completedWork: null,
               unresolvedInteractionIds: [],
-              coverage: { kind: "full_task_history", throughCommentId: null, summaryThroughCommentId: null },
+              coverage: {
+                kind: "full_task_history",
+                throughCommentId: null,
+                summaryThroughCommentId: null,
+              },
             },
             comments: [
-              { id: "comment-a", issueId: "issue-1", body: "Same event body.", bodyTruncated: false, createdAt: "2026-09-21T00:00:00.000Z" },
-              { id: "comment-b", issueId: "issue-1", body: "Same event body.", bodyTruncated: false, createdAt: "2026-09-21T00:01:00.000Z" },
+              {
+                id: "comment-a",
+                issueId: "issue-1",
+                body: "Same event body.",
+                bodyTruncated: false,
+                createdAt: "2026-09-21T00:00:00.000Z",
+              },
+              {
+                id: "comment-b",
+                issueId: "issue-1",
+                body: "Same event body.",
+                bodyTruncated: false,
+                createdAt: "2026-09-21T00:01:00.000Z",
+              },
             ],
-            commentWindow: { requestedCount: 2, includedCount: 2, missingCount: 0 },
+            commentWindow: {
+              requestedCount: 2,
+              includedCount: 2,
+              missingCount: 0,
+            },
             fallbackFetchNeeded: false,
           },
-          taskcoreTurnContext: { version: 1, assignment: { owner: "task_markdown" }, events: { owner: "wake_prompt", comments: [{ id: "comment-a", revision: "a" }, { id: "comment-b", revision: "b" }] } },
+          taskcoreTurnContext: {
+            version: 1,
+            assignment: { owner: "task_markdown" },
+            events: {
+              owner: "wake_prompt",
+              comments: [
+                { id: "comment-a", revision: "a" },
+                { id: "comment-b", revision: "b" },
+              ],
+            },
+          },
         },
         onLog: async () => {},
       });
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.prompt).toContain("Custom template keeps");
       expect(capture.prompt).toContain("comment-a");
-      expect(capture.prompt.indexOf("comment-a")).toBeLessThan(capture.prompt.indexOf("comment-b"));
+      expect(capture.prompt.indexOf("comment-a")).toBeLessThan(
+        capture.prompt.indexOf("comment-b"),
+      );
       expect(capture.prompt.split("Same event body.")).toHaveLength(3);
       // The custom template intentionally repeats task context; ownership only
       // removes automatic wake-event duplication.
-      expect(capture.prompt.split("Repeat phrase Repeat phrase")).toHaveLength(4);
-      expect(capture.prompt).not.toContain('"objective":"Repeat phrase Repeat phrase"');
+      expect(capture.prompt.split("Repeat phrase Repeat phrase")).toHaveLength(
+        4,
+      );
+      expect(capture.prompt).not.toContain(
+        '"objective":"Repeat phrase Repeat phrase"',
+      );
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
 
   it("classifies remote-compaction high-demand failures as retryable transient upstream errors", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-transient-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-transient-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     await fs.mkdir(workspace, { recursive: true });
@@ -789,41 +951,73 @@ describe("codex execute", () => {
     }
   });
 
-  it.each([true, false])("retries missing resume only before a session starts (started=%s)", async (started) => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-resume-stop-"));
-    const commandPath = path.join(root, "codex");
-    const attemptsPath = path.join(root, "attempts");
-    await seedSharedCodexAuth(root);
-    await fs.writeFile(commandPath, `#!/usr/bin/env node
+  it.each([true, false])(
+    "retries missing resume only before a session starts (started=%s)",
+    async (started) => {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-codex-resume-stop-"),
+      );
+      const commandPath = path.join(root, "codex");
+      const attemptsPath = path.join(root, "attempts");
+      await seedSharedCodexAuth(root);
+      await fs.writeFile(
+        commandPath,
+        `#!/usr/bin/env node
 const fs = require("node:fs");
 fs.appendFileSync(${JSON.stringify(attemptsPath)}, "attempt\\n");
 if (process.argv.includes("resume")) {
   console.error("state db missing rollout path for thread unrelated-old-thread");
-  ${started ? 'console.log(JSON.stringify({ type: "thread.started", thread_id: "existing-session" }));' : ''}
+  ${started ? 'console.log(JSON.stringify({ type: "thread.started", thread_id: "existing-session" }));' : ""}
   process.exitCode = 1;
 } else {
   console.log(JSON.stringify({ type: "thread.started", thread_id: "fresh-session" }));
   console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 1, output_tokens: 1 } }));
 }
-`, "utf8");
-    await fs.chmod(commandPath, 0o755);
-    try {
-      const result = await execute({
-        runId: `resume-stop-${started}`,
-        agent: { id: "agent-1", companyId: "company-1", name: "Codex", adapterType: "codex_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: "existing-session", sessionParams: null, sessionDisplayId: "existing-session", taskKey: null },
-        config: { engine: "cli", command: commandPath, cwd: root, promptTemplate: "Test resume." },
-        context: {}, onLog: async () => {},
-      });
-      expect((await fs.readFile(attemptsPath, "utf8")).trim().split("\n")).toHaveLength(started ? 1 : 2);
-      expect(result.sessionId).toBe(started ? "existing-session" : "fresh-session");
-    } finally {
-      await fs.rm(root, { recursive: true, force: true });
-    }
-  });
+`,
+        "utf8",
+      );
+      await fs.chmod(commandPath, 0o755);
+      try {
+        const result = await execute({
+          runId: `resume-stop-${started}`,
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Codex",
+            adapterType: "codex_local",
+            adapterConfig: { engine: "cli" },
+          },
+          runtime: {
+            sessionId: "existing-session",
+            sessionParams: null,
+            sessionDisplayId: "existing-session",
+            taskKey: null,
+          },
+          config: {
+            engine: "cli",
+            command: commandPath,
+            cwd: root,
+            promptTemplate: "Test resume.",
+          },
+          context: {},
+          onLog: async () => {},
+        });
+        expect(
+          (await fs.readFile(attemptsPath, "utf8")).trim().split("\n"),
+        ).toHaveLength(started ? 1 : 2);
+        expect(result.sessionId).toBe(
+          started ? "existing-session" : "fresh-session",
+        );
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("classifies mid-turn harness crashes as retryable transient upstream errors", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-harness-crash-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-harness-crash-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     await fs.mkdir(workspace, { recursive: true });
@@ -876,7 +1070,9 @@ process.exit(1);
       expect(result.errorMessage).toContain("Transport channel closed");
       expect(result.sessionId).toBe("thread-crash-1");
       expect(result.clearSession).toBe(false);
-      expect((result.resultJson as Record<string, unknown>).errorFamily).toBe("transient_upstream");
+      expect((result.resultJson as Record<string, unknown>).errorFamily).toBe(
+        "transient_upstream",
+      );
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -885,7 +1081,9 @@ process.exit(1);
   });
 
   it("persists retry-not-before metadata for codex provider quota failures", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-usage-limit-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-usage-limit-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     await fs.mkdir(workspace, { recursive: true });
@@ -934,13 +1132,23 @@ process.exit(1);
       expect(result.exitCode).toBe(1);
       expect(result.errorCode).toBe("provider_quota");
       expect(result.errorFamily).toBe("provider_quota");
-      const expectedRetryNotBefore = new Date(2026, 3, 22, 23, 31, 0, 0).toISOString();
+      const expectedRetryNotBefore = new Date(
+        2026,
+        3,
+        22,
+        23,
+        31,
+        0,
+        0,
+      ).toISOString();
       expect(result.retryNotBefore).toBe(expectedRetryNotBefore);
       expect(result.resultJson?.retryNotBefore).toBe(expectedRetryNotBefore);
-      expect(result.resultJson?.providerQuotaRetryNotBefore).toBe(expectedRetryNotBefore);
-      expect(new Date(String(result.resultJson?.transientRetryNotBefore)).getTime()).toBe(
-        new Date(2026, 3, 22, 23, 31, 0, 0).getTime(),
+      expect(result.resultJson?.providerQuotaRetryNotBefore).toBe(
+        expectedRetryNotBefore,
       );
+      expect(
+        new Date(String(result.resultJson?.transientRetryNotBefore)).getTime(),
+      ).toBe(new Date(2026, 3, 22, 23, 31, 0, 0).getTime());
     } finally {
       vi.useRealTimers();
       if (previousHome === undefined) delete process.env.HOME;
@@ -950,11 +1158,16 @@ process.exit(1);
   });
 
   it("classifies Codex refresh-token auth failures without credential telemetry", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-refresh-token-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-refresh-token-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     await fs.mkdir(workspace, { recursive: true });
-    await writeFailingCodexCommand(commandPath, "OAuth failed: refresh_token_reused");
+    await writeFailingCodexCommand(
+      commandPath,
+      "OAuth failed: refresh_token_reused",
+    );
 
     const previousHome = process.env.HOME;
     process.env.HOME = root;
@@ -1000,7 +1213,9 @@ process.exit(1);
   });
 
   it("uses safer invocation settings and a fresh-session handoff for codex transient fallback retries", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-fallback-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-fallback-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -1061,15 +1276,25 @@ process.exit(1);
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
-      expect(capture.argv).toEqual(expect.arrayContaining(["exec", "--json", "-"]));
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
+      expect(capture.argv).toEqual(
+        expect.arrayContaining(["exec", "--json", "-"]),
+      );
       expect(capture.argv).not.toContain("resume");
       expect(capture.argv).not.toContain('service_tier="fast"');
       expect(capture.argv).not.toContain("features.fast_mode=true");
       expect(capture.prompt).toContain("Taskcore session handoff:");
-      expect(capture.prompt).toContain("Issue continuation summary for the next fresh session.");
-      expect(commandNotes).toContain("Codex transient fallback requested safer invocation settings for this retry.");
-      expect(commandNotes).toContain("Codex transient fallback forced a fresh session with a continuation handoff.");
+      expect(capture.prompt).toContain(
+        "Issue continuation summary for the next fresh session.",
+      );
+      expect(commandNotes).toContain(
+        "Codex transient fallback requested safer invocation settings for this retry.",
+      );
+      expect(commandNotes).toContain(
+        "Codex transient fallback forced a fresh session with a continuation handoff.",
+      );
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -1078,7 +1303,9 @@ process.exit(1);
   });
 
   it("renders execution-stage wake instructions for reviewer and executor roles", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-stage-wake-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-stage-wake-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -1153,11 +1380,19 @@ process.exit(1);
       });
 
       expect(result.exitCode).toBe(0);
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.prompt).toContain("execution wake role: reviewer");
-      expect(capture.prompt).toContain("You are waking as the active reviewer for this issue.");
-      expect(capture.prompt).toContain("Do not execute the task itself or continue executor work.");
-      expect(capture.prompt).toContain("allowed actions: approve, request_changes");
+      expect(capture.prompt).toContain(
+        "You are waking as the active reviewer for this issue.",
+      );
+      expect(capture.prompt).toContain(
+        "Do not execute the task itself or continue executor work.",
+      );
+      expect(capture.prompt).toContain(
+        "allowed actions: approve, request_changes",
+      );
 
       const executorCapturePath = path.join(root, "capture-executor.json");
       const executorResult = await execute({
@@ -1223,10 +1458,16 @@ process.exit(1);
       });
 
       expect(executorResult.exitCode).toBe(0);
-      const executorCapture = JSON.parse(await fs.readFile(executorCapturePath, "utf8")) as CapturePayload;
+      const executorCapture = JSON.parse(
+        await fs.readFile(executorCapturePath, "utf8"),
+      ) as CapturePayload;
       expect(executorCapture.prompt).toContain("execution wake role: executor");
-      expect(executorCapture.prompt).toContain("You are waking because changes were requested in the execution workflow.");
-      expect(executorCapture.prompt).toContain("allowed actions: address_changes, resubmit");
+      expect(executorCapture.prompt).toContain(
+        "You are waking because changes were requested in the execution workflow.",
+      );
+      expect(executorCapture.prompt).toContain(
+        "allowed actions: address_changes, resubmit",
+      );
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -1235,7 +1476,9 @@ process.exit(1);
   });
 
   it("renders an issue-scoped wake prompt even when the wake has no comments yet", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-issue-wake-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-issue-wake-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -1304,18 +1547,30 @@ process.exit(1);
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
-      expect(capture.taskcoreEnvKeys).not.toContain("TASKCORE_WAKE_PAYLOAD_JSON");
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
+      expect(capture.taskcoreEnvKeys).not.toContain(
+        "TASKCORE_WAKE_PAYLOAD_JSON",
+      );
       expect(capture.taskcoreWakePayloadJson).toBeNull();
       expect(capture.prompt).toContain("## TaskCore Wake Payload");
-      expect(capture.prompt).toContain("Do not switch to another issue until you have handled this wake.");
-      expect(capture.prompt).toContain("- issue: PAP-1201 Fix gallery opening for inline images");
+      expect(capture.prompt).toContain(
+        "Do not switch to another issue until you have handled this wake.",
+      );
+      expect(capture.prompt).toContain(
+        "- issue: PAP-1201 Fix gallery opening for inline images",
+      );
       expect(capture.prompt).not.toContain("- pending comments:");
       expect(capture.prompt).not.toContain("acknowledge the latest comment");
       expect(capture.prompt).not.toContain("Execution contract:");
       expect(capture.prompt).toContain("- issue status: in_progress");
-      expect(capture.prompt).toContain("- checkout: already claimed by the harness for this run");
-      expect(capture.prompt).toContain("The harness already checked out this issue for the current run.");
+      expect(capture.prompt).toContain(
+        "- checkout: already claimed by the harness for this run",
+      );
+      expect(capture.prompt).toContain(
+        "The harness already checked out this issue for the current run.",
+      );
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -1323,147 +1578,197 @@ process.exit(1);
     }
   });
 
-  it.each([{ conversationMode: false, resumedSession: true }, { conversationMode: true, resumedSession: true }, { conversationMode: true, resumedSession: false }])("retains current task policy (conversation=$conversationMode, resumed=$resumedSession)", async ({ conversationMode, resumedSession }) => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-resume-wake-"));
-    const workspace = path.join(root, "workspace");
-    const commandPath = path.join(root, "codex");
-    const capturePath = path.join(root, "capture.json");
-    const instructionsPath = path.join(root, "AGENTS.md");
-    await fs.mkdir(workspace, { recursive: true });
-    await fs.writeFile(instructionsPath, "You are managed instructions.\n", "utf8");
-    await writeFakeCodexCommand(commandPath);
+  it.each([
+    { conversationMode: false, resumedSession: true },
+    { conversationMode: true, resumedSession: true },
+    { conversationMode: true, resumedSession: false },
+  ])(
+    "retains current task policy (conversation=$conversationMode, resumed=$resumedSession)",
+    async ({ conversationMode, resumedSession }) => {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-codex-execute-resume-wake-"),
+      );
+      const workspace = path.join(root, "workspace");
+      const commandPath = path.join(root, "codex");
+      const capturePath = path.join(root, "capture.json");
+      const instructionsPath = path.join(root, "AGENTS.md");
+      await fs.mkdir(workspace, { recursive: true });
+      await fs.writeFile(
+        instructionsPath,
+        "You are managed instructions.\n",
+        "utf8",
+      );
+      await writeFakeCodexCommand(commandPath);
 
-    const previousHome = process.env.HOME;
-    process.env.HOME = root;
-    await seedSharedCodexAuth(root);
+      const previousHome = process.env.HOME;
+      process.env.HOME = root;
+      await seedSharedCodexAuth(root);
 
-    const policy = conversationMode
-      ? buildTaskcoreTaskMarkdown({
-          issue: { id: "issue-1", title: "Chat", workMode: "planning", conversationAgentId: "agent-1" },
-          interaction: { kind: "request_confirmation", status: "rejected" },
-          planReview: { status: "rejected", reason: "Revise the final note." },
-          includeDescription: false,
-        })
-      : "Current ordinary task policy";
-    let invocationPrompt = "";
-    let invocationNotes: string[] = [];
-    let promptMetrics: Record<string, number> = {};
-    try {
-      const result = await execute({
-        runId: "run-resume-wake",
-        agent: {
-          id: "agent-1",
-          companyId: "company-1",
-          name: "Codex Coder",
-          adapterType: "codex_local",
-          adapterConfig: { engine: "cli" },
-        },
-        runtime: {
-          sessionId: null,
-          sessionParams: {
-            sessionId: resumedSession ? "codex-session-1" : null,
-            cwd: workspace,
-          },
-          sessionDisplayId: null,
-          taskKey: null,
-        },
-        config: {
-          engine: "cli",
-          command: commandPath,
-          cwd: workspace,
-          instructionsFilePath: instructionsPath,
-          env: {
-            TASKCORE_TEST_CAPTURE_PATH: capturePath,
-          },
-          promptTemplate: conversationMode ? undefined : "Follow the taskcore heartbeat.",
-        },
-        context: {
-          conversationMode,
-          taskcoreTaskMarkdown: `Full description that must not replay\n${policy}`,
-          taskcoreTaskMarkdownCompact: policy,
-          issueId: "issue-1",
-          taskId: "issue-1",
-          wakeReason: "issue_commented",
-          wakeCommentId: "comment-2",
-          taskcoreWake: {
-            reason: "issue_commented",
+      const policy = conversationMode
+        ? buildTaskcoreTaskMarkdown({
             issue: {
               id: "issue-1",
-              identifier: "PAP-874",
-              title: "chat-speed issues",
-              status: "in_progress",
-              priority: "medium",
+              title: "Chat",
+              workMode: "planning",
+              conversationAgentId: "agent-1",
             },
-            commentIds: ["comment-2"],
-            latestCommentId: "comment-2",
-            comments: [
-              {
-                id: "comment-2",
-                issueId: "issue-1",
-                body: "Second comment",
-                bodyTruncated: false,
-                createdAt: "2026-03-28T14:35:10.000Z",
-                author: { type: "user", id: "user-1" },
-              },
-            ],
-            commentWindow: {
-              requestedCount: 1,
-              includedCount: 1,
-              missingCount: 0,
+            interaction: { kind: "request_confirmation", status: "rejected" },
+            planReview: {
+              status: "rejected",
+              reason: "Revise the final note.",
             },
-            truncated: false,
-            fallbackFetchNeeded: false,
+            includeDescription: false,
+          })
+        : "Current ordinary task policy";
+      let invocationPrompt = "";
+      let invocationNotes: string[] = [];
+      let promptMetrics: Record<string, number> = {};
+      try {
+        const result = await execute({
+          runId: "run-resume-wake",
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Codex Coder",
+            adapterType: "codex_local",
+            adapterConfig: { engine: "cli" },
           },
-        },
-        authToken: "run-jwt-token",
-        onLog: async () => {},
-        onMeta: async (meta) => {
-          invocationPrompt = meta.prompt ?? "";
-          invocationNotes = meta.commandNotes ?? [];
-          promptMetrics = meta.promptMetrics ?? {};
-        },
-      });
+          runtime: {
+            sessionId: null,
+            sessionParams: {
+              sessionId: resumedSession ? "codex-session-1" : null,
+              cwd: workspace,
+            },
+            sessionDisplayId: null,
+            taskKey: null,
+          },
+          config: {
+            engine: "cli",
+            command: commandPath,
+            cwd: workspace,
+            instructionsFilePath: instructionsPath,
+            env: {
+              TASKCORE_TEST_CAPTURE_PATH: capturePath,
+            },
+            promptTemplate: conversationMode
+              ? undefined
+              : "Follow the taskcore heartbeat.",
+          },
+          context: {
+            conversationMode,
+            taskcoreTaskMarkdown: `Full description that must not replay\n${policy}`,
+            taskcoreTaskMarkdownCompact: policy,
+            issueId: "issue-1",
+            taskId: "issue-1",
+            wakeReason: "issue_commented",
+            wakeCommentId: "comment-2",
+            taskcoreWake: {
+              reason: "issue_commented",
+              issue: {
+                id: "issue-1",
+                identifier: "PAP-874",
+                title: "chat-speed issues",
+                status: "in_progress",
+                priority: "medium",
+              },
+              commentIds: ["comment-2"],
+              latestCommentId: "comment-2",
+              comments: [
+                {
+                  id: "comment-2",
+                  issueId: "issue-1",
+                  body: "Second comment",
+                  bodyTruncated: false,
+                  createdAt: "2026-03-28T14:35:10.000Z",
+                  author: { type: "user", id: "user-1" },
+                },
+              ],
+              commentWindow: {
+                requestedCount: 1,
+                includedCount: 1,
+                missingCount: 0,
+              },
+              truncated: false,
+              fallbackFetchNeeded: false,
+            },
+          },
+          authToken: "run-jwt-token",
+          onLog: async () => {},
+          onMeta: async (meta) => {
+            invocationPrompt = meta.prompt ?? "";
+            invocationNotes = meta.commandNotes ?? [];
+            promptMetrics = meta.promptMetrics ?? {};
+          },
+        });
 
-      expect(result.exitCode).toBe(0);
-      expect(result.errorMessage).toBeNull();
+        expect(result.exitCode).toBe(0);
+        expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
-      if (resumedSession) expect(capture.argv).toEqual(expect.arrayContaining(["resume", "codex-session-1", "-"]));
-      else expect(capture.argv).not.toContain("resume");
-      expect(capture.prompt).toContain(resumedSession ? "## TaskCore Resume Delta" : "## TaskCore Wake Payload");
-      expect(capture.prompt).toContain("Do not switch to another issue until you have handled this wake.");
-      expect(capture.prompt).toContain("Second comment");
-      expect(capture.prompt).toContain(policy);
-      expect(invocationPrompt).toContain(policy);
-      if (resumedSession) expect(capture.prompt).not.toContain("Full description that must not replay");
-      else expect(capture.prompt).toContain("Full description that must not replay");
-      expect(promptMetrics.taskContextChars).toBe(resumedSession ? policy.length : `Full description that must not replay\n${policy}`.length);
-      if (conversationMode) {
-        expect(invocationPrompt).toContain(AGENT_CHAT_DIRECTIVE);
-        expect(invocationPrompt).toContain("baseRevisionId set to that latestRevisionId");
+        const capture = JSON.parse(
+          await fs.readFile(capturePath, "utf8"),
+        ) as CapturePayload;
+        if (resumedSession)
+          expect(capture.argv).toEqual(
+            expect.arrayContaining(["resume", "codex-session-1", "-"]),
+          );
+        else expect(capture.argv).not.toContain("resume");
+        expect(capture.prompt).toContain(
+          resumedSession
+            ? "## TaskCore Resume Delta"
+            : "## TaskCore Wake Payload",
+        );
+        expect(capture.prompt).toContain(
+          "Do not switch to another issue until you have handled this wake.",
+        );
+        expect(capture.prompt).toContain("Second comment");
+        expect(capture.prompt).toContain(policy);
+        expect(invocationPrompt).toContain(policy);
+        if (resumedSession)
+          expect(capture.prompt).not.toContain(
+            "Full description that must not replay",
+          );
+        else
+          expect(capture.prompt).toContain(
+            "Full description that must not replay",
+          );
+        expect(promptMetrics.taskContextChars).toBe(
+          resumedSession
+            ? policy.length
+            : `Full description that must not replay\n${policy}`.length,
+        );
+        if (conversationMode) {
+          expect(invocationPrompt).toContain(AGENT_CHAT_DIRECTIVE);
+          expect(invocationPrompt).toContain(
+            "baseRevisionId set to that latestRevisionId",
+          );
+          expect(capture.prompt).not.toContain("Execution contract:");
+          expect(capture.prompt).not.toContain("Use child issues");
+        }
         expect(capture.prompt).not.toContain("Execution contract:");
-        expect(capture.prompt).not.toContain("Use child issues");
+        expect(capture.prompt).not.toContain("Follow the taskcore heartbeat.");
+        if (resumedSession) {
+          expect(capture.prompt).not.toContain("You are managed instructions.");
+          expect(invocationPrompt).toContain("## TaskCore Resume Delta");
+          expect(invocationNotes).toContain(
+            "Skipped stdin instruction reinjection because an existing Codex session is being resumed with a wake delta.",
+          );
+          expect(promptMetrics.instructionsChars).toBe(0);
+          expect(promptMetrics.heartbeatPromptChars).toBe(0);
+        } else {
+          expect(capture.prompt).toContain("You are managed instructions.");
+          expect(promptMetrics.heartbeatPromptChars).toBeGreaterThan(0);
+        }
+      } finally {
+        if (previousHome === undefined) delete process.env.HOME;
+        else process.env.HOME = previousHome;
+        await fs.rm(root, { recursive: true, force: true });
       }
-      expect(capture.prompt).not.toContain("Execution contract:");
-      expect(capture.prompt).not.toContain("Follow the taskcore heartbeat.");
-      if (resumedSession) {
-        expect(capture.prompt).not.toContain("You are managed instructions.");
-        expect(invocationPrompt).toContain("## TaskCore Resume Delta");
-        expect(invocationNotes).toContain("Skipped stdin instruction reinjection because an existing Codex session is being resumed with a wake delta.");
-        expect(promptMetrics.instructionsChars).toBe(0);
-        expect(promptMetrics.heartbeatPromptChars).toBe(0);
-      } else {
-        expect(capture.prompt).toContain("You are managed instructions.");
-        expect(promptMetrics.heartbeatPromptChars).toBeGreaterThan(0);
-      }
-    } finally {
-      if (previousHome === undefined) delete process.env.HOME;
-      else process.env.HOME = previousHome;
-      await fs.rm(root, { recursive: true, force: true });
-    }
-  });
+    },
+  );
   it("uses a worktree-isolated CODEX_HOME and mounts the operational skill by default", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -1480,8 +1785,16 @@ process.exit(1);
     const homeSkill = path.join(isolatedCodexHome, "skills", "taskcore");
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(sharedCodexHome, { recursive: true });
-    await fs.writeFile(path.join(sharedCodexHome, "auth.json"), `${fakeCodexAuthJson}\n`, "utf8");
-    await fs.writeFile(path.join(sharedCodexHome, "config.toml"), 'model = "codex-mini-latest"\n', "utf8");
+    await fs.writeFile(
+      path.join(sharedCodexHome, "auth.json"),
+      `${fakeCodexAuthJson}\n`,
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(sharedCodexHome, "config.toml"),
+      'model = "codex-mini-latest"\n',
+      "utf8",
+    );
     await writeFakeCodexCommand(commandPath);
 
     const previousHome = process.env.HOME;
@@ -1531,9 +1844,13 @@ process.exit(1);
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.codexHome).toBe(isolatedCodexHome);
-      expect(capture.argv).toEqual(expect.arrayContaining(["exec", "--json", "-"]));
+      expect(capture.argv).toEqual(
+        expect.arrayContaining(["exec", "--json", "-"]),
+      );
       expect(capture.prompt).toContain("Follow the taskcore heartbeat.");
       expect(capture.taskcoreEnvKeys).toEqual(
         expect.arrayContaining([
@@ -1549,9 +1866,13 @@ process.exit(1);
       const isolatedConfig = path.join(isolatedCodexHome, "config.toml");
 
       expect((await fs.lstat(isolatedAuth)).isSymbolicLink()).toBe(true);
-      expect(await fs.realpath(isolatedAuth)).toBe(await fs.realpath(path.join(sharedCodexHome, "auth.json")));
+      expect(await fs.realpath(isolatedAuth)).toBe(
+        await fs.realpath(path.join(sharedCodexHome, "auth.json")),
+      );
       expect((await fs.lstat(isolatedConfig)).isFile()).toBe(true);
-      expect(await fs.readFile(isolatedConfig, "utf8")).toBe('model = "codex-mini-latest"\n');
+      expect(await fs.readFile(isolatedConfig, "utf8")).toBe(
+        'model = "codex-mini-latest"\n',
+      );
       expect((await fs.lstat(homeSkill)).isSymbolicLink()).toBe(true);
       expect(logs).toContainEqual(
         expect.objectContaining({
@@ -1570,9 +1891,11 @@ process.exit(1);
       else process.env.HOME = previousHome;
       if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
       else process.env.TASKCORE_HOME = previousTaskcoreHome;
-      if (previousTaskcoreInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+      if (previousTaskcoreInstanceId === undefined)
+        delete process.env.TASKCORE_INSTANCE_ID;
       else process.env.TASKCORE_INSTANCE_ID = previousTaskcoreInstanceId;
-      if (previousTaskcoreInWorktree === undefined) delete process.env.TASKCORE_IN_WORKTREE;
+      if (previousTaskcoreInWorktree === undefined)
+        delete process.env.TASKCORE_IN_WORKTREE;
       else process.env.TASKCORE_IN_WORKTREE = previousTaskcoreInWorktree;
       if (previousCodexHome === undefined) delete process.env.CODEX_HOME;
       else process.env.CODEX_HOME = previousCodexHome;
@@ -1581,7 +1904,9 @@ process.exit(1);
   });
 
   it("isolates connector skills by agent and revision without changing the selected model identity", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-connector-codex-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-connector-codex-"),
+    );
     const workspace = path.join(root, "workspace");
     const command = path.join(root, "codex");
     const capture = path.join(root, "capture.json");
@@ -1591,25 +1916,66 @@ process.exit(1);
     await fs.mkdir(sourceHome, { recursive: true });
     await fs.mkdir(skillSource, { recursive: true });
     await fs.writeFile(path.join(sourceHome, "auth.json"), fakeCodexAuthJson);
-    await fs.writeFile(path.join(skillSource, "SKILL.md"), "# AgentMail\nAssigned inbox one.");
+    await fs.writeFile(
+      path.join(skillSource, "SKILL.md"),
+      "# AgentMail\nAssigned inbox one.",
+    );
     await writeFakeCodexCommand(command);
-    const keys = ["TASKCORE_HOME", "TASKCORE_INSTANCE_ID", "CODEX_HOME"] as const;
-    const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    const keys = [
+      "TASKCORE_HOME",
+      "TASKCORE_INSTANCE_ID",
+      "CODEX_HOME",
+    ] as const;
+    const previous = Object.fromEntries(
+      keys.map((key) => [key, process.env[key]]),
+    );
     process.env.TASKCORE_HOME = path.join(root, "taskcore");
     process.env.TASKCORE_INSTANCE_ID = "connectors";
     process.env.CODEX_HOME = sourceHome;
-    const invoke = async (agentId: string, digest: string | null, source = skillSource, connectorSkillInstructions = "") => {
+    const invoke = async (
+      agentId: string,
+      digest: string | null,
+      source = skillSource,
+      connectorSkillInstructions = "",
+    ) => {
       const config = {
-        engine: "cli", command, cwd: workspace,
+        engine: "cli",
+        command,
+        cwd: workspace,
         env: { CODEX_HOME: sourceHome, TASKCORE_TEST_CAPTURE_PATH: capture },
         taskcoreConnectorSkillDigest: digest,
-        taskcoreSkillSync: { desiredSkills: digest ? ["taskcore/taskcore/agentmail"] : [] },
-        taskcoreRuntimeSkills: digest ? [{ key: "taskcore/taskcore/agentmail", runtimeName: "agentmail", source }] : [],
+        taskcoreSkillSync: {
+          desiredSkills: digest ? ["taskcore/taskcore/agentmail"] : [],
+        },
+        taskcoreRuntimeSkills: digest
+          ? [
+              {
+                key: "taskcore/taskcore/agentmail",
+                runtimeName: "agentmail",
+                source,
+              },
+            ]
+          : [],
       };
-      const result = await execute({ runId: `run-${agentId}-${digest?.slice(0, 1) ?? "none"}`,
-        agent: { id: agentId, companyId: "company-1", name: "Email agent", adapterType: "codex_local", adapterConfig: config },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
-        config, context: { taskcoreWake: { connectorSkillInstructions } }, authToken: "test-token", onLog: async () => {},
+      const result = await execute({
+        runId: `run-${agentId}-${digest?.slice(0, 1) ?? "none"}`,
+        agent: {
+          id: agentId,
+          companyId: "company-1",
+          name: "Email agent",
+          adapterType: "codex_local",
+          adapterConfig: config,
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
+        config,
+        context: { taskcoreWake: { connectorSkillInstructions } },
+        authToken: "test-token",
+        onLog: async () => {},
       });
       expect(result.errorMessage).toBeNull();
       expect(result.exitCode).toBe(0);
@@ -1618,32 +1984,63 @@ process.exit(1);
     try {
       const first = await invoke("agent-1", "a".repeat(64));
       expect(first.codexHome).toContain("connector-runtimes/agent-1/");
-      expect(await fs.realpath(path.join(first.codexHome!, "auth.json"))).toBe(await fs.realpath(path.join(sourceHome, "auth.json")));
-      expect(await fs.readFile(path.join(first.codexHome!, "skills/agentmail/SKILL.md"), "utf8")).toContain("inbox one");
-      await expect(fs.stat(path.join(sourceHome, "skills/agentmail"))).rejects.toMatchObject({ code: "ENOENT" });
+      expect(await fs.realpath(path.join(first.codexHome!, "auth.json"))).toBe(
+        await fs.realpath(path.join(sourceHome, "auth.json")),
+      );
+      expect(
+        await fs.readFile(
+          path.join(first.codexHome!, "skills/agentmail/SKILL.md"),
+          "utf8",
+        ),
+      ).toContain("inbox one");
+      await expect(
+        fs.stat(path.join(sourceHome, "skills/agentmail")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
       const other = await invoke("agent-2", "a".repeat(64));
       expect(other.codexHome).not.toBe(first.codexHome);
       const nextSource = path.join(root, "skill-v2");
       await fs.mkdir(nextSource);
-      await fs.writeFile(path.join(nextSource, "SKILL.md"), "# AgentMail\nAssigned inbox two.");
+      await fs.writeFile(
+        path.join(nextSource, "SKILL.md"),
+        "# AgentMail\nAssigned inbox two.",
+      );
       const next = await invoke("agent-1", "b".repeat(64), nextSource);
       expect(next.codexHome).not.toBe(first.codexHome);
-      expect(await fs.readFile(path.join(next.codexHome!, "skills/agentmail/SKILL.md"), "utf8")).toContain("inbox two");
-      const inline = await invoke("agent-1", null, skillSource, "# AgentMail\nAssigned inbox inline@example.test");
+      expect(
+        await fs.readFile(
+          path.join(next.codexHome!, "skills/agentmail/SKILL.md"),
+          "utf8",
+        ),
+      ).toContain("inbox two");
+      const inline = await invoke(
+        "agent-1",
+        null,
+        skillSource,
+        "# AgentMail\nAssigned inbox inline@example.test",
+      );
       expect(inline.prompt).toContain("Assigned inbox inline@example.test");
-      await expect(fs.stat(path.join(sourceHome, "skills/agentmail"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(
+        fs.stat(path.join(sourceHome, "skills/agentmail")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
       const removed = await invoke("agent-1", null);
       expect(removed.prompt).not.toContain("inline@example.test");
       expect(removed.codexHome).toBe(sourceHome);
-      await expect(fs.stat(path.join(removed.codexHome!, "skills/agentmail"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(
+        fs.stat(path.join(removed.codexHome!, "skills/agentmail")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
-      for (const key of keys) { if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; }
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
       await fs.rm(root, { recursive: true, force: true });
     }
   });
 
   it("respects an explicit CODEX_HOME config override even in worktree mode", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-codex-execute-explicit-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-execute-explicit-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "codex");
     const capturePath = path.join(root, "capture.json");
@@ -1652,7 +2049,11 @@ process.exit(1);
     const taskcoreHome = path.join(root, "taskcore-home");
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(sharedCodexHome, { recursive: true });
-    await fs.writeFile(path.join(sharedCodexHome, "auth.json"), `${fakeCodexAuthJson}\n`, "utf8");
+    await fs.writeFile(
+      path.join(sharedCodexHome, "auth.json"),
+      `${fakeCodexAuthJson}\n`,
+      "utf8",
+    );
     await writeFakeCodexCommand(commandPath);
 
     const previousHome = process.env.HOME;
@@ -1703,18 +2104,30 @@ process.exit(1);
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.codexHome).toBe(explicitCodexHome);
-      expect((await fs.lstat(path.join(explicitCodexHome, "skills", "taskcore"))).isSymbolicLink()).toBe(true);
-      await expect(fs.lstat(path.join(taskcoreHome, "instances", "worktree-1", "codex-home"))).rejects.toThrow();
+      expect(
+        (
+          await fs.lstat(path.join(explicitCodexHome, "skills", "taskcore"))
+        ).isSymbolicLink(),
+      ).toBe(true);
+      await expect(
+        fs.lstat(
+          path.join(taskcoreHome, "instances", "worktree-1", "codex-home"),
+        ),
+      ).rejects.toThrow();
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
       if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
       else process.env.TASKCORE_HOME = previousTaskcoreHome;
-      if (previousTaskcoreInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+      if (previousTaskcoreInstanceId === undefined)
+        delete process.env.TASKCORE_INSTANCE_ID;
       else process.env.TASKCORE_INSTANCE_ID = previousTaskcoreInstanceId;
-      if (previousTaskcoreInWorktree === undefined) delete process.env.TASKCORE_IN_WORKTREE;
+      if (previousTaskcoreInWorktree === undefined)
+        delete process.env.TASKCORE_IN_WORKTREE;
       else process.env.TASKCORE_IN_WORKTREE = previousTaskcoreInWorktree;
       if (previousCodexHome === undefined) delete process.env.CODEX_HOME;
       else process.env.CODEX_HOME = previousCodexHome;

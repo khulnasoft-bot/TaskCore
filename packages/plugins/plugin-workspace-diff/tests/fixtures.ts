@@ -1,6 +1,11 @@
-import type { WorkspaceDiffFile, WorkspaceDiffResponse } from "../src/contracts.js";
+import type {
+  WorkspaceDiffFile,
+  WorkspaceDiffResponse,
+} from "../src/contracts.js";
 
-export function changedFile(overrides: Partial<WorkspaceDiffFile> = {}): WorkspaceDiffFile {
+export function changedFile(
+  overrides: Partial<WorkspaceDiffFile> = {},
+): WorkspaceDiffFile {
   return {
     path: "src/app.ts",
     oldPath: null,
@@ -40,7 +45,9 @@ export function changedFile(overrides: Partial<WorkspaceDiffFile> = {}): Workspa
   };
 }
 
-export function diffResponse(overrides: Partial<WorkspaceDiffResponse> = {}): WorkspaceDiffResponse {
+export function diffResponse(
+  overrides: Partial<WorkspaceDiffResponse> = {},
+): WorkspaceDiffResponse {
   const files = overrides.files ?? [changedFile()];
   const additions = files.reduce((sum, file) => sum + file.additions, 0);
   const deletions = files.reduce((sum, file) => sum + file.deletions, 0);

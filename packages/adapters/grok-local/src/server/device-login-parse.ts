@@ -113,7 +113,11 @@ function findExactDeviceUrl(text: string): DeviceUrlMatch | null {
     if (keys.length !== 1 || keys[0] !== "user_code") continue;
     const code = parsed.searchParams.get("user_code");
     if (!code || !CODE_PATTERN.test(code)) continue;
-    return { url: parsed.toString(), code, end: (match.index ?? 0) + token.length };
+    return {
+      url: parsed.toString(),
+      code,
+      end: (match.index ?? 0) + token.length,
+    };
   }
   return null;
 }
@@ -128,13 +132,19 @@ function findExactDeviceUrl(text: string): DeviceUrlMatch | null {
  * the first non-blank line after the preamble line is not a code line.
  */
 function findStandaloneCode(text: string, fromIndex: number): string | null {
-  const preambleWindow = text.slice(fromIndex, fromIndex + MAX_URL_TO_PREAMBLE_GAP);
+  const preambleWindow = text.slice(
+    fromIndex,
+    fromIndex + MAX_URL_TO_PREAMBLE_GAP,
+  );
   const preambleIndex = preambleWindow.indexOf(CODE_PREAMBLE);
   if (preambleIndex === -1) return null;
   const preambleEnd = fromIndex + preambleIndex + CODE_PREAMBLE.length;
   const lineBreak = text.indexOf("\n", preambleEnd);
   if (lineBreak === -1) return null;
-  const codeWindow = text.slice(lineBreak + 1, lineBreak + 1 + MAX_PREAMBLE_TO_CODE_GAP);
+  const codeWindow = text.slice(
+    lineBreak + 1,
+    lineBreak + 1 + MAX_PREAMBLE_TO_CODE_GAP,
+  );
   for (const line of codeWindow.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.length === 0) continue;
@@ -154,7 +164,9 @@ function findStandaloneCode(text: string, fromIndex: number): string | null {
  * and a malformed short code. Never throws on input, and never puts the URL or
  * the code into a log or an error.
  */
-export function parseGrokDeviceLoginPrompt(text: string): DeviceLoginPrompt | null {
+export function parseGrokDeviceLoginPrompt(
+  text: string,
+): DeviceLoginPrompt | null {
   if (typeof text !== "string" || text.length === 0) return null;
   const clean = text.replace(ANSI_CSI_RE, "");
   const urlMatch = findExactDeviceUrl(clean);

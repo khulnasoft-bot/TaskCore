@@ -43,7 +43,11 @@ import { logger } from "../middleware/logger.js";
 import { pluginManifestValidator } from "./plugin-manifest-validator.js";
 import { pluginCapabilityValidator } from "./plugin-capability-validator.js";
 import { pluginRegistryService } from "./plugin-registry.js";
-import type { PluginWorkerManager, WorkerStartOptions, WorkerToHostHandlers } from "./plugin-worker-manager.js";
+import type {
+  PluginWorkerManager,
+  WorkerStartOptions,
+  WorkerToHostHandlers,
+} from "./plugin-worker-manager.js";
 import type { PluginEventBus } from "./plugin-event-bus.js";
 import type { PluginJobScheduler } from "./plugin-job-scheduler.js";
 import type { PluginJobStore } from "./plugin-job-store.js";
@@ -55,8 +59,15 @@ import { resolveBundledCatalogRoot } from "./bundled-plugins.js";
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(__dirname, "../../..");
-export const BUNDLED_LOCAL_PLUGIN_ROOT = path.join(REPO_ROOT, "packages", "plugins");
-export const STANDALONE_BUNDLED_PLUGIN_ROOT = path.join(BUNDLED_LOCAL_PLUGIN_ROOT, "sandbox-providers");
+export const BUNDLED_LOCAL_PLUGIN_ROOT = path.join(
+  REPO_ROOT,
+  "packages",
+  "plugins",
+);
+export const STANDALONE_BUNDLED_PLUGIN_ROOT = path.join(
+  BUNDLED_LOCAL_PLUGIN_ROOT,
+  "sandbox-providers",
+);
 export const LOCAL_PLUGIN_AUTOBUILD_TIMEOUT_MS = 120_000;
 const STANDALONE_BUNDLED_PLUGIN_SDK_PACKAGE = "@taskcore/plugin-sdk";
 
@@ -84,7 +95,10 @@ export const DEFAULT_LOCAL_PLUGIN_DIR = path.join(
   "plugins",
 );
 
-const DEV_TSX_LOADER_PATH = path.resolve(__dirname, "../../../cli/node_modules/tsx/dist/loader.mjs");
+const DEV_TSX_LOADER_PATH = path.resolve(
+  __dirname,
+  "../../../cli/node_modules/tsx/dist/loader.mjs",
+);
 
 /**
  * Model-provider API keys that sandbox-provider plugins (e.g.
@@ -141,11 +155,23 @@ const SANDBOX_PROVIDER_CREDENTIAL_ENV_PASSTHROUGH: Record<
   string,
   { driverKey: string; envVars: readonly string[] }
 > = {
-  "@taskcore/plugin-createos": { driverKey: "createos", envVars: ["CREATEOS_API_KEY"] },
-  "@taskcore/plugin-daytona": { driverKey: "daytona", envVars: ["DAYTONA_API_KEY"] },
+  "@taskcore/plugin-createos": {
+    driverKey: "createos",
+    envVars: ["CREATEOS_API_KEY"],
+  },
+  "@taskcore/plugin-daytona": {
+    driverKey: "daytona",
+    envVars: ["DAYTONA_API_KEY"],
+  },
   "@taskcore/plugin-e2b": { driverKey: "e2b", envVars: ["E2B_API_KEY"] },
-  "@taskcore/plugin-exe-dev": { driverKey: "exe-dev", envVars: ["EXE_API_KEY"] },
-  "@taskcore/plugin-novita-sandbox": { driverKey: "novita", envVars: ["NOVITA_API_KEY"] },
+  "@taskcore/plugin-exe-dev": {
+    driverKey: "exe-dev",
+    envVars: ["EXE_API_KEY"],
+  },
+  "@taskcore/plugin-novita-sandbox": {
+    driverKey: "novita",
+    envVars: ["NOVITA_API_KEY"],
+  },
 };
 
 export function buildPluginWorkerEnv(input: {
@@ -157,7 +183,10 @@ export function buildPluginWorkerEnv(input: {
   packagePath?: string | null;
   /** Test seam; defaults to the repo plugin tree and the bundled catalog root. */
   trustedLocalPluginRoots?: readonly string[];
-  instanceInfo: { deploymentMode?: string | null; deploymentExposure?: string | null };
+  instanceInfo: {
+    deploymentMode?: string | null;
+    deploymentExposure?: string | null;
+  };
   processEnv?: NodeJS.ProcessEnv;
 }): Record<string, string> {
   const processEnv = input.processEnv ?? process.env;
@@ -165,26 +194,36 @@ export function buildPluginWorkerEnv(input: {
     TASKCORE_DEPLOYMENT_MODE: input.instanceInfo.deploymentMode ?? "",
     TASKCORE_DEPLOYMENT_EXPOSURE: input.instanceInfo.deploymentExposure ?? "",
   };
-  const canRegisterEnvironmentDrivers = Array.isArray(input.manifest.capabilities)
-    && input.manifest.capabilities.includes("environment.drivers.register");
+  const canRegisterEnvironmentDrivers =
+    Array.isArray(input.manifest.capabilities) &&
+    input.manifest.capabilities.includes("environment.drivers.register");
   if (!canRegisterEnvironmentDrivers) return env;
 
-  const trustedLocalRoots = input.trustedLocalPluginRoots
-    ?? [BUNDLED_LOCAL_PLUGIN_ROOT, resolveBundledCatalogRoot(processEnv)];
+  const trustedLocalRoots = input.trustedLocalPluginRoots ?? [
+    BUNDLED_LOCAL_PLUGIN_ROOT,
+    resolveBundledCatalogRoot(processEnv),
+  ];
   const installOriginTrusted =
-    input.packagePath == null
-    || trustedLocalRoots.some((root) => isPathWithin(root, path.resolve(input.packagePath as string)));
-  const credentialEntry = installOriginTrusted && input.packageName
-    ? SANDBOX_PROVIDER_CREDENTIAL_ENV_PASSTHROUGH[input.packageName]
-    : undefined;
+    input.packagePath == null ||
+    trustedLocalRoots.some((root) =>
+      isPathWithin(root, path.resolve(input.packagePath as string)),
+    );
+  const credentialEntry =
+    installOriginTrusted && input.packageName
+      ? SANDBOX_PROVIDER_CREDENTIAL_ENV_PASSTHROUGH[input.packageName]
+      : undefined;
   const credentialKeys =
-    credentialEntry
-      && (input.manifest.environmentDrivers ?? []).some(
-        (driver) => driver.driverKey === credentialEntry.driverKey,
-      )
+    credentialEntry &&
+    (input.manifest.environmentDrivers ?? []).some(
+      (driver) => driver.driverKey === credentialEntry.driverKey,
+    )
       ? credentialEntry.envVars
       : [];
-  for (const key of [...ADAPTER_ENV_PASSTHROUGH, ...K8S_IN_CLUSTER_ENV_PASSTHROUGH, ...credentialKeys]) {
+  for (const key of [
+    ...ADAPTER_ENV_PASSTHROUGH,
+    ...K8S_IN_CLUSTER_ENV_PASSTHROUGH,
+    ...credentialKeys,
+  ]) {
     const value = processEnv[key];
     if (value && value.trim().length > 0) {
       env[key] = value;
@@ -219,9 +258,9 @@ export interface DiscoveredPlugin {
  * @see PLUGIN_SPEC.md §8.1 — On-Disk Layout
  */
 export type PluginSource =
-  | "local-filesystem"  // ~/.taskcore/plugins/ local directory
-  | "npm"               // npm packages matching taskcore-plugin-* convention
-  | "registry";         // future: remote plugin registry URL
+  | "local-filesystem" // ~/.taskcore/plugins/ local directory
+  | "npm" // npm packages matching taskcore-plugin-* convention
+  | "registry"; // future: remote plugin registry URL
 
 type ParsedSemver = {
   major: number;
@@ -255,9 +294,16 @@ type LocalPluginBuildCommand = {
   cwd: string;
 };
 
-function getDeclaredPageRoutePaths(manifest: TaskcorePluginManifestV1): string[] {
+function getDeclaredPageRoutePaths(
+  manifest: TaskcorePluginManifestV1,
+): string[] {
   return (manifest.ui?.slots ?? [])
-    .filter((slot): slot is PluginUiSlotDeclaration => slot.type === "page" && typeof slot.routePath === "string" && slot.routePath.length > 0)
+    .filter(
+      (slot): slot is PluginUiSlotDeclaration =>
+        slot.type === "page" &&
+        typeof slot.routePath === "string" &&
+        slot.routePath.length > 0,
+    )
     .map((slot) => slot.routePath!);
 }
 
@@ -377,7 +423,10 @@ export interface PluginRuntimeServices {
    * events.emit, config.get). Each plugin gets its own set of handlers
    * scoped to its capabilities and plugin ID.
    */
-  buildHostHandlers: (pluginId: string, manifest: TaskcorePluginManifestV1) => WorkerToHostHandlers;
+  buildHostHandlers: (
+    pluginId: string,
+    manifest: TaskcorePluginManifestV1,
+  ) => WorkerToHostHandlers;
   /**
    * Host instance information passed to the worker during initialization.
    * Includes the instance ID and host version.
@@ -546,7 +595,10 @@ export interface PluginLoader {
    *
    * @see PLUGIN_SPEC.md §25.3 — Upgrade Lifecycle
    */
-  upgradePlugin(pluginId: string, options: Omit<PluginInstallOptions, "installDir">): Promise<{
+  upgradePlugin(
+    pluginId: string,
+    options: Omit<PluginInstallOptions, "installDir">,
+  ): Promise<{
     oldManifest: TaskcorePluginManifestV1;
     newManifest: TaskcorePluginManifestV1;
     discovered: DiscoveredPlugin;
@@ -616,7 +668,10 @@ export interface PluginLoader {
    *
    * @see PLUGIN_SPEC.md §8.3 — Install Process
    */
-  loadSingle(pluginId: string, options?: PluginLoadSingleOptions): Promise<PluginLoadResult>;
+  loadSingle(
+    pluginId: string,
+    options?: PluginLoadSingleOptions,
+  ): Promise<PluginLoadResult>;
 
   /**
    * Deactivate a single plugin — stop its worker and unregister all
@@ -690,9 +745,12 @@ async function readPackageJson(
   }
 }
 
-function buildLocalPluginBuildCommand(pkgJson: Record<string, unknown>): string | null {
+function buildLocalPluginBuildCommand(
+  pkgJson: Record<string, unknown>,
+): string | null {
   const packageName = pkgJson["name"];
-  if (typeof packageName !== "string" || packageName.trim().length === 0) return null;
+  if (typeof packageName !== "string" || packageName.trim().length === 0)
+    return null;
   return `pnpm --filter ${packageName} build`;
 }
 
@@ -701,24 +759,35 @@ function readPackageDependencyNames(
   field: "dependencies" | "optionalDependencies",
 ): string[] {
   const deps = pkgJson[field];
-  if (deps === null || typeof deps !== "object" || Array.isArray(deps)) return [];
+  if (deps === null || typeof deps !== "object" || Array.isArray(deps))
+    return [];
   return Object.keys(deps as Record<string, unknown>);
 }
 
-function resolvePackageInstallPath(packageRoot: string, packageName: string): string {
+function resolvePackageInstallPath(
+  packageRoot: string,
+  packageName: string,
+): string {
   return path.join(packageRoot, "node_modules", ...packageName.split("/"));
 }
 
 function isPathWithin(root: string, target: string): boolean {
   const relativePath = path.relative(root, target);
-  return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
 }
 
 export function isRepoBundledPluginPath(
   packageRoot: string,
   options: { repoRoot?: string } = {},
 ): boolean {
-  const repoPluginsRoot = path.join(options.repoRoot ?? REPO_ROOT, "packages", "plugins");
+  const repoPluginsRoot = path.join(
+    options.repoRoot ?? REPO_ROOT,
+    "packages",
+    "plugins",
+  );
   return isPathWithin(repoPluginsRoot, packageRoot);
 }
 
@@ -727,7 +796,10 @@ export function isStandaloneBundledPluginPath(
   options: { repoRoot?: string } = {},
 ): boolean {
   const repoRoot = options.repoRoot ?? REPO_ROOT;
-  return isPathWithin(path.join(repoRoot, "packages", "plugins", "sandbox-providers"), packageRoot);
+  return isPathWithin(
+    path.join(repoRoot, "packages", "plugins", "sandbox-providers"),
+    packageRoot,
+  );
 }
 
 export function resolveDeclaredPluginEntrypoints(
@@ -736,9 +808,9 @@ export function resolveDeclaredPluginEntrypoints(
 ): PluginEntrypointPath[] {
   const taskcorePlugin = pkgJson["taskcorePlugin"];
   if (
-    taskcorePlugin === null
-    || typeof taskcorePlugin !== "object"
-    || Array.isArray(taskcorePlugin)
+    taskcorePlugin === null ||
+    typeof taskcorePlugin !== "object" ||
+    Array.isArray(taskcorePlugin)
   ) {
     return [];
   }
@@ -779,7 +851,8 @@ function listMissingStandaloneBundledPluginRuntimeDependencies(
   ]);
 
   return [...dependencyNames].filter(
-    (packageName) => !existsSync(resolvePackageInstallPath(packageRoot, packageName)),
+    (packageName) =>
+      !existsSync(resolvePackageInstallPath(packageRoot, packageName)),
   );
 }
 
@@ -788,14 +861,21 @@ function formatLocalPluginManualBuildHint(
   pkgJson: Record<string, unknown>,
   options: { processEnv?: NodeJS.ProcessEnv; repoRoot?: string } = {},
 ): string {
-  if (!isRepoBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })) return "";
+  if (!isRepoBundledPluginPath(packageRoot, { repoRoot: options.repoRoot }))
+    return "";
 
-  const manualBuildCommand = buildLocalPluginRecoveryCommand(packageRoot, pkgJson, { repoRoot: options.repoRoot });
+  const manualBuildCommand = buildLocalPluginRecoveryCommand(
+    packageRoot,
+    pkgJson,
+    { repoRoot: options.repoRoot },
+  );
   if (!manualBuildCommand) return "";
 
-  const autoBuildDisabled = (options.processEnv ?? process.env)["TASKCORE_DISABLE_PLUGIN_AUTOBUILD"] === "1"
-    ? " Auto-build is disabled by TASKCORE_DISABLE_PLUGIN_AUTOBUILD=1."
-    : "";
+  const autoBuildDisabled =
+    (options.processEnv ?? process.env)["TASKCORE_DISABLE_PLUGIN_AUTOBUILD"] ===
+    "1"
+      ? " Auto-build is disabled by TASKCORE_DISABLE_PLUGIN_AUTOBUILD=1."
+      : "";
 
   return `${autoBuildDisabled} Run \`${manualBuildCommand}\` from the repo root and retry.`;
 }
@@ -807,8 +887,15 @@ function buildStandaloneBundledPluginInstallArgs(
   // Never let plugin-supplied workspace settings broaden dependency resolution
   // or script execution. When a plugin declares a local install policy, disable
   // dependency lifecycle scripts instead of loading that workspace configuration.
-  const scriptArgs = existsSync(path.join(packageRoot, "pnpm-workspace.yaml")) ? ["--ignore-scripts"] : [];
-  return ["install", "--ignore-workspace", ...scriptArgs, existsSync(packageLockfilePath) ? "--frozen-lockfile" : "--no-lockfile"];
+  const scriptArgs = existsSync(path.join(packageRoot, "pnpm-workspace.yaml"))
+    ? ["--ignore-scripts"]
+    : [];
+  return [
+    "install",
+    "--ignore-workspace",
+    ...scriptArgs,
+    existsSync(packageLockfilePath) ? "--frozen-lockfile" : "--no-lockfile",
+  ];
 }
 
 function buildStandaloneBundledPluginInstallCommand(
@@ -822,10 +909,13 @@ function buildLocalPluginRecoveryCommand(
   pkgJson: Record<string, unknown>,
   options: { repoRoot?: string } = {},
 ): string | null {
-  if (isStandaloneBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })) {
+  if (
+    isStandaloneBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })
+  ) {
     const repoRoot = options.repoRoot ?? REPO_ROOT;
     const relativePath = path.relative(repoRoot, packageRoot) || ".";
-    const installCommand = buildStandaloneBundledPluginInstallCommand(packageRoot);
+    const installCommand =
+      buildStandaloneBundledPluginInstallCommand(packageRoot);
     return `cd ${relativePath} && ${installCommand} && pnpm build`;
   }
 
@@ -841,11 +931,14 @@ function buildLocalPluginBuildCommands(
     needsStandaloneRuntimeBootstrap?: boolean;
   } = {},
 ): LocalPluginBuildCommand[] {
-  if (isStandaloneBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })) {
+  if (
+    isStandaloneBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })
+  ) {
     const commands: LocalPluginBuildCommand[] = [];
     const shouldInstallStandaloneRuntime =
-      options.needsStandaloneRuntimeBootstrap === true
-      || (!existsSync(path.join(packageRoot, "node_modules")) && options.needsBuild !== false);
+      options.needsStandaloneRuntimeBootstrap === true ||
+      (!existsSync(path.join(packageRoot, "node_modules")) &&
+        options.needsBuild !== false);
 
     if (shouldInstallStandaloneRuntime) {
       commands.push({
@@ -866,12 +959,15 @@ function buildLocalPluginBuildCommands(
   }
 
   const packageName = pkgJson["name"];
-  if (typeof packageName !== "string" || packageName.trim().length === 0) return [];
-  return [{
-    file: "pnpm",
-    args: ["--filter", packageName, "build"],
-    cwd: options.repoRoot ?? REPO_ROOT,
-  }];
+  if (typeof packageName !== "string" || packageName.trim().length === 0)
+    return [];
+  return [
+    {
+      file: "pnpm",
+      args: ["--filter", packageName, "build"],
+      cwd: options.repoRoot ?? REPO_ROOT,
+    },
+  ];
 }
 
 export async function ensureLocalPluginBuilt(
@@ -889,17 +985,40 @@ export async function ensureLocalPluginBuilt(
 ): Promise<void> {
   const processEnv = options.processEnv ?? process.env;
   if (processEnv["TASKCORE_DISABLE_PLUGIN_AUTOBUILD"] === "1") return;
-  if (!isRepoBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })) return;
+  if (!isRepoBundledPluginPath(packageRoot, { repoRoot: options.repoRoot }))
+    return;
 
-  const missingEntrypoints = listMissingDeclaredPluginEntrypoints(packageRoot, pkgJson);
-  const missingStandaloneRuntimeDeps = isStandaloneBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })
-    ? listMissingStandaloneBundledPluginRuntimeDependencies(packageRoot, pkgJson)
+  const missingEntrypoints = listMissingDeclaredPluginEntrypoints(
+    packageRoot,
+    pkgJson,
+  );
+  const missingStandaloneRuntimeDeps = isStandaloneBundledPluginPath(
+    packageRoot,
+    { repoRoot: options.repoRoot },
+  )
+    ? listMissingStandaloneBundledPluginRuntimeDependencies(
+        packageRoot,
+        pkgJson,
+      )
     : [];
-  if (missingEntrypoints.length === 0 && missingStandaloneRuntimeDeps.length === 0) return;
+  if (
+    missingEntrypoints.length === 0 &&
+    missingStandaloneRuntimeDeps.length === 0
+  )
+    return;
 
   const packageName = pkgJson["name"];
-  const manualBuildCommand = buildLocalPluginRecoveryCommand(packageRoot, pkgJson, { repoRoot: options.repoRoot });
-  if (typeof packageName !== "string" || packageName.trim().length === 0 || !manualBuildCommand) return;
+  const manualBuildCommand = buildLocalPluginRecoveryCommand(
+    packageRoot,
+    pkgJson,
+    { repoRoot: options.repoRoot },
+  );
+  if (
+    typeof packageName !== "string" ||
+    packageName.trim().length === 0 ||
+    !manualBuildCommand
+  )
+    return;
 
   const runExecFileAsync = options.execFileAsyncImpl ?? execFileAsync;
   const buildCommands = buildLocalPluginBuildCommands(packageRoot, pkgJson, {
@@ -910,19 +1029,20 @@ export async function ensureLocalPluginBuilt(
 
   try {
     for (const command of buildCommands) {
-      await runExecFileAsync(
-        command.file,
-        command.args,
-        { cwd: command.cwd, timeout: LOCAL_PLUGIN_AUTOBUILD_TIMEOUT_MS },
-      );
+      await runExecFileAsync(command.file, command.args, {
+        cwd: command.cwd,
+        timeout: LOCAL_PLUGIN_AUTOBUILD_TIMEOUT_MS,
+      });
     }
   } catch (error) {
-    const stderr = typeof (error as { stderr?: unknown }).stderr === "string"
-      ? (error as { stderr: string }).stderr.trim()
-      : "";
-    const timeoutMessage = (error as { killed?: unknown }).killed === true
-      ? ` after timing out at ${LOCAL_PLUGIN_AUTOBUILD_TIMEOUT_MS}ms`
-      : "";
+    const stderr =
+      typeof (error as { stderr?: unknown }).stderr === "string"
+        ? (error as { stderr: string }).stderr.trim()
+        : "";
+    const timeoutMessage =
+      (error as { killed?: unknown }).killed === true
+        ? ` after timing out at ${LOCAL_PLUGIN_AUTOBUILD_TIMEOUT_MS}ms`
+        : "";
     const stderrMessage = stderr.length > 0 ? ` stderr: ${stderr}` : "";
     throw new Error(
       `Failed to auto-build bundled local plugin ${packageName}${timeoutMessage}. ` +
@@ -930,17 +1050,33 @@ export async function ensureLocalPluginBuilt(
     );
   }
 
-  const stillMissingEntrypoints = listMissingDeclaredPluginEntrypoints(packageRoot, pkgJson);
-  const stillMissingStandaloneRuntimeDeps = isStandaloneBundledPluginPath(packageRoot, { repoRoot: options.repoRoot })
-    ? listMissingStandaloneBundledPluginRuntimeDependencies(packageRoot, pkgJson)
+  const stillMissingEntrypoints = listMissingDeclaredPluginEntrypoints(
+    packageRoot,
+    pkgJson,
+  );
+  const stillMissingStandaloneRuntimeDeps = isStandaloneBundledPluginPath(
+    packageRoot,
+    { repoRoot: options.repoRoot },
+  )
+    ? listMissingStandaloneBundledPluginRuntimeDependencies(
+        packageRoot,
+        pkgJson,
+      )
     : [];
-  if (stillMissingEntrypoints.length > 0 || stillMissingStandaloneRuntimeDeps.length > 0) {
+  if (
+    stillMissingEntrypoints.length > 0 ||
+    stillMissingStandaloneRuntimeDeps.length > 0
+  ) {
     const missingDetails: string[] = [];
     if (stillMissingEntrypoints.length > 0) {
-      missingDetails.push(`built entrypoints: ${stillMissingEntrypoints.map((entrypoint) => entrypoint.key).join(", ")}`);
+      missingDetails.push(
+        `built entrypoints: ${stillMissingEntrypoints.map((entrypoint) => entrypoint.key).join(", ")}`,
+      );
     }
     if (stillMissingStandaloneRuntimeDeps.length > 0) {
-      missingDetails.push(`runtime dependencies: ${stillMissingStandaloneRuntimeDeps.join(", ")}`);
+      missingDetails.push(
+        `runtime dependencies: ${stillMissingStandaloneRuntimeDeps.join(", ")}`,
+      );
     }
     throw new Error(
       `Bundled local plugin ${packageName} is still missing ${missingDetails.join("; ")} after auto-build. ` +
@@ -1028,20 +1164,26 @@ function compareSemver(left: string, right: string): number {
     throw new Error(`Invalid semver comparison: '${left}' vs '${right}'`);
   }
 
-  const coreOrder = (
-    ["major", "minor", "patch"] as const
-  ).map((key) => leftParsed[key] - rightParsed[key]).find((delta) => delta !== 0);
+  const coreOrder = (["major", "minor", "patch"] as const)
+    .map((key) => leftParsed[key] - rightParsed[key])
+    .find((delta) => delta !== 0);
   if (coreOrder) {
     return coreOrder;
   }
 
-  if (leftParsed.prerelease.length === 0 && rightParsed.prerelease.length === 0) {
+  if (
+    leftParsed.prerelease.length === 0 &&
+    rightParsed.prerelease.length === 0
+  ) {
     return 0;
   }
   if (leftParsed.prerelease.length === 0) return 1;
   if (rightParsed.prerelease.length === 0) return -1;
 
-  const maxLength = Math.max(leftParsed.prerelease.length, rightParsed.prerelease.length);
+  const maxLength = Math.max(
+    leftParsed.prerelease.length,
+    rightParsed.prerelease.length,
+  );
   for (let index = 0; index < maxLength; index += 1) {
     const leftId = leftParsed.prerelease[index];
     const rightId = rightParsed.prerelease[index];
@@ -1055,7 +1197,9 @@ function compareSemver(left: string, right: string): number {
   return 0;
 }
 
-function getMinimumHostVersion(manifest: TaskcorePluginManifestV1): string | undefined {
+function getMinimumHostVersion(
+  manifest: TaskcorePluginManifestV1,
+): string | undefined {
   return manifest.minimumHostVersion ?? manifest.minimumTaskcoreVersion;
 }
 
@@ -1163,22 +1307,31 @@ export function pluginLoader(
   const log = logger.child({ service: "plugin-loader" });
   const hostVersion = runtimeServices?.instanceInfo.hostVersion;
 
-  async function assertPageRoutePathsAvailable(manifest: TaskcorePluginManifestV1): Promise<void> {
+  async function assertPageRoutePathsAvailable(
+    manifest: TaskcorePluginManifestV1,
+  ): Promise<void> {
     const requestedRoutePaths = getDeclaredPageRoutePaths(manifest);
     if (requestedRoutePaths.length === 0) return;
 
     const uniqueRequested = new Set(requestedRoutePaths);
     if (uniqueRequested.size !== requestedRoutePaths.length) {
-      throw new Error(`Plugin ${manifest.id} declares duplicate page routePath values`);
+      throw new Error(
+        `Plugin ${manifest.id} declares duplicate page routePath values`,
+      );
     }
 
     const installedPlugins = await registry.listInstalled();
     for (const plugin of installedPlugins) {
       if (plugin.pluginKey === manifest.id) continue;
-      const installedManifest = plugin.manifestJson as TaskcorePluginManifestV1 | null;
+      const installedManifest =
+        plugin.manifestJson as TaskcorePluginManifestV1 | null;
       if (!installedManifest) continue;
-      const installedRoutePaths = new Set(getDeclaredPageRoutePaths(installedManifest));
-      const conflictingRoute = requestedRoutePaths.find((routePath) => installedRoutePaths.has(routePath));
+      const installedRoutePaths = new Set(
+        getDeclaredPageRoutePaths(installedManifest),
+      );
+      const conflictingRoute = requestedRoutePaths.find((routePath) =>
+        installedRoutePaths.has(routePath),
+      );
       if (conflictingRoute) {
         throw new Error(
           `Plugin ${manifest.id} routePath "${conflictingRoute}" conflicts with installed plugin ${plugin.pluginKey}`,
@@ -1252,7 +1405,14 @@ export function pluginLoader(
         // executing arbitrary code on the host before manifest validation.
         await execFileAsync(
           "npm",
-          ["install", spec, "--prefix", targetInstallDir, "--save", "--ignore-scripts"],
+          [
+            "install",
+            spec,
+            "--prefix",
+            targetInstallDir,
+            "--save",
+            "--ignore-scripts",
+          ],
           { timeout: 120_000 }, // 2 minute timeout for npm install
         );
       } catch (err) {
@@ -1282,7 +1442,8 @@ export function pluginLoader(
     // Note: this.loadManifest (used via current context)
     assertPackageActivation?.({ packageRoot: resolvedPackagePath });
     const pkgJson = await readPackageJson(resolvedPackagePath);
-    if (!pkgJson) throw new Error(`Missing package.json at ${resolvedPackagePath}`);
+    if (!pkgJson)
+      throw new Error(`Missing package.json at ${resolvedPackagePath}`);
 
     if (localPath) {
       await ensureLocalPluginBuilt(resolvedPackagePath, pkgJson);
@@ -1299,10 +1460,16 @@ export function pluginLoader(
     }
 
     const manifest = await loadManifestFromPath(manifestPath);
-    assertPackageActivation?.({ packageRoot: resolvedPackagePath, pluginKey: manifest.id, manifest });
+    assertPackageActivation?.({
+      packageRoot: resolvedPackagePath,
+      pluginKey: manifest.id,
+      manifest,
+    });
 
     // Step 4: Reject incompatible plugin API versions
-    if (!manifestValidator.getSupportedVersions().includes(manifest.apiVersion)) {
+    if (
+      !manifestValidator.getSupportedVersions().includes(manifest.apiVersion)
+    ) {
       throw new Error(
         `Plugin ${manifest.id} declares apiVersion ${manifest.apiVersion} which is not supported by this host. ` +
           `Supported versions: ${manifestValidator.getSupportedVersions().join(", ")}`,
@@ -1310,7 +1477,8 @@ export function pluginLoader(
     }
 
     // Step 5: Validate manifest capabilities are consistent
-    const capResult = capabilityValidator.validateManifestCapabilities(manifest);
+    const capResult =
+      capabilityValidator.validateManifestCapabilities(manifest);
     if (!capResult.allowed) {
       throw new Error(
         `Plugin ${manifest.id} manifest has inconsistent capabilities. ` +
@@ -1356,8 +1524,11 @@ export function pluginLoader(
       // Dynamic import works for both .js (ESM) and .cjs (CJS) manifests
       const manifestUrl = pathToFileURL(manifestPath);
       const manifestStat = await stat(manifestPath);
-      manifestUrl.searchParams.set("mtime", String(Math.trunc(manifestStat.mtimeMs)));
-      const mod = await import(manifestUrl.href) as Record<string, unknown>;
+      manifestUrl.searchParams.set(
+        "mtime",
+        String(Math.trunc(manifestStat.mtimeMs)),
+      );
+      const mod = (await import(manifestUrl.href)) as Record<string, unknown>;
       // The manifest may be the default export or the module itself
       raw = mod["default"] ?? mod;
     } catch (err) {
@@ -1387,7 +1558,9 @@ export function pluginLoader(
   ): Promise<PluginRecord> {
     const manifest = await loadManifestFromPackageRoot(packageRoot);
     if (!manifest) {
-      throw new Error(`Plugin package ${plugin.packageName} no longer exposes a Taskcore manifest`);
+      throw new Error(
+        `Plugin package ${plugin.packageName} no longer exposes a Taskcore manifest`,
+      );
     }
     if (manifest.id !== plugin.pluginKey) {
       throw new Error(
@@ -1395,7 +1568,13 @@ export function pluginLoader(
       );
     }
 
-    assertPackageActivation?.({ packageRoot, installedPackagePath: plugin.packagePath, pluginKey: plugin.pluginKey, manifest, previousManifest: plugin.manifestJson });
+    assertPackageActivation?.({
+      packageRoot,
+      installedPackagePath: plugin.packagePath,
+      pluginKey: plugin.pluginKey,
+      manifest,
+      previousManifest: plugin.manifestJson,
+    });
     if (JSON.stringify(manifest) === JSON.stringify(plugin.manifestJson)) {
       return plugin;
     }
@@ -1427,8 +1606,10 @@ export function pluginLoader(
     const pkgJson = await readPackageJson(packagePath);
     if (!pkgJson) return null;
 
-    const packageName = typeof pkgJson["name"] === "string" ? pkgJson["name"] : "";
-    const version = typeof pkgJson["version"] === "string" ? pkgJson["version"] : "0.0.0";
+    const packageName =
+      typeof pkgJson["name"] === "string" ? pkgJson["name"] : "";
+    const version =
+      typeof pkgJson["version"] === "string" ? pkgJson["version"] : "0.0.0";
 
     // Determine if this is a plugin package at all
     const hasTaskcorePlugin = "taskcorePlugin" in pkgJson;
@@ -1453,7 +1634,11 @@ export function pluginLoader(
 
     try {
       const manifest = await loadManifestFromPath(manifestPath);
-      assertPackageActivation?.({ packageRoot: packagePath, pluginKey: manifest.id, manifest });
+      assertPackageActivation?.({
+        packageRoot: packagePath,
+        pluginKey: manifest.id,
+        manifest,
+      });
       return {
         packagePath,
         packageName,
@@ -1463,9 +1648,7 @@ export function pluginLoader(
       };
     } catch (err) {
       // Rethrow with context — callers catch and route to the errors array
-      throw new Error(
-        `Plugin ${packageName}: ${String(err)}`,
-      );
+      throw new Error(`Plugin ${packageName}: ${String(err)}`);
     }
   }
 
@@ -1478,9 +1661,15 @@ export function pluginLoader(
     // discoverAll
     // -----------------------------------------------------------------------
 
-    async discoverAll(npmSearchDirs?: string[]): Promise<PluginDiscoveryResult> {
+    async discoverAll(
+      npmSearchDirs?: string[],
+    ): Promise<PluginDiscoveryResult> {
       const allDiscovered: DiscoveredPlugin[] = [];
-      const allErrors: Array<{ packagePath: string; packageName: string; error: string }> = [];
+      const allErrors: Array<{
+        packagePath: string;
+        packageName: string;
+        error: string;
+      }> = [];
       const sources: PluginSource[] = [];
 
       if (enableLocalFilesystem) {
@@ -1528,10 +1717,16 @@ export function pluginLoader(
     // discoverFromLocalFilesystem
     // -----------------------------------------------------------------------
 
-    async discoverFromLocalFilesystem(dir?: string): Promise<PluginDiscoveryResult> {
+    async discoverFromLocalFilesystem(
+      dir?: string,
+    ): Promise<PluginDiscoveryResult> {
       const scanDir = dir ?? localPluginDir;
       const discovered: DiscoveredPlugin[] = [];
-      const errors: Array<{ packagePath: string; packageName: string; error: string }> = [];
+      const errors: Array<{
+        packagePath: string;
+        packageName: string;
+        error: string;
+      }> = [];
 
       if (!existsSync(scanDir)) {
         log.debug(
@@ -1545,7 +1740,10 @@ export function pluginLoader(
       try {
         entries = await readdir(scanDir);
       } catch (err) {
-        log.warn({ dir: scanDir, err }, "plugin-loader: failed to read local plugin directory");
+        log.warn(
+          { dir: scanDir, err },
+          "plugin-loader: failed to read local plugin directory",
+        );
         return { discovered, errors, sources: ["local-filesystem"] };
       }
 
@@ -1574,7 +1772,10 @@ export function pluginLoader(
             try {
               const scopedStat = await stat(scopedPath);
               if (!scopedStat.isDirectory()) continue;
-              const plugin = await buildDiscoveredPlugin(scopedPath, "local-filesystem");
+              const plugin = await buildDiscoveredPlugin(
+                scopedPath,
+                "local-filesystem",
+              );
               if (plugin) discovered.push(plugin);
             } catch (err) {
               errors.push({
@@ -1588,13 +1789,20 @@ export function pluginLoader(
         }
 
         try {
-          const plugin = await buildDiscoveredPlugin(entryPath, "local-filesystem");
+          const plugin = await buildDiscoveredPlugin(
+            entryPath,
+            "local-filesystem",
+          );
           if (plugin) discovered.push(plugin);
         } catch (err) {
           const pkgJson = await readPackageJson(entryPath);
           const packageName =
             typeof pkgJson?.["name"] === "string" ? pkgJson["name"] : entry;
-          errors.push({ packagePath: entryPath, packageName, error: String(err) });
+          errors.push({
+            packagePath: entryPath,
+            packageName,
+            error: String(err),
+          });
         }
       }
 
@@ -1610,15 +1818,22 @@ export function pluginLoader(
     // discoverFromNpm
     // -----------------------------------------------------------------------
 
-    async discoverFromNpm(searchDirs?: string[]): Promise<PluginDiscoveryResult> {
+    async discoverFromNpm(
+      searchDirs?: string[],
+    ): Promise<PluginDiscoveryResult> {
       const discovered: DiscoveredPlugin[] = [];
-      const errors: Array<{ packagePath: string; packageName: string; error: string }> = [];
+      const errors: Array<{
+        packagePath: string;
+        packageName: string;
+        error: string;
+      }> = [];
 
       // Determine the node_modules directories to search.
       // When searchDirs is undefined OR empty, fall back to the conventional
       // defaults (cwd/node_modules and localPluginDir/node_modules).
       // To search nowhere explicitly, pass a non-empty array of non-existent paths.
-      const dirsToSearch: string[] = searchDirs && searchDirs.length > 0 ? searchDirs : [];
+      const dirsToSearch: string[] =
+        searchDirs && searchDirs.length > 0 ? searchDirs : [];
 
       if (dirsToSearch.length === 0) {
         // Default: search node_modules relative to the process working directory
@@ -1688,13 +1903,21 @@ export function pluginLoader(
             const pkgJson = await readPackageJson(entryPath);
             const packageName =
               typeof pkgJson?.["name"] === "string" ? pkgJson["name"] : entry;
-            errors.push({ packagePath: entryPath, packageName, error: String(err) });
+            errors.push({
+              packagePath: entryPath,
+              packageName,
+              error: String(err),
+            });
           }
         }
       }
 
       log.debug(
-        { searchDirs: dirsToSearch, discovered: discovered.length, errors: errors.length },
+        {
+          searchDirs: dirsToSearch,
+          discovered: discovered.length,
+          errors: errors.length,
+        },
         "plugin-loader: npm discovery scan complete",
       );
 
@@ -1705,13 +1928,16 @@ export function pluginLoader(
     // loadManifest
     // -----------------------------------------------------------------------
 
-    async loadManifest(packagePath: string): Promise<TaskcorePluginManifestV1 | null> {
+    async loadManifest(
+      packagePath: string,
+    ): Promise<TaskcorePluginManifestV1 | null> {
       assertPackageActivation?.({ packageRoot: packagePath });
       const pkgJson = await readPackageJson(packagePath);
       if (!pkgJson) return null;
 
       const hasTaskcorePlugin = "taskcorePlugin" in pkgJson;
-      const packageName = typeof pkgJson["name"] === "string" ? pkgJson["name"] : "";
+      const packageName =
+        typeof pkgJson["name"] === "string" ? pkgJson["name"] : "";
       const nameMatchesConvention = isPluginPackageName(packageName);
 
       if (!hasTaskcorePlugin && !nameMatchesConvention) {
@@ -1722,7 +1948,11 @@ export function pluginLoader(
       if (!manifestPath || !existsSync(manifestPath)) return null;
 
       const manifest = await loadManifestFromPath(manifestPath);
-      assertPackageActivation?.({ packageRoot: packagePath, pluginKey: manifest.id, manifest });
+      assertPackageActivation?.({
+        packageRoot: packagePath,
+        pluginKey: manifest.id,
+        manifest,
+      });
       return manifest;
     },
 
@@ -1730,7 +1960,9 @@ export function pluginLoader(
     // installPlugin
     // -----------------------------------------------------------------------
 
-    async installPlugin(installOptions: PluginInstallOptions): Promise<DiscoveredPlugin> {
+    async installPlugin(
+      installOptions: PluginInstallOptions,
+    ): Promise<DiscoveredPlugin> {
       const discovered = await fetchAndValidate(installOptions);
       const manifest = discovered.manifest!;
 
@@ -1744,13 +1976,18 @@ export function pluginLoader(
         const installed = await txRegistry.install(
           {
             packageName: discovered.packageName,
-            packagePath: discovered.source === "local-filesystem" ? discovered.packagePath : undefined,
+            packagePath:
+              discovered.source === "local-filesystem"
+                ? discovered.packagePath
+                : undefined,
           },
           manifest,
         );
 
         if (!installed) {
-          throw new Error(`Plugin install did not return a registry row: ${manifest.id}`);
+          throw new Error(
+            `Plugin install did not return a registry row: ${manifest.id}`,
+          );
         }
 
         if (manifest.database) {
@@ -1848,7 +2085,12 @@ export function pluginLoader(
 
       if (escalated.length > 0) {
         log.warn(
-          { pluginId, escalated, oldVersion: oldManifest.version, newVersion: newManifest.version },
+          {
+            pluginId,
+            escalated,
+            oldVersion: oldManifest.version,
+            newVersion: newManifest.version,
+          },
           "plugin-loader: upgrade introduces new capabilities — requires admin approval",
         );
         throw new Error(
@@ -1886,14 +2128,20 @@ export function pluginLoader(
 
     async cleanupInstallArtifacts(plugin: PluginRecord): Promise<void> {
       const managedTargets = new Set<string>();
-      const managedNodeModulesDir = resolveManagedInstallPackageDir(localPluginDir, plugin.packageName);
+      const managedNodeModulesDir = resolveManagedInstallPackageDir(
+        localPluginDir,
+        plugin.packageName,
+      );
       const directManagedDir = path.join(localPluginDir, plugin.packageName);
 
       managedTargets.add(managedNodeModulesDir);
       if (isPathInsideDir(directManagedDir, localPluginDir)) {
         managedTargets.add(directManagedDir);
       }
-      if (plugin.packagePath && isPathInsideDir(plugin.packagePath, localPluginDir)) {
+      if (
+        plugin.packagePath &&
+        isPathInsideDir(plugin.packagePath, localPluginDir)
+      ) {
         managedTargets.add(path.resolve(plugin.packagePath));
       }
 
@@ -1902,7 +2150,13 @@ export function pluginLoader(
         try {
           await execFileAsync(
             "npm",
-            ["uninstall", plugin.packageName, "--prefix", localPluginDir, "--ignore-scripts"],
+            [
+              "uninstall",
+              plugin.packageName,
+              "--prefix",
+              localPluginDir,
+              "--ignore-scripts",
+            ],
             { timeout: 120_000 },
           );
         } catch (err) {
@@ -1965,7 +2219,9 @@ export function pluginLoader(
       log.info("plugin-loader: loading all ready plugins");
 
       // Fetch all plugins in ready status, ordered by installOrder
-      const readyPlugins = (await registry.listByStatus("ready")) as PluginRecord[];
+      const readyPlugins = (await registry.listByStatus(
+        "ready",
+      )) as PluginRecord[];
 
       // Retry plugins stranded in error status. An activation failure is often
       // environmental — missing package dependencies, a stale build output, a
@@ -1977,11 +2233,15 @@ export function pluginLoader(
       // activation: the error status only legally transitions to ready or
       // uninstalled, so a retry that failed while still in error status could
       // not re-mark itself as errored.
-      const erroredPlugins = (await registry.listByStatus("error")) as PluginRecord[];
+      const erroredPlugins = (await registry.listByStatus(
+        "error",
+      )) as PluginRecord[];
       const retriedPlugins: PluginRecord[] = [];
       for (const plugin of erroredPlugins) {
         try {
-          const flipped = (await registry.updateStatus(plugin.id, { status: "ready" })) as PluginRecord | null;
+          const flipped = (await registry.updateStatus(plugin.id, {
+            status: "ready",
+          })) as PluginRecord | null;
           if (flipped) retriedPlugins.push(flipped);
         } catch (err) {
           log.warn(
@@ -1996,7 +2256,10 @@ export function pluginLoader(
       }
       if (retriedPlugins.length > 0) {
         log.info(
-          { count: retriedPlugins.length, pluginKeys: retriedPlugins.map((plugin) => plugin.pluginKey) },
+          {
+            count: retriedPlugins.length,
+            pluginKeys: retriedPlugins.map((plugin) => plugin.pluginKey),
+          },
           "plugin-loader: retrying plugins that failed activation on a previous boot",
         );
       }
@@ -2015,7 +2278,7 @@ export function pluginLoader(
 
       // Load plugins in parallel
       const results = await Promise.allSettled(
-        pluginsToLoad.map((plugin) => activatePlugin(plugin))
+        pluginsToLoad.map((plugin) => activatePlugin(plugin)),
       );
 
       const loadResults = results.map((r, i) => {
@@ -2024,7 +2287,13 @@ export function pluginLoader(
           plugin: pluginsToLoad[i]!,
           success: false,
           error: String(r.reason),
-          registered: { worker: false, eventSubscriptions: 0, jobs: 0, webhooks: 0, tools: 0 },
+          registered: {
+            worker: false,
+            eventSubscriptions: 0,
+            jobs: 0,
+            webhooks: 0,
+            tools: 0,
+          },
         };
       });
 
@@ -2063,7 +2332,10 @@ export function pluginLoader(
      * @param options - Optional activation behavior overrides.
      * @returns A promise that resolves with the result of the activation.
      */
-    async loadSingle(pluginId: string, options: PluginLoadSingleOptions = {}): Promise<PluginLoadResult> {
+    async loadSingle(
+      pluginId: string,
+      options: PluginLoadSingleOptions = {},
+    ): Promise<PluginLoadResult> {
       if (!runtimeServices) {
         throw new Error(
           "Cannot loadSingle: no PluginRuntimeServices provided. " +
@@ -2083,12 +2355,21 @@ export function pluginLoader(
       // as that would double-start the worker and duplicate registrations.
       if (plugin.status === "installed") {
         await runtimeServices.lifecycleManager.load(pluginId);
-        const updated = (await registry.getById(pluginId)) as PluginRecord | null;
-        if (!updated) throw new Error(`Plugin not found after status update: ${pluginId}`);
+        const updated = (await registry.getById(
+          pluginId,
+        )) as PluginRecord | null;
+        if (!updated)
+          throw new Error(`Plugin not found after status update: ${pluginId}`);
         return {
           plugin: updated,
           success: true,
-          registered: { worker: true, eventSubscriptions: 0, jobs: 0, webhooks: 0, tools: 0 },
+          registered: {
+            worker: true,
+            eventSubscriptions: 0,
+            jobs: 0,
+            webhooks: 0,
+            tools: 0,
+          },
         };
       }
 
@@ -2169,12 +2450,8 @@ export function pluginLoader(
   ): Promise<void> {
     if (!runtimeServices) return;
 
-    const {
-      workerManager,
-      eventBus,
-      jobScheduler,
-      toolDispatcher,
-    } = runtimeServices;
+    const { workerManager, eventBus, jobScheduler, toolDispatcher } =
+      runtimeServices;
 
     // 1. Unregister from job scheduler (cancels in-flight runs)
     try {
@@ -2264,18 +2541,42 @@ export function pluginLoader(
       // ------------------------------------------------------------------
       // 1. Resolve worker entrypoint
       // ------------------------------------------------------------------
-      const packageRoot = resolvePluginPackageRoot(activePlugin, localPluginDir);
-      assertPackageActivation?.({ pluginKey, packageRoot, installedPackagePath: activePlugin.packagePath });
-      activePlugin = await refreshPluginManifestFromPackage(activePlugin, packageRoot);
+      const packageRoot = resolvePluginPackageRoot(
+        activePlugin,
+        localPluginDir,
+      );
+      assertPackageActivation?.({
+        pluginKey,
+        packageRoot,
+        installedPackagePath: activePlugin.packagePath,
+      });
+      activePlugin = await refreshPluginManifestFromPackage(
+        activePlugin,
+        packageRoot,
+      );
       manifest = activePlugin.manifestJson;
-      assertPackageActivation?.({ pluginKey, packageRoot, installedPackagePath: activePlugin.packagePath, manifest });
-      const workerEntrypoint = resolveWorkerEntrypoint(activePlugin, localPluginDir);
+      assertPackageActivation?.({
+        pluginKey,
+        packageRoot,
+        installedPackagePath: activePlugin.packagePath,
+        manifest,
+      });
+      const workerEntrypoint = resolveWorkerEntrypoint(
+        activePlugin,
+        localPluginDir,
+      );
 
       // ------------------------------------------------------------------
       // 2. Apply restricted database migrations before worker startup
       // ------------------------------------------------------------------
       const databaseNamespace = manifest.database
-        ? (await pluginDatabaseService(migrationDb).applyMigrations(pluginId, manifest, packageRoot))?.namespaceName ?? null
+        ? ((
+            await pluginDatabaseService(migrationDb).applyMigrations(
+              pluginId,
+              manifest,
+              packageRoot,
+            )
+          )?.namespaceName ?? null)
         : null;
 
       // ------------------------------------------------------------------
@@ -2357,10 +2658,7 @@ export function pluginLoader(
       await workerManager.startWorker(pluginId, workerOptions);
       registered.worker = true;
 
-      log.info(
-        { pluginId, pluginKey },
-        "plugin-loader: worker started",
-      );
+      log.info({ pluginId, pluginKey }, "plugin-loader: worker started");
 
       // ------------------------------------------------------------------
       // 5b. Deliver stored configuration to the freshly-started worker
@@ -2399,7 +2697,10 @@ export function pluginLoader(
             pluginKey,
             companyId: row.companyId,
             code,
-            err: configErr instanceof Error ? configErr.message : String(configErr),
+            err:
+              configErr instanceof Error
+                ? configErr.message
+                : String(configErr),
           };
           if (code === PLUGIN_RPC_ERROR_CODES.CROSS_TENANT_CONFIG) {
             log.warn(
@@ -2407,7 +2708,10 @@ export function pluginLoader(
               "plugin-loader: startup config delivery rejected — single-tenant plugin configured for multiple companies",
             );
           } else {
-            log.debug(details, "plugin-loader: startup config delivery skipped for company");
+            log.debug(
+              details,
+              "plugin-loader: startup config delivery skipped for company",
+            );
           }
         }
       }
@@ -2512,7 +2816,10 @@ export function pluginLoader(
         // lifecycle enable() path can revive it sooner by hand.
         // markError also deactivates the plugin runtime in this process.
         try {
-          await lifecycleManager.markError(pluginId, `Activation failed: ${errorMessage}`);
+          await lifecycleManager.markError(
+            pluginId,
+            `Activation failed: ${errorMessage}`,
+          );
         } catch (markErr) {
           log.error(
             {
@@ -2533,7 +2840,10 @@ export function pluginLoader(
             {
               pluginId,
               pluginKey,
-              err: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+              err:
+                cleanupErr instanceof Error
+                  ? cleanupErr.message
+                  : String(cleanupErr),
             },
             "plugin-loader: failed to tear down partially-activated plugin runtime",
           );
@@ -2574,7 +2884,10 @@ function resolveWorkerEntrypoint(
   // For local-path installs we persist the resolved package path; use it first
   if (plugin.packagePath && existsSync(plugin.packagePath)) {
     const entrypoint = path.resolve(plugin.packagePath, workerRelPath);
-    if (entrypoint.startsWith(path.resolve(plugin.packagePath)) && existsSync(entrypoint)) {
+    if (
+      entrypoint.startsWith(path.resolve(plugin.packagePath)) &&
+      existsSync(entrypoint)
+    ) {
       return entrypoint;
     }
   }
@@ -2642,7 +2955,10 @@ function resolvePluginPackageRoot(
   throw new Error(`Package root not found for plugin "${plugin.pluginKey}"`);
 }
 
-function resolveManagedInstallPackageDir(localPluginDir: string, packageName: string): string {
+function resolveManagedInstallPackageDir(
+  localPluginDir: string,
+  packageName: string,
+): string {
   if (packageName.startsWith("@")) {
     return path.join(localPluginDir, "node_modules", ...packageName.split("/"));
   }
@@ -2653,5 +2969,8 @@ function isPathInsideDir(candidatePath: string, parentDir: string): boolean {
   const resolvedCandidate = path.resolve(candidatePath);
   const resolvedParent = path.resolve(parentDir);
   const relative = path.relative(resolvedParent, resolvedCandidate);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
 }

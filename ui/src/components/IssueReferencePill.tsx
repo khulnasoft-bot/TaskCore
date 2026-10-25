@@ -1,6 +1,9 @@
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
-import type { IssueLockedStub, IssueRelationIssueSummary } from "@taskcore/shared";
+import type {
+  IssueLockedStub,
+  IssueRelationIssueSummary,
+} from "@taskcore/shared";
 import { Link } from "@/lib/router";
 import { cn } from "../lib/utils";
 import { LockedIssueChip, isLockedIssueStub } from "./LockedIssueChip";
@@ -16,8 +19,9 @@ export function IssueReferencePill({
   variant = "mention",
 }: {
   issue:
-    | (Pick<IssueRelationIssueSummary, "id" | "identifier" | "title"> &
-        { status?: string })
+    | (Pick<IssueRelationIssueSummary, "id" | "identifier" | "title"> & {
+        status?: string;
+      })
     | IssueLockedStub;
   strikethrough?: boolean;
   variant?: "mention" | "property";
@@ -28,22 +32,36 @@ export function IssueReferencePill({
 }) {
   // Private issue referenced from a visible edge — never leak a title or a link.
   if (isLockedIssueStub(issue)) {
-    return <LockedIssueChip identifier={issue.identifier} className={className} />;
+    return (
+      <LockedIssueChip identifier={issue.identifier} className={className} />
+    );
   }
   const issueLabel = issue.identifier ?? issue.title;
   const classNames = cn(
     variant === "property" || onRemove
-      ? cn(badgeVariants({ variant: "outline" }), "min-w-0 max-w-full shrink font-normal no-underline")
+      ? cn(
+          badgeVariants({ variant: "outline" }),
+          "min-w-0 max-w-full shrink font-normal no-underline",
+        )
       : "taskcore-mention-chip taskcore-mention-chip--issue inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs no-underline",
-    issue.identifier && "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
+    issue.identifier &&
+      "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
     onRemove && "pr-6",
     strikethrough && "opacity-60 line-through decoration-muted-foreground",
     className,
   );
   const content = (
     <>
-      {issue.status ? <StatusIcon status={issue.status} className="h-3 w-3 shrink-0" /> : null}
-      {children !== undefined ? children : <span className="min-w-0 truncate">{issue.identifier ?? issue.title}</span>}
+      {issue.status ? (
+        <StatusIcon status={issue.status} className="h-3 w-3 shrink-0" />
+      ) : null}
+      {children !== undefined ? (
+        children
+      ) : (
+        <span className="min-w-0 truncate">
+          {issue.identifier ?? issue.title}
+        </span>
+      )}
     </>
   );
 

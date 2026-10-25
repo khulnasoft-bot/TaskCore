@@ -1,6 +1,4 @@
-export {
-  classifyIssueGraphLiveness,
-} from "./recovery/issue-graph-liveness.js";
+export { classifyIssueGraphLiveness } from "./recovery/issue-graph-liveness.js";
 export type {
   IssueGraphLivenessInput,
   IssueLivenessAgentInput,

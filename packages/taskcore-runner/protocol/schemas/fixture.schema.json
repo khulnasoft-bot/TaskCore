@@ -23,11 +23,7 @@
       "const": 1
     },
     "protocolVersion": {
-      "enum": [
-        1,
-        2,
-        3
-      ]
+      "enum": [1, 2, 3]
     },
     "name": {
       "type": "string",

@@ -11,9 +11,25 @@ import {
 // A config copied from another provider can retain unrelated keys.
 const PROVIDER_AUTH_ENV_KEYS: Record<AiProvider, readonly string[]> = {
   google: ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GEMINI_BASE_URL"],
-  anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CONFIG_DIR", "ANTHROPIC_BASE_URL", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY"],
+  anthropic: [
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "CLAUDE_CONFIG_DIR",
+    "ANTHROPIC_BASE_URL",
+    "CLAUDE_CODE_USE_BEDROCK",
+    "CLAUDE_CODE_USE_VERTEX",
+    "CLAUDE_CODE_USE_FOUNDRY",
+  ],
   openai: ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_HOME", "OPENAI_BASE_URL"],
-  openrouter: ["OPENROUTER_API_KEY", "OPENCODE_AUTH_JSON", "OPENCODE_CONFIG_CONTENT", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR", "TASKCORE_OPENCODE_PROVIDERS"],
+  openrouter: [
+    "OPENROUTER_API_KEY",
+    "OPENCODE_AUTH_JSON",
+    "OPENCODE_CONFIG_CONTENT",
+    "OPENCODE_CONFIG",
+    "OPENCODE_CONFIG_DIR",
+    "TASKCORE_OPENCODE_PROVIDERS",
+  ],
   xai: ["XAI_API_KEY", "GROK_API_KEY", "GROK_HOME", "XAI_BASE_URL"],
 };
 
@@ -24,11 +40,20 @@ export function defaultAiConnectionForHire(
   managerBinding: unknown,
 ): AiRuntimeConnectionBinding | undefined {
   const compatible = (binding: AiConnectionBinding) =>
-    isAiConnectionCompatible(binding, adapterType, config.model, config.provider, config.acpxAgent);
+    isAiConnectionCompatible(
+      binding,
+      adapterType,
+      config.model,
+      config.provider,
+      config.acpxAgent,
+    );
   const inherited = aiRuntimeConnectionBindingSchema.safeParse(managerBinding);
   // Unmanaged parents keep their existing login and credential-reference paths.
   if (!inherited.success) return undefined;
-  const env = config.env && typeof config.env === "object" ? config.env as Record<string, unknown> : {};
+  const env =
+    config.env && typeof config.env === "object"
+      ? (config.env as Record<string, unknown>)
+      : {};
   const hasChildAuth = (provider: AiProvider) =>
     PROVIDER_AUTH_ENV_KEYS[provider].some((key) => env[key] !== undefined);
   const withChildAuthPrecedence = (binding: AiConnectionBinding) =>
@@ -38,12 +63,20 @@ export function defaultAiConnectionForHire(
     // the new agent. Never silently replace an incompatible pool with local auth.
     // OpenCode also supports explicitly configured providers whose models are
     // outside the managed OpenRouter catalog. Their auth still takes precedence.
-    const childProvider = adapterType === "opencode_local"
-      || (adapterType === "taskcore_runner" && config.provider === "opencode")
-      ? "openrouter"
-      : AI_PROVIDERS.find((provider) =>
-        compatible({ provider, method: "api_key", mode: "responsible_user" }));
-    return childProvider && hasChildAuth(childProvider) ? undefined : inherited.data;
+    const childProvider =
+      adapterType === "opencode_local" ||
+      (adapterType === "taskcore_runner" && config.provider === "opencode")
+        ? "openrouter"
+        : AI_PROVIDERS.find((provider) =>
+            compatible({
+              provider,
+              method: "api_key",
+              mode: "responsible_user",
+            }),
+          );
+    return childProvider && hasChildAuth(childProvider)
+      ? undefined
+      : inherited.data;
   }
   if (inherited.data.mode !== "delegated" && compatible(inherited.data)) {
     return withChildAuthPrecedence(inherited.data);
@@ -51,7 +84,11 @@ export function defaultAiConnectionForHire(
   // The selected provider's personal default supplies the actual sign-in method
   // at run time. A provider without an account can be connected on the first task.
   for (const provider of AI_PROVIDERS) {
-    const binding = { provider, method: "api_key", mode: "responsible_user" } as const;
+    const binding = {
+      provider,
+      method: "api_key",
+      mode: "responsible_user",
+    } as const;
     if (compatible(binding)) return withChildAuthPrecedence(binding);
   }
   return undefined;

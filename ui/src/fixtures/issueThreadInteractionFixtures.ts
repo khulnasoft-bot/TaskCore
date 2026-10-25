@@ -43,16 +43,19 @@ function resolverAudienceFields(
   | "effectiveResolverPolicySource"
   | "legacyResolverPolicyAliases"
 > {
-  const requested = overrides.requestedResolverPolicy ?? overrides.resolverPolicy ?? "anyone";
+  const requested =
+    overrides.requestedResolverPolicy ?? overrides.resolverPolicy ?? "anyone";
   const effective = overrides.effectiveResolverPolicy ?? requested;
   return {
     resolverPolicy: requested,
     requestedResolverPolicy: requested,
     effectiveResolverPolicy: effective,
     resolverPolicyProvenance:
-      overrides.resolverPolicyProvenance ?? (requested === "anyone" ? "inherited" : "explicit"),
+      overrides.resolverPolicyProvenance ??
+      (requested === "anyone" ? "inherited" : "explicit"),
     effectiveResolverPolicySource:
-      overrides.effectiveResolverPolicySource ?? (effective === requested ? "requested" : "company_cap"),
+      overrides.effectiveResolverPolicySource ??
+      (effective === requested ? "requested" : "company_cap"),
     legacyResolverPolicyAliases: overrides.legacyResolverPolicyAliases ?? {
       requested: legacyIssueThreadInteractionResolverPolicyAlias(requested),
       effective: legacyIssueThreadInteractionResolverPolicyAlias(effective),
@@ -171,12 +174,14 @@ function createAskUserQuestionsInteraction(
     resolvedAt: null,
     payload: {
       version: 1,
-      title: "Before I wire the persistence layer, which preview behavior do you want?",
+      title:
+        "Before I wire the persistence layer, which preview behavior do you want?",
       submitLabel: "Send answers",
       questions: [
         {
           id: "collapse-depth",
-          prompt: "How aggressive should the suggested-task preview collapse descendant work?",
+          prompt:
+            "How aggressive should the suggested-task preview collapse descendant work?",
           helpText:
             "We need enough context to review the tree without making the feed feel like a project plan.",
           selectionMode: "single",
@@ -190,31 +195,37 @@ function createAskUserQuestionsInteraction(
             {
               id: "collapse-all",
               label: "Collapse all descendants by default",
-              description: "Show only root tasks until the operator expands the tree.",
+              description:
+                "Show only root tasks until the operator expands the tree.",
             },
           ],
         },
         {
           id: "post-submit-summary",
-          prompt: "What should the answered-state card emphasize after submission?",
-          helpText: "Pick every summary treatment that would help future reviewers.",
+          prompt:
+            "What should the answered-state card emphasize after submission?",
+          helpText:
+            "Pick every summary treatment that would help future reviewers.",
           selectionMode: "multi",
           required: true,
           options: [
             {
               id: "answers-inline",
               label: "Inline answer pills",
-              description: "Keep the exact operator choices visible under each question.",
+              description:
+                "Keep the exact operator choices visible under each question.",
             },
             {
               id: "summary-note",
               label: "Short markdown summary",
-              description: "Add a compact narrative summary at the bottom of the card.",
+              description:
+                "Add a compact narrative summary at the bottom of the card.",
             },
             {
               id: "resolver-meta",
               label: "Resolver metadata",
-              description: "Show who answered and when without opening the raw thread.",
+              description:
+                "Show who answered and when without opening the raw thread.",
             },
           ],
         },
@@ -330,7 +341,9 @@ function createRequestCheckboxConfirmationInteraction(
   };
 }
 
-export const pendingSuggestedTasksInteraction = createSuggestTasksInteraction({});
+export const pendingSuggestedTasksInteraction = createSuggestTasksInteraction(
+  {},
+);
 
 export const acceptedSuggestedTasksInteraction = createSuggestTasksInteraction({
   id: "interaction-suggest-accepted",
@@ -388,7 +401,8 @@ export const rejectedSuggestedTasksInteraction = createSuggestTasksInteraction({
   },
 });
 
-export const pendingAskUserQuestionsInteraction = createAskUserQuestionsInteraction({});
+export const pendingAskUserQuestionsInteraction =
+  createAskUserQuestionsInteraction({});
 
 /**
  * A pending question whose last option is a first-class free-text choice
@@ -396,200 +410,212 @@ export const pendingAskUserQuestionsInteraction = createAskUserQuestionsInteract
  * acting as a dead radio, and the built-in "Other" link is suppressed
  * (PAP-419).
  */
-export const pendingAskUserQuestionsWithFreeTextOption = createAskUserQuestionsInteraction({
-  id: "interaction-questions-freetext",
-  payload: {
-    version: 1,
-    title: "How should we name the new surface?",
-    submitLabel: "Send answers",
-    questions: [
-      {
-        id: "surface-name",
-        prompt: "What should we call the new surface?",
-        selectionMode: "single",
-        required: true,
-        options: [
-          {
-            id: "keep-tasks",
-            label: "Keep calling it Tasks",
-          },
-          {
-            id: "rename-work",
-            label: "Rename it Work",
-          },
-          {
-            id: "describe-it",
-            label: "I'll describe it",
-            description: "Tell us the exact name you have in mind.",
-            freeText: true,
-          },
-        ],
-      },
-    ],
-  },
-});
-
-export const answeredAskUserQuestionsInteraction = createAskUserQuestionsInteraction({
-  id: "interaction-questions-answered",
-  status: "answered",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T14:24:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:24:00.000Z"),
-  result: {
-    version: 1,
-    answers: [
-      {
-        questionId: "collapse-depth",
-        optionIds: ["visible-root"],
-      },
-      {
-        questionId: "post-submit-summary",
-        optionIds: ["answers-inline", "summary-note", "resolver-meta"],
-      },
-    ],
-    summaryMarkdown: [
-      "- Keep visible child tasks expanded when they are part of the main review path.",
-      "- Preserve inline answer chips and resolver metadata in the answered state.",
-      "- Add a short summary note so future reviewers understand the operator's intent without replaying the form.",
-    ].join("\n"),
-  },
-});
-
-export const commentExpiredAskUserQuestionsInteraction = createAskUserQuestionsInteraction({
-  id: "interaction-questions-expired-comment",
-  status: "expired",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T14:25:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:25:00.000Z"),
-  result: {
-    version: 1,
-    answers: [],
-    expirationReason: "superseded_by_comment",
-    commentId: "22222222-2222-4222-8222-222222222222",
-    summaryMarkdown: null,
-  },
-});
-
-export const pendingRequestConfirmationInteraction = createRequestConfirmationInteraction({});
-
-export const genericPendingRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-generic-pending",
-  title: "Confirm next step",
-  summary: "The responsible needs a lightweight yes or no before continuing.",
-  continuationPolicy: "none",
-  payload: {
-    version: 1,
-    prompt: "Continue with the current approach?",
-  },
-});
-
-export const optionalDeclineRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-optional-decline",
-  continuationPolicy: "none",
-  payload: {
-    version: 1,
-    prompt: "Use the smaller implementation path?",
-    acceptLabel: "Confirm",
-    rejectLabel: "Decline",
-    rejectRequiresReason: false,
-    declineReasonPlaceholder: "Optional: tell the agent what you'd change.",
-  },
-});
-
-export const disabledDeclineReasonRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-no-decline-reason",
-  continuationPolicy: "none",
-  payload: {
-    version: 1,
-    prompt: "Close this low-risk follow-up as unnecessary?",
-    acceptLabel: "Close it",
-    rejectLabel: "Keep it",
-    allowDeclineReason: false,
-  },
-});
-
-export const acceptedRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-accepted",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T14:34:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:34:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "accepted",
-  },
-});
-
-export const planApprovalAcceptedRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-plan-accepted",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T14:34:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:34:00.000Z"),
-  payload: {
-    version: 1,
-    prompt: "Approve the plan and let the responsible start implementation?",
-    acceptLabel: "Approve plan",
-    rejectLabel: "Reject",
-    rejectRequiresReason: true,
-    declineReasonPlaceholder: "Optional: what would you like revised?",
-    target: {
-      type: "issue_document",
-      issueId: issueThreadInteractionFixtureMeta.issueId,
-      key: "plan",
-      revisionId: "11111111-1111-4111-8111-111111111111",
-      revisionNumber: 4,
+export const pendingAskUserQuestionsWithFreeTextOption =
+  createAskUserQuestionsInteraction({
+    id: "interaction-questions-freetext",
+    payload: {
+      version: 1,
+      title: "How should we name the new surface?",
+      submitLabel: "Send answers",
+      questions: [
+        {
+          id: "surface-name",
+          prompt: "What should we call the new surface?",
+          selectionMode: "single",
+          required: true,
+          options: [
+            {
+              id: "keep-tasks",
+              label: "Keep calling it Tasks",
+            },
+            {
+              id: "rename-work",
+              label: "Rename it Work",
+            },
+            {
+              id: "describe-it",
+              label: "I'll describe it",
+              description: "Tell us the exact name you have in mind.",
+              freeText: true,
+            },
+          ],
+        },
+      ],
     },
-  },
-  result: {
-    version: 1,
-    outcome: "accepted",
-  },
-});
+  });
 
-export const planApprovalResumeFailedRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  ...planApprovalAcceptedRequestConfirmationInteraction,
-  id: "interaction-confirmation-plan-resume-failed",
-  result: {
-    version: 1,
-    outcome: "accepted",
-    resumeFailure: {
-      status: "needs_attention",
-      errorCode: "adapter_failed",
-      attempt: 3,
-      maxAttempts: 3,
-      runId: "11111111-1111-4111-8111-222222222222",
-      recoveryActionId: "33333333-3333-4333-8333-333333333333",
-      updatedAt: "2026-04-20T14:45:00.000Z",
+export const answeredAskUserQuestionsInteraction =
+  createAskUserQuestionsInteraction({
+    id: "interaction-questions-answered",
+    status: "answered",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T14:24:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:24:00.000Z"),
+    result: {
+      version: 1,
+      answers: [
+        {
+          questionId: "collapse-depth",
+          optionIds: ["visible-root"],
+        },
+        {
+          questionId: "post-submit-summary",
+          optionIds: ["answers-inline", "summary-note", "resolver-meta"],
+        },
+      ],
+      summaryMarkdown: [
+        "- Keep visible child tasks expanded when they are part of the main review path.",
+        "- Preserve inline answer chips and resolver metadata in the answered state.",
+        "- Add a short summary note so future reviewers understand the operator's intent without replaying the form.",
+      ].join("\n"),
     },
-  },
-});
+  });
 
-export const rejectedRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-rejected",
-  status: "rejected",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T14:36:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:36:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "rejected",
-    reason: "Split the migration and UI work into separate reviewable steps.",
-  },
-});
+export const commentExpiredAskUserQuestionsInteraction =
+  createAskUserQuestionsInteraction({
+    id: "interaction-questions-expired-comment",
+    status: "expired",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T14:25:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:25:00.000Z"),
+    result: {
+      version: 1,
+      answers: [],
+      expirationReason: "superseded_by_comment",
+      commentId: "22222222-2222-4222-8222-222222222222",
+      summaryMarkdown: null,
+    },
+  });
 
-export const rejectedNoReasonRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-rejected-no-reason",
-  status: "rejected",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T14:37:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:37:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "rejected",
-    reason: null,
-  },
-});
+export const pendingRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({});
+
+export const genericPendingRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-generic-pending",
+    title: "Confirm next step",
+    summary: "The responsible needs a lightweight yes or no before continuing.",
+    continuationPolicy: "none",
+    payload: {
+      version: 1,
+      prompt: "Continue with the current approach?",
+    },
+  });
+
+export const optionalDeclineRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-optional-decline",
+    continuationPolicy: "none",
+    payload: {
+      version: 1,
+      prompt: "Use the smaller implementation path?",
+      acceptLabel: "Confirm",
+      rejectLabel: "Decline",
+      rejectRequiresReason: false,
+      declineReasonPlaceholder: "Optional: tell the agent what you'd change.",
+    },
+  });
+
+export const disabledDeclineReasonRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-no-decline-reason",
+    continuationPolicy: "none",
+    payload: {
+      version: 1,
+      prompt: "Close this low-risk follow-up as unnecessary?",
+      acceptLabel: "Close it",
+      rejectLabel: "Keep it",
+      allowDeclineReason: false,
+    },
+  });
+
+export const acceptedRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-accepted",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T14:34:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:34:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "accepted",
+    },
+  });
+
+export const planApprovalAcceptedRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-plan-accepted",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T14:34:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:34:00.000Z"),
+    payload: {
+      version: 1,
+      prompt: "Approve the plan and let the responsible start implementation?",
+      acceptLabel: "Approve plan",
+      rejectLabel: "Reject",
+      rejectRequiresReason: true,
+      declineReasonPlaceholder: "Optional: what would you like revised?",
+      target: {
+        type: "issue_document",
+        issueId: issueThreadInteractionFixtureMeta.issueId,
+        key: "plan",
+        revisionId: "11111111-1111-4111-8111-111111111111",
+        revisionNumber: 4,
+      },
+    },
+    result: {
+      version: 1,
+      outcome: "accepted",
+    },
+  });
+
+export const planApprovalResumeFailedRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    ...planApprovalAcceptedRequestConfirmationInteraction,
+    id: "interaction-confirmation-plan-resume-failed",
+    result: {
+      version: 1,
+      outcome: "accepted",
+      resumeFailure: {
+        status: "needs_attention",
+        errorCode: "adapter_failed",
+        attempt: 3,
+        maxAttempts: 3,
+        runId: "11111111-1111-4111-8111-222222222222",
+        recoveryActionId: "33333333-3333-4333-8333-333333333333",
+        updatedAt: "2026-04-20T14:45:00.000Z",
+      },
+    },
+  });
+
+export const rejectedRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-rejected",
+    status: "rejected",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T14:36:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:36:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "rejected",
+      reason: "Split the migration and UI work into separate reviewable steps.",
+    },
+  });
+
+export const rejectedNoReasonRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-rejected-no-reason",
+    status: "rejected",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T14:37:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:37:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "rejected",
+      reason: null,
+    },
+  });
 
 // ---------------------------------------------------------------------------
 // MCP tool-approval fixtures (PAP-13745). A `request_confirmation` carrying a
@@ -613,8 +639,8 @@ const sheetsToolActionBase: RequestConfirmationToolActionPayload = {
   appDisplayName: "Google Sheets",
   risk: "write" as const,
   previewMarkdown:
-    "Add **1 row** to the **Q3 Growth Leads** sheet:\n\n"
-    + "| Column | Value |\n| --- | --- |\n| Name | Priya Anand |\n| Company | Northwind |\n| Stage | Qualified |\n| Owner | growth-bot |",
+    "Add **1 row** to the **Q3 Growth Leads** sheet:\n\n" +
+    "| Column | Value |\n| --- | --- |\n| Name | Priya Anand |\n| Company | Northwind |\n| Stage | Qualified |\n| Owner | growth-bot |",
   argumentsSummaryJson: JSON.stringify(
     {
       spreadsheetId: "1AbC…xyz",
@@ -652,119 +678,128 @@ function createToolActionConfirmationInteraction(
   });
 }
 
-export const pendingToolActionWriteInteraction = createToolActionConfirmationInteraction({
-  id: "interaction-tool-action-pending-write",
-});
+export const pendingToolActionWriteInteraction =
+  createToolActionConfirmationInteraction({
+    id: "interaction-tool-action-pending-write",
+  });
 
-export const pendingToolActionDestructiveInteraction = createToolActionConfirmationInteraction({
-  id: "interaction-tool-action-pending-destructive",
-  toolAction: {
-    actionRequestId: "aaaaaaa5-5555-4555-8555-5555555555a5",
-    invocationId: "bbbbbbb6-6666-4666-8666-6666666666b6",
-    toolName: "google_sheets.delete_rows",
-    toolDisplayName: "Delete rows from spreadsheet",
-    risk: "destructive",
-    previewMarkdown:
-      "**Permanently delete 12 rows** (rows 30–41) from the **Q3 Growth Leads** sheet. "
-      + "This cannot be undone.",
-    argumentsSummaryJson: JSON.stringify(
-      { spreadsheetId: "1AbC…xyz", range: "Leads!A30:D41", rowCount: 12 },
-      null,
-      2,
-    ),
-    argumentsHash: "sha256:1c4e77aa90b3f2d1",
-    expiresAt: expiresInMinutes(4),
-  },
-});
-
-export const runningToolActionInteraction = createToolActionConfirmationInteraction({
-  id: "interaction-tool-action-running",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:02:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "accepted",
+export const pendingToolActionDestructiveInteraction =
+  createToolActionConfirmationInteraction({
+    id: "interaction-tool-action-pending-destructive",
     toolAction: {
-      version: 1,
-      status: "approved",
-      updatedAt: "2026-04-20T15:02:00.000Z",
+      actionRequestId: "aaaaaaa5-5555-4555-8555-5555555555a5",
+      invocationId: "bbbbbbb6-6666-4666-8666-6666666666b6",
+      toolName: "google_sheets.delete_rows",
+      toolDisplayName: "Delete rows from spreadsheet",
+      risk: "destructive",
+      previewMarkdown:
+        "**Permanently delete 12 rows** (rows 30–41) from the **Q3 Growth Leads** sheet. " +
+        "This cannot be undone.",
+      argumentsSummaryJson: JSON.stringify(
+        { spreadsheetId: "1AbC…xyz", range: "Leads!A30:D41", rowCount: 12 },
+        null,
+        2,
+      ),
+      argumentsHash: "sha256:1c4e77aa90b3f2d1",
+      expiresAt: expiresInMinutes(4),
     },
-  },
-});
+  });
 
-export const executedToolActionInteraction = createToolActionConfirmationInteraction({
-  id: "interaction-tool-action-executed",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:02:12.000Z"),
-  result: {
-    version: 1,
-    outcome: "accepted",
+export const runningToolActionInteraction =
+  createToolActionConfirmationInteraction({
+    id: "interaction-tool-action-running",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:02:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "accepted",
+      toolAction: {
+        version: 1,
+        status: "approved",
+        updatedAt: "2026-04-20T15:02:00.000Z",
+      },
+    },
+  });
+
+export const executedToolActionInteraction =
+  createToolActionConfirmationInteraction({
+    id: "interaction-tool-action-executed",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:02:12.000Z"),
+    result: {
+      version: 1,
+      outcome: "accepted",
+      toolAction: {
+        version: 1,
+        status: "executed",
+        resultSummary: "Row 42 added to “Q3 Growth Leads”.",
+        resultHref:
+          "https://docs.google.com/spreadsheets/d/1AbCxyz/edit#gid=0&range=A42",
+        updatedAt: "2026-04-20T15:02:12.000Z",
+      },
+    },
+  });
+
+export const failedToolActionInteraction =
+  createToolActionConfirmationInteraction({
+    id: "interaction-tool-action-failed",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:02:09.000Z"),
+    result: {
+      version: 1,
+      outcome: "accepted",
+      toolAction: {
+        version: 1,
+        status: "failed",
+        errorCode: "insufficient_permission",
+        errorMessage:
+          "The caller does not have permission to edit this spreadsheet (Google API 403). " +
+          "Ask the sheet owner to grant edit access to the connected account.",
+        updatedAt: "2026-04-20T15:02:09.000Z",
+      },
+    },
+  });
+
+export const declinedToolActionInteraction =
+  createToolActionConfirmationInteraction({
+    id: "interaction-tool-action-declined",
+    status: "rejected",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:01:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:01:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "rejected",
+      reason:
+        "We don't add leads to this sheet manually — use the CRM sync instead.",
+    },
+  });
+
+export const expiredToolActionInteraction =
+  createToolActionConfirmationInteraction({
+    id: "interaction-tool-action-expired",
+    status: "expired",
+    updatedAt: new Date("2026-04-20T16:00:00.000Z"),
+    resolvedAt: new Date("2026-04-20T16:00:00.000Z"),
     toolAction: {
-      version: 1,
-      status: "executed",
-      resultSummary: "Row 42 added to “Q3 Growth Leads”.",
-      resultHref: "https://docs.google.com/spreadsheets/d/1AbCxyz/edit#gid=0&range=A42",
-      updatedAt: "2026-04-20T15:02:12.000Z",
+      expiresAt: "2026-04-20T16:00:00.000Z",
     },
-  },
-});
-
-export const failedToolActionInteraction = createToolActionConfirmationInteraction({
-  id: "interaction-tool-action-failed",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:02:09.000Z"),
-  result: {
-    version: 1,
-    outcome: "accepted",
-    toolAction: {
+    result: {
       version: 1,
-      status: "failed",
-      errorCode: "insufficient_permission",
-      errorMessage:
-        "The caller does not have permission to edit this spreadsheet (Google API 403). "
-        + "Ask the sheet owner to grant edit access to the connected account.",
-      updatedAt: "2026-04-20T15:02:09.000Z",
+      outcome: "superseded_by_comment",
+      toolAction: {
+        version: 1,
+        status: "expired",
+        updatedAt: "2026-04-20T16:00:00.000Z",
+      },
     },
-  },
-});
-
-export const declinedToolActionInteraction = createToolActionConfirmationInteraction({
-  id: "interaction-tool-action-declined",
-  status: "rejected",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:01:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:01:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "rejected",
-    reason: "We don't add leads to this sheet manually — use the CRM sync instead.",
-  },
-});
-
-export const expiredToolActionInteraction = createToolActionConfirmationInteraction({
-  id: "interaction-tool-action-expired",
-  status: "expired",
-  updatedAt: new Date("2026-04-20T16:00:00.000Z"),
-  resolvedAt: new Date("2026-04-20T16:00:00.000Z"),
-  toolAction: {
-    expiresAt: "2026-04-20T16:00:00.000Z",
-  },
-  result: {
-    version: 1,
-    outcome: "superseded_by_comment",
-    toolAction: {
-      version: 1,
-      status: "expired",
-      updatedAt: "2026-04-20T16:00:00.000Z",
-    },
-  },
-});
+  });
 
 // ---------------------------------------------------------------------------
 // Secret-binding proposal fixtures. These mirror the server-owned
@@ -789,7 +824,11 @@ function createSecretProposalConfirmationInteraction(
     secretProposal?: Partial<RequestConfirmationSecretProposalPayload>;
   },
 ): RequestConfirmationInteraction {
-  const { secretProposal: secretProposalOverrides, payload, ...rest } = overrides;
+  const {
+    secretProposal: secretProposalOverrides,
+    payload,
+    ...rest
+  } = overrides;
   return createRequestConfirmationInteraction({
     id: "interaction-secret-proposal-default",
     title: undefined,
@@ -811,9 +850,10 @@ function createSecretProposalConfirmationInteraction(
   });
 }
 
-export const pendingSecretProposalInteraction = createSecretProposalConfirmationInteraction({
-  id: "interaction-secret-proposal-pending",
-});
+export const pendingSecretProposalInteraction =
+  createSecretProposalConfirmationInteraction({
+    id: "interaction-secret-proposal-pending",
+  });
 
 // ---------------------------------------------------------------------------
 // Connection-authorization fixtures (PAP-17835). Same interaction kind and the
@@ -829,7 +869,8 @@ function createConnectionAuthorizationInteraction(
   return createRequestConfirmationInteraction({
     id: "interaction-connection-authorization-default",
     title: "Connect your Gmail to continue",
-    summary: "Outreach Agent needs your Gmail identity for work running as you.",
+    summary:
+      "Outreach Agent needs your Gmail identity for work running as you.",
     createdByAgentId: "agent-codex",
     addresseeUserId: issueThreadInteractionFixtureMeta.currentUserId,
     resolverPolicy: "human_only",
@@ -858,18 +899,20 @@ function createConnectionAuthorizationInteraction(
   });
 }
 
-export const pendingConnectionAuthorizationInteraction = createConnectionAuthorizationInteraction({
-  id: "interaction-connection-authorization-pending",
-});
+export const pendingConnectionAuthorizationInteraction =
+  createConnectionAuthorizationInteraction({
+    id: "interaction-connection-authorization-pending",
+  });
 
-export const resolvedConnectionAuthorizationInteraction = createConnectionAuthorizationInteraction({
-  id: "interaction-connection-authorization-resolved",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:02:03.000Z"),
-  result: { version: 1, outcome: "accepted" },
-});
+export const resolvedConnectionAuthorizationInteraction =
+  createConnectionAuthorizationInteraction({
+    id: "interaction-connection-authorization-resolved",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:02:03.000Z"),
+    result: { version: 1, outcome: "accepted" },
+  });
 
 function createConnectionIntentInteraction(
   overrides: Partial<ConnectionIntentInteraction> = {},
@@ -914,183 +957,197 @@ function createConnectionIntentInteraction(
   };
 }
 
-export const pendingConnectionIntentInteraction = createConnectionIntentInteraction();
-export const retryConnectionIntentInteraction = createConnectionIntentInteraction({
-  id: "interaction-connection-intent-retry",
-  payload: {
-    version: 1,
-    serviceSlug: "notion",
-    serviceName: "Notion",
-    serviceLogoUrl: null,
-    requestingAgentId: "11111111-1111-4111-8111-111111111111",
-    requestingAgentName: "Researcher",
-    phase: "needs_retry",
-  },
-});
-export const authorizingConnectionIntentInteraction = createConnectionIntentInteraction({
-  id: "interaction-connection-intent-authorizing",
-  payload: {
-    version: 1,
-    serviceSlug: "notion",
-    serviceName: "Notion",
-    serviceLogoUrl: null,
-    requestingAgentId: "11111111-1111-4111-8111-111111111111",
-    requestingAgentName: "Researcher",
-    phase: "authorizing",
-  },
-});
-export const connectedConnectionIntentInteraction = createConnectionIntentInteraction({
-  id: "interaction-connection-intent-connected",
-  status: "accepted",
-  result: {
-    version: 1,
-    outcome: "connected",
-    connectionId: "22222222-2222-4222-8222-222222222222",
-  },
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
-});
-export const declinedConnectionIntentInteraction = createConnectionIntentInteraction({
-  id: "interaction-connection-intent-declined",
-  status: "rejected",
-  result: { version: 1, outcome: "declined", reason: "Not right now" },
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
-});
-export const supersededConnectionIntentInteraction = createConnectionIntentInteraction({
-  id: "interaction-connection-intent-superseded",
-  status: "expired",
-  result: { version: 1, outcome: "superseded" },
-  resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
-});
-export const expiredConnectionIntentInteraction = createConnectionIntentInteraction({
-  id: "interaction-connection-intent-expired",
-  status: "expired",
-  result: { version: 1, outcome: "expired" },
-  resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
-});
-
-export const executedSecretProposalInteraction = createSecretProposalConfirmationInteraction({
-  id: "interaction-secret-proposal-executed",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:02:03.000Z"),
-  result: {
-    version: 1,
-    outcome: "accepted",
-    secretProposal: {
+export const pendingConnectionIntentInteraction =
+  createConnectionIntentInteraction();
+export const retryConnectionIntentInteraction =
+  createConnectionIntentInteraction({
+    id: "interaction-connection-intent-retry",
+    payload: {
       version: 1,
-      status: "executed",
-      updatedAt: "2026-04-20T15:02:03.000Z",
+      serviceSlug: "notion",
+      serviceName: "Notion",
+      serviceLogoUrl: null,
+      requestingAgentId: "11111111-1111-4111-8111-111111111111",
+      requestingAgentName: "Researcher",
+      phase: "needs_retry",
     },
-  },
-});
-
-export const failedSecretProposalInteraction = createSecretProposalConfirmationInteraction({
-  id: "interaction-secret-proposal-failed",
-  status: "accepted",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:02:03.000Z"),
-  result: {
-    version: 1,
-    outcome: "accepted",
-    secretProposal: {
+  });
+export const authorizingConnectionIntentInteraction =
+  createConnectionIntentInteraction({
+    id: "interaction-connection-intent-authorizing",
+    payload: {
       version: 1,
-      status: "failed",
-      errorCode: "binding_snapshot_stale",
-      updatedAt: "2026-04-20T15:02:03.000Z",
+      serviceSlug: "notion",
+      serviceName: "Notion",
+      serviceLogoUrl: null,
+      requestingAgentId: "11111111-1111-4111-8111-111111111111",
+      requestingAgentName: "Researcher",
+      phase: "authorizing",
     },
-  },
-});
-
-export const rejectedSecretProposalInteraction = createSecretProposalConfirmationInteraction({
-  id: "interaction-secret-proposal-rejected",
-  status: "rejected",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:02:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "rejected",
-    reason: "Use the project-scoped credential instead.",
-    secretProposal: {
+  });
+export const connectedConnectionIntentInteraction =
+  createConnectionIntentInteraction({
+    id: "interaction-connection-intent-connected",
+    status: "accepted",
+    result: {
       version: 1,
-      status: "rejected",
-      updatedAt: "2026-04-20T15:02:00.000Z",
+      outcome: "connected",
+      connectionId: "22222222-2222-4222-8222-222222222222",
     },
-  },
-});
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
+  });
+export const declinedConnectionIntentInteraction =
+  createConnectionIntentInteraction({
+    id: "interaction-connection-intent-declined",
+    status: "rejected",
+    result: { version: 1, outcome: "declined", reason: "Not right now" },
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
+  });
+export const supersededConnectionIntentInteraction =
+  createConnectionIntentInteraction({
+    id: "interaction-connection-intent-superseded",
+    status: "expired",
+    result: { version: 1, outcome: "superseded" },
+    resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
+  });
+export const expiredConnectionIntentInteraction =
+  createConnectionIntentInteraction({
+    id: "interaction-connection-intent-expired",
+    status: "expired",
+    result: { version: 1, outcome: "expired" },
+    resolvedAt: new Date("2026-04-20T15:12:00.000Z"),
+  });
 
-export const expiredSecretProposalInteraction = createSecretProposalConfirmationInteraction({
-  id: "interaction-secret-proposal-expired",
-  status: "expired",
-  resolvedAt: new Date("2026-05-04T15:02:00.000Z"),
-  updatedAt: new Date("2026-05-04T15:02:00.000Z"),
-  secretProposal: { expiresAt: "2026-05-04T15:02:00.000Z" },
-  result: {
-    version: 1,
-    outcome: "superseded_by_newer_request",
-    secretProposal: {
+export const executedSecretProposalInteraction =
+  createSecretProposalConfirmationInteraction({
+    id: "interaction-secret-proposal-executed",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:02:03.000Z"),
+    result: {
       version: 1,
-      status: "expired",
-      updatedAt: "2026-05-04T15:02:00.000Z",
+      outcome: "accepted",
+      secretProposal: {
+        version: 1,
+        status: "executed",
+        updatedAt: "2026-04-20T15:02:03.000Z",
+      },
     },
-  },
-});
+  });
 
-export const commentExpiredRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-expired-comment",
-  status: "expired",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T14:38:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:38:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "superseded_by_comment",
-    commentId: "22222222-2222-4222-8222-222222222222",
-  },
-});
-
-export const staleTargetRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-expired-target",
-  status: "expired",
-  resolvedByAgentId: "agent-codex",
-  resolvedAt: new Date("2026-04-20T14:40:00.000Z"),
-  updatedAt: new Date("2026-04-20T14:40:00.000Z"),
-  payload: {
-    version: 1,
-    prompt: "Approve the plan and let the responsible start implementation?",
-    acceptLabel: "Approve plan",
-    rejectLabel: "Request revisions",
-    rejectRequiresReason: true,
-    target: {
-      type: "issue_document",
-      issueId: issueThreadInteractionFixtureMeta.issueId,
-      key: "plan",
-      revisionId: "44444444-4444-4444-8444-444444444444",
-      revisionNumber: 4,
+export const failedSecretProposalInteraction =
+  createSecretProposalConfirmationInteraction({
+    id: "interaction-secret-proposal-failed",
+    status: "accepted",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:02:03.000Z"),
+    result: {
+      version: 1,
+      outcome: "accepted",
+      secretProposal: {
+        version: 1,
+        status: "failed",
+        errorCode: "binding_snapshot_stale",
+        updatedAt: "2026-04-20T15:02:03.000Z",
+      },
     },
-  },
-  result: {
-    version: 1,
-    outcome: "stale_target",
-    staleTarget: {
-      type: "issue_document",
-      issueId: issueThreadInteractionFixtureMeta.issueId,
-      key: "plan",
-      revisionId: "11111111-1111-4111-8111-111111111111",
-      revisionNumber: 3,
-    },
-  },
-});
+  });
 
-export const failedRequestConfirmationInteraction = createRequestConfirmationInteraction({
-  id: "interaction-confirmation-failed",
-  status: "failed",
-  updatedAt: new Date("2026-04-20T14:42:00.000Z"),
-});
+export const rejectedSecretProposalInteraction =
+  createSecretProposalConfirmationInteraction({
+    id: "interaction-secret-proposal-rejected",
+    status: "rejected",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:02:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:02:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "rejected",
+      reason: "Use the project-scoped credential instead.",
+      secretProposal: {
+        version: 1,
+        status: "rejected",
+        updatedAt: "2026-04-20T15:02:00.000Z",
+      },
+    },
+  });
+
+export const expiredSecretProposalInteraction =
+  createSecretProposalConfirmationInteraction({
+    id: "interaction-secret-proposal-expired",
+    status: "expired",
+    resolvedAt: new Date("2026-05-04T15:02:00.000Z"),
+    updatedAt: new Date("2026-05-04T15:02:00.000Z"),
+    secretProposal: { expiresAt: "2026-05-04T15:02:00.000Z" },
+    result: {
+      version: 1,
+      outcome: "superseded_by_newer_request",
+      secretProposal: {
+        version: 1,
+        status: "expired",
+        updatedAt: "2026-05-04T15:02:00.000Z",
+      },
+    },
+  });
+
+export const commentExpiredRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-expired-comment",
+    status: "expired",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T14:38:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:38:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "superseded_by_comment",
+      commentId: "22222222-2222-4222-8222-222222222222",
+    },
+  });
+
+export const staleTargetRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-expired-target",
+    status: "expired",
+    resolvedByAgentId: "agent-codex",
+    resolvedAt: new Date("2026-04-20T14:40:00.000Z"),
+    updatedAt: new Date("2026-04-20T14:40:00.000Z"),
+    payload: {
+      version: 1,
+      prompt: "Approve the plan and let the responsible start implementation?",
+      acceptLabel: "Approve plan",
+      rejectLabel: "Request revisions",
+      rejectRequiresReason: true,
+      target: {
+        type: "issue_document",
+        issueId: issueThreadInteractionFixtureMeta.issueId,
+        key: "plan",
+        revisionId: "44444444-4444-4444-8444-444444444444",
+        revisionNumber: 4,
+      },
+    },
+    result: {
+      version: 1,
+      outcome: "stale_target",
+      staleTarget: {
+        type: "issue_document",
+        issueId: issueThreadInteractionFixtureMeta.issueId,
+        key: "plan",
+        revisionId: "11111111-1111-4111-8111-111111111111",
+        revisionNumber: 3,
+      },
+    },
+  });
+
+export const failedRequestConfirmationInteraction =
+  createRequestConfirmationInteraction({
+    id: "interaction-confirmation-failed",
+    status: "failed",
+    updatedAt: new Date("2026-04-20T14:42:00.000Z"),
+  });
 
 // --- P4 governance / lifecycle card states (PAP-15427) ---
 
@@ -1114,7 +1171,8 @@ export const notCreatorRequestConfirmationInteraction =
   createRequestConfirmationInteraction({
     id: "interaction-confirmation-not-creator",
     title: "Independent review of the migration plan",
-    summary: "Asked for a second pair of eyes, so the agent that wrote the plan cannot approve it.",
+    summary:
+      "Asked for a second pair of eyes, so the agent that wrote the plan cannot approve it.",
     requestedResolverPolicy: "not_creator",
   });
 
@@ -1123,7 +1181,8 @@ export const humanOnlyRequestConfirmationInteraction =
   createRequestConfirmationInteraction({
     id: "interaction-confirmation-human-only",
     title: "Approve the customer-facing announcement",
-    summary: "Reserved for a human on the board because it commits the organization publicly.",
+    summary:
+      "Reserved for a human on the board because it commits the organization publicly.",
     requestedResolverPolicy: "human_only",
   });
 
@@ -1132,7 +1191,8 @@ export const companyCappedRequestConfirmationInteraction =
   createRequestConfirmationInteraction({
     id: "interaction-confirmation-company-capped",
     title: "Confirm the data retention change",
-    summary: "Asked for an open audience; the organization caps this kind at a human decision.",
+    summary:
+      "Asked for an open audience; the organization caps this kind at a human decision.",
     requestedResolverPolicy: "anyone",
     effectiveResolverPolicy: "human_only",
     effectiveResolverPolicySource: "company_cap",
@@ -1143,7 +1203,8 @@ export const legacyRestrictedRequestConfirmationInteraction =
   createRequestConfirmationInteraction({
     id: "interaction-confirmation-legacy-restricted",
     title: "Confirm the archived cleanup batch",
-    summary: "Created before Anyone became the default, so it stays restricted until re-created.",
+    summary:
+      "Created before Anyone became the default, so it stays restricted until re-created.",
     requestedResolverPolicy: "not_creator",
     resolverPolicyProvenance: "legacy_inherited_restriction",
   });
@@ -1213,10 +1274,26 @@ export const boundedRequestCheckboxConfirmationInteraction =
       prompt: "Which regions should we deploy to initially?",
       detailsMarkdown: "Select at least 2 and at most 3 regions.",
       options: [
-        { id: "us-west", label: "US West (Oregon)", description: "Lowest latency for our primary user base." },
-        { id: "us-east", label: "US East (Virginia)", description: "Redundancy and east coast coverage." },
-        { id: "eu-west", label: "EU West (Ireland)", description: "GDPR compliance and European users." },
-        { id: "ap-southeast", label: "AP Southeast (Singapore)", description: "Asia-Pacific expansion." },
+        {
+          id: "us-west",
+          label: "US West (Oregon)",
+          description: "Lowest latency for our primary user base.",
+        },
+        {
+          id: "us-east",
+          label: "US East (Virginia)",
+          description: "Redundancy and east coast coverage.",
+        },
+        {
+          id: "eu-west",
+          label: "EU West (Ireland)",
+          description: "GDPR compliance and European users.",
+        },
+        {
+          id: "ap-southeast",
+          label: "AP Southeast (Singapore)",
+          description: "Asia-Pacific expansion.",
+        },
       ],
       defaultSelectedOptionIds: ["us-west", "us-east"],
       minSelected: 2,
@@ -1247,9 +1324,10 @@ const manyOptionList = Array.from({ length: 100 }, (_, index) => {
   return {
     id: `record-${number}`,
     label: `Customer record #${number}`,
-    description: number % 4 === 0
-      ? "Flagged as a possible duplicate during the last import."
-      : undefined,
+    description:
+      number % 4 === 0
+        ? "Flagged as a possible duplicate during the last import."
+        : undefined,
   };
 });
 
@@ -1257,11 +1335,13 @@ export const manyOptionsRequestCheckboxConfirmationInteraction =
   createRequestCheckboxConfirmationInteraction({
     id: "interaction-checkbox-many",
     title: "Select the customer records to archive",
-    summary: "The cleanup job found 100 stale customer records. Confirm which ones to archive.",
+    summary:
+      "The cleanup job found 100 stale customer records. Confirm which ones to archive.",
     payload: {
       version: 1,
       prompt: "Check every customer record you want archived.",
-      detailsMarkdown: "The list scrolls. Use Select all / Clear selection to move quickly.",
+      detailsMarkdown:
+        "The list scrolls. Use Select all / Clear selection to move quickly.",
       options: manyOptionList,
       defaultSelectedOptionIds: [],
       minSelected: 0,
@@ -1298,7 +1378,8 @@ export const rejectedRequestCheckboxConfirmationInteraction =
     result: {
       version: 1,
       outcome: "rejected",
-      reason: "Don't delete anything yet — let me confirm with the data owner first.",
+      reason:
+        "Don't delete anything yet — let me confirm with the data owner first.",
     },
   });
 
@@ -1371,35 +1452,40 @@ function createRequestItemVerdictsInteraction(
           id: "post-spring-recap",
           label: "Spring launch recap",
           description: "820 words · product marketing",
-          previewMarkdown: "**Spring launch recap** — a warm retrospective on the Q1 launch and what shipped.",
+          previewMarkdown:
+            "**Spring launch recap** — a warm retrospective on the Q1 launch and what shipped.",
           href: "/PAP/issues/PAP-9001",
         },
         {
           id: "post-changelog-digest",
           label: "Monthly changelog digest",
           description: "540 words · engineering",
-          previewMarkdown: "A tidy digest of the month's shipped changes, grouped by area.",
+          previewMarkdown:
+            "A tidy digest of the month's shipped changes, grouped by area.",
           href: "/PAP/issues/PAP-9002",
         },
         {
           id: "post-founder-note",
           label: "Founder's note on reliability",
           description: "1,100 words · leadership",
-          previewMarkdown: "A candid note on the reliability push and the road ahead.",
+          previewMarkdown:
+            "A candid note on the reliability push and the road ahead.",
           href: "/PAP/issues/PAP-9003",
         },
         {
           id: "post-customer-story",
           label: "Customer story: Northwind",
           description: "760 words · customer marketing",
-          previewMarkdown: "How Northwind cut review time in half with the new workflow.",
+          previewMarkdown:
+            "How Northwind cut review time in half with the new workflow.",
           href: "/PAP/issues/PAP-9004",
         },
         {
           id: "post-hiring-push",
           label: "We're hiring: platform engineers",
           description: "420 words · recruiting",
-          previewMarkdown: "An open call for platform engineers to join the team.",
+          previewMarkdown:
+            "An open call for platform engineers to join the team.",
           href: "/PAP/issues/PAP-9005",
         },
       ],
@@ -1416,111 +1502,115 @@ function createRequestItemVerdictsInteraction(
 }
 
 /** S1 — expanded, all pending. */
-export const pendingRequestItemVerdictsInteraction = createRequestItemVerdictsInteraction({});
+export const pendingRequestItemVerdictsInteraction =
+  createRequestItemVerdictsInteraction({});
 
 /** S3/S4 — partial: two items applied (one approved, one rejected), three still actionable. */
-export const partialRequestItemVerdictsInteraction = createRequestItemVerdictsInteraction({
-  id: "interaction-verdicts-partial",
-  updatedAt: new Date("2026-04-20T15:08:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "resolved",
-    complete: false,
-    items: [
-      {
-        id: "post-spring-recap",
-        verdict: "approve",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
-      },
-      {
-        id: "post-changelog-digest",
-        verdict: "reject",
-        reason: "Tone is off-brand — too dry. Warm it up and re-submit.",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
-      },
-    ],
-  },
-});
+export const partialRequestItemVerdictsInteraction =
+  createRequestItemVerdictsInteraction({
+    id: "interaction-verdicts-partial",
+    updatedAt: new Date("2026-04-20T15:08:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "resolved",
+      complete: false,
+      items: [
+        {
+          id: "post-spring-recap",
+          verdict: "approve",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
+        },
+        {
+          id: "post-changelog-digest",
+          verdict: "reject",
+          reason: "Tone is off-brand — too dry. Warm it up and re-submit.",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
+        },
+      ],
+    },
+  });
 
 /** S5 — complete: every item has a terminal verdict. */
-export const completeRequestItemVerdictsInteraction = createRequestItemVerdictsInteraction({
-  id: "interaction-verdicts-complete",
-  status: "answered",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:14:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "resolved",
-    complete: true,
-    items: [
-      {
-        id: "post-spring-recap",
-        verdict: "approve",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
-      },
-      {
-        id: "post-changelog-digest",
-        verdict: "reject",
-        reason: "Tone is off-brand — too dry. Warm it up and re-submit.",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
-      },
-      {
-        id: "post-founder-note",
-        verdict: "approve",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
-      },
-      {
-        id: "post-customer-story",
-        verdict: "approve",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
-      },
-      {
-        id: "post-hiring-push",
-        verdict: "reject",
-        reason: "Hold the recruiting post until the req is approved.",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
-      },
-    ],
-  },
-});
+export const completeRequestItemVerdictsInteraction =
+  createRequestItemVerdictsInteraction({
+    id: "interaction-verdicts-complete",
+    status: "answered",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:14:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "resolved",
+      complete: true,
+      items: [
+        {
+          id: "post-spring-recap",
+          verdict: "approve",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
+        },
+        {
+          id: "post-changelog-digest",
+          verdict: "reject",
+          reason: "Tone is off-brand — too dry. Warm it up and re-submit.",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
+        },
+        {
+          id: "post-founder-note",
+          verdict: "approve",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
+        },
+        {
+          id: "post-customer-story",
+          verdict: "approve",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
+        },
+        {
+          id: "post-hiring-push",
+          verdict: "reject",
+          reason: "Hold the recruiting post until the req is approved.",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:14:00.000Z"),
+        },
+      ],
+    },
+  });
 
 /** S6 — superseded by a later comment after two items were already applied. */
-export const supersededRequestItemVerdictsInteraction = createRequestItemVerdictsInteraction({
-  id: "interaction-verdicts-superseded",
-  status: "expired",
-  resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-  resolvedAt: new Date("2026-04-20T15:16:00.000Z"),
-  updatedAt: new Date("2026-04-20T15:16:00.000Z"),
-  result: {
-    version: 1,
-    outcome: "superseded_by_comment",
-    complete: false,
-    commentId: "33333333-3333-4333-8333-333333333333",
-    items: [
-      {
-        id: "post-spring-recap",
-        verdict: "approve",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
-      },
-      {
-        id: "post-changelog-digest",
-        verdict: "reject",
-        reason: "Tone is off-brand — too dry. Warm it up and re-submit.",
-        resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
-        resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
-      },
-    ],
-  },
-});
+export const supersededRequestItemVerdictsInteraction =
+  createRequestItemVerdictsInteraction({
+    id: "interaction-verdicts-superseded",
+    status: "expired",
+    resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+    resolvedAt: new Date("2026-04-20T15:16:00.000Z"),
+    updatedAt: new Date("2026-04-20T15:16:00.000Z"),
+    result: {
+      version: 1,
+      outcome: "superseded_by_comment",
+      complete: false,
+      commentId: "33333333-3333-4333-8333-333333333333",
+      items: [
+        {
+          id: "post-spring-recap",
+          verdict: "approve",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
+        },
+        {
+          id: "post-changelog-digest",
+          verdict: "reject",
+          reason: "Tone is off-brand — too dry. Warm it up and re-submit.",
+          resolvedByUserId: issueThreadInteractionFixtureMeta.currentUserId,
+          resolvedAt: new Date("2026-04-20T15:08:00.000Z"),
+        },
+      ],
+    },
+  });
 
 /** S7 — long list (24 items) that virtualizes/paginates in the expanded view. */
 const manyVerdictItems = Array.from({ length: 24 }, (_, index) => {
@@ -1532,22 +1622,25 @@ const manyVerdictItems = Array.from({ length: 24 }, (_, index) => {
   };
 });
 
-export const manyItemsRequestItemVerdictsInteraction = createRequestItemVerdictsInteraction({
-  id: "interaction-verdicts-many",
-  title: "Review 24 generated posts",
-  summary: "A batch-generation task produced 24 posts. Decide them in passes; the card stays until all are decided.",
-  payload: {
-    version: 1,
-    prompt: "Review the 24 posts this batch produced.",
-    detailsMarkdown: "The expanded list scrolls. Approve all to accept the batch, or decide item by item.",
-    items: manyVerdictItems,
-    verdicts: ["approve", "reject"],
-    requireReasonOn: ["reject"],
-    reasonLabel: "Why reject?",
-    allowBulkApprove: true,
-    supersedeOnUserComment: true,
-  },
-});
+export const manyItemsRequestItemVerdictsInteraction =
+  createRequestItemVerdictsInteraction({
+    id: "interaction-verdicts-many",
+    title: "Review 24 generated posts",
+    summary:
+      "A batch-generation task produced 24 posts. Decide them in passes; the card stays until all are decided.",
+    payload: {
+      version: 1,
+      prompt: "Review the 24 posts this batch produced.",
+      detailsMarkdown:
+        "The expanded list scrolls. Approve all to accept the batch, or decide item by item.",
+      items: manyVerdictItems,
+      verdicts: ["approve", "reject"],
+      requireReasonOn: ["reject"],
+      reasonLabel: "Why reject?",
+      allowBulkApprove: true,
+      supersedeOnUserComment: true,
+    },
+  });
 
 export const issueThreadInteractionComments: IssueChatComment[] = [
   createComment({
@@ -1623,21 +1716,44 @@ export const mixedIssueThreadInteractions = [
   pendingAskUserQuestionsInteraction,
 ];
 
-
-export const pendingConnectionAccessInteraction = createConnectionIntentInteraction({
-  id: "interaction-connection-access",
-  title: "Grant Composio access to Researcher?",
-  payload: { ...pendingConnectionIntentInteraction.payload, serviceSlug: "composio", serviceName: "Composio",
-    serviceLogoUrl: "/brands/apps/composio.svg",
-    accessRequest: { connectionId: "22222222-2222-4222-8222-222222222222", connectionName: "My Composio",
-      tools: [
-        { catalogEntryId: "33333333-3333-4333-8333-333333333333", toolName: "COMPOSIO_SEARCH_TOOLS", versionHash: "fixture-v1", permission: "allowed" },
-        { catalogEntryId: "44444444-4444-4444-8444-444444444444", toolName: "COMPOSIO_MANAGE_CONNECTIONS", versionHash: "fixture-v1", permission: "ask_first" },
-      ],
+export const pendingConnectionAccessInteraction =
+  createConnectionIntentInteraction({
+    id: "interaction-connection-access",
+    title: "Grant Composio access to Researcher?",
+    payload: {
+      ...pendingConnectionIntentInteraction.payload,
+      serviceSlug: "composio",
+      serviceName: "Composio",
+      serviceLogoUrl: "/brands/apps/composio.svg",
+      accessRequest: {
+        connectionId: "22222222-2222-4222-8222-222222222222",
+        connectionName: "My Composio",
+        tools: [
+          {
+            catalogEntryId: "33333333-3333-4333-8333-333333333333",
+            toolName: "COMPOSIO_SEARCH_TOOLS",
+            versionHash: "fixture-v1",
+            permission: "allowed",
+          },
+          {
+            catalogEntryId: "44444444-4444-4444-8444-444444444444",
+            toolName: "COMPOSIO_MANAGE_CONNECTIONS",
+            versionHash: "fixture-v1",
+            permission: "ask_first",
+          },
+        ],
+      },
     },
-  },
-});
-export const grantedConnectionAccessInteraction = createConnectionIntentInteraction({
-  ...pendingConnectionAccessInteraction, id: "interaction-connection-access-granted", status: "accepted",
-  result: { version: 1, outcome: "connected", connectionId: pendingConnectionAccessInteraction.payload.accessRequest!.connectionId },
-});
+  });
+export const grantedConnectionAccessInteraction =
+  createConnectionIntentInteraction({
+    ...pendingConnectionAccessInteraction,
+    id: "interaction-connection-access-granted",
+    status: "accepted",
+    result: {
+      version: 1,
+      outcome: "connected",
+      connectionId:
+        pendingConnectionAccessInteraction.payload.accessRequest!.connectionId,
+    },
+  });

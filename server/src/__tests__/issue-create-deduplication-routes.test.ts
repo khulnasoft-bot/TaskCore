@@ -25,7 +25,9 @@ import {
 } from "../services/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -37,10 +39,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("issue create deduplication routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-create-deduplication-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-create-deduplication-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -78,12 +84,15 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
   }
 
   async function seedParent(companyId: string) {
-    const [parent] = await db.insert(issues).values({
-      companyId,
-      title: "Parent issue",
-      status: "todo",
-      priority: "medium",
-    }).returning();
+    const [parent] = await db
+      .insert(issues)
+      .values({
+        companyId,
+        title: "Parent issue",
+        status: "todo",
+        priority: "medium",
+      })
+      .returning();
     return parent;
   }
 
@@ -94,7 +103,11 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
 
     const first = await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ parentId: parent.id, title: "Prepare release", idempotencyKey: "run-1:prepare-release" })
+      .send({
+        parentId: parent.id,
+        title: "Prepare release",
+        idempotencyKey: "run-1:prepare-release",
+      })
       .expect(201);
     const replay = await request(app)
       .post(`/api/companies/${companyId}/issues`)
@@ -122,7 +135,8 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
     const oldIssueId = randomUUID();
     const idempotencyKey = "run-1:expired-retry";
     const expiredCreatedAt = new Date(
-      Date.now() - (ISSUE_CREATE_IDEMPOTENCY_KEY_RETENTION_DAYS + 1) * 24 * 60 * 60 * 1000,
+      Date.now() -
+        (ISSUE_CREATE_IDEMPOTENCY_KEY_RETENTION_DAYS + 1) * 24 * 60 * 60 * 1000,
     );
     await db.insert(issues).values({
       id: oldIssueId,
@@ -141,7 +155,11 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
 
     const recreated = await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ parentId: parent.id, title: "Expired retry creates new work", idempotencyKey })
+      .send({
+        parentId: parent.id,
+        title: "Expired retry creates new work",
+        idempotencyKey,
+      })
       .expect(201);
 
     const rows = await db.select().from(issueCreateIdempotencyKeys);
@@ -183,7 +201,11 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
     const [keyed, titleOnly] = await Promise.all([
       request(app)
         .post(`/api/companies/${companyId}/issues`)
-        .send({ parentId: parent.id, title: "Coordinate launch", idempotencyKey: "run-2:coordinate-launch" }),
+        .send({
+          parentId: parent.id,
+          title: "Coordinate launch",
+          idempotencyKey: "run-2:coordinate-launch",
+        }),
       request(app)
         .post(`/api/companies/${companyId}/issues`)
         .send({ parentId: parent.id, title: "Coordinate launch" }),
@@ -191,18 +213,29 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
 
     expect([keyed.status, titleOnly.status].sort()).toEqual([200, 201]);
     expect(keyed.body.id).toBe(titleOnly.body.id);
-    expect([keyed, titleOnly].find((response) => response.status === 200)?.body).toMatchObject({
+    expect(
+      [keyed, titleOnly].find((response) => response.status === 200)?.body,
+    ).toMatchObject({
       deduplicated: true,
       deduplicationReason: "recent_open_title",
     });
-    expect(await db.select().from(issues).where(eq(issues.parentId, parent.id))).toHaveLength(1);
+    expect(
+      await db.select().from(issues).where(eq(issues.parentId, parent.id)),
+    ).toHaveLength(1);
     expect(await db.select().from(issueCreateIdempotencyKeys)).toEqual([
-      expect.objectContaining({ issueId: keyed.body.id, idempotencyKey: "run-2:coordinate-launch" }),
+      expect.objectContaining({
+        issueId: keyed.body.id,
+        idempotencyKey: "run-2:coordinate-launch",
+      }),
     ]);
 
     const replay = await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ parentId: parent.id, title: "Different title", idempotencyKey: "run-2:coordinate-launch" })
+      .send({
+        parentId: parent.id,
+        title: "Different title",
+        idempotencyKey: "run-2:coordinate-launch",
+      })
       .expect(200);
     expect(replay.body).toMatchObject({
       id: keyed.body.id,
@@ -222,7 +255,11 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
       .expect(201);
     const duplicate = await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ parentId: parent.id, title: "Investigate incident", allowDuplicate: true })
+      .send({
+        parentId: parent.id,
+        title: "Investigate incident",
+        allowDuplicate: true,
+      })
       .expect(201);
 
     expect(duplicate.body.id).not.toBe(first.body.id);
@@ -317,7 +354,10 @@ describeEmbeddedPostgres("issue create deduplication routes", () => {
       .set("X-Taskcore-Run-Id", runId)
       .send({ parentId: parent.id, title: "Attributed create" })
       .expect(201);
-    const [created] = await db.select().from(issues).where(eq(issues.id, response.body.id));
+    const [created] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, response.body.id));
 
     expect(created.originKind).toBe("manual");
     expect(created.originRunId).toBe(runId);

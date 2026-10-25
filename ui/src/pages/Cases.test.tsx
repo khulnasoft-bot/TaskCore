@@ -16,28 +16,44 @@ const companyState = vi.hoisted(() => ({ selectedCompanyId: "company-1" }));
 const mockCasesApi = vi.hoisted(() => ({ list: vi.fn() }));
 const mockProjectsApi = vi.hoisted(() => ({ list: vi.fn() }));
 const mockIssuesApi = vi.hoisted(() => ({ listLabels: vi.fn() }));
-const mockCopyTextToClipboard = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+const mockCopyTextToClipboard = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve()),
+);
 const mockNavigate = vi.hoisted(() => vi.fn());
 
 vi.mock("@/context/CompanyContext", () => ({ useCompany: () => companyState }));
-vi.mock("@/context/BreadcrumbContext", () => ({ useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }) }));
+vi.mock("@/context/BreadcrumbContext", () => ({
+  useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }),
+}));
 vi.mock("@/api/cases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/cases")>()),
   casesApi: mockCasesApi,
 }));
 vi.mock("@/api/projects", () => ({ projectsApi: mockProjectsApi }));
 vi.mock("@/api/issues", () => ({ issuesApi: mockIssuesApi }));
-vi.mock("@/lib/clipboard", () => ({ copyTextToClipboard: mockCopyTextToClipboard }));
+vi.mock("@/lib/clipboard", () => ({
+  copyTextToClipboard: mockCopyTextToClipboard,
+}));
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
   useNavigate: () => mockNavigate,
-  useCaseHref: () => (...segments: string[]) =>
-    `/PAP/${["cases", ...segments].filter(Boolean).join("/")}`,
+  useCaseHref:
+    () =>
+    (...segments: string[]) =>
+      `/PAP/${["cases", ...segments].filter(Boolean).join("/")}`,
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 async function flush() {
   for (let i = 0; i < 5; i += 1) {
@@ -61,7 +77,9 @@ async function waitForAssertion(assertion: () => void, attempts = 20) {
 }
 function dispatchShortcut(key: string) {
   act(() => {
-    document.body.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+    );
   });
 }
 
@@ -90,7 +108,9 @@ function createCase(overrides: Partial<CaseSummary>): CaseSummary {
 
 function renderPage(container: HTMLDivElement) {
   const root = createRoot(container);
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   act(() => {
     root.render(
       <QueryClientProvider client={queryClient}>
@@ -120,8 +140,18 @@ describe("Cases list", () => {
 
   it("loads cases by default and hides terminal cases client-side", async () => {
     mockCasesApi.list.mockResolvedValue([
-      createCase({ id: "a", identifier: "PAP-C1", title: "Active post", status: "in_progress" }),
-      createCase({ id: "b", identifier: "PAP-C2", title: "Done post", status: "done" }),
+      createCase({
+        id: "a",
+        identifier: "PAP-C1",
+        title: "Active post",
+        status: "in_progress",
+      }),
+      createCase({
+        id: "b",
+        identifier: "PAP-C2",
+        title: "Done post",
+        status: "done",
+      }),
     ]);
 
     const root = renderPage(container);
@@ -130,9 +160,12 @@ describe("Cases list", () => {
       expect(container.textContent).toContain("Active post");
       expect(container.textContent).not.toContain("Done post");
       expect(container.textContent).not.toContain("active ·");
-      expect(mockCasesApi.list).toHaveBeenCalledWith("company-1", expect.objectContaining({
-        limit: 200,
-      }));
+      expect(mockCasesApi.list).toHaveBeenCalledWith(
+        "company-1",
+        expect.objectContaining({
+          limit: 200,
+        }),
+      );
     });
 
     act(() => root.unmount());
@@ -140,7 +173,12 @@ describe("Cases list", () => {
 
   it("sends search filters to the cases API instead of filtering a fetched page locally", async () => {
     mockCasesApi.list.mockResolvedValue([
-      createCase({ id: "a", identifier: "PAP-C1", title: "Active post", status: "in_progress" }),
+      createCase({
+        id: "a",
+        identifier: "PAP-C1",
+        title: "Active post",
+        status: "in_progress",
+      }),
     ]);
     const root = renderPage(container);
 
@@ -148,19 +186,27 @@ describe("Cases list", () => {
       expect(container.textContent).toContain("Active post");
     });
 
-    const input = container.querySelector<HTMLInputElement>("input[placeholder='Search cases...']");
+    const input = container.querySelector<HTMLInputElement>(
+      "input[placeholder='Search cases...']",
+    );
     expect(input).toBeTruthy();
     act(() => {
-      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       valueSetter?.call(input, "launch");
       input!.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
     await waitForAssertion(() => {
-      expect(mockCasesApi.list).toHaveBeenLastCalledWith("company-1", expect.objectContaining({
-        q: "launch",
-        limit: 200,
-      }));
+      expect(mockCasesApi.list).toHaveBeenLastCalledWith(
+        "company-1",
+        expect.objectContaining({
+          q: "launch",
+          limit: 200,
+        }),
+      );
     });
 
     act(() => root.unmount());
@@ -184,8 +230,19 @@ describe("Cases list", () => {
 
   it("shows default columns in id, title, status, updated order grouped by type without keys", async () => {
     mockCasesApi.list.mockResolvedValue([
-      createCase({ id: "a", identifier: "PAP-C1", key: "launch/post-one", title: "Post one", caseType: "blog_post" }),
-      createCase({ id: "b", identifier: "PAP-C2", title: "Storm one", caseType: "tweet_storm" }),
+      createCase({
+        id: "a",
+        identifier: "PAP-C1",
+        key: "launch/post-one",
+        title: "Post one",
+        caseType: "blog_post",
+      }),
+      createCase({
+        id: "b",
+        identifier: "PAP-C2",
+        title: "Storm one",
+        caseType: "tweet_storm",
+      }),
     ]);
 
     const root = renderPage(container);
@@ -205,10 +262,15 @@ describe("Cases list", () => {
     expect(text.indexOf("Updated")).toBeGreaterThan(text.indexOf("Status"));
     expect(text).not.toContain("Key");
     expect(text).not.toContain("Project");
-    const headerGrid = Array.from(container.querySelectorAll<HTMLElement>("div > span[style*='grid-template-columns']")).find((element) =>
-      element.textContent?.includes("ID")
-      && element.textContent.includes("Title")
-      && element.textContent.includes("Status")
+    const headerGrid = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        "div > span[style*='grid-template-columns']",
+      ),
+    ).find(
+      (element) =>
+        element.textContent?.includes("ID") &&
+        element.textContent.includes("Title") &&
+        element.textContent.includes("Status"),
     );
     expect(headerGrid?.style.gridTemplateColumns).toBe(
       "max-content minmax(12rem, 1fr) minmax(6rem, 7rem) minmax(5rem, 6rem)",
@@ -224,7 +286,13 @@ describe("Cases list", () => {
 
   it("copies case list identifiers with feedback without following the row link", async () => {
     mockCasesApi.list.mockResolvedValue([
-      createCase({ id: "a", identifier: "PAP-C1", key: "launch/post-one", title: "Post one", caseType: "blog_post" }),
+      createCase({
+        id: "a",
+        identifier: "PAP-C1",
+        key: "launch/post-one",
+        title: "Post one",
+        caseType: "blog_post",
+      }),
     ]);
 
     const root = renderPage(container);
@@ -234,8 +302,8 @@ describe("Cases list", () => {
       expect(container.textContent).not.toContain("launch/post-one");
     });
 
-    const idButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent === "PAP-C1"
+    const idButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "PAP-C1",
     );
     expect(idButton).toBeTruthy();
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
@@ -260,7 +328,13 @@ describe("Cases list", () => {
       }),
     );
     mockCasesApi.list.mockResolvedValue([
-      createCase({ id: "a", identifier: "PAP-C1", key: "launch/post-one", title: "Post one", caseType: "blog_post" }),
+      createCase({
+        id: "a",
+        identifier: "PAP-C1",
+        key: "launch/post-one",
+        title: "Post one",
+        caseType: "blog_post",
+      }),
     ]);
 
     const root = renderPage(container);
@@ -270,8 +344,8 @@ describe("Cases list", () => {
       expect(container.textContent).toContain("launch/post-one");
     });
 
-    const keyButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent === "launch/post-one"
+    const keyButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "launch/post-one",
     );
     expect(keyButton).toBeTruthy();
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
@@ -330,32 +404,51 @@ describe("Cases list", () => {
       expect(container.textContent).toContain("Type");
       expect(container.textContent).toContain("brief");
       expect(container.textContent).toContain("asset");
-      expect(container.querySelector('button[title="Show flat case list"]')).not.toBeNull();
-      expect(mockCasesApi.list).toHaveBeenCalledWith("company-1", expect.objectContaining({
-        includeAncestors: true,
-        limit: 200,
-      }));
+      expect(
+        container.querySelector('button[title="Show flat case list"]'),
+      ).not.toBeNull();
+      expect(mockCasesApi.list).toHaveBeenCalledWith(
+        "company-1",
+        expect.objectContaining({
+          includeAncestors: true,
+          limit: 200,
+        }),
+      );
     });
 
     const text = container.textContent ?? "";
     expect(text.indexOf("Type")).toBeGreaterThan(text.indexOf("Title"));
     expect(text.indexOf("Status")).toBeGreaterThan(text.indexOf("Type"));
     expect(text.indexOf("Parent case")).toBeGreaterThanOrEqual(0);
-    expect(text.indexOf("Child case")).toBeGreaterThan(text.indexOf("Parent case"));
-    expect(text.indexOf("Sibling case")).toBeGreaterThan(text.indexOf("Child case"));
+    expect(text.indexOf("Child case")).toBeGreaterThan(
+      text.indexOf("Parent case"),
+    );
+    expect(text.indexOf("Sibling case")).toBeGreaterThan(
+      text.indexOf("Child case"),
+    );
     expect(text).not.toContain("1 child");
 
-    const collapseParent = container.querySelector<HTMLButtonElement>('button[aria-label="Collapse Parent case"]');
+    const collapseParent = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Collapse Parent case"]',
+    );
     expect(collapseParent).toBeTruthy();
     expect(collapseParent?.getAttribute("aria-expanded")).toBe("true");
     act(() => {
-      collapseParent!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      collapseParent!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     await waitForAssertion(() => {
       expect(container.textContent).toContain("Parent case");
       expect(container.textContent).not.toContain("Child case");
-      expect(container.querySelector<HTMLButtonElement>('button[aria-label="Expand Parent case"]')?.getAttribute("aria-expanded")).toBe("false");
+      expect(
+        container
+          .querySelector<HTMLButtonElement>(
+            'button[aria-label="Expand Parent case"]',
+          )
+          ?.getAttribute("aria-expanded"),
+      ).toBe("false");
     });
 
     act(() => root.unmount());
@@ -404,7 +497,9 @@ describe("Cases list", () => {
 
     const text = container.textContent ?? "";
     expect(text.indexOf("Done parent")).toBeGreaterThanOrEqual(0);
-    expect(text.indexOf("Active child")).toBeGreaterThan(text.indexOf("Done parent"));
+    expect(text.indexOf("Active child")).toBeGreaterThan(
+      text.indexOf("Done parent"),
+    );
 
     act(() => root.unmount());
   });
@@ -546,10 +641,13 @@ describe("Cases list", () => {
     const root = renderPage(container);
 
     await waitForAssertion(() => {
-      expect(mockCasesApi.list).toHaveBeenLastCalledWith("company-1", expect.objectContaining({
-        q: "launch",
-        limit: 200,
-      }));
+      expect(mockCasesApi.list).toHaveBeenLastCalledWith(
+        "company-1",
+        expect.objectContaining({
+          q: "launch",
+          limit: 200,
+        }),
+      );
       expect(container.textContent).toContain("Done launch");
       expect(container.textContent).not.toContain("Active launch");
       expect(container.textContent).toContain("Created at");
@@ -568,21 +666,48 @@ describe("Cases list", () => {
       }),
     );
     mockCasesApi.list.mockResolvedValue([
-      createCase({ id: "a", identifier: "PAP-C1", title: "Blog active", status: "in_progress", caseType: "blog_post" }),
-      createCase({ id: "b", identifier: "PAP-C2", title: "Docs done", status: "done", caseType: "docs_page" }),
-      createCase({ id: "c", identifier: "PAP-C3", title: "Tweet active", status: "in_progress", caseType: "tweet_storm" }),
-      createCase({ id: "d", identifier: "PAP-C4", title: "Blog cancelled", status: "cancelled", caseType: "blog_post" }),
+      createCase({
+        id: "a",
+        identifier: "PAP-C1",
+        title: "Blog active",
+        status: "in_progress",
+        caseType: "blog_post",
+      }),
+      createCase({
+        id: "b",
+        identifier: "PAP-C2",
+        title: "Docs done",
+        status: "done",
+        caseType: "docs_page",
+      }),
+      createCase({
+        id: "c",
+        identifier: "PAP-C3",
+        title: "Tweet active",
+        status: "in_progress",
+        caseType: "tweet_storm",
+      }),
+      createCase({
+        id: "d",
+        identifier: "PAP-C4",
+        title: "Blog cancelled",
+        status: "cancelled",
+        caseType: "blog_post",
+      }),
     ]);
 
     const root = renderPage(container);
 
     await waitForAssertion(() => {
-      expect(mockCasesApi.list).toHaveBeenCalledWith("company-1", expect.objectContaining({
-        types: ["blog_post", "docs_page"],
-        statuses: ["in_progress", "done"],
-        projectIds: ["project-1"],
-        includeNoProject: true,
-      }));
+      expect(mockCasesApi.list).toHaveBeenCalledWith(
+        "company-1",
+        expect.objectContaining({
+          types: ["blog_post", "docs_page"],
+          statuses: ["in_progress", "done"],
+          projectIds: ["project-1"],
+          includeNoProject: true,
+        }),
+      );
       expect(container.textContent).toContain("Blog active");
       expect(container.textContent).toContain("Docs done");
       expect(container.textContent).not.toContain("Tweet active");

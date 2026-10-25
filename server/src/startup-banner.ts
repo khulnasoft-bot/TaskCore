@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolveTaskcoreConfigPath, resolveTaskcoreEnvPath } from "./paths.js";
-import type { BindMode, DeploymentExposure, DeploymentMode } from "@taskcore/shared";
+import type {
+  BindMode,
+  DeploymentExposure,
+  DeploymentMode,
+} from "@taskcore/shared";
 
 import { parse as parseEnvFileContents } from "dotenv";
 
@@ -66,9 +70,7 @@ function redactConnectionString(raw: string): string {
   }
 }
 
-function resolveAgentJwtSecretStatus(
-  envFilePath: string,
-): {
+function resolveAgentJwtSecretStatus(envFilePath: string): {
   status: "pass" | "warn";
   message: string;
 } {
@@ -82,7 +84,10 @@ function resolveAgentJwtSecretStatus(
 
   if (existsSync(envFilePath)) {
     const parsed = parseEnvFileContents(readFileSync(envFilePath, "utf-8"));
-    const fileValue = typeof parsed.TASKCORE_AGENT_JWT_SECRET === "string" ? parsed.TASKCORE_AGENT_JWT_SECRET.trim() : "";
+    const fileValue =
+      typeof parsed.TASKCORE_AGENT_JWT_SECRET === "string"
+        ? parsed.TASKCORE_AGENT_JWT_SECRET.trim()
+        : "";
     if (fileValue) {
       return {
         status: "warn",
@@ -135,14 +140,32 @@ export function printStartupBanner(opts: StartupBannerOptions): void {
     : color("disabled", "yellow");
 
   const art = [
-    color("  ████████╗ █████╗ ███████╗██╗  ██╗ ██████╗ ██████╗ ██████╗ ███████╗", "cyan"),
-    color("  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔═══██╗██╔══██╗██╔════╝", "cyan"),
-    color("     ██║   ███████║███████╗█████╔╝ ██║     ██║   ██║██████╔╝█████╗  ", "cyan"),
-    color("     ██║   ██╔══██║╚════██║██╔═██╗ ██║     ██║   ██║██╔══██╗██╔══╝  ", "cyan"),
-    color("     ██║   ██║  ██║███████║██║  ██╗╚██████╗╚██████╔╝██║  ██║███████╗", "cyan"),
-    color("     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝", "cyan"),
+    color(
+      "  ████████╗ █████╗ ███████╗██╗  ██╗ ██████╗ ██████╗ ██████╗ ███████╗",
+      "cyan",
+    ),
+    color(
+      "  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔═══██╗██╔══██╗██╔════╝",
+      "cyan",
+    ),
+    color(
+      "     ██║   ███████║███████╗█████╔╝ ██║     ██║   ██║██████╔╝█████╗  ",
+      "cyan",
+    ),
+    color(
+      "     ██║   ██╔══██║╚════██║██╔═██╗ ██║     ██║   ██║██╔══██╗██╔══╝  ",
+      "cyan",
+    ),
+    color(
+      "     ██║   ██║  ██║███████║██║  ██╗╚██████╗╚██████╔╝██║  ██║███████╗",
+      "cyan",
+    ),
+    color(
+      "     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝",
+      "cyan",
+    ),
   ];
-  
+
   const lines = [
     "",
     ...art,
@@ -150,7 +173,10 @@ export function printStartupBanner(opts: StartupBannerOptions): void {
     row("Mode", `${dbMode}  |  ${uiMode}`),
     row("Deploy", `${opts.deploymentMode} (${opts.deploymentExposure})`),
     row("Bind", `${opts.bind} ${color(`(${opts.host})`, "dim")}`),
-    row("Auth", opts.authReady ? color("ready", "green") : color("not-ready", "yellow")),
+    row(
+      "Auth",
+      opts.authReady ? color("ready", "green") : color("not-ready", "yellow"),
+    ),
     row("Server", portValue),
     row("API", `${apiUrl} ${color(`(health: ${apiUrl}/health)`, "dim")}`),
     row("UI", uiUrl),
@@ -167,7 +193,10 @@ export function printStartupBanner(opts: StartupBannerOptions): void {
     row("Backup Dir", opts.databaseBackupDir),
     row("Config", configPath),
     agentJwtSecret.status === "warn"
-      ? color("  ───────────────────────────────────────────────────────", "yellow")
+      ? color(
+          "  ───────────────────────────────────────────────────────",
+          "yellow",
+        )
       : null,
     color("  ───────────────────────────────────────────────────────", "blue"),
     "",

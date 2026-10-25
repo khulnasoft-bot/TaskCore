@@ -1,4 +1,8 @@
-import type { IssueAttachment, IssueDocumentSummary, IssueWorkProduct } from "@taskcore/shared";
+import type {
+  IssueAttachment,
+  IssueDocumentSummary,
+  IssueWorkProduct,
+} from "@taskcore/shared";
 import { getAttachmentArtifactWorkProductMetadata } from "@taskcore/shared";
 
 /**
@@ -13,7 +17,10 @@ import { getAttachmentArtifactWorkProductMetadata } from "@taskcore/shared";
  * predate attribution, while user uploads always arrive through a comment.
  */
 export function isAgentAttachment(
-  attachment: Pick<IssueAttachment, "createdByAgentId" | "createdByUserId" | "issueCommentId">,
+  attachment: Pick<
+    IssueAttachment,
+    "createdByAgentId" | "createdByUserId" | "issueCommentId"
+  >,
 ): boolean {
   if (attachment.createdByAgentId) return true;
   return !attachment.createdByUserId && !attachment.issueCommentId;
@@ -47,7 +54,8 @@ export function selectAgentArtifactAttachments(
 ): IssueAttachment[] {
   const promoted = getAttachmentBackedWorkProductAttachmentIds(workProducts);
   return (attachments ?? []).filter(
-    (attachment) => isAgentAttachment(attachment) && !promoted.has(attachment.id),
+    (attachment) =>
+      isAgentAttachment(attachment) && !promoted.has(attachment.id),
   );
 }
 

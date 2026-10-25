@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildBrowserErrorContext, sanitizeComponentStack } from "./browser-error-context";
+import {
+  buildBrowserErrorContext,
+  sanitizeComponentStack,
+} from "./browser-error-context";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -25,24 +28,44 @@ unrecognized private content`;
   });
 
   it("bounds malformed and oversized component stacks", () => {
-    expect(sanitizeComponentStack(`    at ${"a".repeat(101)} (private)`)).toBeUndefined();
-    expect(sanitizeComponentStack("x".repeat(16_384) + "\n    at SecretSuffix")).toBeUndefined();
-    expect(sanitizeComponentStack("\n    at TaskDetail (private)".repeat(100))?.match(/at TaskDetail/g)).toHaveLength(40);
+    expect(
+      sanitizeComponentStack(`    at ${"a".repeat(101)} (private)`),
+    ).toBeUndefined();
+    expect(
+      sanitizeComponentStack("x".repeat(16_384) + "\n    at SecretSuffix"),
+    ).toBeUndefined();
+    expect(
+      sanitizeComponentStack(
+        "\n    at TaskDetail (private)".repeat(100),
+      )?.match(/at TaskDetail/g),
+    ).toHaveLength(40);
   });
 
-  it.each([undefined, null, "", "private unrecognized data"])("omits absent or unrecognized stacks: %s", (stack) => {
-    expect(sanitizeComponentStack(stack)).toBeUndefined();
-  });
+  it.each([undefined, null, "", "private unrecognized data"])(
+    "omits absent or unrecognized stacks: %s",
+    (stack) => {
+      expect(sanitizeComponentStack(stack)).toBeUndefined();
+    },
+  );
 
-  it.each(["translated-ltr", "translated-rtl"])("records only a translation-marker boolean for %s", (marker) => {
-    document.documentElement.className = `${marker} private-customer-class`;
-    const result = buildBrowserErrorContext({ boundary: "route", componentStack: "\n    at TaskDetail" });
-    expect(result).toMatchObject({
-      tags: { react_error_boundary: "route" },
-      contexts: { react: { componentStack: "\n    at TaskDetail" }, browser_state: { translation_marker: true } },
-    });
-    expect(JSON.stringify(result)).not.toContain("private-customer-class");
-  });
+  it.each(["translated-ltr", "translated-rtl"])(
+    "records only a translation-marker boolean for %s",
+    (marker) => {
+      document.documentElement.className = `${marker} private-customer-class`;
+      const result = buildBrowserErrorContext({
+        boundary: "route",
+        componentStack: "\n    at TaskDetail",
+      });
+      expect(result).toMatchObject({
+        tags: { react_error_boundary: "route" },
+        contexts: {
+          react: { componentStack: "\n    at TaskDetail" },
+          browser_state: { translation_marker: true },
+        },
+      });
+      expect(JSON.stringify(result)).not.toContain("private-customer-class");
+    },
+  );
 
   it("captures a snapshot rather than reading changed DOM state later", () => {
     vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
@@ -50,14 +73,27 @@ unrecognized private content`;
     const result = buildBrowserErrorContext({ boundary: "app" });
     document.documentElement.classList.add("translated-ltr");
     expect(result.contexts.browser_state).toEqual({
-      ready_state: "interactive", visibility_state: "hidden", translation_marker: false,
+      ready_state: "interactive",
+      visibility_state: "hidden",
+      translation_marker: false,
     });
   });
 
   it("keeps the component trace when browser-state reads throw", () => {
-    vi.spyOn(document, "readyState", "get").mockImplementation(() => { throw new Error("unavailable"); });
-    vi.spyOn(document.documentElement, "classList", "get").mockImplementation(() => { throw new Error("unavailable"); });
-    expect(buildBrowserErrorContext({ boundary: "app", componentStack: "\n    at TaskDetail" })).toEqual({
+    vi.spyOn(document, "readyState", "get").mockImplementation(() => {
+      throw new Error("unavailable");
+    });
+    vi.spyOn(document.documentElement, "classList", "get").mockImplementation(
+      () => {
+        throw new Error("unavailable");
+      },
+    );
+    expect(
+      buildBrowserErrorContext({
+        boundary: "app",
+        componentStack: "\n    at TaskDetail",
+      }),
+    ).toEqual({
       tags: { react_error_boundary: "app" },
       contexts: {
         react: { componentStack: "\n    at TaskDetail" },
@@ -68,6 +104,8 @@ unrecognized private content`;
 
   it("does not require a browser document", () => {
     vi.stubGlobal("document", undefined);
-    expect(buildBrowserErrorContext({ boundary: "app" }).contexts.browser_state).toEqual({});
+    expect(
+      buildBrowserErrorContext({ boundary: "app" }).contexts.browser_state,
+    ).toEqual({});
   });
 });

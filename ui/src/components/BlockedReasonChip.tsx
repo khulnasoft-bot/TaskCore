@@ -16,7 +16,10 @@ interface BlockedReasonChipProps {
   className?: string;
 }
 
-type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
+type IconComponent = ComponentType<{
+  className?: string;
+  "aria-hidden"?: boolean | "true" | "false";
+}>;
 
 const VARIANT_STYLES: Record<BlockedReasonVariant, string> = {
   needs_decision:
@@ -72,10 +75,15 @@ export function BlockedReasonChip({
       {dotClass ? (
         <span
           aria-hidden="true"
-          className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", dotClass)}
+          className={cn(
+            "inline-block h-1.5 w-1.5 shrink-0 rounded-full",
+            dotClass,
+          )}
         />
       ) : null}
-      {compact ? null : <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />}
+      {compact ? null : (
+        <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
+      )}
       <span className="truncate">{label}</span>
     </span>
   );

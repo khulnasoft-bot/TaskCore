@@ -103,12 +103,12 @@ Four things have to work for an organization of AI agents to actually produce: t
   <img src="https://raw.githubusercontent.com/taskcore/taskcore/1ec33ffd8b597f7e36aac3e2fbb4665b8c42dc3c/doc/assets/four-pillars-light.png" alt="The four pillars of Taskcore">
 </picture>
 
-| Pillar | Built for | What it covers |
-| --- | --- | --- |
-| **Agentic Task Manager** — Declare intent. Agents work. You verify the output. | Everyone, daily | Tasks, approvals & review gates · proactive agent coworkers · auditable routines & workflows · verify from diffs, screenshots & tests |
-| **Org Chart for Agents** — Roles, permissions & boundaries for humans and agents. | Managers | Mixed human + agent org chart · responsibilities, delegation, specialization · governance: who can do what · scoped secrets & company boundaries · connection permissions & responsible-user identities |
-| **Agent Employee Training** — Design, train & evaluate your AI employees. | Enablers | Skill Studio & shared org-wide skills · evals & saved test runs · active learning loops & quality metrics · performance reviews for agents · saved test inputs · skill version history & restore · reusable team templates |
-| **Agentic OS** — The infrastructure that makes the work run. | IT & platform | Cross-provider runtime: any model, any agent · sandboxing, integrations & MCP servers · SSO, GRC, RBAC & cost controls · data privacy, internal trace collection, compounding data value · personal & shared app connections · run history & opt-in tracing |
+| Pillar                                                                            | Built for       | What it covers                                                                                                                                                                                                                                              |
+| --------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agentic Task Manager** — Declare intent. Agents work. You verify the output.    | Everyone, daily | Tasks, approvals & review gates · proactive agent coworkers · auditable routines & workflows · verify from diffs, screenshots & tests                                                                                                                       |
+| **Org Chart for Agents** — Roles, permissions & boundaries for humans and agents. | Managers        | Mixed human + agent org chart · responsibilities, delegation, specialization · governance: who can do what · scoped secrets & company boundaries · connection permissions & responsible-user identities                                                     |
+| **Agent Employee Training** — Design, train & evaluate your AI employees.         | Enablers        | Skill Studio & shared org-wide skills · evals & saved test runs · active learning loops & quality metrics · performance reviews for agents · saved test inputs · skill version history & restore · reusable team templates                                  |
+| **Agentic OS** — The infrastructure that makes the work run.                      | IT & platform   | Cross-provider runtime: any model, any agent · sandboxing, integrations & MCP servers · SSO, GRC, RBAC & cost controls · data privacy, internal trace collection, compounding data value · personal & shared app connections · run history & opt-in tracing |
 
 <br/>
 
@@ -193,13 +193,13 @@ Experimental **Agent Chat** and **chat/email connectors** add conversations with
 
 ## Problems Taskcore solves
 
-| Without Taskcore                                                                                                                     | With Taskcore                                                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| ❌ You have 20 Claude Code tabs open and can't track which one does what. On reboot you lose everything.                              | ✅ Tasks are ticket-based, conversations are threaded, sessions persist across reboots.                                                |
-| ❌ You manually gather context from several places to remind your bot what you're actually doing.                                     | ✅ Context flows from the task up through the project and company goals — your agent always knows what to do and why.                  |
+| Without Taskcore                                                                                                                      | With Taskcore                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| ❌ You have 20 Claude Code tabs open and can't track which one does what. On reboot you lose everything.                              | ✅ Tasks are ticket-based, conversations are threaded, sessions persist across reboots.                                               |
+| ❌ You manually gather context from several places to remind your bot what you're actually doing.                                     | ✅ Context flows from the task up through the project and company goals — your agent always knows what to do and why.                 |
 | ❌ Folders of agent configs are disorganized and you're re-inventing task management, communication, and coordination between agents. | ✅ Taskcore gives you org charts, ticketing, delegation, and governance out of the box — so you run a company, not a pile of scripts. |
-| ❌ Runaway loops waste hundreds of dollars of tokens and max your quota before you even know what happened.                           | ✅ Spend tracking, budget alerts, and automatic pauses help you control the cost of ongoing work.                                       |
-| ❌ You have recurring jobs (customer support, social, reports) and have to remember to manually kick them off.                        | ✅ Routines create assigned tasks on a schedule, with outputs and run history you can inspect.                                         |
+| ❌ Runaway loops waste hundreds of dollars of tokens and max your quota before you even know what happened.                           | ✅ Spend tracking, budget alerts, and automatic pauses help you control the cost of ongoing work.                                     |
+| ❌ You have recurring jobs (customer support, social, reports) and have to remember to manually kick them off.                        | ✅ Routines create assigned tasks on a schedule, with outputs and run history you can inspect.                                        |
 | ❌ You have an idea, you have to find your repo, fire up Claude Code, keep a tab open, and babysit it.                                | ✅ Add a task in Taskcore. Your coding agent works on it until it's done. Management reviews their work.                              |
 
 <br/>
@@ -208,16 +208,16 @@ Experimental **Agent Chat** and **chat/email connectors** add conversations with
 
 Taskcore handles the hard orchestration details correctly.
 
-|                                   |                                                                                                               |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Atomic task checkout.**         | A single assignee and execution locks prevent competing runs from claiming the same task.                    |
-| **Persistent work context.**      | Tasks, comments, and documents stay in Taskcore. Supporting adapters resume saved sessions across runs.       |
-| **Runtime skill injection.**      | Agents can learn Taskcore workflows and project context at runtime, without retraining.                      |
-| **Governance with rollback.**     | Approval gates are enforced, config changes are revisioned, and bad changes can be rolled back safely.        |
-| **Accountable connections.**      | Human access, agent eligibility, and gateway action permissions are separate controls. Approve a call once or save a revocable rule. |
-| **Goal-aware execution.**         | Linked tasks and projects carry goal ancestry so agents see the "why," not just a title.                      |
-| **Portable company templates.**   | Export/import orgs, agents, and skills with secret scrubbing and collision handling.                          |
-| **Organization boundaries.**      | Company-scoped access checks keep each organization's work, agents, and activity separate within one deployment. |
+|                                 |                                                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Atomic task checkout.**       | A single assignee and execution locks prevent competing runs from claiming the same task.                                            |
+| **Persistent work context.**    | Tasks, comments, and documents stay in Taskcore. Supporting adapters resume saved sessions across runs.                              |
+| **Runtime skill injection.**    | Agents can learn Taskcore workflows and project context at runtime, without retraining.                                              |
+| **Governance with rollback.**   | Approval gates are enforced, config changes are revisioned, and bad changes can be rolled back safely.                               |
+| **Accountable connections.**    | Human access, agent eligibility, and gateway action permissions are separate controls. Approve a call once or save a revocable rule. |
+| **Goal-aware execution.**       | Linked tasks and projects carry goal ancestry so agents see the "why," not just a title.                                             |
+| **Portable company templates.** | Export/import orgs, agents, and skills with secret scrubbing and collision handling.                                                 |
+| **Organization boundaries.**    | Company-scoped access checks keep each organization's work, agents, and activity separate within one deployment.                     |
 
 <br/>
 
@@ -332,14 +332,14 @@ Taskcore is a full control plane, not a wrapper. Before you build any of this yo
 
 ## What Taskcore is not
 
-|                              |                                                                                                                      |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Not just a chatbot.**      | Conversations stay attached to tasks, plans, decisions, and outputs. Experimental Agent Chat can hand work off to assigned tasks.    |
-| **Not an agent framework.**  | We don't tell you how to build agents. We tell you how to run a company made of them.                                |
-| **Not just a workflow builder.** | Routines and experimental pipelines operate within an organization, with roles, goals, budgets, and governance.                  |
-| **Not a prompt manager.**    | Agents bring their own prompts, models, and runtimes. Taskcore manages the organization they work in.               |
-| **Not limited to one agent.** | Start with one agent and grow into a team with shared skills, delegation, and review.                                              |
-| **Not only for code review.** | Coding and PR review fit alongside research, operations, content, and other work.                                                  |
+|                                  |                                                                                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Not just a chatbot.**          | Conversations stay attached to tasks, plans, decisions, and outputs. Experimental Agent Chat can hand work off to assigned tasks. |
+| **Not an agent framework.**      | We don't tell you how to build agents. We tell you how to run a company made of them.                                             |
+| **Not just a workflow builder.** | Routines and experimental pipelines operate within an organization, with roles, goals, budgets, and governance.                   |
+| **Not a prompt manager.**        | Agents bring their own prompts, models, and runtimes. Taskcore manages the organization they work in.                             |
+| **Not limited to one agent.**    | Start with one agent and grow into a team with shared skills, delegation, and review.                                             |
+| **Not only for code review.**    | Coding and PR review fit alongside research, operations, content, and other work.                                                 |
 
 <br/>
 
@@ -553,11 +553,11 @@ For proposed first-party events that are not in the generated contract yet, foll
 
 Telemetry is **enabled by default** and can be disabled with any of the following:
 
-| Method               | How                                                     |
-| -------------------- | ------------------------------------------------------- |
+| Method               | How                                                    |
+| -------------------- | ------------------------------------------------------ |
 | Environment variable | `TASKCORE_TELEMETRY_DISABLED=1`                        |
-| Standard convention  | `DO_NOT_TRACK=1`                                        |
-| CI environments      | Automatically disabled when `CI=true`                   |
+| Standard convention  | `DO_NOT_TRACK=1`                                       |
+| CI environments      | Automatically disabled when `CI=true`                  |
 | Config file          | Set `telemetry.enabled: false` in your Taskcore config |
 
 ## Contributing

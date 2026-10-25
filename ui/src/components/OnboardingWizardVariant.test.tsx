@@ -46,7 +46,9 @@ describe("OnboardingWizardVariant (PAP-138)", () => {
     mockInstanceSettingsApi.getExperimental.mockResolvedValue({});
     renderVariant();
 
-    expect(container.querySelector('[data-testid="wizard-capsule"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="wizard-capsule"]'),
+    ).not.toBeNull();
     expect(mockInstanceSettingsApi.getExperimental).not.toHaveBeenCalled();
   });
 });

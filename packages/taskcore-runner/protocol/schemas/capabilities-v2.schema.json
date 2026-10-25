@@ -17,7 +17,9 @@
   ],
   "properties": {
     "schema": { "const": "taskcore.prp.capabilities.v2" },
-    "sessionReusePolicy": { "enum": ["new_per_run", "reuse_per_issue", "reuse_per_workspace"] },
+    "sessionReusePolicy": {
+      "enum": ["new_per_run", "reuse_per_issue", "reuse_per_workspace"]
+    },
     "driver": {
       "type": "object",
       "required": ["kind", "version"],
@@ -33,7 +35,9 @@
     "runtimeRequests": { "type": "boolean" },
     "structuredResult": { "type": "boolean" },
     "typedEvents": { "type": "boolean" },
-    "sessionGoals": { "$ref": "https://taskcore.dev/schemas/prp/v2/session-goal.schema.json#/$defs/capability" },
+    "sessionGoals": {
+      "$ref": "https://taskcore.dev/schemas/prp/v2/session-goal.schema.json#/$defs/capability"
+    },
     "unsupported": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 },

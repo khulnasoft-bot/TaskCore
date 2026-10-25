@@ -31,20 +31,38 @@ export function TurnStrip({
       onClick={() => onOpen(turn.turn)}
     >
       <span className="pcr7-turn-strip-label">
-        {turn.turn === 0 ? "Session seed activity" : `Turn ${turn.turn} activity`}
+        {turn.turn === 0
+          ? "Session seed activity"
+          : `Turn ${turn.turn} activity`}
       </span>
       <span className="pcr7-turn-strip-counts">
-        <Count icon="⚙" label={plural(turn.counts.calls, "tool")} value={turn.counts.calls} />
+        <Count
+          icon="⚙"
+          label={plural(turn.counts.calls, "tool")}
+          value={turn.counts.calls}
+        />
         {turn.counts.denied === 0 ? null : (
-          <Count icon="✕" label="denied" value={turn.counts.denied} tone="danger" />
+          <Count
+            icon="✕"
+            label="denied"
+            value={turn.counts.denied}
+            tone="danger"
+          />
         )}
-        <Count icon="⌘" label="control plane" value={turn.counts.controlPlane} />
+        <Count
+          icon="⌘"
+          label="control plane"
+          value={turn.counts.controlPlane}
+        />
         <Count
           icon="Δ"
           label={plural(turn.counts.changedDomains, "domain")}
           value={turn.counts.changedDomains}
         />
-        <ParityStatusBadge status={turn.parity.verdict} testId={`turn-parity-${turn.turn}`} />
+        <ParityStatusBadge
+          status={turn.parity.verdict}
+          testId={`turn-parity-${turn.turn}`}
+        />
       </span>
     </button>
   );

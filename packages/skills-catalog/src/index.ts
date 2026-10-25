@@ -32,7 +32,9 @@ export function resolveCatalogSkillRef(ref: string): CatalogSkill | null {
   const exactMatch = skillsById.get(normalized) ?? skillsByKey.get(normalized);
   if (exactMatch) return exactMatch;
 
-  const slugMatches = catalogSkills.filter((skill) => skill.slug === normalized);
+  const slugMatches = catalogSkills.filter(
+    (skill) => skill.slug === normalized,
+  );
   if (slugMatches.length === 1) return slugMatches[0]!;
 
   return null;

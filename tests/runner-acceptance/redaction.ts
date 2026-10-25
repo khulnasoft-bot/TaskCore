@@ -5,16 +5,19 @@ const SECRET_SHAPES = [
   /\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}\b/g,
   /\bopenrouter[-_]?(?:api)?[-_]?key["'=:\s]+[A-Za-z0-9._-]{12,}\b/gi,
 ] as const;
-const SENSITIVE_KEY = /(?:authorization|api.?key|token|password|secret|credential|private.?key)/i;
+const SENSITIVE_KEY =
+  /(?:authorization|api.?key|token|password|secret|credential|private.?key)/i;
 
 export function normalizedSensitiveValues(
   values: readonly (string | undefined)[],
 ) {
-  return [...new Set(
-    values
-      .map((value) => value?.trim())
-      .filter((value): value is string => Boolean(value)),
-  )].sort((left, right) => right.length - left.length);
+  return [
+    ...new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ].sort((left, right) => right.length - left.length);
 }
 
 function redactKnownValuesAndShapes(
@@ -61,7 +64,8 @@ export function findSensitiveJsonValue(
   value: unknown,
   sensitiveValues: readonly string[] = [],
 ): string | null {
-  if (typeof value === "string") return findSensitiveValue(value, sensitiveValues);
+  if (typeof value === "string")
+    return findSensitiveValue(value, sensitiveValues);
   if (Array.isArray(value)) {
     for (const entry of value) {
       const leak = findSensitiveJsonValue(entry, sensitiveValues);
@@ -72,11 +76,11 @@ export function findSensitiveJsonValue(
   if (value && typeof value === "object") {
     for (const [key, entry] of Object.entries(value)) {
       if (
-        SENSITIVE_KEY.test(key)
-        && entry !== null
-        && entry !== undefined
-        && entry !== "[REDACTED]"
-        && entry !== "[REDACTED_SECRET_SHAPE]"
+        SENSITIVE_KEY.test(key) &&
+        entry !== null &&
+        entry !== undefined &&
+        entry !== "[REDACTED]" &&
+        entry !== "[REDACTED_SECRET_SHAPE]"
       ) {
         return `sensitive field ${key}`;
       }

@@ -28,28 +28,38 @@ const validResult = {
 
 describe("native finalization validators", () => {
   it("accepts the complete v1 finalization contract", () => {
-    expect(nativeFinalizationResultSchema.parse(validResult)).toEqual(validResult);
+    expect(nativeFinalizationResultSchema.parse(validResult)).toEqual(
+      validResult,
+    );
   });
 
   it("fails closed for unknown required versions and extra fields", () => {
-    expect(nativeFinalizationResultSchema.safeParse({
-      ...validResult,
-      schema: "taskcore.native-finalization.v2",
-    }).success).toBe(false);
-    expect(nativeFinalizationResultSchema.safeParse({
-      ...validResult,
-      unrecognizedRequiredField: true,
-    }).success).toBe(false);
+    expect(
+      nativeFinalizationResultSchema.safeParse({
+        ...validResult,
+        schema: "taskcore.native-finalization.v2",
+      }).success,
+    ).toBe(false);
+    expect(
+      nativeFinalizationResultSchema.safeParse({
+        ...validResult,
+        unrecognizedRequiredField: true,
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects invalid identities and sequence counters", () => {
-    expect(nativeFinalizationResultSchema.safeParse({
-      ...validResult,
-      runId: "not-a-uuid",
-    }).success).toBe(false);
-    expect(nativeFinalizationResultSchema.safeParse({
-      ...validResult,
-      highestContiguousSourceSeq: -1,
-    }).success).toBe(false);
+    expect(
+      nativeFinalizationResultSchema.safeParse({
+        ...validResult,
+        runId: "not-a-uuid",
+      }).success,
+    ).toBe(false);
+    expect(
+      nativeFinalizationResultSchema.safeParse({
+        ...validResult,
+        highestContiguousSourceSeq: -1,
+      }).success,
+    ).toBe(false);
   });
 });

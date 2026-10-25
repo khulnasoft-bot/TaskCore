@@ -31,16 +31,16 @@ const db = {
   select: () => ({
     from: () => ({
       leftJoin: () => ({
-      leftJoin: () => ({
-      where: async () => [
-        {
-          id: "secret",
-          updatedAt: new Date(0),
-          latestVersion: revision,
-          status: "active",
-        },
-      ],
-      }),
+        leftJoin: () => ({
+          where: async () => [
+            {
+              id: "secret",
+              updatedAt: new Date(0),
+              latestVersion: revision,
+              status: "active",
+            },
+          ],
+        }),
       }),
     }),
   }),
@@ -73,7 +73,11 @@ describe("connected account quotas", () => {
     mocks.accounts.mockResolvedValue([account("remote-codex")]);
     const result = await fetchCompanyQuotaWindows(db, "company-1", "user-1");
     expect(mocks.accounts).toHaveBeenCalledWith("company-1", "user-1");
-    expect(mocks.codex).toHaveBeenCalledWith("private-token", "actual-account", expect.any(AbortSignal));
+    expect(mocks.codex).toHaveBeenCalledWith(
+      "private-token",
+      "actual-account",
+      expect.any(AbortSignal),
+    );
     expect(mocks.adapters).not.toHaveBeenCalled();
     expect(result[0]).toMatchObject({
       ok: true,
@@ -132,7 +136,10 @@ describe("connected account quotas", () => {
     ]);
     const [result] = await fetchCompanyQuotaWindows(db, "company-6", "user-6");
     expect(result.ok).toBe(true);
-    expect(mocks.claude).toHaveBeenCalledWith("claude-private-oauth", expect.any(AbortSignal));
+    expect(mocks.claude).toHaveBeenCalledWith(
+      "claude-private-oauth",
+      expect.any(AbortSignal),
+    );
     mocks.accounts.mockResolvedValue([account("secret-failure")]);
     mocks.credential.mockRejectedValue(
       new Error("private credential store failure"),
@@ -148,44 +155,76 @@ describe("connected account quotas", () => {
     );
     const [result] = await fetchCompanyQuotaWindows(db, "company-7", "user-7");
     expect(result.ok).toBe(true);
-    expect(mocks.codex).toHaveBeenCalledWith("private", null, expect.any(AbortSignal));
+    expect(mocks.codex).toHaveBeenCalledWith(
+      "private",
+      null,
+      expect.any(AbortSignal),
+    );
   });
   it("distinguishes permission errors from revoked credentials", async () => {
     mocks.accounts.mockResolvedValue([account("permission-error")]);
-    mocks.codex.mockRejectedValueOnce(new Error("chatgpt wham api returned 403"));
-    const [result] = await fetchCompanyQuotaWindows(db, "permission-company", "user");
+    mocks.codex.mockRejectedValueOnce(
+      new Error("chatgpt wham api returned 403"),
+    );
+    const [result] = await fetchCompanyQuotaWindows(
+      db,
+      "permission-company",
+      "user",
+    );
     expect(result.errorFamily).toBe("permission_denied");
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
   it("refreshes an expired selected credential once before retrying quota", async () => {
     mocks.accounts.mockResolvedValue([account("refresh-account")]);
-    mocks.codex.mockRejectedValueOnce(new Error("chatgpt wham api returned 401"));
+    mocks.codex.mockRejectedValueOnce(
+      new Error("chatgpt wham api returned 401"),
+    );
     mocks.refresh.mockImplementationOnce(async () => {
-      const value = JSON.stringify({ tokens: { access_token: "new-token", account_id: "same-account" } });
+      const value = JSON.stringify({
+        tokens: { access_token: "new-token", account_id: "same-account" },
+      });
       revision++;
       mocks.credential.mockResolvedValue(value);
       return value;
     });
-    const [result] = await fetchCompanyQuotaWindows(db, "refresh-company", "user");
+    const [result] = await fetchCompanyQuotaWindows(
+      db,
+      "refresh-company",
+      "user",
+    );
     expect(result.ok).toBe(true);
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
-    expect(mocks.codex).toHaveBeenLastCalledWith("new-token", "same-account", expect.any(AbortSignal));
+    expect(mocks.codex).toHaveBeenLastCalledWith(
+      "new-token",
+      "same-account",
+      expect.any(AbortSignal),
+    );
     expect(JSON.stringify(result)).not.toContain("new-token");
     const again = await fetchCompanyQuotaWindows(db, "refresh-company", "user");
     expect(again[0]).toEqual(result);
     expect(mocks.codex).toHaveBeenCalledTimes(2); // initial 401 and one refreshed read
-
   });
   it("does not cache a quota read under a credential revision that changed during resolution", async () => {
     mocks.accounts.mockResolvedValue([account("rotating-during-refresh")]);
     mocks.codex.mockRejectedValueOnce(new Error("401"));
-    mocks.refresh.mockResolvedValue(JSON.stringify({ accessToken: "refreshed" }));
-    mocks.credential.mockResolvedValueOnce(JSON.stringify({ accessToken: "expired" })).mockImplementationOnce(async () => {
-      revision++;
-      return JSON.stringify({ accessToken: "changed-again" });
+    mocks.refresh.mockResolvedValue(
+      JSON.stringify({ accessToken: "refreshed" }),
+    );
+    mocks.credential
+      .mockResolvedValueOnce(JSON.stringify({ accessToken: "expired" }))
+      .mockImplementationOnce(async () => {
+        revision++;
+        return JSON.stringify({ accessToken: "changed-again" });
+      });
+    const [result] = await fetchCompanyQuotaWindows(
+      db,
+      "changing-revision",
+      "user",
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      errorFamily: "provider_unavailable",
     });
-    const [result] = await fetchCompanyQuotaWindows(db, "changing-revision", "user");
-    expect(result).toMatchObject({ ok: false, errorFamily: "provider_unavailable" });
     expect(mocks.codex).toHaveBeenCalledTimes(1);
   });
 
@@ -208,11 +247,17 @@ describe("connected account quotas", () => {
     vi.useFakeTimers();
     mocks.accounts.mockResolvedValue([account("late-credential")]);
     let resolveCredential!: (value: string) => void;
-    mocks.credential.mockReturnValue(new Promise<string>((resolve) => { resolveCredential = resolve; }));
+    mocks.credential.mockReturnValue(
+      new Promise<string>((resolve) => {
+        resolveCredential = resolve;
+      }),
+    );
     const pending = fetchCompanyQuotaWindows(db, "late-company", "late-user");
     await vi.advanceTimersByTimeAsync(20_001);
     expect((await pending)[0].ok).toBe(false);
-    resolveCredential(JSON.stringify({ accessToken: "private", accountId: "actual" }));
+    resolveCredential(
+      JSON.stringify({ accessToken: "private", accountId: "actual" }),
+    );
     await vi.advanceTimersByTimeAsync(0);
     expect(mocks.codex).not.toHaveBeenCalled();
   });
@@ -223,7 +268,11 @@ describe("connected account quotas", () => {
     let signal!: AbortSignal;
     mocks.codex.mockImplementation((_token, _id, abortSignal) => {
       signal = abortSignal;
-      return new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true }));
+      return new Promise((_resolve, reject) =>
+        signal.addEventListener("abort", () => reject(signal.reason), {
+          once: true,
+        }),
+      );
     });
     const pending = fetchCompanyQuotaWindows(db, "slow-company", "slow-user");
     await vi.advanceTimersByTimeAsync(20_001);

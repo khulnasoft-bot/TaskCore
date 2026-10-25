@@ -144,7 +144,10 @@ export class PhotonChatAdapter implements Adapter<PhotonThread, PhotonMessage> {
   }
   encodeThreadId(value: PhotonThread): string {
     if (value.isGroup && this.authentication.identity.allocation === "shared")
-      throw new PhotonError("rejected", "Photon shared channels support direct messages only");
+      throw new PhotonError(
+        "rejected",
+        "Photon shared channels support direct messages only",
+      );
     if (value.lineId !== this.authentication.identity.lineId)
       throw new Error("Wrong Photon line");
     return photonThreadId(value);
@@ -152,7 +155,10 @@ export class PhotonChatAdapter implements Adapter<PhotonThread, PhotonMessage> {
   decodeThreadId(id: string): PhotonThread {
     const value = parsePhotonThreadId(id);
     if (value.isGroup && this.authentication.identity.allocation === "shared")
-      throw new PhotonError("rejected", "Photon shared channels support direct messages only");
+      throw new PhotonError(
+        "rejected",
+        "Photon shared channels support direct messages only",
+      );
     if (value.lineId !== this.authentication.identity.lineId)
       throw new Error("Wrong Photon line");
     return value;

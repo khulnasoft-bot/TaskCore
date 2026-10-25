@@ -61,5 +61,4 @@ describe("heartbeat task drain", () => {
     expect(status.pendingWakes).toBe(0);
     expect(status.quiescent).toBe(true);
   });
-
 });

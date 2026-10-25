@@ -24,11 +24,21 @@ export const issueQuestionResponseDeliveries = pgTable(
   "issue_question_response_deliveries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    issueId: uuid("issue_id").notNull().references(() => issues.id, { onDelete: "cascade" }),
-    interactionId: uuid("interaction_id").notNull().references(() => issueThreadInteractions.id, { onDelete: "cascade" }),
-    sourceRunId: uuid("source_run_id").references(() => heartbeatRuns.id, { onDelete: "set null" }),
-    targetRunId: uuid("target_run_id").references(() => heartbeatRuns.id, { onDelete: "set null" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    interactionId: uuid("interaction_id")
+      .notNull()
+      .references(() => issueThreadInteractions.id, { onDelete: "cascade" }),
+    sourceRunId: uuid("source_run_id").references(() => heartbeatRuns.id, {
+      onDelete: "set null",
+    }),
+    targetRunId: uuid("target_run_id").references(() => heartbeatRuns.id, {
+      onDelete: "set null",
+    }),
     targetTurnId: text("target_turn_id"),
     correlationId: text("correlation_id").notNull(),
     payloadSha256: text("payload_sha256").notNull(),
@@ -41,18 +51,27 @@ export const issueQuestionResponseDeliveries = pgTable(
     lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
     acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
     lastErrorCode: text("last_error_code"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    interactionUq: uniqueIndex("issue_question_response_deliveries_interaction_uq").on(table.interactionId),
-    correlationUq: uniqueIndex("issue_question_response_deliveries_correlation_uq").on(table.correlationId),
-    pendingIdx: index("issue_question_response_deliveries_pending_idx").on(table.status, table.createdAt),
-    companyIssueIdx: index("issue_question_response_deliveries_company_issue_idx").on(
-      table.companyId,
-      table.issueId,
+    interactionUq: uniqueIndex(
+      "issue_question_response_deliveries_interaction_uq",
+    ).on(table.interactionId),
+    correlationUq: uniqueIndex(
+      "issue_question_response_deliveries_correlation_uq",
+    ).on(table.correlationId),
+    pendingIdx: index("issue_question_response_deliveries_pending_idx").on(
+      table.status,
       table.createdAt,
     ),
+    companyIssueIdx: index(
+      "issue_question_response_deliveries_company_issue_idx",
+    ).on(table.companyId, table.issueId, table.createdAt),
     statusCheck: check(
       "issue_question_response_deliveries_status_check",
       sql`${table.status} IN ('pending', 'delivering', 'delivered', 'fallback_queued', 'failed')`,

@@ -7,7 +7,11 @@ export type SidePanelTabsAction<TPayload> =
   | { type: "close"; tabId: string }
   | { type: "close-others"; tabId: string }
   | { type: "reorder"; orderedTabIds: string[] }
-  | { type: "update"; tabId: string; patch: Partial<SidePanelTabRecord<TPayload>> }
+  | {
+      type: "update";
+      tabId: string;
+      patch: Partial<SidePanelTabRecord<TPayload>>;
+    }
   | { type: "reset"; state: SidePanelTabsState<TPayload> };
 
 export function normalizeSidePanelTabsState<TPayload>(
@@ -19,9 +23,10 @@ export function normalizeSidePanelTabsState<TPayload>(
     seen.add(tab.id);
     return true;
   });
-  const activeTabId = state.activeTabId && seen.has(state.activeTabId)
-    ? state.activeTabId
-    : tabs[0]?.id ?? null;
+  const activeTabId =
+    state.activeTabId && seen.has(state.activeTabId)
+      ? state.activeTabId
+      : (tabs[0]?.id ?? null);
   return { tabs, activeTabId };
 }
 
@@ -39,15 +44,16 @@ export function sidePanelTabsReducer<TPayload>(
       }
       return {
         tabs: [...state.tabs, action.tab],
-        activeTabId: action.activate === false ? state.activeTabId : action.tab.id,
+        activeTabId:
+          action.activate === false ? state.activeTabId : action.tab.id,
       };
     }
     case "select":
       return state.activeTabId === action.tabId
         ? state
         : state.tabs.some((tab) => tab.id === action.tabId)
-        ? { ...state, activeTabId: action.tabId }
-        : state;
+          ? { ...state, activeTabId: action.tabId }
+          : state;
     case "close": {
       const index = state.tabs.findIndex((tab) => tab.id === action.tabId);
       if (index < 0) return state;
@@ -66,7 +72,10 @@ export function sidePanelTabsReducer<TPayload>(
       if (action.orderedTabIds.length !== state.tabs.length) return state;
       const byId = new Map(state.tabs.map((tab) => [tab.id, tab]));
       const tabs = action.orderedTabIds.map((id) => byId.get(id));
-      if (tabs.some((tab) => !tab) || new Set(action.orderedTabIds).size !== state.tabs.length) {
+      if (
+        tabs.some((tab) => !tab) ||
+        new Set(action.orderedTabIds).size !== state.tabs.length
+      ) {
         return state;
       }
       return { ...state, tabs: tabs as SidePanelTabRecord<TPayload>[] };
@@ -104,11 +113,20 @@ export function useSidePanelTabs<TPayload>({
     onStateChange?.(state);
   }, [onStateChange, state]);
 
-  const openTab = useCallback((tab: SidePanelTabRecord<TPayload>, activate = true) => {
-    dispatch({ type: "open", tab, activate });
-  }, []);
-  const selectTab = useCallback((tabId: string) => dispatch({ type: "select", tabId }), []);
-  const closeTab = useCallback((tabId: string) => dispatch({ type: "close", tabId }), []);
+  const openTab = useCallback(
+    (tab: SidePanelTabRecord<TPayload>, activate = true) => {
+      dispatch({ type: "open", tab, activate });
+    },
+    [],
+  );
+  const selectTab = useCallback(
+    (tabId: string) => dispatch({ type: "select", tabId }),
+    [],
+  );
+  const closeTab = useCallback(
+    (tabId: string) => dispatch({ type: "close", tabId }),
+    [],
+  );
   const closeOtherTabs = useCallback(
     (tabId: string) => dispatch({ type: "close-others", tabId }),
     [],
@@ -123,7 +141,8 @@ export function useSidePanelTabs<TPayload>({
     [],
   );
   const resetTabs = useCallback(
-    (next: SidePanelTabsState<TPayload>) => dispatch({ type: "reset", state: next }),
+    (next: SidePanelTabsState<TPayload>) =>
+      dispatch({ type: "reset", state: next }),
     [],
   );
 

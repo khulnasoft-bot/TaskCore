@@ -3,9 +3,7 @@
   "slug": "google-calendar",
   "name": "Google Calendar",
   "description": "Read calendars and manage Google Calendar events.",
-  "categories": [
-    "productivity"
-  ],
+  "categories": ["productivity"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/google-calendar.svg"
@@ -40,13 +38,8 @@
         "label": "Read only",
         "description": "Read calendars, events, and availability."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Use Taskcore-managed OAuth for read-only Calendar access.",
       "defaults": {
         "serverUrl": "https://calendarmcp.googleapis.com/mcp/v1",
@@ -57,9 +50,7 @@
         ]
       },
       "guidanceMd": "Connect Google Calendar to read schedules and availability.",
-      "warnings": [
-        "Google Workspace MCP servers are in Developer Preview."
-      ],
+      "warnings": ["Google Workspace MCP servers are in Developer Preview."],
       "riskTier": "S3"
     },
     {
@@ -72,13 +63,8 @@
         "label": "Read only",
         "description": "Read calendars, events, and availability."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a customer-owned OAuth client for read-only Calendar access.",
       "defaults": {
         "serverUrl": "https://calendarmcp.googleapis.com/mcp/v1",
@@ -100,9 +86,7 @@
         "register": "https://console.cloud.google.com/auth/clients",
         "docs": "https://developers.google.com/workspace/guides/configure-mcp-servers"
       },
-      "warnings": [
-        "Google Workspace MCP servers are in Developer Preview."
-      ],
+      "warnings": ["Google Workspace MCP servers are in Developer Preview."],
       "riskTier": "S3"
     },
     {
@@ -117,13 +101,8 @@
         "label": "Read & manage",
         "description": "Create, update, respond to, and delete events."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Use Taskcore-managed OAuth to read and manage Calendar events.",
       "defaults": {
         "serverUrl": "https://calendarmcp.googleapis.com/mcp/v1",
@@ -149,13 +128,8 @@
         "label": "Read & manage",
         "description": "Create, update, respond to, and delete events."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a customer-owned OAuth client to read and manage Calendar events.",
       "defaults": {
         "serverUrl": "https://calendarmcp.googleapis.com/mcp/v1",

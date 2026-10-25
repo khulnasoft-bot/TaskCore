@@ -13,7 +13,9 @@ export interface DocumentAnnotationHashTarget {
 
 const DOCUMENT_HASH_PREFIX = "#document-";
 
-export function parseDocumentAnnotationHash(hash: string): DocumentAnnotationHashTarget | null {
+export function parseDocumentAnnotationHash(
+  hash: string,
+): DocumentAnnotationHashTarget | null {
   if (!hash.startsWith(DOCUMENT_HASH_PREFIX)) return null;
   const stripped = hash.slice(DOCUMENT_HASH_PREFIX.length);
   const [rawKey, ...rest] = stripped.split("&");
@@ -37,7 +39,9 @@ export function parseDocumentAnnotationHash(hash: string): DocumentAnnotationHas
 }
 
 export function buildDocumentAnnotationHash(
-  target: Omit<DocumentAnnotationHashTarget, "viewer"> & { viewer?: "full" | null },
+  target: Omit<DocumentAnnotationHashTarget, "viewer"> & {
+    viewer?: "full" | null;
+  },
 ): string {
   const params = new URLSearchParams();
   if (target.threadId) params.set("thread", target.threadId);
@@ -45,5 +49,7 @@ export function buildDocumentAnnotationHash(
   if (target.viewer) params.set("viewer", target.viewer);
   const qs = params.toString();
   const encodedKey = encodeURIComponent(target.documentKey);
-  return qs ? `${DOCUMENT_HASH_PREFIX}${encodedKey}&${qs}` : `${DOCUMENT_HASH_PREFIX}${encodedKey}`;
+  return qs
+    ? `${DOCUMENT_HASH_PREFIX}${encodedKey}&${qs}`
+    : `${DOCUMENT_HASH_PREFIX}${encodedKey}`;
 }

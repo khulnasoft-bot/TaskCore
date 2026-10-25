@@ -1,4 +1,7 @@
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { KvStore } from "./store.js";
 
@@ -21,7 +24,9 @@ const keySchema = z
   .max(256, "Key must be 256 characters or fewer.")
   .refine((key) => !/[\r\n]/.test(key), "Key must be a single line.");
 
-const valueSchema = z.string().max(10000, "Value must be 10000 characters or fewer.");
+const valueSchema = z
+  .string()
+  .max(10000, "Value must be 10000 characters or fewer.");
 
 const kvSetSchema = z.object({ key: keySchema, value: valueSchema });
 const kvGetSchema = z.object({ key: keySchema });
@@ -35,22 +40,36 @@ function annotationsFor(title: string, risk: ToolRisk): ToolAnnotations {
     return { title, readOnlyHint: true, openWorldHint: false };
   }
   if (risk === "write") {
-    return { title, readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+    return {
+      title,
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    };
   }
-  return { title, readOnlyHint: false, destructiveHint: true, openWorldHint: false };
+  return {
+    title,
+    readOnlyHint: false,
+    destructiveHint: true,
+    openWorldHint: false,
+  };
 }
 
 function formatTextResponse(value: unknown): ToolResult {
   return {
-    content: [{
-      type: "text",
-      text: typeof value === "string" ? value : JSON.stringify(value, null, 2),
-    }],
+    content: [
+      {
+        type: "text",
+        text:
+          typeof value === "string" ? value : JSON.stringify(value, null, 2),
+      },
+    ],
   };
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof z.ZodError) return error.issues.map((entry) => entry.message).join("; ");
+  if (error instanceof z.ZodError)
+    return error.issues.map((entry) => entry.message).join("; ");
   if (error instanceof Error) return error.message;
   return String(error);
 }

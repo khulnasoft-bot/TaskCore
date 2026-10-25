@@ -7,25 +7,33 @@ import {
 
 describe("OAuth Client ID Metadata Document selection", () => {
   it("uses a publicly resolved HTTPS callback origin", async () => {
-    const redirectUri = "https://taskcore.example:42001/api/tools/oauth/callback";
+    const redirectUri =
+      "https://taskcore.example:42001/api/tools/oauth/callback";
 
-    await expect(resolveOAuthClientIdMetadataDocumentUrl(
-      redirectUri,
-      async () => [{ address: "93.184.216.34", family: 4 }],
-    )).resolves.toBe(`https://taskcore.example:42001${OAUTH_CLIENT_ID_METADATA_DOCUMENT_PATH}`);
+    await expect(
+      resolveOAuthClientIdMetadataDocumentUrl(redirectUri, async () => [
+        { address: "93.184.216.34", family: 4 },
+      ]),
+    ).resolves.toBe(
+      `https://taskcore.example:42001${OAUTH_CLIENT_ID_METADATA_DOCUMENT_PATH}`,
+    );
   });
 
   it("rejects a Tailscale-range hostname so OAuth can fall back to DCR", async () => {
-    await expect(resolveOAuthClientIdMetadataDocumentUrl(
-      "https://taskcore.tailnet.example:42001/api/tools/oauth/callback",
-      async () => [{ address: "100.100.100.100", family: 4 }],
-    )).resolves.toBeNull();
+    await expect(
+      resolveOAuthClientIdMetadataDocumentUrl(
+        "https://taskcore.tailnet.example:42001/api/tools/oauth/callback",
+        async () => [{ address: "100.100.100.100", family: 4 }],
+      ),
+    ).resolves.toBeNull();
   });
 
   it.each([
     "http://localhost:3100/api/tools/oauth/callback",
     "https://127.0.0.1:3100/api/tools/oauth/callback",
   ])("rejects a non-public callback origin %s", async (redirectUri) => {
-    await expect(resolveOAuthClientIdMetadataDocumentUrl(redirectUri)).resolves.toBeNull();
+    await expect(
+      resolveOAuthClientIdMetadataDocumentUrl(redirectUri),
+    ).resolves.toBeNull();
   });
 });

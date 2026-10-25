@@ -7,7 +7,10 @@ import {
 } from "./adapters/postgres.js";
 import { createQueuedCommentIssueLockWriter } from "./adapters/queued-comment-postgres.js";
 import type { QueuedCommentQueuePostgresAdapterDeps } from "./adapters/queued-comment-postgres.js";
-import { createAdmitWakeBehindIssueExecution, createReleaseIssueExecution } from "./application/use-cases.js";
+import {
+  createAdmitWakeBehindIssueExecution,
+  createReleaseIssueExecution,
+} from "./application/use-cases.js";
 import {
   createDiscardQueuedComment,
   createEditQueuedComment,
@@ -35,7 +38,11 @@ export type {
   ReleaseRecoveryBlockedNoticeKind,
   TransactionScope,
 } from "./application/ports.js";
-export type { AdmitWakeBehindIssueExecutionInput, AdmitWakeBehindIssueExecutionResult, ReleaseIssueExecutionInput } from "./application/use-cases.js";
+export type {
+  AdmitWakeBehindIssueExecutionInput,
+  AdmitWakeBehindIssueExecutionResult,
+  ReleaseIssueExecutionInput,
+} from "./application/use-cases.js";
 export {
   QueuedCommentMutationError,
   QueuedCommentMutationForbiddenError,
@@ -94,13 +101,19 @@ export function createWakeQueue(db: Db, deps: WakeQueueDeps) {
   });
 
   return {
-    releaseIssueExecution: createReleaseIssueExecution({ issueLock, recovery: deps.recovery }),
+    releaseIssueExecution: createReleaseIssueExecution({
+      issueLock,
+      recovery: deps.recovery,
+    }),
     admitWakeBehindIssueExecution: createAdmitWakeBehindIssueExecution({
       reader: createWakeAdmissionReader(),
       writer: createWakeAdmissionWriter(),
       helpers: deps.wakeAdmissionHelpers,
     }),
-    createAdmissionTransactionScope(companyId: string, tx: Db): TransactionScope {
+    createAdmissionTransactionScope(
+      companyId: string,
+      tx: Db,
+    ): TransactionScope {
       return buildAdmissionTransactionScope(companyId, tx);
     },
   };
@@ -117,7 +130,10 @@ export type WakeQueue = ReturnType<typeof createWakeQueue>;
  * and external-object sync callbacks in `deps`, which a caller outside
  * `heartbeat.ts` (the queued-comment route) can supply directly.
  */
-export function createQueuedCommentQueue(db: Db, deps: QueuedCommentQueuePostgresAdapterDeps) {
+export function createQueuedCommentQueue(
+  db: Db,
+  deps: QueuedCommentQueuePostgresAdapterDeps,
+) {
   const issueLock = createQueuedCommentIssueLockWriter(db, deps);
   return {
     editQueuedComment: createEditQueuedComment({ issueLock }),

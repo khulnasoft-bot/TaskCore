@@ -33,7 +33,11 @@ function isSecretRef(value: unknown): value is SecretRef {
   );
 }
 
-function readCreateValue(values: CreateConfigValues | null, key: string, fallback: unknown): unknown {
+function readCreateValue(
+  values: CreateConfigValues | null,
+  key: string,
+  fallback: unknown,
+): unknown {
   return values?.adapterSchemaValues?.[key] ?? fallback;
 }
 
@@ -82,7 +86,11 @@ function SecretField({
           className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
           aria-label={visible ? `Hide ${label}` : `Show ${label}`}
         >
-          {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+          {visible ? (
+            <Eye className="h-3.5 w-3.5" />
+          ) : (
+            <EyeOff className="h-3.5 w-3.5" />
+          )}
         </button>
         <DraftInput
           value={value}
@@ -90,7 +98,11 @@ function SecretField({
           immediate
           type={visible ? "text" : "password"}
           className={inputClass + " pl-8"}
-          placeholder={stored ? "Stored secret; enter a new value to replace it" : placeholder}
+          placeholder={
+            stored
+              ? "Stored secret; enter a new value to replace it"
+              : placeholder
+          }
         />
       </div>
     </Field>
@@ -107,8 +119,12 @@ export function HermesGatewayConfigFields({
   mark,
 }: AdapterConfigFieldsProps) {
   const storedApiKey = config.apiKey;
-  const hasStoredApiKey = isSecretRef(storedApiKey) || typeof storedApiKey === "string";
-  const editApiKeyValue = typeof storedApiKey === "string" ? String(eff("adapterConfig", "apiKey", storedApiKey)) : "";
+  const hasStoredApiKey =
+    isSecretRef(storedApiKey) || typeof storedApiKey === "string";
+  const editApiKeyValue =
+    typeof storedApiKey === "string"
+      ? String(eff("adapterConfig", "apiKey", storedApiKey))
+      : "";
 
   const configuredHeaders = stringifyHeaders(config.headers);
   const editHeaders = eff("adapterConfig", "headers", configuredHeaders);
@@ -119,7 +135,9 @@ export function HermesGatewayConfigFields({
   }, [editHeaders, isCreate]);
 
   const readValue = (key: string, fallback: unknown) =>
-    isCreate ? readCreateValue(values, key, fallback) : eff("adapterConfig", key, (config[key] ?? fallback) as never);
+    isCreate
+      ? readCreateValue(values, key, fallback)
+      : eff("adapterConfig", key, (config[key] ?? fallback) as never);
 
   const writeValue = (key: string, value: unknown) => {
     if (isCreate) {
@@ -131,16 +149,27 @@ export function HermesGatewayConfigFields({
 
   const apiBaseUrl = String(readValue("apiBaseUrl", "") ?? "");
   const taskcoreApiUrl = String(readValue("taskcoreApiUrl", "") ?? "");
-  const sessionKeyStrategy = String(readValue("sessionKeyStrategy", DEFAULT_SESSION_KEY_STRATEGY) ?? DEFAULT_SESSION_KEY_STRATEGY);
-  const timeoutSec = Number(readValue("timeoutSec", DEFAULT_TIMEOUT_SEC) ?? DEFAULT_TIMEOUT_SEC);
-  const eventReconnectMs = Number(readValue("eventReconnectMs", DEFAULT_EVENT_RECONNECT_MS) ?? DEFAULT_EVENT_RECONNECT_MS);
-  const allowInsecureRemoteHttp = Boolean(readValue("dangerouslyAllowInsecureRemoteHttp", false));
+  const sessionKeyStrategy = String(
+    readValue("sessionKeyStrategy", DEFAULT_SESSION_KEY_STRATEGY) ??
+      DEFAULT_SESSION_KEY_STRATEGY,
+  );
+  const timeoutSec = Number(
+    readValue("timeoutSec", DEFAULT_TIMEOUT_SEC) ?? DEFAULT_TIMEOUT_SEC,
+  );
+  const eventReconnectMs = Number(
+    readValue("eventReconnectMs", DEFAULT_EVENT_RECONNECT_MS) ??
+      DEFAULT_EVENT_RECONNECT_MS,
+  );
+  const allowInsecureRemoteHttp = Boolean(
+    readValue("dangerouslyAllowInsecureRemoteHttp", false),
+  );
   const instructions = String(readValue("instructions", "") ?? "");
   const headers = isCreate
     ? String(readCreateValue(values, "headers", "") ?? "")
     : headersDraft;
 
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       <Field
         label="API base URL"
@@ -157,7 +186,11 @@ export function HermesGatewayConfigFields({
 
       <SecretField
         label="API key"
-        value={isCreate ? String(readCreateValue(values, "apiKey", "") ?? "") : editApiKeyValue}
+        value={
+          isCreate
+            ? String(readCreateValue(values, "apiKey", "") ?? "")
+            : editApiKeyValue
+        }
         onCommit={(v) => writeValue("apiKey", v || undefined)}
         placeholder="Hermes API_SERVER_KEY, not TASKCORE_API_KEY"
         stored={!isCreate && hasStoredApiKey && !editApiKeyValue}
@@ -176,13 +209,16 @@ export function HermesGatewayConfigFields({
         />
       </Field>
 
-      <Field configSection="runPolicy"
+      <Field
+        configSection="runPolicy"
         label="Session key strategy"
         hint="Controls X-Hermes-Session-Key. Issue scoped prevents cross-task memory bleed by default."
       >
         <select
           value={sessionKeyStrategy}
-          onChange={(event) => writeValue("sessionKeyStrategy", event.target.value)}
+          onChange={(event) =>
+            writeValue("sessionKeyStrategy", event.target.value)
+          }
           className={inputClass}
         >
           <option value="issue">Issue scoped</option>
@@ -206,7 +242,11 @@ export function HermesGatewayConfigFields({
         hint="Delay before reconnecting the Hermes SSE events stream after a nonterminal disconnect."
       >
         <DraftNumberInput
-          value={Number.isFinite(eventReconnectMs) ? eventReconnectMs : DEFAULT_EVENT_RECONNECT_MS}
+          value={
+            Number.isFinite(eventReconnectMs)
+              ? eventReconnectMs
+              : DEFAULT_EVENT_RECONNECT_MS
+          }
           onCommit={(v) => writeValue("eventReconnectMs", v)}
           immediate
           className={inputClass}
@@ -241,7 +281,10 @@ export function HermesGatewayConfigFields({
         />
       </Field>
 
-      <Field label="Instructions" hint="Optional stable Hermes instructions sent separately from the wake input.">
+      <Field
+        label="Instructions"
+        hint="Optional stable Hermes instructions sent separately from the wake input."
+      >
         <DraftTextarea
           value={instructions}
           onCommit={(v) => writeValue("instructions", v || undefined)}
@@ -249,6 +292,6 @@ export function HermesGatewayConfigFields({
           minRows={3}
         />
       </Field>
-    </>
-  ));
+    </>,
+  );
 }

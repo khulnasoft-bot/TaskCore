@@ -2,7 +2,10 @@ export const TASK_COLLECTION_PREFERENCES_VERSION = 1 as const;
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
-export interface TaskCollectionPreferenceEnvelope<TViewState, TColumn extends string> {
+export interface TaskCollectionPreferenceEnvelope<
+  TViewState,
+  TColumn extends string,
+> {
   version: typeof TASK_COLLECTION_PREFERENCES_VERSION;
   companyId: string;
   collectionKey: string;
@@ -18,8 +21,10 @@ export interface TaskCollectionPreferenceLocation {
   legacyColumnsStorageKey?: string;
 }
 
-export interface LoadTaskCollectionPreferenceOptions<TViewState, TColumn extends string>
-  extends TaskCollectionPreferenceLocation {
+export interface LoadTaskCollectionPreferenceOptions<
+  TViewState,
+  TColumn extends string,
+> extends TaskCollectionPreferenceLocation {
   storage?: StorageLike | null;
   defaultViewState: TViewState;
   defaultColumns: TColumn[];
@@ -32,7 +37,10 @@ function browserStorage(): StorageLike | null {
   return localStorage;
 }
 
-function parseStoredJson(storage: StorageLike, key: string | undefined): unknown {
+function parseStoredJson(
+  storage: StorageLike,
+  key: string | undefined,
+): unknown {
   if (!key) return null;
   try {
     const value = storage.getItem(key);
@@ -45,7 +53,10 @@ function parseStoredJson(storage: StorageLike, key: string | undefined): unknown
 export function taskCollectionPreferencesStorageKey({
   companyId,
   collectionKey,
-}: Pick<TaskCollectionPreferenceLocation, "companyId" | "collectionKey">): string {
+}: Pick<
+  TaskCollectionPreferenceLocation,
+  "companyId" | "collectionKey"
+>): string {
   return `taskcore:task-collection:v${TASK_COLLECTION_PREFERENCES_VERSION}:${encodeURIComponent(companyId)}:${encodeURIComponent(collectionKey)}`;
 }
 
@@ -54,17 +65,28 @@ function isCurrentEnvelope<TViewState, TColumn extends string>(
   location: TaskCollectionPreferenceLocation,
 ): value is TaskCollectionPreferenceEnvelope<TViewState, TColumn> {
   if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<TaskCollectionPreferenceEnvelope<TViewState, TColumn>>;
-  return candidate.version === TASK_COLLECTION_PREFERENCES_VERSION
-    && candidate.companyId === location.companyId
-    && candidate.collectionKey === location.collectionKey
-    && "viewState" in candidate
-    && Array.isArray(candidate.columns);
+  const candidate = value as Partial<
+    TaskCollectionPreferenceEnvelope<TViewState, TColumn>
+  >;
+  return (
+    candidate.version === TASK_COLLECTION_PREFERENCES_VERSION &&
+    candidate.companyId === location.companyId &&
+    candidate.collectionKey === location.collectionKey &&
+    "viewState" in candidate &&
+    Array.isArray(candidate.columns)
+  );
 }
 
-export function saveTaskCollectionPreferences<TViewState, TColumn extends string>(
+export function saveTaskCollectionPreferences<
+  TViewState,
+  TColumn extends string,
+>(
   location: TaskCollectionPreferenceLocation,
-  value: { viewState: TViewState; columns: TColumn[]; viewStateSource?: "stored" | "default" },
+  value: {
+    viewState: TViewState;
+    columns: TColumn[];
+    viewStateSource?: "stored" | "default";
+  },
   storage: StorageLike | null = browserStorage(),
 ): void {
   if (!storage) return;
@@ -78,21 +100,33 @@ export function saveTaskCollectionPreferences<TViewState, TColumn extends string
   };
 
   try {
-    storage.setItem(taskCollectionPreferencesStorageKey(location), JSON.stringify(envelope));
+    storage.setItem(
+      taskCollectionPreferencesStorageKey(location),
+      JSON.stringify(envelope),
+    );
     // Dual-write during migration so older builds using the same worktree keep
     // reading the latest presentation state.
     if (location.legacyViewStorageKey) {
-      storage.setItem(location.legacyViewStorageKey, JSON.stringify(value.viewState));
+      storage.setItem(
+        location.legacyViewStorageKey,
+        JSON.stringify(value.viewState),
+      );
     }
     if (location.legacyColumnsStorageKey) {
-      storage.setItem(location.legacyColumnsStorageKey, JSON.stringify(value.columns));
+      storage.setItem(
+        location.legacyColumnsStorageKey,
+        JSON.stringify(value.columns),
+      );
     }
   } catch {
     // Preferences are an enhancement; storage denial must not break the list.
   }
 }
 
-export function loadTaskCollectionPreferences<TViewState, TColumn extends string>({
+export function loadTaskCollectionPreferences<
+  TViewState,
+  TColumn extends string,
+>({
   storage = browserStorage(),
   defaultViewState,
   defaultColumns,
@@ -106,10 +140,18 @@ export function loadTaskCollectionPreferences<TViewState, TColumn extends string
   source: "current" | "legacy" | "default";
 } {
   if (!storage) {
-    return { viewState: defaultViewState, columns: defaultColumns, migrated: false, source: "default" };
+    return {
+      viewState: defaultViewState,
+      columns: defaultColumns,
+      migrated: false,
+      source: "default",
+    };
   }
 
-  const current = parseStoredJson(storage, taskCollectionPreferencesStorageKey(location));
+  const current = parseStoredJson(
+    storage,
+    taskCollectionPreferencesStorageKey(location),
+  );
   if (isCurrentEnvelope<TViewState, TColumn>(current, location)) {
     return {
       viewState: normalizeViewState(current.viewState),
@@ -120,18 +162,27 @@ export function loadTaskCollectionPreferences<TViewState, TColumn extends string
   }
 
   const legacyView = parseStoredJson(storage, location.legacyViewStorageKey);
-  const legacyColumns = parseStoredJson(storage, location.legacyColumnsStorageKey);
+  const legacyColumns = parseStoredJson(
+    storage,
+    location.legacyColumnsStorageKey,
+  );
   const hasLegacyState = legacyView !== null || legacyColumns !== null;
   const preferences = {
-    viewState: legacyView === null ? defaultViewState : normalizeViewState(legacyView),
-    columns: legacyColumns === null ? defaultColumns : normalizeColumns(legacyColumns),
+    viewState:
+      legacyView === null ? defaultViewState : normalizeViewState(legacyView),
+    columns:
+      legacyColumns === null ? defaultColumns : normalizeColumns(legacyColumns),
   };
 
   if (hasLegacyState) {
-    saveTaskCollectionPreferences(location, {
-      ...preferences,
-      viewStateSource: legacyView === null ? "default" : "stored",
-    }, storage);
+    saveTaskCollectionPreferences(
+      location,
+      {
+        ...preferences,
+        viewStateSource: legacyView === null ? "default" : "stored",
+      },
+      storage,
+    );
   }
   return {
     ...preferences,

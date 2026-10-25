@@ -8,8 +8,15 @@ import {
   trackRecentAssignee,
   trackRecentAssigneeUser,
 } from "./recent-assignees";
-import { getLastProjectId, getRecentProjectIds, trackRecentProject } from "./recent-projects";
-import { getLastComposerEffort, rememberComposerEffort } from "./recent-composer-effort";
+import {
+  getLastProjectId,
+  getRecentProjectIds,
+  trackRecentProject,
+} from "./recent-projects";
+import {
+  getLastComposerEffort,
+  rememberComposerEffort,
+} from "./recent-composer-effort";
 import { orderItemsBySelectedAndRecent } from "./recent-selections";
 
 describe("recent selection ordering", () => {
@@ -31,7 +38,14 @@ describe("recent selection ordering", () => {
       ["echo", "bravo", "delta", "alpha"],
     );
 
-    expect(ordered.map((item) => item.id)).toEqual(["charlie", "echo", "bravo", "delta", "", "alpha"]);
+    expect(ordered.map((item) => item.id)).toEqual([
+      "charlie",
+      "echo",
+      "bravo",
+      "delta",
+      "",
+      "alpha",
+    ]);
   });
 
   it("keeps the no-value option first when it is selected", () => {
@@ -57,9 +71,20 @@ describe("recent selection ordering", () => {
       { id: "echo", name: "Echo" },
     ];
 
-    const sorted = sortAgentsByRecency(agents, ["delta", "bravo", "echo", "charlie"]);
+    const sorted = sortAgentsByRecency(agents, [
+      "delta",
+      "bravo",
+      "echo",
+      "charlie",
+    ]);
 
-    expect(sorted.map((agent) => agent.id)).toEqual(["delta", "bravo", "echo", "alpha", "charlie"]);
+    expect(sorted.map((agent) => agent.id)).toEqual([
+      "delta",
+      "bravo",
+      "echo",
+      "alpha",
+      "charlie",
+    ]);
   });
 
   it("tracks recent project ids newest first without duplicates", () => {
@@ -98,7 +123,10 @@ describe("recent selection ordering", () => {
     trackRecentAssignee("agent-1");
     trackRecentAssigneeUser("user-1");
 
-    expect(getRecentAssigneeSelectionIds()).toEqual(["user:user-1", "agent:agent-1"]);
+    expect(getRecentAssigneeSelectionIds()).toEqual([
+      "user:user-1",
+      "agent:agent-1",
+    ]);
     expect(getRecentAssigneeIds()).toEqual(["agent-1"]);
   });
 
@@ -107,7 +135,10 @@ describe("recent selection ordering", () => {
     trackRecentAssigneeUser("user-1", "company-2");
     trackRecentAssigneeUser("user-2", "company-1");
 
-    expect(getRecentAssigneeSelectionIds("company-1")).toEqual(["user:user-2", "agent:agent-1"]);
+    expect(getRecentAssigneeSelectionIds("company-1")).toEqual([
+      "user:user-2",
+      "agent:agent-1",
+    ]);
     expect(getRecentAssigneeSelectionIds("company-2")).toEqual(["user:user-1"]);
     expect(getRecentAssigneeSelectionIds("company-3")).toEqual([]);
   });

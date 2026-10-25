@@ -94,21 +94,32 @@ describe("GET /invites/:token/logo", () => {
       stream: Readable.from([Buffer.from("png")]),
     });
     const app = createApp(
-      createDbStub([invite], [{
-        companyId: "company-1",
-        objectKey: "assets/companies/logo-1",
-        contentType: "image/png",
-        byteSize: 3,
-        originalFilename: "logo.png",
-      }]),
+      createDbStub(
+        [invite],
+        [
+          {
+            companyId: "company-1",
+            objectKey: "assets/companies/logo-1",
+            contentType: "image/png",
+            byteSize: 3,
+            originalFilename: "logo.png",
+          },
+        ],
+      ),
     );
 
     const res = await request(app).get("/api/invites/pcp_invite_test/logo");
 
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toContain("image/png");
-    expect(mockStorage.headObject).toHaveBeenCalledWith("company-1", "assets/companies/logo-1");
-    expect(mockStorage.getObject).toHaveBeenCalledWith("company-1", "assets/companies/logo-1");
+    expect(mockStorage.headObject).toHaveBeenCalledWith(
+      "company-1",
+      "assets/companies/logo-1",
+    );
+    expect(mockStorage.getObject).toHaveBeenCalledWith(
+      "company-1",
+      "assets/companies/logo-1",
+    );
   });
 
   it("returns 404 when the logo asset record exists but storage does not", async () => {
@@ -128,13 +139,18 @@ describe("GET /invites/:token/logo", () => {
     };
     mockStorage.headObject.mockResolvedValue({ exists: false });
     const app = createApp(
-      createDbStub([invite], [{
-        companyId: "company-1",
-        objectKey: "assets/companies/logo-1",
-        contentType: "image/png",
-        byteSize: 3,
-        originalFilename: "logo.png",
-      }]),
+      createDbStub(
+        [invite],
+        [
+          {
+            companyId: "company-1",
+            objectKey: "assets/companies/logo-1",
+            contentType: "image/png",
+            byteSize: 3,
+            originalFilename: "logo.png",
+          },
+        ],
+      ),
     );
 
     const res = await request(app).get("/api/invites/pcp_invite_test/logo");

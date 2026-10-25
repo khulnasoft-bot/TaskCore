@@ -2,7 +2,7 @@ import { createCodexTaskEnvelope } from "../contracts/codex.js";
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -15,7 +15,10 @@ export function openCodeProxyTaskEnvelope(params: Record<string, unknown>) {
   const revision = text(completionContract.revision).trim();
   const criterionIds = Array.isArray(completionContract.criterionIds)
     ? completionContract.criterionIds
-        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
         .map((value) => value.trim())
     : [];
   return createCodexTaskEnvelope({

@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { isSupportedTailscaleVersion, parseTailscaleVersion } from "./tailscale-cli.js";
+import {
+  isSupportedTailscaleVersion,
+  parseTailscaleVersion,
+} from "./tailscale-cli.js";
 
 describe("parseTailscaleVersion", () => {
   it("parses the numeric major.minor prefix of CLI output", () => {
-    expect(parseTailscaleVersion("1.102.2\n  tailscale commit: abc\n")).toEqual({ major: 1, minor: 102 });
+    expect(parseTailscaleVersion("1.102.2\n  tailscale commit: abc\n")).toEqual(
+      { major: 1, minor: 102 },
+    );
     expect(parseTailscaleVersion("  1.80.3")).toEqual({ major: 1, minor: 80 });
   });
 
@@ -21,7 +26,9 @@ describe("isSupportedTailscaleVersion", () => {
     expect(isSupportedTailscaleVersion("1.80.0")).toBe(true);
     expect(isSupportedTailscaleVersion("1.84.1")).toBe(true);
     // Numeric, not lexicographic: "1.102" < "1.80" as strings.
-    expect(isSupportedTailscaleVersion("1.102.2\n  tailscale commit: abc\n")).toBe(true);
+    expect(
+      isSupportedTailscaleVersion("1.102.2\n  tailscale commit: abc\n"),
+    ).toBe(true);
     expect(isSupportedTailscaleVersion("2.0.0")).toBe(true);
   });
 

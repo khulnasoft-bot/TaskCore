@@ -5,7 +5,8 @@ const { mockResolveEnvironmentDriverConfigForRuntime } = vi.hoisted(() => ({
 }));
 
 vi.mock("../services/environment-config.js", () => ({
-  resolveEnvironmentDriverConfigForRuntime: mockResolveEnvironmentDriverConfigForRuntime,
+  resolveEnvironmentDriverConfigForRuntime:
+    mockResolveEnvironmentDriverConfigForRuntime,
 }));
 
 import {
@@ -66,7 +67,8 @@ function createRecordingTrace() {
 // active step store and passes it as the third `startSpan` argument. This helper
 // holds the parent assertion in one place for reuse.
 function recordParentContext() {
-  const calls: Array<{ name: string; parentContext: unknown; span: unknown }> = [];
+  const calls: Array<{ name: string; parentContext: unknown; span: unknown }> =
+    [];
   const tokens = new Map<unknown, unknown>();
   const tracer = {
     startSpan(name: string, _options?: unknown, parentContext?: unknown) {
@@ -86,13 +88,21 @@ function recordParentContext() {
     return token;
   };
   // The span object recorded for a given span name.
-  const spanNamed = (name: string) => calls.find((call) => call.name === name)?.span;
+  const spanNamed = (name: string) =>
+    calls.find((call) => call.name === name)?.span;
   // The parent-context token that `startSpan` received for a given span name.
   const parentContextFor = (name: string) =>
     calls.find((call) => call.name === name)?.parentContext;
   // The parent-context token that `contextWithSpan` returned for a given span.
   const tokenForSpan = (span: unknown) => tokens.get(span);
-  return { tracer, contextWithSpan, calls, spanNamed, parentContextFor, tokenForSpan };
+  return {
+    tracer,
+    contextWithSpan,
+    calls,
+    spanNamed,
+    parentContextFor,
+    tokenForSpan,
+  };
 }
 
 describe("resolveEnvironmentExecutionTarget", () => {
@@ -467,17 +477,28 @@ describe("resolveEnvironmentExecutionTarget", () => {
       db: {} as never,
       companyId: "company-1",
       adapterType: "codex_local",
-      environment: { id: "env-1", driver: "sandbox", config: { provider: "fake-plugin" } },
+      environment: {
+        id: "env-1",
+        driver: "sandbox",
+        config: { provider: "fake-plugin" },
+      },
       leaseId: "lease-1",
       leaseMetadata: { remoteCwd: "/workspace" },
       lease: { id: "lease-1" } as never,
       environmentRuntime: environmentRuntime as never,
     });
 
-    const runner = (target as { runner?: {
-      supportsSingleStreamStdinProgress?: boolean;
-      execute(input: { command: string; args?: string[] }): Promise<unknown>;
-    } }).runner;
+    const runner = (
+      target as {
+        runner?: {
+          supportsSingleStreamStdinProgress?: boolean;
+          execute(input: {
+            command: string;
+            args?: string[];
+          }): Promise<unknown>;
+        };
+      }
+    ).runner;
     expect(runner).toBeTruthy();
     // Provider-backed sandbox RPCs do not surface bounded mid-stream progress
     // for a single stdin upload, so the runner leaves the capability disabled.
@@ -516,28 +537,44 @@ describe("resolveEnvironmentExecutionTarget", () => {
       db: {} as never,
       companyId: "company-1",
       adapterType: "codex_local",
-      environment: { id: "env-1", driver: "sandbox", config: { provider: "fake-plugin" } },
+      environment: {
+        id: "env-1",
+        driver: "sandbox",
+        config: { provider: "fake-plugin" },
+      },
       leaseId: "lease-1",
       leaseMetadata: { remoteCwd: "/workspace" },
       lease: { id: "lease-1" } as never,
       environmentRuntime: environmentRuntime as never,
     });
 
-    const runner = (target as { runner?: {
-      execute(input: {
-        command: string;
-        args?: string[];
-        useSession?: boolean;
-        bypassSession?: boolean;
-      }): Promise<unknown>;
-    } }).runner!;
+    const runner = (
+      target as {
+        runner?: {
+          execute(input: {
+            command: string;
+            args?: string[];
+            useSession?: boolean;
+            bypassSession?: boolean;
+          }): Promise<unknown>;
+        };
+      }
+    ).runner!;
 
     // The agent command opts onto the persistent session with `useSession`,
     // which the seam maps to `forceSession`. It never bypasses the session.
-    await runner.execute({ command: "node", args: ["script.js"], useSession: true });
+    await runner.execute({
+      command: "node",
+      args: ["script.js"],
+      useSession: true,
+    });
     // A bridge control-plane exec opts off the persistent session with
     // `bypassSession`, which the seam forwards unchanged.
-    await runner.execute({ command: "sh", args: ["-c", "cat"], bypassSession: true });
+    await runner.execute({
+      command: "sh",
+      args: ["-c", "cat"],
+      bypassSession: true,
+    });
 
     const first = environmentRuntime.execute.mock.calls[0]![0] as {
       forceSession?: boolean;
@@ -628,7 +665,11 @@ describe("resolveEnvironmentExecutionTarget", () => {
   }) {
     mockResolveEnvironmentDriverConfigForRuntime.mockResolvedValue({
       driver: "sandbox",
-      config: { provider: input.provider, reuseLease: false, timeoutMs: 30_000 },
+      config: {
+        provider: input.provider,
+        reuseLease: false,
+        timeoutMs: 30_000,
+      },
     });
     const environmentRuntime = {
       execute: input.execute,
@@ -638,24 +679,35 @@ describe("resolveEnvironmentExecutionTarget", () => {
       db: {} as never,
       companyId: "company-1",
       adapterType: "codex_local",
-      environment: { id: "env-1", driver: "sandbox", config: { provider: input.provider } },
+      environment: {
+        id: "env-1",
+        driver: "sandbox",
+        config: { provider: input.provider },
+      },
       leaseId: "lease-1",
       leaseMetadata: { remoteCwd: "/workspace" },
       lease: { id: "lease-1" } as never,
       environmentRuntime: environmentRuntime as never,
       tracer: input.tracer as never,
     });
-    return (target as { runner?: {
-      execute(input: { command: string; args?: string[] }): Promise<unknown>;
-    } }).runner!;
+    return (
+      target as {
+        runner?: {
+          execute(input: {
+            command: string;
+            args?: string[];
+          }): Promise<unknown>;
+        };
+      }
+    ).runner!;
   }
 
   // Run the sandbox runner's execute with an incremental log sink and collect
   // the ordered deliveries. The runner's execute accepts an `onLog`, so this
   // casts past the narrowed helper return type.
-  async function runExecuteCollectingLogs(
-    runner: { execute(input: unknown): Promise<unknown> },
-  ): Promise<Array<[string, string]>> {
+  async function runExecuteCollectingLogs(runner: {
+    execute(input: unknown): Promise<unknown>;
+  }): Promise<Array<[string, string]>> {
     const delivered: Array<[string, string]> = [];
     await runner.execute({
       command: "echo",
@@ -676,10 +728,18 @@ describe("resolveEnvironmentExecutionTarget", () => {
       provider: "daytona",
       tracer,
       execute: async (input: unknown) => {
-        const typed = input as { onLog?: (s: "stdout" | "stderr", c: string) => Promise<void> };
+        const typed = input as {
+          onLog?: (s: "stdout" | "stderr", c: string) => Promise<void>;
+        };
         await typed.onLog?.("stdout", "hello ");
         await typed.onLog?.("stderr", "warn:");
-        return { exitCode: 0, signal: null, timedOut: false, stdout: "hello world", stderr: "warn:done" };
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: "hello world",
+          stderr: "warn:done",
+        };
       },
     });
     const delivered = await runExecuteCollectingLogs(
@@ -702,9 +762,17 @@ describe("resolveEnvironmentExecutionTarget", () => {
       provider: "daytona",
       tracer,
       execute: async (input: unknown) => {
-        const typed = input as { onLog?: (s: "stdout" | "stderr", c: string) => Promise<void> };
+        const typed = input as {
+          onLog?: (s: "stdout" | "stderr", c: string) => Promise<void>;
+        };
         await typed.onLog?.("stdout", "full");
-        return { exitCode: 0, signal: null, timedOut: false, stdout: "full", stderr: "" };
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: "full",
+          stderr: "",
+        };
       },
     });
     const delivered = await runExecuteCollectingLogs(
@@ -714,20 +782,44 @@ describe("resolveEnvironmentExecutionTarget", () => {
   });
 
   it("does not replay a capped provider tail after streaming more than 4 MiB", async () => {
-    const receipt = JSON.stringify({ type: "turn_end", message: { usage: { input: 20, output: 10, cost: { total: 0.004 } } } }) + "\n";
+    const receipt =
+      JSON.stringify({
+        type: "turn_end",
+        message: { usage: { input: 20, output: 10, cost: { total: 0.004 } } },
+      }) + "\n";
     const output = "x".repeat(5 * 1024 * 1024) + "\n" + receipt;
     const { tracer } = createRecordingExecTracer();
-    const runner = await runnerWithExecute({ provider: "createos", tracer,
+    const runner = await runnerWithExecute({
+      provider: "createos",
+      tracer,
       execute: async (input: unknown) => {
-        const typed = input as { onLog?: (s: "stdout" | "stderr", c: string) => Promise<void> };
-        for (let offset = 0; offset < output.length; offset += 65536) await typed.onLog?.("stdout", output.slice(offset, offset + 65536));
+        const typed = input as {
+          onLog?: (s: "stdout" | "stderr", c: string) => Promise<void>;
+        };
+        for (let offset = 0; offset < output.length; offset += 65536)
+          await typed.onLog?.("stdout", output.slice(offset, offset + 65536));
         await typed.onLog?.("stderr", "diagnostic prefix\nlast warning\n");
-        return { exitCode: 0, signal: null, timedOut: false, stdout: output.slice(-4 * 1024 * 1024), stderr: "last warning\n" };
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: output.slice(-4 * 1024 * 1024),
+          stderr: "last warning\n",
+        };
       },
     });
-    const delivered = await runExecuteCollectingLogs(runner as { execute(input: unknown): Promise<unknown> });
-    expect(delivered.filter(([stream]) => stream === "stdout").map(([, chunk]) => chunk).join("")).toBe(output);
-    expect(delivered.filter(([stream]) => stream === "stderr")).toEqual([["stderr", "diagnostic prefix\nlast warning\n"]]);
+    const delivered = await runExecuteCollectingLogs(
+      runner as { execute(input: unknown): Promise<unknown> },
+    );
+    expect(
+      delivered
+        .filter(([stream]) => stream === "stdout")
+        .map(([, chunk]) => chunk)
+        .join(""),
+    ).toBe(output);
+    expect(delivered.filter(([stream]) => stream === "stderr")).toEqual([
+      ["stderr", "diagnostic prefix\nlast warning\n"],
+    ]);
   });
 
   it("delivers the full captured output when the provider streams nothing incrementally", async () => {
@@ -765,11 +857,19 @@ describe("resolveEnvironmentExecutionTarget", () => {
       provider: "daytona",
       tracer,
       execute: async (input: unknown) => {
-        const typed = input as { onLog?: (s: "stdout" | "stderr", c: string) => Promise<void> };
+        const typed = input as {
+          onLog?: (s: "stdout" | "stderr", c: string) => Promise<void>;
+        };
         await typed.onLog?.("stdout", "hello ");
         await typed.onLog?.("stderr", "warn:");
         // The poll buffer starts with different leading text on both streams.
-        return { exitCode: 0, signal: null, timedOut: false, stdout: "RESYNCED output", stderr: "RESET err" };
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: "RESYNCED output",
+          stderr: "RESET err",
+        };
       },
     });
     const delivered = await runExecuteCollectingLogs(
@@ -868,7 +968,13 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const { tracer, spans } = createRecordingExecTracer();
     const runner = await runnerFor({
       provider: "kubernetes",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer,
     });
 
@@ -942,7 +1048,10 @@ describe("resolveEnvironmentExecutionTarget", () => {
 
     const span = spans[0]!;
     for (const key of Object.keys(span.attributes)) {
-      expect(ALLOWED_EXEC_SPAN_ATTRIBUTE_KEYS.has(key), `non-allowlisted key "${key}"`).toBe(true);
+      expect(
+        ALLOWED_EXEC_SPAN_ATTRIBUTE_KEYS.has(key),
+        `non-allowlisted key "${key}"`,
+      ).toBe(true);
     }
     // The command clamps to the bounded `other` fallback (not a known basename).
     expect(span.attributes[A.execCommand]).toBe("other");
@@ -970,7 +1079,13 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const plugin = createRecordingExecTracer();
     const pluginRunner = await runnerFor({
       provider: "acme-custom-sandbox",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer: plugin.tracer,
     });
     await pluginRunner.execute({ command: "echo" });
@@ -979,7 +1094,13 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const builtIn = createRecordingExecTracer();
     const builtInRunner = await runnerFor({
       provider: "e2b",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer: builtIn.tracer,
     });
     await builtInRunner.execute({ command: "echo" });
@@ -990,17 +1111,29 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const { tracer, contextWithSpan, spans } = createRecordingTrace();
     const runner = await runnerFor({
       provider: "daytona",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer,
     });
 
     // The exec seam reads the active step context through `getActiveStepContext`.
     // Wrap the exec in one measured step and assert the exec span parents to the
     // step span, not to nothing.
-    await measureStartupStep({}, () => 0, "stage.sync", () => runner.execute({ command: "echo" }), {
-      tracer,
-      contextWithSpan,
-    });
+    await measureStartupStep(
+      {},
+      () => 0,
+      "stage.sync",
+      () => runner.execute({ command: "echo" }),
+      {
+        tracer,
+        contextWithSpan,
+      },
+    );
 
     const stepSpan = spans.find((span) => span.name === "stage.sync");
     const execSpan = spans.find((span) => span.name === "sandbox.exec");
@@ -1013,7 +1146,13 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const { tracer, spans } = createRecordingTrace();
     const runner = await runnerFor({
       provider: "daytona",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer,
     });
 
@@ -1034,31 +1173,51 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const rec = recordParentContext();
     const runner = await runnerFor({
       provider: "daytona",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer: rec.tracer,
     });
 
     // Run the seam `execute` inside one measured step. The step publishes its
     // child context to the active step store, so the seam reads it and passes it
     // as the third `startSpan` argument for the exec span.
-    await measureStartupStep({}, () => 0, "stage.sync", () => runner.execute({ command: "echo" }), {
-      tracer: rec.tracer,
-      contextWithSpan: rec.contextWithSpan,
-    });
+    await measureStartupStep(
+      {},
+      () => 0,
+      "stage.sync",
+      () => runner.execute({ command: "echo" }),
+      {
+        tracer: rec.tracer,
+        contextWithSpan: rec.contextWithSpan,
+      },
+    );
 
     const stepSpan = rec.spanNamed("stage.sync");
     expect(stepSpan).toBeTruthy();
     // The exec span parents to the step span. The third `startSpan` argument is
     // the exact parent-context token that `contextWithSpan` built for the step
     // span, not a rebuilt copy.
-    expect(rec.parentContextFor("sandbox.exec")).toBe(rec.tokenForSpan(stepSpan));
+    expect(rec.parentContextFor("sandbox.exec")).toBe(
+      rec.tokenForSpan(stepSpan),
+    );
   });
 
   it("test_exec_in_root_region_is_unparented_today", async () => {
     const rec = recordParentContext();
     const runner = await runnerFor({
       provider: "daytona",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer: rec.tracer,
     });
 
@@ -1075,7 +1234,13 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const rec = recordParentContext();
     const runner = await runnerFor({
       provider: "daytona",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer: rec.tracer,
     });
 
@@ -1098,9 +1263,18 @@ describe("resolveEnvironmentExecutionTarget", () => {
       tracer,
       execute: vi.fn().mockImplementation(async () => {
         const open = spans.find((span) => span.name === "sandbox.exec");
-        expect(open, "the exec span must be open during the provider await").toBeTruthy();
+        expect(
+          open,
+          "the exec span must be open during the provider await",
+        ).toBeTruthy();
         expect(open!.ended).toBe(false);
-        return { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" };
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: "",
+          stderr: "",
+        };
       }),
     });
 
@@ -1116,11 +1290,15 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const runner = await runnerWithExecute({
       provider: "daytona",
       tracer,
-      execute: vi.fn().mockRejectedValue(new Error("provider transport failed")),
+      execute: vi
+        .fn()
+        .mockRejectedValue(new Error("provider transport failed")),
     });
 
     // The original error rides through unchanged; observability never swallows it.
-    await expect(runner.execute({ command: "echo" })).rejects.toThrow("provider transport failed");
+    await expect(runner.execute({ command: "echo" })).rejects.toThrow(
+      "provider transport failed",
+    );
 
     // A thrown execution still produces one ended span with the `failed` outcome,
     // instead of no span at all.
@@ -1140,7 +1318,10 @@ describe("resolveEnvironmentExecutionTarget", () => {
     expect(span!.attributes[A.execWallMs] as number).toBeGreaterThanOrEqual(0);
     // Only allowlisted keys ride the failed span.
     for (const key of Object.keys(span!.attributes)) {
-      expect(ALLOWED_EXEC_SPAN_ATTRIBUTE_KEYS.has(key), `non-allowlisted key "${key}"`).toBe(true);
+      expect(
+        ALLOWED_EXEC_SPAN_ATTRIBUTE_KEYS.has(key),
+        `non-allowlisted key "${key}"`,
+      ).toBe(true);
     }
   });
 
@@ -1165,7 +1346,10 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const onLog = vi.fn().mockRejectedValue(new Error("log sink rejected"));
     // The rejection rides through unchanged; observability never swallows it.
     await expect(
-      (runner as { execute(input: unknown): Promise<unknown> }).execute({ command: "echo", onLog }),
+      (runner as { execute(input: unknown): Promise<unknown> }).execute({
+        command: "echo",
+        onLog,
+      }),
     ).rejects.toThrow("log sink rejected");
 
     // The span ended with the successful outcome from the command result, not
@@ -1186,25 +1370,31 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const runner = await runnerWithExecute({
       provider: "daytona",
       tracer,
-      execute: vi.fn(async (input: { onLog?: (s: string, c: string) => Promise<void> }) => {
-        // The provider streams the output while the command runs.
-        await input.onLog?.("stdout", "chunk-1");
-        await input.onLog?.("stderr", "chunk-2");
-        await input.onLog?.("stdout", "chunk-3");
-        return {
-          exitCode: 0,
-          signal: null,
-          timedOut: false,
-          stdout: "chunk-1chunk-3",
-          stderr: "chunk-2",
-        };
-      }),
+      execute: vi.fn(
+        async (input: { onLog?: (s: string, c: string) => Promise<void> }) => {
+          // The provider streams the output while the command runs.
+          await input.onLog?.("stdout", "chunk-1");
+          await input.onLog?.("stderr", "chunk-2");
+          await input.onLog?.("stdout", "chunk-3");
+          return {
+            exitCode: 0,
+            signal: null,
+            timedOut: false,
+            stdout: "chunk-1chunk-3",
+            stderr: "chunk-2",
+          };
+        },
+      ),
     });
 
     const onLog = vi.fn();
-    const result = await (runner as {
-      execute(input: unknown): Promise<{ stdout: string; stderr: string; exitCode: number }>;
-    }).execute({ command: "echo", onLog });
+    const result = await (
+      runner as {
+        execute(
+          input: unknown,
+        ): Promise<{ stdout: string; stderr: string; exitCode: number }>;
+      }
+    ).execute({ command: "echo", onLog });
 
     // The runner receives the incremental chunks in order, and NOT a repeated
     // delivery of the final stdout/stderr.
@@ -1214,7 +1404,11 @@ describe("resolveEnvironmentExecutionTarget", () => {
       ["stdout", "chunk-3"],
     ]);
     // The final result stays available to the caller for parsing and fallback.
-    expect(result).toMatchObject({ exitCode: 0, stdout: "chunk-1chunk-3", stderr: "chunk-2" });
+    expect(result).toMatchObject({
+      exitCode: 0,
+      stdout: "chunk-1chunk-3",
+      stderr: "chunk-2",
+    });
   });
 
   it("still delivers the final result to the runner when the provider does not stream", async () => {
@@ -1233,9 +1427,11 @@ describe("resolveEnvironmentExecutionTarget", () => {
     });
 
     const onLog = vi.fn();
-    const result = await (runner as {
-      execute(input: unknown): Promise<{ stdout: string; stderr: string }>;
-    }).execute({ command: "echo", onLog });
+    const result = await (
+      runner as {
+        execute(input: unknown): Promise<{ stdout: string; stderr: string }>;
+      }
+    ).execute({ command: "echo", onLog });
 
     expect(onLog.mock.calls).toEqual([
       ["stdout", "final-out"],
@@ -1249,18 +1445,20 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const runner = await runnerWithExecute({
       provider: "daytona",
       tracer,
-      execute: vi.fn(async (input: { onLog?: (s: string, c: string) => Promise<void> }) => {
-        await input.onLog?.("stdout", "chunk-a");
-        await input.onLog?.("stdout", "chunk-b");
-        await input.onLog?.("stderr", "chunk-c");
-        return {
-          exitCode: 0,
-          signal: null,
-          timedOut: false,
-          stdout: "chunk-achunk-b",
-          stderr: "chunk-c",
-        };
-      }),
+      execute: vi.fn(
+        async (input: { onLog?: (s: string, c: string) => Promise<void> }) => {
+          await input.onLog?.("stdout", "chunk-a");
+          await input.onLog?.("stdout", "chunk-b");
+          await input.onLog?.("stderr", "chunk-c");
+          return {
+            exitCode: 0,
+            signal: null,
+            timedOut: false,
+            stdout: "chunk-achunk-b",
+            stderr: "chunk-c",
+          };
+        },
+      ),
     });
 
     const onLog = vi.fn();
@@ -1281,16 +1479,18 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const runner = await runnerWithExecute({
       provider: "daytona",
       tracer,
-      execute: vi.fn(async (input: { onLog?: (s: string, c: string) => Promise<void> }) => {
-        await input.onLog?.("stdout", `token=${secret}\n`);
-        return {
-          exitCode: 0,
-          signal: null,
-          timedOut: false,
-          stdout: `token=${secret}\n`,
-          stderr: "",
-        };
-      }),
+      execute: vi.fn(
+        async (input: { onLog?: (s: string, c: string) => Promise<void> }) => {
+          await input.onLog?.("stdout", `token=${secret}\n`);
+          return {
+            exitCode: 0,
+            signal: null,
+            timedOut: false,
+            stdout: `token=${secret}\n`,
+            stderr: "",
+          };
+        },
+      ),
     });
 
     const onLog = vi.fn();
@@ -1305,7 +1505,10 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const span = spans[0]!;
     // Attributes carry only the closed allowlist — never log text or secrets.
     for (const key of Object.keys(span.attributes)) {
-      expect(ALLOWED_EXEC_SPAN_ATTRIBUTE_KEYS.has(key), `non-allowlisted key "${key}"`).toBe(true);
+      expect(
+        ALLOWED_EXEC_SPAN_ATTRIBUTE_KEYS.has(key),
+        `non-allowlisted key "${key}"`,
+      ).toBe(true);
     }
     const serialized = JSON.stringify(span.attributes);
     expect(serialized).not.toContain(secret);
@@ -1322,7 +1525,13 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const { tracer, contextWithSpan, spans } = createRecordingTrace();
     const runner = await runnerFor({
       provider: "daytona",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer,
     });
 
@@ -1361,7 +1570,9 @@ describe("resolveEnvironmentExecutionTarget", () => {
   }
 
   it("opens an unparented exec span for a process-session bridge continuation", async () => {
-    const execSpan = await runContinuationExec("bridge.process-session", { wrap: true });
+    const execSpan = await runContinuationExec("bridge.process-session", {
+      wrap: true,
+    });
     expect(execSpan).toBeTruthy();
     // The step span ended and the boundary emptied the store, so the continuation
     // exec opens a root span, not one under the dead bridge step.
@@ -1369,13 +1580,17 @@ describe("resolveEnvironmentExecutionTarget", () => {
   });
 
   it("opens an unparented exec span for a taskcore bridge continuation", async () => {
-    const execSpan = await runContinuationExec("bridge.taskcore", { wrap: true });
+    const execSpan = await runContinuationExec("bridge.taskcore", {
+      wrap: true,
+    });
     expect(execSpan).toBeTruthy();
     expect(execSpan!.parent).toBeNull();
   });
 
   it("does not copy the stale criticalPath = false flag onto a continuation exec", async () => {
-    const execSpan = await runContinuationExec("bridge.process-session", { wrap: true });
+    const execSpan = await runContinuationExec("bridge.process-session", {
+      wrap: true,
+    });
     expect(execSpan).toBeTruthy();
     // The bridge step set `criticalPath: false`. The continuation reads an empty
     // store, so the exec span records the default `true`, never the stale `false`.
@@ -1391,7 +1606,13 @@ describe("resolveEnvironmentExecutionTarget", () => {
     const { tracer, contextWithSpan, spans } = createRecordingTrace();
     const runner = await runnerFor({
       provider: "daytona",
-      execResult: { exitCode: 0, signal: null, timedOut: false, stdout: "", stderr: "" },
+      execResult: {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "",
+        stderr: "",
+      },
       tracer,
     });
 
@@ -1415,7 +1636,9 @@ describe("resolveEnvironmentExecutionTarget", () => {
 
     await execDone;
 
-    const stepSpan = spans.find((span) => span.name === "bridge.process-session");
+    const stepSpan = spans.find(
+      (span) => span.name === "bridge.process-session",
+    );
     const execSpan = spans.find((span) => span.name === "sandbox.exec");
     expect(stepSpan).toBeTruthy();
     expect(execSpan).toBeTruthy();

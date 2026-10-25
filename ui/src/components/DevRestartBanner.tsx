@@ -30,7 +30,11 @@ function describeReason(devServer: DevServerHealthStatus): string {
   return "backend files changed since this server booted";
 }
 
-export function DevRestartBanner({ devServer }: { devServer?: DevServerHealthStatus }) {
+export function DevRestartBanner({
+  devServer,
+}: {
+  devServer?: DevServerHealthStatus;
+}) {
   const [restartPending, setRestartPending] = useState(false);
   useEffect(() => {
     if (!restartPending) return;
@@ -61,7 +65,9 @@ export function DevRestartBanner({ devServer }: { devServer?: DevServerHealthSta
       await healthApi.requestDevServerRestart();
     } catch (error) {
       setRestartPending(false);
-      window.alert(error instanceof Error ? error.message : "Failed to request restart");
+      window.alert(
+        error instanceof Error ? error.message : "Failed to request restart",
+      );
     }
   }
 
@@ -73,7 +79,10 @@ export function DevRestartBanner({ devServer }: { devServer?: DevServerHealthSta
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             <span>Restart Required</span>
             {devServer.autoRestartEnabled ? (
-              <Badge variant="ghost" className="bg-amber-900/10 text-(length:--text-nano) tracking-(--tracking-eyebrow) dark:bg-amber-100/10">
+              <Badge
+                variant="ghost"
+                className="bg-amber-900/10 text-(length:--text-nano) tracking-(--tracking-eyebrow) dark:bg-amber-100/10"
+              >
                 Auto-Restart On
               </Badge>
             ) : null}
@@ -86,13 +95,18 @@ export function DevRestartBanner({ devServer }: { devServer?: DevServerHealthSta
             {sample.length > 0 ? (
               <span>
                 Changed: {sample.join(", ")}
-                {devServer.changedPathCount > sample.length ? ` +${devServer.changedPathCount - sample.length} more` : ""}
+                {devServer.changedPathCount > sample.length
+                  ? ` +${devServer.changedPathCount - sample.length} more`
+                  : ""}
               </span>
             ) : null}
             {devServer.pendingMigrations.length > 0 ? (
               <span>
-                Pending migrations: {devServer.pendingMigrations.slice(0, 2).join(", ")}
-                {devServer.pendingMigrations.length > 2 ? ` +${devServer.pendingMigrations.length - 2} more` : ""}
+                Pending migrations:{" "}
+                {devServer.pendingMigrations.slice(0, 2).join(", ")}
+                {devServer.pendingMigrations.length > 2
+                  ? ` +${devServer.pendingMigrations.length - 2} more`
+                  : ""}
               </span>
             ) : null}
           </div>
@@ -112,7 +126,10 @@ export function DevRestartBanner({ devServer }: { devServer?: DevServerHealthSta
           ) : (
             <div className="inline-flex items-center gap-2 rounded-full bg-amber-900/10 px-3 py-1.5 dark:bg-amber-100/10">
               <RotateCcw className="h-3.5 w-3.5" />
-              <span>Restart <code>pnpm dev:once</code> after the active work is safe to interrupt</span>
+              <span>
+                Restart <code>pnpm dev:once</code> after the active work is safe
+                to interrupt
+              </span>
             </div>
           )}
           <button

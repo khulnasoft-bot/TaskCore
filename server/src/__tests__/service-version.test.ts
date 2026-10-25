@@ -8,7 +8,9 @@ import { readGitCommit, resolveServiceVersion } from "../instrumentation.js";
 
 describe("resolveServiceVersion", () => {
   it("prefers the build stamp over every other source", () => {
-    expect(resolveServiceVersion("aaaaaaa", "bbbbbbb", "2026.5.0")).toBe("aaaaaaa");
+    expect(resolveServiceVersion("aaaaaaa", "bbbbbbb", "2026.5.0")).toBe(
+      "aaaaaaa",
+    );
   });
 
   it("uses the runtime git commit when no build stamp exists", () => {

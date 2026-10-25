@@ -10,7 +10,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -45,7 +46,10 @@ function parseToolCallArguments(value: unknown): unknown {
  * tool_calls (arguments is a JSON-encoded string), tool results, and a
  * trailing meta session.resume_hint event.
  */
-export function parseKimiStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseKimiStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   const parsed = asRecord(safeJsonParse(line));
   if (!parsed) {
     return [{ kind: "stdout", ts, text: line }];
@@ -68,7 +72,8 @@ export function parseKimiStdoutLine(line: string, ts: string): TranscriptEntry[]
       const call = asRecord(callRaw);
       if (!call) continue;
       const fn = asRecord(call.function);
-      const name = asString(fn?.name, asString(call.name, "tool")).trim() || "tool";
+      const name =
+        asString(fn?.name, asString(call.name, "tool")).trim() || "tool";
       entries.push({
         kind: "tool_call",
         ts,
@@ -82,26 +87,34 @@ export function parseKimiStdoutLine(line: string, ts: string): TranscriptEntry[]
 
   if (role === "tool") {
     const toolUseId = asString(parsed.tool_call_id).trim() || "tool_result";
-    const content = asString(parsed.content) || stringifyUnknown(parsed.content);
-    return [{
-      kind: "tool_result",
-      ts,
-      toolUseId,
-      content,
-      isError: false,
-    }];
+    const content =
+      asString(parsed.content) || stringifyUnknown(parsed.content);
+    return [
+      {
+        kind: "tool_result",
+        ts,
+        toolUseId,
+        content,
+        isError: false,
+      },
+    ];
   }
 
   if (role === "meta") {
     const type = asString(parsed.type).trim();
     if (type === "session.resume_hint") {
       const sessionId = asString(parsed.session_id).trim();
-      return sessionId ? [{ kind: "system", ts, text: `session: ${sessionId}` }] : [];
+      return sessionId
+        ? [{ kind: "system", ts, text: `session: ${sessionId}` }]
+        : [];
     }
     return [];
   }
 
-  if (role === "error" || asString(parsed.type).trim().toLowerCase() === "error") {
+  if (
+    role === "error" ||
+    asString(parsed.type).trim().toLowerCase() === "error"
+  ) {
     const text =
       asString(parsed.content) ||
       asString(parsed.message) ||

@@ -14,7 +14,9 @@ const baseUrl =
   process.env.TASKCORE_CANARY_SMOKE_BASE_URL ?? "http://127.0.0.1:3233";
 const parsedBaseUrl = new URL(baseUrl);
 if (parsedBaseUrl.hostname !== "127.0.0.1" || !parsedBaseUrl.port) {
-  throw new Error("TASKCORE_CANARY_SMOKE_BASE_URL must use 127.0.0.1 and an explicit port");
+  throw new Error(
+    "TASKCORE_CANARY_SMOKE_BASE_URL must use 127.0.0.1 and an explicit port",
+  );
 }
 
 const workspace = fs.mkdtempSync(

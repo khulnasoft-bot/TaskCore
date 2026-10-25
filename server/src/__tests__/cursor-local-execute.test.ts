@@ -9,9 +9,9 @@ import { execute } from "@taskcore/adapter-cursor-local/server";
 // Callback bridge startup/teardown has its own execution-target coverage; starting
 // that server here adds unrelated process and polling work to command assertions.
 vi.mock("@taskcore/adapter-utils/execution-target", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/execution-target")>(
-    "@taskcore/adapter-utils/execution-target",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/execution-target")
+  >("@taskcore/adapter-utils/execution-target");
   return {
     ...actual,
     startAdapterExecutionTargetTaskcoreBridge: async () => null,
@@ -54,7 +54,10 @@ console.log(JSON.stringify({
   await fs.chmod(commandPath, 0o755);
 }
 
-async function writeFakeSandboxCursorAgent(commandPath: string, capturePath: string): Promise<void> {
+async function writeFakeSandboxCursorAgent(
+  commandPath: string,
+  capturePath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
 
@@ -103,20 +106,35 @@ function createLocalSandboxRunner() {
       counter += 1;
       // Both sandbox fixtures install their fake CLI up front. Never fall back
       // to a network install if discovery regresses on another host or shell.
-      if (input.args?.some(arg => arg.includes("curl https://cursor.com/install"))) {
-        throw new Error("Sandbox fixture did not discover its preinstalled Cursor CLI");
+      if (
+        input.args?.some((arg) =>
+          arg.includes("curl https://cursor.com/install"),
+        )
+      ) {
+        throw new Error(
+          "Sandbox fixture did not discover its preinstalled Cursor CLI",
+        );
       }
-      return await runChildProcess(`cursor-sandbox-execute-${counter}`, input.command, input.args ?? [], {
-        cwd: input.cwd ?? process.cwd(),
-        env: input.env ?? {},
-        stdin: input.stdin,
-        timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
-        graceSec: 5,
-        onLog: input.onLog ?? (async () => {}),
-        onSpawn: input.onSpawn
-          ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
-          : undefined,
-      });
+      return await runChildProcess(
+        `cursor-sandbox-execute-${counter}`,
+        input.command,
+        input.args ?? [],
+        {
+          cwd: input.cwd ?? process.cwd(),
+          env: input.env ?? {},
+          stdin: input.stdin,
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
+          graceSec: 5,
+          onLog: input.onLog ?? (async () => {}),
+          onSpawn: input.onSpawn
+            ? async (meta) =>
+                input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            : undefined,
+        },
+      );
     },
   };
 }
@@ -130,13 +148,19 @@ type CapturePayload = {
 async function createSkillDir(root: string, name: string) {
   const skillDir = path.join(root, name);
   await fs.mkdir(skillDir, { recursive: true });
-  await fs.writeFile(path.join(skillDir, "SKILL.md"), `---\nname: ${name}\n---\n`, "utf8");
+  await fs.writeFile(
+    path.join(skillDir, "SKILL.md"),
+    `---\nname: ${name}\n---\n`,
+    "utf8",
+  );
   return skillDir;
 }
 
 describe("cursor execute", () => {
   it("injects taskcore env vars and prompt note by default", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-execute-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-execute-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "agent");
     const capturePath = path.join(root, "capture.json");
@@ -183,7 +207,9 @@ describe("cursor execute", () => {
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.argv).not.toContain("Follow the taskcore heartbeat.");
       expect(capture.argv).not.toContain("--mode");
       expect(capture.argv).not.toContain("ask");
@@ -211,7 +237,9 @@ describe("cursor execute", () => {
   });
 
   it("passes --mode when explicitly configured", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-execute-mode-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-execute-mode-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "agent");
     const capturePath = path.join(root, "capture.json");
@@ -255,7 +283,9 @@ describe("cursor execute", () => {
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.argv).toContain("--mode");
       expect(capture.argv).toContain("ask");
     } finally {
@@ -269,7 +299,9 @@ describe("cursor execute", () => {
   });
 
   it("injects company-library runtime skills into the Cursor skills home before execution", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-execute-runtime-skill-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-execute-runtime-skill-"),
+    );
     const processHome = path.join(root, "process-home");
     const configuredHome = path.join(root, "configured-home");
     const workspace = path.join(root, "workspace");
@@ -279,7 +311,10 @@ describe("cursor execute", () => {
     await writeFakeCursorCommand(commandPath);
 
     const taskcoreDir = await createSkillDir(runtimeSkillsRoot, "taskcore");
-    const asciiHeartDir = await createSkillDir(runtimeSkillsRoot, "ascii-heart");
+    const asciiHeartDir = await createSkillDir(
+      runtimeSkillsRoot,
+      "ascii-heart",
+    );
 
     const previousHome = process.env.HOME;
     process.env.HOME = processHome;
@@ -328,12 +363,19 @@ describe("cursor execute", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
-      const installedSkill = path.join(configuredHome, ".cursor", "skills", "ascii-heart");
+      const installedSkill = path.join(
+        configuredHome,
+        ".cursor",
+        "skills",
+        "ascii-heart",
+      );
       expect((await fs.lstat(installedSkill)).isSymbolicLink()).toBe(true);
       expect(await fs.realpath(installedSkill)).toBe(
         await fs.realpath(asciiHeartDir),
       );
-      await expect(fs.lstat(path.join(processHome, ".cursor", "skills", "ascii-heart"))).rejects.toThrow();
+      await expect(
+        fs.lstat(path.join(processHome, ".cursor", "skills", "ascii-heart")),
+      ).rejects.toThrow();
     } finally {
       if (previousHome === undefined) {
         delete process.env.HOME;
@@ -345,7 +387,9 @@ describe("cursor execute", () => {
   });
 
   it("prefers ~/.local/bin/cursor-agent for remote sandbox execution when using the default command", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-sandbox-execute-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-sandbox-execute-"),
+    );
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
@@ -399,7 +443,9 @@ describe("cursor execute", () => {
         path: string;
       };
       expect(capture.command).toBe(cursorAgentPath);
-      expect(capture.path.split(":")[0]).toBe(path.join(homeDir, ".local", "bin"));
+      expect(capture.path.split(":")[0]).toBe(
+        path.join(homeDir, ".local", "bin"),
+      );
       expect(capture.prompt).toContain("Follow the taskcore heartbeat.");
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
@@ -409,7 +455,9 @@ describe("cursor execute", () => {
   });
 
   it("keeps explicit command overrides for remote sandbox execution", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-sandbox-explicit-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-sandbox-explicit-"),
+    );
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
@@ -418,7 +466,10 @@ describe("cursor execute", () => {
     const customCommandPath = path.join(root, "bin", "custom-cursor");
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(remoteWorkspace, { recursive: true });
-    await writeFakeSandboxCursorAgent(cursorAgentPath, path.join(root, "unused.json"));
+    await writeFakeSandboxCursorAgent(
+      cursorAgentPath,
+      path.join(root, "unused.json"),
+    );
     await writeFakeSandboxCursorAgent(customCommandPath, capturePath);
 
     const previousHome = process.env.HOME;
@@ -458,7 +509,9 @@ describe("cursor execute", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as { command: string };
+      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as {
+        command: string;
+      };
       expect(capture.command).toBe(customCommandPath);
     } finally {
       if (previousHome === undefined) delete process.env.HOME;

@@ -195,7 +195,14 @@ export interface ChatEndpointSetupState {
   slackAccount?: import("../slack-app-manifest.js").SlackAccountState;
   slackOAuthCallbackUri?: string | null;
   github?: {
-    stage: "connect" | "install" | "repositories" | "verify" | "identity" | "behavior" | "test";
+    stage:
+      | "connect"
+      | "install"
+      | "repositories"
+      | "verify"
+      | "identity"
+      | "behavior"
+      | "test";
     appSlug?: string;
     installationUrl?: string;
     managementUrl?: string;
@@ -544,7 +551,12 @@ export interface PhotonProjectInspection {
   projectName: string;
   allocation: "dedicated" | "shared";
   eligible: boolean;
-  lines: Array<{ lineId: string; phoneNumber: string; eligible: boolean; unavailableReason?: string }>;
+  lines: Array<{
+    lineId: string;
+    phoneNumber: string;
+    eligible: boolean;
+    unavailableReason?: string;
+  }>;
 }
 export type PhotonChannelConfiguration =
   | { allocation?: "dedicated"; projectId: string; lineId: string }

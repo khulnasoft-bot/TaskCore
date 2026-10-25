@@ -12,7 +12,8 @@ import {
 } from "./provider-profile-qualification.js";
 
 export const CLAUDE_MANAGED_BETA_VERSION = "managed-agents-2026-04-01" as const;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ANTHROPIC_AGENT_VERSION_RE = /^[1-9][0-9]*$/;
 const ANTHROPIC_AGENT_VERSION_MAX = 2_147_483_647;
 
@@ -54,11 +55,13 @@ function requiredAgentVersion(value: string): string {
   const normalized = required(value, "Agent version");
   const numeric = Number(normalized);
   if (
-    !ANTHROPIC_AGENT_VERSION_RE.test(normalized)
-    || !Number.isSafeInteger(numeric)
-    || numeric > ANTHROPIC_AGENT_VERSION_MAX
+    !ANTHROPIC_AGENT_VERSION_RE.test(normalized) ||
+    !Number.isSafeInteger(numeric) ||
+    numeric > ANTHROPIC_AGENT_VERSION_MAX
   ) {
-    throw unprocessable("Agent version must be a canonical positive 32-bit integer");
+    throw unprocessable(
+      "Agent version must be a canonical positive 32-bit integer",
+    );
   }
   return normalized;
 }
@@ -92,7 +95,9 @@ function assertQualifiedRevisionUnchanged(
 ): void {
   if (!existing?.qualifiedAt) return;
   if (!revision || existing.qualifiedRevision !== revision) {
-    throw conflict("Qualified Managed Agent configuration revision is immutable; create a new profile key");
+    throw conflict(
+      "Qualified Managed Agent configuration revision is immutable; create a new profile key",
+    );
   }
 }
 
@@ -110,12 +115,14 @@ export function managedAgentProfileService(db: Db) {
     const rows = await db
       .select()
       .from(managedAgentProfiles)
-      .where(and(
-        eq(managedAgentProfiles.companyId, companyId),
-        isUuid
-          ? eq(managedAgentProfiles.id, profileIdOrKey)
-          : eq(managedAgentProfiles.profileKey, profileIdOrKey),
-      ))
+      .where(
+        and(
+          eq(managedAgentProfiles.companyId, companyId),
+          isUuid
+            ? eq(managedAgentProfiles.id, profileIdOrKey)
+            : eq(managedAgentProfiles.profileKey, profileIdOrKey),
+        ),
+      )
       .limit(1);
     return rows[0] ?? null;
   }
@@ -124,10 +131,12 @@ export function managedAgentProfileService(db: Db) {
     const rows = await db
       .select()
       .from(managedAgentProfiles)
-      .where(and(
-        eq(managedAgentProfiles.companyId, companyId),
-        eq(managedAgentProfiles.profileKey, profileKey),
-      ))
+      .where(
+        and(
+          eq(managedAgentProfiles.companyId, companyId),
+          eq(managedAgentProfiles.profileKey, profileKey),
+        ),
+      )
       .limit(1);
     return rows[0] ?? null;
   }
@@ -135,7 +144,11 @@ export function managedAgentProfileService(db: Db) {
   async function requireQualified(companyId: string, profileIdOrKey: string) {
     const profile = await get(companyId, profileIdOrKey);
     if (!profile) throw notFound("Managed Agent profile not found");
-    if (!profile.enabled || !profile.retentionAcknowledged || !profile.qualifiedAt) {
+    if (
+      !profile.enabled ||
+      !profile.retentionAcknowledged ||
+      !profile.qualifiedAt
+    ) {
       throw conflict("Managed Agent profile is not enabled and qualified");
     }
     if (profile.defaultModel !== CLAUDE_MANAGED_QUALIFIED_MODEL) {
@@ -147,16 +160,22 @@ export function managedAgentProfileService(db: Db) {
       throw conflict("Managed Agent profile version is not qualified");
     }
     try {
-      assertClaudeManagedQualification(profile.qualification, { required: true });
+      assertClaudeManagedQualification(profile.qualification, {
+        required: true,
+      });
     } catch {
-      throw conflict("Managed Agent profile qualification attestation is invalid");
+      throw conflict(
+        "Managed Agent profile qualification attestation is invalid",
+      );
     }
     const currentRevision = computeManagedAgentProfileRevision(profile);
     if (
-      !isQualifiedProfileRevision(profile.qualifiedRevision)
-      || profile.qualifiedRevision !== currentRevision
+      !isQualifiedProfileRevision(profile.qualifiedRevision) ||
+      profile.qualifiedRevision !== currentRevision
     ) {
-      throw conflict("Managed Agent profile configuration does not match its qualified revision");
+      throw conflict(
+        "Managed Agent profile configuration does not match its qualified revision",
+      );
     }
     return profile;
   }
@@ -167,30 +186,49 @@ export function managedAgentProfileService(db: Db) {
       throw unprocessable("Profile key must not be UUID-shaped");
     }
     const displayName = required(input.displayName, "Display name");
-    const anthropicAgentId = required(input.anthropicAgentId, "Anthropic Agent ID");
+    const anthropicAgentId = required(
+      input.anthropicAgentId,
+      "Anthropic Agent ID",
+    );
     const agentVersion = requiredAgentVersion(input.agentVersion);
-    const environmentId = required(input.environmentId, "Anthropic Environment ID");
+    const environmentId = required(
+      input.environmentId,
+      "Anthropic Environment ID",
+    );
     const defaultModel = required(input.defaultModel, "Default model");
     if (defaultModel !== CLAUDE_MANAGED_QUALIFIED_MODEL) {
-      throw unprocessable(`Managed Agent model must be ${CLAUDE_MANAGED_QUALIFIED_MODEL}`);
+      throw unprocessable(
+        `Managed Agent model must be ${CLAUDE_MANAGED_QUALIFIED_MODEL}`,
+      );
     }
     const defaultMaxListCostCents = toCents(input.defaultMaxListCostUsd);
-    const apiKeySecretId = requiredUuid(input.apiKeySecretId, "Managed Agent API-key secret ID");
+    const apiKeySecretId = requiredUuid(
+      input.apiKeySecretId,
+      "Managed Agent API-key secret ID",
+    );
     const qualification = structuredClone(input.qualification ?? {});
-    assertProfileMetadataContainsNoSecrets({
-      profileKey,
-      displayName,
-      anthropicAgentId,
-      agentVersion,
-      environmentId,
-      defaultModel,
-    }, "Managed Agent profile");
+    assertProfileMetadataContainsNoSecrets(
+      {
+        profileKey,
+        displayName,
+        anthropicAgentId,
+        agentVersion,
+        environmentId,
+        defaultModel,
+      },
+      "Managed Agent profile",
+    );
     if (input.enabled && !input.retentionAcknowledged) {
-      throw unprocessable("Enabling Managed Agents requires the retention acknowledgement");
+      throw unprocessable(
+        "Enabling Managed Agents requires the retention acknowledgement",
+      );
     }
-    const qualificationAttested = assertClaudeManagedQualification(qualification, {
-      required: input.enabled,
-    });
+    const qualificationAttested = assertClaudeManagedQualification(
+      qualification,
+      {
+        required: input.enabled,
+      },
+    );
 
     const existing = await getByProfileKey(companyId, profileKey);
     const qualifiedRevision = qualificationAttested
@@ -208,14 +246,17 @@ export function managedAgentProfileService(db: Db) {
     const secret = await db
       .select({ id: companySecrets.id })
       .from(companySecrets)
-      .where(and(
-        eq(companySecrets.companyId, companyId),
-        eq(companySecrets.id, apiKeySecretId),
-        eq(companySecrets.scope, "company"),
-        eq(companySecrets.status, "active"),
-      ))
+      .where(
+        and(
+          eq(companySecrets.companyId, companyId),
+          eq(companySecrets.id, apiKeySecretId),
+          eq(companySecrets.scope, "company"),
+          eq(companySecrets.status, "active"),
+        ),
+      )
       .limit(1);
-    if (!secret[0]) throw unprocessable("Managed Agent API-key secret reference is invalid");
+    if (!secret[0])
+      throw unprocessable("Managed Agent API-key secret reference is invalid");
 
     const values = {
       companyId,
@@ -232,7 +273,9 @@ export function managedAgentProfileService(db: Db) {
       enabled: input.enabled,
       retentionAcknowledged: input.retentionAcknowledged,
       qualification,
-      qualifiedAt: existing?.qualifiedAt ?? (input.enabled && qualificationAttested ? new Date() : null),
+      qualifiedAt:
+        existing?.qualifiedAt ??
+        (input.enabled && qualificationAttested ? new Date() : null),
       qualifiedRevision:
         existing?.qualifiedAt || (input.enabled && qualificationAttested)
           ? qualifiedRevision
@@ -243,7 +286,10 @@ export function managedAgentProfileService(db: Db) {
       .insert(managedAgentProfiles)
       .values(values)
       .onConflictDoUpdate({
-        target: [managedAgentProfiles.companyId, managedAgentProfiles.profileKey],
+        target: [
+          managedAgentProfiles.companyId,
+          managedAgentProfiles.profileKey,
+        ],
         set: values,
       })
       .returning();

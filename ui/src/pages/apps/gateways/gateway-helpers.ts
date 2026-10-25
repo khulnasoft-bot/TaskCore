@@ -6,7 +6,10 @@ import type {
   ToolMcpGatewayWithTokens,
   ToolProfileWithDetails,
 } from "@taskcore/shared";
-import { humanizeConnectionDisplayName, isToolConnectionAttentionHealth } from "@taskcore/shared";
+import {
+  humanizeConnectionDisplayName,
+  isToolConnectionAttentionHealth,
+} from "@taskcore/shared";
 
 /** Days before expiry at which we surface a token as "Expiring". */
 export const TOKEN_EXPIRING_WINDOW_DAYS = 14;
@@ -20,7 +23,9 @@ export function toDate(value: Date | string | null | undefined): Date | null {
 }
 
 /** Reveal-once, then masked. We never persist the full token in the DOM. */
-export function maskedTokenLabel(token: Pick<ToolMcpGatewayToken, "tokenPrefix">): string {
+export function maskedTokenLabel(
+  token: Pick<ToolMcpGatewayToken, "tokenPrefix">,
+): string {
   return `${token.tokenPrefix}•••`;
 }
 
@@ -33,7 +38,8 @@ export function tokenStatus(
   if (!expires) return "active";
   const diffMs = expires.getTime() - now;
   if (diffMs <= 0) return "expired";
-  if (diffMs <= TOKEN_EXPIRING_WINDOW_DAYS * 24 * 60 * 60 * 1000) return "expiring";
+  if (diffMs <= TOKEN_EXPIRING_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+    return "expiring";
   return "active";
 }
 
@@ -45,22 +51,34 @@ export const TOKEN_STATUS_LABEL: Record<TokenStatus, string> = {
 };
 
 /** Count of tokens that can currently authenticate (not revoked, not expired). */
-export function activeTokenCount(gateway: ToolMcpGatewayWithTokens, now: number = Date.now()): number {
+export function activeTokenCount(
+  gateway: ToolMcpGatewayWithTokens,
+  now: number = Date.now(),
+): number {
   return gateway.tokens.filter((token) => {
     const status = tokenStatus(token, now);
     return status === "active" || status === "expiring";
   }).length;
 }
 
-export function expiringTokenCount(gateway: ToolMcpGatewayWithTokens, now: number = Date.now()): number {
-  return gateway.tokens.filter((token) => tokenStatus(token, now) === "expiring").length;
+export function expiringTokenCount(
+  gateway: ToolMcpGatewayWithTokens,
+  now: number = Date.now(),
+): number {
+  return gateway.tokens.filter(
+    (token) => tokenStatus(token, now) === "expiring",
+  ).length;
 }
 
-export function latestTokenActivity(gateway: ToolMcpGatewayWithTokens): Date | null {
+export function latestTokenActivity(
+  gateway: ToolMcpGatewayWithTokens,
+): Date | null {
   return gateway.tokens.reduce<Date | null>((latest, token) => {
     const candidate = toDate(token.lastUsedAt);
     if (!candidate) return latest;
-    return !latest || candidate.getTime() > latest.getTime() ? candidate : latest;
+    return !latest || candidate.getTime() > latest.getTime()
+      ? candidate
+      : latest;
   }, null);
 }
 
@@ -84,14 +102,22 @@ export function formatScope(
     }
     return `${gateway.contextScopeType} · ${shortId(gateway.contextScopeId)}`;
   }
-  if (gateway.projectId) return `Project · ${projectNames.get(gateway.projectId) ?? shortId(gateway.projectId)}`;
-  if (gateway.agentId) return `Agent · ${agentNames.get(gateway.agentId) ?? shortId(gateway.agentId)}`;
+  if (gateway.projectId)
+    return `Project · ${projectNames.get(gateway.projectId) ?? shortId(gateway.projectId)}`;
+  if (gateway.agentId)
+    return `Agent · ${agentNames.get(gateway.agentId) ?? shortId(gateway.agentId)}`;
   return "Organization";
 }
 
-export function formatOwner(gateway: ToolMcpGatewayWithTokens, agentNames: Map<string, string>): string {
+export function formatOwner(
+  gateway: ToolMcpGatewayWithTokens,
+  agentNames: Map<string, string>,
+): string {
   if (gateway.createdByAgentId) {
-    return agentNames.get(gateway.createdByAgentId) ?? `Agent ${shortId(gateway.createdByAgentId)}`;
+    return (
+      agentNames.get(gateway.createdByAgentId) ??
+      `Agent ${shortId(gateway.createdByAgentId)}`
+    );
   }
   return "Board";
 }
@@ -102,9 +128,12 @@ export function isGatewayOn(gateway: ToolMcpGatewayWithTokens): boolean {
 }
 
 /** Human summary of how many tools a profile allows. */
-export function allowedToolsLabel(profile: ToolProfileWithDetails | undefined): string {
+export function allowedToolsLabel(
+  profile: ToolProfileWithDetails | undefined,
+): string {
   if (!profile) return "Profile unavailable";
-  const { accessMode, allowedToolCount, totalToolCount, excludedToolCount } = profile.summary;
+  const { accessMode, allowedToolCount, totalToolCount, excludedToolCount } =
+    profile.summary;
   const count =
     accessMode === "all_except"
       ? Math.max(totalToolCount - excludedToolCount, 0)
@@ -150,12 +179,16 @@ export function deriveGatewayApps(
     if (entry.effect !== "include") continue;
     let applicationId = entry.applicationId ?? null;
     if (!applicationId && entry.connectionId) {
-      applicationId = connectionsById.get(entry.connectionId)?.applicationId ?? null;
+      applicationId =
+        connectionsById.get(entry.connectionId)?.applicationId ?? null;
     }
     if (!applicationId) continue;
     includedApplicationIds.add(applicationId);
     if (entry.catalogEntryId || entry.toolName) {
-      toolCountByApp.set(applicationId, (toolCountByApp.get(applicationId) ?? 0) + 1);
+      toolCountByApp.set(
+        applicationId,
+        (toolCountByApp.get(applicationId) ?? 0) + 1,
+      );
     }
   }
 
@@ -165,7 +198,9 @@ export function deriveGatewayApps(
     if (!application || application.status === "archived") continue;
     const appConnections = connectionsByApplication.get(applicationId) ?? [];
     const connection =
-      appConnections.find((conn) => conn.status !== "archived") ?? appConnections[0] ?? null;
+      appConnections.find((conn) => conn.status !== "archived") ??
+      appConnections[0] ??
+      null;
     const attentionConnection = appConnections.find((conn) =>
       isToolConnectionAttentionHealth(conn.healthStatus),
     );
@@ -179,7 +214,9 @@ export function deriveGatewayApps(
         : null,
     });
   }
-  return rows.sort((a, b) => a.application.name.localeCompare(b.application.name));
+  return rows.sort((a, b) =>
+    a.application.name.localeCompare(b.application.name),
+  );
 }
 
 export function gatewayAppDisplayName(row: GatewayAppRow): string {
@@ -200,7 +237,9 @@ export function orderedSnippets(
   snippets: ToolMcpGatewayClientSnippet[],
 ): ToolMcpGatewayClientSnippet[] {
   return [...snippets].sort(
-    (a, b) => SNIPPET_CLIENT_ORDER.indexOf(a.client) - SNIPPET_CLIENT_ORDER.indexOf(b.client),
+    (a, b) =>
+      SNIPPET_CLIENT_ORDER.indexOf(a.client) -
+      SNIPPET_CLIENT_ORDER.indexOf(b.client),
   );
 }
 
@@ -222,7 +261,10 @@ type SnippetConfigReplacements = {
   token: string;
 };
 
-function replaceSnippetConfigValue(value: unknown, replacements: SnippetConfigReplacements): unknown {
+function replaceSnippetConfigValue(
+  value: unknown,
+  replacements: SnippetConfigReplacements,
+): unknown {
   if (typeof value === "string") {
     return value
       .split(replacements.endpointPath)
@@ -234,7 +276,10 @@ function replaceSnippetConfigValue(value: unknown, replacements: SnippetConfigRe
   }
   if (value && typeof value === "object") {
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, replaceSnippetConfigValue(item, replacements)]),
+      Object.entries(value).map(([key, item]) => [
+        key,
+        replaceSnippetConfigValue(item, replacements),
+      ]),
     );
   }
   return value;
@@ -244,5 +289,9 @@ export function formatHydratedSnippetConfig(
   config: Record<string, unknown>,
   replacements: SnippetConfigReplacements,
 ): string {
-  return JSON.stringify(replaceSnippetConfigValue(config, replacements), null, 2);
+  return JSON.stringify(
+    replaceSnippetConfigValue(config, replacements),
+    null,
+    2,
+  );
 }

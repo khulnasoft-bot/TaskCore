@@ -39,16 +39,19 @@ export interface KimiEngineSelection {
   unavailableReason?: string;
 }
 
-type KimiEngineResolutionInput =
-  Pick<AdapterExecutionContext, "config"> &
-  Partial<Pick<AdapterExecutionContext, "executionTarget" | "executionTransport">>;
+type KimiEngineResolutionInput = Pick<AdapterExecutionContext, "config"> &
+  Partial<
+    Pick<AdapterExecutionContext, "executionTarget" | "executionTransport">
+  >;
 
 type KimiAcpExecutorOptions = Omit<
   AcpxEngineExecutorOptions,
   "adapterType" | "moduleDir" | "packageRootDir"
 >;
 
-type KimiAcpExecutor = (ctx: AdapterExecutionContext) => Promise<AdapterExecutionResult>;
+type KimiAcpExecutor = (
+  ctx: AdapterExecutionContext,
+) => Promise<AdapterExecutionResult>;
 
 function normalizeEngine(value: unknown): KimiEngineSelection {
   const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -57,7 +60,9 @@ function normalizeEngine(value: unknown): KimiEngineSelection {
   return { engine: "acp", explicit: false };
 }
 
-export function resolveKimiExecutionEngine(config: Record<string, unknown>): KimiEngineSelection {
+export function resolveKimiExecutionEngine(
+  config: Record<string, unknown>,
+): KimiEngineSelection {
   return normalizeEngine(config.engine);
 }
 
@@ -85,18 +90,28 @@ function firstNonEmptyString(...values: unknown[]): string | undefined {
   return undefined;
 }
 
-export function buildKimiAcpConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const configuredAgentCommand = firstNonEmptyString(config.agentCommand, config.acpAgentCommand);
+export function buildKimiAcpConfig(
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  const configuredAgentCommand = firstNonEmptyString(
+    config.agentCommand,
+    config.acpAgentCommand,
+  );
   const configuredKimiCommand = firstNonEmptyString(config.command);
-  const agentCommand = configuredAgentCommand ?? (configuredKimiCommand ? `${configuredKimiCommand} acp` : undefined);
+  const agentCommand =
+    configuredAgentCommand ??
+    (configuredKimiCommand ? `${configuredKimiCommand} acp` : undefined);
   const stateDir = firstNonEmptyString(config.stateDir, config.acpStateDir);
-  const mode = firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
+  const mode =
+    firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
   const permissionMode =
     firstNonEmptyString(config.permissionMode, config.acpPermissionMode) ??
     DEFAULT_ACP_ENGINE_PERMISSION_MODE;
   const nonInteractivePermissions =
-    firstNonEmptyString(config.nonInteractivePermissions, config.acpNonInteractivePermissions) ??
-    DEFAULT_ACP_ENGINE_NON_INTERACTIVE_PERMISSIONS;
+    firstNonEmptyString(
+      config.nonInteractivePermissions,
+      config.acpNonInteractivePermissions,
+    ) ?? DEFAULT_ACP_ENGINE_NON_INTERACTIVE_PERMISSIONS;
   const warmHandleIdleMs =
     config.warmHandleIdleMs ??
     config.acpWarmHandleIdleMs ??
@@ -132,7 +147,9 @@ export function buildKimiAcpConfig(config: Record<string, unknown>): Record<stri
   return next;
 }
 
-function withKimiAcpDefaults(options: KimiAcpExecutorOptions): AcpxEngineExecutorOptions {
+function withKimiAcpDefaults(
+  options: KimiAcpExecutorOptions,
+): AcpxEngineExecutorOptions {
   return {
     ...options,
     adapterType: "kimi_local",
@@ -141,12 +158,15 @@ function withKimiAcpDefaults(options: KimiAcpExecutorOptions): AcpxEngineExecuto
   };
 }
 
-export function createKimiAcpExecutor(options: KimiAcpExecutorOptions = {}): KimiAcpExecutor {
+export function createKimiAcpExecutor(
+  options: KimiAcpExecutorOptions = {},
+): KimiAcpExecutor {
   let executor: KimiAcpExecutor | null = null;
   return async (ctx) => {
     let currentExecutor = executor;
     if (!currentExecutor) {
-      const { createAcpxEngineExecutor } = await import("@taskcore/adapter-utils/acpx-engine/execute");
+      const { createAcpxEngineExecutor } =
+        await import("@taskcore/adapter-utils/acpx-engine/execute");
       currentExecutor = createAcpxEngineExecutor(withKimiAcpDefaults(options));
       executor = currentExecutor;
     }
@@ -163,7 +183,9 @@ function parseVersion(version: string): [number, number, number] {
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
 
-export function nodeVersionMeetsKimiAcpMinimum(version = process.version): boolean {
+export function nodeVersionMeetsKimiAcpMinimum(
+  version = process.version,
+): boolean {
   const [major, minor, patch] = parseVersion(version);
   const [minMajor, minMinor, minPatch] = parseVersion(MIN_ACP_NODE_VERSION);
   if (major !== minMajor) return major > minMajor;
@@ -172,7 +194,10 @@ export function nodeVersionMeetsKimiAcpMinimum(version = process.version): boole
 }
 
 async function pathExists(candidate: string): Promise<boolean> {
-  return fs.access(candidate).then(() => true).catch(() => false);
+  return fs
+    .access(candidate)
+    .then(() => true)
+    .catch(() => false);
 }
 
 function hasPathSeparator(command: string): boolean {
@@ -182,11 +207,14 @@ function hasPathSeparator(command: string): boolean {
 function firstShellToken(command: string): string | null {
   const trimmed = command.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith("'") || trimmed.startsWith("\"")) return null;
+  if (trimmed.startsWith("'") || trimmed.startsWith('"')) return null;
   return trimmed.split(/\s+/, 1)[0] ?? null;
 }
 
-async function findCommandOnPath(binName: string, pathValue = process.env.PATH ?? ""): Promise<string | null> {
+async function findCommandOnPath(
+  binName: string,
+  pathValue = process.env.PATH ?? "",
+): Promise<string | null> {
   for (const segment of pathValue.split(path.delimiter)) {
     if (!segment) continue;
     const candidate = path.join(segment, binName);
@@ -199,7 +227,7 @@ function resolveConfigPath(config: Record<string, unknown>): string {
   const envConfig = parseObject(config.env);
   return typeof envConfig.PATH === "string" && envConfig.PATH.trim().length > 0
     ? envConfig.PATH
-    : process.env.PATH ?? "";
+    : (process.env.PATH ?? "");
 }
 
 async function commandIsResolvable(
@@ -218,7 +246,11 @@ async function commandIsResolvable(
       await ensureAdapterExecutionTargetCommandResolvable(
         token,
         target,
-        resolveAdapterExecutionTargetCwd(target, asString(input?.config.cwd, ""), process.cwd()),
+        resolveAdapterExecutionTargetCwd(
+          target,
+          asString(input?.config.cwd, ""),
+          process.cwd(),
+        ),
         process.env,
       );
       return true;
@@ -226,12 +258,16 @@ async function commandIsResolvable(
       return false;
     }
   }
-  if (path.isAbsolute(token) || hasPathSeparator(token)) return pathExists(token);
+  if (path.isAbsolute(token) || hasPathSeparator(token))
+    return pathExists(token);
   return (await findCommandOnPath(token, pathValue)) !== null;
 }
 
 function resolveKimiAcpCommand(config: Record<string, unknown>): string {
-  const configured = firstNonEmptyString(config.agentCommand, config.acpAgentCommand);
+  const configured = firstNonEmptyString(
+    config.agentCommand,
+    config.acpAgentCommand,
+  );
   if (configured) return configured;
   const kimiCommand = firstNonEmptyString(config.command) ?? "kimi";
   return `${kimiCommand} acp`;
@@ -240,7 +276,11 @@ function resolveKimiAcpCommand(config: Record<string, unknown>): string {
 function sandboxTargetHasProcessSessionBridge(
   target: ReturnType<typeof readAdapterExecutionTarget>,
 ): boolean {
-  return target?.kind === "remote" && target.transport === "sandbox" && Boolean(target.runner);
+  return (
+    target?.kind === "remote" &&
+    target.transport === "sandbox" &&
+    Boolean(target.runner)
+  );
 }
 
 async function kimiAcpUnavailableReason(
@@ -250,7 +290,10 @@ async function kimiAcpUnavailableReason(
     executionTarget: input.executionTarget,
     legacyRemoteExecution: input.executionTransport?.remoteExecution,
   });
-  if (target?.kind === "remote" && !sandboxTargetHasProcessSessionBridge(target)) {
+  if (
+    target?.kind === "remote" &&
+    !sandboxTargetHasProcessSessionBridge(target)
+  ) {
     if (target.transport === "sandbox") {
       return "Kimi ACP requires a bidirectional remote process target; this sandbox exposes only one-shot command execution.";
     }
@@ -260,13 +303,21 @@ async function kimiAcpUnavailableReason(
     return `Node ${process.version} (${process.execPath}) does not satisfy Kimi ACP's Node >=${MIN_ACP_NODE_VERSION} prerequisite.`;
   }
   const command = resolveKimiAcpCommand(input.config);
-  if (!(await commandIsResolvable(command, resolveConfigPath(input.config), input))) {
+  if (
+    !(await commandIsResolvable(
+      command,
+      resolveConfigPath(input.config),
+      input,
+    ))
+  ) {
     return `Kimi ACP command is not available: ${command}.`;
   }
   return null;
 }
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -318,7 +369,9 @@ export async function testKimiAcpEnvironment(
   }
 
   checks.push({
-    code: nodeVersionMeetsKimiAcpMinimum() ? "kimi_acp_node_supported" : "kimi_acp_node_unsupported",
+    code: nodeVersionMeetsKimiAcpMinimum()
+      ? "kimi_acp_node_supported"
+      : "kimi_acp_node_unsupported",
     level: nodeVersionMeetsKimiAcpMinimum() ? "info" : "error",
     message: nodeVersionMeetsKimiAcpMinimum()
       ? `Node ${process.version} satisfies ACP runtime requirements.`
@@ -329,12 +382,18 @@ export async function testKimiAcpEnvironment(
   });
 
   const command = resolveKimiAcpCommand(config);
-  const commandResolvable = await commandIsResolvable(command, resolveConfigPath(config), {
-    config,
-    executionTarget: ctx.executionTarget,
-  });
+  const commandResolvable = await commandIsResolvable(
+    command,
+    resolveConfigPath(config),
+    {
+      config,
+      executionTarget: ctx.executionTarget,
+    },
+  );
   checks.push({
-    code: commandResolvable ? "kimi_acp_command_resolvable" : "kimi_acp_command_missing",
+    code: commandResolvable
+      ? "kimi_acp_command_resolvable"
+      : "kimi_acp_command_missing",
     level: commandResolvable ? "info" : "error",
     message: commandResolvable
       ? `Kimi ACP command is executable: ${command}`
@@ -347,15 +406,21 @@ export async function testKimiAcpEnvironment(
   const envConfig = parseObject(config.env);
   const considerHostEnv = !targetIsRemote;
   const configModelName = envConfig.KIMI_MODEL_NAME;
-  const hostModelName = considerHostEnv ? process.env.KIMI_MODEL_NAME : undefined;
+  const hostModelName = considerHostEnv
+    ? process.env.KIMI_MODEL_NAME
+    : undefined;
   const configModelKey = envConfig.KIMI_MODEL_API_KEY;
-  const hostModelKey = considerHostEnv ? process.env.KIMI_MODEL_API_KEY : undefined;
+  const hostModelKey = considerHostEnv
+    ? process.env.KIMI_MODEL_API_KEY
+    : undefined;
   if (
     (isNonEmpty(configModelName) && isNonEmpty(configModelKey)) ||
     (isNonEmpty(hostModelName) && isNonEmpty(hostModelKey))
   ) {
     const source =
-      isNonEmpty(configModelName) && isNonEmpty(configModelKey) ? "adapter config env" : "server environment";
+      isNonEmpty(configModelName) && isNonEmpty(configModelKey)
+        ? "adapter config env"
+        : "server environment";
     checks.push({
       code: "kimi_acp_credentials_detected",
       level: "info",
@@ -371,7 +436,8 @@ export async function testKimiAcpEnvironment(
     });
   }
 
-  const mode = firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
+  const mode =
+    firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
   const warmHandleIdleMs = asNumber(
     config.warmHandleIdleMs ?? config.acpWarmHandleIdleMs,
     DEFAULT_ACP_ENGINE_WARM_HANDLE_IDLE_MS,
@@ -379,7 +445,8 @@ export async function testKimiAcpEnvironment(
   checks.push({
     code: "kimi_acp_runtime_scaffold",
     level: "info",
-    message: "Kimi ACP runtime execution is available through the shared ACP engine.",
+    message:
+      "Kimi ACP runtime execution is available through the shared ACP engine.",
     detail: `mode=${mode}; warmHandleIdleMs=${warmHandleIdleMs}`,
   });
 

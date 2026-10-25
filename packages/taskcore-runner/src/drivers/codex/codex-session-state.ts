@@ -1,4 +1,7 @@
-import { type CodexUsageBaseline, codexRunUsage } from "./codex-usage-baseline.js";
+import {
+  type CodexUsageBaseline,
+  codexRunUsage,
+} from "./codex-usage-baseline.js";
 import type {
   HarnessRuntimeRequest,
   HarnessThreadGoal,
@@ -181,7 +184,8 @@ export class CodexSessionState {
     dynamicToolHandler?: CodexAppServerDriverOptions["dynamicToolHandler"];
   }) {
     this.codexUsageBaseline = input.codexUsageBaseline ?? null;
-    if (this.codexUsageBaseline) this.usageSnapshot = codexRunUsage(this.codexUsageBaseline);
+    if (this.codexUsageBaseline)
+      this.usageSnapshot = codexRunUsage(this.codexUsageBaseline);
     this.transport = input.transport;
     this.runId = input.runId;
     this.sourceSequence = 0;
@@ -204,7 +208,8 @@ export class CodexSessionState {
     this.dynamicTools = input.dynamicTools;
     this.dynamicToolHandler = input.dynamicToolHandler;
     this.completionFeedback = input.completionFeedback;
-    this.currentGoal = input.goal === undefined ? null : structuredClone(input.goal);
+    this.currentGoal =
+      input.goal === undefined ? null : structuredClone(input.goal);
     for (const entry of input.lineage ?? [input.opened.lineage]) {
       this.lineageByThread.set(entry.threadId, structuredClone(entry));
     }
@@ -251,16 +256,16 @@ export class CodexSessionState {
     const dispositionOnlyRecoveryTurnId =
       input.dispositionOnlyRecoveryTurnId ?? null;
     const settledSemanticResult =
-      this.conversationMode === "task"
-      && this.result !== null
-      && this.resultTurnId !== null
-      && this.terminalTurns.has(this.resultTurnId);
+      this.conversationMode === "task" &&
+      this.result !== null &&
+      this.resultTurnId !== null &&
+      this.terminalTurns.has(this.resultTurnId);
     const consumedResultlessRecovery =
-      input.resumed
-      && this.conversationMode === "task"
-      && this.result === null
-      && this.activeTurnId === null
-      && dispositionOnlyRecoveryPreviouslyConsumed;
+      input.resumed &&
+      this.conversationMode === "task" &&
+      this.result === null &&
+      this.activeTurnId === null &&
+      dispositionOnlyRecoveryPreviouslyConsumed;
     // Once the one-shot disposition allowance was consumed, only affirmative
     // provider history can release it or recover its active turn. Missing or
     // malformed history is ambiguous, so a reconstructed session with no
@@ -300,10 +305,15 @@ export class CodexSessionState {
   cancelPendingRequests(reason: string): void {
     for (const pending of this.pendingRuntimeRequestMap.values()) {
       this.emit(
-        pending.request.input === undefined ? "runtime_request.cancelled" : "runtime_request.expired",
+        pending.request.input === undefined
+          ? "runtime_request.cancelled"
+          : "runtime_request.expired",
         pending.request.input === undefined
           ? harnessRuntimeRequestOutcome(pending.request, { reason })
-          : harnessRuntimeInputExpiredOutcome(pending.request, "provider_process_lost"),
+          : harnessRuntimeInputExpiredOutcome(
+              pending.request,
+              "provider_process_lost",
+            ),
         { turnId: pending.request.turnId, itemId: pending.request.itemId },
       );
       pending.settle(safeRequestResponse(pending.request.method, "cancel"));
@@ -316,7 +326,10 @@ export class CodexSessionState {
       if (pending.request.input === undefined) continue;
       this.emit(
         "runtime_request.expired",
-        harnessRuntimeInputExpiredOutcome(pending.request, "provider_process_lost"),
+        harnessRuntimeInputExpiredOutcome(
+          pending.request,
+          "provider_process_lost",
+        ),
         { turnId: pending.request.turnId, itemId: pending.request.itemId },
       );
       pending.settle(safeRequestResponse(pending.request.method, "cancel"));
@@ -413,7 +426,14 @@ export class CodexSessionState {
       const turnId = this.activeTurnId;
       this.emit(
         "turn.failed",
-        { status: "failed", error: { code, message: this.protocolFailureMessage, recoverable: false } },
+        {
+          status: "failed",
+          error: {
+            code,
+            message: this.protocolFailureMessage,
+            recoverable: false,
+          },
+        },
         { turnId },
       );
       this.terminalTurns.set(turnId, canonicalJson({ protocolFailure: code }));
@@ -426,7 +446,9 @@ export class CodexSessionState {
     // sandbox cannot crash the controller. The transport retains its original
     // close promise: the owner's awaited session.close still receives any
     // cleanup failure and must not treat it as confirmed termination.
-    void this.transport.close(`protocol_failure:${code}`).catch(() => undefined);
+    void this.transport
+      .close(`protocol_failure:${code}`)
+      .catch(() => undefined);
   }
 
   emit(
@@ -475,20 +497,17 @@ export class CodexSessionState {
               maxObjectiveChars: 4_000,
               tokenBudgetControl: false,
               usageReporting: false,
-              reasonCode:
-                this.goalReasonCode ?? "codex_goal_api_unavailable",
+              reasonCode: this.goalReasonCode ?? "codex_goal_api_unavailable",
               reason:
-                this.goalReason
-                ?? "This Codex app-server does not expose thread goals.",
+                this.goalReason ??
+                "This Codex app-server does not expose thread goals.",
             },
     });
   }
 
   emitGoalEvent(
     eventType:
-      | "session.goal.snapshot"
-      | "session.goal.updated"
-      | "session.goal.cleared",
+      "session.goal.snapshot" | "session.goal.updated" | "session.goal.cleared",
     goal: HarnessThreadGoal | null,
     extra: Record<string, unknown> = {},
   ): void {
@@ -554,53 +573,56 @@ function normalizedGoalSnapshot(
     lastReason: null,
     createdAt: isoTimestamp(goal.createdAt),
     updatedAt: isoTimestamp(goal.updatedAt),
-    completedAt: goal.status === "complete" ? isoTimestamp(goal.updatedAt) : null,
+    completedAt:
+      goal.status === "complete" ? isoTimestamp(goal.updatedAt) : null,
     workingNow,
   };
 }
 
-export type CodexSessionStateInput = ConstructorParameters<typeof CodexSessionState>[0];
+export type CodexSessionStateInput = ConstructorParameters<
+  typeof CodexSessionState
+>[0];
 
 export function initializeCodexSessionEvents(
   state: CodexSessionState,
   input: CodexSessionStateInput,
 ): void {
-    state.emit(input.resumed ? "session.resumed" : "session.started", {
-      driverSessionId: input.opened.threadId,
-      providerSessionId: input.opened.providerSessionId,
-      context: input.opened.context,
-    });
-    state.emitGoalCapabilities();
-    state.emitGoalEvent("session.goal.snapshot", state.currentGoal, {
-      workingNow: state.activeTurnId !== null,
-    });
-    for (const stale of input.stalePendingRuntimeRequests ?? []) {
-      state.emit(
-        "runtime_request.cancelled",
-        harnessRuntimeRequestOutcome(stale, { reason: "transport_recovered" }),
-        { turnId: stale.turnId, itemId: stale.itemId },
-      );
-    }
+  state.emit(input.resumed ? "session.resumed" : "session.started", {
+    driverSessionId: input.opened.threadId,
+    providerSessionId: input.opened.providerSessionId,
+    context: input.opened.context,
+  });
+  state.emitGoalCapabilities();
+  state.emitGoalEvent("session.goal.snapshot", state.currentGoal, {
+    workingNow: state.activeTurnId !== null,
+  });
+  for (const stale of input.stalePendingRuntimeRequests ?? []) {
     state.emit(
-      "item.completed",
-      {
-        kind: "thread_lineage",
-        text: `Root thread ${input.opened.threadId}`,
-        lineage: input.opened.lineage,
-      },
-      { itemId: `thread:${input.opened.threadId}` },
+      "runtime_request.cancelled",
+      harnessRuntimeRequestOutcome(stale, { reason: "transport_recovered" }),
+      { turnId: stale.turnId, itemId: stale.itemId },
     );
-    state.emit(
-      "item.completed",
-      {
-        kind: "model",
-        text: `${input.opened.context.model} (${input.opened.context.modelProvider})`,
-        model: {
-          name: input.opened.context.model,
-          provider: input.opened.context.modelProvider,
-          codexVersion: input.opened.context.codexVersion,
-        },
+  }
+  state.emit(
+    "item.completed",
+    {
+      kind: "thread_lineage",
+      text: `Root thread ${input.opened.threadId}`,
+      lineage: input.opened.lineage,
+    },
+    { itemId: `thread:${input.opened.threadId}` },
+  );
+  state.emit(
+    "item.completed",
+    {
+      kind: "model",
+      text: `${input.opened.context.model} (${input.opened.context.modelProvider})`,
+      model: {
+        name: input.opened.context.model,
+        provider: input.opened.context.modelProvider,
+        codexVersion: input.opened.context.codexVersion,
       },
-      { itemId: `${input.opened.threadId}:model` },
-    );
+    },
+    { itemId: `${input.opened.threadId}:model` },
+  );
 }

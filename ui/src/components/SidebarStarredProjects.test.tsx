@@ -10,26 +10,54 @@ import { SidebarStarredProjects } from "./SidebarStarredProjects";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const mockProjectsApi = vi.hoisted(() => ({ list: vi.fn() }));
-const mockResourceMembershipsApi = vi.hoisted(() => ({ listMine: vi.fn(), updateProject: vi.fn() }));
+const mockResourceMembershipsApi = vi.hoisted(() => ({
+  listMine: vi.fn(),
+  updateProject: vi.fn(),
+}));
 const mockPushToast = vi.hoisted(() => vi.fn());
 const mockSetSidebarOpen = vi.hoisted(() => vi.fn());
-const mockSidebarState = vi.hoisted(() => ({ isMobile: false, collapsed: false, peeking: false }));
+const mockSidebarState = vi.hoisted(() => ({
+  isMobile: false,
+  collapsed: false,
+  peeking: false,
+}));
 
 vi.mock("@/lib/router", () => ({
-  NavLink: ({ children, className, to, ...props }: {
+  NavLink: ({
+    children,
+    className,
+    to,
+    ...props
+  }: {
     children: ReactNode;
     className?: string | ((state: { isActive: boolean }) => string);
     to: string;
   }) => (
-    <a href={to} className={typeof className === "function" ? className({ isActive: false }) : className} {...props}>
+    <a
+      href={to}
+      className={
+        typeof className === "function"
+          ? className({ isActive: false })
+          : className
+      }
+      {...props}
+    >
       {children}
     </a>
   ),
-  useLocation: () => ({ pathname: "/PAP/dashboard", search: "", hash: "", state: null }),
+  useLocation: () => ({
+    pathname: "/PAP/dashboard",
+    search: "",
+    hash: "",
+    state: null,
+  }),
 }));
 
 vi.mock("../context/CompanyContext", () => ({
-  useCompany: () => ({ selectedCompanyId: "company-1", selectedCompany: { id: "company-1", issuePrefix: "PAP" } }),
+  useCompany: () => ({
+    selectedCompanyId: "company-1",
+    selectedCompany: { id: "company-1", issuePrefix: "PAP" },
+  }),
 }));
 
 vi.mock("../context/SidebarContext", () => ({
@@ -46,7 +74,9 @@ vi.mock("../context/ToastContext", () => ({
 }));
 
 vi.mock("../api/projects", () => ({ projectsApi: mockProjectsApi }));
-vi.mock("../api/resourceMemberships", () => ({ resourceMembershipsApi: mockResourceMembershipsApi }));
+vi.mock("../api/resourceMemberships", () => ({
+  resourceMembershipsApi: mockResourceMembershipsApi,
+}));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -113,7 +143,9 @@ function projectLinkLabels(container: HTMLElement) {
 }
 
 function projectLink(container: HTMLElement, projectRef: string) {
-  return container.querySelector(`a[href="/projects/${projectRef}/issues"]`) as HTMLAnchorElement | null;
+  return container.querySelector(
+    `a[href="/projects/${projectRef}/issues"]`,
+  ) as HTMLAnchorElement | null;
 }
 
 describe("SidebarStarredProjects", () => {
@@ -129,7 +161,12 @@ describe("SidebarStarredProjects", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = null;
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
     memberships = {
       projectMemberships: {},
       agentMemberships: {},
@@ -141,7 +178,9 @@ describe("SidebarStarredProjects", () => {
       documentStarredAt: {},
       updatedAt: null,
     };
-    mockResourceMembershipsApi.listMine.mockImplementation(() => Promise.resolve(memberships));
+    mockResourceMembershipsApi.listMine.mockImplementation(() =>
+      Promise.resolve(memberships),
+    );
     mockProjectsApi.list.mockResolvedValue([]);
   });
 
@@ -172,13 +211,18 @@ describe("SidebarStarredProjects", () => {
       makeProject({ id: "project-a", name: "Alpha", urlKey: "alpha" }),
       makeProject({ id: "project-b", name: "Bravo", urlKey: "bravo" }),
     ]);
-    memberships = { ...memberships, starredProjectIds: ["project-b", "project-c"] };
+    memberships = {
+      ...memberships,
+      starredProjectIds: ["project-b", "project-c"],
+    };
 
     await render();
 
     // project-c is starred but absent because the default project list is server-filtered.
     expect(projectLinkLabels(container)).toEqual(["Bravo"]);
-    expect(document.body.querySelector('button[aria-label="Unstar Bravo"]')).not.toBeNull();
+    expect(
+      document.body.querySelector('button[aria-label="Unstar Bravo"]'),
+    ).not.toBeNull();
   });
 
   it("keeps starred projects indented only outside the collapsed rail", async () => {
@@ -194,19 +238,28 @@ describe("SidebarStarredProjects", () => {
     await act(async () => root?.unmount());
     root = null;
     container.innerHTML = "";
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
     mockSidebarState.collapsed = true;
 
     await render();
 
     const railProjectLink = projectLink(container, "alpha");
     expect(railProjectLink?.className).not.toContain("pl-6");
-    const nameSpan = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Alpha");
+    const nameSpan = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent === "Alpha",
+    );
     expect(nameSpan?.className).toContain("w-0");
   });
 
   it("renders nothing when no projects are starred", async () => {
-    mockProjectsApi.list.mockResolvedValue([makeProject({ id: "project-a", name: "Alpha" })]);
+    mockProjectsApi.list.mockResolvedValue([
+      makeProject({ id: "project-a", name: "Alpha" }),
+    ]);
 
     await render();
 

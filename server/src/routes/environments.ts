@@ -18,7 +18,10 @@ import {
 } from "@taskcore/shared";
 import { conflict, forbidden, unprocessable } from "../errors.js";
 import { isCloudManagedInstance } from "../services/cloud-instance.js";
-import { getManagedInstanceConfig, SECRET_LIKE_CONFIG_KEY_PATTERN } from "../services/managed-config.js";
+import {
+  getManagedInstanceConfig,
+  SECRET_LIKE_CONFIG_KEY_PATTERN,
+} from "../services/managed-config.js";
 import { parseExecutionPolicyBootstrapEnv } from "../services/execution-policy-bootstrap.js";
 import { isExecutionForcedToKubernetes } from "../services/execution-allowlist.js";
 import { validate } from "../middleware/validate.js";
@@ -80,7 +83,9 @@ export function isPlatformProvisionedEnvironment(environment: {
   );
 }
 
-function redactSecretLikeConfigKeys(value: Record<string, unknown>): Record<string, unknown> {
+function redactSecretLikeConfigKeys(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(value)) {
     if (SECRET_LIKE_CONFIG_KEY_PATTERN.test(key)) continue;
@@ -113,17 +118,22 @@ function redactSecretLikeConfigKeys(value: Record<string, unknown>): Record<stri
  * that pre-generalization builds may have stamped platform values on) env
  * vars stay blanked.
  */
-export function applyPlatformProvisionedEnvironmentFloor<T extends {
-  driver?: string;
-  config: Record<string, unknown> | null;
-  envVars?: Record<string, unknown> | null;
-  metadata: Record<string, unknown> | null;
-}>(environment: T): T {
+export function applyPlatformProvisionedEnvironmentFloor<
+  T extends {
+    driver?: string;
+    config: Record<string, unknown> | null;
+    envVars?: Record<string, unknown> | null;
+    metadata: Record<string, unknown> | null;
+  },
+>(environment: T): T {
   const tenantEnvVarsVisible = isTenantEditableManagedSandbox(environment);
   return {
     ...environment,
-    config: redactSecretLikeConfigKeys(isPlainRecord(environment.config) ? environment.config : {}),
-    ...(Object.prototype.hasOwnProperty.call(environment, "envVars") && !tenantEnvVarsVisible
+    config: redactSecretLikeConfigKeys(
+      isPlainRecord(environment.config) ? environment.config : {},
+    ),
+    ...(Object.prototype.hasOwnProperty.call(environment, "envVars") &&
+    !tenantEnvVarsVisible
       ? { envVars: {} }
       : {}),
   };
@@ -254,7 +264,11 @@ function isPlatformMarkerClearOnlyPatch(body: unknown): boolean {
 function isTenantEnvVarsOnlyPatch(body: unknown): boolean {
   if (!isPlainRecord(body)) return false;
   const bodyKeys = Object.keys(body);
-  return bodyKeys.length === 1 && bodyKeys[0] === "envVars" && isPlainRecord(body.envVars);
+  return (
+    bodyKeys.length === 1 &&
+    bodyKeys[0] === "envVars" &&
+    isPlainRecord(body.envVars)
+  );
 }
 
 /**
@@ -286,20 +300,29 @@ async function assertPlatformProvisionedEnvironmentWritable(
     isForcedKubernetesExecution: () => Promise<boolean>;
   },
 ): Promise<void> {
-  if (!isCloudManagedInstance() || !isPlatformProvisionedEnvironment(environment)) return;
+  if (
+    !isCloudManagedInstance() ||
+    !isPlatformProvisionedEnvironment(environment)
+  )
+    return;
   if (
     options !== undefined &&
     isPlatformMarkerClearOnlyPatch(options.patchBody) &&
     !(await isPlatformSlotEnvironment(environment, options))
-  ) return;
+  )
+    return;
   if (
     options !== undefined &&
     isTenantEnvVarsOnlyPatch(options.patchBody) &&
     isTenantEditableManagedSandbox(environment)
-  ) return;
-  throw forbidden("Platform-provisioned environments are platform-managed on cloud-managed instances", {
-    code: "environment_platform_managed",
-  });
+  )
+    return;
+  throw forbidden(
+    "Platform-provisioned environments are platform-managed on cloud-managed instances",
+    {
+      code: "environment_platform_managed",
+    },
+  );
 }
 
 /**
@@ -313,7 +336,11 @@ async function assertPlatformProvisionedEnvironmentWritable(
 function assertNoClientPlatformProvisionedMarkers(metadata: unknown): void {
   if (!isCloudManagedInstance() || !isPlainRecord(metadata)) return;
   for (const key of PLATFORM_PROVISIONED_MARKER_KEYS) {
-    if (metadata[key] !== undefined && metadata[key] !== null && metadata[key] !== false) {
+    if (
+      metadata[key] !== undefined &&
+      metadata[key] !== null &&
+      metadata[key] !== false
+    ) {
       throw unprocessable(
         `metadata.${key} is reserved to the platform on cloud-managed instances`,
         { code: "environment_platform_marker_reserved" },
@@ -352,9 +379,12 @@ export function environmentRoutes(
 
   function assertCanAccessInstanceEnvironments(req: Request) {
     if (req.actor.type !== "board") {
-      throw forbidden("Instance environment management is restricted to board operators");
+      throw forbidden(
+        "Instance environment management is restricted to board operators",
+      );
     }
-    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
+    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+      return;
     throw forbidden("Instance admin access required");
   }
 
@@ -366,7 +396,8 @@ export function environmentRoutes(
     if (req.actor.type !== "board") {
       throw forbidden("Board access required");
     }
-    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
+    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+      return;
     const allowedCompanies = req.actor.companyIds ?? [];
     if (!allowedCompanies.includes(companyId)) {
       throw forbidden("User does not have access to this company");
@@ -374,28 +405,36 @@ export function environmentRoutes(
   }
 
   function canReadFullInstanceEnvironment(req: Request) {
-    return req.actor.type === "board"
-      && (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin);
+    return (
+      req.actor.type === "board" &&
+      (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+    );
   }
 
-  function redactEnvironmentForRestrictedView<T extends {
-    config: Record<string, unknown> | null;
-    envVars?: Record<string, unknown> | null;
-    metadata: Record<string, unknown> | null;
-  }>(environment: T): T {
+  function redactEnvironmentForRestrictedView<
+    T extends {
+      config: Record<string, unknown> | null;
+      envVars?: Record<string, unknown> | null;
+      metadata: Record<string, unknown> | null;
+    },
+  >(environment: T): T {
     return {
       ...environment,
       config: {},
-      ...(Object.prototype.hasOwnProperty.call(environment, "envVars") ? { envVars: {} } : {}),
+      ...(Object.prototype.hasOwnProperty.call(environment, "envVars")
+        ? { envVars: {} }
+        : {}),
       metadata: null,
     };
   }
 
-  function presentEnvironmentForRead<T extends {
-    config: Record<string, unknown> | null;
-    envVars?: Record<string, unknown> | null;
-    metadata: Record<string, unknown> | null;
-  }>(req: Request, environment: T): T {
+  function presentEnvironmentForRead<
+    T extends {
+      config: Record<string, unknown> | null;
+      envVars?: Record<string, unknown> | null;
+      metadata: Record<string, unknown> | null;
+    },
+  >(req: Request, environment: T): T {
     // Floor: on cloud-managed instances, platform-provisioned rows use the
     // floored view — credential-shaped config keys are never echoed to any
     // reader, structural config stays visible, and tenant env vars on the
@@ -404,14 +443,19 @@ export function environmentRoutes(
     // no secrets by the managed-config contract) but never env vars — the
     // same envVars posture the restricted view applies to every other
     // environment, since tenant env vars can carry pasted credentials.
-    if (isCloudManagedInstance() && isPlatformProvisionedEnvironment(environment)) {
+    if (
+      isCloudManagedInstance() &&
+      isPlatformProvisionedEnvironment(environment)
+    ) {
       const floored = applyPlatformProvisionedEnvironmentFloor(environment);
       if (canReadFullInstanceEnvironment(req)) {
         return floored;
       }
       return {
         ...floored,
-        ...(Object.prototype.hasOwnProperty.call(floored, "envVars") ? { envVars: {} } : {}),
+        ...(Object.prototype.hasOwnProperty.call(floored, "envVars")
+          ? { envVars: {} }
+          : {}),
       };
     }
     return canReadFullInstanceEnvironment(req)
@@ -419,7 +463,10 @@ export function environmentRoutes(
       : redactEnvironmentForRestrictedView(environment);
   }
 
-  async function assertCanReadSecretsForDraftProbe(req: Request, companyId: string) {
+  async function assertCanReadSecretsForDraftProbe(
+    req: Request,
+    companyId: string,
+  ) {
     assertCanAccessInstanceEnvironments(req);
     return companyId;
   }
@@ -443,7 +490,7 @@ export function environmentRoutes(
           entityType: "environment",
           entityId: input.entityId,
           details: input.details,
-        })
+        }),
       ),
     );
   }
@@ -470,7 +517,8 @@ export function environmentRoutes(
 
   async function resolveCustomImageCompanyId(req: Request): Promise<string> {
     const queryCompanyId =
-      typeof req.query.companyId === "string" && req.query.companyId.trim().length > 0
+      typeof req.query.companyId === "string" &&
+      req.query.companyId.trim().length > 0
         ? req.query.companyId.trim()
         : null;
     if (queryCompanyId) {
@@ -486,7 +534,9 @@ export function environmentRoutes(
       assertCustomImageCompanyAccess(req, companyId);
       return companyId;
     }
-    throw unprocessable("companyId query parameter is required for environment customImage setup.");
+    throw unprocessable(
+      "companyId query parameter is required for environment customImage setup.",
+    );
   }
 
   async function resolveCustomImageSessionCompanyId(
@@ -519,9 +569,11 @@ export function environmentRoutes(
     options: { required: boolean },
   ): Promise<string | null> {
     const routeCompanyId =
-      typeof req.params.companyId === "string" && req.params.companyId.trim().length > 0
+      typeof req.params.companyId === "string" &&
+      req.params.companyId.trim().length > 0
         ? req.params.companyId.trim()
-        : typeof req.query.companyId === "string" && req.query.companyId.trim().length > 0
+        : typeof req.query.companyId === "string" &&
+            req.query.companyId.trim().length > 0
           ? req.query.companyId.trim()
           : null;
     if (routeCompanyId) return routeCompanyId;
@@ -530,8 +582,13 @@ export function environmentRoutes(
       targetId: environmentId,
     });
     if (bindingCompanyIds.length === 1) return bindingCompanyIds[0] ?? null;
-    if (req.actor.type === "agent" && req.actor.companyId) return req.actor.companyId;
-    if (req.actor.type === "board" && Array.isArray(req.actor.companyIds) && req.actor.companyIds.length === 1) {
+    if (req.actor.type === "agent" && req.actor.companyId)
+      return req.actor.companyId;
+    if (
+      req.actor.type === "board" &&
+      Array.isArray(req.actor.companyIds) &&
+      req.actor.companyIds.length === 1
+    ) {
       return req.actor.companyIds[0] ?? null;
     }
     // Single-company instances have exactly one possible secret scope, so an
@@ -567,14 +624,18 @@ export function environmentRoutes(
     if (patch.config !== undefined) {
       details.configChanged = true;
       details.configTopLevelKeyCount =
-        patch.config && typeof patch.config === "object" && !Array.isArray(patch.config)
+        patch.config &&
+        typeof patch.config === "object" &&
+        !Array.isArray(patch.config)
           ? Object.keys(patch.config as Record<string, unknown>).length
           : 0;
     }
     if (patch.metadata !== undefined) {
       details.metadataChanged = true;
       details.metadataTopLevelKeyCount =
-        patch.metadata && typeof patch.metadata === "object" && !Array.isArray(patch.metadata)
+        patch.metadata &&
+        typeof patch.metadata === "object" &&
+        !Array.isArray(patch.metadata)
           ? Object.keys(patch.metadata as Record<string, unknown>).length
           : 0;
     }
@@ -582,7 +643,9 @@ export function environmentRoutes(
     return details;
   }
 
-  function environmentDeleteBlockMessage(impact: EnvironmentDeleteBlastRadius): string | null {
+  function environmentDeleteBlockMessage(
+    impact: EnvironmentDeleteBlastRadius,
+  ): string | null {
     if (impact.staticReferences.isManagedLocal) {
       return "Cannot delete the managed local environment.";
     }
@@ -608,14 +671,15 @@ export function environmentRoutes(
     destroyedReusableSandboxLeaseCount?: number;
   }): never {
     const message =
-      environmentDeleteBlockMessage(input.impact)
-      ?? "Environment delete is currently blocked. Refresh the environment and retry.";
+      environmentDeleteBlockMessage(input.impact) ??
+      "Environment delete is currently blocked. Refresh the environment and retry.";
     logger.warn(
       {
         environmentId: input.environment.id,
         environmentDriver: input.environment.driver,
         deleteBlockedReasons: input.impact.deleteBlockedReasons,
-        destroyedReusableSandboxLeaseCount: input.destroyedReusableSandboxLeaseCount ?? 0,
+        destroyedReusableSandboxLeaseCount:
+          input.destroyedReusableSandboxLeaseCount ?? 0,
         actorType: input.actor.actorType,
         actorId: input.actor.actorId,
         agentId: input.actor.agentId,
@@ -626,7 +690,10 @@ export function environmentRoutes(
     throw conflict(message, {
       deleteBlockedReasons: input.impact.deleteBlockedReasons,
       ...(input.destroyedReusableSandboxLeaseCount
-        ? { destroyedReusableSandboxLeaseCount: input.destroyedReusableSandboxLeaseCount }
+        ? {
+            destroyedReusableSandboxLeaseCount:
+              input.destroyedReusableSandboxLeaseCount,
+          }
         : {}),
     });
   }
@@ -678,7 +745,10 @@ export function environmentRoutes(
   }
 
   function throwTerminalPayloadValidationFailure(
-    failure: Extract<EnvironmentCustomImageTerminalPayloadValidationResult, { ok: false }>,
+    failure: Extract<
+      EnvironmentCustomImageTerminalPayloadValidationResult,
+      { ok: false }
+    >,
   ): never {
     if (failure.status === 409) {
       throw conflict(failure.message);
@@ -696,7 +766,10 @@ export function environmentRoutes(
    * not the enforcement boundary.
    */
   async function isManagedSandboxOnlyInstance(): Promise<boolean> {
-    return (await instanceSettings.getExperimental()).enableManagedSandboxOnly === true;
+    return (
+      (await instanceSettings.getExperimental()).enableManagedSandboxOnly ===
+      true
+    );
   }
 
   router.get("/companies/:companyId/environments", async (req, res) => {
@@ -721,63 +794,71 @@ export function environmentRoutes(
     res.json(impact);
   });
 
-  router.get("/companies/:companyId/environments/capabilities", async (req, res) => {
-    assertCanReadInstanceEnvironments(req);
-    const pluginDrivers = await listReadyPluginEnvironmentDrivers({
-      db,
-      workerManager: options.pluginWorkerManager,
-      recoverMissingWorker: options.recoverMissingPluginWorker,
-    });
-    res.json(getEnvironmentCapabilities(
-      AGENT_ADAPTER_TYPES,
-      {
-        sandboxProviders: Object.fromEntries(pluginDrivers.map((driver) => [
-          driver.driverKey,
-          {
-            status: "supported" as const,
-            supportsSavedProbe: true,
-            supportsUnsavedProbe: true,
-            supportsRunExecution: true,
-            // Publish reusable-lease support only when the declaration allows it
-            // AND the live worker verified all reuse lifecycle methods, so the
-            // presentation matches the acquisition guard, which requires them.
-            // The declaration part uses the same resolver acquisition uses, so
-            // the nested `sandboxCapabilities` override wins over the legacy
-            // `supportsReusableLeases` flag: a manifest with legacy `true` and
-            // nested `false` presents as not reusable. Default an absent value
-            // to false with `=== true`. A ready worker that omits any reuse
-            // lifecycle method presents as not reusable, because acquisition
-            // would always fall back to an ephemeral lease.
-            supportsReusableLeases:
-              resolveDeclaredSandboxCapabilities(driver).reusableLeases === true
-              && driver.reusableLeaseMethodsVerified,
-            supportsInteractiveSetup: driver.supportsInteractiveSetup,
-            interactiveSetupConnectionTypes: driver.interactiveSetupConnectionTypes,
-            supportsTemplateCapture: driver.supportsTemplateCapture,
-            templateRefKind: driver.templateRefKind,
-            templateConfigBinding: driver.templateConfigBinding,
-            supportsTemplateDelete: driver.supportsTemplateDelete,
-            supportsLoginPty: driver.supportsLoginPty ?? false,
-            displayName: driver.displayName,
-            description: driver.description,
-            source: "plugin" as const,
-            pluginKey: driver.pluginKey,
-            pluginId: driver.pluginId,
-            configSchema: driver.configSchema,
-          },
-        ])),
-      },
-    ));
-  });
+  router.get(
+    "/companies/:companyId/environments/capabilities",
+    async (req, res) => {
+      assertCanReadInstanceEnvironments(req);
+      const pluginDrivers = await listReadyPluginEnvironmentDrivers({
+        db,
+        workerManager: options.pluginWorkerManager,
+        recoverMissingWorker: options.recoverMissingPluginWorker,
+      });
+      res.json(
+        getEnvironmentCapabilities(AGENT_ADAPTER_TYPES, {
+          sandboxProviders: Object.fromEntries(
+            pluginDrivers.map((driver) => [
+              driver.driverKey,
+              {
+                status: "supported" as const,
+                supportsSavedProbe: true,
+                supportsUnsavedProbe: true,
+                supportsRunExecution: true,
+                // Publish reusable-lease support only when the declaration allows it
+                // AND the live worker verified all reuse lifecycle methods, so the
+                // presentation matches the acquisition guard, which requires them.
+                // The declaration part uses the same resolver acquisition uses, so
+                // the nested `sandboxCapabilities` override wins over the legacy
+                // `supportsReusableLeases` flag: a manifest with legacy `true` and
+                // nested `false` presents as not reusable. Default an absent value
+                // to false with `=== true`. A ready worker that omits any reuse
+                // lifecycle method presents as not reusable, because acquisition
+                // would always fall back to an ephemeral lease.
+                supportsReusableLeases:
+                  resolveDeclaredSandboxCapabilities(driver).reusableLeases ===
+                    true && driver.reusableLeaseMethodsVerified,
+                supportsInteractiveSetup: driver.supportsInteractiveSetup,
+                interactiveSetupConnectionTypes:
+                  driver.interactiveSetupConnectionTypes,
+                supportsTemplateCapture: driver.supportsTemplateCapture,
+                templateRefKind: driver.templateRefKind,
+                templateConfigBinding: driver.templateConfigBinding,
+                supportsTemplateDelete: driver.supportsTemplateDelete,
+                supportsLoginPty: driver.supportsLoginPty ?? false,
+                displayName: driver.displayName,
+                description: driver.description,
+                source: "plugin" as const,
+                pluginKey: driver.pluginKey,
+                pluginId: driver.pluginId,
+                configSchema: driver.configSchema,
+              },
+            ]),
+          ),
+        }),
+      );
+    },
+  );
 
-  router.get("/environments/:environmentId/custom-image-template", async (req, res) => {
-    assertCanAccessInstanceEnvironments(req);
-    await resolveCustomImageCompanyId(req);
-    const overview = await customImages.getOverview({
-      environmentId: req.params.environmentId as string,
-    });
-    res.json(overview);
-  });
+  router.get(
+    "/environments/:environmentId/custom-image-template",
+    async (req, res) => {
+      assertCanAccessInstanceEnvironments(req);
+      await resolveCustomImageCompanyId(req);
+      const overview = await customImages.getOverview({
+        environmentId: req.params.environmentId as string,
+      });
+      res.json(overview);
+    },
+  );
 
   router.post(
     "/environments/:environmentId/custom-image-setup-sessions",
@@ -807,29 +888,40 @@ export function environmentRoutes(
     },
   );
 
-  router.get("/environment-custom-image-setup-sessions/:sessionId", async (req, res) => {
-    assertCanAccessInstanceEnvironments(req);
-    const session = await customImages.getSessionById(req.params.sessionId as string);
-    if (!session) {
-      res.status(404).json({ error: "Environment customImage setup session not found" });
-      return;
-    }
-    await resolveCustomImageSessionCompanyId(req, session);
-    const result = await customImages.refreshSetupSession({
-      sessionId: session.id,
-      includeConnectionPayload: true,
-    });
-    res.json(result);
-  });
+  router.get(
+    "/environment-custom-image-setup-sessions/:sessionId",
+    async (req, res) => {
+      assertCanAccessInstanceEnvironments(req);
+      const session = await customImages.getSessionById(
+        req.params.sessionId as string,
+      );
+      if (!session) {
+        res
+          .status(404)
+          .json({ error: "Environment customImage setup session not found" });
+        return;
+      }
+      await resolveCustomImageSessionCompanyId(req, session);
+      const result = await customImages.refreshSetupSession({
+        sessionId: session.id,
+        includeConnectionPayload: true,
+      });
+      res.json(result);
+    },
+  );
 
   router.post(
     "/environment-custom-image-setup-sessions/:sessionId/terminal-session-token",
     validate(createEnvironmentCustomImageTerminalSessionTokenSchema),
     async (req, res) => {
       assertCanAccessInstanceEnvironments(req);
-      const session = await customImages.getSessionById(req.params.sessionId as string);
+      const session = await customImages.getSessionById(
+        req.params.sessionId as string,
+      );
       if (!session) {
-        res.status(404).json({ error: "Environment customImage setup session not found" });
+        res
+          .status(404)
+          .json({ error: "Environment customImage setup session not found" });
         return;
       }
       const companyId = await resolveCustomImageSessionCompanyId(req, session);
@@ -840,10 +932,18 @@ export function environmentRoutes(
       });
       const now = new Date();
       if (refreshed.session.status !== "waiting_for_user") {
-        throw conflict(`Cannot create terminal session token from setup status "${refreshed.session.status}".`);
+        throw conflict(
+          `Cannot create terminal session token from setup status "${refreshed.session.status}".`,
+        );
       }
-      const setupExpiresAt = requireFutureCustomImageSetupExpiry(refreshed.session, now);
-      const payloadValidation = validateCustomImageSetupSshPayload(refreshed.connectionPayload, now);
+      const setupExpiresAt = requireFutureCustomImageSetupExpiry(
+        refreshed.session,
+        now,
+      );
+      const payloadValidation = validateCustomImageSetupSshPayload(
+        refreshed.connectionPayload,
+        now,
+      );
       if (!payloadValidation.ok) {
         throwTerminalPayloadValidationFailure(payloadValidation);
       }
@@ -881,8 +981,8 @@ export function environmentRoutes(
         environmentId: minted.session.environmentId,
         connectionType: "ssh",
         websocketPath:
-          `/api/environment-custom-image-setup-sessions/${encodeURIComponent(minted.session.setupSessionId)}/terminal/ws`
-          + `?terminalSessionId=${encodeURIComponent(minted.session.id)}`,
+          `/api/environment-custom-image-setup-sessions/${encodeURIComponent(minted.session.setupSessionId)}/terminal/ws` +
+          `?terminalSessionId=${encodeURIComponent(minted.session.id)}`,
       });
     },
   );
@@ -892,9 +992,13 @@ export function environmentRoutes(
     validate(finishEnvironmentCustomImageSetupSessionSchema),
     async (req, res) => {
       assertCanAccessInstanceEnvironments(req);
-      const session = await customImages.getSessionById(req.params.sessionId as string);
+      const session = await customImages.getSessionById(
+        req.params.sessionId as string,
+      );
       if (!session) {
-        res.status(404).json({ error: "Environment customImage setup session not found" });
+        res
+          .status(404)
+          .json({ error: "Environment customImage setup session not found" });
         return;
       }
       const companyId = await resolveCustomImageSessionCompanyId(req, session);
@@ -903,8 +1007,13 @@ export function environmentRoutes(
         sessionId: session.id,
         metadata: req.body.metadata,
       });
-      environmentCustomImageTerminalSessionStore.deleteBySetupSessionId(session.id);
-      environmentCustomImageTerminalConnectionRegistry.closeBySetupSessionId(session.id, "setup_finished");
+      environmentCustomImageTerminalSessionStore.deleteBySetupSessionId(
+        session.id,
+      );
+      environmentCustomImageTerminalConnectionRegistry.closeBySetupSessionId(
+        session.id,
+        "setup_finished",
+      );
       await logEnvironmentCustomImageActivity({
         actor,
         companyId,
@@ -924,9 +1033,13 @@ export function environmentRoutes(
     validate(cancelEnvironmentCustomImageSetupSessionSchema),
     async (req, res) => {
       assertCanAccessInstanceEnvironments(req);
-      const session = await customImages.getSessionById(req.params.sessionId as string);
+      const session = await customImages.getSessionById(
+        req.params.sessionId as string,
+      );
       if (!session) {
-        res.status(404).json({ error: "Environment customImage setup session not found" });
+        res
+          .status(404)
+          .json({ error: "Environment customImage setup session not found" });
         return;
       }
       const companyId = await resolveCustomImageSessionCompanyId(req, session);
@@ -935,8 +1048,13 @@ export function environmentRoutes(
         sessionId: session.id,
         reason: req.body.reason ?? null,
       });
-      environmentCustomImageTerminalSessionStore.deleteBySetupSessionId(session.id);
-      environmentCustomImageTerminalConnectionRegistry.closeBySetupSessionId(session.id, "setup_cancelled");
+      environmentCustomImageTerminalSessionStore.deleteBySetupSessionId(
+        session.id,
+      );
+      environmentCustomImageTerminalConnectionRegistry.closeBySetupSessionId(
+        session.id,
+        "setup_cancelled",
+      );
       await logEnvironmentCustomImageActivity({
         actor,
         companyId,
@@ -948,25 +1066,30 @@ export function environmentRoutes(
     },
   );
 
-  router.post("/environments/:environmentId/custom-image-template/rollback", async (req, res) => {
-    assertCanAccessInstanceEnvironments(req);
-    const companyId = await resolveCustomImageCompanyId(req);
-    const actor = getActorInfo(req);
-    const result = await customImages.rollbackTemplate({
-      environmentId: req.params.environmentId as string,
-    });
-    await logEnvironmentCustomImageActivity({
-      actor,
-      companyId,
-      action: "environment.custom_image_template.rolled_back",
-      entityId: req.params.environmentId as string,
-      details: {
-        activeTemplate: templateActivityDetails(result.activeTemplate),
-        supersededTemplate: templateActivityDetails(result.supersededTemplate),
-      },
-    });
-    res.json(result);
-  });
+  router.post(
+    "/environments/:environmentId/custom-image-template/rollback",
+    async (req, res) => {
+      assertCanAccessInstanceEnvironments(req);
+      const companyId = await resolveCustomImageCompanyId(req);
+      const actor = getActorInfo(req);
+      const result = await customImages.rollbackTemplate({
+        environmentId: req.params.environmentId as string,
+      });
+      await logEnvironmentCustomImageActivity({
+        actor,
+        companyId,
+        action: "environment.custom_image_template.rolled_back",
+        entityId: req.params.environmentId as string,
+        details: {
+          activeTemplate: templateActivityDetails(result.activeTemplate),
+          supersededTemplate: templateActivityDetails(
+            result.supersededTemplate,
+          ),
+        },
+      });
+      res.json(result);
+    },
+  );
 
   router.post(
     "/environments/:environmentId/custom-image-template/relink",
@@ -993,90 +1116,102 @@ export function environmentRoutes(
     },
   );
 
-  router.delete("/environments/:environmentId/custom-image-template", async (req, res) => {
-    assertCanAccessInstanceEnvironments(req);
-    const companyId = await resolveCustomImageCompanyId(req);
-    const actor = getActorInfo(req);
-    const template = await customImages.disableTemplate({
-      environmentId: req.params.environmentId as string,
-      deleteProviderTemplate: req.query.deleteProviderTemplate === "true",
-    });
-    await logEnvironmentCustomImageActivity({
-      actor,
-      companyId,
-      action: "environment.custom_image_template.disabled",
-      entityId: req.params.environmentId as string,
-      details: templateActivityDetails(template),
-    });
-    res.json(template);
-  });
+  router.delete(
+    "/environments/:environmentId/custom-image-template",
+    async (req, res) => {
+      assertCanAccessInstanceEnvironments(req);
+      const companyId = await resolveCustomImageCompanyId(req);
+      const actor = getActorInfo(req);
+      const template = await customImages.disableTemplate({
+        environmentId: req.params.environmentId as string,
+        deleteProviderTemplate: req.query.deleteProviderTemplate === "true",
+      });
+      await logEnvironmentCustomImageActivity({
+        actor,
+        companyId,
+        action: "environment.custom_image_template.disabled",
+        entityId: req.params.environmentId as string,
+        details: templateActivityDetails(template),
+      });
+      res.json(template);
+    },
+  );
 
-  router.post("/companies/:companyId/environments", validate(createEnvironmentSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCanAccessInstanceEnvironments(req);
-    assertNoClientPlatformProvisionedMarkers(req.body.metadata);
-    if (req.body.driver === "local") {
-      const existingLocal = await svc.list({ driver: "local" });
-      if (existingLocal.length > 0) {
-        throw conflict("A local environment already exists for this instance.");
+  router.post(
+    "/companies/:companyId/environments",
+    validate(createEnvironmentSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCanAccessInstanceEnvironments(req);
+      assertNoClientPlatformProvisionedMarkers(req.body.metadata);
+      if (req.body.driver === "local") {
+        const existingLocal = await svc.list({ driver: "local" });
+        if (existingLocal.length > 0) {
+          throw conflict(
+            "A local environment already exists for this instance.",
+          );
+        }
       }
-    }
-    const actor = getActorInfo(req);
-    const input = {
-      ...req.body,
-      envVars: await secrets.normalizeEnvBindingsForPersistence(
-        companyId,
-        req.body.envVars,
-        { strictMode: strictSecretsMode, fieldPath: "envVars" },
-      ),
-      config: await normalizeEnvironmentConfigForPersistence({
-        db,
-        companyId,
-        environmentName: req.body.name,
-        driver: req.body.driver,
-        secretProvider: getConfiguredSecretProvider(),
-        config: req.body.config,
-        actor: {
-          agentId: actor.agentId,
-          userId: actor.actorType === "user" ? actor.actorId : null,
+      const actor = getActorInfo(req);
+      const input = {
+        ...req.body,
+        envVars: await secrets.normalizeEnvBindingsForPersistence(
+          companyId,
+          req.body.envVars,
+          { strictMode: strictSecretsMode, fieldPath: "envVars" },
+        ),
+        config: await normalizeEnvironmentConfigForPersistence({
+          db,
+          companyId,
+          environmentName: req.body.name,
+          driver: req.body.driver,
+          secretProvider: getConfiguredSecretProvider(),
+          config: req.body.config,
+          actor: {
+            agentId: actor.agentId,
+            userId: actor.actorType === "user" ? actor.actorId : null,
+          },
+          pluginWorkerManager: options.pluginWorkerManager,
+        }),
+      };
+      // Create the row and its binding rows atomically so an invalid secret
+      // ref cannot leave an environment persisted without its bindings.
+      const environment = await db.transaction(async (tx) => {
+        const created = await svc.create(input, undefined, { db: tx });
+        await secrets.replaceSecretRefsForInstanceTarget(
+          { targetType: "environment", targetId: created.id },
+          await collectEnvironmentSecretRefs({ db, environment: created }),
+          { db: tx },
+        );
+        await secrets.syncEnvBindingsForTarget(
+          companyId,
+          { targetType: "environment", targetId: created.id },
+          created.envVars,
+          { db: tx },
+        );
+        return created;
+      });
+      await logInstanceEnvironmentActivity({
+        actor,
+        action: "environment.created",
+        entityId: environment.id,
+        details: {
+          name: environment.name,
+          driver: environment.driver,
+          status: environment.status,
         },
-        pluginWorkerManager: options.pluginWorkerManager,
-      }),
-    };
-    // Create the row and its binding rows atomically so an invalid secret
-    // ref cannot leave an environment persisted without its bindings.
-    const environment = await db.transaction(async (tx) => {
-      const created = await svc.create(input, undefined, { db: tx });
-      await secrets.replaceSecretRefsForInstanceTarget(
-        { targetType: "environment", targetId: created.id },
-        await collectEnvironmentSecretRefs({ db, environment: created }),
-        { db: tx },
-      );
-      await secrets.syncEnvBindingsForTarget(
-        companyId,
-        { targetType: "environment", targetId: created.id },
-        created.envVars,
-        { db: tx },
-      );
-      return created;
-    });
-    await logInstanceEnvironmentActivity({
-      actor,
-      action: "environment.created",
-      entityId: environment.id,
-      details: {
-        name: environment.name,
-        driver: environment.driver,
-        status: environment.status,
-      },
-    });
-    res.status(201).json(presentEnvironmentForRead(req, environment));
-  });
+      });
+      res.status(201).json(presentEnvironmentForRead(req, environment));
+    },
+  );
 
   router.get("/environments/:id", async (req, res) => {
     assertCanReadInstanceEnvironments(req);
     const environment = await svc.getById(req.params.id as string);
-    if (!environment || (environment.driver === "local" && (await isManagedSandboxOnlyInstance()))) {
+    if (
+      !environment ||
+      (environment.driver === "local" && (await isManagedSandboxOnlyInstance()))
+    ) {
       res.status(404).json({ error: "Environment not found" });
       return;
     }
@@ -1122,141 +1257,159 @@ export function environmentRoutes(
     res.json(lease);
   });
 
-  router.patch("/environments/:id", validate(updateEnvironmentSchema), async (req, res) => {
-    assertCanAccessInstanceEnvironments(req);
-    const existing = await svc.getById(req.params.id as string);
-    if (!existing) {
-      res.status(404).json({ error: "Environment not found" });
-      return;
-    }
-    await assertPlatformProvisionedEnvironmentWritable(existing, {
-      patchBody: req.body,
-      isForcedKubernetesExecution: async () =>
-        isExecutionForcedToKubernetes({
-          executionMode: (await instanceSettings.getGeneral()).executionMode,
-        }),
-    });
-    assertNoClientPlatformProvisionedMarkers(req.body.metadata);
-    // The durable `pending_cleanup` lease row stores the provider, the provider
-    // lease id, and the immutable config metadata for an orphan sandbox. The
-    // teardown retry reads that row alone and never reads the current environment
-    // provider. So a provider change or an environment delete after the record
-    // lands cannot strand the teardown. That immutable record is the correctness
-    // invariant.
-    //
-    // This pre-transaction check is a best-effort fast-fail only. It rejects a
-    // provider change while a known `pending_cleanup` lease exists, so the
-    // operator resolves the cleanup first. An orphan record that lands after this
-    // check still carries its own immutable teardown context, so the
-    // time-of-check-to-time-of-use window here cannot strand a sandbox.
-    const changesProviderTarget =
-      (req.body.driver !== undefined && req.body.driver !== existing.driver) ||
-      req.body.config !== undefined;
-    if (changesProviderTarget && (await svc.hasUnresolvedPendingCleanupLeases(existing.id))) {
-      throw conflict(
-        "Cannot change the driver or provider config while a sandbox cleanup is pending. Wait for the cleanup sweep to destroy the orphan sandbox, then retry.",
-        { code: "environment_pending_sandbox_cleanup" },
-      );
-    }
-    const actor = getActorInfo(req);
-    const nextDriver = req.body.driver ?? existing.driver;
-    const nextName = req.body.name ?? existing.name;
-    const companyIdForSecrets =
-      req.body.config !== undefined || req.body.driver !== undefined || req.body.envVars !== undefined
-        ? await resolveEnvironmentSecretContextCompanyId(req, existing.id, { required: true })
-        : null;
-    const configSource =
-      req.body.config !== undefined
-        ? req.body.driver !== undefined && req.body.driver !== existing.driver
-          ? req.body.config
-          : {
-              ...parseObject(existing.config),
-              ...parseObject(req.body.config),
+  router.patch(
+    "/environments/:id",
+    validate(updateEnvironmentSchema),
+    async (req, res) => {
+      assertCanAccessInstanceEnvironments(req);
+      const existing = await svc.getById(req.params.id as string);
+      if (!existing) {
+        res.status(404).json({ error: "Environment not found" });
+        return;
+      }
+      await assertPlatformProvisionedEnvironmentWritable(existing, {
+        patchBody: req.body,
+        isForcedKubernetesExecution: async () =>
+          isExecutionForcedToKubernetes({
+            executionMode: (await instanceSettings.getGeneral()).executionMode,
+          }),
+      });
+      assertNoClientPlatformProvisionedMarkers(req.body.metadata);
+      // The durable `pending_cleanup` lease row stores the provider, the provider
+      // lease id, and the immutable config metadata for an orphan sandbox. The
+      // teardown retry reads that row alone and never reads the current environment
+      // provider. So a provider change or an environment delete after the record
+      // lands cannot strand the teardown. That immutable record is the correctness
+      // invariant.
+      //
+      // This pre-transaction check is a best-effort fast-fail only. It rejects a
+      // provider change while a known `pending_cleanup` lease exists, so the
+      // operator resolves the cleanup first. An orphan record that lands after this
+      // check still carries its own immutable teardown context, so the
+      // time-of-check-to-time-of-use window here cannot strand a sandbox.
+      const changesProviderTarget =
+        (req.body.driver !== undefined &&
+          req.body.driver !== existing.driver) ||
+        req.body.config !== undefined;
+      if (
+        changesProviderTarget &&
+        (await svc.hasUnresolvedPendingCleanupLeases(existing.id))
+      ) {
+        throw conflict(
+          "Cannot change the driver or provider config while a sandbox cleanup is pending. Wait for the cleanup sweep to destroy the orphan sandbox, then retry.",
+          { code: "environment_pending_sandbox_cleanup" },
+        );
+      }
+      const actor = getActorInfo(req);
+      const nextDriver = req.body.driver ?? existing.driver;
+      const nextName = req.body.name ?? existing.name;
+      const companyIdForSecrets =
+        req.body.config !== undefined ||
+        req.body.driver !== undefined ||
+        req.body.envVars !== undefined
+          ? await resolveEnvironmentSecretContextCompanyId(req, existing.id, {
+              required: true,
+            })
+          : null;
+      const configSource =
+        req.body.config !== undefined
+          ? req.body.driver !== undefined && req.body.driver !== existing.driver
+            ? req.body.config
+            : {
+                ...parseObject(existing.config),
+                ...parseObject(req.body.config),
+              }
+          : req.body.driver !== undefined && req.body.driver !== existing.driver
+            ? {}
+            : existing.config;
+      const patch = {
+        ...req.body,
+        ...(req.body.envVars !== undefined
+          ? {
+              envVars: await secrets.normalizeEnvBindingsForPersistence(
+                companyIdForSecrets!,
+                req.body.envVars,
+                { strictMode: strictSecretsMode, fieldPath: "envVars" },
+              ),
             }
-        : req.body.driver !== undefined && req.body.driver !== existing.driver
-          ? {}
-          : existing.config;
-    const patch = {
-      ...req.body,
-      ...(req.body.envVars !== undefined
-        ? {
-            envVars: await secrets.normalizeEnvBindingsForPersistence(
-              companyIdForSecrets!,
-              req.body.envVars,
-              { strictMode: strictSecretsMode, fieldPath: "envVars" },
-            ),
-          }
-        : {}),
-      ...(req.body.config !== undefined || req.body.driver !== undefined
-        ? {
-            config: await normalizeEnvironmentConfigForPersistence({
-              db,
-              companyId: companyIdForSecrets!,
-              environmentName: nextName,
-              driver: nextDriver,
-              secretProvider: getConfiguredSecretProvider(),
-              config: configSource,
-              actor: {
-                agentId: actor.agentId,
-                userId: actor.actorType === "user" ? actor.actorId : null,
-              },
-              pluginWorkerManager: options.pluginWorkerManager,
-            }),
-          }
-        : {}),
-    };
-    // Persist the config change and its binding rows atomically: a binding
-    // ref that fails validation (e.g. a deleted secret) must roll the whole
-    // save back instead of leaving the config re-pointed with stale bindings.
-    const environment = await db.transaction(async (tx) => {
-      const updated = await svc.update(existing.id, patch, { db: tx });
-      if (!updated) return null;
+          : {}),
+        ...(req.body.config !== undefined || req.body.driver !== undefined
+          ? {
+              config: await normalizeEnvironmentConfigForPersistence({
+                db,
+                companyId: companyIdForSecrets!,
+                environmentName: nextName,
+                driver: nextDriver,
+                secretProvider: getConfiguredSecretProvider(),
+                config: configSource,
+                actor: {
+                  agentId: actor.agentId,
+                  userId: actor.actorType === "user" ? actor.actorId : null,
+                },
+                pluginWorkerManager: options.pluginWorkerManager,
+              }),
+            }
+          : {}),
+      };
+      // Persist the config change and its binding rows atomically: a binding
+      // ref that fails validation (e.g. a deleted secret) must roll the whole
+      // save back instead of leaving the config re-pointed with stale bindings.
+      const environment = await db.transaction(async (tx) => {
+        const updated = await svc.update(existing.id, patch, { db: tx });
+        if (!updated) return null;
+        if (patch.config !== undefined || patch.driver !== undefined) {
+          await secrets.replaceSecretRefsForInstanceTarget(
+            { targetType: "environment", targetId: updated.id },
+            await collectEnvironmentSecretRefs({ db, environment: updated }),
+            { db: tx },
+          );
+        }
+        if (patch.envVars !== undefined) {
+          await secrets.syncEnvBindingsForTarget(
+            companyIdForSecrets!,
+            { targetType: "environment", targetId: updated.id },
+            updated.envVars,
+            { db: tx },
+          );
+        }
+        return updated;
+      });
+      if (!environment) {
+        res.status(404).json({ error: "Environment not found" });
+        return;
+      }
+      let customImageReconciliation: Awaited<
+        ReturnType<typeof customImages.reconcileActiveTemplateForConfigChange>
+      > = { action: "none" };
       if (patch.config !== undefined || patch.driver !== undefined) {
-        await secrets.replaceSecretRefsForInstanceTarget(
-          { targetType: "environment", targetId: updated.id },
-          await collectEnvironmentSecretRefs({ db, environment: updated }),
-          { db: tx },
-        );
+        try {
+          customImageReconciliation =
+            await customImages.reconcileActiveTemplateForConfigChange({
+              environmentId: environment.id,
+              previous: existing,
+              next: environment,
+            });
+        } catch {
+          // Reconciliation is best-effort; a failure must not fail the save.
+        }
       }
-      if (patch.envVars !== undefined) {
-        await secrets.syncEnvBindingsForTarget(
-          companyIdForSecrets!,
-          { targetType: "environment", targetId: updated.id },
-          updated.envVars,
-          { db: tx },
-        );
-      }
-      return updated;
-    });
-    if (!environment) {
-      res.status(404).json({ error: "Environment not found" });
-      return;
-    }
-    let customImageReconciliation: Awaited<
-      ReturnType<typeof customImages.reconcileActiveTemplateForConfigChange>
-    > = { action: "none" };
-    if (patch.config !== undefined || patch.driver !== undefined) {
-      try {
-        customImageReconciliation = await customImages.reconcileActiveTemplateForConfigChange({
-          environmentId: environment.id,
-          previous: existing,
-          next: environment,
-        });
-      } catch {
-        // Reconciliation is best-effort; a failure must not fail the save.
-      }
-    }
-    await logInstanceEnvironmentActivity({
-      actor,
-      action: "environment.updated",
-      entityId: environment.id,
-      details: summarizeEnvironmentUpdate(patch as Record<string, unknown>, environment),
-    });
-    const presented = presentEnvironmentForRead(req, environment);
-    res.json(customImageReconciliation.action === "none"
-      ? presented
-      : { ...presented, customImageReconciliation });
-  });
+      await logInstanceEnvironmentActivity({
+        actor,
+        action: "environment.updated",
+        entityId: environment.id,
+        details: summarizeEnvironmentUpdate(
+          patch as Record<string, unknown>,
+          environment,
+        ),
+      });
+      const presented = presentEnvironmentForRead(req, environment);
+      res.json(
+        customImageReconciliation.action === "none"
+          ? presented
+          : { ...presented, customImageReconciliation },
+      );
+    },
+  );
 
   router.delete("/environments/:id", async (req, res) => {
     assertCanAccessInstanceEnvironments(req);
@@ -1291,9 +1444,11 @@ export function environmentRoutes(
     // destroy; the rejection reports the count so nothing is silent.
     let destroyedReusableSandboxLeaseCount = 0;
     if (
-      req.query.destroyReusableSandboxLeases === "true"
-      && impact.reusableSandboxLeaseCount > 0
-      && impact.deleteBlockedReasons.every((reason) => reason === "reusable_sandbox_lease")
+      req.query.destroyReusableSandboxLeases === "true" &&
+      impact.reusableSandboxLeaseCount > 0 &&
+      impact.deleteBlockedReasons.every(
+        (reason) => reason === "reusable_sandbox_lease",
+      )
     ) {
       const warmSessions = await closeWarmNativeSessionsForEnvironment({
         environmentId: existing.id,
@@ -1335,14 +1490,24 @@ export function environmentRoutes(
         res.status(404).json({ error: "Environment not found" });
         return;
       }
-      rejectEnvironmentDelete({ actor, environment: existing, impact: latestImpact });
+      rejectEnvironmentDelete({
+        actor,
+        environment: existing,
+        impact: latestImpact,
+      });
     }
     const companyIds = await instanceSettings.listCompanyIds();
     await Promise.all(
       companyIds.flatMap((companyId) => [
         executionWorkspaces.clearEnvironmentSelection(companyId, existing.id),
-        issues.clearExecutionWorkspaceEnvironmentSelection(companyId, existing.id),
-        projects.clearExecutionWorkspaceEnvironmentSelection(companyId, existing.id),
+        issues.clearExecutionWorkspaceEnvironmentSelection(
+          companyId,
+          existing.id,
+        ),
+        projects.clearExecutionWorkspaceEnvironmentSelection(
+          companyId,
+          existing.id,
+        ),
         secrets.syncEnvBindingsForTarget(
           companyId,
           { targetType: "environment", targetId: existing.id },
@@ -1387,11 +1552,21 @@ export function environmentRoutes(
       return;
     }
     const actor = getActorInfo(req);
-    const companyIdForSecrets = await resolveEnvironmentSecretContextCompanyId(req, environment.id, { required: false });
-    const companyIdForProbe = companyIdForSecrets
-      ?? (environment.driver === "sandbox" ? await resolveCustomImageCompanyId(req) : null);
+    const companyIdForSecrets = await resolveEnvironmentSecretContextCompanyId(
+      req,
+      environment.id,
+      { required: false },
+    );
+    const companyIdForProbe =
+      companyIdForSecrets ??
+      (environment.driver === "sandbox"
+        ? await resolveCustomImageCompanyId(req)
+        : null);
     if (!companyIdForSecrets) {
-      const secretRefs = await collectEnvironmentSecretRefs({ db, environment });
+      const secretRefs = await collectEnvironmentSecretRefs({
+        db,
+        environment,
+      });
       if (secretRefs.length > 0) {
         throw unprocessable(
           "Environment probe requires an explicit companyId to resolve secret-backed config for this environment.",

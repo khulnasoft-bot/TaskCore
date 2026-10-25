@@ -469,7 +469,7 @@ recorded lab unless `--force` is also supplied.
 | `build`                                                 | Compile the TypeScript public surface, Rust workspace, and browser devtool.                                                                 |
 | `typecheck`                                             | Check TypeScript, Rust, generated schema sources, and browser types.                                                                        |
 | `test`                                                  | Run Rust/TypeScript fixture, supervisor, fake-driver, live/replay, and boundary tests.                                                      |
-| `check:forbidden-imports`                               | Reject TypeScript imports and Cargo path dependencies that cross into Taskcore core.                                                       |
+| `check:forbidden-imports`                               | Reject TypeScript imports and Cargo path dependencies that cross into Taskcore core.                                                        |
 | `check:tracked-imports`                                 | Reject tracked imports and `package.json` entry points that only resolve against untracked files, so a clean checkout of any commit builds. |
 | `check:numbered-milestones`                             | Reject numbered construction-milestone names in tracked package paths and source.                                                           |
 | `check:package-boundaries`                              | Enforce the acyclic runtime/testing/eval dependency and manifest boundary.                                                                  |
@@ -477,7 +477,7 @@ recorded lab unless `--force` is also supplied.
 | `test:eval-slice`                                       | Run the credential-free eval bundle, scoring, and behavior/fault slice.                                                                     |
 | `test:runner-workflow-evals`                            | Run the deterministic provider-neutral workflow matrix.                                                                                     |
 | `report:runner-workflow-evals`                          | Validate deterministic fail-closed results and write JSON, Markdown, JUnit, and GitHub-safe reports.                                        |
-| `report:runner-live-evals`                              | Execute the paid provider schedule and render its immutable attempts with the canonical `taskcore-evals` HTML grid.                        |
+| `report:runner-live-evals`                              | Execute the paid provider schedule and render its immutable attempts with the canonical `taskcore-evals` HTML grid.                         |
 | `report:runner-chaos-evals`                             | Write the credential-free eight-scenario chaos schedule.                                                                                    |
 | `test:aws-agentcore-provisioning`                       | Validate the AgentCore template and wrapper safety contracts without provisioning.                                                          |
 | `aws-agentcore:provision` / `probe` / `lab` / `destroy` | Manage the scoped AgentCore proof-of-concept lifecycle.                                                                                     |
@@ -502,7 +502,7 @@ recorded lab unless `--force` is also supplied.
 | `check:semantic-contracts`                              | Verify the provider-neutral semantic tool contract is current.                                                                              |
 | `trace:live-runner`                                     | Run the real runnerd/Codex semantic loop against the mock control plane.                                                                    |
 | `demo:scenarios`                                        | Start the Capability scenario explorer over the mock control plane on `127.0.0.1:4183`.                                                     |
-| `console:issue-thread`                                  | Start the Taskcore-style issue thread on `127.0.0.1:4184`.                                                                                 |
+| `console:issue-thread`                                  | Start the Taskcore-style issue thread on `127.0.0.1:4184`.                                                                                  |
 | `test:scenarios`                                        | Run the scenario index, run-artifact, parity, explorer component, and route tests.                                                          |
 | `test:browser:scenarios`                                | Exercise both the scenario explorer and issue-thread browser contracts.                                                                     |
 | `browser:dev`                                           | Start the standalone live/replay browser devtool.                                                                                           |

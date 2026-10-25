@@ -119,7 +119,9 @@ export async function loadLiveConsoleConformanceFixture(
     throw new Error("Live console fixture has an unsupported schema");
   }
   if (!nonEmpty(fixture.codexVersion)) {
-    throw new Error("Live console fixture must name the observed Codex version");
+    throw new Error(
+      "Live console fixture must name the observed Codex version",
+    );
   }
   if (
     !Array.isArray(fixture.runtimeRequests) ||
@@ -129,7 +131,9 @@ export async function loadLiveConsoleConformanceFixture(
     throw new Error("Live console fixture must include runtime request cases");
   }
   if (!Array.isArray(fixture.goals) || fixture.goals.length !== 5) {
-    throw new Error("Live console fixture must include all five goal operations");
+    throw new Error(
+      "Live console fixture must include all five goal operations",
+    );
   }
   const requestIds = new Set<string>();
   for (const candidate of fixture.runtimeRequests) {
@@ -147,10 +151,15 @@ export async function loadLiveConsoleConformanceFixture(
       !nonEmpty(resolution?.action) ||
       record(request.expectedResponse) === null
     ) {
-      throw new Error("Live console fixture contains an invalid runtime request case");
+      throw new Error(
+        "Live console fixture contains an invalid runtime request case",
+      );
     }
     try {
-      const parsedResolution = parseHarnessRuntimeRequestResolution(kind, resolution);
+      const parsedResolution = parseHarnessRuntimeRequestResolution(
+        kind,
+        resolution,
+      );
       const harnessRequest: HarnessRuntimeRequest = {
         requestId: request.id,
         requestKind: kind,
@@ -171,10 +180,14 @@ export async function loadLiveConsoleConformanceFixture(
           request.expectedResponse,
         )
       ) {
-        throw new Error("expected response does not match the declared resolution");
+        throw new Error(
+          "expected response does not match the declared resolution",
+        );
       }
     } catch {
-      throw new Error("Live console fixture contains an invalid runtime request case");
+      throw new Error(
+        "Live console fixture contains an invalid runtime request case",
+      );
     }
     requestIds.add(request.id);
   }
@@ -182,7 +195,9 @@ export async function loadLiveConsoleConformanceFixture(
   for (const candidate of fixture.goals) {
     const goal = record(candidate);
     if (goal === null) {
-      throw new Error("Live console fixture contains an invalid goal operation");
+      throw new Error(
+        "Live console fixture contains an invalid goal operation",
+      );
     }
     const action = goal?.action;
     if (
@@ -191,11 +206,17 @@ export async function loadLiveConsoleConformanceFixture(
       goal.method !== GOAL_METHODS[action as keyof typeof GOAL_METHODS] ||
       !validGoalParams(action as keyof typeof GOAL_METHODS, goal.params)
     ) {
-      throw new Error("Live console fixture contains an invalid goal operation");
+      throw new Error(
+        "Live console fixture contains an invalid goal operation",
+      );
     }
     actions.add(action);
   }
-  if (!["get", "set", "pause", "resume", "clear"].every((action) => actions.has(action))) {
+  if (
+    !["get", "set", "pause", "resume", "clear"].every((action) =>
+      actions.has(action),
+    )
+  ) {
     throw new Error("Live console fixture goal operation set is incomplete");
   }
   const lineage = record(fixture.lineage);
@@ -277,15 +298,20 @@ function validGoalParams(
     return Object.keys(params).length === 0;
   }
   if (action === "pause" || action === "resume") {
-    return Object.keys(params).length === 1 &&
-      params.status === (action === "pause" ? "paused" : "active");
+    return (
+      Object.keys(params).length === 1 &&
+      params.status === (action === "pause" ? "paused" : "active")
+    );
   }
-  return nonEmpty(params.objective) &&
+  return (
+    nonEmpty(params.objective) &&
     params.status === "active" &&
-    Object.keys(params).every((key) =>
-      key === "objective" || key === "status" || key === "tokenBudget"
+    Object.keys(params).every(
+      (key) => key === "objective" || key === "status" || key === "tokenBudget",
     ) &&
     (params.tokenBudget === undefined ||
       params.tokenBudget === null ||
-      (Number.isSafeInteger(params.tokenBudget) && (params.tokenBudget as number) >= 0));
+      (Number.isSafeInteger(params.tokenBudget) &&
+        (params.tokenBudget as number) >= 0))
+  );
 }

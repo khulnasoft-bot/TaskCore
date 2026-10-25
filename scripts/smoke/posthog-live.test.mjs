@@ -19,10 +19,11 @@ const COMPLETE_ENV = {
 
 test("preflight reports only missing binding names", () => {
   assert.throws(
-    () => preflightPosthogLive({
-      TASKCORE_API_URL: "https://taskcore.example.test/api",
-      INTEGRATIONS_POSTHOG_TASKCORE_DEV_LOGIN_PASSWORD: "present",
-    }),
+    () =>
+      preflightPosthogLive({
+        TASKCORE_API_URL: "https://taskcore.example.test/api",
+        INTEGRATIONS_POSTHOG_TASKCORE_DEV_LOGIN_PASSWORD: "present",
+      }),
     (error) => {
       assert.ok(error instanceof PosthogLivePreflightError);
       assert.equal(error.code, "missing_environment");
@@ -43,35 +44,49 @@ test("preflight rejects credential-bearing and non-HTTPS remote URLs", () => {
     "http://example.test",
   ]) {
     assert.throws(
-      () => preflightPosthogLive({ ...COMPLETE_ENV, TASKCORE_API_URL: baseUrl }),
-      (error) => error instanceof PosthogLivePreflightError && error.code === "unsafe_base_url",
+      () =>
+        preflightPosthogLive({ ...COMPLETE_ENV, TASKCORE_API_URL: baseUrl }),
+      (error) =>
+        error instanceof PosthogLivePreflightError &&
+        error.code === "unsafe_base_url",
     );
   }
   assert.equal(
-    preflightPosthogLive(COMPLETE_ENV, { baseUrl: "http://127.0.0.1:3100" }).baseUrl,
+    preflightPosthogLive(COMPLETE_ENV, { baseUrl: "http://127.0.0.1:3100" })
+      .baseUrl,
     "http://127.0.0.1:3100",
   );
 });
 
 test("preflight derives the current Taskcore origin and accepts an explicit target", () => {
-  assert.equal(preflightPosthogLive(COMPLETE_ENV).baseUrl, "https://taskcore.example.test");
   assert.equal(
-    preflightPosthogLive(COMPLETE_ENV, { baseUrl: "https://other-taskcore.example.test" }).baseUrl,
+    preflightPosthogLive(COMPLETE_ENV).baseUrl,
+    "https://taskcore.example.test",
+  );
+  assert.equal(
+    preflightPosthogLive(COMPLETE_ENV, {
+      baseUrl: "https://other-taskcore.example.test",
+    }).baseUrl,
     "https://other-taskcore.example.test",
   );
   assert.throws(
     () => preflightPosthogLive({ ...COMPLETE_ENV, TASKCORE_API_URL: "" }),
-    (error) => error instanceof PosthogLivePreflightError && error.code === "missing_base_url",
+    (error) =>
+      error instanceof PosthogLivePreflightError &&
+      error.code === "missing_base_url",
   );
 });
 
 test("preflight fails closed unless the PostHog project is exactly 483530", () => {
   assert.throws(
-    () => preflightPosthogLive({
-      ...COMPLETE_ENV,
-      INTEGRATIONS_POSTHOG_POSTHOG_PROJECT_ID: "42",
-    }),
-    (error) => error instanceof PosthogLivePreflightError && error.code === "unexpected_project_id",
+    () =>
+      preflightPosthogLive({
+        ...COMPLETE_ENV,
+        INTEGRATIONS_POSTHOG_POSTHOG_PROJECT_ID: "42",
+      }),
+    (error) =>
+      error instanceof PosthogLivePreflightError &&
+      error.code === "unexpected_project_id",
   );
 });
 
@@ -87,7 +102,9 @@ test("live smoke arguments accept a target URL without another environment bindi
   );
   assert.throws(
     () => parsePosthogLiveArguments(["--unknown"]),
-    (error) => error instanceof PosthogLivePreflightError && error.code === "invalid_arguments",
+    (error) =>
+      error instanceof PosthogLivePreflightError &&
+      error.code === "invalid_arguments",
   );
 });
 
@@ -104,7 +121,9 @@ test("browser loading happens only after binding and health preflight", async ()
         browserLoaded = true;
       },
     }),
-    (error) => error instanceof PosthogLivePreflightError && error.code === "missing_environment",
+    (error) =>
+      error instanceof PosthogLivePreflightError &&
+      error.code === "missing_environment",
   );
   assert.equal(fetchCalled, false);
   assert.equal(browserLoaded, false);
@@ -117,7 +136,9 @@ test("browser loading happens only after binding and health preflight", async ()
         browserLoaded = true;
       },
     }),
-    (error) => error instanceof PosthogLivePreflightError && error.code === "health_http_error",
+    (error) =>
+      error instanceof PosthogLivePreflightError &&
+      error.code === "health_http_error",
   );
   assert.equal(browserLoaded, false);
 });
@@ -125,10 +146,22 @@ test("browser loading happens only after binding and health preflight", async ()
 test("project proof extraction retains only the expected id and name", () => {
   const result = {
     data: {
-      content: [{ type: "text", text: JSON.stringify({ id: 483530, name: "Taskcore", token: "discard-me" }) }],
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            id: 483530,
+            name: "Taskcore",
+            token: "discard-me",
+          }),
+        },
+      ],
     },
   };
-  assert.deepEqual(extractProjectSummary(result, "483530"), { id: "483530", name: "Taskcore" });
+  assert.deepEqual(extractProjectSummary(result, "483530"), {
+    id: "483530",
+    name: "Taskcore",
+  });
   assert.equal(extractProjectSummary(result, "42"), null);
 
   assert.deepEqual(
@@ -155,7 +188,15 @@ test("project proof extraction retains only the expected id and name", () => {
 });
 
 test("sanitized evidence rejects credential fields and OAuth query values", () => {
-  assert.doesNotThrow(() => assertSanitizedEvidence({ projectId: "483530", invocationId: "inv-123" }));
-  assert.throws(() => assertSanitizedEvidence({ accessToken: "secret" }), /unsafe_evidence_key/);
-  assert.throws(() => assertSanitizedEvidence({ note: "callback?code=secret" }), /unsafe_evidence_text/);
+  assert.doesNotThrow(() =>
+    assertSanitizedEvidence({ projectId: "483530", invocationId: "inv-123" }),
+  );
+  assert.throws(
+    () => assertSanitizedEvidence({ accessToken: "secret" }),
+    /unsafe_evidence_key/,
+  );
+  assert.throws(
+    () => assertSanitizedEvidence({ note: "callback?code=secret" }),
+    /unsafe_evidence_text/,
+  );
 });

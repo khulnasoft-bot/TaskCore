@@ -1,7 +1,16 @@
 import { HttpError } from "../errors.js";
 import { createHash, randomUUID } from "node:crypto";
 import WebSocket from "ws";
-import { and, asc, eq, getTableColumns, inArray, isNull, ne, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  ne,
+  sql,
+} from "drizzle-orm";
 import {
   type Db,
   agents,
@@ -380,12 +389,24 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
       connection.status !== "active"
     )
       throw conflict("This email inbox is not active");
-    const runtimeSecretId = connection.credentialSecretRefs.find((ref) => ref.configPath === "credentials.apiKey")?.secretId;
-    const [runtimeSecret] = runtimeSecretId ? await db.select({ id: companySecrets.id }).from(companySecrets).where(and(
-      eq(companySecrets.id, runtimeSecretId), eq(companySecrets.companyId, endpoint.companyId),
-      eq(companySecrets.status, "active"), isNull(companySecrets.deletedAt),
-    )) : [];
-    if (!runtimeSecret) throw conflict("This email inbox credential is unavailable");
+    const runtimeSecretId = connection.credentialSecretRefs.find(
+      (ref) => ref.configPath === "credentials.apiKey",
+    )?.secretId;
+    const [runtimeSecret] = runtimeSecretId
+      ? await db
+          .select({ id: companySecrets.id })
+          .from(companySecrets)
+          .where(
+            and(
+              eq(companySecrets.id, runtimeSecretId),
+              eq(companySecrets.companyId, endpoint.companyId),
+              eq(companySecrets.status, "active"),
+              isNull(companySecrets.deletedAt),
+            ),
+          )
+      : [];
+    if (!runtimeSecret)
+      throw conflict("This email inbox credential is unavailable");
     const sourceId = connection.config.credentialConnectionId;
     if (typeof sourceId === "string")
       await emailConnectionService(db, fetchImpl).assertAgentAccess(
@@ -523,7 +544,10 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
         );
       await authorizeRead(endpoint.companyId, issueId, actor);
       const [agent] = await db
-        .select({ ...getTableColumns(agents), spentMonthlyCentsExact: sql<string>`${agents.spentMonthlyCents}::text` })
+        .select({
+          ...getTableColumns(agents),
+          spentMonthlyCentsExact: sql<string>`${agents.spentMonthlyCents}::text`,
+        })
         .from(agents)
         .where(
           and(
@@ -535,7 +559,10 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
         !agent ||
         ["paused", "terminated", "pending_approval"].includes(agent.status) ||
         (agent.budgetMonthlyCents > 0 &&
-          compareCents(agent.spentMonthlyCentsExact, agent.budgetMonthlyCents) >= 0)
+          compareCents(
+            agent.spentMonthlyCentsExact,
+            agent.budgetMonthlyCents,
+          ) >= 0)
       )
         throw forbidden("Agent is not available to send email");
       if (!actor.runId)
@@ -830,9 +857,7 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
         .where(eq(chatEndpoints.id, endpoint.id))
         .catch((error) => {
           if ((error as { cause?: { code?: string } }).cause?.code === "23505")
-            throw conflict(
-              "This AgentMail inbox already has a Taskcore owner",
-            );
+            throw conflict("This AgentMail inbox already has a Taskcore owner");
           throw error;
         });
       const config = await getConfig(endpoint.id);
@@ -867,7 +892,10 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
           throw badRequest(
             "Webhook receiving requires a public HTTPS URL; use WebSocket for local setup",
           );
-        const webhook = await createWebhook({ ...endpoint, botExternalId: inbox.inbox_id }, api);
+        const webhook = await createWebhook(
+          { ...endpoint, botExternalId: inbox.inbox_id },
+          api,
+        );
         try {
           await vault(endpoint, "webhookSecret", webhook.secret);
           await db
@@ -875,7 +903,9 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
             .set({ webhookId: webhook.webhook_id })
             .where(eq(emailEndpoints.endpointId, endpoint.id));
         } catch (error) {
-          await api.deleteWebhook(inbox.inbox_id, webhook.webhook_id).catch(() => {});
+          await api
+            .deleteWebhook(inbox.inbox_id, webhook.webhook_id)
+            .catch(() => {});
           throw error;
         }
       }
@@ -1020,10 +1050,11 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
       const stored = await options.storage.putFile({
         companyId: endpoint.companyId,
         namespace: `issues/${conversation.issueId}`,
-        originalFilename: (attachment.filename ?? "attachment")
-          .replace(/[\/\\\u0000-\u001f]/g, "_")
-          .replace(/\.{2,}/g, "_")
-          .replace(/^_+/, "") || "attachment",
+        originalFilename:
+          (attachment.filename ?? "attachment")
+            .replace(/[\/\\\u0000-\u001f]/g, "_")
+            .replace(/\.{2,}/g, "_")
+            .replace(/^_+/, "") || "attachment",
         contentType,
         body: Buffer.concat(chunks),
       });
@@ -1924,10 +1955,11 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
     if (!(await lease(endpoint, "email-socket", token))) return;
     const key = await credential(endpoint);
     // Keep the credential out of URLs captured by connection diagnostics.
-    const socket = (options.createSocket ?? ((url, config) => new WebSocket(url, config)))(
-      "wss://ws.agentmail.to/v0",
-      { headers: { Authorization: `Bearer ${key}` } },
-    );
+    const socket = (
+      options.createSocket ?? ((url, config) => new WebSocket(url, config))
+    )("wss://ws.agentmail.to/v0", {
+      headers: { Authorization: `Bearer ${key}` },
+    });
     const state = { socket, token, connected: false };
     sockets.set(endpoint.id, state);
     const acknowledgmentDeadline = setTimeout(() => {
@@ -2369,16 +2401,21 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
     const result = await withLease(endpoint, async () => {
       const config = await getConfig(id);
       // Check registration permissions before interrupting a working socket.
-      const preparedWebhook = receiveMode === "webhook" && !config.webhookId
-        ? await createWebhook(endpoint, api)
-        : null;
+      const preparedWebhook =
+        receiveMode === "webhook" && !config.webhookId
+          ? await createWebhook(endpoint, api)
+          : null;
       if (preparedWebhook) {
         try {
           await vault(endpoint, "webhookSecret", preparedWebhook.secret);
-          await db.update(emailEndpoints).set({ webhookId: preparedWebhook.webhook_id })
+          await db
+            .update(emailEndpoints)
+            .set({ webhookId: preparedWebhook.webhook_id })
             .where(eq(emailEndpoints.endpointId, id));
         } catch (error) {
-          await api.deleteWebhook(endpoint.botExternalId!, preparedWebhook.webhook_id).catch(() => {});
+          await api
+            .deleteWebhook(endpoint.botExternalId!, preparedWebhook.webhook_id)
+            .catch(() => {});
           throw error;
         }
       }
@@ -2398,7 +2435,11 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
           });
       await db
         .update(emailEndpoints)
-        .set({ webhookId: preparedWebhook?.webhook_id ?? null, ownedApiKeyId: null, lastSyncAt: null })
+        .set({
+          webhookId: preparedWebhook?.webhook_id ?? null,
+          ownedApiKeyId: null,
+          lastSyncAt: null,
+        })
         .where(eq(emailEndpoints.endpointId, id));
       return true;
     });
@@ -2416,10 +2457,15 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
     );
   }
 
-  async function createWebhook(endpoint: Endpoint, api: ReturnType<typeof agentmailApi>) {
+  async function createWebhook(
+    endpoint: Endpoint,
+    api: ReturnType<typeof agentmailApi>,
+  ) {
     const base = options.publicBaseUrl;
     if (!base?.startsWith("https://")) {
-      throw badRequest("Webhook receiving requires a public HTTPS URL; use WebSocket for local setup");
+      throw badRequest(
+        "Webhook receiving requires a public HTTPS URL; use WebSocket for local setup",
+      );
     }
     try {
       return await api.createWebhook(
@@ -2429,7 +2475,9 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
       );
     } catch (error) {
       if (error instanceof AgentmailApiError && error.status === 403) {
-        throw badRequest("This AgentMail key cannot create webhooks. Enable webhook create/read/delete permissions for this inbox in AgentMail, or use Live connection.");
+        throw badRequest(
+          "This AgentMail key cannot create webhooks. Enable webhook create/read/delete permissions for this inbox in AgentMail, or use Live connection.",
+        );
       }
       throw error;
     }
@@ -2577,18 +2625,32 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
     };
   }
   async function assignedInboxes(companyId: string, agentId: string) {
-    const rows = await db.select().from(chatEndpoints).where(and(
-      eq(chatEndpoints.companyId, companyId), eq(chatEndpoints.assignedAgentId, agentId),
-      eq(chatEndpoints.provider, "agentmail"), eq(chatEndpoints.status, "active"),
-    ));
+    const rows = await db
+      .select()
+      .from(chatEndpoints)
+      .where(
+        and(
+          eq(chatEndpoints.companyId, companyId),
+          eq(chatEndpoints.assignedAgentId, agentId),
+          eq(chatEndpoints.provider, "agentmail"),
+          eq(chatEndpoints.status, "active"),
+        ),
+      );
     const result: Awaited<ReturnType<typeof summary>>[] = [];
     for (const row of rows) {
       try {
         const current = await active(row);
-        if (current.companyId === companyId && current.assignedAgentId === agentId)
+        if (
+          current.companyId === companyId &&
+          current.assignedAgentId === agentId
+        )
           result.push(await summary(current));
       } catch (error) {
-        if (!(error instanceof HttpError) || ![403, 404, 409].includes(error.status)) throw error;
+        if (
+          !(error instanceof HttpError) ||
+          ![403, 404, 409].includes(error.status)
+        )
+          throw error;
       }
     }
     return result.sort((a, b) => a.id.localeCompare(b.id));
@@ -2659,13 +2721,19 @@ export function emailChannelService(db: Db, options: EmailChannelOptions) {
       for (const [, state] of heldSockets) state.socket.close();
       // A graceful restart must not wait for the crash-recovery lease timeout.
       // Delete only this worker's tokens; a successor may already own a lease.
-      await Promise.all(heldSockets.map(([endpointId, state]) => db
-        .delete(chatEndpointLeases)
-        .where(and(
-          eq(chatEndpointLeases.endpointId, endpointId),
-          eq(chatEndpointLeases.leaseKey, "email-socket"),
-          eq(chatEndpointLeases.token, state.token),
-        ))));
+      await Promise.all(
+        heldSockets.map(([endpointId, state]) =>
+          db
+            .delete(chatEndpointLeases)
+            .where(
+              and(
+                eq(chatEndpointLeases.endpointId, endpointId),
+                eq(chatEndpointLeases.leaseKey, "email-socket"),
+                eq(chatEndpointLeases.token, state.token),
+              ),
+            ),
+        ),
+      );
     },
   };
 }

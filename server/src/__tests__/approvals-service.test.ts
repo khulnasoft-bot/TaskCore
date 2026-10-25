@@ -44,13 +44,23 @@ function createApproval(status: string): ApprovalRecord {
   };
 }
 
-function createDbStub(selectResults: ApprovalRecord[][], updateResults: ApprovalRecord[]) {
+function createDbStub(
+  selectResults: ApprovalRecord[][],
+  updateResults: ApprovalRecord[],
+) {
   const pendingSelectResults = [...selectResults];
   let inTransaction = false;
-  const selectWhere = vi.fn(async () => (inTransaction ? pendingSelectResults.shift() : pendingSelectResults[0]) ?? []);
-  const from = vi.fn((table) => table === companies
-    ? { where: () => ({ for: async () => [{ id: "company-1" }] }) }
-    : { where: selectWhere });
+  const selectWhere = vi.fn(
+    async () =>
+      (inTransaction
+        ? pendingSelectResults.shift()
+        : pendingSelectResults[0]) ?? [],
+  );
+  const from = vi.fn((table) =>
+    table === companies
+      ? { where: () => ({ for: async () => [{ id: "company-1" }] }) }
+      : { where: selectWhere },
+  );
   const select = vi.fn(() => ({ from }));
 
   const returning = vi.fn(async () => updateResults);
@@ -59,10 +69,20 @@ function createDbStub(selectResults: ApprovalRecord[][], updateResults: Approval
   const update = vi.fn(() => ({ set }));
 
   return {
-    db: { select, update, transaction: vi.fn(async (callback: (db: unknown) => Promise<unknown>) => {
-      inTransaction = true;
-      try { return await callback({ select, update }); } finally { inTransaction = false; }
-    }) },
+    db: {
+      select,
+      update,
+      transaction: vi.fn(
+        async (callback: (db: unknown) => Promise<unknown>) => {
+          inTransaction = true;
+          try {
+            return await callback({ select, update });
+          } finally {
+            inTransaction = false;
+          }
+        },
+      ),
+    },
     selectWhere,
     returning,
   };
@@ -71,7 +91,10 @@ function createDbStub(selectResults: ApprovalRecord[][], updateResults: Approval
 describe("approvalService resolution idempotency", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAgentService.activatePendingApproval.mockResolvedValue({ agent: { id: "agent-1" }, activated: true });
+    mockAgentService.activatePendingApproval.mockResolvedValue({
+      agent: { id: "agent-1" },
+      activated: true,
+    });
     mockAgentService.create.mockResolvedValue({ id: "agent-1" });
     mockAgentService.terminate.mockResolvedValue(undefined);
     mockNotifyHireApproved.mockResolvedValue(undefined);
@@ -114,56 +137,75 @@ describe("approvalService resolution idempotency", () => {
     const result = await svc.approve("approval-1", "board", "ship it");
 
     expect(result.applied).toBe(true);
-    expect(mockAgentService.activatePendingApproval).toHaveBeenCalledWith("agent-1", approved.payload);
+    expect(mockAgentService.activatePendingApproval).toHaveBeenCalledWith(
+      "agent-1",
+      approved.payload,
+    );
     expect(mockNotifyHireApproved).toHaveBeenCalledTimes(1);
   });
 
   it("does not notify the adapter when the approval transaction fails to commit", async () => {
     const approved = createApproval("approved");
     const dbStub = createDbStub([[createApproval("pending")]], [approved]);
-    dbStub.db.transaction.mockImplementationOnce(async callback => {
+    dbStub.db.transaction.mockImplementationOnce(async (callback) => {
       await callback(dbStub.db);
       throw new Error("commit failed");
     });
-    await expect(approvalService(dbStub.db as any).approve("approval-1", "board")).rejects.toThrow("commit failed");
+    await expect(
+      approvalService(dbStub.db as any).approve("approval-1", "board"),
+    ).rejects.toThrow("commit failed");
     expect(mockNotifyHireApproved).not.toHaveBeenCalled();
   });
 
   it.each([
-    { requestedByAgentId: "requester-1", requestedByUserId: "on-behalf-user", expectedCreator: null },
-    { requestedByAgentId: null, requestedByUserId: "original-creator", expectedCreator: "original-creator" },
-  ])("creates a legacy approved hire with its original human attribution ($expectedCreator)", async ({ requestedByAgentId, requestedByUserId, expectedCreator }) => {
-    const approved = {
-      ...createApproval("approved"),
-      requestedByAgentId,
-      requestedByUserId,
-      payload: {
-        name: "New Agent",
-        adapterConfig: {
-          env: {
-            API_KEY: {
-              type: "secret_ref",
-              secretId: "secret-1",
-              version: "latest",
+    {
+      requestedByAgentId: "requester-1",
+      requestedByUserId: "on-behalf-user",
+      expectedCreator: null,
+    },
+    {
+      requestedByAgentId: null,
+      requestedByUserId: "original-creator",
+      expectedCreator: "original-creator",
+    },
+  ])(
+    "creates a legacy approved hire with its original human attribution ($expectedCreator)",
+    async ({ requestedByAgentId, requestedByUserId, expectedCreator }) => {
+      const approved = {
+        ...createApproval("approved"),
+        requestedByAgentId,
+        requestedByUserId,
+        payload: {
+          name: "New Agent",
+          adapterConfig: {
+            env: {
+              API_KEY: {
+                type: "secret_ref",
+                secretId: "secret-1",
+                version: "latest",
+              },
             },
           },
         },
-      },
-    };
-    const dbStub = createDbStub([[{ ...createApproval("pending"), payload: approved.payload }]], [approved]);
+      };
+      const dbStub = createDbStub(
+        [[{ ...createApproval("pending"), payload: approved.payload }]],
+        [approved],
+      );
 
-    const svc = approvalService(dbStub.db as any);
-    const result = await svc.approve("approval-1", "board", "ship it");
+      const svc = approvalService(dbStub.db as any);
+      const result = await svc.approve("approval-1", "board", "ship it");
 
-    expect(result.applied).toBe(true);
-    expect(mockAgentService.create).toHaveBeenCalledWith(
-      "company-1",
-      expect.objectContaining({
-        adapterConfig: approved.payload.adapterConfig,
-      }),
-      { createdByUserId: expectedCreator },
-    );
-  });
+      expect(result.applied).toBe(true);
+      expect(mockAgentService.create).toHaveBeenCalledWith(
+        "company-1",
+        expect.objectContaining({
+          adapterConfig: approved.payload.adapterConfig,
+        }),
+        { createdByUserId: expectedCreator },
+      );
+    },
+  );
 });
 
 describe("approvalService.findOpenHireApprovalForAgent", () => {
@@ -182,7 +224,10 @@ describe("approvalService.findOpenHireApprovalForAgent", () => {
     const dbStub = createDbStub([[match]], []);
 
     const svc = approvalService(dbStub.db as any);
-    const result = await svc.findOpenHireApprovalForAgent("company-1", "agent-1");
+    const result = await svc.findOpenHireApprovalForAgent(
+      "company-1",
+      "agent-1",
+    );
 
     expect(result?.id).toBe("approval-match");
     expect(dbStub.selectWhere).toHaveBeenCalledTimes(1);
@@ -192,7 +237,10 @@ describe("approvalService.findOpenHireApprovalForAgent", () => {
     const dbStub = createDbStub([[]], []);
 
     const svc = approvalService(dbStub.db as any);
-    const result = await svc.findOpenHireApprovalForAgent("company-1", "agent-1");
+    const result = await svc.findOpenHireApprovalForAgent(
+      "company-1",
+      "agent-1",
+    );
 
     expect(result).toBeNull();
   });

@@ -106,7 +106,10 @@ function createDbStub(...selectResponses: unknown[][]) {
   };
 }
 
-function createApp(actor: Record<string, unknown>, db: Record<string, unknown>) {
+function createApp(
+  actor: Record<string, unknown>,
+  db: Record<string, unknown>,
+) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -144,7 +147,11 @@ describe("POST /companies/:companyId/openclaw/invite-prompt", () => {
     mockAccessService.canUser.mockResolvedValue(false);
     mockAgentService.getById.mockReset();
     mockLogActivity.mockResolvedValue(undefined);
-    mockStorage.headObject.mockResolvedValue({ exists: true, contentLength: 3, contentType: "image/png" });
+    mockStorage.headObject.mockResolvedValue({
+      exists: true,
+      contentLength: 3,
+      contentType: "image/png",
+    });
   });
 
   it("rejects non-CEO agent callers", async () => {

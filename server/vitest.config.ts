@@ -8,7 +8,10 @@ export default defineConfig({
       {
         find: /^@taskcore\/taskcore-runner\/live$/,
         replacement: fileURLToPath(
-          new URL("../packages/taskcore-runner/src/live/index.ts", import.meta.url),
+          new URL(
+            "../packages/taskcore-runner/src/live/index.ts",
+            import.meta.url,
+          ),
         ),
       },
       {

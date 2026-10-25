@@ -1,7 +1,14 @@
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { Identity } from "@/components/Identity";
 import { SlackSetupAdvanced } from "./SlackAppDetails";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { SlackToolsSettings, SlackSearchAccess } from "./SlackToolSettings";
 import { defaultSlackAppName } from "./slack-app-name";
 import { ChatCommunicationInstructions } from "./ChatCommunicationInstructions";
@@ -60,7 +67,13 @@ import { queryKeys } from "@/lib/queryKeys";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { Link, Navigate, useNavigate, useParams } from "@/lib/router";
 
-const tabs = ["settings", "access", "reviews", "conversations", "activity"] as const;
+const tabs = [
+  "settings",
+  "access",
+  "reviews",
+  "conversations",
+  "activity",
+] as const;
 type ChatTab = (typeof tabs)[number];
 const tabItems = tabs.map((value) => ({
   value,
@@ -80,7 +93,10 @@ const providerLifecycleGuidance: Record<
   ChatProvider,
   { reconnect: string; remove: string }
 > = {
-  agentmail: { reconnect: "Reconnect the same email inbox.", remove: "Disconnect email and retain task history." },
+  agentmail: {
+    reconnect: "Reconnect the same email inbox.",
+    remove: "Disconnect email and retain task history.",
+  },
   slack: {
     reconnect:
       "Reconnect verifies or replaces credentials for this same Slack app. It does not reinstall the app or change its workspace or channel membership.",
@@ -106,8 +122,10 @@ const providerLifecycleGuidance: Record<
       "Taskcore archives the endpoint, stops new ingress, and retires its saved client secret. It does not uninstall the Teams app: the Entra app registration, Azure Bot, custom Teams app, and Teams installations remain until you remove them in Microsoft.",
   },
   "imessage-photon": {
-    reconnect: "Reconnect verifies the same Photon project and line allocation, then recovers eligible missed messages.",
-    remove: "Disconnect archives this channel and removes its saved secret. Your Photon project, number, subscription, and Messages history remain in Photon.",
+    reconnect:
+      "Reconnect verifies the same Photon project and line allocation, then recovers eligible missed messages.",
+    remove:
+      "Disconnect archives this channel and removes its saved secret. Your Photon project, number, subscription, and Messages history remain in Photon.",
   },
   telegram: {
     reconnect:
@@ -250,7 +268,8 @@ export function ChatEndpointDetail() {
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const agentQuery = useQuery({
     queryKey: queryKeys.agents.detail(endpoint?.assignedAgentId ?? ""),
-    queryFn: () => agentsApi.get(endpoint!.assignedAgentId, endpoint!.companyId),
+    queryFn: () =>
+      agentsApi.get(endpoint!.assignedAgentId, endpoint!.companyId),
     enabled: Boolean(endpoint?.assignedAgentId),
   });
 
@@ -292,42 +311,90 @@ export function ChatEndpointDetail() {
       </div>
     );
   if (endpoint.provider === "agentmail" && activeTab === "settings")
-    return <EmailEndpointSettings key={endpoint.id} endpointId={endpoint.id} companyId={endpoint.companyId} assignedAgentName={endpoint.assignedAgentName} />;
+    return (
+      <EmailEndpointSettings
+        key={endpoint.id}
+        endpointId={endpoint.id}
+        companyId={endpoint.companyId}
+        assignedAgentName={endpoint.assignedAgentName}
+      />
+    );
   const setupIncomplete =
     endpoint.setup?.step !== "complete" &&
     !(endpoint.provider === "slack" && endpoint.setup?.step === "test") &&
     ["draft", "verifying", "attention", "revoked"].includes(endpoint.status);
-  const slackUrl = endpoint.provider === "slack" && endpoint.providerAccountId && endpoint.botExternalId
-    ? `https://app.slack.com/client/${encodeURIComponent(endpoint.providerAccountId)}/user/${encodeURIComponent(endpoint.botExternalId)}`
-    : null;
+  const slackUrl =
+    endpoint.provider === "slack" &&
+    endpoint.providerAccountId &&
+    endpoint.botExternalId
+      ? `https://app.slack.com/client/${encodeURIComponent(endpoint.providerAccountId)}/user/${encodeURIComponent(endpoint.botExternalId)}`
+      : null;
 
   return (
     <div className="max-w-5xl space-y-6 pb-12">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <AgentAvatar agent={agentQuery.data ?? { id: endpoint.assignedAgentId, name: endpoint.assignedAgentName }} size={48} />
+          <AgentAvatar
+            agent={
+              agentQuery.data ?? {
+                id: endpoint.assignedAgentId,
+                name: endpoint.assignedAgentName,
+              }
+            }
+            size={48}
+          />
           <div>
-          <h1 className="text-xl font-bold">
-            {endpoint.assignedAgentName}
-          </h1>
-          <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-            <AppLogo name={providerNames[endpoint.provider]} brandKey={endpoint.provider} size={16} compact />
-            {endpoint.providerAccountLabel ?? (endpoint.provider === "agentmail" ? endpoint.botExternalId ?? "Email connection" : "Chat connection")}
-          </p>
-          {endpoint.provider === "imessage-photon" && endpoint.botExternalId && endpoint.photonAllocation !== "shared" && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-              <span>{endpoint.botExternalId}</span>
-              <Button variant="ghost" size="sm" aria-label="Copy dedicated number" onClick={async () => {
-                try { await copyTextToClipboard(endpoint.botExternalId!); setCopyStatus("Number copied"); }
-                catch { setCopyStatus("Could not copy the number. Select and copy it manually."); }
-              }}><Copy className="size-4" />Copy number</Button>
-              <span role="status" className="text-muted-foreground">{copyStatus}</span>
-            </div>
-          )}
-        </div>
+            <h1 className="text-xl font-bold">{endpoint.assignedAgentName}</h1>
+            <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <AppLogo
+                name={providerNames[endpoint.provider]}
+                brandKey={endpoint.provider}
+                size={16}
+                compact
+              />
+              {endpoint.providerAccountLabel ??
+                (endpoint.provider === "agentmail"
+                  ? (endpoint.botExternalId ?? "Email connection")
+                  : "Chat connection")}
+            </p>
+            {endpoint.provider === "imessage-photon" &&
+              endpoint.botExternalId &&
+              endpoint.photonAllocation !== "shared" && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                  <span>{endpoint.botExternalId}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Copy dedicated number"
+                    onClick={async () => {
+                      try {
+                        await copyTextToClipboard(endpoint.botExternalId!);
+                        setCopyStatus("Number copied");
+                      } catch {
+                        setCopyStatus(
+                          "Could not copy the number. Select and copy it manually.",
+                        );
+                      }
+                    }}
+                  >
+                    <Copy className="size-4" />
+                    Copy number
+                  </Button>
+                  <span role="status" className="text-muted-foreground">
+                    {copyStatus}
+                  </span>
+                </div>
+              )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          {slackUrl && <Button asChild variant="outline"><a href={slackUrl} target="_blank" rel="noopener noreferrer">Open Slack <ExternalLink className="size-4" /></a></Button>}
+          {slackUrl && (
+            <Button asChild variant="outline">
+              <a href={slackUrl} target="_blank" rel="noopener noreferrer">
+                Open Slack <ExternalLink className="size-4" />
+              </a>
+            </Button>
+          )}
           {setupIncomplete ? (
             <Button
               variant="outline"
@@ -340,25 +407,39 @@ export function ChatEndpointDetail() {
               Continue setup
             </Button>
           ) : null}
-          {["paused", "attention", "revoked"].includes(endpoint.status) && <StatusBadge status={endpoint.status} />}
+          {["paused", "attention", "revoked"].includes(endpoint.status) && (
+            <StatusBadge status={endpoint.status} />
+          )}
         </div>
       </header>
       {activeTab === "settings" && (
         <>
-{endpoint.provider === "github" && <GitHubBotManagement endpoint={endpoint} view="settings" />}
-{endpoint.provider !== "github" && <Settings endpointId={endpoint.id} endpoint={endpoint} />}
-</>
+          {endpoint.provider === "github" && (
+            <GitHubBotManagement endpoint={endpoint} view="settings" />
+          )}
+          {endpoint.provider !== "github" && (
+            <Settings endpointId={endpoint.id} endpoint={endpoint} />
+          )}
+        </>
       )}
-      {activeTab === "reviews" && endpoint.provider === "github" && <GitHubReviews endpointId={endpoint.id} />}
-{activeTab === "access" && endpoint.provider === "github" && <GitHubBotManagement endpoint={endpoint} view="access" />}
-{activeTab === "access" && endpoint.provider === "agentmail" && <EmailAccess endpoint={endpoint} />}
-{activeTab === "access" && endpoint.provider !== "github" && endpoint.provider !== "agentmail" && (
-        <Access
-          endpointId={endpoint.id}
-          allowUnlinked={endpoint.allowUnlinkedPeople}
-          endpoint={endpoint}
-        />
+      {activeTab === "reviews" && endpoint.provider === "github" && (
+        <GitHubReviews endpointId={endpoint.id} />
       )}
+      {activeTab === "access" && endpoint.provider === "github" && (
+        <GitHubBotManagement endpoint={endpoint} view="access" />
+      )}
+      {activeTab === "access" && endpoint.provider === "agentmail" && (
+        <EmailAccess endpoint={endpoint} />
+      )}
+      {activeTab === "access" &&
+        endpoint.provider !== "github" &&
+        endpoint.provider !== "agentmail" && (
+          <Access
+            endpointId={endpoint.id}
+            allowUnlinked={endpoint.allowUnlinkedPeople}
+            endpoint={endpoint}
+          />
+        )}
       {activeTab === "conversations" && (
         <Conversations endpointId={endpoint.id} provider={endpoint.provider} />
       )}
@@ -379,20 +460,49 @@ function EmailAccess({ endpoint }: { endpoint: ChatEndpoint }) {
     queryKey: queryKeys.agents.list(endpoint.companyId),
     queryFn: () => agentsApi.list(endpoint.companyId),
   });
-  if (!endpoint.connectionId || agents.isError || connection.isError) return (
-    <div className="space-y-3">
-      <p role="alert" className="text-sm text-destructive">Connection access could not be loaded.</p>
-      <Button variant="outline" onClick={() => { void agents.refetch(); void connection.refetch(); }}>Try again</Button>
-    </div>
-  );
-  if (agents.isPending || connection.isPending) return <p role="status" className="text-sm text-muted-foreground">Loading access…</p>;
+  if (!endpoint.connectionId || agents.isError || connection.isError)
+    return (
+      <div className="space-y-3">
+        <p role="alert" className="text-sm text-destructive">
+          Connection access could not be loaded.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => {
+            void agents.refetch();
+            void connection.refetch();
+          }}
+        >
+          Try again
+        </Button>
+      </div>
+    );
+  if (agents.isPending || connection.isPending)
+    return (
+      <p role="status" className="text-sm text-muted-foreground">
+        Loading access…
+      </p>
+    );
   const sourceId = connection.data.config?.credentialConnectionId;
-  const credentialId = typeof sourceId === "string" ? sourceId : endpoint.connectionId;
-  return <section className="max-w-3xl space-y-4">
-    <h2 className="text-lg font-semibold">Access</h2>
-    {credentialId !== endpoint.connectionId && <p className="text-sm text-muted-foreground">These settings apply to the saved AgentMail account and all inboxes using it.</p>}
-    <EmailConnectionAccess key={credentialId} companyId={endpoint.companyId} connectionId={credentialId} agents={agents.data} />
-  </section>;
+  const credentialId =
+    typeof sourceId === "string" ? sourceId : endpoint.connectionId;
+  return (
+    <section className="max-w-3xl space-y-4">
+      <h2 className="text-lg font-semibold">Access</h2>
+      {credentialId !== endpoint.connectionId && (
+        <p className="text-sm text-muted-foreground">
+          These settings apply to the saved AgentMail account and all inboxes
+          using it.
+        </p>
+      )}
+      <EmailConnectionAccess
+        key={credentialId}
+        companyId={endpoint.companyId}
+        connectionId={credentialId}
+        agents={agents.data}
+      />
+    </section>
+  );
 }
 
 function Settings({
@@ -454,7 +564,13 @@ function Settings({
     saveResources.mutate({ id: resource.id, enabled });
   return (
     <section className="max-w-3xl space-y-7">
-      {endpoint.provider === "imessage-photon" && <p className="text-sm text-muted-foreground">{endpoint.photonAllocation === "shared" ? "Shared Photon project · direct messages only. Enroll senders in Photon and link their Messages identities in Access. Groups cannot be enabled." : "Enable each group individually. Agent replies are visible to everyone in that group; only authorized senders can start work."}</p>}
+      {endpoint.provider === "imessage-photon" && (
+        <p className="text-sm text-muted-foreground">
+          {endpoint.photonAllocation === "shared"
+            ? "Shared Photon project · direct messages only. Enroll senders in Photon and link their Messages identities in Access. Groups cannot be enabled."
+            : "Enable each group individually. Agent replies are visible to everyone in that group; only authorized senders can start work."}
+        </p>
+      )}
       {endpoint.provider === "telegram" && (
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">Telegram group command</h2>
@@ -473,10 +589,23 @@ function Settings({
         </div>
       )}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold">{endpoint.provider === "slack" ? "Allowed Channels" : "Destinations"}</h3>
-        {resourcesQuery.isError ? <p role="alert" className="text-sm text-destructive">Couldn't load channels. <button className="underline" onClick={() => void resourcesQuery.refetch()}>Try again</button></p> : resourcesQuery.isLoading ? (
+        <h3 className="text-sm font-semibold">
+          {endpoint.provider === "slack" ? "Allowed Channels" : "Destinations"}
+        </h3>
+        {resourcesQuery.isError ? (
+          <p role="alert" className="text-sm text-destructive">
+            Couldn't load channels.{" "}
+            <button
+              className="underline"
+              onClick={() => void resourcesQuery.refetch()}
+            >
+              Try again
+            </button>
+          </p>
+        ) : resourcesQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading destinations…</p>
-        ) : destinationResources.length === 0 && endpoint.provider !== "slack" ? (
+        ) : destinationResources.length === 0 &&
+          endpoint.provider !== "slack" ? (
           <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
             No destinations yet.
           </p>
@@ -488,12 +617,19 @@ function Settings({
                   <p className="truncate text-sm font-medium">
                     {resource.label}
                   </p>
-                  {(resource.availability !== "available" || resource.detail) && <p className="text-xs text-muted-foreground">
-                    {resource.availability === "available"
-                      ? resource.detail
-                      : "Unavailable at the provider"}
-                  </p>}
-                  {resource.participants?.length ? <p className="mt-1 break-words text-xs text-muted-foreground">Participants: {resource.participants.join(", ")}</p> : null}
+                  {(resource.availability !== "available" ||
+                    resource.detail) && (
+                    <p className="text-xs text-muted-foreground">
+                      {resource.availability === "available"
+                        ? resource.detail
+                        : "Unavailable at the provider"}
+                    </p>
+                  )}
+                  {resource.participants?.length ? (
+                    <p className="mt-1 break-words text-xs text-muted-foreground">
+                      Participants: {resource.participants.join(", ")}
+                    </p>
+                  ) : null}
                 </div>
                 <ToggleSwitch
                   aria-label={`Enable ${resource.label}`}
@@ -545,35 +681,105 @@ function Settings({
           )}
         </div>
       )}
-      {endpoint.provider === "slack" && <ChatCommunicationInstructions
-        key={endpoint.id}
-        value={endpoint.communicationInstructions ?? ""}
-        onSave={async (communicationInstructions) => {
-          const next = await chatEndpointsApi.update(endpointId, { communicationInstructions });
-          queryClient.setQueryData(queryKeys.chatEndpoints.detail(endpointId), next);
-        }}
-      />}
       {endpoint.provider === "slack" && (
-        <SlackSetupAdvanced label="Message in a channel"><div className="space-y-2 text-sm">
-          <p>Invite the bot to a channel, then mention it to start a conversation.</p>
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
-            <code>{mentionMessage}</code>
-            <Button size="icon" variant="ghost" aria-label={messageCopied ? "Message copied" : "Copy message"} onClick={() => {
-              void copyTextToClipboard(mentionMessage).then(() => setMessageCopied(true), () => pushToast({ title: "Couldn’t copy the message", body: "Select and copy it manually.", tone: "error" }));
-            }}>{messageCopied ? <Check className="size-4" /> : <Copy className="size-4" />}</Button>
-          </div>
-        </div></SlackSetupAdvanced>
+        <ChatCommunicationInstructions
+          key={endpoint.id}
+          value={endpoint.communicationInstructions ?? ""}
+          onSave={async (communicationInstructions) => {
+            const next = await chatEndpointsApi.update(endpointId, {
+              communicationInstructions,
+            });
+            queryClient.setQueryData(
+              queryKeys.chatEndpoints.detail(endpointId),
+              next,
+            );
+          }}
+        />
       )}
-      {endpoint.provider === "slack" && <SlackSetupAdvanced label="Agent avatar">
-        {avatarAgent.isPending ? <p role="status" className="text-sm text-muted-foreground">Loading agent avatar…</p>
-          : avatarAgent.isError ? <p role="alert" className="text-sm text-destructive">Couldn’t load the agent’s avatar. <button className="underline" onClick={() => void avatarAgent.refetch()}>Try again</button></p>
-          : <SlackAvatarSettings
+      {endpoint.provider === "slack" && (
+        <SlackSetupAdvanced label="Message in a channel">
+          <div className="space-y-2 text-sm">
+            <p>
+              Invite the bot to a channel, then mention it to start a
+              conversation.
+            </p>
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+              <code>{mentionMessage}</code>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={messageCopied ? "Message copied" : "Copy message"}
+                onClick={() => {
+                  void copyTextToClipboard(mentionMessage).then(
+                    () => setMessageCopied(true),
+                    () =>
+                      pushToast({
+                        title: "Couldn’t copy the message",
+                        body: "Select and copy it manually.",
+                        tone: "error",
+                      }),
+                  );
+                }}
+              >
+                {messageCopied ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </SlackSetupAdvanced>
+      )}
+      {endpoint.provider === "slack" && (
+        <SlackSetupAdvanced label="Agent avatar">
+          {avatarAgent.isPending ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              Loading agent avatar…
+            </p>
+          ) : avatarAgent.isError ? (
+            <p role="alert" className="text-sm text-destructive">
+              Couldn’t load the agent’s avatar.{" "}
+              <button
+                className="underline"
+                onClick={() => void avatarAgent.refetch()}
+              >
+                Try again
+              </button>
+            </p>
+          ) : (
+            <SlackAvatarSettings
               agentName={avatarAgent.data?.name ?? endpoint.assignedAgentName}
-              appName={endpoint.setup?.slackApp?.appName ?? defaultSlackAppName(avatarAgent.data?.name ?? endpoint.assignedAgentName)}
-              avatarUrl={agentAvatarUrl(resolveAgentAppearance(avatarAgent.data?.appearance, endpoint.assignedAgentId), 512, 1, "rest", false, "taskcore-dark")}
-            />}
-      </SlackSetupAdvanced>}
-      {endpoint.provider === "slack" && <SlackSetupAdvanced label="Slack tools"><SlackToolsSettings companyId={endpoint.companyId} endpointId={endpointId} connectionId={endpoint.connectionId} /></SlackSetupAdvanced>}
+              appName={
+                endpoint.setup?.slackApp?.appName ??
+                defaultSlackAppName(
+                  avatarAgent.data?.name ?? endpoint.assignedAgentName,
+                )
+              }
+              avatarUrl={agentAvatarUrl(
+                resolveAgentAppearance(
+                  avatarAgent.data?.appearance,
+                  endpoint.assignedAgentId,
+                ),
+                512,
+                1,
+                "rest",
+                false,
+                "taskcore-dark",
+              )}
+            />
+          )}
+        </SlackSetupAdvanced>
+      )}
+      {endpoint.provider === "slack" && (
+        <SlackSetupAdvanced label="Slack tools">
+          <SlackToolsSettings
+            companyId={endpoint.companyId}
+            endpointId={endpointId}
+            connectionId={endpoint.connectionId}
+          />
+        </SlackSetupAdvanced>
+      )}
     </section>
   );
 }
@@ -636,7 +842,12 @@ function Access({
         queryKeys.chatEndpoints.detail(endpointId),
         next,
       ),
-    onError: (error) => pushToast({ title: "Couldn’t update access", body: error instanceof Error ? error.message : "Try again.", tone: "error" }),
+    onError: (error) =>
+      pushToast({
+        title: "Couldn’t update access",
+        body: error instanceof Error ? error.message : "Try again.",
+        tone: "error",
+      }),
   });
   const createIntent = useMutation({
     mutationFn: (principalId: string) =>
@@ -645,7 +856,6 @@ function Access({
       setConfirmationUrl(
         new URL(confirmationUrl, window.location.origin).toString(),
       );
-
     },
     onError: (error) =>
       pushToast({
@@ -657,46 +867,124 @@ function Access({
   const revoke = useMutation({
     mutationFn: (principalId: string) =>
       chatEndpointsApi.revokeLink(endpointId, principalId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.chatEndpoints.principals(endpointId) }),
-    onError: (error) => pushToast({ title: "Couldn't disconnect account", body: error instanceof Error ? error.message : "Try again.", tone: "error" }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.chatEndpoints.principals(endpointId),
+      }),
+    onError: (error) =>
+      pushToast({
+        title: "Couldn't disconnect account",
+        body: error instanceof Error ? error.message : "Try again.",
+        tone: "error",
+      }),
   });
   const links = linksQuery.data ?? [];
   return (
     <section className="max-w-3xl space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">People</h2>
-        {endpoint.provider === "slack" && <Dialog>
-          <DialogTrigger asChild><Button>Invite people</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite people to talk to {endpoint.assignedAgentName}</DialogTitle>
-              <DialogDescription>Share these instructions with someone in your Slack workspace.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 text-sm">
-              <ol className="list-decimal space-y-3 pl-5">
-                <li>Send <code className="font-mono">{joinCommand}</code> in Slack.</li>
-                <li>Open the bot’s private link and sign in to Taskcore to confirm your Slack account.</li>
-                <li>If you’re new to this organization, request access and wait for an admin to approve.</li>
-              </ol>
-              <p className="text-muted-foreground">The confirmation link is personal and expires after 15 minutes.</p>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <Button variant="ghost" onClick={() => {
-                  void copyTextToClipboard(joinCommand).then(() => setJoinCommandCopied(true), () => pushToast({ title: "Couldn't copy the command", tone: "error" }));
-                }}>{joinCommandCopied ? <Check className="size-4" /> : <Copy className="size-4" />}{joinCommandCopied ? "Copied" : "Copy command"}</Button>
-                <Button onClick={() => {
-                  const workspace = endpoint.providerAccountId ? `https://app.slack.com/client/${encodeURIComponent(endpoint.providerAccountId)}` : "https://app.slack.com/";
-                  void copyTextToClipboard(`Talk to ${endpoint.assignedAgentName} in Slack: ${workspace}\nSend ${joinCommand}, then open the bot’s private link and sign in to Taskcore to confirm your account. If you’re new to the organization, request access for an admin to approve.`).then(() => setInviteCopied(true), () => pushToast({ title: "Couldn't copy invitation", tone: "error" }));
-                }}>{inviteCopied ? <Check className="size-4" /> : <Copy className="size-4" />}{inviteCopied ? "Invitation copied" : "Copy invitation"}</Button>
+        {endpoint.provider === "slack" && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>Invite people</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  Invite people to talk to {endpoint.assignedAgentName}
+                </DialogTitle>
+                <DialogDescription>
+                  Share these instructions with someone in your Slack workspace.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 text-sm">
+                <ol className="list-decimal space-y-3 pl-5">
+                  <li>
+                    Send <code className="font-mono">{joinCommand}</code> in
+                    Slack.
+                  </li>
+                  <li>
+                    Open the bot’s private link and sign in to Taskcore to
+                    confirm your Slack account.
+                  </li>
+                  <li>
+                    If you’re new to this organization, request access and wait
+                    for an admin to approve.
+                  </li>
+                </ol>
+                <p className="text-muted-foreground">
+                  The confirmation link is personal and expires after 15
+                  minutes.
+                </p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      void copyTextToClipboard(joinCommand).then(
+                        () => setJoinCommandCopied(true),
+                        () =>
+                          pushToast({
+                            title: "Couldn't copy the command",
+                            tone: "error",
+                          }),
+                      );
+                    }}
+                  >
+                    {joinCommandCopied ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                    {joinCommandCopied ? "Copied" : "Copy command"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const workspace = endpoint.providerAccountId
+                        ? `https://app.slack.com/client/${encodeURIComponent(endpoint.providerAccountId)}`
+                        : "https://app.slack.com/";
+                      void copyTextToClipboard(
+                        `Talk to ${endpoint.assignedAgentName} in Slack: ${workspace}\nSend ${joinCommand}, then open the bot’s private link and sign in to Taskcore to confirm your account. If you’re new to the organization, request access for an admin to approve.`,
+                      ).then(
+                        () => setInviteCopied(true),
+                        () =>
+                          pushToast({
+                            title: "Couldn't copy invitation",
+                            tone: "error",
+                          }),
+                      );
+                    }}
+                  >
+                    {inviteCopied ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                    {inviteCopied ? "Invitation copied" : "Copy invitation"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>}
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
-      <p className="text-sm text-muted-foreground">People with linked accounts use their own Taskcore permissions. <Link className="underline underline-offset-4" to="/company/settings/members">Manage members</Link></p>
+      <p className="text-sm text-muted-foreground">
+        People with linked accounts use their own Taskcore permissions.{" "}
+        <Link
+          className="underline underline-offset-4"
+          to="/company/settings/members"
+        >
+          Manage members
+        </Link>
+      </p>
       {confirmationUrl && (
         <div className="space-y-2 border-y border-border py-3">
-          <p className="text-sm font-medium">Confirm {confirmationFor ?? "this account"}</p>
-          <p className="text-xs text-muted-foreground">Share only with this person. They must sign in and confirm their own account.</p>
+          <p className="text-sm font-medium">
+            Confirm {confirmationFor ?? "this account"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Share only with this person. They must sign in and confirm their own
+            account.
+          </p>
           <p className="break-all text-xs text-muted-foreground">
             {confirmationUrl}
           </p>
@@ -725,12 +1013,30 @@ function Access({
         </div>
       )}
       <div className="space-y-2">
-        {linksQuery.isPending ? <p role="status" className="text-sm text-muted-foreground">Loading people…</p> : linksQuery.isError ? <p role="alert" className="text-sm text-destructive">Couldn't load people. <button className="underline" onClick={() => void linksQuery.refetch()}>Try again</button></p> : links.length === 0 ? (
+        {linksQuery.isPending ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            Loading people…
+          </p>
+        ) : linksQuery.isError ? (
+          <p role="alert" className="text-sm text-destructive">
+            Couldn't load people.{" "}
+            <button
+              className="underline"
+              onClick={() => void linksQuery.refetch()}
+            >
+              Try again
+            </button>
+          </p>
+        ) : links.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
             No linked accounts yet. Invite someone to connect.
           </p>
         ) : (
-          <div role="list" aria-label="People" className="divide-y divide-border border-y border-border">
+          <div
+            role="list"
+            aria-label="People"
+            className="divide-y divide-border border-y border-border"
+          >
             {links.map((link) => (
               <div
                 key={link.id}
@@ -738,12 +1044,21 @@ function Access({
                 className="flex flex-wrap items-center gap-3 py-3"
               >
                 <div className="min-w-0 flex-1">
-                  <Identity name={link.taskcoreUserLabel ?? link.externalLabel} size="default" className="gap-2" />
-                  {(link.status !== "linked" || link.externalLabel !== link.taskcoreUserLabel) && <p className="pl-10 text-xs text-muted-foreground">
-                    {link.status === "revoked" ? "Disconnected" : link.status === "linked"
-                      ? link.externalLabel
-                      : "Waiting for account confirmation"}
-                  </p>}
+                  <Identity
+                    name={link.taskcoreUserLabel ?? link.externalLabel}
+                    size="default"
+                    className="gap-2"
+                  />
+                  {(link.status !== "linked" ||
+                    link.externalLabel !== link.taskcoreUserLabel) && (
+                    <p className="pl-10 text-xs text-muted-foreground">
+                      {link.status === "revoked"
+                        ? "Disconnected"
+                        : link.status === "linked"
+                          ? link.externalLabel
+                          : "Waiting for account confirmation"}
+                    </p>
+                  )}
                 </div>
                 {link.status === "linked" ? (
                   <Button
@@ -760,7 +1075,11 @@ function Access({
                     size="sm"
                     variant="outline"
                     disabled={createIntent.isPending}
-                    onClick={() => { setConfirmationUrl(null); setConfirmationFor(link.externalLabel); createIntent.mutate(link.principalId); }}
+                    onClick={() => {
+                      setConfirmationUrl(null);
+                      setConfirmationFor(link.externalLabel);
+                      createIntent.mutate(link.principalId);
+                    }}
                   >
                     Create confirmation link
                   </Button>
@@ -771,11 +1090,22 @@ function Access({
         )}
       </div>
       <SlackSetupAdvanced label="Guest access">
-        <SettingToggle label="Allow unlinked people"
+        <SettingToggle
+          label="Allow unlinked people"
           detail="People without linked accounts can start isolated tasks. They cannot approve actions, spend, or manage access. Requests are refused when isolation is unavailable."
-          checked={allowUnlinked} pending={updatePolicy.isPending} onChange={value => updatePolicy.mutate(value)} />
+          checked={allowUnlinked}
+          pending={updatePolicy.isPending}
+          onChange={(value) => updatePolicy.mutate(value)}
+        />
       </SlackSetupAdvanced>
-      {endpoint.provider === "slack" && <SlackSetupAdvanced label="Personal Slack search"><SlackSearchAccess companyId={endpoint.companyId} endpointId={endpointId} /></SlackSetupAdvanced>}
+      {endpoint.provider === "slack" && (
+        <SlackSetupAdvanced label="Personal Slack search">
+          <SlackSearchAccess
+            companyId={endpoint.companyId}
+            endpointId={endpointId}
+          />
+        </SlackSetupAdvanced>
+      )}
     </section>
   );
 }
@@ -798,10 +1128,18 @@ function Conversations({
       <div>
         <h2 className="text-lg font-semibold">Conversations</h2>
       </div>
-      {query.isPending ? <p role="status" className="text-sm text-muted-foreground">Loading conversations…</p> : query.isError ? (
+      {query.isPending ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Loading conversations…
+        </p>
+      ) : query.isError ? (
         <div className="space-y-3">
-          <p role="alert" className="text-sm text-destructive">Conversations could not be loaded.</p>
-          <Button variant="outline" onClick={() => void query.refetch()}>Try again</Button>
+          <p role="alert" className="text-sm text-destructive">
+            Conversations could not be loaded.
+          </p>
+          <Button variant="outline" onClick={() => void query.refetch()}>
+            Try again
+          </Button>
         </div>
       ) : rows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
@@ -810,18 +1148,62 @@ function Conversations({
             : "No conversations yet. Message the agent to start one."}
         </p>
       ) : (
-        <ul aria-label="Conversations" className="divide-y divide-border overflow-x-auto border-y border-border">
+        <ul
+          aria-label="Conversations"
+          className="divide-y divide-border overflow-x-auto border-y border-border"
+        >
           {rows.map((row) => (
-            <li key={row.id} className="flex flex-wrap items-center gap-3 px-2 py-3 text-sm transition-colors hover:bg-accent/50">
-              <AppLogo name={providerNames[provider]} brandKey={provider} compact className="size-5! rounded-sm bg-transparent" />
+            <li
+              key={row.id}
+              className="flex flex-wrap items-center gap-3 px-2 py-3 text-sm transition-colors hover:bg-accent/50"
+            >
+              <AppLogo
+                name={providerNames[provider]}
+                brandKey={provider}
+                compact
+                className="size-5! rounded-sm bg-transparent"
+              />
               <div className="flex min-w-0 max-w-56 items-center gap-2">
-                {row.externalUrl ? <a href={row.externalUrl} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center gap-1 font-medium hover:underline"><span className="truncate">{row.externalLabel}</span><ExternalLink className="size-3 shrink-0" /></a> : <span className="truncate font-medium">{row.externalLabel}</span>}
+                {row.externalUrl ? (
+                  <a
+                    href={row.externalUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-w-0 items-center gap-1 font-medium hover:underline"
+                  >
+                    <span className="truncate">{row.externalLabel}</span>
+                    <ExternalLink className="size-3 shrink-0" />
+                  </a>
+                ) : (
+                  <span className="truncate font-medium">
+                    {row.externalLabel}
+                  </span>
+                )}
               </div>
-              <span aria-hidden="true" className="hidden text-muted-foreground sm:inline">·</span>
+              <span
+                aria-hidden="true"
+                className="hidden text-muted-foreground sm:inline"
+              >
+                ·
+              </span>
               <div className="order-last flex min-w-0 basis-full items-center gap-2 pl-8 sm:order-none sm:flex-1 sm:basis-0 sm:pl-0">
-                {row.issueId ? <Link to={`/issues/${row.issueId}`} className="line-clamp-2 hover:underline sm:truncate" title={row.issueTitle ?? undefined}>{row.issueTitle ?? row.issueIdentifier ?? "View task"}</Link> : <span className="truncate text-muted-foreground">Waiting for task</span>}
+                {row.issueId ? (
+                  <Link
+                    to={`/issues/${row.issueId}`}
+                    className="line-clamp-2 hover:underline sm:truncate"
+                    title={row.issueTitle ?? undefined}
+                  >
+                    {row.issueTitle ?? row.issueIdentifier ?? "View task"}
+                  </Link>
+                ) : (
+                  <span className="truncate text-muted-foreground">
+                    Waiting for task
+                  </span>
+                )}
               </div>
-              <span className="hidden shrink-0 text-xs text-muted-foreground xl:inline">{row.issueIdentifier}</span>
+              <span className="hidden shrink-0 text-xs text-muted-foreground xl:inline">
+                {row.issueIdentifier}
+              </span>
               {row.state !== "active" && <StatusBadge status={row.state} />}
             </li>
           ))}
@@ -845,7 +1227,9 @@ function Activity({
   const [resolutionItem, setResolutionItem] = useState<ChatActivityItem | null>(
     null,
   );
-  const [cursors, setCursors] = useState<Array<string | undefined>>([undefined]);
+  const [cursors, setCursors] = useState<Array<string | undefined>>([
+    undefined,
+  ]);
   const cursor = cursors[cursors.length - 1];
   useEffect(() => setCursors([undefined]), [endpointId]);
   const query = useQuery({
@@ -945,15 +1329,23 @@ function Activity({
       });
       if (endpoint.provider === "agentmail") {
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["email-inboxes", next.companyId] }),
-          queryClient.invalidateQueries({ queryKey: queryKeys.chatEndpoints.detail(endpointId) }),
+          queryClient.invalidateQueries({
+            queryKey: ["email-inboxes", next.companyId],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.chatEndpoints.detail(endpointId),
+          }),
         ]);
       }
       if (action === "remove") {
         navigate("/apps");
         return;
       }
-      if (endpoint.provider !== "agentmail") queryClient.setQueryData(queryKeys.chatEndpoints.detail(endpointId), next);
+      if (endpoint.provider !== "agentmail")
+        queryClient.setQueryData(
+          queryKeys.chatEndpoints.detail(endpointId),
+          next,
+        );
       pushToast({
         title: action === "pause" ? "Connection paused" : "Connection resumed",
         tone: "success",
@@ -1008,136 +1400,151 @@ function Activity({
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-medium chat-connection-health-summary">
           <span>Connection health and controls</span>
           <span className="flex items-center gap-2">
-            {endpoint.setup?.callbacksNeedUpdate && <span className="text-xs text-(--status-task-blocked)">Callback URLs need attention</span>}
+            {endpoint.setup?.callbacksNeedUpdate && (
+              <span className="text-xs text-(--status-task-blocked)">
+                Callback URLs need attention
+              </span>
+            )}
             <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
           </span>
         </summary>
         <div className="space-y-5 border-t border-border p-4">
-      {endpoint.provider === "slack" && callbackSurfaceRows.length > 0 && (
-        <div
-          className="space-y-3 text-sm"
-        >
-          <p className="font-medium">Slack callback health</p>
-          <p className="text-xs text-muted-foreground">
-            {endpoint.setup?.callbacksNeedUpdate
-              ? "Slack callback URLs need an update. Save the current App Manifest, then exercise Events, Interactivity, and the registered command again."
-              : "Taskcore records each callback surface independently after Slack successfully calls it."}
-          </p>
-          <div className="divide-y divide-border border-y border-border">
-            {callbackSurfaceRows.map(([label, surface]) => (
-              <div key={label} className="flex flex-wrap items-center justify-between gap-3 py-2">
-                <p className="text-xs font-medium">{label}</p>
-                <p className="text-xs text-muted-foreground">
-                  {surface.status === "current"
-                    ? "Current"
-                    : surface.status === "stale"
-                      ? "Stale URL"
-                      : "Not observed"}
-                </p>
-                {surface.observedAt && (
-                  <p className="text-xs text-muted-foreground">
-                    Last observed{" "}
-                    <time
-                      dateTime={surface.observedAt}
-                      title={surface.observedAt}
-                      className="font-mono"
-                    >
-                      {formatDateTime(surface.observedAt, {
-                        includeSeconds: true,
-                      })}
-                    </time>
-                  </p>
-                )}
+          {endpoint.provider === "slack" && callbackSurfaceRows.length > 0 && (
+            <div className="space-y-3 text-sm">
+              <p className="font-medium">Slack callback health</p>
+              <p className="text-xs text-muted-foreground">
+                {endpoint.setup?.callbacksNeedUpdate
+                  ? "Slack callback URLs need an update. Save the current App Manifest, then exercise Events, Interactivity, and the registered command again."
+                  : "Taskcore records each callback surface independently after Slack successfully calls it."}
+              </p>
+              <div className="divide-y divide-border border-y border-border">
+                {callbackSurfaceRows.map(([label, surface]) => (
+                  <div
+                    key={label}
+                    className="flex flex-wrap items-center justify-between gap-3 py-2"
+                  >
+                    <p className="text-xs font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {surface.status === "current"
+                        ? "Current"
+                        : surface.status === "stale"
+                          ? "Stale URL"
+                          : "Not observed"}
+                    </p>
+                    {surface.observedAt && (
+                      <p className="text-xs text-muted-foreground">
+                        Last observed{" "}
+                        <time
+                          dateTime={surface.observedAt}
+                          title={surface.observedAt}
+                          className="font-mono"
+                        >
+                          {formatDateTime(surface.observedAt, {
+                            includeSeconds: true,
+                          })}
+                        </time>
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {status !== "archived" && (
-        <div className="space-y-3 pt-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {status === "active" && (
-              <Button
-                variant="outline"
-                disabled={lifecycle.isPending}
-                onClick={() => lifecycle.mutate("pause")}
-              >
-                {lifecycle.isPending && lifecycleAction === "pause" ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Pause />
-                )}
-                Pause
-              </Button>
-            )}
-            {status === "paused" && (
-              <Button
-                variant="outline"
-                disabled={lifecycle.isPending}
-                onClick={() => lifecycle.mutate("resume")}
-              >
-                {lifecycle.isPending && lifecycleAction === "resume" ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Play />
-                )}
-                Resume
-              </Button>
-            )}
-            {[
-              "active",
-              "paused",
-              "attention",
-              "revoked",
-              "draft",
-              "verifying",
-            ].includes(status) && (
-              <Button
-                variant="outline"
-                disabled={lifecycle.isPending}
-                onClick={() =>
-                  navigate(
-                    endpoint.provider === "agentmail" && status !== "draft" && status !== "verifying"
-                      ? `/apps/chat/${endpoint.id}/settings`
-                      : `/apps/chat/connect?provider=${endpoint.provider}&purpose=chat&resume=${endpoint.id}${status === "draft" || status === "verifying" ? "" : "&reconnect=1"}`,
-                  )
-                }
-              >
-                <RefreshCw />
-                {status === "draft" || status === "verifying"
-                  ? "Finish setup"
-                  : "Reconnect"}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              disabled={lifecycle.isPending}
-              onClick={() => setRemoveOpen(true)}
-            >
-              <Trash2 />
-              Remove connection
-            </Button>
-          </div>
-          {status !== "draft" && status !== "verifying" && (
-            <p className="text-xs text-muted-foreground">
-              {providerLifecycleGuidance[endpoint.provider].reconnect}
-            </p>
+            </div>
           )}
-        </div>
-      )}
+          {status !== "archived" && (
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {status === "active" && (
+                  <Button
+                    variant="outline"
+                    disabled={lifecycle.isPending}
+                    onClick={() => lifecycle.mutate("pause")}
+                  >
+                    {lifecycle.isPending && lifecycleAction === "pause" ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Pause />
+                    )}
+                    Pause
+                  </Button>
+                )}
+                {status === "paused" && (
+                  <Button
+                    variant="outline"
+                    disabled={lifecycle.isPending}
+                    onClick={() => lifecycle.mutate("resume")}
+                  >
+                    {lifecycle.isPending && lifecycleAction === "resume" ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Play />
+                    )}
+                    Resume
+                  </Button>
+                )}
+                {[
+                  "active",
+                  "paused",
+                  "attention",
+                  "revoked",
+                  "draft",
+                  "verifying",
+                ].includes(status) && (
+                  <Button
+                    variant="outline"
+                    disabled={lifecycle.isPending}
+                    onClick={() =>
+                      navigate(
+                        endpoint.provider === "agentmail" &&
+                          status !== "draft" &&
+                          status !== "verifying"
+                          ? `/apps/chat/${endpoint.id}/settings`
+                          : `/apps/chat/connect?provider=${endpoint.provider}&purpose=chat&resume=${endpoint.id}${status === "draft" || status === "verifying" ? "" : "&reconnect=1"}`,
+                      )
+                    }
+                  >
+                    <RefreshCw />
+                    {status === "draft" || status === "verifying"
+                      ? "Finish setup"
+                      : "Reconnect"}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  disabled={lifecycle.isPending}
+                  onClick={() => setRemoveOpen(true)}
+                >
+                  <Trash2 />
+                  Remove connection
+                </Button>
+              </div>
+              {status !== "draft" && status !== "verifying" && (
+                <p className="text-xs text-muted-foreground">
+                  {providerLifecycleGuidance[endpoint.provider].reconnect}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </details>
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold">
-          Recent activity
-        </h3>
-        {endpoint.provider === "agentmail" && rows.some((item) => item.kind === "publication" && item.status === "delivery_unknown") && (
-          <p className="text-sm text-muted-foreground">
-            Review unconfirmed email delivery in the{" "}
-            <Link to={`/apps/chat/${endpointId}/conversations`} className="underline underline-offset-4">conversation’s task</Link>.
-          </p>
-        )}
+        <h3 className="text-sm font-semibold">Recent activity</h3>
+        {endpoint.provider === "agentmail" &&
+          rows.some(
+            (item) =>
+              item.kind === "publication" && item.status === "delivery_unknown",
+          ) && (
+            <p className="text-sm text-muted-foreground">
+              Review unconfirmed email delivery in the{" "}
+              <Link
+                to={`/apps/chat/${endpointId}/conversations`}
+                className="underline underline-offset-4"
+              >
+                conversation’s task
+              </Link>
+              .
+            </p>
+          )}
         <div className="divide-y divide-border border-y border-border">
           {query.isLoading && (
             <div className="flex items-center gap-2 py-5 text-sm text-muted-foreground">
@@ -1166,18 +1573,35 @@ function Activity({
                 key={item.id}
                 className="flex items-start gap-3 px-2 py-3 transition-colors hover:bg-accent/50"
               >
-                <span className="mt-0.5 text-muted-foreground" aria-hidden="true">
-                  {item.kind === "delivery" ? <ArrowDownLeft className="size-4" /> : item.kind === "publication" ? <ArrowUpRight className="size-4" /> : <ActivityIcon className="size-4" />}
+                <span
+                  className="mt-0.5 text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  {item.kind === "delivery" ? (
+                    <ArrowDownLeft className="size-4" />
+                  ) : item.kind === "publication" ? (
+                    <ArrowUpRight className="size-4" />
+                  ) : (
+                    <ActivityIcon className="size-4" />
+                  )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="min-w-0 flex-1 text-sm font-medium">{item.summary}</p>
+                    <p className="min-w-0 flex-1 text-sm font-medium">
+                      {item.summary}
+                    </p>
                     <StatusBadge status={item.status} />
-                    <time dateTime={item.createdAt} title={item.createdAt} className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    <time
+                      dateTime={item.createdAt}
+                      title={item.createdAt}
+                      className="shrink-0 text-xs tabular-nums text-muted-foreground"
+                    >
                       {formatDateTime(item.createdAt, { includeSeconds: true })}
                     </time>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{activityKindLabels[item.kind]}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {activityKindLabels[item.kind]}
+                  </p>
                   {item.fileTransfer && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       {item.fileTransfer.filename} —{" "}
@@ -1193,31 +1617,33 @@ function Activity({
                     </p>
                   )}
                 </div>
-                {endpoint.provider !== "agentmail" && isReplayEligible(item) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    aria-label={`Replay failed ${item.kind}`}
-                    disabled={replay.isPending}
-                    onClick={() => replay.mutate(item)}
-                  >
-                    {replay.isPending && replay.variables?.id === item.id ? (
-                      <Loader2 className="animate-spin" />
-                    ) : (
-                      <RefreshCw />
-                    )}
-                    Replay
-                  </Button>
-                )}
-                {endpoint.provider !== "agentmail" && isResolutionEligible(item) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setResolutionItem(item)}
-                  >
-                    Resolve
-                  </Button>
-                )}
+                {endpoint.provider !== "agentmail" &&
+                  isReplayEligible(item) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      aria-label={`Replay failed ${item.kind}`}
+                      disabled={replay.isPending}
+                      onClick={() => replay.mutate(item)}
+                    >
+                      {replay.isPending && replay.variables?.id === item.id ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <RefreshCw />
+                      )}
+                      Replay
+                    </Button>
+                  )}
+                {endpoint.provider !== "agentmail" &&
+                  isResolutionEligible(item) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setResolutionItem(item)}
+                    >
+                      Resolve
+                    </Button>
+                  )}
               </div>
             ))}
           {!query.isLoading && !query.isError && rows.length === 0 && (
@@ -1227,11 +1653,35 @@ function Activity({
           )}
         </div>
       </div>
-      <nav aria-label="Activity pagination" className="flex items-center justify-between gap-3">
-        <span className="text-xs text-muted-foreground">Page {cursors.length}</span>
+      <nav
+        aria-label="Activity pagination"
+        className="flex items-center justify-between gap-3"
+      >
+        <span className="text-xs text-muted-foreground">
+          Page {cursors.length}
+        </span>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" disabled={cursors.length === 1 || query.isFetching} onClick={() => setCursors((pages) => pages.slice(0, -1))}>Previous</Button>
-          <Button size="sm" variant="outline" disabled={!query.data?.nextCursor || query.isFetching || query.isError} onClick={() => { if (query.data?.nextCursor) setCursors((pages) => [...pages, query.data.nextCursor!]); }}>Next</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={cursors.length === 1 || query.isFetching}
+            onClick={() => setCursors((pages) => pages.slice(0, -1))}
+          >
+            Previous
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={
+              !query.data?.nextCursor || query.isFetching || query.isError
+            }
+            onClick={() => {
+              if (query.data?.nextCursor)
+                setCursors((pages) => [...pages, query.data.nextCursor!]);
+            }}
+          >
+            Next
+          </Button>
         </div>
       </nav>
       <AlertDialog
@@ -1335,12 +1785,21 @@ function Activity({
               remain available.{" "}
               {providerLifecycleGuidance[endpoint.provider].remove}
               {endpoint.provider === "slack" && (
-                <> <a
-                  href={endpoint.setup?.slackRegistration?.managementUrl ?? "https://api.slack.com/apps"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-4"
-                >Open Slack app settings</a> to manage or delete the Slack app.</>
+                <>
+                  {" "}
+                  <a
+                    href={
+                      endpoint.setup?.slackRegistration?.managementUrl ??
+                      "https://api.slack.com/apps"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    Open Slack app settings
+                  </a>{" "}
+                  to manage or delete the Slack app.
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

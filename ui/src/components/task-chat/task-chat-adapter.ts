@@ -10,7 +10,11 @@
 import type { Agent } from "@taskcore/shared";
 import type { IssueChatComment } from "@/lib/issue-chat-messages";
 import { resolveCommentAttribution } from "@/lib/comment-attribution";
-import type { TaskChatAuthorKind, TaskChatItem, TaskChatMessageItem } from "./task-chat-model";
+import type {
+  TaskChatAuthorKind,
+  TaskChatItem,
+  TaskChatMessageItem,
+} from "./task-chat-model";
 
 export interface TaskChatAdapterContext {
   agentMap?: Map<string, Agent>;
@@ -21,7 +25,10 @@ export interface TaskChatAdapterContext {
    * writes and get a "for {user}" attribution chip (the open cross-task write design (attribution)).
    */
   issueAssigneeAgentId?: string | null;
-  verificationCaveatsByRunId?: ReadonlyMap<string, TaskChatMessageItem["verificationCaveats"]>;
+  verificationCaveatsByRunId?: ReadonlyMap<
+    string,
+    TaskChatMessageItem["verificationCaveats"]
+  >;
 }
 
 function effectiveAgentId(comment: IssueChatComment): string | null {
@@ -70,8 +77,14 @@ export function commentsToTaskChatItems(
   for (const comment of comments) {
     if (comment.deletedAt) continue;
     if (comment.conversationSessionGeneration != null) {
-      items.push({ id: comment.id, kind: "marker", variant: "session_start", label: "New session",
-        detail: "Earlier messages and files are still available.", createdAtIso: new Date(comment.createdAt).toISOString() });
+      items.push({
+        id: comment.id,
+        kind: "marker",
+        variant: "session_start",
+        label: "New session",
+        detail: "Earlier messages and files are still available.",
+        createdAtIso: new Date(comment.createdAt).toISOString(),
+      });
       continue;
     }
     const kind = authorKind(comment);
@@ -90,15 +103,16 @@ export function commentsToTaskChatItems(
       })?.userName;
     } else if (kind === "human") {
       authorName =
-        (comment.authorUserId && ctx.userLabelMap?.get(comment.authorUserId)) || undefined;
+        (comment.authorUserId && ctx.userLabelMap?.get(comment.authorUserId)) ||
+        undefined;
     }
-    const queued = comment.queueState === "queued" || comment.clientStatus === "queued";
-    const optimistic =
-      queued
-        ? "queued"
-        : comment.clientStatus === "pending"
-          ? "pending"
-          : undefined;
+    const queued =
+      comment.queueState === "queued" || comment.clientStatus === "queued";
+    const optimistic = queued
+      ? "queued"
+      : comment.clientStatus === "pending"
+        ? "pending"
+        : undefined;
     const createdAtIso =
       comment.createdAt instanceof Date
         ? comment.createdAt.toISOString()
@@ -110,22 +124,28 @@ export function commentsToTaskChatItems(
     // arrive later (or be omitted entirely for server-materialized final
     // replies). Prefer the stored provenance so settled-response decorations
     // such as verification caveats are never lost.
-    const sourceRunId = comment.createdByRunId
-      ?? comment.runId
-      ?? comment.derivedCreatedByRunId
-      ?? null;
+    const sourceRunId =
+      comment.createdByRunId ??
+      comment.runId ??
+      comment.derivedCreatedByRunId ??
+      null;
     items.push({
       id: comment.id || comment.clientId || `${comment.createdAt}`,
       renderKey: comment.clientId ?? comment.id,
       kind: "message",
       author: kind,
       authorName,
-      agent: effectiveAgentId(comment) ? ctx.agentMap?.get(effectiveAgentId(comment)!) ?? { id: effectiveAgentId(comment)! } : undefined,
+      agent: effectiveAgentId(comment)
+        ? (ctx.agentMap?.get(effectiveAgentId(comment)!) ?? {
+            id: effectiveAgentId(comment)!,
+          })
+        : undefined,
       text: comment.body,
-      sourceChannel: kind === "human" ? comment.metadata?.sourceChannel : undefined,
+      sourceChannel:
+        kind === "human" ? comment.metadata?.sourceChannel : undefined,
       timestamp: formatTaskChatCommentTimestamp(comment, kind),
       optimistic,
-      queueTargetRunId: queued ? comment.queueTargetRunId ?? null : null,
+      queueTargetRunId: queued ? (comment.queueTargetRunId ?? null) : null,
       verificationCaveats: sourceRunId
         ? ctx.verificationCaveatsByRunId?.get(sourceRunId)
         : undefined,
@@ -133,9 +153,10 @@ export function commentsToTaskChatItems(
       onBehalfOfUserName,
       // System notices carry their structured hints through to the render
       // layer (PAP-443); other authors keep the item lean.
-      presentation: kind === "system" ? comment.presentation ?? null : undefined,
-      metadata: kind === "system" ? comment.metadata ?? null : undefined,
-      runAgentId: kind === "system" ? comment.runAgentId ?? null : undefined,
+      presentation:
+        kind === "system" ? (comment.presentation ?? null) : undefined,
+      metadata: kind === "system" ? (comment.metadata ?? null) : undefined,
+      runAgentId: kind === "system" ? (comment.runAgentId ?? null) : undefined,
       createdAtIso: kind === "system" ? createdAtIso : undefined,
     });
   }

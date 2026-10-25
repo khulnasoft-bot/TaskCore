@@ -25,10 +25,10 @@ resolve approvals. There is no unauthenticated remote mode.
 
 Two environment variables change the driver behind the console:
 
-| Variable | Default | Effect |
-| --- | --- | --- |
-| `TASKCORE_LIVE_CONSOLE_DRIVER` | `demo` | `codex` starts the real `codex app-server` driver behind the same routes |
-| `TASKCORE_LIVE_CONSOLE_CHUNK_DELAY_MS` | `45` | Milliseconds between streamed chunks in the demo driver |
+| Variable                               | Default | Effect                                                                   |
+| -------------------------------------- | ------- | ------------------------------------------------------------------------ |
+| `TASKCORE_LIVE_CONSOLE_DRIVER`         | `demo`  | `codex` starts the real `codex app-server` driver behind the same routes |
+| `TASKCORE_LIVE_CONSOLE_CHUNK_DELAY_MS` | `45`    | Milliseconds between streamed chunks in the demo driver                  |
 
 ## Where state comes from
 
@@ -49,27 +49,27 @@ model, no message store, and no client-side session cache.
 
 ## Surfaces
 
-| Surface | Source of truth | Notes |
-| --- | --- | --- |
-| Transcript | reducer timeline and items | user messages come from `turn.submitted` payload text |
-| Composer | composer state machine | one visible primary action: Send, Steer, or Stop |
-| Steering chip | `steering_acknowledgement` item or a rejection code | rejected text stays recoverable with **Send as new message** |
-| Request card | `runtime_request.*` events | renders only the actions the upstream request offers |
-| Goal banner and menu | capability snapshot and goal events | unsupported verbs are disabled with the exact diagnostic |
-| Lineage tree | driver thread lineage | child steering is shown as unsupported, never emulated |
-| Connection block | transport status and durable cursor | includes a deliberate connection-loss control |
-| Inspector | raw canonical events | four tabs: Events, Requests, Capabilities, Session |
-| Replay stepper | recorded canonical events | marked with a `REPLAY` eyebrow badge |
+| Surface              | Source of truth                                     | Notes                                                        |
+| -------------------- | --------------------------------------------------- | ------------------------------------------------------------ |
+| Transcript           | reducer timeline and items                          | user messages come from `turn.submitted` payload text        |
+| Composer             | composer state machine                              | one visible primary action: Send, Steer, or Stop             |
+| Steering chip        | `steering_acknowledgement` item or a rejection code | rejected text stays recoverable with **Send as new message** |
+| Request card         | `runtime_request.*` events                          | renders only the actions the upstream request offers         |
+| Goal banner and menu | capability snapshot and goal events                 | unsupported verbs are disabled with the exact diagnostic     |
+| Lineage tree         | driver thread lineage                               | child steering is shown as unsupported, never emulated       |
+| Connection block     | transport status and durable cursor                 | includes a deliberate connection-loss control                |
+| Inspector            | raw canonical events                                | four tabs: Events, Requests, Capabilities, Session           |
+| Replay stepper       | recorded canonical events                           | marked with a `REPLAY` eyebrow badge                         |
 
 ## Interruption races
 
 The console distinguishes all three races the spec requires:
 
-| Race | What the console shows |
-| --- | --- |
-| interrupt before start | the pending turn resolves to `Cancelled before start`; no assistant item is ever created |
-| interrupt during generation | the stream stops in place, the partial text stays, and an interrupted divider is added |
-| interrupt during a tool call | the tool item keeps its last known status with no fabricated result |
+| Race                         | What the console shows                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| interrupt before start       | the pending turn resolves to `Cancelled before start`; no assistant item is ever created |
+| interrupt during generation  | the stream stops in place, the partial text stays, and an interrupted divider is added   |
+| interrupt during a tool call | the tool item keeps its last known status with no fabricated result                      |
 
 `Escape` in the composer moves focus to **Stop**. It never interrupts
 directly, because a destructive action needs an explicit activation.
@@ -81,19 +81,19 @@ The demo server owns the manifest catalogue and serves it at
 the observations a human should confirm; the console renders that list as a
 checklist rather than restating it in the UI.
 
-| Manifest | Proves |
-| --- | --- |
-| `completion` | streaming, reasoning, tool, answer, structured result |
-| `steering` | same-turn steering acknowledgement and stale-turn rejection |
-| `interrupt-before-start` | cancellation before the provider accepts the turn |
-| `interrupt-during-generation` | preserved partial text |
-| `interrupt-during-tool` | preserved tool status with no fabricated result |
-| `approvals` | command and file-change approvals, single-response guarantee |
-| `user-input` | typed answers and request expiry |
-| `subagents` | parent/child lineage and unsupported child steering |
-| `goals` | set, view, pause, resume, clear |
-| `goals-unsupported` | exact capability diagnostic instead of a hidden control |
-| `failure` | failed item and failed turn inside the record |
+| Manifest                      | Proves                                                       |
+| ----------------------------- | ------------------------------------------------------------ |
+| `completion`                  | streaming, reasoning, tool, answer, structured result        |
+| `steering`                    | same-turn steering acknowledgement and stale-turn rejection  |
+| `interrupt-before-start`      | cancellation before the provider accepts the turn            |
+| `interrupt-during-generation` | preserved partial text                                       |
+| `interrupt-during-tool`       | preserved tool status with no fabricated result              |
+| `approvals`                   | command and file-change approvals, single-response guarantee |
+| `user-input`                  | typed answers and request expiry                             |
+| `subagents`                   | parent/child lineage and unsupported child steering          |
+| `goals`                       | set, view, pause, resume, clear                              |
+| `goals-unsupported`           | exact capability diagnostic instead of a hidden control      |
+| `failure`                     | failed item and failed turn inside the record                |
 
 Manifests run in any order. **Reset demo state** names exactly what it
 discards and leaves recorded evidence files untouched.

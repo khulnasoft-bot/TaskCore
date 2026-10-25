@@ -28,8 +28,14 @@ const index = buildCapabilityScenarioIndex(manifestSource);
 createRoot(container).render(
   <ExplorerApp
     index={index}
-    evalSuite={evalReport === null ? undefined : capabilityEvalSuiteLookup(evalReport)}
+    evalSuite={
+      evalReport === null ? undefined : capabilityEvalSuiteLookup(evalReport)
+    }
     codexAvailable={false}
-    openSession={CapabilityRemoteChatSession.available() ? CapabilityRemoteChatSession.open : undefined}
+    openSession={
+      CapabilityRemoteChatSession.available()
+        ? CapabilityRemoteChatSession.open
+        : undefined
+    }
   />,
 );

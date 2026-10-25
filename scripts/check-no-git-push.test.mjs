@@ -71,7 +71,8 @@ test("findGitPushOffenses ignores `git push` in a comment after a string ending 
   // The closing `"` after `\\` should end the string (even literal count of
   // backslashes leaves the quote unescaped), so the `// git push` that
   // follows is comment text and must be stripped.
-  const text = 'const path = "C:\\\\"; // git push origin master\nconst y = 2;\n';
+  const text =
+    'const path = "C:\\\\"; // git push origin master\nconst y = 2;\n';
   assert.deepEqual(findGitPushOffenses(text), []);
 });
 
@@ -83,7 +84,9 @@ test("findGitPushOffenses does not flag args-array form when allow marker is pre
 test("runCheck passes when scoped tree has no offenses", () => {
   const tmpRoot = mkdtempSync(path.join(os.tmpdir(), "no-git-push-pass-"));
   try {
-    mkdirSync(path.join(tmpRoot, "packages/adapters/sample/src"), { recursive: true });
+    mkdirSync(path.join(tmpRoot, "packages/adapters/sample/src"), {
+      recursive: true,
+    });
     writeFileSync(
       path.join(tmpRoot, "packages/adapters/sample/src/index.ts"),
       "export const ok = 1;\n",
@@ -106,7 +109,9 @@ test("runCheck passes when scoped tree has no offenses", () => {
 test("runCheck fails when scoped tree contains an unapproved git push", () => {
   const tmpRoot = mkdtempSync(path.join(os.tmpdir(), "no-git-push-fail-"));
   try {
-    mkdirSync(path.join(tmpRoot, "packages/adapters/sample/src"), { recursive: true });
+    mkdirSync(path.join(tmpRoot, "packages/adapters/sample/src"), {
+      recursive: true,
+    });
     writeFileSync(
       path.join(tmpRoot, "packages/adapters/sample/src/index.ts"),
       "import { execSync } from 'node:child_process';\nexecSync('git push origin main');\n",
@@ -120,7 +125,11 @@ test("runCheck fails when scoped tree contains an unapproved git push", () => {
       error: (msg) => errors.push(msg),
     });
     assert.equal(code, 1);
-    assert.ok(errors.some((line) => line.includes("packages/adapters/sample/src/index.ts:2")));
+    assert.ok(
+      errors.some((line) =>
+        line.includes("packages/adapters/sample/src/index.ts:2"),
+      ),
+    );
   } finally {
     rmSync(tmpRoot, { recursive: true, force: true });
   }

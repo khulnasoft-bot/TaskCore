@@ -50,7 +50,17 @@
 // ---------------------------------------------------------------------------
 
 export { definePlugin } from "./define-plugin.js";
-export { createTestHarness, createEnvironmentTestHarness, createFakeEnvironmentDriver, filterEnvironmentEvents, assertEnvironmentEventOrder, assertLeaseLifecycle, assertWorkspaceRealizationLifecycle, assertExecutionLifecycle, assertEnvironmentError } from "./testing.js";
+export {
+  createTestHarness,
+  createEnvironmentTestHarness,
+  createFakeEnvironmentDriver,
+  filterEnvironmentEvents,
+  assertEnvironmentEventOrder,
+  assertLeaseLifecycle,
+  assertWorkspaceRealizationLifecycle,
+  assertExecutionLifecycle,
+  assertEnvironmentError,
+} from "./testing.js";
 export { createPluginBundlerPresets } from "./bundlers.js";
 export { startPluginDevServer, getUiBuildSnapshot } from "./dev-server.js";
 export { startWorkerRpcHost, runWorker } from "./worker-rpc-host.js";
@@ -450,9 +460,20 @@ export {
   PRINCIPAL_TYPES,
 } from "@taskcore/shared";
 
-export { PluginEnvironmentCreationCleanupError, environmentCreationCleanupErrorData, readEnvironmentCreationCleanupError } from "./environment-creation-cleanup.js";
+export {
+  PluginEnvironmentCreationCleanupError,
+  environmentCreationCleanupErrorData,
+  readEnvironmentCreationCleanupError,
+} from "./environment-creation-cleanup.js";
 export type { PluginEnvironmentCreationCleanup } from "./environment-creation-cleanup.js";
 export { readEnvironmentSyncErrorDiagnostic } from "./environment-sync-error.js";
 export type { PluginEnvironmentSyncErrorDiagnostic } from "./environment-sync-error.js";
 
-export type { AiConnectionPool, AiConnectionPoolConfig, AiConnectionPoolMember, AiConnectionRouterRequest, AiConnectionRouterResult, AiConnectionRouterSelection } from "@taskcore/shared";
+export type {
+  AiConnectionPool,
+  AiConnectionPoolConfig,
+  AiConnectionPoolMember,
+  AiConnectionRouterRequest,
+  AiConnectionRouterResult,
+  AiConnectionRouterSelection,
+} from "@taskcore/shared";

@@ -84,8 +84,12 @@ function clamp(value: string, limit = MAX_DETAIL_CHARS): string {
   return value.length <= limit ? value : `${value.slice(0, limit)}…`;
 }
 
-function asRecord(value: CapabilityJsonValue | null): Record<string, CapabilityJsonValue> {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+function asRecord(
+  value: CapabilityJsonValue | null,
+): Record<string, CapabilityJsonValue> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value
+    : {};
 }
 
 function pick(
@@ -103,10 +107,16 @@ class Aliases {
   readonly #ordered: string[];
 
   constructor(view: CapabilityIssueThreadSnapshot) {
-    view.turns.forEach((turn, index) => this.#add(turn.id, `turn-${index + 1}`));
-    view.evidence.calls.forEach((call, index) => this.#add(call.id, `call-${index + 1}`));
+    view.turns.forEach((turn, index) =>
+      this.#add(turn.id, `turn-${index + 1}`),
+    );
+    view.evidence.calls.forEach((call, index) =>
+      this.#add(call.id, `call-${index + 1}`),
+    );
     // Longest first, so one raw id that contains another cannot be half-replaced.
-    this.#ordered = [...this.#map.keys()].sort((left, right) => right.length - left.length);
+    this.#ordered = [...this.#map.keys()].sort(
+      (left, right) => right.length - left.length,
+    );
   }
 
   #add(raw: string, alias: string): void {
@@ -129,134 +139,354 @@ class Aliases {
   }
 }
 
-function publicRef(ref: CapabilityEvidenceRef, aliases: Aliases): CapabilityEvidenceRef {
+function publicRef(
+  ref: CapabilityEvidenceRef,
+  aliases: Aliases,
+): CapabilityEvidenceRef {
   return { section: ref.section, recordId: aliases.text(ref.recordId) };
 }
 
-function publicLink(link: CapabilityThreadLink | null): CapabilityThreadLink | null {
-  return link === null ? null : { label: clamp(link.label), href: clamp(link.href) };
+function publicLink(
+  link: CapabilityThreadLink | null,
+): CapabilityThreadLink | null {
+  return link === null
+    ? null
+    : { label: clamp(link.label), href: clamp(link.href) };
 }
 
 function publicToolInput(value: CapabilityJsonValue): CapabilityJsonValue {
   const source = pick(asRecord(value), TOOL_INPUT_KEYS);
   const fields = Array.isArray(source.fields)
-    ? source.fields.filter((entry): entry is string => typeof entry === "string")
+    ? source.fields.filter(
+        (entry): entry is string => typeof entry === "string",
+      )
     : [];
   const summary = source.dispositionSummary;
   return {
     fields,
-    ...(typeof summary === "string" ? { dispositionSummary: clamp(summary, 500) } : {}),
+    ...(typeof summary === "string"
+      ? { dispositionSummary: clamp(summary, 500) }
+      : {}),
   };
 }
 
-function publicToolResult(value: CapabilityJsonValue | null): CapabilityJsonValue | null {
+function publicToolResult(
+  value: CapabilityJsonValue | null,
+): CapabilityJsonValue | null {
   if (value === null) return null;
   const source = pick(asRecord(value), TOOL_RESULT_KEYS);
   const inner = pick(asRecord(source.result ?? null), TOOL_RESULT_INNER_KEYS);
   const entityRefs = Array.isArray(inner.entityRefs)
-    ? inner.entityRefs.filter((entry): entry is string => typeof entry === "string")
+    ? inner.entityRefs.filter(
+        (entry): entry is string => typeof entry === "string",
+      )
     : [];
-  const denial = source.denial === undefined ? undefined : pick(asRecord(source.denial), TOOL_DENIAL_KEYS);
+  const denial =
+    source.denial === undefined
+      ? undefined
+      : pick(asRecord(source.denial), TOOL_DENIAL_KEYS);
   return {
     ok: source.ok === true,
-    stateRevision: typeof source.stateRevision === "number" ? source.stateRevision : 0,
+    stateRevision:
+      typeof source.stateRevision === "number" ? source.stateRevision : 0,
     result: { ...inner, entityRefs },
     ...(denial === undefined ? {} : { denial }),
   };
 }
 
-function safeProviderScalar(value: CapabilityJsonValue | undefined, limit = MAX_DETAIL_CHARS): CapabilityJsonValue | undefined {
+function safeProviderScalar(
+  value: CapabilityJsonValue | undefined,
+  limit = MAX_DETAIL_CHARS,
+): CapabilityJsonValue | undefined {
   if (typeof value === "string") return clamp(value, limit);
-  if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
+  if (typeof value === "number" || typeof value === "boolean" || value === null)
+    return value;
   return undefined;
 }
 
 /** Closed, family-specific projection for canonical provider activity. */
 function publicProviderPayload(
-  family: Extract<CapabilityThreadItem, { kind: "provider_activity" }>['family'],
+  family: Extract<
+    CapabilityThreadItem,
+    { kind: "provider_activity" }
+  >["family"],
   value: CapabilityJsonValue,
 ): CapabilityJsonValue {
   const source = asRecord(value);
-  const common = (keys: readonly string[]) => Object.fromEntries(keys.flatMap((key) => {
-    if (key === "output" && typeof source[key] === "string") {
-      return [[key, source[key].slice(-(8 * 1024))]];
-    }
-    const projected = safeProviderScalar(source[key], key === "output" ? 8 * 1024 : 4_000);
-    return projected === undefined ? [] : [[key, projected]];
-  }));
+  const common = (keys: readonly string[]) =>
+    Object.fromEntries(
+      keys.flatMap((key) => {
+        if (key === "output" && typeof source[key] === "string") {
+          return [[key, source[key].slice(-(8 * 1024))]];
+        }
+        const projected = safeProviderScalar(
+          source[key],
+          key === "output" ? 8 * 1024 : 4_000,
+        );
+        return projected === undefined ? [] : [[key, projected]];
+      }),
+    );
   switch (family) {
     case "plan":
       return {
-        ...common(["schema", "planId", "revision", "explanation", "complete", "syncStatus", "documentRevision"]),
-        steps: (Array.isArray(source.steps) ? source.steps : []).slice(0, 256).map((entry) => {
-          const step = asRecord(entry);
-          return {
-            stepId: clamp(typeof step.stepId === "string" ? step.stepId : "step", 160),
-            body: clamp(typeof step.body === "string" ? step.body : "", 4_000),
-            status: clamp(typeof step.status === "string" ? step.status : "pending", 32),
-          };
-        }),
+        ...common([
+          "schema",
+          "planId",
+          "revision",
+          "explanation",
+          "complete",
+          "syncStatus",
+          "documentRevision",
+        ]),
+        steps: (Array.isArray(source.steps) ? source.steps : [])
+          .slice(0, 256)
+          .map((entry) => {
+            const step = asRecord(entry);
+            return {
+              stepId: clamp(
+                typeof step.stepId === "string" ? step.stepId : "step",
+                160,
+              ),
+              body: clamp(
+                typeof step.body === "string" ? step.body : "",
+                4_000,
+              ),
+              status: clamp(
+                typeof step.status === "string" ? step.status : "pending",
+                32,
+              ),
+            };
+          }),
       };
     case "tool_execution":
-      return common(["schema", "executionId", "transport", "operation", "name", "target", "namespace", "readOnly", "status", "durationMs", "exitCode", "progress", "output", "outputBytes", "outputTruncated", "outputDigest"]);
+      return common([
+        "schema",
+        "executionId",
+        "transport",
+        "operation",
+        "name",
+        "target",
+        "namespace",
+        "readOnly",
+        "status",
+        "durationMs",
+        "exitCode",
+        "progress",
+        "output",
+        "outputBytes",
+        "outputTruncated",
+        "outputDigest",
+      ]);
     case "research":
       return {
-        ...common(["schema", "researchId", "action", "status", "query", "url", "pattern"]),
-        sources: (Array.isArray(source.sources) ? source.sources : []).slice(0, 64).map((entry) => {
-          const candidate = asRecord(entry);
-          const url = typeof candidate.url === "string" && /^https?:\/\//.test(candidate.url)
-            ? clamp(candidate.url, 2_048) : null;
-          return { sourceId: clamp(typeof candidate.sourceId === "string" ? candidate.sourceId : "source", 160), url, title: clamp(typeof candidate.title === "string" ? candidate.title : "Provider-reported source", 500), snippet: typeof candidate.snippet === "string" ? clamp(candidate.snippet, 4_000) : null };
-        }),
+        ...common([
+          "schema",
+          "researchId",
+          "action",
+          "status",
+          "query",
+          "url",
+          "pattern",
+        ]),
+        sources: (Array.isArray(source.sources) ? source.sources : [])
+          .slice(0, 64)
+          .map((entry) => {
+            const candidate = asRecord(entry);
+            const url =
+              typeof candidate.url === "string" &&
+              /^https?:\/\//.test(candidate.url)
+                ? clamp(candidate.url, 2_048)
+                : null;
+            return {
+              sourceId: clamp(
+                typeof candidate.sourceId === "string"
+                  ? candidate.sourceId
+                  : "source",
+                160,
+              ),
+              url,
+              title: clamp(
+                typeof candidate.title === "string"
+                  ? candidate.title
+                  : "Provider-reported source",
+                500,
+              ),
+              snippet:
+                typeof candidate.snippet === "string"
+                  ? clamp(candidate.snippet, 4_000)
+                  : null,
+            };
+          }),
       };
     case "delegation":
       return {
         ...common(["schema", "delegationId", "action", "status"]),
-        children: (Array.isArray(source.children) ? source.children : []).slice(0, 64).map((entry) => {
-          const child = asRecord(entry);
-          return Object.fromEntries(["childId", "role", "provider", "model", "status", "summary", "activitySummary", "durationMs"].flatMap((key) => {
-            const projected = safeProviderScalar(child[key], 4_000);
-            return projected === undefined ? [] : [[key, projected]];
-          }));
-        }),
+        children: (Array.isArray(source.children) ? source.children : [])
+          .slice(0, 64)
+          .map((entry) => {
+            const child = asRecord(entry);
+            return Object.fromEntries(
+              [
+                "childId",
+                "role",
+                "provider",
+                "model",
+                "status",
+                "summary",
+                "activitySummary",
+                "durationMs",
+              ].flatMap((key) => {
+                const projected = safeProviderScalar(child[key], 4_000);
+                return projected === undefined ? [] : [[key, projected]];
+              }),
+            );
+          }),
       };
     case "model_identity":
-      return common(["schema", "routeId", "verificationId", "provider", "requestedModel", "fromModel", "effectiveModel", "reason", "usageBoundaryId", "status", "buffering", "summary"]);
+      return common([
+        "schema",
+        "routeId",
+        "verificationId",
+        "provider",
+        "requestedModel",
+        "fromModel",
+        "effectiveModel",
+        "reason",
+        "usageBoundaryId",
+        "status",
+        "buffering",
+        "summary",
+      ]);
     case "context":
-      return common(["schema", "compactionId", "reason", "preTokens", "postTokens", "sameSession"]);
+      return common([
+        "schema",
+        "compactionId",
+        "reason",
+        "preTokens",
+        "postTokens",
+        "sameSession",
+      ]);
     case "artifact": {
-      const projected = common(["schema", "artifactId", "status", "reference", "mediaType", "title", "registered", "transparentBackground", "failure"]);
+      const projected = common([
+        "schema",
+        "artifactId",
+        "status",
+        "reference",
+        "mediaType",
+        "title",
+        "registered",
+        "transparentBackground",
+        "failure",
+      ]);
       const reference = projected.reference;
-      if (typeof reference === "string" && (reference.startsWith("/") || reference.split("/").includes(".."))) projected.reference = null;
+      if (
+        typeof reference === "string" &&
+        (reference.startsWith("/") || reference.split("/").includes(".."))
+      )
+        projected.reference = null;
       return projected;
     }
     case "review":
       return common(["schema", "reviewId", "state", "scope"]);
     case "hook":
-      return common(["schema", "hookId", "event", "scope", "status", "blocking", "durationMs", "summary"]);
+      return common([
+        "schema",
+        "hookId",
+        "event",
+        "scope",
+        "status",
+        "blocking",
+        "durationMs",
+        "summary",
+      ]);
     case "memory": {
-      const projected = common(["schema", "citationId", "messageItemId", "label", "available", "reference"]);
-      if (typeof projected.reference === "string" && !projected.reference.startsWith("taskcore://")) projected.reference = null;
+      const projected = common([
+        "schema",
+        "citationId",
+        "messageItemId",
+        "label",
+        "available",
+        "reference",
+      ]);
+      if (
+        typeof projected.reference === "string" &&
+        !projected.reference.startsWith("taskcore://")
+      )
+        projected.reference = null;
       return projected;
     }
     case "safety":
-      return common(["schema", "reviewId", "targetExecutionId", "status", "decision", "summary"]);
+      return common([
+        "schema",
+        "reviewId",
+        "targetExecutionId",
+        "status",
+        "decision",
+        "summary",
+      ]);
     case "terminal":
-      return common(["schema", "executionId", "origin", "inputClass", "byteCount"]);
+      return common([
+        "schema",
+        "executionId",
+        "origin",
+        "inputClass",
+        "byteCount",
+      ]);
     case "wait":
-      return common(["schema", "waitId", "reason", "status", "plannedDurationMs", "elapsedDurationMs"]);
+      return common([
+        "schema",
+        "waitId",
+        "reason",
+        "status",
+        "plannedDurationMs",
+        "elapsedDurationMs",
+      ]);
     case "provider_notice":
       return {
-        ...common(["schema", "noticeId", "severity", "category", "scope", "recoverable", "userActionable", "summary"]),
-        details: (Array.isArray(source.details) ? source.details : []).slice(0, 64).map(value => {
-          const detail = asRecord(value);
-          return { name: clamp(typeof detail.name === "string" ? detail.name : "Detail", 160), value: clamp(typeof detail.value === "string" ? detail.value : "", 4_000) };
-        }),
-        ...(source.provenance ? { provenance: Object.fromEntries(
-          Object.entries(asRecord(source.provenance)).filter(([key, value]) =>
-            ["method", "eventType", "sessionId", "turnId", "agentId", "timestamp"].includes(key) && typeof value === "string"
-          ).map(([key, value]) => [key, clamp(String(value), 240)]),
-        ) } : {}),
+        ...common([
+          "schema",
+          "noticeId",
+          "severity",
+          "category",
+          "scope",
+          "recoverable",
+          "userActionable",
+          "summary",
+        ]),
+        details: (Array.isArray(source.details) ? source.details : [])
+          .slice(0, 64)
+          .map((value) => {
+            const detail = asRecord(value);
+            return {
+              name: clamp(
+                typeof detail.name === "string" ? detail.name : "Detail",
+                160,
+              ),
+              value: clamp(
+                typeof detail.value === "string" ? detail.value : "",
+                4_000,
+              ),
+            };
+          }),
+        ...(source.provenance
+          ? {
+              provenance: Object.fromEntries(
+                Object.entries(asRecord(source.provenance))
+                  .filter(
+                    ([key, value]) =>
+                      [
+                        "method",
+                        "eventType",
+                        "sessionId",
+                        "turnId",
+                        "agentId",
+                        "timestamp",
+                      ].includes(key) && typeof value === "string",
+                  )
+                  .map(([key, value]) => [key, clamp(String(value), 240)]),
+              ),
+            }
+          : {}),
       };
   }
 }
@@ -276,7 +506,9 @@ function publicInteractionPayload(
           ...(question.options === undefined
             ? {}
             : { options: question.options.map((option) => clamp(option)) }),
-          ...(question.required === undefined ? {} : { required: question.required }),
+          ...(question.required === undefined
+            ? {}
+            : { required: question.required }),
         })),
       };
     case "confirmation":
@@ -319,8 +551,12 @@ function publicInteractionPayload(
         items: payload.items.map((item) => ({
           id: item.id,
           title: clamp(item.title),
-          ...(item.requireReason === undefined ? {} : { requireReason: item.requireReason }),
-          ...(item.lockedVerdict === undefined ? {} : { lockedVerdict: item.lockedVerdict }),
+          ...(item.requireReason === undefined
+            ? {}
+            : { requireReason: item.requireReason }),
+          ...(item.lockedVerdict === undefined
+            ? {}
+            : { lockedVerdict: item.lockedVerdict }),
         })),
       };
   }
@@ -346,11 +582,20 @@ function publicInteractionCard(
   };
 }
 
-function publicItem(item: CapabilityThreadItem, aliases: Aliases): CapabilityThreadItem {
+function publicItem(
+  item: CapabilityThreadItem,
+  aliases: Aliases,
+): CapabilityThreadItem {
   const id = aliases.text(item.id);
   switch (item.kind) {
     case "user_message":
-      return { kind: "user_message", id, at: item.at, author: item.author, body: item.body };
+      return {
+        kind: "user_message",
+        id,
+        at: item.at,
+        author: item.author,
+        body: item.body,
+      };
     case "agent_message":
       return {
         kind: "agent_message",
@@ -408,16 +653,20 @@ function publicItem(item: CapabilityThreadItem, aliases: Aliases): CapabilityThr
           files: item.changeSet.files.map((file) => ({
             path: clamp(file.path, 1024),
             operation: file.operation,
-            previousPath: file.previousPath === null ? null : clamp(file.previousPath, 1024),
+            previousPath:
+              file.previousPath === null
+                ? null
+                : clamp(file.previousPath, 1024),
             additions: file.additions,
             deletions: file.deletions,
             binary: file.binary,
             diff: file.diff === null ? null : clamp(file.diff, 262_144),
           })),
           totals: { ...item.changeSet.totals },
-          patchArtifactRef: item.changeSet.patchArtifactRef === null
-            ? null
-            : clamp(item.changeSet.patchArtifactRef, 2048),
+          patchArtifactRef:
+            item.changeSet.patchArtifactRef === null
+              ? null
+              : clamp(item.changeSet.patchArtifactRef, 2048),
         },
       };
     case "workspace_file_reference":
@@ -431,10 +680,16 @@ function publicItem(item: CapabilityThreadItem, aliases: Aliases): CapabilityThr
           source: item.reference.source,
           path: clamp(item.reference.path, 1024),
           displayName: clamp(item.reference.displayName, 255),
-          mediaType: item.reference.mediaType === null ? null : clamp(item.reference.mediaType, 160),
+          mediaType:
+            item.reference.mediaType === null
+              ? null
+              : clamp(item.reference.mediaType, 160),
           presentation: item.reference.presentation,
           line: item.reference.line,
-          preview: item.reference.preview === null ? null : clamp(item.reference.preview, 262_144),
+          preview:
+            item.reference.preview === null
+              ? null
+              : clamp(item.reference.preview, 262_144),
           previewTruncated: item.reference.previewTruncated,
           contentDigest: item.reference.contentDigest,
         },
@@ -442,10 +697,16 @@ function publicItem(item: CapabilityThreadItem, aliases: Aliases): CapabilityThr
     case "provider_activity": {
       const payload = publicProviderPayload(item.family, item.payload);
       return {
-        kind: "provider_activity", id, at: item.at, family: item.family,
-        eventType: clamp(item.eventType, 160), status: item.status,
-        title: clamp(item.title), summary: clamp(item.summary, MAX_BODY_CHARS),
-        payload, evidenceRef: publicRef(item.evidenceRef, aliases),
+        kind: "provider_activity",
+        id,
+        at: item.at,
+        family: item.family,
+        eventType: clamp(item.eventType, 160),
+        status: item.status,
+        title: clamp(item.title),
+        summary: clamp(item.summary, MAX_BODY_CHARS),
+        payload,
+        evidenceRef: publicRef(item.evidenceRef, aliases),
       };
     }
     case "interaction":
@@ -524,7 +785,10 @@ function publicItem(item: CapabilityThreadItem, aliases: Aliases): CapabilityThr
   }
 }
 
-function publicTurn(turn: CapabilityThreadTurn, aliases: Aliases): CapabilityThreadTurn {
+function publicTurn(
+  turn: CapabilityThreadTurn,
+  aliases: Aliases,
+): CapabilityThreadTurn {
   return {
     id: aliases.turn(turn.id),
     ordinal: turn.ordinal,
@@ -536,7 +800,10 @@ function publicTurn(turn: CapabilityThreadTurn, aliases: Aliases): CapabilityThr
   };
 }
 
-function publicTools(record: CapabilityEvidenceToolsRecord, aliases: Aliases): CapabilityEvidenceToolsRecord {
+function publicTools(
+  record: CapabilityEvidenceToolsRecord,
+  aliases: Aliases,
+): CapabilityEvidenceToolsRecord {
   return {
     id: aliases.text(record.id),
     turnId: aliases.turn(record.turnId),
@@ -549,7 +816,10 @@ function publicTools(record: CapabilityEvidenceToolsRecord, aliases: Aliases): C
   };
 }
 
-function publicCall(record: CapabilityEvidenceCallRecord, aliases: Aliases): CapabilityEvidenceCallRecord {
+function publicCall(
+  record: CapabilityEvidenceCallRecord,
+  aliases: Aliases,
+): CapabilityEvidenceCallRecord {
   return {
     id: aliases.text(record.id),
     turnId: aliases.turn(record.turnId),
@@ -578,7 +848,10 @@ function publicAuthorization(
     reason: clamp(record.reason, MAX_BODY_CHARS),
     claimsConsidered: record.claimsConsidered.map((claim) => clamp(claim)),
     redactions: record.redactions.map((entry) => clamp(entry)),
-    stateChangeRef: record.stateChangeRef === null ? null : aliases.text(record.stateChangeRef),
+    stateChangeRef:
+      record.stateChangeRef === null
+        ? null
+        : aliases.text(record.stateChangeRef),
     threadAnchorId: aliases.text(record.threadAnchorId),
   };
 }
@@ -594,7 +867,10 @@ function publicControlPlane(
     outcome: clamp(record.outcome),
     reason: clamp(record.reason, MAX_BODY_CHARS),
     stateRevision: record.stateRevision,
-    threadAnchorId: record.threadAnchorId === null ? null : aliases.text(record.threadAnchorId),
+    threadAnchorId:
+      record.threadAnchorId === null
+        ? null
+        : aliases.text(record.threadAnchorId),
   };
 }
 
@@ -664,15 +940,24 @@ function publicParity(
   };
 }
 
-function publicEvidence(evidence: CapabilityEvidenceModel, aliases: Aliases): CapabilityEvidenceModel {
+function publicEvidence(
+  evidence: CapabilityEvidenceModel,
+  aliases: Aliases,
+): CapabilityEvidenceModel {
   return {
     tools: evidence.tools.map((record) => publicTools(record, aliases)),
     calls: evidence.calls.map((record) => publicCall(record, aliases)),
-    authorization: evidence.authorization.map((record) => publicAuthorization(record, aliases)),
-    control_plane: evidence.control_plane.map((record) => publicControlPlane(record, aliases)),
+    authorization: evidence.authorization.map((record) =>
+      publicAuthorization(record, aliases),
+    ),
+    control_plane: evidence.control_plane.map((record) =>
+      publicControlPlane(record, aliases),
+    ),
     runner: evidence.runner.map((record) => publicRunner(record, aliases)),
     state: evidence.state.map((record) => publicStateDiff(record, aliases)),
-    traceability: evidence.traceability.map((record) => publicTraceability(record, aliases)),
+    traceability: evidence.traceability.map((record) =>
+      publicTraceability(record, aliases),
+    ),
     parity: evidence.parity.map((record) => publicParity(record, aliases)),
   };
 }
@@ -683,9 +968,13 @@ function publicEvidence(evidence: CapabilityEvidenceModel, aliases: Aliases): Ca
  * nobody anticipated still cannot ship, and so the property is testable by
  * scanning bytes rather than by reasoning about call graphs.
  */
-function scrubWithheld(view: CapabilityPublicIssueThreadView, values: readonly string[]): CapabilityPublicIssueThreadView {
-  const scrubbable = [...new Set(values.filter((value) => value.length >= MIN_SCRUBBABLE_LENGTH))]
-    .sort((left, right) => right.length - left.length);
+function scrubWithheld(
+  view: CapabilityPublicIssueThreadView,
+  values: readonly string[],
+): CapabilityPublicIssueThreadView {
+  const scrubbable = [
+    ...new Set(values.filter((value) => value.length >= MIN_SCRUBBABLE_LENGTH)),
+  ].sort((left, right) => right.length - left.length);
   if (scrubbable.length === 0) return view;
   let encoded = JSON.stringify(view);
   let replaced = false;
@@ -739,14 +1028,21 @@ export function toCapabilityPublicThreadView(
     turns: view.turns.map((turn) => publicTurn(turn, aliases)),
     composer: {
       state: view.composer.state,
-      helper: view.composer.helper === null ? null : clamp(view.composer.helper),
-      reason: view.composer.reason === null ? null : clamp(view.composer.reason),
+      helper:
+        view.composer.helper === null ? null : clamp(view.composer.helper),
+      reason:
+        view.composer.reason === null ? null : clamp(view.composer.reason),
       pendingInteractionId: view.composer.pendingInteractionId,
     },
     evidence: publicEvidence(view.evidence, aliases),
-    connection: { state: view.connection.state, attempt: view.connection.attempt },
+    connection: {
+      state: view.connection.state,
+      attempt: view.connection.attempt,
+    },
     replay:
-      view.replay === null ? null : { ordinal: view.replay.ordinal, total: view.replay.total },
+      view.replay === null
+        ? null
+        : { ordinal: view.replay.ordinal, total: view.replay.total },
     renderedAt: view.renderedAt,
   };
   return scrubWithheld(published, options.withheldValues ?? []);

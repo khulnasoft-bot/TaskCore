@@ -23,7 +23,9 @@ const {
 type ToolConnectionRow = typeof toolConnections.$inferSelect;
 type ToolInvocationRow = typeof toolInvocations.$inferSelect;
 
-function connectionRow(overrides: Record<string, unknown> = {}): ToolConnectionRow {
+function connectionRow(
+  overrides: Record<string, unknown> = {},
+): ToolConnectionRow {
   return {
     id: "conn-1",
     connectionPurpose: "tool",
@@ -36,7 +38,9 @@ function connectionRow(overrides: Record<string, unknown> = {}): ToolConnectionR
   } as unknown as ToolConnectionRow;
 }
 
-function invocationRow(overrides: Record<string, unknown> = {}): ToolInvocationRow {
+function invocationRow(
+  overrides: Record<string, unknown> = {},
+): ToolInvocationRow {
   return {
     id: "inv-1",
     connectionId: "conn-1",
@@ -92,14 +96,20 @@ describe("connectorKeyForConnection", () => {
 
   it("reports custom for keys outside the catalog", () => {
     expect(
-      connectorKeyForConnection(connectionRow({ config: { sourceTemplateKey: "my-internal-server" } })),
+      connectorKeyForConnection(
+        connectionRow({ config: { sourceTemplateKey: "my-internal-server" } }),
+      ),
     ).toBe("custom");
   });
 
   it("reports custom when the key is missing or not a string", () => {
-    expect(connectorKeyForConnection(connectionRow({ config: {} }))).toBe("custom");
+    expect(connectorKeyForConnection(connectionRow({ config: {} }))).toBe(
+      "custom",
+    );
     expect(
-      connectorKeyForConnection(connectionRow({ config: { sourceTemplateKey: 42 } })),
+      connectorKeyForConnection(
+        connectionRow({ config: { sourceTemplateKey: 42 } }),
+      ),
     ).toBe("custom");
   });
 });
@@ -108,7 +118,12 @@ describe("invocationOrigin", () => {
   it("labels user-driven connection tests without run context as setup_test", () => {
     expect(
       invocationOrigin(
-        invocationRow({ actorType: "user", runId: null, issueId: null, gatewayId: null }),
+        invocationRow({
+          actorType: "user",
+          runId: null,
+          issueId: null,
+          gatewayId: null,
+        }),
       ),
     ).toBe("setup_test");
   });
@@ -133,20 +148,27 @@ describe("emitConnectionCreated", () => {
   });
 
   it("never emits for channel or AI connections", () => {
-    emitConnectionCreated(connectionRow({ connectionPurpose: "channel" }), "api");
+    emitConnectionCreated(
+      connectionRow({ connectionPurpose: "channel" }),
+      "api",
+    );
     expect(track).not.toHaveBeenCalled();
   });
 
   it("is a no-op without an initialized telemetry client", () => {
     telemetryClient = null;
-    expect(() => emitConnectionCreated(connectionRow(), "gallery")).not.toThrow();
+    expect(() =>
+      emitConnectionCreated(connectionRow(), "gallery"),
+    ).not.toThrow();
   });
 
   it("swallows client failures instead of failing the setup path", () => {
     track.mockImplementation(() => {
       throw new Error("sink offline");
     });
-    expect(() => emitConnectionCreated(connectionRow(), "gallery")).not.toThrow();
+    expect(() =>
+      emitConnectionCreated(connectionRow(), "gallery"),
+    ).not.toThrow();
   });
 });
 
@@ -203,7 +225,10 @@ describe("emitConnectionUpdated", () => {
 
 describe("emitConnectionInvoked", () => {
   it("emits terminal outcome, origin, and duration from the committed row", async () => {
-    await emitConnectionInvoked(fakeDb(invocationRow(), connectionRow()), "inv-1");
+    await emitConnectionInvoked(
+      fakeDb(invocationRow(), connectionRow()),
+      "inv-1",
+    );
     expect(track).toHaveBeenCalledWith("connection.invoked", {
       connector_key: "github",
       transport: "mcp_remote",
@@ -215,7 +240,10 @@ describe("emitConnectionInvoked", () => {
 
   it("omits duration when the invocation never recorded a start time", async () => {
     await emitConnectionInvoked(
-      fakeDb(invocationRow({ startedAt: null, status: "denied" }), connectionRow()),
+      fakeDb(
+        invocationRow({ startedAt: null, status: "denied" }),
+        connectionRow(),
+      ),
       "inv-1",
     );
     expect(track.mock.calls[0]?.[1]).not.toHaveProperty("duration_seconds");
@@ -255,9 +283,7 @@ describe("emitConnectionInvoked", () => {
     await emitConnectionInvoked(db, "inv-1");
     expect(db.selectCalls()).toBe(0);
     expect(track).not.toHaveBeenCalled();
-    expect(isRegisteredEventName).toHaveBeenCalledWith(
-      "connection.invoked",
-    );
+    expect(isRegisteredEventName).toHaveBeenCalledWith("connection.invoked");
   });
 
   it("loads the invocation and connection with a single read once registered", async () => {

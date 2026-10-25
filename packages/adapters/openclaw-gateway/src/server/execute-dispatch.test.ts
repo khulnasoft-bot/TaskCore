@@ -28,17 +28,25 @@ vi.mock("ws", async () => {
           return;
         }
         this.emit("open");
-        this.emit("message", JSON.stringify({
-          type: "event",
-          event: "connect.challenge",
-          payload: { nonce: "test-nonce" },
-        }));
+        this.emit(
+          "message",
+          JSON.stringify({
+            type: "event",
+            event: "connect.challenge",
+            payload: { nonce: "test-nonce" },
+          }),
+        );
       });
     }
 
     send(payload: string) {
-      const request = JSON.parse(payload) as { id: string; method: string; params?: { message?: string } };
-      if (request.method === "agent") websocketState.messages.push(request.params?.message ?? "");
+      const request = JSON.parse(payload) as {
+        id: string;
+        method: string;
+        params?: { message?: string };
+      };
+      if (request.method === "agent")
+        websocketState.messages.push(request.params?.message ?? "");
       websocketState.events.push(`send:${request.method}`);
       if (request.method === "agent" && websocketState.failAgentRequests > 0) {
         websocketState.failAgentRequests--;
@@ -47,16 +55,20 @@ vi.mock("ws", async () => {
         });
         return;
       }
-      const responsePayload = request.method === "connect"
-        ? { protocol: 3 }
-        : { status: "ok", runId: "remote-run-1", summary: "done" };
+      const responsePayload =
+        request.method === "connect"
+          ? { protocol: 3 }
+          : { status: "ok", runId: "remote-run-1", summary: "done" };
       queueMicrotask(() => {
-        this.emit("message", JSON.stringify({
-          type: "res",
-          id: request.id,
-          ok: true,
-          payload: responsePayload,
-        }));
+        this.emit(
+          "message",
+          JSON.stringify({
+            type: "res",
+            id: request.id,
+            ok: true,
+            payload: responsePayload,
+          }),
+        );
       });
     }
 
@@ -68,10 +80,12 @@ vi.mock("ws", async () => {
 
 import { execute } from "./execute.js";
 
-function createContext(input: {
-  onDispatch?: () => void;
-  onLog?: AdapterExecutionContext["onLog"];
-} = {}): AdapterExecutionContext {
+function createContext(
+  input: {
+    onDispatch?: () => void;
+    onLog?: AdapterExecutionContext["onLog"];
+  } = {},
+): AdapterExecutionContext {
   return {
     runId: "run-1",
     agent: {
@@ -115,33 +129,37 @@ describe("openclaw_gateway execute dispatch boundary", () => {
     vi.useRealTimers();
   });
 
-  it.each([false, true])("sends conversation policy without the issue-completion workflow (resumed=%s)", async (resumed) => {
-    const ctx = createContext();
-    const directive = "Chat directive: clarify goals and hand plans off to project tasks.";
-    ctx.context = {
-      ...ctx.context,
-      conversationMode: true,
-      taskcoreTaskMarkdown: directive,
-      taskcoreTaskMarkdownCompact: directive,
-      taskcoreWake: {
-        reason: "issue_commented",
-        issue: { id: "issue-1", workMode: "planning", status: "in_progress" },
-        interactionKind: "request_confirmation",
-        interactionStatus: "accepted",
-      },
-    };
-    if (resumed) ctx.runtime.sessionId = "prior-session";
-    const result = await execute(ctx);
-    expect(result.exitCode).toBe(0);
-    expect(websocketState.messages).toHaveLength(1);
-    const prompt = websocketState.messages[0]!;
-    expect(prompt).toContain(directive);
-    expect(prompt).toContain("X-Taskcore-Run-Id");
-    expect(prompt).not.toContain("Execution contract:");
-    expect(prompt).not.toContain("Create child issues");
-    expect(prompt).not.toContain('"status":"done"');
-    expect(prompt).not.toContain("GET /api/issues/{issueId}/comments");
-  });
+  it.each([false, true])(
+    "sends conversation policy without the issue-completion workflow (resumed=%s)",
+    async (resumed) => {
+      const ctx = createContext();
+      const directive =
+        "Chat directive: clarify goals and hand plans off to project tasks.";
+      ctx.context = {
+        ...ctx.context,
+        conversationMode: true,
+        taskcoreTaskMarkdown: directive,
+        taskcoreTaskMarkdownCompact: directive,
+        taskcoreWake: {
+          reason: "issue_commented",
+          issue: { id: "issue-1", workMode: "planning", status: "in_progress" },
+          interactionKind: "request_confirmation",
+          interactionStatus: "accepted",
+        },
+      };
+      if (resumed) ctx.runtime.sessionId = "prior-session";
+      const result = await execute(ctx);
+      expect(result.exitCode).toBe(0);
+      expect(websocketState.messages).toHaveLength(1);
+      const prompt = websocketState.messages[0]!;
+      expect(prompt).toContain(directive);
+      expect(prompt).toContain("X-Taskcore-Run-Id");
+      expect(prompt).not.toContain("Execution contract:");
+      expect(prompt).not.toContain("Create child issues");
+      expect(prompt).not.toContain('"status":"done"');
+      expect(prompt).not.toContain("GET /api/issues/{issueId}/comments");
+    },
+  );
 
   it("sends assignment context on an ordinary gateway task turn", async () => {
     const ctx = createContext();
@@ -151,7 +169,9 @@ describe("openclaw_gateway execute dispatch boundary", () => {
     expect(websocketState.messages).toHaveLength(1);
     const prompt = websocketState.messages[0]!;
     expect(prompt).toContain("## Owned assignment");
-    expect(prompt.indexOf("Append the same ledger entry.")).toBeLessThan(prompt.indexOf("Change the final scope to the launch checklist."));
+    expect(prompt.indexOf("Append the same ledger entry.")).toBeLessThan(
+      prompt.indexOf("Change the final scope to the launch checklist."),
+    );
     expect(prompt.split("Append the same ledger entry.")).toHaveLength(3);
     expect(prompt).not.toContain("Structured wake payload JSON:");
   });
@@ -185,12 +205,14 @@ describe("openclaw_gateway execute dispatch boundary", () => {
       resolveAuthorityChange = resolve;
     });
     const onDispatch = vi.fn(resolveAuthorityChange);
-    const resultPromise = execute(createContext({
-      onDispatch,
-      onLog: async (_stream, chunk) => {
-        if (chunk.includes("transient error, retry")) resolveBackoff();
-      },
-    }));
+    const resultPromise = execute(
+      createContext({
+        onDispatch,
+        onLog: async (_stream, chunk) => {
+          if (chunk.includes("transient error, retry")) resolveBackoff();
+        },
+      }),
+    );
 
     await backoffReached;
     expect(websocketState.connectionAttempts).toBe(1);

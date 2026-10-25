@@ -26,7 +26,9 @@ export default defineConfig({
   root: resolve(packageRoot, "devtools/issue-thread"),
   plugins: [
     react(),
-    capabilityIssueThreadServerPlugin({ transportFactory: capabilityStreamFixtureTransportFactory }),
+    capabilityIssueThreadServerPlugin({
+      transportFactory: capabilityStreamFixtureTransportFactory,
+    }),
   ],
   server: { host: "127.0.0.1" },
   preview: { host: "127.0.0.1" },

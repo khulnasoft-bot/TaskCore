@@ -1,4 +1,13 @@
-import { chmod, mkdir, mkdtemp, open, readFile, rename, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
@@ -10,7 +19,10 @@ import {
   resolveManagedGrokHomeDir,
   type GrokAuthPayload,
 } from "./grok-home.js";
-import { USE_SOURCE_EXIT, decideGrokAuthMerge } from "./grok-auth-merge-decision.js";
+import {
+  USE_SOURCE_EXIT,
+  decideGrokAuthMerge,
+} from "./grok-auth-merge-decision.js";
 
 // The Grok device-login credential promotion. It runs after a successful
 // device login, on the exact credential the login sandbox produced. It mirrors
@@ -68,7 +80,9 @@ export interface CredentialReadinessResult {
 export class DeviceLoginReadinessError extends Error {
   readonly reason: string;
   constructor(reason: string) {
-    super(`grok device-login promotion: the readiness check did not pass (${reason})`);
+    super(
+      `grok device-login promotion: the readiness check did not pass (${reason})`,
+    );
     this.name = "DeviceLoginReadinessError";
     this.reason = reason;
   }
@@ -94,9 +108,14 @@ export async function checkStagedGrokCredentialReadiness(
   if (authBytes.length === 0) {
     return { ready: false, reason: "empty_credential" };
   }
-  const scratchHome = await mkdtemp(path.join(os.tmpdir(), "taskcore-grok-login-readiness-"));
+  const scratchHome = await mkdtemp(
+    path.join(os.tmpdir(), "taskcore-grok-login-readiness-"),
+  );
   try {
-    await mkdir(scratchHome, { recursive: true, mode: READINESS_HOME_DIR_MODE });
+    await mkdir(scratchHome, {
+      recursive: true,
+      mode: READINESS_HOME_DIR_MODE,
+    });
     await writeFile(path.join(scratchHome, AUTH_FILE_NAME), authBytes, {
       mode: READINESS_AUTH_FILE_MODE,
     });
@@ -114,10 +133,14 @@ export async function checkStagedGrokCredentialReadiness(
  */
 export function assertUsableGrokAuthShape(authBytes: Buffer): GrokAuthPayload {
   if (authBytes.length === 0) {
-    throw new Error("grok device-login promotion: refused an empty auth payload");
+    throw new Error(
+      "grok device-login promotion: refused an empty auth payload",
+    );
   }
   if (authBytes.length > MAX_AUTH_JSON_BYTES) {
-    throw new Error("grok device-login promotion: refused an oversized auth payload");
+    throw new Error(
+      "grok device-login promotion: refused an oversized auth payload",
+    );
   }
   let parsedJson: unknown;
   try {
@@ -205,10 +228,18 @@ function requireSafeCompanyId(companyId: string): string {
     throw new Error("grok device-login promotion: companyId is empty");
   }
   if (trimmed === "." || trimmed === "..") {
-    throw new Error("grok device-login promotion: companyId is a relative path segment");
+    throw new Error(
+      "grok device-login promotion: companyId is a relative path segment",
+    );
   }
-  if (trimmed.includes("/") || trimmed.includes("\\") || trimmed.includes("\0")) {
-    throw new Error("grok device-login promotion: companyId contains a path separator");
+  if (
+    trimmed.includes("/") ||
+    trimmed.includes("\\") ||
+    trimmed.includes("\0")
+  ) {
+    throw new Error(
+      "grok device-login promotion: companyId contains a path separator",
+    );
   }
   return trimmed;
 }
@@ -224,17 +255,26 @@ function requireSafeCompanyId(companyId: string): string {
  *   treat this the same as an occupied home with an unknown account: it
  *   fails closed and never overwrites the file.
  */
-type ExistingHomeState = { kind: "absent" } | { kind: "identity"; identityKey: string } | { kind: "unreadable" };
+type ExistingHomeState =
+  | { kind: "absent" }
+  | { kind: "identity"; identityKey: string }
+  | { kind: "unreadable" };
 
 function isEnoentError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as NodeJS.ErrnoException).code === "ENOENT";
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as NodeJS.ErrnoException).code === "ENOENT"
+  );
 }
 
 /** Reads the existing home's state at `authPath`. A read failure other than
  *  a missing file, an invalid-JSON payload, or a non-Grok payload all
  *  resolve to `unreadable`, so the caller fails closed on any of them. Only
  *  a missing file resolves to `absent`. */
-async function readExistingHomeState(authPath: string): Promise<ExistingHomeState> {
+async function readExistingHomeState(
+  authPath: string,
+): Promise<ExistingHomeState> {
   let existingBytes: Buffer;
   try {
     existingBytes = await readFile(authPath);
@@ -248,7 +288,9 @@ async function readExistingHomeState(authPath: string): Promise<ExistingHomeStat
     return { kind: "unreadable" };
   }
   const payload = parseGrokAuthPayload(existingJson);
-  return payload ? { kind: "identity", identityKey: payload.identityKey } : { kind: "unreadable" };
+  return payload
+    ? { kind: "identity", identityKey: payload.identityKey }
+    : { kind: "unreadable" };
 }
 
 /**
@@ -259,7 +301,10 @@ async function readExistingHomeState(authPath: string): Promise<ExistingHomeStat
  * leaves the destination untouched. The temporary file is always removed,
  * so a failed write never leaves stray bytes behind.
  */
-async function writeAuthFileAtomically(authPath: string, authBytes: Buffer): Promise<void> {
+async function writeAuthFileAtomically(
+  authPath: string,
+  authBytes: Buffer,
+): Promise<void> {
   const stagedTempPath = path.join(
     path.dirname(authPath),
     `.auth-${process.pid}-${randomUUID()}.tmp`,
@@ -325,7 +370,8 @@ async function writeSameIdentityCredentialIfFresher(
 export async function promoteGrokDeviceLoginCredential(
   input: PromoteGrokDeviceLoginCredentialInput,
 ): Promise<PromoteGrokDeviceLoginCredentialOutcome> {
-  const { authBytes, userInitiated, checkReadiness, isSoleActiveOwner, log } = input;
+  const { authBytes, userInitiated, checkReadiness, isSoleActiveOwner, log } =
+    input;
   const env = input.env ?? process.env;
   const companyId = requireSafeCompanyId(input.companyId);
 
@@ -393,7 +439,10 @@ export async function promoteGrokDeviceLoginCredential(
         );
         return "kept_foreign_identity";
       }
-      if (existingState.kind === "identity" && existingState.identityKey !== payload.identityKey) {
+      if (
+        existingState.kind === "identity" &&
+        existingState.identityKey !== payload.identityKey
+      ) {
         await log(
           "[taskcore] Grok device-login promotion: kept the company credential home (the login is a different account than the one already set for this company).",
         );
@@ -403,19 +452,26 @@ export async function promoteGrokDeviceLoginCredential(
       await chmod(canonicalCompanyHome, PRIVATE_DIR_MODE);
 
       if (existingState.kind === "identity") {
-        const wrote = await writeSameIdentityCredentialIfFresher(authBytes, authPath);
+        const wrote = await writeSameIdentityCredentialIfFresher(
+          authBytes,
+          authPath,
+        );
         if (!wrote) {
           await log(
             "[taskcore] Grok device-login promotion: kept the company credential home (the existing same-identity credential is not older than the device-login credential).",
           );
           return "kept";
         }
-        await log("[taskcore] Grok device-login promotion: wrote the company credential home at mode 0600.");
+        await log(
+          "[taskcore] Grok device-login promotion: wrote the company credential home at mode 0600.",
+        );
         return "promoted";
       }
 
       await writeAuthFileAtomically(authPath, authBytes);
-      await log("[taskcore] Grok device-login promotion: wrote the company credential home at mode 0600.");
+      await log(
+        "[taskcore] Grok device-login promotion: wrote the company credential home at mode 0600.",
+      );
       return "promoted";
     },
     env,

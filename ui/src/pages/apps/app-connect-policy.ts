@@ -8,35 +8,51 @@ import {
   type AppDefinition,
 } from "@taskcore/shared";
 
-export function appSupportsToolCatalogSetup(entry: AppDefinition | null | undefined): boolean {
+export function appSupportsToolCatalogSetup(
+  entry: AppDefinition | null | undefined,
+): boolean {
   return Boolean(
-    entry && appSupportsCatalogSetup({
+    entry &&
+    appSupportsCatalogSetup({
       ...entry,
       methods: entry.methods.filter(
-        (method) => (method.purpose ?? "tool") !== "channel" && method.transport !== "chat_sdk",
+        (method) =>
+          (method.purpose ?? "tool") !== "channel" &&
+          method.transport !== "chat_sdk",
       ),
     }),
   );
 }
 
-export const MCP_DIRECT_OAUTH_CONNECT_SLUGS = APP_STORE_DEFINITIONS
-  .filter((app) => getAvailableConnectionMethods(app).some((method) =>
-    connectionMethodSupportsAutomaticOAuth(method)
-  ))
-  .map((app) => app.slug);
+export const MCP_DIRECT_OAUTH_CONNECT_SLUGS = APP_STORE_DEFINITIONS.filter(
+  (app) =>
+    getAvailableConnectionMethods(app).some((method) =>
+      connectionMethodSupportsAutomaticOAuth(method),
+    ),
+).map((app) => app.slug);
 
-export function isMcpDirectOAuthConnectSlug(slug: string | null | undefined): boolean {
-  return MCP_DIRECT_OAUTH_CONNECT_SLUGS.some((allowedSlug) => allowedSlug === slug);
+export function isMcpDirectOAuthConnectSlug(
+  slug: string | null | undefined,
+): boolean {
+  return MCP_DIRECT_OAUTH_CONNECT_SLUGS.some(
+    (allowedSlug) => allowedSlug === slug,
+  );
 }
 
-export function appSourceConnectHref(slug: string, interactionId?: string | null): string {
+export function appSourceConnectHref(
+  slug: string,
+  interactionId?: string | null,
+): string {
   const params = new URLSearchParams({ source: slug });
   if (interactionId) params.set("intent", interactionId);
   return `/apps/connect?${params.toString()}`;
 }
 
 /** Resume one exact draft through the same setup wizard used for a new app. */
-export function appSourceResumeHref(slug: string, connectionId: string): string {
+export function appSourceResumeHref(
+  slug: string,
+  connectionId: string,
+): string {
   return `/apps/connect?${new URLSearchParams({ source: slug, resume: connectionId }).toString()}`;
 }
 
@@ -61,9 +77,9 @@ export function canEnterAppsConnect(
     // The old BYO discovery page has moved to the Connectors list. Keep only
     // exact custom-connection reconnects using this legacy query contract.
     return Boolean(
-      searchParams.get("reconnect")?.trim()
-      && searchParams.get("applicationId")?.trim()
-      && searchParams.get("link")?.trim(),
+      searchParams.get("reconnect")?.trim() &&
+      searchParams.get("applicationId")?.trim() &&
+      searchParams.get("link")?.trim(),
     );
   }
   const source = searchParams.get("source") ?? "";
@@ -77,11 +93,22 @@ export function canEnterAppsConnect(
   if (
     !chatConnectorsEnabled &&
     entry?.methods.some((method) => method.transport === "chat_sdk") &&
-    !entry.methods.some((method) => (method.purpose ?? "tool") !== "channel" && method.transport !== "chat_sdk")
-  ) return false;
+    !entry.methods.some(
+      (method) =>
+        (method.purpose ?? "tool") !== "channel" &&
+        method.transport !== "chat_sdk",
+    )
+  )
+    return false;
   // A retained connection may belong to a provider hidden from fresh catalog
   // setup. Admit only known providers here; the setup flow then proves the
   // exact reconnect target is visible to the selected company before rendering.
-  if (getConnectableAppDefinition(source) && searchParams.get("reconnect")?.trim()) return true;
-  return source === "agentmail" || chatConnectorsEnabled ? appSupportsCatalogSetup(entry) : appSupportsToolCatalogSetup(entry);
+  if (
+    getConnectableAppDefinition(source) &&
+    searchParams.get("reconnect")?.trim()
+  )
+    return true;
+  return source === "agentmail" || chatConnectorsEnabled
+    ? appSupportsCatalogSetup(entry)
+    : appSupportsToolCatalogSetup(entry);
 }

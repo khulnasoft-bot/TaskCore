@@ -17,7 +17,11 @@ vi.mock("@/lib/router", () => ({
     children: ReactNode;
     disableIssueQuicklook?: boolean;
   }) => (
-    <a href={to} data-disable-issue-quicklook={disableIssueQuicklook ? "true" : undefined} {...props}>
+    <a
+      href={to}
+      data-disable-issue-quicklook={disableIssueQuicklook ? "true" : undefined}
+      {...props}
+    >
       {children}
     </a>
   ),
@@ -26,7 +30,9 @@ vi.mock("@/lib/router", () => ({
 import { ArtifactCard } from "./ArtifactCard";
 import type { CompanyArtifact } from "@/api/artifacts";
 
-function makeArtifact(overrides: Partial<CompanyArtifact> = {}): CompanyArtifact {
+function makeArtifact(
+  overrides: Partial<CompanyArtifact> = {},
+): CompanyArtifact {
   return {
     id: "art-1",
     source: "attachment",
@@ -50,7 +56,9 @@ function makeArtifact(overrides: Partial<CompanyArtifact> = {}): CompanyArtifact
 
 describe("ArtifactCard", () => {
   it("renders an image preview with cover image and links to the issue anchor", () => {
-    const markup = renderToStaticMarkup(<ArtifactCard artifact={makeArtifact()} />);
+    const markup = renderToStaticMarkup(
+      <ArtifactCard artifact={makeArtifact()} />,
+    );
     expect(markup).toContain('href="/issues/PAP-10306#attachment-art-1"');
     expect(markup).toContain('data-disable-issue-quicklook="true"');
     expect(markup).toContain('data-media-kind="image"');
@@ -70,7 +78,11 @@ describe("ArtifactCard", () => {
       <ArtifactCard
         artifact={makeArtifact({
           title: "Social launch clip",
-          issue: { id: "issue-2", identifier: "PAP-10370", title: "Make artifact page look like this" },
+          issue: {
+            id: "issue-2",
+            identifier: "PAP-10370",
+            title: "Make artifact page look like this",
+          },
           updatedAt: new Date(2025, 9, 8, 12, 0, 0, 0).toISOString(),
           createdByAgent: null,
         })}
@@ -86,7 +98,11 @@ describe("ArtifactCard", () => {
   it("renders a video preview with a video element and play glyph", () => {
     const markup = renderToStaticMarkup(
       <ArtifactCard
-        artifact={makeArtifact({ mediaKind: "video", contentType: "video/mp4", contentPath: "/files/clip.mp4" })}
+        artifact={makeArtifact({
+          mediaKind: "video",
+          contentType: "video/mp4",
+          contentPath: "/files/clip.mp4",
+        })}
       />,
     );
     expect(markup).toContain('data-media-kind="video"');
@@ -102,7 +118,11 @@ describe("ArtifactCard", () => {
     flushSync(() => {
       root.render(
         <ArtifactCard
-          artifact={makeArtifact({ mediaKind: "video", contentType: "video/mp4", contentPath: "/files/clip.mp4" })}
+          artifact={makeArtifact({
+            mediaKind: "video",
+            contentType: "video/mp4",
+            contentPath: "/files/clip.mp4",
+          })}
         />,
       );
     });
@@ -135,9 +155,14 @@ describe("ArtifactCard", () => {
   it("seeks into clips and resets thumbnail state when the source changes", () => {
     const container = document.createElement("div");
     const root = createRoot(container);
-    const render = (contentPath: string) => flushSync(() => root.render(
-      <ArtifactCard artifact={makeArtifact({ mediaKind: "video", contentPath })} />,
-    ));
+    const render = (contentPath: string) =>
+      flushSync(() =>
+        root.render(
+          <ArtifactCard
+            artifact={makeArtifact({ mediaKind: "video", contentPath })}
+          />,
+        ),
+      );
     try {
       render("/first.mp4");
       const first = container.querySelector("video")!;
@@ -170,7 +195,11 @@ describe("ArtifactCard", () => {
       flushSync(() => {
         root.render(
           <ArtifactCard
-            artifact={makeArtifact({ mediaKind: "video", contentType: "video/mp4", contentPath: "/files/clip.mp4" })}
+            artifact={makeArtifact({
+              mediaKind: "video",
+              contentType: "video/mp4",
+              contentPath: "/files/clip.mp4",
+            })}
           />,
         );
       });
@@ -200,7 +229,9 @@ describe("ArtifactCard", () => {
 
   it("renders a falling-back video placeholder when no content path exists", () => {
     const markup = renderToStaticMarkup(
-      <ArtifactCard artifact={makeArtifact({ mediaKind: "video", contentPath: null })} />,
+      <ArtifactCard
+        artifact={makeArtifact({ mediaKind: "video", contentPath: null })}
+      />,
     );
     expect(markup).toContain('data-media-kind="video"');
     expect(markup).not.toContain("<video");
@@ -230,7 +261,12 @@ describe("ArtifactCard", () => {
   it("renders a placeholder for empty artifacts without an image or video", () => {
     const markup = renderToStaticMarkup(
       <ArtifactCard
-        artifact={makeArtifact({ mediaKind: "empty", contentType: null, contentPath: null, previewText: null })}
+        artifact={makeArtifact({
+          mediaKind: "empty",
+          contentType: null,
+          contentPath: null,
+          previewText: null,
+        })}
       />,
     );
     expect(markup).toContain('data-media-kind="empty"');

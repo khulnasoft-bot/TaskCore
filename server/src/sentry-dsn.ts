@@ -19,14 +19,17 @@ function normalize(value: string | undefined): string | null {
   return value ? value : null;
 }
 
-export function resolveSentryDsns(env: NodeJS.ProcessEnv = process.env): SentryDsns {
+export function resolveSentryDsns(
+  env: NodeJS.ProcessEnv = process.env,
+): SentryDsns {
   const legacy = normalize(env.SENTRY_DSN);
   const specificFrontend = normalize(env.SENTRY_DSN_FRONTEND);
   const specificBackend = normalize(env.SENTRY_DSN_BACKEND);
 
   const frontend = specificFrontend ?? legacy;
   const backend = specificBackend ?? legacy;
-  const legacyFallbackUsed = (specificFrontend === null || specificBackend === null) && legacy !== null;
+  const legacyFallbackUsed =
+    (specificFrontend === null || specificBackend === null) && legacy !== null;
 
   return { frontend, backend, legacyFallbackUsed };
 }

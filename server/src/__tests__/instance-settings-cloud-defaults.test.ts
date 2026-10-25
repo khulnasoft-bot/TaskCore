@@ -9,7 +9,9 @@ import {
 } from "../services/instance-settings.js";
 import type { ManagedInstanceConfig } from "../services/managed-config.js";
 
-function managedConfig(features: ManagedInstanceConfig["features"] = {}): ManagedInstanceConfig {
+function managedConfig(
+  features: ManagedInstanceConfig["features"] = {},
+): ManagedInstanceConfig {
   return {
     v: 1,
     mode: "cloud",
@@ -25,13 +27,20 @@ describe("applyCloudCatalogDefaults", () => {
     // The rule exists for flags that default on for self-hosted and off for
     // Cloud. If that set ever empties, the helper is dead code and should go.
     const guarded = Object.entries(INSTANCE_FEATURE_CATALOG)
-      .filter(([, entry]) => entry.selfHostedDefault === true && entry.cloudDefault === false)
+      .filter(
+        ([, entry]) =>
+          entry.selfHostedDefault === true && entry.cloudDefault === false,
+      )
       .map(([key]) => key);
     expect(guarded).toContain("enableNativeRunner");
   });
 
   it("leaves self-hosted instances on the schema default", () => {
-    const experimental = applyCloudCatalogDefaults(normalizeExperimentalSettings({}), {}, null);
+    const experimental = applyCloudCatalogDefaults(
+      normalizeExperimentalSettings({}),
+      {},
+      null,
+    );
     expect(experimental.enableNativeRunner).toBe(true);
   });
 
@@ -79,7 +88,11 @@ describe("applyCloudCatalogDefaults", () => {
 
 describe("stripCloudCatalogDefaultEchoes", () => {
   /** What `updateExperimental` would persist for a given row and patch. */
-  function persisted(rawStored: unknown, patch: Record<string, unknown>, config: ManagedInstanceConfig | null) {
+  function persisted(
+    rawStored: unknown,
+    patch: Record<string, unknown>,
+    config: ManagedInstanceConfig | null,
+  ) {
     return stripCloudCatalogDefaultEchoes(
       rawStored,
       patch,
@@ -89,9 +102,16 @@ describe("stripCloudCatalogDefaultEchoes", () => {
   }
 
   /** What a later read of that persisted row shows. */
-  function readBack(stored: Record<string, unknown>, config: ManagedInstanceConfig | null) {
+  function readBack(
+    stored: Record<string, unknown>,
+    config: ManagedInstanceConfig | null,
+  ) {
     return applyManagedExperimentalOverlay(
-      applyCloudCatalogDefaults(normalizeExperimentalSettings(stored), stored, config),
+      applyCloudCatalogDefaults(
+        normalizeExperimentalSettings(stored),
+        stored,
+        config,
+      ),
       config,
     ).experimental;
   }
@@ -107,7 +127,11 @@ describe("stripCloudCatalogDefaultEchoes", () => {
 
   it("treats a full-GET echo of the Cloud default as no choice", () => {
     const config = managedConfig();
-    const stored = persisted({}, { enableNativeRunner: false, enablePipelines: true }, config);
+    const stored = persisted(
+      {},
+      { enableNativeRunner: false, enablePipelines: true },
+      config,
+    );
     expect("enableNativeRunner" in stored).toBe(false);
     expect(readBack(stored, config).enableNativeRunner).toBe(false);
   });
@@ -121,7 +145,11 @@ describe("stripCloudCatalogDefaultEchoes", () => {
 
   it("keeps a stored tenant value across unrelated writes", () => {
     const config = managedConfig();
-    const stored = persisted({ enableNativeRunner: true }, { enablePipelines: true }, config);
+    const stored = persisted(
+      { enableNativeRunner: true },
+      { enablePipelines: true },
+      config,
+    );
     expect(stored.enableNativeRunner).toBe(true);
     expect(readBack(stored, config).enableNativeRunner).toBe(true);
   });
@@ -129,6 +157,8 @@ describe("stripCloudCatalogDefaultEchoes", () => {
   it("leaves the whole normalized object in place for self-hosted rows", () => {
     const stored = persisted({}, { enablePipelines: true }, null);
     expect(stored.enableNativeRunner).toBe(true);
-    expect(stored).toEqual(applyExperimentalSettingsPatch({}, { enablePipelines: true }));
+    expect(stored).toEqual(
+      applyExperimentalSettingsPatch({}, { enablePipelines: true }),
+    );
   });
 });

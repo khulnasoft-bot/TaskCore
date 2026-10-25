@@ -37,7 +37,9 @@ export type RoutineListRowItem = {
   } | null;
 };
 
-export function formatLastRunTimestamp(value: Date | string | null | undefined) {
+export function formatLastRunTimestamp(
+  value: Date | string | null | undefined,
+) {
   if (!value) return "Never";
   return new Date(value).toLocaleString();
 }
@@ -101,10 +103,15 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
   const enabled = routine.status === "active";
   const isArchived = routine.status === "archived";
   const isStatusPending = statusMutationRoutineId === routine.id;
-  const project = routine.projectId ? projectById.get(routine.projectId) ?? null : null;
-  const agent = routine.assigneeAgentId ? agentById.get(routine.assigneeAgentId) ?? null : null;
+  const project = routine.projectId
+    ? (projectById.get(routine.projectId) ?? null)
+    : null;
+  const agent = routine.assigneeAgentId
+    ? (agentById.get(routine.assigneeAgentId) ?? null)
+    : null;
   const isDraft = !isArchived && !routine.assigneeAgentId;
-  const runDisabled = runningRoutineId === routine.id || isArchived || disableRunNow;
+  const runDisabled =
+    runningRoutineId === routine.id || isArchived || disableRunNow;
 
   return (
     <Link
@@ -126,45 +133,75 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
             className="h-4 w-4 rounded border-border"
             checked={selected}
             aria-label={`Select ${routine.title}`}
-            onChange={(event) => onSelectChange?.(routine, event.target.checked)}
+            onChange={(event) =>
+              onSelectChange?.(routine, event.target.checked)
+            }
           />
         </div>
       ) : null}
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-medium">{routine.title}</span>
-          {(isArchived || routine.status === "paused" || isDraft) ? (
+          {isArchived || routine.status === "paused" || isDraft ? (
             <span className="text-xs text-muted-foreground">
               {isArchived ? "archived" : isDraft ? "draft" : "paused"}
             </span>
           ) : null}
           {managedByLabel ? (
-            <span className="text-xs text-muted-foreground">{managedByLabel}</span>
+            <span className="text-xs text-muted-foreground">
+              {managedByLabel}
+            </span>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
             <span
               className="h-2.5 w-2.5 shrink-0 rounded-sm"
-              style={{ backgroundColor: project?.color ?? "var(--project-none)" }}
+              style={{
+                backgroundColor: project?.color ?? "var(--project-none)",
+              }}
             />
-            <span>{routine.projectId ? (project?.name ?? "Unknown project") : "No project"}</span>
+            <span>
+              {routine.projectId
+                ? (project?.name ?? "Unknown project")
+                : "No project"}
+            </span>
           </span>
           <span className="flex items-center gap-2">
-            {routine.assigneeAgentId ? <AgentAvatar agent={{ ...agent, id: routine.assigneeAgentId }} size={16} className="h-3.5 w-3.5 shrink-0"/> : null}
-            <span>{routine.assigneeAgentId ? (agent?.name ?? "Unknown agent") : "No default agent"}</span>
+            {routine.assigneeAgentId ? (
+              <AgentAvatar
+                agent={{ ...agent, id: routine.assigneeAgentId }}
+                size={16}
+                className="h-3.5 w-3.5 shrink-0"
+              />
+            ) : null}
+            <span>
+              {routine.assigneeAgentId
+                ? (agent?.name ?? "Unknown agent")
+                : "No default agent"}
+            </span>
           </span>
           <span>
             {formatLastRunTimestamp(routine.lastRun?.triggeredAt)}
-            {routine.lastRun ? ` · ${formatRoutineRunStatus(routine.lastRun.status)}` : ""}
+            {routine.lastRun
+              ? ` · ${formatRoutineRunStatus(routine.lastRun.status)}`
+              : ""}
           </span>
         </div>
         {secondaryDetails ? (
-          <div className="text-xs text-muted-foreground">{secondaryDetails}</div>
+          <div className="text-xs text-muted-foreground">
+            {secondaryDetails}
+          </div>
         ) : null}
       </div>
 
-      <div className="flex items-center gap-3" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }}>
+      <div
+        className="flex items-center gap-3"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+      >
         {runNowButton ? (
           <Button
             variant="outline"
@@ -183,16 +220,28 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
             checked={enabled}
             onCheckedChange={() => onToggleEnabled(routine, enabled)}
             disabled={isStatusPending || isArchived || disableToggle}
-            aria-label={enabled ? `Disable ${routine.title}` : `Enable ${routine.title}`}
+            aria-label={
+              enabled ? `Disable ${routine.title}` : `Enable ${routine.title}`
+            }
           />
           <span className="w-12 text-xs text-muted-foreground">
-            {isArchived ? "Archived" : isDraft ? "Draft" : enabled ? "On" : "Off"}
+            {isArchived
+              ? "Archived"
+              : isDraft
+                ? "Draft"
+                : enabled
+                  ? "On"
+                  : "Off"}
           </span>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={`More actions for ${routine.title}`}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`More actions for ${routine.title}`}
+            >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

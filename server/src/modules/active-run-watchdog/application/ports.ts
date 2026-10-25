@@ -18,7 +18,10 @@ export type FindCandidateSilentRunsInput = {
 };
 
 export type FindLatestDecisionResult = {
-  quietUntilDecision: { decision: "snooze" | "continue"; snoozedUntil: Date } | null;
+  quietUntilDecision: {
+    decision: "snooze" | "continue";
+    snoozedUntil: Date;
+  } | null;
   dismissedFalsePositive: boolean;
 };
 
@@ -51,17 +54,38 @@ export type RunningAgentSnapshot = {
  * `findOpenStaleRunEvaluation`'s open-only, run-bound query cannot do.
  */
 export interface WatchdogRunReader {
-  findCandidateSilentRuns(input: FindCandidateSilentRunsInput): Promise<RunSnapshot[]>;
-  findRunForCompany(companyId: string, runId: string): Promise<RunSnapshot | null>;
-  findLatestDecision(companyId: string, runId: string, now: Date): Promise<FindLatestDecisionResult>;
-  findOpenStaleRunEvaluation(companyId: string, runId: string): Promise<EvaluationIssueSnapshot | null>;
+  findCandidateSilentRuns(
+    input: FindCandidateSilentRunsInput,
+  ): Promise<RunSnapshot[]>;
+  findRunForCompany(
+    companyId: string,
+    runId: string,
+  ): Promise<RunSnapshot | null>;
+  findLatestDecision(
+    companyId: string,
+    runId: string,
+    now: Date,
+  ): Promise<FindLatestDecisionResult>;
+  findOpenStaleRunEvaluation(
+    companyId: string,
+    runId: string,
+  ): Promise<EvaluationIssueSnapshot | null>;
   findLatestSameRunTerminalEvidence(
     companyId: string,
     input: FindLatestSameRunTerminalEvidenceInput,
   ): Promise<TerminalEvidence | null>;
-  findSourceIssue(companyId: string, issueId: string): Promise<SourceIssueSnapshot | null>;
-  findRunningAgent(companyId: string, agentId: string): Promise<RunningAgentSnapshot | null>;
-  findEvaluationIssueById(companyId: string, issueId: string): Promise<EvaluationIssueSnapshot | null>;
+  findSourceIssue(
+    companyId: string,
+    issueId: string,
+  ): Promise<SourceIssueSnapshot | null>;
+  findRunningAgent(
+    companyId: string,
+    agentId: string,
+  ): Promise<RunningAgentSnapshot | null>;
+  findEvaluationIssueById(
+    companyId: string,
+    issueId: string,
+  ): Promise<EvaluationIssueSnapshot | null>;
 }
 
 /**
@@ -72,11 +96,19 @@ export interface WatchdogRunReader {
  * update inside one transaction.
  */
 export interface WatchdogWriter {
-  recordDecision(companyId: string, input: RecordDecisionInput): Promise<WatchdogDecisionRecord>;
-  foldSourceResolvedRun(companyId: string, input: FoldSourceResolvedRunInput): Promise<FoldOutcome>;
+  recordDecision(
+    companyId: string,
+    input: RecordDecisionInput,
+  ): Promise<WatchdogDecisionRecord>;
+  foldSourceResolvedRun(
+    companyId: string,
+    input: FoldSourceResolvedRunInput,
+  ): Promise<FoldOutcome>;
 }
 
 /** Controls the local operating-system process backing a run. */
 export interface RunProcessController {
-  cleanupRunProcess(input: RunProcessMetadata): Promise<RunProcessCleanupOutcome>;
+  cleanupRunProcess(
+    input: RunProcessMetadata,
+  ): Promise<RunProcessCleanupOutcome>;
 }

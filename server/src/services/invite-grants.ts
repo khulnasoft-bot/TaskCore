@@ -1,11 +1,14 @@
 import { PERMISSION_KEYS } from "@taskcore/shared";
 import type { HumanCompanyMembershipRole } from "@taskcore/shared";
-import { NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS, newStandardAgentGrantScope } from "./agent-permissions.js";
+import {
+  NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS,
+  newStandardAgentGrantScope,
+} from "./agent-permissions.js";
 import { grantsForHumanRole } from "./company-member-roles.js";
 
 export function grantsFromDefaults(
   defaultsPayload: Record<string, unknown> | null | undefined,
-  key: "human" | "agent"
+  key: "human" | "agent",
 ): Array<{
   permissionKey: (typeof PERMISSION_KEYS)[number];
   scope: Record<string, unknown> | null;
@@ -50,7 +53,10 @@ export function agentJoinGrantsFromDefaults(
   // Retain new-agent defaults, but never widen an explicitly scoped grant.
   for (const permissionKey of NEW_STANDARD_AGENT_DEFAULT_GRANT_KEYS) {
     if (!grants.some((grant) => grant.permissionKey === permissionKey)) {
-      grants.push({ permissionKey, scope: newStandardAgentGrantScope(permissionKey, agentId) });
+      grants.push({
+        permissionKey,
+        scope: newStandardAgentGrantScope(permissionKey, agentId),
+      });
     }
   }
   return grants;
@@ -58,7 +64,7 @@ export function agentJoinGrantsFromDefaults(
 
 export function humanJoinGrantsFromDefaults(
   defaultsPayload: Record<string, unknown> | null | undefined,
-  membershipRole: HumanCompanyMembershipRole
+  membershipRole: HumanCompanyMembershipRole,
 ): Array<{
   permissionKey: (typeof PERMISSION_KEYS)[number];
   scope: Record<string, unknown> | null;

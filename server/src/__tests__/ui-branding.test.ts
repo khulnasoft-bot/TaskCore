@@ -21,9 +21,15 @@ const TEMPLATE = `<!doctype html>
 
 describe("ui branding", () => {
   it("detects worktree mode from TASKCORE_IN_WORKTREE", () => {
-    expect(isWorktreeUiBrandingEnabled({ TASKCORE_IN_WORKTREE: "true" })).toBe(true);
-    expect(isWorktreeUiBrandingEnabled({ TASKCORE_IN_WORKTREE: "1" })).toBe(true);
-    expect(isWorktreeUiBrandingEnabled({ TASKCORE_IN_WORKTREE: "false" })).toBe(false);
+    expect(isWorktreeUiBrandingEnabled({ TASKCORE_IN_WORKTREE: "true" })).toBe(
+      true,
+    );
+    expect(isWorktreeUiBrandingEnabled({ TASKCORE_IN_WORKTREE: "1" })).toBe(
+      true,
+    );
+    expect(isWorktreeUiBrandingEnabled({ TASKCORE_IN_WORKTREE: "false" })).toBe(
+      false,
+    );
   });
 
   it("resolves name, color, and text color for worktree branding", () => {
@@ -86,7 +92,9 @@ describe("ui branding", () => {
       TASKCORE_WORKTREE_COLOR: "#4f86f7",
     });
     expect(branding.instanceId).toBeNull();
-    expect(renderRuntimeBrandingMeta(branding)).not.toContain('name="taskcore-instance-id"');
+    expect(renderRuntimeBrandingMeta(branding)).not.toContain(
+      'name="taskcore-instance-id"',
+    );
   });
 
   it("rewrites the favicon and runtime branding blocks for worktree instances only", () => {

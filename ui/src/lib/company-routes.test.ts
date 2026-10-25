@@ -14,48 +14,62 @@ describe("company routes", () => {
   });
 
   it("treats execution workspace paths as board routes that need a company prefix", () => {
-    expect(isBoardPathWithoutPrefix("/execution-workspaces/workspace-123")).toBe(true);
-    expect(isBoardPathWithoutPrefix("/execution-workspaces/workspace-123/routines")).toBe(true);
-    expect(extractCompanyPrefixFromPath("/execution-workspaces/workspace-123")).toBeNull();
-    expect(applyCompanyPrefix("/execution-workspaces/workspace-123", "PAP")).toBe(
-      "/PAP/execution-workspaces/workspace-123",
-    );
-    expect(applyCompanyPrefix("/execution-workspaces/workspace-123/routines", "PAP")).toBe(
-      "/PAP/execution-workspaces/workspace-123/routines",
-    );
+    expect(
+      isBoardPathWithoutPrefix("/execution-workspaces/workspace-123"),
+    ).toBe(true);
+    expect(
+      isBoardPathWithoutPrefix("/execution-workspaces/workspace-123/routines"),
+    ).toBe(true);
+    expect(
+      extractCompanyPrefixFromPath("/execution-workspaces/workspace-123"),
+    ).toBeNull();
+    expect(
+      applyCompanyPrefix("/execution-workspaces/workspace-123", "PAP"),
+    ).toBe("/PAP/execution-workspaces/workspace-123");
+    expect(
+      applyCompanyPrefix("/execution-workspaces/workspace-123/routines", "PAP"),
+    ).toBe("/PAP/execution-workspaces/workspace-123/routines");
   });
 
   it("normalizes prefixed execution workspace paths back to company-relative paths", () => {
-    expect(toCompanyRelativePath("/PAP/execution-workspaces/workspace-123")).toBe(
-      "/execution-workspaces/workspace-123",
-    );
-    expect(toCompanyRelativePath("/PAP/execution-workspaces/workspace-123/routines")).toBe(
-      "/execution-workspaces/workspace-123/routines",
-    );
+    expect(
+      toCompanyRelativePath("/PAP/execution-workspaces/workspace-123"),
+    ).toBe("/execution-workspaces/workspace-123");
+    expect(
+      toCompanyRelativePath("/PAP/execution-workspaces/workspace-123/routines"),
+    ).toBe("/execution-workspaces/workspace-123/routines");
   });
 
   it("treats /search as a board route that needs a company prefix", () => {
     expect(isBoardPathWithoutPrefix("/search")).toBe(true);
     expect(extractCompanyPrefixFromPath("/search")).toBeNull();
     expect(applyCompanyPrefix("/search", "PAP")).toBe("/PAP/search");
-    expect(applyCompanyPrefix("/search?q=hello%20world", "PAP")).toBe("/PAP/search?q=hello%20world");
+    expect(applyCompanyPrefix("/search?q=hello%20world", "PAP")).toBe(
+      "/PAP/search?q=hello%20world",
+    );
     expect(toCompanyRelativePath("/PAP/search?q=foo")).toBe("/search?q=foo");
   });
 
   it("rewrites company package paths with the active prefix", () => {
-    expect(applyCompanyPrefix("/company/export", "NEU")).toBe("/NEU/company/export");
-    expect(applyCompanyPrefix("/company/import", "NEU")).toBe("/NEU/company/import");
+    expect(applyCompanyPrefix("/company/export", "NEU")).toBe(
+      "/NEU/company/export",
+    );
+    expect(applyCompanyPrefix("/company/import", "NEU")).toBe(
+      "/NEU/company/import",
+    );
     expect(applyCompanyPrefix("/org", "NEU")).toBe("/NEU/org");
   });
 
   it("does not double-apply the company prefix", () => {
-    expect(applyCompanyPrefix("/NEU/company/export", "NEU")).toBe("/NEU/company/export");
+    expect(applyCompanyPrefix("/NEU/company/export", "NEU")).toBe(
+      "/NEU/company/export",
+    );
   });
 
   it("normalizes prefixed company export file URLs for parsing", () => {
-    expect(toCompanyRelativePath("/NEU/company/export/files/agents/ceo/AGENTS.md")).toBe(
-      "/company/export/files/agents/ceo/AGENTS.md",
-    );
+    expect(
+      toCompanyRelativePath("/NEU/company/export/files/agents/ceo/AGENTS.md"),
+    ).toBe("/company/export/files/agents/ceo/AGENTS.md");
   });
 
   // Regression for PAP-10257: Team Catalog navigation (auto-select + row/file
@@ -66,17 +80,21 @@ describe("company routes", () => {
   it("re-prefixes team catalog routes so navigate preserves the company prefix", () => {
     expect(isBoardPathWithoutPrefix("/teams")).toBe(false);
     expect(isBoardPathWithoutPrefix("/teams-catalog")).toBe(true);
-    expect(isBoardPathWithoutPrefix("/teams-catalog/core-exec-team")).toBe(true);
-    expect(extractCompanyPrefixFromPath("/teams-catalog/core-exec-team")).toBeNull();
+    expect(isBoardPathWithoutPrefix("/teams-catalog/core-exec-team")).toBe(
+      true,
+    );
+    expect(
+      extractCompanyPrefixFromPath("/teams-catalog/core-exec-team"),
+    ).toBeNull();
 
     // Auto-select effect: `/teams-catalog/<first-key>` must gain the `/PAP/` prefix.
     expect(applyCompanyPrefix("/teams-catalog/core-exec-team", "PAP")).toBe(
       "/PAP/teams-catalog/core-exec-team",
     );
     // File-tree click: nested `/files/<encoded>` path is preserved under the prefix.
-    expect(applyCompanyPrefix("/teams-catalog/core-exec-team/files/TEAM.md", "PAP")).toBe(
-      "/PAP/teams-catalog/core-exec-team/files/TEAM.md",
-    );
+    expect(
+      applyCompanyPrefix("/teams-catalog/core-exec-team/files/TEAM.md", "PAP"),
+    ).toBe("/PAP/teams-catalog/core-exec-team/files/TEAM.md");
     // Already-prefixed paths are left untouched (idempotent — no double prefix).
     expect(applyCompanyPrefix("/PAP/teams-catalog/core-exec-team", "PAP")).toBe(
       "/PAP/teams-catalog/core-exec-team",
@@ -106,8 +124,12 @@ describe("company routes", () => {
     expect(isBoardPathWithoutPrefix("/tools/runtime")).toBe(true);
     expect(extractCompanyPrefixFromPath("/tools")).toBeNull();
     expect(applyCompanyPrefix("/tools", "PAP")).toBe("/PAP/tools");
-    expect(applyCompanyPrefix("/tools/runtime", "PAP")).toBe("/PAP/tools/runtime");
-    expect(applyCompanyPrefix("/PAP/tools/runtime", "PAP")).toBe("/PAP/tools/runtime");
+    expect(applyCompanyPrefix("/tools/runtime", "PAP")).toBe(
+      "/PAP/tools/runtime",
+    );
+    expect(applyCompanyPrefix("/PAP/tools/runtime", "PAP")).toBe(
+      "/PAP/tools/runtime",
+    );
     expect(toCompanyRelativePath("/PAP/tools/runtime")).toBe("/tools/runtime");
   });
 
@@ -130,21 +152,21 @@ describe("company routes", () => {
   it("treats Skill Studio create mode as an unprefixed board route", () => {
     expect(isBoardPathWithoutPrefix("/skills/studio/new")).toBe(true);
     expect(extractCompanyPrefixFromPath("/skills/studio/new")).toBeNull();
-    expect(applyCompanyPrefix("/skills/studio/new?forkFrom=skill-1", "PAP")).toBe(
-      "/PAP/skills/studio/new?forkFrom=skill-1",
-    );
-    expect(toCompanyRelativePath("/PAP/skills/studio/new?forkFrom=skill-1")).toBe(
-      "/skills/studio/new?forkFrom=skill-1",
-    );
+    expect(
+      applyCompanyPrefix("/skills/studio/new?forkFrom=skill-1", "PAP"),
+    ).toBe("/PAP/skills/studio/new?forkFrom=skill-1");
+    expect(
+      toCompanyRelativePath("/PAP/skills/studio/new?forkFrom=skill-1"),
+    ).toBe("/skills/studio/new?forkFrom=skill-1");
   });
 
   it("preserves artifact deep-link anchors when applying the company prefix", () => {
-    expect(applyCompanyPrefix("/issues/PAP-10205#work-product-wp-1", "PAP")).toBe(
-      "/PAP/issues/PAP-10205#work-product-wp-1",
-    );
-    expect(applyCompanyPrefix("/issues/PAP-10306#attachment-att-1", "PAP")).toBe(
-      "/PAP/issues/PAP-10306#attachment-att-1",
-    );
+    expect(
+      applyCompanyPrefix("/issues/PAP-10205#work-product-wp-1", "PAP"),
+    ).toBe("/PAP/issues/PAP-10205#work-product-wp-1");
+    expect(
+      applyCompanyPrefix("/issues/PAP-10306#attachment-att-1", "PAP"),
+    ).toBe("/PAP/issues/PAP-10306#attachment-att-1");
     // Already-prefixed paths are returned untouched.
     expect(applyCompanyPrefix("/PAP/artifacts", "PAP")).toBe("/PAP/artifacts");
   });

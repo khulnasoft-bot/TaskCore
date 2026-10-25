@@ -3,9 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  OpenCodeServerDriver,
-} from "./opencode-server-driver.js";
+import { OpenCodeServerDriver } from "./opencode-server-driver.js";
 
 const fixture = resolve("test/fixtures/fake-opencode-server.mjs");
 const roots: string[] = [];
@@ -30,10 +28,15 @@ describe("prepared OpenCode context transport", () => {
       runtimeDirectory: root,
       command: fixture,
       conversationMode: "prepared",
-      environment: { PATH: process.env.PATH, OPENROUTER_API_KEY: "fixture-key" },
+      environment: {
+        PATH: process.env.PATH,
+        OPENROUTER_API_KEY: "fixture-key",
+      },
       fetch: async (input, init) => {
         if (String(input).endsWith("/prompt_async"))
-          submitted.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+          submitted.push(
+            JSON.parse(String(init?.body)) as Record<string, unknown>,
+          );
         return fetch(input, init);
       },
     });

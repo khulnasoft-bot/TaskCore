@@ -10,10 +10,7 @@ import type {
 export type CatalogTeamKind = "bundled" | "optional";
 
 export type CatalogTeamTrustLevel =
-  | "markdown_only"
-  | "assets"
-  | "scripts_executables"
-  | "external_sources";
+  "markdown_only" | "assets" | "scripts_executables" | "external_sources";
 
 export type CatalogTeamCompatibility = "compatible" | "unknown" | "invalid";
 
@@ -61,7 +58,8 @@ export interface CatalogTeamEnvInputSummary {
 }
 
 export interface CatalogTeamSourceRef {
-  type: Exclude<CatalogTeamSkillRequirementType, "catalog" | "local"> | "include";
+  type:
+    Exclude<CatalogTeamSkillRequirementType, "catalog" | "local"> | "include";
   ref: string;
   pinned: boolean;
 }

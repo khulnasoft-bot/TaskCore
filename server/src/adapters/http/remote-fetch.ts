@@ -4,7 +4,8 @@ import {
 } from "../../services/remote-http-fetch.js";
 import { parseRemoteHttpEndpoint } from "../../services/remote-http-endpoint-guard.js";
 
-const PRIVATE_ENDPOINT_ALLOWLIST_ENV = "TASKCORE_HTTP_ADAPTER_PRIVATE_ENDPOINT_ALLOWLIST";
+const PRIVATE_ENDPOINT_ALLOWLIST_ENV =
+  "TASKCORE_HTTP_ADAPTER_PRIVATE_ENDPOINT_ALLOWLIST";
 
 export class HttpAdapterEndpointError extends Error {
   readonly code: string;
@@ -32,8 +33,15 @@ function normalizeAllowlistedOrigin(value: string): string | null {
   } catch {
     return null;
   }
-  if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:") return null;
-  if (endpoint.username || endpoint.password || endpoint.search || endpoint.hash) return null;
+  if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:")
+    return null;
+  if (
+    endpoint.username ||
+    endpoint.password ||
+    endpoint.search ||
+    endpoint.hash
+  )
+    return null;
   if (endpoint.pathname !== "/") return null;
   return endpoint.origin.toLowerCase();
 }
@@ -68,7 +76,8 @@ export async function guardedHttpAdapterFetch(
   options: HttpAdapterFetchOptions = {},
 ): Promise<Response> {
   const endpoint = parseRemoteHttpEndpoint(url.toString(), endpointError);
-  const allowlist = options.privateEndpointAllowlist ?? httpAdapterPrivateEndpointAllowlist();
+  const allowlist =
+    options.privateEndpointAllowlist ?? httpAdapterPrivateEndpointAllowlist();
   return guardedRemoteHttpFetch(endpoint, init, {
     ...options,
     allowPrivateNetwork: allowlist.has(endpoint.origin.toLowerCase()),

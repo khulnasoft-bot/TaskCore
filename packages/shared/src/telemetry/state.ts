@@ -3,7 +3,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { TelemetryState } from "./types.js";
 
-export function loadOrCreateState(stateDir: string, version: string): TelemetryState {
+export function loadOrCreateState(
+  stateDir: string,
+  version: string,
+): TelemetryState {
   const filePath = path.join(stateDir, "state.json");
 
   if (existsSync(filePath)) {

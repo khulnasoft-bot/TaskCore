@@ -77,8 +77,8 @@ function outputLines(entries, hostRouteId, workerSessionId) {
   let lines = "";
   for (const entry of entries) {
     const effectiveHostRouteId = entry.crossRoute
-      ? pickOtherHostRouteId(hostRouteId) ?? hostRouteId
-      : entry.hostRouteId ?? hostRouteId;
+      ? (pickOtherHostRouteId(hostRouteId) ?? hostRouteId)
+      : (entry.hostRouteId ?? hostRouteId);
     const params = {
       workerSessionId: entry.sid ?? workerSessionId,
       chunk: entry.chunk,
@@ -117,12 +117,23 @@ function scriptedOutputLines(directive, hostRouteId, workerSessionId) {
     for (const entry of directive.sequence) {
       if (entry.type === "output") {
         lines += outputLines(
-          [{ chunk: entry.chunk, sid: entry.sid, hostRouteId: entry.hostRouteId, crossRoute: entry.crossRoute }],
+          [
+            {
+              chunk: entry.chunk,
+              sid: entry.sid,
+              hostRouteId: entry.hostRouteId,
+              crossRoute: entry.crossRoute,
+            },
+          ],
           hostRouteId,
           workerSessionId,
         );
       } else if (entry.type === "exit") {
-        lines += exitLine(entry.hostRouteId ?? hostRouteId, entry.sid ?? workerSessionId, entry.exitCode);
+        lines += exitLine(
+          entry.hostRouteId ?? hostRouteId,
+          entry.sid ?? workerSessionId,
+          entry.exitCode,
+        );
       }
     }
     return lines;
@@ -131,13 +142,24 @@ function scriptedOutputLines(directive, hostRouteId, workerSessionId) {
   const outputsAfterExit = Array.isArray(directive.outputsAfterExit)
     ? directive.outputsAfterExit
     : [];
-  const extraExits = Array.isArray(directive.extraExits) ? directive.extraExits : [];
+  const extraExits = Array.isArray(directive.extraExits)
+    ? directive.extraExits
+    : [];
   let lines = outputLines(outputs, hostRouteId, workerSessionId);
   if (typeof directive.exitCode === "number") {
-    lines += exitLine(hostRouteId, workerSessionId, directive.exitCode, directive.omitHostRouteIdOnExit);
+    lines += exitLine(
+      hostRouteId,
+      workerSessionId,
+      directive.exitCode,
+      directive.omitHostRouteIdOnExit,
+    );
   }
   for (const exit of extraExits) {
-    lines += exitLine(exit.hostRouteId ?? hostRouteId, exit.sid ?? workerSessionId, exit.exitCode);
+    lines += exitLine(
+      exit.hostRouteId ?? hostRouteId,
+      exit.sid ?? workerSessionId,
+      exit.exitCode,
+    );
   }
   lines += outputLines(outputsAfterExit, hostRouteId, workerSessionId);
   return lines;
@@ -156,12 +178,16 @@ function parseDirective(raw) {
   }
 }
 
-const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
+const rl = readline.createInterface({
+  input: process.stdin,
+  crlfDelay: Infinity,
+});
 
 rl.on("line", (line) => {
   if (!line.trim()) return;
   const message = JSON.parse(line);
-  const method = message && typeof message.method === "string" ? message.method : null;
+  const method =
+    message && typeof message.method === "string" ? message.method : null;
   const params = message.params ?? {};
 
   if (method === "initialize") {
@@ -189,9 +215,10 @@ rl.on("line", (line) => {
     routes.set(params.hostRouteId, {
       workerSessionId,
       closeMode,
-      pendingOutput: directive.emitOnInput === true
-        ? scriptedOutputLines(directive, params.hostRouteId, workerSessionId)
-        : null,
+      pendingOutput:
+        directive.emitOnInput === true
+          ? scriptedOutputLines(directive, params.hostRouteId, workerSessionId)
+          : null,
     });
 
     if (mode === "no-open-reply") {
@@ -202,7 +229,9 @@ rl.on("line", (line) => {
       // Emit the scripted pre-bind outputs, then exit with no open reply. The
       // route never binds, so a test proves the worker-exit path clears the
       // pre-bind queue.
-      process.stdout.write(scriptedOutputLines(directive, params.hostRouteId, workerSessionId));
+      process.stdout.write(
+        scriptedOutputLines(directive, params.hostRouteId, workerSessionId),
+      );
       process.exit(1);
       return;
     }
@@ -223,7 +252,8 @@ rl.on("line", (line) => {
       // that never binds. The host must queue and, on a bind, replay it; on a
       // malformed reply, it must clear the queue instead.
       process.stdout.write(
-        openReplyLine + scriptedOutputLines(directive, params.hostRouteId, workerSessionId),
+        openReplyLine +
+          scriptedOutputLines(directive, params.hostRouteId, workerSessionId),
       );
       return;
     }
@@ -243,7 +273,9 @@ rl.on("line", (line) => {
     // Emit the scripted output and the exit after the open reply, so the host
     // binds the route first.
     setImmediate(() => {
-      process.stdout.write(scriptedOutputLines(directive, params.hostRouteId, workerSessionId));
+      process.stdout.write(
+        scriptedOutputLines(directive, params.hostRouteId, workerSessionId),
+      );
     });
     return;
   }
@@ -287,10 +319,18 @@ rl.on("line", (line) => {
       return;
     }
     if (closeMode === "bad-ack") {
-      send({ jsonrpc: "2.0", id: message.id, result: { hostRouteId: "mismatched-route" } });
+      send({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: { hostRouteId: "mismatched-route" },
+      });
       return;
     }
-    send({ jsonrpc: "2.0", id: message.id, result: { hostRouteId: params.hostRouteId } });
+    send({
+      jsonrpc: "2.0",
+      id: message.id,
+      result: { hostRouteId: params.hostRouteId },
+    });
     return;
   }
 

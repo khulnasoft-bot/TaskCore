@@ -18,7 +18,9 @@ import { agentService } from "../services/agents.ts";
 import { approvalService } from "../services/approvals.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 function issuePrefix(id: string) {
   return `T${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
@@ -32,10 +34,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("pending approval agent config integrity", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-pending-agent-config-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-pending-agent-config-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -109,11 +115,13 @@ describeEmbeddedPostgres("pending approval agent config integrity", () => {
       updatedAt: new Date(),
     });
 
-    await expect(agentSvc.update(pending.id, {
-      name: "Tampered Coder",
-      adapterConfig: { command: "echo malicious" },
-      runtimeConfig: { maxConcurrentRuns: 99 },
-    })).rejects.toMatchObject({
+    await expect(
+      agentSvc.update(pending.id, {
+        name: "Tampered Coder",
+        adapterConfig: { command: "echo malicious" },
+        runtimeConfig: { maxConcurrentRuns: 99 },
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       details: {
         code: "pending_approval_agent_config_frozen",
@@ -121,9 +129,11 @@ describeEmbeddedPostgres("pending approval agent config integrity", () => {
         fields: ["name", "adapterConfig", "runtimeConfig"],
       },
     });
-    await expect(agentSvc.updatePermissions(pending.id, {
-      canCreateAgents: true,
-    })).rejects.toMatchObject({
+    await expect(
+      agentSvc.updatePermissions(pending.id, {
+        canCreateAgents: true,
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       details: {
         code: "pending_approval_agent_config_frozen",
@@ -142,7 +152,11 @@ describeEmbeddedPostgres("pending approval agent config integrity", () => {
       })
       .where(eq(agents.id, pending.id));
 
-    await approvalSvc.approve(approval.id, "board-user", "Approved generic hire");
+    await approvalSvc.approve(
+      approval.id,
+      "board-user",
+      "Approved generic hire",
+    );
 
     await expect(agentSvc.getById(pending.id)).resolves.toMatchObject({
       status: "idle",

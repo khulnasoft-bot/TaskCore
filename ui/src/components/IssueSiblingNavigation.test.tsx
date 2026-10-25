@@ -93,20 +93,26 @@ describe("IssueSiblingNavigation", () => {
     expect(links[0].textContent).toContain("Previous");
     expect(links[0].textContent).toContain("PAP-1");
     expect(links[0].textContent).toContain("Previous sibling title");
-    expect(links[0].getAttribute("aria-label")).toBe("Previous sub-task: PAP-1 - Previous sibling title");
+    expect(links[0].getAttribute("aria-label")).toBe(
+      "Previous sub-task: PAP-1 - Previous sibling title",
+    );
     expect(links[0].getAttribute("data-quicklook-align")).toBe("start");
 
     expect(links[1].textContent).toContain("Next");
     expect(links[1].textContent).toContain("PAP-3");
     expect(links[1].textContent).toContain("Next sibling title");
-    expect(links[1].getAttribute("aria-label")).toBe("Next sub-task: PAP-3 - Next sibling title");
+    expect(links[1].getAttribute("aria-label")).toBe(
+      "Next sub-task: PAP-3 - Next sibling title",
+    );
     expect(links[1].getAttribute("data-quicklook-align")).toBe("end");
     expect(links[1].className).toContain("sm:text-right");
 
     expect(links[0].className).toContain("rounded-lg");
     expect(links[0].className).toContain("hover:bg-accent/50");
     expect(links[0].className).toContain("focus-visible:ring-(length:--rad-3)");
-    expect(node.querySelector(".truncate")?.textContent).toBe("Previous sibling title");
+    expect(node.querySelector(".truncate")?.textContent).toBe(
+      "Previous sibling title",
+    );
   });
 
   it("keeps a lone next card in the right desktop column", () => {

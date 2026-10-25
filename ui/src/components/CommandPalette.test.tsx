@@ -101,9 +101,19 @@ vi.mock("./Identity", () => ({
 }));
 
 vi.mock("@/components/ui/command", () => ({
-  CommandDialog: ({ open, children }: { open: boolean; children: ReactNode }) => (open ? <div>{children}</div> : null),
-  CommandEmpty: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CommandGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CommandDialog: ({
+    open,
+    children,
+  }: {
+    open: boolean;
+    children: ReactNode;
+  }) => (open ? <div>{children}</div> : null),
+  CommandEmpty: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  CommandGroup: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   CommandInput: ({
     value,
     onValueChange,
@@ -120,7 +130,11 @@ vi.mock("@/components/ui/command", () => ({
         onChange={(event) => onValueChange(event.currentTarget.value)}
         onKeyDown={onKeyDown}
       />
-      <button type="button" aria-label="Set query" onClick={() => onValueChange("pull/3303")} />
+      <button
+        type="button"
+        aria-label="Set query"
+        onClick={() => onValueChange("pull/3303")}
+      />
     </div>
   ),
   CommandItem: ({
@@ -180,9 +194,7 @@ function renderWithQueryClient(
 
   act(() => {
     root.render(
-      <QueryClientProvider client={queryClient}>
-        {node}
-      </QueryClientProvider>,
+      <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>,
     );
   });
 
@@ -215,7 +227,10 @@ describe("CommandPalette", () => {
     mockInstanceSettingsApi.getExperimental.mockResolvedValue({
       enableExperimentalFileViewer: false,
     });
-    mockAuthApi.getSession.mockResolvedValue({ user: { id: "user-1" }, session: { userId: "user-1" } });
+    mockAuthApi.getSession.mockResolvedValue({
+      user: { id: "user-1" },
+      session: { userId: "user-1" },
+    });
   });
 
   afterEach(() => {
@@ -226,10 +241,18 @@ describe("CommandPalette", () => {
     const { root } = renderWithQueryClient(<CommandPalette />, container);
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
-    const setQueryButton = container.querySelector('button[aria-label="Set query"]');
+    const setQueryButton = container.querySelector(
+      'button[aria-label="Set query"]',
+    );
     expect(setQueryButton).not.toBeNull();
 
     act(() => {
@@ -254,7 +277,13 @@ describe("CommandPalette", () => {
     const { root } = renderWithQueryClient(<CommandPalette />, container);
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
     await waitForAssertion(() => {
@@ -283,7 +312,13 @@ describe("CommandPalette", () => {
     );
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
     await waitForAssertion(() => {
@@ -300,14 +335,25 @@ describe("CommandPalette", () => {
     const { root } = renderWithQueryClient(<CommandPalette />, container);
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
-    const input = container.querySelector('input[aria-label="Command search"]') as HTMLInputElement;
+    const input = container.querySelector(
+      'input[aria-label="Command search"]',
+    ) as HTMLInputElement;
     expect(input).not.toBeNull();
 
     act(() => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
       nativeSetter.call(input, "auth flake");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -321,11 +367,15 @@ describe("CommandPalette", () => {
     });
 
     act(() => {
-      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
     });
 
     await waitForAssertion(() => {
-      expect(navigateState.navigate).toHaveBeenCalledWith("/search?q=auth+flake");
+      expect(navigateState.navigate).toHaveBeenCalledWith(
+        "/search?q=auth+flake",
+      );
     });
 
     act(() => {
@@ -335,36 +385,74 @@ describe("CommandPalette", () => {
 
   it("promotes matching projects above the Tasks group when typing", async () => {
     const projects = [
-      { id: "p1", urlKey: "mobile", name: "Mobile App", description: "iOS client", archivedAt: null },
-      { id: "p2", urlKey: "billing", name: "Billing Service", description: null, archivedAt: null },
+      {
+        id: "p1",
+        urlKey: "mobile",
+        name: "Mobile App",
+        description: "iOS client",
+        archivedAt: null,
+      },
+      {
+        id: "p2",
+        urlKey: "billing",
+        name: "Billing Service",
+        description: null,
+        archivedAt: null,
+      },
     ];
     mockProjectsApi.list.mockResolvedValue(projects);
-    mockIssuesApi.list.mockImplementation((_companyId: string, opts?: { q?: string }) =>
-      Promise.resolve(opts?.q ? [{ id: "i1", identifier: "ENG-9", title: "Fix login" }] : []),
+    mockIssuesApi.list.mockImplementation(
+      (_companyId: string, opts?: { q?: string }) =>
+        Promise.resolve(
+          opts?.q
+            ? [{ id: "i1", identifier: "ENG-9", title: "Fix login" }]
+            : [],
+        ),
     );
 
-    const { root } = renderWithQueryClient(<CommandPalette />, container, (queryClient) => {
-      // Seed the caches so the already-loaded data is available synchronously —
-      // this harness's flush model doesn't reliably propagate fresh async fetches.
-      queryClient.setQueryData(queryKeys.projects.list("company-1"), projects);
-      queryClient.setQueryData(queryKeys.issues.search("company-1", "mob", undefined, 10), [
-        { id: "i1", identifier: "ENG-9", title: "Fix login" },
-      ]);
-    });
+    const { root } = renderWithQueryClient(
+      <CommandPalette />,
+      container,
+      (queryClient) => {
+        // Seed the caches so the already-loaded data is available synchronously —
+        // this harness's flush model doesn't reliably propagate fresh async fetches.
+        queryClient.setQueryData(
+          queryKeys.projects.list("company-1"),
+          projects,
+        );
+        queryClient.setQueryData(
+          queryKeys.issues.search("company-1", "mob", undefined, 10),
+          [{ id: "i1", identifier: "ENG-9", title: "Fix login" }],
+        );
+      },
+    );
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
-    const input = container.querySelector('input[aria-label="Command search"]') as HTMLInputElement;
+    const input = container.querySelector(
+      'input[aria-label="Command search"]',
+    ) as HTMLInputElement;
     act(() => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
       nativeSetter.call(input, "mob");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
     await waitForAssertion(() => {
-      const match = container.querySelector('button[data-testid="command-project-match"]');
+      const match = container.querySelector(
+        'button[data-testid="command-project-match"]',
+      );
       expect(match).not.toBeNull();
       expect(match!.textContent).toContain("Mobile App");
     });
@@ -376,7 +464,9 @@ describe("CommandPalette", () => {
     await waitForAssertion(() => {
       const text = container.textContent ?? "";
       expect(text).toContain("Fix login");
-      expect(text.indexOf("Mobile App")).toBeLessThan(text.indexOf("Fix login"));
+      expect(text.indexOf("Mobile App")).toBeLessThan(
+        text.indexOf("Fix login"),
+      );
     });
 
     // Selecting the promoted project navigates to its URL.
@@ -399,12 +489,23 @@ describe("CommandPalette", () => {
     const { root } = renderWithQueryClient(<CommandPalette />, container);
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
-    const input = container.querySelector('input[aria-label="Command search"]') as HTMLInputElement;
+    const input = container.querySelector(
+      'input[aria-label="Command search"]',
+    ) as HTMLInputElement;
     act(() => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
       nativeSetter.call(input, "deflake");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -418,7 +519,9 @@ describe("CommandPalette", () => {
     });
 
     act(() => {
-      searchAllButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      searchAllButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitForAssertion(() => {
@@ -434,11 +537,19 @@ describe("CommandPalette", () => {
     const { root } = renderWithQueryClient(<CommandPalette />, container);
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
     await waitForAssertion(() => {
-      const chips = Array.from(container.querySelectorAll('button[data-testid="command-filter-chip"]'));
+      const chips = Array.from(
+        container.querySelectorAll('button[data-testid="command-filter-chip"]'),
+      );
       expect(chips.map((chip) => chip.textContent)).toEqual(
         expect.arrayContaining([
           expect.stringContaining("assignee:me"),
@@ -449,10 +560,14 @@ describe("CommandPalette", () => {
     });
 
     act(() => {
-      container.querySelector('button[data-testid="command-filter-chip"]')!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector('button[data-testid="command-filter-chip"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const input = container.querySelector('input[aria-label="Command search"]') as HTMLInputElement;
+    const input = container.querySelector(
+      'input[aria-label="Command search"]',
+    ) as HTMLInputElement;
     await waitForAssertion(() => {
       expect(input.value).toBe("assignee:me");
     });
@@ -467,12 +582,23 @@ describe("CommandPalette", () => {
     const { root } = renderWithQueryClient(<CommandPalette />, container);
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
-    const input = container.querySelector('input[aria-label="Command search"]') as HTMLInputElement;
+    const input = container.querySelector(
+      'input[aria-label="Command search"]',
+    ) as HTMLInputElement;
     act(() => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
       nativeSetter.call(input, "auth status:blocked updated:>7d");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -486,16 +612,23 @@ describe("CommandPalette", () => {
     });
 
     act(() => {
-      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }));
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
 
     await waitForAssertion(() => {
-      expect(navigateState.navigate).toHaveBeenCalledWith("/search?q=auth&status=blocked&updatedWithin=7d");
+      expect(navigateState.navigate).toHaveBeenCalledWith(
+        "/search?q=auth&status=blocked&updatedWithin=7d",
+      );
     });
 
     act(() => {
       root.unmount();
     });
   });
-
 });

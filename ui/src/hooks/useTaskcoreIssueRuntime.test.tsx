@@ -52,7 +52,8 @@ function HookHarness({
     };
   }) => Promise<void>;
   onCancel?: (() => Promise<void>) | undefined;
-  onLayout?: ((adapter: ExternalStoreAdapter<ThreadMessage>) => void) | undefined;
+  onLayout?:
+    ((adapter: ExternalStoreAdapter<ThreadMessage>) => void) | undefined;
 }) {
   useTaskcoreIssueRuntime({
     messages,

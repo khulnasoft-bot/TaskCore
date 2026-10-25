@@ -143,9 +143,7 @@ for (const journey of [
       await expect
         .poll(
           () =>
-            logs.match(
-              /Taskcore is ready at (http:\/\/127\.0\.0\.1:\d+)/,
-            )?.[1],
+            logs.match(/Taskcore is ready at (http:\/\/127\.0\.0\.1:\d+)/)?.[1],
           { timeout: 100_000 },
         )
         .toBeTruthy();
@@ -221,39 +219,102 @@ for (const journey of [
       );
       const prefix = `/${company.issuePrefix}`;
       await page.goto(base + prefix + "/dashboard");
-      await expect(page.getByText("No runs yet").first()).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByText("No runs yet").first()).toBeVisible({
+        timeout: 30_000,
+      });
       if (journey === "legacy_unknown") {
         agent = await api(`/companies/${company.id}/agents`, "POST", {
-          name: "Legacy executor", role: "engineer", adapterType: "process",
-          adapterConfig: { command: process.execPath, args: ["-e", "console.error('Deterministic provider failure; no recoverable session contract'); process.exit(1)"] },
+          name: "Legacy executor",
+          role: "engineer",
+          adapterType: "process",
+          adapterConfig: {
+            command: process.execPath,
+            args: [
+              "-e",
+              "console.error('Deterministic provider failure; no recoverable session contract'); process.exit(1)",
+            ],
+          },
         });
         await page.getByRole("link", { name: "Tasks", exact: true }).click();
-        await page.getByRole("button", { name: "New Task", exact: true }).last().click();
-        await page.getByPlaceholder("Task title").fill("Read the legacy fixture report");
-        await page.getByRole("button", { name: "Assignee", exact: true }).click();
-        await page.getByRole("button", { name: agent.name, exact: true }).click();
-        await page.getByRole("button", { name: "Create Task", exact: true }).click();
-        await page.getByRole("complementary").getByRole("link", { name: /Read the legacy fixture report/ }).click();
-        await expect.poll(async () => {
-          const tasks = await api(`/companies/${company.id}/issues`);
-          return tasks.find((issue: { title: string }) => issue.title === "Read the legacy fixture report")?.status;
-        }, { timeout: 60_000 }).toBe("blocked");
-        await expect(page.getByText("Blocked", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-        await expect(page.getByRole("button", { name: "Reconcile and continue" })).toHaveCount(0);
-        await expect(page.getByRole("button", { name: "Try again", exact: true })).toHaveCount(0);
+        await page
+          .getByRole("button", { name: "New Task", exact: true })
+          .last()
+          .click();
+        await page
+          .getByPlaceholder("Task title")
+          .fill("Read the legacy fixture report");
+        await page
+          .getByRole("button", { name: "Assignee", exact: true })
+          .click();
+        await page
+          .getByRole("button", { name: agent.name, exact: true })
+          .click();
+        await page
+          .getByRole("button", { name: "Create Task", exact: true })
+          .click();
+        await page
+          .getByRole("complementary")
+          .getByRole("link", { name: /Read the legacy fixture report/ })
+          .click();
+        await expect
+          .poll(
+            async () => {
+              const tasks = await api(`/companies/${company.id}/issues`);
+              return tasks.find(
+                (issue: { title: string }) =>
+                  issue.title === "Read the legacy fixture report",
+              )?.status;
+            },
+            { timeout: 60_000 },
+          )
+          .toBe("blocked");
+        await expect(
+          page.getByText("Blocked", { exact: true }).first(),
+        ).toBeVisible({ timeout: 30_000 });
+        await expect(
+          page.getByRole("button", { name: "Reconcile and continue" }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByRole("button", { name: "Try again", exact: true }),
+        ).toHaveCount(0);
         const composer = page.locator('[contenteditable="true"]').last();
         await composer.fill("Independent draft remains usable");
-        await expect(composer).toContainText("Independent draft remains usable");
-        await page.screenshot({ path: info.outputPath("legacy-recovery-needed.png"), fullPage: true });
+        await expect(composer).toContainText(
+          "Independent draft remains usable",
+        );
+        await page.screenshot({
+          path: info.outputPath("legacy-recovery-needed.png"),
+          fullPage: true,
+        });
         // Observe past the shared retry delay; absence of a successor is part
         // of the fail-closed contract, not merely a momentary UI state.
         await page.waitForTimeout(35_000);
         const runs = await api(`/companies/${company.id}/heartbeat-runs`);
         expect(runs).toHaveLength(1);
-        expect(await api(`/heartbeat-runs/${runs[0].id}`)).toMatchObject({ runtimeMode: "legacy", status: "failed" });
+        expect(await api(`/heartbeat-runs/${runs[0].id}`)).toMatchObject({
+          runtimeMode: "legacy",
+          status: "failed",
+        });
         await page.reload();
-        await expect(page.getByRole("button", { name: "Reconcile and continue" })).toHaveCount(0);
-        await writeFile(info.outputPath("instance-and-runs.json"), JSON.stringify({ base, dataDir, health, dependency: "deterministic legacy process fixture", companyId: company.id, agentId: agent.id, runs }, null, 2));
+        await expect(
+          page.getByRole("button", { name: "Reconcile and continue" }),
+        ).toHaveCount(0);
+        await writeFile(
+          info.outputPath("instance-and-runs.json"),
+          JSON.stringify(
+            {
+              base,
+              dataDir,
+              health,
+              dependency: "deterministic legacy process fixture",
+              companyId: company.id,
+              agentId: agent.id,
+              runs,
+            },
+            null,
+            2,
+          ),
+        );
         return;
       }
       await page.goto(
@@ -264,7 +325,7 @@ for (const journey of [
       });
       // Fresh instances may already enable the native runner. Configure the
       // desired state instead of blindly toggling the current default off.
-      if (await nativeRunnerToggle.getAttribute("aria-checked") !== "true") {
+      if ((await nativeRunnerToggle.getAttribute("aria-checked")) !== "true") {
         await nativeRunnerToggle.click();
       }
       await expect(nativeRunnerToggle).toHaveAttribute("aria-checked", "true");
@@ -469,9 +530,7 @@ for (const journey of [
             () =>
               logs
                 .slice(startOffset)
-                .match(
-                  /Taskcore is ready at (http:\/\/127\.0\.0\.1:\d+)/,
-                )?.[1],
+                .match(/Taskcore is ready at (http:\/\/127\.0\.0\.1:\d+)/)?.[1],
             { timeout: 100_000 },
           )
           .toBeTruthy();
@@ -495,15 +554,30 @@ for (const journey of [
         ).toBeVisible({ timeout: 100_000 });
         expect(gmailReadCount).toBe(journey === "ceo_lineage" ? 1 : 2);
       } else {
-        await expect.poll(async () => (await api(`/issues/${task.id}`)).status, { timeout: 100_000 }).toBe("blocked");
-        await expect(page.getByText("Blocked", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+        await expect
+          .poll(async () => (await api(`/issues/${task.id}`)).status, {
+            timeout: 100_000,
+          })
+          .toBe("blocked");
+        await expect(
+          page.getByText("Blocked", { exact: true }).first(),
+        ).toBeVisible({ timeout: 30_000 });
         expect(gmailReadCount).toBe(1);
         await expect(page.getByText(/GMAIL-73/)).toHaveCount(0);
-        await expect(page.getByRole("button", { name: /Reconcile and continue|Try again/ })).toHaveCount(0);
-        await expect(page.getByRole("dialog", { name: "Reconcile execution" })).toHaveCount(0);
+        await expect(
+          page.getByRole("button", {
+            name: /Reconcile and continue|Try again/,
+          }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByRole("dialog", { name: "Reconcile execution" }),
+        ).toHaveCount(0);
         const recovery = (await api(`/issues/${task.id}`)).activeRecoveryAction;
         expect(recovery).toBeNull();
-        await page.screenshot({ path: info.outputPath("uncertain-automatic-no-replay.png"), fullPage: true });
+        await page.screenshot({
+          path: info.outputPath("uncertain-automatic-no-replay.png"),
+          fullPage: true,
+        });
         // Past the retry delay, unknown effects still cannot be replayed.
         await page.waitForTimeout(35_000);
         expect(gmailReadCount).toBe(1);
@@ -521,13 +595,16 @@ for (const journey of [
           { timeout: 60_000 },
         )
         .toBe(true);
-      if (journey !== "uncertain") await expect(async () => {
-        const answer = page.getByText(/GMAIL-73: The launch email confirms Friday approval/).first();
-        // Refresh can replace the streamed row with its persisted transcript.
-        // Re-resolve the locator if that handoff detaches it during scrolling.
-        await answer.scrollIntoViewIfNeeded();
-        await expect(answer).toBeInViewport();
-      }).toPass({ timeout: 10_000 });
+      if (journey !== "uncertain")
+        await expect(async () => {
+          const answer = page
+            .getByText(/GMAIL-73: The launch email confirms Friday approval/)
+            .first();
+          // Refresh can replace the streamed row with its persisted transcript.
+          // Re-resolve the locator if that handoff detaches it during scrolling.
+          await answer.scrollIntoViewIfNeeded();
+          await expect(answer).toBeInViewport();
+        }).toPass({ timeout: 10_000 });
       await page.screenshot({
         path: info.outputPath(`${journey}-outcome.png`),
         fullPage: true,
@@ -556,22 +633,28 @@ for (const journey of [
       await composer.fill("");
       await page.reload();
       await expect(page.getByText(/Due now/, { exact: true })).toHaveCount(0);
-      if (journey !== "uncertain") await expect(
-        page
-          .getByText(/GMAIL-73: The launch email confirms Friday approval/)
-          .first(),
-      ).toBeVisible();
+      if (journey !== "uncertain")
+        await expect(
+          page
+            .getByText(/GMAIL-73: The launch email confirms Friday approval/)
+            .first(),
+        ).toBeVisible();
       else {
         expect((await api(`/issues/${task.id}`)).status).toBe("blocked");
-        await expect(page.getByRole("button", { name: "Reconcile and continue" })).toHaveCount(0);
+        await expect(
+          page.getByRole("button", { name: "Reconcile and continue" }),
+        ).toHaveCount(0);
       }
-      if (journey !== "uncertain") await expect(async () => {
-        const answer = page.getByText(/GMAIL-73: The launch email confirms Friday approval/).first();
-        // Refresh can replace the streamed row with its persisted transcript.
-        // Re-resolve the locator if that handoff detaches it during scrolling.
-        await answer.scrollIntoViewIfNeeded();
-        await expect(answer).toBeInViewport();
-      }).toPass({ timeout: 10_000 });
+      if (journey !== "uncertain")
+        await expect(async () => {
+          const answer = page
+            .getByText(/GMAIL-73: The launch email confirms Friday approval/)
+            .first();
+          // Refresh can replace the streamed row with its persisted transcript.
+          // Re-resolve the locator if that handoff detaches it during scrolling.
+          await answer.scrollIntoViewIfNeeded();
+          await expect(answer).toBeInViewport();
+        }).toPass({ timeout: 10_000 });
       await page.screenshot({
         path: info.outputPath(`${journey}-after-refresh.png`),
         fullPage: true,

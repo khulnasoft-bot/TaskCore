@@ -146,22 +146,22 @@ Tailscale-operator service account distinct from the Taskcore app account.
 
    Environment variables (defaults in `src/config.ts`):
 
-   | Var | Required | Default | Meaning |
-   |-----|----------|---------|---------|
-   | `BROKER_NODE_IDENTITY` | yes | — | hostname + boot id; a change forces quarantine + operator reconciliation |
-   | `BROKER_SERVICE_UID` | yes | — | UID of the Taskcore **app** account allowed to connect |
-   | `BROKER_SERVICE_GID` | yes | — | GID of the dedicated socket group (caller's primary GID) |
-   | `BROKER_RUNTIME_UID` | yes | — | UID that owns Taskcore-managed runtime processes (normally the Taskcore app service account); only its loopback listeners are eligible |
-   | `BROKER_TAILSCALE_BIN` | no | `/usr/bin/tailscale` | absolute path to the Tailscale CLI |
-   | `BROKER_SOCKET_PATH` | no | `/run/taskcore-tailscale-broker/broker.sock` | Unix socket path |
-   | `BROKER_REGISTRY_PATH` | no | `/var/lib/taskcore-tailscale-broker/registry.json` | root-owned `0600` ownership registry |
-   | `BROKER_AUDIT_PATH` | no | `/var/log/taskcore-tailscale-broker/audit.log` | append-only security audit log |
-   | `BROKER_PROTECTED_PORTS` | no | *(empty)* | comma/space separated ports the broker must **never** create, remove, or reclaim — even when its own registry holds a valid lease for them (see below) |
+   | Var                      | Required | Default                                            | Meaning                                                                                                                                                |
+   | ------------------------ | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | `BROKER_NODE_IDENTITY`   | yes      | —                                                  | hostname + boot id; a change forces quarantine + operator reconciliation                                                                               |
+   | `BROKER_SERVICE_UID`     | yes      | —                                                  | UID of the Taskcore **app** account allowed to connect                                                                                                 |
+   | `BROKER_SERVICE_GID`     | yes      | —                                                  | GID of the dedicated socket group (caller's primary GID)                                                                                               |
+   | `BROKER_RUNTIME_UID`     | yes      | —                                                  | UID that owns Taskcore-managed runtime processes (normally the Taskcore app service account); only its loopback listeners are eligible                 |
+   | `BROKER_TAILSCALE_BIN`   | no       | `/usr/bin/tailscale`                               | absolute path to the Tailscale CLI                                                                                                                     |
+   | `BROKER_SOCKET_PATH`     | no       | `/run/taskcore-tailscale-broker/broker.sock`       | Unix socket path                                                                                                                                       |
+   | `BROKER_REGISTRY_PATH`   | no       | `/var/lib/taskcore-tailscale-broker/registry.json` | root-owned `0600` ownership registry                                                                                                                   |
+   | `BROKER_AUDIT_PATH`      | no       | `/var/log/taskcore-tailscale-broker/audit.log`     | append-only security audit log                                                                                                                         |
+   | `BROKER_PROTECTED_PORTS` | no       | _(empty)_                                          | comma/space separated ports the broker must **never** create, remove, or reclaim — even when its own registry holds a valid lease for them (see below) |
 
    ### `BROKER_PROTECTED_PORTS` — operator-declared preservation (PAP-17285)
 
    The long-standing "unknown/manual entries are never modified" invariant is
-   *provenance-blind*: it protects only entries the broker has no lease for. It
+   _provenance-blind_: it protects only entries the broker has no lease for. It
    therefore could not protect the `42000/52000` mappings, because the broker had
    itself created them for a canary lane that was later retired — so its registry
    still called them owned, while operators had reclassified them as
@@ -203,8 +203,8 @@ Tailscale-operator service account distinct from the Taskcore app account.
    node identity. Exit 0 = ready. It never mutates Serve state.
 
 7. **Enable.** `sudo systemctl daemon-reload && sudo systemctl enable --now
-   taskcore-tailscale-https-broker`. Confirm the socket is `0660
-   taskcore-tsbroker:taskcore-tsbroker-sock`.
+taskcore-tailscale-https-broker`. Confirm the socket is `0660
+taskcore-tsbroker:taskcore-tsbroker-sock`.
 
 ## Upgrade
 

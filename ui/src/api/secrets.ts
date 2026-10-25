@@ -148,13 +148,20 @@ export interface SecretProviderConfigDiscoveryPreviewInput {
 }
 
 export const secretsApi = {
-  list: (companyId: string) => api.get<CompanySecret[]>(`/companies/${companyId}/secrets`),
+  list: (companyId: string) =>
+    api.get<CompanySecret[]>(`/companies/${companyId}/secrets`),
   providers: (companyId: string) =>
-    api.get<SecretProviderDescriptor[]>(`/companies/${companyId}/secret-providers`),
+    api.get<SecretProviderDescriptor[]>(
+      `/companies/${companyId}/secret-providers`,
+    ),
   providerHealth: (companyId: string) =>
-    api.get<SecretProviderHealthResponse>(`/companies/${companyId}/secret-providers/health`),
+    api.get<SecretProviderHealthResponse>(
+      `/companies/${companyId}/secret-providers/health`,
+    ),
   providerConfigs: (companyId: string) =>
-    api.get<CompanySecretProviderConfig[]>(`/companies/${companyId}/secret-provider-configs`),
+    api.get<CompanySecretProviderConfig[]>(
+      `/companies/${companyId}/secret-provider-configs`,
+    ),
   providerConfigDiscoveryPreview: (
     companyId: string,
     data: SecretProviderConfigDiscoveryPreviewInput,
@@ -163,18 +170,35 @@ export const secretsApi = {
       `/companies/${companyId}/secret-provider-configs/discovery/preview`,
       data,
     ),
-  createProviderConfig: (companyId: string, data: CreateSecretProviderConfigInput) =>
-    api.post<CompanySecretProviderConfig>(`/companies/${companyId}/secret-provider-configs`, data),
+  createProviderConfig: (
+    companyId: string,
+    data: CreateSecretProviderConfigInput,
+  ) =>
+    api.post<CompanySecretProviderConfig>(
+      `/companies/${companyId}/secret-provider-configs`,
+      data,
+    ),
   updateProviderConfig: (id: string, data: UpdateSecretProviderConfigInput) =>
-    api.patch<CompanySecretProviderConfig>(`/secret-provider-configs/${id}`, data),
+    api.patch<CompanySecretProviderConfig>(
+      `/secret-provider-configs/${id}`,
+      data,
+    ),
   disableProviderConfig: (id: string) =>
-    api.patch<CompanySecretProviderConfig>(`/secret-provider-configs/${id}`, { status: "disabled" }),
+    api.patch<CompanySecretProviderConfig>(`/secret-provider-configs/${id}`, {
+      status: "disabled",
+    }),
   removeProviderConfig: (id: string) =>
     api.delete<CompanySecretProviderConfig>(`/secret-provider-configs/${id}`),
   setDefaultProviderConfig: (id: string) =>
-    api.post<CompanySecretProviderConfig>(`/secret-provider-configs/${id}/default`, {}),
+    api.post<CompanySecretProviderConfig>(
+      `/secret-provider-configs/${id}/default`,
+      {},
+    ),
   checkProviderConfigHealth: (id: string) =>
-    api.post<SecretProviderConfigHealthResponse>(`/secret-provider-configs/${id}/health`, {}),
+    api.post<SecretProviderConfigHealthResponse>(
+      `/secret-provider-configs/${id}/health`,
+      {},
+    ),
   create: (companyId: string, data: CreateSecretInput) =>
     api.post<CompanySecret>(`/companies/${companyId}/secrets`, data),
   update: (id: string, data: UpdateSecretInput) =>
@@ -182,21 +206,36 @@ export const secretsApi = {
   rotate: (id: string, data: RotateSecretInput) =>
     api.post<CompanySecret>(`/secrets/${id}/rotate`, data),
   disable: (id: string) =>
-    api.patch<CompanySecret>(`/secrets/${id}`, { status: "disabled" satisfies SecretStatus }),
+    api.patch<CompanySecret>(`/secrets/${id}`, {
+      status: "disabled" satisfies SecretStatus,
+    }),
   enable: (id: string) =>
-    api.patch<CompanySecret>(`/secrets/${id}`, { status: "active" satisfies SecretStatus }),
+    api.patch<CompanySecret>(`/secrets/${id}`, {
+      status: "active" satisfies SecretStatus,
+    }),
   archive: (id: string) =>
-    api.patch<CompanySecret>(`/secrets/${id}`, { status: "archived" satisfies SecretStatus }),
+    api.patch<CompanySecret>(`/secrets/${id}`, {
+      status: "archived" satisfies SecretStatus,
+    }),
   remove: (id: string) => api.delete<{ ok: true }>(`/secrets/${id}`),
   usage: (id: string) => api.get<SecretUsageResponse>(`/secrets/${id}/usage`),
-  accessEvents: (id: string) => api.get<SecretAccessEvent[]>(`/secrets/${id}/access-events`),
+  accessEvents: (id: string) =>
+    api.get<SecretAccessEvent[]>(`/secrets/${id}/access-events`),
 
   // --- User-specific secrets ---------------------------------------------
   // Admin: shared definitions each member fills in with their own value.
   listUserSecretDefinitions: (companyId: string) =>
-    api.get<UserSecretDefinition[]>(`/companies/${companyId}/user-secret-definitions`),
-  createUserSecretDefinition: (companyId: string, data: CreateUserSecretDefinitionInput) =>
-    api.post<UserSecretDefinition>(`/companies/${companyId}/user-secret-definitions`, data),
+    api.get<UserSecretDefinition[]>(
+      `/companies/${companyId}/user-secret-definitions`,
+    ),
+  createUserSecretDefinition: (
+    companyId: string,
+    data: CreateUserSecretDefinitionInput,
+  ) =>
+    api.post<UserSecretDefinition>(
+      `/companies/${companyId}/user-secret-definitions`,
+      data,
+    ),
   updateUserSecretDefinition: (
     companyId: string,
     definitionId: string,
@@ -207,7 +246,9 @@ export const secretsApi = {
       data,
     ),
   removeUserSecretDefinition: (companyId: string, definitionId: string) =>
-    api.delete<{ ok: true }>(`/companies/${companyId}/user-secret-definitions/${definitionId}`),
+    api.delete<{ ok: true }>(
+      `/companies/${companyId}/user-secret-definitions/${definitionId}`,
+    ),
   userSecretDefinitionCoverage: (companyId: string, definitionId: string) =>
     api.get<UserSecretCoverageSummary>(
       `/companies/${companyId}/user-secret-definitions/${definitionId}/coverage`,
@@ -222,32 +263,59 @@ export const secretsApi = {
     companyId: string,
     secretId: string,
     data: Partial<UpsertMyUserSecretInput> & { status?: SecretStatus },
-  ) => api.patch<CompanySecret>(`/companies/${companyId}/me/user-secrets/${secretId}`, data),
-  rotateMyUserSecret: (companyId: string, secretId: string, data: UpsertMyUserSecretInput) =>
-    api.post<CompanySecret>(`/companies/${companyId}/me/user-secrets/${secretId}/rotate`, data),
+  ) =>
+    api.patch<CompanySecret>(
+      `/companies/${companyId}/me/user-secrets/${secretId}`,
+      data,
+    ),
+  rotateMyUserSecret: (
+    companyId: string,
+    secretId: string,
+    data: UpsertMyUserSecretInput,
+  ) =>
+    api.post<CompanySecret>(
+      `/companies/${companyId}/me/user-secrets/${secretId}/rotate`,
+      data,
+    ),
   removeMyUserSecret: (companyId: string, secretId: string) =>
-    api.delete<{ ok: true }>(`/companies/${companyId}/me/user-secrets/${secretId}`),
+    api.delete<{ ok: true }>(
+      `/companies/${companyId}/me/user-secrets/${secretId}`,
+    ),
   remoteImportPreview: (companyId: string, data: RemoteImportPreviewInput) =>
     api.post<RemoteSecretImportPreviewResult>(
       `/companies/${companyId}/secrets/remote-import/preview`,
       data,
     ),
   remoteImport: (companyId: string, data: RemoteImportInput) =>
-    api.post<RemoteSecretImportResult>(`/companies/${companyId}/secrets/remote-import`, data),
+    api.post<RemoteSecretImportResult>(
+      `/companies/${companyId}/secrets/remote-import`,
+      data,
+    ),
 
   // --- Secret & binding proposals (PAP-14731) -----------------------------
   // Board-facing review surface. Agents propose credentials/bindings; humans
   // approve or reject them here. Values are never returned by these routes.
-  listProposals: (companyId: string, status: SecretProposalStatus = "pending") =>
+  listProposals: (
+    companyId: string,
+    status: SecretProposalStatus = "pending",
+  ) =>
     api.get<SecretProposalView[]>(
       `/companies/${companyId}/secret-proposals?status=${encodeURIComponent(status)}`,
     ),
-  approveProposal: (companyId: string, proposalId: string, data: ApproveSecretProposalInput = {}) =>
+  approveProposal: (
+    companyId: string,
+    proposalId: string,
+    data: ApproveSecretProposalInput = {},
+  ) =>
     api.post<SecretProposalView>(
       `/companies/${companyId}/secret-proposals/${proposalId}/approve`,
       data,
     ),
-  rejectProposal: (companyId: string, proposalId: string, data: RejectSecretProposalInput) =>
+  rejectProposal: (
+    companyId: string,
+    proposalId: string,
+    data: RejectSecretProposalInput,
+  ) =>
     api.post<SecretProposalView>(
       `/companies/${companyId}/secret-proposals/${proposalId}/reject`,
       data,

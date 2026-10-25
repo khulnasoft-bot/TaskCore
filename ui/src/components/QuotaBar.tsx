@@ -37,7 +37,9 @@ export function QuotaBar({
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs font-medium tabular-nums">{leftLabel}</span>
           {rightLabel && (
-            <span className="text-xs text-muted-foreground tabular-nums">{rightLabel}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {rightLabel}
+            </span>
           )}
         </div>
       </div>

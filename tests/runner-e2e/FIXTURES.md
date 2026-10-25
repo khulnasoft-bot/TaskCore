@@ -219,7 +219,6 @@ pnpm test:e2e:runner -- --list
 Then run the narrowest paid cell that exercises the fixture. A full matrix is a
 manual or scheduled campaign, not a PR requirement.
 
-
 ## Persistent chat fixtures
 
 `chat-cases.ts` defines the eight-case `agent-chat` suite; `chat-flow.ts` drives the
@@ -236,7 +235,6 @@ workspaces, task documents, and ordering. They pass through the normal sanitizer
 Screenshots are allowlisted to the exact disposable agent chat. Cleanup cancels
 all active runs in the isolated company, including handed-off work; usage from
 failed and cancelled runs must not disappear from campaign totals.
-
 
 Warm three-turn continuity grades the exact workspace file after each turn,
 task completion, and sandbox/session identity. It also requires a visible
@@ -319,7 +317,6 @@ cleanup include unexpected manager runs. The grader checks saved human input,
 requester identity for scope questions, ownership history, no additional work or
 hires, and the browser-answer continuation. See [Direct blocker guidance](README.md#direct-blocker-guidance)
 for coverage boundaries and run commands.
-
 
 ## Source-derived hiring template fixture
 

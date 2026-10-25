@@ -26,21 +26,36 @@ describe("issue-thread interaction resolver audience", () => {
     "request_checkbox_confirmation",
     "request_item_verdicts",
   ])("allows the creator and creating run under anyone for %s", () => {
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: agent,
-      interaction: interaction(),
-    })).toMatchObject({ allowed: true, effectiveResolverPolicy: "anyone", reason: "allow_anyone" });
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: agent,
+        interaction: interaction(),
+      }),
+    ).toMatchObject({
+      allowed: true,
+      effectiveResolverPolicy: "anyone",
+      reason: "allow_anyone",
+    });
   });
 
   it.each([
-    ["creator agent", { createdByAgentId: "agent-1", sourceRunId: "run-other" }],
+    [
+      "creator agent",
+      { createdByAgentId: "agent-1", sourceRunId: "run-other" },
+    ],
     ["creating run", { createdByAgentId: "agent-other", sourceRunId: "run-1" }],
   ])("excludes the %s only when not_creator is effective", (_name, creator) => {
     const decision = evaluateIssueThreadInteractionResolverAudience({
       actor: agent,
-      interaction: interaction({ ...creator, effectiveResolverPolicy: "not_creator" }),
+      interaction: interaction({
+        ...creator,
+        effectiveResolverPolicy: "not_creator",
+      }),
     });
-    expect(decision).toMatchObject({ allowed: false, code: "interaction_creator_excluded" });
+    expect(decision).toMatchObject({
+      allowed: false,
+      code: "interaction_creator_excluded",
+    });
   });
 
   it("enforces an explicit addressee", () => {
@@ -48,19 +63,32 @@ describe("issue-thread interaction resolver audience", () => {
       actor: agent,
       interaction: interaction({ addresseeAgentId: "agent-2" }),
     });
-    expect(decision).toMatchObject({ allowed: false, code: "interaction_addressee_mismatch" });
+    expect(decision).toMatchObject({
+      allowed: false,
+      code: "interaction_addressee_mismatch",
+    });
   });
 
   it("allows only the addressed user to resolve a user-addressed interaction", () => {
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: { type: "user", userId: "alice" },
-      interaction: interaction({ addresseeUserId: "alice", effectiveResolverPolicy: "human_only" }),
-    })).toMatchObject({ allowed: true, reason: "allow_addressee" });
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: { type: "user", userId: "alice" },
+        interaction: interaction({
+          addresseeUserId: "alice",
+          effectiveResolverPolicy: "human_only",
+        }),
+      }),
+    ).toMatchObject({ allowed: true, reason: "allow_addressee" });
 
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: { type: "user", userId: "bob" },
-      interaction: interaction({ addresseeUserId: "alice", effectiveResolverPolicy: "human_only" }),
-    })).toMatchObject({ allowed: false, code: "interaction_addressee_mismatch" });
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: { type: "user", userId: "bob" },
+        interaction: interaction({
+          addresseeUserId: "alice",
+          effectiveResolverPolicy: "human_only",
+        }),
+      }),
+    ).toMatchObject({ allowed: false, code: "interaction_addressee_mismatch" });
   });
 
   it("requires run attribution for agents", () => {
@@ -76,39 +104,50 @@ describe("issue-thread interaction resolver audience", () => {
   });
 
   it("allows a server-derived restriction to narrow but never widen the audience", () => {
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: agent,
-      interaction: interaction({ createdByAgentId: "agent-other", sourceRunId: "run-other" }),
-      additionalRestriction: "human_only",
-    })).toMatchObject({ allowed: false, code: "interaction_human_only" });
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: agent,
+        interaction: interaction({
+          createdByAgentId: "agent-other",
+          sourceRunId: "run-other",
+        }),
+        additionalRestriction: "human_only",
+      }),
+    ).toMatchObject({ allowed: false, code: "interaction_human_only" });
 
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: agent,
-      interaction: interaction({ effectiveResolverPolicy: "human_only" }),
-      additionalRestriction: "anyone",
-    })).toMatchObject({ allowed: false, code: "interaction_human_only" });
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: agent,
+        interaction: interaction({ effectiveResolverPolicy: "human_only" }),
+        additionalRestriction: "anyone",
+      }),
+    ).toMatchObject({ allowed: false, code: "interaction_human_only" });
   });
 
   it("intersects human-only and creator-separation restrictions", () => {
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: { type: "user", userId: "user-1" },
-      interaction: interaction({
-        createdByAgentId: null,
-        createdByUserId: "user-1",
-        effectiveResolverPolicy: "not_creator",
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: { type: "user", userId: "user-1" },
+        interaction: interaction({
+          createdByAgentId: null,
+          createdByUserId: "user-1",
+          effectiveResolverPolicy: "not_creator",
+        }),
+        additionalRestriction: "human_only",
       }),
-      additionalRestriction: "human_only",
-    })).toMatchObject({ allowed: false, code: "interaction_creator_excluded" });
+    ).toMatchObject({ allowed: false, code: "interaction_creator_excluded" });
 
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: { type: "user", userId: "user-1" },
-      interaction: interaction({
-        createdByAgentId: null,
-        createdByUserId: "user-1",
-        effectiveResolverPolicy: "human_only",
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: { type: "user", userId: "user-1" },
+        interaction: interaction({
+          createdByAgentId: null,
+          createdByUserId: "user-1",
+          effectiveResolverPolicy: "human_only",
+        }),
+        additionalRestriction: "not_creator",
       }),
-      additionalRestriction: "not_creator",
-    })).toMatchObject({ allowed: false, code: "interaction_creator_excluded" });
+    ).toMatchObject({ allowed: false, code: "interaction_creator_excluded" });
   });
 
   it("excludes the review requester when a review card has null creator columns", () => {
@@ -117,15 +156,17 @@ describe("issue-thread interaction resolver audience", () => {
       excludedActor: { type: "user", id: "review-requester" },
       source: "issue_review",
     } as const;
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: { type: "user", userId: "review-requester" },
-      interaction: interaction({
-        createdByAgentId: null,
-        createdByUserId: null,
-        sourceRunId: null,
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: { type: "user", userId: "review-requester" },
+        interaction: interaction({
+          createdByAgentId: null,
+          createdByUserId: null,
+          sourceRunId: null,
+        }),
+        additionalRestriction: restriction,
       }),
-      additionalRestriction: restriction,
-    })).toMatchObject({
+    ).toMatchObject({
       allowed: false,
       code: "review_policy_denied",
       details: {
@@ -133,15 +174,17 @@ describe("issue-thread interaction resolver audience", () => {
         allowedActor: "writer_other_than_review_requester",
       },
     });
-    expect(evaluateIssueThreadInteractionResolverAudience({
-      actor: { type: "user", userId: "peer-reviewer" },
-      interaction: interaction({
-        createdByAgentId: null,
-        createdByUserId: null,
-        sourceRunId: null,
+    expect(
+      evaluateIssueThreadInteractionResolverAudience({
+        actor: { type: "user", userId: "peer-reviewer" },
+        interaction: interaction({
+          createdByAgentId: null,
+          createdByUserId: null,
+          sourceRunId: null,
+        }),
+        additionalRestriction: restriction,
       }),
-      additionalRestriction: restriction,
-    })).toMatchObject({ allowed: true, effectiveResolverPolicy: "not_creator" });
+    ).toMatchObject({ allowed: true, effectiveResolverPolicy: "not_creator" });
   });
 
   it("keeps governed actions independently human-only", () => {
@@ -150,7 +193,10 @@ describe("issue-thread interaction resolver audience", () => {
       interaction: interaction(),
       governedAction: true,
     });
-    expect(decision).toMatchObject({ allowed: false, code: "interaction_governed_action_denied" });
+    expect(decision).toMatchObject({
+      allowed: false,
+      code: "interaction_governed_action_denied",
+    });
   });
 
   it("preserves legacy inherited board_or_agents creator separation", () => {
@@ -161,21 +207,30 @@ describe("issue-thread interaction resolver audience", () => {
         resolverPolicyProvenance: "legacy_inherited_restriction",
       }),
     });
-    expect(decision).toMatchObject({ allowed: false, code: "interaction_creator_excluded" });
+    expect(decision).toMatchObject({
+      allowed: false,
+      code: "interaction_creator_excluded",
+    });
   });
 
   it("derives agent attention ownership from the same effective audience", () => {
-    expect(issueThreadInteractionAttentionAgentAllowed({
-      agentId: "agent-1",
-      interaction: interaction(),
-    })).toBe(true);
-    expect(issueThreadInteractionAttentionAgentAllowed({
-      agentId: "agent-1",
-      interaction: interaction({ effectiveResolverPolicy: "not_creator" }),
-    })).toBe(false);
-    expect(issueThreadInteractionAttentionAgentAllowed({
-      agentId: "agent-2",
-      interaction: interaction({ effectiveResolverPolicy: "human_only" }),
-    })).toBe(false);
+    expect(
+      issueThreadInteractionAttentionAgentAllowed({
+        agentId: "agent-1",
+        interaction: interaction(),
+      }),
+    ).toBe(true);
+    expect(
+      issueThreadInteractionAttentionAgentAllowed({
+        agentId: "agent-1",
+        interaction: interaction({ effectiveResolverPolicy: "not_creator" }),
+      }),
+    ).toBe(false);
+    expect(
+      issueThreadInteractionAttentionAgentAllowed({
+        agentId: "agent-2",
+        interaction: interaction({ effectiveResolverPolicy: "human_only" }),
+      }),
+    ).toBe(false);
   });
 });

@@ -4,7 +4,9 @@ import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
 export function shouldTrackIssueActiveRun(
   issue: Pick<Issue, "status" | "executionRunId"> | null | undefined,
 ): boolean {
-  return Boolean(issue && (issue.status === "in_progress" || issue.executionRunId));
+  return Boolean(
+    issue && (issue.status === "in_progress" || issue.executionRunId),
+  );
 }
 
 export function resolveIssueActiveRun(
@@ -17,6 +19,8 @@ export function resolveIssueActiveRun(
   // Prefer the task's current execution identity when its cached run is stale.
   const runId = issue?.executionRunId ?? activeRun?.id;
   if (!runId) return null;
-  return liveRuns?.find((run) => run.id === runId)
-    ?? (activeRun?.id === runId ? activeRun : null);
+  return (
+    liveRuns?.find((run) => run.id === runId) ??
+    (activeRun?.id === runId ? activeRun : null)
+  );
 }

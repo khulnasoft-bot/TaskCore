@@ -7,7 +7,10 @@ export interface ViteWatcherHost {
   transformIndexHtml(url: string, html: string): Promise<string>;
   watcher?: {
     on?: (event: ViteWatcherEvent, listener: (file: string) => void) => unknown;
-    off?: (event: ViteWatcherEvent, listener: (file: string) => void) => unknown;
+    off?: (
+      event: ViteWatcherEvent,
+      listener: (file: string) => void,
+    ) => unknown;
   };
 }
 

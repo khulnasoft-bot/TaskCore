@@ -9,13 +9,11 @@ import { redactUrlSecrets } from "@/lib/redact-url-secrets";
 import { tenantSessionRecovery } from "@/lib/tenant-session-recovery";
 import { readApiJson } from "./response";
 
-type AuthErrorBody =
-  | {
-    code?: string;
-    message?: string;
-    error?: string | { code?: string; message?: string };
-  }
-  | null;
+type AuthErrorBody = {
+  code?: string;
+  message?: string;
+  error?: string | { code?: string; message?: string };
+} | null;
 
 export interface SignOutResult {
   success?: boolean;
@@ -27,7 +25,12 @@ export class AuthApiError extends Error {
   code: string | null;
   body: unknown;
 
-  constructor(message: string, status: number, body: unknown, code: string | null = null) {
+  constructor(
+    message: string,
+    status: number,
+    body: unknown,
+    code: string | null = null,
+  ) {
     super(message);
     this.name = "AuthApiError";
     this.status = status;
@@ -41,15 +44,15 @@ function toSession(value: unknown): AuthSession | null {
   if (direct.success) return direct.data;
 
   if (!value || typeof value !== "object") return null;
-  const nested = authSessionSchema.safeParse((value as Record<string, unknown>).data);
+  const nested = authSessionSchema.safeParse(
+    (value as Record<string, unknown>).data,
+  );
   return nested.success ? nested.data : null;
 }
 
 function extractAuthError(payload: AuthErrorBody, status: number) {
   const nested =
-    payload?.error && typeof payload.error === "object"
-      ? payload.error
-      : null;
+    payload?.error && typeof payload.error === "object" ? payload.error : null;
   const code =
     typeof nested?.code === "string"
       ? nested.code
@@ -59,7 +62,8 @@ function extractAuthError(payload: AuthErrorBody, status: number) {
   const message =
     typeof nested?.message === "string" && nested.message.trim().length > 0
       ? nested.message
-      : typeof payload?.message === "string" && payload.message.trim().length > 0
+      : typeof payload?.message === "string" &&
+          payload.message.trim().length > 0
         ? payload.message
         : typeof payload?.error === "string" && payload.error.trim().length > 0
           ? payload.error
@@ -83,25 +87,39 @@ function resolveAuthUrl(path: string) {
 
 function logAuthNetworkFailure(method: string, path: string, error: unknown) {
   // eslint-disable-next-line no-console
-  console.error("[auth] request failed at the network layer (no HTTP response)", {
-    method,
-    requestUrl: resolveAuthUrl(path),
-    pageOrigin: typeof window !== "undefined" ? window.location.origin : "(no window)",
-    pageHref: typeof window !== "undefined" ? redactUrlSecrets(window.location.href) : "(no window)",
-    credentials: "include",
-    online: typeof navigator !== "undefined" ? navigator.onLine : "(no navigator)",
-    errorName: error instanceof Error ? error.name : typeof error,
-    errorMessage: error instanceof Error ? error.message : String(error),
-    error,
-    hint:
-      "This means the browser never got a response from the server. Common causes: " +
-      "the page origin differs from the API host (mixed http/https, wrong hostname/port, " +
-      "or a proxy/tunnel that only forwards the page but not /api), an SSL error, or the " +
-      "connection was reset. A wrong password would instead return HTTP 401, not this.",
-  });
+  console.error(
+    "[auth] request failed at the network layer (no HTTP response)",
+    {
+      method,
+      requestUrl: resolveAuthUrl(path),
+      pageOrigin:
+        typeof window !== "undefined" ? window.location.origin : "(no window)",
+      pageHref:
+        typeof window !== "undefined"
+          ? redactUrlSecrets(window.location.href)
+          : "(no window)",
+      credentials: "include",
+      online:
+        typeof navigator !== "undefined" ? navigator.onLine : "(no navigator)",
+      errorName: error instanceof Error ? error.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      error,
+      hint:
+        "This means the browser never got a response from the server. Common causes: " +
+        "the page origin differs from the API host (mixed http/https, wrong hostname/port, " +
+        "or a proxy/tunnel that only forwards the page but not /api), an SSL error, or the " +
+        "connection was reset. A wrong password would instead return HTTP 401, not this.",
+    },
+  );
 }
 
-function logAuthHttpError(method: string, path: string, status: number, statusText: string, body: unknown) {
+function logAuthHttpError(
+  method: string,
+  path: string,
+  status: number,
+  statusText: string,
+  body: unknown,
+) {
   // eslint-disable-next-line no-console
   console.error("[auth] request returned an error status", {
     method,
@@ -112,7 +130,10 @@ function logAuthHttpError(method: string, path: string, status: number, statusTe
   });
 }
 
-async function authPost(path: string, body: Record<string, unknown>): Promise<unknown> {
+async function authPost(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<unknown> {
   let res: Response;
   try {
     res = await fetch(`/api/auth${path}`, {
@@ -135,7 +156,11 @@ async function authPost(path: string, body: Record<string, unknown>): Promise<un
   return payload;
 }
 
-async function authPatch<T>(path: string, body: Record<string, unknown>, parse: (value: unknown) => T): Promise<T> {
+async function authPatch<T>(
+  path: string,
+  body: Record<string, unknown>,
+  parse: (value: unknown) => T,
+): Promise<T> {
   const res = await fetch(`/api/auth${path}`, {
     method: "PATCH",
     credentials: "include",
@@ -160,14 +185,20 @@ export const authApi = {
     });
     const payload = await readApiJson(res);
     if (!res.ok) {
-      const recovery = tenantSessionRecovery.recoverIfNeeded(res.status, payload);
+      const recovery = tenantSessionRecovery.recoverIfNeeded(
+        res.status,
+        payload,
+      );
       if (recovery) return recovery;
       if (res.status === 401) return null;
       throw extractAuthError(payload as AuthErrorBody, res.status);
     }
     const direct = toSession(payload);
     if (direct) return direct;
-    const nested = payload && typeof payload === "object" ? toSession((payload as Record<string, unknown>).data) : null;
+    const nested =
+      payload && typeof payload === "object"
+        ? toSession((payload as Record<string, unknown>).data)
+        : null;
     return nested;
   },
 
@@ -175,7 +206,11 @@ export const authApi = {
     await authPost("/sign-in/email", input);
   },
 
-  signUpEmail: async (input: { name: string; email: string; password: string }) => {
+  signUpEmail: async (input: {
+    name: string;
+    email: string;
+    password: string;
+  }) => {
     await authPost("/sign-up/email", input);
   },
 
@@ -186,15 +221,25 @@ export const authApi = {
     });
     const payload = await res.json().catch(() => null);
     if (!res.ok) {
-      const recovery = tenantSessionRecovery.recoverIfNeeded(res.status, payload);
+      const recovery = tenantSessionRecovery.recoverIfNeeded(
+        res.status,
+        payload,
+      );
       if (recovery) return recovery;
-      throw new Error((payload as { error?: string } | null)?.error ?? `Failed to load profile (${res.status})`);
+      throw new Error(
+        (payload as { error?: string } | null)?.error ??
+          `Failed to load profile (${res.status})`,
+      );
     }
     return currentUserProfileSchema.parse(payload);
   },
 
-  updateProfile: async (input: UpdateCurrentUserProfile): Promise<CurrentUserProfile> =>
-    authPatch("/profile", input, (payload) => currentUserProfileSchema.parse(payload)),
+  updateProfile: async (
+    input: UpdateCurrentUserProfile,
+  ): Promise<CurrentUserProfile> =>
+    authPatch("/profile", input, (payload) =>
+      currentUserProfileSchema.parse(payload),
+    ),
 
   signOut: async (): Promise<SignOutResult | null> => {
     const payload = await authPost("/sign-out", {});
@@ -202,8 +247,12 @@ export const authApi = {
 
     const result = payload as Record<string, unknown>;
     return {
-      ...(typeof result.success === "boolean" ? { success: result.success } : {}),
-      ...(typeof result.redirectTo === "string" ? { redirectTo: result.redirectTo } : {}),
+      ...(typeof result.success === "boolean"
+        ? { success: result.success }
+        : {}),
+      ...(typeof result.redirectTo === "string"
+        ? { redirectTo: result.redirectTo }
+        : {}),
     };
   },
 };

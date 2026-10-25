@@ -36,7 +36,10 @@ export class NavigationScrollMemory {
   }
 }
 
-export function applyMainContentScrollTop(mainElement: HTMLElement | null, scrollTop: number): void {
+export function applyMainContentScrollTop(
+  mainElement: HTMLElement | null,
+  scrollTop: number,
+): void {
   if (!mainElement) return;
   mainElement.scrollTo?.({ top: scrollTop, left: 0, behavior: "auto" });
   mainElement.scrollTop = scrollTop;
@@ -51,7 +54,8 @@ export function resetNavigationScroll(mainElement: HTMLElement | null): void {
     mainElement.scrollLeft = 0;
   }
 
-  const scrollingElement = document.scrollingElement ?? document.documentElement;
+  const scrollingElement =
+    document.scrollingElement ?? document.documentElement;
   if (scrollingElement) {
     scrollingElement.scrollTop = 0;
     scrollingElement.scrollLeft = 0;
@@ -70,17 +74,24 @@ function hasSidebarScrollResetState(state: unknown): boolean {
   return (state as Record<string, unknown>).taskcoreSidebarScrollReset === true;
 }
 
-function isIssueDetailPathChange(previousPathname: string, pathname: string): boolean {
+function isIssueDetailPathChange(
+  previousPathname: string,
+  pathname: string,
+): boolean {
   const previousIssueRef = readIssueDetailPathRef(previousPathname);
   const nextIssueRef = readIssueDetailPathRef(pathname);
-  return previousIssueRef !== null && nextIssueRef !== null && previousIssueRef !== nextIssueRef;
+  return (
+    previousIssueRef !== null &&
+    nextIssueRef !== null &&
+    previousIssueRef !== nextIssueRef
+  );
 }
 
 function isIssueIndexPath(pathname: string): boolean {
   const segments = pathname.split("/").filter(Boolean);
   return (
-    (segments.length === 1 && segments[0] === "issues")
-    || (segments.length === 2 && segments[1] === "issues")
+    (segments.length === 1 && segments[0] === "issues") ||
+    (segments.length === 2 && segments[1] === "issues")
   );
 }
 

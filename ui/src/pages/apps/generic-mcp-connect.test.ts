@@ -11,7 +11,9 @@ import {
   type GenericConnectDraft,
 } from "./generic-mcp-connect";
 
-function draft(overrides: Partial<GenericConnectDraft> = {}): GenericConnectDraft {
+function draft(
+  overrides: Partial<GenericConnectDraft> = {},
+): GenericConnectDraft {
   return {
     link: "https://mcp.example.test/mcp",
     name: "Example",
@@ -27,7 +29,9 @@ function draft(overrides: Partial<GenericConnectDraft> = {}): GenericConnectDraf
 
 describe("endpointHost", () => {
   it("returns the host so the operator can see whose server this is", () => {
-    expect(endpointHost("https://mcp.example.test/mcp?project_id=1")).toBe("mcp.example.test");
+    expect(endpointHost("https://mcp.example.test/mcp?project_id=1")).toBe(
+      "mcp.example.test",
+    );
     expect(endpointHost("http://127.0.0.1:8848/mcp")).toBe("127.0.0.1:8848");
   });
 
@@ -56,15 +60,18 @@ describe("oauthCallbackUrlForBrowser", () => {
 
 describe("defaultGenericMcpName", () => {
   it("keeps the port and path so endpoints on one host get distinct names", () => {
-    expect(defaultGenericMcpName("http://127.0.0.1:47399/mcp"))
-      .toBe("127.0.0.1:47399/mcp");
-    expect(defaultGenericMcpName("http://127.0.0.1:47400/analytics/mcp"))
-      .toBe("127.0.0.1:47400/analytics/mcp");
+    expect(defaultGenericMcpName("http://127.0.0.1:47399/mcp")).toBe(
+      "127.0.0.1:47399/mcp",
+    );
+    expect(defaultGenericMcpName("http://127.0.0.1:47400/analytics/mcp")).toBe(
+      "127.0.0.1:47400/analytics/mcp",
+    );
   });
 
   it("does not copy a potentially secret query string into the name", () => {
-    expect(defaultGenericMcpName("https://www.example.test/mcp?token=secret"))
-      .toBe("example.test/mcp");
+    expect(
+      defaultGenericMcpName("https://www.example.test/mcp?token=secret"),
+    ).toBe("example.test/mcp");
   });
 });
 
@@ -87,12 +94,17 @@ describe("genericConnectGuidance", () => {
   });
 
   it("points at the deployment when Taskcore itself has no public HTTPS address", () => {
-    expect(genericConnectGuidance("oauth_redirect_origin_unsupported", null).focus).toBe("deployment");
+    expect(
+      genericConnectGuidance("oauth_redirect_origin_unsupported", null).focus,
+    ).toBe("deployment");
   });
 
   it("does not ask the operator to resolve an internal name conflict", () => {
     const guidance = genericConnectGuidance("tool_access_name_conflict", null);
-    expect(guidance).toMatchObject({ title: "Taskcore couldn’t name this connection", focus: "none" });
+    expect(guidance).toMatchObject({
+      title: "Taskcore couldn’t name this connection",
+      focus: "none",
+    });
     expect(guidance.body).not.toContain("different name");
   });
 
@@ -106,36 +118,49 @@ describe("genericConnectGuidance", () => {
   });
 
   it("falls back to the server's message for an unrecognised code", () => {
-    expect(genericConnectGuidance("something_new", "Upstream said no.").body).toBe("Upstream said no.");
-    expect(genericConnectGuidance(null, null).body).toContain("Check it and try again");
+    expect(
+      genericConnectGuidance("something_new", "Upstream said no.").body,
+    ).toBe("Upstream said no.");
+    expect(genericConnectGuidance(null, null).body).toContain(
+      "Check it and try again",
+    );
   });
 });
 
 describe("customHeaderError", () => {
   it("accepts a filled row and ignores a blank one", () => {
-    expect(customHeaderError([
-      { id: "a", name: "X-Api-Key", value: "abc" },
-      { id: "b", name: "", value: "" },
-    ])).toBeNull();
+    expect(
+      customHeaderError([
+        { id: "a", name: "X-Api-Key", value: "abc" },
+        { id: "b", name: "", value: "" },
+      ]),
+    ).toBeNull();
   });
 
   it("rejects headers Taskcore refuses to send", () => {
-    expect(customHeaderError([{ id: "a", name: "Host", value: "evil.example" }]))
-      .toContain('Taskcore manages the "Host" header');
+    expect(
+      customHeaderError([{ id: "a", name: "Host", value: "evil.example" }]),
+    ).toContain('Taskcore manages the "Host" header');
   });
 
   it("rejects a value that would split the request", () => {
-    expect(customHeaderError([{ id: "a", name: "X-Api-Key", value: "abc\r\nX-Injected: 1" }]))
-      .toContain("line breaks");
+    expect(
+      customHeaderError([
+        { id: "a", name: "X-Api-Key", value: "abc\r\nX-Injected: 1" },
+      ]),
+    ).toContain("line breaks");
   });
 
   it("asks for a value on a half-filled row and flags duplicates", () => {
-    expect(customHeaderError([{ id: "a", name: "X-Api-Key", value: "" }]))
-      .toContain('Add a value for "X-Api-Key"');
-    expect(customHeaderError([
-      { id: "a", name: "X-Api-Key", value: "one" },
-      { id: "b", name: "x-api-key", value: "two" },
-    ])).toContain("listed twice");
+    expect(
+      customHeaderError([{ id: "a", name: "X-Api-Key", value: "" }]),
+    ).toContain('Add a value for "X-Api-Key"');
+    expect(
+      customHeaderError([
+        { id: "a", name: "X-Api-Key", value: "one" },
+        { id: "b", name: "x-api-key", value: "two" },
+      ]),
+    ).toContain("listed twice");
   });
 });
 
@@ -148,26 +173,38 @@ describe("genericConnectPayload", () => {
   });
 
   it("omits authMode on the simple path so the server probes and decides", () => {
-    const payload = genericConnectPayload(draft({ needsKey: true, keyValue: "abc" }));
+    const payload = genericConnectPayload(
+      draft({ needsKey: true, keyValue: "abc" }),
+    );
     expect(payload.authMode).toBeUndefined();
-    expect(payload.credentialValues).toEqual({ "credentials.authorization": "abc" });
+    expect(payload.credentialValues).toEqual({
+      "credentials.authorization": "abc",
+    });
   });
 
   it("sends the explicit mode chosen under Advanced authentication", () => {
-    expect(genericConnectPayload(draft({ authMode: "none" }))).toMatchObject({ authMode: "none" });
-    expect(genericConnectPayload(draft({ authMode: "bearer", keyValue: " abc " })))
-      .toMatchObject({ authMode: "bearer", credentialValues: { "credentials.authorization": "abc" } });
+    expect(genericConnectPayload(draft({ authMode: "none" }))).toMatchObject({
+      authMode: "none",
+    });
+    expect(
+      genericConnectPayload(draft({ authMode: "bearer", keyValue: " abc " })),
+    ).toMatchObject({
+      authMode: "bearer",
+      credentialValues: { "credentials.authorization": "abc" },
+    });
   });
 
   it("maps custom headers to headers.* credential paths", () => {
-    const payload = genericConnectPayload(draft({
-      authMode: "custom_headers",
-      headers: [
-        { id: "a", name: " X-Api-Key ", value: "phx_secret" },
-        { id: "b", name: "X-Project", value: "12345" },
-        { id: "c", name: "", value: "" },
-      ],
-    }));
+    const payload = genericConnectPayload(
+      draft({
+        authMode: "custom_headers",
+        headers: [
+          { id: "a", name: " X-Api-Key ", value: "phx_secret" },
+          { id: "b", name: "X-Project", value: "12345" },
+          { id: "c", name: "", value: "" },
+        ],
+      }),
+    );
     expect(payload.credentialValues).toEqual({
       "headers.X-Api-Key": "phx_secret",
       "headers.X-Project": "12345",
@@ -175,23 +212,36 @@ describe("genericConnectPayload", () => {
   });
 
   it("only sends a preregistered client when the operator supplied one", () => {
-    expect(genericConnectPayload(draft({ authMode: "oauth" })).oauthClient).toBeUndefined();
-    expect(genericConnectPayload(draft({ authMode: "oauth", oauthClientId: "cid" })).oauthClient)
-      .toEqual({ clientId: "cid" });
-    expect(genericConnectPayload(draft({
-      authMode: "oauth",
-      oauthClientId: "cid",
-      oauthClientSecret: "shh",
-    })).oauthClient).toEqual({ clientId: "cid", clientSecret: "shh" });
+    expect(
+      genericConnectPayload(draft({ authMode: "oauth" })).oauthClient,
+    ).toBeUndefined();
+    expect(
+      genericConnectPayload(draft({ authMode: "oauth", oauthClientId: "cid" }))
+        .oauthClient,
+    ).toEqual({ clientId: "cid" });
+    expect(
+      genericConnectPayload(
+        draft({
+          authMode: "oauth",
+          oauthClientId: "cid",
+          oauthClientSecret: "shh",
+        }),
+      ).oauthClient,
+    ).toEqual({ clientId: "cid", clientSecret: "shh" });
   });
 
   it("does not carry a bearer key into a custom-header or no-auth submission", () => {
     // Switching modes must not leak a value the operator typed under a different
     // one — the wizard clears it, and the payload builder does not resurrect it.
-    expect(genericConnectPayload(draft({ authMode: "custom_headers", keyValue: "stale" })).credentialValues)
-      .toBeUndefined();
-    expect(genericConnectPayload(draft({ authMode: "none", keyValue: "stale" })).credentialValues)
-      .toBeUndefined();
+    expect(
+      genericConnectPayload(
+        draft({ authMode: "custom_headers", keyValue: "stale" }),
+      ).credentialValues,
+    ).toBeUndefined();
+    expect(
+      genericConnectPayload(draft({ authMode: "none", keyValue: "stale" }))
+        .credentialValues,
+    ).toBeUndefined();
   });
 });
 
@@ -203,24 +253,38 @@ describe("canSubmitGenericConnect", () => {
   it("lets the simple no-key path through and holds the yes-key path until a key is typed", () => {
     expect(canSubmitGenericConnect(draft())).toBe(true);
     expect(canSubmitGenericConnect(draft({ needsKey: true }))).toBe(false);
-    expect(canSubmitGenericConnect(draft({ needsKey: true, keyValue: "abc" }))).toBe(true);
+    expect(
+      canSubmitGenericConnect(draft({ needsKey: true, keyValue: "abc" })),
+    ).toBe(true);
   });
 
   it("requires a key for the explicit bearer mode", () => {
     expect(canSubmitGenericConnect(draft({ authMode: "bearer" }))).toBe(false);
-    expect(canSubmitGenericConnect(draft({ authMode: "bearer", keyValue: "abc" }))).toBe(true);
+    expect(
+      canSubmitGenericConnect(draft({ authMode: "bearer", keyValue: "abc" })),
+    ).toBe(true);
   });
 
   it("requires at least one valid header for custom-header mode", () => {
-    expect(canSubmitGenericConnect(draft({ authMode: "custom_headers" }))).toBe(false);
-    expect(canSubmitGenericConnect(draft({
-      authMode: "custom_headers",
-      headers: [{ id: "a", name: "X-Api-Key", value: "abc" }],
-    }))).toBe(true);
-    expect(canSubmitGenericConnect(draft({
-      authMode: "custom_headers",
-      headers: [{ id: "a", name: "Host", value: "abc" }],
-    }))).toBe(false);
+    expect(canSubmitGenericConnect(draft({ authMode: "custom_headers" }))).toBe(
+      false,
+    );
+    expect(
+      canSubmitGenericConnect(
+        draft({
+          authMode: "custom_headers",
+          headers: [{ id: "a", name: "X-Api-Key", value: "abc" }],
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      canSubmitGenericConnect(
+        draft({
+          authMode: "custom_headers",
+          headers: [{ id: "a", name: "Host", value: "abc" }],
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("allows no-auth and browser sign-in without any value", () => {

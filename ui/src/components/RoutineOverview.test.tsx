@@ -5,7 +5,10 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import type { RoutineDetail, RoutineRunSummary } from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RoutineDetailContext, type RoutineDetailContextValue } from "./routine-sections/context";
+import {
+  RoutineDetailContext,
+  type RoutineDetailContextValue,
+} from "./routine-sections/context";
 import {
   RoutineOverview,
   routineRunIssue,
@@ -22,12 +25,16 @@ vi.mock("@/components/IssueRow", () => ({
 }));
 
 vi.mock("@/components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: string }) => <div data-testid="markdown">{children}</div>,
+  MarkdownBody: ({ children }: { children: string }) => (
+    <div data-testid="markdown">{children}</div>
+  ),
 }));
 
 vi.mock("@/lib/router", () => ({
   Link: ({ to, children, ...props }: { to: string; children: ReactNode }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -90,32 +97,40 @@ const routine = {
   createdAt: triggeredAt,
   updatedAt: triggeredAt,
   project: null,
-  assignee: { id: "agent-1", name: "Release Manager", role: "manager", title: null, urlKey: "release-manager" },
+  assignee: {
+    id: "agent-1",
+    name: "Release Manager",
+    role: "manager",
+    title: null,
+    urlKey: "release-manager",
+  },
   parentIssue: null,
-  triggers: [{
-    id: "trigger-1",
-    companyId: "company-1",
-    routineId: "routine-1",
-    kind: "schedule",
-    label: "weekday",
-    enabled: true,
-    cronExpression: "0 9 * * 1-5",
-    timezone: "America/Los_Angeles",
-    nextRunAt: new Date("2026-09-01T16:00:00.000Z"),
-    lastFiredAt: triggeredAt,
-    publicId: null,
-    secretId: null,
-    signingMode: null,
-    replayWindowSec: null,
-    lastRotatedAt: null,
-    lastResult: "succeeded",
-    createdByAgentId: null,
-    createdByUserId: null,
-    updatedByAgentId: null,
-    updatedByUserId: null,
-    createdAt: triggeredAt,
-    updatedAt: triggeredAt,
-  }],
+  triggers: [
+    {
+      id: "trigger-1",
+      companyId: "company-1",
+      routineId: "routine-1",
+      kind: "schedule",
+      label: "weekday",
+      enabled: true,
+      cronExpression: "0 9 * * 1-5",
+      timezone: "America/Los_Angeles",
+      nextRunAt: new Date("2026-09-01T16:00:00.000Z"),
+      lastFiredAt: triggeredAt,
+      publicId: null,
+      secretId: null,
+      signingMode: null,
+      replayWindowSec: null,
+      lastRotatedAt: null,
+      lastResult: "succeeded",
+      createdByAgentId: null,
+      createdByUserId: null,
+      updatedByAgentId: null,
+      updatedByUserId: null,
+      createdAt: triggeredAt,
+      updatedAt: triggeredAt,
+    },
+  ],
   recentRuns: [run],
   activeIssue: null,
 } as RoutineDetail;
@@ -141,7 +156,9 @@ describe("RoutineOverview", () => {
 
   beforeEach(() => {
     issueRowRender.mockClear();
-    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-08-31T17:00:00.000Z").getTime());
+    vi.spyOn(Date, "now").mockReturnValue(
+      new Date("2026-08-31T17:00:00.000Z").getTime(),
+    );
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -159,7 +176,9 @@ describe("RoutineOverview", () => {
       detail: "0 9 * * 1-5 · America/Los_Angeles",
       nextRunAt: new Date("2026-09-01T16:00:00.000Z"),
     });
-    expect(summarizeRoutineSchedule([{ ...routine.triggers[0]!, enabled: false }])).toEqual({
+    expect(
+      summarizeRoutineSchedule([{ ...routine.triggers[0]!, enabled: false }]),
+    ).toEqual({
       label: "No active schedule",
       detail: "Manual runs only",
       nextRunAt: null,
@@ -167,13 +186,24 @@ describe("RoutineOverview", () => {
   });
 
   it("describes webhook-only routines as externally triggered", () => {
-    expect(summarizeRoutineSchedule([{ ...routine.triggers[0]!, kind: "webhook", enabled: true }])).toEqual({
-      label: "1 active webhook", detail: "Runs on incoming requests", nextRunAt: null,
+    expect(
+      summarizeRoutineSchedule([
+        { ...routine.triggers[0]!, kind: "webhook", enabled: true },
+      ]),
+    ).toEqual({
+      label: "1 active webhook",
+      detail: "Runs on incoming requests",
+      nextRunAt: null,
     });
   });
 
   it("adapts compact run tasks to the canonical task presentation", () => {
-    const issue = routineRunIssue(run.linkedIssue!, run, "company-1", "project-1");
+    const issue = routineRunIssue(
+      run.linkedIssue!,
+      run,
+      "company-1",
+      "project-1",
+    );
     expect(issue).toMatchObject({
       id: "issue-1",
       companyId: "company-1",
@@ -187,23 +217,31 @@ describe("RoutineOverview", () => {
   });
 
   it("shows operational facts, readable description, agent, and recent task rows without secrets", () => {
-    flushSync(() => root.render(
-      <RoutineDetailContext.Provider value={contextFixture()}>
-        <RoutineOverview />
-      </RoutineDetailContext.Provider>,
-    ));
+    flushSync(() =>
+      root.render(
+        <RoutineDetailContext.Provider value={contextFixture()}>
+          <RoutineOverview />
+        </RoutineDetailContext.Provider>,
+      ),
+    );
 
     expect(container.textContent).toContain("1 active schedule");
     expect(container.textContent).toContain("Next run");
     expect(container.textContent).toContain("Release Manager");
-    expect(container.textContent).toContain("Summarize **release readiness** for the operator.");
+    expect(container.textContent).toContain(
+      "Summarize **release readiness** for the operator.",
+    );
     expect(container.textContent).toContain("Prepare the release digest");
     expect(container.textContent).not.toContain("PRIVATE_TOKEN");
     expect(container.textContent).not.toContain("secret-1");
-    expect(issueRowRender).toHaveBeenCalledWith(expect.objectContaining({ presentation: "task" }));
-    expect(container.querySelector('a[href="/routines/routine-1/runs"]'))
-      .not.toBeNull();
-    expect(container.querySelector('a[href="/routines/routine-1/activity"]'))
-      .not.toBeNull();
+    expect(issueRowRender).toHaveBeenCalledWith(
+      expect.objectContaining({ presentation: "task" }),
+    );
+    expect(
+      container.querySelector('a[href="/routines/routine-1/runs"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('a[href="/routines/routine-1/activity"]'),
+    ).not.toBeNull();
   });
 });

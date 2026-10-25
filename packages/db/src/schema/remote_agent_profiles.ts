@@ -28,14 +28,26 @@ export const remoteAgentProfiles = pgTable(
     profileKey: text("profile_key").notNull(),
     displayName: text("display_name").notNull(),
     service: text("service").notNull(),
-    configuration: jsonb("configuration").$type<Record<string, unknown>>().notNull().default({}),
+    configuration: jsonb("configuration")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     enabled: boolean("enabled").notNull().default(false),
-    retentionAcknowledged: boolean("retention_acknowledged").notNull().default(false),
-    qualification: jsonb("qualification").$type<Record<string, unknown>>().notNull().default({}),
+    retentionAcknowledged: boolean("retention_acknowledged")
+      .notNull()
+      .default(false),
+    qualification: jsonb("qualification")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     qualifiedAt: timestamp("qualified_at", { withTimezone: true }),
     qualifiedRevision: text("qualified_revision"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companyIdx: index("remote_agent_profiles_company_idx").on(table.companyId),

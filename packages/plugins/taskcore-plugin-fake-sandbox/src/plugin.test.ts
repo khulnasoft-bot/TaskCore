@@ -24,7 +24,8 @@ describe("fake sandbox provider plugin", () => {
         onStartInteractiveSetup: definition.onEnvironmentStartInteractiveSetup,
         onGetInteractiveSetup: definition.onEnvironmentGetInteractiveSetup,
         onCaptureTemplate: definition.onEnvironmentCaptureTemplate,
-        onCancelInteractiveSetup: definition.onEnvironmentCancelInteractiveSetup,
+        onCancelInteractiveSetup:
+          definition.onEnvironmentCancelInteractiveSetup,
         onDeleteTemplate: definition.onEnvironmentDeleteTemplate,
       },
     });
@@ -91,14 +92,17 @@ describe("fake sandbox provider plugin", () => {
       },
       connectionPayload: {
         type: "ssh",
-        command: "ssh sandbox@[fake-setup-host-redacted] -p [fake-port-redacted]",
+        command:
+          "ssh sandbox@[fake-setup-host-redacted] -p [fake-port-redacted]",
       },
       metadata: {
         provider: "fake-plugin",
         sourceTemplateRefRedacted: true,
       },
     });
-    expect(JSON.stringify(setup.metadata)).not.toContain("source-template-secret");
+    expect(JSON.stringify(setup.metadata)).not.toContain(
+      "source-template-secret",
+    );
 
     const status = await harness.getInteractiveSetup({
       ...base,
@@ -127,8 +131,12 @@ describe("fake sandbox provider plugin", () => {
         promoted: true,
       },
     });
-    expect(JSON.stringify(captured.metadata)).not.toContain("source-template-secret");
-    expect(JSON.stringify(captured.metadata)).not.toContain("previous-template-secret");
+    expect(JSON.stringify(captured.metadata)).not.toContain(
+      "source-template-secret",
+    );
+    expect(JSON.stringify(captured.metadata)).not.toContain(
+      "previous-template-secret",
+    );
 
     const deleted = await harness.deleteTemplate({
       ...base,
@@ -185,7 +193,8 @@ describe("fake sandbox provider plugin", () => {
         onStartInteractiveSetup: definition.onEnvironmentStartInteractiveSetup,
         onGetInteractiveSetup: definition.onEnvironmentGetInteractiveSetup,
         onCaptureTemplate: definition.onEnvironmentCaptureTemplate,
-        onCancelInteractiveSetup: definition.onEnvironmentCancelInteractiveSetup,
+        onCancelInteractiveSetup:
+          definition.onEnvironmentCancelInteractiveSetup,
         onDeleteTemplate: definition.onEnvironmentDeleteTemplate,
       },
     });
@@ -215,7 +224,8 @@ describe("fake sandbox provider plugin", () => {
       },
       connectionPayload: {
         type: "ssh",
-        command: "ssh sandbox@[fake-setup-host-redacted] -p [fake-port-redacted]",
+        command:
+          "ssh sandbox@[fake-setup-host-redacted] -p [fake-port-redacted]",
       },
       metadata: {
         provider: "fake-plugin",
@@ -280,12 +290,14 @@ describe("fake sandbox provider plugin", () => {
       },
     });
 
-    await expect(harness.deleteTemplate({
-      ...base,
-      templateRef: replacement.templateRef,
-      templateKind: replacement.templateKind,
-      reason: "rollback",
-    })).resolves.toMatchObject({
+    await expect(
+      harness.deleteTemplate({
+        ...base,
+        templateRef: replacement.templateRef,
+        templateKind: replacement.templateKind,
+        reason: "rollback",
+      }),
+    ).resolves.toMatchObject({
       deleted: true,
       metadata: {
         provider: "fake-plugin",
@@ -299,11 +311,13 @@ describe("fake sandbox provider plugin", () => {
       sessionId: "session-cancel",
       sourceTemplateRef: captured.templateRef,
     });
-    await expect(harness.cancelInteractiveSetup({
-      ...base,
-      providerLeaseId: cancelSetup.providerLeaseId,
-      reason: "cancelled",
-    })).resolves.toMatchObject({
+    await expect(
+      harness.cancelInteractiveSetup({
+        ...base,
+        providerLeaseId: cancelSetup.providerLeaseId,
+        reason: "cancelled",
+      }),
+    ).resolves.toMatchObject({
       status: "cancelled",
       metadata: {
         provider: "fake-plugin",
@@ -349,12 +363,18 @@ describe("fake sandbox provider plugin", () => {
       ...base,
       providerLeaseId: setup.providerLeaseId,
     });
-    const serialized = JSON.stringify({ setup, captured, events: harness.environmentEvents });
+    const serialized = JSON.stringify({
+      setup,
+      captured,
+      events: harness.environmentEvents,
+    });
 
     expect(serialized).not.toMatch(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
     expect(serialized).not.toMatch(/\blocalhost\b/i);
     expect(serialized).not.toMatch(/BEGIN [A-Z ]*PRIVATE KEY/);
-    expect(serialized).not.toMatch(/(?:api[_-]?key|access[_-]?token|refresh[_-]?token|secret)[":=]/i);
+    expect(serialized).not.toMatch(
+      /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|secret)[":=]/i,
+    );
     expect(serialized).toContain("[fake-setup-host-redacted]");
     expect(serialized).toContain("[fake-port-redacted]");
   });
@@ -391,7 +411,10 @@ describe("fake sandbox provider plugin", () => {
         ...base,
         lease,
         command: "sh",
-        args: ["-lc", "test -z \"${TASKCORE_FAKE_PLUGIN_HOST_SECRET+x}\" && printf \"$EXPLICIT_ONLY\""],
+        args: [
+          "-lc",
+          'test -z "${TASKCORE_FAKE_PLUGIN_HOST_SECRET+x}" && printf "$EXPLICIT_ONLY"',
+        ],
         cwd: realized.cwd,
         env: { EXPLICIT_ONLY: "visible" },
         timeoutMs: 10_000,
@@ -445,7 +468,7 @@ describe("fake sandbox provider plugin", () => {
       ...base,
       lease,
       command: "sh",
-      args: ["-lc", "printf %s \"$PATH\""],
+      args: ["-lc", 'printf %s "$PATH"'],
       cwd: realized.cwd,
       timeoutMs: 10_000,
     });

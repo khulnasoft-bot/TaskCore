@@ -14,29 +14,49 @@ import type { Definition } from "@taskcore/shared/cliplab/model";
  *           The runtime holds its final pose when it ends.
  * - awake:  the idle loop (breath and blink) the hero settles into afterwards.
  */
-export interface OnboardingSequences { asleep: string; wake: string; awake: string }
+export interface OnboardingSequences {
+  asleep: string;
+  wake: string;
+  awake: string;
+}
 
 const ASLEEP_ID = "sleepy";
 const AWAKE_ID = "idle";
 
-export function resolveOnboardingSequences(definition: Pick<Definition, "animations">): OnboardingSequences {
+export function resolveOnboardingSequences(
+  definition: Pick<Definition, "animations">,
+): OnboardingSequences {
   const ids = definition.animations.map((a) => a.id);
   // The transition is the export's one-shot; the loops keep their studio ids.
   const wake = definition.animations.find((a) => !a.loop)?.id;
   const asleep = ids.includes(ASLEEP_ID) ? ASLEEP_ID : undefined;
   const awake = ids.includes(AWAKE_ID) ? AWAKE_ID : undefined;
   if (!wake || !asleep || !awake) {
-    throw new Error(`Onboarding character export needs a looping "${ASLEEP_ID}", a looping "${AWAKE_ID}" and one non-looping wake animation; found: ${ids.join(", ") || "none"}`);
+    throw new Error(
+      `Onboarding character export needs a looping "${ASLEEP_ID}", a looping "${AWAKE_ID}" and one non-looping wake animation; found: ${ids.join(", ") || "none"}`,
+    );
   }
   return { asleep, wake, awake };
 }
 
 /** Seconds the sequence takes at the character's authored speed. */
-export function sequenceDuration(definition: Definition, animationId: string): number {
+export function sequenceDuration(
+  definition: Definition,
+  animationId: string,
+): number {
   const animation = definition.animations.find((a) => a.id === animationId);
   if (!animation) return 0;
-  const seconds = animation.steps.reduce((total, step) => total + (Number.isFinite(step.duration) ? Math.max(0.2, step.duration) : 1), 0);
-  const speed = Number.isFinite(definition.character.speed) && definition.character.speed > 0 ? definition.character.speed : 1;
+  const seconds = animation.steps.reduce(
+    (total, step) =>
+      total +
+      (Number.isFinite(step.duration) ? Math.max(0.2, step.duration) : 1),
+    0,
+  );
+  const speed =
+    Number.isFinite(definition.character.speed) &&
+    definition.character.speed > 0
+      ? definition.character.speed
+      : 1;
   return seconds / speed;
 }
 
@@ -51,16 +71,28 @@ export function sequenceDuration(definition: Definition, animationId: string): n
  * Mirrors sampleExpression's transition window; the step scales its
  * expression to the step duration, and speed scales everything.
  */
-export function sequenceLeadIn(definition: Definition, animationId: string): number {
+export function sequenceLeadIn(
+  definition: Definition,
+  animationId: string,
+): number {
   const animation = definition.animations.find((a) => a.id === animationId);
   const step = animation?.steps[0];
-  const expression = step && definition.expressions.find((e) => e.id === step.expressionId);
+  const expression =
+    step && definition.expressions.find((e) => e.id === step.expressionId);
   const beat = expression?.beats[0];
   if (!animation || !step || !expression || !beat) return 0;
-  const safe = (value: number) => (Number.isFinite(value) ? Math.max(0.2, value) : 1);
-  const expressionSeconds = expression.beats.reduce((total, b) => total + safe(b.duration), 0);
+  const safe = (value: number) =>
+    Number.isFinite(value) ? Math.max(0.2, value) : 1;
+  const expressionSeconds = expression.beats.reduce(
+    (total, b) => total + safe(b.duration),
+    0,
+  );
   const transition = Math.min(0.45, safe(beat.duration) * 0.4);
-  const speed = Number.isFinite(definition.character.speed) && definition.character.speed > 0 ? definition.character.speed : 1;
+  const speed =
+    Number.isFinite(definition.character.speed) &&
+    definition.character.speed > 0
+      ? definition.character.speed
+      : 1;
   return (transition * safe(step.duration)) / expressionSeconds / speed;
 }
 
@@ -69,8 +101,17 @@ export function sequenceLeadIn(definition: Definition, animationId: string): num
  * while nothing has been hired). Everything else — shape, shading, motion,
  * follow settings — is the studio's, untouched.
  */
-export function colorOnboardingDefinition(definition: Definition, appearance: AgentAppearance, muted: boolean): Definition {
-  const palette: CharacterPaletteId = muted ? "muted-dream" : appearance.paletteId;
+export function colorOnboardingDefinition(
+  definition: Definition,
+  appearance: AgentAppearance,
+  muted: boolean,
+): Definition {
+  const palette: CharacterPaletteId = muted
+    ? "muted-dream"
+    : appearance.paletteId;
   const colors = CAP_V1_COLORS[palette];
-  return { ...definition, character: { ...definition.character, color: colors.a, color2: colors.b } };
+  return {
+    ...definition,
+    character: { ...definition.character, color: colors.a, color2: colors.b },
+  };
 }

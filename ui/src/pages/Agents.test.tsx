@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { Agent, Environment, EnvironmentCapabilities } from "@taskcore/shared";
+import type {
+  Agent,
+  Environment,
+  EnvironmentCapabilities,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "../context/ToastContext";
 import type { BuiltInAgentState } from "../api/builtInAgents";
@@ -52,9 +56,16 @@ const mockSidebarState = vi.hoisted(() => ({ isMobile: false }));
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: { children: ReactNode; to: string }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
-  useLocation: () => ({ pathname: mockRouterState.pathname, search: "", hash: "", state: null }),
+  useLocation: () => ({
+    pathname: mockRouterState.pathname,
+    search: "",
+    hash: "",
+    state: null,
+  }),
   useNavigate: () => mockRouterState.navigate,
 }));
 
@@ -141,7 +152,9 @@ function makeAgent(overrides: Partial<Agent>): Agent {
   };
 }
 
-function makeBuiltInAgentState(overrides: Partial<BuiltInAgentState> = {}): BuiltInAgentState {
+function makeBuiltInAgentState(
+  overrides: Partial<BuiltInAgentState> = {},
+): BuiltInAgentState {
   return {
     definition: {
       key: "briefs",
@@ -277,9 +290,16 @@ const invalidOrgChainHealth: AgentOrgChainHealth = {
       relation: "ancestor",
     },
   ],
-  firstInvalidAncestor: { id: "manager-1", name: "Terminated Manager", status: "terminated" },
-  invalidAncestors: [{ id: "manager-1", name: "Terminated Manager", status: "terminated" }],
-  repairGuidance: "Alpha reports through terminated ancestor Terminated Manager.",
+  firstInvalidAncestor: {
+    id: "manager-1",
+    name: "Terminated Manager",
+    status: "terminated",
+  },
+  invalidAncestors: [
+    { id: "manager-1", name: "Terminated Manager", status: "terminated" },
+  ],
+  repairGuidance:
+    "Alpha reports through terminated ancestor Terminated Manager.",
 };
 
 async function flushReact() {
@@ -289,8 +309,15 @@ async function flushReact() {
   });
 }
 
-function findAgentRow(container: HTMLElement, agentName: string): HTMLElement | null {
-  return Array.from(container.querySelectorAll("a")).find((row) => row.textContent?.includes(agentName)) ?? null;
+function findAgentRow(
+  container: HTMLElement,
+  agentName: string,
+): HTMLElement | null {
+  return (
+    Array.from(container.querySelectorAll("a")).find((row) =>
+      row.textContent?.includes(agentName),
+    ) ?? null
+  );
 }
 
 describe("Agents", () => {
@@ -361,36 +388,57 @@ describe("Agents", () => {
   it.each([
     ["streamlined", Agents],
     ["production", ProductionAgents],
-  ] as const)("omits the action bar from %s agent list rows", async (_mode, AgentList) => {
-    mockAgentsApi.list.mockResolvedValue([
-      makeAgent({ name: "Alpha", status: "active" }),
-      makeAgent({ id: "agent-paused", name: "Paused agent", status: "paused" }),
-    ]);
-    root = createRoot(container);
-    await act(async () => {
-      root!.render(
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>
-            <AgentList />
-          </ToastProvider>
-        </QueryClientProvider>,
+  ] as const)(
+    "omits the action bar from %s agent list rows",
+    async (_mode, AgentList) => {
+      mockAgentsApi.list.mockResolvedValue([
+        makeAgent({ name: "Alpha", status: "active" }),
+        makeAgent({
+          id: "agent-paused",
+          name: "Paused agent",
+          status: "paused",
+        }),
+      ]);
+      root = createRoot(container);
+      await act(async () => {
+        root!.render(
+          <QueryClientProvider client={queryClient}>
+            <ToastProvider>
+              <AgentList />
+            </ToastProvider>
+          </QueryClientProvider>,
+        );
+      });
+      await flushReact();
+      await flushReact();
+      const listToggle = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="List view"]',
       );
-    });
-    await flushReact();
-    await flushReact();
-    const listToggle = container.querySelector<HTMLButtonElement>('button[aria-label="List view"]');
-    await act(async () => { listToggle?.click(); });
-    await flushReact();
+      await act(async () => {
+        listToggle?.click();
+      });
+      await flushReact();
 
-    for (const name of ["Alpha", "Paused agent"]) {
-      const row = findAgentRow(container, name);
-      expect(row).not.toBeNull();
-      expect(row?.getAttribute("href")).toMatch(/^\/agents\//);
-      expect(row?.querySelector('button[aria-label^="Open actions for"]')).toBeNull();
-      const buttons = Array.from(row?.querySelectorAll("button") ?? []).map((button) => button.textContent);
-      expect(buttons).not.toEqual(expect.arrayContaining([expect.stringMatching(/Assign Task|Run Heartbeat|Run with provider trace|Pause|Resume/)]));
-    }
-  });
+      for (const name of ["Alpha", "Paused agent"]) {
+        const row = findAgentRow(container, name);
+        expect(row).not.toBeNull();
+        expect(row?.getAttribute("href")).toMatch(/^\/agents\//);
+        expect(
+          row?.querySelector('button[aria-label^="Open actions for"]'),
+        ).toBeNull();
+        const buttons = Array.from(row?.querySelectorAll("button") ?? []).map(
+          (button) => button.textContent,
+        );
+        expect(buttons).not.toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(
+              /Assign Task|Run Heartbeat|Run with provider trace|Pause|Resume/,
+            ),
+          ]),
+        );
+      }
+    },
+  );
 
   it("shows the configured model beside the adapter on the all agents page", async () => {
     root = createRoot(container);
@@ -429,13 +477,19 @@ describe("Agents", () => {
     });
     await flushReact();
 
-    const listToggle = container.querySelector<HTMLButtonElement>('button[aria-label="List view"]');
-    const orgToggle = container.querySelector<HTMLButtonElement>('button[aria-label="Org chart view"]');
+    const listToggle = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="List view"]',
+    );
+    const orgToggle = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Org chart view"]',
+    );
     expect(listToggle?.getAttribute("aria-pressed")).toBe("true");
     expect(orgToggle?.getAttribute("aria-pressed")).toBe("false");
     expect(orgToggle?.querySelector(".lucide-network")).not.toBeNull();
     expect(orgToggle?.querySelector(".lucide-git-branch")).toBeNull();
-    expect(container.querySelector('[data-testid="org-chart-viewport"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="org-chart-viewport"]'),
+    ).toBeNull();
 
     await act(async () => {
       orgToggle?.click();
@@ -445,22 +499,36 @@ describe("Agents", () => {
 
     expect(mockAgentsApi.org).toHaveBeenCalledWith("company-1");
     expect(orgToggle?.getAttribute("aria-pressed")).toBe("true");
-    const orgViewport = container.querySelector('[data-testid="org-chart-viewport"]');
+    const orgViewport = container.querySelector(
+      '[data-testid="org-chart-viewport"]',
+    );
     expect(orgViewport).not.toBeNull();
     expect(orgViewport?.parentElement?.classList.contains("flex-1")).toBe(true);
-    expect(orgViewport?.parentElement?.classList.contains("md:min-h-0")).toBe(true);
-    expect(orgViewport?.parentElement?.classList.contains("h-(--sz-calc-38)")).toBe(false);
-    expect(orgViewport?.parentElement?.parentElement?.classList.contains("h-full")).toBe(true);
-    expect(orgViewport?.parentElement?.parentElement?.classList.contains("min-h-0")).toBe(true);
+    expect(orgViewport?.parentElement?.classList.contains("md:min-h-0")).toBe(
+      true,
+    );
+    expect(
+      orgViewport?.parentElement?.classList.contains("h-(--sz-calc-38)"),
+    ).toBe(false);
+    expect(
+      orgViewport?.parentElement?.parentElement?.classList.contains("h-full"),
+    ).toBe(true);
+    expect(
+      orgViewport?.parentElement?.parentElement?.classList.contains("min-h-0"),
+    ).toBe(true);
     expect(container.querySelector('[aria-label="Zoom in"]')).not.toBeNull();
     expect(container.querySelector('[aria-label="Zoom out"]')).not.toBeNull();
-    expect(container.querySelector('[aria-label="Fit chart to screen"]')).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="Fit chart to screen"]'),
+    ).not.toBeNull();
 
     await act(async () => {
       listToggle?.click();
     });
     await flushReact();
-    expect(container.querySelector('[data-testid="org-chart-viewport"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="org-chart-viewport"]'),
+    ).toBeNull();
     expect(container.textContent).toContain("gpt-5.4");
   });
 
@@ -499,21 +567,30 @@ describe("Agents", () => {
     await flushReact();
     await flushReact();
 
-    const row = findAgentRow(container, "Taskcore Engineer With A Much Longer Display Name");
+    const row = findAgentRow(
+      container,
+      "Taskcore Engineer With A Much Longer Display Name",
+    );
     expect(row).not.toBeNull();
     expect(row?.querySelector(".sm\\:hidden")).toBeNull();
     expect(row?.querySelector(".hidden.sm\\:flex")).not.toBeNull();
     expect(row?.querySelector(".flex-1.hidden.\\@5xl\\:block")).not.toBeNull();
     expect(row?.classList.contains("text-foreground/55")).toBe(false);
     expect(row?.classList.contains("sm:text-foreground/55")).toBe(true);
-    const name = row?.querySelector("span[title='Taskcore Engineer With A Much Longer Display Name']");
+    const name = row?.querySelector(
+      "span[title='Taskcore Engineer With A Much Longer Display Name']",
+    );
     const subtitle = Array.from(row?.querySelectorAll("p") ?? []).find((node) =>
-      node.textContent?.includes("Software Engineer With A Much Longer Specialty Title"),
+      node.textContent?.includes(
+        "Software Engineer With A Much Longer Specialty Title",
+      ),
     );
     expect(name?.classList.contains("truncate")).toBe(true);
     expect(subtitle).toBeDefined();
     expect(subtitle?.classList.contains("truncate")).toBe(true);
-    const actions = row?.querySelector('button[aria-label="Open actions for Taskcore Engineer With A Much Longer Display Name"]');
+    const actions = row?.querySelector(
+      'button[aria-label="Open actions for Taskcore Engineer With A Much Longer Display Name"]',
+    );
     expect(actions).toBeNull();
     expect(row?.textContent).not.toContain("Assign Task");
     expect(row?.textContent).not.toContain("Run Heartbeat");
@@ -523,7 +600,9 @@ describe("Agents", () => {
 
   it("uses the built-in agents route segment as the built-in filter", async () => {
     mockRouterState.pathname = "/agents/builtin";
-    mockInstanceSettingsApi.get.mockResolvedValue(makeInstanceSettings({ enableBuiltInAgents: true }));
+    mockInstanceSettingsApi.get.mockResolvedValue(
+      makeInstanceSettings({ enableBuiltInAgents: true }),
+    );
     const builtInAgent = makeAgent({
       id: "built-in-agent",
       name: "Briefs Agent",
@@ -646,9 +725,11 @@ describe("Agents", () => {
         defaultEnvironmentId: "env-daytona",
       }),
     ]);
-    mockEnvironmentsApi.list.mockReturnValue(new Promise((resolve) => {
-      resolveEnvironments = resolve;
-    }));
+    mockEnvironmentsApi.list.mockReturnValue(
+      new Promise((resolve) => {
+        resolveEnvironments = resolve;
+      }),
+    );
 
     root = createRoot(container);
     await act(async () => {
@@ -707,7 +788,9 @@ describe("Agents", () => {
   });
 
   it("hides the environment column when environments are experimentally disabled", async () => {
-    mockInstanceSettingsApi.get.mockResolvedValue(makeInstanceSettings({ enableEnvironments: false }));
+    mockInstanceSettingsApi.get.mockResolvedValue(
+      makeInstanceSettings({ enableEnvironments: false }),
+    );
     mockAgentsApi.list.mockResolvedValue([
       makeAgent({
         id: "agent-local",
@@ -810,7 +893,9 @@ describe("Agents", () => {
         config: { provider: "daytona" },
       }),
     ]);
-    mockInstanceSettingsApi.get.mockResolvedValue(makeInstanceSettings({ defaultEnvironmentId: "env-default" }));
+    mockInstanceSettingsApi.get.mockResolvedValue(
+      makeInstanceSettings({ defaultEnvironmentId: "env-default" }),
+    );
 
     root = createRoot(container);
     await act(async () => {
@@ -887,8 +972,12 @@ describe("Agents", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.querySelector('select[aria-label="Filter by environment"]')).toBeNull();
-    expect(container.querySelector('select[aria-label="Group agents"]')).toBeNull();
+    expect(
+      container.querySelector('select[aria-label="Filter by environment"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('select[aria-label="Group agents"]'),
+    ).toBeNull();
   });
 
   it("hides built-in agent surfaces while the experimental flag is disabled", async () => {
@@ -909,12 +998,16 @@ describe("Agents", () => {
 
     expect(mockBuiltInAgentsApi.list).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain("Built-in");
-    expect(mockRouterState.navigate).toHaveBeenCalledWith("/agents/all", { replace: true });
+    expect(mockRouterState.navigate).toHaveBeenCalledWith("/agents/all", {
+      replace: true,
+    });
   });
 
   it("shows and filters built-in agents when the experimental flag is enabled", async () => {
     mockRouterState.pathname = "/agents/builtin";
-    mockInstanceSettingsApi.get.mockResolvedValue(makeInstanceSettings({ enableBuiltInAgents: true }));
+    mockInstanceSettingsApi.get.mockResolvedValue(
+      makeInstanceSettings({ enableBuiltInAgents: true }),
+    );
     mockAgentsApi.list.mockResolvedValue([
       makeAgent({
         id: "built-in-agent",
@@ -965,7 +1058,9 @@ describe("Agents", () => {
     expect(container.textContent).toContain("Briefs Agent");
     expect(container.textContent).not.toContain("Regular Agent");
     expect(container.querySelector('[title="Ships with Taskcore"]')).toBeNull();
-    expect(mockRouterState.navigate).not.toHaveBeenCalledWith("/agents/all", { replace: true });
+    expect(mockRouterState.navigate).not.toHaveBeenCalledWith("/agents/all", {
+      replace: true,
+    });
   });
 
   it("gives list-view rows a fixed-width title so meta columns align (PAP-86)", async () => {
@@ -1008,46 +1103,53 @@ describe("Agents", () => {
   it.each([
     ["streamlined", Agents],
     ["production", ProductionAgents],
-  ] as const)("omits star and leave/join actions from %s agent index list and org views", async (_mode, AgentList) => {
-    root = createRoot(container);
-    await act(async () => {
-      root!.render(
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>
-            <AgentList />
-          </ToastProvider>
-        </QueryClientProvider>,
+  ] as const)(
+    "omits star and leave/join actions from %s agent index list and org views",
+    async (_mode, AgentList) => {
+      root = createRoot(container);
+      await act(async () => {
+        root!.render(
+          <QueryClientProvider client={queryClient}>
+            <ToastProvider>
+              <AgentList />
+            </ToastProvider>
+          </QueryClientProvider>,
+        );
+      });
+      await flushReact();
+      await flushReact();
+
+      // Explicitly select the list view and assert the row renders there.
+      const listToggle = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="List view"]',
       );
-    });
-    await flushReact();
-    await flushReact();
+      expect(listToggle).not.toBeNull();
+      await act(async () => {
+        listToggle!.click();
+      });
+      await flushReact();
+      const listRow = findAgentRow(container, "Alpha");
+      expect(listRow).not.toBeNull();
+      expect(container.querySelector('[aria-label="Leave Alpha"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Join Alpha"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Star Alpha"]')).toBeNull();
 
-    // Explicitly select the list view and assert the row renders there.
-    const listToggle = container.querySelector<HTMLButtonElement>('button[aria-label="List view"]');
-    expect(listToggle).not.toBeNull();
-    await act(async () => {
-      listToggle!.click();
-    });
-    await flushReact();
-    const listRow = findAgentRow(container, "Alpha");
-    expect(listRow).not.toBeNull();
-    expect(container.querySelector('[aria-label="Leave Alpha"]')).toBeNull();
-    expect(container.querySelector('[aria-label="Join Alpha"]')).toBeNull();
-    expect(container.querySelector('[aria-label="Star Alpha"]')).toBeNull();
-
-    // Explicitly select the org view and assert no membership actions there.
-    const orgToggle = container.querySelector<HTMLButtonElement>('button[aria-label="Org chart view"]');
-    expect(orgToggle).not.toBeNull();
-    await act(async () => {
-      orgToggle!.click();
-    });
-    await flushReact();
-    await flushReact();
-    expect(container.textContent).toContain("Alpha");
-    expect(container.querySelector('[aria-label="Leave Alpha"]')).toBeNull();
-    expect(container.querySelector('[aria-label="Join Alpha"]')).toBeNull();
-    expect(container.querySelector('[aria-label="Star Alpha"]')).toBeNull();
-  });
+      // Explicitly select the org view and assert no membership actions there.
+      const orgToggle = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Org chart view"]',
+      );
+      expect(orgToggle).not.toBeNull();
+      await act(async () => {
+        orgToggle!.click();
+      });
+      await flushReact();
+      await flushReact();
+      expect(container.textContent).toContain("Alpha");
+      expect(container.querySelector('[aria-label="Leave Alpha"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Join Alpha"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Star Alpha"]')).toBeNull();
+    },
+  );
 
   it("does not dim left-membership agent names on mobile", async () => {
     mockSidebarState.isMobile = true;
@@ -1101,6 +1203,8 @@ describe("Agents", () => {
     await flushReact();
 
     expect(container.textContent).toContain("Alpha");
-    expect(container.querySelector('[aria-label="Invalid reporting chain"]')).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="Invalid reporting chain"]'),
+    ).not.toBeNull();
   });
 });

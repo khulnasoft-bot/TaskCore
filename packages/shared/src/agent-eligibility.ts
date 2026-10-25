@@ -33,10 +33,7 @@ export interface AgentInvalidOrgChainAncestor {
 }
 
 export type AgentOrgChainInvalidReason =
-  | "healthy"
-  | "terminated_ancestor"
-  | "missing_manager"
-  | "cycle";
+  "healthy" | "terminated_ancestor" | "missing_manager" | "cycle";
 
 export interface AgentOrgChainHealth {
   status: "healthy" | "invalid_org_chain";
@@ -64,17 +61,43 @@ export interface AgentWorkEligibility {
   orgChainHealth: AgentOrgChainHealth;
 }
 
-const NON_ASSIGNABLE_AGENT_STATUSES = new Set<string>(["terminated", "pending_approval"]);
-const NON_INVOKABLE_AGENT_STATUSES = new Set<string>(["terminated", "pending_approval", "paused"]);
-const ASSIGNABLE_AGENT_STATUSES = new Set<string>(["active", "paused", "idle", "running", "error"]);
-const INVOKABLE_AGENT_STATUSES = new Set<string>(["active", "idle", "running", "error"]);
+const NON_ASSIGNABLE_AGENT_STATUSES = new Set<string>([
+  "terminated",
+  "pending_approval",
+]);
+const NON_INVOKABLE_AGENT_STATUSES = new Set<string>([
+  "terminated",
+  "pending_approval",
+  "paused",
+]);
+const ASSIGNABLE_AGENT_STATUSES = new Set<string>([
+  "active",
+  "paused",
+  "idle",
+  "running",
+  "error",
+]);
+const INVOKABLE_AGENT_STATUSES = new Set<string>([
+  "active",
+  "idle",
+  "running",
+  "error",
+]);
 
-export function isAgentStatusAssignableToWork(status: AgentStatus | string): boolean {
-  return ASSIGNABLE_AGENT_STATUSES.has(status) && !NON_ASSIGNABLE_AGENT_STATUSES.has(status);
+export function isAgentStatusAssignableToWork(
+  status: AgentStatus | string,
+): boolean {
+  return (
+    ASSIGNABLE_AGENT_STATUSES.has(status) &&
+    !NON_ASSIGNABLE_AGENT_STATUSES.has(status)
+  );
 }
 
 export function isAgentStatusInvokable(status: AgentStatus | string): boolean {
-  return INVOKABLE_AGENT_STATUSES.has(status) && !NON_INVOKABLE_AGENT_STATUSES.has(status);
+  return (
+    INVOKABLE_AGENT_STATUSES.has(status) &&
+    !NON_INVOKABLE_AGENT_STATUSES.has(status)
+  );
 }
 
 function chainEntry(
@@ -93,7 +116,9 @@ function chainEntry(
   };
 }
 
-function invalidAncestor(agent: AgentEligibilityAgent): AgentInvalidOrgChainAncestor {
+function invalidAncestor(
+  agent: AgentEligibilityAgent,
+): AgentInvalidOrgChainAncestor {
   return {
     id: agent.id,
     name: agent.name,
@@ -182,7 +207,11 @@ export function getAgentOrgChainHealth(input: {
       invalidAncestors.push(invalidAncestor(parent));
     }
     if (parent.status === "paused") {
-      pausedAncestors.push({ id: parent.id, name: parent.name, status: "paused" });
+      pausedAncestors.push({
+        id: parent.id,
+        name: parent.name,
+        status: "paused",
+      });
     }
 
     current = parent;
@@ -196,10 +225,11 @@ export function getAgentOrgChainHealth(input: {
   // unrecognized statuses as workable and warn misleadingly.
   const agentCanWork = isAgentStatusInvokable(input.agent.status);
   const firstPausedAncestor = pausedAncestors[0] ?? null;
-  const escalationWarning = agentCanWork && firstPausedAncestor
-    ? `Escalations from ${input.agent.name} route to paused agent ${firstPausedAncestor.name}. ` +
-      `Work assigned to a paused agent never runs; unpause ${firstPausedAncestor.name} or change who this agent reports to.`
-    : null;
+  const escalationWarning =
+    agentCanWork && firstPausedAncestor
+      ? `Escalations from ${input.agent.name} route to paused agent ${firstPausedAncestor.name}. ` +
+        `Work assigned to a paused agent never runs; unpause ${firstPausedAncestor.name} or change who this agent reports to.`
+      : null;
   return {
     status: firstInvalidAncestor ? "invalid_org_chain" : "healthy",
     reason: firstInvalidAncestor
@@ -225,26 +255,28 @@ export function getAgentWorkEligibility(input: {
   agents: AgentEligibilityAgent[];
 }): AgentWorkEligibility {
   const orgChainHealth = getAgentOrgChainHealth(input);
-  const assignabilityReason: AgentEligibilityLifecycleReason = !isAgentStatusAssignableToWork(input.agent.status)
-    ? input.agent.status === "terminated"
-      ? "terminated"
-      : input.agent.status === "pending_approval"
-        ? "pending_approval"
-        : "unknown_status"
-    : orgChainHealth.status === "invalid_org_chain"
-      ? "invalid_org_chain"
-      : "eligible";
-  const invokabilityReason: AgentEligibilityLifecycleReason = !isAgentStatusInvokable(input.agent.status)
-    ? input.agent.status === "terminated"
-      ? "terminated"
-      : input.agent.status === "pending_approval"
-        ? "pending_approval"
-        : input.agent.status === "paused"
-          ? "paused"
+  const assignabilityReason: AgentEligibilityLifecycleReason =
+    !isAgentStatusAssignableToWork(input.agent.status)
+      ? input.agent.status === "terminated"
+        ? "terminated"
+        : input.agent.status === "pending_approval"
+          ? "pending_approval"
           : "unknown_status"
-    : orgChainHealth.status === "invalid_org_chain"
-      ? "invalid_org_chain"
-      : "eligible";
+      : orgChainHealth.status === "invalid_org_chain"
+        ? "invalid_org_chain"
+        : "eligible";
+  const invokabilityReason: AgentEligibilityLifecycleReason =
+    !isAgentStatusInvokable(input.agent.status)
+      ? input.agent.status === "terminated"
+        ? "terminated"
+        : input.agent.status === "pending_approval"
+          ? "pending_approval"
+          : input.agent.status === "paused"
+            ? "paused"
+            : "unknown_status"
+      : orgChainHealth.status === "invalid_org_chain"
+        ? "invalid_org_chain"
+        : "eligible";
 
   return {
     assignable: assignabilityReason === "eligible",

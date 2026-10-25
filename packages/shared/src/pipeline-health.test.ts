@@ -63,7 +63,9 @@ describe("computePipelineHealth", () => {
       failedAutomations: [failure, duplicateFailure],
     });
 
-    const automationWarnings = report.warnings.filter((warning) => warning.code === "automation_failed");
+    const automationWarnings = report.warnings.filter(
+      (warning) => warning.code === "automation_failed",
+    );
 
     expect(automationWarnings).toHaveLength(1);
   });
@@ -91,7 +93,9 @@ describe("computePipelineHealth", () => {
       failedAutomations: [firstFailure, secondFailure],
     });
 
-    const automationWarnings = report.warnings.filter((warning) => warning.code === "automation_failed");
+    const automationWarnings = report.warnings.filter(
+      (warning) => warning.code === "automation_failed",
+    );
 
     expect(automationWarnings).toHaveLength(2);
     expect(automationWarnings.map((warning) => warning.href)).toEqual([
@@ -123,10 +127,15 @@ describe("computePipelineHealth", () => {
       failedAutomations: [firstFailure, secondFailure],
     });
 
-    const automationWarnings = report.warnings.filter((warning) => warning.code === "automation_failed");
+    const automationWarnings = report.warnings.filter(
+      (warning) => warning.code === "automation_failed",
+    );
 
     expect(automationWarnings).toHaveLength(2);
-    expect(automationWarnings.map((warning) => warning.stageId)).toEqual(["stage-1", "stage-2"]);
+    expect(automationWarnings.map((warning) => warning.stageId)).toEqual([
+      "stage-1",
+      "stage-2",
+    ]);
   });
 
   it("keeps separate warnings when stage and case IDs would collide with colon-delimited keys", () => {
@@ -152,7 +161,9 @@ describe("computePipelineHealth", () => {
       failedAutomations: [firstFailure, secondFailure],
     });
 
-    const automationWarnings = report.warnings.filter((warning) => warning.code === "automation_failed");
+    const automationWarnings = report.warnings.filter(
+      (warning) => warning.code === "automation_failed",
+    );
 
     expect(automationWarnings).toHaveLength(2);
     expect(automationWarnings.map((warning) => warning.href)).toEqual([

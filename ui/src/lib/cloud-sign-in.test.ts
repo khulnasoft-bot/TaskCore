@@ -27,7 +27,9 @@ describe("Cloud sign-in recovery", () => {
     const replace = vi.fn();
     vi.stubGlobal("window", {
       location: { replace },
-      get sessionStorage() { throw new Error("Storage disabled"); },
+      get sessionStorage() {
+        throw new Error("Storage disabled");
+      },
     });
     expect(beginCloudSignIn("https://cloud.test/entry")).toBe(false);
     expect(replace).not.toHaveBeenCalled();

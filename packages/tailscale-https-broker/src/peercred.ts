@@ -27,7 +27,11 @@ export function createPeerResolver(config: PeerResolverConfig) {
   return (socket: Socket): PeerCredentials => {
     const native = config.soPeercred(socket);
     if (native) {
-      if (![native.uid, native.gid, native.pid].every((value) => Number.isInteger(value) && value >= 0)) {
+      if (
+        ![native.uid, native.gid, native.pid].every(
+          (value) => Number.isInteger(value) && value >= 0,
+        )
+      ) {
         throw new PeerResolutionError("native peer credentials are invalid");
       }
       return native;

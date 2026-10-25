@@ -52,7 +52,11 @@ type ExecTracer = {
  * `0`. This mirrors the host counter guard below and the `adapter-utils`
  * startup-step guard.
  */
-function setFiniteNumberAttr(span: ExecSpan, key: string, value: unknown): void {
+function setFiniteNumberAttr(
+  span: ExecSpan,
+  key: string,
+  value: unknown,
+): void {
   if (typeof value === "number" && Number.isFinite(value)) {
     span.setAttribute(key, value);
   }
@@ -62,7 +66,9 @@ function setFiniteNumberAttr(span: ExecSpan, key: string, value: unknown): void 
  * provider durations ride the exec result's untyped `metadata`, so a provider
  * that omits or mistypes one yields no attribute — never a misleading `0`. */
 function toFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 /** Read a free-form metadata value as a boolean, or `undefined`. The provider
@@ -82,7 +88,8 @@ function sandboxLeaseAcquisitionFromMetadata(
     candidate.outcome !== "created" &&
     candidate.outcome !== "resumed" &&
     candidate.outcome !== "replacement"
-  ) return null;
+  )
+    return null;
   const resolvedProviderLeaseId =
     typeof candidate.providerLeaseId === "string" && candidate.providerLeaseId
       ? candidate.providerLeaseId
@@ -95,7 +102,8 @@ function sandboxLeaseAcquisitionFromMetadata(
     reason !== "expired" &&
     reason !== "identity_mismatch" &&
     reason !== "resume_failed"
-  ) return null;
+  )
+    return null;
   return {
     outcome: candidate.outcome,
     providerLeaseId: resolvedProviderLeaseId,
@@ -164,7 +172,10 @@ interface SandboxExecSpanInput {
  * numeric input yields no attribute (fail open — never `NaN`, never a
  * misleading `0`).
  */
-function setSandboxExecSpanAttributes(span: ExecSpan, input: SandboxExecSpanInput): void {
+function setSandboxExecSpanAttributes(
+  span: ExecSpan,
+  input: SandboxExecSpanInput,
+): void {
   const A = SANDBOX_STARTUP_SPAN_ATTRS;
   span.setAttribute(A.provider, input.provider);
   const command = clampSpanLabel("command", input.command);
@@ -179,7 +190,11 @@ function setSandboxExecSpanAttributes(span: ExecSpan, input: SandboxExecSpanInpu
   // handle-fetch wait minus the in-sandbox run. Set it only when both parts are
   // present, so a provider that reports no durations yields no derived value.
   if (input.waitBeforeMs !== undefined && input.sandboxMs !== undefined) {
-    setFiniteNumberAttr(span, A.execNetworkMs, input.wallMs - input.waitBeforeMs - input.sandboxMs);
+    setFiniteNumberAttr(
+      span,
+      A.execNetworkMs,
+      input.wallMs - input.waitBeforeMs - input.sandboxMs,
+    );
   }
   span.setAttribute(A.execCriticalPath, input.criticalPath);
   // The explicit provider cache-hit flag, from `result.metadata.cacheHit`. The
@@ -209,7 +224,12 @@ function setSandboxExecSpanAttributes(span: ExecSpan, input: SandboxExecSpanInpu
  */
 function setSandboxExecSpanFailure(
   span: ExecSpan,
-  input: { provider: string; command: string; wallMs: number; criticalPath: boolean },
+  input: {
+    provider: string;
+    command: string;
+    wallMs: number;
+    criticalPath: boolean;
+  },
 ): void {
   const A = SANDBOX_STARTUP_SPAN_ATTRS;
   span.setAttribute(A.provider, input.provider);
@@ -262,22 +282,29 @@ export async function resolveEnvironmentExecutionTarget(input: {
       return null;
     }
 
-    const parsed = await resolveEnvironmentDriverConfigForRuntime(input.db, input.companyId, {
-      id: input.environment.id,
-      driver: input.environment.driver as "sandbox",
-      config: parseObject(input.environment.config),
-    });
+    const parsed = await resolveEnvironmentDriverConfigForRuntime(
+      input.db,
+      input.companyId,
+      {
+        id: input.environment.id,
+        driver: input.environment.driver as "sandbox",
+        config: parseObject(input.environment.config),
+      },
+    );
     if (parsed.driver !== "sandbox") {
       return null;
     }
 
     const remoteCwd =
-      typeof input.leaseMetadata?.remoteCwd === "string" && input.leaseMetadata.remoteCwd.trim().length > 0
+      typeof input.leaseMetadata?.remoteCwd === "string" &&
+      input.leaseMetadata.remoteCwd.trim().length > 0
         ? input.leaseMetadata.remoteCwd.trim()
         : DEFAULT_SANDBOX_REMOTE_CWD;
-    const timeoutMs = "timeoutMs" in parsed.config ? parsed.config.timeoutMs : null;
+    const timeoutMs =
+      "timeoutMs" in parsed.config ? parsed.config.timeoutMs : null;
     const shellCommand =
-      input.leaseMetadata?.shellCommand === "bash" || input.leaseMetadata?.shellCommand === "sh"
+      input.leaseMetadata?.shellCommand === "bash" ||
+      input.leaseMetadata?.shellCommand === "sh"
         ? input.leaseMetadata.shellCommand
         : null;
 
@@ -307,13 +334,19 @@ export async function resolveEnvironmentExecutionTarget(input: {
     > | null = null;
     let capabilityResolutionFailed = false;
     const driverHasLeaseCapabilityModel =
-      getEnvironmentDriverTraits(input.environment.driver)?.hasLeaseCapabilityModel ?? false;
-    if (driverHasLeaseCapabilityModel && input.environmentRuntime?.resolveCapabilities && input.lease) {
+      getEnvironmentDriverTraits(input.environment.driver)
+        ?.hasLeaseCapabilityModel ?? false;
+    if (
+      driverHasLeaseCapabilityModel &&
+      input.environmentRuntime?.resolveCapabilities &&
+      input.lease
+    ) {
       try {
-        effectiveCapabilities = await input.environmentRuntime.resolveCapabilities({
-          environment: input.environment as Environment,
-          lease: input.lease,
-        });
+        effectiveCapabilities =
+          await input.environmentRuntime.resolveCapabilities({
+            environment: input.environment as Environment,
+            lease: input.lease,
+          });
       } catch {
         // The runtime could not resolve the snapshot. Fail closed for the
         // persistent-session gates below; never grant persistent-session
@@ -338,14 +371,16 @@ export async function resolveEnvironmentExecutionTarget(input: {
     const nativeSyncAllowed =
       !capabilityResolutionFailed &&
       (!effectiveCapabilities ||
-        (effectiveCapabilities.nativeSyncIn && effectiveCapabilities.nativeSyncOut));
+        (effectiveCapabilities.nativeSyncIn &&
+          effectiveCapabilities.nativeSyncOut));
     // A command that opts onto the persistent session needs the provider to keep
     // persistent process sessions. When the snapshot removes that capability,
     // never force the session; the command runs one-shot instead. When the
     // resolution failed, fail closed and never force the session.
     const persistentSessionsAllowed =
       !capabilityResolutionFailed &&
-      (!effectiveCapabilities || effectiveCapabilities.persistentProcessSessions);
+      (!effectiveCapabilities ||
+        effectiveCapabilities.persistentProcessSessions);
 
     // Resolve the per-run duplex bridge kill switch. It rides the host-side
     // sandbox target on the same seam as `effectiveCapabilities`, so the value
@@ -355,8 +390,10 @@ export async function resolveEnvironmentExecutionTarget(input: {
     let enableSandboxDuplexBridge = false;
     if (input.environmentRuntime?.readSandboxDuplexBridgeInput) {
       try {
-        const duplexBridgeInput = await input.environmentRuntime.readSandboxDuplexBridgeInput();
-        enableSandboxDuplexBridge = duplexBridgeInput.enableDuplexBridge === true;
+        const duplexBridgeInput =
+          await input.environmentRuntime.readSandboxDuplexBridgeInput();
+        enableSandboxDuplexBridge =
+          duplexBridgeInput.enableDuplexBridge === true;
       } catch {
         enableSandboxDuplexBridge = false;
       }
@@ -390,7 +427,9 @@ export async function resolveEnvironmentExecutionTarget(input: {
       // binds it to the fixed observability surface. Absent keeps the no-op
       // default, so the surface stays inert on a run with no injected recorder.
       duplexObservabilityRecorder: input.duplexObservabilityRecorder ?? null,
-      ...(effectiveCapabilities ? { effectiveCapabilities: Object.freeze({ ...effectiveCapabilities }) } : {}),
+      ...(effectiveCapabilities
+        ? { effectiveCapabilities: Object.freeze({ ...effectiveCapabilities }) }
+        : {}),
       ...(input.environmentRuntime?.getRunnerIngressEndpoint && input.lease
         ? {
             getRunnerIngressEndpoint: ({ port, path }) =>
@@ -414,219 +453,237 @@ export async function resolveEnvironmentExecutionTarget(input: {
       // the provider keeps persistent process sessions and runs independent
       // control commands. The snapshot is absent when resolution failed, so the
       // bridge fails closed to the output-file poll.
-      runner: input.environmentRuntime && input.lease
-        ? {
-            // Provider-backed sandbox RPCs do not surface bounded mid-stream
-            // progress for a single stdin upload, so keep the capability disabled
-            // here. The client falls back to the chunked upload path when this is
-            // false.
-            supportsSingleStreamStdinProgress: false,
-            // Carry the verified concurrent-sync opt-in to the sync client. The
-            // client copies it onto the native path and ignores it on the base64
-            // fallback, which always permits concurrency. A null snapshot or a
-            // provider that never opted in keeps it false, so an unverified
-            // provider never permits concurrent sync operations.
-            allowConcurrentSyncOperations: effectiveCapabilities?.concurrentSyncOperations === true,
-            execute: async (commandInput) => {
-              // Record true start and stop timestamps around the provider await,
-              // so the exec span and the result carry a real wall time.
-              const startedAtMs = Date.now();
-              const startedAt = new Date(startedAtMs).toISOString();
-              // Open one `sandbox.exec` span BEFORE the provider await, so the
-              // native span duration covers the whole execution and a thrown
-              // execution still produces a span. The span parents to the active
-              // step span. `startSpan` sits inside a guard; observability must
-              // never change execution control flow, and a no-op tracer
-              // (tracing off) makes the whole block inert.
-              const activeStep = getActiveStepContext();
-              const criticalPath = activeStep?.criticalPath ?? true;
-              let span: ExecSpan | null = null;
-              try {
-                span = tracer.startSpan("sandbox.exec", undefined, activeStep?.parentContext);
-              } catch {
-                span = null;
-              }
-              try {
-                // Classify the span outcome from the provider execution ONLY.
-                // The inner try/catch wraps just the provider await, so a thrown
-                // provider execution marks the span failed. A later log-callback
-                // rejection sits outside this block and never flips a successful
-                // execution to failed.
-                // Incremental log sink. The provider streams each output chunk
-                // through the execute.log notification while the command runs.
-                // Serialize the delivery per execute call so the runner sees the
-                // chunks in order, and keep the delivered text per stream, so the
-                // final-result delivery below emits only the un-streamed suffix
-                // and can detect a provider poll fallback that returns a
-                // different buffer.
-                let incrementalLogChain: Promise<void> = Promise.resolve();
-                let deliveredStdout = "";
-                let deliveredStderr = "";
-                const onIncrementalLog = (
-                  stream: "stdout" | "stderr",
-                  chunk: string,
-                ): Promise<void> => {
-                  if (stream === "stdout") deliveredStdout += chunk;
-                  else deliveredStderr += chunk;
-                  incrementalLogChain = incrementalLogChain.then(() =>
-                    commandInput.onLog?.(stream, chunk),
-                  );
-                  return incrementalLogChain;
-                };
-                let result;
+      runner:
+        input.environmentRuntime && input.lease
+          ? {
+              // Provider-backed sandbox RPCs do not surface bounded mid-stream
+              // progress for a single stdin upload, so keep the capability disabled
+              // here. The client falls back to the chunked upload path when this is
+              // false.
+              supportsSingleStreamStdinProgress: false,
+              // Carry the verified concurrent-sync opt-in to the sync client. The
+              // client copies it onto the native path and ignores it on the base64
+              // fallback, which always permits concurrency. A null snapshot or a
+              // provider that never opted in keeps it false, so an unverified
+              // provider never permits concurrent sync operations.
+              allowConcurrentSyncOperations:
+                effectiveCapabilities?.concurrentSyncOperations === true,
+              execute: async (commandInput) => {
+                // Record true start and stop timestamps around the provider await,
+                // so the exec span and the result carry a real wall time.
+                const startedAtMs = Date.now();
+                const startedAt = new Date(startedAtMs).toISOString();
+                // Open one `sandbox.exec` span BEFORE the provider await, so the
+                // native span duration covers the whole execution and a thrown
+                // execution still produces a span. The span parents to the active
+                // step span. `startSpan` sits inside a guard; observability must
+                // never change execution control flow, and a no-op tracer
+                // (tracing off) makes the whole block inert.
+                const activeStep = getActiveStepContext();
+                const criticalPath = activeStep?.criticalPath ?? true;
+                let span: ExecSpan | null = null;
                 try {
-                  result = await input.environmentRuntime!.execute({
-                    environment: input.environment as Environment,
-                    lease: input.lease!,
-                    command: commandInput.command,
-                    args: commandInput.args,
-                    cwd: commandInput.cwd ?? remoteCwd,
-                    env: commandInput.env,
-                    stdin: commandInput.stdin,
-                    timeoutMs: commandInput.timeoutMs,
-                    onLog: commandInput.onLog ? onIncrementalLog : undefined,
-                    // The ACP process session bridge sets `useSession` so its
-                    // long-lived agent command opens the persistent session and
-                    // streams output, even though it runs with no active step.
-                    // The effective snapshot gates it: a provider that cannot
-                    // keep persistent process sessions never forces the session,
-                    // so the command runs one-shot instead.
-                    forceSession: persistentSessionsAllowed ? commandInput.useSession : false,
-                    // The bridge control-plane execs set `bypassSession` so they
-                    // run one-shot and never queue behind the long-lived agent
-                    // command on the persistent session. An explicit bypass wins
-                    // over `forceSession` and over the active-step selection.
-                    bypassSession: commandInput.bypassSession,
-                  });
-                } catch (error) {
-                  // The provider execution threw. Mark the span failed with the
-                  // measured wall time, then rethrow the original error unchanged.
+                  span = tracer.startSpan(
+                    "sandbox.exec",
+                    undefined,
+                    activeStep?.parentContext,
+                  );
+                } catch {
+                  span = null;
+                }
+                try {
+                  // Classify the span outcome from the provider execution ONLY.
+                  // The inner try/catch wraps just the provider await, so a thrown
+                  // provider execution marks the span failed. A later log-callback
+                  // rejection sits outside this block and never flips a successful
+                  // execution to failed.
+                  // Incremental log sink. The provider streams each output chunk
+                  // through the execute.log notification while the command runs.
+                  // Serialize the delivery per execute call so the runner sees the
+                  // chunks in order, and keep the delivered text per stream, so the
+                  // final-result delivery below emits only the un-streamed suffix
+                  // and can detect a provider poll fallback that returns a
+                  // different buffer.
+                  let incrementalLogChain: Promise<void> = Promise.resolve();
+                  let deliveredStdout = "";
+                  let deliveredStderr = "";
+                  const onIncrementalLog = (
+                    stream: "stdout" | "stderr",
+                    chunk: string,
+                  ): Promise<void> => {
+                    if (stream === "stdout") deliveredStdout += chunk;
+                    else deliveredStderr += chunk;
+                    incrementalLogChain = incrementalLogChain.then(() =>
+                      commandInput.onLog?.(stream, chunk),
+                    );
+                    return incrementalLogChain;
+                  };
+                  let result;
+                  try {
+                    result = await input.environmentRuntime!.execute({
+                      environment: input.environment as Environment,
+                      lease: input.lease!,
+                      command: commandInput.command,
+                      args: commandInput.args,
+                      cwd: commandInput.cwd ?? remoteCwd,
+                      env: commandInput.env,
+                      stdin: commandInput.stdin,
+                      timeoutMs: commandInput.timeoutMs,
+                      onLog: commandInput.onLog ? onIncrementalLog : undefined,
+                      // The ACP process session bridge sets `useSession` so its
+                      // long-lived agent command opens the persistent session and
+                      // streams output, even though it runs with no active step.
+                      // The effective snapshot gates it: a provider that cannot
+                      // keep persistent process sessions never forces the session,
+                      // so the command runs one-shot instead.
+                      forceSession: persistentSessionsAllowed
+                        ? commandInput.useSession
+                        : false,
+                      // The bridge control-plane execs set `bypassSession` so they
+                      // run one-shot and never queue behind the long-lived agent
+                      // command on the persistent session. An explicit bypass wins
+                      // over `forceSession` and over the active-step selection.
+                      bypassSession: commandInput.bypassSession,
+                    });
+                  } catch (error) {
+                    // The provider execution threw. Mark the span failed with the
+                    // measured wall time, then rethrow the original error unchanged.
+                    if (span) {
+                      try {
+                        setSandboxExecSpanFailure(span, {
+                          provider: providerFamily,
+                          command: commandInput.command,
+                          wallMs: Date.now() - startedAtMs,
+                          criticalPath,
+                        });
+                      } catch {
+                        // Observability must not change execution control flow.
+                      }
+                    }
+                    throw error;
+                  }
+                  // The provider execution succeeded. The span timing and outcome
+                  // come from the command result, not from the log callbacks below.
+                  const finishedAtMs = Date.now();
+                  const finishedAt = new Date(finishedAtMs).toISOString();
+                  const durationMs = finishedAtMs - startedAtMs;
+                  // `setSandboxExecSpanAttributes` sets ONLY the closed
+                  // `taskcore.sandbox.startup.exec.*` allowlist: the normalized
+                  // provider family, the clamped command label, the numeric exit
+                  // code, the wall / wait-before / sandbox / network times, the
+                  // critical-path flag, and the outcome. The full command, args,
+                  // env, stdout, and stderr never ride the span.
                   if (span) {
                     try {
-                      setSandboxExecSpanFailure(span, {
+                      setSandboxExecSpanAttributes(span, {
                         provider: providerFamily,
                         command: commandInput.command,
-                        wallMs: Date.now() - startedAtMs,
+                        exitCode: result.exitCode,
+                        wallMs: durationMs,
+                        waitBeforeMs: toFiniteNumber(
+                          result.metadata?.getDurationMs,
+                        ),
+                        sandboxMs: toFiniteNumber(result.metadata?.durationMs),
                         criticalPath,
+                        cacheHit: toBoolean(result.metadata?.cacheHit),
                       });
                     } catch {
                       // Observability must not change execution control flow.
                     }
                   }
-                  throw error;
-                }
-                // The provider execution succeeded. The span timing and outcome
-                // come from the command result, not from the log callbacks below.
-                const finishedAtMs = Date.now();
-                const finishedAt = new Date(finishedAtMs).toISOString();
-                const durationMs = finishedAtMs - startedAtMs;
-                // `setSandboxExecSpanAttributes` sets ONLY the closed
-                // `taskcore.sandbox.startup.exec.*` allowlist: the normalized
-                // provider family, the clamped command label, the numeric exit
-                // code, the wall / wait-before / sandbox / network times, the
-                // critical-path flag, and the outcome. The full command, args,
-                // env, stdout, and stderr never ride the span.
-                if (span) {
-                  try {
-                    setSandboxExecSpanAttributes(span, {
-                      provider: providerFamily,
-                      command: commandInput.command,
-                      exitCode: result.exitCode,
-                      wallMs: durationMs,
-                      waitBeforeMs: toFiniteNumber(result.metadata?.getDurationMs),
-                      sandboxMs: toFiniteNumber(result.metadata?.durationMs),
-                      criticalPath,
-                      cacheHit: toBoolean(result.metadata?.cacheHit),
-                    });
-                  } catch {
-                    // Observability must not change execution control flow.
+                  // Drain the ordered incremental delivery before the final
+                  // result. The provider streamed chunks arrive as execute.log
+                  // notifications while the command runs; awaiting the chain keeps
+                  // the runner order and surfaces a log-sink rejection.
+                  await incrementalLogChain;
+                  // Deliver only the suffix the provider did NOT already stream.
+                  // The streamed chunks usually form an in-order prefix of the
+                  // final result, so the remaining output is the final text past
+                  // the delivered text. When the provider streamed nothing, the
+                  // whole output is the suffix. When it streamed the complete
+                  // output, the suffix is empty and nothing repeats. When it
+                  // streamed a prefix and then fell back to a poll whose buffer
+                  // does not continue that prefix, `undeliveredSuffix` returns the
+                  // whole final output, so the durable log keeps the complete
+                  // result and never holds a truncated slice. A rejected `onLog`
+                  // still propagates to the caller (control flow is unchanged),
+                  // but the span already carries the successful outcome, so a log
+                  // failure never marks the execution failed.
+                  const stdoutSuffix = undeliveredSuffix(
+                    deliveredStdout,
+                    result.stdout ?? "",
+                  );
+                  if (stdoutSuffix)
+                    await commandInput.onLog?.("stdout", stdoutSuffix);
+                  const stderrSuffix = undeliveredSuffix(
+                    deliveredStderr,
+                    result.stderr ?? "",
+                  );
+                  if (stderrSuffix)
+                    await commandInput.onLog?.("stderr", stderrSuffix);
+                  return {
+                    exitCode: result.exitCode,
+                    signal: result.signal ?? null,
+                    timedOut: result.timedOut,
+                    stdout: result.stdout,
+                    stderr: result.stderr,
+                    pid: null,
+                    startedAt,
+                    finishedAt,
+                    durationMs,
+                  };
+                } finally {
+                  if (span) {
+                    try {
+                      span.end();
+                    } catch {
+                      // Observability must not change execution control flow.
+                    }
                   }
                 }
-                // Drain the ordered incremental delivery before the final
-                // result. The provider streamed chunks arrive as execute.log
-                // notifications while the command runs; awaiting the chain keeps
-                // the runner order and surfaces a log-sink rejection.
-                await incrementalLogChain;
-                // Deliver only the suffix the provider did NOT already stream.
-                // The streamed chunks usually form an in-order prefix of the
-                // final result, so the remaining output is the final text past
-                // the delivered text. When the provider streamed nothing, the
-                // whole output is the suffix. When it streamed the complete
-                // output, the suffix is empty and nothing repeats. When it
-                // streamed a prefix and then fell back to a poll whose buffer
-                // does not continue that prefix, `undeliveredSuffix` returns the
-                // whole final output, so the durable log keeps the complete
-                // result and never holds a truncated slice. A rejected `onLog`
-                // still propagates to the caller (control flow is unchanged),
-                // but the span already carries the successful outcome, so a log
-                // failure never marks the execution failed.
-                const stdoutSuffix = undeliveredSuffix(deliveredStdout, result.stdout ?? "");
-                if (stdoutSuffix) await commandInput.onLog?.("stdout", stdoutSuffix);
-                const stderrSuffix = undeliveredSuffix(deliveredStderr, result.stderr ?? "");
-                if (stderrSuffix) await commandInput.onLog?.("stderr", stderrSuffix);
-                return {
-                  exitCode: result.exitCode,
-                  signal: result.signal ?? null,
-                  timedOut: result.timedOut,
-                  stdout: result.stdout,
-                  stderr: result.stderr,
-                  pid: null,
-                  startedAt,
-                  finishedAt,
-                  durationMs,
-                };
-              } finally {
-                if (span) {
-                  try {
-                    span.end();
-                  } catch {
-                    // Observability must not change execution control flow.
+              },
+              // Expose the native file-sync capability only when the provider's
+              // worker advertises BOTH sync verbs AND the effective snapshot still
+              // grants native sync; otherwise leave syncIn/syncOut undefined so
+              // the orchestrator keeps the byte-identical base64 path.
+              ...(nativeSyncAllowed &&
+              input.environmentRuntime.supportsSync({
+                environment: input.environment as Environment,
+                lease: input.lease,
+              })
+                ? {
+                    syncIn: (operations) =>
+                      input.environmentRuntime!.syncIn({
+                        environment: input.environment as Environment,
+                        lease: input.lease!,
+                        operations,
+                      }),
+                    syncOut: (operations) =>
+                      input.environmentRuntime!.syncOut({
+                        environment: input.environment as Environment,
+                        lease: input.lease!,
+                        operations,
+                      }),
                   }
-                }
-              }
-            },
-            // Expose the native file-sync capability only when the provider's
-            // worker advertises BOTH sync verbs AND the effective snapshot still
-            // grants native sync; otherwise leave syncIn/syncOut undefined so
-            // the orchestrator keeps the byte-identical base64 path.
-            ...(nativeSyncAllowed &&
-            input.environmentRuntime.supportsSync({
-              environment: input.environment as Environment,
-              lease: input.lease,
-            })
-              ? {
-                  syncIn: (operations) =>
-                    input.environmentRuntime!.syncIn({
-                      environment: input.environment as Environment,
-                      lease: input.lease!,
-                      operations,
-                    }),
-                  syncOut: (operations) =>
-                    input.environmentRuntime!.syncOut({
-                      environment: input.environment as Environment,
-                      lease: input.lease!,
-                      operations,
-                    }),
-                }
-              : {}),
-            // Expose the duplex channel only when the effective snapshot grants
-            // the opt-in `duplexCommandStream` capability. A null snapshot
-            // (resolution failed or the snapshot is not resolvable) leaves the
-            // member undefined, so the caller keeps the file bridge. This mirrors
-            // the syncIn/syncOut gate above and fails closed.
-            // HTTP/2 is the preferred transport. `queue_v1` is the soft-deprecated fallback.
-            ...(effectiveCapabilities?.duplexCommandStream
-              ? {
-                  openDuplexChannel: (channelInput) =>
-                    input.environmentRuntime!.openDuplexChannel({
-                      environment: input.environment as Environment,
-                      lease: input.lease!,
-                      command: channelInput.command,
-                    }),
-                }
-              : {}),
-          }
-        : undefined,
+                : {}),
+              // Expose the duplex channel only when the effective snapshot grants
+              // the opt-in `duplexCommandStream` capability. A null snapshot
+              // (resolution failed or the snapshot is not resolvable) leaves the
+              // member undefined, so the caller keeps the file bridge. This mirrors
+              // the syncIn/syncOut gate above and fails closed.
+              // HTTP/2 is the preferred transport. `queue_v1` is the soft-deprecated fallback.
+              ...(effectiveCapabilities?.duplexCommandStream
+                ? {
+                    openDuplexChannel: (channelInput) =>
+                      input.environmentRuntime!.openDuplexChannel({
+                        environment: input.environment as Environment,
+                        lease: input.lease!,
+                        command: channelInput.command,
+                      }),
+                  }
+                : {}),
+            }
+          : undefined,
     };
   }
 
@@ -637,17 +694,22 @@ export async function resolveEnvironmentExecutionTarget(input: {
     return null;
   }
 
-  const parsed = await resolveEnvironmentDriverConfigForRuntime(input.db, input.companyId, {
-    id: input.environment.id,
-    driver: input.environment.driver as "ssh",
-    config: parseObject(input.environment.config),
-  });
+  const parsed = await resolveEnvironmentDriverConfigForRuntime(
+    input.db,
+    input.companyId,
+    {
+      id: input.environment.id,
+      driver: input.environment.driver as "ssh",
+      config: parseObject(input.environment.config),
+    },
+  );
   if (parsed.driver !== "ssh") {
     return null;
   }
 
   const remoteCwd =
-    typeof input.leaseMetadata?.remoteCwd === "string" && input.leaseMetadata.remoteCwd.trim().length > 0
+    typeof input.leaseMetadata?.remoteCwd === "string" &&
+    input.leaseMetadata.remoteCwd.trim().length > 0
       ? input.leaseMetadata.remoteCwd.trim()
       : parsed.config.remoteWorkspacePath;
 
@@ -673,5 +735,7 @@ export async function resolveEnvironmentExecutionTarget(input: {
 export async function resolveEnvironmentExecutionTransport(
   input: Parameters<typeof resolveEnvironmentExecutionTarget>[0],
 ): Promise<Record<string, unknown> | null> {
-  return adapterExecutionTargetToRemoteSpec(await resolveEnvironmentExecutionTarget(input)) as Record<string, unknown> | null;
+  return adapterExecutionTargetToRemoteSpec(
+    await resolveEnvironmentExecutionTarget(input),
+  ) as Record<string, unknown> | null;
 }

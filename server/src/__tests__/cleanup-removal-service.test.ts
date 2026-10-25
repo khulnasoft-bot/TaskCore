@@ -26,7 +26,9 @@ import { agentService } from "../services/agents.ts";
 import { companyService } from "../services/companies.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -36,10 +38,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("cleanup removal services", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-cleanup-removal-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-cleanup-removal-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -149,10 +155,18 @@ describeEmbeddedPostgres("cleanup removal services", () => {
     const removed = await agentService(db).remove(agentId);
 
     expect(removed?.id).toBe(agentId);
-    await expect(db.select().from(agents).where(eq(agents.id, agentId))).resolves.toHaveLength(0);
-    await expect(db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId))).resolves.toHaveLength(0);
-    await expect(db.select().from(issueComments).where(eq(issueComments.issueId, issueId))).resolves.toHaveLength(0);
-    await expect(db.select().from(activityLog).where(eq(activityLog.companyId, companyId))).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(agents).where(eq(agents.id, agentId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(issueComments).where(eq(issueComments.issueId, issueId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(activityLog).where(eq(activityLog.companyId, companyId)),
+    ).resolves.toHaveLength(0);
   });
 
   it("removes issue read states and activity rows before deleting the company", async () => {
@@ -225,12 +239,30 @@ describeEmbeddedPostgres("cleanup removal services", () => {
     const removed = await companyService(db).remove(companyId);
 
     expect(removed?.id).toBe(companyId);
-    await expect(db.select().from(companies).where(eq(companies.id, companyId))).resolves.toHaveLength(0);
-    await expect(db.select().from(issues).where(eq(issues.id, issueId))).resolves.toHaveLength(0);
-    await expect(db.select().from(documents).where(eq(documents.id, documentId))).resolves.toHaveLength(0);
-    await expect(db.select().from(documentRevisions).where(eq(documentRevisions.id, revisionId))).resolves.toHaveLength(0);
-    await expect(db.select().from(issueReadStates).where(eq(issueReadStates.companyId, companyId))).resolves.toHaveLength(0);
-    await expect(db.select().from(activityLog).where(eq(activityLog.companyId, companyId))).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(companies).where(eq(companies.id, companyId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(issues).where(eq(issues.id, issueId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(documents).where(eq(documents.id, documentId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(documentRevisions)
+        .where(eq(documentRevisions.id, revisionId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(issueReadStates)
+        .where(eq(issueReadStates.companyId, companyId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(activityLog).where(eq(activityLog.companyId, companyId)),
+    ).resolves.toHaveLength(0);
   });
 
   it("removes heartbeat events by run id before deleting company-owned runs", async () => {
@@ -256,9 +288,18 @@ describeEmbeddedPostgres("cleanup removal services", () => {
     const removed = await companyService(db).remove(companyId);
 
     expect(removed?.id).toBe(companyId);
-    await expect(db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId))).resolves.toHaveLength(0);
-    await expect(db.select().from(heartbeatRunEvents).where(eq(heartbeatRunEvents.runId, runId))).resolves.toHaveLength(0);
-    await expect(db.select().from(companies).where(eq(companies.id, otherCompanyId))).resolves.toHaveLength(1);
+    await expect(
+      db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(heartbeatRunEvents)
+        .where(eq(heartbeatRunEvents.runId, runId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(companies).where(eq(companies.id, otherCompanyId)),
+    ).resolves.toHaveLength(1);
   });
 
   it("removes routines before deleting company agents", async () => {
@@ -275,8 +316,14 @@ describeEmbeddedPostgres("cleanup removal services", () => {
     const removed = await companyService(db).remove(companyId);
 
     expect(removed?.id).toBe(companyId);
-    await expect(db.select().from(routines).where(eq(routines.id, routineId))).resolves.toHaveLength(0);
-    await expect(db.select().from(agents).where(eq(agents.id, agentId))).resolves.toHaveLength(0);
-    await expect(db.select().from(companies).where(eq(companies.id, companyId))).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(routines).where(eq(routines.id, routineId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(agents).where(eq(agents.id, agentId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(companies).where(eq(companies.id, companyId)),
+    ).resolves.toHaveLength(0);
   });
 });

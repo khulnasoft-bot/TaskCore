@@ -9,7 +9,9 @@ describe("parseGitDescribeVersion", () => {
   });
 
   it("collapses clean on-tag checkouts to the release version", () => {
-    expect(parseGitDescribeVersion("v2026.626.0-0-g012345678\n")).toBe("2026.626.0");
+    expect(parseGitDescribeVersion("v2026.626.0-0-g012345678\n")).toBe(
+      "2026.626.0",
+    );
   });
 
   it("adds dirty state to the local version segment", () => {
@@ -213,7 +215,9 @@ describe("resolveServerVersion", () => {
   it("keeps fallback diagnostics quiet by default", () => {
     const previousDebugFlag = process.env.TASKCORE_DEBUG_VERSION_RESOLUTION;
     delete process.env.TASKCORE_DEBUG_VERSION_RESOLUTION;
-    const consoleDebug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const consoleDebug = vi
+      .spyOn(console, "debug")
+      .mockImplementation(() => {});
 
     try {
       expect(

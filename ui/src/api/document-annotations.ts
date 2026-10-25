@@ -16,7 +16,10 @@ export type DocumentAnnotationTarget =
   | { kind: "case"; caseId: string; documentKey: string }
   | { kind: "routine"; routineId: string; documentKey: "description" };
 
-function issueTarget(issueId: string, documentKey: string): DocumentAnnotationTarget {
+function issueTarget(
+  issueId: string,
+  documentKey: string,
+): DocumentAnnotationTarget {
   return { kind: "issue", issueId, documentKey };
 }
 
@@ -34,11 +37,17 @@ export const documentAnnotationsApi = {
   list: (
     issueId: string,
     key: string,
-    options: { status?: DocumentAnnotationListFilter; includeComments?: boolean } = {},
+    options: {
+      status?: DocumentAnnotationListFilter;
+      includeComments?: boolean;
+    } = {},
   ) => documentAnnotationsApi.listForTarget(issueTarget(issueId, key), options),
   listForTarget: (
     target: DocumentAnnotationTarget,
-    options: { status?: DocumentAnnotationListFilter; includeComments?: boolean } = {},
+    options: {
+      status?: DocumentAnnotationListFilter;
+      includeComments?: boolean;
+    } = {},
   ) => {
     const params = new URLSearchParams();
     if (options.status) params.set("status", options.status);
@@ -54,9 +63,15 @@ export const documentAnnotationsApi = {
     api.get<DocumentAnnotationThreadWithComments>(
       `${targetBasePath(target)}/${threadId}`,
     ),
-  create: (issueId: string, key: string, data: CreateDocumentAnnotationThreadRequest) =>
-    documentAnnotationsApi.createForTarget(issueTarget(issueId, key), data),
-  createForTarget: (target: DocumentAnnotationTarget, data: CreateDocumentAnnotationThreadRequest) =>
+  create: (
+    issueId: string,
+    key: string,
+    data: CreateDocumentAnnotationThreadRequest,
+  ) => documentAnnotationsApi.createForTarget(issueTarget(issueId, key), data),
+  createForTarget: (
+    target: DocumentAnnotationTarget,
+    data: CreateDocumentAnnotationThreadRequest,
+  ) =>
     api.post<DocumentAnnotationThreadWithComments>(
       targetBasePath(target),
       data,
@@ -66,7 +81,12 @@ export const documentAnnotationsApi = {
     key: string,
     threadId: string,
     data: CreateDocumentAnnotationCommentRequest,
-  ) => documentAnnotationsApi.addCommentForTarget(issueTarget(issueId, key), threadId, data),
+  ) =>
+    documentAnnotationsApi.addCommentForTarget(
+      issueTarget(issueId, key),
+      threadId,
+      data,
+    ),
   addCommentForTarget: (
     target: DocumentAnnotationTarget,
     threadId: string,
@@ -81,7 +101,12 @@ export const documentAnnotationsApi = {
     key: string,
     threadId: string,
     status: DocumentAnnotationThreadStatus,
-  ) => documentAnnotationsApi.updateStatusForTarget(issueTarget(issueId, key), threadId, status),
+  ) =>
+    documentAnnotationsApi.updateStatusForTarget(
+      issueTarget(issueId, key),
+      threadId,
+      status,
+    ),
   updateStatusForTarget: (
     target: DocumentAnnotationTarget,
     threadId: string,

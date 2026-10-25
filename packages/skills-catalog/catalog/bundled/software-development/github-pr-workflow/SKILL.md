@@ -46,18 +46,22 @@ Use this structure:
 
 ```md
 ## Summary
+
 - 1–3 bullets describing what changed and why.
 
 ## Implementation notes
+
 - Anything non-obvious in the diff: trade-offs, dropped alternatives, gotchas.
 - Migration or config implications.
 
 ## Verification
+
 - The exact commands or steps you ran.
 - Screenshots or short clips for UI changes (required if pixels moved).
 - Edge cases you exercised by hand.
 
 ## Risk and rollback
+
 - What breaks if this is reverted, and how to revert cleanly.
 ```
 

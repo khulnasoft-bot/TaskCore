@@ -18,7 +18,9 @@ const DEFAULT_LABEL = "Default — current (recommended)";
  * v7-roster manifest entry) render verbatim; full timestamps collapse to their
  * local calendar day so the picker reads `released 2026-07-21`.
  */
-export function formatReleaseDate(value: CompanySkillVersion["releasedAt"]): string | null {
+export function formatReleaseDate(
+  value: CompanySkillVersion["releasedAt"],
+): string | null {
   if (!value) return null;
   const raw = typeof value === "string" ? value : value.toISOString();
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
@@ -44,7 +46,8 @@ export function releaseOptionLabel(release: CompanySkillVersion): string {
 
 /** Compact badge label for a pinned release, e.g. `V7`. */
 export function releaseShortLabel(release: CompanySkillVersion): string {
-  const name = release.releaseName ?? release.label ?? release.releaseId ?? "Release";
+  const name =
+    release.releaseName ?? release.label ?? release.releaseId ?? "Release";
   return name.split(" — ")[0]!.trim();
 }
 
@@ -68,7 +71,9 @@ export function AgentSkillReleasePicker({
   disabled = false,
   onChange,
 }: AgentSkillReleasePickerProps) {
-  const selected = value ? releases.find((release) => release.id === value) ?? null : null;
+  const selected = value
+    ? (releases.find((release) => release.id === value) ?? null)
+    : null;
   // Closed trigger shows the release name only; the `· released <date>` suffix
   // lives in the open menu, where dates are meaningful for comparing options.
   const triggerLabel = selected ? releaseName(selected) : DEFAULT_LABEL;
@@ -77,7 +82,9 @@ export function AgentSkillReleasePicker({
     <Select
       value={value ?? RELEASE_DEFAULT_VALUE}
       disabled={disabled}
-      onValueChange={(next) => onChange(next === RELEASE_DEFAULT_VALUE ? null : next)}
+      onValueChange={(next) =>
+        onChange(next === RELEASE_DEFAULT_VALUE ? null : next)
+      }
     >
       <SelectTrigger
         size="sm"
@@ -92,7 +99,10 @@ export function AgentSkillReleasePicker({
           <SelectItem key={release.id} value={release.id}>
             <span className="flex items-center gap-2">
               <span className="truncate">{releaseOptionLabel(release)}</span>
-              <Badge variant="secondary" className="shrink-0 text-(length:--text-nano)">
+              <Badge
+                variant="secondary"
+                className="shrink-0 text-(length:--text-nano)"
+              >
                 Beta
               </Badge>
             </span>

@@ -11,37 +11,70 @@ type ViewportCase = {
 };
 
 const VIEWPORT_CASES: ViewportCase[] = [
-  { name: "mobile", width: 390, layoutHeight: 844, visualHeight: 408, offsetTop: 120 },
-  { name: "tablet", width: 820, layoutHeight: 1180, visualHeight: 780, offsetTop: 120 },
-  { name: "desktop with an on-screen keyboard", width: 1440, layoutHeight: 900, visualHeight: 600, offsetTop: 80 },
+  {
+    name: "mobile",
+    width: 390,
+    layoutHeight: 844,
+    visualHeight: 408,
+    offsetTop: 120,
+  },
+  {
+    name: "tablet",
+    width: 820,
+    layoutHeight: 1180,
+    visualHeight: 780,
+    offsetTop: 120,
+  },
+  {
+    name: "desktop with an on-screen keyboard",
+    width: 1440,
+    layoutHeight: 900,
+    visualHeight: 600,
+    offsetTop: 80,
+  },
 ];
 
 async function installVisualViewport(page: Page, layoutHeight: number) {
-  await page.addInitScript(({ initialHeight }) => {
-    class TestVisualViewport extends EventTarget {
-      width = window.innerWidth;
-      height = initialHeight;
-      offsetLeft = 0;
-      offsetTop = 0;
-      pageLeft = 0;
-      pageTop = 0;
-      scale = 1;
-    }
+  await page.addInitScript(
+    ({ initialHeight }) => {
+      class TestVisualViewport extends EventTarget {
+        width = window.innerWidth;
+        height = initialHeight;
+        offsetLeft = 0;
+        offsetTop = 0;
+        pageLeft = 0;
+        pageTop = 0;
+        scale = 1;
+      }
 
-    Object.defineProperty(window, "visualViewport", {
-      configurable: true,
-      value: new TestVisualViewport(),
-    });
-  }, { initialHeight: layoutHeight });
+      Object.defineProperty(window, "visualViewport", {
+        configurable: true,
+        value: new TestVisualViewport(),
+      });
+    },
+    { initialHeight: layoutHeight },
+  );
 }
 
-async function renderDialog(page: Page, viewport: ViewportCase, initialVisualHeight = viewport.layoutHeight) {
-  await page.setViewportSize({ width: viewport.width, height: viewport.layoutHeight });
+async function renderDialog(
+  page: Page,
+  viewport: ViewportCase,
+  initialVisualHeight = viewport.layoutHeight,
+) {
+  await page.setViewportSize({
+    width: viewport.width,
+    height: viewport.layoutHeight,
+  });
   await installVisualViewport(page, initialVisualHeight);
-  await page.goto(`/iframe.html?id=${STORY_ID}&viewMode=story`, { waitUntil: "load" });
+  await page.goto(`/iframe.html?id=${STORY_ID}&viewMode=story`, {
+    waitUntil: "load",
+  });
   await page.waitForFunction(() => {
     const body = document.body;
-    return body.classList.contains("sb-show-main") || body.classList.contains("sb-show-errordisplay");
+    return (
+      body.classList.contains("sb-show-main") ||
+      body.classList.contains("sb-show-errordisplay")
+    );
   });
   expect(
     await page.locator(".sb-show-errordisplay").count(),
@@ -54,23 +87,33 @@ async function renderDialog(page: Page, viewport: ViewportCase, initialVisualHei
   return dialog;
 }
 
-test("does not collapse the new-task dialog during a transient zero-height visual viewport reading", async ({ page }) => {
+test("does not collapse the new-task dialog during a transient zero-height visual viewport reading", async ({
+  page,
+}) => {
   const viewport = VIEWPORT_CASES[0];
   const dialog = await renderDialog(page, viewport, 0);
 
-  await expect.poll(async () => dialog.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { top: rect.top, bottom: rect.bottom };
-  })).toEqual({ top: 16, bottom: viewport.layoutHeight - 16 });
+  await expect
+    .poll(async () =>
+      dialog.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      }),
+    )
+    .toEqual({ top: 16, bottom: viewport.layoutHeight - 16 });
 
   await constrainVisualViewport(page, viewport);
-  await expect.poll(async () => dialog.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { top: rect.top, bottom: rect.bottom };
-  })).toEqual({
-    top: viewport.offsetTop + 16,
-    bottom: viewport.offsetTop + viewport.visualHeight - 16,
-  });
+  await expect
+    .poll(async () =>
+      dialog.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      }),
+    )
+    .toEqual({
+      top: viewport.offsetTop + 16,
+      bottom: viewport.offsetTop + viewport.visualHeight - 16,
+    });
 
   await page.evaluate(() => {
     const visualViewport = window.visualViewport as VisualViewport & {
@@ -81,13 +124,17 @@ test("does not collapse the new-task dialog during a transient zero-height visua
     visualViewport.offsetTop = Number.NaN;
     visualViewport.dispatchEvent(new Event("resize"));
   });
-  await expect.poll(async () => dialog.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { top: rect.top, bottom: rect.bottom };
-  })).toEqual({
-    top: viewport.offsetTop + 16,
-    bottom: viewport.offsetTop + viewport.visualHeight - 16,
-  });
+  await expect
+    .poll(async () =>
+      dialog.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      }),
+    )
+    .toEqual({
+      top: viewport.offsetTop + 16,
+      bottom: viewport.offsetTop + viewport.visualHeight - 16,
+    });
 });
 
 for (const { pickerName, triggerName, query, selectionName } of [
@@ -104,7 +151,9 @@ for (const { pickerName, triggerName, query, selectionName } of [
     selectionName: "Agent Runtime",
   },
 ]) {
-  test(`keeps the open ${pickerName} picker inside the mobile visual viewport`, async ({ page }) => {
+  test(`keeps the open ${pickerName} picker inside the mobile visual viewport`, async ({
+    page,
+  }) => {
     const viewport = VIEWPORT_CASES[0];
     const dialog = await renderDialog(page, viewport);
     await constrainVisualViewport(page, viewport);
@@ -118,7 +167,9 @@ for (const { pickerName, triggerName, query, selectionName } of [
     const geometry = await picker.evaluate((element) => {
       const pickerRect = element.getBoundingClientRect();
       const inputRect = element.querySelector("input")!.getBoundingClientRect();
-      const dialogElement = document.querySelector('[data-slot="dialog-content"]');
+      const dialogElement = document.querySelector(
+        '[data-slot="dialog-content"]',
+      );
       return {
         pickerTop: pickerRect.top,
         pickerBottom: pickerRect.bottom,
@@ -139,34 +190,49 @@ for (const { pickerName, triggerName, query, selectionName } of [
     await searchInput.fill(query);
     await picker.getByRole("button", { name: selectionName }).click();
     await expect(picker).toBeHidden();
-    await expect(dialog.getByRole("button", { name: selectionName })).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: selectionName }),
+    ).toBeVisible();
   });
 }
 
 async function constrainVisualViewport(page: Page, viewport: ViewportCase) {
-  await page.evaluate(({ height, offsetTop }) => {
-    const visualViewport = window.visualViewport as VisualViewport & {
-      height: number;
-      offsetTop: number;
-    };
-    visualViewport.height = height;
-    visualViewport.offsetTop = offsetTop;
-    visualViewport.dispatchEvent(new Event("resize"));
-  }, { height: viewport.visualHeight, offsetTop: viewport.offsetTop });
+  await page.evaluate(
+    ({ height, offsetTop }) => {
+      const visualViewport = window.visualViewport as VisualViewport & {
+        height: number;
+        offsetTop: number;
+      };
+      visualViewport.height = height;
+      visualViewport.offsetTop = offsetTop;
+      visualViewport.dispatchEvent(new Event("resize"));
+    },
+    { height: viewport.visualHeight, offsetTop: viewport.offsetTop },
+  );
 }
 
-async function expectHitTarget(locator: Locator, visibleTop: number, visibleBottom: number) {
-  const result = await locator.evaluate((element, band) => {
-    const rect = element.getBoundingClientRect();
-    const pointTarget = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    return {
-      top: rect.top,
-      bottom: rect.bottom,
-      hit: pointTarget === element || element.contains(pointTarget),
-      visibleTop: band.visibleTop,
-      visibleBottom: band.visibleBottom,
-    };
-  }, { visibleTop, visibleBottom });
+async function expectHitTarget(
+  locator: Locator,
+  visibleTop: number,
+  visibleBottom: number,
+) {
+  const result = await locator.evaluate(
+    (element, band) => {
+      const rect = element.getBoundingClientRect();
+      const pointTarget = document.elementFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2,
+      );
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        hit: pointTarget === element || element.contains(pointTarget),
+        visibleTop: band.visibleTop,
+        visibleBottom: band.visibleBottom,
+      };
+    },
+    { visibleTop, visibleBottom },
+  );
 
   expect(result.top).toBeGreaterThanOrEqual(result.visibleTop);
   expect(result.bottom).toBeLessThanOrEqual(result.visibleBottom);
@@ -174,9 +240,13 @@ async function expectHitTarget(locator: Locator, visibleTop: number, visibleBott
 }
 
 for (const viewport of VIEWPORT_CASES) {
-  test(`keeps the new-task dialog inside the constrained visual viewport at ${viewport.name} width`, async ({ page }) => {
+  test(`keeps the new-task dialog inside the constrained visual viewport at ${viewport.name} width`, async ({
+    page,
+  }) => {
     const dialog = await renderDialog(page, viewport);
-    const descriptionEditor = dialog.locator('.taskcore-mdxeditor-content[contenteditable="true"]');
+    const descriptionEditor = dialog.locator(
+      '.taskcore-mdxeditor-content[contenteditable="true"]',
+    );
     await expect(descriptionEditor).toBeVisible();
     await descriptionEditor.focus();
 
@@ -184,27 +254,37 @@ for (const viewport of VIEWPORT_CASES) {
 
     const visibleTop = viewport.offsetTop;
     const visibleBottom = viewport.offsetTop + viewport.visualHeight;
-    await expect.poll(async () => dialog.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      return { top: rect.top, bottom: rect.bottom };
-    })).toEqual({
-      top: viewport.offsetTop + 16,
-      bottom: viewport.offsetTop + viewport.visualHeight - 16,
-    });
+    await expect
+      .poll(async () =>
+        dialog.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom };
+        }),
+      )
+      .toEqual({
+        top: viewport.offsetTop + 16,
+        bottom: viewport.offsetTop + viewport.visualHeight - 16,
+      });
 
     const dialogGeometry = await dialog.evaluate((element) => {
       const style = getComputedStyle(element);
       return {
-        heightVariable: style.getPropertyValue("--new-issue-dialog-height").trim(),
+        heightVariable: style
+          .getPropertyValue("--new-issue-dialog-height")
+          .trim(),
         rootHeightVariable: getComputedStyle(document.documentElement)
           .getPropertyValue("--new-issue-dialog-height")
           .trim(),
         translate: style.translate,
       };
     });
-    expect(dialogGeometry.heightVariable).toContain(`${viewport.visualHeight}px`);
+    expect(dialogGeometry.heightVariable).toContain(
+      `${viewport.visualHeight}px`,
+    );
     expect(dialogGeometry.heightVariable).not.toContain("100dvh");
-    expect(dialogGeometry.heightVariable).not.toBe(dialogGeometry.rootHeightVariable);
+    expect(dialogGeometry.heightVariable).not.toBe(
+      dialogGeometry.rootHeightVariable,
+    );
     expect(dialogGeometry.rootHeightVariable).toBe("");
     expect(dialogGeometry.translate).toBe("-50%");
 
@@ -220,23 +300,36 @@ for (const viewport of VIEWPORT_CASES) {
       overflowY: getComputedStyle(element).overflowY,
     }));
     expect(scrollMetrics.overflowY).toBe("auto");
-    expect(scrollMetrics.scrollHeight).toBeGreaterThanOrEqual(scrollMetrics.clientHeight);
+    expect(scrollMetrics.scrollHeight).toBeGreaterThanOrEqual(
+      scrollMetrics.clientHeight,
+    );
     if (viewport.width === 390) {
-      expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
+      expect(scrollMetrics.scrollHeight).toBeGreaterThan(
+        scrollMetrics.clientHeight,
+      );
     }
 
-    const editorGeometry = await descriptionEditor.evaluate((element, scrollSelector) => {
-      const editorRect = element.getBoundingClientRect();
-      const scrollRect = element.closest(scrollSelector)!.getBoundingClientRect();
-      return {
-        editorTop: editorRect.top,
-        editorBottom: editorRect.bottom,
-        scrollTop: scrollRect.top,
-        scrollBottom: scrollRect.bottom,
-      };
-    }, ".overflow-y-auto.overscroll-contain");
-    expect(editorGeometry.editorTop).toBeGreaterThanOrEqual(editorGeometry.scrollTop);
-    expect(editorGeometry.editorBottom).toBeLessThanOrEqual(editorGeometry.scrollBottom);
+    const editorGeometry = await descriptionEditor.evaluate(
+      (element, scrollSelector) => {
+        const editorRect = element.getBoundingClientRect();
+        const scrollRect = element
+          .closest(scrollSelector)!
+          .getBoundingClientRect();
+        return {
+          editorTop: editorRect.top,
+          editorBottom: editorRect.bottom,
+          scrollTop: scrollRect.top,
+          scrollBottom: scrollRect.bottom,
+        };
+      },
+      ".overflow-y-auto.overscroll-contain",
+    );
+    expect(editorGeometry.editorTop).toBeGreaterThanOrEqual(
+      editorGeometry.scrollTop,
+    );
+    expect(editorGeometry.editorBottom).toBeLessThanOrEqual(
+      editorGeometry.scrollBottom,
+    );
 
     for (const name of ["CodexCoder", "Board UI"]) {
       const selector = scrollRegion.getByRole("button", { name });
@@ -246,7 +339,9 @@ for (const viewport of VIEWPORT_CASES) {
   });
 }
 
-test("leaves unconstrained desktop positioning to the dialog primitive", async ({ page }) => {
+test("leaves unconstrained desktop positioning to the dialog primitive", async ({
+  page,
+}) => {
   const viewport: ViewportCase = {
     name: "unconstrained desktop",
     width: 1440,
@@ -262,5 +357,7 @@ test("leaves unconstrained desktop positioning to the dialog primitive", async (
     translate: element.style.translate,
   }));
   expect(inlineStyle).toEqual({ top: "", height: "", translate: "" });
-  expect(await dialog.evaluate((element) => getComputedStyle(element).translate)).toBe("-50% -50%");
+  expect(
+    await dialog.evaluate((element) => getComputedStyle(element).translate),
+  ).toBe("-50% -50%");
 });

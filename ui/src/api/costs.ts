@@ -26,34 +26,67 @@ function dateParams(from?: string, to?: string): string {
 
 export const costsApi = {
   summary: (companyId: string, from?: string, to?: string) =>
-    api.get<CostSummary>(`/companies/${companyId}/costs/summary${dateParams(from, to)}`),
+    api.get<CostSummary>(
+      `/companies/${companyId}/costs/summary${dateParams(from, to)}`,
+    ),
   byUser: (companyId: string, from?: string, to?: string) =>
-    api.get<CostByUserReport>(`/companies/${companyId}/costs/by-user${dateParams(from, to)}`),
+    api.get<CostByUserReport>(
+      `/companies/${companyId}/costs/by-user${dateParams(from, to)}`,
+    ),
   byAgent: (companyId: string, from?: string, to?: string) =>
-    api.get<CostByAgent[]>(`/companies/${companyId}/costs/by-agent${dateParams(from, to)}`),
+    api.get<CostByAgent[]>(
+      `/companies/${companyId}/costs/by-agent${dateParams(from, to)}`,
+    ),
   byAgentModel: (companyId: string, from?: string, to?: string) =>
-    api.get<CostByAgentModel[]>(`/companies/${companyId}/costs/by-agent-model${dateParams(from, to)}`),
+    api.get<CostByAgentModel[]>(
+      `/companies/${companyId}/costs/by-agent-model${dateParams(from, to)}`,
+    ),
   byProject: (companyId: string, from?: string, to?: string) =>
-    api.get<CostByProject[]>(`/companies/${companyId}/costs/by-project${dateParams(from, to)}`),
+    api.get<CostByProject[]>(
+      `/companies/${companyId}/costs/by-project${dateParams(from, to)}`,
+    ),
   byProvider: (companyId: string, from?: string, to?: string) =>
-    api.get<CostByProviderModel[]>(`/companies/${companyId}/costs/by-provider${dateParams(from, to)}`),
+    api.get<CostByProviderModel[]>(
+      `/companies/${companyId}/costs/by-provider${dateParams(from, to)}`,
+    ),
   byBiller: (companyId: string, from?: string, to?: string) =>
-    api.get<CostByBiller[]>(`/companies/${companyId}/costs/by-biller${dateParams(from, to)}`),
+    api.get<CostByBiller[]>(
+      `/companies/${companyId}/costs/by-biller${dateParams(from, to)}`,
+    ),
   financeSummary: (companyId: string, from?: string, to?: string) =>
-    api.get<FinanceSummary>(`/companies/${companyId}/costs/finance-summary${dateParams(from, to)}`),
+    api.get<FinanceSummary>(
+      `/companies/${companyId}/costs/finance-summary${dateParams(from, to)}`,
+    ),
   financeByBiller: (companyId: string, from?: string, to?: string) =>
-    api.get<FinanceByBiller[]>(`/companies/${companyId}/costs/finance-by-biller${dateParams(from, to)}`),
+    api.get<FinanceByBiller[]>(
+      `/companies/${companyId}/costs/finance-by-biller${dateParams(from, to)}`,
+    ),
   financeByKind: (companyId: string, from?: string, to?: string) =>
-    api.get<FinanceByKind[]>(`/companies/${companyId}/costs/finance-by-kind${dateParams(from, to)}`),
-  financeEvents: (companyId: string, from?: string, to?: string, limit: number = 100) =>
-    api.get<FinanceEvent[]>(`/companies/${companyId}/costs/finance-events${dateParamsWithLimit(from, to, limit)}`),
+    api.get<FinanceByKind[]>(
+      `/companies/${companyId}/costs/finance-by-kind${dateParams(from, to)}`,
+    ),
+  financeEvents: (
+    companyId: string,
+    from?: string,
+    to?: string,
+    limit: number = 100,
+  ) =>
+    api.get<FinanceEvent[]>(
+      `/companies/${companyId}/costs/finance-events${dateParamsWithLimit(from, to, limit)}`,
+    ),
   windowSpend: (companyId: string) =>
     api.get<CostWindowSpendRow[]>(`/companies/${companyId}/costs/window-spend`),
   quotaWindows: (companyId: string) =>
-    api.get<ProviderQuotaResult[]>(`/companies/${companyId}/costs/quota-windows`),
+    api.get<ProviderQuotaResult[]>(
+      `/companies/${companyId}/costs/quota-windows`,
+    ),
 };
 
-function dateParamsWithLimit(from?: string, to?: string, limit?: number): string {
+function dateParamsWithLimit(
+  from?: string,
+  to?: string,
+  limit?: number,
+): string {
   const params = new URLSearchParams();
   if (!from && !to) params.set("period", "all");
   if (from) params.set("from", from);

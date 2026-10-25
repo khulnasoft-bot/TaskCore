@@ -33,7 +33,12 @@ test("finds an existing non-cancelled failure issue for the same routine", () =>
   assert.equal(
     findDuplicateFailureIssue(
       [
-        { id: "cancelled", parentId: routineIssueId, status: "cancelled", title },
+        {
+          id: "cancelled",
+          parentId: routineIssueId,
+          status: "cancelled",
+          title,
+        },
         { id: "other-parent", parentId: "other", status: "done", title },
         { id: "existing", parentId: routineIssueId, status: "done", title },
       ],

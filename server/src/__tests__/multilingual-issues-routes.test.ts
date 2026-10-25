@@ -12,7 +12,9 @@ import { issueRoutes } from "../routes/issues.js";
 import type { StorageService } from "../storage/types.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -22,7 +24,9 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("multilingual issue routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let app!: ReturnType<typeof createApp>;
   let companyId!: string;
 
@@ -51,7 +55,9 @@ describeEmbeddedPostgres("multilingual issue routes", () => {
   ].join("\n");
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-multilingual-issues-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-multilingual-issues-",
+    );
     db = createDb(tempDb.connectionString);
     companyId = randomUUID();
     app = createApp(companyId);
@@ -80,10 +86,14 @@ describeEmbeddedPostgres("multilingual issue routes", () => {
     return {
       provider: "local_disk",
       putFile: vi.fn(async () => {
-        throw new Error("Unexpected storage.putFile call in multilingual issue route test");
+        throw new Error(
+          "Unexpected storage.putFile call in multilingual issue route test",
+        );
       }),
       getObject: vi.fn(async () => {
-        throw new Error("Unexpected storage.getObject call in multilingual issue route test");
+        throw new Error(
+          "Unexpected storage.getObject call in multilingual issue route test",
+        );
       }),
       headObject: vi.fn(async () => ({ exists: false })),
       deleteObject: vi.fn(async () => undefined),
@@ -139,9 +149,13 @@ describeEmbeddedPostgres("multilingual issue routes", () => {
   });
 
   it("finds the issue by Chinese search text", async () => {
-    const searchRes = await request(app).get(`/api/companies/${companyId}/issues`).query({ q: "中文" });
+    const searchRes = await request(app)
+      .get(`/api/companies/${companyId}/issues`)
+      .query({ q: "中文" });
     expect(searchRes.status, JSON.stringify(searchRes.body)).toBe(200);
-    expect(searchRes.body.map((issue: { identifier: string }) => issue.identifier)).toContain("LNG-1");
+    expect(
+      searchRes.body.map((issue: { identifier: string }) => issue.identifier),
+    ).toContain("LNG-1");
   });
 
   it("preserves multilingual comment bodies", async () => {
@@ -174,17 +188,23 @@ describeEmbeddedPostgres("multilingual issue routes", () => {
   });
 
   it("lists multilingual comments in write order", async () => {
-    const commentsRes = await request(app).get("/api/issues/LNG-1/comments").query({ order: "asc" });
+    const commentsRes = await request(app)
+      .get("/api/issues/LNG-1/comments")
+      .query({ order: "asc" });
     expect(commentsRes.status, JSON.stringify(commentsRes.body)).toBe(200);
-    expect(commentsRes.body.map((comment: { body: string }) => comment.body)).toEqual([
-      firstReply,
-      completionNote,
-    ]);
+    expect(
+      commentsRes.body.map((comment: { body: string }) => comment.body),
+    ).toEqual([firstReply, completionNote]);
   });
 
   it("exposes multilingual issue text in heartbeat context", async () => {
-    const heartbeatContextRes = await request(app).get("/api/issues/LNG-1/heartbeat-context");
-    expect(heartbeatContextRes.status, JSON.stringify(heartbeatContextRes.body)).toBe(200);
+    const heartbeatContextRes = await request(app).get(
+      "/api/issues/LNG-1/heartbeat-context",
+    );
+    expect(
+      heartbeatContextRes.status,
+      JSON.stringify(heartbeatContextRes.body),
+    ).toBe(200);
     expect(heartbeatContextRes.body.issue.title).toBe(title);
     expect(heartbeatContextRes.body.issue.description).toBe(description);
     expect(heartbeatContextRes.body.commentCursor.totalComments).toBe(2);

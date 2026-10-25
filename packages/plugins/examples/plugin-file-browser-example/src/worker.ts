@@ -3,21 +3,28 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 const PLUGIN_NAME = "file-browser-example";
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PATH_LIKE_PATTERN = /[\\/]/;
 const WINDOWS_DRIVE_PATH_PATTERN = /^[A-Za-z]:[\\/]/;
 
 function looksLikePath(value: string): boolean {
   const normalized = value.trim();
-  return (PATH_LIKE_PATTERN.test(normalized) || WINDOWS_DRIVE_PATH_PATTERN.test(normalized))
-    && !UUID_PATTERN.test(normalized);
+  return (
+    (PATH_LIKE_PATTERN.test(normalized) ||
+      WINDOWS_DRIVE_PATH_PATTERN.test(normalized)) &&
+    !UUID_PATTERN.test(normalized)
+  );
 }
 
 function sanitizeWorkspacePath(pathValue: string): string {
   return looksLikePath(pathValue) ? pathValue.trim() : "";
 }
 
-function resolveWorkspace(workspacePath: string, requestedPath?: string): string | null {
+function resolveWorkspace(
+  workspacePath: string,
+  requestedPath?: string,
+): string | null {
   const root = path.resolve(workspacePath);
   const resolved = requestedPath ? path.resolve(root, requestedPath) : root;
   const relative = path.relative(root, resolved);
@@ -34,7 +41,8 @@ function resolveWorkspace(workspacePath: string, requestedPath?: string): string
  * extensions (e.g. `README.md`).  The file-extension check in
  * `extractFilePaths` filters out non-file matches.
  */
-const FILE_PATH_REGEX = /(?:^|[\s(`"'])([^\s,;)}`"'>\]]*\/[^\s,;)}`"'>\]]+|[.\/~][^\s,;)}`"'>\]]+|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]{1,10}(?:\/[^\s,;)}`"'>\]]+)?)/g;
+const FILE_PATH_REGEX =
+  /(?:^|[\s(`"'])([^\s,;)}`"'>\]]*\/[^\s,;)}`"'>\]]+|[.\/~][^\s,;)}`"'>\]]+|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]{1,10}(?:\/[^\s,;)}`"'>\]]+)?)/g;
 
 /** Common file extensions to recognise path-like tokens as actual file references. */
 const FILE_EXTENSION_REGEX = /\.[a-zA-Z0-9]{1,10}$/;
@@ -43,7 +51,8 @@ const FILE_EXTENSION_REGEX = /\.[a-zA-Z0-9]{1,10}$/;
  * Tokens that look like paths but are almost certainly URL route segments
  * (e.g. `/projects/abc`, `/settings`, `/dashboard`).
  */
-const URL_ROUTE_PATTERN = /^\/(?:projects|issues|agents|settings|dashboard|plugins|api|auth|admin)\b/i;
+const URL_ROUTE_PATTERN =
+  /^\/(?:projects|issues|agents|settings|dashboard|plugins|api|auth|admin)\b/i;
 
 function extractFilePaths(body: string): string[] {
   const paths = new Set<string>();
@@ -68,7 +77,8 @@ const plugin = definePlugin({
     // Expose the current company-scoped plugin config so UI components can read
     // operator settings from the canonical config store.
     ctx.data.register("plugin-config", async (params) => {
-      const companyId = typeof params.companyId === "string" ? params.companyId : "";
+      const companyId =
+        typeof params.companyId === "string" ? params.companyId : "";
       const config = companyId ? await ctx.config.get(companyId) : null;
       return {
         showFilesInSidebar: config?.showFilesInSidebar === true,
@@ -77,27 +87,40 @@ const plugin = definePlugin({
     });
 
     // Fetch a comment by ID and extract file-path-like tokens from its body.
-    ctx.data.register("comment-file-links", async (params: Record<string, unknown>) => {
-      const commentId = typeof params.commentId === "string" ? params.commentId : "";
-      const issueId = typeof params.issueId === "string" ? params.issueId : "";
-      const companyId = typeof params.companyId === "string" ? params.companyId : "";
-      if (!commentId || !issueId || !companyId) return { links: [] };
-      try {
-        const comments = await ctx.issues.listComments(issueId, companyId);
-        const comment = comments.find((c) => c.id === commentId);
-        if (!comment?.body) return { links: [] };
-        return { links: extractFilePaths(comment.body) };
-      } catch (err) {
-        ctx.logger.warn("Failed to fetch comment for file link extraction", { commentId, error: String(err) });
-        return { links: [] };
-      }
-    });
+    ctx.data.register(
+      "comment-file-links",
+      async (params: Record<string, unknown>) => {
+        const commentId =
+          typeof params.commentId === "string" ? params.commentId : "";
+        const issueId =
+          typeof params.issueId === "string" ? params.issueId : "";
+        const companyId =
+          typeof params.companyId === "string" ? params.companyId : "";
+        if (!commentId || !issueId || !companyId) return { links: [] };
+        try {
+          const comments = await ctx.issues.listComments(issueId, companyId);
+          const comment = comments.find((c) => c.id === commentId);
+          if (!comment?.body) return { links: [] };
+          return { links: extractFilePaths(comment.body) };
+        } catch (err) {
+          ctx.logger.warn("Failed to fetch comment for file link extraction", {
+            commentId,
+            error: String(err),
+          });
+          return { links: [] };
+        }
+      },
+    );
 
     ctx.data.register("workspaces", async (params: Record<string, unknown>) => {
       const projectId = params.projectId as string;
-      const companyId = typeof params.companyId === "string" ? params.companyId : "";
+      const companyId =
+        typeof params.companyId === "string" ? params.companyId : "";
       if (!projectId || !companyId) return [];
-      const workspaces = await ctx.projects.listWorkspaces(projectId, companyId);
+      const workspaces = await ctx.projects.listWorkspaces(
+        projectId,
+        companyId,
+      );
       return workspaces.map((w) => ({
         id: w.id,
         projectId: w.projectId,
@@ -109,11 +132,16 @@ const plugin = definePlugin({
 
     async function readFileList(params: Record<string, unknown>) {
       const projectId = params.projectId as string;
-      const companyId = typeof params.companyId === "string" ? params.companyId : "";
+      const companyId =
+        typeof params.companyId === "string" ? params.companyId : "";
       const workspaceId = params.workspaceId as string;
-      const directoryPath = typeof params.directoryPath === "string" ? params.directoryPath : "";
+      const directoryPath =
+        typeof params.directoryPath === "string" ? params.directoryPath : "";
       if (!projectId || !companyId || !workspaceId) return { entries: [] };
-      const workspaces = await ctx.projects.listWorkspaces(projectId, companyId);
+      const workspaces = await ctx.projects.listWorkspaces(
+        projectId,
+        companyId,
+      );
       const workspace = workspaces.find((w) => w.id === workspaceId);
       if (!workspace) return { entries: [] };
       const workspacePath = sanitizeWorkspacePath(workspace.path);
@@ -126,19 +154,21 @@ const plugin = definePlugin({
         return { entries: [] };
       }
       const names = fs.readdirSync(dirPath).sort((a, b) => a.localeCompare(b));
-      const entries = names.map((name) => {
-        const full = path.join(dirPath, name);
-        const stat = fs.lstatSync(full);
-        const relativePath = path.relative(workspacePath, full);
-        return {
-          name,
-          path: relativePath,
-          isDirectory: stat.isDirectory(),
-        };
-      }).sort((a, b) => {
-        if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
+      const entries = names
+        .map((name) => {
+          const full = path.join(dirPath, name);
+          const stat = fs.lstatSync(full);
+          const relativePath = path.relative(workspacePath, full);
+          return {
+            name,
+            path: relativePath,
+            isDirectory: stat.isDirectory(),
+          };
+        })
+        .sort((a, b) => {
+          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
       return { entries };
     }
 
@@ -152,17 +182,22 @@ const plugin = definePlugin({
       "fileContent",
       async (params: Record<string, unknown>) => {
         const projectId = params.projectId as string;
-        const companyId = typeof params.companyId === "string" ? params.companyId : "";
+        const companyId =
+          typeof params.companyId === "string" ? params.companyId : "";
         const workspaceId = params.workspaceId as string;
         const filePath = params.filePath as string;
         if (!projectId || !companyId || !workspaceId || !filePath) {
           return { content: null, error: "Missing file context" };
         }
-        const workspaces = await ctx.projects.listWorkspaces(projectId, companyId);
+        const workspaces = await ctx.projects.listWorkspaces(
+          projectId,
+          companyId,
+        );
         const workspace = workspaces.find((w) => w.id === workspaceId);
         if (!workspace) return { content: null, error: "Workspace not found" };
         const workspacePath = sanitizeWorkspacePath(workspace.path);
-        if (!workspacePath) return { content: null, error: "Workspace has no path" };
+        if (!workspacePath)
+          return { content: null, error: "Workspace has no path" };
         const fullPath = resolveWorkspace(workspacePath, filePath);
         if (!fullPath) {
           return { content: null, error: "Path outside workspace" };
@@ -181,17 +216,23 @@ const plugin = definePlugin({
       "writeFile",
       async (params: Record<string, unknown>) => {
         const projectId = params.projectId as string;
-        const companyId = typeof params.companyId === "string" ? params.companyId : "";
+        const companyId =
+          typeof params.companyId === "string" ? params.companyId : "";
         const workspaceId = params.workspaceId as string;
-        const filePath = typeof params.filePath === "string" ? params.filePath.trim() : "";
+        const filePath =
+          typeof params.filePath === "string" ? params.filePath.trim() : "";
         if (!filePath) {
           throw new Error("filePath must be a non-empty string");
         }
-        const content = typeof params.content === "string" ? params.content : null;
+        const content =
+          typeof params.content === "string" ? params.content : null;
         if (!projectId || !companyId || !workspaceId) {
           throw new Error("Missing workspace context");
         }
-        const workspaces = await ctx.projects.listWorkspaces(projectId, companyId);
+        const workspaces = await ctx.projects.listWorkspaces(
+          projectId,
+          companyId,
+        );
         const workspace = workspaces.find((w) => w.id === workspaceId);
         if (!workspace) {
           throw new Error("Workspace not found");

@@ -14,5 +14,5 @@ export function useStagingCommit(menuOpen: boolean) {
     retry: false,
   });
 
-  return isStaging && !isError ? data?.commit ?? null : null;
+  return isStaging && !isError ? (data?.commit ?? null) : null;
 }

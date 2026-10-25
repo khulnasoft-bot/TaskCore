@@ -1,4 +1,7 @@
-import { INSTANCE_FEATURE_KEYS, type InstanceFeatureKey } from "./feature-catalog.js";
+import {
+  INSTANCE_FEATURE_KEYS,
+  type InstanceFeatureKey,
+} from "./feature-catalog.js";
 
 /**
  * Operator-configurable settings visibility.
@@ -92,16 +95,20 @@ export const UI_ONLY_GENERAL_SECTIONS = [
   "instance.general.signOut",
 ] as const satisfies readonly HideableGeneralSection[];
 
-export type HideableExperimentalSetting = `instance.experimental.${InstanceFeatureKey}`;
+export type HideableExperimentalSetting =
+  `instance.experimental.${InstanceFeatureKey}`;
 
 /** The visibility key for an experimental toggle; every boolean flag is hideable. */
-export function experimentalSettingKey(key: InstanceFeatureKey): HideableExperimentalSetting {
+export function experimentalSettingKey(
+  key: InstanceFeatureKey,
+): HideableExperimentalSetting {
   return `instance.experimental.${key}`;
 }
 
 /** Workspace policy editors and selectors. UI-only; execution and APIs stay active. */
 export const HIDEABLE_WORKSPACE_SECTIONS = ["workspaces.isolation"] as const;
-export type HideableWorkspaceSection = (typeof HIDEABLE_WORKSPACE_SECTIONS)[number];
+export type HideableWorkspaceSection =
+  (typeof HIDEABLE_WORKSPACE_SECTIONS)[number];
 
 export type HideableSettingKey =
   | HideableWorkspaceSection
@@ -140,7 +147,9 @@ export interface ParsedHiddenSettings {
  * `!instance.experimental.enableEnvironments`. Exceptions only affect the
  * wildcard; an explicit hidden key or hidden parent page always wins.
  */
-export function parseHiddenSettingsList(raw: string | undefined): ParsedHiddenSettings {
+export function parseHiddenSettingsList(
+  raw: string | undefined,
+): ParsedHiddenSettings {
   const hidden: HideableSettingKey[] = [];
   const unknown: string[] = [];
   if (!raw) return { hidden, unknown };
@@ -154,7 +163,10 @@ export function parseHiddenSettingsList(raw: string | undefined): ParsedHiddenSe
     seen.add(key);
     if (key === EXPERIMENTAL_SETTINGS_WILDCARD) {
       hideExperimental = true;
-    } else if (key.startsWith("!instance.experimental.") && known.has(key.slice(1))) {
+    } else if (
+      key.startsWith("!instance.experimental.") &&
+      known.has(key.slice(1))
+    ) {
       exceptions.add(key.slice(1));
     } else if (known.has(key)) {
       hidden.push(key as HideableSettingKey);
@@ -207,5 +219,8 @@ export function hidesExperimentalSetting(
   hidden: ReadonlySet<string>,
   key: InstanceFeatureKey,
 ): boolean {
-  return hidden.has("instance.experimental") || hidden.has(experimentalSettingKey(key));
+  return (
+    hidden.has("instance.experimental") ||
+    hidden.has(experimentalSettingKey(key))
+  );
 }

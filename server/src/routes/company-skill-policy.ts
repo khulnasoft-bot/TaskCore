@@ -1,10 +1,21 @@
-import { Router, type NextFunction, type Request, type Response } from "express";
+import {
+  Router,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import type { Db } from "@taskcore/db";
-import { evaluateSkillPolicySchema, replaceSkillPolicySchema } from "@taskcore/shared";
+import {
+  evaluateSkillPolicySchema,
+  replaceSkillPolicySchema,
+} from "@taskcore/shared";
 import { ZodError, type ZodSchema } from "zod";
 import { forbidden, HttpError, unprocessable } from "../errors.js";
 import { accessService } from "../services/access.js";
-import { companySkillPolicyService, type SkillPolicyPrincipal } from "../services/company-skill-policy.js";
+import {
+  companySkillPolicyService,
+  type SkillPolicyPrincipal,
+} from "../services/company-skill-policy.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 
 export function companySkillPolicyRoutes(db: Db) {
@@ -19,10 +30,12 @@ export function companySkillPolicyRoutes(db: Db) {
         next();
       } catch (error) {
         if (error instanceof ZodError) {
-          next(unprocessable("Invalid skill policy document", {
-            code: "skill_policy_validation_failed",
-            issues: error.issues,
-          }));
+          next(
+            unprocessable("Invalid skill policy document", {
+              code: "skill_policy_validation_failed",
+              issues: error.issues,
+            }),
+          );
           return;
         }
         next(error);
@@ -32,10 +45,14 @@ export function companySkillPolicyRoutes(db: Db) {
 
   function assertSkillPolicyCompanyAccess(req: Request, companyId: string) {
     if (req.actor.type === "none") {
-      throw new HttpError(401, "Authentication required", { code: "skill_authentication_required" });
+      throw new HttpError(401, "Authentication required", {
+        code: "skill_authentication_required",
+      });
     }
     if (req.actor.type === "agent" && req.actor.companyId !== companyId) {
-      throw forbidden("Agent key cannot access another company", { code: "skill_company_boundary_denied" });
+      throw forbidden("Agent key cannot access another company", {
+        code: "skill_company_boundary_denied",
+      });
     }
     assertCompanyAccess(req, companyId);
   }
@@ -43,12 +60,25 @@ export function companySkillPolicyRoutes(db: Db) {
   async function assertCanAdministerPolicy(req: Request, companyId: string) {
     assertSkillPolicyCompanyAccess(req, companyId);
     if (req.actor.type === "board") {
-      if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
-      if (await access.canUser(companyId, req.actor.userId, "users:manage_permissions")) return;
+      if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+        return;
+      if (
+        await access.canUser(
+          companyId,
+          req.actor.userId,
+          "users:manage_permissions",
+        )
+      )
+        return;
     } else if (
-      req.actor.type === "agent"
-      && req.actor.agentId
-      && await access.hasPermission(companyId, "agent", req.actor.agentId, "users:manage_permissions")
+      req.actor.type === "agent" &&
+      req.actor.agentId &&
+      (await access.hasPermission(
+        companyId,
+        "agent",
+        req.actor.agentId,
+        "users:manage_permissions",
+      ))
     ) {
       return;
     }
@@ -58,14 +88,19 @@ export function companySkillPolicyRoutes(db: Db) {
     });
   }
 
-  async function currentPrincipal(req: Request, companyId: string): Promise<SkillPolicyPrincipal> {
+  async function currentPrincipal(
+    req: Request,
+    companyId: string,
+  ): Promise<SkillPolicyPrincipal> {
     if (req.actor.type === "agent" && req.actor.agentId) {
       return policies.resolveAgentPrincipal(companyId, req.actor.agentId);
     }
     if (req.actor.type === "board") {
       return { type: "board", id: req.actor.userId ?? "board", role: "board" };
     }
-    throw forbidden("Authenticated company actor required", { code: "skill_authentication_required" });
+    throw forbidden("Authenticated company actor required", {
+      code: "skill_authentication_required",
+    });
   }
 
   router.get("/companies/:companyId/skill-policy", async (req, res) => {
@@ -82,17 +117,19 @@ export function companySkillPolicyRoutes(db: Db) {
       await assertCanAdministerPolicy(req, companyId);
       const actor = getActorInfo(req);
       const { expectedRevision, ...policy } = req.body;
-      res.json(await policies.replace({
-        companyId,
-        expectedRevision,
-        policy,
-        activity: {
-          actorType: actor.actorType,
-          actorId: actor.actorId,
-          agentId: actor.agentId,
-          runId: actor.runId,
-        },
-      }));
+      res.json(
+        await policies.replace({
+          companyId,
+          expectedRevision,
+          policy,
+          activity: {
+            actorType: actor.actorType,
+            actorId: actor.actorId,
+            agentId: actor.agentId,
+            runId: actor.runId,
+          },
+        }),
+      );
     },
   );
 
@@ -100,15 +137,17 @@ export function companySkillPolicyRoutes(db: Db) {
     const companyId = req.params.companyId as string;
     await assertCanAdministerPolicy(req, companyId);
     const actor = getActorInfo(req);
-    res.json(await policies.reset({
-      companyId,
-      activity: {
-        actorType: actor.actorType,
-        actorId: actor.actorId,
-        agentId: actor.agentId,
-        runId: actor.runId,
-      },
-    }));
+    res.json(
+      await policies.reset({
+        companyId,
+        activity: {
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          agentId: actor.agentId,
+          runId: actor.runId,
+        },
+      }),
+    );
   });
 
   router.post(
@@ -120,16 +159,21 @@ export function companySkillPolicyRoutes(db: Db) {
       let principal: SkillPolicyPrincipal;
       if (req.body.principal) {
         await assertCanAdministerPolicy(req, companyId);
-        principal = await policies.resolveAgentPrincipal(companyId, req.body.principal.agentId);
+        principal = await policies.resolveAgentPrincipal(
+          companyId,
+          req.body.principal.agentId,
+        );
       } else {
         principal = await currentPrincipal(req, companyId);
       }
-      res.json(await policies.evaluate({
-        companyId,
-        principal,
-        action: req.body.action,
-        resource: req.body.resource,
-      }));
+      res.json(
+        await policies.evaluate({
+          companyId,
+          principal,
+          action: req.body.action,
+          resource: req.body.resource,
+        }),
+      );
     },
   );
 

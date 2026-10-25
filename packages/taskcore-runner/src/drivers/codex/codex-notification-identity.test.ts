@@ -13,8 +13,16 @@ const classify = (method: string, params: Record<string, unknown>) =>
 describe("provider notification authority", () => {
   it.each([
     ["warning", { message: "buffered before replacement rejection" }, "root"],
-    ["taskcore/canonicalProviderEvent", { threadId: null, eventType: "provider.notice.recorded" }, "root"],
-    ["taskcore/canonicalProviderEvent", { threadId: null, eventType: "tool.execution.started" }, "invalid_authority"],
+    [
+      "taskcore/canonicalProviderEvent",
+      { threadId: null, eventType: "provider.notice.recorded" },
+      "root",
+    ],
+    [
+      "taskcore/canonicalProviderEvent",
+      { threadId: null, eventType: "tool.execution.started" },
+      "invalid_authority",
+    ],
     ["item/started", { threadId: "root", turnId: "active" }, "root"],
     ["turn/completed", { threadId: "root", turnId: "old" }, "stale_turn"],
     [
@@ -42,9 +50,21 @@ describe("provider notification authority", () => {
       { threadId: "unrelated" },
       "unrelated_information",
     ],
-    ["mcpServer/startupStatus/updated", { threadId: "not-yet-known-child", status: "starting" }, "unrelated_information"],
-    ["mcpServer/startupStatus/updated", { threadId: "child", status: "ready" }, "descendant"],
-    ["mcpServer/startupStatus/updated", { threadId: "child", thread: { id: "different" } }, "invalid_authority"],
+    [
+      "mcpServer/startupStatus/updated",
+      { threadId: "not-yet-known-child", status: "starting" },
+      "unrelated_information",
+    ],
+    [
+      "mcpServer/startupStatus/updated",
+      { threadId: "child", status: "ready" },
+      "descendant",
+    ],
+    [
+      "mcpServer/startupStatus/updated",
+      { threadId: "child", thread: { id: "different" } },
+      "invalid_authority",
+    ],
     ["taskcore/runResult", { threadId: "child" }, "invalid_authority"],
     ["turn/completed", { threadId: "unrelated" }, "invalid_authority"],
     ["item/started", { threadId: 5 }, "invalid_authority"],

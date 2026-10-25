@@ -44,9 +44,13 @@ export function usePluginData<T = unknown>(
   key: string,
   params?: Record<string, unknown>,
 ): PluginDataResult<T> {
-  const impl = getSdkUiRuntimeValue<
-    (nextKey: string, nextParams?: Record<string, unknown>) => PluginDataResult<T>
-  >("usePluginData");
+  const impl =
+    getSdkUiRuntimeValue<
+      (
+        nextKey: string,
+        nextParams?: Record<string, unknown>,
+      ) => PluginDataResult<T>
+    >("usePluginData");
   return impl(key, params);
 }
 
@@ -85,7 +89,10 @@ export function usePluginData<T = unknown>(
  * @see PLUGIN_SPEC.md §19.7 — Error Propagation Through The Bridge
  */
 export function usePluginAction(key: string): PluginActionFn {
-  const impl = getSdkUiRuntimeValue<(nextKey: string) => PluginActionFn>("usePluginAction");
+  const impl =
+    getSdkUiRuntimeValue<(nextKey: string) => PluginActionFn>(
+      "usePluginAction",
+    );
   return impl(key);
 }
 
@@ -205,9 +212,13 @@ export function usePluginStream<T = unknown>(
   channel: string,
   options?: { companyId?: string },
 ): PluginStreamResult<T> {
-  const impl = getSdkUiRuntimeValue<
-    (nextChannel: string, nextOptions?: { companyId?: string }) => PluginStreamResult<T>
-  >("usePluginStream");
+  const impl =
+    getSdkUiRuntimeValue<
+      (
+        nextChannel: string,
+        nextOptions?: { companyId?: string },
+      ) => PluginStreamResult<T>
+    >("usePluginStream");
   return impl(channel, options);
 }
 

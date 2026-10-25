@@ -15,7 +15,10 @@ export function omitUndefinedEntries(value: Record<string, unknown>) {
   );
 }
 
-export function buildAgentUpdatePatch(agent: Agent, overlay: AgentConfigOverlay) {
+export function buildAgentUpdatePatch(
+  agent: Agent,
+  overlay: AgentConfigOverlay,
+) {
   const patch: Record<string, unknown> = {};
 
   if (Object.keys(overlay.identity).length > 0) {
@@ -26,15 +29,18 @@ export function buildAgentUpdatePatch(agent: Agent, overlay: AgentConfigOverlay)
     patch.adapterType = overlay.adapterType;
   }
 
-  if (overlay.adapterType !== undefined || Object.keys(overlay.adapterConfig).length > 0) {
+  if (
+    overlay.adapterType !== undefined ||
+    Object.keys(overlay.adapterConfig).length > 0
+  ) {
     const existing = (agent.adapterConfig ?? {}) as Record<string, unknown>;
     const nextAdapterConfig =
       overlay.adapterType !== undefined
         ? {
             ...Object.fromEntries(
-              ADAPTER_AGNOSTIC_KEYS
-                .filter((key) => existing[key] !== undefined)
-                .map((key) => [key, existing[key]]),
+              ADAPTER_AGNOSTIC_KEYS.filter(
+                (key) => existing[key] !== undefined,
+              ).map((key) => [key, existing[key]]),
             ),
             ...overlay.adapterConfig,
           }
@@ -48,21 +54,27 @@ export function buildAgentUpdatePatch(agent: Agent, overlay: AgentConfigOverlay)
   }
 
   if (
-    Object.keys(overlay.heartbeat).length > 0
-    || Object.keys(overlay.debug).length > 0
+    Object.keys(overlay.heartbeat).length > 0 ||
+    Object.keys(overlay.debug).length > 0
   ) {
     const existingRc = (agent.runtimeConfig ?? {}) as Record<string, unknown>;
-    const nextRuntimeConfig: Record<string, unknown> = (patch.runtimeConfig as Record<string, unknown> | undefined)
-      ?? { ...existingRc };
+    const nextRuntimeConfig: Record<string, unknown> = (patch.runtimeConfig as
+      Record<string, unknown> | undefined) ?? { ...existingRc };
 
     if (Object.keys(overlay.heartbeat).length > 0) {
-      const existingHb = (existingRc.heartbeat ?? {}) as Record<string, unknown>;
+      const existingHb = (existingRc.heartbeat ?? {}) as Record<
+        string,
+        unknown
+      >;
       nextRuntimeConfig.heartbeat = { ...existingHb, ...overlay.heartbeat };
     }
 
     if (Object.keys(overlay.debug).length > 0) {
       const existingDebug = (existingRc.debug ?? {}) as Record<string, unknown>;
-      const nextDebug = omitUndefinedEntries({ ...existingDebug, ...overlay.debug });
+      const nextDebug = omitUndefinedEntries({
+        ...existingDebug,
+        ...overlay.debug,
+      });
       if (Object.keys(nextDebug).length === 0) {
         delete nextRuntimeConfig.debug;
       } else {

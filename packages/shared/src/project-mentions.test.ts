@@ -24,7 +24,9 @@ describe("project-mentions", () => {
       projectId: "project-123",
       color: "#336699",
     });
-    expect(extractProjectMentionIds(`[@Taskcore App](${href})`)).toEqual(["project-123"]);
+    expect(extractProjectMentionIds(`[@Taskcore App](${href})`)).toEqual([
+      "project-123",
+    ]);
   });
 
   it("round-trips agent mentions with icon metadata", () => {
@@ -33,7 +35,9 @@ describe("project-mentions", () => {
       agentId: "agent-123",
       icon: "code",
     });
-    expect(extractAgentMentionIds(`[@CodexCoder](${href})`)).toEqual(["agent-123"]);
+    expect(extractAgentMentionIds(`[@CodexCoder](${href})`)).toEqual([
+      "agent-123",
+    ]);
   });
 
   it("round-trips user mentions", () => {
@@ -50,7 +54,9 @@ describe("project-mentions", () => {
       skillId: "skill-123",
       slug: "release-changelog",
     });
-    expect(extractSkillMentionIds(`[/release-changelog](${href})`)).toEqual(["skill-123"]);
+    expect(extractSkillMentionIds(`[/release-changelog](${href})`)).toEqual([
+      "skill-123",
+    ]);
   });
 
   it("round-trips routine mentions", () => {
@@ -58,6 +64,8 @@ describe("project-mentions", () => {
     expect(parseRoutineMentionHref(href)).toEqual({
       routineId: "routine-123",
     });
-    expect(extractRoutineMentionIds(`[/routine:Weekly review](${href})`)).toEqual(["routine-123"]);
+    expect(
+      extractRoutineMentionIds(`[/routine:Weekly review](${href})`),
+    ).toEqual(["routine-123"]);
   });
 });

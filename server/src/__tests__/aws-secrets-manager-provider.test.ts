@@ -7,8 +7,10 @@ describe("awsSecretsManagerProvider", () => {
     TASKCORE_SECRETS_AWS_REGION: process.env.TASKCORE_SECRETS_AWS_REGION,
     AWS_REGION: process.env.AWS_REGION,
     AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION,
-    TASKCORE_SECRETS_AWS_DEPLOYMENT_ID: process.env.TASKCORE_SECRETS_AWS_DEPLOYMENT_ID,
-    TASKCORE_SECRETS_AWS_KMS_KEY_ID: process.env.TASKCORE_SECRETS_AWS_KMS_KEY_ID,
+    TASKCORE_SECRETS_AWS_DEPLOYMENT_ID:
+      process.env.TASKCORE_SECRETS_AWS_DEPLOYMENT_ID,
+    TASKCORE_SECRETS_AWS_KMS_KEY_ID:
+      process.env.TASKCORE_SECRETS_AWS_KMS_KEY_ID,
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     AWS_SESSION_TOKEN: process.env.AWS_SESSION_TOKEN,
@@ -68,7 +70,8 @@ describe("awsSecretsManagerProvider", () => {
 
     const prepared = await provider.createSecret({
       value: "super-secret-value",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
       context: {
         companyId: "company-1",
         secretKey: "openai-api-key",
@@ -87,7 +90,9 @@ describe("awsSecretsManagerProvider", () => {
       }),
     ]);
     expect(JSON.stringify(prepared)).not.toContain("super-secret-value");
-    expect(prepared.externalRef).toContain("taskcore/prod-use1/company-1/openai-api-key");
+    expect(prepared.externalRef).toContain(
+      "taskcore/prod-use1/company-1/openai-api-key",
+    );
     expect(prepared.providerVersionRef).toBe("aws-version-1");
   });
 
@@ -173,7 +178,9 @@ describe("awsSecretsManagerProvider", () => {
     ]);
     expect(calls[0]?.input).not.toHaveProperty("KmsKeyId");
     expect(JSON.stringify(prepared)).not.toContain("super-secret-value");
-    expect(prepared.externalRef).toContain("clip/prod-us-west/company-1/openai-api-key");
+    expect(prepared.externalRef).toContain(
+      "clip/prod-us-west/company-1/openai-api-key",
+    );
   });
 
   it("signs AWS Secrets Manager JSON requests with default runtime credentials", async () => {
@@ -225,7 +232,9 @@ describe("awsSecretsManagerProvider", () => {
     expect(headers["x-amz-target"]).toBe("secretsmanager.CreateSecret");
     expect(headers["x-amz-security-token"]).toBe("test-session-token");
     expect(headers.authorization).toContain("Credential=AKIA_TEST_ACCESS/");
-    expect(headers.authorization).toContain("/us-east-1/secretsmanager/aws4_request");
+    expect(headers.authorization).toContain(
+      "/us-east-1/secretsmanager/aws4_request",
+    );
     expect(headers.authorization).toContain("SignedHeaders=");
     expect(headers.authorization).toContain("Signature=");
     expect(init?.signal).toBeInstanceOf(AbortSignal);
@@ -324,7 +333,8 @@ describe("awsSecretsManagerProvider", () => {
     await expect(
       provider.createVersion({
         value: "rotated-secret-value",
-        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
         context: {
           companyId: "company-1",
           secretKey: "openai-api-key",
@@ -352,7 +362,8 @@ describe("awsSecretsManagerProvider", () => {
     });
 
     const prepared = await provider.linkExternalSecret({
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
       providerVersionRef: "linked-version-7",
     });
 
@@ -421,7 +432,8 @@ describe("awsSecretsManagerProvider", () => {
     });
 
     const prepared = await provider.updateExternalSecretValue!({
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
       value: "written-through-value",
       context: {
         companyId: "company-1",
@@ -436,19 +448,23 @@ describe("awsSecretsManagerProvider", () => {
       {
         op: "getSecretValue",
         input: {
-          SecretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+          SecretId:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
           VersionStage: "AWSCURRENT",
         },
       },
       {
         op: "putSecretValue",
         input: {
-          SecretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+          SecretId:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
           SecretString: "written-through-value",
         },
       },
     ]);
-    expect(JSON.stringify(prepared.material)).not.toContain("written-through-value");
+    expect(JSON.stringify(prepared.material)).not.toContain(
+      "written-through-value",
+    );
     expect(prepared.externalRef).toBe(
       "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
     );
@@ -497,10 +513,18 @@ describe("awsSecretsManagerProvider", () => {
         deleteRecoveryWindowDays: 30,
       },
       gateway: {
-        async createSecret() { throw new Error("not used"); },
-        async putSecretValue() { throw new Error("not used"); },
-        async getSecretValue() { throw new Error("not used"); },
-        async deleteSecret() { throw new Error("not used"); },
+        async createSecret() {
+          throw new Error("not used");
+        },
+        async putSecretValue() {
+          throw new Error("not used");
+        },
+        async getSecretValue() {
+          throw new Error("not used");
+        },
+        async deleteSecret() {
+          throw new Error("not used");
+        },
         async updateSecretVersionStage(input) {
           calls.push({ op: "updateSecretVersionStage", input });
         },
@@ -510,13 +534,15 @@ describe("awsSecretsManagerProvider", () => {
     await provider.deleteOrArchive({
       material: {
         scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+        secretId:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
         versionId: null,
         source: "external_reference",
         lastWrittenVersionId: "aws-version-9",
         previousCurrentVersionId: "aws-version-8",
       },
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
       mode: "archive",
     });
 
@@ -524,7 +550,8 @@ describe("awsSecretsManagerProvider", () => {
       {
         op: "updateSecretVersionStage",
         input: {
-          SecretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+          SecretId:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
           VersionStage: "AWSCURRENT",
           MoveToVersionId: "aws-version-8",
           RemoveFromVersionId: "aws-version-9",
@@ -554,7 +581,9 @@ describe("awsSecretsManagerProvider", () => {
           throw new Error("not used");
         },
         async getSecretValue() {
-          throw new Error("GetSecretValue must not be used for remote import preview");
+          throw new Error(
+            "GetSecretValue must not be used for remote import preview",
+          );
         },
         async deleteSecret() {
           throw new Error("not used");
@@ -598,7 +627,8 @@ describe("awsSecretsManagerProvider", () => {
       nextToken: "token-2",
       secrets: [
         {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+          externalRef:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
           name: "prod/openai",
           providerVersionRef: null,
           metadata: expect.objectContaining({
@@ -625,7 +655,9 @@ describe("awsSecretsManagerProvider", () => {
           throw new Error("not used");
         },
         async getSecretValue() {
-          throw new Error("GetSecretValue must not be used for provider vault discovery");
+          throw new Error(
+            "GetSecretValue must not be used for provider vault discovery",
+          );
         },
         async deleteSecret() {
           throw new Error("not used");
@@ -755,11 +787,16 @@ describe("awsSecretsManagerProvider", () => {
     expect(thrown).toMatchObject({
       code: "access_denied",
       status: 403,
-      message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+      message:
+        "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
       rawMessage: rawProviderMessage,
     });
-    expect(thrown instanceof Error ? thrown.message : String(thrown)).not.toContain("arn:aws");
-    expect(thrown instanceof Error ? thrown.message : String(thrown)).not.toContain("123456789012");
+    expect(
+      thrown instanceof Error ? thrown.message : String(thrown),
+    ).not.toContain("arn:aws");
+    expect(
+      thrown instanceof Error ? thrown.message : String(thrown),
+    ).not.toContain("123456789012");
   });
 
   it("resolves AWS secret values by provider version reference", async () => {
@@ -784,7 +821,10 @@ describe("awsSecretsManagerProvider", () => {
         },
         async getSecretValue(input) {
           calls.push({ op: "getSecretValue", input });
-          return { SecretString: "resolved-secret-value", VersionId: "aws-version-2" };
+          return {
+            SecretString: "resolved-secret-value",
+            VersionId: "aws-version-2",
+          };
         },
         async deleteSecret() {
           throw new Error("not used");
@@ -795,7 +835,8 @@ describe("awsSecretsManagerProvider", () => {
     const resolved = await provider.resolveVersion({
       material: {
         scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company-1/openai-api-key",
+        secretId:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company-1/openai-api-key",
         versionId: "aws-version-2",
         source: "managed",
       },
@@ -888,7 +929,9 @@ describe("awsSecretsManagerProvider", () => {
     expect(health.message).toContain("missing TASKCORE_SECRETS_AWS_REGION");
     expect(health.warnings).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("Missing required non-secret AWS provider config"),
+        expect.stringContaining(
+          "Missing required non-secret AWS provider config",
+        ),
         expect.stringContaining("AWS bootstrap credentials must be available"),
         expect.stringContaining("Do not store AWS root credentials"),
       ]),
@@ -965,10 +1008,12 @@ describe("awsSecretsManagerProvider", () => {
     await expect(
       provider.deleteOrArchive({
         mode: "delete",
-        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
         material: {
           scheme: "aws_secrets_manager_v1",
-          secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
+          secretId:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/attacker",
           versionId: null,
           source: "managed",
         },
@@ -982,10 +1027,12 @@ describe("awsSecretsManagerProvider", () => {
     ).rejects.toThrow(/drifted outside the derived deployment\/company scope/i);
     await provider.deleteOrArchive({
       mode: "delete",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
       material: {
         scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
+        secretId:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/external",
         versionId: "linked-version-7",
         source: "external_reference",
       },

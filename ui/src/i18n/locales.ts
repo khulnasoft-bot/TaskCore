@@ -35,7 +35,10 @@ for (const [locale, messages] of Object.entries(localeMessages)) {
 export const supportedLocales = Object.keys(localeMessages);
 
 export const i18nextResources: Resource = Object.fromEntries(
-  Object.entries(localeMessages).map(([locale, messages]) => [locale, { translation: messages }]),
+  Object.entries(localeMessages).map(([locale, messages]) => [
+    locale,
+    { translation: messages },
+  ]),
 ) as Resource;
 
 export type SupportedLocale = keyof typeof localeMessages;

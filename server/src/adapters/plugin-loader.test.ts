@@ -25,11 +25,15 @@ const validLoginCapability: AdapterLoginCapability = {
 
 describe("validateAdapterModule login capability", () => {
   it("loads an adapter with no login capability", () => {
-    expect(() => validateAdapterModule(makeModule(), "vendor-pkg")).not.toThrow();
+    expect(() =>
+      validateAdapterModule(makeModule(), "vendor-pkg"),
+    ).not.toThrow();
   });
 
   it("loads an adapter with a well-formed login capability", () => {
-    expect(() => validateAdapterModule(makeModule(validLoginCapability), "vendor-pkg")).not.toThrow();
+    expect(() =>
+      validateAdapterModule(makeModule(validLoginCapability), "vendor-pkg"),
+    ).not.toThrow();
   });
 
   it("rejects an adapter with a malformed login capability", () => {
@@ -40,8 +44,8 @@ describe("validateAdapterModule login capability", () => {
   });
 
   it("rejects an adapter with a non-object login capability", () => {
-    expect(() => validateAdapterModule(makeModule("displayed_code"), "vendor-pkg")).toThrow(
-      /invalid login capability/,
-    );
+    expect(() =>
+      validateAdapterModule(makeModule("displayed_code"), "vendor-pkg"),
+    ).toThrow(/invalid login capability/);
   });
 });

@@ -9,7 +9,9 @@ import {
 export const feedbackTargetTypeSchema = z.enum(FEEDBACK_TARGET_TYPES);
 export const feedbackTraceStatusSchema = z.enum(FEEDBACK_TRACE_STATUSES);
 export const feedbackVoteValueSchema = z.enum(FEEDBACK_VOTE_VALUES);
-export const feedbackDataSharingPreferenceSchema = z.enum(FEEDBACK_DATA_SHARING_PREFERENCES);
+export const feedbackDataSharingPreferenceSchema = z.enum(
+  FEEDBACK_DATA_SHARING_PREFERENCES,
+);
 
 export const upsertIssueFeedbackVoteSchema = z.object({
   targetType: feedbackTargetTypeSchema,
@@ -19,4 +21,6 @@ export const upsertIssueFeedbackVoteSchema = z.object({
   allowSharing: z.boolean().optional(),
 });
 
-export type UpsertIssueFeedbackVote = z.infer<typeof upsertIssueFeedbackVoteSchema>;
+export type UpsertIssueFeedbackVote = z.infer<
+  typeof upsertIssueFeedbackVoteSchema
+>;

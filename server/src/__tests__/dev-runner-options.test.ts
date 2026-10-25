@@ -27,7 +27,9 @@ describe("applyDevRunnerOptions", () => {
       expect(env.TASKCORE_CONFIG).toBe(
         path.join(expectedHome, "instances", "default", "config.json"),
       );
-      expect(env.TASKCORE_CONTEXT).toBe(path.join(expectedHome, "context.json"));
+      expect(env.TASKCORE_CONTEXT).toBe(
+        path.join(expectedHome, "context.json"),
+      );
     } finally {
       if (previousInstanceId === undefined) {
         delete process.env.TASKCORE_INSTANCE_ID;

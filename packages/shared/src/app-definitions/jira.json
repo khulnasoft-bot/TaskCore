@@ -3,16 +3,12 @@
   "slug": "jira",
   "name": "Jira",
   "description": "Connect Jira's provider-hosted MCP server.",
-  "categories": [
-    "productivity"
-  ],
+  "categories": ["productivity"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/jira.svg"
   },
-  "urlPatterns": [
-    "https://mcp.atlassian.com/*"
-  ],
+  "urlPatterns": ["https://mcp.atlassian.com/*"],
   "docsUrl": "https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,9 +16,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.atlassian.com/v1/mcp/authv2",

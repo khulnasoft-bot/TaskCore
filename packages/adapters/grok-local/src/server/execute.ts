@@ -4,7 +4,10 @@ import { cancellableSandboxStartup } from "@taskcore/adapter-utils/acpx-engine/s
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AdapterExecutionContext, AdapterExecutionResult } from "@taskcore/adapter-utils";
+import type {
+  AdapterExecutionContext,
+  AdapterExecutionResult,
+} from "@taskcore/adapter-utils";
 import {
   adapterExecutionTargetIsRemote,
   adapterExecutionTargetRemoteCwd,
@@ -47,7 +50,12 @@ import {
 } from "@taskcore/adapter-utils/server-utils";
 import { DEFAULT_GROK_LOCAL_MODEL } from "../index.js";
 import { copyBackGrokAuth } from "./grok-auth-copyback.js";
-import { grokHomeHasSession, grokHomeHasUsableAuth, resolveManagedGrokHomeDir, stageGrokHomeForSync } from "./grok-home.js";
+import {
+  grokHomeHasSession,
+  grokHomeHasUsableAuth,
+  resolveManagedGrokHomeDir,
+  stageGrokHomeForSync,
+} from "./grok-home.js";
 import { isGrokUnknownSessionError, parseGrokJsonl } from "./parse.js";
 
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -61,7 +69,10 @@ function firstNonEmptyLine(text: string): string {
   );
 }
 
-function hasNonEmptyEnvValue(env: Record<string, string | undefined>, key: string): boolean {
+function hasNonEmptyEnvValue(
+  env: Record<string, string | undefined>,
+  key: string,
+): boolean {
   const raw = env[key];
   return typeof raw === "string" && raw.trim().length > 0;
 }
@@ -81,7 +92,11 @@ function renderTaskcoreEnvNote(env: Record<string, string>): string {
 }
 
 function renderApiAccessNote(env: Record<string, string>): string {
-  if (!hasNonEmptyEnvValue(env, "TASKCORE_API_URL") || !hasNonEmptyEnvValue(env, "TASKCORE_API_KEY")) return "";
+  if (
+    !hasNonEmptyEnvValue(env, "TASKCORE_API_URL") ||
+    !hasNonEmptyEnvValue(env, "TASKCORE_API_KEY")
+  )
+    return "";
   return [
     "Taskcore API access note:",
     "Use shell commands with curl to make Taskcore API requests when needed.",
@@ -104,7 +119,10 @@ type StagedGrokAssets = {
 };
 
 async function pathExists(candidate: string): Promise<boolean> {
-  return fs.access(candidate).then(() => true).catch(() => false);
+  return fs
+    .access(candidate)
+    .then(() => true)
+    .catch(() => false);
 }
 
 async function stageGrokProjectAssets(input: {
@@ -128,11 +146,14 @@ async function stageGrokProjectAssets(input: {
 
   const instructionsTarget = path.join(input.cwd, "Agents.md");
   if (input.instructionsFilePath) {
-    if (!await pathExists(instructionsTarget)) {
+    if (!(await pathExists(instructionsTarget))) {
       await fs.copyFile(input.instructionsFilePath, instructionsTarget);
       ensureCleanupFile(instructionsTarget);
       stagedInstructionsPath = instructionsTarget;
-    } else if (path.resolve(instructionsTarget) !== path.resolve(input.instructionsFilePath)) {
+    } else if (
+      path.resolve(instructionsTarget) !==
+      path.resolve(input.instructionsFilePath)
+    ) {
       rulesFilePath = input.instructionsFilePath;
       await input.onLog(
         "stdout",
@@ -141,7 +162,10 @@ async function stageGrokProjectAssets(input: {
     }
   } else {
     const canonicalAgents = path.join(input.cwd, "AGENTS.md");
-    if (!await pathExists(instructionsTarget) && await pathExists(canonicalAgents)) {
+    if (
+      !(await pathExists(instructionsTarget)) &&
+      (await pathExists(canonicalAgents))
+    ) {
       await fs.copyFile(canonicalAgents, instructionsTarget);
       ensureCleanupFile(instructionsTarget);
       stagedInstructionsPath = instructionsTarget;
@@ -149,15 +173,17 @@ async function stageGrokProjectAssets(input: {
   }
 
   const desiredSet = new Set(input.desiredSkillNames);
-  const selectedSkills = input.skillEntries.filter((entry) => desiredSet.has(entry.key));
+  const selectedSkills = input.skillEntries.filter((entry) =>
+    desiredSet.has(entry.key),
+  );
   if (selectedSkills.length > 0) {
     const claudeDir = path.join(input.cwd, ".claude");
     const skillsRoot = path.join(claudeDir, "skills");
-    if (!await pathExists(claudeDir)) {
+    if (!(await pathExists(claudeDir))) {
       await fs.mkdir(claudeDir, { recursive: true });
       ensureCleanupDir(claudeDir);
     }
-    if (!await pathExists(skillsRoot)) {
+    if (!(await pathExists(skillsRoot))) {
       await fs.mkdir(skillsRoot, { recursive: true });
       ensureCleanupDir(skillsRoot);
     }
@@ -187,26 +213,40 @@ async function stageGrokProjectAssets(input: {
           await fs.rm(entry.path, { force: true }).catch(() => undefined);
           continue;
         }
-        await fs.rm(entry.path, { recursive: true, force: true }).catch(() => undefined);
+        await fs
+          .rm(entry.path, { recursive: true, force: true })
+          .catch(() => undefined);
       }
     },
   };
 }
 
-function resolveBillingType(env: Record<string, string>): "api" | "subscription" {
+function resolveBillingType(
+  env: Record<string, string>,
+): "api" | "subscription" {
   return hasNonEmptyEnvValue(env, "XAI_API_KEY") ? "api" : "subscription";
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
   const target = ctx.executionTarget;
-  if (!ctx.signal || !ctx.stopRemoteStartup || target?.kind !== "remote" || target.transport !== "sandbox" || !target.runner) {
+  if (
+    !ctx.signal ||
+    !ctx.stopRemoteStartup ||
+    target?.kind !== "remote" ||
+    target.transport !== "sandbox" ||
+    !target.runner
+  ) {
     return executeTurn(ctx);
   }
 
   // Direct remote commands have no host child process to kill. Register before
   // setup and retain ownership until the host verifies this sandbox has stopped.
   await ctx.onCancellationReady?.();
-  const cancelled = (result?: AdapterExecutionResult): AdapterExecutionResult => ({
+  const cancelled = (
+    result?: AdapterExecutionResult,
+  ): AdapterExecutionResult => ({
     exitCode: null,
     signal: null,
     timedOut: false,
@@ -215,13 +255,19 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     errorMessage: "Grok execution was cancelled",
     resultJson: {
       ...result?.resultJson,
-      executionCancellation: { state: "acknowledged", acknowledgedAt: new Date().toISOString() },
+      executionCancellation: {
+        state: "acknowledged",
+        acknowledgedAt: new Date().toISOString(),
+      },
     },
   });
   if (ctx.signal.aborted) {
     // The host may already have acquired a lease before adapter registration.
     await ctx.stopRemoteStartup();
-    return { ...cancelled(), executionRecovery: { kind: "bootstrap", providerWorkStarted: false } };
+    return {
+      ...cancelled(),
+      executionRecovery: { kind: "bootstrap", providerWorkStarted: false },
+    };
   }
   // Keep the existing setup boundary armed for the whole direct CLI invocation:
   // unlike ACP adapters, Grok has no turn-level cancellation protocol.
@@ -246,14 +292,27 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   return result!;
 }
 
-async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
+async function executeTurn(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
   const providerStop = createProviderStoppedBoundary(ctx.onProviderStopped);
-  const { runId, agent, runtime, config, context, onLog, onMeta, onSpawn, authToken } = ctx;
+  const {
+    runId,
+    agent,
+    runtime,
+    config,
+    context,
+    onLog,
+    onMeta,
+    onSpawn,
+    authToken,
+  } = ctx;
   const executionTarget = readAdapterExecutionTarget({
     executionTarget: ctx.executionTarget,
     legacyRemoteExecution: ctx.executionTransport?.remoteExecution,
   });
-  const executionTargetIsRemote = adapterExecutionTargetIsRemote(executionTarget);
+  const executionTargetIsRemote =
+    adapterExecutionTargetIsRemote(executionTarget);
 
   const promptTemplate = asString(
     config.promptTemplate,
@@ -282,18 +341,31 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-        (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null,
+        (value: unknown): value is Record<string, unknown> =>
+          typeof value === "object" && value !== null,
       )
     : [];
   const configuredCwd = asString(config.cwd, "");
-  const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
-  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome ? "" : workspaceCwd;
+  const useConfiguredInsteadOfAgentHome =
+    workspaceSource === "agent_home" && configuredCwd.length > 0;
+  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome
+    ? ""
+    : workspaceCwd;
   const cwd = effectiveWorkspaceCwd || configuredCwd || process.cwd();
-  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(executionTarget, cwd);
+  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(
+    executionTarget,
+    cwd,
+  );
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
 
-  const grokSkillEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredGrokSkillNames = resolveLegacyTaskcoreDesiredSkillNames(config, grokSkillEntries);
+  const grokSkillEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredGrokSkillNames = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    grokSkillEntries,
+  );
   const instructionsFilePath = asString(config.instructionsFilePath, "").trim();
   const stagedAssets = await stageGrokProjectAssets({
     cwd,
@@ -316,27 +388,41 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
     };
     env.TASKCORE_RUN_ID = runId;
     const wakeTaskId =
-      (typeof context.taskId === "string" && context.taskId.trim().length > 0 && context.taskId.trim()) ||
-      (typeof context.issueId === "string" && context.issueId.trim().length > 0 && context.issueId.trim()) ||
+      (typeof context.taskId === "string" &&
+        context.taskId.trim().length > 0 &&
+        context.taskId.trim()) ||
+      (typeof context.issueId === "string" &&
+        context.issueId.trim().length > 0 &&
+        context.issueId.trim()) ||
       null;
     const wakeReason =
-      typeof context.wakeReason === "string" && context.wakeReason.trim().length > 0
+      typeof context.wakeReason === "string" &&
+      context.wakeReason.trim().length > 0
         ? context.wakeReason.trim()
         : null;
     const wakeCommentId =
-      (typeof context.wakeCommentId === "string" && context.wakeCommentId.trim().length > 0 && context.wakeCommentId.trim()) ||
-      (typeof context.commentId === "string" && context.commentId.trim().length > 0 && context.commentId.trim()) ||
+      (typeof context.wakeCommentId === "string" &&
+        context.wakeCommentId.trim().length > 0 &&
+        context.wakeCommentId.trim()) ||
+      (typeof context.commentId === "string" &&
+        context.commentId.trim().length > 0 &&
+        context.commentId.trim()) ||
       null;
     const approvalId =
-      typeof context.approvalId === "string" && context.approvalId.trim().length > 0
+      typeof context.approvalId === "string" &&
+      context.approvalId.trim().length > 0
         ? context.approvalId.trim()
         : null;
     const approvalStatus =
-      typeof context.approvalStatus === "string" && context.approvalStatus.trim().length > 0
+      typeof context.approvalStatus === "string" &&
+      context.approvalStatus.trim().length > 0
         ? context.approvalStatus.trim()
         : null;
     const linkedIssueIds = Array.isArray(context.issueIds)
-      ? context.issueIds.filter((value: unknown): value is string => typeof value === "string" && value.trim().length > 0)
+      ? context.issueIds.filter(
+          (value: unknown): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
       : [];
     const issueWorkMode = readTaskcoreIssueWorkModeFromContext(context);
     if (wakeTaskId) env.TASKCORE_TASK_ID = wakeTaskId;
@@ -345,7 +431,8 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
     if (wakeCommentId) env.TASKCORE_WAKE_COMMENT_ID = wakeCommentId;
     if (approvalId) env.TASKCORE_APPROVAL_ID = approvalId;
     if (approvalStatus) env.TASKCORE_APPROVAL_STATUS = approvalStatus;
-    if (linkedIssueIds.length > 0) env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
+    if (linkedIssueIds.length > 0)
+      env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
     refreshTaskcoreWorkspaceEnvForExecution({
       env,
       envConfig,
@@ -364,7 +451,9 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
     }
     // Held before the remote block below, so the remote lane can stage this
     // same host home into the sandbox without re-resolving it.
-    const hostGrokHome = config.managedAiConnection ? asString(env.GROK_HOME, "") : resolveManagedGrokHomeDir(process.env, agent.companyId);
+    const hostGrokHome = config.managedAiConnection
+      ? asString(env.GROK_HOME, "")
+      : resolveManagedGrokHomeDir(process.env, agent.companyId);
     // Subscription mode (no XAI_API_KEY): pin GROK_HOME to the company-scoped
     // home a completed device login wrote. Do not pin an empty local home —
     // that shadows the host `~/.grok` login and fails with "Not signed in"
@@ -381,7 +470,8 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
       const pinManagedHome =
         executionTargetIsRemote ||
         Boolean(config.managedAiConnection) ||
-        (hostGrokHome.length > 0 && await grokHomeHasUsableAuth(hostGrokHome));
+        (hostGrokHome.length > 0 &&
+          (await grokHomeHasUsableAuth(hostGrokHome)));
       if (pinManagedHome) {
         env.GROK_HOME = hostGrokHome;
       }
@@ -416,45 +506,51 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
       if (isGrokSubscriptionMode) {
         stagedGrokHomeDir = await stageGrokHomeForSync(hostGrokHome, { runId });
       }
-      const preparedExecutionTargetRuntime = await prepareAdapterExecutionTargetRuntime({
-        runId,
-        target: executionTarget,
-        adapterKey: "grok",
-        workspaceLocalDir: cwd,
-        timeoutSec,
-        installCommand: ctx.runtimeCommandSpec?.installCommand ?? null,
-        detectCommand: ctx.runtimeCommandSpec?.detectCommand ?? command,
-        onProgress: (line) => onLog("stdout", line),
-        onRuntimeProgress: ctx.onRuntimeProgress,
-        assets: stagedGrokHomeDir
-          ? [
-              {
-                key: "home",
-                localDir: stagedGrokHomeDir,
-                followSymlinks: true,
-                // Outbound (sandbox to host) copy-out: at teardown, read the
-                // sandbox's `auth.json` and — guarded by the direction-
-                // agnostic decision predicate under a directory lock —
-                // atomically install it onto the shared host credential when
-                // it is a strictly-later same-identity copy. The destination
-                // is always the server-derived managed Grok home, never a
-                // value read from `env.GROK_HOME`. A copy-out failure never
-                // fails the run: `copyBackGrokAuth` logs the errno code and
-                // rethrows, and this callback swallows that rejection.
-                restore: async ({ assetDir, readFile }) =>
-                  void (await copyBackGrokAuth({
-                    readSandboxAuth: () => readFile(path.posix.join(assetDir, "auth.json")),
-                    hostHomeDir: hostGrokHome,
-                    log: (line) => onLog("stdout", `${line}\n`),
-                    env: process.env,
-                  }).catch(() => undefined)),
-              },
-            ]
-          : undefined,
-      });
+      const preparedExecutionTargetRuntime =
+        await prepareAdapterExecutionTargetRuntime({
+          runId,
+          target: executionTarget,
+          adapterKey: "grok",
+          workspaceLocalDir: cwd,
+          timeoutSec,
+          installCommand: ctx.runtimeCommandSpec?.installCommand ?? null,
+          detectCommand: ctx.runtimeCommandSpec?.detectCommand ?? command,
+          onProgress: (line) => onLog("stdout", line),
+          onRuntimeProgress: ctx.onRuntimeProgress,
+          assets: stagedGrokHomeDir
+            ? [
+                {
+                  key: "home",
+                  localDir: stagedGrokHomeDir,
+                  followSymlinks: true,
+                  // Outbound (sandbox to host) copy-out: at teardown, read the
+                  // sandbox's `auth.json` and — guarded by the direction-
+                  // agnostic decision predicate under a directory lock —
+                  // atomically install it onto the shared host credential when
+                  // it is a strictly-later same-identity copy. The destination
+                  // is always the server-derived managed Grok home, never a
+                  // value read from `env.GROK_HOME`. A copy-out failure never
+                  // fails the run: `copyBackGrokAuth` logs the errno code and
+                  // rethrows, and this callback swallows that rejection.
+                  restore: async ({ assetDir, readFile }) =>
+                    void (await copyBackGrokAuth({
+                      readSandboxAuth: () =>
+                        readFile(path.posix.join(assetDir, "auth.json")),
+                      hostHomeDir: hostGrokHome,
+                      log: (line) => onLog("stdout", `${line}\n`),
+                      env: process.env,
+                    }).catch(() => undefined)),
+                },
+              ]
+            : undefined,
+        });
       restoreRemoteWorkspace = () =>
-        preparedExecutionTargetRuntime.restoreWorkspace((line) => onLog("stdout", line));
-      effectiveExecutionCwd = preparedExecutionTargetRuntime.workspaceRemoteDir ?? effectiveExecutionCwd;
+        preparedExecutionTargetRuntime.restoreWorkspace((line) =>
+          onLog("stdout", line),
+        );
+      effectiveExecutionCwd =
+        preparedExecutionTargetRuntime.workspaceRemoteDir ??
+        effectiveExecutionCwd;
       refreshTaskcoreWorkspaceEnvForExecution({
         env,
         envConfig,
@@ -474,22 +570,41 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
       if (isGrokSubscriptionMode) {
         env.GROK_HOME =
           preparedExecutionTargetRuntime.assetDirs.home ??
-          path.posix.join(effectiveExecutionCwd, ".taskcore-runtime", "grok", "home");
+          path.posix.join(
+            effectiveExecutionCwd,
+            ".taskcore-runtime",
+            "grok",
+            "home",
+          );
       }
     }
 
-    const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(executionTarget, effectiveExecutionCwd);
+    const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(
+      executionTarget,
+      effectiveExecutionCwd,
+    );
     const effectiveEnv = Object.fromEntries(
       Object.entries({ ...process.env, ...env }).filter(
         (entry): entry is [string, string] => typeof entry[1] === "string",
       ),
     );
     const runtimeEnv = ensurePathInEnv(effectiveEnv);
-    await ensureAdapterExecutionTargetCommandResolvable(command, executionTarget, cwd, runtimeEnv, {
-      installCommand: ctx.runtimeCommandSpec?.installCommand ?? null,
-      timeoutSec,
-    });
-    const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(command, executionTarget, cwd, runtimeEnv);
+    await ensureAdapterExecutionTargetCommandResolvable(
+      command,
+      executionTarget,
+      cwd,
+      runtimeEnv,
+      {
+        installCommand: ctx.runtimeCommandSpec?.installCommand ?? null,
+        timeoutSec,
+      },
+    );
+    const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(
+      command,
+      executionTarget,
+      cwd,
+      runtimeEnv,
+    );
     const loggedEnv = buildInvocationEnvForLogs(env, {
       runtimeEnv,
       includeRuntimeKeys: ["HOME"],
@@ -498,20 +613,43 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
     const billingType = resolveBillingType(effectiveEnv);
 
     const runtimeSessionParams = parseObject(runtime.sessionParams);
-    const runtimeSessionId = asString(runtimeSessionParams.sessionId, runtime.sessionId ?? "");
+    const runtimeSessionId = asString(
+      runtimeSessionParams.sessionId,
+      runtime.sessionId ?? "",
+    );
     const runtimeSessionCwd = asString(runtimeSessionParams.cwd, "");
-    const runtimeRemoteExecution = parseObject(runtimeSessionParams.remoteExecution);
-    const missingManagedSession = !executionTargetIsRemote && Boolean(config.managedAiConnection) &&
-      Boolean(runtimeSessionId) && !await grokHomeHasSession(asString(env.GROK_HOME, ""), runtimeSessionId);
+    const runtimeRemoteExecution = parseObject(
+      runtimeSessionParams.remoteExecution,
+    );
+    const missingManagedSession =
+      !executionTargetIsRemote &&
+      Boolean(config.managedAiConnection) &&
+      Boolean(runtimeSessionId) &&
+      !(await grokHomeHasSession(
+        asString(env.GROK_HOME, ""),
+        runtimeSessionId,
+      ));
     const canResumeSession =
       runtimeSessionId.length > 0 &&
       !missingManagedSession &&
-      (runtimeSessionCwd.length === 0 || path.resolve(runtimeSessionCwd) === path.resolve(effectiveExecutionCwd)) &&
-      adapterExecutionTargetSessionMatches(runtimeRemoteExecution, runtimeExecutionTarget);
+      (runtimeSessionCwd.length === 0 ||
+        path.resolve(runtimeSessionCwd) ===
+          path.resolve(effectiveExecutionCwd)) &&
+      adapterExecutionTargetSessionMatches(
+        runtimeRemoteExecution,
+        runtimeExecutionTarget,
+      );
     const sessionId = canResumeSession ? runtimeSessionId : null;
     if (missingManagedSession) {
-      await onLog("stdout", "[taskcore] Selected Grok session history is unavailable. Starting a fresh session with the task handoff instead of remote subscription recovery.\n");
-    } else if (executionTargetIsRemote && runtimeSessionId && !canResumeSession) {
+      await onLog(
+        "stdout",
+        "[taskcore] Selected Grok session history is unavailable. Starting a fresh session with the task handoff instead of remote subscription recovery.\n",
+      );
+    } else if (
+      executionTargetIsRemote &&
+      runtimeSessionId &&
+      !canResumeSession
+    ) {
       await onLog(
         "stdout",
         `[taskcore] Grok session "${runtimeSessionId}" does not match the current remote execution identity and will not be resumed in "${effectiveExecutionCwd}". Starting a fresh remote session.\n`,
@@ -524,16 +662,25 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
     }
 
     const commandNotes = (() => {
-      const notes: string[] = ["Prompt is passed to Grok via --single in headless mode."];
-      if (alwaysApprove) notes.push("Added --always-approve for unattended execution.");
+      const notes: string[] = [
+        "Prompt is passed to Grok via --single in headless mode.",
+      ];
+      if (alwaysApprove)
+        notes.push("Added --always-approve for unattended execution.");
       if (stagedAssets.stagedInstructionsPath) {
-        notes.push(`Staged project instructions at ${stagedAssets.stagedInstructionsPath} for native Grok discovery.`);
+        notes.push(
+          `Staged project instructions at ${stagedAssets.stagedInstructionsPath} for native Grok discovery.`,
+        );
       }
       if (stagedAssets.rulesFilePath) {
-        notes.push(`Applied fallback instructions via --rules @${stagedAssets.rulesFilePath}.`);
+        notes.push(
+          `Applied fallback instructions via --rules @${stagedAssets.rulesFilePath}.`,
+        );
       }
       if (stagedAssets.stagedSkillsCount > 0) {
-        notes.push(`Staged ${stagedAssets.stagedSkillsCount} Taskcore skill(s) into .claude/skills for native Grok discovery.`);
+        notes.push(
+          `Staged ${stagedAssets.stagedSkillsCount} Taskcore skill(s) into .claude/skills for native Grok discovery.`,
+        );
       }
       return notes;
     })();
@@ -547,20 +694,30 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
       run: { id: runId, source: "on_demand" },
       context,
     };
-    const sessionHandoffNote = asString(context.taskcoreSessionHandoffMarkdown, "").trim();
+    const sessionHandoffNote = asString(
+      context.taskcoreSessionHandoffMarkdown,
+      "",
+    ).trim();
     const taskcoreEnvNote = renderTaskcoreEnvNote(env);
     const apiAccessNote = renderApiAccessNote(env);
 
     const buildArgs = (resumeSessionId: string | null, prompt: string) => {
-      const args = ["--cwd", effectiveExecutionCwd, "--output-format", "streaming-json"];
+      const args = [
+        "--cwd",
+        effectiveExecutionCwd,
+        "--output-format",
+        "streaming-json",
+      ];
       if (resumeSessionId) args.push("--resume", resumeSessionId);
-      if (model && model !== DEFAULT_GROK_LOCAL_MODEL) args.push("--model", model);
+      if (model && model !== DEFAULT_GROK_LOCAL_MODEL)
+        args.push("--model", model);
       if (reasoningEffort) args.push("--reasoning-effort", reasoningEffort);
       if (maxTurns > 0) args.push("--max-turns", String(maxTurns));
       if (permissionMode) args.push("--permission-mode", permissionMode);
       if (alwaysApprove) args.push("--always-approve");
       if (disableWebSearch) args.push("--disable-web-search");
-      if (stagedAssets.rulesFilePath) args.push("--rules", `@${stagedAssets.rulesFilePath}`);
+      if (stagedAssets.rulesFilePath)
+        args.push("--rules", `@${stagedAssets.rulesFilePath}`);
       const extraArgs = (() => {
         const fromExtraArgs = asStringArray(config.extraArgs);
         if (fromExtraArgs.length > 0) return fromExtraArgs;
@@ -572,17 +729,20 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
     };
 
     const runAttempt = async (resumeSessionId: string | null) => {
-    await hydrateFreshSessionHandoff(ctx, { resumedSession: Boolean(resumeSessionId) });
+      await hydrateFreshSessionHandoff(ctx, {
+        resumedSession: Boolean(resumeSessionId),
+      });
       ctx.signal?.throwIfAborted();
       const attemptSections = selectTaskcorePromptSections(context, {
         resumedSession: Boolean(resumeSessionId),
         includeCommunicationGuidance: false,
       });
       const attemptWakePrompt = attemptSections.wakePrompt;
-      const attemptRenderedPrompt = Boolean(resumeSessionId) && attemptWakePrompt.length > 0
-        || isTaskcoreRecoveryWakePayload(context.taskcoreWake)
-        ? ""
-        : renderTemplate(promptTemplate, templateData);
+      const attemptRenderedPrompt =
+        (Boolean(resumeSessionId) && attemptWakePrompt.length > 0) ||
+        isTaskcoreRecoveryWakePayload(context.taskcoreWake)
+          ? ""
+          : renderTemplate(promptTemplate, templateData);
       const attemptBasePrompt = joinPromptSections([
         attemptWakePrompt,
         attemptSections.taskContextNote,
@@ -592,7 +752,9 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
         attemptRenderedPrompt,
       ]);
       const prompt = joinPromptSections([
-        selectInitialCommunicationGuidance(context, { resumedSession: Boolean(resumeSessionId) }),
+        selectInitialCommunicationGuidance(context, {
+          resumedSession: Boolean(resumeSessionId),
+        }),
         attemptBasePrompt,
       ]);
       const promptMetrics = {
@@ -610,9 +772,11 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
           command: resolvedCommand,
           cwd: effectiveExecutionCwd,
           commandNotes,
-          commandArgs: args.map((value, index) => (
-            index === args.length - 1 ? `<prompt ${prompt.length} chars>` : value
-          )),
+          commandArgs: args.map((value, index) =>
+            index === args.length - 1
+              ? `<prompt ${prompt.length} chars>`
+              : value,
+          ),
           env: loggedEnv,
           prompt,
           promptMetrics: { ...promptMetrics, promptChars: prompt.length },
@@ -620,16 +784,22 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
         });
       }
 
-      const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {
-        onProcessStopped: providerStop.beginInvocation(),
-        cwd,
-        env,
-        timeoutSec,
-        graceSec,
-        onSpawn,
-        onRuntimeProgress: ctx.onRuntimeProgress,
-        onLog,
-      });
+      const proc = await runAdapterExecutionTargetProcess(
+        runId,
+        runtimeExecutionTarget,
+        command,
+        args,
+        {
+          onProcessStopped: providerStop.beginInvocation(),
+          cwd,
+          env,
+          timeoutSec,
+          graceSec,
+          onSpawn,
+          onRuntimeProgress: ctx.onRuntimeProgress,
+          onLog,
+        },
+      );
       return {
         proc,
         parsed: parseGrokJsonl(proc.stdout),
@@ -650,8 +820,12 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
       clearSessionOnMissingSession = false,
       isRetry = false,
     ): AdapterExecutionResult => {
-      const failed = attempt.proc.timedOut || (attempt.proc.exitCode ?? 0) !== 0;
-      const parsedError = typeof attempt.parsed.errorMessage === "string" ? attempt.parsed.errorMessage.trim() : "";
+      const failed =
+        attempt.proc.timedOut || (attempt.proc.exitCode ?? 0) !== 0;
+      const parsedError =
+        typeof attempt.parsed.errorMessage === "string"
+          ? attempt.parsed.errorMessage.trim()
+          : "";
       const stderrLine = firstNonEmptyLine(attempt.proc.stderr);
       const fallbackErrorMessage =
         parsedError ||
@@ -659,28 +833,37 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
         `Grok exited with code ${attempt.proc.exitCode ?? -1}`;
 
       const canFallbackToRuntimeSession = !isRetry && !missingManagedSession;
-      const resolvedSessionId = attempt.parsed.sessionId
-        ?? (canFallbackToRuntimeSession ? (runtimeSessionId ?? runtime.sessionId ?? null) : null);
+      const resolvedSessionId =
+        attempt.parsed.sessionId ??
+        (canFallbackToRuntimeSession
+          ? (runtimeSessionId ?? runtime.sessionId ?? null)
+          : null);
       const resolvedSessionParams = resolvedSessionId
         ? ({
-          sessionId: resolvedSessionId,
-          cwd: effectiveExecutionCwd,
-          ...(workspaceId ? { workspaceId } : {}),
-          ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
-          ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
-          ...(executionTargetIsRemote
-            ? {
-                remoteExecution: adapterExecutionTargetSessionIdentity(runtimeExecutionTarget),
-              }
-            : {}),
-        } as Record<string, unknown>)
+            sessionId: resolvedSessionId,
+            cwd: effectiveExecutionCwd,
+            ...(workspaceId ? { workspaceId } : {}),
+            ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
+            ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
+            ...(executionTargetIsRemote
+              ? {
+                  remoteExecution: adapterExecutionTargetSessionIdentity(
+                    runtimeExecutionTarget,
+                  ),
+                }
+              : {}),
+          } as Record<string, unknown>)
         : null;
 
       return {
         exitCode: attempt.proc.exitCode,
         signal: attempt.proc.signal,
         timedOut: attempt.proc.timedOut,
-        errorMessage: attempt.proc.timedOut ? `Timed out after ${timeoutSec}s` : failed ? fallbackErrorMessage : null,
+        errorMessage: attempt.proc.timedOut
+          ? `Timed out after ${timeoutSec}s`
+          : failed
+            ? fallbackErrorMessage
+            : null,
         usage: {
           inputTokens: attempt.parsed.inputTokens,
           outputTokens: attempt.parsed.outputTokens,
@@ -702,12 +885,16 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
         costUsd: billingType === "api" ? attempt.parsed.costUsd : null,
         resultJson: {
           stopReason: attempt.parsed.stopReason,
-          finalResponseRecorded: attempt.parsed.stopReason === "EndTurn" && Boolean(attempt.parsed.summary?.trim()),
+          finalResponseRecorded:
+            attempt.parsed.stopReason === "EndTurn" &&
+            Boolean(attempt.parsed.summary?.trim()),
           requestId: attempt.parsed.requestId,
           ...(failed ? { stderr: attempt.proc.stderr } : {}),
         },
         summary: attempt.parsed.summary,
-        clearSession: Boolean(clearSessionOnMissingSession && !resolvedSessionId),
+        clearSession: Boolean(
+          clearSessionOnMissingSession && !resolvedSessionId,
+        ),
       };
     };
 
@@ -735,7 +922,8 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
       async () => {
         let result: AdapterExecutionResult;
         let collectionFailed = false;
-        const collectionFailureMessage = "Instruction collection failed after provider stop. No instruction save is claimed.";
+        const collectionFailureMessage =
+          "Instruction collection failed after provider stop. No instruction save is claimed.";
         try {
           result = await executeTurn();
         } finally {
@@ -743,32 +931,49 @@ async function executeTurn(ctx: AdapterExecutionContext): Promise<AdapterExecuti
             await providerStop.collectBeforeRestore();
           } catch {
             collectionFailed = true;
-            await onLog("stderr", `[taskcore] ${collectionFailureMessage}\n`).catch(() => undefined);
+            await onLog(
+              "stderr",
+              `[taskcore] ${collectionFailureMessage}\n`,
+            ).catch(() => undefined);
           }
         }
         if (!collectionFailed) return result;
-        const providerFailed = result.timedOut || result.signal || result.errorCode
-          || (result.exitCode !== null && result.exitCode !== 0);
+        const providerFailed =
+          result.timedOut ||
+          result.signal ||
+          result.errorCode ||
+          (result.exitCode !== null && result.exitCode !== 0);
         return {
           ...result,
-          ...(!providerFailed ? { errorCode: "instruction_collection_failed" } : {}),
-          errorMessage: [result.errorMessage, collectionFailureMessage].filter(Boolean).join(" "),
-          resultJson: { ...result.resultJson, instructionCollectionFailure: "collection_failed" },
+          ...(!providerFailed
+            ? { errorCode: "instruction_collection_failed" }
+            : {}),
+          errorMessage: [result.errorMessage, collectionFailureMessage]
+            .filter(Boolean)
+            .join(" "),
+          resultJson: {
+            ...result.resultJson,
+            instructionCollectionFailure: "collection_failed",
+          },
         };
       },
-      async () => { await restoreRemoteWorkspace?.(); },
+      async () => {
+        await restoreRemoteWorkspace?.();
+      },
     );
   } finally {
     // Cleanup runs after settlement on both success and failure.
     if (stagedGrokHomeDir) {
-      await fs.rm(stagedGrokHomeDir, { recursive: true, force: true }).catch(async (error) => {
-        await onLog(
-          "stderr",
-          `[taskcore] Failed to remove staged Grok home "${stagedGrokHomeDir}": ${
-            error instanceof Error ? error.message : String(error)
-          }\n`,
-        );
-      });
+      await fs
+        .rm(stagedGrokHomeDir, { recursive: true, force: true })
+        .catch(async (error) => {
+          await onLog(
+            "stderr",
+            `[taskcore] Failed to remove staged Grok home "${stagedGrokHomeDir}": ${
+              error instanceof Error ? error.message : String(error)
+            }\n`,
+          );
+        });
     }
     await stagedAssets.cleanup();
   }

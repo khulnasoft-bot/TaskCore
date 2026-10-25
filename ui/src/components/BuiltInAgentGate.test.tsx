@@ -6,7 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BuiltInAgentGate } from "./BuiltInAgentGate";
-import type { BuiltInAgentState, BuiltInAgentStatus } from "@/api/builtInAgents";
+import type {
+  BuiltInAgentState,
+  BuiltInAgentStatus,
+} from "@/api/builtInAgents";
 
 const listMock = vi.hoisted(() => vi.fn());
 const resumeMock = vi.hoisted(() => vi.fn());
@@ -36,10 +39,15 @@ vi.mock("@/components/ConfigureBuiltInAgentModal", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 
-function makeState(status: BuiltInAgentStatus, overrides: Partial<BuiltInAgentState> = {}): BuiltInAgentState {
+function makeState(
+  status: BuiltInAgentStatus,
+  overrides: Partial<BuiltInAgentState> = {},
+): BuiltInAgentState {
   const provisioned = status !== "not_provisioned";
   return {
     definition: {
@@ -56,7 +64,10 @@ function makeState(status: BuiltInAgentStatus, overrides: Partial<BuiltInAgentSt
     agentId: provisioned ? "agent-1" : null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     agent: provisioned
-      ? ({ id: "agent-1", pausedAt: status === "paused" ? new Date().toISOString() : null } as any)
+      ? ({
+          id: "agent-1",
+          pausedAt: status === "paused" ? new Date().toISOString() : null,
+        } as any)
       : null,
     pauseReason: null,
     ...overrides,
@@ -77,11 +88,17 @@ describe("BuiltInAgentGate (PAP-12978)", () => {
 
   async function renderGate() {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     flushSync(() => {
       root!.render(
         <QueryClientProvider client={queryClient}>
-          <BuiltInAgentGate agentKey="briefs" companyId="c1" featureLabel="Briefs">
+          <BuiltInAgentGate
+            agentKey="briefs"
+            companyId="c1"
+            featureLabel="Briefs"
+          >
             <div data-testid="feature">brief content</div>
           </BuiltInAgentGate>
         </QueryClientProvider>,
@@ -111,7 +128,9 @@ describe("BuiltInAgentGate (PAP-12978)", () => {
     listMock.mockResolvedValue([makeState("needs_setup")]);
     await renderGate();
     expect(container.textContent).toContain("Set up the Briefs Agent");
-    expect(container.textContent).toContain("Configure its model to enable the feature");
+    expect(container.textContent).toContain(
+      "Configure its model to enable the feature",
+    );
     expect(container.querySelector('[data-testid="feature"]')).toBeNull();
   });
 
@@ -142,8 +161,8 @@ describe("BuiltInAgentGate (PAP-12978)", () => {
     listMock.mockResolvedValue([makeState("paused")]);
     resumeMock.mockResolvedValue({});
     await renderGate();
-    const resumeButton = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Resume agent"),
+    const resumeButton = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("Resume agent"),
     );
     expect(resumeButton).toBeTruthy();
     flushSync(() => {
@@ -171,9 +190,11 @@ describe("BuiltInAgentGate (PAP-12978)", () => {
   });
 
   it("fails open to the feature when the key is unknown", async () => {
-    listMock.mockResolvedValue([makeState("ready", {
-      definition: { ...makeState("ready").definition, key: "learning" },
-    })]);
+    listMock.mockResolvedValue([
+      makeState("ready", {
+        definition: { ...makeState("ready").definition, key: "learning" },
+      }),
+    ]);
     await renderGate();
     expect(container.querySelector('[data-testid="feature"]')).not.toBeNull();
   });

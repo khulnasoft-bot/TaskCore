@@ -9,7 +9,12 @@ describe("cursorCloud sessionCodec", () => {
         runId: "run-456",
         envType: "pool",
         envName: "trusted",
-        repos: [{ url: "https://github.com/khulnasoft/taskcore.git", startingRef: "main" }],
+        repos: [
+          {
+            url: "https://github.com/khulnasoft/taskcore.git",
+            startingRef: "main",
+          },
+        ],
       }),
     ).toEqual({
       cursorAgentId: "agent-123",
@@ -17,15 +22,22 @@ describe("cursorCloud sessionCodec", () => {
       runtime: "cloud",
       envType: "pool",
       envName: "trusted",
-      repos: [{ url: "https://github.com/khulnasoft/taskcore.git", startingRef: "main" }],
+      repos: [
+        {
+          url: "https://github.com/khulnasoft/taskcore.git",
+          startingRef: "main",
+        },
+      ],
     });
   });
 
   it("drops invalid session payloads and exposes the display id", () => {
     expect(sessionCodec.deserialize({ latestRunId: "run-1" })).toBeNull();
-    expect(sessionCodec.getDisplayId?.({
-      cursorAgentId: "agent-789",
-      latestRunId: "run-101",
-    })).toBe("agent-789");
+    expect(
+      sessionCodec.getDisplayId?.({
+        cursorAgentId: "agent-789",
+        latestRunId: "run-101",
+      }),
+    ).toBe("agent-789");
   });
 });

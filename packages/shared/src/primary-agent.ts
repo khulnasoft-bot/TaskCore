@@ -7,8 +7,10 @@ export interface PrimaryAgentPreference {
   initialized: boolean;
 }
 
-export const updatePrimaryAgentSchema = z.object({
-  primaryAgentId: z.string().uuid(),
-}).strict();
+export const updatePrimaryAgentSchema = z
+  .object({
+    primaryAgentId: z.string().uuid(),
+  })
+  .strict();
 
 export type UpdatePrimaryAgent = z.infer<typeof updatePrimaryAgentSchema>;

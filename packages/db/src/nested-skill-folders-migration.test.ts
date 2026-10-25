@@ -11,10 +11,15 @@ import {
 const MIGRATION_FILE = "0175_nested_skill_folders.sql";
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 async function migrationHash() {
-  const content = await fs.promises.readFile(new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url), "utf8");
+  const content = await fs.promises.readFile(
+    new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url),
+    "utf8",
+  );
   return createHash("sha256").update(content).digest("hex");
 }
 
@@ -24,7 +29,9 @@ describeEmbeddedPostgres("nested skill folders migration", () => {
   });
 
   it("backfills existing folders, bundled skills, and project scan skills", async () => {
-    const database = await startEmbeddedPostgresTestDatabase("taskcore-nested-folders-migration-");
+    const database = await startEmbeddedPostgresTestDatabase(
+      "taskcore-nested-folders-migration-",
+    );
     cleanups.push(database.cleanup);
     const sql = postgres(database.connectionString, { max: 1 });
     cleanups.push(async () => sql.end());
@@ -74,37 +81,76 @@ describeEmbeddedPostgres("nested skill folders migration", () => {
 
     await applyPendingMigrations(database.connectionString);
 
-    const folderRows = await sql<{
-      id: string;
-      parent_id: string | null;
-      slug: string;
-      system_key: string | null;
-    }[]>`
+    const folderRows = await sql<
+      {
+        id: string;
+        parent_id: string | null;
+        slug: string;
+        system_key: string | null;
+      }[]
+    >`
       SELECT "id", "parent_id", "slug", "system_key"
       FROM "folders"
       WHERE "company_id" = ${companyId}
       ORDER BY "slug"
     `;
-    expect(folderRows).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: existingFolderId, slug: "team-notes", parent_id: null }),
-      expect.objectContaining({ id: squattedBundledId, slug: `bundled-${squattedBundledId.replace(/-/g, "").slice(0, 8)}`, system_key: null }),
-      expect.objectContaining({ id: squattedProjectsId, slug: `projects-${squattedProjectsId.replace(/-/g, "").slice(0, 8)}`, system_key: null }),
-      expect.objectContaining({ slug: "bundled", system_key: "bundled", parent_id: null }),
-      expect.objectContaining({ slug: "software-development", system_key: "bundled:software-development" }),
-      expect.objectContaining({ slug: "projects", system_key: "projects", parent_id: null }),
-      expect.objectContaining({ slug: "agent-platform", system_key: `project:${projectId}` }),
-    ]));
+    expect(folderRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: existingFolderId,
+          slug: "team-notes",
+          parent_id: null,
+        }),
+        expect.objectContaining({
+          id: squattedBundledId,
+          slug: `bundled-${squattedBundledId.replace(/-/g, "").slice(0, 8)}`,
+          system_key: null,
+        }),
+        expect.objectContaining({
+          id: squattedProjectsId,
+          slug: `projects-${squattedProjectsId.replace(/-/g, "").slice(0, 8)}`,
+          system_key: null,
+        }),
+        expect.objectContaining({
+          slug: "bundled",
+          system_key: "bundled",
+          parent_id: null,
+        }),
+        expect.objectContaining({
+          slug: "software-development",
+          system_key: "bundled:software-development",
+        }),
+        expect.objectContaining({
+          slug: "projects",
+          system_key: "projects",
+          parent_id: null,
+        }),
+        expect.objectContaining({
+          slug: "agent-platform",
+          system_key: `project:${projectId}`,
+        }),
+      ]),
+    );
 
-    const skills = await sql<{ id: string; folder_id: string | null; folder_slug: string | null }[]>`
+    const skills = await sql<
+      { id: string; folder_id: string | null; folder_slug: string | null }[]
+    >`
       SELECT skill."id", skill."folder_id", folder."slug" AS folder_slug
       FROM "company_skills" AS skill
       LEFT JOIN "folders" AS folder ON folder."id" = skill."folder_id"
       WHERE skill."company_id" = ${companyId}
       ORDER BY skill."id"
     `;
-    expect(skills.find((skill) => skill.id === bundledSkillId)).toMatchObject({ folder_slug: "software-development" });
-    expect(skills.find((skill) => skill.id === projectSkillId)).toMatchObject({ folder_slug: "agent-platform" });
-    expect(skills.find((skill) => skill.id === unfiledSkillId)).toMatchObject({ folder_id: null, folder_slug: null });
+    expect(skills.find((skill) => skill.id === bundledSkillId)).toMatchObject({
+      folder_slug: "software-development",
+    });
+    expect(skills.find((skill) => skill.id === projectSkillId)).toMatchObject({
+      folder_slug: "agent-platform",
+    });
+    expect(skills.find((skill) => skill.id === unfiledSkillId)).toMatchObject({
+      folder_id: null,
+      folder_slug: null,
+    });
 
     const indexes = await sql<{ indexname: string; indexdef: string }[]>`
       SELECT "indexname", "indexdef"
@@ -114,10 +160,18 @@ describeEmbeddedPostgres("nested skill folders migration", () => {
       ORDER BY "indexname"
     `;
     expect(indexes).toHaveLength(2);
-    expect(indexes.map((index) => index.indexdef).join("\n")).not.toContain("NULLS NOT DISTINCT");
-    expect(indexes.find((index) => index.indexname === "folders_company_kind_root_slug_uq")?.indexdef)
-      .toContain("WHERE (parent_id IS NULL)");
-    expect(indexes.find((index) => index.indexname === "folders_company_kind_parent_slug_uq")?.indexdef)
-      .toContain("WHERE (parent_id IS NOT NULL)");
+    expect(indexes.map((index) => index.indexdef).join("\n")).not.toContain(
+      "NULLS NOT DISTINCT",
+    );
+    expect(
+      indexes.find(
+        (index) => index.indexname === "folders_company_kind_root_slug_uq",
+      )?.indexdef,
+    ).toContain("WHERE (parent_id IS NULL)");
+    expect(
+      indexes.find(
+        (index) => index.indexname === "folders_company_kind_parent_slug_uq",
+      )?.indexdef,
+    ).toContain("WHERE (parent_id IS NOT NULL)");
   }, 30_000);
 });

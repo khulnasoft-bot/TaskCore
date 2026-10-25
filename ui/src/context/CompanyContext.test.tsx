@@ -34,7 +34,12 @@ vi.mock("../api/auth", () => ({
 function sessionFor(userId: string) {
   return {
     session: { id: `session-${userId}`, userId },
-    user: { id: userId, name: "Example", email: `${userId}@example.com`, image: null },
+    user: {
+      id: userId,
+      name: "Example",
+      email: `${userId}@example.com`,
+      image: null,
+    },
   };
 }
 
@@ -76,7 +81,11 @@ async function flushReact() {
 
 let captured: ReturnType<typeof useCompany> | null = null;
 
-function Probe({ onSelectedCompanyId }: { onSelectedCompanyId: (companyId: string | null) => void }) {
+function Probe({
+  onSelectedCompanyId,
+}: {
+  onSelectedCompanyId: (companyId: string | null) => void;
+}) {
   const company = useCompany();
   captured = company;
   const { selectedCompanyId } = company;
@@ -88,48 +97,58 @@ function Probe({ onSelectedCompanyId }: { onSelectedCompanyId: (companyId: strin
 
 describe("resolveBootstrapCompanySelection", () => {
   it("does not expose a stale stored company id before companies load", () => {
-    expect(resolveBootstrapCompanySelection({
-      companies: [],
-      sidebarCompanies: [],
-      selectedCompanyId: null,
-      storedCompanyId: "stale-company",
-    })).toBeNull();
+    expect(
+      resolveBootstrapCompanySelection({
+        companies: [],
+        sidebarCompanies: [],
+        selectedCompanyId: null,
+        storedCompanyId: "stale-company",
+      }),
+    ).toBeNull();
   });
 
   it("replaces a stale stored company id with the first loaded company", () => {
-    expect(resolveBootstrapCompanySelection({
-      companies: [activeCompany],
-      sidebarCompanies: [activeCompany],
-      selectedCompanyId: null,
-      storedCompanyId: "stale-company",
-    })).toBe("company-1");
+    expect(
+      resolveBootstrapCompanySelection({
+        companies: [activeCompany],
+        sidebarCompanies: [activeCompany],
+        selectedCompanyId: null,
+        storedCompanyId: "stale-company",
+      }),
+    ).toBe("company-1");
   });
 
   it("keeps a valid selected company ahead of stored bootstrap state", () => {
-    expect(resolveBootstrapCompanySelection({
-      companies: [activeCompany],
-      sidebarCompanies: [activeCompany],
-      selectedCompanyId: "company-1",
-      storedCompanyId: "stale-company",
-    })).toBe("company-1");
+    expect(
+      resolveBootstrapCompanySelection({
+        companies: [activeCompany],
+        sidebarCompanies: [activeCompany],
+        selectedCompanyId: "company-1",
+        storedCompanyId: "stale-company",
+      }),
+    ).toBe("company-1");
   });
 
   it("keeps a valid stored company id instead of falling back to the first company", () => {
-    expect(resolveBootstrapCompanySelection({
-      companies: [activeCompany, secondActiveCompany],
-      sidebarCompanies: [activeCompany, secondActiveCompany],
-      selectedCompanyId: null,
-      storedCompanyId: "company-2",
-    })).toBe("company-2");
+    expect(
+      resolveBootstrapCompanySelection({
+        companies: [activeCompany, secondActiveCompany],
+        sidebarCompanies: [activeCompany, secondActiveCompany],
+        selectedCompanyId: null,
+        storedCompanyId: "company-2",
+      }),
+    ).toBe("company-2");
   });
 
   it("uses selectable sidebar companies before archived companies", () => {
-    expect(resolveBootstrapCompanySelection({
-      companies: [archivedCompany, activeCompany],
-      sidebarCompanies: [activeCompany],
-      selectedCompanyId: null,
-      storedCompanyId: "archived-company",
-    })).toBe("company-1");
+    expect(
+      resolveBootstrapCompanySelection({
+        companies: [archivedCompany, activeCompany],
+        sidebarCompanies: [activeCompany],
+        selectedCompanyId: null,
+        storedCompanyId: "archived-company",
+      }),
+    ).toBe("company-1");
   });
 
   it("keeps an explicitly selected archived company that still exists", () => {
@@ -137,41 +156,49 @@ describe("resolveBootstrapCompanySelection", () => {
     // included. Vetoing that selection here re-selected an active company,
     // the route-sync selected the archived one again, and the two effects
     // ping-ponged until React threw #185 and unmounted the app.
-    expect(resolveBootstrapCompanySelection({
-      companies: [archivedCompany, activeCompany],
-      sidebarCompanies: [activeCompany],
-      selectedCompanyId: "archived-company",
-      storedCompanyId: null,
-    })).toBe("archived-company");
+    expect(
+      resolveBootstrapCompanySelection({
+        companies: [archivedCompany, activeCompany],
+        sidebarCompanies: [activeCompany],
+        selectedCompanyId: "archived-company",
+        storedCompanyId: null,
+      }),
+    ).toBe("archived-company");
   });
 
   it("still replaces a selected company that no longer exists at all", () => {
-    expect(resolveBootstrapCompanySelection({
-      companies: [activeCompany],
-      sidebarCompanies: [activeCompany],
-      selectedCompanyId: "deleted-company",
-      storedCompanyId: null,
-    })).toBe("company-1");
+    expect(
+      resolveBootstrapCompanySelection({
+        companies: [activeCompany],
+        sidebarCompanies: [activeCompany],
+        selectedCompanyId: "deleted-company",
+        storedCompanyId: null,
+      }),
+    ).toBe("company-1");
   });
 });
 
 describe("shouldClearStoredCompanySelection", () => {
   it("does not clear the stored company selection during an unauthorized company list response", () => {
-    expect(shouldClearStoredCompanySelection({
-      companies: [],
-      isLoading: false,
-      unauthorized: true,
-      errored: false,
-    })).toBe(false);
+    expect(
+      shouldClearStoredCompanySelection({
+        companies: [],
+        isLoading: false,
+        unauthorized: true,
+        errored: false,
+      }),
+    ).toBe(false);
   });
 
   it("clears the stored company selection when an authorized company list is empty", () => {
-    expect(shouldClearStoredCompanySelection({
-      companies: [],
-      isLoading: false,
-      unauthorized: false,
-      errored: false,
-    })).toBe(true);
+    expect(
+      shouldClearStoredCompanySelection({
+        companies: [],
+        isLoading: false,
+        unauthorized: false,
+        errored: false,
+      }),
+    ).toBe(true);
   });
 
   it("does not clear the stored company selection when the request failed", () => {
@@ -180,12 +207,14 @@ describe("shouldClearStoredCompanySelection", () => {
     // list. That is indistinguishable from "asked, and owns nothing", so
     // without this a single failed request on a cold load would drop the
     // customer's stored company.
-    expect(shouldClearStoredCompanySelection({
-      companies: [],
-      isLoading: false,
-      unauthorized: false,
-      errored: true,
-    })).toBe(false);
+    expect(
+      shouldClearStoredCompanySelection({
+        companies: [],
+        isLoading: false,
+        unauthorized: false,
+        errored: true,
+      }),
+    ).toBe(false);
   });
 });
 
@@ -195,7 +224,9 @@ describe("CompanyProvider", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
     captured = null;
     localStorage.clear();
     container = document.createElement("div");
@@ -239,7 +270,9 @@ describe("CompanyProvider", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe("company-a");
+    expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe(
+      "company-a",
+    );
   });
 
   it("does not expose a stale stored company id before companies load", async () => {
@@ -284,7 +317,9 @@ describe("CompanyProvider", () => {
     });
 
     expect(seen).toEqual([null, "company-1"]);
-    expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe("company-1");
+    expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe(
+      "company-1",
+    );
   });
 
   // The `["companies"]` cache entry is shared app-wide and carries no account
@@ -304,7 +339,9 @@ describe("CompanyProvider", () => {
         root.render(
           <QueryClientProvider client={queryClient}>
             <CompanyProvider>
-              <Probe onSelectedCompanyId={(companyId) => seen.push(companyId)} />
+              <Probe
+                onSelectedCompanyId={(companyId) => seen.push(companyId)}
+              />
             </CompanyProvider>
           </QueryClientProvider>,
         );
@@ -312,7 +349,9 @@ describe("CompanyProvider", () => {
       await flushReact();
 
       expect(seen).toEqual([null, "company-1"]);
-      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe("company-1");
+      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe(
+        "company-1",
+      );
     }
 
     it("drops the previous account's selection and re-reads the list", async () => {
@@ -334,10 +373,14 @@ describe("CompanyProvider", () => {
 
       // Nothing from the previous account is exposed while the new list loads.
       expect(seen).toEqual([null, "company-1", null]);
-      expect(queryClient.getQueryData(queryKeys.companies.list("user-2"))).toBeUndefined();
+      expect(
+        queryClient.getQueryData(queryKeys.companies.list("user-2")),
+      ).toBeUndefined();
       // The previous account's entry may still sit in the cache; keying by
       // account is what makes that harmless, since nothing reads it now.
-      expect(queryClient.getQueryData(queryKeys.companies.list("user-1"))).toMatchObject({
+      expect(
+        queryClient.getQueryData(queryKeys.companies.list("user-1")),
+      ).toMatchObject({
         companies: [{ id: "company-1" }],
       });
       expect(resolveSecondList).not.toBeNull();
@@ -352,7 +395,9 @@ describe("CompanyProvider", () => {
       await flushReact();
 
       expect(seen).toEqual([null, "company-1", null, "company-2"]);
-      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe("company-2");
+      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe(
+        "company-2",
+      );
     });
 
     // The replacement fetch is the only thing standing between the account
@@ -391,7 +436,9 @@ describe("CompanyProvider", () => {
 
       expect(captured?.companyListUnavailable).toBe(false);
       expect(seen).toEqual([null, "company-1", null, "company-2"]);
-      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe("company-2");
+      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe(
+        "company-2",
+      );
     });
 
     // A transient blip must not need the customer to notice and click anything.
@@ -443,7 +490,9 @@ describe("CompanyProvider", () => {
       // This account genuinely owns no companies, and the request says so.
       mockCompaniesApi.list.mockResolvedValue([]);
       await act(async () => {
-        await queryClient.refetchQueries({ queryKey: queryKeys.companies.list("user-2") });
+        await queryClient.refetchQueries({
+          queryKey: queryKeys.companies.list("user-2"),
+        });
       });
       await flushReact();
 
@@ -472,7 +521,9 @@ describe("CompanyProvider", () => {
       expect(captured?.selectedCompanyId).toBeNull();
       expect(captured?.loading).toBe(true);
       // Still cached, still keyed to whom it belongs, still unread.
-      expect(queryClient.getQueryData(queryKeys.companies.list("user-1"))).toMatchObject({
+      expect(
+        queryClient.getQueryData(queryKeys.companies.list("user-1")),
+      ).toMatchObject({
         companies: [{ id: "company-1" }],
       });
     });
@@ -505,9 +556,13 @@ describe("CompanyProvider", () => {
       // Nothing asked for a list it could not attribute, and nothing landed in
       // the anonymous entry.
       expect(mockCompaniesApi.list).not.toHaveBeenCalled();
-      expect(queryClient.getQueryData(queryKeys.companies.list(null))).toBeUndefined();
+      expect(
+        queryClient.getQueryData(queryKeys.companies.list(null)),
+      ).toBeUndefined();
       // And the stored company survives: unavailable is not "owns nothing".
-      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe("company-1");
+      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe(
+        "company-1",
+      );
     });
 
     it("leaves the selection alone when the same account is observed again", async () => {
@@ -522,7 +577,9 @@ describe("CompanyProvider", () => {
       await flushReact();
 
       expect(seen).toEqual([null, "company-1"]);
-      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe("company-1");
+      expect(localStorage.getItem("taskcore.selectedCompanyId")).toBe(
+        "company-1",
+      );
       expect(mockCompaniesApi.list.mock.calls.length).toBe(listCallsAfterBoot);
     });
   });

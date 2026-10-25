@@ -26,16 +26,18 @@ export const RUNTIME_EXPOSURE_BIND_HOST = "127.0.0.1";
  * `--bind <mode>` / `--bind-host <host>`, in both the space- and `=`-separated
  * spellings. Each takes exactly one value, and a value is never another flag.
  */
-const BIND_SELECTING_ARG =
-  /(?:^|\s)--bind(?:-host)?(?:=|\s+)(?!--)[^\s]+/g;
+const BIND_SELECTING_ARG = /(?:^|\s)--bind(?:-host)?(?:=|\s+)(?!--)[^\s]+/g;
 
 /** Legacy aliases for `--bind lan`; they select a non-loopback bind. */
-const LEGACY_LAN_ALIASES = /(?:^|\s)--(?:tailscale-auth|authenticated-private)(?=\s|$)/g;
+const LEGACY_LAN_ALIASES =
+  /(?:^|\s)--(?:tailscale-auth|authenticated-private)(?=\s|$)/g;
 
 /** True when the command carries an explicit bind selection of any kind. */
 export function commandSelectsBindMode(command: string): boolean {
-  return new RegExp(BIND_SELECTING_ARG.source).test(command)
-    || new RegExp(LEGACY_LAN_ALIASES.source).test(command);
+  return (
+    new RegExp(BIND_SELECTING_ARG.source).test(command) ||
+    new RegExp(LEGACY_LAN_ALIASES.source).test(command)
+  );
 }
 
 /**

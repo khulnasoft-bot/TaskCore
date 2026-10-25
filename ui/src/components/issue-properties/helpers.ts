@@ -4,29 +4,55 @@ import { extractProviderIdWithFallback } from "../../lib/model-utils";
 import type { IssueModelLane } from "../../lib/issue-assignee-overrides";
 import { codexReasoningEffortOptions } from "../../lib/codex-reasoning-effort";
 
-export function defaultProjectWorkspaceIdForProject(project: {
-  workspaces?: Array<{ id: string; isPrimary: boolean }>;
-  executionWorkspacePolicy?: { defaultProjectWorkspaceId?: string | null } | null;
-} | null | undefined) {
+export function defaultProjectWorkspaceIdForProject(
+  project:
+    | {
+        workspaces?: Array<{ id: string; isPrimary: boolean }>;
+        executionWorkspacePolicy?: {
+          defaultProjectWorkspaceId?: string | null;
+        } | null;
+      }
+    | null
+    | undefined,
+) {
   if (!project) return null;
-  return project.executionWorkspacePolicy?.defaultProjectWorkspaceId
-    ?? project.workspaces?.find((workspace) => workspace.isPrimary)?.id
-    ?? project.workspaces?.[0]?.id
-    ?? null;
+  return (
+    project.executionWorkspacePolicy?.defaultProjectWorkspaceId ??
+    project.workspaces?.find((workspace) => workspace.isPrimary)?.id ??
+    project.workspaces?.[0]?.id ??
+    null
+  );
 }
 
-export function defaultExecutionWorkspaceModeForProject(project: { executionWorkspacePolicy?: { enabled?: boolean; defaultMode?: string | null } | null } | null | undefined) {
-  const defaultMode = project?.executionWorkspacePolicy?.enabled ? project.executionWorkspacePolicy.defaultMode : null;
-  if (defaultMode === "isolated_workspace" || defaultMode === "operator_branch") return defaultMode;
+export function defaultExecutionWorkspaceModeForProject(
+  project:
+    | {
+        executionWorkspacePolicy?: {
+          enabled?: boolean;
+          defaultMode?: string | null;
+        } | null;
+      }
+    | null
+    | undefined,
+) {
+  const defaultMode = project?.executionWorkspacePolicy?.enabled
+    ? project.executionWorkspacePolicy.defaultMode
+    : null;
+  if (defaultMode === "isolated_workspace" || defaultMode === "operator_branch")
+    return defaultMode;
   if (defaultMode === "adapter_default") return "agent_default";
   return "shared_workspace";
 }
 
-function primaryWorkspaceIdForProject(project: Pick<Project, "primaryWorkspace" | "workspaces"> | null | undefined) {
-  return project?.primaryWorkspace?.id
-    ?? project?.workspaces.find((workspace) => workspace.isPrimary)?.id
-    ?? project?.workspaces[0]?.id
-    ?? null;
+function primaryWorkspaceIdForProject(
+  project: Pick<Project, "primaryWorkspace" | "workspaces"> | null | undefined,
+) {
+  return (
+    project?.primaryWorkspace?.id ??
+    project?.workspaces.find((workspace) => workspace.isPrimary)?.id ??
+    project?.workspaces[0]?.id ??
+    null
+  );
 }
 
 export function isMainIssueWorkspace(input: {
@@ -35,11 +61,15 @@ export function isMainIssueWorkspace(input: {
 }) {
   const workspace = input.issue.currentExecutionWorkspace ?? null;
   const primaryWorkspaceId = primaryWorkspaceIdForProject(input.project);
-  const linkedProjectWorkspaceId = workspace?.projectWorkspaceId ?? input.issue.projectWorkspaceId ?? null;
+  const linkedProjectWorkspaceId =
+    workspace?.projectWorkspaceId ?? input.issue.projectWorkspaceId ?? null;
   if (workspace) {
     if (workspace.mode !== "shared_workspace") return false;
     if (!linkedProjectWorkspaceId || !primaryWorkspaceId) return true;
-    return workspace.mode === "shared_workspace" && linkedProjectWorkspaceId === primaryWorkspaceId;
+    return (
+      workspace.mode === "shared_workspace" &&
+      linkedProjectWorkspaceId === primaryWorkspaceId
+    );
   }
   if (!linkedProjectWorkspaceId || !primaryWorkspaceId) return true;
   return linkedProjectWorkspaceId === primaryWorkspaceId;
@@ -73,7 +103,7 @@ export const ISSUE_THINKING_EFFORT_OPTIONS = {
 
 export function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -88,7 +118,8 @@ export function thinkingEffortOptionsFor(
   model?: string | null,
 ) {
   if (adapterType === "codex_local") return codexReasoningEffortOptions(model);
-  if (adapterType === "opencode_local") return ISSUE_THINKING_EFFORT_OPTIONS.opencode_local;
+  if (adapterType === "opencode_local")
+    return ISSUE_THINKING_EFFORT_OPTIONS.opencode_local;
   return ISSUE_THINKING_EFFORT_OPTIONS.claude_local;
 }
 
@@ -98,9 +129,17 @@ export function thinkingEffortKeyFor(adapterType: string | null | undefined) {
   return "effort";
 }
 
-export function thinkingEffortValueFor(adapterType: string | null | undefined, adapterConfig: Record<string, unknown>) {
+export function thinkingEffortValueFor(
+  adapterType: string | null | undefined,
+  adapterConfig: Record<string, unknown>,
+) {
   if (adapterType === "codex_local") {
-    return String(adapterConfig.modelReasoningEffort ?? adapterConfig.reasoningEffort ?? adapterConfig.effort ?? "");
+    return String(
+      adapterConfig.modelReasoningEffort ??
+        adapterConfig.reasoningEffort ??
+        adapterConfig.effort ??
+        "",
+    );
   }
   if (adapterType === "opencode_local") {
     return String(adapterConfig.variant ?? "");
@@ -108,7 +147,9 @@ export function thinkingEffortValueFor(adapterType: string | null | undefined, a
   return String(adapterConfig.effort ?? "");
 }
 
-export function overrideLane(overrides: Issue["assigneeAdapterOverrides"]): IssueModelLane {
+export function overrideLane(
+  overrides: Issue["assigneeAdapterOverrides"],
+): IssueModelLane {
   if (overrides?.adapterConfig) return "custom";
   return "primary";
 }

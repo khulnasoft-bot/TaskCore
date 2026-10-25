@@ -29,7 +29,9 @@ function registerModuleMocks() {
 async function createApp(actor: Record<string, unknown>) {
   const [{ llmRoutes }, { errorHandler }] = await Promise.all([
     vi.importActual<typeof import("../routes/llms.js")>("../routes/llms.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -50,7 +52,10 @@ describe("llm routes", () => {
     registerModuleMocks();
     vi.clearAllMocks();
     mockListServerAdapters.mockReturnValue([
-      { type: "codex_local", agentConfigurationDoc: "# codex_local agent configuration" },
+      {
+        type: "codex_local",
+        agentConfigurationDoc: "# codex_local agent configuration",
+      },
     ]);
   });
 
@@ -66,7 +71,9 @@ describe("llm routes", () => {
     const res = await request(app).get("/api/llms/agent-configuration.txt");
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain("Use the taskcore-create-agent skill for end-to-end hiring");
+    expect(res.text).toContain(
+      "Use the taskcore-create-agent skill for end-to-end hiring",
+    );
     expect(res.text).toContain("desiredSkills");
     expect(res.text).toContain("sourceIssueId/sourceIssueIds");
     expect(res.text).toContain("Timer heartbeats are opt-in for new hires.");
@@ -82,13 +89,17 @@ describe("llm routes", () => {
       isInstanceAdmin: true,
     });
 
-    const indexRes = await request(app).get("/api/llms/agent-configuration.txt");
+    const indexRes = await request(app).get(
+      "/api/llms/agent-configuration.txt",
+    );
     expect(indexRes.status).toBe(200);
     expect(indexRes.text).toContain(
       "- hermes_gateway: /llms/agent-configuration/hermes_gateway.txt",
     );
 
-    const res = await request(app).get("/api/llms/agent-configuration/hermes_gateway.txt");
+    const res = await request(app).get(
+      "/api/llms/agent-configuration/hermes_gateway.txt",
+    );
 
     expect(res.status).toBe(200);
     expect(res.text).toContain("Adapter: hermes_gateway");

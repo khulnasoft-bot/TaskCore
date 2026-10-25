@@ -56,7 +56,9 @@ for (const signal of ["SIGTERM", "SIGINT"] as const)
 // only so the restart test can stop its entire owned process group.
 process.on("exit", () => {
   if (!child?.pid) return;
-  try { process.kill(-child.pid, "SIGKILL"); } catch {}
+  try {
+    process.kill(-child.pid, "SIGKILL");
+  } catch {}
 });
 launch(true);
 const timer = setInterval(async () => {

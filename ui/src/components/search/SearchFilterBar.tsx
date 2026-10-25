@@ -48,10 +48,15 @@ const OPEN_STATUS_PRESET: IssueStatus[] = ISSUE_STATUSES.filter(
 );
 
 function humanize(value: string): string {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function count(record: Record<string, number> | undefined, key: string): number | undefined {
+function count(
+  record: Record<string, number> | undefined,
+  key: string,
+): number | undefined {
   return record?.[key];
 }
 
@@ -126,11 +131,16 @@ export function buildSearchFilterOptions({
     searchText: item.name,
   }));
 
-  const updated: FilterMenuOption[] = COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS.map((value) => ({
-    value,
-    label: updatedWithinLabel(value),
-    count: count(counts?.updatedWithin as Record<string, number> | undefined, value),
-  }));
+  const updated: FilterMenuOption[] = COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS.map(
+    (value) => ({
+      value,
+      label: updatedWithinLabel(value),
+      count: count(
+        counts?.updatedWithin as Record<string, number> | undefined,
+        value,
+      ),
+    }),
+  );
 
   return { status, priority, assignee, project, label, updated };
 }
@@ -161,7 +171,10 @@ export function SearchFilterBar({
   const selectedAssignee = assigneeToken(filters, data.currentUserId);
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5" data-testid="search-filter-bar">
+    <div
+      className="flex flex-wrap items-center gap-1.5"
+      data-testid="search-filter-bar"
+    >
       <SearchFilterMenu
         label="Status"
         multi
@@ -175,7 +188,9 @@ export function SearchFilterBar({
         label="Assignee"
         options={options.assignee}
         selected={selectedAssignee ? [selectedAssignee] : []}
-        onSelect={(value) => onChange(applyAssigneeToken(filters, value, data.currentUserId))}
+        onSelect={(value) =>
+          onChange(applyAssigneeToken(filters, value, data.currentUserId))
+        }
         searchable
         searchPlaceholder="Search assignees…"
         emptyMessage="No assignees"
@@ -200,14 +215,14 @@ export function SearchFilterBar({
       />
       {/* PAP-411: Priority filter menu hidden behind SHOW_TASK_PRIORITY_UI (search DSL stays intact). */}
       {SHOW_TASK_PRIORITY_UI && (
-      <SearchFilterMenu
-        label="Priority"
-        multi
-        options={options.priority}
-        selected={filters.priority ?? []}
-        onToggle={(value) => toggleMulti("priority", value)}
-        onClear={() => onChange({ ...filters, priority: [] })}
-      />
+        <SearchFilterMenu
+          label="Priority"
+          multi
+          options={options.priority}
+          selected={filters.priority ?? []}
+          onToggle={(value) => toggleMulti("priority", value)}
+          onClear={() => onChange({ ...filters, priority: [] })}
+        />
       )}
       <SearchFilterMenu
         label="Updated"

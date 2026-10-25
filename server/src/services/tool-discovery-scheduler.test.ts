@@ -3,7 +3,9 @@ import { createToolDiscoveryScheduler } from "./tool-discovery-scheduler.js";
 
 function deferred() {
   let resolve!: () => void;
-  const promise = new Promise<void>((done) => { resolve = done; });
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
   return { promise, resolve };
 }
 
@@ -20,7 +22,9 @@ describe("tool discovery admission", () => {
       active -= 1;
     };
     const accepted = Array.from({ length: 4 }, () => scheduler.run(work));
-    await expect(scheduler.run(work)).rejects.toMatchObject({ name: "ToolDiscoveryBusyError" });
+    await expect(scheduler.run(work)).rejects.toMatchObject({
+      name: "ToolDiscoveryBusyError",
+    });
     expect(active).toBe(2);
     gate.resolve();
     await Promise.all(accepted);
@@ -34,10 +38,14 @@ describe("tool discovery admission", () => {
     const first = scheduler.run(() => gate.promise);
     const controller = new AbortController();
     let abandonedStarted = false;
-    const abandoned = scheduler.run(async () => { abandonedStarted = true; }, controller.signal);
+    const abandoned = scheduler.run(async () => {
+      abandonedStarted = true;
+    }, controller.signal);
     controller.abort();
     await expect(abandoned).rejects.toMatchObject({ name: "AbortError" });
-    const next = scheduler.run(async () => { throw new Error("Read failed"); });
+    const next = scheduler.run(async () => {
+      throw new Error("Read failed");
+    });
     const failure = expect(next).rejects.toThrow("Read failed");
     gate.resolve();
     await first;

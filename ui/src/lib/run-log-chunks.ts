@@ -71,7 +71,9 @@ function chunkRetainedSize(chunk: RunLogChunk): number {
   return chunk.chunk.length;
 }
 
-function normalizeRetentionBudget(budget: number | ChunkRetentionBudget): ChunkRetentionBudget {
+function normalizeRetentionBudget(
+  budget: number | ChunkRetentionBudget,
+): ChunkRetentionBudget {
   return typeof budget === "number" ? { maxChunks: budget } : budget;
 }
 
@@ -122,20 +124,28 @@ export function applyRetentionBudget(
 
   let trimmedSeq: number | null = null;
   for (const item of removed) {
-    if (typeof item.seq === "number" && (trimmedSeq === null || item.seq > trimmedSeq)) {
+    if (
+      typeof item.seq === "number" &&
+      (trimmedSeq === null || item.seq > trimmedSeq)
+    ) {
       trimmedSeq = item.seq;
     }
   }
 
   if (collapseTrimmed || hadMarker) {
     const markerTs = kept[0]?.ts ?? removed[removed.length - 1]!.ts;
-    return { chunks: [makeTrimmedOutputMarkerChunk(markerTs), ...kept], trimmedSeq };
+    return {
+      chunks: [makeTrimmedOutputMarkerChunk(markerTs), ...kept],
+      trimmedSeq,
+    };
   }
   return { chunks: kept, trimmedSeq };
 }
 
 export function readChunkSeq(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 export function isStructuredStreamingTextDelta(chunk: string): boolean {
@@ -164,8 +174,16 @@ export function parsePersistedLogContent(
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const raw = JSON.parse(trimmed) as { ts?: unknown; stream?: unknown; chunk?: unknown; seq?: unknown };
-      const stream = raw.stream === "stderr" || raw.stream === "system" ? raw.stream : "stdout";
+      const raw = JSON.parse(trimmed) as {
+        ts?: unknown;
+        stream?: unknown;
+        chunk?: unknown;
+        seq?: unknown;
+      };
+      const stream =
+        raw.stream === "stderr" || raw.stream === "system"
+          ? raw.stream
+          : "stdout";
       const chunk = typeof raw.chunk === "string" ? raw.chunk : "";
       const ts = typeof raw.ts === "string" ? raw.ts : new Date().toISOString();
       if (!chunk) continue;
@@ -221,7 +239,12 @@ export function mergeRunLogChunks(
         // payload: websocket chunks may be tail-truncated while the persisted
         // row is complete.
         if (chunk.chunk.length > existing[duplicateAt]!.chunk.length) {
-          existing[duplicateAt] = { ts: chunk.ts, stream: chunk.stream, chunk: chunk.chunk, seq: chunk.seq };
+          existing[duplicateAt] = {
+            ts: chunk.ts,
+            stream: chunk.stream,
+            chunk: chunk.chunk,
+            seq: chunk.seq,
+          };
           changed = true;
         }
         continue;
@@ -235,7 +258,12 @@ export function mergeRunLogChunks(
         if (typeof prior.seq !== "number" || prior.seq < chunk.seq) break;
         insertAt -= 1;
       }
-      existing.splice(insertAt, 0, { ts: chunk.ts, stream: chunk.stream, chunk: chunk.chunk, seq: chunk.seq });
+      existing.splice(insertAt, 0, {
+        ts: chunk.ts,
+        stream: chunk.stream,
+        chunk: chunk.chunk,
+        seq: chunk.seq,
+      });
       changed = true;
       continue;
     }
@@ -253,7 +281,10 @@ export function mergeRunLogChunks(
     refs.seenChunkKeys.clear();
   }
 
-  const { chunks: retained, trimmedSeq } = applyRetentionBudget(existing, normalizeRetentionBudget(budget));
+  const { chunks: retained, trimmedSeq } = applyRetentionBudget(
+    existing,
+    normalizeRetentionBudget(budget),
+  );
   if (trimmedSeq !== null) {
     const seqFloor = refs.trimmedSeqFloorByRun.get(runId) ?? 0;
     if (trimmedSeq > seqFloor) refs.trimmedSeqFloorByRun.set(runId, trimmedSeq);

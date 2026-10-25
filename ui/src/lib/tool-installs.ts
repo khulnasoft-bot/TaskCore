@@ -18,7 +18,9 @@ export interface InstallState {
   agentIds: Set<string>;
 }
 
-export function installStateFrom(installs: ToolConnectionInstall[] | undefined): InstallState {
+export function installStateFrom(
+  installs: ToolConnectionInstall[] | undefined,
+): InstallState {
   const agentIds = new Set<string>();
   let onAll = false;
   for (const install of installs ?? []) {
@@ -29,7 +31,10 @@ export function installStateFrom(installs: ToolConnectionInstall[] | undefined):
 }
 
 /** True when this connection's tools load into the given agent's context. */
-export function isAgentInstalled(state: InstallState, agentId: string): boolean {
+export function isAgentInstalled(
+  state: InstallState,
+  agentId: string,
+): boolean {
   return state.onAll || state.agentIds.has(agentId);
 }
 
@@ -39,7 +44,10 @@ export function installPayload(
   state: InstallState,
 ): Array<{ targetType: "company" | "agent"; targetId: string }> {
   if (state.onAll) return [{ targetType: "company", targetId: companyId }];
-  return [...state.agentIds].map((targetId) => ({ targetType: "agent" as const, targetId }));
+  return [...state.agentIds].map((targetId) => ({
+    targetType: "agent" as const,
+    targetId,
+  }));
 }
 
 // --- Copy (verbatim from the PAP-13615 wireframe spec) ---

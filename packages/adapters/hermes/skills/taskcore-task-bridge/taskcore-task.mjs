@@ -2,10 +2,19 @@
 
 import fs from "node:fs/promises";
 
-const STATUSES = new Set(["backlog", "todo", "in_progress", "in_review", "done", "blocked", "cancelled"]);
+const STATUSES = new Set([
+  "backlog",
+  "todo",
+  "in_progress",
+  "in_review",
+  "done",
+  "blocked",
+  "cancelled",
+]);
 const PRIORITIES = new Set(["critical", "high", "medium", "low"]);
 const WORK_MODES = new Set(["standard", "ask", "planning"]);
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const HELP = `Taskcore task bridge for Hermes
 
@@ -45,7 +54,10 @@ class UsageError extends Error {
 
 class ApiError extends Error {
   constructor(status, body) {
-    const message = typeof body?.error === "string" ? body.error : `Taskcore API request failed with status ${status}`;
+    const message =
+      typeof body?.error === "string"
+        ? body.error
+        : `Taskcore API request failed with status ${status}`;
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -103,7 +115,9 @@ function normalizeApiBaseUrl(raw) {
 }
 
 function getConfig() {
-  const apiKey = process.env.TASKCORE_BRIDGE_API_KEY?.trim() || process.env.TASKCORE_API_KEY?.trim();
+  const apiKey =
+    process.env.TASKCORE_BRIDGE_API_KEY?.trim() ||
+    process.env.TASKCORE_API_KEY?.trim();
   if (!apiKey) throw new UsageError("TASKCORE_BRIDGE_API_KEY is required");
   return {
     apiBaseUrl: normalizeApiBaseUrl(process.env.TASKCORE_API_URL),
@@ -117,7 +131,8 @@ function getConfig() {
 async function readBody(args, textFlag, fileFlag) {
   const direct = readStringFlag(args, textFlag);
   const file = readStringFlag(args, fileFlag);
-  if (direct && file) throw new UsageError(`Use either --${textFlag} or --${fileFlag}, not both`);
+  if (direct && file)
+    throw new UsageError(`Use either --${textFlag} or --${fileFlag}, not both`);
   if (direct) return direct;
   if (!file) return null;
   if (file === "-") {
@@ -138,8 +153,12 @@ async function apiFetch(config, path, options = {}) {
   const headers = {
     Authorization: `Bearer ${config.apiKey}`,
     Accept: "application/json",
-    ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
-    ...(options.mutating && config.runId ? { "X-Taskcore-Run-Id": config.runId } : {}),
+    ...(options.body !== undefined
+      ? { "Content-Type": "application/json" }
+      : {}),
+    ...(options.mutating && config.runId
+      ? { "X-Taskcore-Run-Id": config.runId }
+      : {}),
   };
   const response = await fetch(`${config.apiBaseUrl}${path}`, {
     method: options.method ?? "GET",
@@ -161,12 +180,20 @@ async function apiFetch(config, path, options = {}) {
 
 async function resolveIdentity(config) {
   if (config.companyId && config.agentId) {
-    return { companyId: config.companyId, agentId: config.agentId, agent: null };
+    return {
+      companyId: config.companyId,
+      agentId: config.agentId,
+      agent: null,
+    };
   }
   const agent = await apiFetch(config, "/agents/me");
   const companyId = config.companyId || agent.companyId;
   const agentId = config.agentId || agent.id;
-  if (!companyId || !agentId) throw new ApiError(500, { error: "Taskcore identity response did not include companyId and agent id" });
+  if (!companyId || !agentId)
+    throw new ApiError(500, {
+      error:
+        "Taskcore identity response did not include companyId and agent id",
+    });
   return { companyId, agentId, agent };
 }
 
@@ -221,12 +248,23 @@ function parseLimit(args) {
 
 async function listAssigned(config, args) {
   const identity = await resolveIdentity(config);
-  const status = readStringFlag(args, "status") || "todo,in_progress,in_review,blocked";
+  const status =
+    readStringFlag(args, "status") || "todo,in_progress,in_review,blocked";
   const limit = parseLimit(args);
   const issues = await apiFetch(config, "/agents/me/inbox-lite");
-  const allowedStatuses = new Set(status.split(",").map((entry) => entry.trim()).filter(Boolean));
+  const allowedStatuses = new Set(
+    status
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+  );
   const filteredIssues = Array.isArray(issues)
-    ? issues.filter((issue) => !allowedStatuses.size || allowedStatuses.has(issue?.status)).slice(0, limit)
+    ? issues
+        .filter(
+          (issue) =>
+            !allowedStatuses.size || allowedStatuses.has(issue?.status),
+        )
+        .slice(0, limit)
     : [];
   printJson({
     command: "list-assigned",
@@ -249,7 +287,9 @@ async function createTask(config, args) {
       ? identity.agentId
       : assigneeRaw;
   if (assigneeAgentId !== undefined && !UUID_RE.test(assigneeAgentId)) {
-    throw new UsageError("--assignee-agent-id must be a UUID, self, or omitted");
+    throw new UsageError(
+      "--assignee-agent-id must be a UUID, self, or omitted",
+    );
   }
   const priority = readStringFlag(args, "priority") ?? "medium";
   const workMode = readStringFlag(args, "work-mode") ?? "standard";
@@ -273,53 +313,81 @@ async function createTask(config, args) {
   const status = readStringFlag(args, "status");
   if (status) body.status = validateEnum(status, STATUSES, "status");
 
-  const issue = await apiFetch(config, `/companies/${encodeURIComponent(identity.companyId)}/issues`, {
-    method: "POST",
-    mutating: true,
-    body,
-  });
+  const issue = await apiFetch(
+    config,
+    `/companies/${encodeURIComponent(identity.companyId)}/issues`,
+    {
+      method: "POST",
+      mutating: true,
+      body,
+    },
+  );
   printJson({ command: "create-task", issue: issueSummary(issue) });
 }
 
 async function comment(config, args) {
   const issueRef = requireStringFlag(args, "issue");
   const bodyText = await readBody(args, "body", "body-file");
-  if (!bodyText || bodyText.trim().length === 0) throw new UsageError("comment requires --body or --body-file");
+  if (!bodyText || bodyText.trim().length === 0)
+    throw new UsageError("comment requires --body or --body-file");
   const commentBody = {
     body: bodyText,
     ...(boolFlag(args, "resume") ? { resume: true } : {}),
     ...(boolFlag(args, "reopen") ? { reopen: true } : {}),
   };
-  const created = await apiFetch(config, `/issues/${encodeURIComponent(issueRef)}/comments`, {
-    method: "POST",
-    mutating: true,
-    body: commentBody,
+  const created = await apiFetch(
+    config,
+    `/issues/${encodeURIComponent(issueRef)}/comments`,
+    {
+      method: "POST",
+      mutating: true,
+      body: commentBody,
+    },
+  );
+  printJson({
+    command: "comment",
+    issue: issueRef,
+    comment: commentSummary(created),
   });
-  printJson({ command: "comment", issue: issueRef, comment: commentSummary(created) });
 }
 
 async function updateStatus(config, args) {
   const issueRef = requireStringFlag(args, "issue");
-  const status = validateEnum(requireStringFlag(args, "status"), STATUSES, "status");
+  const status = validateEnum(
+    requireStringFlag(args, "status"),
+    STATUSES,
+    "status",
+  );
   const commentText = await readBody(args, "comment", "comment-file");
   const body = {
     status,
-    ...(commentText && commentText.trim().length > 0 ? { comment: commentText } : {}),
+    ...(commentText && commentText.trim().length > 0
+      ? { comment: commentText }
+      : {}),
     ...(boolFlag(args, "resume") ? { resume: true } : {}),
     ...(boolFlag(args, "reopen") ? { reopen: true } : {}),
   };
-  const issue = await apiFetch(config, `/issues/${encodeURIComponent(issueRef)}`, {
-    method: "PATCH",
-    mutating: true,
-    body,
-  });
+  const issue = await apiFetch(
+    config,
+    `/issues/${encodeURIComponent(issueRef)}`,
+    {
+      method: "PATCH",
+      mutating: true,
+      body,
+    },
+  );
   printJson({ command: "update-status", issue: issueSummary(issue) });
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0];
-  if (!command || command === "help" || command === "--help" || boolFlag(args, "help")) {
+  if (
+    !command ||
+    command === "help" ||
+    command === "--help" ||
+    boolFlag(args, "help")
+  ) {
     process.stdout.write(`${HELP}\n`);
     return;
   }
@@ -346,6 +414,8 @@ main().catch((err) => {
     process.exitCode = 1;
     return;
   }
-  process.stderr.write(`Unexpected error: ${err instanceof Error ? err.message : String(err)}\n`);
+  process.stderr.write(
+    `Unexpected error: ${err instanceof Error ? err.message : String(err)}\n`,
+  );
   process.exitCode = 1;
 });

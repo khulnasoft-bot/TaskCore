@@ -100,9 +100,18 @@ function renderItem(
   onOpenBrowser?: (browserId: string) => void,
 ) {
   switch (item.kind) {
-    case "browser": return <TaskBrowserActivity browser={item.browser} label={item.label} onOpen={onOpenBrowser} />;
-    case "project_created": return <TaskChatProjectCreatedCard item={item} />;
-    case "skill_created": return <TaskChatSkillCreatedCard item={item} onOpen={onOpenSkill} />;
+    case "browser":
+      return (
+        <TaskBrowserActivity
+          browser={item.browser}
+          label={item.label}
+          onOpen={onOpenBrowser}
+        />
+      );
+    case "project_created":
+      return <TaskChatProjectCreatedCard item={item} />;
+    case "skill_created":
+      return <TaskChatSkillCreatedCard item={item} onOpen={onOpenSkill} />;
     case "message": {
       // Compute the actions once: the bubble renders them for a runless reply
       // (footer = actions + timestamp), while an attached turn hands them to
@@ -362,10 +371,14 @@ export function TaskChatThreadView({
           ? renderedItems.map(({ item, content }, index) => (
               <div
                 key={
-                  item.kind === "message" ? (item.renderKey ?? item.id) : item.id
+                  item.kind === "message"
+                    ? (item.renderKey ?? item.id)
+                    : item.id
                 }
                 data-thread-anchor={
-                  item.kind === "message" ? (item.renderKey ?? item.id) : item.id
+                  item.kind === "message"
+                    ? (item.renderKey ?? item.id)
+                    : item.id
                 }
                 id={item.kind === "message" ? `comment-${item.id}` : undefined}
                 className={taskChatItemSpacingClass(
@@ -382,10 +395,14 @@ export function TaskChatThreadView({
           : items.map((item, index) => (
               <div
                 key={
-                  item.kind === "message" ? (item.renderKey ?? item.id) : item.id
+                  item.kind === "message"
+                    ? (item.renderKey ?? item.id)
+                    : item.id
                 }
                 data-thread-anchor={
-                  item.kind === "message" ? (item.renderKey ?? item.id) : item.id
+                  item.kind === "message"
+                    ? (item.renderKey ?? item.id)
+                    : item.id
                 }
                 id={item.kind === "message" ? `comment-${item.id}` : undefined}
                 className={cn(
@@ -418,10 +435,22 @@ export function TaskChatThreadView({
       </>
     );
   }, [
-    items, streamlined, onApprovalDecision, onRuntimeRequestDecision,
-    renderInteraction, renderBrief, renderMessageActions, renderQueuedAction,
-    onTryAgainNoLiveExecutionPath, tryAgainNoLiveExecutionPathPending,
-    retryableMarkerId, onRetryFailedRun, retryFailedRunId, attachments, onOpenSkill, onOpenBrowser,
+    items,
+    streamlined,
+    onApprovalDecision,
+    onRuntimeRequestDecision,
+    renderInteraction,
+    renderBrief,
+    renderMessageActions,
+    renderQueuedAction,
+    onTryAgainNoLiveExecutionPath,
+    tryAgainNoLiveExecutionPathPending,
+    retryableMarkerId,
+    onRetryFailedRun,
+    retryFailedRunId,
+    attachments,
+    onOpenSkill,
+    onOpenBrowser,
   ]);
   const body = (
     <div

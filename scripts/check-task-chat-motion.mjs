@@ -84,7 +84,8 @@ const seams = [
 const missingSeams = [];
 for (const seam of seams) {
   const text = readFileSync(join(repoRoot, seam.file), "utf8");
-  if (!text.includes(seam.needle)) missingSeams.push(`${seam.label} (${seam.file})`);
+  if (!text.includes(seam.needle))
+    missingSeams.push(`${seam.label} (${seam.file})`);
 }
 
 let failed = false;

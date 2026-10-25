@@ -12,10 +12,19 @@ const PILL_SELECTOR = 'button[aria-label="Scroll to latest"]';
  * jsdom has no layout, so scroll geometry is faked per element: scrollHeight /
  * clientHeight are pinned and scrollTop is backed by a plain variable.
  */
-function fakeGeometry(el: HTMLElement, { scrollHeight = 1000, clientHeight = 400 } = {}) {
+function fakeGeometry(
+  el: HTMLElement,
+  { scrollHeight = 1000, clientHeight = 400 } = {},
+) {
   let scrollTop = 0;
-  Object.defineProperty(el, "scrollHeight", { value: scrollHeight, configurable: true });
-  Object.defineProperty(el, "clientHeight", { value: clientHeight, configurable: true });
+  Object.defineProperty(el, "scrollHeight", {
+    value: scrollHeight,
+    configurable: true,
+  });
+  Object.defineProperty(el, "clientHeight", {
+    value: clientHeight,
+    configurable: true,
+  });
   Object.defineProperty(el, "scrollTop", {
     get: () => scrollTop,
     set: (v: number) => {
@@ -78,7 +87,9 @@ describe("TaskMessageScroller", () => {
   }
 
   function scroller(): HTMLDivElement {
-    return container.querySelector<HTMLDivElement>('[data-testid="task-chat-scroller"]')!;
+    return container.querySelector<HTMLDivElement>(
+      '[data-testid="task-chat-scroller"]',
+    )!;
   }
 
   function pill(): HTMLButtonElement | null {
@@ -120,7 +131,9 @@ describe("TaskMessageScroller", () => {
   afterEach(() => {
     flushSync(() => root.unmount());
     container.remove();
-    document.documentElement.style.removeProperty("--motion-scrollbar-idle-delay");
+    document.documentElement.style.removeProperty(
+      "--motion-scrollbar-idle-delay",
+    );
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -128,22 +141,41 @@ describe("TaskMessageScroller", () => {
   it("applies same-task hash changes and restores each history entry without remounting", async () => {
     let initialized = false;
     function navigate(key: string, hash: string, restore = false) {
-      flushSync(() => root.render(
-        <TaskChatScrollNavigation.Provider value={{ key, hash, restore }}>
-          <TaskMessageScroller contentKey="unchanged">
-            <div ref={(node) => {
-              if (node && !initialized) {
-                fakeGeometry(node.parentElement!);
-                initialized = true;
-              }
-            }}>
-              {[100, 500].map((top, index) => <div key={index} id={`nav-comment-${index}`} data-thread-anchor={`nav-comment-${index}`} ref={(node) => {
-                if (node) node.getBoundingClientRect = () => ({ top: top - scroller().scrollTop, bottom: top + 100 - scroller().scrollTop, height: 100 } as DOMRect);
-              }}>Comment {index}</div>)}
-            </div>
-          </TaskMessageScroller>
-        </TaskChatScrollNavigation.Provider>,
-      ));
+      flushSync(() =>
+        root.render(
+          <TaskChatScrollNavigation.Provider value={{ key, hash, restore }}>
+            <TaskMessageScroller contentKey="unchanged">
+              <div
+                ref={(node) => {
+                  if (node && !initialized) {
+                    fakeGeometry(node.parentElement!);
+                    initialized = true;
+                  }
+                }}
+              >
+                {[100, 500].map((top, index) => (
+                  <div
+                    key={index}
+                    id={`nav-comment-${index}`}
+                    data-thread-anchor={`nav-comment-${index}`}
+                    ref={(node) => {
+                      if (node)
+                        node.getBoundingClientRect = () =>
+                          ({
+                            top: top - scroller().scrollTop,
+                            bottom: top + 100 - scroller().scrollTop,
+                            height: 100,
+                          }) as DOMRect;
+                    }}
+                  >
+                    Comment {index}
+                  </div>
+                ))}
+              </div>
+            </TaskMessageScroller>
+          </TaskChatScrollNavigation.Provider>,
+        ),
+      );
     }
     navigate("desktop-entry-one", "#nav-comment-0");
     const viewport = scroller();
@@ -182,7 +214,10 @@ describe("TaskMessageScroller", () => {
 
   it("shows the scrollbar only while scroll activity is recent", () => {
     vi.useFakeTimers();
-    document.documentElement.style.setProperty("--motion-scrollbar-idle-delay", "600ms");
+    document.documentElement.style.setProperty(
+      "--motion-scrollbar-idle-delay",
+      "600ms",
+    );
     render();
     const el = scroller();
     fakeGeometry(el);
@@ -244,8 +279,7 @@ describe("TaskMessageScroller", () => {
       "ResizeObserver",
       class {
         constructor(callback: ResizeObserverCallback) {
-          triggerResize = () =>
-            callback([], this as unknown as ResizeObserver);
+          triggerResize = () => callback([], this as unknown as ResizeObserver);
         }
         observe() {}
         disconnect() {}
@@ -270,8 +304,7 @@ describe("TaskMessageScroller", () => {
       "ResizeObserver",
       class {
         constructor(callback: ResizeObserverCallback) {
-          triggerResize = () =>
-            callback([], this as unknown as ResizeObserver);
+          triggerResize = () => callback([], this as unknown as ResizeObserver);
         }
         observe() {}
         disconnect() {}
@@ -378,19 +411,26 @@ describe("TaskMessageScroller", () => {
     const el = scroller();
     fakeGeometry(el);
     await scrollTo(el, 100);
-    await vi.waitFor(() => expect(pill()?.className).toContain("tc-scroll-pill-in"));
+    await vi.waitFor(() =>
+      expect(pill()?.className).toContain("tc-scroll-pill-in"),
+    );
 
     // Scrolling back to the bottom starts the exit animation but keeps the
     // pill mounted until animationend.
     await scrollTo(el, 600);
-    await vi.waitFor(() => expect(pill()?.className).toContain("tc-scroll-pill-out"));
+    await vi.waitFor(() =>
+      expect(pill()?.className).toContain("tc-scroll-pill-out"),
+    );
     const exiting = pill();
     expect(exiting).not.toBeNull();
 
     // jsdom has no window.AnimationEvent, so React's vendor-prefix detection
     // maps onAnimationEnd to "webkitAnimationEnd" here (real browsers get the
     // unprefixed event).
-    await dispatch(exiting!, new Event("webkitAnimationEnd", { bubbles: true }));
+    await dispatch(
+      exiting!,
+      new Event("webkitAnimationEnd", { bubbles: true }),
+    );
     await waitForPill(false);
   });
 

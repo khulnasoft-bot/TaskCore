@@ -22,7 +22,13 @@ import type {
 } from "@taskcore/shared";
 import { normalizeAgentUrlKey } from "@taskcore/shared";
 import { parseFrontmatterMarkdown } from "@taskcore/shared/frontmatter";
-import { conflict, forbidden, HttpError, notFound, unprocessable } from "../errors.js";
+import {
+  conflict,
+  forbidden,
+  HttpError,
+  notFound,
+  unprocessable,
+} from "../errors.js";
 import { agentService } from "./agents.js";
 import { companyPortabilityService } from "./company-portability.js";
 import { companySkillService } from "./company-skills.js";
@@ -133,7 +139,10 @@ export interface CatalogTeamFileDetail {
 const serviceDir = path.dirname(fileURLToPath(import.meta.url));
 const catalogPackageRootCandidates = buildCatalogPackageRootCandidates();
 let catalogPackageRoot = catalogPackageRootCandidates[0]!;
-let catalogManifestPath = path.join(catalogPackageRoot, "generated/catalog.json");
+let catalogManifestPath = path.join(
+  catalogPackageRoot,
+  "generated/catalog.json",
+);
 let cachedCatalogManifest: {
   manifest: CatalogManifestFile;
   manifestPath: string;
@@ -153,7 +162,10 @@ function buildCatalogPackageRootCandidates() {
 
 async function statCatalogManifest() {
   for (const candidateRoot of catalogPackageRootCandidates) {
-    const candidateManifestPath = path.join(candidateRoot, "generated/catalog.json");
+    const candidateManifestPath = path.join(
+      candidateRoot,
+      "generated/catalog.json",
+    );
     try {
       const stats = await fs.stat(candidateManifestPath);
       catalogPackageRoot = candidateRoot;
@@ -171,15 +183,17 @@ async function statCatalogManifest() {
 async function getCatalogManifest() {
   const { stats, manifestPath } = await statCatalogManifest();
   if (
-    cachedCatalogManifest
-    && cachedCatalogManifest.manifestPath === manifestPath
-    && cachedCatalogManifest.mtimeMs === stats.mtimeMs
-    && cachedCatalogManifest.size === stats.size
+    cachedCatalogManifest &&
+    cachedCatalogManifest.manifestPath === manifestPath &&
+    cachedCatalogManifest.mtimeMs === stats.mtimeMs &&
+    cachedCatalogManifest.size === stats.size
   ) {
     return cachedCatalogManifest.manifest;
   }
 
-  const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as CatalogManifestFile;
+  const manifest = JSON.parse(
+    await fs.readFile(manifestPath, "utf8"),
+  ) as CatalogManifestFile;
   cachedCatalogManifest = {
     manifest,
     manifestPath,
@@ -209,16 +223,26 @@ function searchText(team: CatalogTeam) {
     team.kind,
     ...team.recommendedForCompanyTypes,
     ...team.tags,
-  ].join("\n").toLowerCase();
+  ]
+    .join("\n")
+    .toLowerCase();
 }
 
-export async function listCatalogTeams(query: CatalogTeamListQuery = {}): Promise<CatalogTeam[]> {
+export async function listCatalogTeams(
+  query: CatalogTeamListQuery = {},
+): Promise<CatalogTeam[]> {
   const normalizedQuery = query.q?.trim().toLowerCase() ?? "";
   return (await getCatalogTeams())
     .filter((team) => !query.kind || team.kind === query.kind)
     .filter((team) => !query.category || team.category === query.category)
-    .filter((team) => !normalizedQuery || searchText(team).includes(normalizedQuery))
-    .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key));
+    .filter(
+      (team) => !normalizedQuery || searchText(team).includes(normalizedQuery),
+    )
+    .sort(
+      (left, right) =>
+        left.name.localeCompare(right.name) ||
+        left.key.localeCompare(right.key),
+    );
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -247,7 +271,10 @@ export function readCatalogTeamProvenance(
 ): CatalogTeamProvenance | null {
   if (!isPlainRecord(metadata)) return null;
   const taskcore = isPlainRecord(metadata.taskcore) ? metadata.taskcore : null;
-  const catalogTeam = taskcore && isPlainRecord(taskcore.catalogTeam) ? taskcore.catalogTeam : null;
+  const catalogTeam =
+    taskcore && isPlainRecord(taskcore.catalogTeam)
+      ? taskcore.catalogTeam
+      : null;
   if (!catalogTeam) return null;
   const catalogId = readNonEmptyString(catalogTeam.catalogId);
   if (!catalogId) return null;
@@ -262,24 +289,33 @@ function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export async function resolveCatalogTeamReference(reference: string): Promise<{ team: CatalogTeam | null; ambiguous: boolean }> {
+export async function resolveCatalogTeamReference(
+  reference: string,
+): Promise<{ team: CatalogTeam | null; ambiguous: boolean }> {
   const trimmed = reference.trim();
   if (!trimmed) return { team: null, ambiguous: false };
   const teams = await getCatalogTeams();
 
-  const exact = teams.find((team) => team.id === trimmed || team.key === trimmed);
+  const exact = teams.find(
+    (team) => team.id === trimmed || team.key === trimmed,
+  );
   if (exact) return { team: exact, ambiguous: false };
 
   const slugMatches = teams.filter((team) => team.slug === trimmed);
-  if (slugMatches.length === 1) return { team: slugMatches[0]!, ambiguous: false };
+  if (slugMatches.length === 1)
+    return { team: slugMatches[0]!, ambiguous: false };
   if (slugMatches.length > 1) return { team: null, ambiguous: true };
   return { team: null, ambiguous: false };
 }
 
-export async function getCatalogTeamOrThrow(reference: string): Promise<CatalogTeam> {
+export async function getCatalogTeamOrThrow(
+  reference: string,
+): Promise<CatalogTeam> {
   const result = await resolveCatalogTeamReference(reference);
   if (result.ambiguous) {
-    throw conflict(`Catalog team slug "${reference}" is ambiguous. Use an id or key.`);
+    throw conflict(
+      `Catalog team slug "${reference}" is ambiguous. Use an id or key.`,
+    );
   }
   if (!result.team) {
     throw notFound("Catalog team not found");
@@ -319,7 +355,10 @@ function resolveCatalogTeamFile(team: CatalogTeam, relativePath: string) {
 
   const teamRoot = catalogTeamRoot(team);
   const absolutePath = path.resolve(teamRoot, normalizedPath);
-  if (absolutePath !== teamRoot && !absolutePath.startsWith(`${teamRoot}${path.sep}`)) {
+  if (
+    absolutePath !== teamRoot &&
+    !absolutePath.startsWith(`${teamRoot}${path.sep}`)
+  ) {
     throw notFound("Catalog team file not found");
   }
 
@@ -350,16 +389,14 @@ export async function readCatalogTeamFile(
 
 function yamlScalar(value: string | number | boolean | null) {
   if (value === null) return "null";
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   return JSON.stringify(value);
 }
 
 function renderStringArrayYaml(key: string, values: string[]) {
   if (values.length === 0) return [];
-  return [
-    `${key}:`,
-    ...values.map((value) => `  - ${yamlScalar(value)}`),
-  ];
+  return [`${key}:`, ...values.map((value) => `  - ${yamlScalar(value)}`)];
 }
 
 function renderYamlBlock(value: unknown, indentLevel = 0): string[] {
@@ -377,7 +414,9 @@ function renderYamlBlock(value: unknown, indentLevel = 0): string[] {
         (Array.isArray(entry) && entry.length === 0) ||
         (isPlainRecord(entry) && Object.keys(entry).length === 0)
       ) {
-        lines.push(`${indent}- ${yamlScalar(entry as string | number | boolean | null)}`);
+        lines.push(
+          `${indent}- ${yamlScalar(entry as string | number | boolean | null)}`,
+        );
         continue;
       }
       lines.push(`${indent}-`);
@@ -387,7 +426,9 @@ function renderYamlBlock(value: unknown, indentLevel = 0): string[] {
   }
 
   if (isPlainRecord(value)) {
-    const entries = Object.entries(value).filter(([, entry]) => entry !== undefined);
+    const entries = Object.entries(value).filter(
+      ([, entry]) => entry !== undefined,
+    );
     if (entries.length === 0) return [`${indent}{}`];
     const lines: string[] = [];
     for (const [key, entry] of entries) {
@@ -399,7 +440,9 @@ function renderYamlBlock(value: unknown, indentLevel = 0): string[] {
         (Array.isArray(entry) && entry.length === 0) ||
         (isPlainRecord(entry) && Object.keys(entry).length === 0)
       ) {
-        lines.push(`${indent}${key}: ${yamlScalar(entry as string | number | boolean | null)}`);
+        lines.push(
+          `${indent}${key}: ${yamlScalar(entry as string | number | boolean | null)}`,
+        );
         continue;
       }
       lines.push(`${indent}${key}:`);
@@ -448,13 +491,18 @@ async function catalogProvenance(team: CatalogTeam) {
   };
 }
 
-async function renderCatalogProvenanceYaml(team: CatalogTeam, targetManager: CatalogTargetManagerReference | null) {
+async function renderCatalogProvenanceYaml(
+  team: CatalogTeam,
+  targetManager: CatalogTargetManagerReference | null,
+) {
   const provenance = await catalogProvenance(team);
   const agentSlugs = Array.from(new Set(team.agentSlugs)).sort();
   const projectSlugs = Array.from(new Set(team.projectSlugs)).sort();
   const taskSlugs = team.files
     .filter((file) => file.kind === "task")
-    .map((file) => normalizeAgentUrlKey(path.posix.basename(path.posix.dirname(file.path))))
+    .map((file) =>
+      normalizeAgentUrlKey(path.posix.basename(path.posix.dirname(file.path))),
+    )
     .filter((slug): slug is string => Boolean(slug));
 
   const renderEntity = (slug: string, opts?: { reparentRoot?: boolean }) => ({
@@ -482,18 +530,28 @@ async function renderCatalogProvenanceYaml(team: CatalogTeam, targetManager: Cat
 
   const extension: Record<string, unknown> = {
     schema: "taskcore/v1",
-    agents: Object.fromEntries(agentSlugs.map((slug) => [
-      slug,
-      renderEntity(slug, {
-        reparentRoot: Boolean(targetManager && team.rootAgentSlugs.includes(slug)),
-      }),
-    ])),
+    agents: Object.fromEntries(
+      agentSlugs.map((slug) => [
+        slug,
+        renderEntity(slug, {
+          reparentRoot: Boolean(
+            targetManager && team.rootAgentSlugs.includes(slug),
+          ),
+        }),
+      ]),
+    ),
   };
   if (projectSlugs.length > 0) {
-    extension.projects = Object.fromEntries(projectSlugs.map((slug) => [slug, renderEntity(slug)]));
+    extension.projects = Object.fromEntries(
+      projectSlugs.map((slug) => [slug, renderEntity(slug)]),
+    );
   }
   if (taskSlugs.length > 0) {
-    extension.tasks = Object.fromEntries(Array.from(new Set(taskSlugs)).sort().map((slug) => [slug, renderEntity(slug)]));
+    extension.tasks = Object.fromEntries(
+      Array.from(new Set(taskSlugs))
+        .sort()
+        .map((slug) => [slug, renderEntity(slug)]),
+    );
   }
   return renderYamlFile(extension);
 }
@@ -518,15 +576,28 @@ function parseYamlDocument(raw: string): Record<string, unknown> {
   return parseFrontmatterMarkdown(`---\n${raw.trim()}\n---\n`).frontmatter;
 }
 
-function renderSimpleMarkdown(frontmatter: Record<string, unknown>, body: string) {
+function renderSimpleMarkdown(
+  frontmatter: Record<string, unknown>,
+  body: string,
+) {
   const lines = ["---"];
   for (const [key, value] of Object.entries(frontmatter)) {
     if (value === undefined) continue;
     if (Array.isArray(value)) {
-      lines.push(...renderStringArrayYaml(key, value.filter((entry): entry is string => typeof entry === "string")));
+      lines.push(
+        ...renderStringArrayYaml(
+          key,
+          value.filter((entry): entry is string => typeof entry === "string"),
+        ),
+      );
       continue;
     }
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null) {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean" ||
+      value === null
+    ) {
       lines.push(`${key}: ${yamlScalar(value)}`);
     }
   }
@@ -539,9 +610,11 @@ function renderSimpleMarkdown(frontmatter: Record<string, unknown>, body: string
 function collectCatalogSkillKeyMap(team: CatalogTeam) {
   const map = new Map<string, string>();
   for (const requirement of team.requiredSkills) {
-    if (requirement.type !== "catalog" || !requirement.catalogSkillKey) continue;
+    if (requirement.type !== "catalog" || !requirement.catalogSkillKey)
+      continue;
     map.set(requirement.ref, requirement.catalogSkillKey);
-    if (requirement.catalogSkillId) map.set(requirement.catalogSkillId, requirement.catalogSkillKey);
+    if (requirement.catalogSkillId)
+      map.set(requirement.catalogSkillId, requirement.catalogSkillKey);
     map.set(requirement.catalogSkillKey, requirement.catalogSkillKey);
     const slug = requirement.catalogSkillKey.split("/").at(-1);
     if (slug) map.set(slug, requirement.catalogSkillKey);
@@ -549,20 +622,30 @@ function collectCatalogSkillKeyMap(team: CatalogTeam) {
   return map;
 }
 
-function rewriteAgentCatalogSkillRefs(team: CatalogTeam, files: Record<string, CompanyPortabilityFileEntry>) {
+function rewriteAgentCatalogSkillRefs(
+  team: CatalogTeam,
+  files: Record<string, CompanyPortabilityFileEntry>,
+) {
   const keyMap = collectCatalogSkillKeyMap(team);
   if (keyMap.size === 0) return;
-  for (const agentPath of Object.keys(files).filter((filePath) => filePath.endsWith("/AGENTS.md") || filePath === "AGENTS.md")) {
+  for (const agentPath of Object.keys(files).filter(
+    (filePath) => filePath.endsWith("/AGENTS.md") || filePath === "AGENTS.md",
+  )) {
     const content = files[agentPath];
     if (typeof content !== "string") continue;
     const parsed = parseFrontmatterMarkdown(content);
     const skills = Array.isArray(parsed.frontmatter.skills)
-      ? parsed.frontmatter.skills.filter((entry): entry is string => typeof entry === "string")
+      ? parsed.frontmatter.skills.filter(
+          (entry): entry is string => typeof entry === "string",
+        )
       : [];
     if (skills.length === 0) continue;
     const rewritten = skills.map((skill) => keyMap.get(skill) ?? skill);
     if (rewritten.every((skill, index) => skill === skills[index])) continue;
-    files[agentPath] = renderSimpleMarkdown({ ...parsed.frontmatter, skills: rewritten }, parsed.body);
+    files[agentPath] = renderSimpleMarkdown(
+      { ...parsed.frontmatter, skills: rewritten },
+      parsed.body,
+    );
   }
 }
 
@@ -591,7 +674,11 @@ function isPinnedSourceRef(value: string | null | undefined) {
 export function collectCatalogTeamSkillPreparations(
   team: CatalogTeam,
   sourcePolicy: CatalogTeamSourcePolicy = {},
-): { preparations: CatalogTeamSkillPreparation[]; warnings: string[]; errors: string[] } {
+): {
+  preparations: CatalogTeamSkillPreparation[];
+  warnings: string[];
+  errors: string[];
+} {
   const preparations: CatalogTeamSkillPreparation[] = [];
   const warnings: string[] = [];
   const errors: string[] = [];
@@ -614,7 +701,10 @@ export function collectCatalogTeamSkillPreparations(
       continue;
     }
 
-    if (requirement.type === "local_path" && !sourcePolicy.allowLocalPathSources) {
+    if (
+      requirement.type === "local_path" &&
+      !sourcePolicy.allowLocalPathSources
+    ) {
       const reason = `Local path skill source "${requirement.ref}" is development-only and is not allowed for catalog team install.`;
       preparations.push(preparation(requirement, "blocked", reason));
       errors.push(reason);
@@ -635,14 +725,22 @@ export function collectCatalogTeamSkillPreparations(
       continue;
     }
 
-    if (team.kind === "bundled" && (requirement.type === "github" || requirement.type === "skills_sh") && !isPinnedSourceRef(requirement.sourceRef)) {
+    if (
+      team.kind === "bundled" &&
+      (requirement.type === "github" || requirement.type === "skills_sh") &&
+      !isPinnedSourceRef(requirement.sourceRef)
+    ) {
       const reason = `Bundled catalog team external skill source "${requirement.ref}" must be pinned to a commit.`;
       preparations.push(preparation(requirement, "blocked", reason));
       errors.push(reason);
       continue;
     }
 
-    if (team.kind === "optional" && (requirement.type === "github" || requirement.type === "skills_sh") && !isPinnedSourceRef(requirement.sourceRef)) {
+    if (
+      team.kind === "optional" &&
+      (requirement.type === "github" || requirement.type === "skills_sh") &&
+      !isPinnedSourceRef(requirement.sourceRef)
+    ) {
       const reason = `Optional catalog team external skill source "${requirement.ref}" is not pinned to a commit.`;
       if (!sourcePolicy.allowUnpinnedOptionalSources) {
         preparations.push(preparation(requirement, "blocked", reason));
@@ -658,7 +756,9 @@ export function collectCatalogTeamSkillPreparations(
   return { preparations, warnings, errors };
 }
 
-async function readCatalogTeamSourceFiles(team: CatalogTeam): Promise<Record<string, CompanyPortabilityFileEntry>> {
+async function readCatalogTeamSourceFiles(
+  team: CatalogTeam,
+): Promise<Record<string, CompanyPortabilityFileEntry>> {
   const files: Record<string, CompanyPortabilityFileEntry> = {
     "COMPANY.md": renderSyntheticCompanyMarkdown(team),
   };
@@ -684,7 +784,10 @@ async function readCatalogTeamSourceFiles(team: CatalogTeam): Promise<Record<str
 const FALLBACK_SAFE_CATALOG_ADAPTER_TYPE = "claude_local";
 
 function defaultSafeCatalogAdapterType() {
-  return process.env.TASKCORE_TEAMS_CATALOG_DEFAULT_ADAPTER_TYPE?.trim() || FALLBACK_SAFE_CATALOG_ADAPTER_TYPE;
+  return (
+    process.env.TASKCORE_TEAMS_CATALOG_DEFAULT_ADAPTER_TYPE?.trim() ||
+    FALLBACK_SAFE_CATALOG_ADAPTER_TYPE
+  );
 }
 
 /**
@@ -702,7 +805,9 @@ function withSafeCatalogAdapterDefaults(
   callerOverrides: CompanyPortabilityImport["adapterOverrides"],
   defaultAdapterType: string,
 ): Record<string, CompanyPortabilityAdapterOverride> {
-  const merged: Record<string, CompanyPortabilityAdapterOverride> = { ...(callerOverrides ?? {}) };
+  const merged: Record<string, CompanyPortabilityAdapterOverride> = {
+    ...(callerOverrides ?? {}),
+  };
   for (const slug of agentSlugs) {
     if (merged[slug]) continue;
     merged[slug] = { adapterType: defaultAdapterType };
@@ -750,7 +855,9 @@ export function teamsCatalogService(db: Db) {
       const slug = normalizeAgentUrlKey(options.targetManagerSlug);
       if (!slug) throw unprocessable("Target manager slug is invalid.");
       const managers = await agents.list(companyId);
-      const manager = managers.find((candidate) => normalizeAgentUrlKey(candidate.name) === slug);
+      const manager = managers.find(
+        (candidate) => normalizeAgentUrlKey(candidate.name) === slug,
+      );
       if (!manager) throw notFound("Target manager agent not found");
       return { agentId: manager.id, slug };
     }
@@ -758,7 +865,9 @@ export function teamsCatalogService(db: Db) {
     const manager = await agents.getById(options.targetManagerAgentId);
     if (!manager) throw notFound("Target manager agent not found");
     if (manager.companyId !== companyId) {
-      throw forbidden("Target manager agent must belong to the target company.");
+      throw forbidden(
+        "Target manager agent must belong to the target company.",
+      );
     }
     return {
       agentId: manager.id,
@@ -779,24 +888,41 @@ export function teamsCatalogService(db: Db) {
       errors.push(`Catalog team ${team.id} is not compatible.`);
     }
     if (team.trustLevel === "scripts_executables") {
-      errors.push(`Catalog team ${team.id} contains executable scripts and cannot be installed by the safe team importer.`);
+      errors.push(
+        `Catalog team ${team.id} contains executable scripts and cannot be installed by the safe team importer.`,
+      );
     }
-    if (team.trustLevel === "external_sources" && !options.sourcePolicy?.allowExternalSources) {
-      errors.push(`Catalog team ${team.id} declares external sources and requires explicit source policy approval.`);
+    if (
+      team.trustLevel === "external_sources" &&
+      !options.sourcePolicy?.allowExternalSources
+    ) {
+      errors.push(
+        `Catalog team ${team.id} declares external sources and requires explicit source policy approval.`,
+      );
     }
 
-    const skillPrep = collectCatalogTeamSkillPreparations(team, options.sourcePolicy);
+    const skillPrep = collectCatalogTeamSkillPreparations(
+      team,
+      options.sourcePolicy,
+    );
     warnings.push(...skillPrep.warnings);
     errors.push(...skillPrep.errors);
 
-    const targetManager = await resolveTargetManagerReference(companyId, options);
+    const targetManager = await resolveTargetManagerReference(
+      companyId,
+      options,
+    );
     const files = await readCatalogTeamSourceFiles(team);
     const existingExtension =
       typeof files[".taskcore.yaml"] === "string"
         ? parseYamlDocument(files[".taskcore.yaml"])
         : {};
-    const generatedExtension = parseYamlDocument(await renderCatalogProvenanceYaml(team, targetManager));
-    files[".taskcore.yaml"] = renderYamlFile(mergePlainRecords(existingExtension, generatedExtension));
+    const generatedExtension = parseYamlDocument(
+      await renderCatalogProvenanceYaml(team, targetManager),
+    );
+    files[".taskcore.yaml"] = renderYamlFile(
+      mergePlainRecords(existingExtension, generatedExtension),
+    );
     rewriteAgentCatalogSkillRefs(team, files);
 
     return {
@@ -843,18 +969,32 @@ export function teamsCatalogService(db: Db) {
     catalogRef: string,
     options: CatalogTeamImportOptions = {},
   ): Promise<CatalogTeamImportPreviewResult> {
-    const prepared = await prepareCatalogTeamSource(companyId, catalogRef, options);
-    const previewInput = buildPortabilityInput(companyId, prepared.source, options);
+    const prepared = await prepareCatalogTeamSource(
+      companyId,
+      catalogRef,
+      options,
+    );
+    const previewInput = buildPortabilityInput(
+      companyId,
+      prepared.source,
+      options,
+    );
     const portabilityPreview = await portability.previewImport(previewInput, {
       mode: "agent_safe",
       sourceCompanyId: companyId,
     });
     portabilityPreview.warnings.push(...prepared.warnings);
     portabilityPreview.errors.push(...prepared.errors);
-    await logCatalogEvent("company.team_catalog_previewed", companyId, prepared.team, options.actor, {
-      warningCount: portabilityPreview.warnings.length,
-      errorCount: portabilityPreview.errors.length,
-    });
+    await logCatalogEvent(
+      "company.team_catalog_previewed",
+      companyId,
+      prepared.team,
+      options.actor,
+      {
+        warningCount: portabilityPreview.warnings.length,
+        errorCount: portabilityPreview.errors.length,
+      },
+    );
     return {
       team: prepared.team,
       portabilityPreview,
@@ -864,16 +1004,23 @@ export function teamsCatalogService(db: Db) {
     };
   }
 
-  async function prepareSkillInstalls(companyId: string, prepared: CatalogTeamPreparedSource) {
+  async function prepareSkillInstalls(
+    companyId: string,
+    prepared: CatalogTeamPreparedSource,
+  ) {
     const warnings: string[] = [];
     for (const skill of prepared.skillPreparations) {
       if (skill.action === "blocked") {
-        warnings.push(skill.reason ?? `Catalog team skill source ${skill.ref} is blocked.`);
+        warnings.push(
+          skill.reason ?? `Catalog team skill source ${skill.ref} is blocked.`,
+        );
         continue;
       }
       if (skill.action === "catalog_install_required") {
         if (!skill.catalogSkillId) {
-          warnings.push(`Catalog skill requirement ${skill.ref} is missing catalogSkillId.`);
+          warnings.push(
+            `Catalog skill requirement ${skill.ref} is missing catalogSkillId.`,
+          );
           continue;
         }
         try {
@@ -882,17 +1029,24 @@ export function teamsCatalogService(db: Db) {
           });
           warnings.push(...result.warnings);
         } catch (error) {
-          warnings.push(`Catalog skill requirement ${skill.ref} could not be installed after team import: ${formatError(error)}`);
+          warnings.push(
+            `Catalog skill requirement ${skill.ref} could not be installed after team import: ${formatError(error)}`,
+          );
         }
         continue;
       }
       if (skill.action === "external_import_required") {
         const source = skill.sourceLocator ?? skill.ref;
         try {
-          const result = await companySkills.importFromSource(companyId, source);
+          const result = await companySkills.importFromSource(
+            companyId,
+            source,
+          );
           warnings.push(...result.warnings);
         } catch (error) {
-          warnings.push(`External skill source ${source} could not be imported after team import: ${formatError(error)}`);
+          warnings.push(
+            `External skill source ${source} could not be imported after team import: ${formatError(error)}`,
+          );
         }
       }
     }
@@ -904,9 +1058,15 @@ export function teamsCatalogService(db: Db) {
     catalogRef: string,
     options: CatalogTeamImportOptions = {},
   ): Promise<CatalogTeamInstallResult> {
-    const prepared = await prepareCatalogTeamSource(companyId, catalogRef, options);
+    const prepared = await prepareCatalogTeamSource(
+      companyId,
+      catalogRef,
+      options,
+    );
     if (prepared.errors.length > 0) {
-      throw unprocessable(`Catalog team source preparation failed: ${prepared.errors.join("; ")}`);
+      throw unprocessable(
+        `Catalog team source preparation failed: ${prepared.errors.join("; ")}`,
+      );
     }
 
     const defaultAdapterType = defaultSafeCatalogAdapterType();
@@ -924,7 +1084,9 @@ export function teamsCatalogService(db: Db) {
       sourceCompanyId: companyId,
     });
     if (importPreview.errors.length > 0) {
-      throw unprocessable(`Catalog team import preview has errors: ${importPreview.errors.join("; ")}`);
+      throw unprocessable(
+        `Catalog team import preview has errors: ${importPreview.errors.join("; ")}`,
+      );
     }
     const defaultedAdapterSlugs = prepared.team.agentSlugs.filter(
       (slug) => !options.adapterOverrides?.[slug],
@@ -940,20 +1102,27 @@ export function teamsCatalogService(db: Db) {
     ];
     const result = await portability.importBundle(
       importInput,
-      options.actor?.userId ?? (options.actor?.actorType === "user" ? options.actor.actorId : null),
+      options.actor?.userId ??
+        (options.actor?.actorType === "user" ? options.actor.actorId : null),
       {
         mode: "agent_safe",
         sourceCompanyId: companyId,
       },
     );
-    warnings.push(...await prepareSkillInstalls(companyId, prepared));
+    warnings.push(...(await prepareSkillInstalls(companyId, prepared)));
     result.warnings.push(...warnings);
-    await logCatalogEvent("company.team_catalog_installed", companyId, prepared.team, options.actor, {
-      warningCount: result.warnings.length,
-      agentCount: result.agents.length,
-      projectCount: result.projects.length,
-      skillPreparationCount: prepared.skillPreparations.length,
-    });
+    await logCatalogEvent(
+      "company.team_catalog_installed",
+      companyId,
+      prepared.team,
+      options.actor,
+      {
+        warningCount: result.warnings.length,
+        agentCount: result.agents.length,
+        projectCount: result.projects.length,
+        skillPreparationCount: prepared.skillPreparations.length,
+      },
+    );
     return {
       team: prepared.team,
       portabilityImport: result,
@@ -968,7 +1137,9 @@ export function teamsCatalogService(db: Db) {
    * out-of-date badge from a real server signal (design
    * [PAP-10238 §3.2 + §5]).
    */
-  async function listInstalledCatalogTeams(companyId: string): Promise<InstalledCatalogTeam[]> {
+  async function listInstalledCatalogTeams(
+    companyId: string,
+  ): Promise<InstalledCatalogTeam[]> {
     const companyAgents = await agents.list(companyId);
     const currentTeams = await getCatalogTeams();
     const currentById = new Map(currentTeams.map((team) => [team.id, team]));
@@ -997,7 +1168,8 @@ export function teamsCatalogService(db: Db) {
         byCatalogId.set(provenance.catalogId, entry);
       }
       entry.agentCount += 1;
-      if (!entry.catalogKey && provenance.catalogKey) entry.catalogKey = provenance.catalogKey;
+      if (!entry.catalogKey && provenance.catalogKey)
+        entry.catalogKey = provenance.catalogKey;
       if (provenance.originHash) entry.originHashes.add(provenance.originHash);
     }
 
@@ -1007,10 +1179,11 @@ export function teamsCatalogService(db: Db) {
         const currentContentHash = current?.contentHash ?? null;
         const installedOriginHashes = Array.from(entry.originHashes).sort();
         const present = Boolean(current);
-        const outOfDate = present
-          && currentContentHash !== null
-          && installedOriginHashes.length > 0
-          && installedOriginHashes.some((hash) => hash !== currentContentHash);
+        const outOfDate =
+          present &&
+          currentContentHash !== null &&
+          installedOriginHashes.length > 0 &&
+          installedOriginHashes.some((hash) => hash !== currentContentHash);
         return {
           catalogId: entry.catalogId,
           catalogKey: entry.catalogKey ?? current?.key ?? null,

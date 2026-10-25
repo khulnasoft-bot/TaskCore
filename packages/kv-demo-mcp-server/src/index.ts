@@ -12,7 +12,9 @@ export interface CreateKvDemoMcpServerResult {
  * Pass a shared store so the HTTP values UI observes the same state the tools
  * mutate.
  */
-export function createKvDemoMcpServer(store: KvStore = new KvStore()): CreateKvDemoMcpServerResult {
+export function createKvDemoMcpServer(
+  store: KvStore = new KvStore(),
+): CreateKvDemoMcpServerResult {
   const server = new McpServer({
     name: "taskcore-kv-demo",
     version: "0.1.0",

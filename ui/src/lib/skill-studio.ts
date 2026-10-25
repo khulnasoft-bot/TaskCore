@@ -34,7 +34,9 @@ export const TERMINAL_RUN_STATUSES: readonly CompanySkillTestRunStatus[] = [
 export const DEFAULT_TEST_RUN_TEMPLATE_ID = "built-in:default-test-template";
 export const NO_TEST_RUN_TEMPLATE_STORAGE_VALUE = "__taskcore_no_template__";
 
-export function isTerminalRunStatus(status: CompanySkillTestRunStatus): boolean {
+export function isTerminalRunStatus(
+  status: CompanySkillTestRunStatus,
+): boolean {
   return TERMINAL_RUN_STATUSES.includes(status);
 }
 
@@ -48,9 +50,12 @@ export function shouldPollRun(status: CompanySkillTestRunStatus): boolean {
  * Studio never invents a bespoke chip (spec D6). `queued` aligns with the
  * pending/yellow treatment.
  */
-export type RunBadgeStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+export type RunBadgeStatus =
+  "queued" | "running" | "succeeded" | "failed" | "cancelled";
 
-export function runBadgeStatus(status: CompanySkillTestRunStatus): RunBadgeStatus {
+export function runBadgeStatus(
+  status: CompanySkillTestRunStatus,
+): RunBadgeStatus {
   return status;
 }
 
@@ -173,9 +178,7 @@ export function syncSavedInputDraftState(
   selectedInput: Pick<CompanySkillTestInput, "id" | "content"> | null,
 ): SavedInputDraftState {
   if (!selectedInput) {
-    return previous.inputId === null
-      ? previous
-      : EMPTY_SAVED_INPUT_DRAFT_STATE;
+    return previous.inputId === null ? previous : EMPTY_SAVED_INPUT_DRAFT_STATE;
   }
 
   if (previous.inputId !== selectedInput.id) {
@@ -206,7 +209,9 @@ export function selectedSavedInputDraft(
   selectedInput: Pick<CompanySkillTestInput, "id" | "content"> | null,
 ): string {
   if (!selectedInput) return "";
-  return state.inputId === selectedInput.id ? state.draft : selectedInput.content;
+  return state.inputId === selectedInput.id
+    ? state.draft
+    : selectedInput.content;
 }
 
 export function savedInputDraftDirty(
@@ -214,9 +219,9 @@ export function savedInputDraftDirty(
   selectedInput: Pick<CompanySkillTestInput, "id" | "content"> | null,
 ): boolean {
   return Boolean(
-    selectedInput
-    && state.inputId === selectedInput.id
-    && state.draft !== selectedInput.content,
+    selectedInput &&
+    state.inputId === selectedInput.id &&
+    state.draft !== selectedInput.content,
   );
 }
 
@@ -241,8 +246,14 @@ export function routeInteraction(kind: string): InteractionRendering {
 }
 
 /** An interaction is answerable inline only while it is still pending. */
-export function isInteractionAnswerable(interaction: { kind: string; status: string }): boolean {
-  return routeInteraction(interaction.kind) === "inline" && interaction.status === "pending";
+export function isInteractionAnswerable(interaction: {
+  kind: string;
+  status: string;
+}): boolean {
+  return (
+    routeInteraction(interaction.kind) === "inline" &&
+    interaction.status === "pending"
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -287,11 +298,15 @@ export interface RunTemplateSelectionResolution {
   recovered: boolean;
 }
 
-export function serializeRunTemplateSelection(selection: RunTemplateSelection): string {
+export function serializeRunTemplateSelection(
+  selection: RunTemplateSelection,
+): string {
   return selection === null ? NO_TEST_RUN_TEMPLATE_STORAGE_VALUE : selection;
 }
 
-export function parseRunTemplateSelection(value: string | null): RunTemplateSelection {
+export function parseRunTemplateSelection(
+  value: string | null,
+): RunTemplateSelection {
   if (value === NO_TEST_RUN_TEMPLATE_STORAGE_VALUE) return null;
   return value && value.trim() ? value : DEFAULT_TEST_RUN_TEMPLATE_ID;
 }
@@ -304,15 +319,18 @@ export function resolveRunTemplateSelection(
     return { selection: null, template: null, recovered: false };
   }
 
-  const template = templates.find((candidate) => candidate.id === selection) ?? null;
+  const template =
+    templates.find((candidate) => candidate.id === selection) ?? null;
   if (template) {
     return { selection, template, recovered: false };
   }
 
   const fallback =
-    templates.find((candidate) => candidate.id === DEFAULT_TEST_RUN_TEMPLATE_ID)
-    ?? templates[0]
-    ?? null;
+    templates.find(
+      (candidate) => candidate.id === DEFAULT_TEST_RUN_TEMPLATE_ID,
+    ) ??
+    templates[0] ??
+    null;
 
   return {
     selection: fallback?.id ?? null,
@@ -336,11 +354,18 @@ export function buildCreateRunRequest(input: {
 }
 
 /** The output document, if the run detail carries one under its output key. */
-export function findOutputDocument(detail: Pick<CompanySkillTestRunDetail, "documents" | "outputDocumentKey">) {
-  return detail.documents.find((doc) => doc.key === detail.outputDocumentKey) ?? null;
+export function findOutputDocument(
+  detail: Pick<CompanySkillTestRunDetail, "documents" | "outputDocumentKey">,
+) {
+  return (
+    detail.documents.find((doc) => doc.key === detail.outputDocumentKey) ?? null
+  );
 }
 
-type RunRichOutputDetail = Pick<CompanySkillTestRunDetail, "outputDocumentKey" | "harnessContent">;
+type RunRichOutputDetail = Pick<
+  CompanySkillTestRunDetail,
+  "outputDocumentKey" | "harnessContent"
+>;
 
 export interface RunHarnessUnavailableCopy {
   title: string;
@@ -356,7 +381,9 @@ export interface RunMediaGalleryItem {
   originalFilename: string | null;
 }
 
-function runHarnessUnavailableTitle(reason: CompanySkillTestRunHarnessContentUnavailableReason | null) {
+function runHarnessUnavailableTitle(
+  reason: CompanySkillTestRunHarnessContentUnavailableReason | null,
+) {
   if (reason === "expired") return "Test task expired";
   if (reason === "deleted") return "Test task deleted";
   return "Test task unavailable";
@@ -372,11 +399,19 @@ export function runHarnessUnavailableCopy(
   };
 }
 
-export function findRunOutputDocument(detail: RunRichOutputDetail): IssueDocument | null {
-  return detail.harnessContent.documents.find((doc) => doc.key === detail.outputDocumentKey) ?? null;
+export function findRunOutputDocument(
+  detail: RunRichOutputDetail,
+): IssueDocument | null {
+  return (
+    detail.harnessContent.documents.find(
+      (doc) => doc.key === detail.outputDocumentKey,
+    ) ?? null
+  );
 }
 
-export function getRunAdditionalDocuments(detail: RunRichOutputDetail): IssueDocument[] {
+export function getRunAdditionalDocuments(
+  detail: RunRichOutputDetail,
+): IssueDocument[] {
   const outputDocument = findRunOutputDocument(detail);
   return detail.harnessContent.documents.filter((doc) => {
     if (doc.key === detail.outputDocumentKey) return false;
@@ -385,23 +420,36 @@ export function getRunAdditionalDocuments(detail: RunRichOutputDetail): IssueDoc
   });
 }
 
-export function getRunRawAttachments(detail: RunRichOutputDetail): IssueAttachment[] {
-  const promotedOutputAttachmentIds = getPromotedOutputAttachmentIds(detail.harnessContent.workProducts);
-  return detail.harnessContent.attachments.filter((attachment) => !promotedOutputAttachmentIds.has(attachment.id));
+export function getRunRawAttachments(
+  detail: RunRichOutputDetail,
+): IssueAttachment[] {
+  const promotedOutputAttachmentIds = getPromotedOutputAttachmentIds(
+    detail.harnessContent.workProducts,
+  );
+  return detail.harnessContent.attachments.filter(
+    (attachment) => !promotedOutputAttachmentIds.has(attachment.id),
+  );
 }
 
-export function getRunMediaGalleryItems(detail: RunRichOutputDetail): RunMediaGalleryItem[] {
+export function getRunMediaGalleryItems(
+  detail: RunRichOutputDetail,
+): RunMediaGalleryItem[] {
   const items: RunMediaGalleryItem[] = [];
   const seen = new Set<string>();
 
-  const mark = (attachmentId: string | null | undefined, contentPath: string) => {
+  const mark = (
+    attachmentId: string | null | undefined,
+    contentPath: string,
+  ) => {
     if (attachmentId) seen.add(`attachment:${attachmentId}`);
     seen.add(`content:${contentPath}`);
   };
-  const hasSeen = (attachmentId: string | null | undefined, contentPath: string) => (
+  const hasSeen = (
+    attachmentId: string | null | undefined,
+    contentPath: string,
+  ) =>
     Boolean(attachmentId && seen.has(`attachment:${attachmentId}`)) ||
-    seen.has(`content:${contentPath}`)
-  );
+    seen.has(`content:${contentPath}`);
 
   for (const attachment of detail.harnessContent.attachments) {
     if (
@@ -414,10 +462,12 @@ export function getRunMediaGalleryItems(detail: RunRichOutputDetail): RunMediaGa
     mark(attachment.id, attachment.contentPath);
   }
 
-  for (const output of getIssueOutputs(detail.harnessContent.workProducts).items) {
+  for (const output of getIssueOutputs(detail.harnessContent.workProducts)
+    .items) {
     const meta = output.metadata;
     if (!meta) continue;
-    const isMedia = isImageContentType(meta.contentType) ||
+    const isMedia =
+      isImageContentType(meta.contentType) ||
       isVideoLikeOutput(meta.contentType, meta.originalFilename);
     if (!isMedia || hasSeen(meta.attachmentId, meta.contentPath)) continue;
     items.push({
@@ -445,7 +495,7 @@ export function getRunMediaGalleryItems(detail: RunRichOutputDetail): RunMediaGa
 export function buildReRunRequest(
   detail: Pick<
     CompanySkillTestRun,
-    "agentId"
+    | "agentId"
     | "inputId"
     | "inputSnapshot"
     | "skillVersionId"
@@ -501,7 +551,9 @@ export function orderRecentlyVisitedSkills(
 function updatedAtMs(skill: Pick<CompanySkillListItem, "updatedAt">): number {
   const value = skill.updatedAt as unknown;
   const time =
-    value instanceof Date ? value.getTime() : new Date(value as string).getTime();
+    value instanceof Date
+      ? value.getTime()
+      : new Date(value as string).getTime();
   return Number.isNaN(time) ? 0 : time;
 }
 

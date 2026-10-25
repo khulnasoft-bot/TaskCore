@@ -35,8 +35,14 @@ describe("provider trace workspace diff reprojection", () => {
       createdFile("test/server.test.js", 5),
     ].join("\n");
     const projection = projectCodexWorkspaceDiffsFromTrace([
-      frame(1, { method: "turn/diff/updated", params: { turnId, diff: first } }),
-      frame(2, { method: "turn/diff/updated", params: { turnId, diff: final } }),
+      frame(1, {
+        method: "turn/diff/updated",
+        params: { turnId, diff: first },
+      }),
+      frame(2, {
+        method: "turn/diff/updated",
+        params: { turnId, diff: final },
+      }),
     ]);
 
     expect(projection.skipReasons).toEqual([]);
@@ -48,15 +54,17 @@ describe("provider trace workspace diff reprojection", () => {
       complete: true,
       totals: { files: 7, additions: 41, deletions: 0 },
     });
-    expect(projection.turns[0]?.payload.files.map((file) => file.path)).toEqual([
-      "README.md",
-      "package.json",
-      "public/game.js",
-      "public/index.html",
-      "public/style.css",
-      "server.js",
-      "test/server.test.js",
-    ]);
+    expect(projection.turns[0]?.payload.files.map((file) => file.path)).toEqual(
+      [
+        "README.md",
+        "package.json",
+        "public/game.js",
+        "public/index.html",
+        "public/style.css",
+        "server.js",
+        "test/server.test.js",
+      ],
+    );
   });
 
   it("keeps prior valid turns while reporting malformed snapshots", () => {
@@ -79,10 +87,17 @@ describe("provider trace workspace diff reprojection", () => {
       }),
     ]);
 
-    expect(projection.turns.map((turn) => turn.turnId)).toEqual(["turn-1", "turn-3"]);
+    expect(projection.turns.map((turn) => turn.turnId)).toEqual([
+      "turn-1",
+      "turn-3",
+    ]);
     expect(projection.skipReasons).toEqual([
       expect.objectContaining({ reason: "missing_turn_id", frameId: 2 }),
-      expect.objectContaining({ reason: "malformed_diff", turnId: "turn-2", frameId: 3 }),
+      expect.objectContaining({
+        reason: "malformed_diff",
+        turnId: "turn-2",
+        frameId: 3,
+      }),
     ]);
   });
 });

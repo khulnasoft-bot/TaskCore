@@ -8,11 +8,7 @@ export type IssueWorkProductType =
   | "document";
 
 export type IssueWorkProductProvider =
-  | "taskcore"
-  | "github"
-  | "vercel"
-  | "s3"
-  | "custom";
+  "taskcore" | "github" | "vercel" | "s3" | "custom";
 
 export type IssueWorkProductStatus =
   | "active"
@@ -26,10 +22,7 @@ export type IssueWorkProductStatus =
   | "draft";
 
 export type IssueWorkProductReviewState =
-  | "none"
-  | "needs_board_review"
-  | "approved"
-  | "changes_requested";
+  "none" | "needs_board_review" | "approved" | "changes_requested";
 
 export interface IssueWorkProduct {
   id: string;
@@ -65,7 +58,8 @@ export interface AttachmentArtifactWorkProductMetadata {
   originalFilename?: string | null;
 }
 
-export type PullRequestWorkProductState = "open" | "draft" | "merged" | "closed";
+export type PullRequestWorkProductState =
+  "open" | "draft" | "merged" | "closed";
 
 export interface PullRequestWorkProductMetadata {
   repo: string;

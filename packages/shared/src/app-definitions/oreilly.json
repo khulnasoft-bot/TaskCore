@@ -3,16 +3,12 @@
   "slug": "oreilly",
   "name": "O'Reilly",
   "description": "Connect O'Reilly's provider-hosted MCP server.",
-  "categories": [
-    "content"
-  ],
+  "categories": ["content"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/oreilly.svg"
   },
-  "urlPatterns": [
-    "https://api.oreilly.com/*"
-  ],
+  "urlPatterns": ["https://api.oreilly.com/*"],
   "docsUrl": "https://learning.oreilly.com/apidocs/mcp/content/",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,16 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://api.oreilly.com/api/content-discovery/v1/mcp/",
-        "scopesHint": [
-          "openid",
-          "offline_access"
-        ]
+        "scopesHint": ["openid", "offline_access"]
       },
       "guidanceMd": "Connect O'Reilly in the browser. An O'Reilly Learning subscription with MCP or API access.",
       "riskTier": "S2",
@@ -37,17 +28,13 @@
       "consoleLinks": {
         "docs": "https://learning.oreilly.com/apidocs/mcp/content/"
       },
-      "warnings": [
-        "An O'Reilly Learning subscription with MCP or API access."
-      ]
+      "warnings": ["An O'Reilly Learning subscription with MCP or API access."]
     },
     {
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://api.oreilly.com/api/content-discovery/v1/mcp/"
@@ -75,9 +62,7 @@
         "keys": "https://learning.oreilly.com/apidocs/mcp/content/",
         "docs": "https://learning.oreilly.com/apidocs/mcp/content/"
       },
-      "warnings": [
-        "An O'Reilly Learning subscription with MCP or API access."
-      ]
+      "warnings": ["An O'Reilly Learning subscription with MCP or API access."]
     }
   ]
 }

@@ -8,11 +8,7 @@
   "acpxPatchSha256": "72f2d860bd78f888ede1c21a89bd48d1ad7198da2f581eafc47d1b3fe445bbb2",
   "publicSetup": "taskcore runtime setup cursor",
   "assets": "public-server-and-provider-pack",
-  "modes": [
-    "agent",
-    "plan",
-    "ask"
-  ],
+  "modes": ["agent", "plan", "ask"],
   "questions": "taskcore-semantic-native-defensive",
   "accounting": "unknown-partial-diagnostics-only",
   "warmFiles": "mainline-owned-checkpoint-handoff",

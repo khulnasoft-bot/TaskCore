@@ -38,7 +38,10 @@ export function ReviewQueueCard({
   const { selectedCompanyId } = useCompany();
 
   const query = useQuery({
-    queryKey: queryKeys.tools.actionRequests(selectedCompanyId ?? "__none__", "pending"),
+    queryKey: queryKeys.tools.actionRequests(
+      selectedCompanyId ?? "__none__",
+      "pending",
+    ),
     queryFn: () => toolsApi.listActionRequests(selectedCompanyId!, "pending"),
     enabled: !!selectedCompanyId,
     refetchInterval: 20_000,
@@ -46,17 +49,30 @@ export function ReviewQueueCard({
 
   const items = useMemo(() => {
     const all = query.data?.actionRequests ?? [];
-    return connectionId ? all.filter((item) => item.connectionId === connectionId) : all;
+    return connectionId
+      ? all.filter((item) => item.connectionId === connectionId)
+      : all;
   }, [query.data, connectionId]);
 
   if (!selectedCompanyId) return null;
   if (query.isLoading) return null;
-  if (query.isError) return <p role="alert" className="text-sm text-destructive">Could not load connection reviews. Please refresh to try again.</p>;
+  if (query.isError)
+    return (
+      <p role="alert" className="text-sm text-destructive">
+        Could not load connection reviews. Please refresh to try again.
+      </p>
+    );
 
   if (items.length === 0) {
     if (emptyState === "hidden") return null;
     return (
-      <div className={plain ? "py-5 text-sm text-muted-foreground" : "rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground"}>
+      <div
+        className={
+          plain
+            ? "py-5 text-sm text-muted-foreground"
+            : "rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground"
+        }
+      >
         Nothing is waiting for your OK right now.
       </div>
     );
@@ -73,7 +89,12 @@ export function ReviewQueueCard({
       </div>
       <div className="space-y-3">
         {items.map((item) => (
-          <ReviewRow key={item.request.id} companyId={selectedCompanyId} item={item} plain={plain} />
+          <ReviewRow
+            key={item.request.id}
+            companyId={selectedCompanyId}
+            item={item}
+            plain={plain}
+          />
         ))}
       </div>
     </section>
@@ -91,27 +112,44 @@ function ReviewRow({
 }) {
   const queryClient = useQueryClient();
   const { pushToast } = useToast();
-  const [resolving, setResolving] = useState<null | "allow" | "always" | "decline">(null);
+  const [resolving, setResolving] = useState<
+    null | "allow" | "always" | "decline"
+  >(null);
 
   const interactionQuery = useQuery({
     queryKey: queryKeys.issues.interactions(item.request.issueId ?? "__none__"),
     queryFn: () => issuesApi.listInteractions(item.request.issueId!),
     enabled: Boolean(item.request.issueId && item.request.interactionId),
   });
-  const linkedInteraction = interactionQuery.data?.find(row => row.id === item.request.interactionId);
+  const linkedInteraction = interactionQuery.data?.find(
+    (row) => row.id === item.request.interactionId,
+  );
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.tools.actionRequests(companyId, "pending") });
-    queryClient.invalidateQueries({ queryKey: queryKeys.apps.attention(companyId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.tools.trustRules(companyId) });
-    if (item.request.issueId) queryClient.invalidateQueries({ queryKey: queryKeys.issues.interactions(item.request.issueId) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.tools.actionRequests(companyId, "pending"),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.apps.attention(companyId),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.tools.trustRules(companyId),
+    });
+    if (item.request.issueId)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.interactions(item.request.issueId),
+      });
   };
 
   const allowOnce = useMutation({
     mutationFn: () => toolsApi.approveActionRequest(companyId, item.request.id),
     onMutate: () => setResolving("allow"),
     onSuccess: () => {
-      pushToast({ title: "Allowed once", body: `${actionLabel(item)} can run this time.`, tone: "success" });
+      pushToast({
+        title: "Allowed once",
+        body: `${actionLabel(item)} can run this time.`,
+        tone: "success",
+      });
       invalidate();
     },
     onError: (error) => {
@@ -133,7 +171,9 @@ function ReviewRow({
         tone: "success",
       });
       invalidate();
-      queryClient.invalidateQueries({ queryKey: queryKeys.tools.trustRules(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tools.trustRules(companyId),
+      });
     },
     onError: (error) => {
       invalidate();
@@ -146,7 +186,11 @@ function ReviewRow({
     mutationFn: () => toolsApi.declineActionRequest(companyId, item.request.id),
     onMutate: () => setResolving("decline"),
     onSuccess: () => {
-      pushToast({ title: "Declined", body: `${actionLabel(item)} won’t run.`, tone: "info" });
+      pushToast({
+        title: "Declined",
+        body: `${actionLabel(item)} won’t run.`,
+        tone: "info",
+      });
       invalidate();
     },
     onError: (error) => {
@@ -156,23 +200,47 @@ function ReviewRow({
     onSettled: () => setResolving(null),
   });
 
-  if (linkedInteraction) return <IssueThreadInteractionCard
-    interaction={linkedInteraction}
-    onAcceptInteraction={async (_interaction, _keys, _options, rememberAction) => {
-      try { await toolsApi.approveActionRequest(companyId, item.request.id, rememberAction); }
-      finally { invalidate(); }
-    }}
-    onRejectInteraction={async (_interaction, reason) => {
-      try { await toolsApi.declineActionRequest(companyId, item.request.id, reason); }
-      finally { invalidate(); }
-    }}
-  />;
+  if (linkedInteraction)
+    return (
+      <IssueThreadInteractionCard
+        interaction={linkedInteraction}
+        onAcceptInteraction={async (
+          _interaction,
+          _keys,
+          _options,
+          rememberAction,
+        ) => {
+          try {
+            await toolsApi.approveActionRequest(
+              companyId,
+              item.request.id,
+              rememberAction,
+            );
+          } finally {
+            invalidate();
+          }
+        }}
+        onRejectInteraction={async (_interaction, reason) => {
+          try {
+            await toolsApi.declineActionRequest(
+              companyId,
+              item.request.id,
+              reason,
+            );
+          } finally {
+            invalidate();
+          }
+        }}
+      />
+    );
 
   const busy = resolving !== null;
   const preview = item.request.previewMarkdown?.trim();
 
   return (
-    <div className={plain ? "py-3" : "rounded-xl border border-border bg-card p-4"}>
+    <div
+      className={plain ? "py-3" : "rounded-xl border border-border bg-card p-4"}
+    >
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
         <span className="font-bold text-foreground">{actionLabel(item)}</span>
         {item.applicationName && (
@@ -180,7 +248,9 @@ function ReviewRow({
             in {humanizeConnectionDisplayName(item.applicationName)}
           </span>
         )}
-        <span className="text-xs text-muted-foreground">· asked {timeAgo(item.request.createdAt)}</span>
+        <span className="text-xs text-muted-foreground">
+          · asked {timeAgo(item.request.createdAt)}
+        </span>
       </div>
 
       {preview ? (
@@ -189,22 +259,54 @@ function ReviewRow({
         </div>
       ) : (
         <p className="mt-1 text-sm text-muted-foreground">
-          An agent wants to run this action. Your connection policy requires approval first.
+          An agent wants to run this action. Your connection policy requires
+          approval first.
         </p>
       )}
 
-      {item.requestedByAgentId && item.connectionId && !item.request.approvalId ? <p className="mt-2 text-xs text-muted-foreground">Always allow lets this agent use this action with different arguments on this connection, within the current project when present.</p> : null}
+      {item.requestedByAgentId &&
+      item.connectionId &&
+      !item.request.approvalId ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Always allow lets this agent use this action with different arguments
+          on this connection, within the current project when present.
+        </p>
+      ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => allowOnce.mutate()} disabled={busy}>
-          {resolving === "allow" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
+          {resolving === "allow" ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Check className="mr-1.5 h-3.5 w-3.5" />
+          )}
           Allow once
         </Button>
-        {item.requestedByAgentId && item.connectionId && !item.request.approvalId ? <Button size="sm" variant="outline" onClick={() => alwaysAllow.mutate()} disabled={busy}>
-          {resolving === "always" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-          Always allow
-        </Button> : null}
-        <Button size="sm" variant="ghost" onClick={() => decline.mutate()} disabled={busy}>
-          {resolving === "decline" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <X className="mr-1.5 h-3.5 w-3.5" />}
+        {item.requestedByAgentId &&
+        item.connectionId &&
+        !item.request.approvalId ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => alwaysAllow.mutate()}
+            disabled={busy}
+          >
+            {resolving === "always" ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : null}
+            Always allow
+          </Button>
+        ) : null}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => decline.mutate()}
+          disabled={busy}
+        >
+          {resolving === "decline" ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <X className="mr-1.5 h-3.5 w-3.5" />
+          )}
           Decline
         </Button>
       </div>
@@ -214,7 +316,9 @@ function ReviewRow({
 
 function actionLabel(item: ToolActionRequestListItem): string {
   if (!item.toolTitle && !item.toolName) return "This action";
-  return humanizeConnectionDisplayName(item.toolName ?? "", { title: item.toolTitle });
+  return humanizeConnectionDisplayName(item.toolName ?? "", {
+    title: item.toolTitle,
+  });
 }
 
 function failToast(

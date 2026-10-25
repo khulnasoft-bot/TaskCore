@@ -97,7 +97,9 @@ describe("useInboxSortAttention", () => {
     vi.advanceTimersByTime(INBOX_SORT_IDLE_COMMIT_MS);
     // The idle timer re-arms after each fire, so a long-idle inbox never freezes
     // at the first snapshot.
-    const idleCalls = hook.onCommit.mock.calls.filter(([reason]) => reason === "idle");
+    const idleCalls = hook.onCommit.mock.calls.filter(
+      ([reason]) => reason === "idle",
+    );
     expect(idleCalls.length).toBe(3);
     hook.unmount();
   });

@@ -29,7 +29,8 @@ const manifest: TaskcorePluginManifestV1 = {
           bridgeBaseUrl: {
             type: "string",
             format: "uri",
-            description: "Base URL of the operator-deployed Cloudflare Worker bridge.",
+            description:
+              "Base URL of the operator-deployed Cloudflare Worker bridge.",
           },
           bridgeAuthToken: {
             type: "string",
@@ -40,12 +41,14 @@ const manifest: TaskcorePluginManifestV1 = {
           reuseLease: {
             type: "boolean",
             default: false,
-            description: "Reuse a sandbox by environment ID instead of creating one per run.",
+            description:
+              "Reuse a sandbox by environment ID instead of creating one per run.",
           },
           keepAlive: {
             type: "boolean",
             default: false,
-            description: "Prevent Cloudflare from idling the container between requests.",
+            description:
+              "Prevent Cloudflare from idling the container between requests.",
           },
           sleepAfter: {
             type: "string",
@@ -56,28 +59,33 @@ const manifest: TaskcorePluginManifestV1 = {
           normalizeId: {
             type: "boolean",
             default: true,
-            description: "Lowercase and normalize sandbox IDs for operator-friendly naming.",
+            description:
+              "Lowercase and normalize sandbox IDs for operator-friendly naming.",
           },
           requestedCwd: {
             type: "string",
             default: "/workspace/taskcore",
-            description: "Workspace directory to create inside the sandbox lease.",
+            description:
+              "Workspace directory to create inside the sandbox lease.",
           },
           sessionStrategy: {
             type: "string",
             enum: ["named", "default"],
             default: "named",
-            description: "Whether to run commands in a stable named session or the default session.",
+            description:
+              "Whether to run commands in a stable named session or the default session.",
           },
           sessionId: {
             type: "string",
             default: "taskcore",
-            description: "Named Cloudflare session ID used when sessionStrategy is named.",
+            description:
+              "Named Cloudflare session ID used when sessionStrategy is named.",
           },
           timeoutMs: {
             type: "number",
             default: 300000,
-            description: "Default per-command timeout passed through to the bridge.",
+            description:
+              "Default per-command timeout passed through to the bridge.",
           },
           bridgeRequestTimeoutMs: {
             type: "number",
@@ -86,7 +94,8 @@ const manifest: TaskcorePluginManifestV1 = {
           },
           previewHostname: {
             type: "string",
-            description: "Optional hostname reserved for future preview URL support.",
+            description:
+              "Optional hostname reserved for future preview URL support.",
           },
         },
         required: ["bridgeBaseUrl", "bridgeAuthToken"],

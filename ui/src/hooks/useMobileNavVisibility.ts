@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { MobileNavScrollTracker } from "../lib/mobile-nav-scroll";
 
-export function useMobileNavVisibility(enabled: boolean, pathname: string): boolean {
+export function useMobileNavVisibility(
+  enabled: boolean,
+  pathname: string,
+): boolean {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -9,7 +12,8 @@ export function useMobileNavVisibility(enabled: boolean, pathname: string): bool
     if (!enabled) return;
 
     const styles = getComputedStyle(document.documentElement);
-    const distance = (token: string) => Number.parseFloat(styles.getPropertyValue(token)) || 0;
+    const distance = (token: string) =>
+      Number.parseFloat(styles.getPropertyValue(token)) || 0;
     const scrollBounds = () => {
       const root = document.scrollingElement ?? document.documentElement;
       return {
@@ -18,11 +22,15 @@ export function useMobileNavVisibility(enabled: boolean, pathname: string): bool
       };
     };
     const initial = scrollBounds();
-    const tracker = new MobileNavScrollTracker({
-      topZone: distance("--mobile-nav-scroll-top-zone"),
-      hideDistance: distance("--mobile-nav-scroll-hide-distance"),
-      showDistance: distance("--mobile-nav-scroll-show-distance"),
-    }, initial.top, initial.max);
+    const tracker = new MobileNavScrollTracker(
+      {
+        topZone: distance("--mobile-nav-scroll-top-zone"),
+        hideDistance: distance("--mobile-nav-scroll-hide-distance"),
+        showDistance: distance("--mobile-nav-scroll-show-distance"),
+      },
+      initial.top,
+      initial.max,
+    );
     let frame: number | null = null;
     const onScroll = () => {
       if (frame !== null) return;

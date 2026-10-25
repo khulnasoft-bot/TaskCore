@@ -27,13 +27,15 @@
     "semanticTools": {
       "schema": "taskcore.prp.semantic_tools.v1",
       "schemaVersion": 1,
-      "operations": [{
-        "operationId": "register_deliverable",
-        "version": 1,
-        "availability": "available",
-        "redactionDisposition": "digest_only",
-        "requiredClaims": []
-      }]
+      "operations": [
+        {
+          "operationId": "register_deliverable",
+          "version": 1,
+          "availability": "available",
+          "redactionDisposition": "digest_only",
+          "requiredClaims": []
+        }
+      ]
     },
     "unsupported": []
   },
@@ -142,11 +144,28 @@
         "schema": "taskcore.run_result.v1",
         "reportedWorkDisposition": "done",
         "summary": "The artifact was registered through the semantic tool receipt.",
-        "completionClaim": { "contractRevision": "semantic-receipts-v1", "objectiveSatisfied": true, "criteria": [], "remainingWork": [] },
+        "completionClaim": {
+          "contractRevision": "semantic-receipts-v1",
+          "objectiveSatisfied": true,
+          "criteria": [],
+          "remainingWork": []
+        },
         "evidence": [{ "receiptId": "receipt_semantic_happy" }],
-        "verification": [{ "commandOrCheck": "semantic artifact receipt", "status": "passed", "artifactRef": "artifact_semantic_happy" }],
+        "verification": [
+          {
+            "commandOrCheck": "semantic artifact receipt",
+            "status": "passed",
+            "artifactRef": "artifact_semantic_happy"
+          }
+        ],
         "attentionRequests": [],
-        "artifacts": [{ "kind": "artifact", "ref": "artifact_semantic_happy", "title": "Semantic receipt report" }]
+        "artifacts": [
+          {
+            "kind": "artifact",
+            "ref": "artifact_semantic_happy",
+            "title": "Semantic receipt report"
+          }
+        ]
       }
     },
     {
@@ -177,10 +196,27 @@
     "schema": "taskcore.run_result.v1",
     "reportedWorkDisposition": "done",
     "summary": "The artifact was registered through the semantic tool receipt.",
-    "completionClaim": { "contractRevision": "semantic-receipts-v1", "objectiveSatisfied": true, "criteria": [], "remainingWork": [] },
+    "completionClaim": {
+      "contractRevision": "semantic-receipts-v1",
+      "objectiveSatisfied": true,
+      "criteria": [],
+      "remainingWork": []
+    },
     "evidence": [{ "receiptId": "receipt_semantic_happy" }],
-    "verification": [{ "commandOrCheck": "semantic artifact receipt", "status": "passed", "artifactRef": "artifact_semantic_happy" }],
+    "verification": [
+      {
+        "commandOrCheck": "semantic artifact receipt",
+        "status": "passed",
+        "artifactRef": "artifact_semantic_happy"
+      }
+    ],
     "attentionRequests": [],
-    "artifacts": [{ "kind": "artifact", "ref": "artifact_semantic_happy", "title": "Semantic receipt report" }]
+    "artifacts": [
+      {
+        "kind": "artifact",
+        "ref": "artifact_semantic_happy",
+        "title": "Semantic receipt report"
+      }
+    ]
   }
 }

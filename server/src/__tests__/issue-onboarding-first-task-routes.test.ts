@@ -2,7 +2,15 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
 import { and, eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   costEvents,
   activityLog,
@@ -49,7 +57,9 @@ const mockAdapterExecute = vi.hoisted(() =>
 );
 
 vi.mock("../adapters/index.ts", async () => {
-  const actual = await vi.importActual<typeof import("../adapters/index.ts")>("../adapters/index.ts");
+  const actual = await vi.importActual<typeof import("../adapters/index.ts")>(
+    "../adapters/index.ts",
+  );
   return {
     ...actual,
     getServerAdapter: vi.fn(() => ({
@@ -60,7 +70,9 @@ vi.mock("../adapters/index.ts", async () => {
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -72,10 +84,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-onboarding-first-task-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-onboarding-first-task-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -150,10 +166,12 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
     return db
       .select()
       .from(issues)
-      .where(and(
-        eq(issues.companyId, companyId),
-        eq(issues.originKind, ONBOARDING_FIRST_TASK_ORIGIN_KIND),
-      ));
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.originKind, ONBOARDING_FIRST_TASK_ORIGIN_KIND),
+        ),
+      );
   }
 
   it("stamps the onboarding origin and seeds the agent-attributed greeting on the first task", async () => {
@@ -163,7 +181,11 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
 
     const created = await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ title: "Get started", onboardingFirstTask: true, assigneeAgentId: agentId })
+      .send({
+        title: "Get started",
+        onboardingFirstTask: true,
+        assigneeAgentId: agentId,
+      })
       .expect(201);
 
     expect(created.body.originKind).toBe(ONBOARDING_FIRST_TASK_ORIGIN_KIND);
@@ -172,7 +194,10 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
       .from(issueComments)
       .where(eq(issueComments.issueId, created.body.id));
     expect(comments).toHaveLength(1);
-    expect(comments[0]).toMatchObject({ authorType: "agent", authorAgentId: agentId });
+    expect(comments[0]).toMatchObject({
+      authorType: "agent",
+      authorAgentId: agentId,
+    });
   });
 
   it("seeds the two-option opening question card as the assignee on the first task", async () => {
@@ -182,7 +207,11 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
 
     const created = await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ title: "Get started", onboardingFirstTask: true, assigneeAgentId: agentId })
+      .send({
+        title: "Get started",
+        onboardingFirstTask: true,
+        assigneeAgentId: agentId,
+      })
       .expect(201);
 
     const interactions = await db
@@ -199,16 +228,25 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
     });
     const payload = interactions[0].payload as {
       supersedeOnUserComment?: boolean;
-      questions: Array<{ selectionMode: string; options: Array<{ id: string; label: string; freeText?: boolean }> }>;
+      questions: Array<{
+        selectionMode: string;
+        options: Array<{ id: string; label: string; freeText?: boolean }>;
+      }>;
     };
     expect(payload.supersedeOnUserComment).toBe(true);
     expect(payload.questions).toHaveLength(1);
     expect(payload.questions[0].selectionMode).toBe("single");
-    expect(payload.questions[0].options.map((option) => option.id)).toEqual(["interview", "task"]);
+    expect(payload.questions[0].options.map((option) => option.id)).toEqual([
+      "interview",
+      "task",
+    ]);
     expect(payload.questions[0].options[0].label).toBe(
       "Interview me and propose a plan and an agent team to execute it.",
     );
-    expect(payload.questions[0].options[1]).toMatchObject({ label: "I have a task in mind", freeText: true });
+    expect(payload.questions[0].options[1]).toMatchObject({
+      label: "I have a task in mind",
+      freeText: true,
+    });
 
     // The seeded card is read-only for the thread until the user answers: it
     // must not have queued a run by itself.
@@ -251,7 +289,11 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
 
     const created = await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ title: "Race loser", onboardingFirstTask: true, assigneeAgentId: agentId })
+      .send({
+        title: "Race loser",
+        onboardingFirstTask: true,
+        assigneeAgentId: agentId,
+      })
       .expect(201);
 
     expect(created.body.originKind).toBe("manual");
@@ -294,10 +336,18 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
       })
       .expect(201);
 
-    expect(created.body.description).toContain("Use the `first-task` skill (/first-task)");
-    expect(created.body.description).toContain("Single-task proposal mode: `confirmation`.");
-    expect(created.body.description).not.toContain("Take the path the user picked.");
-    expect(created.body.description).not.toContain("client supplied description");
+    expect(created.body.description).toContain(
+      "Use the `first-task` skill (/first-task)",
+    );
+    expect(created.body.description).toContain(
+      "Single-task proposal mode: `confirmation`.",
+    );
+    expect(created.body.description).not.toContain(
+      "Take the path the user picked.",
+    );
+    expect(created.body.description).not.toContain(
+      "client supplied description",
+    );
   });
 
   it("invokes the skill in plan mode when enableFirstTaskPlanProposal is on", async () => {
@@ -305,7 +355,11 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
     const app = createApp();
     await db
       .insert(instanceSettings)
-      .values({ singletonKey: "default", general: {}, experimental: { enableFirstTaskPlanProposal: true } })
+      .values({
+        singletonKey: "default",
+        general: {},
+        experimental: { enableFirstTaskPlanProposal: true },
+      })
       .onConflictDoUpdate({
         target: [instanceSettings.singletonKey],
         set: { experimental: { enableFirstTaskPlanProposal: true } },
@@ -316,9 +370,15 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
       .send({ title: "Get started", onboardingFirstTask: true })
       .expect(201);
 
-    expect(created.body.description).toContain("Use the `first-task` skill (/first-task)");
-    expect(created.body.description).toContain("Single-task proposal mode: `plan`.");
-    expect(created.body.description).not.toContain("request_checkbox_confirmation");
+    expect(created.body.description).toContain(
+      "Use the `first-task` skill (/first-task)",
+    );
+    expect(created.body.description).toContain(
+      "Single-task proposal mode: `plan`.",
+    );
+    expect(created.body.description).not.toContain(
+      "request_checkbox_confirmation",
+    );
 
     await db.delete(instanceSettings);
   });
@@ -330,7 +390,11 @@ describeEmbeddedPostgres("issue create onboarding first-task routes", () => {
 
     await request(app)
       .post(`/api/companies/${companyId}/issues`)
-      .send({ title: "Get started", onboardingFirstTask: true, assigneeAgentId: agentId })
+      .send({
+        title: "Get started",
+        onboardingFirstTask: true,
+        assigneeAgentId: agentId,
+      })
       .expect(201);
 
     await drainHeartbeatRunsToQuiescence(db, heartbeatService(db));

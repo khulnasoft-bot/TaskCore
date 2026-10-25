@@ -4,14 +4,27 @@ import { envConfigSchema } from "./secret.js";
 import { trustAuthorizationPolicySchema } from "./trust-policy.js";
 import { objectWithoutDefaults } from "./partial.js";
 
-export const projectDiscoverySchema = z.object({
-  limit: z.number().int().min(1).max(50).default(50),
-  cursor: z.string().uuid().transform(value => value.toLowerCase()).optional(),
-}).strict();
+export const projectDiscoverySchema = z
+  .object({
+    limit: z.number().int().min(1).max(50).default(50),
+    cursor: z
+      .string()
+      .uuid()
+      .transform((value) => value.toLowerCase())
+      .optional(),
+  })
+  .strict();
 
 const executionWorkspaceStrategySchema = z
   .object({
-    type: z.enum(["project_primary", "git_worktree", "adapter_managed", "cloud_sandbox"]).optional(),
+    type: z
+      .enum([
+        "project_primary",
+        "git_worktree",
+        "adapter_managed",
+        "cloud_sandbox",
+      ])
+      .optional(),
     baseRef: z.string().optional().nullable(),
     branchTemplate: z.string().optional().nullable(),
     worktreeParentDir: z.string().optional().nullable(),
@@ -24,8 +37,17 @@ const executionWorkspaceStrategySchema = z
 export const projectExecutionWorkspacePolicySchema = z
   .object({
     enabled: z.boolean(),
-    sharedWorkspaceConcurrency: z.enum(["auto", "serialize", "allow"]).optional(),
-    defaultMode: z.enum(["shared_workspace", "isolated_workspace", "operator_branch", "adapter_default"]).optional(),
+    sharedWorkspaceConcurrency: z
+      .enum(["auto", "serialize", "allow"])
+      .optional(),
+    defaultMode: z
+      .enum([
+        "shared_workspace",
+        "isolated_workspace",
+        "operator_branch",
+        "adapter_default",
+      ])
+      .optional(),
     allowIssueOverride: z.boolean().optional(),
     defaultProjectWorkspaceId: z.string().guid().optional().nullable(),
     environmentId: z.string().guid().optional().nullable(),
@@ -39,13 +61,26 @@ export const projectExecutionWorkspacePolicySchema = z
   })
   .strict();
 
-export const projectWorkspaceRuntimeConfigSchema = z.object({
-  workspaceRuntime: z.record(z.string(), z.unknown()).optional().nullable(),
-  desiredState: z.enum(["running", "stopped", "manual"]).optional().nullable(),
-  serviceStates: z.record(z.string(), z.enum(["running", "stopped", "manual"])).optional().nullable(),
-}).strict();
+export const projectWorkspaceRuntimeConfigSchema = z
+  .object({
+    workspaceRuntime: z.record(z.string(), z.unknown()).optional().nullable(),
+    desiredState: z
+      .enum(["running", "stopped", "manual"])
+      .optional()
+      .nullable(),
+    serviceStates: z
+      .record(z.string(), z.enum(["running", "stopped", "manual"]))
+      .optional()
+      .nullable(),
+  })
+  .strict();
 
-const projectWorkspaceSourceTypeSchema = z.enum(["local_path", "git_repo", "remote_managed", "non_git_path"]);
+const projectWorkspaceSourceTypeSchema = z.enum([
+  "local_path",
+  "git_repo",
+  "remote_managed",
+  "non_git_path",
+]);
 const projectWorkspaceVisibilitySchema = z.enum(["default", "advanced"]);
 
 const projectWorkspaceFields = {
@@ -65,17 +100,24 @@ const projectWorkspaceFields = {
   runtimeConfig: projectWorkspaceRuntimeConfigSchema.optional().nullable(),
 };
 
-function validateProjectWorkspace(value: Record<string, unknown>, ctx: z.RefinementCtx) {
+function validateProjectWorkspace(
+  value: Record<string, unknown>,
+  ctx: z.RefinementCtx,
+) {
   const sourceType = value.sourceType ?? "local_path";
   const hasCwd = typeof value.cwd === "string" && value.cwd.trim().length > 0;
-  const hasRepo = typeof value.repoUrl === "string" && value.repoUrl.trim().length > 0;
-  const hasRemoteRef = typeof value.remoteWorkspaceRef === "string" && value.remoteWorkspaceRef.trim().length > 0;
+  const hasRepo =
+    typeof value.repoUrl === "string" && value.repoUrl.trim().length > 0;
+  const hasRemoteRef =
+    typeof value.remoteWorkspaceRef === "string" &&
+    value.remoteWorkspaceRef.trim().length > 0;
 
   if (sourceType === "remote_managed") {
     if (!hasRemoteRef && !hasRepo) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Remote-managed workspace requires remoteWorkspaceRef or repoUrl.",
+        message:
+          "Remote-managed workspace requires remoteWorkspaceRef or repoUrl.",
         path: ["remoteWorkspaceRef"],
       });
     }
@@ -91,19 +133,27 @@ function validateProjectWorkspace(value: Record<string, unknown>, ctx: z.Refinem
   }
 }
 
-export const createProjectWorkspaceSchema = z.object({
-  ...projectWorkspaceFields,
-  isPrimary: z.boolean().optional().default(false),
-}).superRefine(validateProjectWorkspace);
+export const createProjectWorkspaceSchema = z
+  .object({
+    ...projectWorkspaceFields,
+    isPrimary: z.boolean().optional().default(false),
+  })
+  .superRefine(validateProjectWorkspace);
 
-export type CreateProjectWorkspace = z.infer<typeof createProjectWorkspaceSchema>;
+export type CreateProjectWorkspace = z.infer<
+  typeof createProjectWorkspaceSchema
+>;
 
-export const updateProjectWorkspaceSchema = z.object({
-  ...projectWorkspaceFields,
-  isPrimary: z.boolean().optional(),
-}).partial();
+export const updateProjectWorkspaceSchema = z
+  .object({
+    ...projectWorkspaceFields,
+    isPrimary: z.boolean().optional(),
+  })
+  .partial();
 
-export type UpdateProjectWorkspace = z.infer<typeof updateProjectWorkspaceSchema>;
+export type UpdateProjectWorkspace = z.infer<
+  typeof updateProjectWorkspaceSchema
+>;
 
 const projectFields = {
   /** @deprecated Use goalIds instead */
@@ -118,7 +168,9 @@ const projectFields = {
   color: z.string().optional().nullable(),
   icon: z.enum(PROJECT_ICON_NAMES).optional().nullable(),
   env: envConfigSchema.optional().nullable(),
-  executionWorkspacePolicy: projectExecutionWorkspacePolicySchema.optional().nullable(),
+  executionWorkspacePolicy: projectExecutionWorkspacePolicySchema
+    .optional()
+    .nullable(),
   archivedAt: z.string().datetime().optional().nullable(),
 };
 
@@ -143,6 +195,10 @@ export const addProjectAccessMemberSchema = z.object({
   subjectId: z.string().min(1),
 });
 
-export type AddProjectAccessMember = z.infer<typeof addProjectAccessMemberSchema>;
+export type AddProjectAccessMember = z.infer<
+  typeof addProjectAccessMemberSchema
+>;
 
-export type ProjectExecutionWorkspacePolicy = z.infer<typeof projectExecutionWorkspacePolicySchema>;
+export type ProjectExecutionWorkspacePolicy = z.infer<
+  typeof projectExecutionWorkspacePolicySchema
+>;

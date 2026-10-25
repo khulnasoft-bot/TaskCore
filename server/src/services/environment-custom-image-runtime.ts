@@ -8,11 +8,15 @@ import {
   type EnvironmentCustomImageTemplateKind,
   type SandboxEnvironmentConfig,
 } from "@taskcore/shared";
-import { readConfigValueAtPath, writeConfigValueAtPath } from "./json-schema-secret-refs.js";
+import {
+  readConfigValueAtPath,
+  writeConfigValueAtPath,
+} from "./json-schema-secret-refs.js";
 
 type TemplateRow = typeof environmentCustomImageTemplates.$inferSelect;
 
-export const ENVIRONMENT_CUSTOM_IMAGE_RUNTIME_CONFIG_BINDING_METADATA_KEY = "runtimeConfigBinding";
+export const ENVIRONMENT_CUSTOM_IMAGE_RUNTIME_CONFIG_BINDING_METADATA_KEY =
+  "runtimeConfigBinding";
 export const ENVIRONMENT_CUSTOM_IMAGE_CONFIG_FINGERPRINT_EXCLUDED_PATHS = [
   "timeoutMs",
   "reuseLease",
@@ -41,7 +45,10 @@ function stableStringify(value: unknown): string {
     return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
   }
   if (isRecord(value)) {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(value) ?? "null";
 }
@@ -49,8 +56,10 @@ function stableStringify(value: unknown): string {
 export function readEnvironmentCustomImageTemplateKind(
   value: string | null,
 ): EnvironmentCustomImageTemplateKind {
-  return (ENVIRONMENT_CUSTOM_IMAGE_TEMPLATE_KINDS as readonly string[]).includes(value ?? "")
-    ? value as EnvironmentCustomImageTemplateKind
+  return (
+    ENVIRONMENT_CUSTOM_IMAGE_TEMPLATE_KINDS as readonly string[]
+  ).includes(value ?? "")
+    ? (value as EnvironmentCustomImageTemplateKind)
     : "unknown";
 }
 
@@ -60,23 +69,28 @@ export function defaultEnvironmentCustomImageRuntimeConfigBinding(
   const kind = readEnvironmentCustomImageTemplateKind(templateKind ?? null);
   if (kind === "snapshot") return { field: "snapshot", unsetFields: ["image"] };
   if (kind === "image") return { field: "image", unsetFields: ["snapshot"] };
-  if (kind === "provider_template") return { field: "template", unsetFields: [] };
+  if (kind === "provider_template")
+    return { field: "template", unsetFields: [] };
   return { field: "templateRef", unsetFields: [] };
 }
 
 function isValidRuntimeConfigBindingField(value: unknown): value is string {
-  return typeof value === "string"
-    && /^[A-Za-z_][A-Za-z0-9_-]*$/.test(value)
-    && value !== "provider";
+  return (
+    typeof value === "string" &&
+    /^[A-Za-z_][A-Za-z0-9_-]*$/.test(value) &&
+    value !== "provider"
+  );
 }
 
 export function normalizeEnvironmentCustomImageRuntimeConfigBinding(
   value: unknown,
 ): EnvironmentCustomImageRuntimeConfigBinding | null {
-  if (!isRecord(value) || !isValidRuntimeConfigBindingField(value.field)) return null;
+  if (!isRecord(value) || !isValidRuntimeConfigBindingField(value.field))
+    return null;
   const unsetFields = Array.isArray(value.unsetFields)
-    ? value.unsetFields.filter((field): field is string =>
-        isValidRuntimeConfigBindingField(field) && field !== value.field,
+    ? value.unsetFields.filter(
+        (field): field is string =>
+          isValidRuntimeConfigBindingField(field) && field !== value.field,
       )
     : [];
   return {
@@ -89,9 +103,13 @@ export function resolveEnvironmentCustomImageRuntimeConfigBinding(input: {
   templateKind: string | null | undefined;
   metadata?: Record<string, unknown> | null;
 }): EnvironmentCustomImageRuntimeConfigBinding {
-  return normalizeEnvironmentCustomImageRuntimeConfigBinding(
-    input.metadata?.[ENVIRONMENT_CUSTOM_IMAGE_RUNTIME_CONFIG_BINDING_METADATA_KEY],
-  ) ?? defaultEnvironmentCustomImageRuntimeConfigBinding(input.templateKind);
+  return (
+    normalizeEnvironmentCustomImageRuntimeConfigBinding(
+      input.metadata?.[
+        ENVIRONMENT_CUSTOM_IMAGE_RUNTIME_CONFIG_BINDING_METADATA_KEY
+      ],
+    ) ?? defaultEnvironmentCustomImageRuntimeConfigBinding(input.templateKind)
+  );
 }
 
 export function fingerprintEnvironmentSandboxProviderConfig(
@@ -102,14 +120,15 @@ export function fingerprintEnvironmentSandboxProviderConfig(
   for (const path of options?.excludePaths ?? []) {
     normalized = writeConfigValueAtPath(normalized, path, undefined);
   }
-  return createHash("sha256")
-    .update(stableStringify(normalized))
-    .digest("hex");
+  return createHash("sha256").update(stableStringify(normalized)).digest("hex");
 }
 
 export function applyCustomImageTemplateToSandboxConfig(
   config: SandboxEnvironmentConfig,
-  template: Pick<EnvironmentCustomImageTemplate, "templateKind" | "templateRef" | "metadata">,
+  template: Pick<
+    EnvironmentCustomImageTemplate,
+    "templateKind" | "templateRef" | "metadata"
+  >,
 ): SandboxEnvironmentConfig {
   if (!template.templateRef) return config;
   const next = { ...(config as Record<string, unknown>) };
@@ -136,19 +155,24 @@ export function environmentCustomImageTemplateMatchesBaseConfig(input: {
   // must exclude the same set or configs that carry a secret ref can never
   // match and the active template gets silently dropped.
   const secretRefExcludePaths = [...(input.secretRefExcludePaths ?? [])];
-  const normalizedFingerprint = fingerprintEnvironmentSandboxProviderConfig(input.baseConfig, {
-    excludePaths: [
-      ...ENVIRONMENT_CUSTOM_IMAGE_CONFIG_FINGERPRINT_EXCLUDED_PATHS,
-      ...secretRefExcludePaths,
-    ],
-  });
+  const normalizedFingerprint = fingerprintEnvironmentSandboxProviderConfig(
+    input.baseConfig,
+    {
+      excludePaths: [
+        ...ENVIRONMENT_CUSTOM_IMAGE_CONFIG_FINGERPRINT_EXCLUDED_PATHS,
+        ...secretRefExcludePaths,
+      ],
+    },
+  );
   if (normalizedFingerprint === expectedFingerprint) return true;
   // Backward compatibility for templates captured before runtime-only fields
   // were excluded from the source fingerprint (secret-ref paths have always
   // been excluded at capture time).
-  return fingerprintEnvironmentSandboxProviderConfig(input.baseConfig, {
-    excludePaths: secretRefExcludePaths,
-  }) === expectedFingerprint;
+  return (
+    fingerprintEnvironmentSandboxProviderConfig(input.baseConfig, {
+      excludePaths: secretRefExcludePaths,
+    }) === expectedFingerprint
+  );
 }
 
 // Standard boot-source fields shared across sandbox providers. A change to any
@@ -160,7 +184,8 @@ export const ENVIRONMENT_CUSTOM_IMAGE_TEMPLATE_SOURCE_FIELDS = [
   "template",
 ] as const;
 
-export type EnvironmentCustomImageConfigChangeKind = "none" | "relinkable" | "breaking";
+export type EnvironmentCustomImageConfigChangeKind =
+  "none" | "relinkable" | "breaking";
 
 /**
  * Classifies a saved-config change relative to an active captured template.
@@ -182,18 +207,22 @@ export function classifyEnvironmentCustomImageConfigChange(input: {
   templateIdentityPaths?: Iterable<string>;
 }): EnvironmentCustomImageConfigChangeKind {
   const secretRefExcludePaths = [...(input.secretRefExcludePaths ?? [])];
-  if (!environmentCustomImageTemplateMatchesBaseConfig({
-    template: input.template,
-    baseConfig: input.previousConfig,
-    secretRefExcludePaths,
-  })) {
+  if (
+    !environmentCustomImageTemplateMatchesBaseConfig({
+      template: input.template,
+      baseConfig: input.previousConfig,
+      secretRefExcludePaths,
+    })
+  ) {
     return "none";
   }
-  if (environmentCustomImageTemplateMatchesBaseConfig({
-    template: input.template,
-    baseConfig: input.nextConfig,
-    secretRefExcludePaths,
-  })) {
+  if (
+    environmentCustomImageTemplateMatchesBaseConfig({
+      template: input.template,
+      baseConfig: input.nextConfig,
+      secretRefExcludePaths,
+    })
+  ) {
     return "none";
   }
   const binding = resolveEnvironmentCustomImageRuntimeConfigBinding({
@@ -229,24 +258,28 @@ export function classifyEnvironmentCustomImageConfigChange(input: {
 // current config. The comparison runs on the server; the client never
 // classifies.
 
-export const ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_METADATA_KEY = "bootRelevantConfig";
+export const ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_METADATA_KEY =
+  "bootRelevantConfig";
 export const ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_VERSION = 1;
 // A driver-declared identity path that fails canonicalization is never trusted
 // and never persisted verbatim. It records this fixed marker instead, which
 // forces the fail-closed `unclassified` result at relink time.
-export const ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_UNRESOLVED_PATH = "[unresolved-identity-path]";
+export const ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_UNRESOLVED_PATH =
+  "[unresolved-identity-path]";
 
 const BOOT_RELEVANT_CONFIG_MAX_PATH_DEPTH = 8;
 const BOOT_RELEVANT_CONFIG_PATH_SEGMENT_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 // Prototype keys have an identifier shape but never name an own config field.
 // A driver that declares one is hostile or broken. Reject it so the path fails
 // closed as an unresolved identity path.
-const BOOT_RELEVANT_CONFIG_RESERVED_SEGMENTS = new Set(["__proto__", "prototype", "constructor"]);
+const BOOT_RELEVANT_CONFIG_RESERVED_SEGMENTS = new Set([
+  "__proto__",
+  "prototype",
+  "constructor",
+]);
 
 export type EnvironmentCustomImageRelinkClassification =
-  | "knob_only"
-  | "boot_source_drift"
-  | "unclassified";
+  "knob_only" | "boot_source_drift" | "unclassified";
 
 /**
  * Server-owned snapshot of the boot-relevant config fields at capture time. It
@@ -273,12 +306,18 @@ export interface EnvironmentCustomImageDriftedPath {
  * unresolvable path returns `null`; the caller must never persist the raw
  * driver-supplied string.
  */
-export function canonicalizeEnvironmentCustomImageConfigPath(raw: unknown): string | null {
+export function canonicalizeEnvironmentCustomImageConfigPath(
+  raw: unknown,
+): string | null {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
   const segments = trimmed.split(".");
-  if (segments.length === 0 || segments.length > BOOT_RELEVANT_CONFIG_MAX_PATH_DEPTH) return null;
+  if (
+    segments.length === 0 ||
+    segments.length > BOOT_RELEVANT_CONFIG_MAX_PATH_DEPTH
+  )
+    return null;
   for (const segment of segments) {
     if (!BOOT_RELEVANT_CONFIG_PATH_SEGMENT_RE.test(segment)) return null;
     if (BOOT_RELEVANT_CONFIG_RESERVED_SEGMENTS.has(segment)) return null;
@@ -365,15 +404,18 @@ export function buildEnvironmentCustomImageBootRelevantConfig(input: {
   const values: Record<string, unknown> = Object.create(null);
   const excludedPaths = new Set<string>();
 
-  const { canonicalPaths, hasUnresolved } = environmentCustomImageBootRelevantCandidatePaths({
-    binding: input.binding,
-    templateIdentityPaths: input.templateIdentityPaths,
-  });
+  const { canonicalPaths, hasUnresolved } =
+    environmentCustomImageBootRelevantCandidatePaths({
+      binding: input.binding,
+      templateIdentityPaths: input.templateIdentityPaths,
+    });
   if (hasUnresolved) {
     excludedPaths.add(ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_UNRESOLVED_PATH);
   }
   for (const canonical of canonicalPaths) {
-    if (environmentCustomImageConfigPathOverlapsSecret(canonical, secretPaths)) {
+    if (
+      environmentCustomImageConfigPathOverlapsSecret(canonical, secretPaths)
+    ) {
       excludedPaths.add(canonical);
       continue;
     }
@@ -409,9 +451,8 @@ export function environmentCustomImageBootRelevantSnapshotIsStale(input: {
 }): boolean {
   const boot = input.bootRelevantConfig;
   if (input.currentContract.binding.field !== boot.bindingField) return true;
-  const { canonicalPaths, hasUnresolved } = environmentCustomImageBootRelevantCandidatePaths(
-    input.currentContract,
-  );
+  const { canonicalPaths, hasUnresolved } =
+    environmentCustomImageBootRelevantCandidatePaths(input.currentContract);
   if (hasUnresolved) return true;
   const covered = new Set<string>([
     ...Object.keys(boot.values),
@@ -428,10 +469,13 @@ export function environmentCustomImageBootRelevantSnapshotIsStale(input: {
 export function readEnvironmentCustomImageBootRelevantConfig(
   metadata: Record<string, unknown> | null | undefined,
 ): EnvironmentCustomImageBootRelevantConfig | null {
-  const raw = metadata?.[ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_METADATA_KEY];
+  const raw =
+    metadata?.[ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_METADATA_KEY];
   if (!isRecord(raw)) return null;
-  if (raw.version !== ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_VERSION) return null;
-  if (typeof raw.provider !== "string" || typeof raw.bindingField !== "string") return null;
+  if (raw.version !== ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_VERSION)
+    return null;
+  if (typeof raw.provider !== "string" || typeof raw.bindingField !== "string")
+    return null;
   if (!isRecord(raw.values)) return null;
   if (!Array.isArray(raw.excludedPaths)) return null;
   const excludedPaths = raw.excludedPaths.filter(
@@ -477,13 +521,16 @@ export function classifyEnvironmentCustomImageBootRelevantDrift(input: {
   if (!boot) return { classification: "unclassified", driftedPaths: [] };
   // Without the current provider contract the boot source cannot be verified
   // against a possible identity-path change; fail closed.
-  if (!input.currentContract) return { classification: "unclassified", driftedPaths: [] };
+  if (!input.currentContract)
+    return { classification: "unclassified", driftedPaths: [] };
   // A provider change since capture (new binding or new identity path) makes
   // the persisted snapshot untrustworthy; fail closed.
-  if (environmentCustomImageBootRelevantSnapshotIsStale({
-    bootRelevantConfig: boot,
-    currentContract: input.currentContract,
-  })) {
+  if (
+    environmentCustomImageBootRelevantSnapshotIsStale({
+      bootRelevantConfig: boot,
+      currentContract: input.currentContract,
+    })
+  ) {
     return { classification: "unclassified", driftedPaths: [] };
   }
   const current = input.currentConfig as Record<string, unknown>;
@@ -492,9 +539,16 @@ export function classifyEnvironmentCustomImageBootRelevantDrift(input: {
   let hasValueDrift = false;
   for (const [path, capturedValue] of Object.entries(boot.values)) {
     const currentValue = readConfigValueAtPath(current, path);
-    if (stableStringify(capturedValue ?? null) !== stableStringify(currentValue ?? null)) {
+    if (
+      stableStringify(capturedValue ?? null) !==
+      stableStringify(currentValue ?? null)
+    ) {
       hasValueDrift = true;
-      driftedPaths.push({ path, from: capturedValue ?? null, to: currentValue ?? null });
+      driftedPaths.push({
+        path,
+        from: capturedValue ?? null,
+        to: currentValue ?? null,
+      });
     }
   }
   for (const path of boot.excludedPaths) {
@@ -520,13 +574,16 @@ export function stripInternalEnvironmentCustomImageTemplateMetadata(
   metadata: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> | null {
   if (!metadata) return null;
-  if (!(ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_METADATA_KEY in metadata)) return metadata;
+  if (!(ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_METADATA_KEY in metadata))
+    return metadata;
   const rest = { ...metadata };
   delete rest[ENVIRONMENT_CUSTOM_IMAGE_BOOT_RELEVANT_CONFIG_METADATA_KEY];
   return rest;
 }
 
-export function environmentCustomImageTemplateFromRow(row: TemplateRow): EnvironmentCustomImageTemplate {
+export function environmentCustomImageTemplateFromRow(
+  row: TemplateRow,
+): EnvironmentCustomImageTemplate {
   return {
     id: row.id,
     environmentId: row.environmentId,
@@ -534,7 +591,8 @@ export function environmentCustomImageTemplateFromRow(row: TemplateRow): Environ
     templateKind: readEnvironmentCustomImageTemplateKind(row.templateKind),
     templateRef: row.templateRef,
     sourceTemplateRef: row.sourceTemplateRef ?? null,
-    sourceEnvironmentConfigFingerprint: row.sourceEnvironmentConfigFingerprint ?? null,
+    sourceEnvironmentConfigFingerprint:
+      row.sourceEnvironmentConfigFingerprint ?? null,
     status: row.status,
     createdByUserId: row.createdByUserId ?? null,
     createdByAgentId: row.createdByAgentId ?? null,
@@ -562,22 +620,29 @@ export async function resolveActiveEnvironmentCustomImageTemplateForRuntime(
   const row = await db
     .select()
     .from(environmentCustomImageTemplates)
-    .where(and(
-      eq(environmentCustomImageTemplates.environmentId, input.environmentId),
-      eq(environmentCustomImageTemplates.provider, input.baseConfig.provider),
-      eq(environmentCustomImageTemplates.status, "active"),
-    ))
-    .orderBy(desc(environmentCustomImageTemplates.capturedAt), desc(environmentCustomImageTemplates.createdAt))
+    .where(
+      and(
+        eq(environmentCustomImageTemplates.environmentId, input.environmentId),
+        eq(environmentCustomImageTemplates.provider, input.baseConfig.provider),
+        eq(environmentCustomImageTemplates.status, "active"),
+      ),
+    )
+    .orderBy(
+      desc(environmentCustomImageTemplates.capturedAt),
+      desc(environmentCustomImageTemplates.createdAt),
+    )
     .then((rows) => rows[0] ?? null);
   if (!row) return input.runtimeConfig;
 
   const active = environmentCustomImageTemplateFromRow(row);
   if (!active.templateRef) return input.runtimeConfig;
-  if (!environmentCustomImageTemplateMatchesBaseConfig({
-    template: active,
-    baseConfig: input.baseConfig,
-    secretRefExcludePaths: input.secretRefExcludePaths,
-  })) {
+  if (
+    !environmentCustomImageTemplateMatchesBaseConfig({
+      template: active,
+      baseConfig: input.baseConfig,
+      secretRefExcludePaths: input.secretRefExcludePaths,
+    })
+  ) {
     return input.runtimeConfig;
   }
 

@@ -41,20 +41,41 @@ const isPrWorkflow = process.env.GITHUB_WORKFLOW === "PR";
 const runNativeRunnerGroup = isPrWorkflow && isFinalShard;
 
 const plannedCommands = [
-  { command: "pnpm", args: ["run", "ensure:eval-build-deps"], cwd: packageRoot },
+  {
+    command: "pnpm",
+    args: ["run", "ensure:eval-build-deps"],
+    cwd: packageRoot,
+  },
   { command: "pnpm", args: ["run", "build:rust"], cwd: packageRoot },
-  { command: "pnpm", args: ["exec", "vitest", "run", ...args], cwd: packageRoot },
+  {
+    command: "pnpm",
+    args: ["exec", "vitest", "run", ...args],
+    cwd: packageRoot,
+  },
   ...(runNativeRunnerGroup
-    ? [{
-        command: "pnpm",
-        args: ["test:run:general", "--", "--group", "general-server-native-runner"],
-        cwd: workspaceRoot,
-      }]
+    ? [
+        {
+          command: "pnpm",
+          args: [
+            "test:run:general",
+            "--",
+            "--group",
+            "general-server-native-runner",
+          ],
+          cwd: workspaceRoot,
+        },
+      ]
     : []),
 ];
 
 if (dryRun) {
-  console.log(JSON.stringify({ isPrWorkflow, isFinalShard, runNativeRunnerGroup, plannedCommands }, null, 2));
+  console.log(
+    JSON.stringify(
+      { isPrWorkflow, isFinalShard, runNativeRunnerGroup, plannedCommands },
+      null,
+      2,
+    ),
+  );
   process.exit(0);
 }
 

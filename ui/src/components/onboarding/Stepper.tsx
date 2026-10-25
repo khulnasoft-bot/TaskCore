@@ -67,7 +67,9 @@ export function onboardingStepPositionFor(step: number): number {
  * inserted ahead of the arc.
  */
 export function agentArcStepFor(wizardStep: number): number | null {
-  const index = AGENT_ARC_WIZARD_STEPS.indexOf(wizardStep as (typeof AGENT_ARC_WIZARD_STEPS)[number]);
+  const index = AGENT_ARC_WIZARD_STEPS.indexOf(
+    wizardStep as (typeof AGENT_ARC_WIZARD_STEPS)[number],
+  );
   return index === -1 ? null : index + 1;
 }
 

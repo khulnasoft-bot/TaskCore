@@ -62,8 +62,7 @@ export interface PluginSandboxEnvironmentConfig {
 }
 
 export type SandboxEnvironmentConfig =
-  | FakeSandboxEnvironmentConfig
-  | PluginSandboxEnvironmentConfig;
+  FakeSandboxEnvironmentConfig | PluginSandboxEnvironmentConfig;
 
 export interface PluginEnvironmentConfig {
   pluginKey: string;

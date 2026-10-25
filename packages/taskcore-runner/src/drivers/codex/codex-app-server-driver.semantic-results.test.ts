@@ -47,19 +47,45 @@ import { RUNNERD_CANONICAL_ITEM } from "./codex-driver-values.js";
 describe("Codex app-server Codex driver", () => {
   it("returns current approval feedback and permits correcting a rejected completion report", async () => {
     const transport = new FakeCodexTransport();
-    const feedback = vi.fn()
-      .mockRejectedValueOnce(new Error("Name the reviewer decision or finish the remaining work."))
-      .mockResolvedValue("Task remains in review. Accept [Publish](/approvals/approval-1) before completion.");
-    const session = await makeDriver([transport], { completionFeedback: feedback }).openSession({
-      runId: "run-feedback", normalizedSessionId: "feedback-session", workingDirectory: WORKSPACE,
+    const feedback = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error("Name the reviewer decision or finish the remaining work."),
+      )
+      .mockResolvedValue(
+        "Task remains in review. Accept [Publish](/approvals/approval-1) before completion.",
+      );
+    const session = await makeDriver([transport], {
+      completionFeedback: feedback,
+    }).openSession({
+      runId: "run-feedback",
+      normalizedSessionId: "feedback-session",
+      workingDirectory: WORKSPACE,
     });
     await session.startTurn({ message: { role: "user", text: "Finish" } });
-    const call = (callId: string) => transport.invoke({ id: callId, method: "item/tool/call",
-      params: { threadId: "thread-1", turnId: "turn-1", callId, tool: "taskcore_finish", arguments: result } });
+    const call = (callId: string) =>
+      transport.invoke({
+        id: callId,
+        method: "item/tool/call",
+        params: {
+          threadId: "thread-1",
+          turnId: "turn-1",
+          callId,
+          tool: "taskcore_finish",
+          arguments: result,
+        },
+      });
     expect(await call("first")).toMatchObject({ success: false });
     expect((await session.snapshot()).semanticResult).toBeNull();
-    expect(await call("corrected")).toMatchObject({ success: true,
-      contentItems: [{ type: "inputText", text: expect.stringContaining("/approvals/approval-1") }] });
+    expect(await call("corrected")).toMatchObject({
+      success: true,
+      contentItems: [
+        {
+          type: "inputText",
+          text: expect.stringContaining("/approvals/approval-1"),
+        },
+      ],
+    });
     expect((await session.snapshot()).semanticResult?.result).toEqual(result);
     await session.close();
   });
@@ -71,7 +97,9 @@ describe("Codex app-server Codex driver", () => {
       normalizedSessionId: "normalized-response-wake",
       workingDirectory: WORKSPACE,
     });
-    await session.startTurn({ message: { role: "user", text: "Reply, then wait." } });
+    await session.startTurn({
+      message: { role: "user", text: "Reply, then wait." },
+    });
     const yielded = {
       ...structuredClone(result),
       reportedWorkDisposition: "yielded" as const,
@@ -83,10 +111,12 @@ describe("Codex app-server Codex driver", () => {
           status: "unknown" as const,
           evidenceRefs: [],
         })),
-        remainingWork: [{
-          description: "Wait for the next external response.",
-          blocksCompletion: true,
-        }],
+        remainingWork: [
+          {
+            description: "Wait for the next external response.",
+            blocksCompletion: true,
+          },
+        ],
       },
       continuation: {
         kind: "response_wake" as const,
@@ -94,30 +124,39 @@ describe("Codex app-server Codex driver", () => {
         idempotencyKey: "response-wake-1",
       },
     };
-    expect(await transport.invoke({
-      id: "response-wake",
-      method: "item/tool/call",
-      params: {
-        threadId: "thread-1",
-        turnId: "turn-1",
-        callId: "response-wake",
-        tool: "taskcore_finish",
-        arguments: yielded,
-      },
-    })).toMatchObject({ success: true });
+    expect(
+      await transport.invoke({
+        id: "response-wake",
+        method: "item/tool/call",
+        params: {
+          threadId: "thread-1",
+          turnId: "turn-1",
+          callId: "response-wake",
+          tool: "taskcore_finish",
+          arguments: yielded,
+        },
+      }),
+    ).toMatchObject({ success: true });
     transport.push("turn/completed", {
       threadId: "thread-1",
       turn: { id: "turn-1", status: "completed", items: [] },
     });
 
     const events = await collectUntilTerminal(session.events());
-    expect(events.find((event) => event.eventType === "run.result.proposed")?.payload)
-      .toMatchObject({ reportedWorkDisposition: "yielded", continuation: { kind: "response_wake" } });
+    expect(
+      events.find((event) => event.eventType === "run.result.proposed")
+        ?.payload,
+    ).toMatchObject({
+      reportedWorkDisposition: "yielded",
+      continuation: { kind: "response_wake" },
+    });
     expect((await session.snapshot()).semanticResult?.result).toMatchObject({
       reportedWorkDisposition: "yielded",
       continuation: { kind: "response_wake" },
     });
-    expect(events.some((event) => event.eventType === "turn.completed")).toBe(true);
+    expect(events.some((event) => event.eventType === "turn.completed")).toBe(
+      true,
+    );
 
     const otherTransport = new FakeCodexTransport();
     const otherSession = await makeDriver([otherTransport]).openSession({
@@ -125,25 +164,29 @@ describe("Codex app-server Codex driver", () => {
       normalizedSessionId: "normalized-same-agent-yield",
       workingDirectory: WORKSPACE,
     });
-    await otherSession.startTurn({ message: { role: "user", text: "Continue." } });
-    expect(await otherTransport.invoke({
-      id: "same-agent-yield",
-      method: "item/tool/call",
-      params: {
-        threadId: "thread-1",
-        turnId: "turn-1",
-        callId: "same-agent-yield",
-        tool: "taskcore_finish",
-        arguments: {
-          ...yielded,
-          continuation: {
-            kind: "same_agent",
-            summary: "Continue immediately.",
-            idempotencyKey: "same-agent-1",
+    await otherSession.startTurn({
+      message: { role: "user", text: "Continue." },
+    });
+    expect(
+      await otherTransport.invoke({
+        id: "same-agent-yield",
+        method: "item/tool/call",
+        params: {
+          threadId: "thread-1",
+          turnId: "turn-1",
+          callId: "same-agent-yield",
+          tool: "taskcore_finish",
+          arguments: {
+            ...yielded,
+            continuation: {
+              kind: "same_agent",
+              summary: "Continue immediately.",
+              idempotencyKey: "same-agent-1",
+            },
           },
         },
-      },
-    })).toMatchObject({ success: false });
+      }),
+    ).toMatchObject({ success: false });
     await otherSession.close();
   });
 

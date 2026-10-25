@@ -68,7 +68,10 @@ function normalizeHexColor(input: string | null | undefined): string | null {
   return null;
 }
 
-export function buildProjectMentionHref(projectId: string, color?: string | null): string {
+export function buildProjectMentionHref(
+  projectId: string,
+  color?: string | null,
+): string {
   const trimmedProjectId = projectId.trim();
   const normalizedColor = normalizeHexColor(color ?? null);
   if (!normalizedColor) {
@@ -77,7 +80,9 @@ export function buildProjectMentionHref(projectId: string, color?: string | null
   return `${PROJECT_MENTION_SCHEME}${trimmedProjectId}?c=${encodeURIComponent(normalizedColor.slice(1))}`;
 }
 
-export function parseProjectMentionHref(href: string): ParsedProjectMention | null {
+export function parseProjectMentionHref(
+  href: string,
+): ParsedProjectMention | null {
   if (!href.startsWith(PROJECT_MENTION_SCHEME)) return null;
 
   let url: URL;
@@ -92,7 +97,9 @@ export function parseProjectMentionHref(href: string): ParsedProjectMention | nu
   const projectId = `${url.hostname}${url.pathname}`.replace(/^\/+/, "").trim();
   if (!projectId) return null;
 
-  const color = normalizeHexColor(url.searchParams.get("c") ?? url.searchParams.get("color"));
+  const color = normalizeHexColor(
+    url.searchParams.get("c") ?? url.searchParams.get("color"),
+  );
 
   return {
     projectId,
@@ -100,7 +107,10 @@ export function parseProjectMentionHref(href: string): ParsedProjectMention | nu
   };
 }
 
-export function buildAgentMentionHref(agentId: string, icon?: string | null): string {
+export function buildAgentMentionHref(
+  agentId: string,
+  icon?: string | null,
+): string {
   const trimmedAgentId = agentId.trim();
   const normalizedIcon = normalizeAgentIcon(icon ?? null);
   if (!normalizedIcon) {
@@ -126,7 +136,9 @@ export function parseAgentMentionHref(href: string): ParsedAgentMention | null {
 
   return {
     agentId,
-    icon: normalizeAgentIcon(url.searchParams.get("i") ?? url.searchParams.get("icon")),
+    icon: normalizeAgentIcon(
+      url.searchParams.get("i") ?? url.searchParams.get("icon"),
+    ),
   };
 }
 
@@ -152,7 +164,10 @@ export function parseUserMentionHref(href: string): ParsedUserMention | null {
   return { userId };
 }
 
-export function buildSkillMentionHref(skillId: string, slug?: string | null): string {
+export function buildSkillMentionHref(
+  skillId: string,
+  slug?: string | null,
+): string {
   const trimmedSkillId = skillId.trim();
   const normalizedSlug = normalizeSkillSlug(slug ?? null);
   if (!normalizedSlug) {
@@ -178,7 +193,9 @@ export function parseSkillMentionHref(href: string): ParsedSkillMention | null {
 
   return {
     skillId,
-    slug: normalizeSkillSlug(url.searchParams.get("s") ?? url.searchParams.get("slug")),
+    slug: normalizeSkillSlug(
+      url.searchParams.get("s") ?? url.searchParams.get("slug"),
+    ),
   };
 }
 
@@ -186,7 +203,9 @@ export function buildRoutineMentionHref(routineId: string): string {
   return `${ROUTINE_MENTION_SCHEME}${routineId.trim()}`;
 }
 
-export function parseRoutineMentionHref(href: string): ParsedRoutineMention | null {
+export function parseRoutineMentionHref(
+  href: string,
+): ParsedRoutineMention | null {
   if (!href.startsWith(ROUTINE_MENTION_SCHEME)) return null;
 
   let url: URL;
@@ -204,14 +223,20 @@ export function parseRoutineMentionHref(href: string): ParsedRoutineMention | nu
   return { routineId };
 }
 
-export function buildPipelineMentionHref(pipelineId: string, stageKey?: string | null): string {
+export function buildPipelineMentionHref(
+  pipelineId: string,
+  stageKey?: string | null,
+): string {
   const trimmedPipelineId = pipelineId.trim();
   const normalizedStageKey = stageKey?.trim();
-  if (!normalizedStageKey) return `${PIPELINE_MENTION_SCHEME}${trimmedPipelineId}`;
+  if (!normalizedStageKey)
+    return `${PIPELINE_MENTION_SCHEME}${trimmedPipelineId}`;
   return `${PIPELINE_MENTION_SCHEME}${trimmedPipelineId}?stage=${encodeURIComponent(normalizedStageKey)}`;
 }
 
-export function parsePipelineMentionHref(href: string): ParsedPipelineMention | null {
+export function parsePipelineMentionHref(
+  href: string,
+): ParsedPipelineMention | null {
   if (!href.startsWith(PIPELINE_MENTION_SCHEME)) return null;
 
   let url: URL;
@@ -223,7 +248,9 @@ export function parsePipelineMentionHref(href: string): ParsedPipelineMention | 
 
   if (url.protocol !== "pipeline:") return null;
 
-  const pipelineId = `${url.hostname}${url.pathname}`.replace(/^\/+/, "").trim();
+  const pipelineId = `${url.hostname}${url.pathname}`
+    .replace(/^\/+/, "")
+    .trim();
   if (!pipelineId) return null;
 
   const stageKey = url.searchParams.get("stage")?.trim() || null;
@@ -290,7 +317,9 @@ export function extractRoutineMentionIds(markdown: string): string[] {
   return [...ids];
 }
 
-export function extractPipelineMentions(markdown: string): ParsedPipelineMention[] {
+export function extractPipelineMentions(
+  markdown: string,
+): ParsedPipelineMention[] {
   if (!markdown) return [];
   const seen = new Set<string>();
   const mentions: ParsedPipelineMention[] = [];

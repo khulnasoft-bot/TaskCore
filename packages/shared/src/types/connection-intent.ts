@@ -1,13 +1,13 @@
 import type { ConnectionIntentInteraction } from "./issue.js";
 import type { ToolConnection } from "./tool-access.js";
-import type { AskUserQuestionsQuestion, TaskcoreQuestionSetPayload } from "./issue.js";
+import type {
+  AskUserQuestionsQuestion,
+  TaskcoreQuestionSetPayload,
+} from "./issue.js";
 import type { RemoteMcpConnectorId } from "../remote-mcp-connectors.js";
 
 export type ConnectionAvailabilityState =
-  | "ready"
-  | "needs_user_action"
-  | "available"
-  | "unavailable";
+  "ready" | "needs_user_action" | "available" | "unavailable";
 
 export interface ConnectionSearchResultItem {
   service: string;
@@ -59,11 +59,17 @@ export interface ConnectionRequestResult {
 }
 
 /** Safe metadata for selecting a connection; never includes credential or transport configuration. */
-export type ConnectionIntentSetupConnection = Pick<ToolConnection, "id" | "applicationId" | "name" | "status" | "enabled">;
+export type ConnectionIntentSetupConnection = Pick<
+  ToolConnection,
+  "id" | "applicationId" | "name" | "status" | "enabled"
+>;
 
 export interface ConnectionIntentSetupOptions {
   /** Resume this request's saved AgentMail account after a partial setup. */
-  emailSetup?: { credentialConnectionId: string | null; readyConnectionId: string | null };
+  emailSetup?: {
+    credentialConnectionId: string | null;
+    readyConnectionId: string | null;
+  };
   canGrantAccess?: boolean;
   aiConnection?: import("../ai-connections.js").AiConnectionBinding;
   /** Legacy authentication stays unchanged until the normal validated agent update succeeds. */

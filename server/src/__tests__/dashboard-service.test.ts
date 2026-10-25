@@ -9,7 +9,9 @@ import { dashboardService, getUtcMonthStart } from "../services/dashboard.ts";
 import { selectDashboardRunIds } from "../services/dashboard-run-selection.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -19,7 +21,12 @@ if (!embeddedPostgresSupport.supported) {
 
 function utcDay(offsetDays: number): Date {
   const now = new Date();
-  const day = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays, 12);
+  const day = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + offsetDays,
+    12,
+  );
   return new Date(day);
 }
 
@@ -29,21 +36,25 @@ function utcDateKey(date: Date): string {
 
 describe("getUtcMonthStart", () => {
   it("anchors the monthly spend window to UTC month boundaries", () => {
-    expect(getUtcMonthStart(new Date("2026-03-31T20:30:00.000-05:00")).toISOString()).toBe(
-      "2026-04-01T00:00:00.000Z",
-    );
-    expect(getUtcMonthStart(new Date("2026-04-01T00:30:00.000+14:00")).toISOString()).toBe(
-      "2026-03-01T00:00:00.000Z",
-    );
+    expect(
+      getUtcMonthStart(new Date("2026-03-31T20:30:00.000-05:00")).toISOString(),
+    ).toBe("2026-04-01T00:00:00.000Z");
+    expect(
+      getUtcMonthStart(new Date("2026-04-01T00:30:00.000+14:00")).toISOString(),
+    ).toBe("2026-03-01T00:00:00.000Z");
   });
 });
 
 describeEmbeddedPostgres("dashboard service", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-dashboard-service-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-dashboard-service-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -73,23 +84,73 @@ describeEmbeddedPostgres("dashboard service", () => {
       { id: otherCompanyId, name: "Other company", issuePrefix: "OTHER" },
     ]);
     await db.insert(agents).values([
-      { id: agentId, companyId, name: "Builder", role: "engineer", adapterType: "codex_local", adapterConfig: {}, runtimeConfig: {}, permissions: {} },
-      { id: otherAgentId, companyId: otherCompanyId, name: "Other", role: "engineer", adapterType: "codex_local", adapterConfig: {}, runtimeConfig: {}, permissions: {} },
+      {
+        id: agentId,
+        companyId,
+        name: "Builder",
+        role: "engineer",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      },
+      {
+        id: otherAgentId,
+        companyId: otherCompanyId,
+        name: "Other",
+        role: "engineer",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      },
     ]);
     await db.insert(heartbeatRuns).values([
       ...Array.from({ length: 6 }, (_, index) => ({
-        id: randomUUID(), companyId, agentId, status: "succeeded",
+        id: randomUUID(),
+        companyId,
+        agentId,
+        status: "succeeded",
         contextSnapshot: { issueId: repeatedIssueId },
         createdAt: new Date(`2026-04-10T10:0${index}:00.000Z`),
       })),
-      { id: activeRunId, companyId, agentId, status: "running", contextSnapshot: { issueId: repeatedIssueId }, createdAt: new Date("2026-04-10T08:00:00.000Z") },
-      { id: otherTaskRunId, companyId, agentId, status: "succeeded", contextSnapshot: { issueId: otherIssueId }, createdAt: new Date("2026-04-10T09:04:00.000Z") },
-      { id: tasklessRunId, companyId, agentId, status: "succeeded", createdAt: new Date("2026-04-10T09:03:00.000Z") },
-      { id: randomUUID(), companyId: otherCompanyId, agentId: otherAgentId, status: "running", contextSnapshot: { issueId: otherIssueId }, createdAt: new Date("2026-04-10T11:00:00.000Z") },
+      {
+        id: activeRunId,
+        companyId,
+        agentId,
+        status: "running",
+        contextSnapshot: { issueId: repeatedIssueId },
+        createdAt: new Date("2026-04-10T08:00:00.000Z"),
+      },
+      {
+        id: otherTaskRunId,
+        companyId,
+        agentId,
+        status: "succeeded",
+        contextSnapshot: { issueId: otherIssueId },
+        createdAt: new Date("2026-04-10T09:04:00.000Z"),
+      },
+      {
+        id: tasklessRunId,
+        companyId,
+        agentId,
+        status: "succeeded",
+        createdAt: new Date("2026-04-10T09:03:00.000Z"),
+      },
+      {
+        id: randomUUID(),
+        companyId: otherCompanyId,
+        agentId: otherAgentId,
+        status: "running",
+        contextSnapshot: { issueId: otherIssueId },
+        createdAt: new Date("2026-04-10T11:00:00.000Z"),
+      },
     ]);
 
     expect(await selectDashboardRunIds(db, companyId, 3)).toEqual([
-      activeRunId, otherTaskRunId, tasklessRunId,
+      activeRunId,
+      otherTaskRunId,
+      tasklessRunId,
     ]);
   });
 
@@ -187,8 +248,12 @@ describeEmbeddedPostgres("dashboard service", () => {
     const summary = await dashboardService(db).summary(companyId);
 
     expect(summary.runActivity).toHaveLength(14);
-    const todayBucket = summary.runActivity.find((bucket) => bucket.date === utcDateKey(today));
-    const weekAgoBucket = summary.runActivity.find((bucket) => bucket.date === utcDateKey(weekAgo));
+    const todayBucket = summary.runActivity.find(
+      (bucket) => bucket.date === utcDateKey(today),
+    );
+    const weekAgoBucket = summary.runActivity.find(
+      (bucket) => bucket.date === utcDateKey(weekAgo),
+    );
 
     expect(todayBucket).toMatchObject({
       succeeded: 105,
@@ -253,10 +318,31 @@ describeEmbeddedPostgres("dashboard service", () => {
     await db.insert(heartbeatRuns).values([
       { ...base, id: original, status: "failed", errorCode: "process_lost" },
       { ...base, id: retry, status: "succeeded", retryOfRunId: original },
-      { ...base, id: chainedOriginal, status: "failed", errorCode: "process_lost" },
-      { ...base, id: chainedRetry, status: "failed", errorCode: "process_lost", retryOfRunId: chainedOriginal },
-      { ...base, id: chainedRetrySuccess, status: "succeeded", retryOfRunId: chainedRetry },
-      { ...base, id: trueFailure, status: "failed", errorCode: "provider_quota" },
+      {
+        ...base,
+        id: chainedOriginal,
+        status: "failed",
+        errorCode: "process_lost",
+      },
+      {
+        ...base,
+        id: chainedRetry,
+        status: "failed",
+        errorCode: "process_lost",
+        retryOfRunId: chainedOriginal,
+      },
+      {
+        ...base,
+        id: chainedRetrySuccess,
+        status: "succeeded",
+        retryOfRunId: chainedRetry,
+      },
+      {
+        ...base,
+        id: trueFailure,
+        status: "failed",
+        errorCode: "provider_quota",
+      },
     ]);
 
     const summary = await dashboardService(db).summary(companyId);

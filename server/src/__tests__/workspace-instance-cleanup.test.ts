@@ -20,7 +20,11 @@ async function makeTempRoot(prefix: string): Promise<string> {
   return root;
 }
 
-async function writeWorkspaceEnv(workspacePath: string, homeDir: string, instanceId: string): Promise<void> {
+async function writeWorkspaceEnv(
+  workspacePath: string,
+  homeDir: string,
+  instanceId: string,
+): Promise<void> {
   const envDir = path.join(workspacePath, ".taskcore");
   await fs.mkdir(envDir, { recursive: true });
   await fs.writeFile(
@@ -75,7 +79,11 @@ function createRecorderDouble() {
 }
 
 afterEach(async () => {
-  await Promise.all(Array.from(tempRoots, (root) => fs.rm(root, { recursive: true, force: true })));
+  await Promise.all(
+    Array.from(tempRoots, (root) =>
+      fs.rm(root, { recursive: true, force: true }),
+    ),
+  );
   tempRoots.clear();
   vi.restoreAllMocks();
 });
@@ -86,9 +94,15 @@ describe("worktree instance cleanup", () => {
     const plusPath = path.join(parent, "feature+cleanup");
     const dashPath = path.join(parent, "feature-cleanup");
 
-    expect(deriveWorktreeInstanceId(plusPath)).not.toBe(deriveWorktreeInstanceId(dashPath));
-    expect(deriveWorktreeInstanceId(plusPath)).toMatch(/^feature-cleanup-[a-f0-9]{12}$/);
-    expect(deriveWorktreeInstanceId(dashPath)).toMatch(/^feature-cleanup-[a-f0-9]{12}$/);
+    expect(deriveWorktreeInstanceId(plusPath)).not.toBe(
+      deriveWorktreeInstanceId(dashPath),
+    );
+    expect(deriveWorktreeInstanceId(plusPath)).toMatch(
+      /^feature-cleanup-[a-f0-9]{12}$/,
+    );
+    expect(deriveWorktreeInstanceId(dashPath)).toMatch(
+      /^feature-cleanup-[a-f0-9]{12}$/,
+    );
   });
   it("removes an instance directory inside the managed worktree instances root", async () => {
     const worktreesDir = await makeTempRoot("taskcore-managed-worktrees-");
@@ -111,7 +125,9 @@ describe("worktree instance cleanup", () => {
     });
 
     expect(result).toMatchObject({ status: "removed", postgresStopped: false });
-    await expect(fs.stat(instanceRoot)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(fs.stat(instanceRoot)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("preserves a collision-resistant active instance when persisted ownership is absent", async () => {
@@ -134,8 +150,12 @@ describe("worktree instance cleanup", () => {
     });
 
     expect(result).toMatchObject({ status: "refused", instanceRoot });
-    expect((result as { warning: string }).warning).toContain("no persisted instance root");
-    await expect(fs.readFile(path.join(instanceRoot, "marker"), "utf8")).resolves.toBe("remove me");
+    expect((result as { warning: string }).warning).toContain(
+      "no persisted instance root",
+    );
+    await expect(
+      fs.readFile(path.join(instanceRoot, "marker"), "utf8"),
+    ).resolves.toBe("remove me");
   });
 
   it("refuses and logs an instance pointer outside the managed worktree root", async () => {
@@ -144,7 +164,11 @@ describe("worktree instance cleanup", () => {
     const workspacePath = await makeTempRoot("taskcore-cleanup-workspace-");
     const liveInstanceRoot = path.join(liveHome, "instances", "default");
     await fs.mkdir(liveInstanceRoot, { recursive: true });
-    await fs.writeFile(path.join(liveInstanceRoot, "marker"), "keep me", "utf8");
+    await fs.writeFile(
+      path.join(liveInstanceRoot, "marker"),
+      "keep me",
+      "utf8",
+    );
     await writeWorkspaceEnv(workspacePath, liveHome, "default");
     const { recorder, operations } = createRecorderDouble();
     const stopEmbeddedPostgres = vi.fn(async () => false);
@@ -162,10 +186,15 @@ describe("worktree instance cleanup", () => {
       dependencies: { stopEmbeddedPostgres, removeInstanceRoot },
     });
 
-    expect(result).toMatchObject({ status: "refused", instanceRoot: liveInstanceRoot });
+    expect(result).toMatchObject({
+      status: "refused",
+      instanceRoot: liveInstanceRoot,
+    });
     expect(stopEmbeddedPostgres).not.toHaveBeenCalled();
     expect(removeInstanceRoot).not.toHaveBeenCalled();
-    expect(await fs.readFile(path.join(liveInstanceRoot, "marker"), "utf8")).toBe("keep me");
+    expect(
+      await fs.readFile(path.join(liveInstanceRoot, "marker"), "utf8"),
+    ).toBe("keep me");
     expect(operations).toEqual([
       expect.objectContaining({
         status: "skipped",
@@ -179,7 +208,9 @@ describe("worktree instance cleanup", () => {
 
   it("treats a missing repo-local env file as a no-op", async () => {
     const workspacePath = await makeTempRoot("taskcore-cleanup-workspace-");
-    await expect(readWorktreeInstancePointer(workspacePath)).resolves.toBeNull();
+    await expect(
+      readWorktreeInstancePointer(workspacePath),
+    ).resolves.toBeNull();
   });
 
   it("captures the managed instance root for persisted workspace ownership", async () => {
@@ -196,7 +227,11 @@ describe("worktree instance cleanup", () => {
   it("stops embedded Postgres before deleting the instance root", async () => {
     const worktreesDir = await makeTempRoot("taskcore-managed-worktrees-");
     const workspacePath = await makeTempRoot("taskcore-cleanup-workspace-");
-    const instanceRoot = path.join(worktreesDir, "instances", "ordered-cleanup");
+    const instanceRoot = path.join(
+      worktreesDir,
+      "instances",
+      "ordered-cleanup",
+    );
     await fs.mkdir(path.join(instanceRoot, "db"), { recursive: true });
     await writeWorkspaceEnv(workspacePath, worktreesDir, "ordered-cleanup");
     const calls: string[] = [];
@@ -230,9 +265,17 @@ describe("worktree instance cleanup", () => {
   it("refuses a pointer rewritten to another workspace's managed instance", async () => {
     const worktreesDir = await makeTempRoot("taskcore-managed-worktrees-");
     const workspacePath = await makeTempRoot("taskcore-cleanup-workspace-");
-    const siblingInstanceRoot = path.join(worktreesDir, "instances", "feature-sibling");
+    const siblingInstanceRoot = path.join(
+      worktreesDir,
+      "instances",
+      "feature-sibling",
+    );
     await fs.mkdir(path.join(siblingInstanceRoot, "db"), { recursive: true });
-    await fs.writeFile(path.join(siblingInstanceRoot, "marker"), "keep me", "utf8");
+    await fs.writeFile(
+      path.join(siblingInstanceRoot, "marker"),
+      "keep me",
+      "utf8",
+    );
     await writeWorkspaceEnv(workspacePath, worktreesDir, "feature-sibling");
     const { recorder, operations } = createRecorderDouble();
     const stopEmbeddedPostgres = vi.fn(async () => false);
@@ -244,22 +287,37 @@ describe("worktree instance cleanup", () => {
       workspaceId: "workspace-1",
       workspacePath,
       expectedInstanceId: "feature-sibling",
-      expectedInstanceRoot: path.join(worktreesDir, "instances", "feature-owner"),
+      expectedInstanceRoot: path.join(
+        worktreesDir,
+        "instances",
+        "feature-owner",
+      ),
       worktreesDir,
       recorder,
       dependencies: { stopEmbeddedPostgres, removeInstanceRoot },
     });
 
-    expect(result).toMatchObject({ status: "refused", instanceRoot: siblingInstanceRoot });
-    expect((result as { warning: string }).warning).toContain("persisted instance root");
+    expect(result).toMatchObject({
+      status: "refused",
+      instanceRoot: siblingInstanceRoot,
+    });
+    expect((result as { warning: string }).warning).toContain(
+      "persisted instance root",
+    );
     expect(stopEmbeddedPostgres).not.toHaveBeenCalled();
     expect(removeInstanceRoot).not.toHaveBeenCalled();
-    expect(await fs.readFile(path.join(siblingInstanceRoot, "marker"), "utf8")).toBe("keep me");
+    expect(
+      await fs.readFile(path.join(siblingInstanceRoot, "marker"), "utf8"),
+    ).toBe("keep me");
     expect(operations).toEqual([
       expect.objectContaining({
         status: "skipped",
         metadata: expect.objectContaining({
-          expectedInstanceRoot: path.join(worktreesDir, "instances", "feature-owner"),
+          expectedInstanceRoot: path.join(
+            worktreesDir,
+            "instances",
+            "feature-owner",
+          ),
           refusalReason: "instance_root_workspace_mismatch",
         }),
       }),
@@ -295,7 +353,11 @@ describe("worktree instance cleanup", () => {
     const workspacePath = await makeTempRoot("taskcore-cleanup-workspace-");
     const liveInstanceRoot = path.join(liveInstancesDir, "default");
     await fs.mkdir(liveInstanceRoot, { recursive: true });
-    await fs.symlink(liveInstancesDir, path.join(worktreesDir, "instances"), "dir");
+    await fs.symlink(
+      liveInstancesDir,
+      path.join(worktreesDir, "instances"),
+      "dir",
+    );
     await writeWorkspaceEnv(workspacePath, worktreesDir, "default");
 
     const pointer = await readWorktreeInstancePointer(workspacePath);
@@ -309,13 +371,19 @@ describe("worktree instance cleanup", () => {
     });
 
     expect(result).toMatchObject({ status: "refused" });
-    expect((result as { warning: string }).warning).toContain("managed instances directory");
+    expect((result as { warning: string }).warning).toContain(
+      "managed instances directory",
+    );
     await expect(fs.stat(liveInstanceRoot)).resolves.toBeDefined();
   });
   it("refuses an instance pointer that belongs to a sibling worktree", async () => {
     const worktreesDir = await makeTempRoot("taskcore-managed-worktrees-");
     const workspacePath = await makeTempRoot("taskcore-cleanup-workspace-");
-    const siblingRoot = path.join(worktreesDir, "instances", "sibling-worktree");
+    const siblingRoot = path.join(
+      worktreesDir,
+      "instances",
+      "sibling-worktree",
+    );
     await fs.mkdir(siblingRoot, { recursive: true });
     await fs.writeFile(path.join(siblingRoot, "marker"), "keep me", "utf8");
     await writeWorkspaceEnv(workspacePath, worktreesDir, "sibling-worktree");
@@ -333,25 +401,42 @@ describe("worktree instance cleanup", () => {
       dependencies: { stopEmbeddedPostgres, removeInstanceRoot },
     });
 
-    expect(result).toMatchObject({ status: "refused", instanceRoot: siblingRoot });
-    expect((result as { warning: string }).warning).toContain("expected workspace instance");
+    expect(result).toMatchObject({
+      status: "refused",
+      instanceRoot: siblingRoot,
+    });
+    expect((result as { warning: string }).warning).toContain(
+      "expected workspace instance",
+    );
     expect(stopEmbeddedPostgres).not.toHaveBeenCalled();
     expect(removeInstanceRoot).not.toHaveBeenCalled();
-    expect(await fs.readFile(path.join(siblingRoot, "marker"), "utf8")).toBe("keep me");
+    expect(await fs.readFile(path.join(siblingRoot, "marker"), "utf8")).toBe(
+      "keep me",
+    );
   });
 
   it("treats an ESRCH signal race as an already-stopped PostgreSQL process", async () => {
     const instanceRoot = await makeTempRoot("taskcore-postgres-exit-race-");
     const dataDir = path.join(instanceRoot, "db");
     await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(path.join(dataDir, "postmaster.pid"), `4242\n${dataDir}\n`, "utf8");
-    const signalError = Object.assign(new Error("process exited"), { code: "ESRCH" });
+    await fs.writeFile(
+      path.join(dataDir, "postmaster.pid"),
+      `4242\n${dataDir}\n`,
+      "utf8",
+    );
+    const signalError = Object.assign(new Error("process exited"), {
+      code: "ESRCH",
+    });
 
-    await expect(stopEmbeddedPostgresIfRunning(dataDir, {
-      processIsAlive: () => true,
-      readVerifiedPostgresCommand: async () => `postgres -D ${dataDir}`,
-      signalProcess: () => { throw signalError; },
-      wait: async () => {},
-    })).resolves.toBe(false);
+    await expect(
+      stopEmbeddedPostgresIfRunning(dataDir, {
+        processIsAlive: () => true,
+        readVerifiedPostgresCommand: async () => `postgres -D ${dataDir}`,
+        signalProcess: () => {
+          throw signalError;
+        },
+        wait: async () => {},
+      }),
+    ).resolves.toBe(false);
   });
 });

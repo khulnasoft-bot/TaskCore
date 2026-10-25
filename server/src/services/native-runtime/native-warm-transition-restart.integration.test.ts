@@ -38,13 +38,11 @@ import {
 // supply that directory and a fresh migrated TASKCORE_TEST_DATABASE_URL here.
 // The post-admission backend is mocked: this qualifies classifier→server route
 // admission, not a second provider execution or end-to-end restart.
-const fixtureDirectory =
-  process.env.TASKCORE_WARM_TRANSITION_FIXTURE_DIRECTORY;
+const fixtureDirectory = process.env.TASKCORE_WARM_TRANSITION_FIXTURE_DIRECTORY;
 const managedFixtureDirectory =
   process.env.TASKCORE_WARM_TRANSITION_MANAGED_FIXTURE_DIRECTORY;
 const databaseUrl = process.env.TASKCORE_TEST_DATABASE_URL;
-const generated =
-  fixtureDirectory && databaseUrl ? describe : describe.skip;
+const generated = fixtureDirectory && databaseUrl ? describe : describe.skip;
 
 type Identity = {
   runnerInstanceId: string;
@@ -106,9 +104,7 @@ const seam = vi.hoisted(() => ({
   ),
 }));
 vi.mock("../../vendor/taskcore-runner/index.js", async (original) => ({
-  ...(await original<
-    typeof import("../../vendor/taskcore-runner/index.js")
-  >()),
+  ...(await original<typeof import("../../vendor/taskcore-runner/index.js")>()),
   createNativeSessionBackend: seam.backend,
   createRunnerdCodexTransport: seam.transport,
 }));

@@ -10,11 +10,19 @@ const AGENT_NAME = "CEO";
 const TASK_TITLE = "Taskcore onboarding";
 
 /** Wait for the saved question before checking its dismissed presentation. */
-async function expectOpeningQuestionDismissed(page: import("@playwright/test").Page) {
-  await expect(page.getByTestId("task-chat-unanswered-question")).toBeVisible({ timeout: 30_000 });
+async function expectOpeningQuestionDismissed(
+  page: import("@playwright/test").Page,
+) {
+  await expect(page.getByTestId("task-chat-unanswered-question")).toBeVisible({
+    timeout: 30_000,
+  });
   await expect(page.getByTestId("task-chat-composer-takeover")).toHaveCount(0);
-  await expect(page.getByTestId("task-chat-pending-input-indicator")).toHaveCount(0);
-  await expect(page.getByTestId("task-chat-composer-mode")).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByTestId("task-chat-pending-input-indicator"),
+  ).toHaveCount(0);
+  await expect(page.getByTestId("task-chat-composer-mode")).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 /** The opening question arrives after the interactions fetch. Dismiss it once. */
@@ -66,15 +74,25 @@ test("captures planning mode UI for desktop and mobile", async ({ page }) => {
   });
 
   await page.goto("/onboarding");
-  const startBtn = page.getByRole("button", { name: /Start Onboarding|New Organization|Add Agent/ });
+  const startBtn = page.getByRole("button", {
+    name: /Start Onboarding|New Organization|Add Agent/,
+  });
   if (await startBtn.count()) await startBtn.first().click();
 
-  const createCard = page.getByRole("button", { name: /Build a new organization/ });
+  const createCard = page.getByRole("button", {
+    name: /Build a new organization/,
+  });
   if (await createCard.count()) await createCard.first().click();
 
-  await expect(page.getByRole("heading", { name: "What is the name of your organization?" })).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByRole("heading", {
+      name: "What is the name of your organization?",
+    }),
+  ).toBeVisible({ timeout: 15_000 });
 
-  await page.locator('input[placeholder="e.g. Northwind Labs"]').fill(companyName);
+  await page
+    .locator('input[placeholder="e.g. Northwind Labs"]')
+    .fill(companyName);
   await page.getByRole("button", { name: /^Continue/ }).click();
 
   // Naming the company creates it and goes straight to the agent step.
@@ -114,9 +132,13 @@ test("captures planning mode UI for desktop and mobile", async ({ page }) => {
   const companyRes = await page.request.get(`${baseOrigin}/api/companies`);
   expect(companyRes.ok()).toBe(true);
   const companies = await companyRes.json();
-  const company = companies.find((c: { name: string }) => c.name === companyName);
+  const company = companies.find(
+    (c: { name: string }) => c.name === companyName,
+  );
   expect(company).toBeTruthy();
-  const issueRes = await page.request.get(`${baseOrigin}/api/companies/${company.id}/issues`);
+  const issueRes = await page.request.get(
+    `${baseOrigin}/api/companies/${company.id}/issues`,
+  );
   expect(issueRes.ok()).toBe(true);
   const issues = await issueRes.json();
   const planningSeedIssue = issues.find(
@@ -132,17 +154,25 @@ test("captures planning mode UI for desktop and mobile", async ({ page }) => {
   const issueLinkSelector = `a[href$="/issues/${issueIdentifier}"]`;
 
   const setMode = async (mode: "standard" | "planning") => {
-    const patchRes = await page.request.patch(`${baseOrigin}/api/issues/${issue.id}`, {
-      data: { workMode: mode },
-    });
+    const patchRes = await page.request.patch(
+      `${baseOrigin}/api/issues/${issue.id}`,
+      {
+        data: { workMode: mode },
+      },
+    );
     expect(patchRes.ok()).toBe(true);
     await expect
-      .poll(async () => {
-        const currentRes = await page.request.get(`${baseOrigin}/api/issues/${issue.id}`);
-        expect(currentRes.ok()).toBe(true);
-        const current = await currentRes.json();
-        return current.workMode;
-      }, { timeout: 10_000 })
+      .poll(
+        async () => {
+          const currentRes = await page.request.get(
+            `${baseOrigin}/api/issues/${issue.id}`,
+          );
+          expect(currentRes.ok()).toBe(true);
+          const current = await currentRes.json();
+          return current.workMode;
+        },
+        { timeout: 10_000 },
+      )
       .toBe(mode);
   };
 
@@ -155,7 +185,10 @@ test("captures planning mode UI for desktop and mobile", async ({ page }) => {
   await expect(page.getByText("Plan mode").first()).toBeVisible();
   const desktopPlanningToggle = page.getByTestId("task-chat-composer-mode");
   await expect(desktopPlanningToggle).toBeVisible();
-  await expect(desktopPlanningToggle).toHaveAttribute("data-pending-work-mode", "planning");
+  await expect(desktopPlanningToggle).toHaveAttribute(
+    "data-pending-work-mode",
+    "planning",
+  );
 
   await page.screenshot({
     path: `${screenshotDir}/desktop-planning-detail-${timestamp}.png`,
@@ -187,7 +220,10 @@ test("captures planning mode UI for desktop and mobile", async ({ page }) => {
   await expect(page.getByText("Plan mode").first()).toBeVisible();
   const mobilePlanningToggle = page.getByTestId("task-chat-composer-mode");
   await expect(mobilePlanningToggle).toBeVisible();
-  await expect(mobilePlanningToggle).toHaveAttribute("data-pending-work-mode", "planning");
+  await expect(mobilePlanningToggle).toHaveAttribute(
+    "data-pending-work-mode",
+    "planning",
+  );
   await page.screenshot({
     path: `${screenshotDir}/mobile-planning-detail-${timestamp}.png`,
     fullPage: true,

@@ -3,7 +3,9 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { Issue } from "@taskcore/shared";
 import { queryKeys } from "./queryKeys";
 
-export type InboxIssueCacheSnapshot = Array<readonly [QueryKey, Issue[] | undefined]>;
+export type InboxIssueCacheSnapshot = Array<
+  readonly [QueryKey, Issue[] | undefined]
+>;
 
 export const INBOX_ARCHIVE_CONFIRMATION_GRACE_MS = 5_000;
 const INBOX_ARCHIVE_MAX_GUARD_MS = 30_000;
@@ -18,13 +20,16 @@ type InboxArchiveGuardState = {
 
 const inboxArchiveGuards = new Map<string, InboxArchiveGuardState>();
 
-function pruneInboxArchiveGuard(companyId: string, state: InboxArchiveGuardState) {
+function pruneInboxArchiveGuard(
+  companyId: string,
+  state: InboxArchiveGuardState,
+) {
   if (
-    state.issueIds.size === 0
-    && state.listeners.size === 0
-    && state.confirmationTimers.size === 0
-    && state.maximumTimers.size === 0
-    && inboxArchiveGuards.get(companyId) === state
+    state.issueIds.size === 0 &&
+    state.listeners.size === 0 &&
+    state.confirmationTimers.size === 0 &&
+    state.maximumTimers.size === 0 &&
+    inboxArchiveGuards.get(companyId) === state
   ) {
     inboxArchiveGuards.delete(companyId);
   }
@@ -44,7 +49,10 @@ function getInboxArchiveGuard(companyId: string): InboxArchiveGuardState {
   return created;
 }
 
-function publishInboxArchiveGuard(state: InboxArchiveGuardState, issueIds: Set<string>) {
+function publishInboxArchiveGuard(
+  state: InboxArchiveGuardState,
+  issueIds: Set<string>,
+) {
   state.issueIds = issueIds.size > 0 ? issueIds : EMPTY_ARCHIVED_ISSUE_IDS;
   for (const listener of state.listeners) listener();
 }
@@ -73,9 +81,12 @@ export function boundLocalInboxArchive(companyId: string, issueId: string) {
   if (!state?.issueIds.has(issueId)) return;
 
   clearArchiveGuardTimer(state.maximumTimers, issueId);
-  state.maximumTimers.set(issueId, setTimeout(() => {
-    clearLocalInboxArchive(companyId, issueId);
-  }, INBOX_ARCHIVE_MAX_GUARD_MS));
+  state.maximumTimers.set(
+    issueId,
+    setTimeout(() => {
+      clearLocalInboxArchive(companyId, issueId);
+    }, INBOX_ARCHIVE_MAX_GUARD_MS),
+  );
 }
 
 export function confirmLocalInboxArchive(companyId: string, issueId: string) {
@@ -83,9 +94,12 @@ export function confirmLocalInboxArchive(companyId: string, issueId: string) {
   if (!state?.issueIds.has(issueId)) return;
 
   clearArchiveGuardTimer(state.confirmationTimers, issueId);
-  state.confirmationTimers.set(issueId, setTimeout(() => {
-    clearLocalInboxArchive(companyId, issueId);
-  }, INBOX_ARCHIVE_CONFIRMATION_GRACE_MS));
+  state.confirmationTimers.set(
+    issueId,
+    setTimeout(() => {
+      clearLocalInboxArchive(companyId, issueId);
+    }, INBOX_ARCHIVE_CONFIRMATION_GRACE_MS),
+  );
 }
 
 export function clearLocalInboxArchive(companyId: string, issueId: string) {
@@ -104,12 +118,18 @@ export function clearLocalInboxArchive(companyId: string, issueId: string) {
   pruneInboxArchiveGuard(companyId, state);
 }
 
-export function getLocalInboxArchiveIssueIds(companyId: string | null | undefined): ReadonlySet<string> {
+export function getLocalInboxArchiveIssueIds(
+  companyId: string | null | undefined,
+): ReadonlySet<string> {
   if (!companyId) return EMPTY_ARCHIVED_ISSUE_IDS;
-  return inboxArchiveGuards.get(companyId)?.issueIds ?? EMPTY_ARCHIVED_ISSUE_IDS;
+  return (
+    inboxArchiveGuards.get(companyId)?.issueIds ?? EMPTY_ARCHIVED_ISSUE_IDS
+  );
 }
 
-export function useLocalInboxArchiveIssueIds(companyId: string | null | undefined): ReadonlySet<string> {
+export function useLocalInboxArchiveIssueIds(
+  companyId: string | null | undefined,
+): ReadonlySet<string> {
   return useSyncExternalStore(
     (listener) => {
       if (!companyId) return () => undefined;
@@ -137,16 +157,24 @@ export function filterLocalInboxArchivedIssues(
 function inboxIssueCompanyIdFromQueryKey(queryKey: QueryKey): string | null {
   const inboxQueryKind = String(queryKey[2]);
   if (
-    queryKey[0] !== "issues"
-    || typeof queryKey[1] !== "string"
-    || !["compact", "mine-by-me", "touched-by-me", "unread-touched-by-me"].includes(inboxQueryKind)
+    queryKey[0] !== "issues" ||
+    typeof queryKey[1] !== "string" ||
+    ![
+      "compact",
+      "mine-by-me",
+      "touched-by-me",
+      "unread-touched-by-me",
+    ].includes(inboxQueryKind)
   ) {
     return null;
   }
   return queryKey[1];
 }
 
-export function filterLocalInboxArchivedQueryData<TData>(queryKey: QueryKey, data: TData): TData {
+export function filterLocalInboxArchivedQueryData<TData>(
+  queryKey: QueryKey,
+  data: TData,
+): TData {
   const companyId = inboxIssueCompanyIdFromQueryKey(queryKey);
   if (!companyId || !Array.isArray(data)) return data;
   return filterLocalInboxArchivedIssues(companyId, data as Issue[]) as TData;
@@ -161,21 +189,32 @@ function inboxIssueQueryPrefixes(companyId: string) {
   ] as const;
 }
 
-function resolveRestoreIndex(currentData: Issue[], previousData: Issue[], previousIndex: number) {
+function resolveRestoreIndex(
+  currentData: Issue[],
+  previousData: Issue[],
+  previousIndex: number,
+) {
   for (let index = previousIndex - 1; index >= 0; index -= 1) {
-    const beforeIndex = currentData.findIndex((issue) => issue.id === previousData[index]?.id);
+    const beforeIndex = currentData.findIndex(
+      (issue) => issue.id === previousData[index]?.id,
+    );
     if (beforeIndex >= 0) return beforeIndex + 1;
   }
 
   for (let index = previousIndex + 1; index < previousData.length; index += 1) {
-    const afterIndex = currentData.findIndex((issue) => issue.id === previousData[index]?.id);
+    const afterIndex = currentData.findIndex(
+      (issue) => issue.id === previousData[index]?.id,
+    );
     if (afterIndex >= 0) return afterIndex;
   }
 
   return Math.min(previousIndex, currentData.length);
 }
 
-export async function cancelInboxIssueQueries(queryClient: QueryClient, companyId: string) {
+export async function cancelInboxIssueQueries(
+  queryClient: QueryClient,
+  companyId: string,
+) {
   await Promise.all(
     inboxIssueQueryPrefixes(companyId).map((queryKey) =>
       queryClient.cancelQueries({ queryKey }),
@@ -198,9 +237,8 @@ export function removeIssueFromInboxCaches(
   issueId: string,
 ) {
   for (const queryKey of inboxIssueQueryPrefixes(companyId)) {
-    queryClient.setQueriesData<Issue[]>(
-      { queryKey },
-      (cached) => cached?.filter((issue) => issue.id !== issueId),
+    queryClient.setQueriesData<Issue[]>({ queryKey }, (cached) =>
+      cached?.filter((issue) => issue.id !== issueId),
     );
   }
 }
@@ -213,26 +251,38 @@ export function restoreIssueToInboxCaches(
   for (const [queryKey, previousData] of snapshot) {
     if (!previousData) continue;
 
-    const previousIndex = previousData.findIndex((issue) => issue.id === issueId);
+    const previousIndex = previousData.findIndex(
+      (issue) => issue.id === issueId,
+    );
     if (previousIndex < 0) continue;
 
     const issueToRestore = previousData[previousIndex];
     queryClient.setQueryData<Issue[]>(queryKey, (currentData) => {
-      if (currentData?.some((issue) => issue.id === issueId)) return currentData;
+      if (currentData?.some((issue) => issue.id === issueId))
+        return currentData;
 
       const nextData = [...(currentData ?? [])];
-      nextData.splice(resolveRestoreIndex(nextData, previousData, previousIndex), 0, issueToRestore);
+      nextData.splice(
+        resolveRestoreIndex(nextData, previousData, previousIndex),
+        0,
+        issueToRestore,
+      );
       return nextData;
     });
   }
 }
 
-export function invalidateInboxIssueQueries(queryClient: QueryClient, companyId: string) {
+export function invalidateInboxIssueQueries(
+  queryClient: QueryClient,
+  companyId: string,
+) {
   return Promise.all([
     ...inboxIssueQueryPrefixes(companyId).map((queryKey) =>
       queryClient.invalidateQueries({ queryKey }),
     ),
-    queryClient.invalidateQueries({ queryKey: queryKeys.sidebarBadges(companyId) }),
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.sidebarBadges(companyId),
+    }),
   ]);
 }
 
@@ -242,14 +292,19 @@ export function getIssuePresenceInActiveInboxCaches(
   issueId: string,
 ): "absent" | "present" | "unknown" {
   const activeQueries = inboxIssueQueryPrefixes(companyId).flatMap((queryKey) =>
-    queryClient.getQueryCache().findAll({ queryKey })
+    queryClient
+      .getQueryCache()
+      .findAll({ queryKey })
       .filter((query) => query.getObserversCount() > 0),
   );
   if (activeQueries.length === 0) return "unknown";
 
   const isPresent = activeQueries.some((query) => {
     const data = query.state.data;
-    return Array.isArray(data) && data.some((issue) => (issue as Issue).id === issueId);
+    return (
+      Array.isArray(data) &&
+      data.some((issue) => (issue as Issue).id === issueId)
+    );
   });
   return isPresent ? "present" : "absent";
 }

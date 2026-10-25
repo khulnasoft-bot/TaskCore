@@ -26,7 +26,10 @@ describe("lexical single copy", () => {
   const requireFromMdxEditor = createRequire(mdxEditorEntry);
 
   /** These packages block "./package.json" in exports, so read it off disk. */
-  function manifestOf(specifier: string, from: NodeJS.Require): { version: string } {
+  function manifestOf(
+    specifier: string,
+    from: NodeJS.Require,
+  ): { version: string } {
     let dir = dirname(from.resolve(specifier));
     const { root } = parse(dir);
     while (true) {
@@ -48,7 +51,8 @@ describe("lexical single copy", () => {
     let dir = dirname(fileURLToPath(import.meta.url));
     const { root } = parse(dir);
     while (!existsSync(join(dir, "pnpm-workspace.yaml"))) {
-      if (dir === root) throw new Error("could not find the pnpm workspace root");
+      if (dir === root)
+        throw new Error("could not find the pnpm workspace root");
       dir = dirname(dir);
     }
     return dir;
@@ -63,20 +67,24 @@ describe("lexical single copy", () => {
     //
     // With no override, pnpm honours every declared range, and the copy
     // checks below confirm the app and the editor landed on the same one.
-    const manifest = JSON.parse(readFileSync(join(workspaceRoot(), "package.json"), "utf8"));
+    const manifest = JSON.parse(
+      readFileSync(join(workspaceRoot(), "package.json"), "utf8"),
+    );
     const overrides: Record<string, string> = manifest.pnpm?.overrides ?? {};
     const forced = Object.keys(overrides).filter(
       (name) => name === "lexical" || name.startsWith("@lexical/"),
     );
     expect(
       forced,
-      "Pin Lexical through ui/package.json instead. An override cannot cover the "
-        + "packages it does not name, and it hides the range @mdxeditor/editor declares.",
+      "Pin Lexical through ui/package.json instead. An override cannot cover the " +
+        "packages it does not name, and it hides the range @mdxeditor/editor declares.",
     ).toEqual([]);
   });
 
   it("resolves the same lexical copy for the app and the editor", () => {
-    expect(requireFromMdxEditor.resolve("lexical")).toBe(requireFromUi.resolve("lexical"));
+    expect(requireFromMdxEditor.resolve("lexical")).toBe(
+      requireFromUi.resolve("lexical"),
+    );
   });
 
   it("keeps the app's lexical packages on the editor's version line", () => {

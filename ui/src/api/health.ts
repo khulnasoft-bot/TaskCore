@@ -6,7 +6,11 @@ import { ApiUnavailableError, readApiJson } from "./response";
 export type DevServerHealthStatus = {
   enabled: true;
   restartRequired: boolean;
-  reason: "backend_changes" | "pending_migrations" | "backend_changes_and_pending_migrations" | null;
+  reason:
+    | "backend_changes"
+    | "pending_migrations"
+    | "backend_changes_and_pending_migrations"
+    | null;
   lastChangedAt: string | null;
   changedPathCount: number;
   changedPathsSample: string[];
@@ -58,14 +62,24 @@ export const healthApi = {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
-    const payload = await readApiJson<HealthStatus & { error?: string } | null>(res);
+    const payload = await readApiJson<
+      (HealthStatus & { error?: string }) | null
+    >(res);
     if (!res.ok) {
-      const recovery = tenantSessionRecovery.recoverIfNeeded(res.status, payload);
+      const recovery = tenantSessionRecovery.recoverIfNeeded(
+        res.status,
+        payload,
+      );
       if (recovery) return recovery;
-      throw new ApiError(payload?.error ?? `Failed to load health (${res.status})`, res.status, payload);
+      throw new ApiError(
+        payload?.error ?? `Failed to load health (${res.status})`,
+        res.status,
+        payload,
+      );
     }
     // Startup recovery can still serve sign-in and deployment metadata.
-    if (payload?.status !== "ok" && payload?.status !== "starting") throw new ApiUnavailableError(res.status);
+    if (payload?.status !== "ok" && payload?.status !== "starting")
+      throw new ApiUnavailableError(res.status);
     return payload;
   },
   requestDevServerRestart: async (): Promise<void> => {
@@ -75,10 +89,17 @@ export const healthApi = {
       headers: { Accept: "application/json" },
     });
     if (!res.ok) {
-      const payload = await res.json().catch(() => null) as { error?: string } | null;
-      const recovery = tenantSessionRecovery.recoverIfNeeded(res.status, payload);
+      const payload = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      const recovery = tenantSessionRecovery.recoverIfNeeded(
+        res.status,
+        payload,
+      );
       if (recovery) return recovery;
-      throw new Error(payload?.error ?? `Failed to request restart (${res.status})`);
+      throw new Error(
+        payload?.error ?? `Failed to request restart (${res.status})`,
+      );
     }
   },
 };

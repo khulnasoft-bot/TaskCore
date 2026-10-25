@@ -22,7 +22,9 @@ import {
 } from "../routes/workspace-runtime-service-authz.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -32,10 +34,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("workspace runtime service authz helper", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-workspace-runtime-authz-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-workspace-runtime-authz-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -85,7 +91,11 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
     return { projectId, projectWorkspaceId };
   }
 
-  async function seedExecutionWorkspace(companyId: string, projectId: string, projectWorkspaceId: string) {
+  async function seedExecutionWorkspace(
+    companyId: string,
+    projectId: string,
+    projectWorkspaceId: string,
+  ) {
     const executionWorkspaceId = randomUUID();
     await db.insert(executionWorkspaces).values({
       id: executionWorkspaceId,
@@ -121,18 +131,24 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
     const companyId = await seedCompany();
     const { projectWorkspaceId } = await seedProjectWorkspace(companyId);
 
-    await expect(assertCanManageProjectWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "board",
-        userId: "board-1",
-        companyIds: [companyId],
-        source: "session",
-        isInstanceAdmin: false,
-      },
-    } as any, {
-      companyId,
-      projectWorkspaceId,
-    })).resolves.toBeUndefined();
+    await expect(
+      assertCanManageProjectWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "board",
+            userId: "board-1",
+            companyIds: [companyId],
+            source: "session",
+            isInstanceAdmin: false,
+          },
+        } as any,
+        {
+          companyId,
+          projectWorkspaceId,
+        },
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it("allows CEO agents to manage any project workspace runtime services in their company", async () => {
@@ -140,22 +156,29 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
     const { projectWorkspaceId } = await seedProjectWorkspace(companyId);
     const ceoAgentId = await seedAgent(companyId, { role: "ceo", name: "CEO" });
 
-    await expect(assertCanManageProjectWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId: ceoAgentId,
-        companyId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      projectWorkspaceId,
-    })).resolves.toBeUndefined();
+    await expect(
+      assertCanManageProjectWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId: ceoAgentId,
+            companyId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          projectWorkspaceId,
+        },
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it("rejects low-trust CEO runtime service mutations unless runtime.manage is granted", async () => {
     const companyId = await seedCompany();
-    const { projectId, projectWorkspaceId } = await seedProjectWorkspace(companyId);
+    const { projectId, projectWorkspaceId } =
+      await seedProjectWorkspace(companyId);
     const ceoAgentId = await seedAgent(companyId, { role: "ceo", name: "CEO" });
     await db
       .update(agents)
@@ -184,25 +207,33 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
       assigneeAgentId: ceoAgentId,
     });
 
-    await expect(assertCanManageProjectWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId: ceoAgentId,
-        companyId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      projectWorkspaceId,
-    })).rejects.toMatchObject({
+    await expect(
+      assertCanManageProjectWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId: ceoAgentId,
+            companyId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          projectWorkspaceId,
+        },
+      ),
+    ).rejects.toMatchObject({
       status: 403,
-      message: "Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage",
+      message:
+        "Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage",
     });
   });
 
   it("allows standard CEO runtime service mutations for low-trust workspace issues", async () => {
     const companyId = await seedCompany();
-    const { projectId, projectWorkspaceId } = await seedProjectWorkspace(companyId);
+    const { projectId, projectWorkspaceId } =
+      await seedProjectWorkspace(companyId);
     const ceoAgentId = await seedAgent(companyId, { role: "ceo", name: "CEO" });
 
     await db.insert(issues).values({
@@ -225,22 +256,29 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
       },
     });
 
-    await expect(assertCanManageProjectWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId: ceoAgentId,
-        companyId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      projectWorkspaceId,
-    })).resolves.toBeUndefined();
+    await expect(
+      assertCanManageProjectWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId: ceoAgentId,
+            companyId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          projectWorkspaceId,
+        },
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it("rejects runtime service mutations when only the run policy is low-trust without runtime.manage", async () => {
     const companyId = await seedCompany();
-    const { projectId, projectWorkspaceId } = await seedProjectWorkspace(companyId);
+    const { projectId, projectWorkspaceId } =
+      await seedProjectWorkspace(companyId);
     const ceoAgentId = await seedAgent(companyId, { role: "ceo", name: "CEO" });
     const issueId = randomUUID();
     const runId = randomUUID();
@@ -274,26 +312,34 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
       },
     });
 
-    await expect(assertCanManageProjectWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId: ceoAgentId,
-        companyId,
-        runId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      projectWorkspaceId,
-    })).rejects.toMatchObject({
+    await expect(
+      assertCanManageProjectWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId: ceoAgentId,
+            companyId,
+            runId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          projectWorkspaceId,
+        },
+      ),
+    ).rejects.toMatchObject({
       status: 403,
-      message: "Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage",
+      message:
+        "Low-trust runs cannot manage workspace runtime services unless the boundary grants runtime.manage",
     });
   });
 
   it("allows agents with a non-terminal assigned issue in the target project workspace", async () => {
     const companyId = await seedCompany();
-    const { projectId, projectWorkspaceId } = await seedProjectWorkspace(companyId);
+    const { projectId, projectWorkspaceId } =
+      await seedProjectWorkspace(companyId);
     const agentId = await seedAgent(companyId, { name: "Engineer" });
 
     await db.insert(issues).values({
@@ -307,25 +353,42 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
       assigneeAgentId: agentId,
     });
 
-    await expect(assertCanManageProjectWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId,
-        companyId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      projectWorkspaceId,
-    })).resolves.toBeUndefined();
+    await expect(
+      assertCanManageProjectWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId,
+            companyId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          projectWorkspaceId,
+        },
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it("allows managers to manage execution workspace runtime services for their reporting subtree", async () => {
     const companyId = await seedCompany();
-    const { projectId, projectWorkspaceId } = await seedProjectWorkspace(companyId);
-    const executionWorkspaceId = await seedExecutionWorkspace(companyId, projectId, projectWorkspaceId);
-    const managerId = await seedAgent(companyId, { role: "cto", name: "Manager" });
-    const reportId = await seedAgent(companyId, { reportsTo: managerId, name: "Report" });
+    const { projectId, projectWorkspaceId } =
+      await seedProjectWorkspace(companyId);
+    const executionWorkspaceId = await seedExecutionWorkspace(
+      companyId,
+      projectId,
+      projectWorkspaceId,
+    );
+    const managerId = await seedAgent(companyId, {
+      role: "cto",
+      name: "Manager",
+    });
+    const reportId = await seedAgent(companyId, {
+      reportsTo: managerId,
+      name: "Report",
+    });
 
     await db.insert(issues).values({
       id: randomUUID(),
@@ -339,17 +402,23 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
       assigneeAgentId: reportId,
     });
 
-    await expect(assertCanManageExecutionWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId: managerId,
-        companyId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      executionWorkspaceId,
-    })).resolves.toMatchObject({
+    await expect(
+      assertCanManageExecutionWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId: managerId,
+            companyId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          executionWorkspaceId,
+        },
+      ),
+    ).resolves.toMatchObject({
       actorType: "agent",
       agentId: managerId,
       issueId: null,
@@ -358,8 +427,13 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
 
   it("rejects unrelated same-company agents without matching workspace assignments", async () => {
     const companyId = await seedCompany();
-    const { projectId, projectWorkspaceId } = await seedProjectWorkspace(companyId);
-    const executionWorkspaceId = await seedExecutionWorkspace(companyId, projectId, projectWorkspaceId);
+    const { projectId, projectWorkspaceId } =
+      await seedProjectWorkspace(companyId);
+    const executionWorkspaceId = await seedExecutionWorkspace(
+      companyId,
+      projectId,
+      projectWorkspaceId,
+    );
     const assignedAgentId = await seedAgent(companyId, { name: "Assigned" });
     const unrelatedAgentId = await seedAgent(companyId, { name: "Unrelated" });
 
@@ -375,17 +449,23 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
       assigneeAgentId: assignedAgentId,
     });
 
-    await expect(assertCanManageExecutionWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId: unrelatedAgentId,
-        companyId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      executionWorkspaceId,
-    })).rejects.toMatchObject({
+    await expect(
+      assertCanManageExecutionWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId: unrelatedAgentId,
+            companyId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          executionWorkspaceId,
+        },
+      ),
+    ).rejects.toMatchObject({
       status: 403,
       message: "Missing permission to manage workspace runtime services",
     });
@@ -393,7 +473,8 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
 
   it("rejects completed workspace assignments so stale issues do not keep access alive", async () => {
     const companyId = await seedCompany();
-    const { projectId, projectWorkspaceId } = await seedProjectWorkspace(companyId);
+    const { projectId, projectWorkspaceId } =
+      await seedProjectWorkspace(companyId);
     const agentId = await seedAgent(companyId, { name: "Engineer" });
 
     await db.insert(issues).values({
@@ -407,17 +488,23 @@ describeEmbeddedPostgres("workspace runtime service authz helper", () => {
       assigneeAgentId: agentId,
     });
 
-    await expect(assertCanManageProjectWorkspaceRuntimeServices(db, {
-      actor: {
-        type: "agent",
-        agentId,
-        companyId,
-        source: "agent_key",
-      },
-    } as any, {
-      companyId,
-      projectWorkspaceId,
-    })).rejects.toMatchObject({
+    await expect(
+      assertCanManageProjectWorkspaceRuntimeServices(
+        db,
+        {
+          actor: {
+            type: "agent",
+            agentId,
+            companyId,
+            source: "agent_key",
+          },
+        } as any,
+        {
+          companyId,
+          projectWorkspaceId,
+        },
+      ),
+    ).rejects.toMatchObject({
       status: 403,
       message: "Missing permission to manage workspace runtime services",
     });

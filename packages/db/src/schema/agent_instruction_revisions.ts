@@ -89,7 +89,9 @@ export const agentInstructionHeads = pgTable(
 export const agentInstructionWorkingCopies = pgTable(
   "agent_instruction_working_copies",
   {
-    runId: uuid("run_id").primaryKey().references(() => heartbeatRuns.id, { onDelete: "cascade" }),
+    runId: uuid("run_id")
+      .primaryKey()
+      .references(() => heartbeatRuns.id, { onDelete: "cascade" }),
     companyId: uuid("company_id").notNull(),
     agentId: uuid("agent_id").notNull(),
     responsibleUserId: text("responsible_user_id").notNull(),
@@ -108,12 +110,26 @@ export const agentInstructionWorkingCopies = pgTable(
     processStoppedAt: timestamp("process_stopped_at", { withTimezone: true }),
     attempts: integer("attempts").notNull().default(0),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
-    owner: foreignKey({ columns: [t.companyId, t.agentId], foreignColumns: [agents.companyId, agents.id] }).onDelete("cascade"),
-    pending: index("agent_instruction_copies_pending_idx").on(t.state, t.nextAttemptAt),
-    history: index("agent_instruction_copies_agent_idx").on(t.companyId, t.agentId, t.createdAt),
+    owner: foreignKey({
+      columns: [t.companyId, t.agentId],
+      foreignColumns: [agents.companyId, agents.id],
+    }).onDelete("cascade"),
+    pending: index("agent_instruction_copies_pending_idx").on(
+      t.state,
+      t.nextAttemptAt,
+    ),
+    history: index("agent_instruction_copies_agent_idx").on(
+      t.companyId,
+      t.agentId,
+      t.createdAt,
+    ),
   }),
 );

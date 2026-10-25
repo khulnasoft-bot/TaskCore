@@ -17,7 +17,9 @@ import {
 import { agentService } from "../services/agents.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -27,10 +29,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("agent service clearError", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-agent-clear-error-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-agent-clear-error-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -51,19 +57,98 @@ describeEmbeddedPostgres("agent service clearError", () => {
     const companyId = randomUUID();
     const agentId = randomUUID();
     const runId = randomUUID();
-    const config = { cwd: "/tmp/runner-conversion", instructionsFilePath: "/tmp/runner-conversion/AGENTS.md", env: { TEST_KEY: { type: "plain", value: "kept" } } };
-    await db.insert(companies).values({ id: companyId, name: "Conversion", issuePrefix: `T${companyId.slice(0, 6).toUpperCase()}` });
-    await db.insert(agents).values({ id: agentId, companyId, name: "Claude QA", role: "engineer", adapterType: "claude_local", adapterConfig: config });
-    await db.insert(heartbeatRuns).values({ id: runId, companyId, agentId, invocationSource: "on_demand", status: "succeeded", resultJson: { summary: "history stays" } });
-    await db.insert(agentTaskSessions).values({ companyId, agentId, adapterType: "claude_local", taskKey: "issue:test", sessionDisplayId: "old-session", lastRunId: runId });
-    await db.insert(agentRuntimeState).values({ companyId, agentId, adapterType: "claude_local", sessionId: "old-session", stateJson: { old: true }, lastRunId: runId });
-    const updated = await agentService(db).update(agentId, { adapterType: "taskcore_runner", adapterConfig: { ...config, provider: "acpx", acpxAgent: "claude", model: "custom-claude-model" } });
-    expect(updated).toMatchObject({ id: agentId, companyId, name: "Claude QA", role: "engineer", adapterConfig: config });
-    expect(await db.select().from(agentTaskSessions).where(eq(agentTaskSessions.agentId, agentId))).toEqual([]);
-    const [runtime] = await db.select().from(agentRuntimeState).where(eq(agentRuntimeState.agentId, agentId));
-    expect(runtime).toMatchObject({ adapterType: "taskcore_runner", sessionId: null, stateJson: {}, lastRunId: runId });
-    const [run] = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId));
-    expect(run).toMatchObject({ status: "succeeded", resultJson: { summary: "history stays" } });
+    const config = {
+      cwd: "/tmp/runner-conversion",
+      instructionsFilePath: "/tmp/runner-conversion/AGENTS.md",
+      env: { TEST_KEY: { type: "plain", value: "kept" } },
+    };
+    await db
+      .insert(companies)
+      .values({
+        id: companyId,
+        name: "Conversion",
+        issuePrefix: `T${companyId.slice(0, 6).toUpperCase()}`,
+      });
+    await db
+      .insert(agents)
+      .values({
+        id: agentId,
+        companyId,
+        name: "Claude QA",
+        role: "engineer",
+        adapterType: "claude_local",
+        adapterConfig: config,
+      });
+    await db
+      .insert(heartbeatRuns)
+      .values({
+        id: runId,
+        companyId,
+        agentId,
+        invocationSource: "on_demand",
+        status: "succeeded",
+        resultJson: { summary: "history stays" },
+      });
+    await db
+      .insert(agentTaskSessions)
+      .values({
+        companyId,
+        agentId,
+        adapterType: "claude_local",
+        taskKey: "issue:test",
+        sessionDisplayId: "old-session",
+        lastRunId: runId,
+      });
+    await db
+      .insert(agentRuntimeState)
+      .values({
+        companyId,
+        agentId,
+        adapterType: "claude_local",
+        sessionId: "old-session",
+        stateJson: { old: true },
+        lastRunId: runId,
+      });
+    const updated = await agentService(db).update(agentId, {
+      adapterType: "taskcore_runner",
+      adapterConfig: {
+        ...config,
+        provider: "acpx",
+        acpxAgent: "claude",
+        model: "custom-claude-model",
+      },
+    });
+    expect(updated).toMatchObject({
+      id: agentId,
+      companyId,
+      name: "Claude QA",
+      role: "engineer",
+      adapterConfig: config,
+    });
+    expect(
+      await db
+        .select()
+        .from(agentTaskSessions)
+        .where(eq(agentTaskSessions.agentId, agentId)),
+    ).toEqual([]);
+    const [runtime] = await db
+      .select()
+      .from(agentRuntimeState)
+      .where(eq(agentRuntimeState.agentId, agentId));
+    expect(runtime).toMatchObject({
+      adapterType: "taskcore_runner",
+      sessionId: null,
+      stateJson: {},
+      lastRunId: runId,
+    });
+    const [run] = await db
+      .select()
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.id, runId));
+    expect(run).toMatchObject({
+      status: "succeeded",
+      resultJson: { summary: "history stays" },
+    });
   });
 
   it("moves an error agent to idle without deleting run history or runtime diagnostics", async () => {
@@ -141,7 +226,10 @@ describeEmbeddedPostgres("agent service clearError", () => {
       errorReason: null,
     });
 
-    const [run] = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId));
+    const [run] = await db
+      .select()
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.id, runId));
     expect(run).toMatchObject({
       id: runId,
       status: "failed",
@@ -247,11 +335,15 @@ describeEmbeddedPostgres("agent service clearError", () => {
       },
     ]);
 
-    await expect(agentService(db).clearError(terminatedAgentId)).rejects.toMatchObject({
+    await expect(
+      agentService(db).clearError(terminatedAgentId),
+    ).rejects.toMatchObject({
       status: 409,
       message: "Cannot clear error on terminated agent",
     });
-    await expect(agentService(db).clearError(pendingAgentId)).rejects.toMatchObject({
+    await expect(
+      agentService(db).clearError(pendingAgentId),
+    ).rejects.toMatchObject({
       status: 409,
       message: "Pending approval agents cannot have errors cleared",
     });

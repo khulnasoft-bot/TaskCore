@@ -58,7 +58,10 @@ export function ArtifactGroupCard({ group, to }: ArtifactGroupCardProps) {
               <Layers className="h-7 w-7" aria-hidden="true" />
             </div>
           )}
-          <Badge variant="ghost" className="absolute right-2 top-2 bg-background/85 text-(length:--text-micro) text-foreground/90 shadow-sm backdrop-blur">
+          <Badge
+            variant="ghost"
+            className="absolute right-2 top-2 bg-background/85 text-(length:--text-micro) text-foreground/90 shadow-sm backdrop-blur"
+          >
             <Layers className="h-3 w-3" aria-hidden="true" />
             {group.count}
           </Badge>

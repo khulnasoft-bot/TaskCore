@@ -2,9 +2,20 @@ import { inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/postgres-js";
 import {
-  agents, companies, createDb, heartbeatRuns, issues, principalPermissionGrants,
-  projects, toolApplications, toolCatalogEntries, toolConnections, toolPolicies,
-  toolProfileBindings, toolProfileEntries, toolProfiles,
+  agents,
+  companies,
+  createDb,
+  heartbeatRuns,
+  issues,
+  principalPermissionGrants,
+  projects,
+  toolApplications,
+  toolCatalogEntries,
+  toolConnections,
+  toolPolicies,
+  toolProfileBindings,
+  toolProfileEntries,
+  toolProfiles,
 } from "@taskcore/db";
 import { createToolGatewayService } from "../../services/tool-gateway.js";
 
@@ -35,97 +46,157 @@ export async function createListingFixture(
   toolCount: number,
   options: { broadBindings?: boolean; connectionCount?: number } = {},
 ) {
-  const company = await db.insert(companies).values({
-    name: `Listing ${randomUUID()}`,
-    issuePrefix: `LM${randomUUID().slice(0, 6).toUpperCase()}`,
-  }).returning().then((rows) => rows[0]!);
-  const agent = await db.insert(agents).values({
-    companyId: company.id,
-    name: `Listing Agent ${randomUUID()}`,
-    role: "engineer",
-    adapterType: "process",
-    adapterConfig: {},
-    runtimeConfig: {},
-    permissions: {},
-  }).returning().then((rows) => rows[0]!);
-  const project = await db.insert(projects).values({
-    companyId: company.id,
-    name: `Listing Project ${randomUUID()}`,
-  }).returning().then((rows) => rows[0]!);
-  const issue = await db.insert(issues).values({
-    companyId: company.id,
-    projectId: project.id,
-    title: "Listing work",
-    status: "in_progress",
-    assigneeAgentId: agent.id,
-  }).returning().then((rows) => rows[0]!);
-  const run = await db.insert(heartbeatRuns).values({
-    companyId: company.id,
-    agentId: agent.id,
-    invocationSource: "assignment",
-    status: "running",
-    contextSnapshot: { issueId: issue.id, projectId: project.id, taskMarkdown: LARGE_TASK_TEXT },
-    resultJson: { summary: LARGE_TASK_TEXT },
-  }).returning().then((rows) => rows[0]!);
-  const application = await db.insert(toolApplications).values({
-    companyId: company.id,
-    applicationKey: `listing-${randomUUID().slice(0, 8)}`,
-    name: `Listing MCP ${randomUUID()}`,
-    type: "mcp_http",
-    status: "active",
-  }).returning().then((rows) => rows[0]!);
-  const connection = await db.insert(toolConnections).values({
-    companyId: company.id,
-    applicationId: application.id,
-    name: "Listing connection",
-    uid: `test/${randomUUID()}`,
-    transport: "mcp_remote",
-    status: "active",
-    enabled: true,
-    healthStatus: "ok",
-    credentialPolicy: "shared",
-    config: { url: "https://8.8.8.8/mcp", notes: "connection config ".repeat(500) },
-  }).returning().then((rows) => rows[0]!);
-  const entries = await db.insert(toolCatalogEntries).values(
-    Array.from({ length: toolCount }, (_, index) => ({
+  const company = await db
+    .insert(companies)
+    .values({
+      name: `Listing ${randomUUID()}`,
+      issuePrefix: `LM${randomUUID().slice(0, 6).toUpperCase()}`,
+    })
+    .returning()
+    .then((rows) => rows[0]!);
+  const agent = await db
+    .insert(agents)
+    .values({
+      companyId: company.id,
+      name: `Listing Agent ${randomUUID()}`,
+      role: "engineer",
+      adapterType: "process",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    })
+    .returning()
+    .then((rows) => rows[0]!);
+  const project = await db
+    .insert(projects)
+    .values({
+      companyId: company.id,
+      name: `Listing Project ${randomUUID()}`,
+    })
+    .returning()
+    .then((rows) => rows[0]!);
+  const issue = await db
+    .insert(issues)
+    .values({
+      companyId: company.id,
+      projectId: project.id,
+      title: "Listing work",
+      status: "in_progress",
+      assigneeAgentId: agent.id,
+    })
+    .returning()
+    .then((rows) => rows[0]!);
+  const run = await db
+    .insert(heartbeatRuns)
+    .values({
+      companyId: company.id,
+      agentId: agent.id,
+      invocationSource: "assignment",
+      status: "running",
+      contextSnapshot: {
+        issueId: issue.id,
+        projectId: project.id,
+        taskMarkdown: LARGE_TASK_TEXT,
+      },
+      resultJson: { summary: LARGE_TASK_TEXT },
+    })
+    .returning()
+    .then((rows) => rows[0]!);
+  const application = await db
+    .insert(toolApplications)
+    .values({
+      companyId: company.id,
+      applicationKey: `listing-${randomUUID().slice(0, 8)}`,
+      name: `Listing MCP ${randomUUID()}`,
+      type: "mcp_http",
+      status: "active",
+    })
+    .returning()
+    .then((rows) => rows[0]!);
+  const connection = await db
+    .insert(toolConnections)
+    .values({
       companyId: company.id,
       applicationId: application.id,
-      connectionId: connection.id,
-      entryKind: "tool" as const,
-      name: `tool_${String(index).padStart(4, "0")}`,
-      toolName: `tool_${String(index).padStart(4, "0")}`,
-      description: `Fixture tool ${index}`,
-      inputSchema: {
-        type: "object",
-        properties: { query: { type: "string", description: "Query text. ".repeat(40) } },
+      name: "Listing connection",
+      uid: `test/${randomUUID()}`,
+      transport: "mcp_remote",
+      status: "active",
+      enabled: true,
+      healthStatus: "ok",
+      credentialPolicy: "shared",
+      config: {
+        url: "https://8.8.8.8/mcp",
+        notes: "connection config ".repeat(500),
       },
-      riskLevel: index % 3 === 0 ? "write" as const : "read" as const,
-      isReadOnly: index % 3 !== 0,
-      isWrite: index % 3 === 0,
-      status: "active" as const,
-      versionHash: randomUUID(),
-      schemaHash: randomUUID(),
-    })),
-  ).returning();
+    })
+    .returning()
+    .then((rows) => rows[0]!);
+  const entries = await db
+    .insert(toolCatalogEntries)
+    .values(
+      Array.from({ length: toolCount }, (_, index) => ({
+        companyId: company.id,
+        applicationId: application.id,
+        connectionId: connection.id,
+        entryKind: "tool" as const,
+        name: `tool_${String(index).padStart(4, "0")}`,
+        toolName: `tool_${String(index).padStart(4, "0")}`,
+        description: `Fixture tool ${index}`,
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Query text. ".repeat(40) },
+          },
+        },
+        riskLevel: index % 3 === 0 ? ("write" as const) : ("read" as const),
+        isReadOnly: index % 3 !== 0,
+        isWrite: index % 3 === 0,
+        status: "active" as const,
+        versionHash: randomUUID(),
+        schemaHash: randomUUID(),
+      })),
+    )
+    .returning();
 
   for (let i = 1; i < (options.connectionCount ?? 1); i += 1) {
-    const extra = await db.insert(toolConnections).values({
-      companyId: company.id, applicationId: application.id, name: `Listing connection ${i}`,
-      uid: `test/${randomUUID()}`, transport: "mcp_remote", status: "active", enabled: true,
-      healthStatus: "ok", config: { url: "https://8.8.8.8/mcp" },
-    }).returning().then((rows) => rows[0]!);
-    const ids = entries.filter((_, index) => index % (options.connectionCount ?? 1) === i).map((entry) => entry.id);
-    if (ids.length > 0) await db.update(toolCatalogEntries).set({ connectionId: extra.id }).where(inArray(toolCatalogEntries.id, ids));
+    const extra = await db
+      .insert(toolConnections)
+      .values({
+        companyId: company.id,
+        applicationId: application.id,
+        name: `Listing connection ${i}`,
+        uid: `test/${randomUUID()}`,
+        transport: "mcp_remote",
+        status: "active",
+        enabled: true,
+        healthStatus: "ok",
+        config: { url: "https://8.8.8.8/mcp" },
+      })
+      .returning()
+      .then((rows) => rows[0]!);
+    const ids = entries
+      .filter((_, index) => index % (options.connectionCount ?? 1) === i)
+      .map((entry) => entry.id);
+    if (ids.length > 0)
+      await db
+        .update(toolCatalogEntries)
+        .set({ connectionId: extra.id })
+        .where(inArray(toolCatalogEntries.id, ids));
   }
 
   // The gateway profile allows every tool except one excluded entry. The
   // company and agent bindings lose to the narrower gateway binding.
-  const gatewayProfile = await db.insert(toolProfiles).values({
-    companyId: company.id,
-    profileKey: `gateway-${randomUUID()}`,
-    name: `Gateway profile ${randomUUID()}`,
-    defaultAction: "allow",
-  }).returning().then((rows) => rows[0]!);
+  const gatewayProfile = await db
+    .insert(toolProfiles)
+    .values({
+      companyId: company.id,
+      profileKey: `gateway-${randomUUID()}`,
+      name: `Gateway profile ${randomUUID()}`,
+      defaultAction: "allow",
+    })
+    .returning()
+    .then((rows) => rows[0]!);
   await db.insert(toolProfileEntries).values({
     companyId: company.id,
     profileId: gatewayProfile.id,
@@ -133,16 +204,30 @@ export async function createListingFixture(
     catalogEntryId: entries[1]!.id,
     effect: "exclude",
   });
-  const broadProfile = await db.insert(toolProfiles).values({
-    companyId: company.id,
-    profileKey: `broad-${randomUUID()}`,
-    name: `Broad profile ${randomUUID()}`,
-    defaultAction: "deny",
-  }).returning().then((rows) => rows[0]!);
+  const broadProfile = await db
+    .insert(toolProfiles)
+    .values({
+      companyId: company.id,
+      profileKey: `broad-${randomUUID()}`,
+      name: `Broad profile ${randomUUID()}`,
+      defaultAction: "deny",
+    })
+    .returning()
+    .then((rows) => rows[0]!);
   if (options.broadBindings !== false) {
     await db.insert(toolProfileBindings).values([
-      { companyId: company.id, profileId: broadProfile.id, targetType: "company", targetId: company.id },
-      { companyId: company.id, profileId: broadProfile.id, targetType: "agent", targetId: agent.id },
+      {
+        companyId: company.id,
+        profileId: broadProfile.id,
+        targetType: "company",
+        targetId: company.id,
+      },
+      {
+        companyId: company.id,
+        profileId: broadProfile.id,
+        targetType: "agent",
+        targetId: agent.id,
+      },
     ]);
   }
   await db.insert(toolPolicies).values([
@@ -173,7 +258,10 @@ export async function createListingFixture(
   const setupGateway = createToolGatewayService(db);
   const namedGateway = await setupGateway.createNamedGateway({
     companyId: company.id,
-    body: { name: `Listing gateway ${randomUUID().slice(0, 8)}`, profileId: gatewayProfile.id },
+    body: {
+      name: `Listing gateway ${randomUUID().slice(0, 8)}`,
+      profileId: gatewayProfile.id,
+    },
   });
   const token = await setupGateway.createNamedGatewayToken({
     companyId: company.id,
@@ -186,5 +274,16 @@ export async function createListingFixture(
       ownerNote: "",
     },
   });
-  return { company, agent, project, issue, run, application, connection, entries, namedGateway, token };
+  return {
+    company,
+    agent,
+    project,
+    issue,
+    run,
+    application,
+    connection,
+    entries,
+    namedGateway,
+    token,
+  };
 }

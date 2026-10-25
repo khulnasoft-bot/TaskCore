@@ -34,7 +34,7 @@ describe("findReusableHumanJoinRequest", () => {
       findReusableHumanJoinRequest(rows, {
         requestingUserId: "user-1",
         requestEmailSnapshot: "person@example.com",
-      })?.id
+      })?.id,
     ).toBe("pending-new");
   });
 
@@ -60,7 +60,7 @@ describe("findReusableHumanJoinRequest", () => {
       findReusableHumanJoinRequest(rows, {
         requestingUserId: null,
         requestEmailSnapshot: "person@example.com",
-      })?.id
+      })?.id,
     ).toBe("approved-existing");
   });
 });
@@ -98,7 +98,8 @@ describe("collapseDuplicatePendingHumanJoinRequests", () => {
       },
     ] as const;
 
-    expect(collapseDuplicatePendingHumanJoinRequests(rows).map((row) => row.id))
-      .toEqual(["human-new", "approved-history", "agent-pending"]);
+    expect(
+      collapseDuplicatePendingHumanJoinRequests(rows).map((row) => row.id),
+    ).toEqual(["human-new", "approved-history", "agent-pending"]);
   });
 });

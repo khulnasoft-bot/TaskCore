@@ -22,7 +22,10 @@ type AgentAssignmentConflictReason =
   | "ancestor_cycle"
   | "ancestor_depth_exceeded";
 
-function assignmentMessage(kind: AgentAssignmentKind, reason: AgentAssignmentConflictReason) {
+function assignmentMessage(
+  kind: AgentAssignmentKind,
+  reason: AgentAssignmentConflictReason,
+) {
   if (reason === "pending_approval") {
     return kind === "routine"
       ? "Cannot assign routines to pending approval agents"
@@ -67,7 +70,10 @@ function conflictDetails(input: {
   };
 }
 
-async function getAgent(db: Db, agentId: string): Promise<AssignabilityAgent | null> {
+async function getAgent(
+  db: Db,
+  agentId: string,
+): Promise<AssignabilityAgent | null> {
   return db
     .select({
       id: agents.id,
@@ -81,7 +87,10 @@ async function getAgent(db: Db, agentId: string): Promise<AssignabilityAgent | n
     .then((rows) => rows[0] ?? null);
 }
 
-async function listCompanyAgents(db: Db, companyId: string): Promise<AssignabilityAgent[]> {
+async function listCompanyAgents(
+  db: Db,
+  companyId: string,
+): Promise<AssignabilityAgent[]> {
   return db
     .select({
       id: agents.id,
@@ -94,7 +103,9 @@ async function listCompanyAgents(db: Db, companyId: string): Promise<Assignabili
     .where(eq(agents.companyId, companyId));
 }
 
-function assignmentReasonFromHealth(health: AgentOrgChainHealth): AgentAssignmentConflictReason {
+function assignmentReasonFromHealth(
+  health: AgentOrgChainHealth,
+): AgentAssignmentConflictReason {
   if (health.reason === "terminated_ancestor") return "ancestor_terminated";
   if (health.reason === "missing_manager") return "ancestor_missing";
   if (health.reason === "cycle") return "ancestor_cycle";
@@ -116,7 +127,10 @@ export async function assertAssignableAgent(
   }
 
   const companyAgents = await listCompanyAgents(db, companyId);
-  const eligibility = getAgentWorkEligibility({ agent: assignee, agents: companyAgents });
+  const eligibility = getAgentWorkEligibility({
+    agent: assignee,
+    agents: companyAgents,
+  });
   const chain = eligibility.orgChainHealth.fullChain.map((entry) => ({
     id: entry.id,
     companyId: entry.companyId,
@@ -128,44 +142,56 @@ export async function assertAssignableAgent(
   if (eligibility.assignable) return;
 
   if (eligibility.assignabilityReason === "pending_approval") {
-    throw conflict(assignmentMessage(kind, "pending_approval"), conflictDetails({
-      companyId,
-      assigneeAgentId: agentId,
-      reason: "pending_approval",
-      chain,
-    }));
+    throw conflict(
+      assignmentMessage(kind, "pending_approval"),
+      conflictDetails({
+        companyId,
+        assigneeAgentId: agentId,
+        reason: "pending_approval",
+        chain,
+      }),
+    );
   }
   if (eligibility.assignabilityReason === "terminated") {
-    throw conflict(assignmentMessage(kind, "assignee_terminated"), conflictDetails({
-      companyId,
-      assigneeAgentId: agentId,
-      reason: "assignee_terminated",
-      chain,
-    }));
+    throw conflict(
+      assignmentMessage(kind, "assignee_terminated"),
+      conflictDetails({
+        companyId,
+        assigneeAgentId: agentId,
+        reason: "assignee_terminated",
+        chain,
+      }),
+    );
   }
   if (eligibility.assignabilityReason === "unknown_status") {
-    throw conflict(assignmentMessage(kind, "assignee_unknown_status"), conflictDetails({
-      companyId,
-      assigneeAgentId: agentId,
-      reason: "assignee_unknown_status",
-      chain,
-    }));
+    throw conflict(
+      assignmentMessage(kind, "assignee_unknown_status"),
+      conflictDetails({
+        companyId,
+        assigneeAgentId: agentId,
+        reason: "assignee_unknown_status",
+        chain,
+      }),
+    );
   }
 
   const reason = assignmentReasonFromHealth(eligibility.orgChainHealth);
   const firstInvalidAncestor = eligibility.orgChainHealth.firstInvalidAncestor;
-  throw conflict(assignmentMessage(kind, reason), conflictDetails({
-    companyId,
-    assigneeAgentId: agentId,
-    reason,
-    chain,
-    invalidAncestorAgentId:
-      firstInvalidAncestor && firstInvalidAncestor.status !== "missing"
-        ? firstInvalidAncestor.id
-        : null,
-    missingAncestorAgentId:
-      firstInvalidAncestor?.status === "missing"
-        ? firstInvalidAncestor.id
-        : null,
-  }));
+  throw conflict(
+    assignmentMessage(kind, reason),
+    conflictDetails({
+      companyId,
+      assigneeAgentId: agentId,
+      reason,
+      chain,
+      invalidAncestorAgentId:
+        firstInvalidAncestor && firstInvalidAncestor.status !== "missing"
+          ? firstInvalidAncestor.id
+          : null,
+      missingAncestorAgentId:
+        firstInvalidAncestor?.status === "missing"
+          ? firstInvalidAncestor.id
+          : null,
+    }),
+  );
 }

@@ -4,50 +4,75 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ issueStatus: "todo", queriedIssueIds: [] as string[] }));
+const state = vi.hoisted(() => ({
+  issueStatus: "todo",
+  queriedIssueIds: [] as string[],
+}));
 
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn(), setQueryData: vi.fn() }),
   useMutation: () => ({ isPending: false, error: null, mutate: vi.fn() }),
-  useQuery: ({ queryKey }: { queryKey: readonly string[] }) => queryKey[1] === "detail"
-    ? {
-        data: {
-          id: "decision-1",
-          companyId: "company-1",
-          originAgentId: "agent-1",
-          originIssueId: "origin-1",
-          status: "open",
-          targetSnapshots: { "target-1": { updatedAt: "2026-07-31T00:00:00.000Z" } },
-          options: [{ id: "yes", label: "Yes", effects: [
-            {
-              type: "create_issue",
-              targetIssueId: "target-1",
-              staleness: "strict",
-              draft: { title: "Follow-up", parentId: "parent-1", blockedByIssueIds: ["blocker-1"] },
+  useQuery: ({ queryKey }: { queryKey: readonly string[] }) =>
+    queryKey[1] === "detail"
+      ? {
+          data: {
+            id: "decision-1",
+            companyId: "company-1",
+            originAgentId: "agent-1",
+            originIssueId: "origin-1",
+            status: "open",
+            targetSnapshots: {
+              "target-1": { updatedAt: "2026-07-31T00:00:00.000Z" },
             },
-            {
-              type: "resolve_blocker",
-              targetIssueId: "target-1",
-              staleness: "strict",
-              removeBlockedByIssueIds: ["removed-blocker-1"],
-            },
-          ] }],
-          executions: [],
-        },
-        isLoading: false,
-        error: null,
-      }
-    : { data: [], isLoading: false, error: null },
+            options: [
+              {
+                id: "yes",
+                label: "Yes",
+                effects: [
+                  {
+                    type: "create_issue",
+                    targetIssueId: "target-1",
+                    staleness: "strict",
+                    draft: {
+                      title: "Follow-up",
+                      parentId: "parent-1",
+                      blockedByIssueIds: ["blocker-1"],
+                    },
+                  },
+                  {
+                    type: "resolve_blocker",
+                    targetIssueId: "target-1",
+                    staleness: "strict",
+                    removeBlockedByIssueIds: ["removed-blocker-1"],
+                  },
+                ],
+              },
+            ],
+            executions: [],
+          },
+          isLoading: false,
+          error: null,
+        }
+      : { data: [], isLoading: false, error: null },
   useQueries: ({
     queries,
     combine,
   }: {
     queries: Array<{ queryKey: readonly string[] }>;
-    combine?: (results: Array<{ data: { id: string; identifier: string; title: string; status: string } }>) => unknown;
+    combine?: (
+      results: Array<{
+        data: { id: string; identifier: string; title: string; status: string };
+      }>,
+    ) => unknown;
   }) => {
     state.queriedIssueIds = queries.map((query) => String(query.queryKey[2]));
     const results = queries.map((query) => ({
-      data: { id: String(query.queryKey[2]), identifier: "PAP-1", title: "Target", status: state.issueStatus },
+      data: {
+        id: String(query.queryKey[2]),
+        identifier: "PAP-1",
+        title: "Target",
+        status: state.issueStatus,
+      },
     }));
     return combine ? combine(results) : results;
   },
@@ -58,14 +83,23 @@ vi.mock("../context/CompanyContext", () => ({
 }));
 
 vi.mock("./DecisionCard", () => ({
-  DecisionCard: ({ resolveIssue }: { resolveIssue: (id: string) => { status: string | null } | null }) => (
+  DecisionCard: ({
+    resolveIssue,
+  }: {
+    resolveIssue: (id: string) => { status: string | null } | null;
+  }) => (
     <div data-testid="resolved-status">{resolveIssue("target-1")?.status}</div>
   ),
 }));
 
-import { DecisionResolver, signedCancelTreePreviewIds } from "./DecisionResolver";
+import {
+  DecisionResolver,
+  signedCancelTreePreviewIds,
+} from "./DecisionResolver";
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("DecisionResolver", () => {
   let container: HTMLDivElement;
@@ -78,8 +112,11 @@ describe("DecisionResolver", () => {
   });
 
   it("derives cancel-tree previews from the signed descendant scope", () => {
-    expect(signedCancelTreePreviewIds("root", { descendantIds: ["signed-child", "signed-grandchild"] }))
-      .toEqual(["root", "signed-child", "signed-grandchild"]);
+    expect(
+      signedCancelTreePreviewIds("root", {
+        descendantIds: ["signed-child", "signed-grandchild"],
+      }),
+    ).toEqual(["root", "signed-child", "signed-grandchild"]);
     expect(signedCancelTreePreviewIds("root", undefined)).toBeNull();
   });
 
@@ -89,26 +126,44 @@ describe("DecisionResolver", () => {
 
   it("refreshes resolved target status when an issue query changes", () => {
     const root = createRoot(container);
-    flushSync(() => root.render(<DecisionResolver companyId="company-1" decisionId="decision-1" />));
-    expect(container.querySelector('[data-testid="resolved-status"]')?.textContent).toBe("todo");
+    flushSync(() =>
+      root.render(
+        <DecisionResolver companyId="company-1" decisionId="decision-1" />,
+      ),
+    );
+    expect(
+      container.querySelector('[data-testid="resolved-status"]')?.textContent,
+    ).toBe("todo");
 
     state.issueStatus = "done";
-    flushSync(() => root.render(<DecisionResolver companyId="company-1" decisionId="decision-1" />));
-    expect(container.querySelector('[data-testid="resolved-status"]')?.textContent).toBe("done");
+    flushSync(() =>
+      root.render(
+        <DecisionResolver companyId="company-1" decisionId="decision-1" />,
+      ),
+    );
+    expect(
+      container.querySelector('[data-testid="resolved-status"]')?.textContent,
+    ).toBe("done");
 
     flushSync(() => root.unmount());
   });
 
   it("loads every primary and secondary effect target", () => {
     const root = createRoot(container);
-    flushSync(() => root.render(<DecisionResolver companyId="company-1" decisionId="decision-1" />));
+    flushSync(() =>
+      root.render(
+        <DecisionResolver companyId="company-1" decisionId="decision-1" />,
+      ),
+    );
 
-    expect(state.queriedIssueIds).toEqual(expect.arrayContaining([
-      "target-1",
-      "parent-1",
-      "blocker-1",
-      "removed-blocker-1",
-    ]));
+    expect(state.queriedIssueIds).toEqual(
+      expect.arrayContaining([
+        "target-1",
+        "parent-1",
+        "blocker-1",
+        "removed-blocker-1",
+      ]),
+    );
 
     flushSync(() => root.unmount());
   });

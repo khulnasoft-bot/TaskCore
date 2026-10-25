@@ -10,11 +10,24 @@ describe("plugin scaffold", () => {
   });
 
   it("registers data + actions and handles events", async () => {
-    const harness = createTestHarness({ manifest, capabilities: [...manifest.capabilities, "events.emit"] });
+    const harness = createTestHarness({
+      manifest,
+      capabilities: [...manifest.capabilities, "events.emit"],
+    });
     await plugin.definition.setup(harness.ctx);
 
-    await harness.emit("issue.created", { issueId: "iss_1" }, { entityId: "iss_1", entityType: "issue" });
-    expect(harness.getState({ scopeKind: "issue", scopeId: "iss_1", stateKey: "seen" })).toBe(true);
+    await harness.emit(
+      "issue.created",
+      { issueId: "iss_1" },
+      { entityId: "iss_1", entityType: "issue" },
+    );
+    expect(
+      harness.getState({
+        scopeKind: "issue",
+        scopeId: "iss_1",
+        stateKey: "seen",
+      }),
+    ).toBe(true);
 
     const data = await harness.getData<{ status: string }>("health");
     expect(data.status).toBe("ok");

@@ -62,7 +62,12 @@ function event(id = "event-1", toolDisplayName = "Send Email") {
       status: "succeeded",
       policyDecision: "allow",
       approvalState: "not_required",
-      argumentsSummary: { summary: JSON.stringify({ to: "person@example.test", token: "***REDACTED***" }) },
+      argumentsSummary: {
+        summary: JSON.stringify({
+          to: "person@example.test",
+          token: "***REDACTED***",
+        }),
+      },
       resultSummary: { summary: JSON.stringify({ delivered: true }) },
       resultSizeBytes: 18,
       errorCode: null,
@@ -90,7 +95,9 @@ describe("GatewayActivityPanel", () => {
   });
 
   async function render() {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -106,7 +113,9 @@ describe("GatewayActivityPanel", () => {
   }
 
   function clickButton(text: string) {
-    const button = [...container.querySelectorAll("button")].find((item) => item.textContent?.includes(text));
+    const button = [...container.querySelectorAll("button")].find((item) =>
+      item.textContent?.includes(text),
+    );
     expect(button, `button containing ${text}`).toBeTruthy();
     return act(async () => {
       button!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -133,10 +142,14 @@ describe("GatewayActivityPanel", () => {
   });
 
   it("loads the next cursor page", async () => {
-    listActivityMock.mockImplementation((_companyId: string, params: { cursor?: string }) =>
-      params.cursor === "cursor-2"
-        ? Promise.resolve({ events: [event("event-2", "Read Email")], nextCursor: null })
-        : Promise.resolve({ events: [event()], nextCursor: "cursor-2" }),
+    listActivityMock.mockImplementation(
+      (_companyId: string, params: { cursor?: string }) =>
+        params.cursor === "cursor-2"
+          ? Promise.resolve({
+              events: [event("event-2", "Read Email")],
+              nextCursor: null,
+            })
+          : Promise.resolve({ events: [event()], nextCursor: "cursor-2" }),
     );
     await render();
 

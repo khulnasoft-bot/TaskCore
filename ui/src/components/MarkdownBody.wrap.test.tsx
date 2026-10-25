@@ -14,7 +14,9 @@ vi.mock("@/lib/router", () => ({
     to,
     ...props
   }: { children: ReactNode; to: string } & React.ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -53,7 +55,9 @@ describe("MarkdownBody code block wrapping", () => {
       root.render(
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            <MarkdownBody>{"```text\nlong line that can wrap when requested\n```"}</MarkdownBody>
+            <MarkdownBody>
+              {"```text\nlong line that can wrap when requested\n```"}
+            </MarkdownBody>
           </ThemeProvider>
         </QueryClientProvider>,
       );

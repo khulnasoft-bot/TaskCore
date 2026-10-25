@@ -31,7 +31,9 @@ import { executeNativeCodexRunner } from "./native-codex-runner.js";
 import { prepareNativeHeartbeatRun } from "./prepare-native-run.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -60,24 +62,28 @@ const fakeCodexBinary = resolve(
 function ensureRunnerTestBinaries(): void {
   // Cargo's freshness check is necessary even when the files exist: an older
   // fake provider can otherwise exercise a different protocol than the source.
-  execFileSync("cargo", [
-    "build",
-    "--release",
-    "--locked",
-    "-p",
-    "taskcore-runner-core",
-    "--bin",
-    "taskcore-runnerd",
-    "--bin",
-    "fake-codex-app-server",
-  ], {
-    cwd: runnerWorkspace,
-    stdio: "inherit",
-    // A clean release build includes every qualified managed-provider SDK.
-    // Keep this below the CI job deadline while allowing that cold compile to
-    // finish on GitHub-hosted runners.
-    timeout: 600_000,
-  });
+  execFileSync(
+    "cargo",
+    [
+      "build",
+      "--release",
+      "--locked",
+      "-p",
+      "taskcore-runner-core",
+      "--bin",
+      "taskcore-runnerd",
+      "--bin",
+      "fake-codex-app-server",
+    ],
+    {
+      cwd: runnerWorkspace,
+      stdio: "inherit",
+      // A clean release build includes every qualified managed-provider SDK.
+      // Keep this below the CI job deadline while allowing that cold compile to
+      // finish on GitHub-hosted runners.
+      timeout: 600_000,
+    },
+  );
 }
 
 async function closeServer(server: Server | null): Promise<void> {
@@ -85,23 +91,30 @@ async function closeServer(server: Server | null): Promise<void> {
   server.closeAllConnections();
   if (!server.listening) return;
   await new Promise<void>((resolveClose, rejectClose) => {
-    server.close((error) => error ? rejectClose(error) : resolveClose());
+    server.close((error) => (error ? rejectClose(error) : resolveClose()));
   });
 }
 
 describeEmbeddedPostgres("native Codex server vertical slice", () => {
-  let temporary: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let temporary: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let runtimeRoot: string | null = null;
   let server: Server | null = null;
 
   beforeAll(async () => {
     ensureRunnerTestBinaries();
-    temporary = await startEmbeddedPostgresTestDatabase("native-codex-vertical-slice-");
+    temporary = await startEmbeddedPostgresTestDatabase(
+      "native-codex-vertical-slice-",
+    );
     runtimeRoot = await mkdtemp(resolve(tmpdir(), "native-codex-runtime-"));
     server = createServer();
-    await new Promise<void>((resolveListen) => server!.listen(0, "127.0.0.1", resolveListen));
+    await new Promise<void>((resolveListen) =>
+      server!.listen(0, "127.0.0.1", resolveListen),
+    );
     const address = server.address();
-    if (!address || typeof address === "string") throw new Error("Expected a TCP listener");
+    if (!address || typeof address === "string")
+      throw new Error("Expected a TCP listener");
     setupRunnerPrpWebSocketServer(server, {
       apiUrl: `http://127.0.0.1:${address.port}`,
     });
@@ -115,7 +128,8 @@ describeEmbeddedPostgres("native Codex server vertical slice", () => {
   });
 
   it("returns a durable result and resumes the provider session on the next run", async () => {
-    if (!temporary || !runtimeRoot) throw new Error("Vertical-slice fixture was not initialized");
+    if (!temporary || !runtimeRoot)
+      throw new Error("Vertical-slice fixture was not initialized");
     const db = createDb(temporary.connectionString);
     const companyId = randomUUID();
     const agentId = randomUUID();
@@ -150,15 +164,18 @@ describeEmbeddedPostgres("native Codex server vertical slice", () => {
       workMode: "standard",
       assigneeAgentId: agentId,
     });
-    const [run] = await db.insert(heartbeatRuns).values({
-      id: runId,
-      companyId,
-      agentId,
-      status: "running",
-      invocationSource: "assignment",
-      triggerDetail: "system",
-      contextSnapshot: { issueId },
-    }).returning();
+    const [run] = await db
+      .insert(heartbeatRuns)
+      .values({
+        id: runId,
+        companyId,
+        agentId,
+        status: "running",
+        invocationSource: "assignment",
+        triggerDetail: "system",
+        contextSnapshot: { issueId },
+      })
+      .returning();
     if (!run) throw new Error("Failed to seed native run");
     await db
       .update(issues)
@@ -267,24 +284,29 @@ describeEmbeddedPostgres("native Codex server vertical slice", () => {
       .select({ eventType: heartbeatRunEvents.eventType })
       .from(heartbeatRunEvents)
       .where(eq(heartbeatRunEvents.runId, runId));
-    expect(eventTypes.map((event) => event.eventType)).toEqual(expect.arrayContaining([
-      "semantic_tool.input",
-      "semantic_tool.result",
-      "turn.completed",
-      "run.result.proposed",
-      "run.terminal",
-    ]));
+    expect(eventTypes.map((event) => event.eventType)).toEqual(
+      expect.arrayContaining([
+        "semantic_tool.input",
+        "semantic_tool.result",
+        "turn.completed",
+        "run.result.proposed",
+        "run.terminal",
+      ]),
+    );
 
     const resumedRunId = randomUUID();
-    const [resumedRun] = await db.insert(heartbeatRuns).values({
-      id: resumedRunId,
-      companyId,
-      agentId,
-      status: "running",
-      invocationSource: "assignment",
-      triggerDetail: "system",
-      contextSnapshot: { issueId },
-    }).returning();
+    const [resumedRun] = await db
+      .insert(heartbeatRuns)
+      .values({
+        id: resumedRunId,
+        companyId,
+        agentId,
+        status: "running",
+        invocationSource: "assignment",
+        triggerDetail: "system",
+        contextSnapshot: { issueId },
+      })
+      .returning();
     if (!resumedRun) throw new Error("Failed to seed resumed native run");
     await db
       .update(issues)

@@ -6,9 +6,15 @@ import {
   createPromoteDueScheduledRetries,
   createPromoteScheduledRetry,
 } from "./use-cases.js";
-import type { DueRetryRun, RunDispatchWriter, ScheduledRetryReader } from "./ports.js";
+import type {
+  DueRetryRun,
+  RunDispatchWriter,
+  ScheduledRetryReader,
+} from "./ports.js";
 
-function fakeReader(dueRuns: DueRetryRun[] = []): ScheduledRetryReader & { evaluateCalls: unknown[] } {
+function fakeReader(
+  dueRuns: DueRetryRun[] = [],
+): ScheduledRetryReader & { evaluateCalls: unknown[] } {
   const evaluateCalls: unknown[] = [];
   return {
     evaluateCalls,
@@ -22,7 +28,9 @@ function fakeReader(dueRuns: DueRetryRun[] = []): ScheduledRetryReader & { evalu
   };
 }
 
-function fakeWriter(overrides: Partial<RunDispatchWriter> = {}): RunDispatchWriter & {
+function fakeWriter(
+  overrides: Partial<RunDispatchWriter> = {},
+): RunDispatchWriter & {
   promoteCalls: unknown[];
   cancelCalls: unknown[];
   dispatchCalls: unknown[];
@@ -83,7 +91,9 @@ describe("createPromoteScheduledRetry", () => {
     });
 
     expect(result).toEqual({ outcome: "promoted", postCommitEffects: [] });
-    expect(writer.promoteCalls).toEqual([{ runId: "run-1", companyId: "company-1", now }]);
+    expect(writer.promoteCalls).toEqual([
+      { runId: "run-1", companyId: "company-1", now },
+    ]);
   });
 
   it("passes a gate-suppressed outcome through without a persistence row", async () => {
@@ -120,7 +130,9 @@ describe("createPromoteDueScheduledRetries", () => {
     })({ cutoff: null });
 
     expect(result.promoted).toBe(50);
-    expect(result.runIds).toEqual(dueRuns.slice(0, 50).map(({ runId }) => runId));
+    expect(result.runIds).toEqual(
+      dueRuns.slice(0, 50).map(({ runId }) => runId),
+    );
   });
 });
 
@@ -157,12 +169,14 @@ describe("createDispatchResolvedInteractionIfCurrent", () => {
   it("delegates the lock, validation, cancellation, and dispatch boundary", async () => {
     const writer = fakeWriter();
     const dispatch = vi.fn(async () => "started");
-    const result = await createDispatchResolvedInteractionIfCurrent({ writer })({
-      runId: "run-1",
-      companyId: "company-1",
-      expectedStatus: "running",
-      dispatch,
-    });
+    const result = await createDispatchResolvedInteractionIfCurrent({ writer })(
+      {
+        runId: "run-1",
+        companyId: "company-1",
+        expectedStatus: "running",
+        dispatch,
+      },
+    );
 
     expect(result.dispatched).toBe(true);
     expect(writer.dispatchCalls).toHaveLength(1);

@@ -20,7 +20,10 @@ async function handleRequest(request) {
     process.stderr.write("taskcore-acp-cwd-report-agent started\n");
     return {
       protocolVersion: 1,
-      agentCapabilities: { loadSession: false, sessionCapabilities: { close: {} } },
+      agentCapabilities: {
+        loadSession: false,
+        sessionCapabilities: { close: {} },
+      },
       agentInfo: { name: "taskcore-acp-cwd-report-agent", version: "1.0.0" },
     };
   }
@@ -34,12 +37,20 @@ async function handleRequest(request) {
       method: "session/update",
       params: {
         sessionId: request.params.sessionId,
-        update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "ok" } },
+        update: {
+          sessionUpdate: "agent_message_chunk",
+          content: { type: "text", text: "ok" },
+        },
       },
     });
     return { stopReason: "end_turn" };
   }
-  if (request.method === "session/close" || request.method === "session/set_mode" || request.method === "session/set_config_option") return {};
+  if (
+    request.method === "session/close" ||
+    request.method === "session/set_mode" ||
+    request.method === "session/set_config_option"
+  )
+    return {};
   if (request.method === "session/cancel") return null;
   throw new Error(`Unsupported ACP method: ${request.method}`);
 }
@@ -50,10 +61,15 @@ lines.on("line", async (line) => {
   try {
     request = JSON.parse(line);
     const result = await handleRequest(request);
-    if (request.id !== undefined && result !== null) writeMessage({ jsonrpc: "2.0", id: request.id, result });
+    if (request.id !== undefined && result !== null)
+      writeMessage({ jsonrpc: "2.0", id: request.id, result });
   } catch (error) {
     if (request?.id !== undefined) {
-      writeMessage({ jsonrpc: "2.0", id: request.id, error: { code: -32603, message: String(error?.message ?? error) } });
+      writeMessage({
+        jsonrpc: "2.0",
+        id: request.id,
+        error: { code: -32603, message: String(error?.message ?? error) },
+      });
     }
   }
 });

@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode, type MouseEventHandler } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+  type MouseEventHandler,
+} from "react";
 
 export interface Breadcrumb {
   label: string;
@@ -52,12 +60,12 @@ function breadcrumbsEqual(left: Breadcrumb[], right: Breadcrumb[]) {
   if (left.length !== right.length) return false;
   for (let index = 0; index < left.length; index += 1) {
     if (
-      left[index]?.label !== right[index]?.label
-      || left[index]?.onClick !== right[index]?.onClick
-      || left[index]?.href !== right[index]?.href
-      || left[index]?.identifier !== right[index]?.identifier
-      || left[index]?.leadingKey !== right[index]?.leadingKey
-      || left[index]?.trailingKey !== right[index]?.trailingKey
+      left[index]?.label !== right[index]?.label ||
+      left[index]?.onClick !== right[index]?.onClick ||
+      left[index]?.href !== right[index]?.href ||
+      left[index]?.identifier !== right[index]?.identifier ||
+      left[index]?.leadingKey !== right[index]?.leadingKey ||
+      left[index]?.trailingKey !== right[index]?.trailingKey
     ) {
       return false;
     }
@@ -65,24 +73,36 @@ function breadcrumbsEqual(left: Breadcrumb[], right: Breadcrumb[]) {
   return true;
 }
 
-export function buildDocumentTitle(breadcrumbs: Breadcrumb[], companyName?: string | null) {
-  const pageParts = breadcrumbs.length === 0
-    ? []
-    : [...breadcrumbs].reverse().map((breadcrumb) => breadcrumb.label);
+export function buildDocumentTitle(
+  breadcrumbs: Breadcrumb[],
+  companyName?: string | null,
+) {
+  const pageParts =
+    breadcrumbs.length === 0
+      ? []
+      : [...breadcrumbs].reverse().map((breadcrumb) => breadcrumb.label);
   const companyPart = companyName?.trim() ? [companyName.trim()] : [];
   const parts = [...pageParts, ...companyPart, "Taskcore"];
   return parts.join(" • ");
 }
 
-export function BreadcrumbProvider({ children, companyName }: BreadcrumbProviderProps) {
+export function BreadcrumbProvider({
+  children,
+  companyName,
+}: BreadcrumbProviderProps) {
   const [breadcrumbs, setBreadcrumbsState] = useState<Breadcrumb[]>([]);
-  const [breadcrumbToolbar, setBreadcrumbToolbarState] = useState<ReactNode | null>(null);
+  const [breadcrumbToolbar, setBreadcrumbToolbarState] =
+    useState<ReactNode | null>(null);
   const [breadcrumbPanelControl, setBreadcrumbPanelControlState] =
     useState<BreadcrumbPanelControl | null>(null);
-  const [mobileToolbar, setMobileToolbarState] = useState<ReactNode | null>(null);
+  const [mobileToolbar, setMobileToolbarState] = useState<ReactNode | null>(
+    null,
+  );
 
   const setBreadcrumbs = useCallback((crumbs: Breadcrumb[]) => {
-    setBreadcrumbsState((current) => (breadcrumbsEqual(current, crumbs) ? current : crumbs));
+    setBreadcrumbsState((current) =>
+      breadcrumbsEqual(current, crumbs) ? current : crumbs,
+    );
   }, []);
 
   const setMobileToolbar = useCallback((node: ReactNode | null) => {
@@ -93,9 +113,12 @@ export function BreadcrumbProvider({ children, companyName }: BreadcrumbProvider
     setBreadcrumbToolbarState(node);
   }, []);
 
-  const setBreadcrumbPanelControl = useCallback((control: BreadcrumbPanelControl | null) => {
-    setBreadcrumbPanelControlState(control);
-  }, []);
+  const setBreadcrumbPanelControl = useCallback(
+    (control: BreadcrumbPanelControl | null) => {
+      setBreadcrumbPanelControlState(control);
+    },
+    [],
+  );
 
   useEffect(() => {
     document.title = buildDocumentTitle(breadcrumbs, companyName);

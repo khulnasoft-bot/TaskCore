@@ -22,10 +22,12 @@ import { openCodeProxyTaskEnvelope } from "./opencode-proxy-task-envelope.js";
 describe("OpenCode runnerd proxy executable", () => {
   it("uses the runner-owned inherited executable descriptor", () => {
     if (process.platform !== "linux") return;
-    expect(trustedOpenCodeLaunchBinding([
-      TRUSTED_OPENCODE_EXECUTABLE_ARG,
-      "/proc/self/fd/7",
-    ])).toEqual({ command: "/proc/self/fd/7", commandFd: 7 });
+    expect(
+      trustedOpenCodeLaunchBinding([
+        TRUSTED_OPENCODE_EXECUTABLE_ARG,
+        "/proc/self/fd/7",
+      ]),
+    ).toEqual({ command: "/proc/self/fd/7", commandFd: 7 });
   });
 
   it("executes the inherited artifact through the nested child fd mapping", () => {
@@ -54,7 +56,9 @@ describe("OpenCode runnerd proxy executable", () => {
         expect(() => lstatSync(command)).toThrow();
         expect(() => lstatSync(directory)).toThrow();
         binding.commandLifecycle?.beforeSpawn();
-        const retriedChild = spawnSync(binding.command, [], { encoding: "utf8" });
+        const retriedChild = spawnSync(binding.command, [], {
+          encoding: "utf8",
+        });
         expect(retriedChild.error).toBeUndefined();
         expect(retriedChild.status).toBe(0);
         expect(retriedChild.stdout).toBe("verified-nested-spawn");
@@ -96,17 +100,22 @@ describe("OpenCode runnerd proxy executable", () => {
   });
 
   it("fails closed instead of accepting an ambient command fallback", () => {
-    expect(() => trustedOpenCodeLaunchBinding([]))
-      .toThrow("refusing ambient PATH or TASKCORE_OPENCODE_COMMAND fallback");
-    expect(() => trustedOpenCodeLaunchBinding([
-      TRUSTED_OPENCODE_EXECUTABLE_ARG,
-      "/tmp/unqualified-opencode",
-    ])).toThrow("runner-owned executable binding is unavailable");
-    expect(() => trustedOpenCodeLaunchBinding([
-      TRUSTED_OPENCODE_EXECUTABLE_ARG,
-      "/proc/self/fd/7",
-      "unexpected",
-    ])).toThrow("runner-owned executable binding is unavailable");
+    expect(() => trustedOpenCodeLaunchBinding([])).toThrow(
+      "refusing ambient PATH or TASKCORE_OPENCODE_COMMAND fallback",
+    );
+    expect(() =>
+      trustedOpenCodeLaunchBinding([
+        TRUSTED_OPENCODE_EXECUTABLE_ARG,
+        "/tmp/unqualified-opencode",
+      ]),
+    ).toThrow("runner-owned executable binding is unavailable");
+    expect(() =>
+      trustedOpenCodeLaunchBinding([
+        TRUSTED_OPENCODE_EXECUTABLE_ARG,
+        "/proc/self/fd/7",
+        "unexpected",
+      ]),
+    ).toThrow("runner-owned executable binding is unavailable");
   });
 
   it("removes the ambient override from the launched provider environment", () => {
@@ -118,25 +127,26 @@ describe("OpenCode runnerd proxy executable", () => {
     expect(withoutAmbientOpenCodeCommand(original)).toEqual({
       OPENROUTER_API_KEY: "secret",
     });
-    expect(original.TASKCORE_OPENCODE_COMMAND).toBe("/tmp/unqualified-opencode");
+    expect(original.TASKCORE_OPENCODE_COMMAND).toBe(
+      "/tmp/unqualified-opencode",
+    );
   });
 });
 
 describe("OpenCode runnerd proxy task envelope", () => {
   it("uses the durable completion-contract binding instead of a demo revision", () => {
-    expect(openCodeProxyTaskEnvelope({
-      baseInstructions: "Complete only this task.",
+    expect(
+      openCodeProxyTaskEnvelope({
+        baseInstructions: "Complete only this task.",
+        completionContract: {
+          revision: "17",
+          criterionIds: ["objective", "verification"],
+        },
+      }),
+    ).toMatchObject({
       completionContract: {
         revision: "17",
-        criterionIds: ["objective", "verification"],
-      },
-    })).toMatchObject({
-      completionContract: {
-        revision: "17",
-        criteria: [
-          { id: "objective" },
-          { id: "verification" },
-        ],
+        criteria: [{ id: "objective" }, { id: "verification" }],
       },
     });
   });

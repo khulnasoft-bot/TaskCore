@@ -2,7 +2,11 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { catalogManifest, catalogSkills, resolveCatalogSkillRef } from "./index.js";
+import {
+  catalogManifest,
+  catalogSkills,
+  resolveCatalogSkillRef,
+} from "./index.js";
 
 const EXPECTED_BUNDLED_KEYS = [
   "taskcore/bundled/docs/doc-maintenance",
@@ -28,7 +32,9 @@ const EXPECTED_OPTIONAL_KEYS = [
 ];
 
 const MAX_FRONTMATTER_DESCRIPTION_LENGTH = 300;
-const REPO_ROOT = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+const REPO_ROOT = path.resolve(
+  fileURLToPath(new URL("../../..", import.meta.url)),
+);
 const SKILL_FRONTMATTER_ROOTS = [
   path.join(REPO_ROOT, ".agents"),
   path.join(REPO_ROOT, "skills"),
@@ -55,10 +61,14 @@ function readFrontmatterDescription(markdown: string): string | null {
   if (!match) return null;
 
   const lines = match[1]!.split(/\r?\n/);
-  const descriptionIndex = lines.findIndex((line) => line.startsWith("description:"));
+  const descriptionIndex = lines.findIndex((line) =>
+    line.startsWith("description:"),
+  );
   if (descriptionIndex === -1) return null;
 
-  const inlineValue = lines[descriptionIndex]!.slice("description:".length).trim();
+  const inlineValue = lines[descriptionIndex]!.slice(
+    "description:".length,
+  ).trim();
   if (/^[>|][+-]?$/.test(inlineValue)) {
     const descriptionLines: string[] = [];
     for (let index = descriptionIndex + 1; index < lines.length; index += 1) {
@@ -82,11 +92,15 @@ describe("shipped skills catalog", () => {
       "utf8",
     );
 
-    expect(skill).toContain("Post the first status update immediately, before doing anything else.");
+    expect(skill).toContain(
+      "Post the first status update immediately, before doing anything else.",
+    );
     expect(skill).toContain('STATUS: considering "Fix login redirect loop"…');
     expect(skill).toContain("<<<SUMMARY-DRAFT>>>");
     expect(skill).toContain("<<<END-SUMMARY-DRAFT>>>");
-    expect(skill).toContain("tool-call arguments don't stream; assistant text does");
+    expect(skill).toContain(
+      "tool-call arguments don't stream; assistant text does",
+    );
     expect(skill).toContain("falls back to its spinner");
     expect(skill).toContain("Open with what the reader needs to do.");
     expect(skill).toContain("1–3 specific, concrete, actionable items");
@@ -95,16 +109,24 @@ describe("shipped skills catalog", () => {
   it("keeps repo and catalog skill descriptions within the prompt budget cap", () => {
     const violations: string[] = [];
     for (const skillFile of SKILL_FRONTMATTER_ROOTS.flatMap(listSkillFiles)) {
-      const description = readFrontmatterDescription(readFileSync(skillFile, "utf8"));
+      const description = readFrontmatterDescription(
+        readFileSync(skillFile, "utf8"),
+      );
       if (!description) {
-        violations.push(`${path.relative(REPO_ROOT, skillFile)} is missing a frontmatter description`);
+        violations.push(
+          `${path.relative(REPO_ROOT, skillFile)} is missing a frontmatter description`,
+        );
       } else if (description.length > MAX_FRONTMATTER_DESCRIPTION_LENGTH) {
-        violations.push(`${path.relative(REPO_ROOT, skillFile)} description is ${description.length} chars`);
+        violations.push(
+          `${path.relative(REPO_ROOT, skillFile)} description is ${description.length} chars`,
+        );
       }
     }
     for (const skill of catalogSkills) {
       if (skill.description.length > MAX_FRONTMATTER_DESCRIPTION_LENGTH) {
-        violations.push(`${skill.key} generated description is ${skill.description.length} chars`);
+        violations.push(
+          `${skill.key} generated description is ${skill.description.length} chars`,
+        );
       }
     }
 
@@ -129,7 +151,9 @@ describe("shipped skills catalog", () => {
     // The real install-time security boundary audits materialized bytes and blocks
     // hard-stop findings. Static assets (svg/html templates, e.g. the wireframe skill)
     // carry the "assets" trust level and are installable.
-    const scriptBearing = catalogSkills.filter((skill) => skill.trustLevel === "scripts_executables");
+    const scriptBearing = catalogSkills.filter(
+      (skill) => skill.trustLevel === "scripts_executables",
+    );
     expect(scriptBearing.map((skill) => skill.key)).toEqual([
       "taskcore/optional/research/last30days",
     ]);
@@ -142,7 +166,9 @@ describe("shipped skills catalog", () => {
         issues.push(`${skill.key} compatibility=${skill.compatibility}`);
       }
       if (!skill.description || skill.description.length < 40) {
-        issues.push(`${skill.key} description must be at least 40 characters for catalog browse/search`);
+        issues.push(
+          `${skill.key} description must be at least 40 characters for catalog browse/search`,
+        );
       }
       if (skill.recommendedForRoles.length === 0) {
         issues.push(`${skill.key} must list recommendedForRoles`);
@@ -159,8 +185,10 @@ describe("shipped skills catalog", () => {
     for (const skill of catalogSkills) {
       const expectedKey = `taskcore/${skill.kind}/${skill.category}/${skill.slug}`;
       const expectedId = `taskcore:${skill.kind}:${skill.category}:${skill.slug}`;
-      if (skill.key !== expectedKey) violations.push(`${skill.key} should be ${expectedKey}`);
-      if (skill.id !== expectedId) violations.push(`${skill.id} should be ${expectedId}`);
+      if (skill.key !== expectedKey)
+        violations.push(`${skill.key} should be ${expectedKey}`);
+      if (skill.id !== expectedId)
+        violations.push(`${skill.id} should be ${expectedId}`);
     }
     expect(violations).toEqual([]);
   });
@@ -168,30 +196,56 @@ describe("shipped skills catalog", () => {
   it("exposes a stable manifest header for downstream consumers", () => {
     expect(catalogManifest.schemaVersion).toBe(1);
     expect(catalogManifest.packageName).toBe("@taskcore/skills-catalog");
-    expect(catalogSkills.length).toBe(EXPECTED_BUNDLED_KEYS.length + EXPECTED_OPTIONAL_KEYS.length);
+    expect(catalogSkills.length).toBe(
+      EXPECTED_BUNDLED_KEYS.length + EXPECTED_OPTIONAL_KEYS.length,
+    );
   });
 
   it("resolves shipped skills by id, key, and unique slug", () => {
-    const sample = catalogSkills.find((skill) => skill.key === "taskcore/bundled/software-development/github-pr-workflow");
-    expect(sample, "expected github-pr-workflow to ship in the bundled catalog").toBeDefined();
+    const sample = catalogSkills.find(
+      (skill) =>
+        skill.key ===
+        "taskcore/bundled/software-development/github-pr-workflow",
+    );
+    expect(
+      sample,
+      "expected github-pr-workflow to ship in the bundled catalog",
+    ).toBeDefined();
     if (!sample) return;
 
-    expect(resolveCatalogSkillRef(sample.id)).toMatchObject({ key: sample.key });
-    expect(resolveCatalogSkillRef(sample.key)).toMatchObject({ key: sample.key });
-    expect(resolveCatalogSkillRef(sample.slug)).toMatchObject({ key: sample.key });
+    expect(resolveCatalogSkillRef(sample.id)).toMatchObject({
+      key: sample.key,
+    });
+    expect(resolveCatalogSkillRef(sample.key)).toMatchObject({
+      key: sample.key,
+    });
+    expect(resolveCatalogSkillRef(sample.slug)).toMatchObject({
+      key: sample.key,
+    });
   });
 
   it("keeps the Ramp wrapper fail-closed on mixed-provenance playbooks", () => {
-    const rampSkill = readFileSync(new URL("../catalog/optional/finance/ramp/SKILL.md", import.meta.url), "utf8");
+    const rampSkill = readFileSync(
+      new URL("../catalog/optional/finance/ramp/SKILL.md", import.meta.url),
+      "utf8",
+    );
 
     expect(rampSkill).toContain("mixes Official and Community playbooks");
-    expect(rampSkill).toContain("do not execute them inside Taskcore unless a Taskcore approval explicitly names the playbook");
-    expect(rampSkill).toContain("third-party browser automation, MCP server, CLI, or connector");
+    expect(rampSkill).toContain(
+      "do not execute them inside Taskcore unless a Taskcore approval explicitly names the playbook",
+    );
+    expect(rampSkill).toContain(
+      "third-party browser automation, MCP server, CLI, or connector",
+    );
   });
 
   it("keeps the Ramp wrapper clear of remote-fetch execution hard-stop patterns", () => {
-    const rampSkill = readFileSync(new URL("../catalog/optional/finance/ramp/SKILL.md", import.meta.url), "utf8");
-    const remoteExecPattern = /\b(?:curl|wget)\b[\s\S]{0,160}\|\s*(?:sh|bash)|\b(?:bash|sh)\s+-c\b|\beval\b|\bpython\s+-c\b|\bnode\s+-e\b/i;
+    const rampSkill = readFileSync(
+      new URL("../catalog/optional/finance/ramp/SKILL.md", import.meta.url),
+      "utf8",
+    );
+    const remoteExecPattern =
+      /\b(?:curl|wget)\b[\s\S]{0,160}\|\s*(?:sh|bash)|\b(?:bash|sh)\s+-c\b|\beval\b|\bpython\s+-c\b|\bnode\s+-e\b/i;
 
     expect(remoteExecPattern.test(rampSkill)).toBe(false);
   });

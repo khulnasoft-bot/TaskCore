@@ -82,12 +82,17 @@ async function createSkillDir(root: string, name: string): Promise<string> {
 
 describe("gemini execute", () => {
   it("injects runtime skills into the configured child HOME", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-configured-home-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-configured-home-"),
+    );
     const processHome = path.join(root, "process-home");
     const configuredHome = path.join(root, "configured-home");
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "gemini");
-    const skillSource = await createSkillDir(path.join(root, "runtime-skills"), "taskcore");
+    const skillSource = await createSkillDir(
+      path.join(root, "runtime-skills"),
+      "taskcore",
+    );
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeGeminiCommand(commandPath);
 
@@ -115,11 +120,13 @@ describe("gemini execute", () => {
           command: commandPath,
           cwd: workspace,
           env: { HOME: configuredHome },
-          taskcoreRuntimeSkills: [{
-            key: "taskcore/taskcore/taskcore",
-            runtimeName: "taskcore",
-            source: skillSource,
-          }],
+          taskcoreRuntimeSkills: [
+            {
+              key: "taskcore/taskcore/taskcore",
+              runtimeName: "taskcore",
+              source: skillSource,
+            },
+          ],
           promptTemplate: "Follow the taskcore heartbeat.",
         },
         context: {},
@@ -128,10 +135,19 @@ describe("gemini execute", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      const installedSkill = path.join(configuredHome, ".gemini", "skills", "taskcore");
+      const installedSkill = path.join(
+        configuredHome,
+        ".gemini",
+        "skills",
+        "taskcore",
+      );
       expect((await fs.lstat(installedSkill)).isSymbolicLink()).toBe(true);
-      expect(await fs.realpath(installedSkill)).toBe(await fs.realpath(skillSource));
-      await expect(fs.lstat(path.join(processHome, ".gemini", "skills", "taskcore"))).rejects.toThrow();
+      expect(await fs.realpath(installedSkill)).toBe(
+        await fs.realpath(skillSource),
+      );
+      await expect(
+        fs.lstat(path.join(processHome, ".gemini", "skills", "taskcore")),
+      ).rejects.toThrow();
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -140,7 +156,9 @@ describe("gemini execute", () => {
   });
 
   it("passes prompt via --prompt and injects taskcore env vars", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-execute-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-execute-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "gemini");
     const capturePath = path.join(root, "capture.json");
@@ -188,14 +206,17 @@ describe("gemini execute", () => {
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.argv).toContain("--output-format");
       expect(capture.argv).toContain("stream-json");
       expect(capture.argv).toContain("--prompt");
       expect(capture.argv).toContain("--approval-mode");
       expect(capture.argv).toContain("yolo");
       const promptFlagIndex = capture.argv.indexOf("--prompt");
-      const promptArg = promptFlagIndex >= 0 ? capture.argv[promptFlagIndex + 1] : "";
+      const promptArg =
+        promptFlagIndex >= 0 ? capture.argv[promptFlagIndex + 1] : "";
       expect(promptArg).toContain("Follow the taskcore heartbeat.");
       expect(promptArg).toContain("Taskcore runtime note:");
       expect(capture.taskcoreEnvKeys).toEqual(
@@ -223,7 +244,9 @@ describe("gemini execute", () => {
   });
 
   it("always passes --approval-mode yolo", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-yolo-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-yolo-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "gemini");
     const capturePath = path.join(root, "capture.json");
@@ -236,8 +259,19 @@ describe("gemini execute", () => {
     try {
       await execute({
         runId: "run-yolo",
-        agent: { id: "a1", companyId: "c1", name: "G", adapterType: "gemini_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "a1",
+          companyId: "c1",
+          name: "G",
+          adapterType: "gemini_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -249,7 +283,9 @@ describe("gemini execute", () => {
         onLog: async () => {},
       });
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.argv).toContain("--approval-mode");
       expect(capture.argv).toContain("yolo");
       expect(capture.argv).not.toContain("--policy");
@@ -266,7 +302,9 @@ describe("gemini execute", () => {
   });
 
   it("normalizes turn-limit exhaustion into scheduler stop metadata", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-max-turns-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-max-turns-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "gemini");
     await fs.mkdir(workspace, { recursive: true });
@@ -288,8 +326,19 @@ describe("gemini execute", () => {
     try {
       const result = await execute({
         runId: "run-turn-limit",
-        agent: { id: "a1", companyId: "c1", name: "G", adapterType: "gemini_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "a1",
+          companyId: "c1",
+          name: "G",
+          adapterType: "gemini_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -302,7 +351,9 @@ describe("gemini execute", () => {
 
       expect(result.exitCode).toBe(1);
       expect(result.errorCode).toBe("max_turns_exhausted");
-      expect(result.resultJson).toMatchObject({ stopReason: "max_turns_exhausted" });
+      expect(result.resultJson).toMatchObject({
+        stopReason: "max_turns_exhausted",
+      });
       expect(result.clearSession).toBe(true);
     } finally {
       if (previousHome === undefined) {
@@ -315,7 +366,9 @@ describe("gemini execute", () => {
   });
 
   it("normalizes Gemini exit code 53 as max-turn exhaustion", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-exit-53-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-exit-53-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "gemini");
     await fs.mkdir(workspace, { recursive: true });
@@ -330,8 +383,19 @@ describe("gemini execute", () => {
     try {
       const result = await execute({
         runId: "run-exit-53",
-        agent: { id: "a1", companyId: "c1", name: "G", adapterType: "gemini_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "a1",
+          companyId: "c1",
+          name: "G",
+          adapterType: "gemini_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -344,7 +408,9 @@ describe("gemini execute", () => {
 
       expect(result.exitCode).toBe(53);
       expect(result.errorCode).toBe("max_turns_exhausted");
-      expect(result.resultJson).toMatchObject({ stopReason: "max_turns_exhausted" });
+      expect(result.resultJson).toMatchObject({
+        stopReason: "max_turns_exhausted",
+      });
       expect(result.clearSession).toBe(true);
     } finally {
       if (previousHome === undefined) {
@@ -357,7 +423,9 @@ describe("gemini execute", () => {
   });
 
   it("does not normalize unstructured turn-limit text into scheduler stop metadata", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-max-turn-text-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-max-turn-text-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "gemini");
     await fs.mkdir(workspace, { recursive: true });
@@ -380,8 +448,19 @@ describe("gemini execute", () => {
     try {
       const result = await execute({
         runId: "run-turn-limit-text",
-        agent: { id: "a1", companyId: "c1", name: "G", adapterType: "gemini_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "a1",
+          companyId: "c1",
+          name: "G",
+          adapterType: "gemini_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -407,7 +486,9 @@ describe("gemini execute", () => {
   });
 
   it("uses a compact wake delta instead of the full heartbeat prompt when resuming a session", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-resume-wake-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-resume-wake-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "gemini");
     const capturePath = path.join(root, "capture.json");
@@ -485,13 +566,18 @@ describe("gemini execute", () => {
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
 
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       const promptFlagIndex = capture.argv.indexOf("--prompt");
-      const promptArg = promptFlagIndex >= 0 ? capture.argv[promptFlagIndex + 1] : "";
+      const promptArg =
+        promptFlagIndex >= 0 ? capture.argv[promptFlagIndex + 1] : "";
       expect(capture.argv).toContain("--resume");
       expect(capture.argv).toContain("gemini-session-1");
       expect(promptArg).toContain("## TaskCore Resume Delta");
-      expect(promptArg).toContain("Do not switch to another issue until you have handled this wake.");
+      expect(promptArg).toContain(
+        "Do not switch to another issue until you have handled this wake.",
+      );
       expect(promptArg).toContain("Second comment");
       expect(promptArg).not.toContain("Follow the taskcore heartbeat.");
     } finally {

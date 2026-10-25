@@ -9,9 +9,22 @@ describe("printGrokStreamEvent", () => {
   });
 
   it("prints thought/text/end events", () => {
-    printGrokStreamEvent(JSON.stringify({ type: "thought", data: "Plan" }), false);
-    printGrokStreamEvent(JSON.stringify({ type: "text", data: "hello" }), false);
-    printGrokStreamEvent(JSON.stringify({ type: "end", stopReason: "EndTurn", sessionId: "sess-1" }), false);
+    printGrokStreamEvent(
+      JSON.stringify({ type: "thought", data: "Plan" }),
+      false,
+    );
+    printGrokStreamEvent(
+      JSON.stringify({ type: "text", data: "hello" }),
+      false,
+    );
+    printGrokStreamEvent(
+      JSON.stringify({
+        type: "end",
+        stopReason: "EndTurn",
+        sessionId: "sess-1",
+      }),
+      false,
+    );
 
     expect(spy.mock.calls.flat()).toEqual(
       expect.arrayContaining([

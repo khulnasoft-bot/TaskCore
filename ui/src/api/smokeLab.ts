@@ -48,7 +48,10 @@ export const smokeLabApi = {
   stopServices: (companyId: string) =>
     api.post<SmokeLabServicesResponse>(`${base(companyId)}/services/stop`, {}),
   installFixtures: (companyId: string) =>
-    api.post<SmokeLabInstallFixturesResponse>(`${base(companyId)}/install-fixtures`, {}),
+    api.post<SmokeLabInstallFixturesResponse>(
+      `${base(companyId)}/install-fixtures`,
+      {},
+    ),
   reset: (companyId: string) =>
     api.post<{ reset: boolean }>(`${base(companyId)}/reset`, {}),
 

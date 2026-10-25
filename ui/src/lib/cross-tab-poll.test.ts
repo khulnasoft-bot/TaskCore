@@ -49,10 +49,13 @@ class MemorySharedChannel implements SharedChannel {
 
 function startLeaderCoordinator(channel: MemorySharedChannel) {
   const store = new MemoryLeaseStore();
-  const election = new LeaderElection({ now: () => Date.now(), store, random: () => 0 }, {
-    tabId: "leader",
-    leaseTtlMs: 10_000,
-  });
+  const election = new LeaderElection(
+    { now: () => Date.now(), store, random: () => 0 },
+    {
+      tabId: "leader",
+      leaseTtlMs: 10_000,
+    },
+  );
   const coordinator = new SharedPollingCoordinator("company-1", {
     tabId: "leader",
     channel,
@@ -78,14 +81,20 @@ describe("LeaderElection", () => {
   it("elects one visible leader and keeps the second visible tab as follower", () => {
     let now = 1_000;
     const store = new MemoryLeaseStore();
-    const a = new LeaderElection({ now: () => now, store, random: () => 0 }, {
-      tabId: "a",
-      leaseTtlMs: 5_000,
-    });
-    const b = new LeaderElection({ now: () => now, store, random: () => 0 }, {
-      tabId: "b",
-      leaseTtlMs: 5_000,
-    });
+    const a = new LeaderElection(
+      { now: () => now, store, random: () => 0 },
+      {
+        tabId: "a",
+        leaseTtlMs: 5_000,
+      },
+    );
+    const b = new LeaderElection(
+      { now: () => now, store, random: () => 0 },
+      {
+        tabId: "b",
+        leaseTtlMs: 5_000,
+      },
+    );
 
     expect(a.step(true)).toBe("leader");
     expect(b.step(true)).toBe("follower");
@@ -100,12 +109,15 @@ describe("LeaderElection", () => {
   it("keeps hidden tabs from claiming an empty lease until their grace expires", () => {
     let now = 10_000;
     const store = new MemoryLeaseStore();
-    const hidden = new LeaderElection({ now: () => now, store, random: () => 0 }, {
-      tabId: "hidden",
-      hiddenGraceMs: 2_000,
-      hiddenGraceJitterMs: 0,
-      leaseTtlMs: 5_000,
-    });
+    const hidden = new LeaderElection(
+      { now: () => now, store, random: () => 0 },
+      {
+        tabId: "hidden",
+        hiddenGraceMs: 2_000,
+        hiddenGraceJitterMs: 0,
+        leaseTtlMs: 5_000,
+      },
+    );
 
     expect(hidden.step(false)).toBe("follower");
     expect(store.read()).toBeNull();
@@ -122,14 +134,20 @@ describe("LeaderElection", () => {
   it("recovers leadership after the old leader lease expires", () => {
     let now = 50_000;
     const store = new MemoryLeaseStore();
-    const leader = new LeaderElection({ now: () => now, store, random: () => 0 }, {
-      tabId: "leader",
-      leaseTtlMs: 1_000,
-    });
-    const follower = new LeaderElection({ now: () => now, store, random: () => 0 }, {
-      tabId: "follower",
-      leaseTtlMs: 1_000,
-    });
+    const leader = new LeaderElection(
+      { now: () => now, store, random: () => 0 },
+      {
+        tabId: "leader",
+        leaseTtlMs: 1_000,
+      },
+    );
+    const follower = new LeaderElection(
+      { now: () => now, store, random: () => 0 },
+      {
+        tabId: "follower",
+        leaseTtlMs: 1_000,
+      },
+    );
 
     expect(leader.step(true)).toBe("leader");
     expect(follower.step(true)).toBe("follower");
@@ -142,16 +160,22 @@ describe("LeaderElection", () => {
   it("lets a visible tab preempt a hidden leader lease", () => {
     let now = 100_000;
     const store = new MemoryLeaseStore();
-    const hidden = new LeaderElection({ now: () => now, store, random: () => 0 }, {
-      tabId: "hidden",
-      hiddenGraceMs: 0,
-      hiddenGraceJitterMs: 0,
-      leaseTtlMs: 5_000,
-    });
-    const visible = new LeaderElection({ now: () => now, store, random: () => 0 }, {
-      tabId: "visible",
-      leaseTtlMs: 5_000,
-    });
+    const hidden = new LeaderElection(
+      { now: () => now, store, random: () => 0 },
+      {
+        tabId: "hidden",
+        hiddenGraceMs: 0,
+        hiddenGraceJitterMs: 0,
+        leaseTtlMs: 5_000,
+      },
+    );
+    const visible = new LeaderElection(
+      { now: () => now, store, random: () => 0 },
+      {
+        tabId: "visible",
+        leaseTtlMs: 5_000,
+      },
+    );
 
     expect(hidden.step(false)).toBe("leader");
     expect(visible.step(true)).toBe("leader");
@@ -170,10 +194,13 @@ describe("LeaderElection", () => {
       }),
     };
     const store = createLeaseStore(storage, "lease");
-    const election = new LeaderElection({ now: () => 1, store, random: () => 0 }, {
-      tabId: "a",
-      leaseTtlMs: 100,
-    });
+    const election = new LeaderElection(
+      { now: () => 1, store, random: () => 0 },
+      {
+        tabId: "a",
+        leaseTtlMs: 100,
+      },
+    );
 
     expect(election.step(true)).toBe("leader");
     expect(JSON.parse(raw)).toMatchObject({ leader: "a" });
@@ -182,7 +209,8 @@ describe("LeaderElection", () => {
 
 describe("createStorageRelayShared", () => {
   it("delivers result messages through the localStorage relay fallback", () => {
-    let storageListener: ((key: string | null, newValue: string | null) => void) | null = null;
+    let storageListener:
+      ((key: string | null, newValue: string | null) => void) | null = null;
     const seen: SharedMessage[] = [];
     const channel = createStorageRelayShared("relay", {
       storage: {
@@ -200,10 +228,22 @@ describe("createStorageRelayShared", () => {
     });
 
     const unsubscribe = channel.subscribe((message) => seen.push(message));
-    channel.post({ type: "result", key: "company:live-runs", from: "leader", at: 123, data: [{ id: "run-1" }] });
+    channel.post({
+      type: "result",
+      key: "company:live-runs",
+      from: "leader",
+      at: 123,
+      data: [{ id: "run-1" }],
+    });
 
     expect(seen).toEqual([
-      { type: "result", key: "company:live-runs", from: "leader", at: 123, data: [{ id: "run-1" }] },
+      {
+        type: "result",
+        key: "company:live-runs",
+        from: "leader",
+        at: 123,
+        data: [{ id: "run-1" }],
+      },
     ]);
     unsubscribe();
   });
@@ -220,8 +260,14 @@ describe("SharedPollingCoordinator", () => {
     const channel = new MemorySharedChannel();
     const coordinator = startLeaderCoordinator(channel);
 
-    coordinator.publish("company:live-runs", [{ id: "run-1", lastEventAt: "a" }], 100);
-    expect(channel.posts.filter((message) => message.type === "result")).toEqual([
+    coordinator.publish(
+      "company:live-runs",
+      [{ id: "run-1", lastEventAt: "a" }],
+      100,
+    );
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toEqual([
       {
         type: "result",
         key: "company:live-runs",
@@ -232,20 +278,44 @@ describe("SharedPollingCoordinator", () => {
       },
     ]);
 
-    coordinator.publish("company:live-runs", [{ lastEventAt: "a", id: "run-1" }], 100);
-    coordinator.publish("company:live-runs", [{ id: "run-1", lastEventAt: "a" }], 101);
-    expect(channel.posts.filter((message) => message.type === "result")).toHaveLength(1);
+    coordinator.publish(
+      "company:live-runs",
+      [{ lastEventAt: "a", id: "run-1" }],
+      100,
+    );
+    coordinator.publish(
+      "company:live-runs",
+      [{ id: "run-1", lastEventAt: "a" }],
+      101,
+    );
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toHaveLength(1);
 
     vi.setSystemTime(1_200);
-    coordinator.publish("company:live-runs", [{ id: "run-1", lastEventAt: "b" }], 200);
-    coordinator.publish("company:live-runs", [{ id: "run-1", lastEventAt: "b" }], 200);
-    expect(channel.posts.filter((message) => message.type === "result")).toHaveLength(1);
+    coordinator.publish(
+      "company:live-runs",
+      [{ id: "run-1", lastEventAt: "b" }],
+      200,
+    );
+    coordinator.publish(
+      "company:live-runs",
+      [{ id: "run-1", lastEventAt: "b" }],
+      200,
+    );
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toHaveLength(1);
 
     vi.advanceTimersByTime(799);
-    expect(channel.posts.filter((message) => message.type === "result")).toHaveLength(1);
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toHaveLength(1);
 
     vi.advanceTimersByTime(1);
-    expect(channel.posts.filter((message) => message.type === "result")).toHaveLength(2);
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toHaveLength(2);
     expect(channel.posts.at(-1)).toEqual({
       type: "result",
       key: "company:live-runs",
@@ -268,7 +338,12 @@ describe("SharedPollingCoordinator", () => {
     const original = channel.posts[0];
 
     vi.setSystemTime(9_000);
-    channel.emit({ type: "request", key: "company:live-runs", from: "follower", at: 9_000 });
+    channel.emit({
+      type: "request",
+      key: "company:live-runs",
+      from: "follower",
+      at: 9_000,
+    });
 
     expect(channel.posts[1]).toEqual({ ...original, from: "leader" });
     expect(channel.posts[1]?.at).toBe(5_000);
@@ -286,8 +361,17 @@ describe("SharedPollingCoordinator", () => {
     for (let index = 1; index <= 32; index += 1) {
       coordinator.publish(`company:resource-${index}`, { index }, index);
     }
-    channel.emit({ type: "request", key: "company:resource-1", from: "follower", at: 1_000 });
-    coordinator.publish("company:resource-1", { index: 1, refreshed: true }, 33);
+    channel.emit({
+      type: "request",
+      key: "company:resource-1",
+      from: "follower",
+      at: 1_000,
+    });
+    coordinator.publish(
+      "company:resource-1",
+      { index: 1, refreshed: true },
+      33,
+    );
     coordinator.publish("company:resource-33", { index: 33 }, 34);
 
     const caches = getCoordinatorCaches(coordinator);
@@ -323,7 +407,10 @@ describe("SharedPollingCoordinator", () => {
     expect(getCoordinatorCaches(coordinator).latestResults.size).toBe(1);
 
     const firstListener = vi.fn();
-    const unsubscribe = coordinator.subscribeResource(message.key, firstListener);
+    const unsubscribe = coordinator.subscribeResource(
+      message.key,
+      firstListener,
+    );
     expect(firstListener).toHaveBeenCalledWith(message);
     expect(getCoordinatorCaches(coordinator).latestResults.size).toBe(1);
 
@@ -331,7 +418,10 @@ describe("SharedPollingCoordinator", () => {
     expect(getCoordinatorCaches(coordinator).latestResults.size).toBe(1);
 
     const remountedListener = vi.fn();
-    const unsubscribeRemounted = coordinator.subscribeResource(message.key, remountedListener);
+    const unsubscribeRemounted = coordinator.subscribeResource(
+      message.key,
+      remountedListener,
+    );
     expect(remountedListener).toHaveBeenCalledWith(message);
 
     unsubscribeRemounted();
@@ -346,14 +436,19 @@ describe("SharedPollingCoordinator", () => {
     vi.setSystemTime(1_000);
     const channel = new MemorySharedChannel();
     const coordinator = startLeaderCoordinator(channel);
-    const unsubscribe = coordinator.subscribeResource("company:resource-1", vi.fn());
+    const unsubscribe = coordinator.subscribeResource(
+      "company:resource-1",
+      vi.fn(),
+    );
 
     for (let index = 1; index <= 33; index += 1) {
       coordinator.publish(`company:resource-${index}`, { index }, index);
     }
     coordinator.publish("company:resource-1", { index: 1 }, 34);
 
-    expect(channel.posts.filter((message) => message.type === "result")).toHaveLength(33);
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toHaveLength(33);
     const caches = getCoordinatorCaches(coordinator);
     expect(caches.latestResults.size).toBe(33);
     expect(caches.lastPublished.size).toBe(33);
@@ -363,7 +458,9 @@ describe("SharedPollingCoordinator", () => {
     expect(caches.latestResults.size).toBe(1);
     expect(caches.lastPublished.size).toBe(1);
     coordinator.publish("company:resource-1", { index: 1 }, 35);
-    expect(channel.posts.filter((message) => message.type === "result")).toHaveLength(33);
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toHaveLength(33);
 
     unsubscribe();
     vi.advanceTimersByTime(5 * 60_000 - 1);
@@ -386,7 +483,9 @@ describe("SharedPollingCoordinator", () => {
     coordinator.publish("company:live-runs", staleData, 100);
 
     expect(ownKeys).not.toHaveBeenCalled();
-    expect(channel.posts.filter((message) => message.type === "result")).toHaveLength(1);
+    expect(
+      channel.posts.filter((message) => message.type === "result"),
+    ).toHaveLength(1);
 
     coordinator.stop();
   });

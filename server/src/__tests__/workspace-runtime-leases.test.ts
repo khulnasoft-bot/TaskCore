@@ -21,7 +21,9 @@ import {
 } from "../services/workspace-runtime-leases.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -34,10 +36,14 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
   // A second client with its own connection pool stands in for a second server
   // process: nothing is shared in memory, so exclusivity has to come from Postgres.
   let otherProcessDb!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-workspace-runtime-lease-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-workspace-runtime-lease-",
+    );
     db = createDb(tempDb.connectionString);
     otherProcessDb = createDb(tempDb.connectionString);
   }, 30_000);
@@ -95,7 +101,12 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
   }
 
   async function seedIssue(
-    lane: { companyId: string; projectId: string; executionWorkspaceId: string; agentId: string },
+    lane: {
+      companyId: string;
+      projectId: string;
+      executionWorkspaceId: string;
+      agentId: string;
+    },
     input: { title: string; status?: string },
   ) {
     const issueId = randomUUID();
@@ -126,7 +137,11 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
     return runId;
   }
 
-  function ownerFor(input: { agentId: string; runId?: string | null; issueId?: string | null }) {
+  function ownerFor(input: {
+    agentId: string;
+    runId?: string | null;
+    issueId?: string | null;
+  }) {
     return {
       actorType: "agent",
       agentId: input.agentId,
@@ -146,7 +161,11 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       companyId: lane.companyId,
       executionWorkspaceId: lane.executionWorkspaceId,
       action: "start",
-      owner: ownerFor({ agentId: lane.agentId, runId: firstRunId, issueId: canaryIssueId }),
+      owner: ownerFor({
+        agentId: lane.agentId,
+        runId: firstRunId,
+        issueId: canaryIssueId,
+      }),
     });
     expect(first.outcome).toBe("created");
     expect(first.ownerKey).toBe(`issue:${canaryIssueId}`);
@@ -158,7 +177,11 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       companyId: lane.companyId,
       executionWorkspaceId: lane.executionWorkspaceId,
       action: "restart",
-      owner: ownerFor({ agentId: lane.agentId, runId: secondRunId, issueId: canaryIssueId }),
+      owner: ownerFor({
+        agentId: lane.agentId,
+        runId: secondRunId,
+        issueId: canaryIssueId,
+      }),
     });
     expect(second.outcome).toBe("renewed");
     expect(second.lease?.id).toBe(first.lease?.id);
@@ -172,7 +195,9 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
   it("rejects a sequential competing issue with 409 and leaves the lease untouched", async () => {
     const lane = await seedLane();
     const canaryIssueId = await seedIssue(lane, { title: "HTTPS canary" });
-    const competingIssueId = await seedIssue(lane, { title: "Unrelated shared-workspace work" });
+    const competingIssueId = await seedIssue(lane, {
+      title: "Unrelated shared-workspace work",
+    });
     const leases = workspaceRuntimeLeaseService(db);
 
     const held = await leases.claim({
@@ -182,12 +207,14 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       owner: ownerFor({ agentId: lane.agentId, issueId: canaryIssueId }),
     });
 
-    await expect(leases.claim({
-      companyId: lane.companyId,
-      executionWorkspaceId: lane.executionWorkspaceId,
-      action: "start",
-      owner: ownerFor({ agentId: lane.agentId, issueId: competingIssueId }),
-    })).rejects.toMatchObject({
+    await expect(
+      leases.claim({
+        companyId: lane.companyId,
+        executionWorkspaceId: lane.executionWorkspaceId,
+        action: "start",
+        owner: ownerFor({ agentId: lane.agentId, issueId: competingIssueId }),
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       details: {
         code: "workspace_runtime_lease_conflict",
@@ -207,9 +234,14 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
   it("serializes concurrent claims from separate database clients so exactly one owner wins", async () => {
     const lane = await seedLane();
     const contenderIssueIds = await Promise.all(
-      Array.from({ length: 6 }, (_, index) => seedIssue(lane, { title: `Contender ${index}` })),
+      Array.from({ length: 6 }, (_, index) =>
+        seedIssue(lane, { title: `Contender ${index}` }),
+      ),
     );
-    const leaseClients = [workspaceRuntimeLeaseService(db), workspaceRuntimeLeaseService(otherProcessDb)];
+    const leaseClients = [
+      workspaceRuntimeLeaseService(db),
+      workspaceRuntimeLeaseService(otherProcessDb),
+    ];
 
     const results = await Promise.allSettled(
       contenderIssueIds.map((issueId, index) =>
@@ -236,7 +268,8 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
     const rows = await db.select().from(executionWorkspaceRuntimeLeases);
     expect(rows).toHaveLength(1);
     expect(rows[0]?.ownerKey).toBe(
-      (granted[0] as PromiseFulfilledResult<{ ownerKey: string | null }>).value.ownerKey,
+      (granted[0] as PromiseFulfilledResult<{ ownerKey: string | null }>).value
+        .ownerKey,
     );
   });
 
@@ -252,21 +285,28 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       owner: ownerFor({ agentId: lane.agentId, issueId: canaryIssueId }),
     });
 
-    await expect(workspaceRuntimeLeaseService(otherProcessDb).claim({
-      companyId: lane.companyId,
-      executionWorkspaceId: lane.executionWorkspaceId,
-      action: "stop",
-      owner: ownerFor({ agentId: lane.agentId, issueId: competingIssueId }),
-    })).rejects.toMatchObject({
+    await expect(
+      workspaceRuntimeLeaseService(otherProcessDb).claim({
+        companyId: lane.companyId,
+        executionWorkspaceId: lane.executionWorkspaceId,
+        action: "stop",
+        owner: ownerFor({ agentId: lane.agentId, issueId: competingIssueId }),
+      }),
+    ).rejects.toMatchObject({
       status: 409,
-      details: { code: "workspace_runtime_lease_conflict", requestedAction: "stop" },
+      details: {
+        code: "workspace_runtime_lease_conflict",
+        requestedAction: "stop",
+      },
     });
   });
 
   it("lets the teardown issue reclaim once the canary issue reaches a terminal status", async () => {
     const lane = await seedLane();
     const canaryIssueId = await seedIssue(lane, { title: "HTTPS canary" });
-    const teardownIssueId = await seedIssue(lane, { title: "Authorized teardown" });
+    const teardownIssueId = await seedIssue(lane, {
+      title: "Authorized teardown",
+    });
     const leases = workspaceRuntimeLeaseService(db);
 
     await leases.claim({
@@ -276,14 +316,19 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       owner: ownerFor({ agentId: lane.agentId, issueId: canaryIssueId }),
     });
 
-    await expect(leases.claim({
-      companyId: lane.companyId,
-      executionWorkspaceId: lane.executionWorkspaceId,
-      action: "stop",
-      owner: ownerFor({ agentId: lane.agentId, issueId: teardownIssueId }),
-    })).rejects.toMatchObject({ status: 409 });
+    await expect(
+      leases.claim({
+        companyId: lane.companyId,
+        executionWorkspaceId: lane.executionWorkspaceId,
+        action: "stop",
+        owner: ownerFor({ agentId: lane.agentId, issueId: teardownIssueId }),
+      }),
+    ).rejects.toMatchObject({ status: 409 });
 
-    await db.update(issues).set({ status: "done" }).where(eq(issues.id, canaryIssueId));
+    await db
+      .update(issues)
+      .set({ status: "done" })
+      .where(eq(issues.id, canaryIssueId));
 
     const reclaimed = await leases.claim({
       companyId: lane.companyId,
@@ -311,7 +356,10 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       action: "start",
       owner: ownerFor({ agentId: lane.agentId, issueId: hiddenIssueId }),
     });
-    await db.update(issues).set({ hiddenAt: new Date() }).where(eq(issues.id, hiddenIssueId));
+    await db
+      .update(issues)
+      .set({ hiddenAt: new Date() })
+      .where(eq(issues.id, hiddenIssueId));
 
     const afterHidden = await leases.claim({
       companyId: lane.companyId,
@@ -322,7 +370,10 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
     expect(afterHidden.reclaimedFrom?.reason).toBe("owner_issue_hidden");
 
     // Run-scoped owners (no issue in run context) recover once the run is terminal.
-    await leases.release({ executionWorkspaceId: lane.executionWorkspaceId, force: true });
+    await leases.release({
+      executionWorkspaceId: lane.executionWorkspaceId,
+      force: true,
+    });
     const staleRunId = await seedRun(lane, { status: "running" });
     await leases.claim({
       companyId: lane.companyId,
@@ -331,14 +382,19 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       owner: ownerFor({ agentId: lane.agentId, runId: staleRunId }),
     });
 
-    await expect(leases.claim({
-      companyId: lane.companyId,
-      executionWorkspaceId: lane.executionWorkspaceId,
-      action: "start",
-      owner: ownerFor({ agentId: lane.agentId, issueId: nextIssueId }),
-    })).rejects.toMatchObject({ status: 409 });
+    await expect(
+      leases.claim({
+        companyId: lane.companyId,
+        executionWorkspaceId: lane.executionWorkspaceId,
+        action: "start",
+        owner: ownerFor({ agentId: lane.agentId, issueId: nextIssueId }),
+      }),
+    ).rejects.toMatchObject({ status: 409 });
 
-    await db.update(heartbeatRuns).set({ status: "failed" }).where(eq(heartbeatRuns.id, staleRunId));
+    await db
+      .update(heartbeatRuns)
+      .set({ status: "failed" })
+      .where(eq(heartbeatRuns.id, staleRunId));
     const afterRunTerminal = await leases.claim({
       companyId: lane.companyId,
       executionWorkspaceId: lane.executionWorkspaceId,
@@ -357,7 +413,9 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
     const competingIssueId = await seedIssue(lane, { title: "Competing lane" });
     const leases = workspaceRuntimeLeaseService(db);
 
-    const claimedAt = new Date(Date.now() - WORKSPACE_RUNTIME_LEASE_TTL_MS - 60_000);
+    const claimedAt = new Date(
+      Date.now() - WORKSPACE_RUNTIME_LEASE_TTL_MS - 60_000,
+    );
     await leases.claim({
       companyId: lane.companyId,
       executionWorkspaceId: lane.executionWorkspaceId,
@@ -381,7 +439,9 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
   it("lets a teardown issue claim immediately after the owner releases the lane", async () => {
     const lane = await seedLane();
     const canaryIssueId = await seedIssue(lane, { title: "HTTPS canary" });
-    const teardownIssueId = await seedIssue(lane, { title: "Authorized teardown" });
+    const teardownIssueId = await seedIssue(lane, {
+      title: "Authorized teardown",
+    });
     const leases = workspaceRuntimeLeaseService(db);
 
     await leases.claim({
@@ -392,15 +452,19 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
     });
 
     // A non-owner cannot release the lane out from under the owner.
-    await expect(leases.release({
-      executionWorkspaceId: lane.executionWorkspaceId,
-      owner: ownerFor({ agentId: lane.agentId, issueId: teardownIssueId }),
-    })).resolves.toEqual({ released: false, ownerKey: null });
+    await expect(
+      leases.release({
+        executionWorkspaceId: lane.executionWorkspaceId,
+        owner: ownerFor({ agentId: lane.agentId, issueId: teardownIssueId }),
+      }),
+    ).resolves.toEqual({ released: false, ownerKey: null });
 
-    await expect(leases.release({
-      executionWorkspaceId: lane.executionWorkspaceId,
-      owner: ownerFor({ agentId: lane.agentId, issueId: canaryIssueId }),
-    })).resolves.toEqual({ released: true, ownerKey: `issue:${canaryIssueId}` });
+    await expect(
+      leases.release({
+        executionWorkspaceId: lane.executionWorkspaceId,
+        owner: ownerFor({ agentId: lane.agentId, issueId: canaryIssueId }),
+      }),
+    ).resolves.toEqual({ released: true, ownerKey: `issue:${canaryIssueId}` });
 
     const claimed = await leases.claim({
       companyId: lane.companyId,
@@ -430,7 +494,12 @@ describeEmbeddedPostgres("execution workspace runtime leases", () => {
       action: "restart",
       owner: { actorType: "board", agentId: null, runId: null, issueId: null },
     });
-    expect(boardClaim).toEqual({ outcome: "bypassed", ownerKey: null, lease: null, reclaimedFrom: null });
+    expect(boardClaim).toEqual({
+      outcome: "bypassed",
+      ownerKey: null,
+      lease: null,
+      reclaimedFrom: null,
+    });
 
     // The agent's lease survives the operator action.
     const rows = await db.select().from(executionWorkspaceRuntimeLeases);

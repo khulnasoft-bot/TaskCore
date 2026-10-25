@@ -2,7 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeCatalogManifest } from "../src/catalog-builder.js";
 
-const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const packageDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const result = await writeCatalogManifest(packageDir);
 
 if (result.errors.length > 0) {
@@ -10,4 +13,6 @@ if (result.errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Wrote ${result.manifest.teams.length} teams to generated/catalog.json`);
+console.log(
+  `Wrote ${result.manifest.teams.length} teams to generated/catalog.json`,
+);

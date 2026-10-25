@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { describeToolInput, summarizeToolInput } from "./transcriptPresentation";
+import {
+  describeToolInput,
+  summarizeToolInput,
+} from "./transcriptPresentation";
 
 describe("summarizeToolInput", () => {
   it("prefers human descriptions over raw commands when both exist", () => {
     expect(
       summarizeToolInput("command_execution", {
         description: "Inspect the issue chat thread layout classes",
-        command: "zsh -lc 'sed -n \"1,220p\" ui/src/components/IssueChatThread.tsx'",
+        command:
+          "zsh -lc 'sed -n \"1,220p\" ui/src/components/IssueChatThread.tsx'",
       }),
     ).toBe("Inspect the issue chat thread layout classes");
   });
@@ -17,11 +21,16 @@ describe("describeToolInput", () => {
     expect(
       describeToolInput("command_execution", {
         description: "Inspect the issue chat thread layout classes",
-        command: "zsh -lc 'sed -n \"1,220p\" ui/src/components/IssueChatThread.tsx'",
+        command:
+          "zsh -lc 'sed -n \"1,220p\" ui/src/components/IssueChatThread.tsx'",
         cwd: "/workspace/taskcore",
       }),
     ).toEqual([
-      { label: "Intent", value: "Inspect the issue chat thread layout classes", tone: "default" },
+      {
+        label: "Intent",
+        value: "Inspect the issue chat thread layout classes",
+        tone: "default",
+      },
       { label: "Directory", value: "/workspace/taskcore", tone: "default" },
     ]);
   });
@@ -32,7 +41,11 @@ describe("describeToolInput", () => {
         path: "ui/src/lib/issue-chat-messages.ts",
       }),
     ).toEqual([
-      { label: "Path", value: "ui/src/lib/issue-chat-messages.ts", tone: "default" },
+      {
+        label: "Path",
+        value: "ui/src/lib/issue-chat-messages.ts",
+        tone: "default",
+      },
     ]);
   });
 });

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { CreateConfigValues } from "@taskcore/adapter-utils";
 import { buildGeminiLocalConfig } from "./build-config.js";
 
-function makeValues(overrides: Partial<CreateConfigValues> = {}): CreateConfigValues {
+function makeValues(
+  overrides: Partial<CreateConfigValues> = {},
+): CreateConfigValues {
   return {
     adapterType: "gemini_local",
     cwd: "",
@@ -43,19 +45,25 @@ describe("buildGeminiLocalConfig", () => {
   });
 
   it("persists explicit engine pins", () => {
-    expect(buildGeminiLocalConfig(makeValues({ geminiEngine: "cli" }))).toMatchObject({ engine: "cli" });
-    expect(buildGeminiLocalConfig(makeValues({ geminiEngine: "acp" }))).toMatchObject({ engine: "acp" });
+    expect(
+      buildGeminiLocalConfig(makeValues({ geminiEngine: "cli" })),
+    ).toMatchObject({ engine: "cli" });
+    expect(
+      buildGeminiLocalConfig(makeValues({ geminiEngine: "acp" })),
+    ).toMatchObject({ engine: "acp" });
   });
 
   it("persists ACP fields when Gemini ACP is selected", () => {
-    const config = buildGeminiLocalConfig(makeValues({
-      geminiEngine: "acp",
-      geminiAcpAgentCommand: "custom-gemini --acp",
-      geminiAcpMode: "oneshot",
-      geminiAcpNonInteractivePermissions: "fail",
-      geminiAcpStateDir: "/tmp/gemini-acp",
-      geminiAcpWarmHandleIdleMs: 30,
-    }));
+    const config = buildGeminiLocalConfig(
+      makeValues({
+        geminiEngine: "acp",
+        geminiAcpAgentCommand: "custom-gemini --acp",
+        geminiAcpMode: "oneshot",
+        geminiAcpNonInteractivePermissions: "fail",
+        geminiAcpStateDir: "/tmp/gemini-acp",
+        geminiAcpWarmHandleIdleMs: 30,
+      }),
+    );
 
     expect(config).toMatchObject({
       engine: "acp",

@@ -65,7 +65,11 @@ export async function assertInstructionPathSafe(
     if (alias === "var" || alias === "tmp" || alias === "etc") {
       const systemPath = `/${alias}`;
       const stat = await fs.lstat(systemPath);
-      if (stat.isSymbolicLink() && stat.uid === 0 && await fs.realpath(systemPath) === `/private/${alias}`) {
+      if (
+        stat.isSymbolicLink() &&
+        stat.uid === 0 &&
+        (await fs.realpath(systemPath)) === `/private/${alias}`
+      ) {
         absolute = `/private${absolute}`;
       }
     }

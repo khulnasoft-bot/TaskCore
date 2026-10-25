@@ -5,7 +5,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { HeartbeatRun, Issue, IssueRecoveryAction } from "@taskcore/shared";
+import type {
+  HeartbeatRun,
+  Issue,
+  IssueRecoveryAction,
+} from "@taskcore/shared";
 import { RunWorkspaceRecoverySurface } from "./RunWorkspaceRecoverySurface";
 import { ToastProvider } from "../context/ToastContext";
 
@@ -18,8 +22,14 @@ const boardAccessMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/router", () => ({
   useNavigate: () => navigateMock,
-  Link: ({ children, to, ...props }: { children: ReactNode; to: string } & ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: { children: ReactNode; to: string } & ComponentProps<"a">) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -43,7 +53,9 @@ vi.mock("../api/access", () => ({
   },
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 // flushSync-based sync `act` shim (matches the repo pattern in IssueRecoveryActionCard.test.tsx).
 function act(callback: () => void): void {
@@ -114,7 +126,8 @@ function buildRecoveryAction(): IssueRecoveryAction {
           expectedHeadSha: "aaaa1111bbbb",
           actualHeadSha: "cccc2222dddd",
           ancestryVerdict: "diverged",
-          plainLanguageReason: "Recorded branch is not an ancestor of the live branch.",
+          plainLanguageReason:
+            "Recorded branch is not an ancestor of the live branch.",
         },
       },
     },
@@ -182,7 +195,9 @@ describe("RunWorkspaceRecoverySurface", () => {
     issueGetMock.mockResolvedValue(buildIssue(buildRecoveryAction()));
     boardAccessMock.mockResolvedValue(undefined);
     const node = await renderSurface(buildRun({ errorCode: "process_lost" }));
-    expect(node.querySelector("[data-testid='run-workspace-recovery-surface']")).toBeNull();
+    expect(
+      node.querySelector("[data-testid='run-workspace-recovery-surface']"),
+    ).toBeNull();
     expect(issueGetMock).not.toHaveBeenCalled();
   });
 
@@ -190,28 +205,48 @@ describe("RunWorkspaceRecoverySurface", () => {
     issueGetMock.mockResolvedValue(buildIssue(null));
     boardAccessMock.mockResolvedValue(undefined);
     const node = await renderSurface(buildRun());
-    expect(node.querySelector("[data-testid='run-workspace-recovery-surface']")).toBeNull();
+    expect(
+      node.querySelector("[data-testid='run-workspace-recovery-surface']"),
+    ).toBeNull();
   });
 
   it("renders the compact recovery card and repair action for a dirty divergence", async () => {
     issueGetMock.mockResolvedValue(buildIssue(buildRecoveryAction()));
-    boardAccessMock.mockResolvedValue({ source: "local_implicit", companyIds: ["company-1"] });
+    boardAccessMock.mockResolvedValue({
+      source: "local_implicit",
+      companyIds: ["company-1"],
+    });
     const node = await renderSurface(buildRun());
-    expect(node.querySelector("[data-testid='run-workspace-recovery-surface']")).not.toBeNull();
-    expect(node.querySelector("[data-testid='recovery-divergence-diagnosis']")).not.toBeNull();
-    expect(node.querySelector("[data-testid='recovery-action-repair-trigger']")).not.toBeNull();
+    expect(
+      node.querySelector("[data-testid='run-workspace-recovery-surface']"),
+    ).not.toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-divergence-diagnosis']"),
+    ).not.toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-action-repair-trigger']"),
+    ).not.toBeNull();
     // Compact: metadata rows dropped.
     expect(node.textContent).not.toContain("Repair the workspace.");
   });
 
   it("wires the repair confirm to reconcile in quarantine_restore mode against the pinned workspace", async () => {
     issueGetMock.mockResolvedValue(buildIssue(buildRecoveryAction()));
-    boardAccessMock.mockResolvedValue({ source: "local_implicit", companyIds: ["company-1"] });
+    boardAccessMock.mockResolvedValue({
+      source: "local_implicit",
+      companyIds: ["company-1"],
+    });
     reconcileMock.mockResolvedValue({ id: "ws-1" });
     const node = await renderSurface(buildRun());
     click(node.querySelector("[data-testid='recovery-action-repair-trigger']"));
-    click(document.body.querySelector("[data-testid='recovery-action-repair-confirm']"));
+    click(
+      document.body.querySelector(
+        "[data-testid='recovery-action-repair-confirm']",
+      ),
+    );
     await flush();
-    expect(reconcileMock).toHaveBeenCalledWith("ws-1", { mode: "quarantine_restore" });
+    expect(reconcileMock).toHaveBeenCalledWith("ws-1", {
+      mode: "quarantine_restore",
+    });
   });
 });

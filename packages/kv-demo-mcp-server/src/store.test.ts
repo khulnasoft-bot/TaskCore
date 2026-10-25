@@ -29,7 +29,11 @@ describe("KvStore", () => {
     store.set("user:1", "a");
     store.set("config:x", "c");
 
-    expect(store.list().map((e) => e.key)).toEqual(["config:x", "user:1", "user:2"]);
+    expect(store.list().map((e) => e.key)).toEqual([
+      "config:x",
+      "user:1",
+      "user:2",
+    ]);
     expect(store.list("user:").map((e) => e.key)).toEqual(["user:1", "user:2"]);
   });
 

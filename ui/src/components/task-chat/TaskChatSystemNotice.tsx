@@ -1,4 +1,7 @@
-import { DispositionRecoveryNotice, useDispositionRecoverySnapshot } from "@/components/DispositionRecoveryNotice";
+import {
+  DispositionRecoveryNotice,
+  useDispositionRecoverySnapshot,
+} from "@/components/DispositionRecoveryNotice";
 import { useId, useState } from "react";
 import {
   ChevronDown,
@@ -57,7 +60,9 @@ export function TaskChatSystemNotice({
 }) {
   const recoverySnapshot = useDispositionRecoverySnapshot(item.metadata);
   const streamlined = useStreamlinedTaskChatPresentation();
-  const [open, setOpen] = useState(Boolean(item.presentation?.detailsDefaultOpen));
+  const [open, setOpen] = useState(
+    Boolean(item.presentation?.detailsDefaultOpen),
+  );
   const detailsId = useId();
   const { title, tone, detail } = humanizeSystemNotice({
     body: item.text,
@@ -68,8 +73,13 @@ export function TaskChatSystemNotice({
   });
   const isStructuredWorkspaceReadyNotice =
     item.presentation?.kind === "system_notice" &&
-    item.presentation.title?.trim().toLowerCase().startsWith("workspace ready") === true &&
-    sections.some((section) => section.title?.trim().toLowerCase() === "workspace");
+    item.presentation.title
+      ?.trim()
+      .toLowerCase()
+      .startsWith("workspace ready") === true &&
+    sections.some(
+      (section) => section.title?.trim().toLowerCase() === "workspace",
+    );
   const showBody = !isStructuredWorkspaceReadyNotice;
   const ToneIcon = TONE_ICON[tone];
   const relative = item.createdAtIso ? timeAgo(item.createdAtIso) : undefined;
@@ -85,12 +95,21 @@ export function TaskChatSystemNotice({
   };
 
   if (item.author === "system" && recoverySnapshot) {
-    return <DispositionRecoveryNotice snapshot={recoverySnapshot} createdAt={item.createdAtIso} defaultExpanded={item.presentation?.detailsDefaultOpen} />;
+    return (
+      <DispositionRecoveryNotice
+        snapshot={recoverySnapshot}
+        createdAt={item.createdAtIso}
+        defaultExpanded={item.presentation?.detailsDefaultOpen}
+      />
+    );
   }
 
   return (
     <div
-      className={cn("tc-enter-bubble flex flex-col items-start", streamlined ? "py-0.5" : "py-1")}
+      className={cn(
+        "tc-enter-bubble flex flex-col items-start",
+        streamlined ? "py-0.5" : "py-1",
+      )}
       data-testid="task-chat-system-notice"
       data-tone={streamlined ? tone : undefined}
       role={streamlined ? "group" : undefined}
@@ -108,12 +127,24 @@ export function TaskChatSystemNotice({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
           )}
         >
-          <ToneIcon className={cn("h-3.5 w-3.5 shrink-0", TONE_ICON_CLASS[tone])} aria-hidden />
+          <ToneIcon
+            className={cn("h-3.5 w-3.5 shrink-0", TONE_ICON_CLASS[tone])}
+            aria-hidden
+          />
           <span className="truncate font-medium">{title}</span>
-          {detail ? <span className="hidden truncate sm:inline">· {detail}</span> : null}
-          {relative ? <span className="shrink-0 text-muted-foreground/70">· {relative}</span> : null}
+          {detail ? (
+            <span className="hidden truncate sm:inline">· {detail}</span>
+          ) : null}
+          {relative ? (
+            <span className="shrink-0 text-muted-foreground/70">
+              · {relative}
+            </span>
+          ) : null}
           <ChevronDown
-            className={cn("tc-notice-chevron h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-180")}
+            className={cn(
+              "tc-notice-chevron h-3.5 w-3.5 shrink-0 transition-transform",
+              open && "rotate-180",
+            )}
             aria-hidden
           />
         </button>
@@ -126,7 +157,9 @@ export function TaskChatSystemNotice({
             disabled={tryAgainNoLiveExecutionPathPending}
             data-testid="task-chat-no-live-path-try-again"
           >
-            {tryAgainNoLiveExecutionPathPending ? "Trying again..." : "Try again"}
+            {tryAgainNoLiveExecutionPathPending
+              ? "Trying again..."
+              : "Try again"}
           </Button>
         ) : null}
       </div>
@@ -162,7 +195,9 @@ export function TaskChatSystemNotice({
                 disabled={tryAgainNoLiveExecutionPathPending}
                 data-testid="task-chat-no-live-path-try-again"
               >
-                {tryAgainNoLiveExecutionPathPending ? "Trying again..." : "Try again"}
+                {tryAgainNoLiveExecutionPathPending
+                  ? "Trying again..."
+                  : "Try again"}
               </Button>
             </div>
           ) : null}

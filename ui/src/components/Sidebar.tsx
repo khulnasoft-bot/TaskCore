@@ -42,8 +42,15 @@ import { queryKeys } from "../lib/queryKeys";
 import { attentionBadgeCount } from "../lib/attention";
 import { useInboxBadge } from "../hooks/useInboxBadge";
 import { useStreamlinedUiEnabled } from "../hooks/useStreamlinedUiEnabled";
-import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  usePublishSharedQueryData,
+  useSharedPollingQuery,
+} from "../hooks/useSharedPolling";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
 import { PluginSlotOutlet } from "@/plugins/slots";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
@@ -87,7 +94,7 @@ export function Sidebar({ children }: { children?: ReactNode }) {
   usePublishSharedQueryData(sharedLiveRuns, liveRuns, liveRunsUpdatedAt);
   const liveRunCount = liveRuns?.length ?? 0;
   const liveIssueIds = new Set(
-    (liveRuns ?? []).flatMap((run) => run.issueId ? [run.issueId] : []),
+    (liveRuns ?? []).flatMap((run) => (run.issueId ? [run.issueId] : [])),
   );
   // PAP-670 splits the nav reorganization across two experimental flags.
   // Agent Chat: Chat leads Work as one row with its own agent rail (the
@@ -97,8 +104,11 @@ export function Sidebar({ children }: { children?: ReactNode }) {
   const chatRail = agentChatEnabled && streamlinedUiEnabled;
   // The merged Tasks page only exists in the streamlined shell, so the legacy
   // shell keeps its Inbox row even with the flag on.
-  const combinedInboxTasks = streamlinedUiEnabled && experimentalSettings?.enableCombinedInboxTasks === true;
-  const showWorkspacesLink = !chatRail && experimentalSettings?.enableIsolatedWorkspaces === true;
+  const combinedInboxTasks =
+    streamlinedUiEnabled &&
+    experimentalSettings?.enableCombinedInboxTasks === true;
+  const showWorkspacesLink =
+    !chatRail && experimentalSettings?.enableIsolatedWorkspaces === true;
   const showPipelines = experimentalSettings?.enablePipelines === true;
   const showStatusCards = experimentalSettings?.enableStatusCards === true;
   const goalsLinkPending = experimentalSettings === undefined;
@@ -118,7 +128,8 @@ export function Sidebar({ children }: { children?: ReactNode }) {
   // Conference Room Chat flag (PAP-136/PAP-137): the Conference Room nav item
   // is a new surface, hidden entirely while the flag is off (same no-flash
   // pattern as showWorkspacesLink above).
-  const conferenceRoomChatEnabled = experimentalSettings?.enableConferenceRoomChat === true;
+  const conferenceRoomChatEnabled =
+    experimentalSettings?.enableConferenceRoomChat === true;
 
   const pluginContext = {
     companyId: selectedCompanyId,
@@ -157,7 +168,9 @@ export function Sidebar({ children }: { children?: ReactNode }) {
                 )}
               >
                 <SquarePen className="h-4 w-4 shrink-0" />
-                <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "truncate"}>New Task</span>
+                <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "truncate"}>
+                  New Task
+                </span>
               </button>
             );
             return rail ? (
@@ -174,7 +187,12 @@ export function Sidebar({ children }: { children?: ReactNode }) {
               collapsed rail, where the old header icon was dropped entirely.
               Cmd/Ctrl+K remains the keyboard path (command palette). */}
           <SidebarNavItem to="/search" label="Search" icon={Search} />
-          <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem
+            to="/dashboard"
+            label="Dashboard"
+            icon={LayoutDashboard}
+            liveCount={liveRunCount}
+          />
           {!combinedInboxTasks ? (
             <SidebarNavItem
               to="/inbox"
@@ -186,7 +204,9 @@ export function Sidebar({ children }: { children?: ReactNode }) {
               alert={inboxBadge.failedRuns > 0}
             />
           ) : null}
-          {agentChatEnabled && !chatRail ? <SidebarNavItem to="/chats" label="Chat" icon={MessageCircle} /> : null}
+          {agentChatEnabled && !chatRail ? (
+            <SidebarNavItem to="/chats" label="Chat" icon={MessageCircle} />
+          ) : null}
           {showDecisions ? (
             <SidebarNavItem
               to="/decisions"
@@ -197,14 +217,26 @@ export function Sidebar({ children }: { children?: ReactNode }) {
             />
           ) : null}
           {showStatusCards ? (
-            <SidebarNavItem to="/status" label="Status" icon={LayoutGrid} textBadge="beta" />
+            <SidebarNavItem
+              to="/status"
+              label="Status"
+              icon={LayoutGrid}
+              textBadge="beta"
+            />
           ) : null}
           {conferenceRoomChatEnabled ? (
-            <SidebarNavItem to="/board-chat" label="Conference Room" icon={MessagesSquare} />
+            <SidebarNavItem
+              to="/board-chat"
+              label="Conference Room"
+              icon={MessagesSquare}
+            />
           ) : null}
         </div>
 
-        <SidebarSection label="Work" collapsible={{ open: workOpen, onOpenChange: setWorkOpen }}>
+        <SidebarSection
+          label="Work"
+          collapsible={{ open: workOpen, onOpenChange: setWorkOpen }}
+        >
           {/* Agent Chat: Chat leads the Work group as a single row — the
               agents you talk to live in the Chat surface's own secondary rail
               (ChatContextualSidebar), not in the primary nav. */}
@@ -228,17 +260,30 @@ export function Sidebar({ children }: { children?: ReactNode }) {
           )}
           {streamlinedUiEnabled ? (
             <>
-              <SidebarNavItem to="/projects" label="Projects" icon={FolderOpen} />
+              <SidebarNavItem
+                to="/projects"
+                label="Projects"
+                icon={FolderOpen}
+              />
               <SidebarStarredProjects />
             </>
           ) : null}
           <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
           <SidebarNavItem to="/artifacts" label="Artifacts" icon={Package} />
           {showCases ? (
-            <SidebarNavItem to="/cases" label="Cases" icon={Layers} textBadge="beta" />
+            <SidebarNavItem
+              to="/cases"
+              label="Cases"
+              icon={Layers}
+              textBadge="beta"
+            />
           ) : null}
           {showPipelines ? (
-            <SidebarNavItem to="/pipelines" label="Pipelines" icon={GitBranch} />
+            <SidebarNavItem
+              to="/pipelines"
+              label="Pipelines"
+              icon={GitBranch}
+            />
           ) : null}
           {showGoalsLink ? (
             <SidebarNavItem to="/goals" label="Goals" icon={Target} />
@@ -250,7 +295,11 @@ export function Sidebar({ children }: { children?: ReactNode }) {
             />
           ) : null}
           {showWorkspacesLink ? (
-            <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
+            <SidebarNavItem
+              to="/workspaces"
+              label="Workspaces"
+              icon={GitBranch}
+            />
           ) : null}
           <PluginSlotOutlet
             errorBehavior="hidden"
@@ -272,7 +321,10 @@ export function Sidebar({ children }: { children?: ReactNode }) {
         {streamlinedUiEnabled ? (
           <SidebarSection
             label="Org"
-            collapsible={{ open: organizationOpen, onOpenChange: setOrganizationOpen }}
+            collapsible={{
+              open: organizationOpen,
+              onOpenChange: setOrganizationOpen,
+            }}
           >
             <SidebarNavItem to="/agents" label="Agents" icon={Users} />
             <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
@@ -281,24 +333,39 @@ export function Sidebar({ children }: { children?: ReactNode }) {
           </SidebarSection>
         ) : null}
 
-        {children ?? (streamlinedUiEnabled ? <SidebarAgents streamlined /> : null)}
+        {children ??
+          (streamlinedUiEnabled ? <SidebarAgents streamlined /> : null)}
 
         {streamlinedUiEnabled ? (
-          <SidebarRecentTasks companyId={selectedCompanyId} liveIssueIds={liveIssueIds} />
+          <SidebarRecentTasks
+            companyId={selectedCompanyId}
+            liveIssueIds={liveIssueIds}
+          />
         ) : (
           <>
             <SidebarProjects />
             <SidebarAgents />
             <SidebarSection
               label="Organization"
-              collapsible={{ open: organizationOpen, onOpenChange: setOrganizationOpen }}
+              collapsible={{
+                open: organizationOpen,
+                onOpenChange: setOrganizationOpen,
+              }}
             >
               <SidebarNavItem to="/org" label="Org" icon={Network} />
               <SidebarNavItem to="/apps" label="Connectors" icon={Unplug} />
-              <SidebarNavItem to="/timeline" label="Timeline" icon={GanttChartSquare} />
+              <SidebarNavItem
+                to="/timeline"
+                label="Timeline"
+                icon={GanttChartSquare}
+              />
               <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
               <SidebarNavItem to="/activity" label="Activity" icon={History} />
-              <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
+              <SidebarNavItem
+                to="/company/settings"
+                label="Settings"
+                icon={Settings}
+              />
             </SidebarSection>
           </>
         )}

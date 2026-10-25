@@ -17,11 +17,14 @@ const OTHER_COMPANY_SECRET_ID = "20000000-0000-4000-8000-000000000002";
 const AWS_CONFIGURATION = {
   region: "us-east-1",
   accountId: "123456789012",
-  harnessArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:harness/example",
+  harnessArn:
+    "arn:aws:bedrock-agentcore:us-east-1:123456789012:harness/example",
   harnessVersion: "1",
-  endpointArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:endpoint/example",
+  endpointArn:
+    "arn:aws:bedrock-agentcore:us-east-1:123456789012:endpoint/example",
   endpointQualifier: "taskcore",
-  agentRuntimeArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/example",
+  agentRuntimeArn:
+    "arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/example",
   memoryArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/example",
   memoryId: "memory-example",
   invocationRoleArn: "arn:aws:iam::123456789012:role/taskcore-runner",
@@ -100,11 +103,14 @@ function dbForUpsert(
   } as unknown as Db;
 }
 
-const unusedDb = new Proxy({}, {
-  get() {
-    throw new Error("validation unexpectedly accessed the database");
+const unusedDb = new Proxy(
+  {},
+  {
+    get() {
+      throw new Error("validation unexpectedly accessed the database");
+    },
   },
-}) as unknown as Db;
+) as unknown as Db;
 
 describe("remote agent profile metadata validation", () => {
   it("rejects obsolete explicit credentials because AgentCore uses workload identity", async () => {
@@ -245,7 +251,11 @@ describe("remote agent profile metadata validation", () => {
     await expect(
       remoteAgentProfileService(unusedDb).upsert(
         COMPANY_ID,
-        remoteInput({ enabled: true, retentionAcknowledged: true, qualification: {} }),
+        remoteInput({
+          enabled: true,
+          retentionAcknowledged: true,
+          qualification: {},
+        }),
       ),
     ).rejects.toThrow("qualification attestation is required");
 
@@ -315,7 +325,10 @@ describe("remote agent profile metadata validation", () => {
       remoteAgentProfileService(unusedDb).upsert(
         COMPANY_ID,
         remoteInput({
-          configuration: { ...AWS_CONFIGURATION, defaultModel: "claude-sonnet-4-6" },
+          configuration: {
+            ...AWS_CONFIGURATION,
+            defaultModel: "claude-sonnet-4-6",
+          },
         }),
       ),
     ).rejects.toThrow("model must be global.anthropic.claude-sonnet-4-6");
@@ -433,19 +446,22 @@ describe("remote agent profile metadata validation", () => {
     };
 
     await expect(
-      managedAgentProfileService(dbReturningFirstRow(existing)).upsert(COMPANY_ID, {
-        profileKey: "managed",
-        displayName: "Managed Agent",
-        anthropicAgentId: "different-agent",
-        agentVersion: "1",
-        environmentId: "environment-example",
-        defaultModel: "claude-sonnet-5",
-        defaultMaxListCostUsd: 1,
-        apiKeySecretId: OTHER_COMPANY_SECRET_ID,
-        enabled: true,
-        retentionAcknowledged: true,
-        qualification,
-      }),
+      managedAgentProfileService(dbReturningFirstRow(existing)).upsert(
+        COMPANY_ID,
+        {
+          profileKey: "managed",
+          displayName: "Managed Agent",
+          anthropicAgentId: "different-agent",
+          agentVersion: "1",
+          environmentId: "environment-example",
+          defaultModel: "claude-sonnet-5",
+          defaultMaxListCostUsd: 1,
+          apiKeySecretId: OTHER_COMPANY_SECRET_ID,
+          enabled: true,
+          retentionAcknowledged: true,
+          qualification,
+        },
+      ),
     ).rejects.toThrow("configuration revision is immutable");
   });
 
@@ -529,14 +545,17 @@ describe("remote agent profile metadata validation", () => {
     };
     const updatedRemote = await remoteAgentProfileService(
       dbForUpsert(existingRemote),
-    ).upsert(COMPANY_ID, remoteInput({
-      enabled: true,
-      retentionAcknowledged: true,
-      configuration: {
-        ...AWS_CONFIGURATION,
-        defaultMaxEstimatedSessionCostUsd: 3,
-      },
-    }));
+    ).upsert(
+      COMPANY_ID,
+      remoteInput({
+        enabled: true,
+        retentionAcknowledged: true,
+        configuration: {
+          ...AWS_CONFIGURATION,
+          defaultMaxEstimatedSessionCostUsd: 3,
+        },
+      }),
+    );
     expect(updatedRemote).toMatchObject({
       configuration: {
         defaultModel: "global.anthropic.claude-sonnet-4-6",
@@ -555,21 +574,23 @@ describe("remote agent profile metadata validation", () => {
       qualification,
     });
     await expect(
-      remoteAgentProfileService(dbReturningFirstRow({
-        id: "30000000-0000-4000-8000-000000000003",
-        companyId: COMPANY_ID,
-        profileKey: "agentcore",
-        displayName: "AgentCore",
-        service: "aws_bedrock_agentcore_harness",
-        configuration: { ...AWS_CONFIGURATION, memoryId: "tampered-memory" },
-        enabled: true,
-        retentionAcknowledged: true,
-        qualification,
-        qualifiedAt: new Date("2026-08-01T00:00:00.000Z"),
-        qualifiedRevision,
-        createdAt: new Date("2026-08-01T00:00:00.000Z"),
-        updatedAt: new Date("2026-08-01T00:00:00.000Z"),
-      })).requireQualified(COMPANY_ID, "agentcore"),
+      remoteAgentProfileService(
+        dbReturningFirstRow({
+          id: "30000000-0000-4000-8000-000000000003",
+          companyId: COMPANY_ID,
+          profileKey: "agentcore",
+          displayName: "AgentCore",
+          service: "aws_bedrock_agentcore_harness",
+          configuration: { ...AWS_CONFIGURATION, memoryId: "tampered-memory" },
+          enabled: true,
+          retentionAcknowledged: true,
+          qualification,
+          qualifiedAt: new Date("2026-08-01T00:00:00.000Z"),
+          qualifiedRevision,
+          createdAt: new Date("2026-08-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-08-01T00:00:00.000Z"),
+        }),
+      ).requireQualified(COMPANY_ID, "agentcore"),
     ).rejects.toThrow("does not match its qualified revision");
   });
 });

@@ -7,7 +7,14 @@ import {
   sign,
   type KeyObject,
 } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 
 import { resolveTaskcoreInstanceRoot } from "../home-paths.js";
@@ -17,7 +24,8 @@ const IDENTITY_VERSION = 1;
 const ENROLLMENT_FILE = "taskcore-cloud-connector.json";
 const REQUEST_TYPE = "taskcore-cloud-connector-request+jwt";
 
-export type LocalConnectorEnvironment = "development" | "staging" | "production";
+export type LocalConnectorEnvironment =
+  "development" | "staging" | "production";
 
 type PendingEnrollment = {
   enrollmentId: string;
@@ -46,7 +54,11 @@ export type TaskcoreCloudConnectorIdentity = {
 
 export type TaskcoreCloudConnectorEnrollmentStatus = {
   configured: boolean;
-  status: TaskcoreCloudConnectorIdentity["status"] | "not_configured" | "suspended" | "unverified";
+  status:
+    | TaskcoreCloudConnectorIdentity["status"]
+    | "not_configured"
+    | "suspended"
+    | "unverified";
   brokerBaseUrl: string;
   instanceId: string | null;
   environment: LocalConnectorEnvironment;
@@ -75,13 +87,20 @@ export function taskcoreCloudConnectorEnrollmentStatus(
 ): TaskcoreCloudConnectorEnrollmentStatus {
   const identity = loadTaskcoreCloudConnectorIdentity();
   const managedInstanceId = env.TASKCORE_CLOUD_CONNECTOR_INSTANCE_ID?.trim();
-  const managedSignPrivateKey = env.TASKCORE_CLOUD_CONNECTOR_SIGN_PRIVATE_KEY?.trim();
-  const managedSealPrivateKey = env.TASKCORE_CLOUD_CONNECTOR_SEAL_PRIVATE_KEY?.trim();
+  const managedSignPrivateKey =
+    env.TASKCORE_CLOUD_CONNECTOR_SIGN_PRIVATE_KEY?.trim();
+  const managedSealPrivateKey =
+    env.TASKCORE_CLOUD_CONNECTOR_SEAL_PRIVATE_KEY?.trim();
   const managedEnvironment = env.TASKCORE_CLOUD_CONNECTOR_ENVIRONMENT?.trim();
   const hasManagedIdentityOverride = hasManagedConnectorIdentityOverride(env);
   if (hasManagedIdentityOverride) {
     const { brokerBaseUrl, environment } = connectorTarget(env);
-    if (!managedInstanceId || !managedSignPrivateKey || !managedSealPrivateKey || !managedEnvironment) {
+    if (
+      !managedInstanceId ||
+      !managedSignPrivateKey ||
+      !managedSealPrivateKey ||
+      !managedEnvironment
+    ) {
       return {
         configured: false,
         status: "unverified",
@@ -92,7 +111,9 @@ export function taskcoreCloudConnectorEnrollmentStatus(
       };
     }
     const resolvedOrigin = runtimePublicOrigin(env);
-    const publicOrigin = resolvedOrigin ? normalizeInstanceOrigin(resolvedOrigin) : undefined;
+    const publicOrigin = resolvedOrigin
+      ? normalizeInstanceOrigin(resolvedOrigin)
+      : undefined;
     return {
       configured: true,
       status: "active",
@@ -104,7 +125,14 @@ export function taskcoreCloudConnectorEnrollmentStatus(
   }
   const { brokerBaseUrl, environment } = connectorTarget(env, identity);
   if (!identity) {
-    return { configured: false, status: "not_configured", brokerBaseUrl, instanceId: null, environment, origins: [] };
+    return {
+      configured: false,
+      status: "not_configured",
+      brokerBaseUrl,
+      instanceId: null,
+      environment,
+      origins: [],
+    };
   }
   if (!identityMatchesTarget(identity, { brokerBaseUrl, environment })) {
     return {
@@ -123,10 +151,12 @@ export function taskcoreCloudConnectorEnrollmentStatus(
     instanceId: identity.instanceId,
     environment,
     origins: [...identity.origins],
-    ...(identity.pending ? {
-      verificationUrl: `${brokerBaseUrl}/connections/enroll?id=${encodeURIComponent(identity.pending.enrollmentId)}`,
-      expiresAt: identity.pending.expiresAt,
-    } : {}),
+    ...(identity.pending
+      ? {
+          verificationUrl: `${brokerBaseUrl}/connections/enroll?id=${encodeURIComponent(identity.pending.enrollmentId)}`,
+          expiresAt: identity.pending.expiresAt,
+        }
+      : {}),
   };
 }
 
@@ -139,7 +169,9 @@ export async function startTaskcoreCloudConnectorEnrollment(input: {
   env?: NodeJS.ProcessEnv;
   request?: typeof fetch;
 }): Promise<TaskcoreCloudConnectorEnrollmentStatus> {
-  return withEnrollmentMutationLock(() => startTaskcoreCloudConnectorEnrollmentUnlocked(input));
+  return withEnrollmentMutationLock(() =>
+    startTaskcoreCloudConnectorEnrollmentUnlocked(input),
+  );
 }
 
 async function startTaskcoreCloudConnectorEnrollmentUnlocked(input: {
@@ -154,7 +186,9 @@ async function startTaskcoreCloudConnectorEnrollmentUnlocked(input: {
   const env = input.env ?? process.env;
   const request = input.request ?? fetch;
   if (hasManagedConnectorIdentityOverride(env)) {
-    throw new Error("Taskcore Cloud self-host enrollment is unavailable with managed identity configuration");
+    throw new Error(
+      "Taskcore Cloud self-host enrollment is unavailable with managed identity configuration",
+    );
   }
   const origin = normalizeInstanceOrigin(input.origin);
   const existingIdentity = loadTaskcoreCloudConnectorIdentity();
@@ -164,53 +198,93 @@ async function startTaskcoreCloudConnectorEnrollmentUnlocked(input: {
     identity = createIdentity(env);
   } else if (!identityMatchesTarget(existingIdentity, target)) {
     if (existingIdentity.status === "active") {
-      throw new Error("Taskcore Cloud connector is enrolled with another target");
+      throw new Error(
+        "Taskcore Cloud connector is enrolled with another target",
+      );
     }
     identity = createIdentity(env);
   } else {
     identity = existingIdentity;
   }
-  if (identity.status === "pending" && identity.pending && Date.parse(identity.pending.expiresAt) > Date.now()) {
+  if (
+    identity.status === "pending" &&
+    identity.pending &&
+    Date.parse(identity.pending.expiresAt) > Date.now()
+  ) {
     if (identity.pending.origin !== origin) {
-      throw new Error("Taskcore Cloud enrollment is already pending for another origin");
+      throw new Error(
+        "Taskcore Cloud enrollment is already pending for another origin",
+      );
     }
     if (identity.pending.companyId !== input.companyId) {
-      throw new Error("Taskcore Cloud enrollment is already pending for another company");
+      throw new Error(
+        "Taskcore Cloud enrollment is already pending for another company",
+      );
     }
-    if (input.initiatedBy && identity.pending.initiatedBy && identity.pending.initiatedBy !== input.initiatedBy) {
-      throw new Error("Taskcore Cloud enrollment is already pending for another administrator");
+    if (
+      input.initiatedBy &&
+      identity.pending.initiatedBy &&
+      identity.pending.initiatedBy !== input.initiatedBy
+    ) {
+      throw new Error(
+        "Taskcore Cloud enrollment is already pending for another administrator",
+      );
     }
     return taskcoreCloudConnectorEnrollmentStatus(env);
   }
   const returnState = randomBytes(32).toString("base64url");
   const returnUri = `${origin}/api/tools/oauth/cloud-connector/enrollment-callback`;
-  const response = await request(`${identity.brokerBaseUrl}/v1/connector/enrollments`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({
-      instanceId: identity.instanceId,
-      environment: identity.environment,
-      origin,
-      returnUri,
-      returnState,
-      label: input.label?.trim() || process.env.TASKCORE_INSTANCE_ID?.trim() || "Self-hosted Taskcore",
-      signPublicKey: identity.signPublicKey,
-      sealPublicKey: identity.sealPublicKey,
-    }),
-    signal: AbortSignal.timeout(15_000),
-  }).catch(() => null);
-  if (!response?.ok) throw new Error("Taskcore Cloud enrollment is unavailable");
-  const body = await response.json().catch(() => null) as Record<string, unknown> | null;
-  if (!body || typeof body.enrollmentId !== "string" || typeof body.verificationUrl !== "string" || typeof body.expiresAt !== "string") {
+  const response = await request(
+    `${identity.brokerBaseUrl}/v1/connector/enrollments`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        instanceId: identity.instanceId,
+        environment: identity.environment,
+        origin,
+        returnUri,
+        returnState,
+        label:
+          input.label?.trim() ||
+          process.env.TASKCORE_INSTANCE_ID?.trim() ||
+          "Self-hosted Taskcore",
+        signPublicKey: identity.signPublicKey,
+        sealPublicKey: identity.sealPublicKey,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    },
+  ).catch(() => null);
+  if (!response?.ok)
+    throw new Error("Taskcore Cloud enrollment is unavailable");
+  const body = (await response.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
+  if (
+    !body ||
+    typeof body.enrollmentId !== "string" ||
+    typeof body.verificationUrl !== "string" ||
+    typeof body.expiresAt !== "string"
+  ) {
     throw new Error("Taskcore Cloud returned an invalid enrollment response");
   }
   const verificationUrl = new URL(body.verificationUrl);
-  if (verificationUrl.origin !== identity.brokerBaseUrl
-    || verificationUrl.username || verificationUrl.password || verificationUrl.hash
-    || verificationUrl.pathname !== "/connections/enroll"
-    || verificationUrl.searchParams.size !== 1
-    || verificationUrl.searchParams.get("id") !== body.enrollmentId) {
-    throw new Error("Taskcore Cloud returned an invalid enrollment destination");
+  if (
+    verificationUrl.origin !== identity.brokerBaseUrl ||
+    verificationUrl.username ||
+    verificationUrl.password ||
+    verificationUrl.hash ||
+    verificationUrl.pathname !== "/connections/enroll" ||
+    verificationUrl.searchParams.size !== 1 ||
+    verificationUrl.searchParams.get("id") !== body.enrollmentId
+  ) {
+    throw new Error(
+      "Taskcore Cloud returned an invalid enrollment destination",
+    );
   }
   identity = {
     ...identity,
@@ -240,7 +314,9 @@ export async function completeTaskcoreCloudConnectorEnrollment(input: {
   env?: NodeJS.ProcessEnv;
   request?: typeof fetch;
 }): Promise<TaskcoreCloudConnectorEnrollmentStatus> {
-  return withEnrollmentMutationLock(() => completeTaskcoreCloudConnectorEnrollmentUnlocked(input));
+  return withEnrollmentMutationLock(() =>
+    completeTaskcoreCloudConnectorEnrollmentUnlocked(input),
+  );
 }
 
 async function completeTaskcoreCloudConnectorEnrollmentUnlocked(input: {
@@ -252,50 +328,78 @@ async function completeTaskcoreCloudConnectorEnrollmentUnlocked(input: {
 }): Promise<TaskcoreCloudConnectorEnrollmentStatus> {
   const identity = loadTaskcoreCloudConnectorIdentity();
   const pending = identity?.pending;
-  if (hasManagedConnectorIdentityOverride(input.env ?? process.env)
-    || !identity || !pending || identity.status !== "pending"
-    || pending.enrollmentId !== input.enrollmentId || pending.returnState !== input.state
-    || Date.parse(pending.expiresAt) <= Date.now()
-    || !identityMatchesTarget(identity, connectorTarget(input.env ?? process.env, identity))) {
+  if (
+    hasManagedConnectorIdentityOverride(input.env ?? process.env) ||
+    !identity ||
+    !pending ||
+    identity.status !== "pending" ||
+    pending.enrollmentId !== input.enrollmentId ||
+    pending.returnState !== input.state ||
+    Date.parse(pending.expiresAt) <= Date.now() ||
+    !identityMatchesTarget(
+      identity,
+      connectorTarget(input.env ?? process.env, identity),
+    )
+  ) {
     throw new Error("Invalid or expired Taskcore Cloud enrollment state");
   }
   const audience = `${identity.brokerBaseUrl}/v1/connector/enrollment-claims`;
   const now = Math.floor(Date.now() / 1_000);
-  const requestToken = signRequest({
-    iss: identity.instanceId,
-    aud: audience,
-    sub: "self-hosted-admin",
-    cid: "self-hosted",
-    env: identity.environment,
-    op: "enroll",
-    iat: now,
-    exp: now + 60,
-    jti: randomUUID(),
-    ah: hash(input.approvalCode),
-  }, privateKey(identity.signPrivateKey));
+  const requestToken = signRequest(
+    {
+      iss: identity.instanceId,
+      aud: audience,
+      sub: "self-hosted-admin",
+      cid: "self-hosted",
+      env: identity.environment,
+      op: "enroll",
+      iat: now,
+      exp: now + 60,
+      jti: randomUUID(),
+      ah: hash(input.approvalCode),
+    },
+    privateKey(identity.signPrivateKey),
+  );
   const response = await (input.request ?? fetch)(audience, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ request: requestToken, enrollmentId: input.enrollmentId, approvalCode: input.approvalCode }),
+    body: JSON.stringify({
+      request: requestToken,
+      enrollmentId: input.enrollmentId,
+      approvalCode: input.approvalCode,
+    }),
     signal: AbortSignal.timeout(15_000),
   }).catch(() => null);
-  if (!response?.ok) throw new Error("Taskcore Cloud enrollment could not be completed");
-  const body = await response.json().catch(() => null) as Record<string, unknown> | null;
-  if (!body || body.id !== identity.instanceId || body.environment !== identity.environment
-    || !Array.isArray(body.origins) || !body.origins.includes(pending.origin)) {
+  if (!response?.ok)
+    throw new Error("Taskcore Cloud enrollment could not be completed");
+  const body = (await response.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
+  if (
+    !body ||
+    body.id !== identity.instanceId ||
+    body.environment !== identity.environment ||
+    !Array.isArray(body.origins) ||
+    !body.origins.includes(pending.origin)
+  ) {
     throw new Error("Taskcore Cloud returned an invalid enrollment binding");
   }
   saveIdentity({
     ...identity,
     status: "active",
-    origins: body.origins.filter((value): value is string => typeof value === "string"),
+    origins: body.origins.filter(
+      (value): value is string => typeof value === "string",
+    ),
     pending: undefined,
     enrolledAt: new Date().toISOString(),
   });
   return taskcoreCloudConnectorEnrollmentStatus(input.env ?? process.env);
 }
 
-function createIdentity(env: NodeJS.ProcessEnv): TaskcoreCloudConnectorIdentity {
+function createIdentity(
+  env: NodeJS.ProcessEnv,
+): TaskcoreCloudConnectorIdentity {
   const signing = generateKeyPairSync("ed25519");
   const sealing = generateKeyPairSync("x25519");
   const { brokerBaseUrl, environment } = connectorTarget(env);
@@ -321,20 +425,34 @@ function saveIdentity(identity: TaskcoreCloudConnectorIdentity): void {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   chmodSync(directory, 0o700);
   const temporaryPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
-  writeFileSync(temporaryPath, `${JSON.stringify(identity, null, 2)}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
+  writeFileSync(temporaryPath, `${JSON.stringify(identity, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+    flag: "wx",
+  });
   chmodSync(temporaryPath, 0o600);
   renameSync(temporaryPath, filePath);
   chmodSync(filePath, 0o600);
 }
 
 function parseIdentity(value: unknown): TaskcoreCloudConnectorIdentity {
-  if (!isRecord(value) || value.version !== IDENTITY_VERSION
-    || typeof value.instanceId !== "string" || !value.instanceId.startsWith("inst_")
-    || !isEnvironment(value.environment) || typeof value.brokerBaseUrl !== "string"
-    || typeof value.signPrivateKey !== "string" || typeof value.signPublicKey !== "string"
-    || typeof value.sealPrivateKey !== "string" || typeof value.sealPublicKey !== "string"
-    || (value.status !== "unenrolled" && value.status !== "pending" && value.status !== "active")
-    || !Array.isArray(value.origins) || !value.origins.every((origin) => typeof origin === "string")) {
+  if (
+    !isRecord(value) ||
+    value.version !== IDENTITY_VERSION ||
+    typeof value.instanceId !== "string" ||
+    !value.instanceId.startsWith("inst_") ||
+    !isEnvironment(value.environment) ||
+    typeof value.brokerBaseUrl !== "string" ||
+    typeof value.signPrivateKey !== "string" ||
+    typeof value.signPublicKey !== "string" ||
+    typeof value.sealPrivateKey !== "string" ||
+    typeof value.sealPublicKey !== "string" ||
+    (value.status !== "unenrolled" &&
+      value.status !== "pending" &&
+      value.status !== "active") ||
+    !Array.isArray(value.origins) ||
+    !value.origins.every((origin) => typeof origin === "string")
+  ) {
     throw new Error("Invalid Taskcore Cloud connector identity");
   }
   return value as TaskcoreCloudConnectorIdentity;
@@ -346,16 +464,23 @@ function connectorEnvironment(
   brokerBaseUrl = "https://my.taskcore.app",
 ): LocalConnectorEnvironment {
   const host = new URL(brokerBaseUrl).hostname.toLowerCase();
-  const inferred = host === "my.taskcore.app"
-    ? "production"
-    : host === "my-staging.taskcore.app"
-      ? "staging"
-      : "development";
-  const value = env.TASKCORE_CLOUD_CONNECTOR_ENVIRONMENT?.trim() || fallback || inferred;
-  if (!isEnvironment(value)) throw new Error("Taskcore Cloud connector environment is invalid");
-  if ((host === "my.taskcore.app" && value !== "production")
-    || (host === "my-staging.taskcore.app" && value !== "staging")) {
-    throw new Error("Taskcore Cloud connector broker and environment do not match");
+  const inferred =
+    host === "my.taskcore.app"
+      ? "production"
+      : host === "my-staging.taskcore.app"
+        ? "staging"
+        : "development";
+  const value =
+    env.TASKCORE_CLOUD_CONNECTOR_ENVIRONMENT?.trim() || fallback || inferred;
+  if (!isEnvironment(value))
+    throw new Error("Taskcore Cloud connector environment is invalid");
+  if (
+    (host === "my.taskcore.app" && value !== "production") ||
+    (host === "my-staging.taskcore.app" && value !== "staging")
+  ) {
+    throw new Error(
+      "Taskcore Cloud connector broker and environment do not match",
+    );
   }
   return value;
 }
@@ -364,13 +489,18 @@ function connectorTarget(
   env: NodeJS.ProcessEnv,
   identity?: TaskcoreCloudConnectorIdentity | null,
 ): Pick<TaskcoreCloudConnectorIdentity, "brokerBaseUrl" | "environment"> {
-  const brokerOverride = env.TASKCORE_CLOUD_CONNECTOR_BASE_URL?.trim() || undefined;
+  const brokerOverride =
+    env.TASKCORE_CLOUD_CONNECTOR_BASE_URL?.trim() || undefined;
   const brokerBaseUrl = normalizeBrokerOrigin(
     brokerOverride ?? identity?.brokerBaseUrl ?? "https://my.taskcore.app",
   );
   return {
     brokerBaseUrl,
-    environment: connectorEnvironment(env, brokerOverride ? undefined : identity?.environment, brokerBaseUrl),
+    environment: connectorEnvironment(
+      env,
+      brokerOverride ? undefined : identity?.environment,
+      brokerBaseUrl,
+    ),
   };
 }
 
@@ -378,7 +508,10 @@ function identityMatchesTarget(
   identity: TaskcoreCloudConnectorIdentity,
   target: Pick<TaskcoreCloudConnectorIdentity, "brokerBaseUrl" | "environment">,
 ): boolean {
-  return identity.brokerBaseUrl === target.brokerBaseUrl && identity.environment === target.environment;
+  return (
+    identity.brokerBaseUrl === target.brokerBaseUrl &&
+    identity.environment === target.environment
+  );
 }
 
 function hasManagedConnectorIdentityOverride(env: NodeJS.ProcessEnv): boolean {
@@ -390,15 +523,26 @@ function hasManagedConnectorIdentityOverride(env: NodeJS.ProcessEnv): boolean {
 }
 
 function isEnvironment(value: unknown): value is LocalConnectorEnvironment {
-  return value === "development" || value === "staging" || value === "production";
+  return (
+    value === "development" || value === "staging" || value === "production"
+  );
 }
 
 function normalizeBrokerOrigin(value: string): string {
   const url = new URL(value.trim());
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback(url.hostname))) {
+  if (
+    url.protocol !== "https:" &&
+    !(url.protocol === "http:" && loopback(url.hostname))
+  ) {
     throw new Error("Taskcore Cloud connector URL must use HTTPS");
   }
-  if (url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) {
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.pathname !== "/" && url.pathname !== "")
+  ) {
     throw new Error("Taskcore Cloud connector URL must be an origin");
   }
   return url.origin;
@@ -406,10 +550,21 @@ function normalizeBrokerOrigin(value: string): string {
 
 function normalizeInstanceOrigin(value: string): string {
   const url = new URL(value.trim());
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback(url.hostname))) {
-    throw new Error("Taskcore Cloud enrollment requires HTTPS except on loopback");
+  if (
+    url.protocol !== "https:" &&
+    !(url.protocol === "http:" && loopback(url.hostname))
+  ) {
+    throw new Error(
+      "Taskcore Cloud enrollment requires HTTPS except on loopback",
+    );
   }
-  if (url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) {
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.pathname !== "/" && url.pathname !== "")
+  ) {
     throw new Error("Taskcore Cloud enrollment requires an exact origin");
   }
   return url.origin;
@@ -417,19 +572,30 @@ function normalizeInstanceOrigin(value: string): string {
 
 function privateKey(raw: string): KeyObject {
   const prefix = Buffer.from("302e020100300506032b657004220420", "hex");
-  return createPrivateKey({ key: Buffer.concat([prefix, Buffer.from(raw, "base64url")]), format: "der", type: "pkcs8" });
+  return createPrivateKey({
+    key: Buffer.concat([prefix, Buffer.from(raw, "base64url")]),
+    format: "der",
+    type: "pkcs8",
+  });
 }
 
 function rawKey(key: KeyObject, field: "d" | "x"): string {
-  const value = (key.export({ format: "jwk" }) as Record<string, unknown>)[field];
-  if (typeof value !== "string") throw new Error("Unable to export connector key");
+  const value = (key.export({ format: "jwk" }) as Record<string, unknown>)[
+    field
+  ];
+  if (typeof value !== "string")
+    throw new Error("Unable to export connector key");
   return value;
 }
 
 function signRequest(payload: Record<string, unknown>, key: KeyObject): string {
   const header = { alg: "EdDSA", typ: REQUEST_TYPE };
-  const encodedHeader = Buffer.from(JSON.stringify(header), "utf8").toString("base64url");
-  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const encodedHeader = Buffer.from(JSON.stringify(header), "utf8").toString(
+    "base64url",
+  );
+  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString(
+    "base64url",
+  );
   const signingInput = `${encodedHeader}.${encodedPayload}`;
   return `${signingInput}.${sign(null, Buffer.from(signingInput, "utf8"), key).toString("base64url")}`;
 }
@@ -439,7 +605,12 @@ function hash(value: string): string {
 }
 
 function loopback(hostname: string): boolean {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname === "[::1]"
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -448,7 +619,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 let enrollmentMutationTail: Promise<void> = Promise.resolve();
 
-async function withEnrollmentMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+async function withEnrollmentMutationLock<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
   const previous = enrollmentMutationTail;
   let release!: () => void;
   enrollmentMutationTail = new Promise<void>((resolve) => {

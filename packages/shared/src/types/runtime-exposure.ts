@@ -42,11 +42,7 @@ export interface RuntimeExposureConfig {
  * `pending`, `failed`, or `cleanup_pending`.
  */
 export type RuntimeExposureState =
-  | "pending"
-  | "ready"
-  | "failed"
-  | "cleanup_pending"
-  | "removed";
+  "pending" | "ready" | "failed" | "cleanup_pending" | "removed";
 
 /** Purpose of a single owned HTTPS-to-loopback listener. */
 export type RuntimeExposureListenerPurpose = "app" | "vite_hmr";

@@ -7,14 +7,20 @@ const MAX_STACK_LENGTH = 16_384;
 const MAX_COMPONENT_FRAMES = 40;
 
 /** Keep component names only: React stack locations can contain tenant URLs. */
-export function sanitizeComponentStack(stack: string | null | undefined): string | undefined {
+export function sanitizeComponentStack(
+  stack: string | null | undefined,
+): string | undefined {
   if (!stack) return undefined;
   const frames: string[] = [];
-  for (const line of stack.slice(0, MAX_STACK_LENGTH).split("\n").slice(0, MAX_COMPONENT_FRAMES + 1)) {
+  for (const line of stack
+    .slice(0, MAX_STACK_LENGTH)
+    .split("\n")
+    .slice(0, MAX_COMPONENT_FRAMES + 1)) {
     // V8/React and Firefox/Safari component-frame formats. Never retain the
     // location, arguments, or an unrecognized line as a fallback.
-    const name = /^\s*(?:at|in) ([A-Za-z_$][\w$.-]{0,99})(?:\s|$)/.exec(line)?.[1]
-      ?? /^([A-Za-z_$][\w$.-]{0,99})@/.exec(line)?.[1];
+    const name =
+      /^\s*(?:at|in) ([A-Za-z_$][\w$.-]{0,99})(?:\s|$)/.exec(line)?.[1] ??
+      /^([A-Za-z_$][\w$.-]{0,99})@/.exec(line)?.[1];
     if (name) frames.push(`    at ${name}`);
     if (frames.length === MAX_COMPONENT_FRAMES) break;
   }
@@ -33,18 +39,31 @@ export function readBrowserErrorState() {
     // original exception and component trace from reaching the error monitor.
     try {
       const state = document.readyState;
-      if (state === "loading" || state === "interactive" || state === "complete") {
+      if (
+        state === "loading" ||
+        state === "interactive" ||
+        state === "complete"
+      ) {
         browserState.ready_state = state;
       }
-    } catch { /* diagnostic unavailable */ }
+    } catch {
+      /* diagnostic unavailable */
+    }
     try {
       const state = document.visibilityState;
-      if (state === "visible" || state === "hidden") browserState.visibility_state = state;
-    } catch { /* diagnostic unavailable */ }
+      if (state === "visible" || state === "hidden")
+        browserState.visibility_state = state;
+    } catch {
+      /* diagnostic unavailable */
+    }
     try {
       const classes = document.documentElement.classList;
-      browserState.translation_marker = classes.contains("translated-ltr") || classes.contains("translated-rtl");
-    } catch { /* diagnostic unavailable */ }
+      browserState.translation_marker =
+        classes.contains("translated-ltr") ||
+        classes.contains("translated-rtl");
+    } catch {
+      /* diagnostic unavailable */
+    }
   }
   return browserState;
 }

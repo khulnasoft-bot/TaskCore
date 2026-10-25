@@ -22,7 +22,9 @@ test("root package export exposes Taskcore external adapter entrypoint", () => {
   expect(adapter.supportsLocalAgentJwt).toBe(true);
   expect(adapter.supportsInstructionsBundle).toBe(true);
   expect(adapter.instructionsPathKey).toBe("instructionsFilePath");
-  expect(adapter.getRuntimeCommandSpec?.({ command: "hermes-dev" })).toMatchObject({
+  expect(
+    adapter.getRuntimeCommandSpec?.({ command: "hermes-dev" }),
+  ).toMatchObject({
     command: "hermes-dev",
     detectCommand: "hermes-dev",
     installCommand: null,
@@ -62,69 +64,99 @@ test("Hermes adapter exposes bundled Taskcore task bridge skill", async () => {
     config: {},
   });
 
-  expect(snapshot?.entries.some((entry) => entry.runtimeName === "taskcore-task-bridge")).toBe(true);
+  expect(
+    snapshot?.entries.some(
+      (entry) => entry.runtimeName === "taskcore-task-bridge",
+    ),
+  ).toBe(true);
 });
 
 test("Hermes keeps the operational Taskcore skill linked after an empty replacement", async () => {
-  const home = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-hermes-core-skill-"));
+  const home = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-hermes-core-skill-"),
+  );
   try {
     const source = path.join(home, "runtime-skills", "taskcore");
     await fs.mkdir(source, { recursive: true });
     await fs.writeFile(path.join(source, "SKILL.md"), "# Taskcore\n", "utf8");
     const adapter = createServerAdapter();
-    const snapshot = await adapter.syncSkills?.({
-      adapterType: "hermes_local",
-      agentId: "11111111-1111-4111-8111-111111111111",
-      companyId: "22222222-2222-4222-8222-222222222222",
-      config: {
-        env: { HOME: home },
-        taskcoreRuntimeSkills: [{
-          key: "taskcore/taskcore/taskcore",
-          runtimeName: "taskcore",
-          source,
-        }],
-        taskcoreSkillSync: { desiredSkills: [] },
+    const snapshot = await adapter.syncSkills?.(
+      {
+        adapterType: "hermes_local",
+        agentId: "11111111-1111-4111-8111-111111111111",
+        companyId: "22222222-2222-4222-8222-222222222222",
+        config: {
+          env: { HOME: home },
+          taskcoreRuntimeSkills: [
+            {
+              key: "taskcore/taskcore/taskcore",
+              runtimeName: "taskcore",
+              source,
+            },
+          ],
+          taskcoreSkillSync: { desiredSkills: [] },
+        },
       },
-    }, []);
+      [],
+    );
 
     expect(snapshot?.desiredSkills).toContain("taskcore/taskcore/taskcore");
-    expect((await fs.lstat(path.join(home, ".hermes", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
+    expect(
+      (
+        await fs.lstat(path.join(home, ".hermes", "skills", "taskcore"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   } finally {
     await fs.rm(home, { recursive: true, force: true });
   }
 });
 
 test("Hermes rejects a conflicting operational skill target", async () => {
-  const home = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-hermes-core-conflict-"));
+  const home = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-hermes-core-conflict-"),
+  );
   try {
     const source = path.join(home, "runtime-skills", "taskcore");
     const target = path.join(home, ".hermes", "skills", "taskcore");
     await fs.mkdir(source, { recursive: true });
     await fs.writeFile(path.join(source, "SKILL.md"), "# Taskcore\n", "utf8");
     await fs.mkdir(target, { recursive: true });
-    await fs.writeFile(path.join(target, "SKILL.md"), "# Conflicting skill\n", "utf8");
+    await fs.writeFile(
+      path.join(target, "SKILL.md"),
+      "# Conflicting skill\n",
+      "utf8",
+    );
     const adapter = createServerAdapter();
 
-    await expect(adapter.syncSkills?.({
-      adapterType: "hermes_local",
-      agentId: "11111111-1111-4111-8111-111111111111",
-      companyId: "22222222-2222-4222-8222-222222222222",
-      config: {
-        env: { HOME: home },
-        taskcoreRuntimeSkills: [{
-          key: "taskcore/taskcore/taskcore",
-          runtimeName: "taskcore",
-          source,
-        }],
-      },
-    }, [])).rejects.toThrow("occupied by another installation");
+    await expect(
+      adapter.syncSkills?.(
+        {
+          adapterType: "hermes_local",
+          agentId: "11111111-1111-4111-8111-111111111111",
+          companyId: "22222222-2222-4222-8222-222222222222",
+          config: {
+            env: { HOME: home },
+            taskcoreRuntimeSkills: [
+              {
+                key: "taskcore/taskcore/taskcore",
+                runtimeName: "taskcore",
+                source,
+              },
+            ],
+          },
+        },
+        [],
+      ),
+    ).rejects.toThrow("occupied by another installation");
   } finally {
     await fs.rm(home, { recursive: true, force: true });
   }
 });
 
 test("Hermes rejects a live symlink owned by another operational skill", async () => {
-  const home = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-hermes-core-link-conflict-"));
+  const home = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-hermes-core-link-conflict-"),
+  );
   try {
     const source = path.join(home, "runtime-skills", "taskcore");
     const conflictingSource = path.join(home, "external-skills", "taskcore");
@@ -132,24 +164,35 @@ test("Hermes rejects a live symlink owned by another operational skill", async (
     await fs.mkdir(source, { recursive: true });
     await fs.writeFile(path.join(source, "SKILL.md"), "# Taskcore\n", "utf8");
     await fs.mkdir(conflictingSource, { recursive: true });
-    await fs.writeFile(path.join(conflictingSource, "SKILL.md"), "# External skill\n", "utf8");
+    await fs.writeFile(
+      path.join(conflictingSource, "SKILL.md"),
+      "# External skill\n",
+      "utf8",
+    );
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.symlink(conflictingSource, target);
     const adapter = createServerAdapter();
 
-    await expect(adapter.syncSkills?.({
-      adapterType: "hermes_local",
-      agentId: "11111111-1111-4111-8111-111111111111",
-      companyId: "22222222-2222-4222-8222-222222222222",
-      config: {
-        env: { HOME: home },
-        taskcoreRuntimeSkills: [{
-          key: "taskcore/taskcore/taskcore",
-          runtimeName: "taskcore",
-          source,
-        }],
-      },
-    }, [])).rejects.toThrow("occupied by another installation");
+    await expect(
+      adapter.syncSkills?.(
+        {
+          adapterType: "hermes_local",
+          agentId: "11111111-1111-4111-8111-111111111111",
+          companyId: "22222222-2222-4222-8222-222222222222",
+          config: {
+            env: { HOME: home },
+            taskcoreRuntimeSkills: [
+              {
+                key: "taskcore/taskcore/taskcore",
+                runtimeName: "taskcore",
+                source,
+              },
+            ],
+          },
+        },
+        [],
+      ),
+    ).rejects.toThrow("occupied by another installation");
   } finally {
     await fs.rm(home, { recursive: true, force: true });
   }

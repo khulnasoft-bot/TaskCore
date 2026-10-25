@@ -16,14 +16,17 @@ import type {
  * present. This is the DECLARATION only; the runtime still intersects it with
  * the verified worker methods and any narrowing before it grants a capability.
  */
-export function resolveDeclaredSandboxCapabilities(
-  driver: {
-    supportsReusableLeases?: boolean;
-    sandboxCapabilities?: SandboxProviderCapabilities;
-  },
-): SandboxProviderCapabilities {
-  const declared: SandboxProviderCapabilities = { ...(driver.sandboxCapabilities ?? {}) };
-  if (declared.reusableLeases === undefined && driver.supportsReusableLeases !== undefined) {
+export function resolveDeclaredSandboxCapabilities(driver: {
+  supportsReusableLeases?: boolean;
+  sandboxCapabilities?: SandboxProviderCapabilities;
+}): SandboxProviderCapabilities {
+  const declared: SandboxProviderCapabilities = {
+    ...(driver.sandboxCapabilities ?? {}),
+  };
+  if (
+    declared.reusableLeases === undefined &&
+    driver.supportsReusableLeases !== undefined
+  ) {
     declared.reusableLeases = driver.supportsReusableLeases;
   }
   return declared;
@@ -34,7 +37,10 @@ export type EnvironmentSupportStatus = "supported" | "unsupported";
 export interface AdapterEnvironmentSupport {
   adapterType: AgentAdapterType;
   drivers: Record<EnvironmentDriver, EnvironmentSupportStatus>;
-  sandboxProviders: Record<SandboxEnvironmentProvider, EnvironmentSupportStatus>;
+  sandboxProviders: Record<
+    SandboxEnvironmentProvider,
+    EnvironmentSupportStatus
+  >;
 }
 
 export interface EnvironmentProviderCapability {
@@ -61,7 +67,10 @@ export interface EnvironmentProviderCapability {
 export interface EnvironmentCapabilities {
   adapters: AdapterEnvironmentSupport[];
   drivers: Record<EnvironmentDriver, EnvironmentSupportStatus>;
-  sandboxProviders: Record<SandboxEnvironmentProvider, EnvironmentProviderCapability>;
+  sandboxProviders: Record<
+    SandboxEnvironmentProvider,
+    EnvironmentProviderCapability
+  >;
 }
 
 const REMOTE_MANAGED_ADAPTERS = new Set<AgentAdapterType>([
@@ -76,11 +85,15 @@ const REMOTE_MANAGED_ADAPTERS = new Set<AgentAdapterType>([
   "pi_local",
 ]);
 
-export function adapterSupportsRemoteManagedEnvironments(adapterType: string): boolean {
+export function adapterSupportsRemoteManagedEnvironments(
+  adapterType: string,
+): boolean {
   return REMOTE_MANAGED_ADAPTERS.has(adapterType as AgentAdapterType);
 }
 
-export function supportedEnvironmentDriversForAdapter(adapterType: string): EnvironmentDriver[] {
+export function supportedEnvironmentDriversForAdapter(
+  adapterType: string,
+): EnvironmentDriver[] {
   return adapterSupportsRemoteManagedEnvironments(adapterType)
     ? ["local", "ssh", "sandbox"]
     : ["local"];
@@ -91,7 +104,7 @@ export function supportedSandboxProvidersForAdapter(
   additionalProviders: readonly string[] = [],
 ): SandboxEnvironmentProvider[] {
   return adapterSupportsRemoteManagedEnvironments(adapterType)
-    ? Array.from(new Set(additionalProviders)) as SandboxEnvironmentProvider[]
+    ? (Array.from(new Set(additionalProviders)) as SandboxEnvironmentProvider[])
     : [];
 }
 
@@ -99,7 +112,9 @@ export function isEnvironmentDriverSupportedForAdapter(
   adapterType: string,
   driver: string,
 ): boolean {
-  return supportedEnvironmentDriversForAdapter(adapterType).includes(driver as EnvironmentDriver);
+  return supportedEnvironmentDriversForAdapter(adapterType).includes(
+    driver as EnvironmentDriver,
+  );
 }
 
 export function isSandboxProviderSupportedForAdapter(
@@ -108,24 +123,36 @@ export function isSandboxProviderSupportedForAdapter(
   additionalProviders: readonly string[] = [],
 ): boolean {
   if (!provider) return false;
-  return supportedSandboxProvidersForAdapter(adapterType, additionalProviders).includes(
-    provider as SandboxEnvironmentProvider,
-  );
+  return supportedSandboxProvidersForAdapter(
+    adapterType,
+    additionalProviders,
+  ).includes(provider as SandboxEnvironmentProvider);
 }
 
 export function getAdapterEnvironmentSupport(
   adapterType: AgentAdapterType,
   additionalSandboxProviders: readonly string[] = [],
 ): AdapterEnvironmentSupport {
-  const supportedDrivers = new Set(supportedEnvironmentDriversForAdapter(adapterType));
-  const supportedProviders = new Set(supportedSandboxProvidersForAdapter(adapterType, additionalSandboxProviders));
-  const sandboxProviders: Record<SandboxEnvironmentProvider, EnvironmentSupportStatus> = {
+  const supportedDrivers = new Set(
+    supportedEnvironmentDriversForAdapter(adapterType),
+  );
+  const supportedProviders = new Set(
+    supportedSandboxProvidersForAdapter(
+      adapterType,
+      additionalSandboxProviders,
+    ),
+  );
+  const sandboxProviders: Record<
+    SandboxEnvironmentProvider,
+    EnvironmentSupportStatus
+  > = {
     fake: "unsupported",
   };
   for (const provider of additionalSandboxProviders) {
-    sandboxProviders[provider as SandboxEnvironmentProvider] = supportedProviders.has(provider as SandboxEnvironmentProvider)
-      ? "supported"
-      : "unsupported";
+    sandboxProviders[provider as SandboxEnvironmentProvider] =
+      supportedProviders.has(provider as SandboxEnvironmentProvider)
+        ? "supported"
+        : "unsupported";
   }
   return {
     adapterType,
@@ -146,7 +173,10 @@ export function getEnvironmentCapabilities(
   } = {},
 ): EnvironmentCapabilities {
   const pluginProviderKeys = Object.keys(options.sandboxProviders ?? {});
-  const sandboxProviders: Record<SandboxEnvironmentProvider, EnvironmentProviderCapability> = {
+  const sandboxProviders: Record<
+    SandboxEnvironmentProvider,
+    EnvironmentProviderCapability
+  > = {
     fake: {
       status: "unsupported",
       supportsSavedProbe: true,
@@ -164,7 +194,9 @@ export function getEnvironmentCapabilities(
       source: "builtin",
     },
   };
-  for (const [provider, capability] of Object.entries(options.sandboxProviders ?? {})) {
+  for (const [provider, capability] of Object.entries(
+    options.sandboxProviders ?? {},
+  )) {
     sandboxProviders[provider as SandboxEnvironmentProvider] = {
       status: capability.status ?? "supported",
       supportsSavedProbe: capability.supportsSavedProbe ?? true,
@@ -174,7 +206,8 @@ export function getEnvironmentCapabilities(
       // leases must present as false, so execution (=== true) agrees.
       supportsReusableLeases: capability.supportsReusableLeases ?? false,
       supportsInteractiveSetup: capability.supportsInteractiveSetup ?? false,
-      interactiveSetupConnectionTypes: capability.interactiveSetupConnectionTypes ?? [],
+      interactiveSetupConnectionTypes:
+        capability.interactiveSetupConnectionTypes ?? [],
       supportsTemplateCapture: capability.supportsTemplateCapture ?? false,
       templateRefKind: capability.templateRefKind,
       templateConfigBinding: capability.templateConfigBinding,
@@ -189,7 +222,9 @@ export function getEnvironmentCapabilities(
     };
   }
   return {
-    adapters: adapterTypes.map((adapterType) => getAdapterEnvironmentSupport(adapterType, pluginProviderKeys)),
+    adapters: adapterTypes.map((adapterType) =>
+      getAdapterEnvironmentSupport(adapterType, pluginProviderKeys),
+    ),
     drivers: {
       local: "supported",
       ssh: "supported",

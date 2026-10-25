@@ -1,7 +1,16 @@
 import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   agents,
   companies,
@@ -20,19 +29,26 @@ const mockExecutionWorkspaceService = vi.hoisted(() => ({
   getById: vi.fn(),
   update: vi.fn(),
 }));
-const mockAccessService = vi.hoisted(() => ({ decide: vi.fn(async () => ({ allowed: true })) }));
+const mockAccessService = vi.hoisted(() => ({
+  decide: vi.fn(async () => ({ allowed: true })),
+}));
 const mockRecordOperation = vi.hoisted(() => vi.fn());
-const mockReconcileStaleRuntimeControlOperations = vi.hoisted(() => vi.fn(async () => ({ reconciled: 0, operationIds: [] })));
+const mockReconcileStaleRuntimeControlOperations = vi.hoisted(() =>
+  vi.fn(async () => ({ reconciled: 0, operationIds: [] })),
+);
 // The control path recovers stranded operations and then refuses only a genuinely live one
 // (PAP-17249). This suite is about the durable lease, so availability always resolves.
-const mockAssertRuntimeControlAvailable = vi.hoisted(() => vi.fn(async () => undefined));
+const mockAssertRuntimeControlAvailable = vi.hoisted(() =>
+  vi.fn(async () => undefined),
+);
 const mockWorkspaceOperationService = vi.hoisted(() => ({
   createRecorder: vi.fn(() => ({
     attachExecutionWorkspaceId: vi.fn(),
     recordOperation: mockRecordOperation,
   })),
   assertRuntimeControlAvailable: mockAssertRuntimeControlAvailable,
-  reconcileStaleRuntimeControlOperations: mockReconcileStaleRuntimeControlOperations,
+  reconcileStaleRuntimeControlOperations:
+    mockReconcileStaleRuntimeControlOperations,
   listForExecutionWorkspace: vi.fn(async () => []),
 }));
 const mockStartRuntimeServices = vi.hoisted(() => vi.fn(async () => []));
@@ -58,9 +74,14 @@ vi.mock("../services/environment-runtime.js", () => ({
 }));
 
 vi.mock("../services/workspace-runtime.js", () => ({
-  buildWorkspaceRuntimeDesiredStatePatch: () => ({ desiredState: "running", serviceStates: null }),
+  buildWorkspaceRuntimeDesiredStatePatch: () => ({
+    desiredState: "running",
+    serviceStates: null,
+  }),
   cleanupExecutionWorkspaceArtifacts: vi.fn(),
-  ensurePersistedExecutionWorkspaceAvailable: vi.fn(async () => ({ cwd: "/tmp/lease-route-workspace" })),
+  ensurePersistedExecutionWorkspaceAvailable: vi.fn(async () => ({
+    cwd: "/tmp/lease-route-workspace",
+  })),
   listConfiguredRuntimeServiceEntries: () => [],
   runWorkspaceJobForControl: vi.fn(),
   startRuntimeServicesForWorkspaceControl: mockStartRuntimeServices,
@@ -72,7 +93,9 @@ vi.mock("../routes/workspace-runtime-service-authz.js", () => ({
 }));
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -80,272 +103,330 @@ if (!embeddedPostgresSupport.supported) {
   );
 }
 
-describeEmbeddedPostgres("execution workspace runtime control lease enforcement", () => {
-  let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
-  let companyId = "";
-  let projectId = "";
-  let executionWorkspaceId = "";
-  let agentId = "";
-  let canaryIssueId = "";
-  let competingIssueId = "";
+describeEmbeddedPostgres(
+  "execution workspace runtime control lease enforcement",
+  () => {
+    let db!: ReturnType<typeof createDb>;
+    let tempDb: Awaited<
+      ReturnType<typeof startEmbeddedPostgresTestDatabase>
+    > | null = null;
+    let companyId = "";
+    let projectId = "";
+    let executionWorkspaceId = "";
+    let agentId = "";
+    let canaryIssueId = "";
+    let competingIssueId = "";
 
-  beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-runtime-lease-route-");
-    db = createDb(tempDb.connectionString);
-  }, 30_000);
+    beforeAll(async () => {
+      tempDb = await startEmbeddedPostgresTestDatabase(
+        "taskcore-runtime-lease-route-",
+      );
+      db = createDb(tempDb.connectionString);
+    }, 30_000);
 
-  afterAll(async () => {
-    await tempDb?.cleanup();
-  });
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    mockAccessService.decide.mockResolvedValue({ allowed: true } as never);
-    mockReconcileStaleRuntimeControlOperations.mockResolvedValue({ reconciled: 0, operationIds: [] } as never);
-    mockStartRuntimeServices.mockResolvedValue([] as never);
-    // Owner identity is read per-request from a header so concurrent requests cannot
-    // observe each other's authorization mock.
-    mockAssertCanManage.mockImplementation(async (_db: unknown, req: { get: (name: string) => string | undefined }) => ({
-      actorType: "agent",
-      agentId,
-      runId: null,
-      issueId: req.get("x-test-owner-issue") ?? null,
-    }));
-    mockRecordOperation.mockImplementation(async (input: { run: () => Promise<unknown> }) => {
-      await input.run();
-      return { id: randomUUID(), status: "succeeded" };
+    afterAll(async () => {
+      await tempDb?.cleanup();
     });
 
-    companyId = randomUUID();
-    projectId = randomUUID();
-    executionWorkspaceId = randomUUID();
-    agentId = randomUUID();
-    canaryIssueId = randomUUID();
-    competingIssueId = randomUUID();
+    beforeEach(async () => {
+      vi.clearAllMocks();
+      mockAccessService.decide.mockResolvedValue({ allowed: true } as never);
+      mockReconcileStaleRuntimeControlOperations.mockResolvedValue({
+        reconciled: 0,
+        operationIds: [],
+      } as never);
+      mockStartRuntimeServices.mockResolvedValue([] as never);
+      // Owner identity is read per-request from a header so concurrent requests cannot
+      // observe each other's authorization mock.
+      mockAssertCanManage.mockImplementation(
+        async (
+          _db: unknown,
+          req: { get: (name: string) => string | undefined },
+        ) => ({
+          actorType: "agent",
+          agentId,
+          runId: null,
+          issueId: req.get("x-test-owner-issue") ?? null,
+        }),
+      );
+      mockRecordOperation.mockImplementation(
+        async (input: { run: () => Promise<unknown> }) => {
+          await input.run();
+          return { id: randomUUID(), status: "succeeded" };
+        },
+      );
 
-    await db.insert(companies).values({
-      id: companyId,
-      name: "Runtime lease route",
-      issuePrefix: `R${companyId.replace(/-/g, "").slice(0, 7).toUpperCase()}`,
-      requireBoardApprovalForNewAgents: false,
-    });
-    await db.insert(projects).values({ id: projectId, companyId, name: "Lane", status: "in_progress" });
-    await db.insert(executionWorkspaces).values({
-      id: executionWorkspaceId,
-      companyId,
-      projectId,
-      mode: "shared_workspace",
-      strategyType: "git_worktree",
-      name: "Shared canary workspace",
-      status: "active",
-      cwd: "/tmp/lease-route-workspace",
-    });
-    await db.insert(agents).values({ id: agentId, companyId, name: "Engineer", role: "engineer" });
-    await db.insert(issues).values([
-      {
-        id: canaryIssueId,
+      companyId = randomUUID();
+      projectId = randomUUID();
+      executionWorkspaceId = randomUUID();
+      agentId = randomUUID();
+      canaryIssueId = randomUUID();
+      competingIssueId = randomUUID();
+
+      await db.insert(companies).values({
+        id: companyId,
+        name: "Runtime lease route",
+        issuePrefix: `R${companyId.replace(/-/g, "").slice(0, 7).toUpperCase()}`,
+        requireBoardApprovalForNewAgents: false,
+      });
+      await db
+        .insert(projects)
+        .values({
+          id: projectId,
+          companyId,
+          name: "Lane",
+          status: "in_progress",
+        });
+      await db.insert(executionWorkspaces).values({
+        id: executionWorkspaceId,
         companyId,
         projectId,
-        executionWorkspaceId,
-        title: "HTTPS canary",
-        status: "in_progress",
-        priority: "high",
-        assigneeAgentId: agentId,
-      },
-      {
-        id: competingIssueId,
+        mode: "shared_workspace",
+        strategyType: "git_worktree",
+        name: "Shared canary workspace",
+        status: "active",
+        cwd: "/tmp/lease-route-workspace",
+      });
+      await db
+        .insert(agents)
+        .values({ id: agentId, companyId, name: "Engineer", role: "engineer" });
+      await db.insert(issues).values([
+        {
+          id: canaryIssueId,
+          companyId,
+          projectId,
+          executionWorkspaceId,
+          title: "HTTPS canary",
+          status: "in_progress",
+          priority: "high",
+          assigneeAgentId: agentId,
+        },
+        {
+          id: competingIssueId,
+          companyId,
+          projectId,
+          executionWorkspaceId,
+          title: "Unrelated shared-workspace work",
+          status: "in_progress",
+          priority: "high",
+          assigneeAgentId: agentId,
+        },
+      ]);
+
+      mockExecutionWorkspaceService.getById.mockResolvedValue({
+        id: executionWorkspaceId,
         companyId,
-        projectId,
-        executionWorkspaceId,
-        title: "Unrelated shared-workspace work",
-        status: "in_progress",
-        priority: "high",
-        assigneeAgentId: agentId,
-      },
-    ]);
+        projectId: null,
+        projectWorkspaceId: null,
+        sourceIssueId: null,
+        mode: "shared_workspace",
+        strategyType: "git_worktree",
+        name: "Shared canary workspace",
+        status: "active",
+        cwd: "/tmp/lease-route-workspace",
+        repoUrl: null,
+        baseRef: "main",
+        branchName: null,
+        providerType: "git_worktree",
+        providerRef: null,
+        config: { workspaceRuntime: { command: "pnpm dev" } },
+        metadata: null,
+        runtimeServices: [],
+      } as never);
+      mockExecutionWorkspaceService.update.mockResolvedValue({
+        id: executionWorkspaceId,
+      } as never);
+    });
 
-    mockExecutionWorkspaceService.getById.mockResolvedValue({
-      id: executionWorkspaceId,
-      companyId,
-      projectId: null,
-      projectWorkspaceId: null,
-      sourceIssueId: null,
-      mode: "shared_workspace",
-      strategyType: "git_worktree",
-      name: "Shared canary workspace",
-      status: "active",
-      cwd: "/tmp/lease-route-workspace",
-      repoUrl: null,
-      baseRef: "main",
-      branchName: null,
-      providerType: "git_worktree",
-      providerRef: null,
-      config: { workspaceRuntime: { command: "pnpm dev" } },
-      metadata: null,
-      runtimeServices: [],
-    } as never);
-    mockExecutionWorkspaceService.update.mockResolvedValue({ id: executionWorkspaceId } as never);
-  });
+    afterEach(async () => {
+      await db.delete(executionWorkspaceRuntimeLeases);
+      await db.delete(issues);
+      await db.delete(executionWorkspaces);
+      await db.delete(projects);
+      await db.delete(agents);
+      await db.delete(companies);
+    });
 
-  afterEach(async () => {
-    await db.delete(executionWorkspaceRuntimeLeases);
-    await db.delete(issues);
-    await db.delete(executionWorkspaces);
-    await db.delete(projects);
-    await db.delete(agents);
-    await db.delete(companies);
-  });
+    async function createApp() {
+      const [{ executionWorkspaceRoutes }, { errorHandler }] =
+        await Promise.all([
+          import("../routes/execution-workspaces.js"),
+          import("../middleware/index.js"),
+        ]);
+      const app = express();
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).actor = {
+          type: "agent",
+          agentId,
+          companyId,
+          source: "agent_key",
+          runId: null,
+        };
+        next();
+      });
+      app.use("/api", executionWorkspaceRoutes(db as never));
+      app.use(errorHandler);
+      return app;
+    }
 
-  async function createApp() {
-    const [{ executionWorkspaceRoutes }, { errorHandler }] = await Promise.all([
-      import("../routes/execution-workspaces.js"),
-      import("../middleware/index.js"),
-    ]);
-    const app = express();
-    app.use(express.json());
-    app.use((req, _res, next) => {
-      (req as any).actor = {
-        type: "agent",
-        agentId,
-        companyId,
-        source: "agent_key",
+    it("lets the lease owner start and restart, and blocks a sequential competing issue without mutating anything", async () => {
+      const app = await createApp();
+
+      const started = await request(app)
+        .post(
+          `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`,
+        )
+        .set("x-test-owner-issue", canaryIssueId)
+        .send({});
+      expect(started.status).toBe(200);
+      expect(mockStartRuntimeServices).toHaveBeenCalledTimes(1);
+
+      const restarted = await request(app)
+        .post(
+          `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/restart`,
+        )
+        .set("x-test-owner-issue", canaryIssueId)
+        .send({});
+      expect(restarted.status).toBe(200);
+      expect(mockStartRuntimeServices).toHaveBeenCalledTimes(2);
+
+      mockRecordOperation.mockClear();
+      mockStartRuntimeServices.mockClear();
+      mockStopRuntimeServices.mockClear();
+      mockReconcileStaleRuntimeControlOperations.mockClear();
+
+      const blocked = await request(app)
+        .post(
+          `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`,
+        )
+        .set("x-test-owner-issue", competingIssueId)
+        .send({});
+
+      expect(blocked.status).toBe(409);
+      expect(blocked.body.code).toBe("workspace_runtime_lease_conflict");
+      expect(blocked.body.details).toMatchObject({
+        ownerIssueId: canaryIssueId,
+        requestedAction: "start",
+      });
+      expect(typeof blocked.body.remediation).toBe("string");
+
+      // No workspace operation, no runtime-service mutation, no reconciliation side effect.
+      expect(mockRecordOperation).not.toHaveBeenCalled();
+      expect(mockStartRuntimeServices).not.toHaveBeenCalled();
+      expect(mockStopRuntimeServices).not.toHaveBeenCalled();
+      expect(mockReconcileStaleRuntimeControlOperations).not.toHaveBeenCalled();
+
+      const rows = await db.select().from(executionWorkspaceRuntimeLeases);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.ownerIssueId).toBe(canaryIssueId);
+    });
+
+    it("blocks a competing issue that races the owner concurrently", async () => {
+      const app = await createApp();
+
+      const ownerStart = request(app)
+        .post(
+          `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`,
+        )
+        .set("x-test-owner-issue", canaryIssueId)
+        .send({});
+      const competingStart = request(app)
+        .post(
+          `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/stop`,
+        )
+        .set("x-test-owner-issue", competingIssueId)
+        .send({});
+
+      const [ownerRes, competingRes] = await Promise.all([
+        ownerStart,
+        competingStart,
+      ]);
+
+      expect(ownerRes.status).toBe(200);
+      expect(competingRes.status).toBe(409);
+      expect(competingRes.body.code).toMatch(
+        /workspace_runtime_lease_conflict|workspace_runtime_control_in_progress/,
+      );
+      expect(mockStopRuntimeServices).not.toHaveBeenCalled();
+
+      const rows = await db.select().from(executionWorkspaceRuntimeLeases);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.ownerIssueId).toBe(canaryIssueId);
+    });
+
+    it("lets a teardown issue take the lane once the canary issue is terminal", async () => {
+      const app = await createApp();
+
+      expect(
+        (
+          await request(app)
+            .post(
+              `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`,
+            )
+            .set("x-test-owner-issue", canaryIssueId)
+            .send({})
+        ).status,
+      ).toBe(200);
+
+      const { eq } = await import("drizzle-orm");
+      await db
+        .update(issues)
+        .set({ status: "done" })
+        .where(eq(issues.id, canaryIssueId));
+
+      const teardown = await request(app)
+        .post(
+          `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/stop`,
+        )
+        .set("x-test-owner-issue", competingIssueId)
+        .send({});
+
+      expect(teardown.status).toBe(200);
+      expect(mockStopRuntimeServices).toHaveBeenCalledTimes(1);
+
+      const rows = await db.select().from(executionWorkspaceRuntimeLeases);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.ownerIssueId).toBe(competingIssueId);
+    });
+
+    it("leaves board actors unleased and unblocked", async () => {
+      const [{ executionWorkspaceRoutes }, { errorHandler }] =
+        await Promise.all([
+          import("../routes/execution-workspaces.js"),
+          import("../middleware/index.js"),
+        ]);
+      mockAssertCanManage.mockResolvedValue({
+        actorType: "board",
+        agentId: null,
         runId: null,
-      };
-      next();
+        issueId: null,
+      } as never);
+      const app = express();
+      app.use(express.json());
+      app.use((req, _res, next) => {
+        (req as any).actor = {
+          type: "board",
+          userId: "board-1",
+          companyIds: [companyId],
+          source: "session",
+          isInstanceAdmin: false,
+        };
+        next();
+      });
+      app.use("/api", executionWorkspaceRoutes(db as never));
+      app.use(errorHandler);
+
+      const res = await request(app)
+        .post(
+          `/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`,
+        )
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(
+        await db.select().from(executionWorkspaceRuntimeLeases),
+      ).toHaveLength(0);
     });
-    app.use("/api", executionWorkspaceRoutes(db as never));
-    app.use(errorHandler);
-    return app;
-  }
-
-  it("lets the lease owner start and restart, and blocks a sequential competing issue without mutating anything", async () => {
-    const app = await createApp();
-
-    const started = await request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`)
-      .set("x-test-owner-issue", canaryIssueId)
-      .send({});
-    expect(started.status).toBe(200);
-    expect(mockStartRuntimeServices).toHaveBeenCalledTimes(1);
-
-    const restarted = await request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/restart`)
-      .set("x-test-owner-issue", canaryIssueId)
-      .send({});
-    expect(restarted.status).toBe(200);
-    expect(mockStartRuntimeServices).toHaveBeenCalledTimes(2);
-
-    mockRecordOperation.mockClear();
-    mockStartRuntimeServices.mockClear();
-    mockStopRuntimeServices.mockClear();
-    mockReconcileStaleRuntimeControlOperations.mockClear();
-
-    const blocked = await request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`)
-      .set("x-test-owner-issue", competingIssueId)
-      .send({});
-
-    expect(blocked.status).toBe(409);
-    expect(blocked.body.code).toBe("workspace_runtime_lease_conflict");
-    expect(blocked.body.details).toMatchObject({
-      ownerIssueId: canaryIssueId,
-      requestedAction: "start",
-    });
-    expect(typeof blocked.body.remediation).toBe("string");
-
-    // No workspace operation, no runtime-service mutation, no reconciliation side effect.
-    expect(mockRecordOperation).not.toHaveBeenCalled();
-    expect(mockStartRuntimeServices).not.toHaveBeenCalled();
-    expect(mockStopRuntimeServices).not.toHaveBeenCalled();
-    expect(mockReconcileStaleRuntimeControlOperations).not.toHaveBeenCalled();
-
-    const rows = await db.select().from(executionWorkspaceRuntimeLeases);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.ownerIssueId).toBe(canaryIssueId);
-  });
-
-  it("blocks a competing issue that races the owner concurrently", async () => {
-    const app = await createApp();
-
-    const ownerStart = request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`)
-      .set("x-test-owner-issue", canaryIssueId)
-      .send({});
-    const competingStart = request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/stop`)
-      .set("x-test-owner-issue", competingIssueId)
-      .send({});
-
-    const [ownerRes, competingRes] = await Promise.all([ownerStart, competingStart]);
-
-    expect(ownerRes.status).toBe(200);
-    expect(competingRes.status).toBe(409);
-    expect(competingRes.body.code).toMatch(
-      /workspace_runtime_lease_conflict|workspace_runtime_control_in_progress/,
-    );
-    expect(mockStopRuntimeServices).not.toHaveBeenCalled();
-
-    const rows = await db.select().from(executionWorkspaceRuntimeLeases);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.ownerIssueId).toBe(canaryIssueId);
-  });
-
-  it("lets a teardown issue take the lane once the canary issue is terminal", async () => {
-    const app = await createApp();
-
-    expect((await request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`)
-      .set("x-test-owner-issue", canaryIssueId)
-      .send({})).status).toBe(200);
-
-    const { eq } = await import("drizzle-orm");
-    await db.update(issues).set({ status: "done" }).where(eq(issues.id, canaryIssueId));
-
-    const teardown = await request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/stop`)
-      .set("x-test-owner-issue", competingIssueId)
-      .send({});
-
-    expect(teardown.status).toBe(200);
-    expect(mockStopRuntimeServices).toHaveBeenCalledTimes(1);
-
-    const rows = await db.select().from(executionWorkspaceRuntimeLeases);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.ownerIssueId).toBe(competingIssueId);
-  });
-
-  it("leaves board actors unleased and unblocked", async () => {
-    const [{ executionWorkspaceRoutes }, { errorHandler }] = await Promise.all([
-      import("../routes/execution-workspaces.js"),
-      import("../middleware/index.js"),
-    ]);
-    mockAssertCanManage.mockResolvedValue({
-      actorType: "board",
-      agentId: null,
-      runId: null,
-      issueId: null,
-    } as never);
-    const app = express();
-    app.use(express.json());
-    app.use((req, _res, next) => {
-      (req as any).actor = {
-        type: "board",
-        userId: "board-1",
-        companyIds: [companyId],
-        source: "session",
-        isInstanceAdmin: false,
-      };
-      next();
-    });
-    app.use("/api", executionWorkspaceRoutes(db as never));
-    app.use(errorHandler);
-
-    const res = await request(app)
-      .post(`/api/execution-workspaces/${executionWorkspaceId}/runtime-services/start`)
-      .send({});
-
-    expect(res.status).toBe(200);
-    expect(await db.select().from(executionWorkspaceRuntimeLeases)).toHaveLength(0);
-  });
-});
+  },
+);

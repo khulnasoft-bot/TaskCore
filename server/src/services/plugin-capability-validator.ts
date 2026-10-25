@@ -99,7 +99,9 @@ const OPERATION_CAPABILITIES: Record<string, readonly PluginCapability[]> = {
   "issues.requestWakeup": ["issues.wakeup"],
   "issues.requestWakeups": ["issues.wakeup"],
   "issue.comments.create": ["issue.comments.create"],
-  "issue.comments.create_human_attributed": ["issue.comments.create_human_attributed"],
+  "issue.comments.create_human_attributed": [
+    "issue.comments.create_human_attributed",
+  ],
   "issue.interactions.create": ["issue.interactions.create"],
   "issue.interactions.respond": ["issue.interactions.respond"],
   "approvals.respond": ["approvals.respond"],
@@ -271,10 +273,7 @@ export interface PluginCapabilityValidator {
    * Assert that a plugin is allowed to perform an operation.
    * Throws a 403 HttpError if the capability check fails.
    */
-  assertOperation(
-    manifest: TaskcorePluginManifestV1,
-    operation: string,
-  ): void;
+  assertOperation(manifest: TaskcorePluginManifestV1, operation: string): void;
 
   /**
    * Assert that a plugin has a specific capability.
@@ -349,7 +348,9 @@ export function pluginCapabilityValidator(): PluginCapabilityValidator {
   // Internal helpers
   // -----------------------------------------------------------------------
 
-  function capabilitySet(manifest: TaskcorePluginManifestV1): Set<PluginCapability> {
+  function capabilitySet(
+    manifest: TaskcorePluginManifestV1,
+  ): Set<PluginCapability> {
     return new Set(manifest.capabilities);
   }
 
@@ -425,9 +426,10 @@ export function pluginCapabilityValidator(): PluginCapabilityValidator {
     assertOperation(manifest, operation) {
       const result = this.checkOperation(manifest, operation);
       if (!result.allowed) {
-        const msg = result.missing.length > 0
-          ? buildForbiddenMessage(manifest, operation, result.missing)
-          : `Plugin '${manifest.id}' attempted unknown operation '${operation}'`;
+        const msg =
+          result.missing.length > 0
+            ? buildForbiddenMessage(manifest, operation, result.missing)
+            : `Plugin '${manifest.id}' attempted unknown operation '${operation}'`;
         throw forbidden(msg);
       }
     },
@@ -465,8 +467,11 @@ export function pluginCapabilityValidator(): PluginCapabilityValidator {
       const allMissing: PluginCapability[] = [];
 
       // Check feature declarations → required capabilities
-      for (const [feature, requiredCap] of Object.entries(FEATURE_CAPABILITIES)) {
-        const featureValue = manifest[feature as keyof TaskcorePluginManifestV1];
+      for (const [feature, requiredCap] of Object.entries(
+        FEATURE_CAPABILITIES,
+      )) {
+        const featureValue =
+          manifest[feature as keyof TaskcorePluginManifestV1];
         if (Array.isArray(featureValue) && featureValue.length > 0) {
           if (!declared.has(requiredCap)) {
             allMissing.push(requiredCap);
@@ -475,7 +480,10 @@ export function pluginCapabilityValidator(): PluginCapabilityValidator {
       }
 
       if ((manifest.objectReferences?.length ?? 0) > 0) {
-        for (const requiredCap of ["external.objects.detect", "external.objects.read"] as const) {
+        for (const requiredCap of [
+          "external.objects.detect",
+          "external.objects.read",
+        ] as const) {
           if (!declared.has(requiredCap) && !allMissing.includes(requiredCap)) {
             allMissing.push(requiredCap);
           }
@@ -502,8 +510,13 @@ export function pluginCapabilityValidator(): PluginCapabilityValidator {
       ];
       if (launchers.length > 0) {
         for (const launcher of launchers) {
-          const requiredCap = LAUNCHER_PLACEMENT_CAPABILITIES[launcher.placementZone];
-          if (requiredCap && !declared.has(requiredCap) && !allMissing.includes(requiredCap)) {
+          const requiredCap =
+            LAUNCHER_PLACEMENT_CAPABILITIES[launcher.placementZone];
+          if (
+            requiredCap &&
+            !declared.has(requiredCap) &&
+            !allMissing.includes(requiredCap)
+          ) {
             allMissing.push(requiredCap);
           }
         }

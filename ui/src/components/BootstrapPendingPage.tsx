@@ -15,7 +15,11 @@ type BootstrapPendingPageProps = {
   onClaim: () => void;
 };
 
-function CliFallback({ hasActiveInvite = false }: { hasActiveInvite?: boolean }) {
+function CliFallback({
+  hasActiveInvite = false,
+}: {
+  hasActiveInvite?: boolean;
+}) {
   return (
     <div className="mt-6 border-t border-border pt-5">
       <div className="flex items-center gap-2 text-sm font-medium">
@@ -28,7 +32,7 @@ function CliFallback({ hasActiveInvite = false }: { hasActiveInvite?: boolean })
           : "Run this command on the host that runs Taskcore to print a one-time first-admin invite URL:"}
       </p>
       <pre className="mt-3 overflow-x-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs">
-{BOOTSTRAP_FALLBACK_COMMAND}
+        {BOOTSTRAP_FALLBACK_COMMAND}
       </pre>
     </div>
   );
@@ -76,15 +80,18 @@ export function BootstrapPendingPage({
   if (!claimAvailable) {
     return (
       <StateChrome>
-        <h1 className="text-xl font-semibold">This Taskcore is waiting on its first admin</h1>
+        <h1 className="text-xl font-semibold">
+          This Taskcore is waiting on its first admin
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This instance runs in invite-only mode. The operator must generate a one-time first-admin invite URL
-          from the host. Once you have the link, open it from this browser to finish setup.
+          This instance runs in invite-only mode. The operator must generate a
+          one-time first-admin invite URL from the host. Once you have the link,
+          open it from this browser to finish setup.
         </p>
         <CliFallback hasActiveInvite={hasActiveInvite} />
         <p className="mt-4 text-xs text-muted-foreground">
-          Browser-based claim is intentionally disabled in public mode so anyone on the network can't promote
-          themselves.
+          Browser-based claim is intentionally disabled in public mode so anyone
+          on the network can't promote themselves.
         </p>
       </StateChrome>
     );
@@ -100,12 +107,16 @@ export function BootstrapPendingPage({
           <div>
             <h1 className="text-xl font-semibold">You're the instance admin</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Setup is complete. Taking you to onboarding to create your first organization...
+              Setup is complete. Taking you to onboarding to create your first
+              organization...
             </p>
           </div>
         </div>
         <div className="mt-5 flex items-center gap-3">
-          <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
+          <Loader2
+            className="size-4 animate-spin text-muted-foreground"
+            aria-hidden
+          />
           <span className="text-sm text-muted-foreground">Redirecting...</span>
         </div>
         <div className="mt-5">
@@ -120,10 +131,12 @@ export function BootstrapPendingPage({
   if (!session) {
     return (
       <StateChrome>
-        <h1 className="text-xl font-semibold">Finish setting up this Taskcore</h1>
+        <h1 className="text-xl font-semibold">
+          Finish setting up this Taskcore
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          No admin has claimed this instance yet. Sign in or create your Taskcore account to become the first
-          admin from this browser.
+          No admin has claimed this instance yet. Sign in or create your
+          Taskcore account to become the first admin from this browser.
         </p>
         <div className="mt-5">
           <Button asChild>
@@ -141,15 +154,21 @@ export function BootstrapPendingPage({
     <StateChrome>
       <h1 className="text-xl font-semibold">Finish setting up this Taskcore</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        No admin has claimed this instance yet. Claim it now to become the first admin and start onboarding.
+        No admin has claimed this instance yet. Claim it now to become the first
+        admin and start onboarding.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Button onClick={onClaim} disabled={isClaiming}>
-          {isClaiming && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />}
+          {isClaiming && (
+            <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+          )}
           {isClaiming ? "Claiming..." : "Claim this instance"}
         </Button>
         <span className="text-sm text-muted-foreground">
-          Signed in as <span className="font-medium text-foreground">{displayIdentity(session)}</span>
+          Signed in as{" "}
+          <span className="font-medium text-foreground">
+            {displayIdentity(session)}
+          </span>
         </span>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
@@ -167,7 +186,9 @@ export function BootstrapPendingPage({
           <TriangleAlert className="mt-0.5 size-4 flex-shrink-0" aria-hidden />
           <div>
             <p className="font-medium">{errorCopy.title}</p>
-            {errorCopy.body && <p className="mt-1 text-destructive/90">{errorCopy.body}</p>}
+            {errorCopy.body && (
+              <p className="mt-1 text-destructive/90">{errorCopy.body}</p>
+            )}
           </div>
         </div>
       )}

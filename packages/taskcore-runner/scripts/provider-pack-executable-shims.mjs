@@ -28,7 +28,10 @@ export function writePortableCopilotShims(packRoot) {
     writePortableExecutableShim(
       packRoot,
       name,
-      relative(realpathSync(join(packRoot, "node_modules")), realpathSync(executable)),
+      relative(
+        realpathSync(join(packRoot, "node_modules")),
+        realpathSync(executable),
+      ),
     );
   }
 }

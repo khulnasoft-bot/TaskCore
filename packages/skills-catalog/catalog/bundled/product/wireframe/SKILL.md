@@ -34,17 +34,17 @@ Skip and defer to `frontend-design` (or similar) when the request mentions: bran
 
 Wireframes are diagnostic, not decorative. Lock these tokens on every output:
 
-| Token            | Value                                             | Notes                                  |
-| ---------------- | ------------------------------------------------- | -------------------------------------- |
-| Stroke           | `#000` width `1.5`                                | All borders, dividers, outlines        |
-| Fill (boxes)     | `#fff`                                            | Default for cards/containers           |
-| Placeholder fill | `#e6e6e6`                                         | Image/avatar/empty-state regions       |
-| Text colour      | `#000` for labels, `#666` for placeholder text    | No other colours                       |
-| Accent           | `#d33` (dashed) — annotation layer ONLY           | Never inside real UI elements          |
-| Font             | `font-family="-apple-system, system-ui, sans-serif"` | Single typeface across the whole file  |
-| Type scale       | `12` caption · `14` body · `20` heading · `28` title | No other sizes                         |
-| Grid             | 8px snap, 24px gutter                             | All x/y/w/h must be multiples of 8     |
-| Default canvas   | `1280×800` desktop, `375×812` mobile, `768×1024` tablet | Pick one and state it in the comment   |
+| Token            | Value                                                   | Notes                                 |
+| ---------------- | ------------------------------------------------------- | ------------------------------------- |
+| Stroke           | `#000` width `1.5`                                      | All borders, dividers, outlines       |
+| Fill (boxes)     | `#fff`                                                  | Default for cards/containers          |
+| Placeholder fill | `#e6e6e6`                                               | Image/avatar/empty-state regions      |
+| Text colour      | `#000` for labels, `#666` for placeholder text          | No other colours                      |
+| Accent           | `#d33` (dashed) — annotation layer ONLY                 | Never inside real UI elements         |
+| Font             | `font-family="-apple-system, system-ui, sans-serif"`    | Single typeface across the whole file |
+| Type scale       | `12` caption · `14` body · `20` heading · `28` title    | No other sizes                        |
+| Grid             | 8px snap, 24px gutter                                   | All x/y/w/h must be multiples of 8    |
+| Default canvas   | `1280×800` desktop, `375×812` mobile, `768×1024` tablet | Pick one and state it in the comment  |
 
 If you need to highlight a specific region for a callout, use the **annotation layer** (red dashed). Never colourise the wireframe itself.
 

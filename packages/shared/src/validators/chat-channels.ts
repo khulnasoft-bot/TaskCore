@@ -67,11 +67,29 @@ const chatEndpointCredentialsSchema = z
     return normalized;
   });
 
-export const slackAppConfigurationSchema = z.object({
-  appName: z.string().trim().min(1, "Enter a Slack app name.").max(35),
-  botName: z.string().trim().min(1).max(80).regex(/^[a-z0-9._-]+$/, "Use lowercase letters, numbers, dots, hyphens, or underscores for the bot name."),
-  command: z.string().trim().min(2).max(32).regex(/^\/[a-z0-9_-]+$/, "Start the command with / and use lowercase letters, numbers, hyphens, or underscores."),
-}).strict();
+export const slackAppConfigurationSchema = z
+  .object({
+    appName: z.string().trim().min(1, "Enter a Slack app name.").max(35),
+    botName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .regex(
+        /^[a-z0-9._-]+$/,
+        "Use lowercase letters, numbers, dots, hyphens, or underscores for the bot name.",
+      ),
+    command: z
+      .string()
+      .trim()
+      .min(2)
+      .max(32)
+      .regex(
+        /^\/[a-z0-9_-]+$/,
+        "Start the command with / and use lowercase letters, numbers, hyphens, or underscores.",
+      ),
+  })
+  .strict();
 
 export const createChatEndpointSchema = z
   .object({
@@ -82,13 +100,16 @@ export const createChatEndpointSchema = z
     slackApp: slackAppConfigurationSchema.optional(),
   })
   .strict()
-  .refine(value => !value.slackApp || value.provider === "slack", {
-    message: "Slack app details only apply to Slack connections", path: ["slackApp"],
+  .refine((value) => !value.slackApp || value.provider === "slack", {
+    message: "Slack app details only apply to Slack connections",
+    path: ["slackApp"],
   });
 
 export const updateChatEndpointSchema = z
   .object({
-    communicationInstructions: multilineTextSchema.pipe(z.string().trim().max(4000)).optional(),
+    communicationInstructions: multilineTextSchema
+      .pipe(z.string().trim().max(4000))
+      .optional(),
     slackApp: slackAppConfigurationSchema.optional(),
     slackSetupMethod: z.enum(["automatic", "manual", "existing"]).optional(),
     allowDirectMessages: z.boolean().optional(),
@@ -100,16 +121,39 @@ export const updateChatEndpointSchema = z
     message: "At least one chat endpoint field is required",
   });
 
-export const photonProjectIdSchema = z.string().trim().min(1).max(128).regex(/^[a-zA-Z0-9_-]+$/);
-export const photonLineIdSchema = z.string().trim().min(1).max(63).regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/);
+export const photonProjectIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .regex(/^[a-zA-Z0-9_-]+$/);
+export const photonLineIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(63)
+  .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/);
 export const photonChannelConfigurationSchema = z.union([
-  z.object({ allocation: z.literal("dedicated").default("dedicated"), projectId: photonProjectIdSchema, lineId: photonLineIdSchema }).strict(),
-  z.object({ allocation: z.literal("shared"), projectId: photonProjectIdSchema }).strict(),
+  z
+    .object({
+      allocation: z.literal("dedicated").default("dedicated"),
+      projectId: photonProjectIdSchema,
+      lineId: photonLineIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      allocation: z.literal("shared"),
+      projectId: photonProjectIdSchema,
+    })
+    .strict(),
 ]);
-export const inspectPhotonProjectSchema = z.object({
-  projectId: photonProjectIdSchema,
-  projectSecret: z.string().min(1).max(4096),
-}).strict();
+export const inspectPhotonProjectSchema = z
+  .object({
+    projectId: photonProjectIdSchema,
+    projectSecret: z.string().min(1).max(4096),
+  })
+  .strict();
 
 export const configureChatEndpointSchema = z
   .object({

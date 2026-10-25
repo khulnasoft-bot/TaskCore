@@ -79,10 +79,13 @@ const OK: McpRemoteHeaderCheck = { ok: true };
 export function checkMcpRemoteHeaderName(name: string): McpRemoteHeaderCheck {
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, reason: "empty" };
-  if (trimmed.length > MAX_HEADER_NAME_LENGTH) return { ok: false, reason: "too_long" };
-  if (!HTTP_TOKEN_PATTERN.test(trimmed)) return { ok: false, reason: "invalid_characters" };
+  if (trimmed.length > MAX_HEADER_NAME_LENGTH)
+    return { ok: false, reason: "too_long" };
+  if (!HTTP_TOKEN_PATTERN.test(trimmed))
+    return { ok: false, reason: "invalid_characters" };
   const lower = trimmed.toLowerCase();
-  if (FORBIDDEN_HEADER_NAMES.has(lower)) return { ok: false, reason: "forbidden" };
+  if (FORBIDDEN_HEADER_NAMES.has(lower))
+    return { ok: false, reason: "forbidden" };
   if (FORBIDDEN_HEADER_PREFIXES.some((prefix) => lower.startsWith(prefix))) {
     return { ok: false, reason: "forbidden" };
   }
@@ -94,7 +97,8 @@ export function checkMcpRemoteHeaderName(name: string): McpRemoteHeaderCheck {
  * characters (header splitting) and absurdly long values.
  */
 export function checkMcpRemoteHeaderValue(value: string): McpRemoteHeaderCheck {
-  if (value.length > MAX_HEADER_VALUE_LENGTH) return { ok: false, reason: "value_too_long" };
+  if (value.length > MAX_HEADER_VALUE_LENGTH)
+    return { ok: false, reason: "value_too_long" };
   // Reject C0/C1 controls and DEL. A tab is legal in a field value per RFC 9110
   // but has no legitimate use in a credential, so it is rejected too.
   if (/[\u0000-\u001f\u007f-\u009f]/.test(value)) {
@@ -136,7 +140,9 @@ export function mcpRemoteHeaderRejectionMessage(
  * `credentialValues` keys use a `headers.<Name>` config path. Extract the header
  * name, or `null` when the path is not a header path.
  */
-export function mcpRemoteHeaderNameFromConfigPath(configPath: string): string | null {
+export function mcpRemoteHeaderNameFromConfigPath(
+  configPath: string,
+): string | null {
   if (!configPath.startsWith("headers.")) return null;
   const name = configPath.slice("headers.".length).trim();
   return name.length > 0 ? name : null;

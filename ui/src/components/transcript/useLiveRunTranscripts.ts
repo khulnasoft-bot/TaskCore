@@ -6,7 +6,13 @@ import type { LiveEvent } from "@taskcore/shared";
 import { ApiError } from "../../api/client";
 import { instanceSettingsApi } from "../../api/instanceSettings";
 import { heartbeatsApi } from "../../api/heartbeats";
-import { buildTranscript, getUIAdapter, onAdapterChange, type RunLogChunk, type TranscriptEntry } from "../../adapters";
+import {
+  buildTranscript,
+  getUIAdapter,
+  onAdapterChange,
+  type RunLogChunk,
+  type TranscriptEntry,
+} from "../../adapters";
 import { queryKeys } from "../../lib/queryKeys";
 import { buildSameOriginWebSocketUrl } from "../../lib/websocket-url";
 import { tryCreateWebSocket } from "../../lib/websocket";
@@ -75,7 +81,13 @@ function readString(value: unknown): string | null {
 }
 
 function isTerminalStatus(status: string): boolean {
-  return status === "failed" || status === "timed_out" || status === "cancelled" || status === "interrupted" || status === "succeeded";
+  return (
+    status === "failed" ||
+    status === "timed_out" ||
+    status === "cancelled" ||
+    status === "interrupted" ||
+    status === "succeeded"
+  );
 }
 
 function canReadPersistedLog(run: RunTranscriptSource): boolean {
@@ -83,13 +95,19 @@ function canReadPersistedLog(run: RunTranscriptSource): boolean {
 }
 
 function runKnownLogBytes(run: RunTranscriptSource): number | null {
-  const bytes = run.status === "queued"
-    ? run.logBytes
-    : run.lastOutputBytes ?? run.logBytes;
-  return typeof bytes === "number" && Number.isFinite(bytes) && bytes > 0 ? bytes : null;
+  const bytes =
+    run.status === "queued"
+      ? run.logBytes
+      : (run.lastOutputBytes ?? run.logBytes);
+  return typeof bytes === "number" && Number.isFinite(bytes) && bytes > 0
+    ? bytes
+    : null;
 }
 
-export function resolveInitialLogOffset(run: RunTranscriptSource, limitBytes: number): number {
+export function resolveInitialLogOffset(
+  run: RunTranscriptSource,
+  limitBytes: number,
+): number {
   const knownBytes = runKnownLogBytes(run);
   if (knownBytes === null) return 0;
   return Math.max(0, knownBytes - Math.max(0, limitBytes));
@@ -119,17 +137,25 @@ export function useLiveRunTranscripts({
       runs
         .map((run) => {
           const logBytes = typeof run.logBytes === "number" ? run.logBytes : "";
-          const lastOutputBytes = typeof run.lastOutputBytes === "number" ? run.lastOutputBytes : "";
+          const lastOutputBytes =
+            typeof run.lastOutputBytes === "number" ? run.lastOutputBytes : "";
           return `${run.id}:${run.status}:${run.adapterType}:${run.hasStoredOutput === true ? "1" : "0"}:${logBytes}:${lastOutputBytes}`;
         })
         .sort((a, b) => a.localeCompare(b))
         .join(","),
     [runs],
   );
-  const normalizedRuns = useMemo(() => runs.map((run) => ({ ...run })), [runsKey]);
-  const [chunksByRun, setChunksByRun] = useState<Map<string, RunLogChunk[]>>(new Map());
+  const normalizedRuns = useMemo(
+    () => runs.map((run) => ({ ...run })),
+    [runsKey],
+  );
+  const [chunksByRun, setChunksByRun] = useState<Map<string, RunLogChunk[]>>(
+    new Map(),
+  );
   const [hydratedRunIds, setHydratedRunIds] = useState<Set<string>>(new Set());
-  const [errorsByRun, setErrorsByRun] = useState<ReadonlyMap<string, Error>>(new Map());
+  const [errorsByRun, setErrorsByRun] = useState<ReadonlyMap<string, Error>>(
+    new Map(),
+  );
   const [retryGeneration, setRetryGeneration] = useState(0);
   const retry = useCallback(() => {
     missingTerminalLogRunIdsRef.current.clear();
@@ -152,16 +178,24 @@ export function useLiveRunTranscripts({
   // Backoff state for the live event socket. Held outside the socket effect
   // because that effect restarts on run-metadata changes; per-effect state
   // would reset a progressed delay back to its base mid-outage.
-  const reconnectStateRef = useRef<{ companyId: string; attempt: number } | null>(null);
+  const reconnectStateRef = useRef<{
+    companyId: string;
+    attempt: number;
+  } | null>(null);
   const prevKnownRunIdsRef = useRef(new Set<string>());
   const [pruneTick, setPruneTick] = useState(0);
-  const transcriptCacheRef = useRef(new Map<string, {
-    adapterType: string;
-    chunks: RunLogChunk[];
-    censorUsernameInLogs: boolean;
-    parserTick: number;
-    transcript: TranscriptEntry[];
-  }>());
+  const transcriptCacheRef = useRef(
+    new Map<
+      string,
+      {
+        adapterType: string;
+        chunks: RunLogChunk[];
+        censorUsernameInLogs: boolean;
+        parserTick: number;
+        transcript: TranscriptEntry[];
+      }
+    >(),
+  );
   // Tick counter to force transcript recomputation when dynamic parser loads
   const [parserTick, setParserTick] = useState(0);
   useEffect(() => {
@@ -172,17 +206,32 @@ export function useLiveRunTranscripts({
     queryFn: () => instanceSettingsApi.getGeneral(),
   });
 
-  const runById = useMemo(() => new Map(normalizedRuns.map((run) => [run.id, run])), [normalizedRuns]);
+  const runById = useMemo(
+    () => new Map(normalizedRuns.map((run) => [run.id, run])),
+    [normalizedRuns],
+  );
   const activeRunIds = useMemo(
-    () => new Set(normalizedRuns.filter((run) => run.status === "running").map((run) => run.id)),
+    () =>
+      new Set(
+        normalizedRuns
+          .filter((run) => run.status === "running")
+          .map((run) => run.id),
+      ),
     [normalizedRuns],
   );
   const runIdsKey = useMemo(
-    () => normalizedRuns.map((run) => run.id).sort((a, b) => a.localeCompare(b)).join(","),
+    () =>
+      normalizedRuns
+        .map((run) => run.id)
+        .sort((a, b) => a.localeCompare(b))
+        .join(","),
     [normalizedRuns],
   );
 
-  const appendChunks = (runId: string, chunks: Array<RunLogChunk & { dedupeKey: string }>) => {
+  const appendChunks = (
+    runId: string,
+    chunks: Array<RunLogChunk & { dedupeKey: string }>,
+  ) => {
     if (chunks.length === 0) return;
     setChunksByRun((prev) => {
       const prevChunks = prev.get(runId) ?? [];
@@ -255,7 +304,9 @@ export function useLiveRunTranscripts({
     });
 
     setErrorsByRun((previous) => {
-      const next = new Map([...previous].filter(([id]) => retainedRunIds.has(id)));
+      const next = new Map(
+        [...previous].filter(([id]) => retainedRunIds.has(id)),
+      );
       return next.size === previous.size ? previous : next;
     });
 
@@ -307,14 +358,20 @@ export function useLiveRunTranscripts({
     const inFlightRunIds = new Set<string>();
 
     const readRunLog = async (run: RunTranscriptSource) => {
-      if (missingTerminalLogRunIdsRef.current.has(run.id) || inFlightRunIds.has(run.id)) {
+      if (
+        missingTerminalLogRunIdsRef.current.has(run.id) ||
+        inFlightRunIds.has(run.id)
+      ) {
         return;
       }
       inFlightRunIds.add(run.id);
-      const offset = logOffsetByRunRef.current.get(run.id) ?? resolveInitialLogOffset(run, logReadLimitBytes);
+      const offset =
+        logOffsetByRunRef.current.get(run.id) ??
+        resolveInitialLogOffset(run, logReadLimitBytes);
       try {
         const result = await readTranscriptRequest(
-          (signal) => heartbeatsApi.log(run.id, offset, logReadLimitBytes, { signal }),
+          (signal) =>
+            heartbeatsApi.log(run.id, offset, logReadLimitBytes, { signal }),
           controller.signal,
         );
         if (cancelled) return;
@@ -325,7 +382,14 @@ export function useLiveRunTranscripts({
           next.delete(run.id);
           return next;
         });
-        appendChunks(run.id, parsePersistedLogContent(run.id, result.content, pendingLogRowsByRunRef.current));
+        appendChunks(
+          run.id,
+          parsePersistedLogContent(
+            run.id,
+            result.content,
+            pendingLogRowsByRunRef.current,
+          ),
+        );
 
         if (result.nextOffset !== undefined) {
           logOffsetByRunRef.current.set(run.id, result.nextOffset);
@@ -344,12 +408,18 @@ export function useLiveRunTranscripts({
             return next;
           });
           // A newly started run may not have created its log yet.
-          if (isTerminalStatus(run.status)) missingTerminalLogRunIdsRef.current.add(run.id);
+          if (isTerminalStatus(run.status))
+            missingTerminalLogRunIdsRef.current.add(run.id);
         } else {
           setErrorsByRun((previous) => {
             if (previous.has(run.id)) return previous;
             const next = new Map(previous);
-            next.set(run.id, error instanceof Error ? error : new Error("Run history could not be loaded"));
+            next.set(
+              run.id,
+              error instanceof Error
+                ? error
+                : new Error("Run history could not be loaded"),
+            );
             return next;
           });
         }
@@ -378,18 +448,27 @@ export function useLiveRunTranscripts({
     const effectivePollMs = enableRealtimeUpdates
       ? Math.max(logPollIntervalMs, REALTIME_FALLBACK_POLL_INTERVAL_MS)
       : logPollIntervalMs;
-    const interval = activeRuns.length > 0 && effectivePollMs > 0
-      ? window.setInterval(() => {
-          void Promise.all(activeRuns.map((run) => readRunLog(run)));
-        }, effectivePollMs)
-      : null;
+    const interval =
+      activeRuns.length > 0 && effectivePollMs > 0
+        ? window.setInterval(() => {
+            void Promise.all(activeRuns.map((run) => readRunLog(run)));
+          }, effectivePollMs)
+        : null;
 
     return () => {
       cancelled = true;
       controller.abort();
       if (interval !== null) window.clearInterval(interval);
     };
-  }, [visible, enableRealtimeUpdates, logPollIntervalMs, logReadLimitBytes, normalizedRuns, runIdsKey, retryGeneration]);
+  }, [
+    visible,
+    enableRealtimeUpdates,
+    logPollIntervalMs,
+    logReadLimitBytes,
+    normalizedRuns,
+    runIdsKey,
+    retryGeneration,
+  ]);
 
   useEffect(() => {
     if (!visible || !enableRealtimeUpdates) return;
@@ -414,7 +493,10 @@ export function useLiveRunTranscripts({
     const scheduleReconnect = () => {
       if (closed) return;
       reconnectState.attempt += 1;
-      const delayMs = Math.min(15_000, 1_500 * 2 ** Math.min(reconnectState.attempt - 1, 4));
+      const delayMs = Math.min(
+        15_000,
+        1_500 * 2 ** Math.min(reconnectState.attempt - 1, 4),
+      );
       reconnectTimer = window.setTimeout(connect, delayMs);
     };
 
@@ -461,37 +543,47 @@ export function useLiveRunTranscripts({
               : readString(payload["stream"]) === "system"
                 ? "system"
                 : "stdout";
-          appendChunks(runId, [{
-            ts,
-            stream,
-            chunk,
-            seq: readChunkSeq(payload["seq"]),
-            dedupeKey: `log:${runId}:${ts}:${stream}:${chunk}`,
-          }]);
+          appendChunks(runId, [
+            {
+              ts,
+              stream,
+              chunk,
+              seq: readChunkSeq(payload["seq"]),
+              dedupeKey: `log:${runId}:${ts}:${stream}:${chunk}`,
+            },
+          ]);
           return;
         }
 
         if (event.type === "heartbeat.run.event") {
-          const seq = typeof payload["seq"] === "number" ? payload["seq"] : null;
+          const seq =
+            typeof payload["seq"] === "number" ? payload["seq"] : null;
           const eventType = readString(payload["eventType"]) ?? "event";
           const messageText = readString(payload["message"]) ?? eventType;
-          appendChunks(runId, [{
-            ts: event.createdAt,
-            stream: eventType === "error" ? "stderr" : "system",
-            chunk: messageText,
-            dedupeKey: `socket:event:${runId}:${seq ?? `${eventType}:${messageText}:${event.createdAt}`}`,
-          }]);
+          appendChunks(runId, [
+            {
+              ts: event.createdAt,
+              stream: eventType === "error" ? "stderr" : "system",
+              chunk: messageText,
+              dedupeKey: `socket:event:${runId}:${seq ?? `${eventType}:${messageText}:${event.createdAt}`}`,
+            },
+          ]);
           return;
         }
 
         if (event.type === "heartbeat.run.status") {
           const status = readString(payload["status"]) ?? "updated";
-          appendChunks(runId, [{
-            ts: event.createdAt,
-            stream: isTerminalStatus(status) && status !== "succeeded" ? "stderr" : "system",
-            chunk: `run ${status}`,
-            dedupeKey: `socket:status:${runId}:${status}:${readString(payload["finishedAt"]) ?? ""}`,
-          }]);
+          appendChunks(runId, [
+            {
+              ts: event.createdAt,
+              stream:
+                isTerminalStatus(status) && status !== "succeeded"
+                  ? "stderr"
+                  : "system",
+              chunk: `run ${status}`,
+              dedupeKey: `socket:status:${runId}:${status}:${readString(payload["finishedAt"]) ?? ""}`,
+            },
+          ]);
         }
       };
 
@@ -566,14 +658,26 @@ export function useLiveRunTranscripts({
       }
     }
     return next;
-  }, [chunksByRun, generalSettings?.censorUsernameInLogs, normalizedRuns, parserTick]);
+  }, [
+    chunksByRun,
+    generalSettings?.censorUsernameInLogs,
+    normalizedRuns,
+    parserTick,
+  ]);
 
   return {
     transcriptByRun,
-    hydratedRunIds, errorsByRun, retry,
-    isInitialHydrating: normalizedRuns.some((run) => canReadPersistedLog(run) && !hydratedRunIds.has(run.id)),
+    hydratedRunIds,
+    errorsByRun,
+    retry,
+    isInitialHydrating: normalizedRuns.some(
+      (run) => canReadPersistedLog(run) && !hydratedRunIds.has(run.id),
+    ),
     hasOutputForRun(runId: string) {
-      return (chunksByRun.get(runId)?.length ?? 0) > 0 || runById.get(runId)?.hasStoredOutput === true;
+      return (
+        (chunksByRun.get(runId)?.length ?? 0) > 0 ||
+        runById.get(runId)?.hasStoredOutput === true
+      );
     },
   };
 }

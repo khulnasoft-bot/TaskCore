@@ -39,7 +39,11 @@ function makeContainer(): HTMLElement {
 }
 
 function selectText(container: HTMLElement, needle: string): Range {
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    null,
+  );
   let node = walker.nextNode();
   while (node) {
     const data = (node as Text).data;

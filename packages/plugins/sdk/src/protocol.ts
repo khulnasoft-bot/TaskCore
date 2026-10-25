@@ -1,4 +1,7 @@
-import type { AiConnectionRouterRequest, AiConnectionRouterResult } from "@taskcore/shared";
+import type {
+  AiConnectionRouterRequest,
+  AiConnectionRouterResult,
+} from "@taskcore/shared";
 /**
  * JSON-RPC 2.0 message types and protocol helpers for the host ↔ worker IPC
  * channel.
@@ -178,8 +181,7 @@ export interface JsonRpcErrorResponse<TData = unknown> {
  * A JSON-RPC 2.0 response — either success or error.
  */
 export type JsonRpcResponse<TResult = unknown, TData = unknown> =
-  | JsonRpcSuccessResponse<TResult>
-  | JsonRpcErrorResponse<TData>;
+  JsonRpcSuccessResponse<TResult> | JsonRpcErrorResponse<TData>;
 
 /**
  * A JSON-RPC 2.0 notification (a request with no `id`).
@@ -209,9 +211,7 @@ export interface JsonRpcNotification<
  * Any well-formed JSON-RPC 2.0 message (request, response, or notification).
  */
 export type JsonRpcMessage =
-  | JsonRpcRequest
-  | JsonRpcResponse
-  | JsonRpcNotification;
+  JsonRpcRequest | JsonRpcResponse | JsonRpcNotification;
 
 // ---------------------------------------------------------------------------
 // Error Codes
@@ -556,7 +556,10 @@ export type PluginExternalObjectResolveResult =
   | { ok: true; snapshot: PluginExternalObjectResolvedSnapshot }
   | {
       ok: false;
-      liveness: Extract<ExternalObjectLivenessState, "auth_required" | "unreachable">;
+      liveness: Extract<
+        ExternalObjectLivenessState,
+        "auth_required" | "unreachable"
+      >;
       errorCode: string;
       errorMessage?: string | null;
       retryAfterSeconds?: number;
@@ -624,8 +627,7 @@ export interface PluginEnvironmentRunnerIngressEndpoint {
   generation: string;
 }
 
-export interface PluginEnvironmentRunnerIngressEndpointParams
-  extends PluginEnvironmentDriverBaseParams {
+export interface PluginEnvironmentRunnerIngressEndpointParams extends PluginEnvironmentDriverBaseParams {
   lease: PluginEnvironmentLease;
   port: number;
   path: string;
@@ -883,15 +885,10 @@ export type PluginEnvironmentInteractiveSetupStatus =
   | "missing";
 
 export type PluginEnvironmentInteractiveSetupConnectionType =
-  | "ssh"
-  | (string & {});
+  "ssh" | (string & {});
 
 export type PluginEnvironmentTemplateRefKind =
-  | "snapshot"
-  | "image"
-  | "provider_template"
-  | "unknown"
-  | (string & {});
+  "snapshot" | "image" | "provider_template" | "unknown" | (string & {});
 
 export interface PluginEnvironmentInteractiveSetupConnectionSummary {
   type: PluginEnvironmentInteractiveSetupConnectionType;
@@ -957,7 +954,10 @@ export interface PluginEnvironmentCancelInteractiveSetupParams extends PluginEnv
 }
 
 export interface PluginEnvironmentCancelInteractiveSetupResult {
-  status: Extract<PluginEnvironmentInteractiveSetupStatus, "cancelled" | "timed_out" | "failed" | "missing">;
+  status: Extract<
+    PluginEnvironmentInteractiveSetupStatus,
+    "cancelled" | "timed_out" | "failed" | "missing"
+  >;
   metadata?: Record<string, unknown>;
 }
 
@@ -1175,7 +1175,9 @@ export type ChannelBytesWireValue = string;
 
 /** Encodes raw channel bytes into the wire-safe JSON-RPC representation. */
 export function encodeChannelBytes(bytes: Uint8Array): ChannelBytesWireValue {
-  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("base64");
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString(
+    "base64",
+  );
 }
 
 /**
@@ -1330,10 +1332,20 @@ export interface HostToWorkerMethods {
   health: [params: Record<string, never>, result: PluginHealthDiagnostics];
   /** @see PLUGIN_SPEC.md §12.5 */
   shutdown: [params: Record<string, never>, result: void];
-  prepareIdleSleep: [params: { ownerId: string; expiresAt: number }, result: { ownerId: string; expiresAt: number; backgroundWork: "none" | "present" | "unknown" }];
+  prepareIdleSleep: [
+    params: { ownerId: string; expiresAt: number },
+    result: {
+      ownerId: string;
+      expiresAt: number;
+      backgroundWork: "none" | "present" | "unknown";
+    },
+  ];
   releaseIdleSleep: [params: { ownerId: string }, result: void];
   /** @see PLUGIN_SPEC.md §13.3 */
-  validateConfig: [params: ValidateConfigParams, result: PluginConfigValidationResult];
+  validateConfig: [
+    params: ValidateConfigParams,
+    result: PluginConfigValidationResult,
+  ];
   /** @see PLUGIN_SPEC.md §13.4 */
   configChanged: [params: ConfigChangedParams, result: void];
   /** @see PLUGIN_SPEC.md §13.5 */
@@ -1354,7 +1366,10 @@ export interface HostToWorkerMethods {
     params: DetectExternalObjectsParams,
     result: DetectExternalObjectsResult,
   ];
-  routeAiConnection: [params: AiConnectionRouterRequest, result: AiConnectionRouterResult];
+  routeAiConnection: [
+    params: AiConnectionRouterRequest,
+    result: AiConnectionRouterResult,
+  ];
   resolveExternalObject: [
     params: ResolveExternalObjectParams,
     result: PluginExternalObjectResolveResult,
@@ -1465,55 +1480,53 @@ export interface HostToWorkerMethods {
 export type HostToWorkerMethodName = keyof HostToWorkerMethods;
 
 /** Required methods the worker MUST implement. */
-export const HOST_TO_WORKER_REQUIRED_METHODS: readonly HostToWorkerMethodName[] = [
-  "initialize",
-  "health",
-  "shutdown",
-] as const;
+export const HOST_TO_WORKER_REQUIRED_METHODS: readonly HostToWorkerMethodName[] =
+  ["initialize", "health", "shutdown"] as const;
 
 /** Optional methods the worker MAY implement. */
-export const HOST_TO_WORKER_OPTIONAL_METHODS: readonly HostToWorkerMethodName[] = [
-  "prepareIdleSleep",
-  "releaseIdleSleep",
-  "validateConfig",
-  "configChanged",
-  "onEvent",
-  "runJob",
-  "handleWebhook",
-  "handleApiRequest",
-  "getData",
-  "performAction",
-  "executeTool",
-  "detectExternalObjects",
-  "routeAiConnection",
-  "resolveExternalObject",
-  "refreshExternalObjects",
-  "environmentValidateConfig",
-  "environmentProbe",
-  "environmentAcquireLease",
-  "environmentResumeLease",
-  "environmentReleaseLease",
-  "environmentStopLease",
-  "environmentDestroyLease",
-  "environmentRealizeWorkspace",
-  "environmentExecute",
-  "environmentRunnerIngressEndpoint",
-  "environmentSyncIn",
-  "environmentSyncOut",
-  "environmentStartInteractiveSetup",
-  "environmentGetInteractiveSetup",
-  "environmentCaptureTemplate",
-  "environmentCancelInteractiveSetup",
-  "environmentDeleteTemplate",
-  "loginPtyOpen",
-  "loginPtyInput",
-  "loginPtyStop",
-  "loginPtyClose",
-  "duplexChannelOpen",
-  "duplexChannelWrite",
-  "duplexChannelStop",
-  "duplexChannelClose",
-] as const;
+export const HOST_TO_WORKER_OPTIONAL_METHODS: readonly HostToWorkerMethodName[] =
+  [
+    "prepareIdleSleep",
+    "releaseIdleSleep",
+    "validateConfig",
+    "configChanged",
+    "onEvent",
+    "runJob",
+    "handleWebhook",
+    "handleApiRequest",
+    "getData",
+    "performAction",
+    "executeTool",
+    "detectExternalObjects",
+    "routeAiConnection",
+    "resolveExternalObject",
+    "refreshExternalObjects",
+    "environmentValidateConfig",
+    "environmentProbe",
+    "environmentAcquireLease",
+    "environmentResumeLease",
+    "environmentReleaseLease",
+    "environmentStopLease",
+    "environmentDestroyLease",
+    "environmentRealizeWorkspace",
+    "environmentExecute",
+    "environmentRunnerIngressEndpoint",
+    "environmentSyncIn",
+    "environmentSyncOut",
+    "environmentStartInteractiveSetup",
+    "environmentGetInteractiveSetup",
+    "environmentCaptureTemplate",
+    "environmentCancelInteractiveSetup",
+    "environmentDeleteTemplate",
+    "loginPtyOpen",
+    "loginPtyInput",
+    "loginPtyStop",
+    "loginPtyClose",
+    "duplexChannelOpen",
+    "duplexChannelWrite",
+    "duplexChannelStop",
+    "duplexChannelClose",
+  ] as const;
 
 // ---------------------------------------------------------------------------
 // Worker → Host Method Signatures (SDK client calls)
@@ -1527,7 +1540,10 @@ export const HOST_TO_WORKER_OPTIONAL_METHODS: readonly HostToWorkerMethodName[] 
  */
 export interface WorkerToHostMethods {
   // Config
-  "config.get": [params: { companyId?: string }, result: Record<string, unknown>];
+  "config.get": [
+    params: { companyId?: string },
+    result: Record<string, unknown>,
+  ];
 
   // Trusted local folders
   "localFolders.declarations": [
@@ -1550,7 +1566,13 @@ export interface WorkerToHostMethods {
     result: PluginLocalFolderStatus,
   ];
   "localFolders.list": [
-    params: { companyId: string; folderKey: string; relativePath?: string | null; recursive?: boolean; maxEntries?: number },
+    params: {
+      companyId: string;
+      folderKey: string;
+      relativePath?: string | null;
+      recursive?: boolean;
+      maxEntries?: number;
+    },
     result: PluginLocalFolderListing,
   ];
   "localFolders.readText": [
@@ -1573,27 +1595,37 @@ export interface WorkerToHostMethods {
 
   // State
   "state.get": [
-    params: { scopeKind: string; scopeId?: string; namespace?: string; stateKey: string },
+    params: {
+      scopeKind: string;
+      scopeId?: string;
+      namespace?: string;
+      stateKey: string;
+    },
     result: unknown,
   ];
   "state.set": [
-    params: { scopeKind: string; scopeId?: string; namespace?: string; stateKey: string; value: unknown },
+    params: {
+      scopeKind: string;
+      scopeId?: string;
+      namespace?: string;
+      stateKey: string;
+      value: unknown;
+    },
     result: void,
   ];
   "state.delete": [
-    params: { scopeKind: string; scopeId?: string; namespace?: string; stateKey: string },
+    params: {
+      scopeKind: string;
+      scopeId?: string;
+      namespace?: string;
+      stateKey: string;
+    },
     result: void,
   ];
 
   // Restricted plugin database namespace
-  "db.namespace": [
-    params: Record<string, never>,
-    result: string,
-  ];
-  "db.query": [
-    params: { sql: string; params?: unknown[] },
-    result: unknown[],
-  ];
+  "db.namespace": [params: Record<string, never>, result: string];
+  "db.query": [params: { sql: string; params?: unknown[] }, result: unknown[]];
   "db.execute": [
     params: { sql: string; params?: unknown[] },
     result: { rowCount: number },
@@ -1647,8 +1679,14 @@ export interface WorkerToHostMethods {
   ];
 
   // Events
-  "events.listLifecycle": [params: { companyId: string; limit?: number; afterId?: string }, result: ResourceLifecycleEvent[]];
-  "events.acknowledgeLifecycle": [params: { companyId: string; eventId: string }, result: void];
+  "events.listLifecycle": [
+    params: { companyId: string; limit?: number; afterId?: string },
+    result: ResourceLifecycleEvent[],
+  ];
+  "events.acknowledgeLifecycle": [
+    params: { companyId: string; eventId: string },
+    result: void,
+  ];
   "events.emit": [
     params: { name: string; companyId: string; payload: unknown },
     result: void,
@@ -1661,12 +1699,21 @@ export interface WorkerToHostMethods {
   // HTTP
   "http.fetch": [
     params: { url: string; init?: Record<string, unknown> },
-    result: { status: number; statusText: string; headers: Record<string, string>; body: string },
+    result: {
+      status: number;
+      statusText: string;
+      headers: Record<string, string>;
+      body: string;
+    },
   ];
 
   // Secrets
   "secrets.resolve": [
-    params: { secretRef: string | EnvSecretRefBinding; companyId?: string; configPath?: string },
+    params: {
+      secretRef: string | EnvSecretRefBinding;
+      companyId?: string;
+      configPath?: string;
+    },
     result: string,
   ];
 
@@ -1696,12 +1743,15 @@ export interface WorkerToHostMethods {
 
   // Telemetry
   "telemetry.track": [
-    params: { eventName: string; dimensions?: Record<string, string | number | boolean> },
+    params: {
+      eventName: string;
+      dimensions?: Record<string, string | number | boolean>;
+    },
     result: void,
   ];
 
   // Logger
-  "log": [
+  log: [
     params: {
       level: "info" | "warn" | "error" | "debug";
       message: string;
@@ -1745,10 +1795,7 @@ export interface WorkerToHostMethods {
     params: { limit?: number; offset?: number },
     result: Company[],
   ];
-  "companies.get": [
-    params: { companyId: string },
-    result: Company | null,
-  ];
+  "companies.get": [params: { companyId: string }, result: Company | null];
 
   // Projects (read)
   "projects.list": [
@@ -2043,7 +2090,11 @@ export interface WorkerToHostMethods {
     result: IssueAttachment[],
   ];
   "issues.getAttachmentContent": [
-    params: { attachmentId: string; companyId: string; maxBytes?: number | null },
+    params: {
+      attachmentId: string;
+      companyId: string;
+      maxBytes?: number | null;
+    },
     result: PluginIssueAttachmentContent | null,
   ];
 
@@ -2100,7 +2151,12 @@ export interface WorkerToHostMethods {
 
   // Agents (read)
   "agents.list": [
-    params: { companyId: string; status?: string; limit?: number; offset?: number },
+    params: {
+      companyId: string;
+      status?: string;
+      limit?: number;
+      offset?: number;
+    },
     result: Agent[],
   ];
   "agents.get": [
@@ -2118,7 +2174,12 @@ export interface WorkerToHostMethods {
     result: Agent,
   ];
   "agents.invoke": [
-    params: { agentId: string; companyId: string; prompt: string; reason?: string },
+    params: {
+      agentId: string;
+      companyId: string;
+      prompt: string;
+      reason?: string;
+    },
     result: { runId: string },
   ];
   "agents.managed.get": [
@@ -2136,15 +2197,37 @@ export interface WorkerToHostMethods {
 
   // Agent Sessions
   "agents.sessions.create": [
-    params: { agentId: string; companyId: string; taskKey?: string; reason?: string },
-    result: { sessionId: string; agentId: string; companyId: string; status: "active" | "closed"; createdAt: string },
+    params: {
+      agentId: string;
+      companyId: string;
+      taskKey?: string;
+      reason?: string;
+    },
+    result: {
+      sessionId: string;
+      agentId: string;
+      companyId: string;
+      status: "active" | "closed";
+      createdAt: string;
+    },
   ];
   "agents.sessions.list": [
     params: { agentId: string; companyId: string },
-    result: Array<{ sessionId: string; agentId: string; companyId: string; status: "active" | "closed"; createdAt: string }>,
+    result: Array<{
+      sessionId: string;
+      agentId: string;
+      companyId: string;
+      status: "active" | "closed";
+      createdAt: string;
+    }>,
   ];
   "agents.sessions.sendMessage": [
-    params: { sessionId: string; companyId: string; prompt: string; reason?: string },
+    params: {
+      sessionId: string;
+      companyId: string;
+      prompt: string;
+      reason?: string;
+    },
     result: { runId: string },
   ];
   "agents.sessions.close": [
@@ -2154,7 +2237,13 @@ export interface WorkerToHostMethods {
 
   // Goals
   "goals.list": [
-    params: { companyId: string; level?: string; status?: string; limit?: number; offset?: number },
+    params: {
+      companyId: string;
+      level?: string;
+      status?: string;
+      limit?: number;
+      offset?: number;
+    },
     result: Goal[],
   ];
   "goals.get": [
@@ -2236,7 +2325,10 @@ export interface WorkerToHostMethods {
       companyId: string;
       principalType: string;
       principalId: string;
-      grants: Array<{ permissionKey: string; scope?: Record<string, unknown> | null }>;
+      grants: Array<{
+        permissionKey: string;
+        scope?: Record<string, unknown> | null;
+      }>;
       grantedByUserId?: string | null;
     },
     result: PrincipalPermissionGrant[],
@@ -2246,7 +2338,11 @@ export interface WorkerToHostMethods {
     result: PluginAuthorizationPolicySummary,
   ];
   "authorization.policies.get": [
-    params: { companyId: string; resourceType: "company" | "agent" | "project" | "issue"; resourceId: string },
+    params: {
+      companyId: string;
+      resourceType: "company" | "agent" | "project" | "issue";
+      resourceId: string;
+    },
     result: PluginAuthorizationPolicyRecord | null,
   ];
   "authorization.policies.update": [
@@ -2460,9 +2556,10 @@ export function createErrorResponse<TData = unknown>(
   const response: JsonRpcErrorResponse<TData> = {
     jsonrpc: JSONRPC_VERSION,
     id,
-    error: data !== undefined
-      ? { code, message, data }
-      : { code, message } as JsonRpcError<TData>,
+    error:
+      data !== undefined
+        ? { code, message, data }
+        : ({ code, message } as JsonRpcError<TData>),
   };
   return response;
 }
@@ -2541,7 +2638,10 @@ export function isJsonRpcResponse(value: unknown): value is JsonRpcResponse {
 export function isJsonRpcSuccessResponse(
   response: JsonRpcResponse,
 ): response is JsonRpcSuccessResponse {
-  return "result" in response && !("error" in response && response.error !== undefined);
+  return (
+    "result" in response &&
+    !("error" in response && response.error !== undefined)
+  );
 }
 
 /**

@@ -51,25 +51,40 @@ function argument(args: string[], name: string): string {
 }
 
 export function parseEvalSessionCliArgs(args: string[]): EvalSessionCliOptions {
-  const allowed = new Set(["--request", "--output", "--candidate-profile", "--expected-acpx-profile"]);
+  const allowed = new Set([
+    "--request",
+    "--output",
+    "--candidate-profile",
+    "--expected-acpx-profile",
+  ]);
   const seen = new Set<string>();
   for (let index = 0; index < args.length; index += 2) {
     if (!allowed.has(args[index] ?? "")) {
       throw new Error(`unknown argument: ${args[index] ?? ""}`);
     }
-    if (seen.has(args[index]!)) throw new Error(`duplicate argument: ${args[index]}`);
+    if (seen.has(args[index]!))
+      throw new Error(`duplicate argument: ${args[index]}`);
     seen.add(args[index]!);
-    if (args[index + 1] === undefined || args[index + 1]!.startsWith("--")) throw new Error(`missing ${args[index]}`);
+    if (args[index + 1] === undefined || args[index + 1]!.startsWith("--"))
+      throw new Error(`missing ${args[index]}`);
   }
   const candidateIndex = args.indexOf("--candidate-profile");
-  const candidateProfile = candidateIndex < 0 ? undefined : args[candidateIndex + 1];
-  if (candidateProfile !== undefined && candidateProfile !== "pi" && candidateProfile !== "cursor" && candidateProfile !== "copilot") {
+  const candidateProfile =
+    candidateIndex < 0 ? undefined : args[candidateIndex + 1];
+  if (
+    candidateProfile !== undefined &&
+    candidateProfile !== "pi" &&
+    candidateProfile !== "cursor" &&
+    candidateProfile !== "copilot"
+  ) {
     throw new Error("--candidate-profile must be pi, cursor, or copilot");
   }
   const expectedIndex = args.indexOf("--expected-acpx-profile");
   const expectedText = expectedIndex < 0 ? undefined : args[expectedIndex + 1];
   if (candidateProfile !== undefined && expectedText === undefined) {
-    throw new Error("Candidate evals require --expected-acpx-profile before provider execution");
+    throw new Error(
+      "Candidate evals require --expected-acpx-profile before provider execution",
+    );
   }
   let expectedAcpxProfile: Record<string, unknown> | undefined;
   if (expectedText !== undefined) {
@@ -77,10 +92,16 @@ export function parseEvalSessionCliArgs(args: string[]): EvalSessionCliOptions {
       throw new Error("--expected-acpx-profile exceeds its 4096-byte bound");
     }
     let parsed: unknown;
-    try { parsed = JSON.parse(expectedText); } catch {
+    try {
+      parsed = JSON.parse(expectedText);
+    } catch {
       throw new Error("--expected-acpx-profile must be a JSON object");
     }
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    if (
+      parsed === null ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
       throw new Error("--expected-acpx-profile must be a JSON object");
     }
     expectedAcpxProfile = parsed as Record<string, unknown>;
@@ -94,7 +115,9 @@ export function parseEvalSessionCliArgs(args: string[]): EvalSessionCliOptions {
 }
 
 async function sha256(path: string): Promise<string> {
-  return createHash("sha256").update(await readFile(path)).digest("hex");
+  return createHash("sha256")
+    .update(await readFile(path))
+    .digest("hex");
 }
 
 const EVAL_RUNTIME_INSTRUCTIONS = [
@@ -119,12 +142,14 @@ export async function prepareEvalRuntimeContext(
   const entryPath = "AGENTS.md";
   const entry = Buffer.from(EVAL_RUNTIME_INSTRUCTIONS);
   const entryDigest = createHash("sha256").update(entry).digest("hex");
-  const manifestFiles = [{
-    path: entryPath,
-    sha256: entryDigest,
-    mode: 0o444,
-    size: entry.byteLength,
-  }];
+  const manifestFiles = [
+    {
+      path: entryPath,
+      sha256: entryDigest,
+      mode: 0o444,
+      size: entry.byteLength,
+    },
+  ];
   const assetDigest = createHash("sha256")
     .update(JSON.stringify(manifestFiles))
     .digest("hex");
@@ -194,7 +219,9 @@ export function evalSessionProviderVersion(
   if (request.provider === "opencode") {
     const version = request.opencodeVersion ?? "1.18.34";
     if (version !== "1.18.34") {
-      throw new Error(`OpenCode evals require exact version 1.18.34; received ${version}`);
+      throw new Error(
+        `OpenCode evals require exact version 1.18.34; received ${version}`,
+      );
     }
     return version;
   }
@@ -214,7 +241,10 @@ export function evalSessionProviderVersion(
 }
 
 class EvalSessionBudgetError extends Error {
-  constructor(message: string, readonly coverageUnknown = false) {
+  constructor(
+    message: string,
+    readonly coverageUnknown = false,
+  ) {
     super(message);
     this.name = "EvalSessionBudgetError";
   }
@@ -227,7 +257,12 @@ function failureClass(error: unknown): {
   diagnostics: Record<string, never>;
 } {
   if (error instanceof EvalSessionBudgetError && error.coverageUnknown) {
-    return { class: "provider_budget_coverage_unknown", category: "provider_budget", retryable: false, diagnostics: {} };
+    return {
+      class: "provider_budget_coverage_unknown",
+      category: "provider_budget",
+      retryable: false,
+      diagnostics: {},
+    };
   }
   const message = error instanceof Error ? error.message : String(error);
   if (/timed? ?out|timeout/i.test(message)) {
@@ -281,45 +316,77 @@ export function boundedEvalSessionUsage(
   if (turn.status !== "completed") {
     return usageIfAvailable(request, turn.snapshot);
   }
-  if (request.provider === "acpx" && request.acpxAgent === "grok" && !turn.snapshot.usageLedger?.length) {
-    throw new EvalSessionBudgetError("budget cost coverage is unavailable for the completed Grok turn", true);
+  if (
+    request.provider === "acpx" &&
+    request.acpxAgent === "grok" &&
+    !turn.snapshot.usageLedger?.length
+  ) {
+    throw new EvalSessionBudgetError(
+      "budget cost coverage is unavailable for the completed Grok turn",
+      true,
+    );
   }
-  const candidate = request.provider === "acpx"
-    && request.acpxAgent !== undefined
-    && ["pi", "cursor", "copilot"].includes(request.acpxAgent)
-    && turn.snapshot.config.provider === "acpx"
-    && turn.snapshot.config.acpxAgent === request.acpxAgent;
-  const measuredTurns = new Set(turn.snapshot.usageLedger?.map((entry) => entry.turnId));
-  const unavailableTurnIds = new Set(candidate
-    ? turn.snapshot.usageUnavailable?.filter((entry) => entry.agent === request.acpxAgent
-      && entry.reason === "provider_did_not_report_usage"
-      && entry.tokenUsage === null && entry.costNanodollars === null
-      && !measuredTurns.has(entry.turnId)).map((entry) => entry.turnId)
-    : []);
+  const candidate =
+    request.provider === "acpx" &&
+    request.acpxAgent !== undefined &&
+    ["pi", "cursor", "copilot"].includes(request.acpxAgent) &&
+    turn.snapshot.config.provider === "acpx" &&
+    turn.snapshot.config.acpxAgent === request.acpxAgent;
+  const measuredTurns = new Set(
+    turn.snapshot.usageLedger?.map((entry) => entry.turnId),
+  );
+  const unavailableTurnIds = new Set(
+    candidate
+      ? turn.snapshot.usageUnavailable
+          ?.filter(
+            (entry) =>
+              entry.agent === request.acpxAgent &&
+              entry.reason === "provider_did_not_report_usage" &&
+              entry.tokenUsage === null &&
+              entry.costNanodollars === null &&
+              !measuredTurns.has(entry.turnId),
+          )
+          .map((entry) => entry.turnId)
+      : [],
+  );
   const unavailable = unavailableTurnIds.size > 0;
-  const usage = unavailable && (unavailableTurnIds.has(turn.turnId) || turn.snapshot.usageLedger?.length)
-    ? usageIfAvailable(request, turn.snapshot)
-    : evalSessionUsage(request.model, turn.snapshot);
+  const usage =
+    unavailable &&
+    (unavailableTurnIds.has(turn.turnId) || turn.snapshot.usageLedger?.length)
+      ? usageIfAvailable(request, turn.snapshot)
+      : evalSessionUsage(request.model, turn.snapshot);
   const unavailableTurns = unavailableTurnIds.size;
-  if ((usage?.agentTurns ?? 0) + unavailableTurns > request.limits.maxAgentTurns) {
+  if (
+    (usage?.agentTurns ?? 0) + unavailableTurns >
+    request.limits.maxAgentTurns
+  ) {
     throw new EvalSessionBudgetError("agent turn limit exceeded");
   }
   if (
-    usage !== null && usage.estimatedCostNanodollars !== null &&
-    usage.estimatedCostNanodollars >
-    request.limits.maxEstimatedCostNanodollars
+    usage !== null &&
+    usage.estimatedCostNanodollars !== null &&
+    usage.estimatedCostNanodollars > request.limits.maxEstimatedCostNanodollars
   ) {
     throw new EvalSessionBudgetError("estimated cost limit exceeded");
   }
   if (
-    usage !== null && usage.providerReportedCostNanodollars !== null &&
+    usage !== null &&
+    usage.providerReportedCostNanodollars !== null &&
     usage.providerReportedCostNanodollars >
-    request.limits.maxEstimatedCostNanodollars
+      request.limits.maxEstimatedCostNanodollars
   ) {
     throw new EvalSessionBudgetError("provider-reported cost limit exceeded");
   }
-  if (unavailable || usage === null || (usage.estimatedCostNanodollars === null && usage.providerReportedCostNanodollars === null)) {
-    throw new EvalSessionBudgetError("budget cost coverage is unavailable for one or more completed turns", true);
+  if (
+    unavailable ||
+    usage === null ||
+    (usage.estimatedCostNanodollars === null &&
+      usage.providerReportedCostNanodollars === null)
+  ) {
+    throw new EvalSessionBudgetError(
+      "budget cost coverage is unavailable for one or more completed turns",
+      true,
+    );
   }
   return usage;
 }
@@ -335,9 +402,7 @@ async function closeSession(
 export async function runEvalSessionCli(
   args: string[],
   options: {
-    serviceFactory?: (
-      runnerBinary: string,
-    ) => CapabilityLiveSessionService;
+    serviceFactory?: (runnerBinary: string) => CapabilityLiveSessionService;
   } = {},
 ): Promise<number> {
   const cli = parseEvalSessionCliArgs(args);
@@ -351,12 +416,22 @@ export async function runEvalSessionCli(
     if (request.provider !== "acpx") {
       throw new Error("--expected-acpx-profile requires an ACPX request");
     }
-    const actualProfile = resolveQualifiedAcpxProfile(request.acpxAgent ?? "codex", request.model);
+    const actualProfile = resolveQualifiedAcpxProfile(
+      request.acpxAgent ?? "codex",
+      request.model,
+    );
     const entries = Object.entries(actualProfile);
-    if (Object.keys(cli.expectedAcpxProfile).length !== entries.length || entries.some(
-      ([key, value]) => !Object.hasOwn(cli.expectedAcpxProfile!, key) || cli.expectedAcpxProfile![key] !== value,
-    )) {
-      throw new Error("--expected-acpx-profile does not match the built runner profile");
+    if (
+      Object.keys(cli.expectedAcpxProfile).length !== entries.length ||
+      entries.some(
+        ([key, value]) =>
+          !Object.hasOwn(cli.expectedAcpxProfile!, key) ||
+          cli.expectedAcpxProfile![key] !== value,
+      )
+    ) {
+      throw new Error(
+        "--expected-acpx-profile does not match the built runner profile",
+      );
     }
   }
   const runnerdPath = resolve(request.runnerd.path);
@@ -370,18 +445,24 @@ export async function runEvalSessionCli(
   const startedAt = new Date().toISOString();
   const startedAtMs = Date.now();
   const requestedProvider = request.provider ?? "codex";
-  const requestedDriver = request.driver ??
-    expectedEvalSessionDriver(requestedProvider);
+  const requestedDriver =
+    request.driver ?? expectedEvalSessionDriver(requestedProvider);
   const requestedProviderVersion = evalSessionProviderVersion(request);
   const runtimeContext = await prepareEvalRuntimeContext(
     resolve(request.session.workingDirectory ?? process.cwd()),
   );
-  const service = options.serviceFactory?.(runnerdPath) ??
+  const service =
+    options.serviceFactory?.(runnerdPath) ??
     new CapabilityLiveSessionService({
       transportOptions: {
-        ...evalProviderTransportOptions(requestedProvider, request.limits.turnTimeoutMs),
+        ...evalProviderTransportOptions(
+          requestedProvider,
+          request.limits.turnTimeoutMs,
+        ),
         runnerBinary: runnerdPath,
-        ...(cli.candidateProfile === undefined ? {} : { acpxCandidateProfile: cli.candidateProfile }),
+        ...(cli.candidateProfile === undefined
+          ? {}
+          : { acpxCandidateProfile: cli.candidateProfile }),
         runtimeContext,
         baseInstructions: evalRuntimeSystemInstructions(runtimeContext),
         // The transport performs the provider-specific allowlisting. Supplying
@@ -432,64 +513,79 @@ export async function runEvalSessionCli(
       usage = usageIfAvailable(request, turn.snapshot);
     }
     await session.completeAttempt(
-      accountingError === null && turn.status === "completed" ? "succeeded" : "failed",
-      accountingError !== null ? failureClass(accountingError).class
-        : turn.status === "completed" ? null : `provider_turn_${turn.status}`,
+      accountingError === null && turn.status === "completed"
+        ? "succeeded"
+        : "failed",
+      accountingError !== null
+        ? failureClass(accountingError).class
+        : turn.status === "completed"
+          ? null
+          : `provider_turn_${turn.status}`,
     );
     await closeSession(session, "eval session complete");
     snapshot = session.snapshot();
 
-    await writeFile(cli.outputPath, `${JSON.stringify({
-      schema: "taskcore-runner/eval-session-artifact/v1",
-      attemptId: request.attemptId,
-      build: TASKCORE_RUNNER_BUILD_METADATA,
-      runnerd: { path: "[withheld]", sha256: `sha256:${actualDigest}` },
-      requestedModel: request.model,
-      ...(cli.candidateProfile === undefined ? {} : { diagnosticCandidateProfile: cli.candidateProfile }),
-      provider: requestedProvider,
-      driver: requestedDriver,
-      providerVersion: requestedProviderVersion,
-      providerSessionId: snapshot.providerSessionId,
-      ...(requestedProvider === "claude_managed"
-        ? {
-            managedProfile: request.managedProfile,
-            retainedSession: snapshot.providerSessionId !== null,
-            retainedSessionStatus: snapshot.providerSessionId === null
-              ? "unknown"
-              : "retained",
-          }
-        : {}),
-      ...(requestedProvider === "aws_agentcore"
-        ? { agentCoreProfile: request.agentCoreProfile }
-        : {}),
-      ...(requestedProvider === "acpx"
-        ? {
-            acpxAgent: request.acpxAgent ?? "codex",
-            acpxProfile: resolveQualifiedAcpxProfile(
-              request.acpxAgent ?? "codex",
-              request.model,
-            ),
-          }
-        : {}),
-      turn,
-      snapshot,
-      ...(accountingError === null ? {} : {
-        accountingError: accountingError.message,
-        accountingFailure: failureClass(accountingError),
-      }),
-      devtools: projectCapabilityDevtools(snapshot),
-      issueThread: projectCapabilityIssueThread({
-        snapshot,
-        mode: "live",
-        replaySource: "live",
-      }),
-      ...(usage === null ? {} : { usage }),
-      timing: {
-        startedAt,
-        finishedAt: new Date().toISOString(),
-        durationMs: Date.now() - startedAtMs,
-      },
-    }, null, 2)}\n`);
+    await writeFile(
+      cli.outputPath,
+      `${JSON.stringify(
+        {
+          schema: "taskcore-runner/eval-session-artifact/v1",
+          attemptId: request.attemptId,
+          build: TASKCORE_RUNNER_BUILD_METADATA,
+          runnerd: { path: "[withheld]", sha256: `sha256:${actualDigest}` },
+          requestedModel: request.model,
+          ...(cli.candidateProfile === undefined
+            ? {}
+            : { diagnosticCandidateProfile: cli.candidateProfile }),
+          provider: requestedProvider,
+          driver: requestedDriver,
+          providerVersion: requestedProviderVersion,
+          providerSessionId: snapshot.providerSessionId,
+          ...(requestedProvider === "claude_managed"
+            ? {
+                managedProfile: request.managedProfile,
+                retainedSession: snapshot.providerSessionId !== null,
+                retainedSessionStatus:
+                  snapshot.providerSessionId === null ? "unknown" : "retained",
+              }
+            : {}),
+          ...(requestedProvider === "aws_agentcore"
+            ? { agentCoreProfile: request.agentCoreProfile }
+            : {}),
+          ...(requestedProvider === "acpx"
+            ? {
+                acpxAgent: request.acpxAgent ?? "codex",
+                acpxProfile: resolveQualifiedAcpxProfile(
+                  request.acpxAgent ?? "codex",
+                  request.model,
+                ),
+              }
+            : {}),
+          turn,
+          snapshot,
+          ...(accountingError === null
+            ? {}
+            : {
+                accountingError: accountingError.message,
+                accountingFailure: failureClass(accountingError),
+              }),
+          devtools: projectCapabilityDevtools(snapshot),
+          issueThread: projectCapabilityIssueThread({
+            snapshot,
+            mode: "live",
+            replaySource: "live",
+          }),
+          ...(usage === null ? {} : { usage }),
+          timing: {
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            durationMs: Date.now() - startedAtMs,
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
     return accountingError === null ? 0 : 2;
   } catch (error) {
     if (session !== null) {
@@ -499,10 +595,7 @@ export async function runEvalSessionCli(
       );
       if (attempt?.status === "running" && snapshot.activeTurnId === null) {
         try {
-          await session.completeAttempt(
-            "failed",
-            failureClass(error).class,
-          );
+          await session.completeAttempt("failed", failureClass(error).class);
         } catch {
           // The original infrastructure failure remains authoritative.
         }
@@ -515,39 +608,48 @@ export async function runEvalSessionCli(
       snapshot = session.snapshot();
     }
     const usage = usageIfAvailable(request, snapshot);
-    await writeFile(cli.outputPath, `${JSON.stringify({
-      schema: "taskcore-runner/eval-session-artifact/v1",
-      attemptId: request.attemptId,
-      infrastructureError: error instanceof Error ? error.message : String(error),
-      infrastructureFailure: failureClass(error),
-      build: TASKCORE_RUNNER_BUILD_METADATA,
-      runnerd: { path: "[withheld]", sha256: `sha256:${actualDigest}` },
-      requestedModel: request.model,
-      ...(cli.candidateProfile === undefined ? {} : { diagnosticCandidateProfile: cli.candidateProfile }),
-      provider: requestedProvider,
-      driver: requestedDriver,
-      providerVersion: requestedProviderVersion,
-      providerSessionId: snapshot?.providerSessionId ?? null,
-      ...(requestedProvider === "claude_managed"
-        ? {
-            managedProfile: request.managedProfile,
-            retainedSession: snapshot?.providerSessionId != null,
-            retainedSessionStatus: snapshot?.providerSessionId == null
-              ? "unknown"
-              : "retained",
-          }
-        : {}),
-      ...(requestedProvider === "aws_agentcore"
-        ? { agentCoreProfile: request.agentCoreProfile }
-        : {}),
-      ...(snapshot === null ? {} : { snapshot }),
-      ...(usage === null ? {} : { usage }),
-      timing: {
-        startedAt,
-        finishedAt: new Date().toISOString(),
-        durationMs: Date.now() - startedAtMs,
-      },
-    }, null, 2)}\n`);
+    await writeFile(
+      cli.outputPath,
+      `${JSON.stringify(
+        {
+          schema: "taskcore-runner/eval-session-artifact/v1",
+          attemptId: request.attemptId,
+          infrastructureError:
+            error instanceof Error ? error.message : String(error),
+          infrastructureFailure: failureClass(error),
+          build: TASKCORE_RUNNER_BUILD_METADATA,
+          runnerd: { path: "[withheld]", sha256: `sha256:${actualDigest}` },
+          requestedModel: request.model,
+          ...(cli.candidateProfile === undefined
+            ? {}
+            : { diagnosticCandidateProfile: cli.candidateProfile }),
+          provider: requestedProvider,
+          driver: requestedDriver,
+          providerVersion: requestedProviderVersion,
+          providerSessionId: snapshot?.providerSessionId ?? null,
+          ...(requestedProvider === "claude_managed"
+            ? {
+                managedProfile: request.managedProfile,
+                retainedSession: snapshot?.providerSessionId != null,
+                retainedSessionStatus:
+                  snapshot?.providerSessionId == null ? "unknown" : "retained",
+              }
+            : {}),
+          ...(requestedProvider === "aws_agentcore"
+            ? { agentCoreProfile: request.agentCoreProfile }
+            : {}),
+          ...(snapshot === null ? {} : { snapshot }),
+          ...(usage === null ? {} : { usage }),
+          timing: {
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            durationMs: Date.now() - startedAtMs,
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
     return 2;
   }
 }
@@ -557,7 +659,10 @@ function isEvalSessionEntrypoint(): boolean {
   try {
     // Node resolves module URLs through symlinks, including /tmp on macOS and
     // package-manager bin links. Compare the same physical paths on both sides.
-    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+    return (
+      realpathSync(process.argv[1]) ===
+      realpathSync(fileURLToPath(import.meta.url))
+    );
   } catch {
     return false;
   }
@@ -569,7 +674,9 @@ if (isEvalSessionEntrypoint()) {
       process.exitCode = code;
     })
     .catch((error: unknown) => {
-      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      process.stderr.write(
+        `${error instanceof Error ? error.message : String(error)}\n`,
+      );
       process.exitCode = 1;
     });
 }

@@ -14,7 +14,9 @@ import type {
 // The panel links to agent tabs via `@/lib/router` (company-prefixed Link).
 // Stub it to a plain anchor so the panel test doesn't need CompanyContext.
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 
 function resource(
@@ -24,13 +26,25 @@ function resource(
 ): BuiltInManagedResourceState {
   return {
     resourceKind,
-    resourceKey: resourceKind === "skill" ? "reflection-coach" : resourceKind === "routine" ? "recent-agent-reflection" : "AGENTS.md",
+    resourceKey:
+      resourceKind === "skill"
+        ? "reflection-coach"
+        : resourceKind === "routine"
+          ? "recent-agent-reflection"
+          : "AGENTS.md",
     resourceId: "res-1",
     stockVersion: "2026-07-08",
     stockHash: "aaaa",
-    currentHash: stockStatus === "missing" ? null : stockStatus === "stock_current" ? "aaaa" : "bbbb",
+    currentHash:
+      stockStatus === "missing"
+        ? null
+        : stockStatus === "stock_current"
+          ? "aaaa"
+          : "bbbb",
     stockStatus,
-    updateAvailable: stockStatus === "stock_update_available" || stockStatus === "operator_modified",
+    updateAvailable:
+      stockStatus === "stock_update_available" ||
+      stockStatus === "operator_modified",
     resetAvailable: stockStatus !== "stock_current",
     ...overrides,
   };
@@ -72,7 +86,10 @@ function makeState(
     status,
     agentId: "agent-1",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    agent: { id: "agent-1", pausedAt: status === "paused" ? new Date().toISOString() : null } as any,
+    agent: {
+      id: "agent-1",
+      pausedAt: status === "paused" ? new Date().toISOString() : null,
+    } as any,
     pauseReason: null,
     resources,
   };
@@ -96,13 +113,18 @@ describe("BuiltInBundlePanel (PAP-13099)", () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
 
-  function render(state: BuiltInAgentState, handlers: Partial<{
-    onConfigure: () => void;
-    onResetResource: (kind: BuiltInManagedResourceState["resourceKind"]) => void;
-    onRunRoutine: (routineKey: string) => void;
-    onEnableSchedule: (routineKey: string) => void;
-    onDisableSchedule: (routineKey: string) => void;
-  }> = {}) {
+  function render(
+    state: BuiltInAgentState,
+    handlers: Partial<{
+      onConfigure: () => void;
+      onResetResource: (
+        kind: BuiltInManagedResourceState["resourceKind"],
+      ) => void;
+      onRunRoutine: (routineKey: string) => void;
+      onEnableSchedule: (routineKey: string) => void;
+      onDisableSchedule: (routineKey: string) => void;
+    }> = {},
+  ) {
     root = createRoot(container);
     flushSync(() => {
       root!.render(
@@ -129,7 +151,9 @@ describe("BuiltInBundlePanel (PAP-13099)", () => {
     root = null;
     container.remove();
     // Radix portals dialog content onto body; clear leftovers between tests.
-    document.body.querySelectorAll("[data-slot='alert-dialog-portal']").forEach((node) => node.remove());
+    document.body
+      .querySelectorAll("[data-slot='alert-dialog-portal']")
+      .forEach((node) => node.remove());
   });
 
   it("renders four resource rows with ready + schedule-off chips when healthy", () => {
@@ -149,11 +173,13 @@ describe("BuiltInBundlePanel (PAP-13099)", () => {
   });
 
   it("shows the active weekly schedule and disable action when enabled", () => {
-    render(makeState("ready", [
-      resource("skill", "stock_current"),
-      resource("instructions", "stock_current"),
-      resource("routine", "stock_current", { scheduleEnabled: true }),
-    ]));
+    render(
+      makeState("ready", [
+        resource("skill", "stock_current"),
+        resource("instructions", "stock_current"),
+        resource("routine", "stock_current", { scheduleEnabled: true }),
+      ]),
+    );
     const text = container.textContent ?? "";
     expect(text).toContain("Weekly · Mon 09:00 UTC");
     expect(text).toContain("can create background work");
@@ -162,18 +188,24 @@ describe("BuiltInBundlePanel (PAP-13099)", () => {
   });
 
   it("links to a pending proposal interaction when the routine resource reports one", () => {
-    render(makeState("ready", [
-      resource("skill", "stock_current"),
-      resource("instructions", "stock_current"),
-      resource("routine", "stock_current", {
-        pendingUpdateInteractionId: "interaction-1",
-        pendingUpdateIssueId: "issue-1",
-        pendingUpdateIssueIdentifier: "PAP-42",
-      }),
-    ]));
-    const link = Array.from(container.querySelectorAll("a")).find((anchor) => anchor.textContent === "Review proposal");
+    render(
+      makeState("ready", [
+        resource("skill", "stock_current"),
+        resource("instructions", "stock_current"),
+        resource("routine", "stock_current", {
+          pendingUpdateInteractionId: "interaction-1",
+          pendingUpdateIssueId: "issue-1",
+          pendingUpdateIssueIdentifier: "PAP-42",
+        }),
+      ]),
+    );
+    const link = Array.from(container.querySelectorAll("a")).find(
+      (anchor) => anchor.textContent === "Review proposal",
+    );
     expect(container.textContent).toContain("Proposal pending");
-    expect(link?.getAttribute("href")).toBe("/issues/PAP-42#interaction-interaction-1");
+    expect(link?.getAttribute("href")).toBe(
+      "/issues/PAP-42#interaction-interaction-1",
+    );
   });
 
   it("shows Needs setup for the adapter when the agent is not configured yet", () => {
@@ -184,38 +216,48 @@ describe("BuiltInBundlePanel (PAP-13099)", () => {
   });
 
   it("surfaces an update-available chip and Update action for unedited stock drift", () => {
-    render(makeState("ready", [
-      resource("skill", "stock_current"),
-      resource("instructions", "stock_update_available"),
-      resource("routine", "stock_current"),
-    ]));
+    render(
+      makeState("ready", [
+        resource("skill", "stock_current"),
+        resource("instructions", "stock_update_available"),
+        resource("routine", "stock_current"),
+      ]),
+    );
     const text = container.textContent ?? "";
     expect(text).toContain("Update available");
     expect(text).toContain("Taskcore shipped a newer default");
     // The per-resource Update trigger button is present.
-    const buttons = Array.from(container.querySelectorAll("button")).map((b) => b.textContent);
+    const buttons = Array.from(container.querySelectorAll("button")).map(
+      (b) => b.textContent,
+    );
     expect(buttons).toContain("Update");
   });
 
   it("surfaces a Drifted chip and Reset action for operator-modified resources", () => {
-    render(makeState("ready", [
-      resource("skill", "operator_modified"),
-      resource("instructions", "stock_current"),
-      resource("routine", "stock_current"),
-    ]));
+    render(
+      makeState("ready", [
+        resource("skill", "operator_modified"),
+        resource("instructions", "stock_current"),
+        resource("routine", "stock_current"),
+      ]),
+    );
     const text = container.textContent ?? "";
     expect(text).toContain("Drifted");
     expect(text).toContain("Your changes are kept");
-    const buttons = Array.from(container.querySelectorAll("button")).map((b) => b.textContent);
+    const buttons = Array.from(container.querySelectorAll("button")).map(
+      (b) => b.textContent,
+    );
     expect(buttons).toContain("Reset");
   });
 
   it("shows a Missing chip when a resource is not materialized", () => {
-    render(makeState("ready", [
-      resource("skill", "missing"),
-      resource("instructions", "stock_current"),
-      resource("routine", "stock_current"),
-    ]));
+    render(
+      makeState("ready", [
+        resource("skill", "missing"),
+        resource("instructions", "stock_current"),
+        resource("routine", "stock_current"),
+      ]),
+    );
     expect(container.textContent).toContain("Missing");
   });
 
@@ -226,7 +268,9 @@ describe("BuiltInBundlePanel (PAP-13099)", () => {
       (b) => b.textContent === "Configure",
     );
     expect(configureBtn).toBeTruthy();
-    flushSync(() => configureBtn!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    flushSync(() =>
+      configureBtn!.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
     expect(onConfigure).toHaveBeenCalledTimes(1);
   });
 

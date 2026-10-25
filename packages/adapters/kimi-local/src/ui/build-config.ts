@@ -24,7 +24,12 @@ function parseEnvVars(text: string): Record<string, string> {
 }
 
 function parseEnvBindings(bindings: unknown): Record<string, unknown> {
-  if (typeof bindings !== "object" || bindings === null || Array.isArray(bindings)) return {};
+  if (
+    typeof bindings !== "object" ||
+    bindings === null ||
+    Array.isArray(bindings)
+  )
+    return {};
   const env: Record<string, unknown> = {};
   for (const [key, raw] of Object.entries(bindings)) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
@@ -51,7 +56,9 @@ function parseEnvBindings(bindings: unknown): Record<string, unknown> {
   return env;
 }
 
-export function buildKimiLocalConfig(v: CreateConfigValues): Record<string, unknown> {
+export function buildKimiLocalConfig(
+  v: CreateConfigValues,
+): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.cwd) ac.cwd = v.cwd;
   if (v.instructionsFilePath) ac.instructionsFilePath = v.instructionsFilePath;

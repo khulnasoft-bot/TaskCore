@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { errorHasPostgresCode, truncateTablesWithDeadlockRetry } from "./truncate-with-deadlock-retry.js";
+import {
+  errorHasPostgresCode,
+  truncateTablesWithDeadlockRetry,
+} from "./truncate-with-deadlock-retry.js";
 
 function deadlockError(): Error & { code: string } {
   return Object.assign(new Error("deadlock detected"), { code: "40P01" });
@@ -16,33 +19,45 @@ function unrelatedError(): Error & { code: string } {
 }
 
 function fakeDb(execute: ReturnType<typeof vi.fn>) {
-  return { execute } as unknown as Parameters<typeof truncateTablesWithDeadlockRetry>[0];
+  return { execute } as unknown as Parameters<
+    typeof truncateTablesWithDeadlockRetry
+  >[0];
 }
 
 describe("truncateTablesWithDeadlockRetry", () => {
   it("retries a deadlock (40P01) and succeeds once the lock clears", async () => {
-    const execute = vi.fn()
+    const execute = vi
+      .fn()
       .mockRejectedValueOnce(deadlockError())
       .mockRejectedValueOnce(deadlockError())
       .mockResolvedValueOnce(undefined);
 
-    await truncateTablesWithDeadlockRetry(fakeDb(execute), "TRUNCATE TABLE \"companies\" CASCADE", {
-      attempts: 5,
-      delayMs: () => 0,
-    });
+    await truncateTablesWithDeadlockRetry(
+      fakeDb(execute),
+      'TRUNCATE TABLE "companies" CASCADE',
+      {
+        attempts: 5,
+        delayMs: () => 0,
+      },
+    );
 
     expect(execute).toHaveBeenCalledTimes(3);
   });
 
   it("retries the late-comment foreign key violation and succeeds once the dependent row lands", async () => {
-    const execute = vi.fn()
+    const execute = vi
+      .fn()
       .mockRejectedValueOnce(lateCommentForeignKeyError())
       .mockResolvedValueOnce(undefined);
 
-    await truncateTablesWithDeadlockRetry(fakeDb(execute), "TRUNCATE TABLE \"issue_comments\" CASCADE", {
-      attempts: 5,
-      delayMs: () => 0,
-    });
+    await truncateTablesWithDeadlockRetry(
+      fakeDb(execute),
+      'TRUNCATE TABLE "issue_comments" CASCADE',
+      {
+        attempts: 5,
+        delayMs: () => 0,
+      },
+    );
 
     expect(execute).toHaveBeenCalledTimes(2);
   });
@@ -52,10 +67,14 @@ describe("truncateTablesWithDeadlockRetry", () => {
     const execute = vi.fn().mockRejectedValue(error);
 
     await expect(
-      truncateTablesWithDeadlockRetry(fakeDb(execute), "TRUNCATE TABLE \"companies\" CASCADE", {
-        attempts: 3,
-        delayMs: () => 0,
-      }),
+      truncateTablesWithDeadlockRetry(
+        fakeDb(execute),
+        'TRUNCATE TABLE "companies" CASCADE',
+        {
+          attempts: 3,
+          delayMs: () => 0,
+        },
+      ),
     ).rejects.toBe(error);
 
     expect(execute).toHaveBeenCalledTimes(3);
@@ -66,10 +85,14 @@ describe("truncateTablesWithDeadlockRetry", () => {
     const execute = vi.fn().mockRejectedValue(error);
 
     await expect(
-      truncateTablesWithDeadlockRetry(fakeDb(execute), "TRUNCATE TABLE \"companies\" CASCADE", {
-        attempts: 5,
-        delayMs: () => 0,
-      }),
+      truncateTablesWithDeadlockRetry(
+        fakeDb(execute),
+        'TRUNCATE TABLE "companies" CASCADE',
+        {
+          attempts: 5,
+          delayMs: () => 0,
+        },
+      ),
     ).rejects.toBe(error);
 
     expect(execute).toHaveBeenCalledTimes(1);

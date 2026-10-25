@@ -67,12 +67,14 @@ export async function runTaskcoreEvalMatrix<
     for (const candidate of input.candidates) {
       const output = await input.execute({ scenario, candidate });
       const score = await input.score({ scenario, candidate, output });
-      results.push(Object.freeze({
-        scenarioId: scenario.id,
-        candidateId: candidate.id,
-        output,
-        score,
-      }));
+      results.push(
+        Object.freeze({
+          scenarioId: scenario.id,
+          candidateId: candidate.id,
+          output,
+          score,
+        }),
+      );
     }
   }
   return Object.freeze(results);
@@ -83,15 +85,21 @@ function assertUniqueNonEmptyIds(
   values: readonly { readonly id: string }[],
 ): void {
   if (values.length === 0) {
-    throw new TaskcoreEvalKernelConfigurationError(`${kind} list must not be empty`);
+    throw new TaskcoreEvalKernelConfigurationError(
+      `${kind} list must not be empty`,
+    );
   }
   const ids = new Set<string>();
   for (const value of values) {
     if (value.id.trim().length === 0) {
-      throw new TaskcoreEvalKernelConfigurationError(`${kind} id must not be empty`);
+      throw new TaskcoreEvalKernelConfigurationError(
+        `${kind} id must not be empty`,
+      );
     }
     if (ids.has(value.id)) {
-      throw new TaskcoreEvalKernelConfigurationError(`duplicate ${kind} id: ${value.id}`);
+      throw new TaskcoreEvalKernelConfigurationError(
+        `duplicate ${kind} id: ${value.id}`,
+      );
     }
     ids.add(value.id);
   }

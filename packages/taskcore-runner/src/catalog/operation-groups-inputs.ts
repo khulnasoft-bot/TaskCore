@@ -15,7 +15,11 @@ import type {
   OperationGroupsSource,
 } from "./operation-groups-doc.js";
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const packageRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
 
 interface EnumSchema {
   properties?: Record<string, { enum?: string[] }>;
@@ -39,26 +43,42 @@ interface SourceContract {
 }
 
 export function loadOperationGroupsInput(): OperationGroupsInput {
-  const source = readJson<OperationGroupsSource>("spec/operation-groups/source.json");
-  const eventSchema = readJson<EnumSchema>("protocol/schemas/event.schema.json");
-  const commandSchema = readJson<EnumSchema>("protocol/schemas/command.schema.json");
-  const scenarioManifest = readHeaderJson<ScenarioManifest>("spec/capability/eval-traceability.yaml");
-  const aliasManifest = readHeaderJson<LegacyAliasManifest>("spec/capability/mcp-tool-map.yaml");
+  const source = readJson<OperationGroupsSource>(
+    "spec/operation-groups/source.json",
+  );
+  const eventSchema = readJson<EnumSchema>(
+    "protocol/schemas/event.schema.json",
+  );
+  const commandSchema = readJson<EnumSchema>(
+    "protocol/schemas/command.schema.json",
+  );
+  const scenarioManifest = readHeaderJson<ScenarioManifest>(
+    "spec/capability/eval-traceability.yaml",
+  );
+  const aliasManifest = readHeaderJson<LegacyAliasManifest>(
+    "spec/capability/mcp-tool-map.yaml",
+  );
   const generatedContracts = readJson<GeneratedContract[]>(
     "generated/capability/semantic-tool-contracts.json",
   );
-  const sourceContract = readJson<SourceContract>("spec/capability/source-contract.json");
+  const sourceContract = readJson<SourceContract>(
+    "spec/capability/source-contract.json",
+  );
   const eventTypes = eventSchema.properties?.eventType?.enum;
   const commandTypes = commandSchema.properties?.type?.enum;
   if (eventTypes === undefined || commandTypes === undefined) {
-    throw new Error("PRP event/command schemas do not expose their canonical enums.");
+    throw new Error(
+      "PRP event/command schemas do not expose their canonical enums.",
+    );
   }
   return {
     source,
     canonicalOperations: CAPABILITY_CANONICAL_CATALOG,
     reconciliation: capabilityCatalogReconciliation(),
     controlPlaneOperationIds: CAPABILITY_CONTROL_PLANE_OWNED_OPERATION_IDS,
-    liveCatalogOperationIds: LIVE_CATALOG.map((operation) => operation.operationId),
+    liveCatalogOperationIds: LIVE_CATALOG.map(
+      (operation) => operation.operationId,
+    ),
     generatedContractOperationIds: generatedContracts.map(
       (contract) => contract.annotations?.operationId ?? contract.name,
     ),
@@ -86,6 +106,8 @@ function readJson<T>(relativePath: string): T {
 
 function readHeaderJson<T>(relativePath: string): T {
   const source = readText(relativePath);
-  const body = source.startsWith("#") ? source.slice(source.indexOf("\n") + 1) : source;
+  const body = source.startsWith("#")
+    ? source.slice(source.indexOf("\n") + 1)
+    : source;
   return JSON.parse(body) as T;
 }

@@ -1,7 +1,10 @@
 import { and, desc, eq, inArray, not } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { agents, approvals, heartbeatRuns } from "@taskcore/db";
-import { isHeartbeatRunVisibleInMine, type SidebarBadges } from "@taskcore/shared";
+import {
+  isHeartbeatRunVisibleInMine,
+  type SidebarBadges,
+} from "@taskcore/shared";
 
 const ACTIONABLE_APPROVAL_STATUSES = ["pending", "revision_requested"];
 const FAILED_HEARTBEAT_STATUSES = ["failed", "timed_out"];
@@ -29,7 +32,11 @@ export function sidebarBadgeService(db: Db) {
       extra?: {
         currentUserId?: string | null;
         dismissals?: ReadonlyMap<string, number>;
-        joinRequests?: Array<{ id: string; updatedAt: Date | string | null; createdAt: Date | string }>;
+        joinRequests?: Array<{
+          id: string;
+          updatedAt: Date | string | null;
+          createdAt: Date | string;
+        }>;
         unreadTouchedIssues?: number;
       },
     ): Promise<SidebarBadges> => {
@@ -42,8 +49,16 @@ export function sidebarBadgeService(db: Db) {
             inArray(approvals.status, ACTIONABLE_APPROVAL_STATUSES),
           ),
         )
-        .then((rows) =>
-          rows.filter((row) => !isDismissed(extra?.dismissals ?? new Map(), `approval:${row.id}`, row.updatedAt)).length
+        .then(
+          (rows) =>
+            rows.filter(
+              (row) =>
+                !isDismissed(
+                  extra?.dismissals ?? new Map(),
+                  `approval:${row.id}`,
+                  row.updatedAt,
+                ),
+            ).length,
         );
 
       const latestRunByAgent = await db
@@ -64,22 +79,30 @@ export function sidebarBadgeService(db: Db) {
         )
         .orderBy(heartbeatRuns.agentId, desc(heartbeatRuns.createdAt));
 
-      const failedRuns = latestRunByAgent.filter((row) =>
-        FAILED_HEARTBEAT_STATUSES.includes(row.runStatus)
-        && (extra?.currentUserId === undefined || isHeartbeatRunVisibleInMine(row, extra.currentUserId))
-        && !isDismissed(extra?.dismissals ?? new Map(), `run:${row.id}`, row.createdAt),
+      const failedRuns = latestRunByAgent.filter(
+        (row) =>
+          FAILED_HEARTBEAT_STATUSES.includes(row.runStatus) &&
+          (extra?.currentUserId === undefined ||
+            isHeartbeatRunVisibleInMine(row, extra.currentUserId)) &&
+          !isDismissed(
+            extra?.dismissals ?? new Map(),
+            `run:${row.id}`,
+            row.createdAt,
+          ),
       ).length;
 
-      const joinRequests = (extra?.joinRequests ?? []).filter((row) =>
-        !isDismissed(
-          extra?.dismissals ?? new Map(),
-          `join:${row.id}`,
-          row.updatedAt ?? row.createdAt,
-        )
+      const joinRequests = (extra?.joinRequests ?? []).filter(
+        (row) =>
+          !isDismissed(
+            extra?.dismissals ?? new Map(),
+            `join:${row.id}`,
+            row.updatedAt ?? row.createdAt,
+          ),
       ).length;
       const unreadTouchedIssues = extra?.unreadTouchedIssues ?? 0;
       return {
-        inbox: actionableApprovals + failedRuns + joinRequests + unreadTouchedIssues,
+        inbox:
+          actionableApprovals + failedRuns + joinRequests + unreadTouchedIssues,
         approvals: actionableApprovals,
         failedRuns,
         joinRequests,

@@ -1,7 +1,5 @@
 export type QuestionValidationPatternResult =
-  | "match"
-  | "no_match"
-  | "unsupported";
+  "match" | "no_match" | "unsupported";
 
 const MAX_SAFE_PATTERN_LENGTH = 256;
 const UNSUPPORTED_PATTERN_TOKENS = new Set([
@@ -20,8 +18,7 @@ const UNSUPPORTED_PATTERN_TOKENS = new Set([
 type CharacterMatcher = (character: string) => boolean;
 
 function escapedMatcher(token: string): CharacterMatcher {
-  if (token === "d")
-    return (character) => character >= "0" && character <= "9";
+  if (token === "d") return (character) => character >= "0" && character <= "9";
   if (token === "D") return (character) => character < "0" || character > "9";
   if (token === "w")
     return (character) =>
@@ -33,8 +30,7 @@ function escapedMatcher(token: string): CharacterMatcher {
     const word = escapedMatcher("w");
     return (character) => !word(character);
   }
-  if (token === "s")
-    return (character) => " \t\n\r\f\v".includes(character);
+  if (token === "s") return (character) => " \t\n\r\f\v".includes(character);
   if (token === "S") {
     const whitespace = escapedMatcher("s");
     return (character) => !whitespace(character);

@@ -10,7 +10,11 @@ import {
 } from "drizzle-orm/pg-core";
 import { companies } from "./companies.js";
 import { plugins } from "./plugins.js";
-import type { PluginJobStatus, PluginJobRunStatus, PluginJobRunTrigger } from "@taskcore/shared";
+import type {
+  PluginJobStatus,
+  PluginJobRunStatus,
+  PluginJobRunTrigger,
+} from "@taskcore/shared";
 
 /**
  * `plugin_jobs` table — registration and runtime configuration for
@@ -46,13 +50,20 @@ export const pluginJobs = pgTable(
     lastRunAt: timestamp("last_run_at", { withTimezone: true }),
     /** Pre-computed timestamp of the next scheduled execution. */
     nextRunAt: timestamp("next_run_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     pluginIdx: index("plugin_jobs_plugin_idx").on(table.pluginId),
     nextRunIdx: index("plugin_jobs_next_run_idx").on(table.nextRunAt),
-    uniqueJobIdx: uniqueIndex("plugin_jobs_unique_idx").on(table.pluginId, table.jobKey),
+    uniqueJobIdx: uniqueIndex("plugin_jobs_unique_idx").on(
+      table.pluginId,
+      table.jobKey,
+    ),
   }),
 );
 
@@ -82,11 +93,16 @@ export const pluginJobRuns = pgTable(
       .notNull()
       .references(() => plugins.id, { onDelete: "cascade" }),
     /** Company scope — NULL for instance-level jobs. */
-    companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id").references(() => companies.id, {
+      onDelete: "cascade",
+    }),
     /** What caused this run to start (`"scheduled"` or `"manual"`). */
     trigger: text("trigger").$type<PluginJobRunTrigger>().notNull(),
     /** Current lifecycle state of this run. */
-    status: text("status").$type<PluginJobRunStatus>().notNull().default("pending"),
+    status: text("status")
+      .$type<PluginJobRunStatus>()
+      .notNull()
+      .default("pending"),
     /** Wall-clock duration in milliseconds. Null until the run finishes. */
     durationMs: integer("duration_ms"),
     /** Error message if `status === "failed"`. */
@@ -95,7 +111,9 @@ export const pluginJobRuns = pgTable(
     logs: jsonb("logs").$type<string[]>().notNull().default([]),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     jobIdx: index("plugin_job_runs_job_idx").on(table.jobId),

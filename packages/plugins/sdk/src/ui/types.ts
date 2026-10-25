@@ -129,8 +129,7 @@ export interface PluginRenderCloseLifecycle {
 /**
  * Runtime information about the host container currently rendering a plugin UI.
  */
-export interface PluginRenderEnvironmentContext
-  extends PluginLauncherRenderContextSnapshot {
+export interface PluginRenderEnvironmentContext extends PluginLauncherRenderContextSnapshot {
   /** Optional host callback for requesting new bounds while a modal is open. */
   requestModalBounds?(request: PluginModalBoundsRequest): Promise<void>;
   /** Optional close lifecycle callbacks for host-managed overlays. */
@@ -167,8 +166,10 @@ export interface HostNavigationLinkOptions extends HostNavigationOptions {
  * The `href` is always real so browser affordances such as copy-link,
  * modifier-click, middle-click, and open-in-new-tab continue to work.
  */
-export interface HostNavigationLinkProps
-  extends Pick<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "target" | "rel"> {
+export interface HostNavigationLinkProps extends Pick<
+  AnchorHTMLAttributes<HTMLAnchorElement>,
+  "href" | "target" | "rel"
+> {
   onClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
 }
 
@@ -211,7 +212,10 @@ export interface HostNavigation {
    * link gestures are left alone because the returned props include a real
    * `href`.
    */
-  linkProps(to: string, options?: HostNavigationLinkOptions): HostNavigationLinkProps;
+  linkProps(
+    to: string,
+    options?: HostNavigationLinkOptions,
+  ): HostNavigationLinkProps;
 }
 
 // ---------------------------------------------------------------------------
@@ -288,7 +292,11 @@ export interface PluginOrganizationSwitcherProps {
     /** Host-owned logout preserves its session/cache invalidation behavior. */
     onSignOut(): void;
     signingOut: boolean;
-    renderIcon(name: string, logoUrl: string | null, inMenu: boolean): ReactNode;
+    renderIcon(
+      name: string,
+      logoUrl: string | null,
+      inMenu: boolean,
+    ): ReactNode;
   };
 }
 
@@ -507,4 +515,6 @@ export interface PluginStreamResult<T = unknown> {
  * </button>
  * ```
  */
-export type PluginActionFn = (params?: Record<string, unknown>) => Promise<unknown>;
+export type PluginActionFn = (
+  params?: Record<string, unknown>,
+) => Promise<unknown>;

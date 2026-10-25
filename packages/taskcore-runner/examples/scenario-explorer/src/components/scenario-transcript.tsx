@@ -3,7 +3,12 @@ import * as React from "react";
 import { Badge } from "@taskcore/taskcore-runner/react";
 import type { CapabilityTimelineEntry } from "@taskcore-runner-local/capability";
 
-import { DispositionBadge, JsonBlock, Mono, RedactionChip } from "./primitives.js";
+import {
+  DispositionBadge,
+  JsonBlock,
+  Mono,
+  RedactionChip,
+} from "./primitives.js";
 
 /**
  * Scenario transcript — two visually distinct channels over one ordered
@@ -34,7 +39,11 @@ export function ScenarioTranscript({
               ? `cp-action-${entry.sequence}`
               : `transcript-item-${entry.sequence}`
           }
-          onClick={onSelectSequence === undefined ? undefined : () => onSelectSequence(entry.sequence)}
+          onClick={
+            onSelectSequence === undefined
+              ? undefined
+              : () => onSelectSequence(entry.sequence)
+          }
         >
           <TimelineEntryBody entry={entry} />
         </li>
@@ -78,7 +87,9 @@ export function TimelineEntryBody({
           </span>
           <p>
             {text}
-            {streaming ? <span className="pcr-stream-cursor" aria-hidden="true" /> : null}
+            {streaming ? (
+              <span className="pcr-stream-cursor" aria-hidden="true" />
+            ) : null}
           </p>
         </div>
       );
@@ -86,7 +97,10 @@ export function TimelineEntryBody({
 
     case "semantic_call":
       return (
-        <details className="pcr-disclosure pcr7-call" data-escape-hatch={entry.escapeHatch}>
+        <details
+          className="pcr-disclosure pcr7-call"
+          data-escape-hatch={entry.escapeHatch}
+        >
           <summary className="pcr-disclosure-summary">
             <span>
               <Mono>{entry.operationId}</Mono> — {entry.summary}
@@ -95,8 +109,8 @@ export function TimelineEntryBody({
           </summary>
           {entry.escapeHatch ? (
             <p className="pcr7-escape-hatch" data-testid="escape-hatch-banner">
-              Test-only escape hatch — this operation exists for skill-test scenarios and is not part
-              of the production capability set.
+              Test-only escape hatch — this operation exists for skill-test
+              scenarios and is not part of the production capability set.
             </p>
           ) : null}
           <dl className="pcr7-detail-list">
@@ -107,9 +121,13 @@ export function TimelineEntryBody({
             <dt>Required claims</dt>
             <dd>
               {entry.requiredClaims.length === 0 ? (
-                <span className="pcr7-muted">none — task-scoped always tool</span>
+                <span className="pcr7-muted">
+                  none — task-scoped always tool
+                </span>
               ) : (
-                entry.requiredClaims.map((claim) => <Mono key={claim}>{claim}</Mono>)
+                entry.requiredClaims.map((claim) => (
+                  <Mono key={claim}>{claim}</Mono>
+                ))
               )}
             </dd>
             <dt>Idempotency</dt>
@@ -161,7 +179,11 @@ export function TimelineEntryBody({
           <summary className="pcr-disclosure-summary">
             <span>{entry.summary}</span>
             <Badge tone={denied ? "danger" : "success"}>
-              {denied ? (entry.outcome === "absent" ? "Absent" : "Denied") : "Committed"}
+              {denied
+                ? entry.outcome === "absent"
+                  ? "Absent"
+                  : "Denied"
+                : "Committed"}
             </Badge>
           </summary>
           {entry.failure === null ? null : (
@@ -185,11 +207,17 @@ export function TimelineEntryBody({
               ))}
             </p>
           )}
-          {entry.value === null ? null : <JsonBlock label="Result" value={entry.value} />}
+          {entry.value === null ? null : (
+            <JsonBlock label="Result" value={entry.value} />
+          )}
           {entry.protocolEventRefs.length === 0 ? null : (
             <details className="pcr-tool-debug" data-testid="protocol-events">
-              <summary>Protocol events ({entry.protocolEventRefs.length})</summary>
-              <pre className="pcr-payload">{entry.protocolEventRefs.join("\n")}</pre>
+              <summary>
+                Protocol events ({entry.protocolEventRefs.length})
+              </summary>
+              <pre className="pcr-payload">
+                {entry.protocolEventRefs.join("\n")}
+              </pre>
             </details>
           )}
         </details>
@@ -216,7 +244,13 @@ export function TimelineEntryBody({
             <dt>State revision</dt>
             <dd>{entry.stateRevision}</dd>
             <dt>Audit reference</dt>
-            <dd>{entry.auditRef === null ? <span className="pcr7-muted">none</span> : <Mono>{entry.auditRef}</Mono>}</dd>
+            <dd>
+              {entry.auditRef === null ? (
+                <span className="pcr7-muted">none</span>
+              ) : (
+                <Mono>{entry.auditRef}</Mono>
+              )}
+            </dd>
             <dt>Decision reference</dt>
             <dd>
               {entry.decisionRef === null ? (

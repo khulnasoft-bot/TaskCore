@@ -69,17 +69,17 @@ export function isRunnerIngressAuthorized(
 }
 
 export class NativeRunnerSelectionError extends Error {
-  constructor(readonly code: string, message: string) {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
     super(message);
     this.name = "NativeRunnerSelectionError";
   }
 }
 
 export class NativeRuntimeEligibilityError extends NativeRunnerSelectionError {
-  constructor(
-    code: string,
-    reason?: string,
-  ) {
+  constructor(code: string, reason?: string) {
     super(code, reason ?? `Native runner profile is ineligible: ${code}`);
     this.name = "NativeRuntimeEligibilityError";
   }
@@ -89,10 +89,7 @@ function ineligible(
   code: string,
   reason: string,
 ): NativeRuntimeEligibilityError {
-  return new NativeRuntimeEligibilityError(
-    code,
-    reason,
-  );
+  return new NativeRuntimeEligibilityError(code, reason);
 }
 
 export function resolveNativeRuntimeMode(input: {
@@ -101,7 +98,11 @@ export function resolveNativeRuntimeMode(input: {
   runtimeConfig: unknown;
   adapterConfig?: unknown;
   agent: { id?: string; status: string; adapterType: string | null };
-  issue: { id: string; workMode: string; executionWorkspaceId?: string | null } | null;
+  issue: {
+    id: string;
+    workMode: string;
+    executionWorkspaceId?: string | null;
+  } | null;
   target: { kind?: string } | null | undefined;
   workspaceId: string | null;
 }): NativeRuntimeResolution {
@@ -128,7 +129,11 @@ export function resolveNativeRuntimeMode(input: {
   }
   // Dot has its own rollout; enabling it does not opt in other Runner providers.
   if (runnerProfile.provider === "openai_dot") {
-    if (input.dotEnabled !== true) throw ineligible("taskcore_runner_dot_disabled", "Enable OpenAI Dot and Assistant connections (MCP) in experimental settings before assigning new work.");
+    if (input.dotEnabled !== true)
+      throw ineligible(
+        "taskcore_runner_dot_disabled",
+        "Enable OpenAI Dot and Assistant connections (MCP) in experimental settings before assigning new work.",
+      );
   } else if (!input.enabled) {
     throw ineligible(
       "taskcore_runner_rollout_disabled",
@@ -136,8 +141,8 @@ export function resolveNativeRuntimeMode(input: {
     );
   }
   if (
-    input.agent.adapterType !== "taskcore_runner"
-    || input.agent.status !== "active" && input.agent.status !== "running"
+    input.agent.adapterType !== "taskcore_runner" ||
+    (input.agent.status !== "active" && input.agent.status !== "running")
   ) {
     throw ineligible(
       "taskcore_runner_agent_ineligible",
@@ -243,16 +248,18 @@ export function resolveHeartbeatRuntimeMode(input: {
     kind: "native",
     resolverVersion: NATIVE_RUNTIME_RESOLVER_VERSION,
     reason: "explicit_taskcore_runner",
-    provider: resolution.profile.backend === "opencode_server"
-      ? "opencode"
-      : resolution.profile.backend === "claude_managed_agents_api"
-        ? "claude_managed"
-        : resolution.profile.backend === "aws_agentcore_harness_api"
-          ? "aws_agentcore"
-      : resolution.profile.backend === "openai_dot_mcp" ? "openai_dot"
-      : resolution.profile.backend === "acpx_runtime"
-          ? "acpx"
-          : "codex",
+    provider:
+      resolution.profile.backend === "opencode_server"
+        ? "opencode"
+        : resolution.profile.backend === "claude_managed_agents_api"
+          ? "claude_managed"
+          : resolution.profile.backend === "aws_agentcore_harness_api"
+            ? "aws_agentcore"
+            : resolution.profile.backend === "openai_dot_mcp"
+              ? "openai_dot"
+              : resolution.profile.backend === "acpx_runtime"
+                ? "acpx"
+                : "codex",
   };
 }
 
@@ -273,7 +280,11 @@ export function resolveHeartbeatNativeRuntimeMode(input: {
   runtimeConfig: unknown;
   adapterConfig?: unknown;
   agent: { id?: string; status: string; adapterType: string | null };
-  issue: { id: string; workMode: string; executionWorkspaceId?: string | null } | null;
+  issue: {
+    id: string;
+    workMode: string;
+    executionWorkspaceId?: string | null;
+  } | null;
   target: { kind?: string } | null | undefined;
   workspaceId: string | null;
 }): NativeRuntimeResolution {
@@ -285,31 +296,30 @@ export function resolveHeartbeatNativeRuntimeMode(input: {
           "A persisted native run must remain bound to the Taskcore Runner adapter.",
         );
       }
-      if (
-        input.agent.status !== "active" &&
-        input.agent.status !== "running"
-      ) {
+      if (input.agent.status !== "active" && input.agent.status !== "running") {
         throw ineligible(
           "taskcore_runner_agent_ineligible",
           "A persisted Taskcore Runner run cannot recover through a non-invokable agent.",
         );
       }
       const driverKind = input.persisted.driverKind;
-      const backend = driverKind === "opencode_server"
-        ? "opencode_server"
-        : driverKind === "claude_managed_agents_api"
-          ? "claude_managed_agents_api"
-          : driverKind === "aws_agentcore_harness_api"
-            ? "aws_agentcore_harness_api"
-        : driverKind === "openai_dot_mcp" ? "openai_dot_mcp"
-        : driverKind === "acpx_runtime"
-            ? "acpx_runtime"
-            : driverKind === null
-              || driverKind === undefined
-              || driverKind === "codex"
-              || driverKind === "codex_app_server"
-            ? "codex_app_server"
-            : null;
+      const backend =
+        driverKind === "opencode_server"
+          ? "opencode_server"
+          : driverKind === "claude_managed_agents_api"
+            ? "claude_managed_agents_api"
+            : driverKind === "aws_agentcore_harness_api"
+              ? "aws_agentcore_harness_api"
+              : driverKind === "openai_dot_mcp"
+                ? "openai_dot_mcp"
+                : driverKind === "acpx_runtime"
+                  ? "acpx_runtime"
+                  : driverKind === null ||
+                      driverKind === undefined ||
+                      driverKind === "codex" ||
+                      driverKind === "codex_app_server"
+                    ? "codex_app_server"
+                    : null;
       if (backend === null) {
         throw ineligible(
           "taskcore_runner_driver_unsupported",
@@ -352,20 +362,22 @@ export function inspectNativeCompatibilityState(input: {
   statusVersion: number;
   persistedEffectKinds: string[];
 }) {
-  const effects = input.persistedEffectKinds.length > 0
-    ? [...input.persistedEffectKinds]
-    : input.resolution.kind === "legacy"
-      ? ["legacy_existing_behavior"]
-      : input.nativeRecordCount === 0 && input.statusVersion === 0
-        ? ["initialize_status_version_zero"]
-        : [];
+  const effects =
+    input.persistedEffectKinds.length > 0
+      ? [...input.persistedEffectKinds]
+      : input.resolution.kind === "legacy"
+        ? ["legacy_existing_behavior"]
+        : input.nativeRecordCount === 0 && input.statusVersion === 0
+          ? ["initialize_status_version_zero"]
+          : [];
   return {
     mode: input.resolution.kind,
     native: input.nativeRecordCount > 0,
     hasNativeDecisionLineage: input.decisionCount > 0,
     issueStatus: input.issueStatus,
     statusVersion: input.statusVersion,
-    statusAction: input.resolution.kind === "legacy" ? "legacy_finalizer" : "preserve",
+    statusAction:
+      input.resolution.kind === "legacy" ? "legacy_finalizer" : "preserve",
     reasonCode: null,
     effects,
   } as const;
@@ -381,23 +393,31 @@ export function inspectNativeMigrationState(input: {
   statusVersion: number;
   hasPendingReview: boolean;
 }) {
-  const effects = input.resolution.kind === "legacy"
-    ? input.issueStatusBefore === "done"
-      ? ["retain_legacy_mode", "retain_audit_lineage"]
-      : ["return_native_false"]
-    : input.nativeRecordCount === 0 && input.hasPendingReview && input.statusVersion > 0
-      ? ["increment_status_version_once", "bind_reviewer"]
-      : input.nativeRecordCount === 0
-        ? ["expand_schema", "status_version_default_zero"]
-        : [];
+  const effects =
+    input.resolution.kind === "legacy"
+      ? input.issueStatusBefore === "done"
+        ? ["retain_legacy_mode", "retain_audit_lineage"]
+        : ["return_native_false"]
+      : input.nativeRecordCount === 0 &&
+          input.hasPendingReview &&
+          input.statusVersion > 0
+        ? ["increment_status_version_once", "bind_reviewer"]
+        : input.nativeRecordCount === 0
+          ? ["expand_schema", "status_version_default_zero"]
+          : [];
   return {
     mode: input.resolution.kind,
     native: input.nativeRecordCount > 0,
-    hasSyntheticHistory: input.nativeRecordCount === 0 && input.decisionCount > 0,
+    hasSyntheticHistory:
+      input.nativeRecordCount === 0 && input.decisionCount > 0,
     statusPreserved: input.issueStatusBefore === input.issueStatusAfter,
     statusVersion: input.statusVersion,
-    statusAction: input.resolution.kind === "legacy" ? "legacy_finalizer"
-      : input.hasPendingReview ? input.issueStatusAfter : "preserve",
+    statusAction:
+      input.resolution.kind === "legacy"
+        ? "legacy_finalizer"
+        : input.hasPendingReview
+          ? input.issueStatusAfter
+          : "preserve",
     reasonCode: null,
     effects,
   } as const;
@@ -416,7 +436,10 @@ export function resolveNativeCompatibilityStatus(input: {
   priorIssueStatus: NativeAuthoritativeIssueStatus;
   agentId: string;
 }): NativeStatusDecision {
-  const preserve = (reasonCode: string, effects: NativeStatusDecision["effects"]): NativeStatusDecision => ({
+  const preserve = (
+    reasonCode: string,
+    effects: NativeStatusDecision["effects"],
+  ): NativeStatusDecision => ({
     policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
     statusAction: "preserve",
     toStatus: input.priorIssueStatus,
@@ -425,12 +448,14 @@ export function resolveNativeCompatibilityStatus(input: {
     effects,
   });
   if (input.facts.invalidNativeFinalization) {
-    return preserve("native_finalization_invalid", [{
-      kind: "record_finalization_error",
-      cause: "native_finalization_invalid",
-      nextAction: "Repair the persisted native result.",
-      agentId: input.agentId,
-    }]);
+    return preserve("native_finalization_invalid", [
+      {
+        kind: "record_finalization_error",
+        cause: "native_finalization_invalid",
+        nextAction: "Repair the persisted native result.",
+        agentId: input.agentId,
+      },
+    ]);
   }
   if (input.facts.terminalResumeAuthorized) {
     return {
@@ -439,20 +464,27 @@ export function resolveNativeCompatibilityStatus(input: {
       toStatus: "in_progress",
       reasonCode: "authorized_resume",
       unblockDescriptor: null,
-      effects: [{
-        kind: "enqueue_continuation",
-        continuationKind: "same_agent",
-        summary: "Resume the terminal issue through the authorized compatibility path.",
-        idempotencyKey: "native-compatibility:authorized-resume",
-        agentId: input.agentId,
-      }],
+      effects: [
+        {
+          kind: "enqueue_continuation",
+          continuationKind: "same_agent",
+          summary:
+            "Resume the terminal issue through the authorized compatibility path.",
+          idempotencyKey: "native-compatibility:authorized-resume",
+          agentId: input.agentId,
+        },
+      ],
     };
   }
   if (input.facts.shadowApplicationDisabled) {
-    return preserve("completion_contract_satisfied", [{ kind: "record_shadow_decision" }]);
+    return preserve("completion_contract_satisfied", [
+      { kind: "record_shadow_decision" },
+    ]);
   }
   if (input.facts.mixedLedger) {
-    return preserve("completion_contract_satisfied", [{ kind: "render_four_layers" }]);
+    return preserve("completion_contract_satisfied", [
+      { kind: "render_four_layers" },
+    ]);
   }
   if (input.facts.statusWriterAdvancedVersion) {
     return preserve("arbitration_conflict_reloaded", [
@@ -476,7 +508,10 @@ export function resolveNativeMigrationStatus(input: {
   priorIssueStatus: NativeAuthoritativeIssueStatus;
   agentId: string;
 }): NativeStatusDecision {
-  const preserve = (reasonCode: string, effects: NativeStatusDecision["effects"]): NativeStatusDecision => ({
+  const preserve = (
+    reasonCode: string,
+    effects: NativeStatusDecision["effects"],
+  ): NativeStatusDecision => ({
     policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
     statusAction: "preserve",
     toStatus: input.priorIssueStatus,
@@ -491,7 +526,9 @@ export function resolveNativeMigrationStatus(input: {
     ]);
   }
   if (input.facts.classifiedDivergence) {
-    return preserve("completion_evidence_incomplete", [{ kind: "record_mode_labeled_divergence" }]);
+    return preserve("completion_evidence_incomplete", [
+      { kind: "record_mode_labeled_divergence" },
+    ]);
   }
   if (input.facts.killSwitchActiveForNewRuns) {
     return {
@@ -519,7 +556,10 @@ export function resolveNativeMigrationStatus(input: {
       toStatus: "done",
       reasonCode: "completion_contract_satisfied",
       unblockDescriptor: null,
-      effects: [{ kind: "record_mode_native" }, { kind: "record_policy_version" }],
+      effects: [
+        { kind: "record_mode_native" },
+        { kind: "record_policy_version" },
+      ],
     };
   }
   if (input.facts.applicationEnabled) {

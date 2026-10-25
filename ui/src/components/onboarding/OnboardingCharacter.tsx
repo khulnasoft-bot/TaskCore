@@ -4,7 +4,13 @@ import { cn } from "@/lib/utils";
 import { AgentAvatar } from "../AgentAvatar";
 import type { createCharacter } from "@taskcore/shared/cliplab/runtime";
 import type { Definition } from "@taskcore/shared/cliplab/model";
-import { colorOnboardingDefinition, resolveOnboardingSequences, sequenceDuration, sequenceLeadIn, type OnboardingSequences } from "./onboarding-character";
+import {
+  colorOnboardingDefinition,
+  resolveOnboardingSequences,
+  sequenceDuration,
+  sequenceLeadIn,
+  type OnboardingSequences,
+} from "./onboarding-character";
 
 type Player = ReturnType<typeof createCharacter>;
 type Phase = "asleep" | "awake";
@@ -39,32 +45,65 @@ export interface OnboardingCharacterProps {
  * sequence entirely: the runtime holds the first pose under that setting, so
  * the hero switches straight to its coloured idle.
  */
-export function OnboardingCharacter({ appearance, awake, className }: OnboardingCharacterProps) {
+export function OnboardingCharacter({
+  appearance,
+  awake,
+  className,
+}: OnboardingCharacterProps) {
   const identity = resolveAgentAppearance(appearance);
-  const base = useRef<HTMLSpanElement>(null), overlay = useRef<HTMLSpanElement>(null);
-  const players = useRef<{ base: Player | null; overlay: Player | null }>({ base: null, overlay: null });
-  const library = useRef<{ create: typeof createCharacter; definition: Definition; sequences: OnboardingSequences } | null>(null);
+  const base = useRef<HTMLSpanElement>(null),
+    overlay = useRef<HTMLSpanElement>(null);
+  const players = useRef<{ base: Player | null; overlay: Player | null }>({
+    base: null,
+    overlay: null,
+  });
+  const library = useRef<{
+    create: typeof createCharacter;
+    definition: Definition;
+    sequences: OnboardingSequences;
+  } | null>(null);
   // What the live canvas currently shows, so a prop change is a transition
   // from something rather than a re-mount. Starts where the props say.
   const phase = useRef<Phase>(awake ? "awake" : "asleep");
   const renderedPalette = useRef<string | null>(null);
   const timers = useRef<number[]>([]);
-  const [ready, setReady] = useState(false), [failed, setFailed] = useState(false), [colored, setColored] = useState(awake);
+  const [ready, setReady] = useState(false),
+    [failed, setFailed] = useState(false),
+    [colored, setColored] = useState(awake);
   const [wakeSeconds, setWakeSeconds] = useState(0);
 
-  const clearTimers = () => { for (const id of timers.current) window.clearTimeout(id); timers.current = []; };
-  const destroy = (key: "base" | "overlay") => { players.current[key]?.destroy(); players.current[key] = null; };
+  const clearTimers = () => {
+    for (const id of timers.current) window.clearTimeout(id);
+    timers.current = [];
+  };
+  const destroy = (key: "base" | "overlay") => {
+    players.current[key]?.destroy();
+    players.current[key] = null;
+  };
   // A renderer failure (render, resize, context loss) hands the hero to the
   // still portrait — and releases both canvases, observers and contexts, which
   // otherwise stay allocated behind the fallback until the wizard unmounts.
-  const fail = () => { clearTimers(); destroy("overlay"); destroy("base"); setReady(false); setFailed(true); };
+  const fail = () => {
+    clearTimers();
+    destroy("overlay");
+    destroy("base");
+    setReady(false);
+    setFailed(true);
+  };
   // Note: after a wake the live player sits in the overlay span; `mount` clears both spans.
-  const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reducedMotion = () =>
+    typeof matchMedia === "function" &&
+    matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Body-following, page-scoped: the engine turns the body toward the
   // pointer only while eye-following is off. Framing is the engine's
   // character framing, the same as every live AgentCharacter.
-  const FOLLOW = { followCursor: false, followRotation: true, trackingScope: "page" as const, displaySize: 160 };
+  const FOLLOW = {
+    followCursor: false,
+    followRotation: true,
+    trackingScope: "page" as const,
+    displaySize: 160,
+  };
 
   /**
    * A fresh canvas (or pair) in the given phase; no transition. The loops
@@ -81,31 +120,52 @@ export function OnboardingCharacter({ appearance, awake, className }: Onboarding
   function mount(next: Phase) {
     const lib = library.current;
     if (!lib || !base.current || !overlay.current) return;
-    clearTimers(); destroy("overlay"); destroy("base");
-    const animation = next === "asleep" ? lib.sequences.asleep : lib.sequences.awake;
+    clearTimers();
+    destroy("overlay");
+    destroy("base");
+    const animation =
+      next === "asleep" ? lib.sequences.asleep : lib.sequences.awake;
     const leadIn = sequenceLeadIn(lib.definition, animation);
-    const player = lib.create(base.current, colorOnboardingDefinition(lib.definition, identity, next === "asleep"), { animation, ...FOLLOW, onError: fail });
+    const player = lib.create(
+      base.current,
+      colorOnboardingDefinition(lib.definition, identity, next === "asleep"),
+      { animation, ...FOLLOW, onError: fail },
+    );
     players.current.base = player;
     player.seek(leadIn);
     if (players.current.base !== player) return;
     if (next === "asleep") {
-      const twin = lib.create(overlay.current, colorOnboardingDefinition(lib.definition, identity, false), { animation, ...FOLLOW, onError: fail });
+      const twin = lib.create(
+        overlay.current,
+        colorOnboardingDefinition(lib.definition, identity, false),
+        { animation, ...FOLLOW, onError: fail },
+      );
       players.current.overlay = twin;
       twin.seek(leadIn);
       if (players.current.overlay !== twin) return;
     }
-    phase.current = next; renderedPalette.current = identity.paletteId; setColored(next === "awake");
+    phase.current = next;
+    renderedPalette.current = identity.paletteId;
+    setColored(next === "awake");
   }
 
   /** The arc's payoff: both canvases play the transition together while the palette fades in. */
   function wake() {
-    const lib = library.current, gray = players.current.base, twin = players.current.overlay;
-    if (!lib || !gray || !twin || reducedMotion()) { mount("awake"); return; }
+    const lib = library.current,
+      gray = players.current.base,
+      twin = players.current.overlay;
+    if (!lib || !gray || !twin || reducedMotion()) {
+      mount("awake");
+      return;
+    }
     clearTimers();
     // Skip the sequence's wrap-around ease so it opens asleep, not on a
     // blend of its own idle end; see sequenceLeadIn.
     const leadIn = sequenceLeadIn(lib.definition, lib.sequences.wake);
-    const seconds = Math.max(0, sequenceDuration(lib.definition, lib.sequences.wake) - leadIn);
+    const seconds = Math.max(
+      0,
+      sequenceDuration(lib.definition, lib.sequences.wake) - leadIn,
+    );
     setWakeSeconds(seconds);
     // Same tick, same offset: the two canvases stay in lock-step for the fade.
     for (const player of [gray, twin]) {
@@ -122,41 +182,85 @@ export function OnboardingCharacter({ appearance, awake, className }: Onboarding
     // The gray canvas is fully covered by then; the twin becomes the live
     // canvas as it is — same pointer state, no re-creation, so no snap — and
     // the idle loop starts past its wrap-around ease.
-    timers.current.push(window.setTimeout(() => {
-      destroy("base");
-      players.current.base = players.current.overlay; players.current.overlay = null;
-      players.current.base?.setAnimation(lib.sequences.awake);
-      players.current.base?.seek(sequenceLeadIn(lib.definition, lib.sequences.awake));
-    }, Math.ceil(seconds * 1000) + 50));
+    timers.current.push(
+      window.setTimeout(
+        () => {
+          destroy("base");
+          players.current.base = players.current.overlay;
+          players.current.overlay = null;
+          players.current.base?.setAnimation(lib.sequences.awake);
+          players.current.base?.seek(
+            sequenceLeadIn(lib.definition, lib.sequences.awake),
+          );
+        },
+        Math.ceil(seconds * 1000) + 50,
+      ),
+    );
   }
 
   useEffect(() => {
     // The runtime observes its container and needs a GL canvas; where neither
     // exists (jsdom, some embedded views) the still portrait is the whole hero.
-    if (typeof IntersectionObserver !== "function" || typeof ResizeObserver !== "function" || typeof WebGLRenderingContext === "undefined") { setFailed(true); return; }
+    if (
+      typeof IntersectionObserver !== "function" ||
+      typeof ResizeObserver !== "function" ||
+      typeof WebGLRenderingContext === "undefined"
+    ) {
+      setFailed(true);
+      return;
+    }
     let disposed = false;
     setReady(false);
-    void Promise.all([import("@taskcore/shared/cliplab/runtime"), import("@taskcore/shared/cliplab/character")]).then(([runtime, exported]) => {
-      if (disposed) return;
-      const definition = exported.TASKCORE_CHARACTER;
-      library.current = { create: runtime.createCharacter, definition, sequences: resolveOnboardingSequences(definition) };
-      mount(phase.current);
-      if (players.current.base) setReady(true);
-    }).catch((error: unknown) => {
-      if (disposed) return;
-      console.warn("Onboarding character unavailable, showing the still portrait.", error);
-      fail();
-    });
-    return () => { disposed = true; clearTimers(); destroy("overlay"); destroy("base"); library.current = null; setReady(false); };
+    void Promise.all([
+      import("@taskcore/shared/cliplab/runtime"),
+      import("@taskcore/shared/cliplab/character"),
+    ])
+      .then(([runtime, exported]) => {
+        if (disposed) return;
+        const definition = exported.TASKCORE_CHARACTER;
+        library.current = {
+          create: runtime.createCharacter,
+          definition,
+          sequences: resolveOnboardingSequences(definition),
+        };
+        mount(phase.current);
+        if (players.current.base) setReady(true);
+      })
+      .catch((error: unknown) => {
+        if (disposed) return;
+        console.warn(
+          "Onboarding character unavailable, showing the still portrait.",
+          error,
+        );
+        fail();
+      });
+    return () => {
+      disposed = true;
+      clearTimers();
+      destroy("overlay");
+      destroy("base");
+      library.current = null;
+      setReady(false);
+    };
     // Mount once; later prop changes are transitions handled below.
   }, []);
 
   // Refresh the hidden colored twin too, before a simultaneous wake. The gray
   // canvas does not change color, but its twin must carry the new assignment.
   useEffect(() => {
-    if (!ready || !library.current || renderedPalette.current === identity.paletteId) return;
-    try { mount(phase.current); } catch (error) {
-      console.warn("Onboarding character palette change failed, showing the still portrait.", error);
+    if (
+      !ready ||
+      !library.current ||
+      renderedPalette.current === identity.paletteId
+    )
+      return;
+    try {
+      mount(phase.current);
+    } catch (error) {
+      console.warn(
+        "Onboarding character palette change failed, showing the still portrait.",
+        error,
+      );
       fail();
     }
   }, [identity.paletteId, ready]);
@@ -166,9 +270,13 @@ export function OnboardingCharacter({ appearance, awake, className }: Onboarding
     const next: Phase = awake ? "awake" : "asleep";
     if (next === phase.current) return;
     try {
-      if (next === "awake") wake(); else mount("asleep");
+      if (next === "awake") wake();
+      else mount("asleep");
     } catch (error) {
-      console.warn("Onboarding character transition failed, showing the still portrait.", error);
+      console.warn(
+        "Onboarding character transition failed, showing the still portrait.",
+        error,
+      );
       fail();
     }
   }, [awake, ready]);
@@ -176,14 +284,23 @@ export function OnboardingCharacter({ appearance, awake, className }: Onboarding
   const live = ready && !failed;
   return (
     <span className={cn("relative inline-block", className)} aria-hidden="true">
-      <AgentAvatar appearance={identity} size={256} pose={awake ? "rest" : "sleepy"} muted={!awake} className={cn("size-full", live && "invisible")} />
+      <AgentAvatar
+        appearance={identity}
+        size={256}
+        pose={awake ? "rest" : "sleepy"}
+        muted={!awake}
+        className={cn("size-full", live && "invisible")}
+      />
       <span ref={base} className="absolute inset-0" />
       <span
         ref={overlay}
         // Linear, over the whole sequence: the colour keeps arriving through
         // the wink and lands exactly as the face settles into its idle smile.
         className="absolute inset-0 transition-opacity ease-linear motion-reduce:transition-none"
-        style={{ opacity: colored ? 1 : 0, transitionDuration: `${Math.max(0, wakeSeconds)}s` }}
+        style={{
+          opacity: colored ? 1 : 0,
+          transitionDuration: `${Math.max(0, wakeSeconds)}s`,
+        }}
       />
     </span>
   );

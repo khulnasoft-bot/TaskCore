@@ -45,7 +45,10 @@ export async function getExternalChannelBindingSummary(
         eq(chatConversations.issueId, issueId),
       ),
     )
-    .orderBy(desc(chatPublications.createdAt), desc(chatConversations.createdAt))
+    .orderBy(
+      desc(chatPublications.createdAt),
+      desc(chatConversations.createdAt),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
 

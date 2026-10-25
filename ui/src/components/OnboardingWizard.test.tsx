@@ -17,17 +17,31 @@ const localHealth = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock("@/api/health", () => ({ healthApi: localHealth }));
 const managedApi = vi.hoisted(() => ({
   list: vi.fn(async () => ({ currentUserId: "user-1", connections: [] })),
-  startLocalLogin: vi.fn(async () => ({ sessionId: "local-attempt", expiresAt: "2099-01-01T00:00:00Z" })),
+  startLocalLogin: vi.fn(async () => ({
+    sessionId: "local-attempt",
+    expiresAt: "2099-01-01T00:00:00Z",
+  })),
   submitLocalLoginCode: vi.fn(async () => ({ ok: true })),
-  checkLocalLogin: vi.fn(async (): Promise<LocalAiLoginStatus> => ({ status: "sign_in_required" })),
+  checkLocalLogin: vi.fn(async (): Promise<LocalAiLoginStatus> => ({
+    status: "sign_in_required",
+  })),
   cancelLocalLogin: vi.fn(async () => ({})),
-  connectLocal: vi.fn(async () => ({ connectionId: "local-connection", grantId: "local-grant" })),
-  create: vi.fn(async () => ({ connectionId: "managed-connection", grantId: "managed-grant" })),
+  connectLocal: vi.fn(async () => ({
+    connectionId: "local-connection",
+    grantId: "local-grant",
+  })),
+  create: vi.fn(async () => ({
+    connectionId: "managed-connection",
+    grantId: "managed-grant",
+  })),
 }));
 vi.mock("@/api/ai-connections", () => ({ aiConnectionsApi: managedApi }));
 vi.mock("../api/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api/auth")>();
-  return { ...actual, authApi: { ...actual.authApi, getSession: mockAuthApi.getSession } };
+  return {
+    ...actual,
+    authApi: { ...actual.authApi, getSession: mockAuthApi.getSession },
+  };
 });
 
 const mockDialog = vi.hoisted(() => ({
@@ -61,7 +75,9 @@ const mockGoalsApi = vi.hoisted(() => ({
 const mockAgentsApi = vi.hoisted(() => ({
   adapterModels: vi.fn(async () => [] as Array<{ id: string; label: string }>),
   testEnvironment: vi.fn(
-    async (): Promise<import("@taskcore/shared").AdapterEnvironmentTestResult> => ({
+    async (): Promise<
+      import("@taskcore/shared").AdapterEnvironmentTestResult
+    > => ({
       adapterType: "claude_local",
       status: "pass",
       checks: [],
@@ -72,7 +88,9 @@ const mockAgentsApi = vi.hoisted(() => ({
   // The hire step lists the company's agents first and adopts one that already
   // carries the typed name on the same source, so a wizard that reopens on the
   // agent step cannot hire "Ada 2". Empty by default: the company is new.
-  list: vi.fn(async () => [] as Array<{ id: string; name: string; adapterType: string }>),
+  list: vi.fn(
+    async () => [] as Array<{ id: string; name: string; adapterType: string }>,
+  ),
   instructionsBundle: vi.fn(async () => ({ entryFile: "AGENTS.md" })),
   saveInstructionsFile: vi.fn(async () => ({})),
   // No default implementation: the top-level `beforeEach` sets the "no
@@ -80,7 +98,9 @@ const mockAgentsApi = vi.hoisted(() => ({
   // under test checks with `instanceof`.
   getClaudeOAuthTokenStatus: vi.fn(),
   getAdapterAuthSignal: vi.fn(
-    async (): Promise<import("@taskcore/shared").AdapterAuthSignalResponse> => ({
+    async (): Promise<
+      import("@taskcore/shared").AdapterAuthSignalResponse
+    > => ({
       status: "present",
     }),
   ),
@@ -104,7 +124,9 @@ const mockAgentsApi = vi.hoisted(() => ({
   })),
   cancelClaudeSetupTokenLogin: vi.fn(async () => ({})),
   submitClaudeSetupTokenBrowserCode: vi.fn(async () => ({})),
-  completeClaudeSetupTokenLogin: vi.fn(async () => ({ storedSessionId: "stored-1" })),
+  completeClaudeSetupTokenLogin: vi.fn(async () => ({
+    storedSessionId: "stored-1",
+  })),
   startAdapterAuthLogin: vi.fn(async () => ({
     sessionId: "codex-session-1",
     status: "pending",
@@ -185,11 +207,17 @@ vi.mock("../api/approvals", () => ({ approvalsApi: mockApprovalsApi }));
 vi.mock("../api/secrets", () => ({ secretsApi: mockSecretsApi }));
 vi.mock("../api/issues", () => ({ issuesApi: mockIssuesApi }));
 vi.mock("../api/projects", () => ({ projectsApi: mockProjectsApi }));
-vi.mock("../api/environments", () => ({ environmentsApi: mockEnvironmentsApi }));
-vi.mock("../api/instanceSettings", () => ({ instanceSettingsApi: mockInstanceSettingsApi }));
+vi.mock("../api/environments", () => ({
+  environmentsApi: mockEnvironmentsApi,
+}));
+vi.mock("../api/instanceSettings", () => ({
+  instanceSettingsApi: mockInstanceSettingsApi,
+}));
 vi.mock("../adapters", () => ({
   listUIAdapters: () => mockAdapterRegistry.list,
-  getUIAdapter: () => ({ buildAdapterConfig: mockAdapterBuild.buildAdapterConfig }),
+  getUIAdapter: () => ({
+    buildAdapterConfig: mockAdapterBuild.buildAdapterConfig,
+  }),
 }));
 vi.mock("../adapters/metadata", () => ({ isVisualAdapterChoice: () => true }));
 vi.mock("../adapters/adapter-display-registry", () => ({
@@ -200,7 +228,12 @@ vi.mock("../adapters/adapter-display-registry", () => ({
     // then sat in the "Advanced settings" disclosure and was reachable anyway;
     // with the step down to a tile row built from this flag, it made that row
     // empty in every test and hid the surface under it.
-    recommended: type === "claude_local" || type === "codex_local" || mockAdapterRegistry.list.some(entry => entry.type === type && entry.recommended),
+    recommended:
+      type === "claude_local" ||
+      type === "codex_local" ||
+      mockAdapterRegistry.list.some(
+        (entry) => entry.type === type && entry.recommended,
+      ),
     label: type,
     description: "",
     icon: () => null,
@@ -227,7 +260,10 @@ vi.mock("../adapters/use-disabled-adapters", () => ({
 // waits differently for each — and a mock that called Claude's login
 // `displayed_code` would have the step testing the wrong half of that.
 // Reconcile with KNOWN_DEFAULTS in `adapters/use-adapter-capabilities.ts`.
-const ADAPTER_LOGIN_MODES: Record<string, "displayed_code" | "submitted_browser_code"> = {
+const ADAPTER_LOGIN_MODES: Record<
+  string,
+  "displayed_code" | "submitted_browser_code"
+> = {
   claude_local: "submitted_browser_code",
   codex_local: "displayed_code",
 };
@@ -238,7 +274,10 @@ vi.mock("../adapters/use-adapter-capabilities", () => ({
     supportsLocalAgentJwt: false,
     requiresMaterializedRuntimeSkills: false,
     login: ADAPTER_LOGIN_MODES[type]
-      ? { panelMode: ADAPTER_LOGIN_MODES[type]!, timeoutPolicy: "fixed" as const }
+      ? {
+          panelMode: ADAPTER_LOGIN_MODES[type]!,
+          timeoutPolicy: "fixed" as const,
+        }
       : undefined,
   }),
 }));
@@ -248,7 +287,10 @@ vi.mock("./AgentCapsule", () => ({ AgentCapsule: () => null }));
 
 import { ApiError } from "../api/client";
 import { queryKeys } from "../lib/queryKeys";
-import { ADAPTER_AUTH_MISSING_CHECK_CODE, getEnvironmentCapabilities } from "@taskcore/shared";
+import {
+  ADAPTER_AUTH_MISSING_CHECK_CODE,
+  getEnvironmentCapabilities,
+} from "@taskcore/shared";
 import { CLAUDE_OAUTH_TOKEN_ENV_KEY } from "./environment-variables-editor/model";
 import { ONBOARDING_STORAGE_KEY, OnboardingWizard } from "./OnboardingWizard";
 import { CONNECTED_HOLD_MS } from "./onboarding/onboarding-motion";
@@ -286,7 +328,12 @@ function render() {
   // session is known. Seeding it is how these tests say "signed in as B".
   queryClient.setQueryData(queryKeys.auth.session, {
     session: { id: "session-b", userId: SESSION_USER_ID },
-    user: { id: SESSION_USER_ID, name: "B", email: "b@example.com", image: null },
+    user: {
+      id: SESSION_USER_ID,
+      name: "B",
+      email: "b@example.com",
+      image: null,
+    },
   });
   return { container, root, queryClient };
 }
@@ -331,10 +378,20 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       authorizationUrl: "https://claude.ai/oauth/authorize?code=true",
       code: "TEST-CODE",
     });
-    managedApi.connectLocal.mockReset().mockResolvedValue({ connectionId: "local-connection", grantId: "local-grant" });
+    managedApi.connectLocal
+      .mockReset()
+      .mockResolvedValue({
+        connectionId: "local-connection",
+        grantId: "local-grant",
+      });
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-b", userId: SESSION_USER_ID },
-      user: { id: SESSION_USER_ID, name: "B", email: "b@example.com", image: null },
+      user: {
+        id: SESSION_USER_ID,
+        name: "B",
+        email: "b@example.com",
+        image: null,
+      },
     });
     mockSecretsApi.list.mockResolvedValue([]);
     mockSecretsApi.listMyUserSecrets.mockResolvedValue([]);
@@ -381,7 +438,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       testedAt: new Date().toISOString(),
     });
     mockAgentsApi.hire.mockReset();
-    mockAgentsApi.hire.mockResolvedValue({ agent: { id: "agent-1" }, approval: null });
+    mockAgentsApi.hire.mockResolvedValue({
+      agent: { id: "agent-1" },
+      approval: null,
+    });
     mockCompaniesApi.create.mockResolvedValue({
       id: "created",
       name: "Created Co",
@@ -419,7 +479,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       // The model step needs tiles to pick from, and this suite's default
       // registry is empty.
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
       const { root, queryClient } = render();
       const renderTree = () =>
         act(async () => {
@@ -436,7 +499,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
     async function clickByText(match: (text: string) => boolean) {
       const el = [...document.body.querySelectorAll("button")].find((b) =>
-        match(b.getAttribute("aria-label")?.startsWith("Use ") ? b.getAttribute("aria-label")! : b.textContent?.trim() ?? ""),
+        match(
+          b.getAttribute("aria-label")?.startsWith("Use ")
+            ? b.getAttribute("aria-label")!
+            : (b.textContent?.trim() ?? ""),
+        ),
       )!;
       await act(async () => {
         el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -445,14 +512,19 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     }
 
     it("creates the organization on Continue and lands on the agent step, no mission", async () => {
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
       const { root } = await openStepOne();
       await clickByText((t) => t.startsWith("Continue"));
 
       expect(mockCompaniesApi.create).toHaveBeenCalledWith({ name: "Initech" });
       expect(document.body.textContent).toContain("Create your first agent");
       expect(document.body.textContent).not.toContain("Define your mission");
-      expect(document.body.textContent).not.toContain("Tell us about your team");
+      expect(document.body.textContent).not.toContain(
+        "Tell us about your team",
+      );
 
       await act(async () => root.unmount());
     });
@@ -464,7 +536,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // "Mission" row: onboarding stopped asking, so the row could only ever
       // render unchecked. Both asserted against positive anchors so an
       // unrendered step cannot pass as an absence.
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
       const { root } = await openStepOne();
       await clickByText((t) => t.startsWith("Continue"));
       expect(document.body.textContent).toContain("Create your first agent");
@@ -481,7 +556,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       expect(document.body.textContent).toContain("Connect a model");
       await pickFirstSource(clickByText);
-      expect(document.body.textContent).not.toContain("Adapter environment check");
+      expect(document.body.textContent).not.toContain(
+        "Adapter environment check",
+      );
       expect(document.body.textContent).not.toContain("Test now");
 
       // Through Connect to Review, so the Mission-row assertion runs against
@@ -510,11 +587,17 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       mockCompany.companies = [];
       mockCompany.loading = false;
       mockCompaniesApi.list.mockResolvedValue([]);
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
       mockAgentsApi.list.mockResolvedValueOnce([
         { id: "agent-existing", name: "Ada", adapterType: "claude_local" },
       ]);
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
       const { root, queryClient } = render();
       await act(async () => {
         root.render(
@@ -527,7 +610,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       const clickText = async (match: (t: string) => boolean) => {
         const el = [...document.body.querySelectorAll("button")].find((b) =>
-          match(b.getAttribute("aria-label")?.startsWith("Use ") ? b.getAttribute("aria-label")! : b.textContent?.trim() ?? ""),
+          match(
+            b.getAttribute("aria-label")?.startsWith("Use ")
+              ? b.getAttribute("aria-label")!
+              : (b.textContent?.trim() ?? ""),
+          ),
         )!;
         await act(async () => {
           el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -585,11 +672,17 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       mockCompany.companies = [];
       mockCompany.loading = false;
       mockCompaniesApi.list.mockResolvedValue([]);
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
 
       // The model step needs tiles to pick from, and this suite's default
       // registry is empty.
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
       const { root, queryClient } = render();
       const renderTree = () =>
         act(async () => {
@@ -604,7 +697,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       const clickText = async (match: (t: string) => boolean) => {
         const el = [...document.body.querySelectorAll("button")].find((b) =>
-          match(b.getAttribute("aria-label")?.startsWith("Use ") ? b.getAttribute("aria-label")! : b.textContent?.trim() ?? ""),
+          match(
+            b.getAttribute("aria-label")?.startsWith("Use ")
+              ? b.getAttribute("aria-label")!
+              : (b.textContent?.trim() ?? ""),
+          ),
         )!;
         await act(async () => {
           el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -639,13 +736,19 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // probe and both hire. `loading` cannot stop the second caller: it is
       // state, unwritten while the first call is still awaiting. The ref
       // guard must make the second submission a no-op.
-      let resolveHire: (v: { agent: { id: string }; approval: null }) => void = () => {};
+      let resolveHire: (v: {
+        agent: { id: string };
+        approval: null;
+      }) => void = () => {};
       mockAgentsApi.hire.mockReturnValue(
         new Promise((resolve) => {
           resolveHire = resolve;
         }),
       );
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
       const { root } = await openStepOne();
       await clickByText((t) => t.startsWith("Continue"));
       const agentField = document.body.querySelector(
@@ -667,7 +770,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         connect.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
       await flushReact();
-      await act(async () => resolveHire({ agent: { id: "agent-1" }, approval: null }));
+      await act(async () =>
+        resolveHire({ agent: { id: "agent-1" }, approval: null }),
+      );
       await flushReact();
 
       expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
@@ -682,7 +787,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // `loading` guard cannot stop it — `setLoading(true)` has not landed
       // while the same event is still bubbling — so the second caller reads a
       // value the first has not written. Two companies, one keystroke.
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
       const { root } = await openStepOne();
 
       const nameInput = document.body.querySelector(
@@ -690,7 +798,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       ) as HTMLInputElement;
       await act(async () => {
         nameInput.dispatchEvent(
-          new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }),
+          new KeyboardEvent("keydown", {
+            key: "Enter",
+            metaKey: true,
+            bubbles: true,
+          }),
         );
       });
       await flushReact();
@@ -708,7 +820,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // arrives — the first is state, the second is not set until the request
       // it guards resolves. Only a ref written before the request goes out is
       // visible to the caller behind it.
-      let resolveCreate: (c: { id: string; issuePrefix: string }) => void = () => {};
+      let resolveCreate: (c: {
+        id: string;
+        issuePrefix: string;
+      }) => void = () => {};
       mockCompaniesApi.create.mockReturnValue(
         new Promise<{ id: string; issuePrefix: string }>((resolve) => {
           resolveCreate = resolve;
@@ -729,7 +844,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       expect(mockCompaniesApi.create).toHaveBeenCalledTimes(1);
 
-      await act(async () => resolveCreate({ id: "company-new", issuePrefix: "INI" }));
+      await act(async () =>
+        resolveCreate({ id: "company-new", issuePrefix: "INI" }),
+      );
       await flushReact();
       expect(document.body.textContent).toContain("Create your first agent");
 
@@ -739,14 +856,19 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     it("sends Back to the screen the run actually came from", async () => {
       // A create run reached the agent step from step 1, so Back owes it step 1 —
       // not the mission screen it never saw.
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
       const { root } = await openStepOne();
       await clickByText((t) => t.startsWith("Continue"));
       expect(document.body.textContent).toContain("Create your first agent");
 
       await clickByText((t) => t.includes("Back"));
 
-      expect(document.body.textContent).toContain("What is the name of your organization?");
+      expect(document.body.textContent).toContain(
+        "What is the name of your organization?",
+      );
       expect(document.body.textContent).not.toContain("Define your mission");
 
       await act(async () => root.unmount());
@@ -760,8 +882,14 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // empty. That was survivable while the step preselected a source; now that
       // nothing is chosen until a tile is pressed, a step with no tiles is a step
       // that can never advance.
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
-      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
+      mockCompaniesApi.create.mockResolvedValue({
+        id: "company-new",
+        issuePrefix: "INI",
+      });
       window.localStorage.setItem(
         ONBOARDING_STORAGE_KEY,
         JSON.stringify({ step: 1, companyName: "Initech" }),
@@ -783,7 +911,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       const clickByText = async (match: (text: string) => boolean) => {
         const el = [...document.body.querySelectorAll("button")].find((b) =>
-          match(b.getAttribute("aria-label")?.startsWith("Use ") ? b.getAttribute("aria-label")! : b.textContent?.trim() ?? ""),
+          match(
+            b.getAttribute("aria-label")?.startsWith("Use ")
+              ? b.getAttribute("aria-label")!
+              : (b.textContent?.trim() ?? ""),
+          ),
         )!;
         await act(async () => {
           el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -880,31 +1012,62 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
      * what this step did before, and what the Claude token path has always
      * avoided by holding a `user_secret_ref` instead.
      */
-    it.each(["personal", "organization"])("defaults to a saved %s API key and uses the same reference for probe and hire", async (scope) => {
-      const key = "ANTHROPIC_API_KEY";
-      const binding = scope === "personal"
-        ? { type: "user_secret_ref", key, version: "latest" }
-        : { type: "secret_ref", secretId: "saved-org-key", version: "latest" };
-      if (scope === "personal") {
-        mockSecretsApi.listMyUserSecrets.mockResolvedValue([{
-          definition: { id: "saved-key", companyId: "company-new", key, name: "Saved key", status: "active" },
-          secret: { companyId: "company-new", status: "active" },
-        }]);
-      } else {
-        mockSecretsApi.list.mockResolvedValue([{
-          id: "saved-org-key", companyId: "company-new", key, name: "Saved key", scope: "company", status: "active",
-        }]);
-      }
-      const { root, clickByText } = await openConnectStep();
-      const picker = document.body.querySelector('select[aria-label="Saved API key"]') as HTMLSelectElement;
-      expect(picker.value).toBe(scope === "personal" ? "user:saved-key" : "company:saved-org-key");
-      await clickByText((t) => isArcPrimary(t));
-      expect((mockAgentsApi.testEnvironment.mock.calls.at(-1) as unknown[])[2]).toMatchObject({ adapterConfig: { env: { [key]: binding } } });
-      expect((mockAgentsApi.hire.mock.calls.at(-1) as unknown[])[1]).toMatchObject({ adapterConfig: { env: { [key]: binding } } });
-      expect(mockSecretsApi.createMyUserSecret).not.toHaveBeenCalled();
-      expect(mockSecretsApi.rotateMyUserSecret).not.toHaveBeenCalled();
-      await act(async () => root.unmount());
-    });
+    it.each(["personal", "organization"])(
+      "defaults to a saved %s API key and uses the same reference for probe and hire",
+      async (scope) => {
+        const key = "ANTHROPIC_API_KEY";
+        const binding =
+          scope === "personal"
+            ? { type: "user_secret_ref", key, version: "latest" }
+            : {
+                type: "secret_ref",
+                secretId: "saved-org-key",
+                version: "latest",
+              };
+        if (scope === "personal") {
+          mockSecretsApi.listMyUserSecrets.mockResolvedValue([
+            {
+              definition: {
+                id: "saved-key",
+                companyId: "company-new",
+                key,
+                name: "Saved key",
+                status: "active",
+              },
+              secret: { companyId: "company-new", status: "active" },
+            },
+          ]);
+        } else {
+          mockSecretsApi.list.mockResolvedValue([
+            {
+              id: "saved-org-key",
+              companyId: "company-new",
+              key,
+              name: "Saved key",
+              scope: "company",
+              status: "active",
+            },
+          ]);
+        }
+        const { root, clickByText } = await openConnectStep();
+        const picker = document.body.querySelector(
+          'select[aria-label="Saved API key"]',
+        ) as HTMLSelectElement;
+        expect(picker.value).toBe(
+          scope === "personal" ? "user:saved-key" : "company:saved-org-key",
+        );
+        await clickByText((t) => isArcPrimary(t));
+        expect(
+          (mockAgentsApi.testEnvironment.mock.calls.at(-1) as unknown[])[2],
+        ).toMatchObject({ adapterConfig: { env: { [key]: binding } } });
+        expect(
+          (mockAgentsApi.hire.mock.calls.at(-1) as unknown[])[1],
+        ).toMatchObject({ adapterConfig: { env: { [key]: binding } } });
+        expect(mockSecretsApi.createMyUserSecret).not.toHaveBeenCalled();
+        expect(mockSecretsApi.rotateMyUserSecret).not.toHaveBeenCalled();
+        await act(async () => root.unmount());
+      },
+    );
 
     describe("an API key typed on the step", () => {
       const KEY = "sk-ant-typed-by-the-customer";
@@ -914,12 +1077,21 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // suite's default is empty, which leaves the step with no tiles, no
       // canvas, and no field to type into.
       beforeEach(() => {
-        mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
+        mockAdapterRegistry.list = [
+          { type: "claude_local" },
+          { type: "codex_local" },
+        ];
         // No definition and no stored value yet: the first customer to type a key.
         mockSecretsApi.listMyUserSecrets.mockResolvedValue([]);
-        mockSecretsApi.createUserSecretDefinition.mockResolvedValue({ id: "def-1" });
-        mockSecretsApi.createMyUserSecret.mockResolvedValue({ id: "secret-abc" });
-        mockSecretsApi.rotateMyUserSecret.mockResolvedValue({ id: "secret-existing" });
+        mockSecretsApi.createUserSecretDefinition.mockResolvedValue({
+          id: "def-1",
+        });
+        mockSecretsApi.createMyUserSecret.mockResolvedValue({
+          id: "secret-abc",
+        });
+        mockSecretsApi.rotateMyUserSecret.mockResolvedValue({
+          id: "secret-existing",
+        });
       });
 
       async function connectWithApiKey() {
@@ -939,9 +1111,26 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         const { root } = await connectWithApiKey();
 
         expect(managedApi.create).toHaveBeenCalledTimes(1);
-        expect(managedApi.create).toHaveBeenCalledWith("company-new", expect.objectContaining({ provider: "anthropic", method: "api_key", ownership: "personal", apiKey: KEY }));
-        const hireBody = (mockAgentsApi.hire.mock.calls.at(-1) as unknown[])[1] as { runtimeConfig: { aiConnection: unknown }; adapterConfig: { env?: Record<string, unknown> } };
-        expect(hireBody.runtimeConfig.aiConnection).toEqual({ provider: "anthropic", method: "api_key", mode: "responsible_user" });
+        expect(managedApi.create).toHaveBeenCalledWith(
+          "company-new",
+          expect.objectContaining({
+            provider: "anthropic",
+            method: "api_key",
+            ownership: "personal",
+            apiKey: KEY,
+          }),
+        );
+        const hireBody = (
+          mockAgentsApi.hire.mock.calls.at(-1) as unknown[]
+        )[1] as {
+          runtimeConfig: { aiConnection: unknown };
+          adapterConfig: { env?: Record<string, unknown> };
+        };
+        expect(hireBody.runtimeConfig.aiConnection).toEqual({
+          provider: "anthropic",
+          method: "api_key",
+          mode: "responsible_user",
+        });
         expect(hireBody.adapterConfig.env?.ANTHROPIC_API_KEY).toBeUndefined();
         // The whole payload, not just that one field: the point is that the key
         // is nowhere in what gets persisted, however it might be nested.
@@ -952,10 +1141,16 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       it("creates a managed connection without rotating an existing saved key", async () => {
         mockSecretsApi.listMyUserSecrets.mockResolvedValue([
-          { definition: { id: "old-def", key: "ANTHROPIC_API_KEY" }, secret: { id: "secret-existing" } },
+          {
+            definition: { id: "old-def", key: "ANTHROPIC_API_KEY" },
+            secret: { id: "secret-existing" },
+          },
         ]);
         const { root } = await connectWithApiKey();
-        expect(managedApi.create).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ apiKey: KEY }));
+        expect(managedApi.create).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ apiKey: KEY }),
+        );
         expect(mockSecretsApi.rotateMyUserSecret).not.toHaveBeenCalled();
         expect(managedApi.create).toHaveBeenCalledTimes(1);
         await act(async () => root.unmount());
@@ -968,13 +1163,17 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         const { root } = await connectWithApiKey();
 
         expect(mockAgentsApi.hire).not.toHaveBeenCalled();
-        expect(document.body.textContent).toContain("Could not store the API key");
+        expect(document.body.textContent).toContain(
+          "Could not store the API key",
+        );
 
         await act(async () => root.unmount());
       });
 
       it("stores one connection when Connect is pressed twice with the same key", async () => {
-        mockAgentsApi.hire.mockRejectedValueOnce(new Error("network went away"));
+        mockAgentsApi.hire.mockRejectedValueOnce(
+          new Error("network went away"),
+        );
         const { root, clickByText } = await connectWithApiKey();
 
         await clickByText((t) => isArcPrimary(t));
@@ -1094,7 +1293,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         applyStoredClaudeLogin?: boolean;
       };
       expect(hireBody.applyStoredClaudeLogin).toBeUndefined();
-      expect(hireBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY]).toBeUndefined();
+      expect(
+        hireBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY],
+      ).toBeUndefined();
 
       await act(async () => root.unmount());
     });
@@ -1106,7 +1307,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         latestVersion: 1,
       });
       mockAdapterBuild.buildAdapterConfig.mockReturnValue({
-        env: { ANTHROPIC_API_KEY: { type: "plain", value: "sk-ant-configured" } },
+        env: {
+          ANTHROPIC_API_KEY: { type: "plain", value: "sk-ant-configured" },
+        },
       });
       const { root } = await openConnectStep();
       // Selecting the provider automatically verifies the saved subscription.
@@ -1122,7 +1325,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         applyStoredClaudeLogin?: boolean;
       };
       expect(hireBody.applyStoredClaudeLogin).toBeUndefined();
-      expect(hireBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY]).toBeUndefined();
+      expect(
+        hireBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY],
+      ).toBeUndefined();
 
       await act(async () => root.unmount());
     });
@@ -1139,10 +1344,12 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       expect(mockAgentsApi.hire).toHaveBeenCalled();
       const hireArgs = mockAgentsApi.hire.mock.calls.at(-1) as unknown[];
-      const hireBody = hireArgs[1] as { adapterConfig: { env?: Record<string, unknown> } };
-      const binding = hireBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY] as
-        | { type: string }
-        | undefined;
+      const hireBody = hireArgs[1] as {
+        adapterConfig: { env?: Record<string, unknown> };
+      };
+      const binding = hireBody.adapterConfig.env?.[
+        CLAUDE_OAUTH_TOKEN_ENV_KEY
+      ] as { type: string } | undefined;
       // A reference, never a value: no `value` field, no `secretId` field
       // either — the fixed binding names the env var, not the status
       // response's secret id.
@@ -1163,8 +1370,12 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       await flushReact();
 
       expect(mockAgentsApi.testEnvironment).toHaveBeenCalled();
-      const testArgs = mockAgentsApi.testEnvironment.mock.calls.at(-1) as unknown[];
-      const testBody = testArgs[2] as { adapterConfig: { env?: Record<string, unknown> } };
+      const testArgs = mockAgentsApi.testEnvironment.mock.calls.at(
+        -1,
+      ) as unknown[];
+      const testBody = testArgs[2] as {
+        adapterConfig: { env?: Record<string, unknown> };
+      };
       expect(testBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY]).toEqual({
         type: "user_secret_ref",
         key: CLAUDE_OAUTH_TOKEN_ENV_KEY,
@@ -1182,9 +1393,15 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       await clickByText((t) => isArcPrimary(t));
 
       expect(mockAgentsApi.testEnvironment).toHaveBeenCalled();
-      const testArgs = mockAgentsApi.testEnvironment.mock.calls.at(-1) as unknown[];
-      const testBody = testArgs[2] as { adapterConfig: { env?: Record<string, unknown> } };
-      expect(testBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY]).toBeUndefined();
+      const testArgs = mockAgentsApi.testEnvironment.mock.calls.at(
+        -1,
+      ) as unknown[];
+      const testBody = testArgs[2] as {
+        adapterConfig: { env?: Record<string, unknown> };
+      };
+      expect(
+        testBody.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY],
+      ).toBeUndefined();
 
       await act(async () => root.unmount());
     });
@@ -1200,37 +1417,37 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // present. This proves the wizard sends the probe the SAME configuration
       // it hires with — a probe still sent without the binding would warn and
       // block the hire below.
-      mockAgentsApi.testEnvironment.mockImplementation(
-        (async (...args: unknown[]) => {
-          const request = args[2] as {
-            adapterConfig: { env?: Record<string, unknown> };
-          };
-          const hasBinding = Boolean(
-            request.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY],
-          );
-          return hasBinding
-            ? {
-                adapterType: "claude_local" as const,
-                status: "pass" as const,
-                checks: [],
-                testedAt: new Date().toISOString(),
-              }
-            : {
-                adapterType: "claude_local" as const,
-                status: "warn" as const,
-                checks: [
-                  {
-                    code: ADAPTER_AUTH_MISSING_CHECK_CODE,
-                    level: "warn" as const,
-                    message: "No stored Claude login was found for this agent.",
-                  },
-                ],
-                testedAt: new Date().toISOString(),
-              };
-        }) as unknown as () => Promise<
-          import("@taskcore/shared").AdapterEnvironmentTestResult
-        >,
-      );
+      mockAgentsApi.testEnvironment.mockImplementation((async (
+        ...args: unknown[]
+      ) => {
+        const request = args[2] as {
+          adapterConfig: { env?: Record<string, unknown> };
+        };
+        const hasBinding = Boolean(
+          request.adapterConfig.env?.[CLAUDE_OAUTH_TOKEN_ENV_KEY],
+        );
+        return hasBinding
+          ? {
+              adapterType: "claude_local" as const,
+              status: "pass" as const,
+              checks: [],
+              testedAt: new Date().toISOString(),
+            }
+          : {
+              adapterType: "claude_local" as const,
+              status: "warn" as const,
+              checks: [
+                {
+                  code: ADAPTER_AUTH_MISSING_CHECK_CODE,
+                  level: "warn" as const,
+                  message: "No stored Claude login was found for this agent.",
+                },
+              ],
+              testedAt: new Date().toISOString(),
+            };
+      }) as unknown as () => Promise<
+        import("@taskcore/shared").AdapterEnvironmentTestResult
+      >);
       const { root } = await openConnectStep();
       // Selecting the provider automatically verifies the saved subscription.
       await flushReact();
@@ -1277,12 +1494,17 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       mockAgentsApi.hire.mockRejectedValue(new Error("hire failed"));
       const { root, clickByText } = await openConnectStep();
 
-      const discoveryReads = mockAgentsApi.getClaudeOAuthTokenStatus.mock.calls.length;
+      const discoveryReads =
+        mockAgentsApi.getClaudeOAuthTokenStatus.mock.calls.length;
       await clickByText((t) => isArcPrimary(t));
-      expect(mockAgentsApi.getClaudeOAuthTokenStatus).toHaveBeenCalledTimes(discoveryReads + 1);
+      expect(mockAgentsApi.getClaudeOAuthTokenStatus).toHaveBeenCalledTimes(
+        discoveryReads + 1,
+      );
 
       await clickByText((t) => isArcPrimary(t));
-      expect(mockAgentsApi.getClaudeOAuthTokenStatus).toHaveBeenCalledTimes(discoveryReads + 2);
+      expect(mockAgentsApi.getClaudeOAuthTokenStatus).toHaveBeenCalledTimes(
+        discoveryReads + 2,
+      );
 
       await act(async () => root.unmount());
     });
@@ -1311,12 +1533,15 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     mockCompany.loading = true;
     // Deferred rather than swapped later: the gate's fetch fires on the first
     // render, so replacing the mock afterwards would never reach it.
-    let resolveList: (companies: Array<{ id: string; name: string; issuePrefix: string }>) => void =
-      () => {};
+    let resolveList: (
+      companies: Array<{ id: string; name: string; issuePrefix: string }>,
+    ) => void = () => {};
     mockCompaniesApi.list.mockReturnValue(
-      new Promise<Array<{ id: string; name: string; issuePrefix: string }>>((resolve) => {
-        resolveList = resolve;
-      }),
+      new Promise<Array<{ id: string; name: string; issuePrefix: string }>>(
+        (resolve) => {
+          resolveList = resolve;
+        },
+      ),
     );
 
     const { container, root, queryClient } = render();
@@ -1360,7 +1585,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     // labelled by destination: the wizard has its own numbering, and two
     // controls both announcing "Step 1" would mean different things.
     const currentStep = document.body.querySelector('[aria-current="step"]');
-    expect(currentStep?.getAttribute("aria-label")).toBe("Create your first agent");
+    expect(currentStep?.getAttribute("aria-label")).toBe(
+      "Create your first agent",
+    );
     expect(document.body.textContent).toContain("Step 1 of 3");
 
     await act(async () => {
@@ -1377,16 +1604,17 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       ONBOARDING_STORAGE_KEY,
       JSON.stringify({ step: 1, companyName: "", createdCompanyId: null }),
     );
-    let resolveRefetch: (companies: Array<{ id: string; name: string; issuePrefix: string }>) => void =
-      () => {};
-    mockCompaniesApi.list
-      .mockResolvedValueOnce([])
-      .mockImplementationOnce(
-        () =>
-          new Promise<Array<{ id: string; name: string; issuePrefix: string }>>((resolve) => {
+    let resolveRefetch: (
+      companies: Array<{ id: string; name: string; issuePrefix: string }>,
+    ) => void = () => {};
+    mockCompaniesApi.list.mockResolvedValueOnce([]).mockImplementationOnce(
+      () =>
+        new Promise<Array<{ id: string; name: string; issuePrefix: string }>>(
+          (resolve) => {
             resolveRefetch = resolve;
-          }),
-      );
+          },
+        ),
+    );
     mockCompaniesApi.create.mockResolvedValue({
       id: "created",
       name: "Created Co",
@@ -1403,7 +1631,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     });
     await flushReact();
 
-    const companyNameInput = document.querySelector("input") as HTMLInputElement;
+    const companyNameInput = document.querySelector(
+      "input",
+    ) as HTMLInputElement;
     setControlledValue(companyNameInput, "Created Co");
     await act(async () => {
       [...document.body.querySelectorAll("button")]
@@ -1412,12 +1642,16 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     });
     await flushReact();
 
-    expect(mockCompaniesApi.create).toHaveBeenCalledWith({ name: "Created Co" });
+    expect(mockCompaniesApi.create).toHaveBeenCalledWith({
+      name: "Created Co",
+    });
     expect(mockCompaniesApi.list).toHaveBeenCalledTimes(2);
     expect(document.querySelector("#onboarding-agent-name")).not.toBeNull();
 
     await act(async () => {
-      resolveRefetch([{ id: "created", name: "Created Co", issuePrefix: "CRE" }]);
+      resolveRefetch([
+        { id: "created", name: "Created Co", issuePrefix: "CRE" },
+      ]);
     });
     await act(async () => {
       root.unmount();
@@ -1439,15 +1673,18 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       }),
     );
     const company = { id: "c1", name: "Saved Co", issuePrefix: "SC" };
-    let resolveRetry: (companies: Array<{ id: string; name: string; issuePrefix: string }>) => void =
-      () => {};
+    let resolveRetry: (
+      companies: Array<{ id: string; name: string; issuePrefix: string }>,
+    ) => void = () => {};
     mockCompaniesApi.list
       .mockRejectedValueOnce(new Error("company list unavailable"))
       .mockImplementationOnce(
         () =>
-          new Promise<Array<{ id: string; name: string; issuePrefix: string }>>((resolve) => {
-            resolveRetry = resolve;
-          }),
+          new Promise<Array<{ id: string; name: string; issuePrefix: string }>>(
+            (resolve) => {
+              resolveRetry = resolve;
+            },
+          ),
       );
 
     const { root, queryClient } = render();
@@ -1480,7 +1717,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     await flushReact();
 
     expect(mockCompaniesApi.list).toHaveBeenCalledTimes(2);
-    expect(queryClient.getQueryData(queryKeys.companies.list(SESSION_USER_ID))).toEqual({
+    expect(
+      queryClient.getQueryData(queryKeys.companies.list(SESSION_USER_ID)),
+    ).toEqual({
       companies: [company],
       unauthorized: false,
     });
@@ -1506,7 +1745,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         createdCompanyId: "company-old",
       }),
     );
-    mockCompany.companies = [{ id: "company-new", name: "My Co", issuePrefix: "MC" }];
+    mockCompany.companies = [
+      { id: "company-new", name: "My Co", issuePrefix: "MC" },
+    ];
     mockCompany.loading = false;
     mockCompaniesApi.list.mockResolvedValue([
       { id: "company-new", name: "My Co", issuePrefix: "MC" },
@@ -1550,7 +1791,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     mockCompany.companies = [];
     mockCompany.loading = false;
     mockCompany.error = new Error("company list unavailable");
-    mockCompaniesApi.list.mockRejectedValue(new Error("company list unavailable"));
+    mockCompaniesApi.list.mockRejectedValue(
+      new Error("company list unavailable"),
+    );
 
     const { root, queryClient } = render();
     await act(async () => {
@@ -1565,7 +1808,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     // It mounts: the companies query sets `retry: false`, and with no
     // companies the dashboard's "Get Started" button opens onboarding — a gate
     // that rendered nothing here would make that button dead.
-    expect(document.querySelector('[data-testid="onboarding-wizard"]')).not.toBeNull();
+    expect(
+      document.querySelector('[data-testid="onboarding-wizard"]'),
+    ).not.toBeNull();
     // The draft is not restored, because ownership cannot be verified...
     const nameInput = document.body.querySelector(
       "#onboarding-agent-name",
@@ -1593,7 +1838,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     // Deny the browser boundary itself. Spying on a Storage object or
     // prototype is not portable: DOM implementations may return a fresh
     // wrapper and Node exposes a separate experimental Storage global.
-    const localStorage = vi.spyOn(window, "localStorage", "get").mockImplementation(deny);
+    const localStorage = vi
+      .spyOn(window, "localStorage", "get")
+      .mockImplementation(deny);
     mockCompany.companies = [{ id: "c1", name: "My Co", issuePrefix: "MC" }];
     mockCompany.loading = false;
 
@@ -1610,7 +1857,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     expect(localStorage).toHaveBeenCalled();
     // It mounted: the wizard is open with no draft, rather than the render
     // throwing on the way in.
-    expect(document.querySelector('[data-testid="onboarding-wizard"]')).not.toBeNull();
+    expect(
+      document.querySelector('[data-testid="onboarding-wizard"]'),
+    ).not.toBeNull();
 
     localStorage.mockRestore();
     await act(async () => {
@@ -1651,7 +1900,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     await flushReact();
 
     // Mounted rather than blank...
-    expect(document.querySelector('[data-testid="onboarding-wizard"]')).not.toBeNull();
+    expect(
+      document.querySelector('[data-testid="onboarding-wizard"]'),
+    ).not.toBeNull();
     // ...but the draft was not restored, because the list cannot be trusted.
     const nameInput = document.body.querySelector(
       "#onboarding-agent-name",
@@ -1686,7 +1937,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     mockCompany.companies = [];
     mockCompany.loading = false;
     mockCompany.error = new Error("company list unavailable");
-    mockCompaniesApi.list.mockRejectedValue(new Error("company list unavailable"));
+    mockCompaniesApi.list.mockRejectedValue(
+      new Error("company list unavailable"),
+    );
 
     const { root, queryClient } = render();
     await act(async () => {
@@ -1727,10 +1980,14 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         createdCompanyId: "company-a",
       }),
     );
-    mockCompany.companies = [{ id: "company-a", name: "Account A Co", issuePrefix: "AAC" }];
+    mockCompany.companies = [
+      { id: "company-a", name: "Account A Co", issuePrefix: "AAC" },
+    ];
     mockCompany.loading = false;
     mockCompany.error = new Error("refetch failed for the new account");
-    mockCompaniesApi.list.mockRejectedValue(new Error("refetch failed for the new account"));
+    mockCompaniesApi.list.mockRejectedValue(
+      new Error("refetch failed for the new account"),
+    );
 
     const { root, queryClient } = render();
     await act(async () => {
@@ -1775,7 +2032,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       }),
     );
     // The shared cache still holds A's list, and looks entirely healthy.
-    mockCompany.companies = [{ id: "company-a", name: "Account A Co", issuePrefix: "AAC" }];
+    mockCompany.companies = [
+      { id: "company-a", name: "Account A Co", issuePrefix: "AAC" },
+    ];
     mockCompany.loading = false;
     mockCompany.error = null;
     // The list fetched for *this* session answers with B's companies, which
@@ -1797,7 +2056,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     await flushReact();
 
     // Mounted — so this is a real observation, not an unmounted false pass.
-    expect(document.querySelector('[data-testid="onboarding-wizard"]')).not.toBeNull();
+    expect(
+      document.querySelector('[data-testid="onboarding-wizard"]'),
+    ).not.toBeNull();
     expect(document.body.textContent).not.toContain("A's Lead");
     const nameInput = document.body.querySelector(
       "#onboarding-agent-name",
@@ -1816,7 +2077,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     // "this account owns nothing" and would delete the draft.
     window.localStorage.setItem(
       ONBOARDING_STORAGE_KEY,
-      JSON.stringify({ step: 3, companyName: "Saved Co", createdCompanyId: "c1" }),
+      JSON.stringify({
+        step: 3,
+        companyName: "Saved Co",
+        createdCompanyId: "c1",
+      }),
     );
     mockCompaniesApi.list.mockRejectedValue(
       new ApiError("forbidden", 403, null),
@@ -1855,7 +2120,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     const { root, queryClient } = render();
     // A's list, already in the cache from their session.
     queryClient.setQueryData(queryKeys.companies.list(SESSION_USER_ID), {
-      companies: [{ id: "company-a", name: "Account A Co", issuePrefix: "AAC" }],
+      companies: [
+        { id: "company-a", name: "Account A Co", issuePrefix: "AAC" },
+      ],
       unauthorized: false,
     });
     // B's session: the refetch fails, so A's data is retained.
@@ -1871,7 +2138,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     await flushReact();
 
     // Mounted, so this observes the real thing rather than an empty document.
-    expect(document.querySelector('[data-testid="onboarding-wizard"]')).not.toBeNull();
+    expect(
+      document.querySelector('[data-testid="onboarding-wizard"]'),
+    ).not.toBeNull();
     expect(document.body.textContent).not.toContain("A's Lead");
     const nameInput = document.body.querySelector(
       "#onboarding-agent-name",
@@ -1970,22 +2239,33 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         }),
       );
       mockInstanceSettingsApi.get.mockReset();
-      mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: "env-sandbox-1" });
+      mockInstanceSettingsApi.get.mockResolvedValue({
+        defaultEnvironmentId: "env-sandbox-1",
+      });
       mockInstanceSettingsApi.getExperimental.mockReset();
-      mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableManagedSandboxOnly: false });
+      mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+        enableManagedSandboxOnly: false,
+      });
       mockAgentsApi.getAdapterAuthSignal.mockReset();
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "present" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "present",
+      });
       // The row has to actually offer the adapter these drafts name. The login
       // panel lives inside the input canvas, and the canvas opens for a chosen
       // source — a saved adapter the row cannot show is not a chosen one, so
       // without this the panel is absent for a reason that has nothing to do
       // with the auth signal these tests are about.
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
     });
 
     /** Drives the wizard to the Connect step with a company already created. */
     async function openStep4(overrides: Record<string, unknown> = {}) {
-      mockCompany.companies = [{ id: "company-new", name: "Initech", issuePrefix: "INI" }];
+      mockCompany.companies = [
+        { id: "company-new", name: "Initech", issuePrefix: "INI" },
+      ];
       mockCompany.loading = false;
       mockCompaniesApi.list.mockResolvedValue(mockCompany.companies);
       window.localStorage.setItem(
@@ -2021,50 +2301,116 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     }
 
     it.each([
-      ["claude_local", "anthropic", /Claude/, "claude-session-1", "claude-setup-token-status"],
-      ["codex_local", "openai", /OpenAI/, "codex-session-1", "adapter-login-status"],
-    ] as const)("finishes %s sign-in when its connection becomes visible before the completion poll", async (adapterType, provider, label, sessionId, statusKey) => {
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
-      mockAgentsApi.hire.mockRejectedValueOnce(new Error("Temporary hire failure"));
-      const { root, queryClient } = await openStep4({ adapterType });
-      await pickSource(label);
-      for (let i = 0; i < 6; i++) await flushReact();
-      try {
-        // The connection activity event arrives before the login poll. It must
-        // not replace/unmount the controller that still owns the completion.
-        await act(async () => {
-          queryClient.setQueryData(["ai-connections", "company-new"], {
-            currentUserId: "user-1",
-            connections: [{ id: "managed-connection", grantId: "managed-grant", companyId: "company-new", provider, method: "subscription", name: "My subscription", ownership: "personal", ownerUserId: "user-1", status: "connected", isDefault: true }],
-          });
+      [
+        "claude_local",
+        "anthropic",
+        /Claude/,
+        "claude-session-1",
+        "claude-setup-token-status",
+      ],
+      [
+        "codex_local",
+        "openai",
+        /OpenAI/,
+        "codex-session-1",
+        "adapter-login-status",
+      ],
+    ] as const)(
+      "finishes %s sign-in when its connection becomes visible before the completion poll",
+      async (adapterType, provider, label, sessionId, statusKey) => {
+        mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+          status: "absent",
         });
-        for (let i = 0; i < 4; i++) await flushReact();
-        expect(document.body.textContent).toContain(adapterType === "claude_local" ? "authorization code" : "Q2RJ-E1YIF");
-        expect(mockAgentsApi.hire).not.toHaveBeenCalled();
-        await act(async () => {
-          queryClient.setQueryData(
-            adapterType === "claude_local" ? [statusKey, "company-new", sessionId] : [statusKey, "company-new", adapterType, sessionId],
-            { sessionId, status: "authenticated", expiresAt: new Date(Date.now() + 600_000).toISOString() },
-          );
-        });
-        for (let i = 0; i < 120 && !mockAgentsApi.hire.mock.calls.length; i++) {
-          await act(async () => { await new Promise(resolve => setTimeout(resolve, 25)); });
-        }
-        expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
-        expect(mockAgentsApi.hire).toHaveBeenCalledWith("company-new", expect.objectContaining({ runtimeConfig: expect.objectContaining({ aiConnection: { provider, method: "subscription", mode: "responsible_user" } }) }));
-        for (let i = 0; i < 4; i++) await flushReact();
-        expect(document.body.textContent).toContain("Temporary hire failure");
-        const retry = [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === "Connect");
-        expect(retry).toBeTruthy();
-        expect(retry!.disabled).toBe(false);
-        await act(async () => { retry!.click(); });
+        mockAgentsApi.hire.mockRejectedValueOnce(
+          new Error("Temporary hire failure"),
+        );
+        const { root, queryClient } = await openStep4({ adapterType });
+        await pickSource(label);
         for (let i = 0; i < 6; i++) await flushReact();
-        expect(mockAgentsApi.hire).toHaveBeenCalledTimes(2);
-        expect(mockAgentsApi.startClaudeSetupTokenLogin.mock.calls.length + mockAgentsApi.startAdapterAuthLogin.mock.calls.length).toBe(1);
-      } finally {
-        await act(async () => root.unmount());
-      }
-    });
+        try {
+          // The connection activity event arrives before the login poll. It must
+          // not replace/unmount the controller that still owns the completion.
+          await act(async () => {
+            queryClient.setQueryData(["ai-connections", "company-new"], {
+              currentUserId: "user-1",
+              connections: [
+                {
+                  id: "managed-connection",
+                  grantId: "managed-grant",
+                  companyId: "company-new",
+                  provider,
+                  method: "subscription",
+                  name: "My subscription",
+                  ownership: "personal",
+                  ownerUserId: "user-1",
+                  status: "connected",
+                  isDefault: true,
+                },
+              ],
+            });
+          });
+          for (let i = 0; i < 4; i++) await flushReact();
+          expect(document.body.textContent).toContain(
+            adapterType === "claude_local"
+              ? "authorization code"
+              : "Q2RJ-E1YIF",
+          );
+          expect(mockAgentsApi.hire).not.toHaveBeenCalled();
+          await act(async () => {
+            queryClient.setQueryData(
+              adapterType === "claude_local"
+                ? [statusKey, "company-new", sessionId]
+                : [statusKey, "company-new", adapterType, sessionId],
+              {
+                sessionId,
+                status: "authenticated",
+                expiresAt: new Date(Date.now() + 600_000).toISOString(),
+              },
+            );
+          });
+          for (
+            let i = 0;
+            i < 120 && !mockAgentsApi.hire.mock.calls.length;
+            i++
+          ) {
+            await act(async () => {
+              await new Promise((resolve) => setTimeout(resolve, 25));
+            });
+          }
+          expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
+          expect(mockAgentsApi.hire).toHaveBeenCalledWith(
+            "company-new",
+            expect.objectContaining({
+              runtimeConfig: expect.objectContaining({
+                aiConnection: {
+                  provider,
+                  method: "subscription",
+                  mode: "responsible_user",
+                },
+              }),
+            }),
+          );
+          for (let i = 0; i < 4; i++) await flushReact();
+          expect(document.body.textContent).toContain("Temporary hire failure");
+          const retry = [...document.body.querySelectorAll("button")].find(
+            (button) => button.textContent?.trim() === "Connect",
+          );
+          expect(retry).toBeTruthy();
+          expect(retry!.disabled).toBe(false);
+          await act(async () => {
+            retry!.click();
+          });
+          for (let i = 0; i < 6; i++) await flushReact();
+          expect(mockAgentsApi.hire).toHaveBeenCalledTimes(2);
+          expect(
+            mockAgentsApi.startClaudeSetupTokenLogin.mock.calls.length +
+              mockAgentsApi.startAdapterAuthLogin.mock.calls.length,
+          ).toBe(1);
+        } finally {
+          await act(async () => root.unmount());
+        }
+      },
+    );
 
     it("names the tiles for the provider, not the adapter type", async () => {
       // `MODEL_SOURCE_NAMES` exists so this row says "Claude" and "OpenAI" —
@@ -2074,12 +2420,15 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // then never read, so the row went on rendering whatever the registry
       // supplied: "Claude Code" and "Codex" in the app, and the bare type here,
       // since this suite's registry mock returns `label: type`.
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
       const { root } = await openStep4({ adapterType: "claude_local" });
 
-      const labels = [...document.body.querySelectorAll("button[aria-checked]")].map(
-        (tile) => tile.textContent ?? "",
-      );
+      const labels = [
+        ...document.body.querySelectorAll("button[aria-checked]"),
+      ].map((tile) => tile.textContent ?? "");
       expect(labels.length, "both recommended sources should render").toBe(2);
       expect(labels.some((l) => l.includes("Claude"))).toBe(true);
       expect(labels.some((l) => l.includes("OpenAI"))).toBe(true);
@@ -2105,14 +2454,17 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       const { root } = await openStep4({ adapterType: "some_retired_adapter" });
 
       const tiles = [...document.body.querySelectorAll("button[aria-checked]")];
-      expect(tiles.length, "the row should still offer what it has").toBeGreaterThan(0);
+      expect(
+        tiles.length,
+        "the row should still offer what it has",
+      ).toBeGreaterThan(0);
       expect(
         tiles.some((t) => t.getAttribute("aria-checked") === "true"),
         "no tile should read as chosen",
       ).toBe(false);
 
-      const cta = [...document.body.querySelectorAll("button")].find(
-        (b) => isArcPrimary(b.textContent?.trim() ?? ""),
+      const cta = [...document.body.querySelectorAll("button")].find((b) =>
+        isArcPrimary(b.textContent?.trim() ?? ""),
       );
       expect(cta, "the step should render its forward button").toBeTruthy();
       expect(
@@ -2125,8 +2477,8 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         tiles[0]!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
       for (let i = 0; i < 5; i++) await flushReact();
-      const ctaAfter = [...document.body.querySelectorAll("button")].find(
-        (b) => isArcPrimary(b.textContent?.trim() ?? ""),
+      const ctaAfter = [...document.body.querySelectorAll("button")].find((b) =>
+        isArcPrimary(b.textContent?.trim() ?? ""),
       );
       expect(ctaAfter!.hasAttribute("disabled")).toBe(false);
 
@@ -2143,7 +2495,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // in never shows it. Nothing is highlighted, the canvas is shut, and with
       // the gate on `sourcePicked` the CTA was live: one press hires against an
       // adapter the customer has not seen on this screen.
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "opencode_local" }];
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "opencode_local" },
+      ];
       const { root } = await openStep4({ adapterType: "opencode_local" });
 
       const tiles = [...document.body.querySelectorAll("button[aria-checked]")];
@@ -2152,8 +2507,8 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         "the saved adapter is not in this row, so nothing should read as chosen",
       ).toBe(false);
 
-      const cta = [...document.body.querySelectorAll("button")].find(
-        (b) => isArcPrimary(b.textContent?.trim() ?? ""),
+      const cta = [...document.body.querySelectorAll("button")].find((b) =>
+        isArcPrimary(b.textContent?.trim() ?? ""),
       );
       expect(
         cta!.hasAttribute("disabled"),
@@ -2175,7 +2530,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // tiles, neither chosen. A keystroke that gets through hires claude_local
       // — a real, offerable adapter that nobody on this screen selected, which
       // is what makes the bypass worth a test rather than a comment.
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
       const { root } = await openStep4({ adapterType: "some_retired_adapter" });
 
       const tiles = [...document.body.querySelectorAll("button[aria-checked]")];
@@ -2184,12 +2542,18 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         "the snap must not leave a tile reading as chosen",
       ).toBe(false);
 
-      const wizard = document.querySelector('[data-testid="onboarding-wizard"]');
+      const wizard = document.querySelector(
+        '[data-testid="onboarding-wizard"]',
+      );
       expect(wizard, "the wizard should be mounted").not.toBeNull();
       for (const modifier of [{ metaKey: true }, { ctrlKey: true }]) {
         await act(async () => {
           wizard!.dispatchEvent(
-            new KeyboardEvent("keydown", { key: "Enter", bubbles: true, ...modifier }),
+            new KeyboardEvent("keydown", {
+              key: "Enter",
+              bubbles: true,
+              ...modifier,
+            }),
           );
         });
         for (let i = 0; i < 6; i++) await flushReact();
@@ -2208,7 +2572,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       for (let i = 0; i < 6; i++) await flushReact();
       await act(async () => {
         wizard!.dispatchEvent(
-          new KeyboardEvent("keydown", { key: "Enter", bubbles: true, metaKey: true }),
+          new KeyboardEvent("keydown", {
+            key: "Enter",
+            bubbles: true,
+            metaKey: true,
+          }),
         );
       });
       for (let i = 0; i < 6; i++) await flushReact();
@@ -2229,8 +2597,8 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
      * selected on arrival, including from a draft that names an adapter.
      */
     async function pickSource(match: RegExp) {
-      const tile = [...document.body.querySelectorAll('[role="radio"]')].find((t) =>
-        match.test(t.textContent ?? ""),
+      const tile = [...document.body.querySelectorAll('[role="radio"]')].find(
+        (t) => match.test(t.textContent ?? ""),
       );
       expect(tile, "the row should offer that source").toBeTruthy();
       await act(async () => {
@@ -2252,7 +2620,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     }
 
     it("starts the claude_local sign-in on Connect when the signal reports no ready credential", async () => {
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       // Nothing before the press. The card *is* the sign-in now, so it does not
@@ -2277,7 +2647,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // The sequence, end to end, as the step actually runs it: the row is the
       // question, answering it starts the sign-in, and the button reports where
       // that has got to rather than offering an action it cannot perform.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       // Collapse is read off the row's own layout, not off how many tiles are
@@ -2288,7 +2660,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
           .querySelector('[role="radiogroup"]')!
           .className.includes("justify-center");
       const cta = () =>
-        [...document.body.querySelectorAll("button")].pop()?.textContent?.trim();
+        [...document.body.querySelectorAll("button")]
+          .pop()
+          ?.textContent?.trim();
 
       // Nothing chosen yet on a fresh arrival: the row is a question.
       expect(rowCentred()).toBe(false);
@@ -2321,7 +2695,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     });
 
     it("submits the browser code on the paste, not on the first keystroke", async () => {
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
       await pickSource(/Claude/);
 
@@ -2339,7 +2715,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         setControlledValue(field!, "Q");
       });
       for (let i = 0; i < 4; i++) await flushReact();
-      expect(mockAgentsApi.submitClaudeSetupTokenBrowserCode).not.toHaveBeenCalled();
+      expect(
+        mockAgentsApi.submitClaudeSetupTokenBrowserCode,
+      ).not.toHaveBeenCalled();
 
       // The paste is the answer, so it goes without a press. Order matches a
       // real paste: the event lands before the value changes.
@@ -2348,7 +2726,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         setControlledValue(field!, "Q2RJ-E1YIF-authorization-code");
       });
       for (let i = 0; i < 4; i++) await flushReact();
-      expect(mockAgentsApi.submitClaudeSetupTokenBrowserCode).toHaveBeenCalledWith(
+      expect(
+        mockAgentsApi.submitClaudeSetupTokenBrowserCode,
+      ).toHaveBeenCalledWith(
         "company-new",
         "claude-session-1",
         "Q2RJ-E1YIF-authorization-code",
@@ -2366,7 +2746,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // waiting for that left about a second of a button still reading
       // "Waiting for code" after the code had gone in.
       expect(
-        [...document.body.querySelectorAll("button")].pop()?.textContent?.trim(),
+        [...document.body.querySelectorAll("button")]
+          .pop()
+          ?.textContent?.trim(),
       ).toBe("Connecting");
 
       await act(async () => root.unmount());
@@ -2378,7 +2760,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // moving one without the other would hire at the paste plus two seconds
       // whether or not a credential existed. The status here stays pending, so
       // the login is never stored.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
       await pickSource(/Claude/);
 
@@ -2392,13 +2776,19 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       for (let i = 0; i < 4; i++) await flushReact();
 
       const cta = () =>
-        [...document.body.querySelectorAll("button")].pop()?.textContent?.trim();
+        [...document.body.querySelectorAll("button")]
+          .pop()
+          ?.textContent?.trim();
       // The paste really did start Connecting; without this the assertion
       // below would hold for a flow that never got that far.
-      expect(cta(), "the paste should have started Connecting").toBe("Connecting");
+      expect(cta(), "the paste should have started Connecting").toBe(
+        "Connecting",
+      );
 
       await act(async () => {
-        await new Promise((resolve) => window.setTimeout(resolve, CONNECTED_HOLD_MS + 400));
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, CONNECTED_HOLD_MS + 400),
+        );
       });
       for (let i = 0; i < 4; i++) await flushReact();
 
@@ -2412,7 +2802,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // The other half of answering the paste early: a button that says
       // "Connecting" before the server answers has to stop saying it when the
       // answer is no, or it spins on a login that is not coming.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       mockAgentsApi.submitClaudeSetupTokenBrowserCode.mockRejectedValueOnce(
         new Error("That authorization code was not accepted."),
       );
@@ -2420,7 +2812,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       await pickSource(/Claude/);
 
       const cta = () =>
-        [...document.body.querySelectorAll("button")].pop()?.textContent?.trim();
+        [...document.body.querySelectorAll("button")]
+          .pop()
+          ?.textContent?.trim();
       expect(cta()).toBe("Sign in to Claude");
 
       const field = document.body.querySelector(
@@ -2432,8 +2826,12 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       });
       for (let i = 0; i < 8; i++) await flushReact();
 
-      expect(mockAgentsApi.submitClaudeSetupTokenBrowserCode).toHaveBeenCalledTimes(1);
-      expect(document.body.textContent).toContain("That authorization code was not accepted.");
+      expect(
+        mockAgentsApi.submitClaudeSetupTokenBrowserCode,
+      ).toHaveBeenCalledTimes(1);
+      expect(document.body.textContent).toContain(
+        "That authorization code was not accepted.",
+      );
       expect(cta()).toBe("Sign in to Claude");
       expect(mockAgentsApi.hire).not.toHaveBeenCalled();
 
@@ -2444,7 +2842,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // The panel stays mounted through Back's exit, so its report of a failed
       // submit can land mid-exit. Restoring the button there reopened the card
       // the customer was leaving, without the address Back had cleared.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       let refuse: (error: Error) => void = () => {};
       mockAgentsApi.submitClaudeSetupTokenBrowserCode.mockImplementationOnce(
         () =>
@@ -2465,9 +2865,15 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       for (let i = 0; i < 4; i++) await flushReact();
 
       const cta = () =>
-        [...document.body.querySelectorAll("button")].pop()?.textContent?.trim();
-      expect(mockAgentsApi.submitClaudeSetupTokenBrowserCode).toHaveBeenCalledTimes(1);
-      expect(cta(), "the paste should have started Connecting").toBe("Connecting");
+        [...document.body.querySelectorAll("button")]
+          .pop()
+          ?.textContent?.trim();
+      expect(
+        mockAgentsApi.submitClaudeSetupTokenBrowserCode,
+      ).toHaveBeenCalledTimes(1);
+      expect(cta(), "the paste should have started Connecting").toBe(
+        "Connecting",
+      );
 
       // Hold the exit open so the refusal lands inside it. Without a
       // `matchMedia` to ask, every beat collapses to zero and the exit would be
@@ -2536,13 +2942,17 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // into "Connecting" and on into a hire the customer had backed away from.
       // No paste needed: here the server has already authenticated, and the
       // completion read is simply slow.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       mockAgentsApi.getClaudeSetupTokenLoginStatus.mockResolvedValue({
         sessionId: "claude-session-1",
         status: "authenticated",
         expiresAt: new Date(Date.now() + 600_000).toISOString(),
       });
-      let finishCompletion: (value: { storedSessionId: string }) => void = () => {};
+      let finishCompletion: (value: {
+        storedSessionId: string;
+      }) => void = () => {};
       mockAgentsApi.completeClaudeSetupTokenLogin.mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -2556,9 +2966,13 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         for (let i = 0; i < 6; i++) await flushReact();
 
         // The completion read is out and has not answered, and the card is up.
-        expect(mockAgentsApi.completeClaudeSetupTokenLogin).toHaveBeenCalledTimes(1);
+        expect(
+          mockAgentsApi.completeClaudeSetupTokenLogin,
+        ).toHaveBeenCalledTimes(1);
         const cta = () =>
-          [...document.body.querySelectorAll("button")].pop()?.textContent?.trim();
+          [...document.body.querySelectorAll("button")]
+            .pop()
+            ?.textContent?.trim();
         expect(cta()).toBe("Sign in to Claude");
 
         // Hold the exit open, as above, so the success lands inside it.
@@ -2632,7 +3046,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // It only showed when the chosen source differed from the one the draft
       // carried: picking the adapter already in state is a no-op React bails
       // out of, so every existing case here happened to miss it.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "unknown" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "unknown",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       await pickSource(/OpenAI/);
@@ -2657,7 +3073,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // The sibling test above stops at the login having started, which is why
       // this went unseen — and the harness could not see it either, since it
       // supplies the prompt itself rather than going through the panel.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "unknown" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "unknown",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       await pickSource(/OpenAI/);
@@ -2677,9 +3095,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // refusing the press. The label alone does not catch that — the phase can
       // reach `ready` before the signal resolves, which names the button
       // without enabling it.
-      expect(cta.hasAttribute("disabled"), "the sign-in should be pressable").toBe(
-        false,
-      );
+      expect(
+        cta.hasAttribute("disabled"),
+        "the sign-in should be pressable",
+      ).toBe(false);
 
       await act(async () => root.unmount());
     });
@@ -2689,7 +3108,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // a flicker, and Back stays live throughout. The hire behind that hold
       // knows nothing about the phase, so a timer left running took a customer
       // who had just backed out to Review with an agent hired anyway.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       // A session the server has already authenticated, so the panel completes
       // and reports success on its own. The paste that normally gets it there
       // is the sibling test's subject; this one is about what the success does.
@@ -2703,7 +3124,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       for (let i = 0; i < 8; i++) await flushReact();
 
       const cta = () =>
-        [...document.body.querySelectorAll("button")].pop()?.textContent?.trim();
+        [...document.body.querySelectorAll("button")]
+          .pop()
+          ?.textContent?.trim();
       expect(cta(), "success should have taken the button to the hold").toBe(
         "Connecting",
       );
@@ -2718,7 +3141,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       // Past the hold: whatever it was going to do, it has had its chance.
       await act(async () => {
-        await new Promise((resolve) => window.setTimeout(resolve, CONNECTED_HOLD_MS + 400));
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, CONNECTED_HOLD_MS + 400),
+        );
       });
       for (let i = 0; i < 6; i++) await flushReact();
 
@@ -2735,7 +3160,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // blocking anything — so they rendered for the window between the probe
       // returning and the step advancing, reading as an error thrown by the
       // sign-in that had just succeeded.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       mockAgentsApi.getClaudeSetupTokenLoginStatus.mockResolvedValue({
         sessionId: "claude-session-1",
         status: "authenticated",
@@ -2757,7 +3184,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // Hold the hire open, which is the window the diagnostics appeared in:
       // the probe has returned but `loading` is not cleared until the `finally`
       // that runs after the step advances.
-      let finishHire: (v: { agent: { id: string }; approval: null }) => void = () => {};
+      let finishHire: (v: {
+        agent: { id: string };
+        approval: null;
+      }) => void = () => {};
       mockAgentsApi.hire.mockReturnValue(
         new Promise((resolve) => {
           finishHire = resolve;
@@ -2770,19 +3200,27 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       // Past the deliberate hold, so the hire is running and its probe is done.
       await act(async () => {
-        await new Promise((resolve) => window.setTimeout(resolve, CONNECTED_HOLD_MS + 400));
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, CONNECTED_HOLD_MS + 400),
+        );
       });
       for (let i = 0; i < 8; i++) await flushReact();
 
       expect(mockAgentsApi.hire).toHaveBeenCalled();
-      expect(document.body.textContent).not.toContain("Environment test identity");
+      expect(document.body.textContent).not.toContain(
+        "Environment test identity",
+      );
       expect(document.body.textContent).not.toContain("Warnings");
       // And the button goes on saying what is happening rather than going quiet.
       expect(
-        [...document.body.querySelectorAll("button")].pop()?.textContent?.trim(),
+        [...document.body.querySelectorAll("button")]
+          .pop()
+          ?.textContent?.trim(),
       ).toBe("Connecting…");
 
-      await act(async () => finishHire({ agent: { id: "agent-1" }, approval: null }));
+      await act(async () =>
+        finishHire({ agent: { id: "agent-1" }, approval: null }),
+      );
       for (let i = 0; i < 6; i++) await flushReact();
 
       await act(async () => root.unmount());
@@ -2813,7 +3251,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         }),
       });
       try {
-        mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+        mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+          status: "absent",
+        });
         const { root } = await openStep4({ adapterType: "claude_local" });
 
         await pickSource(/Claude/);
@@ -2847,7 +3287,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     });
 
     it("starts the codex_local sign-in on Connect when the signal cannot decide", async () => {
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "unknown" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "unknown",
+      });
       const { root } = await openStep4({ adapterType: "codex_local" });
 
       expect(mockAgentsApi.startAdapterAuthLogin).not.toHaveBeenCalled();
@@ -2867,7 +3309,10 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // and points at the same address the step's button opens — it is the
       // path for anyone finishing the sign-in in another browser.
       const link = document.body.querySelector('a[href*="auth.openai.com"]');
-      expect(link, "the sign-in link should be in the instruction").toBeTruthy();
+      expect(
+        link,
+        "the sign-in link should be in the instruction",
+      ).toBeTruthy();
       expect(link!.textContent).toBe("Sign in to OpenAI");
 
       // And the code sits below the sentence carrying it.
@@ -2888,7 +3333,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // session exists — only a successful lookup that resolves to null is.
       // The step must not start a second login the server would reject
       // against the per-owner cap; it shows the failure instead.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "unknown" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "unknown",
+      });
       mockAgentsApi.getActiveAdapterAuthLoginSession.mockReset();
       mockAgentsApi.getActiveAdapterAuthLoginSession.mockRejectedValue(
         new ApiError("Service unavailable", 503, null),
@@ -2904,7 +3351,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     });
 
     it("shows the failure instead of starting a claude_local login when the active-session read fails", async () => {
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockReset();
       mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockRejectedValue(
         new ApiError("Service unavailable", 503, null),
@@ -2937,10 +3386,12 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         return session;
       });
       mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockReset();
-      mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(async () =>
-        started ? session : null,
+      mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockImplementation(
+        async () => (started ? session : null),
       );
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       await pickSource(/Claude/);
@@ -2960,7 +3411,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       for (let i = 0; i < 8; i++) await flushReact();
 
       expect(mockAgentsApi.startClaudeSetupTokenLogin).toHaveBeenCalledTimes(1);
-      expect(mockAgentsApi.getActiveClaudeSetupTokenLoginSession).toHaveBeenCalled();
+      expect(
+        mockAgentsApi.getActiveClaudeSetupTokenLoginSession,
+      ).toHaveBeenCalled();
 
       await act(async () => root.unmount());
     });
@@ -2973,10 +3426,12 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         return session;
       });
       mockAgentsApi.getActiveAdapterAuthLoginSession.mockReset();
-      mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(async () =>
-        started ? session : null,
+      mockAgentsApi.getActiveAdapterAuthLoginSession.mockImplementation(
+        async () => (started ? session : null),
       );
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "unknown" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "unknown",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       await pickSource(/OpenAI/);
@@ -3007,7 +3462,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // does not stand in the way of a Codex one — and it is collected on its
       // own five-minute timer regardless (DEVICE_LOGIN_TIMEOUT_MS), with the
       // reaper as the restart-safe backstop.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       await pickSource(/Claude/);
@@ -3031,7 +3488,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     });
 
     it("hires on Connect, with no sign-in, when the signal reports a ready credential", async () => {
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "present" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "present",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       // Answer the row, then press: with a credential already in place there is
@@ -3050,15 +3509,22 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
     });
 
     it("renders no 'Use saved login' control", async () => {
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
       expect(document.body.textContent).not.toContain("Use saved login");
       await act(async () => root.unmount());
     });
 
     it("reads the signal again after an adapter change", async () => {
-      mockAdapterRegistry.list = [{ type: "claude_local" }, { type: "codex_local" }];
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAdapterRegistry.list = [
+        { type: "claude_local" },
+        { type: "codex_local" },
+      ];
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
 
       expect(mockAgentsApi.getAdapterAuthSignal).toHaveBeenCalledWith(
@@ -3069,7 +3535,11 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
 
       const clickByText = async (match: (text: string) => boolean) => {
         const el = [...document.body.querySelectorAll("button")].find((b) =>
-          match(b.getAttribute("aria-label")?.startsWith("Use ") ? b.getAttribute("aria-label")! : b.textContent?.trim() ?? ""),
+          match(
+            b.getAttribute("aria-label")?.startsWith("Use ")
+              ? b.getAttribute("aria-label")!
+              : (b.textContent?.trim() ?? ""),
+          ),
         )!;
         await act(async () => {
           el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -3102,19 +3572,28 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         ["claude_local", "anthropic", /Claude/],
         ["codex_local", "openai", /OpenAI/],
       ] as const;
-      const passed = { adapterType: "codex_local", status: "pass" as const, checks: [], testedAt: new Date().toISOString() };
+      const passed = {
+        adapterType: "codex_local",
+        status: "pass" as const,
+        checks: [],
+        testedAt: new Date().toISOString(),
+      };
 
       beforeEach(() => {
         localHealth.get.mockResolvedValue({ deploymentMode: "local_trusted" });
         mockEnvironmentsApi.list.mockResolvedValue([LOCAL_ENVIRONMENT]);
-        mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
+        mockInstanceSettingsApi.get.mockResolvedValue({
+          defaultEnvironmentId: null,
+        });
       });
 
       async function settle() {
         for (let i = 0; i < 10; i++) await flushReact();
       }
       function button(label: string) {
-        const found = [...document.body.querySelectorAll("button")].find(b => b.textContent?.trim() === label);
+        const found = [...document.body.querySelectorAll("button")].find(
+          (b) => b.textContent?.trim() === label,
+        );
         expect(found, label).toBeTruthy();
         return found!;
       }
@@ -3129,225 +3608,432 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       }
       function expectTesting() {
         expect(button("Testing…").disabled).toBe(true);
-        expect(button("Testing…").querySelector("svg.animate-spin")).not.toBeNull();
-        expect([...document.body.querySelectorAll('[role="status"]')].some(e => e.textContent === "Testing connection…")).toBe(true);
-        expect(document.body.querySelector('[aria-label="Saved subscription"]')).toBeNull();
-        expect(document.body.textContent).not.toContain("Run this in a terminal");
+        expect(
+          button("Testing…").querySelector("svg.animate-spin"),
+        ).not.toBeNull();
+        expect(
+          [...document.body.querySelectorAll('[role="status"]')].some(
+            (e) => e.textContent === "Testing connection…",
+          ),
+        ).toBe(true);
+        expect(
+          document.body.querySelector('[aria-label="Saved subscription"]'),
+        ).toBeNull();
+        expect(document.body.textContent).not.toContain(
+          "Run this in a terminal",
+        );
         expect(document.body.textContent).not.toContain("Start sign-in again");
       }
 
-      it.each(providers)("automatically verifies detected %s once through connection refreshes and advances", async (adapterType, provider, label) => {
-        let finish!: (result: typeof passed) => void;
-        mockAgentsApi.testEnvironment.mockReturnValue(new Promise(resolve => { finish = resolve; }));
-        const { root, queryClient } = await openStep4({ adapterType });
-        try {
-          await pickSource(label);
-          expect(document.body.textContent).toContain("Sign in to");
-          expect(document.body.textContent).not.toContain("Run this in a terminal");
-          expect(button("Connect").disabled).toBe(false);
-          await detected();
-          expectTesting();
-          // The saved account can become visible while its hello test is pending.
-          await act(async () => {
-            queryClient.setQueryData(["ai-connections", "company-new"], {
-              currentUserId: "user-1",
-              connections: [{ id: "local-connection", grantId: "local-grant", companyId: "company-new", provider, method: "subscription", name: "My subscription", ownership: "personal", ownerUserId: "user-1", status: "connected", isDefault: true }],
+      it.each(providers)(
+        "automatically verifies detected %s once through connection refreshes and advances",
+        async (adapterType, provider, label) => {
+          let finish!: (result: typeof passed) => void;
+          mockAgentsApi.testEnvironment.mockReturnValue(
+            new Promise((resolve) => {
+              finish = resolve;
+            }),
+          );
+          const { root, queryClient } = await openStep4({ adapterType });
+          try {
+            await pickSource(label);
+            expect(document.body.textContent).toContain("Sign in to");
+            expect(document.body.textContent).not.toContain(
+              "Run this in a terminal",
+            );
+            expect(button("Connect").disabled).toBe(false);
+            await detected();
+            expectTesting();
+            // The saved account can become visible while its hello test is pending.
+            await act(async () => {
+              queryClient.setQueryData(["ai-connections", "company-new"], {
+                currentUserId: "user-1",
+                connections: [
+                  {
+                    id: "local-connection",
+                    grantId: "local-grant",
+                    companyId: "company-new",
+                    provider,
+                    method: "subscription",
+                    name: "My subscription",
+                    ownership: "personal",
+                    ownerUserId: "user-1",
+                    status: "connected",
+                    isDefault: true,
+                  },
+                ],
+              });
+              window.dispatchEvent(new Event("focus"));
             });
-            window.dispatchEvent(new Event("focus"));
-          });
-          await settle();
-          expectTesting();
-          expect(managedApi.connectLocal).toHaveBeenCalledTimes(1);
-          expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
-          expect(mockAgentsApi.hire).not.toHaveBeenCalled();
-          await act(async () => finish(passed));
-          await settle();
-          expect(document.body.textContent).toContain("is ready to work!");
-          expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
-          expect(mockAgentsApi.hire).toHaveBeenCalledWith("company-new", expect.objectContaining({ runtimeConfig: expect.objectContaining({ aiConnection: { provider, method: "subscription", mode: "responsible_user" } }) }));
-        } finally { await act(async () => root.unmount()); }
-      });
-
-      it.each(providers)("automatically verifies a saved %s subscription only after selecting its provider", async (adapterType, provider, label) => {
-        const { root, queryClient } = await openStep4({ adapterType });
-        try {
-          await act(async () => queryClient.setQueryData(["ai-connections", "company-new"], {
-            currentUserId: "user-1",
-            connections: [{ id: "saved", grantId: "grant", companyId: "company-new", provider, method: "subscription", name: "My subscription", ownership: "personal", ownerUserId: "user-1", status: "connected", isDefault: true }],
-          }));
-          await settle();
-          expect(mockAgentsApi.testEnvironment).not.toHaveBeenCalled();
-          await pickSource(label);
-          await settle();
-          expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
-          expect(managedApi.connectLocal).not.toHaveBeenCalled();
-          expect(document.body.textContent).toContain("is ready to work!");
-        } finally { await act(async () => root.unmount()); }
-      });
-
-      it.each(providers)("prefers the personal default %s subscription over an earlier shared account", async (adapterType, provider, label) => {
-        const { root, queryClient } = await openStep4({ adapterType });
-        try {
-          await act(async () => queryClient.setQueryData(["ai-connections", "company-new"], {
-            currentUserId: "user-1",
-            connections: [
-              { id: "shared", grantId: "shared-grant", companyId: "company-new", provider, method: "subscription", name: "Shared", ownership: "shared", status: "connected" },
-              { id: "personal", grantId: "personal-grant", companyId: "company-new", provider, method: "subscription", name: "Personal", ownership: "personal", ownerUserId: "user-1", status: "connected", isDefault: true },
-            ],
-          }));
-          await pickSource(label);
-          await settle();
-          expect(mockAgentsApi.hire).toHaveBeenCalledWith("company-new", expect.objectContaining({
-            runtimeConfig: expect.objectContaining({ aiConnection: { provider, method: "subscription", mode: "responsible_user" } }),
-          }));
-          expect(managedApi.connectLocal).not.toHaveBeenCalled();
-        } finally { await act(async () => root.unmount()); }
-      });
-
-      it.each(providers)("does not choose an arbitrary %s account when several shared subscriptions exist", async (adapterType, provider, label) => {
-        const { root, queryClient } = await openStep4({ adapterType });
-        try {
-          await act(async () => queryClient.setQueryData(["ai-connections", "company-new"], {
-            currentUserId: "user-1",
-            connections: ["first", "second"].map(id => ({ id, grantId: `${id}-grant`, companyId: "company-new", provider, method: "subscription", name: id, ownership: "shared", status: "connected" })),
-          }));
-          await pickSource(label);
-          await settle();
-          expect(mockAgentsApi.testEnvironment).not.toHaveBeenCalled();
-          expect(mockAgentsApi.hire).not.toHaveBeenCalled();
-          expect(document.body.textContent).toContain("Sign in to");
-          expect(button("Connect").disabled).toBe(false);
-        } finally { await act(async () => root.unmount()); }
-      });
-
-      it.each(providers)("keeps %s verification pending through environment query updates", async (adapterType, _provider, label) => {
-        let finish!: (result: typeof passed) => void;
-        mockAgentsApi.testEnvironment.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
-        const { root, queryClient } = await openStep4({ adapterType });
-        try {
-          await pickSource(label);
-          await detected();
-          expectTesting();
-          await act(async () => queryClient.setQueryData(queryKeys.environments.list("company-new"), [
-            { ...LOCAL_ENVIRONMENT, id: "new-local-default" },
-          ]));
-          await settle();
-          expectTesting();
-          expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
-          expect(mockAgentsApi.hire).not.toHaveBeenCalled();
-          await act(async () => finish(passed));
-          await settle();
-          expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
-          expect(document.body.textContent).toContain("is ready to work!");
-        } finally { await act(async () => root.unmount()); }
-      });
-
-      it.each(["back", "unmount"] as const)("ignores an already-submitted hire response after %s", async navigation => {
-        let finishHire!: (value: { agent: { id: string }; approval: null }) => void;
-        mockAgentsApi.hire.mockReturnValueOnce(new Promise(resolve => { finishHire = resolve; }));
-        const { root } = await openStep4({ adapterType: "codex_local" });
-        let mounted = true;
-        try {
-          await pickSource(/OpenAI/);
-          await detected();
-          expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
-          if (navigation === "back") await click("Back");
-          else {
+            await settle();
+            expectTesting();
+            expect(managedApi.connectLocal).toHaveBeenCalledTimes(1);
+            expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
+            expect(mockAgentsApi.hire).not.toHaveBeenCalled();
+            await act(async () => finish(passed));
+            await settle();
+            expect(document.body.textContent).toContain("is ready to work!");
+            expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
+            expect(mockAgentsApi.hire).toHaveBeenCalledWith(
+              "company-new",
+              expect.objectContaining({
+                runtimeConfig: expect.objectContaining({
+                  aiConnection: {
+                    provider,
+                    method: "subscription",
+                    mode: "responsible_user",
+                  },
+                }),
+              }),
+            );
+          } finally {
             await act(async () => root.unmount());
-            mounted = false;
           }
-          await act(async () => finishHire({ agent: { id: "agent-1" }, approval: null }));
-          await settle();
-          expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
-          expect(document.body.textContent).not.toContain("is ready to work!");
-        } finally { if (mounted) await act(async () => root.unmount()); }
-      });
+        },
+      );
 
-      it.each(providers)("offers a manual retry after failed %s verification without signing in again", async (adapterType, _provider, label) => {
-        mockAgentsApi.testEnvironment.mockRejectedValueOnce(new Error("Provider request timed out. Try again."));
-        const { root } = await openStep4({ adapterType });
-        try {
-          await pickSource(label);
-          await detected();
-          expect(document.body.textContent).toContain("Provider request timed out. Try again.");
-          expect(button("Connect").disabled).toBe(false);
-          await detected();
-          expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
-          expect(mockAgentsApi.hire).not.toHaveBeenCalled();
-          await click("Connect");
-          expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(2);
-          expect(managedApi.connectLocal).toHaveBeenCalledTimes(1);
-          expect(document.body.textContent).toContain("is ready to work!");
-        } finally { await act(async () => root.unmount()); }
-      });
+      it.each(providers)(
+        "automatically verifies a saved %s subscription only after selecting its provider",
+        async (adapterType, provider, label) => {
+          const { root, queryClient } = await openStep4({ adapterType });
+          try {
+            await act(async () =>
+              queryClient.setQueryData(["ai-connections", "company-new"], {
+                currentUserId: "user-1",
+                connections: [
+                  {
+                    id: "saved",
+                    grantId: "grant",
+                    companyId: "company-new",
+                    provider,
+                    method: "subscription",
+                    name: "My subscription",
+                    ownership: "personal",
+                    ownerUserId: "user-1",
+                    status: "connected",
+                    isDefault: true,
+                  },
+                ],
+              }),
+            );
+            await settle();
+            expect(mockAgentsApi.testEnvironment).not.toHaveBeenCalled();
+            await pickSource(label);
+            await settle();
+            expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
+            expect(managedApi.connectLocal).not.toHaveBeenCalled();
+            expect(document.body.textContent).toContain("is ready to work!");
+          } finally {
+            await act(async () => root.unmount());
+          }
+        },
+      );
 
-      it.each(providers)("keeps Connect usable when %s detection has not completed", async (adapterType, _provider, label) => {
-        const { root } = await openStep4({ adapterType });
-        try {
-          await pickSource(label);
-          expect(mockAgentsApi.testEnvironment).not.toHaveBeenCalled();
-          await click("Connect");
-          expect(managedApi.connectLocal).toHaveBeenCalledTimes(1);
-          expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
-          expect(document.body.textContent).toContain("is ready to work!");
-        } finally { await act(async () => root.unmount()); }
-      });
+      it.each(providers)(
+        "prefers the personal default %s subscription over an earlier shared account",
+        async (adapterType, provider, label) => {
+          const { root, queryClient } = await openStep4({ adapterType });
+          try {
+            await act(async () =>
+              queryClient.setQueryData(["ai-connections", "company-new"], {
+                currentUserId: "user-1",
+                connections: [
+                  {
+                    id: "shared",
+                    grantId: "shared-grant",
+                    companyId: "company-new",
+                    provider,
+                    method: "subscription",
+                    name: "Shared",
+                    ownership: "shared",
+                    status: "connected",
+                  },
+                  {
+                    id: "personal",
+                    grantId: "personal-grant",
+                    companyId: "company-new",
+                    provider,
+                    method: "subscription",
+                    name: "Personal",
+                    ownership: "personal",
+                    ownerUserId: "user-1",
+                    status: "connected",
+                    isDefault: true,
+                  },
+                ],
+              }),
+            );
+            await pickSource(label);
+            await settle();
+            expect(mockAgentsApi.hire).toHaveBeenCalledWith(
+              "company-new",
+              expect.objectContaining({
+                runtimeConfig: expect.objectContaining({
+                  aiConnection: {
+                    provider,
+                    method: "subscription",
+                    mode: "responsible_user",
+                  },
+                }),
+              }),
+            );
+            expect(managedApi.connectLocal).not.toHaveBeenCalled();
+          } finally {
+            await act(async () => root.unmount());
+          }
+        },
+      );
+
+      it.each(providers)(
+        "does not choose an arbitrary %s account when several shared subscriptions exist",
+        async (adapterType, provider, label) => {
+          const { root, queryClient } = await openStep4({ adapterType });
+          try {
+            await act(async () =>
+              queryClient.setQueryData(["ai-connections", "company-new"], {
+                currentUserId: "user-1",
+                connections: ["first", "second"].map((id) => ({
+                  id,
+                  grantId: `${id}-grant`,
+                  companyId: "company-new",
+                  provider,
+                  method: "subscription",
+                  name: id,
+                  ownership: "shared",
+                  status: "connected",
+                })),
+              }),
+            );
+            await pickSource(label);
+            await settle();
+            expect(mockAgentsApi.testEnvironment).not.toHaveBeenCalled();
+            expect(mockAgentsApi.hire).not.toHaveBeenCalled();
+            expect(document.body.textContent).toContain("Sign in to");
+            expect(button("Connect").disabled).toBe(false);
+          } finally {
+            await act(async () => root.unmount());
+          }
+        },
+      );
+
+      it.each(providers)(
+        "keeps %s verification pending through environment query updates",
+        async (adapterType, _provider, label) => {
+          let finish!: (result: typeof passed) => void;
+          mockAgentsApi.testEnvironment.mockReturnValueOnce(
+            new Promise((resolve) => {
+              finish = resolve;
+            }),
+          );
+          const { root, queryClient } = await openStep4({ adapterType });
+          try {
+            await pickSource(label);
+            await detected();
+            expectTesting();
+            await act(async () =>
+              queryClient.setQueryData(
+                queryKeys.environments.list("company-new"),
+                [{ ...LOCAL_ENVIRONMENT, id: "new-local-default" }],
+              ),
+            );
+            await settle();
+            expectTesting();
+            expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
+            expect(mockAgentsApi.hire).not.toHaveBeenCalled();
+            await act(async () => finish(passed));
+            await settle();
+            expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
+            expect(document.body.textContent).toContain("is ready to work!");
+          } finally {
+            await act(async () => root.unmount());
+          }
+        },
+      );
+
+      it.each(["back", "unmount"] as const)(
+        "ignores an already-submitted hire response after %s",
+        async (navigation) => {
+          let finishHire!: (value: {
+            agent: { id: string };
+            approval: null;
+          }) => void;
+          mockAgentsApi.hire.mockReturnValueOnce(
+            new Promise((resolve) => {
+              finishHire = resolve;
+            }),
+          );
+          const { root } = await openStep4({ adapterType: "codex_local" });
+          let mounted = true;
+          try {
+            await pickSource(/OpenAI/);
+            await detected();
+            expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
+            if (navigation === "back") await click("Back");
+            else {
+              await act(async () => root.unmount());
+              mounted = false;
+            }
+            await act(async () =>
+              finishHire({ agent: { id: "agent-1" }, approval: null }),
+            );
+            await settle();
+            expect(mockAgentsApi.hire).toHaveBeenCalledTimes(1);
+            expect(document.body.textContent).not.toContain(
+              "is ready to work!",
+            );
+          } finally {
+            if (mounted) await act(async () => root.unmount());
+          }
+        },
+      );
+
+      it.each(providers)(
+        "offers a manual retry after failed %s verification without signing in again",
+        async (adapterType, _provider, label) => {
+          mockAgentsApi.testEnvironment.mockRejectedValueOnce(
+            new Error("Provider request timed out. Try again."),
+          );
+          const { root } = await openStep4({ adapterType });
+          try {
+            await pickSource(label);
+            await detected();
+            expect(document.body.textContent).toContain(
+              "Provider request timed out. Try again.",
+            );
+            expect(button("Connect").disabled).toBe(false);
+            await detected();
+            expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
+            expect(mockAgentsApi.hire).not.toHaveBeenCalled();
+            await click("Connect");
+            expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(2);
+            expect(managedApi.connectLocal).toHaveBeenCalledTimes(1);
+            expect(document.body.textContent).toContain("is ready to work!");
+          } finally {
+            await act(async () => root.unmount());
+          }
+        },
+      );
+
+      it.each(providers)(
+        "keeps Connect usable when %s detection has not completed",
+        async (adapterType, _provider, label) => {
+          const { root } = await openStep4({ adapterType });
+          try {
+            await pickSource(label);
+            expect(mockAgentsApi.testEnvironment).not.toHaveBeenCalled();
+            await click("Connect");
+            expect(managedApi.connectLocal).toHaveBeenCalledTimes(1);
+            expect(mockAgentsApi.testEnvironment).toHaveBeenCalledTimes(1);
+            expect(document.body.textContent).toContain("is ready to work!");
+          } finally {
+            await act(async () => root.unmount());
+          }
+        },
+      );
 
       it("shows Connecting while saving, then Testing while verifying", async () => {
         let saved!: (result: { connectionId: string; grantId: string }) => void;
-        managedApi.connectLocal.mockReturnValue(new Promise(resolve => { saved = resolve; }));
+        managedApi.connectLocal.mockReturnValue(
+          new Promise((resolve) => {
+            saved = resolve;
+          }),
+        );
         mockAgentsApi.testEnvironment.mockReturnValue(new Promise(() => {}));
         const { root } = await openStep4({ adapterType: "codex_local" });
         try {
           await pickSource(/OpenAI/);
           await detected();
           expect(button("Connecting…").disabled).toBe(true);
-          expect(document.body.textContent).not.toContain("Run this in a terminal");
-          await act(async () => saved({ connectionId: "local-connection", grantId: "local-grant" }));
+          expect(document.body.textContent).not.toContain(
+            "Run this in a terminal",
+          );
+          await act(async () =>
+            saved({ connectionId: "local-connection", grantId: "local-grant" }),
+          );
           await settle();
           expectTesting();
-        } finally { await act(async () => root.unmount()); }
+        } finally {
+          await act(async () => root.unmount());
+        }
       });
 
-      it.each(["back", "provider", "company", "unmount"] as const)("ignores verification completion after %s navigation", async navigation => {
-        let finish!: (result: typeof passed) => void;
-        mockAgentsApi.testEnvironment.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
-        const { root, queryClient } = await openStep4({ adapterType: "codex_local" });
-        let mounted = true;
-        try {
-          await pickSource(/OpenAI/);
-          await detected();
-          expectTesting();
-          if (navigation === "company") {
-            mockCompany.companies.push({ id: "company-other", name: "Other", issuePrefix: "OTH" });
-            mockDialog.onboardingOptions = { initialStep: 4, companyId: "company-other" };
-            managedApi.checkLocalLogin.mockResolvedValue({ status: "sign_in_required" });
-            await act(async () => root.render(<QueryClientProvider client={queryClient}><OnboardingWizard /></QueryClientProvider>));
-            await settle();
-          } else if (navigation === "unmount") {
-            await act(async () => root.unmount());
-            mounted = false;
-          } else {
-            await click("Back");
-            if (navigation === "provider") {
-              managedApi.checkLocalLogin.mockResolvedValue({ status: "sign_in_required" });
-              await pickSource(/Claude/);
+      it.each(["back", "provider", "company", "unmount"] as const)(
+        "ignores verification completion after %s navigation",
+        async (navigation) => {
+          let finish!: (result: typeof passed) => void;
+          mockAgentsApi.testEnvironment.mockReturnValueOnce(
+            new Promise((resolve) => {
+              finish = resolve;
+            }),
+          );
+          const { root, queryClient } = await openStep4({
+            adapterType: "codex_local",
+          });
+          let mounted = true;
+          try {
+            await pickSource(/OpenAI/);
+            await detected();
+            expectTesting();
+            if (navigation === "company") {
+              mockCompany.companies.push({
+                id: "company-other",
+                name: "Other",
+                issuePrefix: "OTH",
+              });
+              mockDialog.onboardingOptions = {
+                initialStep: 4,
+                companyId: "company-other",
+              };
+              managedApi.checkLocalLogin.mockResolvedValue({
+                status: "sign_in_required",
+              });
+              await act(async () =>
+                root.render(
+                  <QueryClientProvider client={queryClient}>
+                    <OnboardingWizard />
+                  </QueryClientProvider>,
+                ),
+              );
+              await settle();
+            } else if (navigation === "unmount") {
+              await act(async () => root.unmount());
+              mounted = false;
+            } else {
+              await click("Back");
+              if (navigation === "provider") {
+                managedApi.checkLocalLogin.mockResolvedValue({
+                  status: "sign_in_required",
+                });
+                await pickSource(/Claude/);
+              }
             }
+            await act(async () => finish(passed));
+            await settle();
+            expect(mockAgentsApi.hire).not.toHaveBeenCalled();
+            expect(document.body.textContent).not.toContain(
+              "is ready to work!",
+            );
+            if (navigation === "provider")
+              expect(document.body.textContent).toContain(
+                "Preparing browser sign-in",
+              );
+          } finally {
+            if (mounted) await act(async () => root.unmount());
           }
-          await act(async () => finish(passed));
-          await settle();
-          expect(mockAgentsApi.hire).not.toHaveBeenCalled();
-          expect(document.body.textContent).not.toContain("is ready to work!");
-          if (navigation === "provider") expect(document.body.textContent).toContain("Preparing browser sign-in");
-        } finally { if (mounted) await act(async () => root.unmount()); }
-      });
+        },
+      );
     });
 
     it("keeps Gemini local login out of managed Claude subscription setup", async () => {
       localHealth.get.mockResolvedValue({ deploymentMode: "local_trusted" });
       mockEnvironmentsApi.list.mockResolvedValue([LOCAL_ENVIRONMENT]);
-      mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
-      mockAdapterRegistry.list.push({ type: "gemini_local", recommended: true });
+      mockInstanceSettingsApi.get.mockResolvedValue({
+        defaultEnvironmentId: null,
+      });
+      mockAdapterRegistry.list.push({
+        type: "gemini_local",
+        recommended: true,
+      });
       const { root } = await openStep4({ adapterType: "gemini_local" });
       try {
         await pickSource(/Gemini|Google|gemini_local/);
@@ -3355,34 +4041,59 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         expect(managedApi.connectLocal).not.toHaveBeenCalled();
         expect(document.body.textContent).not.toContain("claude auth login");
         expect(mockAgentsApi.startClaudeSetupTokenLogin).not.toHaveBeenCalled();
-      } finally { await act(async () => root.unmount()); }
+      } finally {
+        await act(async () => root.unmount());
+      }
     });
 
     it("shows the Claude browser sign-in card and saves its connection before hiring", async () => {
       localHealth.get.mockResolvedValue({ deploymentMode: "local_trusted" });
       mockEnvironmentsApi.list.mockResolvedValue([LOCAL_ENVIRONMENT]);
-      mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
+      mockInstanceSettingsApi.get.mockResolvedValue({
+        defaultEnvironmentId: null,
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
       await pickSource(/Claude/);
-      expect(document.body.textContent).toContain("Sign in to Claude then come back and enter authorization code");
+      expect(document.body.textContent).toContain(
+        "Sign in to Claude then come back and enter authorization code",
+      );
       expect(document.body.textContent).not.toContain("claude auth login");
       expect(document.body.textContent).not.toContain("No managed sandbox");
       expect(mockAgentsApi.startClaudeSetupTokenLogin).not.toHaveBeenCalled();
-      const connect = [...document.body.querySelectorAll("button")].find(b => b.textContent?.trim().startsWith("Connect"));
+      const connect = [...document.body.querySelectorAll("button")].find((b) =>
+        b.textContent?.trim().startsWith("Connect"),
+      );
       expect(connect).toBeTruthy();
       await act(async () => connect!.click());
       for (let i = 0; i < 6; i++) await flushReact();
-      expect(managedApi.connectLocal).toHaveBeenCalledWith("company-new", expect.objectContaining({ provider: "anthropic", method: "subscription", ownership: "personal" }));
+      expect(managedApi.connectLocal).toHaveBeenCalledWith(
+        "company-new",
+        expect.objectContaining({
+          provider: "anthropic",
+          method: "subscription",
+          ownership: "personal",
+        }),
+      );
       expect(mockAgentsApi.hire).toHaveBeenCalled();
-      const hire = (mockAgentsApi.hire.mock.calls.at(-1) as unknown[])[1] as { runtimeConfig: { aiConnection: unknown } };
-      expect(hire.runtimeConfig.aiConnection).toEqual({ provider: "anthropic", method: "subscription", mode: "responsible_user" });
+      const hire = (mockAgentsApi.hire.mock.calls.at(-1) as unknown[])[1] as {
+        runtimeConfig: { aiConnection: unknown };
+      };
+      expect(hire.runtimeConfig.aiConnection).toEqual({
+        provider: "anthropic",
+        method: "subscription",
+        mode: "responsible_user",
+      });
       await act(async () => root.unmount());
     });
 
     it("hides the panel when the resolved login environment driver is not sandbox", async () => {
       mockEnvironmentsApi.list.mockResolvedValue([LOCAL_ENVIRONMENT]);
-      mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockInstanceSettingsApi.get.mockResolvedValue({
+        defaultEnvironmentId: null,
+      });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       const { root } = await openStep4({ adapterType: "claude_local" });
       expect(document.body.textContent).not.toContain("Sign in to Anthropic");
       expect(mockAgentsApi.getAdapterAuthSignal).not.toHaveBeenCalled();
@@ -3395,7 +4106,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       // wizard state to replay blindly. The step must instead re-derive it
       // from the caller's active session, so a customer who reloads mid-login
       // sees their sign-in still running rather than the tile row again.
-      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({ status: "absent" });
+      mockAgentsApi.getAdapterAuthSignal.mockResolvedValue({
+        status: "absent",
+      });
       mockAgentsApi.getActiveClaudeSetupTokenLoginSession.mockResolvedValue({
         sessionId: "claude-session-1",
         environmentId: "env-sandbox-1",
@@ -3403,7 +4116,9 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
         expiresAt: null,
         failure: null,
         panelMode: "submitted_browser_code",
-        prompt: { authorizationUrl: "https://claude.ai/oauth/authorize?code=true" },
+        prompt: {
+          authorizationUrl: "https://claude.ai/oauth/authorize?code=true",
+        },
       });
       const { root } = await openStep4({ adapterType: "claude_local" });
       // A reload's resume now runs one layer deeper than a fresh press: the

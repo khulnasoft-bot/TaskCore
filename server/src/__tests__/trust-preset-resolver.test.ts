@@ -23,7 +23,9 @@ const issueC = "99999999-9999-4999-8999-999999999999";
 const agentA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const agentB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-function lowTrustBoundary(input: Partial<Omit<LowTrustBoundary, "mode">>): LowTrustBoundary {
+function lowTrustBoundary(
+  input: Partial<Omit<LowTrustBoundary, "mode">>,
+): LowTrustBoundary {
   return {
     mode: LOW_TRUST_REVIEW_PRESET,
     companyId,
@@ -74,12 +76,14 @@ describe("resolveCoreTrustPreset", () => {
       },
       project: {
         companyId,
-        executionWorkspacePolicy: boundaryPolicy(lowTrustBoundary({
-          projectIds: [projectB, projectC],
-          issueIds: [issueB, issueC],
-          allowedAgentIds: [agentB],
-          allowedToolClasses: ["git.read"],
-        })),
+        executionWorkspacePolicy: boundaryPolicy(
+          lowTrustBoundary({
+            projectIds: [projectB, projectC],
+            issueIds: [issueB, issueC],
+            allowedAgentIds: [agentB],
+            allowedToolClasses: ["git.read"],
+          }),
+        ),
       },
       issue: {
         companyId,
@@ -95,7 +99,8 @@ describe("resolveCoreTrustPreset", () => {
     });
 
     expect(result.kind).toBe("low_trust_review");
-    if (result.kind !== "low_trust_review") throw new Error("expected low-trust result");
+    if (result.kind !== "low_trust_review")
+      throw new Error("expected low-trust result");
     expect(result.boundary).toMatchObject({
       companyId,
       mode: LOW_TRUST_REVIEW_PRESET,
@@ -105,8 +110,20 @@ describe("resolveCoreTrustPreset", () => {
       allowedAgentIds: [agentB],
       allowedToolClasses: ["git.read"],
     });
-    expect(isIssueWithinLowTrustBoundary(result.boundary, { companyId, id: issueB, projectId: projectB })).toBe(true);
-    expect(isIssueWithinLowTrustBoundary(result.boundary, { companyId, id: issueC, projectId: projectC })).toBe(false);
+    expect(
+      isIssueWithinLowTrustBoundary(result.boundary, {
+        companyId,
+        id: issueB,
+        projectId: projectB,
+      }),
+    ).toBe(true);
+    expect(
+      isIssueWithinLowTrustBoundary(result.boundary, {
+        companyId,
+        id: issueC,
+        projectId: projectC,
+      }),
+    ).toBe(false);
   });
 
   it("fails closed for unknown presets", () => {
@@ -135,7 +152,9 @@ describe("resolveCoreTrustPreset", () => {
         permissions: {
           trustPreset: LOW_TRUST_REVIEW_PRESET,
           authorizationPolicy: {
-            trustBoundary: lowTrustBoundary({ allowedToolClasses: ["git.read"] }),
+            trustBoundary: lowTrustBoundary({
+              allowedToolClasses: ["git.read"],
+            }),
           },
         },
       },
@@ -152,7 +171,9 @@ describe("resolveCoreTrustPreset", () => {
       companyId,
       project: {
         companyId: otherCompanyId,
-        executionWorkspacePolicy: boundaryPolicy(lowTrustBoundary({ projectIds: [projectA] })),
+        executionWorkspacePolicy: boundaryPolicy(
+          lowTrustBoundary({ projectIds: [projectA] }),
+        ),
       },
     });
     expect(sourceMismatch).toMatchObject({
@@ -193,7 +214,9 @@ describe("resolveCoreTrustPreset", () => {
         trustBoundary: lowTrustBoundary({ rootIssueId }),
       },
     });
-    expect(permissions.authorizationPolicy?.customEeField).toEqual({ mode: "visualized" });
+    expect(permissions.authorizationPolicy?.customEeField).toEqual({
+      mode: "visualized",
+    });
 
     const executionPolicy = normalizeIssueExecutionPolicy({
       reviewPreset: {

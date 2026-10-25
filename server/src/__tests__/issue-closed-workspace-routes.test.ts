@@ -23,18 +23,20 @@ const mockIssueService = vi.hoisted(() => ({
 const mockExecutionWorkspaceService = vi.hoisted(() => ({
   getById: vi.fn(),
   reopenClosedIsolatedExecutionWorkspaceForIssue: vi.fn(),
-  clearReopenPendingConsumptionForUnconsumedReopen: vi.fn(async () => ({ cleared: true })),
+  clearReopenPendingConsumptionForUnconsumedReopen: vi.fn(async () => ({
+    cleared: true,
+  })),
   refreshReopenPendingConsumption: vi.fn(async () => ({ refreshed: true })),
 }));
 
 const mockAccessService = vi.hoisted(() => ({
   canUser: vi.fn(),
-    decide: vi.fn(async (input: { action: string }) => ({
-      allowed: input.action === "issue:read" || input.action === "project:read",
-      action: input.action,
-      reason: "allow_test_read",
-      explanation: "The fixture actor can read the task.",
-    })),
+  decide: vi.fn(async (input: { action: string }) => ({
+    allowed: input.action === "issue:read" || input.action === "project:read",
+    action: input.action,
+    reason: "allow_test_read",
+    explanation: "The fixture actor can read the task.",
+  })),
   hasPermission: vi.fn(),
 }));
 
@@ -57,7 +59,9 @@ const mockRunnerGoalService = vi.hoisted(() => ({
 const mockLogActivity = vi.hoisted(() => vi.fn(async () => undefined));
 
 function registerServiceMocks() {
-  vi.doMock("../routes/authz.js", async () => vi.importActual("../routes/authz.js"));
+  vi.doMock("../routes/authz.js", async () =>
+    vi.importActual("../routes/authz.js"),
+  );
 
   vi.doMock("@taskcore/shared/telemetry", () => ({
     trackAgentTaskCompleted: vi.fn(),
@@ -110,12 +114,18 @@ function registerServiceMocks() {
     companySkillService: () => ({
       completeTestRunForIssue: vi.fn(async () => null),
     }),
-    documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+    documentAnnotationService: () => ({
+      remapOpenThreadsForDocument: async () => [],
+    }),
     documentService: () => ({}),
     executionWorkspaceService: () => mockExecutionWorkspaceService,
     feedbackService: () => ({
       listIssueVotesForUser: vi.fn(async () => []),
-      saveIssueVote: vi.fn(async () => ({ vote: null, consentEnabledNow: false, sharingEnabled: false })),
+      saveIssueVote: vi.fn(async () => ({
+        vote: null,
+        consentEnabledNow: false,
+        sharingEnabled: false,
+      })),
     }),
     goalService: () => ({
       getDefaultCompanyGoal: vi.fn(async () => null),
@@ -207,14 +217,20 @@ async function assertNoBackgroundClearWithinRetryWindow() {
   } finally {
     vi.useRealTimers();
   }
-  expect(mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen).not.toHaveBeenCalled();
+  expect(
+    mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen,
+  ).not.toHaveBeenCalled();
 }
 
 describe("closed isolated workspace issue routes", () => {
   const routeModules = hoistModuleGraph(registerServiceMocks, async () => {
     const [{ issueRoutes }, { errorHandler }] = await Promise.all([
-      vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
-      vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+      vi.importActual<typeof import("../routes/issues.js")>(
+        "../routes/issues.js",
+      ),
+      vi.importActual<typeof import("../middleware/index.js")>(
+        "../middleware/index.js",
+      ),
     ]);
     return { issueRoutes, errorHandler };
   });
@@ -241,16 +257,26 @@ describe("closed isolated workspace issue routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIssueService.getById.mockResolvedValue(makeIssue());
-    mockExecutionWorkspaceService.getById.mockResolvedValue(makeClosedWorkspace());
-    mockExecutionWorkspaceService.refreshReopenPendingConsumption.mockResolvedValue({ refreshed: true });
+    mockExecutionWorkspaceService.getById.mockResolvedValue(
+      makeClosedWorkspace(),
+    );
+    mockExecutionWorkspaceService.refreshReopenPendingConsumption.mockResolvedValue(
+      { refreshed: true },
+    );
     // The guard reopens a closed isolated workspace and lets the request
     // continue. The default is a successful reopen.
-    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue({
-      ok: true,
-      reopened: true,
-      workspace: { ...makeClosedWorkspace(), status: "active", closedAt: null },
-      generation: 4,
-    });
+    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue(
+      {
+        ok: true,
+        reopened: true,
+        workspace: {
+          ...makeClosedWorkspace(),
+          status: "active",
+          closedAt: null,
+        },
+        generation: 4,
+      },
+    );
   });
 
   it("reopens the closed isolated workspace and accepts a new comment", async () => {
@@ -263,7 +289,9 @@ describe("closed isolated workspace issue routes", () => {
       .post(`/api/issues/${issueId}/comments`)
       .send({ body: "hello" });
 
-    expect(mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue).toHaveBeenCalledWith({
+    expect(
+      mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue,
+    ).toHaveBeenCalledWith({
       workspaceId: closedWorkspaceId,
       issue: { id: issueId, companyId: "company-1", projectId: null },
       actor: expect.objectContaining({ actorType: "user" }),
@@ -273,19 +301,27 @@ describe("closed isolated workspace issue routes", () => {
   });
 
   it("reopens the closed isolated workspace and accepts a comment update", async () => {
-    mockIssueService.update.mockResolvedValue({ ...makeIssue(), status: "todo" });
+    mockIssueService.update.mockResolvedValue({
+      ...makeIssue(),
+      status: "todo",
+    });
 
     const res = await request(createApp())
       .patch(`/api/issues/${issueId}`)
       .send({ comment: "hello" });
 
-    expect(mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue).toHaveBeenCalledTimes(1);
+    expect(
+      mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue,
+    ).toHaveBeenCalledTimes(1);
     // The closed-workspace dead end is gone: the update is accepted.
     expect(res.status).toBe(200);
   });
 
   it("reopens the closed isolated workspace and accepts a checkout", async () => {
-    mockIssueService.checkout.mockResolvedValue({ ...makeIssue(), status: "in_progress" });
+    mockIssueService.checkout.mockResolvedValue({
+      ...makeIssue(),
+      status: "in_progress",
+    });
 
     const res = await request(createApp())
       .post(`/api/issues/${issueId}/checkout`)
@@ -294,17 +330,21 @@ describe("closed isolated workspace issue routes", () => {
         expectedStatuses: ["todo", "backlog", "blocked"],
       });
 
-    expect(mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue).toHaveBeenCalledTimes(1);
+    expect(
+      mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue,
+    ).toHaveBeenCalledTimes(1);
     // The closed-workspace dead end is gone: the checkout is accepted.
     expect(res.status).toBe(200);
   });
 
   it("returns 409 and blocks the comment when the workspace cannot be reopened", async () => {
-    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue({
-      ok: false,
-      code: "not_reopenable",
-      message: "Execution workspace is not reopenable",
-    });
+    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue(
+      {
+        ok: false,
+        code: "not_reopenable",
+        message: "Execution workspace is not reopenable",
+      },
+    );
 
     const res = await request(createApp())
       .post(`/api/issues/${issueId}/comments`)
@@ -315,11 +355,13 @@ describe("closed isolated workspace issue routes", () => {
   });
 
   it("returns 503 and blocks the checkout when the rebuild fails", async () => {
-    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue({
-      ok: false,
-      code: "rebuild_failed",
-      message: "Failed to rebuild the execution workspace",
-    });
+    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue(
+      {
+        ok: false,
+        code: "rebuild_failed",
+        message: "Failed to rebuild the execution workspace",
+      },
+    );
 
     const res = await request(createApp())
       .post(`/api/issues/${issueId}/checkout`)
@@ -362,7 +404,10 @@ describe("closed isolated workspace issue routes", () => {
     // The workspace reopens, but the issue update then returns null. The issue
     // stays terminal, so the guard must clear the reopen-pending flag. Otherwise
     // the terminal reaper and the archive route skip the rebuilt worktree forever.
-    mockIssueService.getById.mockResolvedValue({ ...makeIssue(), status: "done" });
+    mockIssueService.getById.mockResolvedValue({
+      ...makeIssue(),
+      status: "done",
+    });
     mockIssueService.update.mockResolvedValue(null);
 
     const res = await request(createApp())
@@ -370,21 +415,27 @@ describe("closed isolated workspace issue routes", () => {
       .send({ comment: "hello" });
 
     expect(res.status).toBe(404);
-    await vi.waitFor(() => {
-      expect(
-        mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          workspaceId: closedWorkspaceId,
-          issue: expect.objectContaining({ id: issueId }),
-          expectedGeneration: 4,
-        }),
-      );
-    }, { timeout: REOPEN_PENDING_WAIT_TIMEOUT_MS });
+    await vi.waitFor(
+      () => {
+        expect(
+          mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            workspaceId: closedWorkspaceId,
+            issue: expect.objectContaining({ id: issueId }),
+            expectedGeneration: 4,
+          }),
+        );
+      },
+      { timeout: REOPEN_PENDING_WAIT_TIMEOUT_MS },
+    );
   });
 
   it("clears the reopen-pending flag when the checkout throws after a reopen", async () => {
-    mockIssueService.getById.mockResolvedValue({ ...makeIssue(), status: "done" });
+    mockIssueService.getById.mockResolvedValue({
+      ...makeIssue(),
+      status: "done",
+    });
     mockIssueService.checkout.mockRejectedValue(new Error("checkout failed"));
 
     const res = await request(createApp())
@@ -395,24 +446,33 @@ describe("closed isolated workspace issue routes", () => {
       });
 
     expect(res.status).toBe(500);
-    await vi.waitFor(() => {
-      expect(
-        mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          workspaceId: closedWorkspaceId,
-          issue: expect.objectContaining({ id: issueId }),
-          expectedGeneration: 4,
-        }),
-      );
-    }, { timeout: REOPEN_PENDING_WAIT_TIMEOUT_MS });
+    await vi.waitFor(
+      () => {
+        expect(
+          mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            workspaceId: closedWorkspaceId,
+            issue: expect.objectContaining({ id: issueId }),
+            expectedGeneration: 4,
+          }),
+        );
+      },
+      { timeout: REOPEN_PENDING_WAIT_TIMEOUT_MS },
+    );
   });
 
   it("does not clear the reopen-pending flag when the checkout resumes the issue", async () => {
     // The checkout moves the issue out of the terminal state, so the reaper clears
     // the flag on its next cycle. The route must not clear it here.
-    mockIssueService.getById.mockResolvedValue({ ...makeIssue(), status: "done" });
-    mockIssueService.checkout.mockResolvedValue({ ...makeIssue(), status: "in_progress" });
+    mockIssueService.getById.mockResolvedValue({
+      ...makeIssue(),
+      status: "done",
+    });
+    mockIssueService.checkout.mockResolvedValue({
+      ...makeIssue(),
+      status: "in_progress",
+    });
 
     const res = await request(createApp())
       .post(`/api/issues/${issueId}/checkout`)
@@ -431,13 +491,22 @@ describe("closed isolated workspace issue routes", () => {
     // issue terminal, this request must not clear the flag that the other request
     // owns. Otherwise the reaper or the archive route can destroy the rebuilt
     // worktree while the other request still uses it.
-    mockIssueService.getById.mockResolvedValue({ ...makeIssue(), status: "done" });
-    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue({
-      ok: true,
-      reopened: false,
-      workspace: { ...makeClosedWorkspace(), status: "active", closedAt: null },
-      generation: 4,
+    mockIssueService.getById.mockResolvedValue({
+      ...makeIssue(),
+      status: "done",
     });
+    mockExecutionWorkspaceService.reopenClosedIsolatedExecutionWorkspaceForIssue.mockResolvedValue(
+      {
+        ok: true,
+        reopened: false,
+        workspace: {
+          ...makeClosedWorkspace(),
+          status: "active",
+          closedAt: null,
+        },
+        generation: 4,
+      },
+    );
     mockIssueService.checkout.mockResolvedValue(null);
 
     const res = await request(createApp())
@@ -455,7 +524,10 @@ describe("closed isolated workspace issue routes", () => {
     // The workspace reopens, but the comment update returns null, so the issue
     // stays terminal and the guard must clear the flag. A transient failure of the
     // first clear must not strand the flag; the guard retries until it succeeds.
-    mockIssueService.getById.mockResolvedValue({ ...makeIssue(), status: "done" });
+    mockIssueService.getById.mockResolvedValue({
+      ...makeIssue(),
+      status: "done",
+    });
     mockIssueService.update.mockResolvedValue(null);
     mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen
       .mockRejectedValueOnce(new Error("transient database error"))
@@ -466,11 +538,15 @@ describe("closed isolated workspace issue routes", () => {
       .send({ comment: "hello" });
 
     expect(res.status).toBe(404);
-    await vi.waitFor(() => {
-      expect(
-        mockExecutionWorkspaceService.clearReopenPendingConsumptionForUnconsumedReopen.mock.calls.length,
-      ).toBeGreaterThanOrEqual(2);
-    }, { timeout: REOPEN_PENDING_WAIT_TIMEOUT_MS });
+    await vi.waitFor(
+      () => {
+        expect(
+          mockExecutionWorkspaceService
+            .clearReopenPendingConsumptionForUnconsumedReopen.mock.calls.length,
+        ).toBeGreaterThanOrEqual(2);
+      },
+      { timeout: REOPEN_PENDING_WAIT_TIMEOUT_MS },
+    );
   });
 
   it("still allows non-comment board updates so the issue can be moved to a new workspace", async () => {

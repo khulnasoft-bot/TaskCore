@@ -47,8 +47,11 @@ function createMockSandbox(input: {
       },
     },
     fs: {
-      uploadFiles: async (uploads: Array<{ source: string; destination: string }>) => {
-        for (const upload of uploads) input.uploadedDestinations.push(upload.destination);
+      uploadFiles: async (
+        uploads: Array<{ source: string; destination: string }>,
+      ) => {
+        for (const upload of uploads)
+          input.uploadedDestinations.push(upload.destination);
       },
     },
   };
@@ -66,11 +69,17 @@ describe("daytona file-sync inbound scratch cleanup", () => {
   });
 
   it("removes the reserved scratch tar when a directory extraction fails", async () => {
-    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-daytona-scratch-"));
+    const rootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-daytona-scratch-"),
+    );
     cleanupDirs.push(rootDir);
     const sourceDir = path.join(rootDir, "referenced-project");
     await fs.mkdir(sourceDir, { recursive: true });
-    await fs.writeFile(path.join(sourceDir, "README.md"), "referenced project\n", "utf8");
+    await fs.writeFile(
+      path.join(sourceDir, "README.md"),
+      "referenced project\n",
+      "utf8",
+    );
 
     const remoteDir = "/workspace";
     const targetPath = "/workspace/.taskcore-runtime/test-adapter/project-abc";
@@ -83,10 +92,12 @@ describe("daytona file-sync inbound scratch cleanup", () => {
       commands,
     });
 
-    const operations: PluginSyncOperation[] = [{
-      operationId: "sync-op-1",
-      files: [{ sourcePath: sourceDir, targetPath, kind: "directory" }],
-    }];
+    const operations: PluginSyncOperation[] = [
+      {
+        operationId: "sync-op-1",
+        files: [{ sourcePath: sourceDir, targetPath, kind: "directory" }],
+      },
+    ];
 
     await expect(
       performSyncIn({
@@ -120,11 +131,17 @@ describe("daytona file-sync inbound scratch cleanup", () => {
   });
 
   it("does not sweep scratch on the happy path (extract removes it)", async () => {
-    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-daytona-scratch-"));
+    const rootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-daytona-scratch-"),
+    );
     cleanupDirs.push(rootDir);
     const sourceDir = path.join(rootDir, "referenced-project");
     await fs.mkdir(sourceDir, { recursive: true });
-    await fs.writeFile(path.join(sourceDir, "README.md"), "referenced project\n", "utf8");
+    await fs.writeFile(
+      path.join(sourceDir, "README.md"),
+      "referenced project\n",
+      "utf8",
+    );
 
     const remoteDir = "/workspace";
     const targetPath = "/workspace/.taskcore-runtime/test-adapter/project-abc";
@@ -134,10 +151,12 @@ describe("daytona file-sync inbound scratch cleanup", () => {
     // scratch and no extra cleanup round trip runs.
     const sandbox = createMockSandbox({ uploadedDestinations, commands });
 
-    const operations: PluginSyncOperation[] = [{
-      operationId: "sync-op-1",
-      files: [{ sourcePath: sourceDir, targetPath, kind: "directory" }],
-    }];
+    const operations: PluginSyncOperation[] = [
+      {
+        operationId: "sync-op-1",
+        files: [{ sourcePath: sourceDir, targetPath, kind: "directory" }],
+      },
+    ];
 
     await performSyncIn({
       sandbox: sandbox as never,
@@ -159,7 +178,9 @@ describe("daytona file-sync inbound scratch cleanup", () => {
   });
 
   it("writes an inbound file mapping to a sandbox path outside the workspace root", async () => {
-    const hostDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-daytona-outside-root-"));
+    const hostDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-daytona-outside-root-"),
+    );
     cleanupDirs.push(hostDir);
     const sourcePath = path.join(hostDir, "source.txt");
     await fs.writeFile(sourcePath, "payload");
@@ -174,15 +195,24 @@ describe("daytona file-sync inbound scratch cleanup", () => {
     const commands: RecordedCommand[] = [];
     const sandbox = createMockSandbox({ uploadedDestinations, commands });
 
-    const operations: PluginSyncOperation[] = [{
-      operationId: "sync-op-outside-root",
-      files: [{ sourcePath, targetPath, kind: "file" }],
-    }];
+    const operations: PluginSyncOperation[] = [
+      {
+        operationId: "sync-op-outside-root",
+        files: [{ sourcePath, targetPath, kind: "file" }],
+      },
+    ];
 
-    const result = await performSyncIn({ sandbox: sandbox as never, operations, remoteDir, timeoutSeconds: 30 });
+    const result = await performSyncIn({
+      sandbox: sandbox as never,
+      operations,
+      remoteDir,
+      timeoutSeconds: 30,
+    });
 
     expect(result.operations[0].filesTransferred).toBe(1);
-    const promoteCommand = commands.map((entry) => entry.command).find((command) => command.includes("mv -f"));
+    const promoteCommand = commands
+      .map((entry) => entry.command)
+      .find((command) => command.includes("mv -f"));
     expect(promoteCommand).toBeDefined();
     expect(promoteCommand).toContain(targetPath);
   });
@@ -205,18 +235,29 @@ const hasZstdBinary = spawnSync("zstd", ["--version"]).status === 0;
 const describeWithZstd = hasZstdBinary ? describe : describe.skip;
 
 function sha256OfFile(filePath: string): Promise<string> {
-  return fs.readFile(filePath).then((buf) => crypto.createHash("sha256").update(buf).digest("hex"));
+  return fs
+    .readFile(filePath)
+    .then((buf) => crypto.createHash("sha256").update(buf).digest("hex"));
 }
 
-async function writeCompressibleFile(filePath: string, sizeBytes: number): Promise<void> {
+async function writeCompressibleFile(
+  filePath: string,
+  sizeBytes: number,
+): Promise<void> {
   // Low-entropy repeated content compresses well past the 10% saving bar.
-  const chunk = Buffer.from("taskcore-zstd-transport-compression-fixture-".repeat(64));
+  const chunk = Buffer.from(
+    "taskcore-zstd-transport-compression-fixture-".repeat(64),
+  );
   const parts: Buffer[] = [];
-  for (let written = 0; written < sizeBytes; written += chunk.length) parts.push(chunk);
+  for (let written = 0; written < sizeBytes; written += chunk.length)
+    parts.push(chunk);
   await fs.writeFile(filePath, Buffer.concat(parts).subarray(0, sizeBytes));
 }
 
-async function writeIncompressibleFile(filePath: string, sizeBytes: number): Promise<void> {
+async function writeIncompressibleFile(
+  filePath: string,
+  sizeBytes: number,
+): Promise<void> {
   await fs.writeFile(filePath, crypto.randomBytes(sizeBytes));
 }
 
@@ -239,13 +280,18 @@ function createRecordingSandbox(input: {
       executeCommand: async (command: string) => {
         input.commands.push({ command });
         if (command.includes("mkdir -p")) {
-          return { exitCode: 0, result: input.probeReportsZstd ? "TASKCORE_ZSTD_AVAILABLE\n" : "" };
+          return {
+            exitCode: 0,
+            result: input.probeReportsZstd ? "TASKCORE_ZSTD_AVAILABLE\n" : "",
+          };
         }
         return { exitCode: 0, result: "" };
       },
     },
     fs: {
-      uploadFiles: async (uploads: Array<{ source: string; destination: string }>) => {
+      uploadFiles: async (
+        uploads: Array<{ source: string; destination: string }>,
+      ) => {
         for (const upload of uploads) {
           input.uploadedSources.push(upload.source);
           input.uploadedDestinations.push(upload.destination);
@@ -264,7 +310,9 @@ function createRecordingSandbox(input: {
  * for real, instead of only recording which commands the code would send.
  */
 function createRealExecSandbox(input?: {
-  uploadOverride?: (uploads: Array<{ source: string; destination: string }>) => Promise<boolean>;
+  uploadOverride?: (
+    uploads: Array<{ source: string; destination: string }>,
+  ) => Promise<boolean>;
   commandEnv?: NodeJS.ProcessEnv;
 }) {
   const commands: RecordedCommand[] = [];
@@ -274,16 +322,30 @@ function createRealExecSandbox(input?: {
       process: {
         executeCommand: async (command: string) => {
           commands.push({ command });
-          const result = spawnSync("/bin/sh", ["-c", command], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: input?.commandEnv });
-          return { exitCode: result.status ?? 1, result: (result.stdout ?? "") + (result.stderr ?? "") };
+          const result = spawnSync("/bin/sh", ["-c", command], {
+            encoding: "utf8",
+            maxBuffer: 64 * 1024 * 1024,
+            env: input?.commandEnv,
+          });
+          return {
+            exitCode: result.status ?? 1,
+            result: (result.stdout ?? "") + (result.stderr ?? ""),
+          };
         },
       },
       fs: {
-        uploadFiles: async (uploads: Array<{ source: string; destination: string }>) => {
-          if (input?.uploadOverride && (await input.uploadOverride(uploads))) return;
-          for (const upload of uploads) await fs.copyFile(upload.source, upload.destination);
+        uploadFiles: async (
+          uploads: Array<{ source: string; destination: string }>,
+        ) => {
+          if (input?.uploadOverride && (await input.uploadOverride(uploads)))
+            return;
+          for (const upload of uploads)
+            await fs.copyFile(upload.source, upload.destination);
         },
-        setFilePermissions: async (target: string, options: { mode: string }) => {
+        setFilePermissions: async (
+          target: string,
+          options: { mode: string },
+        ) => {
           await fs.chmod(target, parseInt(options.mode, 8));
         },
       },
@@ -293,150 +355,298 @@ function createRealExecSandbox(input?: {
 
 // Daytona uses GNU tar. macOS contributors can install gnu-tar; the usual
 // Linux CI path runs this directly without extra dependencies.
-const gnuTar = ["gtar", "tar"].map((candidate) => {
-  const resolved = spawnSync("/bin/sh", ["-c", 'command -v "$1"', "sh", candidate], { encoding: "utf8" }).stdout.trim();
-  return resolved && spawnSync(resolved, ["--version"], { encoding: "utf8" }).stdout?.includes("GNU tar") ? resolved : null;
-}).find(Boolean);
+const gnuTar = ["gtar", "tar"]
+  .map((candidate) => {
+    const resolved = spawnSync(
+      "/bin/sh",
+      ["-c", 'command -v "$1"', "sh", candidate],
+      { encoding: "utf8" },
+    ).stdout.trim();
+    return resolved &&
+      spawnSync(resolved, ["--version"], { encoding: "utf8" }).stdout?.includes(
+        "GNU tar",
+      )
+      ? resolved
+      : null;
+  })
+  .find(Boolean);
 
-it.skipIf(!gnuTar)("extracts interleaved read-only skill directories with GNU tar and preserves their modes", async () => {
-  const root = await fs.mkdtemp("/tmp/taskcore-daytona-readonly-");
-  const source = path.join(root, "source");
-  const remoteDir = path.join(root, "remote");
-  const target = path.join(remoteDir, "skill");
-  const bin = path.join(root, "bin");
-  await fs.mkdir(path.join(source, "references", "agents"), { recursive: true });
-  await fs.mkdir(remoteDir);
-  await fs.mkdir(bin);
-  await fs.symlink(gnuTar!, path.join(bin, "tar"));
-  await fs.writeFile(path.join(source, "references", "overview.md"), "overview", { mode: 0o444 });
-  await fs.writeFile(path.join(source, "references", "agents", "qa.md"), "QA instructions", { mode: 0o444 });
-  for (const dir of ["references/agents", "references"]) await fs.chmod(path.join(source, dir), 0o555);
-  try {
-    const { sandbox } = createRealExecSandbox({
-      commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
-      uploadOverride: async (uploads) => {
-        for (const upload of uploads) {
-          // BSD tar can list a child directory before its parent's files, then
-          // visit that child later. GNU tar must not finalize its 0555 mode early.
-          const archive = spawnSync(gnuTar!, ["-c", "--owner=12345", "--group=12345", "--no-xattrs", "--no-recursion", "-f", upload.destination, "-C", source,
-            "references", "references/agents", "references/overview.md", "references/agents/qa.md"], { encoding: "utf8", env: { ...process.env, COPYFILE_DISABLE: "1" } });
-          expect(archive.status, archive.stderr).toBe(0);
-        }
-        return true;
-      },
+it.skipIf(!gnuTar)(
+  "extracts interleaved read-only skill directories with GNU tar and preserves their modes",
+  async () => {
+    const root = await fs.mkdtemp("/tmp/taskcore-daytona-readonly-");
+    const source = path.join(root, "source");
+    const remoteDir = path.join(root, "remote");
+    const target = path.join(remoteDir, "skill");
+    const bin = path.join(root, "bin");
+    await fs.mkdir(path.join(source, "references", "agents"), {
+      recursive: true,
     });
-    await performSyncIn({ sandbox: sandbox as never, remoteDir, timeoutSeconds: 30,
-      operations: [{ operationId: "readonly-skill", files: [{ sourcePath: source, targetPath: target, kind: "directory", mode: 0o555 }] }] });
-    // A resumed sandbox already contains the previous read-only skill bundle.
-    await fs.writeFile(path.join(target, "unrelated.txt"), "keep me");
-    await performSyncIn({ sandbox: sandbox as never, remoteDir, timeoutSeconds: 30,
-      operations: [{ operationId: "readonly-skill-resume", files: [{ sourcePath: source, targetPath: target, kind: "directory", mode: 0o555 }] }] });
-    expect(await fs.readFile(path.join(target, "unrelated.txt"), "utf8")).toBe("keep me");
-    expect(await fs.readFile(path.join(target, "references", "agents", "qa.md"), "utf8")).toBe("QA instructions");
-    expect((await fs.stat(path.join(target, "references", "agents"))).mode & 0o777).toBe(0o555);
-    expect((await fs.stat(path.join(target, "references", "agents", "qa.md"))).mode & 0o777).toBe(0o444);
-    // Never treat a corrupted read-only bundle as a cache hit, even if its
-    // file size, permissions and timestamp still match the source archive.
-    const qa = path.join(target, "references", "agents", "qa.md");
-    const before = await fs.stat(qa);
-    await fs.chmod(qa, 0o644);
-    await fs.writeFile(qa, "XX instructions");
-    await fs.chmod(qa, 0o444);
-    await fs.utimes(qa, before.atime, before.mtime);
-    await expect(performSyncIn({ sandbox: sandbox as never, remoteDir, timeoutSeconds: 30,
-      operations: [{ operationId: "corrupt-skill-resume", files: [{ sourcePath: source, targetPath: target, kind: "directory", mode: 0o555 }] }] })).rejects.toThrow("syncIn extract");
-    expect(await fs.readFile(qa, "utf8")).toBe("XX instructions");
-    expect((await fs.readdir(remoteDir)).filter((name) => name.startsWith(".taskcore-upload"))).toEqual([]);
-
-  } finally {
-    for (const base of [source, target]) {
-      for (const dir of ["references/agents", "references"]) await fs.chmod(path.join(base, dir), 0o700).catch(() => undefined);
+    await fs.mkdir(remoteDir);
+    await fs.mkdir(bin);
+    await fs.symlink(gnuTar!, path.join(bin, "tar"));
+    await fs.writeFile(
+      path.join(source, "references", "overview.md"),
+      "overview",
+      { mode: 0o444 },
+    );
+    await fs.writeFile(
+      path.join(source, "references", "agents", "qa.md"),
+      "QA instructions",
+      { mode: 0o444 },
+    );
+    for (const dir of ["references/agents", "references"])
+      await fs.chmod(path.join(source, dir), 0o555);
+    try {
+      const { sandbox } = createRealExecSandbox({
+        commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+        uploadOverride: async (uploads) => {
+          for (const upload of uploads) {
+            // BSD tar can list a child directory before its parent's files, then
+            // visit that child later. GNU tar must not finalize its 0555 mode early.
+            const archive = spawnSync(
+              gnuTar!,
+              [
+                "-c",
+                "--owner=12345",
+                "--group=12345",
+                "--no-xattrs",
+                "--no-recursion",
+                "-f",
+                upload.destination,
+                "-C",
+                source,
+                "references",
+                "references/agents",
+                "references/overview.md",
+                "references/agents/qa.md",
+              ],
+              {
+                encoding: "utf8",
+                env: { ...process.env, COPYFILE_DISABLE: "1" },
+              },
+            );
+            expect(archive.status, archive.stderr).toBe(0);
+          }
+          return true;
+        },
+      });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        remoteDir,
+        timeoutSeconds: 30,
+        operations: [
+          {
+            operationId: "readonly-skill",
+            files: [
+              {
+                sourcePath: source,
+                targetPath: target,
+                kind: "directory",
+                mode: 0o555,
+              },
+            ],
+          },
+        ],
+      });
+      // A resumed sandbox already contains the previous read-only skill bundle.
+      await fs.writeFile(path.join(target, "unrelated.txt"), "keep me");
+      await performSyncIn({
+        sandbox: sandbox as never,
+        remoteDir,
+        timeoutSeconds: 30,
+        operations: [
+          {
+            operationId: "readonly-skill-resume",
+            files: [
+              {
+                sourcePath: source,
+                targetPath: target,
+                kind: "directory",
+                mode: 0o555,
+              },
+            ],
+          },
+        ],
+      });
+      expect(
+        await fs.readFile(path.join(target, "unrelated.txt"), "utf8"),
+      ).toBe("keep me");
+      expect(
+        await fs.readFile(
+          path.join(target, "references", "agents", "qa.md"),
+          "utf8",
+        ),
+      ).toBe("QA instructions");
+      expect(
+        (await fs.stat(path.join(target, "references", "agents"))).mode & 0o777,
+      ).toBe(0o555);
+      expect(
+        (await fs.stat(path.join(target, "references", "agents", "qa.md")))
+          .mode & 0o777,
+      ).toBe(0o444);
+      // Never treat a corrupted read-only bundle as a cache hit, even if its
+      // file size, permissions and timestamp still match the source archive.
+      const qa = path.join(target, "references", "agents", "qa.md");
+      const before = await fs.stat(qa);
+      await fs.chmod(qa, 0o644);
+      await fs.writeFile(qa, "XX instructions");
+      await fs.chmod(qa, 0o444);
+      await fs.utimes(qa, before.atime, before.mtime);
+      await expect(
+        performSyncIn({
+          sandbox: sandbox as never,
+          remoteDir,
+          timeoutSeconds: 30,
+          operations: [
+            {
+              operationId: "corrupt-skill-resume",
+              files: [
+                {
+                  sourcePath: source,
+                  targetPath: target,
+                  kind: "directory",
+                  mode: 0o555,
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow("syncIn extract");
+      expect(await fs.readFile(qa, "utf8")).toBe("XX instructions");
+      expect(
+        (await fs.readdir(remoteDir)).filter((name) =>
+          name.startsWith(".taskcore-upload"),
+        ),
+      ).toEqual([]);
+    } finally {
+      for (const base of [source, target]) {
+        for (const dir of ["references/agents", "references"])
+          await fs.chmod(path.join(base, dir), 0o700).catch(() => undefined);
+      }
+      await fs.rm(root, { recursive: true, force: true });
     }
-    await fs.rm(root, { recursive: true, force: true });
-  }
-}, 30_000);
+  },
+  30_000,
+);
 
-it.skipIf(!gnuTar)("uploads gzip directory archives and preserves content, executable modes, and symlinks", async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-daytona-gzip-dir-"));
-  const source = path.join(root, "source");
-  const remoteDir = path.join(root, "remote");
-  const target = path.join(remoteDir, "target");
-  const bin = path.join(root, "bin");
-  await fs.mkdir(path.join(source, "bin"), { recursive: true });
-  await fs.mkdir(remoteDir);
-  await fs.mkdir(bin);
-  await fs.symlink(gnuTar!, path.join(bin, "tar"));
-  await fs.writeFile(path.join(source, "bin", "tool.sh"), "#!/bin/sh\necho ok\n", { mode: 0o755 });
-  await fs.symlink("bin/tool.sh", path.join(source, "tool-link"));
+it.skipIf(!gnuTar)(
+  "uploads gzip directory archives and preserves content, executable modes, and symlinks",
+  async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-daytona-gzip-dir-"),
+    );
+    const source = path.join(root, "source");
+    const remoteDir = path.join(root, "remote");
+    const target = path.join(remoteDir, "target");
+    const bin = path.join(root, "bin");
+    await fs.mkdir(path.join(source, "bin"), { recursive: true });
+    await fs.mkdir(remoteDir);
+    await fs.mkdir(bin);
+    await fs.symlink(gnuTar!, path.join(bin, "tar"));
+    await fs.writeFile(
+      path.join(source, "bin", "tool.sh"),
+      "#!/bin/sh\necho ok\n",
+      { mode: 0o755 },
+    );
+    await fs.symlink("bin/tool.sh", path.join(source, "tool-link"));
 
-  try {
-    let uploadedArchiveBytes: Buffer | undefined;
-    const { sandbox } = createRealExecSandbox({
-      commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
-      uploadOverride: async (uploads) => {
-        uploadedArchiveBytes = await fs.readFile(uploads[0]!.source);
-        for (const upload of uploads) await fs.copyFile(upload.source, upload.destination);
-        return true;
-      },
-    });
+    try {
+      let uploadedArchiveBytes: Buffer | undefined;
+      const { sandbox } = createRealExecSandbox({
+        commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+        uploadOverride: async (uploads) => {
+          uploadedArchiveBytes = await fs.readFile(uploads[0]!.source);
+          for (const upload of uploads)
+            await fs.copyFile(upload.source, upload.destination);
+          return true;
+        },
+      });
 
-    await performSyncIn({
-      sandbox: sandbox as never,
-      remoteDir,
-      timeoutSeconds: 30,
-      operations: [{
-        operationId: "gzip-directory",
-        files: [{ sourcePath: source, targetPath: target, kind: "directory" }],
-      }],
-    });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        remoteDir,
+        timeoutSeconds: 30,
+        operations: [
+          {
+            operationId: "gzip-directory",
+            files: [
+              { sourcePath: source, targetPath: target, kind: "directory" },
+            ],
+          },
+        ],
+      });
 
-    expect(uploadedArchiveBytes).toBeDefined();
-    expect(uploadedArchiveBytes!.subarray(0, 2)).toEqual(Buffer.from([0x1f, 0x8b]));
-    expect(await fs.readFile(path.join(target, "bin", "tool.sh"), "utf8")).toBe("#!/bin/sh\necho ok\n");
-    expect((await fs.stat(path.join(target, "bin", "tool.sh"))).mode & 0o777).toBe(0o755);
-    expect(await fs.readlink(path.join(target, "tool-link"))).toBe("bin/tool.sh");
-  } finally {
-    await fs.rm(root, { recursive: true, force: true });
-  }
-}, 30_000);
+      expect(uploadedArchiveBytes).toBeDefined();
+      expect(uploadedArchiveBytes!.subarray(0, 2)).toEqual(
+        Buffer.from([0x1f, 0x8b]),
+      );
+      expect(
+        await fs.readFile(path.join(target, "bin", "tool.sh"), "utf8"),
+      ).toBe("#!/bin/sh\necho ok\n");
+      expect(
+        (await fs.stat(path.join(target, "bin", "tool.sh"))).mode & 0o777,
+      ).toBe(0o755);
+      expect(await fs.readlink(path.join(target, "tool-link"))).toBe(
+        "bin/tool.sh",
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
 
-it.skipIf(!gnuTar)("uploads and extracts a gzip empty directory archive", async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-daytona-gzip-empty-"));
-  const source = path.join(root, "source");
-  const remoteDir = path.join(root, "remote");
-  const target = path.join(remoteDir, "target");
-  const bin = path.join(root, "bin");
-  await fs.mkdir(source);
-  await fs.mkdir(remoteDir);
-  await fs.mkdir(bin);
-  await fs.symlink(gnuTar!, path.join(bin, "tar"));
+it.skipIf(!gnuTar)(
+  "uploads and extracts a gzip empty directory archive",
+  async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-daytona-gzip-empty-"),
+    );
+    const source = path.join(root, "source");
+    const remoteDir = path.join(root, "remote");
+    const target = path.join(remoteDir, "target");
+    const bin = path.join(root, "bin");
+    await fs.mkdir(source);
+    await fs.mkdir(remoteDir);
+    await fs.mkdir(bin);
+    await fs.symlink(gnuTar!, path.join(bin, "tar"));
 
-  try {
-    let uploadedArchiveBytes: Buffer | undefined;
-    const { sandbox } = createRealExecSandbox({
-      commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
-      uploadOverride: async (uploads) => {
-        uploadedArchiveBytes = await fs.readFile(uploads[0]!.source);
-        for (const upload of uploads) await fs.copyFile(upload.source, upload.destination);
-        return true;
-      },
-    });
-    await performSyncIn({
-      sandbox: sandbox as never,
-      remoteDir,
-      timeoutSeconds: 30,
-      operations: [{
-        operationId: "gzip-empty-directory",
-        files: [{ sourcePath: source, targetPath: target, kind: "directory" }],
-      }],
-    });
-    expect(uploadedArchiveBytes).toBeDefined();
-    expect(uploadedArchiveBytes!.subarray(0, 2)).toEqual(Buffer.from([0x1f, 0x8b]));
-    expect(await fs.readdir(target)).toEqual([]);
-  } finally {
-    await fs.rm(root, { recursive: true, force: true });
-  }
-}, 30_000);
+    try {
+      let uploadedArchiveBytes: Buffer | undefined;
+      const { sandbox } = createRealExecSandbox({
+        commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+        uploadOverride: async (uploads) => {
+          uploadedArchiveBytes = await fs.readFile(uploads[0]!.source);
+          for (const upload of uploads)
+            await fs.copyFile(upload.source, upload.destination);
+          return true;
+        },
+      });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        remoteDir,
+        timeoutSeconds: 30,
+        operations: [
+          {
+            operationId: "gzip-empty-directory",
+            files: [
+              { sourcePath: source, targetPath: target, kind: "directory" },
+            ],
+          },
+        ],
+      });
+      expect(uploadedArchiveBytes).toBeDefined();
+      expect(uploadedArchiveBytes!.subarray(0, 2)).toEqual(
+        Buffer.from([0x1f, 0x8b]),
+      );
+      expect(await fs.readdir(target)).toEqual([]);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
 
 describe("daytona file-sync inbound zstd transport compression", () => {
   const cleanupDirs: string[] = [];
@@ -460,51 +670,82 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       const remoteDir = await mkTempDir("taskcore-daytona-zstd-remote-");
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "workspace-upload.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const targetPath = path.posix.join(remoteDir, "workspace-upload.tar");
 
       const { sandbox, commands } = createRealExecSandbox();
-      const operations: PluginSyncOperation[] = [{
-        operationId: "sync-op-1",
-        files: [{ sourcePath, targetPath, kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "sync-op-1",
+          files: [{ sourcePath, targetPath, kind: "file" }],
+        },
+      ];
 
-      const result = await performSyncIn({ sandbox: sandbox as never, operations, remoteDir, timeoutSeconds: 30 });
+      const result = await performSyncIn({
+        sandbox: sandbox as never,
+        operations,
+        remoteDir,
+        timeoutSeconds: 30,
+      });
 
       expect(result.operations[0].filesTransferred).toBe(1);
-      expect(result.operations[0].bytesTransferred).toBe(ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      expect(result.operations[0].bytesTransferred).toBe(
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       // The promote script actually ran a real `zstd -d -o` — proves decompression
       // happened, not just that the code called `uploadFiles`.
-      expect(commands.some((entry) => entry.command.includes("zstd -d -o"))).toBe(true);
-      expect(await sha256OfFile(targetPath)).toBe(await sha256OfFile(sourcePath));
+      expect(
+        commands.some((entry) => entry.command.includes("zstd -d -o")),
+      ).toBe(true);
+      expect(await sha256OfFile(targetPath)).toBe(
+        await sha256OfFile(sourcePath),
+      );
 
       // Cleanup on success: no reserved scratch (raw or `.zst`) remains.
       const remaining = await fs.readdir(remoteDir);
-      expect(remaining.filter((name) => name.includes(".taskcore-upload"))).toHaveLength(0);
+      expect(
+        remaining.filter((name) => name.includes(".taskcore-upload")),
+      ).toHaveLength(0);
     });
 
     it("removes the private compressed host temp directory after a successful sync", async () => {
       const remoteDir = await mkTempDir("taskcore-daytona-zstd-remote-");
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "workspace-upload.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const targetPath = path.posix.join(remoteDir, "target.bin");
 
       let capturedHostTempDir = "";
       const { sandbox } = createRealExecSandbox({
         uploadOverride: async (uploads) => {
-          const zstdUpload = uploads.find((upload) => upload.destination.endsWith(".zst"));
+          const zstdUpload = uploads.find((upload) =>
+            upload.destination.endsWith(".zst"),
+          );
           if (zstdUpload) capturedHostTempDir = path.dirname(zstdUpload.source);
-          for (const upload of uploads) await fs.copyFile(upload.source, upload.destination);
+          for (const upload of uploads)
+            await fs.copyFile(upload.source, upload.destination);
           return true;
         },
       });
-      const operations: PluginSyncOperation[] = [{
-        operationId: "sync-op-1",
-        files: [{ sourcePath, targetPath, kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "sync-op-1",
+          files: [{ sourcePath, targetPath, kind: "file" }],
+        },
+      ];
 
-      await performSyncIn({ sandbox: sandbox as never, operations, remoteDir, timeoutSeconds: 30 });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        operations,
+        remoteDir,
+        timeoutSeconds: 30,
+      });
 
       expect(capturedHostTempDir).toContain("taskcore-daytona-zstd-");
       // The private host temp directory (not just the file inside it) is gone
@@ -516,7 +757,10 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       const remoteDir = await mkTempDir("taskcore-daytona-zstd-remote-");
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "workspace-upload.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const targetPath = path.posix.join(remoteDir, "target.bin");
 
       // Put a stand-in `rm` first on PATH. It always exits 1. So BOTH the
@@ -530,21 +774,32 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       await fs.chmod(fakeRmPath, 0o755);
       const originalPath = process.env.PATH;
       process.env.PATH = `${fakeBinDir}${path.delimiter}${originalPath}`;
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const warnSpy = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => undefined);
 
       try {
         const { sandbox } = createRealExecSandbox();
-        const operations: PluginSyncOperation[] = [{
-          operationId: "sync-op-1",
-          files: [{ sourcePath, targetPath, kind: "file" }],
-        }];
+        const operations: PluginSyncOperation[] = [
+          {
+            operationId: "sync-op-1",
+            files: [{ sourcePath, targetPath, kind: "file" }],
+          },
+        ];
 
         // Every target file is already installed by the time the `.zst`
         // cleanup runs, so a failing cleanup must never turn into a sync
         // failure.
-        await performSyncIn({ sandbox: sandbox as never, operations, remoteDir, timeoutSeconds: 30 });
+        await performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir,
+          timeoutSeconds: 30,
+        });
 
-        expect(await sha256OfFile(targetPath)).toBe(await sha256OfFile(sourcePath));
+        expect(await sha256OfFile(targetPath)).toBe(
+          await sha256OfFile(sourcePath),
+        );
         // The forced `rm` failure left the `.zst` scratch behind — proof the
         // fake `rm` actually ran and failed, not that cleanup was skipped.
         const remaining = await fs.readdir(remoteDir);
@@ -568,7 +823,10 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       const remoteDir = await mkTempDir("taskcore-daytona-zstd-remote-");
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "workspace-upload.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const targetPath = path.posix.join(remoteDir, "target.bin");
 
       // A stand-in `rm` that fails only its first call — the promote script's
@@ -594,18 +852,29 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       await fs.chmod(fakeRmPath, 0o755);
       const originalPath = process.env.PATH;
       process.env.PATH = `${fakeBinDir}${path.delimiter}${originalPath}`;
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const warnSpy = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => undefined);
 
       try {
         const { sandbox } = createRealExecSandbox();
-        const operations: PluginSyncOperation[] = [{
-          operationId: "sync-op-1",
-          files: [{ sourcePath, targetPath, kind: "file" }],
-        }];
+        const operations: PluginSyncOperation[] = [
+          {
+            operationId: "sync-op-1",
+            files: [{ sourcePath, targetPath, kind: "file" }],
+          },
+        ];
 
-        await performSyncIn({ sandbox: sandbox as never, operations, remoteDir, timeoutSeconds: 30 });
+        await performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir,
+          timeoutSeconds: 30,
+        });
 
-        expect(await sha256OfFile(targetPath)).toBe(await sha256OfFile(sourcePath));
+        expect(await sha256OfFile(targetPath)).toBe(
+          await sha256OfFile(sourcePath),
+        );
         expect(await fs.readFile(counterFile, "utf8")).toBe("2"); // proves the sweep actually ran a second `rm`
         // The sweep's separate, later `rm -f` succeeded where the inline
         // cleanup failed — no `.zst` scratch remains, so there is nothing to
@@ -623,7 +892,10 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       const remoteDir = await mkTempDir("taskcore-daytona-zstd-remote-");
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "workspace-upload.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const targetPath = path.posix.join(remoteDir, "target.bin");
 
       const { sandbox } = createRealExecSandbox({
@@ -632,7 +904,10 @@ describe("daytona file-sync inbound zstd transport compression", () => {
         uploadOverride: async (uploads) => {
           for (const upload of uploads) {
             if (upload.destination.endsWith(".zst")) {
-              await fs.writeFile(upload.destination, Buffer.from("not a valid zstd frame at all"));
+              await fs.writeFile(
+                upload.destination,
+                Buffer.from("not a valid zstd frame at all"),
+              );
             } else {
               await fs.copyFile(upload.source, upload.destination);
             }
@@ -640,18 +915,27 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           return true;
         },
       });
-      const operations: PluginSyncOperation[] = [{
-        operationId: "sync-op-1",
-        files: [{ sourcePath, targetPath, kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "sync-op-1",
+          files: [{ sourcePath, targetPath, kind: "file" }],
+        },
+      ];
 
       await expect(
-        performSyncIn({ sandbox: sandbox as never, operations, remoteDir, timeoutSeconds: 30 }),
+        performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir,
+          timeoutSeconds: 30,
+        }),
       ).rejects.toThrow(/syncIn rename/);
 
       await expect(fs.stat(targetPath)).rejects.toThrow(); // never promoted
       const remaining = await fs.readdir(remoteDir);
-      expect(remaining.filter((name) => name.includes(".taskcore-upload"))).toHaveLength(0); // scratch swept
+      expect(
+        remaining.filter((name) => name.includes(".taskcore-upload")),
+      ).toHaveLength(0); // scratch swept
     });
 
     it("applies mapping.mode via chmod before promotion, when set", async () => {
@@ -659,8 +943,14 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourceNoMode = path.join(hostDir, "no-mode.tar");
       const sourceWithMode = path.join(hostDir, "with-mode.tar");
-      await writeCompressibleFile(sourceNoMode, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
-      await writeCompressibleFile(sourceWithMode, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 2048);
+      await writeCompressibleFile(
+        sourceNoMode,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
+      await writeCompressibleFile(
+        sourceWithMode,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 2048,
+      );
       const targetNoMode = path.posix.join(remoteDir, "no-mode.bin");
       const targetWithMode = path.posix.join(remoteDir, "with-mode.bin");
 
@@ -674,20 +964,37 @@ describe("daytona file-sync inbound zstd transport compression", () => {
         uploadOverride: async (uploads) => {
           for (const upload of uploads) {
             await fs.copyFile(upload.source, upload.destination);
-            if (upload.destination.endsWith(".zst")) await fs.chmod(upload.destination, 0o644);
+            if (upload.destination.endsWith(".zst"))
+              await fs.chmod(upload.destination, 0o644);
           }
           return true;
         },
       });
-      const operations: PluginSyncOperation[] = [{
-        operationId: "sync-op-1",
-        files: [
-          { sourcePath: sourceNoMode, targetPath: targetNoMode, kind: "file" },
-          { sourcePath: sourceWithMode, targetPath: targetWithMode, kind: "file", mode: 0o640 },
-        ],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "sync-op-1",
+          files: [
+            {
+              sourcePath: sourceNoMode,
+              targetPath: targetNoMode,
+              kind: "file",
+            },
+            {
+              sourcePath: sourceWithMode,
+              targetPath: targetWithMode,
+              kind: "file",
+              mode: 0o640,
+            },
+          ],
+        },
+      ];
 
-      await performSyncIn({ sandbox: sandbox as never, operations, remoteDir, timeoutSeconds: 30 });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        operations,
+        remoteDir,
+        timeoutSeconds: 30,
+      });
 
       // A mapping with no `mode` lands owner-only (0600): the promote script
       // always runs `chmod` on the decompressed file right after
@@ -704,8 +1011,14 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourceA = path.join(hostDir, "a.tar");
       const sourceB = path.join(hostDir, "b.tar");
-      await writeCompressibleFile(sourceA, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 2048);
-      await writeCompressibleFile(sourceB, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 4096);
+      await writeCompressibleFile(
+        sourceA,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 2048,
+      );
+      await writeCompressibleFile(
+        sourceB,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 4096,
+      );
       await fs.appendFile(sourceA, "AAAA-marker-a");
       await fs.appendFile(sourceB, "BBBB-marker-b");
       const targetA = path.posix.join(remoteDirA, "target.bin");
@@ -716,13 +1029,27 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       await Promise.all([
         performSyncIn({
           sandbox: sandboxA as never,
-          operations: [{ operationId: "a", files: [{ sourcePath: sourceA, targetPath: targetA, kind: "file" }] }],
+          operations: [
+            {
+              operationId: "a",
+              files: [
+                { sourcePath: sourceA, targetPath: targetA, kind: "file" },
+              ],
+            },
+          ],
           remoteDir: remoteDirA,
           timeoutSeconds: 30,
         }),
         performSyncIn({
           sandbox: sandboxB as never,
-          operations: [{ operationId: "b", files: [{ sourcePath: sourceB, targetPath: targetB, kind: "file" }] }],
+          operations: [
+            {
+              operationId: "b",
+              files: [
+                { sourcePath: sourceB, targetPath: targetB, kind: "file" },
+              ],
+            },
+          ],
           remoteDir: remoteDirB,
           timeoutSeconds: 30,
         }),
@@ -735,8 +1062,16 @@ describe("daytona file-sync inbound zstd transport compression", () => {
     it("emits exactly the five compression/decompress span attributes, with closed-set/numeric values", async () => {
       const spans: Array<{ attributes: Record<string, unknown> }> = [];
       const tracer = {
-        startSpan(_name: string, options?: { attributes?: Record<string, unknown> }) {
-          const span = { attributes: { ...(options?.attributes ?? {}) } as Record<string, unknown> };
+        startSpan(
+          _name: string,
+          options?: { attributes?: Record<string, unknown> },
+        ) {
+          const span = {
+            attributes: { ...(options?.attributes ?? {}) } as Record<
+              string,
+              unknown
+            >,
+          };
           spans.push(span);
           return {
             setAttribute(key: string, value: unknown) {
@@ -747,19 +1082,29 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           };
         },
       };
-      const restore = __setDaytonaPluginContextForTest({ tracer } as unknown as PluginContext);
+      const restore = __setDaytonaPluginContextForTest({
+        tracer,
+      } as unknown as PluginContext);
       let targetPath = "";
       let remoteDir = "";
       try {
         remoteDir = await mkTempDir("taskcore-daytona-zstd-remote-");
         const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
         const sourcePath = path.join(hostDir, "workspace-upload.tar");
-        await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+        await writeCompressibleFile(
+          sourcePath,
+          ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+        );
         targetPath = path.posix.join(remoteDir, "target.bin");
         const { sandbox } = createRealExecSandbox();
         await performSyncIn({
           sandbox: sandbox as never,
-          operations: [{ operationId: "op-1", files: [{ sourcePath, targetPath, kind: "file" }] }],
+          operations: [
+            {
+              operationId: "op-1",
+              files: [{ sourcePath, targetPath, kind: "file" }],
+            },
+          ],
           remoteDir,
           timeoutSeconds: 30,
         });
@@ -770,16 +1115,22 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       const allAttrs: Record<string, unknown> = {};
       for (const span of spans) Object.assign(allAttrs, span.attributes);
       const compressionKeys = Object.keys(allAttrs).filter(
-        (key) => key.includes(".transfer.compression.") || key.includes(".transfer.decompress."),
+        (key) =>
+          key.includes(".transfer.compression.") ||
+          key.includes(".transfer.decompress."),
       );
-      expect(new Set(compressionKeys)).toEqual(new Set([
-        "taskcore.sandbox.startup.transfer.compression.codec",
-        "taskcore.sandbox.startup.transfer.compression.wall_ms",
-        "taskcore.sandbox.startup.transfer.compression.bytes_in",
-        "taskcore.sandbox.startup.transfer.compression.bytes_out",
-        "taskcore.sandbox.startup.transfer.decompress.wall_ms",
-      ]));
-      expect(allAttrs["taskcore.sandbox.startup.transfer.compression.codec"]).toBe("zstd");
+      expect(new Set(compressionKeys)).toEqual(
+        new Set([
+          "taskcore.sandbox.startup.transfer.compression.codec",
+          "taskcore.sandbox.startup.transfer.compression.wall_ms",
+          "taskcore.sandbox.startup.transfer.compression.bytes_in",
+          "taskcore.sandbox.startup.transfer.compression.bytes_out",
+          "taskcore.sandbox.startup.transfer.decompress.wall_ms",
+        ]),
+      );
+      expect(
+        allAttrs["taskcore.sandbox.startup.transfer.compression.codec"],
+      ).toBe("zstd");
       for (const key of [
         "taskcore.sandbox.startup.transfer.compression.wall_ms",
         "taskcore.sandbox.startup.transfer.compression.bytes_in",
@@ -795,7 +1146,10 @@ describe("daytona file-sync inbound zstd transport compression", () => {
     it("falls back to the raw path when the sandbox reports no zstd binary", async () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "big.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const uploadedSources: string[] = [];
       const uploadedDestinations: string[] = [];
       const sandbox = createRecordingSandbox({
@@ -804,21 +1158,35 @@ describe("daytona file-sync inbound zstd transport compression", () => {
         uploadedDestinations,
         commands: [],
       });
-      const operations: PluginSyncOperation[] = [{
-        operationId: "op-1",
-        files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "op-1",
+          files: [
+            { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+          ],
+        },
+      ];
 
-      await performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        operations,
+        remoteDir: "/workspace",
+        timeoutSeconds: 30,
+      });
 
       expect(uploadedSources).toEqual([sourcePath]); // raw source uploaded directly
-      expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(false);
+      expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(
+        false,
+      );
     });
 
     it("falls back to the raw path when the source is below ZSTD_MIN_SOURCE_BYTES", async () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "small.tar");
-      await fs.writeFile(sourcePath, "well below the 8 MiB compression floor\n");
+      await fs.writeFile(
+        sourcePath,
+        "well below the 8 MiB compression floor\n",
+      );
       const uploadedSources: string[] = [];
       const uploadedDestinations: string[] = [];
       const sandbox = createRecordingSandbox({
@@ -827,21 +1195,35 @@ describe("daytona file-sync inbound zstd transport compression", () => {
         uploadedDestinations,
         commands: [],
       });
-      const operations: PluginSyncOperation[] = [{
-        operationId: "op-1",
-        files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "op-1",
+          files: [
+            { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+          ],
+        },
+      ];
 
-      await performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        operations,
+        remoteDir: "/workspace",
+        timeoutSeconds: 30,
+      });
 
       expect(uploadedSources).toEqual([sourcePath]);
-      expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(false);
+      expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(
+        false,
+      );
     });
 
     it("falls back to the raw path when the saving ratio is below ZSTD_MIN_SAVING_RATIO", async () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "incompressible.tar");
-      await writeIncompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeIncompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const uploadedSources: string[] = [];
       const uploadedDestinations: string[] = [];
       const sandbox = createRecordingSandbox({
@@ -850,15 +1232,26 @@ describe("daytona file-sync inbound zstd transport compression", () => {
         uploadedDestinations,
         commands: [],
       });
-      const operations: PluginSyncOperation[] = [{
-        operationId: "op-1",
-        files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "op-1",
+          files: [
+            { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+          ],
+        },
+      ];
 
-      await performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        operations,
+        remoteDir: "/workspace",
+        timeoutSeconds: 30,
+      });
 
       expect(uploadedSources).toEqual([sourcePath]); // host discarded the compressed candidate
-      expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(false);
+      expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(
+        false,
+      );
     });
 
     it("falls back to the raw path when zlib.createZstdCompress is not a function (feature-detect)", async () => {
@@ -866,11 +1259,18 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       // `node:zlib` — simulate an older Node runtime without zstd support by
       // redefining it, not assigning it.
       const original = zlib.createZstdCompress;
-      Object.defineProperty(zlib, "createZstdCompress", { value: undefined, configurable: true, writable: true });
+      Object.defineProperty(zlib, "createZstdCompress", {
+        value: undefined,
+        configurable: true,
+        writable: true,
+      });
       try {
         const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
         const sourcePath = path.join(hostDir, "big.tar");
-        await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+        await writeCompressibleFile(
+          sourcePath,
+          ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+        );
         const uploadedSources: string[] = [];
         const uploadedDestinations: string[] = [];
         const sandbox = createRecordingSandbox({
@@ -879,17 +1279,32 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           uploadedDestinations,
           commands: [],
         });
-        const operations: PluginSyncOperation[] = [{
-          operationId: "op-1",
-          files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-        }];
+        const operations: PluginSyncOperation[] = [
+          {
+            operationId: "op-1",
+            files: [
+              { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+            ],
+          },
+        ];
 
-        await performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 });
+        await performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir: "/workspace",
+          timeoutSeconds: 30,
+        });
 
         expect(uploadedSources).toEqual([sourcePath]);
-        expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(false);
+        expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(
+          false,
+        );
       } finally {
-        Object.defineProperty(zlib, "createZstdCompress", { value: original, configurable: true, writable: true });
+        Object.defineProperty(zlib, "createZstdCompress", {
+          value: original,
+          configurable: true,
+          writable: true,
+        });
       }
     });
 
@@ -909,7 +1324,10 @@ describe("daytona file-sync inbound zstd transport compression", () => {
       try {
         const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
         const sourcePath = path.join(hostDir, "big.tar");
-        await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+        await writeCompressibleFile(
+          sourcePath,
+          ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+        );
         const uploadedSources: string[] = [];
         const uploadedDestinations: string[] = [];
         const sandbox = createRecordingSandbox({
@@ -918,35 +1336,62 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           uploadedDestinations,
           commands: [],
         });
-        const operations: PluginSyncOperation[] = [{
-          operationId: "op-1",
-          files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-        }];
-        const before = (await fs.readdir(os.tmpdir())).filter((name) => name.startsWith("taskcore-daytona-zstd-"));
+        const operations: PluginSyncOperation[] = [
+          {
+            operationId: "op-1",
+            files: [
+              { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+            ],
+          },
+        ];
+        const before = (await fs.readdir(os.tmpdir())).filter((name) =>
+          name.startsWith("taskcore-daytona-zstd-"),
+        );
 
-        await performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 });
+        await performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir: "/workspace",
+          timeoutSeconds: 30,
+        });
 
         expect(uploadedSources).toEqual([sourcePath]);
-        expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(false);
-        const after = (await fs.readdir(os.tmpdir())).filter((name) => name.startsWith("taskcore-daytona-zstd-"));
+        expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(
+          false,
+        );
+        const after = (await fs.readdir(os.tmpdir())).filter((name) =>
+          name.startsWith("taskcore-daytona-zstd-"),
+        );
         expect(after).toEqual(before); // no leftover host temp file
       } finally {
-        Object.defineProperty(zlib, "createZstdCompress", { value: original, configurable: true, writable: true });
+        Object.defineProperty(zlib, "createZstdCompress", {
+          value: original,
+          configurable: true,
+          writable: true,
+        });
       }
     });
 
     it("removes the private host temp directory when the post-compression size stat throws", async () => {
       const realStat = fs.stat.bind(fs);
-      const statSpy = vi.spyOn(fs, "stat").mockImplementation(async (targetPath, ...rest) => {
-        if (typeof targetPath === "string" && path.basename(targetPath) === "artifact.zst") {
-          throw new Error("simulated post-compression stat failure");
-        }
-        return (realStat as typeof fs.stat)(targetPath, ...(rest as []));
-      });
+      const statSpy = vi
+        .spyOn(fs, "stat")
+        .mockImplementation(async (targetPath, ...rest) => {
+          if (
+            typeof targetPath === "string" &&
+            path.basename(targetPath) === "artifact.zst"
+          ) {
+            throw new Error("simulated post-compression stat failure");
+          }
+          return (realStat as typeof fs.stat)(targetPath, ...(rest as []));
+        });
       try {
         const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
         const sourcePath = path.join(hostDir, "big.tar");
-        await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+        await writeCompressibleFile(
+          sourcePath,
+          ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+        );
         const uploadedSources: string[] = [];
         const uploadedDestinations: string[] = [];
         const sandbox = createRecordingSandbox({
@@ -955,18 +1400,33 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           uploadedDestinations,
           commands: [],
         });
-        const operations: PluginSyncOperation[] = [{
-          operationId: "op-1",
-          files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-        }];
-        const before = (await fs.readdir(os.tmpdir())).filter((name) => name.startsWith("taskcore-daytona-zstd-"));
+        const operations: PluginSyncOperation[] = [
+          {
+            operationId: "op-1",
+            files: [
+              { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+            ],
+          },
+        ];
+        const before = (await fs.readdir(os.tmpdir())).filter((name) =>
+          name.startsWith("taskcore-daytona-zstd-"),
+        );
 
-        await performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 });
+        await performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir: "/workspace",
+          timeoutSeconds: 30,
+        });
 
         // The post-compression stat failed, so the candidate falls back to the raw path.
         expect(uploadedSources).toEqual([sourcePath]);
-        expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(false);
-        const after = (await fs.readdir(os.tmpdir())).filter((name) => name.startsWith("taskcore-daytona-zstd-"));
+        expect(uploadedDestinations.some((dest) => dest.endsWith(".zst"))).toBe(
+          false,
+        );
+        const after = (await fs.readdir(os.tmpdir())).filter((name) =>
+          name.startsWith("taskcore-daytona-zstd-"),
+        );
         expect(after).toEqual(before); // the stat failure did not leak the private host temp directory
       } finally {
         statSpy.mockRestore();
@@ -976,13 +1436,21 @@ describe("daytona file-sync inbound zstd transport compression", () => {
     it("removes the host compressed temp file and sweeps sandbox scratch when the upload itself is rejected (cancellation)", async () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "big.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const commands: RecordedCommand[] = [];
       const sandbox = {
         process: {
           executeCommand: async (command: string) => {
             commands.push({ command });
-            return { exitCode: 0, result: command.includes("mkdir -p") ? "TASKCORE_ZSTD_AVAILABLE\n" : "" };
+            return {
+              exitCode: 0,
+              result: command.includes("mkdir -p")
+                ? "TASKCORE_ZSTD_AVAILABLE\n"
+                : "",
+            };
           },
         },
         fs: {
@@ -992,26 +1460,44 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           setFilePermissions: async () => undefined,
         },
       };
-      const before = (await fs.readdir(os.tmpdir())).filter((name) => name.startsWith("taskcore-daytona-zstd-"));
-      const operations: PluginSyncOperation[] = [{
-        operationId: "op-1",
-        files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-      }];
+      const before = (await fs.readdir(os.tmpdir())).filter((name) =>
+        name.startsWith("taskcore-daytona-zstd-"),
+      );
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "op-1",
+          files: [
+            { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+          ],
+        },
+      ];
 
       await expect(
-        performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 }),
+        performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir: "/workspace",
+          timeoutSeconds: 30,
+        }),
       ).rejects.toThrow(/simulated cancellation/);
 
-      const after = (await fs.readdir(os.tmpdir())).filter((name) => name.startsWith("taskcore-daytona-zstd-"));
+      const after = (await fs.readdir(os.tmpdir())).filter((name) =>
+        name.startsWith("taskcore-daytona-zstd-"),
+      );
       expect(after).toEqual(before); // no leftover host temp file
-      const rmCommands = commands.filter((entry) => entry.command.includes("rm -f"));
+      const rmCommands = commands.filter((entry) =>
+        entry.command.includes("rm -f"),
+      );
       expect(rmCommands.length).toBeGreaterThan(0); // both reserved scratch names swept
     });
 
     it("stages the compressed artifact in a private 0700 directory with a 0600 file, and removes the directory when the upload fails", async () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "big.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       let capturedDir = "";
       let capturedDirMode = -1;
       let capturedFileMode = -1;
@@ -1019,13 +1505,20 @@ describe("daytona file-sync inbound zstd transport compression", () => {
         process: {
           executeCommand: async (command: string) => ({
             exitCode: 0,
-            result: command.includes("mkdir -p") ? "TASKCORE_ZSTD_AVAILABLE\n" : "",
+            result: command.includes("mkdir -p")
+              ? "TASKCORE_ZSTD_AVAILABLE\n"
+              : "",
           }),
         },
         fs: {
-          uploadFiles: async (uploads: Array<{ source: string; destination: string }>) => {
-            const zstdUpload = uploads.find((upload) => upload.destination.endsWith(".zst"));
-            if (!zstdUpload) throw new Error("test setup: expected a compressed upload");
+          uploadFiles: async (
+            uploads: Array<{ source: string; destination: string }>,
+          ) => {
+            const zstdUpload = uploads.find((upload) =>
+              upload.destination.endsWith(".zst"),
+            );
+            if (!zstdUpload)
+              throw new Error("test setup: expected a compressed upload");
             // Read the modes BEFORE throwing: the directory and its file still
             // exist at this point, on the way to the (simulated) failed upload.
             capturedDir = path.dirname(zstdUpload.source);
@@ -1036,13 +1529,22 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           setFilePermissions: async () => undefined,
         },
       };
-      const operations: PluginSyncOperation[] = [{
-        operationId: "op-1",
-        files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "op-1",
+          files: [
+            { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+          ],
+        },
+      ];
 
       await expect(
-        performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 30 }),
+        performSyncIn({
+          sandbox: sandbox as never,
+          operations,
+          remoteDir: "/workspace",
+          timeoutSeconds: 30,
+        }),
       ).rejects.toThrow(/simulated upload failure/);
 
       expect(capturedDirMode).toBe(0o700);
@@ -1054,13 +1556,26 @@ describe("daytona file-sync inbound zstd transport compression", () => {
     it("passes the caller's timeoutSeconds unchanged through every round trip on the compressed path", async () => {
       const hostDir = await mkTempDir("taskcore-daytona-zstd-host-");
       const sourcePath = path.join(hostDir, "big.tar");
-      await writeCompressibleFile(sourcePath, ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024);
+      await writeCompressibleFile(
+        sourcePath,
+        ZSTD_MIN_SOURCE_BYTES_FOR_TEST + 1024,
+      );
       const seenTimeouts: Array<number | undefined> = [];
       const sandbox = {
         process: {
-          executeCommand: async (command: string, _cwd?: string, _env?: unknown, timeoutSeconds?: number) => {
+          executeCommand: async (
+            command: string,
+            _cwd?: string,
+            _env?: unknown,
+            timeoutSeconds?: number,
+          ) => {
             seenTimeouts.push(timeoutSeconds);
-            return { exitCode: 0, result: command.includes("mkdir -p") ? "TASKCORE_ZSTD_AVAILABLE\n" : "" };
+            return {
+              exitCode: 0,
+              result: command.includes("mkdir -p")
+                ? "TASKCORE_ZSTD_AVAILABLE\n"
+                : "",
+            };
           },
         },
         fs: {
@@ -1070,12 +1585,21 @@ describe("daytona file-sync inbound zstd transport compression", () => {
           setFilePermissions: async () => undefined,
         },
       };
-      const operations: PluginSyncOperation[] = [{
-        operationId: "op-1",
-        files: [{ sourcePath, targetPath: "/workspace/target.bin", kind: "file" }],
-      }];
+      const operations: PluginSyncOperation[] = [
+        {
+          operationId: "op-1",
+          files: [
+            { sourcePath, targetPath: "/workspace/target.bin", kind: "file" },
+          ],
+        },
+      ];
 
-      await performSyncIn({ sandbox: sandbox as never, operations, remoteDir: "/workspace", timeoutSeconds: 123 });
+      await performSyncIn({
+        sandbox: sandbox as never,
+        operations,
+        remoteDir: "/workspace",
+        timeoutSeconds: 123,
+      });
 
       expect(seenTimeouts.length).toBeGreaterThanOrEqual(3); // mkdir and probe, transfer, promote
       expect(seenTimeouts.every((timeout) => timeout === 123)).toBe(true);
@@ -1083,55 +1607,147 @@ describe("daytona file-sync inbound zstd transport compression", () => {
   });
 });
 
-
 describe.skipIf(!gnuTar)("automatic unsafe workspace export recovery", () => {
   const cleanupDirs: string[] = [];
   afterEach(async () => {
-    await Promise.all(cleanupDirs.splice(0).map((root) => fs.rm(root, { recursive: true, force: true })));
+    await Promise.all(
+      cleanupDirs
+        .splice(0)
+        .map((root) => fs.rm(root, { recursive: true, force: true })),
+    );
   });
-  it.each(["/usr/bin/pnpm", "../../outside.txt", "ambiguous", "ambiguous-target"])("preserves files and safe links when a link is unsafe: %s", async (target) => {
-    const root = await fs.mkdtemp("/tmp/taskcore-export-recovery-");
-    cleanupDirs.push(root);
-    const remoteDir = path.join(root, "remote");
-    const output = path.join(root, "output");
-    const bin = path.join(root, "bin");
-    await fs.mkdir(path.join(remoteDir, "nested"), { recursive: true });
-    await fs.mkdir(path.join(remoteDir, "cache"));
-    await fs.mkdir(path.join(remoteDir, "empty"));
-    await fs.mkdir(bin);
-    await fs.symlink(gnuTar!, path.join(bin, "tar"));
-    await fs.writeFile(path.join(root, "outside.txt"), "private bytes");
-    await fs.writeFile(path.join(remoteDir, "nested", "--safe [file].txt"), "saved work", { mode: 0o600 });
-    await fs.writeFile(path.join(remoteDir, "cache", "ignored.txt"), "excluded");
-    const linkName = target === "ambiguous" ? "tool -> decoy" : "tool";
-    const linkTarget = target === "ambiguous" ? "--safe [file].txt" : target === "ambiguous-target" ? "saved -> work.txt" : target;
-    if (target === "ambiguous-target") await fs.writeFile(path.join(remoteDir, "nested", linkTarget), "more saved work");
-    await fs.symlink(linkTarget, path.join(remoteDir, "nested", linkName));
-    await fs.symlink("nested/--safe [file].txt", path.join(remoteDir, "safe-link"));
-    await fs.link(path.join(remoteDir, "nested", "--safe [file].txt"), path.join(remoteDir, "hard-link"));
-    const downloads = vi.fn(async (requests: Array<{ source: string; destination: string }>) => {
-      for (const request of requests) await fs.copyFile(request.source, request.destination);
-      return requests.map(({ source }) => ({ source }));
-    });
-    const recovery = vi.fn();
-    const { sandbox } = createRealExecSandbox({ commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
-    Object.assign(sandbox.fs, { downloadFiles: downloads, deleteFile: (file: string) => fs.rm(file, { force: true }) });
-    await expect(performSyncOut({ sandbox: sandbox as never, remoteDir, timeoutSeconds: 30, onArchiveRecovery: recovery,
-      operations: [{ operationId: "export", files: [{ sourcePath: remoteDir, targetPath: output, kind: "directory", exclude: ["cache"] }] }],
-    })).resolves.toMatchObject({ operations: [{ operationId: "export", filesTransferred: target === "ambiguous-target" ? 4 : 3 }] });
-    expect(downloads).toHaveBeenCalledTimes(2);
-    expect(recovery).toHaveBeenCalledOnce();
-    expect(await fs.readFile(path.join(output, "nested", "--safe [file].txt"), "utf8")).toBe("saved work");
-    expect((await fs.stat(path.join(output, "nested", "--safe [file].txt"))).mode & 0o777).toBe(0o600);
-    expect(await fs.readFile(path.join(output, "hard-link"), "utf8")).toBe("saved work");
-    await expect(fs.lstat(path.join(output, "nested", linkName))).rejects.toMatchObject({ code: "ENOENT" });
-    expect(await fs.readlink(path.join(output, "safe-link"))).toBe("nested/--safe [file].txt");
-    expect(await fs.readdir(path.join(output, "empty"))).toEqual([]);
-    await expect(fs.stat(path.join(output, "cache", "ignored.txt"))).rejects.toMatchObject({ code: "ENOENT" });
-    expect(await fs.readFile(path.join(root, "outside.txt"), "utf8")).toBe("private bytes");
-    expect((await fs.lstat(path.join(remoteDir, "nested", linkName))).isSymbolicLink()).toBe(true);
-    expect((await fs.readdir(remoteDir)).filter((name) => name.startsWith(".taskcore-upload"))).toEqual([]);
-  });
+  it.each([
+    "/usr/bin/pnpm",
+    "../../outside.txt",
+    "ambiguous",
+    "ambiguous-target",
+  ])(
+    "preserves files and safe links when a link is unsafe: %s",
+    async (target) => {
+      const root = await fs.mkdtemp("/tmp/taskcore-export-recovery-");
+      cleanupDirs.push(root);
+      const remoteDir = path.join(root, "remote");
+      const output = path.join(root, "output");
+      const bin = path.join(root, "bin");
+      await fs.mkdir(path.join(remoteDir, "nested"), { recursive: true });
+      await fs.mkdir(path.join(remoteDir, "cache"));
+      await fs.mkdir(path.join(remoteDir, "empty"));
+      await fs.mkdir(bin);
+      await fs.symlink(gnuTar!, path.join(bin, "tar"));
+      await fs.writeFile(path.join(root, "outside.txt"), "private bytes");
+      await fs.writeFile(
+        path.join(remoteDir, "nested", "--safe [file].txt"),
+        "saved work",
+        { mode: 0o600 },
+      );
+      await fs.writeFile(
+        path.join(remoteDir, "cache", "ignored.txt"),
+        "excluded",
+      );
+      const linkName = target === "ambiguous" ? "tool -> decoy" : "tool";
+      const linkTarget =
+        target === "ambiguous"
+          ? "--safe [file].txt"
+          : target === "ambiguous-target"
+            ? "saved -> work.txt"
+            : target;
+      if (target === "ambiguous-target")
+        await fs.writeFile(
+          path.join(remoteDir, "nested", linkTarget),
+          "more saved work",
+        );
+      await fs.symlink(linkTarget, path.join(remoteDir, "nested", linkName));
+      await fs.symlink(
+        "nested/--safe [file].txt",
+        path.join(remoteDir, "safe-link"),
+      );
+      await fs.link(
+        path.join(remoteDir, "nested", "--safe [file].txt"),
+        path.join(remoteDir, "hard-link"),
+      );
+      const downloads = vi.fn(
+        async (requests: Array<{ source: string; destination: string }>) => {
+          for (const request of requests)
+            await fs.copyFile(request.source, request.destination);
+          return requests.map(({ source }) => ({ source }));
+        },
+      );
+      const recovery = vi.fn();
+      const { sandbox } = createRealExecSandbox({
+        commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+      });
+      Object.assign(sandbox.fs, {
+        downloadFiles: downloads,
+        deleteFile: (file: string) => fs.rm(file, { force: true }),
+      });
+      await expect(
+        performSyncOut({
+          sandbox: sandbox as never,
+          remoteDir,
+          timeoutSeconds: 30,
+          onArchiveRecovery: recovery,
+          operations: [
+            {
+              operationId: "export",
+              files: [
+                {
+                  sourcePath: remoteDir,
+                  targetPath: output,
+                  kind: "directory",
+                  exclude: ["cache"],
+                },
+              ],
+            },
+          ],
+        }),
+      ).resolves.toMatchObject({
+        operations: [
+          {
+            operationId: "export",
+            filesTransferred: target === "ambiguous-target" ? 4 : 3,
+          },
+        ],
+      });
+      expect(downloads).toHaveBeenCalledTimes(2);
+      expect(recovery).toHaveBeenCalledOnce();
+      expect(
+        await fs.readFile(
+          path.join(output, "nested", "--safe [file].txt"),
+          "utf8",
+        ),
+      ).toBe("saved work");
+      expect(
+        (await fs.stat(path.join(output, "nested", "--safe [file].txt"))).mode &
+          0o777,
+      ).toBe(0o600);
+      expect(await fs.readFile(path.join(output, "hard-link"), "utf8")).toBe(
+        "saved work",
+      );
+      await expect(
+        fs.lstat(path.join(output, "nested", linkName)),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+      expect(await fs.readlink(path.join(output, "safe-link"))).toBe(
+        "nested/--safe [file].txt",
+      );
+      expect(await fs.readdir(path.join(output, "empty"))).toEqual([]);
+      await expect(
+        fs.stat(path.join(output, "cache", "ignored.txt")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+      expect(await fs.readFile(path.join(root, "outside.txt"), "utf8")).toBe(
+        "private bytes",
+      );
+      expect(
+        (
+          await fs.lstat(path.join(remoteDir, "nested", linkName))
+        ).isSymbolicLink(),
+      ).toBe(true);
+      expect(
+        (await fs.readdir(remoteDir)).filter((name) =>
+          name.startsWith(".taskcore-upload"),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it("finishes an export containing only unsafe links with an empty directory", async () => {
     const root = await fs.mkdtemp("/tmp/taskcore-export-empty-");
@@ -1143,16 +1759,31 @@ describe.skipIf(!gnuTar)("automatic unsafe workspace export recovery", () => {
     await fs.mkdir(bin);
     await fs.symlink(gnuTar!, path.join(bin, "tar"));
     await fs.symlink("/usr/bin/pnpm", path.join(remoteDir, "pnpm"));
-    const { sandbox } = createRealExecSandbox({ commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+    const { sandbox } = createRealExecSandbox({
+      commandEnv: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    });
     Object.assign(sandbox.fs, {
-      downloadFiles: async (requests: Array<{ source: string; destination: string }>) => {
-        for (const request of requests) await fs.copyFile(request.source, request.destination);
+      downloadFiles: async (
+        requests: Array<{ source: string; destination: string }>,
+      ) => {
+        for (const request of requests)
+          await fs.copyFile(request.source, request.destination);
         return requests.map(({ source }) => ({ source }));
       },
       deleteFile: (file: string) => fs.rm(file, { force: true }),
     });
-    await performSyncOut({ sandbox: sandbox as never, remoteDir, timeoutSeconds: 30,
-      operations: [{ operationId: "empty", files: [{ sourcePath: remoteDir, targetPath: output, kind: "directory" }] }],
+    await performSyncOut({
+      sandbox: sandbox as never,
+      remoteDir,
+      timeoutSeconds: 30,
+      operations: [
+        {
+          operationId: "empty",
+          files: [
+            { sourcePath: remoteDir, targetPath: output, kind: "directory" },
+          ],
+        },
+      ],
     });
     expect(await fs.readdir(output)).toEqual([]);
   });

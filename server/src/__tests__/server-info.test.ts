@@ -7,7 +7,12 @@ import {
 
 function gitCommandFor(shortSha: string, subject: string): () => string {
   return () =>
-    [shortSha.padEnd(40, "0"), shortSha, subject, "2026-06-25T17:00:00-07:00"].join("\n");
+    [
+      shortSha.padEnd(40, "0"),
+      shortSha,
+      subject,
+      "2026-06-25T17:00:00-07:00",
+    ].join("\n");
 }
 
 describe("server info snapshot", () => {
@@ -178,26 +183,41 @@ describe("getServerInfoSnapshot", () => {
       now: 0,
       gitCommand: gitCommandFor("aaaaaaa", "First boot"),
     });
-    expect(first.git).toMatchObject({ shortSha: "aaaaaaa", subject: "First boot" });
+    expect(first.git).toMatchObject({
+      shortSha: "aaaaaaa",
+      subject: "First boot",
+    });
 
     // Within the TTL window the cached commit is reused.
     const cached = getServerInfoSnapshot({
       now: 1000,
       gitCommand: gitCommandFor("bbbbbbb", "After restart"),
     });
-    expect(cached.git).toMatchObject({ shortSha: "aaaaaaa", subject: "First boot" });
+    expect(cached.git).toMatchObject({
+      shortSha: "aaaaaaa",
+      subject: "First boot",
+    });
 
     // Past the TTL the new HEAD is picked up without a process restart.
     const refreshed = getServerInfoSnapshot({
       now: 3000,
       gitCommand: gitCommandFor("bbbbbbb", "After restart"),
     });
-    expect(refreshed.git).toMatchObject({ shortSha: "bbbbbbb", subject: "After restart" });
+    expect(refreshed.git).toMatchObject({
+      shortSha: "bbbbbbb",
+      subject: "After restart",
+    });
   });
 
   it("keeps processStartedAt stable across refreshes", () => {
-    const first = getServerInfoSnapshot({ now: 0, gitCommand: gitCommandFor("aaaaaaa", "a") });
-    const second = getServerInfoSnapshot({ now: 5000, gitCommand: gitCommandFor("bbbbbbb", "b") });
+    const first = getServerInfoSnapshot({
+      now: 0,
+      gitCommand: gitCommandFor("aaaaaaa", "a"),
+    });
+    const second = getServerInfoSnapshot({
+      now: 5000,
+      gitCommand: gitCommandFor("bbbbbbb", "b"),
+    });
     expect(second.processStartedAt).toBe(first.processStartedAt);
   });
 });

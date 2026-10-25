@@ -1,7 +1,20 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlarmClock, CalendarClock, ChevronDown, Loader2, Plus, UserPlus, X } from "lucide-react";
-import { buildAgentMentionHref, type Agent, type AttentionItem, type AttentionSourceKind } from "@taskcore/shared";
+import {
+  AlarmClock,
+  CalendarClock,
+  ChevronDown,
+  Loader2,
+  Plus,
+  UserPlus,
+  X,
+} from "lucide-react";
+import {
+  buildAgentMentionHref,
+  type Agent,
+  type AttentionItem,
+  type AttentionSourceKind,
+} from "@taskcore/shared";
 import { decisionQueuesApi } from "../api/decisionQueues";
 import { issuesApi } from "../api/issues";
 import { useToastActions } from "../context/ToastContext";
@@ -26,17 +39,30 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
 /** Snooze presets shared with the row menu, resolved at click time. */
-const SNOOZE_PRESETS: ReadonlyArray<{ label: string; resolve: () => string }> = [
-  { label: "1 hour", resolve: () => new Date(Date.now() + HOUR_MS).toISOString() },
-  { label: "4 hours", resolve: () => new Date(Date.now() + 4 * HOUR_MS).toISOString() },
-  { label: "Tomorrow", resolve: () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    d.setHours(9, 0, 0, 0);
-    return d.toISOString();
-  } },
-  { label: "Next week", resolve: () => new Date(Date.now() + 7 * DAY_MS).toISOString() },
-];
+const SNOOZE_PRESETS: ReadonlyArray<{ label: string; resolve: () => string }> =
+  [
+    {
+      label: "1 hour",
+      resolve: () => new Date(Date.now() + HOUR_MS).toISOString(),
+    },
+    {
+      label: "4 hours",
+      resolve: () => new Date(Date.now() + 4 * HOUR_MS).toISOString(),
+    },
+    {
+      label: "Tomorrow",
+      resolve: () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(9, 0, 0, 0);
+        return d.toISOString();
+      },
+    },
+    {
+      label: "Next week",
+      resolve: () => new Date(Date.now() + 7 * DAY_MS).toISOString(),
+    },
+  ];
 
 /** Slugify a queue title into a URL-safe kebab key the API will accept. */
 function toQueueKey(title: string): string {
@@ -76,20 +102,35 @@ interface DecisionTriageStripProps {
  * silent mutation. Queue/decide-by/snooze go through the P1 triage APIs; the
  * expiry chip surfaces the underlying decision's TTL read-only.
  */
-export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageStripProps) {
+export function DecisionTriageStrip({
+  item,
+  companyId,
+  agents,
+}: DecisionTriageStripProps) {
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const sourceKind = item.sourceKind;
   const sourceId = item.subject.id;
   const taskRef = attentionTaskRef(item);
-  const relatedIssueId = item.relatedIssue?.id
-    ?? (typeof item.subject.metadata?.issueId === "string" ? item.subject.metadata.issueId : null)
-    ?? (item.subject.kind === "issue" ? item.subject.id : null);
+  const relatedIssueId =
+    item.relatedIssue?.id ??
+    (typeof item.subject.metadata?.issueId === "string"
+      ? item.subject.metadata.issueId
+      : null) ??
+    (item.subject.kind === "issue" ? item.subject.id : null);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.decisionQueues.list(companyId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.decisionQueues.triage(companyId, sourceKind, sourceId) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.decisionQueues.list(companyId),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.decisionQueues.triage(
+        companyId,
+        sourceKind,
+        sourceId,
+      ),
+    });
   };
 
   const onError = (verb: string) => (error: unknown) =>
@@ -101,43 +142,57 @@ export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageS
 
   const setDecideBy = useMutation({
     mutationFn: (decideBy: string | null) =>
-      decisionQueuesApi.updateTriage(companyId, sourceKind, sourceId, { decideBy }),
+      decisionQueuesApi.updateTriage(companyId, sourceKind, sourceId, {
+        decideBy,
+      }),
     onSuccess: invalidate,
     onError: onError("set when to decide"),
   });
   const setSnooze = useMutation({
     mutationFn: (snoozedUntil: string | null) =>
-      decisionQueuesApi.updateTriage(companyId, sourceKind, sourceId, { snoozedUntil }),
+      decisionQueuesApi.updateTriage(companyId, sourceKind, sourceId, {
+        snoozedUntil,
+      }),
     onSuccess: invalidate,
     onError: onError("snooze"),
   });
   const addToQueue = useMutation({
-    mutationFn: (key: string) => decisionQueuesApi.addItem(companyId, key, sourceKind, sourceId),
+    mutationFn: (key: string) =>
+      decisionQueuesApi.addItem(companyId, key, sourceKind, sourceId),
     onSuccess: invalidate,
     onError: onError("add to queue"),
   });
   const removeFromQueue = useMutation({
-    mutationFn: (key: string) => decisionQueuesApi.removeItem(companyId, key, sourceKind, sourceId),
+    mutationFn: (key: string) =>
+      decisionQueuesApi.removeItem(companyId, key, sourceKind, sourceId),
     onSuccess: invalidate,
     onError: onError("remove from queue"),
   });
   const routeToAgent = useMutation({
     mutationFn: (agent: Agent) => {
-      if (!relatedIssueId) throw new Error("This decision has no linked task to route from.");
+      if (!relatedIssueId)
+        throw new Error("This decision has no linked task to route from.");
       const mention = `[@${agent.name}](${buildAgentMentionHref(agent.id)})`;
       const body =
-        `${mention} — could you look at this decision${taskRef ? ` on ${taskRef.identifier}` : ""}, `
-        + `prepare a recommendation, and re-surface it on the decisions desk? (routed from the desk)`;
+        `${mention} — could you look at this decision${taskRef ? ` on ${taskRef.identifier}` : ""}, ` +
+        `prepare a recommendation, and re-surface it on the decisions desk? (routed from the desk)`;
       return issuesApi.addComment(relatedIssueId, body);
     },
     onSuccess: (_result, agent) => {
       invalidate();
-      pushToast({ title: `Asked ${agent.name} for a recommendation`, tone: "success" });
+      pushToast({
+        title: `Asked ${agent.name} for a recommendation`,
+        tone: "success",
+      });
     },
     onError: onError("ask that agent for a recommendation"),
   });
 
-  const pending = setDecideBy.isPending || setSnooze.isPending || addToQueue.isPending || removeFromQueue.isPending;
+  const pending =
+    setDecideBy.isPending ||
+    setSnooze.isPending ||
+    addToQueue.isPending ||
+    removeFromQueue.isPending;
   const decideBy = item.decideBy;
   const isDatePreset = decideBy != null && /^\d{4}-\d{2}-\d{2}$/.test(decideBy);
 
@@ -150,27 +205,49 @@ export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageS
       onClick={(event) => event.stopPropagation()}
     >
       {/* Expiry — read-only countdown so a dying confirmation is visible. */}
-      {item.expiresAt && (() => {
-        const { text, overdue } = expiryLabel(item.expiresAt);
-        if (!text) return null;
-        return (
-          <div className="flex items-center gap-1.5 text-xs">
-            <AlarmClock className={cn("h-3.5 w-3.5", overdue ? "text-destructive" : "text-muted-foreground")} />
-            <span className={overdue ? "font-medium text-destructive" : "text-muted-foreground"}>{text}</span>
-          </div>
-        );
-      })()}
+      {item.expiresAt &&
+        (() => {
+          const { text, overdue } = expiryLabel(item.expiresAt);
+          if (!text) return null;
+          return (
+            <div className="flex items-center gap-1.5 text-xs">
+              <AlarmClock
+                className={cn(
+                  "h-3.5 w-3.5",
+                  overdue ? "text-destructive" : "text-muted-foreground",
+                )}
+              />
+              <span
+                className={
+                  overdue
+                    ? "font-medium text-destructive"
+                    : "text-muted-foreground"
+                }
+              >
+                {text}
+              </span>
+            </div>
+          );
+        })()}
 
       {/* When to decide — the importance signal that drives desk ordering. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground">When to decide</span>
-        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="When to decide">
+        <span className="text-xs font-medium text-muted-foreground">
+          When to decide
+        </span>
+        <div
+          className="flex flex-wrap items-center gap-1"
+          role="group"
+          aria-label="When to decide"
+        >
           {DECIDE_BY_OPTIONS.map(([value, label]) => (
             <SegmentButton
               key={value}
               active={decideBy === (value satisfies DecideByPreset)}
               disabled={pending}
-              onClick={() => setDecideBy.mutate(decideBy === value ? null : value)}
+              onClick={() =>
+                setDecideBy.mutate(decideBy === value ? null : value)
+              }
             >
               {label}
             </SegmentButton>
@@ -185,10 +262,11 @@ export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageS
             <PopoverContent align="start" className="w-auto p-2">
               <input
                 type="date"
-                defaultValue={isDatePreset ? decideBy ?? "" : ""}
+                defaultValue={isDatePreset ? (decideBy ?? "") : ""}
                 className="rounded-sm border border-border bg-background px-2 py-1 text-xs"
                 onChange={(event) => {
-                  if (event.target.value) setDecideBy.mutate(event.target.value);
+                  if (event.target.value)
+                    setDecideBy.mutate(event.target.value);
                 }}
               />
             </PopoverContent>
@@ -201,7 +279,9 @@ export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageS
 
       {/* Queues — current membership as removable chips + add/create. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground">Queues</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          Queues
+        </span>
         {item.queues.map((queue) => (
           <span
             key={queue.key}
@@ -245,7 +325,13 @@ export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageS
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="outline" size="xs" className="h-7 gap-1" disabled={pending}>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                className="h-7 gap-1"
+                disabled={pending}
+              >
                 <AlarmClock className="h-3.5 w-3.5" />
                 Snooze
                 <ChevronDown className="h-3 w-3" />
@@ -253,7 +339,10 @@ export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageS
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {SNOOZE_PRESETS.map((preset) => (
-                <DropdownMenuItem key={preset.label} onClick={() => setSnooze.mutate(preset.resolve())}>
+                <DropdownMenuItem
+                  key={preset.label}
+                  onClick={() => setSnooze.mutate(preset.resolve())}
+                >
                   {preset.label}
                 </DropdownMenuItem>
               ))}
@@ -264,10 +353,14 @@ export function DecisionTriageStrip({ item, companyId, agents }: DecisionTriageS
         <AskAgentPicker
           agents={agents ?? []}
           disabled={routeToAgent.isPending || !relatedIssueId}
-          disabledReason={!relatedIssueId ? "No linked task to ask about" : undefined}
+          disabledReason={
+            !relatedIssueId ? "No linked task to ask about" : undefined
+          }
           onRoute={(agent) => routeToAgent.mutate(agent)}
         />
-        {pending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+        {pending && (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+        )}
       </div>
     </div>
   );
@@ -325,9 +418,14 @@ function QueuePicker({
   });
   const create = useMutation({
     mutationFn: (name: string) =>
-      decisionQueuesApi.create(companyId, { key: toQueueKey(name), title: name.trim() }),
+      decisionQueuesApi.create(companyId, {
+        key: toQueueKey(name),
+        title: name.trim(),
+      }),
     onSuccess: (queue) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.decisionQueues.list(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.decisionQueues.list(companyId),
+      });
       onAdd(queue.key);
       setTitle("");
       setCreating(false);
@@ -341,12 +439,20 @@ function QueuePicker({
       }),
   });
 
-  const available = (queues ?? []).filter((queue) => !existingKeys.has(queue.key));
+  const available = (queues ?? []).filter(
+    (queue) => !existingKeys.has(queue.key),
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="xs" className="h-7 gap-1" disabled={disabled}>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          className="h-7 gap-1"
+          disabled={disabled}
+        >
           <Plus className="h-3.5 w-3.5" />
           Queue
         </Button>
@@ -366,11 +472,23 @@ function QueuePicker({
               className="w-full rounded-sm border border-border bg-background px-2 py-1 text-xs"
             />
             <div className="flex justify-end gap-1">
-              <Button type="button" variant="ghost" size="xs" onClick={() => setCreating(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => setCreating(false)}
+              >
                 Cancel
               </Button>
-              <Button type="button" size="xs" disabled={!title.trim() || create.isPending} onClick={() => create.mutate(title)}>
-                {create.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              <Button
+                type="button"
+                size="xs"
+                disabled={!title.trim() || create.isPending}
+                onClick={() => create.mutate(title)}
+              >
+                {create.isPending && (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                )}
                 Create
               </Button>
             </div>
@@ -378,7 +496,9 @@ function QueuePicker({
         ) : (
           <div className="max-h-64 space-y-0.5 overflow-y-auto">
             {available.length === 0 && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">No other queues yet.</p>
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                No other queues yet.
+              </p>
             )}
             {available.map((queue) => (
               <button

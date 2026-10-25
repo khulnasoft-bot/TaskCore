@@ -161,8 +161,7 @@ tool, preserving its exact bytes. This makes connection qualification independen
 of new-task attachment ingestion. The earlier uploaded-input OpenRouter attempt
 remains a failed attachment-path test: native staging currently admits chat
 attachments, and the new-task dialog uploads its files after scheduling the agent.
-Successful provider cells do not qualify that task-level upload path.
-10. Downloadable artifacts remain visible after a page reload; cleanup succeeds.
+Successful provider cells do not qualify that task-level upload path. 10. Downloadable artifacts remain visible after a page reload; cleanup succeeds.
 
 An answer saying “provider routing works” cannot pass. Evidence records the
 configured model and agent configuration; connection attribution proves the
@@ -246,14 +245,14 @@ onboarding instance, preserving its original company data. The latest retained
 attempts now contain 43 passing journeys out of 46 non-subscription cells,
 including the Gemini investigation on October 6:
 
-| Harness | Passing key/gateway journeys | Eligible local key/gateway journeys | Remaining result |
-| --- | ---: | ---: | --- |
-| Claude | 16 | 16 | Direct key, OpenRouter, Bedrock, and Messages passed through both entry points and runner generations. |
-| Codex | 12 | 12 | The legacy/new-agent OpenRouter task and follow-up passed after the skill-root and artifact-helper fixes. |
-| OpenCode | 8 | 8 | All three remaining OpenRouter journeys passed after the artifact-helper and canonical-workspace permission fixes. |
-| Hermes local | 4 | 4 | A follow-up interrupted by lease release passed on one bounded retry. Workspace isolation was then corrected and retested separately. |
-| Grok | 2 | 4 | Both legacy API-key journeys passed after preserving private session history and avoiding remote subscription restoration for missing local history. Native journeys require the missing pinned runtime. |
-| Gemini | 1 | 2 | New-agent/API-key passed with `gemini-3.5-flash-lite`; Apps/API-key delivered its first artifact but timed out on follow-up. Installed CLI file creation still fails the isolated compatibility check. |
+| Harness      | Passing key/gateway journeys | Eligible local key/gateway journeys | Remaining result                                                                                                                                                                                         |
+| ------------ | ---------------------------: | ----------------------------------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude       |                           16 |                                  16 | Direct key, OpenRouter, Bedrock, and Messages passed through both entry points and runner generations.                                                                                                   |
+| Codex        |                           12 |                                  12 | The legacy/new-agent OpenRouter task and follow-up passed after the skill-root and artifact-helper fixes.                                                                                                |
+| OpenCode     |                            8 |                                   8 | All three remaining OpenRouter journeys passed after the artifact-helper and canonical-workspace permission fixes.                                                                                       |
+| Hermes local |                            4 |                                   4 | A follow-up interrupted by lease release passed on one bounded retry. Workspace isolation was then corrected and retested separately.                                                                    |
+| Grok         |                            2 |                                   4 | Both legacy API-key journeys passed after preserving private session history and avoiding remote subscription restoration for missing local history. Native journeys require the missing pinned runtime. |
+| Gemini       |                            1 |                                   2 | New-agent/API-key passed with `gemini-3.5-flash-lite`; Apps/API-key delivered its first artifact but timed out on follow-up. Installed CLI file creation still fails the isolated compatibility check.   |
 
 There are another 12 local subscription cells. Attended Claude/OpenAI attempts
 opened real authorization and reached their human handoff, but have not qualified

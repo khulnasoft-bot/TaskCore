@@ -31,13 +31,21 @@ export function EmptyState({
       </div>
       {title ? (
         <>
-          <p className="text-base font-semibold text-foreground mb-1.5">{title}</p>
-          <p className="text-sm text-muted-foreground mb-4 max-w-md">{message}</p>
+          <p className="text-base font-semibold text-foreground mb-1.5">
+            {title}
+          </p>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md">
+            {message}
+          </p>
         </>
       ) : (
         <>
           <p className="text-sm font-medium text-foreground mb-1">{message}</p>
-          {description && <p className="max-w-md text-sm text-muted-foreground mb-4">{description}</p>}
+          {description && (
+            <p className="max-w-md text-sm text-muted-foreground mb-4">
+              {description}
+            </p>
+          )}
         </>
       )}
       {action && onAction && (

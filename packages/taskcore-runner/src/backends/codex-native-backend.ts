@@ -41,7 +41,9 @@ export interface CodexNativeSessionBackendOptions {
     >;
   }) => CodexAppServerTransport;
   /** Current server constraints; does not commit task status before the turn ends. */
-  completionFeedback?: (result: import("../protocol/replay-contract.js").PrpStructuredRunResult) => Promise<string>;
+  completionFeedback?: (
+    result: import("../protocol/replay-contract.js").PrpStructuredRunResult,
+  ) => Promise<string>;
   dynamicTools?: readonly Readonly<Record<string, unknown>>[];
   dynamicToolHandler?: (call: {
     tool: string;
@@ -146,7 +148,9 @@ function createTransportBackedNativeSessionBackend(
   return new HarnessDriverBackend(
     new CodexAppServerDriver({
       ...(input.provider.model ? { model: input.provider.model } : {}),
-      ...(input.provider.kind === "codex" && "reasoningEffort" in input.provider && input.provider.reasoningEffort
+      ...(input.provider.kind === "codex" &&
+      "reasoningEffort" in input.provider &&
+      input.provider.reasoningEffort
         ? { reasoningEffort: input.provider.reasoningEffort }
         : {}),
       // Runnerd owns provider permissions for non-Codex facades. Their
@@ -156,7 +160,10 @@ function createTransportBackedNativeSessionBackend(
           ? (input.provider.approvalPolicy ?? "never")
           : "never",
       baseInstructions: nativeSystemInstructions(input),
-      instructionWorkingCopyRoot: "runtimeContext" in input ? input.runtimeContext.instructions.workingCopy?.rootPath : undefined,
+      instructionWorkingCopyRoot:
+        "runtimeContext" in input
+          ? input.runtimeContext.instructions.workingCopy?.rootPath
+          : undefined,
       includeSkillInstructions: isCodex && "runtimeContext" in input,
       skillInputs: isCodex
         ? nativeTaskSkillInputs(
@@ -187,9 +194,15 @@ function createTransportBackedNativeSessionBackend(
       driverIdentity,
       capabilities: isCodex
         ? {}
-        : { steering: false, goals: false, threadLineage: false,
-            toolRefreshOnResume: input.provider.kind !== "acpx"
-              || ACPX_CAPABILITY_PROFILES[input.provider.agent].toolRefreshOnResume === true },
+        : {
+            steering: false,
+            goals: false,
+            threadLineage: false,
+            toolRefreshOnResume:
+              input.provider.kind !== "acpx" ||
+              ACPX_CAPABILITY_PROFILES[input.provider.agent]
+                .toolRefreshOnResume === true,
+          },
       collaborationModes: supportsCollaborativePlanning
         ? ["default", "plan"]
         : ["default"],

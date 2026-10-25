@@ -1,13 +1,19 @@
 export const GITHUB_CONNECTOR_PROFILE_IDS = ["github.code"] as const;
 
-export type GitHubConnectorProfileId = (typeof GITHUB_CONNECTOR_PROFILE_IDS)[number];
+export type GitHubConnectorProfileId =
+  (typeof GITHUB_CONNECTOR_PROFILE_IDS)[number];
 
-export const GITHUB_CONNECTOR_PROFILES: Readonly<Record<GitHubConnectorProfileId, {
-  appSlug: "github";
-  serverUrl: string;
-  scopes: readonly string[];
-  writeTools: readonly string[];
-}>> = {
+export const GITHUB_CONNECTOR_PROFILES: Readonly<
+  Record<
+    GitHubConnectorProfileId,
+    {
+      appSlug: "github";
+      serverUrl: string;
+      scopes: readonly string[];
+      writeTools: readonly string[];
+    }
+  >
+> = {
   "github.code": {
     appSlug: "github",
     serverUrl: "https://api.githubcopilot.com/mcp/",
@@ -18,6 +24,8 @@ export const GITHUB_CONNECTOR_PROFILES: Readonly<Record<GitHubConnectorProfileId
   },
 };
 
-export function isGitHubConnectorProfileId(value: string): value is GitHubConnectorProfileId {
+export function isGitHubConnectorProfileId(
+  value: string,
+): value is GitHubConnectorProfileId {
   return Object.prototype.hasOwnProperty.call(GITHUB_CONNECTOR_PROFILES, value);
 }

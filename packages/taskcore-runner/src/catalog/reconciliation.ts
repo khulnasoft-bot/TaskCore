@@ -27,7 +27,10 @@ import {
   type CapabilityRealBindingStatus,
 } from "./canonical-operations.js";
 
-export type { CapabilityCatalogSurface, CapabilityRealBindingStatus } from "./canonical-operations.js";
+export type {
+  CapabilityCatalogSurface,
+  CapabilityRealBindingStatus,
+} from "./canonical-operations.js";
 
 /**
  * The canonical operation enriched with the scenario mock mapping and redaction
@@ -41,9 +44,7 @@ export interface CapabilityReconciledOperation extends CapabilityCanonicalOperat
 }
 
 export type CapabilityCatalogDivergenceField =
-  | "requiredClaims"
-  | "taskModes"
-  | "inputSchemaShape";
+  "requiredClaims" | "taskModes" | "inputSchemaShape";
 
 export interface CapabilityCatalogDivergence {
   readonly operationId: string;
@@ -54,10 +55,16 @@ export interface CapabilityCatalogDivergence {
   readonly disposition: string;
 }
 
-const scenarioById = new Map(SCENARIO_CATALOG.map((tool) => [tool.operationId, tool]));
-const liveById = new Map(LIVE_CATALOG.map((tool) => [tool.operationId as string, tool]));
+const scenarioById = new Map(
+  SCENARIO_CATALOG.map((tool) => [tool.operationId, tool]),
+);
+const liveById = new Map(
+  LIVE_CATALOG.map((tool) => [tool.operationId as string, tool]),
+);
 
-function enrich(operation: CapabilityCanonicalOperation): CapabilityReconciledOperation {
+function enrich(
+  operation: CapabilityCanonicalOperation,
+): CapabilityReconciledOperation {
   const scenario = scenarioById.get(operation.operationId);
   return Object.freeze({
     ...operation,
@@ -67,9 +74,8 @@ function enrich(operation: CapabilityCanonicalOperation): CapabilityReconciledOp
 }
 
 /** The single canonical catalog, enriched with scenario mock/redaction facts. */
-export const CAPABILITY_CANONICAL_CATALOG: readonly CapabilityReconciledOperation[] = Object.freeze(
-  CAPABILITY_CANONICAL_OPERATIONS.map(enrich),
-);
+export const CAPABILITY_CANONICAL_CATALOG: readonly CapabilityReconciledOperation[] =
+  Object.freeze(CAPABILITY_CANONICAL_OPERATIONS.map(enrich));
 
 // ---------------------------------------------------------------------------
 // Divergence ledger. Placement, required claims, and task modes are now single
@@ -78,7 +84,9 @@ export const CAPABILITY_CANONICAL_CATALOG: readonly CapabilityReconciledOperatio
 // ---------------------------------------------------------------------------
 
 function inputSchemaShape(
-  schema: { properties?: Record<string, unknown>; required?: readonly string[] } | undefined,
+  schema:
+    | { properties?: Record<string, unknown>; required?: readonly string[] }
+    | undefined,
 ): string {
   const properties = Object.keys(schema?.properties ?? {}).sort();
   const required = [...(schema?.required ?? [])].sort();
@@ -109,7 +117,13 @@ function buildDivergences(): readonly CapabilityCatalogDivergence[] {
       disposition: string,
     ): void => {
       if (scenarioValue === liveValue) return;
-      divergences.push({ operationId: operation.operationId, field, scenario: scenarioValue, live: liveValue, disposition });
+      divergences.push({
+        operationId: operation.operationId,
+        field,
+        scenario: scenarioValue,
+        live: liveValue,
+        disposition,
+      });
     };
 
     record(
@@ -141,7 +155,9 @@ export interface CapabilityCatalogReconciliation {
   readonly sharedCount: number;
   readonly scenarioOnly: readonly string[];
   readonly liveOnly: readonly string[];
-  readonly byRealBindingStatus: Readonly<Record<CapabilityRealBindingStatus, number>>;
+  readonly byRealBindingStatus: Readonly<
+    Record<CapabilityRealBindingStatus, number>
+  >;
   readonly alwaysCount: number;
   readonly optionalCount: number;
   readonly divergences: readonly CapabilityCatalogDivergence[];

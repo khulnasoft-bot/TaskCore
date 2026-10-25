@@ -1,7 +1,11 @@
 import { schemaFieldSection } from "./config-sections";
 import { useState, useEffect, useRef, useCallback } from "react";
 
-import type { AdapterConfigSchema, ConfigFieldSchema, CreateConfigValues } from "@taskcore/adapter-utils";
+import type {
+  AdapterConfigSchema,
+  ConfigFieldSchema,
+  CreateConfigValues,
+} from "@taskcore/adapter-utils";
 
 import type { AdapterConfigFieldsProps } from "./types";
 import {
@@ -11,7 +15,11 @@ import {
   DraftTextarea,
   ToggleField,
 } from "../components/agent-config-primitives";
-import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/popover";
 import { ChevronDown } from "lucide-react";
 
 // ── Select field (extracted to keep hooks at component top level) ──────
@@ -36,7 +44,10 @@ function SelectField({
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-1"
+        align="start"
+      >
         {options.map((opt) => (
           <button
             key={opt.value}
@@ -56,7 +67,6 @@ function SelectField({
 }
 const inputClass =
   "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
-
 
 // ---------------------------------------------------------------------------
 // Combobox: type-to-filter dropdown with free text fallback
@@ -205,10 +215,15 @@ function ComboboxField({
 // ---------------------------------------------------------------------------
 
 const schemaCache = new Map<string, AdapterConfigSchema | null>();
-const schemaFetchInflight = new Map<string, Promise<AdapterConfigSchema | null>>();
+const schemaFetchInflight = new Map<
+  string,
+  Promise<AdapterConfigSchema | null>
+>();
 const failedSchemaTypes = new Set<string>();
 
-async function fetchConfigSchema(adapterType: string): Promise<AdapterConfigSchema | null> {
+async function fetchConfigSchema(
+  adapterType: string,
+): Promise<AdapterConfigSchema | null> {
   const cached = schemaCache.get(adapterType);
   if (cached !== undefined) return cached;
   if (failedSchemaTypes.has(adapterType)) return null;
@@ -218,7 +233,9 @@ async function fetchConfigSchema(adapterType: string): Promise<AdapterConfigSche
 
   const promise = (async () => {
     try {
-      const res = await fetch(`/api/adapters/${encodeURIComponent(adapterType)}/config-schema`);
+      const res = await fetch(
+        `/api/adapters/${encodeURIComponent(adapterType)}/config-schema`,
+      );
       if (!res.ok) {
         failedSchemaTypes.add(adapterType);
         return null;
@@ -247,10 +264,13 @@ export function invalidateConfigSchemaCache(adapterType: string): void {
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useConfigSchema(adapterType: string): AdapterConfigSchema | null {
-  const [loaded, setLoaded] = useState<{ adapterType: string; schema: AdapterConfigSchema | null }>(
-    () => ({ adapterType, schema: schemaCache.get(adapterType) ?? null }),
-  );
+export function useConfigSchema(
+  adapterType: string,
+): AdapterConfigSchema | null {
+  const [loaded, setLoaded] = useState<{
+    adapterType: string;
+    schema: AdapterConfigSchema | null;
+  }>(() => ({ adapterType, schema: schemaCache.get(adapterType) ?? null }));
 
   useEffect(() => {
     let cancelled = false;
@@ -262,7 +282,9 @@ export function useConfigSchema(adapterType: string): AdapterConfigSchema | null
     };
   }, [adapterType]);
 
-  return loaded.adapterType === adapterType ? loaded.schema : schemaCache.get(adapterType) ?? null;
+  return loaded.adapterType === adapterType
+    ? loaded.schema
+    : (schemaCache.get(adapterType) ?? null);
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +312,12 @@ export function fieldMatchesVisibleWhen(
   schema: AdapterConfigSchema,
 ): boolean {
   const visibleWhen = field.meta?.visibleWhen;
-  if (!visibleWhen || typeof visibleWhen !== "object" || Array.isArray(visibleWhen)) return true;
+  if (
+    !visibleWhen ||
+    typeof visibleWhen !== "object" ||
+    Array.isArray(visibleWhen)
+  )
+    return true;
 
   const condition = visibleWhen as {
     key?: unknown;
@@ -298,19 +325,26 @@ export function fieldMatchesVisibleWhen(
     values?: unknown;
     notValues?: unknown;
   };
-  if (typeof condition.key !== "string" || condition.key.length === 0) return true;
+  if (typeof condition.key !== "string" || condition.key.length === 0)
+    return true;
 
-  const sourceField = schema.fields.find((candidate) => candidate.key === condition.key);
+  const sourceField = schema.fields.find(
+    (candidate) => candidate.key === condition.key,
+  );
   if (!sourceField) return true;
 
   const actual = String(readValue(sourceField) ?? "");
   if (typeof condition.value === "string") return actual === condition.value;
   if (Array.isArray(condition.values)) {
-    const values = condition.values.filter((value): value is string => typeof value === "string");
+    const values = condition.values.filter(
+      (value): value is string => typeof value === "string",
+    );
     return values.length > 0 && values.includes(actual);
   }
   if (Array.isArray(condition.notValues)) {
-    const values = condition.notValues.filter((value): value is string => typeof value === "string");
+    const values = condition.notValues.filter(
+      (value): value is string => typeof value === "string",
+    );
     return !values.includes(actual);
   }
   return true;
@@ -340,7 +374,13 @@ export function SchemaConfigFields({
     if (defaultsApplied.current.adapterType !== adapterType) {
       defaultsApplied.current = { adapterType, applied: false };
     }
-    if (!schema || !isCreate || defaultsApplied.current.applied || (section && section !== "configuration")) return;
+    if (
+      !schema ||
+      !isCreate ||
+      defaultsApplied.current.applied ||
+      (section && section !== "configuration")
+    )
+      return;
     defaultsApplied.current.applied = true;
     const defaults: Record<string, unknown> = {};
     for (const field of schema.fields) {
@@ -354,7 +394,14 @@ export function SchemaConfigFields({
         adapterSchemaValues: { ...defaults, ...values?.adapterSchemaValues },
       });
     }
-  }, [schema, adapterType, isCreate, set, values?.adapterSchemaValues, section]);
+  }, [
+    schema,
+    adapterType,
+    isCreate,
+    set,
+    values?.adapterSchemaValues,
+    section,
+  ]);
 
   if (!schema || schema.fields.length === 0) return null;
 
@@ -363,7 +410,11 @@ export function SchemaConfigFields({
       return values?.adapterSchemaValues?.[field.key] ?? getDefaultValue(field);
     }
     const stored = config[field.key];
-    return eff("adapterConfig", field.key, (stored ?? getDefaultValue(field)) as string);
+    return eff(
+      "adapterConfig",
+      field.key,
+      (stored ?? getDefaultValue(field)) as string,
+    );
   }
 
   function writeValue(field: ConfigFieldSchema, value: unknown): void {
@@ -379,10 +430,17 @@ export function SchemaConfigFields({
       if (field.key === "provider" && schema) {
         const modelField = schema.fields.find((f) => f.key === "model");
         if (modelField?.meta?.providerModels) {
-          const modelsByProvider = modelField.meta.providerModels as Record<string, string[]>;
+          const modelsByProvider = modelField.meta.providerModels as Record<
+            string,
+            string[]
+          >;
           const providerModels = modelsByProvider[String(value)] ?? [];
           const currentModel = values?.adapterSchemaValues?.model;
-          if (currentModel && String(value) !== "auto" && !providerModels.includes(String(currentModel))) {
+          if (
+            currentModel &&
+            String(value) !== "auto" &&
+            !providerModels.includes(String(currentModel))
+          ) {
             next.adapterSchemaValues.model = "";
           }
         }
@@ -396,10 +454,17 @@ export function SchemaConfigFields({
       if (field.key === "provider" && schema) {
         const modelField = schema.fields.find((f) => f.key === "model");
         if (modelField?.meta?.providerModels) {
-          const modelsByProvider = modelField.meta.providerModels as Record<string, string[]>;
+          const modelsByProvider = modelField.meta.providerModels as Record<
+            string,
+            string[]
+          >;
           const providerModels = modelsByProvider[String(value)] ?? [];
           const currentModel = eff("adapterConfig", "model", "");
-          if (currentModel && String(value) !== "auto" && !providerModels.includes(String(currentModel))) {
+          if (
+            currentModel &&
+            String(value) !== "auto" &&
+            !providerModels.includes(String(currentModel))
+          ) {
             mark("adapterConfig", "model", "");
           }
         }
@@ -411,8 +476,17 @@ export function SchemaConfigFields({
     <>
       {schema.fields
         .filter((field) => !hideModel || field.key !== "model")
-        .filter((field) => !section || schemaFieldSection(field.key) === section)
-        .filter((field) => !(field.type === "select" && /permissionMode/i.test(field.key) && (field.options?.length ?? 0) <= 1))
+        .filter(
+          (field) => !section || schemaFieldSection(field.key) === section,
+        )
+        .filter(
+          (field) =>
+            !(
+              field.type === "select" &&
+              /permissionMode/i.test(field.key) &&
+              (field.options?.length ?? 0) <= 1
+            ),
+        )
         .filter((field) => fieldMatchesVisibleWhen(field, readValue, schema))
         .map((field) => {
           switch (field.type) {
@@ -469,23 +543,38 @@ export function SchemaConfigFields({
               // based on the current provider value
               let comboboxOptions = field.options ?? [];
               if (field.meta?.providerModels) {
-                const providerVal = String(readValue(schema.fields.find((f) => f.key === "provider")!) ?? "auto");
-                const modelsByProvider = field.meta.providerModels as Record<string, string[]>;
+                const providerVal = String(
+                  readValue(schema.fields.find((f) => f.key === "provider")!) ??
+                    "auto",
+                );
+                const modelsByProvider = field.meta.providerModels as Record<
+                  string,
+                  string[]
+                >;
                 if (providerVal === "auto") {
                   // Auto: show all models from all providers, grouped by provider
-                  const providerLabel = schema.fields.find((f) => f.key === "provider");
+                  const providerLabel = schema.fields.find(
+                    (f) => f.key === "provider",
+                  );
                   const providerOptions = providerLabel?.options ?? [];
-                  comboboxOptions = Object.entries(modelsByProvider).flatMap(([prov, models]) =>
-                    models.map((m) => ({
-                      label: m,
-                      value: m,
-                      group: providerOptions.find((p) => p.value === prov)?.label ?? prov,
-                    })),
+                  comboboxOptions = Object.entries(modelsByProvider).flatMap(
+                    ([prov, models]) =>
+                      models.map((m) => ({
+                        label: m,
+                        value: m,
+                        group:
+                          providerOptions.find((p) => p.value === prov)
+                            ?.label ?? prov,
+                      })),
                   );
                 } else {
                   const providerModels = modelsByProvider[providerVal] ?? [];
-                  const providerLabel = schema.fields.find((f) => f.key === "provider");
-                  const provName = providerLabel?.options?.find((p) => p.value === providerVal)?.label ?? providerVal;
+                  const providerLabel = schema.fields.find(
+                    (f) => f.key === "provider",
+                  );
+                  const provName =
+                    providerLabel?.options?.find((p) => p.value === providerVal)
+                      ?.label ?? providerVal;
                   comboboxOptions = providerModels.map((m) => ({
                     label: m,
                     value: m,
@@ -535,13 +624,12 @@ export function buildSchemaAdapterConfig(
   if (values.model?.trim()) ac.model = values.model.trim();
   if (values.cwd) ac.cwd = values.cwd;
   if (values.command) ac.command = values.command;
-  if (values.instructionsFilePath) ac.instructionsFilePath = values.instructionsFilePath;
+  if (values.instructionsFilePath)
+    ac.instructionsFilePath = values.instructionsFilePath;
   if (values.thinkingEffort) ac.thinkingEffort = values.thinkingEffort;
 
   if (values.extraArgs) {
-    ac.extraArgs = values.extraArgs
-      .split(/\s+/)
-      .filter(Boolean);
+    ac.extraArgs = values.extraArgs.split(/\s+/).filter(Boolean);
   }
 
   if (values.adapterSchemaValues) {

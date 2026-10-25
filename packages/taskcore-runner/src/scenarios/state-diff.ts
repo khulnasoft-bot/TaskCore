@@ -23,26 +23,59 @@ const DOMAINS: Array<{
   select: (state: CapabilityFixtureState) => Entity[];
   noun: string;
 }> = [
-  { domain: "tasks", select: (state) => state.tasks as unknown as Entity[], noun: "task" },
-  { domain: "comments", select: (state) => state.comments as unknown as Entity[], noun: "comment" },
-  { domain: "documents", select: (state) => state.documents as unknown as Entity[], noun: "document" },
-  { domain: "interactions", select: (state) => state.interactions as unknown as Entity[], noun: "interaction" },
-  { domain: "approvals", select: (state) => state.approvals as unknown as Entity[], noun: "approval" },
+  {
+    domain: "tasks",
+    select: (state) => state.tasks as unknown as Entity[],
+    noun: "task",
+  },
+  {
+    domain: "comments",
+    select: (state) => state.comments as unknown as Entity[],
+    noun: "comment",
+  },
+  {
+    domain: "documents",
+    select: (state) => state.documents as unknown as Entity[],
+    noun: "document",
+  },
+  {
+    domain: "interactions",
+    select: (state) => state.interactions as unknown as Entity[],
+    noun: "interaction",
+  },
+  {
+    domain: "approvals",
+    select: (state) => state.approvals as unknown as Entity[],
+    noun: "approval",
+  },
   {
     domain: "artifacts",
-    select: (state) => [...state.artifacts, ...state.workProducts] as unknown as Entity[],
+    select: (state) =>
+      [...state.artifacts, ...state.workProducts] as unknown as Entity[],
     noun: "artifact",
   },
-  { domain: "blockers", select: (state) => state.blockers as unknown as Entity[], noun: "blocker" },
+  {
+    domain: "blockers",
+    select: (state) => state.blockers as unknown as Entity[],
+    noun: "blocker",
+  },
   {
     domain: "workspace",
     select: (state) => state.workspaceServices as unknown as Entity[],
     noun: "service",
   },
-  { domain: "budget", select: (state) => state.budgets as unknown as Entity[], noun: "budget" },
+  {
+    domain: "budget",
+    select: (state) => state.budgets as unknown as Entity[],
+    noun: "budget",
+  },
   {
     domain: "run",
-    select: (state) => state.runs.map((run) => ({ ...run, events: run.events.length })) as unknown as Entity[],
+    select: (state) =>
+      state.runs.map((run) => ({
+        ...run,
+        events: run.events.length,
+      })) as unknown as Entity[],
     noun: "run",
   },
 ];
@@ -78,10 +111,12 @@ function domainSection(
       continue;
     }
     const fields = fieldChanges(previous, entity);
-    if (fields.length > 0) rows.push({ entityId: id, change: "changed", fields });
+    if (fields.length > 0)
+      rows.push({ entityId: id, change: "changed", fields });
   }
   for (const [id, entity] of beforeById) {
-    if (!afterById.has(id)) rows.push({ entityId: id, change: "removed", fields: describe(entity) });
+    if (!afterById.has(id))
+      rows.push({ entityId: id, change: "removed", fields: describe(entity) });
   }
   rows.sort((left, right) => left.entityId.localeCompare(right.entityId));
 
@@ -99,7 +134,10 @@ function domainSection(
 
   return {
     domain,
-    summary: rows.length === 0 ? summary : `${summary} ${rows.length === 1 ? noun : `${noun}s`}`,
+    summary:
+      rows.length === 0
+        ? summary
+        : `${summary} ${rows.length === 1 ? noun : `${noun}s`}`,
     changed: rows.length > 0,
     rows,
     afterSnapshot: JSON.parse(JSON.stringify(after)) as CapabilityJsonValue,
@@ -114,19 +152,30 @@ function describe(entity: Entity): CapabilityDiffFieldChange[] {
     .sort((left, right) => left.field.localeCompare(right.field));
 }
 
-function fieldChanges(before: Entity, after: Entity): CapabilityDiffFieldChange[] {
-  const fields = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+function fieldChanges(
+  before: Entity,
+  after: Entity,
+): CapabilityDiffFieldChange[] {
+  const fields = [
+    ...new Set([...Object.keys(before), ...Object.keys(after)]),
+  ].sort();
   return fields
     .filter((field) => field !== "id")
-    .map((field) => ({ field, before: render(before[field]), after: render(after[field]) }))
+    .map((field) => ({
+      field,
+      before: render(before[field]),
+      after: render(after[field]),
+    }))
     .filter((change) => change.before !== change.after);
 }
 
 function render(value: unknown): string | null {
   if (value === undefined) return null;
   if (value === null) return "null";
-  if (typeof value === "string") return value.length > 160 ? `${value.slice(0, 157)}…` : value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "string")
+    return value.length > 160 ? `${value.slice(0, 157)}…` : value;
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   const json = JSON.stringify(value);
   return json.length > 160 ? `${json.slice(0, 157)}…` : json;
 }

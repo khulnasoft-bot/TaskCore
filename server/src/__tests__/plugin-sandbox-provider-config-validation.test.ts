@@ -44,10 +44,16 @@ function seedProviderPlugin() {
 function createWorkerManager() {
   return {
     isRunning: vi.fn(() => true),
-    call: vi.fn(async (_pluginId: string, _method: string, params: { config: Record<string, unknown> }) => ({
-      ok: true,
-      normalizedConfig: { ...params.config },
-    })),
+    call: vi.fn(
+      async (
+        _pluginId: string,
+        _method: string,
+        params: { config: Record<string, unknown> },
+      ) => ({
+        ok: true,
+        normalizedConfig: { ...params.config },
+      }),
+    ),
   } as unknown as PluginWorkerManager & { call: ReturnType<typeof vi.fn> };
 }
 
@@ -71,28 +77,34 @@ describe("validatePluginSandboxProviderConfig secret-ref bindings", () => {
       },
     });
 
-    expect(workerManager.call).toHaveBeenCalledWith(PLUGIN_ID, "environmentValidateConfig", {
-      driverKey: "secure-plugin",
-      config: {
-        template: "base",
-        apiKey: SECRET_ID,
-        timeoutMs: 1234,
+    expect(workerManager.call).toHaveBeenCalledWith(
+      PLUGIN_ID,
+      "environmentValidateConfig",
+      {
+        driverKey: "secure-plugin",
+        config: {
+          template: "base",
+          apiKey: SECRET_ID,
+          timeoutMs: 1234,
+        },
       },
-    });
+    );
     expect(result.normalizedConfig.apiKey).toBe(SECRET_ID);
   });
 
   it("rejects pinned secret binding versions before calling the plugin", async () => {
     const workerManager = createWorkerManager();
 
-    await expect(validatePluginSandboxProviderConfig({
-      db: {} as Db,
-      workerManager,
-      provider: "secure-plugin",
-      config: {
-        apiKey: { type: "secret_ref", secretId: SECRET_ID, version: 3 },
-      },
-    })).rejects.toThrow(/pins version 3/);
+    await expect(
+      validatePluginSandboxProviderConfig({
+        db: {} as Db,
+        workerManager,
+        provider: "secure-plugin",
+        config: {
+          apiKey: { type: "secret_ref", secretId: SECRET_ID, version: 3 },
+        },
+      }),
+    ).rejects.toThrow(/pins version 3/);
     expect(workerManager.call).not.toHaveBeenCalled();
   });
 
@@ -109,12 +121,16 @@ describe("validatePluginSandboxProviderConfig secret-ref bindings", () => {
       },
     });
 
-    expect(workerManager.call).toHaveBeenCalledWith(PLUGIN_ID, "environmentValidateConfig", {
-      driverKey: "secure-plugin",
-      config: {
-        template: "base",
-        apiKey: "raw-provider-key",
+    expect(workerManager.call).toHaveBeenCalledWith(
+      PLUGIN_ID,
+      "environmentValidateConfig",
+      {
+        driverKey: "secure-plugin",
+        config: {
+          template: "base",
+          apiKey: "raw-provider-key",
+        },
       },
-    });
+    );
   });
 });

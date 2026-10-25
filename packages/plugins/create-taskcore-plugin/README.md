@@ -21,6 +21,7 @@ Supported templates: `default`, `connector`, `workspace`
 Supported categories: `connector`, `workspace`, `automation`, `ui`
 
 Generates:
+
 - typed manifest + worker entrypoint
 - example UI widget using the supported `@taskcore/plugin-sdk/ui` hooks
 - test file using `@taskcore/plugin-sdk/testing`

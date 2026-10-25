@@ -17,7 +17,11 @@ interface OutputFileTileProps {
 }
 
 /** Square file-type tile showing a short MIME-derived label, colorised by tone. */
-export function OutputFileTile({ contentType, className, sizeClassName = "h-8 w-8" }: OutputFileTileProps) {
+export function OutputFileTile({
+  contentType,
+  className,
+  sizeClassName = "h-8 w-8",
+}: OutputFileTileProps) {
   const glyph = getOutputFileGlyph(contentType);
   return (
     <span

@@ -128,34 +128,49 @@ describe("applyAgentSkillSnapshot", () => {
   });
 
   it("treats user-installed entries outside the company library as read-only unmanaged skills", () => {
-    expect(isReadOnlyUnmanagedSkillEntry({
-      key: "crack-python",
-      runtimeName: "crack-python",
-      desired: false,
-      managed: false,
-      state: "external",
-      origin: "user_installed",
-    }, new Set(["taskcore"]))).toBe(true);
+    expect(
+      isReadOnlyUnmanagedSkillEntry(
+        {
+          key: "crack-python",
+          runtimeName: "crack-python",
+          desired: false,
+          managed: false,
+          state: "external",
+          origin: "user_installed",
+        },
+        new Set(["taskcore"]),
+      ),
+    ).toBe(true);
   });
 
   it("keeps company-library entries in the managed section even when the adapter reports an external conflict", () => {
-    expect(isReadOnlyUnmanagedSkillEntry({
-      key: "taskcore",
-      runtimeName: "taskcore",
-      desired: true,
-      managed: false,
-      state: "external",
-      origin: "company_managed",
-    }, new Set(["taskcore"]))).toBe(false);
+    expect(
+      isReadOnlyUnmanagedSkillEntry(
+        {
+          key: "taskcore",
+          runtimeName: "taskcore",
+          desired: true,
+          managed: false,
+          state: "external",
+          origin: "company_managed",
+        },
+        new Set(["taskcore"]),
+      ),
+    ).toBe(false);
   });
 
   it("falls back to legacy snapshots that only mark unmanaged external entries", () => {
-    expect(isReadOnlyUnmanagedSkillEntry({
-      key: "legacy-external",
-      runtimeName: "legacy-external",
-      desired: false,
-      managed: false,
-      state: "external",
-    }, new Set())).toBe(true);
+    expect(
+      isReadOnlyUnmanagedSkillEntry(
+        {
+          key: "legacy-external",
+          runtimeName: "legacy-external",
+          desired: false,
+          managed: false,
+          state: "external",
+        },
+        new Set(),
+      ),
+    ).toBe(true);
   });
 });

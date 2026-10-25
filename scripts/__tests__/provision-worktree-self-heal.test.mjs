@@ -6,7 +6,10 @@ import os from "node:os";
 import path from "node:path";
 
 const script = new URL("../provision-worktree.sh", import.meta.url).pathname;
-const runtimeScript = new URL("../provision-worktree-runtime.sh", import.meta.url).pathname;
+const runtimeScript = new URL(
+  "../provision-worktree-runtime.sh",
+  import.meta.url,
+).pathname;
 
 // Keep the PATH minimal so the fallback ladder is deterministic: node must be
 // reachable, but a globally installed `taskcore` must not shadow the paths
@@ -28,7 +31,10 @@ function makeTempDir(prefix) {
 function makeInstanceHome() {
   const home = makeTempDir("taskcore-provision-instance-home-");
   fs.mkdirSync(path.join(home, "instances", "default"), { recursive: true });
-  fs.writeFileSync(path.join(home, "instances", "default", "config.json"), "{}\n");
+  fs.writeFileSync(
+    path.join(home, "instances", "default", "config.json"),
+    "{}\n",
+  );
   return home;
 }
 
@@ -48,7 +54,14 @@ test.after(() => {
  */
 function makeBaseWorkspace({ helpExit, initExit, ensureExit = 0 }) {
   const baseCwd = makeTempDir("taskcore-provision-base-");
-  const runnerPath = path.join(baseCwd, "cli", "node_modules", "tsx", "dist", "cli.mjs");
+  const runnerPath = path.join(
+    baseCwd,
+    "cli",
+    "node_modules",
+    "tsx",
+    "dist",
+    "cli.mjs",
+  );
   const entryPath = path.join(baseCwd, "cli", "src", "index.ts");
   fs.mkdirSync(path.dirname(runnerPath), { recursive: true });
   fs.mkdirSync(path.dirname(entryPath), { recursive: true });
@@ -102,8 +115,12 @@ process.exit(0);
   return baseCwd;
 }
 
-function runProvision(baseCwd, { pathPrefix, setupWorktree, setupInstance, existingWorktree, env = {} } = {}) {
-  const worktreeCwd = existingWorktree ?? makeTempDir("taskcore-provision-worktree-");
+function runProvision(
+  baseCwd,
+  { pathPrefix, setupWorktree, setupInstance, existingWorktree, env = {} } = {},
+) {
+  const worktreeCwd =
+    existingWorktree ?? makeTempDir("taskcore-provision-worktree-");
   setupWorktree?.(worktreeCwd);
   const worktreesHome = makeTempDir("taskcore-provision-home-");
   const taskcoreHome = makeInstanceHome();
@@ -173,7 +190,12 @@ test("uses the base CLI when its import graph boots", () => {
   const config = readWorktreeConfig(worktreeCwd);
   assert.equal(config.$meta.source, "fake-cli");
   assert.equal(
-    JSON.parse(fs.readFileSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json"), "utf8")).state,
+    JSON.parse(
+      fs.readFileSync(
+        path.join(worktreeCwd, ".taskcore", "seed-manifest.json"),
+        "utf8",
+      ),
+    ).state,
     "pending",
   );
   const initInvocation = readCliInvocations(baseCwd).find(
@@ -189,16 +211,42 @@ for (const defaultConfigInEnv of [false, true]) {
   test(`prepares a plain checkout without a default instance config (image default env: ${defaultConfigInEnv})`, () => {
     const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
     const { result, worktreeCwd } = runProvision(baseCwd, {
-      setupInstance: (home) => fs.rmSync(path.join(home, "instances", "default", "config.json")),
-      env: (home) => defaultConfigInEnv ? { TASKCORE_CONFIG: path.join(home, "instances", "default", "config.json") } : {},
+      setupInstance: (home) =>
+        fs.rmSync(path.join(home, "instances", "default", "config.json")),
+      env: (home) =>
+        defaultConfigInEnv
+          ? {
+              TASKCORE_CONFIG: path.join(
+                home,
+                "instances",
+                "default",
+                "config.json",
+              ),
+            }
+          : {},
     });
 
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stderr, /preparing checkout dependencies without a seeded development instance/);
-    for (const file of ["config.json", ".env", "seed-manifest.json", "seed-pending", "seed-complete"]) {
-      assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore", file)), false);
+    assert.match(
+      result.stderr,
+      /preparing checkout dependencies without a seeded development instance/,
+    );
+    for (const file of [
+      "config.json",
+      ".env",
+      "seed-manifest.json",
+      "seed-pending",
+      "seed-complete",
+    ]) {
+      assert.equal(
+        fs.existsSync(path.join(worktreeCwd, ".taskcore", file)),
+        false,
+      );
     }
-    assert.equal(fs.realpathSync(path.join(worktreeCwd, "cli", "node_modules")), path.join(baseCwd, "cli", "node_modules"));
+    assert.equal(
+      fs.realpathSync(path.join(worktreeCwd, "cli", "node_modules")),
+      path.join(baseCwd, "cli", "node_modules"),
+    );
     assert.deepEqual(readCliInvocations(baseCwd), []);
   });
 }
@@ -210,8 +258,14 @@ test("rejects a missing custom seed source", () => {
   });
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /config is unavailable \(control-plane instance\)/);
-  assert.match(result.stderr, /For a seeded development instance, configure a canonical config/);
+  assert.match(
+    result.stderr,
+    /config is unavailable \(control-plane instance\)/,
+  );
+  assert.match(
+    result.stderr,
+    /For a seeded development instance, configure a canonical config/,
+  );
   assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore")), false);
   assert.deepEqual(readCliInvocations(baseCwd), []);
 });
@@ -219,7 +273,8 @@ test("rejects a missing custom seed source", () => {
 test("initializes a previously plain checkout once a registered seed source is available", () => {
   const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
   const first = runProvision(baseCwd, {
-    setupInstance: (home) => fs.rmSync(path.join(home, "instances"), { recursive: true }),
+    setupInstance: (home) =>
+      fs.rmSync(path.join(home, "instances"), { recursive: true }),
   });
   assert.equal(first.result.status, 0, first.result.stderr);
   assert.deepEqual(readCliInvocations(baseCwd), []);
@@ -227,25 +282,46 @@ test("initializes a previously plain checkout once a registered seed source is a
   const second = runProvision(baseCwd, { existingWorktree: first.worktreeCwd });
   assert.equal(second.result.status, 0, second.result.stderr);
   assert.equal(readWorktreeConfig(first.worktreeCwd).$meta.source, "fake-cli");
-  assert.equal(JSON.parse(fs.readFileSync(path.join(first.worktreeCwd, ".taskcore", "seed-manifest.json"), "utf8")).state, "pending");
+  assert.equal(
+    JSON.parse(
+      fs.readFileSync(
+        path.join(first.worktreeCwd, ".taskcore", "seed-manifest.json"),
+        "utf8",
+      ),
+    ).state,
+    "pending",
+  );
 });
 
 test("a plain checkout without a source is not ready for a seeded runtime", () => {
   const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
   fs.mkdirSync(path.join(baseCwd, "scripts"));
-  fs.copyFileSync(script, path.join(baseCwd, "scripts", "provision-worktree.sh"));
-  const setupInstance = (home) => fs.rmSync(path.join(home, "instances"), { recursive: true });
+  fs.copyFileSync(
+    script,
+    path.join(baseCwd, "scripts", "provision-worktree.sh"),
+  );
+  const setupInstance = (home) =>
+    fs.rmSync(path.join(home, "instances"), { recursive: true });
   const { result, worktreeCwd } = runProvision(baseCwd, { setupInstance });
   assert.equal(result.status, 0, result.stderr);
 
   const runtime = runRuntimeProvision(baseCwd, worktreeCwd, { setupInstance });
   assert.notEqual(runtime.status, 0);
-  assert.match(runtime.stderr, /Worktree config still does not exist after built-in provisioning/);
-  assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json")), false);
+  assert.match(
+    runtime.stderr,
+    /Worktree config still does not exist after built-in provisioning/,
+  );
+  assert.equal(
+    fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json")),
+    false,
+  );
   assert.deepEqual(readCliInvocations(baseCwd), []);
 });
 
-for (const relativePath of ["instances/default/config.json", "instances/default"]) {
+for (const relativePath of [
+  "instances/default/config.json",
+  "instances/default",
+]) {
   test(`rejects a dangling implicit source symlink at ${relativePath}`, () => {
     const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
     const { result, worktreeCwd } = runProvision(baseCwd, {
@@ -262,19 +338,32 @@ for (const relativePath of ["instances/default/config.json", "instances/default"
   });
 }
 
-for (const file of ["config.json", ".env", "seed-manifest.json", "seed-pending", "seed-complete"]) {
+for (const file of [
+  "config.json",
+  ".env",
+  "seed-manifest.json",
+  "seed-pending",
+  "seed-complete",
+]) {
   test(`does not downgrade an existing development instance with ${file} when its source disappears`, () => {
     const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
     const { result, worktreeCwd } = runProvision(baseCwd, {
-      setupInstance: (home) => fs.rmSync(path.join(home, "instances", "default", "config.json")),
+      setupInstance: (home) =>
+        fs.rmSync(path.join(home, "instances", "default", "config.json")),
       setupWorktree(root) {
         fs.mkdirSync(path.join(root, ".taskcore"));
-        fs.writeFileSync(path.join(root, ".taskcore", file), "retained state\n");
+        fs.writeFileSync(
+          path.join(root, ".taskcore", file),
+          "retained state\n",
+        );
       },
     });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /config is unavailable/);
-    assert.equal(fs.readFileSync(path.join(worktreeCwd, ".taskcore", file), "utf8"), "retained state\n");
+    assert.equal(
+      fs.readFileSync(path.join(worktreeCwd, ".taskcore", file), "utf8"),
+      "retained state\n",
+    );
     assert.deepEqual(readCliInvocations(baseCwd), []);
   });
 }
@@ -283,20 +372,42 @@ for (const installExit of [0, 42]) {
   test(`plain checkout dependency provisioning preserves install exit ${installExit}`, () => {
     const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
     const bin = makeTempDir("taskcore-checkout-pnpm-");
-    fs.writeFileSync(path.join(bin, "pnpm"), `#!/bin/sh\nprintf '%s\\n' "$*" >> pnpm-calls\nmkdir -p node_modules cli/node_modules\nexit ${installExit}\n`, { mode: 0o700 });
+    fs.writeFileSync(
+      path.join(bin, "pnpm"),
+      `#!/bin/sh\nprintf '%s\\n' "$*" >> pnpm-calls\nmkdir -p node_modules cli/node_modules\nexit ${installExit}\n`,
+      { mode: 0o700 },
+    );
     const { result, worktreeCwd } = runProvision(baseCwd, {
       pathPrefix: bin,
-      setupInstance: (home) => fs.rmSync(path.join(home, "instances", "default", "config.json")),
+      setupInstance: (home) =>
+        fs.rmSync(path.join(home, "instances", "default", "config.json")),
       setupWorktree(root) {
         fs.writeFileSync(path.join(root, "package.json"), "{}\n");
-        fs.writeFileSync(path.join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+        fs.writeFileSync(
+          path.join(root, "pnpm-lock.yaml"),
+          "lockfileVersion: '9.0'\n",
+        );
       },
     });
     assert.equal(result.status, installExit, result.stderr);
-    assert.match(fs.readFileSync(path.join(worktreeCwd, "pnpm-calls"), "utf8"), /^install --prod=false --frozen-lockfile/);
-    assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore", "pnpm-install-fingerprint")), installExit === 0);
-    assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore", "config.json")), false);
-    assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json")), false);
+    assert.match(
+      fs.readFileSync(path.join(worktreeCwd, "pnpm-calls"), "utf8"),
+      /^install --prod=false --frozen-lockfile/,
+    );
+    assert.equal(
+      fs.existsSync(
+        path.join(worktreeCwd, ".taskcore", "pnpm-install-fingerprint"),
+      ),
+      installExit === 0,
+    );
+    assert.equal(
+      fs.existsSync(path.join(worktreeCwd, ".taskcore", "config.json")),
+      false,
+    );
+    assert.equal(
+      fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json")),
+      false,
+    );
     assert.deepEqual(readCliInvocations(baseCwd), []);
   });
 }
@@ -304,12 +415,18 @@ for (const installExit of [0, 42]) {
 test("rejects a dangling base workspace config symlink instead of falling back", () => {
   const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
   fs.mkdirSync(path.join(baseCwd, ".taskcore"), { recursive: true });
-  fs.symlinkSync(path.join(baseCwd, "absent.json"), path.join(baseCwd, ".taskcore", "config.json"));
+  fs.symlinkSync(
+    path.join(baseCwd, "absent.json"),
+    path.join(baseCwd, ".taskcore", "config.json"),
+  );
 
   const { result, worktreeCwd } = runProvision(baseCwd);
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /is not a canonical file \(base project workspace\)/);
+  assert.match(
+    result.stderr,
+    /is not a canonical file \(base project workspace\)/,
+  );
   assert.doesNotMatch(result.stderr, /checkout-only|provisionCommand/);
   assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore")), false);
   assert.deepEqual(readCliInvocations(baseCwd), []);
@@ -326,7 +443,10 @@ test("rejects a non-regular instance config without suggesting a setup bypass", 
   });
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /is not a canonical file \(control-plane instance\)/);
+  assert.match(
+    result.stderr,
+    /is not a canonical file \(control-plane instance\)/,
+  );
   assert.match(result.stderr, /Repair the registered source path/);
   assert.doesNotMatch(result.stderr, /checkout-only|provisionCommand/);
   assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore")), false);
@@ -337,7 +457,10 @@ test("rejects a dangling base workspace .taskcore symlink instead of falling bac
   const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
   // `-e`/`-L` on the config resolve `.taskcore` first, so the config reads as absent
   // here even though the workspace is malformed rather than a plain checkout.
-  fs.symlinkSync(path.join(baseCwd, "absent-dir"), path.join(baseCwd, ".taskcore"));
+  fs.symlinkSync(
+    path.join(baseCwd, "absent-dir"),
+    path.join(baseCwd, ".taskcore"),
+  );
 
   const { result } = runProvision(baseCwd);
 
@@ -362,30 +485,50 @@ test("falls back to an isolated config when the base CLI cannot boot", () => {
     !path.relative(worktreesHome, dataDir).startsWith(".."),
     `expected ${dataDir} to live under ${worktreesHome}`,
   );
-  const env = fs.readFileSync(path.join(worktreeCwd, ".taskcore", ".env"), "utf8");
+  const env = fs.readFileSync(
+    path.join(worktreeCwd, ".taskcore", ".env"),
+    "utf8",
+  );
   assert.match(env, /TASKCORE_IN_WORKTREE=true/);
   assert.equal(
-    JSON.parse(fs.readFileSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json"), "utf8")).state,
+    JSON.parse(
+      fs.readFileSync(
+        path.join(worktreeCwd, ".taskcore", "seed-manifest.json"),
+        "utf8",
+      ),
+    ).state,
     "pending",
   );
 });
 
 test("reconciles deployment mode from the registered source when reusing a guest config", () => {
   const baseCwd = makeBaseWorkspace({ helpExit: 1, initExit: 0 });
-  const { result: first, worktreeCwd, worktreesHome, taskcoreHome } = runProvision(baseCwd);
+  const {
+    result: first,
+    worktreeCwd,
+    worktreesHome,
+    taskcoreHome,
+  } = runProvision(baseCwd);
   assert.equal(first.status, 0, first.stderr);
-  assert.equal(readWorktreeConfig(worktreeCwd).server.deploymentMode, "local_trusted");
+  assert.equal(
+    readWorktreeConfig(worktreeCwd).server.deploymentMode,
+    "local_trusted",
+  );
 
   // A base workspace that does carry its own instance config outranks the fallback.
   fs.mkdirSync(path.join(baseCwd, ".taskcore"), { recursive: true });
   fs.writeFileSync(
     path.join(baseCwd, ".taskcore", "config.json"),
-    `${JSON.stringify({
-      server: {
-        deploymentMode: "authenticated",
-        exposure: "private",
+    `${JSON.stringify(
+      {
+        server: {
+          deploymentMode: "authenticated",
+          exposure: "private",
+        },
       },
-    }, null, 2)}\n`,
+      null,
+      2,
+    )}\n`,
   );
 
   const second = spawnSync("bash", [script], {
@@ -405,15 +548,27 @@ test("reconciles deployment mode from the registered source when reusing a guest
   });
 
   assert.equal(second.status, 0, second.stderr);
-  assert.match(second.stderr, /Reusing existing isolated Taskcore worktree config/);
-  assert.match(second.stderr, /Reconciled isolated Taskcore worktree deployment mode/);
-  assert.equal(readWorktreeConfig(worktreeCwd).server.deploymentMode, "authenticated");
+  assert.match(
+    second.stderr,
+    /Reusing existing isolated Taskcore worktree config/,
+  );
+  assert.match(
+    second.stderr,
+    /Reconciled isolated Taskcore worktree deployment mode/,
+  );
+  assert.equal(
+    readWorktreeConfig(worktreeCwd).server.deploymentMode,
+    "authenticated",
+  );
   assert.equal(readWorktreeConfig(worktreeCwd).server.exposure, "private");
 });
 
 test("repairs an unhealthy base install under the lock and then uses the CLI", (t) => {
   const hasTools = ["flock", "git"].every(
-    (tool) => spawnSync("bash", ["-lc", `command -v ${tool}`], { env: { PATH: testPath } }).status === 0,
+    (tool) =>
+      spawnSync("bash", ["-lc", `command -v ${tool}`], {
+        env: { PATH: testPath },
+      }).status === 0,
   );
   if (!hasTools) {
     t.skip("flock or git not available on this host");
@@ -424,7 +579,14 @@ test("repairs an unhealthy base install under the lock and then uses the CLI", (
   // creates that flag — modeling a forced reinstall that relinks the store.
   const baseCwd = makeTempDir("taskcore-provision-repair-base-");
   const healthFlag = path.join(baseCwd, "cli-healthy.flag");
-  const runnerPath = path.join(baseCwd, "cli", "node_modules", "tsx", "dist", "cli.mjs");
+  const runnerPath = path.join(
+    baseCwd,
+    "cli",
+    "node_modules",
+    "tsx",
+    "dist",
+    "cli.mjs",
+  );
   const entryPath = path.join(baseCwd, "cli", "src", "index.ts");
   fs.mkdirSync(path.dirname(runnerPath), { recursive: true });
   fs.mkdirSync(path.dirname(entryPath), { recursive: true });
@@ -447,7 +609,10 @@ process.exit(0);
 `,
   );
   fs.writeFileSync(path.join(baseCwd, "package.json"), "{}\n");
-  fs.writeFileSync(path.join(baseCwd, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+  fs.writeFileSync(
+    path.join(baseCwd, "pnpm-lock.yaml"),
+    "lockfileVersion: '9.0'\n",
+  );
   spawnSync("git", ["init", "-q", baseCwd], { env: { PATH: testPath } });
 
   const fakeBin = makeTempDir("taskcore-provision-fakebin-");
@@ -465,13 +630,19 @@ exit 1
     { mode: 0o755 },
   );
 
-  const { result, worktreeCwd } = runProvision(baseCwd, { pathPrefix: fakeBin });
+  const { result, worktreeCwd } = runProvision(baseCwd, {
+    pathPrefix: fakeBin,
+  });
 
   assert.equal(result.status, 0, result.stderr);
   const config = readWorktreeConfig(worktreeCwd);
   assert.equal(config.$meta.source, "fake-cli");
   const installs = fs.readFileSync(installLog, "utf8").trim().split("\n");
-  assert.equal(installs.length, 1, `expected exactly one repair install, got: ${installs.join(" | ")}`);
+  assert.equal(
+    installs.length,
+    1,
+    `expected exactly one repair install, got: ${installs.join(" | ")}`,
+  );
   assert.match(installs[0], /--force/);
   assert.match(installs[0], /--frozen-lockfile/);
   assert.ok(
@@ -503,13 +674,21 @@ test("runtime provisioning invokes ensure-seeded once and fast-exits after succe
   const first = runRuntimeProvision(baseCwd, worktreeCwd);
   assert.equal(first.status, 0, first.stderr);
   assert.equal(
-    JSON.parse(fs.readFileSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json"), "utf8")).state,
+    JSON.parse(
+      fs.readFileSync(
+        path.join(worktreeCwd, ".taskcore", "seed-manifest.json"),
+        "utf8",
+      ),
+    ).state,
     "verified",
   );
-  assert.ok(!fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-pending")));
+  assert.ok(
+    !fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-pending")),
+  );
 
-  const ensureCallsAfterFirst = readCliInvocations(baseCwd)
-    .filter((args) => args[0] === "worktree" && args[1] === "ensure-seeded");
+  const ensureCallsAfterFirst = readCliInvocations(baseCwd).filter(
+    (args) => args[0] === "worktree" && args[1] === "ensure-seeded",
+  );
   assert.equal(ensureCallsAfterFirst.length, 1);
   assert.ok(ensureCallsAfterFirst[0].includes("--config"));
   assert.ok(ensureCallsAfterFirst[0].includes("--from-config"));
@@ -517,8 +696,9 @@ test("runtime provisioning invokes ensure-seeded once and fast-exits after succe
   const second = runRuntimeProvision(baseCwd, worktreeCwd);
   assert.equal(second.status, 0, second.stderr);
   assert.match(second.stderr, /verified seed manifest.*skipping/);
-  const ensureCallsAfterSecond = readCliInvocations(baseCwd)
-    .filter((args) => args[0] === "worktree" && args[1] === "ensure-seeded");
+  const ensureCallsAfterSecond = readCliInvocations(baseCwd).filter(
+    (args) => args[0] === "worktree" && args[1] === "ensure-seeded",
+  );
   assert.equal(ensureCallsAfterSecond.length, 1);
 });
 
@@ -536,7 +716,10 @@ test("runtime provisioning omits the source override when the base config exists
   const ensureCall = readCliInvocations(baseCwd).find(
     (args) => args[0] === "worktree" && args[1] === "ensure-seeded",
   );
-  assert.ok(ensureCall, "expected the runtime provisioner to invoke ensure-seeded");
+  assert.ok(
+    ensureCall,
+    "expected the runtime provisioner to invoke ensure-seeded",
+  );
   assert.ok(!ensureCall.includes("--from-config"));
 });
 
@@ -557,7 +740,9 @@ test("runtime provisioning guards every optional source-config expansion for Bas
 
 test("runtime provisioning seeds a worktree config that has no seed markers", () => {
   const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
-  const worktreeCwd = makeTempDir("taskcore-provision-runtime-unmarked-config-");
+  const worktreeCwd = makeTempDir(
+    "taskcore-provision-runtime-unmarked-config-",
+  );
   fs.mkdirSync(path.join(worktreeCwd, ".taskcore"), { recursive: true });
   fs.writeFileSync(path.join(worktreeCwd, ".taskcore", "config.json"), "{}\n");
 
@@ -565,12 +750,18 @@ test("runtime provisioning seeds a worktree config that has no seed markers", ()
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(
-    readCliInvocations(baseCwd)
-      .filter((args) => args[0] === "worktree" && args[1] === "ensure-seeded").length,
+    readCliInvocations(baseCwd).filter(
+      (args) => args[0] === "worktree" && args[1] === "ensure-seeded",
+    ).length,
     1,
   );
   assert.equal(
-    JSON.parse(fs.readFileSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json"), "utf8")).state,
+    JSON.parse(
+      fs.readFileSync(
+        path.join(worktreeCwd, ".taskcore", "seed-manifest.json"),
+        "utf8",
+      ),
+    ).state,
     "verified",
   );
 });
@@ -578,31 +769,49 @@ test("runtime provisioning seeds a worktree config that has no seed markers", ()
 test("runtime provisioning bootstraps and seeds an empty .taskcore directory", () => {
   const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
   fs.mkdirSync(path.join(baseCwd, "scripts"), { recursive: true });
-  fs.copyFileSync(script, path.join(baseCwd, "scripts", "provision-worktree.sh"));
+  fs.copyFileSync(
+    script,
+    path.join(baseCwd, "scripts", "provision-worktree.sh"),
+  );
   const worktreeCwd = makeTempDir("taskcore-provision-runtime-empty-state-");
   fs.mkdirSync(path.join(worktreeCwd, ".taskcore"), { recursive: true });
 
   const result = runRuntimeProvision(baseCwd, worktreeCwd);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stderr, /config is missing; running the built-in worktree provisioner/);
+  assert.match(
+    result.stderr,
+    /config is missing; running the built-in worktree provisioner/,
+  );
   const invocations = readCliInvocations(baseCwd);
   assert.equal(
-    invocations.filter((args) => args[0] === "worktree" && args[1] === "init").length,
+    invocations.filter((args) => args[0] === "worktree" && args[1] === "init")
+      .length,
     1,
   );
   assert.equal(
-    invocations.filter((args) => args[0] === "worktree" && args[1] === "ensure-seeded").length,
+    invocations.filter(
+      (args) => args[0] === "worktree" && args[1] === "ensure-seeded",
+    ).length,
     1,
   );
   assert.equal(
-    JSON.parse(fs.readFileSync(path.join(worktreeCwd, ".taskcore", "seed-manifest.json"), "utf8")).state,
+    JSON.parse(
+      fs.readFileSync(
+        path.join(worktreeCwd, ".taskcore", "seed-manifest.json"),
+        "utf8",
+      ),
+    ).state,
     "verified",
   );
 });
 
 test("runtime provisioning leaves seed-pending in place when ensure-seeded fails", () => {
-  const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0, ensureExit: 4 });
+  const baseCwd = makeBaseWorkspace({
+    helpExit: 0,
+    initExit: 0,
+    ensureExit: 4,
+  });
   const worktreeCwd = makeTempDir("taskcore-provision-runtime-failure-");
   fs.mkdirSync(path.join(worktreeCwd, ".taskcore"), { recursive: true });
   fs.writeFileSync(path.join(worktreeCwd, ".taskcore", "config.json"), "{}\n");
@@ -612,11 +821,17 @@ test("runtime provisioning leaves seed-pending in place when ensure-seeded fails
   assert.equal(result.status, 4, result.stderr);
   assert.match(result.stderr, /fake worktree ensure-seeded failure/);
   assert.ok(fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-pending")));
-  assert.ok(!fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-complete")));
+  assert.ok(
+    !fs.existsSync(path.join(worktreeCwd, ".taskcore", "seed-complete")),
+  );
 });
 
 test("runtime provisioning does not trust a truncated verified manifest", () => {
-  const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0, ensureExit: 4 });
+  const baseCwd = makeBaseWorkspace({
+    helpExit: 0,
+    initExit: 0,
+    ensureExit: 4,
+  });
   const worktreeCwd = makeTempDir("taskcore-provision-runtime-truncated-");
   fs.mkdirSync(path.join(worktreeCwd, ".taskcore"), { recursive: true });
   fs.writeFileSync(path.join(worktreeCwd, ".taskcore", "config.json"), "{}\n");
@@ -628,8 +843,9 @@ test("runtime provisioning does not trust a truncated verified manifest", () => 
   const result = runRuntimeProvision(baseCwd, worktreeCwd);
   assert.equal(result.status, 4, result.stderr);
   assert.equal(
-    readCliInvocations(baseCwd)
-      .filter((args) => args[0] === "worktree" && args[1] === "ensure-seeded").length,
+    readCliInvocations(baseCwd).filter(
+      (args) => args[0] === "worktree" && args[1] === "ensure-seeded",
+    ).length,
     1,
   );
 });
@@ -643,51 +859,101 @@ test("runtime provisioning does not trust a truncated verified manifest", () => 
  */
 test("every pnpm install call site silences DEP0169 without overwriting NODE_OPTIONS", () => {
   const disableWarningFlag = "--disable-warning=DEP0169";
-  const appendsToExistingNodeOptions = /NODE_OPTIONS="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169"/;
+  const appendsToExistingNodeOptions =
+    /NODE_OPTIONS="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169"/;
 
   const provisionSource = fs.readFileSync(script, "utf8");
-  const repairCallSites = provisionSource.match(/env -u NODE_ENV CI=true NODE_OPTIONS="\$repair_node_options" "\$\{repair_cmd\[@\]\}"/g) ?? [];
-  assert.equal(repairCallSites.length, 2, "expected the repair pnpm install to carry the flag at both call sites (locked and unlocked)");
-  assert.match(provisionSource, /local repair_node_options="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169"/);
+  const repairCallSites =
+    provisionSource.match(
+      /env -u NODE_ENV CI=true NODE_OPTIONS="\$repair_node_options" "\$\{repair_cmd\[@\]\}"/g,
+    ) ?? [];
+  assert.equal(
+    repairCallSites.length,
+    2,
+    "expected the repair pnpm install to carry the flag at both call sites (locked and unlocked)",
+  );
+  assert.match(
+    provisionSource,
+    /local repair_node_options="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169"/,
+  );
   assert.match(provisionSource, appendsToExistingNodeOptions);
-  assert.match(provisionSource, /NODE_OPTIONS="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169" pnpm install --prod=false "\$@"/);
+  assert.match(
+    provisionSource,
+    /NODE_OPTIONS="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169" pnpm install --prod=false "\$@"/,
+  );
 
   const runtimeSource = fs.readFileSync(runtimeScript, "utf8");
-  const runtimeRepairCallSites = runtimeSource.match(/env -u NODE_ENV CI=true NODE_OPTIONS="\$repair_node_options" "\$\{repair_cmd\[@\]\}"/g) ?? [];
-  assert.equal(runtimeRepairCallSites.length, 2, "expected the repair pnpm install to carry the flag at both call sites (locked and unlocked)");
-  assert.match(runtimeSource, /local repair_node_options="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169"/);
+  const runtimeRepairCallSites =
+    runtimeSource.match(
+      /env -u NODE_ENV CI=true NODE_OPTIONS="\$repair_node_options" "\$\{repair_cmd\[@\]\}"/g,
+    ) ?? [];
+  assert.equal(
+    runtimeRepairCallSites.length,
+    2,
+    "expected the repair pnpm install to carry the flag at both call sites (locked and unlocked)",
+  );
+  assert.match(
+    runtimeSource,
+    /local repair_node_options="\$\{NODE_OPTIONS:-\} --disable-warning=DEP0169"/,
+  );
 
   // No other warning code is suppressed anywhere in either script.
   for (const source of [provisionSource, runtimeSource]) {
-    const disableWarningMatches = source.match(/--disable-warning=[^\s"]+/g) ?? [];
+    const disableWarningMatches =
+      source.match(/--disable-warning=[^\s"]+/g) ?? [];
     for (const match of disableWarningMatches) {
       assert.equal(match, disableWarningFlag);
     }
   }
 });
 
-for (const failure of ["ERR_PNPM_LOCKFILE_CONFIG_MISMATCH", "ERR_PNPM_OUTDATED_LOCKFILE", "ENOTFOUND", "retry-fails"]) {
+for (const failure of [
+  "ERR_PNPM_LOCKFILE_CONFIG_MISMATCH",
+  "ERR_PNPM_OUTDATED_LOCKFILE",
+  "ENOTFOUND",
+  "retry-fails",
+]) {
   test(`dependency provisioning preserves failures and bounds recovery: ${failure}`, () => {
     const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
     const bin = makeTempDir("taskcore-fake-pnpm-");
-    fs.writeFileSync(path.join(bin, "pnpm"), `#!/bin/sh
+    fs.writeFileSync(
+      path.join(bin, "pnpm"),
+      `#!/bin/sh
 printf '%s\\n' "$*" >> pnpm-calls
 case "$*" in
   *--frozen-lockfile*) echo '${failure === "retry-fails" ? "ERR_PNPM_LOCKFILE_CONFIG_MISMATCH" : failure}' >&2; exit 42 ;;
   *) ${failure === "retry-fails" ? "exit 43" : "mkdir -p node_modules; exit 0"} ;;
 esac
-`, { mode: 0o700 });
+`,
+      { mode: 0o700 },
+    );
     const { result, worktreeCwd } = runProvision(baseCwd, {
       pathPrefix: bin,
       setupWorktree(root) {
         fs.writeFileSync(path.join(root, "package.json"), "{}\n");
-        fs.writeFileSync(path.join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+        fs.writeFileSync(
+          path.join(root, "pnpm-lock.yaml"),
+          "lockfileVersion: '9.0'\n",
+        );
       },
     });
     const recovers = failure.startsWith("ERR_PNPM_");
-    assert.equal(result.status, recovers ? 0 : failure === "ENOTFOUND" ? 42 : 1, result.stderr);
-    assert.equal(fs.existsSync(path.join(worktreeCwd, ".taskcore/pnpm-install-fingerprint")), recovers);
-    const calls = fs.readFileSync(path.join(worktreeCwd, "pnpm-calls"), "utf8").trim().split("\n").filter((call) => call.startsWith("install "));
+    assert.equal(
+      result.status,
+      recovers ? 0 : failure === "ENOTFOUND" ? 42 : 1,
+      result.stderr,
+    );
+    assert.equal(
+      fs.existsSync(
+        path.join(worktreeCwd, ".taskcore/pnpm-install-fingerprint"),
+      ),
+      recovers,
+    );
+    const calls = fs
+      .readFileSync(path.join(worktreeCwd, "pnpm-calls"), "utf8")
+      .trim()
+      .split("\n")
+      .filter((call) => call.startsWith("install "));
     assert.equal(calls.length, failure === "ENOTFOUND" ? 1 : 2);
     if (calls.length === 2) assert.match(calls[1], /--no-frozen-lockfile/);
   });
@@ -696,22 +962,48 @@ esac
 test("patch content changes invalidate an otherwise matching install fingerprint", () => {
   const baseCwd = makeBaseWorkspace({ helpExit: 0, initExit: 0 });
   const bin = makeTempDir("taskcore-patch-pnpm-");
-  fs.writeFileSync(path.join(bin, "pnpm"), '#!/bin/sh\ncase "$1" in install) echo install >> pnpm-calls; mkdir -p node_modules cli/node_modules ;; esac\n', { mode: 0o700 });
-  const first = runProvision(baseCwd, { pathPrefix: bin, setupWorktree(root) {
-    fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ pnpm: { patchedDependencies: { "dependency@1": "patches/dependency.diff" } } }));
-    fs.writeFileSync(path.join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
-    fs.mkdirSync(path.join(root, "patches"));
-    fs.writeFileSync(path.join(root, "patches/dependency.diff"), "first patch");
-  } });
+  fs.writeFileSync(
+    path.join(bin, "pnpm"),
+    '#!/bin/sh\ncase "$1" in install) echo install >> pnpm-calls; mkdir -p node_modules cli/node_modules ;; esac\n',
+    { mode: 0o700 },
+  );
+  const first = runProvision(baseCwd, {
+    pathPrefix: bin,
+    setupWorktree(root) {
+      fs.writeFileSync(
+        path.join(root, "package.json"),
+        JSON.stringify({
+          pnpm: {
+            patchedDependencies: { "dependency@1": "patches/dependency.diff" },
+          },
+        }),
+      );
+      fs.writeFileSync(
+        path.join(root, "pnpm-lock.yaml"),
+        "lockfileVersion: '9.0'\n",
+      );
+      fs.mkdirSync(path.join(root, "patches"));
+      fs.writeFileSync(
+        path.join(root, "patches/dependency.diff"),
+        "first patch",
+      );
+    },
+  });
   assert.equal(first.result.status, 0, first.result.stderr);
   const options = { pathPrefix: bin, existingWorktree: first.worktreeCwd };
   assert.equal(runProvision(baseCwd, options).result.status, 0);
   const callsPath = path.join(first.worktreeCwd, "pnpm-calls");
   assert.equal(fs.readFileSync(callsPath, "utf8"), "install\n");
-  fs.writeFileSync(path.join(first.worktreeCwd, "unrelated.patch"), "unrelated change");
+  fs.writeFileSync(
+    path.join(first.worktreeCwd, "unrelated.patch"),
+    "unrelated change",
+  );
   assert.equal(runProvision(baseCwd, options).result.status, 0);
   assert.equal(fs.readFileSync(callsPath, "utf8"), "install\n");
-  fs.writeFileSync(path.join(first.worktreeCwd, "patches/dependency.diff"), "changed patch");
+  fs.writeFileSync(
+    path.join(first.worktreeCwd, "patches/dependency.diff"),
+    "changed patch",
+  );
   assert.equal(runProvision(baseCwd, options).result.status, 0);
   assert.equal(fs.readFileSync(callsPath, "utf8"), "install\ninstall\n");
 });

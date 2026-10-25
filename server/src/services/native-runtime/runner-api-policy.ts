@@ -33,7 +33,12 @@ export function runnerApiMutationRestriction(path: string): string | null {
   // This endpoint only records an eligible responding agent's interpretation
   // of a same-task user message. It checks the live run, resolver policy and
   // session under lock, and cannot execute governed approvals or enqueue work.
-  if (/^\/api\/issues\/\{[^}]+\}\/interactions\/\{[^}]+\}\/resolve-from-comment$/.test(path)) return null;
+  if (
+    /^\/api\/issues\/\{[^}]+\}\/interactions\/\{[^}]+\}\/resolve-from-comment$/.test(
+      path,
+    )
+  )
+    return null;
   const issueRoute = /^\/api\/issues\/\{[^}]+\}/.test(path);
   const routineAnnotation =
     /^\/api\/routines\/\{[^}]+\}\/description\/annotations(?:\/\{[^}]+\}(?:\/comments)?)?$/.test(

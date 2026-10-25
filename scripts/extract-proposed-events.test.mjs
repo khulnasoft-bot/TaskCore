@@ -14,8 +14,17 @@ import {
 
 function withFixtureRepo(source, callback) {
   const repoRoot = mkdtempSync(join(tmpdir(), "taskcore-proposed-events-"));
-  const eventsFile = join(repoRoot, "packages", "shared", "src", "telemetry", "events.ts");
-  mkdirSync(join(repoRoot, "packages", "shared", "src", "telemetry"), { recursive: true });
+  const eventsFile = join(
+    repoRoot,
+    "packages",
+    "shared",
+    "src",
+    "telemetry",
+    "events.ts",
+  );
+  mkdirSync(join(repoRoot, "packages", "shared", "src", "telemetry"), {
+    recursive: true,
+  });
   writeFileSync(eventsFile, source);
   try {
     return callback({ repoRoot, eventsFile });
@@ -64,7 +73,12 @@ export function trackInstallStarted(client: TelemetryClient): void {
 
 test("extractor emits deterministic proposed-telemetry-extractor.v2 records", () => {
   const output = withFixtureRepo(fixtureSource, ({ repoRoot, eventsFile }) =>
-    extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha", baseRef: "master" }),
+    extractProposedEvents({
+      repoRoot,
+      eventsFile,
+      ref: "fixture-sha",
+      baseRef: "master",
+    }),
   );
 
   assert.equal(output.schemaVersion, PROPOSED_TELEMETRY_SCHEMA_VERSION);
@@ -78,7 +92,9 @@ test("extractor emits deterministic proposed-telemetry-extractor.v2 records", ()
     ["skill_studio.opened", "skill_studio.skill_created"],
   );
 
-  const created = output.proposals.find((proposal) => proposal.name === "skill_studio.skill_created");
+  const created = output.proposals.find(
+    (proposal) => proposal.name === "skill_studio.skill_created",
+  );
   assert.deepEqual(created.dimensions, [
     { name: "category_count", type: "number" },
     { name: "launched_from_template", type: "boolean" },
@@ -91,7 +107,10 @@ test("extractor emits deterministic proposed-telemetry-extractor.v2 records", ()
     missingRationale: false,
   });
   assert.equal(created.provenance.length, 1);
-  assert.equal(created.provenance[0].file, "packages/shared/src/telemetry/events.ts");
+  assert.equal(
+    created.provenance[0].file,
+    "packages/shared/src/telemetry/events.ts",
+  );
   assert.equal(typeof created.provenance[0].line, "number");
   assert.equal(typeof created.provenance[0].column, "number");
 });
@@ -101,7 +120,9 @@ test("extractor flags a missing proposed-telemetry suffix without hard-failing",
     extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha" }),
   );
 
-  const opened = output.proposals.find((proposal) => proposal.name === "skill_studio.opened");
+  const opened = output.proposals.find(
+    (proposal) => proposal.name === "skill_studio.opened",
+  );
   assert.deepEqual(opened.rationale, {
     issue: null,
     text: null,
@@ -126,14 +147,17 @@ export function trackWorkspaceOpened(
   );
 }
 `,
-    ({ repoRoot, eventsFile }) => extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha" }),
+    ({ repoRoot, eventsFile }) =>
+      extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha" }),
   );
 
   assert.deepEqual(
     output.proposals.map((proposal) => proposal.name),
     ["workspace.opened"],
   );
-  assert.deepEqual(output.proposals[0].dimensions, [{ name: "surface", type: "string" }]);
+  assert.deepEqual(output.proposals[0].dimensions, [
+    { name: "surface", type: "string" },
+  ]);
 });
 
 test("extractor scans variable-assigned wrappers and ignores nullable union members", () => {
@@ -162,15 +186,20 @@ export const trackWorkspaceFunctionExpression = function (
   );
 };
 `,
-    ({ repoRoot, eventsFile }) => extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha" }),
+    ({ repoRoot, eventsFile }) =>
+      extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha" }),
   );
 
   assert.deepEqual(
     output.proposals.map((proposal) => proposal.name),
     ["workspace.arrow_opened", "workspace.function_expression_opened"],
   );
-  assert.deepEqual(output.proposals[0].dimensions, [{ name: "surface", type: "string" }]);
-  assert.deepEqual(output.proposals[1].dimensions, [{ name: "accepted", type: "boolean" }]);
+  assert.deepEqual(output.proposals[0].dimensions, [
+    { name: "surface", type: "string" },
+  ]);
+  assert.deepEqual(output.proposals[1].dimensions, [
+    { name: "accepted", type: "boolean" },
+  ]);
 });
 
 test("extractor rejects invalid rationale issue references when present", () => {
@@ -178,7 +207,8 @@ test("extractor rejects invalid rationale issue references when present", () => 
     () =>
       withFixtureRepo(
         `export function trackBad(client, dims: { source: string }): void {\n  client.track(\n    // @ts-expect-error -- proposed-telemetry(PROJ-1): bad issue ref\n    "skill_studio.bad_issue",\n    dims,\n  );\n}\n`,
-        ({ repoRoot, eventsFile }) => extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha" }),
+        ({ repoRoot, eventsFile }) =>
+          extractProposedEvents({ repoRoot, eventsFile, ref: "fixture-sha" }),
       ),
     /rationale issue must be PAP-<digits>/,
   );
@@ -189,14 +219,29 @@ test("provenance paths are repo-relative and reject dev-host path shapes", () =>
     assertRepoRelativePath("packages/shared/src/telemetry/events.ts"),
     "packages/shared/src/telemetry/events.ts",
   );
-  assert.throws(() => assertRepoRelativePath("/tmp/events.ts"), /repo-relative/);
-  assert.throws(() => assertRepoRelativePath("../events.ts"), /unsafe path segment/);
-  assert.throws(() => assertRepoRelativePath("C:/repo/events.ts"), /drive-letter/);
-  assert.throws(() => assertRepoRelativePath("packages\\shared\\events.ts"), /forward slashes/);
+  assert.throws(
+    () => assertRepoRelativePath("/tmp/events.ts"),
+    /repo-relative/,
+  );
+  assert.throws(
+    () => assertRepoRelativePath("../events.ts"),
+    /unsafe path segment/,
+  );
+  assert.throws(
+    () => assertRepoRelativePath("C:/repo/events.ts"),
+    /drive-letter/,
+  );
+  assert.throws(
+    () => assertRepoRelativePath("packages\\shared\\events.ts"),
+    /forward slashes/,
+  );
 
   const repoRoot = mkdtempSync(join(tmpdir(), "taskcore-provenance-root-"));
   try {
-    assert.throws(() => toRepoRelativePath(repoRoot, join(repoRoot, "..", "events.ts")), /inside repo root/);
+    assert.throws(
+      () => toRepoRelativePath(repoRoot, join(repoRoot, "..", "events.ts")),
+      /inside repo root/,
+    );
   } finally {
     rmSync(repoRoot, { recursive: true, force: true });
   }
@@ -248,7 +293,9 @@ client.track(
 }
 
 test("TS2578 expires the directive once a fixture event is registered", () => {
-  const unregistered = diagnosticsFor(tsMechanicsFixture('"install.started"', ""));
+  const unregistered = diagnosticsFor(
+    tsMechanicsFixture('"install.started"', ""),
+  );
   assert.deepEqual(unregistered, []);
 
   const registered = diagnosticsFor(
@@ -257,5 +304,8 @@ test("TS2578 expires the directive once a fixture event is registered", () => {
       '"skill_studio.skill_created": { sharing_scope: string };',
     ),
   );
-  assert.ok(registered.includes(2578), `expected TS2578, got ${registered.join(", ")}`);
+  assert.ok(
+    registered.includes(2578),
+    `expected TS2578, got ${registered.join(", ")}`,
+  );
 });

@@ -28,13 +28,17 @@ export interface CapabilityCodexToolDefinition {
 export class CapabilityFakeAgentToolBinding implements CapabilityToolBinding<CapabilityFakeAgentToolDefinition> {
   readonly kind = "fake_agent" as const;
 
-  bind(visibleTools: CapabilityVisibleToolSet): readonly CapabilityFakeAgentToolDefinition[] {
-    return freezeDefinitions(visibleTools.tools.map((tool) => ({
-      operationId: tool.operationId,
-      description: tool.description,
-      inputSchema: structuredClone(tool.inputSchema),
-      outputSchema: structuredClone(tool.outputSchema),
-    })));
+  bind(
+    visibleTools: CapabilityVisibleToolSet,
+  ): readonly CapabilityFakeAgentToolDefinition[] {
+    return freezeDefinitions(
+      visibleTools.tools.map((tool) => ({
+        operationId: tool.operationId,
+        description: tool.description,
+        inputSchema: structuredClone(tool.inputSchema),
+        outputSchema: structuredClone(tool.outputSchema),
+      })),
+    );
   }
 
   operationId(definition: CapabilityFakeAgentToolDefinition): string {
@@ -45,7 +49,9 @@ export class CapabilityFakeAgentToolBinding implements CapabilityToolBinding<Cap
 export class CapabilityCodexToolBinding implements CapabilityToolBinding<CapabilityCodexToolDefinition> {
   readonly kind = "codex" as const;
 
-  bind(visibleTools: CapabilityVisibleToolSet): readonly CapabilityCodexToolDefinition[] {
+  bind(
+    visibleTools: CapabilityVisibleToolSet,
+  ): readonly CapabilityCodexToolDefinition[] {
     return freezeDefinitions(visibleTools.tools.map(toCodexDefinition));
   }
 
@@ -54,7 +60,9 @@ export class CapabilityCodexToolBinding implements CapabilityToolBinding<Capabil
   }
 }
 
-function toCodexDefinition(tool: CapabilitySemanticToolDescriptor): CapabilityCodexToolDefinition {
+function toCodexDefinition(
+  tool: CapabilitySemanticToolDescriptor,
+): CapabilityCodexToolDefinition {
   return {
     type: "function",
     name: tool.operationId,
@@ -70,7 +78,8 @@ function freezeDefinitions<T>(definitions: T[]): readonly T[] {
 }
 
 function deepFreeze<T>(value: T): T {
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
+  if (typeof value !== "object" || value === null || Object.isFrozen(value))
+    return value;
   Object.freeze(value);
   for (const child of Object.values(value)) deepFreeze(child);
   return value;

@@ -9,19 +9,20 @@ const connections = [
 
 describe("tool connection visibility", () => {
   it("keeps foreign drafts out of a regular member's reusable connection candidates", () => {
-    expect(filterVisibleToolConnections(connections, {
-      userId: "member-user",
-      canManageConnections: false,
-    })).toEqual([
-      connections[1],
-      connections[2],
-    ]);
+    expect(
+      filterVisibleToolConnections(connections, {
+        userId: "member-user",
+        canManageConnections: false,
+      }),
+    ).toEqual([connections[1], connections[2]]);
   });
 
   it("keeps every draft visible to a connection manager", () => {
-    expect(filterVisibleToolConnections(connections, {
-      userId: "owner-user",
-      canManageConnections: true,
-    })).toEqual(connections);
+    expect(
+      filterVisibleToolConnections(connections, {
+        userId: "owner-user",
+        canManageConnections: true,
+      }),
+    ).toEqual(connections);
   });
 });

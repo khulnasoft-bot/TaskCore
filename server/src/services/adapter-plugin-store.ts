@@ -68,12 +68,20 @@ function ensureDirs(): string {
   fs.mkdirSync(adapterPluginsDir, { recursive: true });
   const pkgJsonPath = path.join(adapterPluginsDir, "package.json");
   if (!fs.existsSync(pkgJsonPath)) {
-    fs.writeFileSync(pkgJsonPath, JSON.stringify({
-      name: "taskcore-adapter-plugins",
-      version: "0.0.0",
-      private: true,
-      description: "Managed directory for Taskcore external adapter plugins. Do not edit manually.",
-    }, null, 2) + "\n");
+    fs.writeFileSync(
+      pkgJsonPath,
+      JSON.stringify(
+        {
+          name: "taskcore-adapter-plugins",
+          version: "0.0.0",
+          private: true,
+          description:
+            "Managed directory for Taskcore external adapter plugins. Do not edit manually.",
+        },
+        null,
+        2,
+      ) + "\n",
+    );
   }
   return adapterPluginsDir;
 }
@@ -97,24 +105,33 @@ function readStore(): AdapterPluginRecord[] {
 function writeStore(records: AdapterPluginRecord[]): void {
   ensureDirs();
   const { adapterPluginsStorePath } = adapterPluginPaths();
-  fs.writeFileSync(adapterPluginsStorePath, JSON.stringify(records, null, 2), "utf-8");
+  fs.writeFileSync(
+    adapterPluginsStorePath,
+    JSON.stringify(records, null, 2),
+    "utf-8",
+  );
   storeCache = { path: adapterPluginsStorePath, records };
 }
 
 function readSettings(): AdapterSettings {
   const { adapterSettingsPath } = adapterPluginPaths();
-  if (settingsCache?.path === adapterSettingsPath) return settingsCache.settings;
+  if (settingsCache?.path === adapterSettingsPath)
+    return settingsCache.settings;
   try {
     const raw = fs.readFileSync(adapterSettingsPath, "utf-8");
     const parsed = JSON.parse(raw);
     settingsCache = {
       path: adapterSettingsPath,
-      settings: parsed && Array.isArray(parsed.disabledTypes)
-        ? (parsed as AdapterSettings)
-        : { disabledTypes: [] },
+      settings:
+        parsed && Array.isArray(parsed.disabledTypes)
+          ? (parsed as AdapterSettings)
+          : { disabledTypes: [] },
     };
   } catch {
-    settingsCache = { path: adapterSettingsPath, settings: { disabledTypes: [] } };
+    settingsCache = {
+      path: adapterSettingsPath,
+      settings: { disabledTypes: [] },
+    };
   }
   return settingsCache.settings;
 }
@@ -122,7 +139,11 @@ function readSettings(): AdapterSettings {
 function writeSettings(settings: AdapterSettings): void {
   ensureDirs();
   const { adapterSettingsPath } = adapterPluginPaths();
-  fs.writeFileSync(adapterSettingsPath, JSON.stringify(settings, null, 2), "utf-8");
+  fs.writeFileSync(
+    adapterSettingsPath,
+    JSON.stringify(settings, null, 2),
+    "utf-8",
+  );
   settingsCache = { path: adapterSettingsPath, settings };
 }
 
@@ -154,7 +175,9 @@ export function removeAdapterPlugin(type: string): boolean {
   return true;
 }
 
-export function getAdapterPluginByType(type: string): AdapterPluginRecord | undefined {
+export function getAdapterPluginByType(
+  type: string,
+): AdapterPluginRecord | undefined {
   return readStore().find((r) => r.type === type);
 }
 
@@ -175,7 +198,10 @@ export function isAdapterDisabled(type: string): boolean {
 }
 
 export function setAdapterDisabled(type: string, disabled: boolean): boolean {
-  const settings = { ...readSettings(), disabledTypes: [...readSettings().disabledTypes] };
+  const settings = {
+    ...readSettings(),
+    disabledTypes: [...readSettings().disabledTypes],
+  };
   const idx = settings.disabledTypes.indexOf(type);
 
   if (disabled && idx < 0) {

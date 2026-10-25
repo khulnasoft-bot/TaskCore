@@ -39,11 +39,16 @@ const mockResourceMembershipsApi = vi.hoisted(() => ({
 const mockOpenNewAgent = vi.hoisted(() => vi.fn());
 const mockPushToast = vi.hoisted(() => vi.fn());
 const mockSetSidebarOpen = vi.hoisted(() => vi.fn());
-const mockSidebarState = vi.hoisted(() => ({ collapsed: false, peeking: false }));
+const mockSidebarState = vi.hoisted(() => ({
+  collapsed: false,
+  peeking: false,
+}));
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: { children: ReactNode; to: string }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
   NavLink: ({
     children,
@@ -57,13 +62,22 @@ vi.mock("@/lib/router", () => ({
   }) => (
     <a
       href={to}
-      className={typeof className === "function" ? className({ isActive: false }) : className}
+      className={
+        typeof className === "function"
+          ? className({ isActive: false })
+          : className
+      }
       {...props}
     >
       {children}
     </a>
   ),
-  useLocation: () => ({ pathname: "/PAP/dashboard", search: "", hash: "", state: null }),
+  useLocation: () => ({
+    pathname: "/PAP/dashboard",
+    search: "",
+    hash: "",
+    state: null,
+  }),
 }));
 
 vi.mock("../context/CompanyContext", () => ({
@@ -168,26 +182,33 @@ async function openAgentMenu(label = "Open actions for Alpha") {
   expect(trigger).not.toBeNull();
 
   await act(async () => {
-    trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+    trigger?.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
     trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushReact();
 }
 
 async function openAgentsSectionMenu() {
-  const trigger = document.body.querySelector('button[aria-label="Agents section actions"]');
+  const trigger = document.body.querySelector(
+    'button[aria-label="Agents section actions"]',
+  );
   expect(trigger).not.toBeNull();
 
   await act(async () => {
-    trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+    trigger?.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
     trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushReact();
 }
 
 async function chooseSortMode(label: string) {
-  const item = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-radio-item"]'))
-    .find((element) => element.textContent?.includes(label));
+  const item = Array.from(
+    document.body.querySelectorAll('[data-slot="dropdown-menu-radio-item"]'),
+  ).find((element) => element.textContent?.includes(label));
   expect(item).toBeTruthy();
 
   await act(async () => {
@@ -205,8 +226,8 @@ function agentLinkLabels(container: HTMLElement) {
 
 function seeAllAgentsLink(container: HTMLElement) {
   return (
-    Array.from(container.querySelectorAll('a[href="/agents/all"]')).find((anchor) =>
-      anchor.textContent?.includes("See all agents"),
+    Array.from(container.querySelectorAll('a[href="/agents/all"]')).find(
+      (anchor) => anchor.textContent?.includes("See all agents"),
     ) ?? null
   );
 }
@@ -225,13 +246,18 @@ describe("SidebarAgents", () => {
     document.body.appendChild(container);
     root = null;
     queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
     mockAgentsApi.list.mockResolvedValue([makeAgent({})]);
     mockAgentsApi.pause.mockResolvedValue(makeAgent({ status: "paused" }));
     mockAgentsApi.resume.mockResolvedValue(makeAgent({}));
     mockBuiltInAgentsApi.list.mockResolvedValue([]);
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableBuiltInAgents: false });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableBuiltInAgents: false,
+    });
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
       user: { id: "user-1" },
@@ -244,32 +270,40 @@ describe("SidebarAgents", () => {
       documentStarredAt: {},
       updatedAt: null,
     };
-    mockResourceMembershipsApi.listMine.mockImplementation(() => Promise.resolve(memberships));
-    mockResourceMembershipsApi.updateAgent.mockImplementation((_companyId, agentId, data) => {
-      const previousState = memberships.agentMemberships[agentId] ?? "joined";
-      const nextState = data.starred === true ? "joined" : data.state ?? previousState;
-      const starredAgentIds = memberships.starredAgentIds ?? [];
-      const nextStarredAgentIds = data.starred === true
-        ? starredAgentIds.includes(agentId) ? starredAgentIds : [agentId, ...starredAgentIds]
-        : data.starred === false || nextState === "left"
-          ? starredAgentIds.filter((id) => id !== agentId)
-          : starredAgentIds;
-      memberships = {
-        ...memberships,
-        agentMemberships: {
-          ...memberships.agentMemberships,
-          [agentId]: nextState,
-        },
-        starredAgentIds: nextStarredAgentIds,
-        updatedAt: new Date(),
-      };
-      return Promise.resolve({
-        resourceType: "agent",
-        resourceId: agentId,
-        state: nextState,
-        starredAt: data.starred === true ? new Date() : null,
-      });
-    });
+    mockResourceMembershipsApi.listMine.mockImplementation(() =>
+      Promise.resolve(memberships),
+    );
+    mockResourceMembershipsApi.updateAgent.mockImplementation(
+      (_companyId, agentId, data) => {
+        const previousState = memberships.agentMemberships[agentId] ?? "joined";
+        const nextState =
+          data.starred === true ? "joined" : (data.state ?? previousState);
+        const starredAgentIds = memberships.starredAgentIds ?? [];
+        const nextStarredAgentIds =
+          data.starred === true
+            ? starredAgentIds.includes(agentId)
+              ? starredAgentIds
+              : [agentId, ...starredAgentIds]
+            : data.starred === false || nextState === "left"
+              ? starredAgentIds.filter((id) => id !== agentId)
+              : starredAgentIds;
+        memberships = {
+          ...memberships,
+          agentMemberships: {
+            ...memberships.agentMemberships,
+            [agentId]: nextState,
+          },
+          starredAgentIds: nextStarredAgentIds,
+          updatedAt: new Date(),
+        };
+        return Promise.resolve({
+          resourceType: "agent",
+          resourceId: agentId,
+          state: nextState,
+          starredAt: data.starred === true ? new Date() : null,
+        });
+      },
+    );
     localStorage.clear();
   });
 
@@ -347,21 +381,27 @@ describe("SidebarAgents", () => {
     await flushReact();
   }
 
-  it.each(["agent", "section"])("finishes deferred %s menu focus cleanup before DOM teardown", async (menu) => {
-    await renderSidebarAgents();
-    if (menu === "agent") await openAgentMenu();
-    else await openAgentsSectionMenu();
+  it.each(["agent", "section"])(
+    "finishes deferred %s menu focus cleanup before DOM teardown",
+    async (menu) => {
+      await renderSidebarAgents();
+      if (menu === "agent") await openAgentMenu();
+      else await openAgentsSectionMenu();
 
-    const menuContent = document.body.querySelector('[role="menu"]');
-    expect(menuContent).not.toBeNull();
-    const onUnmountAutoFocus = vi.fn();
-    menuContent!.addEventListener("focusScope.autoFocusOnUnmount", onUnmountAutoFocus);
+      const menuContent = document.body.querySelector('[role="menu"]');
+      expect(menuContent).not.toBeNull();
+      const onUnmountAutoFocus = vi.fn();
+      menuContent!.addEventListener(
+        "focusScope.autoFocusOnUnmount",
+        onUnmountAutoFocus,
+      );
 
-    await unmountSidebarAgents();
+      await unmountSidebarAgents();
 
-    expect(onUnmountAutoFocus).toHaveBeenCalledTimes(1);
-    expect(container.isConnected).toBe(true);
-  });
+      expect(onUnmountAutoFocus).toHaveBeenCalledTimes(1);
+      expect(container.isConnected).toBe(true);
+    },
+  );
 
   it("does not query built-in agents when the experimental feature is disabled", async () => {
     queryClient.setQueryData(queryKeys.builtInAgents.list("company-1"), [
@@ -375,7 +415,9 @@ describe("SidebarAgents", () => {
   });
 
   it("does not query built-in agents while the experimental setting is unresolved", async () => {
-    mockInstanceSettingsApi.getExperimental.mockReturnValue(new Promise(() => {}));
+    mockInstanceSettingsApi.getExperimental.mockReturnValue(
+      new Promise(() => {}),
+    );
 
     await renderSidebarAgents();
 
@@ -383,7 +425,9 @@ describe("SidebarAgents", () => {
   });
 
   it("queries built-in agents when the experimental feature is enabled", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableBuiltInAgents: true });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableBuiltInAgents: true,
+    });
 
     await renderSidebarAgents();
     await flushReact();
@@ -392,23 +436,35 @@ describe("SidebarAgents", () => {
   });
 
   it("renders icon-only agent rows with tooltips and no row actions in the rail", async () => {
-    mockAgentsApi.list.mockResolvedValue([makeAgent({ id: "agent-a", name: "Alpha", urlKey: "alpha" })]);
+    mockAgentsApi.list.mockResolvedValue([
+      makeAgent({ id: "agent-a", name: "Alpha", urlKey: "alpha" }),
+    ]);
 
     await renderRailSidebarAgents();
 
     // The agent name is preserved in the a11y tree but kept in flow (zero-width,
     // clipped) so the row stays 1:1 tall with the expanded state (PAP-10676); the
     // row links become tooltip triggers and the per-row actions dropdown is dropped.
-    const nameSpan = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Alpha");
+    const nameSpan = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent === "Alpha",
+    );
     expect(nameSpan?.className).not.toContain("sr-only");
     expect(nameSpan?.className).toContain("w-0");
     expect(nameSpan?.className).toContain("overflow-hidden");
-    const agentLink = container.querySelector('a[href^="/agents/"]:not([href="/agents/all"])');
-    expect(agentLink?.parentElement?.getAttribute("data-slot")).toBe("tooltip-trigger");
-    expect(container.querySelector('button[aria-label="Open actions for Alpha"]')).toBeNull();
+    const agentLink = container.querySelector(
+      'a[href^="/agents/"]:not([href="/agents/all"])',
+    );
+    expect(agentLink?.parentElement?.getAttribute("data-slot")).toBe(
+      "tooltip-trigger",
+    );
+    expect(
+      container.querySelector('button[aria-label="Open actions for Alpha"]'),
+    ).toBeNull();
 
     // The section header collapses to a divider (no caret / section menu).
-    expect(container.querySelector('button[aria-label="Agents section actions"]')).toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Agents section actions"]'),
+    ).toBeNull();
   });
 
   it("pins starred agents at the top without subheadings and dedupes them from the recent list", async () => {
@@ -448,8 +504,9 @@ describe("SidebarAgents", () => {
     await renderSidebarAgents();
     await openAgentMenu();
 
-    const starItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Star agent"));
+    const starItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Star agent"));
     expect(starItem).toBeTruthy();
 
     await act(async () => {
@@ -462,11 +519,15 @@ describe("SidebarAgents", () => {
       "agent-1",
       { state: undefined, starred: true },
     );
-    expect(document.body.querySelector('button[aria-label="Unstar Alpha"]')).not.toBeNull();
+    expect(
+      document.body.querySelector('button[aria-label="Unstar Alpha"]'),
+    ).not.toBeNull();
   });
 
   it("keeps the agent starred and toasts when an unstar request fails", async () => {
-    mockAgentsApi.list.mockResolvedValue([makeAgent({ id: "agent-b", name: "Bravo", urlKey: "bravo" })]);
+    mockAgentsApi.list.mockResolvedValue([
+      makeAgent({ id: "agent-b", name: "Bravo", urlKey: "bravo" }),
+    ]);
     memberships = {
       projectMemberships: {},
       agentMemberships: { "agent-b": "joined" },
@@ -482,7 +543,9 @@ describe("SidebarAgents", () => {
 
     await renderSidebarAgents();
 
-    const unstar = document.body.querySelector('button[aria-label="Unstar Bravo"]');
+    const unstar = document.body.querySelector(
+      'button[aria-label="Unstar Bravo"]',
+    );
     expect(unstar).not.toBeNull();
 
     await act(async () => {
@@ -491,14 +554,19 @@ describe("SidebarAgents", () => {
     await flushReact();
 
     // Optimistic unstar is rolled back → the row stays in the starred group.
-    expect(document.body.querySelector('button[aria-label="Unstar Bravo"]')).not.toBeNull();
+    expect(
+      document.body.querySelector('button[aria-label="Unstar Bravo"]'),
+    ).not.toBeNull();
     expect(mockPushToast).toHaveBeenCalledWith(
       expect.objectContaining({ tone: "error" }),
     );
   });
 
   it("keeps top mode in stored org-aware order", async () => {
-    localStorage.setItem("taskcore.agentOrder:company-1:user-1", JSON.stringify(["agent-b", "agent-a", "agent-c"]));
+    localStorage.setItem(
+      "taskcore.agentOrder:company-1:user-1",
+      JSON.stringify(["agent-b", "agent-a", "agent-c"]),
+    );
     mockAgentsApi.list.mockResolvedValue([
       makeAgent({ id: "agent-a", name: "Alpha", urlKey: "alpha" }),
       makeAgent({ id: "agent-b", name: "Bravo", urlKey: "bravo" }),
@@ -513,11 +581,15 @@ describe("SidebarAgents", () => {
   it("uses the heading for section menu and the plus button for agent creation", async () => {
     await renderSidebarAgents();
 
-    const sectionMenuTrigger = container.querySelector('button[aria-label="Agents section actions"]');
+    const sectionMenuTrigger = container.querySelector(
+      'button[aria-label="Agents section actions"]',
+    );
     expect(sectionMenuTrigger?.textContent).toContain("Agents");
     expect(sectionMenuTrigger?.querySelector("svg")).toBeNull();
 
-    const newAgentButton = container.querySelector('button[aria-label="New agent"]');
+    const newAgentButton = container.querySelector(
+      'button[aria-label="New agent"]',
+    );
     expect(newAgentButton).toBeTruthy();
     await act(async () => {
       newAgentButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -526,11 +598,13 @@ describe("SidebarAgents", () => {
 
     await openAgentsSectionMenu();
 
-    const newAgentItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("New agent"));
+    const newAgentItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("New agent"));
     expect(newAgentItem).toBeFalsy();
-    const browseLink = Array.from(document.body.querySelectorAll("a"))
-      .find((element) => element.textContent?.includes("Browse agents"));
+    const browseLink = Array.from(document.body.querySelectorAll("a")).find(
+      (element) => element.textContent?.includes("Browse agents"),
+    );
     expect(browseLink?.getAttribute("href")).toBe("/agents/all");
   });
 
@@ -546,7 +620,9 @@ describe("SidebarAgents", () => {
     await chooseSortMode("Alphabetical");
 
     expect(agentLinkLabels(container)).toEqual(["Alpha", "Bravo", "Charlie"]);
-    expect(localStorage.getItem("taskcore.agentSortMode:company-1:user-1")).toBe("alphabetical");
+    expect(
+      localStorage.getItem("taskcore.agentSortMode:company-1:user-1"),
+    ).toBe("alphabetical");
   });
 
   it("sorts recent agents by heartbeat, updated time, and created time descending", async () => {
@@ -590,9 +666,11 @@ describe("SidebarAgents", () => {
       makeAgent({ id: "agent-2", name: "Beta", urlKey: "beta" }),
     ]);
     let resolveMemberships!: (value: unknown) => void;
-    mockResourceMembershipsApi.listMine.mockReturnValue(new Promise((resolve) => {
-      resolveMemberships = resolve;
-    }));
+    mockResourceMembershipsApi.listMine.mockReturnValue(
+      new Promise((resolve) => {
+        resolveMemberships = resolve;
+      }),
+    );
 
     await renderSidebarAgents();
     expect(agentLinkLabels(container)).toEqual(["Alpha", "Beta"]);
@@ -615,13 +693,15 @@ describe("SidebarAgents", () => {
     await renderSidebarAgents();
     await openAgentMenu();
 
-    const editLink = Array.from(document.body.querySelectorAll("a"))
-      .find((element) => element.textContent?.includes("Edit agent"));
+    const editLink = Array.from(document.body.querySelectorAll("a")).find(
+      (element) => element.textContent?.includes("Edit agent"),
+    );
     expect(editLink?.getAttribute("href")).toBe("/agents/alpha/configuration");
     expect(document.body.textContent).toContain("Pause agent");
 
-    const pauseItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Pause agent"));
+    const pauseItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Pause agent"));
     expect(pauseItem).toBeTruthy();
 
     await act(async () => {
@@ -630,15 +710,18 @@ describe("SidebarAgents", () => {
     await flushReact();
 
     expect(mockAgentsApi.pause).toHaveBeenCalledWith("agent-1", "company-1");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Agent paused" }));
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Agent paused" }),
+    );
   });
 
   it("offers leave agent from each sidebar agent menu", async () => {
     await renderSidebarAgents();
     await openAgentMenu();
 
-    const leaveItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Leave agent"));
+    const leaveItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Leave agent"));
     expect(leaveItem).toBeTruthy();
 
     await act(async () => {
@@ -656,14 +739,19 @@ describe("SidebarAgents", () => {
 
   it("shows resume for paused sidebar agents", async () => {
     mockAgentsApi.list.mockResolvedValue([
-      makeAgent({ status: "paused", pauseReason: "manual", pausedAt: new Date("2026-01-02T00:00:00Z") }),
+      makeAgent({
+        status: "paused",
+        pauseReason: "manual",
+        pausedAt: new Date("2026-01-02T00:00:00Z"),
+      }),
     ]);
 
     await renderSidebarAgents();
     await openAgentMenu();
 
-    const resumeItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Resume agent"));
+    const resumeItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Resume agent"));
     expect(resumeItem).toBeTruthy();
 
     await act(async () => {
@@ -672,7 +760,9 @@ describe("SidebarAgents", () => {
     await flushReact();
 
     expect(mockAgentsApi.resume).toHaveBeenCalledWith("agent-1", "company-1");
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Agent resumed" }));
+    expect(mockPushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Agent resumed" }),
+    );
   });
 
   it("only shows updating state for the agent currently being changed", async () => {
@@ -681,15 +771,19 @@ describe("SidebarAgents", () => {
       makeAgent({ id: "agent-2", name: "Beta", urlKey: "beta" }),
     ]);
     let finishPause!: (agent: Agent) => void;
-    mockAgentsApi.pause.mockImplementation(() => new Promise<Agent>((resolve) => {
-      finishPause = resolve;
-    }));
+    mockAgentsApi.pause.mockImplementation(
+      () =>
+        new Promise<Agent>((resolve) => {
+          finishPause = resolve;
+        }),
+    );
 
     await renderSidebarAgents();
     await openAgentMenu();
 
-    const pauseItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Pause agent"));
+    const pauseItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Pause agent"));
     expect(pauseItem).toBeTruthy();
 
     await act(async () => {
@@ -700,8 +794,7 @@ describe("SidebarAgents", () => {
 
     const betaPauseItem = Array.from(
       document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
-    )
-      .find((element) => element.textContent?.includes("Pause agent"));
+    ).find((element) => element.textContent?.includes("Pause agent"));
     expect(betaPauseItem).toBeTruthy();
     expect(document.body.textContent).not.toContain("Updating...");
 
@@ -728,7 +821,9 @@ describe("SidebarAgents", () => {
     expect(labels[0]).toContain("Bravo");
     // PAP-76: the full-list entry point stays visible even when only active
     // agents are shown.
-    expect(seeAllAgentsLink(container)?.getAttribute("href")).toBe("/agents/all");
+    expect(seeAllAgentsLink(container)?.getAttribute("href")).toBe(
+      "/agents/all",
+    );
   });
 
   it("keeps formerly live agents visible for the streamlined linger window", async () => {
@@ -853,7 +948,9 @@ describe("SidebarAgents", () => {
     await renderSidebarAgents();
 
     expect(agentLinkLabels(container)).toHaveLength(3);
-    expect(seeAllAgentsLink(container)?.getAttribute("href")).toBe("/agents/all");
+    expect(seeAllAgentsLink(container)?.getAttribute("href")).toBe(
+      "/agents/all",
+    );
   });
 
   it("classic mode (flag OFF) shows all agents and no See all link even when one is running", async () => {
@@ -929,12 +1026,13 @@ describe("SidebarAgents", () => {
 
     const budgetPausedItem = Array.from(
       document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
-    )
-      .find((element) => element.textContent?.includes("Budget paused"));
+    ).find((element) => element.textContent?.includes("Budget paused"));
     expect(budgetPausedItem).toBeTruthy();
 
     await act(async () => {
-      budgetPausedItem?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      budgetPausedItem?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flushReact();
 

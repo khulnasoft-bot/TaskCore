@@ -7,9 +7,12 @@ type MarkdownNode = {
 
 const BARE_ISSUE_IDENTIFIER_RE = /^[A-Z][A-Z0-9]*-\d+$/i;
 const ISSUE_SCHEME_RE = /^issue:\/\/:?([^?#\s]+)([?#].*)?$/i;
-const ISSUE_REFERENCE_TOKEN_RE = /issue:\/\/:?[^\s<>()]+|https?:\/\/[^\s<>()]+|\/(?:[^\s<>()/]+\/)*issues\/[A-Z][A-Z0-9]*-\d+(?=$|[\s<>)\],.;!?:])|\b[A-Z][A-Z0-9]*-\d+\b/gi;
+const ISSUE_REFERENCE_TOKEN_RE =
+  /issue:\/\/:?[^\s<>()]+|https?:\/\/[^\s<>()]+|\/(?:[^\s<>()/]+\/)*issues\/[A-Z][A-Z0-9]*-\d+(?=$|[\s<>)\],.;!?:])|\b[A-Z][A-Z0-9]*-\d+\b/gi;
 
-export function parseIssuePathIdFromPath(pathOrUrl: string | null | undefined): string | null {
+export function parseIssuePathIdFromPath(
+  pathOrUrl: string | null | undefined,
+): string | null {
   if (!pathOrUrl) return null;
   const value = pathOrUrl.trim();
   if (!value) return null;
@@ -21,7 +24,9 @@ export function parseIssuePathIdFromPath(pathOrUrl: string | null | undefined): 
   if (issueIndex === -1 || issueIndex === segments.length - 1) return null;
   const issuePathId = decodeURIComponent(segments[issueIndex + 1] ?? "");
   if (!issuePathId || issuePathId.startsWith(":")) return null;
-  return BARE_ISSUE_IDENTIFIER_RE.test(issuePathId) ? issuePathId.toUpperCase() : issuePathId;
+  return BARE_ISSUE_IDENTIFIER_RE.test(issuePathId)
+    ? issuePathId.toUpperCase()
+    : issuePathId;
 }
 
 export function parseIssueReferenceFromHref(
@@ -88,7 +93,11 @@ function splitTrailingPunctuation(token: string) {
   return { core, trailing };
 }
 
-function createIssueLinkNode(value: string, href: string, childType: "text" | "inlineCode" = "text"): MarkdownNode {
+function createIssueLinkNode(
+  value: string,
+  href: string,
+  childType: "text" | "inlineCode" = "text",
+): MarkdownNode {
   return {
     type: "link",
     url: href,
@@ -96,7 +105,10 @@ function createIssueLinkNode(value: string, href: string, childType: "text" | "i
   };
 }
 
-function linkifyIssueReferencesInText(value: string, knownPrefixes?: Set<string>): MarkdownNode[] | null {
+function linkifyIssueReferencesInText(
+  value: string,
+  knownPrefixes?: Set<string>,
+): MarkdownNode[] | null {
   const nodes: MarkdownNode[] = [];
   let cursor = 0;
   let matched = false;
@@ -131,7 +143,13 @@ function linkifyIssueReferencesInText(value: string, knownPrefixes?: Set<string>
 
 function rewriteMarkdownTree(node: MarkdownNode, knownPrefixes?: Set<string>) {
   if (!Array.isArray(node.children) || node.children.length === 0) return;
-  if (node.type === "link" || node.type === "linkReference" || node.type === "code" || node.type === "definition" || node.type === "html") {
+  if (
+    node.type === "link" ||
+    node.type === "linkReference" ||
+    node.type === "code" ||
+    node.type === "definition" ||
+    node.type === "html"
+  ) {
     return;
   }
 
@@ -140,7 +158,9 @@ function rewriteMarkdownTree(node: MarkdownNode, knownPrefixes?: Set<string>) {
     if (child.type === "inlineCode" && typeof child.value === "string") {
       const issueRef = parseIssueReferenceFromHref(child.value, knownPrefixes);
       if (issueRef) {
-        nextChildren.push(createIssueLinkNode(child.value, issueRef.href, "inlineCode"));
+        nextChildren.push(
+          createIssueLinkNode(child.value, issueRef.href, "inlineCode"),
+        );
         continue;
       }
     }
@@ -170,10 +190,13 @@ export interface RemarkLinkIssueReferencesOptions {
   knownPrefixes?: string[];
 }
 
-export function remarkLinkIssueReferences(options?: RemarkLinkIssueReferencesOptions) {
-  const knownPrefixes = options?.knownPrefixes && options.knownPrefixes.length > 0
-    ? new Set(options.knownPrefixes.map((prefix) => prefix.toUpperCase()))
-    : undefined;
+export function remarkLinkIssueReferences(
+  options?: RemarkLinkIssueReferencesOptions,
+) {
+  const knownPrefixes =
+    options?.knownPrefixes && options.knownPrefixes.length > 0
+      ? new Set(options.knownPrefixes.map((prefix) => prefix.toUpperCase()))
+      : undefined;
   return (tree: MarkdownNode) => {
     rewriteMarkdownTree(tree, knownPrefixes);
   };

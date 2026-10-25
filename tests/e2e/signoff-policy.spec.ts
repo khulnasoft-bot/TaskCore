@@ -1,4 +1,9 @@
-import { test, expect, request as pwRequest, type APIRequestContext } from "@playwright/test";
+import {
+  test,
+  expect,
+  request as pwRequest,
+  type APIRequestContext,
+} from "@playwright/test";
 
 /**
  * E2E: Signoff execution policy flow.
@@ -113,7 +118,9 @@ async function fetchVerifiedRun(
   issueId: string,
 ): Promise<{ id: string; status: string } | null> {
   if (!candidateRunId) return null;
-  const runRes = await board.get(`${BASE_URL}/api/heartbeat-runs/${candidateRunId}`);
+  const runRes = await board.get(
+    `${BASE_URL}/api/heartbeat-runs/${candidateRunId}`,
+  );
   if (!runRes.ok()) return null;
   const candidateRun = await runRes.json();
   const context = candidateRun.contextSnapshot ?? {};
@@ -155,7 +162,8 @@ async function invokeHeartbeat(
   const lastSeen = {
     reason: typeof run.reason === "string" ? run.reason : null,
     checkoutRunId: null as string | null,
-    executionRunId: typeof run.executionRunId === "string" ? run.executionRunId : null,
+    executionRunId:
+      typeof run.executionRunId === "string" ? run.executionRunId : null,
     blockingRunStatus: null as string | null,
     blockingRunReadFailed: false,
   };
@@ -171,14 +179,20 @@ async function invokeHeartbeat(
   // agent's turn. So for `wakeup_skipped`, this code ignores `executionRunId`
   // and falls through to the verified wait below.
   if (
-    (lastSeen.reason === "issue_execution_deferred" || lastSeen.reason === "execution_reconciliation_required") &&
+    (lastSeen.reason === "issue_execution_deferred" ||
+      lastSeen.reason === "execution_reconciliation_required") &&
     typeof run.executionRunId === "string"
   ) {
     if (run.executionAgentId === agentId) {
       // A run for this same agent on this same issue already holds the lock
       // (for example one started when the issue was assigned). Verify it
       // before this code treats it as the agent's current turn.
-      const verified = await fetchVerifiedRun(board, run.executionRunId, agentId, issueId);
+      const verified = await fetchVerifiedRun(
+        board,
+        run.executionRunId,
+        agentId,
+        issueId,
+      );
       if (verified) return verified.id;
     } else {
       // A different agent holds the lock (the prior stage's participant, or
@@ -187,12 +201,19 @@ async function invokeHeartbeat(
       // waits for that instead of guessing how long the release takes.
       let consecutiveRunReadFailures = 0;
       while (Date.now() < deadline) {
-        const runRes = await board.get(`${BASE_URL}/api/heartbeat-runs/${run.executionRunId}`);
+        const runRes = await board.get(
+          `${BASE_URL}/api/heartbeat-runs/${run.executionRunId}`,
+        );
         if (runRes.ok()) {
           consecutiveRunReadFailures = 0;
           const blockingRun = await runRes.json();
-          lastSeen.blockingRunStatus = typeof blockingRun.status === "string" ? blockingRun.status : null;
-          if (lastSeen.blockingRunStatus !== "queued" && lastSeen.blockingRunStatus !== "running") break;
+          lastSeen.blockingRunStatus =
+            typeof blockingRun.status === "string" ? blockingRun.status : null;
+          if (
+            lastSeen.blockingRunStatus !== "queued" &&
+            lastSeen.blockingRunStatus !== "running"
+          )
+            break;
         } else {
           // A 404 or a 500 response must not spin this loop forever. Count
           // repeated read failures and stop once they dominate the wait.
@@ -204,7 +225,9 @@ async function invokeHeartbeat(
             break;
           }
         }
-        await new Promise((resolve) => setTimeout(resolve, WAKEUP_POLL_INTERVAL_MS));
+        await new Promise((resolve) =>
+          setTimeout(resolve, WAKEUP_POLL_INTERVAL_MS),
+        );
       }
     }
   }
@@ -222,9 +245,19 @@ async function invokeHeartbeat(
       return issueRunLock.executionRunId ?? issueRunLock.checkoutRunId ?? "";
     }
 
-    const verifiedCheckout = await fetchVerifiedRun(board, issueRunLock.checkoutRunId, agentId, issueId);
+    const verifiedCheckout = await fetchVerifiedRun(
+      board,
+      issueRunLock.checkoutRunId,
+      agentId,
+      issueId,
+    );
     if (verifiedCheckout) return verifiedCheckout.id;
-    const verifiedExecution = await fetchVerifiedRun(board, issueRunLock.executionRunId, agentId, issueId);
+    const verifiedExecution = await fetchVerifiedRun(
+      board,
+      issueRunLock.executionRunId,
+      agentId,
+      issueId,
+    );
     if (verifiedExecution) return verifiedExecution.id;
 
     const recentRunsRes = await board.get(
@@ -243,7 +276,9 @@ async function invokeHeartbeat(
         }
       }
     }
-    await new Promise((resolve) => setTimeout(resolve, WAKEUP_POLL_INTERVAL_MS));
+    await new Promise((resolve) =>
+      setTimeout(resolve, WAKEUP_POLL_INTERVAL_MS),
+    );
   }
 
   throw new Error(
@@ -258,7 +293,10 @@ async function invokeHeartbeat(
   );
 }
 
-async function getIssueRunLockState(board: APIRequestContext, issueId: string): Promise<IssueRunLockState> {
+async function getIssueRunLockState(
+  board: APIRequestContext,
+  issueId: string,
+): Promise<IssueRunLockState> {
   const res = await board.get(`${BASE_URL}/api/issues/${issueId}`);
   expect(res.ok()).toBe(true);
   const issue = await res.json();
@@ -281,11 +319,16 @@ async function retryAgentPatchWithCurrentLockOnConflict(
   if (failedRes.status() !== 409) return failedRes;
   let res = failedRes;
   for (let attempt = 0; attempt < 8 && res.status() === 409; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, Math.min(500, 50 * 2 ** attempt)));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(500, 50 * 2 ** attempt)),
+    );
     const issueRunLock = await getIssueRunLockState(board, issueId);
     if (issueRunLock.assigneeAgentId !== agent.agentId) return res;
 
-    const lockedRunId = issueRunLock.checkoutRunId ?? issueRunLock.executionRunId ?? fallbackRunId;
+    const lockedRunId =
+      issueRunLock.checkoutRunId ??
+      issueRunLock.executionRunId ??
+      fallbackRunId;
     res = await agent.request.patch(`${BASE_URL}/api/issues/${issueId}`, {
       headers: { "X-Taskcore-Run-Id": lockedRunId },
       data: patchData,
@@ -332,13 +375,23 @@ async function agentPatch(
     });
 
   let res = await patchWith(runId);
-  for (let attempt = 1; attempt < maxAttempts && res.status() === 409; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, Math.min(maxBackoffMs, backoffMs * 2 ** (attempt - 1))));
+  for (
+    let attempt = 1;
+    attempt < maxAttempts && res.status() === 409;
+    attempt++
+  ) {
+    await new Promise((resolve) =>
+      setTimeout(
+        resolve,
+        Math.min(maxBackoffMs, backoffMs * 2 ** (attempt - 1)),
+      ),
+    );
     const issueRunLock = await getIssueRunLockState(board, issueId);
     // A 409 on an issue no longer assigned to us is a genuine rejection, not a
     // run-lock race — leave it for the caller to assert on.
     if (issueRunLock.assigneeAgentId !== agent.agentId) break;
-    const retryRunId = issueRunLock.checkoutRunId ?? issueRunLock.executionRunId ?? runId;
+    const retryRunId =
+      issueRunLock.checkoutRunId ?? issueRunLock.executionRunId ?? runId;
     res = await patchWith(retryRunId);
   }
   return res;
@@ -353,17 +406,23 @@ async function agentCheckoutAndPatch(
   patchData: Record<string, unknown>,
 ) {
   const runId = await invokeHeartbeat(board, agent.agentId, issueId);
-  const directPatchRes = await agent.request.patch(`${BASE_URL}/api/issues/${issueId}`, {
-    headers: { "X-Taskcore-Run-Id": runId },
-    data: patchData,
-  });
+  const directPatchRes = await agent.request.patch(
+    `${BASE_URL}/api/issues/${issueId}`,
+    {
+      headers: { "X-Taskcore-Run-Id": runId },
+      data: patchData,
+    },
+  );
   if (directPatchRes.ok()) return directPatchRes;
 
   // Checkout (sets executionRunId so PATCH is allowed)
-  const checkoutRes = await agent.request.post(`${BASE_URL}/api/issues/${issueId}/checkout`, {
-    headers: { "X-Taskcore-Run-Id": runId },
-    data: { agentId: agent.agentId, expectedStatuses },
-  });
+  const checkoutRes = await agent.request.post(
+    `${BASE_URL}/api/issues/${issueId}/checkout`,
+    {
+      headers: { "X-Taskcore-Run-Id": runId },
+      data: { agentId: agent.agentId, expectedStatuses },
+    },
+  );
   if (!checkoutRes.ok()) {
     if (checkoutRes.status() === 409) {
       const res = await retryAgentPatchWithCurrentLockOnConflict(
@@ -380,9 +439,12 @@ async function agentCheckoutAndPatch(
     }
     // If agent checkout fails (e.g. run expired), fall back to board checkout
     // then PATCH with the agent's identity
-    const boardCheckout = await board.post(`${BASE_URL}/api/issues/${issueId}/checkout`, {
-      data: { agentId: agent.agentId, expectedStatuses },
-    });
+    const boardCheckout = await board.post(
+      `${BASE_URL}/api/issues/${issueId}/checkout`,
+      {
+        data: { agentId: agent.agentId, expectedStatuses },
+      },
+    );
     if (!boardCheckout.ok()) {
       throw new Error(`Board checkout failed: ${await boardCheckout.text()}`);
     }
@@ -416,7 +478,9 @@ async function agentCheckoutAndPatch(
   return board.patch(`${BASE_URL}/api/issues/${issueId}`, { data: patchData });
 }
 
-async function setupCompany(boardRequest: APIRequestContext): Promise<TestContext> {
+async function setupCompany(
+  boardRequest: APIRequestContext,
+): Promise<TestContext> {
   // Verify server is in local_trusted mode
   const healthRes = await boardRequest.get(`${BASE_URL}/api/health`);
   expect(healthRes.ok()).toBe(true);
@@ -439,35 +503,49 @@ async function setupCompany(boardRequest: APIRequestContext): Promise<TestContex
   }
   const company = await companyRes.json();
   const companyId = company.id;
-  const companyPrefix = company.issuePrefix ?? company.prefix ?? company.urlKey ?? "E2E";
+  const companyPrefix =
+    company.issuePrefix ?? company.prefix ?? company.urlKey ?? "E2E";
 
   // Helper: hire/approve agent + API key + request context
-  async function createAgent(name: string, role: string, title: string): Promise<AgentAuth> {
-    const agentRes = await boardRequest.post(`${BASE_URL}/api/companies/${companyId}/agent-hires`, {
-      data: {
-        name,
-        role,
-        title,
-        adapterType: "process",
-        adapterConfig: {
-          command: process.execPath,
-          args: ["-e", "process.stdout.write('done\\n')"],
+  async function createAgent(
+    name: string,
+    role: string,
+    title: string,
+  ): Promise<AgentAuth> {
+    const agentRes = await boardRequest.post(
+      `${BASE_URL}/api/companies/${companyId}/agent-hires`,
+      {
+        data: {
+          name,
+          role,
+          title,
+          adapterType: "process",
+          adapterConfig: {
+            command: process.execPath,
+            args: ["-e", "process.stdout.write('done\\n')"],
+          },
         },
       },
-    });
+    );
     expect(agentRes.ok()).toBe(true);
     const hire = await agentRes.json();
     const agent = hire.agent;
     if (hire.approval) {
-      const approvalRes = await boardRequest.post(`${BASE_URL}/api/approvals/${hire.approval.id}/approve`, {
-        data: { decisionNote: "Approved for signoff e2e setup." },
-      });
+      const approvalRes = await boardRequest.post(
+        `${BASE_URL}/api/approvals/${hire.approval.id}/approve`,
+        {
+          data: { decisionNote: "Approved for signoff e2e setup." },
+        },
+      );
       expect(approvalRes.ok()).toBe(true);
     }
 
-    const keyRes = await boardRequest.post(`${BASE_URL}/api/agents/${agent.id}/keys`, {
-      data: { name: `e2e-${name.toLowerCase()}` },
-    });
+    const keyRes = await boardRequest.post(
+      `${BASE_URL}/api/agents/${agent.id}/keys`,
+      {
+        data: { name: `e2e-${name.toLowerCase()}` },
+      },
+    );
     expect(keyRes.ok()).toBe(true);
     const keyData = await keyRes.json();
 
@@ -479,7 +557,11 @@ async function setupCompany(boardRequest: APIRequestContext): Promise<TestContex
     };
   }
 
-  const executor = await createAgent("Executor", "engineer", "Software Engineer");
+  const executor = await createAgent(
+    "Executor",
+    "engineer",
+    "Software Engineer",
+  );
   const reviewer = await createAgent("Reviewer", "qa", "QA Engineer");
   const approver = await createAgent("Approver", "cto", "CTO");
 
@@ -494,19 +576,32 @@ async function setupCompany(boardRequest: APIRequestContext): Promise<TestContex
   };
 }
 
-async function createIssueWithPolicy(ctx: TestContext, title: string, stages?: unknown[]) {
+async function createIssueWithPolicy(
+  ctx: TestContext,
+  title: string,
+  stages?: unknown[],
+) {
   const defaultStages = [
-    { type: "review", participants: [{ type: "agent", agentId: ctx.reviewer.agentId }] },
-    { type: "approval", participants: [{ type: "agent", agentId: ctx.approver.agentId }] },
-  ];
-  const res = await ctx.boardRequest.post(`${BASE_URL}/api/companies/${ctx.companyId}/issues`, {
-    data: {
-      title,
-      status: "in_progress",
-      assigneeAgentId: ctx.executor.agentId,
-      executionPolicy: { stages: stages ?? defaultStages },
+    {
+      type: "review",
+      participants: [{ type: "agent", agentId: ctx.reviewer.agentId }],
     },
-  });
+    {
+      type: "approval",
+      participants: [{ type: "agent", agentId: ctx.approver.agentId }],
+    },
+  ];
+  const res = await ctx.boardRequest.post(
+    `${BASE_URL}/api/companies/${ctx.companyId}/issues`,
+    {
+      data: {
+        title,
+        status: "in_progress",
+        assigneeAgentId: ctx.executor.agentId,
+        executionPolicy: { stages: stages ?? defaultStages },
+      },
+    },
+  );
   expect(res.ok()).toBe(true);
   const issue = await res.json();
   ctx.issueIds.push(issue.id);
@@ -532,15 +627,23 @@ test.describe("Signoff execution policy", () => {
 
     // Clean up issues, keys, agents, company (best-effort)
     for (const issueId of ctx.issueIds) {
-      await board.patch(`${BASE_URL}/api/issues/${issueId}`, {
-        data: { status: "cancelled", comment: "E2E test cleanup." },
-      }).catch(() => {});
+      await board
+        .patch(`${BASE_URL}/api/issues/${issueId}`, {
+          data: { status: "cancelled", comment: "E2E test cleanup." },
+        })
+        .catch(() => {});
     }
     for (const agent of [ctx.executor, ctx.reviewer, ctx.approver]) {
-      await board.delete(`${BASE_URL}/api/agents/${agent.agentId}/keys/${agent.keyId}`).catch(() => {});
-      await board.delete(`${BASE_URL}/api/agents/${agent.agentId}`).catch(() => {});
+      await board
+        .delete(`${BASE_URL}/api/agents/${agent.agentId}/keys/${agent.keyId}`)
+        .catch(() => {});
+      await board
+        .delete(`${BASE_URL}/api/agents/${agent.agentId}`)
+        .catch(() => {});
     }
-    await board.delete(`${BASE_URL}/api/companies/${ctx.companyId}`).catch(() => {});
+    await board
+      .delete(`${BASE_URL}/api/companies/${ctx.companyId}`)
+      .catch(() => {});
     await board.dispose();
   });
 
@@ -556,7 +659,10 @@ test.describe("Signoff execution policy", () => {
 
     // Step 1: Executor marks done → should route to reviewer
     const step1Res = await agentCheckoutAndPatch(
-      ctx.boardRequest, ctx.executor, issueId, ["in_progress"],
+      ctx.boardRequest,
+      ctx.executor,
+      issueId,
+      ["in_progress"],
       { status: "done", comment: "Implemented the feature, ready for review." },
     );
     expect(step1Res.ok()).toBe(true);
@@ -574,13 +680,15 @@ test.describe("Signoff execution policy", () => {
 
     // Step 2: Navigate to issue in UI and verify execution label
     await page.goto(`/${ctx.companyPrefix}/issues/${issue.identifier}`);
-    await expect(page.locator("text=Review pending")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("text=Review pending")).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Step 3: Reviewer approves → should route to approver
-    const step3Res = await agentPatch(
-      ctx.boardRequest, ctx.reviewer, issueId,
-      { status: "done", comment: "QA signoff complete. Looks good." },
-    );
+    const step3Res = await agentPatch(ctx.boardRequest, ctx.reviewer, issueId, {
+      status: "done",
+      comment: "QA signoff complete. Looks good.",
+    });
     expect(step3Res.ok()).toBe(true);
     const step3Issue = await step3Res.json();
 
@@ -592,13 +700,15 @@ test.describe("Signoff execution policy", () => {
 
     // Step 4: Verify UI shows approval pending
     await page.reload();
-    await expect(page.locator("text=Approval pending")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("text=Approval pending")).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Step 5: Approver approves → should complete
-    const step5Res = await agentPatch(
-      ctx.boardRequest, ctx.approver, issueId,
-      { status: "done", comment: "Approved. Ship it." },
-    );
+    const step5Res = await agentPatch(ctx.boardRequest, ctx.approver, issueId, {
+      status: "done",
+      comment: "Approved. Ship it.",
+    });
     expect(step5Res.ok()).toBe(true);
     const step5Issue = await step5Res.json();
 
@@ -614,7 +724,10 @@ test.describe("Signoff execution policy", () => {
 
     // Executor marks done → routes to reviewer
     const doneRes = await agentCheckoutAndPatch(
-      ctx.boardRequest, ctx.executor, issueId, ["in_progress"],
+      ctx.boardRequest,
+      ctx.executor,
+      issueId,
+      ["in_progress"],
       { status: "done", comment: "Ready for review." },
     );
     expect(doneRes.ok()).toBe(true);
@@ -622,7 +735,9 @@ test.describe("Signoff execution policy", () => {
 
     // Reviewer requests changes → returns to executor
     const changesRes = await agentPatch(
-      ctx.boardRequest, ctx.reviewer, issueId,
+      ctx.boardRequest,
+      ctx.reviewer,
+      issueId,
       { status: "in_progress", comment: "Needs another pass on edge cases." },
     );
     expect(changesRes.ok()).toBe(true);
@@ -631,11 +746,16 @@ test.describe("Signoff execution policy", () => {
     expect(changesIssue.status).toBe("in_progress");
     expect(changesIssue.assigneeAgentId).toBe(ctx.executor.agentId);
     expect(changesIssue.executionState.status).toBe("changes_requested");
-    expect(changesIssue.executionState.lastDecisionOutcome).toBe("changes_requested");
+    expect(changesIssue.executionState.lastDecisionOutcome).toBe(
+      "changes_requested",
+    );
 
     // Executor re-submits → goes back to reviewer (same stage)
     const resubmitRes = await agentCheckoutAndPatch(
-      ctx.boardRequest, ctx.executor, issueId, ["in_progress"],
+      ctx.boardRequest,
+      ctx.executor,
+      issueId,
+      ["in_progress"],
       { status: "done", comment: "Fixed the edge cases." },
     );
     expect(resubmitRes.ok()).toBe(true);
@@ -653,7 +773,10 @@ test.describe("Signoff execution policy", () => {
 
     // Executor marks done → routes to reviewer
     const doneRes = await agentCheckoutAndPatch(
-      ctx.boardRequest, ctx.executor, issueId, ["in_progress"],
+      ctx.boardRequest,
+      ctx.executor,
+      issueId,
+      ["in_progress"],
       { status: "done", comment: "Done." },
     );
     expect(doneRes.ok()).toBe(true);
@@ -663,7 +786,9 @@ test.describe("Signoff execution policy", () => {
 
     // Reviewer tries to approve without comment → should fail
     const noCommentRes = await agentPatch(
-      ctx.boardRequest, ctx.reviewer, issueId,
+      ctx.boardRequest,
+      ctx.reviewer,
+      issueId,
       { status: "done" },
     );
     expect(noCommentRes.ok()).toBe(false);
@@ -677,13 +802,18 @@ test.describe("Signoff execution policy", () => {
 
     // Executor marks done → routes to reviewer
     const doneRes = await agentCheckoutAndPatch(
-      ctx.boardRequest, ctx.executor, issueId, ["in_progress"],
+      ctx.boardRequest,
+      ctx.executor,
+      issueId,
+      ["in_progress"],
       { status: "done", comment: "Done." },
     );
     expect(doneRes.ok()).toBe(true);
 
     // Verify issue is in_review with reviewer
-    const issueRes = await ctx.boardRequest.get(`${BASE_URL}/api/issues/${issueId}`);
+    const issueRes = await ctx.boardRequest.get(
+      `${BASE_URL}/api/issues/${issueId}`,
+    );
     const inReviewIssue = await issueRes.json();
     expect(inReviewIssue.status).toBe("in_review");
     expect(inReviewIssue.assigneeAgentId).toBe(ctx.reviewer.agentId);
@@ -691,7 +821,9 @@ test.describe("Signoff execution policy", () => {
 
     // Non-participant (approver at this stage) tries to advance → should be rejected
     const advanceRes = await agentPatch(
-      ctx.boardRequest, ctx.approver, issueId,
+      ctx.boardRequest,
+      ctx.approver,
+      issueId,
       { status: "done", comment: "I'm the approver, not the reviewer." },
     );
     expect(advanceRes.ok()).toBe(false);
@@ -700,12 +832,18 @@ test.describe("Signoff execution policy", () => {
 
   test("review-only policy: reviewer approval completes execution", async () => {
     const issue = await createIssueWithPolicy(ctx, "Signoff review-only", [
-      { type: "review", participants: [{ type: "agent", agentId: ctx.reviewer.agentId }] },
+      {
+        type: "review",
+        participants: [{ type: "agent", agentId: ctx.reviewer.agentId }],
+      },
     ]);
 
     // Executor marks done → routes to reviewer
     const doneRes = await agentCheckoutAndPatch(
-      ctx.boardRequest, ctx.executor, issue.id, ["in_progress"],
+      ctx.boardRequest,
+      ctx.executor,
+      issue.id,
+      ["in_progress"],
       { status: "done", comment: "Ready for review." },
     );
     expect(doneRes.ok()).toBe(true);
@@ -713,7 +851,9 @@ test.describe("Signoff execution policy", () => {
 
     // Reviewer approves → should complete immediately (no approval stage)
     const approveRes = await agentPatch(
-      ctx.boardRequest, ctx.reviewer, issue.id,
+      ctx.boardRequest,
+      ctx.reviewer,
+      issue.id,
       { status: "done", comment: "LGTM." },
     );
     expect(approveRes.ok()).toBe(true);

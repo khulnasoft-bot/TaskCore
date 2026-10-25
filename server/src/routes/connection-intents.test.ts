@@ -24,7 +24,8 @@ describe("runtime connection MCP contract", () => {
             query: { type: "string", maxLength: 4000 },
             retryProviderChoice: {
               type: "boolean",
-              description: "Only when the user explicitly asks to reconsider a previous provider choice or decline",
+              description:
+                "Only when the user explicitly asks to reconsider a previous provider choice or decline",
             },
           },
           additionalProperties: false,
@@ -37,12 +38,27 @@ describe("runtime connection MCP contract", () => {
           type: "object",
           properties: {
             service: { type: "string" },
-            connectionId: { type: "string", description: "Reuse this saved connection" },
-            toolNames: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 20, uniqueItems: true, description: "Exact indexed tools needed by this agent" },
-            targetService: { type: "string", description: "App slug returned by search only when the user explicitly named this external provider" },
+            connectionId: {
+              type: "string",
+              description: "Reuse this saved connection",
+            },
+            toolNames: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              maxItems: 20,
+              uniqueItems: true,
+              description: "Exact indexed tools needed by this agent",
+            },
+            targetService: {
+              type: "string",
+              description:
+                "App slug returned by search only when the user explicitly named this external provider",
+            },
             selectionInteractionId: {
               type: "string",
-              description: "Saved answered provider-choice interaction ID for aggregator routes",
+              description:
+                "Saved answered provider-choice interaction ID for aggregator routes",
             },
           },
           required: ["service"],
@@ -101,7 +117,9 @@ describe("connection intent continuation wake contract", () => {
           }),
         }),
       );
-      expect(wakeup.mock.calls[0][1].contextSnapshot.forceFreshSession).toBeUndefined();
+      expect(
+        wakeup.mock.calls[0][1].contextSnapshot.forceFreshSession,
+      ).toBeUndefined();
     },
   );
 

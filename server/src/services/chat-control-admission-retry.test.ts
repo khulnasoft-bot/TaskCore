@@ -5,8 +5,11 @@ afterEach(() => vi.useRealTimers());
 
 it("retries a rolled-back lock conflict and returns the fresh admission result", async () => {
   vi.useFakeTimers();
-  const attempt = vi.fn()
-    .mockRejectedValueOnce(new Error("query failed", { cause: { code: "55P03" } }))
+  const attempt = vi
+    .fn()
+    .mockRejectedValueOnce(
+      new Error("query failed", { cause: { code: "55P03" } }),
+    )
     .mockResolvedValueOnce(null);
   const result = retryChatControlAdmission(attempt);
   await vi.advanceTimersByTimeAsync(100);
@@ -25,7 +28,9 @@ it("stops persistent contention after fifty delays", async () => {
   vi.useFakeTimers();
   const error = new Error("query failed", { cause: { code: "55P03" } });
   const attempt = vi.fn().mockRejectedValue(error);
-  const rejected = expect(retryChatControlAdmission(attempt)).rejects.toBe(error);
+  const rejected = expect(retryChatControlAdmission(attempt)).rejects.toBe(
+    error,
+  );
   await vi.advanceTimersByTimeAsync(5_000);
   await rejected;
   expect(attempt).toHaveBeenCalledTimes(51);

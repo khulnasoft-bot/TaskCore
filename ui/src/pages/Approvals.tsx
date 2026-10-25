@@ -46,7 +46,9 @@ export function Approvals() {
     mutationFn: (id: string) => approvalsApi.approve(id),
     onSuccess: (_approval, id) => {
       setActionError(null);
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.approvals.list(selectedCompanyId!),
+      });
       navigate(`/approvals/${id}?resolved=approved`);
     },
     onError: (err) => {
@@ -58,7 +60,9 @@ export function Approvals() {
     mutationFn: (id: string) => approvalsApi.reject(id),
     onSuccess: () => {
       setActionError(null);
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(selectedCompanyId!) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.approvals.list(selectedCompanyId!),
+      });
     },
     onError: (err) => {
       setActionError(err instanceof Error ? err.message : "Failed to reject");
@@ -67,16 +71,26 @@ export function Approvals() {
 
   const filtered = (data ?? [])
     .filter(
-      (a) => statusFilter === "all" || a.status === "pending" || a.status === "revision_requested",
+      (a) =>
+        statusFilter === "all" ||
+        a.status === "pending" ||
+        a.status === "revision_requested",
     )
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 
   const pendingCount = (data ?? []).filter(
     (a) => a.status === "pending" || a.status === "revision_requested",
   ).length;
 
   if (!selectedCompanyId) {
-    return <p className="text-sm text-muted-foreground">Select an organization first.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        Select an organization first.
+      </p>
+    );
   }
 
   if (isLoading) {
@@ -86,18 +100,34 @@ export function Approvals() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Tabs value={statusFilter} onValueChange={(v) => navigate(`/approvals/${v}`)}>
-          <PageTabBar items={[
-            { value: "pending", label: <>Pending{pendingCount > 0 && (
-              <Badge variant="ghost" className={cn(
-                "ml-1.5 px-1.5 text-(length:--text-nano)",
-                "bg-yellow-500/20 text-yellow-500"
-              )}>
-                {pendingCount}
-              </Badge>
-            )}</> },
-            { value: "all", label: "All" },
-          ]} />
+        <Tabs
+          value={statusFilter}
+          onValueChange={(v) => navigate(`/approvals/${v}`)}
+        >
+          <PageTabBar
+            items={[
+              {
+                value: "pending",
+                label: (
+                  <>
+                    Pending
+                    {pendingCount > 0 && (
+                      <Badge
+                        variant="ghost"
+                        className={cn(
+                          "ml-1.5 px-1.5 text-(length:--text-nano)",
+                          "bg-yellow-500/20 text-yellow-500",
+                        )}
+                      >
+                        {pendingCount}
+                      </Badge>
+                    )}
+                  </>
+                ),
+              },
+              { value: "all", label: "All" },
+            ]}
+          />
         </Tabs>
       </div>
 
@@ -108,7 +138,9 @@ export function Approvals() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <ShieldCheck className="h-8 w-8 text-muted-foreground/30 mb-3" />
           <p className="text-sm text-muted-foreground">
-            {statusFilter === "pending" ? "No pending approvals." : "No approvals yet."}
+            {statusFilter === "pending"
+              ? "No pending approvals."
+              : "No approvals yet."}
           </p>
         </div>
       )}
@@ -119,13 +151,23 @@ export function Approvals() {
             <ApprovalCard
               key={approval.id}
               approval={approval}
-              requesterAgent={approval.requestedByAgentId ? (agents ?? []).find((a) => a.id === approval.requestedByAgentId) ?? null : null}
+              requesterAgent={
+                approval.requestedByAgentId
+                  ? ((agents ?? []).find(
+                      (a) => a.id === approval.requestedByAgentId,
+                    ) ?? null)
+                  : null
+              }
               onApprove={() => approveMutation.mutate(approval.id)}
               onReject={() => rejectMutation.mutate(approval.id)}
               detailLink={`/approvals/${approval.id}`}
               isPending={approveMutation.isPending || rejectMutation.isPending}
               pendingAction={
-                approveMutation.isPending ? "approve" : rejectMutation.isPending ? "reject" : null
+                approveMutation.isPending
+                  ? "approve"
+                  : rejectMutation.isPending
+                    ? "reject"
+                    : null
               }
             />
           ))}

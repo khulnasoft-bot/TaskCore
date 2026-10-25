@@ -11,7 +11,8 @@ export const HIDDEN_SETTINGS_ENV_KEY = "TASKCORE_HIDDEN_SETTINGS";
 
 export type HiddenSettingsEnv = Record<string, string | undefined>;
 
-let cache: { raw: string | undefined; hidden: ReadonlySet<string> } | null = null;
+let cache: { raw: string | undefined; hidden: ReadonlySet<string> } | null =
+  null;
 
 /**
  * Parse-once accessor keyed on the raw env value. Callers that pass a custom

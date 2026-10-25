@@ -35,10 +35,7 @@ describe("HTTP body limits", () => {
   });
 
   it("lets operators override the zip upload cap via TASKCORE_IMPORT_ZIP_MAX_BYTES", async () => {
-    vi.stubEnv(
-      "TASKCORE_IMPORT_ZIP_MAX_BYTES",
-      String(2 * 1024 * 1024 * 1024),
-    );
+    vi.stubEnv("TASKCORE_IMPORT_ZIP_MAX_BYTES", String(2 * 1024 * 1024 * 1024));
     vi.resetModules();
     const reloaded = await import("../http/body-limits.js");
     expect(reloaded.PORTABLE_ZIP_UPLOAD_LIMIT_BYTES).toBe(

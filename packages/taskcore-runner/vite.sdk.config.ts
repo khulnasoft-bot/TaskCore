@@ -13,9 +13,18 @@ export default defineConfig({
   plugins: [react(), liveConsoleBrowserServerPlugin()],
   resolve: {
     alias: [
-      { find: "@taskcore/taskcore-runner/browser", replacement: resolve(packageRoot, "src/browser/index.ts") },
-      { find: "@taskcore/taskcore-runner/react", replacement: resolve(packageRoot, "src/react/index.ts") },
-      { find: "@taskcore/taskcore-runner/styles.css", replacement: resolve(packageRoot, "styles.css") },
+      {
+        find: "@taskcore/taskcore-runner/browser",
+        replacement: resolve(packageRoot, "src/browser/index.ts"),
+      },
+      {
+        find: "@taskcore/taskcore-runner/react",
+        replacement: resolve(packageRoot, "src/react/index.ts"),
+      },
+      {
+        find: "@taskcore/taskcore-runner/styles.css",
+        replacement: resolve(packageRoot, "styles.css"),
+      },
     ],
   },
   server: { host: "127.0.0.1" },
@@ -26,7 +35,10 @@ export default defineConfig({
     target: "esnext",
     rollupOptions: {
       input: {
-        reference: resolve(packageRoot, "examples/reference-console/index.html"),
+        reference: resolve(
+          packageRoot,
+          "examples/reference-console/index.html",
+        ),
         mini: resolve(packageRoot, "examples/mini-consumer/index.html"),
       },
     },

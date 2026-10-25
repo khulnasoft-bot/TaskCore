@@ -2,7 +2,15 @@ import { Readable } from "node:stream";
 import express from "express";
 import { eq } from "drizzle-orm";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   agents,
   assets,
@@ -29,7 +37,9 @@ import { companyArtifactsService } from "../services/company-artifacts.js";
 import type { StorageService } from "../storage/types.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -37,7 +47,9 @@ if (!embeddedPostgresSupport.supported) {
   );
 }
 
-function createStorageService(files: Record<string, Buffer> = {}): StorageService {
+function createStorageService(
+  files: Record<string, Buffer> = {},
+): StorageService {
   return {
     provider: "local_disk",
     putFile: vi.fn(),
@@ -58,10 +70,14 @@ function createStorageService(files: Record<string, Buffer> = {}): StorageServic
 
 describeEmbeddedPostgres("companyArtifactsService", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-company-artifacts-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-company-artifacts-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -99,14 +115,36 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
     const workProductAttachmentId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
     await db.insert(companies).values([
-      { id: companyId, name: "Taskcore", issuePrefix: "PAP", requireBoardApprovalForNewAgents: false },
-      { id: otherCompanyId, name: "OtherCo", issuePrefix: "OTH", requireBoardApprovalForNewAgents: false },
+      {
+        id: companyId,
+        name: "Taskcore",
+        issuePrefix: "PAP",
+        requireBoardApprovalForNewAgents: false,
+      },
+      {
+        id: otherCompanyId,
+        name: "OtherCo",
+        issuePrefix: "OTH",
+        requireBoardApprovalForNewAgents: false,
+      },
     ]);
     await db.insert(agents).values([
       { id: agentId, companyId, name: "Coder", role: "engineer" },
-      { id: otherAgentId, companyId: otherCompanyId, name: "Other", role: "engineer" },
+      {
+        id: otherAgentId,
+        companyId: otherCompanyId,
+        name: "Other",
+        role: "engineer",
+      },
     ]);
-    await db.insert(projects).values({ id: projectId, companyId, name: "Artifacts", status: "in_progress" });
+    await db
+      .insert(projects)
+      .values({
+        id: projectId,
+        companyId,
+        name: "Artifacts",
+        status: "in_progress",
+      });
     await db.insert(issues).values([
       {
         id: issueId,
@@ -153,7 +191,8 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
         id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
         companyId,
         title: "Review Notes",
-        latestBody: "# Review\n\nAgent-created review document with useful details.",
+        latestBody:
+          "# Review\n\nAgent-created review document with useful details.",
         createdByAgentId: agentId,
         updatedAt: new Date("2026-01-04T00:00:00.000Z"),
       },
@@ -346,7 +385,15 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       updatedAt: new Date("2026-01-02T12:00:00.000Z"),
     });
 
-    return { companyId, otherCompanyId, projectId, issueId, secondIssueId, otherIssueId, otherRunId };
+    return {
+      companyId,
+      otherCompanyId,
+      projectId,
+      issueId,
+      secondIssueId,
+      otherIssueId,
+      otherRunId,
+    };
   }
 
   it("returns only the caller's starred documents, including plan and human-authored documents, with cursor order", async () => {
@@ -379,24 +426,38 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
         userId: "user-1",
         source: "session",
         companyIds: [companyId],
-        memberships: [{ companyId, membershipRole: "viewer", status: "active" }],
+        memberships: [
+          { companyId, membershipRole: "viewer", status: "active" },
+        ],
       };
       next();
     });
     app.use("/api/companies", companyRoutes(db, createStorageService()));
     app.use(errorHandler);
 
-    const first = await request(app).get(`/api/companies/${companyId}/artifacts?starred=true&limit=1`);
+    const first = await request(app).get(
+      `/api/companies/${companyId}/artifacts?starred=true&limit=1`,
+    );
     expect(first.status).toBe(200);
-    expect(first.body.artifacts.map((artifact: { title: string }) => artifact.title)).toEqual(["Plan"]);
+    expect(
+      first.body.artifacts.map((artifact: { title: string }) => artifact.title),
+    ).toEqual(["Plan"]);
     expect(first.body.nextCursor).toEqual(expect.any(String));
 
     const second = await request(app).get(
       `/api/companies/${companyId}/artifacts?starred=true&limit=10&cursor=${first.body.nextCursor}`,
     );
     expect(second.status).toBe(200);
-    expect(second.body.artifacts.map((artifact: { title: string }) => artifact.title)).toEqual(["User Upload Notes"]);
-    expect(second.body.artifacts.every((artifact: { source: string }) => artifact.source === "document")).toBe(true);
+    expect(
+      second.body.artifacts.map(
+        (artifact: { title: string }) => artifact.title,
+      ),
+    ).toEqual(["User Upload Notes"]);
+    expect(
+      second.body.artifacts.every(
+        (artifact: { source: string }) => artifact.source === "document",
+      ),
+    ).toBe(true);
 
     const incompatibleKind = await request(app).get(
       `/api/companies/${companyId}/artifacts?starred=true&kind=image`,
@@ -426,7 +487,9 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
     app.use("/api/companies", companyRoutes(db, createStorageService()));
     app.use(errorHandler);
 
-    const response = await request(app).get(`/api/companies/${companyId}/artifacts?starred=true`);
+    const response = await request(app).get(
+      `/api/companies/${companyId}/artifacts?starred=true`,
+    );
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ artifacts: [], nextCursor: null });
@@ -434,8 +497,12 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
 
   it("projects agent-created documents, direct attachments, and work products while excluding noisy sources", async () => {
     const { companyId } = await seedArtifacts();
-    const storage = createStorageService({ "notes.txt": Buffer.from("Text file preview from an agent output.") });
-    const result = await companyArtifactsService(db, storage).list(companyId, { limit: 20 });
+    const storage = createStorageService({
+      "notes.txt": Buffer.from("Text file preview from an agent output."),
+    });
+    const result = await companyArtifactsService(db, storage).list(companyId, {
+      limit: 20,
+    });
 
     expect(result.nextCursor).toBeNull();
     expect(result.artifacts.map((artifact) => artifact.title)).toEqual([
@@ -450,74 +517,141 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       "work_product",
       "attachment",
     ]);
-    expect(result.artifacts.find((artifact) => artifact.title === "notes.txt")?.previewText)
-      .toBe("Text file preview from an agent output.");
-    expect(result.artifacts.some((artifact) => artifact.title === "primary-cut.mp4")).toBe(false);
-    expect(result.artifacts.some((artifact) => artifact.title === "Continuation Summary")).toBe(false);
-    expect(result.artifacts.some((artifact) => artifact.title === "operator-screenshot.png")).toBe(false);
-    expect(result.artifacts.some((artifact) => artifact.title === "comment-screenshot.png")).toBe(false);
-    expect(result.artifacts.some((artifact) => artifact.issue.identifier === "OTH-1")).toBe(false);
+    expect(
+      result.artifacts.find((artifact) => artifact.title === "notes.txt")
+        ?.previewText,
+    ).toBe("Text file preview from an agent output.");
+    expect(
+      result.artifacts.some((artifact) => artifact.title === "primary-cut.mp4"),
+    ).toBe(false);
+    expect(
+      result.artifacts.some(
+        (artifact) => artifact.title === "Continuation Summary",
+      ),
+    ).toBe(false);
+    expect(
+      result.artifacts.some(
+        (artifact) => artifact.title === "operator-screenshot.png",
+      ),
+    ).toBe(false);
+    expect(
+      result.artifacts.some(
+        (artifact) => artifact.title === "comment-screenshot.png",
+      ),
+    ).toBe(false);
+    expect(
+      result.artifacts.some(
+        (artifact) => artifact.issue.identifier === "OTH-1",
+      ),
+    ).toBe(false);
   });
 
   it("supports project, kind, search, and cursor filters", async () => {
     const { companyId, projectId } = await seedArtifacts();
-    const storage = createStorageService({ "notes.txt": Buffer.from("Searchable notes preview") });
-
-    const projectVideos = await companyArtifactsService(db, storage).list(companyId, {
-      projectId,
-      kind: "video",
-      limit: 10,
+    const storage = createStorageService({
+      "notes.txt": Buffer.from("Searchable notes preview"),
     });
-    expect(projectVideos.artifacts.map((artifact) => artifact.title)).toEqual(["direct-video.mp4", "Primary Cut"]);
+
+    const projectVideos = await companyArtifactsService(db, storage).list(
+      companyId,
+      {
+        projectId,
+        kind: "video",
+        limit: 10,
+      },
+    );
+    expect(projectVideos.artifacts.map((artifact) => artifact.title)).toEqual([
+      "direct-video.mp4",
+      "Primary Cut",
+    ]);
 
     const search = await companyArtifactsService(db, storage).list(companyId, {
       q: "review document",
       limit: 10,
     });
-    expect(search.artifacts.map((artifact) => artifact.title)).toEqual(["Review Notes"]);
-
-    const firstPage = await companyArtifactsService(db, storage).list(companyId, { limit: 2 });
-    expect(firstPage.artifacts.map((artifact) => artifact.title)).toEqual(["Review Notes", "direct-video.mp4"]);
-    expect(firstPage.nextCursor).toEqual(expect.any(String));
-
-    const secondPage = await companyArtifactsService(db, storage).list(companyId, {
-      limit: 10,
-      cursor: firstPage.nextCursor ?? undefined,
-    });
-    expect(secondPage.artifacts.map((artifact) => artifact.title)).toEqual(["Primary Cut", "notes.txt"]);
-
-    const pageAfterPrimaryWorkProduct = await companyArtifactsService(db, storage).list(companyId, { limit: 3 });
-    expect(pageAfterPrimaryWorkProduct.artifacts.map((artifact) => artifact.title)).toEqual([
+    expect(search.artifacts.map((artifact) => artifact.title)).toEqual([
       "Review Notes",
-      "direct-video.mp4",
-      "Primary Cut",
     ]);
 
-    const afterPrimaryCursor = await companyArtifactsService(db, storage).list(companyId, {
-      limit: 10,
-      cursor: pageAfterPrimaryWorkProduct.nextCursor ?? undefined,
-    });
-    expect(afterPrimaryCursor.artifacts.map((artifact) => artifact.title)).toEqual(["notes.txt"]);
+    const firstPage = await companyArtifactsService(db, storage).list(
+      companyId,
+      { limit: 2 },
+    );
+    expect(firstPage.artifacts.map((artifact) => artifact.title)).toEqual([
+      "Review Notes",
+      "direct-video.mp4",
+    ]);
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+    const secondPage = await companyArtifactsService(db, storage).list(
+      companyId,
+      {
+        limit: 10,
+        cursor: firstPage.nextCursor ?? undefined,
+      },
+    );
+    expect(secondPage.artifacts.map((artifact) => artifact.title)).toEqual([
+      "Primary Cut",
+      "notes.txt",
+    ]);
+
+    const pageAfterPrimaryWorkProduct = await companyArtifactsService(
+      db,
+      storage,
+    ).list(companyId, { limit: 3 });
+    expect(
+      pageAfterPrimaryWorkProduct.artifacts.map((artifact) => artifact.title),
+    ).toEqual(["Review Notes", "direct-video.mp4", "Primary Cut"]);
+
+    const afterPrimaryCursor = await companyArtifactsService(db, storage).list(
+      companyId,
+      {
+        limit: 10,
+        cursor: pageAfterPrimaryWorkProduct.nextCursor ?? undefined,
+      },
+    );
+    expect(
+      afterPrimaryCursor.artifacts.map((artifact) => artifact.title),
+    ).toEqual(["notes.txt"]);
   });
 
   it("filters every artifact source by the agent it is attributed to", async () => {
     const { companyId } = await seedArtifacts();
     const writerId = "21212121-2121-4121-8121-212121212121";
-    await db.insert(agents).values({ id: writerId, companyId, name: "Writer", role: "engineer" });
-    await db.update(documents).set({ createdByAgentId: writerId })
+    await db
+      .insert(agents)
+      .values({ id: writerId, companyId, name: "Writer", role: "engineer" });
+    await db
+      .update(documents)
+      .set({ createdByAgentId: writerId })
       .where(eq(documents.id, "cccccccc-cccc-4ccc-8ccc-cccccccccccc"));
     const storage = createStorageService({ "notes.txt": Buffer.from("notes") });
 
-    const writer = await companyArtifactsService(db, storage).list(companyId, { agentId: writerId, limit: 20 });
-    expect(writer.artifacts.map((artifact) => artifact.title)).toEqual(["Review Notes"]);
-
-    const original = await companyArtifactsService(db, storage).list(companyId, {
-      agentId: "33333333-3333-4333-8333-333333333333",
+    const writer = await companyArtifactsService(db, storage).list(companyId, {
+      agentId: writerId,
       limit: 20,
     });
-    expect(original.artifacts.map((artifact) => artifact.title)).toEqual(["direct-video.mp4", "Primary Cut", "notes.txt"]);
-    expect(new Set(original.artifacts.map((artifact) => artifact.createdByAgent?.id)))
-      .toEqual(new Set(["33333333-3333-4333-8333-333333333333"]));
+    expect(writer.artifacts.map((artifact) => artifact.title)).toEqual([
+      "Review Notes",
+    ]);
+
+    const original = await companyArtifactsService(db, storage).list(
+      companyId,
+      {
+        agentId: "33333333-3333-4333-8333-333333333333",
+        limit: 20,
+      },
+    );
+    expect(original.artifacts.map((artifact) => artifact.title)).toEqual([
+      "direct-video.mp4",
+      "Primary Cut",
+      "notes.txt",
+    ]);
+    expect(
+      new Set(
+        original.artifacts.map((artifact) => artifact.createdByAgent?.id),
+      ),
+    ).toEqual(new Set(["33333333-3333-4333-8333-333333333333"]));
 
     const foreign = await companyArtifactsService(db, storage).list(companyId, {
       agentId: "44444444-4444-4444-8444-444444444444",
@@ -558,10 +692,13 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       provider: "taskcore",
       title: `Filler Video ${index + 1}`,
       status: "ready_for_review" as const,
-      summary: "Filler artifact to push the attachment-backed work product past the fetch window",
+      summary:
+        "Filler artifact to push the attachment-backed work product past the fetch window",
       metadata: { contentType: "video/mp4" },
       createdByRunId: "99999999-9999-4999-8999-999999999999",
-      updatedAt: new Date(`2026-01-10T00:${String(index).padStart(2, "0")}:00.000Z`),
+      updatedAt: new Date(
+        `2026-01-10T00:${String(index).padStart(2, "0")}:00.000Z`,
+      ),
     }));
     await db.insert(issueWorkProducts).values([
       ...fillerWorkProducts,
@@ -574,7 +711,8 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
         provider: "taskcore",
         title: "Late Render",
         status: "ready_for_review",
-        summary: "Attachment-backed work product outside the limited fetch window",
+        summary:
+          "Attachment-backed work product outside the limited fetch window",
         metadata: {
           attachmentId: dedupedAttachmentId,
           contentType: "video/mp4",
@@ -589,12 +727,17 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       },
     ]);
 
-    const result = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const result = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       kind: "video",
       limit: 20,
     });
 
-    expect(result.artifacts.some((artifact) => artifact.title === "late-render.mp4")).toBe(false);
+    expect(
+      result.artifacts.some((artifact) => artifact.title === "late-render.mp4"),
+    ).toBe(false);
   });
 
   it("does not project a foreign agent from a malformed work product run reference", async () => {
@@ -614,12 +757,21 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       updatedAt: new Date("2026-01-10T00:00:00.000Z"),
     });
 
-    const result = await companyArtifactsService(db, createStorageService()).list(companyId, { limit: 20 });
-    const forged = result.artifacts.find((artifact) => artifact.title === "Forged Run Artifact");
+    const result = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, { limit: 20 });
+    const forged = result.artifacts.find(
+      (artifact) => artifact.title === "Forged Run Artifact",
+    );
 
     expect(forged).toBeTruthy();
     expect(forged?.createdByAgent).toBeNull();
-    expect(result.artifacts.some((artifact) => artifact.createdByAgent?.name === "Other")).toBe(false);
+    expect(
+      result.artifacts.some(
+        (artifact) => artifact.createdByAgent?.name === "Other",
+      ),
+    ).toBe(false);
   });
 
   it("does not leak foreign issue or project metadata through malformed artifact link rows", async () => {
@@ -633,7 +785,10 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       name: "Foreign Project",
       status: "in_progress",
     });
-    await db.update(issues).set({ projectId: foreignProjectId }).where(eq(issues.id, otherIssueId));
+    await db
+      .update(issues)
+      .set({ projectId: foreignProjectId })
+      .where(eq(issues.id, otherIssueId));
     await db.insert(documents).values({
       id: "1d1d1d1d-1d1d-4d1d-8d1d-1d1d1d1d1d1d",
       companyId,
@@ -680,27 +835,56 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       updatedAt: new Date("2026-01-28T00:00:00.000Z"),
     });
 
-    const flat = await companyArtifactsService(db, createStorageService()).list(companyId, { limit: 20 });
-    expect(flat.artifacts.map((artifact) => artifact.title)).not.toEqual(expect.arrayContaining([
-      "Forged Link Document",
-      "forged-link.txt",
-      "Forged Link Work Product",
-    ]));
-    expect(flat.artifacts.some((artifact) => artifact.issue.identifier === "OTH-1")).toBe(false);
-    expect(flat.artifacts.some((artifact) => artifact.issue.title === "Other output")).toBe(false);
-    expect(flat.artifacts.some((artifact) => artifact.project?.name === "Foreign Project")).toBe(false);
+    const flat = await companyArtifactsService(db, createStorageService()).list(
+      companyId,
+      { limit: 20 },
+    );
+    expect(flat.artifacts.map((artifact) => artifact.title)).not.toEqual(
+      expect.arrayContaining([
+        "Forged Link Document",
+        "forged-link.txt",
+        "Forged Link Work Product",
+      ]),
+    );
+    expect(
+      flat.artifacts.some((artifact) => artifact.issue.identifier === "OTH-1"),
+    ).toBe(false);
+    expect(
+      flat.artifacts.some(
+        (artifact) => artifact.issue.title === "Other output",
+      ),
+    ).toBe(false);
+    expect(
+      flat.artifacts.some(
+        (artifact) => artifact.project?.name === "Foreign Project",
+      ),
+    ).toBe(false);
 
-    const grouped = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const grouped = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       limit: 20,
     });
-    expect(grouped.groups?.some((group) => group.issue.identifier === "OTH-1")).toBe(false);
-    expect(grouped.groups?.some((group) => group.issue.title === "Other output")).toBe(false);
-    expect(grouped.groups?.some((group) =>
-      group.previewArtifacts.some((artifact) => artifact.project?.name === "Foreign Project")
-    )).toBe(false);
+    expect(
+      grouped.groups?.some((group) => group.issue.identifier === "OTH-1"),
+    ).toBe(false);
+    expect(
+      grouped.groups?.some((group) => group.issue.title === "Other output"),
+    ).toBe(false);
+    expect(
+      grouped.groups?.some((group) =>
+        group.previewArtifacts.some(
+          (artifact) => artifact.project?.name === "Foreign Project",
+        ),
+      ),
+    ).toBe(false);
 
-    const selectedForeignGroup = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const selectedForeignGroup = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       groupIssueId: otherIssueId,
       limit: 20,
@@ -714,7 +898,9 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
 
   it("groups artifacts by task after applying media, project, and search filters", async () => {
     const { companyId, projectId, issueId } = await seedArtifacts();
-    const storage = createStorageService({ "notes.txt": Buffer.from("Searchable notes preview") });
+    const storage = createStorageService({
+      "notes.txt": Buffer.from("Searchable notes preview"),
+    });
 
     const grouped = await companyArtifactsService(db, storage).list(companyId, {
       groupBy: "task",
@@ -722,12 +908,14 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
     });
     expect(grouped.artifacts).toEqual([]);
     expect(grouped.nextCursor).toBeNull();
-    expect(grouped.groups?.map((group) => ({
-      issue: group.issue.identifier,
-      count: group.count,
-      mediaKinds: group.mediaKinds,
-      href: group.href,
-    }))).toEqual([
+    expect(
+      grouped.groups?.map((group) => ({
+        issue: group.issue.identifier,
+        count: group.count,
+        mediaKinds: group.mediaKinds,
+        href: group.href,
+      })),
+    ).toEqual([
       {
         issue: "PAP-2",
         count: 1,
@@ -741,25 +929,32 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
         href: "/PAP/artifacts?groupBy=task&groupIssueId=66666666-6666-4666-8666-666666666666",
       },
     ]);
-    expect(grouped.groups?.find((group) => group.issue.id === issueId)?.previewArtifacts.map((artifact) => artifact.title))
-      .toEqual(["direct-video.mp4", "Primary Cut", "notes.txt"]);
+    expect(
+      grouped.groups
+        ?.find((group) => group.issue.id === issueId)
+        ?.previewArtifacts.map((artifact) => artifact.title),
+    ).toEqual(["direct-video.mp4", "Primary Cut", "notes.txt"]);
 
-    const projectVideos = await companyArtifactsService(db, storage).list(companyId, {
-      groupBy: "task",
-      projectId,
-      kind: "video",
-      limit: 10,
-    });
-    expect(projectVideos.groups?.map((group) => ({
-      issue: group.issue.identifier,
-      count: group.count,
-      href: group.href,
-    }))).toEqual([
+    const projectVideos = await companyArtifactsService(db, storage).list(
+      companyId,
+      {
+        groupBy: "task",
+        projectId,
+        kind: "video",
+        limit: 10,
+      },
+    );
+    expect(
+      projectVideos.groups?.map((group) => ({
+        issue: group.issue.identifier,
+        count: group.count,
+        href: group.href,
+      })),
+    ).toEqual([
       {
         issue: "PAP-1",
         count: 2,
-        href:
-          "/PAP/artifacts?groupBy=task&groupIssueId=66666666-6666-4666-8666-666666666666&kind=video&projectId=55555555-5555-4555-8555-555555555555",
+        href: "/PAP/artifacts?groupBy=task&groupIssueId=66666666-6666-4666-8666-666666666666&kind=video&projectId=55555555-5555-4555-8555-555555555555",
       },
     ]);
 
@@ -768,27 +963,40 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       q: "review document",
       limit: 10,
     });
-    expect(search.groups?.map((group) => ({ issue: group.issue.identifier, count: group.count }))).toEqual([
-      { issue: "PAP-2", count: 1 },
-    ]);
+    expect(
+      search.groups?.map((group) => ({
+        issue: group.issue.identifier,
+        count: group.count,
+      })),
+    ).toEqual([{ issue: "PAP-2", count: 1 }]);
   });
 
   it("paginates grouped task lists with the active group cursor", async () => {
     const { companyId } = await seedArtifacts();
 
-    const firstPage = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const firstPage = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       limit: 1,
     });
-    expect(firstPage.groups?.map((group) => group.issue.identifier)).toEqual(["PAP-2"]);
+    expect(firstPage.groups?.map((group) => group.issue.identifier)).toEqual([
+      "PAP-2",
+    ]);
     expect(firstPage.nextCursor).toEqual(expect.any(String));
 
-    const secondPage = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const secondPage = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       limit: 10,
       cursor: firstPage.nextCursor ?? undefined,
     });
-    expect(secondPage.groups?.map((group) => group.issue.identifier)).toEqual(["PAP-1"]);
+    expect(secondPage.groups?.map((group) => group.issue.identifier)).toEqual([
+      "PAP-1",
+    ]);
     expect(secondPage.nextCursor).toBeNull();
   });
 
@@ -797,7 +1005,10 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
     const grandchildIssueId = "21212121-2121-4212-8121-212121212121";
     const grandchildAttachmentId = "23232323-2323-4232-8232-232323232323";
 
-    await db.update(issues).set({ parentId: issueId }).where(eq(issues.id, secondIssueId));
+    await db
+      .update(issues)
+      .set({ parentId: issueId })
+      .where(eq(issues.id, secondIssueId));
     await db.insert(issues).values({
       id: grandchildIssueId,
       companyId,
@@ -826,17 +1037,22 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       updatedAt: new Date("2026-01-05T00:00:00.000Z"),
     });
 
-    const grouped = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const grouped = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "parent_task",
       limit: 10,
     });
 
     expect(grouped.artifacts).toEqual([]);
-    expect(grouped.groups?.map((group) => ({
-      issue: group.issue.identifier,
-      count: group.count,
-      previewTitles: group.previewArtifacts.map((artifact) => artifact.title),
-    }))).toEqual([
+    expect(
+      grouped.groups?.map((group) => ({
+        issue: group.issue.identifier,
+        count: group.count,
+        previewTitles: group.previewArtifacts.map((artifact) => artifact.title),
+      })),
+    ).toEqual([
       {
         issue: "PAP-1",
         count: 5,
@@ -848,7 +1064,10 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
   it("returns selected group artifact pages and metadata without leaking foreign group issues", async () => {
     const { companyId, issueId, otherIssueId } = await seedArtifacts();
 
-    const selected = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const selected = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       groupIssueId: issueId,
       limit: 2,
@@ -860,18 +1079,29 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       issue: { identifier: "PAP-1" },
       count: 3,
     });
-    expect(selected.artifacts.map((artifact) => artifact.title)).toEqual(["direct-video.mp4", "Primary Cut"]);
+    expect(selected.artifacts.map((artifact) => artifact.title)).toEqual([
+      "direct-video.mp4",
+      "Primary Cut",
+    ]);
     expect(selected.nextCursor).toEqual(expect.any(String));
 
-    const selectedSecondPage = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const selectedSecondPage = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       groupIssueId: issueId,
       limit: 10,
       cursor: selected.nextCursor ?? undefined,
     });
-    expect(selectedSecondPage.artifacts.map((artifact) => artifact.title)).toEqual(["notes.txt"]);
+    expect(
+      selectedSecondPage.artifacts.map((artifact) => artifact.title),
+    ).toEqual(["notes.txt"]);
 
-    const selectedEmptyByFilter = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const selectedEmptyByFilter = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       groupIssueId: issueId,
       q: "does-not-match-this-stack",
@@ -883,7 +1113,10 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
     });
     expect(selectedEmptyByFilter.artifacts).toEqual([]);
 
-    const foreignSelected = await companyArtifactsService(db, createStorageService()).list(companyId, {
+    const foreignSelected = await companyArtifactsService(
+      db,
+      createStorageService(),
+    ).list(companyId, {
       groupBy: "task",
       groupIssueId: otherIssueId,
       limit: 10,
@@ -910,7 +1143,9 @@ describe("company artifacts route authorization", () => {
     app.use("/api/companies", companyRoutes({} as any, createStorageService()));
     app.use(errorHandler);
 
-    const res = await request(app).get("/api/companies/company-denied/artifacts");
+    const res = await request(app).get(
+      "/api/companies/company-denied/artifacts",
+    );
 
     expect(res.status).toBe(403);
     expect(res.body.error).toBe("Agent key cannot access another company");

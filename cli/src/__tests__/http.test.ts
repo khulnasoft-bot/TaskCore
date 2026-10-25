@@ -51,17 +51,15 @@ describe("TaskcoreApiClient", () => {
   });
 
   it("throws ApiRequestError with details", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            error: "Issue checkout conflict",
-            details: { issueId: "1" },
-          }),
-          { status: 409 },
-        ),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "Issue checkout conflict",
+          details: { issueId: "1" },
+        }),
+        { status: 409 },
+      ),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const client = new TaskcoreApiClient({ apiBase: "http://localhost:3100" });

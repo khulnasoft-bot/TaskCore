@@ -58,7 +58,9 @@ export const pluginState = pgTable(
     /** JSON-serializable value stored by the plugin. */
     valueJson: jsonb("value_json").notNull(),
     /** Timestamp of the most recent write. */
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     /**

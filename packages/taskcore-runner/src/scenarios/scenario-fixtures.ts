@@ -27,10 +27,18 @@ const ROLE_NAMES: Record<string, string> = {
 };
 
 function at(offsetSeconds: number): string {
-  return new Date(FIXTURE_EPOCH_MS - 3_600_000 + offsetSeconds * 1_000).toISOString();
+  return new Date(
+    FIXTURE_EPOCH_MS - 3_600_000 + offsetSeconds * 1_000,
+  ).toISOString();
 }
 
-function task(overrides: Partial<CapabilityFixtureTask> & { id: string; identifier: string; title: string }): CapabilityFixtureTask {
+function task(
+  overrides: Partial<CapabilityFixtureTask> & {
+    id: string;
+    identifier: string;
+    title: string;
+  },
+): CapabilityFixtureTask {
   return {
     companyId: COMPANY_ID,
     description: null,
@@ -63,7 +71,9 @@ export interface CapabilityScenarioFixture {
   };
 }
 
-export function capabilityScenarioFixture(entry: CapabilityScenarioIndexEntry): CapabilityScenarioFixture {
+export function capabilityScenarioFixture(
+  entry: CapabilityScenarioIndexEntry,
+): CapabilityScenarioFixture {
   const seedKind = entry.seedKind as CapabilitySeedKind;
   const activeTask = task({
     id: TASK_ID,
@@ -196,7 +206,12 @@ function applySeedKind(
         }),
       ];
       seed.blockers = [
-        { id: "blocker-seed-1", taskId: TASK_ID, blockedByTaskId: refs.blockingTaskId, createdAt: at(0) },
+        {
+          id: "blocker-seed-1",
+          taskId: TASK_ID,
+          blockedByTaskId: refs.blockingTaskId,
+          createdAt: at(0),
+        },
       ];
       addPeerActor(seed);
       return;
@@ -221,7 +236,12 @@ function applySeedKind(
       refs.interactionId = "interaction-seed-1";
       const selectedOptionIds =
         entry.id === "ix-checkbox-result-01"
-          ? ["selected-task-1", "selected-task-2", "selected-task-3", "selected-task-4"]
+          ? [
+              "selected-task-1",
+              "selected-task-2",
+              "selected-task-3",
+              "selected-task-4",
+            ]
           : ["accept"];
       seed.interactions = [
         {
@@ -294,8 +314,22 @@ function applySeedKind(
       return;
     case "budget_tight":
       seed.budgets = [
-        { id: "budget-company-1", scope: "company", scopeId: COMPANY_ID, limitCents: 10_000, spentCents: 9_800, hardStop: true },
-        { id: "budget-actor-1", scope: "actor", scopeId: ACTOR_ID, limitCents: 1_000, spentCents: 940, hardStop: true },
+        {
+          id: "budget-company-1",
+          scope: "company",
+          scopeId: COMPANY_ID,
+          limitCents: 10_000,
+          spentCents: 9_800,
+          hardStop: true,
+        },
+        {
+          id: "budget-actor-1",
+          scope: "actor",
+          scopeId: ACTOR_ID,
+          limitCents: 1_000,
+          spentCents: 940,
+          hardStop: true,
+        },
       ];
       return;
     case "checkout_conflict":
@@ -344,10 +378,31 @@ function addPeerActor(seed: CapabilityFixtureSeed): void {
   ];
   seed.budgets = [
     ...(seed.budgets ?? [
-      { id: "budget-company-1", scope: "company", scopeId: COMPANY_ID, limitCents: 10_000, spentCents: 0, hardStop: true },
-      { id: "budget-actor-1", scope: "actor", scopeId: ACTOR_ID, limitCents: 1_000, spentCents: 0, hardStop: true },
+      {
+        id: "budget-company-1",
+        scope: "company",
+        scopeId: COMPANY_ID,
+        limitCents: 10_000,
+        spentCents: 0,
+        hardStop: true,
+      },
+      {
+        id: "budget-actor-1",
+        scope: "actor",
+        scopeId: ACTOR_ID,
+        limitCents: 1_000,
+        spentCents: 0,
+        hardStop: true,
+      },
     ]),
-    { id: "budget-actor-2", scope: "actor", scopeId: PEER_ACTOR_ID, limitCents: 1_000, spentCents: 0, hardStop: true },
+    {
+      id: "budget-actor-2",
+      scope: "actor",
+      scopeId: PEER_ACTOR_ID,
+      limitCents: 1_000,
+      spentCents: 0,
+      hardStop: true,
+    },
   ];
 }
 

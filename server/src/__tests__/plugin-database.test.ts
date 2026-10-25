@@ -3,7 +3,15 @@ import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { and, eq, sql } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   companies,
   createDb,
@@ -25,10 +33,15 @@ import {
   validatePluginRuntimeExecute,
   validatePluginRuntimeQuery,
 } from "../services/plugin-database.js";
-import { buildPluginWorkerEnv, pluginLoader } from "../services/plugin-loader.js";
+import {
+  buildPluginWorkerEnv,
+  pluginLoader,
+} from "../services/plugin-loader.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 const multiMigrationPluginKey = "taskcore.dbfixture";
 const llmWikiPluginKey = "taskcore.plugin-llm-wiki";
 
@@ -45,7 +58,7 @@ describe("plugin database SQL validation", () => {
         "CREATE TABLE plugin_test.rows (id uuid PRIMARY KEY, issue_id uuid REFERENCES public.issues(id))",
         "plugin_test",
         ["issues"],
-      )
+      ),
     ).not.toThrow();
   });
 
@@ -54,7 +67,7 @@ describe("plugin database SQL validation", () => {
       validatePluginMigrationStatement(
         "CREATE INDEX IF NOT EXISTS rows_issue_idx ON plugin_test.rows (issue_id)",
         "plugin_test",
-      )
+      ),
     ).not.toThrow();
     expect(() =>
       validatePluginMigrationStatement(
@@ -67,7 +80,7 @@ describe("plugin database SQL validation", () => {
         ON CONFLICT (id) DO NOTHING
         `,
         "plugin_test",
-      )
+      ),
     ).not.toThrow();
     expect(() =>
       validatePluginMigrationStatement(
@@ -78,7 +91,7 @@ describe("plugin database SQL validation", () => {
         WHERE s.id = r.id
         `,
         "plugin_test",
-      )
+      ),
     ).not.toThrow();
   });
 
@@ -88,21 +101,21 @@ describe("plugin database SQL validation", () => {
         "CREATE TABLE rows (id uuid PRIMARY KEY, issue_id uuid REFERENCES public.issues(id))",
         "plugin_test",
         ["issues"],
-      )
+      ),
     ).toThrow(/fully qualified/i);
     expect(() =>
       validatePluginMigrationStatement(
         "WITH source_rows AS (SELECT id FROM plugin_test.rows) INSERT INTO public.issues (id) SELECT id FROM source_rows",
         "plugin_test",
         ["issues"],
-      )
+      ),
     ).toThrow(/public/i);
     expect(() =>
       validatePluginMigrationStatement(
         "UPDATE public.issues SET title = 'bad'",
         "plugin_test",
         ["issues"],
-      )
+      ),
     ).toThrow(/public/i);
   });
 
@@ -112,7 +125,7 @@ describe("plugin database SQL validation", () => {
         "CREATE TABLE public.rows (id uuid PRIMARY KEY)",
         "plugin_test",
         ["issues"],
-      )
+      ),
     ).toThrow(/public/i);
   });
 
@@ -122,10 +135,13 @@ describe("plugin database SQL validation", () => {
         "SELECT r.id FROM plugin_test.rows r JOIN public.issues i ON i.id = r.issue_id",
         "plugin_test",
         ["issues"],
-      )
+      ),
     ).not.toThrow();
     expect(() =>
-      validatePluginRuntimeExecute("UPDATE public.issues SET title = $1", "plugin_test")
+      validatePluginRuntimeExecute(
+        "UPDATE public.issues SET title = $1",
+        "plugin_test",
+      ),
     ).toThrow(/namespace/i);
   });
 
@@ -134,10 +150,10 @@ describe("plugin database SQL validation", () => {
       validatePluginRuntimeQuery(
         "SELECT EXTRACT(DOW FROM created_at) AS do_flag FROM plugin_test.rows",
         "plugin_test",
-      )
+      ),
     ).not.toThrow();
     expect(() =>
-      validatePluginMigrationStatement("DO $$ BEGIN END $$;", "plugin_test")
+      validatePluginMigrationStatement("DO $$ BEGIN END $$;", "plugin_test"),
     ).toThrow(/disallowed/i);
   });
 });
@@ -204,28 +220,59 @@ describe("buildPluginWorkerEnv", () => {
   });
 
   it.each([
-    { packagePath: null, packageName: "@taskcore/plugin-createos", driverKey: "createos", allowed: true },
-    { packagePath: "/app/packages/plugins/sandbox-providers/createos", packageName: "@taskcore/plugin-createos", driverKey: "createos", allowed: true },
-    { packagePath: "/home/operator/plugins/fake-createos", packageName: "@taskcore/plugin-createos", driverKey: "createos", allowed: false },
-    { packagePath: null, packageName: "@acme/plugin-createos", driverKey: "createos", allowed: false },
-    { packagePath: null, packageName: "@taskcore/plugin-createos", driverKey: "daytona", allowed: false },
-  ])("confines the CreateOS fallback credential to its trusted worker: $packageName / $packagePath / $driverKey", ({ allowed, driverKey, ...installation }) => {
-    const env = buildPluginWorkerEnv({
-      ...installation,
-      manifest: {
-        capabilities: ["environment.drivers.register"],
-        environmentDrivers: [{ driverKey }],
-      },
-      trustedLocalPluginRoots: ["/app/packages/plugins"],
-      instanceInfo,
-      processEnv: { CREATEOS_API_KEY: "createos-token", DAYTONA_API_KEY: "daytona-token" },
-    });
-    expect(env).toEqual({
-      TASKCORE_DEPLOYMENT_MODE: "authenticated",
-      TASKCORE_DEPLOYMENT_EXPOSURE: "public",
-      ...(allowed ? { CREATEOS_API_KEY: "createos-token" } : {}),
-    });
-  });
+    {
+      packagePath: null,
+      packageName: "@taskcore/plugin-createos",
+      driverKey: "createos",
+      allowed: true,
+    },
+    {
+      packagePath: "/app/packages/plugins/sandbox-providers/createos",
+      packageName: "@taskcore/plugin-createos",
+      driverKey: "createos",
+      allowed: true,
+    },
+    {
+      packagePath: "/home/operator/plugins/fake-createos",
+      packageName: "@taskcore/plugin-createos",
+      driverKey: "createos",
+      allowed: false,
+    },
+    {
+      packagePath: null,
+      packageName: "@acme/plugin-createos",
+      driverKey: "createos",
+      allowed: false,
+    },
+    {
+      packagePath: null,
+      packageName: "@taskcore/plugin-createos",
+      driverKey: "daytona",
+      allowed: false,
+    },
+  ])(
+    "confines the CreateOS fallback credential to its trusted worker: $packageName / $packagePath / $driverKey",
+    ({ allowed, driverKey, ...installation }) => {
+      const env = buildPluginWorkerEnv({
+        ...installation,
+        manifest: {
+          capabilities: ["environment.drivers.register"],
+          environmentDrivers: [{ driverKey }],
+        },
+        trustedLocalPluginRoots: ["/app/packages/plugins"],
+        instanceInfo,
+        processEnv: {
+          CREATEOS_API_KEY: "createos-token",
+          DAYTONA_API_KEY: "daytona-token",
+        },
+      });
+      expect(env).toEqual({
+        TASKCORE_DEPLOYMENT_MODE: "authenticated",
+        TASKCORE_DEPLOYMENT_EXPOSURE: "public",
+        ...(allowed ? { CREATEOS_API_KEY: "createos-token" } : {}),
+      });
+    },
+  );
 
   it("passes a first-party sandbox provider's documented credential env var to its own worker", () => {
     const env = buildPluginWorkerEnv({
@@ -334,7 +381,9 @@ describe("buildPluginWorkerEnv", () => {
 
 describeEmbeddedPostgres("plugin database namespaces", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let packageRoots: string[] = [];
 
   beforeAll(async () => {
@@ -343,18 +392,30 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
   }, 20_000);
 
   afterEach(async () => {
-    for (const pluginKey of ["taskcore.dbtest", "taskcore.escape", "taskcore.refresh", multiMigrationPluginKey, llmWikiPluginKey]) {
+    for (const pluginKey of [
+      "taskcore.dbtest",
+      "taskcore.escape",
+      "taskcore.refresh",
+      multiMigrationPluginKey,
+      llmWikiPluginKey,
+    ]) {
       const namespace = derivePluginDatabaseNamespace(pluginKey);
       await db.execute(sql.raw(`DROP SCHEMA IF EXISTS "${namespace}" CASCADE`));
     }
-    await db.execute(sql.raw(`DROP SCHEMA IF EXISTS "${derivePluginDatabaseNamespace(llmWikiPluginKey, "llm_wiki")}" CASCADE`));
+    await db.execute(
+      sql.raw(
+        `DROP SCHEMA IF EXISTS "${derivePluginDatabaseNamespace(llmWikiPluginKey, "llm_wiki")}" CASCADE`,
+      ),
+    );
     await db.delete(pluginMigrations);
     await db.delete(pluginDatabaseNamespaces);
     await db.delete(plugins);
     await db.delete(issueRelations);
     await db.delete(issues);
     await db.delete(companies);
-    await Promise.all(packageRoots.map((root) => rm(root, { recursive: true, force: true })));
+    await Promise.all(
+      packageRoots.map((root) => rm(root, { recursive: true, force: true })),
+    );
     packageRoots = [];
   });
 
@@ -362,12 +423,24 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
     await tempDb?.cleanup();
   });
 
-  async function createPluginPackage(manifest: TaskcorePluginManifestV1, migrationSql: string) {
-    const packageRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-plugin-package-"));
+  async function createPluginPackage(
+    manifest: TaskcorePluginManifestV1,
+    migrationSql: string,
+  ) {
+    const packageRoot = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-plugin-package-"),
+    );
     packageRoots.push(packageRoot);
-    const migrationsDir = path.join(packageRoot, manifest.database!.migrationsDir);
+    const migrationsDir = path.join(
+      packageRoot,
+      manifest.database!.migrationsDir,
+    );
     await mkdir(migrationsDir, { recursive: true });
-    await writeFile(path.join(migrationsDir, "001_init.sql"), migrationSql, "utf8");
+    await writeFile(
+      path.join(migrationsDir, "001_init.sql"),
+      migrationSql,
+      "utf8",
+    );
     return packageRoot;
   }
 
@@ -415,7 +488,11 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       "utf8",
     );
     await mkdir(path.join(packageRoot, "dist"), { recursive: true });
-    await writeFile(path.join(packageRoot, "dist", "worker.js"), "export {};\n", "utf8");
+    await writeFile(
+      path.join(packageRoot, "dist", "worker.js"),
+      "export {};\n",
+      "utf8",
+    );
     return packageRoot;
   }
 
@@ -465,7 +542,11 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       `CREATE TABLE ${namespace}.source_rows (id uuid PRIMARY KEY, label text NOT NULL);`,
     );
     await writeFile(
-      path.join(packageRoot, pluginManifest.database!.migrationsDir, "002_derived.sql"),
+      path.join(
+        packageRoot,
+        pluginManifest.database!.migrationsDir,
+        "002_derived.sql",
+      ),
       `CREATE TABLE ${namespace}.derived_rows (
         id uuid PRIMARY KEY,
         source_id uuid NOT NULL REFERENCES ${namespace}.source_rows(id)
@@ -473,28 +554,57 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       "utf8",
     );
     const pluginId = await installPluginRecord(pluginManifest);
-    await pluginDatabaseService(db).applyMigrations(pluginId, pluginManifest, packageRoot);
+    await pluginDatabaseService(db).applyMigrations(
+      pluginId,
+      pluginManifest,
+      packageRoot,
+    );
 
     const migrations = await db
       .select()
       .from(pluginMigrations)
-      .where(and(eq(pluginMigrations.pluginId, pluginId), eq(pluginMigrations.status, "applied")));
+      .where(
+        and(
+          eq(pluginMigrations.pluginId, pluginId),
+          eq(pluginMigrations.status, "applied"),
+        ),
+      );
     expect(migrations).toHaveLength(2);
   });
 
   it("applies the bundled LLM Wiki migrations through the production validator", async () => {
     const pluginManifest = llmWikiManifest();
-    const repoRoot = path.basename(process.cwd()) === "server" ? path.resolve(process.cwd(), "..") : process.cwd();
-    const packageRoot = path.join(repoRoot, "packages", "plugins", "plugin-llm-wiki");
-    const namespace = derivePluginDatabaseNamespace(pluginManifest.id, pluginManifest.database?.namespaceSlug);
+    const repoRoot =
+      path.basename(process.cwd()) === "server"
+        ? path.resolve(process.cwd(), "..")
+        : process.cwd();
+    const packageRoot = path.join(
+      repoRoot,
+      "packages",
+      "plugins",
+      "plugin-llm-wiki",
+    );
+    const namespace = derivePluginDatabaseNamespace(
+      pluginManifest.id,
+      pluginManifest.database?.namespaceSlug,
+    );
     const pluginId = await installPluginRecord(pluginManifest);
 
-    await pluginDatabaseService(db).applyMigrations(pluginId, pluginManifest, packageRoot);
+    await pluginDatabaseService(db).applyMigrations(
+      pluginId,
+      pluginManifest,
+      packageRoot,
+    );
 
     const migrations = await db
       .select()
       .from(pluginMigrations)
-      .where(and(eq(pluginMigrations.pluginId, pluginId), eq(pluginMigrations.status, "applied")));
+      .where(
+        and(
+          eq(pluginMigrations.pluginId, pluginId),
+          eq(pluginMigrations.status, "applied"),
+        ),
+      );
     expect(migrations.map((migration) => migration.migrationKey)).toEqual([
       "001_llm_wiki.sql",
       "002_taskcore_distillation.sql",
@@ -502,7 +612,7 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
     ]);
 
     const constraintRows = Array.from(
-      await db.execute(
+      (await db.execute(
         sql<{ table_name: string; conname: string; columns: string[] }>`
           SELECT t.relname AS table_name, c.conname, array_agg(a.attname ORDER BY constraint_columns.ordinality)::text[] AS columns
           FROM pg_constraint c
@@ -513,7 +623,11 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
           GROUP BY t.relname, c.conname
           ORDER BY t.relname, c.conname
         `,
-      ) as Iterable<{ table_name: string; conname: string; columns: string[] }>,
+      )) as Iterable<{
+        table_name: string;
+        conname: string;
+        columns: string[];
+      }>,
     );
     const constraints = constraintRows.map((row) => row.conname);
     const uniqueColumnSets = new Set(
@@ -528,13 +642,27 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       ]),
     );
     expect(constraints).not.toContain("wiki_pages_company_id_wiki_id_path_key");
-    expect(constraints).not.toContain("taskcore_distillation_cursor_company_id_wiki_id_source_sco_key");
-    expect(constraints).not.toContain("taskcore_distillation_work_i_company_id_wiki_id_idempotenc_key");
-    expect(constraints).not.toContain("taskcore_page_bindings_company_id_wiki_id_page_path_key");
-    expect(uniqueColumnSets).not.toContain("wiki_pages:company_id,wiki_id,path");
-    expect(uniqueColumnSets).not.toContain("taskcore_distillation_cursors:company_id,wiki_id,source_scope,scope_key,source_kind");
-    expect(uniqueColumnSets).not.toContain("taskcore_distillation_work_items:company_id,wiki_id,idempotency_key");
-    expect(uniqueColumnSets).not.toContain("taskcore_page_bindings:company_id,wiki_id,page_path");
+    expect(constraints).not.toContain(
+      "taskcore_distillation_cursor_company_id_wiki_id_source_sco_key",
+    );
+    expect(constraints).not.toContain(
+      "taskcore_distillation_work_i_company_id_wiki_id_idempotenc_key",
+    );
+    expect(constraints).not.toContain(
+      "taskcore_page_bindings_company_id_wiki_id_page_path_key",
+    );
+    expect(uniqueColumnSets).not.toContain(
+      "wiki_pages:company_id,wiki_id,path",
+    );
+    expect(uniqueColumnSets).not.toContain(
+      "taskcore_distillation_cursors:company_id,wiki_id,source_scope,scope_key,source_kind",
+    );
+    expect(uniqueColumnSets).not.toContain(
+      "taskcore_distillation_work_items:company_id,wiki_id,idempotency_key",
+    );
+    expect(uniqueColumnSets).not.toContain(
+      "taskcore_page_bindings:company_id,wiki_id,page_path",
+    );
   });
 
   it("applies migrations once and allows whitelisted core joins at runtime", async () => {
@@ -586,7 +714,12 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
     const migrations = await db
       .select()
       .from(pluginMigrations)
-      .where(and(eq(pluginMigrations.pluginId, pluginId), eq(pluginMigrations.status, "applied")));
+      .where(
+        and(
+          eq(pluginMigrations.pluginId, pluginId),
+          eq(pluginMigrations.status, "applied"),
+        ),
+      );
     expect(migrations).toHaveLength(1);
   });
 
@@ -602,7 +735,9 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
     await pluginDb.applyMigrations(pluginId, pluginManifest, packageRoot);
 
     await expect(
-      pluginDb.execute(pluginId, "UPDATE public.issues SET title = $1", ["bad"]),
+      pluginDb.execute(pluginId, "UPDATE public.issues SET title = $1", [
+        "bad",
+      ]),
     ).rejects.toThrow(/plugin namespace/i);
   });
 
@@ -615,7 +750,11 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
     const pluginId = await installPluginRecord(pluginManifest);
 
     await expect(
-      pluginDatabaseService(db).applyMigrations(pluginId, pluginManifest, packageRoot),
+      pluginDatabaseService(db).applyMigrations(
+        pluginId,
+        pluginManifest,
+        packageRoot,
+      ),
     ).rejects.toThrow(/public\.plugin_escape|public/i);
 
     const [migration] = await db
@@ -637,8 +776,9 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       enableNpmDiscovery: false,
     });
 
-    await expect(loader.installPlugin({ localPath: packageRoot }))
-      .rejects.toThrow(/public\.plugin_escape|public/i);
+    await expect(
+      loader.installPlugin({ localPath: packageRoot }),
+    ).rejects.toThrow(/public\.plugin_escape|public/i);
 
     const installedPlugins = await db
       .select()
@@ -653,9 +793,11 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       .from(pluginMigrations)
       .where(eq(pluginMigrations.pluginKey, pluginManifest.id));
     const schemaRows = Array.from(
-      await db.execute(
-        sql<{ schema_name: string }>`SELECT schema_name FROM information_schema.schemata WHERE schema_name = ${namespace}`,
-      ) as Iterable<{ schema_name: string }>,
+      (await db.execute(
+        sql<{
+          schema_name: string;
+        }>`SELECT schema_name FROM information_schema.schemata WHERE schema_name = ${namespace}`,
+      )) as Iterable<{ schema_name: string }>,
     );
 
     expect(installedPlugins).toHaveLength(0);
@@ -708,34 +850,38 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
     const toolDispatcher = {
       registerPluginTools: vi.fn(),
     };
-    const loader = pluginLoader(db, {
-      enableLocalFilesystem: false,
-      enableNpmDiscovery: false,
-    }, {
-      workerManager,
-      eventBus: {
-        forPlugin: vi.fn(() => ({})),
-        subscriptionCount: vi.fn(() => 0),
+    const loader = pluginLoader(
+      db,
+      {
+        enableLocalFilesystem: false,
+        enableNpmDiscovery: false,
       },
-      jobScheduler: {
-        registerPlugin: vi.fn().mockResolvedValue(undefined),
-        stop: vi.fn(),
-      },
-      jobStore: {
-        syncJobDeclarations: vi.fn().mockResolvedValue(undefined),
-      },
-      toolDispatcher,
-      lifecycleManager: {
-        markError: vi.fn().mockResolvedValue(undefined),
-      },
-      buildHostHandlers: vi.fn(() => ({})),
-      instanceInfo: {
-        instanceId: "test-instance",
-        hostVersion: "1.0.0",
-        deploymentMode: "authenticated",
-        deploymentExposure: "public",
-      },
-    } as never);
+      {
+        workerManager,
+        eventBus: {
+          forPlugin: vi.fn(() => ({})),
+          subscriptionCount: vi.fn(() => 0),
+        },
+        jobScheduler: {
+          registerPlugin: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn(),
+        },
+        jobStore: {
+          syncJobDeclarations: vi.fn().mockResolvedValue(undefined),
+        },
+        toolDispatcher,
+        lifecycleManager: {
+          markError: vi.fn().mockResolvedValue(undefined),
+        },
+        buildHostHandlers: vi.fn(() => ({})),
+        instanceInfo: {
+          instanceId: "test-instance",
+          hostVersion: "1.0.0",
+          deploymentMode: "authenticated",
+          deploymentExposure: "public",
+        },
+      } as never,
+    );
 
     const result = await loader.loadSingle(pluginId);
 
@@ -764,7 +910,9 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       .select()
       .from(plugins)
       .where(eq(plugins.id, pluginId));
-    expect(plugin?.manifestJson.database?.coreReadTables).toEqual(["companies"]);
+    expect(plugin?.manifestJson.database?.coreReadTables).toEqual([
+      "companies",
+    ]);
   });
 
   it("rejects checksum changes for already applied migrations", async () => {
@@ -784,7 +932,8 @@ describeEmbeddedPostgres("plugin database namespaces", () => {
       "utf8",
     );
 
-    await expect(pluginDb.applyMigrations(pluginId, pluginManifest, packageRoot))
-      .rejects.toThrow(/checksum mismatch/i);
+    await expect(
+      pluginDb.applyMigrations(pluginId, pluginManifest, packageRoot),
+    ).rejects.toThrow(/checksum mismatch/i);
   });
 });

@@ -1,6 +1,10 @@
 import { createReadStream, promises as fs } from "node:fs";
 import path from "node:path";
-import type { StorageProvider, GetObjectResult, HeadObjectResult } from "./types.js";
+import type {
+  StorageProvider,
+  GetObjectResult,
+  HeadObjectResult,
+} from "./types.js";
 import { notFound, badRequest } from "../errors.js";
 
 function normalizeObjectKey(objectKey: string): string {
@@ -10,7 +14,10 @@ function normalizeObjectKey(objectKey: string): string {
   }
 
   const parts = normalized.split("/").filter((part) => part.length > 0);
-  if (parts.length === 0 || parts.some((part) => part === "." || part === "..")) {
+  if (
+    parts.length === 0 ||
+    parts.some((part) => part === "." || part === "..")
+  ) {
     throw badRequest("Invalid object key");
   }
 
@@ -35,7 +42,9 @@ async function statOrNull(filePath: string) {
   }
 }
 
-export function createLocalDiskStorageProvider(baseDir: string): StorageProvider {
+export function createLocalDiskStorageProvider(
+  baseDir: string,
+): StorageProvider {
   const root = path.resolve(baseDir);
 
   return {
@@ -50,7 +59,9 @@ export function createLocalDiskStorageProvider(baseDir: string): StorageProvider
       try {
         await fs.writeFile(tempPath, input.body);
         await fs.rename(tempPath, targetPath);
-      } finally { await fs.rm(tempPath, { force: true }); }
+      } finally {
+        await fs.rm(tempPath, { force: true });
+      }
     },
 
     async getObject(input): Promise<GetObjectResult> {

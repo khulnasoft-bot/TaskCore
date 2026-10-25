@@ -22,7 +22,10 @@ interface BridgeClientOptions {
 }
 
 interface BridgeExecuteOptions {
-  onOutput?: (stream: "stdout" | "stderr", chunk: string) => void | Promise<void>;
+  onOutput?: (
+    stream: "stdout" | "stderr",
+    chunk: string,
+  ) => void | Promise<void>;
 }
 
 interface BridgeErrorBody {
@@ -40,7 +43,12 @@ export class CloudflareBridgeError extends Error {
   readonly code: string | null;
   readonly details: unknown;
 
-  constructor(input: { status: number; code?: string | null; message: string; details?: unknown }) {
+  constructor(input: {
+    status: number;
+    code?: string | null;
+    message: string;
+    details?: unknown;
+  }) {
     super(input.message);
     this.name = "CloudflareBridgeError";
     this.status = input.status;
@@ -49,11 +57,15 @@ export class CloudflareBridgeError extends Error {
   }
 }
 
-function buildHeaders(config: CloudflareDriverConfig, extra: BridgeClientHeaders = {}): Headers {
+function buildHeaders(
+  config: CloudflareDriverConfig,
+  extra: BridgeClientHeaders = {},
+): Headers {
   const headers = new Headers();
   headers.set("Authorization", `Bearer ${config.bridgeAuthToken}`);
   headers.set("Content-Type", "application/json");
-  if (extra.environmentId) headers.set("X-Taskcore-Environment-Id", extra.environmentId);
+  if (extra.environmentId)
+    headers.set("X-Taskcore-Environment-Id", extra.environmentId);
   if (extra.runId) headers.set("X-Taskcore-Run-Id", extra.runId);
   if (extra.issueId) headers.set("X-Taskcore-Issue-Id", extra.issueId);
   return headers;
@@ -67,7 +79,10 @@ async function parseJson(response: Response): Promise<unknown> {
   return await response.json();
 }
 
-function encodeExecuteRequestBody(body: CloudflareBridgeExecuteRequest, options?: BridgeExecuteOptions): string {
+function encodeExecuteRequestBody(
+  body: CloudflareBridgeExecuteRequest,
+  options?: BridgeExecuteOptions,
+): string {
   return JSON.stringify({
     ...body,
     streamOutput: typeof options?.onOutput === "function",
@@ -79,7 +94,9 @@ function parseExecuteTimeoutMs(body: RequestInit["body"]): number | null {
   try {
     const parsed = JSON.parse(body) as { timeoutMs?: unknown };
     const timeoutMs = Number(parsed.timeoutMs);
-    return Number.isFinite(timeoutMs) && timeoutMs > 0 ? Math.trunc(timeoutMs) : null;
+    return Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? Math.trunc(timeoutMs)
+      : null;
   } catch {
     return null;
   }
@@ -118,12 +135,13 @@ async function requestJson<T>(
     });
     const body = await parseJson(response);
     if (!response.ok) {
-      const errorBody = isRecord(body) ? body as BridgeErrorBody : {};
+      const errorBody = isRecord(body) ? (body as BridgeErrorBody) : {};
       throw new CloudflareBridgeError({
         status: response.status,
         code: typeof errorBody.error === "string" ? errorBody.error : null,
         message:
-          typeof errorBody.message === "string" && errorBody.message.trim().length > 0
+          typeof errorBody.message === "string" &&
+          errorBody.message.trim().length > 0
             ? errorBody.message
             : `Cloudflare sandbox bridge request failed with HTTP ${response.status}.`,
         details: errorBody.details,
@@ -162,12 +180,13 @@ async function requestResponse(
     });
     if (!response.ok) {
       const body = await parseJson(response);
-      const errorBody = isRecord(body) ? body as BridgeErrorBody : {};
+      const errorBody = isRecord(body) ? (body as BridgeErrorBody) : {};
       throw new CloudflareBridgeError({
         status: response.status,
         code: typeof errorBody.error === "string" ? errorBody.error : null,
         message:
-          typeof errorBody.message === "string" && errorBody.message.trim().length > 0
+          typeof errorBody.message === "string" &&
+          errorBody.message.trim().length > 0
             ? errorBody.message
             : `Cloudflare sandbox bridge request failed with HTTP ${response.status}.`,
         details: errorBody.details,
@@ -192,7 +211,10 @@ interface ParsedSseEvent {
   data: string;
 }
 
-function parseSseChunk(buffer: string): { events: ParsedSseEvent[]; rest: string } {
+function parseSseChunk(buffer: string): {
+  events: ParsedSseEvent[];
+  rest: string;
+} {
   const normalized = buffer.replace(/\r\n/g, "\n");
   const frames = normalized.split("\n\n");
   const rest = frames.pop() ?? "";
@@ -224,7 +246,9 @@ async function consumeExecuteEventStream(
   options: BridgeExecuteOptions,
 ): Promise<CloudflareBridgeExecuteResponse> {
   if (!response.body) {
-    throw new Error("Cloudflare sandbox bridge streaming response had no body.");
+    throw new Error(
+      "Cloudflare sandbox bridge streaming response had no body.",
+    );
   }
 
   const reader = response.body.getReader();
@@ -235,7 +259,9 @@ async function consumeExecuteEventStream(
   while (true) {
     const { done, value } = await reader.read();
     buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-    const parsed = parseSseChunk(done && buffer.length > 0 ? `${buffer}\n\n` : buffer);
+    const parsed = parseSseChunk(
+      done && buffer.length > 0 ? `${buffer}\n\n` : buffer,
+    );
     buffer = parsed.rest;
 
     for (const event of parsed.events) {
@@ -255,9 +281,10 @@ async function consumeExecuteEventStream(
 
       if (event.event === "error") {
         const payload = JSON.parse(event.data) as { error?: unknown };
-        const message = typeof payload.error === "string" && payload.error.trim().length > 0
-          ? payload.error
-          : "Cloudflare sandbox bridge streaming command failed.";
+        const message =
+          typeof payload.error === "string" && payload.error.trim().length > 0
+            ? payload.error
+            : "Cloudflare sandbox bridge streaming command failed.";
         throw new Error(message);
       }
     }
@@ -266,7 +293,9 @@ async function consumeExecuteEventStream(
   }
 
   if (result) return result;
-  throw new Error("Cloudflare sandbox bridge streaming response ended without a completion event.");
+  throw new Error(
+    "Cloudflare sandbox bridge streaming response ended without a completion event.",
+  );
 }
 
 export function createCloudflareBridgeClient(options: BridgeClientOptions) {
@@ -274,11 +303,21 @@ export function createCloudflareBridgeClient(options: BridgeClientOptions) {
   const apiPrefix = "/api/taskcore-sandbox/v1";
 
   return {
-    health(extraHeaders?: BridgeClientHeaders): Promise<CloudflareBridgeHealthResponse> {
-      return requestJson<CloudflareBridgeHealthResponse>(config, `${apiPrefix}/health`, { method: "GET" }, extraHeaders);
+    health(
+      extraHeaders?: BridgeClientHeaders,
+    ): Promise<CloudflareBridgeHealthResponse> {
+      return requestJson<CloudflareBridgeHealthResponse>(
+        config,
+        `${apiPrefix}/health`,
+        { method: "GET" },
+        extraHeaders,
+      );
     },
 
-    probe(body: CloudflareBridgeProbeRequest, extraHeaders?: BridgeClientHeaders): Promise<CloudflareBridgeProbeResponse> {
+    probe(
+      body: CloudflareBridgeProbeRequest,
+      extraHeaders?: BridgeClientHeaders,
+    ): Promise<CloudflareBridgeProbeResponse> {
       return requestJson<CloudflareBridgeProbeResponse>(
         config,
         `${apiPrefix}/probe`,
@@ -323,7 +362,10 @@ export function createCloudflareBridgeClient(options: BridgeClientOptions) {
       );
     },
 
-    destroyLease(providerLeaseId: string, extraHeaders?: BridgeClientHeaders): Promise<{ ok: true }> {
+    destroyLease(
+      providerLeaseId: string,
+      extraHeaders?: BridgeClientHeaders,
+    ): Promise<{ ok: true }> {
       return requestJson<{ ok: true }>(
         config,
         `${apiPrefix}/leases/${encodeURIComponent(providerLeaseId)}`,

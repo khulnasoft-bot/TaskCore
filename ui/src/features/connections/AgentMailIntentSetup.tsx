@@ -14,13 +14,29 @@ interface InlineEmailDraft {
 function readDraft(key: string): InlineEmailDraft | null {
   try {
     const value = JSON.parse(sessionStorage.getItem(key) ?? "null");
-    return value && isUuidLike(value.setupRequestId) && ["credentialId", "inboxConnectionId", "selectedCredentialId"]
-      .every(field => value[field] === null || typeof value[field] === "string") ? value : null;
-  } catch { return null; }
+    return value &&
+      isUuidLike(value.setupRequestId) &&
+      ["credentialId", "inboxConnectionId", "selectedCredentialId"].every(
+        (field) => value[field] === null || typeof value[field] === "string",
+      )
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Same account and inbox APIs as Apps; task setup fixes the access defaults. */
-export function AgentMailIntentSetup({ companyId, agentId, requestId, savedCredentialId, readyConnectionId, onComplete, onDecline, declining = false }: {
+export function AgentMailIntentSetup({
+  companyId,
+  agentId,
+  requestId,
+  savedCredentialId,
+  readyConnectionId,
+  onComplete,
+  onDecline,
+  declining = false,
+}: {
   companyId: string;
   agentId: string;
   requestId: string;
@@ -32,23 +48,56 @@ export function AgentMailIntentSetup({ companyId, agentId, requestId, savedCrede
 }) {
   const draftKey = `taskcore.agentmail-inline:${companyId}:${requestId}`;
   const [draft] = useState(() => readDraft(draftKey));
-  const [setupRequestId, setSetupRequestId] = useState(draft?.setupRequestId ?? requestId);
+  const [setupRequestId, setSetupRequestId] = useState(
+    draft?.setupRequestId ?? requestId,
+  );
   const [apiKey, setApiKey] = useState("");
   // A refresh can interrupt the response after the server has saved the key.
   // Recover that account unless the user selected another key or started a
   // different setup after the interrupted request.
-  const [credentialId, setCredentialId] = useState(draft?.credentialId
-    ?? (!draft || (draft.setupRequestId === requestId && !draft.selectedCredentialId) ? savedCredentialId ?? null : null));
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(draft?.selectedCredentialId ?? null);
-  const [inboxConnectionId, setInboxConnectionId] = useState(readyConnectionId ?? draft?.inboxConnectionId ?? null);
+  const [credentialId, setCredentialId] = useState(
+    draft?.credentialId ??
+      (!draft ||
+      (draft.setupRequestId === requestId && !draft.selectedCredentialId)
+        ? (savedCredentialId ?? null)
+        : null),
+  );
+  const [selectedCredentialId, setSelectedCredentialId] = useState<
+    string | null
+  >(draft?.selectedCredentialId ?? null);
+  const [inboxConnectionId, setInboxConnectionId] = useState(
+    readyConnectionId ?? draft?.inboxConnectionId ?? null,
+  );
   useEffect(() => {
-    try { sessionStorage.setItem(draftKey, JSON.stringify({ setupRequestId, credentialId, inboxConnectionId, selectedCredentialId })); }
-    catch { /* Keep setup usable without browser storage. */ }
-  }, [draftKey, setupRequestId, credentialId, inboxConnectionId, selectedCredentialId]);
+    try {
+      sessionStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          setupRequestId,
+          credentialId,
+          inboxConnectionId,
+          selectedCredentialId,
+        }),
+      );
+    } catch {
+      /* Keep setup usable without browser storage. */
+    }
+  }, [
+    draftKey,
+    setupRequestId,
+    credentialId,
+    inboxConnectionId,
+    selectedCredentialId,
+  ]);
   const changeKey = useMutation({
     mutationFn: async (pendingRequestId: string) => {
-      const pending = (await emailApi.list(companyId)).find(inbox => inbox.id === pendingRequestId && inbox.status !== "archived");
-      if (pending?.address) throw new Error(`The address ${pending.address} is already reserved. Finish setup with its saved key.`);
+      const pending = (await emailApi.list(companyId)).find(
+        (inbox) => inbox.id === pendingRequestId && inbox.status !== "archived",
+      );
+      if (pending?.address)
+        throw new Error(
+          `The address ${pending.address} is already reserved. Finish setup with its saved key.`,
+        );
       if (pending) await emailApi.control(pending.id, "remove");
     },
     onSuccess: () => {
@@ -60,14 +109,22 @@ export function AgentMailIntentSetup({ companyId, agentId, requestId, savedCrede
     },
   });
   const setup = useMutation({
-    mutationFn: async (submitted: { accountId: string | null; apiKey: string; requestId: string; inboxId: string | null }) => {
+    mutationFn: async (submitted: {
+      accountId: string | null;
+      apiKey: string;
+      requestId: string;
+      inboxId: string | null;
+    }) => {
       let connectionId = submitted.inboxId;
       if (!connectionId) {
         let accountId = submitted.accountId;
         if (!accountId) {
           const account = await emailApi.connect(companyId, {
-            apiKey: submitted.apiKey, grantKind: "organization", allAgents: false,
-            agentIds: [agentId], idempotencyKey: submitted.requestId,
+            apiKey: submitted.apiKey,
+            grantKind: "organization",
+            allAgents: false,
+            agentIds: [agentId],
+            idempotencyKey: submitted.requestId,
           });
           accountId = account.id;
           setCredentialId(accountId);
@@ -75,8 +132,10 @@ export function AgentMailIntentSetup({ companyId, agentId, requestId, savedCrede
         }
         setCredentialId(accountId);
         const inbox = await emailApi.setup(companyId, {
-          assignedAgentId: agentId, credentialConnectionId: accountId,
-          receiveMode: "websocket", idempotencyKey: submitted.requestId,
+          assignedAgentId: agentId,
+          credentialConnectionId: accountId,
+          receiveMode: "websocket",
+          idempotencyKey: submitted.requestId,
         });
         connectionId = inbox.connectionId;
         setInboxConnectionId(connectionId);
@@ -84,32 +143,106 @@ export function AgentMailIntentSetup({ companyId, agentId, requestId, savedCrede
       // Only the server's completed intent may resume the task. A saved API key
       // alone is not an inbox, and failures remain retryable in this same form.
       await onComplete(connectionId);
-      try { sessionStorage.removeItem(draftKey); } catch { /* Optional draft storage. */ }
+      try {
+        sessionStorage.removeItem(draftKey);
+      } catch {
+        /* Optional draft storage. */
+      }
     },
   });
-  return <form className="mt-4 space-y-4" data-testid="agentmail-inline-setup" onSubmit={event => {
-    event.preventDefault();
-    const accountId = credentialId || selectedCredentialId;
-    if (!setup.isPending && !changeKey.isPending && !declining && (accountId || inboxConnectionId || apiKey.trim())) {
-      setup.mutate({ accountId, apiKey: apiKey.trim(), requestId: setupRequestId, inboxId: inboxConnectionId });
-    }
-  }}>
-    {credentialId || inboxConnectionId
-      ? <p className="text-sm text-muted-foreground">{inboxConnectionId ? "Your inbox is ready. Continue to resume the chat." : "API key saved. Finish creating the inbox."}</p>
-      : <AgentMailCredentialField companyId={companyId} connectionId={selectedCredentialId}
-          onConnectionChange={id => { setSelectedCredentialId(id); setApiKey(""); }}
-          value={apiKey} onChange={setApiKey} disabled={setup.isPending || changeKey.isPending || declining} />}
-    {credentialId && !inboxConnectionId && <Button type="button" variant="link" size="sm" className="h-auto p-0"
-      disabled={setup.isPending || changeKey.isPending || declining} onClick={() => changeKey.mutate(setupRequestId)}>
-      {changeKey.isPending ? "Checking setup…" : "Change API key"}
-    </Button>}
-    {changeKey.error && <p className="text-sm text-destructive" role="alert">{changeKey.error.message}</p>}
-    {setup.error && <p className="text-sm text-destructive" role="alert">{setup.error.message}</p>}
-    <div className="flex items-center justify-between gap-2">
-      <Button type="button" variant="ghost" disabled={setup.isPending || changeKey.isPending || declining} onClick={onDecline}>Not now</Button>
-      <Button type="submit" disabled={setup.isPending || changeKey.isPending || declining || (!credentialId && !selectedCredentialId && !inboxConnectionId && !apiKey.trim())}>
-        {setup.isPending ? "Connecting…" : inboxConnectionId ? "Continue" : credentialId ? "Finish setup" : "Connect AgentMail"}
-      </Button>
-    </div>
-  </form>;
+  return (
+    <form
+      className="mt-4 space-y-4"
+      data-testid="agentmail-inline-setup"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const accountId = credentialId || selectedCredentialId;
+        if (
+          !setup.isPending &&
+          !changeKey.isPending &&
+          !declining &&
+          (accountId || inboxConnectionId || apiKey.trim())
+        ) {
+          setup.mutate({
+            accountId,
+            apiKey: apiKey.trim(),
+            requestId: setupRequestId,
+            inboxId: inboxConnectionId,
+          });
+        }
+      }}
+    >
+      {credentialId || inboxConnectionId ? (
+        <p className="text-sm text-muted-foreground">
+          {inboxConnectionId
+            ? "Your inbox is ready. Continue to resume the chat."
+            : "API key saved. Finish creating the inbox."}
+        </p>
+      ) : (
+        <AgentMailCredentialField
+          companyId={companyId}
+          connectionId={selectedCredentialId}
+          onConnectionChange={(id) => {
+            setSelectedCredentialId(id);
+            setApiKey("");
+          }}
+          value={apiKey}
+          onChange={setApiKey}
+          disabled={setup.isPending || changeKey.isPending || declining}
+        />
+      )}
+      {credentialId && !inboxConnectionId && (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto p-0"
+          disabled={setup.isPending || changeKey.isPending || declining}
+          onClick={() => changeKey.mutate(setupRequestId)}
+        >
+          {changeKey.isPending ? "Checking setup…" : "Change API key"}
+        </Button>
+      )}
+      {changeKey.error && (
+        <p className="text-sm text-destructive" role="alert">
+          {changeKey.error.message}
+        </p>
+      )}
+      {setup.error && (
+        <p className="text-sm text-destructive" role="alert">
+          {setup.error.message}
+        </p>
+      )}
+      <div className="flex items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={setup.isPending || changeKey.isPending || declining}
+          onClick={onDecline}
+        >
+          Not now
+        </Button>
+        <Button
+          type="submit"
+          disabled={
+            setup.isPending ||
+            changeKey.isPending ||
+            declining ||
+            (!credentialId &&
+              !selectedCredentialId &&
+              !inboxConnectionId &&
+              !apiKey.trim())
+          }
+        >
+          {setup.isPending
+            ? "Connecting…"
+            : inboxConnectionId
+              ? "Continue"
+              : credentialId
+                ? "Finish setup"
+                : "Connect AgentMail"}
+        </Button>
+      </div>
+    </form>
+  );
 }

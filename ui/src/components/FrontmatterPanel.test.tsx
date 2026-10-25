@@ -18,7 +18,10 @@ function flushUi(callback: () => void) {
 }
 
 function setValue(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
-  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const proto =
+    el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
   const setter = Object.getOwnPropertyDescriptor(proto, "value")!.set!;
   flushUi(() => {
     setter.call(el, value);
@@ -32,7 +35,10 @@ function click(el: Element | null | undefined) {
   });
 }
 
-function findButtonByText(container: HTMLElement, text: string): HTMLButtonElement | null {
+function findButtonByText(
+  container: HTMLElement,
+  text: string,
+): HTMLButtonElement | null {
   return (
     Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
       (button) => button.textContent?.trim() === text,
@@ -41,7 +47,9 @@ function findButtonByText(container: HTMLElement, text: string): HTMLButtonEleme
 }
 
 function expandPanel(container: HTMLElement) {
-  const toggle = container.querySelector<HTMLButtonElement>('button[aria-controls="frontmatter-panel-body"]');
+  const toggle = container.querySelector<HTMLButtonElement>(
+    'button[aria-controls="frontmatter-panel-body"]',
+  );
   click(toggle);
 }
 
@@ -60,7 +68,11 @@ describe("FrontmatterPanel", () => {
     container.remove();
   });
 
-  function render(props: Partial<FrontmatterPanelProps> & { onChange?: (c: FrontmatterPanelChange) => void }) {
+  function render(
+    props: Partial<FrontmatterPanelProps> & {
+      onChange?: (c: FrontmatterPanelChange) => void;
+    },
+  ) {
     const onChange = props.onChange ?? vi.fn();
     flushUi(() => {
       root.render(
@@ -85,12 +97,16 @@ describe("FrontmatterPanel", () => {
       onChange,
     });
     expect(onChange).not.toHaveBeenCalled();
-    const toggle = container.querySelector<HTMLButtonElement>('button[aria-controls="frontmatter-panel-body"]');
+    const toggle = container.querySelector<HTMLButtonElement>(
+      'button[aria-controls="frontmatter-panel-body"]',
+    );
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
     expect(container.querySelector("#fm-name")).toBeNull();
     expandPanel(container);
     // The Fields tab is available for this round-trippable block after expansion.
-    expect(container.querySelector<HTMLInputElement>("#fm-name")?.value).toBe("reflection-coach");
+    expect(container.querySelector<HTMLInputElement>("#fm-name")?.value).toBe(
+      "reflection-coach",
+    );
   });
 
   it("edits `name` in Fields mode and emits only that field changed", () => {
@@ -116,7 +132,9 @@ describe("FrontmatterPanel", () => {
       onChange,
     });
     expandPanel(container);
-    const chipInput = container.querySelector<HTMLInputElement>('input[aria-label="Add tool"]')!;
+    const chipInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Add tool"]',
+    )!;
     setValue(chipInput, "Grep");
     flushUi(() => {
       chipInput.dispatchEvent(
@@ -124,22 +142,29 @@ describe("FrontmatterPanel", () => {
       );
     });
     const last = onChange.mock.calls.at(-1)![0] as FrontmatterPanelChange;
-    expect(last.frontmatterText).toBe("name: coach\nallowed-tools:\n  - Read\n  - Grep");
+    expect(last.frontmatterText).toBe(
+      "name: coach\nallowed-tools:\n  - Read\n  - Grep",
+    );
   });
 
   it("edits nested metadata scalar values", () => {
     const onChange = vi.fn();
     render({
-      frontmatterText: "name: coach\nmetadata:\n  author: Taskcore\n  version: 2",
+      frontmatterText:
+        "name: coach\nmetadata:\n  author: Taskcore\n  version: 2",
       hasFrontmatter: true,
       onChange,
     });
     expandPanel(container);
-    const valueInput = container.querySelector<HTMLInputElement>('input[aria-label="Value for author"]')!;
+    const valueInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Value for author"]',
+    )!;
     setValue(valueInput, "Anthropic");
     const last = onChange.mock.calls.at(-1)![0] as FrontmatterPanelChange;
     // author changes; version stays a NUMBER (not requoted) because it was untouched.
-    expect(last.frontmatterText).toBe("name: coach\nmetadata:\n  author: Anthropic\n  version: 2");
+    expect(last.frontmatterText).toBe(
+      "name: coach\nmetadata:\n  author: Anthropic\n  version: 2",
+    );
   });
 
   it("locks Fields mode for non-round-trippable YAML (inline comment) and preserves raw bytes", () => {
@@ -151,7 +176,9 @@ describe("FrontmatterPanel", () => {
     // Fields tab is disabled; the YAML textarea is shown instead.
     const fieldsTab = findButtonByText(container, "Fields");
     expect(fieldsTab?.getAttribute("aria-disabled")).toBe("true");
-    const yaml = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Frontmatter YAML"]');
+    const yaml = container.querySelector<HTMLTextAreaElement>(
+      'textarea[aria-label="Frontmatter YAML"]',
+    );
     expect(yaml?.value).toBe(raw);
     expect(container.querySelector("#fm-name")).toBeNull();
 
@@ -167,7 +194,9 @@ describe("FrontmatterPanel", () => {
       hasFrontmatter: true,
       fileName: "SKILL.md",
     });
-    const chip = container.querySelector('[data-testid="frontmatter-warning-chip"]');
+    const chip = container.querySelector(
+      '[data-testid="frontmatter-warning-chip"]',
+    );
     expect(chip?.textContent).toContain("issue");
   });
 
@@ -189,7 +218,9 @@ describe("FrontmatterPanel", () => {
       skillSlug: "reflection-coach",
       onChange,
     });
-    const addButton = container.querySelector<HTMLButtonElement>('[data-testid="add-frontmatter"]');
+    const addButton = container.querySelector<HTMLButtonElement>(
+      '[data-testid="add-frontmatter"]',
+    );
     expect(addButton).toBeTruthy();
     click(addButton);
     const last = onChange.mock.calls.at(-1)![0] as FrontmatterPanelChange;
@@ -209,11 +240,14 @@ describe("FrontmatterPanel", () => {
     expect(nameInput?.readOnly).toBe(true);
     // No chip remove buttons, no add-tool input.
     expect(container.querySelector('input[aria-label="Add tool"]')).toBeNull();
-    expect(container.querySelector('button[aria-label="Remove Read"]')).toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Remove Read"]'),
+    ).toBeNull();
   });
 
   it("keeps the full document byte-identical through split → panel → join with no edits", () => {
-    const file = "---\nname: coach\ndescription: A coach\n---\n# Body\n\nHello world\n";
+    const file =
+      "---\nname: coach\ndescription: A coach\n---\n# Body\n\nHello world\n";
     const block = splitFrontmatterBlock(file);
     const onChange = vi.fn();
     render({

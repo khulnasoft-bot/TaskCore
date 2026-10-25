@@ -9,19 +9,26 @@ import { allocateExposurePortPair } from "./port-pair.js";
 
 describe("allocateExposurePortPair", () => {
   it("returns the first free app port with a free HMR companion", async () => {
-    const pair = await allocateExposurePortPair({ isPortAvailable: async () => true });
+    const pair = await allocateExposurePortPair({
+      isPortAvailable: async () => true,
+    });
     expect(pair.appPort).toBe(RUNTIME_EXPOSURE_APP_PORT_MIN);
-    expect(pair.hmrPort).toBe(RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET);
+    expect(pair.hmrPort).toBe(
+      RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET,
+    );
   });
 
   it("skips an app port whose HMR companion is busy", async () => {
-    const busyHmr = RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET;
+    const busyHmr =
+      RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET;
     const pair = await allocateExposurePortPair({
       isPortAvailable: async (port) => port !== busyHmr,
     });
     // First app port's companion is busy, so it advances to the next app port.
     expect(pair.appPort).toBe(RUNTIME_EXPOSURE_APP_PORT_MIN + 1);
-    expect(pair.hmrPort).toBe(RUNTIME_EXPOSURE_APP_PORT_MIN + 1 + RUNTIME_EXPOSURE_HMR_PORT_OFFSET);
+    expect(pair.hmrPort).toBe(
+      RUNTIME_EXPOSURE_APP_PORT_MIN + 1 + RUNTIME_EXPOSURE_HMR_PORT_OFFSET,
+    );
   });
 
   it("skips a busy app port", async () => {
@@ -82,7 +89,8 @@ describe("allocateExposurePortPair", () => {
     it("ignores a preferred HMR-range port (never an app port)", async () => {
       const pair = await allocateExposurePortPair({
         isPortAvailable: async () => true,
-        preferredAppPort: RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET,
+        preferredAppPort:
+          RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET,
       });
       expect(pair.appPort).toBe(RUNTIME_EXPOSURE_APP_PORT_MIN);
     });
@@ -104,6 +112,8 @@ describe("allocateExposurePortPair", () => {
     });
     // First two probes are the first app port and its companion, in order.
     expect(probed[0]).toBe(RUNTIME_EXPOSURE_APP_PORT_MIN);
-    expect(probed[1]).toBe(RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET);
+    expect(probed[1]).toBe(
+      RUNTIME_EXPOSURE_APP_PORT_MIN + RUNTIME_EXPOSURE_HMR_PORT_OFFSET,
+    );
   });
 });

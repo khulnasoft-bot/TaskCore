@@ -5,7 +5,9 @@ import type { ProxyOptions } from "vite";
 // x-forwarded-host so the taskcore server's board mutation guard treats
 // the browser's Origin as trusted when the SPA is served from a different
 // port than the API (e.g. `pnpm dev:mobile` on :3101 → API on :3100).
-export function createApiProxy(target = "http://localhost:3100"): Record<string, ProxyOptions> {
+export function createApiProxy(
+  target = "http://localhost:3100",
+): Record<string, ProxyOptions> {
   return {
     "/api": {
       target,
@@ -19,9 +21,15 @@ export function createApiProxy(target = "http://localhost:3100"): Record<string,
           // ngrok or tailscale funnel terminates TLS and forwards HTTP to
           // vite with the header set). Fall back to the socket's TLS state.
           const upstreamProto = req.headers["x-forwarded-proto"];
-          const proto = Array.isArray(upstreamProto) ? upstreamProto[0] : upstreamProto;
-          const isTls = (req.socket as { encrypted?: boolean }).encrypted === true;
-          proxyReq.setHeader("x-forwarded-proto", proto ?? (isTls ? "https" : "http"));
+          const proto = Array.isArray(upstreamProto)
+            ? upstreamProto[0]
+            : upstreamProto;
+          const isTls =
+            (req.socket as { encrypted?: boolean }).encrypted === true;
+          proxyReq.setHeader(
+            "x-forwarded-proto",
+            proto ?? (isTls ? "https" : "http"),
+          );
         });
       },
     },

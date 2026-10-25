@@ -6,7 +6,9 @@ import type {
 } from "@taskcore/adapter-utils";
 import { asString, parseObject } from "@taskcore/adapter-utils/server-utils";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -18,9 +20,14 @@ function asStringEnvMap(value: unknown): Record<string, string> {
   for (const [key, entry] of Object.entries(parsed)) {
     if (typeof entry === "string") {
       env[key] = entry;
-    } else if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
+    } else if (
+      typeof entry === "object" &&
+      entry !== null &&
+      !Array.isArray(entry)
+    ) {
       const rec = entry as Record<string, unknown>;
-      if (rec.type === "plain" && typeof rec.value === "string") env[key] = rec.value;
+      if (rec.type === "plain" && typeof rec.value === "string")
+        env[key] = rec.value;
     }
   }
   return env;
@@ -78,13 +85,18 @@ export async function testEnvironment(
         code: "cursor_cloud_auth_ok",
         level: "info",
         message: "Cursor API key is valid.",
-        detail: me.userEmail ? `Authenticated as ${me.userEmail}.` : `API key: ${me.apiKeyName}`,
+        detail: me.userEmail
+          ? `Authenticated as ${me.userEmail}.`
+          : `API key: ${me.apiKeyName}`,
       });
     } catch (err) {
       checks.push({
         code: "cursor_cloud_auth_failed",
         level: "error",
-        message: err instanceof Error ? err.message : "Failed to validate Cursor API key.",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Failed to validate Cursor API key.",
       });
     }
   }
@@ -104,7 +116,10 @@ export async function testEnvironment(
       checks.push({
         code: "cursor_cloud_model_probe_failed",
         level: "warn",
-        message: err instanceof Error ? err.message : "Failed to validate model availability.",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Failed to validate model availability.",
       });
     }
   }

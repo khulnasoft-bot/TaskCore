@@ -32,13 +32,17 @@ export function derivePluginDatabaseNamespace(
   pluginKey: string,
   namespaceSlug?: string,
 ): string {
-  const hash = createHash("sha256").update(pluginKey).digest("hex").slice(0, 10);
-  const slug = (namespaceSlug ?? pluginKey)
-    .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .replace(/_+/g, "_")
-    .slice(0, 36) || "plugin";
+  const hash = createHash("sha256")
+    .update(pluginKey)
+    .digest("hex")
+    .slice(0, 10);
+  const slug =
+    (namespaceSlug ?? pluginKey)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .replace(/_+/g, "_")
+      .slice(0, 36) || "plugin";
   const namespace = `plugin_${slug}_${hash}`;
   return namespace.slice(0, MAX_POSTGRES_IDENTIFIER_LENGTH);
 }
@@ -51,13 +55,13 @@ function assertIdentifier(value: string, label = "identifier"): string {
 }
 
 function quoteIdentifier(value: string): string {
-  return `"${assertIdentifier(value).replaceAll("\"", "\"\"")}"`;
+  return `"${assertIdentifier(value).replaceAll('"', '""')}"`;
 }
 
 function splitSqlStatements(input: string): string[] {
   const statements: string[] = [];
   let start = 0;
-  let quote: "'" | "\"" | null = null;
+  let quote: "'" | '"' | null = null;
   let lineComment = false;
   let blockComment = false;
 
@@ -96,7 +100,7 @@ function splitSqlStatements(input: string): string[] {
       i += 1;
       continue;
     }
-    if (char === "'" || char === "\"") {
+    if (char === "'" || char === '"') {
       quote = char;
       continue;
     }
@@ -115,28 +119,34 @@ function splitSqlStatements(input: string): string[] {
 function stripSqlForKeywordScan(input: string): string {
   return input
     .replace(/'([^']|'')*'/g, "''")
-    .replace(/"([^"]|"")*"/g, "\"\"")
+    .replace(/"([^"]|"")*"/g, '""')
     .replace(/--.*$/gm, "")
     .replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
 function normaliseSql(input: string): string {
-  return stripSqlForKeywordScan(input).replace(/\s+/g, " ").trim().toLowerCase();
+  return stripSqlForKeywordScan(input)
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function extractQualifiedRefs(statement: string): SqlRef[] {
   const refs: SqlRef[] = [];
   const patterns: QualifiedRefPattern[] = [
     {
-      pattern: /\b(from|join|references|into|update)\s+"?([A-Za-z_][A-Za-z0-9_]*)"?\."?([A-Za-z_][A-Za-z0-9_]*)"?/gi,
+      pattern:
+        /\b(from|join|references|into|update)\s+"?([A-Za-z_][A-Za-z0-9_]*)"?\."?([A-Za-z_][A-Za-z0-9_]*)"?/gi,
       groups: "keyword-schema-table",
     },
     {
-      pattern: /\b(alter\s+table|create\s+table|create\s+view|drop\s+table|truncate\s+table)\s+(?:if\s+(?:not\s+)?exists\s+)?"?([A-Za-z_][A-Za-z0-9_]*)"?\."?([A-Za-z_][A-Za-z0-9_]*)"?/gi,
+      pattern:
+        /\b(alter\s+table|create\s+table|create\s+view|drop\s+table|truncate\s+table)\s+(?:if\s+(?:not\s+)?exists\s+)?"?([A-Za-z_][A-Za-z0-9_]*)"?\."?([A-Za-z_][A-Za-z0-9_]*)"?/gi,
       groups: "keyword-schema-table",
     },
     {
-      pattern: /\bcreate\s+(?:unique\s+)?index(?:\s+concurrently)?\s+(?:if\s+not\s+exists\s+)?"?[A-Za-z_][A-Za-z0-9_]*"?\s+on\s+"?([A-Za-z_][A-Za-z0-9_]*)"?\."?([A-Za-z_][A-Za-z0-9_]*)"?/gi,
+      pattern:
+        /\bcreate\s+(?:unique\s+)?index(?:\s+concurrently)?\s+(?:if\s+not\s+exists\s+)?"?[A-Za-z_][A-Za-z0-9_]*"?\s+on\s+"?([A-Za-z_][A-Za-z0-9_]*)"?\."?([A-Za-z_][A-Za-z0-9_]*)"?/gi,
       groups: "schema-table",
       keyword: "create index",
     },
@@ -145,9 +155,17 @@ function extractQualifiedRefs(statement: string): SqlRef[] {
   for (const { pattern, ...mapping } of patterns) {
     for (const match of statement.matchAll(pattern)) {
       if (mapping.groups === "keyword-schema-table") {
-        refs.push({ keyword: match[1]!.toLowerCase(), schema: match[2]!, table: match[3]! });
+        refs.push({
+          keyword: match[1]!.toLowerCase(),
+          schema: match[2]!,
+          table: match[3]!,
+        });
       } else {
-        refs.push({ keyword: mapping.keyword, schema: match[1]!, table: match[2]! });
+        refs.push({
+          keyword: mapping.keyword,
+          schema: match[1]!,
+          table: match[2]!,
+        });
       }
     }
   }
@@ -160,10 +178,14 @@ function assertAllowedPublicRead(
 ): void {
   if (ref.schema !== "public") return;
   if (!allowedCoreReadTables.has(ref.table)) {
-    throw new Error(`Plugin SQL references public.${ref.table}, which is not whitelisted`);
+    throw new Error(
+      `Plugin SQL references public.${ref.table}, which is not whitelisted`,
+    );
   }
   if (!["from", "join", "references"].includes(ref.keyword)) {
-    throw new Error(`Plugin SQL cannot mutate or define objects in public.${ref.table}`);
+    throw new Error(
+      `Plugin SQL cannot mutate or define objects in public.${ref.table}`,
+    );
   }
 }
 
@@ -183,7 +205,9 @@ function assertNoBannedSql(statement: string): void {
   ];
   const matched = banned.find((pattern) => pattern.test(normalized));
   if (matched) {
-    throw new Error(`Plugin SQL contains a disallowed statement or clause: ${matched.source}`);
+    throw new Error(
+      `Plugin SQL contains a disallowed statement or clause: ${matched.source}`,
+    );
   }
 }
 
@@ -207,14 +231,19 @@ export function validatePluginMigrationStatement(
   const ddlOrBackfillAllowed =
     /^(create|alter|comment)\b/.test(normalized) ||
     /^(insert\s+into|update)\b/.test(normalized) ||
-    (normalized.startsWith("with ") && /\b(insert\s+into|update)\b/.test(normalized));
+    (normalized.startsWith("with ") &&
+      /\b(insert\s+into|update)\b/.test(normalized));
   if (!ddlOrBackfillAllowed) {
-    throw new Error("Plugin migrations may contain DDL or namespace-scoped backfill statements only");
+    throw new Error(
+      "Plugin migrations may contain DDL or namespace-scoped backfill statements only",
+    );
   }
 
   const refs = extractQualifiedRefs(statement);
   if (refs.length === 0 && !normalized.startsWith("comment ")) {
-    throw new Error("Plugin migration objects must use fully qualified schema names");
+    throw new Error(
+      "Plugin migration objects must use fully qualified schema names",
+    );
   }
 
   const objectRefKeywords = new Set([
@@ -227,9 +256,13 @@ export function validatePluginMigrationStatement(
     "truncate table",
     "update",
   ]);
-  const hasQualifiedObjectRef = refs.some((ref) => objectRefKeywords.has(ref.keyword));
+  const hasQualifiedObjectRef = refs.some((ref) =>
+    objectRefKeywords.has(ref.keyword),
+  );
   if (!hasQualifiedObjectRef && !normalized.startsWith("comment ")) {
-    throw new Error("Plugin migration objects must use fully qualified schema names");
+    throw new Error(
+      "Plugin migration objects must use fully qualified schema names",
+    );
   }
 
   const allowedCoreReadTables = new Set(coreReadTables);
@@ -239,7 +272,9 @@ export function validatePluginMigrationStatement(
       assertAllowedPublicRead(ref, allowedCoreReadTables);
       continue;
     }
-    throw new Error(`Plugin SQL references schema "${ref.schema}" outside namespace "${namespace}"`);
+    throw new Error(
+      `Plugin SQL references schema "${ref.schema}" outside namespace "${namespace}"`,
+    );
   }
 }
 
@@ -258,7 +293,9 @@ export function validatePluginRuntimeQuery(
   if (!normalized.startsWith("select ") && !normalized.startsWith("with ")) {
     throw new Error("ctx.db.query only allows SELECT statements");
   }
-  if (/\b(insert|update|delete|alter|create|drop|truncate)\b/.test(normalized)) {
+  if (
+    /\b(insert|update|delete|alter|create|drop|truncate)\b/.test(normalized)
+  ) {
     throw new Error("ctx.db.query cannot contain mutation or DDL keywords");
   }
 
@@ -273,7 +310,10 @@ export function validatePluginRuntimeQuery(
   }
 }
 
-export function validatePluginRuntimeExecute(query: string, namespace: string): void {
+export function validatePluginRuntimeExecute(
+  query: string,
+  namespace: string,
+): void {
   const statements = splitSqlStatements(query);
   if (statements.length !== 1) {
     throw new Error("Plugin runtime SQL must contain exactly one statement");
@@ -289,13 +329,19 @@ export function validatePluginRuntimeExecute(query: string, namespace: string): 
   }
 
   const refs = extractQualifiedRefs(statement);
-  const target = refs.find((ref) => ["into", "update", "from"].includes(ref.keyword));
+  const target = refs.find((ref) =>
+    ["into", "update", "from"].includes(ref.keyword),
+  );
   if (!target || target.schema !== namespace) {
-    throw new Error(`ctx.db.execute target must be inside plugin namespace "${namespace}"`);
+    throw new Error(
+      `ctx.db.execute target must be inside plugin namespace "${namespace}"`,
+    );
   }
   for (const ref of refs) {
     if (ref.schema !== namespace) {
-      throw new Error("ctx.db.execute cannot reference public or other non-plugin schemas");
+      throw new Error(
+        "ctx.db.execute cannot reference public or other non-plugin schemas",
+      );
     }
   }
 }
@@ -320,7 +366,9 @@ function bindSql(statement: string, params: readonly unknown[] = []): SQL {
   }
   chunks.push(sql.raw(statement.slice(cursor)));
   if (seen.size !== params.length) {
-    throw new Error("Every ctx.db parameter must be referenced by a $n placeholder");
+    throw new Error(
+      "Every ctx.db parameter must be referenced by a $n placeholder",
+    );
   }
   return sql.join(chunks, sql.raw(""));
 }
@@ -333,18 +381,27 @@ async function listSqlMigrationFiles(migrationsDir: string): Promise<string[]> {
     .sort((a, b) => a.localeCompare(b));
 }
 
-function resolveMigrationsDir(packageRoot: string, migrationsDir: string): string {
+function resolveMigrationsDir(
+  packageRoot: string,
+  migrationsDir: string,
+): string {
   const resolvedRoot = path.resolve(packageRoot);
   const resolvedDir = path.resolve(resolvedRoot, migrationsDir);
   const relative = path.relative(resolvedRoot, resolvedDir);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new Error(`Plugin migrationsDir escapes package root: ${migrationsDir}`);
+    throw new Error(
+      `Plugin migrationsDir escapes package root: ${migrationsDir}`,
+    );
   }
   return resolvedDir;
 }
 
-type PluginDatabaseClient = Pick<Db, "select" | "insert" | "update" | "execute">;
-type PluginDatabaseRootClient = PluginDatabaseClient & Partial<Pick<Db, "transaction">>;
+type PluginDatabaseClient = Pick<
+  Db,
+  "select" | "insert" | "update" | "execute"
+>;
+type PluginDatabaseRootClient = PluginDatabaseClient &
+  Partial<Pick<Db, "transaction">>;
 
 export interface ApplyPluginMigrationsOptions {
   /**
@@ -357,7 +414,11 @@ export interface ApplyPluginMigrationsOptions {
 
 export function pluginDatabaseService(db: PluginDatabaseRootClient) {
   async function getPluginRecord(pluginId: string) {
-    const rows = await db.select().from(plugins).where(eq(plugins.id, pluginId)).limit(1);
+    const rows = await db
+      .select()
+      .from(plugins)
+      .where(eq(plugins.id, pluginId))
+      .limit(1);
     const plugin = rows[0];
     if (!plugin) throw new Error(`Plugin not found: ${pluginId}`);
     return plugin;
@@ -373,7 +434,9 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
       manifest.id,
       manifest.database.namespaceSlug,
     );
-    await client.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(namespaceName)}`));
+    await client.execute(
+      sql.raw(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(namespaceName)}`),
+    );
     const rows = await client
       .insert(pluginDatabaseNamespaces)
       .values({
@@ -397,7 +460,10 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
     return rows[0] ?? null;
   }
 
-  async function ensureNamespace(pluginId: string, manifest: TaskcorePluginManifestV1) {
+  async function ensureNamespace(
+    pluginId: string,
+    manifest: TaskcorePluginManifestV1,
+  ) {
     return ensureNamespaceWithClient(db, pluginId, manifest);
   }
 
@@ -418,16 +484,20 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
     return namespace.namespaceName;
   }
 
-  async function recordMigrationFailure(client: PluginDatabaseClient, input: {
-    pluginId: string;
-    pluginKey: string;
-    namespaceName: string;
-    migrationKey: string;
-    checksum: string;
-    pluginVersion: string;
-    error: unknown;
-  }): Promise<void> {
-    const message = input.error instanceof Error ? input.error.message : String(input.error);
+  async function recordMigrationFailure(
+    client: PluginDatabaseClient,
+    input: {
+      pluginId: string;
+      pluginKey: string;
+      namespaceName: string;
+      migrationKey: string;
+      checksum: string;
+      pluginVersion: string;
+      error: unknown;
+    },
+  ): Promise<void> {
+    const message =
+      input.error instanceof Error ? input.error.message : String(input.error);
     await client
       .insert(pluginMigrations)
       .values({
@@ -470,26 +540,42 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
       const namespace = await ensureNamespace(pluginId, manifest);
       if (!namespace) return null;
 
-      const migrationDir = resolveMigrationsDir(packageRoot, manifest.database.migrationsDir);
+      const migrationDir = resolveMigrationsDir(
+        packageRoot,
+        manifest.database.migrationsDir,
+      );
       const migrationFiles = await listSqlMigrationFiles(migrationDir);
       const coreReadTables = manifest.database.coreReadTables ?? [];
-      const lockKey = Number.parseInt(createHash("sha256").update(pluginId).digest("hex").slice(0, 12), 16);
+      const lockKey = Number.parseInt(
+        createHash("sha256").update(pluginId).digest("hex").slice(0, 12),
+        16,
+      );
       const persistFailure = options.persistFailure ?? true;
 
       const applyWithClient = async (client: PluginDatabaseClient) => {
         await client.execute(sql`SELECT pg_advisory_xact_lock(${lockKey})`);
         for (const migrationKey of migrationFiles) {
-          const content = await readFile(path.join(migrationDir, migrationKey), "utf8");
+          const content = await readFile(
+            path.join(migrationDir, migrationKey),
+            "utf8",
+          );
           const checksum = createHash("sha256").update(content).digest("hex");
           const existingRows = await client
             .select()
             .from(pluginMigrations)
-            .where(and(eq(pluginMigrations.pluginId, pluginId), eq(pluginMigrations.migrationKey, migrationKey)))
+            .where(
+              and(
+                eq(pluginMigrations.pluginId, pluginId),
+                eq(pluginMigrations.migrationKey, migrationKey),
+              ),
+            )
             .limit(1);
           const existing = existingRows[0] as PluginMigrationRecord | undefined;
           if (existing?.status === "applied") {
             if (existing.checksum !== checksum) {
-              throw new Error(`Plugin migration checksum mismatch for ${migrationKey}`);
+              throw new Error(
+                `Plugin migration checksum mismatch for ${migrationKey}`,
+              );
             }
             continue;
           }
@@ -500,7 +586,11 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
               throw new Error(`Plugin migration ${migrationKey} is empty`);
             }
             for (const statement of statements) {
-              validatePluginMigrationStatement(statement, namespace.namespaceName, coreReadTables);
+              validatePluginMigrationStatement(
+                statement,
+                namespace.namespaceName,
+                coreReadTables,
+              );
               await client.execute(sql.raw(statement));
             }
             await client
@@ -516,7 +606,10 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
                 appliedAt: new Date(),
               })
               .onConflictDoUpdate({
-                target: [pluginMigrations.pluginId, pluginMigrations.migrationKey],
+                target: [
+                  pluginMigrations.pluginId,
+                  pluginMigrations.migrationKey,
+                ],
                 set: {
                   checksum,
                   pluginVersion: manifest.version,
@@ -544,7 +637,9 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
       };
 
       if (typeof db.transaction === "function") {
-        await db.transaction(async (tx) => applyWithClient(tx as PluginDatabaseClient));
+        await db.transaction(async (tx) =>
+          applyWithClient(tx as PluginDatabaseClient),
+        );
       } else {
         await applyWithClient(db);
       }
@@ -554,19 +649,33 @@ export function pluginDatabaseService(db: PluginDatabaseRootClient) {
 
     getRuntimeNamespace,
 
-    async query<T = Record<string, unknown>>(pluginId: string, statement: string, params?: unknown[]): Promise<T[]> {
+    async query<T = Record<string, unknown>>(
+      pluginId: string,
+      statement: string,
+      params?: unknown[],
+    ): Promise<T[]> {
       const plugin = await getPluginRecord(pluginId);
       const namespace = await getRuntimeNamespace(pluginId);
-      validatePluginRuntimeQuery(statement, namespace, plugin.manifestJson.database?.coreReadTables ?? []);
+      validatePluginRuntimeQuery(
+        statement,
+        namespace,
+        plugin.manifestJson.database?.coreReadTables ?? [],
+      );
       const result = await db.execute(bindSql(statement, params));
       return Array.from(result as Iterable<T>);
     },
 
-    async execute(pluginId: string, statement: string, params?: unknown[]): Promise<{ rowCount: number }> {
+    async execute(
+      pluginId: string,
+      statement: string,
+      params?: unknown[],
+    ): Promise<{ rowCount: number }> {
       const namespace = await getRuntimeNamespace(pluginId);
       validatePluginRuntimeExecute(statement, namespace);
       const result = await db.execute(bindSql(statement, params));
-      return { rowCount: Number((result as { count?: number | string }).count ?? 0) };
+      return {
+        rowCount: Number((result as { count?: number | string }).count ?? 0),
+      };
     },
   };
 }

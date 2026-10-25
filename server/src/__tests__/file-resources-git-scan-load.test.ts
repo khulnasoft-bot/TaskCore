@@ -21,16 +21,29 @@ vi.mock("../services/activity-log.js", () => ({
   logActivity: vi.fn(async () => undefined),
 }));
 
-function unavailableMethods(): Pick<WorkspaceFileResourceService, "availability" | "resolve" | "readContent" | "prepareDownload"> {
+function unavailableMethods(): Pick<
+  WorkspaceFileResourceService,
+  "availability" | "resolve" | "readContent" | "prepareDownload"
+> {
   return {
-    availability: vi.fn(async () => { throw new Error("not used"); }),
-    resolve: vi.fn(async () => { throw new Error("not used"); }),
-    readContent: vi.fn(async () => { throw new Error("not used"); }),
-    prepareDownload: vi.fn(async () => { throw new Error("not used"); }),
+    availability: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    resolve: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    readContent: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    prepareDownload: vi.fn(async () => {
+      throw new Error("not used");
+    }),
   };
 }
 
-function availableList(input: { mode?: "all" | "recent" | "changed" | null } = {}) {
+function availableList(
+  input: { mode?: "all" | "recent" | "changed" | null } = {},
+) {
   return {
     kind: "workspace_file_list" as const,
     state: "available" as const,
@@ -52,7 +65,11 @@ function availableList(input: { mode?: "all" | "recent" | "changed" | null } = {
   };
 }
 
-function createLoadApp(db: Db, companyId: string, service: WorkspaceFileResourceService) {
+function createLoadApp(
+  db: Db,
+  companyId: string,
+  service: WorkspaceFileResourceService,
+) {
   const app = express();
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
   app.use((req, _res, next) => {
@@ -65,14 +82,17 @@ function createLoadApp(db: Db, companyId: string, service: WorkspaceFileResource
     };
     next();
   });
-  app.use("/api", fileResourceRoutes(db, {
-    service,
-    listLimiter: createFileResourceListLimiter({
-      maxConcurrent: 2,
-      maxRequests: 10,
-      windowMs: 60_000,
+  app.use(
+    "/api",
+    fileResourceRoutes(db, {
+      service,
+      listLimiter: createFileResourceListLimiter({
+        maxConcurrent: 2,
+        maxRequests: 10,
+        windowMs: 60_000,
+      }),
     }),
-  }));
+  );
   app.use(errorHandler);
   return app;
 }
@@ -83,7 +103,9 @@ describe("workspace Git scan route load regression", () => {
   let tempRoot: string;
 
   beforeAll(async () => {
-    tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-file-scan-load-"));
+    tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-file-scan-load-"),
+    );
     await Promise.all([
       fs.mkdir(path.join(tempRoot, "repository-a")),
       fs.mkdir(path.join(tempRoot, "repository-b")),
@@ -116,7 +138,10 @@ describe("workspace Git scan route load regression", () => {
       runner,
       defaultCacheTtlMs: 0,
     });
-    const roots = [path.join(tempRoot, "repository-a"), path.join(tempRoot, "repository-b")];
+    const roots = [
+      path.join(tempRoot, "repository-a"),
+      path.join(tempRoot, "repository-b"),
+    ];
     const service: WorkspaceFileResourceService = {
       getIssue: vi.fn(async () => ({ companyId })),
       list: vi.fn(async (issueId, input, opts) => {
@@ -134,18 +159,24 @@ describe("workspace Git scan route load regression", () => {
       ...unavailableMethods(),
     };
     const app = createLoadApp(db, companyId, service);
-    const pendingResponses = Array.from({ length: 500 }, (_, index) => request(app)
-      .get(`/api/issues/issue-${index}/file-resources/list`)
-      .set("x-test-actor", `actor-${index % 73}`)
-      .query({ mode: "changed" })
-      .then((response) => response));
+    const pendingResponses = Array.from({ length: 500 }, (_, index) =>
+      request(app)
+        .get(`/api/issues/issue-${index}/file-resources/list`)
+        .set("x-test-actor", `actor-${index % 73}`)
+        .query({ mode: "changed" })
+        .then((response) => response),
+    );
 
     await vi.waitFor(
       () => expect(scheduler.snapshot().totals.singleFlightJoins).toBe(498),
       { timeout: 15_000, interval: 20 },
     );
     const loadedSnapshot = scheduler.snapshot();
-    expect(loadedSnapshot).toMatchObject({ activeCount: 2, queuedCount: 0, inFlightCount: 2 });
+    expect(loadedSnapshot).toMatchObject({
+      activeCount: 2,
+      queuedCount: 0,
+      inFlightCount: 2,
+    });
 
     const healthLatencies: number[] = [];
     for (let index = 0; index < 25; index += 1) {
@@ -155,18 +186,29 @@ describe("workspace Git scan route load regression", () => {
       expect(response.status).toBe(200);
     }
     healthLatencies.sort((left, right) => left - right);
-    const healthP99Ms = healthLatencies[Math.ceil(healthLatencies.length * 0.99) - 1]!;
+    const healthP99Ms =
+      healthLatencies[Math.ceil(healthLatencies.length * 0.99) - 1]!;
     expect(healthP99Ms).toBeLessThan(250);
 
     releaseScans();
     const responses = await Promise.all(pendingResponses);
-    const outcomeCounts = responses.reduce<Record<number, number>>((counts, response) => {
-      counts[response.status] = (counts[response.status] ?? 0) + 1;
-      return counts;
-    }, {});
+    const outcomeCounts = responses.reduce<Record<number, number>>(
+      (counts, response) => {
+        counts[response.status] = (counts[response.status] ?? 0) + 1;
+        return counts;
+      },
+      {},
+    );
     expect(outcomeCounts).toEqual({ 200: 500 });
-    expect({ runnerCalls, peakActive }).toEqual({ runnerCalls: 2, peakActive: 2 });
-    expect(scheduler.snapshot()).toMatchObject({ activeCount: 0, queuedCount: 0, inFlightCount: 0 });
+    expect({ runnerCalls, peakActive }).toEqual({
+      runnerCalls: 2,
+      peakActive: 2,
+    });
+    expect(scheduler.snapshot()).toMatchObject({
+      activeCount: 0,
+      queuedCount: 0,
+      inFlightCount: 0,
+    });
 
     console.info("workspace Git scan regression metrics", {
       requests: responses.length,
@@ -187,7 +229,10 @@ describe("workspace Git scan route load regression", () => {
     const service: WorkspaceFileResourceService = {
       getIssue: vi.fn(async () => ({ companyId })),
       list: vi.fn(async () => {
-        throw new WorkspaceGitScanError(code, "Changed files temporarily unavailable");
+        throw new WorkspaceGitScanError(
+          code,
+          "Changed files temporarily unavailable",
+        );
       }),
       ...unavailableMethods(),
     };
@@ -209,15 +254,22 @@ describe("workspace Git scan route load regression", () => {
     let runnerAborted = false;
     const scheduler = createWorkspaceGitOperationScheduler({
       concurrency: 1,
-      runner: ({ signal }) => new Promise((_resolve, reject) => {
-        signal.addEventListener("abort", () => {
-          runnerAborted = true;
-          reject(new WorkspaceGitScanError(
-            WORKSPACE_GIT_SCAN_ERROR_CODES.cancelled,
-            "cancelled",
-          ));
-        }, { once: true });
-      }),
+      runner: ({ signal }) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => {
+              runnerAborted = true;
+              reject(
+                new WorkspaceGitScanError(
+                  WORKSPACE_GIT_SCAN_ERROR_CODES.cancelled,
+                  "cancelled",
+                ),
+              );
+            },
+            { once: true },
+          );
+        }),
     });
     const service: WorkspaceFileResourceService = {
       getIssue: vi.fn(async () => ({ companyId })),
@@ -246,7 +298,12 @@ describe("workspace Git scan route load regression", () => {
     pending.abort();
     await outcome;
 
-    await vi.waitFor(() => expect(scheduler.snapshot()).toMatchObject({ activeCount: 0, inFlightCount: 0 }));
+    await vi.waitFor(() =>
+      expect(scheduler.snapshot()).toMatchObject({
+        activeCount: 0,
+        inFlightCount: 0,
+      }),
+    );
     expect(runnerAborted).toBe(true);
   });
 });

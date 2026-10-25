@@ -17,7 +17,10 @@ function schemaBooleanFlagKeys(): string[] {
       for (;;) {
         if (current instanceof z.ZodDefault) {
           current = current._def.innerType as z.ZodTypeAny;
-        } else if (current instanceof z.ZodOptional || current instanceof z.ZodNullable) {
+        } else if (
+          current instanceof z.ZodOptional ||
+          current instanceof z.ZodNullable
+        ) {
           current = current.unwrap() as z.ZodTypeAny;
         } else {
           break;
@@ -37,7 +40,9 @@ describe("INSTANCE_FEATURE_CATALOG", () => {
   it("keeps selfHostedDefault in sync with the schema defaults", () => {
     const schemaDefaults = instanceExperimentalSettingsSchema.parse({});
     for (const key of INSTANCE_FEATURE_KEYS) {
-      expect(INSTANCE_FEATURE_CATALOG[key].selfHostedDefault, key).toBe(schemaDefaults[key]);
+      expect(INSTANCE_FEATURE_CATALOG[key].selfHostedDefault, key).toBe(
+        schemaDefaults[key],
+      );
     }
   });
 
@@ -57,7 +62,9 @@ describe("buildFeatureCatalogArtifact", () => {
     expect(artifact.catalogVersion).toBe("2026.720.0");
     expect(Object.keys(artifact.features)).toEqual([...INSTANCE_FEATURE_KEYS]);
     for (const key of INSTANCE_FEATURE_KEYS) {
-      expect(artifact.features[key]).toEqual({ tier: INSTANCE_FEATURE_CATALOG[key].tier });
+      expect(artifact.features[key]).toEqual({
+        tier: INSTANCE_FEATURE_CATALOG[key].tier,
+      });
     }
   });
 
@@ -105,7 +112,9 @@ describe("renderFeatureCatalogArtifact", () => {
     expect(rendered).toBe(renderFeatureCatalogArtifact("2026.720.0"));
     expect(rendered.endsWith("\n")).toBe(true);
     const parsed = featureCatalogArtifactSchema.parse(JSON.parse(rendered));
-    expect(Object.keys(parsed.features)).toEqual([...Object.keys(parsed.features)].sort());
+    expect(Object.keys(parsed.features)).toEqual(
+      [...Object.keys(parsed.features)].sort(),
+    );
     expect(parsed).toEqual(buildFeatureCatalogArtifact("2026.720.0"));
   });
 });

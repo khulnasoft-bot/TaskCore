@@ -62,13 +62,21 @@ type ExecutionState = {
 
 type TextRedactor = (value: string) => string;
 
-type GatewayConfigurationFailure = Extract<ConnectionFailure, { provider: "hermes_gateway"; operation: "configuration" }>;
-type GatewayRequestFailure = Extract<ConnectionFailure, { provider: "hermes_gateway"; operation: "create_run" }>;
+type GatewayConfigurationFailure = Extract<
+  ConnectionFailure,
+  { provider: "hermes_gateway"; operation: "configuration" }
+>;
+type GatewayRequestFailure = Extract<
+  ConnectionFailure,
+  { provider: "hermes_gateway"; operation: "create_run" }
+>;
 
 // Only errors observed at our outbound request boundary acquire this provenance.
 // A callback or remote payload cannot opt itself out of product error reporting.
 const requestConnectionFailures = new WeakMap<Error, GatewayRequestFailure>();
-const NETWORK_FAILURE_REASONS: Readonly<Record<string, GatewayRequestFailure["reason"]>> = {
+const NETWORK_FAILURE_REASONS: Readonly<
+  Record<string, GatewayRequestFailure["reason"]>
+> = {
   ECONNREFUSED: "connection_refused",
   ENOTFOUND: "dns_failure",
   EAI_AGAIN: "dns_failure",
@@ -90,22 +98,45 @@ const NETWORK_FAILURE_REASONS: Readonly<Record<string, GatewayRequestFailure["re
   ERR_TLS_CERT_ALTNAME_INVALID: "tls_failure",
 };
 
-function gatewayConfigurationFailure(reason: GatewayConfigurationFailure["reason"]): GatewayConfigurationFailure {
-  return { schemaVersion: 1, provider: "hermes_gateway", operation: "configuration", reason };
+function gatewayConfigurationFailure(
+  reason: GatewayConfigurationFailure["reason"],
+): GatewayConfigurationFailure {
+  return {
+    schemaVersion: 1,
+    provider: "hermes_gateway",
+    operation: "configuration",
+    reason,
+  };
 }
 
-function networkFailureReason(value: unknown, depth = 0): GatewayRequestFailure["reason"] | null {
+function networkFailureReason(
+  value: unknown,
+  depth = 0,
+): GatewayRequestFailure["reason"] | null {
   const cause = asRecord(value);
   if (!cause || depth > 2 || cause.name === "AbortError") return null;
-  const reason = typeof cause.code === "string" && Object.hasOwn(NETWORK_FAILURE_REASONS, cause.code)
-    ? NETWORK_FAILURE_REASONS[cause.code]!
-    : null;
+  const reason =
+    typeof cause.code === "string" &&
+    Object.hasOwn(NETWORK_FAILURE_REASONS, cause.code)
+      ? NETWORK_FAILURE_REASONS[cause.code]!
+      : null;
   if (cause.code !== undefined && !reason) return null;
   if (cause.errors !== undefined) {
-    if (!Array.isArray(cause.errors) || cause.errors.length === 0 || cause.errors.length > 8) return null;
-    const reasons = cause.errors.map((error) => networkFailureReason(error, depth + 1));
+    if (
+      !Array.isArray(cause.errors) ||
+      cause.errors.length === 0 ||
+      cause.errors.length > 8
+    )
+      return null;
+    const reasons = cause.errors.map((error) =>
+      networkFailureReason(error, depth + 1),
+    );
     const first = reasons[0];
-    return first && reasons.every((item) => item === first) && (!reason || reason === first) ? first : null;
+    return first &&
+      reasons.every((item) => item === first) &&
+      (!reason || reason === first)
+      ? first
+      : null;
   }
   return reason;
 }
@@ -115,12 +146,18 @@ function rememberNetworkFailure(target: Error, error: unknown): void {
   // Native fetch wraps transport errors in cause. Do not classify an arbitrary
   // TypeError, its text, or remote JSON that happens to name a network error.
   const reason = networkFailureReason(error.cause);
-  if (reason) requestConnectionFailures.set(target, {
-    schemaVersion: 1, provider: "hermes_gateway", operation: "create_run", reason,
-  });
+  if (reason)
+    requestConnectionFailures.set(target, {
+      schemaVersion: 1,
+      provider: "hermes_gateway",
+      operation: "create_run",
+      reason,
+    });
 }
 
-function httpFailureReason(status: number): GatewayRequestFailure["reason"] | null {
+function httpFailureReason(
+  status: number,
+): GatewayRequestFailure["reason"] | null {
   if (status === 401 || status === 403) return "authentication_failed";
   if (status === 404) return "endpoint_not_found";
   if (status === 429) return "rate_limited";
@@ -139,7 +176,8 @@ const CRITICAL_HEADERS = new Set([
 const SENSITIVE_KEY_PATTERN =
   /(^|[_-])(auth|authorization|token|secret|password|api[_-]?key|private[_-]?key)([_-]|$)/i;
 const BEARER_TOKEN_PATTERN = /Bearer\s+\S+/gi;
-const HERMES_SESSION_KEY_HEADER_PATTERN = /(X-Hermes-Session-Key\s*[:=]\s*)([^\s,;]+)/gi;
+const HERMES_SESSION_KEY_HEADER_PATTERN =
+  /(X-Hermes-Session-Key\s*[:=]\s*)([^\s,;]+)/gi;
 const TASKCORE_SESSION_KEY_PATTERN =
   /\btaskcore:(?:company:[A-Za-z0-9-]+:agent:[A-Za-z0-9-]+(?::(?:issue|run):[A-Za-z0-9-]+)?|run:[A-Za-z0-9-]+)\b/gi;
 
@@ -154,25 +192,34 @@ const TERMINAL_STATUSES = new Set([
 ]);
 
 const FAILURE_STATUSES = new Set(["failed", "error"]);
-const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "stopped", "interrupted"]);
+const CANCELLED_STATUSES = new Set([
+  "cancelled",
+  "canceled",
+  "stopped",
+  "interrupted",
+]);
 const DEFAULT_HERMES_DASHBOARD_PORT = "9119";
 const HERMES_DASHBOARD_API_PATHS = new Set(["", "/", "/chat"]);
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
 function nonEmpty(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function parseNonNegativeNumber(value: unknown, fallback: number): number {
-  const parsed = typeof value === "number"
-    ? value
-    : typeof value === "string"
-      ? Number.parseFloat(value)
-      : Number.NaN;
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseFloat(value)
+        : Number.NaN;
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(0, parsed);
 }
@@ -231,13 +278,17 @@ export function resolveSessionKey(input: {
   if (input.strategy === "run") {
     return `taskcore:run:${input.runId}`;
   }
-  const issuePart = input.issueId ? `issue:${input.issueId}` : `run:${input.runId}`;
+  const issuePart = input.issueId
+    ? `issue:${input.issueId}`
+    : `run:${input.runId}`;
   return `taskcore:company:${input.companyId}:agent:${input.agentId}:${issuePart}`;
 }
 
 function stringifyForLog(value: unknown, maxChars = 4_000): string {
   const text = JSON.stringify(value);
-  return text.length <= maxChars ? text : `${text.slice(0, maxChars)}... [truncated ${text.length - maxChars} chars]`;
+  return text.length <= maxChars
+    ? text
+    : `${text.slice(0, maxChars)}... [truncated ${text.length - maxChars} chars]`;
 }
 
 function sanitizeSensitiveText(value: string): string {
@@ -251,8 +302,17 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function createTextRedactor(secrets: Array<string | null | undefined>): TextRedactor {
-  const exactSecrets = [...new Set(secrets.filter((secret): secret is string => typeof secret === "string" && secret.length >= 4))]
+function createTextRedactor(
+  secrets: Array<string | null | undefined>,
+): TextRedactor {
+  const exactSecrets = [
+    ...new Set(
+      secrets.filter(
+        (secret): secret is string =>
+          typeof secret === "string" && secret.length >= 4,
+      ),
+    ),
+  ]
     .sort((a, b) => b.length - a.length)
     .map((secret) => ({
       secret,
@@ -262,31 +322,52 @@ function createTextRedactor(secrets: Array<string | null | undefined>): TextReda
   return (value: string) => {
     let result = sanitizeSensitiveText(value);
     for (const entry of exactSecrets) {
-      result = result.replace(entry.regex, `[redacted len=${entry.secret.length}]`);
+      result = result.replace(
+        entry.regex,
+        `[redacted len=${entry.secret.length}]`,
+      );
     }
     return result;
   };
 }
 
-function redactForLog(value: unknown, keyPath: string[] = [], depth = 0, redactText: TextRedactor = sanitizeSensitiveText): unknown {
+function redactForLog(
+  value: unknown,
+  keyPath: string[] = [],
+  depth = 0,
+  redactText: TextRedactor = sanitizeSensitiveText,
+): unknown {
   const key = keyPath[keyPath.length - 1] ?? "";
   if (typeof value === "string") {
-    if (SENSITIVE_KEY_PATTERN.test(key)) return `[redacted len=${value.length}]`;
+    if (SENSITIVE_KEY_PATTERN.test(key))
+      return `[redacted len=${value.length}]`;
     const sanitized = redactText(value);
     return sanitized.length > 500
       ? `${sanitized.slice(0, 500)}... [truncated ${sanitized.length - 500} chars]`
       : sanitized;
   }
-  if (value == null || typeof value === "number" || typeof value === "boolean") return value;
+  if (value == null || typeof value === "number" || typeof value === "boolean")
+    return value;
   if (Array.isArray(value)) {
     if (depth > 5) return "[array-truncated]";
-    return value.slice(0, 40).map((entry, index) => redactForLog(entry, [...keyPath, String(index)], depth + 1, redactText));
+    return value
+      .slice(0, 40)
+      .map((entry, index) =>
+        redactForLog(entry, [...keyPath, String(index)], depth + 1, redactText),
+      );
   }
   if (typeof value === "object") {
     if (depth > 5) return "[object-truncated]";
     const out: Record<string, unknown> = {};
-    for (const [entryKey, entryValue] of Object.entries(value as Record<string, unknown>).slice(0, 80)) {
-      out[entryKey] = redactForLog(entryValue, [...keyPath, entryKey], depth + 1, redactText);
+    for (const [entryKey, entryValue] of Object.entries(
+      value as Record<string, unknown>,
+    ).slice(0, 80)) {
+      out[entryKey] = redactForLog(
+        entryValue,
+        [...keyPath, entryKey],
+        depth + 1,
+        redactText,
+      );
     }
     return out;
   }
@@ -332,21 +413,27 @@ function buildHeaders(input: {
   };
 }
 
-function buildInput(ctx: AdapterExecutionContext, taskcoreApiUrl: string | null): string {
+function buildInput(
+  ctx: AdapterExecutionContext,
+  taskcoreApiUrl: string | null,
+): string {
   // Stable session keys (issue/agent strategy) resume the same remote Hermes
   // conversation across runs; a stored session id from a prior run means that
   // conversation already received the task brief, so pick the compact
   // task-context variant under the shared resume rules.
-  const sessionKeyStrategy = normalizeSessionKeyStrategy(ctx.config.sessionKeyStrategy);
+  const sessionKeyStrategy = normalizeSessionKeyStrategy(
+    ctx.config.sessionKeyStrategy,
+  );
   const resumedSession =
     (sessionKeyStrategy === "issue" || sessionKeyStrategy === "agent") &&
     Boolean(nonEmpty(ctx.runtime?.sessionId));
-  const { taskContextNote: taskMarkdown, wakePrompt } = selectTaskcorePromptSections(ctx.context, {
-    resumedSession,
-    // Hermes gateway owns the execution contract below; retain the old
-    // gateway prompt shape and avoid adding a second contract on resume.
-    includeExecutionContract: false,
-  });
+  const { taskContextNote: taskMarkdown, wakePrompt } =
+    selectTaskcorePromptSections(ctx.context, {
+      resumedSession,
+      // Hermes gateway owns the execution contract below; retain the old
+      // gateway prompt shape and avoid adding a second contract on resume.
+      includeExecutionContract: false,
+    });
   const wakePayloadJson = taskcoreWakeCommentsArePromptOwned(ctx.context)
     ? null
     : stringifyTaskcoreWakePayload(ctx.context.taskcoreWake, {
@@ -364,7 +451,8 @@ function buildInput(ctx: AdapterExecutionContext, taskcoreApiUrl: string | null)
     ...(taskcoreApiUrl ? [`- Taskcore API URL: ${taskcoreApiUrl}`] : []),
     ...(issueWorkMode ? [`- Issue work mode: ${issueWorkMode}`] : []),
     "",
-    ...(ctx.context.conversationMode === true || isTaskcoreRecoveryWakePayload(ctx.context.taskcoreWake)
+    ...(ctx.context.conversationMode === true ||
+    isTaskcoreRecoveryWakePayload(ctx.context.taskcoreWake)
       ? []
       : [
           "Execution contract:",
@@ -378,25 +466,26 @@ function buildInput(ctx: AdapterExecutionContext, taskcoreApiUrl: string | null)
     ...(sessionHandoff ? ["", sessionHandoff] : []),
     ...(taskMarkdown ? ["", taskMarkdown] : []),
     ...(wakePayloadJson
-      ? [
-          "",
-          "Structured wake payload JSON:",
-          "```json",
-          wakePayloadJson,
-          "```",
-        ]
+      ? ["", "Structured wake payload JSON:", "```json", wakePayloadJson, "```"]
       : []),
   ];
-  return lines.filter((line) => line !== null && line !== undefined).join("\n").trim();
+  return lines
+    .filter((line) => line !== null && line !== undefined)
+    .join("\n")
+    .trim();
 }
 
-function buildRunBody(ctx: AdapterExecutionContext, sessionKey: string | null): Record<string, unknown> {
+function buildRunBody(
+  ctx: AdapterExecutionContext,
+  sessionKey: string | null,
+): Record<string, unknown> {
   const taskcoreApiUrl = nonEmpty(ctx.config.taskcoreApiUrl);
   const payloadTemplate = parseObject(ctx.config.payloadTemplate);
   const configuredInput = nonEmpty(payloadTemplate.input);
-  const input = configuredInput && ctx.context.conversationMode === true
-    ? `${configuredInput}\n\n${buildInput(ctx, taskcoreApiUrl)}`
-    : configuredInput ?? buildInput(ctx, taskcoreApiUrl);
+  const input =
+    configuredInput && ctx.context.conversationMode === true
+      ? `${configuredInput}\n\n${buildInput(ctx, taskcoreApiUrl)}`
+      : (configuredInput ?? buildInput(ctx, taskcoreApiUrl));
   const instructions =
     nonEmpty(ctx.config.instructions) ??
     nonEmpty(payloadTemplate.instructions) ??
@@ -419,32 +508,56 @@ async function readResponseJson(response: Response): Promise<unknown> {
   }
 }
 
-function classifyHttpError(status: number): { code: string; family: AdapterExecutionResult["errorFamily"] | null } {
-  if (status === 401 || status === 403) return { code: "hermes_gateway_auth_failed", family: null };
-  if (status === 404) return { code: "hermes_gateway_runs_unsupported", family: null };
-  if (status === 429) return { code: "hermes_gateway_rate_limited", family: "transient_upstream" };
-  if (status >= 500) return { code: "hermes_gateway_upstream_error", family: "transient_upstream" };
+function classifyHttpError(status: number): {
+  code: string;
+  family: AdapterExecutionResult["errorFamily"] | null;
+} {
+  if (status === 401 || status === 403)
+    return { code: "hermes_gateway_auth_failed", family: null };
+  if (status === 404)
+    return { code: "hermes_gateway_runs_unsupported", family: null };
+  if (status === 429)
+    return {
+      code: "hermes_gateway_rate_limited",
+      family: "transient_upstream",
+    };
+  if (status >= 500)
+    return {
+      code: "hermes_gateway_upstream_error",
+      family: "transient_upstream",
+    };
   return { code: "hermes_gateway_protocol_error", family: null };
 }
 
 function fetchFailureMessage(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);
-  const cause = err instanceof Error ? (err as { cause?: unknown }).cause : null;
+  const cause =
+    err instanceof Error ? (err as { cause?: unknown }).cause : null;
   if (!cause || typeof cause !== "object") return message;
 
   const causeRecord = cause as { code?: unknown; message?: unknown };
-  const causeMessage = typeof causeRecord.message === "string" ? causeRecord.message : "";
-  const causeCode = typeof causeRecord.code === "string" ? causeRecord.code : "";
-  if (!causeMessage || causeMessage === message) return causeCode ? `${message} (${causeCode})` : message;
-  return causeCode ? `${message} (${causeCode}: ${causeMessage})` : `${message} (${causeMessage})`;
+  const causeMessage =
+    typeof causeRecord.message === "string" ? causeRecord.message : "";
+  const causeCode =
+    typeof causeRecord.code === "string" ? causeRecord.code : "";
+  if (!causeMessage || causeMessage === message)
+    return causeCode ? `${message} (${causeCode})` : message;
+  return causeCode
+    ? `${message} (${causeCode}: ${causeMessage})`
+    : `${message} (${causeMessage})`;
 }
 
-async function fetchJson(input: RequestInfo | URL, init: RequestInit): Promise<unknown> {
+async function fetchJson(
+  input: RequestInfo | URL,
+  init: RequestInit,
+): Promise<unknown> {
   let response: Response;
   try {
     response = await fetch(input, init);
   } catch (err) {
-    const fetchErr = new Error(`Hermes gateway request failed: ${fetchFailureMessage(err)}`) as HermesHttpError;
+    const fetchErr = new Error(
+      `Hermes gateway request failed: ${fetchFailureMessage(err)}`,
+    ) as HermesHttpError;
     fetchErr.code = "hermes_gateway_connect_failed";
     fetchErr.transportCause = err instanceof Error ? err.cause : undefined;
     rememberNetworkFailure(fetchErr, err);
@@ -459,15 +572,21 @@ async function fetchJson(input: RequestInfo | URL, init: RequestInit): Promise<u
   }
   if (!response.ok) {
     const classified = classifyHttpError(response.status);
-    const err = new Error(`Hermes gateway HTTP ${response.status}`) as HermesHttpError;
+    const err = new Error(
+      `Hermes gateway HTTP ${response.status}`,
+    ) as HermesHttpError;
     err.status = response.status;
     err.code = classified.code;
     err.retryNotBefore = response.headers.get("retry-after");
     err.body = body;
     const reason = httpFailureReason(response.status);
-    if (reason) requestConnectionFailures.set(err, {
-      schemaVersion: 1, provider: "hermes_gateway", operation: "create_run", reason,
-    });
+    if (reason)
+      requestConnectionFailures.set(err, {
+        schemaVersion: 1,
+        provider: "hermes_gateway",
+        operation: "create_run",
+        reason,
+      });
     throw err;
   }
   return body;
@@ -475,10 +594,15 @@ async function fetchJson(input: RequestInfo | URL, init: RequestInit): Promise<u
 
 function extractRunId(value: unknown): string | null {
   const record = asRecord(value);
-  return nonEmpty(record?.run_id) ?? nonEmpty(record?.runId) ?? nonEmpty(record?.id);
+  return (
+    nonEmpty(record?.run_id) ?? nonEmpty(record?.runId) ?? nonEmpty(record?.id)
+  );
 }
 
-function eventNameFromData(data: unknown, fallback: string | null): string | null {
+function eventNameFromData(
+  data: unknown,
+  fallback: string | null,
+): string | null {
   const record = asRecord(data);
   return nonEmpty(record?.event) ?? nonEmpty(record?.type) ?? fallback;
 }
@@ -491,7 +615,10 @@ function parseJsonData(data: string): unknown {
   }
 }
 
-export function parseSseFramesForTest(buffer: string): { frames: SseFrame[]; rest: string } {
+export function parseSseFramesForTest(buffer: string): {
+  frames: SseFrame[];
+  rest: string;
+} {
   const normalized = buffer.replace(/\r\n/g, "\n");
   const frames: SseFrame[] = [];
   let offset = 0;
@@ -510,7 +637,8 @@ export function parseSseFramesForTest(buffer: string): { frames: SseFrame[]; res
         dataLines.push(line.slice("data:".length).trimStart());
       }
     }
-    if (dataLines.length > 0) frames.push({ event, data: dataLines.join("\n") });
+    if (dataLines.length > 0)
+      frames.push({ event, data: dataLines.join("\n") });
   }
   return { frames, rest: normalized.slice(offset) };
 }
@@ -577,7 +705,9 @@ async function handleEvent(
     await ctx.onLog("stdout", sanitizedDelta);
   }
 
-  const status = extractStatus(parsed) ?? (eventName?.startsWith("run.") ? eventName.slice(4) : null);
+  const status =
+    extractStatus(parsed) ??
+    (eventName?.startsWith("run.") ? eventName.slice(4) : null);
   if (status && TERMINAL_STATUSES.has(status)) {
     markTerminal(state, {
       runId: state.runId,
@@ -617,11 +747,17 @@ async function pollStatus(input: {
     await delay(input.intervalMs, input.signal);
     if (input.signal.aborted || input.state.terminal) break;
     try {
-      const status = await fetchJson(apiUrl(input.baseUrl, `/v1/runs/${encodeURIComponent(input.state.runId)}`), {
-        method: "GET",
-        headers: input.headers,
-        signal: input.signal,
-      });
+      const status = await fetchJson(
+        apiUrl(
+          input.baseUrl,
+          `/v1/runs/${encodeURIComponent(input.state.runId)}`,
+        ),
+        {
+          method: "GET",
+          headers: input.headers,
+          signal: input.signal,
+        },
+      );
       const normalized = extractStatus(status);
       if (normalized && TERMINAL_STATUSES.has(normalized)) {
         markTerminal(input.state, {
@@ -633,7 +769,10 @@ async function pollStatus(input: {
       }
     } catch (err) {
       if (input.signal.aborted) return;
-      await input.ctx.onLog("stderr", `[hermes-gateway] status poll failed: ${redactErrorMessage(err, input.redactText)}\n`);
+      await input.ctx.onLog(
+        "stderr",
+        `[hermes-gateway] status poll failed: ${redactErrorMessage(err, input.redactText)}\n`,
+      );
     }
   }
 }
@@ -649,18 +788,30 @@ async function consumeEvents(input: {
 }): Promise<void> {
   while (!input.signal.aborted && !input.state.terminal) {
     try {
-      const response = await fetch(apiUrl(input.baseUrl, `/v1/runs/${encodeURIComponent(input.state.runId)}/events`), {
-        method: "GET",
-        headers: input.headers,
-        signal: input.signal,
-      });
+      const response = await fetch(
+        apiUrl(
+          input.baseUrl,
+          `/v1/runs/${encodeURIComponent(input.state.runId)}/events`,
+        ),
+        {
+          method: "GET",
+          headers: input.headers,
+          signal: input.signal,
+        },
+      );
       if (!response.ok) {
-        await input.ctx.onLog("stderr", `[hermes-gateway] event stream HTTP ${response.status}; falling back to polling\n`);
+        await input.ctx.onLog(
+          "stderr",
+          `[hermes-gateway] event stream HTTP ${response.status}; falling back to polling\n`,
+        );
         await delay(input.reconnectMs, input.signal);
         continue;
       }
       if (!response.body) {
-        await input.ctx.onLog("stderr", "[hermes-gateway] event stream response had no body; falling back to polling\n");
+        await input.ctx.onLog(
+          "stderr",
+          "[hermes-gateway] event stream response had no body; falling back to polling\n",
+        );
         await delay(input.reconnectMs, input.signal);
         continue;
       }
@@ -674,7 +825,12 @@ async function consumeEvents(input: {
             const parsed = parseSseFramesForTest(`${buffer}\n\n`);
             buffer = parsed.rest;
             for (const frame of parsed.frames) {
-              await handleEvent(input.ctx, input.state, frame, input.redactText);
+              await handleEvent(
+                input.ctx,
+                input.state,
+                frame,
+                input.redactText,
+              );
               if (input.state.terminal) break;
             }
           }
@@ -690,7 +846,10 @@ async function consumeEvents(input: {
       }
     } catch (err) {
       if (input.signal.aborted || input.state.terminal) return;
-      await input.ctx.onLog("stderr", `[hermes-gateway] event stream disconnected: ${redactErrorMessage(err, input.redactText)}\n`);
+      await input.ctx.onLog(
+        "stderr",
+        `[hermes-gateway] event stream disconnected: ${redactErrorMessage(err, input.redactText)}\n`,
+      );
     }
     if (!input.state.terminal) await delay(input.reconnectMs, input.signal);
   }
@@ -700,10 +859,20 @@ function parseUsage(value: unknown): UsageSummary | undefined {
   const record = asRecord(value);
   if (!record) return undefined;
   const source = asRecord(record.usage) ?? record;
-  const inputTokens = asNumber(source.input_tokens ?? source.inputTokens ?? source.input, 0);
-  const outputTokens = asNumber(source.output_tokens ?? source.outputTokens ?? source.output, 0);
-  const cachedInputTokens = asNumber(source.cached_input_tokens ?? source.cachedInputTokens, 0);
-  if (inputTokens <= 0 && outputTokens <= 0 && cachedInputTokens <= 0) return undefined;
+  const inputTokens = asNumber(
+    source.input_tokens ?? source.inputTokens ?? source.input,
+    0,
+  );
+  const outputTokens = asNumber(
+    source.output_tokens ?? source.outputTokens ?? source.output,
+    0,
+  );
+  const cachedInputTokens = asNumber(
+    source.cached_input_tokens ?? source.cachedInputTokens,
+    0,
+  );
+  if (inputTokens <= 0 && outputTokens <= 0 && cachedInputTokens <= 0)
+    return undefined;
   return {
     inputTokens,
     outputTokens,
@@ -713,14 +882,27 @@ function parseUsage(value: unknown): UsageSummary | undefined {
 
 function parseCostUsd(value: unknown): number | null {
   const record = asRecord(value);
-  const raw = record?.cost_usd ?? record?.costUsd ?? asRecord(record?.usage)?.cost_usd ?? asRecord(record?.usage)?.costUsd;
-  const parsed = typeof raw === "number" ? raw : typeof raw === "string" ? Number.parseFloat(raw) : Number.NaN;
+  const raw =
+    record?.cost_usd ??
+    record?.costUsd ??
+    asRecord(record?.usage)?.cost_usd ??
+    asRecord(record?.usage)?.costUsd;
+  const parsed =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string"
+        ? Number.parseFloat(raw)
+        : Number.NaN;
   return Number.isFinite(parsed) ? parsed : null;
 }
 
 function extractSessionId(value: unknown): string | null {
   const record = asRecord(value);
-  return nonEmpty(record?.session_id) ?? nonEmpty(record?.sessionId) ?? nonEmpty(asRecord(record?.data)?.session_id);
+  return (
+    nonEmpty(record?.session_id) ??
+    nonEmpty(record?.sessionId) ??
+    nonEmpty(asRecord(record?.data)?.session_id)
+  );
 }
 
 function extractModel(value: unknown): string | null {
@@ -730,14 +912,38 @@ function extractModel(value: unknown): string | null {
 
 function extractErrorMessage(value: unknown): string | null {
   const record = asRecord(value);
-  return nonEmpty(record?.error) ?? nonEmpty(record?.message) ?? nonEmpty(record?.detail) ?? extractOutput(value);
+  return (
+    nonEmpty(record?.error) ??
+    nonEmpty(record?.message) ??
+    nonEmpty(record?.detail) ??
+    extractOutput(value)
+  );
 }
 
-function terminalResultCode(status: string): { exitCode: number; signal: string | null; errorCode: string | null } {
-  if (status === "completed") return { exitCode: 0, signal: null, errorCode: null };
-  if (FAILURE_STATUSES.has(status)) return { exitCode: 1, signal: null, errorCode: "hermes_gateway_run_failed" };
-  if (CANCELLED_STATUSES.has(status)) return { exitCode: 1, signal: "SIGTERM", errorCode: "hermes_gateway_cancelled" };
-  return { exitCode: 1, signal: null, errorCode: "hermes_gateway_protocol_error" };
+function terminalResultCode(status: string): {
+  exitCode: number;
+  signal: string | null;
+  errorCode: string | null;
+} {
+  if (status === "completed")
+    return { exitCode: 0, signal: null, errorCode: null };
+  if (FAILURE_STATUSES.has(status))
+    return {
+      exitCode: 1,
+      signal: null,
+      errorCode: "hermes_gateway_run_failed",
+    };
+  if (CANCELLED_STATUSES.has(status))
+    return {
+      exitCode: 1,
+      signal: "SIGTERM",
+      errorCode: "hermes_gateway_cancelled",
+    };
+  return {
+    exitCode: 1,
+    signal: null,
+    errorCode: "hermes_gateway_protocol_error",
+  };
 }
 
 export function mapFinalResultForTest(input: {
@@ -750,7 +956,9 @@ export function mapFinalResultForTest(input: {
   const redactText = input.redactText ?? sanitizeSensitiveText;
   const payload = input.terminal.payload ?? {};
   const output = redactText(
-    input.terminal.output ?? extractOutput(payload) ?? input.outputChunks.join("").trim(),
+    input.terminal.output ??
+      extractOutput(payload) ??
+      input.outputChunks.join("").trim(),
   );
   const sessionId = extractSessionId(payload) ?? input.sessionKey;
   const sessionDisplayId = sessionId ? redactText(sessionId) : null;
@@ -758,7 +966,9 @@ export function mapFinalResultForTest(input: {
   const usage = parseUsage(payload);
   const costUsd = parseCostUsd(payload);
   const errorMessage = mapped.errorCode
-    ? redactText(extractErrorMessage(payload) ?? `Hermes run ${input.terminal.status}`)
+    ? redactText(
+        extractErrorMessage(payload) ?? `Hermes run ${input.terminal.status}`,
+      )
     : null;
   return {
     exitCode: mapped.exitCode,
@@ -774,7 +984,9 @@ export function mapFinalResultForTest(input: {
     sessionId: sessionDisplayId,
     sessionParams: {
       hermesRunId: input.terminal.runId,
-      ...(sessionId && sessionDisplayId === sessionId ? { hermesSessionId: sessionId } : {}),
+      ...(sessionId && sessionDisplayId === sessionId
+        ? { hermesSessionId: sessionId }
+        : {}),
       strategy: input.strategy,
     },
     sessionDisplayId,
@@ -798,14 +1010,23 @@ async function stopRun(input: {
   redactText?: TextRedactor;
 }): Promise<Record<string, unknown> | null> {
   try {
-    const stopped = await fetchJson(apiUrl(input.baseUrl, `/v1/runs/${encodeURIComponent(input.runId)}/stop`), {
-      method: "POST",
-      headers: input.headers,
-    });
-    await input.ctx.onLog("stdout", `[hermes-gateway] stop requested for run ${input.runId}\n`);
+    const stopped = await fetchJson(
+      apiUrl(input.baseUrl, `/v1/runs/${encodeURIComponent(input.runId)}/stop`),
+      {
+        method: "POST",
+        headers: input.headers,
+      },
+    );
+    await input.ctx.onLog(
+      "stdout",
+      `[hermes-gateway] stop requested for run ${input.runId}\n`,
+    );
     return asRecord(stopped);
   } catch (err) {
-    await input.ctx.onLog("stderr", `[hermes-gateway] stop request failed: ${redactErrorMessage(err, input.redactText)}\n`);
+    await input.ctx.onLog(
+      "stderr",
+      `[hermes-gateway] stop request failed: ${redactErrorMessage(err, input.redactText)}\n`,
+    );
     return null;
   }
 }
@@ -819,10 +1040,13 @@ async function fetchFinalStatus(input: {
   const deadline = Date.now() + input.deadlineMs;
   while (Date.now() < deadline) {
     try {
-      const status = await fetchJson(apiUrl(input.baseUrl, `/v1/runs/${encodeURIComponent(input.runId)}`), {
-        method: "GET",
-        headers: input.headers,
-      });
+      const status = await fetchJson(
+        apiUrl(input.baseUrl, `/v1/runs/${encodeURIComponent(input.runId)}`),
+        {
+          method: "GET",
+          headers: input.headers,
+        },
+      );
       const record = asRecord(status);
       const normalized = extractStatus(status);
       if (normalized && TERMINAL_STATUSES.has(normalized)) return record;
@@ -834,60 +1058,103 @@ async function fetchFinalStatus(input: {
   return null;
 }
 
-function redactErrorMessage(err: unknown, redactText: TextRedactor = sanitizeSensitiveText): string {
+function redactErrorMessage(
+  err: unknown,
+  redactText: TextRedactor = sanitizeSensitiveText,
+): string {
   if (err instanceof Error) return redactText(err.message);
   return redactText(String(err));
 }
 
-function isConfiguredLoopbackRefusal(error: HermesHttpError, baseUrl: URL): boolean {
-  if (error.code !== "hermes_gateway_connect_failed" || !isLoopbackHostname(baseUrl.hostname)) return false;
+function isConfiguredLoopbackRefusal(
+  error: HermesHttpError,
+  baseUrl: URL,
+): boolean {
+  if (
+    error.code !== "hermes_gateway_connect_failed" ||
+    !isLoopbackHostname(baseUrl.hostname)
+  )
+    return false;
   const cause = asRecord(error.transportCause);
   if (cause?.code !== "ECONNREFUSED") return false;
-  const port = Number(baseUrl.port || (baseUrl.protocol === "https:" ? 443 : 80));
+  const port = Number(
+    baseUrl.port || (baseUrl.protocol === "https:" ? 443 : 80),
+  );
   const hostname = baseUrl.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   const refusals = Array.isArray(cause.errors) ? cause.errors : [cause];
   if (refusals.length === 0 || refusals.length > 8) return false;
   return refusals.every((value) => {
     const refusal = asRecord(value);
-    return refusal?.code === "ECONNREFUSED" && refusal.syscall === "connect" &&
-      refusal.port === port && typeof refusal.address === "string" &&
+    return (
+      refusal?.code === "ECONNREFUSED" &&
+      refusal.syscall === "connect" &&
+      refusal.port === port &&
+      typeof refusal.address === "string" &&
       isLoopbackHostname(refusal.address) &&
-      (hostname === "localhost" || refusal.address.toLowerCase() === hostname);
+      (hostname === "localhost" || refusal.address.toLowerCase() === hostname)
+    );
   });
 }
 
-function errorResult(err: unknown, baseUrl: URL, redactText: TextRedactor = sanitizeSensitiveText): AdapterExecutionResult {
+function errorResult(
+  err: unknown,
+  baseUrl: URL,
+  redactText: TextRedactor = sanitizeSensitiveText,
+): AdapterExecutionResult {
   const hermesError = err as HermesHttpError;
   const code = hermesError.code ?? "hermes_gateway_protocol_error";
-  const classified = hermesError.status ? classifyHttpError(hermesError.status) : null;
+  const classified = hermesError.status
+    ? classifyHttpError(hermesError.status)
+    : null;
   const loopbackRefused = isConfiguredLoopbackRefusal(hermesError, baseUrl);
-  const connectionFailure = err instanceof Error ? requestConnectionFailures.get(err) : undefined;
-  const errorMessage = code === "hermes_gateway_auth_failed"
-    ? `${redactErrorMessage(err, redactText)}. Check adapterConfig.apiKey matches the Hermes API_SERVER_KEY for the running gateway.`
-    : loopbackRefused
-      ? `${redactErrorMessage(err, redactText)}. The configured loopback gateway refers to the Taskcore server, not an agent sandbox or your browser's machine. Check that the Hermes API server is running there, or set adapterConfig.apiBaseUrl to its address reachable from the Taskcore server. Hermes Gateway connects to an already-running gateway; use hermes_local if Taskcore should launch the local Hermes CLI.`
-      : redactErrorMessage(err, redactText);
+  const connectionFailure =
+    err instanceof Error ? requestConnectionFailures.get(err) : undefined;
+  const errorMessage =
+    code === "hermes_gateway_auth_failed"
+      ? `${redactErrorMessage(err, redactText)}. Check adapterConfig.apiKey matches the Hermes API_SERVER_KEY for the running gateway.`
+      : loopbackRefused
+        ? `${redactErrorMessage(err, redactText)}. The configured loopback gateway refers to the Taskcore server, not an agent sandbox or your browser's machine. Check that the Hermes API server is running there, or set adapterConfig.apiBaseUrl to its address reachable from the Taskcore server. Hermes Gateway connects to an already-running gateway; use hermes_local if Taskcore should launch the local Hermes CLI.`
+        : redactErrorMessage(err, redactText);
   return {
     exitCode: 1,
     signal: null,
     timedOut: false,
     errorCode: code,
-    errorFamily: classified?.family ?? (code === "hermes_gateway_connect_failed" ? "transient_upstream" : null),
+    errorFamily:
+      classified?.family ??
+      (code === "hermes_gateway_connect_failed" ? "transient_upstream" : null),
     retryNotBefore: hermesError.retryNotBefore ?? null,
     errorMessage,
     ...(connectionFailure ? { resultJson: { connectionFailure } } : {}),
     errorMeta: {
       // Diagnosis only: a redirected request may have received a response
       // before refusing a later connection. This never proves non-dispatch.
-      ...(loopbackRefused ? { category: "gateway_loopback_connection_refused", phase: "create_run" } : {}),
+      ...(loopbackRefused
+        ? {
+            category: "gateway_loopback_connection_refused",
+            phase: "create_run",
+          }
+        : {}),
       ...(hermesError.status ? { status: hermesError.status } : {}),
-      ...(hermesError.body ? { body: redactForLog(hermesError.body, [], 0, redactText) as Record<string, unknown> } : {}),
+      ...(hermesError.body
+        ? {
+            body: redactForLog(hermesError.body, [], 0, redactText) as Record<
+              string,
+              unknown
+            >,
+          }
+        : {}),
     },
   };
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
-  const apiBaseUrlValue = asString(ctx.config.apiBaseUrl ?? ctx.config.url, "").trim();
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
+  const apiBaseUrlValue = asString(
+    ctx.config.apiBaseUrl ?? ctx.config.url,
+    "",
+  ).trim();
   if (!apiBaseUrlValue) {
     return {
       exitCode: 1,
@@ -895,7 +1162,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       timedOut: false,
       errorCode: "hermes_gateway_api_base_url_missing",
       errorMessage: "Hermes gateway adapter requires apiBaseUrl.",
-      resultJson: { connectionFailure: gatewayConfigurationFailure("endpoint_missing") },
+      resultJson: {
+        connectionFailure: gatewayConfigurationFailure("endpoint_missing"),
+      },
     };
   }
 
@@ -907,7 +1176,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       timedOut: false,
       errorCode: "hermes_gateway_api_base_url_invalid",
       errorMessage: `Invalid Hermes gateway apiBaseUrl: ${apiBaseUrlValue}`,
-      resultJson: { connectionFailure: gatewayConfigurationFailure("endpoint_invalid") },
+      resultJson: {
+        connectionFailure: gatewayConfigurationFailure("endpoint_invalid"),
+      },
     };
   }
   if (isRemotePlainHttp(baseUrl) && !allowsInsecureRemoteHttp(ctx.config)) {
@@ -917,7 +1188,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       timedOut: false,
       errorCode: "hermes_gateway_plain_http_remote_denied",
       errorMessage: remotePlainHttpDeniedMessage(baseUrl.hostname),
-      resultJson: { connectionFailure: gatewayConfigurationFailure("insecure_transport") },
+      resultJson: {
+        connectionFailure: gatewayConfigurationFailure("insecure_transport"),
+      },
     };
   }
 
@@ -929,14 +1202,37 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       timedOut: false,
       errorCode: "hermes_gateway_api_key_missing",
       errorMessage: "Hermes gateway adapter requires apiKey.",
-      resultJson: { connectionFailure: gatewayConfigurationFailure("credentials_missing") },
+      resultJson: {
+        connectionFailure: gatewayConfigurationFailure("credentials_missing"),
+      },
     };
   }
 
-  const timeoutSec = parseNonNegativeNumber(ctx.config.timeoutSec, DEFAULT_TIMEOUT_SEC);
+  const timeoutSec = parseNonNegativeNumber(
+    ctx.config.timeoutSec,
+    DEFAULT_TIMEOUT_SEC,
+  );
   const timeoutMs = timeoutSec > 0 ? Math.ceil(timeoutSec * 1000) : 0;
-  const reconnectMs = Math.floor(clamp(parseNonNegativeNumber(ctx.config.eventReconnectMs, DEFAULT_EVENT_RECONNECT_MS), 250, 30_000));
-  const pollIntervalMs = Math.floor(clamp(parseNonNegativeNumber(ctx.config.pollIntervalMs, DEFAULT_POLL_INTERVAL_MS), 250, 10_000));
+  const reconnectMs = Math.floor(
+    clamp(
+      parseNonNegativeNumber(
+        ctx.config.eventReconnectMs,
+        DEFAULT_EVENT_RECONNECT_MS,
+      ),
+      250,
+      30_000,
+    ),
+  );
+  const pollIntervalMs = Math.floor(
+    clamp(
+      parseNonNegativeNumber(
+        ctx.config.pollIntervalMs,
+        DEFAULT_POLL_INTERVAL_MS,
+      ),
+      250,
+      10_000,
+    ),
+  );
   const strategy = normalizeSessionKeyStrategy(ctx.config.sessionKeyStrategy);
   const sessionKey = resolveSessionKey({
     strategy,
@@ -982,8 +1278,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       hasSessionKey: Boolean(sessionKey),
     },
   });
-  await ctx.onLog("stdout", `[hermes-gateway] creating run at ${createRunUrl} (timeout=${timeoutSec}s, session=${strategy})\n`);
-  await ctx.onLog("stdout", `[hermes-gateway] request headers (redacted): ${stringifyForLog(redactForLog(runHeaders, [], 0, redactText), 3_000)}\n`);
+  await ctx.onLog(
+    "stdout",
+    `[hermes-gateway] creating run at ${createRunUrl} (timeout=${timeoutSec}s, session=${strategy})\n`,
+  );
+  await ctx.onLog(
+    "stdout",
+    `[hermes-gateway] request headers (redacted): ${stringifyForLog(redactForLog(runHeaders, [], 0, redactText), 3_000)}\n`,
+  );
 
   let runId: string | null = null;
   try {
@@ -1004,7 +1306,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         timedOut: false,
         errorCode: "hermes_gateway_protocol_error",
         errorMessage: "Hermes /v1/runs response did not include run_id.",
-        errorMeta: { response: redactForLog(created, [], 0, redactText) as Record<string, unknown> },
+        errorMeta: {
+          response: redactForLog(created, [], 0, redactText) as Record<
+            string,
+            unknown
+          >,
+        },
       };
     }
   } catch (err) {
@@ -1046,7 +1353,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   if (outcome === "timeout") {
     await stopRun({ ctx, baseUrl, headers: eventHeaders, runId, redactText });
-    const finalStatus = await fetchFinalStatus({ baseUrl, headers: eventHeaders, runId, deadlineMs: STOP_GRACE_MS });
+    const finalStatus = await fetchFinalStatus({
+      baseUrl,
+      headers: eventHeaders,
+      runId,
+      deadlineMs: STOP_GRACE_MS,
+    });
     return {
       exitCode: 1,
       signal: null,

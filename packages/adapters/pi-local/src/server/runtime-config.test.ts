@@ -14,11 +14,12 @@ afterEach(async () => {
   );
 });
 
-async function readModelsJson(agentConfigDir: string): Promise<Record<string, unknown>> {
-  return JSON.parse(await fs.readFile(path.join(agentConfigDir, "models.json"), "utf8")) as Record<
-    string,
-    unknown
-  >;
+async function readModelsJson(
+  agentConfigDir: string,
+): Promise<Record<string, unknown>> {
+  return JSON.parse(
+    await fs.readFile(path.join(agentConfigDir, "models.json"), "utf8"),
+  ) as Record<string, unknown>;
 }
 
 describe("preparePiRuntimeConfig", () => {
@@ -67,7 +68,13 @@ describe("preparePiRuntimeConfig", () => {
   });
 
   it("reads TASKCORE_PI_PROVIDERS from process.env when absent from the run env", async () => {
-    const providers = { tensorix: { baseUrl: "http://gw/anthropic", api: "anthropic-messages", models: [] } };
+    const providers = {
+      tensorix: {
+        baseUrl: "http://gw/anthropic",
+        api: "anthropic-messages",
+        models: [],
+      },
+    };
     process.env.TASKCORE_PI_PROVIDERS = JSON.stringify(providers);
     try {
       const prepared = await preparePiRuntimeConfig({ env: {} });
@@ -83,7 +90,12 @@ describe("preparePiRuntimeConfig", () => {
 
   it("expands {env:VAR} placeholders from the run env (bakes the literal key)", async () => {
     const providers = {
-      tensorix: { baseUrl: "http://gw/anthropic", apiKey: "{env:ANTHROPIC_API_KEY}", api: "anthropic-messages", models: [] },
+      tensorix: {
+        baseUrl: "http://gw/anthropic",
+        apiKey: "{env:ANTHROPIC_API_KEY}",
+        api: "anthropic-messages",
+        models: [],
+      },
     };
     const prepared = await preparePiRuntimeConfig({
       env: {
@@ -102,7 +114,12 @@ describe("preparePiRuntimeConfig", () => {
 
   it("expands {env:VAR} placeholders from process.env when absent from the run env", async () => {
     const providers = {
-      tensorix: { baseUrl: "http://gw/anthropic", apiKey: "{env:TASKCORE_PI_TEST_KEY}", api: "anthropic-messages", models: [] },
+      tensorix: {
+        baseUrl: "http://gw/anthropic",
+        apiKey: "{env:TASKCORE_PI_TEST_KEY}",
+        api: "anthropic-messages",
+        models: [],
+      },
     };
     process.env.TASKCORE_PI_TEST_KEY = "sk-from-process-env";
     try {
@@ -123,7 +140,12 @@ describe("preparePiRuntimeConfig", () => {
 
   it("leaves an unresolvable {env:VAR} placeholder intact", async () => {
     const providers = {
-      tensorix: { baseUrl: "http://gw/anthropic", apiKey: "{env:DEFINITELY_UNSET_VAR_XYZ}", api: "anthropic-messages", models: [] },
+      tensorix: {
+        baseUrl: "http://gw/anthropic",
+        apiKey: "{env:DEFINITELY_UNSET_VAR_XYZ}",
+        api: "anthropic-messages",
+        models: [],
+      },
     };
     const prepared = await preparePiRuntimeConfig({
       env: { TASKCORE_PI_PROVIDERS: JSON.stringify(providers) },
@@ -133,7 +155,9 @@ describe("preparePiRuntimeConfig", () => {
     const modelsJson = (await readModelsJson(agentConfigDir)) as {
       providers: { tensorix: { apiKey: string } };
     };
-    expect(modelsJson.providers.tensorix.apiKey).toBe("{env:DEFINITELY_UNSET_VAR_XYZ}");
+    expect(modelsJson.providers.tensorix.apiKey).toBe(
+      "{env:DEFINITELY_UNSET_VAR_XYZ}",
+    );
     await prepared.cleanup();
   });
 
@@ -165,7 +189,12 @@ describe("preparePiRuntimeConfig", () => {
       env: {
         TASKCORE_PI_PROVIDERS: JSON.stringify({
           bad: "http://gw/v1",
-          tensorix: { baseUrl: "http://gw/anthropic", apiKey: "k", api: "anthropic-messages", models: [] },
+          tensorix: {
+            baseUrl: "http://gw/anthropic",
+            apiKey: "k",
+            api: "anthropic-messages",
+            models: [],
+          },
         }),
       },
     });

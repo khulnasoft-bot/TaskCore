@@ -5,15 +5,24 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { IssueRetryNowOutcome, IssueScheduledRetry } from "@taskcore/shared";
+import type {
+  IssueRetryNowOutcome,
+  IssueScheduledRetry,
+} from "@taskcore/shared";
 import { IssueScheduledRetryCard } from "./IssueScheduledRetryCard";
 import { ToastProvider } from "../context/ToastContext";
 
 const retryNowMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: { children: ReactNode; to: string } & ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: { children: ReactNode; to: string } & ComponentProps<"a">) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -23,7 +32,9 @@ vi.mock("../api/issues", () => ({
   },
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 let container: HTMLDivElement;
 let root: Root;
@@ -122,23 +133,47 @@ function getRetryNowButton() {
 
 describe("IssueScheduledRetryCard", () => {
   it("shows workspace contention as an automatic wait without failure or retry controls", () => {
-    renderWithProviders(<IssueScheduledRetryCard issueId="issue-1" scheduledRetry={{ ...baseRetry, scheduledRetryReason: "workspace_busy" }} />);
+    renderWithProviders(
+      <IssueScheduledRetryCard
+        issueId="issue-1"
+        scheduledRetry={{
+          ...baseRetry,
+          scheduledRetryReason: "workspace_busy",
+        }}
+      />,
+    );
     expect(container.textContent).toContain("Waiting for workspace");
     expect(container.textContent).toContain("Work starts automatically");
-    expect(container.textContent).not.toMatch(/failed|Retry|Attempt|Replaces run/);
+    expect(container.textContent).not.toMatch(
+      /failed|Retry|Attempt|Replaces run/,
+    );
     expect(getRetryNowButton()).toBeNull();
   });
   it("surfaces model capacity and the automatic retry without a generic failure", () => {
-    renderWithProviders(<IssueScheduledRetryCard issueId="issue-1" scheduledRetry={{ ...baseRetry, scheduledRetryAttempt: 1, scheduledRetryReason: "native_provider_overloaded",
-      error: "Selected model is at capacity. Please try a different model.", errorCode: "native_provider_overloaded" }} />);
+    renderWithProviders(
+      <IssueScheduledRetryCard
+        issueId="issue-1"
+        scheduledRetry={{
+          ...baseRetry,
+          scheduledRetryAttempt: 1,
+          scheduledRetryReason: "native_provider_overloaded",
+          error: "Selected model is at capacity. Please try a different model.",
+          errorCode: "native_provider_overloaded",
+        }}
+      />,
+    );
     expect(container.textContent).toContain("Model at capacity");
     expect(container.textContent).toContain("Selected model is at capacity");
-    expect(container.textContent).toContain("Taskcore will retry automatically");
+    expect(container.textContent).toContain(
+      "Taskcore will retry automatically",
+    );
     expect(container.textContent).not.toContain("Native session failed");
   });
 
   it("renders nothing when there is no scheduled retry", () => {
-    renderWithProviders(<IssueScheduledRetryCard issueId="issue-1" scheduledRetry={null} />);
+    renderWithProviders(
+      <IssueScheduledRetryCard issueId="issue-1" scheduledRetry={null} />,
+    );
     expect(getCard()).toBeNull();
   });
 
@@ -170,7 +205,10 @@ describe("IssueScheduledRetryCard", () => {
     renderWithProviders(
       <IssueScheduledRetryCard
         issueId="issue-1"
-        scheduledRetry={{ ...baseRetry, scheduledRetryReason: "max_turns_continuation" }}
+        scheduledRetry={{
+          ...baseRetry,
+          scheduledRetryReason: "max_turns_continuation",
+        }}
       />,
     );
     const text = getCard()?.textContent ?? "";
@@ -183,7 +221,10 @@ describe("IssueScheduledRetryCard", () => {
     renderWithProviders(
       <IssueScheduledRetryCard
         issueId="issue-1"
-        scheduledRetry={{ ...baseRetry, scheduledRetryAt: "2026-04-18T20:00:10.000Z" }}
+        scheduledRetry={{
+          ...baseRetry,
+          scheduledRetryAt: "2026-04-18T20:00:10.000Z",
+        }}
       />,
     );
     const text = getCard()?.textContent ?? "";
@@ -217,20 +258,39 @@ describe("IssueScheduledRetryCard", () => {
       getRetryNowButton()!.click();
     });
     await waitForRetryButtonText("Already promoted");
-    expect(getRetryNowButton()!.textContent ?? "").toContain("Already promoted");
-    expect(container.querySelector('[data-testid="issue-scheduled-retry-error-band"]')).toBeNull();
+    expect(getRetryNowButton()!.textContent ?? "").toContain(
+      "Already promoted",
+    );
+    expect(
+      container.querySelector(
+        '[data-testid="issue-scheduled-retry-error-band"]',
+      ),
+    ).toBeNull();
   });
 
   it("shows cleanup waiting without claiming success or disabling Retry now", async () => {
-    const message = "Waiting for execution cleanup. Taskcore will retry automatically once cleanup finishes.";
-    retryNowMock.mockResolvedValue({ outcome: "waiting", message, scheduledRetry: baseRetry });
-    renderWithProviders(<IssueScheduledRetryCard issueId="issue-1" scheduledRetry={baseRetry} />);
-    act(() => { getRetryNowButton()!.click(); });
+    const message =
+      "Waiting for execution cleanup. Taskcore will retry automatically once cleanup finishes.";
+    retryNowMock.mockResolvedValue({
+      outcome: "waiting",
+      message,
+      scheduledRetry: baseRetry,
+    });
+    renderWithProviders(
+      <IssueScheduledRetryCard issueId="issue-1" scheduledRetry={baseRetry} />,
+    );
+    act(() => {
+      getRetryNowButton()!.click();
+    });
     await waitForUi(() => {
       expect(getCard()?.textContent).toContain(message);
       expect(getCard()?.textContent).not.toContain("run starting");
       expect(getRetryNowButton()!.disabled).toBe(false);
-      expect(container.querySelector('[data-testid="issue-scheduled-retry-error-band"]')).toBeNull();
+      expect(
+        container.querySelector(
+          '[data-testid="issue-scheduled-retry-error-band"]',
+        ),
+      ).toBeNull();
     });
   });
 
@@ -243,9 +303,11 @@ describe("IssueScheduledRetryCard", () => {
       getRetryNowButton()!.click();
     });
     await waitForUi(() => {
-      const band = container.querySelector('[data-testid="issue-scheduled-retry-error-band"]');
+      const band = container.querySelector(
+        '[data-testid="issue-scheduled-retry-error-band"]',
+      );
       expect(band).not.toBeNull();
-      expect((band?.textContent ?? "")).toContain("Server error");
+      expect(band?.textContent ?? "").toContain("Server error");
       expect(getRetryNowButton()!.disabled).toBe(false);
     });
   });
@@ -259,9 +321,11 @@ describe("IssueScheduledRetryCard", () => {
       getRetryNowButton()!.click();
     });
     await waitForUi(() => {
-      const band = container.querySelector('[data-testid="issue-scheduled-retry-error-band"]');
+      const band = container.querySelector(
+        '[data-testid="issue-scheduled-retry-error-band"]',
+      );
       expect(band).not.toBeNull();
-      expect((band?.textContent ?? "")).toContain("Promotion suppressed");
+      expect(band?.textContent ?? "").toContain("Promotion suppressed");
       expect(getRetryNowButton()!.disabled).toBe(false);
     });
   });

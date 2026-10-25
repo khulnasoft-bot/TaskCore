@@ -23,7 +23,12 @@ function createUpdateChain(row: unknown) {
         where() {
           return {
             returning() {
-              return Promise.resolve([{ ...(row as Record<string, unknown>), ...(values as Record<string, unknown>) }]);
+              return Promise.resolve([
+                {
+                  ...(row as Record<string, unknown>),
+                  ...(values as Record<string, unknown>),
+                },
+              ]);
             },
           };
         },
@@ -39,7 +44,10 @@ function createDb(row: Record<string, unknown>) {
   } as any;
 }
 
-function createApp(actor: Express.Request["actor"], row: Record<string, unknown>) {
+function createApp(
+  actor: Express.Request["actor"],
+  row: Record<string, unknown>,
+) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -66,9 +74,11 @@ describe("auth routes", () => {
     vi.unstubAllEnvs();
     if (originalSentryDsn === undefined) delete process.env.SENTRY_DSN;
     else process.env.SENTRY_DSN = originalSentryDsn;
-    if (originalSentryDsnFrontend === undefined) delete process.env.SENTRY_DSN_FRONTEND;
+    if (originalSentryDsnFrontend === undefined)
+      delete process.env.SENTRY_DSN_FRONTEND;
     else process.env.SENTRY_DSN_FRONTEND = originalSentryDsnFrontend;
-    if (originalSentryDsnBackend === undefined) delete process.env.SENTRY_DSN_BACKEND;
+    if (originalSentryDsnBackend === undefined)
+      delete process.env.SENTRY_DSN_BACKEND;
     else process.env.SENTRY_DSN_BACKEND = originalSentryDsnBackend;
   });
 
@@ -135,7 +145,8 @@ describe("auth routes", () => {
   it("sends sentryDsn for a board actor when only SENTRY_DSN_FRONTEND is set", async () => {
     delete process.env.SENTRY_DSN;
     delete process.env.SENTRY_DSN_BACKEND;
-    process.env.SENTRY_DSN_FRONTEND = "https://public-frontend@o0.ingest.sentry.io/1";
+    process.env.SENTRY_DSN_FRONTEND =
+      "https://public-frontend@o0.ingest.sentry.io/1";
     const app = await createApp(
       {
         type: "board",
@@ -148,13 +159,16 @@ describe("auth routes", () => {
     const res = await request(app).get("/api/auth/get-session");
 
     expect(res.status).toBe(200);
-    expect(res.body.sentryDsn).toBe("https://public-frontend@o0.ingest.sentry.io/1");
+    expect(res.body.sentryDsn).toBe(
+      "https://public-frontend@o0.ingest.sentry.io/1",
+    );
   });
 
   it("sends a null sentryDsn when only SENTRY_DSN_BACKEND is set", async () => {
     delete process.env.SENTRY_DSN;
     delete process.env.SENTRY_DSN_FRONTEND;
-    process.env.SENTRY_DSN_BACKEND = "https://public-backend@o0.ingest.sentry.io/2";
+    process.env.SENTRY_DSN_BACKEND =
+      "https://public-backend@o0.ingest.sentry.io/2";
     const app = await createApp(
       {
         type: "board",
@@ -172,8 +186,10 @@ describe("auth routes", () => {
 
   it("sends only the front-end DSN when SENTRY_DSN_FRONTEND and SENTRY_DSN_BACKEND differ", async () => {
     delete process.env.SENTRY_DSN;
-    process.env.SENTRY_DSN_FRONTEND = "https://public-frontend@o0.ingest.sentry.io/1";
-    process.env.SENTRY_DSN_BACKEND = "https://public-backend@o0.ingest.sentry.io/2";
+    process.env.SENTRY_DSN_FRONTEND =
+      "https://public-frontend@o0.ingest.sentry.io/1";
+    process.env.SENTRY_DSN_BACKEND =
+      "https://public-backend@o0.ingest.sentry.io/2";
     const app = await createApp(
       {
         type: "board",
@@ -186,8 +202,12 @@ describe("auth routes", () => {
     const res = await request(app).get("/api/auth/get-session");
 
     expect(res.status).toBe(200);
-    expect(res.body.sentryDsn).toBe("https://public-frontend@o0.ingest.sentry.io/1");
-    expect(res.body.sentryDsn).not.toBe("https://public-backend@o0.ingest.sentry.io/2");
+    expect(res.body.sentryDsn).toBe(
+      "https://public-frontend@o0.ingest.sentry.io/1",
+    );
+    expect(res.body.sentryDsn).not.toBe(
+      "https://public-backend@o0.ingest.sentry.io/2",
+    );
   });
 
   it("answers 401 and sends no DSN when the actor type is none", async () => {
@@ -210,7 +230,10 @@ describe("auth routes", () => {
     "sends the configured Sentry environment %s to board actors",
     async (environment) => {
       vi.stubEnv("SENTRY_ENVIRONMENT", environment);
-      const app = createApp({ type: "board", userId: "user-1", source: "session" }, baseUser);
+      const app = createApp(
+        { type: "board", userId: "user-1", source: "session" },
+        baseUser,
+      );
 
       const res = await request(app).get("/api/auth/get-session");
 
@@ -219,30 +242,44 @@ describe("auth routes", () => {
     },
   );
 
-  it.each([undefined, ""])("sends null for an unset Sentry environment (%s)", async (environment) => {
-    vi.stubEnv("SENTRY_ENVIRONMENT", environment);
-    const app = createApp({ type: "board", userId: "user-1", source: "session" }, baseUser);
+  it.each([undefined, ""])(
+    "sends null for an unset Sentry environment (%s)",
+    async (environment) => {
+      vi.stubEnv("SENTRY_ENVIRONMENT", environment);
+      const app = createApp(
+        { type: "board", userId: "user-1", source: "session" },
+        baseUser,
+      );
 
-    const res = await request(app).get("/api/auth/get-session");
+      const res = await request(app).get("/api/auth/get-session");
 
-    expect(res.status).toBe(200);
-    expect(res.body.sentryEnvironment).toBeNull();
-  });
+      expect(res.status).toBe(200);
+      expect(res.body.sentryEnvironment).toBeNull();
+    },
+  );
 
   it.each([
     { type: "none", source: "none" },
-    { type: "agent", agentId: "agent-1", companyId: "company-1", source: "agent_key" },
-  ] satisfies Express.Request["actor"][])("withholds Sentry settings from a $type actor", async (actor) => {
-    vi.stubEnv("SENTRY_ENVIRONMENT", "staging");
-    vi.stubEnv("SENTRY_DSN_FRONTEND", "https://public@o0.ingest.sentry.io/1");
-    const app = createApp(actor, baseUser);
+    {
+      type: "agent",
+      agentId: "agent-1",
+      companyId: "company-1",
+      source: "agent_key",
+    },
+  ] satisfies Express.Request["actor"][])(
+    "withholds Sentry settings from a $type actor",
+    async (actor) => {
+      vi.stubEnv("SENTRY_ENVIRONMENT", "staging");
+      vi.stubEnv("SENTRY_DSN_FRONTEND", "https://public@o0.ingest.sentry.io/1");
+      const app = createApp(actor, baseUser);
 
-    const res = await request(app).get("/api/auth/get-session");
+      const res = await request(app).get("/api/auth/get-session");
 
-    expect(res.status).toBe(401);
-    expect(res.body.sentryDsn).toBeUndefined();
-    expect(res.body.sentryEnvironment).toBeUndefined();
-  });
+      expect(res.status).toBe(401);
+      expect(res.body.sentryDsn).toBeUndefined();
+      expect(res.body.sentryEnvironment).toBeUndefined();
+    },
+  );
 
   it("updates the signed-in profile", async () => {
     const app = await createApp(

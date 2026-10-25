@@ -1,8 +1,23 @@
 import { SetupWizardSidebarOutlet } from "./SetupWizard";
 import { ChatSetupSidebarProvider } from "@/context/ChatSetupSidebarContext";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, useLocation, useNavigate, useNavigationType, useParams } from "@/lib/router";
+import {
+  Outlet,
+  useLocation,
+  useNavigate,
+  useNavigationType,
+  useParams,
+} from "@/lib/router";
 import { Sidebar } from "./Sidebar";
 import { CompanySettingsSidebar } from "./CompanySettingsSidebar";
 import { CompanySettingsNav } from "./access/CompanySettingsNav";
@@ -42,7 +57,10 @@ import { useStreamlinedUiEnabled } from "../hooks/useStreamlinedUiEnabled";
 import { useCompanyPageMemory } from "../hooks/useCompanyPageMemory";
 import { useMobileNavVisibility } from "../hooks/useMobileNavVisibility";
 import { healthApi } from "../api/health";
-import { resolveArchivedCompanyBounce, shouldSyncCompanySelectionFromRoute } from "../lib/company-selection";
+import {
+  resolveArchivedCompanyBounce,
+  shouldSyncCompanySelectionFromRoute,
+} from "../lib/company-selection";
 import { useOptionalToastActions } from "../context/ToastContext";
 import {
   applyMainContentScrollTop,
@@ -61,10 +79,19 @@ import {
 } from "../lib/shell-navigation";
 import { cn } from "../lib/utils";
 import { NotFoundPage } from "../pages/NotFound";
-import { PluginSlotMount, resolveRouteSidebarSlot, usePluginSlots } from "../plugins/slots";
+import {
+  PluginSlotMount,
+  resolveRouteSidebarSlot,
+  usePluginSlots,
+} from "../plugins/slots";
 
-function getCompanyRouteSegment(pathname: string, companyPrefix: string | undefined): string | null {
-  return getCompanyPathSegments(pathname, companyPrefix)[0]?.toLowerCase() ?? null;
+function getCompanyRouteSegment(
+  pathname: string,
+  companyPrefix: string | undefined,
+): string | null {
+  return (
+    getCompanyPathSegments(pathname, companyPrefix)[0]?.toLowerCase() ?? null
+  );
 }
 
 const RESERVED_APP_SUBPATHS = new Set([
@@ -120,21 +147,28 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
   const navigationType = useNavigationType();
   const { enabled: streamlinedUiEnabled } = useStreamlinedUiEnabled();
   const shellRoute = classifyShellRoute(location.pathname, companyPrefix);
-  const isCompanySettingsRoute = shellRoute.builtInContextualSurface === "settings";
+  const isCompanySettingsRoute =
+    shellRoute.builtInContextualSurface === "settings";
   const companyPathSegments = shellRoute.companySegments;
   const isTaskDetailRoute = shellRoute.isTaskDetail;
   const { enabled: agentChatEnabled } = useAgentChatEnabled();
-  const isAgentChatRoute = agentChatEnabled && companyPathSegments[0]?.toLowerCase() === "chats";
+  const isAgentChatRoute =
+    agentChatEnabled && companyPathSegments[0]?.toLowerCase() === "chats";
   // Chat keeps its header beside the agent sidebar, including before an agent is selected.
-  const useStreamlinedTaskDetailShell = streamlinedUiEnabled && (isTaskDetailRoute || isAgentChatRoute);
+  const useStreamlinedTaskDetailShell =
+    streamlinedUiEnabled && (isTaskDetailRoute || isAgentChatRoute);
   const isToolsRoute = companyPathSegments[0]?.toLowerCase() === "tools";
   const isAppsRoute = companyPathSegments[0]?.toLowerCase() === "apps";
   const appDetailConnectionId =
-    isAppsRoute && companyPathSegments[1] && !RESERVED_APP_SUBPATHS.has(companyPathSegments[1].toLowerCase())
+    isAppsRoute &&
+    companyPathSegments[1] &&
+    !RESERVED_APP_SUBPATHS.has(companyPathSegments[1].toLowerCase())
       ? companyPathSegments[1]
       : null;
   const appDetailApplicationId =
-    isAppsRoute && companyPathSegments[1]?.toLowerCase() === "app" && companyPathSegments[2]
+    isAppsRoute &&
+    companyPathSegments[1]?.toLowerCase() === "app" &&
+    companyPathSegments[2]
       ? companyPathSegments[2]
       : null;
   const onboardingTriggered = useRef(false);
@@ -147,12 +181,21 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
   const matchedCompany = useMemo(() => {
     if (!companyPrefix) return null;
     const requestedPrefix = companyPrefix.toUpperCase();
-    return companies.find((company) => company.issuePrefix.toUpperCase() === requestedPrefix) ?? null;
+    return (
+      companies.find(
+        (company) => company.issuePrefix.toUpperCase() === requestedPrefix,
+      ) ?? null
+    );
   }, [companies, companyPrefix]);
   const hasUnknownCompanyPrefix =
-    Boolean(companyPrefix) && !companiesLoading && companies.length > 0 && !matchedCompany;
+    Boolean(companyPrefix) &&
+    !companiesLoading &&
+    companies.length > 0 &&
+    !matchedCompany;
   const pluginRoutePath = useMemo(
-    () => matchedPluginRoutePath?.toLowerCase() ?? getCompanyRouteSegment(location.pathname, companyPrefix),
+    () =>
+      matchedPluginRoutePath?.toLowerCase() ??
+      getCompanyRouteSegment(location.pathname, companyPrefix),
     [companyPrefix, location.pathname, matchedPluginRoutePath],
   );
   const routeSidebarCompanyId = matchedCompany?.id ?? null;
@@ -179,12 +222,16 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
   // beside the persistent company nav.
   const sharedSecondarySidebar = isCompanySettingsRoute ? (
     <CompanySettingsSidebar />
-  ) : !streamlinedUiEnabled && shellRoute.builtInContextualSurface === "skills" ? (
+  ) : !streamlinedUiEnabled &&
+    shellRoute.builtInContextualSurface === "skills" ? (
     <SkillsContextualSidebar />
   ) : appDetailConnectionId ? (
     <AppDetailSidebar kind="connection" connectionId={appDetailConnectionId} />
   ) : appDetailApplicationId ? (
-    <AppDetailSidebar kind="application" applicationId={appDetailApplicationId} />
+    <AppDetailSidebar
+      kind="application"
+      applicationId={appDetailApplicationId}
+    />
   ) : isAppsRoute || isToolsRoute ? (
     <AppsSidebar />
   ) : routeSidebarSlot ? (
@@ -209,29 +256,42 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
       />
     )
   ) : null;
-  const secondarySidebar = isAgentChatRoute ? <AgentConversationsSidebar /> : shellRoute.builtInContextualSurface === "agent" && agentId ? (
+  const secondarySidebar = isAgentChatRoute ? (
+    <AgentConversationsSidebar />
+  ) : shellRoute.builtInContextualSurface === "agent" && agentId ? (
     <AgentContextualSidebar agentRef={agentId} />
-  ) : streamlinedUiEnabled && shellRoute.builtInContextualSurface === "routine" && routineId ? (
-    <SetupWizardSidebarOutlet><RoutineContextualSidebar routineId={routineId} /></SetupWizardSidebarOutlet>
-  ) : streamlinedUiEnabled && shellRoute.builtInContextualSurface === "skills" ? (
+  ) : streamlinedUiEnabled &&
+    shellRoute.builtInContextualSurface === "routine" &&
+    routineId ? (
+    <SetupWizardSidebarOutlet>
+      <RoutineContextualSidebar routineId={routineId} />
+    </SetupWizardSidebarOutlet>
+  ) : streamlinedUiEnabled &&
+    shellRoute.builtInContextualSurface === "skills" ? (
     <SkillsContextualSidebar />
-  ) : sharedSecondarySidebar;
-  const hasSecondarySidebar = secondarySidebar != null;
-  const keepsPrimarySidebar = streamlinedUiEnabled && hasSecondarySidebar && (
-    isAgentChatRoute
-    || shellRoute.builtInContextualSurface === "skills"
-    || shellRoute.builtInContextualSurface === "agent"
-    || shellRoute.builtInContextualSurface === "routine"
-    || isAppsRoute
-    || isToolsRoute
+  ) : (
+    sharedSecondarySidebar
   );
-  const replacesPrimarySidebar = streamlinedUiEnabled && hasSecondarySidebar && !keepsPrimarySidebar;
-  const showsAdjacentSecondarySidebar = hasSecondarySidebar && (!streamlinedUiEnabled || keepsPrimarySidebar);
-  const contextualSurface: ContextualSidebarSurface | null = !streamlinedUiEnabled || !hasSecondarySidebar
-    ? null
-    : routeSidebarSlot && !shellRoute.builtInContextualSurface
-      ? `plugin:${routeSidebarSlot.id}`
-      : shellRoute.builtInContextualSurface;
+  const hasSecondarySidebar = secondarySidebar != null;
+  const keepsPrimarySidebar =
+    streamlinedUiEnabled &&
+    hasSecondarySidebar &&
+    (isAgentChatRoute ||
+      shellRoute.builtInContextualSurface === "skills" ||
+      shellRoute.builtInContextualSurface === "agent" ||
+      shellRoute.builtInContextualSurface === "routine" ||
+      isAppsRoute ||
+      isToolsRoute);
+  const replacesPrimarySidebar =
+    streamlinedUiEnabled && hasSecondarySidebar && !keepsPrimarySidebar;
+  const showsAdjacentSecondarySidebar =
+    hasSecondarySidebar && (!streamlinedUiEnabled || keepsPrimarySidebar);
+  const contextualSurface: ContextualSidebarSurface | null =
+    !streamlinedUiEnabled || !hasSecondarySidebar
+      ? null
+      : routeSidebarSlot && !shellRoute.builtInContextualSurface
+        ? `plugin:${routeSidebarSlot.id}`
+        : shellRoute.builtInContextualSurface;
   const previousShellRoute = useRef<{
     pathname: string;
     surface: ContextualSidebarSurface | null;
@@ -241,7 +301,8 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
     queryFn: () => healthApi.get(),
     retry: false,
     refetchInterval: (query) => {
-      const data = query.state.data as { devServer?: { enabled?: boolean } } | undefined;
+      const data = query.state.data as
+        { devServer?: { enabled?: boolean } } | undefined;
       return data?.devServer?.enabled ? 2000 : false;
     },
     refetchIntervalInBackground: false,
@@ -255,11 +316,11 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
   useEffect(() => {
     const previous = previousShellRoute.current;
     if (
-      contextualSurface
-      && companyPrefix
-      && previous
-      && previous.surface !== contextualSurface
-      && previous.pathname !== location.pathname
+      contextualSurface &&
+      companyPrefix &&
+      previous &&
+      previous.surface !== contextualSurface &&
+      previous.pathname !== location.pathname
     ) {
       rememberContextualSidebarOrigin({
         surface: contextualSurface,
@@ -267,7 +328,10 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
         previousPathname: previous.pathname,
       });
     }
-    previousShellRoute.current = { pathname: location.pathname, surface: contextualSurface };
+    previousShellRoute.current = {
+      pathname: location.pathname,
+      surface: contextualSurface,
+    };
   }, [companyPrefix, contextualSurface, location.pathname]);
 
   useEffect(() => {
@@ -280,15 +344,24 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
       onboardingTriggered.current = true;
       openOnboarding();
     }
-  }, [companies, companiesLoading, openOnboarding, health?.cloud, health?.deploymentMode]);
+  }, [
+    companies,
+    companiesLoading,
+    openOnboarding,
+    health?.cloud,
+    health?.deploymentMode,
+  ]);
 
   useEffect(() => {
     if (!companyPrefix || companiesLoading || companies.length === 0) return;
 
     if (!matchedCompany) {
-      const fallback = (selectedCompanyId ? companies.find((company) => company.id === selectedCompanyId) : null)
-        ?? companies[0]
-        ?? null;
+      const fallback =
+        (selectedCompanyId
+          ? companies.find((company) => company.id === selectedCompanyId)
+          : null) ??
+        companies[0] ??
+        null;
       if (fallback && selectedCompanyId !== fallback.id) {
         setSelectedCompanyId(fallback.id, { source: "route_sync" });
       }
@@ -297,7 +370,9 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
 
     if (companyPrefix !== matchedCompany.issuePrefix) {
       const suffix = location.pathname.replace(/^\/[^/]+/, "");
-      navigate(`/${matchedCompany.issuePrefix}${suffix}${location.search}`, { replace: true });
+      navigate(`/${matchedCompany.issuePrefix}${suffix}${location.search}`, {
+        replace: true,
+      });
       return;
     }
 
@@ -347,12 +422,14 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
 
   const togglePanel = togglePanelVisible;
   const openSearch = useCallback(() => {
-    document.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "k",
-      metaKey: true,
-      bubbles: true,
-      cancelable: true,
-    }));
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "k",
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
   }, []);
 
   // Peek (hover flyout) triggers for the collapsed rail. Opening has a tiny
@@ -558,14 +635,18 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
     previousPathname.current = location.pathname;
 
     const isHistoryPop = navigationType === "POP";
-    const restoredScrollTop = isHistoryPop ? scrollMemory.current.recall(location.key) : 0;
+    const restoredScrollTop = isHistoryPop
+      ? scrollMemory.current.recall(location.key)
+      : 0;
     activeScrollKey.current = location.key;
 
     if (isHistoryPop) {
       applyMainContentScrollTop(main, restoredScrollTop);
       // Cached page content can finish laying out a frame after commit; re-apply
       // once it has so the restored offset isn't clamped to a shorter interim height.
-      const raf = requestAnimationFrame(() => applyMainContentScrollTop(main, restoredScrollTop));
+      const raf = requestAnimationFrame(() =>
+        applyMainContentScrollTop(main, restoredScrollTop),
+      );
       return () => cancelAnimationFrame(raf);
     }
 
@@ -577,182 +658,230 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
   return (
     <ChatSetupSidebarProvider>
       <div
-      className={cn(
-        "bg-background text-foreground pt-(--sz-safe-top)",
-        // overflow-x-clip on mobile keeps a stray wide descendant from making the
-        // whole viewport scroll horizontally. clip (not hidden) leaves overflow-y
-        // computed as visible, so native body scroll + the sticky breadcrumb keep
-        // working.
-        isMobile ? "min-h-dvh overflow-x-clip" : "flex h-dvh flex-col overflow-clip",
-      )}
-      >
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-(--z-200) focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        Skip to Main Content
-      </a>
-      <WorktreeBanner />
-      <DevRestartBanner devServer={health?.devServer} />
-      <div className={cn("min-h-0 flex-1", isMobile ? "w-full" : "flex overflow-clip")}>
-        {isMobile && sidebarOpen && (
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
-          />
+        className={cn(
+          "bg-background text-foreground pt-(--sz-safe-top)",
+          // overflow-x-clip on mobile keeps a stray wide descendant from making the
+          // whole viewport scroll horizontally. clip (not hidden) leaves overflow-y
+          // computed as visible, so native body scroll + the sticky breadcrumb keep
+          // working.
+          isMobile
+            ? "min-h-dvh overflow-x-clip"
+            : "flex h-dvh flex-col overflow-clip",
         )}
+      >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-(--z-200) focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Skip to Main Content
+        </a>
+        <WorktreeBanner />
+        <DevRestartBanner devServer={health?.devServer} />
+        <div
+          className={cn(
+            "min-h-0 flex-1",
+            isMobile ? "w-full" : "flex overflow-clip",
+          )}
+        >
+          {isMobile && sidebarOpen && (
+            <button
+              type="button"
+              className="fixed inset-0 z-40 bg-black/50"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
+            />
+          )}
 
-        {isMobile ? (
-          <div
-            className={cn(
-              "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden pt-(--sz-safe-top) transition-transform duration-100 ease-out",
-              sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            )}
-          >
-            <div className="flex flex-1 min-h-0 overflow-hidden">
-              <div className="w-60 shrink-0 overflow-hidden">
-                {hasSecondarySidebar ? (
+          {isMobile ? (
+            <div
+              className={cn(
+                "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden pt-(--sz-safe-top) transition-transform duration-100 ease-out",
+                sidebarOpen ? "translate-x-0" : "-translate-x-full",
+              )}
+            >
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                <div className="w-60 shrink-0 overflow-hidden">
+                  {hasSecondarySidebar ? (
+                    <SecondarySidebar>{secondarySidebar}</SecondarySidebar>
+                  ) : (
+                    <Sidebar>{sidebarSections}</Sidebar>
+                  )}
+                </div>
+              </div>
+              <SidebarAccountMenu
+                deploymentMode={health?.deploymentMode}
+                forceExpanded={replacesPrimarySidebar}
+              />
+            </div>
+          ) : (
+            <SidebarShell
+              open={sidebarOpen}
+              collapsed={replacesPrimarySidebar ? false : collapsed}
+              peeking={replacesPrimarySidebar ? false : peeking}
+              resizable
+              onPanelMouseEnter={
+                replacesPrimarySidebar ? undefined : handlePanelPointerEnter
+              }
+              onPanelMouseLeave={
+                replacesPrimarySidebar ? undefined : handlePanelPointerLeave
+              }
+              onPanelFocusCapture={
+                !replacesPrimarySidebar && collapsed
+                  ? handlePanelFocus
+                  : undefined
+              }
+              onPanelBlurCapture={
+                !replacesPrimarySidebar && collapsed
+                  ? handlePanelBlur
+                  : undefined
+              }
+            >
+              <div className="flex flex-1 min-h-0">
+                {replacesPrimarySidebar ? (
                   <SecondarySidebar>{secondarySidebar}</SecondarySidebar>
                 ) : (
                   <Sidebar>{sidebarSections}</Sidebar>
                 )}
               </div>
-            </div>
-            <SidebarAccountMenu
-              deploymentMode={health?.deploymentMode}
-              forceExpanded={replacesPrimarySidebar}
-            />
-          </div>
-        ) : (
-          <SidebarShell
-            open={sidebarOpen}
-            collapsed={replacesPrimarySidebar ? false : collapsed}
-            peeking={replacesPrimarySidebar ? false : peeking}
-            resizable
-            onPanelMouseEnter={replacesPrimarySidebar ? undefined : handlePanelPointerEnter}
-            onPanelMouseLeave={replacesPrimarySidebar ? undefined : handlePanelPointerLeave}
-            onPanelFocusCapture={!replacesPrimarySidebar && collapsed ? handlePanelFocus : undefined}
-            onPanelBlurCapture={!replacesPrimarySidebar && collapsed ? handlePanelBlur : undefined}
-          >
-            <div className="flex flex-1 min-h-0">
-              {replacesPrimarySidebar ? (
-                <SecondarySidebar>{secondarySidebar}</SecondarySidebar>
-              ) : (
-                <Sidebar>{sidebarSections}</Sidebar>
-              )}
-            </div>
-            <SidebarAccountMenu
-              deploymentMode={health?.deploymentMode}
-              forceExpanded={replacesPrimarySidebar}
-            />
-          </SidebarShell>
-        )}
+              <SidebarAccountMenu
+                deploymentMode={health?.deploymentMode}
+                forceExpanded={replacesPrimarySidebar}
+              />
+            </SidebarShell>
+          )}
 
-        {!isMobile && showsAdjacentSecondarySidebar && !keepsPrimarySidebar ? (
-          <SecondarySidebar className="w-60 shrink-0">
-            {secondarySidebar}
-          </SecondarySidebar>
-        ) : null}
+          {!isMobile &&
+          showsAdjacentSecondarySidebar &&
+          !keepsPrimarySidebar ? (
+            <SecondarySidebar className="w-60 shrink-0">
+              {secondarySidebar}
+            </SecondarySidebar>
+          ) : null}
 
-        <div className={cn("flex min-w-0 flex-col", isMobile ? "w-full" : "h-full flex-1")}>
           <div
             className={cn(
-              !isMobile && useStreamlinedTaskDetailShell && "hidden",
-              isMobile && "sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
+              "flex min-w-0 flex-col",
+              isMobile ? "w-full" : "h-full flex-1",
             )}
           >
-            <StandaloneBrowserControls mobile={isMobile} />
-            <BreadcrumbBar />
-            {isMobile && isCompanySettingsRoute ? (
-              <div className="border-b border-border px-4 pb-3">
-                <CompanySettingsNav />
-              </div>
-            ) : null}
-          </div>
-          <div className={cn(
-            isMobile ? "block" : "flex flex-1 min-h-0",
-            !isMobile && useStreamlinedTaskDetailShell && "streamlined-task-detail-surface",
-          )}>
-            {!isMobile && keepsPrimarySidebar ? (
-              <SecondarySidebar className="w-60 shrink-0 bg-background">
-                {secondarySidebar}
-              </SecondarySidebar>
-            ) : null}
-            <div className={cn(!isMobile && useStreamlinedTaskDetailShell ? "flex min-w-0 flex-1 flex-col" : "contents")}>
-              {!isMobile && useStreamlinedTaskDetailShell ? (
-                <>
-                  <StandaloneBrowserControls mobile={false} />
-                  <BreadcrumbBar taskDetailLayout />
-                </>
-              ) : null}
-              <main
-              id="main-content"
-              ref={mainContentRef}
-              tabIndex={-1}
-              // Publish the pinned-composer bottom offset to descendants
-              // (PAP-495): while the auto-hiding mobile nav is on screen, raise
-              // it to the nav height so a sticky composer clears the nav; drop
-              // it back to the safe-area dock when the nav hides. Desktop leaves
-              // the token at its :root default.
-              style={
-                isMobile
-                  ? ({
-                      "--tc-composer-bottom": mobileNavVisible
-                        ? "var(--tc-composer-visible-nav-offset)"
-                        : "var(--tc-composer-hidden-nav-offset)",
-                      "--mobile-nav-motion-duration": mobileNavVisible
-                        ? "var(--motion-mobile-nav-enter)"
-                        : "var(--motion-mobile-nav-exit)",
-                      "--mobile-nav-motion-ease": mobileNavVisible
-                        ? "var(--motion-ease-out-expo)"
-                        : "var(--motion-ease-standard)",
-                    } as CSSProperties)
-                  : undefined
-              }
+            <div
               className={cn(
-                "flex-1 p-4 outline-none md:p-6",
-                // The task thread owns its scrollable top spacing. Leaving the
-                // page shell's top padding in place creates a stationary dark
-                // strip below the breadcrumb while messages scroll behind it.
-                !isMobile && useStreamlinedTaskDetailShell && "pt-0 md:pt-0",
-                // Reserve the scrollbar gutter on desktop so pages whose height
-                // changes (e.g. switching skill-detail tabs) don't widen/shift
-                // when the vertical scrollbar appears or disappears (PAP-10907).
-                isMobile
-                  ? isTaskDetailRoute
-                    ? "overflow-visible pb-(--tc-composer-visible-nav-offset)"
-                    : "overflow-visible pb-(--sz-calc-14)"
-                  : "overflow-auto [scrollbar-gutter:stable]",
+                !isMobile && useStreamlinedTaskDetailShell && "hidden",
+                isMobile &&
+                  "sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
               )}
             >
-              {hasUnknownCompanyPrefix ? (
-                <NotFoundPage
-                  scope="invalid_company_prefix"
-                  requestedPrefix={companyPrefix ?? selectedCompany?.issuePrefix}
-                />
-              ) : (
-                <RouteErrorBoundary>
-                  <Outlet />
-                </RouteErrorBoundary>
-              )}
-              </main>
+              <StandaloneBrowserControls mobile={isMobile} />
+              <BreadcrumbBar />
+              {isMobile && isCompanySettingsRoute ? (
+                <div className="border-b border-border px-4 pb-3">
+                  <CompanySettingsNav />
+                </div>
+              ) : null}
             </div>
-            <PropertiesPanel taskDetailLayout={!isMobile && useStreamlinedTaskDetailShell} />
+            <div
+              className={cn(
+                isMobile ? "block" : "flex flex-1 min-h-0",
+                !isMobile &&
+                  useStreamlinedTaskDetailShell &&
+                  "streamlined-task-detail-surface",
+              )}
+            >
+              {!isMobile && keepsPrimarySidebar ? (
+                <SecondarySidebar className="w-60 shrink-0 bg-background">
+                  {secondarySidebar}
+                </SecondarySidebar>
+              ) : null}
+              <div
+                className={cn(
+                  !isMobile && useStreamlinedTaskDetailShell
+                    ? "flex min-w-0 flex-1 flex-col"
+                    : "contents",
+                )}
+              >
+                {!isMobile && useStreamlinedTaskDetailShell ? (
+                  <>
+                    <StandaloneBrowserControls mobile={false} />
+                    <BreadcrumbBar taskDetailLayout />
+                  </>
+                ) : null}
+                <main
+                  id="main-content"
+                  ref={mainContentRef}
+                  tabIndex={-1}
+                  // Publish the pinned-composer bottom offset to descendants
+                  // (PAP-495): while the auto-hiding mobile nav is on screen, raise
+                  // it to the nav height so a sticky composer clears the nav; drop
+                  // it back to the safe-area dock when the nav hides. Desktop leaves
+                  // the token at its :root default.
+                  style={
+                    isMobile
+                      ? ({
+                          "--tc-composer-bottom": mobileNavVisible
+                            ? "var(--tc-composer-visible-nav-offset)"
+                            : "var(--tc-composer-hidden-nav-offset)",
+                          "--mobile-nav-motion-duration": mobileNavVisible
+                            ? "var(--motion-mobile-nav-enter)"
+                            : "var(--motion-mobile-nav-exit)",
+                          "--mobile-nav-motion-ease": mobileNavVisible
+                            ? "var(--motion-ease-out-expo)"
+                            : "var(--motion-ease-standard)",
+                        } as CSSProperties)
+                      : undefined
+                  }
+                  className={cn(
+                    "flex-1 p-4 outline-none md:p-6",
+                    // The task thread owns its scrollable top spacing. Leaving the
+                    // page shell's top padding in place creates a stationary dark
+                    // strip below the breadcrumb while messages scroll behind it.
+                    !isMobile &&
+                      useStreamlinedTaskDetailShell &&
+                      "pt-0 md:pt-0",
+                    // Reserve the scrollbar gutter on desktop so pages whose height
+                    // changes (e.g. switching skill-detail tabs) don't widen/shift
+                    // when the vertical scrollbar appears or disappears (PAP-10907).
+                    isMobile
+                      ? isTaskDetailRoute
+                        ? "overflow-visible pb-(--tc-composer-visible-nav-offset)"
+                        : "overflow-visible pb-(--sz-calc-14)"
+                      : "overflow-auto [scrollbar-gutter:stable]",
+                  )}
+                >
+                  {hasUnknownCompanyPrefix ? (
+                    <NotFoundPage
+                      scope="invalid_company_prefix"
+                      requestedPrefix={
+                        companyPrefix ?? selectedCompany?.issuePrefix
+                      }
+                    />
+                  ) : (
+                    <RouteErrorBoundary>
+                      <Outlet />
+                    </RouteErrorBoundary>
+                  )}
+                </main>
+              </div>
+              <PropertiesPanel
+                taskDetailLayout={!isMobile && useStreamlinedTaskDetailShell}
+              />
+            </div>
           </div>
         </div>
-      </div>
-      {isMobile && <MobileBottomNav visible={mobileNavVisible} />}
-      <CommandPalette />
-      <NewIssueDialog />
-      <NewProjectDialog />
-      <NewGoalDialog />
-      <NewAgentDialog />
-      <KeyboardShortcutsCheatsheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-      <ToastViewport />
-      <AnnouncementWell health={health} />
-      <PluginAppShellOverlays localTrusted={health?.deploymentMode === "local_trusted"} />
+        {isMobile && <MobileBottomNav visible={mobileNavVisible} />}
+        <CommandPalette />
+        <NewIssueDialog />
+        <NewProjectDialog />
+        <NewGoalDialog />
+        <NewAgentDialog />
+        <KeyboardShortcutsCheatsheet
+          open={shortcutsOpen}
+          onOpenChange={setShortcutsOpen}
+        />
+        <ToastViewport />
+        <AnnouncementWell health={health} />
+        <PluginAppShellOverlays
+          localTrusted={health?.deploymentMode === "local_trusted"}
+        />
       </div>
     </ChatSetupSidebarProvider>
   );

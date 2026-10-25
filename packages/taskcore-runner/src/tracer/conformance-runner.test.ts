@@ -13,7 +13,9 @@ const expectedOutputUrl = new URL(
 describe("Conformance tracer", () => {
   it("prints a stable identity and result and stops the mock core", async () => {
     const mockCore = new MockControlPlaneAdapter();
-    const expectedOutput = (await readFile(expectedOutputUrl, "utf8")).trimEnd();
+    const expectedOutput = (
+      await readFile(expectedOutputUrl, "utf8")
+    ).trimEnd();
 
     await expect(runConformanceTracer(mockCore)).resolves.toBe(expectedOutput);
     expect(mockCore.snapshot().lifecycle).toBe("stopped");

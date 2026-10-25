@@ -5,7 +5,10 @@ import {
   getAvailableConnectionMethods,
   getRecommendedConnectionMethod,
 } from "./app-definitions.js";
-import type { AppDefinition, ConnectionMethodDef } from "./types/app-definition.js";
+import type {
+  AppDefinition,
+  ConnectionMethodDef,
+} from "./types/app-definition.js";
 
 /**
  * The four states every connect screen lands in (PAP-659, "one shell, four
@@ -24,7 +27,8 @@ import type { AppDefinition, ConnectionMethodDef } from "./types/app-definition.
  * - `register`  the provider cannot issue a client, so one must be registered
  *               in its console first. A recovery state, never a normal step.
  */
-export type ConnectionSetupState = "instant" | "authorize" | "paste" | "register";
+export type ConnectionSetupState =
+  "instant" | "authorize" | "paste" | "register";
 
 /**
  * True when the catalog already knows the endpoint. A `serverUrlTemplate` does
@@ -52,7 +56,8 @@ export function connectionSetupStateForMethod(
     return "authorize";
   }
   if (method.auth === "none") {
-    return connectionMethodRequiresConfiguration(method) || !hasResolvedEndpoint(method)
+    return connectionMethodRequiresConfiguration(method) ||
+      !hasResolvedEndpoint(method)
       ? "paste"
       : "instant";
   }
@@ -77,7 +82,7 @@ function defaultToolMethod(
     (method) => (method.purpose ?? "tool") !== "channel",
   );
   return methodKey
-    ? methods.find((candidate) => candidate.key === methodKey) ?? null
+    ? (methods.find((candidate) => candidate.key === methodKey) ?? null)
     : getRecommendedConnectionMethod(methods);
 }
 
@@ -101,7 +106,9 @@ export function connectionSetupVerbForMethod(
 ): "Connect" | "Add key" {
   if (!method) return "Connect";
   const wantsSecret = (method.credentialFields?.length ?? 0) > 0;
-  return connectionSetupStateForMethod(method) === "paste" && wantsSecret ? "Add key" : "Connect";
+  return connectionSetupStateForMethod(method) === "paste" && wantsSecret
+    ? "Add key"
+    : "Connect";
 }
 
 export function connectionSetupVerbForApp(

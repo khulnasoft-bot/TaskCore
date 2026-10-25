@@ -2,7 +2,11 @@ import { useLocation } from "@/lib/router";
 import { ChatDetailSidebar } from "./chat/ChatDetailSidebar";
 import { ChatSetupSidebar } from "./chat/ChatSetupNavigation";
 import { Store, ShieldQuestion } from "lucide-react";
-import { DEVELOPER_TABS, advancedTabHref, isExperimentalToolTab } from "@/pages/tools/tool-tabs";
+import {
+  DEVELOPER_TABS,
+  advancedTabHref,
+  isExperimentalToolTab,
+} from "@/pages/tools/tool-tabs";
 import { useSmokeLabEnabled } from "@/hooks/useSmokeLabEnabled";
 import { useReviewCount } from "@/pages/apps/useReviewCount";
 import { SidebarNavItem } from "./SidebarNavItem";
@@ -27,7 +31,9 @@ export function AppsSidebar() {
   });
 
   if (pathname.endsWith("/apps/chat/connect")) return <ChatSetupSidebar />;
-  const chatDetail = pathname.match(/\/apps\/chat\/([^/]+)(?:\/(?:settings|access|reviews|conversations|activity))?\/?$/);
+  const chatDetail = pathname.match(
+    /\/apps\/chat\/([^/]+)(?:\/(?:settings|access|reviews|conversations|activity))?\/?$/,
+  );
   if (chatDetail) return <ChatDetailSidebar endpointId={chatDetail[1]} />;
 
   return (
@@ -37,7 +43,10 @@ export function AppsSidebar() {
         data-slot="contextual-sidebar-nav"
         className={contextualSidebarStyles.nav}
       >
-        <div data-slot="contextual-sidebar-group" className={contextualSidebarStyles.group}>
+        <div
+          data-slot="contextual-sidebar-group"
+          className={contextualSidebarStyles.group}
+        >
           <SidebarNavItem to="/apps" label="Browse" icon={Store} end />
           <SidebarNavItem
             to="/apps/review"
@@ -49,7 +58,10 @@ export function AppsSidebar() {
           />
         </div>
         {developerTabs.length > 0 ? (
-          <div data-slot="contextual-sidebar-section" className={contextualSidebarStyles.section}>
+          <div
+            data-slot="contextual-sidebar-section"
+            className={contextualSidebarStyles.section}
+          >
             <div
               data-slot="contextual-sidebar-section-label"
               className={contextualSidebarStyles.sectionLabel}
@@ -62,7 +74,10 @@ export function AppsSidebar() {
             >
               Advanced setup for developers.
             </p>
-            <div data-slot="contextual-sidebar-group" className={contextualSidebarStyles.group}>
+            <div
+              data-slot="contextual-sidebar-group"
+              className={contextualSidebarStyles.group}
+            >
               {developerTabs.map((tab) => (
                 <SidebarNavItem
                   key={tab.key}

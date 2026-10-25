@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readlinkSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
@@ -84,6 +93,9 @@ test("linkSdkInto replaces a symlink that points somewhere else", () => {
   symlinkSync("../somewhere-else", join(scopeDir, "plugin-sdk"), "dir");
 
   assert.equal(linkSdkInto(pkg), true);
-  assert.notEqual(readlinkSync(join(scopeDir, "plugin-sdk")), "../somewhere-else");
+  assert.notEqual(
+    readlinkSync(join(scopeDir, "plugin-sdk")),
+    "../somewhere-else",
+  );
   assert.ok(existsSync(scopeDir));
 });

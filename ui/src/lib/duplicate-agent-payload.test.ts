@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { buildDuplicateAgentPayload, duplicateAgentName } from "./duplicate-agent-payload";
+import {
+  buildDuplicateAgentPayload,
+  duplicateAgentName,
+} from "./duplicate-agent-payload";
 import type { AgentDetail } from "@taskcore/shared";
 
 const baseAgent: AgentDetail = {
@@ -48,12 +51,21 @@ const baseAgent: AgentDetail = {
 
 describe("duplicate agent payload", () => {
   it("omits the source persona so central creation makes a fresh assignment", () => {
-    const source = { ...baseAgent, appearance: { schemaVersion: 1, characterVersion: "cap-v1", paletteId: "arctic-blue" } } as AgentDetail;
+    const source = {
+      ...baseAgent,
+      appearance: {
+        schemaVersion: 1,
+        characterVersion: "cap-v1",
+        paletteId: "arctic-blue",
+      },
+    } as AgentDetail;
     expect(buildDuplicateAgentPayload(source)).not.toHaveProperty("appearance");
   });
 
   it("suffixes duplicate names", () => {
-    expect(duplicateAgentName("Senior Product Engineer")).toBe("Senior Product Engineer Copy");
+    expect(duplicateAgentName("Senior Product Engineer")).toBe(
+      "Senior Product Engineer Copy",
+    );
     expect(duplicateAgentName("   ")).toBe("Agent Copy");
   });
 

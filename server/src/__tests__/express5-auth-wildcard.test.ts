@@ -32,20 +32,28 @@ describe("Express 5 /api/auth wildcard route", () => {
   it("matches auth sub-paths without matching unrelated API paths", async () => {
     const { app, getCallCount } = buildApp();
 
-    await expect(request(app).post("/api/auth/sign-in/email")).resolves.toMatchObject({
+    await expect(
+      request(app).post("/api/auth/sign-in/email"),
+    ).resolves.toMatchObject({
       status: 200,
     });
-    await expect(request(app).get("/api/auth/callback/credentials/sign-in")).resolves.toMatchObject({
+    await expect(
+      request(app).get("/api/auth/callback/credentials/sign-in"),
+    ).resolves.toMatchObject({
       status: 200,
     });
     expect(getCallCount()).toBe(2);
 
-    await expect(request(app).get("/api/other/endpoint")).resolves.toMatchObject({
+    await expect(
+      request(app).get("/api/other/endpoint"),
+    ).resolves.toMatchObject({
       status: 404,
     });
     expect(getCallCount()).toBe(2);
 
-    await expect(request(app).post("/api/auth/sign-out")).resolves.toMatchObject({
+    await expect(
+      request(app).post("/api/auth/sign-out"),
+    ).resolves.toMatchObject({
       status: 200,
     });
     await expect(request(app).get("/api/auth/session")).resolves.toMatchObject({

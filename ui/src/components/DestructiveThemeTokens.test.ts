@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const stylesheet = readFileSync(fileURLToPath(new URL("../index.css", import.meta.url)), "utf8");
+const stylesheet = readFileSync(
+  fileURLToPath(new URL("../index.css", import.meta.url)),
+  "utf8",
+);
 
 function cssBlock(selector: string): string {
   const start = stylesheet.indexOf(`\n${selector} {`);
@@ -43,7 +46,10 @@ function relativeLuminance(value: string): number {
 }
 
 function contrastRatio(first: string, second: string): number {
-  const [lighter, darker] = [relativeLuminance(first), relativeLuminance(second)].sort((x, y) => y - x);
+  const [lighter, darker] = [
+    relativeLuminance(first),
+    relativeLuminance(second),
+  ].sort((x, y) => y - x);
   return (lighter + 0.05) / (darker + 0.05);
 }
 

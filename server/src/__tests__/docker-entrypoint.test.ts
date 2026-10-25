@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { execFile } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  existsSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +28,14 @@ const execFileAsync = promisify(execFile);
  * PATH so the branching logic runs unmodified on any host.
  */
 
-const ENTRYPOINT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "scripts", "docker-entrypoint.sh");
+const ENTRYPOINT = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "scripts",
+  "docker-entrypoint.sh",
+);
 
 let stubDir: string;
 let logFile: string;
@@ -32,7 +45,13 @@ function writeStub(name: string, body: string) {
   writeFileSync(path, `#!/bin/sh\n${body}\n`, { mode: 0o755 });
 }
 
-function installStubs(ids: { uid: number; gid: number; nodeUid?: number; nodeGid?: number; homeMismatch?: boolean }) {
+function installStubs(ids: {
+  uid: number;
+  gid: number;
+  nodeUid?: number;
+  nodeGid?: number;
+  homeMismatch?: boolean;
+}) {
   writeStub(
     "id",
     [
@@ -56,9 +75,13 @@ function installStubs(ids: { uid: number; gid: number; nodeUid?: number; nodeGid
 }
 
 async function runEntrypoint(env: Record<string, string> = {}) {
-  const result = await execFileAsync("sh", [ENTRYPOINT, "echo", "ENTRYPOINT-CMD-RAN"], {
-    env: { PATH: `${stubDir}:${process.env.PATH}`, ...env },
-  });
+  const result = await execFileAsync(
+    "sh",
+    [ENTRYPOINT, "echo", "ENTRYPOINT-CMD-RAN"],
+    {
+      env: { PATH: `${stubDir}:${process.env.PATH}`, ...env },
+    },
+  );
   const calls = existsSync(logFile) ? readFileSync(logFile, "utf8") : "";
   return { stdout: result.stdout, stderr: result.stderr, calls };
 }
@@ -89,7 +112,11 @@ describe("docker-entrypoint.sh", () => {
     // ownership, modelling the post-remap mismatch that must trigger chown.
     installStubs({ uid: 0, gid: 0, homeMismatch: true });
 
-    const { stdout, calls } = await runEntrypoint({ USER_UID: "1001", USER_GID: "1001", TASKCORE_HOME: stubDir });
+    const { stdout, calls } = await runEntrypoint({
+      USER_UID: "1001",
+      USER_GID: "1001",
+      TASKCORE_HOME: stubDir,
+    });
 
     expect(stdout).toContain("ENTRYPOINT-CMD-RAN");
     expect(calls).toContain("usermod -o -u 1001 node");
@@ -98,17 +125,32 @@ describe("docker-entrypoint.sh", () => {
     expect(calls).toContain("gosu node echo ENTRYPOINT-CMD-RAN");
   });
 
-  it.each([false, true])("skips remapping a cloud identity while preserving volume repair (mismatch: %s)", async (homeMismatch) => {
-    installStubs({ uid: 0, gid: 0, nodeUid: 1001, nodeGid: 1001, homeMismatch });
+  it.each([false, true])(
+    "skips remapping a cloud identity while preserving volume repair (mismatch: %s)",
+    async (homeMismatch) => {
+      installStubs({
+        uid: 0,
+        gid: 0,
+        nodeUid: 1001,
+        nodeGid: 1001,
+        homeMismatch,
+      });
 
-    const { stdout, calls } = await runEntrypoint({ USER_UID: "1001", USER_GID: "1001", TASKCORE_HOME: stubDir });
+      const { stdout, calls } = await runEntrypoint({
+        USER_UID: "1001",
+        USER_GID: "1001",
+        TASKCORE_HOME: stubDir,
+      });
 
-    expect(stdout).toContain("ENTRYPOINT-CMD-RAN");
-    expect(calls).not.toContain("usermod");
-    expect(calls).not.toContain("groupmod");
-    expect(calls.includes(`chown -R node:node ${stubDir}`)).toBe(homeMismatch);
-    expect(calls).toContain("gosu node echo ENTRYPOINT-CMD-RAN");
-  });
+      expect(stdout).toContain("ENTRYPOINT-CMD-RAN");
+      expect(calls).not.toContain("usermod");
+      expect(calls).not.toContain("groupmod");
+      expect(calls.includes(`chown -R node:node ${stubDir}`)).toBe(
+        homeMismatch,
+      );
+      expect(calls).toContain("gosu node echo ENTRYPOINT-CMD-RAN");
+    },
+  );
 
   it("chowns a root-owned home before gosu even with the default UID/GID (fresh volume mount)", async () => {
     // A freshly mounted volume arrives root-owned and shadows the image's
@@ -128,7 +170,10 @@ describe("docker-entrypoint.sh", () => {
   it("repairs ownership on a GID-only remap (stale group on persisted descendants)", async () => {
     installStubs({ uid: 0, gid: 0, homeMismatch: true });
 
-    const { calls } = await runEntrypoint({ USER_GID: "1001", TASKCORE_HOME: stubDir });
+    const { calls } = await runEntrypoint({
+      USER_GID: "1001",
+      TASKCORE_HOME: stubDir,
+    });
 
     expect(calls).toContain("groupmod -o -g 1001 node");
     expect(calls).toContain(`chown -R node:node ${stubDir}`);
@@ -167,7 +212,9 @@ describe("docker-entrypoint.sh", () => {
     const { stdout, stderr, calls } = await runEntrypoint();
 
     expect(stdout).toContain("ENTRYPOINT-CMD-RAN");
-    expect(stderr).toContain("running unprivileged as 1234:1234; cannot remap to requested 1000:1000");
+    expect(stderr).toContain(
+      "running unprivileged as 1234:1234; cannot remap to requested 1000:1000",
+    );
     expect(calls).toBe("");
   });
 
@@ -177,7 +224,9 @@ describe("docker-entrypoint.sh", () => {
     const { stdout, stderr, calls } = await runEntrypoint();
 
     expect(stdout).toContain("ENTRYPOINT-CMD-RAN");
-    expect(stderr).toContain("running unprivileged as 1000:1001; cannot remap to requested 1000:1000");
+    expect(stderr).toContain(
+      "running unprivileged as 1000:1001; cannot remap to requested 1000:1000",
+    );
     expect(calls).toBe("");
   });
 });

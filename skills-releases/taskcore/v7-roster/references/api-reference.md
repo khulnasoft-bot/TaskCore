@@ -119,7 +119,15 @@ The response also includes `blockedBy` and `blocks` arrays showing first-class d
   "projectId": "proj-1",
   "goalId": null,
   "blockedBy": [
-    { "id": "issue-80", "identifier": "PAP-80", "title": "Design auth schema", "status": "in_progress", "priority": "high", "assigneeAgentId": "agent-55", "assigneeUserId": null }
+    {
+      "id": "issue-80",
+      "identifier": "PAP-80",
+      "title": "Design auth schema",
+      "status": "in_progress",
+      "priority": "high",
+      "assigneeAgentId": "agent-55",
+      "assigneeUserId": null
+    }
   ],
   "blocks": [],
   "project": {
@@ -182,8 +190,8 @@ The response also includes `blockedBy` and `blocks` arrays showing first-class d
       "projectId": "proj-1",
       "goalId": "goal-1",
       "description": "...",
-      "project": { "..." : "..." },
-      "goal": { "..." : "..." }
+      "project": { "...": "..." },
+      "goal": { "...": "..." }
     }
   ]
 }
@@ -199,9 +207,22 @@ Read `diagnosis` first. It is a deterministic, nullable explanation derived only
 
 ```json
 {
-  "issue": { "id": "issue-99", "identifier": "PAP-99", "title": "Ship API", "status": "blocked", "priority": "medium", "assigneeAgentId": "agent-1", "assigneeUserId": null },
+  "issue": {
+    "id": "issue-99",
+    "identifier": "PAP-99",
+    "title": "Ship API",
+    "status": "blocked",
+    "priority": "medium",
+    "assigneeAgentId": "agent-1",
+    "assigneeUserId": null
+  },
   "diagnosis": "All blockers for PAP-99 are resolved, but the issue is still blocked; this is likely a stale blocker hold.",
-  "readiness": { "allBlockersDone": true, "isDependencyReady": true, "unresolvedBlockerCount": 0, "pendingFinalizeBlockerCount": 0 },
+  "readiness": {
+    "allBlockersDone": true,
+    "isDependencyReady": true,
+    "unresolvedBlockerCount": 0,
+    "pendingFinalizeBlockerCount": 0
+  },
   "blockers": [
     {
       "id": "issue-80",
@@ -238,7 +259,15 @@ The endpoint returns bounded wake/activity events, newest-first across both even
 
 ```json
 {
-  "issue": { "id": "issue-99", "identifier": "PAP-99", "title": "Ship API", "status": "blocked", "priority": "medium", "assigneeAgentId": "agent-1", "assigneeUserId": null },
+  "issue": {
+    "id": "issue-99",
+    "identifier": "PAP-99",
+    "title": "Ship API",
+    "status": "blocked",
+    "priority": "medium",
+    "assigneeAgentId": "agent-1",
+    "assigneeUserId": null
+  },
   "diagnosis": "No wake row exists for PAP-99 in the bounded window. PAP-99 is blocked by PAP-80, which is in_progress, so issue_blockers_resolved has not fired.",
   "likelyReason": "No wake row exists for PAP-99 in the bounded window. PAP-99 is blocked by PAP-80, which is in_progress, so issue_blockers_resolved has not fired.",
   "events": [
@@ -260,7 +289,11 @@ The endpoint returns bounded wake/activity events, newest-first across both even
   "activityRecordCount": 0,
   "truncated": false,
   "truncatedSections": { "wakeRequests": false, "activityRecords": false },
-  "caps": { "maxWakeRequests": 50, "maxActivityRecords": 50, "lookbackDays": 14 }
+  "caps": {
+    "maxWakeRequests": 50,
+    "maxActivityRecords": 50,
+    "lookbackDays": 14
+  }
 }
 ```
 
@@ -280,37 +313,99 @@ Use this read-only diagnostic when an issue has child work and you need the comb
 
 ```json
 {
-  "issue": { "id": "issue-99", "identifier": "PAP-99", "title": "Ship API", "status": "blocked", "priority": "medium", "assigneeAgentId": "agent-1", "assigneeUserId": null },
+  "issue": {
+    "id": "issue-99",
+    "identifier": "PAP-99",
+    "title": "Ship API",
+    "status": "blocked",
+    "priority": "medium",
+    "assigneeAgentId": "agent-1",
+    "assigneeUserId": null
+  },
   "diagnosis": "PAP-99 appears to be the subtree stall point: PAP-99 is blocked by PAP-80, which is in_progress.",
   "likelyReason": "PAP-99 appears to be the subtree stall point: PAP-99 is blocked by PAP-80, which is in_progress.",
   "nodes": [
     {
-      "issue": { "id": "issue-99", "identifier": "PAP-99", "title": "Ship API", "status": "blocked", "priority": "medium", "assigneeAgentId": "agent-1", "assigneeUserId": null },
+      "issue": {
+        "id": "issue-99",
+        "identifier": "PAP-99",
+        "title": "Ship API",
+        "status": "blocked",
+        "priority": "medium",
+        "assigneeAgentId": "agent-1",
+        "assigneeUserId": null
+      },
       "parentId": null,
       "depth": 0,
       "diagnosis": "PAP-99 is blocked by PAP-80, which is in_progress.",
       "likelyReason": "PAP-99 is blocked by PAP-80, which is in_progress.",
       "blockers": [
-        { "id": "issue-80", "identifier": "PAP-80", "title": "Finish dependency", "status": "in_progress", "priority": "medium", "assigneeAgentId": "agent-2", "assigneeUserId": null, "isUnresolved": true, "isDependencyReady": false, "isPendingFinalize": false, "flags": [] }
+        {
+          "id": "issue-80",
+          "identifier": "PAP-80",
+          "title": "Finish dependency",
+          "status": "in_progress",
+          "priority": "medium",
+          "assigneeAgentId": "agent-2",
+          "assigneeUserId": null,
+          "isUnresolved": true,
+          "isDependencyReady": false,
+          "isPendingFinalize": false,
+          "flags": []
+        }
       ],
-      "blockerReadiness": { "allBlockersDone": false, "isDependencyReady": false, "unresolvedBlockerCount": 1, "pendingFinalizeBlockerCount": 0 },
+      "blockerReadiness": {
+        "allBlockersDone": false,
+        "isDependencyReady": false,
+        "unresolvedBlockerCount": 1,
+        "pendingFinalizeBlockerCount": 0
+      },
       "omittedUnauthorizedBlockerCount": 0,
       "wakeEvents": [],
       "wakeRequestCount": 0,
       "activityRecordCount": 0,
       "truncated": false,
-      "truncatedSections": { "blockers": false, "wakeRequests": false, "activityRecords": false }
+      "truncatedSections": {
+        "blockers": false,
+        "wakeRequests": false,
+        "activityRecords": false
+      }
     }
   ],
   "edges": [
-    { "kind": "blocks", "fromIssueId": "issue-80", "toIssueId": "issue-99", "timestamp": "2026-07-07T00:00:00.000Z" },
-    { "kind": "wake_request", "issueId": "issue-99", "agentId": "agent-1", "reason": "issue_blockers_resolved", "status": "completed", "timestamp": "2026-07-07T00:01:00.000Z" }
+    {
+      "kind": "blocks",
+      "fromIssueId": "issue-80",
+      "toIssueId": "issue-99",
+      "timestamp": "2026-07-07T00:00:00.000Z"
+    },
+    {
+      "kind": "wake_request",
+      "issueId": "issue-99",
+      "agentId": "agent-1",
+      "reason": "issue_blockers_resolved",
+      "status": "completed",
+      "timestamp": "2026-07-07T00:01:00.000Z"
+    }
   ],
   "nodeCount": 1,
   "omittedUnauthorizedNodeCount": 0,
   "truncated": false,
-  "truncatedSections": { "nodes": false, "depth": false, "blockers": false, "wakeRequests": false, "activityRecords": false },
-  "caps": { "maxDepth": 8, "maxNodes": 100, "maxBlockersPerNode": 20, "maxWakeRequestsPerNode": 5, "maxActivityRecordsPerNode": 5, "lookbackDays": 14 }
+  "truncatedSections": {
+    "nodes": false,
+    "depth": false,
+    "blockers": false,
+    "wakeRequests": false,
+    "activityRecords": false
+  },
+  "caps": {
+    "maxDepth": 8,
+    "maxNodes": 100,
+    "maxBlockersPerNode": 20,
+    "maxWakeRequestsPerNode": 5,
+    "maxActivityRecordsPerNode": 5,
+    "lookbackDays": 14
+  }
 }
 ```
 
@@ -659,6 +754,7 @@ POST /api/companies/{companyId}/logo     — upload logo (multipart, field: "fil
 **Not updateable:** `issuePrefix` (used as company slug/identifier — protected from changes).
 
 **Logo workflow:**
+
 1. `POST /api/companies/{companyId}/logo` with file upload → returns `{ assetId }`.
 2. `PATCH /api/companies/{companyId}` with `{ "logoAssetId": "<assetId>" }`.
 
@@ -676,6 +772,7 @@ POST /api/companies/{companyId}/openclaw/invite-prompt
 Response includes invite token, onboarding text URL, and expiry metadata.
 
 Access is intentionally constrained:
+
 - board users with invite permission
 - CEO agent only (non-CEO agents are rejected)
 
@@ -693,10 +790,12 @@ PATCH /api/agents/{agentId}/instructions-path
 ```
 
 Authorization:
+
 - target agent itself, or
 - an ancestor manager in the target agent's reporting chain.
 
 Adapter behavior:
+
 - `codex_local` and `claude_local` default to `adapterConfig.instructionsFilePath`
 - relative paths resolve against `adapterConfig.cwd`
 - absolute paths are stored as-is
@@ -898,23 +997,23 @@ POST /api/issues/{issueId}/interactions
 
 Payload field reference (`RequestCheckboxConfirmationPayload`):
 
-| Field                       | Type                                       | Default                          | Notes                                                                                                                                       |
-| --------------------------- | ------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `version`                   | `1`                                        | required                         | Versioned for forward compatibility.                                                                                                        |
-| `prompt`                    | string (1–1000 chars)                      | required                         | Headline rendered above the checkbox list.                                                                                                  |
-| `detailsMarkdown`           | string (≤ 20000 chars) \| `null`           | `null`                           | Optional markdown context above the list.                                                                                                   |
-| `options`                   | `[{ id, label, description? }]`            | required, 1–200 entries          | Option `id` and `label` are 1–120 chars; `description` ≤ 500 chars. Option ids must be unique within the payload.                            |
-| `defaultSelectedOptionIds`  | string array                               | `[]`                             | Pre-checks these option ids in the UI. Each id must reference an option in `options`. Length must not exceed `maxSelected` when set.        |
-| `minSelected`               | integer ≥ 0                                | `0`                              | Server rejects acceptances below this floor. Cannot exceed `options.length`.                                                                |
-| `maxSelected`               | integer ≥ 0 \| `null`                      | `null` (unbounded)               | Must satisfy `maxSelected ≥ minSelected` and `maxSelected ≤ options.length` when set.                                                       |
-| `acceptLabel`               | string (1–80) \| `null`                    | `null` (UI default)              | Button label for accept.                                                                                                                    |
-| `rejectLabel`               | string (1–80) \| `null`                    | `null` (UI default)              | Button label for reject/request-changes.                                                                                                    |
-| `rejectRequiresReason`      | boolean                                    | `false`                          | When `true`, the board must supply a non-empty `reason` on reject; the server returns 422 otherwise.                                         |
-| `rejectReasonLabel`         | string (1–160) \| `null`                   | `null`                           | Field label for the reject reason.                                                                                                          |
-| `allowDeclineReason`        | boolean                                    | `true`                           | Whether to render the reason input at all.                                                                                                  |
-| `declineReasonPlaceholder`  | string (1–240) \| `null`                   | `null`                           | Placeholder text in the reason input.                                                                                                       |
-| `supersedeOnUserComment`    | boolean                                    | `true` (set server-side)         | When `true`, a board/user comment after the interaction supersedes it with `outcome: "superseded_by_comment"`.                              |
-| `target`                    | `RequestConfirmationTarget` \| `null`      | `null`                           | Reuses the `request_confirmation` target schema. Stale-target expiration is identical: when the targeted document revision is no longer current, the interaction expires with `outcome: "stale_target"`. |
+| Field                      | Type                                  | Default                  | Notes                                                                                                                                                                                                    |
+| -------------------------- | ------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`                  | `1`                                   | required                 | Versioned for forward compatibility.                                                                                                                                                                     |
+| `prompt`                   | string (1–1000 chars)                 | required                 | Headline rendered above the checkbox list.                                                                                                                                                               |
+| `detailsMarkdown`          | string (≤ 20000 chars) \| `null`      | `null`                   | Optional markdown context above the list.                                                                                                                                                                |
+| `options`                  | `[{ id, label, description? }]`       | required, 1–200 entries  | Option `id` and `label` are 1–120 chars; `description` ≤ 500 chars. Option ids must be unique within the payload.                                                                                        |
+| `defaultSelectedOptionIds` | string array                          | `[]`                     | Pre-checks these option ids in the UI. Each id must reference an option in `options`. Length must not exceed `maxSelected` when set.                                                                     |
+| `minSelected`              | integer ≥ 0                           | `0`                      | Server rejects acceptances below this floor. Cannot exceed `options.length`.                                                                                                                             |
+| `maxSelected`              | integer ≥ 0 \| `null`                 | `null` (unbounded)       | Must satisfy `maxSelected ≥ minSelected` and `maxSelected ≤ options.length` when set.                                                                                                                    |
+| `acceptLabel`              | string (1–80) \| `null`               | `null` (UI default)      | Button label for accept.                                                                                                                                                                                 |
+| `rejectLabel`              | string (1–80) \| `null`               | `null` (UI default)      | Button label for reject/request-changes.                                                                                                                                                                 |
+| `rejectRequiresReason`     | boolean                               | `false`                  | When `true`, the board must supply a non-empty `reason` on reject; the server returns 422 otherwise.                                                                                                     |
+| `rejectReasonLabel`        | string (1–160) \| `null`              | `null`                   | Field label for the reject reason.                                                                                                                                                                       |
+| `allowDeclineReason`       | boolean                               | `true`                   | Whether to render the reason input at all.                                                                                                                                                               |
+| `declineReasonPlaceholder` | string (1–240) \| `null`              | `null`                   | Placeholder text in the reason input.                                                                                                                                                                    |
+| `supersedeOnUserComment`   | boolean                               | `true` (set server-side) | When `true`, a board/user comment after the interaction supersedes it with `outcome: "superseded_by_comment"`.                                                                                           |
+| `target`                   | `RequestConfirmationTarget` \| `null` | `null`                   | Reuses the `request_confirmation` target schema. Stale-target expiration is identical: when the targeted document revision is no longer current, the interaction expires with `outcome: "stale_target"`. |
 
 Envelope defaults that differ from other kinds:
 
@@ -998,18 +1097,18 @@ POST /api/issues/{issueId}/interactions
 
 Payload field reference (`RequestItemVerdictsPayload`):
 
-| Field                    | Type                                                     | Default                    | Notes                                                                                                                        |
-| ------------------------ | -------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `version`                | `1`                                                      | required                   | Versioned for forward compatibility.                                                                                         |
-| `prompt`                 | string (1–1000 chars)                                    | required                   | Headline rendered above the item list.                                                                                        |
-| `detailsMarkdown`        | string (≤ 20000 chars) \| `null`                         | `null`                     | Optional markdown context above the list.                                                                                     |
-| `items`                  | `[{ id, label, description?, previewMarkdown?, href?, attachmentId? }]` | required, 1–200 entries | Item `id` and `label` are 1–120 chars. Item ids must be unique. `href` must be safe: root-relative, fragment, or http(s). |
-| `verdicts`               | array of `"approve"`, `"reject"`, optional `"defer"`     | `["approve","reject"]`     | Must include `approve` and `reject`; `defer` is allowed only when listed.                                                     |
-| `requireReasonOn`        | verdict array                                            | `["reject"]`               | Each value must be enabled by `verdicts`. Pending submissions with those verdicts require a non-empty `reason`.              |
-| `reasonLabel`            | string (1–160) \| `null`                                 | `null`                     | Field label for the verdict reason.                                                                                           |
-| `allowBulkApprove`       | boolean                                                  | `true`                     | UI hint for bulk-approve affordances. Server still validates each submitted item id.                                          |
-| `supersedeOnUserComment` | boolean                                                  | `true` (set server-side)   | A later board/user comment expires the still-pending remainder with `outcome: "superseded_by_comment"`.                      |
-| `target`                 | `RequestConfirmationTarget` \| `null`                    | `null`                     | Same target schema as confirmations. Stale issue-document targets expire the still-pending remainder with `stale_target`.     |
+| Field                    | Type                                                                    | Default                  | Notes                                                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `version`                | `1`                                                                     | required                 | Versioned for forward compatibility.                                                                                      |
+| `prompt`                 | string (1–1000 chars)                                                   | required                 | Headline rendered above the item list.                                                                                    |
+| `detailsMarkdown`        | string (≤ 20000 chars) \| `null`                                        | `null`                   | Optional markdown context above the list.                                                                                 |
+| `items`                  | `[{ id, label, description?, previewMarkdown?, href?, attachmentId? }]` | required, 1–200 entries  | Item `id` and `label` are 1–120 chars. Item ids must be unique. `href` must be safe: root-relative, fragment, or http(s). |
+| `verdicts`               | array of `"approve"`, `"reject"`, optional `"defer"`                    | `["approve","reject"]`   | Must include `approve` and `reject`; `defer` is allowed only when listed.                                                 |
+| `requireReasonOn`        | verdict array                                                           | `["reject"]`             | Each value must be enabled by `verdicts`. Pending submissions with those verdicts require a non-empty `reason`.           |
+| `reasonLabel`            | string (1–160) \| `null`                                                | `null`                   | Field label for the verdict reason.                                                                                       |
+| `allowBulkApprove`       | boolean                                                                 | `true`                   | UI hint for bulk-approve affordances. Server still validates each submitted item id.                                      |
+| `supersedeOnUserComment` | boolean                                                                 | `true` (set server-side) | A later board/user comment expires the still-pending remainder with `outcome: "superseded_by_comment"`.                   |
+| `target`                 | `RequestConfirmationTarget` \| `null`                                   | `null`                   | Same target schema as confirmations. Stale issue-document targets expire the still-pending remainder with `stale_target`. |
 
 Submit item verdicts (board action, requires board/user role; agents creating the interaction cannot submit verdicts):
 
@@ -1058,8 +1157,19 @@ Complete result (interaction becomes `answered`):
   "outcome": "resolved",
   "complete": true,
   "items": [
-    { "id": "api", "verdict": "approve", "resolvedByUserId": "local-board", "resolvedAt": "2026-07-09T12:00:00.000Z" },
-    { "id": "docs", "verdict": "reject", "reason": "Needs install instructions.", "resolvedByUserId": "local-board", "resolvedAt": "2026-07-09T12:00:00.000Z" }
+    {
+      "id": "api",
+      "verdict": "approve",
+      "resolvedByUserId": "local-board",
+      "resolvedAt": "2026-07-09T12:00:00.000Z"
+    },
+    {
+      "id": "docs",
+      "verdict": "reject",
+      "reason": "Needs install instructions.",
+      "resolvedByUserId": "local-board",
+      "resolvedAt": "2026-07-09T12:00:00.000Z"
+    }
   ]
 }
 ```
@@ -1079,6 +1189,7 @@ GET /api/companies/{companyId}/approvals?status=pending
 ### Approval follow-up (requesting agent)
 
 When board resolves your approval, you may be woken with:
+
 - `TASKCORE_APPROVAL_ID`
 - `TASKCORE_APPROVAL_STATUS`
 - `TASKCORE_LINKED_ISSUE_IDS`
@@ -1142,146 +1253,146 @@ Terminal states: `done`, `cancelled`
 
 ### Agents
 
-| Method | Path                               | Description                          |
-| ------ | ---------------------------------- | ------------------------------------ |
-| GET    | `/api/agents/me`                   | Your agent record + chain of command |
-| GET    | `/api/agents/me/inbox/mine?userId=:userId` | Mine-tab issue list for a specific board user |
-| GET    | `/api/agents/:agentId`             | Agent details + chain of command     |
-| GET    | `/api/companies/:companyId/agents` | List all agents in company           |
-| POST   | `/api/companies/:companyId/agents` | Create agent directly (no approval)  |
-| PATCH  | `/api/agents/:agentId`             | Update agent config or budget        |
-| POST   | `/api/agents/:agentId/pause`       | Temporarily stop heartbeats          |
-| POST   | `/api/agents/:agentId/resume`      | Resume a paused agent                |
-| POST   | `/api/agents/:agentId/terminate`   | Permanently deactivate agent (irreversible) |
-| POST   | `/api/agents/:agentId/keys`        | Create long-lived API key (full value shown once) |
-| POST   | `/api/agents/:agentId/heartbeat/invoke` | Manually trigger a heartbeat    |
-| GET    | `/api/companies/:companyId/org`    | Org chart tree                       |
-| GET    | `/api/companies/:companyId/adapters/:adapterType/models` | List selectable models for an adapter type |
-| PATCH  | `/api/agents/:agentId/instructions-path` | Set/clear instructions path (`AGENTS.md`) |
-| GET    | `/api/agents/:agentId/config-revisions` | List config revisions            |
-| POST   | `/api/agents/:agentId/config-revisions/:revisionId/rollback` | Roll back config |
+| Method | Path                                                         | Description                                       |
+| ------ | ------------------------------------------------------------ | ------------------------------------------------- |
+| GET    | `/api/agents/me`                                             | Your agent record + chain of command              |
+| GET    | `/api/agents/me/inbox/mine?userId=:userId`                   | Mine-tab issue list for a specific board user     |
+| GET    | `/api/agents/:agentId`                                       | Agent details + chain of command                  |
+| GET    | `/api/companies/:companyId/agents`                           | List all agents in company                        |
+| POST   | `/api/companies/:companyId/agents`                           | Create agent directly (no approval)               |
+| PATCH  | `/api/agents/:agentId`                                       | Update agent config or budget                     |
+| POST   | `/api/agents/:agentId/pause`                                 | Temporarily stop heartbeats                       |
+| POST   | `/api/agents/:agentId/resume`                                | Resume a paused agent                             |
+| POST   | `/api/agents/:agentId/terminate`                             | Permanently deactivate agent (irreversible)       |
+| POST   | `/api/agents/:agentId/keys`                                  | Create long-lived API key (full value shown once) |
+| POST   | `/api/agents/:agentId/heartbeat/invoke`                      | Manually trigger a heartbeat                      |
+| GET    | `/api/companies/:companyId/org`                              | Org chart tree                                    |
+| GET    | `/api/companies/:companyId/adapters/:adapterType/models`     | List selectable models for an adapter type        |
+| PATCH  | `/api/agents/:agentId/instructions-path`                     | Set/clear instructions path (`AGENTS.md`)         |
+| GET    | `/api/agents/:agentId/config-revisions`                      | List config revisions                             |
+| POST   | `/api/agents/:agentId/config-revisions/:revisionId/rollback` | Roll back config                                  |
 
 ### Issues (Tasks)
 
-| Method | Path                               | Description                                                                              |
-| ------ | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| GET    | `/api/companies/:companyId/issues` | List issues, sorted by priority. Filters: `?status=`, `?assigneeAgentId=`, `?assigneeUserId=`, `?projectId=`, `?labelId=`, `?q=` (full-text search across title, identifier, description, comments) |
-| GET    | `/api/issues/:issueId`             | Issue details + ancestors                                                                |
-| GET    | `/api/issues/:issueId/heartbeat-context` | Compact context for heartbeat: issue state, ancestor summaries, comment cursor  |
-| GET    | `/api/issues/:issueId/diagnostics/blockers` | Read-only blocker diagnostic with `diagnosis`, readiness, and bounded anomaly flags |
-| GET    | `/api/issues/:issueId/diagnostics/wakes` | Read-only wake-history diagnostic with `diagnosis`, bounded events, and Case-B inference |
-| GET    | `/api/issues/:issueId/diagnostics/subtree` | Read-only subtree diagnostic combining visible child, blocker, and wake edges with `diagnosis` |
-| POST   | `/api/companies/:companyId/issues` | Create issue (supports `blockedByIssueIds: string[]` for dependencies)                   |
-| PATCH  | `/api/issues/:issueId`             | Update issue (optional `comment` field; `blockedByIssueIds` replaces blocker set)        |
-| POST   | `/api/issues/:issueId/checkout`    | Atomic checkout (claim + start). Idempotent if you already own it.                       |
-| POST   | `/api/issues/:issueId/release`     | Release task ownership                                                                   |
-| GET    | `/api/issues/:issueId/comments`    | List comments                                                                            |
-| GET    | `/api/issues/:issueId/comments/:commentId` | Get a specific comment by ID                                                     |
-| POST   | `/api/issues/:issueId/comments`    | Add comment (@-mentions trigger wakeups)                                                 |
-| GET    | `/api/issues/:issueId/interactions` | List issue-thread interactions                                                          |
-| POST   | `/api/issues/:issueId/interactions` | Create issue-thread interaction (`suggest_tasks`, `ask_user_questions`, `request_confirmation`, `request_checkbox_confirmation`, `request_item_verdicts`) |
-| POST   | `/api/issues/:issueId/interactions/:interactionId/accept` | Accept suggested tasks or confirmation (body: `selectedClientKeys` for `suggest_tasks`; `selectedOptionIds` for `request_checkbox_confirmation`) |
-| POST   | `/api/issues/:issueId/interactions/:interactionId/reject` | Reject suggested tasks or confirmation                                       |
-| POST   | `/api/issues/:issueId/interactions/:interactionId/respond` | Respond to structured questions                                             |
-| POST   | `/api/issues/:issueId/interactions/:interactionId/verdicts` | Submit partial item verdicts for `request_item_verdicts`                 |
-| GET    | `/api/issues/:issueId/documents`   | List issue documents                                                                     |
-| GET    | `/api/issues/:issueId/documents/:key` | Get issue document by key                                                            |
-| PUT    | `/api/issues/:issueId/documents/:key` | Create or update issue document (send `baseRevisionId` when updating)                |
-| GET    | `/api/issues/:issueId/documents/:key/revisions` | Document revision history                                                  |
-| DELETE | `/api/issues/:issueId/documents/:key` | Delete document (board-only)                                                         |
-| GET    | `/api/issues/:issueId/approvals`   | List approvals linked to issue                                                           |
-| POST   | `/api/issues/:issueId/approvals`   | Link approval to issue                                                                   |
-| DELETE | `/api/issues/:issueId/approvals/:approvalId` | Unlink approval from issue                                                     |
-| GET    | `/api/issues/:issueId/heartbeat-context` | Compact issue context including `currentExecutionWorkspace` when one is linked |
-| GET    | `/api/execution-workspaces/:workspaceId` | Execution workspace detail including runtime services and service URLs |
-| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/start` | Start configured workspace services |
-| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/restart` | Restart configured workspace services |
-| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/stop` | Stop workspace runtime services |
+| Method | Path                                                              | Description                                                                                                                                                                                         |
+| ------ | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/companies/:companyId/issues`                                | List issues, sorted by priority. Filters: `?status=`, `?assigneeAgentId=`, `?assigneeUserId=`, `?projectId=`, `?labelId=`, `?q=` (full-text search across title, identifier, description, comments) |
+| GET    | `/api/issues/:issueId`                                            | Issue details + ancestors                                                                                                                                                                           |
+| GET    | `/api/issues/:issueId/heartbeat-context`                          | Compact context for heartbeat: issue state, ancestor summaries, comment cursor                                                                                                                      |
+| GET    | `/api/issues/:issueId/diagnostics/blockers`                       | Read-only blocker diagnostic with `diagnosis`, readiness, and bounded anomaly flags                                                                                                                 |
+| GET    | `/api/issues/:issueId/diagnostics/wakes`                          | Read-only wake-history diagnostic with `diagnosis`, bounded events, and Case-B inference                                                                                                            |
+| GET    | `/api/issues/:issueId/diagnostics/subtree`                        | Read-only subtree diagnostic combining visible child, blocker, and wake edges with `diagnosis`                                                                                                      |
+| POST   | `/api/companies/:companyId/issues`                                | Create issue (supports `blockedByIssueIds: string[]` for dependencies)                                                                                                                              |
+| PATCH  | `/api/issues/:issueId`                                            | Update issue (optional `comment` field; `blockedByIssueIds` replaces blocker set)                                                                                                                   |
+| POST   | `/api/issues/:issueId/checkout`                                   | Atomic checkout (claim + start). Idempotent if you already own it.                                                                                                                                  |
+| POST   | `/api/issues/:issueId/release`                                    | Release task ownership                                                                                                                                                                              |
+| GET    | `/api/issues/:issueId/comments`                                   | List comments                                                                                                                                                                                       |
+| GET    | `/api/issues/:issueId/comments/:commentId`                        | Get a specific comment by ID                                                                                                                                                                        |
+| POST   | `/api/issues/:issueId/comments`                                   | Add comment (@-mentions trigger wakeups)                                                                                                                                                            |
+| GET    | `/api/issues/:issueId/interactions`                               | List issue-thread interactions                                                                                                                                                                      |
+| POST   | `/api/issues/:issueId/interactions`                               | Create issue-thread interaction (`suggest_tasks`, `ask_user_questions`, `request_confirmation`, `request_checkbox_confirmation`, `request_item_verdicts`)                                           |
+| POST   | `/api/issues/:issueId/interactions/:interactionId/accept`         | Accept suggested tasks or confirmation (body: `selectedClientKeys` for `suggest_tasks`; `selectedOptionIds` for `request_checkbox_confirmation`)                                                    |
+| POST   | `/api/issues/:issueId/interactions/:interactionId/reject`         | Reject suggested tasks or confirmation                                                                                                                                                              |
+| POST   | `/api/issues/:issueId/interactions/:interactionId/respond`        | Respond to structured questions                                                                                                                                                                     |
+| POST   | `/api/issues/:issueId/interactions/:interactionId/verdicts`       | Submit partial item verdicts for `request_item_verdicts`                                                                                                                                            |
+| GET    | `/api/issues/:issueId/documents`                                  | List issue documents                                                                                                                                                                                |
+| GET    | `/api/issues/:issueId/documents/:key`                             | Get issue document by key                                                                                                                                                                           |
+| PUT    | `/api/issues/:issueId/documents/:key`                             | Create or update issue document (send `baseRevisionId` when updating)                                                                                                                               |
+| GET    | `/api/issues/:issueId/documents/:key/revisions`                   | Document revision history                                                                                                                                                                           |
+| DELETE | `/api/issues/:issueId/documents/:key`                             | Delete document (board-only)                                                                                                                                                                        |
+| GET    | `/api/issues/:issueId/approvals`                                  | List approvals linked to issue                                                                                                                                                                      |
+| POST   | `/api/issues/:issueId/approvals`                                  | Link approval to issue                                                                                                                                                                              |
+| DELETE | `/api/issues/:issueId/approvals/:approvalId`                      | Unlink approval from issue                                                                                                                                                                          |
+| GET    | `/api/issues/:issueId/heartbeat-context`                          | Compact issue context including `currentExecutionWorkspace` when one is linked                                                                                                                      |
+| GET    | `/api/execution-workspaces/:workspaceId`                          | Execution workspace detail including runtime services and service URLs                                                                                                                              |
+| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/start`   | Start configured workspace services                                                                                                                                                                 |
+| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/restart` | Restart configured workspace services                                                                                                                                                               |
+| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/stop`    | Stop workspace runtime services                                                                                                                                                                     |
 
 ### Companies, Projects, Goals
 
-| Method | Path                                 | Description        |
-| ------ | ------------------------------------ | ------------------ |
-| GET    | `/api/companies`                     | List all companies |
-| POST   | `/api/companies`                     | Create company     |
-| GET    | `/api/companies/:companyId`          | Company details    |
-| PATCH  | `/api/companies/:companyId`          | Update company fields                |
-| POST   | `/api/companies/:companyId/logo`     | Upload company logo (multipart)      |
-| POST   | `/api/companies/:companyId/archive`  | Archive company    |
-| GET    | `/api/companies/:companyId/projects` | List projects      |
-| GET    | `/api/projects/:projectId`           | Project details    |
-| POST   | `/api/companies/:companyId/projects` | Create project (optional inline `workspace`) |
-| PATCH  | `/api/projects/:projectId`           | Update project     |
-| GET    | `/api/projects/:projectId/workspaces` | List project workspaces |
-| POST   | `/api/projects/:projectId/workspaces` | Create project workspace |
-| PATCH  | `/api/projects/:projectId/workspaces/:workspaceId` | Update project workspace |
-| DELETE | `/api/projects/:projectId/workspaces/:workspaceId` | Delete project workspace |
-| GET    | `/api/companies/:companyId/goals`    | List goals         |
-| GET    | `/api/goals/:goalId`                 | Goal details       |
-| POST   | `/api/companies/:companyId/goals`    | Create goal        |
-| PATCH  | `/api/goals/:goalId`                 | Update goal        |
+| Method | Path                                               | Description                                      |
+| ------ | -------------------------------------------------- | ------------------------------------------------ |
+| GET    | `/api/companies`                                   | List all companies                               |
+| POST   | `/api/companies`                                   | Create company                                   |
+| GET    | `/api/companies/:companyId`                        | Company details                                  |
+| PATCH  | `/api/companies/:companyId`                        | Update company fields                            |
+| POST   | `/api/companies/:companyId/logo`                   | Upload company logo (multipart)                  |
+| POST   | `/api/companies/:companyId/archive`                | Archive company                                  |
+| GET    | `/api/companies/:companyId/projects`               | List projects                                    |
+| GET    | `/api/projects/:projectId`                         | Project details                                  |
+| POST   | `/api/companies/:companyId/projects`               | Create project (optional inline `workspace`)     |
+| PATCH  | `/api/projects/:projectId`                         | Update project                                   |
+| GET    | `/api/projects/:projectId/workspaces`              | List project workspaces                          |
+| POST   | `/api/projects/:projectId/workspaces`              | Create project workspace                         |
+| PATCH  | `/api/projects/:projectId/workspaces/:workspaceId` | Update project workspace                         |
+| DELETE | `/api/projects/:projectId/workspaces/:workspaceId` | Delete project workspace                         |
+| GET    | `/api/companies/:companyId/goals`                  | List goals                                       |
+| GET    | `/api/goals/:goalId`                               | Goal details                                     |
+| POST   | `/api/companies/:companyId/goals`                  | Create goal                                      |
+| PATCH  | `/api/goals/:goalId`                               | Update goal                                      |
 | POST   | `/api/companies/:companyId/openclaw/invite-prompt` | Generate OpenClaw invite prompt (CEO/board only) |
 
 ### Routines
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET    | `/api/companies/:companyId/routines` | List all routines in company |
-| GET    | `/api/routines/:routineId` | Routine details including triggers |
-| POST   | `/api/companies/:companyId/routines` | Create routine (`assigneeAgentId` + `projectId` required; agents: own only) |
-| PATCH  | `/api/routines/:routineId` | Update routine (agents: own only, cannot reassign) |
-| POST   | `/api/routines/:routineId/triggers` | Add trigger (`schedule`, `webhook`, or `api` kind) |
-| PATCH  | `/api/routine-triggers/:triggerId` | Update trigger (e.g. disable, change cron) |
-| DELETE | `/api/routine-triggers/:triggerId` | Delete trigger |
-| POST   | `/api/routine-triggers/:triggerId/rotate-secret` | Rotate webhook signing secret (previous secret immediately invalidated) |
-| POST   | `/api/routines/:routineId/run` | Manual run (bypasses schedule; concurrency policy still applies) |
-| POST   | `/api/routine-triggers/public/:publicId/fire` | Fire webhook trigger from external system |
-| GET    | `/api/routines/:routineId/runs` | Run history (default 50) |
+| Method | Path                                             | Description                                                                 |
+| ------ | ------------------------------------------------ | --------------------------------------------------------------------------- |
+| GET    | `/api/companies/:companyId/routines`             | List all routines in company                                                |
+| GET    | `/api/routines/:routineId`                       | Routine details including triggers                                          |
+| POST   | `/api/companies/:companyId/routines`             | Create routine (`assigneeAgentId` + `projectId` required; agents: own only) |
+| PATCH  | `/api/routines/:routineId`                       | Update routine (agents: own only, cannot reassign)                          |
+| POST   | `/api/routines/:routineId/triggers`              | Add trigger (`schedule`, `webhook`, or `api` kind)                          |
+| PATCH  | `/api/routine-triggers/:triggerId`               | Update trigger (e.g. disable, change cron)                                  |
+| DELETE | `/api/routine-triggers/:triggerId`               | Delete trigger                                                              |
+| POST   | `/api/routine-triggers/:triggerId/rotate-secret` | Rotate webhook signing secret (previous secret immediately invalidated)     |
+| POST   | `/api/routines/:routineId/run`                   | Manual run (bypasses schedule; concurrency policy still applies)            |
+| POST   | `/api/routine-triggers/public/:publicId/fire`    | Fire webhook trigger from external system                                   |
+| GET    | `/api/routines/:routineId/runs`                  | Run history (default 50)                                                    |
 
 ### Approvals, Costs, Activity, Dashboard
 
-| Method | Path                                         | Description                        |
-| ------ | -------------------------------------------- | ---------------------------------- |
-| GET    | `/api/companies/:companyId/approvals`        | List approvals (`?status=pending`) |
-| POST   | `/api/companies/:companyId/approvals`        | Create approval request            |
-| POST   | `/api/companies/:companyId/agent-hires`      | Create hire request/agent draft    |
-| GET    | `/api/approvals/:approvalId`                 | Approval details                   |
-| GET    | `/api/approvals/:approvalId/issues`          | Issues linked to approval          |
-| GET    | `/api/approvals/:approvalId/comments`        | Approval comments                  |
-| POST   | `/api/approvals/:approvalId/comments`        | Add approval comment               |
-| POST   | `/api/approvals/:approvalId/approve`         | Approve approval request           |
-| POST   | `/api/approvals/:approvalId/reject`          | Reject approval request            |
-| POST   | `/api/approvals/:approvalId/request-revision`| Board asks for revision            |
-| POST   | `/api/approvals/:approvalId/resubmit`        | Resubmit revised approval          |
-| POST   | `/api/companies/:companyId/cost-events`      | Report cost event                  |
-| GET    | `/api/companies/:companyId/costs/summary`    | Company cost summary               |
-| GET    | `/api/companies/:companyId/costs/by-agent`   | Costs by agent                     |
-| GET    | `/api/companies/:companyId/costs/by-project` | Costs by project                   |
-| GET    | `/api/companies/:companyId/activity`         | Activity log                       |
-| GET    | `/api/companies/:companyId/dashboard`        | Company health summary             |
+| Method | Path                                          | Description                        |
+| ------ | --------------------------------------------- | ---------------------------------- |
+| GET    | `/api/companies/:companyId/approvals`         | List approvals (`?status=pending`) |
+| POST   | `/api/companies/:companyId/approvals`         | Create approval request            |
+| POST   | `/api/companies/:companyId/agent-hires`       | Create hire request/agent draft    |
+| GET    | `/api/approvals/:approvalId`                  | Approval details                   |
+| GET    | `/api/approvals/:approvalId/issues`           | Issues linked to approval          |
+| GET    | `/api/approvals/:approvalId/comments`         | Approval comments                  |
+| POST   | `/api/approvals/:approvalId/comments`         | Add approval comment               |
+| POST   | `/api/approvals/:approvalId/approve`          | Approve approval request           |
+| POST   | `/api/approvals/:approvalId/reject`           | Reject approval request            |
+| POST   | `/api/approvals/:approvalId/request-revision` | Board asks for revision            |
+| POST   | `/api/approvals/:approvalId/resubmit`         | Resubmit revised approval          |
+| POST   | `/api/companies/:companyId/cost-events`       | Report cost event                  |
+| GET    | `/api/companies/:companyId/costs/summary`     | Company cost summary               |
+| GET    | `/api/companies/:companyId/costs/by-agent`    | Costs by agent                     |
+| GET    | `/api/companies/:companyId/costs/by-project`  | Costs by project                   |
+| GET    | `/api/companies/:companyId/activity`          | Activity log                       |
+| GET    | `/api/companies/:companyId/dashboard`         | Company health summary             |
 
 ### Secrets
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET    | `/api/companies/:companyId/secrets` | List secrets (metadata only)        |
-| POST   | `/api/companies/:companyId/secrets` | Create secret                       |
+| Method | Path                                | Description                               |
+| ------ | ----------------------------------- | ----------------------------------------- |
+| GET    | `/api/companies/:companyId/secrets` | List secrets (metadata only)              |
+| POST   | `/api/companies/:companyId/secrets` | Create secret                             |
 | PATCH  | `/api/secrets/:secretId`            | Update secret value (creates new version) |
 
 ---
 
 ## Common Mistakes
 
-| Mistake                                     | Why it's wrong                                        | What to do instead                                      |
-| ------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
-| Start work without checkout                 | Another agent may claim it simultaneously             | Always `POST /issues/:id/checkout` first                |
-| Retry a `409` checkout                      | The task belongs to someone else                      | Pick a different task                                   |
-| Look for unassigned work                    | You're overstepping; managers assign work             | If you have no assignments, exit, except explicit mention handoff |
-| Exit without commenting on in-progress work | Your manager can't see progress; work appears stalled | Leave a comment explaining where you are                |
-| Create tasks without `parentId`             | Breaks the task hierarchy; work becomes untraceable   | Link every subtask to its parent                        |
-| Cancel cross-team tasks                     | Only the assigning team's manager can cancel          | Reassign to your manager with a comment                 |
-| Ignore budget warnings                      | You'll be auto-paused at 100% mid-work                | Check spend at start; prioritize above 80%              |
-| @-mention agents for no reason              | Each mention triggers a budget-consuming heartbeat    | Only mention agents who need to act                     |
-| Sit silently on blocked work                | Nobody knows you're stuck; the task rots              | Comment the blocker and escalate immediately            |
-| Leave tasks in ambiguous states             | Others can't tell if work is progressing              | Always update status: `blocked`, `in_review`, or `done` |
+| Mistake                                           | Why it's wrong                                                   | What to do instead                                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Start work without checkout                       | Another agent may claim it simultaneously                        | Always `POST /issues/:id/checkout` first                                               |
+| Retry a `409` checkout                            | The task belongs to someone else                                 | Pick a different task                                                                  |
+| Look for unassigned work                          | You're overstepping; managers assign work                        | If you have no assignments, exit, except explicit mention handoff                      |
+| Exit without commenting on in-progress work       | Your manager can't see progress; work appears stalled            | Leave a comment explaining where you are                                               |
+| Create tasks without `parentId`                   | Breaks the task hierarchy; work becomes untraceable              | Link every subtask to its parent                                                       |
+| Cancel cross-team tasks                           | Only the assigning team's manager can cancel                     | Reassign to your manager with a comment                                                |
+| Ignore budget warnings                            | You'll be auto-paused at 100% mid-work                           | Check spend at start; prioritize above 80%                                             |
+| @-mention agents for no reason                    | Each mention triggers a budget-consuming heartbeat               | Only mention agents who need to act                                                    |
+| Sit silently on blocked work                      | Nobody knows you're stuck; the task rots                         | Comment the blocker and escalate immediately                                           |
+| Leave tasks in ambiguous states                   | Others can't tell if work is progressing                         | Always update status: `blocked`, `in_review`, or `done`                                |
 | Block on another task without `blockedByIssueIds` | No automatic wake when blocker resolves; manual follow-up needed | Set `blockedByIssueIds` so Taskcore auto-wakes the assignee when all blockers are done |

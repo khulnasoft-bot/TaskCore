@@ -1,4 +1,7 @@
-import type { ExecutionProjection, ExecutionBlocker } from "./execution-projection.js";
+import type {
+  ExecutionProjection,
+  ExecutionBlocker,
+} from "./execution-projection.js";
 import type {
   IssueCommentAuthorType,
   IssueCommentMetadataRowType,
@@ -36,7 +39,10 @@ import type {
 } from "../constants.js";
 import type { Goal } from "./goal.js";
 import type { Project, ProjectWorkspace } from "./project.js";
-import type { ExecutionWorkspace, IssueExecutionWorkspaceSettings } from "./workspace-runtime.js";
+import type {
+  ExecutionWorkspace,
+  IssueExecutionWorkspaceSettings,
+} from "./workspace-runtime.js";
 import type { IssueWorkProduct } from "./work-product.js";
 import type {
   LowTrustReviewPresetPolicy,
@@ -53,7 +59,8 @@ export interface IssuePrivacyConstraints {
   leavesPersonalProject: boolean;
 }
 export type IssueAccessGrantSubjectType = "user" | "agent";
-export type IssueAccessGrantSource = "explicit" | "assignment" | "project" | "owner";
+export type IssueAccessGrantSource =
+  "explicit" | "assignment" | "project" | "owner";
 export type IssueAccessGrantAgentVisibility = "discoverable" | "private";
 
 export interface IssueAccessGrant {
@@ -303,7 +310,8 @@ export interface IssueBlockerDiagnosticsResponse {
   };
 }
 
-export type IssueWakeDiagnosticWakeFailureClass = "failed" | "cancelled" | "skipped";
+export type IssueWakeDiagnosticWakeFailureClass =
+  "failed" | "cancelled" | "skipped";
 
 export interface IssueWakeDiagnosticWakeRequest {
   kind: "wake_request";
@@ -335,8 +343,7 @@ export interface IssueWakeDiagnosticActivityRecord {
 }
 
 export type IssueWakeDiagnosticEvent =
-  | IssueWakeDiagnosticWakeRequest
-  | IssueWakeDiagnosticActivityRecord;
+  IssueWakeDiagnosticWakeRequest | IssueWakeDiagnosticActivityRecord;
 
 export interface IssueWakeDiagnosticsResponse {
   issue: IssueBlockerDiagnosticIssueSummary;
@@ -379,31 +386,31 @@ export interface IssueSubtreeDiagnosticNode {
 
 export type IssueSubtreeDiagnosticEdge =
   | {
-    kind: "parent";
-    fromIssueId: string;
-    toIssueId: string;
-    timestamp: string | null;
-  }
+      kind: "parent";
+      fromIssueId: string;
+      toIssueId: string;
+      timestamp: string | null;
+    }
   | {
-    kind: "blocks";
-    fromIssueId: string;
-    toIssueId: string;
-    timestamp: string | null;
-  }
+      kind: "blocks";
+      fromIssueId: string;
+      toIssueId: string;
+      timestamp: string | null;
+    }
   | {
-    kind: "wake_request";
-    issueId: string;
-    agentId: string | null;
-    reason: string | null;
-    status: string;
-    timestamp: string;
-  }
+      kind: "wake_request";
+      issueId: string;
+      agentId: string | null;
+      reason: string | null;
+      status: string;
+      timestamp: string;
+    }
   | {
-    kind: "activity";
-    issueId: string;
-    action: string;
-    timestamp: string;
-  };
+      kind: "activity";
+      issueId: string;
+      action: string;
+      timestamp: string;
+    };
 
 export interface IssueSubtreeDiagnosticsResponse {
   issue: IssueBlockerDiagnosticIssueSummary;
@@ -431,7 +438,8 @@ export interface IssueSubtreeDiagnosticsResponse {
   };
 }
 
-export type IssueBlockerAttentionState = "none" | "covered" | "stalled" | "needs_attention";
+export type IssueBlockerAttentionState =
+  "none" | "covered" | "stalled" | "needs_attention";
 
 export type IssueBlockerAttentionReason =
   | "active_child"
@@ -492,7 +500,8 @@ export interface IssueReviewAttention {
   reason: string | null;
 }
 
-export type StalledReviewDecisionAction = "approve" | "request_changes" | "send_back";
+export type StalledReviewDecisionAction =
+  "approve" | "request_changes" | "send_back";
 
 export interface StalledReviewDecisionResponse {
   issue: Issue;
@@ -526,7 +535,8 @@ export type IssueBlockedInboxReason =
   | "external_owner_action"
   | "open_recovery_issue";
 
-export type IssueBlockedInboxOwnerType = "agent" | "user" | "board" | "external" | "unknown";
+export type IssueBlockedInboxOwnerType =
+  "agent" | "user" | "board" | "external" | "unknown";
 
 export interface IssueBlockedInboxIssueRef {
   id: string;
@@ -570,7 +580,8 @@ export interface IssueBlockedInboxAttention {
   };
 }
 
-export type IssueUnblockOwner = { agentId: string } | { userId: string } | "board";
+export type IssueUnblockOwner =
+  { agentId: string } | { userId: string } | "board";
 
 export interface IssueUnblockDescriptor {
   owner: IssueUnblockOwner;
@@ -612,7 +623,8 @@ export interface IssueRecoveryAction {
   updatedAt: Date | string;
 }
 
-export type SuccessfulRunHandoffStateKind = "required" | "resolved" | "escalated";
+export type SuccessfulRunHandoffStateKind =
+  "required" | "resolved" | "escalated";
 
 export interface SuccessfulRunHandoffState {
   state: SuccessfulRunHandoffStateKind;
@@ -626,7 +638,8 @@ export interface SuccessfulRunHandoffState {
   createdAt: Date | string | null;
 }
 
-export type IssueScheduledRetryStatus = "scheduled_retry" | "queued" | "running" | "cancelled";
+export type IssueScheduledRetryStatus =
+  "scheduled_retry" | "queued" | "running" | "cancelled";
 
 export interface IssueScheduledRetry {
   runId: string;
@@ -824,9 +837,17 @@ export interface Issue {
   conversationState?: "active" | "waiting" | null;
   conversationSessionGeneration?: number;
   conversationBoundaryCommentId?: string | null;
-  activeRun?: { id: string; status: string; agentId: string; invocationSource: string;
-    triggerDetail: string | null; startedAt: Date | string | null; finishedAt: Date | string | null;
-    createdAt: Date | string; execution?: ExecutionProjection } | null;
+  activeRun?: {
+    id: string;
+    status: string;
+    agentId: string;
+    invocationSource: string;
+    triggerDetail: string | null;
+    startedAt: Date | string | null;
+    finishedAt: Date | string | null;
+    createdAt: Date | string;
+    execution?: ExecutionProjection;
+  } | null;
   id: string;
   companyId: string;
   projectId: string | null;
@@ -907,7 +928,8 @@ export interface Issue {
   currentExecutionWorkspace?: ExecutionWorkspace | null;
   workProducts?: IssueWorkProduct[];
   /** Present when this task is the durable counterpart of an external chat conversation. */
-  externalChannelBinding?: import("./chat-channels.js").ExternalChannelBindingSummary | null;
+  externalChannelBinding?:
+    import("./chat-channels.js").ExternalChannelBindingSummary | null;
   mentionedProjects?: Project[];
   myLastTouchAt?: Date | null;
   lastExternalCommentAt?: Date | null;
@@ -992,9 +1014,7 @@ export type CompactIssue = Pick<
  * source — it cannot distinguish an agent comment from a human board comment
  * that coincided with a run (Option A).
  */
-export type IssueCommentDerivedAuthorSource =
-  | "run_id"
-  | "run_log_comment_post";
+export type IssueCommentDerivedAuthorSource = "run_id" | "run_log_comment_post";
 
 export interface IssueComment {
   clientRequestId?: string | null;
@@ -1028,9 +1048,7 @@ export interface IssueComment {
 export type IssueQueuedCommentProtocol = "taskcore_runner_v1" | "legacy";
 export type IssueQueuedCommentQueueState = "deferred" | "queued";
 export type IssueQueuedCommentSteeringDisposition =
-  | "available"
-  | "unsupported"
-  | "temporarily_unavailable";
+  "available" | "unsupported" | "temporarily_unavailable";
 
 export interface IssueQueuedCommentEntry {
   /** Immutable response projected from its durable interaction receipt. */
@@ -1291,7 +1309,8 @@ export interface AskUserQuestionsResult {
   answers: AskUserQuestionsAnswer[];
   cancelled?: true;
   cancellationReason?: string | null;
-  expirationReason?: "superseded_by_comment" | "superseded_by_newer_interaction";
+  expirationReason?:
+    "superseded_by_comment" | "superseded_by_newer_interaction";
   commentId?: string | null;
   // Set with expirationReason "superseded_by_newer_interaction": the newer
   // sibling ask_user_questions that replaced this one (PAP-437).
@@ -1320,8 +1339,7 @@ export interface RequestConfirmationCustomTarget {
 }
 
 export type RequestConfirmationTarget =
-  | RequestConfirmationIssueDocumentTarget
-  | RequestConfirmationCustomTarget;
+  RequestConfirmationIssueDocumentTarget | RequestConfirmationCustomTarget;
 
 /**
  * Enrichment block carried on a `request_confirmation` interaction when it gates
@@ -1417,7 +1435,11 @@ export interface ConnectionIntentPayload {
       permission: "allowed" | "ask_first";
     }>;
   };
-  upstreamService?: { slug: string; name: string; selectionInteractionId?: string };
+  upstreamService?: {
+    slug: string;
+    name: string;
+    selectionInteractionId?: string;
+  };
   /** AI authentication and inbox setup cannot be satisfied by tool credentials. */
   purpose?: "ai" | "channel";
   serviceSlug: string;
@@ -1551,7 +1573,15 @@ export interface RequestItemVerdictsResultItem {
 
 export interface RequestItemVerdictsResult {
   version: 1;
-  outcome: "resolved" | "superseded_by_comment" | "stale_target" | "cancelled" | "skipped" | "withdrawn" | "issue_closed" | "addressee_deleted";
+  outcome:
+    | "resolved"
+    | "superseded_by_comment"
+    | "stale_target"
+    | "cancelled"
+    | "skipped"
+    | "withdrawn"
+    | "issue_closed"
+    | "addressee_deleted";
   reason?: string | null;
   complete: boolean;
   items: RequestItemVerdictsResultItem[];

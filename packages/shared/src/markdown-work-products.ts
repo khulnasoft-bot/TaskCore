@@ -17,7 +17,9 @@ export const MARKDOWN_ATTACHMENT_CONTENT_TYPES = [
   "application/x-markdown",
 ] as const;
 
-const MARKDOWN_ATTACHMENT_CONTENT_TYPE_SET = new Set<string>(MARKDOWN_ATTACHMENT_CONTENT_TYPES);
+const MARKDOWN_ATTACHMENT_CONTENT_TYPE_SET = new Set<string>(
+  MARKDOWN_ATTACHMENT_CONTENT_TYPES,
+);
 
 const MARKDOWN_FALLBACK_CONTENT_TYPES = new Set([
   "text/plain",
@@ -37,7 +39,9 @@ export const MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES = 512 * 1024;
 
 export const ARTIFACT_REVIEW_DOCUMENT_KEY_PREFIX = "artifact-review-";
 
-function normalizeAttachmentContentType(contentType: string | null | undefined): string {
+function normalizeAttachmentContentType(
+  contentType: string | null | undefined,
+): string {
   return (contentType ?? "").toLowerCase().split(";")[0]?.trim() ?? "";
 }
 
@@ -48,7 +52,11 @@ export function isMarkdownAttachmentContent(input: {
   const contentType = normalizeAttachmentContentType(input.contentType);
   if (MARKDOWN_ATTACHMENT_CONTENT_TYPE_SET.has(contentType)) return true;
   const filename = (input.originalFilename ?? "").toLowerCase();
-  if (!MARKDOWN_FILENAME_EXTENSIONS.some((extension) => filename.endsWith(extension))) {
+  if (
+    !MARKDOWN_FILENAME_EXTENSIONS.some((extension) =>
+      filename.endsWith(extension),
+    )
+  ) {
     return false;
   }
   return MARKDOWN_FALLBACK_CONTENT_TYPES.has(contentType);
@@ -62,9 +70,12 @@ export type AttachmentArtifactWorkProductLike = Pick<
 export function getAttachmentArtifactWorkProductMetadata(
   workProduct: AttachmentArtifactWorkProductLike,
 ): AttachmentArtifactWorkProductMetadata | null {
-  if (workProduct.type !== "artifact" || workProduct.provider !== "taskcore") return null;
+  if (workProduct.type !== "artifact" || workProduct.provider !== "taskcore")
+    return null;
   if (!workProduct.metadata) return null;
-  const parsed = attachmentArtifactWorkProductMetadataSchema.safeParse(workProduct.metadata);
+  const parsed = attachmentArtifactWorkProductMetadataSchema.safeParse(
+    workProduct.metadata,
+  );
   return parsed.success ? parsed.data : null;
 }
 
@@ -93,7 +104,9 @@ export function isArtifactReviewDocumentKey(key: string): boolean {
   );
 }
 
-export function workProductIdFromArtifactReviewDocumentKey(key: string): string | null {
+export function workProductIdFromArtifactReviewDocumentKey(
+  key: string,
+): string | null {
   if (!isArtifactReviewDocumentKey(key)) return null;
   return key.slice(ARTIFACT_REVIEW_DOCUMENT_KEY_PREFIX.length);
 }

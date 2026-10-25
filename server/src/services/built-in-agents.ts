@@ -3,19 +3,52 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readTaskcoreSkillSyncPreference, writeTaskcoreSkillSyncPreference } from "@taskcore/adapter-utils/server-utils";
+import {
+  readTaskcoreSkillSyncPreference,
+  writeTaskcoreSkillSyncPreference,
+} from "@taskcore/adapter-utils/server-utils";
 import { and, desc, eq, ne } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { activityLog, agents, builtInManagedResources, companies, issueThreadInteractions, issues, routines, routineTriggers } from "@taskcore/db";
+import {
+  activityLog,
+  agents,
+  builtInManagedResources,
+  companies,
+  issueThreadInteractions,
+  issues,
+  routines,
+  routineTriggers,
+} from "@taskcore/db";
 import { syncRoutineVariablesWithTemplate } from "@taskcore/shared";
-import type { Agent, Approval, CompanySkill, PermissionKey, Routine, RoutineTrigger, RoutineVariable } from "@taskcore/shared";
+import type {
+  Agent,
+  Approval,
+  CompanySkill,
+  PermissionKey,
+  Routine,
+  RoutineTrigger,
+  RoutineVariable,
+} from "@taskcore/shared";
 import { conflict, HttpError, notFound, unprocessable } from "../errors.js";
 import { logActivity } from "./activity-log.js";
-import { adoptAgentFiles, agentFilePath, fileHash, readAgentFile, snapshotAgentFiles } from "./agent-file-store.js";
-import { assertInstructionPathSafe, instructionBytes, materializeInstructionBytes } from "./agent-instruction-files.js";
+import {
+  adoptAgentFiles,
+  agentFilePath,
+  fileHash,
+  readAgentFile,
+  snapshotAgentFiles,
+} from "./agent-file-store.js";
+import {
+  assertInstructionPathSafe,
+  instructionBytes,
+  materializeInstructionBytes,
+} from "./agent-instruction-files.js";
 import { agentInstructionRevisionService } from "./agent-instruction-revisions.js";
 import type { AuthorizationActor } from "./authorization.js";
-import { agentInstructionsBundleMode, agentInstructionsService } from "./agent-instructions.js";
+import {
+  agentInstructionsBundleMode,
+  agentInstructionsService,
+} from "./agent-instructions.js";
 import { agentService } from "./agents.js";
 import { approvalService } from "./approvals.js";
 import {
@@ -33,7 +66,8 @@ import {
   type ManagedResourceStockStatus,
 } from "./managed-resource-drift.js";
 
-export type BuiltInAgentStatus = "not_provisioned" | "pending_approval" | "needs_setup" | "ready" | "paused";
+export type BuiltInAgentStatus =
+  "not_provisioned" | "pending_approval" | "needs_setup" | "ready" | "paused";
 
 export interface BuiltInAgentDefinition {
   key: string;
@@ -120,7 +154,8 @@ export interface BuiltInAgentBundleDefinition {
     description: string;
     status: "active" | "paused";
     priority: "critical" | "high" | "medium" | "low";
-    concurrencyPolicy: "always_enqueue" | "coalesce_if_active" | "skip_if_active";
+    concurrencyPolicy:
+      "always_enqueue" | "coalesce_if_active" | "skip_if_active";
     catchUpPolicy: "enqueue_missed_with_cap" | "skip_missed";
     variables: RoutineVariable[];
     triggers: Array<{
@@ -152,7 +187,10 @@ const BUILT_IN_AGENT_KEY_PATTERN = /^[a-z][a-z0-9_-]*$/;
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const BUILT_INS_DIR = path.resolve(moduleDir, "../built-ins/agents");
-const SOURCE_BUILT_INS_DIR = path.resolve(moduleDir, "../../src/built-ins/agents");
+const SOURCE_BUILT_INS_DIR = path.resolve(
+  moduleDir,
+  "../../src/built-ins/agents",
+);
 
 const FALLBACK_REFLECTION_COACH_INSTRUCTIONS = [
   "# Reflection Coach",
@@ -228,7 +266,9 @@ export function readBuiltInTextWithFallback(
   candidatePaths: string[],
   fallbackText: string,
 ) {
-  const attemptedPaths = candidatePaths.filter((candidatePath) => candidatePath.trim().length > 0);
+  const attemptedPaths = candidatePaths.filter(
+    (candidatePath) => candidatePath.trim().length > 0,
+  );
   for (const candidatePath of attemptedPaths) {
     try {
       return readFileSync(candidatePath, "utf8");
@@ -240,7 +280,12 @@ export function readBuiltInTextWithFallback(
         if (!warnedBuiltInTextReadErrors.has(warningKey)) {
           warnedBuiltInTextReadErrors.add(warningKey);
           console.warn(
-            "[taskcore] Built-in agent asset " + label + " read error on " + candidatePath + ": " + codeLabel,
+            "[taskcore] Built-in agent asset " +
+              label +
+              " read error on " +
+              candidatePath +
+              ": " +
+              codeLabel,
           );
         }
       }
@@ -251,8 +296,8 @@ export function readBuiltInTextWithFallback(
   if (!warnedBuiltInTextFallbacks.has(label)) {
     warnedBuiltInTextFallbacks.add(label);
     console.warn(
-      `[taskcore] Built-in agent asset ${label} was not readable; using bundled fallback text. `
-      + `Checked: ${attemptedPaths.join(", ")}`,
+      `[taskcore] Built-in agent asset ${label} was not readable; using bundled fallback text. ` +
+        `Checked: ${attemptedPaths.join(", ")}`,
     );
   }
   return fallbackText;
@@ -261,13 +306,19 @@ export function readBuiltInTextWithFallback(
 function readBuiltInText(relativePath: string, fallbackText: string) {
   return readBuiltInTextWithFallback(
     relativePath,
-    [path.join(BUILT_INS_DIR, relativePath), path.join(SOURCE_BUILT_INS_DIR, relativePath)],
+    [
+      path.join(BUILT_INS_DIR, relativePath),
+      path.join(SOURCE_BUILT_INS_DIR, relativePath),
+    ],
     fallbackText,
   );
 }
 
 const skillsCatalogRoot = resolvePackageRoot("@taskcore/skills-catalog");
-const REFLECTION_COACH_INSTRUCTIONS = readBuiltInText("reflection-coach/AGENTS.md", FALLBACK_REFLECTION_COACH_INSTRUCTIONS);
+const REFLECTION_COACH_INSTRUCTIONS = readBuiltInText(
+  "reflection-coach/AGENTS.md",
+  FALLBACK_REFLECTION_COACH_INSTRUCTIONS,
+);
 const REFLECTION_COACH_ROUTINE = readBuiltInText(
   "reflection-coach/routines/recent-agent-reflection.md",
   FALLBACK_REFLECTION_COACH_ROUTINE,
@@ -280,13 +331,21 @@ const REFLECTION_COACH_SKILL = readBuiltInTextWithFallback(
       "../../../packages/skills-catalog/catalog/bundled/taskcore-operations/reflection-coach/SKILL.md",
     ),
     ...(skillsCatalogRoot
-      ? [path.join(skillsCatalogRoot, "catalog/bundled/taskcore-operations/reflection-coach/SKILL.md")]
+      ? [
+          path.join(
+            skillsCatalogRoot,
+            "catalog/bundled/taskcore-operations/reflection-coach/SKILL.md",
+          ),
+        ]
       : []),
   ],
   FALLBACK_REFLECTION_COACH_SKILL,
 );
 
-const SUMMARIZER_INSTRUCTIONS = readBuiltInText("summarizer/AGENTS.md", FALLBACK_SUMMARIZER_INSTRUCTIONS);
+const SUMMARIZER_INSTRUCTIONS = readBuiltInText(
+  "summarizer/AGENTS.md",
+  FALLBACK_SUMMARIZER_INSTRUCTIONS,
+);
 const SUMMARIZER_ROUTINE = readBuiltInText(
   "summarizer/routines/refresh-stale-summaries.md",
   FALLBACK_SUMMARIZER_ROUTINE,
@@ -299,7 +358,12 @@ const SUMMARIZER_SKILL = readBuiltInTextWithFallback(
       "../../../packages/skills-catalog/catalog/bundled/taskcore-operations/summarize-status/SKILL.md",
     ),
     ...(skillsCatalogRoot
-      ? [path.join(skillsCatalogRoot, "catalog/bundled/taskcore-operations/summarize-status/SKILL.md")]
+      ? [
+          path.join(
+            skillsCatalogRoot,
+            "catalog/bundled/taskcore-operations/summarize-status/SKILL.md",
+          ),
+        ]
       : []),
   ],
   FALLBACK_SUMMARIZER_SKILL,
@@ -310,22 +374,36 @@ const DEFINITIONS = validateBuiltInAgentDefinitions([
     key: "briefs",
     displayName: "Briefs Agent",
     featureKeys: ["briefs"],
-    shortPurpose: "Prepares concise operational briefs for the board and agent company.",
+    shortPurpose:
+      "Prepares concise operational briefs for the board and agent company.",
     defaultInstructions:
       "You are Taskcore's built-in Briefs agent. Produce concise, sourced operational briefs that help the board understand current company work, risks, and next actions.",
     defaultRole: "general",
-    allowedAdapterTypes: ["codex_local", "claude_local", "gemini_local", "opencode_local", "process"],
+    allowedAdapterTypes: [
+      "codex_local",
+      "claude_local",
+      "gemini_local",
+      "opencode_local",
+      "process",
+    ],
     defaultBudgetMonthlyCents: 0,
   },
   {
     key: "learning",
     displayName: "Learning Agent",
     featureKeys: ["learning"],
-    shortPurpose: "Maintains reusable company learning from completed work and recurring patterns.",
+    shortPurpose:
+      "Maintains reusable company learning from completed work and recurring patterns.",
     defaultInstructions:
       "You are Taskcore's built-in Learning agent. Extract durable lessons from completed work, preserve useful patterns, and keep learning artifacts grounded in source context.",
     defaultRole: "general",
-    allowedAdapterTypes: ["codex_local", "claude_local", "gemini_local", "opencode_local", "process"],
+    allowedAdapterTypes: [
+      "codex_local",
+      "claude_local",
+      "gemini_local",
+      "opencode_local",
+      "process",
+    ],
     defaultBudgetMonthlyCents: 0,
   },
   {
@@ -349,7 +427,13 @@ const DEFINITIONS = validateBuiltInAgentDefinitions([
     },
     defaultStatus: "paused",
     defaultManager: "single_root_agent",
-    allowedAdapterTypes: ["claude_local", "codex_local", "gemini_local", "opencode_local", "process"],
+    allowedAdapterTypes: [
+      "claude_local",
+      "codex_local",
+      "gemini_local",
+      "opencode_local",
+      "process",
+    ],
     defaultBudgetMonthlyCents: 0,
     bundle: {
       stockVersion: "2026-07-08",
@@ -377,8 +461,22 @@ const DEFINITIONS = validateBuiltInAgentDefinitions([
         concurrencyPolicy: "coalesce_if_active",
         catchUpPolicy: "skip_missed",
         variables: [
-          { name: "lookbackDays", label: "Lookback days", type: "number", defaultValue: 7, required: true, options: [] },
-          { name: "maxTargetAgents", label: "Max target agents", type: "number", defaultValue: 8, required: true, options: [] },
+          {
+            name: "lookbackDays",
+            label: "Lookback days",
+            type: "number",
+            defaultValue: 7,
+            required: true,
+            options: [],
+          },
+          {
+            name: "maxTargetAgents",
+            label: "Max target agents",
+            type: "number",
+            defaultValue: 8,
+            required: true,
+            options: [],
+          },
           {
             name: "targetAgentMode",
             label: "Target agent mode",
@@ -387,7 +485,14 @@ const DEFINITIONS = validateBuiltInAgentDefinitions([
             required: true,
             options: ["recent_active", "recent_blocked", "recent_completed"],
           },
-          { name: "excludeAgentIds", label: "Excluded agent ids", type: "text", defaultValue: "", required: false, options: [] },
+          {
+            name: "excludeAgentIds",
+            label: "Excluded agent ids",
+            type: "text",
+            defaultValue: "",
+            required: false,
+            options: [],
+          },
         ],
         triggers: [
           {
@@ -417,7 +522,13 @@ const DEFINITIONS = validateBuiltInAgentDefinitions([
     },
     defaultStatus: "paused",
     defaultManager: "single_root_agent",
-    allowedAdapterTypes: ["claude_local", "codex_local", "gemini_local", "opencode_local", "process"],
+    allowedAdapterTypes: [
+      "claude_local",
+      "codex_local",
+      "gemini_local",
+      "opencode_local",
+      "process",
+    ],
     defaultAdapterType: "claude_local",
     defaultAdapterConfig: {
       model: "claude-haiku-4-5",
@@ -449,15 +560,35 @@ const DEFINITIONS = validateBuiltInAgentDefinitions([
         concurrencyPolicy: "coalesce_if_active",
         catchUpPolicy: "skip_missed",
         variables: [
-          { name: "staleAfterHours", label: "Refresh slots older than (hours)", type: "number", defaultValue: 24, required: true, options: [] },
-          { name: "maxSlots", label: "Max slots to refresh per run", type: "number", defaultValue: 10, required: true, options: [] },
+          {
+            name: "staleAfterHours",
+            label: "Refresh slots older than (hours)",
+            type: "number",
+            defaultValue: 24,
+            required: true,
+            options: [],
+          },
+          {
+            name: "maxSlots",
+            label: "Max slots to refresh per run",
+            type: "number",
+            defaultValue: 10,
+            required: true,
+            options: [],
+          },
           {
             name: "scopeKinds",
             label: "Scope kinds to include",
             type: "select",
             defaultValue: "all",
             required: true,
-            options: ["all", "project", "workspaces_overview", "project_workspace", "execution_workspace"],
+            options: [
+              "all",
+              "project",
+              "workspaces_overview",
+              "project_workspace",
+              "execution_workspace",
+            ],
           },
         ],
         triggers: [
@@ -474,7 +605,9 @@ const DEFINITIONS = validateBuiltInAgentDefinitions([
   },
 ]);
 
-const DEFINITIONS_BY_KEY = new Map(DEFINITIONS.map((definition) => [definition.key, definition]));
+const DEFINITIONS_BY_KEY = new Map(
+  DEFINITIONS.map((definition) => [definition.key, definition]),
+);
 
 // Bundled built-in agents that should be provisioned automatically when a
 // company is created (and re-ensured on startup reconcile). Empty by default so
@@ -482,7 +615,10 @@ const DEFINITIONS_BY_KEY = new Map(DEFINITIONS.map((definition) => [definition.k
 // seeded. Add a definition key here to restore automatic provisioning.
 const AUTO_PROVISION_ON_COMPANY_CREATE_KEYS = new Set<string>([]);
 
-const ROOT_AGENT_DEFAULT_CHANGE_GRANTS: PermissionKey[] = ["agents:configure", "skills:create"];
+const ROOT_AGENT_DEFAULT_CHANGE_GRANTS: PermissionKey[] = [
+  "agents:configure",
+  "skills:create",
+];
 const BUILT_IN_AGENT_DEFAULT_GRANTS: Record<string, PermissionKey[]> = {
   "reflection-coach": ["agents:suggest-changes", "skills:suggest-changes"],
 };
@@ -507,10 +643,19 @@ function uniqueNonEmptyStrings(values: string[]) {
   return result;
 }
 
-function changedFileList(currentFiles: Record<string, string | null>, stockFiles: Record<string, string>) {
-  const paths = new Set([...Object.keys(currentFiles), ...Object.keys(stockFiles)]);
+function changedFileList(
+  currentFiles: Record<string, string | null>,
+  stockFiles: Record<string, string>,
+) {
+  const paths = new Set([
+    ...Object.keys(currentFiles),
+    ...Object.keys(stockFiles),
+  ]);
   return [...paths]
-    .filter((filePath) => (currentFiles[filePath] ?? null) !== (stockFiles[filePath] ?? null))
+    .filter(
+      (filePath) =>
+        (currentFiles[filePath] ?? null) !== (stockFiles[filePath] ?? null),
+    )
     .sort((left, right) => left.localeCompare(right));
 }
 
@@ -542,21 +687,30 @@ function stockState(input: {
     stockHash: input.latestStockHash,
     currentHash: input.currentHash,
     stockStatus: status,
-    updateAvailable: status === "stock_update_available" || status === "operator_modified",
+    updateAvailable:
+      status === "stock_update_available" || status === "operator_modified",
     resetAvailable: status !== "stock_current",
-    ...(input.changedFiles && input.changedFiles.length > 0 ? { changedFiles: input.changedFiles } : {}),
-    ...(input.scheduleEnabled !== undefined ? { scheduleEnabled: input.scheduleEnabled } : {}),
+    ...(input.changedFiles && input.changedFiles.length > 0
+      ? { changedFiles: input.changedFiles }
+      : {}),
+    ...(input.scheduleEnabled !== undefined
+      ? { scheduleEnabled: input.scheduleEnabled }
+      : {}),
     ...(input.pendingUpdateInteractionId !== undefined
       ? { pendingUpdateInteractionId: input.pendingUpdateInteractionId }
       : {}),
-    ...(input.pendingUpdateIssueId !== undefined ? { pendingUpdateIssueId: input.pendingUpdateIssueId } : {}),
+    ...(input.pendingUpdateIssueId !== undefined
+      ? { pendingUpdateIssueId: input.pendingUpdateIssueId }
+      : {}),
     ...(input.pendingUpdateIssueIdentifier !== undefined
       ? { pendingUpdateIssueIdentifier: input.pendingUpdateIssueIdentifier }
       : {}),
   };
 }
 
-export function validateBuiltInAgentDefinitions(definitions: BuiltInAgentDefinition[]) {
+export function validateBuiltInAgentDefinitions(
+  definitions: BuiltInAgentDefinition[],
+) {
   const seenKeys = new Set<string>();
   for (const definition of definitions) {
     if (!BUILT_IN_AGENT_KEY_PATTERN.test(definition.key)) {
@@ -567,78 +721,128 @@ export function validateBuiltInAgentDefinitions(definitions: BuiltInAgentDefinit
     }
     seenKeys.add(definition.key);
     if (!definition.displayName.trim()) {
-      throw new Error(`Built-in agent ${definition.key} requires a displayName`);
+      throw new Error(
+        `Built-in agent ${definition.key} requires a displayName`,
+      );
     }
     if (!definition.shortPurpose.trim()) {
-      throw new Error(`Built-in agent ${definition.key} requires a shortPurpose`);
+      throw new Error(
+        `Built-in agent ${definition.key} requires a shortPurpose`,
+      );
     }
     if (!definition.defaultInstructions.trim()) {
-      throw new Error(`Built-in agent ${definition.key} requires defaultInstructions`);
+      throw new Error(
+        `Built-in agent ${definition.key} requires defaultInstructions`,
+      );
     }
     if (!definition.defaultRole.trim()) {
-      throw new Error(`Built-in agent ${definition.key} requires a defaultRole`);
+      throw new Error(
+        `Built-in agent ${definition.key} requires a defaultRole`,
+      );
     }
-    if (uniqueNonEmptyStrings(definition.featureKeys).length !== definition.featureKeys.length) {
-      throw new Error(`Built-in agent ${definition.key} featureKeys must be unique non-empty strings`);
+    if (
+      uniqueNonEmptyStrings(definition.featureKeys).length !==
+      definition.featureKeys.length
+    ) {
+      throw new Error(
+        `Built-in agent ${definition.key} featureKeys must be unique non-empty strings`,
+      );
     }
     if (definition.featureKeys.length === 0) {
-      throw new Error(`Built-in agent ${definition.key} requires at least one featureKey`);
+      throw new Error(
+        `Built-in agent ${definition.key} requires at least one featureKey`,
+      );
     }
     if (
-      definition.allowedAdapterTypes
-      && uniqueNonEmptyStrings(definition.allowedAdapterTypes).length !== definition.allowedAdapterTypes.length
+      definition.allowedAdapterTypes &&
+      uniqueNonEmptyStrings(definition.allowedAdapterTypes).length !==
+        definition.allowedAdapterTypes.length
     ) {
-      throw new Error(`Built-in agent ${definition.key} allowedAdapterTypes must be unique non-empty strings`);
+      throw new Error(
+        `Built-in agent ${definition.key} allowedAdapterTypes must be unique non-empty strings`,
+      );
     }
     if (
-      definition.defaultAdapterType
-      && definition.allowedAdapterTypes
-      && !definition.allowedAdapterTypes.includes(definition.defaultAdapterType)
+      definition.defaultAdapterType &&
+      definition.allowedAdapterTypes &&
+      !definition.allowedAdapterTypes.includes(definition.defaultAdapterType)
     ) {
-      throw new Error(`Built-in agent ${definition.key} defaultAdapterType must be allowed`);
+      throw new Error(
+        `Built-in agent ${definition.key} defaultAdapterType must be allowed`,
+      );
     }
     if (
-      definition.defaultBudgetMonthlyCents !== undefined
-      && (!Number.isInteger(definition.defaultBudgetMonthlyCents) || definition.defaultBudgetMonthlyCents < 0)
+      definition.defaultBudgetMonthlyCents !== undefined &&
+      (!Number.isInteger(definition.defaultBudgetMonthlyCents) ||
+        definition.defaultBudgetMonthlyCents < 0)
     ) {
-      throw new Error(`Built-in agent ${definition.key} defaultBudgetMonthlyCents must be a non-negative integer`);
+      throw new Error(
+        `Built-in agent ${definition.key} defaultBudgetMonthlyCents must be a non-negative integer`,
+      );
     }
     if (definition.bundle) {
       if (!definition.bundle.stockVersion.trim()) {
-        throw new Error(`Built-in agent ${definition.key} bundle requires a stockVersion`);
+        throw new Error(
+          `Built-in agent ${definition.key} bundle requires a stockVersion`,
+        );
       }
-      if (!definition.bundle.instructions.files[definition.bundle.instructions.entryFile]) {
-        throw new Error(`Built-in agent ${definition.key} bundle instructions require the entry file`);
+      if (
+        !definition.bundle.instructions.files[
+          definition.bundle.instructions.entryFile
+        ]
+      ) {
+        throw new Error(
+          `Built-in agent ${definition.key} bundle instructions require the entry file`,
+        );
       }
-      if (!definition.bundle.skill.files[`${definition.bundle.skill.slug}/SKILL.md`]) {
-        throw new Error(`Built-in agent ${definition.key} bundle skill requires SKILL.md`);
+      if (
+        !definition.bundle.skill.files[
+          `${definition.bundle.skill.slug}/SKILL.md`
+        ]
+      ) {
+        throw new Error(
+          `Built-in agent ${definition.key} bundle skill requires SKILL.md`,
+        );
       }
       if (!definition.bundle.routine.description.trim()) {
-        throw new Error(`Built-in agent ${definition.key} bundle routine requires a description`);
+        throw new Error(
+          `Built-in agent ${definition.key} bundle routine requires a description`,
+        );
       }
     }
   }
   return definitions.map((definition) => ({
     ...definition,
     featureKeys: [...definition.featureKeys],
-    allowedAdapterTypes: definition.allowedAdapterTypes ? [...definition.allowedAdapterTypes] : undefined,
-    defaultAdapterConfig: definition.defaultAdapterConfig ? { ...definition.defaultAdapterConfig } : undefined,
-    bundle: definition.bundle ? {
-      ...definition.bundle,
-      instructions: {
-        ...definition.bundle.instructions,
-        files: { ...definition.bundle.instructions.files },
-      },
-      skill: {
-        ...definition.bundle.skill,
-        files: { ...definition.bundle.skill.files },
-      },
-      routine: {
-        ...definition.bundle.routine,
-        variables: definition.bundle.routine.variables.map((variable) => ({ ...variable, options: [...variable.options] })),
-        triggers: definition.bundle.routine.triggers.map((trigger) => ({ ...trigger })),
-      },
-    } : undefined,
+    allowedAdapterTypes: definition.allowedAdapterTypes
+      ? [...definition.allowedAdapterTypes]
+      : undefined,
+    defaultAdapterConfig: definition.defaultAdapterConfig
+      ? { ...definition.defaultAdapterConfig }
+      : undefined,
+    bundle: definition.bundle
+      ? {
+          ...definition.bundle,
+          instructions: {
+            ...definition.bundle.instructions,
+            files: { ...definition.bundle.instructions.files },
+          },
+          skill: {
+            ...definition.bundle.skill,
+            files: { ...definition.bundle.skill.files },
+          },
+          routine: {
+            ...definition.bundle.routine,
+            variables: definition.bundle.routine.variables.map((variable) => ({
+              ...variable,
+              options: [...variable.options],
+            })),
+            triggers: definition.bundle.routine.triggers.map((trigger) => ({
+              ...trigger,
+            })),
+          },
+        }
+      : undefined,
   }));
 }
 
@@ -646,8 +850,12 @@ export function listBuiltInAgentDefinitions() {
   return DEFINITIONS.map((definition) => ({
     ...definition,
     featureKeys: [...definition.featureKeys],
-    allowedAdapterTypes: definition.allowedAdapterTypes ? [...definition.allowedAdapterTypes] : undefined,
-    defaultAdapterConfig: definition.defaultAdapterConfig ? { ...definition.defaultAdapterConfig } : undefined,
+    allowedAdapterTypes: definition.allowedAdapterTypes
+      ? [...definition.allowedAdapterTypes]
+      : undefined,
+    defaultAdapterConfig: definition.defaultAdapterConfig
+      ? { ...definition.defaultAdapterConfig }
+      : undefined,
   }));
 }
 
@@ -657,16 +865,23 @@ export function getBuiltInAgentDefinition(key: string) {
 
 export function requireBuiltInAgentDefinition(key: string) {
   const definition = getBuiltInAgentDefinition(key);
-  if (!definition) throw notFound(`Built-in agent definition not found: ${key}`);
+  if (!definition)
+    throw notFound(`Built-in agent definition not found: ${key}`);
   return definition;
 }
 
 function defaultAdapterType(definition: BuiltInAgentDefinition) {
-  return definition.defaultAdapterType ?? definition.allowedAdapterTypes?.[0] ?? "process";
+  return (
+    definition.defaultAdapterType ??
+    definition.allowedAdapterTypes?.[0] ??
+    "process"
+  );
 }
 
 function normalizeAdapterType(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function selectPreferredAdapterType(
@@ -677,57 +892,95 @@ function selectPreferredAdapterType(
   const preference = definition.allowedAdapterTypes ?? [];
   if (preference.length === 0) return fallback;
 
-  const rank = new Map(preference.map((adapterType, index) => [adapterType, index]));
-  let selected: { adapterType: string; count: number; rank: number } | null = null;
+  const rank = new Map(
+    preference.map((adapterType, index) => [adapterType, index]),
+  );
+  let selected: { adapterType: string; count: number; rank: number } | null =
+    null;
   for (const entry of usage) {
     const adapterRank = rank.get(entry.adapterType);
     if (adapterRank === undefined) continue;
-    if (!selected || entry.count > selected.count || (entry.count === selected.count && adapterRank < selected.rank)) {
+    if (
+      !selected ||
+      entry.count > selected.count ||
+      (entry.count === selected.count && adapterRank < selected.rank)
+    ) {
       selected = { ...entry, rank: adapterRank };
     }
   }
   return selected?.adapterType ?? fallback;
 }
 
-function assertAdapterAllowed(definition: BuiltInAgentDefinition, adapterType: string) {
-  if (definition.allowedAdapterTypes && !definition.allowedAdapterTypes.includes(adapterType)) {
-    throw unprocessable(`Adapter type ${adapterType} is not allowed for built-in agent ${definition.key}`, {
-      code: "built_in_agent_adapter_not_allowed",
-      key: definition.key,
-      allowedAdapterTypes: definition.allowedAdapterTypes,
-    });
+function assertAdapterAllowed(
+  definition: BuiltInAgentDefinition,
+  adapterType: string,
+) {
+  if (
+    definition.allowedAdapterTypes &&
+    !definition.allowedAdapterTypes.includes(adapterType)
+  ) {
+    throw unprocessable(
+      `Adapter type ${adapterType} is not allowed for built-in agent ${definition.key}`,
+      {
+        code: "built_in_agent_adapter_not_allowed",
+        key: definition.key,
+        allowedAdapterTypes: definition.allowedAdapterTypes,
+      },
+    );
   }
 }
 
 function hasCompleteAdapterConfig(adapterType: string, adapterConfig: unknown) {
   if (!isPlainRecord(adapterConfig)) return false;
   if (["process", "command"].includes(adapterType)) {
-    return nonEmptyString(adapterConfig.command) || nonEmptyString(adapterConfig.script);
+    return (
+      nonEmptyString(adapterConfig.command) ||
+      nonEmptyString(adapterConfig.script)
+    );
   }
   if (adapterType === "http") {
-    return nonEmptyString(adapterConfig.url) || nonEmptyString(adapterConfig.endpoint) || nonEmptyString(adapterConfig.webhookUrl);
+    return (
+      nonEmptyString(adapterConfig.url) ||
+      nonEmptyString(adapterConfig.endpoint) ||
+      nonEmptyString(adapterConfig.webhookUrl)
+    );
   }
   if (adapterType === "openclaw_gateway" || adapterType === "hermes_gateway") {
-    return nonEmptyString(adapterConfig.baseUrl) || nonEmptyString(adapterConfig.url);
+    return (
+      nonEmptyString(adapterConfig.baseUrl) || nonEmptyString(adapterConfig.url)
+    );
   }
   return nonEmptyString(adapterConfig.model);
 }
 
-export function deriveBuiltInAgentStatus(agent: Pick<Agent, "adapterType" | "adapterConfig" | "status" | "pausedAt"> | null): BuiltInAgentStatus {
+export function deriveBuiltInAgentStatus(
+  agent: Pick<
+    Agent,
+    "adapterType" | "adapterConfig" | "status" | "pausedAt"
+  > | null,
+): BuiltInAgentStatus {
   if (!agent) return "not_provisioned";
   if (agent.status === "pending_approval") return "pending_approval";
   if (agent.status === "paused" || agent.pausedAt) return "paused";
-  return hasCompleteAdapterConfig(agent.adapterType, agent.adapterConfig) ? "ready" : "needs_setup";
+  return hasCompleteAdapterConfig(agent.adapterType, agent.adapterConfig)
+    ? "ready"
+    : "needs_setup";
 }
 
-function builtInMetadata(definition: BuiltInAgentDefinition, existing?: Record<string, unknown> | null) {
+function builtInMetadata(
+  definition: BuiltInAgentDefinition,
+  existing?: Record<string, unknown> | null,
+) {
   return withBuiltInAgentMarker(existing, {
     key: definition.key,
     featureKeys: definition.featureKeys,
   });
 }
 
-function definitionPatch(definition: BuiltInAgentDefinition, input: BuiltInAgentProvisionInput = {}) {
+function definitionPatch(
+  definition: BuiltInAgentDefinition,
+  input: BuiltInAgentProvisionInput = {},
+) {
   const adapterType = input.adapterType ?? defaultAdapterType(definition);
   assertAdapterAllowed(definition, adapterType);
   return {
@@ -739,7 +992,8 @@ function definitionPatch(definition: BuiltInAgentDefinition, input: BuiltInAgent
     adapterType,
     adapterConfig: input.adapterConfig ?? definition.defaultAdapterConfig ?? {},
     permissions: definition.defaultPermissions ?? {},
-    budgetMonthlyCents: input.budgetMonthlyCents ?? definition.defaultBudgetMonthlyCents ?? 0,
+    budgetMonthlyCents:
+      input.budgetMonthlyCents ?? definition.defaultBudgetMonthlyCents ?? 0,
   };
 }
 
@@ -748,34 +1002,48 @@ async function assertKnownBuiltInAgentModel(
   input: BuiltInAgentProvisionInput,
 ) {
   const adapterType = input.adapterType ?? defaultAdapterType(definition);
-  const adapterConfig = input.adapterConfig ?? definition.defaultAdapterConfig ?? {};
-  const model = typeof adapterConfig.model === "string" ? adapterConfig.model.trim() : "";
+  const adapterConfig =
+    input.adapterConfig ?? definition.defaultAdapterConfig ?? {};
+  const model =
+    typeof adapterConfig.model === "string" ? adapterConfig.model.trim() : "";
   if (!model || !hasCompleteAdapterConfig(adapterType, adapterConfig)) return;
 
   const models = await listAdapterModels(adapterType);
-  if (models.length === 0 || models.some((candidate) => candidate.id === model)) return;
+  if (models.length === 0 || models.some((candidate) => candidate.id === model))
+    return;
 
-  throw unprocessable(`Model "${model}" is not available for adapter ${adapterType}.`, {
-    code: "built_in_agent_model_unknown",
-    key: definition.key,
-    adapterType,
-    model,
-    availableModelIds: models.map((candidate) => candidate.id),
-  });
+  throw unprocessable(
+    `Model "${model}" is not available for adapter ${adapterType}.`,
+    {
+      code: "built_in_agent_model_unknown",
+      key: definition.key,
+      adapterType,
+      model,
+      availableModelIds: models.map((candidate) => candidate.id),
+    },
+  );
 }
 
 function builtInAgentNotConfiguredError(state: BuiltInAgentState) {
-  return new HttpError(412, `Built-in agent is not configured: ${state.definition.key}`, {
-    code: "built_in_agent_not_configured",
-    key: state.definition.key,
-    status: state.status,
-    agentId: state.agentId,
-    featureKeys: state.definition.featureKeys,
-  });
+  return new HttpError(
+    412,
+    `Built-in agent is not configured: ${state.definition.key}`,
+    {
+      code: "built_in_agent_not_configured",
+      key: state.definition.key,
+      status: state.status,
+      agentId: state.agentId,
+      featureKeys: state.definition.featureKeys,
+    },
+  );
 }
 
 function hasProvisionSetupInput(input: BuiltInAgentProvisionInput) {
-  return input.adapterType !== undefined || input.adapterConfig !== undefined || input.budgetMonthlyCents !== undefined;
+  return (
+    input.adapterType !== undefined ||
+    input.adapterConfig !== undefined ||
+    input.budgetMonthlyCents !== undefined
+  );
 }
 
 function rowIsBuiltInAgent(row: typeof agents.$inferSelect, key: string) {
@@ -786,16 +1054,29 @@ function rowIsBuiltInAgent(row: typeof agents.$inferSelect, key: string) {
 // Partial unique index (migration 0192) that guarantees one active built-in
 // agent per (company, marker key). A losing provisioning race raises this as a
 // 23505; provision()/ensure() catch it and re-resolve to the winning row.
-const BUILT_IN_AGENT_MARKER_UNIQUE_INDEX = "agents_company_built_in_agent_key_unique_idx";
+const BUILT_IN_AGENT_MARKER_UNIQUE_INDEX =
+  "agents_company_built_in_agent_key_unique_idx";
 
 function isBuiltInAgentMarkerConflict(error: unknown): boolean {
   const seen = new Set<unknown>();
   let current: unknown = error;
-  while (typeof current === "object" && current !== null && !seen.has(current)) {
+  while (
+    typeof current === "object" &&
+    current !== null &&
+    !seen.has(current)
+  ) {
     seen.add(current);
-    const maybe = current as { code?: string; constraint?: string; constraint_name?: string; cause?: unknown };
+    const maybe = current as {
+      code?: string;
+      constraint?: string;
+      constraint_name?: string;
+      cause?: unknown;
+    };
     const constraint = maybe.constraint ?? maybe.constraint_name;
-    if (maybe.code === "23505" && constraint === BUILT_IN_AGENT_MARKER_UNIQUE_INDEX) {
+    if (
+      maybe.code === "23505" &&
+      constraint === BUILT_IN_AGENT_MARKER_UNIQUE_INDEX
+    ) {
       return true;
     }
     current = maybe.cause;
@@ -815,24 +1096,49 @@ export function builtInAgentService(db: Db) {
     const roots = await db
       .select()
       .from(agents)
-      .where(and(eq(agents.companyId, companyId), ne(agents.status, "terminated")));
-    const nonBuiltInRoots = roots.filter((agent) => !readBuiltInAgentMarker(agent.metadata) && !agent.reportsTo);
+      .where(
+        and(eq(agents.companyId, companyId), ne(agents.status, "terminated")),
+      );
+    const nonBuiltInRoots = roots.filter(
+      (agent) => !readBuiltInAgentMarker(agent.metadata) && !agent.reportsTo,
+    );
     return nonBuiltInRoots.length === 1 ? nonBuiltInRoots[0]!.id : null;
   }
 
-  async function ensureAgentDefaultGrants(companyId: string, agentId: string, grantKeys: PermissionKey[]) {
+  async function ensureAgentDefaultGrants(
+    companyId: string,
+    agentId: string,
+    grantKeys: PermissionKey[],
+  ) {
     if (grantKeys.length === 0) return 0;
-    await accessSvc.ensureMembership(companyId, "agent", agentId, "member", "active");
+    await accessSvc.ensureMembership(
+      companyId,
+      "agent",
+      agentId,
+      "member",
+      "active",
+    );
     let ensured = 0;
     for (const permissionKey of grantKeys) {
-      await accessSvc.setPrincipalPermission(companyId, "agent", agentId, permissionKey, true, null);
+      await accessSvc.setPrincipalPermission(
+        companyId,
+        "agent",
+        agentId,
+        permissionKey,
+        true,
+        null,
+      );
       ensured += 1;
     }
     return ensured;
   }
 
-  async function ensureBuiltInAgentDefaultGrants(agent: Agent, definition: BuiltInAgentDefinition) {
-    if (agent.status === "pending_approval" || agent.status === "terminated") return 0;
+  async function ensureBuiltInAgentDefaultGrants(
+    agent: Agent,
+    definition: BuiltInAgentDefinition,
+  ) {
+    if (agent.status === "pending_approval" || agent.status === "terminated")
+      return 0;
     return ensureAgentDefaultGrants(
       agent.companyId,
       agent.id,
@@ -844,15 +1150,22 @@ export function builtInAgentService(db: Db) {
     const rows = await db
       .select()
       .from(agents)
-      .where(and(eq(agents.companyId, companyId), ne(agents.status, "terminated")));
-    const rootCeoRows = rows.filter((agent) =>
-      !readBuiltInAgentMarker(agent.metadata) &&
-      !agent.reportsTo &&
-      agent.role.trim().toLowerCase() === "ceo" &&
-      agent.status !== "pending_approval"
+      .where(
+        and(eq(agents.companyId, companyId), ne(agents.status, "terminated")),
+      );
+    const rootCeoRows = rows.filter(
+      (agent) =>
+        !readBuiltInAgentMarker(agent.metadata) &&
+        !agent.reportsTo &&
+        agent.role.trim().toLowerCase() === "ceo" &&
+        agent.status !== "pending_approval",
     );
     if (rootCeoRows.length !== 1) return 0;
-    return ensureAgentDefaultGrants(companyId, rootCeoRows[0]!.id, ROOT_AGENT_DEFAULT_CHANGE_GRANTS);
+    return ensureAgentDefaultGrants(
+      companyId,
+      rootCeoRows[0]!.id,
+      ROOT_AGENT_DEFAULT_CHANGE_GRANTS,
+    );
   }
 
   async function ensureCompanyDefaultAgentGrants(companyId: string) {
@@ -860,18 +1173,27 @@ export function builtInAgentService(db: Db) {
     for (const definition of DEFINITIONS) {
       const agent = await findSingleAgent(companyId, definition);
       if (!agent) continue;
-      ensured += await ensureBuiltInAgentDefaultGrants(agent as Agent, definition);
+      ensured += await ensureBuiltInAgentDefaultGrants(
+        agent as Agent,
+        definition,
+      );
     }
     return ensured;
   }
 
-  async function defaultProvisionInput(companyId: string, definition: BuiltInAgentDefinition, input: BuiltInAgentProvisionInput) {
+  async function defaultProvisionInput(
+    companyId: string,
+    definition: BuiltInAgentDefinition,
+    input: BuiltInAgentProvisionInput,
+  ) {
     if (input.adapterType || input.adapterConfig) return input;
     if (definition.defaultAdapterType || definition.defaultAdapterConfig) {
       return {
         ...input,
         adapterType: definition.defaultAdapterType,
-        adapterConfig: definition.defaultAdapterConfig ? { ...definition.defaultAdapterConfig } : undefined,
+        adapterConfig: definition.defaultAdapterConfig
+          ? { ...definition.defaultAdapterConfig }
+          : undefined,
       };
     }
     if (!definition.bundle) return input;
@@ -881,10 +1203,13 @@ export function builtInAgentService(db: Db) {
         adapterConfig: agents.adapterConfig,
       })
       .from(agents)
-      .where(and(eq(agents.companyId, companyId), ne(agents.status, "terminated")));
-    const candidate = rows.find((row) =>
-      definition.allowedAdapterTypes?.includes(row.adapterType)
-      && hasCompleteAdapterConfig(row.adapterType, row.adapterConfig)
+      .where(
+        and(eq(agents.companyId, companyId), ne(agents.status, "terminated")),
+      );
+    const candidate = rows.find(
+      (row) =>
+        definition.allowedAdapterTypes?.includes(row.adapterType) &&
+        hasCompleteAdapterConfig(row.adapterType, row.adapterConfig),
     );
     if (!candidate) return input;
     return {
@@ -903,25 +1228,30 @@ export function builtInAgentService(db: Db) {
     return db
       .select()
       .from(builtInManagedResources)
-      .where(and(
-        eq(builtInManagedResources.companyId, companyId),
-        eq(builtInManagedResources.bundleKey, bundleKey),
-        eq(builtInManagedResources.resourceKind, resourceKind),
-        eq(builtInManagedResources.resourceKey, resourceKey),
-      ))
+      .where(
+        and(
+          eq(builtInManagedResources.companyId, companyId),
+          eq(builtInManagedResources.bundleKey, bundleKey),
+          eq(builtInManagedResources.resourceKind, resourceKind),
+          eq(builtInManagedResources.resourceKey, resourceKey),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
   }
 
-  async function upsertManagedResourceBinding(input: {
-    companyId: string;
-    bundleKey: string;
-    resourceKind: BuiltInManagedResourceKind;
-    resourceKey: string;
-    resourceId: string;
-    stockVersion: string;
-    stockHash: string;
-    defaultsJson: Record<string, unknown>;
-  }, connection: Db | Parameters<Parameters<Db["transaction"]>[0]>[0] = db) {
+  async function upsertManagedResourceBinding(
+    input: {
+      companyId: string;
+      bundleKey: string;
+      resourceKind: BuiltInManagedResourceKind;
+      resourceKey: string;
+      resourceId: string;
+      stockVersion: string;
+      stockHash: string;
+      defaultsJson: Record<string, unknown>;
+    },
+    connection: Db | Parameters<Parameters<Db["transaction"]>[0]>[0] = db,
+  ) {
     const now = new Date();
     return connection
       .insert(builtInManagedResources)
@@ -945,11 +1275,16 @@ export function builtInAgentService(db: Db) {
       .then((rows) => rows[0] ?? null);
   }
 
-  async function currentInstructionFiles(agent: Agent, bundle: BuiltInAgentBundleDefinition) {
+  async function currentInstructionFiles(
+    agent: Agent,
+    bundle: BuiltInAgentBundleDefinition,
+  ) {
     const currentFiles: Record<string, string | null> = {};
     for (const filePath of Object.keys(bundle.instructions.files)) {
       try {
-        currentFiles[filePath] = (await instructionsSvc.readFile(agent, filePath)).content;
+        currentFiles[filePath] = (
+          await instructionsSvc.readFile(agent, filePath)
+        ).content;
       } catch {
         currentFiles[filePath] = null;
       }
@@ -957,17 +1292,37 @@ export function builtInAgentService(db: Db) {
     return currentFiles;
   }
 
-  async function materializeInstructions(agent: Agent, definition: BuiltInAgentDefinition, mode: "reconcile" | "reset", actor?: AuthorizationActor) {
+  async function materializeInstructions(
+    agent: Agent,
+    definition: BuiltInAgentDefinition,
+    mode: "reconcile" | "reset",
+    actor?: AuthorizationActor,
+  ) {
     const bundle = definition.bundle!;
     const stock = stockHash(bundle.instructions.files);
-    const binding = await getManagedResourceBinding(agent.companyId, definition.key, "instructions", "AGENTS.md");
+    const binding = await getManagedResourceBinding(
+      agent.companyId,
+      definition.key,
+      "instructions",
+      "AGENTS.md",
+    );
     // Stock operations also read the committed projection after interrupted writes.
     if (agentInstructionsBundleMode(agent) === "managed") {
-      try { await agentInstructionRevisionService(db).materializeCurrent({ companyId: agent.companyId, agentId: agent.id }); }
-      catch (error) { if (!(error instanceof HttpError && error.status === 404)) throw error; }
+      try {
+        await agentInstructionRevisionService(db).materializeCurrent({
+          companyId: agent.companyId,
+          agentId: agent.id,
+        });
+      } catch (error) {
+        if (!(error instanceof HttpError && error.status === 404)) throw error;
+      }
     }
     const currentFiles = await currentInstructionFiles(agent, bundle);
-    const currentHash = Object.values(currentFiles).some((value) => value === null) ? null : stockHash(currentFiles);
+    const currentHash = Object.values(currentFiles).some(
+      (value) => value === null,
+    )
+      ? null
+      : stockHash(currentFiles);
     const currentState = stockState({
       resourceKind: "instructions",
       resourceKey: "AGENTS.md",
@@ -979,30 +1334,62 @@ export function builtInAgentService(db: Db) {
       changedFiles: changedFileList(currentFiles, bundle.instructions.files),
     });
 
-    if (!actor && mode === "reconcile" && agentInstructionsBundleMode(agent) === "managed"
-      && binding && (binding.stockHash !== stock || binding.defaultsJson.pendingInstructionsUpdate)) {
-      const bindingWhere = and(eq(builtInManagedResources.companyId, agent.companyId),
-        eq(builtInManagedResources.bundleKey, definition.key), eq(builtInManagedResources.resourceKind, "instructions"),
-        eq(builtInManagedResources.resourceKey, "AGENTS.md"));
-      const incoming = Object.fromEntries(Object.entries(bundle.instructions.files)
-        .map(([file, content]) => [agentFilePath(file), instructionBytes(content)]));
+    if (
+      !actor &&
+      mode === "reconcile" &&
+      agentInstructionsBundleMode(agent) === "managed" &&
+      binding &&
+      (binding.stockHash !== stock ||
+        binding.defaultsJson.pendingInstructionsUpdate)
+    ) {
+      const bindingWhere = and(
+        eq(builtInManagedResources.companyId, agent.companyId),
+        eq(builtInManagedResources.bundleKey, definition.key),
+        eq(builtInManagedResources.resourceKind, "instructions"),
+        eq(builtInManagedResources.resourceKey, "AGENTS.md"),
+      );
+      const incoming = Object.fromEntries(
+        Object.entries(bundle.instructions.files).map(([file, content]) => [
+          agentFilePath(file),
+          instructionBytes(content),
+        ]),
+      );
       // Persist only the pending operation's baseline hashes before touching
       // files. If a write or DB commit fails, the next reconciliation can accept
       // already-applied bytes and retry. This is not instruction revision history.
       const prepared = await db.transaction(async (tx) => {
-        const [current] = await tx.select().from(agents).where(and(eq(agents.companyId, agent.companyId), eq(agents.id, agent.id))).for("update");
+        const [current] = await tx
+          .select()
+          .from(agents)
+          .where(
+            and(eq(agents.companyId, agent.companyId), eq(agents.id, agent.id)),
+          )
+          .for("update");
         if (!current) throw notFound("Built-in agent not found");
         if (agentInstructionsBundleMode(current) !== "managed") return false;
         const root = await adoptAgentFiles(tx, current);
-        const [latest] = await tx.select().from(builtInManagedResources).where(bindingWhere);
+        const [latest] = await tx
+          .select()
+          .from(builtInManagedResources)
+          .where(bindingWhere);
         if (!latest) return false;
-        const pending = latest.defaultsJson.pendingInstructionsUpdate as {
-          stockHash?: string; baseHashes?: Record<string, string | null>; nextHashes?: Record<string, string | null>;
-        } | undefined;
+        const pending = latest.defaultsJson.pendingInstructionsUpdate as
+          | {
+              stockHash?: string;
+              baseHashes?: Record<string, string | null>;
+              nextHashes?: Record<string, string | null>;
+            }
+          | undefined;
         if (pending?.stockHash === stock) return true;
         if (!pending && latest.stockHash === stock) return false;
         const previousPaths = latest.defaultsJson.files;
-        if (!Array.isArray(previousPaths) || !previousPaths.every((file): file is string => typeof file === "string")) return false;
+        if (
+          !Array.isArray(previousPaths) ||
+          !previousPaths.every(
+            (file): file is string => typeof file === "string",
+          )
+        )
+          return false;
         const ownedPaths = new Set(previousPaths);
         if (pending) {
           // A newer release (or rollback) can supersede an interrupted update.
@@ -1013,14 +1400,20 @@ export function builtInAgentService(db: Db) {
             if (!(file in pending.nextHashes)) return false;
             const bytes = await readAgentFile(root, agentFilePath(file));
             const hash = bytes === null ? null : fileHash(bytes);
-            if (hash !== baseHash && hash !== pending.nextHashes[file]) return false;
+            if (hash !== baseHash && hash !== pending.nextHashes[file])
+              return false;
             ownedPaths.add(file);
           }
         } else {
           const previousFiles: Record<string, string | null> = {};
           for (const file of previousPaths) {
-            try { previousFiles[file] = (await instructionsSvc.readFile(current, file)).content; }
-            catch { previousFiles[file] = null; }
+            try {
+              previousFiles[file] = (
+                await instructionsSvc.readFile(current, file)
+              ).content;
+            } catch {
+              previousFiles[file] = null;
+            }
           }
           if (stockHash(previousFiles) !== latest.stockHash) return false;
         }
@@ -1030,23 +1423,53 @@ export function builtInAgentService(db: Db) {
         for (const file of new Set([...ownedPaths, ...Object.keys(incoming)])) {
           const bytes = await readAgentFile(root, agentFilePath(file));
           // A newly declared stock path must not overwrite a personal file.
-          if (!ownedPaths.has(file) && bytes !== null && !bytes.equals(incoming[file]!)) return false;
+          if (
+            !ownedPaths.has(file) &&
+            bytes !== null &&
+            !bytes.equals(incoming[file]!)
+          )
+            return false;
           baseHashes[file] = bytes === null ? null : fileHash(bytes);
           nextHashes[file] = incoming[file] ? fileHash(incoming[file]) : null;
         }
-        await tx.update(builtInManagedResources).set({ defaultsJson: { ...latest.defaultsJson,
-          pendingInstructionsUpdate: { stockHash: stock, baseHashes, nextHashes } }, updatedAt: new Date() }).where(bindingWhere);
+        await tx
+          .update(builtInManagedResources)
+          .set({
+            defaultsJson: {
+              ...latest.defaultsJson,
+              pendingInstructionsUpdate: {
+                stockHash: stock,
+                baseHashes,
+                nextHashes,
+              },
+            },
+            updatedAt: new Date(),
+          })
+          .where(bindingWhere);
         return true;
       });
       if (!prepared) return currentState;
       return db.transaction(async (tx) => {
-        const [current] = await tx.select().from(agents).where(and(eq(agents.companyId, agent.companyId), eq(agents.id, agent.id))).for("update");
+        const [current] = await tx
+          .select()
+          .from(agents)
+          .where(
+            and(eq(agents.companyId, agent.companyId), eq(agents.id, agent.id)),
+          )
+          .for("update");
         if (!current) throw notFound("Built-in agent not found");
-        if (agentInstructionsBundleMode(current) !== "managed") return currentState;
+        if (agentInstructionsBundleMode(current) !== "managed")
+          return currentState;
         const root = await adoptAgentFiles(tx, current);
-        const [latest] = await tx.select().from(builtInManagedResources).where(bindingWhere);
-        const pending = latest?.defaultsJson.pendingInstructionsUpdate as { stockHash?: string; baseHashes?: Record<string, string | null> } | undefined;
-        if (pending?.stockHash !== stock || !pending.baseHashes) return currentState;
+        const [latest] = await tx
+          .select()
+          .from(builtInManagedResources)
+          .where(bindingWhere);
+        const pending = latest?.defaultsJson.pendingInstructionsUpdate as
+          | { stockHash?: string; baseHashes?: Record<string, string | null> }
+          | undefined;
+        if (pending?.stockHash !== stock || !pending.baseHashes)
+          return currentState;
         await snapshotAgentFiles(root);
         // Preflight every changed or removed path before mutation; preserve any
         // operator edit made between preparation, failure, and this retry.
@@ -1056,27 +1479,61 @@ export function builtInAgentService(db: Db) {
           const nextHash = incoming[file] ? fileHash(incoming[file]) : null;
           if (hash !== baseHash && hash !== nextHash) return currentState;
         }
-        for (const [file, bytes] of Object.entries(incoming)) await materializeInstructionBytes(root, file, bytes);
+        for (const [file, bytes] of Object.entries(incoming))
+          await materializeInstructionBytes(root, file, bytes);
         for (const file of Object.keys(pending.baseHashes)) {
-          if (!(file in incoming)) await fs.rm(await assertInstructionPathSafe(root, file), { force: true });
+          if (!(file in incoming))
+            await fs.rm(await assertInstructionPathSafe(root, file), {
+              force: true,
+            });
         }
-        await upsertManagedResourceBinding({ companyId: agent.companyId, bundleKey: definition.key,
-          resourceKind: "instructions", resourceKey: "AGENTS.md", resourceId: agent.id,
-          stockVersion: bundle.stockVersion, stockHash: stock,
-          defaultsJson: { entryFile: bundle.instructions.entryFile, files: Object.keys(bundle.instructions.files) },
-        }, tx);
-        await tx.insert(activityLog).values({ companyId: agent.companyId, actorType: "system", actorId: "built-in-reconcile",
-          action: "agent.files_updated", entityType: "agent", entityId: agent.id,
-          details: { source: "built-in-stock-update", bundleKey: definition.key, stockHash: stock } });
-        return stockState({ resourceKind: "instructions", resourceKey: "AGENTS.md", resourceId: agent.id,
-          stockVersion: bundle.stockVersion, latestStockHash: stock, currentHash: stock, bindingStockHash: stock });
+        await upsertManagedResourceBinding(
+          {
+            companyId: agent.companyId,
+            bundleKey: definition.key,
+            resourceKind: "instructions",
+            resourceKey: "AGENTS.md",
+            resourceId: agent.id,
+            stockVersion: bundle.stockVersion,
+            stockHash: stock,
+            defaultsJson: {
+              entryFile: bundle.instructions.entryFile,
+              files: Object.keys(bundle.instructions.files),
+            },
+          },
+          tx,
+        );
+        await tx
+          .insert(activityLog)
+          .values({
+            companyId: agent.companyId,
+            actorType: "system",
+            actorId: "built-in-reconcile",
+            action: "agent.files_updated",
+            entityType: "agent",
+            entityId: agent.id,
+            details: {
+              source: "built-in-stock-update",
+              bundleKey: definition.key,
+              stockHash: stock,
+            },
+          });
+        return stockState({
+          resourceKind: "instructions",
+          resourceKey: "AGENTS.md",
+          resourceId: agent.id,
+          stockVersion: bundle.stockVersion,
+          latestStockHash: stock,
+          currentHash: stock,
+          bindingStockHash: stock,
+        });
       });
     }
 
     const shouldWrite =
-      mode === "reset"
-      || currentState.stockStatus === "missing"
-      || currentState.stockStatus === "stock_update_available";
+      mode === "reset" ||
+      currentState.stockStatus === "missing" ||
+      currentState.stockStatus === "stock_update_available";
     if (!shouldWrite) {
       if (!binding && currentHash === stock) {
         await upsertManagedResourceBinding({
@@ -1097,39 +1554,67 @@ export function builtInAgentService(db: Db) {
     }
 
     let adapterConfig: Record<string, unknown>;
-    if (currentFiles[bundle.instructions.entryFile] !== null && currentFiles[bundle.instructions.entryFile] !== undefined) {
+    if (
+      currentFiles[bundle.instructions.entryFile] !== null &&
+      currentFiles[bundle.instructions.entryFile] !== undefined
+    ) {
       if (!actor && mode === "reconcile") return currentState;
-      if (!actor) throw unprocessable("Resetting existing instructions requires an authenticated operator", { code: "INSTRUCTION_IDENTITY_INVALID" });
+      if (!actor)
+        throw unprocessable(
+          "Resetting existing instructions requires an authenticated operator",
+          { code: "INSTRUCTION_IDENTITY_INVALID" },
+        );
       const revisions = agentInstructionRevisionService(db);
       const target = { companyId: agent.companyId, agentId: agent.id };
       const baseline = await revisions.readCurrent(target, actor);
-      const receipt = await revisions.commit({ ...target, entryFile: bundle.instructions.entryFile,
-        baseRevisionId: baseline?.revision.id ?? null, content: bundle.instructions.files[bundle.instructions.entryFile] ?? "",
-        source: actor.type === "board" ? "board" : "api" }, actor);
-      if (receipt.materialization === "pending") throw conflict("Instruction revision saved; retry reset to repair its disk copy", { revisionId: receipt.revision.id });
+      const receipt = await revisions.commit(
+        {
+          ...target,
+          entryFile: bundle.instructions.entryFile,
+          baseRevisionId: baseline?.revision.id ?? null,
+          content:
+            bundle.instructions.files[bundle.instructions.entryFile] ?? "",
+          source: actor.type === "board" ? "board" : "api",
+        },
+        actor,
+      );
+      if (receipt.materialization === "pending")
+        throw conflict(
+          "Instruction revision saved; retry reset to repair its disk copy",
+          { revisionId: receipt.revision.id },
+        );
       const refreshed = await agentSvc.getById(agent.id);
       if (!refreshed) throw notFound("Built-in agent not found");
       for (const [file, content] of Object.entries(bundle.instructions.files)) {
-        if (file !== bundle.instructions.entryFile) await instructionsSvc.writeFile(refreshed, file, content);
+        if (file !== bundle.instructions.entryFile)
+          await instructionsSvc.writeFile(refreshed, file, content);
       }
       // Preserve personal files outside this built-in bundle's declared paths.
       adapterConfig = { ...refreshed.adapterConfig };
       delete adapterConfig.promptTemplate;
       delete adapterConfig.bootstrapPromptTemplate;
     } else {
-      const materialized = await instructionsSvc.materializeManagedBundle(agent, bundle.instructions.files, {
-        entryFile: bundle.instructions.entryFile,
-        replaceExisting: false,
-        clearLegacyPromptTemplate: true,
-      });
+      const materialized = await instructionsSvc.materializeManagedBundle(
+        agent,
+        bundle.instructions.files,
+        {
+          entryFile: bundle.instructions.entryFile,
+          replaceExisting: false,
+          clearLegacyPromptTemplate: true,
+        },
+      );
       adapterConfig = materialized.adapterConfig;
     }
-    const updated = await agentSvc.update(agent.id, {
-      adapterConfig,
-    }, {
-      allowBuiltInAgentMetadata: true,
-      recordRevision: { source: `built-in-bundle:${mode}:instructions` },
-    });
+    const updated = await agentSvc.update(
+      agent.id,
+      {
+        adapterConfig,
+      },
+      {
+        allowBuiltInAgentMetadata: true,
+        recordRevision: { source: `built-in-bundle:${mode}:instructions` },
+      },
+    );
     if (!updated) throw notFound("Built-in agent not found");
     await upsertManagedResourceBinding({
       companyId: agent.companyId,
@@ -1155,11 +1640,16 @@ export function builtInAgentService(db: Db) {
     });
   }
 
-  async function getCurrentSkillFiles(companyId: string, skill: CompanySkill | null, bundle: BuiltInAgentBundleDefinition) {
+  async function getCurrentSkillFiles(
+    companyId: string,
+    skill: CompanySkill | null,
+    bundle: BuiltInAgentBundleDefinition,
+  ) {
     const currentFiles: Record<string, string | null> = {};
     const stockFiles = bundle.skill.files;
     for (const packagePath of Object.keys(stockFiles)) {
-      const relativePath = packagePath.split("/").slice(1).join("/") || "SKILL.md";
+      const relativePath =
+        packagePath.split("/").slice(1).join("/") || "SKILL.md";
       if (!skill) {
         currentFiles[packagePath] = null;
         continue;
@@ -1169,7 +1659,9 @@ export function builtInAgentService(db: Db) {
         continue;
       }
       try {
-        currentFiles[packagePath] = (await skillSvc.readFile(companyId, skill.id, relativePath))?.content ?? null;
+        currentFiles[packagePath] =
+          (await skillSvc.readFile(companyId, skill.id, relativePath))
+            ?.content ?? null;
       } catch {
         currentFiles[packagePath] = null;
       }
@@ -1177,41 +1669,82 @@ export function builtInAgentService(db: Db) {
     return currentFiles;
   }
 
-  async function importBundledSkill(companyId: string, definition: BuiltInAgentDefinition) {
-    const results = await skillSvc.importPackageFiles(companyId, definition.bundle!.skill.files, { onConflict: "replace" });
-    const imported = results.find((result) => result.skill.key === definition.bundle!.skill.canonicalKey)?.skill
-      ?? results[0]?.skill
-      ?? await skillSvc.getByKey(companyId, definition.bundle!.skill.canonicalKey);
+  async function importBundledSkill(
+    companyId: string,
+    definition: BuiltInAgentDefinition,
+  ) {
+    const results = await skillSvc.importPackageFiles(
+      companyId,
+      definition.bundle!.skill.files,
+      { onConflict: "replace" },
+    );
+    const imported =
+      results.find(
+        (result) => result.skill.key === definition.bundle!.skill.canonicalKey,
+      )?.skill ??
+      results[0]?.skill ??
+      (await skillSvc.getByKey(
+        companyId,
+        definition.bundle!.skill.canonicalKey,
+      ));
     if (!imported) throw notFound("Built-in bundled skill was not imported");
     return imported;
   }
 
   async function syncBundledSkillToAgent(agent: Agent, skill: CompanySkill) {
-    const desired = readTaskcoreSkillSyncPreference(agent.adapterConfig as Record<string, unknown>).desiredSkillEntries;
+    const desired = readTaskcoreSkillSyncPreference(
+      agent.adapterConfig as Record<string, unknown>,
+    ).desiredSkillEntries;
     const nextDesired = [
       ...desired.filter((entry) => entry.key !== skill.key),
       { key: skill.key, versionId: skill.currentVersionId ?? null },
     ];
-    const adapterConfig = writeTaskcoreSkillSyncPreference(agent.adapterConfig as Record<string, unknown>, nextDesired);
-    const updated = await agentSvc.update(agent.id, { adapterConfig }, {
-      allowBuiltInAgentMetadata: true,
-      recordRevision: { source: "built-in-bundle:skill-sync" },
-    });
+    const adapterConfig = writeTaskcoreSkillSyncPreference(
+      agent.adapterConfig as Record<string, unknown>,
+      nextDesired,
+    );
+    const updated = await agentSvc.update(
+      agent.id,
+      { adapterConfig },
+      {
+        allowBuiltInAgentMetadata: true,
+        recordRevision: { source: "built-in-bundle:skill-sync" },
+      },
+    );
     if (!updated) throw notFound("Built-in agent not found");
     return updated as Agent;
   }
 
-  async function materializeSkill(agent: Agent, definition: BuiltInAgentDefinition, mode: "reconcile" | "reset") {
+  async function materializeSkill(
+    agent: Agent,
+    definition: BuiltInAgentDefinition,
+    mode: "reconcile" | "reset",
+  ) {
     const bundle = definition.bundle!;
     const stock = stockHash(bundle.skill.files);
-    const binding = await getManagedResourceBinding(agent.companyId, definition.key, "skill", bundle.skill.skillKey);
-    const boundSkill = binding ? await skillSvc.getById(agent.companyId, binding.resourceId) : null;
-    const existingByKey = await skillSvc.getByKey(agent.companyId, bundle.skill.canonicalKey);
-    const skill = boundSkill ?? existingByKey;
-    const currentFiles = await getCurrentSkillFiles(agent.companyId, skill, bundle);
-    const currentHash = skill && Object.values(currentFiles).every((value) => value !== null)
-      ? stockHash(currentFiles)
+    const binding = await getManagedResourceBinding(
+      agent.companyId,
+      definition.key,
+      "skill",
+      bundle.skill.skillKey,
+    );
+    const boundSkill = binding
+      ? await skillSvc.getById(agent.companyId, binding.resourceId)
       : null;
+    const existingByKey = await skillSvc.getByKey(
+      agent.companyId,
+      bundle.skill.canonicalKey,
+    );
+    const skill = boundSkill ?? existingByKey;
+    const currentFiles = await getCurrentSkillFiles(
+      agent.companyId,
+      skill,
+      bundle,
+    );
+    const currentHash =
+      skill && Object.values(currentFiles).every((value) => value !== null)
+        ? stockHash(currentFiles)
+        : null;
     const currentState = stockState({
       resourceKind: "skill",
       resourceKey: bundle.skill.skillKey,
@@ -1224,10 +1757,12 @@ export function builtInAgentService(db: Db) {
     });
 
     const shouldWrite =
-      mode === "reset"
-      || currentState.stockStatus === "missing"
-      || currentState.stockStatus === "stock_update_available";
-    const nextSkill = shouldWrite ? await importBundledSkill(agent.companyId, definition) : skill!;
+      mode === "reset" ||
+      currentState.stockStatus === "missing" ||
+      currentState.stockStatus === "stock_update_available";
+    const nextSkill = shouldWrite
+      ? await importBundledSkill(agent.companyId, definition)
+      : skill!;
     await upsertManagedResourceBinding({
       companyId: agent.companyId,
       bundleKey: definition.key,
@@ -1235,7 +1770,7 @@ export function builtInAgentService(db: Db) {
       resourceKey: bundle.skill.skillKey,
       resourceId: nextSkill.id,
       stockVersion: bundle.stockVersion,
-      stockHash: shouldWrite ? stock : binding?.stockHash ?? stock,
+      stockHash: shouldWrite ? stock : (binding?.stockHash ?? stock),
       defaultsJson: {
         canonicalKey: bundle.skill.canonicalKey,
         slug: bundle.skill.slug,
@@ -1250,8 +1785,10 @@ export function builtInAgentService(db: Db) {
       stockVersion: bundle.stockVersion,
       latestStockHash: stock,
       currentHash: shouldWrite ? stock : currentHash,
-      bindingStockHash: shouldWrite ? stock : binding?.stockHash ?? stock,
-      changedFiles: shouldWrite ? [] : changedFileList(currentFiles, bundle.skill.files),
+      bindingStockHash: shouldWrite ? stock : (binding?.stockHash ?? stock),
+      changedFiles: shouldWrite
+        ? []
+        : changedFileList(currentFiles, bundle.skill.files),
     });
   }
 
@@ -1295,7 +1832,12 @@ export function builtInAgentService(db: Db) {
   function routineDefaultsHash(
     routine: Pick<
       BuiltInAgentBundleDefinition["routine"],
-      "title" | "description" | "priority" | "concurrencyPolicy" | "catchUpPolicy" | "variables"
+      | "title"
+      | "description"
+      | "priority"
+      | "concurrencyPolicy"
+      | "catchUpPolicy"
+      | "variables"
     >,
     triggers: Array<{
       kind: string;
@@ -1315,37 +1857,60 @@ export function builtInAgentService(db: Db) {
     });
   }
 
-  async function getRoutineByBinding(companyId: string, definition: BuiltInAgentDefinition) {
-    const binding = await getManagedResourceBinding(companyId, definition.key, "routine", definition.bundle!.routine.routineKey);
+  async function getRoutineByBinding(
+    companyId: string,
+    definition: BuiltInAgentDefinition,
+  ) {
+    const binding = await getManagedResourceBinding(
+      companyId,
+      definition.key,
+      "routine",
+      definition.bundle!.routine.routineKey,
+    );
     const routine = binding
       ? await db
-        .select()
-        .from(routines)
-        .where(and(eq(routines.companyId, companyId), eq(routines.id, binding.resourceId)))
-        .then((rows) => rows[0] as Routine | undefined ?? null)
+          .select()
+          .from(routines)
+          .where(
+            and(
+              eq(routines.companyId, companyId),
+              eq(routines.id, binding.resourceId),
+            ),
+          )
+          .then((rows) => (rows[0] as Routine | undefined) ?? null)
       : await db
-        .select()
-        .from(routines)
-        .where(and(
-          eq(routines.companyId, companyId),
-          eq(routines.originKind, "built_in_agent_bundle"),
-          eq(routines.originId, `${definition.key}:${definition.bundle!.routine.routineKey}`),
-        ))
-        .then((rows) => rows[0] as Routine | undefined ?? null);
+          .select()
+          .from(routines)
+          .where(
+            and(
+              eq(routines.companyId, companyId),
+              eq(routines.originKind, "built_in_agent_bundle"),
+              eq(
+                routines.originId,
+                `${definition.key}:${definition.bundle!.routine.routineKey}`,
+              ),
+            ),
+          )
+          .then((rows) => (rows[0] as Routine | undefined) ?? null);
     const triggers = routine
       ? await db
-        .select()
-        .from(routineTriggers)
-        .where(eq(routineTriggers.routineId, routine.id))
-        .then((rows) => rows as RoutineTrigger[])
+          .select()
+          .from(routineTriggers)
+          .where(eq(routineTriggers.routineId, routine.id))
+          .then((rows) => rows as RoutineTrigger[])
       : [];
     return { binding, routine, triggers };
   }
 
-  function routineScheduleEnabled(routine: Routine | null, triggers: RoutineTrigger[]) {
+  function routineScheduleEnabled(
+    routine: Routine | null,
+    triggers: RoutineTrigger[],
+  ) {
     return Boolean(
-      routine?.status === "active"
-      && triggers.some((trigger) => trigger.kind === "schedule" && trigger.enabled),
+      routine?.status === "active" &&
+      triggers.some(
+        (trigger) => trigger.kind === "schedule" && trigger.enabled,
+      ),
     );
   }
 
@@ -1359,13 +1924,18 @@ export function builtInAgentService(db: Db) {
       })
       .from(issueThreadInteractions)
       .innerJoin(issues, eq(issueThreadInteractions.issueId, issues.id))
-      .where(and(
-        eq(issueThreadInteractions.companyId, agent.companyId),
-        eq(issueThreadInteractions.createdByAgentId, agent.id),
-        eq(issueThreadInteractions.kind, "request_confirmation"),
-        eq(issueThreadInteractions.status, "pending"),
-      ))
-      .orderBy(desc(issueThreadInteractions.createdAt), desc(issueThreadInteractions.id))
+      .where(
+        and(
+          eq(issueThreadInteractions.companyId, agent.companyId),
+          eq(issueThreadInteractions.createdByAgentId, agent.id),
+          eq(issueThreadInteractions.kind, "request_confirmation"),
+          eq(issueThreadInteractions.status, "pending"),
+        ),
+      )
+      .orderBy(
+        desc(issueThreadInteractions.createdAt),
+        desc(issueThreadInteractions.id),
+      )
       .limit(1)
       .then((rows) => rows[0] ?? null);
   }
@@ -1388,9 +1958,16 @@ export function builtInAgentService(db: Db) {
     };
   }
 
-  async function requireBundleRoutine(companyId: string, key: string, routineKey: string) {
+  async function requireBundleRoutine(
+    companyId: string,
+    key: string,
+    routineKey: string,
+  ) {
     const definition = requireBuiltInAgentDefinition(key);
-    if (!definition.bundle || definition.bundle.routine.routineKey !== routineKey) {
+    if (
+      !definition.bundle ||
+      definition.bundle.routine.routineKey !== routineKey
+    ) {
       throw notFound("Built-in routine not found");
     }
     await ensureCompany(companyId);
@@ -1398,8 +1975,15 @@ export function builtInAgentService(db: Db) {
     if (!agent) throw notFound("Built-in agent is not provisioned");
     const current = await getRoutineByBinding(companyId, definition);
     if (!current.routine) throw notFound("Built-in routine not found");
-    const schedule = current.triggers.find((trigger) => trigger.kind === "schedule") ?? null;
-    return { definition, agent, routine: current.routine, triggers: current.triggers, schedule };
+    const schedule =
+      current.triggers.find((trigger) => trigger.kind === "schedule") ?? null;
+    return {
+      definition,
+      agent,
+      routine: current.routine,
+      triggers: current.triggers,
+      schedule,
+    };
   }
 
   async function ensureBuiltInAgentAssignable(agent: Agent) {
@@ -1409,30 +1993,43 @@ export function builtInAgentService(db: Db) {
     return resumed as Agent;
   }
 
-  async function createOrResetRoutine(agent: Agent, definition: BuiltInAgentDefinition, existing: Routine | null, mode: "reconcile" | "reset") {
+  async function createOrResetRoutine(
+    agent: Agent,
+    definition: BuiltInAgentDefinition,
+    existing: Routine | null,
+    mode: "reconcile" | "reset",
+  ) {
     const routine = definition.bundle!.routine;
     const actor = { agentId: null, userId: "built-in-bundles" };
     const nextRoutine = existing
-      ? await routineSvc.update(existing.id, {
-        title: routine.title,
-        description: routine.description,
-        assigneeAgentId: agent.id,
-        priority: routine.priority,
-        status: routine.status,
-        concurrencyPolicy: routine.concurrencyPolicy,
-        catchUpPolicy: routine.catchUpPolicy,
-        variables: routine.variables,
-      }, actor)
-      : await routineSvc.create(agent.companyId, {
-        title: routine.title,
-        description: routine.description,
-        assigneeAgentId: agent.id,
-        priority: routine.priority,
-        status: routine.status,
-        concurrencyPolicy: routine.concurrencyPolicy,
-        catchUpPolicy: routine.catchUpPolicy,
-        variables: routine.variables,
-      }, actor);
+      ? await routineSvc.update(
+          existing.id,
+          {
+            title: routine.title,
+            description: routine.description,
+            assigneeAgentId: agent.id,
+            priority: routine.priority,
+            status: routine.status,
+            concurrencyPolicy: routine.concurrencyPolicy,
+            catchUpPolicy: routine.catchUpPolicy,
+            variables: routine.variables,
+          },
+          actor,
+        )
+      : await routineSvc.create(
+          agent.companyId,
+          {
+            title: routine.title,
+            description: routine.description,
+            assigneeAgentId: agent.id,
+            priority: routine.priority,
+            status: routine.status,
+            concurrencyPolicy: routine.concurrencyPolicy,
+            catchUpPolicy: routine.catchUpPolicy,
+            variables: routine.variables,
+          },
+          actor,
+        );
     if (!nextRoutine) throw notFound("Built-in routine not found");
     await db
       .update(routines)
@@ -1448,29 +2045,42 @@ export function builtInAgentService(db: Db) {
       .from(routineTriggers)
       .where(eq(routineTriggers.routineId, nextRoutine.id))
       .then((rows) => rows as RoutineTrigger[]);
-    const firstSchedule = currentTriggers.find((trigger) => trigger.kind === "schedule");
+    const firstSchedule = currentTriggers.find(
+      (trigger) => trigger.kind === "schedule",
+    );
     const stockTrigger = routine.triggers[0];
     if (stockTrigger && firstSchedule) {
-      await routineSvc.updateTrigger(firstSchedule.id, {
-        label: stockTrigger.label,
-        enabled: stockTrigger.enabled,
-        cronExpression: stockTrigger.cronExpression,
-        timezone: stockTrigger.timezone,
-      }, actor);
+      await routineSvc.updateTrigger(
+        firstSchedule.id,
+        {
+          label: stockTrigger.label,
+          enabled: stockTrigger.enabled,
+          cronExpression: stockTrigger.cronExpression,
+          timezone: stockTrigger.timezone,
+        },
+        actor,
+      );
     } else if (stockTrigger) {
-      await routineSvc.createTrigger(nextRoutine.id, {
-        kind: "schedule",
-        label: stockTrigger.label,
-        enabled: stockTrigger.enabled,
-        cronExpression: stockTrigger.cronExpression,
-        timezone: stockTrigger.timezone,
-      }, actor);
+      await routineSvc.createTrigger(
+        nextRoutine.id,
+        {
+          kind: "schedule",
+          label: stockTrigger.label,
+          enabled: stockTrigger.enabled,
+          cronExpression: stockTrigger.cronExpression,
+          timezone: stockTrigger.timezone,
+        },
+        actor,
+      );
     }
     await logActivity(db, {
       companyId: agent.companyId,
       actorType: "system",
       actorId: "built-in-bundles",
-      action: mode === "reset" ? "built_in_agent.routine_reset" : "built_in_agent.routine_reconciled",
+      action:
+        mode === "reset"
+          ? "built_in_agent.routine_reset"
+          : "built_in_agent.routine_reconciled",
       entityType: "routine",
       entityId: nextRoutine.id,
       details: {
@@ -1482,18 +2092,33 @@ export function builtInAgentService(db: Db) {
     return nextRoutine;
   }
 
-  async function materializeRoutine(agent: Agent, definition: BuiltInAgentDefinition, mode: "reconcile" | "reset") {
+  async function materializeRoutine(
+    agent: Agent,
+    definition: BuiltInAgentDefinition,
+    mode: "reconcile" | "reset",
+  ) {
     const bundle = definition.bundle!;
     const stock = routineDefaultsHash(bundle.routine, bundle.routine.triggers);
-    const { binding, routine, triggers } = await getRoutineByBinding(agent.companyId, definition);
-    const currentHash = routine ? routineDefaultsHash({
-      title: routine.title,
-      description: routine.description ?? "",
-      priority: routine.priority as "critical" | "high" | "medium" | "low",
-      concurrencyPolicy: routine.concurrencyPolicy as "always_enqueue" | "coalesce_if_active" | "skip_if_active",
-      catchUpPolicy: routine.catchUpPolicy as "enqueue_missed_with_cap" | "skip_missed",
-      variables: routine.variables ?? [],
-    }, triggers) : null;
+    const { binding, routine, triggers } = await getRoutineByBinding(
+      agent.companyId,
+      definition,
+    );
+    const currentHash = routine
+      ? routineDefaultsHash(
+          {
+            title: routine.title,
+            description: routine.description ?? "",
+            priority: routine.priority as
+              "critical" | "high" | "medium" | "low",
+            concurrencyPolicy: routine.concurrencyPolicy as
+              "always_enqueue" | "coalesce_if_active" | "skip_if_active",
+            catchUpPolicy: routine.catchUpPolicy as
+              "enqueue_missed_with_cap" | "skip_missed",
+            variables: routine.variables ?? [],
+          },
+          triggers,
+        )
+      : null;
     const currentState = stockState({
       resourceKind: "routine",
       resourceKey: bundle.routine.routineKey,
@@ -1504,9 +2129,9 @@ export function builtInAgentService(db: Db) {
       bindingStockHash: binding?.stockHash ?? null,
     });
     const shouldWrite =
-      mode === "reset"
-      || currentState.stockStatus === "missing"
-      || currentState.stockStatus === "stock_update_available";
+      mode === "reset" ||
+      currentState.stockStatus === "missing" ||
+      currentState.stockStatus === "stock_update_available";
     const nextRoutine = shouldWrite
       ? await createOrResetRoutine(agent, definition, routine, mode)
       : routine!;
@@ -1517,7 +2142,7 @@ export function builtInAgentService(db: Db) {
       resourceKey: bundle.routine.routineKey,
       resourceId: nextRoutine.id,
       stockVersion: bundle.stockVersion,
-      stockHash: shouldWrite ? stock : binding?.stockHash ?? stock,
+      stockHash: shouldWrite ? stock : (binding?.stockHash ?? stock),
       defaultsJson: {
         title: bundle.routine.title,
         status: bundle.routine.status,
@@ -1525,50 +2150,87 @@ export function builtInAgentService(db: Db) {
       },
     });
     const next = await getRoutineByBinding(agent.companyId, definition);
-    return withRoutineControls(stockState({
-      resourceKind: "routine",
-      resourceKey: bundle.routine.routineKey,
-      resourceId: nextRoutine.id,
-      stockVersion: bundle.stockVersion,
-      latestStockHash: stock,
-      currentHash: shouldWrite ? stock : currentHash,
-      bindingStockHash: shouldWrite ? stock : binding?.stockHash ?? stock,
-    }), {
-      routine: next.routine,
-      triggers: next.triggers,
-      proposal: await pendingUpdateProposal(agent),
-    });
+    return withRoutineControls(
+      stockState({
+        resourceKind: "routine",
+        resourceKey: bundle.routine.routineKey,
+        resourceId: nextRoutine.id,
+        stockVersion: bundle.stockVersion,
+        latestStockHash: stock,
+        currentHash: shouldWrite ? stock : currentHash,
+        bindingStockHash: shouldWrite ? stock : (binding?.stockHash ?? stock),
+      }),
+      {
+        routine: next.routine,
+        triggers: next.triggers,
+        proposal: await pendingUpdateProposal(agent),
+      },
+    );
   }
 
-  async function bundleResourceStates(companyId: string, definition: BuiltInAgentDefinition, agent: Agent | null) {
+  async function bundleResourceStates(
+    companyId: string,
+    definition: BuiltInAgentDefinition,
+    agent: Agent | null,
+  ) {
     if (!definition.bundle || !agent) return [];
     const bundle = definition.bundle;
-    const [instructionBinding, skillBinding, routineBinding] = await Promise.all([
-      getManagedResourceBinding(companyId, definition.key, "instructions", "AGENTS.md"),
-      getManagedResourceBinding(companyId, definition.key, "skill", bundle.skill.skillKey),
-      getManagedResourceBinding(companyId, definition.key, "routine", bundle.routine.routineKey),
-    ]);
+    const [instructionBinding, skillBinding, routineBinding] =
+      await Promise.all([
+        getManagedResourceBinding(
+          companyId,
+          definition.key,
+          "instructions",
+          "AGENTS.md",
+        ),
+        getManagedResourceBinding(
+          companyId,
+          definition.key,
+          "skill",
+          bundle.skill.skillKey,
+        ),
+        getManagedResourceBinding(
+          companyId,
+          definition.key,
+          "routine",
+          bundle.routine.routineKey,
+        ),
+      ]);
     const instructionFiles = await currentInstructionFiles(agent, bundle);
     const skill = skillBinding
       ? await skillSvc.getById(companyId, skillBinding.resourceId)
       : await skillSvc.getByKey(companyId, bundle.skill.canonicalKey);
     const skillFiles = await getCurrentSkillFiles(companyId, skill, bundle);
-    const { routine, triggers } = await getRoutineByBinding(companyId, definition);
+    const { routine, triggers } = await getRoutineByBinding(
+      companyId,
+      definition,
+    );
     const proposal = await pendingUpdateProposal(agent);
-    const instructionHash = Object.values(instructionFiles).every((value) => value !== null)
+    const instructionHash = Object.values(instructionFiles).every(
+      (value) => value !== null,
+    )
       ? stockHash(instructionFiles)
       : null;
-    const skillHash = skill && Object.values(skillFiles).every((value) => value !== null)
-      ? stockHash(skillFiles)
+    const skillHash =
+      skill && Object.values(skillFiles).every((value) => value !== null)
+        ? stockHash(skillFiles)
+        : null;
+    const routineHash = routine
+      ? routineDefaultsHash(
+          {
+            title: routine.title,
+            description: routine.description ?? "",
+            priority: routine.priority as
+              "critical" | "high" | "medium" | "low",
+            concurrencyPolicy: routine.concurrencyPolicy as
+              "always_enqueue" | "coalesce_if_active" | "skip_if_active",
+            catchUpPolicy: routine.catchUpPolicy as
+              "enqueue_missed_with_cap" | "skip_missed",
+            variables: routine.variables ?? [],
+          },
+          triggers,
+        )
       : null;
-    const routineHash = routine ? routineDefaultsHash({
-      title: routine.title,
-      description: routine.description ?? "",
-      priority: routine.priority as "critical" | "high" | "medium" | "low",
-      concurrencyPolicy: routine.concurrencyPolicy as "always_enqueue" | "coalesce_if_active" | "skip_if_active",
-      catchUpPolicy: routine.catchUpPolicy as "enqueue_missed_with_cap" | "skip_missed",
-      variables: routine.variables ?? [],
-    }, triggers) : null;
     return [
       stockState({
         resourceKind: "instructions",
@@ -1578,7 +2240,10 @@ export function builtInAgentService(db: Db) {
         latestStockHash: stockHash(bundle.instructions.files),
         currentHash: instructionHash,
         bindingStockHash: instructionBinding?.stockHash ?? null,
-        changedFiles: changedFileList(instructionFiles, bundle.instructions.files),
+        changedFiles: changedFileList(
+          instructionFiles,
+          bundle.instructions.files,
+        ),
       }),
       stockState({
         resourceKind: "skill",
@@ -1590,15 +2255,21 @@ export function builtInAgentService(db: Db) {
         bindingStockHash: skillBinding?.stockHash ?? null,
         changedFiles: changedFileList(skillFiles, bundle.skill.files),
       }),
-      withRoutineControls(stockState({
-        resourceKind: "routine",
-        resourceKey: bundle.routine.routineKey,
-        resourceId: routine?.id ?? null,
-        stockVersion: bundle.stockVersion,
-        latestStockHash: routineDefaultsHash(bundle.routine, bundle.routine.triggers),
-        currentHash: routineHash,
-        bindingStockHash: routineBinding?.stockHash ?? null,
-      }), { routine, triggers, proposal }),
+      withRoutineControls(
+        stockState({
+          resourceKind: "routine",
+          resourceKey: bundle.routine.routineKey,
+          resourceId: routine?.id ?? null,
+          stockVersion: bundle.stockVersion,
+          latestStockHash: routineDefaultsHash(
+            bundle.routine,
+            bundle.routine.triggers,
+          ),
+          currentHash: routineHash,
+          bindingStockHash: routineBinding?.stockHash ?? null,
+        }),
+        { routine, triggers, proposal },
+      ),
     ];
   }
 
@@ -1611,17 +2282,25 @@ export function builtInAgentService(db: Db) {
   ) {
     if (!definition.bundle) return [];
     const selected = new Set(resources ?? ["instructions", "skill", "routine"]);
-    const existingStates = await bundleResourceStates(agent.companyId, definition, agent);
-    const byKind = new Map(existingStates.map((state) => [state.resourceKind, state]));
+    const existingStates = await bundleResourceStates(
+      agent.companyId,
+      definition,
+      agent,
+    );
+    const byKind = new Map(
+      existingStates.map((state) => [state.resourceKind, state]),
+    );
     const instruction = selected.has("instructions")
       ? await materializeInstructions(agent, definition, mode, actor)
       : byKind.get("instructions")!;
-    const refreshedAgent = await agentSvc.getById(agent.id) as Agent | null;
+    const refreshedAgent = (await agentSvc.getById(agent.id)) as Agent | null;
     if (!refreshedAgent) throw notFound("Built-in agent not found");
     const skill = selected.has("skill")
       ? await materializeSkill(refreshedAgent, definition, mode)
       : byKind.get("skill")!;
-    const refreshedAfterSkill = await agentSvc.getById(agent.id) as Agent | null;
+    const refreshedAfterSkill = (await agentSvc.getById(
+      agent.id,
+    )) as Agent | null;
     if (!refreshedAfterSkill) throw notFound("Built-in agent not found");
     const routine = selected.has("routine")
       ? await materializeRoutine(refreshedAfterSkill, definition, mode)
@@ -1633,7 +2312,8 @@ export function builtInAgentService(db: Db) {
     const company = await db
       .select({
         id: companies.id,
-        requireBoardApprovalForNewAgents: companies.requireBoardApprovalForNewAgents,
+        requireBoardApprovalForNewAgents:
+          companies.requireBoardApprovalForNewAgents,
       })
       .from(companies)
       .where(eq(companies.id, companyId))
@@ -1646,10 +2326,16 @@ export function builtInAgentService(db: Db) {
     const rows = await db
       .select()
       .from(agents)
-      .where(and(eq(agents.companyId, companyId), ne(agents.status, "terminated")));
+      .where(
+        and(eq(agents.companyId, companyId), ne(agents.status, "terminated")),
+      );
     return rows
       .filter((row) => rowIsBuiltInAgent(row, key))
-      .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime() || left.id.localeCompare(right.id));
+      .sort(
+        (left, right) =>
+          left.createdAt.getTime() - right.createdAt.getTime() ||
+          left.id.localeCompare(right.id),
+      );
   }
 
   // Self-heal duplicate built-in agents. `findMarkedRows` already sorts oldest
@@ -1663,7 +2349,10 @@ export function builtInAgentService(db: Db) {
   ) {
     const [keep, ...duplicates] = markedRows;
     for (const duplicate of duplicates) {
-      const openApproval = await approvalSvc.findOpenHireApprovalForAgent(companyId, duplicate.id);
+      const openApproval = await approvalSvc.findOpenHireApprovalForAgent(
+        companyId,
+        duplicate.id,
+      );
       await agentSvc.terminate(duplicate.id);
       if (openApproval) {
         await approvalSvc.cancel(
@@ -1689,12 +2378,16 @@ export function builtInAgentService(db: Db) {
     return keep!;
   }
 
-  async function findSingleAgent(companyId: string, definition: BuiltInAgentDefinition) {
+  async function findSingleAgent(
+    companyId: string,
+    definition: BuiltInAgentDefinition,
+  ) {
     const markedRows = await findMarkedRows(companyId, definition.key);
     if (markedRows.length === 0) return null;
-    const survivor = markedRows.length > 1
-      ? await resolveDuplicateMarkedRows(companyId, definition, markedRows)
-      : markedRows[0]!;
+    const survivor =
+      markedRows.length > 1
+        ? await resolveDuplicateMarkedRows(companyId, definition, markedRows)
+        : markedRows[0]!;
     const agent = await agentSvc.getById(survivor.id);
     return agent as Agent | null;
   }
@@ -1710,7 +2403,9 @@ export function builtInAgentService(db: Db) {
       agentId: agent?.id ?? null,
       agent,
       pauseReason: agent?.pauseReason ?? null,
-      resources: resources ?? await bundleResourceStates(agent?.companyId ?? "", definition, agent),
+      resources:
+        resources ??
+        (await bundleResourceStates(agent?.companyId ?? "", definition, agent)),
     };
   }
 
@@ -1731,15 +2426,16 @@ export function builtInAgentService(db: Db) {
     const existing = await findSingleAgent(companyId, definition);
     const existingPendingApproval = existing?.status === "pending_approval";
     const preserveExistingAdapter = Boolean(
-      existing
-      && !existingPendingApproval
-      && input.adapterType === undefined
-      && input.adapterConfig === undefined
-      && hasCompleteAdapterConfig(existing.adapterType, existing.adapterConfig),
+      existing &&
+      !existingPendingApproval &&
+      input.adapterType === undefined &&
+      input.adapterConfig === undefined &&
+      hasCompleteAdapterConfig(existing.adapterType, existing.adapterConfig),
     );
-    const resolvedInput = existingPendingApproval || preserveExistingAdapter
-      ? input
-      : await defaultProvisionInput(companyId, definition, input);
+    const resolvedInput =
+      existingPendingApproval || preserveExistingAdapter
+        ? input
+        : await defaultProvisionInput(companyId, definition, input);
     if (!existingPendingApproval && !preserveExistingAdapter) {
       await assertKnownBuiltInAgentModel(definition, resolvedInput);
     }
@@ -1748,21 +2444,26 @@ export function builtInAgentService(db: Db) {
         metadata: builtInMetadata(definition, existing.metadata),
       };
       if (
-        !existingPendingApproval
-        && (resolvedInput.adapterType !== undefined || resolvedInput.adapterConfig !== undefined)
+        !existingPendingApproval &&
+        (resolvedInput.adapterType !== undefined ||
+          resolvedInput.adapterConfig !== undefined)
       ) {
         const adapterType = resolvedInput.adapterType ?? existing.adapterType;
         assertAdapterAllowed(definition, adapterType);
         patch.adapterType = adapterType;
-        patch.adapterConfig = resolvedInput.adapterConfig ?? existing.adapterConfig;
+        patch.adapterConfig =
+          resolvedInput.adapterConfig ?? existing.adapterConfig;
       }
-      if (!existingPendingApproval && resolvedInput.budgetMonthlyCents !== undefined) {
+      if (
+        !existingPendingApproval &&
+        resolvedInput.budgetMonthlyCents !== undefined
+      ) {
         patch.budgetMonthlyCents = resolvedInput.budgetMonthlyCents;
       }
       if (
-        !existingPendingApproval
-        && definition.defaultManager === "single_root_agent"
-        && !existing.reportsTo
+        !existingPendingApproval &&
+        definition.defaultManager === "single_root_agent" &&
+        !existing.reportsTo
       ) {
         const reportsTo = await findSingleRootManager(companyId);
         if (reportsTo) patch.reportsTo = reportsTo;
@@ -1776,29 +2477,43 @@ export function builtInAgentService(db: Db) {
         return state(definition, updated as Agent);
       }
       await ensureBuiltInAgentDefaultGrants(updated as Agent, definition);
-      const resources = await reconcileBundleResources(updated as Agent, definition, "reconcile");
-      return state(definition, await agentSvc.getById(existing.id) as Agent, resources);
+      const resources = await reconcileBundleResources(
+        updated as Agent,
+        definition,
+        "reconcile",
+      );
+      return state(
+        definition,
+        (await agentSvc.getById(existing.id)) as Agent,
+        resources,
+      );
     }
 
-    const reportsTo = definition.defaultManager === "single_root_agent"
-      ? await findSingleRootManager(companyId)
-      : null;
+    const reportsTo =
+      definition.defaultManager === "single_root_agent"
+        ? await findSingleRootManager(companyId)
+        : null;
     let created: Agent;
     try {
-      created = await agentSvc.create(companyId, {
-        ...definitionPatch(definition, resolvedInput),
-        status: definition.defaultStatus ?? "idle",
-        pauseReason: definition.defaultStatus === "paused"
-          ? `Built-in ${definition.displayName} is disabled until explicitly configured.`
-          : null,
-        pausedAt: definition.defaultStatus === "paused" ? new Date() : null,
-        reportsTo,
-        metadata: builtInMetadata(definition),
-        runtimeConfig: definition.defaultRuntimeConfig ?? {},
-        permissions: definition.defaultPermissions ?? {},
-        spentMonthlyCents: 0,
-        lastHeartbeatAt: null,
-      }, { allowBuiltInAgentMetadata: true }) as Agent;
+      created = (await agentSvc.create(
+        companyId,
+        {
+          ...definitionPatch(definition, resolvedInput),
+          status: definition.defaultStatus ?? "idle",
+          pauseReason:
+            definition.defaultStatus === "paused"
+              ? `Built-in ${definition.displayName} is disabled until explicitly configured.`
+              : null,
+          pausedAt: definition.defaultStatus === "paused" ? new Date() : null,
+          reportsTo,
+          metadata: builtInMetadata(definition),
+          runtimeConfig: definition.defaultRuntimeConfig ?? {},
+          permissions: definition.defaultPermissions ?? {},
+          spentMonthlyCents: 0,
+          lastHeartbeatAt: null,
+        },
+        { allowBuiltInAgentMetadata: true },
+      )) as Agent;
     } catch (error) {
       // Lost the provisioning race: a concurrent writer inserted the row first
       // and the partial unique index rejected ours. Re-run once; the winning
@@ -1824,8 +2539,16 @@ export function builtInAgentService(db: Db) {
     });
 
     await ensureBuiltInAgentDefaultGrants(created, definition);
-    const resources = await reconcileBundleResources(created, definition, "reconcile");
-    return state(definition, await agentSvc.getById(created.id) as Agent, resources);
+    const resources = await reconcileBundleResources(
+      created,
+      definition,
+      "reconcile",
+    );
+    return state(
+      definition,
+      (await agentSvc.getById(created.id)) as Agent,
+      resources,
+    );
   }
 
   async function provision(
@@ -1845,20 +2568,27 @@ export function builtInAgentService(db: Db) {
     if (existing) {
       if (existing.status === "pending_approval") {
         if (hasProvisionSetupInput(input)) {
-          throw conflict("Built-in agent setup is already pending board approval.", {
-            code: "built_in_agent_pending_approval",
-            key: definition.key,
-            agentId: existing.id,
-          });
+          throw conflict(
+            "Built-in agent setup is already pending board approval.",
+            {
+              code: "built_in_agent_pending_approval",
+              key: definition.key,
+              agentId: existing.id,
+            },
+          );
         }
-        const approval = await approvalSvc.findOpenHireApprovalForAgent(companyId, existing.id);
+        const approval = await approvalSvc.findOpenHireApprovalForAgent(
+          companyId,
+          existing.id,
+        );
         return {
           state: await state(definition, existing),
           approval: approval as Approval | null,
         };
       }
 
-      const providesAdapterSetup = input.adapterType !== undefined || input.adapterConfig !== undefined;
+      const providesAdapterSetup =
+        input.adapterType !== undefined || input.adapterConfig !== undefined;
 
       // A built-in row that has never completed adapter setup (incomplete
       // config, i.e. `needs_setup`) is still first-time configuration, not a
@@ -1868,38 +2598,49 @@ export function builtInAgentService(db: Db) {
       // adapterConfig is still empty. Completing that setup applies directly, as
       // it does when board approval is not required, instead of dead-ending on a
       // fresh board-approval requirement the operator can never satisfy.
-      if (providesAdapterSetup && !hasCompleteAdapterConfig(existing.adapterType, existing.adapterConfig)) {
+      if (
+        providesAdapterSetup &&
+        !hasCompleteAdapterConfig(existing.adapterType, existing.adapterConfig)
+      ) {
         return { state: await ensure(companyId, key, input), approval: null };
       }
 
       // Changing the adapter of an already-configured (`ready`/`paused`)
       // built-in agent is a genuine reconfiguration and stays gated.
       if (providesAdapterSetup) {
-        throw conflict("Built-in agent adapter changes require board approval before they can be applied.", {
-          code: "built_in_agent_reconfiguration_requires_approval",
-          key: definition.key,
-          agentId: existing.id,
-        });
+        throw conflict(
+          "Built-in agent adapter changes require board approval before they can be applied.",
+          {
+            code: "built_in_agent_reconfiguration_requires_approval",
+            key: definition.key,
+            agentId: existing.id,
+          },
+        );
       }
 
       return { state: await state(definition, existing), approval: null };
     }
 
-    const reportsTo = definition.defaultManager === "single_root_agent"
-      ? await findSingleRootManager(companyId)
-      : null;
+    const reportsTo =
+      definition.defaultManager === "single_root_agent"
+        ? await findSingleRootManager(companyId)
+        : null;
     let pending: Agent;
     try {
-      pending = await agentSvc.create(companyId, {
-        ...definitionPatch(definition, input),
-        status: "pending_approval",
-        reportsTo,
-        metadata: builtInMetadata(definition),
-        runtimeConfig: definition.defaultRuntimeConfig ?? {},
-        permissions: definition.defaultPermissions ?? {},
-        spentMonthlyCents: 0,
-        lastHeartbeatAt: null,
-      }, { allowBuiltInAgentMetadata: true }) as Agent;
+      pending = (await agentSvc.create(
+        companyId,
+        {
+          ...definitionPatch(definition, input),
+          status: "pending_approval",
+          reportsTo,
+          metadata: builtInMetadata(definition),
+          runtimeConfig: definition.defaultRuntimeConfig ?? {},
+          permissions: definition.defaultPermissions ?? {},
+          spentMonthlyCents: 0,
+          lastHeartbeatAt: null,
+        },
+        { allowBuiltInAgentMetadata: true },
+      )) as Agent;
     } catch (error) {
       // Lost the provisioning race: a concurrent writer inserted the row (and
       // its own hire approval) first, and the partial unique index rejected
@@ -1908,16 +2649,23 @@ export function builtInAgentService(db: Db) {
       if (isBuiltInAgentMarkerConflict(error)) {
         const winner = await findSingleAgent(companyId, definition);
         if (winner) {
-          const winnerApproval = winner.status === "pending_approval"
-            ? await approvalSvc.findOpenHireApprovalForAgent(companyId, winner.id)
-            : null;
-          return { state: await state(definition, winner), approval: winnerApproval as Approval | null };
+          const winnerApproval =
+            winner.status === "pending_approval"
+              ? await approvalSvc.findOpenHireApprovalForAgent(
+                  companyId,
+                  winner.id,
+                )
+              : null;
+          return {
+            state: await state(definition, winner),
+            approval: winnerApproval as Approval | null,
+          };
         }
       }
       throw error;
     }
 
-    const approval = await approvalSvc.create(companyId, {
+    const approval = (await approvalSvc.create(companyId, {
       type: "hire_agent",
       requestedByAgentId: actor.requestedByAgentId ?? null,
       requestedByUserId: actor.requestedByUserId ?? null,
@@ -1943,14 +2691,18 @@ export function builtInAgentService(db: Db) {
       decidedByUserId: null,
       decidedAt: null,
       updatedAt: new Date(),
-    }) as Approval;
+    })) as Approval;
 
     return { state: await state(definition, pending), approval };
   }
 
   async function list(companyId: string) {
     await ensureCompany(companyId);
-    return Promise.all(DEFINITIONS.map(async (definition) => state(definition, await findSingleAgent(companyId, definition))));
+    return Promise.all(
+      DEFINITIONS.map(async (definition) =>
+        state(definition, await findSingleAgent(companyId, definition)),
+      ),
+    );
   }
 
   async function reconcileDefinitionDefaults(companyId: string, key: string) {
@@ -1975,24 +2727,37 @@ export function builtInAgentService(db: Db) {
     return state(definition, updated as Agent);
   }
 
-  async function reset(companyId: string, key: string, input: { resources?: Array<"agent" | "instructions" | "skill" | "routine"> } = {}, actor?: AuthorizationActor) {
+  async function reset(
+    companyId: string,
+    key: string,
+    input: {
+      resources?: Array<"agent" | "instructions" | "skill" | "routine">;
+    } = {},
+    actor?: AuthorizationActor,
+  ) {
     const definition = requireBuiltInAgentDefinition(key);
-    const resetAgentDefaults = !input.resources || input.resources.includes("agent");
+    const resetAgentDefaults =
+      !input.resources || input.resources.includes("agent");
     const current = resetAgentDefaults
       ? await reconcileDefinitionDefaults(companyId, key)
       : await get(companyId, key);
     if (!current.agent || !definition.bundle) return current;
     const selectedBundleResources = input.resources?.filter(
-      (resource): resource is "instructions" | "skill" | "routine" => resource !== "agent",
+      (resource): resource is "instructions" | "skill" | "routine" =>
+        resource !== "agent",
     );
     const resources = await reconcileBundleResources(
       current.agent,
       definition,
       "reset",
-      input.resources ? selectedBundleResources ?? [] : undefined,
+      input.resources ? (selectedBundleResources ?? []) : undefined,
       actor,
     );
-    return state(definition, await agentSvc.getById(current.agent.id) as Agent, resources);
+    return state(
+      definition,
+      (await agentSvc.getById(current.agent.id)) as Agent,
+      resources,
+    );
   }
 
   async function setRoutineSchedule(
@@ -2000,9 +2765,17 @@ export function builtInAgentService(db: Db) {
     key: string,
     routineKey: string,
     enabled: boolean,
-    actor: { agentId?: string | null; userId?: string | null; runId?: string | null } = {},
+    actor: {
+      agentId?: string | null;
+      userId?: string | null;
+      runId?: string | null;
+    } = {},
   ) {
-    const { definition, agent, routine, schedule } = await requireBundleRoutine(companyId, key, routineKey);
+    const { definition, agent, routine, schedule } = await requireBundleRoutine(
+      companyId,
+      key,
+      routineKey,
+    );
     if (!schedule) throw notFound("Built-in routine schedule not found");
     if (enabled) {
       await ensureBuiltInAgentAssignable(agent);
@@ -2012,25 +2785,40 @@ export function builtInAgentService(db: Db) {
       await routineSvc.updateTrigger(schedule.id, { enabled: false }, actor);
       await routineSvc.update(routine.id, { status: "paused" }, actor);
     }
-    return state(definition, await agentSvc.getById(agent.id) as Agent);
+    return state(definition, (await agentSvc.getById(agent.id)) as Agent);
   }
 
   async function runRoutine(
     companyId: string,
     key: string,
     routineKey: string,
-    actor: { agentId?: string | null; userId?: string | null; runId?: string | null } = {},
+    actor: {
+      agentId?: string | null;
+      userId?: string | null;
+      runId?: string | null;
+    } = {},
   ) {
-    const { agent, routine } = await requireBundleRoutine(companyId, key, routineKey);
+    const { agent, routine } = await requireBundleRoutine(
+      companyId,
+      key,
+      routineKey,
+    );
     await ensureBuiltInAgentAssignable(agent);
     return routineSvc.runRoutine(routine.id, { source: "manual" }, actor);
   }
 
-  async function requireBuiltInAgent(companyId: string, key: string): Promise<RequiredBuiltInAgent> {
+  async function requireBuiltInAgent(
+    companyId: string,
+    key: string,
+  ): Promise<RequiredBuiltInAgent> {
     const current = await get(companyId, key);
     if (!current.agent) throw builtInAgentNotConfiguredError(current);
     if (current.status === "ready") {
-      return { definition: current.definition, agent: current.agent, warning: null };
+      return {
+        definition: current.definition,
+        agent: current.agent,
+        warning: null,
+      };
     }
     if (current.status === "paused") {
       return {
@@ -2061,7 +2849,9 @@ export function builtInAgentService(db: Db) {
     // restore automatic creation for that definition.
     for (const definition of DEFINITIONS.filter((entry) => entry.bundle)) {
       const existing = await findSingleAgent(companyId, definition);
-      const shouldProvision = existing !== null || AUTO_PROVISION_ON_COMPANY_CREATE_KEYS.has(definition.key);
+      const shouldProvision =
+        existing !== null ||
+        AUTO_PROVISION_ON_COMPANY_CREATE_KEYS.has(definition.key);
       if (!shouldProvision) continue;
       if (company.requireBoardApprovalForNewAgents) {
         const result = await provision(companyId, definition.key);
@@ -2071,7 +2861,8 @@ export function builtInAgentService(db: Db) {
       }
       autoEnsured += 1;
     }
-    const defaultGrantsEnsured = await ensureCompanyDefaultAgentGrants(companyId);
+    const defaultGrantsEnsured =
+      await ensureCompanyDefaultAgentGrants(companyId);
     return { autoEnsured, pendingApprovals, defaultGrantsEnsured };
   }
 
@@ -2086,13 +2877,21 @@ export function builtInAgentService(db: Db) {
       companyId: string,
       key: string,
       routineKey: string,
-      actor?: { agentId?: string | null; userId?: string | null; runId?: string | null },
+      actor?: {
+        agentId?: string | null;
+        userId?: string | null;
+        runId?: string | null;
+      },
     ) => setRoutineSchedule(companyId, key, routineKey, true, actor),
     disableRoutineSchedule: (
       companyId: string,
       key: string,
       routineKey: string,
-      actor?: { agentId?: string | null; userId?: string | null; runId?: string | null },
+      actor?: {
+        agentId?: string | null;
+        userId?: string | null;
+        runId?: string | null;
+      },
     ) => setRoutineSchedule(companyId, key, routineKey, false, actor),
     runRoutine,
     requireBuiltInAgent,
@@ -2104,9 +2903,7 @@ export function builtInAgentService(db: Db) {
 
 export async function reconcileBuiltInAgentsOnStartup(db: Db) {
   const svc = builtInAgentService(db);
-  const companyRows = await db
-    .select({ id: companies.id })
-    .from(companies);
+  const companyRows = await db.select({ id: companies.id }).from(companies);
   let autoEnsured = 0;
   let pendingApprovals = 0;
   let defaultGrantsEnsured = 0;
@@ -2167,5 +2964,14 @@ export async function reconcileBuiltInAgentsOnStartup(db: Db) {
     }
   }
 
-  return { scanned, reconciled, unknown, duplicates, autoEnsured, pendingApprovals, defaultGrantsEnsured, companyFailures };
+  return {
+    scanned,
+    reconciled,
+    unknown,
+    duplicates,
+    autoEnsured,
+    pendingApprovals,
+    defaultGrantsEnsured,
+    companyFailures,
+  };
 }

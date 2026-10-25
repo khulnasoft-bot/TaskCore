@@ -32,7 +32,7 @@ the destination.
 - An existing or planned `wiki/projects/<slug>/standup.md` page path.
 - An existing or planned `wiki/projects/<slug>/index.md` page path.
 - The operation issue's target `wikiId`, `spaceSlug`, space root, and the target space's `AGENTS.md` for page conventions.
-- The current `wiki/projects/<slug>/standup.md`, `wiki/projects/<slug>/index.md`, `decisions.md`, and `history.md` if they already exist (so you write a *patch*, not a rewrite).
+- The current `wiki/projects/<slug>/standup.md`, `wiki/projects/<slug>/index.md`, `decisions.md`, and `history.md` if they already exist (so you write a _patch_, not a rewrite).
 
 ## TaskCore Asset Gate
 
@@ -50,8 +50,8 @@ Do not treat Taskcore assets/attachments or issue work products as source text f
 The deterministic templating this skill replaces produced these failure modes — do not reproduce them:
 
 1. **Datestamp-as-section-header.** Lines like `## [2026-04-15] taskcore-distill | proposed` belong in `wiki/log.md`, not in the project page. The project page is durable knowledge; the log is the audit trail.
-2. **Procedural status lists.** `Issue mix: 3 todo, 5 in_progress, 2 done` tells the reader nothing they could not read off Taskcore directly. State *what is happening and why it matters*, then cite the issues that constitute the evidence.
-3. **One-line-per-issue dumps.** A page that is mostly `- PAP-1234: title (in_progress, updated 2026-...)` is an issue list, not a wiki page. Group issues by what they are *about* (a decision, a risk, a workstream) and cite multiple issues per bullet when they share a story.
+2. **Procedural status lists.** `Issue mix: 3 todo, 5 in_progress, 2 done` tells the reader nothing they could not read off Taskcore directly. State _what is happening and why it matters_, then cite the issues that constitute the evidence.
+3. **One-line-per-issue dumps.** A page that is mostly `- PAP-1234: title (in_progress, updated 2026-...)` is an issue list, not a wiki page. Group issues by what they are _about_ (a decision, a risk, a workstream) and cite multiple issues per bullet when they share a story.
 4. **Mechanical "Current as of" timestamps everywhere.** One `current_as_of` in frontmatter is enough.
 5. **No interpretation.** "Active issues: PAP-A, PAP-B, PAP-C" is bookkeeping. "The team is concentrating on the schema migration ([PAP-A], [PAP-B]) and has parked the index work pending capacity ([PAP-C])." is wiki-insightful.
 6. **Opaque identifiers in prose.** UUIDs, cursor ids, source hashes, run ids, and raw metadata belong in logs or frontmatter when needed, not in executive-facing project narrative.
@@ -69,7 +69,7 @@ The deterministic templating this skill replaces produced these failure modes �
    - **Blockers / Risks** — current blockers and risks with named owner or next action when the source provides one.
    - **Next Actions** — concrete next actions and owners inferred from Taskcore issues, not vague aspirations.
    - **Links** — durable wiki project page and relevant Taskcore project/issues/documents.
-   Rewrite the standup to today's state. Do not append endless dated sections; the audit trail belongs in `wiki/log.md` and Taskcore comments.
+     Rewrite the standup to today's state. Do not append endless dated sections; the audit trail belongs in `wiki/log.md` and Taskcore comments.
 5. **Write `wiki/projects/<slug>/index.md`** with these stable sections, in this order:
    - Frontmatter (`type: project`, `current_as_of: YYYY-MM-DD`, `tags`, `sources`).
    - **Overview** — 2–4 sentences saying what the project is and why it exists. Use the project description if it exists; otherwise synthesise it from the root issue.
@@ -78,7 +78,7 @@ The deterministic templating this skill replaces produced these failure modes �
    - **Decisions** — accepted and reversed decisions with one paragraph each. Each decision cites the issue / approval / comment that ratified it. Format: `### Decision — short title` then a paragraph; never a bare bullet list.
    - **Open Risks / Blockers** — what could derail the project, with the issue ref that surfaces it. Skip this section when the bundle has no risk signal — do not pad with `_(none)_`.
    - **References** — readable links to the current standup and supporting Taskcore tasks/documents. Keep hashes and cursor ids out of the narrative.
-6. **Optionally write `wiki/projects/<slug>/decisions.md`** when the project has accumulated more decisions than the project page can carry without becoming a wall of text. Each decision is a `## ` section with: short title, accepted/reversed/superseded status, one-paragraph rationale, citing the source. *Do not* duplicate decisions already on the project page — link instead.
+6. **Optionally write `wiki/projects/<slug>/decisions.md`** when the project has accumulated more decisions than the project page can carry without becoming a wall of text. Each decision is a `## ` section with: short title, accepted/reversed/superseded status, one-paragraph rationale, citing the source. _Do not_ duplicate decisions already on the project page — link instead.
 7. **Optionally write `wiki/projects/<slug>/history.md`** for a compact narrative timeline of meaningful project changes. **Not** an issue dump — group by phase ("Discovery", "Architecture", "Build", "Stabilisation"), not by date. Each phase is a paragraph that cites the 2–4 issues that defined it.
 8. **Refresh `wiki/index.md`** under the `## Projects` section — one line per durable project page with a one-sentence summary of the project's purpose, plus a link to the current `wiki/projects/<slug>/standup.md` when present.
 9. **Append `wiki/log.md`** entry — this is where the datestamp belongs:
@@ -98,7 +98,7 @@ The deterministic templating this skill replaces produced these failure modes �
 - Cite Taskcore source refs inline using their issue identifier (e.g. `PAP-3179`), not opaque UUIDs.
 - Use issue links as evidence, not as the shape of the page. Headings and paragraphs should be organized by concepts, workstreams, decisions, and blockers.
 - Wiki voice: terse, factual, neutral. No "the team is excited to" or "this initiative aims to".
-- Headings are about *content*, not metadata. `## Schema migration` not `## Active Issues`.
+- Headings are about _content_, not metadata. `## Schema migration` not `## Active Issues`.
 
 ## When the bundle has no signal
 

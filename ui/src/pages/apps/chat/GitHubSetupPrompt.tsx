@@ -42,6 +42,15 @@ export function buildGitHubSetupPrompt(instanceUrl: string) {
   return buildSetupPrompt(instanceUrl, githubSetupPrompt);
 }
 
-export function GitHubSetupPrompt({ instanceUrl = window.location.origin }: { instanceUrl?: string }) {
-  return <SetupPrompt prompt={buildGitHubSetupPrompt(instanceUrl)} description="Paste this into your agent to configure your GitHub review bot." />;
+export function GitHubSetupPrompt({
+  instanceUrl = window.location.origin,
+}: {
+  instanceUrl?: string;
+}) {
+  return (
+    <SetupPrompt
+      prompt={buildGitHubSetupPrompt(instanceUrl)}
+      description="Paste this into your agent to configure your GitHub review bot."
+    />
+  );
 }

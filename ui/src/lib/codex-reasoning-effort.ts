@@ -3,15 +3,16 @@ import {
   type CodexLocalReasoningEffort,
 } from "@taskcore/adapter-codex-local";
 
-const CODEX_REASONING_EFFORT_LABELS: Record<CodexLocalReasoningEffort, string> = {
-  minimal: "Minimal",
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  xhigh: "X-High",
-  max: "Max",
-  ultra: "Ultra",
-};
+const CODEX_REASONING_EFFORT_LABELS: Record<CodexLocalReasoningEffort, string> =
+  {
+    minimal: "Minimal",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    xhigh: "X-High",
+    max: "Max",
+    ultra: "Ultra",
+  };
 
 export function codexReasoningEffortOptions(
   model: string | null | undefined,

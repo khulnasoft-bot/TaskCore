@@ -19,7 +19,10 @@ function makeClient(config?: { enabled?: boolean }) {
   const stateFactory = vi.fn(() => TEST_STATE);
   return {
     client: new TelemetryClient(
-      { enabled: config?.enabled ?? true, endpoint: "http://localhost:9999/ingest" },
+      {
+        enabled: config?.enabled ?? true,
+        endpoint: "http://localhost:9999/ingest",
+      },
       stateFactory,
       "0.0.0-test",
       () => 0.5,

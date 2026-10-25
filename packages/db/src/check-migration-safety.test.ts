@@ -27,8 +27,13 @@ const testEstimates: readonly TableSizeEstimate[] = [
 ];
 
 function analyze(sql: string) {
-  const migrations: readonly MigrationSafetyInput[] = [{ fileName: "9999_fixture.sql", sql }];
-  return analyzeMigrationSafety(migrations, { baselineIds: [], estimates: testEstimates });
+  const migrations: readonly MigrationSafetyInput[] = [
+    { fileName: "9999_fixture.sql", sql },
+  ];
+  return analyzeMigrationSafety(migrations, {
+    baselineIds: [],
+    estimates: testEstimates,
+  });
 }
 
 describe("migration safety check", () => {

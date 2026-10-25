@@ -3,12 +3,19 @@ import type { TaskcoreJsonValue } from "../catalog/semantic-action-types.js";
 
 export const CAPABILITY_REDACTED = "[REDACTED]";
 
-export function redactSemanticValue(value: unknown, key = ""): CapabilityJsonValue {
+export function redactSemanticValue(
+  value: unknown,
+  key = "",
+): CapabilityJsonValue {
   if (key.length === 0) {
     return redactTaskcoreSemanticValue(value) as CapabilityJsonValue;
   }
   const wrapped = redactTaskcoreSemanticValue({ [key]: value });
-  if (typeof wrapped !== "object" || wrapped === null || Array.isArray(wrapped)) {
+  if (
+    typeof wrapped !== "object" ||
+    wrapped === null ||
+    Array.isArray(wrapped)
+  ) {
     return CAPABILITY_REDACTED;
   }
   const object = wrapped as { readonly [entryKey: string]: TaskcoreJsonValue };
@@ -53,7 +60,12 @@ function inspectValueSafety(
   value: unknown,
   detectCredentials: boolean,
 ): TaskcoreSemanticValueSafety {
-  const state = { nodes: 0, protected: false, withinBounds: true, detectCredentials };
+  const state = {
+    nodes: 0,
+    protected: false,
+    withinBounds: true,
+    detectCredentials,
+  };
   inspect(value, "", 0, state, new Set<object>());
   return Object.freeze({
     containsProtectedData: state.protected,
@@ -61,9 +73,7 @@ function inspectValueSafety(
   });
 }
 
-export function redactTaskcoreSemanticValue(
-  value: unknown,
-): TaskcoreJsonValue {
+export function redactTaskcoreSemanticValue(value: unknown): TaskcoreJsonValue {
   const state = { nodes: 0 };
   return redact(value, "", 0, state, new Set<object>());
 }
@@ -93,7 +103,8 @@ function inspect(
     TASKCORE_SECRET_VALUE.lastIndex = 0;
     if (
       state.detectCredentials &&
-      (TASKCORE_SECRET_VALUE.test(value) || TASKCORE_TASKCORE_SECRET_QUERY_DETECT.test(value))
+      (TASKCORE_SECRET_VALUE.test(value) ||
+        TASKCORE_TASKCORE_SECRET_QUERY_DETECT.test(value))
     ) {
       state.protected = true;
     }
@@ -121,7 +132,10 @@ function inspect(
     const entries = Object.entries(value);
     if (entries.length > TASKCORE_MAX_OBJECT_KEYS) state.withinBounds = false;
     ancestors.add(value);
-    for (const [childKey, child] of entries.slice(0, TASKCORE_MAX_OBJECT_KEYS)) {
+    for (const [childKey, child] of entries.slice(
+      0,
+      TASKCORE_MAX_OBJECT_KEYS,
+    )) {
       inspect(child, childKey, depth + 1, state, ancestors);
     }
     ancestors.delete(value);

@@ -24,19 +24,26 @@ export function sidebarPreferenceRoutes(db: Db) {
     res.json(await svc.getCompanyOrder(userId));
   });
 
-  router.put("/sidebar-preferences/me", validate(upsertSidebarOrderPreferenceSchema), async (req, res) => {
-    const userId = requireBoardUserId(req, res);
-    if (!userId) return;
-    res.json(await svc.upsertCompanyOrder(userId, req.body.orderedIds));
-  });
+  router.put(
+    "/sidebar-preferences/me",
+    validate(upsertSidebarOrderPreferenceSchema),
+    async (req, res) => {
+      const userId = requireBoardUserId(req, res);
+      if (!userId) return;
+      res.json(await svc.upsertCompanyOrder(userId, req.body.orderedIds));
+    },
+  );
 
-  router.get("/companies/:companyId/sidebar-preferences/me", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    const userId = requireBoardUserId(req, res);
-    if (!userId) return;
-    res.json(await svc.getProjectOrder(companyId, userId));
-  });
+  router.get(
+    "/companies/:companyId/sidebar-preferences/me",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      const userId = requireBoardUserId(req, res);
+      if (!userId) return;
+      res.json(await svc.getProjectOrder(companyId, userId));
+    },
+  );
 
   router.put(
     "/companies/:companyId/sidebar-preferences/me",
@@ -47,7 +54,11 @@ export function sidebarPreferenceRoutes(db: Db) {
       const userId = requireBoardUserId(req, res);
       if (!userId) return;
 
-      const result = await svc.upsertProjectOrder(companyId, userId, req.body.orderedIds);
+      const result = await svc.upsertProjectOrder(
+        companyId,
+        userId,
+        req.body.orderedIds,
+      );
       const actor = getActorInfo(req);
       await logActivity(db, {
         companyId,

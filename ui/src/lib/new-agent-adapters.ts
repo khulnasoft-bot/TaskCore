@@ -13,9 +13,17 @@ export function isNewAgentAdapterAllowed(
     nativeRunnerEnabled,
     openAiDotEnabled = false,
     runnerProvider,
-  }: { cloud: boolean; nativeRunnerEnabled: boolean; openAiDotEnabled?: boolean; runnerProvider?: string },
+  }: {
+    cloud: boolean;
+    nativeRunnerEnabled: boolean;
+    openAiDotEnabled?: boolean;
+    runnerProvider?: string;
+  },
 ) {
-  if (type === "openai_dot" || (type === "taskcore_runner" && runnerProvider === "openai_dot")) {
+  if (
+    type === "openai_dot" ||
+    (type === "taskcore_runner" && runnerProvider === "openai_dot")
+  ) {
     return !cloud && openAiDotEnabled;
   }
   if (type === "taskcore_runner") return nativeRunnerEnabled;

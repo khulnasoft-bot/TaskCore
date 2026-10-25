@@ -66,18 +66,22 @@ describe("useKeyboardShortcuts", () => {
     const onSearch = vi.fn();
     const input = document.createElement("input");
     input.setAttribute("data-page-search-target", "true");
-    vi.spyOn(input, "getClientRects").mockReturnValue([{}] as unknown as DOMRectList);
+    vi.spyOn(input, "getClientRects").mockReturnValue([
+      {},
+    ] as unknown as DOMRectList);
     document.body.appendChild(input);
 
     act(() => {
       root.render(<TestHarness onNewIssue={vi.fn()} onSearch={onSearch} />);
     });
 
-    document.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "/",
-      bubbles: true,
-      cancelable: true,
-    }));
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "/",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
 
     expect(document.activeElement).toBe(input);
     expect(onSearch).not.toHaveBeenCalled();
@@ -96,11 +100,13 @@ describe("useKeyboardShortcuts", () => {
       root.render(<TestHarness onNewIssue={vi.fn()} onSearch={onSearch} />);
     });
 
-    document.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "/",
-      bubbles: true,
-      cancelable: true,
-    }));
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "/",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
 
     expect(onSearch).toHaveBeenCalledTimes(1);
 
@@ -123,13 +129,21 @@ describe("useKeyboardShortcuts", () => {
     });
 
     for (const key of ["c", "/"]) {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+      );
     }
     expect(onNewIssue).not.toHaveBeenCalled();
     expect(onSearch).not.toHaveBeenCalled();
 
     dialog.remove();
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true, cancelable: true }));
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "c",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     expect(onNewIssue).toHaveBeenCalledTimes(1);
 
     act(() => {
@@ -168,7 +182,11 @@ describe("useKeyboardShortcuts", () => {
   });
 
   const pressKey = (key: string) => {
-    const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+    const event = new KeyboardEvent("keydown", {
+      key,
+      bubbles: true,
+      cancelable: true,
+    });
     document.dispatchEvent(event);
     return event;
   };
@@ -179,7 +197,9 @@ describe("useKeyboardShortcuts", () => {
     const onNewIssue = vi.fn();
 
     act(() => {
-      root.render(<TestHarness onNewIssue={onNewIssue} onGoToInbox={onGoToInbox} />);
+      root.render(
+        <TestHarness onNewIssue={onNewIssue} onGoToInbox={onGoToInbox} />,
+      );
     });
 
     // Bare "i" does nothing.
@@ -207,7 +227,9 @@ describe("useKeyboardShortcuts", () => {
     const onNewIssue = vi.fn();
 
     act(() => {
-      root.render(<TestHarness onNewIssue={onNewIssue} onGoToInbox={onGoToInbox} />);
+      root.render(
+        <TestHarness onNewIssue={onNewIssue} onGoToInbox={onGoToInbox} />,
+      );
     });
 
     // g \u2192 c is the issue-detail focus-comment chord; globally it must not
@@ -225,5 +247,4 @@ describe("useKeyboardShortcuts", () => {
       root.unmount();
     });
   });
-
 });

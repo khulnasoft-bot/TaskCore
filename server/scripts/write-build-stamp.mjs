@@ -38,7 +38,8 @@ const outFile = join(distDir, "build-info.json");
 export function resolveBuildCommit(gitCommit, suppliedCommit) {
   const git = typeof gitCommit === "string" ? gitCommit.trim() : "";
   if (git) return git;
-  const supplied = typeof suppliedCommit === "string" ? suppliedCommit.trim() : "";
+  const supplied =
+    typeof suppliedCommit === "string" ? suppliedCommit.trim() : "";
   if (supplied) return supplied;
   return null;
 }
@@ -68,7 +69,10 @@ function readGitCommit() {
  * no commit is available, so the build continues.
  */
 function main() {
-  const commit = resolveBuildCommit(readGitCommit(), process.env.TASKCORE_BUILD_COMMIT);
+  const commit = resolveBuildCommit(
+    readGitCommit(),
+    process.env.TASKCORE_BUILD_COMMIT,
+  );
 
   if (!commit) {
     console.log("[build-stamp] no commit available; wrote no build stamp");
@@ -82,6 +86,9 @@ function main() {
 
 // Run only when node invokes this file directly (the `build` script). A test
 // that imports `resolveBuildCommit` does not run `main`.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main();
 }

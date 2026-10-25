@@ -9,8 +9,19 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, "..");
-const tscCliPath = path.join(rootDir, "node_modules", "typescript", "bin", "tsc");
-const lockDir = path.join(rootDir, "node_modules", ".cache", "taskcore-plugin-build-deps.lock");
+const tscCliPath = path.join(
+  rootDir,
+  "node_modules",
+  "typescript",
+  "bin",
+  "tsc",
+);
+const lockDir = path.join(
+  rootDir,
+  "node_modules",
+  ".cache",
+  "taskcore-plugin-build-deps.lock",
+);
 const lockTimeoutMs = 60_000;
 const lockPollMs = 100;
 
@@ -18,7 +29,10 @@ const buildTargets = [
   {
     name: "@taskcore/shared",
     output: path.join(rootDir, "packages/shared/dist/index.js"),
-    completion: path.join(rootDir, "packages/shared/dist/.taskcore-build-complete"),
+    completion: path.join(
+      rootDir,
+      "packages/shared/dist/.taskcore-build-complete",
+    ),
     sourceDir: path.join(rootDir, "packages/shared/src"),
     tsconfig: path.join(rootDir, "packages/shared/tsconfig.json"),
     dependencies: [],
@@ -26,7 +40,10 @@ const buildTargets = [
   {
     name: "@taskcore/plugin-sdk",
     output: path.join(rootDir, "packages/plugins/sdk/dist/index.js"),
-    completion: path.join(rootDir, "packages/plugins/sdk/dist/.taskcore-build-complete"),
+    completion: path.join(
+      rootDir,
+      "packages/plugins/sdk/dist/.taskcore-build-complete",
+    ),
     sourceDir: path.join(rootDir, "packages/plugins/sdk/src"),
     tsconfig: path.join(rootDir, "packages/plugins/sdk/tsconfig.json"),
     dependencies: [0],
@@ -40,14 +57,18 @@ if (!fs.existsSync(tscCliPath)) {
 function directoryFingerprint(directory, exclude) {
   const hash = createHash("sha256");
   function visit(dir) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    for (const entry of fs
+      .readdirSync(dir, { withFileTypes: true })
+      .sort((a, b) => a.name.localeCompare(b.name))) {
       const entryPath = path.join(dir, entry.name);
       if (entryPath === exclude) continue;
       if (entry.isDirectory()) {
         visit(entryPath);
       } else if (entry.isFile()) {
         const content = fs.readFileSync(entryPath);
-        hash.update(JSON.stringify([path.relative(directory, entryPath), content.length]));
+        hash.update(
+          JSON.stringify([path.relative(directory, entryPath), content.length]),
+        );
         hash.update(content);
       }
     }
@@ -68,7 +89,8 @@ function sourceFingerprint(target) {
   ]) {
     if (fs.existsSync(config)) hash.update(fs.readFileSync(config));
   }
-  for (const dependency of target.dependencies) hash.update(sourceFingerprint(buildTargets[dependency]));
+  for (const dependency of target.dependencies)
+    hash.update(sourceFingerprint(buildTargets[dependency]));
   return hash.digest("hex");
 }
 
@@ -83,8 +105,10 @@ function needsBuild(target) {
     // Content fingerprints detect partial direct builds even on filesystems
     // with coarse timestamps, while identical successful direct builds reuse
     // the certified output without another compile.
-    return completed.sources !== sourceFingerprint(target)
-      || completed.outputs !== outputFingerprint(target);
+    return (
+      completed.sources !== sourceFingerprint(target) ||
+      completed.outputs !== outputFingerprint(target)
+    );
   } catch (error) {
     if (error.code === "ENOENT" || error instanceof SyntaxError) return true;
     throw error;
@@ -142,15 +166,25 @@ function recoverAbandonedLock() {
       if (Date.now() - fs.statSync(lockDir).mtimeMs < 120_000) return;
       fs.rmdirSync(lockDir);
     } else if (entries.length === 1 && /^owner-.*\.json$/.test(entries[0])) {
-      const owner = JSON.parse(fs.readFileSync(path.join(lockDir, entries[0]), "utf8"));
-      if (processAlive(owner.pid) || (owner.childPid && processAlive(owner.childPid))) return;
+      const owner = JSON.parse(
+        fs.readFileSync(path.join(lockDir, entries[0]), "utf8"),
+      );
+      if (
+        processAlive(owner.pid) ||
+        (owner.childPid && processAlive(owner.childPid))
+      )
+        return;
       removeOwner(entries[0]);
     } else {
       return;
     }
     console.log("[taskcore] Recovered abandoned workspace build lock.");
   } catch (error) {
-    if (["ENOENT", "ENOTEMPTY", "EEXIST"].includes(error.code) || error instanceof SyntaxError) return;
+    if (
+      ["ENOENT", "ENOTEMPTY", "EEXIST"].includes(error.code) ||
+      error instanceof SyntaxError
+    )
+      return;
     throw error;
   }
 }
@@ -158,7 +192,10 @@ function recoverAbandonedLock() {
 async function acquireLock() {
   fs.mkdirSync(path.dirname(lockDir), { recursive: true });
   const candidate = fs.mkdtempSync(`${lockDir}.candidate-`);
-  fs.writeFileSync(path.join(candidate, ownerFile), JSON.stringify({ pid: process.pid }));
+  fs.writeFileSync(
+    path.join(candidate, ownerFile),
+    JSON.stringify({ pid: process.pid }),
+  );
   const startedAt = Date.now();
   let reportedWait = false;
   try {
@@ -171,15 +208,20 @@ async function acquireLock() {
           holdsLock = true;
           return;
         } catch (error) {
-          if (!["ENOTEMPTY", "EEXIST", "EPERM"].includes(error.code)) throw error;
+          if (!["ENOTEMPTY", "EEXIST", "EPERM"].includes(error.code))
+            throw error;
         }
       }
       if (!reportedWait) {
-        console.log(`[taskcore] Waiting for another workspace build (${lockDir})...`);
+        console.log(
+          `[taskcore] Waiting for another workspace build (${lockDir})...`,
+        );
         reportedWait = true;
       }
       if (Date.now() - startedAt >= lockTimeoutMs) {
-        throw new Error(`Timed out waiting for workspace build lock at ${lockDir}. Another build may still be running.`);
+        throw new Error(
+          `Timed out waiting for workspace build lock at ${lockDir}. Another build may still be running.`,
+        );
       }
       await sleep(lockPollMs);
     }
@@ -200,7 +242,10 @@ async function build(target) {
       stdio: "inherit",
     });
     // A hard-killed parent must not let a successor race its surviving compiler.
-    fs.writeFileSync(path.join(lockDir, ownerFile), JSON.stringify({ pid: process.pid, childPid: child.pid }));
+    fs.writeFileSync(
+      path.join(lockDir, ownerFile),
+      JSON.stringify({ pid: process.pid, childPid: child.pid }),
+    );
     child.once("error", (error) => {
       fs.rmSync(target.output, { force: true });
       reject(error);
@@ -213,7 +258,11 @@ async function build(target) {
   // tsc emits index.js before it finishes the package. A failed or interrupted
   // compile must not make the next startup accept that partial build as current.
   if (code !== 0) fs.rmSync(target.output, { force: true });
-  else fs.writeFileSync(target.completion, JSON.stringify({ sources, outputs: outputFingerprint(target) }) + "\n");
+  else
+    fs.writeFileSync(
+      target.completion,
+      JSON.stringify({ sources, outputs: outputFingerprint(target) }) + "\n",
+    );
   return code;
 }
 
@@ -245,4 +294,5 @@ try {
 } finally {
   releaseLock();
 }
-process.exitCode = stoppingSignal === "SIGINT" ? 130 : stoppingSignal ? 143 : exitCode;
+process.exitCode =
+  stoppingSignal === "SIGINT" ? 130 : stoppingSignal ? 143 : exitCode;

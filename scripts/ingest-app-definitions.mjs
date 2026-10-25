@@ -181,12 +181,43 @@ const posthogMethod = (key, auth, extra = {}) =>
     { tenantFields: posthogConfigFields(), ...extra },
   );
 const apps = [
-  ["agentmail", "AgentMail", "Give agents email inboxes and handle each conversation as a task.", "communication", "agentmail.to", ["https://console.agentmail.to/*"], {
-    key: "email-agent", label: "Email with an agent", purpose: "channel", provider: "agentmail", transport: "rest_api", auth: "api_key", ownershipModes: ["customer"],
-    whenToUse: "Assign an inbox to an agent and manage email conversations in tasks.", credentialFields: [{ key: "apiKey", label: "AgentMail API key", type: "password", placeholder: "am_…", required: true, secret: true }],
-    guidanceMd: "Connect an AgentMail API key, then create or select an inbox for your agent. WebSocket receiving works without a public URL.",
-    consoleLinks: { keys: "https://console.agentmail.to", docs: "https://docs.agentmail.to/inboxes" }, riskTier: "S3", requiredResourceFilters: ["inbox"]
-  }],
+  [
+    "agentmail",
+    "AgentMail",
+    "Give agents email inboxes and handle each conversation as a task.",
+    "communication",
+    "agentmail.to",
+    ["https://console.agentmail.to/*"],
+    {
+      key: "email-agent",
+      label: "Email with an agent",
+      purpose: "channel",
+      provider: "agentmail",
+      transport: "rest_api",
+      auth: "api_key",
+      ownershipModes: ["customer"],
+      whenToUse:
+        "Assign an inbox to an agent and manage email conversations in tasks.",
+      credentialFields: [
+        {
+          key: "apiKey",
+          label: "AgentMail API key",
+          type: "password",
+          placeholder: "am_…",
+          required: true,
+          secret: true,
+        },
+      ],
+      guidanceMd:
+        "Connect an AgentMail API key, then create or select an inbox for your agent. WebSocket receiving works without a public URL.",
+      consoleLinks: {
+        keys: "https://console.agentmail.to",
+        docs: "https://docs.agentmail.to/inboxes",
+      },
+      riskTier: "S3",
+      requiredResourceFilters: ["inbox"],
+    },
+  ],
   [
     "zapier",
     "Zapier",
@@ -208,13 +239,38 @@ const apps = [
     ),
   ],
   ...[
-    ["arcade", "Arcade", "https://api.arcade.dev/*", "https://docs.arcade.dev/en/operate/governance/mcp-gateways"],
-    ["executor", "Executor", "https://executor.sh/*", "https://executor.sh/docs/mcp-proxy"],
+    [
+      "arcade",
+      "Arcade",
+      "https://api.arcade.dev/*",
+      "https://docs.arcade.dev/en/operate/governance/mcp-gateways",
+    ],
+    [
+      "executor",
+      "Executor",
+      "https://executor.sh/*",
+      "https://executor.sh/docs/mcp-proxy",
+    ],
   ].map(([slug, name, pattern, docsUrl]) => [
-    slug, name, `Use the tools exposed by your ${name} MCP connection.`, "productivity", new URL(pattern).hostname, [pattern],
-    method("mcp", "mcp_remote", "none", {}, "S3", `Paste your ${name} MCP URL. Sign in if required, or add a token or headers under Advanced authentication.`, {
-      label: "Connect MCP server", ownershipModes: ["dcr", "customer"], consoleLinks: { docs: docsUrl },
-    }),
+    slug,
+    name,
+    `Use the tools exposed by your ${name} MCP connection.`,
+    "productivity",
+    new URL(pattern).hostname,
+    [pattern],
+    method(
+      "mcp",
+      "mcp_remote",
+      "none",
+      {},
+      "S3",
+      `Paste your ${name} MCP URL. Sign in if required, or add a token or headers under Advanced authentication.`,
+      {
+        label: "Connect MCP server",
+        ownershipModes: ["dcr", "customer"],
+        consoleLinks: { docs: docsUrl },
+      },
+    ),
     { featured: true, docsUrl },
   ]),
   [
@@ -241,7 +297,8 @@ const apps = [
         whenToUse: "Authorize your Railway account in the browser.",
         consoleLinks: {
           docs: "https://docs.railway.com/ai/mcp-server",
-          register: "https://docs.railway.com/integrations/oauth/creating-an-app",
+          register:
+            "https://docs.railway.com/integrations/oauth/creating-an-app",
           settings: "https://railway.com/account",
         },
         warnings: [
@@ -250,7 +307,12 @@ const apps = [
           "The general Railway agent and committing staged changes are unavailable because their internal changes cannot be individually reviewed in Taskcore.",
           "Live Railway qualification is pending. If Railway rejects API access, reconnect with the required permissions; Taskcore never falls back to another credential.",
         ],
-        requiredResourceFilters: ["workspace", "project", "environment", "service"],
+        requiredResourceFilters: [
+          "workspace",
+          "project",
+          "environment",
+          "service",
+        ],
       },
     ),
     { redirectConstraints: "https-or-loopback-http" },
@@ -426,12 +488,22 @@ const apps = [
     ),
   ],
   [
-    "imessage-photon", "iMessage Photon",
+    "imessage-photon",
+    "iMessage Photon",
     "Message a Taskcore agent from Apple Messages using Photon Cloud. Pro supports DMs; dedicated lines also support groups.",
-    "communication", "photon.codes", ["https://photon.codes/*"],
-    channelMethod("imessage-photon", [field("projectSecret", "Project secret", "Photon project secret")], ["direct_message", "group_chat"],
+    "communication",
+    "photon.codes",
+    ["https://photon.codes/*"],
+    channelMethod(
+      "imessage-photon",
+      [field("projectSecret", "Project secret", "Photon project secret")],
+      ["direct_message", "group_chat"],
       "Connect a Photon Cloud project. Pro shared lines support DMs after sender enrollment in Photon and identity linking in Taskcore. Dedicated lines also support individually enabled groups.",
-      { register: "https://photon.codes/", docs: "https://photon.codes/docs/spectrum-ts/providers/imessage/connection-and-routing" }),
+      {
+        register: "https://photon.codes/",
+        docs: "https://photon.codes/docs/spectrum-ts/providers/imessage/connection-and-routing",
+      },
+    ),
   ],
   [
     "telegram",
@@ -715,9 +787,27 @@ const apps = [
     "Discover and use connected apps through Composio Connect.",
     "productivity",
     "composio.dev",
-    ["https://backend.composio.dev/*", "https://connect.composio.dev/*", "https://mcp.composio.dev/*", "https://*.composio.dev/*"],
-    [method("mcp", "mcp_remote", "none", { serverUrl: "https://connect.composio.dev/mcp" }, "S3", "Sign in to Composio Connect, or paste an externally configured MCP session URL and headers.", { label: "Composio Connect", ownershipModes: ["dcr", "customer"] })],
-    { featured: true, docsUrl: "https://docs.composio.dev/docs/composio-connect" },
+    [
+      "https://backend.composio.dev/*",
+      "https://connect.composio.dev/*",
+      "https://mcp.composio.dev/*",
+      "https://*.composio.dev/*",
+    ],
+    [
+      method(
+        "mcp",
+        "mcp_remote",
+        "none",
+        { serverUrl: "https://connect.composio.dev/mcp" },
+        "S3",
+        "Sign in to Composio Connect, or paste an externally configured MCP session URL and headers.",
+        { label: "Composio Connect", ownershipModes: ["dcr", "customer"] },
+      ),
+    ],
+    {
+      featured: true,
+      docsUrl: "https://docs.composio.dev/docs/composio-connect",
+    },
   ],
   [
     "oauth-generic",
@@ -912,14 +1002,36 @@ const apps = [
       },
     ),
   ],
-  ["browser-use-cloud", "Browser Use Cloud", "Delegate browser tasks and watch them live in Taskcore.", "productivity", "browser-use.com", ["https://cloud.browser-use.com/*"],
-    method("cloud-v4", "rest_api", "api_key", { serverUrl: "https://api.browser-use.com/api/v4" }, "S3",
-      "Create an API key in [Browser Use settings](https://cloud.browser-use.com/settings) and paste it below. Your agents can browse websites while you watch and interact from the task's Browser tab.", {
+  [
+    "browser-use-cloud",
+    "Browser Use Cloud",
+    "Delegate browser tasks and watch them live in Taskcore.",
+    "productivity",
+    "browser-use.com",
+    ["https://cloud.browser-use.com/*"],
+    method(
+      "cloud-v4",
+      "rest_api",
+      "api_key",
+      { serverUrl: "https://api.browser-use.com/api/v4" },
+      "S3",
+      "Create an API key in [Browser Use settings](https://cloud.browser-use.com/settings) and paste it below. Your agents can browse websites while you watch and interact from the task's Browser tab.",
+      {
         label: "Browser Use Cloud",
-        credentialFields: [{ ...field("apiKey", "API key", "bu_…"), helperMd: "Open Browser Use → Settings → API keys. Create a key for the project agents should use." }],
+        credentialFields: [
+          {
+            ...field("apiKey", "API key", "bu_…"),
+            helperMd:
+              "Open Browser Use → Settings → API keys. Create a key for the project agents should use.",
+          },
+        ],
         keyPlacement: { location: "header", name: "X-Browser-Use-API-Key" },
-        consoleLinks: { keys: "https://cloud.browser-use.com/settings", docs: "https://docs.browser-use.com/cloud/api-v4-overview" },
-      }),
+        consoleLinks: {
+          keys: "https://cloud.browser-use.com/settings",
+          docs: "https://docs.browser-use.com/cloud/api-v4-overview",
+        },
+      },
+    ),
     { docsUrl: "https://docs.browser-use.com/cloud/api-v4-overview" },
   ],
 ].map(
@@ -1101,13 +1213,21 @@ const apiKeySpec = {
     prefix: "Bearer ",
     placeholder: "Paste your Coda API token",
   },
-  gauge: { name: "Authorization", prefix: "Bearer ", placeholder: "Paste your Gauge API key" },
+  gauge: {
+    name: "Authorization",
+    prefix: "Bearer ",
+    placeholder: "Paste your Gauge API key",
+  },
   kernel: {
     name: "X-API-Key",
     prefix: null,
     placeholder: "Paste your Kernel API key",
   },
-  mem0: { name: "Authorization", prefix: "Bearer ", placeholder: "Paste your Mem0 API key" },
+  mem0: {
+    name: "Authorization",
+    prefix: "Bearer ",
+    placeholder: "Paste your Mem0 API key",
+  },
   neon: {
     name: "Authorization",
     prefix: "Bearer ",
@@ -1147,7 +1267,11 @@ const apiKeySpec = {
     prefix: "Bearer ",
     placeholder: "sbp_...",
   },
-  superagent: { name: "Authorization", prefix: "Bearer ", placeholder: "sk_live_..." },
+  superagent: {
+    name: "Authorization",
+    prefix: "Bearer ",
+    placeholder: "sk_live_...",
+  },
   telem: {
     name: "Authorization",
     prefix: "Bearer ",
@@ -1196,41 +1320,65 @@ const apiKeyMethodFor = (
   );
 };
 const specialMethodsFor = (entry) => {
-  if (entry.slug === "asana") return [
-    oauthMethodFor(entry, "managed", entry.serverUrl, {
-      label: "Sign in with Asana",
-      ownershipModes: ["platform_shared"],
-      oauthStrategy: "taskcore_cloud_connector",
-      connectorProfile: "asana.mcp",
-      grantKinds: ["user", "agent"],
-      defaults: { serverUrl: entry.serverUrl, scopesHint: ["default"] },
-      guidanceMd: "Sign in to Asana with Taskcore. Asana gives this connection access to the workspaces available to your account.",
-      whenToUse: "Connect your Asana account with Taskcore's app.",
-      warnings: [],
-    }),
-    {
-      ...customerOAuthMethodFor(entry),
-      defaults: {
-        serverUrl: entry.serverUrl,
-        discoveryUrl: "https://mcp.asana.com/.well-known/oauth-protected-resource/v2",
-        scopesHint: ["default"],
+  if (entry.slug === "asana")
+    return [
+      oauthMethodFor(entry, "managed", entry.serverUrl, {
+        label: "Sign in with Asana",
+        ownershipModes: ["platform_shared"],
+        oauthStrategy: "taskcore_cloud_connector",
+        connectorProfile: "asana.mcp",
+        grantKinds: ["user", "agent"],
+        defaults: { serverUrl: entry.serverUrl, scopesHint: ["default"] },
+        guidanceMd:
+          "Sign in to Asana with Taskcore. Asana gives this connection access to the workspaces available to your account.",
+        whenToUse: "Connect your Asana account with Taskcore's app.",
+        warnings: [],
+      }),
+      {
+        ...customerOAuthMethodFor(entry),
+        defaults: {
+          serverUrl: entry.serverUrl,
+          discoveryUrl:
+            "https://mcp.asana.com/.well-known/oauth-protected-resource/v2",
+          scopesHint: ["default"],
+        },
+        oauthClientSecretRequired: true,
+        guidanceMd:
+          "Create an MCP app in Asana, then add the callback URL below under OAuth. Under Manage distribution, select your workspace and save. API apps do not work with Asana MCP.",
+        consoleLinks: {
+          register: "https://app.asana.com/0/my-apps",
+          docs: entry.docsUrl,
+        },
+        warnings: [],
       },
-      oauthClientSecretRequired: true,
-      guidanceMd: "Create an MCP app in Asana, then add the callback URL below under OAuth. Under Manage distribution, select your workspace and save. API apps do not work with Asana MCP.",
-      consoleLinks: { register: "https://app.asana.com/0/my-apps", docs: entry.docsUrl },
-      warnings: [],
-    },
-  ];
-  if (entry.slug === "mem0" || entry.slug === "honcho") return [
-    apiKeyMethodFor(entry, "mcp-api-key", entry.serverUrl, {
-      guidanceMd: `Open the ${entry.name} dashboard, create an API key for the account agents should use, and paste it below.`,
-      consoleLinks: { keys: entry.slug === "mem0" ? "https://app.mem0.ai/dashboard/api-keys" : "https://app.honcho.dev", docs: entry.docsUrl },
-      ...(entry.slug === "honcho" ? { tenantFields: [{
-        key: "workspaceId", label: "Honcho workspace", type: "text", required: true,
-        placeholder: "Workspace ID", validation: { maxLength: 512 },
-      }] } : {}),
-    }),
-  ];
+    ];
+  if (entry.slug === "mem0" || entry.slug === "honcho")
+    return [
+      apiKeyMethodFor(entry, "mcp-api-key", entry.serverUrl, {
+        guidanceMd: `Open the ${entry.name} dashboard, create an API key for the account agents should use, and paste it below.`,
+        consoleLinks: {
+          keys:
+            entry.slug === "mem0"
+              ? "https://app.mem0.ai/dashboard/api-keys"
+              : "https://app.honcho.dev",
+          docs: entry.docsUrl,
+        },
+        ...(entry.slug === "honcho"
+          ? {
+              tenantFields: [
+                {
+                  key: "workspaceId",
+                  label: "Honcho workspace",
+                  type: "text",
+                  required: true,
+                  placeholder: "Workspace ID",
+                  validation: { maxLength: 512 },
+                },
+              ],
+            }
+          : {}),
+      }),
+    ];
   // Gauge's sign-in picks one organization during consent; an API key is bound
   // to the organization that created it and carries no user identity.
   if (entry.slug === "gauge") {
@@ -1251,7 +1399,8 @@ const specialMethodsFor = (entry) => {
         capabilityProfile,
       }),
       apiKeyMethodFor(entry, "mcp-api-key", entry.serverUrl, {
-        whenToUse: "Use a Gauge organization API key when browser sign-in is not suitable.",
+        whenToUse:
+          "Use a Gauge organization API key when browser sign-in is not suitable.",
         guidanceMd:
           "In Gauge, open Settings → Integrations → API Keys, generate a key for Taskcore, and paste it below.",
         warnings: [entry.prerequisite, warning],
@@ -1262,33 +1411,60 @@ const specialMethodsFor = (entry) => {
   // Superagent's hosted server advertises protected-resource metadata, but its
   // authorization server publishes no OAuth metadata, so organization API keys
   // are the only working credential.
-  if (entry.slug === "superagent") return [
-    apiKeyMethodFor(entry, "mcp-api-key", entry.serverUrl, {
-      whenToUse: "Connect with a Superagent organization API key.",
-      guidanceMd: "Open Superagent Settings → API keys, create a separate key for Taskcore, and paste it below.",
-      consoleLinks: { keys: "https://www.superagent.sh/app/settings#api-keys", docs: entry.docsUrl },
-    }),
-  ];
-  if (entry.slug === "zep") return [oauthMethodFor(entry, "mcp-oauth", entry.serverUrl, {
-    grantKinds: ["user"],
-    defaults: { serverUrl: entry.serverUrl, scopesHint: ["graph:read", "graph:write"] },
-    guidanceMd: "Sign in with the work identity configured for your Zep project's Memory MCP server. Zep restricts access to that identity's memory and authorized shared graphs.",
-    consoleLinks: { settings: "https://app.getzep.com", docs: entry.docsUrl },
-  })];
-  if (entry.slug === "supermemory") return [oauthMethodFor(entry, "mcp-oauth", entry.serverUrl, {
-    grantKinds: ["user"],
-    defaults: { serverUrl: entry.serverUrl, scopesHint: ["openid", "profile", "email", "offline_access"] },
-    guidanceMd: "Sign in to Supermemory, then choose a workspace, read or write access, and optional tags. Use a separate space for unrelated work.",
-  })];
+  if (entry.slug === "superagent")
+    return [
+      apiKeyMethodFor(entry, "mcp-api-key", entry.serverUrl, {
+        whenToUse: "Connect with a Superagent organization API key.",
+        guidanceMd:
+          "Open Superagent Settings → API keys, create a separate key for Taskcore, and paste it below.",
+        consoleLinks: {
+          keys: "https://www.superagent.sh/app/settings#api-keys",
+          docs: entry.docsUrl,
+        },
+      }),
+    ];
+  if (entry.slug === "zep")
+    return [
+      oauthMethodFor(entry, "mcp-oauth", entry.serverUrl, {
+        grantKinds: ["user"],
+        defaults: {
+          serverUrl: entry.serverUrl,
+          scopesHint: ["graph:read", "graph:write"],
+        },
+        guidanceMd:
+          "Sign in with the work identity configured for your Zep project's Memory MCP server. Zep restricts access to that identity's memory and authorized shared graphs.",
+        consoleLinks: {
+          settings: "https://app.getzep.com",
+          docs: entry.docsUrl,
+        },
+      }),
+    ];
+  if (entry.slug === "supermemory")
+    return [
+      oauthMethodFor(entry, "mcp-oauth", entry.serverUrl, {
+        grantKinds: ["user"],
+        defaults: {
+          serverUrl: entry.serverUrl,
+          scopesHint: ["openid", "profile", "email", "offline_access"],
+        },
+        guidanceMd:
+          "Sign in to Supermemory, then choose a workspace, read or write access, and optional tags. Use a separate space for unrelated work.",
+      }),
+    ];
   if (entry.slug === "fireflies")
     return [
       oauthMethodFor(entry, "mcp-oauth", entry.serverUrl, {
-        defaults: { serverUrl: entry.serverUrl, scopesHint: ["email", "profile"] },
-        guidanceMd: "Sign in to Fireflies to use meeting transcripts, summaries, and action items. Configure optional summary-ready webhooks separately in a routine's Triggers tab.",
+        defaults: {
+          serverUrl: entry.serverUrl,
+          scopesHint: ["email", "profile"],
+        },
+        guidanceMd:
+          "Sign in to Fireflies to use meeting transcripts, summaries, and action items. Configure optional summary-ready webhooks separately in a routine's Triggers tab.",
       }),
       apiKeyMethodFor(entry, "mcp-api-key", entry.serverUrl, {
         whenToUse: "Use your Fireflies API key instead of browser sign-in.",
-        guidanceMd: "Open Fireflies Settings → Developer Settings, copy your API key, and paste it below. This key accesses your meeting data; routine webhooks use a separate signing secret.",
+        guidanceMd:
+          "Open Fireflies Settings → Developer Settings, copy your API key, and paste it below. This key accesses your meeting data; routine webhooks use a separate signing secret.",
         consoleLinks: {
           keys: "https://app.fireflies.ai/settings",
           docs: entry.docsUrl,
@@ -1624,7 +1800,10 @@ const specialMethodsFor = (entry) => {
       advanced: true,
       placeholder: "Optional comma-separated provider names",
       helperMd,
-      validation: { pattern: "^[A-Za-z0-9_.-]+(,[A-Za-z0-9_.-]+)*$", maxLength: 500 },
+      validation: {
+        pattern: "^[A-Za-z0-9_.-]+(,[A-Za-z0-9_.-]+)*$",
+        maxLength: 500,
+      },
       transport: { location: "header", name: header, format: "csv" },
     });
     const tenantFields = [
@@ -1711,26 +1890,66 @@ const specialMethodsFor = (entry) => {
 // Cognee Cloud publishes a local MCP client, not a hosted remote MCP endpoint.
 // This approved, pinned template uses the ordinary vault and stdio gateway.
 apps.push({
-  schemaVersion: 1, slug: "cognee", name: "Cognee",
-  description: "Build and recall shared graph memory from documents and conversations.",
-  categories: ["ai"], branding: brandingFor("cognee"),
+  schemaVersion: 1,
+  slug: "cognee",
+  name: "Cognee",
+  description:
+    "Build and recall shared graph memory from documents and conversations.",
+  categories: ["ai"],
+  branding: brandingFor("cognee"),
   urlPatterns: ["https://*.aws.cognee.ai/*"],
   docsUrl: "https://docs.cognee.ai/cognee-cloud/connections/cloud-mcp",
   setupPrerequisite: {
     title: "Cognee Cloud and a local runtime",
-    description: "Use your Cognee Cloud tenant API URL and key. Taskcore's runtime host needs uv installed to run the official Cognee MCP client. Public deployments require a trusted MCP runtime host.",
-    actionLabel: "Open Cognee API keys", actionUrl: "https://platform.cognee.ai/api-keys",
+    description:
+      "Use your Cognee Cloud tenant API URL and key. Taskcore's runtime host needs uv installed to run the official Cognee MCP client. Public deployments require a trusted MCP runtime host.",
+    actionLabel: "Open Cognee API keys",
+    actionUrl: "https://platform.cognee.ai/api-keys",
   },
-  methods: [method("cloud-local", "local_stdio", "api_key", { templateKey: "taskcore.cognee-cloud" }, "S3",
-    "Copy the API Base URL and create an API key on Cognee's API Keys page. Use a Cloud workspace with an active subscription. Taskcore uses its bundled Cloud client; no extra runtime installation is required.", {
-      label: "Connect Cognee Cloud", whenToUse: "Connect your Cloud tenant through the official Cognee MCP client.",
-      credentialFields: [
-        { key: "COGNEE_BASE_URL", label: "API Base URL", type: "text", required: true, secret: false, placeholder: "https://your-tenant.aws.cognee.ai", validation: { pattern: "^https://[a-zA-Z0-9-]+\\.aws\\.cognee\\.ai/?$", maxLength: 255 }, helperMd: "Copy API Base URL from Cognee's API Keys page." },
-        { ...field("COGNEE_API_KEY", "Cognee API key", "Paste your Cognee API key"), helperMd: "Create a key in Cognee → API Keys. The key is shown once." },
-      ],
-      keyPlacement: { location: "env", name: "COGNEE_API_KEY" },
-      consoleLinks: { keys: "https://platform.cognee.ai/api-keys", docs: "https://docs.cognee.ai/cognee-cloud/connections/cloud-mcp" },
-    })],
+  methods: [
+    method(
+      "cloud-local",
+      "local_stdio",
+      "api_key",
+      { templateKey: "taskcore.cognee-cloud" },
+      "S3",
+      "Copy the API Base URL and create an API key on Cognee's API Keys page. Use a Cloud workspace with an active subscription. Taskcore uses its bundled Cloud client; no extra runtime installation is required.",
+      {
+        label: "Connect Cognee Cloud",
+        whenToUse:
+          "Connect your Cloud tenant through the official Cognee MCP client.",
+        credentialFields: [
+          {
+            key: "COGNEE_BASE_URL",
+            label: "API Base URL",
+            type: "text",
+            required: true,
+            secret: false,
+            placeholder: "https://your-tenant.aws.cognee.ai",
+            validation: {
+              pattern: "^https://[a-zA-Z0-9-]+\\.aws\\.cognee\\.ai/?$",
+              maxLength: 255,
+            },
+            helperMd: "Copy API Base URL from Cognee's API Keys page.",
+          },
+          {
+            ...field(
+              "COGNEE_API_KEY",
+              "Cognee API key",
+              "Paste your Cognee API key",
+            ),
+            helperMd:
+              "Create a key in Cognee → API Keys. The key is shown once.",
+          },
+        ],
+        keyPlacement: { location: "env", name: "COGNEE_API_KEY" },
+        consoleLinks: {
+          keys: "https://platform.cognee.ai/api-keys",
+          docs: "https://docs.cognee.ai/cognee-cloud/connections/cloud-mcp",
+        },
+      },
+    ),
+  ],
 });
 
 for (const entry of researchManifest.entries) {
@@ -1780,9 +1999,24 @@ for (const entry of researchManifest.entries) {
     schemaVersion: 1,
     slug: entry.slug,
     name: entry.name,
-    description: ({ neon: "Manage Postgres projects and branches, run SQL, and inspect schemas in Neon.", gauge: "Track how AI answers mention your brand, research keywords and traffic, and run content workflows.", superagent: "Review security findings, start red-team reports, and score content and packages before agents trust them.", mem0: "Remember preferences, conversations, events, and agent state.", zep: "Retrieve temporal graph memory and authorized business context.", supermemory: "Search and save shared memories, documents, and profiles.", honcho: "Remember conversations and retrieve context about peers.", telem: "Search the web and read pages across many search providers with one API key." })[entry.slug] ?? (entry.slug === "fireflies"
-      ? "Search meeting transcripts, read summaries and action items, and connect meeting-ready routines."
-      : `Connect ${entry.name}'s provider-hosted MCP server.`),
+    description:
+      {
+        neon: "Manage Postgres projects and branches, run SQL, and inspect schemas in Neon.",
+        gauge:
+          "Track how AI answers mention your brand, research keywords and traffic, and run content workflows.",
+        superagent:
+          "Review security findings, start red-team reports, and score content and packages before agents trust them.",
+        mem0: "Remember preferences, conversations, events, and agent state.",
+        zep: "Retrieve temporal graph memory and authorized business context.",
+        supermemory:
+          "Search and save shared memories, documents, and profiles.",
+        honcho: "Remember conversations and retrieve context about peers.",
+        telem:
+          "Search the web and read pages across many search providers with one API key.",
+      }[entry.slug] ??
+      (entry.slug === "fireflies"
+        ? "Search meeting transcripts, read summaries and action items, and connect meeting-ready routines."
+        : `Connect ${entry.name}'s provider-hosted MCP server.`),
     categories: [categoryBySlug[entry.slug] ?? "other"],
     featured: entry.slug === "jira",
     branding: brandingFor(entry.slug),
@@ -1817,7 +2051,6 @@ const reviewedGoogleSlugs = [
   "google-chat",
   "google-people",
   "google-workspace-search",
-
 ];
 for (const slug of reviewedGoogleSlugs) {
   const existingIndex = apps.findIndex((app) => app.slug === slug);
@@ -1919,51 +2152,172 @@ const inferState = (slug, state) => {
 };
 // Runtime credentials share the provider catalog, but never expose tool actions.
 const aiCatalogEntries = [
-  { slug: "anthropic", name: "Claude", provider: "anthropic", subscription: true, envKey: "ANTHROPIC_API_KEY" },
-  { slug: "openai", name: "OpenAI", provider: "openai", subscription: true, envKey: "OPENAI_API_KEY", url: "https://api.openai.com/*" },
-  { slug: "openrouter", name: "OpenRouter", provider: "openrouter", envKey: "OPENROUTER_API_KEY", url: "https://openrouter.ai/api/*" },
-  { slug: "xai", name: "Grok", provider: "xai", subscription: true, envKey: "XAI_API_KEY", url: "https://api.x.ai/*" },
-  { slug: "google", name: "Google Gemini", provider: "google", envKey: "GEMINI_API_KEY", url: "https://generativelanguage.googleapis.com/*" },
-  { slug: "bedrock", name: "Amazon Bedrock", provider: "anthropic", envKey: "AWS_BEARER_TOKEN_BEDROCK", description: "Use Claude through Amazon Bedrock with a Bedrock API key and AWS region." },
-  { slug: "responses-api", name: "Responses API", provider: "openai", envKey: "OPENAI_API_KEY", description: "Connect any compatible harness to an OpenAI Responses-compatible provider or gateway, including Emissary." },
-  { slug: "messages-api", name: "Messages API", provider: "anthropic", envKey: "ANTHROPIC_API_KEY", description: "Connect any compatible harness to an Anthropic Messages-compatible provider or gateway." },
-  { slug: "chat-completions-api", name: "Chat Completions API", provider: "openai", envKey: "OPENAI_API_KEY", description: "Connect any compatible harness to a Chat Completions-compatible provider or gateway." },
-  { slug: "local", name: "Local endpoint", provider: "openai", envKey: "OPENAI_API_KEY", description: "Use a local model server in the agent’s execution environment." },
+  {
+    slug: "anthropic",
+    name: "Claude",
+    provider: "anthropic",
+    subscription: true,
+    envKey: "ANTHROPIC_API_KEY",
+  },
+  {
+    slug: "openai",
+    name: "OpenAI",
+    provider: "openai",
+    subscription: true,
+    envKey: "OPENAI_API_KEY",
+    url: "https://api.openai.com/*",
+  },
+  {
+    slug: "openrouter",
+    name: "OpenRouter",
+    provider: "openrouter",
+    envKey: "OPENROUTER_API_KEY",
+    url: "https://openrouter.ai/api/*",
+  },
+  {
+    slug: "xai",
+    name: "Grok",
+    provider: "xai",
+    subscription: true,
+    envKey: "XAI_API_KEY",
+    url: "https://api.x.ai/*",
+  },
+  {
+    slug: "google",
+    name: "Google Gemini",
+    provider: "google",
+    envKey: "GEMINI_API_KEY",
+    url: "https://generativelanguage.googleapis.com/*",
+  },
+  {
+    slug: "bedrock",
+    name: "Amazon Bedrock",
+    provider: "anthropic",
+    envKey: "AWS_BEARER_TOKEN_BEDROCK",
+    description:
+      "Use Claude through Amazon Bedrock with a Bedrock API key and AWS region.",
+  },
+  {
+    slug: "responses-api",
+    name: "Responses API",
+    provider: "openai",
+    envKey: "OPENAI_API_KEY",
+    description:
+      "Connect any compatible harness to an OpenAI Responses-compatible provider or gateway, including Emissary.",
+  },
+  {
+    slug: "messages-api",
+    name: "Messages API",
+    provider: "anthropic",
+    envKey: "ANTHROPIC_API_KEY",
+    description:
+      "Connect any compatible harness to an Anthropic Messages-compatible provider or gateway.",
+  },
+  {
+    slug: "chat-completions-api",
+    name: "Chat Completions API",
+    provider: "openai",
+    envKey: "OPENAI_API_KEY",
+    description:
+      "Connect any compatible harness to a Chat Completions-compatible provider or gateway.",
+  },
+  {
+    slug: "local",
+    name: "Local endpoint",
+    provider: "openai",
+    envKey: "OPENAI_API_KEY",
+    description:
+      "Use a local model server in the agent’s execution environment.",
+  },
 ];
-for (const { slug, name, provider, subscription, envKey, url, description } of aiCatalogEntries) {
-  let app = apps.find(a => a.slug === slug);
+for (const {
+  slug,
+  name,
+  provider,
+  subscription,
+  envKey,
+  url,
+  description,
+} of aiCatalogEntries) {
+  let app = apps.find((a) => a.slug === slug);
   if (!app) {
-    app = { schemaVersion: 1, slug, name, description: description ?? `Connect ${name} accounts for your agents.`, categories: ["ai"], branding: brandingFor(slug), urlPatterns: url ? [url] : [], methods: [] };
+    app = {
+      schemaVersion: 1,
+      slug,
+      name,
+      description: description ?? `Connect ${name} accounts for your agents.`,
+      categories: ["ai"],
+      branding: brandingFor(slug),
+      urlPatterns: url ? [url] : [],
+      methods: [],
+    };
     apps.push(app);
   }
   app.tags = [...new Set([...(app.tags ?? []), "model-provider"])];
-  const methods = (subscription ? ["subscription", "api_key"] : ["api_key"]).map(authMethod => ({
-    key: `ai-${authMethod}`, label: authMethod === "subscription" ? `${name} subscription` : `${name} API key`,
-    purpose: "ai", transport: "runtime_auth", auth: authMethod === "subscription" ? "oauth" : "api_key",
-    ai: { provider, method: authMethod }, grantKinds: ["user", "organization"], ownershipModes: ["customer"],
+  const methods = (
+    subscription ? ["subscription", "api_key"] : ["api_key"]
+  ).map((authMethod) => ({
+    key: `ai-${authMethod}`,
+    label:
+      authMethod === "subscription"
+        ? `${name} subscription`
+        : `${name} API key`,
+    purpose: "ai",
+    transport: "runtime_auth",
+    auth: authMethod === "subscription" ? "oauth" : "api_key",
+    ai: { provider, method: authMethod },
+    grantKinds: ["user", "organization"],
+    ownershipModes: ["customer"],
     whenToUse: description ?? "Authenticate an agent with this account.",
-    guidanceMd: "Use your personal account or an explicitly shared company account.", riskTier: "S3",
-    ...(authMethod === "api_key" ? { credentialFields: [field("apiKey", "API key", "Enter API key")], keyPlacement: { location: "env", name: envKey } } : {}),
+    guidanceMd:
+      "Use your personal account or an explicitly shared company account.",
+    riskTier: "S3",
+    ...(authMethod === "api_key"
+      ? {
+          credentialFields: [field("apiKey", "API key", "Enter API key")],
+          keyPlacement: { location: "env", name: envKey },
+        }
+      : {}),
   }));
   // Legacy REST entries have no tool execution adapter. Only offer the supported
   // AI account flow; saved REST connections remain removable through Connections.
-  app.methods = [...methods, ...app.methods.filter(method => method.transport !== "rest_api")];
+  app.methods = [
+    ...methods,
+    ...app.methods.filter((method) => method.transport !== "rest_api"),
+  ];
 }
 // Every tool method has a checked-in permission review. Discovery metadata is
 // evidence for reviewers, never a runtime instruction to request more scopes.
-const permissionReviews = JSON.parse(fs.readFileSync(
-  path.join(root, "doc/connections/tool-method-permission-reviews.json"), "utf8",
-)).methods;
+const permissionReviews = JSON.parse(
+  fs.readFileSync(
+    path.join(root, "doc/connections/tool-method-permission-reviews.json"),
+    "utf8",
+  ),
+).methods;
 for (const app of apps) {
   for (const connectionMethod of app.methods) {
     if (["channel", "ai"].includes(connectionMethod.purpose)) continue;
-    const review = permissionReviews.find((entry) => entry.app === app.slug && entry.method === connectionMethod.key);
-    if (!review) throw new Error(`${app.slug}/${connectionMethod.key}: permission review required`);
+    const review = permissionReviews.find(
+      (entry) =>
+        entry.app === app.slug && entry.method === connectionMethod.key,
+    );
+    if (!review)
+      throw new Error(
+        `${app.slug}/${connectionMethod.key}: permission review required`,
+      );
     if (connectionMethod.auth === "oauth") {
       if (review.policy === "explicit") {
-        connectionMethod.defaults = { ...connectionMethod.defaults, scopesHint: review.requestedScopes };
-      } else if (review.policy !== "provider-default" || !review.providerDefaultReason) {
-        throw new Error(`${app.slug}/${connectionMethod.key}: reviewed scopes or documented provider default required`);
+        connectionMethod.defaults = {
+          ...connectionMethod.defaults,
+          scopesHint: review.requestedScopes,
+        };
+      } else if (
+        review.policy !== "provider-default" ||
+        !review.providerDefaultReason
+      ) {
+        throw new Error(
+          `${app.slug}/${connectionMethod.key}: reviewed scopes or documented provider default required`,
+        );
       }
     }
     for (const configField of connectionMethod.tenantFields ?? []) {
@@ -1971,13 +2325,25 @@ for (const app of apps) {
     }
     if (review.keyPermissions) {
       for (const credential of connectionMethod.credentialFields ?? []) {
-        if (credential.secret !== false) credential.helperMd = review.keyPermissions;
+        if (credential.secret !== false)
+          credential.helperMd = review.keyPermissions;
       }
     }
     if (app.slug === "planetscale") {
-      connectionMethod.capabilityProfile = connectionMethod.key === "mcp-insights-only"
-        ? { key: "read", label: "Read only", description: "Inspect database performance with the insights-only server." }
-        : { key: "write", label: "Read and write", description: "Query and change the databases you authorize in PlanetScale." };
+      connectionMethod.capabilityProfile =
+        connectionMethod.key === "mcp-insights-only"
+          ? {
+              key: "read",
+              label: "Read only",
+              description:
+                "Inspect database performance with the insights-only server.",
+            }
+          : {
+              key: "write",
+              label: "Read and write",
+              description:
+                "Query and change the databases you authorize in PlanetScale.",
+            };
     }
   }
 }
@@ -1987,11 +2353,21 @@ for (const app of apps) {
 for (const app of apps) {
   const definitionPath = path.join(out, `${app.slug}.json`);
   if (!fs.existsSync(definitionPath)) continue;
-  const { agentInstructions: template } = JSON.parse(fs.readFileSync(definitionPath, "utf8"));
+  const { agentInstructions: template } = JSON.parse(
+    fs.readFileSync(definitionPath, "utf8"),
+  );
   if (template === undefined) continue;
-  if (!template || typeof template.id !== "string" || !template.id.trim() || template.id.length > 160
-    || !Number.isInteger(template.version) || template.version < 1
-    || typeof template.text !== "string" || !template.text.trim() || template.text.length > 2000) {
+  if (
+    !template ||
+    typeof template.id !== "string" ||
+    !template.id.trim() ||
+    template.id.length > 160 ||
+    !Number.isInteger(template.version) ||
+    template.version < 1 ||
+    typeof template.text !== "string" ||
+    !template.text.trim() ||
+    template.text.length > 2000
+  ) {
     throw new Error(`${app.slug}: invalid agent instruction template`);
   }
   app.agentInstructions = template;
@@ -2037,10 +2413,12 @@ const validateApp = (app) => {
         );
   }
 };
-const captureFiles = definitionsOnly ? [] : fs
-  .readdirSync(corpus)
-  .filter((fileName) => fileName.endsWith(".md") && fileName !== "INDEX.md")
-  .sort();
+const captureFiles = definitionsOnly
+  ? []
+  : fs
+      .readdirSync(corpus)
+      .filter((fileName) => fileName.endsWith(".md") && fileName !== "INDEX.md")
+      .sort();
 if (!definitionsOnly && captureFiles.length !== 99)
   throw new Error(`Expected 99 captures, found ${captureFiles.length}`);
 const parsedCaptures = Object.fromEntries(
@@ -2078,10 +2456,14 @@ for (const app of apps)
     path.join(out, `${app.slug}.json`),
     JSON.stringify(app, null, 2) + "\n",
   );
-if (!definitionsOnly) fs.writeFileSync(
-  path.join(root, "packages/shared/src/app-definitions.ingestion-report.json"),
-  JSON.stringify(reviewReport, null, 2) + "\n",
-);
+if (!definitionsOnly)
+  fs.writeFileSync(
+    path.join(
+      root,
+      "packages/shared/src/app-definitions.ingestion-report.json",
+    ),
+    JSON.stringify(reviewReport, null, 2) + "\n",
+  );
 const imports = apps
   .map(
     (a, i) =>

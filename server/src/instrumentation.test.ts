@@ -106,7 +106,9 @@ describe("startup tracer accessors", () => {
   it("returns a tracer and a parent-context helper from getStartupTraceContext", () => {
     const traceContext = getStartupTraceContext();
 
-    expect(() => traceContext.tracer.startSpan("unit-test").end()).not.toThrow();
+    expect(() =>
+      traceContext.tracer.startSpan("unit-test").end(),
+    ).not.toThrow();
     // The helper never throws. It returns a parent token when the api resolves,
     // or `undefined` from the no-op fallback when it does not.
     expect(() => traceContext.contextWithSpan({})).not.toThrow();

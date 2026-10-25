@@ -27,9 +27,7 @@ describe("chat provider conversation links", () => {
         threadId: "github:taskcore/taskcore:issue:42",
         providerMessageId: "99",
       }),
-    ).toBe(
-      "https://github.com/khulnasoft/taskcore/issues/42#issuecomment-99",
-    );
+    ).toBe("https://github.com/khulnasoft/taskcore/issues/42#issuecomment-99");
     expect(
       chatProviderConversationUrl({
         provider: "github",

@@ -6,10 +6,13 @@ import { forbidden } from "../errors.js";
 import { logger } from "../middleware/logger.js";
 
 export const CROSS_ISSUE_INFLUENCE_LIMIT = 20;
-export const CROSS_ISSUE_INFLUENCE_ENFORCE_AT = new Date("2026-08-11T00:00:00.000Z");
+export const CROSS_ISSUE_INFLUENCE_ENFORCE_AT = new Date(
+  "2026-08-11T00:00:00.000Z",
+);
 
 const CROSS_ISSUE_INFLUENCE_ACTIVITY = "issue.cross_issue_influence_observed";
-const CROSS_ISSUE_INFLUENCE_REJECTED_ACTIVITY = "issue.cross_issue_influence_cap_rejected";
+const CROSS_ISSUE_INFLUENCE_REJECTED_ACTIVITY =
+  "issue.cross_issue_influence_cap_rejected";
 
 /**
  * Every kind shares one per-run counter. `interaction_resolution` covers the
@@ -17,7 +20,8 @@ const CROSS_ISSUE_INFLUENCE_REJECTED_ACTIVITY = "issue.cross_issue_influence_cap
  * audience is not a licence to resolve, wake, and spawn suggested tasks across
  * the whole company from one run.
  */
-export type CrossIssueInfluenceKind = "comment" | "update" | "interaction_resolution";
+export type CrossIssueInfluenceKind =
+  "comment" | "update" | "interaction_resolution";
 
 export type CrossIssueInfluenceDecision = {
   allowed: boolean;
@@ -30,15 +34,23 @@ export type CrossIssueInfluenceDecision = {
 export function crossIssueInfluenceRunContextError() {
   // Copy comes from the shared issue-write denial contract (the open cross-task write design (failure UX))
   // so the agent reading this 403 is told the fix, not just the refusal.
-  const { body } = issueWriteDenialResponse("cross_issue_influence_run_context_required");
+  const { body } = issueWriteDenialResponse(
+    "cross_issue_influence_run_context_required",
+  );
   return forbidden(body.error, body.details);
 }
 
 function readRunSourceIssueId(contextSnapshot: unknown) {
-  if (!contextSnapshot || typeof contextSnapshot !== "object" || Array.isArray(contextSnapshot)) return null;
+  if (
+    !contextSnapshot ||
+    typeof contextSnapshot !== "object" ||
+    Array.isArray(contextSnapshot)
+  )
+    return null;
   const context = contextSnapshot as Record<string, unknown>;
   for (const candidate of [context.issueId, context.taskId]) {
-    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    if (typeof candidate === "string" && candidate.trim())
+      return candidate.trim();
   }
   return null;
 }
@@ -94,11 +106,13 @@ export async function observeCrossIssueInfluence(
         contextSnapshot: heartbeatRuns.contextSnapshot,
       })
       .from(heartbeatRuns)
-      .where(and(
-        eq(heartbeatRuns.id, input.runId),
-        eq(heartbeatRuns.companyId, input.companyId),
-        eq(heartbeatRuns.agentId, input.agentId),
-      ))
+      .where(
+        and(
+          eq(heartbeatRuns.id, input.runId),
+          eq(heartbeatRuns.companyId, input.companyId),
+          eq(heartbeatRuns.agentId, input.agentId),
+        ),
+      )
       .for("update")
       .then((rows) => rows[0] ?? null);
     if (
@@ -113,7 +127,9 @@ export async function observeCrossIssueInfluence(
     if (!sourceIssueId) throw crossIssueInfluenceRunContextError();
     if (
       sourceIssueId === input.targetIssueId ||
-      (input.targetIssueIdentifier && sourceIssueId.toUpperCase() === input.targetIssueIdentifier.toUpperCase())
+      (input.targetIssueIdentifier &&
+        sourceIssueId.toUpperCase() ===
+          input.targetIssueIdentifier.toUpperCase())
     ) {
       return null;
     }
@@ -121,13 +137,18 @@ export async function observeCrossIssueInfluence(
     const priorCount = await tx
       .select({ count: count() })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, input.companyId),
-        eq(activityLog.runId, input.runId),
-        eq(activityLog.action, CROSS_ISSUE_INFLUENCE_ACTIVITY),
-      ))
+      .where(
+        and(
+          eq(activityLog.companyId, input.companyId),
+          eq(activityLog.runId, input.runId),
+          eq(activityLog.action, CROSS_ISSUE_INFLUENCE_ACTIVITY),
+        ),
+      )
       .then((rows) => Number(rows[0]?.count ?? 0));
-    const decision = evaluateCrossIssueInfluenceLimit({ priorCount, now: input.now });
+    const decision = evaluateCrossIssueInfluenceLimit({
+      priorCount,
+      now: input.now,
+    });
 
     await tx.insert(activityLog).values({
       companyId: input.companyId,
@@ -135,7 +156,8 @@ export async function observeCrossIssueInfluence(
       actorId: input.agentId,
       agentId: input.agentId,
       runId: input.runId,
-      responsibleUserId: input.responsibleUserId ?? run.responsibleUserId ?? null,
+      responsibleUserId:
+        input.responsibleUserId ?? run.responsibleUserId ?? null,
       action: decision.allowed
         ? CROSS_ISSUE_INFLUENCE_ACTIVITY
         : CROSS_ISSUE_INFLUENCE_REJECTED_ACTIVITY,
@@ -180,16 +202,23 @@ export async function observeCrossIssueInfluence(
 
 export function crossIssueInfluenceLimitError(
   decision: CrossIssueInfluenceDecision,
-  context: { actorLabel?: string | null; assigneeLabel?: string | null; issueIdentifier?: string | null } = {},
+  context: {
+    actorLabel?: string | null;
+    assigneeLabel?: string | null;
+    issueIdentifier?: string | null;
+  } = {},
 ) {
   // The cap is a rate backstop, not a permission decision — the shared copy
   // contract says so explicitly, and names the next run as the way forward.
-  const { body } = issueWriteDenialResponse("cross_issue_influence_cap_exceeded", {
-    ...context,
-    cap: decision.cap,
-    count: decision.count,
-    enforceAt: decision.enforceAt,
-  });
+  const { body } = issueWriteDenialResponse(
+    "cross_issue_influence_cap_exceeded",
+    {
+      ...context,
+      cap: decision.cap,
+      count: decision.count,
+      enforceAt: decision.enforceAt,
+    },
+  );
   return {
     error: body.error,
     details: {

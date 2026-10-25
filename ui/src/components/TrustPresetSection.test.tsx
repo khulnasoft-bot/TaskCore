@@ -6,7 +6,9 @@ import type { AgentPermissions } from "@taskcore/shared";
 import { TrustPresetSection } from "./TrustPresetSection";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -44,7 +46,10 @@ afterEach(() => {
 
 describe("TrustPresetSection", () => {
   it("hides the CE boundary editor under Standard", () => {
-    const view = renderSection({ canCreateAgents: false, trustPreset: "standard" });
+    const view = renderSection({
+      canCreateAgents: false,
+      trustPreset: "standard",
+    });
 
     expect(view.text()).toContain("Trust preset");
     expect(view.text()).not.toContain("Boundary type");

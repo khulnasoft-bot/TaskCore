@@ -15,7 +15,10 @@ export function parseTailscaleDnsName(value: unknown): string {
     throw new Error("tailscale status did not include Self.DNSName");
   }
   const normalized = dnsName.trim().replace(/\.$/, "").toLowerCase();
-  if (!/^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/.test(normalized) || !normalized.includes(".")) {
+  if (
+    !/^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/.test(normalized) ||
+    !normalized.includes(".")
+  ) {
     throw new Error("tailscale status returned an invalid Self.DNSName");
   }
   return normalized;
@@ -30,16 +33,21 @@ export async function resolveTailscaleDnsName(input?: {
   timeoutMs?: number;
 }): Promise<string> {
   const configured = process.env.TASKCORE_TAILSCALE_DNS_NAME?.trim();
-  if (configured) return parseTailscaleDnsName({ Self: { DNSName: configured } });
+  if (configured)
+    return parseTailscaleDnsName({ Self: { DNSName: configured } });
 
   const tailscaleBinPath = input?.tailscaleBinPath ?? DEFAULT_TAILSCALE_BIN;
   if (!tailscaleBinPath.startsWith("/")) {
     throw new Error("tailscale binary path must be absolute");
   }
-  const { stdout } = await execFileAsync(tailscaleBinPath, ["status", "--json"], {
-    encoding: "utf8",
-    timeout: input?.timeoutMs ?? 3_000,
-    maxBuffer: 1024 * 1024,
-  });
+  const { stdout } = await execFileAsync(
+    tailscaleBinPath,
+    ["status", "--json"],
+    {
+      encoding: "utf8",
+      timeout: input?.timeoutMs ?? 3_000,
+      maxBuffer: 1024 * 1024,
+    },
+  );
   return parseTailscaleDnsName(JSON.parse(stdout));
 }

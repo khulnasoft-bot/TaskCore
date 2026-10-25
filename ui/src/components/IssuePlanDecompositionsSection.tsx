@@ -1,7 +1,13 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Agent, AcceptedPlanDecompositionSummary } from "@taskcore/shared";
-import { ChevronRight, GitBranch, Repeat, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  ChevronRight,
+  GitBranch,
+  Repeat,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 import { Link } from "@/lib/router";
 import { issuesApi } from "../api/issues";
 import { queryKeys } from "../lib/queryKeys";
@@ -13,7 +19,11 @@ interface IssuePlanDecompositionsSectionProps {
   agentMap?: Map<string, Agent>;
 }
 
-function StatusBadge({ status }: { status: AcceptedPlanDecompositionSummary["status"] }) {
+function StatusBadge({
+  status,
+}: {
+  status: AcceptedPlanDecompositionSummary["status"];
+}) {
   if (status === "completed") {
     return (
       <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-(length:--text-micro) font-medium text-emerald-900 dark:text-emerald-100">
@@ -46,9 +56,13 @@ export function IssuePlanDecompositionsSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-medium text-muted-foreground">Plan decomposition</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">
+          Plan decomposition
+        </h3>
         <span className="text-(length:--text-micro) text-muted-foreground/80">
-          {items.length === 1 ? "1 accepted plan revision" : `${items.length} accepted plan revisions`}
+          {items.length === 1
+            ? "1 accepted plan revision"
+            : `${items.length} accepted plan revisions`}
         </span>
       </div>
 
@@ -57,7 +71,7 @@ export function IssuePlanDecompositionsSection({
           const requested = record.requestedChildCount ?? 0;
           const created = record.childIssueIds?.length ?? 0;
           const ownerName = record.ownerAgentId
-            ? agentMap?.get(record.ownerAgentId)?.name ?? "agent"
+            ? (agentMap?.get(record.ownerAgentId)?.name ?? "agent")
             : null;
           const revisionLabel =
             record.acceptedPlanRevisionNumber != null
@@ -96,7 +110,8 @@ export function IssuePlanDecompositionsSection({
                 <span className="text-xs text-muted-foreground/70">·</span>
                 <span className="inline-flex items-center gap-1 text-xs text-foreground">
                   <GitBranch className="h-3 w-3 text-muted-foreground" />
-                  {created} of {requested} child {requested === 1 ? "task" : "tasks"} created
+                  {created} of {requested} child{" "}
+                  {requested === 1 ? "task" : "tasks"} created
                 </span>
                 {record.status === "completed" && requested > 0 ? (
                   <span
@@ -112,12 +127,18 @@ export function IssuePlanDecompositionsSection({
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-(length:--text-micro) text-muted-foreground">
                 {ownerName ? <span>Owner: {ownerName}</span> : null}
                 {startedAt ? (
-                  <span title={formatDateTime(startedAt)}>Started {relativeTime(startedAt)}</span>
+                  <span title={formatDateTime(startedAt)}>
+                    Started {relativeTime(startedAt)}
+                  </span>
                 ) : null}
                 {completedAt ? (
-                  <span title={formatDateTime(completedAt)}>Completed {relativeTime(completedAt)}</span>
+                  <span title={formatDateTime(completedAt)}>
+                    Completed {relativeTime(completedAt)}
+                  </span>
                 ) : updatedAt ? (
-                  <span title={formatDateTime(updatedAt)}>Updated {relativeTime(updatedAt)}</span>
+                  <span title={formatDateTime(updatedAt)}>
+                    Updated {relativeTime(updatedAt)}
+                  </span>
                 ) : null}
                 {issueIdentifier ? (
                   <Link

@@ -18,7 +18,10 @@ afterEach(() => {
 
 function renderOpenDropdown(
   models: AdapterModel[],
-  { groupByProvider = false, preserveOrder = false }: { groupByProvider?: boolean; preserveOrder?: boolean } = {},
+  {
+    groupByProvider = false,
+    preserveOrder = false,
+  }: { groupByProvider?: boolean; preserveOrder?: boolean } = {},
 ) {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -44,7 +47,9 @@ function renderOpenDropdown(
 }
 
 function shownModelIds(): string[] {
-  return Array.from(document.body.querySelectorAll("span[title]")).map((span) => span.getAttribute("title") ?? "");
+  return Array.from(document.body.querySelectorAll("span[title]")).map(
+    (span) => span.getAttribute("title") ?? "",
+  );
 }
 
 const curated = [
@@ -64,7 +69,12 @@ describe("ModelDropdown", () => {
   it("still sorts a discovered list by id by default", () => {
     renderOpenDropdown(curated);
 
-    expect(shownModelIds()).toEqual(["claude-fable-5-1", "claude-haiku-4-5", "claude-opus-4-8", "claude-opus-5-5"]);
+    expect(shownModelIds()).toEqual([
+      "claude-fable-5-1",
+      "claude-haiku-4-5",
+      "claude-opus-4-8",
+      "claude-opus-5-5",
+    ]);
   });
 
   it("still sorts provider groups by id", () => {

@@ -24,10 +24,15 @@ import {
 import { errorHandler } from "../middleware/index.js";
 import { decisionTrainingRoutes } from "../routes/decision-training.js";
 import { attentionService } from "../services/attention.js";
-import { captureDecisionSnapshot, decisionTrainingService } from "../services/decision-training.js";
+import {
+  captureDecisionSnapshot,
+  decisionTrainingService,
+} from "../services/decision-training.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -37,10 +42,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("decision training", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-decision-training-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-decision-training-",
+    );
     db = createDb(tempDb.connectionString);
   }, 30_000);
 
@@ -72,8 +81,16 @@ describeEmbeddedPostgres("decision training", () => {
     const atCutoffId = randomUUID();
     const afterId = randomUUID();
 
-    await db.insert(companies).values({ id: companyId, name: "Decision Co", issuePrefix: `D${companyId.slice(0, 4)}` });
-    await db.insert(projects).values({ id: projectId, companyId, name: "Decisions" });
+    await db
+      .insert(companies)
+      .values({
+        id: companyId,
+        name: "Decision Co",
+        issuePrefix: `D${companyId.slice(0, 4)}`,
+      });
+    await db
+      .insert(projects)
+      .values({ id: projectId, companyId, name: "Decisions" });
     await db.insert(issues).values({
       id: issueId,
       companyId,
@@ -94,21 +111,52 @@ describeEmbeddedPostgres("decision training", () => {
       resolvedAt: cutoffAt,
     });
     await db.insert(issueComments).values([
-      { id: beforeId, companyId, issueId, body: "Before", createdAt: new Date("2026-07-16T11:59:59.000Z") },
-      { id: atCutoffId, companyId, issueId, body: "At cutoff", createdAt: cutoffAt },
-      { id: afterId, companyId, issueId, body: "Leaked later context", createdAt: new Date("2026-07-16T12:00:01.000Z") },
+      {
+        id: beforeId,
+        companyId,
+        issueId,
+        body: "Before",
+        createdAt: new Date("2026-07-16T11:59:59.000Z"),
+      },
+      {
+        id: atCutoffId,
+        companyId,
+        issueId,
+        body: "At cutoff",
+        createdAt: cutoffAt,
+      },
+      {
+        id: afterId,
+        companyId,
+        issueId,
+        body: "Leaked later context",
+        createdAt: new Date("2026-07-16T12:00:01.000Z"),
+      },
     ]);
-    return { companyId, projectId, issueId, interactionId, cutoffAt, beforeId, atCutoffId, afterId };
+    return {
+      companyId,
+      projectId,
+      issueId,
+      interactionId,
+      cutoffAt,
+      beforeId,
+      atCutoffId,
+      afterId,
+    };
   }
 
   it("includes the cutoff boundary and excludes later comments", async () => {
     const seeded = await seedResolvedInteraction();
-    const captured = await captureDecisionSnapshot(db, {
-      companyId: seeded.companyId,
-      sourceKind: "interaction",
-      sourceId: seeded.interactionId,
-      issueId: seeded.issueId,
-    }, new Date("2026-07-16T13:00:00.000Z"));
+    const captured = await captureDecisionSnapshot(
+      db,
+      {
+        companyId: seeded.companyId,
+        sourceKind: "interaction",
+        sourceId: seeded.interactionId,
+        issueId: seeded.issueId,
+      },
+      new Date("2026-07-16T13:00:00.000Z"),
+    );
 
     expect(captured.cutoffAt).toEqual(seeded.cutoffAt);
     expect(captured.snapshot.cutoff).toEqual({
@@ -116,8 +164,13 @@ describeEmbeddedPostgres("decision training", () => {
       lastCommentId: seeded.atCutoffId,
       commentCount: 2,
     });
-    expect(captured.snapshot.comments.map((comment) => comment.id)).toEqual([seeded.beforeId, seeded.atCutoffId]);
-    expect(JSON.stringify(captured.snapshot)).not.toContain("Leaked later context");
+    expect(captured.snapshot.comments.map((comment) => comment.id)).toEqual([
+      seeded.beforeId,
+      seeded.atCutoffId,
+    ]);
+    expect(JSON.stringify(captured.snapshot)).not.toContain(
+      "Leaked later context",
+    );
     expect(captured.snapshot.retention).toEqual({
       policy: "scrub_deleted_comments_v1",
       commentDeletion: "redact",
@@ -146,20 +199,26 @@ describeEmbeddedPostgres("decision training", () => {
 
     const updated = await svc.getById(example.id);
     expect(updated?.retentionPolicy).toBe("scrub_deleted_comments_v1");
-    expect(updated?.snapshot.comments).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: seeded.beforeId,
-        body: "",
-        presentation: null,
-        metadata: null,
-        retentionRedaction: {
-          reason: "source_comment_deleted",
-          policy: "scrub_deleted_comments_v1",
-        },
-      }),
-    ]));
+    expect(updated?.snapshot.comments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: seeded.beforeId,
+          body: "",
+          presentation: null,
+          metadata: null,
+          retentionRedaction: {
+            reason: "source_comment_deleted",
+            policy: "scrub_deleted_comments_v1",
+          },
+        }),
+      ]),
+    );
     expect(JSON.stringify(updated?.snapshot)).not.toContain("Before");
-    expect(updated?.snapshot.comments.find((comment) => comment.id === seeded.atCutoffId)?.body).toBe("At cutoff");
+    expect(
+      updated?.snapshot.comments.find(
+        (comment) => comment.id === seeded.atCutoffId,
+      )?.body,
+    ).toBe("At cutoff");
   });
 
   it("deletes training examples when their issue is deleted", async () => {
@@ -174,8 +233,12 @@ describeEmbeddedPostgres("decision training", () => {
       createdByUserId: "board-user",
     });
 
-    await db.delete(issueComments).where(eq(issueComments.issueId, seeded.issueId));
-    await db.delete(issueThreadInteractions).where(eq(issueThreadInteractions.issueId, seeded.issueId));
+    await db
+      .delete(issueComments)
+      .where(eq(issueComments.issueId, seeded.issueId));
+    await db
+      .delete(issueThreadInteractions)
+      .where(eq(issueThreadInteractions.issueId, seeded.issueId));
     await db.delete(issues).where(eq(issues.id, seeded.issueId));
 
     expect(await svc.getById(example.id)).toBeUndefined();
@@ -204,7 +267,10 @@ describeEmbeddedPostgres("decision training", () => {
         status: "succeeded",
         startedAt: new Date("2026-07-16T11:00:00.000Z"),
         finishedAt: new Date("2026-07-16T11:30:00.000Z"),
-        contextSnapshot: { issueId: seeded.issueId, evidence: "known before cutoff" },
+        contextSnapshot: {
+          issueId: seeded.issueId,
+          evidence: "known before cutoff",
+        },
         createdAt: new Date("2026-07-16T11:00:00.000Z"),
         updatedAt: new Date("2026-07-16T11:30:00.000Z"),
       },
@@ -214,21 +280,32 @@ describeEmbeddedPostgres("decision training", () => {
         agentId,
         status: "running",
         startedAt: new Date("2026-07-16T11:45:00.000Z"),
-        contextSnapshot: { issueId: seeded.issueId, evidence: "written after cutoff" },
+        contextSnapshot: {
+          issueId: seeded.issueId,
+          evidence: "written after cutoff",
+        },
         createdAt: new Date("2026-07-16T11:45:00.000Z"),
         updatedAt: new Date("2026-07-16T12:30:00.000Z"),
       },
     ]);
 
-    const captured = await captureDecisionSnapshot(db, {
-      companyId: seeded.companyId,
-      sourceKind: "interaction",
-      sourceId: seeded.interactionId,
-      issueId: seeded.issueId,
-    }, new Date("2026-07-16T13:00:00.000Z"));
+    const captured = await captureDecisionSnapshot(
+      db,
+      {
+        companyId: seeded.companyId,
+        sourceKind: "interaction",
+        sourceId: seeded.interactionId,
+        issueId: seeded.issueId,
+      },
+      new Date("2026-07-16T13:00:00.000Z"),
+    );
 
-    expect(captured.snapshot.runs.map((run) => run.id)).toEqual([includedRunId]);
-    expect(JSON.stringify(captured.snapshot)).not.toContain("written after cutoff");
+    expect(captured.snapshot.runs.map((run) => run.id)).toEqual([
+      includedRunId,
+    ]);
+    expect(JSON.stringify(captured.snapshot)).not.toContain(
+      "written after cutoff",
+    );
   });
 
   it("labels workspace-only commit evidence accurately", async () => {
@@ -267,12 +344,16 @@ describeEmbeddedPostgres("decision training", () => {
       updatedAt: new Date("2026-07-16T12:30:00.000Z"),
     });
 
-    const captured = await captureDecisionSnapshot(db, {
-      companyId: seeded.companyId,
-      sourceKind: "interaction",
-      sourceId: seeded.interactionId,
-      issueId: seeded.issueId,
-    }, new Date("2026-07-16T13:00:00.000Z"));
+    const captured = await captureDecisionSnapshot(
+      db,
+      {
+        companyId: seeded.companyId,
+        sourceKind: "interaction",
+        sourceId: seeded.interactionId,
+        issueId: seeded.issueId,
+      },
+      new Date("2026-07-16T13:00:00.000Z"),
+    );
 
     expect(captured.snapshot.code).toMatchObject({
       commitSha: "abcdef1234567890",
@@ -294,11 +375,22 @@ describeEmbeddedPostgres("decision training", () => {
 
     const created = await svc.create(input);
     await expect(svc.create(input)).rejects.toMatchObject({ status: 409 });
-    const updated = await svc.updateNotes(created.id, "board-user", "Use a 10% canary first.");
+    const updated = await svc.updateNotes(
+      created.id,
+      "board-user",
+      "Use a 10% canary first.",
+    );
     expect(updated?.notesHistory).toEqual([
-      expect.objectContaining({ author: "board-user", body: "Ship behind a flag." }),
+      expect.objectContaining({
+        author: "board-user",
+        body: "Ship behind a flag.",
+      }),
     ]);
-    const unchanged = await svc.updateNotes(created.id, "board-user", "Use a 10% canary first.");
+    const unchanged = await svc.updateNotes(
+      created.id,
+      "board-user",
+      "Use a 10% canary first.",
+    );
     expect(unchanged?.notesHistory).toEqual(updated?.notesHistory);
     expect(updated?.snapshot).toEqual(created.snapshot);
   });
@@ -318,8 +410,12 @@ describeEmbeddedPostgres("decision training", () => {
       .set({ status: "pending", resolvedAt: null, updatedAt: new Date() })
       .where(eq(issueThreadInteractions.id, seeded.interactionId));
 
-    const feed = await attentionService(db).list(seeded.companyId, { userId: "board-user" });
-    const item = feed.items.find((candidate) => candidate.subject.id === seeded.interactionId);
+    const feed = await attentionService(db).list(seeded.companyId, {
+      userId: "board-user",
+    });
+    const item = feed.items.find(
+      (candidate) => candidate.subject.id === seeded.interactionId,
+    );
     expect(item?.trainingExampleId).toBe(example.id);
   });
 
@@ -336,7 +432,11 @@ describeEmbeddedPostgres("decision training", () => {
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-      req.actor = { type: "board", userId: "board-user", source: "local_implicit" };
+      req.actor = {
+        type: "board",
+        userId: "board-user",
+        source: "local_implicit",
+      };
       next();
     });
     app.use("/api", decisionTrainingRoutes(db));
@@ -369,7 +469,11 @@ describeEmbeddedPostgres("decision training", () => {
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-      req.actor = { type: "board", userId: "board-user", source: "local_implicit" };
+      req.actor = {
+        type: "board",
+        userId: "board-user",
+        source: "local_implicit",
+      };
       next();
     });
     app.use("/api", decisionTrainingRoutes(db));
@@ -396,7 +500,11 @@ describeEmbeddedPostgres("decision training", () => {
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-      req.actor = { type: "board", userId: "other-board-user", source: "local_implicit" };
+      req.actor = {
+        type: "board",
+        userId: "other-board-user",
+        source: "local_implicit",
+      };
       next();
     });
     app.use("/api", decisionTrainingRoutes(db));
@@ -406,7 +514,9 @@ describeEmbeddedPostgres("decision training", () => {
       .patch(`/api/decision-training/${example.id}`)
       .send({ notes: "Changed by someone else" })
       .expect(403);
-    await request(app).delete(`/api/decision-training/${example.id}`).expect(403);
+    await request(app)
+      .delete(`/api/decision-training/${example.id}`)
+      .expect(403);
 
     const unchanged = await decisionTrainingService(db).getById(example.id);
     expect(unchanged?.notes).toBe("Owner notes");
@@ -430,7 +540,12 @@ describeEmbeddedPostgres("decision training", () => {
 
     await request(app)
       .post(`/api/companies/${seeded.companyId}/decision-training`)
-      .send({ sourceKind: "interaction", sourceId: seeded.interactionId, issueId: seeded.issueId, notes: "No" })
+      .send({
+        sourceKind: "interaction",
+        sourceId: seeded.interactionId,
+        issueId: seeded.issueId,
+        notes: "No",
+      })
       .expect(403);
 
     await request(app)
@@ -463,9 +578,13 @@ describeEmbeddedPostgres("decision training", () => {
     app.use("/api", decisionTrainingRoutes(db));
     app.use(errorHandler);
 
-    await request(app).get(`/api/companies/${seeded.companyId}/decision-training`).expect(403);
+    await request(app)
+      .get(`/api/companies/${seeded.companyId}/decision-training`)
+      .expect(403);
     await request(app).get(`/api/decision-training/${example.id}`).expect(403);
-    await request(app).get(`/api/companies/${seeded.companyId}/decision-training/export.jsonl`).expect(403);
+    await request(app)
+      .get(`/api/companies/${seeded.companyId}/decision-training/export.jsonl`)
+      .expect(403);
   });
 
   it("exports immutable state and labels as JSONL", async () => {
@@ -481,7 +600,11 @@ describeEmbeddedPostgres("decision training", () => {
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-      req.actor = { type: "board", userId: "board-user", source: "local_implicit" };
+      req.actor = {
+        type: "board",
+        userId: "board-user",
+        source: "local_implicit",
+      };
       next();
     });
     app.use("/api", decisionTrainingRoutes(db));
@@ -526,7 +649,11 @@ describeEmbeddedPostgres("decision training", () => {
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-      req.actor = { type: "board", userId: "board-user", source: "local_implicit" };
+      req.actor = {
+        type: "board",
+        userId: "board-user",
+        source: "local_implicit",
+      };
       next();
     });
     app.use("/api", decisionTrainingRoutes(db));

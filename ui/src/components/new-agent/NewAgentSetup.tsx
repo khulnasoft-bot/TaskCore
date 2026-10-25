@@ -1,7 +1,10 @@
 import { useConnectionModels } from "../ai-connections/useConnectionModels";
 import { AgentCharacter } from "../AgentCharacter";
 import { useAgentAppearanceDraft } from "../../hooks/useAgentAppearanceDraft";
-import { AiConnectionField, aiProviderForAdapter } from "../ai-connections/AiConnectionField";
+import {
+  AiConnectionField,
+  aiProviderForAdapter,
+} from "../ai-connections/AiConnectionField";
 import type { AiConnectionBinding } from "@taskcore/shared";
 import { DEFAULT_CODEX_LOCAL_MODEL } from "@taskcore/adapter-codex-local";
 import {
@@ -113,17 +116,21 @@ function Setup({
   const appearanceDraft = useAgentAppearanceDraft(`${companyId}:new-agent`);
   const isRunner = adapterType === "taskcore_runner";
   const isDot = isRunner && runnerProvider === "openai_dot";
-  const brandType = isDot ? "openai_dot" : isRunner
-    ? runnerProvider === "grok"
-      ? "grok_local"
-      : runnerProvider === "claude"
-      ? "claude_local"
-      : runnerProvider === "opencode"
-        ? "opencode_local"
-        : "codex_local"
-    : adapterType;
+  const brandType = isDot
+    ? "openai_dot"
+    : isRunner
+      ? runnerProvider === "grok"
+        ? "grok_local"
+        : runnerProvider === "claude"
+          ? "claude_local"
+          : runnerProvider === "opencode"
+            ? "opencode_local"
+            : "codex_local"
+      : adapterType;
   const connectionAdapter =
-    brandType === "claude_local" || brandType === "codex_local" || brandType === "grok_local"
+    brandType === "claude_local" ||
+    brandType === "codex_local" ||
+    brandType === "grok_local"
       ? brandType
       : null;
   const multiProvider =
@@ -132,7 +139,8 @@ function Setup({
   const chooseProvider = multiProvider || brandType === "hermes_local";
   const hasCredentialField =
     chooseProvider || Boolean(SETUP_CREDENTIAL_KEYS[adapterType]);
-  const showModel = !isDot && !["cursor_cloud", "hermes_gateway"].includes(adapterType);
+  const showModel =
+    !isDot && !["cursor_cloud", "hermes_gateway"].includes(adapterType);
   const [allowUnmeteredProvider, setAllowUnmeteredProvider] = useState(false);
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [kimiModel, setKimiModel] = useState("");
@@ -151,7 +159,9 @@ function Setup({
   const [providerBinding, setProviderBinding] = useState<EnvBinding | null>(
     null,
   );
-  const [runtimeAiBinding, setRuntimeAiBinding] = useState<AiConnectionBinding | undefined>(() =>
+  const [runtimeAiBinding, setRuntimeAiBinding] = useState<
+    AiConnectionBinding | undefined
+  >(() =>
     brandType === "opencode_local"
       ? { provider: "openrouter", method: "api_key", mode: "responsible_user" }
       : undefined,
@@ -226,8 +236,16 @@ function Setup({
     queryFn: () => environmentsApi.capabilities(companyId),
   });
   const models = useQuery({
-    queryKey: queryKeys.agents.adapterModels(companyId, brandType, null, aiBinding?.provider),
-    queryFn: () => agentsApi.adapterModels(companyId, brandType, { provider: aiBinding?.provider }),
+    queryKey: queryKeys.agents.adapterModels(
+      companyId,
+      brandType,
+      null,
+      aiBinding?.provider,
+    ),
+    queryFn: () =>
+      agentsApi.adapterModels(companyId, brandType, {
+        provider: aiBinding?.provider,
+      }),
     enabled: Boolean(brandType) && showModel && !connectionModels,
     retry: false,
   });
@@ -355,9 +373,14 @@ function Setup({
       ...(isRunner
         ? {
             adapterSchemaValues: {
-              provider: (runnerProvider === "claude" || runnerProvider === "grok") ? "acpx" : runnerProvider,
+              provider:
+                runnerProvider === "claude" || runnerProvider === "grok"
+                  ? "acpx"
+                  : runnerProvider,
               ...(isDot ? { allowUnmeteredProvider } : {}),
-              ...((runnerProvider === "claude" || runnerProvider === "grok") ? { acpxAgent: runnerProvider } : {}),
+              ...(runnerProvider === "claude" || runnerProvider === "grok"
+                ? { acpxAgent: runnerProvider }
+                : {}),
             },
           }
         : {}),
@@ -365,11 +388,21 @@ function Setup({
     const config = getUIAdapter(adapterType).buildAdapterConfig(values);
     if (isRunner)
       Object.assign(config, {
-        provider: (runnerProvider === "claude" || runnerProvider === "grok") ? "acpx" : runnerProvider,
-        ...((runnerProvider === "claude" || runnerProvider === "grok") ? { acpxAgent: runnerProvider } : {}),
+        provider:
+          runnerProvider === "claude" || runnerProvider === "grok"
+            ? "acpx"
+            : runnerProvider,
+        ...(runnerProvider === "claude" || runnerProvider === "grok"
+          ? { acpxAgent: runnerProvider }
+          : {}),
         ...(model ? { model } : {}),
       });
-    if (!aiBinding && !nextConnection?.aiConnection && hasCredentialField && binding) {
+    if (
+      !aiBinding &&
+      !nextConnection?.aiConnection &&
+      hasCredentialField &&
+      binding
+    ) {
       if (adapterType === "hermes_gateway") config.apiKey = binding;
       else
         config.env = { ...((config.env as object) ?? {}), [envKey]: binding };
@@ -397,7 +430,10 @@ function Setup({
     return config;
   }
   function preparedConfig(nextConnection = connection) {
-    if (isDot && !allowUnmeteredProvider) throw new Error("Acknowledge external provider billing before creating your Dot agent.");
+    if (isDot && !allowUnmeteredProvider)
+      throw new Error(
+        "Acknowledge external provider billing before creating your Dot agent.",
+      );
     if (multiProvider && (!model.trim() || !model.includes("/")))
       throw new Error("Choose or enter a model in provider/model format.");
     if (
@@ -524,7 +560,10 @@ function Setup({
         defaultEnvironmentId:
           environmentOverride ||
           (forced.forced || managedOnly ? environmentId : null),
-        runtimeConfig: { ...buildNewAgentRuntimeConfig({ heartbeatEnabled: false }), ...(aiBinding ? { aiConnection: aiBinding } : {}) },
+        runtimeConfig: {
+          ...buildNewAgentRuntimeConfig({ heartbeatEnabled: false }),
+          ...(aiBinding ? { aiConnection: aiBinding } : {}),
+        },
         budgetMonthlyCents: 0,
         ...(connection?.storedSessionId
           ? { storedSessionId: connection.storedSessionId }
@@ -645,9 +684,20 @@ function Setup({
     <MotionConfig reducedMotion="user">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 py-6">
         <header className="flex items-center gap-4">
-          <AgentCharacter appearance={created?.appearance ?? appearanceDraft.appearance} size={256} className="size-48" trackingScope="page"
-            state={created || testState === "pass" ? "success" : testState === "running" ? "loading" : "sleepy"}
-            muted={!created && testState !== "pass"} />
+          <AgentCharacter
+            appearance={created?.appearance ?? appearanceDraft.appearance}
+            size={256}
+            className="size-48"
+            trackingScope="page"
+            state={
+              created || testState === "pass"
+                ? "success"
+                : testState === "running"
+                  ? "loading"
+                  : "sleepy"
+            }
+            muted={!created && testState !== "pass"}
+          />
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{name}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -695,10 +745,12 @@ function Setup({
                   <button
                     type="button"
                     aria-current={step === screen ? "step" : undefined}
-                    disabled={
-                      busy || Boolean(created) || step === "saved"
+                    disabled={busy || Boolean(created) || step === "saved"}
+                    onClick={() =>
+                      step === "connect" && screen !== "connect"
+                        ? editConnection()
+                        : setScreen(step)
                     }
-                    onClick={() => step === "connect" && screen !== "connect" ? editConnection() : setScreen(step)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm",
                       step === screen
@@ -728,65 +780,71 @@ function Setup({
                 {screen === "connect" && connectionAdapter ? (
                   <OnboardingCard className="mx-auto">
                     <div className="mb-8">
-                      <OnboardingHeading
-                        title="Connect a model"
-                        center
-                      />
+                      <OnboardingHeading title="Connect a model" center />
                     </div>
-                    {ready ? <AgentProviderConnection
-                      key={environmentId ?? "local"}
-                      companyId={companyId}
-                      adapterType={connectionAdapter}
-                      environmentId={environmentId}
-                      canLogin={canLogin}
-                      localEnvironment={environment?.driver === "local"}
-                      advancedConnection={{
-                        value: aiBinding,
-                        content: (
-                          <AiConnectionField
-                            companyId={companyId}
-                            agentName={name}
-                            adapterType={brandType}
-                            model={model}
-                            environmentId={environmentId ?? undefined}
-                            value={aiBinding}
-                            preferAdvanced
-                            onChange={binding => {
-                              if (binding.mode === "router") return;
-                              setConnection(null);
-                              setRuntimeAiBinding(binding);
-                              resetTest();
-                            }}
-                          />
-                        ),
-                      }}
-                      onBack={() => navigate("/agents/all")}
-                      onDraftChanged={() => {
-                        setConnection(null);
-                        setRuntimeAiBinding(undefined);
-                        resetTest();
-                      }}
-                      testConnection={runTest}
-                      testError={
-                        error ??
-                        (
-                          result?.checks.find(
-                            (check) => check.level === "error",
-                          ) ??
-                          result?.checks.find(
-                            (check) =>
-                              check.code.includes("hello_probe") &&
-                              check.level === "warn",
-                          )
-                        )?.message
-                      }
-                      onConnected={(next) => {
-                        setConnection(next);
-                        setRuntimeAiBinding(undefined);
-                        resetTest();
-                        setScreen("runtime");
-                      }}
-                    /> : <p role="status" className="text-sm text-muted-foreground">Loading connection settings…</p>}
+                    {ready ? (
+                      <AgentProviderConnection
+                        key={environmentId ?? "local"}
+                        companyId={companyId}
+                        adapterType={connectionAdapter}
+                        environmentId={environmentId}
+                        canLogin={canLogin}
+                        localEnvironment={environment?.driver === "local"}
+                        advancedConnection={{
+                          value: aiBinding,
+                          content: (
+                            <AiConnectionField
+                              companyId={companyId}
+                              agentName={name}
+                              adapterType={brandType}
+                              model={model}
+                              environmentId={environmentId ?? undefined}
+                              value={aiBinding}
+                              preferAdvanced
+                              onChange={(binding) => {
+                                if (binding.mode === "router") return;
+                                setConnection(null);
+                                setRuntimeAiBinding(binding);
+                                resetTest();
+                              }}
+                            />
+                          ),
+                        }}
+                        onBack={() => navigate("/agents/all")}
+                        onDraftChanged={() => {
+                          setConnection(null);
+                          setRuntimeAiBinding(undefined);
+                          resetTest();
+                        }}
+                        testConnection={runTest}
+                        testError={
+                          error ??
+                          (
+                            result?.checks.find(
+                              (check) => check.level === "error",
+                            ) ??
+                            result?.checks.find(
+                              (check) =>
+                                check.code.includes("hello_probe") &&
+                                check.level === "warn",
+                            )
+                          )?.message
+                        }
+                        onConnected={(next) => {
+                          setConnection(next);
+                          setRuntimeAiBinding(undefined);
+                          resetTest();
+                          setScreen("runtime");
+                        }}
+                      />
+                    ) : (
+                      <p
+                        role="status"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Loading connection settings…
+                      </p>
+                    )}
                   </OnboardingCard>
                 ) : screen === "saved" && created ? (
                   <div className="space-y-6">
@@ -795,11 +853,19 @@ function Setup({
                         <Check className="size-5" />
                         {created.status === "pending_approval"
                           ? "Agent submitted for approval"
-                          : isDot ? "Your Dot agent has been created" : "Your agent is ready"}
+                          : isDot
+                            ? "Your Dot agent has been created"
+                            : "Your agent is ready"}
                       </h2>
                       <dl className="grid grid-cols-2 gap-4 text-sm">
                         <dt className="text-muted-foreground">Adapter</dt>
-                        <dd>{getAdapterDisplay(isDot ? "openai_dot" : adapterType).label}</dd>
+                        <dd>
+                          {
+                            getAdapterDisplay(
+                              isDot ? "openai_dot" : adapterType,
+                            ).label
+                          }
+                        </dd>
                         {showModel && (
                           <>
                             <dt className="text-muted-foreground">Model</dt>
@@ -814,22 +880,34 @@ function Setup({
                       <p className="text-sm text-muted-foreground">
                         {created.status === "pending_approval"
                           ? "An organization administrator must approve this agent before it can work."
-                          : isDot ? "Pair your Dot and test event delivery in configuration before assigning work." : "Assign a task when you’re ready for this agent to work."}
+                          : isDot
+                            ? "Pair your Dot and test event delivery in configuration before assigning work."
+                            : "Assign a task when you’re ready for this agent to work."}
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-between gap-3">
                       <Button
                         variant="outline"
-                        onClick={() => navigate(isDot ? "/agents/all" : `${agentUrl(created)}/runtime`)}
+                        onClick={() =>
+                          navigate(
+                            isDot
+                              ? "/agents/all"
+                              : `${agentUrl(created)}/runtime`,
+                          )
+                        }
                       >
                         <Settings2 className="size-4" />
                         {isDot ? "Back to Agents" : "Edit configuration"}
                       </Button>
                       <Button
                         disabled={created.status === "pending_approval"}
-                        onClick={() => isDot
-                          ? navigate(`${agentUrl(created)}/runtime`)
-                          : openNewIssue({ assigneeAgentId: created.id, status: "todo" })
+                        onClick={() =>
+                          isDot
+                            ? navigate(`${agentUrl(created)}/runtime`)
+                            : openNewIssue({
+                                assigneeAgentId: created.id,
+                                status: "todo",
+                              })
                         }
                       >
                         {isDot ? "Pair Dot" : `Assign ${created.name} a Task`}
@@ -850,30 +928,76 @@ function Setup({
                     </h2>
                     <fieldset disabled={busy} className="space-y-8">
                       <section className="space-y-5">
-                        {isDot && <>
-                          <p className="text-sm text-muted-foreground">Create this agent, then copy its pairing prompt to your Dot.</p>
-                          {experimental.data?.enablePublicMcp !== true && <p className="text-sm text-muted-foreground">Enable Assistant connections (MCP) in Experimental settings before pairing.</p>}
-                          <ToggleField label="Allow externally billed provider" hint="Dot does not report token usage or cost. Taskcore cannot enforce a provider spend ceiling; known company and agent budget limits still apply."
-                            checked={allowUnmeteredProvider} onChange={value => { setAllowUnmeteredProvider(value); resetTest(); }} />
-                        </>}
-                        {!connectionAdapter && aiProviderForAdapter(brandType) && (
-                          <AiConnectionField companyId={companyId} agentName={name} adapterType={brandType} model={model} environmentId={environmentId ?? undefined} value={aiBinding}
-                            onChange={binding => { binding.mode !== "router" && setRuntimeAiBinding(binding); resetTest(); }} />
+                        {isDot && (
+                          <>
+                            <p className="text-sm text-muted-foreground">
+                              Create this agent, then copy its pairing prompt to
+                              your Dot.
+                            </p>
+                            {experimental.data?.enablePublicMcp !== true && (
+                              <p className="text-sm text-muted-foreground">
+                                Enable Assistant connections (MCP) in
+                                Experimental settings before pairing.
+                              </p>
+                            )}
+                            <ToggleField
+                              label="Allow externally billed provider"
+                              hint="Dot does not report token usage or cost. Taskcore cannot enforce a provider spend ceiling; known company and agent budget limits still apply."
+                              checked={allowUnmeteredProvider}
+                              onChange={(value) => {
+                                setAllowUnmeteredProvider(value);
+                                resetTest();
+                              }}
+                            />
+                          </>
                         )}
-                        {(connectionModels ? connectionModels.error : models.error) && <p role="alert" className="text-sm text-destructive">Could not load models. Retry or enter a model ID manually.</p>}
+                        {!connectionAdapter &&
+                          aiProviderForAdapter(brandType) && (
+                            <AiConnectionField
+                              companyId={companyId}
+                              agentName={name}
+                              adapterType={brandType}
+                              model={model}
+                              environmentId={environmentId ?? undefined}
+                              value={aiBinding}
+                              onChange={(binding) => {
+                                binding.mode !== "router" &&
+                                  setRuntimeAiBinding(binding);
+                                resetTest();
+                              }}
+                            />
+                          )}
+                        {(connectionModels
+                          ? connectionModels.error
+                          : models.error) && (
+                          <p role="alert" className="text-sm text-destructive">
+                            Could not load models. Retry or enter a model ID
+                            manually.
+                          </p>
+                        )}
                         {((showModel && !usingKimiApi) ||
                           efforts.length > 0) && (
                           <div className="grid items-start gap-5 sm:grid-cols-2">
                             {showModel && !usingKimiApi && (
                               <ModelDropdown
                                 presentation="native"
-                                models={connectionModels?.models ?? models.data ?? []}
-                                loadingModels={connectionModels?.isLoading ?? models.isLoading}
-                                onRefreshModels={connectionModels?.refreshModels}
+                                models={
+                                  connectionModels?.models ?? models.data ?? []
+                                }
+                                loadingModels={
+                                  connectionModels?.isLoading ??
+                                  models.isLoading
+                                }
+                                onRefreshModels={
+                                  connectionModels?.refreshModels
+                                }
                                 refreshingModels={connectionModels?.refreshing}
                                 value={model}
                                 onChange={(value) => {
-                                  setModel(connectionModels?.resolveModel(value) ?? value);
+                                  setModel(
+                                    connectionModels?.resolveModel(value) ??
+                                      value,
+                                  );
                                   if (
                                     effort &&
                                     !setupEfforts(adapterType, value).includes(
@@ -898,8 +1022,13 @@ function Setup({
                                 allowDefault={!multiProvider}
                                 required={multiProvider}
                                 creatable
-                                groupByProvider={multiProvider && !connectionModels}
-                                preserveOrder={Boolean(connectionModels) || adapterCuratesModelOrder(brandType)}
+                                groupByProvider={
+                                  multiProvider && !connectionModels
+                                }
+                                preserveOrder={
+                                  Boolean(connectionModels) ||
+                                  adapterCuratesModelOrder(brandType)
+                                }
                               />
                             )}
                             {efforts.length > 0 && (
@@ -1150,7 +1279,11 @@ function Setup({
                               Default: {environmentLabel}
                             </option>
                             {(envs.data ?? [])
-                              .filter((env) => env.status === "active" && (!managedOnly || env.driver !== "local"))
+                              .filter(
+                                (env) =>
+                                  env.status === "active" &&
+                                  (!managedOnly || env.driver !== "local"),
+                              )
                               .map((env) => (
                                 <option key={env.id} value={env.id}>
                                   {environmentDisplayLabel(env)}
@@ -1165,7 +1298,11 @@ function Setup({
                       state={testState}
                       result={result}
                       error={error}
-                      disabled={!ready || busy || Boolean(connectionAdapter && !connection)}
+                      disabled={
+                        !ready ||
+                        busy ||
+                        Boolean(connectionAdapter && !connection)
+                      }
                       onTest={() => void runTest()}
                     />
                     {error && testState !== "fail" && (
@@ -1187,25 +1324,29 @@ function Setup({
                       ) : (
                         <span />
                       )}
-                      {connectionAdapter && !connection ? <Button
-                        type="button"
-                        disabled={!ready || busy}
-                        onClick={() => setScreen("connect")}
-                      >
-                        Connect model
-                        <ArrowRight className="size-4" />
-                      </Button> : <Button
-                        type="submit"
-                        disabled={
-                          !ready ||
-                          busy ||
-                          testState === "fail" ||
-                          Boolean(connectionAdapter && !connection)
-                        }
-                      >
-                        {saving ? "Creating…" : "Finish setup"}
-                        <Check className="size-4" />
-                      </Button>}
+                      {connectionAdapter && !connection ? (
+                        <Button
+                          type="button"
+                          disabled={!ready || busy}
+                          onClick={() => setScreen("connect")}
+                        >
+                          Connect model
+                          <ArrowRight className="size-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          type="submit"
+                          disabled={
+                            !ready ||
+                            busy ||
+                            testState === "fail" ||
+                            Boolean(connectionAdapter && !connection)
+                          }
+                        >
+                          {saving ? "Creating…" : "Finish setup"}
+                          <Check className="size-4" />
+                        </Button>
+                      )}
                     </div>
                   </form>
                 )}

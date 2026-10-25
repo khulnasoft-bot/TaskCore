@@ -1,4 +1,1 @@
-export const bundledCliNpmDependencies = new Set([
-  "acpx",
-  "embedded-postgres",
-]);
+export const bundledCliNpmDependencies = new Set(["acpx", "embedded-postgres"]);

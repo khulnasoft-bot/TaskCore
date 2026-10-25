@@ -64,21 +64,29 @@ function renderTreeButtons(
   for (const node of nodes) {
     if (node.kind === "dir") {
       buttons.push(
-        createElement("button", {
-          key: node.path,
-          type: "button",
-          "data-toggle-dir": node.path,
-          onClick: () => options.onToggleDir?.(node.path),
-        }, node.name),
+        createElement(
+          "button",
+          {
+            key: node.path,
+            type: "button",
+            "data-toggle-dir": node.path,
+            onClick: () => options.onToggleDir?.(node.path),
+          },
+          node.name,
+        ),
       );
     } else {
       buttons.push(
-        createElement("button", {
-          key: node.path,
-          type: "button",
-          "data-select-file": node.path,
-          onClick: () => options.onSelectFile?.(node.path),
-        }, node.name),
+        createElement(
+          "button",
+          {
+            key: node.path,
+            type: "button",
+            "data-select-file": node.path,
+            onClick: () => options.onSelectFile?.(node.path),
+          },
+          node.name,
+        ),
       );
     }
     buttons.push(...renderTreeButtons(node.children ?? [], options));
@@ -89,7 +97,12 @@ function renderTreeButtons(
 describe("WikiRouteSidebar", () => {
   let container: HTMLDivElement;
   let root: Root;
-  let hostLocation: { pathname: string; search: string; hash: string; state?: unknown };
+  let hostLocation: {
+    pathname: string;
+    search: string;
+    hash: string;
+    state?: unknown;
+  };
   let navigatedTo: { to: string; options?: unknown } | null;
   let pluginDataCalls: Array<{ key: string; params?: Record<string, unknown> }>;
   let pluginActionCalls: Array<{ key: string; params?: unknown }>;
@@ -186,7 +199,13 @@ describe("WikiRouteSidebar", () => {
               },
             };
           }
-          if (key !== "pages") return { data: null, loading: false, error: null, refresh: () => undefined };
+          if (key !== "pages")
+            return {
+              data: null,
+              loading: false,
+              error: null,
+              refresh: () => undefined,
+            };
           return {
             data: {
               pages: [
@@ -214,7 +233,8 @@ describe("WikiRouteSidebar", () => {
         usePluginToast: () => () => undefined,
         useHostLocation: () => hostLocation,
         useHostNavigation: () => ({
-          resolveHref: (to: string) => `/PAP${to.startsWith("/") ? to : `/${to}`}`,
+          resolveHref: (to: string) =>
+            `/PAP${to.startsWith("/") ? to : `/${to}`}`,
           navigate: (to: string, options?: unknown) => {
             navigatedTo = { to, options };
           },
@@ -223,15 +243,18 @@ describe("WikiRouteSidebar", () => {
             onClick: () => undefined,
           }),
         }),
-        FileTree: (props: FileTreePropsLike) => createElement(
-          "div",
-          {
-            role: "tree",
-            "data-selected-file": props.selectedFile ?? "",
-            "data-expanded-paths": toArray(props.expandedPaths).sort().join("|"),
-          },
-          renderTreeButtons(props.nodes, props),
-        ),
+        FileTree: (props: FileTreePropsLike) =>
+          createElement(
+            "div",
+            {
+              role: "tree",
+              "data-selected-file": props.selectedFile ?? "",
+              "data-expanded-paths": toArray(props.expandedPaths)
+                .sort()
+                .join("|"),
+            },
+            renderTreeButtons(props.nodes, props),
+          ),
       },
     };
   });
@@ -247,9 +270,11 @@ describe("WikiRouteSidebar", () => {
 
   it("defaults wiki categories open so local files are visible", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const tree = container.querySelector("[role='tree']") as HTMLElement;
@@ -265,32 +290,48 @@ describe("WikiRouteSidebar", () => {
 
   it("renders Ask before Add Content in the primary sidebar tools", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
-    const primaryNavText = container.querySelector("nav[aria-label='Wiki primary']")?.textContent ?? "";
-    expect(primaryNavText.indexOf("Ask")).toBeLessThan(primaryNavText.indexOf("Add Content"));
+    const primaryNavText =
+      container.querySelector("nav[aria-label='Wiki primary']")?.textContent ??
+      "";
+    expect(primaryNavText.indexOf("Ask")).toBeLessThan(
+      primaryNavText.indexOf("Add Content"),
+    );
   });
 
   it("collapses and expands the active space tree from the space row", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     expect(container.querySelector("[role='tree']")).not.toBeNull();
 
     act(() => {
-      (container.querySelector("[aria-label='Collapse default space']") as HTMLElement).click();
+      (
+        container.querySelector(
+          "[aria-label='Collapse default space']",
+        ) as HTMLElement
+      ).click();
     });
 
     expect(container.querySelector("[role='tree']")).toBeNull();
 
     act(() => {
-      (container.querySelector("[aria-label='Expand default space']") as HTMLElement).click();
+      (
+        container.querySelector(
+          "[aria-label='Expand default space']",
+        ) as HTMLElement
+      ).click();
     });
 
     expect(container.querySelector("[role='tree']")).not.toBeNull();
@@ -298,9 +339,11 @@ describe("WikiRouteSidebar", () => {
 
   it("omits redundant shared badges beside space names", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     expect(container.textContent).not.toContain("shared");
@@ -308,16 +351,22 @@ describe("WikiRouteSidebar", () => {
 
   it("hides archived spaces from the sidebar", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     expect(container.textContent).toContain("Engineering");
     expect(container.textContent).not.toContain("QA Team Lock");
     expect(pluginDataCalls).not.toContainEqual({
       key: "pages",
-      params: { companyId: COMPANY_ID, includeRaw: true, spaceSlug: "qa-team-lock" },
+      params: {
+        companyId: COMPANY_ID,
+        includeRaw: true,
+        spaceSlug: "qa-team-lock",
+      },
     });
   });
 
@@ -329,19 +378,28 @@ describe("WikiRouteSidebar", () => {
     };
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     act(() => {
-      (container.querySelector("[aria-label='Engineering space menu']") as HTMLButtonElement).click();
+      (
+        container.querySelector(
+          "[aria-label='Engineering space menu']",
+        ) as HTMLButtonElement
+      ).click();
     });
-    const archiveButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Archive space"));
+    const archiveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Archive space"),
+    );
 
     await act(async () => {
-      archiveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      archiveButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
       await Promise.resolve();
     });
 
@@ -356,19 +414,25 @@ describe("WikiRouteSidebar", () => {
 
   it("persists folder expansion client-side", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     act(() => {
-      (container.querySelector("[data-toggle-dir='raw']") as HTMLButtonElement).click();
+      (
+        container.querySelector("[data-toggle-dir='raw']") as HTMLButtonElement
+      ).click();
     });
 
     // Toggled paths are stored under the active space slug ("default::") so
     // each space remembers its own expansion state. Legacy entries written
     // before the spaces refactor stay un-prefixed and still resolve to default.
-    expect(JSON.parse(window.localStorage.getItem(EXPANDED_STORAGE_KEY) ?? "[]")).toEqual([
+    expect(
+      JSON.parse(window.localStorage.getItem(EXPANDED_STORAGE_KEY) ?? "[]"),
+    ).toEqual([
       "default::raw",
       "wiki",
       "wiki/concepts",
@@ -384,20 +448,26 @@ describe("WikiRouteSidebar", () => {
     root = createRoot(container);
 
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const tree = container.querySelector("[role='tree']") as HTMLElement;
-    expect(tree.dataset.expandedPaths).toBe("raw|wiki|wiki/concepts|wiki/entities|wiki/projects|wiki/sources|wiki/synthesis");
+    expect(tree.dataset.expandedPaths).toBe(
+      "raw|wiki|wiki/concepts|wiki/entities|wiki/projects|wiki/sources|wiki/synthesis",
+    );
   });
 
   it("does not select a wiki-link destination from the route", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const tree = () => container.querySelector("[role='tree']") as HTMLElement;
@@ -406,24 +476,36 @@ describe("WikiRouteSidebar", () => {
 
   it("keeps sidebar tree selection scoped to sidebar navigation", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const tree = () => container.querySelector("[role='tree']") as HTMLElement;
 
     act(() => {
-      (container.querySelector("[data-select-file='wiki/concepts/sidebar-navigation.md']") as HTMLButtonElement).click();
+      (
+        container.querySelector(
+          "[data-select-file='wiki/concepts/sidebar-navigation.md']",
+        ) as HTMLButtonElement
+      ).click();
     });
 
     expect(navigatedTo).toEqual({
       to: "/wiki/page/wiki/concepts/sidebar-navigation.md",
-      options: { state: { taskcoreWikiSidebarTreePath: "wiki/concepts/sidebar-navigation.md" } },
+      options: {
+        state: {
+          taskcoreWikiSidebarTreePath: "wiki/concepts/sidebar-navigation.md",
+        },
+      },
     });
     // The default space stays the active space, so its tree is rendered in the
     // sidebar; non-default spaces only render their tree once activated.
-    expect(tree().dataset.selectedFile).toBe("wiki/concepts/sidebar-navigation.md");
+    expect(tree().dataset.selectedFile).toBe(
+      "wiki/concepts/sidebar-navigation.md",
+    );
 
     hostLocation = {
       pathname: "/PAP/wiki/page/wiki/entities/taskcore.md",
@@ -431,35 +513,57 @@ describe("WikiRouteSidebar", () => {
       hash: "",
     };
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
-    expect(tree().dataset.selectedFile).toBe("wiki/concepts/sidebar-navigation.md");
+    expect(tree().dataset.selectedFile).toBe(
+      "wiki/concepts/sidebar-navigation.md",
+    );
 
     act(() => {
-      (container.querySelector("[data-toggle-dir='wiki/concepts']") as HTMLButtonElement).click();
+      (
+        container.querySelector(
+          "[data-toggle-dir='wiki/concepts']",
+        ) as HTMLButtonElement
+      ).click();
     });
 
-    expect(tree().dataset.selectedFile).toBe("wiki/concepts/sidebar-navigation.md");
-    expect(tree().dataset.expandedPaths?.split("|")).not.toContain("wiki/concepts");
+    expect(tree().dataset.selectedFile).toBe(
+      "wiki/concepts/sidebar-navigation.md",
+    );
+    expect(tree().dataset.expandedPaths?.split("|")).not.toContain(
+      "wiki/concepts",
+    );
   });
 
   it("warms inactive space pages so sidebar space switches have data ready", () => {
     act(() => {
-      root.render(createElement(WikiRouteSidebar, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiRouteSidebar, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     expect(pluginDataCalls).toContainEqual({
       key: "pages",
-      params: { companyId: COMPANY_ID, includeRaw: true, spaceSlug: "engineering" },
+      params: {
+        companyId: COMPANY_ID,
+        includeRaw: true,
+        spaceSlug: "engineering",
+      },
     });
     expect(pluginDataCalls).toContainEqual({
       key: "page-content",
-      params: { companyId: COMPANY_ID, path: "wiki/concepts/sidebar-navigation.md", spaceSlug: "engineering" },
+      params: {
+        companyId: COMPANY_ID,
+        path: "wiki/concepts/sidebar-navigation.md",
+        spaceSlug: "engineering",
+      },
     });
   });
 });
@@ -475,7 +579,9 @@ describe("WikiPage", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     hostLocation = {
       pathname: "/PAP/wiki/page/wiki/projects/control-plane/index.md",
       search: "",
@@ -547,7 +653,13 @@ describe("WikiPage", () => {
                   source: "managed",
                   agentId: "agent-1",
                   resourceKey: "wiki-maintainer",
-                  details: { name: "Wiki Maintainer", status: "idle", adapterType: "claude_local", icon: "book-open", urlKey: "wiki-maintainer" },
+                  details: {
+                    name: "Wiki Maintainer",
+                    status: "idle",
+                    adapterType: "claude_local",
+                    icon: "book-open",
+                    urlKey: "wiki-maintainer",
+                  },
                 },
                 managedProject: {
                   status: "resolved",
@@ -564,8 +676,23 @@ describe("WikiPage", () => {
                   wikiId: "default",
                   maxCharacters: 12000,
                 },
-                agentOptions: [{ id: "agent-1", name: "Wiki Maintainer", status: "idle", icon: "book-open", urlKey: "wiki-maintainer" }],
-                projectOptions: [{ id: "project-1", name: "LLM Wiki", status: "in_progress", color: "#2563eb" }],
+                agentOptions: [
+                  {
+                    id: "agent-1",
+                    name: "Wiki Maintainer",
+                    status: "idle",
+                    icon: "book-open",
+                    urlKey: "wiki-maintainer",
+                  },
+                ],
+                projectOptions: [
+                  {
+                    id: "project-1",
+                    name: "LLM Wiki",
+                    status: "in_progress",
+                    color: "#2563eb",
+                  },
+                ],
                 capabilities: [],
               },
               loading: false,
@@ -622,15 +749,26 @@ describe("WikiPage", () => {
             };
           }
           if (key === "distillation-page-provenance") {
-            return { data: null, loading: false, error: null, refresh: () => undefined };
+            return {
+              data: null,
+              loading: false,
+              error: null,
+              refresh: () => undefined,
+            };
           }
-          return { data: null, loading: false, error: null, refresh: () => undefined };
+          return {
+            data: null,
+            loading: false,
+            error: null,
+            refresh: () => undefined,
+          };
         },
         usePluginAction: () => async () => ({}),
         usePluginToast: () => () => undefined,
         useHostLocation: () => hostLocation,
         useHostNavigation: () => ({
-          resolveHref: (to: string) => `/PAP${to.startsWith("/") ? to : `/${to}`}`,
+          resolveHref: (to: string) =>
+            `/PAP${to.startsWith("/") ? to : `/${to}`}`,
           navigate: (to: string) => {
             navigatedTo = to;
           },
@@ -639,10 +777,14 @@ describe("WikiPage", () => {
             onClick: () => undefined,
           }),
         }),
-        MarkdownBlock: ({ content }: { content: string }) => createElement("div", {}, content),
-        MarkdownEditor: ({ value }: { value: string }) => createElement("textarea", { value, readOnly: true }),
-        AssigneePicker: () => createElement("div", { "data-testid": "assignee-picker" }),
-        ProjectPicker: () => createElement("div", { "data-testid": "project-picker" }),
+        MarkdownBlock: ({ content }: { content: string }) =>
+          createElement("div", {}, content),
+        MarkdownEditor: ({ value }: { value: string }) =>
+          createElement("textarea", { value, readOnly: true }),
+        AssigneePicker: () =>
+          createElement("div", { "data-testid": "assignee-picker" }),
+        ProjectPicker: () =>
+          createElement("div", { "data-testid": "project-picker" }),
       },
     };
   });
@@ -658,15 +800,23 @@ describe("WikiPage", () => {
 
   it("renders structured Taskcore source refs as text", () => {
     act(() => {
-      root.render(createElement(WikiPage, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiPage, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
-    expect(container.textContent).toContain("PAP-3416 issue - Distillation kickoff");
+    expect(container.textContent).toContain(
+      "PAP-3416 issue - Distillation kickoff",
+    );
     const consoleOutput = consoleError.mock.calls.flat().join("\n");
-    expect(consoleOutput).not.toContain("Objects are not valid as a React child");
-    expect(consoleOutput).not.toContain("Each child in a list should have a unique \"key\" prop");
+    expect(consoleOutput).not.toContain(
+      "Objects are not valid as a React child",
+    );
+    expect(consoleOutput).not.toContain(
+      'Each child in a list should have a unique "key" prop',
+    );
   });
 
   it("prioritizes file drop on the ingest page without recent ingest or cost copy", () => {
@@ -677,9 +827,11 @@ describe("WikiPage", () => {
     };
 
     act(() => {
-      root.render(createElement(WikiPage, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiPage, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const text = container.textContent ?? "";
@@ -688,18 +840,27 @@ describe("WikiPage", () => {
     expect(text).not.toContain("Why does this take a moment?");
     expect(text).not.toContain("est. cost");
 
-    const separatorText = container.querySelector("[data-testid='llm-wiki-ingest-manual-separator']")?.textContent ?? "";
+    const separatorText =
+      container.querySelector(
+        "[data-testid='llm-wiki-ingest-manual-separator']",
+      )?.textContent ?? "";
     expect(separatorText).toBe("or");
-    expect(text.indexOf("Drop files anywhere on this page")).toBeLessThan(text.indexOf("Source title"));
+    expect(text.indexOf("Drop files anywhere on this page")).toBeLessThan(
+      text.indexOf("Source title"),
+    );
     expect(text.indexOf("Source title")).toBeLessThan(text.indexOf("URL"));
-    expect(text.indexOf("URL")).toBeLessThan(text.indexOf("Paste markdown / text"));
+    expect(text.indexOf("URL")).toBeLessThan(
+      text.indexOf("Paste markdown / text"),
+    );
   });
 
   it("closes the page drop overlay when a file drag leaves without dropping files", () => {
     act(() => {
-      root.render(createElement(WikiPage, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiPage, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const page = container.querySelector("main") as HTMLElement;
@@ -707,41 +868,57 @@ describe("WikiPage", () => {
       page.dispatchEvent(createFileDragEvent("dragenter"));
     });
 
-    expect(container.querySelector("[data-testid='llm-wiki-page-drop-overlay']")).not.toBeNull();
+    expect(
+      container.querySelector("[data-testid='llm-wiki-page-drop-overlay']"),
+    ).not.toBeNull();
 
     act(() => {
       page.dispatchEvent(createFileDragEvent("dragleave"));
     });
 
-    expect(container.querySelector("[data-testid='llm-wiki-page-drop-overlay']")).toBeNull();
-    expect(container.querySelector("[data-testid='llm-wiki-ingest-modal']")).toBeNull();
+    expect(
+      container.querySelector("[data-testid='llm-wiki-page-drop-overlay']"),
+    ).toBeNull();
+    expect(
+      container.querySelector("[data-testid='llm-wiki-ingest-modal']"),
+    ).toBeNull();
   });
 
   it("keeps staged dropped files in the ingest modal after the drop overlay clears", () => {
     act(() => {
-      root.render(createElement(WikiPage, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiPage, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const page = container.querySelector("main") as HTMLElement;
-    const file = new File(["source notes"], "source-notes.md", { type: "text/markdown" });
+    const file = new File(["source notes"], "source-notes.md", {
+      type: "text/markdown",
+    });
 
     act(() => {
       page.dispatchEvent(createFileDragEvent("dragenter"));
       page.dispatchEvent(createFileDragEvent("drop", { files: [file] }));
     });
 
-    expect(container.querySelector("[data-testid='llm-wiki-page-drop-overlay']")).toBeNull();
-    expect(container.querySelector("[data-testid='llm-wiki-ingest-modal']")).not.toBeNull();
+    expect(
+      container.querySelector("[data-testid='llm-wiki-page-drop-overlay']"),
+    ).toBeNull();
+    expect(
+      container.querySelector("[data-testid='llm-wiki-ingest-modal']"),
+    ).not.toBeNull();
     expect(container.textContent).toContain("source-notes.md");
   });
 
   it("lets users close the page drop overlay directly", () => {
     act(() => {
-      root.render(createElement(WikiPage, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiPage, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     const page = container.querySelector("main") as HTMLElement;
@@ -749,14 +926,18 @@ describe("WikiPage", () => {
       page.dispatchEvent(createFileDragEvent("dragenter"));
     });
 
-    const closeButton = container.querySelector("[aria-label='Close ingest drop overlay']") as HTMLButtonElement;
+    const closeButton = container.querySelector(
+      "[aria-label='Close ingest drop overlay']",
+    ) as HTMLButtonElement;
     expect(closeButton).not.toBeNull();
 
     act(() => {
       closeButton.click();
     });
 
-    expect(container.querySelector("[data-testid='llm-wiki-page-drop-overlay']")).toBeNull();
+    expect(
+      container.querySelector("[data-testid='llm-wiki-page-drop-overlay']"),
+    ).toBeNull();
   });
 
   it("navigates settings tabs to their URL subpaths", () => {
@@ -767,13 +948,19 @@ describe("WikiPage", () => {
     };
 
     act(() => {
-      root.render(createElement(WikiPage, {
-        context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
-      } as never));
+      root.render(
+        createElement(WikiPage, {
+          context: { companyId: COMPANY_ID, companyPrefix: "PAP" },
+        } as never),
+      );
     });
 
     act(() => {
-      (Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Distillation")) as HTMLButtonElement).click();
+      (
+        Array.from(container.querySelectorAll("button")).find((button) =>
+          button.textContent?.includes("Distillation"),
+        ) as HTMLButtonElement
+      ).click();
     });
 
     expect(navigatedTo).toBe("/wiki/settings/distillation");

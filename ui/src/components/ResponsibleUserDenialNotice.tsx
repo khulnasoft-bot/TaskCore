@@ -44,14 +44,23 @@ export function ResponsibleUserDenialNotice({
       data-testid="responsible-user-denial-notice"
       data-denial-code={code}
       data-denial-tone={copy.tone}
-      className={cn("rounded-md border px-3 py-2.5 text-sm shadow-sm", tone, className)}
+      className={cn(
+        "rounded-md border px-3 py-2.5 text-sm shadow-sm",
+        tone,
+        className,
+      )}
     >
       <div className="flex items-start gap-2">
-        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconTone)} aria-hidden="true" />
+        <Icon
+          className={cn("mt-0.5 h-4 w-4 shrink-0", iconTone)}
+          aria-hidden="true"
+        />
         <div className="min-w-0 space-y-1">
           <p className="font-medium leading-5">{copy.title}</p>
           <p className="leading-5">{copy.description}</p>
-          <p className={cn("text-xs leading-5", actionTone)}>{copy.recommendedAction}</p>
+          <p className={cn("text-xs leading-5", actionTone)}>
+            {copy.recommendedAction}
+          </p>
         </div>
       </div>
     </div>

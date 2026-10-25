@@ -17,12 +17,16 @@ import {
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 function asString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 export function resolveGeminiSkillsHome(config: Record<string, unknown>) {
   const env =
-    typeof config.env === "object" && config.env !== null && !Array.isArray(config.env)
+    typeof config.env === "object" &&
+    config.env !== null &&
+    !Array.isArray(config.env)
       ? (config.env as Record<string, unknown>)
       : {};
   const configuredHome = asString(env.HOME);
@@ -30,9 +34,17 @@ export function resolveGeminiSkillsHome(config: Record<string, unknown>) {
   return path.join(home, ".gemini", "skills");
 }
 
-async function buildGeminiSkillSnapshot(config: Record<string, unknown>): Promise<AdapterSkillSnapshot> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries);
+async function buildGeminiSkillSnapshot(
+  config: Record<string, unknown>,
+): Promise<AdapterSkillSnapshot> {
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    availableEntries,
+  );
   const skillsHome = resolveGeminiSkillsHome(config);
   const installed = await readInstalledSkillTargets(skillsHome);
   return buildPersistentSkillSnapshot({
@@ -42,13 +54,17 @@ async function buildGeminiSkillSnapshot(config: Record<string, unknown>): Promis
     installed,
     skillsHome,
     locationLabel: "~/.gemini/skills",
-    missingDetail: "Configured but not currently linked into the Gemini skills home.",
-    externalConflictDetail: "Skill name is occupied by an external installation.",
+    missingDetail:
+      "Configured but not currently linked into the Gemini skills home.",
+    externalConflictDetail:
+      "Skill name is occupied by an external installation.",
     externalDetail: "Installed outside Taskcore management.",
   });
 }
 
-export async function listGeminiSkills(ctx: AdapterSkillContext): Promise<AdapterSkillSnapshot> {
+export async function listGeminiSkills(
+  ctx: AdapterSkillContext,
+): Promise<AdapterSkillSnapshot> {
   return buildGeminiSkillSnapshot(ctx.config);
 }
 
@@ -56,7 +72,10 @@ export async function syncGeminiSkills(
   ctx: AdapterSkillContext,
   desiredSkills: string[],
 ): Promise<AdapterSkillSnapshot> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(ctx.config, __moduleDir);
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    ctx.config,
+    __moduleDir,
+  );
   const desiredSet = new Set([
     ...resolveLegacyTaskcoreDesiredSkillNames({}, availableEntries),
     ...desiredSkills,
@@ -64,7 +83,9 @@ export async function syncGeminiSkills(
   const skillsHome = resolveGeminiSkillsHome(ctx.config);
   await fs.mkdir(skillsHome, { recursive: true });
   const installed = await readInstalledSkillTargets(skillsHome);
-  const availableByRuntimeName = new Map(availableEntries.map((entry) => [entry.runtimeName, entry]));
+  const availableByRuntimeName = new Map(
+    availableEntries.map((entry) => [entry.runtimeName, entry]),
+  );
 
   for (const available of availableEntries) {
     if (!desiredSet.has(available.key)) continue;

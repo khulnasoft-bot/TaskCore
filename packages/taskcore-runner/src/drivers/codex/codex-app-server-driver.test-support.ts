@@ -50,7 +50,9 @@ import {
 
 // Tests run in managed worktrees beneath sensitive Codex state. Use a real
 // disposable workspace instead of weakening production host-path admission.
-export const WORKSPACE = realpathSync.native(mkdtempSync(join(tmpdir(), "taskcore-codex-test-workspace-")));
+export const WORKSPACE = realpathSync.native(
+  mkdtempSync(join(tmpdir(), "taskcore-codex-test-workspace-")),
+);
 afterAll(() => rmSync(WORKSPACE, { recursive: true, force: true }));
 
 export class TestQueue<T> implements AsyncIterable<T> {
@@ -86,7 +88,9 @@ export class TestQueue<T> implements AsyncIterable<T> {
         if (value) return { value, done: false };
         if (this.error) throw this.error;
         if (this.closed) return { value: undefined, done: true };
-        return new Promise((resolve, reject) => this.waiters.push({ resolve, reject }));
+        return new Promise((resolve, reject) =>
+          this.waiters.push({ resolve, reject }),
+        );
       },
     };
   }
@@ -107,11 +111,13 @@ export class FakeCodexTransport implements CodexAppServerTransport {
   turnStartResponse: Promise<Record<string, unknown>> | null = null;
   goalState: Record<string, unknown> | null = null;
   confirmCollaborationMode = true;
-  runtimeRequestResolver: ((input: {
-    requestId: string;
-    turnId: string;
-    resolution: HarnessRuntimeRequestResolution;
-  }) => Promise<void>) | null = null;
+  runtimeRequestResolver:
+    | ((input: {
+        requestId: string;
+        turnId: string;
+        resolution: HarnessRuntimeRequestResolution;
+      }) => Promise<void>)
+    | null = null;
 
   constructor(
     readonly threadId = "thread-1",
@@ -162,9 +168,11 @@ export class FakeCodexTransport implements CodexAppServerTransport {
           cwd: WORKSPACE,
           turns: [],
           activePermissionProfile: {
-            id: params.permissions ?? (planMode
-              ? "taskcore-runner-workspace-read-only"
-              : "taskcore-runner-workspace-only"),
+            id:
+              params.permissions ??
+              (planMode
+                ? "taskcore-runner-workspace-read-only"
+                : "taskcore-runner-workspace-only"),
           },
         },
         model: "gpt-test",
@@ -206,14 +214,32 @@ export class FakeCodexTransport implements CodexAppServerTransport {
       return {};
     }
     if (method === "thread/turns/list") {
-      const snapshot = this.readResponse ?? { thread: { turns: [{ id: "turn-1", status: "inProgress", items: [] }] } };
+      const snapshot = this.readResponse ?? {
+        thread: { turns: [{ id: "turn-1", status: "inProgress", items: [] }] },
+      };
       const turns = (snapshot.thread as Record<string, unknown>).turns;
-      return { data: Array.isArray(turns) ? turns.map(turn => ({ ...turn, items: [], itemsView: "notLoaded" })) : turns, nextCursor: null };
+      return {
+        data: Array.isArray(turns)
+          ? turns.map((turn) => ({
+              ...turn,
+              items: [],
+              itemsView: "notLoaded",
+            }))
+          : turns,
+        nextCursor: null,
+      };
     }
     if (method === "thread/items/list") {
-      const turns = ((this.readResponse?.thread as Record<string, unknown> | undefined)?.turns ?? []) as Array<Record<string, unknown>>;
-      const turn = turns.find(value => value.id === params.turnId);
-      return { data: ((turn?.items ?? []) as Array<Record<string, unknown>>).map(item => ({ turnId: params.turnId, item })), nextCursor: null };
+      const turns = ((
+        this.readResponse?.thread as Record<string, unknown> | undefined
+      )?.turns ?? []) as Array<Record<string, unknown>>;
+      const turn = turns.find((value) => value.id === params.turnId);
+      return {
+        data: ((turn?.items ?? []) as Array<Record<string, unknown>>).map(
+          (item) => ({ turnId: params.turnId, item }),
+        ),
+        nextCursor: null,
+      };
     }
     if (method === "thread/read") {
       return structuredClone(
@@ -224,7 +250,7 @@ export class FakeCodexTransport implements CodexAppServerTransport {
             cwd: WORKSPACE,
             turns: [{ id: "turn-1", status: "inProgress", items: [] }],
           },
-        }
+        },
       );
     }
     return {};
@@ -409,7 +435,6 @@ export async function traceCompletedProposal(
   });
   return { trace: await traced, transport };
 }
-
 
 export { describe, expect, it, vi } from "vitest";
 export {

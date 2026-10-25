@@ -1,7 +1,14 @@
 import { runningProcesses } from "../../../adapters/utils.js";
-import { isPidAlive, isProcessGroupAlive, terminateLocalService } from "../../../services/local-service-supervisor.js";
+import {
+  isPidAlive,
+  isProcessGroupAlive,
+  terminateLocalService,
+} from "../../../services/local-service-supervisor.js";
 import type { RunProcessController } from "../application/ports.js";
-import type { RunProcessCleanupOutcome, RunProcessMetadata } from "../application/types.js";
+import type {
+  RunProcessCleanupOutcome,
+  RunProcessMetadata,
+} from "../application/types.js";
 
 const SESSIONED_LOCAL_ADAPTERS = new Set([
   "claude_local",
@@ -20,9 +27,15 @@ function isValidPositivePid(value: number | null): value is number {
 
 export function createProcessAdapter(): RunProcessController {
   return {
-    async cleanupRunProcess(input: RunProcessMetadata): Promise<RunProcessCleanupOutcome> {
+    async cleanupRunProcess(
+      input: RunProcessMetadata,
+    ): Promise<RunProcessCleanupOutcome> {
       if (!SESSIONED_LOCAL_ADAPTERS.has(input.adapterType)) {
-        return { attempted: false, outcome: "skipped_non_local_adapter", adapterType: input.adapterType };
+        return {
+          attempted: false,
+          outcome: "skipped_non_local_adapter",
+          adapterType: input.adapterType,
+        };
       }
 
       const running = runningProcesses.get(input.runId);
@@ -40,7 +53,11 @@ export function createProcessAdapter(): RunProcessController {
           : null;
       const terminationPid = pid ?? processGroupId;
       if (terminationPid === null) {
-        return { attempted: false, outcome: "no_process_metadata", adapterType: input.adapterType };
+        return {
+          attempted: false,
+          outcome: "no_process_metadata",
+          adapterType: input.adapterType,
+        };
       }
 
       const wasAlive =
@@ -48,7 +65,13 @@ export function createProcessAdapter(): RunProcessController {
         (processGroupId !== null && isProcessGroupAlive(processGroupId));
       if (!wasAlive) {
         runningProcesses.delete(input.runId);
-        return { attempted: false, outcome: "not_running", adapterType: input.adapterType, pid, processGroupId };
+        return {
+          attempted: false,
+          outcome: "not_running",
+          adapterType: input.adapterType,
+          pid,
+          processGroupId,
+        };
       }
 
       try {
@@ -57,7 +80,9 @@ export function createProcessAdapter(): RunProcessController {
             pid: terminationPid,
             processGroupId,
           },
-          running ? { forceAfterMs: Math.max(1, running.graceSec) * 1000 } : undefined,
+          running
+            ? { forceAfterMs: Math.max(1, running.graceSec) * 1000 }
+            : undefined,
         );
         runningProcesses.delete(input.runId);
         const stillAlive =

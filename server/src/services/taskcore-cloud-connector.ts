@@ -1,4 +1,8 @@
-import { ASANA_CONNECTOR_SCOPES, isAsanaConnectorProfileId, type AsanaConnectorProfileId } from "@taskcore/shared";
+import {
+  ASANA_CONNECTOR_SCOPES,
+  isAsanaConnectorProfileId,
+  type AsanaConnectorProfileId,
+} from "@taskcore/shared";
 import {
   createDecipheriv,
   createHash,
@@ -32,9 +36,21 @@ export const GMAIL_CONNECTOR_SCOPES = [
 ] as const;
 export { GOOGLE_WORKSPACE_CONNECTOR_PROFILES };
 
-export type TaskcoreCloudConnectorEnvironment = "development" | "staging" | "production";
-export type TaskcoreCloudConnectorOperation = "status" | "session" | "claim" | "refresh" | "revoke" | "webhook-bind" | "event-lease" | "event-ack";
-export type TaskcoreCloudConnectorProfileId = GoogleWorkspaceConnectorProfileId | GitHubConnectorProfileId | AsanaConnectorProfileId;
+export type TaskcoreCloudConnectorEnvironment =
+  "development" | "staging" | "production";
+export type TaskcoreCloudConnectorOperation =
+  | "status"
+  | "session"
+  | "claim"
+  | "refresh"
+  | "revoke"
+  | "webhook-bind"
+  | "event-lease"
+  | "event-ack";
+export type TaskcoreCloudConnectorProfileId =
+  | GoogleWorkspaceConnectorProfileId
+  | GitHubConnectorProfileId
+  | AsanaConnectorProfileId;
 export type TaskcoreCloudConnectorProvider = "google" | "github" | "asana";
 
 export type TaskcoreCloudConnectorConfig = {
@@ -62,7 +78,9 @@ export type SealedConnectorCredentials = {
   appSlug?: string;
 };
 
-export type SealedGmailCredentials = SealedConnectorCredentials & { provider: "google" };
+export type SealedGmailCredentials = SealedConnectorCredentials & {
+  provider: "google";
+};
 export type SealedGoogleWorkspaceCredentials = SealedGmailCredentials;
 
 export type SealedConnectorEvents = {
@@ -126,19 +144,37 @@ const JWS_TYP = "taskcore-cloud-connector-request+jwt";
 const SEAL_ALGORITHM = "X25519-HKDF-SHA256-A256GCM";
 const AES_TAG_BYTES = 16;
 const RAW_PRIVATE_KEY_BYTES = 32;
-const ED25519_PKCS8_PREFIX = Buffer.from("302e020100300506032b657004220420", "hex");
-const X25519_PKCS8_PREFIX = Buffer.from("302e020100300506032b656e04220420", "hex");
+const ED25519_PKCS8_PREFIX = Buffer.from(
+  "302e020100300506032b657004220420",
+  "hex",
+);
+const X25519_PKCS8_PREFIX = Buffer.from(
+  "302e020100300506032b656e04220420",
+  "hex",
+);
 const X25519_SPKI_PREFIX = Buffer.from("302a300506032b656e032100", "hex");
 
 // Only fixed protocol codes may enter errors/logs. Never retain the broker's
 // message, request data, return URI, or an arbitrary error/code string.
 const BROKER_REJECTION_REASONS = new Set([
-  "RETURN_ORIGIN_NOT_ENROLLED", "INVALID_RETURN_URI", "INVALID_REQUEST",
-  "UNKNOWN_INSTANCE", "INSTANCE_APPROVAL_REQUIRED", "INSTANCE_SUSPENDED",
-  "ENVIRONMENT_MISMATCH", "PROFILE_NOT_AVAILABLE", "PROFILE_NOT_ELIGIBLE",
-  "REQUEST_EXPIRED", "REQUEST_REPLAYED", "SIGNATURE_REJECTED",
-  "AUDIENCE_MISMATCH", "OPERATION_MISMATCH", "PAYLOAD_MISMATCH",
-  "MALFORMED_REQUEST", "UNSUPPORTED_ALGORITHM", "RATE_LIMITED",
+  "RETURN_ORIGIN_NOT_ENROLLED",
+  "INVALID_RETURN_URI",
+  "INVALID_REQUEST",
+  "UNKNOWN_INSTANCE",
+  "INSTANCE_APPROVAL_REQUIRED",
+  "INSTANCE_SUSPENDED",
+  "ENVIRONMENT_MISMATCH",
+  "PROFILE_NOT_AVAILABLE",
+  "PROFILE_NOT_ELIGIBLE",
+  "REQUEST_EXPIRED",
+  "REQUEST_REPLAYED",
+  "SIGNATURE_REJECTED",
+  "AUDIENCE_MISMATCH",
+  "OPERATION_MISMATCH",
+  "PAYLOAD_MISMATCH",
+  "MALFORMED_REQUEST",
+  "UNSUPPORTED_ALGORITHM",
+  "RATE_LIMITED",
   "PROVIDER_OPERATION_FAILED",
 ]);
 const UNKNOWN_BROKER_REASON = "UNKNOWN_BROKER_ERROR";
@@ -160,10 +196,17 @@ async function readBrokerRejectionReason(response: Response): Promise<string> {
           if (size > 4_096) return UNKNOWN_BROKER_REASON;
           chunks.push(value);
         }
-        const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-        const reason = body && typeof body === "object" && "error" in body ? body.error : null;
-        return typeof reason === "string" && BROKER_REJECTION_REASONS.has(reason)
-          ? reason : UNKNOWN_BROKER_REASON;
+        const body: unknown = JSON.parse(
+          Buffer.concat(chunks).toString("utf8"),
+        );
+        const reason =
+          body && typeof body === "object" && "error" in body
+            ? body.error
+            : null;
+        return typeof reason === "string" &&
+          BROKER_REJECTION_REASONS.has(reason)
+          ? reason
+          : UNKNOWN_BROKER_REASON;
       })(),
       new Promise<string>((resolve) => {
         timer = setTimeout(() => resolve(UNKNOWN_BROKER_REASON), 500);
@@ -202,14 +245,26 @@ export function taskcoreCloudConnectorConfigFromEnv(
     env.TASKCORE_ID_CONNECTOR_BASE_URL,
   ].some((value) => Boolean(value?.trim()));
   const managedInstanceId = env.TASKCORE_CLOUD_CONNECTOR_INSTANCE_ID?.trim();
-  const managedSignPrivateKey = env.TASKCORE_CLOUD_CONNECTOR_SIGN_PRIVATE_KEY?.trim();
-  const managedSealPrivateKey = env.TASKCORE_CLOUD_CONNECTOR_SEAL_PRIVATE_KEY?.trim();
+  const managedSignPrivateKey =
+    env.TASKCORE_CLOUD_CONNECTOR_SIGN_PRIVATE_KEY?.trim();
+  const managedSealPrivateKey =
+    env.TASKCORE_CLOUD_CONNECTOR_SEAL_PRIVATE_KEY?.trim();
   const managedEnvironment = env.TASKCORE_CLOUD_CONNECTOR_ENVIRONMENT?.trim();
-  const hasManagedIdentityOverride = [managedInstanceId, managedSignPrivateKey, managedSealPrivateKey]
-    .some(Boolean);
-  const localStatus = hasManagedIdentityOverride ? null : taskcoreCloudConnectorEnrollmentStatus(env);
-  const hasActiveLocalIdentity = localIdentity?.status === "active" && localStatus?.configured === true;
-  if (!hasManagedIdentityOverride && !hasActiveLocalIdentity && legacyConfigured) {
+  const hasManagedIdentityOverride = [
+    managedInstanceId,
+    managedSignPrivateKey,
+    managedSealPrivateKey,
+  ].some(Boolean);
+  const localStatus = hasManagedIdentityOverride
+    ? null
+    : taskcoreCloudConnectorEnrollmentStatus(env);
+  const hasActiveLocalIdentity =
+    localIdentity?.status === "active" && localStatus?.configured === true;
+  if (
+    !hasManagedIdentityOverride &&
+    !hasActiveLocalIdentity &&
+    legacyConfigured
+  ) {
     throw new TaskcoreCloudConnectorError(
       "Taskcore ID connector settings use an incompatible legacy protocol; enroll this instance with Taskcore Cloud",
       "CONNECTOR_MIGRATION_REQUIRED",
@@ -217,30 +272,65 @@ export function taskcoreCloudConnectorConfigFromEnv(
   }
   if (!hasManagedIdentityOverride && !hasActiveLocalIdentity) return null;
 
-  const instanceId = hasManagedIdentityOverride ? managedInstanceId : localIdentity!.instanceId;
-  const signPrivateKey = hasManagedIdentityOverride ? managedSignPrivateKey : localIdentity!.signPrivateKey;
-  const sealPrivateKey = hasManagedIdentityOverride ? managedSealPrivateKey : localIdentity!.sealPrivateKey;
-  const environment = hasManagedIdentityOverride ? managedEnvironment : localIdentity!.environment;
-  const baseUrl = env.TASKCORE_CLOUD_CONNECTOR_BASE_URL?.trim()
-    || (hasActiveLocalIdentity ? localIdentity!.brokerBaseUrl : undefined)
-    || "https://my.taskcore.app";
+  const instanceId = hasManagedIdentityOverride
+    ? managedInstanceId
+    : localIdentity!.instanceId;
+  const signPrivateKey = hasManagedIdentityOverride
+    ? managedSignPrivateKey
+    : localIdentity!.signPrivateKey;
+  const sealPrivateKey = hasManagedIdentityOverride
+    ? managedSealPrivateKey
+    : localIdentity!.sealPrivateKey;
+  const environment = hasManagedIdentityOverride
+    ? managedEnvironment
+    : localIdentity!.environment;
+  const baseUrl =
+    env.TASKCORE_CLOUD_CONNECTOR_BASE_URL?.trim() ||
+    (hasActiveLocalIdentity ? localIdentity!.brokerBaseUrl : undefined) ||
+    "https://my.taskcore.app";
   const values = [instanceId, signPrivateKey, sealPrivateKey, environment];
   if (values.some((value) => !value)) {
-    throw new TaskcoreCloudConnectorError("Taskcore Cloud connector configuration is incomplete", "CONNECTOR_CONFIG_INCOMPLETE");
+    throw new TaskcoreCloudConnectorError(
+      "Taskcore Cloud connector configuration is incomplete",
+      "CONNECTOR_CONFIG_INCOMPLETE",
+    );
   }
-  if (environment !== "development" && environment !== "staging" && environment !== "production") {
-    throw new TaskcoreCloudConnectorError("Taskcore Cloud connector environment is invalid", "CONNECTOR_CONFIG_INVALID");
+  if (
+    environment !== "development" &&
+    environment !== "staging" &&
+    environment !== "production"
+  ) {
+    throw new TaskcoreCloudConnectorError(
+      "Taskcore Cloud connector environment is invalid",
+      "CONNECTOR_CONFIG_INVALID",
+    );
   }
   const parsedBaseUrl = new URL(baseUrl);
-  if (parsedBaseUrl.protocol !== "https:" && !(parsedBaseUrl.protocol === "http:" && isLoopback(parsedBaseUrl.hostname))) {
-    throw new TaskcoreCloudConnectorError("Taskcore Cloud connector URL must use HTTPS", "CONNECTOR_CONFIG_INVALID");
+  if (
+    parsedBaseUrl.protocol !== "https:" &&
+    !(parsedBaseUrl.protocol === "http:" && isLoopback(parsedBaseUrl.hostname))
+  ) {
+    throw new TaskcoreCloudConnectorError(
+      "Taskcore Cloud connector URL must use HTTPS",
+      "CONNECTOR_CONFIG_INVALID",
+    );
   }
-  if (parsedBaseUrl.username || parsedBaseUrl.password || parsedBaseUrl.search || parsedBaseUrl.hash) {
-    throw new TaskcoreCloudConnectorError("Taskcore Cloud connector URL is invalid", "CONNECTOR_CONFIG_INVALID");
+  if (
+    parsedBaseUrl.username ||
+    parsedBaseUrl.password ||
+    parsedBaseUrl.search ||
+    parsedBaseUrl.hash
+  ) {
+    throw new TaskcoreCloudConnectorError(
+      "Taskcore Cloud connector URL is invalid",
+      "CONNECTOR_CONFIG_INVALID",
+    );
   }
   const brokerHost = parsedBaseUrl.hostname.toLowerCase();
-  if ((brokerHost === "my.taskcore.app" && environment !== "production")
-    || (brokerHost === "my-staging.taskcore.app" && environment !== "staging")) {
+  if (
+    (brokerHost === "my.taskcore.app" && environment !== "production") ||
+    (brokerHost === "my-staging.taskcore.app" && environment !== "staging")
+  ) {
     throw new TaskcoreCloudConnectorError(
       "Taskcore Cloud connector broker and environment do not match",
       "CONNECTOR_CONFIG_INVALID",
@@ -269,10 +359,24 @@ export function createTaskcoreCloudConnector(input: {
 
   async function call(
     operation: TaskcoreCloudConnectorOperation,
-    claims: { subject: string; companyId: string; profile?: TaskcoreCloudConnectorProfileId; returnUri?: string; returnState?: string; claimId?: string; redemptionId?: string },
-    secret?: { field: "refreshToken" | "token" | "binding" | "acknowledgement"; value: string },
+    claims: {
+      subject: string;
+      companyId: string;
+      profile?: TaskcoreCloudConnectorProfileId;
+      returnUri?: string;
+      returnState?: string;
+      claimId?: string;
+      redemptionId?: string;
+    },
+    secret?: {
+      field: "refreshToken" | "token" | "binding" | "acknowledgement";
+      value: string;
+    },
   ): Promise<ConnectorResponse> {
-    const endpoint = new URL(ENDPOINTS[operation], `${config.baseUrl}/`).toString();
+    const endpoint = new URL(
+      ENDPOINTS[operation],
+      `${config.baseUrl}/`,
+    ).toString();
     const issuedAt = Math.floor(now() / 1000);
     const payload: Record<string, unknown> = {
       iss: config.instanceId,
@@ -304,26 +408,37 @@ export function createTaskcoreCloudConnector(input: {
     try {
       response = await request(endpoint, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(15_000),
       });
     } catch {
-      throw new TaskcoreCloudConnectorError("Taskcore Cloud connector is unavailable", "CONNECTOR_UNAVAILABLE");
+      throw new TaskcoreCloudConnectorError(
+        "Taskcore Cloud connector is unavailable",
+        "CONNECTOR_UNAVAILABLE",
+      );
     }
     if (operation === "revoke" && response.status === 204) return {};
     if (!response.ok) {
       const reason = await readBrokerRejectionReason(response);
       throw new TaskcoreCloudConnectorError(
         `Taskcore Cloud connector rejected the request (operation=${operation}, status=${response.status}, reason=${reason})`,
-        response.status === 409 ? "REAUTHORIZATION_REQUIRED" : "CONNECTOR_REQUEST_FAILED",
+        response.status === 409
+          ? "REAUTHORIZATION_REQUIRED"
+          : "CONNECTOR_REQUEST_FAILED",
         response.status,
       );
     }
     try {
-      return await response.json() as ConnectorResponse;
+      return (await response.json()) as ConnectorResponse;
     } catch {
-      throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid response", "CONNECTOR_BAD_RESPONSE");
+      throw new TaskcoreCloudConnectorError(
+        "Taskcore Cloud connector returned an invalid response",
+        "CONNECTOR_BAD_RESPONSE",
+      );
     }
   }
 
@@ -335,7 +450,12 @@ export function createTaskcoreCloudConnector(input: {
     profile: TaskcoreCloudConnectorProfileId,
   ): SealedConnectorCredentials {
     const definition = connectorProfileDefinition(profile);
-    const envelope = parseEnvelope(response.sealed, purpose, definition.provider, profile);
+    const envelope = parseEnvelope(
+      response.sealed,
+      purpose,
+      definition.provider,
+      profile,
+    );
     const credentials = unseal(
       envelope,
       sealKey,
@@ -346,19 +466,28 @@ export function createTaskcoreCloudConnector(input: {
       definition.scopes,
     );
     if (
-      credentials.instanceId !== config.instanceId
-      || credentials.environment !== config.environment
-      || credentials.subject !== subject
-      || credentials.companyId !== companyId
-      || credentials.provider !== definition.provider
+      credentials.instanceId !== config.instanceId ||
+      credentials.environment !== config.environment ||
+      credentials.subject !== subject ||
+      credentials.companyId !== companyId ||
+      credentials.provider !== definition.provider
     ) {
-      throw new TaskcoreCloudConnectorError("Taskcore Cloud credential binding did not match", "CONNECTOR_BINDING_MISMATCH");
+      throw new TaskcoreCloudConnectorError(
+        "Taskcore Cloud credential binding did not match",
+        "CONNECTOR_BINDING_MISMATCH",
+      );
     }
     if (credentials.profile !== profile) {
-      throw new TaskcoreCloudConnectorError("Taskcore Cloud connector profile binding did not match", "CONNECTOR_BINDING_MISMATCH");
+      throw new TaskcoreCloudConnectorError(
+        "Taskcore Cloud connector profile binding did not match",
+        "CONNECTOR_BINDING_MISMATCH",
+      );
     }
     if (!sameStringSet(credentials.scopes, definition.scopes)) {
-      throw new TaskcoreCloudConnectorError("Taskcore Cloud scope grant did not match", "REAUTHORIZATION_REQUIRED");
+      throw new TaskcoreCloudConnectorError(
+        "Taskcore Cloud scope grant did not match",
+        "REAUTHORIZATION_REQUIRED",
+      );
     }
     return credentials;
   }
@@ -372,13 +501,23 @@ export function createTaskcoreCloudConnector(input: {
           companyId: "instance-status",
         });
       } catch (error) {
-        if (error instanceof TaskcoreCloudConnectorError && error.status === 401) return "removed";
+        if (
+          error instanceof TaskcoreCloudConnectorError &&
+          error.status === 401
+        )
+          return "removed";
         throw error;
       }
-      if (response.status === "active" && response.active === true) return "active";
-      if (response.status === "suspended" && response.active === false) return "suspended";
-      if (response.status === "removed" && response.active === false) return "removed";
-      throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid instance status", "CONNECTOR_BAD_RESPONSE");
+      if (response.status === "active" && response.active === true)
+        return "active";
+      if (response.status === "suspended" && response.active === false)
+        return "suspended";
+      if (response.status === "removed" && response.active === false)
+        return "removed";
+      throw new TaskcoreCloudConnectorError(
+        "Taskcore Cloud connector returned an invalid instance status",
+        "CONNECTOR_BAD_RESPONSE",
+      );
     },
     async getCapabilities(): Promise<TaskcoreCloudConnectorProfileId[]> {
       let response: ConnectorResponse;
@@ -390,76 +529,146 @@ export function createTaskcoreCloudConnector(input: {
       } catch {
         return [];
       }
-      if (response.active !== true || response.status !== "active" || !Array.isArray(response.profiles)) return [];
-      return [...new Set(response.profiles.flatMap((value) =>
-        typeof value === "string" && isTaskcoreCloudConnectorProfileId(value) ? [value] : []
-      ))];
+      if (
+        response.active !== true ||
+        response.status !== "active" ||
+        !Array.isArray(response.profiles)
+      )
+        return [];
+      return [
+        ...new Set(
+          response.profiles.flatMap((value) =>
+            typeof value === "string" &&
+            isTaskcoreCloudConnectorProfileId(value)
+              ? [value]
+              : [],
+          ),
+        ),
+      ];
     },
-    async startAuthorization(values: { subject: string; companyId: string; profile?: TaskcoreCloudConnectorProfileId; returnUri: string; returnState: string }) {
+    async startAuthorization(values: {
+      subject: string;
+      companyId: string;
+      profile?: TaskcoreCloudConnectorProfileId;
+      returnUri: string;
+      returnState: string;
+    }) {
       const profile = values.profile ?? "gmail.draft";
       const response = await call("session", { ...values, profile });
-      if (typeof response.confirmationUrl !== "string" || typeof response.expiresAt !== "string") {
-        throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid session", "CONNECTOR_BAD_RESPONSE");
+      if (
+        typeof response.confirmationUrl !== "string" ||
+        typeof response.expiresAt !== "string"
+      ) {
+        throw new TaskcoreCloudConnectorError(
+          "Taskcore Cloud connector returned an invalid session",
+          "CONNECTOR_BAD_RESPONSE",
+        );
       }
       let confirmationUrl: URL;
       try {
         confirmationUrl = new URL(response.confirmationUrl);
       } catch {
-        throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid confirmation URL", "CONNECTOR_BAD_RESPONSE");
+        throw new TaskcoreCloudConnectorError(
+          "Taskcore Cloud connector returned an invalid confirmation URL",
+          "CONNECTOR_BAD_RESPONSE",
+        );
       }
       const expectedBroker = new URL(config.baseUrl);
       if (
-        confirmationUrl.origin !== expectedBroker.origin
-        || confirmationUrl.pathname !== "/connections/confirm"
-        || confirmationUrl.username
-        || confirmationUrl.password
-        || confirmationUrl.hash
+        confirmationUrl.origin !== expectedBroker.origin ||
+        confirmationUrl.pathname !== "/connections/confirm" ||
+        confirmationUrl.username ||
+        confirmationUrl.password ||
+        confirmationUrl.hash
       ) {
-        throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid confirmation URL", "CONNECTOR_BAD_RESPONSE");
+        throw new TaskcoreCloudConnectorError(
+          "Taskcore Cloud connector returned an invalid confirmation URL",
+          "CONNECTOR_BAD_RESPONSE",
+        );
       }
       let authorizationUrl: URL | undefined;
       if (response.authorizationUrl !== undefined) {
         if (typeof response.authorizationUrl !== "string") {
-          throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid provider URL", "CONNECTOR_BAD_RESPONSE");
+          throw new TaskcoreCloudConnectorError(
+            "Taskcore Cloud connector returned an invalid provider URL",
+            "CONNECTOR_BAD_RESPONSE",
+          );
         }
         try {
           authorizationUrl = new URL(response.authorizationUrl);
         } catch {
-          throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid provider URL", "CONNECTOR_BAD_RESPONSE");
+          throw new TaskcoreCloudConnectorError(
+            "Taskcore Cloud connector returned an invalid provider URL",
+            "CONNECTOR_BAD_RESPONSE",
+          );
         }
         if (
-          authorizationUrl.protocol !== "https:"
-          || authorizationUrl.username
-          || authorizationUrl.password
-          || authorizationUrl.hash
-          || !isExpectedProviderAuthorizationUrl(profile, authorizationUrl)
+          authorizationUrl.protocol !== "https:" ||
+          authorizationUrl.username ||
+          authorizationUrl.password ||
+          authorizationUrl.hash ||
+          !isExpectedProviderAuthorizationUrl(profile, authorizationUrl)
         ) {
-          throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid provider URL", "CONNECTOR_BAD_RESPONSE");
+          throw new TaskcoreCloudConnectorError(
+            "Taskcore Cloud connector returned an invalid provider URL",
+            "CONNECTOR_BAD_RESPONSE",
+          );
         }
       }
       const handoff = parseCloudHandoff(response.handoff);
       return {
-        authorizationUrl: authorizationUrl?.toString() ?? confirmationUrl.toString(),
+        authorizationUrl:
+          authorizationUrl?.toString() ?? confirmationUrl.toString(),
         expiresAt: response.expiresAt,
         ...(handoff ? { handoff } : {}),
       };
     },
-    async claim(values: { subject: string; companyId: string; profile?: TaskcoreCloudConnectorProfileId; claimId: string; redemptionId: string }) {
-      const profile = values.profile ?? "gmail.draft";
-      return openCredentials(await call("claim", { ...values, profile }), sealPurpose("initial", profile), values.subject, values.companyId, profile);
-    },
-    async refresh(values: { subject: string; companyId: string; profile?: TaskcoreCloudConnectorProfileId; refreshToken: string }) {
+    async claim(values: {
+      subject: string;
+      companyId: string;
+      profile?: TaskcoreCloudConnectorProfileId;
+      claimId: string;
+      redemptionId: string;
+    }) {
       const profile = values.profile ?? "gmail.draft";
       return openCredentials(
-        await call("refresh", { ...values, profile }, { field: "refreshToken", value: values.refreshToken }),
+        await call("claim", { ...values, profile }),
+        sealPurpose("initial", profile),
+        values.subject,
+        values.companyId,
+        profile,
+      );
+    },
+    async refresh(values: {
+      subject: string;
+      companyId: string;
+      profile?: TaskcoreCloudConnectorProfileId;
+      refreshToken: string;
+    }) {
+      const profile = values.profile ?? "gmail.draft";
+      return openCredentials(
+        await call(
+          "refresh",
+          { ...values, profile },
+          { field: "refreshToken", value: values.refreshToken },
+        ),
         sealPurpose("access", profile),
         values.subject,
         values.companyId,
         profile,
       );
     },
-    async revoke(values: { subject: string; companyId: string; profile?: TaskcoreCloudConnectorProfileId; token: string }) {
-      await call("revoke", { ...values, profile: values.profile ?? "gmail.draft" }, { field: "token", value: values.token });
+    async revoke(values: {
+      subject: string;
+      companyId: string;
+      profile?: TaskcoreCloudConnectorProfileId;
+      token: string;
+    }) {
+      await call(
+        "revoke",
+        { ...values, profile: values.profile ?? "gmail.draft" },
+        { field: "token", value: values.token },
+      );
     },
     async setWebhookBinding(values: {
       subject: string;
@@ -485,58 +694,115 @@ export function createTaskcoreCloudConnector(input: {
         active: values.active,
         ...(values.active ? { accessToken: values.accessToken } : {}),
       });
-      await call("webhook-bind", { ...values, profile: "github.code" }, { field: "binding", value: binding });
+      await call(
+        "webhook-bind",
+        { ...values, profile: "github.code" },
+        { field: "binding", value: binding },
+      );
     },
-    async leaseEvents(values: { subject: string; companyId: string }): Promise<{ leaseId: string; events: SealedConnectorEvents["events"] } | null> {
+    async leaseEvents(values: {
+      subject: string;
+      companyId: string;
+    }): Promise<{
+      leaseId: string;
+      events: SealedConnectorEvents["events"];
+    } | null> {
       const response = await call("event-lease", values);
-      if (Array.isArray(response.events) && response.events.length === 0) return null;
+      if (Array.isArray(response.events) && response.events.length === 0)
+        return null;
       if (typeof response.leaseId !== "string") {
-        throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid event lease", "CONNECTOR_BAD_RESPONSE");
+        throw new TaskcoreCloudConnectorError(
+          "Taskcore Cloud connector returned an invalid event lease",
+          "CONNECTOR_BAD_RESPONSE",
+        );
       }
-      const envelope = parseEnvelope(response.sealed, "events", "github", "github.code");
-      const opened = unsealEvents(envelope, sealKey, config.instanceId, config.environment);
+      const envelope = parseEnvelope(
+        response.sealed,
+        "events",
+        "github",
+        "github.code",
+      );
+      const opened = unsealEvents(
+        envelope,
+        sealKey,
+        config.instanceId,
+        config.environment,
+      );
       if (opened.leaseId !== response.leaseId) {
-        throw new TaskcoreCloudConnectorError("Taskcore Cloud connector event lease did not match", "CONNECTOR_BINDING_MISMATCH");
+        throw new TaskcoreCloudConnectorError(
+          "Taskcore Cloud connector event lease did not match",
+          "CONNECTOR_BINDING_MISMATCH",
+        );
       }
       return { leaseId: opened.leaseId, events: opened.events };
     },
-    async acknowledgeEvents(values: { subject: string; companyId: string; leaseId: string; deliveryIds: string[] }): Promise<number> {
-      const acknowledgement = JSON.stringify({ leaseId: values.leaseId, deliveryIds: values.deliveryIds });
-      const response = await call("event-ack", values, { field: "acknowledgement", value: acknowledgement });
+    async acknowledgeEvents(values: {
+      subject: string;
+      companyId: string;
+      leaseId: string;
+      deliveryIds: string[];
+    }): Promise<number> {
+      const acknowledgement = JSON.stringify({
+        leaseId: values.leaseId,
+        deliveryIds: values.deliveryIds,
+      });
+      const response = await call("event-ack", values, {
+        field: "acknowledgement",
+        value: acknowledgement,
+      });
       const acknowledged = response.acknowledged;
-      if (typeof acknowledged !== "number" || !Number.isSafeInteger(acknowledged) || acknowledged < 0) {
-        throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid acknowledgement", "CONNECTOR_BAD_RESPONSE");
+      if (
+        typeof acknowledged !== "number" ||
+        !Number.isSafeInteger(acknowledged) ||
+        acknowledged < 0
+      ) {
+        throw new TaskcoreCloudConnectorError(
+          "Taskcore Cloud connector returned an invalid acknowledgement",
+          "CONNECTOR_BAD_RESPONSE",
+        );
       }
       return acknowledged;
     },
   };
 }
 
-function parseCloudHandoff(value: unknown): { kind: "taskcore_cloud"; session: string } | undefined {
+function parseCloudHandoff(
+  value: unknown,
+): { kind: "taskcore_cloud"; session: string } | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid handoff", "CONNECTOR_BAD_RESPONSE");
+    throw new TaskcoreCloudConnectorError(
+      "Taskcore Cloud connector returned an invalid handoff",
+      "CONNECTOR_BAD_RESPONSE",
+    );
   }
   const record = value as Record<string, unknown>;
   const session = record.session;
   if (
-    record.kind !== "tenant_background"
-    || typeof session !== "string"
-    || session.length < 16
-    || session.length > 512
-    || !/^[A-Za-z0-9_-]+$/.test(session)
+    record.kind !== "tenant_background" ||
+    typeof session !== "string" ||
+    session.length < 16 ||
+    session.length > 512 ||
+    !/^[A-Za-z0-9_-]+$/.test(session)
   ) {
-    throw new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid handoff", "CONNECTOR_BAD_RESPONSE");
+    throw new TaskcoreCloudConnectorError(
+      "Taskcore Cloud connector returned an invalid handoff",
+      "CONNECTOR_BAD_RESPONSE",
+    );
   }
   return { kind: "taskcore_cloud", session };
 }
 
-export type TaskcoreCloudConnector = ReturnType<typeof createTaskcoreCloudConnector>;
+export type TaskcoreCloudConnector = ReturnType<
+  typeof createTaskcoreCloudConnector
+>;
 export type TaskcoreCloudGoogleWorkspaceConnector = TaskcoreCloudConnector;
 
 /** Accept persisted Taskcore ID-era records while all new records use the Cloud strategy. */
 export function isTaskcoreCloudConnectorStrategy(value: unknown): boolean {
-  return value === "taskcore_cloud_connector" || value === "taskcore_id_connector";
+  return (
+    value === "taskcore_cloud_connector" || value === "taskcore_id_connector"
+  );
 }
 
 /** Use the same signed instance profiles for catalog display and setup validation. */
@@ -545,9 +811,12 @@ export function appWithTaskcoreCloudConnectorAvailability(
   profiles: readonly string[],
 ): AppDefinition {
   const enabledProfiles = new Set(profiles);
-  const methods = app.methods.filter((method) =>
-    !isTaskcoreCloudConnectorStrategy(method.oauthStrategy)
-    || Boolean(method.connectorProfile && enabledProfiles.has(method.connectorProfile))
+  const methods = app.methods.filter(
+    (method) =>
+      !isTaskcoreCloudConnectorStrategy(method.oauthStrategy) ||
+      Boolean(
+        method.connectorProfile && enabledProfiles.has(method.connectorProfile),
+      ),
   );
   return {
     ...app,
@@ -555,12 +824,18 @@ export function appWithTaskcoreCloudConnectorAvailability(
     ownershipAvailability: {
       ...DEFAULT_OWNERSHIP_AVAILABILITY,
       ...app.ownershipAvailability,
-      platform_shared: methods.some((method) => isTaskcoreCloudConnectorStrategy(method.oauthStrategy)),
+      platform_shared: methods.some((method) =>
+        isTaskcoreCloudConnectorStrategy(method.oauthStrategy),
+      ),
     },
   };
 }
 
-let capabilityCache: { key: string; expiresAt: number; profiles: TaskcoreCloudConnectorProfileId[] } | null = null;
+let capabilityCache: {
+  key: string;
+  expiresAt: number;
+  profiles: TaskcoreCloudConnectorProfileId[];
+} | null = null;
 let capabilityCacheGeneration = 0;
 
 export function invalidateTaskcoreCloudConnectorCapabilities(): void {
@@ -584,7 +859,8 @@ export async function taskcoreCloudConnectorCapabilitiesFromEnv(
   }
   if (!config) return [];
   const key = `${config.baseUrl}|${config.instanceId}|${config.environment}`;
-  if (capabilityCache?.key === key && capabilityCache.expiresAt > Date.now()) return capabilityCache.profiles;
+  if (capabilityCache?.key === key && capabilityCache.expiresAt > Date.now())
+    return capabilityCache.profiles;
   const generation = capabilityCacheGeneration;
   const connector = createTaskcoreCloudConnector({ config });
   const profiles = await connector.getCapabilities();
@@ -607,18 +883,27 @@ function privateKey(value: string, curve: "ed25519" | "x25519"): KeyObject {
       parsed = createPrivateKey(value);
     } else {
       const raw = Buffer.from(value, "base64url");
-      parsed = raw.length === RAW_PRIVATE_KEY_BYTES
-        ? createPrivateKey({
-        key: Buffer.concat([curve === "ed25519" ? ED25519_PKCS8_PREFIX : X25519_PKCS8_PREFIX, raw]),
-        format: "der",
-        type: "pkcs8",
-        })
-        : createPrivateKey({ key: raw, format: "der", type: "pkcs8" });
+      parsed =
+        raw.length === RAW_PRIVATE_KEY_BYTES
+          ? createPrivateKey({
+              key: Buffer.concat([
+                curve === "ed25519"
+                  ? ED25519_PKCS8_PREFIX
+                  : X25519_PKCS8_PREFIX,
+                raw,
+              ]),
+              format: "der",
+              type: "pkcs8",
+            })
+          : createPrivateKey({ key: raw, format: "der", type: "pkcs8" });
     }
     if (parsed.asymmetricKeyType !== curve) throw new Error("wrong key type");
     return parsed;
   } catch {
-    throw new TaskcoreCloudConnectorError(`Taskcore Cloud ${curve} private key is invalid`, "CONNECTOR_CONFIG_INVALID");
+    throw new TaskcoreCloudConnectorError(
+      `Taskcore Cloud ${curve} private key is invalid`,
+      "CONNECTOR_CONFIG_INVALID",
+    );
   }
 }
 
@@ -628,11 +913,19 @@ function parseEnvelope(
   provider: TaskcoreCloudConnectorProvider,
   profile: TaskcoreCloudConnectorProfileId,
 ): SealedEnvelope {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw badEnvelope();
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw badEnvelope();
   const candidate = value as Partial<SealedEnvelope>;
-  if (candidate.v !== 1 || candidate.alg !== SEAL_ALGORITHM || candidate.purpose !== purpose
-    || candidate.provider !== provider || candidate.profile !== profile
-    || typeof candidate.epk !== "string" || typeof candidate.iv !== "string" || typeof candidate.ct !== "string") {
+  if (
+    candidate.v !== 1 ||
+    candidate.alg !== SEAL_ALGORITHM ||
+    candidate.purpose !== purpose ||
+    candidate.provider !== provider ||
+    candidate.profile !== profile ||
+    typeof candidate.epk !== "string" ||
+    typeof candidate.iv !== "string" ||
+    typeof candidate.ct !== "string"
+  ) {
     throw badEnvelope();
   }
   return candidate as SealedEnvelope;
@@ -648,17 +941,45 @@ function unseal(
   scopes: readonly string[],
 ): SealedConnectorCredentials {
   try {
-    const parsed = decryptEnvelope(envelope, recipientPrivateKey, instanceId, environment, provider, profile, scopes) as Partial<SealedConnectorCredentials>;
-    if (parsed.v !== 1 || typeof parsed.accessToken !== "string" || parsed.accessToken.length === 0
-      || !(parsed.refreshToken === null || typeof parsed.refreshToken === "string")
-      || typeof parsed.tokenType !== "string"
-      || !(parsed.accessTokenExpiresAt === null || typeof parsed.accessTokenExpiresAt === "string")
-      || !(parsed.refreshTokenExpiresAt === null || typeof parsed.refreshTokenExpiresAt === "string")
-      || !Array.isArray(parsed.scopes) || !parsed.scopes.every((scope) => typeof scope === "string")
-      || typeof parsed.subject !== "string" || typeof parsed.companyId !== "string"
-      || typeof parsed.instanceId !== "string" || typeof parsed.environment !== "string"
-      || !(parsed.appSlug === undefined || (typeof parsed.appSlug === "string" && /^[a-z0-9-]{1,100}$/.test(parsed.appSlug)))
-      || parsed.provider !== provider || parsed.profile !== profile) {
+    const parsed = decryptEnvelope(
+      envelope,
+      recipientPrivateKey,
+      instanceId,
+      environment,
+      provider,
+      profile,
+      scopes,
+    ) as Partial<SealedConnectorCredentials>;
+    if (
+      parsed.v !== 1 ||
+      typeof parsed.accessToken !== "string" ||
+      parsed.accessToken.length === 0 ||
+      !(
+        parsed.refreshToken === null || typeof parsed.refreshToken === "string"
+      ) ||
+      typeof parsed.tokenType !== "string" ||
+      !(
+        parsed.accessTokenExpiresAt === null ||
+        typeof parsed.accessTokenExpiresAt === "string"
+      ) ||
+      !(
+        parsed.refreshTokenExpiresAt === null ||
+        typeof parsed.refreshTokenExpiresAt === "string"
+      ) ||
+      !Array.isArray(parsed.scopes) ||
+      !parsed.scopes.every((scope) => typeof scope === "string") ||
+      typeof parsed.subject !== "string" ||
+      typeof parsed.companyId !== "string" ||
+      typeof parsed.instanceId !== "string" ||
+      typeof parsed.environment !== "string" ||
+      !(
+        parsed.appSlug === undefined ||
+        (typeof parsed.appSlug === "string" &&
+          /^[a-z0-9-]{1,100}$/.test(parsed.appSlug))
+      ) ||
+      parsed.provider !== provider ||
+      parsed.profile !== profile
+    ) {
       throw badEnvelope();
     }
     return parsed as SealedConnectorCredentials;
@@ -675,13 +996,34 @@ function unsealEvents(
   environment: TaskcoreCloudConnectorEnvironment,
 ): SealedConnectorEvents {
   try {
-    const parsed = decryptEnvelope(envelope, recipientPrivateKey, instanceId, environment, "github", "github.code", []) as Partial<SealedConnectorEvents>;
-    if (parsed.v !== 1 || parsed.instanceId !== instanceId || parsed.environment !== environment
-      || typeof parsed.leaseId !== "string" || !Array.isArray(parsed.events)) throw badEnvelope();
+    const parsed = decryptEnvelope(
+      envelope,
+      recipientPrivateKey,
+      instanceId,
+      environment,
+      "github",
+      "github.code",
+      [],
+    ) as Partial<SealedConnectorEvents>;
+    if (
+      parsed.v !== 1 ||
+      parsed.instanceId !== instanceId ||
+      parsed.environment !== environment ||
+      typeof parsed.leaseId !== "string" ||
+      !Array.isArray(parsed.events)
+    )
+      throw badEnvelope();
     for (const event of parsed.events) {
-      if (!isRecord(event) || typeof event.id !== "string" || event.provider !== "github"
-        || typeof event.event !== "string" || !isRecord(event.payload) || !Array.isArray(event.bindingIds)
-        || !event.bindingIds.every((id) => typeof id === "string")) throw badEnvelope();
+      if (
+        !isRecord(event) ||
+        typeof event.id !== "string" ||
+        event.provider !== "github" ||
+        typeof event.event !== "string" ||
+        !isRecord(event.payload) ||
+        !Array.isArray(event.bindingIds) ||
+        !event.bindingIds.every((id) => typeof id === "string")
+      )
+        throw badEnvelope();
     }
     return parsed as SealedConnectorEvents;
   } catch (error) {
@@ -706,31 +1048,44 @@ function decryptEnvelope(
     format: "der",
     type: "spki",
   });
-  const recipientJwk = createPublicKey(recipientPrivateKey).export({ format: "jwk" }) as { x?: string };
+  const recipientJwk = createPublicKey(recipientPrivateKey).export({
+    format: "jwk",
+  }) as { x?: string };
   if (!recipientJwk.x) throw badEnvelope();
   const recipientRaw = Buffer.from(recipientJwk.x, "base64url");
-  if (envelope.provider !== provider || envelope.profile !== profile) throw badEnvelope();
-  const aad = Buffer.from([
-    1,
-    SEAL_ALGORITHM,
-    envelope.purpose,
-    instanceId,
-    environment,
-    provider,
-    profile,
-    [...scopes].sort().join(" "),
-  ].join("\n"), "utf8");
-  const key = Buffer.from(hkdfSync(
-    "sha256",
-    diffieHellman({ privateKey: recipientPrivateKey, publicKey: ephemeralKey }),
-    Buffer.concat([ephemeralRaw, recipientRaw]),
-    aad,
-    32,
-  ));
+  if (envelope.provider !== provider || envelope.profile !== profile)
+    throw badEnvelope();
+  const aad = Buffer.from(
+    [
+      1,
+      SEAL_ALGORITHM,
+      envelope.purpose,
+      instanceId,
+      environment,
+      provider,
+      profile,
+      [...scopes].sort().join(" "),
+    ].join("\n"),
+    "utf8",
+  );
+  const key = Buffer.from(
+    hkdfSync(
+      "sha256",
+      diffieHellman({
+        privateKey: recipientPrivateKey,
+        publicKey: ephemeralKey,
+      }),
+      Buffer.concat([ephemeralRaw, recipientRaw]),
+      aad,
+      32,
+    ),
+  );
   const iv = Buffer.from(envelope.iv, "base64url");
   const combined = Buffer.from(envelope.ct, "base64url");
   if (iv.length !== 12 || combined.length <= AES_TAG_BYTES) throw badEnvelope();
-  const decipher = createDecipheriv("aes-256-gcm", key, iv, { authTagLength: AES_TAG_BYTES });
+  const decipher = createDecipheriv("aes-256-gcm", key, iv, {
+    authTagLength: AES_TAG_BYTES,
+  });
   decipher.setAAD(aad);
   decipher.setAuthTag(combined.subarray(-AES_TAG_BYTES));
   const plaintext = Buffer.concat([
@@ -741,7 +1096,10 @@ function decryptEnvelope(
 }
 
 function badEnvelope() {
-  return new TaskcoreCloudConnectorError("Taskcore Cloud connector returned an invalid sealed credential", "CONNECTOR_BAD_RESPONSE");
+  return new TaskcoreCloudConnectorError(
+    "Taskcore Cloud connector returned an invalid sealed credential",
+    "CONNECTOR_BAD_RESPONSE",
+  );
 }
 
 function sealPurpose(
@@ -759,9 +1117,15 @@ function connectorProfileDefinition(profile: TaskcoreCloudConnectorProfileId): {
     return { provider: "asana", scopes: ASANA_CONNECTOR_SCOPES };
   }
   if (isGitHubConnectorProfileId(profile)) {
-    return { provider: "github", scopes: GITHUB_CONNECTOR_PROFILES[profile].scopes };
+    return {
+      provider: "github",
+      scopes: GITHUB_CONNECTOR_PROFILES[profile].scopes,
+    };
   }
-  return { provider: "google", scopes: GOOGLE_WORKSPACE_CONNECTOR_PROFILES[profile].scopes };
+  return {
+    provider: "google",
+    scopes: GOOGLE_WORKSPACE_CONNECTOR_PROFILES[profile].scopes,
+  };
 }
 
 function isExpectedProviderAuthorizationUrl(
@@ -769,16 +1133,31 @@ function isExpectedProviderAuthorizationUrl(
   url: URL,
 ): boolean {
   if (isAsanaConnectorProfileId(profile)) {
-    return url.origin === "https://app.asana.com" && url.pathname === "/-/oauth_authorize";
+    return (
+      url.origin === "https://app.asana.com" &&
+      url.pathname === "/-/oauth_authorize"
+    );
   }
   if (isGitHubConnectorProfileId(profile)) {
-    return url.origin === "https://github.com" && url.pathname === "/login/oauth/authorize";
+    return (
+      url.origin === "https://github.com" &&
+      url.pathname === "/login/oauth/authorize"
+    );
   }
-  return url.origin === "https://accounts.google.com" && url.pathname === "/o/oauth2/v2/auth";
+  return (
+    url.origin === "https://accounts.google.com" &&
+    url.pathname === "/o/oauth2/v2/auth"
+  );
 }
 
-function isTaskcoreCloudConnectorProfileId(value: string): value is TaskcoreCloudConnectorProfileId {
-  return isGoogleWorkspaceConnectorProfileId(value) || isGitHubConnectorProfileId(value) || isAsanaConnectorProfileId(value);
+function isTaskcoreCloudConnectorProfileId(
+  value: string,
+): value is TaskcoreCloudConnectorProfileId {
+  return (
+    isGoogleWorkspaceConnectorProfileId(value) ||
+    isGitHubConnectorProfileId(value) ||
+    isAsanaConnectorProfileId(value)
+  );
 }
 
 async function sha256Base64Url(value: string): Promise<string> {
@@ -790,10 +1169,12 @@ function base64Url(value: string): string {
 }
 
 function sameStringSet(value: unknown, expected: readonly string[]): boolean {
-  return Array.isArray(value)
-    && value.every((item) => typeof item === "string")
-    && value.length === expected.length
-    && expected.every((item) => value.includes(item));
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === "string") &&
+    value.length === expected.length &&
+    expected.every((item) => value.includes(item))
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -801,5 +1182,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isLoopback(hostname: string): boolean {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname === "[::1]"
+  );
 }

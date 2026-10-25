@@ -73,25 +73,48 @@ import {
 import { serverVersion } from "../../version.js";
 
 import type { environmentService } from "../environments.js";
-import type { environmentRuntimeService, ProviderResourceDisposition } from "../environment-runtime.js";
+import type {
+  environmentRuntimeService,
+  ProviderResourceDisposition,
+} from "../environment-runtime.js";
 import type { agentInstructionWorkingCopyService } from "../agent-instruction-working-copies.js";
 import type { createHeartbeatRunState } from "./run-state.js";
-import type { HeartbeatRetryDependencies, createHeartbeatRetries } from "./retries.js";
+import type {
+  HeartbeatRetryDependencies,
+  createHeartbeatRetries,
+} from "./retries.js";
 
 type HeartbeatRun = typeof heartbeatRuns.$inferSelect;
 type HeartbeatRetries = ReturnType<typeof createHeartbeatRetries>;
 
 /** Recovery owns reconciliation; the service retains execution and lifecycle effects. */
-export interface HeartbeatRecoveryDependencies extends Pick<HeartbeatRetryDependencies,
-  "getAgent" | "appendRunEvent" | "setRunStatusIfRunning" |
-  "setWakeupStatus" | "releaseIssueExecutionAndPromote" | "finalizeAgentStatus"> {
+export interface HeartbeatRecoveryDependencies extends Pick<
+  HeartbeatRetryDependencies,
+  | "getAgent"
+  | "appendRunEvent"
+  | "setRunStatusIfRunning"
+  | "setWakeupStatus"
+  | "releaseIssueExecutionAndPromote"
+  | "finalizeAgentStatus"
+> {
   enterShutdown: () => void;
-  getRun: (runId: string, options?: Parameters<ReturnType<typeof createHeartbeatRunState>["getRun"]>[1]) => Promise<
-    Awaited<ReturnType<ReturnType<typeof createHeartbeatRunState>["getRun"]>> | null
-  >;
+  getRun: (
+    runId: string,
+    options?: Parameters<
+      ReturnType<typeof createHeartbeatRunState>["getRun"]
+    >[1],
+  ) => Promise<Awaited<
+    ReturnType<ReturnType<typeof createHeartbeatRunState>["getRun"]>
+  > | null>;
   environmentRuntime: ReturnType<typeof environmentRuntimeService>;
-  environmentsSvc: Pick<ReturnType<typeof environmentService>, "getById" | "getLeaseById" | "releaseLease">;
-  instructionCopies: Pick<ReturnType<typeof agentInstructionWorkingCopyService>, "recoverStopped" | "recoverCaptured">;
+  environmentsSvc: Pick<
+    ReturnType<typeof environmentService>,
+    "getById" | "getLeaseById" | "releaseLease"
+  >;
+  instructionCopies: Pick<
+    ReturnType<typeof agentInstructionWorkingCopyService>,
+    "recoverStopped" | "recoverCaptured"
+  >;
   runtimeEnv: Record<string, string | undefined>;
   // Preserve the module-wide sets shared by scheduler and route service instances.
   activeRunExecutions: Set<string>;
@@ -99,21 +122,39 @@ export interface HeartbeatRecoveryDependencies extends Pick<HeartbeatRetryDepend
   scheduleBoundedRetryForRun: HeartbeatRetries["scheduleBoundedRetryForRun"];
   scheduleInteractionContinuationInfrastructureRetryIfEligible: HeartbeatRetries["scheduleInteractionContinuationInfrastructureRetryIfEligible"];
   timerClaimWasFirstHeartbeat: HeartbeatRetries["timerClaimWasFirstHeartbeat"];
-  executeRun: (runId: string, options?: {
-    nativeLeaseOwner?: string;
-    nativeRestartRecovery?: NativeRestartRecoveryClaim;
-  }) => Promise<void>;
-  scheduleNativeSessionResumeDispatch: (runId: string, nextAttemptAt: Date) => void;
+  executeRun: (
+    runId: string,
+    options?: {
+      nativeLeaseOwner?: string;
+      nativeRestartRecovery?: NativeRestartRecoveryClaim;
+    },
+  ) => Promise<void>;
+  scheduleNativeSessionResumeDispatch: (
+    runId: string,
+    nextAttemptAt: Date,
+  ) => void;
   cancelHeartbeatNativeRun: (input: {
-    db: Db; runId: string; reason: string; runtimeMode: string | null;
+    db: Db;
+    runId: string;
+    reason: string;
+    runtimeMode: string | null;
   }) => Promise<unknown>;
   terminateHeartbeatRunProcess: (input: {
     pid: number | null | undefined;
     processGroupId: number | null | undefined;
     graceMs?: number;
   }) => Promise<void>;
-  setRunStatus: (runId: string, status: string, patch?: Partial<typeof heartbeatRuns.$inferInsert>) => Promise<HeartbeatRun | null>;
-  setRunStatusFromLive: (runId: string, status: string, fromStatuses: string[], patch?: Partial<typeof heartbeatRuns.$inferInsert>) => Promise<{
+  setRunStatus: (
+    runId: string,
+    status: string,
+    patch?: Partial<typeof heartbeatRuns.$inferInsert>,
+  ) => Promise<HeartbeatRun | null>;
+  setRunStatusFromLive: (
+    runId: string,
+    status: string,
+    fromStatuses: string[],
+    patch?: Partial<typeof heartbeatRuns.$inferInsert>,
+  ) => Promise<{
     updated: boolean;
     run: HeartbeatRun | null;
   }>;
@@ -127,7 +168,10 @@ export interface HeartbeatRecoveryDependencies extends Pick<HeartbeatRetryDepend
       errorMessage?: string | null;
     },
   ) => Record<string, unknown> | null;
-  classifyAndPersistRunLiveness: (run: HeartbeatRun, resultJson?: Record<string, unknown> | null) => Promise<HeartbeatRun | null>;
+  classifyAndPersistRunLiveness: (
+    run: HeartbeatRun,
+    resultJson?: Record<string, unknown> | null,
+  ) => Promise<HeartbeatRun | null>;
   releaseEnvironmentLeasesForRun: (input: {
     runId: string;
     companyId: string;
@@ -139,7 +183,11 @@ export interface HeartbeatRecoveryDependencies extends Pick<HeartbeatRetryDepend
   acknowledgeRemoteStop: (runId: string, companyId: string) => Promise<void>;
   resumeRemoteStopComments: (run: HeartbeatRun) => Promise<void>;
   dispatchPendingNativeStatusWakeups: () => Promise<unknown>;
-  cancelRunInternal: (runId: string, reason?: string, options?: { resultJson?: Record<string, unknown> }) => Promise<unknown>;
+  cancelRunInternal: (
+    runId: string,
+    reason?: string,
+    options?: { resultJson?: Record<string, unknown> },
+  ) => Promise<unknown>;
   startNextQueuedRunForAgent: (agentId: string) => Promise<unknown>;
 }
 
@@ -173,7 +221,8 @@ const PENDING_CLEANUP_RETRY_ERROR_KIND = "destroy_failed";
 
 const PENDING_CLEANUP_SWEEP_ERROR_KIND = "sweep_failed";
 
-const ORPHANED_ACTIVE_LEASE_SWEEP_ERROR_KIND = "orphaned_active_lease_sweep_failed";
+const ORPHANED_ACTIVE_LEASE_SWEEP_ERROR_KIND =
+  "orphaned_active_lease_sweep_failed";
 
 // Read the stored retry attempt count as a safe value, directly in SQL. A
 // provider can write a malformed value under the attempts key. The type guard
@@ -350,7 +399,10 @@ function readNonEmptyString(value: unknown): string | null {
 }
 
 /** Restart recovery shares the service lifecycle callbacks and execution ownership. */
-export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryDependencies) {
+export function createHeartbeatRecovery(
+  db: Db,
+  dependencies: HeartbeatRecoveryDependencies,
+) {
   const {
     enterShutdown,
     scheduleBoundedRetryForRun,
@@ -392,12 +444,18 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
   ) {
     // Completion deliveries own their durable bounded retry and reply identity.
     // A second process-loss retry would compete for the same outbox input.
-    if (run.contextSnapshot?.wakeReason === CHAT_COMPLETION_WAKE_REASON &&
-        Array.isArray(run.contextSnapshot?.chatCompletionDeliveryIds)) return null;
+    if (
+      run.contextSnapshot?.wakeReason === CHAT_COMPLETION_WAKE_REASON &&
+      Array.isArray(run.contextSnapshot?.chatCompletionDeliveryIds)
+    )
+      return null;
     // Native sessions have their own fenced same-run controller. Legacy
     // bootstrap recovery shares the durable delay and incident counter with
     // transient retries; process loss must not open a second retry budget.
-    if (run.runtimeMode === "native" || await legacyExecutionNeedsReconciliationWithEvidence(db, run))
+    if (
+      run.runtimeMode === "native" ||
+      (await legacyExecutionNeedsReconciliationWithEvidence(db, run))
+    )
       return null;
     const scheduled = await scheduleBoundedRetryForRun(run, agent, { now });
     return scheduled.outcome === "scheduled" ? scheduled.run : null;
@@ -461,7 +519,10 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
     enterShutdown();
     const idleSessions = await closeIdleWarmNativeSessionsForRestart();
     if (idleSessions.failed > 0) {
-      logger.warn({ idleSessions }, "idle native sessions could not checkpoint before controller shutdown");
+      logger.warn(
+        { idleSessions },
+        "idle native sessions could not checkpoint before controller shutdown",
+      );
     }
     let intent: Awaited<ReturnType<typeof readHotRestartIntent>>;
     try {
@@ -803,7 +864,10 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
       const updated = await db
         .update(heartbeatRuns)
         .set({
-          resultJson: preserveWorkspaceRestoreRecoveryMetadataSql(resultJson, true),
+          resultJson: preserveWorkspaceRestoreRecoveryMetadataSql(
+            resultJson,
+            true,
+          ),
           error:
             run.errorCode === DETACHED_PROCESS_ERROR_CODE ? null : run.error,
           errorCode:
@@ -1088,8 +1152,12 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
     for (const { run, agent } of activeRuns) {
       // Shutdown owns only this boot's legacy executions. Expired foreign
       // owners belong to the reaper, not another container's drain.
-      if (run.runtimeMode === "legacy" && run.controllerBootId &&
-          run.controllerBootId !== legacyControllerBootId) continue;
+      if (
+        run.runtimeMode === "legacy" &&
+        run.controllerBootId &&
+        run.controllerBootId !== legacyControllerBootId
+      )
+        continue;
       if (isNativeRunnerOwnershipHeld(run)) continue;
       if (
         run.runtimeMode === "native" &&
@@ -1191,7 +1259,10 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
           errorCode: "server_shutdown_interrupted",
           signal,
           resultJson: mergeRunStopMetadataForAgent(agent, "interrupted", {
-            conversationContinuationEligible: await runUsedConversationAdapter(db, run),
+            conversationContinuationEligible: await runUsedConversationAdapter(
+              db,
+              run,
+            ),
             resultJson: persistedCancellationResult,
             errorCode: "server_shutdown_interrupted",
             errorMessage: message,
@@ -1300,8 +1371,12 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
       .update(environmentLeases)
       .set({
         metadata: sql`jsonb_set(${pendingCleanupMetadataObjectSql()}, array[${PENDING_CLEANUP_ATTEMPTS_METADATA_KEY}], to_jsonb(${expectedAttempts + 1}::int), true)
-          || ${JSON.stringify({ ...(manualAttempt ? { pendingCleanupManualAttemptId: randomUUID() } : {}),
-            pendingCleanupAttemptId: attemptId, pendingCleanupInFlight: true,
+          || ${JSON.stringify({
+            ...(manualAttempt
+              ? { pendingCleanupManualAttemptId: randomUUID() }
+              : {}),
+            pendingCleanupAttemptId: attemptId,
+            pendingCleanupInFlight: true,
             pendingCleanupLeaseExpiresAtMs: Date.now() + 15 * 60_000,
           })}::jsonb`,
         lastUsedAt: now,
@@ -1312,7 +1387,9 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
           eq(environmentLeases.id, leaseId),
           eq(environmentLeases.status, "pending_cleanup"),
           sql`${pendingCleanupAttemptsSql()} = ${expectedAttempts}`,
-          manualAttempt ? sql`coalesce(${environmentLeases.metadata}->'pendingCleanupManualAttemptId', 'null'::jsonb) is not distinct from ${JSON.stringify(manualAttempt.previousId ?? null)}::jsonb` : undefined,
+          manualAttempt
+            ? sql`coalesce(${environmentLeases.metadata}->'pendingCleanupManualAttemptId', 'null'::jsonb) is not distinct from ${JSON.stringify(manualAttempt.previousId ?? null)}::jsonb`
+            : undefined,
           pendingCleanupRetryDueSql(Boolean(manualAttempt)),
         ),
       )
@@ -1423,9 +1500,7 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
           eq(environmentLeases.status, "active"),
           or(
             isNull(environmentLeases.heartbeatRunId),
-            inArray(heartbeatRuns.status, [
-              ...HEARTBEAT_RUN_TERMINAL_STATUSES,
-            ]),
+            inArray(heartbeatRuns.status, [...HEARTBEAT_RUN_TERMINAL_STATUSES]),
           ),
           lte(environmentLeases.updatedAt, cutoff),
         ),
@@ -1501,7 +1576,12 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
      * A later user Retry may bypass the cooldown after a provider failure,
      * but cannot take over an in-flight cleanup attempt.
      */
-    explicitRetry?: { companyId: string; runId: string; actorId: string; reason?: "retry_failed_run" | "queued_comment_interrupt" };
+    explicitRetry?: {
+      companyId: string;
+      runId: string;
+      actorId: string;
+      reason?: "retry_failed_run" | "queued_comment_interrupt";
+    };
   }): Promise<{
     swept: number;
     destroyed: number;
@@ -1517,7 +1597,9 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
     // `pending_cleanup` row lands once the database recovers. The flush runs
     // before the read below, so this same tick tears down a freshly-landed row.
     try {
-      const flushed = opts?.explicitRetry ? null : await environmentRuntime.flushDeferredOrphanCleanups?.();
+      const flushed = opts?.explicitRetry
+        ? null
+        : await environmentRuntime.flushDeferredOrphanCleanups?.();
       if (flushed && (flushed.recovered > 0 || flushed.pending > 0)) {
         logger.info(
           { recovered: flushed.recovered, pending: flushed.pending },
@@ -1540,8 +1622,12 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
       .where(
         and(
           eq(environmentLeases.status, "pending_cleanup"),
-          opts?.explicitRetry ? eq(environmentLeases.companyId, opts.explicitRetry.companyId) : undefined,
-          opts?.explicitRetry ? eq(environmentLeases.heartbeatRunId, opts.explicitRetry.runId) : undefined,
+          opts?.explicitRetry
+            ? eq(environmentLeases.companyId, opts.explicitRetry.companyId)
+            : undefined,
+          opts?.explicitRetry
+            ? eq(environmentLeases.heartbeatRunId, opts.explicitRetry.runId)
+            : undefined,
           pendingCleanupRetryDueSql(Boolean(opts?.explicitRetry)),
           backoffMs > 0 ? lte(environmentLeases.updatedAt, cutoff) : undefined,
         ),
@@ -1575,7 +1661,8 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
       // path uses the provider and configuration recorded on the lease first;
       // the environment is lifecycle context and only a legacy fallback.
       const isOrphanEphemeralLease = lease.leasePolicy === "ephemeral";
-      const useRecordedTeardown = isOrphanEphemeralLease || !environment || hasStopOnlyCleanup(lease);
+      const useRecordedTeardown =
+        isOrphanEphemeralLease || !environment || hasStopOnlyCleanup(lease);
 
       // Do not consume a finite cleanup attempt while the provider plugin is
       // briefly unavailable. A plugin worker restart, a plugin reload, or a
@@ -1611,31 +1698,60 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
       // cannot start another attempt while this one holds the cleanup lease.
       // The deadline survives a server restart; the counter saturates at the
       // escalation threshold while attempt identities remain unique.
-      const claimed = await claimPendingCleanupRetryAttempt(row.id, attempts,
-        opts?.explicitRetry ? { previousId: metadata.pendingCleanupManualAttemptId } : undefined);
+      const claimed = await claimPendingCleanupRetryAttempt(
+        row.id,
+        attempts,
+        opts?.explicitRetry
+          ? { previousId: metadata.pendingCleanupManualAttemptId }
+          : undefined,
+      );
       if (!claimed) continue;
       pendingCleanupAttemptsInFlight.add(row.id);
       lease.metadata = { ...lease.metadata, pendingCleanupAttemptId: claimed };
       let activeRenewal: Promise<void> | null = null;
       const renewal = setInterval(() => {
         if (activeRenewal) return;
-        activeRenewal = db.update(environmentLeases).set({
-          metadata: sql`jsonb_set(${pendingCleanupMetadataObjectSql()}, '{pendingCleanupLeaseExpiresAtMs}', to_jsonb(${Date.now() + 15 * 60_000}::bigint))`,
-        }).where(and(eq(environmentLeases.id, row.id), eq(environmentLeases.status, "pending_cleanup"),
-          sql`${environmentLeases.metadata}->>'pendingCleanupAttemptId' = ${claimed}`,
-          sql`${environmentLeases.metadata}->>'pendingCleanupInFlight' = 'true'`))
+        activeRenewal = db
+          .update(environmentLeases)
+          .set({
+            metadata: sql`jsonb_set(${pendingCleanupMetadataObjectSql()}, '{pendingCleanupLeaseExpiresAtMs}', to_jsonb(${Date.now() + 15 * 60_000}::bigint))`,
+          })
+          .where(
+            and(
+              eq(environmentLeases.id, row.id),
+              eq(environmentLeases.status, "pending_cleanup"),
+              sql`${environmentLeases.metadata}->>'pendingCleanupAttemptId' = ${claimed}`,
+              sql`${environmentLeases.metadata}->>'pendingCleanupInFlight' = 'true'`,
+            ),
+          )
           .then(() => {})
-          .catch(() => logger.warn({ leaseId: row.id }, "cleanup ownership renewal failed"))
-          .finally(() => { activeRenewal = null; });
+          .catch(() =>
+            logger.warn(
+              { leaseId: row.id },
+              "cleanup ownership renewal failed",
+            ),
+          )
+          .finally(() => {
+            activeRenewal = null;
+          });
       }, 30_000);
       renewal.unref();
 
       try {
-        if (opts?.explicitRetry) await logActivity(db, {
-          companyId: row.companyId, actorType: "user", actorId: opts.explicitRetry.actorId,
-          action: "environment_lease.cleanup_retried", entityType: "environment_lease", entityId: row.id,
-          runId: opts.explicitRetry.runId, details: { attempt: attempts + 1, reason: opts.explicitRetry.reason ?? "retry_failed_run" },
-        });
+        if (opts?.explicitRetry)
+          await logActivity(db, {
+            companyId: row.companyId,
+            actorType: "user",
+            actorId: opts.explicitRetry.actorId,
+            action: "environment_lease.cleanup_retried",
+            entityType: "environment_lease",
+            entityId: row.id,
+            runId: opts.explicitRetry.runId,
+            details: {
+              attempt: attempts + 1,
+              reason: opts.explicitRetry.reason ?? "retry_failed_run",
+            },
+          });
         if (useRecordedTeardown) {
           // Tear the sandbox down from the recorded provider config and the
           // cleanup-authorized secret versions. Preserve any provider receipt;
@@ -1645,13 +1761,19 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
             lease,
           });
           const released = hasStopOnlyCleanup(lease)
-            ? await settleStopOnlyCleanup(db, lease, { attemptId: claimed, receipt })
+            ? await settleStopOnlyCleanup(db, lease, {
+                attemptId: claimed,
+                receipt,
+              })
             : await environmentsSvc.releaseLease(lease.id, "expired", {
-            expectedPendingCleanupAttemptId: claimed,
-            cleanupStatus: "success",
-            failureReason: "pending_cleanup_retry",
-            remoteExecutionTermination: remoteTerminationReceipt(lease, receipt),
-          });
+                expectedPendingCleanupAttemptId: claimed,
+                cleanupStatus: "success",
+                failureReason: "pending_cleanup_retry",
+                remoteExecutionTermination: remoteTerminationReceipt(
+                  lease,
+                  receipt,
+                ),
+              });
           if (released) destroyed += 1;
         } else if (environment) {
           const result = await environmentRuntime.destroyRunLease({
@@ -1709,14 +1831,26 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
       }
       // Persist the cooldown independently of process memory. A crash before
       // this write leaves the bounded in-flight lease for a later sweep.
-      await db.update(environmentLeases).set({
-        metadata: sql`${pendingCleanupMetadataObjectSql()} || ${JSON.stringify({
-          pendingCleanupInFlight: false,
-          pendingCleanupRetryAfterMs: Date.now() + (attempts + 1 >= PENDING_CLEANUP_SWEEP_ATTEMPT_CAP
-            ? 30 * 60_000 : Math.min(30 * 60_000, Math.max(30_000, backoffMs))),
-        })}::jsonb`,
-      }).where(and(eq(environmentLeases.id, lease.id),
-        sql`${environmentLeases.metadata}->>'pendingCleanupAttemptId' = ${claimed}`));
+      await db
+        .update(environmentLeases)
+        .set({
+          metadata: sql`${pendingCleanupMetadataObjectSql()} || ${JSON.stringify(
+            {
+              pendingCleanupInFlight: false,
+              pendingCleanupRetryAfterMs:
+                Date.now() +
+                (attempts + 1 >= PENDING_CLEANUP_SWEEP_ATTEMPT_CAP
+                  ? 30 * 60_000
+                  : Math.min(30 * 60_000, Math.max(30_000, backoffMs))),
+            },
+          )}::jsonb`,
+        })
+        .where(
+          and(
+            eq(environmentLeases.id, lease.id),
+            sql`${environmentLeases.metadata}->>'pendingCleanupAttemptId' = ${claimed}`,
+          ),
+        );
       if (lease.heartbeatRunId) {
         // Delivery failure must not revert successful provider cleanup. A new
         // message can still use the persisted receipt on its next admission.
@@ -1724,7 +1858,12 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
           await acknowledgeRemoteStop(lease.heartbeatRunId!, lease.companyId);
           const run = await getRun(lease.heartbeatRunId!);
           if (run) await resumeRemoteStopComments(run);
-        })().catch(() => logger.warn({ leaseId: lease.id }, "could not reconsider messages after cleanup retry"));
+        })().catch(() =>
+          logger.warn(
+            { leaseId: lease.id },
+            "could not reconsider messages after cleanup retry",
+          ),
+        );
       }
     }
 
@@ -1804,9 +1943,12 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
       agentId: input.agentId,
       status: settledRun?.status,
       failureReason: settledRun?.error ?? undefined,
-      providerResourceDisposition: input.succeeded && (!parseObject(settledRun?.resultJson).workspaceExportRetry || workspaceSyncReference?.resourceDisposition === "destroy")
-        ? (workspaceSyncReference?.resourceDisposition ?? "stop_and_retain")
-        : "stop_and_retain",
+      providerResourceDisposition:
+        input.succeeded &&
+        (!parseObject(settledRun?.resultJson).workspaceExportRetry ||
+          workspaceSyncReference?.resourceDisposition === "destroy")
+          ? (workspaceSyncReference?.resourceDisposition ?? "stop_and_retain")
+          : "stop_and_retain",
     });
     await releaseRuntimeServicesForRun(input.runId).catch(() => undefined);
     await finalizeAgentStatus(
@@ -1853,11 +1995,17 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
     const now = new Date();
     // Recovery never launches a provider or infers stopped ownership from
     // terminal status. Uncaptured local copies require durable stop evidence.
-    await instructionCopies.recoverStopped().catch(error => {
-      logger.warn({ err: error }, "failed to recover stopped instruction copies");
+    await instructionCopies.recoverStopped().catch((error) => {
+      logger.warn(
+        { err: error },
+        "failed to recover stopped instruction copies",
+      );
     });
-    await instructionCopies.recoverCaptured().catch(error => {
-      logger.warn({ err: error }, "failed to retry captured instruction revisions");
+    await instructionCopies.recoverCaptured().catch((error) => {
+      logger.warn(
+        { err: error },
+        "failed to retry captured instruction revisions",
+      );
     });
 
     // Complete persisted native results before generic orphan recovery. The
@@ -1919,7 +2067,7 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
         });
         continue;
       }
-      const cleared = await db.transaction(async tx => {
+      const cleared = await db.transaction(async (tx) => {
         const cleared = await tx
           .update(heartbeatRuns)
           .set({
@@ -1945,7 +2093,8 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
           )
           .returning({ id: heartbeatRuns.id })
           .then((rows) => rows[0] ?? null);
-        if (cleared) await recordNativeLocalProcessStop(tx as unknown as Db, run);
+        if (cleared)
+          await recordNativeLocalProcessStop(tx as unknown as Db, run);
         return cleared;
       });
       if (cleared) claimableNativeRunIds.add(cleared.id);
@@ -2258,7 +2407,10 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
         checksPersistedChildLiveness,
         retryEligible: shouldRetry,
       });
-      const conversationContinuationEligible = await runUsedConversationAdapter(db, run);
+      const conversationContinuationEligible = await runUsedConversationAdapter(
+        db,
+        run,
+      );
 
       const failureWrite = await setRunStatusFromLive(
         run.id,
@@ -2274,7 +2426,10 @@ export function createHeartbeatRecovery(db: Db, dependencies: HeartbeatRecoveryD
               "failed",
               {
                 conversationContinuationEligible,
-                resultJson: { ...parseObject(run.resultJson), processLossDiagnostic },
+                resultJson: {
+                  ...parseObject(run.resultJson),
+                  processLossDiagnostic,
+                },
                 errorCode: "process_lost",
                 errorMessage: shouldRetry
                   ? `${baseMessage}; retrying once`

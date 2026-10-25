@@ -17,7 +17,9 @@ export interface SplitRemoteUrlCredential {
  * only its public origin, path, and non-sensitive query configuration remain
  * in connection config and API responses.
  */
-export function splitRemoteUrlCredential(value: string): SplitRemoteUrlCredential {
+export function splitRemoteUrlCredential(
+  value: string,
+): SplitRemoteUrlCredential {
   const input = value.trim();
   const url = new URL(input);
   const hasUserInfo = url.username.length > 0 || url.password.length > 0;
@@ -48,7 +50,8 @@ export function redactRemoteUrlCredential(value: string): string {
       url.password = "";
     }
     for (const key of [...url.searchParams.keys()]) {
-      if (SENSITIVE_URL_FIELD_PATTERN.test(key)) url.searchParams.set(key, REDACTED_URL_VALUE);
+      if (SENSITIVE_URL_FIELD_PATTERN.test(key))
+        url.searchParams.set(key, REDACTED_URL_VALUE);
     }
     return url.toString();
   } catch {
@@ -61,9 +64,15 @@ export function redactRemoteUrlCredential(value: string): string {
  * replacement constrained to the public endpoint the operator originally
  * reviewed; only credential-bearing query values may differ.
  */
-export function remoteUrlCredentialMatchesPublicUrl(publicValue: string, secretValue: string): boolean {
+export function remoteUrlCredentialMatchesPublicUrl(
+  publicValue: string,
+  secretValue: string,
+): boolean {
   try {
-    return splitRemoteUrlCredential(secretValue).publicUrl === new URL(publicValue).toString();
+    return (
+      splitRemoteUrlCredential(secretValue).publicUrl ===
+      new URL(publicValue).toString()
+    );
   } catch {
     return false;
   }

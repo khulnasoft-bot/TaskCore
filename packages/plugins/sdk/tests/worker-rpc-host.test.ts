@@ -22,7 +22,10 @@ import {
   type JsonRpcResponse,
   type PluginInvocationContext,
 } from "../src/protocol.js";
-import { isWorkerEntrypoint, startWorkerRpcHost } from "../src/worker-rpc-host.js";
+import {
+  isWorkerEntrypoint,
+  startWorkerRpcHost,
+} from "../src/worker-rpc-host.js";
 
 describe("isWorkerEntrypoint", () => {
   const tempRoots: string[] = [];
@@ -34,7 +37,9 @@ describe("isWorkerEntrypoint", () => {
   });
 
   function createTempRoot(): string {
-    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-sdk-worker-"));
+    const tempRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-sdk-worker-"),
+    );
     tempRoots.push(tempRoot);
     return tempRoot;
   }
@@ -65,10 +70,7 @@ describe("isWorkerEntrypoint", () => {
     fs.writeFileSync(otherPath, "");
 
     expect(
-      isWorkerEntrypoint(
-        otherPath,
-        pathToFileURL(workerPath).toString(),
-      ),
+      isWorkerEntrypoint(otherPath, pathToFileURL(workerPath).toString()),
     ).toBe(false);
   });
 });
@@ -118,26 +120,30 @@ describe("worker performAction context", () => {
     });
 
     try {
-      await expect(callWorker("initialize", {
-        manifest: {
-          id: "taskcore.test-worker-context",
-          apiVersion: 1,
-          version: "1.0.0",
-          displayName: "Worker Context Test",
-          description: "Test plugin",
-          author: "Taskcore",
-          categories: ["automation"],
-          capabilities: [],
-          entrypoints: {},
-        },
-        config: {},
-        databaseNamespace: null,
-      })).resolves.toMatchObject({ ok: true });
+      await expect(
+        callWorker("initialize", {
+          manifest: {
+            id: "taskcore.test-worker-context",
+            apiVersion: 1,
+            version: "1.0.0",
+            displayName: "Worker Context Test",
+            description: "Test plugin",
+            author: "Taskcore",
+            categories: ["automation"],
+            capabilities: [],
+            entrypoints: {},
+          },
+          config: {},
+          databaseNamespace: null,
+        }),
+      ).resolves.toMatchObject({ ok: true });
 
-      await expect(callWorker("performAction", {
-        key: "inspect",
-        params: { companyId: "spoofed-company" },
-      })).resolves.toEqual({
+      await expect(
+        callWorker("performAction", {
+          key: "inspect",
+          params: { companyId: "spoofed-company" },
+        }),
+      ).resolves.toEqual({
         paramsCompanyId: "spoofed-company",
         actor: {
           type: "system",
@@ -179,7 +185,9 @@ describe("worker invocation scope propagation", () => {
               releaseCompanyA = resolve;
             });
           }
-          const company = await ctx.companies.get(String(params.requestedCompanyId));
+          const company = await ctx.companies.get(
+            String(params.requestedCompanyId),
+          );
           return { label: params.label, company };
         });
       },
@@ -191,7 +199,11 @@ describe("worker invocation scope propagation", () => {
       stdout: workerToHost,
     });
 
-    function callWorker(method: string, params: unknown, invocation?: PluginInvocationContext) {
+    function callWorker(
+      method: string,
+      params: unknown,
+      invocation?: PluginInvocationContext,
+    ) {
       const id = `host-${nextRequestId++}`;
       const request = {
         ...createRequest(method, params, id),
@@ -221,22 +233,33 @@ describe("worker invocation scope propagation", () => {
       if (!isJsonRpcRequest(message)) return;
       if (message.method !== "companies.get") return;
 
-      const invocationId = (message as { taskcoreInvocationId?: string }).taskcoreInvocationId ?? "";
-      const requestedCompanyId = (message.params as { companyId?: string }).companyId;
+      const invocationId =
+        (message as { taskcoreInvocationId?: string }).taskcoreInvocationId ??
+        "";
+      const requestedCompanyId = (message.params as { companyId?: string })
+        .companyId;
       const allowedCompanyId = invocationCompanies.get(invocationId);
       nestedInvocationIds.push(invocationId);
       if (requestedCompanyId !== allowedCompanyId) {
-        hostToWorker.write(serializeMessage(createErrorResponse(
-          message.id,
-          PLUGIN_RPC_ERROR_CODES.CAPABILITY_DENIED,
-          `requested company "${requestedCompanyId}" but invocation "${invocationId}" is scoped to "${allowedCompanyId}"`,
-        )));
+        hostToWorker.write(
+          serializeMessage(
+            createErrorResponse(
+              message.id,
+              PLUGIN_RPC_ERROR_CODES.CAPABILITY_DENIED,
+              `requested company "${requestedCompanyId}" but invocation "${invocationId}" is scoped to "${allowedCompanyId}"`,
+            ),
+          ),
+        );
         return;
       }
 
-      hostToWorker.write(serializeMessage(createSuccessResponse(message.id, {
-        id: requestedCompanyId,
-      })));
+      hostToWorker.write(
+        serializeMessage(
+          createSuccessResponse(message.id, {
+            id: requestedCompanyId,
+          }),
+        ),
+      );
 
       if (invocationId === "invocation-b") {
         releaseCompanyA?.();
@@ -369,22 +392,58 @@ describe("worker configChanged cross-tenant guard", () => {
     return { callWorker, initialize, stop };
   }
 
-  it.each([false, true])("advertises and dispatches stop-only only with an explicit hook: %s", async supported => {
-    let releases = 0, stops = 0;
-    const worker = makeWorker(definePlugin({ async setup() {},
-      async onEnvironmentReleaseLease() { releases++; return { providerLeaseId: "allocation", state: "destroyed" }; },
-      ...(supported ? { async onEnvironmentStopLease() { stops++; return { providerLeaseId: "allocation", state: "stopped" as const }; } } : {}),
-    }));
-    try {
-      const initialized = await worker.initialize() as { supportedMethods: string[] };
-      expect(initialized.supportedMethods.includes("environmentStopLease")).toBe(supported);
-      const stopped = worker.callWorker("environmentStopLease", { driverKey: "fixture", companyId: "company", environmentId: "environment", providerLeaseId: "allocation", config: {} });
-      if (supported) await expect(stopped).resolves.toEqual({ providerLeaseId: "allocation", state: "stopped" });
-      else await expect(stopped).rejects.toThrow();
-      expect(stops).toBe(supported ? 1 : 0);
-      expect(releases).toBe(0);
-    } finally { worker.stop(); }
-  });
+  it.each([false, true])(
+    "advertises and dispatches stop-only only with an explicit hook: %s",
+    async (supported) => {
+      let releases = 0,
+        stops = 0;
+      const worker = makeWorker(
+        definePlugin({
+          async setup() {},
+          async onEnvironmentReleaseLease() {
+            releases++;
+            return { providerLeaseId: "allocation", state: "destroyed" };
+          },
+          ...(supported
+            ? {
+                async onEnvironmentStopLease() {
+                  stops++;
+                  return {
+                    providerLeaseId: "allocation",
+                    state: "stopped" as const,
+                  };
+                },
+              }
+            : {}),
+        }),
+      );
+      try {
+        const initialized = (await worker.initialize()) as {
+          supportedMethods: string[];
+        };
+        expect(
+          initialized.supportedMethods.includes("environmentStopLease"),
+        ).toBe(supported);
+        const stopped = worker.callWorker("environmentStopLease", {
+          driverKey: "fixture",
+          companyId: "company",
+          environmentId: "environment",
+          providerLeaseId: "allocation",
+          config: {},
+        });
+        if (supported)
+          await expect(stopped).resolves.toEqual({
+            providerLeaseId: "allocation",
+            state: "stopped",
+          });
+        else await expect(stopped).rejects.toThrow();
+        expect(stops).toBe(supported ? 1 : 0);
+        expect(releases).toBe(0);
+      } finally {
+        worker.stop();
+      }
+    },
+  );
 
   it("fails closed when a second, distinct company's config would overwrite a single-tenant worker", async () => {
     const applied: Array<{ companyId: string | null; token: unknown }> = [];
@@ -540,9 +599,17 @@ describe("worker provider tracer", () => {
       },
     });
 
-    const worker = startWorkerRpcHost({ plugin, stdin: hostToWorker, stdout: workerToHost });
+    const worker = startWorkerRpcHost({
+      plugin,
+      stdin: hostToWorker,
+      stdout: workerToHost,
+    });
 
-    function callWorker(method: string, params: unknown, inv?: PluginInvocationContext) {
+    function callWorker(
+      method: string,
+      params: unknown,
+      inv?: PluginInvocationContext,
+    ) {
       const id = `host-${nextRequestId++}`;
       const request = {
         ...createRequest(method, params, id),
@@ -572,9 +639,12 @@ describe("worker provider tracer", () => {
       if (message.method === "span.record") {
         spanRecords.push({
           params: message.params,
-          invocationId: (message as { taskcoreInvocationId?: string }).taskcoreInvocationId,
+          invocationId: (message as { taskcoreInvocationId?: string })
+            .taskcoreInvocationId,
         });
-        hostToWorker.write(serializeMessage(createSuccessResponse(message.id, null)));
+        hostToWorker.write(
+          serializeMessage(createSuccessResponse(message.id, null)),
+        );
       }
     });
 
@@ -595,7 +665,11 @@ describe("worker provider tracer", () => {
         instanceInfo: { instanceId: "test", hostVersion: "0.0.0" },
         apiVersion: 1,
       });
-      await callWorker("getData", { key: "probe", companyId: "company-a", params: {} }, invocation);
+      await callWorker(
+        "getData",
+        { key: "probe", companyId: "company-a", params: {} },
+        invocation,
+      );
       // Let the fire-and-forget span.record flush.
       await new Promise((resolve) => setTimeout(resolve, 20));
       return spanRecords;
@@ -675,9 +749,17 @@ describe("worker execute.log emitter", () => {
       },
     });
 
-    const worker = startWorkerRpcHost({ plugin, stdin: hostToWorker, stdout: workerToHost });
+    const worker = startWorkerRpcHost({
+      plugin,
+      stdin: hostToWorker,
+      stdout: workerToHost,
+    });
 
-    function callWorker(method: string, params: unknown, inv?: PluginInvocationContext) {
+    function callWorker(
+      method: string,
+      params: unknown,
+      inv?: PluginInvocationContext,
+    ) {
       const id = `host-${nextRequestId++}`;
       const request = {
         ...createRequest(method, params, id),
@@ -708,7 +790,8 @@ describe("worker execute.log emitter", () => {
       if ((message as { method?: string }).method === "execute.log") {
         logRecords.push({
           params: (message as { params?: unknown }).params,
-          invocationId: (message as { taskcoreInvocationId?: string }).taskcoreInvocationId,
+          invocationId: (message as { taskcoreInvocationId?: string })
+            .taskcoreInvocationId,
         });
       }
     });
@@ -730,7 +813,11 @@ describe("worker execute.log emitter", () => {
         instanceInfo: { instanceId: "test", hostVersion: "0.0.0" },
         apiVersion: 1,
       });
-      await callWorker("getData", { key: "emit-logs", companyId: "company-a", params: {} }, invocation);
+      await callWorker(
+        "getData",
+        { key: "emit-logs", companyId: "company-a", params: {} },
+        invocation,
+      );
       // Let the fire-and-forget execute.log notifications flush.
       await new Promise((resolve) => setTimeout(resolve, 20));
       return logRecords;
@@ -770,7 +857,10 @@ describe("worker execute.log emitter", () => {
       ],
     );
     expect(records).toEqual([
-      { params: { stream: "stdout", chunk: "kept" }, invocationId: "invocation-a" },
+      {
+        params: { stream: "stdout", chunk: "kept" },
+        invocationId: "invocation-a",
+      },
     ]);
   });
 });
@@ -786,7 +876,8 @@ describe("worker setup-token pseudo-terminal dispatch", () => {
 
     // The fake session the opener returns. The test drives its output and exit.
     let emitOutput: ((chunk: string) => void) | null = null;
-    let resolveWait: ((value: { exitCode: number | null }) => void) | null = null;
+    let resolveWait: ((value: { exitCode: number | null }) => void) | null =
+      null;
     const inputs: string[] = [];
     let killed = 0;
     let closed = 0;
@@ -795,8 +886,10 @@ describe("worker setup-token pseudo-terminal dispatch", () => {
     // worker session id. The test drives them through the captured emitters.
     const controllablePlugin = definePlugin({
       async setup(ctx) {
-        emitOutput = (chunk: string) => ctx.loginPty.output("route-1", "ws-1", chunk);
-        resolveWait = (value) => ctx.loginPty.exit("route-1", "ws-1", value.exitCode);
+        emitOutput = (chunk: string) =>
+          ctx.loginPty.output("route-1", "ws-1", chunk);
+        resolveWait = (value) =>
+          ctx.loginPty.exit("route-1", "ws-1", value.exitCode);
       },
       async onLoginPtyOpen(params) {
         // The open carries the host route id, the closed command key, and the
@@ -891,13 +984,17 @@ describe("worker setup-token pseudo-terminal dispatch", () => {
           environmentId: "env-1",
           providerLeaseId: "lease-1",
           loginCommandKey: "claude",
-          sessionHome: "/tmp/taskcore-adapter-login/11111111-2222-4333-8444-555555555555",
+          sessionHome:
+            "/tmp/taskcore-adapter-login/11111111-2222-4333-8444-555555555555",
         }),
       ).resolves.toEqual({ workerSessionId: "ws-1" });
 
       // The worker streams output as a notification bound to the worker session id.
       emitOutput?.("prompt output");
-      await callWorker("loginPtyInput", { workerSessionId: "ws-1", data: "browser-code" });
+      await callWorker("loginPtyInput", {
+        workerSessionId: "ws-1",
+        data: "browser-code",
+      });
       await callWorker("loginPtyStop", { workerSessionId: "ws-1" });
       resolveWait?.({ exitCode: 0 });
       await expect(
@@ -913,7 +1010,11 @@ describe("worker setup-token pseudo-terminal dispatch", () => {
         (note) => note.method === "loginPty.output",
       );
       expect(outputNotes.map((note) => note.params)).toEqual([
-        { hostRouteId: "route-1", workerSessionId: "ws-1", chunk: "prompt output" },
+        {
+          hostRouteId: "route-1",
+          workerSessionId: "ws-1",
+          chunk: "prompt output",
+        },
       ]);
       const exitNotes = notifications.filter(
         (note) => note.method === "loginPty.exit",
@@ -1030,7 +1131,10 @@ describe("worker duplex channel dispatch", () => {
         }),
       ).resolves.toEqual({ workerSessionId: "ws-1" });
 
-      await callWorker("duplexChannelWrite", { workerSessionId: "ws-1", data: "payload" });
+      await callWorker("duplexChannelWrite", {
+        workerSessionId: "ws-1",
+        data: "payload",
+      });
       await callWorker("duplexChannelStop", { workerSessionId: "ws-1" });
       await expect(
         callWorker("duplexChannelClose", { hostRouteId: "route-1" }),
@@ -1116,66 +1220,164 @@ describe("worker duplex channel dispatch", () => {
   });
 });
 
-
 describe("AI connection router RPC", () => {
   it("advertises and calls only an implemented routing hook", async () => {
-    const input = new PassThrough(), output = new PassThrough();
+    const input = new PassThrough(),
+      output = new PassThrough();
     const reader = createInterface({ input: output });
-    const request = { companyId: "company", taskKey: "task", candidates: [], memberOrder: [] };
+    const request = {
+      companyId: "company",
+      taskKey: "task",
+      candidates: [],
+      memberOrder: [],
+    };
     let received: unknown;
-    const plugin = definePlugin({ async setup() {}, onRouteAiConnection(params) { received = params; return { kind: "selected", memberId: "authorized-member" }; } });
+    const plugin = definePlugin({
+      async setup() {},
+      onRouteAiConnection(params) {
+        received = params;
+        return { kind: "selected", memberId: "authorized-member" };
+      },
+    });
     const worker = startWorkerRpcHost({ plugin, stdin: input, stdout: output });
     let sequence = 0;
     const pending = new Map<string, (value: unknown) => void>();
-    reader.on("line", line => { const response = parseMessage(line); if (isJsonRpcResponse(response)) { pending.get(String(response.id))?.(response); pending.delete(String(response.id)); } });
-    const call = (method: string, params: unknown) => new Promise<JsonRpcResponse>(resolve => { const id = String(++sequence); pending.set(id, value => resolve(value as JsonRpcResponse)); input.write(serializeMessage(createRequest(method, params, id))); });
+    reader.on("line", (line) => {
+      const response = parseMessage(line);
+      if (isJsonRpcResponse(response)) {
+        pending.get(String(response.id))?.(response);
+        pending.delete(String(response.id));
+      }
+    });
+    const call = (method: string, params: unknown) =>
+      new Promise<JsonRpcResponse>((resolve) => {
+        const id = String(++sequence);
+        pending.set(id, (value) => resolve(value as JsonRpcResponse));
+        input.write(serializeMessage(createRequest(method, params, id)));
+      });
     try {
-      const initialized = await call("initialize", { manifest: { id: "fixture.router", apiVersion: 1, version: "1.0.0", displayName: "Router", description: "Fixture", author: "Tests", categories: ["connector"], capabilities: ["ai.connections.route"], entrypoints: {} }, config: {}, databaseNamespace: null });
-      expect((initialized as { result: { supportedMethods: string[] } }).result.supportedMethods).toContain("routeAiConnection");
-      expect((await call("routeAiConnection", request) as { result: unknown }).result).toEqual({ kind: "selected", memberId: "authorized-member" });
+      const initialized = await call("initialize", {
+        manifest: {
+          id: "fixture.router",
+          apiVersion: 1,
+          version: "1.0.0",
+          displayName: "Router",
+          description: "Fixture",
+          author: "Tests",
+          categories: ["connector"],
+          capabilities: ["ai.connections.route"],
+          entrypoints: {},
+        },
+        config: {},
+        databaseNamespace: null,
+      });
+      expect(
+        (initialized as { result: { supportedMethods: string[] } }).result
+          .supportedMethods,
+      ).toContain("routeAiConnection");
+      expect(
+        ((await call("routeAiConnection", request)) as { result: unknown })
+          .result,
+      ).toEqual({ kind: "selected", memberId: "authorized-member" });
       expect(received).toEqual(request);
-    } finally { worker.stop(); reader.close(); input.destroy(); output.destroy(); }
+    } finally {
+      worker.stop();
+      reader.close();
+      input.destroy();
+      output.destroy();
+    }
   });
 });
 
 describe("Durable lifecycle inbox RPC", () => {
   it("sends company-scoped reads and acknowledgments through the worker SDK", async () => {
-    const input = new PassThrough(), output = new PassThrough();
+    const input = new PassThrough(),
+      output = new PassThrough();
     const reader = createInterface({ input: output });
     const calls: Array<{ method: string; params: unknown }> = [];
-    const event = { id: "7", companyId: "company-a", resourceType: "agent", resourceId: "agent-a", action: "pause", createdAt: new Date(0).toISOString() };
-    const plugin = definePlugin({ async setup(ctx) {
-      ctx.data.register("drain", async ({ companyId }) => {
-        const events = await ctx.events.listLifecycle(companyId!, 10, "6");
-        await ctx.events.acknowledgeLifecycle(companyId!, events[0].id);
-        return events;
-      });
-    } });
+    const event = {
+      id: "7",
+      companyId: "company-a",
+      resourceType: "agent",
+      resourceId: "agent-a",
+      action: "pause",
+      createdAt: new Date(0).toISOString(),
+    };
+    const plugin = definePlugin({
+      async setup(ctx) {
+        ctx.data.register("drain", async ({ companyId }) => {
+          const events = await ctx.events.listLifecycle(companyId!, 10, "6");
+          await ctx.events.acknowledgeLifecycle(companyId!, events[0].id);
+          return events;
+        });
+      },
+    });
     const worker = startWorkerRpcHost({ plugin, stdin: input, stdout: output });
     let sequence = 0;
     const pending = new Map<string, (value: JsonRpcResponse) => void>();
-    reader.on("line", line => {
+    reader.on("line", (line) => {
       const message = parseMessage(line);
       if (isJsonRpcResponse(message)) {
         pending.get(String(message.id))?.(message);
         pending.delete(String(message.id));
       } else if (isJsonRpcRequest(message)) {
         calls.push({ method: message.method, params: message.params });
-        input.write(serializeMessage(createSuccessResponse(message.id, message.method === "events.listLifecycle" ? [event] : null)));
+        input.write(
+          serializeMessage(
+            createSuccessResponse(
+              message.id,
+              message.method === "events.listLifecycle" ? [event] : null,
+            ),
+          ),
+        );
       }
     });
-    const call = (method: string, params: unknown) => new Promise<JsonRpcResponse>(resolve => {
-      const id = String(++sequence);
-      pending.set(id, resolve);
-      input.write(serializeMessage(createRequest(method, params, id)));
-    });
+    const call = (method: string, params: unknown) =>
+      new Promise<JsonRpcResponse>((resolve) => {
+        const id = String(++sequence);
+        pending.set(id, resolve);
+        input.write(serializeMessage(createRequest(method, params, id)));
+      });
     try {
-      await call("initialize", { manifest: { id: "fixture.lifecycle", apiVersion: 1, version: "1.0.0", displayName: "Lifecycle", description: "Fixture", author: "Tests", categories: ["automation"], capabilities: ["events.subscribe"], entrypoints: {} }, config: {}, databaseNamespace: null });
-      expect((await call("getData", { key: "drain", companyId: "company-a", params: {} }) as { result: unknown }).result).toEqual([event]);
+      await call("initialize", {
+        manifest: {
+          id: "fixture.lifecycle",
+          apiVersion: 1,
+          version: "1.0.0",
+          displayName: "Lifecycle",
+          description: "Fixture",
+          author: "Tests",
+          categories: ["automation"],
+          capabilities: ["events.subscribe"],
+          entrypoints: {},
+        },
+        config: {},
+        databaseNamespace: null,
+      });
+      expect(
+        (
+          (await call("getData", {
+            key: "drain",
+            companyId: "company-a",
+            params: {},
+          })) as { result: unknown }
+        ).result,
+      ).toEqual([event]);
       expect(calls).toEqual([
-        { method: "events.listLifecycle", params: { companyId: "company-a", limit: 10, afterId: "6" } },
-        { method: "events.acknowledgeLifecycle", params: { companyId: "company-a", eventId: "7" } },
+        {
+          method: "events.listLifecycle",
+          params: { companyId: "company-a", limit: 10, afterId: "6" },
+        },
+        {
+          method: "events.acknowledgeLifecycle",
+          params: { companyId: "company-a", eventId: "7" },
+        },
       ]);
-    } finally { worker.stop(); reader.close(); input.destroy(); output.destroy(); }
+    } finally {
+      worker.stop();
+      reader.close();
+      input.destroy();
+      output.destroy();
+    }
   });
 });

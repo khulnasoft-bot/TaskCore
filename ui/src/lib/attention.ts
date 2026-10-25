@@ -25,16 +25,19 @@ export type AttentionListOptions = AttentionFeedQuery;
  * that flag). A *covered* review keeps deep-linking, since its real action
  * lives on the issue (the pending card, a monitor, a live run).
  */
-export const INLINE_RESOLVABLE_SOURCE_KINDS: ReadonlySet<AttentionSourceKind> = new Set<AttentionSourceKind>([
-  "approval",
-  "decision",
-  "issue_thread_interaction",
-  "join_request",
-  "review",
-]);
+export const INLINE_RESOLVABLE_SOURCE_KINDS: ReadonlySet<AttentionSourceKind> =
+  new Set<AttentionSourceKind>([
+    "approval",
+    "decision",
+    "issue_thread_interaction",
+    "join_request",
+    "review",
+  ]);
 
 export function isInlineResolvable(item: AttentionItem): boolean {
-  return item.inlineResolvable && INLINE_RESOLVABLE_SOURCE_KINDS.has(item.sourceKind);
+  return (
+    item.inlineResolvable && INLINE_RESOLVABLE_SOURCE_KINDS.has(item.sourceKind)
+  );
 }
 
 /**
@@ -112,7 +115,10 @@ export function severityStyle(severity: AttentionSeverity): SeverityStyle {
 export type AttentionKind = "blocking" | "review";
 
 /** The task status each decision kind renders as. */
-export const ATTENTION_KIND_STATUS: Record<AttentionKind, "blocked" | "in_review"> = {
+export const ATTENTION_KIND_STATUS: Record<
+  AttentionKind,
+  "blocked" | "in_review"
+> = {
   blocking: "blocked",
   review: "in_review",
 };
@@ -164,7 +170,9 @@ export function attentionStatus(item: AttentionItem): "blocked" | "in_review" {
  * with no key or href, so there is nothing to render; the feed builder has to
  * populate `relatedIssue` for those.
  */
-export function attentionTaskRef(item: AttentionItem): { identifier: string; href: string | null } | null {
+export function attentionTaskRef(
+  item: AttentionItem,
+): { identifier: string; href: string | null } | null {
   const related = item.relatedIssue;
   if (related?.identifier) {
     return { identifier: related.identifier, href: related.href };
@@ -210,7 +218,9 @@ export function attentionDetailLine(item: AttentionItem): string | null {
       return quote(detail.promptExcerpt);
     case "checkbox_confirmation": {
       const q = quote(detail.promptExcerpt);
-      return q ? `${countNoun(detail.optionCount, "option")} — ${q}` : countNoun(detail.optionCount, "option");
+      return q
+        ? `${countNoun(detail.optionCount, "option")} — ${q}`
+        : countNoun(detail.optionCount, "option");
     }
     case "questions": {
       const q = quote(detail.firstQuestionText);
@@ -237,7 +247,11 @@ export function attentionDetailLine(item: AttentionItem): string | null {
       const b = detail.blockingIssue;
       if (!b) return null;
       const id = b.identifier ? `${b.identifier} ` : "";
-      return b.title ? `Blocked by ${id}${b.title}` : b.identifier ? `Blocked by ${b.identifier}` : null;
+      return b.title
+        ? `Blocked by ${id}${b.title}`
+        : b.identifier
+          ? `Blocked by ${b.identifier}`
+          : null;
     }
     case "budget":
       return `${Math.round(detail.observedPercent)}% of budget used ($${detail.amountObserved} / $${detail.amountLimit})`;
@@ -249,7 +263,9 @@ export function attentionDetailLine(item: AttentionItem): string | null {
 }
 
 /** Screenshot / thumbnail images attached to the detail block, if any. */
-export function attentionDetailImages(item: AttentionItem): AttentionDetailImage[] {
+export function attentionDetailImages(
+  item: AttentionItem,
+): AttentionDetailImage[] {
   return (item.detail as AttentionItemDetail | null)?.images ?? [];
 }
 
@@ -269,7 +285,9 @@ export function attentionImageUrl(assetId: string): string {
  * before pagination (`deskBadgeCount`), so badge polling can fetch a small
  * first page without losing the company-wide signal.
  */
-export function attentionBadgeCount(feed: AttentionFeed | null | undefined): number {
+export function attentionBadgeCount(
+  feed: AttentionFeed | null | undefined,
+): number {
   return feed?.deskBadgeCount ?? 0;
 }
 
@@ -293,7 +311,11 @@ const MS_PER_DAY_DECIDE = 24 * 60 * 60 * 1_000;
 
 function startOfUtcDay(now: number): number {
   const value = new Date(now);
-  return Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+  return Date.UTC(
+    value.getUTCFullYear(),
+    value.getUTCMonth(),
+    value.getUTCDate(),
+  );
 }
 
 function endOfUtcDay(now: number): number {
@@ -308,7 +330,10 @@ function endOfUtcWeek(now: number): number {
 }
 
 /** [bucket, deadline] — lower bucket / earlier deadline sorts first. */
-export function attentionDecideOrder(item: AttentionItem, now: number): [number, number] {
+export function attentionDecideOrder(
+  item: AttentionItem,
+  now: number,
+): [number, number] {
   if (item.decideBy === "today") return [0, endOfUtcDay(now)];
   if (item.decideBy === "this_week") return [0, endOfUtcWeek(now)];
   if (item.decideBy && /^\d{4}-\d{2}-\d{2}$/.test(item.decideBy)) {
@@ -320,7 +345,10 @@ export function attentionDecideOrder(item: AttentionItem, now: number): [number,
 }
 
 /** Due today or overdue — the "Decide now" shelf. Only fires when `decideBy` is set. */
-export function attentionIsDecideNow(item: AttentionItem, now: number): boolean {
+export function attentionIsDecideNow(
+  item: AttentionItem,
+  now: number,
+): boolean {
   const [bucket, deadline] = attentionDecideOrder(item, now);
   return bucket === 0 && deadline <= endOfUtcDay(now);
 }
@@ -351,7 +379,10 @@ export interface DeskShelf {
  * A decide-now item is only ever on the "Decide now" shelf, so the three shelves
  * are disjoint and their sizes sum to `items.length`.
  */
-export function buildDeskShelves(items: AttentionItem[], now: number): DeskShelf[] {
+export function buildDeskShelves(
+  items: AttentionItem[],
+  now: number,
+): DeskShelf[] {
   const decideNow = items
     .filter((item) => attentionIsDecideNow(item, now))
     .sort((a, b) => {
@@ -371,9 +402,20 @@ export function buildDeskShelves(items: AttentionItem[], now: number): DeskShelf
   const earlier = rest.filter((item) => !attentionIsNewToday(item, now));
 
   const shelves: DeskShelf[] = [];
-  if (decideNow.length > 0) shelves.push({ key: "desk:decide-now", label: "Decide now", items: decideNow });
-  if (newToday.length > 0) shelves.push({ key: "desk:new-today", label: "New today", items: newToday });
-  if (earlier.length > 0) shelves.push({ key: "desk:earlier", label: "Earlier", items: earlier });
+  if (decideNow.length > 0)
+    shelves.push({
+      key: "desk:decide-now",
+      label: "Decide now",
+      items: decideNow,
+    });
+  if (newToday.length > 0)
+    shelves.push({
+      key: "desk:new-today",
+      label: "New today",
+      items: newToday,
+    });
+  if (earlier.length > 0)
+    shelves.push({ key: "desk:earlier", label: "Earlier", items: earlier });
   return shelves;
 }
 
@@ -427,7 +469,11 @@ export function decideByLabel(decideBy: string | null): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(decideBy)) {
     const parsed = new Date(`${decideBy}T00:00:00.000Z`);
     return Number.isFinite(parsed.getTime())
-      ? parsed.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })
+      ? parsed.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        })
       : decideBy;
   }
   return decideBy;
@@ -439,9 +485,12 @@ export function decideByLabel(decideBy: string | null): string {
 // shipping the whole feed and filtering on the client.
 // ---------------------------------------------------------------------------
 
-export type AttentionDateRangeId = "all" | "today" | "yesterday" | "last_7_days" | "this_month" | "custom";
+export type AttentionDateRangeId =
+  "all" | "today" | "yesterday" | "last_7_days" | "this_month" | "custom";
 
-export const ATTENTION_DATE_RANGE_OPTIONS: ReadonlyArray<[AttentionDateRangeId, string]> = [
+export const ATTENTION_DATE_RANGE_OPTIONS: ReadonlyArray<
+  [AttentionDateRangeId, string]
+> = [
   ["all", "All"],
   ["today", "Today"],
   ["yesterday", "Yesterday"],
@@ -482,10 +531,17 @@ export function resolveAttentionDateRange(
     case "yesterday": {
       const start = startOfLocalDay(now - MS_PER_DAY_DECIDE);
       const end = endOfLocalDay(now - MS_PER_DAY_DECIDE);
-      return { activitySince: start.toISOString(), activityUntil: end.toISOString() };
+      return {
+        activitySince: start.toISOString(),
+        activityUntil: end.toISOString(),
+      };
     }
     case "last_7_days":
-      return { activitySince: startOfLocalDay(now - 6 * MS_PER_DAY_DECIDE).toISOString() };
+      return {
+        activitySince: startOfLocalDay(
+          now - 6 * MS_PER_DAY_DECIDE,
+        ).toISOString(),
+      };
     case "this_month": {
       const d = new Date(now);
       const start = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
@@ -495,11 +551,13 @@ export function resolveAttentionDateRange(
       const bounds: AttentionActivityBounds = {};
       if (custom?.from) {
         const from = new Date(`${custom.from}T00:00:00`);
-        if (Number.isFinite(from.getTime())) bounds.activitySince = from.toISOString();
+        if (Number.isFinite(from.getTime()))
+          bounds.activitySince = from.toISOString();
       }
       if (custom?.to) {
         const to = new Date(`${custom.to}T23:59:59.999`);
-        if (Number.isFinite(to.getTime())) bounds.activityUntil = to.toISOString();
+        if (Number.isFinite(to.getTime()))
+          bounds.activityUntil = to.toISOString();
       }
       return bounds;
     }
@@ -517,11 +575,14 @@ export function resolveAttentionDateRange(
 // the logic is unit-tested independently of React.
 // ---------------------------------------------------------------------------
 
-export type AttentionGroupBy = "none" | "date" | "type" | "project" | "severity";
+export type AttentionGroupBy =
+  "none" | "date" | "type" | "project" | "severity";
 export type AttentionSortOrder = "newest" | "oldest";
 
 /** Ordered list used to render the group-by picker (label + value). */
-export const ATTENTION_GROUP_BY_OPTIONS: ReadonlyArray<[AttentionGroupBy, string]> = [
+export const ATTENTION_GROUP_BY_OPTIONS: ReadonlyArray<
+  [AttentionGroupBy, string]
+> = [
   ["none", "None"],
   ["date", "Date"],
   ["type", "Type"],
@@ -529,7 +590,9 @@ export const ATTENTION_GROUP_BY_OPTIONS: ReadonlyArray<[AttentionGroupBy, string
   ["severity", "Severity"],
 ];
 
-export const ATTENTION_SORT_OPTIONS: ReadonlyArray<[AttentionSortOrder, string]> = [
+export const ATTENTION_SORT_OPTIONS: ReadonlyArray<
+  [AttentionSortOrder, string]
+> = [
   ["newest", "Newest first"],
   ["oldest", "Oldest first"],
 ];
@@ -574,10 +637,17 @@ export interface AttentionFilterOptions {
 export const ATTENTION_GROUP_BY_KEY = "taskcore:attention:group-by";
 export const ATTENTION_SORT_KEY = "taskcore:attention:sort";
 export const ATTENTION_FILTERS_KEY_PREFIX = "taskcore:attention:filters";
-export const ATTENTION_COLLAPSED_GROUPS_KEY_PREFIX = "taskcore:attention:collapsed-groups";
+export const ATTENTION_COLLAPSED_GROUPS_KEY_PREFIX =
+  "taskcore:attention:collapsed-groups";
 
 function isAttentionGroupBy(value: unknown): value is AttentionGroupBy {
-  return value === "none" || value === "date" || value === "type" || value === "project" || value === "severity";
+  return (
+    value === "none" ||
+    value === "date" ||
+    value === "type" ||
+    value === "project" ||
+    value === "severity"
+  );
 }
 
 export function loadAttentionGroupBy(): AttentionGroupBy {
@@ -614,12 +684,16 @@ export function saveAttentionSortOrder(order: AttentionSortOrder) {
   }
 }
 
-function getAttentionFiltersStorageKey(companyId: string | null | undefined): string | null {
+function getAttentionFiltersStorageKey(
+  companyId: string | null | undefined,
+): string | null {
   if (!companyId) return null;
   return `${ATTENTION_FILTERS_KEY_PREFIX}:${companyId}`;
 }
 
-function getAttentionCollapsedGroupsStorageKey(companyId: string | null | undefined): string | null {
+function getAttentionCollapsedGroupsStorageKey(
+  companyId: string | null | undefined,
+): string | null {
   if (!companyId) return null;
   return `${ATTENTION_COLLAPSED_GROUPS_KEY_PREFIX}:${companyId}`;
 }
@@ -629,9 +703,16 @@ function normalizeStringArray(value: unknown): string[] {
   return value.filter((entry): entry is string => typeof entry === "string");
 }
 
-const ALL_SEVERITIES: AttentionSeverity[] = ["critical", "high", "medium", "low"];
+const ALL_SEVERITIES: AttentionSeverity[] = [
+  "critical",
+  "high",
+  "medium",
+  "low",
+];
 
-export function loadAttentionFilters(companyId: string | null | undefined): AttentionFilterState {
+export function loadAttentionFilters(
+  companyId: string | null | undefined,
+): AttentionFilterState {
   const storageKey = getAttentionFiltersStorageKey(companyId);
   if (!storageKey) return { ...defaultAttentionFilterState };
   try {
@@ -639,11 +720,13 @@ export function loadAttentionFilters(companyId: string | null | undefined): Atte
     if (!raw) return { ...defaultAttentionFilterState };
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
-      sourceKinds: normalizeStringArray(parsed.sourceKinds) as AttentionSourceKind[],
+      sourceKinds: normalizeStringArray(
+        parsed.sourceKinds,
+      ) as AttentionSourceKind[],
       projectIds: normalizeStringArray(parsed.projectIds),
       workspaceIds: normalizeStringArray(parsed.workspaceIds),
-      severities: normalizeStringArray(parsed.severities).filter((s): s is AttentionSeverity =>
-        (ALL_SEVERITIES as string[]).includes(s),
+      severities: normalizeStringArray(parsed.severities).filter(
+        (s): s is AttentionSeverity => (ALL_SEVERITIES as string[]).includes(s),
       ),
     };
   } catch {
@@ -664,14 +747,20 @@ export function saveAttentionFilters(
   }
 }
 
-export function loadCollapsedAttentionGroupKeys(companyId: string | null | undefined): Set<string> {
+export function loadCollapsedAttentionGroupKeys(
+  companyId: string | null | undefined,
+): Set<string> {
   const storageKey = getAttentionCollapsedGroupsStorageKey(companyId);
   if (!storageKey) return new Set();
   try {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return new Set();
     const parsed = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed.filter((e): e is string => typeof e === "string") : []);
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((e): e is string => typeof e === "string")
+        : [],
+    );
   } catch {
     return new Set();
   }
@@ -690,7 +779,9 @@ export function saveCollapsedAttentionGroupKeys(
   }
 }
 
-export function countActiveAttentionFilters(filters: AttentionFilterState): number {
+export function countActiveAttentionFilters(
+  filters: AttentionFilterState,
+): number {
   return (
     filters.sourceKinds.length +
     filters.projectIds.length +
@@ -709,7 +800,10 @@ function attentionActivityTimestamp(item: AttentionItem): number {
  * tiebreaker (lower rank = higher priority) so equal-timestamp rows keep the
  * server's escalation order.
  */
-export function sortAttentionItems(items: AttentionItem[], order: AttentionSortOrder): AttentionItem[] {
+export function sortAttentionItems(
+  items: AttentionItem[],
+  order: AttentionSortOrder,
+): AttentionItem[] {
   const sign = order === "oldest" ? -1 : 1;
   return [...items].sort((a, b) => {
     const diff = attentionActivityTimestamp(b) - attentionActivityTimestamp(a);
@@ -718,9 +812,20 @@ export function sortAttentionItems(items: AttentionItem[], order: AttentionSortO
   });
 }
 
-export function attentionItemMatchesFilters(item: AttentionItem, filters: AttentionFilterState): boolean {
-  if (filters.sourceKinds.length > 0 && !filters.sourceKinds.includes(item.sourceKind)) return false;
-  if (filters.severities.length > 0 && !filters.severities.includes(item.severity)) return false;
+export function attentionItemMatchesFilters(
+  item: AttentionItem,
+  filters: AttentionFilterState,
+): boolean {
+  if (
+    filters.sourceKinds.length > 0 &&
+    !filters.sourceKinds.includes(item.sourceKind)
+  )
+    return false;
+  if (
+    filters.severities.length > 0 &&
+    !filters.severities.includes(item.severity)
+  )
+    return false;
   if (filters.projectIds.length > 0) {
     const projectId = item.project?.id ?? NO_GROUP_SENTINEL;
     if (!filters.projectIds.includes(projectId)) return false;
@@ -732,13 +837,18 @@ export function attentionItemMatchesFilters(item: AttentionItem, filters: Attent
   return true;
 }
 
-export function filterAttentionItems(items: AttentionItem[], filters: AttentionFilterState): AttentionItem[] {
+export function filterAttentionItems(
+  items: AttentionItem[],
+  filters: AttentionFilterState,
+): AttentionItem[] {
   if (countActiveAttentionFilters(filters) === 0) return items;
   return items.filter((item) => attentionItemMatchesFilters(item, filters));
 }
 
 /** Distinct filterable dimensions present in the current feed, for the picker. */
-export function buildAttentionFilterOptions(items: AttentionItem[]): AttentionFilterOptions {
+export function buildAttentionFilterOptions(
+  items: AttentionItem[],
+): AttentionFilterOptions {
   const sourceKinds = new Set<AttentionSourceKind>();
   const projects = new Map<string, AttentionProjectRef>();
   const workspaces = new Map<string, AttentionWorkspaceRef>();
@@ -756,9 +866,15 @@ export function buildAttentionFilterOptions(items: AttentionItem[]): AttentionFi
   }
 
   return {
-    sourceKinds: [...sourceKinds].sort((a, b) => sourceMeta(a).label.localeCompare(sourceMeta(b).label)),
-    projects: [...projects.values()].sort((a, b) => a.name.localeCompare(b.name)),
-    workspaces: [...workspaces.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    sourceKinds: [...sourceKinds].sort((a, b) =>
+      sourceMeta(a).label.localeCompare(sourceMeta(b).label),
+    ),
+    projects: [...projects.values()].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
+    workspaces: [...workspaces.values()].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
     severities: ALL_SEVERITIES.filter((s) => severities.has(s)),
     hasNoProject,
     hasNoWorkspace,
@@ -799,15 +915,23 @@ export function planAttentionRenderRows(options: {
   };
   const groupRows = new Map<string, AttentionItem[]>();
   for (const group of options.groups) {
-    const collapsed = group.label !== null && options.collapsedGroupKeys.has(group.key);
+    const collapsed =
+      group.label !== null && options.collapsedGroupKeys.has(group.key);
     groupRows.set(group.key, collapsed ? [] : take(group.items));
   }
   const snoozedRows = options.snoozedOpen ? take(options.snoozedItems) : [];
-  const dismissedRows = options.dismissedOpen ? take(options.dismissedItems) : [];
+  const dismissedRows = options.dismissedOpen
+    ? take(options.dismissedItems)
+    : [];
   return { groupRows, snoozedRows, dismissedRows, hasMoreRows: truncated };
 }
 
-const DATE_BUCKET_ORDER = ["today", "yesterday", "this_week", "earlier"] as const;
+const DATE_BUCKET_ORDER = [
+  "today",
+  "yesterday",
+  "this_week",
+  "earlier",
+] as const;
 type DateBucket = (typeof DATE_BUCKET_ORDER)[number];
 
 const DATE_BUCKET_LABELS: Record<DateBucket, string> = {
@@ -820,7 +944,10 @@ const DATE_BUCKET_LABELS: Record<DateBucket, string> = {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Bucket a timestamp relative to `now` using a rolling calendar-day window. */
-export function attentionDateBucket(activityAt: string, now: number): DateBucket {
+export function attentionDateBucket(
+  activityAt: string,
+  now: number,
+): DateBucket {
   const ts = new Date(activityAt).getTime();
   if (!Number.isFinite(ts)) return "earlier";
   const startOfToday = new Date(now);
@@ -866,11 +993,13 @@ export function groupAttentionItems(
       list.push(item);
       buckets.set(bucket, list);
     }
-    return DATE_BUCKET_ORDER.filter((bucket) => buckets.has(bucket)).map((bucket) => ({
-      key: `date:${bucket}`,
-      label: DATE_BUCKET_LABELS[bucket],
-      items: buckets.get(bucket)!,
-    }));
+    return DATE_BUCKET_ORDER.filter((bucket) => buckets.has(bucket)).map(
+      (bucket) => ({
+        key: `date:${bucket}`,
+        label: DATE_BUCKET_LABELS[bucket],
+        items: buckets.get(bucket)!,
+      }),
+    );
   }
 
   if (groupBy === "severity") {
@@ -889,11 +1018,17 @@ export function groupAttentionItems(
 
   // type / project: group, then order groups by most-recent activity so the
   // freshest section floats to the top (matching Inbox's issue-group ordering).
-  const groups = new Map<string, { label: string; items: AttentionItem[]; latest: number }>();
+  const groups = new Map<
+    string,
+    { label: string; items: AttentionItem[]; latest: number }
+  >();
   for (const item of items) {
     const resolved =
       groupBy === "type"
-        ? { key: `type:${item.sourceKind}`, label: sourceMeta(item.sourceKind).label }
+        ? {
+            key: `type:${item.sourceKind}`,
+            label: sourceMeta(item.sourceKind).label,
+          }
         : item.project
           ? { key: `project:${item.project.id}`, label: item.project.name }
           : { key: `project:${NO_GROUP_SENTINEL}`, label: "No project" };
@@ -903,7 +1038,11 @@ export function groupAttentionItems(
       existing.items.push(item);
       existing.latest = Math.max(existing.latest, ts);
     } else {
-      groups.set(resolved.key, { label: resolved.label, items: [item], latest: ts });
+      groups.set(resolved.key, {
+        label: resolved.label,
+        items: [item],
+        latest: ts,
+      });
     }
   }
 

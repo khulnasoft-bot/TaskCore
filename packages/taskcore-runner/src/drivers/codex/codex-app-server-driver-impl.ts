@@ -1,5 +1,8 @@
 import { trustCodexStartupRoot } from "./codex-startup-trust.js";
-import { readCodexThreadState, readCodexTurnMetadata } from "./codex-history.js";
+import {
+  readCodexThreadState,
+  readCodexTurnMetadata,
+} from "./codex-history.js";
 import { codexExecutableReadOnlyRoots } from "./codex-security-config.js";
 import { resolve } from "node:path";
 
@@ -17,7 +20,10 @@ import type {
   PersistedHarnessSession,
   PersistedHarnessTurnTerminal,
 } from "../../contracts/harness-driver.js";
-import { NativeSessionProtocolIntegrityError, nativeRestartInterruptedTurnId } from "../../contracts/native-session-backend.js";
+import {
+  NativeSessionProtocolIntegrityError,
+  nativeRestartInterruptedTurnId,
+} from "../../contracts/native-session-backend.js";
 import { HarnessReconciliationError } from "../../contracts/harness-driver.js";
 import {
   CODEX_CODEX_PROTOCOL_VERSION,
@@ -200,7 +206,9 @@ export class CodexAppServerDriver implements HarnessDriver {
     return this.#options.baseInstructions ?? CODEX_SKILLLESS_BASE_INSTRUCTIONS;
   }
 
-  #instructionParams(instructions = this.#baseInstructions()): Record<string, string> {
+  #instructionParams(
+    instructions = this.#baseInstructions(),
+  ): Record<string, string> {
     // baseInstructions replaces Codex's stock prompt. Other providers use this
     // driver as a protocol facade and retain their existing instruction field.
     return (this.#options.driverIdentity?.kind ?? DRIVER_KIND) === DRIVER_KIND
@@ -249,7 +257,10 @@ export class CodexAppServerDriver implements HarnessDriver {
         reconciliation: this.#caps.reconciliation,
         usage: this.#caps.usage,
         dynamicTools: this.#caps.dynamicTools,
-        toolRefreshOnResume: this.#caps.resume && this.#caps.dynamicTools && this.#caps.toolRefreshOnResume,
+        toolRefreshOnResume:
+          this.#caps.resume &&
+          this.#caps.dynamicTools &&
+          this.#caps.toolRefreshOnResume,
         runtimeRequestResolution: this.#caps.runtimeRequestResolution,
         runtimeRequestHandoff: this.#caps.runtimeRequestResolution,
         goals: this.#caps.goals,
@@ -375,7 +386,11 @@ export class CodexAppServerDriver implements HarnessDriver {
     }
     const transport = this.#transport({
       workingDirectory: snapshot.workingDirectory
-        ? validateWorkingDirectory(snapshot.workingDirectory, this.#options.environment, this.#options.workingDirectoryAuthority)
+        ? validateWorkingDirectory(
+            snapshot.workingDirectory,
+            this.#options.environment,
+            this.#options.workingDirectoryAuthority,
+          )
         : undefined,
       providerRecoveryPolicy: snapshot.providerRecoveryPolicy,
       persistedSession: {
@@ -394,7 +409,9 @@ export class CodexAppServerDriver implements HarnessDriver {
       );
       await cancellation.wait(this.#persistProcessOwnership(transport));
       const existingThread = record(existing.thread);
-      existingThread.turns = await cancellation.wait(readCodexTurnMetadata(transport, snapshot.driverSessionId));
+      existingThread.turns = await cancellation.wait(
+        readCodexTurnMetadata(transport, snapshot.driverSessionId),
+      );
       if (text(existingThread.id) !== snapshot.driverSessionId) {
         await cancellation.wait(cancellation.close());
         return {
@@ -418,7 +435,9 @@ export class CodexAppServerDriver implements HarnessDriver {
             this.#options.includeSkillInstructions ?? false,
             this.#options.environment,
           ),
-          ...this.#instructionParams(this.#direct() ? "" : this.#baseInstructions()),
+          ...this.#instructionParams(
+            this.#direct() ? "" : this.#baseInstructions(),
+          ),
           approvalPolicy: this.#options.approvalPolicy ?? "never",
           ...(this.#options.model ? { model: this.#options.model } : {}),
           dynamicTools: this.#providerDynamicTools(),
@@ -489,9 +508,10 @@ export class CodexAppServerDriver implements HarnessDriver {
       const goal = await cancellation.wait(
         this.#discoverGoal(transport, opened.threadId),
       );
-      const recoveringAutonomousGoal = snapshot.goal?.status === "active"
-        && goal != null
-        && goal.createdAt === snapshot.goal.createdAt;
+      const recoveringAutonomousGoal =
+        snapshot.goal?.status === "active" &&
+        goal != null &&
+        goal.createdAt === snapshot.goal.createdAt;
       if (recoveringAutonomousGoal) {
         // Goal activation and continuation have no turn/start response. The
         // provider can advance beyond the last controller checkpoint while
@@ -501,15 +521,26 @@ export class CodexAppServerDriver implements HarnessDriver {
         const turns = Array.isArray(existingThread.turns)
           ? existingThread.turns.map(record)
           : null;
-        const active = turns?.filter((turn) => text(turn.status) === "inProgress");
-        if (!active || active.length > 1 || (active.length === 1 && (
-          !text(active[0]?.id)
-          || (snapshot.terminalTurns ?? []).some((turn) => turn.turnId === text(active[0]?.id))
-        ))) {
+        const active = turns?.filter(
+          (turn) => text(turn.status) === "inProgress",
+        );
+        if (
+          !active ||
+          active.length > 1 ||
+          (active.length === 1 &&
+            (!text(active[0]?.id) ||
+              (snapshot.terminalTurns ?? []).some(
+                (turn) => turn.turnId === text(active[0]?.id),
+              )))
+        ) {
           await cancellation.wait(cancellation.close());
-          return { recovered: false, reason: "provider exposed ambiguous autonomous goal turn history" };
+          return {
+            recovered: false,
+            reason: "provider exposed ambiguous autonomous goal turn history",
+          };
         }
-        recoveredActiveTurnId = active.length === 1 ? text(active[0]?.id) : recoveredActiveTurnId;
+        recoveredActiveTurnId =
+          active.length === 1 ? text(active[0]?.id) : recoveredActiveTurnId;
       }
       if (
         !recoveringAutonomousGoal &&
@@ -528,11 +559,18 @@ export class CodexAppServerDriver implements HarnessDriver {
         turns.forEach((turn, index) => {
           if (terminalIds.has(text(turn.id))) lastKnownTerminalIndex = index;
         });
-        if (nativeRestartInterruptedTurnId({
-          ...snapshot, semanticResult: null,
-        }) && (!providerHistoryIsArray || lastKnownTerminalIndex < 0)) {
+        if (
+          nativeRestartInterruptedTurnId({
+            ...snapshot,
+            semanticResult: null,
+          }) &&
+          (!providerHistoryIsArray || lastKnownTerminalIndex < 0)
+        ) {
           await cancellation.wait(cancellation.close());
-          return { recovered: false, reason: "restart interruption history is incomplete" };
+          return {
+            recovered: false,
+            reason: "restart interruption history is incomplete",
+          };
         }
         // Releasing a consumed marker requires both an actual history array
         // and a checkpointed terminal that anchors its ordering. An array that
@@ -668,15 +706,30 @@ export class CodexAppServerDriver implements HarnessDriver {
       | "activeTurnId"
     >;
   }): CodexAppServerTransport {
-    const workingDirectory = context?.workingDirectory ?? this.#options.environment?.TASKCORE_WORKSPACE_CWD;
-    if (!this.#options.transportFactory && this.#options.environment?.CODEX_HOME && workingDirectory) {
-      trustCodexStartupRoot(this.#options.environment.CODEX_HOME, workingDirectory);
+    const workingDirectory =
+      context?.workingDirectory ??
+      this.#options.environment?.TASKCORE_WORKSPACE_CWD;
+    if (
+      !this.#options.transportFactory &&
+      this.#options.environment?.CODEX_HOME &&
+      workingDirectory
+    ) {
+      trustCodexStartupRoot(
+        this.#options.environment.CODEX_HOME,
+        workingDirectory,
+      );
     }
     return (
       this.#options.transportFactory?.(context) ??
       new ProcessCodexAppServerTransport({
         workingDirectory,
-        args: createIsolatedCodexAppServerArgs(this.#options.environment, codexExecutableReadOnlyRoots(this.#options.environment ?? process.env), this.#options.instructionWorkingCopyRoot),
+        args: createIsolatedCodexAppServerArgs(
+          this.#options.environment,
+          codexExecutableReadOnlyRoots(
+            this.#options.environment ?? process.env,
+          ),
+          this.#options.instructionWorkingCopyRoot,
+        ),
         environment: createSanitizedCodexEnvironment(this.#options.environment),
         onDiagnostic: this.#options.onDiagnostic,
         processGroup: true,
@@ -765,9 +818,9 @@ export class CodexAppServerDriver implements HarnessDriver {
     } catch (error) {
       if (error instanceof NativeSessionProtocolIntegrityError) throw error;
       const policyDisabled =
-        error instanceof CodexRpcError
-        && (error.message.toLowerCase().includes("policy")
-          || error.message.toLowerCase().includes("disabled"));
+        error instanceof CodexRpcError &&
+        (error.message.toLowerCase().includes("policy") ||
+          error.message.toLowerCase().includes("disabled"));
       if (policyDisabled || isCodexMethodUnavailable(error)) {
         // The provider answered, and its answer is that this build has no goal
         // API. That is the only evidence that retires the capability.
@@ -820,8 +873,15 @@ export class CodexAppServerDriver implements HarnessDriver {
     const activePermissionProfile = record(thread.activePermissionProfile);
     const permissionProfileId = text(activePermissionProfile.id);
     const requestedMode = this.#options.requestedCollaborationMode ?? "default";
-    const requiredPermissionProfile =
-      text(createSecuredCodexThreadParams(workingDirectory, requestedMode, true, false, this.#options.environment).permissions);
+    const requiredPermissionProfile = text(
+      createSecuredCodexThreadParams(
+        workingDirectory,
+        requestedMode,
+        true,
+        false,
+        this.#options.environment,
+      ).permissions,
+    );
     if (
       permissionProfileId.length > 0 &&
       permissionProfileId !== requiredPermissionProfile
@@ -868,12 +928,11 @@ export class CodexAppServerDriver implements HarnessDriver {
           minimalRuntimeAccess: "read",
           workspaceAccess: requestedMode === "plan" ? "read" : "write",
           networkAccess: codexNetworkAccess(this.#options.environment),
-          githubAuthenticationMode: this.#options.environment?.TASKCORE_GITHUB_AUTH_MODE ?? "managed",
+          githubAuthenticationMode:
+            this.#options.environment?.TASKCORE_GITHUB_AUTH_MODE ?? "managed",
         },
         approvalPolicy: boundedCodexValue(
-          response.approvalPolicy ??
-            this.#options.approvalPolicy ??
-            "never",
+          response.approvalPolicy ?? this.#options.approvalPolicy ?? "never",
         ),
         baseInstructions: this.#baseInstructions(),
         instructionSources: Array.isArray(response.instructionSources)

@@ -36,7 +36,9 @@ export function serializeCapabilityGeneratedSemanticContracts(): string {
   return `${canonicalJson(capabilityGeneratedSemanticContracts())}\n`;
 }
 
-function toDefinition(descriptor: CapabilitySemanticToolDescriptor): CapabilitySemanticToolDefinition {
+function toDefinition(
+  descriptor: CapabilitySemanticToolDescriptor,
+): CapabilitySemanticToolDefinition {
   return {
     name: descriptor.operationId,
     description: descriptor.description,
@@ -53,7 +55,8 @@ function toDefinition(descriptor: CapabilitySemanticToolDescriptor): CapabilityS
 }
 
 function deepFreeze<T>(value: T): T {
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
+  if (typeof value !== "object" || value === null || Object.isFrozen(value))
+    return value;
   Object.freeze(value);
   for (const child of Object.values(value)) deepFreeze(child);
   return value;
@@ -63,7 +66,10 @@ function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (typeof value === "object" && value !== null) {
     const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(value) ?? "null";
 }

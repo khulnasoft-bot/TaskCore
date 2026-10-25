@@ -8,7 +8,10 @@
       "kind": "event",
       "event_type": "item.failed",
       "item_id": "item_local_runner_error",
-      "payload": { "kind": "diagnostic", "message": "The fake harness failed as requested." }
+      "payload": {
+        "kind": "diagnostic",
+        "message": "The fake harness failed as requested."
+      }
     },
     {
       "kind": "result",
@@ -21,7 +24,10 @@
           "objectiveSatisfied": false,
           "criteria": [],
           "remainingWork": [
-            { "description": "Inspect the scripted failure.", "blocksCompletion": true }
+            {
+              "description": "Inspect the scripted failure.",
+              "blocksCompletion": true
+            }
           ]
         },
         "evidence": [],

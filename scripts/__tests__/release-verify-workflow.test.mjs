@@ -21,31 +21,62 @@ test("chaos verification isolates callers that verify the same source commit", (
   assert.ok(group, "chaos verification must define its concurrency group");
 
   // GitHub supplies the top-level caller's workflow name to reusable calls.
-  const resolveGroup = (caller, ref) => group
-    .replaceAll("${{ github.workflow }}", readWorkflow(caller).match(/^name: (.+)$/m)[1])
-    .replaceAll("${{ inputs.ref || github.ref }}", ref)
-    .toLowerCase();
+  const resolveGroup = (caller, ref) =>
+    group
+      .replaceAll(
+        "${{ github.workflow }}",
+        readWorkflow(caller).match(/^name: (.+)$/m)[1],
+      )
+      .replaceAll("${{ inputs.ref || github.ref }}", ref)
+      .toLowerCase();
   const sha = "a".repeat(40);
-  const callers = ["cloud-readiness.yml", "release.yml", "runner-chaos-evals.yml"];
+  const callers = [
+    "cloud-readiness.yml",
+    "release.yml",
+    "runner-chaos-evals.yml",
+  ];
   const groups = callers.map((caller) => resolveGroup(caller, sha));
-  assert.equal(new Set(groups).size, callers.length,
-    "Cloud readiness, Release, and standalone evals must not cancel each other");
-  assert.ok(groups.every((value) => !value.includes("${{")), "resolve every group input");
-  assert.notEqual(resolveGroup("cloud-readiness.yml", sha),
-    resolveGroup("cloud-readiness.yml", "b".repeat(40)), "different sources remain independent");
+  assert.equal(
+    new Set(groups).size,
+    callers.length,
+    "Cloud readiness, Release, and standalone evals must not cancel each other",
+  );
+  assert.ok(
+    groups.every((value) => !value.includes("${{")),
+    "resolve every group input",
+  );
+  assert.notEqual(
+    resolveGroup("cloud-readiness.yml", sha),
+    resolveGroup("cloud-readiness.yml", "b".repeat(40)),
+    "different sources remain independent",
+  );
   assert.match(chaosWorkflow, /cancel-in-progress: true/);
 });
 
 test("canary reuses exact-source proof while stable keeps full verification", () => {
   const releaseWorkflow = readWorkflow("release.yml");
-  const canary = releaseWorkflow.split("  verify_canary:\n")[1].split("\n  publish_canary:")[0];
-  assert.match(canary, /github\.repository == 'taskcore\/taskcore' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/master'/);
+  const canary = releaseWorkflow
+    .split("  verify_canary:\n")[1]
+    .split("\n  publish_canary:")[0];
+  assert.match(
+    canary,
+    /github\.repository == 'taskcore\/taskcore' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/master'/,
+  );
   assert.match(canary, /actions: read/);
   assert.match(canary, /ref: \$\{\{ github\.sha \}\}/);
   assert.match(canary, /SOURCE_SHA: \$\{\{ github\.sha \}\}/);
-  assert.match(canary, /run: node scripts\/cloud-source-verification\.mjs "\$SOURCE_SHA"/);
-  assert.doesNotMatch(canary, /release-verify\.yml|continue-on-error|always\(\)/);
-  assert.match(releaseWorkflow, /publish_canary:\n\s+if: github\.event_name == 'push'\n\s+needs: verify_canary/);
+  assert.match(
+    canary,
+    /run: node scripts\/cloud-source-verification\.mjs "\$SOURCE_SHA"/,
+  );
+  assert.doesNotMatch(
+    canary,
+    /release-verify\.yml|continue-on-error|always\(\)/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /publish_canary:\n\s+if: github\.event_name == 'push'\n\s+needs: verify_canary/,
+  );
   // The stable lane is gated on the stable channel since the nightly lane
   // was added; a `needs:` line (for example a preflight job) may sit between
   // the gate and the delegation.
@@ -66,9 +97,15 @@ test("source proof requires every source check and does not wait on image public
   const proof = readiness.split("  source_verified:\n")[1];
   assert.match(proof, /name: Cloud source verified v1/);
   assert.match(proof, /needs: \[verify\]/);
-  assert.match(proof, /node --test scripts\/cloud-source-verification.test.mjs/);
+  assert.match(
+    proof,
+    /node --test scripts\/cloud-source-verification.test.mjs/,
+  );
   assert.match(proof, /SOURCE_SHA: \$\{\{ github\.sha \}\}/);
-  assert.doesNotMatch(proof, /always\(\)|continue-on-error|needs:.*(?:image|artifacts)/);
+  assert.doesNotMatch(
+    proof,
+    /always\(\)|continue-on-error|needs:.*(?:image|artifacts)/,
+  );
   assert.doesNotMatch(readiness, /^  (?:image|artifacts|ready):/m);
 });
 
@@ -222,12 +259,25 @@ test("release verify workflow covers the same split test surface as stable PR ve
   );
   assert.match(verifyWorkflow, /pnpm -r typecheck/);
   assert.match(verifyWorkflow, /pnpm build/);
-  const runnerScripts = JSON.parse(readFileSync(path.join(repoRoot, "packages/taskcore-runner/package.json"), "utf8")).scripts;
-  const runnerChecks = [...verifyWorkflow.matchAll(/^            checks: (.+)$/gm)]
-    .flatMap(([, checks]) => checks.split(" "));
-  assert.deepEqual(runnerChecks, runnerScripts["check:all"].split(" && ")
-    .map((command) => command.replace(/^pnpm run /, "")));
-  assert.match(verifyWorkflow, /pnpm --filter @taskcore\/taskcore-runner "\$check"/);
+  const runnerScripts = JSON.parse(
+    readFileSync(
+      path.join(repoRoot, "packages/taskcore-runner/package.json"),
+      "utf8",
+    ),
+  ).scripts;
+  const runnerChecks = [
+    ...verifyWorkflow.matchAll(/^            checks: (.+)$/gm),
+  ].flatMap(([, checks]) => checks.split(" "));
+  assert.deepEqual(
+    runnerChecks,
+    runnerScripts["check:all"]
+      .split(" && ")
+      .map((command) => command.replace(/^pnpm run /, "")),
+  );
+  assert.match(
+    verifyWorkflow,
+    /pnpm --filter @taskcore\/taskcore-runner "\$check"/,
+  );
   assert.match(verifyWorkflow, /runner_workflow_evals:/);
   assert.match(verifyWorkflow, /runner_chaos_evals:/);
   assert.match(
@@ -240,20 +290,42 @@ test("release verify workflow covers the same split test surface as stable PR ve
   );
   assert.match(verifyWorkflow, /pnpm test:runner-workflow-evals/);
 
-  const buildJob = verifyWorkflow.match(/  build:\n[\s\S]*?(?=\n  [A-Za-z0-9_-]+:|$)/)?.[0] ?? "";
+  const buildJob =
+    verifyWorkflow.match(/  build:\n[\s\S]*?(?=\n  [A-Za-z0-9_-]+:|$)/)?.[0] ??
+    "";
   assert.match(buildJob, /persist-credentials: false/);
   assert.doesNotMatch(buildJob, /cache: pnpm/);
 
-  for (const group of ["general-server-without-chat-or-native-runner", "general-chat", "general-workspaces-a", "general-workspaces-b"]) {
+  for (const group of [
+    "general-server-without-chat-or-native-runner",
+    "general-chat",
+    "general-workspaces-a",
+    "general-workspaces-b",
+  ]) {
     assert.match(verifyWorkflow, new RegExp(`group: ${group}`));
   }
-  for (const [group, count] of [["general-server-without-chat-or-native-runner", 10], ["general-chat", 3]]) {
-    const rows = [...verifyWorkflow.matchAll(new RegExp(`group: ${group}\\n\\s+group_label: [^\\n]+\\n\\s+shard_index: (\\d+)\\n\\s+shard_count: (\\d+)`, "g"))];
-    assert.deepEqual(rows.map((row) => [Number(row[1]), Number(row[2])]),
-      Array.from({ length: count }, (_, index) => [index, count]));
+  for (const [group, count] of [
+    ["general-server-without-chat-or-native-runner", 10],
+    ["general-chat", 3],
+  ]) {
+    const rows = [
+      ...verifyWorkflow.matchAll(
+        new RegExp(
+          `group: ${group}\\n\\s+group_label: [^\\n]+\\n\\s+shard_index: (\\d+)\\n\\s+shard_count: (\\d+)`,
+          "g",
+        ),
+      ),
+    ];
+    assert.deepEqual(
+      rows.map((row) => [Number(row[1]), Number(row[2])]),
+      Array.from({ length: count }, (_, index) => [index, count]),
+    );
   }
   for (const shardIndex of [0, 1, 2, 3, 4]) {
-    assert.match(verifyWorkflow, new RegExp(`shard_index: ${shardIndex}[\\s\\S]*?shard_count: 5`));
+    assert.match(
+      verifyWorkflow,
+      new RegExp(`shard_index: ${shardIndex}[\\s\\S]*?shard_count: 5`),
+    );
   }
 
   // workspaces-a splits with Vitest native --shard in pr.yml; release
@@ -273,24 +345,48 @@ test("release verify workflow covers the same split test surface as stable PR ve
 
 test("release verification builds native test binaries in a required Rust-cached lane", () => {
   const workflow = readWorkflow("release-verify.yml");
-  const runnerJob = workflow.match(/  verify_taskcore_runner:\n[\s\S]*?(?=\n  [A-Za-z0-9_-]+:|$)/)?.[0] ?? "";
-  assert.equal((runnerJob.match(/- lane: server-integration/g) ?? []).length, 1);
+  const runnerJob =
+    workflow.match(
+      /  verify_taskcore_runner:\n[\s\S]*?(?=\n  [A-Za-z0-9_-]+:|$)/,
+    )?.[0] ?? "";
+  assert.equal(
+    (runnerJob.match(/- lane: server-integration/g) ?? []).length,
+    1,
+  );
   assert.doesNotMatch(runnerJob, /continue-on-error/);
   assert.match(runnerJob, /timeout-minutes: 20/);
   assert.match(runnerJob, /shared-key: release-runner-v2/);
   assert.match(runnerJob, /cache-workspace-crates: false/);
   assert.match(runnerJob, /cache-bin: false/);
   assert.match(runnerJob, /save-if: \$\{\{ matrix\.lane == 'rust'/);
-  assert.match(runnerJob, /Build native server test binaries\n\s+if: \$\{\{ matrix\.lane == 'server-integration' \}\}\n\s+timeout-minutes: 10/);
-  assert.match(runnerJob, /pnpm build:rust\n\s+cargo build --release --manifest-path runner\/Cargo\.toml --locked -p taskcore-runner-core --bin taskcore-runnerd --bin fake-codex-app-server/);
-  assert.match(runnerJob, /Run native server integration suites\n\s+if: \$\{\{ matrix\.lane == 'server-integration' \}\}\n\s+run: pnpm test:run:general -- --group general-server-native-runner/);
-  assert.ok(runnerJob.indexOf("Cache Runner Rust dependencies") < runnerJob.indexOf("Build native server test binaries"));
-  assert.ok(runnerJob.indexOf("Build native server test binaries") < runnerJob.indexOf("Run native server integration suites"));
+  assert.match(
+    runnerJob,
+    /Build native server test binaries\n\s+if: \$\{\{ matrix\.lane == 'server-integration' \}\}\n\s+timeout-minutes: 10/,
+  );
+  assert.match(
+    runnerJob,
+    /pnpm build:rust\n\s+cargo build --release --manifest-path runner\/Cargo\.toml --locked -p taskcore-runner-core --bin taskcore-runnerd --bin fake-codex-app-server/,
+  );
+  assert.match(
+    runnerJob,
+    /Run native server integration suites\n\s+if: \$\{\{ matrix\.lane == 'server-integration' \}\}\n\s+run: pnpm test:run:general -- --group general-server-native-runner/,
+  );
+  assert.ok(
+    runnerJob.indexOf("Cache Runner Rust dependencies") <
+      runnerJob.indexOf("Build native server test binaries"),
+  );
+  assert.ok(
+    runnerJob.indexOf("Build native server test binaries") <
+      runnerJob.indexOf("Run native server integration suites"),
+  );
 
   // The reusable workflow result includes every matrix child. Its caller must
   // await that result without an override that can certify a failed native lane.
   const cloud = readWorkflow("cloud-readiness.yml");
-  assert.match(cloud, /verify:[\s\S]*?uses: \.\/\.github\/workflows\/release-verify\.yml/);
+  assert.match(
+    cloud,
+    /verify:[\s\S]*?uses: \.\/\.github\/workflows\/release-verify\.yml/,
+  );
   assert.match(cloud, /source_verified:[\s\S]*?needs: \[verify\]/);
   assert.doesNotMatch(cloud, /continue-on-error|always\(\)/);
 });
@@ -456,25 +552,62 @@ test("Runner eval workflows pin actions and gate paid live execution", () => {
   }
 });
 
-
 test("direct Grok qualification installs the pinned binary and scopes the selected credential", () => {
   const workflow = readWorkflow("runner-protocol-live-evals.yml");
-  assert.ok(workflow.includes("XAI_API_KEY: ${{ matrix.credentialName == 'XAI_API_KEY' && secrets.XAI_API_KEY || '' }}"));
-  assert.ok(workflow.includes("if [ -f packages/taskcore-runner/scripts/provision-grok.mjs ]; then"));
-  assert.ok(workflow.indexOf("sudo node packages/taskcore-runner/scripts/provision-grok.mjs /opt/taskcore/providers/grok/1.0.13/grok") < workflow.indexOf("pnpm --filter @taskcore/taskcore-runner deploy --prod"));
-  assert.ok(workflow.includes("TASKCORE_ACPX_GROK_AUTH_JSON_SECRET: ${{ matrix.credentialName == 'TASKCORE_ACPX_GROK_AUTH_JSON_SECRET' && secrets.GROK_AUTH_JSON || '' }}"));
+  assert.ok(
+    workflow.includes(
+      "XAI_API_KEY: ${{ matrix.credentialName == 'XAI_API_KEY' && secrets.XAI_API_KEY || '' }}",
+    ),
+  );
+  assert.ok(
+    workflow.includes(
+      "if [ -f packages/taskcore-runner/scripts/provision-grok.mjs ]; then",
+    ),
+  );
+  assert.ok(
+    workflow.indexOf(
+      "sudo node packages/taskcore-runner/scripts/provision-grok.mjs /opt/taskcore/providers/grok/1.0.13/grok",
+    ) <
+      workflow.indexOf("pnpm --filter @taskcore/taskcore-runner deploy --prod"),
+  );
+  assert.ok(
+    workflow.includes(
+      "TASKCORE_ACPX_GROK_AUTH_JSON_SECRET: ${{ matrix.credentialName == 'TASKCORE_ACPX_GROK_AUTH_JSON_SECRET' && secrets.GROK_AUTH_JSON || '' }}",
+    ),
+  );
   assert.equal((workflow.match(/secrets\.GROK_AUTH_JSON/gu) ?? []).length, 1);
 });
 
 test("direct protocol concurrency override only lowers the configured ceiling", () => {
   const workflow = readWorkflow("runner-protocol-live-evals.yml");
-  const start = workflow.indexOf('          if [ -n "${REQUESTED_MAX_PARALLEL:-}" ]; then');
-  const end = workflow.indexOf("          node packages/taskcore-runner/scripts/runner-protocol-eval-campaign.mjs catalog", start);
+  const start = workflow.indexOf(
+    '          if [ -n "${REQUESTED_MAX_PARALLEL:-}" ]; then',
+  );
+  const end = workflow.indexOf(
+    "          node packages/taskcore-runner/scripts/runner-protocol-eval-campaign.mjs catalog",
+    start,
+  );
   assert.ok(start > 0 && end > start);
   const script = workflow.slice(start, end) + '\nprintf "%s" "$MAX_PARALLEL"\n';
-  for (const [requested, expected] of [["", "8"], ["2", "2"], ["8", "8"], ["1", null], ["9", null], ["0", null], ["-1", null], ["2.5", null], ["garbage", null], ["9999999999999999999999", null]]) {
+  for (const [requested, expected] of [
+    ["", "8"],
+    ["2", "2"],
+    ["8", "8"],
+    ["1", null],
+    ["9", null],
+    ["0", null],
+    ["-1", null],
+    ["2.5", null],
+    ["garbage", null],
+    ["9999999999999999999999", null],
+  ]) {
     const result = spawnSync("bash", ["-eu", "-c", script], {
-      env: { ...process.env, MAX_PARALLEL: "8", REQUESTED_MAX_PARALLEL: requested }, encoding: "utf8",
+      env: {
+        ...process.env,
+        MAX_PARALLEL: "8",
+        REQUESTED_MAX_PARALLEL: requested,
+      },
+      encoding: "utf8",
     });
     assert.equal(result.status, expected === null ? 1 : 0, requested);
     if (expected !== null) assert.equal(result.stdout, expected);

@@ -20,15 +20,18 @@ export function canInviteCompanyMembers(
   boardAccess: CurrentBoardAccess | undefined,
 ): boolean {
   if (!boardAccess) return false;
-  if (boardAccess.source === "local_implicit" || boardAccess.isInstanceAdmin) return true;
+  if (boardAccess.source === "local_implicit" || boardAccess.isInstanceAdmin)
+    return true;
   if (!companyId) return false;
   const membership = boardAccess.memberships?.find(
     (item) => item.companyId === companyId && item.status === "active",
   );
-  return membership?.membershipRole === "owner" ||
+  return (
+    membership?.membershipRole === "owner" ||
     membership?.membershipRole === "admin" ||
     membership?.membershipRole === "operator" ||
-    membership?.membershipRole === "member";
+    membership?.membershipRole === "member"
+  );
 }
 
 /**
@@ -46,5 +49,8 @@ export function useCanInviteCompanyMembers(enabled = true): boolean {
     retry: false,
     staleTime: 30_000,
   });
-  return enabled && canInviteCompanyMembers(company?.selectedCompanyId, boardAccess.data);
+  return (
+    enabled &&
+    canInviteCompanyMembers(company?.selectedCompanyId, boardAccess.data)
+  );
 }

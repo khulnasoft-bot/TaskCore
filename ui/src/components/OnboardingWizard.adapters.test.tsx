@@ -55,7 +55,10 @@ vi.mock("../context/CompanyContext", () => ({
 const mockAuthApi = vi.hoisted(() => ({ getSession: vi.fn() }));
 vi.mock("../api/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api/auth")>();
-  return { ...actual, authApi: { ...actual.authApi, getSession: mockAuthApi.getSession } };
+  return {
+    ...actual,
+    authApi: { ...actual.authApi, getSession: mockAuthApi.getSession },
+  };
 });
 
 vi.mock("../api/companies", () => ({
@@ -122,7 +125,12 @@ async function mount() {
   // known. Seeding it is how this test says "signed in".
   queryClient.setQueryData(queryKeys.auth.session, {
     session: { id: "session-1", userId: "user-1" },
-    user: { id: "user-1", name: "Example", email: "user-1@example.com", image: null },
+    user: {
+      id: "user-1",
+      name: "Example",
+      email: "user-1@example.com",
+      image: null,
+    },
   });
   await act(async () => {
     root.render(
@@ -139,7 +147,12 @@ describe("OnboardingWizard adapter selection", () => {
   beforeEach(() => {
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
-      user: { id: "user-1", name: "Example", email: "user-1@example.com", image: null },
+      user: {
+        id: "user-1",
+        name: "Example",
+        email: "user-1@example.com",
+        image: null,
+      },
     });
     window.localStorage.clear();
     mockDialog.onboardingOpen = true;

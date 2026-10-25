@@ -3,9 +3,23 @@ import * as React from "react";
 import { Button } from "@taskcore/taskcore-runner/react";
 import type { CapabilityScenarioIndexEntry } from "@taskcore-runner-local/capability";
 
-import { DISPOSITION_LABEL, groupLabel, PARITY_LABEL, ROLE_LABEL } from "../labels.js";
-import { activeFilterChips, hasActiveFilters, type CapabilityFilters } from "../route.js";
-import { DispositionBadge, EmptyState, Mono, ParityStatusBadge } from "./primitives.js";
+import {
+  DISPOSITION_LABEL,
+  groupLabel,
+  PARITY_LABEL,
+  ROLE_LABEL,
+} from "../labels.js";
+import {
+  activeFilterChips,
+  hasActiveFilters,
+  type CapabilityFilters,
+} from "../route.js";
+import {
+  DispositionBadge,
+  EmptyState,
+  Mono,
+  ParityStatusBadge,
+} from "./primitives.js";
 
 /**
  * Scenario picker — search, facets, and a single-select listbox over the
@@ -40,13 +54,14 @@ export interface ScenarioPickerProps {
   onCommitSelection: (id: string) => void;
 }
 
-const FACET_ORDER: Array<{ key: keyof CapabilityPickerFacets; label: string }> = [
-  { key: "group", label: "Group" },
-  { key: "disposition", label: "Disposition" },
-  { key: "role", label: "Role" },
-  { key: "claim", label: "Claim" },
-  { key: "parity", label: "Parity status" },
-];
+const FACET_ORDER: Array<{ key: keyof CapabilityPickerFacets; label: string }> =
+  [
+    { key: "group", label: "Group" },
+    { key: "disposition", label: "Disposition" },
+    { key: "role", label: "Role" },
+    { key: "claim", label: "Claim" },
+    { key: "parity", label: "Parity status" },
+  ];
 
 export function ScenarioPicker({
   entries,
@@ -63,7 +78,9 @@ export function ScenarioPicker({
   const searchId = React.useId();
   const listRef = React.useRef<HTMLDivElement>(null);
   const typeahead = React.useRef("");
-  const typeaheadTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typeaheadTimer = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const chips = activeFilterChips(filters);
   const grouped = groupEntries(visible);
 
@@ -84,7 +101,9 @@ export function ScenarioPicker({
   function move(delta: number) {
     if (visible.length === 0) return;
     const current = visible.findIndex((entry) => entry.id === selectedId);
-    const next = visible[Math.min(Math.max(current + delta, 0), visible.length - 1)] ?? visible[0];
+    const next =
+      visible[Math.min(Math.max(current + delta, 0), visible.length - 1)] ??
+      visible[0];
     if (next !== undefined) onSelect(next.id);
   }
 
@@ -104,7 +123,8 @@ export function ScenarioPicker({
       if (last !== undefined) onSelect(last.id);
     } else if (event.key === "Enter") {
       event.preventDefault();
-      const selected = visible.find((entry) => entry.id === selectedId) ?? visible[0];
+      const selected =
+        visible.find((entry) => entry.id === selectedId) ?? visible[0];
       if (selected !== undefined) onCommitSelection(selected.id);
     } else if (isTypeaheadKey(event)) {
       event.preventDefault();
@@ -155,23 +175,38 @@ export function ScenarioPicker({
               className="pcr7-chip"
               data-testid={`active-filter-${chip.key}`}
               onClick={() =>
-                onFilterChange(chip.key === "query" ? { query: "" } : ({ [chip.key]: null } as Partial<CapabilityFilters>))
+                onFilterChange(
+                  chip.key === "query"
+                    ? { query: "" }
+                    : ({ [chip.key]: null } as Partial<CapabilityFilters>),
+                )
               }
             >
-              {chip.label}: <Mono>{chip.value}</Mono> <span aria-hidden="true">×</span>
+              {chip.label}: <Mono>{chip.value}</Mono>{" "}
+              <span aria-hidden="true">×</span>
               <span className="pcr7-visually-hidden"> remove filter</span>
             </button>
           ))}
         </div>
       )}
       {hasActiveFilters(filters) ? (
-        <Button type="button" variant="ghost" data-testid="clear-filters" onClick={onClearFilters}>
+        <Button
+          type="button"
+          variant="ghost"
+          data-testid="clear-filters"
+          onClick={onClearFilters}
+        >
           Clear filters
         </Button>
       ) : null}
 
       {FACET_ORDER.map(({ key, label }) => (
-        <details key={key} className="pcr7-facet" data-testid={`facet-${key}`} open={key === "group"}>
+        <details
+          key={key}
+          className="pcr7-facet"
+          data-testid={`facet-${key}`}
+          open={key === "group"}
+        >
           <summary className="pcr7-facet-summary">{label}</summary>
           <div className="pcr7-facet-values">
             {facets[key].map((facet) => {
@@ -185,7 +220,9 @@ export function ScenarioPicker({
                   disabled={facet.count === 0 && !active}
                   data-testid={`facet-${key}-${facet.value}`}
                   onClick={() =>
-                    onFilterChange({ [key]: active ? null : facet.value } as Partial<CapabilityFilters>)
+                    onFilterChange({
+                      [key]: active ? null : facet.value,
+                    } as Partial<CapabilityFilters>)
                   }
                 >
                   <span>{facet.label}</span>
@@ -211,14 +248,18 @@ export function ScenarioPicker({
           tabIndex={0}
           className="pcr7-case-list"
           data-testid="case-list"
-          aria-activedescendant={selectedId === null ? undefined : `case-row-${selectedId}`}
+          aria-activedescendant={
+            selectedId === null ? undefined : `case-row-${selectedId}`
+          }
           onKeyDown={onKeyDown}
         >
           {grouped.map(([group, groupEntriesList]) => (
             <div key={group} className="pcr7-case-group">
               <h3 className="pcr7-case-group-title">
                 {groupLabel(group)} <Mono>{group}</Mono>
-                <span className="pcr7-facet-count">{groupEntriesList.length}</span>
+                <span className="pcr7-facet-count">
+                  {groupEntriesList.length}
+                </span>
               </h3>
               {groupEntriesList.map((entry) => (
                 <div
@@ -277,14 +318,19 @@ export function findTypeaheadMatch(
   if (entries.length === 0) return null;
   const normalized = rawQuery.trim().toLowerCase();
   if (normalized.length === 0) return null;
-  const query = [...normalized].every((character) => character === normalized[0])
+  const query = [...normalized].every(
+    (character) => character === normalized[0],
+  )
     ? normalized[0]!
     : normalized;
   const selectedIndex = entries.findIndex((entry) => entry.id === selectedId);
   for (let offset = 1; offset <= entries.length; offset += 1) {
     const index = (Math.max(selectedIndex, -1) + offset) % entries.length;
     const entry = entries[index]!;
-    if (entry.id.toLowerCase().startsWith(query) || entry.title.toLowerCase().startsWith(query)) {
+    if (
+      entry.id.toLowerCase().startsWith(query) ||
+      entry.title.toLowerCase().startsWith(query)
+    ) {
       return entry;
     }
   }
@@ -300,7 +346,9 @@ function groupEntries(
     bucket.push(entry);
     byGroup.set(entry.group, bucket);
   }
-  return [...byGroup.entries()].sort(([left], [right]) => left.localeCompare(right));
+  return [...byGroup.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
 }
 
 /**
@@ -320,7 +368,11 @@ export function buildFacets(
       count: countFor("group", group),
     })),
     disposition: (
-      ["control_plane_owned", "always_agent_tool", "optional_agent_tool"] as const
+      [
+        "control_plane_owned",
+        "always_agent_tool",
+        "optional_agent_tool",
+      ] as const
     ).map((disposition) => ({
       value: disposition,
       label: DISPOSITION_LABEL[disposition],
@@ -331,15 +383,19 @@ export function buildFacets(
       label: ROLE_LABEL[role] ?? role,
       count: countFor("role", role),
     })),
-    claim: uniq(entries.flatMap((entry) => entry.requiredGrants)).map((claim) => ({
-      value: claim,
-      label: claim,
-      count: countFor("claim", claim),
-    })),
-    parity: (["pass", "fail", "intentional_gap", "not_run"] as const).map((status) => ({
-      value: status,
-      label: PARITY_LABEL[status],
-      count: countFor("parity", status),
-    })),
+    claim: uniq(entries.flatMap((entry) => entry.requiredGrants)).map(
+      (claim) => ({
+        value: claim,
+        label: claim,
+        count: countFor("claim", claim),
+      }),
+    ),
+    parity: (["pass", "fail", "intentional_gap", "not_run"] as const).map(
+      (status) => ({
+        value: status,
+        label: PARITY_LABEL[status],
+        count: countFor("parity", status),
+      }),
+    ),
   };
 }

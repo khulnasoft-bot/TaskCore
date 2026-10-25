@@ -44,16 +44,23 @@ function applyTheme(theme: Theme) {
   root.style.colorScheme = isDark ? "dark" : "light";
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta instanceof HTMLMetaElement) {
-    themeColorMeta.setAttribute("content", isDark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+    themeColorMeta.setAttribute(
+      "content",
+      isDark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR,
+    );
   }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => resolveThemeFromDocument());
+  const [theme, setThemeState] = useState<Theme>(() =>
+    resolveThemeFromDocument(),
+  );
   // Track whether the user has explicitly chosen a theme. If false, the
   // theme is being derived from the OS `prefers-color-scheme` and should
   // follow OS-level changes mid-session without being persisted.
-  const [hasExplicitChoice, setHasExplicitChoice] = useState<boolean>(() => hasStoredTheme());
+  const [hasExplicitChoice, setHasExplicitChoice] = useState<boolean>(() =>
+    hasStoredTheme(),
+  );
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setHasExplicitChoice(true);
@@ -79,7 +86,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // `prefers-color-scheme` changes so the UI flips alongside the OS theme.
   useEffect(() => {
     if (hasExplicitChoice) return;
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = (event: MediaQueryListEvent) => {
       setThemeState(event.matches ? "dark" : "light");
@@ -98,9 +109,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 }
 

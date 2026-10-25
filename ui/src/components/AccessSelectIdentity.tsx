@@ -6,5 +6,7 @@ export interface AccessSelectOption extends SearchableSelectOption {
 }
 
 export function renderAccessIdentity(option: AccessSelectOption | null) {
-  return option ? <span className="flex min-w-0 items-center gap-2">{option.identity}</span> : null;
+  return option ? (
+    <span className="flex min-w-0 items-center gap-2">{option.identity}</span>
+  ) : null;
 }

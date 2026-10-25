@@ -52,9 +52,14 @@ let adapterRoutes: typeof import("../routes/adapters.js").adapterRoutes;
 let errorHandler: typeof import("../middleware/index.js").errorHandler;
 
 function registerModuleMocks() {
-  vi.doMock("node:child_process", async () => vi.importActual("node:child_process"));
+  vi.doMock("node:child_process", async () =>
+    vi.importActual("node:child_process"),
+  );
   vi.doMock("../adapters/plugin-loader.js", () => mockPluginLoader);
-  vi.doMock("../services/adapter-plugin-store.js", () => mockAdapterPluginStore);
+  vi.doMock(
+    "../services/adapter-plugin-store.js",
+    () => mockAdapterPluginStore,
+  );
 }
 
 function resetAdapterMocks() {
@@ -63,7 +68,9 @@ function resetAdapterMocks() {
   mockAdapterPluginStore.addAdapterPlugin.mockResolvedValue(undefined);
   mockAdapterPluginStore.removeAdapterPlugin.mockReturnValue(false);
   mockAdapterPluginStore.getAdapterPluginByType.mockReturnValue(undefined);
-  mockAdapterPluginStore.getAdapterPluginsDir.mockReturnValue("/tmp/taskcore-adapter-routes-test");
+  mockAdapterPluginStore.getAdapterPluginsDir.mockReturnValue(
+    "/tmp/taskcore-adapter-routes-test",
+  );
   mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue([]);
   mockAdapterPluginStore.setAdapterDisabled.mockReturnValue(false);
   mockPluginLoader.buildExternalAdapters.mockResolvedValue([]);
@@ -139,10 +146,14 @@ describe("adapter routes", () => {
     // Every adapter should have a capabilities object
     for (const adapter of adapters) {
       expect(adapter.capabilities).toBeDefined();
-      expect(typeof adapter.capabilities.supportsInstructionsBundle).toBe("boolean");
+      expect(typeof adapter.capabilities.supportsInstructionsBundle).toBe(
+        "boolean",
+      );
       expect(typeof adapter.capabilities.supportsSkills).toBe("boolean");
       expect(typeof adapter.capabilities.supportsLocalAgentJwt).toBe("boolean");
-      expect(typeof adapter.capabilities.requiresMaterializedRuntimeSkills).toBe("boolean");
+      expect(
+        typeof adapter.capabilities.requiresMaterializedRuntimeSkills,
+      ).toBe("boolean");
       expect(typeof adapter.capabilities.supportsAcp).toBe("boolean");
     }
   });
@@ -150,29 +161,49 @@ describe("adapter routes", () => {
   it("keeps taskcore_runner hidden from selection unless the rollout flag is enabled", async () => {
     const disabledResponse = await request(createApp()).get("/api/adapters");
     expect(disabledResponse.status).toBe(200);
-    expect(disabledResponse.body.find((adapter: any) => adapter.type === "taskcore_runner"))
-      .toMatchObject({ disabled: true });
+    expect(
+      disabledResponse.body.find(
+        (adapter: any) => adapter.type === "taskcore_runner",
+      ),
+    ).toMatchObject({ disabled: true });
 
-    const enabledResponse = await request(createApp({}, {
-      getNativeRunnerEnabled: async () => true,
-    })).get("/api/adapters");
-    expect(enabledResponse.status).toBe(200);
-    expect(enabledResponse.body.find((adapter: any) => adapter.type === "taskcore_runner"))
-      .toMatchObject({
-        disabled: false,
-        capabilities: {
-          supportsInstructionsBundle: true,
+    const enabledResponse = await request(
+      createApp(
+        {},
+        {
+          getNativeRunnerEnabled: async () => true,
         },
-      });
+      ),
+    ).get("/api/adapters");
+    expect(enabledResponse.status).toBe(200);
+    expect(
+      enabledResponse.body.find(
+        (adapter: any) => adapter.type === "taskcore_runner",
+      ),
+    ).toMatchObject({
+      disabled: false,
+      capabilities: {
+        supportsInstructionsBundle: true,
+      },
+    });
   });
 
   it("keeps the shared implementation available for Dot independently, while honoring adapter-admin disabling", async () => {
-    const options = { getNativeRunnerEnabled: async () => false, getOpenAiDotEnabled: async () => true };
+    const options = {
+      getNativeRunnerEnabled: async () => false,
+      getOpenAiDotEnabled: async () => true,
+    };
     const enabled = await request(createApp({}, options)).get("/api/adapters");
-    expect(enabled.body.find((adapter: any) => adapter.type === "taskcore_runner")).toMatchObject({ disabled: false });
-    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue(["taskcore_runner"]);
+    expect(
+      enabled.body.find((adapter: any) => adapter.type === "taskcore_runner"),
+    ).toMatchObject({ disabled: false });
+    mockAdapterPluginStore.getDisabledAdapterTypes.mockReturnValue([
+      "taskcore_runner",
+    ]);
     const disabled = await request(createApp({}, options)).get("/api/adapters");
-    expect(disabled.body.find((adapter: any) => adapter.type === "taskcore_runner")).toMatchObject({ disabled: true });
+    expect(
+      disabled.body.find((adapter: any) => adapter.type === "taskcore_runner"),
+    ).toMatchObject({ disabled: true });
   });
 
   it("GET /api/adapters returns correct capabilities for built-in adapters", async () => {
@@ -215,7 +246,9 @@ describe("adapter routes", () => {
     // cursor adapter should require materialized runtime skills
     const cursorAdapter = res.body.find((a: any) => a.type === "cursor");
     expect(cursorAdapter).toBeDefined();
-    expect(cursorAdapter.capabilities.requiresMaterializedRuntimeSkills).toBe(true);
+    expect(cursorAdapter.capabilities.requiresMaterializedRuntimeSkills).toBe(
+      true,
+    );
     expect(cursorAdapter.capabilities.supportsInstructionsBundle).toBe(true);
     expect(cursorAdapter.capabilities.supportsAcp).toBe(false);
 
@@ -276,7 +309,9 @@ describe("adapter routes", () => {
       supportsAcp: false,
     });
 
-    const hermesGateway = res.body.find((a: any) => a.type === "hermes_gateway");
+    const hermesGateway = res.body.find(
+      (a: any) => a.type === "hermes_gateway",
+    );
     expect(hermesGateway).toBeDefined();
     expect(hermesGateway.source).toBe("builtin");
     expect(hermesGateway.capabilities).toMatchObject({
@@ -313,7 +348,9 @@ describe("adapter routes", () => {
   it("uses the active adapter when resolving config schema for a paused builtin override", async () => {
     const app = createApp();
 
-    const active = await request(app).get("/api/adapters/claude_local/config-schema");
+    const active = await request(app).get(
+      "/api/adapters/claude_local/config-schema",
+    );
     expect(active.status, JSON.stringify(active.body)).toBe(200);
     expect(active.body).toMatchObject({
       fields: [{ key: "mode" }],
@@ -324,7 +361,9 @@ describe("adapter routes", () => {
       .send({ paused: true });
     expect(paused.status, JSON.stringify(paused.body)).toBe(200);
 
-    const builtin = await request(app).get("/api/adapters/claude_local/config-schema");
+    const builtin = await request(app).get(
+      "/api/adapters/claude_local/config-schema",
+    );
     expect([200, 404], JSON.stringify(builtin.body)).toContain(builtin.status);
     expect(builtin.body).not.toMatchObject({
       fields: [{ key: "mode" }],
@@ -334,7 +373,9 @@ describe("adapter routes", () => {
   it("serves an empty tombstone config schema for retired acpx_local", async () => {
     const app = createApp();
 
-    const res = await request(app).get("/api/adapters/acpx_local/config-schema");
+    const res = await request(app).get(
+      "/api/adapters/acpx_local/config-schema",
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.fields).toEqual([]);
@@ -343,45 +384,51 @@ describe("adapter routes", () => {
   it("serves provider-scoped Taskcore Runner configuration fields", async () => {
     const app = createApp();
 
-    const res = await request(app).get("/api/adapters/taskcore_runner/config-schema");
+    const res = await request(app).get(
+      "/api/adapters/taskcore_runner/config-schema",
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        key: "provider",
-        options: expect.arrayContaining([
-          expect.objectContaining({ value: "codex" }),
-          expect.objectContaining({ value: "opencode" }),
-          expect.objectContaining({ value: "claude_managed" }),
-          expect.objectContaining({ value: "aws_agentcore" }),
-          expect.objectContaining({ value: "acpx" }),
-        ]),
-      }),
-      expect.objectContaining({
-        key: "codexPermissionMode",
-        default: "never",
-        meta: { visibleWhen: { key: "provider", value: "codex" } },
-      }),
-      expect.objectContaining({
-        key: "opencodePermissionMode",
-        default: "allow",
-        meta: { visibleWhen: { key: "provider", value: "opencode" } },
-      }),
-      expect.objectContaining({
-        key: "acpxPermissionMode",
-        default: "approve-all",
-        meta: { visibleWhen: { key: "provider", value: "acpx" } },
-      }),
-      expect.objectContaining({
-        key: "model",
-        meta: { visibleWhen: { key: "provider", value: "opencode" } },
-      }),
-      expect.objectContaining({
-        key: "idleTimeoutMs",
-        meta: { visibleWhen: { key: "lifecycleMode", value: "warm" } },
-      }),
-    ]));
-    const acpxAgent = res.body.fields.find((field: { key?: string }) => field.key === "acpxAgent");
+    expect(res.body.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "provider",
+          options: expect.arrayContaining([
+            expect.objectContaining({ value: "codex" }),
+            expect.objectContaining({ value: "opencode" }),
+            expect.objectContaining({ value: "claude_managed" }),
+            expect.objectContaining({ value: "aws_agentcore" }),
+            expect.objectContaining({ value: "acpx" }),
+          ]),
+        }),
+        expect.objectContaining({
+          key: "codexPermissionMode",
+          default: "never",
+          meta: { visibleWhen: { key: "provider", value: "codex" } },
+        }),
+        expect.objectContaining({
+          key: "opencodePermissionMode",
+          default: "allow",
+          meta: { visibleWhen: { key: "provider", value: "opencode" } },
+        }),
+        expect.objectContaining({
+          key: "acpxPermissionMode",
+          default: "approve-all",
+          meta: { visibleWhen: { key: "provider", value: "acpx" } },
+        }),
+        expect.objectContaining({
+          key: "model",
+          meta: { visibleWhen: { key: "provider", value: "opencode" } },
+        }),
+        expect.objectContaining({
+          key: "idleTimeoutMs",
+          meta: { visibleWhen: { key: "lifecycleMode", value: "warm" } },
+        }),
+      ]),
+    );
+    const acpxAgent = res.body.fields.find(
+      (field: { key?: string }) => field.key === "acpxAgent",
+    );
     expect(acpxAgent).toMatchObject({
       type: "select",
       default: "claude",
@@ -402,7 +449,9 @@ describe("adapter routes", () => {
       .send({ paused: true });
     expect(paused.status, JSON.stringify(paused.body)).toBe(200);
 
-    const res = await request(app).get("/api/adapters/claude_local/config-schema");
+    const res = await request(app).get(
+      "/api/adapters/claude_local/config-schema",
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.fields).toEqual(
@@ -431,7 +480,9 @@ describe("adapter routes", () => {
   it("serves the built-in codex_local ACP engine config schema", async () => {
     const app = createApp();
 
-    const res = await request(app).get("/api/adapters/codex_local/config-schema");
+    const res = await request(app).get(
+      "/api/adapters/codex_local/config-schema",
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.fields).toEqual(
@@ -460,7 +511,9 @@ describe("adapter routes", () => {
   it("serves the built-in gemini_local ACP engine config schema", async () => {
     const app = createApp();
 
-    const res = await request(app).get("/api/adapters/gemini_local/config-schema");
+    const res = await request(app).get(
+      "/api/adapters/gemini_local/config-schema",
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.fields).toEqual(
@@ -489,7 +542,9 @@ describe("adapter routes", () => {
   it("serves built-in Hermes config schemas", async () => {
     const app = createApp();
 
-    const local = await request(app).get("/api/adapters/hermes_local/config-schema");
+    const local = await request(app).get(
+      "/api/adapters/hermes_local/config-schema",
+    );
     expect(local.status, JSON.stringify(local.body)).toBe(200);
     expect(local.body.fields).toEqual(
       expect.arrayContaining([
@@ -498,7 +553,9 @@ describe("adapter routes", () => {
       ]),
     );
 
-    const gateway = await request(app).get("/api/adapters/hermes_gateway/config-schema");
+    const gateway = await request(app).get(
+      "/api/adapters/hermes_gateway/config-schema",
+    );
     expect(gateway.status, JSON.stringify(gateway.body)).toBe(200);
     expect(gateway.body.fields).toEqual(
       expect.arrayContaining([
@@ -528,7 +585,9 @@ describe("adapter routes", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await request(app).get("/api/adapters/claude_local/config-schema");
+    const res = await request(app).get(
+      "/api/adapters/claude_local/config-schema",
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
   });
@@ -556,12 +615,17 @@ describe("adapter routes", () => {
       }),
       sessionManagement: declaredSessionManagement,
     };
-    mockPluginLoader.loadExternalAdapterPackage.mockResolvedValue(externalModule);
+    mockPluginLoader.loadExternalAdapterPackage.mockResolvedValue(
+      externalModule,
+    );
 
     const app = createApp({ isInstanceAdmin: true });
     const res = await request(app)
       .post("/api/adapters/install")
-      .send({ packageName: "/tmp/fake-hot-install-adapter", isLocalPath: true });
+      .send({
+        packageName: "/tmp/fake-hot-install-adapter",
+        isLocalPath: true,
+      });
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
     expect(res.body.type).toBe(HOT_INSTALL_TYPE);
@@ -588,7 +652,9 @@ describe("adapter routes", () => {
       }),
       models: [{ id: "plugin-codex", label: "Plugin Codex" }],
     };
-    mockPluginLoader.loadExternalAdapterPackage.mockResolvedValue(externalModule);
+    mockPluginLoader.loadExternalAdapterPackage.mockResolvedValue(
+      externalModule,
+    );
 
     const app = createApp({ isInstanceAdmin: true });
     const res = await request(app)

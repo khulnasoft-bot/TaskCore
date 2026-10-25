@@ -27,7 +27,10 @@ process.exit(0);
   await fs.chmod(commandPath, 0o755);
 }
 
-async function writeEnvDumpPiCommand(commandPath: string, envDumpPath: string): Promise<void> {
+async function writeEnvDumpPiCommand(
+  commandPath: string,
+  envDumpPath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
 if (process.argv.includes("--list-models")) {
@@ -48,7 +51,9 @@ process.exit(0);
 
 describe("pi_local execute", () => {
   it("fails the run when Pi exhausts automatic retries despite exiting 0", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-pi-execute-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-execute-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "pi");
     await fs.mkdir(workspace, { recursive: true });
@@ -102,7 +107,11 @@ describe("pi_local execute", () => {
     const envDumpPath = path.join(root, "captured-path.txt");
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(skillBinDir, { recursive: true });
-    await fs.writeFile(path.join(skillDir, "SKILL.md"), "# demo-skill\n", "utf8");
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "# demo-skill\n",
+      "utf8",
+    );
     await writeEnvDumpPiCommand(commandPath, envDumpPath);
 
     const previousHome = process.env.HOME;
@@ -153,7 +162,9 @@ describe("pi_local execute", () => {
   });
 
   it("does not expose bin/ dirs from skills that are not injected", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-pi-path-neg-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-path-neg-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "pi");
     const nonInjectedSkillDir = path.join(root, "skills", "not-injected");
@@ -161,7 +172,11 @@ describe("pi_local execute", () => {
     const envDumpPath = path.join(root, "captured-path.txt");
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(nonInjectedBinDir, { recursive: true });
-    await fs.writeFile(path.join(nonInjectedSkillDir, "SKILL.md"), "# not-injected\n", "utf8");
+    await fs.writeFile(
+      path.join(nonInjectedSkillDir, "SKILL.md"),
+      "# not-injected\n",
+      "utf8",
+    );
     await writeEnvDumpPiCommand(commandPath, envDumpPath);
 
     const previousHome = process.env.HOME;
@@ -191,7 +206,11 @@ describe("pi_local execute", () => {
           // The implicit legacy default applies only to the canonical Taskcore
           // operational skill, so this unrelated skill remains unselected.
           taskcoreRuntimeSkills: [
-            { key: "not-injected", runtimeName: "not-injected", source: nonInjectedSkillDir },
+            {
+              key: "not-injected",
+              runtimeName: "not-injected",
+              source: nonInjectedSkillDir,
+            },
           ],
         },
         context: {},
@@ -200,7 +219,9 @@ describe("pi_local execute", () => {
       });
 
       const capturedPath = await fs.readFile(envDumpPath, "utf8");
-      expect(capturedPath.split(path.delimiter)).not.toContain(nonInjectedBinDir);
+      expect(capturedPath.split(path.delimiter)).not.toContain(
+        nonInjectedBinDir,
+      );
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;

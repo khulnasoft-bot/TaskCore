@@ -8,7 +8,11 @@ export function createRequestPromiseMemo<TRequest extends object, TValue>(
   const requests = new WeakMap<TRequest, Map<string, Promise<TValue>>>();
   const shouldCache = options.shouldCache ?? (() => true);
 
-  return function memoize(request: TRequest, key: string, load: () => Promise<TValue>) {
+  return function memoize(
+    request: TRequest,
+    key: string,
+    load: () => Promise<TValue>,
+  ) {
     let memo = requests.get(request);
     if (!memo) {
       memo = new Map();

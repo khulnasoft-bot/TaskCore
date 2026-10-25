@@ -88,7 +88,9 @@ export function TaskChatAgentIdentity({
       className="flex items-center gap-2 px-1"
       data-testid="task-chat-agent-identity"
     >
-      <span data-testid="task-chat-agent-avatar"><AgentAvatar agent={agent} name={agentName} size={24} /></span>
+      <span data-testid="task-chat-agent-avatar">
+        <AgentAvatar agent={agent} name={agentName} size={24} />
+      </span>
       <span className="text-sm font-semibold text-foreground">{agentName}</span>
     </span>
   );
@@ -148,9 +150,12 @@ function TaskChatBubbleContent({
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   // Keep MarkdownBody's memo boundary intact when only the live tail changes.
   // A fresh callback here reparses every historical response on every update.
-  const openImage = useCallback((src: string) => {
-    if (!openIssueGallery?.(src)) setLightboxSrc(src);
-  }, [openIssueGallery]);
+  const openImage = useCallback(
+    (src: string) => {
+      if (!openIssueGallery?.(src)) setLightboxSrc(src);
+    },
+    [openIssueGallery],
+  );
   if (item.interstitial) {
     // Interstitial updates are ephemeral (PAP-361): while streaming the text
     // lives on the live parent row's line (TaskChatStatusItem.selfTalk), and
@@ -203,7 +208,12 @@ function TaskChatBubbleContent({
     ...hydratedLinkedRefs.filter((ref) => !isImageAttachment(ref)),
     ...boundAttachmentRefs.filter((ref) => !isImageAttachment(ref)),
   ]);
-  const mediaRefs = [...imageRefs, ...attachmentRefs.filter((ref) => isVideoLikeOutput(ref.contentType, ref.name))];
+  const mediaRefs = [
+    ...imageRefs,
+    ...attachmentRefs.filter((ref) =>
+      isVideoLikeOutput(ref.contentType, ref.name),
+    ),
+  ];
   const galleryItems: GalleryMediaItem[] =
     lightboxSrc !== null && !mediaRefs.some((ref) => ref.url === lightboxSrc)
       ? // A clicked image the extractor missed (e.g. inline HTML) still gets a
@@ -213,7 +223,10 @@ function TaskChatBubbleContent({
   const lightboxIndex =
     lightboxSrc === null
       ? -1
-      : Math.max(0, mediaRefs.findIndex((ref) => ref.url === lightboxSrc));
+      : Math.max(
+          0,
+          mediaRefs.findIndex((ref) => ref.url === lightboxSrc),
+        );
   return (
     <div
       className={cn(
@@ -317,8 +330,24 @@ function TaskChatBubbleContent({
               const video = isVideoLikeOutput(ref.contentType, ref.name);
               return (
                 <Attachment key={ref.url} size="sm">
-                  <AttachmentMedia className={video ? "aspect-video group-data-[size=sm]/attachment:w-20" : undefined}>
-                    {video ? <ArtifactPreview artifact={{ title: ref.name, contentPath: ref.openPath ?? ref.url, mediaKind: "video" }} /> : <KindIcon aria-hidden />}
+                  <AttachmentMedia
+                    className={
+                      video
+                        ? "aspect-video group-data-[size=sm]/attachment:w-20"
+                        : undefined
+                    }
+                  >
+                    {video ? (
+                      <ArtifactPreview
+                        artifact={{
+                          title: ref.name,
+                          contentPath: ref.openPath ?? ref.url,
+                          mediaKind: "video",
+                        }}
+                      />
+                    ) : (
+                      <KindIcon aria-hidden />
+                    )}
                   </AttachmentMedia>
                   <AttachmentContent>
                     <AttachmentTitle className="max-w-48">
@@ -331,17 +360,33 @@ function TaskChatBubbleContent({
                   <AttachmentTrigger
                     aria-label={`Open ${ref.name}`}
                     onClick={video ? () => openImage(ref.url) : undefined}
-                    render={video ? <button type="button" /> :
-                      <a
-                        href={ref.openPath ?? ref.url}
-                        onClick={(event) => {
-                          if (openText && ref.id && isTextAttachment({ contentType: ref.contentType ?? "", originalFilename: ref.name }) && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
-                            event.preventDefault(); openText(ref.id, ref.name);
-                          }
-                        }}
-                        target="_blank"
-                        rel="noreferrer"
-                      />
+                    render={
+                      video ? (
+                        <button type="button" />
+                      ) : (
+                        <a
+                          href={ref.openPath ?? ref.url}
+                          onClick={(event) => {
+                            if (
+                              openText &&
+                              ref.id &&
+                              isTextAttachment({
+                                contentType: ref.contentType ?? "",
+                                originalFilename: ref.name,
+                              }) &&
+                              !event.metaKey &&
+                              !event.ctrlKey &&
+                              !event.shiftKey &&
+                              !event.altKey
+                            ) {
+                              event.preventDefault();
+                              openText(ref.id, ref.name);
+                            }
+                          }}
+                          target="_blank"
+                          rel="noreferrer"
+                        />
+                      )
                     }
                   />
                 </Attachment>

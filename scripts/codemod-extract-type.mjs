@@ -83,7 +83,10 @@ const lsTokens = new Map(); // letter-spacing
 const lhTokens = new Map(); // line-height
 
 function registerFsToken(rawValue, unit, sourceNote) {
-  const name = unit === "px" ? `fs-${tokenSuffixForPx(rawValue)}` : `fs-${tokenSuffixForPx(rawValue)}rem`;
+  const name =
+    unit === "px"
+      ? `fs-${tokenSuffixForPx(rawValue)}`
+      : `fs-${tokenSuffixForPx(rawValue)}rem`;
   if (!fsTokens.has(name)) {
     fsTokens.set(name, { value: `${rawValue}${unit}`, comment: sourceNote });
   }
@@ -123,10 +126,17 @@ function rewriteFile(filePath, relPath) {
 
   // -- font-size Tailwind class utilities --
   content = content.replace(FS_RE, (match, num, unit, lhNum, lhUnit) => {
-    const fsName = registerFsToken(num, unit, `Extracted from ${relPath} (text-[${num}${unit}]).`);
+    const fsName = registerFsToken(
+      num,
+      unit,
+      `Extracted from ${relPath} (text-[${num}${unit}]).`,
+    );
     let replacement = `text-(length:--${fsName})`;
     if (lhNum) {
-      const lhName = registerLhToken(`${lhNum}${lhUnit}`, `Extracted from ${relPath} (text-[...]/[${lhNum}${lhUnit}] line-height suffix).`);
+      const lhName = registerLhToken(
+        `${lhNum}${lhUnit}`,
+        `Extracted from ${relPath} (text-[...]/[${lhNum}${lhUnit}] line-height suffix).`,
+      );
       replacement += `/(--${lhName})`;
     }
     siteCount++;
@@ -135,7 +145,10 @@ function rewriteFile(filePath, relPath) {
 
   // -- letter-spacing Tailwind class utilities --
   content = content.replace(LS_RE, (match, num) => {
-    const lsName = registerLsToken(num, `Extracted from ${relPath} (tracking-[${num}em]).`);
+    const lsName = registerLsToken(
+      num,
+      `Extracted from ${relPath} (tracking-[${num}em]).`,
+    );
     siteCount++;
     return `tracking-(--${lsName})`;
   });
@@ -145,14 +158,21 @@ function rewriteFile(filePath, relPath) {
     // Only rewrite numeric/unit literals (px, rem, unitless number). Skip
     // keyword forms like leading-[inherit] or var()-based (already tokenized).
     if (!/^[0-9.]+(px|rem)?$/.test(raw)) return match;
-    const lhName = registerLhToken(raw, `Extracted from ${relPath} (leading-[${raw}]).`);
+    const lhName = registerLhToken(
+      raw,
+      `Extracted from ${relPath} (leading-[${raw}]).`,
+    );
     siteCount++;
     return `leading-(--${lhName})`;
   });
 
   // -- inline style fontSize string literals --
   content = content.replace(FONTSIZE_STYLE_RE, (match, num, unit) => {
-    const fsName = registerFsToken(num, unit, `Extracted from ${relPath} (inline style fontSize: "${num}${unit}").`);
+    const fsName = registerFsToken(
+      num,
+      unit,
+      `Extracted from ${relPath} (inline style fontSize: "${num}${unit}").`,
+    );
     siteCount++;
     return `fontSize: "var(--${fsName})"`;
   });
@@ -184,25 +204,47 @@ function main() {
   // ── index.css token block ──────────────────────────────────────────
   const cssPath = resolve(UI_SRC, "index.css");
   const cssOriginal = readFileSync(cssPath, "utf8");
-  const marker = "/* ── Extracted verbatim TYPE tokens (Phase 2 Batch 2, design/token-extraction) ── */";
+  const marker =
+    "/* ── Extracted verbatim TYPE tokens (Phase 2 Batch 2, design/token-extraction) ── */";
   let cssNext = cssOriginal;
   let cssChanged = false;
 
-  if (!cssOriginal.includes(marker) && (fsTokens.size || lsTokens.size || lhTokens.size)) {
+  if (
+    !cssOriginal.includes(marker) &&
+    (fsTokens.size || lsTokens.size || lhTokens.size)
+  ) {
     const lines = [];
     lines.push(marker);
-    lines.push("/* Batch 2/4: font-size + letter-spacing + line-height literals, verbatim");
-    lines.push("   (no normalizing — 9/10/11/12/13/14/15px and 0.08-0.24em all stay distinct;");
-    lines.push("   the human scale-collapse decision comes later per DESIGN.md/TOKEN-AUDIT.md).");
+    lines.push(
+      "/* Batch 2/4: font-size + letter-spacing + line-height literals, verbatim",
+    );
+    lines.push(
+      "   (no normalizing — 9/10/11/12/13/14/15px and 0.08-0.24em all stay distinct;",
+    );
+    lines.push(
+      "   the human scale-collapse decision comes later per DESIGN.md/TOKEN-AUDIT.md).",
+    );
     lines.push("");
-    lines.push("   Allowlist (sites intentionally left as hardcoded / functional literals,");
+    lines.push(
+      "   Allowlist (sites intentionally left as hardcoded / functional literals,",
+    );
     lines.push("   NOT converted to tokens — each also carries an inline");
     lines.push("   `token-extraction: allowlisted` comment at the site):");
-    lines.push("   - pages/CompanyEnvironments.tsx (fontSize: 12) — xterm.js terminal theme");
-    lines.push("     config; functional third-party numeric option, not a rendered CSS value.");
-    lines.push("     Same allowlisted object as Batch 1's color entry for this file.");
-    lines.push("   - pages/CompanySkills.tsx (fontSize: Math.round(size * 0.42)) — computed at");
-    lines.push("     runtime from a prop; not a static literal, nothing to extract.");
+    lines.push(
+      "   - pages/CompanyEnvironments.tsx (fontSize: 12) — xterm.js terminal theme",
+    );
+    lines.push(
+      "     config; functional third-party numeric option, not a rendered CSS value.",
+    );
+    lines.push(
+      "     Same allowlisted object as Batch 1's color entry for this file.",
+    );
+    lines.push(
+      "   - pages/CompanySkills.tsx (fontSize: Math.round(size * 0.42)) — computed at",
+    );
+    lines.push(
+      "     runtime from a prop; not a static literal, nothing to extract.",
+    );
     lines.push("*/");
     lines.push(":root {");
     for (const [name, { value, comment }] of fsTokens) {
@@ -229,7 +271,9 @@ function main() {
   console.log(`  New --fs-* tokens:      ${fsTokens.size}`);
   console.log(`  New --ls-* tokens:      ${lsTokens.size}`);
   console.log(`  New --lh-* tokens:      ${lhTokens.size}`);
-  console.log(`  index.css token block:  ${cssChanged ? "added" : "already present or nothing to add (idempotent no-op)"}`);
+  console.log(
+    `  index.css token block:  ${cssChanged ? "added" : "already present or nothing to add (idempotent no-op)"}`,
+  );
   if (changedFiles.length) {
     console.log(`\n  Changed files:`);
     for (const f of changedFiles) console.log(`    - ${f}`);

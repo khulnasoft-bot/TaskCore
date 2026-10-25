@@ -21,7 +21,9 @@ export const workAssessments = pgTable(
   "work_assessments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
     issueId: uuid("issue_id").notNull(),
     runId: uuid("run_id").notNull(),
     turnId: text("turn_id"),
@@ -30,15 +32,23 @@ export const workAssessments = pgTable(
     triggerKind: text("trigger_kind").notNull(),
     triggerRef: text("trigger_ref"),
     triggerCapability: text("trigger_capability"),
-    triggerActorCompanyId: uuid("trigger_actor_company_id").notNull().references(() => companies.id),
+    triggerActorCompanyId: uuid("trigger_actor_company_id")
+      .notNull()
+      .references(() => companies.id),
     priorIssueStatus: text("prior_issue_status").notNull(),
-    priorStatusVersion: bigint("prior_status_version", { mode: "number" }).notNull(),
+    priorStatusVersion: bigint("prior_status_version", {
+      mode: "number",
+    }).notNull(),
     priorDecisionId: uuid("prior_decision_id"),
     policyVersion: text("policy_version").notNull(),
-    assessmentJson: jsonb("assessment_json").$type<Record<string, unknown>>().notNull(),
+    assessmentJson: jsonb("assessment_json")
+      .$type<Record<string, unknown>>()
+      .notNull(),
     inputDigest: text("input_digest").notNull(),
     supersedesAssessmentId: uuid("supersedes_assessment_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companyIssueRunIdUq: unique("work_assessments_company_issue_run_id_uq").on(
@@ -54,7 +64,11 @@ export const workAssessments = pgTable(
     }),
     runOwnerFk: foreignKey({
       columns: [table.companyId, table.issueId, table.runId],
-      foreignColumns: [heartbeatRuns.companyId, heartbeatRuns.nativeIssueId, heartbeatRuns.id],
+      foreignColumns: [
+        heartbeatRuns.companyId,
+        heartbeatRuns.nativeIssueId,
+        heartbeatRuns.id,
+      ],
       name: "work_assessments_run_owner_fk",
     }),
     contractOwnerFk: foreignKey({
@@ -77,7 +91,12 @@ export const workAssessments = pgTable(
       name: "work_assessments_result_owner_fk",
     }),
     supersedesOwnerFk: foreignKey({
-      columns: [table.companyId, table.issueId, table.runId, table.supersedesAssessmentId],
+      columns: [
+        table.companyId,
+        table.issueId,
+        table.runId,
+        table.supersedesAssessmentId,
+      ],
       foreignColumns: [table.companyId, table.issueId, table.runId, table.id],
       name: "work_assessments_supersedes_owner_fk",
     }),

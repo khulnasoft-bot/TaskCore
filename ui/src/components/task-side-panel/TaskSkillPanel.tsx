@@ -8,7 +8,13 @@ import { queryKeys } from "@/lib/queryKeys";
 import { useNavigate } from "@/lib/router";
 import { parseFrontmatterMarkdown } from "@taskcore/shared";
 
-export function TaskSkillPanel({ companyId, skillId }: { companyId: string; skillId: string }) {
+export function TaskSkillPanel({
+  companyId,
+  skillId,
+}: {
+  companyId: string;
+  skillId: string;
+}) {
   const navigate = useNavigate();
   const query = useQuery({
     queryKey: queryKeys.companySkills.detail(companyId, skillId),
@@ -19,7 +25,10 @@ export function TaskSkillPanel({ companyId, skillId }: { companyId: string; skil
   });
   if (query.isLoading) {
     return (
-      <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground" role="status">
+      <div
+        className="flex items-center gap-2 py-8 text-sm text-muted-foreground"
+        role="status"
+      >
         <Loader2 className="size-4 animate-spin" aria-hidden />
         Loading skill…
       </div>
@@ -28,22 +37,42 @@ export function TaskSkillPanel({ companyId, skillId }: { companyId: string; skil
   if (query.isError) {
     const status = query.error instanceof ApiError ? query.error.status : null;
     if (status === 404) {
-      return <div className="py-8 text-sm text-muted-foreground" role="status">Skill no longer available.</div>;
+      return (
+        <div className="py-8 text-sm text-muted-foreground" role="status">
+          Skill no longer available.
+        </div>
+      );
     }
     if (status === 403) {
-      return <div className="py-8 text-sm text-muted-foreground" role="alert">You do not have access to this skill.</div>;
+      return (
+        <div className="py-8 text-sm text-muted-foreground" role="alert">
+          You do not have access to this skill.
+        </div>
+      );
     }
     return (
-      <div className="space-y-3 py-8 text-sm text-muted-foreground" role="alert">
+      <div
+        className="space-y-3 py-8 text-sm text-muted-foreground"
+        role="alert"
+      >
         <p>The skill could not be loaded.</p>
-        <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+        >
           {query.isFetching ? "Retrying…" : "Retry"}
         </Button>
       </div>
     );
   }
   if (!query.data) {
-    return <div className="py-8 text-sm text-muted-foreground" role="status">Skill no longer available.</div>;
+    return (
+      <div className="py-8 text-sm text-muted-foreground" role="status">
+        Skill no longer available.
+      </div>
+    );
   }
   const skill = query.data;
   const previewMarkdown = parseFrontmatterMarkdown(skill.markdown).body;
@@ -58,23 +87,32 @@ export function TaskSkillPanel({ companyId, skillId }: { companyId: string; skil
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/skills/studio/${encodeURIComponent(skill.id)}`)}
+            onClick={() =>
+              navigate(`/skills/studio/${encodeURIComponent(skill.id)}`)
+            }
           >
             <ExternalLink className="mr-1.5 size-3.5" aria-hidden />
             Open in Skill Studio
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {skill.slug} · {skill.currentVersion ? `Revision ${skill.currentVersion.revisionNumber}` : "Current version"}
+          {skill.slug} ·{" "}
+          {skill.currentVersion
+            ? `Revision ${skill.currentVersion.revisionNumber}`
+            : "Current version"}
         </p>
       </header>
-      {skill.description ? <p className="text-sm text-muted-foreground">{skill.description}</p> : null}
+      {skill.description ? (
+        <p className="text-sm text-muted-foreground">{skill.description}</p>
+      ) : null}
       <section className="space-y-2">
         <h3 className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <FileText className="size-3.5" aria-hidden />
           Skill instructions
         </h3>
-        <MarkdownBody>{previewMarkdown || "Skill instructions are empty."}</MarkdownBody>
+        <MarkdownBody>
+          {previewMarkdown || "Skill instructions are empty."}
+        </MarkdownBody>
       </section>
     </article>
   );

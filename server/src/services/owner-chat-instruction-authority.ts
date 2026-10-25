@@ -8,7 +8,12 @@ import type { Db } from "@taskcore/db";
  */
 export async function hasOwnerChatInstructionAuthority(
   db: Pick<Db, "execute">,
-  input: { companyId: string; agentId: string; runId?: string | null; userId?: string | null },
+  input: {
+    companyId: string;
+    agentId: string;
+    runId?: string | null;
+    userId?: string | null;
+  },
 ): Promise<boolean> {
   if (!input.runId || !input.userId) return false;
   const [authorized] = await db.execute<{ id: string }>(sql`

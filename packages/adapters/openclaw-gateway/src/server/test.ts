@@ -7,14 +7,18 @@ import { asString, parseObject } from "@taskcore/adapter-utils/server-utils";
 import { randomUUID } from "node:crypto";
 import { WebSocket } from "ws";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
 }
 
 function nonEmpty(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function isLoopbackHost(hostname: string): boolean {
@@ -47,8 +51,13 @@ function toStringArray(value: unknown): string[] {
   return [];
 }
 
-function headerMapGetIgnoreCase(headers: Record<string, string>, key: string): string | null {
-  const match = Object.entries(headers).find(([entryKey]) => entryKey.toLowerCase() === key.toLowerCase());
+function headerMapGetIgnoreCase(
+  headers: Record<string, string>,
+  key: string,
+): string | null {
+  const match = Object.entries(headers).find(
+    ([entryKey]) => entryKey.toLowerCase() === key.toLowerCase(),
+  );
   return match ? match[1] : null;
 }
 
@@ -60,7 +69,10 @@ function tokenFromAuthHeader(rawHeader: string | null): string | null {
   return match ? nonEmpty(match[1]) : trimmed;
 }
 
-function resolveAuthToken(config: Record<string, unknown>, headers: Record<string, string>): string | null {
+function resolveAuthToken(
+  config: Record<string, unknown>,
+  headers: Record<string, string>,
+): string | null {
   const explicit = nonEmpty(config.authToken) ?? nonEmpty(config.token);
   if (explicit) return explicit;
 
@@ -74,7 +86,8 @@ function resolveAuthToken(config: Record<string, unknown>, headers: Record<strin
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -84,7 +97,9 @@ function rawDataToString(data: unknown): string {
   if (data instanceof ArrayBuffer) return Buffer.from(data).toString("utf8");
   if (Array.isArray(data)) {
     return Buffer.concat(
-      data.map((entry) => (Buffer.isBuffer(entry) ? entry : Buffer.from(String(entry), "utf8"))),
+      data.map((entry) =>
+        Buffer.isBuffer(entry) ? entry : Buffer.from(String(entry), "utf8"),
+      ),
     ).toString("utf8");
   }
   return String(data ?? "");
@@ -99,7 +114,10 @@ async function probeGateway(input: {
   timeoutMs: number;
 }): Promise<"ok" | "challenge_only" | "failed"> {
   return await new Promise((resolve) => {
-    const ws = new WebSocket(input.url, { headers: input.headers, maxPayload: 2 * 1024 * 1024 });
+    const ws = new WebSocket(input.url, {
+      headers: input.headers,
+      maxPayload: 2 * 1024 * 1024,
+    });
     const timeout = setTimeout(() => {
       try {
         ws.close();
@@ -288,7 +306,8 @@ export async function testEnvironment(
         checks.push({
           code: "openclaw_gateway_probe_challenge_only",
           level: "warn",
-          message: "Gateway challenge was received, but connect probe was rejected.",
+          message:
+            "Gateway challenge was received, but connect probe was rejected.",
           hint: "Check gateway credentials, scopes, role, and device-auth requirements.",
         });
       } else {

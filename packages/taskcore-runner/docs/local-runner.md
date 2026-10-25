@@ -8,13 +8,13 @@ harness are all inside `packages/taskcore-runner/`.
 
 ## Processes and transports
 
-| Boundary | Transport | Input | Output |
-|---|---|---|---|
-| Mock core → runner | stdin JSONL | `taskcore.prp.command.v1` | — |
-| Runner → mock core | stdout JSONL | — | `taskcore.runner.stream.v1` |
-| Runner → fake harness | stdin JSONL | `taskcore.fake_harness.command.v1` | — |
-| Fake harness → runner | stdout JSONL | — | `taskcore.fake_harness.message.v1` |
-| Mock core → browser | local HTTP + NDJSON | start/actions | validated events and final trace |
+| Boundary              | Transport           | Input                              | Output                             |
+| --------------------- | ------------------- | ---------------------------------- | ---------------------------------- |
+| Mock core → runner    | stdin JSONL         | `taskcore.prp.command.v1`          | —                                  |
+| Runner → mock core    | stdout JSONL        | —                                  | `taskcore.runner.stream.v1`        |
+| Runner → fake harness | stdin JSONL         | `taskcore.fake_harness.command.v1` | —                                  |
+| Fake harness → runner | stdout JSONL        | —                                  | `taskcore.fake_harness.message.v1` |
+| Mock core → browser   | local HTTP + NDJSON | start/actions                      | validated events and final trace   |
 
 Stderr is diagnostic input. It never becomes a command or canonical event.
 
@@ -47,14 +47,14 @@ sequence, and timestamp. Script delay can be overridden for fast tests.
 
 Scripts live under `protocol/fixtures/local-runner/scripts/`.
 
-| Script | Proof |
-|---|---|
-| `happy-path` | Lifecycle, tool/command item, file item, logs, result, and success terminal |
-| `permission-input` | Permission request and free-text input round-trip |
-| `interrupted` | Operator interruption, yielded result, exit 130, and cancelled terminal |
-| `error` | Non-zero process exit stays separate from the yielded semantic result |
-| `duplicate-terminal` | A second terminal proposal is ignored and diagnosed |
-| `linger` | Supervisor terminates the harness and its worker process group |
+| Script               | Proof                                                                       |
+| -------------------- | --------------------------------------------------------------------------- |
+| `happy-path`         | Lifecycle, tool/command item, file item, logs, result, and success terminal |
+| `permission-input`   | Permission request and free-text input round-trip                           |
+| `interrupted`        | Operator interruption, yielded result, exit 130, and cancelled terminal     |
+| `error`              | Non-zero process exit stays separate from the yielded semantic result       |
+| `duplicate-terminal` | A second terminal proposal is ignored and diagnosed                         |
+| `linger`             | Supervisor terminates the harness and its worker process group              |
 
 ## Cleanup and credential boundary
 

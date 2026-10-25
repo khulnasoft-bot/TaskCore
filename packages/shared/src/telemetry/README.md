@@ -17,18 +17,18 @@ types as the final authority for emitted first-party telemetry shapes.
 
 Use these files when reviewing or changing telemetry code:
 
-| Contract item                                 | Public source                                                                            |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| First-party event names                       | `TaskcoreEventName` in `generated/taskcore-telemetry.ts`                               |
+| Contract item                                 | Public source                                                                           |
+| --------------------------------------------- | --------------------------------------------------------------------------------------- |
+| First-party event names                       | `TaskcoreEventName` in `generated/taskcore-telemetry.ts`                                |
 | Per-event dimensions and optionality          | `EventDimensionsMap` in `generated/taskcore-telemetry.ts`                               |
-| Enum descriptions for telemetry dimensions    | `TASKCORE_ENUM_DESCRIPTIONS` in `generated/taskcore-telemetry.ts`                      |
+| Enum descriptions for telemetry dimensions    | `TASKCORE_ENUM_DESCRIPTIONS` in `generated/taskcore-telemetry.ts`                       |
 | Schema version and event envelope helpers     | `SCHEMA_VERSION`, `makeEvent()`, and `makeBatch()` in `generated/taskcore-telemetry.ts` |
-| Runtime-safe event names and dimensions       | `TelemetryEventName` and `TelemetryEventDimensions` in `types.ts`                        |
-| Allowed primitive dimension values            | `TelemetryDimensionValue` in `types.ts`                                                  |
-| Shared reusable enum domains                  | Named exports in `constants.ts`                                                          |
-| First-party typed emit helpers                | `events.ts`                                                                              |
-| Generic client behavior                       | `client.ts`                                                                              |
-| Retention windows and event class assignments | `RETENTION_DAYS` and `EVENT_RETENTION_CLASS` in `retention.ts`                           |
+| Runtime-safe event names and dimensions       | `TelemetryEventName` and `TelemetryEventDimensions` in `types.ts`                       |
+| Allowed primitive dimension values            | `TelemetryDimensionValue` in `types.ts`                                                 |
+| Shared reusable enum domains                  | Named exports in `constants.ts`                                                         |
+| First-party typed emit helpers                | `events.ts`                                                                             |
+| Generic client behavior                       | `client.ts`                                                                             |
+| Retention windows and event class assignments | `RETENTION_DAYS` and `EVENT_RETENTION_CLASS` in `retention.ts`                          |
 
 Do not copy generated event lists or dimension tables into this README. They
 will drift as the generated contract changes.

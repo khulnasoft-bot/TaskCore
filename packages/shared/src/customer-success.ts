@@ -119,7 +119,8 @@ export interface InspectionPermit {
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === "string" || typeof value === "boolean")
     return JSON.stringify(value);
-  if (typeof value === "number" && Number.isFinite(value)) return JSON.stringify(value);
+  if (typeof value === "number" && Number.isFinite(value))
+    return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (value && typeof value === "object") {
     const entries = Object.entries(value)
@@ -162,21 +163,33 @@ export function parseInspectionQuery(value: unknown): InspectionQuery {
     ].includes(q.operation)
   )
     throw new Error("Unsupported inspection operation");
-  for (const k of ["companyId", "resourceId", "parentId", "versionId"] as const) {
-    if (q[k] !== undefined && (typeof q[k] !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(q[k]!)))
+  for (const k of [
+    "companyId",
+    "resourceId",
+    "parentId",
+    "versionId",
+  ] as const) {
+    if (
+      q[k] !== undefined &&
+      (typeof q[k] !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(q[k]!))
+    )
       throw new Error(`Invalid ${k}`);
   }
   if (q.resource !== undefined && !INSPECTION_RESOURCES.includes(q.resource))
     throw new Error("Unsupported inspection resource");
-  if (q.operation === "get" && !q.resourceId) throw new Error("resourceId required");
-  if (["get", "list"].includes(q.operation) && !q.resource) throw new Error("resource required");
+  if (q.operation === "get" && !q.resourceId)
+    throw new Error("resourceId required");
+  if (["get", "list"].includes(q.operation) && !q.resource)
+    throw new Error("resource required");
   if (!(q.operation === "list" && q.resource === "companies") && !q.companyId)
     throw new Error("companyId required");
   if (!["get", "list"].includes(q.operation) && !q.resourceId)
     throw new Error("resourceId required");
   if (
     q.path !== undefined &&
-    (typeof q.path !== "string" || q.path.length > 1024 || q.path.includes("\0"))
+    (typeof q.path !== "string" ||
+      q.path.length > 1024 ||
+      q.path.includes("\0"))
   )
     throw new Error("Invalid path");
   if (
@@ -187,7 +200,9 @@ export function parseInspectionQuery(value: unknown): InspectionQuery {
   for (const k of ["limit", "offset"] as const)
     if (
       q[k] !== undefined &&
-      (!Number.isSafeInteger(q[k]) || q[k]! < 0 || q[k]! > (k === "limit" ? 100 : 1000000))
+      (!Number.isSafeInteger(q[k]) ||
+        q[k]! < 0 ||
+        q[k]! > (k === "limit" ? 100 : 1000000))
     )
       throw new Error(`Invalid ${k}`);
   if (
@@ -208,7 +223,9 @@ export function parseInspectionQuery(value: unknown): InspectionQuery {
       !q.context ||
       typeof q.context !== "object" ||
       Array.isArray(q.context) ||
-      Object.keys(q.context).some((k) => !["projectId", "workspaceId", "workspace"].includes(k)) ||
+      Object.keys(q.context).some(
+        (k) => !["projectId", "workspaceId", "workspace"].includes(k),
+      ) ||
       Object.values(q.context).some(
         (v) => typeof v !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(v),
       ) ||

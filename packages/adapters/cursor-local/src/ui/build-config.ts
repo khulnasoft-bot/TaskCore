@@ -1,4 +1,7 @@
-import { buildAdapterEnvConfig, type CreateConfigValues } from "@taskcore/adapter-utils";
+import {
+  buildAdapterEnvConfig,
+  type CreateConfigValues,
+} from "@taskcore/adapter-utils";
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "../index.js";
 
 function parseCommaArgs(value: string): string[] {
@@ -14,7 +17,9 @@ function normalizeMode(value: string): "plan" | "ask" | null {
   return null;
 }
 
-export function buildCursorLocalConfig(v: CreateConfigValues): Record<string, unknown> {
+export function buildCursorLocalConfig(
+  v: CreateConfigValues,
+): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.cwd) ac.cwd = v.cwd;
   if (v.instructionsFilePath) ac.instructionsFilePath = v.instructionsFilePath;

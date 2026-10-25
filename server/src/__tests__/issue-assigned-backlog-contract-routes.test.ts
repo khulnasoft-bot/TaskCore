@@ -4,8 +4,12 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const assigneeAgentId = "22222222-2222-4222-8222-222222222222";
 
-const mockRetainBacklogAssignment = vi.hoisted(() => vi.fn(async () => undefined));
-vi.mock("../services/human-directed-work.js", () => ({ retainBacklogHumanAssignment: mockRetainBacklogAssignment }));
+const mockRetainBacklogAssignment = vi.hoisted(() =>
+  vi.fn(async () => undefined),
+);
+vi.mock("../services/human-directed-work.js", () => ({
+  retainBacklogHumanAssignment: mockRetainBacklogAssignment,
+}));
 
 const mockWakeup = vi.hoisted(() => vi.fn(async () => undefined));
 const mockLogActivity = vi.hoisted(() => vi.fn(async () => undefined));
@@ -35,15 +39,17 @@ vi.mock("../services/index.js", () => ({
   }),
   agentService: () => ({
     getById: vi.fn(async () => null),
-    resolveByReference: vi.fn(async (_companyId: string, reference: string) => ({
-      ambiguous: false,
-      agent: {
-        id: reference,
-        companyId: "company-1",
-        status: "active",
-        orgChainHealth: { status: "healthy" },
-      },
-    })),
+    resolveByReference: vi.fn(
+      async (_companyId: string, reference: string) => ({
+        ambiguous: false,
+        agent: {
+          id: reference,
+          companyId: "company-1",
+          status: "active",
+          orgChainHealth: { status: "healthy" },
+        },
+      }),
+    ),
   }),
   companySkillService: () => ({
     completeTestRunForIssue: vi.fn(async () => null),
@@ -51,7 +57,9 @@ vi.mock("../services/index.js", () => ({
   companyService: () => ({
     getById: vi.fn(async () => ({ id: "company-1" })),
   }),
-  documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+  documentAnnotationService: () => ({
+    remapOpenThreadsForDocument: async () => [],
+  }),
   documentService: () => ({
     getIssueDocumentPayload: vi.fn(async () => ({})),
   }),
@@ -119,8 +127,12 @@ vi.mock("../services/index.js", () => ({
 
 async function createApp() {
   const [{ issueRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/issues.js")>(
+      "../routes/issues.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -167,7 +179,9 @@ function makeIssue(input: {
 
 function expectClearAssignedStatusValidation(res: request.Response) {
   expect([400, 422]).toContain(res.status);
-  expect(String(res.body?.error ?? res.text)).toMatch(/assign|assignee|status|backlog|todo/i);
+  expect(String(res.body?.error ?? res.text)).toMatch(
+    /assign|assignee|status|backlog|todo/i,
+  );
 }
 
 describe("assigned backlog creation contract", () => {
@@ -182,32 +196,43 @@ describe("assigned backlog creation contract", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockIssueService.getById.mockResolvedValue(makeIssue({
-      id: "parent-1",
-      title: "Parent issue",
-      status: "blocked",
-      assigneeAgentId,
-    }));
-    mockIssueService.create.mockImplementation(async (_companyId: string, data: Record<string, unknown>) =>
+    mockIssueService.getById.mockResolvedValue(
       makeIssue({
-        id: String(data.id),
-        title: String(data.title),
-        status: String(data.status),
-        assigneeAgentId: data.assigneeAgentId as string | null | undefined,
-      }));
-    mockIssueService.createChild.mockImplementation(async (_parentId: string, data: Record<string, unknown>) => ({
-      issue: makeIssue({
-        id: "child-1",
-        title: String(data.title),
-        status: String(data.status),
-        parentId: "parent-1",
-        assigneeAgentId: data.assigneeAgentId as string | null | undefined,
+        id: "parent-1",
+        title: "Parent issue",
+        status: "blocked",
+        assigneeAgentId,
       }),
-      parentBlockerAdded: Boolean(data.blockParentUntilDone),
-    }));
-    mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
+    );
+    mockIssueService.create.mockImplementation(
+      async (_companyId: string, data: Record<string, unknown>) =>
+        makeIssue({
+          id: String(data.id),
+          title: String(data.title),
+          status: String(data.status),
+          assigneeAgentId: data.assigneeAgentId as string | null | undefined,
+        }),
+    );
+    mockIssueService.createChild.mockImplementation(
+      async (_parentId: string, data: Record<string, unknown>) => ({
+        issue: makeIssue({
+          id: "child-1",
+          title: String(data.title),
+          status: String(data.status),
+          parentId: "parent-1",
+          assigneeAgentId: data.assigneeAgentId as string | null | undefined,
+        }),
+        parentBlockerAdded: Boolean(data.blockParentUntilDone),
+      }),
+    );
+    mockIssueService.getRelationSummaries.mockResolvedValue({
+      blockedBy: [],
+      blocks: [],
+    });
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
-    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
+    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(
+      null,
+    );
   });
 
   it("does not silently create a top-level assigned issue as backlog when status is omitted", async () => {
@@ -233,10 +258,12 @@ describe("assigned backlog creation contract", () => {
         status: "todo",
       }),
     );
-    expect(res.body).toEqual(expect.objectContaining({
-      assigneeAgentId,
-      status: "todo",
-    }));
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        assigneeAgentId,
+        status: "todo",
+      }),
+    );
     expect(mockWakeup).toHaveBeenCalledWith(
       assigneeAgentId,
       expect.objectContaining({
@@ -284,11 +311,13 @@ describe("assigned backlog creation contract", () => {
         status: "todo",
       }),
     );
-    expect(res.body).toEqual(expect.objectContaining({
-      assigneeAgentId,
-      parentId: "parent-1",
-      status: "todo",
-    }));
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        assigneeAgentId,
+        parentId: "parent-1",
+        status: "todo",
+      }),
+    );
     expect(mockLogActivity).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -330,12 +359,15 @@ describe("assigned backlog creation contract", () => {
         status: "backlog",
       }),
     );
-    expect(res.body).toEqual(expect.objectContaining({
-      assigneeAgentId,
-      status: "backlog",
-    }));
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        assigneeAgentId,
+        status: "backlog",
+      }),
+    );
     expect(mockRetainBacklogAssignment).toHaveBeenCalledWith(
-      expect.anything(), expect.objectContaining({ assigneeAgentId, status: "backlog" }),
+      expect.anything(),
+      expect.objectContaining({ assigneeAgentId, status: "backlog" }),
       expect.objectContaining({ actorType: "user", actorId: "local-board" }),
     );
     expect(mockLogActivity).toHaveBeenCalledWith(

@@ -5,7 +5,9 @@ import {
   type AgentOrgRow,
 } from "../services/agent-invokability.ts";
 
-function agent(partial: Partial<AgentOrgRow> & Pick<AgentOrgRow, "id">): AgentOrgRow {
+function agent(
+  partial: Partial<AgentOrgRow> & Pick<AgentOrgRow, "id">,
+): AgentOrgRow {
   return {
     companyId: "company-1",
     name: partial.id,
@@ -38,7 +40,9 @@ describe("agent invokability", () => {
 
   it("reports missing managers and cycles as invalid-org-chain", () => {
     const missingManager = [agent({ id: "coder", reportsTo: "missing" })];
-    expect(evaluateAgentInvokability(missingManager[0], missingManager)).toMatchObject({
+    expect(
+      evaluateAgentInvokability(missingManager[0], missingManager),
+    ).toMatchObject({
       invokable: false,
       reason: "manager_missing",
       invalidOrgChain: true,
@@ -64,6 +68,9 @@ describe("agent invokability", () => {
       agent({ id: "other-root" }),
     ];
 
-    expect(listInvalidOrgChainDescendantIds("ceo", rows).sort()).toEqual(["coder", "cto"]);
+    expect(listInvalidOrgChainDescendantIds("ceo", rows).sort()).toEqual([
+      "coder",
+      "cto",
+    ]);
   });
 });

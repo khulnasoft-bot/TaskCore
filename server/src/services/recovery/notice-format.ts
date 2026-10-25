@@ -1,10 +1,19 @@
-import type { IssueCommentMetadata, IssueCommentPresentation } from "@taskcore/shared";
+import type {
+  IssueCommentMetadata,
+  IssueCommentPresentation,
+} from "@taskcore/shared";
 
-export type NoticeMetadataRow = IssueCommentMetadata["sections"][number]["rows"][number];
+export type NoticeMetadataRow =
+  IssueCommentMetadata["sections"][number]["rows"][number];
 export type NoticeMetadataSection = IssueCommentMetadata["sections"][number];
 
 export function metadataText(value: unknown, fallback = "unknown") {
-  const text = typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim();
+  const text =
+    typeof value === "string"
+      ? value.trim()
+      : value == null
+        ? ""
+        : String(value).trim();
   const resolved = text.length > 0 ? text : fallback;
   return resolved.length > 2000 ? `${resolved.slice(0, 1997)}...` : resolved;
 }
@@ -15,7 +24,8 @@ export function keyValueRow(label: string, value: unknown): NoticeMetadataRow {
 
 export function issueLinkRow(
   label: string,
-  issue: { id: string; identifier: string | null; title: string } | null | undefined,
+  issue:
+    { id: string; identifier: string | null; title: string } | null | undefined,
 ): NoticeMetadataRow {
   if (!issue) return keyValueRow(label, "unknown");
   return {
@@ -29,7 +39,8 @@ export function issueLinkRow(
 
 export function runLinkRow(
   label: string,
-  run: { id: string; status: string; agentId?: string | null } | null | undefined,
+  run:
+    { id: string; status: string; agentId?: string | null } | null | undefined,
 ): NoticeMetadataRow {
   if (!run) return keyValueRow(label, "unknown");
   return {

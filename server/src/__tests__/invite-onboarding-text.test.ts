@@ -32,12 +32,17 @@ describe("buildInviteOnboardingTextDocument", () => {
       updatedAt: new Date("2026-03-04T00:00:00.000Z"),
     } as const;
 
-    const text = buildInviteOnboardingTextDocument(req, "token-123", invite as any, {
-      deploymentMode: "local_trusted",
-      deploymentExposure: "private",
-      bindHost: "127.0.0.1",
-      allowedHostnames: [],
-    });
+    const text = buildInviteOnboardingTextDocument(
+      req,
+      "token-123",
+      invite as any,
+      {
+        deploymentMode: "local_trusted",
+        deploymentExposure: "private",
+        bindHost: "127.0.0.1",
+        allowedHostnames: [],
+      },
+    );
 
     expect(text).toContain("Taskcore Agent Onboarding");
     expect(text).toContain("/api/invites/token-123/accept");
@@ -55,7 +60,9 @@ describe("buildInviteOnboardingTextDocument", () => {
     expect(text).toContain('"adapterType": "hermes_gateway"');
     expect(text).toContain("API_SERVER_ENABLED=true");
     expect(text).toContain("API_SERVER_KEY");
-    expect(text).toContain("Set agentDefaultsPayload.apiKey to the exact same value as API_SERVER_KEY");
+    expect(text).toContain(
+      "Set agentDefaultsPayload.apiKey to the exact same value as API_SERVER_KEY",
+    );
     expect(text).toContain("hermes gateway run --replace --accept-hooks");
     expect(text).toContain("Default Hermes API server port: 8642");
     expect(text).toContain("agentDefaultsPayload.apiBaseUrl");
@@ -66,21 +73,37 @@ describe("buildInviteOnboardingTextDocument", () => {
     expect(text).toContain("http://127.0.0.1:9119");
     expect(text).toContain("http://127.0.0.1:9119/chat");
     expect(text).toContain("map to /api");
-    expect(text).toContain("/chat and the dashboard root are browser UI routes");
+    expect(text).toContain(
+      "/chat and the dashboard root are browser UI routes",
+    );
     expect(text).toContain("/api/v1/runs");
     expect(text).toContain("Do not rotate or invent a Taskcore key manually");
     expect(text).toContain("http://192.168.1.25:8642");
     expect(text).toContain("tailnet-name.ts.net:8642");
     expect(text).toContain("http://host.docker.internal:8642");
     expect(text).toContain("https://hermes-gateway.example");
-    expect(text).toContain("set the first reachable candidate as agentDefaultsPayload.taskcoreApiUrl");
+    expect(text).toContain(
+      "set the first reachable candidate as agentDefaultsPayload.taskcoreApiUrl",
+    );
     expect(text).toContain("TASKCORE_API_KEY");
-    expect(text).toContain("Store the parsed token field from the raw HTTP JSON response");
-    expect(text).toContain("A token value containing literal ... or [redacted]");
-    expect(text).toContain("The response body includes the full token exactly once");
-    expect(text).toContain("Do not persist displayed previews containing literal ... or [redacted]");
-    expect(text).toContain("Use your runtime's normal skill or instruction installation path.");
-    expect(text).toContain("Decide which Taskcore adapter type matches your runtime.");
+    expect(text).toContain(
+      "Store the parsed token field from the raw HTTP JSON response",
+    );
+    expect(text).toContain(
+      "A token value containing literal ... or [redacted]",
+    );
+    expect(text).toContain(
+      "The response body includes the full token exactly once",
+    );
+    expect(text).toContain(
+      "Do not persist displayed previews containing literal ... or [redacted]",
+    );
+    expect(text).toContain(
+      "Use your runtime's normal skill or instruction installation path.",
+    );
+    expect(text).toContain(
+      "Decide which Taskcore adapter type matches your runtime.",
+    );
   });
 
   it("includes loopback diagnostics for authenticated/private onboarding", () => {
@@ -100,12 +123,17 @@ describe("buildInviteOnboardingTextDocument", () => {
       updatedAt: new Date("2026-03-04T00:00:00.000Z"),
     } as const;
 
-    const text = buildInviteOnboardingTextDocument(req, "token-456", invite as any, {
-      deploymentMode: "authenticated",
-      deploymentExposure: "private",
-      bindHost: "127.0.0.1",
-      allowedHostnames: [],
-    });
+    const text = buildInviteOnboardingTextDocument(
+      req,
+      "token-456",
+      invite as any,
+      {
+        deploymentMode: "authenticated",
+        deploymentExposure: "private",
+        bindHost: "127.0.0.1",
+        allowedHostnames: [],
+      },
+    );
 
     expect(text).toContain("Connectivity diagnostics");
     expect(text).toContain("loopback hostname");
@@ -121,7 +149,8 @@ describe("buildInviteOnboardingTextDocument", () => {
       allowedJoinTypes: "agent",
       tokenHash: "hash",
       defaultsPayload: {
-        agentMessage: "Please join as our QA lead and prioritize flaky test triage first.",
+        agentMessage:
+          "Please join as our QA lead and prioritize flaky test triage first.",
       },
       expiresAt: new Date("2026-03-05T00:00:00.000Z"),
       invitedByUserId: null,
@@ -131,12 +160,17 @@ describe("buildInviteOnboardingTextDocument", () => {
       updatedAt: new Date("2026-03-04T00:00:00.000Z"),
     } as const;
 
-    const text = buildInviteOnboardingTextDocument(req, "token-789", invite as any, {
-      deploymentMode: "local_trusted",
-      deploymentExposure: "private",
-      bindHost: "127.0.0.1",
-      allowedHostnames: [],
-    });
+    const text = buildInviteOnboardingTextDocument(
+      req,
+      "token-789",
+      invite as any,
+      {
+        deploymentMode: "local_trusted",
+        deploymentExposure: "private",
+        bindHost: "127.0.0.1",
+        allowedHostnames: [],
+      },
+    );
 
     expect(text).toContain("Message from inviter");
     expect(text).toContain("prioritize flaky test triage first");
@@ -192,12 +226,17 @@ describe("buildInviteOnboardingTextDocument", () => {
         updatedAt: new Date("2026-03-04T00:00:00.000Z"),
       } as const;
 
-      const text = buildInviteOnboardingTextDocument(req, "token-999", invite as any, {
-        deploymentMode: "authenticated",
-        deploymentExposure: "private",
-        bindHost: "0.0.0.0",
-        allowedHostnames: ["taskcore.example.test", "203.0.113.42"],
-      });
+      const text = buildInviteOnboardingTextDocument(
+        req,
+        "token-999",
+        invite as any,
+        {
+          deploymentMode: "authenticated",
+          deploymentExposure: "private",
+          bindHost: "0.0.0.0",
+          allowedHostnames: ["taskcore.example.test", "203.0.113.42"],
+        },
+      );
 
       expect(text).toContain("http://192.168.6.178:3103");
       expect(text).not.toContain("http://[fe80::1]:3103");

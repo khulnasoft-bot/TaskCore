@@ -39,9 +39,15 @@ describe("formatIssueChangeValue", () => {
   // A cleared `reviewPolicy` means "anyone can approve" (PAP-16506), so the
   // receipt must not report the default as an absent value.
   it("reads a cleared review policy as 'anyone', not 'none'", () => {
-    expect(formatIssueChangeValue(null, { field: "reviewPolicy" })).toBe("anyone");
-    expect(formatIssueChangeValue("human_only", { field: "reviewPolicy" })).toBe("human only");
-    expect(formatIssueChangeValue("not_creator", { field: "reviewPolicy" })).toBe("anyone else");
+    expect(formatIssueChangeValue(null, { field: "reviewPolicy" })).toBe(
+      "anyone",
+    );
+    expect(
+      formatIssueChangeValue("human_only", { field: "reviewPolicy" }),
+    ).toBe("human only");
+    expect(
+      formatIssueChangeValue("not_creator", { field: "reviewPolicy" }),
+    ).toBe("anyone else");
   });
 
   it("renders booleans and numbers plainly", () => {
@@ -52,21 +58,27 @@ describe("formatIssueChangeValue", () => {
   });
 
   it("resolves agent and user ids to names when a directory is available", () => {
-    expect(formatIssueChangeValue("3108ef8e-5ed0-41d9-b561-6b41c41b8545", {
-      field: "assigneeAgentId",
-      resolveAgentLabel: () => "ClaudeCoder",
-    })).toBe("ClaudeCoder");
+    expect(
+      formatIssueChangeValue("3108ef8e-5ed0-41d9-b561-6b41c41b8545", {
+        field: "assigneeAgentId",
+        resolveAgentLabel: () => "ClaudeCoder",
+      }),
+    ).toBe("ClaudeCoder");
 
-    expect(formatIssueChangeValue("user-1", {
-      field: "responsibleUserId",
-      resolveUserLabel: () => "Dotta",
-    })).toBe("Dotta");
+    expect(
+      formatIssueChangeValue("user-1", {
+        field: "responsibleUserId",
+        resolveUserLabel: () => "Dotta",
+      }),
+    ).toBe("Dotta");
   });
 
   it("shortens unresolved uuids instead of printing them whole", () => {
-    expect(formatIssueChangeValue("3108ef8e-5ed0-41d9-b561-6b41c41b8545", {
-      field: "assigneeAgentId",
-    })).toBe("3108ef8e");
+    expect(
+      formatIssueChangeValue("3108ef8e-5ed0-41d9-b561-6b41c41b8545", {
+        field: "assigneeAgentId",
+      }),
+    ).toBe("3108ef8e");
   });
 
   it("summarizes arrays by count past a scannable length", () => {
@@ -83,7 +95,9 @@ describe("formatIssueChangeValue", () => {
   });
 
   it("reports structural objects as 'updated'", () => {
-    expect(formatIssueChangeValue({ mode: "isolated_workspace" })).toBe("updated");
+    expect(formatIssueChangeValue({ mode: "isolated_workspace" })).toBe(
+      "updated",
+    );
   });
 });
 
@@ -107,7 +121,9 @@ describe("readIssueChangeReceipt", () => {
 
   it("flags server-truncated long text", () => {
     const rows = readIssueChangeReceipt({
-      changes: { description: { from: "old text", to: "new text", updated: true } },
+      changes: {
+        description: { from: "old text", to: "new text", updated: true },
+      },
     });
     expect(rows[0]).toMatchObject({ label: "Description", truncated: true });
   });
@@ -140,13 +156,18 @@ describe("readIssueChangeReceipt", () => {
 
 describe("issueAuthorizationReasonLabel", () => {
   it("explains the default-open rule in words", () => {
-    expect(issueAuthorizationReasonLabel("allow_visible_issue_write"))
-      .toBe("default-open write on a visible task");
-    expect(issueAuthorizationReasonLabel("allow_board_actor")).toBe("board actor");
+    expect(issueAuthorizationReasonLabel("allow_visible_issue_write")).toBe(
+      "default-open write on a visible task",
+    );
+    expect(issueAuthorizationReasonLabel("allow_board_actor")).toBe(
+      "board actor",
+    );
   });
 
   it("degrades unknown reasons rather than hiding them", () => {
-    expect(issueAuthorizationReasonLabel("some_future_reason")).toBe("some future reason");
+    expect(issueAuthorizationReasonLabel("some_future_reason")).toBe(
+      "some future reason",
+    );
   });
 
   it("returns null when no reason was recorded", () => {

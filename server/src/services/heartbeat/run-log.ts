@@ -1,4 +1,8 @@
-import { appendWithByteCap, MAX_EXCERPT_BYTES, parseObject } from "../../adapters/utils.js";
+import {
+  appendWithByteCap,
+  MAX_EXCERPT_BYTES,
+  parseObject,
+} from "../../adapters/utils.js";
 import { redactSensitiveText } from "../../redaction.js";
 
 const MAX_PERSISTED_LOG_CHUNK_CHARS = 64 * 1024;
@@ -117,4 +121,3 @@ export function compactRunLogChunk(
   const marker = `\n[taskcore truncated run log chunk: omitted ${omittedChars} chars]\n`;
   return `${normalized.slice(0, headChars)}${marker}${normalized.slice(normalized.length - tailChars)}`;
 }
-

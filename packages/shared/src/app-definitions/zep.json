@@ -3,16 +3,12 @@
   "slug": "zep",
   "name": "Zep",
   "description": "Retrieve temporal graph memory and authorized business context.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/zep.png"
   },
-  "urlPatterns": [
-    "https://api.getzep.com/*"
-  ],
+  "urlPatterns": ["https://api.getzep.com/*"],
   "docsUrl": "https://help.getzep.com/memory-mcp-server",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,16 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://api.getzep.com/mcp",
-        "scopesHint": [
-          "graph:read",
-          "graph:write"
-        ]
+        "scopesHint": ["graph:read", "graph:write"]
       },
       "guidanceMd": "Sign in with the work identity configured for your Zep project's Memory MCP server. Zep restricts access to that identity's memory and authorized shared graphs.",
       "riskTier": "S3",
@@ -41,9 +32,7 @@
       "warnings": [
         "A Zep project with Memory MCP enabled, available MCP seats, and Google Workspace or enterprise OIDC configured by its administrator. Project API keys do not authenticate Memory MCP."
       ],
-      "grantKinds": [
-        "user"
-      ]
+      "grantKinds": ["user"]
     }
   ],
   "agentInstructions": {

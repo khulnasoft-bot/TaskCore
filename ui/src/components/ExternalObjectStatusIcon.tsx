@@ -52,13 +52,17 @@ export function ExternalObjectStatusIcon({
   inline = false,
 }: ExternalObjectStatusIconProps) {
   const reducedMotion = usePrefersReducedMotion();
-  const Icon = externalObjectIconForKey(statusIconKey) ?? externalObjectIconForCategory(category);
-  const tone = statusIconKey === "git-merge"
-    ? "text-violet-600 border-violet-600 dark:text-violet-400 dark:border-violet-400"
-    : externalObjectStatusIcon[category] ?? externalObjectStatusIconDefault;
-  const livenessSuffix = liveness === "fresh" || liveness === "unknown"
-    ? ""
-    : ` (${externalObjectLivenessLabel(liveness)})`;
+  const Icon =
+    externalObjectIconForKey(statusIconKey) ??
+    externalObjectIconForCategory(category);
+  const tone =
+    statusIconKey === "git-merge"
+      ? "text-violet-600 border-violet-600 dark:text-violet-400 dark:border-violet-400"
+      : (externalObjectStatusIcon[category] ?? externalObjectStatusIconDefault);
+  const livenessSuffix =
+    liveness === "fresh" || liveness === "unknown"
+      ? ""
+      : ` (${externalObjectLivenessLabel(liveness)})`;
   const ariaLabel = `${label ?? externalObjectCategoryLabel(category)}${livenessSuffix}`;
 
   // The clock overlay needs a positioned wrapper. Inline mode keeps the icon
@@ -78,7 +82,14 @@ export function ExternalObjectStatusIcon({
     >
       <Icon
         aria-hidden="true"
-        className={cn(iconSize, tone.split(" ").filter((c) => c.startsWith("text-")).join(" "), animateClass)}
+        className={cn(
+          iconSize,
+          tone
+            .split(" ")
+            .filter((c) => c.startsWith("text-"))
+            .join(" "),
+          animateClass,
+        )}
       />
       {liveness === "stale" ? (
         <Clock

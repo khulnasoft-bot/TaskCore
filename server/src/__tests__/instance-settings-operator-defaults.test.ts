@@ -3,7 +3,9 @@ import type { Db } from "@taskcore/db";
 import { instanceSettingsService } from "../services/instance-settings.js";
 import { getOperatorSettingDefaults } from "../services/setting-defaults.js";
 
-const DEFAULTS_RAW = JSON.stringify({ feedbackDataSharingPreference: "allowed" });
+const DEFAULTS_RAW = JSON.stringify({
+  feedbackDataSharingPreference: "allowed",
+});
 
 function defaultsEnv(raw: string | undefined = DEFAULTS_RAW) {
   return { TASKCORE_SETTING_DEFAULTS: raw };
@@ -20,7 +22,11 @@ function stubDb(row: Record<string, unknown>) {
     update: () => ({
       set: (values: Record<string, unknown>) => {
         persistedSets.push(values);
-        return { where: () => ({ returning: () => Promise.resolve([{ ...row, ...values }]) }) };
+        return {
+          where: () => ({
+            returning: () => Promise.resolve([{ ...row, ...values }]),
+          }),
+        };
       },
     }),
   } as unknown as Db;
@@ -46,7 +52,9 @@ describe("getOperatorSettingDefaults", () => {
 
   it("parses once and ignores unknown fields", () => {
     const defaults = getOperatorSettingDefaults(
-      defaultsEnv('{"feedbackDataSharingPreference":"allowed","futureField":1}'),
+      defaultsEnv(
+        '{"feedbackDataSharingPreference":"allowed","futureField":1}',
+      ),
     );
     expect(defaults).toEqual({ feedbackDataSharingPreference: "allowed" });
   });
@@ -70,14 +78,18 @@ describe("instanceSettingsService operator setting defaults", () => {
     // updateGeneral materializes every field with its schema default, so a
     // stored "prompt" does not mean the user chose "prompt" — the operator
     // default still substitutes.
-    const { db } = stubDb(settingsRow({ feedbackDataSharingPreference: "prompt" }));
+    const { db } = stubDb(
+      settingsRow({ feedbackDataSharingPreference: "prompt" }),
+    );
     const svc = instanceSettingsService(db, { runtimeEnv: defaultsEnv() });
     const general = await svc.getGeneral();
     expect(general.feedbackDataSharingPreference).toBe("allowed");
   });
 
   it("keeps an explicit non-default user choice", async () => {
-    const { db } = stubDb(settingsRow({ feedbackDataSharingPreference: "not_allowed" }));
+    const { db } = stubDb(
+      settingsRow({ feedbackDataSharingPreference: "not_allowed" }),
+    );
     const svc = instanceSettingsService(db, { runtimeEnv: defaultsEnv() });
     const general = await svc.getGeneral();
     expect(general.feedbackDataSharingPreference).toBe("not_allowed");
@@ -98,7 +110,10 @@ describe("instanceSettingsService operator setting defaults", () => {
     expect(result.general.feedbackDataSharingPreference).toBe("allowed");
     // ...but what hit the database is the schema default, not the operator's.
     expect(persistedSets).toHaveLength(1);
-    const persistedGeneral = persistedSets[0]!.general as Record<string, unknown>;
+    const persistedGeneral = persistedSets[0]!.general as Record<
+      string,
+      unknown
+    >;
     expect(persistedGeneral.censorUsernameInLogs).toBe(true);
     expect(persistedGeneral.feedbackDataSharingPreference).toBe("prompt");
   });
@@ -112,10 +127,16 @@ describe("instanceSettingsService operator setting defaults", () => {
     const svc = instanceSettingsService(db, { runtimeEnv: defaultsEnv() });
     const echoed = await svc.getGeneral();
     expect(echoed.feedbackDataSharingPreference).toBe("allowed");
-    const result = await svc.updateGeneral({ ...echoed, censorUsernameInLogs: true });
+    const result = await svc.updateGeneral({
+      ...echoed,
+      censorUsernameInLogs: true,
+    });
     expect(result.general.feedbackDataSharingPreference).toBe("allowed");
     expect(persistedSets).toHaveLength(1);
-    const persistedGeneral = persistedSets[0]!.general as Record<string, unknown>;
+    const persistedGeneral = persistedSets[0]!.general as Record<
+      string,
+      unknown
+    >;
     expect(persistedGeneral.censorUsernameInLogs).toBe(true);
     expect(persistedGeneral.feedbackDataSharingPreference).toBe("prompt");
   });
@@ -123,10 +144,15 @@ describe("instanceSettingsService operator setting defaults", () => {
   it("persists an explicit write of a value that differs from the operator default", async () => {
     const { db, persistedSets } = stubDb(settingsRow({}));
     const svc = instanceSettingsService(db, { runtimeEnv: defaultsEnv() });
-    const result = await svc.updateGeneral({ feedbackDataSharingPreference: "not_allowed" });
+    const result = await svc.updateGeneral({
+      feedbackDataSharingPreference: "not_allowed",
+    });
     expect(result.general.feedbackDataSharingPreference).toBe("not_allowed");
     expect(persistedSets).toHaveLength(1);
-    const persistedGeneral = persistedSets[0]!.general as Record<string, unknown>;
+    const persistedGeneral = persistedSets[0]!.general as Record<
+      string,
+      unknown
+    >;
     expect(persistedGeneral.feedbackDataSharingPreference).toBe("not_allowed");
   });
 });

@@ -62,9 +62,13 @@ export async function resolveAndRetainRunTrustPreset(
         updatedAt: new Date(),
       })
       .where(scope);
-    return { trustPreset: await withHumanDirectedWork(tx, trustPreset, {
-      companyId: input.companyId, agentId: input.agentId,
-      runId: input.runId,
-    }), executionPolicy };
+    return {
+      trustPreset: await withHumanDirectedWork(tx, trustPreset, {
+        companyId: input.companyId,
+        agentId: input.agentId,
+        runId: input.runId,
+      }),
+      executionPolicy,
+    };
   });
 }

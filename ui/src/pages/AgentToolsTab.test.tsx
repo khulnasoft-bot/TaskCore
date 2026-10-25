@@ -29,7 +29,9 @@ vi.mock("@/lib/router", () => ({
     createElement("a", { href: to, ...rest }, children as never),
 }));
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 async function act(callback: () => void | Promise<void>) {
   let result: void | Promise<void> = undefined;
@@ -49,7 +51,9 @@ async function flushReact(cycles = 4) {
   }
 }
 
-function makeCatalogEntry(overrides: Partial<ToolCatalogEntry>): ToolCatalogEntry {
+function makeCatalogEntry(
+  overrides: Partial<ToolCatalogEntry>,
+): ToolCatalogEntry {
   return {
     id: "cat-1",
     companyId: "company-1",
@@ -121,7 +125,10 @@ describe("AgentToolsTab", () => {
       members: [],
       capabilities: {},
     });
-    mockToolsApi.putConnectionInstalls.mockResolvedValue({ connectionId: "conn-1", installs: [] });
+    mockToolsApi.putConnectionInstalls.mockResolvedValue({
+      connectionId: "conn-1",
+      installs: [],
+    });
   });
 
   afterEach(async () => {
@@ -134,7 +141,9 @@ describe("AgentToolsTab", () => {
 
   async function renderTab() {
     const { AgentToolsTab } = await import("./AgentToolsTab");
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     const agent = { id: "agent-1", name: "Coder" } as never;
     await act(async () => {
       root = createRoot(container);
@@ -165,7 +174,10 @@ describe("AgentToolsTab", () => {
   });
 
   it("renders effective access, access profiles, governing policy, and unavailable tools", async () => {
-    const allowed = makeCatalogEntry({ id: "cat-allow", toolName: "github.read_repo" });
+    const allowed = makeCatalogEntry({
+      id: "cat-allow",
+      toolName: "github.read_repo",
+    });
     const denied = makeCatalogEntry({
       id: "cat-deny",
       toolName: "github.delete_repo",
@@ -250,8 +262,14 @@ describe("AgentToolsTab", () => {
     expect(text).toContain("GitHub safe");
     expect(text).toContain("Access profiles");
     expect(text).toContain("Organization default");
-    expect(container.querySelector('a[href="/apps/advanced/profiles/prof-1"]')?.textContent).toBe("GitHub safe");
-    expect(container.querySelector('a[href="/apps/advanced/profiles?check=1"]')?.textContent).toBe("Check access");
+    expect(
+      container.querySelector('a[href="/apps/advanced/profiles/prof-1"]')
+        ?.textContent,
+    ).toBe("GitHub safe");
+    expect(
+      container.querySelector('a[href="/apps/advanced/profiles?check=1"]')
+        ?.textContent,
+    ).toBe("Check access");
     // Governing policy #1 is the company-wide require_approval rule.
     expect(text).toContain("#1 Require approval for writes");
     // The policy that targets a different agent must NOT appear.
@@ -279,7 +297,10 @@ describe("AgentToolsTab", () => {
     expect(text).toContain("No tools are allowed for this agent");
     expect(text).toContain("No active profile applies");
     expect(text).toContain("Use responsible person's GitHub");
-    expect(container.querySelector('a[href="/apps/connect?source=github"]')?.textContent).toBe("Connect my GitHub");
+    expect(
+      container.querySelector('a[href="/apps/connect?source=github"]')
+        ?.textContent,
+    ).toBe("Connect my GitHub");
   });
 
   it("shows an active dedicated GitHub identity as the agent override", async () => {
@@ -293,39 +314,43 @@ describe("AgentToolsTab", () => {
       installedConnections: [],
     } satisfies ToolProfileEffectiveSummary);
     mockToolsApi.listConnections.mockResolvedValue({
-      connections: [{
-        id: "conn-github",
-        companyId: "company-1",
-        name: "Agent GitHub",
-        enabled: true,
-        status: "active",
-        config: { sourceTemplateKey: "github" },
-        transportConfig: {},
-        installs: [{ targetType: "company", targetId: "company-1" }],
-      }],
+      connections: [
+        {
+          id: "conn-github",
+          companyId: "company-1",
+          name: "Agent GitHub",
+          enabled: true,
+          status: "active",
+          config: { sourceTemplateKey: "github" },
+          transportConfig: {},
+          installs: [{ targetType: "company", targetId: "company-1" }],
+        },
+      ],
     });
     mockToolsApi.listPolicies.mockResolvedValue({ policies: [] });
     mockToolsApi.listCatalog.mockResolvedValue({ catalog: [] });
     mockToolsApi.listConnectionGrants.mockResolvedValue({
       connection: { id: "conn-github", uid: "conn-github" },
-      grants: [{
-        id: "grant-agent",
-        kind: "agent",
-        subjectAgentId: "agent-1",
-        subjectUserId: null,
-        status: "active",
-        providerTenant: {
-          github: {
-            userId: "123",
-            login: "dottabot",
-            installationCount: 1,
-            repositoryCount: 1,
-            repositorySelection: "selected",
-            installationIds: ["456"],
-            installationOwnerLogins: ["taskcore"],
+      grants: [
+        {
+          id: "grant-agent",
+          kind: "agent",
+          subjectAgentId: "agent-1",
+          subjectUserId: null,
+          status: "active",
+          providerTenant: {
+            github: {
+              userId: "123",
+              login: "dottabot",
+              installationCount: 1,
+              repositoryCount: 1,
+              repositorySelection: "selected",
+              installationIds: ["456"],
+              installationOwnerLogins: ["taskcore"],
+            },
           },
         },
-      }],
+      ],
       currentUserId: "user-1",
       members: [],
       capabilities: {},
@@ -335,8 +360,13 @@ describe("AgentToolsTab", () => {
 
     const text = container.textContent ?? "";
     expect(text).toContain("@dottabot");
-    expect(text).toContain("takes precedence over the responsible person's GitHub");
-    expect(container.querySelector('a[href="/apps/conn-github/permissions"]')?.textContent).toBe("Manage GitHub identity");
+    expect(text).toContain(
+      "takes precedence over the responsible person's GitHub",
+    );
+    expect(
+      container.querySelector('a[href="/apps/conn-github/permissions"]')
+        ?.textContent,
+    ).toBe("Manage GitHub identity");
     expect(text).not.toContain("Connect my GitHub");
   });
 
@@ -351,16 +381,18 @@ describe("AgentToolsTab", () => {
       installedConnections: [],
     } satisfies ToolProfileEffectiveSummary);
     mockToolsApi.listConnections.mockResolvedValue({
-      connections: [{
-        id: "conn-github",
-        companyId: "company-1",
-        name: "Disabled GitHub",
-        enabled: false,
-        status: "active",
-        config: { sourceTemplateKey: "github" },
-        transportConfig: {},
-        installs: [{ targetType: "company", targetId: "company-1" }],
-      }],
+      connections: [
+        {
+          id: "conn-github",
+          companyId: "company-1",
+          name: "Disabled GitHub",
+          enabled: false,
+          status: "active",
+          config: { sourceTemplateKey: "github" },
+          transportConfig: {},
+          installs: [{ targetType: "company", targetId: "company-1" }],
+        },
+      ],
     });
     mockToolsApi.listPolicies.mockResolvedValue({ policies: [] });
     mockToolsApi.listCatalog.mockResolvedValue({ catalog: [] });
@@ -384,20 +416,24 @@ describe("AgentToolsTab", () => {
       installedConnections: [],
     } satisfies ToolProfileEffectiveSummary);
     mockToolsApi.listConnections.mockResolvedValue({
-      connections: [{
-        id: "conn-github",
-        companyId: "company-1",
-        name: "Agent GitHub",
-        enabled: true,
-        status: "active",
-        config: { sourceTemplateKey: "github" },
-        transportConfig: {},
-        installs: [{ targetType: "company", targetId: "company-1" }],
-      }],
+      connections: [
+        {
+          id: "conn-github",
+          companyId: "company-1",
+          name: "Agent GitHub",
+          enabled: true,
+          status: "active",
+          config: { sourceTemplateKey: "github" },
+          transportConfig: {},
+          installs: [{ targetType: "company", targetId: "company-1" }],
+        },
+      ],
     });
     mockToolsApi.listPolicies.mockResolvedValue({ policies: [] });
     mockToolsApi.listCatalog.mockResolvedValue({ catalog: [] });
-    mockToolsApi.listConnectionGrants.mockRejectedValue(new Error("temporary failure"));
+    mockToolsApi.listConnectionGrants.mockRejectedValue(
+      new Error("temporary failure"),
+    );
 
     await renderTab();
 
@@ -405,11 +441,18 @@ describe("AgentToolsTab", () => {
     expect(text).toContain("Could not load GitHub identity");
     expect(text).toContain("Your existing setup was not changed");
     expect(text).not.toContain("Connect my GitHub");
-    expect(Array.from(container.querySelectorAll("button")).some((button) => button.textContent === "Retry")).toBe(true);
+    expect(
+      Array.from(container.querySelectorAll("button")).some(
+        (button) => button.textContent === "Retry",
+      ),
+    ).toBe(true);
   });
 
   it("autosaves installed apps for the current agent", async () => {
-    const allowed = makeCatalogEntry({ id: "cat-allow", toolName: "github.read_repo" });
+    const allowed = makeCatalogEntry({
+      id: "cat-allow",
+      toolName: "github.read_repo",
+    });
     mockToolsApi.getEffectiveProfilesForAgent.mockResolvedValue({
       agentId: "agent-1",
       profiles: [],
@@ -420,7 +463,14 @@ describe("AgentToolsTab", () => {
       installedConnections: [],
     } satisfies ToolProfileEffectiveSummary);
     mockToolsApi.listConnections.mockResolvedValue({
-      connections: [{ id: "conn-1", companyId: "company-1", name: "Production GitHub", installs: [] }],
+      connections: [
+        {
+          id: "conn-1",
+          companyId: "company-1",
+          name: "Production GitHub",
+          installs: [],
+        },
+      ],
     });
     mockToolsApi.listPolicies.mockResolvedValue({ policies: [] });
     mockToolsApi.listCatalog.mockResolvedValue({ catalog: [allowed] });
@@ -429,12 +479,21 @@ describe("AgentToolsTab", () => {
 
     expect(container.textContent).toContain("Installed apps");
     expect(container.textContent).toContain("Permitted only");
-    expect(container.textContent).toContain("Permitted but not installed — tools will not appear in runs.");
-    expect(container.querySelector('a[href="/apps/conn-1/permissions"]')?.textContent).toBe("Open permissions");
-    const installCheckbox = container.querySelector<HTMLElement>('[aria-label="Install Production GitHub on Coder"]');
+    expect(container.textContent).toContain(
+      "Permitted but not installed — tools will not appear in runs.",
+    );
+    expect(
+      container.querySelector('a[href="/apps/conn-1/permissions"]')
+        ?.textContent,
+    ).toBe("Open permissions");
+    const installCheckbox = container.querySelector<HTMLElement>(
+      '[aria-label="Install Production GitHub on Coder"]',
+    );
     expect(installCheckbox).toBeTruthy();
     await act(async () => {
-      installCheckbox!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      installCheckbox!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await new Promise((resolve) => window.setTimeout(resolve, 300));
     });
     await flushReact();

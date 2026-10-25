@@ -61,7 +61,12 @@ function createComment(overrides: Partial<IssueChatComment>): IssueChatComment {
 }
 
 const primaryAgent = createAgent("agent-1", "CodexCoder", "code", "codexcoder");
-const reviewAgent = createAgent("agent-2", "ClaudeFixer", "sparkles", "claudefixer");
+const reviewAgent = createAgent(
+  "agent-2",
+  "ClaudeFixer",
+  "sparkles",
+  "claudefixer",
+);
 
 export const issueChatUxAgentMap = new Map<string, Agent>([
   [primaryAgent.id, primaryAgent],
@@ -197,7 +202,10 @@ export const issueChatUxLinkedRuns: IssueChatLinkedRun[] = [
   },
 ];
 
-export const issueChatUxTranscriptsByRunId = new Map<string, readonly IssueChatTranscriptEntry[]>([
+export const issueChatUxTranscriptsByRunId = new Map<
+  string,
+  readonly IssueChatTranscriptEntry[]
+>([
   [
     "run-history-1",
     [
@@ -217,7 +225,8 @@ export const issueChatUxTranscriptsByRunId = new Map<string, readonly IssueChatT
         kind: "tool_result",
         ts: "2026-04-06T11:58:11.000Z",
         toolUseId: "tool-history-1",
-        content: "Found the run projection path that decides whether transcript output survives after completion.",
+        content:
+          "Found the run projection path that decides whether transcript output survives after completion.",
         isError: false,
       },
       {
@@ -251,7 +260,8 @@ export const issueChatUxTranscriptsByRunId = new Map<string, readonly IssueChatT
         kind: "tool_result",
         ts: "2026-04-06T12:04:11.000Z",
         toolUseId: "tool-read-1",
-        content: "Loaded the current chat surface and found the max-h viewport constraint.",
+        content:
+          "Loaded the current chat surface and found the max-h viewport constraint.",
         isError: false,
       },
       {
@@ -259,13 +269,17 @@ export const issueChatUxTranscriptsByRunId = new Map<string, readonly IssueChatT
         ts: "2026-04-06T12:04:14.000Z",
         name: "apply_patch",
         toolUseId: "tool-edit-1",
-        input: { file: "ui/src/components/IssueChatThread.tsx", action: "remove scroll pane" },
+        input: {
+          file: "ui/src/components/IssueChatThread.tsx",
+          action: "remove scroll pane",
+        },
       },
       {
         kind: "tool_result",
         ts: "2026-04-06T12:04:22.000Z",
         toolUseId: "tool-edit-1",
-        content: "Updated layout classes and swapped Jump to latest to page-level scrolling.",
+        content:
+          "Updated layout classes and swapped Jump to latest to page-level scrolling.",
         isError: false,
       },
       {

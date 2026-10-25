@@ -1,7 +1,11 @@
 import type { Sandbox as CloudflareSandbox } from "@cloudflare/sandbox";
 import { shellQuote } from "./helpers.js";
 import { isTimeoutError } from "./sandboxes.js";
-import { cleanupTimedOutExecution, resolveExecutionTarget, type SessionStrategy } from "./sessions.js";
+import {
+  cleanupTimedOutExecution,
+  resolveExecutionTarget,
+  type SessionStrategy,
+} from "./sessions.js";
 
 export interface BridgeExecuteParams {
   sandbox: CloudflareSandbox;
@@ -13,7 +17,10 @@ export interface BridgeExecuteParams {
   timeoutMs?: number;
   sessionStrategy: SessionStrategy;
   sessionId?: string;
-  onOutput?: (stream: "stdout" | "stderr", data: string) => void | Promise<void>;
+  onOutput?: (
+    stream: "stdout" | "stderr",
+    data: string,
+  ) => void | Promise<void>;
 }
 
 function isValidShellEnvKey(value: string): boolean {
@@ -22,7 +29,8 @@ function isValidShellEnvKey(value: string): boolean {
 
 function randomToken(): string {
   const uuid = globalThis.crypto?.randomUUID?.();
-  if (typeof uuid === "string" && uuid.length > 0) return uuid.replace(/[^a-zA-Z0-9-]/g, "");
+  if (typeof uuid === "string" && uuid.length > 0)
+    return uuid.replace(/[^a-zA-Z0-9-]/g, "");
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
@@ -43,13 +51,18 @@ export function buildLoginShellScript(input: {
   const envArgs = Object.entries(env)
     .filter((entry): entry is [string, string] => typeof entry[1] === "string")
     .map(([key, value]) => `${key}=${shellQuote(value)}`);
-  const commandParts = [shellQuote(input.command), ...input.args.map(shellQuote)].join(" ");
-  const stdinRedirect = input.stdinFile ? ` < ${shellQuote(input.stdinFile)}` : "";
+  const commandParts = [
+    shellQuote(input.command),
+    ...input.args.map(shellQuote),
+  ].join(" ");
+  const stdinRedirect = input.stdinFile
+    ? ` < ${shellQuote(input.stdinFile)}`
+    : "";
   // Source the common login profiles before exec so the command runs with the
   // interactive-shell PATH. The wrapper sources no `nvm.sh`; the sandbox image
   // supplies node on the PATH.
   const lines = [
-    'if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi',
+    "if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi",
     'if [ -f "$HOME/.profile" ]; then . "$HOME/.profile" >/dev/null 2>&1 || true; fi',
     'if [ -f "$HOME/.bash_profile" ]; then . "$HOME/.bash_profile" >/dev/null 2>&1 || true; elif [ -f "$HOME/.bashrc" ]; then . "$HOME/.bashrc" >/dev/null 2>&1 || true; fi',
     'if [ -f "$HOME/.zprofile" ]; then . "$HOME/.zprofile" >/dev/null 2>&1 || true; fi',
@@ -57,9 +70,10 @@ export function buildLoginShellScript(input: {
   if (input.cwd) {
     lines.push(`cd ${shellQuote(input.cwd)}`);
   }
-  const execLine = envArgs.length > 0
-    ? `exec env ${envArgs.join(" ")} ${commandParts}${stdinRedirect}`
-    : `exec ${commandParts}${stdinRedirect}`;
+  const execLine =
+    envArgs.length > 0
+      ? `exec env ${envArgs.join(" ")} ${commandParts}${stdinRedirect}`
+      : `exec ${commandParts}${stdinRedirect}`;
   lines.push(execLine);
   return lines.join(" && ");
 }
@@ -89,13 +103,18 @@ export async function executeInSandbox(params: BridgeExecuteParams) {
   // narrow option set ({ cwd, env, timeout, ... }) — it does not accept `args`
   // or `stdin`. We compose the full shell command ourselves and stage stdin
   // through a temp file in the sandbox when the caller provides one.
-  const stdinPayload = typeof params.stdin === "string" && params.stdin.length > 0
-    ? params.stdin
+  const stdinPayload =
+    typeof params.stdin === "string" && params.stdin.length > 0
+      ? params.stdin
+      : null;
+  const stdinFile = stdinPayload
+    ? `/tmp/.taskcore-bridge-stdin-${randomToken()}`
     : null;
-  const stdinFile = stdinPayload ? `/tmp/.taskcore-bridge-stdin-${randomToken()}` : null;
 
   if (stdinFile && stdinPayload) {
-    await params.sandbox.writeFile(stdinFile, stdinPayload, { encoding: "utf8" });
+    await params.sandbox.writeFile(stdinFile, stdinPayload, {
+      encoding: "utf8",
+    });
   }
 
   try {
@@ -135,7 +154,10 @@ export async function executeInSandbox(params: BridgeExecuteParams) {
         exitCode: null,
         signal: null,
         timedOut: true,
-        stdout: typeof (error as { stdout?: unknown }).stdout === "string" ? (error as { stdout: string }).stdout : "",
+        stdout:
+          typeof (error as { stdout?: unknown }).stdout === "string"
+            ? (error as { stdout: string }).stdout
+            : "",
         stderr: `${error instanceof Error ? error.message : String(error)}\n`,
       };
     }

@@ -36,7 +36,7 @@ function runDraft(dir, betaVersion, extraArgs = []) {
   const stdout = execFileSync(
     "bash",
     [script, betaVersion, "--repo-dir", dir, "--out", out, ...extraArgs],
-    { encoding: "utf8" }
+    { encoding: "utf8" },
   );
   return { stdout, body: readFileSync(out, "utf8") };
 }
@@ -53,8 +53,14 @@ test("drafts grouped notes from the newest stable tag to the beta source", () =>
 
   const { body } = runDraft(dir, "2026.101.0-beta.0");
 
-  assert.match(body, /^# TaskCore stable draft — from beta 2026\.101\.0-beta\.0/);
-  assert.match(body, /## Features\n\n- feat\(api\)!: breaking widget API \(#5\)\n- feat: add widgets \(#2\)/);
+  assert.match(
+    body,
+    /^# TaskCore stable draft — from beta 2026\.101\.0-beta\.0/,
+  );
+  assert.match(
+    body,
+    /## Features\n\n- feat\(api\)!: breaking widget API \(#5\)\n- feat: add widgets \(#2\)/,
+  );
   assert.match(body, /## Fixes\n\n- fix\(ui\): unbreak widget list \(#3\)/);
   assert.match(body, /## Other changes\n\n- chore: bump deps \(#4\)/);
   assert.doesNotMatch(body, /ancient work/);
@@ -132,7 +138,7 @@ test("writes to releases/beta/v<version>.md inside the repo by default", () => {
   });
   const body = readFileSync(
     join(dir, "releases", "beta", "v2026.100.0-beta.0.md"),
-    "utf8"
+    "utf8",
   );
   assert.match(body, /- feat: default path \(#1\)/);
 });
@@ -156,17 +162,23 @@ echo "- Covers it with tests"
 echo ""
 echo "## Risks"
 `,
-    { mode: 0o755 }
+    { mode: 0o755 },
   );
 
   const out = join(dir, "draft.md");
   execFileSync(
     "bash",
     [script, "2026.100.0-beta.0", "--repo-dir", dir, "--out", out],
-    { encoding: "utf8", env: { ...process.env, PATH: `${binDir}:${process.env.PATH}` } }
+    {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${binDir}:${process.env.PATH}` },
+    },
   );
   const body = readFileSync(out, "utf8");
-  assert.match(body, /- feat: enriched work \(#42\)\n  > - Adds the enriched thing\n  > - Covers it with tests/);
+  assert.match(
+    body,
+    /- feat: enriched work \(#42\)\n  > - Adds the enriched thing\n  > - Covers it with tests/,
+  );
 });
 
 test("survives a PR body whose What Changed section has no bullets", () => {
@@ -183,14 +195,17 @@ echo "## What Changed"
 echo ""
 echo "## Risks"
 `,
-    { mode: 0o755 }
+    { mode: 0o755 },
   );
 
   const out = join(dir, "draft.md");
   execFileSync(
     "bash",
     [script, "2026.100.0-beta.0", "--repo-dir", dir, "--out", out],
-    { encoding: "utf8", env: { ...process.env, PATH: `${binDir}:${process.env.PATH}` } }
+    {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${binDir}:${process.env.PATH}` },
+    },
   );
   const body = readFileSync(out, "utf8");
   assert.match(body, /- feat: sparse body \(#9\)\n/);
@@ -213,7 +228,7 @@ test("rejects a malformed beta version", () => {
     execFileSync("bash", [script, "2026.100.0", "--repo-dir", dir], {
       encoding: "utf8",
       stdio: "pipe",
-    })
+    }),
   );
 });
 
@@ -224,6 +239,6 @@ test("rejects a beta version whose tag does not exist", () => {
     execFileSync("bash", [script, "2026.100.0-beta.9", "--repo-dir", dir], {
       encoding: "utf8",
       stdio: "pipe",
-    })
+    }),
   );
 });

@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   agents,
   assets,
@@ -24,7 +32,9 @@ import { HttpError } from "../errors.js";
 import type { StorageService } from "../storage/types.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -32,7 +42,9 @@ if (!embeddedPostgresSupport.supported) {
   );
 }
 
-function createStorageService(files: Record<string, Buffer> = {}): StorageService {
+function createStorageService(
+  files: Record<string, Buffer> = {},
+): StorageService {
   return {
     provider: "local_disk",
     putFile: vi.fn(),
@@ -52,11 +64,15 @@ function createStorageService(files: Record<string, Buffer> = {}): StorageServic
 }
 
 describeEmbeddedPostgres("artifactReviewDocumentService", () => {
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let db!: ReturnType<typeof createDb>;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-artifact-review-docs-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-artifact-review-docs-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -76,21 +92,27 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
     await tempDb?.cleanup();
   });
 
-  async function seedFixture(options: {
-    body?: Buffer;
-    contentType?: string;
-    originalFilename?: string | null;
-    byteSize?: number;
-  } = {}) {
+  async function seedFixture(
+    options: {
+      body?: Buffer;
+      contentType?: string;
+      originalFilename?: string | null;
+      byteSize?: number;
+    } = {},
+  ) {
     const companyId = randomUUID();
     const issueId = randomUUID();
     const agentId = randomUUID();
     const assetId = randomUUID();
     const attachmentId = randomUUID();
     const workProductId = randomUUID();
-    const body = options.body ?? Buffer.from("# Report\n\nHello **markdown**.\n", "utf8");
+    const body =
+      options.body ?? Buffer.from("# Report\n\nHello **markdown**.\n", "utf8");
     const contentType = options.contentType ?? "text/markdown";
-    const originalFilename = options.originalFilename === undefined ? "report.md" : options.originalFilename;
+    const originalFilename =
+      options.originalFilename === undefined
+        ? "report.md"
+        : options.originalFilename;
     const objectKey = `issues/${issueId}/${assetId}`;
 
     await db.insert(companies).values({
@@ -161,7 +183,17 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
     const files: Record<string, Buffer> = { [objectKey]: body };
     const storage = createStorageService(files);
     const svc = artifactReviewDocumentService(db, storage);
-    return { companyId, issueId, agentId, assetId, attachmentId, workProduct, files, objectKey, svc };
+    return {
+      companyId,
+      issueId,
+      agentId,
+      assetId,
+      attachmentId,
+      workProduct,
+      files,
+      objectKey,
+      svc,
+    };
   }
 
   it("materializes a review document with promoted attribution", async () => {
@@ -173,7 +205,9 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
 
     expect(result.created).toBe(true);
     expect(result.revisionChanged).toBe(true);
-    expect(result.document.key).toBe(artifactReviewDocumentKey(fixture.workProduct.id));
+    expect(result.document.key).toBe(
+      artifactReviewDocumentKey(fixture.workProduct.id),
+    );
     expect(result.document.title).toBe("Verification report");
     expect(result.document.latestRevisionNumber).toBe(1);
     expect(result.document.latestRevisionId).toBeTruthy();
@@ -256,7 +290,10 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
 
     const renamed = await fixture.svc.ensureForWorkProduct({
       issue: { id: fixture.issueId, companyId: fixture.companyId },
-      workProduct: { ...fixture.workProduct, title: "Renamed verification report" },
+      workProduct: {
+        ...fixture.workProduct,
+        title: "Renamed verification report",
+      },
     });
     expect(renamed.created).toBe(false);
     expect(renamed.revisionChanged).toBe(true);
@@ -285,7 +322,9 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
     const latestRevision = await db
       .select()
       .from(documentRevisions)
-      .then((rows) => rows.find((row) => row.id === reattributed.document.latestRevisionId));
+      .then((rows) =>
+        rows.find((row) => row.id === reattributed.document.latestRevisionId),
+      );
     expect(latestRevision?.createdByRunId).toBe(runId);
 
     const unchanged = await fixture.svc.ensureForWorkProduct({
@@ -311,13 +350,19 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
     await expect(
       fixture.svc.ensureForWorkProduct({
         issue: { id: fixture.issueId, companyId: fixture.companyId },
-        workProduct: { ...fixture.workProduct, metadata: { attachmentId: "not-a-uuid" } },
+        workProduct: {
+          ...fixture.workProduct,
+          metadata: { attachmentId: "not-a-uuid" },
+        },
       }),
     ).rejects.toMatchObject({ status: 422 });
   });
 
   it("rejects non-Markdown attachments with 415", async () => {
-    const fixture = await seedFixture({ contentType: "application/pdf", originalFilename: "report.pdf" });
+    const fixture = await seedFixture({
+      contentType: "application/pdf",
+      originalFilename: "report.pdf",
+    });
     await expect(
       fixture.svc.ensureForWorkProduct({
         issue: { id: fixture.issueId, companyId: fixture.companyId },
@@ -364,7 +409,9 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
   });
 
   it("rejects invalid UTF-8 content with 422", async () => {
-    const fixture = await seedFixture({ body: Buffer.from([0x23, 0x20, 0xff, 0xfe, 0x00]) });
+    const fixture = await seedFixture({
+      body: Buffer.from([0x23, 0x20, 0xff, 0xfe, 0x00]),
+    });
     await expect(
       fixture.svc.ensureForWorkProduct({
         issue: { id: fixture.issueId, companyId: fixture.companyId },
@@ -398,6 +445,8 @@ describeEmbeddedPostgres("artifactReviewDocumentService", () => {
         issue: { id: fixture.issueId, companyId: fixture.companyId },
         workProduct: fixture.workProduct,
       }),
-    ).rejects.toSatisfy((error: unknown) => error instanceof HttpError && error.status === 409);
+    ).rejects.toSatisfy(
+      (error: unknown) => error instanceof HttpError && error.status === 409,
+    );
   });
 });

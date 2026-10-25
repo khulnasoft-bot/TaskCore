@@ -19,7 +19,10 @@ import {
   snapshotOf,
 } from "./scenario-execution.js";
 import { capabilityStateDiff } from "./state-diff.js";
-import { capabilityScenarioParity, type CapabilityEvalSuiteLookup } from "./scenario-parity.js";
+import {
+  capabilityScenarioParity,
+  type CapabilityEvalSuiteLookup,
+} from "./scenario-parity.js";
 import { capabilityFixtureRunCapabilities } from "./fixture-run-capabilities.js";
 
 /**
@@ -105,7 +108,9 @@ export async function capabilityRunScenario(
       await recorder.runStep(step);
     }
   } catch (error) {
-    failure = { message: error instanceof Error ? error.message : String(error) };
+    failure = {
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
 
   recorder.drainControlPlane();
@@ -169,7 +174,8 @@ export function capabilityContinuationWakePayload(
   fixture: CapabilityScenarioFixture,
   mode: CapabilityRunMode,
 ): CapabilityJsonValue {
-  if (entry.id !== "ix-checkbox-result-01") return { scenarioId: entry.id, mode };
+  if (entry.id !== "ix-checkbox-result-01")
+    return { scenarioId: entry.id, mode };
   const interaction = fixture.seed.interactions?.find(
     (candidate) => candidate.id === fixture.refs.interactionId,
   );

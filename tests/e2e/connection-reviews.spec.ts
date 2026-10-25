@@ -125,7 +125,11 @@ for (const journey of [
       await page.routeWebSocket("**/api/companies/*/events/ws", (socket) => {
         const server = socket.connectToServer();
         server.onMessage((message) => {
-          if (suppressReviewEvents && String(message).includes("issue.thread_interaction_")) return;
+          if (
+            suppressReviewEvents &&
+            String(message).includes("issue.thread_interaction_")
+          )
+            return;
           socket.send(message);
         });
       });
@@ -198,7 +202,9 @@ for (const journey of [
         page.getByRole("button", { name: "Approve & run", exact: true }),
       ).toBeVisible({ timeout: 45_000 });
       suppressReviewEvents = false;
-      const originatingReviews = await json<Array<{ id: string; sourceRunId: string | null }>>(await request.get(`/api/issues/${issue.id}/interactions`));
+      const originatingReviews = await json<
+        Array<{ id: string; sourceRunId: string | null }>
+      >(await request.get(`/api/issues/${issue.id}/interactions`));
       const originatingReview = originatingReviews[0];
       const calls = () =>
         provider.captures.filter((c) => c.method === "tools/call").length;
@@ -259,13 +265,18 @@ for (const journey of [
         await queue
           .getByRole("button", { name: "Decline", exact: true })
           .click();
-
       } else {
         if (journey === "always") {
-          await page.getByRole("button", { name: "Approval options", exact: true }).click();
-          await page.getByRole("menuitem", { name: "Always allow", exact: true }).click();
+          await page
+            .getByRole("button", { name: "Approval options", exact: true })
+            .click();
+          await page
+            .getByRole("menuitem", { name: "Always allow", exact: true })
+            .click();
         } else {
-          await page.getByRole("button", { name: "Approve & run", exact: true }).click();
+          await page
+            .getByRole("button", { name: "Approve & run", exact: true })
+            .click();
         }
       }
       await expect
@@ -287,14 +298,24 @@ for (const journey of [
               ? "Read failed"
               : "Roadmap",
         );
-      const replies = await json<Array<{ body: string; authorAgentId: string | null; createdByRunId: string | null }>>(await request.get(`/api/issues/${issue.id}/comments`));
-      const reply = replies.find(comment => comment.authorAgentId === agent.id)!;
+      const replies = await json<
+        Array<{
+          body: string;
+          authorAgentId: string | null;
+          createdByRunId: string | null;
+        }>
+      >(await request.get(`/api/issues/${issue.id}/comments`));
+      const reply = replies.find(
+        (comment) => comment.authorAgentId === agent.id,
+      )!;
       expect(reply.createdByRunId).toBeTruthy();
       expect(originatingReview.sourceRunId).toBeTruthy();
       expect(reply.createdByRunId).not.toBe(originatingReview.sourceRunId);
       expect(reply.body).not.toContain('"content":');
       if (!["decline", "failure"].includes(journey)) {
-        await expect(page.getByRole("button", { name: "Show result details" })).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: "Show result details" }),
+        ).toBeVisible();
         await expect(page.locator("pre")).not.toBeVisible();
         await page.getByRole("button", { name: "Show result details" }).click();
         await expect(page.locator("pre")).toContainText('"content":');

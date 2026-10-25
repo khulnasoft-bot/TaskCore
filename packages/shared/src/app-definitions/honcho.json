@@ -3,25 +3,19 @@
   "slug": "honcho",
   "name": "Honcho",
   "description": "Remember conversations and retrieve context about peers.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/honcho.svg"
   },
-  "urlPatterns": [
-    "https://mcp.honcho.dev/*"
-  ],
+  "urlPatterns": ["https://mcp.honcho.dev/*"],
   "docsUrl": "https://honcho.dev/docs/v3/guides/integrations/mcp",
   "methods": [
     {
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.honcho.dev"

@@ -19,7 +19,8 @@ export function CompanyActivity() {
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const [searchParams, setSearchParams] = useSearchParams();
-  const mode: AuditFeedMode = searchParams.get("mode") === "agents" ? "agents" : "all";
+  const mode: AuditFeedMode =
+    searchParams.get("mode") === "agents" ? "agents" : "all";
   const actionParam = searchParams.get("action");
   const actionDomain = [
     "issue.",
@@ -31,7 +32,9 @@ export function CompanyActivity() {
     "tool_",
     "cost.",
     "company.",
-  ].includes(actionParam ?? "") ? actionParam! : "__all";
+  ].includes(actionParam ?? "")
+    ? actionParam!
+    : "__all";
 
   useEffect(() => {
     if (!streamlinedUiEnabled) setBreadcrumbs([{ label: "Activity" }]);
@@ -54,12 +57,15 @@ export function CompanyActivity() {
 
   const handleActionDomainChange = useCallback(
     (next: string) => {
-      setSearchParams((current) => {
-        const params = new URLSearchParams(current);
-        if (next === "__all") params.delete("action");
-        else params.set("action", next);
-        return params;
-      }, { replace: true });
+      setSearchParams(
+        (current) => {
+          const params = new URLSearchParams(current);
+          if (next === "__all") params.delete("action");
+          else params.set("action", next);
+          return params;
+        },
+        { replace: true },
+      );
     },
     [setSearchParams],
   );
@@ -67,7 +73,12 @@ export function CompanyActivity() {
   if (streamlinedUiEnabled) return <AuditHub section="activity" />;
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={History} message="Select an organization to view activity." />;
+    return (
+      <EmptyState
+        icon={History}
+        message="Select an organization to view activity."
+      />
+    );
   }
 
   return (

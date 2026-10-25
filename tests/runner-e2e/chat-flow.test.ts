@@ -65,25 +65,44 @@ describe("chat acceptance contracts", () => {
         "Thanks — before assigning the welcome-note drafting work, I need a compact brief covering:\n\n- Club and audience: club name and intended readers.\n- Purpose: welcome or next steps.\n- Required content: dates, links, and contacts.\n- Voice: tone and sender.\n- Delivery constraints: format, length, and deadline.\n- Examples or policies: existing notes and approval requirements.",
       ),
     ).toBe(true);
-    expect(isChatClarificationReply("I'll need your details about the audience and format.")).toBe(true);
-    expect(isChatClarificationReply("We need some information about the club and intended readers.")).toBe(true);
-    expect(isChatClarificationReply("I needed a compact brief before I assigned the work.")).toBe(false);
+    expect(
+      isChatClarificationReply(
+        "I'll need your details about the audience and format.",
+      ),
+    ).toBe(true);
+    expect(
+      isChatClarificationReply(
+        "We need some information about the club and intended readers.",
+      ),
+    ).toBe(true);
+    expect(
+      isChatClarificationReply(
+        "I needed a compact brief before I assigned the work.",
+      ),
+    ).toBe(false);
     expect(isChatClarificationReply("I need a compact brief:")).toBe(false);
     expect(isChatClarificationReply("I need information.")).toBe(false);
-    expect(isChatClarificationReply("I need to create the task and write the note.")).toBe(false);
+    expect(
+      isChatClarificationReply("I need to create the task and write the note."),
+    ).toBe(false);
     expect(isChatClarificationReply("Please share:")).toBe(false);
     expect(isChatClarificationReply("Please share.")).toBe(false);
     expect(
-      isChatClarificationReply("Asked the user clarifying questions about their club."),
+      isChatClarificationReply(
+        "Asked the user clarifying questions about their club.",
+      ),
     ).toBe(false);
     expect(
-      isChatClarificationReply("I created the task and started writing the welcome note."),
+      isChatClarificationReply(
+        "I created the task and started writing the welcome note.",
+      ),
     ).toBe(false);
   });
 
   it("recognizes the retained clarification list without treating empty requests or execution plans as clarification", () => {
     // Reduced public reply from gha-36307603818-1 / agent-chat.legacy-codex.local.clarify-reuse.
-    expect(isChatClarificationReply(`Absolutely. Before I assign the writing, I need:
+    expect(
+      isChatClarificationReply(`Absolutely. Before I assign the writing, I need:
 
 - Club name and what the club is about
 - Who the note welcomes (new members, event guests, website visitors, etc.)
@@ -91,37 +110,87 @@ describe("chat acceptance contracts", () => {
 - Tone (warm, formal, playful, energetic, or another style)
 - Any must-include details: benefits, meeting information, values, next step, or signatory
 
-If you only have the club name, audience, and tone, that is enough to begin; I can make sensible assumptions about the rest.`)).toBe(true);
-    expect(isChatClarificationReply("We need:\n1. Intended readers\n2. Delivery date")).toBe(true);
-    for (const body of ["I need:", "I need:\n- .\n- ...", "I needed:\n- Audience\n- Tone",
-      "I need:\n- to create the task\n- to write the note", "I need to create the task and write the note.",
-      "I need:\n- Create the task\n- Write the note", "We need:\n1. **Build** the page\n2. **Publish** the site",
-      "I need:\n- Plan the note\n- Draft it", "I need:\n- [ ] Create task\n- [ ] Write note"]) {
+If you only have the club name, audience, and tone, that is enough to begin; I can make sensible assumptions about the rest.`),
+    ).toBe(true);
+    expect(
+      isChatClarificationReply(
+        "We need:\n1. Intended readers\n2. Delivery date",
+      ),
+    ).toBe(true);
+    for (const body of [
+      "I need:",
+      "I need:\n- .\n- ...",
+      "I needed:\n- Audience\n- Tone",
+      "I need:\n- to create the task\n- to write the note",
+      "I need to create the task and write the note.",
+      "I need:\n- Create the task\n- Write the note",
+      "We need:\n1. **Build** the page\n2. **Publish** the site",
+      "I need:\n- Plan the note\n- Draft it",
+      "I need:\n- [ ] Create task\n- [ ] Write note",
+    ]) {
       expect(isChatClarificationReply(body), body).toBe(false);
     }
   });
 
   it("checks the requested information list separately from a later plan", () => {
-    expect(isChatClarificationReply("I need:\n- Audience\n- Tone\n\nOnce you answer, the plan is:\n- Create the task\n- Write the note")).toBe(true);
+    expect(
+      isChatClarificationReply(
+        "I need:\n- Audience\n- Tone\n\nOnce you answer, the plan is:\n- Create the task\n- Write the note",
+      ),
+    ).toBe(true);
   });
 
   it("requires information fields or questions rather than arbitrary non-blacklisted bullets", () => {
-    expect(isChatClarificationReply("I need:\n- Set up the project\n- Install dependencies")).toBe(false);
-    expect(isChatClarificationReply("I need:\n- Gather the audience details\n- Decide the tone")).toBe(false);
-    expect(isChatClarificationReply("I need:\n- Audience\n- Install dependencies")).toBe(false);
-    expect(isChatClarificationReply("I need:\n- **Audience**: intended readers\n\n- [ ] Preferred format\n- When this is due")).toBe(true);
+    expect(
+      isChatClarificationReply(
+        "I need:\n- Set up the project\n- Install dependencies",
+      ),
+    ).toBe(false);
+    expect(
+      isChatClarificationReply(
+        "I need:\n- Gather the audience details\n- Decide the tone",
+      ),
+    ).toBe(false);
+    expect(
+      isChatClarificationReply("I need:\n- Audience\n- Install dependencies"),
+    ).toBe(false);
+    expect(
+      isChatClarificationReply(
+        "I need:\n- **Audience**: intended readers\n\n- [ ] Preferred format\n- When this is due",
+      ),
+    ).toBe(true);
   });
 
   it("accepts logistical brief fields and wrapped information items", () => {
-    expect(isChatClarificationReply("I need:\n- Budget\n- Location")).toBe(true);
-    expect(isChatClarificationReply("I need:\n- Audience, including age range\nand whether these are new or existing members\n- Tone\n\nOnce you answer, I can:\n- Draft the note\n- Publish it")).toBe(true);
-    expect(isChatClarificationReply("I need:\n- Audience, including age range\n  and whether these are new or existing members\n- Tone")).toBe(true);
+    expect(isChatClarificationReply("I need:\n- Budget\n- Location")).toBe(
+      true,
+    );
+    expect(
+      isChatClarificationReply(
+        "I need:\n- Audience, including age range\nand whether these are new or existing members\n- Tone\n\nOnce you answer, I can:\n- Draft the note\n- Publish it",
+      ),
+    ).toBe(true);
+    expect(
+      isChatClarificationReply(
+        "I need:\n- Audience, including age range\n  and whether these are new or existing members\n- Tone",
+      ),
+    ).toBe(true);
   });
 
   it("rejects superseded plan requirements in executed output, independently of plan history", () => {
-    expect(() => assertChatExecutionOutput("Welcome CHAT123.", "CHAT123", "DRAFT123")).not.toThrow();
-    expect(() => assertChatExecutionOutput("Welcome DRAFT123 and CHAT123.", "CHAT123", "DRAFT123")).toThrow();
-    expect(() => assertChatExecutionOutput("Welcome DRAFT123.", "CHAT123", "DRAFT123")).toThrow();
+    expect(() =>
+      assertChatExecutionOutput("Welcome CHAT123.", "CHAT123", "DRAFT123"),
+    ).not.toThrow();
+    expect(() =>
+      assertChatExecutionOutput(
+        "Welcome DRAFT123 and CHAT123.",
+        "CHAT123",
+        "DRAFT123",
+      ),
+    ).toThrow();
+    expect(() =>
+      assertChatExecutionOutput("Welcome DRAFT123.", "CHAT123", "DRAFT123"),
+    ).toThrow();
   });
 
   it("keeps chat markers literal across rich-text and Markdown boundaries", () => {
@@ -187,37 +256,47 @@ If you only have the club name, audience, and tone, that is enough to begin; I c
     ).toThrow();
   });
   it("still rejects completed chat work that has lost its assignee", () => {
-    expect(() => assertChatTaskHandoff({ ...task, status: "done" }, [run], source)).not.toThrow();
-    expect(() => assertChatTaskHandoff({ ...task, status: "done", assigneeAgentId: null }, [run], source)).toThrow();
+    expect(() =>
+      assertChatTaskHandoff({ ...task, status: "done" }, [run], source),
+    ).not.toThrow();
+    expect(() =>
+      assertChatTaskHandoff(
+        { ...task, status: "done", assigneeAgentId: null },
+        [run],
+        source,
+      ),
+    ).toThrow();
   });
-  it.each(["project-description", "welcome-note", "output"])("finds committed %s output without accepting a copied plan or a claim", async (key) => {
-    const output = {
-      ...plan,
-      id: "description-doc",
-      issueId: "work",
-      key,
-      body: "A completed description with CHAT123.",
-      createdByAgentId: "agent",
-    };
-    const get = vi.fn(async (path: string) => {
-      if (path === "/api/issues/work/documents")
-        return [{ key: "plan" }, { key }];
-      if (path === `/api/issues/work/documents/${key}`)
-        return output;
-      throw new Error(`Unexpected document read: ${path}`);
-    });
-    const api = { get } as Pick<RunnerApi, "get">;
-    await expect(readChatOutputDocument(api, "work", "CHAT123")).resolves.toBe(
-      output,
-    );
-    await expect(readChatOutputDocument(api, "work", "WRONG123")).rejects.toThrow(
-      "no non-plan output document",
-    );
-    get.mockImplementation(async () => [{ key: "plan" }]);
-    await expect(readChatOutputDocument(api, "work", "CHAT123")).rejects.toThrow(
-      "document keys: plan",
-    );
-  });
+  it.each(["project-description", "welcome-note", "output"])(
+    "finds committed %s output without accepting a copied plan or a claim",
+    async (key) => {
+      const output = {
+        ...plan,
+        id: "description-doc",
+        issueId: "work",
+        key,
+        body: "A completed description with CHAT123.",
+        createdByAgentId: "agent",
+      };
+      const get = vi.fn(async (path: string) => {
+        if (path === "/api/issues/work/documents")
+          return [{ key: "plan" }, { key }];
+        if (path === `/api/issues/work/documents/${key}`) return output;
+        throw new Error(`Unexpected document read: ${path}`);
+      });
+      const api = { get } as Pick<RunnerApi, "get">;
+      await expect(
+        readChatOutputDocument(api, "work", "CHAT123"),
+      ).resolves.toBe(output);
+      await expect(
+        readChatOutputDocument(api, "work", "WRONG123"),
+      ).rejects.toThrow("no non-plan output document");
+      get.mockImplementation(async () => [{ key: "plan" }]);
+      await expect(
+        readChatOutputDocument(api, "work", "CHAT123"),
+      ).rejects.toThrow("document keys: plan");
+    },
+  );
   it("uses durable free-text labels, multi-selection, and the supplied submit label", () => {
     const payload: AskUserQuestionsPayload = {
       version: 1,
@@ -281,10 +360,16 @@ If you only have the club name, audience, and tone, that is enough to begin; I c
     );
   });
   it("retains the tail of a long chat run for invariant checks", async () => {
-    const firstPage = Array.from({ length: 1000 }, (_, i) => ({ seq: i + 1, eventType: "item.delta" }));
+    const firstPage = Array.from({ length: 1000 }, (_, i) => ({
+      seq: i + 1,
+      eventType: "item.delta",
+    }));
     const tail = { seq: 1001, eventType: "run.terminal" };
-    const get = vi.fn().mockResolvedValueOnce({ content: "fixture log" })
-      .mockResolvedValueOnce(firstPage).mockResolvedValueOnce([tail]);
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce({ content: "fixture log" })
+      .mockResolvedValueOnce(firstPage)
+      .mockResolvedValueOnce([tail]);
     const evidence = await collectChatRunEvidence({ get }, run);
     expect(evidence.events).toEqual([...firstPage, tail]);
     expect(get.mock.calls).toEqual([
@@ -294,25 +379,65 @@ If you only have the club name, audience, and tone, that is enough to begin; I c
     ]);
   });
   it("records legitimate pre-provider log absence only with explicit bootstrap and storage evidence", async () => {
-    const stopped = { ...run, status: "interrupted", runtimeMode: "legacy", runtimeModeResolvedAt: null, logStore: null, logRef: null,
-      resultJson: { executionRecovery: { kind: "bootstrap", providerWorkStarted: false } } };
+    const stopped = {
+      ...run,
+      status: "interrupted",
+      runtimeMode: "legacy",
+      runtimeModeResolvedAt: null,
+      logStore: null,
+      logRef: null,
+      resultJson: {
+        executionRecovery: { kind: "bootstrap", providerWorkStarted: false },
+      },
+    };
     const get = vi.fn().mockResolvedValue([]);
-    expect(await collectChatRunEvidence({ get }, stopped)).toMatchObject({ log: null, logOmissionReason: "provider_not_started", events: [] });
+    expect(await collectChatRunEvidence({ get }, stopped)).toMatchObject({
+      log: null,
+      logOmissionReason: "provider_not_started",
+      events: [],
+    });
     expect(get).toHaveBeenCalledTimes(1);
     get.mockRejectedValue(new Error("Run log not found"));
-    for (const change of [{ resultJson: {} }, { runtimeMode: "native" }, { logRef: "recorded-log" }, { logStore: undefined },
-      { runtimeModeResolvedAt: "2026-09-28T00:00:00Z" }, { resultJson: { executionRecovery: { kind: "bootstrap", providerWorkStarted: true } } }]) {
-      await expect(collectChatRunEvidence({ get }, { ...stopped, ...change })).rejects.toThrow("Run log not found");
+    for (const change of [
+      { resultJson: {} },
+      { runtimeMode: "native" },
+      { logRef: "recorded-log" },
+      { logStore: undefined },
+      { runtimeModeResolvedAt: "2026-09-28T00:00:00Z" },
+      {
+        resultJson: {
+          executionRecovery: { kind: "bootstrap", providerWorkStarted: true },
+        },
+      },
+    ]) {
+      await expect(
+        collectChatRunEvidence({ get }, { ...stopped, ...change }),
+      ).rejects.toThrow("Run log not found");
     }
   });
   it("retains events for an unstarted dependency-blocked wake without asking for a nonexistent log", async () => {
     const get = vi.fn().mockResolvedValue([]);
-    const suppressed = { ...run, status: "cancelled", errorCode: "issue_dependencies_blocked", startedAt: null };
+    const suppressed = {
+      ...run,
+      status: "cancelled",
+      errorCode: "issue_dependencies_blocked",
+      startedAt: null,
+    };
     expect((await collectChatRunEvidence({ get }, suppressed)).log).toBeNull();
     expect(get).toHaveBeenCalledTimes(1);
     get.mockRejectedValue(new Error("Run log not found"));
-    await expect(collectChatRunEvidence({ get }, { ...suppressed, startedAt: "2026-09-18T00:00:00Z" })).rejects.toThrow("Run log not found");
-    await expect(collectChatRunEvidence({ get }, { ...suppressed, errorCode: "provider_transport_failed" })).rejects.toThrow("Run log not found");
+    await expect(
+      collectChatRunEvidence(
+        { get },
+        { ...suppressed, startedAt: "2026-09-18T00:00:00Z" },
+      ),
+    ).rejects.toThrow("Run log not found");
+    await expect(
+      collectChatRunEvidence(
+        { get },
+        { ...suppressed, errorCode: "provider_transport_failed" },
+      ),
+    ).rejects.toThrow("Run log not found");
   });
   it("waits for a newly running provider's log file without swallowing server failures", async () => {
     const get = vi.fn().mockResolvedValue({ status: () => 404 });
@@ -432,23 +557,69 @@ If you only have the club name, audience, and tone, that is enough to begin; I c
   });
 });
 
-
 describe("reassignment outcome oracle", () => {
-  const evidence = () => ({ readyId: "ready", queuedId: "queued", teammateId: "riley",
-    tasks: [{ id: "ready", companyId: "co", title: "Ready", status: "done", assigneeAgentId: "riley" }, { id: "queued", companyId: "co", title: "Later", status: "backlog", assigneeAgentId: "riley" }],
-    runs: [{ id: "successor", companyId: "co", agentId: "riley", status: "succeeded", runtimeMode: "native", contextSnapshot: { issueId: "ready" } }],
-    audit: [{ action: "issue.reassigned", details: { source: "taskcore_runner_protocol" } }], outputBody: "Launch CHECK123", marker: "CHECK123",
+  const evidence = () => ({
+    readyId: "ready",
+    queuedId: "queued",
+    teammateId: "riley",
+    tasks: [
+      {
+        id: "ready",
+        companyId: "co",
+        title: "Ready",
+        status: "done",
+        assigneeAgentId: "riley",
+      },
+      {
+        id: "queued",
+        companyId: "co",
+        title: "Later",
+        status: "backlog",
+        assigneeAgentId: "riley",
+      },
+    ],
+    runs: [
+      {
+        id: "successor",
+        companyId: "co",
+        agentId: "riley",
+        status: "succeeded",
+        runtimeMode: "native",
+        contextSnapshot: { issueId: "ready" },
+      },
+    ],
+    audit: [
+      {
+        action: "issue.reassigned",
+        details: { source: "taskcore_runner_protocol" },
+      },
+    ],
+    outputBody: "Launch CHECK123",
+    marker: "CHECK123",
   });
   it("accepts persisted ownership and exactly one successful successor", () => {
     expect(() => assertChatReassignment(evidence())).not.toThrow();
   });
-  it.each(["owner", "duplicate", "missing-run", "missing-audit", "backlog-started", "missing-output"])("rejects %s evidence", defect => {
+  it.each([
+    "owner",
+    "duplicate",
+    "missing-run",
+    "missing-audit",
+    "backlog-started",
+    "missing-output",
+  ])("rejects %s evidence", (defect) => {
     const data = evidence();
     if (defect === "owner") data.tasks[0]!.assigneeAgentId = "old";
-    if (defect === "duplicate") data.tasks.push({ ...data.tasks[0]!, id: "replacement" });
+    if (defect === "duplicate")
+      data.tasks.push({ ...data.tasks[0]!, id: "replacement" });
     if (defect === "missing-run") data.runs = [];
     if (defect === "missing-audit") data.audit = [];
-    if (defect === "backlog-started") data.runs.push({ ...data.runs[0]!, id: "early", contextSnapshot: { issueId: "queued" } });
+    if (defect === "backlog-started")
+      data.runs.push({
+        ...data.runs[0]!,
+        id: "early",
+        contextSnapshot: { issueId: "queued" },
+      });
     if (defect === "missing-output") data.outputBody = "I reassigned it";
     expect(() => assertChatReassignment(data)).toThrow();
   });
@@ -456,25 +627,67 @@ describe("reassignment outcome oracle", () => {
 
 describe("backlog creation outcome oracle", () => {
   const evidence = () => ({
-    tasks: [{ id: "held", companyId: "co", title: "Later", status: "backlog", parentId: null, assigneeAgentId: "planner" }],
-    runs: [] as ChatRun[], ownerId: "planner", marker: "PLAN123",
-    plan: { body: "Three steps PLAN123", latestRevisionId: "revision-1", updatedAt: "2026-09-19T00:00:00Z" },
-    activity: [{ action: "issue.created", details: { status: "backlog", source: "taskcore_runner_protocol" } }],
+    tasks: [
+      {
+        id: "held",
+        companyId: "co",
+        title: "Later",
+        status: "backlog",
+        parentId: null,
+        assigneeAgentId: "planner",
+      },
+    ],
+    runs: [] as ChatRun[],
+    ownerId: "planner",
+    marker: "PLAN123",
+    plan: {
+      body: "Three steps PLAN123",
+      latestRevisionId: "revision-1",
+      updatedAt: "2026-09-19T00:00:00Z",
+    },
+    activity: [
+      {
+        action: "issue.created",
+        details: { status: "backlog", source: "taskcore_runner_protocol" },
+      },
+    ],
   });
   it("accepts one planned backlog task with no execution", () => {
     expect(() => assertChatBacklogCreation(evidence())).not.toThrow();
   });
   it("does not mistake the creating conversation for task execution", () => {
     const data = evidence();
-    data.runs.push({ id: "creator", companyId: "co", agentId: "planner", status: "succeeded", contextSnapshot: { issueId: "conversation" } });
+    data.runs.push({
+      id: "creator",
+      companyId: "co",
+      agentId: "planner",
+      status: "succeeded",
+      contextSnapshot: { issueId: "conversation" },
+    });
     expect(() => assertChatBacklogCreation(data)).not.toThrow();
   });
-  it.each(["duplicate", "status", "started-then-stopped", "corrected-after-creation", "owner", "plan"])("rejects %s", defect => {
+  it.each([
+    "duplicate",
+    "status",
+    "started-then-stopped",
+    "corrected-after-creation",
+    "owner",
+    "plan",
+  ])("rejects %s", (defect) => {
     const data = evidence();
-    if (defect === "duplicate") data.tasks.push({ ...data.tasks[0]!, id: "duplicate" });
+    if (defect === "duplicate")
+      data.tasks.push({ ...data.tasks[0]!, id: "duplicate" });
     if (defect === "status") data.tasks[0]!.status = "todo";
-    if (defect === "started-then-stopped") data.runs.push({ id: "early", companyId: "co", agentId: "planner", status: "cancelled", contextSnapshot: { issueId: "held" } });
-    if (defect === "corrected-after-creation") data.activity[0]!.details.status = "todo";
+    if (defect === "started-then-stopped")
+      data.runs.push({
+        id: "early",
+        companyId: "co",
+        agentId: "planner",
+        status: "cancelled",
+        contextSnapshot: { issueId: "held" },
+      });
+    if (defect === "corrected-after-creation")
+      data.activity[0]!.details.status = "todo";
     if (defect === "owner") data.tasks[0]!.assigneeAgentId = "other";
     if (defect === "plan") data.plan.body = "I saved a plan";
     expect(() => assertChatBacklogCreation(data)).toThrow();

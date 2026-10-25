@@ -33,8 +33,7 @@ export { isCloudManagedInstance } from "./cloud-instance.js";
 
 /** Result of canonicalizing a requested local plugin install path. */
 export type LocalPluginPathValidation =
-  | { ok: true; canonicalPath: string }
-  | { ok: false; reason: string };
+  { ok: true; canonicalPath: string } | { ok: false; reason: string };
 
 /**
  * Canonicalize and validate a raw `localPath` install source.
@@ -94,7 +93,10 @@ export async function isWithinBundledPluginRoot(
   canonicalPath: string,
   bundledRootOverride?: string,
 ): Promise<boolean> {
-  const bundledRoot = bundledRootOverride ?? (process.env[BUNDLED_CATALOG_ROOT_ENV_VAR]?.trim() || BUNDLED_LOCAL_PLUGIN_ROOT);
+  const bundledRoot =
+    bundledRootOverride ??
+    (process.env[BUNDLED_CATALOG_ROOT_ENV_VAR]?.trim() ||
+      BUNDLED_LOCAL_PLUGIN_ROOT);
 
   let canonicalRoot: string;
   try {
@@ -105,5 +107,9 @@ export async function isWithinBundledPluginRoot(
   }
 
   const relative = path.relative(canonicalRoot, canonicalPath);
-  return relative.length > 0 && !relative.startsWith("..") && !path.isAbsolute(relative);
+  return (
+    relative.length > 0 &&
+    !relative.startsWith("..") &&
+    !path.isAbsolute(relative)
+  );
 }

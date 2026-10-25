@@ -23,7 +23,8 @@ export function OpenCodeLocalConfigFields({
   mark,
   hideInstructionsFile,
 }: AdapterConfigFieldsProps) {
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       {!hideInstructionsFile && (
         <Field label="Agent instructions file" hint={instructionsFileHint}>
@@ -31,7 +32,7 @@ export function OpenCodeLocalConfigFields({
             <DraftInput
               value={
                 isCreate
-                  ? values!.instructionsFilePath ?? ""
+                  ? (values!.instructionsFilePath ?? "")
                   : eff(
                       "adapterConfig",
                       "instructionsFilePath",
@@ -41,7 +42,11 @@ export function OpenCodeLocalConfigFields({
               onCommit={(v) =>
                 isCreate
                   ? set!({ instructionsFilePath: v })
-                  : mark("adapterConfig", "instructionsFilePath", v || undefined)
+                  : mark(
+                      "adapterConfig",
+                      "instructionsFilePath",
+                      v || undefined,
+                    )
               }
               immediate
               className={inputClass}
@@ -69,6 +74,6 @@ export function OpenCodeLocalConfigFields({
             : mark("adapterConfig", "dangerouslySkipPermissions", v)
         }
       />
-    </>
-  ));
+    </>,
+  );
 }

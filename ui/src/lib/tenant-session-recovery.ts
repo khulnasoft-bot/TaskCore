@@ -3,7 +3,10 @@ const TENANT_SESSION_ERROR_CODES = new Set([
   "tenant_session_invalid",
 ]);
 
-export function isTenantSessionRecoveryError(status: number, body: unknown): boolean {
+export function isTenantSessionRecoveryError(
+  status: number,
+  body: unknown,
+): boolean {
   if (status !== 401 || !body || typeof body !== "object") return false;
   const error = (body as Record<string, unknown>).error;
   return typeof error === "string" && TENANT_SESSION_ERROR_CODES.has(error);
@@ -17,7 +20,10 @@ export function isTenantSessionRecoveryError(status: number, body: unknown): boo
  * redirects a fresh browser navigation on an archived host to the
  * portfolio, so reloading leaves this document instead of dwelling on it.
  */
-export function isArchivedStackRecoveryError(status: number, body: unknown): boolean {
+export function isArchivedStackRecoveryError(
+  status: number,
+  body: unknown,
+): boolean {
   if (status !== 423 || !body || typeof body !== "object") return false;
   const statusPage = (body as Record<string, unknown>).statusPage;
   if (!statusPage || typeof statusPage !== "object") return false;
@@ -30,8 +36,14 @@ export function isArchivedStackRecoveryError(status: number, body: unknown): boo
  * re-runs the cookie/OIDC handoff) and an archived stack (the harness
  * redirects to the portfolio). Both are corrected by the same reload.
  */
-export function isTenantDocumentRecoveryError(status: number, body: unknown): boolean {
-  return isTenantSessionRecoveryError(status, body) || isArchivedStackRecoveryError(status, body);
+export function isTenantDocumentRecoveryError(
+  status: number,
+  body: unknown,
+): boolean {
+  return (
+    isTenantSessionRecoveryError(status, body) ||
+    isArchivedStackRecoveryError(status, body)
+  );
 }
 
 export interface TenantSessionRecoveryCoordinator {
@@ -63,11 +75,13 @@ export function createTenantSessionRecoveryCoordinator(
   };
 }
 
-export const tenantSessionRecovery = createTenantSessionRecoveryCoordinator(() => {
-  // A document navigation re-enters the Cloud harness, which corrects the
-  // browser's state: an expired session re-runs the HttpOnly-cookie/OIDC
-  // handoff (route and query preserved, no tokens exposed), and an archived
-  // stack is redirected to the portfolio.
-  const topLevelWindow = window.top ?? window;
-  topLevelWindow.location.reload();
-});
+export const tenantSessionRecovery = createTenantSessionRecoveryCoordinator(
+  () => {
+    // A document navigation re-enters the Cloud harness, which corrects the
+    // browser's state: an expired session re-runs the HttpOnly-cookie/OIDC
+    // handoff (route and query preserved, no tokens exposed), and an archived
+    // stack is redirected to the portfolio.
+    const topLevelWindow = window.top ?? window;
+    topLevelWindow.location.reload();
+  },
+);

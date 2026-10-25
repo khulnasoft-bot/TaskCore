@@ -1,6 +1,12 @@
-import { createProcessTreeOwner, stopOwnedProcessTree } from "./process-tree-owner.js";
+import {
+  createProcessTreeOwner,
+  stopOwnedProcessTree,
+} from "./process-tree-owner.js";
 import { randomBytes } from "node:crypto";
-import { prepareCodexCiSandbox, requiresCodexCiSandbox } from "./codex-ci-sandbox.js";
+import {
+  prepareCodexCiSandbox,
+  requiresCodexCiSandbox,
+} from "./codex-ci-sandbox.js";
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { createRequire } from "node:module";
@@ -23,8 +29,14 @@ import { isImmutableDaytonaImage, runnerMatrix } from "./catalog.js";
 import { renderRunnerE2EDashboard } from "./dashboard.js";
 import { packageEvidence } from "./evidence.js";
 import { classifyFailure } from "./failure-classifier.js";
-import { mustPreserveRecoveryState, shouldKeepFailedDiagnostics } from "./cleanup-verification.js";
-import { effectiveAutomaticRetryLimit, executeWithAutomaticRetry } from "./automatic-retry.js";
+import {
+  mustPreserveRecoveryState,
+  shouldKeepFailedDiagnostics,
+} from "./cleanup-verification.js";
+import {
+  effectiveAutomaticRetryLimit,
+  executeWithAutomaticRetry,
+} from "./automatic-retry.js";
 import { buildRunnerCampaign } from "./history.js";
 import {
   buildRunnerE2EProcessEnvironment,
@@ -52,10 +64,25 @@ import {
   type MatrixExecution,
   type RunnerE2EResult,
 } from "./types.js";
-import { assertRemoteNativeEvidencePrerequisites, assertRunnerE2EPrerequisites } from "./prerequisites.js";
-import { assertNativeCompletionSelection, prepareNativeCompletionPreflight, NATIVE_COMPLETION_PREFLIGHT_ENV } from "./native-completion-admission.js";
-import { assertNativeInstructionSelection, prepareNativeInstructionPreflight, NATIVE_INSTRUCTION_PREFLIGHT_ENV, NATIVE_INSTRUCTION_SUITE } from "./native-instruction-consolidation.js";
-import { prepareStockHarnessPreflight, STOCK_PREFLIGHT_ENV } from "./stock-harness-admission.js";
+import {
+  assertRemoteNativeEvidencePrerequisites,
+  assertRunnerE2EPrerequisites,
+} from "./prerequisites.js";
+import {
+  assertNativeCompletionSelection,
+  prepareNativeCompletionPreflight,
+  NATIVE_COMPLETION_PREFLIGHT_ENV,
+} from "./native-completion-admission.js";
+import {
+  assertNativeInstructionSelection,
+  prepareNativeInstructionPreflight,
+  NATIVE_INSTRUCTION_PREFLIGHT_ENV,
+  NATIVE_INSTRUCTION_SUITE,
+} from "./native-instruction-consolidation.js";
+import {
+  prepareStockHarnessPreflight,
+  STOCK_PREFLIGHT_ENV,
+} from "./stock-harness-admission.js";
 
 import {
   reapNewDetachedDarwinSharedMemory,
@@ -297,11 +324,16 @@ async function runProcess(
   let postResultStallError: string | null = null;
   let boundedCleanup: Promise<string | null> | undefined;
   let cleanupSettled!: () => void;
-  const cleanupFinished = new Promise<number>(resolve => { cleanupSettled = () => resolve(1); });
+  const cleanupFinished = new Promise<number>((resolve) => {
+    cleanupSettled = () => resolve(1);
+  });
   const stopChildTree = (_diagnostic?: ProcessTreeDiagnostic) => {
     if (boundedCleanup) return;
     boundedCleanup = stopOwnedProcessTree(child, processOwner)
-      .then(() => null, error => error instanceof Error ? error.message : String(error))
+      .then(
+        () => null,
+        (error) => (error instanceof Error ? error.message : String(error)),
+      )
       .finally(cleanupSettled);
     activeProcessCleanup.set(child.pid!, boundedCleanup);
   };
@@ -486,7 +518,11 @@ async function runAttempt(input: {
   const publishedResultPaths = new Map<string, string>();
   let attemptSecrets: string[] = [];
   let processCleanupFailed = false;
-  const rawCleanupResults: Array<{ cleanup: string; synthetic: boolean; status: string }> = [];
+  const rawCleanupResults: Array<{
+    cleanup: string;
+    synthetic: boolean;
+    status: string;
+  }> = [];
   try {
     const taskcoreHome = path.join(temporaryRoot, "taskcore-home");
     const workspace = path.join(temporaryRoot, "workspace");
@@ -534,7 +570,11 @@ async function runAttempt(input: {
         executions.map((candidate) => candidate.id),
       ),
       TASKCORE_RUNNER_E2E_ATTEMPT: String(attempt),
-      TASKCORE_RUNNER_E2E_PUBLIC_MCP: executions.some(candidate => candidate.task.flow === "public_mcp") ? "1" : "0",
+      TASKCORE_RUNNER_E2E_PUBLIC_MCP: executions.some(
+        (candidate) => candidate.task.flow === "public_mcp",
+      )
+        ? "1"
+        : "0",
       TASKCORE_RUNNER_E2E_PORT: String(port),
       TASKCORE_RUNNER_E2E_TEMP_ROOT: temporaryRoot,
       TASKCORE_RUNNER_E2E_PRIVATE_DIR: privateDir,
@@ -632,7 +672,11 @@ async function runAttempt(input: {
         );
         const result = await readResult(resultPath, fallback);
         // Keep cleanup authority before evidence copying/publication can fail.
-        rawCleanupResults.push({ cleanup: result.cleanup, synthetic: result === fallback, status: result.status });
+        rawCleanupResults.push({
+          cleanup: result.cleanup,
+          synthetic: result === fallback,
+          status: result.status,
+        });
         return enforceResultProcessIntegrity(result, processResult);
       }),
     );
@@ -658,13 +702,17 @@ async function runAttempt(input: {
           while (true) {
             // The managed Codex home may legitimately contain upstream source-code
             // fixtures with fake `sk-*` strings. Reject exact campaign credentials.
-            const leak = await findSecretLeakInDirectory(directory, credentials, {
-              includeShapes: false,
-              ignoreFile: (file) => expectedEphemeralCredentials.has(file),
-              allowDisappearedFile: (file) =>
-                label === "Taskcore home" &&
-                isEphemeralPostgresScanFile(taskcoreHome, file),
-            });
+            const leak = await findSecretLeakInDirectory(
+              directory,
+              credentials,
+              {
+                includeShapes: false,
+                ignoreFile: (file) => expectedEphemeralCredentials.has(file),
+                allowDisappearedFile: (file) =>
+                  label === "Taskcore home" &&
+                  isEphemeralPostgresScanFile(taskcoreHome, file),
+              },
+            );
             if (!leak) break;
             const isManagedCodexRuntimeAuth =
               label === "Taskcore home" &&
@@ -716,7 +764,10 @@ async function runAttempt(input: {
             : isolationMessage,
         };
       }
-      if (persistedStateError && persistenceCheckedExecutions.includes(candidate)) {
+      if (
+        persistedStateError &&
+        persistenceCheckedExecutions.includes(candidate)
+      ) {
         const persistedStateMessage =
           persistedStateError instanceof Error
             ? persistedStateError.message
@@ -803,24 +854,44 @@ async function runAttempt(input: {
     }
     return [...publishedResults];
   } finally {
-    if (!processCleanupFailed) reapNewDetachedDarwinSharedMemory(sharedMemoryBaseline);
+    if (!processCleanupFailed)
+      reapNewDetachedDarwinSharedMemory(sharedMemoryBaseline);
     let cleanupError: unknown;
-    const resourceAdmissionStarted = await access(path.join(temporaryRoot, "artifacts-private", "resource-admission-started"))
-      .then(() => true).catch((error: NodeJS.ErrnoException) => error.code !== "ENOENT");
-    if (mustPreserveRecoveryState({ processCleanupFailed, resourceAdmissionStarted, results: rawCleanupResults })) {
+    const resourceAdmissionStarted = await access(
+      path.join(
+        temporaryRoot,
+        "artifacts-private",
+        "resource-admission-started",
+      ),
+    )
+      .then(() => true)
+      .catch((error: NodeJS.ErrnoException) => error.code !== "ENOENT");
+    if (
+      mustPreserveRecoveryState({
+        processCleanupFailed,
+        resourceAdmissionStarted,
+        results: rawCleanupResults,
+      })
+    ) {
       // Remote allocation cleanup is journaled in this instance's database.
       // Deleting it after the controller exits would strand uncertain creates.
       await chmod(temporaryRoot, 0o700);
-      cleanupError = new Error(`Preserving private recovery state after unconfirmed cleanup: ${temporaryRoot}`);
-    } else if (shouldKeepFailedDiagnostics({
-      enabled: process.env.TASKCORE_RUNNER_E2E_KEEP_FAILED_PRIVATE === "1",
-      expectedResults: executions.length,
-      results: publishedResults,
-    })) {
+      cleanupError = new Error(
+        `Preserving private recovery state after unconfirmed cleanup: ${temporaryRoot}`,
+      );
+    } else if (
+      shouldKeepFailedDiagnostics({
+        enabled: process.env.TASKCORE_RUNNER_E2E_KEEP_FAILED_PRIVATE === "1",
+        expectedResults: executions.length,
+        results: publishedResults,
+      })
+    ) {
       // Explicit diagnosis only. Confirmed resource cleanup stays confirmed;
       // keep private traces for investigation without publishing provider data.
       await chmod(temporaryRoot, 0o700);
-      console.warn(`Retained private failed-case diagnostics: ${temporaryRoot}`);
+      console.warn(
+        `Retained private failed-case diagnostics: ${temporaryRoot}`,
+      );
     } else if (
       temporaryRoot.startsWith(`${os.tmpdir()}${path.sep}taskcore-runner-e2e-`)
     ) {
@@ -854,7 +925,9 @@ async function runAttempt(input: {
         Object.assign(publishedResult, {
           status: "failed",
           failureClass: "cleanup_failure",
-          error: publishedResult.error ? `${publishedResult.error}; ${message}` : message,
+          error: publishedResult.error
+            ? `${publishedResult.error}; ${message}`
+            : message,
           cleanup: "failed",
         } satisfies Partial<RunnerE2EResult>);
         const safeResult = `${JSON.stringify(
@@ -895,15 +968,26 @@ async function runExecutionWithRetry(input: {
 }): Promise<RunnerE2EResult> {
   const { execution, campaignId, options } = input;
   return executeWithAutomaticRetry({
-    task: execution.task, options,
-    qualificationCandidate: execution.profile.qualificationCandidate !== undefined,
+    task: execution.task,
+    options,
+    qualificationCandidate:
+      execution.profile.qualificationCandidate !== undefined,
     cancelled: () => cancelled,
-    onRetry: result => console.warn(
-      `Retrying ${execution.id} in a fresh isolated harness after ${result.failureClass!.replaceAll("_", " ")}`,
-    ),
-    runAttempt: async attempt => {
-      const [result] = await runAttempt({ executions: [execution], attempt, campaignId, options });
-      if (!result) throw new Error(`No result produced for ${execution.id} attempt ${attempt}`);
+    onRetry: (result) =>
+      console.warn(
+        `Retrying ${execution.id} in a fresh isolated harness after ${result.failureClass!.replaceAll("_", " ")}`,
+      ),
+    runAttempt: async (attempt) => {
+      const [result] = await runAttempt({
+        executions: [execution],
+        attempt,
+        campaignId,
+        options,
+      });
+      if (!result)
+        throw new Error(
+          `No result produced for ${execution.id} attempt ${attempt}`,
+        );
       return result;
     },
   });
@@ -958,12 +1042,24 @@ async function main() {
     return;
   }
 
-  if (executions.some(execution => execution.task.flow === "provider_connection")) {
+  if (
+    executions.some(
+      (execution) => execution.task.flow === "provider_connection",
+    )
+  ) {
     const { runConnectionCampaign } = await import("./connection-launch.js");
-    await runConnectionCampaign({ executions, catalog: runnerMatrix, configFile: options.connectionConfig, repositoryRoot });
+    await runConnectionCampaign({
+      executions,
+      catalog: runnerMatrix,
+      configFile: options.connectionConfig,
+      repositoryRoot,
+    });
     return;
   }
-  if (options.connectionConfig) throw new Error("--connection-config is only supported by the provider-connections suite");
+  if (options.connectionConfig)
+    throw new Error(
+      "--connection-config is only supported by the provider-connections suite",
+    );
 
   // Keep admission before local-env loading and credential checks. Pending
   // profiles remain discoverable, but cannot reach a provider.
@@ -976,13 +1072,21 @@ async function main() {
   );
   const summaryDir = path.join(resultsRoot, campaignId);
   await mkdir(summaryDir, { recursive: true });
-  if (executions.some(execution => execution.suite.id === "native-completion")) {
-    process.env[NATIVE_COMPLETION_PREFLIGHT_ENV] = prepareNativeCompletionPreflight(summaryDir);
+  if (
+    executions.some((execution) => execution.suite.id === "native-completion")
+  ) {
+    process.env[NATIVE_COMPLETION_PREFLIGHT_ENV] =
+      prepareNativeCompletionPreflight(summaryDir);
   }
-  if (executions.some(execution => execution.suite.id === NATIVE_INSTRUCTION_SUITE)) {
-    process.env[NATIVE_INSTRUCTION_PREFLIGHT_ENV] = prepareNativeInstructionPreflight(summaryDir);
+  if (
+    executions.some(
+      (execution) => execution.suite.id === NATIVE_INSTRUCTION_SUITE,
+    )
+  ) {
+    process.env[NATIVE_INSTRUCTION_PREFLIGHT_ENV] =
+      prepareNativeInstructionPreflight(summaryDir);
   }
-  if (executions.some(execution => execution.suite.id === "stock-harness")) {
+  if (executions.some((execution) => execution.suite.id === "stock-harness")) {
     process.env[STOCK_PREFLIGHT_ENV] = prepareStockHarnessPreflight(summaryDir);
   }
 
@@ -1007,7 +1111,6 @@ async function main() {
     );
   }
 
-
   await writeFile(
     path.join(summaryDir, "invocation-policy.json"),
     `${JSON.stringify(
@@ -1015,10 +1118,14 @@ async function main() {
         version: 1,
         maxAutomaticRetries: options.maxAutomaticRetries,
         retryClasses: ["transient_infrastructure", "provider_variance"],
-        executions: executions.map(execution => ({
+        executions: executions.map((execution) => ({
           executionId: execution.id,
-          automaticRetryPolicy: execution.task.automaticRetryPolicy ?? "default",
-          maxAutomaticRetries: effectiveAutomaticRetryLimit(execution.task, options.maxAutomaticRetries),
+          automaticRetryPolicy:
+            execution.task.automaticRetryPolicy ?? "default",
+          maxAutomaticRetries: effectiveAutomaticRetryLimit(
+            execution.task,
+            options.maxAutomaticRetries,
+          ),
         })),
       },
       null,

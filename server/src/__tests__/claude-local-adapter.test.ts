@@ -81,7 +81,12 @@ describe("claude_local ui stdout parser", () => {
             content: [
               { type: "text", text: "I will inspect the repo." },
               { type: "thinking", thinking: "Checking the adapter wiring" },
-              { type: "tool_use", id: "tool_1", name: "bash", input: { command: "ls -1" } },
+              {
+                type: "tool_use",
+                id: "tool_1",
+                name: "bash",
+                input: { command: "ls -1" },
+              },
             ],
           },
         }),
@@ -90,7 +95,13 @@ describe("claude_local ui stdout parser", () => {
     ).toEqual([
       { kind: "assistant", ts, text: "I will inspect the repo." },
       { kind: "thinking", ts, text: "Checking the adapter wiring" },
-      { kind: "tool_call", ts, name: "bash", toolUseId: "tool_1", input: { command: "ls -1" } },
+      {
+        kind: "tool_call",
+        ts,
+        name: "bash",
+        toolUseId: "tool_1",
+        input: { command: "ls -1" },
+      },
     ]);
 
     expect(
@@ -147,7 +158,12 @@ describe("claude_local cli formatter", () => {
             content: [
               { type: "text", text: "I will inspect the repo." },
               { type: "thinking", thinking: "Checking the adapter wiring" },
-              { type: "tool_use", id: "tool_1", name: "bash", input: { command: "ls -1" } },
+              {
+                type: "tool_use",
+                id: "tool_1",
+                name: "bash",
+                input: { command: "ls -1" },
+              },
             ],
           },
         }),
@@ -174,7 +190,11 @@ describe("claude_local cli formatter", () => {
           type: "result",
           subtype: "success",
           result: "Done",
-          usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 2 },
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            cache_read_input_tokens: 2,
+          },
           total_cost_usd: 0.00042,
         }),
         false,

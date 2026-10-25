@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { RUNTIME_EXPOSURE_APP_PORT_MIN, deriveViteHmrPort } from "@taskcore/shared";
+import {
+  RUNTIME_EXPOSURE_APP_PORT_MIN,
+  deriveViteHmrPort,
+} from "@taskcore/shared";
 
 import {
   BrokerClientError,
@@ -33,7 +36,10 @@ const CONFIG = {
 };
 
 interface FakeBrokerScript {
-  reserve?: (runtimeId: string, listeners: BrokerListenerRequest[]) => BrokerReserveResult;
+  reserve?: (
+    runtimeId: string,
+    listeners: BrokerListenerRequest[],
+  ) => BrokerReserveResult;
   expose?: (runtimeId: string, handle: string) => BrokerExposeResult;
   remove?: (runtimeId: string, handle: string) => BrokerRemoveResult;
   list?: () => BrokerOwnedListener[];
@@ -46,22 +52,33 @@ interface FakeBrokerCalls {
   list: number;
 }
 
-function fakeBroker(script: FakeBrokerScript): { broker: BrokerClient; calls: FakeBrokerCalls } {
-  const calls: FakeBrokerCalls = { reserve: [], expose: [], remove: [], list: 0 };
+function fakeBroker(script: FakeBrokerScript): {
+  broker: BrokerClient;
+  calls: FakeBrokerCalls;
+} {
+  const calls: FakeBrokerCalls = {
+    reserve: [],
+    expose: [],
+    remove: [],
+    list: 0,
+  };
   const broker: BrokerClient = {
     async reserve(runtimeId, listeners) {
       calls.reserve.push({ runtimeId, listeners });
-      if (!script.reserve) throw new BrokerClientError("internal_error", "no reserve script");
+      if (!script.reserve)
+        throw new BrokerClientError("internal_error", "no reserve script");
       return script.reserve(runtimeId, listeners);
     },
     async expose(runtimeId, handle) {
       calls.expose.push({ runtimeId, handle });
-      if (!script.expose) throw new BrokerClientError("internal_error", "no expose script");
+      if (!script.expose)
+        throw new BrokerClientError("internal_error", "no expose script");
       return script.expose(runtimeId, handle);
     },
     async remove(runtimeId, handle) {
       calls.remove.push({ runtimeId, handle });
-      if (!script.remove) throw new BrokerClientError("internal_error", "no remove script");
+      if (!script.remove)
+        throw new BrokerClientError("internal_error", "no remove script");
       return script.remove(runtimeId, handle);
     },
     async list() {
@@ -79,18 +96,23 @@ describe("reserveExposure", () => {
     const { broker, calls } = fakeBroker({
       reserve: () => ({ handle: HANDLE, reservedPorts: [APP_PORT, HMR_PORT] }),
     });
-    const result = await reserveExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      appPort: APP_PORT,
-    });
-    expect(calls.reserve).toEqual([{
-      runtimeId: RUNTIME_ID,
-      listeners: [
-        { purpose: "app", port: APP_PORT },
-        { purpose: "vite_hmr", port: HMR_PORT },
-      ],
-    }]);
+    const result = await reserveExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        appPort: APP_PORT,
+      },
+    );
+    expect(calls.reserve).toEqual([
+      {
+        runtimeId: RUNTIME_ID,
+        listeners: [
+          { purpose: "app", port: APP_PORT },
+          { purpose: "vite_hmr", port: HMR_PORT },
+        ],
+      },
+    ]);
     expect(result.handle).toBe(HANDLE);
     expect(result.status.state).toBe("pending");
   });
@@ -100,18 +122,24 @@ describe("reserveExposure", () => {
       reserve: () => ({ handle: HANDLE, reservedPorts: [APP_PORT] }),
       remove: () => ({ removedPorts: [] }),
     });
-    const result = await reserveExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      appPort: APP_PORT,
-    });
+    const result = await reserveExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        appPort: APP_PORT,
+      },
+    );
     expect(result.status.state).toBe("failed");
     expect(result.handle).toBeNull();
     expect(calls.remove).toEqual([{ runtimeId: RUNTIME_ID, handle: HANDLE }]);
   });
 });
 
-function deps(broker: BrokerClient, probeHealth: () => Promise<boolean>): ExposureManagerDeps {
+function deps(
+  broker: BrokerClient,
+  probeHealth: () => Promise<boolean>,
+): ExposureManagerDeps {
   return { broker, probeHealth, now: () => "2026-08-11T00:00:00.000Z" };
 }
 
@@ -129,7 +157,13 @@ describe("provisionExposure loopback diagnosis (PAP-17256)", () => {
           return `port ${APP_PORT} is bound to 0.0.0.0 instead of loopback only`;
         },
       },
-      { runtimeId: RUNTIME_ID, config: CONFIG, handle: HANDLE, hostname: HOSTNAME, appPort: APP_PORT },
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
     );
 
     // Both the app port and its HMR companion are diagnosed, because the broker
@@ -150,8 +184,17 @@ describe("provisionExposure loopback diagnosis (PAP-17256)", () => {
       expose: () => ({ handle: HANDLE, publicPorts: [APP_PORT, HMR_PORT] }),
     });
     const result = await provisionExposure(
-      { ...deps(broker, async () => true), diagnoseListenerBinds: async () => null },
-      { runtimeId: RUNTIME_ID, config: CONFIG, handle: HANDLE, hostname: HOSTNAME, appPort: APP_PORT },
+      {
+        ...deps(broker, async () => true),
+        diagnoseListenerBinds: async () => null,
+      },
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
     );
     expect(calls.expose).toHaveLength(1);
     expect(result.status.state).toBe("ready");
@@ -167,15 +210,20 @@ describe("provisionExposure loopback diagnosis (PAP-17256)", () => {
         );
       },
     });
-    const result = await provisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: APP_PORT,
-    });
+    const result = await provisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
+    );
     expect(result.status.lastError).toBe("listener_ownership_mismatch");
-    expect(result.errorDetail).toBe(`listener on ${APP_PORT} is not loopback-only`);
+    expect(result.errorDetail).toBe(
+      `listener on ${APP_PORT} is not loopback-only`,
+    );
   });
 
   it("does not repeat the code as a reason when the broker adds nothing", async () => {
@@ -184,13 +232,16 @@ describe("provisionExposure loopback diagnosis (PAP-17256)", () => {
         throw new BrokerClientError("cli_timeout", "cli_timeout");
       },
     });
-    const result = await provisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: APP_PORT,
-    });
+    const result = await provisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
+    );
     expect(result.status.lastError).toBe("cli_timeout");
     expect(result.errorDetail).toBeNull();
   });
@@ -199,15 +250,21 @@ describe("provisionExposure loopback diagnosis (PAP-17256)", () => {
 describe("provisionExposure", () => {
   it("exposes app + HMR and reports ready once the HTTPS probe validates", async () => {
     const { broker, calls } = fakeBroker({
-      expose: () => ({ handle: "handle-abcdef1234567890", publicPorts: [APP_PORT, HMR_PORT] }),
+      expose: () => ({
+        handle: "handle-abcdef1234567890",
+        publicPorts: [APP_PORT, HMR_PORT],
+      }),
     });
-    const { status, handle } = await provisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: APP_PORT,
-    });
+    const { status, handle } = await provisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
+    );
 
     expect(calls.expose).toHaveLength(1);
     expect(calls.expose).toEqual([{ runtimeId: RUNTIME_ID, handle: HANDLE }]);
@@ -222,29 +279,40 @@ describe("provisionExposure", () => {
 
   it("omits the HMR listener when HMR is not requested", async () => {
     const { broker, calls } = fakeBroker({
-      expose: () => ({ handle: "handle-abcdef1234567890", publicPorts: [APP_PORT] }),
+      expose: () => ({
+        handle: "handle-abcdef1234567890",
+        publicPorts: [APP_PORT],
+      }),
     });
-    const { status } = await provisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: { ...CONFIG, includeTaskcoreViteHmr: false },
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: APP_PORT,
-    });
+    const { status } = await provisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: { ...CONFIG, includeTaskcoreViteHmr: false },
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
+    );
     expect(calls.expose).toEqual([{ runtimeId: RUNTIME_ID, handle: HANDLE }]);
-    expect(status.listeners).toEqual([{ purpose: "app", publicPort: APP_PORT, targetPort: APP_PORT }]);
+    expect(status.listeners).toEqual([
+      { purpose: "app", publicPort: APP_PORT, targetPort: APP_PORT },
+    ]);
     expect(status.state).toBe("ready");
   });
 
   it("fails closed without calling the broker when the app port is out of range", async () => {
     const { broker, calls } = fakeBroker({});
-    const { status, handle } = await provisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: 3100, // primary app port — never eligible
-    });
+    const { status, handle } = await provisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: 3100, // primary app port — never eligible
+      },
+    );
     expect(calls.expose).toHaveLength(0);
     expect(status.state).toBe("failed");
     expect(handle).toBe(HANDLE);
@@ -256,13 +324,16 @@ describe("provisionExposure", () => {
         throw new BrokerClientError("port_not_allowlisted", "denied");
       },
     });
-    const { status, handle } = await provisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: APP_PORT,
-    });
+    const { status, handle } = await provisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
+    );
     expect(status.state).toBe("failed");
     expect(status.lastError).toBe("port_not_allowlisted");
     expect(status.listeners).toHaveLength(2);
@@ -271,16 +342,22 @@ describe("provisionExposure", () => {
 
   it("tears the mapping back down and fails when returned ports do not match", async () => {
     const { broker, calls } = fakeBroker({
-      expose: () => ({ handle: "handle-abcdef1234567890", publicPorts: [APP_PORT] }), // missing HMR
+      expose: () => ({
+        handle: "handle-abcdef1234567890",
+        publicPorts: [APP_PORT],
+      }), // missing HMR
       remove: () => ({ removedPorts: [APP_PORT] }),
     });
-    const { status, handle } = await provisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: APP_PORT,
-    });
+    const { status, handle } = await provisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
+    );
     expect(status.state).toBe("failed");
     expect(status.lastError).toMatch(/unexpected public ports/);
     expect(calls.remove).toHaveLength(1); // best-effort rollback
@@ -289,15 +366,21 @@ describe("provisionExposure", () => {
 
   it("fail-closed: keeps the handle but reports failed when the HTTPS probe does not validate", async () => {
     const { broker } = fakeBroker({
-      expose: () => ({ handle: "handle-abcdef1234567890", publicPorts: [APP_PORT, HMR_PORT] }),
+      expose: () => ({
+        handle: "handle-abcdef1234567890",
+        publicPorts: [APP_PORT, HMR_PORT],
+      }),
     });
-    const { status, handle } = await provisionExposure(deps(broker, async () => false), {
-      runtimeId: RUNTIME_ID,
-      config: CONFIG,
-      handle: HANDLE,
-      hostname: HOSTNAME,
-      appPort: APP_PORT,
-    });
+    const { status, handle } = await provisionExposure(
+      deps(broker, async () => false),
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
+    );
     expect(status.state).toBe("failed");
     expect(status.publicUrl).toBeNull();
     expect(status.listeners).toHaveLength(2); // attempted mapping still surfaced
@@ -308,13 +391,22 @@ describe("provisionExposure", () => {
 
   it("fail-closed: treats a probe that throws as unhealthy", async () => {
     const { broker } = fakeBroker({
-      expose: () => ({ handle: "handle-abcdef1234567890", publicPorts: [APP_PORT, HMR_PORT] }),
+      expose: () => ({
+        handle: "handle-abcdef1234567890",
+        publicPorts: [APP_PORT, HMR_PORT],
+      }),
     });
     const { status } = await provisionExposure(
       deps(broker, async () => {
         throw new Error("cert error");
       }),
-      { runtimeId: RUNTIME_ID, config: CONFIG, handle: HANDLE, hostname: HOSTNAME, appPort: APP_PORT },
+      {
+        runtimeId: RUNTIME_ID,
+        config: CONFIG,
+        handle: HANDLE,
+        hostname: HOSTNAME,
+        appPort: APP_PORT,
+      },
     );
     expect(status.state).toBe("failed");
   });
@@ -323,23 +415,31 @@ describe("provisionExposure", () => {
 describe("deprovisionExposure", () => {
   it("is a no-op removal when no handle was ever recorded", async () => {
     const { broker, calls } = fakeBroker({});
-    const { status, quarantinedPorts } = await deprovisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      handle: null,
-      ports: [APP_PORT, HMR_PORT],
-    });
+    const { status, quarantinedPorts } = await deprovisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        handle: null,
+        ports: [APP_PORT, HMR_PORT],
+      },
+    );
     expect(calls.remove).toHaveLength(0);
     expect(status.state).toBe("removed");
     expect(quarantinedPorts).toEqual([]);
   });
 
   it("removes cleanly with a handle", async () => {
-    const { broker, calls } = fakeBroker({ remove: () => ({ removedPorts: [APP_PORT, HMR_PORT] }) });
-    const { status, quarantinedPorts } = await deprovisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      handle: "handle-abcdef1234567890",
-      ports: [APP_PORT, HMR_PORT],
+    const { broker, calls } = fakeBroker({
+      remove: () => ({ removedPorts: [APP_PORT, HMR_PORT] }),
     });
+    const { status, quarantinedPorts } = await deprovisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        handle: "handle-abcdef1234567890",
+        ports: [APP_PORT, HMR_PORT],
+      },
+    );
     expect(calls.remove).toHaveLength(1);
     expect(status.state).toBe("removed");
     expect(quarantinedPorts).toEqual([]);
@@ -351,11 +451,14 @@ describe("deprovisionExposure", () => {
         throw new BrokerClientError("invalid_handle", "gone");
       },
     });
-    const { status, quarantinedPorts } = await deprovisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      handle: "handle-abcdef1234567890",
-      ports: [APP_PORT, HMR_PORT],
-    });
+    const { status, quarantinedPorts } = await deprovisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        handle: "handle-abcdef1234567890",
+        ports: [APP_PORT, HMR_PORT],
+      },
+    );
     expect(status.state).toBe("removed");
     expect(quarantinedPorts).toEqual([]);
   });
@@ -366,11 +469,14 @@ describe("deprovisionExposure", () => {
         throw new BrokerClientError("cli_error", "tailscale serve failed");
       },
     });
-    const { status, quarantinedPorts } = await deprovisionExposure(deps(broker, async () => true), {
-      runtimeId: RUNTIME_ID,
-      handle: "handle-abcdef1234567890",
-      ports: [APP_PORT, HMR_PORT, APP_PORT],
-    });
+    const { status, quarantinedPorts } = await deprovisionExposure(
+      deps(broker, async () => true),
+      {
+        runtimeId: RUNTIME_ID,
+        handle: "handle-abcdef1234567890",
+        ports: [APP_PORT, HMR_PORT, APP_PORT],
+      },
+    );
     expect(status.state).toBe("cleanup_pending");
     expect(status.lastError).toBe("cli_error");
     expect(quarantinedPorts).toEqual([APP_PORT, HMR_PORT]); // deduped
@@ -385,10 +491,13 @@ describe("reconcileExposures", () => {
         { runtimeId: RUNTIME_ID, port: HMR_PORT, purpose: "vite_hmr" },
       ],
     });
-    const result = await reconcileExposures(deps(broker, async () => true), {
-      desiredRuntimeIds: new Set([RUNTIME_ID]),
-      handlesByRuntimeId: new Map(),
-    });
+    const result = await reconcileExposures(
+      deps(broker, async () => true),
+      {
+        desiredRuntimeIds: new Set([RUNTIME_ID]),
+        handlesByRuntimeId: new Map(),
+      },
+    );
     expect(result.adopted).toEqual([RUNTIME_ID]);
     expect(result.removedOrphanPorts).toEqual([]);
     expect(calls.remove).toHaveLength(0);
@@ -400,12 +509,17 @@ describe("reconcileExposures", () => {
       list: () => [{ runtimeId: orphan, port: APP_PORT, purpose: "app" }],
       remove: () => ({ removedPorts: [APP_PORT] }),
     });
-    const result = await reconcileExposures(deps(broker, async () => true), {
-      desiredRuntimeIds: new Set([RUNTIME_ID]),
-      handlesByRuntimeId: new Map([[orphan, "handle-abcdef1234567890"]]),
-    });
+    const result = await reconcileExposures(
+      deps(broker, async () => true),
+      {
+        desiredRuntimeIds: new Set([RUNTIME_ID]),
+        handlesByRuntimeId: new Map([[orphan, "handle-abcdef1234567890"]]),
+      },
+    );
     expect(result.removedOrphanPorts).toEqual([APP_PORT]);
-    expect(calls.remove).toEqual([{ runtimeId: orphan, handle: "handle-abcdef1234567890" }]);
+    expect(calls.remove).toEqual([
+      { runtimeId: orphan, handle: "handle-abcdef1234567890" },
+    ]);
     expect(result.unremovableOrphans).toEqual([]);
   });
 
@@ -414,10 +528,13 @@ describe("reconcileExposures", () => {
     const { broker, calls } = fakeBroker({
       list: () => [{ runtimeId: orphan, port: APP_PORT, purpose: "app" }],
     });
-    const result = await reconcileExposures(deps(broker, async () => true), {
-      desiredRuntimeIds: new Set([RUNTIME_ID]),
-      handlesByRuntimeId: new Map(),
-    });
+    const result = await reconcileExposures(
+      deps(broker, async () => true),
+      {
+        desiredRuntimeIds: new Set([RUNTIME_ID]),
+        handlesByRuntimeId: new Map(),
+      },
+    );
     expect(calls.remove).toHaveLength(0);
     expect(result.unremovableOrphans).toEqual([orphan]);
     expect(result.removedOrphanPorts).toEqual([]);
@@ -432,17 +549,21 @@ describe("reconcileExposures", () => {
         { runtimeId: orphanB, port: APP_PORT + 1, purpose: "app" },
       ],
       remove: (runtimeId) => {
-        if (runtimeId === orphanA) throw new BrokerClientError("cli_error", "boom");
+        if (runtimeId === orphanA)
+          throw new BrokerClientError("cli_error", "boom");
         return { removedPorts: [APP_PORT + 1] };
       },
     });
-    const result = await reconcileExposures(deps(broker, async () => true), {
-      desiredRuntimeIds: new Set(),
-      handlesByRuntimeId: new Map([
-        [orphanA, "handle-aaaaaaaaaaaaaaaa"],
-        [orphanB, "handle-bbbbbbbbbbbbbbbb"],
-      ]),
-    });
+    const result = await reconcileExposures(
+      deps(broker, async () => true),
+      {
+        desiredRuntimeIds: new Set(),
+        handlesByRuntimeId: new Map([
+          [orphanA, "handle-aaaaaaaaaaaaaaaa"],
+          [orphanB, "handle-bbbbbbbbbbbbbbbb"],
+        ]),
+      },
+    );
     expect(result.errors).toEqual([{ runtimeId: orphanA, code: "cli_error" }]);
     expect(result.removedOrphanPorts).toEqual([APP_PORT + 1]);
   });

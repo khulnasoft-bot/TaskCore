@@ -9,13 +9,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IssueAttachmentsSection } from "./IssueAttachmentsSection";
 
 vi.mock("./MarkdownBody", () => ({
-  MarkdownBody: ({ children, className }: { children: string; className?: string }) => (
-    <div className={className} data-testid="markdown-body">{children}</div>
+  MarkdownBody: ({
+    children,
+    className,
+  }: {
+    children: string;
+    className?: string;
+  }) => (
+    <div className={className} data-testid="markdown-body">
+      {children}
+    </div>
   ),
 }));
 
 vi.mock("./FoldCurtain", () => ({
-  FoldCurtain: ({ children }: { children?: ReactNode }) => <div data-testid="fold-curtain">{children}</div>,
+  FoldCurtain: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="fold-curtain">{children}</div>
+  ),
 }));
 
 vi.mock("@/components/ui/button", () => ({
@@ -27,7 +37,11 @@ vi.mock("@/components/ui/button", () => ({
     ...props
   }: ComponentProps<"button"> & { asChild?: boolean }) => {
     if (asChild) return <>{children}</>;
-    return <button type={type} onClick={onClick} {...props}>{children}</button>;
+    return (
+      <button type={type} onClick={onClick} {...props}>
+        {children}
+      </button>
+    );
   },
 }));
 
@@ -42,7 +56,9 @@ async function act(callback: () => void | Promise<void>) {
   await result;
 }
 
-function makeAttachment(overrides: Partial<IssueAttachment> = {}): IssueAttachment {
+function makeAttachment(
+  overrides: Partial<IssueAttachment> = {},
+): IssueAttachment {
   return {
     id: "attachment-1",
     companyId: "company-1",
@@ -102,7 +118,8 @@ describe("IssueAttachmentsSection", () => {
     });
     fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
-      text: () => Promise.resolve("# Imported plan\n\n- Use the document renderer"),
+      text: () =>
+        Promise.resolve("# Imported plan\n\n- Use the document renderer"),
     });
     vi.stubGlobal("fetch", fetchSpy);
   });
@@ -140,14 +157,22 @@ describe("IssueAttachmentsSection", () => {
     expect(fetchSpy).toHaveBeenCalledWith(
       "/api/attachments/markdown-attachment/content",
       expect.objectContaining({
-        headers: expect.objectContaining({ Accept: expect.stringContaining("text/markdown") }),
+        headers: expect.objectContaining({
+          Accept: expect.stringContaining("text/markdown"),
+        }),
       }),
     );
     await waitForAssertion(() => {
-      expect(container.querySelector('[data-testid="fold-curtain"]')).toBeTruthy();
-      const markdownBody = container.querySelector('[data-testid="markdown-body"]');
+      expect(
+        container.querySelector('[data-testid="fold-curtain"]'),
+      ).toBeTruthy();
+      const markdownBody = container.querySelector(
+        '[data-testid="markdown-body"]',
+      );
       expect(markdownBody?.textContent).toContain("Imported plan");
-      expect(markdownBody?.className).toContain("taskcore-edit-in-place-content");
+      expect(markdownBody?.className).toContain(
+        "taskcore-edit-in-place-content",
+      );
     });
   });
 
@@ -202,7 +227,9 @@ describe("IssueAttachmentsSection", () => {
     await flushReact();
 
     const video = container.querySelector("video");
-    expect(video?.getAttribute("src")).toBe("/api/attachments/video-attachment/content");
+    expect(video?.getAttribute("src")).toBe(
+      "/api/attachments/video-attachment/content",
+    );
     expect(video?.getAttribute("controls")).not.toBeNull();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -263,7 +290,9 @@ describe("IssueAttachmentsSection", () => {
     await flushReact();
 
     const video = container.querySelector("video");
-    expect(video?.getAttribute("src")).toBe("/api/attachments/misclassified-mp4/content");
+    expect(video?.getAttribute("src")).toBe(
+      "/api/attachments/misclassified-mp4/content",
+    );
     expect(container.textContent).toContain("application/octet-stream");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -320,12 +349,16 @@ describe("IssueAttachmentsSection", () => {
 
     expect(container.textContent).toContain("report.pdf");
     expect(container.textContent).toContain("application/pdf");
-    expect(container.querySelector('a[aria-label="Open report.pdf"]')?.getAttribute("href")).toBe(
-      "/api/attachments/pdf-attachment/content",
-    );
-    expect(container.querySelector('a[aria-label="Download report.pdf"]')?.getAttribute("href")).toBe(
-      "/api/attachments/pdf-attachment/content?download=1",
-    );
+    expect(
+      container
+        .querySelector('a[aria-label="Open report.pdf"]')
+        ?.getAttribute("href"),
+    ).toBe("/api/attachments/pdf-attachment/content");
+    expect(
+      container
+        .querySelector('a[aria-label="Download report.pdf"]')
+        ?.getAttribute("href"),
+    ).toBe("/api/attachments/pdf-attachment/content?download=1");
   });
 
   it("can render read-only attachments without destructive controls", async () => {
@@ -339,16 +372,25 @@ describe("IssueAttachmentsSection", () => {
     await act(async () => {
       root.render(
         <QueryClientProvider client={queryClient}>
-          <IssueAttachmentsSection attachments={[attachment]} onImageClick={vi.fn()} />
+          <IssueAttachmentsSection
+            attachments={[attachment]}
+            onImageClick={vi.fn()}
+          />
         </QueryClientProvider>,
       );
     });
     await flushReact();
 
     expect(container.textContent).toContain("stored-report.pdf");
-    expect(container.querySelector('a[aria-label="Open stored-report.pdf"]')).toBeTruthy();
-    expect(container.querySelector('a[aria-label="Download stored-report.pdf"]')).toBeTruthy();
-    expect(container.querySelector('button[title="Delete attachment"]')).toBeNull();
+    expect(
+      container.querySelector('a[aria-label="Open stored-report.pdf"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('a[aria-label="Download stored-report.pdf"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('button[title="Delete attachment"]'),
+    ).toBeNull();
     expect(container.textContent).not.toContain("Delete this attachment?");
   });
 });

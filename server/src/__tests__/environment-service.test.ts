@@ -25,7 +25,9 @@ import {
 import { environmentService } from "../services/environments.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -39,7 +41,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
   let svc!: ReturnType<typeof environmentService>;
 
   beforeAll(async () => {
-    const started = await startEmbeddedPostgresTestDatabase("environment-service");
+    const started = await startEmbeddedPostgresTestDatabase(
+      "environment-service",
+    );
     stopDb = started.stop;
     db = createDb(started.connectionString);
     svc = environmentService(db);
@@ -150,7 +154,8 @@ describeEmbeddedPostgres("environmentService leases", () => {
   });
 
   it("releases all active leases for a run without touching unrelated rows", async () => {
-    const { companyId, agentId, environmentId, runId } = await seedEnvironment();
+    const { companyId, agentId, environmentId, runId } =
+      await seedEnvironment();
     const otherRunId = randomUUID();
 
     await db.insert(heartbeatRuns).values({
@@ -178,7 +183,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
 
     expect(released.map((lease) => lease.id)).toEqual([targetLease.id]);
 
-    const stillActive = await svc.listLeases(environmentId, { status: "active" });
+    const stillActive = await svc.listLeases(environmentId, {
+      status: "active",
+    });
     expect(stillActive.map((lease) => lease.id)).toEqual([otherLease.id]);
   });
 
@@ -472,20 +479,29 @@ describeEmbeddedPostgres("environmentService leases", () => {
     });
 
     const removedLocal = await svc.removeIfDeletable(localEnvId);
-    const localRows = await db.select().from(environments).where(eq(environments.id, localEnvId));
+    const localRows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, localEnvId));
 
     expect(removedLocal).toBeNull();
     expect(localRows).toHaveLength(1);
     expect(localRows[0]?.driver).toBe("local");
 
     const removedDefault = await svc.removeIfDeletable(defaultEnvId);
-    const defaultRows = await db.select().from(environments).where(eq(environments.id, defaultEnvId));
+    const defaultRows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, defaultEnvId));
 
     expect(removedDefault).toBeNull();
     expect(defaultRows).toHaveLength(1);
 
     const removedDeletable = await svc.removeIfDeletable(deletableEnvId);
-    const deletedRows = await db.select().from(environments).where(eq(environments.id, deletableEnvId));
+    const deletedRows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, deletableEnvId));
 
     expect(removedDeletable?.id).toBe(deletableEnvId);
     expect(deletedRows).toHaveLength(0);
@@ -528,10 +544,15 @@ describeEmbeddedPostgres("environmentService leases", () => {
     expect(impact?.canDelete).toBe(false);
     expect(impact?.deleteBlockedReasons).toContain("pending_sandbox_cleanup");
     expect(impact?.pendingCleanupLeaseCount).toBe(1);
-    expect(await svc.hasUnresolvedPendingCleanupLeases(environmentId)).toBe(true);
+    expect(await svc.hasUnresolvedPendingCleanupLeases(environmentId)).toBe(
+      true,
+    );
 
     const removed = await svc.removeIfDeletable(environmentId);
-    const rows = await db.select().from(environments).where(eq(environments.id, environmentId));
+    const rows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, environmentId));
     expect(removed).toBeNull();
     expect(rows).toHaveLength(1);
   });
@@ -614,7 +635,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
 
     const activeImpact = await svc.getDeleteBlastRadius(environmentId);
     expect(activeImpact?.canDelete).toBe(false);
-    expect(activeImpact?.deleteBlockedReasons).toContain("reusable_sandbox_lease");
+    expect(activeImpact?.deleteBlockedReasons).toContain(
+      "reusable_sandbox_lease",
+    );
     expect(activeImpact?.reusableSandboxLeaseCount).toBe(1);
     expect(activeImpact?.reusableSandboxLeaseHolders).toEqual([
       {
@@ -636,7 +659,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
     expect(releasedImpact?.reusableSandboxLeaseCount).toBe(1);
     expect(await svc.removeIfDeletable(environmentId)).toBeNull();
 
-    const rows = await db.select().from(environments).where(eq(environments.id, environmentId));
+    const rows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, environmentId));
     expect(rows).toHaveLength(1);
     const storedLease = await svc.getLeaseById(lease.id);
     expect(storedLease?.environmentId).toBe(environmentId);
@@ -674,7 +700,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
     expect(impact?.activeRuntimeUse.activeLeaseCount).toBe(1);
     expect(impact?.reusableSandboxLeaseCount).toBe(0);
     expect(impact?.canDelete).toBe(true);
-    expect((await svc.removeIfDeletable(environmentId))?.id).toBe(environmentId);
+    expect((await svc.removeIfDeletable(environmentId))?.id).toBe(
+      environmentId,
+    );
   });
 
   it("allows delete once the pending_cleanup lease resolves", async () => {
@@ -717,10 +745,15 @@ describeEmbeddedPostgres("environmentService leases", () => {
     expect(impact?.canDelete).toBe(true);
     expect(impact?.pendingCleanupLeaseCount).toBe(0);
     expect(impact?.reusableSandboxLeaseCount).toBe(0);
-    expect(await svc.hasUnresolvedPendingCleanupLeases(environmentId)).toBe(false);
+    expect(await svc.hasUnresolvedPendingCleanupLeases(environmentId)).toBe(
+      false,
+    );
 
     const removed = await svc.removeIfDeletable(environmentId);
-    const rows = await db.select().from(environments).where(eq(environments.id, environmentId));
+    const rows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.id, environmentId));
     expect(removed?.id).toBe(environmentId);
     expect(rows).toHaveLength(0);
   });
@@ -765,7 +798,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
       environmentId,
       provider: "fake-plugin",
       providerLeaseId: "sandbox-orphan-1",
-      metadata: { provider: "fake-plugin", config: { provider: "fake-plugin" } },
+      metadata: {
+        provider: "fake-plugin",
+        config: { provider: "fake-plugin" },
+      },
       failureReason: "acquire_rejected_teardown_failed",
     });
 
@@ -820,7 +856,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
         environmentId,
         provider: "fake-plugin",
         providerLeaseId: "sandbox-orphan-2",
-        metadata: { provider: "fake-plugin", config: { provider: "fake-plugin" } },
+        metadata: {
+          provider: "fake-plugin",
+          config: { provider: "fake-plugin" },
+        },
         failureReason: "acquire_rejected_teardown_failed",
       }),
     ]);
@@ -886,7 +925,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
         environmentId,
         provider: "provider-a",
         providerLeaseId: "sandbox-orphan-3",
-        metadata: { provider: "provider-a", config: { provider: "provider-a" } },
+        metadata: {
+          provider: "provider-a",
+          config: { provider: "provider-a" },
+        },
         failureReason: "acquire_rejected_teardown_failed",
       }),
     ]);
@@ -904,7 +946,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
       .select()
       .from(environments)
       .where(eq(environments.id, environmentId));
-    expect((environmentRows[0]?.config as { provider?: string } | null)?.provider).toBe("provider-b");
+    expect(
+      (environmentRows[0]?.config as { provider?: string } | null)?.provider,
+    ).toBe("provider-b");
   });
 
   it("creates and then reuses the default local environment for a company", async () => {
@@ -923,7 +967,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
     expect(created.driver).toBe("local");
     expect(reused.id).toBe(created.id);
 
-    const rows = await db.select().from(environments).where(eq(environments.driver, "local"));
+    const rows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.driver, "local"));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.name).toBe("Local");
   });
@@ -959,7 +1006,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
     expect(ensured.status).toBe("archived");
     expect(ensured.metadata).toEqual({ owner: "operator" });
 
-    const rows = await db.select().from(environments).where(eq(environments.driver, "local"));
+    const rows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.driver, "local"));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.updatedAt.toISOString()).toBe(archivedAt.toISOString());
   });
@@ -992,7 +1042,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
 
       expect(adopted.id).toBe(existing?.id);
       expect(adopted.name).toBe("Tenant Local");
-      expect(adopted.metadata).toEqual({ owner: "operator", managedByTaskcore: true });
+      expect(adopted.metadata).toEqual({
+        owner: "operator",
+        managedByTaskcore: true,
+      });
 
       // Re-ensuring an already-adopted row must not rewrite it.
       const adoptedRow = await db
@@ -1001,13 +1054,18 @@ describeEmbeddedPostgres("environmentService leases", () => {
         .where(eq(environments.driver, "local"))
         .then((rows) => rows[0]);
       const reused = await svc.ensureLocalEnvironment(companyId);
-      expect(reused.metadata).toEqual({ owner: "operator", managedByTaskcore: true });
+      expect(reused.metadata).toEqual({
+        owner: "operator",
+        managedByTaskcore: true,
+      });
       const reusedRow = await db
         .select()
         .from(environments)
         .where(eq(environments.driver, "local"))
         .then((rows) => rows[0]);
-      expect(reusedRow?.updatedAt.toISOString()).toBe(adoptedRow?.updatedAt.toISOString());
+      expect(reusedRow?.updatedAt.toISOString()).toBe(
+        adoptedRow?.updatedAt.toISOString(),
+      );
     } finally {
       delete process.env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN;
     }
@@ -1053,7 +1111,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
 
     expect(new Set(results.map((environment) => environment.id)).size).toBe(1);
 
-    const rows = await db.select().from(environments).where(eq(environments.driver, "local"));
+    const rows = await db
+      .select()
+      .from(environments)
+      .where(eq(environments.driver, "local"));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.driver).toBe("local");
     expect(rows[0]?.status).toBe("active");
@@ -1123,7 +1184,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
     // post-insert convergence (prefer the oldest row, delete the loser).
     const results = await Promise.all(
       Array.from({ length: 8 }, () =>
-        svc.ensureKubernetesEnvironment(companyId, { inCluster: true, backend: "job" }),
+        svc.ensureKubernetesEnvironment(companyId, {
+          inCluster: true,
+          backend: "job",
+        }),
       ),
     );
 
@@ -1134,7 +1198,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
       .from(environments)
       .where(eq(environments.driver, "sandbox"));
     expect(rows).toHaveLength(1);
-    expect((rows[0]?.metadata as Record<string, unknown>)?.managedKubernetesSandbox).toBe(true);
+    expect(
+      (rows[0]?.metadata as Record<string, unknown>)?.managedKubernetesSandbox,
+    ).toBe(true);
   });
 
   it("ensures and refreshes a managed sandbox environment for an arbitrary provider", async () => {
@@ -1147,7 +1213,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
       config: { target: "us" },
     });
     const created = createdResult.environment;
-    expect(createdResult).toMatchObject({ action: "added", stockStatus: "missing" });
+    expect(createdResult).toMatchObject({
+      action: "added",
+      stockStatus: "missing",
+    });
 
     expect(created.driver).toBe("sandbox");
     expect(created.name).toBe("Daytona");
@@ -1177,10 +1246,12 @@ describeEmbeddedPostgres("environmentService leases", () => {
     const [binding] = await db
       .select()
       .from(builtInManagedResources)
-      .where(and(
-        eq(builtInManagedResources.companyId, companyId),
-        eq(builtInManagedResources.resourceKind, "environment"),
-      ));
+      .where(
+        and(
+          eq(builtInManagedResources.companyId, companyId),
+          eq(builtInManagedResources.resourceKind, "environment"),
+        ),
+      );
     expect(binding).toMatchObject({
       resourceId: created.id,
       stockHash: refreshedResult.stockHash,
@@ -1206,8 +1277,22 @@ describeEmbeddedPostgres("environmentService leases", () => {
     const companyA = randomUUID();
     const companyB = randomUUID();
     await db.insert(companies).values([
-      { id: companyA, name: "Company A", status: "active", issuePrefix: "CA", createdAt: new Date(), updatedAt: new Date() },
-      { id: companyB, name: "Company B", status: "active", issuePrefix: "CB", createdAt: new Date(), updatedAt: new Date() },
+      {
+        id: companyA,
+        name: "Company A",
+        status: "active",
+        issuePrefix: "CA",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: companyB,
+        name: "Company B",
+        status: "active",
+        issuePrefix: "CB",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
     // Two companies provision the same managed sandbox slot, so both bind to the
     // one environment row.
@@ -1249,25 +1334,34 @@ describeEmbeddedPostgres("environmentService leases", () => {
     // name/config/metadata/status on every boot; it must never touch the
     // tenant's env vars, or a redeploy would silently wipe them.
     const companyId = await seedCompany();
-    const created = (await svc.ensureManagedSandboxEnvironment({
-      companyId,
-      name: "Daytona",
-      provider: "daytona",
-      config: { target: "us" },
-    })).environment;
+    const created = (
+      await svc.ensureManagedSandboxEnvironment({
+        companyId,
+        name: "Daytona",
+        provider: "daytona",
+        config: { target: "us" },
+      })
+    ).environment;
     expect(created.envVars).toEqual({});
 
-    await svc.update(created.id, { envVars: { MY_TOOL_TOKEN_REF: "binding-ref", PLAIN: "value" } });
+    await svc.update(created.id, {
+      envVars: { MY_TOOL_TOKEN_REF: "binding-ref", PLAIN: "value" },
+    });
 
-    const reconciled = (await svc.ensureManagedSandboxEnvironment({
-      companyId,
-      name: "Daytona (EU)",
-      provider: "daytona",
-      config: { target: "eu" },
-    })).environment;
+    const reconciled = (
+      await svc.ensureManagedSandboxEnvironment({
+        companyId,
+        name: "Daytona (EU)",
+        provider: "daytona",
+        config: { target: "eu" },
+      })
+    ).environment;
     expect(reconciled.id).toBe(created.id);
     expect(reconciled.config.target).toBe("eu");
-    expect(reconciled.envVars).toEqual({ MY_TOOL_TOKEN_REF: "binding-ref", PLAIN: "value" });
+    expect(reconciled.envVars).toEqual({
+      MY_TOOL_TOKEN_REF: "binding-ref",
+      PLAIN: "value",
+    });
   });
 
   it("treats stock_current as an environment-row no-op and preserves user-owned fields", async () => {
@@ -1453,10 +1547,14 @@ describeEmbeddedPostgres("environmentService leases", () => {
       config: { target: "us" },
       platformFullyManaged: true,
     });
-    expect((await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }))?.status)
-      .toBe("archived");
-    expect((await svc.update(created.environment.id, { status: "archived" }))?.status)
-      .toBe("archived");
+    expect(
+      (await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }))
+        ?.status,
+    ).toBe("archived");
+    expect(
+      (await svc.update(created.environment.id, { status: "archived" }))
+        ?.status,
+    ).toBe("archived");
 
     const reconciled = await svc.ensureManagedSandboxEnvironment({
       companyId,
@@ -1475,15 +1573,20 @@ describeEmbeddedPostgres("environmentService leases", () => {
 
   it("adopts the managed slot on a provider switch and drops the stale kubernetes marker", async () => {
     const companyId = await seedCompany();
-    const kubernetes = await svc.ensureKubernetesEnvironment(companyId, { inCluster: true, backend: "job" });
+    const kubernetes = await svc.ensureKubernetesEnvironment(companyId, {
+      inCluster: true,
+      backend: "job",
+    });
     expect(kubernetes.metadata?.managedKubernetesSandbox).toBe(true);
 
-    const daytona = (await svc.ensureManagedSandboxEnvironment({
-      companyId,
-      name: "Daytona",
-      provider: "daytona",
-      config: { target: "us" },
-    })).environment;
+    const daytona = (
+      await svc.ensureManagedSandboxEnvironment({
+        companyId,
+        name: "Daytona",
+        provider: "daytona",
+        config: { target: "us" },
+      })
+    ).environment;
 
     expect(daytona.id).toBe(kubernetes.id);
     expect(daytona.name).toBe("Daytona");
@@ -1494,7 +1597,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
     expect(await svc.findKubernetesEnvironment()).toBeNull();
 
     // And back: the kubernetes wrapper re-adopts the same row.
-    const restored = await svc.ensureKubernetesEnvironment(companyId, { inCluster: true, backend: "job" });
+    const restored = await svc.ensureKubernetesEnvironment(companyId, {
+      inCluster: true,
+      backend: "job",
+    });
     expect(restored.id).toBe(kubernetes.id);
     expect(restored.metadata?.managedKubernetesSandbox).toBe(true);
   });
@@ -1502,44 +1608,58 @@ describeEmbeddedPostgres("environmentService leases", () => {
   it("archives the managed sandbox row only for its own provider and reactivates on ensure", async () => {
     const companyId = await seedCompany();
     // Nothing provisioned yet: archiving is a no-op.
-    expect(await svc.archiveManagedSandboxEnvironment({ provider: "daytona" })).toBeNull();
+    expect(
+      await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }),
+    ).toBeNull();
 
-    const created = (await svc.ensureManagedSandboxEnvironment({
-      companyId,
-      name: "Daytona",
-      provider: "daytona",
-      config: { target: "us" },
-    })).environment;
+    const created = (
+      await svc.ensureManagedSandboxEnvironment({
+        companyId,
+        name: "Daytona",
+        provider: "daytona",
+        config: { target: "us" },
+      })
+    ).environment;
     expect(created.status).toBe("active");
 
     // Another provider's unavailability leaves this provider's row alone.
-    expect(await svc.archiveManagedSandboxEnvironment({ provider: "kubernetes" })).toBeNull();
+    expect(
+      await svc.archiveManagedSandboxEnvironment({ provider: "kubernetes" }),
+    ).toBeNull();
 
-    const archived = await svc.archiveManagedSandboxEnvironment({ provider: "daytona" });
+    const archived = await svc.archiveManagedSandboxEnvironment({
+      provider: "daytona",
+    });
     expect(archived?.id).toBe(created.id);
     expect(archived?.status).toBe("archived");
     const archiveActivity = await db
       .select({ action: activityLog.action })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.entityId, created.id),
-      ))
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.entityId, created.id),
+        ),
+      )
       .orderBy(activityLog.createdAt);
     expect(archiveActivity.at(-1)?.action).toBe(
       "environment.managed_provider_unavailable_archived",
     );
 
     // Already archived: a repeat call is a no-op.
-    expect(await svc.archiveManagedSandboxEnvironment({ provider: "daytona" })).toBeNull();
+    expect(
+      await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }),
+    ).toBeNull();
 
     // The next healthy boot's ensure re-activates the same row.
-    const restored = (await svc.ensureManagedSandboxEnvironment({
-      companyId,
-      name: "Daytona",
-      provider: "daytona",
-      config: { target: "us" },
-    })).environment;
+    const restored = (
+      await svc.ensureManagedSandboxEnvironment({
+        companyId,
+        name: "Daytona",
+        provider: "daytona",
+        config: { target: "us" },
+      })
+    ).environment;
     expect(restored.id).toBe(created.id);
     expect(restored.status).toBe("active");
   });
@@ -1562,8 +1682,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
       })
       .where(eq(environments.id, created.environment.id));
 
-    expect((await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }))?.status)
-      .toBe("archived");
+    expect(
+      (await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }))
+        ?.status,
+    ).toBe("archived");
     const [archivedBinding] = await db
       .select()
       .from(builtInManagedResources)
@@ -1612,10 +1734,14 @@ describeEmbeddedPostgres("environmentService leases", () => {
       provider: "daytona",
       config: { target: "us" },
     });
-    expect((await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }))?.status)
-      .toBe("archived");
-    expect((await svc.update(created.environment.id, { status: "archived" }))?.status)
-      .toBe("archived");
+    expect(
+      (await svc.archiveManagedSandboxEnvironment({ provider: "daytona" }))
+        ?.status,
+    ).toBe("archived");
+    expect(
+      (await svc.update(created.environment.id, { status: "archived" }))
+        ?.status,
+    ).toBe("archived");
 
     const reconciled = await svc.ensureManagedSandboxEnvironment({
       companyId,
@@ -1654,7 +1780,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
     });
     expect(reconciliation.environment.id).toBe(handMade.id);
     expect(reconciliation.environment.config.target).toBe("us");
-    expect(reconciliation.environment.metadata?.managedByTaskcore).toBeUndefined();
+    expect(
+      reconciliation.environment.metadata?.managedByTaskcore,
+    ).toBeUndefined();
 
     const rows = await db
       .select()
@@ -1692,7 +1820,9 @@ describeEmbeddedPostgres("environmentService leases", () => {
     });
     expect(reconciliation.environment.id).toBe(handMade.id);
     expect(reconciliation.environment.config.target).toBe("us");
-    expect(reconciliation.environment.metadata?.managedByTaskcore).toBeUndefined();
+    expect(
+      reconciliation.environment.metadata?.managedByTaskcore,
+    ).toBeUndefined();
 
     const rows = await db
       .select()
@@ -1714,16 +1844,20 @@ describeEmbeddedPostgres("environmentService leases", () => {
         remoteWorkspacePath: "/srv/taskcore",
       },
     });
-    const kubernetes = await svc.ensureKubernetesEnvironment(companyId, { inCluster: true });
+    const kubernetes = await svc.ensureKubernetesEnvironment(companyId, {
+      inCluster: true,
+    });
 
     // The managed slot is adopted, but the rename would collide with the ssh
     // row on environments_name_idx; the ensure keeps the existing name.
-    const adopted = (await svc.ensureManagedSandboxEnvironment({
-      companyId,
-      name: "Daytona",
-      provider: "daytona",
-      config: { target: "us" },
-    })).environment;
+    const adopted = (
+      await svc.ensureManagedSandboxEnvironment({
+        companyId,
+        name: "Daytona",
+        provider: "daytona",
+        config: { target: "us" },
+      })
+    ).environment;
     expect(adopted.id).toBe(kubernetes.id);
     expect(adopted.name).toBe(kubernetes.name);
     expect(adopted.config.provider).toBe("daytona");
@@ -1744,18 +1878,21 @@ describeEmbeddedPostgres("environmentService leases", () => {
       },
     });
 
-    await expect(svc.create({
-      name: "Shared Fixture",
-      driver: "sandbox",
-      status: "active",
-      config: {
-        provider: "fake-plugin",
-        image: "fake:test",
-        reuseLease: false,
-      },
-    })).rejects.toMatchObject({
+    await expect(
+      svc.create({
+        name: "Shared Fixture",
+        driver: "sandbox",
+        status: "active",
+        config: {
+          provider: "fake-plugin",
+          image: "fake:test",
+          reuseLease: false,
+        },
+      }),
+    ).rejects.toMatchObject({
       status: 409,
-      message: 'An environment named "Shared Fixture" already exists for this instance.',
+      message:
+        'An environment named "Shared Fixture" already exists for this instance.',
     });
   });
 
@@ -1778,11 +1915,14 @@ describeEmbeddedPostgres("environmentService leases", () => {
       updatedAt: now,
     });
 
-    await expect(svc.update(otherEnvironmentId, {
-      name: "Lease Fixture",
-    })).rejects.toMatchObject({
+    await expect(
+      svc.update(otherEnvironmentId, {
+        name: "Lease Fixture",
+      }),
+    ).rejects.toMatchObject({
       status: 409,
-      message: 'An environment named "Lease Fixture" already exists for this instance.',
+      message:
+        'An environment named "Lease Fixture" already exists for this instance.',
     });
 
     const original = await svc.getById(environmentId);
@@ -1828,9 +1968,14 @@ describeEmbeddedPostgres("environmentService leases", () => {
       await secondInsert;
     } catch (error) {
       raisedConstraint =
-        (error as { constraint_name?: string; cause?: { constraint_name?: string } })
+        (
+          error as {
+            constraint_name?: string;
+            cause?: { constraint_name?: string };
+          }
+        )?.constraint_name ??
+        (error as { cause?: { constraint_name?: string } })?.cause
           ?.constraint_name ??
-        (error as { cause?: { constraint_name?: string } })?.cause?.constraint_name ??
         "unknown";
     }
     expect(raisedConstraint).toBe("environments_managed_sandbox_idx");
@@ -1954,7 +2099,10 @@ describeEmbeddedPostgres("environmentService leases", () => {
       return { companyId, environmentId };
     }
 
-    async function bindEnvironmentToCompany(environmentId: string, companyId: string) {
+    async function bindEnvironmentToCompany(
+      environmentId: string,
+      companyId: string,
+    ) {
       await db.insert(builtInManagedResources).values({
         companyId,
         bundleKey: "managed-environment",
@@ -1982,7 +2130,11 @@ describeEmbeddedPostgres("environmentService leases", () => {
       await bindEnvironmentToCompany(environmentId, otherCompanyId);
 
       await expect(
-        svc.acquireLease({ companyId, environmentId, assertCompanyBinding: true }),
+        svc.acquireLease({
+          companyId,
+          environmentId,
+          assertCompanyBinding: true,
+        }),
       ).rejects.toMatchObject({
         status: 403,
         details: { code: "environment_company_mismatch" },
@@ -1996,23 +2148,35 @@ describeEmbeddedPostgres("environmentService leases", () => {
     });
 
     it("acquires when the environment is unbound (instance-global)", async () => {
-      const { companyId, environmentId } = await seedSandboxEnvironment("Unbound Sandbox");
+      const { companyId, environmentId } =
+        await seedSandboxEnvironment("Unbound Sandbox");
 
-      const lease = await svc.acquireLease({ companyId, environmentId, assertCompanyBinding: true });
+      const lease = await svc.acquireLease({
+        companyId,
+        environmentId,
+        assertCompanyBinding: true,
+      });
       expect(lease.status).toBe("active");
       expect(lease.companyId).toBe(companyId);
     });
 
     it("acquires when the environment is bound to the caller company", async () => {
-      const { companyId, environmentId } = await seedSandboxEnvironment("Own Sandbox");
+      const { companyId, environmentId } =
+        await seedSandboxEnvironment("Own Sandbox");
       await bindEnvironmentToCompany(environmentId, companyId);
 
-      const lease = await svc.acquireLease({ companyId, environmentId, assertCompanyBinding: true });
+      const lease = await svc.acquireLease({
+        companyId,
+        environmentId,
+        assertCompanyBinding: true,
+      });
       expect(lease.status).toBe("active");
     });
 
     it("does not check the binding for callers that omit the flag", async () => {
-      const { companyId, environmentId } = await seedSandboxEnvironment("Legacy Path Sandbox");
+      const { companyId, environmentId } = await seedSandboxEnvironment(
+        "Legacy Path Sandbox",
+      );
       const otherCompanyId = randomUUID();
       await db.insert(companies).values({
         id: otherCompanyId,

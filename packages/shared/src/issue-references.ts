@@ -7,7 +7,8 @@ export interface IssueReferenceMatch {
   matchedText: string;
 }
 
-const ISSUE_REFERENCE_TOKEN_RE = /https?:\/\/[^\s<>()]+|\/[^\s<>()]+|[A-Z][A-Z0-9]*-\d+/gi;
+const ISSUE_REFERENCE_TOKEN_RE =
+  /https?:\/\/[^\s<>()]+|\/[^\s<>()]+|[A-Z][A-Z0-9]*-\d+/gi;
 
 function preserveNewlinesAsWhitespace(value: string) {
   return value.replace(/[^\n]/g, " ");
@@ -35,7 +36,8 @@ function stripMarkdownCode(markdown: string): string {
         const lineStart = index === 0 || markdown[index - 1] === "\n";
         if (lineStart && markdown.startsWith(fence, index)) {
           index += fence.length;
-          while (index < markdown.length && markdown[index] !== "\n") index += 1;
+          while (index < markdown.length && markdown[index] !== "\n")
+            index += 1;
           if (index < markdown.length) index += 1;
           break;
         }
@@ -48,7 +50,10 @@ function stripMarkdownCode(markdown: string): string {
 
     if (markdown[index] === "`") {
       let tickCount = 1;
-      while (index + tickCount < markdown.length && markdown[index + tickCount] === "`") {
+      while (
+        index + tickCount < markdown.length &&
+        markdown[index + tickCount] === "`"
+      ) {
         tickCount += 1;
       }
       const fence = "`".repeat(tickCount);
@@ -61,7 +66,9 @@ function stripMarkdownCode(markdown: string): string {
         continue;
       }
       index = closeIndex + tickCount;
-      output += preserveNewlinesAsWhitespace(markdown.slice(inlineStart, index));
+      output += preserveNewlinesAsWhitespace(
+        markdown.slice(inlineStart, index),
+      );
       continue;
     }
 
@@ -79,8 +86,12 @@ function trimTrailingPunctuation(token: string): string {
     if (!".,!?;:".includes(last) && last !== ")" && last !== "]") break;
 
     if (
-      (last === ")" && (trimmed.match(/\(/g)?.length ?? 0) >= (trimmed.match(/\)/g)?.length ?? 0))
-      || (last === "]" && (trimmed.match(/\[/g)?.length ?? 0) >= (trimmed.match(/\]/g)?.length ?? 0))
+      (last === ")" &&
+        (trimmed.match(/\(/g)?.length ?? 0) >=
+          (trimmed.match(/\)/g)?.length ?? 0)) ||
+      (last === "]" &&
+        (trimmed.match(/\[/g)?.length ?? 0) >=
+          (trimmed.match(/\]/g)?.length ?? 0))
     ) {
       break;
     }
@@ -99,7 +110,9 @@ export function buildIssueReferenceHref(identifier: string): string {
   return `/issues/${normalized ?? identifier.trim()}`;
 }
 
-export function parseIssueReferenceHref(href: string): { identifier: string } | null {
+export function parseIssueReferenceHref(
+  href: string,
+): { identifier: string } | null {
   const raw = href.trim();
   if (!raw) return null;
 
@@ -141,9 +154,9 @@ export function findIssueReferenceMatches(text: string): IssueReferenceMatch[] {
     if (!cleanedToken) continue;
 
     const identifier =
-      normalizeIssueIdentifier(cleanedToken)
-      ?? parseIssueReferenceHref(cleanedToken)?.identifier
-      ?? null;
+      normalizeIssueIdentifier(cleanedToken) ??
+      parseIssueReferenceHref(cleanedToken)?.identifier ??
+      null;
 
     if (!identifier) continue;
 
@@ -173,7 +186,9 @@ export function extractIssueReferenceIdentifiers(markdown: string): string[] {
   return ordered;
 }
 
-export function extractIssueReferenceMatches(markdown: string): IssueReferenceMatch[] {
+export function extractIssueReferenceMatches(
+  markdown: string,
+): IssueReferenceMatch[] {
   const scrubbed = stripMarkdownCode(markdown);
   const seen = new Set<string>();
   const ordered: IssueReferenceMatch[] = [];

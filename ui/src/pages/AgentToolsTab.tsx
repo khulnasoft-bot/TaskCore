@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { HelpCircle, PackageCheck } from "lucide-react";
 import type {
   AgentDetail as AgentDetailRecord,
@@ -24,17 +29,30 @@ import {
 } from "./tools/shared";
 import { cn } from "../lib/utils";
 import { brandChipBadge } from "../lib/status-colors";
-import { installPayload, installStateFrom, isAgentInstalled, INSTALLED_HINT } from "../lib/tool-installs";
+import {
+  installPayload,
+  installStateFrom,
+  isAgentInstalled,
+  INSTALLED_HINT,
+} from "../lib/tool-installs";
 
 function isGitHubConnection(connection: ToolConnection): boolean {
-  return (connection.config?.sourceTemplateKey ?? connection.transportConfig?.sourceTemplateKey) === "github";
+  return (
+    (connection.config?.sourceTemplateKey ??
+      connection.transportConfig?.sourceTemplateKey) === "github"
+  );
 }
 
-function isEligibleGitHubIdentityConnection(connection: ToolConnection, agentId: string): boolean {
-  return isGitHubConnection(connection)
-    && connection.enabled
-    && connection.status === "active"
-    && isAgentInstalled(installStateFrom(connection.installs), agentId);
+function isEligibleGitHubIdentityConnection(
+  connection: ToolConnection,
+  agentId: string,
+): boolean {
+  return (
+    isGitHubConnection(connection) &&
+    connection.enabled &&
+    connection.status === "active" &&
+    isAgentInstalled(installStateFrom(connection.installs), agentId)
+  );
 }
 
 function GitHubIdentitySection({
@@ -46,8 +64,14 @@ function GitHubIdentitySection({
   onRetry,
 }: {
   agentName: string;
-  dedicatedIdentity: { connection: ToolConnection; grant: ConnectionGrant } | null;
-  personalIdentity: { connection: ToolConnection; grant: ConnectionGrant } | null;
+  dedicatedIdentity: {
+    connection: ToolConnection;
+    grant: ConnectionGrant;
+  } | null;
+  personalIdentity: {
+    connection: ToolConnection;
+    grant: ConnectionGrant;
+  } | null;
   loading: boolean;
   loadError: boolean;
   onRetry: () => void;
@@ -63,34 +87,48 @@ function GitHubIdentitySection({
             <GithubIcon className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-foreground">GitHub identity</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              GitHub identity
+            </h3>
             {loading ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">Checking GitHub identity…</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Checking GitHub identity…
+              </p>
             ) : loadError ? (
               <>
-                <p className="mt-0.5 text-sm font-medium text-foreground">Could not load GitHub identity</p>
+                <p className="mt-0.5 text-sm font-medium text-foreground">
+                  Could not load GitHub identity
+                </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Taskcore could not verify this agent&apos;s current connection. Your existing setup was not changed.
+                  Taskcore could not verify this agent&apos;s current
+                  connection. Your existing setup was not changed.
                 </p>
               </>
             ) : dedicatedIdentity ? (
               <>
                 <p className="mt-0.5 text-sm font-medium text-foreground">
-                  {dedicatedLogin ? `@${dedicatedLogin}` : "Dedicated GitHub account"}
+                  {dedicatedLogin
+                    ? `@${dedicatedLogin}`
+                    : "Dedicated GitHub account"}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Used only by {agentName}. This dedicated connection takes precedence over the responsible person&apos;s GitHub.
+                  Used only by {agentName}. This dedicated connection takes
+                  precedence over the responsible person&apos;s GitHub.
                 </p>
               </>
             ) : (
               <>
-                <p className="mt-0.5 text-sm font-medium text-foreground">Use responsible person&apos;s GitHub</p>
+                <p className="mt-0.5 text-sm font-medium text-foreground">
+                  Use responsible person&apos;s GitHub
+                </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  At run start, Taskcore uses the personal GitHub connection of the person responsible for the task.
+                  At run start, Taskcore uses the personal GitHub connection of
+                  the person responsible for the task.
                 </p>
                 {personalIdentity ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Your account is connected{personalLogin ? ` as @${personalLogin}` : ""}.
+                    Your account is connected
+                    {personalLogin ? ` as @${personalLogin}` : ""}.
                   </p>
                 ) : null}
               </>
@@ -101,24 +139,38 @@ function GitHubIdentitySection({
         {!loading ? (
           <div className="flex flex-wrap items-center gap-2">
             {loadError ? (
-              <Button variant="outline" size="sm" onClick={onRetry}>Retry</Button>
+              <Button variant="outline" size="sm" onClick={onRetry}>
+                Retry
+              </Button>
             ) : dedicatedIdentity ? (
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/apps/${dedicatedIdentity.connection.id}/permissions`}>Manage GitHub identity</Link>
+                <Link
+                  to={`/apps/${dedicatedIdentity.connection.id}/permissions`}
+                >
+                  Manage GitHub identity
+                </Link>
               </Button>
             ) : (
               <>
                 {personalIdentity ? (
                   <Button variant="outline" size="sm" asChild>
-                    <Link to={`/apps/${personalIdentity.connection.id}/permissions`}>Manage my GitHub</Link>
+                    <Link
+                      to={`/apps/${personalIdentity.connection.id}/permissions`}
+                    >
+                      Manage my GitHub
+                    </Link>
                   </Button>
                 ) : (
                   <Button size="sm" asChild>
-                    <Link to="/apps/connect?source=github">Connect my GitHub</Link>
+                    <Link to="/apps/connect?source=github">
+                      Connect my GitHub
+                    </Link>
                   </Button>
                 )}
                 <Button variant="outline" size="sm" asChild>
-                  <Link to="/apps/connect?source=github">Use a dedicated account</Link>
+                  <Link to="/apps/connect?source=github">
+                    Use a dedicated account
+                  </Link>
                 </Button>
               </>
             )}
@@ -133,7 +185,9 @@ function GitHubIdentitySection({
 function selectorStringList(value: unknown): string[] {
   if (typeof value === "string") return value.trim() ? [value.trim()] : [];
   if (Array.isArray(value)) {
-    return value.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+    return value.filter(
+      (v): v is string => typeof v === "string" && v.trim().length > 0,
+    );
   }
   return [];
 }
@@ -143,7 +197,10 @@ function selectorStringList(value: unknown): string[] {
  * agent, or carries no agent/actor restriction that would exclude agents. This
  * mirrors how the tool gateway evaluates selectors server-side.
  */
-export function policyGovernsAgent(policy: ToolPolicy, agentId: string): boolean {
+export function policyGovernsAgent(
+  policy: ToolPolicy,
+  agentId: string,
+): boolean {
   const selectors = (policy.selectors ?? {}) as Record<string, unknown>;
   const agentIds = [
     ...selectorStringList(selectors.agentId),
@@ -200,29 +257,40 @@ function InstalledAppsSection({
     <section className="rounded-lg border border-border bg-card">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-3 py-2.5">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Installed apps</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Installed apps
+          </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Installed apps load tools into {agentName}'s context on every run. Permitted-only apps do not add context cost.
+            Installed apps load tools into {agentName}'s context on every run.
+            Permitted-only apps do not add context cost.
           </p>
         </div>
-        <InstallSaveStatusChip pending={saving} unsaved={unsaved} error={error} />
+        <InstallSaveStatusChip
+          pending={saving}
+          unsaved={unsaved}
+          error={error}
+        />
       </div>
 
       <div className="space-y-3 p-3">
         <InlineBanner tone="info" compact>
-          Has access means the app is permitted. Installed means its tools are added to this agent's runtime context.
+          Has access means the app is permitted. Installed means its tools are
+          added to this agent's runtime context.
         </InlineBanner>
 
         {connections.length === 0 ? (
           <p className="rounded-md border border-border bg-muted/30 px-3 py-4 text-sm text-muted-foreground">
-            No permitted apps yet. Bind an access profile to make apps available here.
+            No permitted apps yet. Bind an access profile to make apps available
+            here.
           </p>
         ) : (
           <div className="divide-y divide-border rounded-md border border-border">
             {connections.map((connection) => {
               const installState = installStateFrom(connection.installs);
               const installedForAll = installState.onAll;
-              const checked = installedForAll || (draft[connection.id] ?? installState.agentIds.has(agentId));
+              const checked =
+                installedForAll ||
+                (draft[connection.id] ?? installState.agentIds.has(agentId));
               const permitted = permittedConnectionIds.has(connection.id);
               const rowPending = pendingConnectionId === connection.id;
               return (
@@ -232,13 +300,25 @@ function InstalledAppsSection({
                       checked={checked}
                       disabled={installedForAll || rowPending}
                       aria-label={`Install ${connection.name} on ${agentName}`}
-                      onCheckedChange={(next) => onChange(connection.id, Boolean(next))}
+                      onCheckedChange={(next) =>
+                        onChange(connection.id, Boolean(next))
+                      }
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-sm font-medium text-foreground">{connection.name}</span>
-                        <InstallBadge installed={checked} installedForAll={installedForAll} permitted={permitted} />
-                        {rowPending ? <span className="text-xs text-muted-foreground">Saving...</span> : null}
+                        <span className="truncate text-sm font-medium text-foreground">
+                          {connection.name}
+                        </span>
+                        <InstallBadge
+                          installed={checked}
+                          installedForAll={installedForAll}
+                          permitted={permitted}
+                        />
+                        {rowPending ? (
+                          <span className="text-xs text-muted-foreground">
+                            Saving...
+                          </span>
+                        ) : null}
                       </span>
                       <span className="mt-0.5 block text-xs text-muted-foreground">
                         {installedForAll
@@ -254,16 +334,17 @@ function InstalledAppsSection({
                       tone="warning"
                       compact
                       className="ml-7"
-                      actions={(
+                      actions={
                         <Link
                           to={`/apps/${connection.id}/permissions`}
                           className="text-xs font-medium text-primary hover:underline"
                         >
                           Open permissions
                         </Link>
-                      )}
+                      }
                     >
-                      Permitted but not installed — tools will not appear in runs.
+                      Permitted but not installed — tools will not appear in
+                      runs.
                     </InlineBanner>
                   ) : null}
                 </div>
@@ -285,7 +366,13 @@ function InstallBadge({
   installedForAll: boolean;
   permitted: boolean;
 }) {
-  const label = installed ? (installedForAll ? "Installed for all" : "Installed") : permitted ? "Permitted only" : "Not permitted";
+  const label = installed
+    ? installedForAll
+      ? "Installed for all"
+      : "Installed"
+    : permitted
+      ? "Permitted only"
+      : "Not permitted";
   return (
     <span
       className={cn(
@@ -308,9 +395,14 @@ function InstallSaveStatusChip({
   unsaved: boolean;
   error: boolean;
 }) {
-  if (pending) return <span className="text-xs text-muted-foreground">Saving...</span>;
-  if (error) return <span className="text-xs text-destructive">Could not save</span>;
-  if (unsaved) return <span className="text-xs text-muted-foreground">Unsaved changes</span>;
+  if (pending)
+    return <span className="text-xs text-muted-foreground">Saving...</span>;
+  if (error)
+    return <span className="text-xs text-destructive">Could not save</span>;
+  if (unsaved)
+    return (
+      <span className="text-xs text-muted-foreground">Unsaved changes</span>
+    );
   return <span className="text-xs text-muted-foreground">Saved</span>;
 }
 
@@ -332,12 +424,21 @@ const DENIED_TOOLS_DISPLAY_LIMIT = 30;
  * prompt can narrow the list but never expand it, and the side panel explains
  * which access profiles and rules shape the final list.
  */
-export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; companyId: string }) {
+export function AgentToolsTab({
+  agent,
+  companyId,
+}: {
+  agent: AgentDetailRecord;
+  companyId: string;
+}) {
   const queryClient = useQueryClient();
   const [installDraft, setInstallDraft] = useState<Record<string, boolean>>({});
   const lastSavedInstallRef = useRef<Record<string, boolean>>({});
   const skipNextInstallAutosaveRef = useRef(true);
-  const failedInstallDraftRef = useRef<{ connectionId: string; installed: boolean } | null>(null);
+  const failedInstallDraftRef = useRef<{
+    connectionId: string;
+    installed: boolean;
+  } | null>(null);
 
   const effective = useQuery({
     queryKey: queryKeys.tools.effectiveProfilesForAgent(companyId, agent.id),
@@ -356,7 +457,10 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
 
   const connectionList = connectionsQuery.data?.connections ?? [];
   const eligibleGitHubConnections = useMemo(
-    () => connectionList.filter((connection) => isEligibleGitHubIdentityConnection(connection, agent.id)),
+    () =>
+      connectionList.filter((connection) =>
+        isEligibleGitHubIdentityConnection(connection, agent.id),
+      ),
     [agent.id, connectionList],
   );
   const githubGrantQueries = useQueries({
@@ -366,23 +470,28 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
       staleTime: 30_000,
     })),
   });
-  const githubIdentityRows = eligibleGitHubConnections.flatMap((connection, index) =>
-    (githubGrantQueries[index]?.data?.grants ?? []).map((grant) => ({
-      connection,
-      grant,
-      currentUserId: githubGrantQueries[index]?.data?.currentUserId,
-    })),
+  const githubIdentityRows = eligibleGitHubConnections.flatMap(
+    (connection, index) =>
+      (githubGrantQueries[index]?.data?.grants ?? []).map((grant) => ({
+        connection,
+        grant,
+        currentUserId: githubGrantQueries[index]?.data?.currentUserId,
+      })),
   );
-  const dedicatedGitHubIdentity = githubIdentityRows.find(({ grant }) => (
-    grant.kind === "agent"
-    && grant.subjectAgentId === agent.id
-    && grant.status === "active"
-  )) ?? null;
-  const personalGitHubIdentity = githubIdentityRows.find(({ grant, currentUserId }) => (
-    grant.kind === "user"
-    && grant.subjectUserId === currentUserId
-    && grant.status === "active"
-  )) ?? null;
+  const dedicatedGitHubIdentity =
+    githubIdentityRows.find(
+      ({ grant }) =>
+        grant.kind === "agent" &&
+        grant.subjectAgentId === agent.id &&
+        grant.status === "active",
+    ) ?? null;
+  const personalGitHubIdentity =
+    githubIdentityRows.find(
+      ({ grant, currentUserId }) =>
+        grant.kind === "user" &&
+        grant.subjectUserId === currentUserId &&
+        grant.status === "active",
+    ) ?? null;
   const connectionInstallSignature = useMemo(
     () =>
       connectionList
@@ -398,7 +507,13 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
   );
 
   const syncInstall = useMutation({
-    mutationFn: ({ connection, installed }: { connection: ToolConnection; installed: boolean }) => {
+    mutationFn: ({
+      connection,
+      installed,
+    }: {
+      connection: ToolConnection;
+      installed: boolean;
+    }) => {
       const nextState = installStateFrom(connection.installs);
       if (!nextState.onAll) {
         if (installed) nextState.agentIds.add(agent.id);
@@ -416,9 +531,20 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
         [variables.connection.id]: variables.installed,
       };
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.tools.connections(companyId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.tools.effectiveProfilesForAgent(companyId, agent.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.tools.testAgentAccessesForConnection(variables.connection.id) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.tools.connections(companyId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.tools.effectiveProfilesForAgent(
+            companyId,
+            agent.id,
+          ),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.tools.testAgentAccessesForConnection(
+            variables.connection.id,
+          ),
+        }),
       ]);
     },
     onError: (_error, variables) => {
@@ -445,7 +571,11 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
     );
     failedInstallDraftRef.current = null;
     setInstallDraft((current) => {
-      const merged = mergeInstallDraft(next, current, lastSavedInstallRef.current);
+      const merged = mergeInstallDraft(
+        next,
+        current,
+        lastSavedInstallRef.current,
+      );
       lastSavedInstallRef.current = next;
       skipNextInstallAutosaveRef.current = !merged.hasPendingChanges;
       return merged.draft;
@@ -464,7 +594,10 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
       const saved = lastSavedInstallRef.current[connection.id] ?? false;
       const draft = installDraft[connection.id] ?? false;
       const failed = failedInstallDraftRef.current;
-      return saved !== draft && !(failed?.connectionId === connection.id && failed.installed === draft);
+      return (
+        saved !== draft &&
+        !(failed?.connectionId === connection.id && failed.installed === draft)
+      );
     });
     if (!changedConnection) return;
 
@@ -472,7 +605,13 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
       const installed = installDraft[changedConnection.id] ?? false;
       const saved = lastSavedInstallRef.current[changedConnection.id] ?? false;
       const failed = failedInstallDraftRef.current;
-      if (saved !== installed && !(failed?.connectionId === changedConnection.id && failed.installed === installed)) {
+      if (
+        saved !== installed &&
+        !(
+          failed?.connectionId === changedConnection.id &&
+          failed.installed === installed
+        )
+      ) {
         syncInstall.mutate({ connection: changedConnection, installed });
       }
     }, 250);
@@ -493,7 +632,8 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
 
   const connectionNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const connection of connectionList) map.set(connection.id, connection.name);
+    for (const connection of connectionList)
+      map.set(connection.id, connection.name);
     return map;
   }, [connectionList]);
 
@@ -506,28 +646,37 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
   );
 
   const permittedConnectionIds = useMemo(
-    () => new Set([
-      ...(effective.data?.entries ?? [])
-        .filter((entry) => entry.effect === "include" && entry.connectionId)
-        .map((entry) => entry.connectionId!),
-      ...allowedTools.map((tool) => tool.connectionId),
-    ]),
+    () =>
+      new Set([
+        ...(effective.data?.entries ?? [])
+          .filter((entry) => entry.effect === "include" && entry.connectionId)
+          .map((entry) => entry.connectionId!),
+        ...allowedTools.map((tool) => tool.connectionId),
+      ]),
     [allowedTools, effective.data?.entries],
   );
   const installedAppConnections = useMemo(
     () =>
       connectionList
-        .filter((connection) => permittedConnectionIds.has(connection.id) || (installDraft[connection.id] ?? false))
+        .filter(
+          (connection) =>
+            permittedConnectionIds.has(connection.id) ||
+            (installDraft[connection.id] ?? false),
+        )
         .sort((a, b) => a.name.localeCompare(b.name)),
     [connectionList, installDraft, permittedConnectionIds],
   );
   const hasInstallUnsavedChanges = installedAppConnections.some(
-    (connection) => (installDraft[connection.id] ?? false) !== (lastSavedInstallRef.current[connection.id] ?? false),
+    (connection) =>
+      (installDraft[connection.id] ?? false) !==
+      (lastSavedInstallRef.current[connection.id] ?? false),
   );
 
   const catalogStamp = catalogQueries.map((q) => q.dataUpdatedAt).join(",");
   const deniedTools = useMemo(() => {
-    const allowedIds = new Set((effective.data?.allowedTools ?? []).map((tool) => tool.id));
+    const allowedIds = new Set(
+      (effective.data?.allowedTools ?? []).map((tool) => tool.id),
+    );
     const seen = new Set<string>();
     const denied: ToolCatalogEntry[] = [];
     for (const result of catalogQueries) {
@@ -546,15 +695,23 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
     const policies = policiesQuery.data?.policies ?? [];
     return policies
       .map((policy, index) => ({ policy, order: index + 1 }))
-      .filter(({ policy }) => policy.enabled && policyGovernsAgent(policy, agent.id));
+      .filter(
+        ({ policy }) => policy.enabled && policyGovernsAgent(policy, agent.id),
+      );
   }, [policiesQuery.data?.policies, agent.id]);
 
   const profiles = effective.data?.profiles ?? [];
   const catalogLoading = catalogQueries.some((q) => q.isLoading);
 
-  if (effective.isLoading) return <ToolsLoadingState label="Resolving effective access…" />;
+  if (effective.isLoading)
+    return <ToolsLoadingState label="Resolving effective access…" />;
   if (effective.error) {
-    return <ToolsErrorState error={effective.error} onRetry={() => effective.refetch()} />;
+    return (
+      <ToolsErrorState
+        error={effective.error}
+        onRetry={() => effective.refetch()}
+      />
+    );
   }
 
   const profilesHref = "/apps/advanced/profiles";
@@ -567,10 +724,11 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
         body={
           <>
             This is exactly the tool set Taskcore will accept for{" "}
-            <span className="font-medium">{agent.name}</span>. Profile and policy edits are
-            reflected within ~5 seconds. The agent's prompt can narrow this list but{" "}
-            <span className="font-medium">cannot expand it</span> — everything else is blocked by
-            default.
+            <span className="font-medium">{agent.name}</span>. Profile and
+            policy edits are reflected within ~5 seconds. The agent's prompt can
+            narrow this list but{" "}
+            <span className="font-medium">cannot expand it</span> — everything
+            else is blocked by default.
           </>
         }
       />
@@ -579,8 +737,14 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
         agentName={agent.name}
         dedicatedIdentity={dedicatedGitHubIdentity}
         personalIdentity={personalGitHubIdentity}
-        loading={connectionsQuery.isLoading || githubGrantQueries.some((query) => query.isLoading)}
-        loadError={connectionsQuery.isError || githubGrantQueries.some((query) => query.isError)}
+        loading={
+          connectionsQuery.isLoading ||
+          githubGrantQueries.some((query) => query.isLoading)
+        }
+        loadError={
+          connectionsQuery.isError ||
+          githubGrantQueries.some((query) => query.isError)
+        }
         onRetry={() => {
           if (connectionsQuery.isError) void connectionsQuery.refetch();
           for (const query of githubGrantQueries) {
@@ -595,13 +759,20 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
         connections={installedAppConnections}
         draft={installDraft}
         permittedConnectionIds={permittedConnectionIds}
-        pendingConnectionId={syncInstall.isPending ? syncInstall.variables?.connection.id ?? null : null}
+        pendingConnectionId={
+          syncInstall.isPending
+            ? (syncInstall.variables?.connection.id ?? null)
+            : null
+        }
         saving={syncInstall.isPending}
         unsaved={hasInstallUnsavedChanges}
         error={syncInstall.isError && hasInstallUnsavedChanges}
         onChange={(connectionId, installed) => {
           failedInstallDraftRef.current = null;
-          setInstallDraft((current) => ({ ...current, [connectionId]: installed }));
+          setInstallDraft((current) => ({
+            ...current,
+            [connectionId]: installed,
+          }));
         }}
       />
 
@@ -610,14 +781,18 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-border">
             <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-              <h3 className="text-sm font-semibold text-foreground">Allowed tools</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Allowed tools
+              </h3>
               <span className="text-xs text-muted-foreground tabular-nums">
-                {allowedTools.length} {allowedTools.length === 1 ? "tool" : "tools"}
+                {allowedTools.length}{" "}
+                {allowedTools.length === 1 ? "tool" : "tools"}
               </span>
             </div>
             {allowedTools.length === 0 ? (
               <p className="px-3 py-6 text-sm text-muted-foreground">
-                No tools are allowed for this agent. Bind a tool profile to grant access.
+                No tools are allowed for this agent. Bind a tool profile to
+                grant access.
               </p>
             ) : (
               <table className="w-full text-sm">
@@ -633,9 +808,13 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
                   {allowedTools.map((tool) => (
                     <tr key={tool.id} className="align-top">
                       <td className="px-3 py-2">
-                        <div className="font-mono text-xs text-foreground">{tool.toolName}</div>
+                        <div className="font-mono text-xs text-foreground">
+                          {tool.toolName}
+                        </div>
                         {tool.title ? (
-                          <div className="text-(length:--text-micro) text-muted-foreground">{tool.title}</div>
+                          <div className="text-(length:--text-micro) text-muted-foreground">
+                            {tool.title}
+                          </div>
                         ) : null}
                       </td>
                       <td className="px-3 py-2">
@@ -682,12 +861,16 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
               </div>
               {profiles.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  No active profile applies to this agent, so it has no allowed tools.
+                  No active profile applies to this agent, so it has no allowed
+                  tools.
                 </p>
               ) : (
                 profiles.map((profile) => {
                   return (
-                    <div key={profile.id} className="rounded-md border border-border/70 px-2.5 py-2">
+                    <div
+                      key={profile.id}
+                      className="rounded-md border border-border/70 px-2.5 py-2"
+                    >
                       <Link
                         to={`${profilesHref}/${profile.id}`}
                         className="text-xs font-medium text-primary hover:underline"
@@ -713,14 +896,19 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
                 Active policies
               </div>
               {policiesQuery.isLoading ? (
-                <p className="text-xs text-muted-foreground">Loading policies…</p>
+                <p className="text-xs text-muted-foreground">
+                  Loading policies…
+                </p>
               ) : governingPolicies.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                   No enabled policy currently mutates this agent's allow list.
                 </p>
               ) : (
                 governingPolicies.map(({ policy, order }) => (
-                  <div key={policy.id} className="rounded-md border border-border/70 px-2.5 py-2">
+                  <div
+                    key={policy.id}
+                    className="rounded-md border border-border/70 px-2.5 py-2"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <span
                         className="truncate text-xs font-medium text-foreground"
@@ -729,7 +917,8 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
                         #{order} {policy.name}
                       </span>
                       <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-(length:--text-nano) uppercase text-muted-foreground">
-                        {POLICY_EFFECT_LABEL[policy.policyType] ?? policy.policyType}
+                        {POLICY_EFFECT_LABEL[policy.policyType] ??
+                          policy.policyType}
                       </span>
                     </div>
                     {policy.description ? (
@@ -759,15 +948,20 @@ export function AgentToolsTab({ agent, companyId }: { agent: AgentDetailRecord; 
                     Tools the agent could name but Taskcore would block:
                   </p>
                   <div className="flex flex-wrap gap-1">
-                    {deniedTools.slice(0, DENIED_TOOLS_DISPLAY_LIMIT).map((tool) => (
-                      <span
-                        key={tool.id}
-                        className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/40 px-1.5 py-0.5 font-mono text-(length:--text-micro) text-muted-foreground"
-                        title={connectionNameById.get(tool.connectionId) ?? undefined}
-                      >
-                        {tool.toolName}
-                      </span>
-                    ))}
+                    {deniedTools
+                      .slice(0, DENIED_TOOLS_DISPLAY_LIMIT)
+                      .map((tool) => (
+                        <span
+                          key={tool.id}
+                          className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/40 px-1.5 py-0.5 font-mono text-(length:--text-micro) text-muted-foreground"
+                          title={
+                            connectionNameById.get(tool.connectionId) ??
+                            undefined
+                          }
+                        >
+                          {tool.toolName}
+                        </span>
+                      ))}
                   </div>
                   {deniedTools.length > DENIED_TOOLS_DISPLAY_LIMIT ? (
                     <p className="text-(length:--text-micro) text-muted-foreground">

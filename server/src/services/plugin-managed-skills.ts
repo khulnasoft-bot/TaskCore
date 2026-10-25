@@ -1,8 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import {
-  pluginManagedResources,
-} from "@taskcore/db";
+import { pluginManagedResources } from "@taskcore/db";
 import { normalizeAgentUrlKey } from "@taskcore/shared";
 import type {
   CompanySkill,
@@ -38,7 +36,9 @@ function buildDefaultMarkdown(
   pluginKey: string,
   declaration: PluginManagedSkillDeclaration,
 ) {
-  const description = declaration.description?.trim() || `${declaration.displayName} plugin skill.`;
+  const description =
+    declaration.description?.trim() ||
+    `${declaration.displayName} plugin skill.`;
   return [
     "---",
     `name: ${yamlString(declaration.displayName)}`,
@@ -58,13 +58,7 @@ function withManagedSkillKey(markdown: string, canonicalKey: string) {
   const normalized = markdown.replace(/\r\n/g, "\n");
   const frontmatter = /^---\n([\s\S]*?)\n---(\n?)/.exec(normalized);
   if (!frontmatter) {
-    return [
-      "---",
-      keyLine,
-      "---",
-      "",
-      normalized,
-    ].join("\n");
+    return ["---", keyLine, "---", "", normalized].join("\n");
   }
 
   const currentBody = frontmatter[1] ?? "";
@@ -100,7 +94,9 @@ function buildDeclaredSkillFiles(
   const prefix = `${root}/`;
   const files: Record<string, string> = {};
   for (const [filePath, content] of Object.entries(packageFiles)) {
-    files[filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath] = content;
+    files[
+      filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath
+    ] = content;
   }
   return files;
 }
@@ -115,10 +111,7 @@ function buildSkillDefaults(
     slug: declaration.slug ?? declaration.skillKey,
     description: declaration.description ?? null,
     canonicalKey: canonicalSkillKey(pluginKey, declaration.skillKey),
-    files: [
-      "SKILL.md",
-      ...(declaration.files ?? []).map((file) => file.path),
-    ],
+    files: ["SKILL.md", ...(declaration.files ?? []).map((file) => file.path)],
   };
 }
 
@@ -160,7 +153,9 @@ export function pluginManagedSkillService(
   const skills = companySkillService(db);
 
   function declarationFor(skillKey: string) {
-    const declaration = options.manifest?.skills?.find((skill) => skill.skillKey === skillKey);
+    const declaration = options.manifest?.skills?.find(
+      (skill) => skill.skillKey === skillKey,
+    );
     if (!declaration) {
       throw notFound(`Managed skill declaration not found: ${skillKey}`);
     }
@@ -171,12 +166,14 @@ export function pluginManagedSkillService(
     return db
       .select()
       .from(pluginManagedResources)
-      .where(and(
-        eq(pluginManagedResources.companyId, companyId),
-        eq(pluginManagedResources.pluginId, options.pluginId),
-        eq(pluginManagedResources.resourceKind, MANAGED_SKILL_RESOURCE_KIND),
-        eq(pluginManagedResources.resourceKey, skillKey),
-      ))
+      .where(
+        and(
+          eq(pluginManagedResources.companyId, companyId),
+          eq(pluginManagedResources.pluginId, options.pluginId),
+          eq(pluginManagedResources.resourceKind, MANAGED_SKILL_RESOURCE_KIND),
+          eq(pluginManagedResources.resourceKey, skillKey),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
   }
 
@@ -230,7 +227,10 @@ export function pluginManagedSkillService(
     declaration: PluginManagedSkillDeclaration,
   ): Promise<PluginManagedSkillResolution["defaultDrift"]> {
     if (!skill) return null;
-    const declaredFiles = buildDeclaredSkillFiles(options.pluginKey, declaration);
+    const declaredFiles = buildDeclaredSkillFiles(
+      options.pluginKey,
+      declaration,
+    );
     const currentFiles: Record<string, string | null> = {};
     const paths = new Set([
       ...Object.keys(declaredFiles),
@@ -243,14 +243,20 @@ export function pluginManagedSkillService(
         continue;
       }
       try {
-        currentFiles[filePath] = (await skills.readFile(companyId, skill.id, filePath))?.content ?? null;
+        currentFiles[filePath] =
+          (await skills.readFile(companyId, skill.id, filePath))?.content ??
+          null;
       } catch {
         currentFiles[filePath] = null;
       }
     }
 
     const changedFiles = [...paths]
-      .filter((filePath) => (currentFiles[filePath] ?? null) !== (declaredFiles[filePath] ?? null))
+      .filter(
+        (filePath) =>
+          (currentFiles[filePath] ?? null) !==
+          (declaredFiles[filePath] ?? null),
+      )
       .sort((left, right) => left.localeCompare(right));
     return changedFiles.length > 0 ? { changedFiles } : null;
   }
@@ -276,9 +282,13 @@ export function pluginManagedSkillService(
     declaration: PluginManagedSkillDeclaration,
     mode: "reconcile" | "reset",
   ) {
-    const beforeByKey = mode === "reconcile"
-      ? await skills.getByKey(companyId, canonicalSkillKey(options.pluginKey, declaration.skillKey))
-      : null;
+    const beforeByKey =
+      mode === "reconcile"
+        ? await skills.getByKey(
+            companyId,
+            canonicalSkillKey(options.pluginKey, declaration.skillKey),
+          )
+        : null;
     if (beforeByKey) {
       await upsertBinding(companyId, declaration, beforeByKey.id);
       return { skill: beforeByKey, status: "relinked" as const };
@@ -288,16 +298,22 @@ export function pluginManagedSkillService(
       buildPackageFiles(options.pluginKey, declaration),
       { onConflict: "replace" },
     );
-    const imported = results.find((result) =>
-      result.skill.key === canonicalSkillKey(options.pluginKey, declaration.skillKey)
-      || result.originalSlug === (declaration.slug ?? declaration.skillKey)
-      || result.originalSlug === declaration.skillKey
-    )?.skill ?? results[0]?.skill ?? null;
+    const imported =
+      results.find(
+        (result) =>
+          result.skill.key ===
+            canonicalSkillKey(options.pluginKey, declaration.skillKey) ||
+          result.originalSlug === (declaration.slug ?? declaration.skillKey) ||
+          result.originalSlug === declaration.skillKey,
+      )?.skill ??
+      results[0]?.skill ??
+      null;
     if (!imported) {
       throw notFound(`Managed skill was not imported: ${declaration.skillKey}`);
     }
     await upsertBinding(companyId, declaration, imported.id);
-    const status: PluginManagedSkillResolution["status"] = mode === "reset" ? "reset" : "created";
+    const status: PluginManagedSkillResolution["status"] =
+      mode === "reset" ? "reset" : "created";
     return { skill: imported, status };
   }
 
@@ -306,7 +322,12 @@ export function pluginManagedSkillService(
     const binding = await getBinding(companyId, skillKey);
     if (!binding) return resolvedSkill(companyId, declaration, null, "missing");
     const skill = await getSkill(companyId, binding.resourceId);
-    return resolvedSkill(companyId, declaration, skill, skill ? "resolved" : "missing");
+    return resolvedSkill(
+      companyId,
+      declaration,
+      skill,
+      skill ? "resolved" : "missing",
+    );
   }
 
   async function reconcile(skillKey: string, companyId: string) {
@@ -316,7 +337,11 @@ export function pluginManagedSkillService(
       await upsertBinding(companyId, declaration, current.skill.id);
       return current;
     }
-    const imported = await importDeclaredSkill(companyId, declaration, "reconcile");
+    const imported = await importDeclaredSkill(
+      companyId,
+      declaration,
+      "reconcile",
+    );
     await logActivity(db, {
       companyId,
       actorType: "plugin",
@@ -330,7 +355,12 @@ export function pluginManagedSkillService(
         status: imported.status,
       },
     });
-    return resolvedSkill(companyId, declaration, imported.skill, imported.status);
+    return resolvedSkill(
+      companyId,
+      declaration,
+      imported.skill,
+      imported.status,
+    );
   }
 
   async function reset(skillKey: string, companyId: string) {

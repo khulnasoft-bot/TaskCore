@@ -43,8 +43,14 @@ import {
 const binding = { sessionId, runId, companyId, actorId, taskId };
 const store = new DurableCapabilityLiveSessionStore({ directory, binding });
 const service = new CapabilityLiveSessionService({ store });
-const session = await service.create({ ...binding, attemptId, workingDirectory });
-const turn = await session.sendMessage("Read the mock task and report progress.");
+const session = await service.create({
+  ...binding,
+  attemptId,
+  workingDirectory,
+});
+const turn = await session.sendMessage(
+  "Read the mock task and report progress.",
+);
 await session.interrupt(); // only when a turn is active
 await service.stop(session.id);
 ```

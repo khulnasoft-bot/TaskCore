@@ -36,7 +36,15 @@ export function Message({
     <article
       data-slot="message"
       data-role={role}
-      data-state={failed ? "failed" : interrupted ? "interrupted" : streaming ? "streaming" : "settled"}
+      data-state={
+        failed
+          ? "failed"
+          : interrupted
+            ? "interrupted"
+            : streaming
+              ? "streaming"
+              : "settled"
+      }
       className="ui-message"
     >
       <p className="ui-message-role">{ROLE_LABELS[role]}</p>
@@ -50,11 +58,19 @@ export function Message({
   );
 }
 
-export function MessageText({ text, streaming }: { text: string; streaming: boolean }) {
+export function MessageText({
+  text,
+  streaming,
+}: {
+  text: string;
+  streaming: boolean;
+}) {
   return (
     <p className="ui-message-text">
       {text}
-      {streaming ? <span className="ui-stream-cursor" aria-hidden="true" /> : null}
+      {streaming ? (
+        <span className="ui-stream-cursor" aria-hidden="true" />
+      ) : null}
     </p>
   );
 }

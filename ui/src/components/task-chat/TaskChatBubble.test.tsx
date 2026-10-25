@@ -31,7 +31,12 @@ describe("TaskChatBubble attachment chips", () => {
     author: TaskChatMessageItem["author"] = "human",
     attachments: IssueAttachment[] = [],
   ) {
-    const item: TaskChatMessageItem = { id: "m1", kind: "message", author, text };
+    const item: TaskChatMessageItem = {
+      id: "m1",
+      kind: "message",
+      author,
+      text,
+    };
     flushSync(() =>
       root!.render(
         <ThemeProvider>
@@ -43,12 +48,25 @@ describe("TaskChatBubble attachment chips", () => {
 
   it("shows persistent iMessage attribution only on inbound human bubbles", () => {
     for (const author of ["human", "agent"] as const) {
-      flushSync(() => root!.render(
-        <ThemeProvider>
-          <TaskChatBubble item={{ id: "photon", kind: "message", author, text: "A reply", timestamp: "1:56 PM", sourceChannel: "imessage-photon" }} />
-        </ThemeProvider>,
-      ));
-      expect(container.textContent?.includes("Sent from iMessage")).toBe(author === "human");
+      flushSync(() =>
+        root!.render(
+          <ThemeProvider>
+            <TaskChatBubble
+              item={{
+                id: "photon",
+                kind: "message",
+                author,
+                text: "A reply",
+                timestamp: "1:56 PM",
+                sourceChannel: "imessage-photon",
+              }}
+            />
+          </ThemeProvider>,
+        ),
+      );
+      expect(container.textContent?.includes("Sent from iMessage")).toBe(
+        author === "human",
+      );
     }
     renderMessage("Board reply");
     expect(container.textContent).not.toContain("Sent from iMessage");
@@ -57,14 +75,25 @@ describe("TaskChatBubble attachment chips", () => {
   it("opens attachment images in the shared task gallery", () => {
     const openGallery = vi.fn(() => true);
     const contentPath = "/api/attachments/shared-image/content";
-    flushSync(() => root!.render(
-      <ThemeProvider>
-        <IssueGalleryContext.Provider value={openGallery}>
-          <TaskChatBubble item={{ id: "m1", kind: "message", author: "agent", text: `![Proof](${contentPath})` }} />
-        </IssueGalleryContext.Provider>
-      </ThemeProvider>,
-    ));
-    const image = container.querySelector<HTMLImageElement>(`img[src="${contentPath}"]`);
+    flushSync(() =>
+      root!.render(
+        <ThemeProvider>
+          <IssueGalleryContext.Provider value={openGallery}>
+            <TaskChatBubble
+              item={{
+                id: "m1",
+                kind: "message",
+                author: "agent",
+                text: `![Proof](${contentPath})`,
+              }}
+            />
+          </IssueGalleryContext.Provider>
+        </ThemeProvider>,
+      ),
+    );
+    const image = container.querySelector<HTMLImageElement>(
+      `img[src="${contentPath}"]`,
+    );
     expect(image).not.toBeNull();
     flushSync(() => image!.click());
     expect(openGallery).toHaveBeenCalledWith(contentPath);
@@ -74,21 +103,29 @@ describe("TaskChatBubble attachment chips", () => {
   it("renders a file reference as an attachment chip linking to the file", () => {
     renderMessage("Here you go.\n\n[notes.txt](/api/attachments/abc/content) ");
 
-    const group = container.querySelector('[data-testid="task-chat-bubble-attachments"]');
+    const group = container.querySelector(
+      '[data-testid="task-chat-bubble-attachments"]',
+    );
     expect(group).not.toBeNull();
     expect(group?.textContent).toContain("notes.txt");
     expect(group?.textContent).toContain("Text");
-    const link = group?.querySelector<HTMLAnchorElement>("a[href='/api/attachments/abc/content']");
+    const link = group?.querySelector<HTMLAnchorElement>(
+      "a[href='/api/attachments/abc/content']",
+    );
     expect(link).not.toBeNull();
     // The link-only line left the rendered body; the prose stayed.
     expect(container.textContent).toContain("Here you go.");
-    expect(container.textContent).not.toContain("(/api/attachments/abc/content)");
+    expect(container.textContent).not.toContain(
+      "(/api/attachments/abc/content)",
+    );
   });
 
   it("renders a chip-only row when the message body is just the file link", () => {
     renderMessage("[report.pdf](/api/attachments/r1/content)", "agent");
 
-    expect(container.querySelector('[data-testid="task-chat-bubble-attachments"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-bubble-attachments"]'),
+    ).not.toBeNull();
     // No empty bubble is left behind once the only line is chipped.
     expect(container.textContent).toContain("report.pdf");
     expect(container.textContent).toContain("PDF");
@@ -96,35 +133,78 @@ describe("TaskChatBubble attachment chips", () => {
 
   it("opens video thumbnails in a local gallery when no task gallery is available", () => {
     renderMessage("[clip.mp4](/api/attachments/clip/content)", "agent", [
-      attachment({ id: "clip", originalFilename: "clip.mp4", contentType: "video/mp4" }),
+      attachment({
+        id: "clip",
+        originalFilename: "clip.mp4",
+        contentType: "video/mp4",
+      }),
     ]);
-    const group = container.querySelector('[data-testid="task-chat-bubble-attachments"]');
-    expect(group?.querySelector("video")?.getAttribute("src")).toBe("/api/attachments/clip/content");
+    const group = container.querySelector(
+      '[data-testid="task-chat-bubble-attachments"]',
+    );
+    expect(group?.querySelector("video")?.getAttribute("src")).toBe(
+      "/api/attachments/clip/content",
+    );
     expect(group?.querySelector("video")?.autoplay).toBe(false);
-    flushSync(() => group!.querySelector<HTMLButtonElement>('button[aria-label="Open clip.mp4"]')!.click());
-    expect(document.querySelector('[role="dialog"] video')?.getAttribute("src")).toBe("/api/attachments/clip/content");
-    expect(document.querySelector('[role="dialog"] a[download]')?.getAttribute("href")).toBe("/api/attachments/clip/content?download=1");
+    flushSync(() =>
+      group!
+        .querySelector<HTMLButtonElement>('button[aria-label="Open clip.mp4"]')!
+        .click(),
+    );
+    expect(
+      document.querySelector('[role="dialog"] video')?.getAttribute("src"),
+    ).toBe("/api/attachments/clip/content");
+    expect(
+      document
+        .querySelector('[role="dialog"] a[download]')
+        ?.getAttribute("href"),
+    ).toBe("/api/attachments/clip/content?download=1");
   });
 
-  it.each(["video/mp4", "application/octet-stream"])("opens %s video attachments in the shared task gallery", (contentType) => {
-    const openGallery = vi.fn(() => true);
-    const clip = attachment({ id: "clip", originalFilename: "clip.mp4", contentType });
-    flushSync(() => root!.render(
-      <ThemeProvider>
-        <IssueGalleryContext.Provider value={openGallery}>
-          <TaskChatBubble item={{ id: "m1", kind: "message", author: "agent", text: `[clip.mp4](${clip.contentPath})` }} attachments={[clip]} />
-        </IssueGalleryContext.Provider>
-      </ThemeProvider>,
-    ));
-    flushSync(() => container.querySelector<HTMLButtonElement>('button[aria-label="Open clip.mp4"]')!.click());
-    expect(openGallery).toHaveBeenCalledWith(clip.contentPath);
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
-  });
+  it.each(["video/mp4", "application/octet-stream"])(
+    "opens %s video attachments in the shared task gallery",
+    (contentType) => {
+      const openGallery = vi.fn(() => true);
+      const clip = attachment({
+        id: "clip",
+        originalFilename: "clip.mp4",
+        contentType,
+      });
+      flushSync(() =>
+        root!.render(
+          <ThemeProvider>
+            <IssueGalleryContext.Provider value={openGallery}>
+              <TaskChatBubble
+                item={{
+                  id: "m1",
+                  kind: "message",
+                  author: "agent",
+                  text: `[clip.mp4](${clip.contentPath})`,
+                }}
+                attachments={[clip]}
+              />
+            </IssueGalleryContext.Provider>
+          </ThemeProvider>,
+        ),
+      );
+      flushSync(() =>
+        container
+          .querySelector<HTMLButtonElement>(
+            'button[aria-label="Open clip.mp4"]',
+          )!
+          .click(),
+      );
+      expect(openGallery).toHaveBeenCalledWith(clip.contentPath);
+      expect(document.querySelector('[role="dialog"]')).toBeNull();
+    },
+  );
 
   it("leaves messages without file references untouched", () => {
     renderMessage("Just words and a [normal link](https://example.com).");
 
-    expect(container.querySelector('[data-testid="task-chat-bubble-attachments"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-bubble-attachments"]'),
+    ).toBeNull();
     expect(container.textContent).toContain("Just words");
   });
 
@@ -142,16 +222,23 @@ describe("TaskChatBubble attachment chips", () => {
       ],
     );
 
-    const media = container.querySelector('[data-testid="task-chat-bubble-media"]');
+    const media = container.querySelector(
+      '[data-testid="task-chat-bubble-media"]',
+    );
     expect(media).not.toBeNull();
-    expect(media?.querySelector("img")?.getAttribute("alt")).toBe("desktop Default");
-    expect(container.querySelector('[data-testid="task-chat-bubble-attachments"]')).toBeNull();
+    expect(media?.querySelector("img")?.getAttribute("alt")).toBe(
+      "desktop Default",
+    );
+    expect(
+      container.querySelector('[data-testid="task-chat-bubble-attachments"]'),
+    ).toBeNull();
   });
 
   it("shows three thumbnails and an overflow tile for five images", () => {
     const links = Array.from(
       { length: 5 },
-      (_, index) => `[shot ${index + 1}](/api/attachments/img${index + 1}/content)`,
+      (_, index) =>
+        `[shot ${index + 1}](/api/attachments/img${index + 1}/content)`,
     ).join("\n");
     const attachments = Array.from({ length: 5 }, (_, index) =>
       attachment({
@@ -162,7 +249,9 @@ describe("TaskChatBubble attachment chips", () => {
     );
     renderMessage(links, "agent", attachments);
 
-    const media = container.querySelector('[data-testid="task-chat-bubble-media"]');
+    const media = container.querySelector(
+      '[data-testid="task-chat-bubble-media"]',
+    );
     expect(media?.querySelectorAll("img")).toHaveLength(3);
     expect(media?.textContent).toContain("+2");
 
@@ -172,20 +261,18 @@ describe("TaskChatBubble attachment chips", () => {
   });
 
   it("shows a typed file chip with its stored size", () => {
-    renderMessage(
-      "[verification.log](/api/attachments/log/content)",
-      "agent",
-      [
-        attachment({
-          id: "log",
-          originalFilename: "verification.log",
-          contentType: "text/plain",
-          byteSize: 14 * 1024,
-        }),
-      ],
-    );
+    renderMessage("[verification.log](/api/attachments/log/content)", "agent", [
+      attachment({
+        id: "log",
+        originalFilename: "verification.log",
+        contentType: "text/plain",
+        byteSize: 14 * 1024,
+      }),
+    ]);
 
-    const group = container.querySelector('[data-testid="task-chat-bubble-attachments"]');
+    const group = container.querySelector(
+      '[data-testid="task-chat-bubble-attachments"]',
+    );
     expect(group?.textContent).toContain("Log · 14.0 KB");
   });
 
@@ -212,7 +299,8 @@ describe("TaskChatBubble attachment chips", () => {
     ]);
 
     expect(
-      container.querySelector('[data-testid="task-chat-bubble-media"] img')
+      container
+        .querySelector('[data-testid="task-chat-bubble-media"] img')
         ?.getAttribute("alt"),
     ).toBe("evidence.png");
     expect(container.textContent).toContain("Images · 1");
@@ -224,17 +312,13 @@ describe("TaskChatBubble attachment chips", () => {
   });
 
   it("does not duplicate a bound attachment already referenced in the comment", () => {
-    renderMessage(
-      "[notes.txt](/api/attachments/notes/content)",
-      "human",
-      [
-        attachment({
-          id: "notes",
-          originalFilename: "notes.txt",
-          contentType: "text/plain",
-        }),
-      ],
-    );
+    renderMessage("[notes.txt](/api/attachments/notes/content)", "human", [
+      attachment({
+        id: "notes",
+        originalFilename: "notes.txt",
+        contentType: "text/plain",
+      }),
+    ]);
 
     const group = container.querySelector(
       '[data-testid="task-chat-bubble-attachments"]',
@@ -296,7 +380,12 @@ describe("TaskChatBubble accent-bubble text color", () => {
   }
 
   it("marks the human bubble's markdown as on-accent so prose text follows text-white", () => {
-    render({ id: "m1", kind: "message", author: "human", text: "when a new task is created…" });
+    render({
+      id: "m1",
+      kind: "message",
+      author: "human",
+      text: "when a new task is created…",
+    });
     const body = container.querySelector(".taskcore-markdown");
     expect(body).not.toBeNull();
     // Without this class the light-mode prose body color reads as black on blue.
@@ -304,7 +393,13 @@ describe("TaskChatBubble accent-bubble text color", () => {
   });
 
   it("leaves the neutral agent bubble on default prose colors", () => {
-    render({ id: "m1", kind: "message", author: "agent", authorName: "CEO", text: "Final reply." });
+    render({
+      id: "m1",
+      kind: "message",
+      author: "agent",
+      authorName: "CEO",
+      text: "Final reply.",
+    });
     const body = container.querySelector(".taskcore-markdown");
     expect(body).not.toBeNull();
     expect(body?.className).not.toContain("taskcore-markdown-on-accent");
@@ -321,7 +416,14 @@ describe("TaskChatBubble agent page-surface treatment", () => {
       root.render(
         <ThemeProvider>
           <TaskChatBubble
-            item={{ id: "attributed", kind: "message", author: "agent", authorName: "Fable", onBehalfOfUserName: "Dotta", text: "Done." }}
+            item={{
+              id: "attributed",
+              kind: "message",
+              author: "agent",
+              authorName: "Fable",
+              onBehalfOfUserName: "Dotta",
+              text: "Done.",
+            }}
           />
         </ThemeProvider>,
       ),
@@ -329,7 +431,9 @@ describe("TaskChatBubble agent page-surface treatment", () => {
 
     expect(container.textContent).toContain("Fable");
     expect(container.textContent).not.toContain("for Dotta");
-    expect(container.querySelector('[data-testid="comment-attribution-chip"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="comment-attribution-chip"]'),
+    ).toBeNull();
 
     flushSync(() => root.unmount());
     container.remove();
@@ -344,13 +448,21 @@ describe("TaskChatBubble agent page-surface treatment", () => {
       root.render(
         <ThemeProvider>
           <TaskChatBubble
-            item={{ id: "agent-message", kind: "message", author: "agent", authorName: "Codex", text: "A long-form agent response" }}
+            item={{
+              id: "agent-message",
+              kind: "message",
+              author: "agent",
+              authorName: "Codex",
+              text: "A long-form agent response",
+            }}
           />
         </ThemeProvider>,
       ),
     );
 
-    const bubble = container.querySelector('[data-testid="task-chat-agent-bubble"]');
+    const bubble = container.querySelector(
+      '[data-testid="task-chat-agent-bubble"]',
+    );
     expect(bubble).not.toBeNull();
     expect(bubble?.className).toContain("w-full");
     expect(bubble?.className).toContain("bg-transparent");
@@ -370,24 +482,32 @@ describe("TaskChatBubble verification caveats", () => {
     document.body.appendChild(container);
     const root = createRoot(container);
 
-    flushSync(() => root.render(
-      <ThemeProvider>
-        <TaskChatBubble item={{
-          id: "agent-message",
-          kind: "message",
-          author: "agent",
-          authorName: "Runner",
-          text: "The implementation is complete.",
-          verificationCaveats: [{
-            commandOrCheck: "Run npm test",
-            reasonCode: "tool_unavailable",
-            detail: "Node and npm are unavailable in this environment.",
-          }],
-        }} />
-      </ThemeProvider>,
-    ));
+    flushSync(() =>
+      root.render(
+        <ThemeProvider>
+          <TaskChatBubble
+            item={{
+              id: "agent-message",
+              kind: "message",
+              author: "agent",
+              authorName: "Runner",
+              text: "The implementation is complete.",
+              verificationCaveats: [
+                {
+                  commandOrCheck: "Run npm test",
+                  reasonCode: "tool_unavailable",
+                  detail: "Node and npm are unavailable in this environment.",
+                },
+              ],
+            }}
+          />
+        </ThemeProvider>,
+      ),
+    );
 
-    const caveat = container.querySelector('[data-testid="task-chat-verification-caveats"]');
+    const caveat = container.querySelector(
+      '[data-testid="task-chat-verification-caveats"]',
+    );
     expect(caveat?.textContent).toContain("Verification caveat");
     expect(caveat?.textContent).toContain("Run npm test");
     expect(caveat?.textContent).toContain("tool unavailable");
@@ -435,7 +555,9 @@ describe("TaskChatBubble interstitial self-talk (PAP-357)", () => {
       streaming: true,
     });
     expect(container.textContent).toBe("");
-    expect(container.querySelector('[data-testid="task-chat-agent-avatar"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-agent-avatar"]'),
+    ).toBeNull();
   });
 
   it("keeps the bubble and avatar header for non-interstitial agent replies", () => {
@@ -446,8 +568,12 @@ describe("TaskChatBubble interstitial self-talk (PAP-357)", () => {
       authorName: "CEO",
       text: "Final reply.",
     });
-    expect(container.querySelector('[data-testid="task-chat-interstitial"]')).toBeNull();
-    expect(container.querySelector('[data-testid="task-chat-agent-avatar"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-interstitial"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-testid="task-chat-agent-avatar"]'),
+    ).not.toBeNull();
     expect(container.textContent).toContain("CEO");
   });
 });
@@ -479,8 +605,17 @@ describe("TaskChatBubble footer line (round 9)", () => {
   }
 
   it("shows the timestamp always — not only on hover", () => {
-    renderBubble({ id: "m1", kind: "message", author: "agent", authorName: "CEO", text: "Done.", timestamp: "2:34 PM" });
-    const stamp = [...container.querySelectorAll("span")].find((el) => el.textContent === "2:34 PM");
+    renderBubble({
+      id: "m1",
+      kind: "message",
+      author: "agent",
+      authorName: "CEO",
+      text: "Done.",
+      timestamp: "2:34 PM",
+    });
+    const stamp = [...container.querySelectorAll("span")].find(
+      (el) => el.textContent === "2:34 PM",
+    );
     expect(stamp).not.toBeNull();
     expect(stamp?.className).not.toContain("opacity-0");
     expect(stamp?.className).not.toContain("group-hover");
@@ -488,14 +623,27 @@ describe("TaskChatBubble footer line (round 9)", () => {
 
   it("renders the attached turn in place of the plain timestamp footer", () => {
     renderBubble(
-      { id: "m1", kind: "message", author: "agent", authorName: "CEO", text: "Done.", timestamp: "2:34 PM" },
+      {
+        id: "m1",
+        kind: "message",
+        author: "agent",
+        authorName: "CEO",
+        text: "Done.",
+        timestamp: "2:34 PM",
+      },
       <div data-testid="fake-attached-turn">2:34 PM · Worked</div>,
     );
-    const slot = container.querySelector('[data-testid="task-chat-bubble-attached-turn"]');
+    const slot = container.querySelector(
+      '[data-testid="task-chat-bubble-attached-turn"]',
+    );
     expect(slot).not.toBeNull();
-    expect(slot?.querySelector('[data-testid="fake-attached-turn"]')).not.toBeNull();
+    expect(
+      slot?.querySelector('[data-testid="fake-attached-turn"]'),
+    ).not.toBeNull();
     // The plain footer timestamp is replaced (the attached line carries it).
-    const plain = [...container.querySelectorAll("span")].filter((el) => el.textContent === "2:34 PM");
+    const plain = [...container.querySelectorAll("span")].filter(
+      (el) => el.textContent === "2:34 PM",
+    );
     expect(plain).toHaveLength(0);
   });
 });
@@ -516,11 +664,18 @@ describe("TaskChatBubble footer actions (PAP-413)", () => {
     container.remove();
   });
 
-  function render(item: TaskChatMessageItem, opts?: { attachedTurn?: ReactNode; actions?: ReactNode }) {
+  function render(
+    item: TaskChatMessageItem,
+    opts?: { attachedTurn?: ReactNode; actions?: ReactNode },
+  ) {
     flushSync(() =>
       root!.render(
         <ThemeProvider>
-          <TaskChatBubble item={item} attachedTurn={opts?.attachedTurn} actions={opts?.actions} />
+          <TaskChatBubble
+            item={item}
+            attachedTurn={opts?.attachedTurn}
+            actions={opts?.actions}
+          />
         </ThemeProvider>,
       ),
     );
@@ -530,34 +685,72 @@ describe("TaskChatBubble footer actions (PAP-413)", () => {
 
   it("hands actions to the attached turn (not this wrapper) so they ride the summary row", () => {
     render(
-      { id: "m1", kind: "message", author: "agent", authorName: "CEO", text: "Done.", timestamp: "2:34 PM" },
-      { attachedTurn: <div data-testid="fake-attached-turn">2:34 PM · Worked</div>, actions },
+      {
+        id: "m1",
+        kind: "message",
+        author: "agent",
+        authorName: "CEO",
+        text: "Done.",
+        timestamp: "2:34 PM",
+      },
+      {
+        attachedTurn: (
+          <div data-testid="fake-attached-turn">2:34 PM · Worked</div>
+        ),
+        actions,
+      },
     );
-    const slot = container.querySelector('[data-testid="task-chat-bubble-attached-turn"]');
+    const slot = container.querySelector(
+      '[data-testid="task-chat-bubble-attached-turn"]',
+    );
     expect(slot).not.toBeNull();
     // The turn owns the footer line; the bubble no longer places actions beside
     // it (they ride the turn's `leading` slot, anchored to the summary line).
-    expect(slot?.querySelector('[data-testid="fake-attached-turn"]')).not.toBeNull();
+    expect(
+      slot?.querySelector('[data-testid="fake-attached-turn"]'),
+    ).not.toBeNull();
     expect(slot?.querySelector('[data-testid="fake-actions"]')).toBeNull();
   });
 
   it("keeps runless timestamp left and actions at the stable right edge", () => {
     render(
-      { id: "m1", kind: "message", author: "agent", authorName: "CEO", text: "Done.", timestamp: "2:34 PM" },
+      {
+        id: "m1",
+        kind: "message",
+        author: "agent",
+        authorName: "CEO",
+        text: "Done.",
+        timestamp: "2:34 PM",
+      },
       { actions },
     );
-    expect(container.querySelector('[data-testid="fake-actions"]')).not.toBeNull();
-    const stamp = [...container.querySelectorAll("span")].find((el) => el.textContent === "2:34 PM");
+    expect(
+      container.querySelector('[data-testid="fake-actions"]'),
+    ).not.toBeNull();
+    const stamp = [...container.querySelectorAll("span")].find(
+      (el) => el.textContent === "2:34 PM",
+    );
     expect(stamp).not.toBeNull();
     const actionNode = container.querySelector('[data-testid="fake-actions"]')!;
-    expect(stamp!.compareDocumentPosition(actionNode) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(
+      stamp!.compareDocumentPosition(actionNode) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
     expect(actionNode.parentElement?.className).toContain("justify-between");
   });
 
   it("omits the actions row entirely when none are supplied (human bubble)", () => {
-    render({ id: "m1", kind: "message", author: "human", text: "Hi", timestamp: "2:34 PM" });
+    render({
+      id: "m1",
+      kind: "message",
+      author: "human",
+      text: "Hi",
+      timestamp: "2:34 PM",
+    });
     expect(container.querySelector('[data-testid="fake-actions"]')).toBeNull();
-    const stamp = [...container.querySelectorAll("span")].find((el) => el.textContent === "2:34 PM");
+    const stamp = [...container.querySelectorAll("span")].find(
+      (el) => el.textContent === "2:34 PM",
+    );
     expect(stamp).not.toBeNull();
   });
 });

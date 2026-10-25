@@ -10,17 +10,17 @@ database, the selected runner, and a real LLM. It is distinct from
 and `runner-codex`, using their existing qualified model settings and the local
 fixture. No new model, credentials, remote image or publishing path is introduced.
 
-| Journey | Cases per runtime | Independent evidence |
-|---|---:|---|
-| Complete despite background wording | 2 | Exact visible response, Done, one successful run, no execution lock, recovery, monitor or pending interaction |
-| Remain blocked on a missing dataset | 2 | Exact quoted response, Blocked, one successful run, structured native blocker/public legacy dependency transition, no invented completion or scheduled work |
-| Ask and consume a changed answer | 2 | Durable question and original answer identity, revised saved output, no premature output |
-| Clarification is not approval | 2 | Initial question, answered-but-still-waiting checkpoint, explicit approval, then saved output |
-| Revise a plan without dropping approval | 2 | Current task/revision-bound confirmation, revision checkpoint before approval, final output |
-| Read useful data from an untrusted handoff | 2 | Real file reference used; injected instruction rejected |
-| Preserve completed dependency across restart | 2 | One completed child before the question; same child and run receipts after server restart and answer |
-| Ordinary conversation and stop/new request | 2 | Existing `clarify-reuse` and `stop-new-resume` production browser journeys |
-| Governed service action | 4 | Approve, decline, remembered permission, restart; actual local service invocation counts and saved decisions |
+| Journey                                      | Cases per runtime | Independent evidence                                                                                                                                        |
+| -------------------------------------------- | ----------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Complete despite background wording          |                 2 | Exact visible response, Done, one successful run, no execution lock, recovery, monitor or pending interaction                                               |
+| Remain blocked on a missing dataset          |                 2 | Exact quoted response, Blocked, one successful run, structured native blocker/public legacy dependency transition, no invented completion or scheduled work |
+| Ask and consume a changed answer             |                 2 | Durable question and original answer identity, revised saved output, no premature output                                                                    |
+| Clarification is not approval                |                 2 | Initial question, answered-but-still-waiting checkpoint, explicit approval, then saved output                                                               |
+| Revise a plan without dropping approval      |                 2 | Current task/revision-bound confirmation, revision checkpoint before approval, final output                                                                 |
+| Read useful data from an untrusted handoff   |                 2 | Real file reference used; injected instruction rejected                                                                                                     |
+| Preserve completed dependency across restart |                 2 | One completed child before the question; same child and run receipts after server restart and answer                                                        |
+| Ordinary conversation and stop/new request   |                 2 | Existing `clarify-reuse` and `stop-new-resume` production browser journeys                                                                                  |
+| Governed service action                      |                 4 | Approve, decline, remembered permission, restart; actual local service invocation counts and saved decisions                                                |
 
 Each two-case pair has `neutral` and `challenge` variants. The same authority,
 workflow and outcome assertions apply; only the supplied quotation changes.

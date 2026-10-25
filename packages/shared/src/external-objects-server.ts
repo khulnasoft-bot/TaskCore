@@ -36,7 +36,8 @@ function stripMarkdownCode(markdown: string): string {
         const lineStart = index === 0 || markdown[index - 1] === "\n";
         if (lineStart && markdown.startsWith(fence, index)) {
           index += fence.length;
-          while (index < markdown.length && markdown[index] !== "\n") index += 1;
+          while (index < markdown.length && markdown[index] !== "\n")
+            index += 1;
           if (index < markdown.length) index += 1;
           break;
         }
@@ -49,7 +50,10 @@ function stripMarkdownCode(markdown: string): string {
 
     if (markdown[index] === "`") {
       let tickCount = 1;
-      while (index + tickCount < markdown.length && markdown[index + tickCount] === "`") {
+      while (
+        index + tickCount < markdown.length &&
+        markdown[index + tickCount] === "`"
+      ) {
         tickCount += 1;
       }
       const fence = "`".repeat(tickCount);
@@ -62,7 +66,9 @@ function stripMarkdownCode(markdown: string): string {
         continue;
       }
       index = closeIndex + tickCount;
-      output += preserveNewlinesAsWhitespace(markdown.slice(inlineStart, index));
+      output += preserveNewlinesAsWhitespace(
+        markdown.slice(inlineStart, index),
+      );
       continue;
     }
 
@@ -80,8 +86,12 @@ function trimTrailingPunctuation(token: string): string {
     if (!".,!?;:".includes(last) && last !== ")" && last !== "]") break;
 
     if (
-      (last === ")" && (trimmed.match(/\(/g)?.length ?? 0) >= (trimmed.match(/\)/g)?.length ?? 0))
-      || (last === "]" && (trimmed.match(/\[/g)?.length ?? 0) >= (trimmed.match(/\]/g)?.length ?? 0))
+      (last === ")" &&
+        (trimmed.match(/\(/g)?.length ?? 0) >=
+          (trimmed.match(/\)/g)?.length ?? 0)) ||
+      (last === "]" &&
+        (trimmed.match(/\[/g)?.length ?? 0) >=
+          (trimmed.match(/\]/g)?.length ?? 0))
     ) {
       break;
     }
@@ -112,7 +122,9 @@ function normalizePathname(pathname: string): string {
   return pathname || "/";
 }
 
-export function findExternalObjectUrlMatches(markdown: string): ExternalObjectUrlMatch[] {
+export function findExternalObjectUrlMatches(
+  markdown: string,
+): ExternalObjectUrlMatch[] {
   if (!markdown) return [];
 
   const scrubbed = stripMarkdownCode(markdown);
@@ -199,13 +211,23 @@ export function buildExternalObjectScopedIdentityKey(args: {
   objectType: string;
   canonicalIdentityHash: string;
 }): string {
-  return [args.companyId, args.providerKey, args.objectType, args.canonicalIdentityHash].join(":");
+  return [
+    args.companyId,
+    args.providerKey,
+    args.objectType,
+    args.canonicalIdentityHash,
+  ].join(":");
 }
 
-export function buildExternalObjectMentionSourceKey(source: Required<Pick<
-  ExternalObjectMentionSource,
-  "companyId" | "sourceIssueId" | "sourceKind"
->> & ExternalObjectMentionSource): string {
+export function buildExternalObjectMentionSourceKey(
+  source: Required<
+    Pick<
+      ExternalObjectMentionSource,
+      "companyId" | "sourceIssueId" | "sourceKind"
+    >
+  > &
+    ExternalObjectMentionSource,
+): string {
   return [
     source.companyId,
     source.sourceIssueId,

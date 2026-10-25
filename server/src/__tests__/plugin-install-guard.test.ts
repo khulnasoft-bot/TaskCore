@@ -15,15 +15,29 @@ describe("isCloudManagedInstance", () => {
   });
 
   it("returns true when TASKCORE_MANAGED_CONFIG is set to a cloud document", () => {
-    const doc = JSON.stringify({ v: 1, mode: "cloud", catalogVersion: "1", features: {}, plugins: { autoInstall: [] } });
+    const doc = JSON.stringify({
+      v: 1,
+      mode: "cloud",
+      catalogVersion: "1",
+      features: {},
+      plugins: { autoInstall: [] },
+    });
     expect(isCloudManagedInstance({ TASKCORE_MANAGED_CONFIG: doc })).toBe(true);
   });
 
   it("fails closed: blank or corrupted documents still count as cloud-managed", () => {
     expect(isCloudManagedInstance({ TASKCORE_MANAGED_CONFIG: "" })).toBe(true);
-    expect(isCloudManagedInstance({ TASKCORE_MANAGED_CONFIG: "   " })).toBe(true);
-    expect(isCloudManagedInstance({ TASKCORE_MANAGED_CONFIG: "{not json" })).toBe(true);
-    expect(isCloudManagedInstance({ TASKCORE_MANAGED_CONFIG: JSON.stringify({ mode: "self-hosted" }) })).toBe(true);
+    expect(isCloudManagedInstance({ TASKCORE_MANAGED_CONFIG: "   " })).toBe(
+      true,
+    );
+    expect(
+      isCloudManagedInstance({ TASKCORE_MANAGED_CONFIG: "{not json" }),
+    ).toBe(true);
+    expect(
+      isCloudManagedInstance({
+        TASKCORE_MANAGED_CONFIG: JSON.stringify({ mode: "self-hosted" }),
+      }),
+    ).toBe(true);
   });
 });
 
@@ -46,7 +60,10 @@ describe("canonicalizeLocalPluginPath", () => {
   it("accepts an existing absolute directory path", async () => {
     const dir = await makeTempDir("guard-abs-");
     const result = await canonicalizeLocalPluginPath(dir);
-    expect(result).toEqual({ ok: true, canonicalPath: await realCanonical(dir) });
+    expect(result).toEqual({
+      ok: true,
+      canonicalPath: await realCanonical(dir),
+    });
   });
 
   it("collapses traversal segments to the canonical path", async () => {
@@ -55,7 +72,10 @@ describe("canonicalizeLocalPluginPath", () => {
     await mkdir(nested, { recursive: true });
     const traversal = path.join(dir, "a", "..", "a", "b", "..", "b");
     const result = await canonicalizeLocalPluginPath(traversal);
-    expect(result).toEqual({ ok: true, canonicalPath: await realCanonical(nested) });
+    expect(result).toEqual({
+      ok: true,
+      canonicalPath: await realCanonical(nested),
+    });
   });
 
   it("resolves symlinks to their target", async () => {
@@ -65,7 +85,10 @@ describe("canonicalizeLocalPluginPath", () => {
     const link = path.join(dir, "link");
     await symlink(target, link, "dir");
     const result = await canonicalizeLocalPluginPath(link);
-    expect(result).toEqual({ ok: true, canonicalPath: await realCanonical(target) });
+    expect(result).toEqual({
+      ok: true,
+      canonicalPath: await realCanonical(target),
+    });
   });
 
   it("rejects paths containing a null byte", async () => {
@@ -76,7 +99,9 @@ describe("canonicalizeLocalPluginPath", () => {
 
   it("rejects nonexistent paths", async () => {
     const dir = await makeTempDir("guard-missing-");
-    const result = await canonicalizeLocalPluginPath(path.join(dir, "does-not-exist"));
+    const result = await canonicalizeLocalPluginPath(
+      path.join(dir, "does-not-exist"),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toContain("does not exist");
   });
@@ -101,7 +126,11 @@ describe("isWithinBundledPluginRoot", () => {
     cleanupPaths.clear();
   });
 
-  async function makeCatalogFixture(): Promise<{ root: string; inside: string; outside: string }> {
+  async function makeCatalogFixture(): Promise<{
+    root: string;
+    inside: string;
+    outside: string;
+  }> {
     const base = await mkdtemp(path.join(os.tmpdir(), "guard-catalog-"));
     cleanupPaths.add(base);
     const root = path.join(base, "packages", "plugins");
@@ -114,24 +143,32 @@ describe("isWithinBundledPluginRoot", () => {
 
   it("accepts a directory inside the catalog root", async () => {
     const { root, inside } = await makeCatalogFixture();
-    expect(await isWithinBundledPluginRoot(await realCanonical(inside), root)).toBe(true);
+    expect(
+      await isWithinBundledPluginRoot(await realCanonical(inside), root),
+    ).toBe(true);
   });
 
   it("rejects a directory outside the catalog root", async () => {
     const { root, outside } = await makeCatalogFixture();
-    expect(await isWithinBundledPluginRoot(await realCanonical(outside), root)).toBe(false);
+    expect(
+      await isWithinBundledPluginRoot(await realCanonical(outside), root),
+    ).toBe(false);
   });
 
   it("rejects the catalog root itself", async () => {
     const { root } = await makeCatalogFixture();
-    expect(await isWithinBundledPluginRoot(await realCanonical(root), root)).toBe(false);
+    expect(
+      await isWithinBundledPluginRoot(await realCanonical(root), root),
+    ).toBe(false);
   });
 
   it("rejects a sibling directory whose name shares the root as a string prefix", async () => {
     const { root } = await makeCatalogFixture();
     const sibling = `${root}-evil`;
     await mkdir(sibling, { recursive: true });
-    expect(await isWithinBundledPluginRoot(await realCanonical(sibling), root)).toBe(false);
+    expect(
+      await isWithinBundledPluginRoot(await realCanonical(sibling), root),
+    ).toBe(false);
   });
 
   it("rejects a symlink target that escapes the catalog root once canonicalized", async () => {
@@ -143,19 +180,27 @@ describe("isWithinBundledPluginRoot", () => {
     const canonical = await canonicalizeLocalPluginPath(link);
     expect(canonical.ok).toBe(true);
     if (canonical.ok) {
-      expect(await isWithinBundledPluginRoot(canonical.canonicalPath, root)).toBe(false);
+      expect(
+        await isWithinBundledPluginRoot(canonical.canonicalPath, root),
+      ).toBe(false);
     }
   });
 
   it("fails closed when the catalog root does not exist", async () => {
     const { inside } = await makeCatalogFixture();
-    expect(await isWithinBundledPluginRoot(await realCanonical(inside), "/nonexistent/catalog/root")).toBe(false);
+    expect(
+      await isWithinBundledPluginRoot(
+        await realCanonical(inside),
+        "/nonexistent/catalog/root",
+      ),
+    ).toBe(false);
   });
 });
 
 /** realpath through the same lens the guard uses (macOS /tmp is a symlink). */
 async function realCanonical(target: string): Promise<string> {
   const result = await canonicalizeLocalPluginPath(target);
-  if (!result.ok) throw new Error(`fixture path did not canonicalize: ${result.reason}`);
+  if (!result.ok)
+    throw new Error(`fixture path did not canonicalize: ${result.reason}`);
   return result.canonicalPath;
 }

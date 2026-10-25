@@ -65,11 +65,10 @@ export function normalizeAcpFormElicitation(
   const propertyNames = new Set(propertyEntries.map(([name]) => name));
   const required = new Set(
     Array.isArray(schema.required)
-      ? schema.required
-          .filter(
-            (value): value is string =>
-              typeof value === "string" && propertyNames.has(value),
-          )
+      ? schema.required.filter(
+          (value): value is string =>
+            typeof value === "string" && propertyNames.has(value),
+        )
       : [],
   );
   const bindings = propertyEntries.map(([propertyName, value], index) =>
@@ -319,19 +318,17 @@ function normalizeOptions(
   }>,
 ): { options: TaskcoreQuestionOption[]; values: Map<string, string> } {
   const values = new Map<string, string>();
-  const options = nativeOptions.map(
-    (option, index): TaskcoreQuestionOption => {
-      const id = `option-${index + 1}`;
-      values.set(id, option.value);
-      return {
-        id,
-        label: option.label,
-        ...(option.description !== undefined
-          ? { description: option.description }
-          : {}),
-      };
-    },
-  );
+  const options = nativeOptions.map((option, index): TaskcoreQuestionOption => {
+    const id = `option-${index + 1}`;
+    values.set(id, option.value);
+    return {
+      id,
+      label: option.label,
+      ...(option.description !== undefined
+        ? { description: option.description }
+        : {}),
+    };
+  });
   return { options, values };
 }
 

@@ -134,7 +134,9 @@ const mockTrackRoutineCreated = vi.hoisted(() => vi.fn());
 const mockGetTelemetryClient = vi.hoisted(() => vi.fn());
 
 function registerModuleMocks() {
-  vi.doMock("../routes/authz.js", async () => vi.importActual("../routes/authz.js"));
+  vi.doMock("../routes/authz.js", async () =>
+    vi.importActual("../routes/authz.js"),
+  );
 
   vi.doMock("@taskcore/shared/telemetry", () => ({
     trackRoutineCreated: mockTrackRoutineCreated,
@@ -171,7 +173,13 @@ async function createApp(actor: Record<string, unknown>) {
   const { errorHandler } = await import("../middleware/error-handler.js");
   const { routineRoutes } = await import("../routes/routines.js");
   const app = express();
-  app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
+  app.use(
+    express.json({
+      verify: (req, _res, buf) => {
+        (req as any).rawBody = buf;
+      },
+    }),
+  );
   app.use((req, _res, next) => {
     (req as any).actor = actor;
     next();
@@ -184,14 +192,26 @@ async function createApp(actor: Record<string, unknown>) {
 describe("routine routes", () => {
   it("forwards the Fireflies signature and exact raw JSON to the public handler", async () => {
     const app = await createApp({ type: "none" });
-    const raw = '{ "event": "meeting.summarized", "meeting_id": "meeting-1", "timestamp": 1780000000000 }';
-    mockRoutineService.firePublicTrigger.mockResolvedValue({ status: "ignored", routineStarted: false });
-    const res = await request(app).post("/api/routine-triggers/public/fireflies-public/fire")
-      .set("Content-Type", "application/json").set("X-Hub-Signature", "sha256=fixture").send(raw);
+    const raw =
+      '{ "event": "meeting.summarized", "meeting_id": "meeting-1", "timestamp": 1780000000000 }';
+    mockRoutineService.firePublicTrigger.mockResolvedValue({
+      status: "ignored",
+      routineStarted: false,
+    });
+    const res = await request(app)
+      .post("/api/routine-triggers/public/fireflies-public/fire")
+      .set("Content-Type", "application/json")
+      .set("X-Hub-Signature", "sha256=fixture")
+      .send(raw);
     expect(res.status).toBe(202);
-    expect(mockRoutineService.firePublicTrigger).toHaveBeenCalledWith("fireflies-public", expect.objectContaining({
-      firefliesSignatureHeader: "sha256=fixture", rawBody: Buffer.from(raw), payload: JSON.parse(raw),
-    }));
+    expect(mockRoutineService.firePublicTrigger).toHaveBeenCalledWith(
+      "fireflies-public",
+      expect.objectContaining({
+        firefliesSignatureHeader: "sha256=fixture",
+        rawBody: Buffer.from(raw),
+        payload: JSON.parse(raw),
+      }),
+    );
   });
 
   beforeEach(() => {
@@ -212,11 +232,18 @@ describe("routine routes", () => {
     mockRoutineService.create.mockResolvedValue(routine);
     mockRoutineService.get.mockResolvedValue(routine);
     mockRoutineService.getTrigger.mockResolvedValue(trigger);
-    mockRoutineService.update.mockResolvedValue({ ...routine, assigneeAgentId: otherAgentId });
+    mockRoutineService.update.mockResolvedValue({
+      ...routine,
+      assigneeAgentId: otherAgentId,
+    });
     mockRoutineService.listRevisions.mockResolvedValue([revision]);
     mockRoutineService.restoreRevision.mockResolvedValue({
       routine,
-      revision: { ...revision, revisionNumber: 2, restoredFromRevisionId: revision.id },
+      revision: {
+        ...revision,
+        revisionNumber: 2,
+        restoredFromRevisionId: revision.id,
+      },
       restoredFromRevisionId: revision.id,
       restoredFromRevisionNumber: revision.revisionNumber,
       secretMaterials: [],
@@ -270,7 +297,12 @@ describe("routine routes", () => {
       markdownEnd: 19,
       anchorSelector: {
         quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-        position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+        position: {
+          normalizedStart: 6,
+          normalizedEnd: 19,
+          markdownStart: 6,
+          markdownEnd: 19,
+        },
       },
       createdByAgentId: null,
       createdByUserId: "board-user",
@@ -279,24 +311,28 @@ describe("routine routes", () => {
       resolvedAt: null,
       createdAt: new Date("2026-03-20T00:00:00.000Z"),
       updatedAt: new Date("2026-03-20T00:00:00.000Z"),
-      comments: [{
-        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        companyId,
-        threadId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        issueId: null,
-        routineId,
-        documentId: "99999999-9999-4999-8999-999999999999",
-        body: "Please review",
-        authorType: "user",
-        authorAgentId: null,
-        authorUserId: "board-user",
-        createdByRunId: null,
-        issueCommentId: null,
-        createdAt: new Date("2026-03-20T00:00:00.000Z"),
-        updatedAt: new Date("2026-03-20T00:00:00.000Z"),
-      }],
+      comments: [
+        {
+          id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          companyId,
+          threadId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          issueId: null,
+          routineId,
+          documentId: "99999999-9999-4999-8999-999999999999",
+          body: "Please review",
+          authorType: "user",
+          authorAgentId: null,
+          authorUserId: "board-user",
+          createdByRunId: null,
+          issueCommentId: null,
+          createdAt: new Date("2026-03-20T00:00:00.000Z"),
+          updatedAt: new Date("2026-03-20T00:00:00.000Z"),
+        },
+      ],
     };
-    mockAnnotationService.createRoutineThread.mockResolvedValue(annotationThread);
+    mockAnnotationService.createRoutineThread.mockResolvedValue(
+      annotationThread,
+    );
     mockAnnotationService.addRoutineComment.mockResolvedValue({
       id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       companyId,
@@ -317,7 +353,9 @@ describe("routine routes", () => {
       ...annotationThread,
       status: "resolved",
     });
-    mockAnnotationService.remapOpenThreadsForRoutineDocument.mockResolvedValue([]);
+    mockAnnotationService.remapOpenThreadsForRoutineDocument.mockResolvedValue(
+      [],
+    );
   });
 
   it("passes project filters to the routine list service", async () => {
@@ -334,7 +372,9 @@ describe("routine routes", () => {
       .query({ projectId });
 
     expect(res.status).toBe(200);
-    expect(mockRoutineService.list).toHaveBeenCalledWith(companyId, { projectId });
+    expect(mockRoutineService.list).toHaveBeenCalledWith(companyId, {
+      projectId,
+    });
   });
 
   it("lists routine revisions for a board member in newest-first service order", async () => {
@@ -364,7 +404,12 @@ describe("routine routes", () => {
 
     const selector = {
       quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-      position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+      position: {
+        normalizedStart: 6,
+        normalizedEnd: 19,
+        markdownStart: 6,
+        markdownEnd: 19,
+      },
     };
 
     const created = await request(app)
@@ -389,15 +434,20 @@ describe("routine routes", () => {
       expect.objectContaining({ body: "Please review" }),
       expect.objectContaining({ actorType: "user", userId: "board-user" }),
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "routine.document_annotation_thread_created",
-      entityType: "routine",
-      entityId: routineId,
-      details: expect.objectContaining({ documentKey: "description" }),
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "routine.document_annotation_thread_created",
+        entityType: "routine",
+        entityId: routineId,
+        details: expect.objectContaining({ documentKey: "description" }),
+      }),
+    );
 
     await request(app)
-      .post(`/api/routines/${routineId}/description/annotations/${created.body.id}/comments`)
+      .post(
+        `/api/routines/${routineId}/description/annotations/${created.body.id}/comments`,
+      )
       .send({ body: "Reply" })
       .expect(201);
     expect(mockAnnotationService.addRoutineComment).toHaveBeenCalledWith(
@@ -407,14 +457,19 @@ describe("routine routes", () => {
       expect.objectContaining({ body: "Reply" }),
       expect.objectContaining({ actorType: "user", userId: "board-user" }),
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "routine.document_annotation_comment_added",
-      entityType: "routine",
-      entityId: routineId,
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "routine.document_annotation_comment_added",
+        entityType: "routine",
+        entityId: routineId,
+      }),
+    );
 
     const resolved = await request(app)
-      .patch(`/api/routines/${routineId}/description/annotations/${created.body.id}`)
+      .patch(
+        `/api/routines/${routineId}/description/annotations/${created.body.id}`,
+      )
       .send({ status: "resolved" })
       .expect(200);
 
@@ -426,11 +481,14 @@ describe("routine routes", () => {
       expect.objectContaining({ status: "resolved" }),
       expect.objectContaining({ actorType: "user", userId: "board-user" }),
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "routine.document_annotation_thread_resolved",
-      entityType: "routine",
-      entityId: routineId,
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "routine.document_annotation_thread_resolved",
+        entityType: "routine",
+        entityId: routineId,
+      }),
+    );
   });
 
   it("blocks routine revision reads across company scope", async () => {
@@ -492,19 +550,28 @@ describe("routine routes", () => {
       runId: "88888888-8888-4888-8888-888888888888",
     });
 
-    const res = await request(app).post(`/api/routines/${routineId}/revisions/${revisionId}/restore`).send({});
+    const res = await request(app)
+      .post(`/api/routines/${routineId}/revisions/${revisionId}/restore`)
+      .send({});
 
     expect(res.status).toBe(200);
-    expect(mockRoutineService.restoreRevision).toHaveBeenCalledWith(routineId, revisionId, {
-      agentId,
-      userId: null,
-      runId: "88888888-8888-4888-8888-888888888888",
-    });
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "routine.revision_restored",
-      entityId: routineId,
-      runId: "88888888-8888-4888-8888-888888888888",
-    }));
+    expect(mockRoutineService.restoreRevision).toHaveBeenCalledWith(
+      routineId,
+      revisionId,
+      {
+        agentId,
+        userId: null,
+        runId: "88888888-8888-4888-8888-888888888888",
+      },
+    );
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "routine.revision_restored",
+        entityId: routineId,
+        runId: "88888888-8888-4888-8888-888888888888",
+      }),
+    );
   });
 
   it("requires tasks:assign permission for non-admin board routine creation", async () => {
@@ -538,11 +605,9 @@ describe("routine routes", () => {
       companyIds: [companyId],
     });
 
-    const res = await request(app)
-      .patch(`/api/routines/${routineId}`)
-      .send({
-        assigneeAgentId: otherAgentId,
-      });
+    const res = await request(app).patch(`/api/routines/${routineId}`).send({
+      assigneeAgentId: otherAgentId,
+    });
 
     expect(res.status).toBe(403);
     expect(res.body.error).toContain("tasks:assign");
@@ -559,11 +624,9 @@ describe("routine routes", () => {
       companyIds: [companyId],
     });
 
-    const res = await request(app)
-      .patch(`/api/routines/${routineId}`)
-      .send({
-        status: "active",
-      });
+    const res = await request(app).patch(`/api/routines/${routineId}`).send({
+      status: "active",
+    });
 
     expect(res.status).toBe(403);
     expect(res.body.error).toContain("tasks:assign");
@@ -645,12 +708,16 @@ describe("routine routes", () => {
       .send({});
 
     expect(res.status).toBe(202);
-    expect(mockRoutineService.runRoutine).toHaveBeenCalledWith(routineId, {
-      source: "manual",
-    }, {
-      agentId: null,
-      userId: "board-user",
-    });
+    expect(mockRoutineService.runRoutine).toHaveBeenCalledWith(
+      routineId,
+      {
+        source: "manual",
+      },
+      {
+        agentId: null,
+        userId: "board-user",
+      },
+    );
   });
 
   it("allows routine creation when the board user has tasks:assign", async () => {
@@ -672,15 +739,19 @@ describe("routine routes", () => {
       });
 
     expect(res.status).toBe(201);
-    expect(mockRoutineService.create).toHaveBeenCalledWith(companyId, expect.objectContaining({
-      projectId,
-      title: "Daily routine",
-      assigneeAgentId: agentId,
-    }), {
-      agentId: null,
-      userId: "board-user",
-      runId: null,
-    });
+    expect(mockRoutineService.create).toHaveBeenCalledWith(
+      companyId,
+      expect.objectContaining({
+        projectId,
+        title: "Daily routine",
+        assigneeAgentId: agentId,
+      }),
+      {
+        agentId: null,
+        userId: "board-user",
+        runId: null,
+      },
+    );
     expect(mockTrackRoutineCreated).toHaveBeenCalledWith(expect.anything());
   });
 });

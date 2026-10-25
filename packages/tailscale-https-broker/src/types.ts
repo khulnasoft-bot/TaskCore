@@ -39,7 +39,9 @@ export const PROTECTED_PRIMARY_TARGET = "http://127.0.0.1:3100";
  * construction, denied in reserve/expose/remove, excluded from the allocatable
  * allowlist, and asserted byte-unchanged across every before/after snapshot.
  */
-export const PROTECTED_PRIMARY_PORTS: readonly number[] = [PROTECTED_PRIMARY_PORT];
+export const PROTECTED_PRIMARY_PORTS: readonly number[] = [
+  PROTECTED_PRIMARY_PORT,
+];
 
 export type BrokerOp = "reserve" | "expose" | "remove" | "list";
 
@@ -88,7 +90,8 @@ export interface ListRequest {
   requestId: string;
 }
 
-export type BrokerRequest = ReserveRequest | ExposeRequest | RemoveRequest | ListRequest;
+export type BrokerRequest =
+  ReserveRequest | ExposeRequest | RemoveRequest | ListRequest;
 
 export interface ReserveResponseOk {
   ok: true;
@@ -120,7 +123,11 @@ export interface ListResponseOk {
   op: "list";
   requestId: string;
   /** Caller-owned listeners only; no handles, no manual/unknown Serve state. */
-  listeners: Array<{ runtimeId: string; port: number; purpose: OwnedListener["purpose"] }>;
+  listeners: Array<{
+    runtimeId: string;
+    port: number;
+    purpose: OwnedListener["purpose"];
+  }>;
 }
 
 export interface BrokerErrorResponse {

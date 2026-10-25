@@ -34,13 +34,19 @@ export const statusCardsApi = {
   patch: (id: string, body: PatchStatusCard) =>
     api.patch<StatusCard>(`/status-cards/${id}`, body),
   remove: (id: string) => api.delete<void>(`/status-cards/${id}`),
-  updates: (id: string) => api.get<StatusCardUpdate[]>(`/status-cards/${id}/updates`),
+  updates: (id: string) =>
+    api.get<StatusCardUpdate[]>(`/status-cards/${id}/updates`),
   summaryRevisions: (id: string) =>
-    api.get<StatusCardSummaryRevision[]>(`/status-cards/${id}/summary-revisions`),
+    api.get<StatusCardSummaryRevision[]>(
+      `/status-cards/${id}/summary-revisions`,
+    ),
   /** Queue a manual update through the update engine. */
-  refresh: (id: string) => api.post<StatusCard>(`/status-cards/${id}/refresh`, {}),
+  refresh: (id: string) =>
+    api.post<StatusCard>(`/status-cards/${id}/refresh`, {}),
   /** Re-run the interest → compiled-query pipeline. */
-  recompile: (id: string) => api.post<StatusCard>(`/status-cards/${id}/recompile`, {}),
+  recompile: (id: string) =>
+    api.post<StatusCard>(`/status-cards/${id}/recompile`, {}),
   /** Execute the compiled queries right now and return the live matches. */
-  dryRun: (id: string) => api.get<StatusCardDryRun>(`/status-cards/${id}/dry-run`),
+  dryRun: (id: string) =>
+    api.get<StatusCardDryRun>(`/status-cards/${id}/dry-run`),
 };

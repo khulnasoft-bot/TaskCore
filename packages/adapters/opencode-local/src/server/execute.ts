@@ -4,7 +4,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { inferOpenAiCompatibleBiller, type AdapterExecutionContext, type AdapterExecutionResult } from "@taskcore/adapter-utils";
+import {
+  inferOpenAiCompatibleBiller,
+  type AdapterExecutionContext,
+  type AdapterExecutionResult,
+} from "@taskcore/adapter-utils";
 import {
   adapterExecutionTargetIsRemote,
   adapterExecutionTargetRemoteCwd,
@@ -53,7 +57,11 @@ import {
   readTaskcoreIssueWorkModeFromContext,
   resolveLegacyTaskcoreDesiredSkillNames,
 } from "@taskcore/adapter-utils/server-utils";
-import { isOpenCodeUnknownSessionError, parseOpenCodeJsonl, createOpenCodeJsonlParser } from "./parse.js";
+import {
+  isOpenCodeUnknownSessionError,
+  parseOpenCodeJsonl,
+  createOpenCodeJsonlParser,
+} from "./parse.js";
 import {
   ensureOpenCodeModelConfiguredAndAvailable,
   isTruthyEnvFlag,
@@ -61,7 +69,10 @@ import {
   requireOpenCodeModelId,
 } from "./models.js";
 import { removeMaintainerOnlySkillSymlinks } from "@taskcore/adapter-utils/server-utils";
-import { prepareOpenCodeRuntimeConfig, prepareManagedOpenCodeRemoteHomes } from "./runtime-config.js";
+import {
+  prepareOpenCodeRuntimeConfig,
+  prepareManagedOpenCodeRemoteHomes,
+} from "./runtime-config.js";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
 import { resolveOpenCodeSkillsHome } from "./skills.js";
 
@@ -83,8 +94,13 @@ function parseModelProvider(model: string | null): string | null {
   return trimmed.slice(0, trimmed.indexOf("/")).trim() || null;
 }
 
-function resolveOpenCodeBiller(env: Record<string, string>, provider: string | null): string {
-  return provider === "openai" ? inferOpenAiCompatibleBiller(env, "openai") ?? "unknown" : provider ?? "unknown";
+function resolveOpenCodeBiller(
+  env: Record<string, string>,
+  provider: string | null,
+): string {
+  return provider === "openai"
+    ? (inferOpenAiCompatibleBiller(env, "openai") ?? "unknown")
+    : (provider ?? "unknown");
 }
 
 const REMOTE_OPENCODE_MODELS_PROBE_DEFAULT_TIMEOUT_SEC = 20;
@@ -108,17 +124,24 @@ export async function ensureRemoteOpenCodeModelConfiguredAndAvailable(input: {
   // remote availability probe; we still enforce the provider/model format above.
   // Mirrors the local ensureOpenCodeModelConfiguredAndAvailable bypass. Prefer the
   // explicit run env, then the process env.
-  if (isTruthyEnvFlag(input.env.OPENCODE_ALLOW_ALL_MODELS ?? process.env.OPENCODE_ALLOW_ALL_MODELS)) {
+  if (
+    isTruthyEnvFlag(
+      input.env.OPENCODE_ALLOW_ALL_MODELS ??
+        process.env.OPENCODE_ALLOW_ALL_MODELS,
+    )
+  ) {
     return;
   }
 
   const defaultProbeTimeoutSec =
-    input.executionTarget.kind === "remote" && input.executionTarget.transport === "sandbox"
+    input.executionTarget.kind === "remote" &&
+    input.executionTarget.transport === "sandbox"
       ? REMOTE_OPENCODE_MODELS_PROBE_SANDBOX_TIMEOUT_SEC
       : REMOTE_OPENCODE_MODELS_PROBE_DEFAULT_TIMEOUT_SEC;
-  const probeTimeoutSec = input.timeoutSec > 0
-    ? Math.min(input.timeoutSec, defaultProbeTimeoutSec)
-    : defaultProbeTimeoutSec;
+  const probeTimeoutSec =
+    input.timeoutSec > 0
+      ? Math.min(input.timeoutSec, defaultProbeTimeoutSec)
+      : defaultProbeTimeoutSec;
   const probe = await runAdapterExecutionTargetProcess(
     input.runId,
     input.executionTarget,
@@ -146,7 +169,8 @@ export async function ensureRemoteOpenCodeModelConfiguredAndAvailable(input: {
   }
 
   if ((probe.exitCode ?? 1) !== 0) {
-    const detail = firstNonEmptyLine(probe.stderr) || firstNonEmptyLine(probe.stdout);
+    const detail =
+      firstNonEmptyLine(probe.stderr) || firstNonEmptyLine(probe.stdout);
     console.warn(
       `[opencode-local] Remote \`opencode models\` could not run for "${model}"${
         detail ? ` (${detail})` : ""
@@ -164,7 +188,10 @@ export async function ensureRemoteOpenCodeModelConfiguredAndAvailable(input: {
   }
 
   if (!models.some((entry) => entry.id === model)) {
-    const sample = models.slice(0, 12).map((entry) => entry.id).join(", ");
+    const sample = models
+      .slice(0, 12)
+      .map((entry) => entry.id)
+      .join(", ");
     throw new Error(
       `Configured OpenCode model is unavailable on the remote execution target: ${model}. Available models: ${sample}${models.length > 12 ? ", ..." : ""}`,
     );
@@ -178,8 +205,12 @@ async function ensureOpenCodeSkillsInjected(
   skillsHome = resolveOpenCodeSkillsHome({}),
 ) {
   await fs.mkdir(skillsHome, { recursive: true });
-  const desiredSet = new Set(desiredSkillNames ?? skillsEntries.map((entry) => entry.key));
-  const selectedEntries = skillsEntries.filter((entry) => desiredSet.has(entry.key));
+  const desiredSet = new Set(
+    desiredSkillNames ?? skillsEntries.map((entry) => entry.key),
+  );
+  const selectedEntries = skillsEntries.filter((entry) =>
+    desiredSet.has(entry.key),
+  );
   const removedSkills = await removeMaintainerOnlySkillSymlinks(
     skillsHome,
     selectedEntries.map((entry) => entry.runtimeName),
@@ -209,12 +240,21 @@ async function ensureOpenCodeSkillsInjected(
   }
 }
 
-async function buildOpenCodeSkillsDir(config: Record<string, unknown>): Promise<string> {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-skills-"));
+async function buildOpenCodeSkillsDir(
+  config: Record<string, unknown>,
+): Promise<string> {
+  const tmp = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-opencode-skills-"),
+  );
   const target = path.join(tmp, "skills");
   await fs.mkdir(target, { recursive: true });
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredNames = new Set(resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries));
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredNames = new Set(
+    resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries),
+  );
   for (const entry of availableEntries) {
     if (!desiredNames.has(entry.key)) continue;
     if (isTaskcoreSkillSourceMissing(entry)) continue;
@@ -223,14 +263,27 @@ async function buildOpenCodeSkillsDir(config: Record<string, unknown>): Promise<
   return target;
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
   const providerStop = createProviderStoppedBoundary(ctx.onProviderStopped);
-  const { runId, agent, runtime, config, context, onLog, onMeta, onSpawn, authToken } = ctx;
+  const {
+    runId,
+    agent,
+    runtime,
+    config,
+    context,
+    onLog,
+    onMeta,
+    onSpawn,
+    authToken,
+  } = ctx;
   const executionTarget = readAdapterExecutionTarget({
     executionTarget: ctx.executionTarget,
     legacyRemoteExecution: ctx.executionTransport?.remoteExecution,
   });
-  const executionTargetIsRemote = adapterExecutionTargetIsRemote(executionTarget);
+  const executionTargetIsRemote =
+    adapterExecutionTargetIsRemote(executionTarget);
 
   const promptTemplate = asString(
     config.promptTemplate,
@@ -251,17 +304,30 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+        (value): value is Record<string, unknown> =>
+          typeof value === "object" && value !== null,
       )
     : [];
   const configuredCwd = asString(config.cwd, "");
-  const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
-  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome ? "" : workspaceCwd;
+  const useConfiguredInsteadOfAgentHome =
+    workspaceSource === "agent_home" && configuredCwd.length > 0;
+  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome
+    ? ""
+    : workspaceCwd;
   const cwd = effectiveWorkspaceCwd || configuredCwd || process.cwd();
-  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(executionTarget, cwd);
+  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(
+    executionTarget,
+    cwd,
+  );
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
-  const openCodeSkillEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredOpenCodeSkillNames = resolveLegacyTaskcoreDesiredSkillNames(config, openCodeSkillEntries);
+  const openCodeSkillEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredOpenCodeSkillNames = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    openCodeSkillEntries,
+  );
   if (!executionTargetIsRemote) {
     await ensureOpenCodeSkillsInjected(
       onLog,
@@ -278,27 +344,41 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   };
   env.TASKCORE_RUN_ID = runId;
   const wakeTaskId =
-    (typeof context.taskId === "string" && context.taskId.trim().length > 0 && context.taskId.trim()) ||
-    (typeof context.issueId === "string" && context.issueId.trim().length > 0 && context.issueId.trim()) ||
+    (typeof context.taskId === "string" &&
+      context.taskId.trim().length > 0 &&
+      context.taskId.trim()) ||
+    (typeof context.issueId === "string" &&
+      context.issueId.trim().length > 0 &&
+      context.issueId.trim()) ||
     null;
   const wakeReason =
-    typeof context.wakeReason === "string" && context.wakeReason.trim().length > 0
+    typeof context.wakeReason === "string" &&
+    context.wakeReason.trim().length > 0
       ? context.wakeReason.trim()
       : null;
   const wakeCommentId =
-    (typeof context.wakeCommentId === "string" && context.wakeCommentId.trim().length > 0 && context.wakeCommentId.trim()) ||
-    (typeof context.commentId === "string" && context.commentId.trim().length > 0 && context.commentId.trim()) ||
+    (typeof context.wakeCommentId === "string" &&
+      context.wakeCommentId.trim().length > 0 &&
+      context.wakeCommentId.trim()) ||
+    (typeof context.commentId === "string" &&
+      context.commentId.trim().length > 0 &&
+      context.commentId.trim()) ||
     null;
   const approvalId =
-    typeof context.approvalId === "string" && context.approvalId.trim().length > 0
+    typeof context.approvalId === "string" &&
+    context.approvalId.trim().length > 0
       ? context.approvalId.trim()
       : null;
   const approvalStatus =
-    typeof context.approvalStatus === "string" && context.approvalStatus.trim().length > 0
+    typeof context.approvalStatus === "string" &&
+    context.approvalStatus.trim().length > 0
       ? context.approvalStatus.trim()
       : null;
   const linkedIssueIds = Array.isArray(context.issueIds)
-    ? context.issueIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    ? context.issueIds.filter(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0,
+      )
     : [];
   const issueWorkMode = readTaskcoreIssueWorkModeFromContext(context);
   if (wakeTaskId) env.TASKCORE_TASK_ID = wakeTaskId;
@@ -307,7 +387,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   if (wakeCommentId) env.TASKCORE_WAKE_COMMENT_ID = wakeCommentId;
   if (approvalId) env.TASKCORE_APPROVAL_ID = approvalId;
   if (approvalStatus) env.TASKCORE_APPROVAL_STATUS = approvalStatus;
-  if (linkedIssueIds.length > 0) env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
+  if (linkedIssueIds.length > 0)
+    env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
   refreshTaskcoreWorkspaceEnvForExecution({
     env,
     envConfig,
@@ -329,12 +410,19 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   if (authToken) {
     env.TASKCORE_API_KEY = authToken;
   }
-  const preparedRuntimeConfig = await prepareOpenCodeRuntimeConfig({ env, config });
+  const preparedRuntimeConfig = await prepareOpenCodeRuntimeConfig({
+    env,
+    config,
+  });
   const localRuntimeConfigHome =
-    preparedRuntimeConfig.notes.length > 0 ? preparedRuntimeConfig.env.XDG_CONFIG_HOME : "";
+    preparedRuntimeConfig.notes.length > 0
+      ? preparedRuntimeConfig.env.XDG_CONFIG_HOME
+      : "";
   try {
     const runtimeEnv = Object.fromEntries(
-      Object.entries(ensurePathInEnv({ ...process.env, ...preparedRuntimeConfig.env })).filter(
+      Object.entries(
+        ensurePathInEnv({ ...process.env, ...preparedRuntimeConfig.env }),
+      ).filter(
         (entry): entry is [string, string] => typeof entry[1] === "string",
       ),
     );
@@ -347,18 +435,29 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       runId,
       target: executionTarget,
       installCommand: ctx.runtimeCommandSpec?.installCommand,
-    detectCommand: ctx.runtimeCommandSpec?.detectCommand,
+      detectCommand: ctx.runtimeCommandSpec?.detectCommand,
       cwd,
       env: runtimeEnv,
       timeoutSec,
       graceSec,
       onLog,
     });
-    await ensureAdapterExecutionTargetCommandResolvable(command, executionTarget, cwd, runtimeEnv, {
-      installCommand: SANDBOX_INSTALL_COMMAND,
-      timeoutSec,
-    });
-    const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(command, executionTarget, cwd, runtimeEnv);
+    await ensureAdapterExecutionTargetCommandResolvable(
+      command,
+      executionTarget,
+      cwd,
+      runtimeEnv,
+      {
+        installCommand: SANDBOX_INSTALL_COMMAND,
+        timeoutSec,
+      },
+    );
+    const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(
+      command,
+      executionTarget,
+      cwd,
+      runtimeEnv,
+    );
     let loggedEnv = buildInvocationEnvForLogs(preparedRuntimeConfig.env, {
       runtimeEnv,
       includeRuntimeKeys: ["HOME"],
@@ -381,7 +480,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     let restoreRemoteWorkspace: (() => Promise<void>) | null = null;
     let localSkillsDir: string | null = null;
     let remoteRuntimeRootDir: string | null = null;
-    let taskcoreBridge: Awaited<ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>> = null;
+    let taskcoreBridge: Awaited<
+      ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>
+    > = null;
 
     if (executionTarget?.kind === "remote") {
       localSkillsDir = await buildOpenCodeSkillsDir(config);
@@ -389,33 +490,40 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         "stdout",
         `[taskcore] Syncing workspace and OpenCode runtime assets to ${describeAdapterExecutionTarget(executionTarget)}.\n`,
       );
-      const preparedExecutionTargetRuntime = await prepareAdapterExecutionTargetRuntime({
-        runId,
-        target: executionTarget,
-        adapterKey: "opencode",
-        timeoutSec,
-        workspaceLocalDir: cwd,
-        installCommand: SANDBOX_INSTALL_COMMAND,
-        detectCommand: command,
-        onProgress: (line) => onLog("stdout", line),
-        onRuntimeProgress: ctx.onRuntimeProgress,
-        assets: [
-          {
-            key: "skills",
-            localDir: localSkillsDir,
-            followSymlinks: true,
-          },
-          ...(localRuntimeConfigHome
-            ? [{
-              key: "xdgConfig",
-              localDir: localRuntimeConfigHome,
-            }]
-            : []),
-        ],
-      });
+      const preparedExecutionTargetRuntime =
+        await prepareAdapterExecutionTargetRuntime({
+          runId,
+          target: executionTarget,
+          adapterKey: "opencode",
+          timeoutSec,
+          workspaceLocalDir: cwd,
+          installCommand: SANDBOX_INSTALL_COMMAND,
+          detectCommand: command,
+          onProgress: (line) => onLog("stdout", line),
+          onRuntimeProgress: ctx.onRuntimeProgress,
+          assets: [
+            {
+              key: "skills",
+              localDir: localSkillsDir,
+              followSymlinks: true,
+            },
+            ...(localRuntimeConfigHome
+              ? [
+                  {
+                    key: "xdgConfig",
+                    localDir: localRuntimeConfigHome,
+                  },
+                ]
+              : []),
+          ],
+        });
       restoreRemoteWorkspace = () =>
-        preparedExecutionTargetRuntime.restoreWorkspace((line) => onLog("stdout", line));
-      effectiveExecutionCwd = preparedExecutionTargetRuntime.workspaceRemoteDir ?? effectiveExecutionCwd;
+        preparedExecutionTargetRuntime.restoreWorkspace((line) =>
+          onLog("stdout", line),
+        );
+      effectiveExecutionCwd =
+        preparedExecutionTargetRuntime.workspaceRemoteDir ??
+        effectiveExecutionCwd;
       refreshTaskcoreWorkspaceEnvForExecution({
         env: preparedRuntimeConfig.env,
         envConfig,
@@ -430,12 +538,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         executionCwd: effectiveExecutionCwd,
       });
       remoteRuntimeRootDir = preparedExecutionTargetRuntime.runtimeRootDir;
-      const managedHome = adapterExecutionTargetUsesManagedHome(executionTarget);
+      const managedHome =
+        adapterExecutionTargetUsesManagedHome(executionTarget);
       if (managedHome && preparedExecutionTargetRuntime.runtimeRootDir) {
-        preparedRuntimeConfig.env.HOME = preparedExecutionTargetRuntime.runtimeRootDir;
+        preparedRuntimeConfig.env.HOME =
+          preparedExecutionTargetRuntime.runtimeRootDir;
       }
-      if (localRuntimeConfigHome && preparedExecutionTargetRuntime.assetDirs.xdgConfig) {
-        preparedRuntimeConfig.env.XDG_CONFIG_HOME = preparedExecutionTargetRuntime.assetDirs.xdgConfig;
+      if (
+        localRuntimeConfigHome &&
+        preparedExecutionTargetRuntime.assetDirs.xdgConfig
+      ) {
+        preparedRuntimeConfig.env.XDG_CONFIG_HOME =
+          preparedExecutionTargetRuntime.assetDirs.xdgConfig;
       }
       prepareManagedOpenCodeRemoteHomes({
         env: preparedRuntimeConfig.env,
@@ -449,14 +563,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         : managedHome && preparedExecutionTargetRuntime.runtimeRootDir
           ? preparedExecutionTargetRuntime.runtimeRootDir
           : await readAdapterExecutionTargetHomeDir(runId, executionTarget, {
-            cwd,
-            env: preparedRuntimeConfig.env,
-            timeoutSec,
-            graceSec,
-            onLog,
-          });
+              cwd,
+              env: preparedRuntimeConfig.env,
+              timeoutSec,
+              graceSec,
+              onLog,
+            });
       if (remoteHomeDir && preparedExecutionTargetRuntime.assetDirs.skills) {
-        const remoteSkillsDir = path.posix.join(remoteHomeDir, ".claude", "skills");
+        const remoteSkillsDir = path.posix.join(
+          remoteHomeDir,
+          ".claude",
+          "skills",
+        );
         await runAdapterExecutionTargetShellCommand(
           runId,
           executionTarget,
@@ -475,13 +593,25 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         graceSec,
       });
     }
-    const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(executionTarget, effectiveExecutionCwd);
-    if (executionTargetIsRemote && adapterExecutionTargetUsesTaskcoreBridge(runtimeExecutionTarget)) {
+    const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(
+      executionTarget,
+      effectiveExecutionCwd,
+    );
+    if (
+      executionTargetIsRemote &&
+      adapterExecutionTargetUsesTaskcoreBridge(runtimeExecutionTarget)
+    ) {
       taskcoreBridge = await startAdapterExecutionTargetTaskcoreBridge({
         runId,
         target: runtimeExecutionTarget,
-        enableSandboxDuplexBridge: adapterExecutionTargetEnablesSandboxDuplexBridge(runtimeExecutionTarget),
-        duplexObservabilityRecorder: adapterExecutionTargetDuplexObservabilityRecorder(runtimeExecutionTarget),
+        enableSandboxDuplexBridge:
+          adapterExecutionTargetEnablesSandboxDuplexBridge(
+            runtimeExecutionTarget,
+          ),
+        duplexObservabilityRecorder:
+          adapterExecutionTargetDuplexObservabilityRecorder(
+            runtimeExecutionTarget,
+          ),
         runtimeRootDir: remoteRuntimeRootDir,
         adapterKey: "opencode",
         timeoutSec,
@@ -492,8 +622,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         Object.assign(preparedRuntimeConfig.env, taskcoreBridge.env);
         loggedEnv = buildInvocationEnvForLogs(preparedRuntimeConfig.env, {
           runtimeEnv: Object.fromEntries(
-            Object.entries(ensurePathInEnv({ ...process.env, ...preparedRuntimeConfig.env })).filter(
-              (entry): entry is [string, string] => typeof entry[1] === "string",
+            Object.entries(
+              ensurePathInEnv({ ...process.env, ...preparedRuntimeConfig.env }),
+            ).filter(
+              (entry): entry is [string, string] =>
+                typeof entry[1] === "string",
             ),
           ),
           includeRuntimeKeys: ["HOME"],
@@ -503,13 +636,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
 
     const runtimeSessionParams = parseObject(runtime.sessionParams);
-    const runtimeSessionId = asString(runtimeSessionParams.sessionId, runtime.sessionId ?? "");
+    const runtimeSessionId = asString(
+      runtimeSessionParams.sessionId,
+      runtime.sessionId ?? "",
+    );
     const runtimeSessionCwd = asString(runtimeSessionParams.cwd, "");
-    const runtimeRemoteExecution = parseObject(runtimeSessionParams.remoteExecution);
+    const runtimeRemoteExecution = parseObject(
+      runtimeSessionParams.remoteExecution,
+    );
     const canResumeSession =
       runtimeSessionId.length > 0 &&
-      (runtimeSessionCwd.length === 0 || path.resolve(runtimeSessionCwd) === path.resolve(effectiveExecutionCwd)) &&
-      adapterExecutionTargetSessionMatches(runtimeRemoteExecution, runtimeExecutionTarget);
+      (runtimeSessionCwd.length === 0 ||
+        path.resolve(runtimeSessionCwd) ===
+          path.resolve(effectiveExecutionCwd)) &&
+      adapterExecutionTargetSessionMatches(
+        runtimeRemoteExecution,
+        runtimeExecutionTarget,
+      );
     const sessionId = canResumeSession ? runtimeSessionId : null;
     if (executionTargetIsRemote && runtimeSessionId && !canResumeSession) {
       await onLog(
@@ -522,15 +665,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         `[taskcore] OpenCode session "${runtimeSessionId}" was saved for cwd "${runtimeSessionCwd}" and will not be resumed in "${effectiveExecutionCwd}".\n`,
       );
     }
-    const instructionsFilePath = asString(config.instructionsFilePath, "").trim();
+    const instructionsFilePath = asString(
+      config.instructionsFilePath,
+      "",
+    ).trim();
     const resolvedInstructionsFilePath = instructionsFilePath
       ? path.resolve(cwd, instructionsFilePath)
       : "";
-    const instructionsDir = resolvedInstructionsFilePath ? `${path.dirname(resolvedInstructionsFilePath)}/` : "";
+    const instructionsDir = resolvedInstructionsFilePath
+      ? `${path.dirname(resolvedInstructionsFilePath)}/`
+      : "";
     let instructionsPrefix = "";
     if (resolvedInstructionsFilePath) {
       try {
-        const instructionsContents = await fs.readFile(resolvedInstructionsFilePath, "utf8");
+        const instructionsContents = await fs.readFile(
+          resolvedInstructionsFilePath,
+          "utf8",
+        );
         instructionsPrefix =
           `${instructionsContents}\n\n` +
           `The above agent instructions were loaded from ${resolvedInstructionsFilePath}. ` +
@@ -548,7 +699,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       const notes = [...preparedRuntimeConfig.notes];
       if (!resolvedInstructionsFilePath) return notes;
       if (instructionsPrefix.length > 0) {
-        notes.push(`Loaded agent instructions from ${resolvedInstructionsFilePath}`);
+        notes.push(
+          `Loaded agent instructions from ${resolvedInstructionsFilePath}`,
+        );
         notes.push(
           `Prepended instructions + path directive to stdin prompt (relative references from ${instructionsDir}).`,
         );
@@ -560,7 +713,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       return notes;
     })();
 
-    const bootstrapPromptTemplate = asString(config.bootstrapPromptTemplate, "");
+    const bootstrapPromptTemplate = asString(
+      config.bootstrapPromptTemplate,
+      "",
+    );
     const templateData = {
       agentId: agent.id,
       companyId: agent.companyId,
@@ -575,15 +731,24 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         !resumedSession && bootstrapPromptTemplate.trim().length > 0
           ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
           : "";
-      const { taskContextNote, wakePrompt } = selectTaskcorePromptSections(context, {
-        resumedSession,
-        includeCommunicationGuidance: false,
-      });
-      const shouldUseResumeDeltaPrompt = resumedSession && wakePrompt.length > 0;
-      const renderedPrompt = shouldUseResumeDeltaPrompt || isTaskcoreRecoveryWakePayload(context.taskcoreWake)
-        ? ""
-        : renderTemplate(promptTemplate, templateData);
-      const sessionHandoffNote = asString(context.taskcoreSessionHandoffMarkdown, "").trim();
+      const { taskContextNote, wakePrompt } = selectTaskcorePromptSections(
+        context,
+        {
+          resumedSession,
+          includeCommunicationGuidance: false,
+        },
+      );
+      const shouldUseResumeDeltaPrompt =
+        resumedSession && wakePrompt.length > 0;
+      const renderedPrompt =
+        shouldUseResumeDeltaPrompt ||
+        isTaskcoreRecoveryWakePayload(context.taskcoreWake)
+          ? ""
+          : renderTemplate(promptTemplate, templateData);
+      const sessionHandoffNote = asString(
+        context.taskcoreSessionHandoffMarkdown,
+        "",
+      ).trim();
       const basePrompt = joinPromptSections([
         instructionsPrefix,
         renderedBootstrapPrompt,
@@ -612,7 +777,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     // log file is unreachable. Toggle via TASKCORE_OPENCODE_PRINT_LOGS (run env,
     // then process env).
     const printLogs = isTruthyEnvFlag(
-      env.TASKCORE_OPENCODE_PRINT_LOGS ?? process.env.TASKCORE_OPENCODE_PRINT_LOGS,
+      env.TASKCORE_OPENCODE_PRINT_LOGS ??
+        process.env.TASKCORE_OPENCODE_PRINT_LOGS,
     );
     const buildArgs = (resumeSessionId: string | null) => {
       const args = ["run", "--format", "json"];
@@ -625,10 +791,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     };
 
     const runAttempt = async (resumeSessionId: string | null) => {
-      await hydrateFreshSessionHandoff(ctx, { resumedSession: Boolean(resumeSessionId) });
-      const { basePrompt, promptMetrics } = buildPrompt(Boolean(resumeSessionId));
+      await hydrateFreshSessionHandoff(ctx, {
+        resumedSession: Boolean(resumeSessionId),
+      });
+      const { basePrompt, promptMetrics } = buildPrompt(
+        Boolean(resumeSessionId),
+      );
       const prompt = joinPromptSections([
-        selectInitialCommunicationGuidance(context, { resumedSession: Boolean(resumeSessionId) }),
+        selectInitialCommunicationGuidance(context, {
+          resumedSession: Boolean(resumeSessionId),
+        }),
         basePrompt,
       ]);
       const args = buildArgs(resumeSessionId);
@@ -648,33 +820,60 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
       const consumeAccounting = createOpenCodeJsonlParser();
       let hasAccounting = false;
-      const accountingLog = createUsageCheckpointLog(onLog, ctx.onUsage ?? (async () => {}), stdout => {
-        hasAccounting = true;
-        const parsed = consumeAccounting(stdout);
-        const provider = parseModelProvider(model || null);
-        return { usage: parsed.usageReported ? parsed.usage : undefined, costUsd: parsed.costUsd,
-          costStatus: parsed.usageComplete || parsed.costUsd != null ? undefined : "unpriced",
-          usageBasis: "per_run", provider, biller: resolveOpenCodeBiller(runtimeEnv, provider), billingType: "unknown", model, complete: false };
-      });
-      const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {
-        onProcessStopped: providerStop.beginInvocation(),
-        cwd,
-        env: preparedRuntimeConfig.env,
-        stdin: prompt,
-        timeoutSec,
-        graceSec,
-        onSpawn,
-        onRuntimeProgress: ctx.onRuntimeProgress,
-        onLog: accountingLog,
-        runLogTail: taskcoreBridge?.runLogTail,
-        settleRunDisposition: taskcoreBridge?.settleRunDisposition,
-      });
+      const accountingLog = createUsageCheckpointLog(
+        onLog,
+        ctx.onUsage ?? (async () => {}),
+        (stdout) => {
+          hasAccounting = true;
+          const parsed = consumeAccounting(stdout);
+          const provider = parseModelProvider(model || null);
+          return {
+            usage: parsed.usageReported ? parsed.usage : undefined,
+            costUsd: parsed.costUsd,
+            costStatus:
+              parsed.usageComplete || parsed.costUsd != null
+                ? undefined
+                : "unpriced",
+            usageBasis: "per_run",
+            provider,
+            biller: resolveOpenCodeBiller(runtimeEnv, provider),
+            billingType: "unknown",
+            model,
+            complete: false,
+          };
+        },
+      );
+      const proc = await runAdapterExecutionTargetProcess(
+        runId,
+        runtimeExecutionTarget,
+        command,
+        args,
+        {
+          onProcessStopped: providerStop.beginInvocation(),
+          cwd,
+          env: preparedRuntimeConfig.env,
+          stdin: prompt,
+          timeoutSec,
+          graceSec,
+          onSpawn,
+          onRuntimeProgress: ctx.onRuntimeProgress,
+          onLog: accountingLog,
+          runLogTail: taskcoreBridge?.runLogTail,
+          settleRunDisposition: taskcoreBridge?.settleRunDisposition,
+        },
+      );
       // Parse any unterminated final record before deciding whether its usage
       // is complete. A clean exit alone cannot turn absent counters into zero.
       await accountingLog.flush();
       const retainedAccounting = consumeAccounting("");
-      await accountingLog.flush({ complete: proc.exitCode === 0 && !proc.timedOut && !proc.signal
-        && (retainedAccounting.usageComplete || retainedAccounting.costUsd != null) });
+      await accountingLog.flush({
+        complete:
+          proc.exitCode === 0 &&
+          !proc.timedOut &&
+          !proc.signal &&
+          (retainedAccounting.usageComplete ||
+            retainedAccounting.costUsd != null),
+      });
       // Display output is capped by the process transport. Keep accounting
       // from the full stream, including when no checkpoint callback is installed.
       const parsed = parseOpenCodeJsonl(proc.stdout);
@@ -690,7 +889,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
     const toResult = (
       attempt: {
-        proc: { exitCode: number | null; signal: string | null; timedOut: boolean; stdout: string; stderr: string; errorCode?: string | null };
+        proc: {
+          exitCode: number | null;
+          signal: string | null;
+          timedOut: boolean;
+          stdout: string;
+          stderr: string;
+          errorCode?: string | null;
+        };
         rawStderr: string;
         parsed: ReturnType<typeof parseOpenCodeJsonl>;
       },
@@ -702,14 +908,22 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           signal: attempt.proc.signal,
           timedOut: true,
           usageComplete: false,
-          usage: attempt.parsed.usageReported ? attempt.parsed.usage : undefined,
+          usage: attempt.parsed.usageReported
+            ? attempt.parsed.usage
+            : undefined,
           usageBasis: "per_run",
           provider: parseModelProvider(model || null),
-          biller: resolveOpenCodeBiller(runtimeEnv, parseModelProvider(model || null)),
+          biller: resolveOpenCodeBiller(
+            runtimeEnv,
+            parseModelProvider(model || null),
+          ),
           model,
           billingType: "unknown",
           costUsd: attempt.parsed.costUsd,
-          costStatus: attempt.parsed.usageComplete || attempt.parsed.costUsd != null ? undefined : "unpriced",
+          costStatus:
+            attempt.parsed.usageComplete || attempt.parsed.costUsd != null
+              ? undefined
+              : "unpriced",
           errorMessage: `Timed out after ${timeoutSec}s`,
           clearSession: clearSessionOnMissingSession,
         };
@@ -717,7 +931,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
       const resolvedSessionId =
         attempt.parsed.sessionId ??
-        (clearSessionOnMissingSession ? null : runtimeSessionId ?? runtime.sessionId ?? null);
+        (clearSessionOnMissingSession
+          ? null
+          : (runtimeSessionId ?? runtime.sessionId ?? null));
       const resolvedSessionParams = resolvedSessionId
         ? ({
             sessionId: resolvedSessionId,
@@ -727,16 +943,22 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
             ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
             ...(executionTargetIsRemote
               ? {
-                  remoteExecution: adapterExecutionTargetSessionIdentity(runtimeExecutionTarget),
+                  remoteExecution: adapterExecutionTargetSessionIdentity(
+                    runtimeExecutionTarget,
+                  ),
                 }
               : {}),
           } as Record<string, unknown>)
         : null;
 
-      const parsedError = typeof attempt.parsed.errorMessage === "string" ? attempt.parsed.errorMessage.trim() : "";
+      const parsedError =
+        typeof attempt.parsed.errorMessage === "string"
+          ? attempt.parsed.errorMessage.trim()
+          : "";
       const stderrLine = firstNonEmptyLine(attempt.proc.stderr);
       const rawExitCode = attempt.proc.exitCode;
-      const synthesizedExitCode = parsedError && (rawExitCode ?? 0) === 0 ? 1 : rawExitCode;
+      const synthesizedExitCode =
+        parsedError && (rawExitCode ?? 0) === 0 ? 1 : rawExitCode;
       const fallbackErrorMessage =
         parsedError ||
         stderrLine ||
@@ -747,10 +969,13 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         exitCode: synthesizedExitCode,
         signal: attempt.proc.signal,
         timedOut: false,
-        usageComplete: attempt.proc.exitCode === 0 && !attempt.proc.signal
-          && (attempt.parsed.usageComplete || attempt.parsed.costUsd != null),
+        usageComplete:
+          attempt.proc.exitCode === 0 &&
+          !attempt.proc.signal &&
+          (attempt.parsed.usageComplete || attempt.parsed.costUsd != null),
         usageBasis: "per_run",
-        errorMessage: (synthesizedExitCode ?? 0) === 0 ? null : fallbackErrorMessage,
+        errorMessage:
+          (synthesizedExitCode ?? 0) === 0 ? null : fallbackErrorMessage,
         // Forward the transport-level error code from the run-disposition seam.
         // A lost duplex control channel surfaces the typed `duplex_channel_lost`
         // code; every other result carries no code here.
@@ -764,20 +989,27 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         model: modelId,
         billingType: "unknown",
         costUsd: attempt.parsed.costUsd,
-        costStatus: attempt.parsed.usageComplete || attempt.parsed.costUsd != null ? undefined : "unpriced",
+        costStatus:
+          attempt.parsed.usageComplete || attempt.parsed.costUsd != null
+            ? undefined
+            : "unpriced",
         resultJson: {
           stdout: attempt.proc.stdout,
           stderr: attempt.proc.stderr,
         },
         summary: attempt.parsed.summary,
-        clearSession: Boolean(clearSessionOnMissingSession && !attempt.parsed.sessionId),
+        clearSession: Boolean(
+          clearSessionOnMissingSession && !attempt.parsed.sessionId,
+        ),
       };
     };
 
     try {
       const initial = await runAttempt(sessionId);
       const initialFailed =
-        !initial.proc.timedOut && ((initial.proc.exitCode ?? 0) !== 0 || Boolean(initial.parsed.errorMessage));
+        !initial.proc.timedOut &&
+        ((initial.proc.exitCode ?? 0) !== 0 ||
+          Boolean(initial.parsed.errorMessage));
       if (
         sessionId &&
         initialFailed &&
@@ -799,7 +1031,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         await Promise.all([
           taskcoreBridge?.stop(),
           restoreRemoteWorkspace?.(),
-          localSkillsDir ? fs.rm(path.dirname(localSkillsDir), { recursive: true, force: true }).catch(() => undefined) : Promise.resolve(),
+          localSkillsDir
+            ? fs
+                .rm(path.dirname(localSkillsDir), {
+                  recursive: true,
+                  force: true,
+                })
+                .catch(() => undefined)
+            : Promise.resolve(),
         ]);
       }
     }

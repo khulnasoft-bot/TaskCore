@@ -7,8 +7,14 @@ import {
   type ParsedEnvironmentConfig,
 } from "./environment-config.js";
 import os from "node:os";
-import { isBuiltinSandboxProvider, probeSandboxProvider } from "./sandbox-provider-runtime.js";
-import { probePluginEnvironmentDriver, probePluginSandboxProviderDriver } from "./plugin-environment-driver.js";
+import {
+  isBuiltinSandboxProvider,
+  probeSandboxProvider,
+} from "./sandbox-provider-runtime.js";
+import {
+  probePluginEnvironmentDriver,
+  probePluginSandboxProviderDriver,
+} from "./plugin-environment-driver.js";
 import type { PluginWorkerManager } from "./plugin-worker-manager.js";
 import { environmentRuntimeService } from "./environment-runtime.js";
 
@@ -24,15 +30,21 @@ export async function probeEnvironment(
   } = {},
 ): Promise<EnvironmentProbeResult> {
   const resolvedCompanyId = options.companyId ?? null;
-  const parsed = options.resolvedConfig ?? (
-    options.acquireSandboxRuntimeLease === true
+  const parsed =
+    options.resolvedConfig ??
+    (options.acquireSandboxRuntimeLease === true
       ? parseEnvironmentDriverConfig(environment)
       : resolvedCompanyId || options.applyCustomImageTemplate === true
-      ? await resolveEnvironmentDriverConfigForRuntime(db, resolvedCompanyId, environment, {
-          applyCustomImageTemplate: options.applyCustomImageTemplate === true,
-        })
-      : parseEnvironmentDriverConfig(environment)
-  );
+        ? await resolveEnvironmentDriverConfigForRuntime(
+            db,
+            resolvedCompanyId,
+            environment,
+            {
+              applyCustomImageTemplate:
+                options.applyCustomImageTemplate === true,
+            },
+          )
+        : parseEnvironmentDriverConfig(environment));
 
   if (parsed.driver === "local") {
     return {
@@ -75,7 +87,9 @@ export async function probeEnvironment(
           archiveOnRelease: true,
         },
       };
-      let leaseRecord: Awaited<ReturnType<typeof runtime.acquireRunLease>> | null = null;
+      let leaseRecord: Awaited<
+        ReturnType<typeof runtime.acquireRunLease>
+      > | null = null;
       let releaseStatus: "released" | "failed" = "released";
       try {
         leaseRecord = await runtime.acquireRunLease({
@@ -90,9 +104,11 @@ export async function probeEnvironment(
         });
         const metadata = leaseRecord.lease.metadata ?? {};
         const provider = leaseRecord.lease.provider ?? parsed.config.provider;
-        const sandboxName = typeof metadata.sandboxName === "string" && metadata.sandboxName.trim().length > 0
-          ? metadata.sandboxName.trim()
-          : null;
+        const sandboxName =
+          typeof metadata.sandboxName === "string" &&
+          metadata.sandboxName.trim().length > 0
+            ? metadata.sandboxName.trim()
+            : null;
         return {
           ok: true,
           driver: "sandbox",
@@ -200,11 +216,17 @@ export async function probeEnvironment(
     };
   } catch (error) {
     const stderr =
-      error && typeof error === "object" && "stderr" in error && typeof error.stderr === "string"
+      error &&
+      typeof error === "object" &&
+      "stderr" in error &&
+      typeof error.stderr === "string"
         ? error.stderr.trim()
         : "";
     const stdout =
-      error && typeof error === "object" && "stdout" in error && typeof error.stdout === "string"
+      error &&
+      typeof error === "object" &&
+      "stdout" in error &&
+      typeof error.stdout === "string"
         ? error.stdout.trim()
         : "";
     const code =

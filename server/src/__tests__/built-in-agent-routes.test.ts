@@ -85,8 +85,12 @@ function registerModuleMocks() {
 
 async function createApp(actor: Record<string, unknown>) {
   const [{ builtInAgentRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/built-in-agents.js")>("../routes/built-in-agents.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/built-in-agents.js")>(
+      "../routes/built-in-agents.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -106,15 +110,28 @@ describe("built-in agent routes", () => {
     vi.clearAllMocks();
     mockAccessService.decide.mockResolvedValue(allowDecision());
     mockAccessService.canUser.mockResolvedValue(true);
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableBuiltInAgents: true });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableBuiltInAgents: true,
+    });
     mockBuiltInAgentService.list.mockResolvedValue([builtInState()]);
     mockBuiltInAgentService.get.mockResolvedValue(builtInState());
     mockBuiltInAgentService.ensure.mockResolvedValue(builtInState());
-    mockBuiltInAgentService.provision.mockResolvedValue({ state: builtInState(), approval: null });
+    mockBuiltInAgentService.provision.mockResolvedValue({
+      state: builtInState(),
+      approval: null,
+    });
     mockBuiltInAgentService.reset.mockResolvedValue(builtInState());
-    mockBuiltInAgentService.enableRoutineSchedule.mockResolvedValue(builtInState());
-    mockBuiltInAgentService.disableRoutineSchedule.mockResolvedValue(builtInState());
-    mockBuiltInAgentService.runRoutine.mockResolvedValue({ id: "routine-run-1", source: "manual", status: "queued" });
+    mockBuiltInAgentService.enableRoutineSchedule.mockResolvedValue(
+      builtInState(),
+    );
+    mockBuiltInAgentService.disableRoutineSchedule.mockResolvedValue(
+      builtInState(),
+    );
+    mockBuiltInAgentService.runRoutine.mockResolvedValue({
+      id: "routine-run-1",
+      source: "manual",
+      status: "queued",
+    });
   });
 
   it("lists built-in agent state for actors with company access", async () => {
@@ -126,11 +143,15 @@ describe("built-in agent routes", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await request(app).get(`/api/companies/${companyId}/built-in-agents`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/built-in-agents`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockBuiltInAgentService.list).toHaveBeenCalledWith(companyId);
-    expect(res.body).toEqual([expect.objectContaining({ status: "ready", agentId })]);
+    expect(res.body).toEqual([
+      expect.objectContaining({ status: "ready", agentId }),
+    ]);
     expect(res.body[0].agent.adapterConfig).toEqual({});
   });
 
@@ -143,14 +164,18 @@ describe("built-in agent routes", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await request(app).get(`/api/companies/${companyId}/built-in-agents`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/built-in-agents`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
     expect(mockBuiltInAgentService.list).not.toHaveBeenCalled();
   });
 
   it("returns 404 and does not load built-in state when the experimental flag is disabled", async () => {
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableBuiltInAgents: false });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableBuiltInAgents: false,
+    });
     const app = await createApp({
       type: "board",
       userId: "board-user",
@@ -159,7 +184,9 @@ describe("built-in agent routes", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await request(app).get(`/api/companies/${companyId}/built-in-agents`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/built-in-agents`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(404);
     expect(res.body.error).toContain("Built-in agents are not enabled");
@@ -177,7 +204,11 @@ describe("built-in agent routes", () => {
 
     const res = await request(app)
       .post(`/api/companies/${companyId}/built-in-agents/briefs/provision`)
-      .send({ adapterType: "codex_local", adapterConfig: { model: "gpt-5.4" }, budgetMonthlyCents: 5000 });
+      .send({
+        adapterType: "codex_local",
+        adapterConfig: { model: "gpt-5.4" },
+        budgetMonthlyCents: 5000,
+      });
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockAccessService.decide).toHaveBeenCalledWith({
@@ -195,13 +226,16 @@ describe("built-in agent routes", () => {
       },
       { requestedByAgentId: null, requestedByUserId: "board-user" },
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      companyId,
-      actorType: "user",
-      actorId: "board-user",
-      action: "built_in_agent.provision_requested",
-      entityId: agentId,
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        companyId,
+        actorType: "user",
+        actorId: "board-user",
+        action: "built_in_agent.provision_requested",
+        entityId: agentId,
+      }),
+    );
   });
 
   it("denies provision when agents:create is not allowed", async () => {
@@ -252,22 +286,33 @@ describe("built-in agent routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/enable`)
+      .post(
+        `/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/enable`,
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(mockAccessService.canUser).toHaveBeenCalledWith(companyId, "board-user", "tasks:assign");
+    expect(mockAccessService.canUser).toHaveBeenCalledWith(
+      companyId,
+      "board-user",
+      "tasks:assign",
+    );
     expect(mockBuiltInAgentService.enableRoutineSchedule).toHaveBeenCalledWith(
       companyId,
       "reflection-coach",
       "recent-agent-reflection",
       { agentId: null, userId: "board-user", runId: null },
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "built_in_agent.routine_schedule_enabled",
-      entityId: agentId,
-      details: expect.objectContaining({ routineKey: "recent-agent-reflection" }),
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "built_in_agent.routine_schedule_enabled",
+        entityId: agentId,
+        details: expect.objectContaining({
+          routineKey: "recent-agent-reflection",
+        }),
+      }),
+    );
   });
 
   it("disables a built-in routine schedule", async () => {
@@ -280,7 +325,9 @@ describe("built-in agent routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/disable`)
+      .post(
+        `/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/disable`,
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -302,7 +349,9 @@ describe("built-in agent routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/run`)
+      .post(
+        `/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/run`,
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(202);
@@ -313,10 +362,13 @@ describe("built-in agent routes", () => {
       "recent-agent-reflection",
       { agentId: null, userId: "board-user", runId: null },
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "built_in_agent.routine_run_triggered",
-      details: expect.objectContaining({ routineRunId: "routine-run-1" }),
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "built_in_agent.routine_run_triggered",
+        details: expect.objectContaining({ routineRunId: "routine-run-1" }),
+      }),
+    );
   });
 
   it("denies built-in routine controls when tasks:assign is not allowed", async () => {
@@ -330,7 +382,9 @@ describe("built-in agent routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/run`)
+      .post(
+        `/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/run`,
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
@@ -347,11 +401,15 @@ describe("built-in agent routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/run`)
+      .post(
+        `/api/companies/${companyId}/built-in-agents/reflection-coach/routines/recent-agent-reflection/run`,
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
-    expect(res.body.error).toContain("Only board operators can control built-in routines.");
+    expect(res.body.error).toContain(
+      "Only board operators can control built-in routines.",
+    );
     expect(mockAccessService.canUser).not.toHaveBeenCalled();
     expect(mockBuiltInAgentService.runRoutine).not.toHaveBeenCalled();
   });
@@ -378,11 +436,18 @@ describe("built-in agent routes", () => {
 
     const res = await request(app)
       .post(`/api/companies/${companyId}/built-in-agents/briefs/provision`)
-      .send({ adapterType: "codex_local", adapterConfig: { model: "gpt-5.4" } });
+      .send({
+        adapterType: "codex_local",
+        adapterConfig: { model: "gpt-5.4" },
+      });
 
     expect(res.status, JSON.stringify(res.body)).toBe(202);
     expect(res.body.status).toBe("pending_approval");
-    expect(res.body.approval).toMatchObject({ id: "approval-1", status: "pending", type: "hire_agent" });
+    expect(res.body.approval).toMatchObject({
+      id: "approval-1",
+      status: "pending",
+      type: "hire_agent",
+    });
     expect(mockBuiltInAgentService.ensure).not.toHaveBeenCalled();
     expect(mockBuiltInAgentService.provision).toHaveBeenCalledWith(
       companyId,
@@ -390,13 +455,16 @@ describe("built-in agent routes", () => {
       { adapterType: "codex_local", adapterConfig: { model: "gpt-5.4" } },
       { requestedByAgentId: "manager-agent", requestedByUserId: null },
     );
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      companyId,
-      actorType: "agent",
-      actorId: "manager-agent",
-      action: "approval.created",
-      entityId: "approval-1",
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        companyId,
+        actorType: "agent",
+        actorId: "manager-agent",
+        action: "approval.created",
+        entityId: "approval-1",
+      }),
+    );
   });
 
   it("resets registry defaults through the same agents:create gate", async () => {
@@ -412,15 +480,23 @@ describe("built-in agent routes", () => {
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(mockBuiltInAgentService.reset).toHaveBeenCalledWith(companyId, "briefs", {}, expect.objectContaining({ type: "agent", agentId: "manager-agent" }));
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+    expect(mockBuiltInAgentService.reset).toHaveBeenCalledWith(
       companyId,
-      actorType: "agent",
-      actorId: "manager-agent",
-      agentId: "manager-agent",
-      action: "built_in_agent.reset",
-      entityId: agentId,
-    }));
+      "briefs",
+      {},
+      expect.objectContaining({ type: "agent", agentId: "manager-agent" }),
+    );
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        companyId,
+        actorType: "agent",
+        actorId: "manager-agent",
+        agentId: "manager-agent",
+        action: "built_in_agent.reset",
+        entityId: agentId,
+      }),
+    );
   });
 
   it("denies agent actors from provisioning across company boundaries", async () => {

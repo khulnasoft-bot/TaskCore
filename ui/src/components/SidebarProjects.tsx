@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
-import { FolderOpen, Lock, Loader2, LogOut, MoreHorizontal, Plus } from "lucide-react";
+import {
+  FolderOpen,
+  Lock,
+  Loader2,
+  LogOut,
+  MoreHorizontal,
+  Plus,
+} from "lucide-react";
 import {
   DndContext,
   MouseSensor,
@@ -10,7 +17,12 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
@@ -21,12 +33,19 @@ import { SIDEBAR_SCROLL_RESET_STATE } from "../lib/navigation-scroll";
 import { queryKeys } from "../lib/queryKeys";
 import { cn, projectRouteRef, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
 import { useProjectOrder } from "../hooks/useProjectOrder";
-import { resourceMembershipState, useResourceMembershipMutation, useResourceMemberships } from "../hooks/useResourceMemberships";
+import {
+  resourceMembershipState,
+  useResourceMembershipMutation,
+  useResourceMemberships,
+} from "../hooks/useResourceMemberships";
 import { useProjectExternalObjectSummary } from "../hooks/useIssueExternalObjects";
 import { BudgetSidebarMarker } from "./BudgetSidebarMarker";
 import { ExternalObjectStatusSummary } from "./ExternalObjectStatusSummary";
 import { ProjectTile } from "./ProjectTile";
-import { SidebarSection, type SidebarSectionRadioChoice } from "./SidebarSection";
+import {
+  SidebarSection,
+  type SidebarSectionRadioChoice,
+} from "./SidebarSection";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,7 +53,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PluginSlotMount, usePluginSlots } from "@/plugins/slots";
 import {
   getProjectSortModeStorageKey,
@@ -76,22 +99,30 @@ function projectTimestamp(project: Project): number {
   return Number.isFinite(created) ? created : 0;
 }
 
-function sortProjects(projects: Project[], sortMode: ProjectSidebarSortMode): Project[] {
+function sortProjects(
+  projects: Project[],
+  sortMode: ProjectSidebarSortMode,
+): Project[] {
   if (sortMode === "top") return projects;
   const sorted = [...projects];
   if (sortMode === "alphabetical") {
-    sorted.sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" }));
+    sorted.sort((left, right) =>
+      left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
+    );
     return sorted;
   }
   sorted.sort((left, right) => {
     const timeDiff = projectTimestamp(right) - projectTimestamp(left);
-    return timeDiff !== 0 ? timeDiff : left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+    return timeDiff !== 0
+      ? timeDiff
+      : left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
   });
   return sorted;
 }
 
 function hasFineReorderPointer() {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
+    return true;
   return window.matchMedia(REORDER_POINTER_MEDIA).matches;
 }
 
@@ -99,7 +130,11 @@ function useFineReorderPointer() {
   const [matches, setMatches] = useState(hasFineReorderPointer);
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return;
     const query = window.matchMedia(REORDER_POINTER_MEDIA);
     const onChange = (event: MediaQueryListEvent) => setMatches(event.matches);
     setMatches(query.matches);
@@ -124,7 +159,9 @@ function ProjectItem({
   isDragging = false,
 }: ProjectItemProps) {
   const routeRef = projectRouteRef(project);
-  const { summary: externalObjectsSummary } = useProjectExternalObjectSummary(project.id);
+  const { summary: externalObjectsSummary } = useProjectExternalObjectSummary(
+    project.id,
+  );
 
   const link = (
     <NavLink
@@ -144,11 +181,26 @@ function ProjectItem({
           : "text-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
       )}
     >
-      <ProjectTile color={project.color ?? null} icon={project.icon ?? null} size="xs" />
-      <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "flex-1 truncate"}>{project.name}</span>
-            {!rail && project.visibility === "private" ? <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-label="Private project" /> : null}
-      {!rail ? <ExternalObjectStatusSummary summary={externalObjectsSummary} compact /> : null}
-      {!rail && project.pauseReason === "budget" ? <BudgetSidebarMarker title="Project paused by budget" /> : null}
+      <ProjectTile
+        color={project.color ?? null}
+        icon={project.icon ?? null}
+        size="xs"
+      />
+      <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "flex-1 truncate"}>
+        {project.name}
+      </span>
+      {!rail && project.visibility === "private" ? (
+        <Lock
+          className="size-3.5 shrink-0 text-muted-foreground"
+          aria-label="Private project"
+        />
+      ) : null}
+      {!rail ? (
+        <ExternalObjectStatusSummary summary={externalObjectsSummary} compact />
+      ) : null}
+      {!rail && project.pauseReason === "budget" ? (
+        <BudgetSidebarMarker title="Project paused by budget" />
+      ) : null}
     </NavLink>
   );
 
@@ -172,35 +224,39 @@ function ProjectItem({
         )}
 
         {!rail && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className={cn(
-                "absolute right-3 top-1/2 h-6 w-6 -translate-y-1/2 transition-opacity data-[state=open]:pointer-events-auto data-[state=open]:opacity-100",
-                isMobile
-                  ? "opacity-100"
-                  : "pointer-events-none opacity-0 group-hover/project:pointer-events-auto group-hover/project:opacity-100 group-focus-within/project:pointer-events-auto group-focus-within/project:opacity-100",
-              )}
-              aria-label={`Open actions for ${project.name}`}
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem
-              onClick={() => {
-                if (leaving) return;
-                onLeaveProject(project);
-              }}
-              disabled={leaving}
-            >
-              {leaving ? <Loader2 className="size-4 motion-safe:animate-spin" /> : <LogOut className="size-4" />}
-              <span>{leaving ? "Leaving..." : "Leave project"}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className={cn(
+                  "absolute right-3 top-1/2 h-6 w-6 -translate-y-1/2 transition-opacity data-[state=open]:pointer-events-auto data-[state=open]:opacity-100",
+                  isMobile
+                    ? "opacity-100"
+                    : "pointer-events-none opacity-0 group-hover/project:pointer-events-auto group-hover/project:opacity-100 group-focus-within/project:pointer-events-auto group-focus-within/project:opacity-100",
+                )}
+                aria-label={`Open actions for ${project.name}`}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem
+                onClick={() => {
+                  if (leaving) return;
+                  onLeaveProject(project);
+                }}
+                disabled={leaving}
+              >
+                {leaving ? (
+                  <Loader2 className="size-4 motion-safe:animate-spin" />
+                ) : (
+                  <LogOut className="size-4" />
+                )}
+                <span>{leaving ? "Leaving..." : "Leave project"}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
       {!rail && projectSidebarSlots.length > 0 && (
@@ -291,10 +347,17 @@ export function SidebarProjects() {
   });
 
   const visibleProjects = useMemo(
-    () => (projects ?? []).filter((project: Project) => {
-      if (!membershipsQuery.isSuccess) return true;
-      return resourceMembershipState(membershipsQuery.data, "project", project.id) !== "left";
-    }),
+    () =>
+      (projects ?? []).filter((project: Project) => {
+        if (!membershipsQuery.isSuccess) return true;
+        return (
+          resourceMembershipState(
+            membershipsQuery.data,
+            "project",
+            project.id,
+          ) !== "left"
+        );
+      }),
     [membershipsQuery.data, membershipsQuery.isSuccess, projects],
   );
   const { orderedProjects, persistOrder } = useProjectOrder({
@@ -309,7 +372,9 @@ export function SidebarProjects() {
   const isTopMode = sortMode === "top";
   const canReorderProjects = isTopMode && !isMobile && fineReorderPointer;
 
-  const projectMatch = location.pathname.match(/^\/(?:[^/]+\/)?projects\/([^/]+)/);
+  const projectMatch = location.pathname.match(
+    /^\/(?:[^/]+\/)?projects\/([^/]+)/,
+  );
   const activeProjectRef = projectMatch?.[1] ?? null;
   const sensors = useSensors(
     // Project reordering is intentionally desktop-only; touch should remain tap/scroll behavior.
@@ -334,7 +399,8 @@ export function SidebarProjects() {
       setSortMode(readProjectSortMode(sortModeStorageKey));
     };
     const onCustomEvent = (event: Event) => {
-      const detail = (event as CustomEvent<ProjectSortModeUpdatedDetail>).detail;
+      const detail = (event as CustomEvent<ProjectSortModeUpdatedDetail>)
+        .detail;
       if (!detail || detail.storageKey !== sortModeStorageKey) return;
       setSortMode(detail.sortMode);
     };
@@ -343,7 +409,10 @@ export function SidebarProjects() {
     window.addEventListener(PROJECT_SORT_MODE_UPDATED_EVENT, onCustomEvent);
     return () => {
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener(PROJECT_SORT_MODE_UPDATED_EVENT, onCustomEvent);
+      window.removeEventListener(
+        PROJECT_SORT_MODE_UPDATED_EVENT,
+        onCustomEvent,
+      );
     };
   }, [sortModeStorageKey]);
 
@@ -376,12 +445,13 @@ export function SidebarProjects() {
   );
 
   const leaveProject = useCallback(
-    (project: Project) => membershipMutation.mutate({
-      resourceType: "project",
-      resourceId: project.id,
-      resourceName: project.name,
-      state: "left",
-    }),
+    (project: Project) =>
+      membershipMutation.mutate({
+        resourceType: "project",
+        resourceId: project.id,
+        resourceName: project.name,
+        state: "left",
+      }),
     [membershipMutation],
   );
   const projectLeaving = useCallback(
@@ -420,7 +490,12 @@ export function SidebarProjects() {
       menu={{
         ariaLabel: "Projects section actions",
         actions: [
-          { type: "item", label: "Browse projects", icon: FolderOpen, href: "/projects" },
+          {
+            type: "item",
+            label: "Browse projects",
+            icon: FolderOpen,
+            href: "/projects",
+          },
           { type: "separator" },
         ],
         radioLabel: "Project sort",

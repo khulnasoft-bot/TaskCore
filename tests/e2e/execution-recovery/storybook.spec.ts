@@ -51,14 +51,30 @@ test.describe("offline execution recovery stories", () => {
           );
           await expect(page.locator("#storybook-root")).not.toBeEmpty();
           await expect(page.getByRole("dialog")).toHaveCount(0);
-          await expect(page.getByRole("button", { name: /Inspect run|Reconcile and continue/ })).toHaveCount(0);
+          await expect(
+            page.getByRole("button", {
+              name: /Inspect run|Reconcile and continue/,
+            }),
+          ).toHaveCount(0);
           await expect(page.locator("[data-execution-phase]")).toHaveCount(0);
           if (state === "composer-during-recovery") {
-            await expect(page.getByRole("textbox", { name: "Message draft" })).toHaveValue("Continue with the launch notes.");
+            await expect(
+              page.getByRole("textbox", { name: "Message draft" }),
+            ).toHaveValue("Continue with the launch notes.");
           }
           if (state.startsWith("task-list-badges")) {
-            for (const label of ["Working", "Finishing", "Waiting for access", "Waiting for answer", "Reconnecting", "Retry scheduled", "Recovery needed"]) {
-              await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+            for (const label of [
+              "Working",
+              "Finishing",
+              "Waiting for access",
+              "Waiting for answer",
+              "Reconnecting",
+              "Retry scheduled",
+              "Recovery needed",
+            ]) {
+              await expect(page.getByText(label, { exact: true })).toHaveCount(
+                0,
+              );
             }
           }
           expect(
@@ -72,7 +88,6 @@ test.describe("offline execution recovery stories", () => {
             ),
             fullPage: true,
           });
-
         });
       }
 });

@@ -3,7 +3,10 @@ import type { Issue, IssueComment } from "@taskcore/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { issuesApi } from "@/api/issues";
 import { activityApi } from "@/api/activity";
-import { prefetchIssueComments, prefetchIssueDetailForNavigation } from "./issueDetailCache";
+import {
+  prefetchIssueComments,
+  prefetchIssueDetailForNavigation,
+} from "./issueDetailCache";
 import { queryKeys } from "./queryKeys";
 
 vi.mock("@/api/issues", () => ({
@@ -64,15 +67,22 @@ describe("prefetchIssueComments", () => {
   });
 
   it("warms the first comments page under the infinite query key IssueDetail mounts", async () => {
-    const firstPage = [createComment({ id: "c1" }), createComment({ id: "c2" })];
+    const firstPage = [
+      createComment({ id: "c1" }),
+      createComment({ id: "c2" }),
+    ];
     vi.mocked(issuesApi.listComments).mockResolvedValue(firstPage);
 
     await prefetchIssueComments(queryClient, "PAP-1");
 
-    expect(issuesApi.listComments).toHaveBeenCalledWith("PAP-1", { order: "desc", limit: 50 });
-    const cached = queryClient.getQueryData<{ pages: IssueComment[][]; pageParams: unknown[] }>(
-      queryKeys.issues.comments("PAP-1"),
-    );
+    expect(issuesApi.listComments).toHaveBeenCalledWith("PAP-1", {
+      order: "desc",
+      limit: 50,
+    });
+    const cached = queryClient.getQueryData<{
+      pages: IssueComment[][];
+      pageParams: unknown[];
+    }>(queryKeys.issues.comments("PAP-1"));
     expect(cached?.pages).toEqual([firstPage]);
     expect(cached?.pageParams).toEqual([null]);
   });
@@ -93,16 +103,22 @@ describe("prefetchIssueComments", () => {
     const firstPage = [createComment({ id: "c1" })];
     vi.mocked(issuesApi.listComments).mockResolvedValue(firstPage);
 
-    await prefetchIssueDetailForNavigation(queryClient, issue.identifier!, { issue });
+    await prefetchIssueDetailForNavigation(queryClient, issue.identifier!, {
+      issue,
+    });
 
     // Complete snapshot seeds the detail cache without a network fetch.
     expect(issuesApi.get).not.toHaveBeenCalled();
-    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!))).toEqual(issue);
-    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.id))).toEqual(issue);
-
-    const cachedComments = queryClient.getQueryData<{ pages: IssueComment[][] }>(
-      queryKeys.issues.comments(issue.identifier!),
+    expect(
+      queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!)),
+    ).toEqual(issue);
+    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.id))).toEqual(
+      issue,
     );
+
+    const cachedComments = queryClient.getQueryData<{
+      pages: IssueComment[][];
+    }>(queryKeys.issues.comments(issue.identifier!));
     expect(cachedComments?.pages).toEqual([firstPage]);
     // Hover/focus uses this helper too. Full history starts only once the task
     // page mounts, so moving across links does not fan out expensive reads.

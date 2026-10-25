@@ -26,7 +26,9 @@ export function ReasoningItem({
         <span className="pcr-disclosure-preview">{summary}</span>
       </summary>
       {renderItemBody?.(item) ?? <pre className="pcr-payload">{item.text}</pre>}
-      {interrupted ? <p className="pcr-message-divider">Interrupted while reasoning.</p> : null}
+      {interrupted ? (
+        <p className="pcr-message-divider">Interrupted while reasoning.</p>
+      ) : null}
     </details>
   );
 }

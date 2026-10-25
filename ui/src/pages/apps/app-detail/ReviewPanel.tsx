@@ -11,7 +11,8 @@ export function ReviewPanel({
   Partial<Pick<AppDetailSectionProps, "quarantined" | "pending">> & {
     onReviewQuarantined?: (enabledIds: string[]) => void;
   }) {
-  const showsQuarantinedActions = quarantined.length > 0 && !!onReviewQuarantined;
+  const showsQuarantinedActions =
+    quarantined.length > 0 && !!onReviewQuarantined;
 
   return (
     <div className="space-y-6">

@@ -32,7 +32,9 @@ export const teamCatalogApi = {
     if (query.category) params.set("category", query.category);
     if (query.q) params.set("q", query.q);
     const search = params.toString();
-    return api.get<CatalogTeam[]>(`/teams/catalog${search ? `?${search}` : ""}`);
+    return api.get<CatalogTeam[]>(
+      `/teams/catalog${search ? `?${search}` : ""}`,
+    );
   },
   catalogDetail: (catalogRef: string) =>
     api.get<CatalogTeam>(`/teams/catalog/${encodeURIComponent(catalogRef)}`),
@@ -44,12 +46,20 @@ export const teamCatalogApi = {
     api.get<CatalogTeamFileDetail>(
       `/teams/catalog/${encodeURIComponent(catalogRef)}/files?path=${encodeURIComponent(relativePath)}`,
     ),
-  preview: (companyId: string, catalogRef: string, options: CatalogTeamImportOptions = {}) =>
+  preview: (
+    companyId: string,
+    catalogRef: string,
+    options: CatalogTeamImportOptions = {},
+  ) =>
     api.post<CatalogTeamImportPreviewResult>(
       `/companies/${encodeURIComponent(companyId)}/teams/catalog/${encodeURIComponent(catalogRef)}/preview`,
       options,
     ),
-  install: (companyId: string, catalogRef: string, options: CatalogTeamInstallOptions = {}) =>
+  install: (
+    companyId: string,
+    catalogRef: string,
+    options: CatalogTeamInstallOptions = {},
+  ) =>
     api.post<CatalogTeamInstallResult>(
       `/companies/${encodeURIComponent(companyId)}/teams/catalog/${encodeURIComponent(catalogRef)}/install`,
       options,

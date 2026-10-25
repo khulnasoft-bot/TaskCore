@@ -1,7 +1,4 @@
-import type {
-  ChatProvider,
-  ChatResourceAvailability,
-} from "@taskcore/shared";
+import type { ChatProvider, ChatResourceAvailability } from "@taskcore/shared";
 
 export type ChatProviderLifecycleEffect =
   | {
@@ -493,8 +490,10 @@ export function parseChatProviderLifecycle(
   input: ParseChatProviderLifecycleInput,
 ): ChatProviderLifecycleEffect[] {
   switch (input.provider) {
-    case "imessage-photon": return []; // Authenticated gRPC events own lifecycle.
-    case "agentmail": return [];
+    case "imessage-photon":
+      return []; // Authenticated gRPC events own lifecycle.
+    case "agentmail":
+      return [];
     case "slack":
       return parseSlackLifecycle(input);
     case "github":

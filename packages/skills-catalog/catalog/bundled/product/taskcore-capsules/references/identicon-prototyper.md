@@ -40,22 +40,22 @@ Geometry:
 
 Gradient variants use smooth color only, not dot or stripe patterns:
 
-| Variant id | UI label | Use |
-| --- | --- | --- |
-| `gradient-smooth` | Smooth | Clean two-tone linear gradient. |
-| `gradient-soft` | Sheen | Linear gradient plus a soft radial white highlight near the top. |
-| `gradient-mesh` | Mesh | Base gradient plus overlapping seeded radial color blobs. |
-| `gradient-aurora` | Aurora | Multi-stop diagonal ribbon using three hues plus a broad soft band. |
+| Variant id        | UI label | Use                                                                 |
+| ----------------- | -------- | ------------------------------------------------------------------- |
+| `gradient-smooth` | Smooth   | Clean two-tone linear gradient.                                     |
+| `gradient-soft`   | Sheen    | Linear gradient plus a soft radial white highlight near the top.    |
+| `gradient-mesh`   | Mesh     | Base gradient plus overlapping seeded radial color blobs.           |
+| `gradient-aurora` | Aurora   | Multi-stop diagonal ribbon using three hues plus a broad soft band. |
 
 Dither variants quantize the gradient ramp and emit one SVG path per tone level:
 
-| Variant id | UI label | Algorithm |
-| --- | --- | --- |
-| `dither-floyd` | Floyd | Floyd-Steinberg error diffusion; compact classic grain. |
-| `dither-atkinson` | Atkinson | Atkinson error diffusion; crisp Mac-era contrast. |
-| `dither-jjn` | JJN | Jarvis-Judice-Ninke wide-kernel diffusion; smoother photographic grain. |
-| `dither-bayer4` | Bayer 4 | Ordered dithering with a 4x4 Bayer matrix. |
-| `dither-bayer8` | Bayer 8 | Ordered dithering with a recursively built 8x8 Bayer matrix. |
+| Variant id         | UI label   | Algorithm                                                                        |
+| ------------------ | ---------- | -------------------------------------------------------------------------------- |
+| `dither-floyd`     | Floyd      | Floyd-Steinberg error diffusion; compact classic grain.                          |
+| `dither-atkinson`  | Atkinson   | Atkinson error diffusion; crisp Mac-era contrast.                                |
+| `dither-jjn`       | JJN        | Jarvis-Judice-Ninke wide-kernel diffusion; smoother photographic grain.          |
+| `dither-bayer4`    | Bayer 4    | Ordered dithering with a 4x4 Bayer matrix.                                       |
+| `dither-bayer8`    | Bayer 8    | Ordered dithering with a recursively built 8x8 Bayer matrix.                     |
 | `dither-bluenoise` | Blue Noise | Hash-based void-and-cluster-style threshold mask; avoids visible grid structure. |
 
 ## Color Systems

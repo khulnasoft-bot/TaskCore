@@ -8,7 +8,11 @@ const durableDirectories = new Map<string, string>();
 export async function syncDirectory(directory: string) {
   if (process.platform === "win32") return;
   const handle = await fs.open(directory, "r");
-  try { await handle.sync(); } finally { await handle.close(); }
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
 }
 
 async function directoryAncestry(directory: string) {
@@ -23,12 +27,18 @@ async function directoryAncestry(directory: string) {
   while (pending.length > 0) {
     const part = pending.shift()!;
     if (!part || part === ".") continue;
-    if (part === "..") { current = path.dirname(current); continue; }
+    if (part === "..") {
+      current = path.dirname(current);
+      continue;
+    }
     const next = path.join(current, part);
     const stat = await fs.lstat(next, { bigint: true });
     identities.push(`${next}:${stat.dev}:${stat.ino}:${stat.birthtimeNs}`);
     if (stat.isSymbolicLink()) {
-      if (++links > 40) throw Object.assign(new Error("Too many storage symlinks"), { code: "ELOOP" });
+      if (++links > 40)
+        throw Object.assign(new Error("Too many storage symlinks"), {
+          code: "ELOOP",
+        });
       const target = await fs.readlink(next);
       identities.push(target);
       // Resolve target components in filesystem order. Normalizing a target
@@ -36,12 +46,18 @@ async function directoryAncestry(directory: string) {
       if (path.isAbsolute(target)) current = path.parse(target).root;
       pending = target.split(path.sep).concat(pending);
     } else {
-      if (!stat.isDirectory()) throw Object.assign(new Error("Storage path is not a directory"), { code: "ENOTDIR" });
+      if (!stat.isDirectory())
+        throw Object.assign(new Error("Storage path is not a directory"), {
+          code: "ENOTDIR",
+        });
       current = next;
       directories.add(current);
     }
   }
-  return { directories: [...directories].reverse(), identity: JSON.stringify(identities) };
+  return {
+    directories: [...directories].reverse(),
+    identity: JSON.stringify(identities),
+  };
 }
 
 /** An existing directory may be left by an interrupted mkdir/flush sequence.
@@ -54,7 +70,7 @@ export async function ensureDurableDirectory(directory: string) {
     await fs.mkdir(resolved, { recursive: true, mode: 0o700 });
     return;
   }
-  let ancestry = await directoryAncestry(resolved).catch(error => {
+  let ancestry = await directoryAncestry(resolved).catch((error) => {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     return null;
   });
@@ -66,6 +82,7 @@ export async function ensureDurableDirectory(directory: string) {
   for (const parent of ancestry.directories) await syncDirectory(parent);
   // Cache only a fully flushed path. Failures, siblings and fresh processes
   // each retry the entire chain rather than inferring durability from existence.
-  if (durableDirectories.size >= 1024) durableDirectories.delete(durableDirectories.keys().next().value!);
+  if (durableDirectories.size >= 1024)
+    durableDirectories.delete(durableDirectories.keys().next().value!);
   durableDirectories.set(resolved, ancestry.identity);
 }

@@ -34,7 +34,11 @@ const MENU_ACTION_DESCRIPTION = "Toggle the app appearance.";
  * the in-app account menu render through this component so the label,
  * icon, and toggle behaviour stay in sync as the theme model evolves.
  */
-export function ThemeToggle({ className, variant = "icon", onAfterToggle }: ThemeToggleProps) {
+export function ThemeToggle({
+  className,
+  variant = "icon",
+  onAfterToggle,
+}: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
   const label = isDark ? "Switch to light mode" : "Switch to dark mode";
@@ -79,8 +83,12 @@ export function ThemeToggle({ className, variant = "icon", onAfterToggle }: Them
           <Icon className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-foreground">{label}</span>
-          <span className="block text-xs text-muted-foreground">{MENU_ACTION_DESCRIPTION}</span>
+          <span className="block text-sm font-medium text-foreground">
+            {label}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            {MENU_ACTION_DESCRIPTION}
+          </span>
         </span>
       </button>
     );

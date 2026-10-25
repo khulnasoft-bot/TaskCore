@@ -1,9 +1,4 @@
-const TEST_DIRECTORY_NAMES = new Set([
-  "__tests__",
-  "_tests",
-  "test",
-  "tests",
-]);
+const TEST_DIRECTORY_NAMES = new Set(["__tests__", "_tests", "test", "tests"]);
 
 const TEST_FILE_BASENAME_RE = /\.(test|spec)\.[^/]+$/i;
 
@@ -14,8 +9,10 @@ export function shouldIgnoreUiDevWatchPath(watchedPath: string): boolean {
   const segments = normalizedPath.split("/");
   const basename = segments.at(-1) ?? normalizedPath;
 
-  return segments.some((segment) => TEST_DIRECTORY_NAMES.has(segment))
-    || TEST_FILE_BASENAME_RE.test(basename);
+  return (
+    segments.some((segment) => TEST_DIRECTORY_NAMES.has(segment)) ||
+    TEST_FILE_BASENAME_RE.test(basename)
+  );
 }
 
 export function createUiDevWatchOptions(currentWorkingDirectory: string) {

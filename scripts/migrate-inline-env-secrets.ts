@@ -11,13 +11,15 @@ type EnvBinding =
   | { type: "secret_ref"; secretId: string; version?: number | "latest" };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
 function toPlainValue(binding: unknown): string | null {
   if (typeof binding === "string") return binding;
-  if (typeof binding !== "object" || binding === null || Array.isArray(binding)) return null;
+  if (typeof binding !== "object" || binding === null || Array.isArray(binding))
+    return null;
   const rec = binding as Record<string, unknown>;
   if (rec.type === "plain" && typeof rec.value === "string") return rec.value;
   return null;
@@ -50,7 +52,9 @@ async function main() {
     if (!env) continue;
 
     let changed = false;
-    const nextEnv: Record<string, EnvBinding> = { ...(env as Record<string, EnvBinding>) };
+    const nextEnv: Record<string, EnvBinding> = {
+      ...(env as Record<string, EnvBinding>),
+    };
 
     for (const [key, rawBinding] of Object.entries(env)) {
       if (!SENSITIVE_ENV_KEY_RE.test(key)) continue;
@@ -68,7 +72,11 @@ async function main() {
             { userId: "migration", agentId: null },
           );
           rotatedSecrets += 1;
-          nextEnv[key] = { type: "secret_ref", secretId: existing.id, version: "latest" };
+          nextEnv[key] = {
+            type: "secret_ref",
+            secretId: existing.id,
+            version: "latest",
+          };
         } else {
           const created = await secrets.create(
             agent.companyId,
@@ -81,7 +89,11 @@ async function main() {
             { userId: "migration", agentId: null },
           );
           createdSecrets += 1;
-          nextEnv[key] = { type: "secret_ref", secretId: created.id, version: "latest" };
+          nextEnv[key] = {
+            type: "secret_ref",
+            secretId: created.id,
+            version: "latest",
+          };
         }
       } else {
         nextEnv[key] = {

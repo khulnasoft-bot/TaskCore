@@ -27,21 +27,35 @@ const mockCasesApi = vi.hoisted(() => ({
   restoreDocumentRevision: vi.fn(),
   deleteDocument: vi.fn(),
 }));
-const mockIssuesApi = vi.hoisted(() => ({ listLabels: vi.fn(), createLabel: vi.fn() }));
-const panelState = vi.hoisted(() => ({ openPanel: vi.fn(), closePanel: vi.fn() }));
-const mockCopyTextToClipboard = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+const mockIssuesApi = vi.hoisted(() => ({
+  listLabels: vi.fn(),
+  createLabel: vi.fn(),
+}));
+const panelState = vi.hoisted(() => ({
+  openPanel: vi.fn(),
+  closePanel: vi.fn(),
+}));
+const mockCopyTextToClipboard = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve()),
+);
 
 vi.mock("@/context/CompanyContext", () => ({ useCompany: () => companyState }));
-vi.mock("@/context/BreadcrumbContext", () => ({ useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }) }));
+vi.mock("@/context/BreadcrumbContext", () => ({
+  useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }),
+}));
 vi.mock("@/context/PanelContext", () => ({ usePanel: () => panelState }));
 vi.mock("@/api/cases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/cases")>()),
   casesApi: mockCasesApi,
 }));
 vi.mock("@/api/issues", () => ({ issuesApi: mockIssuesApi }));
-vi.mock("@/lib/clipboard", () => ({ copyTextToClipboard: mockCopyTextToClipboard }));
+vi.mock("@/lib/clipboard", () => ({
+  copyTextToClipboard: mockCopyTextToClipboard,
+}));
 vi.mock("@/components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: string }) => <div data-testid="md">{children}</div>,
+  MarkdownBody: ({ children }: { children: string }) => (
+    <div data-testid="md">{children}</div>
+  ),
 }));
 vi.mock("@/components/IssueDocumentsSection", () => ({
   IssueDocumentsSection: ({ subject }: { subject?: { id: string } }) => (
@@ -52,11 +66,19 @@ vi.mock("@/lib/router", () => ({
   useParams: () => ({ caseIdentifier: "PAP-C7" }),
   useLocation: () => ({ hash: "" }),
   Navigate: () => null,
-  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
-  useCaseHref: () => (...segments: string[]) =>
-    `/PAP/${["cases", ...segments].filter(Boolean).join("/")}`,
+  useCaseHref:
+    () =>
+    (...segments: string[]) =>
+      `/PAP/${["cases", ...segments].filter(Boolean).join("/")}`,
 }));
 
 async function flush() {
@@ -196,7 +218,9 @@ function childCase(index: number): CaseSummary {
 
 function renderPage(container: HTMLDivElement) {
   const root = createRoot(container);
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   act(() => {
     root.render(
       <QueryClientProvider client={queryClient}>
@@ -269,8 +293,8 @@ describe("CaseDetail", () => {
       expect(container.textContent).toContain("PAP-C7");
     });
 
-    const caseIdButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent === "PAP-C7"
+    const caseIdButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "PAP-C7",
     );
     expect(caseIdButton).toBeTruthy();
     act(() => {
@@ -292,12 +316,14 @@ describe("CaseDetail", () => {
       expect(container.textContent).toContain("v2026.707/hermes-agent-post");
     });
 
-    const identityGroup = container.querySelector('[data-case-identity-group="true"]');
+    const identityGroup = container.querySelector(
+      '[data-case-identity-group="true"]',
+    );
     expect(identityGroup).not.toBeNull();
     expect(identityGroup?.className).toContain("whitespace-nowrap");
 
-    const keyButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent === "v2026.707/hermes-agent-post"
+    const keyButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "v2026.707/hermes-agent-post",
     );
     expect(keyButton).toBeTruthy();
     act(() => {
@@ -305,7 +331,9 @@ describe("CaseDetail", () => {
     });
 
     await waitForAssertion(() => {
-      expect(mockCopyTextToClipboard).toHaveBeenCalledWith("v2026.707/hermes-agent-post");
+      expect(mockCopyTextToClipboard).toHaveBeenCalledWith(
+        "v2026.707/hermes-agent-post",
+      );
       expect(keyButton!.parentElement?.textContent).toContain("Copied");
     });
 
@@ -325,7 +353,9 @@ describe("CaseDetail", () => {
       },
     };
     mockCasesApi.get.mockResolvedValue(caseWithParent);
-    mockCasesApi.listChildren.mockResolvedValue(Array.from({ length: 6 }, (_, index) => childCase(index + 3)));
+    mockCasesApi.listChildren.mockResolvedValue(
+      Array.from({ length: 6 }, (_, index) => childCase(index + 3)),
+    );
 
     const root = renderPage(container);
 
@@ -342,8 +372,8 @@ describe("CaseDetail", () => {
       expect(text.indexOf("Children 6")).toBeLessThan(text.indexOf("Overview"));
     });
 
-    const showMore = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Show 1 more")
+    const showMore = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Show 1 more"),
     );
     expect(showMore).toBeTruthy();
     act(() => {
@@ -368,7 +398,9 @@ describe("CaseDetail", () => {
     const panelContainer = document.createElement("div");
     document.body.appendChild(panelContainer);
     const panelRoot = createRoot(panelContainer);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     act(() => {
       panelRoot.render(
         <QueryClientProvider client={queryClient}>
@@ -397,8 +429,8 @@ describe("CaseDetail", () => {
       expect(text).not.toContain("Activity");
     });
 
-    const keyValue = Array.from(panelContainer.querySelectorAll("button")).find((button) =>
-      button.textContent === "v2026.707/hermes-agent-post"
+    const keyValue = Array.from(panelContainer.querySelectorAll("button")).find(
+      (button) => button.textContent === "v2026.707/hermes-agent-post",
     );
     expect(keyValue).toBeTruthy();
     act(() => {
@@ -406,20 +438,24 @@ describe("CaseDetail", () => {
     });
 
     await waitForAssertion(() => {
-      expect(mockCopyTextToClipboard).toHaveBeenCalledWith("v2026.707/hermes-agent-post");
+      expect(mockCopyTextToClipboard).toHaveBeenCalledWith(
+        "v2026.707/hermes-agent-post",
+      );
       expect(keyValue!.parentElement?.textContent).toContain("Copied");
     });
 
-    const titleValue = Array.from(panelContainer.querySelectorAll("button")).find((button) =>
-      button.textContent === "Hermes agent launch post"
-    );
+    const titleValue = Array.from(
+      panelContainer.querySelectorAll("button"),
+    ).find((button) => button.textContent === "Hermes agent launch post");
     expect(titleValue).toBeTruthy();
     act(() => {
       titleValue!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitForAssertion(() => {
-      expect(mockCopyTextToClipboard).toHaveBeenCalledWith("Hermes agent launch post");
+      expect(mockCopyTextToClipboard).toHaveBeenCalledWith(
+        "Hermes agent launch post",
+      );
       expect(titleValue!.parentElement?.textContent).toContain("Copied");
     });
 
@@ -435,13 +471,15 @@ describe("CaseDetail", () => {
       expect(container.textContent).toContain("Properties");
     });
 
-    const propertiesTab = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Properties")
+    const propertiesTab = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Properties"),
     );
     expect(propertiesTab).toBeTruthy();
     act(() => {
       propertiesTab!.focus();
-      propertiesTab!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      propertiesTab!.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
     });
 
     await waitForAssertion(() => {
@@ -449,7 +487,11 @@ describe("CaseDetail", () => {
       expect(text).toContain("title");
       expect(text).toContain("Hermes agent launch post");
       expect(text).toContain("issue_identifiers");
-      expect(container.querySelector('a[data-mention-kind="issue"][href="/issues/PAP-12947"]')).not.toBeNull();
+      expect(
+        container.querySelector(
+          'a[data-mention-kind="issue"][href="/issues/PAP-12947"]',
+        ),
+      ).not.toBeNull();
       expect(text).not.toContain("body");
       expect(text).not.toContain("Legacy body field");
       expect(text).not.toContain("runbook");

@@ -49,7 +49,8 @@ function safeRelativeAssetHref(relative: string | undefined) {
 }
 
 function campaignStatus(campaign: RunnerE2EHistoryCampaign) {
-  if (campaign.failed === 0 && (campaign.incomplete ?? 0) > 0) return "incomplete";
+  if (campaign.failed === 0 && (campaign.incomplete ?? 0) > 0)
+    return "incomplete";
   return campaign.failed === 0 &&
     campaign.passed === campaign.selected &&
     campaign.executed === campaign.selected &&
@@ -126,10 +127,15 @@ export function renderRunnerHistoryIndex(
   const latestGreen = campaigns.find(
     (campaign) => campaign.campaignId === history.latestGreenCampaignId,
   );
-  const totalCost = campaigns.some(c => c.billing.observedAndEstimatedCostUsd === null) ? null : campaigns.reduce(
-    (sum, campaign) => sum + (campaign.billing.observedAndEstimatedCostUsd ?? 0),
-    0,
-  );
+  const totalCost = campaigns.some(
+    (c) => c.billing.observedAndEstimatedCostUsd === null,
+  )
+    ? null
+    : campaigns.reduce(
+        (sum, campaign) =>
+          sum + (campaign.billing.observedAndEstimatedCostUsd ?? 0),
+        0,
+      );
   const rows =
     campaigns.length > 0
       ? campaigns.map(campaignRow).join("")

@@ -41,7 +41,8 @@ const INTERACTION_SETTLED_CODES = [
   "interaction_issue_closed",
 ] as const;
 
-export type InteractionResolutionFailureKind = "audience_denied" | "settled" | "transient";
+export type InteractionResolutionFailureKind =
+  "audience_denied" | "settled" | "transient";
 
 export interface InteractionResolutionFailure {
   kind: InteractionResolutionFailureKind;
@@ -53,7 +54,7 @@ export interface InteractionResolutionFailure {
 
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
@@ -63,7 +64,9 @@ export function interactionResolutionErrorCode(error: unknown): string | null {
   if (!body) return null;
   if (typeof body.code === "string" && body.code) return body.code;
   const details = record(body.details);
-  return typeof details?.code === "string" && details.code ? details.code : null;
+  return typeof details?.code === "string" && details.code
+    ? details.code
+    : null;
 }
 
 function errorStatus(error: unknown): number | null {
@@ -84,7 +87,10 @@ function serverReason(error: unknown): string | null {
 
 export function isInteractionAudienceDenial(error: unknown): boolean {
   const code = interactionResolutionErrorCode(error);
-  if (code) return (INTERACTION_AUDIENCE_DENIAL_CODES as readonly string[]).includes(code);
+  if (code)
+    return (INTERACTION_AUDIENCE_DENIAL_CODES as readonly string[]).includes(
+      code,
+    );
   // A 403 with no code is still an authorization refusal, not a hiccup.
   return errorStatus(error) === 403;
 }
@@ -116,20 +122,22 @@ export function describeInteractionResolutionFailure(
     // "You are not in this card's resolver audience. Anyone can respond." —
     // which happens whenever the snapshot the client holds is wider than the
     // policy the server just enforced (PAP-17289).
-    const responder = audience && !audience.isOpen && audience.shortSummary
-      ? `${audience.shortSummary}.`
-      : null;
+    const responder =
+      audience && !audience.isOpen && audience.shortSummary
+        ? `${audience.shortSummary}.`
+        : null;
     // Without a code the server has told us only that this is forbidden, not
     // *why*. Restate the status; do not invent a resolver-audience cause it
     // never claimed.
-    const coded = code !== null
-      && (INTERACTION_AUDIENCE_DENIAL_CODES as readonly string[]).includes(code);
+    const coded =
+      code !== null &&
+      (INTERACTION_AUDIENCE_DENIAL_CODES as readonly string[]).includes(code);
     return {
       kind: "audience_denied",
       code,
       message: [
-        reason
-          ?? (coded
+        reason ??
+          (coded
             ? "You are not in this card's resolver audience."
             : "You do not have permission to respond to this card."),
         responder,

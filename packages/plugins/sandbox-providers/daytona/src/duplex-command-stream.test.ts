@@ -7,7 +7,10 @@ import {
   type DaytonaPtyHandle,
   type DaytonaPtyProcess,
 } from "./duplex-command-stream.js";
-import { PTY_INPUT_CHUNK_BYTES, PTY_MESSAGE_CAP_BYTES } from "./pty-chunked-input.js";
+import {
+  PTY_INPUT_CHUNK_BYTES,
+  PTY_MESSAGE_CAP_BYTES,
+} from "./pty-chunked-input.js";
 
 // The carriage return that submits the launch wrapper line to the terminal.
 const ENTER = "\r";
@@ -28,7 +31,9 @@ const GATEWAY_QUOTED = "'node' '/taskcore/gateway.mjs'";
  * place of the real SDK `PtyHandle`, so the session runs with no sandbox. The fake
  * never echoes input back as output, so a test proves the channel adds no echo.
  */
-function createFakePtyHandle(onData: (data: Uint8Array) => void | Promise<void>): DaytonaPtyHandle & {
+function createFakePtyHandle(
+  onData: (data: Uint8Array) => void | Promise<void>,
+): DaytonaPtyHandle & {
   inputs: string[];
   emitText: (text: string) => void;
   emitBytes: (bytes: Uint8Array) => void;
@@ -38,16 +43,21 @@ function createFakePtyHandle(onData: (data: Uint8Array) => void | Promise<void>)
 } {
   const encoder = new TextEncoder();
   const inputs: string[] = [];
-  let resolveWait: ((value: { exitCode?: number; error?: string }) => void) | null = null;
-  const waitPromise = new Promise<{ exitCode?: number; error?: string }>((resolve) => {
-    resolveWait = resolve;
-  });
+  let resolveWait:
+    ((value: { exitCode?: number; error?: string }) => void) | null = null;
+  const waitPromise = new Promise<{ exitCode?: number; error?: string }>(
+    (resolve) => {
+      resolveWait = resolve;
+    },
+  );
   let killed = 0;
   let disconnected = 0;
   return {
     async waitForConnection(): Promise<void> {},
     async sendInput(data: string | Uint8Array): Promise<void> {
-      inputs.push(typeof data === "string" ? data : new TextDecoder().decode(data));
+      inputs.push(
+        typeof data === "string" ? data : new TextDecoder().decode(data),
+      );
     },
     wait(): Promise<{ exitCode?: number; error?: string }> {
       return waitPromise;
@@ -99,7 +109,9 @@ function createFakeProcess(): DaytonaPtyProcess & {
     get createOptions() {
       return state.createOptions;
     },
-    async createPty(options: DaytonaPtyCreateOptions): Promise<DaytonaPtyHandle> {
+    async createPty(
+      options: DaytonaPtyCreateOptions,
+    ): Promise<DaytonaPtyHandle> {
       state.createOptions = options;
       const handle = createFakePtyHandle(options.onData);
       state.handle = handle;
@@ -123,7 +135,10 @@ function createFakeProcess(): DaytonaPtyProcess & {
 /** The subset of the Daytona session command surface, for the characterization. */
 interface DaytonaSessionCommandSurface {
   createSession(sessionId: string): Promise<void>;
-  executeSessionCommand(sessionId: string, command: unknown): Promise<{ cmdId?: string }>;
+  executeSessionCommand(
+    sessionId: string,
+    command: unknown,
+  ): Promise<{ cmdId?: string }>;
   getSessionCommandLogs(
     sessionId: string,
     commandId: string,
@@ -197,7 +212,10 @@ describe("buildDuplexChannelLaunchWrapper", () => {
   });
 
   it("quotes a diagnostics path that holds shell metacharacters, so it cannot inject a command", () => {
-    const wrapper = buildDuplexChannelLaunchWrapper(GATEWAY, "/tmp/x; rm -rf ~");
+    const wrapper = buildDuplexChannelLaunchWrapper(
+      GATEWAY,
+      "/tmp/x; rm -rf ~",
+    );
 
     // The path is one single-quoted word, so the shell reads the metacharacters as
     // literal text. The dangerous `rm` never becomes its own command.
@@ -206,7 +224,10 @@ describe("buildDuplexChannelLaunchWrapper", () => {
   });
 
   it("quotes a single quote in the diagnostics path", () => {
-    const wrapper = buildDuplexChannelLaunchWrapper(GATEWAY, "/tmp/o'clock.log");
+    const wrapper = buildDuplexChannelLaunchWrapper(
+      GATEWAY,
+      "/tmp/o'clock.log",
+    );
 
     // A single quote closes the word, adds an escaped quote, and reopens the word.
     expect(wrapper).toContain(`2>'/tmp/o'"'"'clock.log'`);
@@ -220,7 +241,9 @@ describe("buildDuplexChannelLaunchWrapper", () => {
 
     // Each argument is one single-quoted word, so the metacharacters stay literal
     // text. The dangerous `rm` argument never becomes its own command.
-    expect(wrapper).toContain(`exec 'node' '/taskcore/gateway.mjs' '; rm -rf ~'`);
+    expect(wrapper).toContain(
+      `exec 'node' '/taskcore/gateway.mjs' '; rm -rf ~'`,
+    );
     expect(wrapper).not.toContain("; rm -rf ~;");
     expect(wrapper).not.toContain("exec node /taskcore/gateway.mjs ; rm -rf ~");
   });
@@ -254,7 +277,9 @@ describe("openDaytonaDuplexChannelSession", () => {
       diagnosticsPath: "/tmp/taskcore-duplex-fixed.log",
     });
 
-    expect(process.handle?.inputs[0]).toContain("2>'/tmp/taskcore-duplex-fixed.log'");
+    expect(process.handle?.inputs[0]).toContain(
+      "2>'/tmp/taskcore-duplex-fixed.log'",
+    );
   });
 
   it("defaults the diagnostics path under /tmp when the caller gives none", async () => {
@@ -262,7 +287,9 @@ describe("openDaytonaDuplexChannelSession", () => {
 
     await openDaytonaDuplexChannelSession(process, GATEWAY);
 
-    expect(process.handle?.inputs[0]).toMatch(/2>'\/tmp\/taskcore-duplex-[0-9a-f-]+\.log'/);
+    expect(process.handle?.inputs[0]).toMatch(
+      /2>'\/tmp\/taskcore-duplex-[0-9a-f-]+\.log'/,
+    );
   });
 
   it("delivers a host write to the process and does not echo it back as data", async () => {
@@ -273,10 +300,14 @@ describe("openDaytonaDuplexChannelSession", () => {
     session.onData((chunk) => received.push(new TextDecoder().decode(chunk)));
 
     // The launch wrapper is the first input; the host frame write is the second.
-    session.write(new TextEncoder().encode('{"version":1,"type":"heartbeat"}\n'));
+    session.write(
+      new TextEncoder().encode('{"version":1,"type":"heartbeat"}\n'),
+    );
     // The chunker awaits each send, so let the write settle before the assertion.
     await new Promise((resolve) => setImmediate(resolve));
-    expect(process.handle?.inputs[1]).toBe('{"version":1,"type":"heartbeat"}\n');
+    expect(process.handle?.inputs[1]).toBe(
+      '{"version":1,"type":"heartbeat"}\n',
+    );
     // The fake terminal echoes nothing, so the write produces no data callback.
     // A real terminal in raw mode with echo off behaves the same way.
     expect(received).toEqual([]);
@@ -289,7 +320,9 @@ describe("openDaytonaDuplexChannelSession", () => {
     const session = await openDaytonaDuplexChannelSession(process, GATEWAY);
     session.onData((chunk) => received.push(new TextDecoder().decode(chunk)));
 
-    process.handle?.emitText('{"version":1,"type":"ready","address":"127.0.0.1:8080"}\n');
+    process.handle?.emitText(
+      '{"version":1,"type":"ready","address":"127.0.0.1:8080"}\n',
+    );
     process.handle?.emitText('{"version":1,"type":"heartbeat"}\n');
 
     // The order is preserved and no newline is translated (no stray "\r").
@@ -307,7 +340,8 @@ describe("openDaytonaDuplexChannelSession", () => {
     const session = await openDaytonaDuplexChannelSession(process, GATEWAY);
     session.onData((chunk) => received.push(new TextDecoder().decode(chunk)));
 
-    const frame = '{"version":1,"type":"response","id":"r1","status":200,"headers":{},"body":"","outcome":"completed"}\n';
+    const frame =
+      '{"version":1,"type":"response","id":"r1","status":200,"headers":{},"body":"","outcome":"completed"}\n';
     process.handle?.emitText(frame.slice(0, 20));
     process.handle?.emitText(frame.slice(20));
 
@@ -388,7 +422,10 @@ describe("openDaytonaDuplexChannelSession", () => {
     process.handle?.finish(3);
 
     // A numeric exit code is a real process exit, not a transport close.
-    await expect(session.wait()).resolves.toEqual({ exitCode: 3, transportClosed: false });
+    await expect(session.wait()).resolves.toEqual({
+      exitCode: 3,
+      transportClosed: false,
+    });
   });
 
   it("maps an absent SDK exit code to a transport close", async () => {
@@ -399,7 +436,10 @@ describe("openDaytonaDuplexChannelSession", () => {
 
     // A non-numeric SDK result marks a reason-less transport close with no exit
     // data, so the seam reports a transport close, not a process exit.
-    await expect(session.wait()).resolves.toEqual({ exitCode: null, transportClosed: true });
+    await expect(session.wait()).resolves.toEqual({
+      exitCode: null,
+      transportClosed: true,
+    });
   });
 
   it("splits a write above the provider cap into more than one send under the cap", async () => {
@@ -421,8 +461,12 @@ describe("openDaytonaDuplexChannelSession", () => {
     const sends = handle.inputs.slice(before);
     expect(sends.length).toBeGreaterThan(1);
     for (const chunk of sends) {
-      expect(Buffer.byteLength(chunk, "utf8")).toBeLessThanOrEqual(PTY_INPUT_CHUNK_BYTES);
-      expect(Buffer.byteLength(chunk, "utf8")).toBeLessThanOrEqual(PTY_MESSAGE_CAP_BYTES);
+      expect(Buffer.byteLength(chunk, "utf8")).toBeLessThanOrEqual(
+        PTY_INPUT_CHUNK_BYTES,
+      );
+      expect(Buffer.byteLength(chunk, "utf8")).toBeLessThanOrEqual(
+        PTY_MESSAGE_CAP_BYTES,
+      );
     }
     // The sends rejoin to the exact payload, so the chunker loses no byte.
     expect(sends.join("")).toBe(payload);
@@ -435,7 +479,9 @@ describe("openDaytonaDuplexChannelSession", () => {
     if (!handle) throw new Error("The fake process opened no handle.");
     const before = handle.inputs.length;
 
-    session.write(new TextEncoder().encode('{"version":1,"type":"heartbeat"}\n'));
+    session.write(
+      new TextEncoder().encode('{"version":1,"type":"heartbeat"}\n'),
+    );
     // The chunker awaits each send, so let the write settle before the assertion.
     await new Promise((resolve) => setImmediate(resolve));
 
@@ -451,7 +497,9 @@ describe("openDaytonaDuplexChannelSession", () => {
       async waitForConnection(): Promise<void> {},
       async sendInput(data: string | Uint8Array): Promise<void> {
         await Promise.resolve();
-        inputs.push(typeof data === "string" ? data : new TextDecoder().decode(data));
+        inputs.push(
+          typeof data === "string" ? data : new TextDecoder().decode(data),
+        );
       },
       wait(): Promise<{ exitCode?: number; error?: string }> {
         return new Promise(() => {});
@@ -498,7 +546,9 @@ describe("openDaytonaDuplexChannelSession", () => {
   it("passes the working directory to the pseudo-terminal", async () => {
     const process = createFakeProcess();
 
-    await openDaytonaDuplexChannelSession(process, GATEWAY, { cwd: "/taskcore-workspace" });
+    await openDaytonaDuplexChannelSession(process, GATEWAY, {
+      cwd: "/taskcore-workspace",
+    });
 
     expect(process.createOptions?.cwd).toBe("/taskcore-workspace");
   });
@@ -591,7 +641,8 @@ describe("openDaytonaDuplexChannelSession", () => {
     const handle: DaytonaPtyHandle = {
       async waitForConnection(): Promise<void> {},
       async sendInput(data: string | Uint8Array): Promise<void> {
-        const text = typeof data === "string" ? data : new TextDecoder().decode(data);
+        const text =
+          typeof data === "string" ? data : new TextDecoder().decode(data);
         sends.push(text);
         // The launch wrapper write (the first send) succeeds. The first frame
         // write (the second send) rejects and terminalizes the channel.
@@ -635,7 +686,9 @@ describe("openDaytonaDuplexChannelSession", () => {
 describe("createDaytonaDuplexChannelSessionOpener", () => {
   it("opens a session for the command on each call", async () => {
     const process = createFakeProcess();
-    const opener = createDaytonaDuplexChannelSessionOpener(process, { cwd: "/taskcore-workspace" });
+    const opener = createDaytonaDuplexChannelSessionOpener(process, {
+      cwd: "/taskcore-workspace",
+    });
 
     const session = await opener(GATEWAY);
 

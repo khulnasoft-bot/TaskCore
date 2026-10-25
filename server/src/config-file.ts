@@ -28,7 +28,9 @@ export function readConfigFile(): TaskcoreConfig | null {
     raw = JSON.parse(fs.readFileSync(configPath, "utf-8"));
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid Taskcore config at ${configPath}: failed to read or parse JSON: ${reason}`);
+    throw new Error(
+      `Invalid Taskcore config at ${configPath}: failed to read or parse JSON: ${reason}`,
+    );
   }
 
   try {
@@ -41,7 +43,9 @@ export function readConfigFile(): TaskcoreConfig | null {
     return config;
   } catch (error) {
     if (error instanceof ZodError) {
-      throw new Error(`Invalid Taskcore config at ${configPath}: ${formatConfigValidationError(error)}`);
+      throw new Error(
+        `Invalid Taskcore config at ${configPath}: ${formatConfigValidationError(error)}`,
+      );
     }
 
     throw error;
@@ -49,9 +53,11 @@ export function readConfigFile(): TaskcoreConfig | null {
 }
 
 /** Resolve the same deployment mode without loading config.ts's dotenv/startup side effects. */
-export function resolveDeploymentMode(fileConfig = readConfigFile()): DeploymentMode {
+export function resolveDeploymentMode(
+  fileConfig = readConfigFile(),
+): DeploymentMode {
   const fromEnv = process.env.TASKCORE_DEPLOYMENT_MODE;
   return fromEnv && DEPLOYMENT_MODES.includes(fromEnv as DeploymentMode)
-    ? fromEnv as DeploymentMode
-    : fileConfig?.server.deploymentMode ?? "local_trusted";
+    ? (fromEnv as DeploymentMode)
+    : (fileConfig?.server.deploymentMode ?? "local_trusted");
 }

@@ -242,8 +242,10 @@ export function errorHandler(
   // keep the raw error out of crash reporting and HTTP error context.
   if (
     err instanceof SyntaxError &&
-    "status" in err && err.status === 400 &&
-    "type" in err && err.type === "entity.parse.failed"
+    "status" in err &&
+    err.status === 400 &&
+    "type" in err &&
+    err.type === "entity.parse.failed"
   ) {
     res.status(400).json({ error: "Invalid JSON body" });
     return;

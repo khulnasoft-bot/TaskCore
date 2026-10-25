@@ -1,4 +1,5 @@
-export type HeartbeatRunOutcome = "succeeded" | "interrupted" | "failed" | "cancelled" | "timed_out";
+export type HeartbeatRunOutcome =
+  "succeeded" | "interrupted" | "failed" | "cancelled" | "timed_out";
 
 export type HeartbeatRunStopReason =
   | "completed"
@@ -16,7 +17,13 @@ export interface HeartbeatRunTimeoutPolicy {
   effectiveTimeoutSec: number | null;
   effectiveTimeoutMs?: number | null;
   timeoutConfigured: boolean;
-  timeoutSource: "config" | "default" | "unknown" | "configured" | "sandbox_default" | "unlimited";
+  timeoutSource:
+    | "config"
+    | "default"
+    | "unknown"
+    | "configured"
+    | "sandbox_default"
+    | "unlimited";
 }
 
 export interface HeartbeatRunStopMetadata extends HeartbeatRunTimeoutPolicy {
@@ -43,7 +50,9 @@ function defaultTimeoutSecForAdapter(adapterType: string) {
   return adapterType === "openclaw_gateway" ? 120 : 0;
 }
 
-export function normalizeMaxTurnStopReason(value: unknown): Extract<HeartbeatRunStopReason, "max_turns_exhausted"> | null {
+export function normalizeMaxTurnStopReason(
+  value: unknown,
+): Extract<HeartbeatRunStopReason, "max_turns_exhausted"> | null {
   return value === "max_turns_exhausted" || value === "turn_limit_exhausted"
     ? "max_turns_exhausted"
     : null;
@@ -69,8 +78,13 @@ export function resolveHeartbeatRunTimeoutPolicy(
 
   const hasTimeoutSec = hasOwn(config, "timeoutSec");
   const defaultTimeoutSec = defaultTimeoutSecForAdapter(adapterType);
-  const rawTimeoutSec = hasTimeoutSec ? readFiniteNumber(config.timeoutSec) : defaultTimeoutSec;
-  const timeoutSec = Math.max(0, Math.floor(rawTimeoutSec ?? defaultTimeoutSec));
+  const rawTimeoutSec = hasTimeoutSec
+    ? readFiniteNumber(config.timeoutSec)
+    : defaultTimeoutSec;
+  const timeoutSec = Math.max(
+    0,
+    Math.floor(rawTimeoutSec ?? defaultTimeoutSec),
+  );
 
   return {
     effectiveTimeoutSec: timeoutSec,
@@ -89,12 +103,18 @@ export function inferHeartbeatRunStopReason(input: {
   const maxTurnStopReason = normalizeMaxTurnStopReason(input.errorCode);
   if (maxTurnStopReason) return maxTurnStopReason;
   if (input.outcome === "timed_out") return "timeout";
-  if (input.outcome === "failed" && input.errorCode === "unmanaged_background_task_stopped") return "unmanaged_background_task_stopped";
-  if (input.outcome === "failed" && input.errorCode === "process_lost") return "process_lost";
+  if (
+    input.outcome === "failed" &&
+    input.errorCode === "unmanaged_background_task_stopped"
+  )
+    return "unmanaged_background_task_stopped";
+  if (input.outcome === "failed" && input.errorCode === "process_lost")
+    return "process_lost";
   if (input.outcome === "cancelled") {
     const message = (input.errorMessage ?? "").toLowerCase();
     if (message.includes("budget")) return "budget_paused";
-    if (message.includes("pause") || message.includes("paused")) return "paused";
+    if (message.includes("pause") || message.includes("paused"))
+      return "paused";
     return "cancelled";
   }
   return "adapter_failed";
@@ -107,7 +127,10 @@ export function buildHeartbeatRunStopMetadata(input: {
   errorCode?: string | null;
   errorMessage?: string | null;
 }): HeartbeatRunStopMetadata {
-  const timeoutPolicy = resolveHeartbeatRunTimeoutPolicy(input.adapterType, input.adapterConfig);
+  const timeoutPolicy = resolveHeartbeatRunTimeoutPolicy(
+    input.adapterType,
+    input.adapterConfig,
+  );
   const stopReason = inferHeartbeatRunStopReason(input);
   return {
     ...timeoutPolicy,
@@ -120,16 +143,28 @@ export function mergeHeartbeatRunStopMetadata(
   resultJson: Record<string, unknown> | null | undefined,
   metadata: HeartbeatRunStopMetadata,
 ): Record<string, unknown> {
-  const existingMaxTurnStopReason = normalizeMaxTurnStopReason(resultJson?.stopReason);
+  const existingMaxTurnStopReason = normalizeMaxTurnStopReason(
+    resultJson?.stopReason,
+  );
   // Only a complete, valid adapter resolution overrides the config fallback.
   // Older adapters and persisted rows retain their existing interpretation.
   const resolution = resultJson?.adapterExecutionTimeout;
   let timeoutPolicy: HeartbeatRunTimeoutPolicy = metadata;
-  if (metadata.effectiveTimeoutMs == null && resolution && typeof resolution === "object" && !Array.isArray(resolution)) {
+  if (
+    metadata.effectiveTimeoutMs == null &&
+    resolution &&
+    typeof resolution === "object" &&
+    !Array.isArray(resolution)
+  ) {
     const { timeoutSec, source } = resolution as Record<string, unknown>;
-    if (typeof timeoutSec === "number" && Number.isFinite(timeoutSec) && timeoutSec >= 0 &&
-        (source === "configured" || (source === "sandbox_default" && timeoutSec > 0) ||
-         (source === "unlimited" && timeoutSec === 0))) {
+    if (
+      typeof timeoutSec === "number" &&
+      Number.isFinite(timeoutSec) &&
+      timeoutSec >= 0 &&
+      (source === "configured" ||
+        (source === "sandbox_default" && timeoutSec > 0) ||
+        (source === "unlimited" && timeoutSec === 0))
+    ) {
       timeoutPolicy = {
         effectiveTimeoutSec: timeoutSec,
         timeoutConfigured: source === "configured",
@@ -144,6 +179,8 @@ export function mergeHeartbeatRunStopMetadata(
     timeoutConfigured: timeoutPolicy.timeoutConfigured,
     timeoutSource: timeoutPolicy.timeoutSource,
     timeoutFired: metadata.timeoutFired,
-    ...(metadata.effectiveTimeoutMs != null ? { effectiveTimeoutMs: metadata.effectiveTimeoutMs } : {}),
+    ...(metadata.effectiveTimeoutMs != null
+      ? { effectiveTimeoutMs: metadata.effectiveTimeoutMs }
+      : {}),
   };
 }

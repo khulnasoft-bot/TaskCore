@@ -16,8 +16,10 @@ const pushToastMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/api/audit", () => ({
   auditApi: {
-    listAgentActions: (companyId: string, filters: unknown) => listAgentActionsMock(companyId, filters),
-    exportAgentActionsCsv: (companyId: string, filters: unknown) => exportCsvMock(companyId, filters),
+    listAgentActions: (companyId: string, filters: unknown) =>
+      listAgentActionsMock(companyId, filters),
+    exportAgentActionsCsv: (companyId: string, filters: unknown) =>
+      exportCsvMock(companyId, filters),
   },
 }));
 
@@ -26,7 +28,9 @@ vi.mock("@/api/agents", () => ({
 }));
 
 vi.mock("@/api/access", () => ({
-  accessApi: { listUserDirectory: (companyId: string) => listUserDirectoryMock(companyId) },
+  accessApi: {
+    listUserDirectory: (companyId: string) => listUserDirectoryMock(companyId),
+  },
 }));
 
 vi.mock("@/context/ToastContext", () => ({
@@ -91,10 +95,22 @@ describe("AuditFeed", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    listAgentActionsMock.mockResolvedValue({ items: [record()], nextCursor: null, accessTier: "full" });
-    listAgentsMock.mockResolvedValue([{ id: "agent-1", name: "Fable", icon: null }]);
+    listAgentActionsMock.mockResolvedValue({
+      items: [record()],
+      nextCursor: null,
+      accessTier: "full",
+    });
+    listAgentsMock.mockResolvedValue([
+      { id: "agent-1", name: "Fable", icon: null },
+    ]);
     listUserDirectoryMock.mockResolvedValue({
-      users: [{ principalId: "user-1", status: "active", user: { id: "user-1", name: "Dotta", email: null, image: null } }],
+      users: [
+        {
+          principalId: "user-1",
+          status: "active",
+          user: { id: "user-1", name: "Dotta", email: null, image: null },
+        },
+      ],
     });
   });
 
@@ -117,7 +133,9 @@ describe("AuditFeed", () => {
       onActionDomainChange?: (actionDomain: string) => void;
     } = {},
   ) {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -158,7 +176,11 @@ describe("AuditFeed", () => {
    * so wait for the settled state instead. `label` names the awaited condition
    * in the timeout error.
    */
-  async function waitForCondition(predicate: () => boolean, label: string, timeoutMs: number) {
+  async function waitForCondition(
+    predicate: () => boolean,
+    label: string,
+    timeoutMs: number,
+  ) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       if (predicate()) return;
@@ -170,7 +192,9 @@ describe("AuditFeed", () => {
   }
 
   function clickButton(text: string) {
-    const btn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes(text));
+    const btn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes(text),
+    );
     expect(btn, `button "${text}"`).toBeTruthy();
     return act(async () => {
       btn!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -184,7 +208,9 @@ describe("AuditFeed", () => {
     );
     expect(tab, `tab "${label}"`).toBeTruthy();
     return act(async () => {
-      tab!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      tab!.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+      );
       tab!.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }));
     });
   }
@@ -202,24 +228,32 @@ describe("AuditFeed", () => {
     expect(taskLink?.textContent).toContain("PAP-1");
     expect(container.textContent).toContain("Looks good to me");
     expect(container.textContent).toContain("on behalf of Dotta");
-    expect(container.querySelector('a[href="/agents/agent-1/runs/run-1"]')).toBeTruthy();
+    expect(
+      container.querySelector('a[href="/agents/agent-1/runs/run-1"]'),
+    ).toBeTruthy();
     expect(container.textContent).toContain("Recorded by Taskcore");
   });
 
   it("filters and renders connection tests in the same audit row shape", async () => {
     listAgentActionsMock.mockResolvedValue({
-      items: [record({
-        actorType: "user",
-        actorId: "user-1",
-        action: "tool_gateway.call_completed",
-        entityType: "agent",
-        entityId: "agent-1",
-        agentId: "agent-1",
-        runId: null,
-        responsibleUserId: null,
-        details: { source: "test", tool: "get_repository", connectionId: "conn-1" },
-        entity: { issue: null, comment: null, document: null },
-      })],
+      items: [
+        record({
+          actorType: "user",
+          actorId: "user-1",
+          action: "tool_gateway.call_completed",
+          entityType: "agent",
+          entityId: "agent-1",
+          agentId: "agent-1",
+          runId: null,
+          responsibleUserId: null,
+          details: {
+            source: "test",
+            tool: "get_repository",
+            connectionId: "conn-1",
+          },
+          entity: { issue: null, comment: null, document: null },
+        }),
+      ],
       nextCursor: null,
       accessTier: "full",
     });
@@ -231,13 +265,17 @@ describe("AuditFeed", () => {
       expect.objectContaining({ action: "tool_" }),
     );
     expect(container.textContent).toContain("tested get repository on");
-    expect(container.querySelector('a[href="/apps/conn-1/permissions"]')).toBeTruthy();
+    expect(
+      container.querySelector('a[href="/apps/conn-1/permissions"]'),
+    ).toBeTruthy();
     expect(container.textContent).toContain("tool_gateway.call_completed");
   });
 
   it("shows the permission-denied upsell when the feed 403s", async () => {
     listAgentActionsMock.mockRejectedValue(
-      new ApiError("Missing permission: audit:view_agent_actions", 403, { error: "Missing permission" }),
+      new ApiError("Missing permission: audit:view_agent_actions", 403, {
+        error: "Missing permission",
+      }),
     );
     await render();
 
@@ -248,7 +286,11 @@ describe("AuditFeed", () => {
   });
 
   it("hides attribution filters and export for a basic all-actors reader", async () => {
-    listAgentActionsMock.mockResolvedValue({ items: [record()], nextCursor: null, accessTier: "basic" });
+    listAgentActionsMock.mockResolvedValue({
+      items: [record()],
+      nextCursor: null,
+      accessTier: "basic",
+    });
     await render();
 
     expect(container.textContent).toContain("commented on");
@@ -263,38 +305,47 @@ describe("AuditFeed", () => {
 
   it("clears privileged filters and recovers the basic feed after an access downgrade", async () => {
     let permissionRevoked = false;
-    listAgentActionsMock.mockImplementation((_companyId: string, filters: { agentId?: string }) => {
-      if (permissionRevoked && filters.agentId) {
-        return Promise.reject(
-          new ApiError("Missing permission: audit:view_agent_actions", 403, { error: "Missing permission" }),
-        );
-      }
-      return Promise.resolve({
-        items: [record()],
-        nextCursor: null,
-        accessTier: permissionRevoked ? "basic" : "full",
-      });
-    });
+    listAgentActionsMock.mockImplementation(
+      (_companyId: string, filters: { agentId?: string }) => {
+        if (permissionRevoked && filters.agentId) {
+          return Promise.reject(
+            new ApiError("Missing permission: audit:view_agent_actions", 403, {
+              error: "Missing permission",
+            }),
+          );
+        }
+        return Promise.resolve({
+          items: [record()],
+          nextCursor: null,
+          accessTier: permissionRevoked ? "basic" : "full",
+        });
+      },
+    );
     await render();
 
     permissionRevoked = true;
     await clickButton("All agents");
-    const fableOption = Array.from(document.body.querySelectorAll<HTMLElement>('[role="option"]'))
-      .find((option) => option.textContent?.trim() === "Fable");
+    const fableOption = Array.from(
+      document.body.querySelectorAll<HTMLElement>('[role="option"]'),
+    ).find((option) => option.textContent?.trim() === "Fable");
     expect(fableOption).toBeTruthy();
     await act(async () => {
       fableOption!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await waitForCondition(
       () =>
-        listAgentActionsMock.mock.calls.some(([, filters]) => filters.agentId)
-        && listAgentActionsMock.mock.calls.at(-1)?.[1]?.agentId === undefined
-        && !container.textContent?.includes("All agents"),
+        listAgentActionsMock.mock.calls.some(
+          ([, filters]) => filters.agentId,
+        ) &&
+        listAgentActionsMock.mock.calls.at(-1)?.[1]?.agentId === undefined &&
+        !container.textContent?.includes("All agents"),
       "the basic feed after the access downgrade",
       20_000,
     );
 
-    expect(listAgentActionsMock.mock.calls.some(([, filters]) => filters.agentId)).toBe(true);
+    expect(
+      listAgentActionsMock.mock.calls.some(([, filters]) => filters.agentId),
+    ).toBe(true);
     await vi.waitFor(() => {
       expect(listAgentActionsMock.mock.calls.at(-1)?.[1]).toEqual(
         expect.objectContaining({ actorScope: "all", agentId: undefined }),
@@ -308,29 +359,44 @@ describe("AuditFeed", () => {
 
   it("drops cached privileged pages when pagination observes an access downgrade", async () => {
     let permissionRevoked = false;
-    listAgentActionsMock.mockImplementation((_companyId: string, filters: { cursor?: string }) => {
-      if (filters.cursor === "cursor-2") {
+    listAgentActionsMock.mockImplementation(
+      (_companyId: string, filters: { cursor?: string }) => {
+        if (filters.cursor === "cursor-2") {
+          return Promise.resolve({
+            items: [
+              record({
+                id: "evt-2",
+                agentId: null,
+                runId: null,
+                responsibleUserId: null,
+                details: null,
+              }),
+            ],
+            nextCursor: null,
+            accessTier: "basic",
+          });
+        }
+        if (permissionRevoked) {
+          return Promise.resolve({
+            items: [
+              record({
+                agentId: null,
+                runId: null,
+                responsibleUserId: null,
+                details: null,
+              }),
+            ],
+            nextCursor: null,
+            accessTier: "basic",
+          });
+        }
         return Promise.resolve({
-          items: [record({
-            id: "evt-2",
-            agentId: null,
-            runId: null,
-            responsibleUserId: null,
-            details: null,
-          })],
-          nextCursor: null,
-          accessTier: "basic",
+          items: [record()],
+          nextCursor: "cursor-2",
+          accessTier: "full",
         });
-      }
-      if (permissionRevoked) {
-        return Promise.resolve({
-          items: [record({ agentId: null, runId: null, responsibleUserId: null, details: null })],
-          nextCursor: null,
-          accessTier: "basic",
-        });
-      }
-      return Promise.resolve({ items: [record()], nextCursor: "cursor-2", accessTier: "full" });
-    });
+      },
+    );
     await render();
 
     expect(container.textContent).toContain("on behalf of Dotta");
@@ -342,8 +408,8 @@ describe("AuditFeed", () => {
     // a fixed flush count.
     await waitForCondition(
       () =>
-        listAgentActionsMock.mock.calls.at(-1)?.[1]?.cursor === undefined
-        && !container.textContent?.includes("on behalf of Dotta"),
+        listAgentActionsMock.mock.calls.at(-1)?.[1]?.cursor === undefined &&
+        !container.textContent?.includes("on behalf of Dotta"),
       "the basic feed after the pagination downgrade",
       20_000,
     );
@@ -353,7 +419,9 @@ describe("AuditFeed", () => {
     );
     expect(container.textContent).toContain("commented on");
     expect(container.textContent).not.toContain("on behalf of Dotta");
-    expect(container.querySelector('a[href="/agents/agent-1/runs/run-1"]')).toBeFalsy();
+    expect(
+      container.querySelector('a[href="/agents/agent-1/runs/run-1"]'),
+    ).toBeFalsy();
     expect(container.textContent).not.toContain("All agents");
     expect(container.textContent).not.toContain("Export CSV");
   });
@@ -364,19 +432,33 @@ describe("AuditFeed", () => {
     // "Refreshing audit access…" forever with no way out.
     let downgraded = false;
     let calls = 0;
-    listAgentActionsMock.mockImplementation((_companyId: string, filters: { cursor?: string }) => {
-      calls += 1;
-      if (filters.cursor === "cursor-2") {
-        downgraded = true;
+    listAgentActionsMock.mockImplementation(
+      (_companyId: string, filters: { cursor?: string }) => {
+        calls += 1;
+        if (filters.cursor === "cursor-2") {
+          downgraded = true;
+          return Promise.resolve({
+            items: [
+              record({
+                id: "evt-2",
+                agentId: null,
+                runId: null,
+                responsibleUserId: null,
+                details: null,
+              }),
+            ],
+            nextCursor: null,
+            accessTier: "basic",
+          });
+        }
+        if (downgraded) return Promise.reject(new Error("Network down"));
         return Promise.resolve({
-          items: [record({ id: "evt-2", agentId: null, runId: null, responsibleUserId: null, details: null })],
-          nextCursor: null,
-          accessTier: "basic",
+          items: [record()],
+          nextCursor: "cursor-2",
+          accessTier: "full",
         });
-      }
-      if (downgraded) return Promise.reject(new Error("Network down"));
-      return Promise.resolve({ items: [record()], nextCursor: "cursor-2", accessTier: "full" });
-    });
+      },
+    );
     await render();
     await clickButton("Load more");
     // The feed retries twice with backoff (~3s) before the query settles as
@@ -399,14 +481,27 @@ describe("AuditFeed", () => {
     // Pathological but reachable: the refetch succeeds and still returns one
     // full page plus one basic page. The recovery has had its shot, so the feed
     // must render at the least-privileged tier instead of sitting on the banner.
-    listAgentActionsMock.mockImplementation((_companyId: string, filters: { cursor?: string }) =>
-      filters.cursor === "cursor-2"
-        ? Promise.resolve({
-            items: [record({ id: "evt-2", agentId: null, runId: null, responsibleUserId: null, details: null })],
-            nextCursor: null,
-            accessTier: "basic",
-          })
-        : Promise.resolve({ items: [record()], nextCursor: "cursor-2", accessTier: "full" }),
+    listAgentActionsMock.mockImplementation(
+      (_companyId: string, filters: { cursor?: string }) =>
+        filters.cursor === "cursor-2"
+          ? Promise.resolve({
+              items: [
+                record({
+                  id: "evt-2",
+                  agentId: null,
+                  runId: null,
+                  responsibleUserId: null,
+                  details: null,
+                }),
+              ],
+              nextCursor: null,
+              accessTier: "basic",
+            })
+          : Promise.resolve({
+              items: [record()],
+              nextCursor: "cursor-2",
+              accessTier: "full",
+            }),
     );
     await render();
     await clickButton("Load more");
@@ -420,7 +515,9 @@ describe("AuditFeed", () => {
     // And the cached full-tier page must not render revoked attribution beside
     // the stripped rows just because the recovery has run out of attempts.
     expect(container.textContent).not.toContain("on behalf of Dotta");
-    expect(container.querySelector('a[href="/agents/agent-1/runs/run-1"]')).toBeFalsy();
+    expect(
+      container.querySelector('a[href="/agents/agent-1/runs/run-1"]'),
+    ).toBeFalsy();
 
     const settledCalls = listAgentActionsMock.mock.calls.length;
     await flushReact();
@@ -431,7 +528,9 @@ describe("AuditFeed", () => {
     await render({ lockedAgentId: "agent-1" });
 
     const [, filters] = listAgentActionsMock.mock.calls[0];
-    expect(filters).toEqual(expect.objectContaining({ actorScope: "agents", agentId: "agent-1" }));
+    expect(filters).toEqual(
+      expect.objectContaining({ actorScope: "agents", agentId: "agent-1" }),
+    );
     // No "All agents" option means the agent filter is hidden on the per-agent tab.
     expect(container.textContent).not.toContain("All agents");
   });
@@ -451,9 +550,13 @@ describe("AuditFeed", () => {
     // Mirror the page: the mode lives above the feed, so toggling re-queries.
     function Harness() {
       const [mode, setMode] = useState<"all" | "agents">("all");
-      return <AuditFeed companyId="company-1" mode={mode} onModeChange={setMode} />;
+      return (
+        <AuditFeed companyId="company-1" mode={mode} onModeChange={setMode} />
+      );
     }
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -485,7 +588,14 @@ describe("AuditFeed", () => {
     // The basic tier nulls privileged attribution but retains the acting
     // principal, which is also available through the company agent directory.
     listAgentActionsMock.mockResolvedValue({
-      items: [record({ agentId: null, runId: null, responsibleUserId: null, details: null })],
+      items: [
+        record({
+          agentId: null,
+          runId: null,
+          responsibleUserId: null,
+          details: null,
+        }),
+      ],
       nextCursor: null,
       accessTier: "basic",
     });
@@ -498,7 +608,15 @@ describe("AuditFeed", () => {
 
   it("falls back to the actor type when an agent is absent from the readable directory", async () => {
     listAgentActionsMock.mockResolvedValue({
-      items: [record({ actorId: "filtered-agent", agentId: null, runId: null, responsibleUserId: null, details: null })],
+      items: [
+        record({
+          actorId: "filtered-agent",
+          agentId: null,
+          runId: null,
+          responsibleUserId: null,
+          details: null,
+        }),
+      ],
       nextCursor: null,
       accessTier: "basic",
     });
@@ -509,19 +627,32 @@ describe("AuditFeed", () => {
   });
 
   it("hides the mode toggle from a basic all-actors reader", async () => {
-    listAgentActionsMock.mockResolvedValue({ items: [record()], nextCursor: null, accessTier: "basic" });
+    listAgentActionsMock.mockResolvedValue({
+      items: [record()],
+      nextCursor: null,
+      accessTier: "basic",
+    });
     await render({ mode: "all", onModeChange: vi.fn() });
 
-    const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
-    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual(["Activity", "Agent Actions"]);
-    expect(tabs.find((tab) => tab.textContent?.trim() === "Agent Actions")?.disabled).toBe(true);
+    const tabs = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+    );
+    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([
+      "Activity",
+      "Agent Actions",
+    ]);
+    expect(
+      tabs.find((tab) => tab.textContent?.trim() === "Agent Actions")?.disabled,
+    ).toBe(true);
     // The basic feed itself still renders.
     expect(container.textContent).toContain("commented on");
   });
 
   it("falls back to all-activity instead of the upsell when a basic reader opens the agent-actions mode", async () => {
     listAgentActionsMock.mockRejectedValue(
-      new ApiError("Missing permission: audit:view_agent_actions", 403, { error: "Missing permission" }),
+      new ApiError("Missing permission: audit:view_agent_actions", 403, {
+        error: "Missing permission",
+      }),
     );
     const onModeChange = vi.fn();
     await render({ mode: "agents", onModeChange });
@@ -533,7 +664,9 @@ describe("AuditFeed", () => {
 
   it("still upsells an uncontrolled agent-actions feed that 403s", async () => {
     listAgentActionsMock.mockRejectedValue(
-      new ApiError("Missing permission: audit:view_agent_actions", 403, { error: "Missing permission" }),
+      new ApiError("Missing permission: audit:view_agent_actions", 403, {
+        error: "Missing permission",
+      }),
     );
     await render({ mode: "agents" });
 
@@ -560,7 +693,13 @@ describe("AuditFeed", () => {
     expect(container.textContent).toContain("Scoped to run run-42");
 
     flushSync(() => root.unmount());
-    await render({ lockedEntity: { type: "routine", id: "routine-7", label: "Nightly triage" } });
+    await render({
+      lockedEntity: {
+        type: "routine",
+        id: "routine-7",
+        label: "Nightly triage",
+      },
+    });
     expect(listAgentActionsMock.mock.calls.at(-1)?.[1]).toEqual(
       expect.objectContaining({ entityType: "routine", entityId: "routine-7" }),
     );
@@ -576,12 +715,31 @@ describe("AuditFeed", () => {
   });
 
   it("loads more when a cursor is returned", async () => {
-    listAgentActionsMock.mockImplementation((_companyId: string, filters: { cursor?: string }) => {
-      if (filters.cursor === "cursor-2") {
-        return Promise.resolve({ items: [record({ id: "evt-2", entity: { issue: { id: "i2", identifier: "PAP-2", title: "Second" }, comment: null, document: null } })], nextCursor: null, accessTier: "full" });
-      }
-      return Promise.resolve({ items: [record()], nextCursor: "cursor-2", accessTier: "full" });
-    });
+    listAgentActionsMock.mockImplementation(
+      (_companyId: string, filters: { cursor?: string }) => {
+        if (filters.cursor === "cursor-2") {
+          return Promise.resolve({
+            items: [
+              record({
+                id: "evt-2",
+                entity: {
+                  issue: { id: "i2", identifier: "PAP-2", title: "Second" },
+                  comment: null,
+                  document: null,
+                },
+              }),
+            ],
+            nextCursor: null,
+            accessTier: "full",
+          });
+        }
+        return Promise.resolve({
+          items: [record()],
+          nextCursor: "cursor-2",
+          accessTier: "full",
+        });
+      },
+    );
     await render();
 
     expect(container.querySelector('a[href="/issues/PAP-2"]')).toBeFalsy();
@@ -595,8 +753,10 @@ describe("AuditFeed", () => {
     // jsdom lacks URL.createObjectURL; stub it for the download path.
     const createUrl = vi.fn(() => "blob:mock");
     const revokeUrl = vi.fn();
-    (URL as unknown as { createObjectURL: unknown }).createObjectURL = createUrl;
-    (URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = revokeUrl;
+    (URL as unknown as { createObjectURL: unknown }).createObjectURL =
+      createUrl;
+    (URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL =
+      revokeUrl;
     await render();
     const setTimeoutSpy = vi.spyOn(window, "setTimeout");
 
@@ -609,10 +769,14 @@ describe("AuditFeed", () => {
     );
     expect(createUrl).toHaveBeenCalled();
     expect(revokeUrl).not.toHaveBeenCalled();
-    const deferredRevoke = setTimeoutSpy.mock.calls.find(([, delay]) => delay === 5_000)?.[0];
+    const deferredRevoke = setTimeoutSpy.mock.calls.find(
+      ([, delay]) => delay === 5_000,
+    )?.[0];
     expect(deferredRevoke).toEqual(expect.any(Function));
     deferredRevoke!();
     expect(revokeUrl).toHaveBeenCalledWith("blob:mock");
-    expect(pushToastMock).toHaveBeenCalledWith(expect.objectContaining({ tone: "success" }));
+    expect(pushToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "success" }),
+    );
   });
 });

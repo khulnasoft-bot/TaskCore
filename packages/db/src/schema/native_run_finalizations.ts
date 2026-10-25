@@ -21,7 +21,9 @@ export const nativeRunFinalizations = pgTable(
   "native_run_finalizations",
   {
     runId: uuid("run_id").primaryKey(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
     issueId: uuid("issue_id").notNull(),
     phase: text("phase").notNull(),
     attempt: integer("attempt").notNull().default(0),
@@ -46,12 +48,17 @@ export const nativeRunFinalizations = pgTable(
     failureDetail: jsonb("failure_detail").$type<Record<string, unknown>>(),
     controlDeadlineAt: timestamp("control_deadline_at", { withTimezone: true }),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     controlDeadlineIdx: index("native_run_finalizations_control_deadline_idx")
-      .on(table.controlDeadlineAt).where(sql`${table.controlDeadlineAt} is not null`),
+      .on(table.controlDeadlineAt)
+      .where(sql`${table.controlDeadlineAt} is not null`),
     issueCompanyFk: foreignKey({
       columns: [table.companyId, table.issueId],
       foreignColumns: [issues.companyId, issues.id],
@@ -59,7 +66,11 @@ export const nativeRunFinalizations = pgTable(
     }),
     runOwnerFk: foreignKey({
       columns: [table.companyId, table.issueId, table.runId],
-      foreignColumns: [heartbeatRuns.companyId, heartbeatRuns.nativeIssueId, heartbeatRuns.id],
+      foreignColumns: [
+        heartbeatRuns.companyId,
+        heartbeatRuns.nativeIssueId,
+        heartbeatRuns.id,
+      ],
       name: "native_run_finalizations_run_owner_fk",
     }),
     resultOwnerFk: foreignKey({
@@ -73,7 +84,12 @@ export const nativeRunFinalizations = pgTable(
       name: "native_run_finalizations_result_owner_fk",
     }),
     assessmentOwnerFk: foreignKey({
-      columns: [table.companyId, table.issueId, table.runId, table.assessmentId],
+      columns: [
+        table.companyId,
+        table.issueId,
+        table.runId,
+        table.assessmentId,
+      ],
       foreignColumns: [
         workAssessments.companyId,
         workAssessments.issueId,

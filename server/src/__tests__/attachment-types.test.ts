@@ -111,7 +111,9 @@ describe("matchesContentType", () => {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ]) {
-      expect(matchesContentType(contentType, [...DEFAULT_ALLOWED_TYPES])).toBe(true);
+      expect(matchesContentType(contentType, [...DEFAULT_ALLOWED_TYPES])).toBe(
+        true,
+      );
     }
   });
 
@@ -161,13 +163,21 @@ describe("inferOfficeAttachmentContentTypeFromFilename", () => {
     expect(inferOfficeAttachmentContentTypeFromFilename("deck.pptx")).toBe(
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     );
-    expect(inferOfficeAttachmentContentTypeFromFilename("legacy.doc")).toBe("application/msword");
-    expect(inferOfficeAttachmentContentTypeFromFilename("legacy.xls")).toBe("application/vnd.ms-excel");
-    expect(inferOfficeAttachmentContentTypeFromFilename("legacy.ppt")).toBe("application/vnd.ms-powerpoint");
+    expect(inferOfficeAttachmentContentTypeFromFilename("legacy.doc")).toBe(
+      "application/msword",
+    );
+    expect(inferOfficeAttachmentContentTypeFromFilename("legacy.xls")).toBe(
+      "application/vnd.ms-excel",
+    );
+    expect(inferOfficeAttachmentContentTypeFromFilename("legacy.ppt")).toBe(
+      "application/vnd.ms-powerpoint",
+    );
   });
 
   it("does not infer unknown extensions", () => {
-    expect(inferOfficeAttachmentContentTypeFromFilename("payload.bin")).toBeNull();
+    expect(
+      inferOfficeAttachmentContentTypeFromFilename("payload.bin"),
+    ).toBeNull();
     expect(inferOfficeAttachmentContentTypeFromFilename(undefined)).toBeNull();
   });
 });
@@ -196,7 +206,8 @@ describe("normalizeUploadAttachmentContentType", () => {
       normalizeUploadAttachmentContentType({
         contentType: "application/octet-stream",
         originalFilename: "raw-data.xlsx",
-        isAllowedContentType: (contentType) => contentType === "application/octet-stream",
+        isAllowedContentType: (contentType) =>
+          contentType === "application/octet-stream",
       }),
     ).toBe("application/octet-stream");
   });
@@ -213,7 +224,13 @@ describe("normalizeUploadAttachmentContentType", () => {
 
 describe("isInlineAttachmentContentType", () => {
   it("allows the configured inline-safe types", () => {
-    for (const contentType of ["image/png", "image/svg+xml", "application/pdf", "text/plain", "video/mp4"]) {
+    for (const contentType of [
+      "image/png",
+      "image/svg+xml",
+      "application/pdf",
+      "text/plain",
+      "video/mp4",
+    ]) {
       expect(isInlineAttachmentContentType(contentType)).toBe(true);
     }
   });

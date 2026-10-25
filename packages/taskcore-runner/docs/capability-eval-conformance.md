@@ -77,6 +77,7 @@ in-process mock control plane:
 ```sh
 pnpm --filter @taskcore/taskcore-runner report:capability-live-evals
 ```
+
 Each failure carries its case ID, assertion class, semantic operation,
 authorization decision, and final state diff. The report is generated on demand
 and is not committed; delete it before running `docs:validate` (it carries no

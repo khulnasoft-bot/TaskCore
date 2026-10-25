@@ -39,7 +39,10 @@ function paragraph(children: MarkdownNode[]): MarkdownNode {
   return { type: "paragraph", children };
 }
 
-function runPlugin(tree: MarkdownNode, resolve: WorkspaceFileRefResolver = resolveAllOpenable): MarkdownNode {
+function runPlugin(
+  tree: MarkdownNode,
+  resolve: WorkspaceFileRefResolver = resolveAllOpenable,
+): MarkdownNode {
   const transform = createRemarkWorkspaceFileRefs(resolve)();
   transform(tree);
   return tree;
@@ -64,7 +67,9 @@ describe("remarkWorkspaceFileRefs", () => {
   });
 
   it("does not linkify plain text path mentions outside inline code", () => {
-    const tree = paragraph([textNode("see ui/src/pages/IssueDetail.tsx for details")]);
+    const tree = paragraph([
+      textNode("see ui/src/pages/IssueDetail.tsx for details"),
+    ]);
     runPlugin(tree);
     expect(tree.children).toHaveLength(1);
     expect(tree.children![0].type).toBe("text");
@@ -77,7 +82,12 @@ describe("remarkWorkspaceFileRefs", () => {
   });
 
   it("round-trips workspace file hrefs", () => {
-    const href = buildWorkspaceFileHref({ path: "a/b.ts", line: 5, column: 2, raw: "a/b.ts:5:2" });
+    const href = buildWorkspaceFileHref({
+      path: "a/b.ts",
+      line: 5,
+      column: 2,
+      raw: "a/b.ts:5:2",
+    });
     const parsed = parseWorkspaceFileHref(href);
     expect(parsed?.path).toBe("a/b.ts");
     expect(parsed?.line).toBe(5);
@@ -85,7 +95,8 @@ describe("remarkWorkspaceFileRefs", () => {
   });
 
   it("round-trips workspace folder hrefs", () => {
-    const targetPath = "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/";
+    const targetPath =
+      "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/";
     const href = buildWorkspaceFileHref({
       path: targetPath,
       resourceKind: "directory",
@@ -109,7 +120,9 @@ describe("remarkWorkspaceFileRefs", () => {
   it("converts trailing-slash inline code into workspace folder links", () => {
     const tree = paragraph([
       textNode("Open "),
-      inlineCode("content-os/cases/active/2026-06-06-pap-10199-bundled-skills/"),
+      inlineCode(
+        "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/",
+      ),
       textNode("."),
     ]);
     runPlugin(tree);
@@ -122,7 +135,8 @@ describe("remarkWorkspaceFileRefs", () => {
   });
 
   it("round-trips explicit project workspace identity", () => {
-    const targetPath = "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md";
+    const targetPath =
+      "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md";
     const href = buildWorkspaceFileHref({
       path: targetPath,
       line: 5,
@@ -187,7 +201,9 @@ describe("remarkWorkspaceFileRefs", () => {
       ]);
       runPlugin(tree, resolveNoneOpenable);
       expect(tree.children).toHaveLength(3);
-      expect(tree.children![1]).toEqual(inlineCode("ui/src/pages/IssueDetail.tsx:42"));
+      expect(tree.children![1]).toEqual(
+        inlineCode("ui/src/pages/IssueDetail.tsx:42"),
+      );
     });
 
     it("leaves an ordinary markdown link untouched when the ref is not openable", () => {
@@ -212,7 +228,9 @@ describe("remarkWorkspaceFileRefs", () => {
         textNode(" and "),
         inlineCode("ui/src/missing.ts:2"),
       ]);
-      runPlugin(tree, (ref) => (ref.path === "ui/src/present.ts" ? AUTO_TARGET : null));
+      runPlugin(tree, (ref) =>
+        ref.path === "ui/src/present.ts" ? AUTO_TARGET : null,
+      );
       expect(tree.children![0].type).toBe("link");
       expect(tree.children![2].type).toBe("inlineCode");
     });
@@ -264,7 +282,13 @@ describe("remarkWorkspaceFileRefs", () => {
       const resolve = vi.fn(resolveAllOpenable);
       const tree: MarkdownNode = {
         type: "root",
-        children: [{ type: "code", value: "ui/src/a.ts:1", children: [inlineCode("ui/src/a.ts:1")] }],
+        children: [
+          {
+            type: "code",
+            value: "ui/src/a.ts:1",
+            children: [inlineCode("ui/src/a.ts:1")],
+          },
+        ],
       };
       runPlugin(tree, resolve);
       expect(resolve).not.toHaveBeenCalled();

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { RoutineTrigger } from "@taskcore/shared";
 import { buildRoutineTriggerPatch } from "./routine-trigger-patch";
 
-function makeScheduleTrigger(overrides: Partial<RoutineTrigger> = {}): RoutineTrigger {
+function makeScheduleTrigger(
+  overrides: Partial<RoutineTrigger> = {},
+): RoutineTrigger {
   return {
     id: "trigger-1",
     companyId: "company-1",

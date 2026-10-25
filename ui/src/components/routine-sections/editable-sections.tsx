@@ -1,13 +1,6 @@
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { useMemo, useState } from "react";
-import {
-  ArrowRight,
-  Braces,
-  Clock3,
-  Edit3,
-  Play,
-  X,
-} from "lucide-react";
+import { ArrowRight, Braces, Clock3, Edit3, Play, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,28 +19,40 @@ import { nextCronFires, previewFirePolicies } from "../../lib/cron-fires";
 import { timeAgo } from "../../lib/timeAgo";
 import { EmptyState } from "../EmptyState";
 import { InlineEntitySelector } from "../InlineEntitySelector";
-import { DocumentAnnotationsCountChip, IssueDocumentAnnotations } from "../IssueDocumentAnnotations";
+import {
+  DocumentAnnotationsCountChip,
+  IssueDocumentAnnotations,
+} from "../IssueDocumentAnnotations";
 import { MarkdownEditor } from "../MarkdownEditor";
-import { RoutineVariablesEditor, RoutineVariablesHint } from "../RoutineVariablesEditor";
+import {
+  RoutineVariablesEditor,
+  RoutineVariablesHint,
+} from "../RoutineVariablesEditor";
 import { EnvironmentVariablesEditor } from "../environment-variables-editor";
 import { useRoutineDetail } from "./context";
-import type { EnvBinding, RoutineDetail as RoutineDetailType } from "@taskcore/shared";
+import type {
+  EnvBinding,
+  RoutineDetail as RoutineDetailType,
+} from "@taskcore/shared";
 
 const concurrencyPolicyOptions = [
   {
     value: "coalesce_if_active",
     title: "Coalesce if active",
-    description: "Keep one follow-up run queued while an active run is still working.",
+    description:
+      "Keep one follow-up run queued while an active run is still working.",
   },
   {
     value: "always_enqueue",
     title: "Always enqueue",
-    description: "Queue every trigger occurrence, even if several runs stack up.",
+    description:
+      "Queue every trigger occurrence, even if several runs stack up.",
   },
   {
     value: "skip_if_active",
     title: "Skip if active",
-    description: "Drop overlapping trigger occurrences while the routine is already active.",
+    description:
+      "Drop overlapping trigger occurrences while the routine is already active.",
   },
 ];
 
@@ -60,7 +65,8 @@ const catchUpPolicyOptions = [
   {
     value: "enqueue_missed_with_cap",
     title: "Enqueue missed with cap",
-    description: "Catch up missed schedule windows after recovery; sub-hourly schedules are combined into one catch-up run, slower schedules replay each missed window up to a cap.",
+    description:
+      "Catch up missed schedule windows after recovery; sub-hourly schedules are combined into one catch-up run, slower schedules replay each missed window up to a cap.",
   },
 ];
 
@@ -82,12 +88,14 @@ const activityGateScopeOptions = [
   {
     value: "company",
     title: "Organization-wide",
-    description: "Any activity across the organization counts as a reason to run.",
+    description:
+      "Any activity across the organization counts as a reason to run.",
   },
   {
     value: "project",
     title: "This project",
-    description: "Only activity in the routine's project counts as a reason to run.",
+    description:
+      "Only activity in the routine's project counts as a reason to run.",
   },
 ];
 
@@ -120,7 +128,9 @@ export function OverviewSection({
     isSectionDirty,
     navigateToSection,
   } = ctx;
-  const [descriptionAnnotationsOpen, setDescriptionAnnotationsOpen] = useState(defaultDescriptionAnnotationsOpen);
+  const [descriptionAnnotationsOpen, setDescriptionAnnotationsOpen] = useState(
+    defaultDescriptionAnnotationsOpen,
+  );
 
   const activeTriggers = routine.triggers.length;
   const nextFire = useMemo(() => {
@@ -162,7 +172,11 @@ export function OverviewSection({
               option ? (
                 currentAssignee ? (
                   <>
-                    <AgentAvatar agent={currentAssignee} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
+                    <AgentAvatar
+                      agent={currentAssignee}
+                      size={16}
+                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                    />
                     <span className="truncate">{option.label}</span>
                   </>
                 ) : (
@@ -173,12 +187,17 @@ export function OverviewSection({
               )
             }
             renderOption={(option) => {
-              if (!option.id) return <span className="truncate">{option.label}</span>;
+              if (!option.id)
+                return <span className="truncate">{option.label}</span>;
               const assignee = agentById.get(option.id);
               return (
                 <>
                   {assignee ? (
-                    <AgentAvatar agent={assignee} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
+                    <AgentAvatar
+                      agent={assignee}
+                      size={16}
+                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                    />
                   ) : null}
                   <span className="truncate">{option.label}</span>
                 </>
@@ -195,14 +214,19 @@ export function OverviewSection({
             noneLabel="No project"
             searchPlaceholder="Search projects..."
             emptyMessage="No projects found."
-            onChange={(projectId) => setEditDraft((current) => ({ ...current, projectId }))}
+            onChange={(projectId) =>
+              setEditDraft((current) => ({ ...current, projectId }))
+            }
             onConfirm={() => descriptionEditorRef.current?.focus()}
             renderTriggerValue={(option) =>
               option && currentProject ? (
                 <>
                   <span
                     className="h-3.5 w-3.5 shrink-0 rounded-sm"
-                    style={{ backgroundColor: currentProject.color ?? "var(--project-none)" }}
+                    style={{
+                      backgroundColor:
+                        currentProject.color ?? "var(--project-none)",
+                    }}
                   />
                   <span className="truncate">{option.label}</span>
                 </>
@@ -211,13 +235,16 @@ export function OverviewSection({
               )
             }
             renderOption={(option) => {
-              if (!option.id) return <span className="truncate">{option.label}</span>;
+              if (!option.id)
+                return <span className="truncate">{option.label}</span>;
               const project = projectById.get(option.id);
               return (
                 <>
                   <span
                     className="h-3.5 w-3.5 shrink-0 rounded-sm"
-                    style={{ backgroundColor: project?.color ?? "var(--project-none)" }}
+                    style={{
+                      backgroundColor: project?.color ?? "var(--project-none)",
+                    }}
                   />
                   <span className="truncate">{option.label}</span>
                 </>
@@ -229,8 +256,9 @@ export function OverviewSection({
 
       {!routine.assigneeAgentId ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-900 dark:text-amber-200">
-          Default agent required. This routine can stay as a draft and still run manually, but
-          automation stays paused until you assign a default agent.
+          Default agent required. This routine can stay as a draft and still run
+          manually, but automation stays paused until you assign a default
+          agent.
         </div>
       ) : null}
 
@@ -241,7 +269,11 @@ export function OverviewSection({
             <DocumentAnnotationsCountChip
               issueId={routine.id}
               docKey="description"
-              target={{ kind: "routine", routineId: routine.id, documentKey: "description" }}
+              target={{
+                kind: "routine",
+                routineId: routine.id,
+                documentKey: "description",
+              }}
               panelOpen={descriptionAnnotationsOpen}
               onToggle={() => setDescriptionAnnotationsOpen((open) => !open)}
             />
@@ -251,19 +283,27 @@ export function OverviewSection({
           <IssueDocumentAnnotations
             issueId={routine.id}
             doc={routine.descriptionDocument}
-            target={{ kind: "routine", routineId: routine.id, documentKey: "description" }}
+            target={{
+              kind: "routine",
+              routineId: routine.id,
+              documentKey: "description",
+            }}
             bodyMarkdown={editDraft.description}
             draftDirty={isSectionDirty("overview") || saveRoutine.isPending}
             draftConflicted={saveConflict}
             historicalPreview={false}
-            locationHash={typeof window === "undefined" ? "" : window.location.hash}
+            locationHash={
+              typeof window === "undefined" ? "" : window.location.hash
+            }
             panelOpen={descriptionAnnotationsOpen}
             onPanelOpenChange={setDescriptionAnnotationsOpen}
           >
             <MarkdownEditor
               ref={descriptionEditorRef}
               value={editDraft.description}
-              onChange={(description) => setEditDraft((current) => ({ ...current, description }))}
+              onChange={(description) =>
+                setEditDraft((current) => ({ ...current, description }))
+              }
               placeholder="Add instructions..."
               bordered={false}
               contentClassName="min-h-(--sz-120px) text-sm leading-7"
@@ -279,7 +319,9 @@ export function OverviewSection({
           <MarkdownEditor
             ref={descriptionEditorRef}
             value={editDraft.description}
-            onChange={(description) => setEditDraft((current) => ({ ...current, description }))}
+            onChange={(description) =>
+              setEditDraft((current) => ({ ...current, description }))
+            }
             placeholder="Add instructions..."
             bordered={false}
             contentClassName="min-h-(--sz-120px) text-sm leading-7"
@@ -300,7 +342,9 @@ export function OverviewSection({
           title={editDraft.title}
           description={editDraft.description}
           value={editDraft.variables}
-          onChange={(variables) => setEditDraft((current) => ({ ...current, variables }))}
+          onChange={(variables) =>
+            setEditDraft((current) => ({ ...current, variables }))
+          }
         />
       </div>
 
@@ -320,7 +364,11 @@ export function OverviewSection({
           value={lastRun ? lastRun.status.replaceAll("_", " ") : "No runs"}
           hint={lastRun ? timeAgo(lastRun.triggeredAt) : "Trigger a run"}
           to={() => navigateToSection("runs")}
-          ariaLabel={lastRun ? `Last run ${lastRun.status}. Open runs.` : "No runs. Open runs."}
+          ariaLabel={
+            lastRun
+              ? `Last run ${lastRun.status}. Open runs.`
+              : "No runs. Open runs."
+          }
         />
       </div>
 
@@ -334,7 +382,10 @@ export function OverviewSection({
         ) : (
           <div className="divide-y divide-border/60">
             {recentActivity.map((event) => (
-              <div key={event.id} className="flex items-center gap-2 py-1.5 text-xs">
+              <div
+                key={event.id}
+                className="flex items-center gap-2 py-1.5 text-xs"
+              >
                 <Badge variant="outline" className="shrink-0 font-mono">
                   {event.action}
                 </Badge>
@@ -343,7 +394,9 @@ export function OverviewSection({
                     ? Object.keys(event.details).slice(0, 3).join(" · ")
                     : ""}
                 </span>
-                <span className="shrink-0 text-muted-foreground/60">{timeAgo(event.createdAt)}</span>
+                <span className="shrink-0 text-muted-foreground/60">
+                  {timeAgo(event.createdAt)}
+                </span>
               </div>
             ))}
             <button
@@ -376,7 +429,12 @@ function SummaryCard({
   ariaLabel: string;
 }) {
   return (
-    <button type="button" onClick={to} aria-label={ariaLabel} className="text-left">
+    <button
+      type="button"
+      onClick={to}
+      aria-label={ariaLabel}
+      className="text-left"
+    >
       <Card className="gap-2 p-4 transition-colors hover:border-border hover:bg-accent/30">
         <CardContent className="space-y-1 p-0">
           <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
@@ -403,11 +461,16 @@ export function VariablesSection() {
     <div className="space-y-4">
       <div className="flex items-center gap-3 rounded-md border border-border bg-muted/20 px-4 py-3 text-xs">
         <span className="flex-1 text-muted-foreground">
-          Variables are auto-detected from <code className="font-mono">{"{{placeholders}}"}</code> in
-          the title &amp; instructions. The variable name is read-only — rename by editing the
-          placeholder.
+          Variables are auto-detected from{" "}
+          <code className="font-mono">{"{{placeholders}}"}</code> in the title
+          &amp; instructions. The variable name is read-only — rename by editing
+          the placeholder.
         </span>
-        <Button variant="secondary" size="sm" onClick={() => navigateToSection("overview")}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => navigateToSection("overview")}
+        >
           <Edit3 className="mr-1.5 h-3.5 w-3.5" />
           Edit instructions
         </Button>
@@ -418,7 +481,9 @@ export function VariablesSection() {
           title={editDraft.title}
           description={editDraft.description}
           value={editDraft.variables}
-          onChange={(variables) => setEditDraft((current) => ({ ...current, variables }))}
+          onChange={(variables) =>
+            setEditDraft((current) => ({ ...current, variables }))
+          }
         />
       ) : (
         <EmptyState
@@ -445,7 +510,9 @@ export function SecretsSection() {
         .sort((a, b) => {
           const refDelta = (b.referenceCount ?? 0) - (a.referenceCount ?? 0);
           if (refDelta !== 0) return refDelta;
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          return (
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          );
         })
         .slice(0, 8),
     [availableSecrets],
@@ -454,17 +521,21 @@ export function SecretsSection() {
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
-        Routine secrets apply to every task this routine creates. They override matching keys in
-        project and agent env. <span className="font-mono">TASKCORE_*</span> names are reserved.
+        Routine secrets apply to every task this routine creates. They override
+        matching keys in project and agent env.{" "}
+        <span className="font-mono">TASKCORE_*</span> names are reserved.
       </div>
-
 
       <EnvironmentVariablesEditor
         value={(editDraft.env ?? {}) as Record<string, EnvBinding>}
         secrets={availableSecrets}
         recentlyUsedSecrets={recentlyUsedSecrets}
-        onCreateSecret={async (name, value) => createSecret.mutateAsync({ name, value })}
-        onChange={(env) => setEditDraft((current) => ({ ...current, env: env ?? null }))}
+        onCreateSecret={async (name, value) =>
+          createSecret.mutateAsync({ name, value })
+        }
+        onChange={(env) =>
+          setEditDraft((current) => ({ ...current, env: env ?? null }))
+        }
       />
     </div>
   );
@@ -478,8 +549,11 @@ export function DeliverySection() {
   // themselves activity and always run), so the control is only meaningful for
   // routines that have a schedule trigger. Disable — rather than hide — it
   // elsewhere so the capability stays discoverable.
-  const hasScheduleTrigger = routine.triggers.some((trigger) => trigger.kind === "schedule");
-  const gateEnabled = editDraft.activityGatePolicy === "require_external_activity";
+  const hasScheduleTrigger = routine.triggers.some(
+    (trigger) => trigger.kind === "schedule",
+  );
+  const gateEnabled =
+    editDraft.activityGatePolicy === "require_external_activity";
 
   return (
     <div className="space-y-6">
@@ -524,8 +598,8 @@ export function DeliverySection() {
         />
         {!hasScheduleTrigger ? (
           <p className="text-xs text-muted-foreground">
-            Add a schedule trigger to gate runs on activity. Webhook, manual, and API fires always
-            run.
+            Add a schedule trigger to gate runs on activity. Webhook, manual,
+            and API fires always run.
           </p>
         ) : gateEnabled ? (
           <div className="space-y-2 rounded-lg border border-border p-3">
@@ -570,7 +644,12 @@ function NextFiresPreview({
 }) {
   const preview = useMemo(() => {
     const schedule = triggers
-      .filter((trigger) => trigger.kind === "schedule" && trigger.enabled && trigger.cronExpression)
+      .filter(
+        (trigger) =>
+          trigger.kind === "schedule" &&
+          trigger.enabled &&
+          trigger.cronExpression,
+      )
       .map((trigger) => {
         const fires = nextCronFires(trigger.cronExpression, 5, {
           timeZone: trigger.timezone ?? "UTC",
@@ -597,26 +676,35 @@ function NextFiresPreview({
             {preview.entries.map((entry, index) => (
               <div key={index} className="flex items-center gap-2">
                 <span className="text-muted-foreground/40">·</span>
-                <span className="tabular-nums">{formatFireTime(entry.at, preview.timeZone)}</span>
+                <span className="tabular-nums">
+                  {formatFireTime(entry.at, preview.timeZone)}
+                </span>
                 <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
-                <span className={cn("font-medium", dispositionToneClass[entry.disposition])}>
+                <span
+                  className={cn(
+                    "font-medium",
+                    dispositionToneClass[entry.disposition],
+                  )}
+                >
                   {entry.label}
                 </span>
                 {entry.note ? (
-                  <span className="truncate text-muted-foreground/60">({entry.note})</span>
+                  <span className="truncate text-muted-foreground/60">
+                    ({entry.note})
+                  </span>
                 ) : null}
               </div>
             ))}
           </div>
           <p className="text-(length:--text-micro) text-muted-foreground/60">
-            Preview assumes the previous run is still in flight when the next fires. Times shown in{" "}
-            {preview.timeZone}.
+            Preview assumes the previous run is still in flight when the next
+            fires. Times shown in {preview.timeZone}.
           </p>
         </>
       ) : (
         <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
-          No enabled schedule trigger to preview. Add a schedule in Triggers to see how this policy
-          treats upcoming fires.
+          No enabled schedule trigger to preview. Add a schedule in Triggers to
+          see how this policy treats upcoming fires.
         </p>
       )}
     </div>

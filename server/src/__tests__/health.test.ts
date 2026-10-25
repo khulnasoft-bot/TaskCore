@@ -43,7 +43,9 @@ vi.mock("../dev-server-status.js", () => ({
 function createApp(
   db?: Db,
   serverInfo = testServerInfo,
-  databaseBackupHealth?: Parameters<typeof healthRoutes>[1]["databaseBackupHealth"],
+  databaseBackupHealth?: Parameters<
+    typeof healthRoutes
+  >[1]["databaseBackupHealth"],
   runtimeEnv?: Parameters<typeof healthRoutes>[1]["runtimeEnv"],
 ) {
   const app = express();
@@ -76,7 +78,13 @@ describe("GET /health", () => {
     const app = createApp();
     const res = await request(app).get("/health");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: "ok", version: serverVersion, serverVersion: serverVersion, commit: testServerInfo.git.fullSha, serverInfo: testServerInfo });
+    expect(res.body).toEqual({
+      status: "ok",
+      version: serverVersion,
+      serverVersion: serverVersion,
+      commit: testServerInfo.git.fullSha,
+      serverInfo: testServerInfo,
+    });
   }, 15_000);
 
   it("keeps the self-hosted health response byte-identical and omits cloud", async () => {
@@ -118,13 +126,17 @@ describe("GET /health", () => {
 
   it("lists operator-hidden settings and drops unknown keys", async () => {
     const app = createApp(undefined, testServerInfo, undefined, {
-      TASKCORE_HIDDEN_SETTINGS: "instance.plugins,instance.adapters,instance.bogus",
+      TASKCORE_HIDDEN_SETTINGS:
+        "instance.plugins,instance.adapters,instance.bogus",
     });
 
     const res = await request(app).get("/health");
 
     expect(res.status).toBe(200);
-    expect(res.body.hiddenSettings).toEqual(["instance.plugins", "instance.adapters"]);
+    expect(res.body.hiddenSettings).toEqual([
+      "instance.plugins",
+      "instance.adapters",
+    ]);
   });
 
   it("omits hiddenSettings entirely when nothing is hidden", async () => {
@@ -133,23 +145,41 @@ describe("GET /health", () => {
     const res = await request(app).get("/health");
 
     expect(res.status).toBe(200);
-    expect(Object.prototype.hasOwnProperty.call(res.body, "hiddenSettings")).toBe(false);
+    expect(
+      Object.prototype.hasOwnProperty.call(res.body, "hiddenSettings"),
+    ).toBe(false);
   });
 
   it("publishes concrete wildcard restrictions to the UI and refreshes changed exceptions", async () => {
-    const env = { TASKCORE_HIDDEN_SETTINGS: "instance.plugins,instance.experimental.*,!instance.experimental.enableEnvironments" };
+    const env = {
+      TASKCORE_HIDDEN_SETTINGS:
+        "instance.plugins,instance.experimental.*,!instance.experimental.enableEnvironments",
+    };
     const app = createApp(undefined, testServerInfo, undefined, env);
     const first = await request(app).get("/health");
     expect(first.status).toBe(200);
     expect(first.body.hiddenSettings).toContain("instance.plugins");
-    expect(first.body.hiddenSettings).toContain("instance.experimental.enableMemoryConnectors");
-    expect(first.body.hiddenSettings).not.toContain("instance.experimental.enableEnvironments");
-    expect(first.body.hiddenSettings.some((key: string) => key.includes("*") || key.startsWith("!"))).toBe(false);
+    expect(first.body.hiddenSettings).toContain(
+      "instance.experimental.enableMemoryConnectors",
+    );
+    expect(first.body.hiddenSettings).not.toContain(
+      "instance.experimental.enableEnvironments",
+    );
+    expect(
+      first.body.hiddenSettings.some(
+        (key: string) => key.includes("*") || key.startsWith("!"),
+      ),
+    ).toBe(false);
 
-    env.TASKCORE_HIDDEN_SETTINGS = "instance.experimental.*,!instance.experimental.enableMemoryConnectors";
+    env.TASKCORE_HIDDEN_SETTINGS =
+      "instance.experimental.*,!instance.experimental.enableMemoryConnectors";
     const second = await request(app).get("/health");
-    expect(second.body.hiddenSettings).toContain("instance.experimental.enableEnvironments");
-    expect(second.body.hiddenSettings).not.toContain("instance.experimental.enableMemoryConnectors");
+    expect(second.body.hiddenSettings).toContain(
+      "instance.experimental.enableEnvironments",
+    );
+    expect(second.body.hiddenSettings).not.toContain(
+      "instance.experimental.enableMemoryConnectors",
+    );
   });
 
   it("returns 200 when the database probe succeeds", async () => {
@@ -212,7 +242,9 @@ describe("GET /health", () => {
   });
 
   it("surfaces a stale database backup warning in full health details", async () => {
-    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-health-backups-"));
+    const backupDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-health-backups-"),
+    );
     const backupFile = path.join(backupDir, "taskcore-20260705-031702.sql.gz");
     fs.writeFileSync(backupFile, "backup");
     fs.utimesSync(
@@ -248,11 +280,16 @@ describe("GET /health", () => {
   });
 
   it("surfaces database backup failure markers in full health details", async () => {
-    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-health-backups-"));
+    const backupDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-health-backups-"),
+    );
     const backupFile = path.join(backupDir, "taskcore-20260706-031702.sql.gz");
     const alertFile = path.join(backupDir, "db-backup-to-s3.failure");
     fs.writeFileSync(backupFile, "backup");
-    fs.writeFileSync(alertFile, "db-backup-to-s3 failed at 2026-07-06T03:17:00.000Z exit=1\n");
+    fs.writeFileSync(
+      alertFile,
+      "db-backup-to-s3 failed at 2026-07-06T03:17:00.000Z exit=1\n",
+    );
     const app = createApp(createHealthyDb(), testServerInfo, {
       enabled: true,
       backupDir,
@@ -280,7 +317,9 @@ describe("GET /health", () => {
   });
 
   it("finds conventional database backup failure markers without an explicit alert file", async () => {
-    const backupRoot = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-health-backups-root-"));
+    const backupRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-health-backups-root-"),
+    );
     const backupDir = path.join(backupRoot, "backups");
     fs.mkdirSync(backupDir);
     const backupFile = path.join(backupDir, "taskcore-20260706-031702.sql.gz");
@@ -313,7 +352,9 @@ describe("GET /health", () => {
   });
 
   it("surfaces redacted database backup warnings for anonymous authenticated probes", async () => {
-    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-health-redacted-backups-"));
+    const backupDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-health-redacted-backups-"),
+    );
     const backupFile = path.join(backupDir, "taskcore-20260705-031702.sql.gz");
     fs.writeFileSync(backupFile, "backup");
     fs.utimesSync(
@@ -384,7 +425,9 @@ describe("GET /health", () => {
 
   it("redacts detailed metadata for anonymous requests in authenticated mode", async () => {
     const devServerStatus = await import("../dev-server-status.js");
-    vi.spyOn(devServerStatus, "readPersistedDevServerStatus").mockReturnValue(undefined);
+    vi.spyOn(devServerStatus, "readPersistedDevServerStatus").mockReturnValue(
+      undefined,
+    );
     const { healthRoutes } = await import("../routes/health.js");
     const db = {
       execute: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
@@ -427,7 +470,9 @@ describe("GET /health", () => {
 
   it("redacts detailed metadata when authenticated mode is reached without auth middleware", async () => {
     const devServerStatus = await import("../dev-server-status.js");
-    vi.spyOn(devServerStatus, "readPersistedDevServerStatus").mockReturnValue(undefined);
+    vi.spyOn(devServerStatus, "readPersistedDevServerStatus").mockReturnValue(
+      undefined,
+    );
     const { healthRoutes } = await import("../routes/health.js");
     const db = {
       execute: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
@@ -466,7 +511,9 @@ describe("GET /health", () => {
 
   it("keeps detailed metadata for authenticated requests in authenticated mode", async () => {
     const devServerStatus = await import("../dev-server-status.js");
-    vi.spyOn(devServerStatus, "readPersistedDevServerStatus").mockReturnValue(undefined);
+    vi.spyOn(devServerStatus, "readPersistedDevServerStatus").mockReturnValue(
+      undefined,
+    );
     const { healthRoutes } = await import("../routes/health.js");
     const db = {
       execute: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
@@ -478,7 +525,11 @@ describe("GET /health", () => {
     } as unknown as Db;
     const app = express();
     app.use((req, _res, next) => {
-      (req as any).actor = { type: "board", userId: "user-1", source: "session" };
+      (req as any).actor = {
+        type: "board",
+        userId: "user-1",
+        source: "session",
+      };
       next();
     });
     app.use(
@@ -548,7 +599,10 @@ describe("GET /health", () => {
   });
 
   it("reports bootstrapStatus ready for cloud-managed instances regardless of instance admin count", async () => {
-    vi.stubEnv("TASKCORE_CLOUD_TENANT_SERVER_TOKEN", "test-tenant-server-token");
+    vi.stubEnv(
+      "TASKCORE_CLOUD_TENANT_SERVER_TOKEN",
+      "test-tenant-server-token",
+    );
     const { healthRoutes } = await import("../routes/health.js");
     const db = {
       execute: vi.fn().mockResolvedValue([{ "?column?": 1 }]),

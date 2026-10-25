@@ -17,12 +17,19 @@ export function CompanySettingsPluginPage() {
   const routeCompany = useMemo(() => {
     if (!routeCompanyPrefix) return null;
     const requested = routeCompanyPrefix.toUpperCase();
-    return companies.find((company) => company.issuePrefix.toUpperCase() === requested) ?? null;
+    return (
+      companies.find(
+        (company) => company.issuePrefix.toUpperCase() === requested,
+      ) ?? null
+    );
   }, [companies, routeCompanyPrefix]);
   const hasInvalidCompanyPrefix = Boolean(routeCompanyPrefix) && !routeCompany;
-  const resolvedCompanyId = routeCompany?.id ?? (routeCompanyPrefix ? null : selectedCompanyId ?? null);
+  const resolvedCompanyId =
+    routeCompany?.id ??
+    (routeCompanyPrefix ? null : (selectedCompanyId ?? null));
   const companyPrefix = resolvedCompanyId
-    ? companies.find((company) => company.id === resolvedCompanyId)?.issuePrefix ?? null
+    ? (companies.find((company) => company.id === resolvedCompanyId)
+        ?.issuePrefix ?? null)
     : null;
 
   const { slots, isLoading, errorMessage } = usePluginSlots({
@@ -48,9 +55,18 @@ export function CompanySettingsPluginPage() {
 
   if (!resolvedCompanyId) {
     if (hasInvalidCompanyPrefix) {
-      return <NotFoundPage scope="invalid_company_prefix" requestedPrefix={routeCompanyPrefix} />;
+      return (
+        <NotFoundPage
+          scope="invalid_company_prefix"
+          requestedPrefix={routeCompanyPrefix}
+        />
+      );
     }
-    return <div className="text-sm text-muted-foreground">Select an organization to view this page.</div>;
+    return (
+      <div className="text-sm text-muted-foreground">
+        Select an organization to view this page.
+      </div>
+    );
   }
 
   if (!settingsRoutePath || isLoading) {
@@ -68,7 +84,9 @@ export function CompanySettingsPluginPage() {
   if (pageSlots.length > 1) {
     return (
       <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-        Multiple plugins declare the company settings route <code>{settingsRoutePath}</code>. Disable one plugin or change its route.
+        Multiple plugins declare the company settings route{" "}
+        <code>{settingsRoutePath}</code>. Disable one plugin or change its
+        route.
       </div>
     );
   }

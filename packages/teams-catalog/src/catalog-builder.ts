@@ -30,7 +30,12 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CATALOG_KINDS = new Set<CatalogTeamKind>(["bundled", "optional"]);
 const TEAM_SCHEMA = "agentcompanies/v1";
 const LOCAL_PATH_SOURCE_TYPES = new Set(["local_path"]);
-const EXTERNAL_SOURCE_TYPES = new Set(["skills_sh", "github", "url", "agent_package"]);
+const EXTERNAL_SOURCE_TYPES = new Set([
+  "skills_sh",
+  "github",
+  "url",
+  "agent_package",
+]);
 
 interface TeamCandidate {
   kind: CatalogTeamKind;
@@ -98,14 +103,20 @@ export async function buildCatalogManifest(
   const packageDir = path.resolve(options.packageDir);
   const packageJson = await readPackageJson(packageDir);
   const errors: string[] = [];
-  const catalogSkills = options.catalogSkills ?? await loadCatalogSkills(packageDir, errors);
+  const catalogSkills =
+    options.catalogSkills ?? (await loadCatalogSkills(packageDir, errors));
   const candidates = await discoverTeamCandidates(packageDir, errors);
   const teams: CatalogTeam[] = [];
 
   collectCandidateUniquenessErrors(candidates, errors);
 
   for (const candidate of candidates) {
-    const team = await buildCatalogTeam(packageDir, candidate, catalogSkills, errors);
+    const team = await buildCatalogTeam(
+      packageDir,
+      candidate,
+      catalogSkills,
+      errors,
+    );
     if (team) teams.push(team);
   }
 
@@ -124,7 +135,9 @@ export async function buildCatalogManifest(
   };
 }
 
-export async function validateCatalog(packageDir: string): Promise<BuildCatalogManifestResult> {
+export async function validateCatalog(
+  packageDir: string,
+): Promise<BuildCatalogManifestResult> {
   const expected = await buildExpectedCatalogManifest(packageDir);
   const generatedPath = path.join(packageDir, "generated", "catalog.json");
   const errors = [...expected.errors];
@@ -134,13 +147,17 @@ export async function validateCatalog(packageDir: string): Promise<BuildCatalogM
     generatedText = await fs.readFile(generatedPath, "utf8");
     JSON.parse(generatedText);
   } catch (error) {
-    errors.push(`generated/catalog.json is missing or invalid: ${errorMessage(error)}`);
+    errors.push(
+      `generated/catalog.json is missing or invalid: ${errorMessage(error)}`,
+    );
   }
 
   if (generatedText !== null) {
     const expectedText = formatCatalogManifest(expected.manifest);
     if (generatedText !== expectedText) {
-      errors.push("generated/catalog.json is stale. Run pnpm --filter @taskcore/teams-catalog build:manifest.");
+      errors.push(
+        "generated/catalog.json is stale. Run pnpm --filter @taskcore/teams-catalog build:manifest.",
+      );
     }
   }
 
@@ -156,39 +173,76 @@ export async function writeCatalogManifest(packageDir: string) {
 
   const generatedDir = path.join(packageDir, "generated");
   await fs.mkdir(generatedDir, { recursive: true });
-  await fs.writeFile(path.join(generatedDir, "catalog.json"), formatCatalogManifest(result.manifest), "utf8");
+  await fs.writeFile(
+    path.join(generatedDir, "catalog.json"),
+    formatCatalogManifest(result.manifest),
+    "utf8",
+  );
   return result;
 }
 
 async function readPackageJson(packageDir: string) {
   const packageJsonPath = path.join(packageDir, "package.json");
-  const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf8")) as { version?: unknown };
+  const packageJson = JSON.parse(
+    await fs.readFile(packageJsonPath, "utf8"),
+  ) as { version?: unknown };
   const version = asString(packageJson.version);
-  if (!version) throw new Error(`${packageJsonPath} must declare a package version.`);
+  if (!version)
+    throw new Error(`${packageJsonPath} must declare a package version.`);
   return { version };
 }
 
-async function readExistingManifest(packageDir: string): Promise<CatalogManifest | null> {
+async function readExistingManifest(
+  packageDir: string,
+): Promise<CatalogManifest | null> {
   try {
-    return JSON.parse(await fs.readFile(path.join(packageDir, "generated", "catalog.json"), "utf8")) as CatalogManifest;
+    return JSON.parse(
+      await fs.readFile(
+        path.join(packageDir, "generated", "catalog.json"),
+        "utf8",
+      ),
+    ) as CatalogManifest;
   } catch {
     return null;
   }
 }
 
-async function loadCatalogSkills(packageDir: string, errors: string[]): Promise<CatalogSkillSummary[]> {
+async function loadCatalogSkills(
+  packageDir: string,
+  errors: string[],
+): Promise<CatalogSkillSummary[]> {
   try {
     const catalogPackageName = "@taskcore/skills-catalog";
-    const catalog = await import(catalogPackageName) as { catalogSkills: CatalogSkillSummary[] };
+    const catalog = (await import(catalogPackageName)) as {
+      catalogSkills: CatalogSkillSummary[];
+    };
     const skills = catalog.catalogSkills as CatalogSkillSummary[];
-    return skills.map((skill) => ({ id: skill.id, key: skill.key, slug: skill.slug }));
+    return skills.map((skill) => ({
+      id: skill.id,
+      key: skill.key,
+      slug: skill.slug,
+    }));
   } catch {
-    const siblingManifestPath = path.resolve(packageDir, "..", "skills-catalog", "generated", "catalog.json");
+    const siblingManifestPath = path.resolve(
+      packageDir,
+      "..",
+      "skills-catalog",
+      "generated",
+      "catalog.json",
+    );
     try {
-      const manifest = JSON.parse(await fs.readFile(siblingManifestPath, "utf8")) as { skills?: CatalogSkillSummary[] };
-      return (manifest.skills ?? []).map((skill) => ({ id: skill.id, key: skill.key, slug: skill.slug }));
+      const manifest = JSON.parse(
+        await fs.readFile(siblingManifestPath, "utf8"),
+      ) as { skills?: CatalogSkillSummary[] };
+      return (manifest.skills ?? []).map((skill) => ({
+        id: skill.id,
+        key: skill.key,
+        slug: skill.slug,
+      }));
     } catch (error) {
-      errors.push(`Could not load @taskcore/skills-catalog for skill requirement validation: ${errorMessage(error)}`);
+      errors.push(
+        `Could not load @taskcore/skills-catalog for skill requirement validation: ${errorMessage(error)}`,
+      );
       return [];
     }
   }
@@ -219,7 +273,9 @@ async function discoverTeamCandidates(packageDir: string, errors: string[]) {
         const slug = slugEntry.name;
         const teamDir = path.join(categoryDir, slug);
         if (!existsSync(path.join(teamDir, TEAM_ENTRYPOINT))) {
-          errors.push(`${relativePackagePath(packageDir, teamDir)} is missing TEAM.md.`);
+          errors.push(
+            `${relativePackagePath(packageDir, teamDir)} is missing TEAM.md.`,
+          );
           continue;
         }
         candidates.push({ kind, category, slug, absolutePath: teamDir });
@@ -244,7 +300,9 @@ async function collectMisplacedTeamFiles(catalogDir: string, errors: string[]) {
       const parts = relativePath.split("/");
       const kind = parts[0];
       if (parts.length !== 4 || !CATALOG_KINDS.has(kind as CatalogTeamKind)) {
-        errors.push(`catalog/${relativePath} is not under catalog/<bundled|optional>/<category>/<slug>/TEAM.md.`);
+        errors.push(
+          `catalog/${relativePath} is not under catalog/<bundled|optional>/<category>/<slug>/TEAM.md.`,
+        );
       }
     }
   }
@@ -265,7 +323,9 @@ async function buildCatalogTeam(
   const id = `taskcore:${candidate.kind}:${candidate.category}:${candidate.slug}`;
   const key = `taskcore/${candidate.kind}/${candidate.category}/${candidate.slug}`;
   const teamMarkdownPath = path.join(candidate.absolutePath, TEAM_ENTRYPOINT);
-  const parsed = parseFrontmatterMarkdown(await fs.readFile(teamMarkdownPath, "utf8"));
+  const parsed = parseFrontmatterMarkdown(
+    await fs.readFile(teamMarkdownPath, "utf8"),
+  );
 
   if (!parsed.hasFrontmatter) {
     errors.push(`${prefix}/TEAM.md must start with YAML frontmatter.`);
@@ -275,7 +335,8 @@ async function buildCatalogTeam(
   if (!name) errors.push(`${prefix}/TEAM.md frontmatter must include name.`);
 
   const description = asString(parsed.frontmatter.description);
-  if (!description) errors.push(`${prefix}/TEAM.md frontmatter must include description.`);
+  if (!description)
+    errors.push(`${prefix}/TEAM.md frontmatter must include description.`);
 
   const schema = asString(parsed.frontmatter.schema);
   if (schema !== TEAM_SCHEMA) {
@@ -304,8 +365,18 @@ async function buildCatalogTeam(
     prefix,
     errors,
   );
-  const tags = readStringArrayField(parsed.frontmatter.tags, "tags", prefix, errors);
-  const files = await collectTeamFiles(packageDir, candidate.absolutePath, prefix, errors);
+  const tags = readStringArrayField(
+    parsed.frontmatter.tags,
+    "tags",
+    prefix,
+    errors,
+  );
+  const files = await collectTeamFiles(
+    packageDir,
+    candidate.absolutePath,
+    prefix,
+    errors,
+  );
   const graph = await readTeamPackageGraph(candidate.absolutePath, errors);
   const agentSlugs = collectSlugs(graph.agents, "agent", errors);
   const projectSlugs = collectSlugs(graph.projects, "project", errors);
@@ -317,11 +388,30 @@ async function buildCatalogTeam(
     path: task.relativePath,
   }));
   const localSkillSlugs = collectSlugs(graph.skills, "skill", errors);
-  const rootAgentSlugs = validateLocalReferences(candidate.absolutePath, parsed.frontmatter, graph, agentSlugs, projectSlugs, errors);
-  const requiredSkills = collectRequiredSkills(candidate.absolutePath, parsed.frontmatter, graph, catalogSkills, agentSlugs, localSkillSlugs, errors);
+  const rootAgentSlugs = validateLocalReferences(
+    candidate.absolutePath,
+    parsed.frontmatter,
+    graph,
+    agentSlugs,
+    projectSlugs,
+    errors,
+  );
+  const requiredSkills = collectRequiredSkills(
+    candidate.absolutePath,
+    parsed.frontmatter,
+    graph,
+    catalogSkills,
+    agentSlugs,
+    localSkillSlugs,
+    errors,
+  );
   const envInputs = collectEnvInputs(graph);
   const sourceRefs = collectSourceRefs(parsed.frontmatter, requiredSkills);
-  const catalogSkillCount = new Set(requiredSkills.filter((skill) => skill.type === "catalog").map((skill) => skill.catalogSkillId ?? skill.ref)).size;
+  const catalogSkillCount = new Set(
+    requiredSkills
+      .filter((skill) => skill.type === "catalog")
+      .map((skill) => skill.catalogSkillId ?? skill.ref),
+  ).size;
 
   if (!name || !description || schema !== TEAM_SCHEMA) return null;
 
@@ -346,7 +436,8 @@ async function buildCatalogTeam(
       routines: taskRecords.filter((task) => task.recurring).length,
       localSkills: graph.skills.length,
       catalogSkills: catalogSkillCount,
-      externalSkillSources: sourceRefs.filter((ref) => ref.type !== "include").length,
+      externalSkillSources: sourceRefs.filter((ref) => ref.type !== "include")
+        .length,
     },
     rootAgentSlugs,
     agentSlugs: agentSlugs.sort(),
@@ -382,15 +473,21 @@ async function collectTeamFiles(
           realPath = await fs.realpath(absolutePath);
           stat = await fs.stat(absolutePath);
         } catch {
-          errors.push(`${relativePackagePath(packageDir, absolutePath)} is a broken symlink.`);
+          errors.push(
+            `${relativePackagePath(packageDir, absolutePath)} is a broken symlink.`,
+          );
           continue;
         }
         if (!isPathInside(teamRoot, realPath)) {
-          errors.push(`${relativePackagePath(packageDir, absolutePath)} points outside its team directory.`);
+          errors.push(
+            `${relativePackagePath(packageDir, absolutePath)} points outside its team directory.`,
+          );
           continue;
         }
         if (stat.isDirectory()) {
-          errors.push(`${relativePackagePath(packageDir, absolutePath)} is a directory symlink; copy files into the team directory instead.`);
+          errors.push(
+            `${relativePackagePath(packageDir, absolutePath)} is a directory symlink; copy files into the team directory instead.`,
+          );
           continue;
         }
       }
@@ -402,12 +499,17 @@ async function collectTeamFiles(
       if (!stat.isFile()) continue;
 
       const relativePath = toPosixPath(path.relative(teamDir, absolutePath));
-      if (path.isAbsolute(relativePath) || relativePath.split("/").includes("..")) {
+      if (
+        path.isAbsolute(relativePath) ||
+        relativePath.split("/").includes("..")
+      ) {
         errors.push(`${prefix}/${relativePath} has an invalid inventory path.`);
         continue;
       }
       if (stat.size > MAX_CATALOG_FILE_BYTES) {
-        errors.push(`${prefix}/${relativePath} exceeds ${MAX_CATALOG_FILE_BYTES} bytes.`);
+        errors.push(
+          `${prefix}/${relativePath} exceeds ${MAX_CATALOG_FILE_BYTES} bytes.`,
+        );
       }
 
       const contents = await fs.readFile(absolutePath);
@@ -427,14 +529,19 @@ async function collectTeamFiles(
     return a.path.localeCompare(b.path);
   });
 
-  if (!files.some((file) => file.path === TEAM_ENTRYPOINT && file.kind === "team")) {
+  if (
+    !files.some((file) => file.path === TEAM_ENTRYPOINT && file.kind === "team")
+  ) {
     errors.push(`${prefix} inventory does not contain TEAM.md.`);
   }
 
   return files;
 }
 
-async function readTeamPackageGraph(teamDir: string, errors: string[]): Promise<TeamPackageGraph> {
+async function readTeamPackageGraph(
+  teamDir: string,
+  errors: string[],
+): Promise<TeamPackageGraph> {
   const graph: TeamPackageGraph = {
     agents: [],
     projects: [],
@@ -455,8 +562,11 @@ async function readTeamPackageGraph(teamDir: string, errors: string[]): Promise<
       const relativePath = toPosixPath(path.relative(teamDir, absolutePath));
       const bucket = graphBucketForFile(relativePath);
       if (!bucket) continue;
-      const doc = parseFrontmatterMarkdown(await fs.readFile(absolutePath, "utf8"));
-      if (!doc.hasFrontmatter) errors.push(`${relativePath} must start with YAML frontmatter.`);
+      const doc = parseFrontmatterMarkdown(
+        await fs.readFile(absolutePath, "utf8"),
+      );
+      if (!doc.hasFrontmatter)
+        errors.push(`${relativePath} must start with YAML frontmatter.`);
       graph[bucket].push({
         relativePath,
         frontmatter: doc.frontmatter,
@@ -469,11 +579,17 @@ async function readTeamPackageGraph(teamDir: string, errors: string[]): Promise<
   return graph;
 }
 
-function graphBucketForFile(relativePath: string): keyof TeamPackageGraph | null {
-  if (relativePath.endsWith("/AGENTS.md") || relativePath === "AGENTS.md") return "agents";
-  if (relativePath.endsWith("/PROJECT.md") || relativePath === "PROJECT.md") return "projects";
-  if (relativePath.endsWith("/TASK.md") || relativePath === "TASK.md") return "tasks";
-  if (relativePath.endsWith("/SKILL.md") || relativePath === "SKILL.md") return "skills";
+function graphBucketForFile(
+  relativePath: string,
+): keyof TeamPackageGraph | null {
+  if (relativePath.endsWith("/AGENTS.md") || relativePath === "AGENTS.md")
+    return "agents";
+  if (relativePath.endsWith("/PROJECT.md") || relativePath === "PROJECT.md")
+    return "projects";
+  if (relativePath.endsWith("/TASK.md") || relativePath === "TASK.md")
+    return "tasks";
+  if (relativePath.endsWith("/SKILL.md") || relativePath === "SKILL.md")
+    return "skills";
   return null;
 }
 
@@ -491,10 +607,19 @@ function validateLocalReferences(
   if (!manager) {
     errors.push(`${TEAM_ENTRYPOINT} frontmatter must include manager.`);
   } else {
-    const managerPath = resolveTeamReference(teamDir, TEAM_ENTRYPOINT, manager, errors);
-    const managerAgent = managerPath ? graph.agents.find((agent) => agent.relativePath === managerPath) : null;
+    const managerPath = resolveTeamReference(
+      teamDir,
+      TEAM_ENTRYPOINT,
+      manager,
+      errors,
+    );
+    const managerAgent = managerPath
+      ? graph.agents.find((agent) => agent.relativePath === managerPath)
+      : null;
     if (!managerAgent) {
-      errors.push(`${TEAM_ENTRYPOINT} manager must resolve to an AGENTS.md file inside the team package: ${manager}.`);
+      errors.push(
+        `${TEAM_ENTRYPOINT} manager must resolve to an AGENTS.md file inside the team package: ${manager}.`,
+      );
     } else {
       rootAgentSlugs.push(readSlug(managerAgent, "agent", errors));
     }
@@ -502,7 +627,12 @@ function validateLocalReferences(
 
   for (const include of readIncludeEntries(teamFrontmatter)) {
     if (isExternalRef(include)) continue;
-    const resolved = resolveTeamReference(teamDir, TEAM_ENTRYPOINT, include, errors);
+    const resolved = resolveTeamReference(
+      teamDir,
+      TEAM_ENTRYPOINT,
+      include,
+      errors,
+    );
     if (resolved && !existsSync(path.join(teamDir, resolved))) {
       errors.push(`${TEAM_ENTRYPOINT} include does not exist: ${include}.`);
     }
@@ -511,25 +641,35 @@ function validateLocalReferences(
   for (const agent of graph.agents) {
     const reportsTo = asString(agent.frontmatter.reportsTo);
     if (reportsTo && reportsTo !== "null" && !agentSlugs.includes(reportsTo)) {
-      errors.push(`${agent.relativePath} reportsTo references unknown agent slug "${reportsTo}".`);
+      errors.push(
+        `${agent.relativePath} reportsTo references unknown agent slug "${reportsTo}".`,
+      );
     }
   }
 
   for (const project of graph.projects) {
-    const owner = asString(project.frontmatter.owner) ?? asString(project.frontmatter.leadAgent);
+    const owner =
+      asString(project.frontmatter.owner) ??
+      asString(project.frontmatter.leadAgent);
     if (owner && !agentSlugs.includes(owner)) {
-      errors.push(`${project.relativePath} owner references unknown agent slug "${owner}".`);
+      errors.push(
+        `${project.relativePath} owner references unknown agent slug "${owner}".`,
+      );
     }
   }
 
   for (const task of graph.tasks) {
     const assignee = asString(task.frontmatter.assignee);
     if (assignee && !agentSlugs.includes(assignee)) {
-      errors.push(`${task.relativePath} assignee references unknown agent slug "${assignee}".`);
+      errors.push(
+        `${task.relativePath} assignee references unknown agent slug "${assignee}".`,
+      );
     }
     const project = asString(task.frontmatter.project);
     if (project && !projectSlugs.includes(project)) {
-      errors.push(`${task.relativePath} project references unknown project slug "${project}".`);
+      errors.push(
+        `${task.relativePath} project references unknown project slug "${project}".`,
+      );
     }
   }
 
@@ -554,27 +694,56 @@ function collectRequiredSkills(
       requirements.set(key, requirement);
       return;
     }
-    existing.agentSlugs = Array.from(new Set([...existing.agentSlugs, ...requirement.agentSlugs])).sort();
+    existing.agentSlugs = Array.from(
+      new Set([...existing.agentSlugs, ...requirement.agentSlugs]),
+    ).sort();
   }
 
   for (const agent of graph.agents) {
     const agentSlug = readSlug(agent, "agent", errors);
-    const skills = readStringArrayField(agent.frontmatter.skills, "skills", agent.relativePath, errors);
+    const skills = readStringArrayField(
+      agent.frontmatter.skills,
+      "skills",
+      agent.relativePath,
+      errors,
+    );
     for (const skillRef of skills) {
-      upsert(resolveSkillRequirement(skillRef, [agentSlug], catalogSkills, localSkillSlugs, errors, agent.relativePath));
+      upsert(
+        resolveSkillRequirement(
+          skillRef,
+          [agentSlug],
+          catalogSkills,
+          localSkillSlugs,
+          errors,
+          agent.relativePath,
+        ),
+      );
     }
   }
 
   for (const declared of readRequiredSkillEntries(teamFrontmatter, errors)) {
-    upsert(resolveDeclaredSkillRequirement(teamDir, declared, catalogSkills, localSkillSlugs, agentSlugs, errors));
+    upsert(
+      resolveDeclaredSkillRequirement(
+        teamDir,
+        declared,
+        catalogSkills,
+        localSkillSlugs,
+        agentSlugs,
+        errors,
+      ),
+    );
   }
 
-  return Array.from(requirements.values()).sort((a, b) => `${a.type}:${a.ref}`.localeCompare(`${b.type}:${b.ref}`));
+  return Array.from(requirements.values()).sort((a, b) =>
+    `${a.type}:${a.ref}`.localeCompare(`${b.type}:${b.ref}`),
+  );
 }
 
 function requirementIdentity(requirement: CatalogTeamSkillRequirement) {
-  if (requirement.type === "catalog") return `catalog:${requirement.catalogSkillId ?? requirement.catalogSkillKey ?? requirement.ref}`;
-  if (requirement.type === "local") return `local:${requirement.localPath ?? requirement.ref}`;
+  if (requirement.type === "catalog")
+    return `catalog:${requirement.catalogSkillId ?? requirement.catalogSkillKey ?? requirement.ref}`;
+  if (requirement.type === "local")
+    return `local:${requirement.localPath ?? requirement.ref}`;
   return `${requirement.type}:${requirement.sourceLocator ?? requirement.ref}`;
 }
 
@@ -608,7 +777,9 @@ function resolveSkillRequirement(
     };
   }
 
-  errors.push(`${prefix} skill reference "${ref}" does not resolve to a local team skill or @taskcore/skills-catalog skill.`);
+  errors.push(
+    `${prefix} skill reference "${ref}" does not resolve to a local team skill or @taskcore/skills-catalog skill.`,
+  );
   return {
     type: "catalog",
     ref,
@@ -626,44 +797,83 @@ function resolveDeclaredSkillRequirement(
   errors: string[],
 ): CatalogTeamSkillRequirement {
   if (typeof declared === "string") {
-    return resolveSkillRequirement(declared.trim(), [], catalogSkills, localSkillSlugs, errors, TEAM_ENTRYPOINT);
+    return resolveSkillRequirement(
+      declared.trim(),
+      [],
+      catalogSkills,
+      localSkillSlugs,
+      errors,
+      TEAM_ENTRYPOINT,
+    );
   }
 
   if (!isPlainRecord(declared)) {
-    errors.push(`${TEAM_ENTRYPOINT} requiredSkills entries must be strings or objects.`);
+    errors.push(
+      `${TEAM_ENTRYPOINT} requiredSkills entries must be strings or objects.`,
+    );
     return { type: "catalog", ref: "", agentSlugs: [], resolved: false };
   }
 
-  const type = asString(declared.type) ?? asString(declared.sourceType) ?? "catalog";
-  const ref = asString(declared.ref)
-    ?? asString(declared.catalogSkillId)
-    ?? asString(declared.key)
-    ?? asString(declared.slug)
-    ?? asString(declared.url)
-    ?? asString(declared.path)
-    ?? "";
-  const requirementAgentSlugs = readStringArrayLoose(declared.agentSlugs).filter((slug) => agentSlugs.includes(slug)).sort();
+  const type =
+    asString(declared.type) ?? asString(declared.sourceType) ?? "catalog";
+  const ref =
+    asString(declared.ref) ??
+    asString(declared.catalogSkillId) ??
+    asString(declared.key) ??
+    asString(declared.slug) ??
+    asString(declared.url) ??
+    asString(declared.path) ??
+    "";
+  const requirementAgentSlugs = readStringArrayLoose(declared.agentSlugs)
+    .filter((slug) => agentSlugs.includes(slug))
+    .sort();
 
   if (!isSkillRequirementType(type)) {
-    errors.push(`${TEAM_ENTRYPOINT} requiredSkills type "${type}" is not supported.`);
-    return { type: "catalog", ref, agentSlugs: requirementAgentSlugs, resolved: false };
+    errors.push(
+      `${TEAM_ENTRYPOINT} requiredSkills type "${type}" is not supported.`,
+    );
+    return {
+      type: "catalog",
+      ref,
+      agentSlugs: requirementAgentSlugs,
+      resolved: false,
+    };
   }
 
   if (!ref) {
-    errors.push(`${TEAM_ENTRYPOINT} requiredSkills ${type} entry must include a ref, key, slug, url, or path.`);
+    errors.push(
+      `${TEAM_ENTRYPOINT} requiredSkills ${type} entry must include a ref, key, slug, url, or path.`,
+    );
     return { type, ref, agentSlugs: requirementAgentSlugs, resolved: false };
   }
 
   if (type === "catalog") {
-    return resolveSkillRequirement(ref, requirementAgentSlugs, catalogSkills, localSkillSlugs, errors, TEAM_ENTRYPOINT);
+    return resolveSkillRequirement(
+      ref,
+      requirementAgentSlugs,
+      catalogSkills,
+      localSkillSlugs,
+      errors,
+      TEAM_ENTRYPOINT,
+    );
   }
 
   if (type === "local") {
-    const localPath = ref.endsWith("/SKILL.md") ? ref : `skills/${ref}/SKILL.md`;
-    const normalized = resolveTeamReference(teamDir, TEAM_ENTRYPOINT, localPath, errors);
+    const localPath = ref.endsWith("/SKILL.md")
+      ? ref
+      : `skills/${ref}/SKILL.md`;
+    const normalized = resolveTeamReference(
+      teamDir,
+      TEAM_ENTRYPOINT,
+      localPath,
+      errors,
+    );
     const localSlug = path.posix.basename(path.posix.dirname(localPath));
     const resolved = Boolean(normalized && localSkillSlugs.includes(localSlug));
-    if (!resolved) errors.push(`${TEAM_ENTRYPOINT} required local skill "${ref}" does not resolve to skills/<slug>/SKILL.md.`);
+    if (!resolved)
+      errors.push(
+        `${TEAM_ENTRYPOINT} required local skill "${ref}" does not resolve to skills/<slug>/SKILL.md.`,
+      );
     return {
       type: "local",
       ref,
@@ -679,40 +889,58 @@ function resolveDeclaredSkillRequirement(
     agentSlugs: requirementAgentSlugs,
     resolved: true,
     sourceLocator: ref,
-    sourceRef: asString(declared.sourceRef) ?? asString(declared.commit) ?? undefined,
+    sourceRef:
+      asString(declared.sourceRef) ?? asString(declared.commit) ?? undefined,
   };
 }
 
-function readRequiredSkillEntries(frontmatter: Record<string, unknown>, errors: string[]) {
+function readRequiredSkillEntries(
+  frontmatter: Record<string, unknown>,
+  errors: string[],
+) {
   const value = frontmatter.requiredSkills;
   if (value === undefined) return [];
   if (!Array.isArray(value)) {
-    errors.push(`${TEAM_ENTRYPOINT} frontmatter field requiredSkills must be an array.`);
+    errors.push(
+      `${TEAM_ENTRYPOINT} frontmatter field requiredSkills must be an array.`,
+    );
     return [];
   }
   return value;
 }
 
-function collectEnvInputs(graph: TeamPackageGraph): CatalogTeamEnvInputSummary[] {
+function collectEnvInputs(
+  graph: TeamPackageGraph,
+): CatalogTeamEnvInputSummary[] {
   const out: CatalogTeamEnvInputSummary[] = [];
 
   for (const agent of graph.agents) {
-    const agentSlug = asString(agent.frontmatter.slug) ?? slugFromEntityPath(agent.relativePath);
+    const agentSlug =
+      asString(agent.frontmatter.slug) ??
+      slugFromEntityPath(agent.relativePath);
     out.push(...readEnvInputs(agent.frontmatter, agentSlug, null));
   }
 
   for (const project of graph.projects) {
-    const projectSlug = asString(project.frontmatter.slug) ?? slugFromEntityPath(project.relativePath);
+    const projectSlug =
+      asString(project.frontmatter.slug) ??
+      slugFromEntityPath(project.relativePath);
     out.push(...readEnvInputs(project.frontmatter, null, projectSlug));
   }
 
   const seen = new Set<string>();
-  return out.filter((input) => {
-    const key = `${input.agentSlug ?? ""}:${input.projectSlug ?? ""}:${input.key}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).sort((a, b) => `${a.agentSlug ?? ""}:${a.projectSlug ?? ""}:${a.key}`.localeCompare(`${b.agentSlug ?? ""}:${b.projectSlug ?? ""}:${b.key}`));
+  return out
+    .filter((input) => {
+      const key = `${input.agentSlug ?? ""}:${input.projectSlug ?? ""}:${input.key}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) =>
+      `${a.agentSlug ?? ""}:${a.projectSlug ?? ""}:${a.key}`.localeCompare(
+        `${b.agentSlug ?? ""}:${b.projectSlug ?? ""}:${b.key}`,
+      ),
+    );
 }
 
 function readEnvInputs(
@@ -726,13 +954,15 @@ function readEnvInputs(
 
   return Object.entries(env).flatMap(([key, value]) => {
     if (!isPlainRecord(value)) return [];
-    return [{
-      key,
-      agentSlug,
-      projectSlug,
-      kind: value.kind === "plain" ? "plain" : "secret",
-      requirement: value.requirement === "required" ? "required" : "optional",
-    } satisfies CatalogTeamEnvInputSummary];
+    return [
+      {
+        key,
+        agentSlug,
+        projectSlug,
+        kind: value.kind === "plain" ? "plain" : "secret",
+        requirement: value.requirement === "required" ? "required" : "optional",
+      } satisfies CatalogTeamEnvInputSummary,
+    ];
   });
 }
 
@@ -744,7 +974,11 @@ function collectSourceRefs(
 
   for (const include of readIncludeEntries(teamFrontmatter)) {
     if (isExternalRef(include)) {
-      refs.push({ type: "include", ref: include, pinned: isPinnedExternalRef(include) });
+      refs.push({
+        type: "include",
+        ref: include,
+        pinned: isPinnedExternalRef(include),
+      });
     }
   }
 
@@ -753,7 +987,9 @@ function collectSourceRefs(
     refs.push({
       type: skill.type,
       ref: skill.sourceLocator ?? skill.ref,
-      pinned: isPinnedExternalRef(skill.sourceRef ?? skill.sourceLocator ?? skill.ref),
+      pinned: isPinnedExternalRef(
+        skill.sourceRef ?? skill.sourceLocator ?? skill.ref,
+      ),
     });
   }
 
@@ -774,11 +1010,18 @@ function readIncludeEntries(frontmatter: Record<string, unknown>) {
   });
 }
 
-function resolveTeamReference(teamDir: string, fromPath: string, ref: string, errors: string[]) {
+function resolveTeamReference(
+  teamDir: string,
+  fromPath: string,
+  ref: string,
+  errors: string[],
+) {
   if (isExternalRef(ref)) return null;
   const normalizedRef = ref.replace(/\\/g, "/");
   if (path.posix.isAbsolute(normalizedRef)) {
-    errors.push(`${fromPath} reference must be relative, not absolute: ${ref}.`);
+    errors.push(
+      `${fromPath} reference must be relative, not absolute: ${ref}.`,
+    );
     return null;
   }
 
@@ -799,7 +1042,9 @@ function readStringArrayField(
 ) {
   const parsed = asStringArray(value);
   if (!parsed) {
-    errors.push(`${prefix} frontmatter field ${field} must be an array of strings.`);
+    errors.push(
+      `${prefix} frontmatter field ${field} must be an array of strings.`,
+    );
     return [];
   }
   return parsed;
@@ -807,18 +1052,28 @@ function readStringArrayField(
 
 function readStringArrayLoose(value: unknown) {
   return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === "string").map((entry) => entry.trim()).filter(Boolean)
+    ? value
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
     : [];
 }
 
-function collectSlugs(files: ParsedTeamFile[], label: string, errors: string[]) {
-  const slugs = files.map((file) => readSlug(file, label, errors)).filter(Boolean);
+function collectSlugs(
+  files: ParsedTeamFile[],
+  label: string,
+  errors: string[],
+) {
+  const slugs = files
+    .map((file) => readSlug(file, label, errors))
+    .filter(Boolean);
   collectDuplicateValues(slugs, label, errors);
   return slugs;
 }
 
 function readSlug(file: ParsedTeamFile, label: string, errors: string[]) {
-  const slug = asString(file.frontmatter.slug) ?? slugFromEntityPath(file.relativePath);
+  const slug =
+    asString(file.frontmatter.slug) ?? slugFromEntityPath(file.relativePath);
   validateSlug(`${label} slug`, slug, file.relativePath, errors);
   return slug;
 }
@@ -829,23 +1084,40 @@ function slugFromEntityPath(relativePath: string) {
 
 function classifyCatalogFile(relativePath: string): CatalogTeamFileKind {
   if (relativePath === TEAM_ENTRYPOINT) return "team";
-  if (relativePath.endsWith("/AGENTS.md") || relativePath === "AGENTS.md") return "agent";
-  if (relativePath.endsWith("/PROJECT.md") || relativePath === "PROJECT.md") return "project";
-  if (relativePath.endsWith("/TASK.md") || relativePath === "TASK.md") return "task";
-  if (relativePath.endsWith("/SKILL.md") || relativePath === "SKILL.md") return "skill";
+  if (relativePath.endsWith("/AGENTS.md") || relativePath === "AGENTS.md")
+    return "agent";
+  if (relativePath.endsWith("/PROJECT.md") || relativePath === "PROJECT.md")
+    return "project";
+  if (relativePath.endsWith("/TASK.md") || relativePath === "TASK.md")
+    return "task";
+  if (relativePath.endsWith("/SKILL.md") || relativePath === "SKILL.md")
+    return "skill";
   if (relativePath === ".taskcore.yaml") return "extension";
   if (relativePath === "README.md") return "readme";
   if (relativePath.startsWith("references/")) return "reference";
   if (relativePath.startsWith("scripts/")) return "script";
   if (relativePath.startsWith("assets/")) return "asset";
-  if (relativePath.endsWith(".md") || relativePath.endsWith(".mdx")) return "markdown";
+  if (relativePath.endsWith(".md") || relativePath.endsWith(".mdx"))
+    return "markdown";
   return "other";
 }
 
-function deriveTrustLevel(files: CatalogTeamFile[], sourceRefs: CatalogTeamSourceRef[]): CatalogTeamTrustLevel {
+function deriveTrustLevel(
+  files: CatalogTeamFile[],
+  sourceRefs: CatalogTeamSourceRef[],
+): CatalogTeamTrustLevel {
   if (sourceRefs.length > 0) return "external_sources";
-  if (files.some((file) => file.kind === "script")) return "scripts_executables";
-  if (files.some((file) => file.kind === "asset" || file.kind === "other" || file.kind === "extension")) return "assets";
+  if (files.some((file) => file.kind === "script"))
+    return "scripts_executables";
+  if (
+    files.some(
+      (file) =>
+        file.kind === "asset" ||
+        file.kind === "other" ||
+        file.kind === "extension",
+    )
+  )
+    return "assets";
   return "markdown_only";
 }
 
@@ -863,30 +1135,45 @@ function collectUniquenessErrors(teams: CatalogTeam[], errors: string[]) {
   collectDuplicateErrors(teams, "slug", errors);
 }
 
-function collectCandidateUniquenessErrors(candidates: TeamCandidate[], errors: string[]) {
+function collectCandidateUniquenessErrors(
+  candidates: TeamCandidate[],
+  errors: string[],
+) {
   const projected = candidates.map((candidate) => ({
     id: `taskcore:${candidate.kind}:${candidate.category}:${candidate.slug}`,
     key: `taskcore/${candidate.kind}/${candidate.category}/${candidate.slug}`,
     slug: candidate.slug,
-    path: toPosixPath(path.join("catalog", candidate.kind, candidate.category, candidate.slug)),
+    path: toPosixPath(
+      path.join("catalog", candidate.kind, candidate.category, candidate.slug),
+    ),
   })) as CatalogTeam[];
   collectUniquenessErrors(projected, errors);
 }
 
-function collectDuplicateErrors(teams: CatalogTeam[], field: "id" | "key" | "slug", errors: string[]) {
+function collectDuplicateErrors(
+  teams: CatalogTeam[],
+  field: "id" | "key" | "slug",
+  errors: string[],
+) {
   const seen = new Map<string, string>();
   for (const team of teams) {
     const value = team[field];
     const first = seen.get(value);
     if (first) {
-      errors.push(`Duplicate catalog ${field} "${value}" in ${first} and ${team.path}.`);
+      errors.push(
+        `Duplicate catalog ${field} "${value}" in ${first} and ${team.path}.`,
+      );
       continue;
     }
     seen.set(value, team.path);
   }
 }
 
-function collectDuplicateValues(values: string[], label: string, errors: string[]) {
+function collectDuplicateValues(
+  values: string[],
+  label: string,
+  errors: string[],
+) {
   const seen = new Set<string>();
   for (const value of values) {
     if (seen.has(value)) {
@@ -896,35 +1183,56 @@ function collectDuplicateValues(values: string[], label: string, errors: string[
   }
 }
 
-function resolveCatalogSkill(ref: string, catalogSkills: CatalogSkillSummary[]) {
-  const exact = catalogSkills.find((skill) => skill.id === ref || skill.key === ref);
+function resolveCatalogSkill(
+  ref: string,
+  catalogSkills: CatalogSkillSummary[],
+) {
+  const exact = catalogSkills.find(
+    (skill) => skill.id === ref || skill.key === ref,
+  );
   if (exact) return exact;
   const slugMatches = catalogSkills.filter((skill) => skill.slug === ref);
   return slugMatches.length === 1 ? slugMatches[0]! : null;
 }
 
-function isSkillRequirementType(value: string): value is CatalogTeamSkillRequirementType {
-  return value === "catalog"
-    || value === "local"
-    || value === "skills_sh"
-    || value === "github"
-    || value === "url"
-    || value === "local_path"
-    || value === "agent_package";
+function isSkillRequirementType(
+  value: string,
+): value is CatalogTeamSkillRequirementType {
+  return (
+    value === "catalog" ||
+    value === "local" ||
+    value === "skills_sh" ||
+    value === "github" ||
+    value === "url" ||
+    value === "local_path" ||
+    value === "agent_package"
+  );
 }
 
-function validateSlug(label: string, value: string, prefix: string, errors: string[]) {
+function validateSlug(
+  label: string,
+  value: string,
+  prefix: string,
+  errors: string[],
+) {
   if (!SLUG_PATTERN.test(value)) {
-    errors.push(`${prefix} has invalid ${label} "${value}"; use lowercase URL slugs.`);
+    errors.push(
+      `${prefix} has invalid ${label} "${value}"; use lowercase URL slugs.`,
+    );
   }
 }
 
 async function sortedDirEntries(dir: string) {
-  return (await fs.readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name));
+  return (await fs.readdir(dir, { withFileTypes: true })).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 }
 
 function sameManifestExceptGeneratedAt(a: CatalogManifest, b: CatalogManifest) {
-  return JSON.stringify({ ...a, generatedAt: "" }) === JSON.stringify({ ...b, generatedAt: "" });
+  return (
+    JSON.stringify({ ...a, generatedAt: "" }) ===
+    JSON.stringify({ ...b, generatedAt: "" })
+  );
 }
 
 function sha256(contents: Buffer) {
@@ -941,11 +1249,18 @@ function toPosixPath(input: string) {
 
 function isPathInside(parent: string, child: string) {
   const relativePath = path.relative(parent, child);
-  return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
 }
 
 function isExternalRef(ref: string) {
-  return /^https?:\/\//.test(ref) || EXTERNAL_SOURCE_TYPES.has(ref.split(":")[0] ?? "") || LOCAL_PATH_SOURCE_TYPES.has(ref.split(":")[0] ?? "");
+  return (
+    /^https?:\/\//.test(ref) ||
+    EXTERNAL_SOURCE_TYPES.has(ref.split(":")[0] ?? "") ||
+    LOCAL_PATH_SOURCE_TYPES.has(ref.split(":")[0] ?? "")
+  );
 }
 
 function isPinnedExternalRef(ref: string) {

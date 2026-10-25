@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Issue } from "@taskcore/shared";
-import { buildIssueTree, countDescendants, filterIssueDescendants } from "./issue-tree";
+import {
+  buildIssueTree,
+  countDescendants,
+  filterIssueDescendants,
+} from "./issue-tree";
 
 function makeIssue(id: string, parentId: string | null = null): Issue {
   return {
@@ -61,7 +65,10 @@ describe("buildIssueTree", () => {
     const child2 = makeIssue("child2", "parent");
     const { roots, childMap } = buildIssueTree([parent, child1, child2]);
     expect(roots.map((r) => r.id)).toEqual(["parent"]);
-    expect(childMap.get("parent")?.map((c) => c.id)).toEqual(["child1", "child2"]);
+    expect(childMap.get("parent")?.map((c) => c.id)).toEqual([
+      "child1",
+      "child2",
+    ]);
   });
 
   it("handles multiple levels of nesting", () => {
@@ -140,13 +147,15 @@ describe("filterIssueDescendants", () => {
     const unrelatedParent = makeIssue("other");
     const unrelatedChild = makeIssue("other-child", "other");
 
-    expect(filterIssueDescendants("root", [
-      root,
-      child,
-      grandchild,
-      unrelatedParent,
-      unrelatedChild,
-    ]).map((issue) => issue.id)).toEqual(["child", "grandchild"]);
+    expect(
+      filterIssueDescendants("root", [
+        root,
+        child,
+        grandchild,
+        unrelatedParent,
+        unrelatedChild,
+      ]).map((issue) => issue.id),
+    ).toEqual(["child", "grandchild"]);
   });
 
   it("handles stale broad issue-list responses without requiring the root in the list", () => {
@@ -154,10 +163,10 @@ describe("filterIssueDescendants", () => {
     const grandchild = makeIssue("grandchild", "child");
     const globalIssue = makeIssue("global");
 
-    expect(filterIssueDescendants("root", [
-      globalIssue,
-      child,
-      grandchild,
-    ]).map((issue) => issue.id)).toEqual(["child", "grandchild"]);
+    expect(
+      filterIssueDescendants("root", [globalIssue, child, grandchild]).map(
+        (issue) => issue.id,
+      ),
+    ).toEqual(["child", "grandchild"]);
   });
 });

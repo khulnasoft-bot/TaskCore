@@ -7,10 +7,19 @@ export const runnerGoalAvailabilitySchema = z.enum([
   "unsupported",
   "policy_disabled",
 ]);
-export type RunnerGoalAvailability = z.infer<typeof runnerGoalAvailabilitySchema>;
+export type RunnerGoalAvailability = z.infer<
+  typeof runnerGoalAvailabilitySchema
+>;
 
-export const runnerGoalCapabilityActionSchema = z.enum(["set", "pause", "resume", "clear"]);
-export type RunnerGoalCapabilityAction = z.infer<typeof runnerGoalCapabilityActionSchema>;
+export const runnerGoalCapabilityActionSchema = z.enum([
+  "set",
+  "pause",
+  "resume",
+  "clear",
+]);
+export type RunnerGoalCapabilityAction = z.infer<
+  typeof runnerGoalCapabilityActionSchema
+>;
 
 export const runnerGoalStatusSchema = z.enum([
   "active",
@@ -42,7 +51,9 @@ export const runnerGoalPendingActionSchema = z.enum([
   "clearing",
   "continuing",
 ]);
-export type RunnerGoalPendingAction = z.infer<typeof runnerGoalPendingActionSchema>;
+export type RunnerGoalPendingAction = z.infer<
+  typeof runnerGoalPendingActionSchema
+>;
 
 export interface RunnerGoalCapability {
   availability: RunnerGoalAvailability;
@@ -102,7 +113,10 @@ export const runnerGoalActionRequestSchema = z
     confirmReplace: z.boolean().optional(),
   })
   .superRefine((value, context) => {
-    const objectiveAction = value.action === "create" || value.action === "edit" || value.action === "replace";
+    const objectiveAction =
+      value.action === "create" ||
+      value.action === "edit" ||
+      value.action === "replace";
     if (objectiveAction && value.objective === undefined) {
       context.addIssue({
         code: "custom",
@@ -110,7 +124,10 @@ export const runnerGoalActionRequestSchema = z
         message: `${value.action} requires a nonblank objective`,
       });
     }
-    if (!objectiveAction && (value.objective !== undefined || value.tokenBudget !== undefined)) {
+    if (
+      !objectiveAction &&
+      (value.objective !== undefined || value.tokenBudget !== undefined)
+    ) {
       context.addIssue({
         code: "custom",
         path: [value.objective !== undefined ? "objective" : "tokenBudget"],
@@ -126,7 +143,9 @@ export const runnerGoalActionRequestSchema = z
     }
   });
 
-export type RunnerGoalActionRequest = z.infer<typeof runnerGoalActionRequestSchema>;
+export type RunnerGoalActionRequest = z.infer<
+  typeof runnerGoalActionRequestSchema
+>;
 
 export interface RunnerGoalActionAccepted {
   requestId: string;

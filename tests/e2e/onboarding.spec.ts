@@ -34,11 +34,14 @@ test.describe("Onboarding wizard", () => {
     // resumable draft here so this ordinary browser condition is covered when
     // the company-list invalidation runs after the create request.
     await page.addInitScript(() => {
-      localStorage.setItem("taskcore-onboarding-state", JSON.stringify({
-        step: 1,
-        companyName: "",
-        createdCompanyId: null,
-      }));
+      localStorage.setItem(
+        "taskcore-onboarding-state",
+        JSON.stringify({
+          step: 1,
+          companyName: "",
+          createdCompanyId: null,
+        }),
+      );
     });
     let delayCompanyListRefetch = false;
     await page.route("**/api/companies", async (route) => {
@@ -52,9 +55,12 @@ test.describe("Onboarding wizard", () => {
 
     // New-NUX surfaces are flag-gated default-OFF (PAP-136/137/138): turn the
     // experimental flag on for this throwaway instance before driving them.
-    const flagRes = await page.request.patch("/api/instance/settings/experimental", {
-      data: { enableConferenceRoomChat: true },
-    });
+    const flagRes = await page.request.patch(
+      "/api/instance/settings/experimental",
+      {
+        data: { enableConferenceRoomChat: true },
+      },
+    );
     expect(flagRes.ok()).toBe(true);
 
     await page.goto("/onboarding");
@@ -67,14 +73,18 @@ test.describe("Onboarding wizard", () => {
     if (await startBtn.count()) {
       await startBtn.first().click();
     }
-    const createCard = page.getByRole("button", { name: /Build a new organization/ });
+    const createCard = page.getByRole("button", {
+      name: /Build a new organization/,
+    });
     if (await createCard.count()) {
       await createCard.first().click();
     }
 
     // Step 1 — Name your organization.
     await expect(
-      page.getByRole("heading", { name: "What is the name of your organization?" }),
+      page.getByRole("heading", {
+        name: "What is the name of your organization?",
+      }),
     ).toBeVisible({ timeout: 15_000 });
     await page.getByPlaceholder("e.g. Northwind Labs").fill(COMPANY_NAME);
     delayCompanyListRefetch = true;
@@ -124,9 +134,12 @@ test.describe("Onboarding wizard", () => {
     const pageErrors: string[] = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
 
-    const flagRes = await page.request.patch("/api/instance/settings/experimental", {
-      data: { enableConferenceRoomChat: true },
-    });
+    const flagRes = await page.request.patch(
+      "/api/instance/settings/experimental",
+      {
+        data: { enableConferenceRoomChat: true },
+      },
+    );
     expect(flagRes.ok()).toBe(true);
 
     // The login panel's capability gate requires a sandbox environment with a
@@ -209,20 +222,23 @@ test.describe("Onboarding wizard", () => {
       route.fulfill({
         contentType: "application/json",
         body: JSON.stringify({
-          authorizationUrl: "https://claude.ai/oauth/authorize?code=true&client=e2e",
+          authorizationUrl:
+            "https://claude.ai/oauth/authorize?code=true&client=e2e",
           transportAdvisory: null,
         }),
       }),
     );
-    await page.route("**/setup-token-login-sessions/e2e-setup-token-session", (route) =>
-      route.fulfill({
-        contentType: "application/json",
-        body: JSON.stringify({
-          sessionId: "e2e-setup-token-session",
-          status: "pending",
-          expiresAt: new Date(Date.now() + 600_000).toISOString(),
+    await page.route(
+      "**/setup-token-login-sessions/e2e-setup-token-session",
+      (route) =>
+        route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            sessionId: "e2e-setup-token-session",
+            status: "pending",
+            expiresAt: new Date(Date.now() + 600_000).toISOString(),
+          }),
         }),
-      }),
     );
 
     // Fail the adapter test the "Connect" button runs, so the hire gate
@@ -259,15 +275,21 @@ test.describe("Onboarding wizard", () => {
     if (await startBtn.count()) {
       await startBtn.first().click();
     }
-    const createCard = page.getByRole("button", { name: /Build a new organization/ });
+    const createCard = page.getByRole("button", {
+      name: /Build a new organization/,
+    });
     if (await createCard.count()) {
       await createCard.first().click();
     }
 
     await expect(
-      page.getByRole("heading", { name: "What is the name of your organization?" }),
+      page.getByRole("heading", {
+        name: "What is the name of your organization?",
+      }),
     ).toBeVisible({ timeout: 15_000 });
-    await page.getByPlaceholder("e.g. Northwind Labs").fill(`${COMPANY_NAME}-auth-signal`);
+    await page
+      .getByPlaceholder("e.g. Northwind Labs")
+      .fill(`${COMPANY_NAME}-auth-signal`);
     await page.getByRole("button", { name: /^Continue/ }).click();
 
     await page.waitForSelector("#onboarding-agent-name", { timeout: 30_000 });
@@ -281,9 +303,13 @@ test.describe("Onboarding wizard", () => {
 
     // Nothing before the row is answered: the card is the answer to the tile,
     // and the button has nothing to do until there is a source to do it with.
-    const cardInstruction = page.getByText("then come back and enter authorization code");
+    const cardInstruction = page.getByText(
+      "then come back and enter authorization code",
+    );
     await expect(cardInstruction).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Next", exact: true }),
+    ).toBeDisabled();
 
     // Answering the row is what starts the sign-in — this is the ordering the
     // step exists to enforce, since a hire here would file an agent with no
@@ -296,12 +322,17 @@ test.describe("Onboarding wizard", () => {
     // finishing in another browser, and the step's button for the flow.
     const cardLink = page.getByRole("link", { name: /^Sign in to / });
     await expect(cardLink).toBeVisible({ timeout: 15_000 });
-    await expect(cardLink).toHaveAttribute("href", /claude\.ai\/oauth\/authorize/);
+    await expect(cardLink).toHaveAttribute(
+      "href",
+      /claude\.ai\/oauth\/authorize/,
+    );
     await expect(
       page.getByRole("button", { name: /^Sign in to / }),
     ).toBeEnabled({ timeout: 15_000 });
     // No "Use saved login" here: the hire step applies a stored login itself.
-    await expect(page.getByRole("button", { name: "Use saved login" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Use saved login" }),
+    ).toHaveCount(0);
     expect(hireCalled).toBe(false);
 
     expect(pageErrors, pageErrors.join("\n")).toHaveLength(0);
@@ -323,9 +354,12 @@ test.describe("Onboarding wizard", () => {
     const pageErrors: string[] = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
 
-    const flagRes = await page.request.patch("/api/instance/settings/experimental", {
-      data: { enableConferenceRoomChat: true },
-    });
+    const flagRes = await page.request.patch(
+      "/api/instance/settings/experimental",
+      {
+        data: { enableConferenceRoomChat: true },
+      },
+    );
     expect(flagRes.ok()).toBe(true);
 
     const FAKE_SANDBOX_ENVIRONMENT_ID = "e2e-fake-sandbox-environment-reload";
@@ -383,7 +417,8 @@ test.describe("Onboarding wizard", () => {
     );
 
     const SESSION_ID = "e2e-reload-setup-token-session";
-    const AUTHORIZATION_URL = "https://claude.ai/oauth/authorize?code=true&client=e2e-reload";
+    const AUTHORIZATION_URL =
+      "https://claude.ai/oauth/authorize?code=true&client=e2e-reload";
     let startCalls = 0;
     // Flips once the login actually starts, so the owner-scoped resume read
     // below answers "no active session" until then — matching the real
@@ -408,14 +443,16 @@ test.describe("Onboarding wizard", () => {
         }),
       });
     });
-    await page.route(`**/setup-token-login-sessions/${SESSION_ID}/prompt`, (route) =>
-      route.fulfill({
-        contentType: "application/json",
-        body: JSON.stringify({
-          authorizationUrl: AUTHORIZATION_URL,
-          transportAdvisory: null,
+    await page.route(
+      `**/setup-token-login-sessions/${SESSION_ID}/prompt`,
+      (route) =>
+        route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            authorizationUrl: AUTHORIZATION_URL,
+            transportAdvisory: null,
+          }),
         }),
-      }),
     );
     await page.route(`**/setup-token-login-sessions/${SESSION_ID}`, (route) => {
       if (route.request().method() !== "GET") return route.continue();
@@ -438,7 +475,9 @@ test.describe("Onboarding wizard", () => {
         return route.fulfill({
           status: 404,
           contentType: "application/json",
-          body: JSON.stringify({ error: "Setup-token login session not found." }),
+          body: JSON.stringify({
+            error: "Setup-token login session not found.",
+          }),
         });
       }
       return route.fulfill({
@@ -450,7 +489,10 @@ test.describe("Onboarding wizard", () => {
           status: "pending",
           expiresAt: new Date(Date.now() + 600_000).toISOString(),
           panelMode: "submitted_browser_code",
-          prompt: { authorizationUrl: AUTHORIZATION_URL, transportAdvisory: null },
+          prompt: {
+            authorizationUrl: AUTHORIZATION_URL,
+            transportAdvisory: null,
+          },
         }),
       });
     });
@@ -463,15 +505,21 @@ test.describe("Onboarding wizard", () => {
     if (await startBtn.count()) {
       await startBtn.first().click();
     }
-    const createCard = page.getByRole("button", { name: /Build a new organization/ });
+    const createCard = page.getByRole("button", {
+      name: /Build a new organization/,
+    });
     if (await createCard.count()) {
       await createCard.first().click();
     }
 
     await expect(
-      page.getByRole("heading", { name: "What is the name of your organization?" }),
+      page.getByRole("heading", {
+        name: "What is the name of your organization?",
+      }),
     ).toBeVisible({ timeout: 15_000 });
-    await page.getByPlaceholder("e.g. Northwind Labs").fill(`${COMPANY_NAME}-reload`);
+    await page
+      .getByPlaceholder("e.g. Northwind Labs")
+      .fill(`${COMPANY_NAME}-reload`);
     await page.getByRole("button", { name: /^Continue/ }).click();
 
     await page.waitForSelector("#onboarding-agent-name", { timeout: 30_000 });
@@ -485,12 +533,17 @@ test.describe("Onboarding wizard", () => {
     // Connect press between choosing a source and being signed in.
     await source.click();
 
-    const cardInstruction = page.getByText("then come back and enter authorization code");
+    const cardInstruction = page.getByText(
+      "then come back and enter authorization code",
+    );
     const authorizationLink = page.getByRole("link", { name: /^Sign in to / });
 
     await expect(cardInstruction).toBeVisible({ timeout: 30_000 });
     await expect(authorizationLink).toBeVisible({ timeout: 15_000 });
-    await expect(authorizationLink).toHaveAttribute("href", /claude\.ai\/oauth\/authorize/);
+    await expect(authorizationLink).toHaveAttribute(
+      "href",
+      /claude\.ai\/oauth\/authorize/,
+    );
     expect(startCalls).toBe(1);
 
     const companiesRes = await page.request.get("/api/companies");
@@ -516,7 +569,10 @@ test.describe("Onboarding wizard", () => {
     // session.
     await expect(cardInstruction).toBeVisible({ timeout: 15_000 });
     await expect(authorizationLink).toBeVisible({ timeout: 15_000 });
-    expect(startCalls, "the reload must resume the session, not start a new one").toBe(1);
+    expect(
+      startCalls,
+      "the reload must resume the session, not start a new one",
+    ).toBe(1);
 
     expect(pageErrors, pageErrors.join("\n")).toHaveLength(0);
   });
@@ -530,9 +586,12 @@ test.describe("Onboarding wizard", () => {
     const pageErrors: string[] = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
 
-    const flagRes = await page.request.patch("/api/instance/settings/experimental", {
-      data: { enableConferenceRoomChat: true },
-    });
+    const flagRes = await page.request.patch(
+      "/api/instance/settings/experimental",
+      {
+        data: { enableConferenceRoomChat: true },
+      },
+    );
     expect(flagRes.ok()).toBe(true);
 
     await page.route("**/test-environment", (route) =>
@@ -567,15 +626,21 @@ test.describe("Onboarding wizard", () => {
     if (await startBtn.count()) {
       await startBtn.first().click();
     }
-    const createCard = page.getByRole("button", { name: /Build a new organization/ });
+    const createCard = page.getByRole("button", {
+      name: /Build a new organization/,
+    });
     if (await createCard.count()) {
       await createCard.first().click();
     }
 
     await expect(
-      page.getByRole("heading", { name: "What is the name of your organization?" }),
+      page.getByRole("heading", {
+        name: "What is the name of your organization?",
+      }),
     ).toBeVisible({ timeout: 15_000 });
-    await page.getByPlaceholder("e.g. Northwind Labs").fill(`${COMPANY_NAME}-probe-gate`);
+    await page
+      .getByPlaceholder("e.g. Northwind Labs")
+      .fill(`${COMPANY_NAME}-probe-gate`);
     await page.getByRole("button", { name: /^Continue/ }).click();
 
     await page.waitForSelector("#onboarding-agent-name", { timeout: 30_000 });
@@ -591,7 +656,9 @@ test.describe("Onboarding wizard", () => {
     await connect.click();
 
     // The failed probe blocks the hire and shows its own checks.
-    await expect(page.getByText("The claude CLI was not found on this host.")).toBeVisible({
+    await expect(
+      page.getByText("The claude CLI was not found on this host."),
+    ).toBeVisible({
       timeout: 15_000,
     });
     expect(hireCalled).toBe(false);

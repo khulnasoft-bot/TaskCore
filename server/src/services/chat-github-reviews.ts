@@ -1291,7 +1291,9 @@ export function githubChatReviewService(db: Db, fetchImpl = fetch) {
                 name: "Taskcore Review",
                 head_sha: review.headSha,
                 external_id: `${source.endpoint.id}:${source.number}:${review.headSha}`,
-                ...(board ? { details_url: `${board}/issues/${source.issue.id}` } : {}),
+                ...(board
+                  ? { details_url: `${board}/issues/${source.issue.id}` }
+                  : {}),
                 status: "completed",
                 conclusion,
                 output: {

@@ -24,7 +24,9 @@ describe("task side-panel persistence", () => {
       autoPlanHandled: true,
       updatedAt: 1,
     });
-    expect(readTaskSidePanelState("user-1", "company-1", "task-1", true)).toMatchObject({
+    expect(
+      readTaskSidePanelState("user-1", "company-1", "task-1", true),
+    ).toMatchObject({
       state: { tabs: [], activeTabId: null },
       userInteracted: true,
     });
@@ -32,24 +34,46 @@ describe("task side-panel persistence", () => {
 
   it("persists and restores a skill tab", () => {
     writeTaskSidePanelState("user-1", "company-1", "task-skill", {
-      state: { tabs: [taskPanelPropertiesTab(), taskPanelSkillTab("skill-1", "Release helper")], activeTabId: "skill:skill-1" },
+      state: {
+        tabs: [
+          taskPanelPropertiesTab(),
+          taskPanelSkillTab("skill-1", "Release helper"),
+        ],
+        activeTabId: "skill:skill-1",
+      },
       launcherOpen: false,
       userInteracted: true,
       autoPlanHandled: false,
       updatedAt: 1,
     });
-    expect(readTaskSidePanelState("user-1", "company-1", "task-skill", true)?.state).toMatchObject({
+    expect(
+      readTaskSidePanelState("user-1", "company-1", "task-skill", true)?.state,
+    ).toMatchObject({
       activeTabId: "skill:skill-1",
-      tabs: [{ id: "properties" }, { id: "skill:skill-1", payload: { kind: "skill", skillId: "skill-1" } }],
+      tabs: [
+        { id: "properties" },
+        { id: "skill:skill-1", payload: { kind: "skill", skillId: "skill-1" } },
+      ],
     });
   });
 
   it("keeps an onboarding panel open after skill acknowledgement", () => {
     const before = { panelBeforePlanOverrideIssueId: null };
-    const opened = openSkillPanelState(before, { id: "skill-1", name: "Release helper" }, "task-1", true);
+    const opened = openSkillPanelState(
+      before,
+      { id: "skill-1", name: "Release helper" },
+      "task-1",
+      true,
+    );
     expect(opened.panelBeforePlanOverrideIssueId).toBe("task-1");
     const acknowledged = { ...opened, skill: null };
-    expect(shouldSuppressTaskPanelUntilPlan({ deferredPlanAvailable: false, panelBeforePlanOverride: acknowledged.panelBeforePlanOverrideIssueId === "task-1" })).toBe(false);
+    expect(
+      shouldSuppressTaskPanelUntilPlan({
+        deferredPlanAvailable: false,
+        panelBeforePlanOverride:
+          acknowledged.panelBeforePlanOverrideIssueId === "task-1",
+      }),
+    ).toBe(false);
   });
 
   it("isolates account and company state", () => {
@@ -60,14 +84,22 @@ describe("task side-panel persistence", () => {
       autoPlanHandled: false,
       updatedAt: 1,
     });
-    expect(readTaskSidePanelState("user-2", "company-1", "task-1", true)).toBeNull();
-    expect(readTaskSidePanelState("user-1", "company-2", "task-1", true)).toBeNull();
+    expect(
+      readTaskSidePanelState("user-2", "company-1", "task-1", true),
+    ).toBeNull();
+    expect(
+      readTaskSidePanelState("user-1", "company-2", "task-1", true),
+    ).toBeNull();
   });
 
   it("drops file tabs when the experiment is disabled while keeping documents", () => {
     writeTaskSidePanelState("user-1", "company-1", "task-1", {
       state: {
-        tabs: [taskPanelPropertiesTab(), taskPanelFilesTab(), taskPanelDocumentTab("plan", "Plan")],
+        tabs: [
+          taskPanelPropertiesTab(),
+          taskPanelFilesTab(),
+          taskPanelDocumentTab("plan", "Plan"),
+        ],
         activeTabId: "files",
       },
       launcherOpen: false,
@@ -75,8 +107,16 @@ describe("task side-panel persistence", () => {
       autoPlanHandled: true,
       updatedAt: 1,
     });
-    const restored = readTaskSidePanelState("user-1", "company-1", "task-1", false);
-    expect(restored?.state.tabs.map((tab) => tab.id)).toEqual(["properties", "document:plan"]);
+    const restored = readTaskSidePanelState(
+      "user-1",
+      "company-1",
+      "task-1",
+      false,
+    );
+    expect(restored?.state.tabs.map((tab) => tab.id)).toEqual([
+      "properties",
+      "document:plan",
+    ]);
     expect(restored?.state.activeTabId).toBe("properties");
   });
 
@@ -92,8 +132,16 @@ describe("task side-panel persistence", () => {
       updatedAt: 1,
     });
 
-    const restored = readTaskSidePanelState("user-1", "company-1", "task-1", false);
-    expect(restored?.state.tabs.map((tab) => tab.id)).toEqual(["properties", "subtasks"]);
+    const restored = readTaskSidePanelState(
+      "user-1",
+      "company-1",
+      "task-1",
+      false,
+    );
+    expect(restored?.state.tabs.map((tab) => tab.id)).toEqual([
+      "properties",
+      "subtasks",
+    ]);
     expect(restored?.state.activeTabId).toBe("subtasks");
   });
 
@@ -107,7 +155,11 @@ describe("task side-panel persistence", () => {
         updatedAt: index,
       });
     }
-    expect(readTaskSidePanelState("user-1", "company-1", "task-0", true)).toBeNull();
-    expect(readTaskSidePanelState("user-1", "company-1", "task-51", true)).not.toBeNull();
+    expect(
+      readTaskSidePanelState("user-1", "company-1", "task-0", true),
+    ).toBeNull();
+    expect(
+      readTaskSidePanelState("user-1", "company-1", "task-51", true),
+    ).not.toBeNull();
   });
 });

@@ -34,12 +34,7 @@ import { companyTransferRuns } from "@taskcore/db";
 
 export type CompanyTransferDirection = "export" | "import";
 export type CompanyTransferRunStatus =
-  | "pending"
-  | "running"
-  | "applying"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "pending" | "running" | "applying" | "completed" | "failed" | "cancelled";
 
 /**
  * Minimal structural view of a transfer manifest's part index: the ledger only
@@ -68,7 +63,11 @@ function asPartsIndex(manifest: unknown): CompanyTransferPartsIndex | null {
   return { chunks, blobs };
 }
 
-const RESUMABLE_STATUSES: CompanyTransferRunStatus[] = ["pending", "running", "failed"];
+const RESUMABLE_STATUSES: CompanyTransferRunStatus[] = [
+  "pending",
+  "running",
+  "failed",
+];
 /** Statuses under which container parts may still be recorded as completed. */
 const PART_UPLOAD_STATUSES: CompanyTransferRunStatus[] = ["pending", "running"];
 
@@ -109,17 +108,24 @@ export interface ResumeOrCreateTransferRunResult {
   alreadyCompleted: boolean;
 }
 
-function rowFromRecord(record: typeof companyTransferRuns.$inferSelect): CompanyTransferRunRow {
+function rowFromRecord(
+  record: typeof companyTransferRuns.$inferSelect,
+): CompanyTransferRunRow {
   return {
     ...record,
     direction: record.direction as CompanyTransferDirection,
     status: record.status as CompanyTransferRunStatus,
     manifest: record.manifest ?? null,
-    completedParts: Array.isArray(record.completedParts) ? (record.completedParts as string[]) : [],
+    completedParts: Array.isArray(record.completedParts)
+      ? (record.completedParts as string[])
+      : [],
   };
 }
 
-async function getRun(db: Db, runId: string): Promise<CompanyTransferRunRow | null> {
+async function getRun(
+  db: Db,
+  runId: string,
+): Promise<CompanyTransferRunRow | null> {
   const [record] = await db
     .select()
     .from(companyTransferRuns)
@@ -131,7 +137,11 @@ async function getRun(db: Db, runId: string): Promise<CompanyTransferRunRow | nu
 export const companyTransferRunService = {
   getRun,
 
-  async getRunForActor(db: Db, runId: string, actorKey: string): Promise<CompanyTransferRunRow | null> {
+  async getRunForActor(
+    db: Db,
+    runId: string,
+    actorKey: string,
+  ): Promise<CompanyTransferRunRow | null> {
     const run = await getRun(db, runId);
     return run && run.actorKey === actorKey ? run : null;
   },
@@ -144,7 +154,10 @@ export const companyTransferRunService = {
    * intact (an "applying" run resumes so a concurrent re-declaration never
    * spawns a duplicate, but `start` leaves it alone until the apply settles).
    */
-  async resumeOrCreate(db: Db, input: ResumeOrCreateTransferRunInput): Promise<ResumeOrCreateTransferRunResult> {
+  async resumeOrCreate(
+    db: Db,
+    input: ResumeOrCreateTransferRunInput,
+  ): Promise<ResumeOrCreateTransferRunResult> {
     return db.transaction(async (tx) => {
       const txDb = tx as unknown as Db;
       // No unique index backs the (actor, direction, content key) lookup, so
@@ -153,7 +166,9 @@ export const companyTransferRunService = {
       // on the key: the second caller waits here until the first commits and
       // then resumes the first caller's row.
       const lockKey = `${input.actorKey}|${input.direction}|${input.idempotencyKey}`;
-      await txDb.execute(sql`select pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`);
+      await txDb.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`,
+      );
       const matches = await txDb
         .select()
         .from(companyTransferRuns)
@@ -162,14 +177,22 @@ export const companyTransferRunService = {
             eq(companyTransferRuns.idempotencyKey, input.idempotencyKey),
             eq(companyTransferRuns.direction, input.direction),
             eq(companyTransferRuns.actorKey, input.actorKey),
-            inArray(companyTransferRuns.status, [...RESUMABLE_STATUSES, "applying", "completed"]),
+            inArray(companyTransferRuns.status, [
+              ...RESUMABLE_STATUSES,
+              "applying",
+              "completed",
+            ]),
           ),
         )
         .orderBy(desc(companyTransferRuns.createdAt))
         .limit(1);
       const existing = matches[0] ? rowFromRecord(matches[0]) : null;
       if (existing) {
-        return { run: existing, resumed: true, alreadyCompleted: existing.status === "completed" };
+        return {
+          run: existing,
+          resumed: true,
+          alreadyCompleted: existing.status === "completed",
+        };
       }
       const [created] = await txDb
         .insert(companyTransferRuns)
@@ -181,7 +204,11 @@ export const companyTransferRunService = {
           companyId: input.companyId ?? null,
         })
         .returning();
-      return { run: rowFromRecord(created!), resumed: false, alreadyCompleted: false };
+      return {
+        run: rowFromRecord(created!),
+        resumed: false,
+        alreadyCompleted: false,
+      };
     });
   },
 
@@ -226,7 +253,10 @@ export const companyTransferRunService = {
       .update(companyTransferRuns)
       .set({ status: "applying", error: null, updatedAt: new Date() })
       .where(
-        and(eq(companyTransferRuns.id, runId), inArray(companyTransferRuns.status, RESUMABLE_STATUSES)),
+        and(
+          eq(companyTransferRuns.id, runId),
+          inArray(companyTransferRuns.status, RESUMABLE_STATUSES),
+        ),
       )
       .returning({ id: companyTransferRuns.id });
     return claimed.length > 0;
@@ -235,9 +265,18 @@ export const companyTransferRunService = {
   async start(db: Db, runId: string): Promise<void> {
     await db
       .update(companyTransferRuns)
-      .set({ status: "running", error: null, startedAt: new Date(), finishedAt: null, updatedAt: new Date() })
+      .set({
+        status: "running",
+        error: null,
+        startedAt: new Date(),
+        finishedAt: null,
+        updatedAt: new Date(),
+      })
       .where(
-        and(eq(companyTransferRuns.id, runId), inArray(companyTransferRuns.status, RESUMABLE_STATUSES)),
+        and(
+          eq(companyTransferRuns.id, runId),
+          inArray(companyTransferRuns.status, RESUMABLE_STATUSES),
+        ),
       );
   },
 
@@ -256,7 +295,11 @@ export const companyTransferRunService = {
    * (e.g. the abandoned-spool sweep cancelled it) or is mid-apply, nothing is
    * recorded and `false` comes back so the caller can discard the part.
    */
-  async completePart(db: Db, runId: string, partName: string): Promise<boolean> {
+  async completePart(
+    db: Db,
+    runId: string,
+    partName: string,
+  ): Promise<boolean> {
     const partJson = JSON.stringify([partName]);
     const updated = await db
       .update(companyTransferRuns)
@@ -265,14 +308,20 @@ export const companyTransferRunService = {
         updatedAt: new Date(),
       })
       .where(
-        and(eq(companyTransferRuns.id, runId), inArray(companyTransferRuns.status, PART_UPLOAD_STATUSES)),
+        and(
+          eq(companyTransferRuns.id, runId),
+          inArray(companyTransferRuns.status, PART_UPLOAD_STATUSES),
+        ),
       )
       .returning({ id: companyTransferRuns.id });
     return updated.length > 0;
   },
 
   /** Container part names the run still has to process, in manifest order. */
-  remainingParts(run: CompanyTransferRunRow, manifest: CompanyTransferPartsIndex): string[] {
+  remainingParts(
+    run: CompanyTransferRunRow,
+    manifest: CompanyTransferPartsIndex,
+  ): string[] {
     const completed = new Set(run.completedParts);
     const remaining: string[] = [];
     for (const chunk of manifest.chunks) {
@@ -287,7 +336,12 @@ export const companyTransferRunService = {
   async complete(db: Db, runId: string): Promise<void> {
     await db
       .update(companyTransferRuns)
-      .set({ status: "completed", error: null, finishedAt: new Date(), updatedAt: new Date() })
+      .set({
+        status: "completed",
+        error: null,
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(eq(companyTransferRuns.id, runId));
   },
 
@@ -305,10 +359,20 @@ export const companyTransferRunService = {
    * filesystem deletion — and `resumeOrCreate` ignores it, so redeclaring the
    * same content afterwards starts a fresh run.
    */
-  async cancelIfIdle(db: Db, runId: string, idleSince: Date, error: string): Promise<boolean> {
+  async cancelIfIdle(
+    db: Db,
+    runId: string,
+    idleSince: Date,
+    error: string,
+  ): Promise<boolean> {
     const claimed = await db
       .update(companyTransferRuns)
-      .set({ status: "cancelled", error, finishedAt: new Date(), updatedAt: new Date() })
+      .set({
+        status: "cancelled",
+        error,
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(companyTransferRuns.id, runId),
@@ -328,11 +392,25 @@ export const companyTransferRunService = {
    * completed run back to claimable and invite a duplicate import. When the
    * run already settled this is a no-op and returns false.
    */
-  async releaseApplyClaim(db: Db, runId: string, error: string): Promise<boolean> {
+  async releaseApplyClaim(
+    db: Db,
+    runId: string,
+    error: string,
+  ): Promise<boolean> {
     const released = await db
       .update(companyTransferRuns)
-      .set({ status: "failed", error, finishedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(companyTransferRuns.id, runId), eq(companyTransferRuns.status, "applying")))
+      .set({
+        status: "failed",
+        error,
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(companyTransferRuns.id, runId),
+          eq(companyTransferRuns.status, "applying"),
+        ),
+      )
       .returning({ id: companyTransferRuns.id });
     return released.length > 0;
   },
@@ -350,7 +428,8 @@ export const companyTransferRunService = {
       .update(companyTransferRuns)
       .set({
         status: "failed",
-        error: "apply interrupted by a restart — verify whether the import completed before retrying",
+        error:
+          "apply interrupted by a restart — verify whether the import completed before retrying",
         finishedAt: new Date(),
         updatedAt: new Date(),
       })
@@ -362,14 +441,28 @@ export const companyTransferRunService = {
   async fail(db: Db, runId: string, error: string): Promise<void> {
     await db
       .update(companyTransferRuns)
-      .set({ status: "failed", error, finishedAt: new Date(), updatedAt: new Date() })
+      .set({
+        status: "failed",
+        error,
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(eq(companyTransferRuns.id, runId));
   },
 
   async cancel(db: Db, runId: string): Promise<void> {
     await db
       .update(companyTransferRuns)
-      .set({ status: "cancelled", finishedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(companyTransferRuns.id, runId), inArray(companyTransferRuns.status, RESUMABLE_STATUSES)));
+      .set({
+        status: "cancelled",
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(companyTransferRuns.id, runId),
+          inArray(companyTransferRuns.status, RESUMABLE_STATUSES),
+        ),
+      );
   },
 };

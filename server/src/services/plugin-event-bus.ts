@@ -92,9 +92,12 @@ function passesFilter(event: PluginEvent, filter: EventFilter | null): boolean {
   const payload = event.payload as Record<string, unknown> | null;
 
   if (filter.projectId !== undefined) {
-    const projectId = event.entityType === "project"
-      ? event.entityId
-      : (typeof payload?.projectId === "string" ? payload.projectId : undefined);
+    const projectId =
+      event.entityType === "project"
+        ? event.entityId
+        : typeof payload?.projectId === "string"
+          ? payload.projectId
+          : undefined;
     if (projectId !== filter.projectId) return false;
   }
 
@@ -103,9 +106,12 @@ function passesFilter(event: PluginEvent, filter: EventFilter | null): boolean {
   }
 
   if (filter.agentId !== undefined) {
-    const agentId = event.entityType === "agent"
-      ? event.entityId
-      : (typeof payload?.agentId === "string" ? payload.agentId : undefined);
+    const agentId =
+      event.entityType === "agent"
+        ? event.entityId
+        : typeof payload?.agentId === "string"
+          ? payload.agentId
+          : undefined;
     if (agentId !== filter.agentId) return false;
   }
 
@@ -186,9 +192,11 @@ export function createPluginEventBus(): PluginEventBus {
         // exceptions become rejections. Each .catch() swallows the rejection
         // and records it — the promise always resolves, so Promise.all never rejects.
         promises.push(
-          Promise.resolve().then(() => sub.handler(event)).catch((error: unknown) => {
-            errors.push({ pluginId, error });
-          }),
+          Promise.resolve()
+            .then(() => sub.handler(event))
+            .catch((error: unknown) => {
+              errors.push({ pluginId, error });
+            }),
         );
       }
     }
@@ -231,7 +239,10 @@ export function createPluginEventBus(): PluginEventBus {
           handler = fnOrFilter;
         } else {
           filter = fnOrFilter;
-          if (!maybeFn) throw new Error("Handler function is required when a filter is provided");
+          if (!maybeFn)
+            throw new Error(
+              "Handler function is required when a filter is provided",
+            );
           handler = maybeFn;
         }
 
@@ -248,19 +259,27 @@ export function createPluginEventBus(): PluginEventBus {
        * @throws {Error} if `name` already contains the `plugin.` prefix
        *   (prevents cross-namespace spoofing).
        */
-      async emit(name: string, companyId: string, payload: unknown): Promise<PluginEventBusEmitResult> {
+      async emit(
+        name: string,
+        companyId: string,
+        payload: unknown,
+      ): Promise<PluginEventBusEmitResult> {
         if (!name || name.trim() === "") {
-          throw new Error(`Plugin "${pluginId}" must provide a non-empty event name.`);
+          throw new Error(
+            `Plugin "${pluginId}" must provide a non-empty event name.`,
+          );
         }
 
         if (!companyId || companyId.trim() === "") {
-          throw new Error(`Plugin "${pluginId}" must provide a companyId when emitting events.`);
+          throw new Error(
+            `Plugin "${pluginId}" must provide a companyId when emitting events.`,
+          );
         }
 
         if (name.startsWith("plugin.")) {
           throw new Error(
             `Plugin "${pluginId}" must not include the "plugin." prefix when emitting events. ` +
-            `Emit the bare event name (e.g. "sync-done") and the bus will namespace it automatically.`,
+              `Emit the bare event name (e.g. "sync-done") and the bus will namespace it automatically.`,
           );
         }
 
@@ -403,7 +422,11 @@ export interface ScopedPluginEventBus {
    * @throws {Error} if `name` is empty or whitespace-only.
    * @throws {Error} if `name` starts with `"plugin."` (namespace spoofing guard).
    */
-  emit(name: string, companyId: string, payload: unknown): Promise<PluginEventBusEmitResult>;
+  emit(
+    name: string,
+    companyId: string,
+    payload: unknown,
+  ): Promise<PluginEventBusEmitResult>;
 
   /**
    * Remove all subscriptions registered by this plugin.

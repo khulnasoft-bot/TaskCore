@@ -37,7 +37,9 @@ const SUPPRESSED_CONFIRMATION_OUTCOMES = new Set([
   "superseded_by_newer_request",
 ]);
 
-function interactionOutcome(interaction: IssueThreadInteraction): string | null {
+function interactionOutcome(
+  interaction: IssueThreadInteraction,
+): string | null {
   const result = interaction.result;
   return result && "outcome" in result && typeof result.outcome === "string"
     ? result.outcome
@@ -48,11 +50,16 @@ function interactionOutcome(interaction: IssueThreadInteraction): string | null 
  * A confirmation card that was withdrawn or superseded — hide it from the thread
  * so it never stacks above the confirmation that replaced it.
  */
-export function isSuppressedThreadInteraction(interaction: IssueThreadInteraction): boolean {
+export function isSuppressedThreadInteraction(
+  interaction: IssueThreadInteraction,
+): boolean {
   // A secret proposal is also a terminal audit receipt: even when a newer
   // request superseded it, the safe source/target/path metadata and recovery
   // guidance must remain visible in the issue where the proposal happened.
-  if (interaction.kind === "request_confirmation" && interaction.payload.secretProposal) {
+  if (
+    interaction.kind === "request_confirmation" &&
+    interaction.payload.secretProposal
+  ) {
     return false;
   }
   if (!CONFIRMATION_KINDS.has(interaction.kind)) return false;

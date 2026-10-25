@@ -29,7 +29,9 @@ function Harness({ onRoute }: { onRoute: boolean }) {
   );
 }
 
-async function render(onRoute: boolean): Promise<{ root: Root; host: HTMLDivElement }> {
+async function render(
+  onRoute: boolean,
+): Promise<{ root: Root; host: HTMLDivElement }> {
   const host = document.createElement("div");
   document.body.appendChild(host);
   const root = createRoot(host);

@@ -49,7 +49,9 @@ export type SemanticConformanceAdapterKind = "mock" | "production_binding";
 export interface SemanticConformanceAdapter {
   readonly id: string;
   readonly kind?: SemanticConformanceAdapterKind;
-  execute(vector: SemanticConformanceVector): Promise<SemanticConformanceObservation>;
+  execute(
+    vector: SemanticConformanceVector,
+  ): Promise<SemanticConformanceObservation>;
 }
 
 export interface SemanticConformanceReportRow {
@@ -58,7 +60,9 @@ export interface SemanticConformanceReportRow {
   readonly adapterIds: readonly string[];
   /** Retained for consumers of the original report shape. */
   readonly observation: SemanticConformanceObservation;
-  readonly observations: Readonly<Record<string, SemanticConformanceObservation>>;
+  readonly observations: Readonly<
+    Record<string, SemanticConformanceObservation>
+  >;
 }
 
 export interface SemanticConformanceReport {
@@ -73,9 +77,7 @@ export interface SemanticConformanceDiff {
 }
 
 export type SemanticConformanceSuspectedSource =
-  | SemanticConformanceAdapterKind
-  | "contract"
-  | "multiple";
+  SemanticConformanceAdapterKind | "contract" | "multiple";
 
 export class SemanticConformanceMismatchError extends Error {
   readonly code = "semantic_conformance_mismatch" as const;
@@ -85,7 +87,9 @@ export class SemanticConformanceMismatchError extends Error {
   readonly mismatchedAdapterId: string;
   readonly suspectedSource: SemanticConformanceSuspectedSource;
   readonly diffs: readonly SemanticConformanceDiff[];
-  readonly observations: Readonly<Record<string, SemanticConformanceObservation>>;
+  readonly observations: Readonly<
+    Record<string, SemanticConformanceObservation>
+  >;
 
   constructor(
     vectorId: string,
@@ -120,9 +124,10 @@ export class SemanticConformanceMismatchError extends Error {
       : (mismatchedAdapterId ?? baselineOrMismatchedAdapterId);
     const firstPath = diffs[0]?.path ?? "$";
     const firstDiff = diffs[0];
-    const values = firstDiff === undefined
-      ? ""
-      : `; expected ${displayValue(firstDiff.expected)}, actual ${displayValue(firstDiff.actual)}`;
+    const values =
+      firstDiff === undefined
+        ? ""
+        : `; expected ${displayValue(firstDiff.expected)}, actual ${displayValue(firstDiff.actual)}`;
     super(
       legacy
         ? `Semantic conformance mismatch for ${vectorId}: ${mismatchId} differs from ${baselineAdapterId}`
@@ -151,7 +156,10 @@ export async function runSemanticConformanceKit(input: {
   if (input.adapters.length < 2) {
     throw new Error("semantic_conformance_requires_two_adapters");
   }
-  if (new Set(input.adapters.map((adapter) => adapter.id)).size !== input.adapters.length) {
+  if (
+    new Set(input.adapters.map((adapter) => adapter.id)).size !==
+    input.adapters.length
+  ) {
     throw new Error("semantic_conformance_adapter_ids_must_be_unique");
   }
   const rows: SemanticConformanceReportRow[] = [];
@@ -162,9 +170,14 @@ export async function runSemanticConformanceKit(input: {
         observation: await adapter.execute(vector),
       })),
     );
-    const observations = Object.freeze(Object.fromEntries(
-      executed.map(({ adapter, observation }) => [adapter.id, structuredClone(observation)]),
-    ));
+    const observations = Object.freeze(
+      Object.fromEntries(
+        executed.map(({ adapter, observation }) => [
+          adapter.id,
+          structuredClone(observation),
+        ]),
+      ),
+    );
     const baseline = executed[0]!;
     const baselineJson = canonicalJson(baseline.observation);
     for (const candidate of executed.slice(1)) {
@@ -173,8 +186,8 @@ export async function runSemanticConformanceKit(input: {
       }
     }
     if (
-      vector.expected !== undefined
-      && canonicalJson(baseline.observation) !== canonicalJson(vector.expected)
+      vector.expected !== undefined &&
+      canonicalJson(baseline.observation) !== canonicalJson(vector.expected)
     ) {
       throw new SemanticConformanceMismatchError(
         vector.id,
@@ -186,13 +199,15 @@ export async function runSemanticConformanceKit(input: {
         observations,
       );
     }
-    rows.push(Object.freeze({
-      vectorId: vector.id,
-      operationId: vector.operationId,
-      adapterIds: Object.freeze(input.adapters.map((adapter) => adapter.id)),
-      observation: structuredClone(baseline.observation),
-      observations,
-    }));
+    rows.push(
+      Object.freeze({
+        vectorId: vector.id,
+        operationId: vector.operationId,
+        adapterIds: Object.freeze(input.adapters.map((adapter) => adapter.id)),
+        observation: structuredClone(baseline.observation),
+        observations,
+      }),
+    );
   }
   return Object.freeze({
     schema: "taskcore.semantic-conformance-report.v1",
@@ -202,16 +217,25 @@ export async function runSemanticConformanceKit(input: {
 
 function mismatchError(
   vector: SemanticConformanceVector,
-  baseline: { adapter: SemanticConformanceAdapter; observation: SemanticConformanceObservation },
-  candidate: { adapter: SemanticConformanceAdapter; observation: SemanticConformanceObservation },
+  baseline: {
+    adapter: SemanticConformanceAdapter;
+    observation: SemanticConformanceObservation;
+  },
+  candidate: {
+    adapter: SemanticConformanceAdapter;
+    observation: SemanticConformanceObservation;
+  },
   observations: Readonly<Record<string, SemanticConformanceObservation>>,
 ): SemanticConformanceMismatchError {
-  let suspectedSource: SemanticConformanceSuspectedSource = candidate.adapter.kind ?? "multiple";
+  let suspectedSource: SemanticConformanceSuspectedSource =
+    candidate.adapter.kind ?? "multiple";
   let expected = baseline.observation;
   let actual = candidate.observation;
   if (vector.expected !== undefined) {
-    const baselineMatches = canonicalJson(baseline.observation) === canonicalJson(vector.expected);
-    const candidateMatches = canonicalJson(candidate.observation) === canonicalJson(vector.expected);
+    const baselineMatches =
+      canonicalJson(baseline.observation) === canonicalJson(vector.expected);
+    const candidateMatches =
+      canonicalJson(candidate.observation) === canonicalJson(vector.expected);
     if (baselineMatches && !candidateMatches) {
       suspectedSource = candidate.adapter.kind ?? "multiple";
       expected = vector.expected;
@@ -235,28 +259,50 @@ function mismatchError(
   );
 }
 
-function normalizedDiff(expected: unknown, actual: unknown, path = "$"): SemanticConformanceDiff[] {
+function normalizedDiff(
+  expected: unknown,
+  actual: unknown,
+  path = "$",
+): SemanticConformanceDiff[] {
   if (expected === undefined || actual === undefined) {
-    return [{ path, expected: structuredCloneSafe(expected), actual: structuredCloneSafe(actual) }];
+    return [
+      {
+        path,
+        expected: structuredCloneSafe(expected),
+        actual: structuredCloneSafe(actual),
+      },
+    ];
   }
   if (canonicalJson(expected) === canonicalJson(actual)) return [];
   if (Array.isArray(expected) && Array.isArray(actual)) {
     const diffs: SemanticConformanceDiff[] = [];
     const length = Math.max(expected.length, actual.length);
     for (let index = 0; index < length; index += 1) {
-      diffs.push(...normalizedDiff(expected[index], actual[index], `${path}[${index}]`));
+      diffs.push(
+        ...normalizedDiff(expected[index], actual[index], `${path}[${index}]`),
+      );
     }
     return diffs;
   }
   if (isRecord(expected) && isRecord(actual)) {
     const diffs: SemanticConformanceDiff[] = [];
-    const keys = [...new Set([...Object.keys(expected), ...Object.keys(actual)])].sort();
+    const keys = [
+      ...new Set([...Object.keys(expected), ...Object.keys(actual)]),
+    ].sort();
     for (const key of keys) {
-      diffs.push(...normalizedDiff(expected[key], actual[key], `${path}.${key}`));
+      diffs.push(
+        ...normalizedDiff(expected[key], actual[key], `${path}.${key}`),
+      );
     }
     return diffs;
   }
-  return [{ path, expected: structuredCloneSafe(expected), actual: structuredCloneSafe(actual) }];
+  return [
+    {
+      path,
+      expected: structuredCloneSafe(expected),
+      actual: structuredCloneSafe(actual),
+    },
+  ];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -301,7 +347,11 @@ function canonicalJson(
     throw new Error("semantic_conformance_cyclic_observation");
   }
   const prototype = Object.getPrototypeOf(value);
-  if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
+  if (
+    !Array.isArray(value) &&
+    prototype !== Object.prototype &&
+    prototype !== null
+  ) {
     throw invalidObservation();
   }
   ancestors.add(value);

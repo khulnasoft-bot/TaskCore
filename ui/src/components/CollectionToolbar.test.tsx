@@ -39,22 +39,46 @@ describe("CollectionToolbar", () => {
 
     const toolbar = container.querySelector('[role="toolbar"]');
     expect(toolbar?.getAttribute("aria-label")).toBe("Task list controls");
-    expect(toolbar?.querySelector('[data-slot="collection-toolbar-context"]')?.textContent).toBe("Mine");
-    expect(toolbar?.querySelector('[data-slot="collection-toolbar-search"] input')).not.toBeNull();
-    expect(toolbar?.querySelector('[data-slot="collection-toolbar-controls"]')?.textContent).toBe("Filter");
-    expect(toolbar?.querySelector('[data-slot="collection-toolbar-actions"]')?.textContent).toBe("New task");
-    expect(toolbar?.querySelector('[data-slot="collection-toolbar-feedback"]')?.textContent).toBe("Status: active");
+    expect(
+      toolbar?.querySelector('[data-slot="collection-toolbar-context"]')
+        ?.textContent,
+    ).toBe("Mine");
+    expect(
+      toolbar?.querySelector('[data-slot="collection-toolbar-search"] input'),
+    ).not.toBeNull();
+    expect(
+      toolbar?.querySelector('[data-slot="collection-toolbar-controls"]')
+        ?.textContent,
+    ).toBe("Filter");
+    expect(
+      toolbar?.querySelector('[data-slot="collection-toolbar-actions"]')
+        ?.textContent,
+    ).toBe("New task");
+    expect(
+      toolbar?.querySelector('[data-slot="collection-toolbar-feedback"]')
+        ?.textContent,
+    ).toBe("Status: active");
   });
 
   it("omits empty optional slots", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    flushSync(() => root?.render(<CollectionToolbar search={<span>Search</span>} />));
+    flushSync(() =>
+      root?.render(<CollectionToolbar search={<span>Search</span>} />),
+    );
 
-    expect(container.querySelector('[data-slot="collection-toolbar-context"]')).toBeNull();
-    expect(container.querySelector('[data-slot="collection-toolbar-controls"]')).toBeNull();
-    expect(container.querySelector('[data-slot="collection-toolbar-actions"]')).toBeNull();
-    expect(container.querySelector('[data-slot="collection-toolbar-feedback"]')).toBeNull();
+    expect(
+      container.querySelector('[data-slot="collection-toolbar-context"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-slot="collection-toolbar-controls"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-slot="collection-toolbar-actions"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-slot="collection-toolbar-feedback"]'),
+    ).toBeNull();
   });
 });

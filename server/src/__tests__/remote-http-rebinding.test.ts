@@ -1,11 +1,28 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { connect as netConnect, createServer as netCreateServer, Socket, type AddressInfo } from "node:net";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
+import {
+  connect as netConnect,
+  createServer as netCreateServer,
+  Socket,
+  type AddressInfo,
+} from "node:net";
 import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { guardedRemoteHttpFetch, type RemoteHttpSocketFactory } from "../services/remote-http-fetch.js";
+import {
+  guardedRemoteHttpFetch,
+  type RemoteHttpSocketFactory,
+} from "../services/remote-http-fetch.js";
 import { readRemoteConnectionFailure } from "../services/remote-connection-failure.js";
-import { isExpectedMcpConnectionFailure, retainMcpConnectionFailure, withMcpConnectionFailure } from "../services/mcp-connection-failure.js";
+import {
+  isExpectedMcpConnectionFailure,
+  retainMcpConnectionFailure,
+  withMcpConnectionFailure,
+} from "../services/mcp-connection-failure.js";
 import { HttpError } from "../errors.js";
 import { initializeMcpHttpSession } from "../services/mcp-http.js";
 
@@ -40,10 +57,19 @@ const openSockets: Socket[] = [];
 
 afterEach(async () => {
   for (const socket of openSockets.splice(0)) socket.destroy();
-  await Promise.all(openServers.splice(0).map((server) => new Promise<void>((resolve) => server.close(() => resolve()))));
+  await Promise.all(
+    openServers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((resolve) => server.close(() => resolve())),
+      ),
+  );
 });
 
-async function startServer(handler?: (req: IncomingMessage, res: ServerResponse) => void): Promise<TestServer> {
+async function startServer(
+  handler?: (req: IncomingMessage, res: ServerResponse) => void,
+): Promise<TestServer> {
   const requests: TestServer["requests"] = [];
   const state = { connections: 0 };
   const server = createServer((req, res) => {
@@ -90,11 +116,15 @@ function routingSocketFactory(routes: Record<string, number>): {
   const factory: RemoteHttpSocketFactory = (target) => {
     dialled.push(target.address);
     const port = routes[target.address];
-    if (port === undefined) throw new Error(`test network has no route to ${target.address}`);
+    if (port === undefined)
+      throw new Error(`test network has no route to ${target.address}`);
     const socket = netConnect({ host: "127.0.0.1", port });
     openSockets.push(socket);
     sockets.push(socket);
-    Object.defineProperty(socket, "remoteAddress", { get: () => target.address, configurable: true });
+    Object.defineProperty(socket, "remoteAddress", {
+      get: () => target.address,
+      configurable: true,
+    });
     return socket;
   };
   return { factory, dialled, sockets };
@@ -106,7 +136,10 @@ async function flush(): Promise<void> {
 }
 
 /** A name server that answers public first and loopback afterwards. */
-function rebindingLookup(): { lookup: () => Promise<Array<{ address: string; family: number }>>; calls: () => number } {
+function rebindingLookup(): {
+  lookup: () => Promise<Array<{ address: string; family: number }>>;
+  calls: () => number;
+} {
   let calls = 0;
   return {
     lookup: async () => {
@@ -136,26 +169,37 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     };
 
     await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, options);
-    await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {
-      headers: { "user-agent": "Caller/2.0" },
-    }, options);
+    await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      {
+        headers: { "user-agent": "Caller/2.0" },
+      },
+      options,
+    );
 
     expect(seen).toEqual(["Taskcore/1.0", "Caller/2.0"]);
   });
 
   it("turns a platform-fetch DNS cause into the stable DNS code", async () => {
-    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND missing.invalid"), {
-      code: "ENOTFOUND",
-    });
+    const cause = Object.assign(
+      new Error("getaddrinfo ENOTFOUND missing.invalid"),
+      {
+        code: "ENOTFOUND",
+      },
+    );
     const unpinnedFetch = (async () => {
       throw Object.assign(new TypeError("fetch failed"), { cause });
     }) as typeof fetch;
 
-    const failure = await guardedRemoteHttpFetch("https://8.8.8.8/mcp", {}, {
-      allowPrivateNetwork: true,
-      unpinnedFetch,
-      error: guardError,
-    }).catch((error) => error);
+    const failure = await guardedRemoteHttpFetch(
+      "https://8.8.8.8/mcp",
+      {},
+      {
+        allowPrivateNetwork: true,
+        unpinnedFetch,
+        error: guardError,
+      },
+    ).catch((error) => error);
     expect(failure).toMatchObject({
       code: "remote_http_dns_failed",
       message: "Remote MCP connection hostname could not be resolved",
@@ -172,12 +216,16 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
       "127.0.0.1": internal.port,
     });
 
-    const response = await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: dns.lookup,
-      socketFactory: network.factory,
-      error: guardError,
-    });
+    const response = await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      {},
+      {
+        allowPrivateNetwork: false,
+        lookup: dns.lookup,
+        socketFactory: network.factory,
+        error: guardError,
+      },
+    );
 
     await expect(response.json()).resolves.toEqual({ ok: true });
     // One resolution, and the connection went to the address that resolution
@@ -194,12 +242,16 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     const dns = rebindingLookup();
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
 
-    await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, { method: "POST", body: "{}" }, {
-      allowPrivateNetwork: false,
-      lookup: dns.lookup,
-      socketFactory: network.factory,
-      error: guardError,
-    });
+    await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      { method: "POST", body: "{}" },
+      {
+        allowPrivateNetwork: false,
+        lookup: dns.lookup,
+        socketFactory: network.factory,
+        error: guardError,
+      },
+    );
 
     expect(upstream.requests[0]?.host).toBe(REBIND_HOST);
     expect(upstream.requests[0]?.url).toBe("/mcp");
@@ -220,12 +272,16 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
       server.listen(0, "127.0.0.1", () => {
         const port = (server.address() as AddressInfo).port;
         const network = routingSocketFactory({ [PUBLIC_ADDRESS]: port });
-        void guardedRemoteHttpFetch(`https://${REBIND_HOST}/mcp`, {}, {
-          allowPrivateNetwork: false,
-          lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-          socketFactory: network.factory,
-          error: guardError,
-        }).catch(() => {});
+        void guardedRemoteHttpFetch(
+          `https://${REBIND_HOST}/mcp`,
+          {},
+          {
+            allowPrivateNetwork: false,
+            lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+            socketFactory: network.factory,
+            error: guardError,
+          },
+        ).catch(() => {});
       });
     });
 
@@ -245,12 +301,18 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
       return socket;
     };
 
-    await expect(guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-      socketFactory: factory,
-      error: guardError,
-    })).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
+    await expect(
+      guardedRemoteHttpFetch(
+        `http://${REBIND_HOST}/mcp`,
+        {},
+        {
+          allowPrivateNetwork: false,
+          lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+          socketFactory: factory,
+          error: guardError,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
 
     expect(internal.requests).toHaveLength(0);
   });
@@ -259,29 +321,41 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     const internal = await startServer();
     const network = routingSocketFactory({ "169.254.169.254": internal.port });
 
-    await expect(guardedRemoteHttpFetch("http://metadata.rebind.test/latest/meta-data/", {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: "169.254.169.254", family: 4 }],
-      socketFactory: network.factory,
-      error: guardError,
-    })).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
+    await expect(
+      guardedRemoteHttpFetch(
+        "http://metadata.rebind.test/latest/meta-data/",
+        {},
+        {
+          allowPrivateNetwork: false,
+          lookup: async () => [{ address: "169.254.169.254", family: 4 }],
+          socketFactory: network.factory,
+          error: guardError,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
 
     expect(network.dialled).toEqual([]);
     expect(internal.requests).toHaveLength(0);
   });
 
   it("rejects a hostname that resolves to a mix of public and private addresses", async () => {
-    await expect(guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [
-        { address: PUBLIC_ADDRESS, family: 4 },
-        { address: "10.1.2.3", family: 4 },
-      ],
-      socketFactory: () => {
-        throw new Error("must not dial");
-      },
-      error: guardError,
-    })).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
+    await expect(
+      guardedRemoteHttpFetch(
+        `http://${REBIND_HOST}/mcp`,
+        {},
+        {
+          allowPrivateNetwork: false,
+          lookup: async () => [
+            { address: PUBLIC_ADDRESS, family: 4 },
+            { address: "10.1.2.3", family: 4 },
+          ],
+          socketFactory: () => {
+            throw new Error("must not dial");
+          },
+          error: guardError,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
   });
 
   it("does not follow redirects, so the caller re-runs the guard on the next hop", async () => {
@@ -291,15 +365,21 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     });
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
 
-    const response = await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-      socketFactory: network.factory,
-      error: guardError,
-    });
+    const response = await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      {},
+      {
+        allowPrivateNetwork: false,
+        lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+        socketFactory: network.factory,
+        error: guardError,
+      },
+    );
 
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe("http://127.0.0.1:9/internal");
+    expect(response.headers.get("location")).toBe(
+      "http://127.0.0.1:9/internal",
+    );
   });
 
   it("carries an MCP Streamable HTTP exchange, SSE framing included", async () => {
@@ -309,23 +389,39 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
       const chunks: Buffer[] = [];
       req.on("data", (chunk: Buffer) => chunks.push(chunk));
       req.on("end", () => {
-        const request = JSON.parse(Buffer.concat(chunks).toString("utf8")) as { method: string };
+        const request = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+          method: string;
+        };
         res.writeHead(200, { "content-type": "text/event-stream" });
-        res.end(`event: message\ndata: ${JSON.stringify({ jsonrpc: "2.0", id: "1", result: { echo: request.method } })}\n\n`);
+        res.end(
+          `event: message\ndata: ${JSON.stringify({ jsonrpc: "2.0", id: "1", result: { echo: request.method } })}\n\n`,
+        );
       });
     });
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
 
-    const response = await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {
-      method: "POST",
-      headers: { accept: "application/json, text/event-stream", "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: "1", method: "tools/call", params: {} }),
-    }, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-      socketFactory: network.factory,
-      error: guardError,
-    });
+    const response = await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "1",
+          method: "tools/call",
+          params: {},
+        }),
+      },
+      {
+        allowPrivateNetwork: false,
+        lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+        socketFactory: network.factory,
+        error: guardError,
+      },
+    );
 
     expect(response.headers.get("content-type")).toBe("text/event-stream");
     await expect(response.text()).resolves.toContain('"echo":"tools/call"');
@@ -333,19 +429,35 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
 
   it("decodes a compressed response body the way fetch would", async () => {
     const upstream = await startServer((_req, res) => {
-      res.writeHead(200, { "content-type": "application/json", "content-encoding": "gzip" });
-      res.end(gzipSync(Buffer.from(JSON.stringify({ token_endpoint: "https://auth.example/token" }), "utf8")));
+      res.writeHead(200, {
+        "content-type": "application/json",
+        "content-encoding": "gzip",
+      });
+      res.end(
+        gzipSync(
+          Buffer.from(
+            JSON.stringify({ token_endpoint: "https://auth.example/token" }),
+            "utf8",
+          ),
+        ),
+      );
     });
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
 
-    const response = await guardedRemoteHttpFetch(`http://${REBIND_HOST}/.well-known/oauth-authorization-server`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-      socketFactory: network.factory,
-      error: guardError,
-    });
+    const response = await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/.well-known/oauth-authorization-server`,
+      {},
+      {
+        allowPrivateNetwork: false,
+        lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+        socketFactory: network.factory,
+        error: guardError,
+      },
+    );
 
-    await expect(response.json()).resolves.toEqual({ token_endpoint: "https://auth.example/token" });
+    await expect(response.json()).resolves.toEqual({
+      token_endpoint: "https://auth.example/token",
+    });
     expect(response.headers.get("content-encoding")).toBeNull();
   });
 
@@ -358,13 +470,17 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     });
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
 
-    const failure = await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-      socketFactory: network.factory,
-      responseTimeoutMs: 150,
-      error: guardError,
-    }).catch((error) => error);
+    const failure = await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      {},
+      {
+        allowPrivateNetwork: false,
+        lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+        socketFactory: network.factory,
+        responseTimeoutMs: 150,
+        error: guardError,
+      },
+    ).catch((error) => error);
     expect(failure).toMatchObject({ code: "remote_http_response_timeout" });
     expect(readRemoteConnectionFailure(failure)).toBe("connection_timeout");
 
@@ -392,13 +508,19 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: port });
 
     try {
-      await expect(guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-        allowPrivateNetwork: false,
-        lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-        socketFactory: network.factory,
-        responseTimeoutMs: 150,
-        error: guardError,
-      })).rejects.toMatchObject({ code: "remote_http_response_timeout" });
+      await expect(
+        guardedRemoteHttpFetch(
+          `http://${REBIND_HOST}/mcp`,
+          {},
+          {
+            allowPrivateNetwork: false,
+            lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+            socketFactory: network.factory,
+            responseTimeoutMs: 150,
+            error: guardError,
+          },
+        ),
+      ).rejects.toMatchObject({ code: "remote_http_response_timeout" });
 
       await flush();
       expect(network.sockets.map((socket) => socket.destroyed)).toEqual([true]);
@@ -415,13 +537,17 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     });
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
 
-    const response = await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-      socketFactory: network.factory,
-      responseTimeoutMs: 150,
-      error: guardError,
-    });
+    const response = await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      {},
+      {
+        allowPrivateNetwork: false,
+        lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+        socketFactory: network.factory,
+        responseTimeoutMs: 150,
+        error: guardError,
+      },
+    );
 
     expect(response.status).toBe(200);
     const failure = await response.text().catch((error) => error);
@@ -439,18 +565,32 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
     const failure = await initializeMcpHttpSession({
       requestId: "owned-deadline",
-      send: (init) => withMcpConnectionFailure(() => guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, init, {
-        allowPrivateNetwork: false,
-        lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
-        socketFactory: network.factory,
-        responseTimeoutMs: 150,
-        error: guardError,
-      })),
+      send: (init) =>
+        withMcpConnectionFailure(() =>
+          guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, init, {
+            allowPrivateNetwork: false,
+            lookup: async () => [{ address: PUBLIC_ADDRESS, family: 4 }],
+            socketFactory: network.factory,
+            responseTimeoutMs: 150,
+            error: guardError,
+          }),
+        ),
     }).catch((error) => error);
-    expect(failure).toMatchObject({ name: "McpHttpInitializationError", stage: "initialize", status: null,
-      message: "Remote MCP initialization returned an invalid response" });
+    expect(failure).toMatchObject({
+      name: "McpHttpInitializationError",
+      stage: "initialize",
+      status: null,
+      message: "Remote MCP initialization returned an invalid response",
+    });
     expect(failure.response).toBeUndefined();
-    expect(isExpectedMcpConnectionFailure(retainMcpConnectionFailure(failure, new HttpError(502, failure.message)))).toBe(true);
+    expect(
+      isExpectedMcpConnectionFailure(
+        retainMcpConnectionFailure(
+          failure,
+          new HttpError(502, failure.message),
+        ),
+      ),
+    ).toBe(true);
     await flush();
     expect(network.sockets.map((socket) => socket.destroyed)).toEqual([true]);
   });
@@ -460,32 +600,58 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     ["ERR_SSL_UNKNOWN_PROTOCOL", "deadline", false],
     ["ECONNRESET", "ECONNREFUSED", true],
     ["ETIMEDOUT", "deadline", true],
-  ] as const)("keeps every failed address relevant to reporting: %s then %s", async (firstCode, lastCode, expected) => {
-    const first = Object.assign(new Error("first address failed"), { code: firstCode });
-    const last = Object.assign(new Error("last address failed"), { code: lastCode });
-    const addresses = ["93.184.216.35", PUBLIC_ADDRESS];
-    const dialled: string[] = [];
-    const failure = await withMcpConnectionFailure(() => guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => addresses.map((address) => ({ address, family: 4 })),
-      socketFactory: ({ address }) => {
-        dialled.push(address);
-        const socket = new Socket();
-        openSockets.push(socket);
-        if (dialled.length === 1 || lastCode !== "deadline") {
-          queueMicrotask(() => socket.emit("error", dialled.length === 1 ? first : last));
-        }
-        return socket;
-      },
-      connectTimeoutMs: 5,
-      error: guardError,
-    })).catch((error) => error);
-    expect(dialled).toEqual(addresses);
-    if (lastCode === "deadline") expect(failure.message).toBe("Timed out trying to connect to the remote MCP endpoint");
-    else expect(failure).toBe(last);
-    expect(isExpectedMcpConnectionFailure(retainMcpConnectionFailure(failure, new HttpError(502, failure.message)))).toBe(expected);
-    expect(openSockets.every((socket) => socket.destroyed)).toBe(true);
-  });
+  ] as const)(
+    "keeps every failed address relevant to reporting: %s then %s",
+    async (firstCode, lastCode, expected) => {
+      const first = Object.assign(new Error("first address failed"), {
+        code: firstCode,
+      });
+      const last = Object.assign(new Error("last address failed"), {
+        code: lastCode,
+      });
+      const addresses = ["93.184.216.35", PUBLIC_ADDRESS];
+      const dialled: string[] = [];
+      const failure = await withMcpConnectionFailure(() =>
+        guardedRemoteHttpFetch(
+          `http://${REBIND_HOST}/mcp`,
+          {},
+          {
+            allowPrivateNetwork: false,
+            lookup: async () =>
+              addresses.map((address) => ({ address, family: 4 })),
+            socketFactory: ({ address }) => {
+              dialled.push(address);
+              const socket = new Socket();
+              openSockets.push(socket);
+              if (dialled.length === 1 || lastCode !== "deadline") {
+                queueMicrotask(() =>
+                  socket.emit("error", dialled.length === 1 ? first : last),
+                );
+              }
+              return socket;
+            },
+            connectTimeoutMs: 5,
+            error: guardError,
+          },
+        ),
+      ).catch((error) => error);
+      expect(dialled).toEqual(addresses);
+      if (lastCode === "deadline")
+        expect(failure.message).toBe(
+          "Timed out trying to connect to the remote MCP endpoint",
+        );
+      else expect(failure).toBe(last);
+      expect(
+        isExpectedMcpConnectionFailure(
+          retainMcpConnectionFailure(
+            failure,
+            new HttpError(502, failure.message),
+          ),
+        ),
+      ).toBe(expected);
+      expect(openSockets.every((socket) => socket.destroyed)).toBe(true);
+    },
+  );
 
   it("falls over to the next approved address when the first is unreachable", async () => {
     // Pinning must not cost the failover `fetch` gave a multi-homed host: one
@@ -499,15 +665,19 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
       [PUBLIC_ADDRESS]: upstream.port,
     });
 
-    const response = await guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [
-        { address: "93.184.216.35", family: 4 },
-        { address: PUBLIC_ADDRESS, family: 4 },
-      ],
-      socketFactory: network.factory,
-      error: guardError,
-    });
+    const response = await guardedRemoteHttpFetch(
+      `http://${REBIND_HOST}/mcp`,
+      {},
+      {
+        allowPrivateNetwork: false,
+        lookup: async () => [
+          { address: "93.184.216.35", family: 4 },
+          { address: PUBLIC_ADDRESS, family: 4 },
+        ],
+        socketFactory: network.factory,
+        error: guardError,
+      },
+    );
 
     await expect(response.json()).resolves.toEqual({ ok: true });
     expect(network.dialled).toEqual(["93.184.216.35", PUBLIC_ADDRESS]);
@@ -517,19 +687,34 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     const upstream = await startServer();
     const network = routingSocketFactory({ [PUBLIC_ADDRESS]: upstream.port });
     const dialled: string[] = [];
-    const response = await withMcpConnectionFailure(() => guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [{ address: "93.184.216.35", family: 4 }, { address: PUBLIC_ADDRESS, family: 4 }],
-      socketFactory: (target) => {
-        dialled.push(target.address);
-        if (target.address === PUBLIC_ADDRESS) return network.factory(target);
-        const socket = new Socket();
-        openSockets.push(socket);
-        queueMicrotask(() => socket.emit("error", Object.assign(new Error("local limit"), { code: "EMFILE" })));
-        return socket;
-      },
-      error: guardError,
-    }));
+    const response = await withMcpConnectionFailure(() =>
+      guardedRemoteHttpFetch(
+        `http://${REBIND_HOST}/mcp`,
+        {},
+        {
+          allowPrivateNetwork: false,
+          lookup: async () => [
+            { address: "93.184.216.35", family: 4 },
+            { address: PUBLIC_ADDRESS, family: 4 },
+          ],
+          socketFactory: (target) => {
+            dialled.push(target.address);
+            if (target.address === PUBLIC_ADDRESS)
+              return network.factory(target);
+            const socket = new Socket();
+            openSockets.push(socket);
+            queueMicrotask(() =>
+              socket.emit(
+                "error",
+                Object.assign(new Error("local limit"), { code: "EMFILE" }),
+              ),
+            );
+            return socket;
+          },
+          error: guardError,
+        },
+      ),
+    );
     expect(dialled).toEqual(["93.184.216.35", PUBLIC_ADDRESS]);
     await expect(response.json()).resolves.toEqual({ ok: true });
     expect(readRemoteConnectionFailure(response)).toBeNull();
@@ -550,15 +735,21 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
       return socket;
     };
 
-    await expect(guardedRemoteHttpFetch(`http://${REBIND_HOST}/mcp`, {}, {
-      allowPrivateNetwork: false,
-      lookup: async () => [
-        { address: "93.184.216.35", family: 4 },
-        { address: PUBLIC_ADDRESS, family: 4 },
-      ],
-      socketFactory: factory,
-      error: guardError,
-    })).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
+    await expect(
+      guardedRemoteHttpFetch(
+        `http://${REBIND_HOST}/mcp`,
+        {},
+        {
+          allowPrivateNetwork: false,
+          lookup: async () => [
+            { address: "93.184.216.35", family: 4 },
+            { address: PUBLIC_ADDRESS, family: 4 },
+          ],
+          socketFactory: factory,
+          error: guardError,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
 
     expect(dialled).toEqual(["93.184.216.35"]);
     expect(internal.requests).toHaveLength(0);
@@ -566,31 +757,41 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
   });
 
   it("still refuses a private IP literal before any transport runs", async () => {
-    await expect(guardedRemoteHttpFetch("http://169.254.169.254/latest/meta-data/", {}, {
-      allowPrivateNetwork: false,
-      error: guardError,
-      unpinnedFetch: async () => {
-        throw new Error("must not fetch");
-      },
-      socketFactory: () => {
-        throw new Error("must not dial");
-      },
-    })).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
+    await expect(
+      guardedRemoteHttpFetch(
+        "http://169.254.169.254/latest/meta-data/",
+        {},
+        {
+          allowPrivateNetwork: false,
+          error: guardError,
+          unpinnedFetch: async () => {
+            throw new Error("must not fetch");
+          },
+          socketFactory: () => {
+            throw new Error("must not dial");
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
   });
 
   it("uses platform fetch for a public IP literal, where nothing can be re-resolved", async () => {
     const calls: string[] = [];
-    const response = await guardedRemoteHttpFetch("https://93.184.216.34/mcp", { method: "POST" }, {
-      allowPrivateNetwork: false,
-      error: guardError,
-      unpinnedFetch: async (input, init) => {
-        calls.push(`${init?.method} ${String(input)} ${init?.redirect}`);
-        return new Response("{}", { status: 200 });
+    const response = await guardedRemoteHttpFetch(
+      "https://93.184.216.34/mcp",
+      { method: "POST" },
+      {
+        allowPrivateNetwork: false,
+        error: guardError,
+        unpinnedFetch: async (input, init) => {
+          calls.push(`${init?.method} ${String(input)} ${init?.redirect}`);
+          return new Response("{}", { status: 200 });
+        },
+        socketFactory: () => {
+          throw new Error("must not dial");
+        },
       },
-      socketFactory: () => {
-        throw new Error("must not dial");
-      },
-    });
+    );
 
     expect(response.status).toBe(200);
     expect(calls).toEqual(["POST https://93.184.216.34/mcp manual"]);
@@ -598,17 +799,21 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
 
   it("uses platform fetch for an allowed private IP literal", async () => {
     const calls: string[] = [];
-    const response = await guardedRemoteHttpFetch("http://127.0.0.1:9/mcp", {}, {
-      allowPrivateNetwork: true,
-      error: guardError,
-      unpinnedFetch: async (input) => {
-        calls.push(String(input));
-        return new Response("{}", { status: 200 });
+    const response = await guardedRemoteHttpFetch(
+      "http://127.0.0.1:9/mcp",
+      {},
+      {
+        allowPrivateNetwork: true,
+        error: guardError,
+        unpinnedFetch: async (input) => {
+          calls.push(String(input));
+          return new Response("{}", { status: 200 });
+        },
+        socketFactory: () => {
+          throw new Error("must not dial");
+        },
       },
-      socketFactory: () => {
-        throw new Error("must not dial");
-      },
-    });
+    );
 
     expect(response.status).toBe(200);
     expect(calls).toEqual(["http://127.0.0.1:9/mcp"]);
@@ -616,14 +821,20 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
 
   it("never invokes platform fetch for a link-local literal in private mode", async () => {
     const calls: string[] = [];
-    await expect(guardedRemoteHttpFetch("http://169.254.169.254/latest/meta-data/", {}, {
-      allowPrivateNetwork: true,
-      error: guardError,
-      unpinnedFetch: async (input) => {
-        calls.push(String(input));
-        return new Response("{}", { status: 200 });
-      },
-    })).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
+    await expect(
+      guardedRemoteHttpFetch(
+        "http://169.254.169.254/latest/meta-data/",
+        {},
+        {
+          allowPrivateNetwork: true,
+          error: guardError,
+          unpinnedFetch: async (input) => {
+            calls.push(String(input));
+            return new Response("{}", { status: 200 });
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
     expect(calls).toEqual([]);
   });
 
@@ -632,19 +843,28 @@ describe("guarded remote HTTP fetch (PAP-17098 DNS rebinding)", () => {
     const factory: RemoteHttpSocketFactory = () => {
       const socket = netConnect({ host: "127.0.0.1", port: internal.port });
       openSockets.push(socket);
-      Object.defineProperty(socket, "remoteAddress", { get: () => "169.254.169.254", configurable: true });
+      Object.defineProperty(socket, "remoteAddress", {
+        get: () => "169.254.169.254",
+        configurable: true,
+      });
       return socket;
     };
 
-    await expect(guardedRemoteHttpFetch("http://lan-service.example/mcp", {}, {
-      allowPrivateNetwork: true,
-      lookup: async () => [{ address: "10.0.0.8", family: 4 }],
-      socketFactory: factory,
-      error: guardError,
-      unpinnedFetch: async () => {
-        throw new Error("hostnames must remain pinned");
-      },
-    })).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
+    await expect(
+      guardedRemoteHttpFetch(
+        "http://lan-service.example/mcp",
+        {},
+        {
+          allowPrivateNetwork: true,
+          lookup: async () => [{ address: "10.0.0.8", family: 4 }],
+          socketFactory: factory,
+          error: guardError,
+          unpinnedFetch: async () => {
+            throw new Error("hostnames must remain pinned");
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: "remote_http_private_endpoint" });
     expect(internal.requests).toHaveLength(0);
   });
 });

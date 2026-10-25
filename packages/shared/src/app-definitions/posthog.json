@@ -3,26 +3,19 @@
   "slug": "posthog",
   "name": "PostHog",
   "description": "Analyze product usage, errors, feature flags, and experiments with PostHog's hosted MCP server.",
-  "categories": [
-    "analytics"
-  ],
+  "categories": ["analytics"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/posthog.svg",
     "darkLogoUrl": "/brands/apps/posthog-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.posthog.com/*"
-  ],
+  "urlPatterns": ["https://mcp.posthog.com/*"],
   "methods": [
     {
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "customer",
-        "dcr"
-      ],
+      "ownershipModes": ["customer", "dcr"],
       "whenToUse": "Sign in with PostHog in the browser. Recommended for hosted PostHog accounts.",
       "defaults": {
         "serverUrl": "https://mcp.posthog.com/mcp"
@@ -119,16 +112,9 @@
       },
       "credentialSources": {
         "vercelConnect": {
-          "services": [
-            "posthog",
-            "mcp.posthog.com/mcp"
-          ],
-          "principalModes": [
-            "user"
-          ],
-          "scopes": [
-            "*"
-          ],
+          "services": ["posthog", "mcp.posthog.com/mcp"],
+          "principalModes": ["user"],
+          "scopes": ["*"],
           "header": {
             "name": "Authorization",
             "prefix": "Bearer "
@@ -140,9 +126,7 @@
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a PostHog personal API key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.posthog.com/mcp"
@@ -256,16 +240,9 @@
       },
       "credentialSources": {
         "vercelConnect": {
-          "services": [
-            "posthog",
-            "mcp.posthog.com/mcp"
-          ],
-          "principalModes": [
-            "app"
-          ],
-          "scopes": [
-            "*"
-          ],
+          "services": ["posthog", "mcp.posthog.com/mcp"],
+          "principalModes": ["app"],
+          "scopes": ["*"],
           "header": {
             "name": "Authorization",
             "prefix": "Bearer "

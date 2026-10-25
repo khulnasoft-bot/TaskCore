@@ -63,7 +63,9 @@ function parsePort(value: string): number | null {
   return Number.isInteger(port) && port >= 1 && port <= 65_535 ? port : null;
 }
 
-function parseDestination(value: string): Pick<ParsedCustomImageSetupSshCommand, "username" | "host"> | null {
+function parseDestination(
+  value: string,
+): Pick<ParsedCustomImageSetupSshCommand, "username" | "host"> | null {
   if (value.startsWith("-")) return null;
   const parts = value.split("@");
   if (parts.length !== 2) return null;
@@ -74,7 +76,9 @@ function parseDestination(value: string): Pick<ParsedCustomImageSetupSshCommand,
   return { username, host };
 }
 
-export function parseCustomImageSetupSshCommand(command: string): ParsedCustomImageSetupSshCommand | null {
+export function parseCustomImageSetupSshCommand(
+  command: string,
+): ParsedCustomImageSetupSshCommand | null {
   const tokens = command.trim().split(/\s+/).filter(Boolean);
   if (tokens[0] !== "ssh") return null;
 
@@ -100,9 +104,11 @@ export function parseCustomImageSetupSshCommand(command: string): ParsedCustomIm
   return null;
 }
 
-function readConnectionPayload(payload: unknown): Record<string, unknown> | null {
+function readConnectionPayload(
+  payload: unknown,
+): Record<string, unknown> | null {
   return payload && typeof payload === "object" && !Array.isArray(payload)
-    ? payload as Record<string, unknown>
+    ? (payload as Record<string, unknown>)
     : null;
 }
 
@@ -116,11 +122,13 @@ export function validateCustomImageSetupSshPayload(
       ok: false,
       status: 422,
       code: "unsupported_payload",
-      message: "Setup session terminal connections require an SSH connection payload.",
+      message:
+        "Setup session terminal connections require an SSH connection payload.",
     };
   }
 
-  const command = typeof record.command === "string" ? record.command.trim() : "";
+  const command =
+    typeof record.command === "string" ? record.command.trim() : "";
   if (!command) {
     return {
       ok: false,
@@ -169,7 +177,10 @@ function minDate(dates: Date[]): Date {
   return new Date(Math.min(...dates.map((date) => date.getTime())));
 }
 
-function toValidFutureDate(value: Date | string | null | undefined, now: Date): Date | null {
+function toValidFutureDate(
+  value: Date | string | null | undefined,
+  now: Date,
+): Date | null {
   return readFutureDate(value, now);
 }
 
@@ -180,7 +191,10 @@ function normalizeHostKeySha256(value: unknown): string | null {
 }
 
 export class EnvironmentCustomImageTerminalSessionStore {
-  private readonly sessionsById = new Map<string, StoredEnvironmentCustomImageTerminalSession>();
+  private readonly sessionsById = new Map<
+    string,
+    StoredEnvironmentCustomImageTerminalSession
+  >();
 
   create(input: {
     setupSessionId: string;
@@ -197,7 +211,9 @@ export class EnvironmentCustomImageTerminalSessionStore {
 
     const setupExpiresAt = toValidFutureDate(input.setupExpiresAt, now);
     if (!setupExpiresAt) {
-      throw new Error("Terminal sessions require a future setup session expiry.");
+      throw new Error(
+        "Terminal sessions require a future setup session expiry.",
+      );
     }
     const candidateExpirations = [
       new Date(now.getTime() + DEFAULT_TERMINAL_SESSION_TOKEN_TTL_MS),
@@ -205,7 +221,9 @@ export class EnvironmentCustomImageTerminalSessionStore {
       toValidFutureDate(input.connectionExpiresAt, now),
     ].filter((date): date is Date => date !== null);
     const connectExpiresAt = minDate(candidateExpirations);
-    const token = randomBytes(TERMINAL_SESSION_TOKEN_BYTES).toString("base64url");
+    const token = randomBytes(TERMINAL_SESSION_TOKEN_BYTES).toString(
+      "base64url",
+    );
     const id = randomUUID();
     const session: EnvironmentCustomImageTerminalSessionRecord = {
       id,
@@ -227,7 +245,10 @@ export class EnvironmentCustomImageTerminalSessionStore {
     return { token, session };
   }
 
-  get(input: { id: string; token: string }, now = new Date()): EnvironmentCustomImageTerminalSessionRecord | null {
+  get(
+    input: { id: string; token: string },
+    now = new Date(),
+  ): EnvironmentCustomImageTerminalSessionRecord | null {
     if (!input.id || !input.token) return null;
     const stored = this.sessionsById.get(input.id) ?? null;
     if (!stored) return null;
@@ -239,7 +260,10 @@ export class EnvironmentCustomImageTerminalSessionStore {
     return stored.session;
   }
 
-  getById(id: string, now = new Date()): EnvironmentCustomImageTerminalSessionRecord | null {
+  getById(
+    id: string,
+    now = new Date(),
+  ): EnvironmentCustomImageTerminalSessionRecord | null {
     if (!id) return null;
     const stored = this.sessionsById.get(id) ?? null;
     if (!stored) return null;
@@ -250,7 +274,10 @@ export class EnvironmentCustomImageTerminalSessionStore {
     return stored.session;
   }
 
-  verifyOrPinHostKey(input: { id: string; hostKeySha256: string }, now = new Date()): boolean {
+  verifyOrPinHostKey(
+    input: { id: string; hostKeySha256: string },
+    now = new Date(),
+  ): boolean {
     const hostKeySha256 = normalizeHostKeySha256(input.hostKeySha256);
     if (!input.id || !hostKeySha256) return false;
     const stored = this.sessionsById.get(input.id) ?? null;
@@ -301,17 +328,23 @@ export class EnvironmentCustomImageTerminalSessionStore {
 export const environmentCustomImageTerminalSessionStore =
   new EnvironmentCustomImageTerminalSessionStore();
 
-export type EnvironmentCustomImageTerminalConnectionClose = (reason: string) => void;
+export type EnvironmentCustomImageTerminalConnectionClose = (
+  reason: string,
+) => void;
 
 export class EnvironmentCustomImageTerminalConnectionRegistry {
-  private readonly connectionsBySetupSessionId = new Map<string, Set<EnvironmentCustomImageTerminalConnectionClose>>();
+  private readonly connectionsBySetupSessionId = new Map<
+    string,
+    Set<EnvironmentCustomImageTerminalConnectionClose>
+  >();
 
   add(input: {
     setupSessionId: string;
     close: EnvironmentCustomImageTerminalConnectionClose;
   }): () => void {
     const existing = this.connectionsBySetupSessionId.get(input.setupSessionId);
-    const connections = existing ?? new Set<EnvironmentCustomImageTerminalConnectionClose>();
+    const connections =
+      existing ?? new Set<EnvironmentCustomImageTerminalConnectionClose>();
     connections.add(input.close);
     if (!existing) {
       this.connectionsBySetupSessionId.set(input.setupSessionId, connections);

@@ -44,7 +44,8 @@ export function reorderQueuedMessageEntries(
   activeId: string,
   overId: string,
 ) {
-  if (entries.some((entry) => entry.source?.kind === "interaction")) return null;
+  if (entries.some((entry) => entry.source?.kind === "interaction"))
+    return null;
   const from = entries.findIndex((entry) => entry.comment.id === activeId);
   const to = entries.findIndex((entry) => entry.comment.id === overId);
   if (from < 0 || to < 0 || from === to) return null;
@@ -97,7 +98,9 @@ function SortableQueuedMessage({
   onDiscard: () => void;
 }) {
   const immutableResponse = entry.source?.kind === "interaction";
-  const label = immutableResponse ? entry.comment.body.split("\n")[0] : entry.comment.body;
+  const label = immutableResponse
+    ? entry.comment.body.split("\n")[0]
+    : entry.comment.body;
   const sortable = useSortable({
     id: entry.comment.id,
     disabled: queueMutationDisabled || immutableResponse,
@@ -151,7 +154,11 @@ function SortableQueuedMessage({
           type="button"
           onClick={onInterrupt}
           disabled={busy || !queue.queueId || !onInterrupt}
-          title={queue.targetRunId ? "Interrupt the active turn and send queued messages" : "Send queued messages now"}
+          title={
+            queue.targetRunId
+              ? "Interrupt the active turn and send queued messages"
+              : "Send queued messages now"
+          }
           className="flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
           data-testid={`task-chat-queued-interrupt-${entry.comment.id}`}
         >
@@ -252,9 +259,11 @@ export function TaskChatQueuedMessages({
 
   useEffect(() => {
     // Polling can return the old queue while delivery is still in flight.
-    setEntries(queue.entries.filter(
-      (entry) => !optimisticDeliveryIds.current.has(entry.comment.id),
-    ));
+    setEntries(
+      queue.entries.filter(
+        (entry) => !optimisticDeliveryIds.current.has(entry.comment.id),
+      ),
+    );
   }, [queue.entries, queue.revision]);
 
   const ids = useMemo(
@@ -316,14 +325,19 @@ export function TaskChatQueuedMessages({
     ) {
       return;
     }
-    const deliveredIds = action === "interrupt"
-      ? entries.map((entry) => entry.comment.id)
-      : action === "steer" ? [commentId] : [];
+    const deliveredIds =
+      action === "interrupt"
+        ? entries.map((entry) => entry.comment.id)
+        : action === "steer"
+          ? [commentId]
+          : [];
     for (const id of deliveredIds) optimisticDeliveryIds.current.add(id);
     if (deliveredIds.length) {
-      setEntries((current) => current.filter(
-        (entry) => !optimisticDeliveryIds.current.has(entry.comment.id),
-      ));
+      setEntries((current) =>
+        current.filter(
+          (entry) => !optimisticDeliveryIds.current.has(entry.comment.id),
+        ),
+      );
     }
     setPending({ commentId, action });
     setVisibleError(null);
@@ -353,9 +367,11 @@ export function TaskChatQueuedMessages({
     } catch (error) {
       for (const id of deliveredIds) optimisticDeliveryIds.current.delete(id);
       if (deliveredIds.length) {
-        setEntries(latestQueue.current.entries.filter(
-          (entry) => !optimisticDeliveryIds.current.has(entry.comment.id),
-        ));
+        setEntries(
+          latestQueue.current.entries.filter(
+            (entry) => !optimisticDeliveryIds.current.has(entry.comment.id),
+          ),
+        );
       }
       setAnnouncement("");
       const code = queueActionErrorCode(error);
@@ -383,7 +399,11 @@ export function TaskChatQueuedMessages({
       aria-label="Queued messages"
     >
       {queue.executionWait && (
-        <div role="status" aria-live="polite" className="px-3 py-1.5 text-xs text-muted-foreground">
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-3 py-1.5 text-xs text-muted-foreground"
+        >
           {queue.executionWait.message}
         </div>
       )}

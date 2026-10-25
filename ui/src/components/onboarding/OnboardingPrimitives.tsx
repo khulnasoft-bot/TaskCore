@@ -40,7 +40,9 @@ export function OnboardingHeading({
         {title}
       </h1>
       {lede ? (
-        <p className="text-base leading-relaxed text-muted-foreground">{lede}</p>
+        <p className="text-base leading-relaxed text-muted-foreground">
+          {lede}
+        </p>
       ) : null}
     </div>
   );

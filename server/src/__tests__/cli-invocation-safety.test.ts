@@ -1,5 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -361,8 +368,7 @@ const SCAN_EXTENSIONS = new Set([
 
 function isTestFile(relPath: string): boolean {
   return (
-    relPath.includes("__tests__/") ||
-    /\.(test|spec)\.[tj]sx?$/.test(relPath)
+    relPath.includes("__tests__/") || /\.(test|spec)\.[tj]sx?$/.test(relPath)
   );
 }
 
@@ -370,11 +376,13 @@ function listGuidanceFiles(rootDir = repoRoot): string[] {
   const found: string[] = [];
   // Include tracked files and new authored files, while respecting gitignored
   // local settings. A tracked file remains scanned even if an ignore matches.
-  const authored = new Set(execFileSync(
-    "git",
-    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-    { cwd: rootDir, encoding: "utf8" },
-  ).split("\0"));
+  const authored = new Set(
+    execFileSync(
+      "git",
+      ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+      { cwd: rootDir, encoding: "utf8" },
+    ).split("\0"),
+  );
 
   function walk(absDir: string, relDir: string): void {
     for (const entry of readdirSync(absDir, { withFileTypes: true })) {
@@ -382,14 +390,19 @@ function listGuidanceFiles(rootDir = repoRoot): string[] {
       const relPath = relDir ? `${relDir}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
         if (SKIP_DIRS.has(entry.name)) continue;
-        if (SKIP_PATH_PREFIXES.some((prefix) => `${relPath}/`.startsWith(prefix))) continue;
-        if (SKIP_DIRS.has(entry.name) || relPath === ".taskcore-runtime") continue;
+        if (
+          SKIP_PATH_PREFIXES.some((prefix) => `${relPath}/`.startsWith(prefix))
+        )
+          continue;
+        if (SKIP_DIRS.has(entry.name) || relPath === ".taskcore-runtime")
+          continue;
         walk(path.join(absDir, entry.name), relPath);
         continue;
       }
       if (!SCAN_EXTENSIONS.has(path.extname(entry.name))) continue;
       if (isTestFile(relPath)) continue;
-      if (SKIP_PATH_PREFIXES.some((prefix) => relPath.startsWith(prefix))) continue;
+      if (SKIP_PATH_PREFIXES.some((prefix) => relPath.startsWith(prefix)))
+        continue;
       if (authored.has(relPath)) found.push(relPath);
     }
   }
@@ -510,7 +523,9 @@ describe("taskcore CLI invocation safety", () => {
   });
 
   it("excludes root runtime recordings but still scans unsafe docs and source guidance", () => {
-    const fixtureRoot = mkdtempSync(path.join(os.tmpdir(), "taskcore-cli-guidance-"));
+    const fixtureRoot = mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-cli-guidance-"),
+    );
     try {
       execFileSync("git", ["init", "--quiet"], { cwd: fixtureRoot });
       const fixtures = [
@@ -531,7 +546,12 @@ describe("taskcore CLI invocation safety", () => {
         "src/guidance.ts",
       ]);
       for (const relPath of files) {
-        expect(scanText(relPath, readFileSync(path.join(fixtureRoot, relPath), "utf8"))).toHaveLength(1);
+        expect(
+          scanText(
+            relPath,
+            readFileSync(path.join(fixtureRoot, relPath), "utf8"),
+          ),
+        ).toHaveLength(1);
       }
     } finally {
       rmSync(fixtureRoot, { recursive: true, force: true });
@@ -544,14 +564,19 @@ describe("taskcore CLI invocation safety", () => {
       execFileSync("git", ["init", "--quiet"], { cwd: root });
       writeFileSync(path.join(root, ".gitignore"), "ignored.md\ntracked.md\n");
       for (const name of ["ignored.md", "untracked.md", "tracked.md"]) {
-        writeFileSync(path.join(root, name), "pnpm taskcore issue get issue-1\n");
+        writeFileSync(
+          path.join(root, name),
+          "pnpm taskcore issue get issue-1\n",
+        );
       }
       execFileSync("git", ["add", "--force", "tracked.md"], { cwd: root });
 
       const files = listGuidanceFiles(root).sort();
       expect(files).toEqual(["tracked.md", "untracked.md"]);
       for (const name of files) {
-        expect(scanText(name, readFileSync(path.join(root, name), "utf8"))).toHaveLength(1);
+        expect(
+          scanText(name, readFileSync(path.join(root, name), "utf8")),
+        ).toHaveLength(1);
       }
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -585,36 +610,74 @@ describe("taskcore CLI invocation safety", () => {
 
   it("flags a value-bearing option that the old flag list omitted", () => {
     // --config, --data-dir, --instance, and --bind each carry a value.
-    expect(scanText("doc/E.md", "pnpm taskcore doctor --config ./scratch.json")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore run --data-dir ./tmp/dev")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore run --instance dev")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore run --bind tailnet")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore onboard --yes --bind lan")).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore doctor --config ./scratch.json"),
+    ).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore run --data-dir ./tmp/dev"),
+    ).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore run --instance dev"),
+    ).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore run --bind tailnet"),
+    ).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore onboard --yes --bind lan"),
+    ).toHaveLength(1);
   });
 
   it("flags a context-profile value and every worktree path/ref/id/name option", () => {
-    expect(scanText("doc/E.md", "pnpm taskcore context use default")).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore context use default"),
+    ).toHaveLength(1);
     // Path, ref, id, and name options on worktree commands.
-    expect(scanText("doc/E.md", "pnpm taskcore worktree repair --branch PAP-1-x")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore worktree:make my-feature --start-point origin/main")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore worktree init --from-config ~/.taskcore/config.json")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore worktree reseed --to PAP-1-x")).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore worktree repair --branch PAP-1-x"),
+    ).toHaveLength(1);
+    expect(
+      scanText(
+        "doc/E.md",
+        "pnpm taskcore worktree:make my-feature --start-point origin/main",
+      ),
+    ).toHaveLength(1);
+    expect(
+      scanText(
+        "doc/E.md",
+        "pnpm taskcore worktree init --from-config ~/.taskcore/config.json",
+      ),
+    ).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore worktree reseed --to PAP-1-x"),
+    ).toHaveLength(1);
   });
 
   it("does not let an npx mention on the same line suppress detection", () => {
     // A mixed line names the safe form but still shows the unsafe command.
-    const mixed = "Prefer npx taskcore, but pnpm taskcore issue create --title x also works.";
+    const mixed =
+      "Prefer npx taskcore, but pnpm taskcore issue create --title x also works.";
     expect(scanText("doc/E.md", mixed)).toHaveLength(1);
   });
 
   it("rejects a command-substitution or variable span in a recommended command", () => {
     // Backtick command substitution, $( ) command substitution, and $NAME
     // variable expansion each reach a shell before the CLI starts.
-    expect(scanText("doc/E.md", "pnpm taskcore allowed-hostname `hostname`")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore issue create --title $(cat /etc/passwd)")).toHaveLength(1);
-    expect(scanText("doc/E.md", "pnpm taskcore run --instance $INSTANCE")).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore allowed-hostname `hostname`"),
+    ).toHaveLength(1);
+    expect(
+      scanText(
+        "doc/E.md",
+        "pnpm taskcore issue create --title $(cat /etc/passwd)",
+      ),
+    ).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore run --instance $INSTANCE"),
+    ).toHaveLength(1);
     // A literal command wrapped in $( ) is still an offender.
-    expect(scanText("doc/E.md", 'eval "$(pnpm taskcore worktree env)"')).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", 'eval "$(pnpm taskcore worktree env)"'),
+    ).toHaveLength(1);
   });
 
   it("flags an allowlisted prefix followed by a quoted or backtick suffix", () => {
@@ -622,12 +685,20 @@ describe("taskcore CLI invocation safety", () => {
     // match the whole command, not the prefix truncated at the quote or the
     // backtick. A reader who copies the line runs the shell-expanded suffix.
     // (a) A double-quoted value that carries shell-expanded content.
-    expect(scanText("doc/E.md", 'pnpm taskcore run "$(cat /etc/passwd)"')).toHaveLength(1);
-    expect(scanText("doc/E.md", 'pnpm taskcore doctor "$HOME/scratch.json"')).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", 'pnpm taskcore run "$(cat /etc/passwd)"'),
+    ).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", 'pnpm taskcore doctor "$HOME/scratch.json"'),
+    ).toHaveLength(1);
     // (b) A backtick-delimited suffix after the allowlisted command.
-    expect(scanText("doc/E.md", "pnpm taskcore run `hostname`")).toHaveLength(1);
+    expect(scanText("doc/E.md", "pnpm taskcore run `hostname`")).toHaveLength(
+      1,
+    );
     // A single-quoted suffix is also part of the full command.
-    expect(scanText("doc/E.md", "pnpm taskcore onboard 'extra value'")).toHaveLength(1);
+    expect(
+      scanText("doc/E.md", "pnpm taskcore onboard 'extra value'"),
+    ).toHaveLength(1);
   });
 
   // ── Fail closed on an ambiguous quote context before the marker ──────────
@@ -648,7 +719,8 @@ describe("taskcore CLI invocation safety", () => {
   it("fails closed on a leading unmatched double quote before the marker", () => {
     // Round-4: the leading `"` opened a span; the tail `"` closed it; the guard
     // extracted `pnpm taskcore run` and reported zero offenders (fail open).
-    const line = 'some prose with one " quote then pnpm taskcore run "$(dangerous)"';
+    const line =
+      'some prose with one " quote then pnpm taskcore run "$(dangerous)"';
     expect(scanText("doc/E.md", line)).toHaveLength(1);
     // The same shape with a doctor prefix and a `$VAR` suffix.
     const varLine = 'a stray " quote and pnpm taskcore doctor "$HOME/x"';
@@ -688,9 +760,18 @@ describe("taskcore CLI invocation safety", () => {
     // guard reads the full command inside the span and matches the allowlist. An
     // optional `$ ` prompt inside the span still counts as adjacent. The source
     // double-quote span is proven only by the terminator that follows its close.
-    expect(scanText("doc/E.md", "Run `pnpm taskcore run` to start.")).toEqual([]);
-    expect(scanText("config/example.ts", '  command: "pnpm taskcore onboard --yes --run",')).toEqual([]);
-    expect(scanText("doc/E.md", "Run `$ pnpm taskcore doctor` to check.")).toEqual([]);
+    expect(scanText("doc/E.md", "Run `pnpm taskcore run` to start.")).toEqual(
+      [],
+    );
+    expect(
+      scanText(
+        "config/example.ts",
+        '  command: "pnpm taskcore onboard --yes --run",',
+      ),
+    ).toEqual([]);
+    expect(
+      scanText("doc/E.md", "Run `$ pnpm taskcore doctor` to check."),
+    ).toEqual([]);
   });
 
   // ── Fail closed outside a proven literal context (context-aware spans) ────
@@ -733,7 +814,12 @@ describe("taskcore CLI invocation safety", () => {
     // A backtick template literal and a double-quote string literal each end at a
     // real source terminator (a comma), so the source-terminator rule proves the
     // literal context and the allowlist matches. These two real files must pass.
-    expect(scanText("tests/e2e/playwright.config.ts", read("tests/e2e/playwright.config.ts"))).toEqual([]);
+    expect(
+      scanText(
+        "tests/e2e/playwright.config.ts",
+        read("tests/e2e/playwright.config.ts"),
+      ),
+    ).toEqual([]);
     expect(
       scanText(
         "tests/perf/issue-detail/playwright.config.ts",
@@ -775,7 +861,10 @@ describe("taskcore CLI invocation safety", () => {
     // The parser joins backslash-continued lines into one logical command. An
     // allowlisted first line does not make the whole command safe. The suffix on
     // the continued line still reaches a shell.
-    const quoted = ["pnpm taskcore doctor \\", '  --config "$(cat secret)"'].join("\n");
+    const quoted = [
+      "pnpm taskcore doctor \\",
+      '  --config "$(cat secret)"',
+    ].join("\n");
     expect(scanText("doc/EXAMPLE.md", quoted)).toHaveLength(1);
     const backtick = ["pnpm taskcore run \\", "  `hostname`"].join("\n");
     const offenders = scanText("doc/EXAMPLE.md", backtick);
@@ -785,11 +874,25 @@ describe("taskcore CLI invocation safety", () => {
 
   it("allows an exact allowlist entry and a bare documentation mention", () => {
     expect(scanText("doc/E.md", "pnpm taskcore run")).toEqual([]);
-    expect(scanText("doc/E.md", "pnpm taskcore worktree env --json")).toEqual([]);
-    expect(scanText("doc/E.md", "pnpm taskcore configure --section server")).toEqual([]);
+    expect(scanText("doc/E.md", "pnpm taskcore worktree env --json")).toEqual(
+      [],
+    );
+    expect(
+      scanText("doc/E.md", "pnpm taskcore configure --section server"),
+    ).toEqual([]);
     // A prose mention inside backticks is not a runnable command.
-    expect(scanText("doc/E.md", "Do not use `pnpm taskcore` for a content-bearing argument.")).toEqual([]);
-    expect(scanText("doc/E.md", "The `pnpm taskcore <command> <args>` form is unsafe.")).toEqual([]);
+    expect(
+      scanText(
+        "doc/E.md",
+        "Do not use `pnpm taskcore` for a content-bearing argument.",
+      ),
+    ).toEqual([]);
+    expect(
+      scanText(
+        "doc/E.md",
+        "The `pnpm taskcore <command> <args>` form is unsafe.",
+      ),
+    ).toEqual([]);
   });
 
   // ── Direct assertions on the runtime-generated instruction surfaces ──────
@@ -830,7 +933,9 @@ describe("taskcore CLI invocation safety", () => {
       { agents: [], projects: [], skills: [], issues: [] } as never,
       { companyName: "Acme", companyDescription: null },
     );
-    expect(readme).toContain("npx taskcore company import this-github-url-or-folder");
+    expect(readme).toContain(
+      "npx taskcore company import this-github-url-or-folder",
+    );
     expect(readme).not.toContain("pnpm taskcore company import");
     expect(readme).not.toContain("pnpm exec taskcore company import");
   });
@@ -906,7 +1011,9 @@ describe("taskcore CLI invocation safety", () => {
 
   it("documents the safe form in doc/CLI.md", () => {
     const cli = read("doc/CLI.md");
-    expect(cli).toContain("Security: safe invocation for content-bearing arguments");
+    expect(cli).toContain(
+      "Security: safe invocation for content-bearing arguments",
+    );
     expect(cli).toContain("npx taskcore");
     expect(cli).toContain("inert `argv`");
     // The policy section states the exact-allowlist rule.
@@ -943,7 +1050,7 @@ describe("taskcore CLI invocation safety", () => {
     const source = [
       "```sh",
       "pnpm taskcore issue create \\",
-      '  --company-id <company-id> \\',
+      "  --company-id <company-id> \\",
       '  --title "$(cat /etc/passwd)"',
       "```",
     ].join("\n");
@@ -975,18 +1082,20 @@ describe("taskcore CLI invocation safety", () => {
   });
 
   it("does not flag a continued pnpm taskcore command that stays on the allowlist", () => {
-    const source = [
-      "pnpm taskcore env-lab \\",
-      "  status \\",
-      "  --json",
-    ].join("\n");
+    const source = ["pnpm taskcore env-lab \\", "  status \\", "  --json"].join(
+      "\n",
+    );
     expect(scanText("doc/EXAMPLE.md", source)).toEqual([]);
   });
 
   it("flags a recommended pnpm exec taskcore line but skips a warning line", () => {
-    expect(recommendsBrokenExecForm("Run pnpm exec taskcore issue create --title x")).toBe(true);
     expect(
-      recommendsBrokenExecForm("`pnpm exec taskcore <command> <args>` — broken. Do not use it."),
+      recommendsBrokenExecForm("Run pnpm exec taskcore issue create --title x"),
+    ).toBe(true);
+    expect(
+      recommendsBrokenExecForm(
+        "`pnpm exec taskcore <command> <args>` — broken. Do not use it.",
+      ),
     ).toBe(false);
   });
 });

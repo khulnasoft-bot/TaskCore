@@ -19,12 +19,15 @@ export function askFirstCatalogEntryIdsFor(
   const riskLevels = new Set(
     Array.isArray(result.suggestedDefaults?.askFirstRiskLevels)
       ? result.suggestedDefaults.askFirstRiskLevels.filter(
-        (riskLevel): riskLevel is string => typeof riskLevel === "string",
-      )
+          (riskLevel): riskLevel is string => typeof riskLevel === "string",
+        )
       : [],
   );
   if (riskLevels.size === 0) return [];
   return result.actions.canMakeChanges
-    .filter((action) => isEnabled(action.catalogEntryId) && riskLevels.has(action.riskLevel))
+    .filter(
+      (action) =>
+        isEnabled(action.catalogEntryId) && riskLevels.has(action.riskLevel),
+    )
     .map((action) => action.catalogEntryId);
 }

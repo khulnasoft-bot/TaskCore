@@ -7,8 +7,7 @@
  */
 export const REMOTE_CODEX_MINIMUM_VERSION = "0.149.0";
 export const REMOTE_CODEX_MAXIMUM_VERSION_EXCLUSIVE = "0.161.0";
-export const REMOTE_CODEX_SUPPORTED_RANGE =
-  `>=${REMOTE_CODEX_MINIMUM_VERSION} <${REMOTE_CODEX_MAXIMUM_VERSION_EXCLUSIVE}`;
+export const REMOTE_CODEX_SUPPORTED_RANGE = `>=${REMOTE_CODEX_MINIMUM_VERSION} <${REMOTE_CODEX_MAXIMUM_VERSION_EXCLUSIVE}`;
 
 const STABLE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
@@ -21,7 +20,8 @@ function stableVersionParts(version: string): number[] | null {
 
 /** Parse a complete version line so alpha/dev suffixes cannot pass as stable. */
 export function parseCodexCliVersion(output: string): string | null {
-  const versions = output.split(/\r?\n/)
+  const versions = output
+    .split(/\r?\n/)
     .map((line) => /^codex-cli (\S+)$/.exec(line.trim())?.[1])
     .filter((version): version is string => version !== undefined);
   if (versions.length !== 1 || !stableVersionParts(versions[0]!)) return null;

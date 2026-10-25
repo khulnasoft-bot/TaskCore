@@ -11,7 +11,14 @@ export const PRESET_LABELS: Record<DatePreset, string> = {
   custom: "Custom",
 };
 
-export const PRESET_KEYS: DatePreset[] = ["mtd", "7d", "30d", "ytd", "all", "custom"];
+export const PRESET_KEYS: DatePreset[] = [
+  "mtd",
+  "7d",
+  "30d",
+  "ytd",
+  "all",
+  "custom",
+];
 
 // note: computeRange is called inside a useMemo that re-evaluates once per minute
 // (driven by minuteTick). this means sliding windows (7d, 30d) advance their upper
@@ -25,11 +32,27 @@ export function computeRange(preset: DatePreset): { from: string; to: string } {
       return { from: d.toISOString(), to };
     }
     case "7d": {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0, 0);
+      const d = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - 7,
+        0,
+        0,
+        0,
+        0,
+      );
       return { from: d.toISOString(), to };
     }
     case "30d": {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30, 0, 0, 0, 0);
+      const d = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - 30,
+        0,
+        0,
+        0,
+        0,
+      );
       return { from: d.toISOString(), to };
     }
     case "ytd": {
@@ -76,7 +99,8 @@ export function useDateRange(): UseDateRangeResult {
   const [minuteTick, setMinuteTick] = useState(() => floorToMinute(new Date()));
   useEffect(() => {
     const now = new Date();
-    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    const msToNextMinute =
+      (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     const timeout = setTimeout(() => {
       setMinuteTick(floorToMinute(new Date()));
       intervalRef.current = setInterval(
@@ -100,8 +124,8 @@ export function useDateRange(): UseDateRangeResult {
       from: fromDate ? fromDate.toISOString() : "",
       to: toDate ? toDate.toISOString() : "",
     };
-  // minuteTick drives re-evaluation of sliding presets once per minute.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // minuteTick drives re-evaluation of sliding presets once per minute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset, customFrom, customTo, minuteTick]);
 
   const customReady = preset !== "custom" || (!!customFrom && !!customTo);

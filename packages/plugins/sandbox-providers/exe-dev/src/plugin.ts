@@ -67,10 +67,12 @@ const DEFAULT_TIMEOUT_MS = 300_000;
 const EXE_DEV_API_MAX_TIMEOUT_MS = 29_000;
 const SSH_SIGKILL_GRACE_MS = 250;
 const MAX_VM_RECORD_DEPTH = 4;
-const EXE_DEV_SSH_ONBOARDING_MARKER = "Please complete registration by running: ssh exe.dev";
+const EXE_DEV_SSH_ONBOARDING_MARKER =
+  "Please complete registration by running: ssh exe.dev";
 const EXE_DEV_SSH_EMAIL_PROMPT = "Please enter your email address:";
 const EXE_DEV_SSH_INVALID_KEY_FORMAT = /Load key [^\n]*invalid format/i;
-const UUID_SECRET_REF_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_SECRET_REF_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // exe.dev's `--setup-script` runs at VM init as the unprivileged `exedev` user, which
 // has passwordless sudo. The Taskcore sandbox callback bridge is a Node script, so
@@ -79,7 +81,7 @@ const UUID_SECRET_REF_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 // nodesource so the VM comes up ready for Taskcore out of the box.
 const DEFAULT_SETUP_SCRIPT =
   "(command -v node >/dev/null 2>&1 && " +
-  "node -e 'const v=process.versions.node.split(\".\").map(Number);" +
+  'node -e \'const v=process.versions.node.split(".").map(Number);' +
   "process.exit(v[0]>24||(v[0]===24&&v[1]>=11)?0:1)' >/dev/null 2>&1) || " +
   "(curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash - && " +
   "sudo apt-get install -y nodejs)";
@@ -98,7 +100,9 @@ class ExeDevApiError extends Error {
 
 function parseOptionalString(value: unknown): string | null {
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function parseOptionalInteger(value: unknown): number | null {
@@ -168,12 +172,16 @@ export function validateSshPrivateKey(rawKey: string): string | null {
     return "sshPrivateKey looks like a PUBLIC key. Paste the matching private key (the file without the .pub extension).";
   }
 
-  const headerMatch = trimmed.match(/^-----BEGIN ([A-Z0-9 ]*)PRIVATE KEY-----/m);
+  const headerMatch = trimmed.match(
+    /^-----BEGIN ([A-Z0-9 ]*)PRIVATE KEY-----/m,
+  );
   if (!headerMatch) {
     return "sshPrivateKey must be a PEM-encoded private key starting with a line like '-----BEGIN OPENSSH PRIVATE KEY-----'.";
   }
 
-  const footerMatch = trimmed.match(/^-----END ([A-Z0-9 ]*)PRIVATE KEY-----\s*$/m);
+  const footerMatch = trimmed.match(
+    /^-----END ([A-Z0-9 ]*)PRIVATE KEY-----\s*$/m,
+  );
   if (!footerMatch) {
     return "sshPrivateKey is missing its '-----END … PRIVATE KEY-----' footer. Make sure you copied the whole file, including the final line.";
   }
@@ -223,7 +231,11 @@ function normalizeApiUrl(value: string | null): string {
       parsed.pathname = "/exec";
       return parsed.toString();
     }
-    parsed.pathname = `${normalizedPath === "/" ? "" : normalizedPath}/exec`.replace(/\/{2,}/g, "/");
+    parsed.pathname =
+      `${normalizedPath === "/" ? "" : normalizedPath}/exec`.replace(
+        /\/{2,}/g,
+        "/",
+      );
     return parsed.toString();
   } catch {
     return trimmed;
@@ -259,13 +271,16 @@ function parseDriverConfig(raw: Record<string, unknown>): ExeDevDriverConfig {
     tags: parseStringArray(raw.tags),
     setupScript: parseOptionalString(raw.setupScript),
     prompt: parseOptionalString(raw.prompt),
-    timeoutMs: Number.isFinite(timeoutMs) ? Math.trunc(timeoutMs) : DEFAULT_TIMEOUT_MS,
+    timeoutMs: Number.isFinite(timeoutMs)
+      ? Math.trunc(timeoutMs)
+      : DEFAULT_TIMEOUT_MS,
     reuseLease: raw.reuseLease === true,
     sshUser: parseOptionalString(raw.sshUser),
     sshPrivateKey: parseOptionalString(raw.sshPrivateKey),
     sshIdentityFile: parseOptionalString(raw.sshIdentityFile),
     sshPort: Number.isFinite(sshPort) ? Math.trunc(sshPort) : 22,
-    strictHostKeyChecking: parseOptionalString(raw.strictHostKeyChecking) ?? "accept-new",
+    strictHostKeyChecking:
+      parseOptionalString(raw.strictHostKeyChecking) ?? "accept-new",
   };
 }
 
@@ -273,7 +288,9 @@ function resolveApiKey(config: ExeDevDriverConfig): string {
   if (config.apiKey) return config.apiKey;
   const envApiKey = process.env.EXE_API_KEY?.trim() ?? "";
   if (!envApiKey) {
-    throw new Error("exe.dev environments require an API key in config or EXE_API_KEY.");
+    throw new Error(
+      "exe.dev environments require an API key in config or EXE_API_KEY.",
+    );
   }
   return envApiKey;
 }
@@ -290,13 +307,27 @@ function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function buildVmName(config: ExeDevDriverConfig, params: PluginEnvironmentAcquireLeaseParams): string {
-  const envPart = params.environmentId.replace(/[^a-z0-9]+/gi, "").slice(0, 8).toLowerCase() || "env";
-  const runPart = params.runId.replace(/[^a-z0-9]+/gi, "").slice(0, 8).toLowerCase() || randomUUID().slice(0, 8);
+function buildVmName(
+  config: ExeDevDriverConfig,
+  params: PluginEnvironmentAcquireLeaseParams,
+): string {
+  const envPart =
+    params.environmentId
+      .replace(/[^a-z0-9]+/gi, "")
+      .slice(0, 8)
+      .toLowerCase() || "env";
+  const runPart =
+    params.runId
+      .replace(/[^a-z0-9]+/gi, "")
+      .slice(0, 8)
+      .toLowerCase() || randomUUID().slice(0, 8);
   return `${config.namePrefix}-${envPart}-${runPart}`.slice(0, 63);
 }
 
-function buildFlag(name: string, value: string | number | null | undefined): string[] {
+function buildFlag(
+  name: string,
+  value: string | number | null | undefined,
+): string[] {
   if (value == null) return [];
   return [`--${name}=${shellQuote(String(value))}`];
 }
@@ -306,7 +337,9 @@ function buildRepeatedFlag(name: string, values: string[]): string[] {
 }
 
 function buildEnvFlags(env: Record<string, string>): string[] {
-  return Object.entries(env).flatMap(([key, value]) => buildFlag("env", `${key}=${value}`));
+  return Object.entries(env).flatMap(([key, value]) =>
+    buildFlag("env", `${key}=${value}`),
+  );
 }
 
 function resolveSetupScript(config: ExeDevDriverConfig): string | null {
@@ -315,7 +348,11 @@ function resolveSetupScript(config: ExeDevDriverConfig): string | null {
   return trimmed.length > 0 ? config.setupScript : null;
 }
 
-function buildCopyCommand(sourceVm: string, config: ExeDevDriverConfig, vmName: string): string {
+function buildCopyCommand(
+  sourceVm: string,
+  config: ExeDevDriverConfig,
+  vmName: string,
+): string {
   return [
     "cp",
     shellQuote(sourceVm),
@@ -351,11 +388,18 @@ function buildCreateCommand(
   ].join(" ");
 }
 
-function replaceLiteralAll(input: string, search: string, replacement: string): string {
+function replaceLiteralAll(
+  input: string,
+  search: string,
+  replacement: string,
+): string {
   return search.length === 0 ? input : input.split(search).join(replacement);
 }
 
-function redactCreateCommand(command: string, config: ExeDevDriverConfig): string {
+function redactCreateCommand(
+  command: string,
+  config: ExeDevDriverConfig,
+): string {
   let redacted = command;
 
   for (const [key, value] of Object.entries(config.env)) {
@@ -398,7 +442,9 @@ async function runLifecycleCommand(
       "Content-Type": "text/plain; charset=utf-8",
     },
     body: command,
-    signal: AbortSignal.timeout(Math.min(config.timeoutMs, EXE_DEV_API_MAX_TIMEOUT_MS)),
+    signal: AbortSignal.timeout(
+      Math.min(config.timeoutMs, EXE_DEV_API_MAX_TIMEOUT_MS),
+    ),
   });
   const body = await response.text();
   if (!response.ok) {
@@ -422,12 +468,17 @@ function parseVmRecord(value: unknown, depth = 0): ExeDevVmRecord | null {
   if (depth > MAX_VM_RECORD_DEPTH) return null;
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
-  const nested = parseVmRecord(record.vm, depth + 1) ?? parseVmRecord(record.data, depth + 1);
+  const nested =
+    parseVmRecord(record.vm, depth + 1) ??
+    parseVmRecord(record.data, depth + 1);
   if (nested) return nested;
 
-  const name = parseOptionalString(record.vm_name ?? record.name ?? record.vmName);
-  const sshDest = parseOptionalString(record.ssh_dest ?? record.sshDest)
-    ?? (name ? `${name}.exe.xyz` : null);
+  const name = parseOptionalString(
+    record.vm_name ?? record.name ?? record.vmName,
+  );
+  const sshDest =
+    parseOptionalString(record.ssh_dest ?? record.sshDest) ??
+    (name ? `${name}.exe.xyz` : null);
 
   if (!name || !sshDest) return null;
 
@@ -437,12 +488,20 @@ function parseVmRecord(value: unknown, depth = 0): ExeDevVmRecord | null {
     httpsUrl: parseOptionalString(record.https_url ?? record.httpsUrl),
     status: parseOptionalString(record.status),
     region: parseOptionalString(record.region),
-    regionDisplay: parseOptionalString(record.region_display ?? record.regionDisplay),
+    regionDisplay: parseOptionalString(
+      record.region_display ?? record.regionDisplay,
+    ),
   };
 }
 
-async function lookupVm(config: ExeDevDriverConfig, vmName: string): Promise<ExeDevVmRecord | null> {
-  const response = await runLifecycleCommand(config, `ls --json ${shellQuote(vmName)}`);
+async function lookupVm(
+  config: ExeDevDriverConfig,
+  vmName: string,
+): Promise<ExeDevVmRecord | null> {
+  const response = await runLifecycleCommand(
+    config,
+    `ls --json ${shellQuote(vmName)}`,
+  );
   const list = Array.isArray((response as { vms?: unknown[] } | null)?.vms)
     ? (response as { vms: unknown[] }).vms
     : Array.isArray(response)
@@ -463,23 +522,34 @@ async function createVm(
   config: ExeDevDriverConfig,
   params: PluginEnvironmentAcquireLeaseParams | PluginEnvironmentProbeParams,
 ): Promise<ExeDevVmRecord> {
-  const vmName = "runId" in params
-    ? buildVmName(config, params)
-    : `${config.namePrefix}-probe-${randomUUID().slice(0, 8)}`.slice(0, 63);
+  const vmName =
+    "runId" in params
+      ? buildVmName(config, params)
+      : `${config.namePrefix}-probe-${randomUUID().slice(0, 8)}`.slice(0, 63);
   const command = buildCreateCommand(config, vmName);
-  const response = await runLifecycleCommand(config, command, redactCreateCommand(command, config));
-  const created = parseVmRecord(response) ?? await lookupVm(config, vmName);
+  const response = await runLifecycleCommand(
+    config,
+    command,
+    redactCreateCommand(command, config),
+  );
+  const created = parseVmRecord(response) ?? (await lookupVm(config, vmName));
   if (!created) {
     throw new Error(`exe.dev did not return VM metadata for ${vmName}.`);
   }
   return created;
 }
 
-async function deleteVm(config: ExeDevDriverConfig, vmName: string): Promise<void> {
+async function deleteVm(
+  config: ExeDevDriverConfig,
+  vmName: string,
+): Promise<void> {
   await runLifecycleCommand(config, `rm --json ${shellQuote(vmName)}`);
 }
 
-function buildSshDestination(config: ExeDevDriverConfig, vm: ExeDevVmRecord): string {
+function buildSshDestination(
+  config: ExeDevDriverConfig,
+  vm: ExeDevVmRecord,
+): string {
   return config.sshUser ? `${config.sshUser}@${vm.sshDest}` : vm.sshDest;
 }
 
@@ -550,15 +620,19 @@ function buildLoginShellScript(input: {
   const envArgs = Object.entries(env)
     .filter((entry): entry is [string, string] => typeof entry[1] === "string")
     .map(([key, value]) => `${key}=${shellQuote(value)}`);
-  const commandParts = [shellQuote(input.command), ...input.args.map(shellQuote)].join(" ");
-  const finalLine = envArgs.length > 0
-    ? `exec env ${envArgs.join(" ")} ${commandParts}`
-    : `exec ${commandParts}`;
+  const commandParts = [
+    shellQuote(input.command),
+    ...input.args.map(shellQuote),
+  ].join(" ");
+  const finalLine =
+    envArgs.length > 0
+      ? `exec env ${envArgs.join(" ")} ${commandParts}`
+      : `exec ${commandParts}`;
   // Source the common login profiles before exec so the command runs with the
   // interactive-shell PATH. The wrapper sources no `nvm.sh`; the sandbox image
   // supplies node on the PATH.
   const lines = [
-    'if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi',
+    "if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi",
     'if [ -f "$HOME/.profile" ]; then . "$HOME/.profile" >/dev/null 2>&1 || true; fi',
     'if [ -f "$HOME/.bash_profile" ]; then . "$HOME/.bash_profile" >/dev/null 2>&1 || true; elif [ -f "$HOME/.bashrc" ]; then . "$HOME/.bashrc" >/dev/null 2>&1 || true; fi',
     'if [ -f "$HOME/.zprofile" ]; then . "$HOME/.zprofile" >/dev/null 2>&1 || true; fi',
@@ -577,8 +651,8 @@ function formatSshFailure(
 ): string {
   const combinedOutput = `${result.stderr}\n${result.stdout}`;
   if (
-    combinedOutput.includes(EXE_DEV_SSH_ONBOARDING_MARKER)
-    || combinedOutput.includes(EXE_DEV_SSH_EMAIL_PROMPT)
+    combinedOutput.includes(EXE_DEV_SSH_ONBOARDING_MARKER) ||
+    combinedOutput.includes(EXE_DEV_SSH_EMAIL_PROMPT)
   ) {
     return [
       `Failed to ${action} exe.dev VM ${vmName}: the Taskcore host SSH key is not registered with exe.dev.`,
@@ -607,22 +681,27 @@ async function runSshCommand(
 
   try {
     return await new Promise((resolve, reject) => {
-      const child = spawn("ssh", buildSshArgs(config, vm, remoteCommand, identity.sshIdentityFile), {
-        stdio: [options.stdin != null ? "pipe" : "ignore", "pipe", "pipe"],
-      });
+      const child = spawn(
+        "ssh",
+        buildSshArgs(config, vm, remoteCommand, identity.sshIdentityFile),
+        {
+          stdio: [options.stdin != null ? "pipe" : "ignore", "pipe", "pipe"],
+        },
+      );
       let stdout = "";
       let stderr = "";
       let timedOut = false;
       let killTimer: NodeJS.Timeout | null = null;
-      const timer = timeoutMs > 0
-        ? setTimeout(() => {
-            timedOut = true;
-            child.kill("SIGTERM");
-            killTimer = setTimeout(() => {
-              child.kill("SIGKILL");
-            }, SSH_SIGKILL_GRACE_MS);
-          }, timeoutMs)
-        : null;
+      const timer =
+        timeoutMs > 0
+          ? setTimeout(() => {
+              timedOut = true;
+              child.kill("SIGTERM");
+              killTimer = setTimeout(() => {
+                child.kill("SIGKILL");
+              }, SSH_SIGKILL_GRACE_MS);
+            }, timeoutMs)
+          : null;
 
       child.stdout?.on("data", (chunk) => {
         stdout += String(chunk);
@@ -702,7 +781,9 @@ async function buildLease(
   resumedLease: boolean,
 ): Promise<PluginEnvironmentLease> {
   const remote = await detectRemoteContext(config, vm);
-  const remoteCwd = requestedCwd?.trim() || path.posix.join(remote.homeDir, "taskcore-workspace");
+  const remoteCwd =
+    requestedCwd?.trim() ||
+    path.posix.join(remote.homeDir, "taskcore-workspace");
   await ensureRemoteWorkspace(config, vm, remoteCwd);
 
   return {
@@ -728,7 +809,9 @@ function metadataVmRecord(params: {
   leaseMetadata?: Record<string, unknown> | null;
 }): ExeDevVmRecord | null {
   if (!params.providerLeaseId) return null;
-  const sshDest = parseOptionalString(params.leaseMetadata?.sshDest) ?? `${params.providerLeaseId}.exe.xyz`;
+  const sshDest =
+    parseOptionalString(params.leaseMetadata?.sshDest) ??
+    `${params.providerLeaseId}.exe.xyz`;
   return {
     name: params.providerLeaseId,
     sshDest,
@@ -767,8 +850,10 @@ const plugin = definePlugin({
     if (config.sshPort < 1 || config.sshPort > 65_535) {
       errors.push("sshPort must be between 1 and 65535.");
     }
-    if (!config.apiKey && !(process.env.EXE_API_KEY?.trim())) {
-      errors.push("exe.dev environments require an API key in config or EXE_API_KEY.");
+    if (!config.apiKey && !process.env.EXE_API_KEY?.trim()) {
+      errors.push(
+        "exe.dev environments require an API key in config or EXE_API_KEY.",
+      );
     }
     for (const key of Object.keys(config.env)) {
       if (!isValidShellEnvKey(key)) {
@@ -799,7 +884,9 @@ const plugin = definePlugin({
         tags: config.tags.length > 0,
         setupScript: config.setupScript,
         prompt: config.prompt,
-      }).filter(([, value]) => value).map(([key]) => key);
+      })
+        .filter(([, value]) => value)
+        .map(([key]) => key);
       if (ignored.length > 0) {
         errors.push(
           `sourceVm copies an existing VM with \`exe.dev cp\`, which cannot apply ${ignored.join(", ")}. Clear these settings or clear sourceVm.`,
@@ -807,7 +894,9 @@ const plugin = definePlugin({
       }
     }
     if (config.reuseLease) {
-      warnings.push("reuseLease keeps the VM alive between runs; this provider does not suspend retained VMs.");
+      warnings.push(
+        "reuseLease keeps the VM alive between runs; this provider does not suspend retained VMs.",
+      );
     }
 
     if (errors.length > 0) {
@@ -908,10 +997,10 @@ const plugin = definePlugin({
   ): Promise<PluginEnvironmentRealizeWorkspaceResult> {
     const config = parseDriverConfig(params.config);
     const remoteCwd =
-      parseOptionalString(params.lease.metadata?.remoteCwd)
-      ?? params.workspace.remotePath
-      ?? params.workspace.localPath
-      ?? "/tmp/taskcore-workspace";
+      parseOptionalString(params.lease.metadata?.remoteCwd) ??
+      params.workspace.remotePath ??
+      params.workspace.localPath ??
+      "/tmp/taskcore-workspace";
 
     const vm = metadataVmRecord({
       providerLeaseId: params.lease.providerLeaseId,
@@ -961,7 +1050,10 @@ const plugin = definePlugin({
     const command = buildLoginShellScript({
       command: params.command,
       args: params.args ?? [],
-      cwd: params.cwd ?? parseOptionalString(params.lease.metadata?.remoteCwd) ?? undefined,
+      cwd:
+        params.cwd ??
+        parseOptionalString(params.lease.metadata?.remoteCwd) ??
+        undefined,
       env: params.env,
     });
     // `buildLoginShellScript` already explicitly sources `/etc/profile`,

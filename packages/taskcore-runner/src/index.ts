@@ -48,7 +48,10 @@ export * from "./drivers/codex/codex-app-server-driver.js";
 export * from "./drivers/opencode/opencode-server-driver.js";
 export * from "./drivers/opencode/mcp-bridge.js";
 export * from "./drivers/acpx/qualified-profiles.js";
-export { acpxRuntimeSessionDirectoryName, resolveAcpxRuntimeRoot } from "./drivers/acpx/recovery-identity.js";
+export {
+  acpxRuntimeSessionDirectoryName,
+  resolveAcpxRuntimeRoot,
+} from "./drivers/acpx/recovery-identity.js";
 export {
   probeQualifiedAcpxEnvironment,
   type ProbeQualifiedAcpxEnvironmentOptions,
@@ -84,5 +87,11 @@ export * from "./semantic-tools/index.js";
 export * as acceptedCapabilitySemanticTools from "./semantic-tools/index.js";
 export * from "./compatibility.js";
 
-export { RunnerdDotDriver, type RunnerdDotDriverOptions } from "./drivers/dot/runnerd-dot-driver.js";
-export { bundledRemoteProviderPackManifestPath, bundledRemoteRunnerBinary } from "./live/bundled-remote-provider-pack.js";
+export {
+  RunnerdDotDriver,
+  type RunnerdDotDriverOptions,
+} from "./drivers/dot/runnerd-dot-driver.js";
+export {
+  bundledRemoteProviderPackManifestPath,
+  bundledRemoteRunnerBinary,
+} from "./live/bundled-remote-provider-pack.js";

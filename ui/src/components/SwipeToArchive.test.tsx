@@ -67,8 +67,14 @@ describe("SwipeToArchive", () => {
     const button = container.querySelector("button");
     expect(button).not.toBeNull();
 
-    Object.defineProperty(wrapper, "offsetWidth", { configurable: true, value: 200 });
-    Object.defineProperty(wrapper, "offsetHeight", { configurable: true, value: 48 });
+    Object.defineProperty(wrapper, "offsetWidth", {
+      configurable: true,
+      value: 200,
+    });
+    Object.defineProperty(wrapper, "offsetHeight", {
+      configurable: true,
+      value: 48,
+    });
 
     act(() => {
       dispatchTouchEvent(wrapper, "touchstart", { x: 180, y: 20 });
@@ -81,7 +87,9 @@ describe("SwipeToArchive", () => {
     });
 
     act(() => {
-      button!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      button!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onClick).not.toHaveBeenCalled();
@@ -116,7 +124,9 @@ describe("SwipeToArchive", () => {
     expect(button).not.toBeNull();
 
     act(() => {
-      button!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      button!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -146,8 +156,14 @@ describe("SwipeToArchive", () => {
     const button = container.querySelector("button");
     expect(button).not.toBeNull();
 
-    Object.defineProperty(wrapper, "offsetWidth", { configurable: true, value: 200 });
-    Object.defineProperty(wrapper, "offsetHeight", { configurable: true, value: 48 });
+    Object.defineProperty(wrapper, "offsetWidth", {
+      configurable: true,
+      value: 200,
+    });
+    Object.defineProperty(wrapper, "offsetHeight", {
+      configurable: true,
+      value: 48,
+    });
 
     act(() => {
       dispatchTouchEvent(wrapper, "touchstart", { x: 180, y: 20 });
@@ -156,13 +172,17 @@ describe("SwipeToArchive", () => {
     });
 
     act(() => {
-      button!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      button!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onClick).not.toHaveBeenCalled();
 
     act(() => {
       vi.advanceTimersByTime(350);
-      button!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      button!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -186,8 +206,14 @@ describe("SwipeToArchive", () => {
     });
 
     const wrapper = container.firstElementChild as HTMLDivElement;
-    Object.defineProperty(wrapper, "offsetWidth", { configurable: true, value: 200 });
-    Object.defineProperty(wrapper, "offsetHeight", { configurable: true, value: 48 });
+    Object.defineProperty(wrapper, "offsetWidth", {
+      configurable: true,
+      value: 200,
+    });
+    Object.defineProperty(wrapper, "offsetHeight", {
+      configurable: true,
+      value: 48,
+    });
 
     act(() => {
       dispatchTouchEvent(wrapper, "touchstart", { x: 180, y: 20 });
@@ -216,8 +242,14 @@ describe("SwipeToArchive", () => {
     });
 
     const wrapper = container.firstElementChild as HTMLDivElement;
-    Object.defineProperty(wrapper, "offsetWidth", { configurable: true, value: 200 });
-    Object.defineProperty(wrapper, "offsetHeight", { configurable: true, value: 48 });
+    Object.defineProperty(wrapper, "offsetWidth", {
+      configurable: true,
+      value: 200,
+    });
+    Object.defineProperty(wrapper, "offsetHeight", {
+      configurable: true,
+      value: 48,
+    });
 
     act(() => {
       dispatchTouchEvent(wrapper, "touchstart", { x: 180, y: 20 });
@@ -241,7 +273,9 @@ describe("SwipeToArchive", () => {
       );
     });
 
-    const surface = container.querySelector("[data-inbox-row-surface]") as HTMLDivElement | null;
+    const surface = container.querySelector(
+      "[data-inbox-row-surface]",
+    ) as HTMLDivElement | null;
     expect(surface).not.toBeNull();
     expect(surface?.className).toContain("bg-accent/50");
     expect(surface?.className).toContain("rounded-lg");

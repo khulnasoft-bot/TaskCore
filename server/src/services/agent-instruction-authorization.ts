@@ -142,7 +142,11 @@ export async function authorizeInstructionRead(
 ) {
   const bound = await resolveInstructionActor(db, actor);
   const access = authorizationService(db);
-  const resource = { type: "agent" as const, companyId: target.companyId, agentId: target.id };
+  const resource = {
+    type: "agent" as const,
+    companyId: target.companyId,
+    agentId: target.id,
+  };
   const peer = bound.type === "agent" && bound.agentId !== target.id;
   const decision = await access.decide({
     actor: bound,
@@ -150,7 +154,8 @@ export async function authorizeInstructionRead(
     resource,
     scope: { targetAgentId: target.id },
   });
-  if (!decision.allowed) throw forbidden(decision.explanation, authorizationDeniedDetails(decision));
+  if (!decision.allowed)
+    throw forbidden(decision.explanation, authorizationDeniedDetails(decision));
   return bound;
 }
 

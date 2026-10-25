@@ -9,7 +9,11 @@ import { closeRegisteredClients, createDb } from "./client.js";
  * replies to any later message with an empty result set plus
  * `ReadyForQuery`. No real query needs to succeed for this test.
  */
-function startFakePostgresServer(): Promise<{ server: net.Server; port: number; backendSockets: net.Socket[] }> {
+function startFakePostgresServer(): Promise<{
+  server: net.Server;
+  port: number;
+  backendSockets: net.Socket[];
+}> {
   const backendSockets: net.Socket[] = [];
   const authOk = Buffer.from([0x52, 0, 0, 0, 8, 0, 0, 0, 0]);
   const readyForQuery = Buffer.from([0x5a, 0, 0, 0, 5, 0x49]);
@@ -17,7 +21,9 @@ function startFakePostgresServer(): Promise<{ server: net.Server; port: number; 
     Buffer.from([0x31, 0, 0, 0, 4]), // ParseComplete
     Buffer.from([0x32, 0, 0, 0, 4]), // BindComplete
     Buffer.from([0x54, 0, 0, 0, 6, 0, 0]), // RowDescription, zero fields
-    Buffer.from([0x43, 0, 0, 0, 0x0d, 0x53, 0x45, 0x4c, 0x45, 0x43, 0x54, 0x20, 0x30, 0]), // CommandComplete "SELECT 0"
+    Buffer.from([
+      0x43, 0, 0, 0, 0x0d, 0x53, 0x45, 0x4c, 0x45, 0x43, 0x54, 0x20, 0x30, 0,
+    ]), // CommandComplete "SELECT 0"
   ]);
 
   const server = net.createServer((socket) => {
@@ -98,7 +104,9 @@ describe("closeRegisteredClients", () => {
   });
 
   it("does nothing when no client is registered for a host and port", async () => {
-    await expect(closeRegisteredClients("postgres://test:test@127.0.0.1:1/test")).resolves.toBeUndefined();
+    await expect(
+      closeRegisteredClients("postgres://test:test@127.0.0.1:1/test"),
+    ).resolves.toBeUndefined();
   });
 
   it("does not throw when createDb receives a URL that new URL() cannot parse", async () => {

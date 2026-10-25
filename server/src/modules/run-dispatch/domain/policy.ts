@@ -224,7 +224,10 @@ type ExecutionLockOutcome = "ok" | "lock_changed";
 
 /** Decides whether the issue's execution lock still belongs to this run. */
 function decideExecutionLock(facts: ExecutionLockFacts): ExecutionLockOutcome {
-  if (facts.requiresExecutionLock && facts.issueExecutionRunId !== facts.runId) {
+  if (
+    facts.requiresExecutionLock &&
+    facts.issueExecutionRunId !== facts.runId
+  ) {
     return "lock_changed";
   }
   return "ok";
@@ -312,7 +315,10 @@ export function decideScheduledRetryGate(
     };
   }
 
-  if (facts.retryReasonKind === "disposition_repair" && facts.dispositionRepair) {
+  if (
+    facts.retryReasonKind === "disposition_repair" &&
+    facts.dispositionRepair
+  ) {
     const repair = facts.dispositionRepair;
     const superseded =
       !repair.expectedFingerprintPresent ||
@@ -361,17 +367,38 @@ export function decideScheduledRetryGate(
     };
   }
 
-  if (facts.retryReasonKind === "native_safe_replacement" && facts.issueStatus === "blocked") {
-    return { allowed: false, issueId: facts.issueId, errorCode: "issue_blocked",
-      reason: "Scheduled replacement suppressed because the task was blocked after recovery",
-      details: { issueId: facts.issueId } };
+  if (
+    facts.retryReasonKind === "native_safe_replacement" &&
+    facts.issueStatus === "blocked"
+  ) {
+    return {
+      allowed: false,
+      issueId: facts.issueId,
+      errorCode: "issue_blocked",
+      reason:
+        "Scheduled replacement suppressed because the task was blocked after recovery",
+      details: { issueId: facts.issueId },
+    };
   }
 
-  if (facts.retryReasonKind === "native_safe_replacement" &&
-      [facts.issueExecutionRunId, facts.issueCheckoutRunId].some(id => id != null && id !== facts.runId)) {
-    return { allowed: false, issueId: facts.issueId, errorCode: "issue_execution_lock_changed",
-      reason: "Scheduled replacement suppressed because another run owns task execution or checkout",
-      details: { issueId: facts.issueId, currentExecutionRunId: facts.issueExecutionRunId, currentCheckoutRunId: facts.issueCheckoutRunId ?? null } };
+  if (
+    facts.retryReasonKind === "native_safe_replacement" &&
+    [facts.issueExecutionRunId, facts.issueCheckoutRunId].some(
+      (id) => id != null && id !== facts.runId,
+    )
+  ) {
+    return {
+      allowed: false,
+      issueId: facts.issueId,
+      errorCode: "issue_execution_lock_changed",
+      reason:
+        "Scheduled replacement suppressed because another run owns task execution or checkout",
+      details: {
+        issueId: facts.issueId,
+        currentExecutionRunId: facts.issueExecutionRunId,
+        currentCheckoutRunId: facts.issueCheckoutRunId ?? null,
+      },
+    };
   }
 
   const requiresInProgress = facts.retryReasonKind === "max_turn_continuation";
@@ -408,7 +435,8 @@ export function decideScheduledRetryGate(
   const lockOutcome = decideExecutionLock({
     requiresExecutionLock:
       (requiresInProgress ||
-        (facts.retryReasonKind === "ai_connection_wait" && !facts.isNonAssigneeWorkspaceBusyRetry)) &&
+        (facts.retryReasonKind === "ai_connection_wait" &&
+          !facts.isNonAssigneeWorkspaceBusyRetry)) &&
       facts.enforceIssueExecutionLock,
     runId: facts.runId,
     issueExecutionRunId: facts.issueExecutionRunId,
@@ -465,13 +493,16 @@ export function decideScheduledRetryGate(
   if (facts.dependenciesBlocked) {
     return {
       allowed: false,
-      reason: "Scheduled retry suppressed because issue dependencies are still blocked",
+      reason:
+        "Scheduled retry suppressed because issue dependencies are still blocked",
       errorCode: "issue_dependencies_blocked",
       issueId: facts.issueId,
       details: {
         issueId: facts.issueId,
-        unresolvedBlockerIssueIds: facts.dependenciesBlocked.unresolvedBlockerIssueIds,
-        unresolvedBlockerCount: facts.dependenciesBlocked.unresolvedBlockerCount,
+        unresolvedBlockerIssueIds:
+          facts.dependenciesBlocked.unresolvedBlockerIssueIds,
+        unresolvedBlockerCount:
+          facts.dependenciesBlocked.unresolvedBlockerCount,
       },
     };
   }
@@ -479,7 +510,8 @@ export function decideScheduledRetryGate(
   if (facts.pendingResponse) {
     return {
       allowed: false,
-      reason: "Conversation retry is waiting for a response to a pending question or approval",
+      reason:
+        "Conversation retry is waiting for a response to a pending question or approval",
       errorCode: "issue_waiting_for_response",
       issueId: facts.issueId,
       details: { waitingFor: facts.pendingResponse },
@@ -507,7 +539,10 @@ export function decideQueuedRunStaleness(
     };
   }
 
-  if (facts.isResolvedInteractionContinuation || facts.isConnectionContinuation) {
+  if (
+    facts.isResolvedInteractionContinuation ||
+    facts.isConnectionContinuation
+  ) {
     const earlyStatus = decideIssueStatus({
       status: facts.issueStatus,
       requiresInProgress: facts.issueStatus !== "in_review",
@@ -586,35 +621,67 @@ export function decideQueuedRunStaleness(
     };
   }
 
-  if (facts.retryReasonKind === "native_safe_replacement" && facts.dependenciesBlocked) {
-    return { stale: true, errorCode: "issue_dependencies_blocked",
-      reason: "Cancelled because issue dependencies became blocked before replacement dispatch",
-      details: { issueId: facts.issueId,
-        unresolvedBlockerIssueIds: facts.dependenciesBlocked.unresolvedBlockerIssueIds,
-        unresolvedBlockerCount: facts.dependenciesBlocked.unresolvedBlockerCount } };
+  if (
+    facts.retryReasonKind === "native_safe_replacement" &&
+    facts.dependenciesBlocked
+  ) {
+    return {
+      stale: true,
+      errorCode: "issue_dependencies_blocked",
+      reason:
+        "Cancelled because issue dependencies became blocked before replacement dispatch",
+      details: {
+        issueId: facts.issueId,
+        unresolvedBlockerIssueIds:
+          facts.dependenciesBlocked.unresolvedBlockerIssueIds,
+        unresolvedBlockerCount:
+          facts.dependenciesBlocked.unresolvedBlockerCount,
+      },
+    };
   }
 
-  if (facts.retryReasonKind === "native_safe_replacement" && facts.issueStatus === "blocked") {
-    return { stale: true, errorCode: "issue_blocked",
-      reason: "Cancelled because the task was blocked before replacement dispatch",
-      details: { issueId: facts.issueId } };
+  if (
+    facts.retryReasonKind === "native_safe_replacement" &&
+    facts.issueStatus === "blocked"
+  ) {
+    return {
+      stale: true,
+      errorCode: "issue_blocked",
+      reason:
+        "Cancelled because the task was blocked before replacement dispatch",
+      details: { issueId: facts.issueId },
+    };
   }
 
-  if (facts.retryReasonKind === "native_safe_replacement" &&
-      [facts.issueExecutionRunId, facts.issueCheckoutRunId].some(id => id != null && id !== facts.runId)) {
-    return { stale: true, errorCode: "issue_execution_lock_changed",
-      reason: "Cancelled because another run owns task execution or checkout before replacement dispatch",
-      details: { issueId: facts.issueId, currentExecutionRunId: facts.issueExecutionRunId, currentCheckoutRunId: facts.issueCheckoutRunId ?? null } };
+  if (
+    facts.retryReasonKind === "native_safe_replacement" &&
+    [facts.issueExecutionRunId, facts.issueCheckoutRunId].some(
+      (id) => id != null && id !== facts.runId,
+    )
+  ) {
+    return {
+      stale: true,
+      errorCode: "issue_execution_lock_changed",
+      reason:
+        "Cancelled because another run owns task execution or checkout before replacement dispatch",
+      details: {
+        issueId: facts.issueId,
+        currentExecutionRunId: facts.issueExecutionRunId,
+        currentCheckoutRunId: facts.issueCheckoutRunId ?? null,
+      },
+    };
   }
 
   const requiresInProgress = facts.retryReasonKind === "max_turn_continuation";
   const statusOutcome = decideIssueStatus({
     status: facts.issueStatus,
     requiresInProgress,
-    terminalBypass: facts.resumeIntent || facts.wakeCommentIdPresent || (
-      facts.isCompletedOnboardingHandoffWake === true &&
-      facts.wakeReason === "issue_children_completed" && facts.issueStatus === "done"
-    ),
+    terminalBypass:
+      facts.resumeIntent ||
+      facts.wakeCommentIdPresent ||
+      (facts.isCompletedOnboardingHandoffWake === true &&
+        facts.wakeReason === "issue_children_completed" &&
+        facts.issueStatus === "done"),
   });
   if (statusOutcome === "terminal") {
     return {
@@ -639,8 +706,10 @@ export function decideQueuedRunStaleness(
 
   const lockOutcome = decideExecutionLock({
     // A server-recorded non-assignee wake never held the task execution lock.
-    requiresExecutionLock: requiresInProgress ||
-      (facts.retryReasonKind === "ai_connection_wait" && !facts.isNonAssigneeWorkspaceBusyRetry),
+    requiresExecutionLock:
+      requiresInProgress ||
+      (facts.retryReasonKind === "ai_connection_wait" &&
+        !facts.isNonAssigneeWorkspaceBusyRetry),
     runId: facts.runId,
     issueExecutionRunId: facts.issueExecutionRunId,
   });

@@ -8,7 +8,8 @@ import type {
   NativeRunStatus,
 } from "../contracts/types.js";
 
-export const CONFORMANCE_FIXTURE_SCHEMA = "taskcore.runner.conformance.fixture.v1";
+export const CONFORMANCE_FIXTURE_SCHEMA =
+  "taskcore.runner.conformance.fixture.v1";
 
 export interface ConformanceFixture {
   schemaVersion: typeof CONFORMANCE_FIXTURE_SCHEMA;
@@ -56,13 +57,21 @@ function parseRun(value: unknown): NativeRunIdentity {
 
 function parseEvents(value: unknown, runId: string): NativeRunEvent[] {
   if (!Array.isArray(value) || value.length < 2) {
-    throw new Error("events must contain at least run.started and run.completed");
+    throw new Error(
+      "events must contain at least run.started and run.completed",
+    );
   }
 
-  const allowedTypes = new Set<NativeRunEventType>(["run.started", "run.completed"]);
+  const allowedTypes = new Set<NativeRunEventType>([
+    "run.started",
+    "run.completed",
+  ]);
   const events = value.map((entry, index) => {
     const event = asRecord(entry, `events[${index}]`);
-    const type = asString(event.type, `events[${index}].type`) as NativeRunEventType;
+    const type = asString(
+      event.type,
+      `events[${index}].type`,
+    ) as NativeRunEventType;
     if (!allowedTypes.has(type)) {
       throw new Error(`events[${index}].type is unsupported`);
     }

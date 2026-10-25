@@ -10,7 +10,8 @@
 
 import { renderOnboardingFirstTaskGreeting } from "./onboarding-first-task-assets.js";
 
-export const ONBOARDING_GREETING_AUTHORIZATION_REASON = "onboarding first-task greeting";
+export const ONBOARDING_GREETING_AUTHORIZATION_REASON =
+  "onboarding first-task greeting";
 
 export async function renderOnboardingGreeting(input: {
   agentName?: string | null;

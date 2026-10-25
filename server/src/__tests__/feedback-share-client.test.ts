@@ -4,10 +4,15 @@ import { createFeedbackTraceShareClientFromConfig } from "../services/feedback-s
 
 describe("feedback trace share client", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({ objectKey: "feedback-traces/test.json" }),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi
+          .fn()
+          .mockResolvedValue({ objectKey: "feedback-traces/test.json" }),
+      }),
+    );
   });
 
   afterEach(() => {
@@ -89,7 +94,9 @@ describe("feedback trace share client", () => {
     expect(body.encoding).toBe("gzip+base64+json");
     expect(typeof body.payload).toBe("string");
 
-    const decoded = gunzipSync(Buffer.from(body.payload ?? "", "base64")).toString("utf8");
+    const decoded = gunzipSync(
+      Buffer.from(body.payload ?? "", "base64"),
+    ).toString("utf8");
     const parsed = JSON.parse(decoded) as {
       objectKey: string;
       bundle: { envelope: { hello: string } };

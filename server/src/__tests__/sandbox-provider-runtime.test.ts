@@ -14,7 +14,11 @@ import {
 
 describe("sandbox provider runtime", () => {
   it("exposes fake as the built-in sandbox provider implementation", async () => {
-    expect(listSandboxProviders().map((provider) => provider.provider).sort()).toEqual(["fake"]);
+    expect(
+      listSandboxProviders()
+        .map((provider) => provider.provider)
+        .sort(),
+    ).toEqual(["fake"]);
     expect(getSandboxProvider("fake")?.provider).toBe("fake");
     expect(getSandboxProvider("fake-plugin")).toBeNull();
 
@@ -36,12 +40,16 @@ describe("sandbox provider runtime", () => {
   });
 
   it("does not route plugin-backed providers through the built-in provider helper", async () => {
-    await expect(probeSandboxProvider({
-      provider: "fake-plugin",
-      image: "fake:test",
-      timeoutMs: 300000,
-      reuseLease: false,
-    })).rejects.toThrow('Sandbox provider "fake-plugin" is not registered as a built-in provider.');
+    await expect(
+      probeSandboxProvider({
+        provider: "fake-plugin",
+        image: "fake:test",
+        timeoutMs: 300000,
+        reuseLease: false,
+      }),
+    ).rejects.toThrow(
+      'Sandbox provider "fake-plugin" is not registered as a built-in provider.',
+    );
   });
 
   it("does not resume fake leases because the built-in fake provider does not opt in", async () => {
@@ -56,12 +64,16 @@ describe("sandbox provider runtime", () => {
       issueId: "issue-1",
     });
 
-    expect(lease.providerLeaseId).toMatch(/^sandbox:\/\/fake\/run-1\/[0-9a-f-]+$/);
-    expect(lease.metadata).toEqual(expect.objectContaining({
-      provider: "fake",
-      image: "ubuntu:24.04",
-      reuseLease: true,
-    }));
+    expect(lease.providerLeaseId).toMatch(
+      /^sandbox:\/\/fake\/run-1\/[0-9a-f-]+$/,
+    );
+    expect(lease.metadata).toEqual(
+      expect.objectContaining({
+        provider: "fake",
+        image: "ubuntu:24.04",
+        reuseLease: true,
+      }),
+    );
 
     const resumed = await acquireSandboxProviderLease({
       config: {
@@ -75,9 +87,13 @@ describe("sandbox provider runtime", () => {
       reusableProviderLeaseId: lease.providerLeaseId,
     });
 
-    expect(resumed.providerLeaseId).toMatch(/^sandbox:\/\/fake\/run-2\/[0-9a-f-]+$/);
+    expect(resumed.providerLeaseId).toMatch(
+      /^sandbox:\/\/fake\/run-2\/[0-9a-f-]+$/,
+    );
     expect(resumed.providerLeaseId).not.toBe(lease.providerLeaseId);
-    expect(resumed.metadata).not.toEqual(expect.objectContaining({ resumedLease: true }));
+    expect(resumed.metadata).not.toEqual(
+      expect.objectContaining({ resumedLease: true }),
+    );
   });
 
   it("matches reusable fake leases through the selected provider implementation", () => {
@@ -183,22 +199,26 @@ describe("sandbox provider runtime", () => {
   });
 
   it("reconstructs plugin-backed secret-ref config from lease metadata for later release", () => {
-    expect(sandboxConfigFromLeaseMetadata({
-      metadata: {
-        provider: "secure-plugin",
-        template: "taskcore-template",
-      },
-    })).toBeNull();
+    expect(
+      sandboxConfigFromLeaseMetadata({
+        metadata: {
+          provider: "secure-plugin",
+          template: "taskcore-template",
+        },
+      }),
+    ).toBeNull();
 
-    expect(sandboxConfigFromLeaseMetadataLoose({
-      metadata: {
-        provider: "secure-plugin",
-        template: "taskcore-template",
-        timeoutMs: 120000,
-        reuseLease: true,
-        apiKey: "11111111-1111-1111-1111-111111111111",
-      },
-    })).toEqual({
+    expect(
+      sandboxConfigFromLeaseMetadataLoose({
+        metadata: {
+          provider: "secure-plugin",
+          template: "taskcore-template",
+          timeoutMs: 120000,
+          reuseLease: true,
+          apiKey: "11111111-1111-1111-1111-111111111111",
+        },
+      }),
+    ).toEqual({
       provider: "secure-plugin",
       template: "taskcore-template",
       apiKey: "11111111-1111-1111-1111-111111111111",
@@ -208,14 +228,16 @@ describe("sandbox provider runtime", () => {
   });
 
   it("releases fake leases without external side effects", async () => {
-    await expect(releaseSandboxProviderLease({
-      config: {
-        provider: "fake",
-        image: "ubuntu:24.04",
-        reuseLease: true,
-      },
-      providerLeaseId: "sandbox://fake/env-1",
-      status: "released",
-    })).resolves.toBeUndefined();
+    await expect(
+      releaseSandboxProviderLease({
+        config: {
+          provider: "fake",
+          image: "ubuntu:24.04",
+          reuseLease: true,
+        },
+        providerLeaseId: "sandbox://fake/env-1",
+        status: "released",
+      }),
+    ).resolves.toBeUndefined();
   });
 });

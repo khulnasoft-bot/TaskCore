@@ -161,20 +161,24 @@ const KIND_HEADLINE: Record<IssueRecoveryActionKind, string> = {
 const RETRY_PILL_CLASS =
   "rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5 text-(length:--text-micro) text-muted-foreground";
 
-const STATE_TONE: Record<RecoveryCardCardState, {
-  label: string;
-  containerClass: string;
-  iconWrapClass: string;
-  iconClass: string;
-  labelClass: string;
-  Icon: typeof TriangleAlert;
-  divider: string;
-}> = {
+const STATE_TONE: Record<
+  RecoveryCardCardState,
+  {
+    label: string;
+    containerClass: string;
+    iconWrapClass: string;
+    iconClass: string;
+    labelClass: string;
+    Icon: typeof TriangleAlert;
+    divider: string;
+  }
+> = {
   needed: {
     label: "RECOVERY NEEDED",
     containerClass:
       "border-amber-300/70 bg-amber-50/85 text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100",
-    iconWrapClass: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
+    iconWrapClass:
+      "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
     iconClass: "text-amber-700 dark:text-amber-300",
     labelClass: "text-amber-900 dark:text-amber-200",
     Icon: TriangleAlert,
@@ -184,7 +188,8 @@ const STATE_TONE: Record<RecoveryCardCardState, {
     label: "RECOVERY IN PROGRESS",
     containerClass:
       "border-sky-300/70 bg-sky-50/80 text-sky-950 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100",
-    iconWrapClass: "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200",
+    iconWrapClass:
+      "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200",
     iconClass: "text-sky-700 dark:text-sky-300",
     labelClass: "text-sky-900 dark:text-sky-200",
     Icon: RefreshCw,
@@ -204,7 +209,8 @@ const STATE_TONE: Record<RecoveryCardCardState, {
     label: "RECOVERY ESCALATED",
     containerClass:
       "border-red-400/60 bg-red-50/85 text-red-950 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-100",
-    iconWrapClass: "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200",
+    iconWrapClass:
+      "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200",
     iconClass: "text-red-700 dark:text-red-300",
     labelClass: "text-red-900 dark:text-red-200",
     Icon: OctagonAlert,
@@ -214,7 +220,8 @@ const STATE_TONE: Record<RecoveryCardCardState, {
     label: "RECOVERY RESOLVED",
     containerClass:
       "border-emerald-300/70 bg-emerald-50/80 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100",
-    iconWrapClass: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
+    iconWrapClass:
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
     iconClass: "text-emerald-700 dark:text-emerald-300",
     labelClass: "text-emerald-900 dark:text-emerald-200",
     Icon: Sparkles,
@@ -242,10 +249,21 @@ function readEvidenceString(value: unknown): string | null {
 
 // Human-sentence evidence sources render as prose; code-shaped sources
 // (error codes, statuses) stay in the mono treatment used for run ids.
-const PROSE_EVIDENCE_KEYS = ["summary", "detectedProgressSummary", "missingDisposition", "retryReason"] as const;
-const CODE_EVIDENCE_KEYS = ["latestRunErrorCode", "latestRunStatus", "latestIssueStatus"] as const;
+const PROSE_EVIDENCE_KEYS = [
+  "summary",
+  "detectedProgressSummary",
+  "missingDisposition",
+  "retryReason",
+] as const;
+const CODE_EVIDENCE_KEYS = [
+  "latestRunErrorCode",
+  "latestRunStatus",
+  "latestIssueStatus",
+] as const;
 
-function pickEvidenceSummary(action: IssueRecoveryAction): { text: string; isCode: boolean } | null {
+function pickEvidenceSummary(
+  action: IssueRecoveryAction,
+): { text: string; isCode: boolean } | null {
   const evidence = action.evidence ?? {};
   for (const key of PROSE_EVIDENCE_KEYS) {
     const next = readEvidenceString(evidence[key]);
@@ -258,7 +276,10 @@ function pickEvidenceSummary(action: IssueRecoveryAction): { text: string; isCod
   return null;
 }
 
-function readEvidenceRunId(action: IssueRecoveryAction, key: "sourceRunId" | "correctiveRunId" | "latestRunId") {
+function readEvidenceRunId(
+  action: IssueRecoveryAction,
+  key: "sourceRunId" | "correctiveRunId" | "latestRunId",
+) {
   const evidence = action.evidence ?? {};
   const next = readEvidenceString(evidence[key]);
   return next;
@@ -276,8 +297,12 @@ function asNonEmptyString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function asAncestryVerdict(value: unknown): GitWorktreeBranchAncestryVerdict | null {
-  return value === "ancestor" || value === "diverged" || value === "unknown" ? value : null;
+function asAncestryVerdict(
+  value: unknown,
+): GitWorktreeBranchAncestryVerdict | null {
+  return value === "ancestor" || value === "diverged" || value === "unknown"
+    ? value
+    : null;
 }
 
 function formatShortSha(sha: string | null): string | null {
@@ -342,11 +367,16 @@ function buildRescueBranchPreview(sourceIdentifier: string | null): string {
 
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+  return value.filter(
+    (entry): entry is string =>
+      typeof entry === "string" && entry.trim().length > 0,
+  );
 }
 
 function asNonNegativeInt(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : null;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : null;
 }
 
 function readContention(value: unknown): WorkspaceContention | null {
@@ -360,11 +390,14 @@ function readContention(value: unknown): WorkspaceContention | null {
   };
 }
 
-function readWorkspaceDivergence(action: IssueRecoveryAction): WorkspaceDivergence | null {
+function readWorkspaceDivergence(
+  action: IssueRecoveryAction,
+): WorkspaceDivergence | null {
   if (action.kind !== "workspace_validation") return null;
   const workspaceValidation = asRecord(action.evidence?.workspaceValidation);
   if (!workspaceValidation) return null;
-  if (workspaceValidation.reason !== "git_worktree_branch_incoherence") return null;
+  if (workspaceValidation.reason !== "git_worktree_branch_incoherence")
+    return null;
   const provenance = asRecord(workspaceValidation.provenance) ?? {};
   const expectedBranch = asNonEmptyString(workspaceValidation.expectedBranch);
   const liveBranch = asNonEmptyString(workspaceValidation.actualBranch);
@@ -372,10 +405,14 @@ function readWorkspaceDivergence(action: IssueRecoveryAction): WorkspaceDivergen
   const liveHeadSha = asNonEmptyString(provenance.actualHeadSha);
   const cleanlinessRaw = workspaceValidation.cleanliness;
   const cleanliness =
-    cleanlinessRaw === "clean" || cleanlinessRaw === "dirty" || cleanlinessRaw === "unknown"
+    cleanlinessRaw === "clean" ||
+    cleanlinessRaw === "dirty" ||
+    cleanlinessRaw === "unknown"
       ? cleanlinessRaw
       : null;
-  const sourceIdentifier = asNonEmptyString(workspaceValidation.sourceIdentifier);
+  const sourceIdentifier = asNonEmptyString(
+    workspaceValidation.sourceIdentifier,
+  );
   return {
     expectedBranch,
     liveBranch,
@@ -398,7 +435,8 @@ const ANCESTRY_BADGE: Record<
 > = {
   ancestor: {
     label: "Forward-only",
-    className: "border-emerald-400/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    className:
+      "border-emerald-400/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   },
   diverged: {
     label: "Diverged",
@@ -426,11 +464,18 @@ function BranchFacet({
         {label}
       </div>
       <div className="mt-1 flex items-center gap-1.5">
-        <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <GitBranch
+          className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
         {branch ? (
-          <code className="truncate font-mono text-xs text-foreground/90">{branch}</code>
+          <code className="truncate font-mono text-xs text-foreground/90">
+            {branch}
+          </code>
         ) : (
-          <span className="text-xs italic text-muted-foreground">detached / unknown</span>
+          <span className="text-xs italic text-muted-foreground">
+            detached / unknown
+          </span>
         )}
       </div>
       <div className="mt-0.5 pl-5 font-mono text-(length:--text-micro) text-muted-foreground">
@@ -460,7 +505,8 @@ function DivergenceDiagnosis({
         <span className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
           Divergence diagnosis
         </span>
-        <Badge variant="outline"
+        <Badge
+          variant="outline"
           data-testid="recovery-ancestry-verdict"
           className={cn(
             "text-(length:--text-nano) font-semibold uppercase tracking-(--tracking-label)",
@@ -483,7 +529,9 @@ function DivergenceDiagnosis({
         />
       </div>
       {divergence.plainLanguageReason ? (
-        <p className="text-xs leading-5 text-foreground/80">{divergence.plainLanguageReason}</p>
+        <p className="text-xs leading-5 text-foreground/80">
+          {divergence.plainLanguageReason}
+        </p>
       ) : null}
       {divergence.contention ? (
         <p
@@ -493,9 +541,14 @@ function DivergenceDiagnosis({
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>
             Worktree claimed by{" "}
-            <code className="font-mono text-foreground/90">{contentionLabel(divergence.contention)}</code>{" "}
-            {divergence.contention.hasActiveRun ? "(active run)" : "(claim held)"} — the lossless repair
-            can&apos;t run while another workspace holds the live branch.
+            <code className="font-mono text-foreground/90">
+              {contentionLabel(divergence.contention)}
+            </code>{" "}
+            {divergence.contention.hasActiveRun
+              ? "(active run)"
+              : "(claim held)"}{" "}
+            — the lossless repair can&apos;t run while another workspace holds
+            the live branch.
           </span>
         </p>
       ) : null}
@@ -506,7 +559,9 @@ function DivergenceDiagnosis({
 function contentionLabel(contention: WorkspaceContention): string {
   return (
     contention.claimedByIssueIdentifier ??
-    (contention.claimedByIssueId ? `issue ${contention.claimedByIssueId.slice(0, 8)}` : "another task")
+    (contention.claimedByIssueId
+      ? `issue ${contention.claimedByIssueId.slice(0, 8)}`
+      : "another task")
   );
 }
 
@@ -562,10 +617,12 @@ function BreakGlassOverride({
             Break-glass reconciliation
           </div>
           <p className="text-xs leading-5 text-muted-foreground">
-            This overrides Taskcore&apos;s safety check and points the recorded workspace at the live
-            branch{" "}
-            <span className="font-medium text-foreground/80">without an ancestry proof</span>. Confirm
-            the divergence below and record why before continuing.
+            This overrides Taskcore&apos;s safety check and points the recorded
+            workspace at the live branch{" "}
+            <span className="font-medium text-foreground/80">
+              without an ancestry proof
+            </span>
+            . Confirm the divergence below and record why before continuing.
           </p>
         </div>
         <dl
@@ -573,14 +630,18 @@ function BreakGlassOverride({
           className="space-y-1.5 rounded-md border border-red-400/40 bg-red-500/5 px-2.5 py-2 text-(length:--text-micro)"
         >
           <div className="flex items-center justify-between gap-2">
-            <dt className="shrink-0 text-muted-foreground">Recorded · expected</dt>
+            <dt className="shrink-0 text-muted-foreground">
+              Recorded · expected
+            </dt>
             <dd className="min-w-0 truncate font-mono text-foreground/90">
               {divergence.expectedBranch ?? "detached"}
               {expectedSha ? ` @ ${expectedSha}` : ""}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <dt className="shrink-0 text-muted-foreground">Live · checked out</dt>
+            <dt className="shrink-0 text-muted-foreground">
+              Live · checked out
+            </dt>
             <dd className="min-w-0 truncate font-mono text-foreground/90">
               {divergence.liveBranch ?? "detached"}
               {liveSha ? ` @ ${liveSha}` : ""}
@@ -592,8 +653,14 @@ function BreakGlassOverride({
           </div>
         </dl>
         <div className="space-y-1">
-          <Label htmlFor="recovery-breakglass-reason" className="text-(length:--text-micro) text-muted-foreground">
-            Reason <span className="text-red-600 dark:text-red-400">(required — recorded in the audit log)</span>
+          <Label
+            htmlFor="recovery-breakglass-reason"
+            className="text-(length:--text-micro) text-muted-foreground"
+          >
+            Reason{" "}
+            <span className="text-red-600 dark:text-red-400">
+              (required — recorded in the audit log)
+            </span>
           </Label>
           <Textarea
             id="recovery-breakglass-reason"
@@ -671,7 +738,10 @@ function RepairWorkspace({
     // Contended: the server refuses the repair, so render a plainly disabled control with the reason
     // inline rather than a popover the operator can't act on.
     return (
-      <div className="flex flex-col gap-1" data-testid="recovery-action-repair-disabled">
+      <div
+        className="flex flex-col gap-1"
+        data-testid="recovery-action-repair-disabled"
+      >
         {trigger}
         {disabledReason ? (
           <span className="text-(length:--text-nano) leading-4 text-muted-foreground">
@@ -699,9 +769,10 @@ function RepairWorkspace({
             Repair workspace
           </div>
           <p className="text-xs leading-5 text-muted-foreground">
-            This is lossless — no reason required. Your uncommitted changes are committed onto a fresh
-            rescue branch, then the recorded branch is restored so the task can resume. The live branch
-            is left exactly as it is.
+            This is lossless — no reason required. Your uncommitted changes are
+            committed onto a fresh rescue branch, then the recorded branch is
+            restored so the task can resume. The live branch is left exactly as
+            it is.
           </p>
         </div>
         <dl
@@ -710,7 +781,10 @@ function RepairWorkspace({
         >
           <div className="flex items-center justify-between gap-2">
             <dt className="shrink-0 text-muted-foreground">Dirty changes</dt>
-            <dd data-testid="recovery-repair-dirty-count" className="font-medium text-foreground/90">
+            <dd
+              data-testid="recovery-repair-dirty-count"
+              className="font-medium text-foreground/90"
+            >
               {dirtyLabel}
             </dd>
           </div>
@@ -718,7 +792,9 @@ function RepairWorkspace({
             <dt className="shrink-0 text-muted-foreground">Live branch</dt>
             <dd className="min-w-0 truncate font-mono text-foreground/90">
               {divergence.liveBranch ?? "detached"}
-              <span className="ml-1 font-sans text-muted-foreground">(left untouched)</span>
+              <span className="ml-1 font-sans text-muted-foreground">
+                (left untouched)
+              </span>
             </dd>
           </div>
           <div className="flex items-center justify-between gap-2">
@@ -761,11 +837,13 @@ function readWakePolicySummary(action: IssueRecoveryAction): string | null {
   if (!policy) return null;
   const type = readEvidenceString(policy.type);
   if (!type) return null;
-  if (type === "wake_owner") return "An agent will be asked to choose the next step";
+  if (type === "wake_owner")
+    return "An agent will be asked to choose the next step";
   if (type === "bounded_owner_disposition_repair") {
     return "Taskcore is retrying the original owner";
   }
-  if (type === "bounded_recovery_owner") return "A recovery owner is repairing the next step";
+  if (type === "bounded_recovery_owner")
+    return "A recovery owner is repairing the next step";
   if (type === "board_escalation") return "Board decision required";
   if (type === "manual") return "Manual follow-up needed";
   if (type === "manual_repair_required") return "Repair needed before retry";
@@ -776,7 +854,9 @@ function readWakePolicySummary(action: IssueRecoveryAction): string | null {
   return type.replaceAll("_", " ");
 }
 
-function formatTimeShort(value: string | Date | null | undefined): string | null {
+function formatTimeShort(
+  value: string | Date | null | undefined,
+): string | null {
   if (!value) return null;
   try {
     const date = value instanceof Date ? value : new Date(value);
@@ -869,7 +949,9 @@ function RunChip({
         run {short}
       </code>
       {status ? (
-        <span className="font-sans text-(length:--text-micro) text-muted-foreground">{status}</span>
+        <span className="font-sans text-(length:--text-micro) text-muted-foreground">
+          {status}
+        </span>
       ) : null}
     </>
   );
@@ -886,7 +968,9 @@ function RunChip({
   return <span className="inline-flex items-center gap-2">{inner}</span>;
 }
 
-function formatTimeAbsolute(value: string | Date | null | undefined): string | null {
+function formatTimeAbsolute(
+  value: string | Date | null | undefined,
+): string | null {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -905,9 +989,12 @@ function formatTimeAbsolute(value: string | Date | null | undefined): string | n
 function lineageHeadline(lineage: RecoveryRetryLineage): string {
   if (lineage.lane === "native_run") {
     if (lineage.liveRunId) return "Taskcore is recovering the existing run.";
-    if (lineage.exhausted) return "Taskcore could not recover the existing run within its retry budget. Review the recorded failure before retrying.";
-    if (lineage.retryExpired) return "The retry for the existing run came due and did not start. Review the recorded failure and retry when ready.";
-    if (lineage.nextRetryAt) return "Taskcore has scheduled another attempt to resume the existing run.";
+    if (lineage.exhausted)
+      return "Taskcore could not recover the existing run within its retry budget. Review the recorded failure before retrying.";
+    if (lineage.retryExpired)
+      return "The retry for the existing run came due and did not start. Review the recorded failure and retry when ready.";
+    if (lineage.nextRetryAt)
+      return "Taskcore has scheduled another attempt to resume the existing run.";
     return "The existing run still needs recovery. Review the recorded failure before retrying.";
   }
   // An attempt that came due and never ran leaves nobody working on this task, even though
@@ -1001,13 +1088,18 @@ export function IssueRecoveryActionCard({
   variant = "full",
   className,
 }: IssueRecoveryActionCardProps) {
-  const { visible: workspaceIsolationControlsVisible } = useWorkspaceIsolationControls();
+  const { visible: workspaceIsolationControlsVisible } =
+    useWorkspaceIsolationControls();
   const liveness = useMemo(() => ({ scheduledRetry }), [scheduledRetry]);
-  const cardState: RecoveryCardCardState = forcedState ?? deriveRecoveryCardState(action, liveness);
+  const cardState: RecoveryCardCardState =
+    forcedState ?? deriveRecoveryCardState(action, liveness);
   const tone = STATE_TONE[cardState];
   const ToneIcon = tone.Icon;
   const divergence = useMemo(() => readWorkspaceDivergence(action), [action]);
-  const lineage = useMemo(() => readRecoveryRetryLineage(action, liveness), [action, liveness]);
+  const lineage = useMemo(
+    () => readRecoveryRetryLineage(action, liveness),
+    [action, liveness],
+  );
 
   const headline = useMemo(() => {
     if (cardState === "resolved" && action.outcome) {
@@ -1029,15 +1121,19 @@ export function IssueRecoveryActionCard({
   const wakeSummary = lineage?.retryExpired
     ? "The scheduled retry did not run — a retry or a decision is needed"
     : lineage?.exhausted && !lineage.liveRunId && lineage.lane !== "board"
-    ? "Automatic retries are finished — a decision is needed"
-    : readWakePolicySummary(action);
+      ? "Automatic retries are finished — a decision is needed"
+      : readWakePolicySummary(action);
   const evidenceSummary = pickEvidenceSummary(action);
-  const sourceRunId = readEvidenceRunId(action, "sourceRunId") ?? readEvidenceRunId(action, "latestRunId");
+  const sourceRunId =
+    readEvidenceRunId(action, "sourceRunId") ??
+    readEvidenceRunId(action, "latestRunId");
   const correctiveRunId = readEvidenceRunId(action, "correctiveRunId");
   // The lineage rows below already carry the attempt budget, so the generic chip only
   // covers actions without one.
-  const showAttempt = !lineage && action.attemptCount > 1 && action.maxAttempts !== null;
-  const sourceOwnerAgentId = action.returnOwnerAgentId ?? action.previousOwnerAgentId;
+  const showAttempt =
+    !lineage && action.attemptCount > 1 && action.maxAttempts !== null;
+  const sourceOwnerAgentId =
+    action.returnOwnerAgentId ?? action.previousOwnerAgentId;
   const recoveryOwnerIsSourceOwner =
     action.ownerType === "agent" &&
     action.ownerAgentId !== null &&
@@ -1049,7 +1145,10 @@ export function IssueRecoveryActionCard({
     if (lineage) return false;
     if (!action.timeoutAt) return false;
     try {
-      const date = action.timeoutAt instanceof Date ? action.timeoutAt : new Date(action.timeoutAt);
+      const date =
+        action.timeoutAt instanceof Date
+          ? action.timeoutAt
+          : new Date(action.timeoutAt);
       const diffMs = date.getTime() - Date.now();
       return diffMs > 0 && diffMs < 60 * 60 * 1000;
     } catch {
@@ -1058,21 +1157,34 @@ export function IssueRecoveryActionCard({
   })();
   const updatedAtLabel = formatTimeShort(action.updatedAt);
 
-  const ariaState = ({
-    needed: "needed",
-    in_progress: "in progress",
-    observe_only: "observing active run",
-    escalated: "escalated",
-    resolved: "resolved",
-  } satisfies Record<RecoveryCardCardState, string>)[cardState];
+  const ariaState = (
+    {
+      needed: "needed",
+      in_progress: "in progress",
+      observe_only: "observing active run",
+      escalated: "escalated",
+      resolved: "resolved",
+    } satisfies Record<RecoveryCardCardState, string>
+  )[cardState];
 
   const visibleResolveOptions = RESOLVE_OPTIONS.filter((option) => {
-    if (isNativeWorkspaceExportRepairCause(action.cause) && ["todo", "done", "in_review"].includes(option.outcome)) return false;
-    if (option.outcome === "todo" && requiresExecutionReconciliation(action.cause)) return false;
+    if (
+      isNativeWorkspaceExportRepairCause(action.cause) &&
+      ["todo", "done", "in_review"].includes(option.outcome)
+    )
+      return false;
+    if (
+      option.outcome === "todo" &&
+      requiresExecutionReconciliation(action.cause)
+    )
+      return false;
     if (option.boardOnly && !canFalsePositive) return false;
     return true;
   });
-  const showResolveActions = onResolve !== undefined && cardState !== "resolved" && visibleResolveOptions.length > 0;
+  const showResolveActions =
+    onResolve !== undefined &&
+    cardState !== "resolved" &&
+    visibleResolveOptions.length > 0;
   const reissueBaseRef = divergence?.reissueBaseRef ?? null;
   const showReissueAction =
     workspaceIsolationControlsVisible &&
@@ -1119,7 +1231,11 @@ export function IssueRecoveryActionCard({
     showBreakGlass ||
     showRepairAction;
 
-  if (requiresExecutionReconciliation(action.cause) || action.cause === "native_workspace_sync_out_unsafe_archive") return null;
+  if (
+    requiresExecutionReconciliation(action.cause) ||
+    action.cause === "native_workspace_sync_out_unsafe_archive"
+  )
+    return null;
 
   return (
     <section
@@ -1147,13 +1263,17 @@ export function IssueRecoveryActionCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow)">
             <span className={tone.labelClass}>{tone.label}</span>
-            <span className="text-muted-foreground/60" aria-hidden>·</span>
+            <span className="text-muted-foreground/60" aria-hidden>
+              ·
+            </span>
             <code className="rounded bg-background/70 px-1.5 py-0.5 font-mono text-(length:--text-micro) tracking-normal text-muted-foreground">
               {KIND_LABEL[action.kind] ?? action.kind}
             </code>
             {updatedAtLabel ? (
               <>
-                <span className="text-muted-foreground/60" aria-hidden>·</span>
+                <span className="text-muted-foreground/60" aria-hidden>
+                  ·
+                </span>
                 <span className="font-medium normal-case tracking-normal text-muted-foreground">
                   {updatedAtLabel}
                 </span>
@@ -1164,182 +1284,256 @@ export function IssueRecoveryActionCard({
         </div>
       </header>
       {variant === "compact" ? null : (
-      <dl className={cn("border-t bg-background/40 dark:bg-background/20", tone.divider)}>
-        {lineage ? (
-          <>
-            <MetadataRow label="Task owner">
-              <span
-                className="inline-flex flex-wrap items-center gap-1.5"
-                data-testid="recovery-source-owner"
-              >
-                <AgentLink
-                  agentId={sourceOwnerAgentId}
-                  agentMap={agentMap}
-                  fallback="unassigned"
-                />
-                <span className="text-muted-foreground">keeps this task</span>
-              </span>
-            </MetadataRow>
-            <MetadataRow label="Recovery owner">
-              <span
-                className="inline-flex flex-wrap items-center gap-1.5"
-                data-testid="recovery-recovery-owner"
-              >
-                {lineage.lane === "native_run" && (action.ownerType !== "board" || Boolean(lineage.liveRunId)) ? (
+        <dl
+          className={cn(
+            "border-t bg-background/40 dark:bg-background/20",
+            tone.divider,
+          )}
+        >
+          {lineage ? (
+            <>
+              <MetadataRow label="Task owner">
+                <span
+                  className="inline-flex flex-wrap items-center gap-1.5"
+                  data-testid="recovery-source-owner"
+                >
+                  <AgentLink
+                    agentId={sourceOwnerAgentId}
+                    agentMap={agentMap}
+                    fallback="unassigned"
+                  />
+                  <span className="text-muted-foreground">keeps this task</span>
+                </span>
+              </MetadataRow>
+              <MetadataRow label="Recovery owner">
+                <span
+                  className="inline-flex flex-wrap items-center gap-1.5"
+                  data-testid="recovery-recovery-owner"
+                >
+                  {lineage.lane === "native_run" &&
+                  (action.ownerType !== "board" ||
+                    Boolean(lineage.liveRunId)) ? (
+                    <>
+                      <span className="font-medium">Taskcore</span>
+                      <span className="text-muted-foreground">
+                        recovers the existing run
+                      </span>
+                    </>
+                  ) : recoveryOwnerIsSourceOwner ? (
+                    <span className="font-medium">
+                      Original owner — retrying itself
+                    </span>
+                  ) : action.ownerType === "agent" && action.ownerAgentId ? (
+                    <>
+                      <AgentLink
+                        agentId={action.ownerAgentId}
+                        agentMap={agentMap}
+                      />
+                      <span className="text-muted-foreground">
+                        repairs the next step only
+                      </span>
+                    </>
+                  ) : action.ownerType === "board" ? (
+                    <>
+                      <span className="font-medium">Board</span>
+                      <span className="text-muted-foreground">
+                        decides the next step only
+                      </span>
+                    </>
+                  ) : action.ownerType === "user" && action.ownerUserId ? (
+                    <span className="font-medium">
+                      user {action.ownerUserId.slice(0, 6)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      unassigned — pick one to wake them
+                    </span>
+                  )}
+                </span>
+              </MetadataRow>
+              <MetadataRow label="Retry progress">
+                <span
+                  className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
+                  data-testid="recovery-retry-progress"
+                  data-recovery-lane={lineage.lane}
+                  data-recovery-attempt={lineage.attempt}
+                  data-recovery-max-attempts={lineage.maxAttempts ?? undefined}
+                >
+                  <AttemptMeter lineage={lineage} />
+                  <span>{attemptLabel ?? "Attempts not bounded"}</span>
+                  {lineage.liveRunId ? (
+                    <span
+                      className={RETRY_PILL_CLASS}
+                      title={
+                        formatTimeAbsolute(lineage.nextRetryAt) ?? undefined
+                      }
+                      data-testid="recovery-next-retry"
+                    >
+                      Attempt running now
+                    </span>
+                  ) : lineage.retryExpired ? (
+                    // The due time is stated plainly as missed. Rendering it as "Next try 5m
+                    // ago" is what made an abandoned lane read as healthy recovery.
+                    <span
+                      className={cn(
+                        RETRY_PILL_CLASS,
+                        "border-destructive/50 bg-destructive/10 text-destructive",
+                      )}
+                      title={
+                        formatTimeAbsolute(lineage.nextRetryAt) ?? undefined
+                      }
+                      data-testid="recovery-next-retry"
+                      data-recovery-retry-expired="true"
+                    >
+                      {retryOffset
+                        ? `Retry missed ${retryOffset}`
+                        : "Retry missed"}
+                    </span>
+                  ) : retryOffset ? (
+                    <span
+                      className={RETRY_PILL_CLASS}
+                      title={
+                        formatTimeAbsolute(lineage.nextRetryAt) ?? undefined
+                      }
+                      data-testid="recovery-next-retry"
+                    >
+                      {retryOffset === "now"
+                        ? "Next try now"
+                        : `Next try ${retryOffset}`}
+                    </span>
+                  ) : lineage.exhausted ? (
+                    <span
+                      className={RETRY_PILL_CLASS}
+                      data-testid="recovery-next-retry"
+                    >
+                      Automatic retries used up
+                    </span>
+                  ) : null}
+                </span>
+              </MetadataRow>
+              {lineage.lane !== "source_owner" &&
+              lineage.sourceMaxAttempts !== null ? (
+                <MetadataRow label="Owner retries">
+                  <span data-testid="recovery-source-attempts">
+                    The original owner used{" "}
+                    {lineage.sourceAttempt ?? lineage.sourceMaxAttempts} of{" "}
+                    {lineage.sourceMaxAttempts} automatic attempts.
+                  </span>
+                </MetadataRow>
+              ) : null}
+            </>
+          ) : (
+            <MetadataRow label="Owner">
+              <span className="inline-flex flex-wrap items-center gap-1.5">
+                {action.ownerType === "agent" && action.ownerAgentId ? (
                   <>
-                    <span className="font-medium">Taskcore</span>
-                    <span className="text-muted-foreground">recovers the existing run</span>
-                  </>
-                ) : recoveryOwnerIsSourceOwner ? (
-                  <span className="font-medium">Original owner — retrying itself</span>
-                ) : action.ownerType === "agent" && action.ownerAgentId ? (
-                  <>
-                    <AgentLink agentId={action.ownerAgentId} agentMap={agentMap} />
-                    <span className="text-muted-foreground">repairs the next step only</span>
+                    <span className="text-muted-foreground">Recovery:</span>
+                    <AgentLink
+                      agentId={action.ownerAgentId}
+                      agentMap={agentMap}
+                    />
                   </>
                 ) : action.ownerType === "board" ? (
-                  <>
-                    <span className="font-medium">Board</span>
-                    <span className="text-muted-foreground">decides the next step only</span>
-                  </>
+                  <span className="font-medium">Board</span>
                 ) : action.ownerType === "user" && action.ownerUserId ? (
-                  <span className="font-medium">user {action.ownerUserId.slice(0, 6)}</span>
+                  <span className="font-medium">
+                    user {action.ownerUserId.slice(0, 6)}
+                  </span>
+                ) : action.ownerType === "system" ? (
+                  <span className="font-medium">System</span>
                 ) : (
-                  <span className="text-muted-foreground">unassigned — pick one to wake them</span>
+                  <span className="text-muted-foreground">
+                    unassigned — pick one to wake them
+                  </span>
                 )}
-              </span>
-            </MetadataRow>
-            <MetadataRow label="Retry progress">
-              <span
-                className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
-                data-testid="recovery-retry-progress"
-                data-recovery-lane={lineage.lane}
-                data-recovery-attempt={lineage.attempt}
-                data-recovery-max-attempts={lineage.maxAttempts ?? undefined}
-              >
-                <AttemptMeter lineage={lineage} />
-                <span>{attemptLabel ?? "Attempts not bounded"}</span>
-                {lineage.liveRunId ? (
-                  <span
-                    className={RETRY_PILL_CLASS}
-                    title={formatTimeAbsolute(lineage.nextRetryAt) ?? undefined}
-                    data-testid="recovery-next-retry"
-                  >
-                    Attempt running now
-                  </span>
-                ) : lineage.retryExpired ? (
-                  // The due time is stated plainly as missed. Rendering it as "Next try 5m
-                  // ago" is what made an abandoned lane read as healthy recovery.
-                  <span
-                    className={cn(RETRY_PILL_CLASS, "border-destructive/50 bg-destructive/10 text-destructive")}
-                    title={formatTimeAbsolute(lineage.nextRetryAt) ?? undefined}
-                    data-testid="recovery-next-retry"
-                    data-recovery-retry-expired="true"
-                  >
-                    {retryOffset ? `Retry missed ${retryOffset}` : "Retry missed"}
-                  </span>
-                ) : retryOffset ? (
-                  <span
-                    className={RETRY_PILL_CLASS}
-                    title={formatTimeAbsolute(lineage.nextRetryAt) ?? undefined}
-                    data-testid="recovery-next-retry"
-                  >
-                    {retryOffset === "now" ? "Next try now" : `Next try ${retryOffset}`}
-                  </span>
-                ) : lineage.exhausted ? (
-                  <span className={RETRY_PILL_CLASS} data-testid="recovery-next-retry">
-                    Automatic retries used up
-                  </span>
+                {action.returnOwnerAgentId ? (
+                  <>
+                    <span className="text-muted-foreground">→ Returns to:</span>
+                    <AgentLink
+                      agentId={action.returnOwnerAgentId}
+                      agentMap={agentMap}
+                    />
+                  </>
                 ) : null}
               </span>
             </MetadataRow>
-            {lineage.lane !== "source_owner" && lineage.sourceMaxAttempts !== null ? (
-              <MetadataRow label="Owner retries">
-                <span data-testid="recovery-source-attempts">
-                  The original owner used {lineage.sourceAttempt ?? lineage.sourceMaxAttempts} of{" "}
-                  {lineage.sourceMaxAttempts} automatic attempts.
-                </span>
-              </MetadataRow>
-            ) : null}
-          </>
-        ) : (
-        <MetadataRow label="Owner">
-          <span className="inline-flex flex-wrap items-center gap-1.5">
-            {action.ownerType === "agent" && action.ownerAgentId ? (
-              <>
-                <span className="text-muted-foreground">Recovery:</span>
-                <AgentLink agentId={action.ownerAgentId} agentMap={agentMap} />
-              </>
-            ) : action.ownerType === "board" ? (
-              <span className="font-medium">Board</span>
-            ) : action.ownerType === "user" && action.ownerUserId ? (
-              <span className="font-medium">user {action.ownerUserId.slice(0, 6)}</span>
-            ) : action.ownerType === "system" ? (
-              <span className="font-medium">System</span>
-            ) : (
-              <span className="text-muted-foreground">unassigned — pick one to wake them</span>
-            )}
-            {action.returnOwnerAgentId ? (
-              <>
-                <span className="text-muted-foreground">→ Returns to:</span>
-                <AgentLink agentId={action.returnOwnerAgentId} agentMap={agentMap} />
-              </>
-            ) : null}
-          </span>
-        </MetadataRow>
-        )}
-        <MetadataRow label="Source run">
-          <RunChip runId={sourceRunId} agentId={action.previousOwnerAgentId} />
-        </MetadataRow>
-        {correctiveRunId ? (
-          <MetadataRow label="Corrective run">
-            <RunChip runId={correctiveRunId} agentId={action.previousOwnerAgentId} />
-          </MetadataRow>
-        ) : null}
-        <MetadataRow label="Evidence">
-          {evidenceSummary ? (
-            evidenceSummary.isCode ? (
-              <span className="break-words font-mono text-(length:--text-micro) text-foreground/80">
-                {evidenceSummary.text}
-              </span>
-            ) : (
-              <span className="text-xs leading-5 text-foreground/80">{evidenceSummary.text}</span>
-            )
-          ) : (
-            <MissingValue />
           )}
-        </MetadataRow>
-        <MetadataRow label="Next action">
-          {action.nextAction ? <span>{action.nextAction}</span> : <MissingValue />}
-        </MetadataRow>
-        <MetadataRow label="Follow-up">
-          <span className="inline-flex flex-wrap items-center gap-1.5">
-            {wakeSummary ? <span>{wakeSummary}</span> : <MissingValue />}
-            {showAttempt ? (
-              <span className="rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5 text-(length:--text-micro) text-muted-foreground">
-                attempt {action.attemptCount} of {action.maxAttempts}
-              </span>
-            ) : null}
-            {showTimeoutInline ? (
-              <span className="rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5 text-(length:--text-micro) text-muted-foreground">
-                Times out {formatTimeShort(action.timeoutAt) ?? "soon"}
-              </span>
-            ) : null}
-          </span>
-        </MetadataRow>
-        {cardState === "resolved" && action.outcome ? (
-          <MetadataRow label="Resolution">
-            <span className={cn("font-medium", tone.labelClass)}>
-              Resolved as {OUTCOME_LABEL[action.outcome]}
-              {action.resolvedAt ? ` · ${formatTimeShort(action.resolvedAt) ?? ""}` : ""}
+          <MetadataRow label="Source run">
+            <RunChip
+              runId={sourceRunId}
+              agentId={action.previousOwnerAgentId}
+            />
+          </MetadataRow>
+          {correctiveRunId ? (
+            <MetadataRow label="Corrective run">
+              <RunChip
+                runId={correctiveRunId}
+                agentId={action.previousOwnerAgentId}
+              />
+            </MetadataRow>
+          ) : null}
+          <MetadataRow label="Evidence">
+            {evidenceSummary ? (
+              evidenceSummary.isCode ? (
+                <span className="break-words font-mono text-(length:--text-micro) text-foreground/80">
+                  {evidenceSummary.text}
+                </span>
+              ) : (
+                <span className="text-xs leading-5 text-foreground/80">
+                  {evidenceSummary.text}
+                </span>
+              )
+            ) : (
+              <MissingValue />
+            )}
+          </MetadataRow>
+          <MetadataRow label="Next action">
+            {action.nextAction ? (
+              <span>{action.nextAction}</span>
+            ) : (
+              <MissingValue />
+            )}
+          </MetadataRow>
+          <MetadataRow label="Follow-up">
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              {wakeSummary ? <span>{wakeSummary}</span> : <MissingValue />}
+              {showAttempt ? (
+                <span className="rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5 text-(length:--text-micro) text-muted-foreground">
+                  attempt {action.attemptCount} of {action.maxAttempts}
+                </span>
+              ) : null}
+              {showTimeoutInline ? (
+                <span className="rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5 text-(length:--text-micro) text-muted-foreground">
+                  Times out {formatTimeShort(action.timeoutAt) ?? "soon"}
+                </span>
+              ) : null}
             </span>
           </MetadataRow>
-        ) : null}
-      </dl>
+          {cardState === "resolved" && action.outcome ? (
+            <MetadataRow label="Resolution">
+              <span className={cn("font-medium", tone.labelClass)}>
+                Resolved as {OUTCOME_LABEL[action.outcome]}
+                {action.resolvedAt
+                  ? ` · ${formatTimeShort(action.resolvedAt) ?? ""}`
+                  : ""}
+              </span>
+            </MetadataRow>
+          ) : null}
+        </dl>
       )}
-      {divergence ? <DivergenceDiagnosis divergence={divergence} dividerClass={tone.divider} /> : null}
+      {divergence ? (
+        <DivergenceDiagnosis
+          divergence={divergence}
+          dividerClass={tone.divider}
+        />
+      ) : null}
       {showFooter ? (
-        <div className={cn("flex flex-wrap items-center gap-2 border-t px-3 py-2.5 sm:px-4", tone.divider)}>
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2 border-t px-3 py-2.5 sm:px-4",
+            tone.divider,
+          )}
+        >
           {showResolveActions ? (
             <Popover>
               <PopoverTrigger asChild>
@@ -1373,8 +1567,12 @@ export function IssueRecoveryActionCard({
                         option.destructive ? "text-destructive" : null,
                       )}
                     >
-                      <span className="font-medium leading-5">{option.label}</span>
-                      <span className="text-(length:--text-micro) leading-4 text-muted-foreground">{option.description}</span>
+                      <span className="font-medium leading-5">
+                        {option.label}
+                      </span>
+                      <span className="text-(length:--text-micro) leading-4 text-muted-foreground">
+                        {option.description}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -1434,20 +1632,27 @@ export function IssueRecoveryActionCard({
                   ) : null}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="start" sideOffset={6} className="w-80 space-y-3 p-3">
+              <PopoverContent
+                align="start"
+                sideOffset={6}
+                className="w-80 space-y-3 p-3"
+              >
                 <div className="space-y-1">
                   <div className="text-(length:--text-micro) font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
                     Re-issue on isolated workspace
                   </div>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Creates a fresh copy of this task on an isolated git worktree based on the live
-                    branch. Your current workspace and its commits are left untouched.
+                    Creates a fresh copy of this task on an isolated git
+                    worktree based on the live branch. Your current workspace
+                    and its commits are left untouched.
                   </p>
                 </div>
                 <dl className="space-y-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-(length:--text-micro)">
                   <div className="flex items-center justify-between gap-2">
                     <dt className="text-muted-foreground">Base ref</dt>
-                    <dd className="min-w-0 truncate font-mono text-foreground/90">{reissueBaseRef}</dd>
+                    <dd className="min-w-0 truncate font-mono text-foreground/90">
+                      {reissueBaseRef}
+                    </dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <dt className="text-muted-foreground">Recorded</dt>
@@ -1458,7 +1663,9 @@ export function IssueRecoveryActionCard({
                   {reissueVerdictBadge ? (
                     <div className="flex items-center justify-between gap-2">
                       <dt className="text-muted-foreground">Ancestry</dt>
-                      <dd className="font-medium">{reissueVerdictBadge.label}</dd>
+                      <dd className="font-medium">
+                        {reissueVerdictBadge.label}
+                      </dd>
                     </div>
                   ) : null}
                 </dl>

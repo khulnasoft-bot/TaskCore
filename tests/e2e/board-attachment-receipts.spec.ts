@@ -99,7 +99,9 @@ const files = [
 async function openAttachmentChooser(page: Page, composer: Locator) {
   await composer.getByRole("button", { name: "Add to composer" }).click();
   const chooser = page.waitForEvent("filechooser");
-  await page.getByRole("menuitem", { name: "Files and images", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Files and images", exact: true })
+    .click();
   return chooser;
 }
 
@@ -241,7 +243,9 @@ for (const classic of [false, true]) {
     await expect.poll(() => accepted).toBe(true);
     expect(await fixture.comments()).toHaveLength(1);
     expect(acceptedRequestId).toEqual(expect.any(String));
-    expect((await fixture.comments())[0]!.clientRequestId).toBe(acceptedRequestId);
+    expect((await fixture.comments())[0]!.clientRequestId).toBe(
+      acceptedRequestId,
+    );
     expect(
       (await fixture.attachments()).find((row) => row.id === receipt.id)
         ?.issueCommentId,
@@ -251,7 +255,9 @@ for (const classic of [false, true]) {
     // was lost. No manual Review/Discard bookkeeping or blind replay remains.
     await expect(fixture.editor).toBeEmpty();
     await expect(fixture.composer.getByRole("alert")).toHaveCount(0);
-    await expect(fixture.composer.getByText("board-fresh.txt", { exact: true })).toHaveCount(0);
+    await expect(
+      fixture.composer.getByText("board-fresh.txt", { exact: true }),
+    ).toHaveCount(0);
     await expect(fixture.send).toBeDisabled();
     await fixture.editor.press("Control+Enter");
     expect(attempts).toBe(1);
@@ -335,7 +341,9 @@ for (const classic of [false, true]) {
       await fixture.send.click();
       await expect.poll(() => accepted).toBe(true);
       expect(await fixture.comments()).toHaveLength(1);
-      await fixture.editor.fill("A newer draft written while delivery was pending.");
+      await fixture.editor.fill(
+        "A newer draft written while delivery was pending.",
+      );
       await page.reload();
       release();
       await expect(fixture.editor).toHaveText(
@@ -346,11 +354,15 @@ for (const classic of [false, true]) {
       expect(attempts).toBe(1);
       expect(await fixture.comments()).toHaveLength(1);
       expect(acceptedRequestId).toEqual(expect.any(String));
-      expect((await fixture.comments())[0]!.clientRequestId).toBe(acceptedRequestId);
+      expect((await fixture.comments())[0]!.clientRequestId).toBe(
+        acceptedRequestId,
+      );
       await fixture.send.click();
       await expect.poll(async () => (await fixture.comments()).length).toBe(2);
       expect(attempts).toBe(2);
-      expect((await fixture.comments()).map((comment) => comment.body).sort()).toEqual([
+      expect(
+        (await fixture.comments()).map((comment) => comment.body).sort(),
+      ).toEqual([
         "A newer draft written while delivery was pending.",
         "One text-only save interrupted by reload.",
       ]);

@@ -1,5 +1,8 @@
 import { expect, it } from "vitest";
-import { createAdapterExecutionPhaseTracker, MAX_EXECUTION_PHASE_ELAPSED_MS } from "./adapter-execution-phase.js";
+import {
+  createAdapterExecutionPhaseTracker,
+  MAX_EXECUTION_PHASE_ELAPSED_MS,
+} from "./adapter-execution-phase.js";
 
 it("returns the latest pending scope and resumes the outer scope's original age", () => {
   let now = 10;
@@ -8,7 +11,10 @@ it("returns the latest pending scope and resumes the outer scope's original age"
   now = 30;
   const inner = phases.enter("instruction_collection")!;
   now = 80;
-  expect(phases.snapshot()).toEqual({ phase: "instruction_collection", phaseElapsedMs: 50 });
+  expect(phases.snapshot()).toEqual({
+    phase: "instruction_collection",
+    phaseElapsedMs: 50,
+  });
   inner();
   expect(phases.snapshot()).toEqual({ phase: "sync_back", phaseElapsedMs: 70 });
   outer();
@@ -56,5 +62,8 @@ it("uses a finite nonnegative capped elapsed time", () => {
   now = 9;
   expect(phases.snapshot()).toBeNull();
   now = MAX_EXECUTION_PHASE_ELAPSED_MS * 2;
-  expect(phases.snapshot()).toEqual({ phase: "close_session", phaseElapsedMs: MAX_EXECUTION_PHASE_ELAPSED_MS });
+  expect(phases.snapshot()).toEqual({
+    phase: "close_session",
+    phaseElapsedMs: MAX_EXECUTION_PHASE_ELAPSED_MS,
+  });
 });

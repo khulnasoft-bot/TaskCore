@@ -5,7 +5,10 @@ import type { Issue, IssueWorkProduct } from "@taskcore/shared";
 import { Button } from "@/components/ui/button";
 import { InlineBanner } from "@/components/InlineBanner";
 import { IssuePullRequestLinks } from "@/components/IssuePullRequestLinks";
-import { getIssuePullRequests, pullRequestNeedsReview } from "@/lib/issue-pull-requests";
+import {
+  getIssuePullRequests,
+  pullRequestNeedsReview,
+} from "@/lib/issue-pull-requests";
 import { cn } from "@/lib/utils";
 import {
   deriveMonitorState,
@@ -56,7 +59,9 @@ export interface MonitorSurfaceCopy {
 }
 
 function capitalize(value: string): string {
-  return value.length === 0 ? value : `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+  return value.length === 0
+    ? value
+    : `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 /**
@@ -70,13 +75,19 @@ export function buildMonitorSurfaceCopy(
   scheduledRetryReason?: string | null,
   pendingPullRequestReviews = 0,
 ): MonitorSurfaceCopy | null {
-  if (!isWaitingMonitorState(derived.state) || !derived.nextCheckAt) return null;
+  if (!isWaitingMonitorState(derived.state) || !derived.nextCheckAt)
+    return null;
 
-  if (derived.source === "scheduled-retry" && scheduledRetryReason === "workspace_busy") {
+  if (
+    derived.source === "scheduled-retry" &&
+    scheduledRetryReason === "workspace_busy"
+  ) {
     return {
       bannerTitle: "Waiting for workspace",
       stripTitle: "Waiting for workspace",
-      bannerMeta: ["Another task is using this workspace. Work starts automatically when it is available."],
+      bannerMeta: [
+        "Another task is using this workspace. Work starts automatically when it is available.",
+      ],
       stripMeta: ["Work starts automatically when the workspace is available."],
       tone: "info",
       workspaceWait: true,
@@ -85,7 +96,11 @@ export function buildMonitorSurfaceCopy(
 
   const eta = formatMonitorEta(derived.nextCheckAt, now); // "in 2h 12m" | "due now" | "overdue by 18m"
   const absolute = formatMonitorAbsolute(derived.nextCheckAt, {}, now); // local time, e.g. "Today, 4:08 PM"
-  if (derived.source === "monitor" && derived.serviceName?.toLowerCase() === "github" && pendingPullRequestReviews > 0) {
+  if (
+    derived.source === "monitor" &&
+    derived.serviceName?.toLowerCase() === "github" &&
+    pendingPullRequestReviews > 0
+  ) {
     return {
       bannerTitle: "Pull request review requested",
       stripTitle: "Pull request review requested",
@@ -95,12 +110,21 @@ export function buildMonitorSurfaceCopy(
       pullRequestReview: true,
     };
   }
-  if (derived.source === "scheduled-retry" && scheduledRetryReason === "ai_connection_pool_wait") {
+  if (
+    derived.source === "scheduled-retry" &&
+    scheduledRetryReason === "ai_connection_pool_wait"
+  ) {
     return {
       bannerTitle: "Pool exhausted",
       stripTitle: "Pool exhausted",
-      bannerMeta: [`Usage recheck ${eta} · ${absolute} (your time)`, "Tasks with a selected account keep it while waiting. Work resumes when usage permits."],
-      stripMeta: [`Usage recheck ${eta} · ${absolute}`, "Tasks with a selected account keep it while waiting."],
+      bannerMeta: [
+        `Usage recheck ${eta} · ${absolute} (your time)`,
+        "Tasks with a selected account keep it while waiting. Work resumes when usage permits.",
+      ],
+      stripMeta: [
+        `Usage recheck ${eta} · ${absolute}`,
+        "Tasks with a selected account keep it while waiting.",
+      ],
       tone: "info",
     };
   }
@@ -113,28 +137,40 @@ export function buildMonitorSurfaceCopy(
   switch (derived.state) {
     case "scheduled":
     case "retrying":
-      bannerTitle = isScheduledRetryOnly ? `Agent resumes ${eta}` : `Waiting on monitor — resumes ${eta}`;
+      bannerTitle = isScheduledRetryOnly
+        ? `Agent resumes ${eta}`
+        : `Waiting on monitor — resumes ${eta}`;
       stripTitle = `Resumes ${eta}`;
       break;
     case "due-now":
-      bannerTitle = isScheduledRetryOnly ? "Agent retry due now" : "Waiting on monitor — due now";
+      bannerTitle = isScheduledRetryOnly
+        ? "Agent retry due now"
+        : "Waiting on monitor — due now";
       stripTitle = "Due now";
       statusHint = "Checking momentarily…";
       break;
     case "overdue":
     default:
-      bannerTitle = isScheduledRetryOnly ? `Agent retry ${eta}` : `Waiting on monitor — ${eta}`;
+      bannerTitle = isScheduledRetryOnly
+        ? `Agent retry ${eta}`
+        : `Waiting on monitor — ${eta}`;
       stripTitle = capitalize(eta);
       statusHint = "Fires on next tick";
       break;
   }
 
-  const attemptLabel = derived.attemptCount >= 1 ? `Attempt ${derived.attemptCount}` : null;
-  const serviceLabel = derived.serviceName ? `Watching: ${derived.serviceName}` : null;
+  const attemptLabel =
+    derived.attemptCount >= 1 ? `Attempt ${derived.attemptCount}` : null;
+  const serviceLabel = derived.serviceName
+    ? `Watching: ${derived.serviceName}`
+    : null;
 
-  const bannerMeta = [statusHint, `${absolute} (your time)`, attemptLabel, serviceLabel].filter(
-    (piece): piece is string => Boolean(piece),
-  );
+  const bannerMeta = [
+    statusHint,
+    `${absolute} (your time)`,
+    attemptLabel,
+    serviceLabel,
+  ].filter((piece): piece is string => Boolean(piece));
   const stripMeta = [statusHint, absolute, attemptLabel, serviceLabel].filter(
     (piece): piece is string => Boolean(piece),
   );
@@ -148,13 +184,28 @@ export function buildMonitorSurfaceCopy(
   };
 }
 
-function useMonitorSurfaceCopy(issue: Issue, pendingPullRequestReviews: number): MonitorSurfaceCopy | null {
+function useMonitorSurfaceCopy(
+  issue: Issue,
+  pendingPullRequestReviews: number,
+): MonitorSurfaceCopy | null {
   // `nextCheckAt` is stable for a given issue; derive once to seed the ticking
   // countdown cadence, then re-derive against the live clock so the surfaces
   // roll scheduled → due → overdue on their own.
-  const nextCheckAt = useMemo(() => deriveMonitorState(issue).nextCheckAt, [issue]);
+  const nextCheckAt = useMemo(
+    () => deriveMonitorState(issue).nextCheckAt,
+    [issue],
+  );
   const now = useMonitorCountdown(nextCheckAt);
-  return useMemo(() => buildMonitorSurfaceCopy(deriveMonitorState(issue, now), now, issue.scheduledRetry?.scheduledRetryReason, pendingPullRequestReviews), [issue, now, pendingPullRequestReviews]);
+  return useMemo(
+    () =>
+      buildMonitorSurfaceCopy(
+        deriveMonitorState(issue, now),
+        now,
+        issue.scheduledRetry?.scheduledRetryReason,
+        pendingPullRequestReviews,
+      ),
+    [issue, now, pendingPullRequestReviews],
+  );
 }
 
 function CheckNowButton({
@@ -175,7 +226,11 @@ function CheckNowButton({
       onClick={onCheckNow}
       disabled={checkingNow}
     >
-      {checkingNow ? "Checking…" : reviewRequested ? "Check status" : "Check now"}
+      {checkingNow
+        ? "Checking…"
+        : reviewRequested
+          ? "Check status"
+          : "Check now"}
     </Button>
   );
 }
@@ -200,7 +255,9 @@ export function IssueMonitorBanner({
   workProducts,
   checkError,
 }: IssueMonitorSurfaceProps) {
-  const reviews = getIssuePullRequests(workProducts).filter(pullRequestNeedsReview);
+  const reviews = getIssuePullRequests(workProducts).filter(
+    pullRequestNeedsReview,
+  );
   const copy = useMonitorSurfaceCopy(issue, reviews.length);
   if (!copy) return null;
 
@@ -210,10 +267,20 @@ export function IssueMonitorBanner({
       icon={Clock}
       title={copy.bannerTitle}
       className="my-3"
-      actions={onCheckNow && !copy.workspaceWait ? <CheckNowButton onCheckNow={onCheckNow} checkingNow={checkingNow} reviewRequested={copy.pullRequestReview} /> : null}
+      actions={
+        onCheckNow && !copy.workspaceWait ? (
+          <CheckNowButton
+            onCheckNow={onCheckNow}
+            checkingNow={checkingNow}
+            reviewRequested={copy.pullRequestReview}
+          />
+        ) : null
+      }
     >
       <div className="flex flex-col gap-2">
-        {copy.pullRequestReview ? <IssuePullRequestLinks products={reviews} /> : null}
+        {copy.pullRequestReview ? (
+          <IssuePullRequestLinks products={reviews} />
+        ) : null}
         <span>{copy.bannerMeta.join("  ·  ")}</span>
         {checkError ? <p role="alert">{checkError}</p> : null}
       </div>
@@ -234,7 +301,9 @@ export function IssueMonitorComposerStrip({
   checkError,
   className,
 }: IssueMonitorSurfaceProps & { className?: string }) {
-  const reviews = getIssuePullRequests(workProducts).filter(pullRequestNeedsReview);
+  const reviews = getIssuePullRequests(workProducts).filter(
+    pullRequestNeedsReview,
+  );
   const copy = useMonitorSurfaceCopy(issue, reviews.length);
   if (!copy) return null;
 
@@ -242,27 +311,49 @@ export function IssueMonitorComposerStrip({
     <div
       role="note"
       data-testid="issue-monitor-composer-strip"
-      className={cn("rounded-lg border border-border bg-muted/30 px-3 py-2", className)}
+      className={cn(
+        "rounded-lg border border-border bg-muted/30 px-3 py-2",
+        className,
+      )}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-2">
-          <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <Clock
+            className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
           <div className="flex min-w-0 flex-col gap-2">
-            <div className="text-sm font-medium text-foreground">{copy.stripTitle}</div>
-            {copy.pullRequestReview ? <IssuePullRequestLinks products={reviews} /> : null}
-            <div className="text-xs text-muted-foreground">{copy.stripMeta.join(" · ")}</div>
+            <div className="text-sm font-medium text-foreground">
+              {copy.stripTitle}
+            </div>
+            {copy.pullRequestReview ? (
+              <IssuePullRequestLinks products={reviews} />
+            ) : null}
+            <div className="text-xs text-muted-foreground">
+              {copy.stripMeta.join(" · ")}
+            </div>
           </div>
         </div>
-        {onCheckNow && !copy.workspaceWait ? <CheckNowButton onCheckNow={onCheckNow} checkingNow={checkingNow} reviewRequested={copy.pullRequestReview} /> : null}
+        {onCheckNow && !copy.workspaceWait ? (
+          <CheckNowButton
+            onCheckNow={onCheckNow}
+            checkingNow={checkingNow}
+            reviewRequested={copy.pullRequestReview}
+          />
+        ) : null}
       </div>
       <p className="mt-1.5 text-xs text-muted-foreground">
         {copy.pullRequestReview
           ? "Review on GitHub, then check status to have the agent verify the result."
           : copy.workspaceWait
-          ? "You can keep sending instructions while the agent waits."
-          : "Sending a reply wakes the agent now — before the scheduled check."}
+            ? "You can keep sending instructions while the agent waits."
+            : "Sending a reply wakes the agent now — before the scheduled check."}
       </p>
-      {checkError ? <p role="alert" className="text-sm text-destructive">{checkError}</p> : null}
+      {checkError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {checkError}
+        </p>
+      ) : null}
     </div>
   );
 }

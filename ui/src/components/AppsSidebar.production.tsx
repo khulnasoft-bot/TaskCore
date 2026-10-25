@@ -5,7 +5,11 @@ import { ChevronLeft, AppWindow, Store, ShieldQuestion } from "lucide-react";
 import { Link } from "@/lib/router";
 import { useCompany } from "@/context/CompanyContext";
 import { useSidebar } from "@/context/SidebarContext";
-import { DEVELOPER_TABS, advancedTabHref, isExperimentalToolTab } from "@/pages/tools/tool-tabs";
+import {
+  DEVELOPER_TABS,
+  advancedTabHref,
+  isExperimentalToolTab,
+} from "@/pages/tools/tool-tabs";
 import { useSmokeLabEnabled } from "@/hooks/useSmokeLabEnabled";
 import { useReviewCount } from "@/pages/apps/useReviewCount";
 import { SidebarNavItem } from "./SidebarNavItem.production";
@@ -39,8 +43,13 @@ export function AppsSidebar() {
   );
 
   if (pathname.endsWith("/apps/chat/connect")) return <ChatSetupSidebar />;
-  const chatDetail = pathname.match(/\/apps\/chat\/([^/]+)(?:\/(?:settings|access|reviews|conversations|activity))?\/?$/);
-  if (chatDetail) return <ChatDetailSidebar endpointId={chatDetail[1]} NavItem={SidebarNavItem} />;
+  const chatDetail = pathname.match(
+    /\/apps\/chat\/([^/]+)(?:\/(?:settings|access|reviews|conversations|activity))?\/?$/,
+  );
+  if (chatDetail)
+    return (
+      <ChatDetailSidebar endpointId={chatDetail[1]} NavItem={SidebarNavItem} />
+    );
 
   return (
     <aside className="w-full h-full min-h-0 border-r border-border bg-background flex flex-col">
@@ -57,7 +66,9 @@ export function AppsSidebar() {
         </Link>
         <div className="flex items-center gap-2 px-2 py-1">
           <AppWindow className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="flex-1 truncate text-sm font-bold text-foreground">Connectors</span>
+          <span className="flex-1 truncate text-sm font-bold text-foreground">
+            Connectors
+          </span>
         </div>
       </div>
 
@@ -83,7 +94,12 @@ export function AppsSidebar() {
           Advanced setup for developers. Most teams never open this.
         </p>
         <div className="flex flex-col gap-0.5">
-          <SidebarNavItem to="/apps/connections" label="Connections" icon={AppWindow} end />
+          <SidebarNavItem
+            to="/apps/connections"
+            label="Connections"
+            icon={AppWindow}
+            end
+          />
           {developerTabs.map((tab) => (
             <SidebarNavItem
               key={tab.key}

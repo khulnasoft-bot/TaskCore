@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PrpEvent } from "../../../../src/protocol/replay-contract";
-import {
-  acceptLiveEvent,
-  createLiveEventCursor,
-} from "./use-live-console";
+import { acceptLiveEvent, createLiveEventCursor } from "./use-live-console";
 
 function event(sourceEventId: string): PrpEvent {
   return { sourceEventId } as PrpEvent;

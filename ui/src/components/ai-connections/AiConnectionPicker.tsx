@@ -52,17 +52,10 @@ export function AiConnectionPicker({
     requirement,
     currentUserId,
   );
-  const problem = value ? bindingProblem(
-    value,
-    requirement,
-    connections,
-    currentUserId,
-    agentId,
-  ) : undefined;
-  const select = (
-    mode: "shared",
-    connection: AiConnectionSummary,
-  ) =>
+  const problem = value
+    ? bindingProblem(value, requirement, connections, currentUserId, agentId)
+    : undefined;
+  const select = (mode: "shared", connection: AiConnectionSummary) =>
     onChange({
       provider: requirement.provider,
       method: connection.method,
@@ -77,15 +70,21 @@ export function AiConnectionPicker({
           name={AI_PROVIDERS[requirement.provider].name}
           brandKey={requirement.provider}
           logoUrl={AI_PROVIDERS[requirement.provider].logo}
-          darkLogoUrl={requirement.provider === "xai" ? "/brands/adapters/grok-dark.svg" : undefined}
+          darkLogoUrl={
+            requirement.provider === "xai"
+              ? "/brands/adapters/grok-dark.svg"
+              : undefined
+          }
           size={32}
         />
         <div className="flex min-w-0 flex-col gap-1">
-        <h3 className="text-sm font-semibold">AI connection</h3>
-        <p className="text-xs text-muted-foreground">
-          {AI_PROVIDERS[requirement.provider].name}
-          {value && value.mode !== "responsible_user" && ` · ${aiMethodLabel(value.provider, value.method)}`}
-        </p>
+          <h3 className="text-sm font-semibold">AI connection</h3>
+          <p className="text-xs text-muted-foreground">
+            {AI_PROVIDERS[requirement.provider].name}
+            {value &&
+              value.mode !== "responsible_user" &&
+              ` · ${aiMethodLabel(value.provider, value.method)}`}
+          </p>
         </div>
       </div>
       {loading ? (
@@ -107,21 +106,63 @@ export function AiConnectionPicker({
         <>
           <ConnectionChoiceList
             disabled={readOnly}
-            selectedId={value?.mode === "responsible_user" ? "responsible_user" : value?.connectionId}
+            selectedId={
+              value?.mode === "responsible_user"
+                ? "responsible_user"
+                : value?.connectionId
+            }
             choices={[
-              { id: "responsible_user", name: "Responsible user’s connection", description: <>
-                <span className="block">For you: {personalDefault?.name ?? "Not connected"}</span>
-                <span className="block">Other users’ tasks use their own {AI_PROVIDERS[requirement.provider].name} connection.</span>
-              </> },
-              ...compatible.filter((connection) => connection.ownership === "shared").map((connection) => ({
-                id: connection.id, name: connection.name,
-                disabled: Boolean(aiConnectionProblem(connection)),
-                description: <>Company shared · {aiMethodLabel(connection.provider, connection.method)}{connection.accountLabel ? ` · ${connection.accountLabel}` : ""}{aiConnectionProblem(connection) ? ` · ${aiConnectionProblem(connection)}` : ""}</>,
-              })),
+              {
+                id: "responsible_user",
+                name: "Responsible user’s connection",
+                description: (
+                  <>
+                    <span className="block">
+                      For you: {personalDefault?.name ?? "Not connected"}
+                    </span>
+                    <span className="block">
+                      Other users’ tasks use their own{" "}
+                      {AI_PROVIDERS[requirement.provider].name} connection.
+                    </span>
+                  </>
+                ),
+              },
+              ...compatible
+                .filter((connection) => connection.ownership === "shared")
+                .map((connection) => ({
+                  id: connection.id,
+                  name: connection.name,
+                  disabled: Boolean(aiConnectionProblem(connection)),
+                  description: (
+                    <>
+                      Company shared ·{" "}
+                      {aiMethodLabel(connection.provider, connection.method)}
+                      {connection.accountLabel
+                        ? ` · ${connection.accountLabel}`
+                        : ""}
+                      {aiConnectionProblem(connection)
+                        ? ` · ${aiConnectionProblem(connection)}`
+                        : ""}
+                    </>
+                  ),
+                })),
             ]}
             onSelect={(id) => {
-              if (id === "responsible_user") onChange({provider: requirement.provider, method: personalDefault?.method ?? requirement.method ?? (requirement.provider === "openrouter" ? "api_key" : "subscription"), mode: "responsible_user"});
-              else { const connection = compatible.find((item) => item.id === id)!; select("shared", connection); }
+              if (id === "responsible_user")
+                onChange({
+                  provider: requirement.provider,
+                  method:
+                    personalDefault?.method ??
+                    requirement.method ??
+                    (requirement.provider === "openrouter"
+                      ? "api_key"
+                      : "subscription"),
+                  mode: "responsible_user",
+                });
+              else {
+                const connection = compatible.find((item) => item.id === id)!;
+                select("shared", connection);
+              }
             }}
           />
           {problem && (
@@ -131,12 +172,12 @@ export function AiConnectionPicker({
           )}
           {!readOnly && (
             <div className="flex justify-end gap-2">
-              {onReconnect && <Button type="button" variant="outline" onClick={onReconnect}>Reconnect account</Button>}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onConnect}
-              >
+              {onReconnect && (
+                <Button type="button" variant="outline" onClick={onReconnect}>
+                  Reconnect account
+                </Button>
+              )}
+              <Button type="button" variant="outline" onClick={onConnect}>
                 Connect another account
               </Button>
             </div>

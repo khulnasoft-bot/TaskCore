@@ -16,27 +16,48 @@ type SupertestTestInstance = {
 
 type SupertestTestConstructor = {
   prototype: {
-    serverAddress(this: SupertestTestInstance, app: SupertestServer, path: string): string;
+    serverAddress(
+      this: SupertestTestInstance,
+      app: SupertestServer,
+      path: string,
+    ): string;
     __taskcoreLoopbackPatched?: boolean;
   };
 };
 
 // Keep the original home available only for read-only host port-lease checks.
-process.env.TASKCORE_TEST_HOST_HOME ??= process.env.TASKCORE_HOME?.trim() || path.join(os.homedir(), ".taskcore");
+process.env.TASKCORE_TEST_HOST_HOME ??=
+  process.env.TASKCORE_HOME?.trim() || path.join(os.homedir(), ".taskcore");
 
 // Receipt-spool recovery must never scan a developer's instance during tests.
-const taskcoreTestHome = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-vitest-home-"));
+const taskcoreTestHome = fs.mkdtempSync(
+  path.join(os.tmpdir(), "taskcore-vitest-home-"),
+);
 process.env.TASKCORE_HOME = taskcoreTestHome;
 // Setup-file afterAll hooks run before suites drain asynchronous heartbeats.
 // Cleanup at worker exit, after all suite teardown, avoids deleting live state.
-process.once("exit", () => fs.rmSync(taskcoreTestHome, { recursive: true, force: true, maxRetries: 8, retryDelay: 50 }));
+process.once("exit", () =>
+  fs.rmSync(taskcoreTestHome, {
+    recursive: true,
+    force: true,
+    maxRetries: 8,
+    retryDelay: 50,
+  }),
+);
 
 const require = createRequire(import.meta.url);
-const SupertestTest = require("supertest/lib/test.js") as SupertestTestConstructor;
+const SupertestTest =
+  require("supertest/lib/test.js") as SupertestTestConstructor;
 
 if (!process.env.CODEX_HOME) {
-  const codexHome = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-vitest-codex-home-"));
-  fs.writeFileSync(path.join(codexHome, "auth.json"), '{"OPENAI_API_KEY":"sk-vitest"}\n', { mode: 0o600 });
+  const codexHome = fs.mkdtempSync(
+    path.join(os.tmpdir(), "taskcore-vitest-codex-home-"),
+  );
+  fs.writeFileSync(
+    path.join(codexHome, "auth.json"),
+    '{"OPENAI_API_KEY":"sk-vitest"}\n',
+    { mode: 0o600 },
+  );
   process.env.CODEX_HOME = codexHome;
 }
 
@@ -61,11 +82,12 @@ if (!SupertestTest.prototype.__taskcoreLoopbackPatched) {
       throw new Error("Expected Supertest server to listen on a TCP port");
     }
 
-    const host = listeningAddress.address === "::"
-      ? "[::1]"
-      : listeningAddress.address === "0.0.0.0"
-        ? "127.0.0.1"
-        : listeningAddress.address;
+    const host =
+      listeningAddress.address === "::"
+        ? "[::1]"
+        : listeningAddress.address === "0.0.0.0"
+          ? "127.0.0.1"
+          : listeningAddress.address;
     const protocol = app instanceof TlsServer ? "https" : "http";
     return `${protocol}://${host}:${listeningAddress.port}${path}`;
   };

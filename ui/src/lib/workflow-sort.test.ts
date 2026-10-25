@@ -81,7 +81,12 @@ describe("workflowSort", () => {
       issue("child-a", "2026-04-02T00:00:00.000Z", ["root"]),
       issue("root", "2026-04-01T00:00:00.000Z"),
     ]);
-    expect(orderedIds(out)).toEqual(["root", "child-a", "child-b", "later-standalone"]);
+    expect(orderedIds(out)).toEqual([
+      "root",
+      "child-a",
+      "child-b",
+      "later-standalone",
+    ]);
   });
 
   it("stops chain walking at a merge (successor has multiple predecessors)", () => {

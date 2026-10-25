@@ -32,13 +32,17 @@ export interface CapabilityRoute {
   mode: "fake" | "live" | "replay";
 }
 
-const SECTION_IDS = new Set<string>(CAPABILITY_EVIDENCE_SECTIONS.map((section) => section.id));
+const SECTION_IDS = new Set<string>(
+  CAPABILITY_EVIDENCE_SECTIONS.map((section) => section.id),
+);
 
 function mergeParams(search: string, hash: string): URLSearchParams {
   const params = new URLSearchParams(search);
   const queryIndex = hash.indexOf("?");
   if (queryIndex >= 0) {
-    for (const [key, value] of new URLSearchParams(hash.slice(queryIndex + 1))) {
+    for (const [key, value] of new URLSearchParams(
+      hash.slice(queryIndex + 1),
+    )) {
       params.set(key, value);
     }
   }
@@ -60,7 +64,9 @@ export function parseCapabilityRoute(url: {
   const segment = params.get("seg");
   const mode = chat
     ? ("live" as const)
-    : requestedMode === "live" || requestedMode === "replay" || requestedMode === "fake"
+    : requestedMode === "live" ||
+        requestedMode === "replay" ||
+        requestedMode === "fake"
       ? requestedMode
       : shot === "replay-mode"
         ? "replay"
@@ -69,15 +75,22 @@ export function parseCapabilityRoute(url: {
     surface: chat ? "chat" : "issue",
     fixtureProfile: match?.[1] ?? CAPABILITY_DEFAULT_FIXTURE_PROFILE,
     shot,
-    panel: panel !== null && SECTION_IDS.has(panel) ? (panel as CapabilityEvidenceSectionId) : null,
+    panel:
+      panel !== null && SECTION_IDS.has(panel)
+        ? (panel as CapabilityEvidenceSectionId)
+        : null,
     record: params.get("rec"),
-    at: chat || at === null || !/^\d+$/.test(at) ? null : Number.parseInt(at, 10),
+    at:
+      chat || at === null || !/^\d+$/.test(at) ? null : Number.parseInt(at, 10),
     segment: segment === "evidence" ? "evidence" : "thread",
     mode,
   };
 }
 
-export function capabilityRouteHref(route: CapabilityRoute, overrides: Partial<CapabilityRoute>): string {
+export function capabilityRouteHref(
+  route: CapabilityRoute,
+  overrides: Partial<CapabilityRoute>,
+): string {
   const next = { ...route, ...overrides };
   const params = new URLSearchParams();
   if (next.surface === "chat") {

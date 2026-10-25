@@ -38,11 +38,13 @@ export function stalledReviewDecisionService(db: Db) {
         const lockedIssue = await tx
           .select()
           .from(issues)
-          .where(and(
-            eq(issues.id, input.issueId),
-            eq(issues.companyId, input.companyId),
-            executionIssueCondition(),
-          ))
+          .where(
+            and(
+              eq(issues.id, input.issueId),
+              eq(issues.companyId, input.companyId),
+              executionIssueCondition(),
+            ),
+          )
           .for("update")
           .then((rows) => rows[0] ?? null);
 
@@ -124,7 +126,8 @@ export function stalledReviewDecisionService(db: Db) {
 
         return { issue: updated, comment };
       });
-      for (const publication of postCommitActivityPublications) publishActivity(publication);
+      for (const publication of postCommitActivityPublications)
+        publishActivity(publication);
       await executeIssuePostCommitActions(db, postCommitIssueActions);
       return result;
     },

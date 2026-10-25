@@ -73,7 +73,8 @@ const manifest: TaskcorePluginManifestV1 = {
           // ---- Advanced: VM resources ----
           image: {
             type: "string",
-            description: "Optional container image to use when creating the VM.",
+            description:
+              "Optional container image to use when creating the VM.",
             "x-taskcore-advanced": true,
             "x-taskcore-group": "VM resources",
           },
@@ -109,20 +110,23 @@ const manifest: TaskcorePluginManifestV1 = {
           },
           command: {
             type: "string",
-            description: "Optional container command passed to `exe.dev new --command`.",
+            description:
+              "Optional container command passed to `exe.dev new --command`.",
             "x-taskcore-advanced": true,
             "x-taskcore-group": "VM creation",
           },
           env: {
             type: "object",
-            description: "Optional environment variables applied at VM creation time.",
+            description:
+              "Optional environment variables applied at VM creation time.",
             additionalProperties: { type: "string" },
             "x-taskcore-advanced": true,
             "x-taskcore-group": "VM creation",
           },
           integrations: {
             type: "array",
-            description: "Optional exe.dev integrations to attach during VM creation.",
+            description:
+              "Optional exe.dev integrations to attach during VM creation.",
             items: { type: "string" },
             "x-taskcore-advanced": true,
             "x-taskcore-group": "VM creation",
@@ -136,13 +140,15 @@ const manifest: TaskcorePluginManifestV1 = {
           },
           setupScript: {
             type: "string",
-            description: "Optional first-boot setup script passed to `exe.dev new --setup-script`.",
+            description:
+              "Optional first-boot setup script passed to `exe.dev new --setup-script`.",
             "x-taskcore-advanced": true,
             "x-taskcore-group": "VM creation",
           },
           prompt: {
             type: "string",
-            description: "Optional Shelley prompt passed to `exe.dev new --prompt`.",
+            description:
+              "Optional Shelley prompt passed to `exe.dev new --prompt`.",
             "x-taskcore-advanced": true,
             "x-taskcore-group": "VM creation",
           },
@@ -169,7 +175,8 @@ const manifest: TaskcorePluginManifestV1 = {
           },
           timeoutMs: {
             type: "number",
-            description: "Timeout for VM lifecycle and SSH operations in milliseconds.",
+            description:
+              "Timeout for VM lifecycle and SSH operations in milliseconds.",
             default: 300000,
             "x-taskcore-advanced": true,
             "x-taskcore-group": "API + runtime",

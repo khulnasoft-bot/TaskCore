@@ -15,19 +15,37 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../..");
 describe("runner E2E Daytona image contract", () => {
   it("keeps the qualified native Grok binary separate from the legacy command", async () => {
     const [dockerfile, packBuilder, runnerPackage] = await Promise.all([
-      readFile(path.join(repositoryRoot, "docker/daytona-runner/Dockerfile"), "utf8"),
-      readFile(path.join(repositoryRoot, "packages/taskcore-runner/scripts/build-provider-pack.mjs"), "utf8"),
-      readFile(path.join(repositoryRoot, "packages/taskcore-runner/package.json"), "utf8"),
+      readFile(
+        path.join(repositoryRoot, "docker/daytona-runner/Dockerfile"),
+        "utf8",
+      ),
+      readFile(
+        path.join(
+          repositoryRoot,
+          "packages/taskcore-runner/scripts/build-provider-pack.mjs",
+        ),
+        "utf8",
+      ),
+      readFile(
+        path.join(repositoryRoot, "packages/taskcore-runner/package.json"),
+        "utf8",
+      ),
     ]);
     expect(dockerfile).toMatch(/@xai-official\/grok@\d+\.\d+\.\d+/);
     expect(dockerfile).not.toMatch(/for cli in[^;]*\bgrok\b/);
     expect(packBuilder).not.toMatch(/writePortable\w+Shim\("grok"/);
-    expect(JSON.parse(runnerPackage).dependencies).not.toHaveProperty("@taskcore/grok-acp");
+    expect(JSON.parse(runnerPackage).dependencies).not.toHaveProperty(
+      "@taskcore/grok-acp",
+    );
     expect(packBuilder).toContain('path: "dist/providers/grok/launcher.cjs"');
     expect(dockerfile).toContain("scripts/provision-grok.mjs");
     expect(dockerfile).toContain("/opt/taskcore/providers/grok/1.0.13/grok");
-    expect(DAYTONA_IMAGE_INPUT_PATHS).toContain("packages/taskcore-runner/scripts/provision-grok.mjs");
-    expect(DAYTONA_IMAGE_INPUT_PATHS).not.toContain("packages/grok-acp/package.json");
+    expect(DAYTONA_IMAGE_INPUT_PATHS).toContain(
+      "packages/taskcore-runner/scripts/provision-grok.mjs",
+    );
+    expect(DAYTONA_IMAGE_INPUT_PATHS).not.toContain(
+      "packages/grok-acp/package.json",
+    );
   });
 
   it("builds runnerd and the provider pack and verifies every required transport", async () => {
@@ -46,7 +64,9 @@ describe("runner E2E Daytona image contract", () => {
       ),
     ]);
     const normalizedDockerfile = dockerfile.replace(/\\\r?\n\s*/g, " ");
-    const daytonaImageJob = workflow.match(/^  daytona_image:\n[\s\S]*?(?=^  \w+:)/m)?.[0];
+    const daytonaImageJob = workflow.match(
+      /^  daytona_image:\n[\s\S]*?(?=^  \w+:)/m,
+    )?.[0];
     expect(daytonaImageJob).toBeDefined();
     expect(dockerfile).toContain("--bin taskcore-runnerd");
     expect(dockerfile).toContain("build-provider-pack.mjs /provider-pack");
@@ -56,9 +76,7 @@ describe("runner E2E Daytona image contract", () => {
     expect(normalizedDockerfile).not.toContain(
       "COPY packages/taskcore-runner ./packages/taskcore-runner",
     );
-    expect(dockerfile).toContain(
-      "COPY packages ./packages",
-    );
+    expect(dockerfile).toContain("COPY packages ./packages");
     expect(dockerfile).toContain(
       "/opt/taskcore-runner/provider-pack/provider-pack.json",
     );
@@ -173,9 +191,7 @@ describe("runner E2E Daytona image contract", () => {
     const providerInstall = dockerfile.indexOf(
       "pnpm install --frozen-lockfile --filter '@taskcore/taskcore-runner...'",
     );
-    const runnerSourceCopy = dockerfile.indexOf(
-      "COPY packages ./packages",
-    );
+    const runnerSourceCopy = dockerfile.indexOf("COPY packages ./packages");
     const providerRevisionArg = dockerfile.indexOf(
       "ARG TASKCORE_RUNNER_SOURCE_REVISION",
     );
@@ -211,9 +227,7 @@ describe("runner E2E Daytona image contract", () => {
     expect(DAYTONA_IMAGE_INPUT_PATHS).not.toContain(
       "packages/taskcore-eval-kernel",
     );
-    expect(DAYTONA_IMAGE_INPUT_PATHS).not.toContain(
-      "packages/taskcore-runner",
-    );
+    expect(DAYTONA_IMAGE_INPUT_PATHS).not.toContain("packages/taskcore-runner");
     expect(DAYTONA_IMAGE_DOCKERFILE_PATH).toBe(
       "docker/daytona-runner/Dockerfile",
     );
@@ -278,17 +292,37 @@ describe("runner E2E Daytona image contract", () => {
         ),
         'pub const VERSION: &str = "one";\n',
       );
-      for (const relativePath of [
-      ]) await writeFile(path.join(root, relativePath), "version one\n");
+      for (const relativePath of [])
+        await writeFile(path.join(root, relativePath), "version one\n");
       const baseline = await computeDaytonaImageContentId(options);
-      const candidate = await computeDaytonaImageContentId({ ...options, candidateProviders: ["pi"] });
+      const candidate = await computeDaytonaImageContentId({
+        ...options,
+        candidateProviders: ["pi"],
+      });
       expect(candidate).not.toBe(baseline);
-      expect(await computeDaytonaImageContentId({ ...options, candidateProviders: ["copilot", "pi"] }))
-        .toBe(await computeDaytonaImageContentId({ ...options, candidateProviders: ["pi", "copilot"] }));
-      await expect(computeDaytonaImageContentId({ ...options, candidateProviders: ["pi", "pi"] }))
-        .rejects.toThrow("distinct known");
-      await expect(computeDaytonaImageContentId({ ...options, candidateProviders: ["unknown"] }))
-        .rejects.toThrow("distinct known");
+      expect(
+        await computeDaytonaImageContentId({
+          ...options,
+          candidateProviders: ["copilot", "pi"],
+        }),
+      ).toBe(
+        await computeDaytonaImageContentId({
+          ...options,
+          candidateProviders: ["pi", "copilot"],
+        }),
+      );
+      await expect(
+        computeDaytonaImageContentId({
+          ...options,
+          candidateProviders: ["pi", "pi"],
+        }),
+      ).rejects.toThrow("distinct known");
+      await expect(
+        computeDaytonaImageContentId({
+          ...options,
+          candidateProviders: ["unknown"],
+        }),
+      ).rejects.toThrow("distinct known");
       expect(
         await computeDaytonaImageContentId({
           ...options,
@@ -338,7 +372,9 @@ describe("runner E2E Daytona image contract", () => {
     "packages/taskcore-runner/scripts/cursor-runtime-patch.mjs",
     "packages/taskcore-runner/scripts/provider-pack-executable-shims.mjs",
   ])("invalidates the image when %s changes", async (patchPath) => {
-    const root = await mkdtemp(path.join(tmpdir(), "taskcore-provider-image-id-"));
+    const root = await mkdtemp(
+      path.join(tmpdir(), "taskcore-provider-image-id-"),
+    );
     expect(DAYTONA_IMAGE_INPUT_PATHS).toContain(patchPath);
     const options = {
       repositoryRoot: root,
@@ -348,10 +384,18 @@ describe("runner E2E Daytona image contract", () => {
       candidateProviders: ["cursor"],
     } as const;
     try {
-      await mkdir(path.dirname(path.join(root, patchPath)), { recursive: true });
-      await writeFile(path.join(root, patchPath), "export const policy = 'one';\n");
+      await mkdir(path.dirname(path.join(root, patchPath)), {
+        recursive: true,
+      });
+      await writeFile(
+        path.join(root, patchPath),
+        "export const policy = 'one';\n",
+      );
       const baseline = await computeDaytonaImageContentId(options);
-      await writeFile(path.join(root, patchPath), "export const policy = 'two';\n");
+      await writeFile(
+        path.join(root, patchPath),
+        "export const policy = 'two';\n",
+      );
       expect(await computeDaytonaImageContentId(options)).not.toBe(baseline);
     } finally {
       await rm(root, { recursive: true, force: true });

@@ -1,9 +1,18 @@
 import { join } from "node:path";
 
-import { verifyNativeAcpxInstallation, type VerifiedAcpxInstallation } from "./installation-integrity.js";
+import {
+  verifyNativeAcpxInstallation,
+  type VerifiedAcpxInstallation,
+} from "./installation-integrity.js";
 import type { NativeAcpxDistributionInput } from "./native-distribution-integrity.js";
-import { CURSOR_PINNED_VERSION, CURSOR_FIXED_ARGUMENTS } from "./cursor-launch-policy.js";
-import { QUALIFIED_ACPX_PROFILES, type QualifiedAcpxProfile } from "./qualified-profiles.js";
+import {
+  CURSOR_PINNED_VERSION,
+  CURSOR_FIXED_ARGUMENTS,
+} from "./cursor-launch-policy.js";
+import {
+  QUALIFIED_ACPX_PROFILES,
+  type QualifiedAcpxProfile,
+} from "./qualified-profiles.js";
 import { resolveRunnerProviderAssetsRoot } from "./provider-assets-root.js";
 import { resolveCursorDistributionRoot } from "./cursor-runtime-cache.js";
 
@@ -16,9 +25,18 @@ export function cursorNativeDistributionSpec(
   architecture: string = process.arch,
 ): NativeAcpxDistributionInput {
   const key = `${platform}-${architecture}`;
-  if (!Object.hasOwn(CURSOR_DISTRIBUTION_PINS, key)) throw new Error(`Cursor ${CURSOR_PINNED_VERSION} has no pinned distribution for ${key}`);
-  const distribution = CURSOR_DISTRIBUTION_PINS[key as keyof typeof CURSOR_DISTRIBUTION_PINS];
-  const distributionRoot = resolveCursorDistributionRoot(resolveRunnerProviderAssetsRoot(import.meta.url, "cursor"), distribution.closureSha256, platform, architecture);
+  if (!Object.hasOwn(CURSOR_DISTRIBUTION_PINS, key))
+    throw new Error(
+      `Cursor ${CURSOR_PINNED_VERSION} has no pinned distribution for ${key}`,
+    );
+  const distribution =
+    CURSOR_DISTRIBUTION_PINS[key as keyof typeof CURSOR_DISTRIBUTION_PINS];
+  const distributionRoot = resolveCursorDistributionRoot(
+    resolveRunnerProviderAssetsRoot(import.meta.url, "cursor"),
+    distribution.closureSha256,
+    platform,
+    architecture,
+  );
   return {
     distributionRoot,
     manifestPath: join(distributionRoot, ".taskcore-cursor-closure.json"),
@@ -30,15 +48,28 @@ export function cursorNativeDistributionSpec(
 }
 
 /** Verifies launch bytes, not qualification. Profile admission remains separate. */
-export async function verifyCursorInstallation(profile: QualifiedAcpxProfile): Promise<VerifiedAcpxInstallation> {
+export async function verifyCursorInstallation(
+  profile: QualifiedAcpxProfile,
+): Promise<VerifiedAcpxInstallation> {
   const trusted = QUALIFIED_ACPX_PROFILES.cursor;
   const modelFields = new Set(["qualificationModel", "reportedModelId"]);
-  if (Object.keys(profile).some(key => !modelFields.has(key) && !Object.hasOwn(trusted, key))
-    || Object.entries(trusted).some(([key, value]) => profile[key as keyof QualifiedAcpxProfile] !== value)
-    || typeof profile.qualificationModel !== "string" || !profile.qualificationModel.trim()
-    || profile.reportedModelId !== profile.qualificationModel) {
-    throw new Error("Cursor installation requires the exact pinned profile and an explicit model");
+  if (
+    Object.keys(profile).some(
+      (key) => !modelFields.has(key) && !Object.hasOwn(trusted, key),
+    ) ||
+    Object.entries(trusted).some(
+      ([key, value]) => profile[key as keyof QualifiedAcpxProfile] !== value,
+    ) ||
+    typeof profile.qualificationModel !== "string" ||
+    !profile.qualificationModel.trim() ||
+    profile.reportedModelId !== profile.qualificationModel
+  ) {
+    throw new Error(
+      "Cursor installation requires the exact pinned profile and an explicit model",
+    );
   }
-  const installation = await verifyNativeAcpxInstallation(cursorNativeDistributionSpec());
+  const installation = await verifyNativeAcpxInstallation(
+    cursorNativeDistributionSpec(),
+  );
   return { ...installation, commandDigest: trusted.commandDigest };
 }

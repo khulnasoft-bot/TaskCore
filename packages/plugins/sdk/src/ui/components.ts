@@ -49,7 +49,8 @@ export interface MetricCardProps {
 }
 
 /** Status variants for `StatusBadge`. */
-export type StatusBadgeVariant = "ok" | "warning" | "error" | "info" | "pending";
+export type StatusBadgeVariant =
+  "ok" | "warning" | "error" | "info" | "pending";
 
 /** Props for `StatusBadge`. */
 export interface StatusBadgeProps {
@@ -132,7 +133,10 @@ export interface MarkdownBlockProps {
   /** Base href used for wikilinks when no resolver is supplied. */
   wikiLinkRoot?: string;
   /** Optional href resolver for wikilinks. Return null to leave a token as plain text. */
-  resolveWikiLinkHref?: (target: string, label: string) => string | null | undefined;
+  resolveWikiLinkHref?: (
+    target: string,
+    label: string,
+  ) => string | null | undefined;
 }
 
 /** Props for `MarkdownEditor`. */
@@ -262,7 +266,8 @@ export interface FileTreeNode {
 }
 
 /** Badge status variants supported by `FileTree`. */
-export type FileTreeBadgeVariant = "ok" | "warning" | "error" | "info" | "pending";
+export type FileTreeBadgeVariant =
+  "ok" | "warning" | "error" | "info" | "pending";
 
 /** Serializable badge metadata keyed by file path. */
 export interface FileTreeBadge {
@@ -455,7 +460,10 @@ export interface ManagedRoutinesListProps {
   reconcilingRoutineKey?: string | null;
   resettingRoutineKey?: string | null;
   onRunNow?: (routine: ManagedRoutinesListItem) => void;
-  onToggleEnabled?: (routine: ManagedRoutinesListItem, enabled: boolean) => void;
+  onToggleEnabled?: (
+    routine: ManagedRoutinesListItem,
+    enabled: boolean,
+  ) => void;
   onReconcile?: (routine: ManagedRoutinesListItem) => void;
   onReset?: (routine: ManagedRoutinesListItem) => void;
 }
@@ -473,7 +481,9 @@ export interface ManagedRoutinesListProps {
  *
  * @see PLUGIN_SPEC.md §19.6 — Shared Components
  */
-function createSdkUiComponent<TProps>(name: string): React.ComponentType<TProps> {
+function createSdkUiComponent<TProps>(
+  name: string,
+): React.ComponentType<TProps> {
   return function TaskcoreSdkUiComponent(props: TProps) {
     return renderSdkUiComponent(name, props) as React.ReactNode;
   };
@@ -486,7 +496,8 @@ export const MetricCard = createSdkUiComponent<MetricCardProps>("MetricCard");
  *
  * @see PLUGIN_SPEC.md §19.6 — Shared Components
  */
-export const StatusBadge = createSdkUiComponent<StatusBadgeProps>("StatusBadge");
+export const StatusBadge =
+  createSdkUiComponent<StatusBadgeProps>("StatusBadge");
 
 /**
  * Sortable, paginated data table.
@@ -500,28 +511,32 @@ export const DataTable = createSdkUiComponent<DataTableProps>("DataTable");
  *
  * @see PLUGIN_SPEC.md §19.6 — Shared Components
  */
-export const TimeseriesChart = createSdkUiComponent<TimeseriesChartProps>("TimeseriesChart");
+export const TimeseriesChart =
+  createSdkUiComponent<TimeseriesChartProps>("TimeseriesChart");
 
 /**
  * Renders Markdown text as HTML.
  *
  * @see PLUGIN_SPEC.md §19.6 — Shared Components
  */
-export const MarkdownBlock = createSdkUiComponent<MarkdownBlockProps>("MarkdownBlock");
+export const MarkdownBlock =
+  createSdkUiComponent<MarkdownBlockProps>("MarkdownBlock");
 
 /**
  * Renders Taskcore's shared Markdown editor.
  *
  * @see PLUGIN_SPEC.md §19.6 — Shared Components
  */
-export const MarkdownEditor = createSdkUiComponent<MarkdownEditorProps>("MarkdownEditor");
+export const MarkdownEditor =
+  createSdkUiComponent<MarkdownEditorProps>("MarkdownEditor");
 
 /**
  * Renders a definition-list of label/value pairs.
  *
  * @see PLUGIN_SPEC.md §19.6 — Shared Components
  */
-export const KeyValueList = createSdkUiComponent<KeyValueListProps>("KeyValueList");
+export const KeyValueList =
+  createSdkUiComponent<KeyValueListProps>("KeyValueList");
 
 /**
  * Row of action buttons wired to the plugin bridge's `performAction` handlers.
@@ -557,7 +572,8 @@ export const Spinner = createSdkUiComponent<SpinnerProps>("Spinner");
  *
  * @see PLUGIN_SPEC.md §19.7 — Error Propagation Through The Bridge
  */
-export const ErrorBoundary = createSdkUiComponent<ErrorBoundaryProps>("ErrorBoundary");
+export const ErrorBoundary =
+  createSdkUiComponent<ErrorBoundaryProps>("ErrorBoundary");
 
 /**
  * Renders the host file tree component with a stable plugin-safe prop surface.
@@ -584,14 +600,17 @@ export const IssuesList = createSdkUiComponent<IssuesListProps>("IssuesList");
 /**
  * Renders the same host assignee picker used by the new issue pane.
  */
-export const AssigneePicker = createSdkUiComponent<AssigneePickerProps>("AssigneePicker");
+export const AssigneePicker =
+  createSdkUiComponent<AssigneePickerProps>("AssigneePicker");
 
 /**
  * Renders the same host project picker used by the new issue pane.
  */
-export const ProjectPicker = createSdkUiComponent<ProjectPickerProps>("ProjectPicker");
+export const ProjectPicker =
+  createSdkUiComponent<ProjectPickerProps>("ProjectPicker");
 
 /**
  * Renders Taskcore's native managed routines list for plugin settings pages.
  */
-export const ManagedRoutinesList = createSdkUiComponent<ManagedRoutinesListProps>("ManagedRoutinesList");
+export const ManagedRoutinesList =
+  createSdkUiComponent<ManagedRoutinesListProps>("ManagedRoutinesList");

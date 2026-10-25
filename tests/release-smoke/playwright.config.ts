@@ -28,5 +28,8 @@ export default defineConfig({
     },
   ],
   outputDir: "./test-results",
-  reporter: [["list"], ["html", { open: "never", outputFolder: "./playwright-report" }]],
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: "./playwright-report" }],
+  ],
 });

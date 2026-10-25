@@ -6,7 +6,8 @@
  * view is shareable; it is never protocol state.
  */
 
-export type ScenarioChatnspectorView = "transcript" | "context" | "authorization" | "diff" | "parity";
+export type ScenarioChatnspectorView =
+  "transcript" | "context" | "authorization" | "diff" | "parity";
 
 /** The explorer reviews a corpus; the chat drives one session. Same shell. */
 export type CapabilitySurface = "explorer" | "chat";
@@ -14,21 +15,10 @@ export type CapabilitySurface = "explorer" | "chat";
 export type CapabilityChatView = "chat" | "activity";
 
 export type CapabilityActivityFilter =
-  | "all"
-  | "tools"
-  | "authorization"
-  | "control"
-  | "diff"
-  | "parity";
+  "all" | "tools" | "authorization" | "control" | "diff" | "parity";
 
-export const CAPABILITY_ACTIVITY_FILTERS: readonly CapabilityActivityFilter[] = [
-  "all",
-  "tools",
-  "authorization",
-  "control",
-  "diff",
-  "parity",
-];
+export const CAPABILITY_ACTIVITY_FILTERS: readonly CapabilityActivityFilter[] =
+  ["all", "tools", "authorization", "control", "diff", "parity"];
 
 export const CAPABILITY_INSPECTOR_VIEWS: readonly ScenarioChatnspectorView[] = [
   "transcript",
@@ -80,9 +70,16 @@ export function parseCapabilityRoute(hash: string): CapabilityRoute {
   const [pathPart = "", queryPart = ""] = raw.split("?", 2);
   const params = new URLSearchParams(queryPart);
   const segments = pathPart.split("/").filter((segment) => segment.length > 0);
-  const surface: CapabilitySurface = segments[0] === "chat" ? "chat" : "explorer";
-  const caseSegment = surface === "chat" ? segments[1] : segments[0] === "case" ? segments[1] : undefined;
-  const caseId = caseSegment === undefined ? null : decodeURIComponent(caseSegment);
+  const surface: CapabilitySurface =
+    segments[0] === "chat" ? "chat" : "explorer";
+  const caseSegment =
+    surface === "chat"
+      ? segments[1]
+      : segments[0] === "case"
+        ? segments[1]
+        : undefined;
+  const caseId =
+    caseSegment === undefined ? null : decodeURIComponent(caseSegment);
   const run = params.get("run");
   const view = params.get("view");
   const turn = Number.parseInt(params.get("turn") ?? "", 10);
@@ -125,7 +122,8 @@ export function serializeCapabilityRoute(route: CapabilityRoute): string {
     }
     if (route.filters.query.length > 0) params.set("q", route.filters.query);
   }
-  const path = route.caseId === null ? "/" : `/case/${encodeURIComponent(route.caseId)}`;
+  const path =
+    route.caseId === null ? "/" : `/case/${encodeURIComponent(route.caseId)}`;
   const query = params.toString();
   return `#${path}${query.length > 0 ? `?${query}` : ""}`;
 }
@@ -133,12 +131,20 @@ export function serializeCapabilityRoute(route: CapabilityRoute): string {
 export function activeFilterChips(
   filters: CapabilityFilters,
 ): Array<{ key: keyof CapabilityFilters; label: string; value: string }> {
-  const chips: Array<{ key: keyof CapabilityFilters; label: string; value: string }> = [];
+  const chips: Array<{
+    key: keyof CapabilityFilters;
+    label: string;
+    value: string;
+  }> = [];
   if (filters.group !== null && filters.group.length > 0) {
     chips.push({ key: "group", label: "Group", value: filters.group });
   }
   if (filters.disposition !== null && filters.disposition.length > 0) {
-    chips.push({ key: "disposition", label: "Disposition", value: filters.disposition });
+    chips.push({
+      key: "disposition",
+      label: "Disposition",
+      value: filters.disposition,
+    });
   }
   if (filters.role !== null && filters.role.length > 0) {
     chips.push({ key: "role", label: "Role", value: filters.role });
@@ -159,21 +165,38 @@ export function hasActiveFilters(filters: CapabilityFilters): boolean {
   return activeFilterChips(filters).length > 0;
 }
 
-function serializeChatRoute(route: CapabilityRoute, params: URLSearchParams): string {
+function serializeChatRoute(
+  route: CapabilityRoute,
+  params: URLSearchParams,
+): string {
   if (route.replay !== null) params.set("replay", route.replay);
   if (route.chatView !== "chat") params.set("view", route.chatView);
   if (route.turn !== null) params.set("turn", String(route.turn));
-  if (route.activityFilter !== "all") params.set("filter", route.activityFilter);
+  if (route.activityFilter !== "all")
+    params.set("filter", route.activityFilter);
   if (route.stage !== null) params.set("stage", route.stage);
-  const path = route.caseId === null ? "/chat" : `/chat/${encodeURIComponent(route.caseId)}`;
+  const path =
+    route.caseId === null
+      ? "/chat"
+      : `/chat/${encodeURIComponent(route.caseId)}`;
   const query = params.toString();
   return `#${path}${query.length > 0 ? `?${query}` : ""}`;
 }
 
-function isInspectorView(value: string | null): value is ScenarioChatnspectorView {
-  return value !== null && (CAPABILITY_INSPECTOR_VIEWS as readonly string[]).includes(value);
+function isInspectorView(
+  value: string | null,
+): value is ScenarioChatnspectorView {
+  return (
+    value !== null &&
+    (CAPABILITY_INSPECTOR_VIEWS as readonly string[]).includes(value)
+  );
 }
 
-function isActivityFilter(value: string | null): value is CapabilityActivityFilter {
-  return value !== null && (CAPABILITY_ACTIVITY_FILTERS as readonly string[]).includes(value);
+function isActivityFilter(
+  value: string | null,
+): value is CapabilityActivityFilter {
+  return (
+    value !== null &&
+    (CAPABILITY_ACTIVITY_FILTERS as readonly string[]).includes(value)
+  );
 }

@@ -195,7 +195,10 @@ describe("dev server status helpers", () => {
     mkdirSync(lockPath);
     writeFileSync(
       path.join(lockPath, "owner.json"),
-      JSON.stringify({ pid: process.pid, acquiredAt: new Date().toISOString() }),
+      JSON.stringify({
+        pid: process.pid,
+        acquiredAt: new Date().toISOString(),
+      }),
       "utf8",
     );
 

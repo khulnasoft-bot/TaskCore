@@ -9,7 +9,10 @@ import {
 } from "@taskcore-runner-local/capability";
 
 import { ChatConversation } from "./chat-conversation.js";
-import { SessionHeader, type CapabilityChatMode } from "./chat-session-header.js";
+import {
+  SessionHeader,
+  type CapabilityChatMode,
+} from "./chat-session-header.js";
 import { EmptyState } from "./primitives.js";
 
 /**
@@ -25,7 +28,8 @@ import { EmptyState } from "./primitives.js";
  * answers, the header keeps naming the session that is actually running.
  */
 
-export type CapabilityChatState = "seeding" | "pending" | "streaming" | "settled" | "failed";
+export type CapabilityChatState =
+  "seeding" | "pending" | "streaming" | "settled" | "failed";
 
 export interface CapabilityChatSessionClient {
   artifact(): CapabilityChatSessionArtifact;
@@ -83,14 +87,17 @@ export function ChatSurface({
   openSession = openLocalSession,
   headerRef,
 }: ChatSurfaceProps) {
-  const [artifact, setArtifact] = React.useState<CapabilityChatSessionArtifact | null>(null);
+  const [artifact, setArtifact] =
+    React.useState<CapabilityChatSessionArtifact | null>(null);
   const [activeEntry, setActiveEntry] = React.useState(entry);
   const [epoch, setEpoch] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const [draft, setDraft] = React.useState("");
   const [revealed, setRevealed] = React.useState(0);
   const [mode, setMode] = React.useState<CapabilityChatMode>("scripted");
-  const [confirm, setConfirm] = React.useState<"none" | "reset" | "switch">("none");
+  const [confirm, setConfirm] = React.useState<"none" | "reset" | "switch">(
+    "none",
+  );
   const sessionRef = React.useRef<CapabilityChatSessionClient | null>(null);
   const composerRef = React.useRef<HTMLDivElement>(null);
 
@@ -148,16 +155,21 @@ export function ChatSurface({
     lastTurn === null
       ? undefined
       : artifact?.timeline.find(
-          (entry) => entry.turn === lastTurn.turn && entry.kind === "agent_message",
+          (entry) =>
+            entry.turn === lastTurn.turn && entry.kind === "agent_message",
         )?.sequence;
   const holdAt =
     lastTurn === null
       ? 0
       : Math.max(
-          Math.min(heldModelSequence ?? lastTurn.firstSequence, lastTurn.lastSequence - 1),
+          Math.min(
+            heldModelSequence ?? lastTurn.firstSequence,
+            lastTurn.lastSequence - 1,
+          ),
           lastTurn.firstSequence,
         );
-  const ceiling = stageStreaming && lastTurn !== null && lastTurn.turn > 0 ? holdAt : target;
+  const ceiling =
+    stageStreaming && lastTurn !== null && lastTurn.turn > 0 ? holdAt : target;
 
   // Streaming reveal. Replay routes and reduced-motion readers get the settled
   // transcript immediately; nothing about the record changes either way.
@@ -167,7 +179,10 @@ export function ChatSurface({
       return undefined;
     }
     if (revealed >= ceiling) return undefined;
-    const timer = window.setTimeout(() => setRevealed((current) => Math.min(current + 1, ceiling)), 45);
+    const timer = window.setTimeout(
+      () => setRevealed((current) => Math.min(current + 1, ceiling)),
+      45,
+    );
     return () => window.clearTimeout(timer);
   }, [ceiling, instant, revealed]);
 
@@ -221,7 +236,9 @@ export function ChatSurface({
   }, [publish]);
 
   const focusComposer = (): void => {
-    composerRef.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus();
+    composerRef.current
+      ?.querySelector<HTMLTextAreaElement>("textarea")
+      ?.focus();
   };
 
   // A scenario switch is a state discard, so it asks before it happens rather
@@ -240,7 +257,11 @@ export function ChatSurface({
       : null;
 
   return (
-    <div className="pcr7-chat" data-testid="chat-shell" data-chat-state={chatState}>
+    <div
+      className="pcr7-chat"
+      data-testid="chat-shell"
+      data-chat-state={chatState}
+    >
       <SessionHeader
         entry={activeEntry}
         artifact={artifact}
@@ -254,7 +275,12 @@ export function ChatSurface({
         headerRef={headerRef}
       />
 
-      <p className="pcr7-visually-hidden" role="status" aria-live="polite" data-testid="chat-live-region">
+      <p
+        className="pcr7-visually-hidden"
+        role="status"
+        aria-live="polite"
+        data-testid="chat-live-region"
+      >
         {chatState === "settled" && lastTurn !== null && lastTurn.turn > 0
           ? `Turn ${lastTurn.turn} settled — ${lastTurn.counts.denied} denied operation${
               lastTurn.counts.denied === 1 ? "" : "s"
@@ -266,8 +292,8 @@ export function ChatSurface({
         {artifact === null ? (
           <EmptyState title="Seeding the session…">
             <p className="pcr7-muted">
-              The control plane is checking out the task and deciding tool exposure. Nothing has been
-              asked of the agent yet.
+              The control plane is checking out the task and deciding tool
+              exposure. Nothing has been asked of the agent yet.
             </p>
           </EmptyState>
         ) : (
@@ -281,7 +307,11 @@ export function ChatSurface({
         )}
       </div>
 
-      <div ref={composerRef} className="pcr7-chat-composer" data-testid="composer">
+      <div
+        ref={composerRef}
+        className="pcr7-chat-composer"
+        data-testid="composer"
+      >
         {suggestion === null ? null : (
           <button
             type="button"
@@ -310,15 +340,18 @@ export function ChatSurface({
             : "Codex mode drives the same mock control plane through the server-side relay; no provider credential reaches this page."}
         </p>
         <p className="pcr7-muted">
-          Synthetic demo only. Session state is memory-only and is cleared on reset, expiry, or restart;
-          do not enter confidential or regulated data.
+          Synthetic demo only. Session state is memory-only and is cleared on
+          reset, expiry, or restart; do not enter confidential or regulated
+          data.
         </p>
       </div>
 
       <Dialog
         open={confirm !== "none"}
         onClose={() => setConfirm("none")}
-        title={confirm === "switch" ? "Switch scenario?" : "Reset this session?"}
+        title={
+          confirm === "switch" ? "Switch scenario?" : "Reset this session?"
+        }
         description={
           confirm === "switch"
             ? "The mock core is seeded per scenario, so switching discards this transcript and its mock state."
@@ -331,7 +364,8 @@ export function ChatSurface({
               variant="ghost"
               data-testid="confirm-cancel"
               onClick={() => {
-                if (confirm === "switch") onCancelScenarioSwitch(activeEntry.id);
+                if (confirm === "switch")
+                  onCancelScenarioSwitch(activeEntry.id);
                 setConfirm("none");
                 focusComposer();
               }}

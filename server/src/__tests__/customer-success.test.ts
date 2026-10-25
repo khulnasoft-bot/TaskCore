@@ -1,4 +1,10 @@
-import { randomUUID, generateKeyPairSync, createHash, createHmac, sign } from "node:crypto";
+import {
+  randomUUID,
+  generateKeyPairSync,
+  createHash,
+  createHmac,
+  sign,
+} from "node:crypto";
 import { mkdtemp, writeFile, rm, symlink, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -22,7 +28,10 @@ import {
   readCustomerSuccessResource,
   inspectionReaders,
 } from "../services/customer-success-inspection.js";
-import { customerSuccessRoutes, verifyInspectionPermit } from "../routes/customer-success.js";
+import {
+  customerSuccessRoutes,
+  verifyInspectionPermit,
+} from "../routes/customer-success.js";
 import { agentIdentityService } from "../services/agent-identity.js";
 import { createLocalAgentJwt, verifyLocalAgentJwt } from "../agent-auth-jwt.js";
 import { errorHandler } from "../middleware/error-handler.js";
@@ -63,7 +72,10 @@ describe("customer-success read authority", () => {
     vi.stubEnv("TASKCORE_HOME", directory);
     vi.stubEnv("TASKCORE_INSTANCE_ID", "inspection-home");
     vi.stubEnv("TASKCORE_AGENT_JWT_SECRET", "inspection-local-fixture");
-    vi.stubEnv("TASKCORE_SECRETS_MASTER_KEY_FILE", join(directory, "master.key"));
+    vi.stubEnv(
+      "TASKCORE_SECRETS_MASTER_KEY_FILE",
+      join(directory, "master.key"),
+    );
     vi.stubEnv("TASKCORE_SECRETS_MASTER_KEY", "");
     database = await startEmbeddedPostgresTestDatabase("inspection-db-");
     db = schema.createDb(database.connectionString);
@@ -78,7 +90,11 @@ describe("customer-success read authority", () => {
     otherCompanyId = companies[1].id;
     const [agent] = await db
       .insert(schema.agents)
-      .values({ companyId, name: "Managed inspection fixture", adapterType: "process" })
+      .values({
+        companyId,
+        name: "Managed inspection fixture",
+        adapterType: "process",
+      })
       .returning();
     agentId = agent.id;
     const [run] = await db
@@ -96,9 +112,14 @@ describe("customer-success read authority", () => {
   });
 
   it("unprovisioned reads never generate a key, strict authority requires a current managed run", async () => {
-    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow("unprovisioned");
+    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow(
+      "unprovisioned",
+    );
     expect(await db.select().from(schema.agentIdentityKeys)).toHaveLength(0);
-    const key = await agentIdentityService(db).ensureAgentIdentity(companyId, agentId);
+    const key = await agentIdentityService(db).ensureAgentIdentity(
+      companyId,
+      agentId,
+    );
     expect(await customerSuccessRunAuthority(db, bearer)).toEqual({
       version: 1,
       active: true,
@@ -108,22 +129,34 @@ describe("customer-success read authority", () => {
       runId,
       keyId: key.keyId,
     });
-    await expect(customerSuccessRunAuthority(db, "ordinary-api-key")).rejects.toThrow(
-      "managed-run",
+    await expect(
+      customerSuccessRunAuthority(db, "ordinary-api-key"),
+    ).rejects.toThrow("managed-run");
+    await db
+      .update(schema.agents)
+      .set({ status: "paused" })
+      .where(eq(schema.agents.id, agentId));
+    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow(
+      "not active",
     );
-    await db.update(schema.agents).set({ status: "paused" }).where(eq(schema.agents.id, agentId));
-    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow("not active");
-    await db.update(schema.agents).set({ status: "idle" }).where(eq(schema.agents.id, agentId));
+    await db
+      .update(schema.agents)
+      .set({ status: "idle" })
+      .where(eq(schema.agents.id, agentId));
     await db
       .update(schema.heartbeatRuns)
       .set({ resultJson: { executionCancellation: { state: "requested" } } })
       .where(eq(schema.heartbeatRuns.id, runId));
-    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow("not active");
+    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow(
+      "not active",
+    );
     await db
       .update(schema.heartbeatRuns)
       .set({ resultJson: null, status: "succeeded" })
       .where(eq(schema.heartbeatRuns.id, runId));
-    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow("not active");
+    await expect(customerSuccessRunAuthority(db, bearer)).rejects.toThrow(
+      "not active",
+    );
     await db
       .update(schema.heartbeatRuns)
       .set({ status: "running" })
@@ -134,11 +167,15 @@ describe("customer-success read authority", () => {
     const input = `${header}.${payload}`;
     const legacy = `${input}.${createHmac("sha256", "inspection-local-fixture").update(input).digest("base64url")}`;
     expect(verifyLocalAgentJwt(legacy)).not.toBeNull();
-    expect(verifyLocalAgentJwt(legacy, { strictRunAuthority: true })).toBeNull();
+    expect(
+      verifyLocalAgentJwt(legacy, { strictRunAuthority: true }),
+    ).toBeNull();
     vi.stubEnv("TASKCORE_INSTANCE_ID", "development-clone");
     const foreign = createLocalAgentJwt(agentId, companyId, "process", runId)!;
     vi.stubEnv("TASKCORE_INSTANCE_ID", "inspection-home");
-    await expect(customerSuccessRunAuthority(db, foreign)).rejects.toThrow("managed-run");
+    await expect(customerSuccessRunAuthority(db, foreign)).rejects.toThrow(
+      "managed-run",
+    );
   });
   it("every catalog reader is company scoped, paginated, and leaves the complete database unchanged", async () => {
     const snapshot = async () => {
@@ -170,11 +207,16 @@ describe("customer-success read authority", () => {
     await expect(
       db.transaction(
         (tx) =>
-          tx.update(schema.agents).set({ name: "forbidden" }).where(eq(schema.agents.id, agentId)),
+          tx
+            .update(schema.agents)
+            .set({ name: "forbidden" })
+            .where(eq(schema.agents.id, agentId)),
         { accessMode: "read only" },
       ),
     ).rejects.toThrow();
-    expect(inspectionReaders.agentIdentities.omit).toContain("privateKeyMaterial");
+    expect(inspectionReaders.agentIdentities.omit).toContain(
+      "privateKeyMaterial",
+    );
     const identity = (await readCustomerSuccessResource(db, storage, {
       operation: "get",
       resource: "agentIdentities",
@@ -206,7 +248,9 @@ describe("customer-success read authority", () => {
       resource: "agents",
       companyId,
       resourceId: agentId,
-    })) as { adapterConfig: { env: Record<string, unknown>; promptTemplate: string } };
+    })) as {
+      adapterConfig: { env: Record<string, unknown>; promptTemplate: string };
+    };
     expect(JSON.stringify(agent)).not.toContain("hidden");
     expect(agent.adapterConfig.promptTemplate).toEqual("Do useful work");
     const [task] = await db
@@ -241,15 +285,20 @@ describe("customer-success read authority", () => {
       .set({ adapterConfig: { instructionsFilePath: file } })
       .where(eq(schema.agents.id, agentId));
     const before = await stat(file);
-    const count = (await db.select().from(schema.agentInstructionRevisions)).length;
+    const count = (await db.select().from(schema.agentInstructionRevisions))
+      .length;
     const result = (await readCustomerSuccessResource(db, storage, {
       operation: "instructions.file",
       companyId,
       resourceId: agentId,
     })) as { content: string };
-    expect(Buffer.from(result.content, "base64").toString()).toEqual("# Investigate carefully\n");
+    expect(Buffer.from(result.content, "base64").toString()).toEqual(
+      "# Investigate carefully\n",
+    );
     expect((await stat(file)).mtimeMs).toEqual(before.mtimeMs);
-    expect((await db.select().from(schema.agentInstructionRevisions)).length).toEqual(count);
+    expect(
+      (await db.select().from(schema.agentInstructionRevisions)).length,
+    ).toEqual(count);
     await writeFile(join(directory, ".env"), "CREDENTIAL=do-not-return");
     await expect(
       readCustomerSuccessResource(db, storage, {
@@ -342,7 +391,9 @@ describe("customer-success read authority", () => {
       resourceId: asset.id,
       range: { start: 1, end: 3 },
     })) as { content: string; bytes: number };
-    expect(Buffer.from(result.content, "base64")).toEqual(Buffer.from([1, 2, 3]));
+    expect(Buffer.from(result.content, "base64")).toEqual(
+      Buffer.from([1, 2, 3]),
+    );
     expect(result.bytes).toEqual(3);
     await expect(
       readCustomerSuccessResource(db, storage, {
@@ -355,11 +406,19 @@ describe("customer-success read authority", () => {
   it("tenant requests verify exact Cloud permit parameters, consume centrally, reject cookies and unknown paths", async () => {
     vi.stubEnv("TASKCORE_CUSTOMER_SUCCESS_INSPECTION_ENABLED", "true");
     vi.stubEnv("TASKCORE_CLOUD_STACK_ID", "fixture-stack");
-    vi.stubEnv("TASKCORE_CUSTOMER_SUCCESS_CLOUD_ORIGIN", "https://cloud.example.test");
+    vi.stubEnv(
+      "TASKCORE_CUSTOMER_SUCCESS_CLOUD_ORIGIN",
+      "https://cloud.example.test",
+    );
     vi.stubEnv("TASKCORE_CUSTOMER_SUCCESS_AUTHORITY_ENABLED", "true");
     const keys = generateKeyPairSync("ed25519");
-    const jwks = { keys: [{ ...keys.publicKey.export({ format: "jwk" }), kid: "cloud" }] };
-    vi.stubEnv("TASKCORE_CUSTOMER_SUCCESS_INSPECTION_JWKS", JSON.stringify(jwks));
+    const jwks = {
+      keys: [{ ...keys.publicKey.export({ format: "jwk" }), kid: "cloud" }],
+    };
+    vi.stubEnv(
+      "TASKCORE_CUSTOMER_SUCCESS_INSPECTION_JWKS",
+      JSON.stringify(jwks),
+    );
     const query: InspectionQuery = {
       operation: "get",
       resource: "companies",
@@ -385,13 +444,19 @@ describe("customer-success read authority", () => {
     };
     function token(value = claims, privateKey = keys.privateKey) {
       const header = Buffer.from(
-        JSON.stringify({ alg: "EdDSA", typ: INSPECTION_PERMIT_TYPE, kid: "cloud" }),
+        JSON.stringify({
+          alg: "EdDSA",
+          typ: INSPECTION_PERMIT_TYPE,
+          kid: "cloud",
+        }),
       ).toString("base64url");
       const body = Buffer.from(JSON.stringify(value)).toString("base64url");
       const input = `${header}.${body}`;
       return `${input}.${sign(null, Buffer.from(input), privateKey).toString("base64url")}`;
     }
-    const fetcher = vi.fn().mockResolvedValue(Response.json({ consumed: true }));
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(Response.json({ consumed: true }));
     vi.stubGlobal("fetch", fetcher);
     const app = express();
     app.use(express.json());
@@ -431,9 +496,10 @@ describe("customer-success read authority", () => {
           .set("Authorization", `Bearer ${bearer}`)
       ).status,
     ).toEqual(200);
-    expect((await request(app).post("/api/customer-success/v1/unknown").send({})).status).toEqual(
-      404,
-    );
+    expect(
+      (await request(app).post("/api/customer-success/v1/unknown").send({}))
+        .status,
+    ).toEqual(404);
     fetcher.mockResolvedValue(new Response("", { status: 503 }));
     expect(
       (
@@ -444,13 +510,25 @@ describe("customer-success read authority", () => {
       ).status,
     ).toEqual(403);
     expect(() =>
-      verifyInspectionPermit(token({ ...claims, sub: "other-stack" }), jwks, "fixture-stack"),
+      verifyInspectionPermit(
+        token({ ...claims, sub: "other-stack" }),
+        jwks,
+        "fixture-stack",
+      ),
     ).toThrow();
     expect(() =>
-      verifyInspectionPermit(token({ ...claims, exp: now }), jwks, "fixture-stack"),
+      verifyInspectionPermit(
+        token({ ...claims, exp: now }),
+        jwks,
+        "fixture-stack",
+      ),
     ).toThrow();
     expect(() =>
-      verifyInspectionPermit(token({ ...claims, exp: now + 61 }), jwks, "fixture-stack"),
+      verifyInspectionPermit(
+        token({ ...claims, exp: now + 61 }),
+        jwks,
+        "fixture-stack",
+      ),
     ).toThrow();
     expect(() =>
       verifyInspectionPermit(
@@ -505,10 +583,16 @@ describe("customer-success read authority", () => {
     })) as { content: string; bytes: number };
     expect(Buffer.from(result.content, "base64")).toEqual(Buffer.alloc(6, 7));
     expect(result.bytes).toEqual(6);
-    expect((await stat(join(root, "result.bin"))).mtimeMs).toEqual(before.mtimeMs);
+    expect((await stat(join(root, "result.bin"))).mtimeMs).toEqual(
+      before.mtimeMs,
+    );
     for (const path of [".env", "../result.bin", "link.bin"])
       await expect(
-        readCustomerSuccessResource(db, storage, { ...base, operation: "files.download", path }),
+        readCustomerSuccessResource(db, storage, {
+          ...base,
+          operation: "files.download",
+          path,
+        }),
       ).rejects.toThrow();
     await expect(
       readCustomerSuccessResource(db, storage, {
@@ -559,7 +643,14 @@ describe("customer-success read authority", () => {
         companyId,
         companySkillId: skill.id,
         revisionNumber: 1,
-        fileInventory: [{ path: "SKILL.md", kind: "markdown", sizeBytes: 9, content: "# Example" }],
+        fileInventory: [
+          {
+            path: "SKILL.md",
+            kind: "markdown",
+            sizeBytes: 9,
+            content: "# Example",
+          },
+        ],
       })
       .returning();
     await db
@@ -571,7 +662,9 @@ describe("customer-success read authority", () => {
       companyId,
       resourceId: skill.id,
     })) as { content: string };
-    expect(Buffer.from(snapshot.content, "base64").toString()).toEqual("# Example");
+    expect(Buffer.from(snapshot.content, "base64").toString()).toEqual(
+      "# Example",
+    );
     await expect(
       readCustomerSuccessResource(db, storage, {
         operation: "skills.file",
@@ -592,7 +685,13 @@ describe("customer-success read authority", () => {
     for (const value of [
       { operation: "write", companyId },
       { operation: "list", resource: "secrets", companyId },
-      { operation: "get", resource: "agents", companyId, resourceId: agentId, key: "replacement" },
+      {
+        operation: "get",
+        resource: "agents",
+        companyId,
+        resourceId: agentId,
+        key: "replacement",
+      },
       {
         operation: "assets.content",
         companyId,

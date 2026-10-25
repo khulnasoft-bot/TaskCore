@@ -31,7 +31,10 @@ function prependPosixPathEntry(pathValue: string, entry: string): string {
 }
 
 function prependPosixPathEntries(pathValue: string, entries: string[]): string {
-  return entries.reduceRight((value, entry) => prependPosixPathEntry(value, entry), pathValue);
+  return entries.reduceRight(
+    (value, entry) => prependPosixPathEntry(value, entry),
+    pathValue,
+  );
 }
 
 function preferredSandboxCommandBasenames(command: string): string[] {
@@ -42,18 +45,25 @@ function preferredSandboxCommandBasenames(command: string): string[] {
     : ["agent", "cursor-agent"];
 }
 
-function candidateSandboxCommandPaths(homeDir: string, basenames: string[]): string[] {
+function candidateSandboxCommandPaths(
+  homeDir: string,
+  basenames: string[],
+): string[] {
   // Iterate dirs first, then basenames within each dir, so directory
   // preference (CURSOR_SANDBOX_BIN_DIRS order) wins over basename
   // preference. Both basenames inside `.local/bin` are checked before
   // falling through to `.cursor/bin`.
   return CURSOR_SANDBOX_BIN_DIRS.flatMap((relativeDir) =>
-    basenames.map((basename) => path.posix.join(homeDir, relativeDir, basename))
+    basenames.map((basename) =>
+      path.posix.join(homeDir, relativeDir, basename),
+    ),
   );
 }
 
 function candidateSandboxPathEntries(homeDir: string): string[] {
-  return CURSOR_SANDBOX_BIN_DIRS.map((relativeDir) => path.posix.join(homeDir, relativeDir));
+  return CURSOR_SANDBOX_BIN_DIRS.map((relativeDir) =>
+    path.posix.join(homeDir, relativeDir),
+  );
 }
 
 type SandboxCursorRuntimeInfo = {
@@ -78,11 +88,11 @@ async function readSandboxCursorRuntimeInfo(input: {
   timeoutSec: number;
   graceSec: number;
 }): Promise<SandboxCursorRuntimeInfo> {
-  const preferredBasenames =
-    !hasPathSeparator(input.command)
-      ? preferredSandboxCommandBasenames(input.command)
-      : [];
-  const hintedRemoteSystemHomeDir = input.remoteSystemHomeDirHint?.trim() || null;
+  const preferredBasenames = !hasPathSeparator(input.command)
+    ? preferredSandboxCommandBasenames(input.command)
+    : [];
+  const hintedRemoteSystemHomeDir =
+    input.remoteSystemHomeDirHint?.trim() || null;
   const homeMarker = "__TASKCORE_CURSOR_HOME__:";
   const preferredMarker = "__TASKCORE_CURSOR_AGENT__:";
   try {
@@ -97,10 +107,13 @@ async function readSandboxCursorRuntimeInfo(input: {
     const fixedCandidatePaths =
       preferredBasenames.length > 0
         ? hintedRemoteSystemHomeDir
-          ? candidateSandboxCommandPaths(hintedRemoteSystemHomeDir, preferredBasenames)
+          ? candidateSandboxCommandPaths(
+              hintedRemoteSystemHomeDir,
+              preferredBasenames,
+            )
           : preferredBasenames.flatMap((basename) =>
-              CURSOR_SANDBOX_BIN_DIRS.map((relativeDir) =>
-                `$HOME/${relativeDir}/${basename}`,
+              CURSOR_SANDBOX_BIN_DIRS.map(
+                (relativeDir) => `$HOME/${relativeDir}/${basename}`,
               ),
             )
         : [];
@@ -123,13 +136,15 @@ async function readSandboxCursorRuntimeInfo(input: {
           : `printf ${JSON.stringify(`${homeMarker}%s\\n`)} "$HOME"`,
         preferredProbeBranches.length > 0
           ? preferredProbeBranches
-            .map((probeBranch, index) => {
-              const branchKeyword = index === 0 ? "if" : "elif";
-              return `${branchKeyword} ${probeBranch}; then :`;
-            })
-            .join("; ") + "; fi; :"
+              .map((probeBranch, index) => {
+                const branchKeyword = index === 0 ? "if" : "elif";
+                return `${branchKeyword} ${probeBranch}; then :`;
+              })
+              .join("; ") + "; fi; :"
           : "",
-      ].filter(Boolean).join("; "),
+      ]
+        .filter(Boolean)
+        .join("; "),
       {
         cwd: input.cwd,
         env: input.env,
@@ -199,7 +214,9 @@ export async function prepareCursorSandboxCommand(input: {
     graceSec: input.graceSec,
   });
   const remoteSystemHomeDir =
-    runtimeInfo.remoteSystemHomeDir ?? input.remoteSystemHomeDirHint?.trim() ?? null;
+    runtimeInfo.remoteSystemHomeDir ??
+    input.remoteSystemHomeDirHint?.trim() ??
+    null;
 
   if (!remoteSystemHomeDir) {
     return {
@@ -215,8 +232,10 @@ export async function prepareCursorSandboxCommand(input: {
   const runtimeEnv = ensurePathInEnv(input.env);
   const currentPath = runtimeEnv.PATH ?? runtimeEnv.Path ?? "";
   const nextPath = prependPosixPathEntries(currentPath, sandboxPathEntries);
-  const env = nextPath === currentPath ? input.env : { ...input.env, PATH: nextPath };
-  const addedPathEntry = nextPath === currentPath ? null : sandboxPathEntries[0];
+  const env =
+    nextPath === currentPath ? input.env : { ...input.env, PATH: nextPath };
+  const addedPathEntry =
+    nextPath === currentPath ? null : sandboxPathEntries[0];
 
   if (!runtimeInfo.preferredCommandPath) {
     return {

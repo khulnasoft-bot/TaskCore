@@ -8,7 +8,7 @@ repository, and holds no provider credential. Everything it needs is checked in
 under `packages/taskcore-runner/`.
 
 Capability does not integrate the runner into Taskcore. It builds a package-local
-model of what a native Taskcore run *would* do — a deterministic mock control
+model of what a native Taskcore run _would_ do — a deterministic mock control
 plane, a transport-neutral semantic tool catalog, an authorization engine, a
 106-case conformance suite derived from the Taskcore Evals corpus, and a
 read-only browser explorer over all of it. Real integration is future upload integration and
@@ -67,11 +67,11 @@ bundle check — see [Known gaps](#known-gaps-and-boundaries)).
 The 16 groups and case counts are fixed by the capability contract:
 
 | Group | Cases | Group | Cases | Group | Cases | Group | Cases |
-| --- | ---: | --- | ---: | --- | ---: | --- | ---: |
-| hb | 5 | co | 6 | st | 8 | cm | 6 |
-| se | 4 | su | 4 | bl | 5 | dp | 3 |
-| ix | 9 | ap | 6 | ar | 4 | er | 9 |
-| rf | 22 | mh | 4 | rs | 3 | wk | 8 |
+| ----- | ----: | ----- | ----: | ----- | ----: | ----- | ----: |
+| hb    |     5 | co    |     6 | st    |     8 | cm    |     6 |
+| se    |     4 | su    |     4 | bl    |     5 | dp    |     3 |
+| ix    |     9 | ap    |     6 | ar    |     4 | er    |     9 |
+| rf    |    22 | mh    |     4 | rs    |     3 | wk    |     8 |
 
 ## 2. Open the scenario explorer (about 2 minutes)
 

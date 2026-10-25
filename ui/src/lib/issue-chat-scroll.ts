@@ -1,6 +1,5 @@
 export type IssueChatScrollTarget =
-  | { type: "element"; element: HTMLElement }
-  | { type: "window" };
+  { type: "element"; element: HTMLElement } | { type: "window" };
 
 export interface ComposerViewportSnapshot {
   composerViewportTop: number;
@@ -43,8 +42,10 @@ export function resolveIssueChatScrollTarget(
   if (mainContent instanceof HTMLElement) {
     const overflowY = win.getComputedStyle(mainContent).overflowY;
     const usesOwnScroll =
-      (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay")
-      && mainContent.scrollHeight > mainContent.clientHeight + 1;
+      (overflowY === "auto" ||
+        overflowY === "scroll" ||
+        overflowY === "overlay") &&
+      mainContent.scrollHeight > mainContent.clientHeight + 1;
 
     if (usesOwnScroll) {
       return { type: "element", element: mainContent };
@@ -71,7 +72,10 @@ export function shouldPreserveComposerViewport(
   if (!composerElement) return false;
 
   const activeElement = doc.activeElement;
-  if (activeElement instanceof Node && composerElement.contains(activeElement)) {
+  if (
+    activeElement instanceof Node &&
+    composerElement.contains(activeElement)
+  ) {
     return true;
   }
   return false;
@@ -85,7 +89,8 @@ export function restoreComposerViewportSnapshot(
 ) {
   if (!snapshot || !composerElement) return;
 
-  const delta = composerElement.getBoundingClientRect().top - snapshot.composerViewportTop;
+  const delta =
+    composerElement.getBoundingClientRect().top - snapshot.composerViewportTop;
   if (!Number.isFinite(delta) || Math.abs(delta) < 1) return;
 
   const target = resolveIssueChatScrollTarget(doc, win);

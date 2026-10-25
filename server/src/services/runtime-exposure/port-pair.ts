@@ -71,7 +71,9 @@ export async function allocateExposurePortPair(
 ): Promise<ExposurePortPair> {
   const reserved = input.reserved ?? new Set<number>();
 
-  const claimIfFree = async (appPort: number): Promise<ExposurePortPair | null> => {
+  const claimIfFree = async (
+    appPort: number,
+  ): Promise<ExposurePortPair | null> => {
     if (reserved.has(appPort)) return null;
     if (!isRuntimeExposureAppPort(appPort)) return null;
     const hmrPort = deriveViteHmrPort(appPort);
@@ -91,7 +93,11 @@ export async function allocateExposurePortPair(
     if (preferred) return preferred;
   }
 
-  for (let appPort = RUNTIME_EXPOSURE_APP_PORT_MIN; appPort <= RUNTIME_EXPOSURE_APP_PORT_MAX; appPort += 1) {
+  for (
+    let appPort = RUNTIME_EXPOSURE_APP_PORT_MIN;
+    appPort <= RUNTIME_EXPOSURE_APP_PORT_MAX;
+    appPort += 1
+  ) {
     const pair = await claimIfFree(appPort);
     if (pair) return pair;
   }

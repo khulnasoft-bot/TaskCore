@@ -13,15 +13,30 @@ import {
 describe("credential-free Runner acceptance catalog", () => {
   it("covers direct adapters without activating the native runtime", () => {
     expect(directAcceptanceProfiles.length).toBeGreaterThan(10);
-    expect(directAcceptanceProfiles.every((profile) =>
-      profile.generation === "direct"
-      && profile.expectedRuntimeMode === "legacy"
-      && profile.invariants.includes("runnerd.start_count=0")
-      && profile.invariants.includes("native_record.count=0"))).toBe(true);
-    expect(directAcceptanceProfiles.some(({ adapterType }) => adapterType === "process")).toBe(true);
-    expect(directAcceptanceProfiles.some(({ adapterType }) => adapterType === "http")).toBe(true);
-    expect(directAcceptanceProfiles.some(({ adapterScope }) =>
-      adapterScope === "external_plugin_contract")).toBe(true);
+    expect(
+      directAcceptanceProfiles.every(
+        (profile) =>
+          profile.generation === "direct" &&
+          profile.expectedRuntimeMode === "legacy" &&
+          profile.invariants.includes("runnerd.start_count=0") &&
+          profile.invariants.includes("native_record.count=0"),
+      ),
+    ).toBe(true);
+    expect(
+      directAcceptanceProfiles.some(
+        ({ adapterType }) => adapterType === "process",
+      ),
+    ).toBe(true);
+    expect(
+      directAcceptanceProfiles.some(
+        ({ adapterType }) => adapterType === "http",
+      ),
+    ).toBe(true);
+    expect(
+      directAcceptanceProfiles.some(
+        ({ adapterScope }) => adapterScope === "external_plugin_contract",
+      ),
+    ).toBe(true);
   });
 
   it("contains only the approved native providers and ACPX profiles", () => {
@@ -31,16 +46,28 @@ describe("credential-free Runner acceptance catalog", () => {
       "runner-acpx-claude",
       "runner-acpx-codex",
     ]);
-    expect(nativeAcceptanceProfiles.find(({ id }) => id === "runner-opencode")?.model)
-      .toBe(QUALIFIED_OPENCODE_MODEL);
-    expect(nativeAcceptanceProfiles.find(({ id }) => id === "runner-acpx-claude")?.model)
-      .toBe(ACPX_QUALIFICATION_MODELS.claude);
-    expect(nativeAcceptanceProfiles.find(({ id }) => id === "runner-acpx-codex")?.model)
-      .toBe(ACPX_QUALIFICATION_MODELS.codex);
-    expect(nativeAcceptanceProfiles.some(({ adapterConfig }) =>
-      adapterConfig.acpxAgent === "pi")).toBe(false);
-    expect(directAcceptanceProfiles.some(({ adapterType }) =>
-      adapterType === "pi_local")).toBe(false);
+    expect(
+      nativeAcceptanceProfiles.find(({ id }) => id === "runner-opencode")
+        ?.model,
+    ).toBe(QUALIFIED_OPENCODE_MODEL);
+    expect(
+      nativeAcceptanceProfiles.find(({ id }) => id === "runner-acpx-claude")
+        ?.model,
+    ).toBe(ACPX_QUALIFICATION_MODELS.claude);
+    expect(
+      nativeAcceptanceProfiles.find(({ id }) => id === "runner-acpx-codex")
+        ?.model,
+    ).toBe(ACPX_QUALIFICATION_MODELS.codex);
+    expect(
+      nativeAcceptanceProfiles.some(
+        ({ adapterConfig }) => adapterConfig.acpxAgent === "pi",
+      ),
+    ).toBe(false);
+    expect(
+      directAcceptanceProfiles.some(
+        ({ adapterType }) => adapterType === "pi_local",
+      ),
+    ).toBe(false);
   });
 
   it("contains no launch authority, provider credentials, or managed providers", () => {
@@ -54,11 +81,16 @@ describe("credential-free Runner acceptance catalog", () => {
 
   it("builds a stable, unique matrix and applies recovery only to native profiles", () => {
     expect(validateRunnerAcceptanceCatalog()).toEqual(runnerAcceptanceMatrix);
-    expect(new Set(runnerAcceptanceMatrix.map(({ id }) => id)).size)
-      .toBe(runnerAcceptanceMatrix.length);
-    expect(runnerAcceptanceMatrix
-      .filter(({ acceptanceCase }) => acceptanceCase.id === "flagged-native-recovery")
-      .every(({ profile }) => profile.generation === "native"))
-      .toBe(true);
+    expect(new Set(runnerAcceptanceMatrix.map(({ id }) => id)).size).toBe(
+      runnerAcceptanceMatrix.length,
+    );
+    expect(
+      runnerAcceptanceMatrix
+        .filter(
+          ({ acceptanceCase }) =>
+            acceptanceCase.id === "flagged-native-recovery",
+        )
+        .every(({ profile }) => profile.generation === "native"),
+    ).toBe(true);
   });
 });

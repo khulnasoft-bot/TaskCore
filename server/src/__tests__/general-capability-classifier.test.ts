@@ -37,11 +37,14 @@ describe("general capability classifier", () => {
         duplexCommandStream: true,
         runnerWebSocketIngress: true,
       },
-      supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities,
+      supportedCapabilities:
+        ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities,
     });
 
     // The result carries exactly the eight capability fields, each a Boolean.
-    expect(Object.keys(effective).sort()).toEqual([...SANDBOX_CAPABILITY_KEYS].sort());
+    expect(Object.keys(effective).sort()).toEqual(
+      [...SANDBOX_CAPABILITY_KEYS].sort(),
+    );
     for (const key of SANDBOX_CAPABILITY_KEYS) {
       expect(typeof effective[key]).toBe("boolean");
       expect(effective[key]).toBe(true);
@@ -55,7 +58,8 @@ describe("general capability classifier", () => {
     const effective = classifyEnvironmentCapabilities({
       verifiedMethods: ["environmentSyncIn", "environmentSyncOut"],
       declared: null,
-      supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities,
+      supportedCapabilities:
+        ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities,
     });
 
     // Verified sync verbs grant native sync without any declaration.
@@ -72,9 +76,15 @@ describe("general capability classifier", () => {
     // The opt-in fields are behavioral guarantees. An absent declaration denies
     // them even when the worker verifies the prerequisite verb.
     const effective = classifyEnvironmentCapabilities({
-      verifiedMethods: ["environmentExecute", "environmentSyncIn", "environmentSyncOut", "duplexChannelOpen"],
+      verifiedMethods: [
+        "environmentExecute",
+        "environmentSyncIn",
+        "environmentSyncOut",
+        "duplexChannelOpen",
+      ],
       declared: null,
-      supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities,
+      supportedCapabilities:
+        ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities,
     });
 
     expect(effective.incrementalSessionOutput).toBe(false);
@@ -100,7 +110,8 @@ describe("general capability classifier", () => {
           duplexCommandStream: true,
           runnerWebSocketIngress: true,
         },
-        supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
+        supportedCapabilities:
+          ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
       });
       for (const key of SANDBOX_CAPABILITY_KEYS) {
         expect(effective[key]).toBe(false);
@@ -117,13 +128,17 @@ describe("general capability classifier", () => {
     ]);
     // The two remote provider drivers support the whole capability set; the two
     // host drivers support none.
-    expect(ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities.size).toBe(
-      SANDBOX_CAPABILITY_KEYS.length,
-    );
-    expect(ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.plugin.supportedCapabilities.size).toBe(
-      SANDBOX_CAPABILITY_KEYS.length,
-    );
-    expect(ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.local.supportedCapabilities.size).toBe(0);
-    expect(ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.ssh.supportedCapabilities.size).toBe(0);
+    expect(
+      ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.sandbox.supportedCapabilities.size,
+    ).toBe(SANDBOX_CAPABILITY_KEYS.length);
+    expect(
+      ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.plugin.supportedCapabilities.size,
+    ).toBe(SANDBOX_CAPABILITY_KEYS.length);
+    expect(
+      ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.local.supportedCapabilities.size,
+    ).toBe(0);
+    expect(
+      ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT.ssh.supportedCapabilities.size,
+    ).toBe(0);
   });
 });

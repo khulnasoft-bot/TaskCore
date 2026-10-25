@@ -34,13 +34,13 @@ The driver no longer automatically declines supported runtime requests. It
 emits `runtime_request.created`, keeps the JSON-RPC response pending, and waits
 for `resolveRuntimeRequest`.
 
-| Upstream request | Canonical kind | Allowed response shape |
-| --- | --- | --- |
-| `item/commandExecution/requestApproval` | `command_approval` | accept, session accept, decline, cancel |
-| `item/fileChange/requestApproval` | `file_approval` | accept, session accept, decline, cancel |
-| `item/permissions/requestApproval` | `permission_approval` | empty safe permission grant for turn or session |
-| `item/tool/requestUserInput` | `user_input` | typed answer map, decline, cancel |
-| `mcpServer/elicitation/request` | `elicitation` | typed content, decline, cancel |
+| Upstream request                        | Canonical kind        | Allowed response shape                          |
+| --------------------------------------- | --------------------- | ----------------------------------------------- |
+| `item/commandExecution/requestApproval` | `command_approval`    | accept, session accept, decline, cancel         |
+| `item/fileChange/requestApproval`       | `file_approval`       | accept, session accept, decline, cancel         |
+| `item/permissions/requestApproval`      | `permission_approval` | empty safe permission grant for turn or session |
+| `item/tool/requestUserInput`            | `user_input`          | typed answer map, decline, cancel               |
+| `mcpServer/elicitation/request`         | `elicitation`         | typed content, decline, cancel                  |
 
 The permission response cannot widen the skillless filesystem or network
 boundary. A stale turn, duplicate response, provider cleanup, terminal turn,

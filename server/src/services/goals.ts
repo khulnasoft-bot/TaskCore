@@ -44,7 +44,8 @@ export async function getDefaultCompanyGoal(db: GoalReader, companyId: string) {
 
 export function goalService(db: Db) {
   return {
-    list: (companyId: string) => db.select().from(goals).where(eq(goals.companyId, companyId)),
+    list: (companyId: string) =>
+      db.select().from(goals).where(eq(goals.companyId, companyId)),
 
     getById: (id: string) =>
       db
@@ -53,9 +54,13 @@ export function goalService(db: Db) {
         .where(eq(goals.id, id))
         .then((rows) => rows[0] ?? null),
 
-    getDefaultCompanyGoal: (companyId: string) => getDefaultCompanyGoal(db, companyId),
+    getDefaultCompanyGoal: (companyId: string) =>
+      getDefaultCompanyGoal(db, companyId),
 
-    create: (companyId: string, data: Omit<typeof goals.$inferInsert, "companyId">) =>
+    create: (
+      companyId: string,
+      data: Omit<typeof goals.$inferInsert, "companyId">,
+    ) =>
       db
         .insert(goals)
         .values({ ...data, companyId })

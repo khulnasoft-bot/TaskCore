@@ -37,7 +37,8 @@ export interface CapabilityControlPlaneCommandStep {
   summary: string;
 }
 
-export type CapabilityChatStep = CapabilityPlanStep | CapabilityControlPlaneCommandStep;
+export type CapabilityChatStep =
+  CapabilityPlanStep | CapabilityControlPlaneCommandStep;
 
 export interface CapabilityChatScriptTurn {
   /** The prompt the scripted board member sends to open this turn. */
@@ -69,7 +70,9 @@ export function capabilityChatScript(
   };
 }
 
-type ChatScriptFactory = (entry: CapabilityScenarioIndexEntry) => CapabilityChatScriptTurn[];
+type ChatScriptFactory = (
+  entry: CapabilityScenarioIndexEntry,
+) => CapabilityChatScriptTurn[];
 
 const AUTHORED_CHAT_SCRIPTS: Record<string, ChatScriptFactory> = {
   /*
@@ -89,7 +92,8 @@ const AUTHORED_CHAT_SCRIPTS: Record<string, ChatScriptFactory> = {
       ],
     },
     {
-      prompt: "Ask them to pick which scopes stay in, then park until they answer.",
+      prompt:
+        "Ask them to pick which scopes stay in, then park until they answer.",
       steps: [
         write(
           "request_human_input",
@@ -150,15 +154,24 @@ const AUTHORED_CHAT_SCRIPTS: Record<string, ChatScriptFactory> = {
     {
       prompt: "Where does the MCP tool approval for this task stand?",
       steps: [
-        read("get_task_context", {}, "Read the task before touching the gated capability."),
-        read("list_approvals", {}, "Check the approval queue for the pending gate."),
+        read(
+          "get_task_context",
+          {},
+          "Read the task before touching the gated capability.",
+        ),
+        read(
+          "list_approvals",
+          {},
+          "Check the approval queue for the pending gate.",
+        ),
         message(
           "The approval queue is readable with the claims this run holds, and the MCP gate is still pending a decision.",
         ),
       ],
     },
     {
-      prompt: "Raise the approval request yourself and get the tool switched on.",
+      prompt:
+        "Raise the approval request yourself and get the tool switched on.",
       steps: [
         write(
           "request_approval",
@@ -171,7 +184,10 @@ const AUTHORED_CHAT_SCRIPTS: Record<string, ChatScriptFactory> = {
         ),
         write(
           "request_review",
-          { summary: "Parked pending the MCP tool approval; no retry loop was attempted." },
+          {
+            summary:
+              "Parked pending the MCP tool approval; no retry loop was attempted.",
+          },
           "review",
           "Park in review rather than retrying behind the gate.",
         ),
@@ -193,7 +209,11 @@ function message(text: string): CapabilityChatStep {
   return { kind: "agent_message", text };
 }
 
-function read(operationId: string, input: CapabilityJsonValue, summary: string): CapabilityChatStep {
+function read(
+  operationId: string,
+  input: CapabilityJsonValue,
+  summary: string,
+): CapabilityChatStep {
   return { kind: "tool_call", operationId, input, summary };
 }
 

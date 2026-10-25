@@ -10,23 +10,40 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { CodexLocalConfigFields } from "./config-fields";
 
-beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); });
+beforeAll(() => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+});
 
 async function renderMarkup(node: ReactNode, expand?: string): Promise<string> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  await act(async () => root.render(<QueryClientProvider client={new QueryClient()}>{node}</QueryClientProvider>));
-  if (expand) await act(async () => {
-    container.querySelector(`[aria-label="${expand}"]`)?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-  });
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={new QueryClient()}>
+        {node}
+      </QueryClientProvider>,
+    ),
+  );
+  if (expand)
+    await act(async () => {
+      container
+        .querySelector(`[aria-label="${expand}"]`)
+        ?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+    });
   const html = document.body.innerHTML;
   await act(async () => root.unmount());
   container.remove();
   return html;
 }
 
-async function renderRunner(config: Record<string, unknown>, expand?: string, openAiDotEnabled = false): Promise<string> {
+async function renderRunner(
+  config: Record<string, unknown>,
+  expand?: string,
+  openAiDotEnabled = false,
+): Promise<string> {
   return renderMarkup(
     <TooltipProvider>
       <CodexLocalConfigFields
@@ -49,7 +66,9 @@ async function renderRunner(config: Record<string, unknown>, expand?: string, op
 
 describe("Taskcore Runner Codex configuration", () => {
   it("keeps Dot out of the general harness picker and hides that picker for Dot", async () => {
-    expect(await renderRunner({ provider: "codex" }, "Harness", true)).not.toContain("OpenAI Dot");
+    expect(
+      await renderRunner({ provider: "codex" }, "Harness", true),
+    ).not.toContain("OpenAI Dot");
     const dot = await renderRunner({ provider: "openai_dot" });
     expect(dot).not.toContain('aria-label="Harness"');
     expect(dot).toContain("Dot connection");
@@ -60,19 +79,26 @@ describe("Taskcore Runner Codex configuration", () => {
     ["approve-taskcore", "Automatic Taskcore actions"],
     ["approve-reads", "Allow Taskcore reads"],
     ["deny-all", "Deny all"],
-  ])("displays Grok's default or saved permission mode %s", async (acpxPermissionMode, label) => {
-    const html = await renderRunner({ provider: "acpx", acpxAgent: "grok", acpxPermissionMode });
-    expect(html).toContain('Grok Build');
-    expect(html).toContain('aria-label="Permission mode"');
-    expect(html).toContain(label);
-  });
+  ])(
+    "displays Grok's default or saved permission mode %s",
+    async (acpxPermissionMode, label) => {
+      const html = await renderRunner({
+        provider: "acpx",
+        acpxAgent: "grok",
+        acpxPermissionMode,
+      });
+      expect(html).toContain("Grok Build");
+      expect(html).toContain('aria-label="Permission mode"');
+      expect(html).toContain(label);
+    },
+  );
 
   it("exposes all qualified provider choices", async () => {
     const html = await renderRunner({ provider: "codex" }, "Harness");
 
     expect(html).toContain('aria-label="Harness"');
     expect(html).toContain("OpenCode 1.18.34");
-    expect(html).toContain('ACP agents');
+    expect(html).toContain("ACP agents");
     expect(html).not.toContain("Permission mode");
     expect(html).not.toContain("Ask when requested");
     expect(html).not.toContain("Ask for untrusted operations");
@@ -87,9 +113,7 @@ describe("Taskcore Runner Codex configuration", () => {
       opencodePermissionMode: "allow",
     });
 
-    expect(html).toContain(
-      'OpenCode 1.18.34',
-    );
+    expect(html).toContain("OpenCode 1.18.34");
     expect(html).toContain("Full auto (allow)");
     expect(html).toContain('aria-label="Permission mode"');
     expect(html).toContain("font-sans");
@@ -97,20 +121,23 @@ describe("Taskcore Runner Codex configuration", () => {
   });
 
   it("offers qualified Claude and keeps candidate ACP agents visibly disabled", async () => {
-    const html = await renderRunner({
-      provider: "acpx",
-      acpxAgent: "claude",
-      acpxPermissionMode: "approve-reads",
-    }, "ACP agent");
+    const html = await renderRunner(
+      {
+        provider: "acpx",
+        acpxAgent: "claude",
+        acpxPermissionMode: "approve-reads",
+      },
+      "ACP agent",
+    );
 
-    expect(html).toContain('ACP agents');
+    expect(html).toContain("ACP agents");
     expect(html).toContain("ACP agent");
     expect(html).toContain('aria-label="ACP agent"');
     expect(html.match(/role="option"[^>]*data-disabled=""/g)).toHaveLength(2);
-    expect(html).toContain('Cursor');
-    expect(html).not.toContain('Cursor — qualification pending');
-    expect(html).toContain('GitHub Copilot — qualification pending');
-    expect(html).toContain('Pi — qualification pending');
+    expect(html).toContain("Cursor");
+    expect(html).not.toContain("Cursor — qualification pending");
+    expect(html).toContain("GitHub Copilot — qualification pending");
+    expect(html).toContain("Pi — qualification pending");
     expect(html).not.toContain("Codex via ACPX");
     expect(html).not.toContain("ACPX Codex");
     expect(html).not.toContain("Pi via ACPX");

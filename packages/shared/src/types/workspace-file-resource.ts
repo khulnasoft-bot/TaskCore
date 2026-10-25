@@ -1,8 +1,11 @@
-export type WorkspaceFileWorkspaceKind = "execution_workspace" | "project_workspace";
+export type WorkspaceFileWorkspaceKind =
+  "execution_workspace" | "project_workspace";
 export type WorkspaceFileSelector = "auto" | "execution" | "project";
 export type WorkspaceFileListMode = "all" | "recent" | "changed";
-export type WorkspaceFilePreviewKind = "text" | "image" | "video" | "pdf" | "unsupported";
-export type WorkspaceFileResourceKind = "file" | "directory" | "remote_resource";
+export type WorkspaceFilePreviewKind =
+  "text" | "image" | "video" | "pdf" | "unsupported";
+export type WorkspaceFileResourceKind =
+  "file" | "directory" | "remote_resource";
 export type WorkspaceFileContentEncoding = "utf8" | "base64";
 
 export interface WorkspaceFileRef {
@@ -91,7 +94,8 @@ export interface WorkspaceFileListDirectoryItem {
   };
 }
 
-export type WorkspaceFileListItem = WorkspaceFileListFileItem | WorkspaceFileListDirectoryItem;
+export type WorkspaceFileListItem =
+  WorkspaceFileListFileItem | WorkspaceFileListDirectoryItem;
 
 export interface WorkspaceFileListResponse {
   kind: "workspace_file_list";

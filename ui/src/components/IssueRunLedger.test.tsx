@@ -10,8 +10,14 @@ import type { ActiveRunForIssue } from "../api/heartbeats";
 import { IssueRunLedgerContent } from "./IssueRunLedger";
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: { children: ReactNode; to: string } & ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: { children: ReactNode; to: string } & ComponentProps<"a">) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -54,7 +60,8 @@ function createRun(overrides: Partial<RunForIssue> = {}): RunForIssue {
     usageJson: null,
     resultJson: null,
     livenessState: "advanced",
-    livenessReason: "Run produced concrete action evidence: 2 activity event(s)",
+    livenessReason:
+      "Run produced concrete action evidence: 2 activity event(s)",
     continuationAttempt: 0,
     lastUsefulActionAt: "2026-04-18T19:59:00.000Z",
     nextAction: null,
@@ -120,7 +127,9 @@ function createIssue(overrides: Partial<Issue> = {}): Issue {
   };
 }
 
-function createActiveRun(overrides: Partial<ActiveRunForIssue> = {}): ActiveRunForIssue {
+function createActiveRun(
+  overrides: Partial<ActiveRunForIssue> = {},
+): ActiveRunForIssue {
   return {
     id: "run-live-1",
     status: "running",
@@ -150,7 +159,9 @@ function createActiveRun(overrides: Partial<ActiveRunForIssue> = {}): ActiveRunF
   };
 }
 
-function renderLedger(props: Partial<ComponentProps<typeof IssueRunLedgerContent>> = {}) {
+function renderLedger(
+  props: Partial<ComponentProps<typeof IssueRunLedgerContent>> = {},
+) {
   render(
     <IssueRunLedgerContent
       runs={props.runs ?? []}
@@ -158,7 +169,9 @@ function renderLedger(props: Partial<ComponentProps<typeof IssueRunLedgerContent
       activeRun={props.activeRun}
       issueStatus={props.issueStatus ?? "in_progress"}
       childIssues={props.childIssues ?? []}
-      agentMap={props.agentMap ?? new Map([["agent-1", { name: "CodexCoder" }]])}
+      agentMap={
+        props.agentMap ?? new Map([["agent-1", { name: "CodexCoder" }]])
+      }
       activityEvents={props.activityEvents}
       renderActivityEvent={props.renderActivityEvent}
       resolveUserLabel={props.resolveUserLabel}
@@ -188,9 +201,10 @@ describe("IssueRunLedger", () => {
           runId: `run-${index}0000000`,
           createdAt: `2026-04-18T19:5${index}:00.000Z`,
           livenessState: state,
-          livenessReason: state === "needs_followup"
-            ? "Run produced useful output but no concrete action evidence; continuation attempts exhausted"
-            : `state ${state}`,
+          livenessReason:
+            state === "needs_followup"
+              ? "Run produced useful output but no concrete action evidence; continuation attempts exhausted"
+              : `state ${state}`,
           continuationAttempt: state === "needs_followup" ? 3 : 0,
         }),
       ),
@@ -280,7 +294,9 @@ describe("IssueRunLedger", () => {
 
     expect(container.textContent).toContain("Running now by CodexCoder");
     expect(container.textContent).toContain("Checks after finish");
-    expect(container.textContent).toContain("Last useful action No action recorded yet");
+    expect(container.textContent).toContain(
+      "Last useful action No action recorded yet",
+    );
     expect(container.textContent).toContain("Stop Still running");
     expect(container.textContent).not.toContain("Liveness pending");
     expect(container.textContent).not.toContain("initial attempt");
@@ -307,7 +323,8 @@ describe("IssueRunLedger", () => {
           retryOfRunId: "run-root",
           scheduledRetryAttempt: 4,
           scheduledRetryReason: "transient_failure",
-          retryExhaustedReason: "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
+          retryExhaustedReason:
+            "Bounded retry exhausted after 4 scheduled attempts; no further automatic retry will be queued",
         }),
       ],
     });
@@ -317,7 +334,9 @@ describe("IssueRunLedger", () => {
     expect(container.textContent).toContain("Transient failure");
     expect(container.textContent).toContain("Next retry");
     expect(container.textContent).toContain("Retry exhausted");
-    expect(container.textContent).toContain("no further automatic retry will be queued");
+    expect(container.textContent).toContain(
+      "no further automatic retry will be queued",
+    );
     expect(container.textContent).toContain("Manual intervention required");
   });
 
@@ -347,7 +366,8 @@ describe("IssueRunLedger", () => {
           retryOfRunId: "run-max-turns",
           scheduledRetryAttempt: 3,
           scheduledRetryReason: "max_turns_continuation",
-          retryExhaustedReason: "Bounded retry exhausted after 3 scheduled attempts; no further automatic retry will be queued",
+          retryExhaustedReason:
+            "Bounded retry exhausted after 3 scheduled attempts; no further automatic retry will be queued",
         }),
       ],
     });
@@ -364,7 +384,11 @@ describe("IssueRunLedger", () => {
       runs: [
         createRun({
           runId: "run-timeout",
-          resultJson: { stopReason: "timeout", timeoutFired: true, effectiveTimeoutSec: 30 },
+          resultJson: {
+            stopReason: "timeout",
+            timeoutFired: true,
+            effectiveTimeoutSec: 30,
+          },
         }),
         createRun({
           runId: "run-cancel",
@@ -392,16 +416,33 @@ describe("IssueRunLedger", () => {
     expect(container.textContent).toContain("timeout (30s timeout)");
     expect(container.textContent).toContain("cancelled");
     expect(container.textContent).toContain("budget paused");
-    expect(container.textContent).toContain("unmanaged background task stopped");
+    expect(container.textContent).toContain(
+      "unmanaged background task stopped",
+    );
     expect(container.textContent).toContain("paused by board");
   });
 
   it("surfaces active and completed child issue summaries", () => {
     renderLedger({
       childIssues: [
-        createIssue({ id: "child-1", identifier: "PAP-2", title: "Implement worker handoff", status: "in_progress" }),
-        createIssue({ id: "child-2", identifier: "PAP-3", title: "Verify final report", status: "done" }),
-        createIssue({ id: "child-3", identifier: "PAP-4", title: "Cancelled experiment", status: "cancelled" }),
+        createIssue({
+          id: "child-1",
+          identifier: "PAP-2",
+          title: "Implement worker handoff",
+          status: "in_progress",
+        }),
+        createIssue({
+          id: "child-2",
+          identifier: "PAP-3",
+          title: "Verify final report",
+          status: "done",
+        }),
+        createIssue({
+          id: "child-3",
+          identifier: "PAP-4",
+          title: "Cancelled experiment",
+          status: "cancelled",
+        }),
       ],
     });
 
@@ -412,25 +453,39 @@ describe("IssueRunLedger", () => {
 
     renderLedger({
       childIssues: [
-        createIssue({ id: "child-2", identifier: "PAP-3", title: "Verify final report", status: "done" }),
-        createIssue({ id: "child-3", identifier: "PAP-4", title: "Cancelled experiment", status: "cancelled" }),
+        createIssue({
+          id: "child-2",
+          identifier: "PAP-3",
+          title: "Verify final report",
+          status: "done",
+        }),
+        createIssue({
+          id: "child-3",
+          identifier: "PAP-4",
+          title: "Cancelled experiment",
+          status: "cancelled",
+        }),
       ],
     });
 
-    expect(container.textContent).toContain("all 2 terminal (1 done, 1 cancelled)");
+    expect(container.textContent).toContain(
+      "all 2 terminal (1 done, 1 cancelled)",
+    );
   });
 
   it("uses wrapping-friendly markup for long next action text", () => {
     renderLedger({
       runs: [
         createRun({
-          nextAction: "Continue investigating this intentionally-long-next-action-token-that-needs-to-wrap-cleanly-on-mobile-and-desktop-without-overlapping-controls.",
+          nextAction:
+            "Continue investigating this intentionally-long-next-action-token-that-needs-to-wrap-cleanly-on-mobile-and-desktop-without-overlapping-controls.",
         }),
       ],
     });
 
-    const nextAction = [...container.querySelectorAll("span")]
-      .find((node) => node.textContent?.includes("intentionally-long-next-action-token"));
+    const nextAction = [...container.querySelectorAll("span")].find((node) =>
+      node.textContent?.includes("intentionally-long-next-action-token"),
+    );
     expect(nextAction?.className).toContain("break-words");
     expect(container.textContent).toContain("Next action:");
   });
@@ -451,7 +506,9 @@ describe("IssueRunLedger", () => {
   it("renders legacy evaluation context with watchdog actions and a silence badge", () => {
     const onWatchdogDecision = vi.fn();
     renderLedger({
-      runs: [createRun({ runId: "run-live-1", status: "running", finishedAt: null })],
+      runs: [
+        createRun({ runId: "run-live-1", status: "running", finishedAt: null }),
+      ],
       activeRun: createActiveRun(),
       onWatchdogDecision,
     });
@@ -459,16 +516,18 @@ describe("IssueRunLedger", () => {
     expect(container.textContent).toContain("Critical output silence");
     expect(container.textContent).toContain("PAP-404");
     expect(container.textContent).toContain("Critical silence");
-    expect(container.textContent).toContain("Taskcore did not create new delegated recovery work");
+    expect(container.textContent).toContain(
+      "Taskcore did not create new delegated recovery work",
+    );
     const watchdogBanner = Array.from(container.querySelectorAll("p"))
       .find((node) => node.textContent?.includes("Critical output silence"))
       ?.closest("div");
     expect(watchdogBanner?.className).toContain("border-red-500/30");
     expect(watchdogBanner?.className).toContain("bg-red-500/10");
 
-    const continueButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Continue monitoring"),
-    );
+    const continueButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Continue monitoring"));
     expect(continueButton).not.toBeUndefined();
     act(() => {
       continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -491,49 +550,64 @@ describe("IssueRunLedger", () => {
       heading: "Critical output silence",
       badge: "Critical silence",
     },
-  ])("renders a $level UI-only signal without an evaluation-task link", ({ level, heading, badge }) => {
-    const onWatchdogDecision = vi.fn();
-    const activeRun = createActiveRun();
-    renderLedger({
-      runs: [createRun({ runId: activeRun.id, status: "running", finishedAt: null })],
-      activeRun: createActiveRun({
-        outputSilence: {
-          ...activeRun.outputSilence!,
-          level,
-          evaluationIssueId: null,
-          evaluationIssueIdentifier: null,
-          evaluationIssueAssigneeAgentId: null,
-        },
-      }),
-      onWatchdogDecision,
-    });
+  ])(
+    "renders a $level UI-only signal without an evaluation-task link",
+    ({ level, heading, badge }) => {
+      const onWatchdogDecision = vi.fn();
+      const activeRun = createActiveRun();
+      renderLedger({
+        runs: [
+          createRun({
+            runId: activeRun.id,
+            status: "running",
+            finishedAt: null,
+          }),
+        ],
+        activeRun: createActiveRun({
+          outputSilence: {
+            ...activeRun.outputSilence!,
+            level,
+            evaluationIssueId: null,
+            evaluationIssueIdentifier: null,
+            evaluationIssueAssigneeAgentId: null,
+          },
+        }),
+        onWatchdogDecision,
+      });
 
-    expect(container.textContent).toContain(heading);
-    expect(container.textContent).toContain(badge);
-    expect(container.textContent).toContain("Taskcore did not create or assign a recovery task");
-    expect(container.textContent).not.toContain("PAP-404");
-    expect(container.querySelector('a[href^="/issues/"]')).toBeNull();
-    expect(container.textContent).toContain("Continue monitoring");
-    expect(container.textContent).toContain("Snooze 1h");
-    expect(container.textContent).toContain("Mark false positive");
+      expect(container.textContent).toContain(heading);
+      expect(container.textContent).toContain(badge);
+      expect(container.textContent).toContain(
+        "Taskcore did not create or assign a recovery task",
+      );
+      expect(container.textContent).not.toContain("PAP-404");
+      expect(container.querySelector('a[href^="/issues/"]')).toBeNull();
+      expect(container.textContent).toContain("Continue monitoring");
+      expect(container.textContent).toContain("Snooze 1h");
+      expect(container.textContent).toContain("Mark false positive");
 
-    const continueButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Continue monitoring"),
-    );
-    act(() => {
-      continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(onWatchdogDecision).toHaveBeenCalledWith({
-      runId: "run-live-1",
-      decision: "continue",
-      evaluationIssueId: null,
-    });
-  });
+      const continueButton = Array.from(
+        container.querySelectorAll("button"),
+      ).find((button) => button.textContent?.includes("Continue monitoring"));
+      act(() => {
+        continueButton?.dispatchEvent(
+          new MouseEvent("click", { bubbles: true }),
+        );
+      });
+      expect(onWatchdogDecision).toHaveBeenCalledWith({
+        runId: "run-live-1",
+        decision: "continue",
+        evaluationIssueId: null,
+      });
+    },
+  );
 
   it("hides watchdog decision actions for known non-owner viewers", () => {
     const onWatchdogDecision = vi.fn();
     renderLedger({
-      runs: [createRun({ runId: "run-live-1", status: "running", finishedAt: null })],
+      runs: [
+        createRun({ runId: "run-live-1", status: "running", finishedAt: null }),
+      ],
       activeRun: createActiveRun(),
       canRecordWatchdogDecisions: false,
       onWatchdogDecision,
@@ -555,7 +629,8 @@ describe("IssueRunLedger", () => {
   it("surfaces the responsible user a run acts on behalf of", () => {
     renderLedger({
       runs: [createRun({ runId: "run-obo-1", responsibleUserId: "user-2" })],
-      resolveUserLabel: (userId) => (userId === "user-2" ? "Ada Lovelace" : null),
+      resolveUserLabel: (userId) =>
+        userId === "user-2" ? "Ada Lovelace" : null,
     });
 
     const chip = container.querySelector('[data-testid="run-on-behalf-of"]');
@@ -570,7 +645,9 @@ describe("IssueRunLedger", () => {
       resolveUserLabel: () => "Ada Lovelace",
     });
 
-    expect(container.querySelector('[data-testid="run-on-behalf-of"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="run-on-behalf-of"]'),
+    ).toBeNull();
   });
 
   it("renders actionable copy for a responsible-user-unauthorized run failure", () => {
@@ -587,7 +664,9 @@ describe("IssueRunLedger", () => {
       resolveUserLabel: () => "Ada Lovelace",
     });
 
-    const notice = container.querySelector('[data-testid="responsible-user-denial-notice"]');
+    const notice = container.querySelector(
+      '[data-testid="responsible-user-denial-notice"]',
+    );
     expect(notice).not.toBeNull();
     expect(notice?.getAttribute("data-denial-tone")).toBe("unauthorized");
     expect(notice?.textContent).toContain("Ada Lovelace");
@@ -608,7 +687,9 @@ describe("IssueRunLedger", () => {
       resolveUserLabel: () => "Grace Hopper",
     });
 
-    const notice = container.querySelector('[data-testid="responsible-user-denial-notice"]');
+    const notice = container.querySelector(
+      '[data-testid="responsible-user-denial-notice"]',
+    );
     expect(notice).not.toBeNull();
     expect(notice?.getAttribute("data-denial-tone")).toBe("unavailable");
     expect(notice?.textContent?.toLowerCase()).toContain("blocked");
@@ -626,6 +707,8 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.querySelector('[data-testid="responsible-user-denial-notice"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="responsible-user-denial-notice"]'),
+    ).toBeNull();
   });
 });

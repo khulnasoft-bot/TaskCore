@@ -3,25 +3,18 @@
   "slug": "slack",
   "name": "Slack",
   "description": "Give agents Slack tools or let people start and continue Taskcore work from Slack.",
-  "categories": [
-    "communication"
-  ],
+  "categories": ["communication"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/slack.svg"
   },
-  "urlPatterns": [
-    "https://mcp.slack.com/*",
-    "https://app.slack.com/client/*"
-  ],
+  "urlPatterns": ["https://mcp.slack.com/*", "https://app.slack.com/client/*"],
   "methods": [
     {
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use the provider-hosted connection for the quickest setup.",
       "defaults": {
         "serverUrl": "https://mcp.slack.com/mcp",
@@ -64,10 +57,7 @@
       "riskTier": "S3",
       "label": "Use this connection as an agent tool",
       "purpose": "tool",
-      "requiredResourceFilters": [
-        "workspace",
-        "channel"
-      ]
+      "requiredResourceFilters": ["workspace", "channel"]
     },
     {
       "key": "chat-agent",
@@ -76,9 +66,7 @@
       "provider": "slack",
       "transport": "chat_sdk",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Let people in Slack start and continue work with one Taskcore agent.",
       "credentialFields": [
         {
@@ -104,10 +92,7 @@
         "docs": "https://api.slack.com/start/quickstart"
       },
       "riskTier": "S3",
-      "requiredResourceFilters": [
-        "workspace",
-        "channel"
-      ]
+      "requiredResourceFilters": ["workspace", "channel"]
     }
   ]
 }

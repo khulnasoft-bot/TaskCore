@@ -133,23 +133,45 @@ describe("first-task conversation report", () => {
   it("grounds requirements in submitted user comments and resolved form answers", () => {
     const e = recording();
     for (const checkpoint of e.checkpoints) {
-      for (const row of [...checkpoint.comments, ...checkpoint.interactions]) row.issueId = "task";
+      for (const row of [...checkpoint.comments, ...checkpoint.interactions])
+        row.issueId = "task";
       Object.assign(checkpoint.interactions[0], { resolvedByUserId: "board" });
     }
-    e.checkpoints.at(-1)!.comments.push({ id: "user-scope", issueId: "task", authorUserId: "board", body: "Invite beginners explicitly." });
+    e.checkpoints
+      .at(-1)!
+      .comments.push({
+        id: "user-scope",
+        issueId: "task",
+        authorUserId: "board",
+        body: "Invite beginners explicitly.",
+      });
     const request = firstTaskUserRequest(e);
-    expect(request).toContain("[comment:task:user-scope] Invite beginners explicitly.");
-    expect(request).toContain("[answer:question] Make a plan\nUse our garden club facts");
+    expect(request).toContain(
+      "[comment:task:user-scope] Invite beginners explicitly.",
+    );
+    expect(request).toContain(
+      "[answer:question] Make a plan\nUse our garden club facts",
+    );
     expect(request.match(/Use our garden club facts/g)).toHaveLength(1);
-    expect(request).not.toMatch(/Shall I proceed|Welcome|GARDENtest|two-sentence/);
+    expect(request).not.toMatch(
+      /Shall I proceed|Welcome|GARDENtest|two-sentence/,
+    );
   });
   it("does not infer requirements from scenario defaults, agent answers, or unrelated tasks", () => {
     const e = recording();
     for (const checkpoint of e.checkpoints) {
-      for (const row of checkpoint.interactions) Object.assign(row, { issueId: "task", resolvedByAgentId: "agent" });
-      checkpoint.comments.push({ id: "foreign", issueId: "other-task", authorUserId: "board", body: "Foreign requirement" });
+      for (const row of checkpoint.interactions)
+        Object.assign(row, { issueId: "task", resolvedByAgentId: "agent" });
+      checkpoint.comments.push({
+        id: "foreign",
+        issueId: "other-task",
+        authorUserId: "board",
+        body: "Foreign requirement",
+      });
     }
-    expect(() => firstTaskUserRequest(e)).toThrow("Missing recorded user request");
+    expect(() => firstTaskUserRequest(e)).toThrow(
+      "Missing recorded user request",
+    );
   });
   it("deduplicates observations, keeps first-observed time, and includes answers and each document revision", () => {
     const entries = firstTaskTranscript(recording());
@@ -213,7 +235,9 @@ describe("first-task conversation report", () => {
   it("separates unexercised checks from behavioral failures and passes", () => {
     const r = result();
     r.firstTask!.checks.push({
-      id: "rejection-respected", passed: false, evidence: [],
+      id: "rejection-respected",
+      passed: false,
+      evidence: [],
       detail: "Rejected work never executes",
       notReached: "The rejection checkpoint was not reached <yet>.",
     });
@@ -253,27 +277,64 @@ describe("first-task conversation report", () => {
     r.failureClass = "candidate_failure";
     r.error = "Recording stopped before acceptance.";
     r.firstTask!.checks.push({
-      id: "acceptance-recorded", passed: false, evidence: [],
-      detail: "Acceptance recorded", notReached: "No acceptance checkpoint.",
+      id: "acceptance-recorded",
+      passed: false,
+      evidence: [],
+      detail: "Acceptance recorded",
+      notReached: "No acceptance checkpoint.",
     });
-    r.matcherResults = [{ matcher: { kind: "json_path", path: "old-check", expected: true }, passed: false, detail: "Stale result" }];
-    r.screenshots = [{ id: "failure", label: "Task state at failure", file: "failure.png", publication: "public-runner-fixture" }];
-    const render = (errors: string[] = []) => renderRunnerE2EDashboard({
-      title: "Regraded campaign", generatedAt: r.finishedAt,
-      expected: [r.executionId], catalog: [],
-      entries: [{ result: r, valid: false, errors, evidenceBaseHref: "evidence/codex", evidenceFiles: ["failure.png", "result.json", "regraded-result.json"] }],
-    });
+    r.matcherResults = [
+      {
+        matcher: { kind: "json_path", path: "old-check", expected: true },
+        passed: false,
+        detail: "Stale result",
+      },
+    ];
+    r.screenshots = [
+      {
+        id: "failure",
+        label: "Task state at failure",
+        file: "failure.png",
+        publication: "public-runner-fixture",
+      },
+    ];
+    const render = (errors: string[] = []) =>
+      renderRunnerE2EDashboard({
+        title: "Regraded campaign",
+        generatedAt: r.finishedAt,
+        expected: [r.executionId],
+        catalog: [],
+        entries: [
+          {
+            result: r,
+            valid: false,
+            errors,
+            evidenceBaseHref: "evidence/codex",
+            evidenceFiles: [
+              "failure.png",
+              "result.json",
+              "regraded-result.json",
+            ],
+          },
+        ],
+      });
     const page = render();
     expect(page).toContain('data-gallery-status="incomplete"');
-    expect(page).toContain('data-gallery-matchers="1/1 matchers passed · 1 not reached"');
-    expect(page).toContain('data-gallery-label="Task state when recording stopped"');
+    expect(page).toContain(
+      'data-gallery-matchers="1/1 matchers passed · 1 not reached"',
+    );
+    expect(page).toContain(
+      'data-gallery-label="Task state when recording stopped"',
+    );
     expect(page).toContain("Incomplete journey");
-    expect(page).toContain('<strong>1</strong><span>Incomplete</span>');
-    expect(page).toContain('<strong>0</strong><span>Failed</span>');
+    expect(page).toContain("<strong>1</strong><span>Incomplete</span>");
+    expect(page).toContain("<strong>0</strong><span>Failed</span>");
     expect(page).toContain("Regraded result JSON");
     expect(page).toContain("Original result JSON");
     expect(page).not.toContain("<td>Stale result</td>");
-    expect(render(["Evidence missing"])).toContain('data-gallery-status="failed"');
+    expect(render(["Evidence missing"])).toContain(
+      'data-gallery-status="failed"',
+    );
   });
 
   it("integrates visible outcome, transcript, and only available evidence links in the dashboard", () => {

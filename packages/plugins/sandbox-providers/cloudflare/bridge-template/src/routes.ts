@@ -61,7 +61,9 @@ function readBoolean(value: unknown, fallback: boolean): boolean {
 }
 
 function readString(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : fallback;
 }
 
 function readInteger(value: unknown, fallback: number): number {
@@ -74,7 +76,7 @@ function readSessionStrategy(value: unknown): SessionStrategy {
 }
 
 async function readJson<T>(request: Request): Promise<T> {
-  return await request.json() as T;
+  return (await request.json()) as T;
 }
 
 function encodeSseEvent(type: string, payload: unknown): string {
@@ -113,7 +115,10 @@ async function execLeaseUtility(
   });
 }
 
-function requireZeroExit(action: string, result: { exitCode: number | null; timedOut: boolean; stderr: string }) {
+function requireZeroExit(
+  action: string,
+  result: { exitCode: number | null; timedOut: boolean; stderr: string },
+) {
   if (result.timedOut) {
     throw new Error(`${action} timed out: ${result.stderr.trim()}`);
   }
@@ -133,7 +138,13 @@ async function ensureWorkspace(
     timeoutMs: number;
   },
 ) {
-  const result = await execLeaseUtility(sandbox, options, "mkdir", ["-p", options.remoteCwd], "/");
+  const result = await execLeaseUtility(
+    sandbox,
+    options,
+    "mkdir",
+    ["-p", options.remoteCwd],
+    "/",
+  );
   requireZeroExit(`ensure workspace ${options.remoteCwd}`, result);
 }
 
@@ -151,18 +162,22 @@ async function writeSentinel(
     timeoutMs: number;
   },
 ) {
-  const sentinelPayload = JSON.stringify({
-    provider: "cloudflare",
-    providerLeaseId: input.providerLeaseId,
-    remoteCwd: input.remoteCwd,
-    sessionStrategy: input.sessionStrategy,
-    sessionId: input.sessionId,
-    keepAlive: input.keepAlive,
-    sleepAfter: input.sleepAfter,
-    normalizeId: input.normalizeId,
-    resumedLease: input.resumedLease,
-    updatedAt: new Date().toISOString(),
-  }, null, 2);
+  const sentinelPayload = JSON.stringify(
+    {
+      provider: "cloudflare",
+      providerLeaseId: input.providerLeaseId,
+      remoteCwd: input.remoteCwd,
+      sessionStrategy: input.sessionStrategy,
+      sessionId: input.sessionId,
+      keepAlive: input.keepAlive,
+      sleepAfter: input.sleepAfter,
+      normalizeId: input.normalizeId,
+      resumedLease: input.resumedLease,
+      updatedAt: new Date().toISOString(),
+    },
+    null,
+    2,
+  );
   const sentinelPath = buildSentinelPath(input.remoteCwd);
   const result = await execLeaseUtility(
     sandbox,
@@ -196,15 +211,25 @@ async function verifySentinel(
   return !result.timedOut && (result.exitCode ?? 0) === 0;
 }
 
-export async function handleBridgeRequest(request: Request, env: BridgeEnv): Promise<Response> {
+export async function handleBridgeRequest(
+  request: Request,
+  env: BridgeEnv,
+): Promise<Response> {
   if (!(await isAuthorizedRequest(request, env.BRIDGE_AUTH_TOKEN))) {
-    return toErrorResponse(401, "unauthorized", "Missing or invalid bridge bearer token.");
+    return toErrorResponse(
+      401,
+      "unauthorized",
+      "Missing or invalid bridge bearer token.",
+    );
   }
 
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/+$/, "");
 
-  if (request.method === "GET" && pathname === "/api/taskcore-sandbox/v1/health") {
+  if (
+    request.method === "GET" &&
+    pathname === "/api/taskcore-sandbox/v1/health"
+  ) {
     return toJsonResponse({
       ok: true,
       provider: "cloudflare",
@@ -217,7 +242,10 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     });
   }
 
-  if (request.method === "POST" && pathname === "/api/taskcore-sandbox/v1/probe") {
+  if (
+    request.method === "POST" &&
+    pathname === "/api/taskcore-sandbox/v1/probe"
+  ) {
     const body = await readJson<ProbeRequestBody>(request);
     const remoteCwd = readString(body.requestedCwd, DEFAULT_REMOTE_CWD);
     const keepAlive = readBoolean(body.keepAlive, false);
@@ -233,10 +261,19 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
       normalizeId,
     });
 
-    const sandbox = await resolveSandbox(env, sandboxId, { keepAlive, sleepAfter, normalizeId });
+    const sandbox = await resolveSandbox(env, sandboxId, {
+      keepAlive,
+      sleepAfter,
+      normalizeId,
+    });
     await applySandboxKeepAlive(sandbox, keepAlive);
     try {
-      await ensureWorkspace(sandbox, { remoteCwd, sessionStrategy, sessionId, timeoutMs });
+      await ensureWorkspace(sandbox, {
+        remoteCwd,
+        sessionStrategy,
+        sessionId,
+        timeoutMs,
+      });
       const result = await executeInSandbox({
         sandbox,
         command: "pwd",
@@ -260,10 +297,17 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     }
   }
 
-  if (request.method === "POST" && pathname === "/api/taskcore-sandbox/v1/leases/acquire") {
+  if (
+    request.method === "POST" &&
+    pathname === "/api/taskcore-sandbox/v1/leases/acquire"
+  ) {
     const body = await readJson<AcquireLeaseRequestBody>(request);
     if (!body.environmentId || !body.runId) {
-      return toErrorResponse(400, "invalid_request", "environmentId and runId are required.");
+      return toErrorResponse(
+        400,
+        "invalid_request",
+        "environmentId and runId are required.",
+      );
     }
 
     const reuseLease = readBoolean(body.reuseLease, false);
@@ -280,7 +324,11 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
       reuseLease,
       normalizeId,
     });
-    const sandbox = await resolveSandbox(env, providerLeaseId, { keepAlive, sleepAfter, normalizeId });
+    const sandbox = await resolveSandbox(env, providerLeaseId, {
+      keepAlive,
+      sleepAfter,
+      normalizeId,
+    });
     // Guard against orphaning a keepAlive sandbox if workspace setup throws
     // after creation: Taskcore never sees the lease ID in that case, so it
     // can't clean up. Destroy here unless this is a reuseLease handshake
@@ -288,7 +336,12 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     // shouldn't destroy it on a transient setup failure during reattachment).
     try {
       await applySandboxKeepAlive(sandbox, keepAlive);
-      await ensureWorkspace(sandbox, { remoteCwd, sessionStrategy, sessionId, timeoutMs });
+      await ensureWorkspace(sandbox, {
+        remoteCwd,
+        sessionStrategy,
+        sessionId,
+        timeoutMs,
+      });
       await writeSentinel(sandbox, {
         providerLeaseId,
         remoteCwd,
@@ -323,10 +376,17 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     });
   }
 
-  if (request.method === "POST" && pathname === "/api/taskcore-sandbox/v1/leases/resume") {
+  if (
+    request.method === "POST" &&
+    pathname === "/api/taskcore-sandbox/v1/leases/resume"
+  ) {
     const body = await readJson<ResumeLeaseRequestBody>(request);
     if (!body.providerLeaseId) {
-      return toErrorResponse(400, "invalid_request", "providerLeaseId is required.");
+      return toErrorResponse(
+        400,
+        "invalid_request",
+        "providerLeaseId is required.",
+      );
     }
     const keepAlive = readBoolean(body.keepAlive, false);
     const sleepAfter = readString(body.sleepAfter, "10m");
@@ -335,7 +395,11 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     const sessionStrategy = readSessionStrategy(body.sessionStrategy);
     const sessionId = readString(body.sessionId, DEFAULT_SESSION_ID);
     const timeoutMs = readInteger(body.timeoutMs, DEFAULT_TIMEOUT_MS);
-    const sandbox = await resolveSandbox(env, body.providerLeaseId, { keepAlive, sleepAfter, normalizeId });
+    const sandbox = await resolveSandbox(env, body.providerLeaseId, {
+      keepAlive,
+      sleepAfter,
+      normalizeId,
+    });
     // Resume always reattaches to a providerLeaseId the operator already
     // owns, so we deliberately do NOT destroy on failure here — the operator
     // has the ID and can issue an explicit release/destroy. Calling
@@ -343,11 +407,27 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     // created), so a failed resume doesn't leak a *new* sandbox.
     await applySandboxKeepAlive(sandbox, keepAlive);
 
-    if (!(await verifySentinel(sandbox, { remoteCwd, sessionStrategy, sessionId, timeoutMs }))) {
-      return toErrorResponse(409, "sandbox_state_lost", "Cloudflare sandbox state is no longer available.");
+    if (
+      !(await verifySentinel(sandbox, {
+        remoteCwd,
+        sessionStrategy,
+        sessionId,
+        timeoutMs,
+      }))
+    ) {
+      return toErrorResponse(
+        409,
+        "sandbox_state_lost",
+        "Cloudflare sandbox state is no longer available.",
+      );
     }
 
-    await ensureWorkspace(sandbox, { remoteCwd, sessionStrategy, sessionId, timeoutMs });
+    await ensureWorkspace(sandbox, {
+      remoteCwd,
+      sessionStrategy,
+      sessionId,
+      timeoutMs,
+    });
     await writeSentinel(sandbox, {
       providerLeaseId: body.providerLeaseId,
       remoteCwd,
@@ -376,7 +456,10 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     });
   }
 
-  if (request.method === "POST" && pathname === "/api/taskcore-sandbox/v1/leases/release") {
+  if (
+    request.method === "POST" &&
+    pathname === "/api/taskcore-sandbox/v1/leases/release"
+  ) {
     const body = await readJson<ReleaseLeaseRequestBody>(request);
     if (!body.providerLeaseId) {
       return toJsonResponse({ ok: true });
@@ -393,10 +476,17 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     return toJsonResponse({ ok: true });
   }
 
-  if (request.method === "DELETE" && pathname.startsWith("/api/taskcore-sandbox/v1/leases/")) {
+  if (
+    request.method === "DELETE" &&
+    pathname.startsWith("/api/taskcore-sandbox/v1/leases/")
+  ) {
     const providerLeaseId = decodeURIComponent(pathname.split("/").pop() ?? "");
     if (providerLeaseId.length === 0) {
-      return toErrorResponse(400, "invalid_request", "providerLeaseId path parameter is required.");
+      return toErrorResponse(
+        400,
+        "invalid_request",
+        "providerLeaseId path parameter is required.",
+      );
     }
     const sandbox = await resolveSandbox(env, providerLeaseId, {
       keepAlive: false,
@@ -407,10 +497,17 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     return toJsonResponse({ ok: true });
   }
 
-  if (request.method === "POST" && pathname === "/api/taskcore-sandbox/v1/exec") {
+  if (
+    request.method === "POST" &&
+    pathname === "/api/taskcore-sandbox/v1/exec"
+  ) {
     const body = await readJson<ExecuteRequestBody>(request);
     if (!body.providerLeaseId || !body.command) {
-      return toErrorResponse(400, "invalid_request", "providerLeaseId and command are required.");
+      return toErrorResponse(
+        400,
+        "invalid_request",
+        "providerLeaseId and command are required.",
+      );
     }
     const sessionStrategy = readSessionStrategy(body.sessionStrategy);
     const sessionId = readString(body.sessionId, DEFAULT_SESSION_ID);
@@ -438,7 +535,11 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
             const result = await executeInSandbox({
               sandbox,
               command: body.command!,
-              args: Array.isArray(body.args) ? body.args.filter((value): value is string => typeof value === "string") : [],
+              args: Array.isArray(body.args)
+                ? body.args.filter(
+                    (value): value is string => typeof value === "string",
+                  )
+                : [],
               cwd: typeof body.cwd === "string" ? body.cwd : undefined,
               env: body.env,
               stdin: body.stdin ?? null,
@@ -446,14 +547,22 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
               sessionStrategy,
               sessionId,
               onOutput: async (streamName, data) => {
-                controller.enqueue(encoder.encode(encodeSseEvent(streamName, { data })));
+                controller.enqueue(
+                  encoder.encode(encodeSseEvent(streamName, { data })),
+                );
               },
             });
-            controller.enqueue(encoder.encode(encodeSseEvent("complete", result)));
+            controller.enqueue(
+              encoder.encode(encodeSseEvent("complete", result)),
+            );
           } catch (error) {
-            controller.enqueue(encoder.encode(encodeSseEvent("error", {
-              error: error instanceof Error ? error.message : String(error),
-            })));
+            controller.enqueue(
+              encoder.encode(
+                encodeSseEvent("error", {
+                  error: error instanceof Error ? error.message : String(error),
+                }),
+              ),
+            );
           } finally {
             clearInterval(heartbeat);
             controller.close();
@@ -465,7 +574,11 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     const result = await executeInSandbox({
       sandbox,
       command: body.command,
-      args: Array.isArray(body.args) ? body.args.filter((value): value is string => typeof value === "string") : [],
+      args: Array.isArray(body.args)
+        ? body.args.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [],
       cwd: typeof body.cwd === "string" ? body.cwd : undefined,
       env: body.env,
       stdin: body.stdin ?? null,
@@ -476,5 +589,9 @@ export async function handleBridgeRequest(request: Request, env: BridgeEnv): Pro
     return toJsonResponse(result);
   }
 
-  return toErrorResponse(404, "not_found", `No bridge route matched ${request.method} ${pathname}.`);
+  return toErrorResponse(
+    404,
+    "not_found",
+    `No bridge route matched ${request.method} ${pathname}.`,
+  );
 }

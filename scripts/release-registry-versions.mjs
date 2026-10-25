@@ -28,13 +28,18 @@ if (!Number.isInteger(CONCURRENCY) || CONCURRENCY < 1) {
 
 function npmView(args) {
   return new Promise((resolve) => {
-    execFile("npm", ["view", ...args], { encoding: "utf8" }, (error, stdout) => {
-      if (error) {
-        resolve(null);
-        return;
-      }
-      resolve(stdout.trim());
-    });
+    execFile(
+      "npm",
+      ["view", ...args],
+      { encoding: "utf8" },
+      (error, stdout) => {
+        if (error) {
+          resolve(null);
+          return;
+        }
+        resolve(stdout.trim());
+      },
+    );
   });
 }
 
@@ -59,16 +64,20 @@ async function mapWithConcurrency(items, limit, fn) {
 }
 
 async function fetchVersions(packageNames) {
-  const versionLists = await mapWithConcurrency(packageNames, CONCURRENCY, async (packageName) => {
-    const raw = await npmView([packageName, "versions", "--json"]);
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [parsed];
-    } catch {
-      return [];
-    }
-  });
+  const versionLists = await mapWithConcurrency(
+    packageNames,
+    CONCURRENCY,
+    async (packageName) => {
+      const raw = await npmView([packageName, "versions", "--json"]);
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return [];
+      }
+    },
+  );
 
   const map = {};
   packageNames.forEach((packageName, index) => {
@@ -78,10 +87,14 @@ async function fetchVersions(packageNames) {
 }
 
 async function assertAbsent(version, packageNames) {
-  const resolved = await mapWithConcurrency(packageNames, CONCURRENCY, async (packageName) => {
-    const raw = await npmView([`${packageName}@${version}`, "version"]);
-    return raw === version ? packageName : null;
-  });
+  const resolved = await mapWithConcurrency(
+    packageNames,
+    CONCURRENCY,
+    async (packageName) => {
+      const raw = await npmView([`${packageName}@${version}`, "version"]);
+      return raw === version ? packageName : null;
+    },
+  );
 
   return resolved.filter((packageName) => packageName !== null);
 }
@@ -98,7 +111,9 @@ if (mode === "fetch") {
 } else if (mode === "assert-absent") {
   const [version, ...packageNames] = rest;
   if (!version || packageNames.length === 0) {
-    console.error("usage: release-registry-versions.mjs assert-absent <version> <pkg...>");
+    console.error(
+      "usage: release-registry-versions.mjs assert-absent <version> <pkg...>",
+    );
     process.exit(2);
   }
   const existing = await assertAbsent(version, packageNames);
@@ -109,6 +124,8 @@ if (mode === "fetch") {
     process.exit(1);
   }
 } else {
-  console.error("usage: release-registry-versions.mjs <fetch|assert-absent> ...");
+  console.error(
+    "usage: release-registry-versions.mjs <fetch|assert-absent> ...",
+  );
   process.exit(2);
 }

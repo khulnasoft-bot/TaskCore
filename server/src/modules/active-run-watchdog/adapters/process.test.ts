@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runningProcesses } from "../../../adapters/utils.js";
-import { isPidAlive, isProcessGroupAlive, terminateLocalService } from "../../../services/local-service-supervisor.js";
+import {
+  isPidAlive,
+  isProcessGroupAlive,
+  terminateLocalService,
+} from "../../../services/local-service-supervisor.js";
 import { createProcessAdapter } from "./process.js";
 
 vi.mock("../../../services/local-service-supervisor.js", () => ({
@@ -32,7 +36,11 @@ describe("adapters", () => {
         fallbackProcessGroupId: null,
       });
 
-      expect(outcome).toEqual({ attempted: false, outcome: "skipped_non_local_adapter", adapterType: "hermes_gateway" });
+      expect(outcome).toEqual({
+        attempted: false,
+        outcome: "skipped_non_local_adapter",
+        adapterType: "hermes_gateway",
+      });
       expect(mockedIsPidAlive).not.toHaveBeenCalled();
     });
 
@@ -46,7 +54,11 @@ describe("adapters", () => {
         fallbackProcessGroupId: null,
       });
 
-      expect(outcome).toEqual({ attempted: false, outcome: "no_process_metadata", adapterType: "codex_local" });
+      expect(outcome).toEqual({
+        attempted: false,
+        outcome: "no_process_metadata",
+        adapterType: "codex_local",
+      });
     });
 
     it("reports not_running when the process is dead", async () => {
@@ -118,7 +130,9 @@ describe("adapters", () => {
     });
 
     it("uses a valid process group when no pid is available", async () => {
-      mockedIsProcessGroupAlive.mockReturnValueOnce(true).mockReturnValueOnce(false);
+      mockedIsProcessGroupAlive
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
       mockedTerminateLocalService.mockResolvedValue(undefined);
       const adapter = createProcessAdapter();
 

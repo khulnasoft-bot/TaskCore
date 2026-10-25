@@ -1,5 +1,11 @@
 import { Check, ChevronsUpDown, X } from "lucide-react";
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -9,8 +15,16 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { fuzzyTextMatchesQuery, normalizeSearchText, scoreFuzzyTextFields } from "@/lib/searchable-select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  fuzzyTextMatchesQuery,
+  normalizeSearchText,
+  scoreFuzzyTextFields,
+} from "@/lib/searchable-select";
 import { cn } from "@/lib/utils";
 import { useMobileEntityPickerViewportStyle } from "@/hooks/useMobileEntityPickerViewportStyle";
 
@@ -23,7 +37,11 @@ export interface SearchableSelectOption<TValue extends string = string> {
   disabled?: boolean;
 }
 
-export interface SearchableSelectGroup<TValue extends string = string, TOption extends SearchableSelectOption<TValue> = SearchableSelectOption<TValue>> {
+export interface SearchableSelectGroup<
+  TValue extends string = string,
+  TOption extends SearchableSelectOption<TValue> =
+    SearchableSelectOption<TValue>,
+> {
   id: string;
   label?: string;
   options: readonly TOption[];
@@ -35,11 +53,15 @@ interface SearchableSelectRenderState {
 
 export interface SearchableSelectProps<
   TValue extends string = string,
-  TOption extends SearchableSelectOption<TValue> = SearchableSelectOption<TValue>,
+  TOption extends SearchableSelectOption<TValue> =
+    SearchableSelectOption<TValue>,
 > {
   value: TValue | "";
   groups: readonly SearchableSelectGroup<TValue, TOption>[];
-  onValueChange: (value: TValue, option: TOption) => void | boolean | { close?: boolean };
+  onValueChange: (
+    value: TValue,
+    option: TOption,
+  ) => void | boolean | { close?: boolean };
   placeholder: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
@@ -52,7 +74,10 @@ export interface SearchableSelectProps<
   align?: "start" | "center" | "end";
   contentWidth?: "trigger" | "auto";
   renderValue?: (option: TOption | null) => ReactNode;
-  renderOption?: (option: TOption, state: SearchableSelectRenderState) => ReactNode;
+  renderOption?: (
+    option: TOption,
+    state: SearchableSelectRenderState,
+  ) => ReactNode;
   deriveGroups?: (
     query: string,
     groups: readonly SearchableSelectGroup<TValue, TOption>[],
@@ -80,19 +105,26 @@ export interface SearchableSelectProps<
 }
 
 function defaultFilterOption(option: SearchableSelectOption, query: string) {
-  return fuzzyTextMatchesQuery(`${option.label} ${option.searchText ?? ""}`, query);
+  return fuzzyTextMatchesQuery(
+    `${option.label} ${option.searchText ?? ""}`,
+    query,
+  );
 }
 
 function defaultScoreOption(option: SearchableSelectOption, query: string) {
-  return scoreFuzzyTextFields([
-    { text: option.label, weight: 0 },
-    { text: option.searchText, weight: 20 },
-  ], query);
+  return scoreFuzzyTextFields(
+    [
+      { text: option.label, weight: 0 },
+      { text: option.searchText, weight: 20 },
+    ],
+    query,
+  );
 }
 
 export function SearchableSelect<
   TValue extends string = string,
-  TOption extends SearchableSelectOption<TValue> = SearchableSelectOption<TValue>,
+  TOption extends SearchableSelectOption<TValue> =
+    SearchableSelectOption<TValue>,
 >({
   value,
   groups,
@@ -129,7 +161,9 @@ export function SearchableSelect<
 
   const selectedOption = useMemo(() => {
     for (const group of groups) {
-      const option = group.options.find((candidate) => candidate.value === value);
+      const option = group.options.find(
+        (candidate) => candidate.value === value,
+      );
       if (option) return option;
     }
     return null;
@@ -159,10 +193,16 @@ export function SearchableSelect<
             return {
               option,
               index,
-              score: defaultScoreOption(option, query) ?? Number.MAX_SAFE_INTEGER,
+              score:
+                defaultScoreOption(option, query) ?? Number.MAX_SAFE_INTEGER,
             };
           })
-          .filter((entry): entry is { option: TOption; index: number; score: number } => entry !== null);
+          .filter(
+            (
+              entry,
+            ): entry is { option: TOption; index: number; score: number } =>
+              entry !== null,
+          );
 
         if (normalizedQuery) {
           options.sort((a, b) => a.score - b.score || a.index - b.index);
@@ -178,7 +218,9 @@ export function SearchableSelect<
 
   const hasOptions = filteredGroups.some((group) => group.options.length > 0);
 
-  function closePopover({ suppressTriggerFocus = false }: { suppressTriggerFocus?: boolean } = {}) {
+  function closePopover({
+    suppressTriggerFocus = false,
+  }: { suppressTriggerFocus?: boolean } = {}) {
     if (suppressTriggerFocus) {
       suppressNextTriggerFocusRef.current = true;
     }
@@ -190,7 +232,10 @@ export function SearchableSelect<
     if (option.disabled) return;
     suppressNextTriggerFocusRef.current = true;
     const result = onValueChange(option.value, option);
-    if (result === false || (typeof result === "object" && result?.close === false)) {
+    if (
+      result === false ||
+      (typeof result === "object" && result?.close === false)
+    ) {
       return;
     }
     closePopover();
@@ -214,7 +259,8 @@ export function SearchableSelect<
             pointerFocusRef.current = true;
           }}
           onFocus={() => {
-            const shouldIgnoreFocus = pointerFocusRef.current || suppressNextTriggerFocusRef.current;
+            const shouldIgnoreFocus =
+              pointerFocusRef.current || suppressNextTriggerFocusRef.current;
             pointerFocusRef.current = false;
             suppressNextTriggerFocusRef.current = false;
             if (shouldIgnoreFocus) {
@@ -231,10 +277,21 @@ export function SearchableSelect<
           aria-expanded={open}
           aria-label={triggerAriaLabel}
           role="combobox"
-          className={cn("w-full justify-between overflow-hidden", className, triggerClassName)}
+          className={cn(
+            "w-full justify-between overflow-hidden",
+            className,
+            triggerClassName,
+          )}
         >
-          <span className={cn("min-w-0 flex-1 truncate text-left", !selectedOption && "text-muted-foreground")}>
-            {renderValue ? renderValue(selectedOption) : selectedOption?.label ?? placeholder}
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-left",
+              !selectedOption && "text-muted-foreground",
+            )}
+          >
+            {renderValue
+              ? renderValue(selectedOption)
+              : (selectedOption?.label ?? placeholder)}
           </span>
           <ChevronsUpDown className="ml-2 size-4 opacity-50" />
         </Button>
@@ -264,11 +321,18 @@ export function SearchableSelect<
           // Modal outside dismissal restores focus to the trigger. Keep that
           // restore from reopening the picker, without swallowing a later Tab.
           suppressNextTriggerFocusRef.current = true;
-          queueMicrotask(() => { suppressNextTriggerFocusRef.current = false; });
+          queueMicrotask(() => {
+            suppressNextTriggerFocusRef.current = false;
+          });
         }}
       >
-        <div data-mobile-entity-picker-header="" className="hidden items-center justify-between border-b border-border px-4 py-3">
-          <span className="text-base font-semibold text-foreground">{mobileTitle ?? placeholder}</span>
+        <div
+          data-mobile-entity-picker-header=""
+          className="hidden items-center justify-between border-b border-border px-4 py-3"
+        >
+          <span className="text-base font-semibold text-foreground">
+            {mobileTitle ?? placeholder}
+          </span>
           <button
             type="button"
             className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -287,18 +351,27 @@ export function SearchableSelect<
           <CommandList
             className="overscroll-contain touch-pan-y"
             onWheelCapture={(event) => {
-              if (event.currentTarget.scrollHeight > event.currentTarget.clientHeight) {
+              if (
+                event.currentTarget.scrollHeight >
+                event.currentTarget.clientHeight
+              ) {
                 event.stopPropagation();
               }
             }}
           >
             {loading ? (
-              <div className="px-3 py-6 text-center text-sm text-muted-foreground">{loadingMessage}</div>
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                {loadingMessage}
+              </div>
             ) : (
               <>
-                {!hasOptions && !createItem ? <CommandEmpty>{emptyMessage}</CommandEmpty> : null}
+                {!hasOptions && !createItem ? (
+                  <CommandEmpty>{emptyMessage}</CommandEmpty>
+                ) : null}
                 {!hasOptions && createItem ? (
-                  <div className="px-3 py-3 text-center text-xs text-muted-foreground">{emptyMessage}</div>
+                  <div className="px-3 py-3 text-center text-xs text-muted-foreground">
+                    {emptyMessage}
+                  </div>
                 ) : null}
                 {filteredGroups.map((group) => (
                   <CommandGroup key={group.id} heading={group.label}>
@@ -311,10 +384,19 @@ export function SearchableSelect<
                           disabled={option.disabled}
                           onSelect={() => selectOption(option)}
                         >
-                          {renderOption
-                            ? renderOption(option, { selected })
-                            : <span className="min-w-0 truncate">{option.label}</span>}
-                          <Check className={cn("ml-auto size-4", selected ? "opacity-100" : "opacity-0")} />
+                          {renderOption ? (
+                            renderOption(option, { selected })
+                          ) : (
+                            <span className="min-w-0 truncate">
+                              {option.label}
+                            </span>
+                          )}
+                          <Check
+                            className={cn(
+                              "ml-auto size-4",
+                              selected ? "opacity-100" : "opacity-0",
+                            )}
+                          />
                         </CommandItem>
                       );
                     })}

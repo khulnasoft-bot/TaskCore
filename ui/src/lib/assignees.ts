@@ -19,7 +19,9 @@ interface CommentAssigneeSuggestionComment {
   authorUserId?: string | null;
 }
 
-export function assigneeValueFromSelection(selection: Partial<AssigneeSelection>): string {
+export function assigneeValueFromSelection(
+  selection: Partial<AssigneeSelection>,
+): string {
   if (selection.assigneeAgentId) return `agent:${selection.assigneeAgentId}`;
   if (selection.assigneeUserId) return `user:${selection.assigneeUserId}`;
   return "";
@@ -35,10 +37,14 @@ export function suggestedCommentAssigneeValue(
     for (let i = comments.length - 1; i >= 0; i--) {
       const comment = comments[i];
       if (comment.authorAgentId && comment.authorAgentId !== currentAgentId) {
-        return assigneeValueFromSelection({ assigneeAgentId: comment.authorAgentId });
+        return assigneeValueFromSelection({
+          assigneeAgentId: comment.authorAgentId,
+        });
       }
       if (comment.authorUserId && comment.authorUserId !== currentUserId) {
-        return assigneeValueFromSelection({ assigneeUserId: comment.authorUserId });
+        return assigneeValueFromSelection({
+          assigneeUserId: comment.authorUserId,
+        });
       }
     }
   }
@@ -62,13 +68,20 @@ export function parseAssigneeValue(value: string): AssigneeSelection {
   return { assigneeAgentId: value, assigneeUserId: null };
 }
 
-export function currentUserAssigneeOption(currentUserId: string | null | undefined): AssigneeOption[] {
+export function currentUserAssigneeOption(
+  currentUserId: string | null | undefined,
+): AssigneeOption[] {
   if (!currentUserId) return [];
-  return [{
-    id: assigneeValueFromSelection({ assigneeUserId: currentUserId }),
-    label: "Me",
-    searchText: currentUserId === "local-board" ? "me board human local-board" : `me human ${currentUserId}`,
-  }];
+  return [
+    {
+      id: assigneeValueFromSelection({ assigneeUserId: currentUserId }),
+      label: "Me",
+      searchText:
+        currentUserId === "local-board"
+          ? "me board human local-board"
+          : `me human ${currentUserId}`,
+    },
+  ];
 }
 
 export function formatAssigneeUserLabel(
@@ -87,9 +100,10 @@ export function formatUserLabel(
 ): string | null {
   if (!userId) return null;
   if (userLabels) {
-    const label = userLabels instanceof Map
-      ? userLabels.get(userId)
-      : (userLabels as Record<string, string>)[userId];
+    const label =
+      userLabels instanceof Map
+        ? userLabels.get(userId)
+        : (userLabels as Record<string, string>)[userId];
     if (typeof label === "string" && label.trim()) return label;
   }
   if (userId === "local-board") return "Board";

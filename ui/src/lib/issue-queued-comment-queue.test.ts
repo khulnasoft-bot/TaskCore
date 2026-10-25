@@ -23,10 +23,30 @@ function comment(id: string, body: string) {
 
 describe("normalizeIssueQueuedCommentQueue", () => {
   it("retains the immutable response and fresh-turn requirement", () => {
-    const source = { kind: "interaction", interactionId: "approval-1", interactionKind: "request_confirmation", requiresFreshSession: true };
-    const normalized = normalizeIssueQueuedCommentQueue({ entries: [{ comment: comment("approval-1", "Accepted: Plan"), source,
-      canEdit: false, canDiscard: false }] }, "issue-1");
-    expect(normalized.entries[0]).toMatchObject({ source, canEdit: false, canDiscard: false });
+    const source = {
+      kind: "interaction",
+      interactionId: "approval-1",
+      interactionKind: "request_confirmation",
+      requiresFreshSession: true,
+    };
+    const normalized = normalizeIssueQueuedCommentQueue(
+      {
+        entries: [
+          {
+            comment: comment("approval-1", "Accepted: Plan"),
+            source,
+            canEdit: false,
+            canDiscard: false,
+          },
+        ],
+      },
+      "issue-1",
+    );
+    expect(normalized.entries[0]).toMatchObject({
+      source,
+      canEdit: false,
+      canDiscard: false,
+    });
   });
   it("sorts, deduplicates, and drops malformed queue entries", () => {
     const queue = normalizeIssueQueuedCommentQueue(
@@ -38,7 +58,10 @@ describe("normalizeIssueQueuedCommentQueue", () => {
         revision: "rev-1",
         protocol: "taskcore_runner_v1",
         steeringDisposition: "available",
-        executionWait: { reason: "remote_cleanup", message: "Waiting for the previous environment to stop." },
+        executionWait: {
+          reason: "remote_cleanup",
+          message: "Waiting for the previous environment to stop.",
+        },
         entries: [
           {
             comment: { id: "second", body: "Second" },
@@ -120,15 +143,28 @@ describe("normalizeIssueQueuedCommentQueue", () => {
   });
 
   it("keeps native steering while an empty queue snapshot predates the submitted message", () => {
-    const authoritativeQueue = normalizeIssueQueuedCommentQueue({
-      protocol: "legacy", entries: [],
-    }, "issue-1");
+    const authoritativeQueue = normalizeIssueQueuedCommentQueue(
+      {
+        protocol: "legacy",
+        entries: [],
+      },
+      "issue-1",
+    );
     const queue = mergePendingIssueQueuedComments({
-      issueId: "issue-1", authoritativeQueue,
-      pendingComments: [{ comment: comment("optimistic-1", "Use the new model next turn"), targetRunId: "run-native" }],
+      issueId: "issue-1",
+      authoritativeQueue,
+      pendingComments: [
+        {
+          comment: comment("optimistic-1", "Use the new model next turn"),
+          targetRunId: "run-native",
+        },
+      ],
       fallbackProtocol: "taskcore_runner_v1",
     });
-    expect(queue).toMatchObject({ protocol: "taskcore_runner_v1", steeringDisposition: "temporarily_unavailable" });
+    expect(queue).toMatchObject({
+      protocol: "taskcore_runner_v1",
+      steeringDisposition: "temporarily_unavailable",
+    });
   });
 
   it("deduplicates acknowledged entries and restores the authoritative queue identity", () => {
@@ -142,7 +178,10 @@ describe("normalizeIssueQueuedCommentQueue", () => {
         revision: "rev-1",
         protocol: "taskcore_runner_v1",
         steeringDisposition: "available",
-        executionWait: { reason: "remote_cleanup", message: "Waiting for the previous environment to stop." },
+        executionWait: {
+          reason: "remote_cleanup",
+          message: "Waiting for the previous environment to stop.",
+        },
         entries: [
           {
             comment: pending,

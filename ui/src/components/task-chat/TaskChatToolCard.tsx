@@ -36,7 +36,10 @@ export function TaskChatToolCard({ item }: { item: TaskChatToolItem }) {
   const expandable = Boolean(item.target || item.detail || item.diff);
 
   return (
-    <div data-testid="task-chat-tool-card" className="flex min-w-0 max-w-full flex-col text-xs">
+    <div
+      data-testid="task-chat-tool-card"
+      className="flex min-w-0 max-w-full flex-col text-xs"
+    >
       <button
         type="button"
         onClick={expandable ? () => setShowDetail((v) => !v) : undefined}

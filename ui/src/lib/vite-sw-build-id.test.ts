@@ -31,9 +31,9 @@ describe("stampServiceWorkerBuildId", () => {
   });
 
   it("throws when the placeholder is missing so a drifted worker fails the build", () => {
-    expect(() => stampServiceWorkerBuildId("const CACHE_NAME = 'taskcore';", "x")).toThrow(
-      /placeholder/,
-    );
+    expect(() =>
+      stampServiceWorkerBuildId("const CACHE_NAME = 'taskcore';", "x"),
+    ).toThrow(/placeholder/);
   });
 
   it("throws on an empty build id rather than shipping a nameless cache", () => {
@@ -43,11 +43,15 @@ describe("stampServiceWorkerBuildId", () => {
 
 describe("deriveBuildIdFromEntryFileName", () => {
   it("uses the content-hashed entry file name", () => {
-    expect(deriveBuildIdFromEntryFileName("assets/index-BHbrFFmp.js")).toBe("index-BHbrFFmp");
+    expect(deriveBuildIdFromEntryFileName("assets/index-BHbrFFmp.js")).toBe(
+      "index-BHbrFFmp",
+    );
   });
 
   it("sanitizes characters that are unsafe in a cache name", () => {
-    expect(deriveBuildIdFromEntryFileName("assets/index @weird!.js")).toBe("index--weird-");
+    expect(deriveBuildIdFromEntryFileName("assets/index @weird!.js")).toBe(
+      "index--weird-",
+    );
   });
 });
 

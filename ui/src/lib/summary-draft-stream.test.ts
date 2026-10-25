@@ -6,7 +6,10 @@ import {
   parseSummaryDraftStream,
 } from "./summary-draft-stream";
 
-function delta(text: string, channel: "output" | "thought" = "output"): RunLogChunk {
+function delta(
+  text: string,
+  channel: "output" | "thought" = "output",
+): RunLogChunk {
   return {
     ts: "2026-07-15T00:00:00.000Z",
     stream: "stdout",
@@ -33,10 +36,24 @@ describe("extractAssistantOutputText", () => {
     const toolCall: RunLogChunk = {
       ts: "2026-07-15T00:00:00.000Z",
       stream: "stdout",
-      chunk: JSON.stringify({ type: "acpx.tool_call", name: "Read", input: { path: "x" } }),
+      chunk: JSON.stringify({
+        type: "acpx.tool_call",
+        name: "Read",
+        input: { path: "x" },
+      }),
     };
-    const nonJson: RunLogChunk = { ts: "t", stream: "system", chunk: "run queued" };
-    const chunks = [delta("visible "), delta("secret", "thought"), toolCall, nonJson, delta("text")];
+    const nonJson: RunLogChunk = {
+      ts: "t",
+      stream: "system",
+      chunk: "run queued",
+    };
+    const chunks = [
+      delta("visible "),
+      delta("secret", "thought"),
+      toolCall,
+      nonJson,
+      delta("text"),
+    ];
     expect(extractAssistantOutputText(chunks)).toBe("visible text");
   });
 });
@@ -52,9 +69,13 @@ describe("parseSummaryDraftStream", () => {
   });
 
   it("extracts STATUS lines with the prefix stripped and tracks the latest", () => {
-    const text = "STATUS: reading the slot…\nsome noise\nSTATUS: writing the summary…\n";
+    const text =
+      "STATUS: reading the slot…\nsome noise\nSTATUS: writing the summary…\n";
     const parsed = parseSummaryDraftStream(text);
-    expect(parsed.statusLines).toEqual(["reading the slot…", "writing the summary…"]);
+    expect(parsed.statusLines).toEqual([
+      "reading the slot…",
+      "writing the summary…",
+    ]);
     expect(parsed.statusLine).toBe("writing the summary…");
   });
 
@@ -103,12 +124,16 @@ describe("parseSummaryDraftStream", () => {
   });
 
   it("ignores an inline (non-line-start) start sentinel", () => {
-    const parsed = parseSummaryDraftStream("prefix <<<SUMMARY-DRAFT>>> still prose\n");
+    const parsed = parseSummaryDraftStream(
+      "prefix <<<SUMMARY-DRAFT>>> still prose\n",
+    );
     expect(parsed.draft).toBeNull();
   });
 
   it("yields no draft when the model skips the sentinels entirely", () => {
-    const parsed = parseSummaryDraftStream("STATUS: writing…\n## Needs you\nJust prose, no markers.\n");
+    const parsed = parseSummaryDraftStream(
+      "STATUS: writing…\n## Needs you\nJust prose, no markers.\n",
+    );
     expect(parsed.draft).toBeNull();
     expect(parsed.draftClosed).toBe(false);
   });
@@ -117,7 +142,9 @@ describe("parseSummaryDraftStream", () => {
 describe("closeDanglingCodeFence", () => {
   it("appends a closing fence when a code block is left open", () => {
     const md = "Here is code:\n```ts\nconst x = 1;";
-    expect(closeDanglingCodeFence(md)).toBe("Here is code:\n```ts\nconst x = 1;\n```");
+    expect(closeDanglingCodeFence(md)).toBe(
+      "Here is code:\n```ts\nconst x = 1;\n```",
+    );
   });
 
   it("leaves balanced fences untouched", () => {

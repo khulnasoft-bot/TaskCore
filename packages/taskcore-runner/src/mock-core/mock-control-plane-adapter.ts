@@ -46,7 +46,9 @@ export class MockControlPlaneAdapter implements ControlPlanePort {
     this.#openedRun = structuredClone(input);
   }
 
-  async appendEvent(event: NativeRunEvent | PrpEvent): Promise<AppendedEventReceipt> {
+  async appendEvent(
+    event: NativeRunEvent | PrpEvent,
+  ): Promise<AppendedEventReceipt> {
     const runId = this.#requireRunId();
     if (event.runId !== runId) {
       throw new Error("event runId does not match the opened run");
@@ -54,11 +56,14 @@ export class MockControlPlaneAdapter implements ControlPlanePort {
     if ("sourceEventId" in event) {
       const validation = validatePrpEvent(event);
       if (!validation.ok) {
-        throw new Error(`event failed validation: ${validation.issues[0]?.message ?? "invalid event"}`);
+        throw new Error(
+          `event failed validation: ${validation.issues[0]?.message ?? "invalid event"}`,
+        );
       }
       const sameId = this.#events.find(
         (candidate): candidate is PrpEvent =>
-          "sourceEventId" in candidate && candidate.sourceEventId === event.sourceEventId,
+          "sourceEventId" in candidate &&
+          candidate.sourceEventId === event.sourceEventId,
       );
       const sameSequence = this.#events.find(
         (candidate): candidate is PrpEvent =>
@@ -73,7 +78,9 @@ export class MockControlPlaneAdapter implements ControlPlanePort {
           }
           return {
             cursor: event.sourceSeq,
-            highestContiguousSourceSeq: this.#highestContiguous(event.sourceInstanceId),
+            highestContiguousSourceSeq: this.#highestContiguous(
+              event.sourceInstanceId,
+            ),
             disposition: "duplicate",
           };
         }
@@ -81,7 +88,9 @@ export class MockControlPlaneAdapter implements ControlPlanePort {
       this.#events.push(structuredClone(event));
       return {
         cursor: event.sourceSeq,
-        highestContiguousSourceSeq: this.#highestContiguous(event.sourceInstanceId),
+        highestContiguousSourceSeq: this.#highestContiguous(
+          event.sourceInstanceId,
+        ),
         disposition: "committed",
       };
     }
@@ -117,11 +126,15 @@ export class MockControlPlaneAdapter implements ControlPlanePort {
       .map((event) => structuredClone(event));
     return {
       events,
-      highestContiguousSourceSeq: this.#highestContiguous(input.sourceInstanceId),
+      highestContiguousSourceSeq: this.#highestContiguous(
+        input.sourceInstanceId,
+      ),
     };
   }
 
-  async completeRun(result: NativeRunResult | CompleteControlPlaneRunInput): Promise<void> {
+  async completeRun(
+    result: NativeRunResult | CompleteControlPlaneRunInput,
+  ): Promise<void> {
     const runId = this.#requireRunId();
     const resultRunId = "runId" in result ? result.runId : runId;
     if (resultRunId !== runId) {
@@ -151,7 +164,8 @@ export class MockControlPlaneAdapter implements ControlPlanePort {
   snapshot(): MockControlPlaneSnapshot {
     return {
       lifecycle: this.#lifecycle,
-      openedRun: this.#openedRun === null ? null : structuredClone(this.#openedRun),
+      openedRun:
+        this.#openedRun === null ? null : structuredClone(this.#openedRun),
       events: structuredClone(this.#events),
       result: this.#result === null ? null : structuredClone(this.#result),
     };

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { looksLikeMarkdownPaste, normalizePastedMarkdown } from "./markdownPaste";
+import {
+  looksLikeMarkdownPaste,
+  normalizePastedMarkdown,
+} from "./markdownPaste";
 
 describe("markdownPaste", () => {
   it("normalizes windows line endings", () => {
@@ -41,7 +44,9 @@ describe("markdownPaste", () => {
   });
 
   it("leaves plain multi-line text on the native paste path", () => {
-    expect(looksLikeMarkdownPaste("first paragraph\nsecond paragraph")).toBe(false);
+    expect(looksLikeMarkdownPaste("first paragraph\nsecond paragraph")).toBe(
+      false,
+    );
   });
 
   it("leaves single-line plain text on the native paste path", () => {

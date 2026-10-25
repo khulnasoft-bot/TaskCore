@@ -27,10 +27,7 @@ const rotationDay = Number(
 );
 const seed =
   process.env.TASKCORE_EVAL_SCHEDULE_SEED ?? "runner-live-seven-week-v1";
-const outputDirectory = resolve(
-  packageRoot,
-  ".taskcore-local/evals/workflows",
-);
+const outputDirectory = resolve(packageRoot, ".taskcore-local/evals/workflows");
 const historyDirectory = resolve(
   process.env.TASKCORE_EVAL_HISTORY_DIR ?? resolve(outputDirectory, "history"),
 );

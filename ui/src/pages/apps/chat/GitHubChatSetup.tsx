@@ -68,7 +68,9 @@ export function GitHubChatSetup() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const { pushToast } = useToast();
-  const [secretCopy, setSecretCopy] = useState<"idle" | "copied" | "failed">("idle");
+  const [secretCopy, setSecretCopy] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const identityOnly = params.get("stage") === "identity";
   const reconnecting = params.get("reconnect") === "1";
   const { selectedCompanyId } = useCompany();
@@ -311,15 +313,22 @@ export function GitHubChatSetup() {
             >
               A publicly reachable HTTPS address is required before App
               registration. Configure the instance’s public URL or an explicit
-              webhook ingress URL, then refresh. {" "}
-              <a className="underline" href="https://docs.taskcore.ing/reference/deploy/https/" target="_blank" rel="noreferrer">Learn how to set up HTTPS</a>
+              webhook ingress URL, then refresh.{" "}
+              <a
+                className="underline"
+                href="https://docs.taskcore.ing/reference/deploy/https/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Learn how to set up HTTPS
+              </a>
             </div>
           )}
           <p className="text-sm">
             Create a dedicated GitHub App for{" "}
-            {selectedAgent?.name ?? endpoint.assignedAgentName}. Taskcore
-            stores the credentials in its vault and uses this same App for the
-            agent’s GitHub tools.
+            {selectedAgent?.name ?? endpoint.assignedAgentName}. Taskcore stores
+            the credentials in its vault and uses this same App for the agent’s
+            GitHub tools.
           </p>
           {reconnecting && (
             <p className="text-sm text-muted-foreground">
@@ -391,18 +400,55 @@ export function GitHubChatSetup() {
                 <p className="text-xs text-muted-foreground">
                   Use the same secret in GitHub’s webhook settings.
                 </p>
-                {!reconnecting && <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" disabled={busy} onClick={() => void run(async () => {
-                    const generated = await chatEndpointsApi.generateSetupSecret(endpoint.id);
-                    setCredentials(current => ({ ...current, webhookSecret: generated.webhookSecret }));
-                    setSecretCopy("idle");
-                  })}>Generate webhook secret</Button>
-                  {credentials.webhookSecret && <Button variant="outline" onClick={async () => {
-                    try { await copyTextToClipboard(credentials.webhookSecret); setSecretCopy("copied"); }
-                    catch { setSecretCopy("failed"); pushToast({ title: "Couldn't copy to clipboard", body: "Select and copy the value manually.", tone: "error" }); }
-                  }}>{secretCopy === "copied" ? "Webhook secret copied" : secretCopy === "failed" ? "Couldn’t copy — select it manually" : "Copy webhook secret"}</Button>}
-                </div>}
-
+                {!reconnecting && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(async () => {
+                          const generated =
+                            await chatEndpointsApi.generateSetupSecret(
+                              endpoint.id,
+                            );
+                          setCredentials((current) => ({
+                            ...current,
+                            webhookSecret: generated.webhookSecret,
+                          }));
+                          setSecretCopy("idle");
+                        })
+                      }
+                    >
+                      Generate webhook secret
+                    </Button>
+                    {credentials.webhookSecret && (
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await copyTextToClipboard(
+                              credentials.webhookSecret,
+                            );
+                            setSecretCopy("copied");
+                          } catch {
+                            setSecretCopy("failed");
+                            pushToast({
+                              title: "Couldn't copy to clipboard",
+                              body: "Select and copy the value manually.",
+                              tone: "error",
+                            });
+                          }
+                        }}
+                      >
+                        {secretCopy === "copied"
+                          ? "Webhook secret copied"
+                          : secretCopy === "failed"
+                            ? "Couldn’t copy — select it manually"
+                            : "Copy webhook secret"}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -422,10 +468,7 @@ export function GitHubChatSetup() {
                 automatically to finish setup.
               </p>
               {registration && (
-                <form
-                  action={registration.registrationUrl}
-                  method="POST"
-                >
+                <form action={registration.registrationUrl} method="POST">
                   <input
                     type="hidden"
                     name="manifest"
@@ -454,7 +497,21 @@ export function GitHubChatSetup() {
             <p className="mt-2 break-all text-xs">
               {endpoint.setup?.webhookUrl ?? "Public webhook URL unavailable"}
             </p>
-            {endpoint.setup?.webhookUrl && <Button variant="outline" size="sm" className="mt-2" onClick={() => void run(async () => { await copyTextToClipboard(endpoint.setup!.webhookUrl!); pushToast({ title: "Webhook URL copied", tone: "success" }); })}>Copy webhook URL</Button>}
+            {endpoint.setup?.webhookUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() =>
+                  void run(async () => {
+                    await copyTextToClipboard(endpoint.setup!.webhookUrl!);
+                    pushToast({ title: "Webhook URL copied", tone: "success" });
+                  })
+                }
+              >
+                Copy webhook URL
+              </Button>
+            )}
             {registration && (
               <pre className="mt-3 overflow-auto text-xs">
                 {JSON.stringify(registration.manifest, null, 2)}
@@ -768,7 +825,10 @@ export function GitHubChatSetup() {
             <Button variant="ghost" onClick={() => void accounts.refetch()}>
               Refresh connections
             </Button>
-            <Link className="self-center text-sm underline" to="/apps/connect?source=github">
+            <Link
+              className="self-center text-sm underline"
+              to="/apps/connect?source=github"
+            >
               Connect GitHub
             </Link>
           </div>

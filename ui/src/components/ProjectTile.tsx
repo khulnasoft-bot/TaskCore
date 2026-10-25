@@ -30,7 +30,12 @@ export interface ProjectTileProps {
   className?: string;
 }
 
-export function ProjectTile({ color, icon, size = "md", className }: ProjectTileProps) {
+export function ProjectTile({
+  color,
+  icon,
+  size = "md",
+  className,
+}: ProjectTileProps) {
   const dims = SIZE_STYLES[size];
   const tinted = Boolean(color);
   const Icon = getProjectIcon(icon);

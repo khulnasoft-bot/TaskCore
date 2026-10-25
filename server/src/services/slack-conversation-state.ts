@@ -42,14 +42,33 @@ export function nonIdleSlackIssueCondition() {
 }
 
 /** Called inside message admission while its transaction owns the issue lock. */
-export async function resumeSlackConversation(tx: Db, companyId: string, issueId: string) {
+export async function resumeSlackConversation(
+  tx: Db,
+  companyId: string,
+  issueId: string,
+) {
   // Only the verified idle convention may leave In Review automatically.
   // A real decision or delivery problem keeps the existing review semantics.
-  await tx.update(issues).set({ status: "todo", updatedAt: new Date() })
-    .where(and(eq(issues.companyId, companyId), eq(issues.id, issueId),
-      sql`${externalConversationStateSql()} = 'waiting'`));
-  await tx.update(chatConversations).set({ state: "active", updatedAt: new Date() })
-    .where(and(eq(chatConversations.companyId, companyId), eq(chatConversations.issueId, issueId),
-      eq(chatConversations.state, "waiting"), sql`exists (select 1 from chat_endpoints e
-        where e.id = ${chatConversations.endpointId} and e.company_id = ${chatConversations.companyId} and e.provider = 'slack')`));
+  await tx
+    .update(issues)
+    .set({ status: "todo", updatedAt: new Date() })
+    .where(
+      and(
+        eq(issues.companyId, companyId),
+        eq(issues.id, issueId),
+        sql`${externalConversationStateSql()} = 'waiting'`,
+      ),
+    );
+  await tx
+    .update(chatConversations)
+    .set({ state: "active", updatedAt: new Date() })
+    .where(
+      and(
+        eq(chatConversations.companyId, companyId),
+        eq(chatConversations.issueId, issueId),
+        eq(chatConversations.state, "waiting"),
+        sql`exists (select 1 from chat_endpoints e
+        where e.id = ${chatConversations.endpointId} and e.company_id = ${chatConversations.companyId} and e.provider = 'slack')`,
+      ),
+    );
 }

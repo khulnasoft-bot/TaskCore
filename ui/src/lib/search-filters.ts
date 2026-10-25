@@ -1,7 +1,4 @@
-import {
-  COMPANY_SEARCH_SORTS,
-  type CompanySearchSort,
-} from "@taskcore/shared";
+import { COMPANY_SEARCH_SORTS, type CompanySearchSort } from "@taskcore/shared";
 import type { ParsedSearchQuery } from "./search-query-parser";
 
 /**
@@ -43,7 +40,8 @@ export function countActiveFilters(filters: SearchFilters): number {
   let count = 0;
   if (filters.status?.length) count += 1;
   if (filters.priority?.length) count += 1;
-  if (filters.assigneeAgentId !== undefined || filters.assigneeUserId) count += 1;
+  if (filters.assigneeAgentId !== undefined || filters.assigneeUserId)
+    count += 1;
   if (filters.projectId) count += 1;
   if (filters.labelId) count += 1;
   if (filters.updatedWithin || filters.updatedAfter) count += 1;
@@ -60,11 +58,17 @@ export function countActiveFilters(filters: SearchFilters): number {
 //   "user:<id>"   → assigneeUserId
 // ---------------------------------------------------------------------------
 
-export function assigneeToken(filters: SearchFilters, currentUserId: string | null): string | undefined {
+export function assigneeToken(
+  filters: SearchFilters,
+  currentUserId: string | null,
+): string | undefined {
   if (filters.assigneeAgentId === null) return "none";
-  if (typeof filters.assigneeAgentId === "string") return `agent:${filters.assigneeAgentId}`;
+  if (typeof filters.assigneeAgentId === "string")
+    return `agent:${filters.assigneeAgentId}`;
   if (filters.assigneeUserId) {
-    return filters.assigneeUserId === currentUserId ? "me" : `user:${filters.assigneeUserId}`;
+    return filters.assigneeUserId === currentUserId
+      ? "me"
+      : `user:${filters.assigneeUserId}`;
   }
   return undefined;
 }
@@ -105,10 +109,15 @@ export interface FilterChip {
 }
 
 function humanize(value: string): string {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function assigneeChipLabel(filters: SearchFilters, lookups: FilterChipLookups): string {
+function assigneeChipLabel(
+  filters: SearchFilters,
+  lookups: FilterChipLookups,
+): string {
   if (filters.assigneeAgentId === null) return "Unassigned";
   if (typeof filters.assigneeAgentId === "string") {
     return lookups.agentName(filters.assigneeAgentId) ?? "Agent";
@@ -121,7 +130,10 @@ function assigneeChipLabel(filters: SearchFilters, lookups: FilterChipLookups): 
 }
 
 /** Removable chip descriptors for the active-filter row. */
-export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLookups): FilterChip[] {
+export function buildFilterChips(
+  filters: SearchFilters,
+  lookups: FilterChipLookups,
+): FilterChip[] {
   const chips: FilterChip[] = [];
   for (const status of filters.status ?? []) {
     chips.push({
@@ -129,7 +141,9 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
       label: `Status: ${humanize(status)}`,
       remove: (current) => {
         const next = { ...current };
-        const remaining = (current.status ?? []).filter((value) => value !== status);
+        const remaining = (current.status ?? []).filter(
+          (value) => value !== status,
+        );
         if (remaining.length > 0) next.status = remaining;
         else delete next.status;
         return next;
@@ -147,7 +161,9 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
       label: `Priority: ${humanize(priority)}`,
       remove: (current) => {
         const next = { ...current };
-        const remaining = (current.priority ?? []).filter((value) => value !== priority);
+        const remaining = (current.priority ?? []).filter(
+          (value) => value !== priority,
+        );
         if (remaining.length > 0) next.priority = remaining;
         else delete next.priority;
         return next;
@@ -204,7 +220,11 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
 }
 
 /** Human label for a backend zero-results loosen suggestion. */
-export function describeLoosenSuggestion(filterKey: string, values: string[], lookups: FilterChipLookups): string {
+export function describeLoosenSuggestion(
+  filterKey: string,
+  values: string[],
+  lookups: FilterChipLookups,
+): string {
   switch (filterKey) {
     case "status":
       return `Status: ${values.map(humanize).join(", ")}`;
@@ -213,7 +233,7 @@ export function describeLoosenSuggestion(filterKey: string, values: string[], lo
     case "assigneeAgentId":
       return `Assignee: ${values.map((id) => lookups.agentName(id) ?? "Agent").join(", ")}`;
     case "assigneeUserId":
-      return `Assignee: ${values.map((id) => (id === lookups.currentUserId ? "Me" : lookups.userName(id) ?? "User")).join(", ")}`;
+      return `Assignee: ${values.map((id) => (id === lookups.currentUserId ? "Me" : (lookups.userName(id) ?? "User"))).join(", ")}`;
     case "projectId":
       return `Project: ${values.map((id) => lookups.projectName(id) ?? "Project").join(", ")}`;
     case "labelId":
@@ -227,7 +247,10 @@ export function describeLoosenSuggestion(filterKey: string, values: string[], lo
 }
 
 /** Clear the filter dimension a loosen suggestion refers to. */
-export function clearFilterDimension(filters: SearchFilters, filterKey: string): SearchFilters {
+export function clearFilterDimension(
+  filters: SearchFilters,
+  filterKey: string,
+): SearchFilters {
   const next: SearchFilters = { ...filters };
   switch (filterKey) {
     case "status":

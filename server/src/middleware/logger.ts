@@ -57,14 +57,12 @@ function isPrivateWebhook(req: {
   originalUrl?: unknown;
   url?: unknown;
 }) {
-  return isPrivateWebhookHttpRequest(
-    req.method,
-    requestClassificationUrl(req),
-  );
+  return isPrivateWebhookHttpRequest(req.method, requestClassificationUrl(req));
 }
 
 function privateWebhookLogUrl(url: unknown) {
-  return typeof url === "string" && /\/routine-triggers\/public(?:\/|$)/i.test(url)
+  return typeof url === "string" &&
+    /\/routine-triggers\/public(?:\/|$)/i.test(url)
     ? "/api/routine-triggers/public/:publicId/fire"
     : "/api/chat-webhooks/:publicId/:provider";
 }
@@ -84,8 +82,16 @@ export function createHttpLogger(baseLogger: Logger) {
     logger: baseLogger,
     serializers: {
       req(req: Record<string, unknown> & { url?: unknown }) {
-        if (isPrivateAgentCommentaryHttpRequest(typeof req.url === "string" ? req.url : undefined)) {
-          return { id: req.id, method: req.method, url: stripSecretBearingUrlParts(req.url as string) };
+        if (
+          isPrivateAgentCommentaryHttpRequest(
+            typeof req.url === "string" ? req.url : undefined,
+          )
+        ) {
+          return {
+            id: req.id,
+            method: req.method,
+            url: stripSecretBearingUrlParts(req.url as string),
+          };
         }
         if (
           isPrivateWebhook({
@@ -123,7 +129,11 @@ export function createHttpLogger(baseLogger: Logger) {
       ) {
         // A provider error may also be reflected in response headers. Keep the
         // same content-free contract on both sides of a webhook request.
-        return res.raw?.req && (isPrivateWebhook(res.raw.req) || isPrivateAgentCommentaryHttpRequest(requestClassificationUrl(res.raw.req)))
+        return res.raw?.req &&
+          (isPrivateWebhook(res.raw.req) ||
+            isPrivateAgentCommentaryHttpRequest(
+              requestClassificationUrl(res.raw.req),
+            ))
           ? { statusCode: res.statusCode }
           : res;
       },
@@ -155,7 +165,10 @@ export function createHttpLogger(baseLogger: Logger) {
     },
     customErrorObject(req, _res, _err, value) {
       if (isPrivateAgentCommentaryHttpRequest(requestClassificationUrl(req))) {
-        return { ...value, err: { type: "Error", message: "Feedback request failed" } };
+        return {
+          ...value,
+          err: { type: "Error", message: "Feedback request failed" },
+        };
       }
       // pino-http serializes res.err independently of customProps/errorContext.
       // Do not rely on a particular error handler having sanitized an SDK Error.
@@ -169,10 +182,20 @@ export function createHttpLogger(baseLogger: Logger) {
     customProps(req, res) {
       if (res.statusCode >= 400) {
         const ctx = (res as any).__errorContext;
-        if (/^\/mcp\/(?:oauth|taskcore)(?:\/|$)/.test(requestClassificationUrl(req) ?? "")) {
-          return { reqBody: "[REDACTED]", ...(ctx ? { errorContext: { name: "Error" } } : {}) };
+        if (
+          /^\/mcp\/(?:oauth|taskcore)(?:\/|$)/.test(
+            requestClassificationUrl(req) ?? "",
+          )
+        ) {
+          return {
+            reqBody: "[REDACTED]",
+            ...(ctx ? { errorContext: { name: "Error" } } : {}),
+          };
         }
-        if (isPrivateWebhook(req) || isPrivateAgentCommentaryHttpRequest(requestClassificationUrl(req))) {
+        if (
+          isPrivateWebhook(req) ||
+          isPrivateAgentCommentaryHttpRequest(requestClassificationUrl(req))
+        ) {
           // Omit, rather than recursively redact, the entire provider payload.
           // This applies equally before/after parsing and with/without context.
           return {

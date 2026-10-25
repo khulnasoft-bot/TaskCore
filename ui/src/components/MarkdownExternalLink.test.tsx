@@ -5,7 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ThemeProvider } from "../context/ThemeContext";
-import { MarkdownBody, type MarkdownExternalReferenceMap } from "./MarkdownBody";
+import {
+  MarkdownBody,
+  type MarkdownExternalReferenceMap,
+} from "./MarkdownBody";
 
 vi.mock("@/lib/router", () => ({
   Link: ({
@@ -13,7 +16,9 @@ vi.mock("@/lib/router", () => ({
     to,
     ...props
   }: { children: ReactNode; to: string } & React.ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -21,12 +26,19 @@ vi.mock("../api/issues", () => ({
   issuesApi: { get: vi.fn() },
 }));
 
-function render(children: string, externalReferences?: MarkdownExternalReferenceMap) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function render(
+  children: string,
+  externalReferences?: MarkdownExternalReferenceMap,
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <MarkdownBody externalReferences={externalReferences}>{children}</MarkdownBody>
+        <MarkdownBody externalReferences={externalReferences}>
+          {children}
+        </MarkdownBody>
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -48,17 +60,25 @@ describe("MarkdownBody external object decoration", () => {
   };
 
   it("decorates a known URL with the external status icon and metadata attributes", () => {
-    const html = render("Take a look: https://github.com/acme/web/pull/241", successReference);
+    const html = render(
+      "Take a look: https://github.com/acme/web/pull/241",
+      successReference,
+    );
     expect(html).toContain('class="taskcore-markdown-external-ref"');
     expect(html).toContain('data-external-link="resolved"');
     expect(html).toContain('data-external-status="succeeded"');
     expect(html).toContain('data-external-liveness="fresh"');
-    expect(html).toContain('aria-label="Github Pull Request Merged: Add external refs"');
+    expect(html).toContain(
+      'aria-label="Github Pull Request Merged: Add external refs"',
+    );
     expect(html).toContain("github.com/acme/web/pull/241");
   });
 
   it("matches a URL even when the user pasted it with different host case or trailing punctuation", () => {
-    const html = render("see HTTPS://Github.com/acme/web/pull/241#frag.", successReference);
+    const html = render(
+      "see HTTPS://Github.com/acme/web/pull/241#frag.",
+      successReference,
+    );
     expect(html).toContain('data-external-status="succeeded"');
   });
 
@@ -89,6 +109,8 @@ describe("MarkdownBody external object decoration", () => {
         displayTitle: "Acme deal",
       },
     });
-    expect(html).toContain('aria-label="HubSpot Reconnect (Requires auth): Acme deal"');
+    expect(html).toContain(
+      'aria-label="HubSpot Reconnect (Requires auth): Acme deal"',
+    );
   });
 });

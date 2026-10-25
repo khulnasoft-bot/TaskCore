@@ -20,9 +20,8 @@ export const ADAPTER_AUTH_SESSION_ACTIVE_STATUSES = [
 export type AdapterAuthSessionActiveStatus =
   (typeof ADAPTER_AUTH_SESSION_ACTIVE_STATUSES)[number];
 
-const ACTIVE_STATUS_SET: ReadonlySet<AdapterAuthSessionInternalStatus> = new Set(
-  ADAPTER_AUTH_SESSION_ACTIVE_STATUSES,
-);
+const ACTIVE_STATUS_SET: ReadonlySet<AdapterAuthSessionInternalStatus> =
+  new Set(ADAPTER_AUTH_SESSION_ACTIVE_STATUSES);
 
 /** Returns true when the status holds the company credential slot. */
 export function isActiveAdapterAuthSessionStatus(

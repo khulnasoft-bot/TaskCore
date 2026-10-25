@@ -16,11 +16,11 @@ One tall capsule represents one agent. Do not use this component for decoration 
 
 States:
 
-| State | Meaning | Rendering |
-| --- | --- | --- |
-| `slot` | Empty agent slot | Dashed outline, gentle pulse |
-| `configured` | Agent named/model picked, not live | Solid stroke, no fill |
-| `online` | Agent online | Gradient liquid rise, then breathing pulse |
+| State        | Meaning                            | Rendering                                  |
+| ------------ | ---------------------------------- | ------------------------------------------ |
+| `slot`       | Empty agent slot                   | Dashed outline, gentle pulse               |
+| `configured` | Agent named/model picked, not live | Solid stroke, no fill                      |
+| `online`     | Agent online                       | Gradient liquid rise, then breathing pulse |
 
 Implementation rules:
 
@@ -33,12 +33,12 @@ Implementation rules:
 
 Motion:
 
-| Motion | Timing |
-| --- | --- |
-| Slot pulse | `1.6s ease-in-out infinite` |
-| Liquid rise | `1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards` |
-| Online pulse | `1.8s ease-in-out infinite` |
-| Layer transition | `opacity 0.5s ease` |
+| Motion           | Timing                                        |
+| ---------------- | --------------------------------------------- |
+| Slot pulse       | `1.6s ease-in-out infinite`                   |
+| Liquid rise      | `1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards` |
+| Online pulse     | `1.8s ease-in-out infinite`                   |
+| Layer transition | `opacity 0.5s ease`                           |
 
 Reduced motion:
 
@@ -50,18 +50,18 @@ Reduced motion:
 
 The app component currently exposes 10 gradient pairs. `AgentCapsule` wraps out-of-range gradient indexes back into `1..10`.
 
-| Index | Top token | Top | Bottom token | Bottom |
-| --- | --- | --- | --- | --- |
-| 1 | `--agent-1a` | `#f7cfdc` | `--agent-1b` | `#1f7a3a` |
-| 2 | `--agent-2a` | `#c9a9e8` | `--agent-2b` | `#ee79a1` |
-| 3 | `--agent-3a` | `#28164b` | `--agent-3b` | `#7a1530` |
-| 4 | `--agent-4a` | `#f3e6c4` | `--agent-4b` | `#e3a21a` |
-| 5 | `--agent-5a` | `#1f4dd6` | `--agent-5b` | `#3aa35c` |
-| 6 | `--agent-6a` | `#e94b27` | `--agent-6b` | `#5a1122` |
-| 7 | `--agent-7a` | `#7eb6e3` | `--agent-7b` | `#ee79a1` |
-| 8 | `--agent-8a` | `#9ce8a7` | `--agent-8b` | `#bd7ff0` |
-| 9 | `--agent-9a` | `#f3b49e` | `--agent-9b` | `#1f4ed4` |
-| 10 | `--agent-10a` | `#f2d95f` | `--agent-10b` | `#4fbcba` |
+| Index | Top token     | Top       | Bottom token  | Bottom    |
+| ----- | ------------- | --------- | ------------- | --------- |
+| 1     | `--agent-1a`  | `#f7cfdc` | `--agent-1b`  | `#1f7a3a` |
+| 2     | `--agent-2a`  | `#c9a9e8` | `--agent-2b`  | `#ee79a1` |
+| 3     | `--agent-3a`  | `#28164b` | `--agent-3b`  | `#7a1530` |
+| 4     | `--agent-4a`  | `#f3e6c4` | `--agent-4b`  | `#e3a21a` |
+| 5     | `--agent-5a`  | `#1f4dd6` | `--agent-5b`  | `#3aa35c` |
+| 6     | `--agent-6a`  | `#e94b27` | `--agent-6b`  | `#5a1122` |
+| 7     | `--agent-7a`  | `#7eb6e3` | `--agent-7b`  | `#ee79a1` |
+| 8     | `--agent-8a`  | `#9ce8a7` | `--agent-8b`  | `#bd7ff0` |
+| 9     | `--agent-9a`  | `#f3b49e` | `--agent-9b`  | `#1f4ed4` |
+| 10    | `--agent-10a` | `#f2d95f` | `--agent-10b` | `#4fbcba` |
 
 Do not treat these as the universal Taskcore capsule palette. The website brand guide exposes 12 presets, the video references have a separate 12-gradient palette, and the hero bank has 45 gradients.
 
@@ -69,10 +69,10 @@ Do not treat these as the universal Taskcore capsule palette. The website brand 
 
 The website palette extends the app's first 10 gradients with two more presets:
 
-| Index | Top | Bottom | Description |
-| --- | --- | --- | --- |
-| 11 | `#C2C2E8` | `#5E3450` | peri -> mauve |
-| 12 | `#4DB9B7` | `#3AA35C` | teal -> green |
+| Index | Top       | Bottom    | Description   |
+| ----- | --------- | --------- | ------------- |
+| 11    | `#C2C2E8` | `#5E3450` | peri -> mauve |
+| 12    | `#4DB9B7` | `#3AA35C` | teal -> green |
 
 Marketing capsule rules:
 
@@ -88,13 +88,13 @@ Heartbeat status capsules are small solid pills. They are a different surface fr
 
 Status mapping:
 
-| Agent status | Color | Fill | Motion |
-| --- | --- | --- | --- |
-| `idle` | gray | `#A8AEB2` light, `#6E6960` dark | none |
-| `active` | gray | same as idle | none |
-| `running` | blue | `#2563EB` | `hb-pulse` |
-| `paused` | amber | `#F59E0B` | none |
-| `error` | red | `#DC2626` | `hb-blink` |
+| Agent status | Color | Fill                            | Motion     |
+| ------------ | ----- | ------------------------------- | ---------- |
+| `idle`       | gray  | `#A8AEB2` light, `#6E6960` dark | none       |
+| `active`     | gray  | same as idle                    | none       |
+| `running`    | blue  | `#2563EB`                       | `hb-pulse` |
+| `paused`     | amber | `#F59E0B`                       | none       |
+| `error`      | red   | `#DC2626`                       | `hb-blink` |
 
 Motion timings:
 

@@ -40,8 +40,13 @@ import path from "node:path";
 import os from "node:os";
 import { pathToFileURL } from "node:url";
 
-const SMOKE_BASE = (process.env.SMOKE_BASE ?? "http://127.0.0.1:3251").replace(/\/$/, "");
-const SHOT_DIR = process.env.SMOKE_SHOT_DIR ?? path.join(os.tmpdir(), `pap13351-routine-${Date.now()}`);
+const SMOKE_BASE = (process.env.SMOKE_BASE ?? "http://127.0.0.1:3251").replace(
+  /\/$/,
+  "",
+);
+const SHOT_DIR =
+  process.env.SMOKE_SHOT_DIR ??
+  path.join(os.tmpdir(), `pap13351-routine-${Date.now()}`);
 const BUDGET_MS = Number(process.env.SMOKE_BUDGET_MS ?? 600_000);
 const ONLY = process.env.SMOKE_ONLY ?? "";
 const DRY = process.env.SMOKE_DRY_RUN === "1";
@@ -53,25 +58,38 @@ const CP_BASE = (() => {
 const CP_KEY = process.env.TASKCORE_API_KEY ?? "";
 const CP_COMPANY = process.env.TASKCORE_COMPANY_ID ?? "";
 const CP_RUN = process.env.TASKCORE_RUN_ID ?? "";
-const ROUTINE_ISSUE_ID = process.env.ROUTINE_ISSUE_ID ?? process.env.TASKCORE_TASK_ID ?? "";
+const ROUTINE_ISSUE_ID =
+  process.env.ROUTINE_ISSUE_ID ?? process.env.TASKCORE_TASK_ID ?? "";
 
 // Owning coder per plan (§5): S1/S4 governance+catalog = CodexCoder; S2 UI = ClaudeCoder;
 // escalation fallback = CTO. Steps recorded by the runner are governance/API behaviours,
 // so the default owner is the S1/S4 coder; the UI owner is available for matrix-render defects.
-const OWNER_DEFAULT = process.env.SMOKE_OWNER_DEFAULT ?? "eab6f1c7-5950-410e-8eed-7d074426165d"; // CodexCoder
-const OWNER_UI = process.env.SMOKE_OWNER_UI ?? "3108ef8e-5ed0-41d9-b561-6b41c41b8545"; // ClaudeCoder
-const OWNER_CTO = process.env.SMOKE_OWNER_CTO ?? "66b3c071-6cb8-4424-b833-9d9b6318de0b"; // CTO
+const OWNER_DEFAULT =
+  process.env.SMOKE_OWNER_DEFAULT ?? "eab6f1c7-5950-410e-8eed-7d074426165d"; // CodexCoder
+const OWNER_UI =
+  process.env.SMOKE_OWNER_UI ?? "3108ef8e-5ed0-41d9-b561-6b41c41b8545"; // ClaudeCoder
+const OWNER_CTO =
+  process.env.SMOKE_OWNER_CTO ?? "66b3c071-6cb8-4424-b833-9d9b6318de0b"; // CTO
 
 const RUNNER = path.join(import.meta.dirname, "smoke-lab-browser-runner.mts");
 
 type Json = Record<string, any>;
 
-export function isForcedFailureSelfTest(failed: string[], forcedFailDetail = process.env.SMOKE_FORCE_FAIL): boolean {
+export function isForcedFailureSelfTest(
+  failed: string[],
+  forcedFailDetail = process.env.SMOKE_FORCE_FAIL,
+): boolean {
   if (!forcedFailDetail || failed.length !== 1) return false;
-  return /^[A-Z0-9]+\/forced-failure:\s*SMOKE_FORCE_FAIL:/.test(failed[0] ?? "");
+  return /^[A-Z0-9]+\/forced-failure:\s*SMOKE_FORCE_FAIL:/.test(
+    failed[0] ?? "",
+  );
 }
 
-export function findDuplicateFailureIssue(issues: Json[], title: string, routineIssueId: string): Json | null {
+export function findDuplicateFailureIssue(
+  issues: Json[],
+  title: string,
+  routineIssueId: string,
+): Json | null {
   return (
     issues.find(
       (issue) =>
@@ -88,7 +106,10 @@ function log(...a: any[]) {
 
 async function cp(method: string, apiPath: string, body?: Json): Promise<any> {
   if (DRY) {
-    log(`DRY ${method} ${apiPath}`, body ? JSON.stringify(body).slice(0, 200) : "");
+    log(
+      `DRY ${method} ${apiPath}`,
+      body ? JSON.stringify(body).slice(0, 200) : "",
+    );
     return {};
   }
   const res = await fetch(`${CP_BASE}${apiPath}`, {
@@ -101,7 +122,10 @@ async function cp(method: string, apiPath: string, body?: Json): Promise<any> {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`CP ${method} ${apiPath} -> ${res.status}: ${text.slice(0, 300)}`);
+  if (!res.ok)
+    throw new Error(
+      `CP ${method} ${apiPath} -> ${res.status}: ${text.slice(0, 300)}`,
+    );
   return text ? JSON.parse(text) : {};
 }
 
@@ -123,8 +147,11 @@ function issueLink(issue: Json): string {
 async function findExistingFailureIssue(title: string): Promise<Json | null> {
   if (!CP_COMPANY || !ROUTINE_ISSUE_ID) return null;
   try {
-    const found = await cp("GET", `/api/companies/${CP_COMPANY}/issues?q=${encodeURIComponent(title)}`);
-    const issues = Array.isArray(found) ? found : found.issues ?? [];
+    const found = await cp(
+      "GET",
+      `/api/companies/${CP_COMPANY}/issues?q=${encodeURIComponent(title)}`,
+    );
+    const issues = Array.isArray(found) ? found : (found.issues ?? []);
     return findDuplicateFailureIssue(issues, title, ROUTINE_ISSUE_ID);
   } catch (e: any) {
     log("WARN duplicate failure lookup failed:", e?.message ?? e);
@@ -144,15 +171,29 @@ async function cpUploadAsset(file: string): Promise<string | null> {
   try {
     const buf = await fs.readFile(file);
     const form = new FormData();
-    form.append("file", new Blob([buf], { type: "image/png" }), path.basename(file));
+    form.append(
+      "file",
+      new Blob([buf], { type: "image/png" }),
+      path.basename(file),
+    );
     form.append("namespace", "smoke-lab");
-    const res = await fetch(`${CP_BASE}/api/companies/${CP_COMPANY}/assets/images`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${CP_KEY}`, "x-taskcore-run-id": CP_RUN },
-      body: form as any,
-    });
+    const res = await fetch(
+      `${CP_BASE}/api/companies/${CP_COMPANY}/assets/images`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${CP_KEY}`,
+          "x-taskcore-run-id": CP_RUN,
+        },
+        body: form as any,
+      },
+    );
     if (!res.ok) {
-      log("WARN asset upload failed:", res.status, (await res.text()).slice(0, 200));
+      log(
+        "WARN asset upload failed:",
+        res.status,
+        (await res.text()).slice(0, 200),
+      );
       return null;
     }
     const j = await res.json();
@@ -171,12 +212,22 @@ async function cpAttach(issueId: string, file: string): Promise<boolean> {
   try {
     const buf = await fs.readFile(file);
     const form = new FormData();
-    form.append("file", new Blob([buf], { type: "image/png" }), path.basename(file));
-    const res = await fetch(`${CP_BASE}/api/companies/${CP_COMPANY}/issues/${issueId}/attachments`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${CP_KEY}`, "x-taskcore-run-id": CP_RUN },
-      body: form as any,
-    });
+    form.append(
+      "file",
+      new Blob([buf], { type: "image/png" }),
+      path.basename(file),
+    );
+    const res = await fetch(
+      `${CP_BASE}/api/companies/${CP_COMPANY}/issues/${issueId}/attachments`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${CP_KEY}`,
+          "x-taskcore-run-id": CP_RUN,
+        },
+        body: form as any,
+      },
+    );
     if (!res.ok) {
       log("WARN attach failed:", res.status, (await res.text()).slice(0, 200));
       return false;
@@ -189,14 +240,21 @@ async function cpAttach(issueId: string, file: string): Promise<boolean> {
 }
 
 // ---- precondition: is a private (non-public) instance reachable + can we enable the flag? ----
-async function precondition(): Promise<{ ok: true } | { ok: false; reason: string }> {
+async function precondition(): Promise<
+  { ok: true } | { ok: false; reason: string }
+> {
   let health: Json;
   try {
-    const res = await fetch(`${SMOKE_BASE}/api/health`, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(`${SMOKE_BASE}/api/health`, {
+      signal: AbortSignal.timeout(8000),
+    });
     if (!res.ok) return { ok: false, reason: `health ${res.status}` };
     health = await res.json();
   } catch (e: any) {
-    return { ok: false, reason: `instance unreachable at ${SMOKE_BASE} (${e?.message ?? e})` };
+    return {
+      ok: false,
+      reason: `instance unreachable at ${SMOKE_BASE} (${e?.message ?? e})`,
+    };
   }
   // The Smoke Lab gate only blocks public exposure — any private instance works,
   // including an `authenticated` dev server behind Tailscale + login. Match that
@@ -209,20 +267,30 @@ async function precondition(): Promise<{ ok: true } | { ok: false; reason: strin
   // with the Origin header; on an `authenticated` instance this PATCH needs a board
   // session, so if it 403s the run degrades to amber/skipped rather than failing.
   try {
-    const res = await fetch(`${SMOKE_BASE}/api/instance/settings/experimental`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json", origin: SMOKE_BASE },
-      body: JSON.stringify({ enableSmokeLab: true }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return { ok: false, reason: `cannot enable smoke-lab flag (${res.status})` };
+    const res = await fetch(
+      `${SMOKE_BASE}/api/instance/settings/experimental`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json", origin: SMOKE_BASE },
+        body: JSON.stringify({ enableSmokeLab: true }),
+        signal: AbortSignal.timeout(8000),
+      },
+    );
+    if (!res.ok)
+      return {
+        ok: false,
+        reason: `cannot enable smoke-lab flag (${res.status})`,
+      };
   } catch (e: any) {
     return { ok: false, reason: `flag enable failed (${e?.message ?? e})` };
   }
   return { ok: true };
 }
 
-function runBrowserSmoke(): Promise<{ code: number | null; timedOut: boolean }> {
+function runBrowserSmoke(): Promise<{
+  code: number | null;
+  timedOut: boolean;
+}> {
   return new Promise((resolve) => {
     const child = spawn(
       process.execPath,
@@ -252,7 +320,9 @@ function runBrowserSmoke(): Promise<{ code: number | null; timedOut: boolean }> 
 
 async function readResult(): Promise<Json | null> {
   try {
-    return JSON.parse(await fs.readFile(path.join(SHOT_DIR, "result.json"), "utf8"));
+    return JSON.parse(
+      await fs.readFile(path.join(SHOT_DIR, "result.json"), "utf8"),
+    );
   } catch {
     return null;
   }
@@ -263,14 +333,23 @@ function ownerForFailure(failed: string[]): { id: string; name: string } {
   // policy, gateway, audit) → S1/S4 coder. UI matrix-render defects surface in the
   // tab screenshot, not step failures, so the default is the API owner.
   const anyUi = failed.some((f) => /matrix|dashboard|render|tab/i.test(f));
-  return anyUi ? { id: OWNER_UI, name: "ClaudeCoder (S2 UI)" } : { id: OWNER_DEFAULT, name: "CodexCoder (S1/S4)" };
+  return anyUi
+    ? { id: OWNER_UI, name: "ClaudeCoder (S2 UI)" }
+    : { id: OWNER_DEFAULT, name: "CodexCoder (S1/S4)" };
 }
 
 async function recordAmber(reason: string) {
   log(`AMBER/SKIPPED: ${reason}`);
   await fs.mkdir(SHOT_DIR, { recursive: true }).catch(() => {});
   await fs
-    .writeFile(path.join(SHOT_DIR, "result.json"), JSON.stringify({ outcome: "skipped", reason, at: new Date().toISOString() }, null, 2))
+    .writeFile(
+      path.join(SHOT_DIR, "result.json"),
+      JSON.stringify(
+        { outcome: "skipped", reason, at: new Date().toISOString() },
+        null,
+        2,
+      ),
+    )
     .catch(() => {});
   const body = [
     `### Smoke Lab routine — amber / skipped`,
@@ -302,7 +381,11 @@ async function recordPass(result: Json) {
   }
 }
 
-async function recordForcedFailureDuplicate(result: Json, existing: Json, failed: string[]) {
+async function recordForcedFailureDuplicate(
+  result: Json,
+  existing: Json,
+  failed: string[],
+) {
   const body = [
     `### Smoke Lab routine — forced-failure drill already recorded`,
     ``,
@@ -316,7 +399,9 @@ async function recordForcedFailureDuplicate(result: Json, existing: Json, failed
   await cpComment(ROUTINE_ISSUE_ID, body);
 }
 
-async function recordFailure(result: Json): Promise<"filed" | "suppressed_duplicate"> {
+async function recordFailure(
+  result: Json,
+): Promise<"filed" | "suppressed_duplicate"> {
   const failed: string[] = result.failed ?? [];
   const owner = ownerForFailure(failed);
   const first = failed[0] ?? "unknown step";
@@ -330,7 +415,10 @@ async function recordFailure(result: Json): Promise<"filed" | "suppressed_duplic
       return "suppressed_duplicate";
     }
   }
-  const shotFile = path.join(SHOT_DIR, `${(pathId ?? "").toLowerCase()}-${step ?? ""}-failed.png`);
+  const shotFile = path.join(
+    SHOT_DIR,
+    `${(pathId ?? "").toLowerCase()}-${step ?? ""}-failed.png`,
+  );
   const shotUrl = await cpUploadAsset(shotFile);
 
   const bodyLines = [
@@ -343,7 +431,13 @@ async function recordFailure(result: Json): Promise<"filed" | "suppressed_duplic
     ...failed.map((f) => `- ${f}`),
     "```",
     ``,
-    ...(shotUrl ? [`### Screenshot of the failing step`, `![failing step](${shotUrl})`, ``] : []),
+    ...(shotUrl
+      ? [
+          `### Screenshot of the failing step`,
+          `![failing step](${shotUrl})`,
+          ``,
+        ]
+      : []),
     `### Repro`,
     `1. Boot a throwaway \`local_trusted\` instance (see \`doc/connections/SMOKE-LAB-BROWSER-RUNNER.md\` §0).`,
     `2. \`SMOKE_BASE=<url> SMOKE_ONLY=${pathId ?? ""} node --experimental-strip-types tests/e2e/smoke-lab-browser-runner.mts\``,
@@ -365,7 +459,9 @@ async function recordFailure(result: Json): Promise<"filed" | "suppressed_duplic
       parentId: ROUTINE_ISSUE_ID || undefined,
     });
     issueId = created.id ?? created.issue?.id ?? "";
-    log(`filed failure issue ${issueId} (assignee ${owner.name}; screenshot ${shotUrl ? "embedded" : "unavailable"})`);
+    log(
+      `filed failure issue ${issueId} (assignee ${owner.name}; screenshot ${shotUrl ? "embedded" : "unavailable"})`,
+    );
   } catch (e: any) {
     log("ERROR filing failure issue:", e?.message ?? e);
   }
@@ -386,7 +482,9 @@ async function recordFailure(result: Json): Promise<"filed" | "suppressed_duplic
 
 async function main() {
   await fs.mkdir(SHOT_DIR, { recursive: true });
-  log(`base=${SMOKE_BASE} only=${ONLY || "(all)"} budgetMs=${BUDGET_MS} shots=${SHOT_DIR} dry=${DRY}`);
+  log(
+    `base=${SMOKE_BASE} only=${ONLY || "(all)"} budgetMs=${BUDGET_MS} shots=${SHOT_DIR} dry=${DRY}`,
+  );
 
   const pre = await precondition();
   if (!pre.ok) {
@@ -398,12 +496,14 @@ async function main() {
   const result = await readResult();
 
   if (timedOut) {
-    await recordAmber(`browser smoke exceeded budget of ${BUDGET_MS}ms and was killed`);
+    await recordAmber(
+      `browser smoke exceeded budget of ${BUDGET_MS}ms and was killed`,
+    );
     process.exit(0);
   }
 
   // exit 0 = clean pass; exit 2 = recorded step failure(s); anything else = runner crashed.
-  if (code === 0 && result && !(result.failed?.length)) {
+  if (code === 0 && result && !result.failed?.length) {
     await recordPass(result);
     process.exit(0);
   }
@@ -413,11 +513,16 @@ async function main() {
   }
   // Runner crashed before recording a clean pass/fail → environment/runner problem, not a
   // product defect. Amber, don't file a bogus bug (matches the S5 runbook triage rule).
-  await recordAmber(`runner exited ${code} without a recorded pass/fail (environment/runner issue, not a product defect)`);
+  await recordAmber(
+    `runner exited ${code} without a recorded pass/fail (environment/runner issue, not a product defect)`,
+  );
   process.exit(0);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+) {
   main().catch(async (e) => {
     await recordAmber(`routine wrapper crashed: ${e?.message ?? e}`);
     process.exit(0);

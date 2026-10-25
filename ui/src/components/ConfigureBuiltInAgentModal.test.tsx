@@ -14,7 +14,14 @@ const adapterModelsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/api/builtInAgents", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/builtInAgents")>();
-  return { ...actual, builtInAgentsApi: { list: vi.fn(), provision: provisionMock, reset: vi.fn() } };
+  return {
+    ...actual,
+    builtInAgentsApi: {
+      list: vi.fn(),
+      provision: provisionMock,
+      reset: vi.fn(),
+    },
+  };
 });
 
 vi.mock("@/api/agents", () => ({
@@ -34,7 +41,13 @@ vi.mock("@/components/AgentConfigForm", () => ({
   AdapterTypeDropdown: ({ value }: { value: string }) => (
     <div data-testid="adapter-dropdown" data-value={value} />
   ),
-  ModelDropdown: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+  ModelDropdown: ({
+    value,
+    onChange,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+  }) => (
     <input
       data-testid="model-input"
       value={value}
@@ -44,7 +57,13 @@ vi.mock("@/components/AgentConfigForm", () => ({
 }));
 
 vi.mock("@/components/agent-config-primitives", () => ({
-  Field: ({ label, children }: { label: string; children: React.ReactNode }) => (
+  Field: ({
+    label,
+    children,
+  }: {
+    label: string;
+    children: React.ReactNode;
+  }) => (
     <label>
       {label}
       {children}
@@ -52,7 +71,9 @@ vi.mock("@/components/agent-config-primitives", () => ({
   ),
 }));
 
-function makeState(overrides: Partial<BuiltInAgentState> = {}): BuiltInAgentState {
+function makeState(
+  overrides: Partial<BuiltInAgentState> = {},
+): BuiltInAgentState {
   return {
     definition: {
       key: "briefs",
@@ -94,7 +115,9 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
 
   async function renderModal(state: BuiltInAgentState = makeState()) {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     flushSync(() => {
       root!.render(
         <QueryClientProvider client={queryClient}>
@@ -130,16 +153,25 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
   });
 
   it("disables submit until a model is chosen, then provisions with adapter + model", async () => {
-    provisionMock.mockResolvedValue({ ...makeState(), status: "ready", agentId: "a1" });
+    provisionMock.mockResolvedValue({
+      ...makeState(),
+      status: "ready",
+      agentId: "a1",
+    });
     await renderModal();
 
     const submit = findButton("Configure");
     expect(submit).toBeTruthy();
     expect(submit!.disabled).toBe(true);
 
-    const modelInput = document.body.querySelector('[data-testid="model-input"]') as HTMLInputElement;
+    const modelInput = document.body.querySelector(
+      '[data-testid="model-input"]',
+    ) as HTMLInputElement;
     expect(modelInput).toBeTruthy();
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     flushSync(() => {
       setter.call(modelInput, "gpt-5");
       modelInput.dispatchEvent(new Event("input", { bubbles: true }));
@@ -162,19 +194,31 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
   });
 
   it("prefills a built-in's default adapter and model", async () => {
-    provisionMock.mockResolvedValue({ ...makeState(), status: "ready", agentId: "a1" });
-    await renderModal(makeState({
-      definition: {
-        ...makeState().definition,
-        defaultAdapterType: "claude_local",
-        defaultAdapterConfig: { model: "claude-haiku-4-5" },
-      },
-    }));
+    provisionMock.mockResolvedValue({
+      ...makeState(),
+      status: "ready",
+      agentId: "a1",
+    });
+    await renderModal(
+      makeState({
+        definition: {
+          ...makeState().definition,
+          defaultAdapterType: "claude_local",
+          defaultAdapterConfig: { model: "claude-haiku-4-5" },
+        },
+      }),
+    );
 
-    expect(document.body.querySelector('[data-testid="adapter-dropdown"]')?.getAttribute("data-value"))
-      .toBe("claude_local");
-    expect(document.body.querySelector<HTMLInputElement>('[data-testid="model-input"]')?.value)
-      .toBe("claude-haiku-4-5");
+    expect(
+      document.body
+        .querySelector('[data-testid="adapter-dropdown"]')
+        ?.getAttribute("data-value"),
+    ).toBe("claude_local");
+    expect(
+      document.body.querySelector<HTMLInputElement>(
+        '[data-testid="model-input"]',
+      )?.value,
+    ).toBe("claude-haiku-4-5");
 
     const submit = findButton("Configure")!;
     expect(submit.disabled).toBe(false);
@@ -193,19 +237,23 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
     adapterModelsMock.mockResolvedValue([
       { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
     ]);
-    await renderModal(makeState({
-      definition: {
-        ...makeState().definition,
-        defaultAdapterType: "claude_local",
-        defaultAdapterConfig: { model: "claude-haiku-4-6" },
-      },
-    }));
+    await renderModal(
+      makeState({
+        definition: {
+          ...makeState().definition,
+          defaultAdapterType: "claude_local",
+          defaultAdapterConfig: { model: "claude-haiku-4-6" },
+        },
+      }),
+    );
     await flushReact();
 
-    expect(document.body.querySelector('[role="alert"]')?.textContent)
-      .toContain("claude-haiku-4-6");
-    expect(document.body.querySelector('[role="alert"]')?.textContent)
-      .toContain("not available");
+    expect(
+      document.body.querySelector('[role="alert"]')?.textContent,
+    ).toContain("claude-haiku-4-6");
+    expect(
+      document.body.querySelector('[role="alert"]')?.textContent,
+    ).toContain("not available");
     expect(findButton("Configure")?.disabled).toBe(true);
     expect(provisionMock).not.toHaveBeenCalled();
   });
@@ -219,15 +267,22 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
     });
     await renderModal();
 
-    const modelInput = document.body.querySelector('[data-testid="model-input"]') as HTMLInputElement;
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+    const modelInput = document.body.querySelector(
+      '[data-testid="model-input"]',
+    ) as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     flushSync(() => {
       setter.call(modelInput, "gpt-5");
       modelInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await flushReact();
 
-    const budgetInput = document.body.querySelector('input[type="number"]') as HTMLInputElement;
+    const budgetInput = document.body.querySelector(
+      'input[type="number"]',
+    ) as HTMLInputElement;
     flushSync(() => {
       setter.call(budgetInput, "50");
       budgetInput.dispatchEvent(new Event("input", { bubbles: true }));
@@ -235,7 +290,9 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
     await flushReact();
 
     flushSync(() => {
-      findButton("Configure")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButton("Configure")!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flushReact();
 
@@ -249,16 +306,26 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
   });
 
   it("provisions non-model adapters so command fields can be completed later", async () => {
-    provisionMock.mockResolvedValue({ ...makeState(), status: "needs_setup", agentId: "a1" });
-    await renderModal(makeState({
-      definition: {
-        ...makeState().definition,
-        allowedAdapterTypes: ["process"],
-      },
-    }));
+    provisionMock.mockResolvedValue({
+      ...makeState(),
+      status: "needs_setup",
+      agentId: "a1",
+    });
+    await renderModal(
+      makeState({
+        definition: {
+          ...makeState().definition,
+          allowedAdapterTypes: ["process"],
+        },
+      }),
+    );
 
-    expect(document.body.textContent).toContain("needs command or endpoint fields");
-    expect(document.body.querySelector('[data-testid="model-input"]')).toBeNull();
+    expect(document.body.textContent).toContain(
+      "needs command or endpoint fields",
+    );
+    expect(
+      document.body.querySelector('[data-testid="model-input"]'),
+    ).toBeNull();
     const submit = findButton("Provision");
     expect(submit).toBeTruthy();
     expect(submit!.disabled).toBe(false);
@@ -277,11 +344,18 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
 
   it("surfaces provision errors inline instead of closing", async () => {
     const { ApiError } = await import("@/api/client");
-    provisionMock.mockRejectedValue(new ApiError("Adapter not allowed", 422, null));
+    provisionMock.mockRejectedValue(
+      new ApiError("Adapter not allowed", 422, null),
+    );
     await renderModal();
 
-    const modelInput = document.body.querySelector('[data-testid="model-input"]') as HTMLInputElement;
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+    const modelInput = document.body.querySelector(
+      '[data-testid="model-input"]',
+    ) as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     flushSync(() => {
       setter.call(modelInput, "gpt-5");
       modelInput.dispatchEvent(new Event("input", { bubbles: true }));
@@ -289,7 +363,9 @@ describe("ConfigureBuiltInAgentModal (PAP-12978)", () => {
     await flushReact();
 
     flushSync(() => {
-      findButton("Configure")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButton("Configure")!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flushReact();
 

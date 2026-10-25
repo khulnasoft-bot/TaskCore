@@ -8,8 +8,12 @@ import type { CapabilityRunnerdCodexTransportOptions } from "../live/runnerd-cod
 export function evalProviderTransportOptions(
   provider: "codex" | "opencode" | "acpx" | "claude_managed" | "aws_agentcore",
   turnTimeoutMs = 120_000,
-): Pick<CapabilityRunnerdCodexTransportOptions,
-  "codexCommand" | "acpxPermissionMode" | "acpxPermissionModePinned" | "turnStartTimeoutMs"
+): Pick<
+  CapabilityRunnerdCodexTransportOptions,
+  | "codexCommand"
+  | "acpxPermissionMode"
+  | "acpxPermissionModePinned"
+  | "turnStartTimeoutMs"
 > {
   if (provider === "aws_agentcore") {
     // AgentCore's worker permits 120 seconds for invocation delivery. Cold
@@ -19,7 +23,10 @@ export function evalProviderTransportOptions(
   if (provider === "acpx") {
     // The operator requested this isolated mock-control-plane campaign. This
     // is an eval policy, not a change to production permission defaults.
-    return { acpxPermissionMode: "approve-all", acpxPermissionModePinned: true };
+    return {
+      acpxPermissionMode: "approve-all",
+      acpxPermissionModePinned: true,
+    };
   }
   if (provider !== "codex") return {};
   const runnerRequire = createRequire(import.meta.url);
@@ -30,7 +37,9 @@ export function evalProviderTransportOptions(
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
     bin?: string | Record<string, string>;
   };
-  const executable = typeof manifest.bin === "string" ? manifest.bin : manifest.bin?.codex;
-  if (!executable) throw new Error("Pinned Codex dependency does not expose its executable");
+  const executable =
+    typeof manifest.bin === "string" ? manifest.bin : manifest.bin?.codex;
+  if (!executable)
+    throw new Error("Pinned Codex dependency does not expose its executable");
   return { codexCommand: resolve(dirname(manifestPath), executable) };
 }

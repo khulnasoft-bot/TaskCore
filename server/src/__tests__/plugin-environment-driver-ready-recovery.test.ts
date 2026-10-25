@@ -43,7 +43,10 @@ const manifest: TaskcorePluginManifestV1 = {
   ],
 };
 
-function createPlugin(status: string, options: { id?: string; pluginKey?: string } = {}) {
+function createPlugin(
+  status: string,
+  options: { id?: string; pluginKey?: string } = {},
+) {
   return {
     id: options.id ?? PLUGIN_ID,
     pluginKey: options.pluginKey ?? PLUGIN_KEY,
@@ -52,14 +55,18 @@ function createPlugin(status: string, options: { id?: string; pluginKey?: string
   };
 }
 
-function createWorkerManager(options: {
-  running?: boolean;
-  hasHandle?: boolean;
-} = {}) {
+function createWorkerManager(
+  options: {
+    running?: boolean;
+    hasHandle?: boolean;
+  } = {},
+) {
   let running = options.running ?? false;
   const workerManager = {
     isRunning: vi.fn(() => running),
-    getWorker: vi.fn(() => (options.hasHandle ? { status: "backoff" } : undefined)),
+    getWorker: vi.fn(() =>
+      options.hasHandle ? { status: "backoff" } : undefined,
+    ),
   } as unknown as PluginWorkerManager;
   return {
     workerManager,
@@ -261,7 +268,13 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
     const loadSingle = vi.fn(async () => ({
       plugin,
       success: false,
-      registered: { worker: false, eventSubscriptions: 0, jobs: 0, webhooks: 0, tools: 0 },
+      registered: {
+        worker: false,
+        eventSubscriptions: 0,
+        jobs: 0,
+        webhooks: 0,
+        tools: 0,
+      },
       error: "local worker spawn failed",
     }));
     const startWorker = createManagedBundledPluginWorkerRecovery({
@@ -303,7 +316,8 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
       stopWorker,
     } as unknown as PluginWorkerManager;
 
-    const loadSingle = vi.fn<PluginLoader["loadSingle"]>()
+    const loadSingle = vi
+      .fn<PluginLoader["loadSingle"]>()
       .mockImplementationOnce(async () => {
         handle = { status: "crashed" };
         throw new Error("Worker initialize failed");
@@ -391,7 +405,9 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
     expect(lifecycleManager.markError).toHaveBeenCalledTimes(1);
 
     lifecycleManager.markError.mockClear();
-    await expect(loader.loadSingle(PLUGIN_ID, { markErrorOnFailure: false })).resolves.toMatchObject({
+    await expect(
+      loader.loadSingle(PLUGIN_ID, { markErrorOnFailure: false }),
+    ).resolves.toMatchObject({
       success: false,
       error: expect.stringContaining("Package root not found"),
     });
@@ -399,7 +415,9 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
   });
 
   it("tears down partially-activated runtime state when error writes are suppressed", async () => {
-    const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), "plugin-recovery-fixture-"));
+    const fixtureDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "plugin-recovery-fixture-"),
+    );
     try {
       fs.writeFileSync(
         path.join(fixtureDir, "package.json"),
@@ -426,7 +444,9 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
       mockRegistry.listConfigs.mockResolvedValue([]);
       mockRegistry.update.mockResolvedValue(undefined);
 
-      const lifecycleManager = { markError: vi.fn().mockResolvedValue(undefined) };
+      const lifecycleManager = {
+        markError: vi.fn().mockResolvedValue(undefined),
+      };
       const workerManager = {
         startWorker: vi.fn().mockResolvedValue(undefined),
         isRunning: vi.fn(() => true),
@@ -439,8 +459,13 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
         clearPlugin: vi.fn(),
         subscriptionCount: vi.fn(() => 0),
       };
-      const jobScheduler = { unregisterPlugin: vi.fn().mockResolvedValue(undefined) };
-      const toolDispatcher = { unregisterPluginTools: vi.fn(), registerPluginTools: vi.fn() };
+      const jobScheduler = {
+        unregisterPlugin: vi.fn().mockResolvedValue(undefined),
+      };
+      const toolDispatcher = {
+        unregisterPluginTools: vi.fn(),
+        registerPluginTools: vi.fn(),
+      };
 
       const loader = pluginLoader(
         {} as never,
@@ -464,7 +489,9 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
         } as never,
       );
 
-      await expect(loader.loadSingle(PLUGIN_ID, { markErrorOnFailure: false })).resolves.toMatchObject({
+      await expect(
+        loader.loadSingle(PLUGIN_ID, { markErrorOnFailure: false }),
+      ).resolves.toMatchObject({
         success: false,
         error: expect.stringContaining("event bus offline"),
       });
@@ -472,7 +499,9 @@ describe("listReadyPluginEnvironmentDrivers worker recovery", () => {
       expect(lifecycleManager.markError).not.toHaveBeenCalled();
       expect(jobScheduler.unregisterPlugin).toHaveBeenCalledWith(PLUGIN_ID);
       expect(eventBus.clearPlugin).toHaveBeenCalledWith(PLUGIN_KEY);
-      expect(toolDispatcher.unregisterPluginTools).toHaveBeenCalledWith(PLUGIN_KEY);
+      expect(toolDispatcher.unregisterPluginTools).toHaveBeenCalledWith(
+        PLUGIN_KEY,
+      );
       expect(workerManager.stopWorker).toHaveBeenCalledWith(PLUGIN_ID);
     } finally {
       fs.rmSync(fixtureDir, { recursive: true, force: true });

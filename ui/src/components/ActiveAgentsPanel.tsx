@@ -12,7 +12,10 @@ import { Clock3 } from "lucide-react";
 import { StatusGlyph } from "./StatusGlyph";
 import { RunChatSurface } from "./RunChatSurface";
 import { useLiveRunTranscripts } from "./transcript/useLiveRunTranscripts";
-import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
+import {
+  usePublishSharedQueryData,
+  useSharedPollingQuery,
+} from "../hooks/useSharedPolling";
 
 const MIN_DASHBOARD_RUNS = 4;
 const DASHBOARD_RUN_CARD_LIMIT = 4;
@@ -62,7 +65,11 @@ export function ActiveAgentsPanel({
   dedupeLinkedTasks = false,
 }: ActiveAgentsPanelProps) {
   const effectiveFetchLimit = fetchLimit;
-  const liveRunsQueryKey = [...queryKeys.liveRuns(companyId), queryScope, { minRunCount, fetchLimit: effectiveFetchLimit, dedupeLinkedTasks }] as const;
+  const liveRunsQueryKey = [
+    ...queryKeys.liveRuns(companyId),
+    queryScope,
+    { minRunCount, fetchLimit: effectiveFetchLimit, dedupeLinkedTasks },
+  ] as const;
   const sharedLiveRuns = useSharedPollingQuery({
     companyId,
     resourceKey: `live-runs:${queryScope}:${minRunCount}:${effectiveFetchLimit ?? "default"}:${dedupeLinkedTasks}`,
@@ -72,11 +79,12 @@ export function ActiveAgentsPanel({
   });
   const { data: liveRuns, dataUpdatedAt: liveRunsUpdatedAt } = useQuery({
     queryKey: liveRunsQueryKey,
-    queryFn: () => heartbeatsApi.liveRunsForCompany(companyId, {
-      minCount: minRunCount,
-      limit: effectiveFetchLimit,
-      distinctTasks: dedupeLinkedTasks,
-    }),
+    queryFn: () =>
+      heartbeatsApi.liveRunsForCompany(companyId, {
+        minCount: minRunCount,
+        limit: effectiveFetchLimit,
+        distinctTasks: dedupeLinkedTasks,
+      }),
     enabled: sharedLiveRuns.enabled,
   });
   usePublishSharedQueryData(sharedLiveRuns, liveRuns, liveRunsUpdatedAt);
@@ -95,10 +103,19 @@ export function ActiveAgentsPanel({
       return true;
     });
   }, [dedupeLinkedTasks, runs]);
-  const visibleRuns = useMemo(() => cardRuns.slice(0, cardLimit), [cardLimit, cardRuns]);
+  const visibleRuns = useMemo(
+    () => cardRuns.slice(0, cardLimit),
+    [cardLimit, cardRuns],
+  );
   const hiddenRunCount = Math.max(0, cardRuns.length - visibleRuns.length);
   const visibleIssueIds = useMemo(
-    () => [...new Set(visibleRuns.map((run) => run.issueId).filter((issueId): issueId is string => Boolean(issueId)))],
+    () => [
+      ...new Set(
+        visibleRuns
+          .map((run) => run.issueId)
+          .filter((issueId): issueId is string => Boolean(issueId)),
+      ),
+    ],
     [visibleRuns],
   );
 
@@ -139,7 +156,12 @@ export function ActiveAgentsPanel({
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         </div>
       ) : (
-        <div className={cn("grid grid-cols-1 items-start gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4", gridClassName)}>
+        <div
+          className={cn(
+            "grid grid-cols-1 items-start gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4",
+            gridClassName,
+          )}
+        >
           {visibleRuns.map((run) => (
             <AgentRunCard
               key={run.id}
@@ -149,7 +171,10 @@ export function ActiveAgentsPanel({
               transcript={transcriptByRun.get(run.id) ?? EMPTY_TRANSCRIPT}
               hasOutput={hasOutputForRun(run.id)}
               showTranscript={showTranscripts}
-              issueLoadFailed={issueQueries.some((query, index) => visibleIssueIds[index] === run.issueId && query.isError)}
+              issueLoadFailed={issueQueries.some(
+                (query, index) =>
+                  visibleIssueIds[index] === run.issueId && query.isError,
+              )}
               className={cardClassName}
             />
           ))}
@@ -157,7 +182,10 @@ export function ActiveAgentsPanel({
       )}
       {showMoreLink && runs.length > 0 && (
         <div className="mt-3 flex justify-end text-xs text-muted-foreground">
-          <Link to="/dashboard/live" className="hover:text-foreground hover:underline">
+          <Link
+            to="/dashboard/live"
+            className="hover:text-foreground hover:underline"
+          >
             {hiddenRunCount > 0
               ? `${hiddenRunCount} more active/recent run${hiddenRunCount === 1 ? "" : "s"}`
               : "View all runs"}
@@ -180,38 +208,65 @@ export const AgentRunCard = memo(function AgentRunCard({
 }: {
   companyId: string;
   run: LiveRunForIssue;
-  issue?: Pick<Issue, "identifier" | "title" | "status" | "externalConversationState">;
+  issue?: Pick<
+    Issue,
+    "identifier" | "title" | "status" | "externalConversationState"
+  >;
   transcript?: TranscriptEntry[];
   hasOutput?: boolean;
   showTranscript?: boolean;
   issueLoadFailed?: boolean;
   className?: string;
 }) {
-  const statusLabel = runStatusLabels[run.status] ?? run.status.replace(/[_-]/g, " ");
+  const statusLabel =
+    runStatusLabels[run.status] ?? run.status.replace(/[_-]/g, " ");
   const runUrl = `/agents/${run.agentId}/runs/${run.id}`;
   const timestamp = run.finishedAt
     ? `Finished ${relativeTime(run.finishedAt)}`
-    : run.startedAt ? `Started ${relativeTime(run.startedAt)}` : `Queued ${relativeTime(run.createdAt)}`;
-  const taskStatus = issue?.status === "in_review" && issue.externalConversationState === "waiting" ? "idle" : issue?.status ?? "backlog";
-  const taskTitle = issue?.title ?? (issueLoadFailed ? "Task unavailable" : "Loading task…");
+    : run.startedAt
+      ? `Started ${relativeTime(run.startedAt)}`
+      : `Queued ${relativeTime(run.createdAt)}`;
+  const taskStatus =
+    issue?.status === "in_review" &&
+    issue.externalConversationState === "waiting"
+      ? "idle"
+      : (issue?.status ?? "backlog");
+  const taskTitle =
+    issue?.title ?? (issueLoadFailed ? "Task unavailable" : "Loading task…");
 
   return (
-    <div className={cn(
-      "dashboard-agent-card flex min-w-0 flex-col overflow-hidden rounded-xl border",
-      showTranscript && "h-(--sz-320px)",
-      run.status === "running"
-        ? "border-(--dashboard-run-border) bg-(--dashboard-run-background) shadow-(--shadow-extract-1)"
-        : "border-border bg-background/70",
-      className,
-    )} data-run-status={run.status}>
-      <div className={cn("flex shrink-0 flex-col gap-3 p-3", showTranscript && "border-b border-border/60")}>
+    <div
+      className={cn(
+        "dashboard-agent-card flex min-w-0 flex-col overflow-hidden rounded-xl border",
+        showTranscript && "h-(--sz-320px)",
+        run.status === "running"
+          ? "border-(--dashboard-run-border) bg-(--dashboard-run-background) shadow-(--shadow-extract-1)"
+          : "border-border bg-background/70",
+        className,
+      )}
+      data-run-status={run.status}
+    >
+      <div
+        className={cn(
+          "flex shrink-0 flex-col gap-3 p-3",
+          showTranscript && "border-b border-border/60",
+        )}
+      >
         <Link
           to={runUrl}
           title={`${run.agentName} — ${statusLabel} · ${timestamp}`}
           aria-label={`${run.agentName} — ${statusLabel}. View run`}
           className="flex min-w-0 items-center gap-2 rounded-md text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <AgentIdentity agent={{ id: run.agentId, name: run.agentName, appearance: run.agentAppearance }} size="sm" className="gap-2 font-medium" />
+          <AgentIdentity
+            agent={{
+              id: run.agentId,
+              name: run.agentName,
+              appearance: run.agentAppearance,
+            }}
+            size="sm"
+            className="gap-2 font-medium"
+          />
         </Link>
 
         {run.issueId ? (
@@ -226,17 +281,28 @@ export const AgentRunCard = memo(function AgentRunCard({
                   status={taskStatus}
                   size="md"
                   className="self-center"
-                  title={issue ? `Task ${taskStatus.replace(/_/g, " ")}` : undefined}
+                  title={
+                    issue ? `Task ${taskStatus.replace(/_/g, " ")}` : undefined
+                  }
                 />
                 <span className="truncate">{taskTitle}</span>
               </span>
-              <span className="shrink-0 font-mono text-(length:--text-micro) text-muted-foreground">{issue?.identifier ?? run.issueId.slice(0, 8)}</span>
+              <span className="shrink-0 font-mono text-(length:--text-micro) text-muted-foreground">
+                {issue?.identifier ?? run.issueId.slice(0, 8)}
+              </span>
             </span>
           </Link>
         ) : (
-          <Link to={runUrl} className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/60 px-2.5 py-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link
+            to={runUrl}
+            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/60 px-2.5 py-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <Clock3 className="size-4 shrink-0" aria-hidden />
-            <span className="truncate">{run.invocationSource === "timer" ? "Scheduled heartbeat" : "No linked task"}</span>
+            <span className="truncate">
+              {run.invocationSource === "timer"
+                ? "Scheduled heartbeat"
+                : "No linked task"}
+            </span>
           </Link>
         )}
         <time

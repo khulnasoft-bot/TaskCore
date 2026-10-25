@@ -13,7 +13,18 @@ import {
   principalPermissionGrants,
   projects as projectsTable,
 } from "@taskcore/db";
-import { eq, and, like, desc, inArray, sql, isNull, isNotNull, gt, lte } from "drizzle-orm";
+import {
+  eq,
+  and,
+  like,
+  desc,
+  inArray,
+  sql,
+  isNull,
+  isNotNull,
+  gt,
+  lte,
+} from "drizzle-orm";
 import type {
   HostServices,
   Company,
@@ -27,7 +38,14 @@ import type {
   PluginIssueOrchestrationSummary,
   PluginExecutionWorkspaceMetadata,
 } from "@taskcore/plugin-sdk";
-import type { CreateIssueThreadInteraction, InviteJoinType, IssueDocumentSummary, IssueRelationIssueSummary, PermissionKey, PrincipalType } from "@taskcore/shared";
+import type {
+  CreateIssueThreadInteraction,
+  InviteJoinType,
+  IssueDocumentSummary,
+  IssueRelationIssueSummary,
+  PermissionKey,
+  PrincipalType,
+} from "@taskcore/shared";
 import { pluginOperationIssueOriginKind } from "@taskcore/shared";
 import { companyService } from "./companies.js";
 import { agentService } from "./agents.js";
@@ -70,7 +88,10 @@ import { logActivity } from "./activity-log.js";
 import type { PluginEventBus } from "./plugin-event-bus.js";
 import type { PluginWorkerManager } from "./plugin-worker-manager.js";
 import { lookup as dnsLookup } from "node:dns/promises";
-import type { IncomingMessage, RequestOptions as HttpRequestOptions } from "node:http";
+import type {
+  IncomingMessage,
+  RequestOptions as HttpRequestOptions,
+} from "node:http";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
@@ -91,7 +112,10 @@ import {
   normalizeProviderFamily,
   SANDBOX_STARTUP_SPAN_ATTRS,
 } from "@taskcore/adapter-utils/acpx-engine/startup-timing";
-import { recordProviderPluginSpan, type ParsedTraceparent } from "../instrumentation.js";
+import {
+  recordProviderPluginSpan,
+  type ParsedTraceparent,
+} from "../instrumentation.js";
 
 // ---------------------------------------------------------------------------
 // SSRF protection for plugin HTTP fetch
@@ -118,7 +142,9 @@ function isPrivateIP(ip: string): boolean {
   const lower = ip.toLowerCase();
 
   // Unwrap IPv4-mapped IPv6 addresses (::ffff:x.x.x.x) and re-check as IPv4
-  const v4MappedMatch = lower.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  const v4MappedMatch = lower.match(
+    /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/,
+  );
   if (v4MappedMatch && v4MappedMatch[1]) return isPrivateIP(v4MappedMatch[1]);
 
   // IPv4 patterns
@@ -128,14 +154,14 @@ function isPrivateIP(ip: string): boolean {
     if (second >= 16 && second <= 31) return true;
   }
   if (ip.startsWith("192.168.")) return true;
-  if (ip.startsWith("127.")) return true;                   // loopback
-  if (ip.startsWith("169.254.")) return true;               // link-local
+  if (ip.startsWith("127.")) return true; // loopback
+  if (ip.startsWith("169.254.")) return true; // link-local
   if (ip === "0.0.0.0") return true;
 
   // IPv6 patterns
-  if (lower === "::1") return true;                          // loopback
+  if (lower === "::1") return true; // loopback
   if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // ULA
-  if (lower.startsWith("fe80")) return true;                 // link-local
+  if (lower.startsWith("fe80")) return true; // link-local
   if (lower === "::") return true;
 
   return false;
@@ -165,7 +191,9 @@ interface ValidatedFetchTarget {
   useTls: boolean;
 }
 
-async function validateAndResolveFetchUrl(urlString: string): Promise<ValidatedFetchTarget> {
+async function validateAndResolveFetchUrl(
+  urlString: string,
+): Promise<ValidatedFetchTarget> {
   let parsed: URL;
   try {
     parsed = new URL(urlString);
@@ -190,7 +218,12 @@ async function validateAndResolveFetchUrl(urlString: string): Promise<ValidatedF
   const dnsPromise = dnsLookup(originalHostname, { all: true });
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(
-      () => reject(new Error(`DNS lookup timed out after ${DNS_LOOKUP_TIMEOUT_MS}ms for ${originalHostname}`)),
+      () =>
+        reject(
+          new Error(
+            `DNS lookup timed out after ${DNS_LOOKUP_TIMEOUT_MS}ms for ${originalHostname}`,
+          ),
+        ),
       DNS_LOOKUP_TIMEOUT_MS,
     );
   });
@@ -198,7 +231,9 @@ async function validateAndResolveFetchUrl(urlString: string): Promise<ValidatedF
   try {
     const results = await Promise.race([dnsPromise, timeoutPromise]);
     if (results.length === 0) {
-      throw new Error(`DNS resolution returned no results for ${originalHostname}`);
+      throw new Error(
+        `DNS resolution returned no results for ${originalHostname}`,
+      );
     }
 
     // Filter to only non-private IPs instead of rejecting the entire request
@@ -216,43 +251,57 @@ async function validateAndResolveFetchUrl(urlString: string): Promise<ValidatedF
       parsedUrl: parsed,
       resolvedAddress: resolved.address,
       hostHeader,
-      tlsServername: parsed.protocol === "https:" && isIP(originalHostname) === 0
-        ? originalHostname
-        : undefined,
+      tlsServername:
+        parsed.protocol === "https:" && isIP(originalHostname) === 0
+          ? originalHostname
+          : undefined,
       useTls: parsed.protocol === "https:",
     };
   } catch (err) {
     // Re-throw our own errors; wrap DNS failures
-    if (err instanceof Error && (
-      err.message.startsWith("All resolved IPs") ||
-      err.message.startsWith("DNS resolution returned") ||
-      err.message.startsWith("DNS lookup timed out")
-    )) throw err;
-    throw new Error(`DNS resolution failed for ${originalHostname}: ${(err as Error).message}`);
+    if (
+      err instanceof Error &&
+      (err.message.startsWith("All resolved IPs") ||
+        err.message.startsWith("DNS resolution returned") ||
+        err.message.startsWith("DNS lookup timed out"))
+    )
+      throw err;
+    throw new Error(
+      `DNS resolution failed for ${originalHostname}: ${(err as Error).message}`,
+    );
   }
 }
 
 function buildPinnedRequestOptions(
   target: ValidatedFetchTarget,
   init?: RequestInit,
-): { options: HttpRequestOptions & { servername?: string }; body: string | undefined } {
+): {
+  options: HttpRequestOptions & { servername?: string };
+  body: string | undefined;
+} {
   const headers = new Headers(init?.headers);
   const method = init?.method ?? "GET";
-  const body = init?.body === undefined || init?.body === null
-    ? undefined
-    : typeof init.body === "string"
-      ? init.body
-      : String(init.body);
+  const body =
+    init?.body === undefined || init?.body === null
+      ? undefined
+      : typeof init.body === "string"
+        ? init.body
+        : String(init.body);
 
   headers.set("Host", target.hostHeader);
-  if (body !== undefined && !headers.has("content-length") && !headers.has("transfer-encoding")) {
+  if (
+    body !== undefined &&
+    !headers.has("content-length") &&
+    !headers.has("transfer-encoding")
+  ) {
     headers.set("content-length", String(Buffer.byteLength(body)));
   }
 
   const pathname = `${target.parsedUrl.pathname}${target.parsedUrl.search}`;
-  const auth = target.parsedUrl.username || target.parsedUrl.password
-    ? `${decodeURIComponent(target.parsedUrl.username)}:${decodeURIComponent(target.parsedUrl.password)}`
-    : undefined;
+  const auth =
+    target.parsedUrl.username || target.parsedUrl.password
+      ? `${decodeURIComponent(target.parsedUrl.username)}:${decodeURIComponent(target.parsedUrl.password)}`
+      : undefined;
 
   return {
     options: {
@@ -277,7 +326,12 @@ async function executePinnedHttpRequest(
   target: ValidatedFetchTarget,
   init: RequestInit | undefined,
   signal: AbortSignal,
-): Promise<{ status: number; statusText: string; headers: Record<string, string>; body: string }> {
+): Promise<{
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: string;
+}> {
   const { options, body } = buildPinnedRequestOptions(target, init);
 
   const response = await new Promise<IncomingMessage>((resolve, reject) => {
@@ -301,7 +355,9 @@ async function executePinnedHttpRequest(
       totalBytes += buf.length;
       if (totalBytes > MAX_RESPONSE_BODY_BYTES) {
         chunks.length = 0;
-        response.destroy(new Error(`Response body exceeded ${MAX_RESPONSE_BODY_BYTES} bytes`));
+        response.destroy(
+          new Error(`Response body exceeded ${MAX_RESPONSE_BODY_BYTES} bytes`),
+        );
         return;
       }
       chunks.push(buf);
@@ -327,16 +383,18 @@ async function executePinnedHttpRequest(
   };
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PATH_LIKE_PATTERN = /[\\/]/;
 const WINDOWS_DRIVE_PATH_PATTERN = /^[A-Za-z]:[\\/]/;
 
 function looksLikePath(value: string): boolean {
   const normalized = value.trim();
   return (
-    PATH_LIKE_PATTERN.test(normalized)
-    || WINDOWS_DRIVE_PATH_PATTERN.test(normalized)
-  ) && !UUID_PATTERN.test(normalized);
+    (PATH_LIKE_PATTERN.test(normalized) ||
+      WINDOWS_DRIVE_PATH_PATTERN.test(normalized)) &&
+    !UUID_PATTERN.test(normalized)
+  );
 }
 
 function sanitizeWorkspaceText(value: string): string {
@@ -396,7 +454,9 @@ function truncStr(s: string, max: number): string {
 }
 
 /** Sanitise a plugin-supplied meta object: enforce size limit and strip reserved keys. */
-function sanitiseMeta(meta: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
+function sanitiseMeta(
+  meta: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
   if (meta == null) return null;
   // Strip pino reserved keys
   const cleaned: Record<string, unknown> = {};
@@ -413,7 +473,10 @@ function sanitiseMeta(meta: Record<string, unknown> | null | undefined): Record<
     return { _sanitised: true, _error: "meta was not JSON-serialisable" };
   }
   if (json.length > MAX_LOG_META_JSON_LENGTH) {
-    return { _sanitised: true, _error: `meta exceeded ${MAX_LOG_META_JSON_LENGTH} chars` };
+    return {
+      _sanitised: true,
+      _error: `meta exceeded ${MAX_LOG_META_JSON_LENGTH} chars`,
+    };
   }
   return cleaned;
 }
@@ -470,7 +533,10 @@ export async function flushPluginLogBuffer(): Promise<void> {
       await dbInstance.insert(pluginLogs).values(values);
     } catch (err) {
       try {
-        logger.warn({ err, count: values.length }, "Failed to batch-persist plugin logs to DB");
+        logger.warn(
+          { err, count: values.length },
+          "Failed to batch-persist plugin logs to DB",
+        );
       } catch {
         console.error("[plugin-host-services] Batch log flush failed:", err);
       }
@@ -540,7 +606,10 @@ const KNOWN_PROVIDER_SPAN_NAMES: ReadonlySet<string> = new Set([
  * provider emits provider spans, derive the segment from the normalized
  * `provider` family attribute on the span instead of this literal. */
 function clampProviderSpanName(raw: unknown): string {
-  const name = typeof raw === "string" && KNOWN_PROVIDER_SPAN_NAMES.has(raw) ? raw : "other";
+  const name =
+    typeof raw === "string" && KNOWN_PROVIDER_SPAN_NAMES.has(raw)
+      ? raw
+      : "other";
   return `sandbox.daytona.${name}`;
 }
 
@@ -564,10 +633,17 @@ const PROVIDER_SPAN_NUMERIC_ATTRS: ReadonlySet<string> = new Set<string>([
 ]);
 
 /** The closed value set for the `outcome` attribute. */
-const KNOWN_SPAN_OUTCOMES: ReadonlySet<string> = new Set(["ok", "skipped", "failed"]);
+const KNOWN_SPAN_OUTCOMES: ReadonlySet<string> = new Set([
+  "ok",
+  "skipped",
+  "failed",
+]);
 
 /** The closed value set for the `transfer.direction` attribute. */
-const KNOWN_TRANSFER_DIRECTIONS: ReadonlySet<string> = new Set(["inbound", "outbound"]);
+const KNOWN_TRANSFER_DIRECTIONS: ReadonlySet<string> = new Set([
+  "inbound",
+  "outbound",
+]);
 
 /**
  * Re-clamp the worker-sent attributes at the trust boundary. Drop every key that
@@ -584,19 +660,24 @@ export function clampProviderSpanAttributes(
   for (const [key, value] of Object.entries(raw)) {
     if (!PROVIDER_SPAN_ATTR_ALLOWLIST.has(key)) continue;
     if (key === SPAN_ATTRS.provider) {
-      clamped[key] = normalizeProviderFamily(typeof value === "string" ? value : undefined);
+      clamped[key] = normalizeProviderFamily(
+        typeof value === "string" ? value : undefined,
+      );
       continue;
     }
     if (key === SPAN_ATTRS.outcome) {
-      if (typeof value === "string" && KNOWN_SPAN_OUTCOMES.has(value)) clamped[key] = value;
+      if (typeof value === "string" && KNOWN_SPAN_OUTCOMES.has(value))
+        clamped[key] = value;
       continue;
     }
     if (key === SPAN_ATTRS.transferDirection) {
-      if (typeof value === "string" && KNOWN_TRANSFER_DIRECTIONS.has(value)) clamped[key] = value;
+      if (typeof value === "string" && KNOWN_TRANSFER_DIRECTIONS.has(value))
+        clamped[key] = value;
       continue;
     }
     if (PROVIDER_SPAN_NUMERIC_ATTRS.has(key)) {
-      if (typeof value === "number" && Number.isFinite(value)) clamped[key] = value;
+      if (typeof value === "number" && Number.isFinite(value))
+        clamped[key] = value;
       continue;
     }
   }
@@ -608,9 +689,12 @@ export function clampProviderSpanAttributes(
  * value is absent or malformed. The host mints the value, but this is the trust
  * boundary, so it validates before use. It never logs the value.
  */
-export function parseTraceparent(raw: string | undefined | null): ParsedTraceparent | null {
+export function parseTraceparent(
+  raw: string | undefined | null,
+): ParsedTraceparent | null {
   if (typeof raw !== "string") return null;
-  const match = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/.exec(raw);
+  const match =
+    /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/.exec(raw);
   if (!match) return null;
   const [, version, traceId, spanId, flags] = match;
   if (version === "ff") return null; // the W3C spec forbids version 0xff
@@ -624,7 +708,12 @@ export function parseTraceparent(raw: string | undefined | null): ParsedTracepar
 function clampSpanStatus(
   status: { code?: unknown; message?: unknown } | undefined,
 ): { code: number } | undefined {
-  if (!status || typeof status.code !== "number" || !Number.isFinite(status.code)) return undefined;
+  if (
+    !status ||
+    typeof status.code !== "number" ||
+    !Number.isFinite(status.code)
+  )
+    return undefined;
   return { code: status.code };
 }
 
@@ -659,11 +748,14 @@ function validateProviderSpanTimes(
   startTimeMs: unknown,
   endTimeMs: unknown,
 ): { startTimeMs: number; endTimeMs: number } | undefined {
-  if (typeof startTimeMs !== "number" || !Number.isFinite(startTimeMs)) return undefined;
-  if (typeof endTimeMs !== "number" || !Number.isFinite(endTimeMs)) return undefined;
+  if (typeof startTimeMs !== "number" || !Number.isFinite(startTimeMs))
+    return undefined;
+  if (typeof endTimeMs !== "number" || !Number.isFinite(endTimeMs))
+    return undefined;
   if (startTimeMs > endTimeMs) return undefined;
   if (endTimeMs - startTimeMs > MAX_PROVIDER_SPAN_DURATION_MS) return undefined;
-  if (Date.now() - startTimeMs > MAX_PROVIDER_SPAN_START_AGE_MS) return undefined;
+  if (Date.now() - startTimeMs > MAX_PROVIDER_SPAN_START_AGE_MS)
+    return undefined;
   if (endTimeMs - Date.now() > MAX_PROVIDER_SPAN_END_SKEW_MS) return undefined;
   return { startTimeMs, endTimeMs };
 }
@@ -697,7 +789,9 @@ export function recordWorkerProviderSpan(
     parent,
     attributes: clampProviderSpanAttributes(params.attributes),
     ...(status ? { status } : {}),
-    ...(times ? { startTimeMs: times.startTimeMs, endTimeMs: times.endTimeMs } : {}),
+    ...(times
+      ? { startTimeMs: times.startTimeMs, endTimeMs: times.endTimeMs }
+      : {}),
   });
 }
 
@@ -729,11 +823,16 @@ export function buildHostServices(
         const status = await inspectPluginLocalFolder({
           folderKey: declaration.folderKey,
           declaration,
-          storedConfig: await getStoredLocalFolderConfig(companyId, declaration.folderKey),
+          storedConfig: await getStoredLocalFolderConfig(
+            companyId,
+            declaration.folderKey,
+          ),
         });
         const prefix = `localFolders.${declaration.folderKey}`;
         variables[`${prefix}.path`] = status.realPath ?? status.path ?? null;
-        variables[`${prefix}.agentsPath`] = status.realPath ? path.join(status.realPath, "AGENTS.md") : null;
+        variables[`${prefix}.agentsPath`] = status.realPath
+          ? path.join(status.realPath, "AGENTS.md")
+          : null;
       }
       return variables;
     },
@@ -807,19 +906,32 @@ export function buildHostServices(
   ): Promise<boolean> => {
     if (!issue) return false;
     if (issuePrivacyMode() !== "enforce") return true;
-    return canActorReadIssuePrivacy(db, pluginIssuePrivacyActor, toIssuePrivacyRow(issue));
+    return canActorReadIssuePrivacy(
+      db,
+      pluginIssuePrivacyActor,
+      toIssuePrivacyRow(issue),
+    );
   };
   const pluginReadableIssueIds = async (
     issueList: Array<Parameters<typeof toIssuePrivacyRow>[0]>,
   ): Promise<Set<string>> => {
-    if (issuePrivacyMode() !== "enforce") return new Set(issueList.map((issue) => issue.id));
+    if (issuePrivacyMode() !== "enforce")
+      return new Set(issueList.map((issue) => issue.id));
     const decisions = await Promise.all(
       issueList.map(async (issue) => ({
         id: issue.id,
-        allowed: await canActorReadIssuePrivacy(db, pluginIssuePrivacyActor, toIssuePrivacyRow(issue)),
+        allowed: await canActorReadIssuePrivacy(
+          db,
+          pluginIssuePrivacyActor,
+          toIssuePrivacyRow(issue),
+        ),
       })),
     );
-    return new Set(decisions.filter((decision) => decision.allowed).map((decision) => decision.id));
+    return new Set(
+      decisions
+        .filter((decision) => decision.allowed)
+        .map((decision) => decision.id),
+    );
   };
   // Column projection matching IssuePrivacyRow, for ad-hoc readability lookups
   // of bare issue IDs (relation targets, subtree descendants) that arrive
@@ -850,7 +962,12 @@ export function buildHostServices(
     const rows = await db
       .select(issuePrivacyRowColumns)
       .from(issuesTable)
-      .where(and(eq(issuesTable.companyId, companyId), inArray(issuesTable.id, uniqueIds)));
+      .where(
+        and(
+          eq(issuesTable.companyId, companyId),
+          inArray(issuesTable.id, uniqueIds),
+        ),
+      );
     return pluginReadableIssueIds(rows);
   };
   // Fetch an issue and require it be both in-company and readable by a
@@ -858,8 +975,15 @@ export function buildHostServices(
   // error a genuinely missing issue would, so its existence never leaks. This
   // is the single gate every issue-derived plugin read routes through, so no
   // method needs its own bespoke visibility check.
-  const requirePluginReadableIssue = async (issueId: string, companyId: string): Promise<Issue> => {
-    const issue = requireInCompany("Issue", await issues.getById(issueId), companyId);
+  const requirePluginReadableIssue = async (
+    issueId: string,
+    companyId: string,
+  ): Promise<Issue> => {
+    const issue = requireInCompany(
+      "Issue",
+      await issues.getById(issueId),
+      companyId,
+    );
     if (!(await pluginCanReadIssue(issue))) {
       throw new Error("Issue not found");
     }
@@ -870,7 +994,10 @@ export function buildHostServices(
   // edge's title/status/assignee is relationship metadata a non-member must not
   // see even when the issue that owns the edge is itself public.
   const pluginRedactRelationSummary = async <
-    R extends { blockedBy: IssueRelationIssueSummary[]; blocks: IssueRelationIssueSummary[] },
+    R extends {
+      blockedBy: IssueRelationIssueSummary[];
+      blocks: IssueRelationIssueSummary[];
+    },
   >(
     companyId: string,
     relation: R,
@@ -887,17 +1014,28 @@ export function buildHostServices(
     collect(relation.blocks);
     if (edgeIds.size === 0) return relation;
     const readable = await pluginReadableIssueIdsByIds(companyId, edgeIds);
-    const redact = (edges: IssueRelationIssueSummary[]): IssueRelationIssueSummary[] =>
+    const redact = (
+      edges: IssueRelationIssueSummary[],
+    ): IssueRelationIssueSummary[] =>
       edges
         .filter((edge) => readable.has(edge.id))
-        .map((edge) => (edge.terminalBlockers?.length
-          ? { ...edge, terminalBlockers: redact(edge.terminalBlockers) }
-          : edge));
-    return { ...relation, blockedBy: redact(relation.blockedBy), blocks: redact(relation.blocks) };
+        .map((edge) =>
+          edge.terminalBlockers?.length
+            ? { ...edge, terminalBlockers: redact(edge.terminalBlockers) }
+            : edge,
+        );
+    return {
+      ...relation,
+      blockedBy: redact(relation.blockedBy),
+      blocks: redact(relation.blocks),
+    };
   };
 
   // Track active session event subscriptions for cleanup
-  const activeSubscriptions = new Set<{ unsubscribe: () => void; timer: ReturnType<typeof setTimeout> }>();
+  const activeSubscriptions = new Set<{
+    unsubscribe: () => void;
+    timer: ReturnType<typeof setTimeout>;
+  }>();
   let disposed = false;
 
   const ensureCompanyId = (companyId?: string) => {
@@ -918,7 +1056,10 @@ export function buildHostServices(
     return null;
   };
 
-  const applyWindow = <T>(rows: T[], params?: { limit?: unknown; offset?: unknown }): T[] => {
+  const applyWindow = <T>(
+    rows: T[],
+    params?: { limit?: unknown; offset?: unknown },
+  ): T[] => {
     const offset = parseWindowValue(params?.offset) ?? 0;
     const limit = parseWindowValue(params?.limit);
     if (limit == null) return rows.slice(offset);
@@ -928,11 +1069,21 @@ export function buildHostServices(
   const authorizationAuditDecisionCondition = (decisionFilter: string) => {
     const conditions = [
       sql`lower(${activityLog.details}->>'decision') = ${decisionFilter}`,
-      decisionFilter === "allow" ? sql`left(coalesce(${activityLog.details}->>'reason', ''), 6) = 'allow_'` : undefined,
-      decisionFilter === "deny" ? sql`left(coalesce(${activityLog.details}->>'reason', ''), 5) = 'deny_'` : undefined,
-      decisionFilter === "allow" ? sql`${activityLog.details}->>'allowed' = 'true'` : undefined,
-      decisionFilter === "deny" ? sql`${activityLog.details}->>'allowed' = 'false'` : undefined,
-    ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+      decisionFilter === "allow"
+        ? sql`left(coalesce(${activityLog.details}->>'reason', ''), 6) = 'allow_'`
+        : undefined,
+      decisionFilter === "deny"
+        ? sql`left(coalesce(${activityLog.details}->>'reason', ''), 5) = 'deny_'`
+        : undefined,
+      decisionFilter === "allow"
+        ? sql`${activityLog.details}->>'allowed' = 'true'`
+        : undefined,
+      decisionFilter === "deny"
+        ? sql`${activityLog.details}->>'allowed' = 'false'`
+        : undefined,
+    ].filter((condition): condition is NonNullable<typeof condition> =>
+      Boolean(condition),
+    );
     return sql`(${sql.join(conditions, sql` OR `)})`;
   };
 
@@ -946,14 +1097,20 @@ export function buildHostServices(
   const getLocalFolderDeclaration = (folderKey: string) =>
     requireLocalFolderDeclaration(options.manifest?.localFolders, folderKey);
 
-  const getStoredLocalFolderConfig = async (companyId: string, folderKey: string) => {
+  const getStoredLocalFolderConfig = async (
+    companyId: string,
+    folderKey: string,
+  ) => {
     ensureCompanyId(companyId);
     await ensurePluginAvailableForCompany(companyId);
     const settings = await registry.getCompanySettings(pluginId, companyId);
     return getStoredLocalFolders(settings?.settingsJson)[folderKey] ?? null;
   };
 
-  const inspectStoredLocalFolder = async (companyId: string, folderKey: string) =>
+  const inspectStoredLocalFolder = async (
+    companyId: string,
+    folderKey: string,
+  ) =>
     inspectPluginLocalFolder({
       folderKey,
       declaration: getLocalFolderDeclaration(folderKey),
@@ -968,18 +1125,27 @@ export function buildHostServices(
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value);
 
-  const readProviderMetadata = (metadata: Record<string, unknown> | null | undefined) => {
+  const readProviderMetadata = (
+    metadata: Record<string, unknown> | null | undefined,
+  ) => {
     if (!isRecord(metadata)) return null;
-    if (isRecord(metadata.providerMetadata)) return { ...metadata.providerMetadata };
+    if (isRecord(metadata.providerMetadata))
+      return { ...metadata.providerMetadata };
     const rebuild = metadata.rebuild;
     if (!isRecord(rebuild)) return null;
     const rebuildMetadata = rebuild.metadata;
-    if (!isRecord(rebuildMetadata) || !isRecord(rebuildMetadata.providerMetadata)) return null;
+    if (
+      !isRecord(rebuildMetadata) ||
+      !isRecord(rebuildMetadata.providerMetadata)
+    )
+      return null;
     return { ...rebuildMetadata.providerMetadata };
   };
 
   const toPluginExecutionWorkspaceMetadata = (
-    workspace: NonNullable<Awaited<ReturnType<typeof executionWorkspaces.getById>>>,
+    workspace: NonNullable<
+      Awaited<ReturnType<typeof executionWorkspaces.getById>>
+    >,
   ): PluginExecutionWorkspaceMetadata => ({
     id: workspace.id,
     companyId: workspace.companyId,
@@ -1030,20 +1196,29 @@ export function buildHostServices(
     { allowViewer = false }: { allowViewer?: boolean } = {},
   ): Promise<void> => {
     const [membership] = await db
-      .select({ id: companyMemberships.id, membershipRole: companyMemberships.membershipRole })
+      .select({
+        id: companyMemberships.id,
+        membershipRole: companyMemberships.membershipRole,
+      })
       .from(companyMemberships)
-      .where(and(
-        eq(companyMemberships.companyId, companyId),
-        eq(companyMemberships.principalType, "user"),
-        eq(companyMemberships.principalId, userId),
-        eq(companyMemberships.status, "active"),
-      ))
+      .where(
+        and(
+          eq(companyMemberships.companyId, companyId),
+          eq(companyMemberships.principalType, "user"),
+          eq(companyMemberships.principalId, userId),
+          eq(companyMemberships.status, "active"),
+        ),
+      )
       .limit(1);
     if (!membership) {
-      throw new Error(`actorUserId "${userId}" is not an active human member of this company`);
+      throw new Error(
+        `actorUserId "${userId}" is not an active human member of this company`,
+      );
     }
     if (!allowViewer && membership.membershipRole === "viewer") {
-      throw new Error(`actorUserId "${userId}" has viewer (read-only) access and cannot take this write action`);
+      throw new Error(
+        `actorUserId "${userId}" has viewer (read-only) access and cannot take this write action`,
+      );
     }
   };
 
@@ -1075,69 +1250,89 @@ export function buildHostServices(
   }): void => {
     const { interaction, issue } = args;
     if (
-      interaction.continuationPolicy !== "wake_assignee"
-      && interaction.continuationPolicy !== "wake_assignee_on_accept"
-    ) return;
+      interaction.continuationPolicy !== "wake_assignee" &&
+      interaction.continuationPolicy !== "wake_assignee_on_accept"
+    )
+      return;
     if (
-      interaction.continuationPolicy === "wake_assignee_on_accept"
-      && interaction.status !== "accepted"
-    ) return;
+      interaction.continuationPolicy === "wake_assignee_on_accept" &&
+      interaction.status !== "accepted"
+    )
+      return;
     if (interaction.status === "expired") return;
-    if (!issue.assigneeAgentId || issue.status === "done" || issue.status === "cancelled") return;
+    if (
+      !issue.assigneeAgentId ||
+      issue.status === "done" ||
+      issue.status === "cancelled"
+    )
+      return;
 
     let planReviewInteraction: Record<string, unknown> | null = null;
-    if (interaction.kind === "request_confirmation" && isRecord(interaction.payload)) {
-      const target = isRecord(interaction.payload.target) ? interaction.payload.target : null;
+    if (
+      interaction.kind === "request_confirmation" &&
+      isRecord(interaction.payload)
+    ) {
+      const target = isRecord(interaction.payload.target)
+        ? interaction.payload.target
+        : null;
       if (
-        target
-        && target.type === "issue_document"
-        && target.key === "plan"
-        && typeof target.issueId === "string"
-        && target.issueId === issue.id
+        target &&
+        target.type === "issue_document" &&
+        target.key === "plan" &&
+        typeof target.issueId === "string" &&
+        target.issueId === issue.id
       ) {
         planReviewInteraction = {
           id: interaction.id,
           kind: interaction.kind,
           status: interaction.status,
           target,
-          acceptedTargetRevision: interaction.status === "accepted" ? target : null,
+          acceptedTargetRevision:
+            interaction.status === "accepted" ? target : null,
         };
       }
     }
 
-    void heartbeat.wakeup(issue.assigneeAgentId, {
-      source: "automation",
-      triggerDetail: "system",
-      reason: "issue_commented",
-      payload: {
-        issueId: issue.id,
-        interactionId: interaction.id,
-        interactionKind: interaction.kind,
-        interactionStatus: interaction.status,
-        sourceCommentId: interaction.sourceCommentId ?? null,
-        sourceRunId: interaction.sourceRunId ?? null,
-        ...(planReviewInteraction ? { planReviewInteraction } : {}),
-        mutation: "interaction",
-      },
-      requestedByActorType: "user",
-      requestedByActorId: args.actorUserId,
-      contextSnapshot: {
-        issueId: issue.id,
-        taskId: issue.id,
-        interactionId: interaction.id,
-        interactionKind: interaction.kind,
-        interactionStatus: interaction.status,
-        ...(planReviewInteraction ? { planReviewInteraction } : {}),
-        wakeReason: "issue_commented",
-        source: `plugin:${pluginKey}`,
-      },
-    }).catch((err) => logger.warn({
-      err,
-      issueId: issue.id,
-      interactionId: interaction.id,
-      agentId: issue.assigneeAgentId,
-      source: args.source,
-    }, "failed to wake assignee on plugin-relayed interaction resolution"));
+    void heartbeat
+      .wakeup(issue.assigneeAgentId, {
+        source: "automation",
+        triggerDetail: "system",
+        reason: "issue_commented",
+        payload: {
+          issueId: issue.id,
+          interactionId: interaction.id,
+          interactionKind: interaction.kind,
+          interactionStatus: interaction.status,
+          sourceCommentId: interaction.sourceCommentId ?? null,
+          sourceRunId: interaction.sourceRunId ?? null,
+          ...(planReviewInteraction ? { planReviewInteraction } : {}),
+          mutation: "interaction",
+        },
+        requestedByActorType: "user",
+        requestedByActorId: args.actorUserId,
+        contextSnapshot: {
+          issueId: issue.id,
+          taskId: issue.id,
+          interactionId: interaction.id,
+          interactionKind: interaction.kind,
+          interactionStatus: interaction.status,
+          ...(planReviewInteraction ? { planReviewInteraction } : {}),
+          wakeReason: "issue_commented",
+          source: `plugin:${pluginKey}`,
+        },
+      })
+      .catch((err) =>
+        logger.warn(
+          {
+            err,
+            issueId: issue.id,
+            interactionId: interaction.id,
+            agentId: issue.assigneeAgentId,
+            source: args.source,
+          },
+          "failed to wake assignee on plugin-relayed interaction resolution",
+        ),
+      );
   };
 
   /**
@@ -1146,16 +1341,28 @@ export function buildHostServices(
    * redactApprovalPayload). Ensures the chat surface never receives secrets the
    * web app itself hides from an approval reader.
    */
-  const redactApprovalPayload = <T extends { payload: Record<string, unknown> }>(approval: T): T => ({
+  const redactApprovalPayload = <
+    T extends { payload: Record<string, unknown> },
+  >(
+    approval: T,
+  ): T => ({
     ...approval,
     payload: redactEventPayload(approval.payload) ?? {},
   });
 
   const pluginActivityDetails = (
     details: Record<string, unknown> | null | undefined,
-    actor?: { actorAgentId?: string | null; actorUserId?: string | null; actorRunId?: string | null },
+    actor?: {
+      actorAgentId?: string | null;
+      actorUserId?: string | null;
+      actorRunId?: string | null;
+    },
   ) => {
-    const initiatingActorType = actor?.actorAgentId ? "agent" : actor?.actorUserId ? "user" : null;
+    const initiatingActorType = actor?.actorAgentId
+      ? "agent"
+      : actor?.actorUserId
+        ? "user"
+        : null;
     const initiatingActorId = actor?.actorAgentId ?? actor?.actorUserId ?? null;
     return {
       ...(details ?? {}),
@@ -1172,19 +1379,27 @@ export function buildHostServices(
   };
 
   const defaultPluginOriginKind = `plugin:${pluginKey}`;
-  const normalizePluginOriginKind = (originKind: unknown = defaultPluginOriginKind) => {
+  const normalizePluginOriginKind = (
+    originKind: unknown = defaultPluginOriginKind,
+  ) => {
     if (originKind == null || originKind === "") return defaultPluginOriginKind;
     if (typeof originKind !== "string") {
       throw new Error("Plugin issue originKind must be a string");
     }
-    if (originKind === defaultPluginOriginKind || originKind.startsWith(`${defaultPluginOriginKind}:`)) {
+    if (
+      originKind === defaultPluginOriginKind ||
+      originKind.startsWith(`${defaultPluginOriginKind}:`)
+    ) {
       return originKind;
     }
-    throw new Error(`Plugin may only use originKind values under ${defaultPluginOriginKind}`);
+    throw new Error(
+      `Plugin may only use originKind values under ${defaultPluginOriginKind}`,
+    );
   };
 
   const assertReadableOriginFilter = (originKind: unknown) => {
-    if (typeof originKind !== "string" || !originKind.startsWith("plugin:")) return;
+    if (typeof originKind !== "string" || !originKind.startsWith("plugin:"))
+      return;
     normalizePluginOriginKind(originKind);
   };
 
@@ -1194,7 +1409,11 @@ export function buildHostServices(
     entityType: string;
     entityId: string;
     details?: Record<string, unknown> | null;
-    actor?: { actorAgentId?: string | null; actorUserId?: string | null; actorRunId?: string | null };
+    actor?: {
+      actorAgentId?: string | null;
+      actorUserId?: string | null;
+      actorRunId?: string | null;
+    };
   }) => {
     await logActivity(db, {
       companyId: input.companyId,
@@ -1209,7 +1428,10 @@ export function buildHostServices(
     });
   };
 
-  const collectIssueSubtreeIds = async (companyId: string, rootIssueId: string) => {
+  const collectIssueSubtreeIds = async (
+    companyId: string,
+    rootIssueId: string,
+  ) => {
     const seen = new Set<string>([rootIssueId]);
     let frontier = [rootIssueId];
 
@@ -1217,8 +1439,15 @@ export function buildHostServices(
       const children = await db
         .select({ id: issuesTable.id })
         .from(issuesTable)
-        .where(and(eq(issuesTable.companyId, companyId), inArray(issuesTable.parentId, frontier)));
-      frontier = children.map((child) => child.id).filter((id) => !seen.has(id));
+        .where(
+          and(
+            eq(issuesTable.companyId, companyId),
+            inArray(issuesTable.parentId, frontier),
+          ),
+        );
+      frontier = children
+        .map((child) => child.id)
+        .filter((id) => !seen.has(id));
       for (const id of frontier) seen.add(id);
     }
 
@@ -1231,7 +1460,9 @@ export function buildHostServices(
     options: { activeOnly?: boolean } = {},
   ) => {
     if (issueIds.length === 0) return [];
-    const issueIdExpr = sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`;
+    const issueIdExpr = sql<
+      string | null
+    >`${heartbeatRuns.contextSnapshot} ->> 'issueId'`;
     const statusCondition = options.activeOnly
       ? inArray(heartbeatRuns.status, ["queued", "running"])
       : undefined;
@@ -1249,7 +1480,13 @@ export function buildHostServices(
         createdAt: heartbeatRuns.createdAt,
       })
       .from(heartbeatRuns)
-      .where(and(eq(heartbeatRuns.companyId, companyId), inArray(issueIdExpr, issueIds), statusCondition))
+      .where(
+        and(
+          eq(heartbeatRuns.companyId, companyId),
+          inArray(issueIdExpr, issueIds),
+          statusCondition,
+        ),
+      )
       .orderBy(desc(heartbeatRuns.createdAt))
       .limit(100);
 
@@ -1270,7 +1507,11 @@ export function buildHostServices(
     actorUserId?: string | null;
     actorRunId?: string | null;
   }) => {
-    const existing = requireInCompany("Issue", await issues.getById(params.issueId), params.companyId);
+    const existing = requireInCompany(
+      "Issue",
+      await issues.getById(params.issueId),
+      params.companyId,
+    );
     const previous = await issues.getRelationSummaries(params.issueId);
     await issues.update(params.issueId, {
       blockedByIssueIds: params.blockedByIssueIds,
@@ -1292,7 +1533,9 @@ export function buildHostServices(
         identifier: existing.identifier,
         mutation: params.mutation,
         blockedByIssueIds: params.blockedByIssueIds,
-        previousBlockedByIssueIds: previous.blockedBy.map((relation) => relation.id),
+        previousBlockedByIssueIds: previous.blockedBy.map(
+          (relation) => relation.id,
+        ),
       },
     });
     return relations;
@@ -1306,7 +1549,9 @@ export function buildHostServices(
     const scopeConditions = [
       issueIds.length > 0 ? inArray(costEvents.issueId, issueIds) : undefined,
       billingCode ? eq(costEvents.billingCode, billingCode) : undefined,
-    ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+    ].filter((condition): condition is NonNullable<typeof condition> =>
+      Boolean(condition),
+    );
     if (scopeConditions.length === 0) {
       return {
         costCents: 0,
@@ -1316,7 +1561,10 @@ export function buildHostServices(
         billingCode: billingCode ?? null,
       };
     }
-    const scopeCondition = scopeConditions.length === 1 ? scopeConditions[0]! : and(...scopeConditions);
+    const scopeCondition =
+      scopeConditions.length === 1
+        ? scopeConditions[0]!
+        : and(...scopeConditions);
     const [row] = await db
       .select({
         costCents: sql<number>`coalesce(sum(${costEvents.costCents}), 0)::double precision`,
@@ -1352,7 +1600,12 @@ export function buildHostServices(
         createdAt: budgetIncidents.createdAt,
       })
       .from(budgetIncidents)
-      .where(and(eq(budgetIncidents.companyId, companyId), eq(budgetIncidents.status, "open")))
+      .where(
+        and(
+          eq(budgetIncidents.companyId, companyId),
+          eq(budgetIncidents.status, "open"),
+        ),
+      )
       .orderBy(desc(budgetIncidents.createdAt));
 
     return rows.map((row) => ({
@@ -1368,10 +1621,13 @@ export function buildHostServices(
   const INVITE_TOKEN_MAX_RETRIES = 5;
   const COMPANY_INVITE_TTL_MS = 72 * 60 * 60 * 1000;
 
-  const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+  const hashToken = (token: string) =>
+    createHash("sha256").update(token).digest("hex");
 
   const createInviteToken = () => {
-    const suffix = randomBytes(INVITE_TOKEN_ENTROPY_BYTES).toString("base64url");
+    const suffix = randomBytes(INVITE_TOKEN_ENTROPY_BYTES).toString(
+      "base64url",
+    );
     return `${INVITE_TOKEN_PREFIX}${suffix}`;
   };
 
@@ -1382,9 +1638,18 @@ export function buildHostServices(
     ];
     for (const candidate of candidates) {
       if (!candidate || typeof candidate !== "object") continue;
-      const code = "code" in candidate && typeof candidate.code === "string" ? candidate.code : null;
-      const message = "message" in candidate && typeof candidate.message === "string" ? candidate.message : "";
-      const constraint = "constraint" in candidate && typeof candidate.constraint === "string" ? candidate.constraint : null;
+      const code =
+        "code" in candidate && typeof candidate.code === "string"
+          ? candidate.code
+          : null;
+      const message =
+        "message" in candidate && typeof candidate.message === "string"
+          ? candidate.message
+          : "";
+      const constraint =
+        "constraint" in candidate && typeof candidate.constraint === "string"
+          ? candidate.constraint
+          : null;
       if (code !== "23505") continue;
       if (constraint === "invites_token_hash_unique_idx") return true;
       if (message.includes("invites_token_hash_unique_idx")) return true;
@@ -1404,9 +1669,10 @@ export function buildHostServices(
     return {
       ...safeInvite,
       allowedJoinTypes: safeInvite.allowedJoinTypes as InviteJoinType,
-      defaultsPayload: defaultsPayload && typeof defaultsPayload === "object"
-        ? sanitizeRecord(defaultsPayload)
-        : defaultsPayload ?? null,
+      defaultsPayload:
+        defaultsPayload && typeof defaultsPayload === "object"
+          ? sanitizeRecord(defaultsPayload)
+          : (defaultsPayload ?? null),
       state: inviteState(invite),
     };
   };
@@ -1415,11 +1681,19 @@ export function buildHostServices(
     const now = new Date();
     switch (state) {
       case "active":
-        return and(isNull(invites.revokedAt), isNull(invites.acceptedAt), gt(invites.expiresAt, now));
+        return and(
+          isNull(invites.revokedAt),
+          isNull(invites.acceptedAt),
+          gt(invites.expiresAt, now),
+        );
       case "accepted":
         return isNotNull(invites.acceptedAt);
       case "expired":
-        return and(isNull(invites.revokedAt), isNull(invites.acceptedAt), lte(invites.expiresAt, now));
+        return and(
+          isNull(invites.revokedAt),
+          isNull(invites.acceptedAt),
+          lte(invites.expiresAt, now),
+        );
       case "revoked":
         return isNotNull(invites.revokedAt);
       default:
@@ -1427,30 +1701,44 @@ export function buildHostServices(
     }
   };
 
-  const mergeInviteDefaults = (defaultsPayload: Record<string, unknown> | null | undefined, agentMessage: string | null, humanRole: string | null) => {
-    const defaults = defaultsPayload && typeof defaultsPayload === "object"
-      ? { ...defaultsPayload }
-      : {};
+  const mergeInviteDefaults = (
+    defaultsPayload: Record<string, unknown> | null | undefined,
+    agentMessage: string | null,
+    humanRole: string | null,
+  ) => {
+    const defaults =
+      defaultsPayload && typeof defaultsPayload === "object"
+        ? { ...defaultsPayload }
+        : {};
     if (humanRole) {
       defaults.human = {
-        ...(typeof defaults.human === "object" && defaults.human !== null ? defaults.human as Record<string, unknown> : {}),
+        ...(typeof defaults.human === "object" && defaults.human !== null
+          ? (defaults.human as Record<string, unknown>)
+          : {}),
         role: humanRole,
       };
     }
     if (agentMessage) {
       defaults.agent = {
-        ...(typeof defaults.agent === "object" && defaults.agent !== null ? defaults.agent as Record<string, unknown> : {}),
+        ...(typeof defaults.agent === "object" && defaults.agent !== null
+          ? (defaults.agent as Record<string, unknown>)
+          : {}),
         message: agentMessage,
       };
     }
     return sanitizeRecord(defaults);
   };
 
-  const redactGrant = (grant: typeof principalPermissionGrants.$inferSelect) => ({
+  const redactGrant = (
+    grant: typeof principalPermissionGrants.$inferSelect,
+  ) => ({
     ...grant,
     principalType: grant.principalType as PrincipalType,
     permissionKey: grant.permissionKey as PermissionKey,
-    scope: grant.scope && typeof grant.scope === "object" ? sanitizeRecord(grant.scope) : grant.scope ?? null,
+    scope:
+      grant.scope && typeof grant.scope === "object"
+        ? sanitizeRecord(grant.scope)
+        : (grant.scope ?? null),
   });
 
   const loadPluginMember = async (companyId: string, memberId: string) => {
@@ -1492,7 +1780,9 @@ export function buildHostServices(
     };
   };
 
-  const policyPathForResource = (resourceType: "company" | "agent" | "project" | "issue") => {
+  const policyPathForResource = (
+    resourceType: "company" | "agent" | "project" | "issue",
+  ) => {
     switch (resourceType) {
       case "agent":
         return { table: "agent" as const };
@@ -1505,53 +1795,85 @@ export function buildHostServices(
     }
   };
 
-  const readAuthorizationPolicy = async (companyId: string, resourceType: "company" | "agent" | "project" | "issue", resourceId: string) => {
+  const readAuthorizationPolicy = async (
+    companyId: string,
+    resourceType: "company" | "agent" | "project" | "issue",
+    resourceId: string,
+  ) => {
     const pathInfo = policyPathForResource(resourceType);
     if (pathInfo.table === "agent") {
       const agent = await agents.getById(resourceId);
       if (!inCompany(agent, companyId)) return null;
-      const permissions = agent.permissions && typeof agent.permissions === "object" ? agent.permissions as Record<string, unknown> : {};
+      const permissions =
+        agent.permissions && typeof agent.permissions === "object"
+          ? (agent.permissions as Record<string, unknown>)
+          : {};
       return {
         resourceType,
         resourceId,
         companyId,
-        policy: permissions.authorizationPolicy && typeof permissions.authorizationPolicy === "object"
-          ? sanitizeRecord(permissions.authorizationPolicy as Record<string, unknown>)
-          : null,
+        policy:
+          permissions.authorizationPolicy &&
+          typeof permissions.authorizationPolicy === "object"
+            ? sanitizeRecord(
+                permissions.authorizationPolicy as Record<string, unknown>,
+              )
+            : null,
         updatedAt: agent.updatedAt,
       };
     }
     if (pathInfo.table === "project") {
       const project = await projects.getById(resourceId);
       if (!inCompany(project, companyId)) return null;
-      const policy = project.executionWorkspacePolicy && typeof project.executionWorkspacePolicy === "object"
-        ? (project.executionWorkspacePolicy as unknown as Record<string, unknown>).authorizationPolicy
-        : null;
+      const policy =
+        project.executionWorkspacePolicy &&
+        typeof project.executionWorkspacePolicy === "object"
+          ? (
+              project.executionWorkspacePolicy as unknown as Record<
+                string,
+                unknown
+              >
+            ).authorizationPolicy
+          : null;
       return {
         resourceType,
         resourceId,
         companyId,
-        policy: policy && typeof policy === "object" ? sanitizeRecord(policy as Record<string, unknown>) : null,
+        policy:
+          policy && typeof policy === "object"
+            ? sanitizeRecord(policy as Record<string, unknown>)
+            : null,
         updatedAt: project.updatedAt,
       };
     }
     if (pathInfo.table === "issue") {
       const issue = await issues.getById(resourceId);
       if (!inCompany(issue, companyId)) return null;
-      const policy = issue.executionPolicy && typeof issue.executionPolicy === "object"
-        ? (issue.executionPolicy as Record<string, unknown>).authorizationPolicy
-        : null;
+      const policy =
+        issue.executionPolicy && typeof issue.executionPolicy === "object"
+          ? (issue.executionPolicy as Record<string, unknown>)
+              .authorizationPolicy
+          : null;
       return {
         resourceType,
         resourceId,
         companyId,
-        policy: policy && typeof policy === "object" ? sanitizeRecord(policy as Record<string, unknown>) : null,
+        policy:
+          policy && typeof policy === "object"
+            ? sanitizeRecord(policy as Record<string, unknown>)
+            : null,
         updatedAt: issue.updatedAt,
       };
     }
     const company = await companies.getById(resourceId);
     if (!company || company.id !== companyId) return null;
-    return { resourceType, resourceId, companyId, policy: null, updatedAt: company.updatedAt };
+    return {
+      resourceType,
+      resourceId,
+      companyId,
+      policy: null,
+      updatedAt: company.updatedAt,
+    };
   };
 
   return {
@@ -1574,7 +1896,9 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const declaration = getLocalFolderDeclaration(params.folderKey);
         const existing = await registry.getCompanySettings(pluginId, companyId);
-        const existingConfig = getStoredLocalFolders(existing?.settingsJson)[params.folderKey] ?? null;
+        const existingConfig =
+          getStoredLocalFolders(existing?.settingsJson)[params.folderKey] ??
+          null;
         await preparePluginLocalFolder({
           folderKey: params.folderKey,
           declaration,
@@ -1592,16 +1916,24 @@ export function buildHostServices(
           },
         });
 
-        const nextSettings = setStoredLocalFolder(existing?.settingsJson, params.folderKey, {
-          path: params.path,
-          access: status.access,
-          requiredDirectories: status.requiredDirectories,
-          requiredFiles: status.requiredFiles,
-        });
+        const nextSettings = setStoredLocalFolder(
+          existing?.settingsJson,
+          params.folderKey,
+          {
+            path: params.path,
+            access: status.access,
+            requiredDirectories: status.requiredDirectories,
+            requiredFiles: status.requiredFiles,
+          },
+        );
         await registry.upsertCompanySettings(pluginId, companyId, {
           enabled: existing?.enabled ?? true,
           settingsJson: nextSettings,
-          lastError: status.healthy ? null : status.problems.map((item: { message: string }) => item.message).join("; "),
+          lastError: status.healthy
+            ? null
+            : status.problems
+                .map((item: { message: string }) => item.message)
+                .join("; "),
         });
         return status;
       },
@@ -1611,7 +1943,10 @@ export function buildHostServices(
       },
 
       async list(params) {
-        const status = await inspectStoredLocalFolder(params.companyId, params.folderKey);
+        const status = await inspectStoredLocalFolder(
+          params.companyId,
+          params.folderKey,
+        );
         assertConfiguredLocalFolder(status);
         const listing = await listPluginLocalFolderEntries(status.realPath!, {
           relativePath: params.relativePath,
@@ -1622,7 +1957,10 @@ export function buildHostServices(
       },
 
       async readText(params) {
-        const status = await inspectStoredLocalFolder(params.companyId, params.folderKey);
+        const status = await inspectStoredLocalFolder(
+          params.companyId,
+          params.folderKey,
+        );
         assertConfiguredLocalFolder(status);
         return readPluginLocalFolderText(status.realPath!, params.relativePath);
       },
@@ -1632,29 +1970,51 @@ export function buildHostServices(
         await preparePluginLocalFolder({
           folderKey: params.folderKey,
           declaration: getLocalFolderDeclaration(params.folderKey),
-          storedConfig: await getStoredLocalFolderConfig(companyId, params.folderKey),
+          storedConfig: await getStoredLocalFolderConfig(
+            companyId,
+            params.folderKey,
+          ),
         });
-        const status = await inspectStoredLocalFolder(companyId, params.folderKey);
+        const status = await inspectStoredLocalFolder(
+          companyId,
+          params.folderKey,
+        );
         assertWritableConfiguredLocalFolder(status);
-        await writePluginLocalFolderTextAtomic(status.realPath!, params.relativePath, params.contents);
+        await writePluginLocalFolderTextAtomic(
+          status.realPath!,
+          params.relativePath,
+          params.contents,
+        );
         return inspectStoredLocalFolder(companyId, params.folderKey);
       },
 
       async deleteFile(params) {
         const companyId = ensureCompanyId(params.companyId);
-        const status = await inspectStoredLocalFolder(companyId, params.folderKey);
+        const status = await inspectStoredLocalFolder(
+          companyId,
+          params.folderKey,
+        );
         assertWritableConfiguredLocalFolder(status);
-        await deletePluginLocalFolderFile(status.realPath!, params.relativePath, params.folderKey);
+        await deletePluginLocalFolderFile(
+          status.realPath!,
+          params.relativePath,
+          params.folderKey,
+        );
         return inspectStoredLocalFolder(companyId, params.folderKey);
       },
     },
 
     state: {
       async get(params) {
-        return stateStore.get(pluginId, params.scopeKind as any, params.stateKey, {
-          scopeId: params.scopeId,
-          namespace: params.namespace,
-        });
+        return stateStore.get(
+          pluginId,
+          params.scopeKind as any,
+          params.stateKey,
+          {
+            scopeId: params.scopeId,
+            namespace: params.namespace,
+          },
+        );
       },
       async set(params) {
         await stateStore.set(pluginId, {
@@ -1666,10 +2026,15 @@ export function buildHostServices(
         });
       },
       async delete(params) {
-        await stateStore.delete(pluginId, params.scopeKind as any, params.stateKey, {
-          scopeId: params.scopeId,
-          namespace: params.namespace,
-        });
+        await stateStore.delete(
+          pluginId,
+          params.scopeKind as any,
+          params.stateKey,
+          {
+            scopeId: params.scopeId,
+            namespace: params.namespace,
+          },
+        );
       },
     },
 
@@ -1696,10 +2061,17 @@ export function buildHostServices(
 
     events: {
       async listLifecycle(params) {
-        return lifecycleInbox.list(ensureCompanyId(params.companyId), params.limit, params.afterId);
+        return lifecycleInbox.list(
+          ensureCompanyId(params.companyId),
+          params.limit,
+          params.afterId,
+        );
       },
       async acknowledgeLifecycle(params) {
-        await lifecycleInbox.acknowledge(ensureCompanyId(params.companyId), params.eventId);
+        await lifecycleInbox.acknowledge(
+          ensureCompanyId(params.companyId),
+          params.eventId,
+        );
       },
       async emit(params) {
         if (params.companyId) {
@@ -1707,14 +2079,23 @@ export function buildHostServices(
         }
         await scopedBus.emit(params.name, params.companyId, params.payload);
       },
-      async subscribe(params: { eventPattern: string; filter?: Record<string, unknown> | null }) {
-        const handler = async (event: import("@taskcore/plugin-sdk").PluginEvent) => {
+      async subscribe(params: {
+        eventPattern: string;
+        filter?: Record<string, unknown> | null;
+      }) {
+        const handler = async (
+          event: import("@taskcore/plugin-sdk").PluginEvent,
+        ) => {
           if (notifyWorker) {
             notifyWorker("onEvent", { event });
           }
         };
         if (params.filter) {
-          scopedBus.subscribe(params.eventPattern as any, params.filter as any, handler);
+          scopedBus.subscribe(
+            params.eventPattern as any,
+            params.filter as any,
+            handler,
+          );
         } else {
           scopedBus.subscribe(params.eventPattern as any, handler);
         }
@@ -1728,11 +2109,18 @@ export function buildHostServices(
         const target = await validateAndResolveFetchUrl(params.url);
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), PLUGIN_FETCH_TIMEOUT_MS);
+        const timeout = setTimeout(
+          () => controller.abort(),
+          PLUGIN_FETCH_TIMEOUT_MS,
+        );
 
         try {
           const init = params.init as RequestInit | undefined;
-          return await executePinnedHttpRequest(target, init, controller.signal);
+          return await executePinnedHttpRequest(
+            target,
+            init,
+            controller.signal,
+          );
         } finally {
           clearTimeout(timeout);
         }
@@ -1765,8 +2153,14 @@ export function buildHostServices(
 
     metrics: {
       async write(params) {
-        const safeName = truncStr(String(params.name ?? ""), MAX_METRIC_NAME_LENGTH);
-        logger.debug({ pluginId, name: safeName, value: params.value, tags: params.tags }, "Plugin metric write");
+        const safeName = truncStr(
+          String(params.name ?? ""),
+          MAX_METRIC_NAME_LENGTH,
+        );
+        logger.debug(
+          { pluginId, name: safeName, value: params.value, tags: params.tags },
+          "Plugin metric write",
+        );
 
         // Persist metrics to plugin_logs via the batch buffer (same path as
         // logger.log) so they benefit from batched writes and are flushed
@@ -1778,11 +2172,17 @@ export function buildHostServices(
           companyId: params.companyId ?? null,
           level: "metric",
           message: safeName,
-          meta: sanitiseMeta({ value: params.value, tags: params.tags ?? null }),
+          meta: sanitiseMeta({
+            value: params.value,
+            tags: params.tags ?? null,
+          }),
         });
         if (_logBuffer.length >= LOG_BUFFER_FLUSH_SIZE) {
           flushPluginLogBuffer().catch((err) => {
-            console.error("[plugin-host-services] Triggered metric flush failed:", err);
+            console.error(
+              "[plugin-host-services] Triggered metric flush failed:",
+              err,
+            );
           });
         }
       },
@@ -1798,25 +2198,37 @@ export function buildHostServices(
         }
         const telemetryClient = getTelemetryClient();
         if (!telemetryClient) return;
-        telemetryClient.trackDynamic(`plugin.${pluginKey}.${eventName}`, params.dimensions);
+        telemetryClient.trackDynamic(
+          `plugin.${pluginKey}.${eventName}`,
+          params.dimensions,
+        );
       },
     },
 
     logger: {
       async log(params) {
         const { level, meta } = params;
-        const safeMessage = truncStr(String(params.message ?? ""), MAX_LOG_MESSAGE_LENGTH);
+        const safeMessage = truncStr(
+          String(params.message ?? ""),
+          MAX_LOG_MESSAGE_LENGTH,
+        );
         const safeMeta = sanitiseMeta(meta);
-        const pluginLogger = logger.child({ service: "plugin-worker", pluginId });
+        const pluginLogger = logger.child({
+          service: "plugin-worker",
+          pluginId,
+        });
         const logFields = {
           ...safeMeta,
           pluginLogLevel: level,
           pluginTimestamp: new Date().toISOString(),
         };
 
-        if (level === "error") pluginLogger.error(logFields, `[plugin] ${safeMessage}`);
-        else if (level === "warn") pluginLogger.warn(logFields, `[plugin] ${safeMessage}`);
-        else if (level === "debug") pluginLogger.debug(logFields, `[plugin] ${safeMessage}`);
+        if (level === "error")
+          pluginLogger.error(logFields, `[plugin] ${safeMessage}`);
+        else if (level === "warn")
+          pluginLogger.warn(logFields, `[plugin] ${safeMessage}`);
+        else if (level === "debug")
+          pluginLogger.debug(logFields, `[plugin] ${safeMessage}`);
         else pluginLogger.info(logFields, `[plugin] ${safeMessage}`);
 
         // Persist to plugin_logs table via the module-level batch buffer (§26.1).
@@ -1831,7 +2243,10 @@ export function buildHostServices(
         });
         if (_logBuffer.length >= LOG_BUFFER_FLUSH_SIZE) {
           flushPluginLogBuffer().catch((err) => {
-            console.error("[plugin-host-services] Triggered log flush failed:", err);
+            console.error(
+              "[plugin-host-services] Triggered log flush failed:",
+              err,
+            );
           });
         }
       },
@@ -1862,13 +2277,18 @@ export function buildHostServices(
       async list(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        return applyWindow((await projects.list(companyId)) as Project[], params);
+        return applyWindow(
+          (await projects.list(companyId)) as Project[],
+          params,
+        );
       },
       async get(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
         const project = await projects.getById(params.projectId);
-        return (inCompany(project, companyId) ? project : null) as Project | null;
+        return (
+          inCompany(project, companyId) ? project : null
+        ) as Project | null;
       },
       async listWorkspaces(params) {
         const companyId = ensureCompanyId(params.companyId);
@@ -1899,7 +2319,9 @@ export function buildHostServices(
         const project = await projects.getById(params.projectId);
         if (!inCompany(project, companyId)) return null;
         const row = project.primaryWorkspace;
-        const path = sanitizeWorkspacePath(project.codebase.effectiveLocalFolder);
+        const path = sanitizeWorkspacePath(
+          project.codebase.effectiveLocalFolder,
+        );
         const name = sanitizeWorkspaceName(row?.name ?? project.name, path);
         return {
           id: row?.id ?? `${project.id}:managed`,
@@ -1920,12 +2342,15 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const issue = await issues.getById(params.issueId);
         if (!inCompany(issue, companyId)) return null;
-        const projectId = (issue as Record<string, unknown>).projectId as string | null;
+        const projectId = (issue as Record<string, unknown>).projectId as
+          string | null;
         if (!projectId) return null;
         const project = await projects.getById(projectId);
         if (!inCompany(project, companyId)) return null;
         const row = project.primaryWorkspace;
-        const path = sanitizeWorkspacePath(project.codebase.effectiveLocalFolder);
+        const path = sanitizeWorkspacePath(
+          project.codebase.effectiveLocalFolder,
+        );
         const name = sanitizeWorkspaceName(row?.name ?? project.name, path);
         return {
           id: row?.id ?? `${project.id}:managed`,
@@ -2050,9 +2475,15 @@ export function buildHostServices(
         assertReadableOriginFilter(params.originKind);
         // Push the non-member visibility predicate into the list query so private
         // issues are filtered at the SQL layer before they can reach a plugin.
-        const readCondition = await issueReadSqlCondition(db, pluginIssuePrivacyActor);
+        const readCondition = await issueReadSqlCondition(
+          db,
+          pluginIssuePrivacyActor,
+        );
         return applyWindow(
-          (await issues.list(companyId, { ...(params as any), readCondition })) as Issue[],
+          (await issues.list(companyId, {
+            ...(params as any),
+            readCondition,
+          })) as Issue[],
           params,
         );
       },
@@ -2067,17 +2498,32 @@ export function buildHostServices(
       async create(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const { actorAgentId, actorUserId, actorRunId, originKind, surfaceVisibility, ...issueInput } = params;
+        const {
+          actorAgentId,
+          actorUserId,
+          actorRunId,
+          originKind,
+          surfaceVisibility,
+          ...issueInput
+        } = params;
         const normalizedOriginKind = normalizePluginOriginKind(
           surfaceVisibility === "plugin_operation" && !originKind
             ? pluginOperationIssueOriginKind(pluginKey)
             : originKind,
         );
-        if (issueInput.parentId) await requirePluginReadableIssue(issueInput.parentId, companyId);
+        if (issueInput.parentId)
+          await requirePluginReadableIssue(issueInput.parentId, companyId);
         const sourceRunId = params.originRunId ?? actorRunId;
         if (sourceRunId) {
-          const [sourceRun] = await db.select().from(heartbeatRuns)
-            .where(and(eq(heartbeatRuns.id, sourceRunId), eq(heartbeatRuns.companyId, companyId)));
+          const [sourceRun] = await db
+            .select()
+            .from(heartbeatRuns)
+            .where(
+              and(
+                eq(heartbeatRuns.id, sourceRunId),
+                eq(heartbeatRuns.companyId, companyId),
+              ),
+            );
           if (!sourceRun) throw new Error("Origin run not found");
           if (sourceRun.scopeKind !== "company") {
             if (!sourceRun.issueId) throw new Error("Origin run not found");
@@ -2114,12 +2560,19 @@ export function buildHostServices(
       async update(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const existing = requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        const existing = requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         await requirePluginReadableIssue(params.issueId, companyId);
         const patch = { ...(params.patch as Record<string, unknown>) };
-        const actorAgentId = typeof patch.actorAgentId === "string" ? patch.actorAgentId : null;
-        const actorUserId = typeof patch.actorUserId === "string" ? patch.actorUserId : null;
-        const actorRunId = typeof patch.actorRunId === "string" ? patch.actorRunId : null;
+        const actorAgentId =
+          typeof patch.actorAgentId === "string" ? patch.actorAgentId : null;
+        const actorUserId =
+          typeof patch.actorUserId === "string" ? patch.actorUserId : null;
+        const actorRunId =
+          typeof patch.actorRunId === "string" ? patch.actorRunId : null;
         delete patch.actorAgentId;
         delete patch.actorUserId;
         delete patch.actorRunId;
@@ -2165,20 +2618,27 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         // The echoed relation summary can name a private blocker target, so
         // redact unreadable edges before returning it to a non-member plugin.
-        return pluginRedactRelationSummary(companyId, await setBlockedByWithActivity({
+        return pluginRedactRelationSummary(
           companyId,
-          issueId: params.issueId,
-          blockedByIssueIds: params.blockedByIssueIds,
-          mutation: "set",
-          actorAgentId: params.actorAgentId,
-          actorUserId: params.actorUserId,
-          actorRunId: params.actorRunId,
-        }));
+          await setBlockedByWithActivity({
+            companyId,
+            issueId: params.issueId,
+            blockedByIssueIds: params.blockedByIssueIds,
+            mutation: "set",
+            actorAgentId: params.actorAgentId,
+            actorUserId: params.actorUserId,
+            actorRunId: params.actorRunId,
+          }),
+        );
       },
       async addBlockers(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         const previous = await issues.getRelationSummaries(params.issueId);
         const nextBlockedByIssueIds = [
           ...new Set([
@@ -2186,39 +2646,53 @@ export function buildHostServices(
             ...params.blockerIssueIds,
           ]),
         ];
-        return pluginRedactRelationSummary(companyId, await setBlockedByWithActivity({
+        return pluginRedactRelationSummary(
           companyId,
-          issueId: params.issueId,
-          blockedByIssueIds: nextBlockedByIssueIds,
-          mutation: "add",
-          actorAgentId: params.actorAgentId,
-          actorUserId: params.actorUserId,
-          actorRunId: params.actorRunId,
-        }));
+          await setBlockedByWithActivity({
+            companyId,
+            issueId: params.issueId,
+            blockedByIssueIds: nextBlockedByIssueIds,
+            mutation: "add",
+            actorAgentId: params.actorAgentId,
+            actorUserId: params.actorUserId,
+            actorRunId: params.actorRunId,
+          }),
+        );
       },
       async removeBlockers(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         const previous = await issues.getRelationSummaries(params.issueId);
         const removals = new Set(params.blockerIssueIds);
         const nextBlockedByIssueIds = previous.blockedBy
           .map((relation) => relation.id)
           .filter((issueId) => !removals.has(issueId));
-        return pluginRedactRelationSummary(companyId, await setBlockedByWithActivity({
+        return pluginRedactRelationSummary(
           companyId,
-          issueId: params.issueId,
-          blockedByIssueIds: nextBlockedByIssueIds,
-          mutation: "remove",
-          actorAgentId: params.actorAgentId,
-          actorUserId: params.actorUserId,
-          actorRunId: params.actorRunId,
-        }));
+          await setBlockedByWithActivity({
+            companyId,
+            issueId: params.issueId,
+            blockedByIssueIds: nextBlockedByIssueIds,
+            mutation: "remove",
+            actorAgentId: params.actorAgentId,
+            actorUserId: params.actorUserId,
+            actorRunId: params.actorRunId,
+          }),
+        );
       },
       async assertCheckoutOwner(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         const ownership = await issues.assertCheckoutOwner(
           params.issueId,
           params.actorAgentId,
@@ -2254,24 +2728,38 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         // A private root is invisible to a non-member plugin: report not-found
         // rather than leak its existence or any descendant metadata.
-        const rootIssue = await requirePluginReadableIssue(params.issueId, companyId);
+        const rootIssue = await requirePluginReadableIssue(
+          params.issueId,
+          companyId,
+        );
         const includeRoot = params.includeRoot !== false;
-        const subtreeIssueIds = await collectIssueSubtreeIds(companyId, rootIssue.id);
+        const subtreeIssueIds = await collectIssueSubtreeIds(
+          companyId,
+          rootIssue.id,
+        );
         const candidateIssueIds = includeRoot
           ? subtreeIssueIds
           : subtreeIssueIds.filter((issueId) => issueId !== rootIssue.id);
-        const issueRows = candidateIssueIds.length > 0
-          ? await db
-            .select()
-            .from(issuesTable)
-            .where(and(eq(issuesTable.companyId, companyId), inArray(issuesTable.id, candidateIssueIds)))
-          : [];
+        const issueRows =
+          candidateIssueIds.length > 0
+            ? await db
+                .select()
+                .from(issuesTable)
+                .where(
+                  and(
+                    eq(issuesTable.companyId, companyId),
+                    inArray(issuesTable.id, candidateIssueIds),
+                  ),
+                )
+            : [];
         // Filter private descendants BEFORE fetching any relations, documents,
         // runs, or assignees so private issue rows and their metadata never
         // enter the result. The root has already cleared the readability gate.
         const readableSubtreeIds = await pluginReadableIssueIds(issueRows);
         readableSubtreeIds.add(rootIssue.id);
-        const issueIds = candidateIssueIds.filter((issueId) => readableSubtreeIds.has(issueId));
+        const issueIds = candidateIssueIds.filter((issueId) =>
+          readableSubtreeIds.has(issueId),
+        );
         const issuesById = new Map(
           issueRows
             .filter((issue) => readableSubtreeIds.has(issue.id))
@@ -2282,53 +2770,73 @@ export function buildHostServices(
           .filter((issue): issue is Issue => Boolean(issue));
 
         const assigneeAgentIds = [
-          ...new Set(outputIssues.map((issue) => issue.assigneeAgentId).filter((id): id is string => Boolean(id))),
+          ...new Set(
+            outputIssues
+              .map((issue) => issue.assigneeAgentId)
+              .filter((id): id is string => Boolean(id)),
+          ),
         ];
 
-        const [relationPairs, documentPairs, activeRunRows, assigneeRows] = await Promise.all([
-          params.includeRelations
-            ? Promise.all(issueIds.map(async (issueId) => [
-              issueId,
-              await pluginRedactRelationSummary(companyId, await issues.getRelationSummaries(issueId)),
-            ] as const))
-            : Promise.resolve(null),
-          params.includeDocuments
-            ? Promise.all(
-              issueIds.map(async (issueId) => {
-                const docs = await documents.listIssueDocuments(issueId);
-                const summaries: IssueDocumentSummary[] = docs.map((document) => {
-                  const { body: _body, ...summary } = document as typeof document & { body?: string };
-                  return { ...summary, format: "markdown" as const };
-                });
-                return [
-                  issueId,
-                  summaries,
-                ] as const;
-              }),
-            )
-            : Promise.resolve(null),
-          params.includeActiveRuns
-            ? getIssueRunSummaries(companyId, issueIds, { activeOnly: true })
-            : Promise.resolve(null),
-          params.includeAssignees && assigneeAgentIds.length > 0
-            ? db
-              .select({
-                id: agentsTable.id,
-                name: agentsTable.name,
-                role: agentsTable.role,
-                title: agentsTable.title,
-                status: agentsTable.status,
-              })
-              .from(agentsTable)
-              .where(and(eq(agentsTable.companyId, companyId), inArray(agentsTable.id, assigneeAgentIds)))
-            : Promise.resolve(params.includeAssignees ? [] : null),
-        ]);
+        const [relationPairs, documentPairs, activeRunRows, assigneeRows] =
+          await Promise.all([
+            params.includeRelations
+              ? Promise.all(
+                  issueIds.map(
+                    async (issueId) =>
+                      [
+                        issueId,
+                        await pluginRedactRelationSummary(
+                          companyId,
+                          await issues.getRelationSummaries(issueId),
+                        ),
+                      ] as const,
+                  ),
+                )
+              : Promise.resolve(null),
+            params.includeDocuments
+              ? Promise.all(
+                  issueIds.map(async (issueId) => {
+                    const docs = await documents.listIssueDocuments(issueId);
+                    const summaries: IssueDocumentSummary[] = docs.map(
+                      (document) => {
+                        const { body: _body, ...summary } =
+                          document as typeof document & { body?: string };
+                        return { ...summary, format: "markdown" as const };
+                      },
+                    );
+                    return [issueId, summaries] as const;
+                  }),
+                )
+              : Promise.resolve(null),
+            params.includeActiveRuns
+              ? getIssueRunSummaries(companyId, issueIds, { activeOnly: true })
+              : Promise.resolve(null),
+            params.includeAssignees && assigneeAgentIds.length > 0
+              ? db
+                  .select({
+                    id: agentsTable.id,
+                    name: agentsTable.name,
+                    role: agentsTable.role,
+                    title: agentsTable.title,
+                    status: agentsTable.status,
+                  })
+                  .from(agentsTable)
+                  .where(
+                    and(
+                      eq(agentsTable.companyId, companyId),
+                      inArray(agentsTable.id, assigneeAgentIds),
+                    ),
+                  )
+              : Promise.resolve(params.includeAssignees ? [] : null),
+          ]);
 
         const activeRuns = activeRunRows
-          ? Object.fromEntries(issueIds.map((issueId) => [
-            issueId,
-            activeRunRows.filter((run) => run.issueId === issueId),
-          ]))
+          ? Object.fromEntries(
+              issueIds.map((issueId) => [
+                issueId,
+                activeRunRows.filter((run) => run.issueId === issueId),
+              ]),
+            )
           : undefined;
 
         return {
@@ -2336,15 +2844,24 @@ export function buildHostServices(
           companyId,
           issueIds,
           issues: outputIssues,
-          ...(relationPairs ? { relations: Object.fromEntries(relationPairs) } : {}),
-          ...(documentPairs ? { documents: Object.fromEntries(documentPairs) } : {}),
+          ...(relationPairs
+            ? { relations: Object.fromEntries(relationPairs) }
+            : {}),
+          ...(documentPairs
+            ? { documents: Object.fromEntries(documentPairs) }
+            : {}),
           ...(activeRuns ? { activeRuns } : {}),
           ...(assigneeRows
             ? {
-                assignees: Object.fromEntries(assigneeRows.map((agent) => [
-                  agent.id,
-                  { ...agent, status: agent.status as Agent["status"] } as PluginIssueAssigneeSummary,
-                ])),
+                assignees: Object.fromEntries(
+                  assigneeRows.map((agent) => [
+                    agent.id,
+                    {
+                      ...agent,
+                      status: agent.status as Agent["status"],
+                    } as PluginIssueAssigneeSummary,
+                  ]),
+                ),
               }
             : {}),
         };
@@ -2352,7 +2869,11 @@ export function buildHostServices(
       async requestWakeup(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const issue = requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        const issue = requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         if (!issue.assigneeAgentId) {
           throw new Error("Issue has no assigned agent to wake");
         }
@@ -2360,18 +2881,25 @@ export function buildHostServices(
           throw new Error(`Issue is not wakeable in status: ${issue.status}`);
         }
         const relations = await issues.getRelationSummaries(issue.id);
-        const unresolvedBlockers = relations.blockedBy.filter((blocker) => blocker.status !== "done");
+        const unresolvedBlockers = relations.blockedBy.filter(
+          (blocker) => blocker.status !== "done",
+        );
         if (unresolvedBlockers.length > 0) {
           throw new Error("Issue is blocked by unresolved blockers");
         }
-        const budgetBlock = await budgets.getInvocationBlock(companyId, issue.assigneeAgentId, {
-          issueId: issue.id,
-          projectId: issue.projectId,
-        });
+        const budgetBlock = await budgets.getInvocationBlock(
+          companyId,
+          issue.assigneeAgentId,
+          {
+            issueId: issue.id,
+            projectId: issue.projectId,
+          },
+        );
         if (budgetBlock) {
           throw new Error(budgetBlock.reason);
         }
-        const contextSource = params.contextSource ?? "plugin.issue.requestWakeup";
+        const contextSource =
+          params.contextSource ?? "plugin.issue.requestWakeup";
         const run = await heartbeat.wakeup(issue.assigneeAgentId, {
           source: "assignment",
           triggerDetail: "system",
@@ -2420,7 +2948,11 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const results = [];
         for (const issueId of [...new Set(params.issueIds)]) {
-          const issue = requireInCompany("Issue", await issues.getById(issueId), companyId);
+          const issue = requireInCompany(
+            "Issue",
+            await issues.getById(issueId),
+            companyId,
+          );
           if (!issue.assigneeAgentId) {
             throw new Error("Issue has no assigned agent to wake");
           }
@@ -2428,18 +2960,25 @@ export function buildHostServices(
             throw new Error(`Issue is not wakeable in status: ${issue.status}`);
           }
           const relations = await issues.getRelationSummaries(issue.id);
-          const unresolvedBlockers = relations.blockedBy.filter((blocker) => blocker.status !== "done");
+          const unresolvedBlockers = relations.blockedBy.filter(
+            (blocker) => blocker.status !== "done",
+          );
           if (unresolvedBlockers.length > 0) {
             throw new Error("Issue is blocked by unresolved blockers");
           }
-          const budgetBlock = await budgets.getInvocationBlock(companyId, issue.assigneeAgentId, {
-            issueId: issue.id,
-            projectId: issue.projectId,
-          });
+          const budgetBlock = await budgets.getInvocationBlock(
+            companyId,
+            issue.assigneeAgentId,
+            {
+              issueId: issue.id,
+              projectId: issue.projectId,
+            },
+          );
           if (budgetBlock) {
             throw new Error(budgetBlock.reason);
           }
-          const contextSource = params.contextSource ?? "plugin.issue.requestWakeups";
+          const contextSource =
+            params.contextSource ?? "plugin.issue.requestWakeups";
           const run = await heartbeat.wakeup(issue.assigneeAgentId, {
             source: "assignment",
             triggerDetail: "system",
@@ -2451,7 +2990,9 @@ export function buildHostServices(
               pluginKey,
               contextSource,
             },
-            idempotencyKey: params.idempotencyKeyPrefix ? `${params.idempotencyKeyPrefix}:${issue.id}` : null,
+            idempotencyKey: params.idempotencyKeyPrefix
+              ? `${params.idempotencyKeyPrefix}:${issue.id}`
+              : null,
             requestedByActorType: "system",
             requestedByActorId: pluginId,
             contextSnapshot: {
@@ -2481,34 +3022,54 @@ export function buildHostServices(
               contextSource,
             },
           });
-          results.push({ issueId: issue.id, queued: Boolean(run), runId: run?.id ?? null });
+          results.push({
+            issueId: issue.id,
+            queued: Boolean(run),
+            runId: run?.id ?? null,
+          });
         }
         return results;
       },
-      async getOrchestrationSummary(params): Promise<PluginIssueOrchestrationSummary> {
+      async getOrchestrationSummary(
+        params,
+      ): Promise<PluginIssueOrchestrationSummary> {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
         // A private root is invisible to a non-member plugin: report not-found
         // rather than leak its existence or any subtree relationship metadata.
-        const rootIssue = await requirePluginReadableIssue(params.issueId, companyId);
+        const rootIssue = await requirePluginReadableIssue(
+          params.issueId,
+          companyId,
+        );
         const rawSubtreeIssueIds = params.includeSubtree
           ? await collectIssueSubtreeIds(companyId, rootIssue.id)
           : [rootIssue.id];
         // Drop any private descendant the plugin may not read so its relations,
         // approvals, runs, costs, and budget blocks never enter the summary.
-        const readableSubtreeIds = await pluginReadableIssueIdsByIds(companyId, rawSubtreeIssueIds);
+        const readableSubtreeIds = await pluginReadableIssueIdsByIds(
+          companyId,
+          rawSubtreeIssueIds,
+        );
         readableSubtreeIds.add(rootIssue.id);
-        const subtreeIssueIds = rawSubtreeIssueIds.filter((id) => readableSubtreeIds.has(id));
+        const subtreeIssueIds = rawSubtreeIssueIds.filter((id) =>
+          readableSubtreeIds.has(id),
+        );
         // Blocker edges can point at private issues outside the readable subtree
         // (e.g. a public task blocked by a private one). Their title/status/
         // assignee are relationship metadata a non-member must not see, so
         // pluginRedactRelationSummary drops any edge whose target is unreadable,
         // recursing into nested terminal blockers.
         const relationPairs = await Promise.all(
-          subtreeIssueIds.map(async (issueId) => [
-            issueId,
-            await pluginRedactRelationSummary(companyId, await issues.getRelationSummaries(issueId)),
-          ] as const),
+          subtreeIssueIds.map(
+            async (issueId) =>
+              [
+                issueId,
+                await pluginRedactRelationSummary(
+                  companyId,
+                  await issues.getRelationSummaries(issueId),
+                ),
+              ] as const,
+          ),
         );
         const approvalRows = (
           await Promise.all(
@@ -2530,7 +3091,11 @@ export function buildHostServices(
         ).flat();
         const [runs, costsSummary, openBudgetIncidents] = await Promise.all([
           getIssueRunSummaries(companyId, subtreeIssueIds),
-          getIssueCostSummary(companyId, subtreeIssueIds, params.billingCode ?? rootIssue.billingCode ?? null),
+          getIssueCostSummary(
+            companyId,
+            subtreeIssueIds,
+            params.billingCode ?? rootIssue.billingCode ?? null,
+          ),
           getOpenBudgetIncidents(companyId),
         ]);
         const issueRows = await db
@@ -2540,25 +3105,34 @@ export function buildHostServices(
             projectId: issuesTable.projectId,
           })
           .from(issuesTable)
-          .where(and(eq(issuesTable.companyId, companyId), inArray(issuesTable.id, subtreeIssueIds)));
+          .where(
+            and(
+              eq(issuesTable.companyId, companyId),
+              inArray(issuesTable.id, subtreeIssueIds),
+            ),
+          );
         const invocationBlocks = (
           await Promise.all(
             issueRows
               .filter((issueRow) => issueRow.assigneeAgentId)
               .map(async (issueRow) => {
-                const block = await budgets.getInvocationBlock(companyId, issueRow.assigneeAgentId!, {
-                  issueId: issueRow.id,
-                  projectId: issueRow.projectId,
-                });
+                const block = await budgets.getInvocationBlock(
+                  companyId,
+                  issueRow.assigneeAgentId!,
+                  {
+                    issueId: issueRow.id,
+                    projectId: issueRow.projectId,
+                  },
+                );
                 return block
                   ? {
-                    issueId: issueRow.id,
-                    agentId: issueRow.assigneeAgentId!,
-                    scopeType: block.scopeType,
-                    scopeId: block.scopeId,
-                    scopeName: block.scopeName,
-                    reason: block.reason,
-                  }
+                      issueId: issueRow.id,
+                      agentId: issueRow.assigneeAgentId!,
+                      scopeType: block.scopeType,
+                      scopeId: block.scopeId,
+                      scopeName: block.scopeName,
+                      reason: block.reason,
+                    }
                   : null;
               }),
           )
@@ -2587,21 +3161,29 @@ export function buildHostServices(
       async createComment(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const issue = requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        const issue = requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         if (params.actorUserId) {
           await requireActiveHumanMember(companyId, params.actorUserId);
         }
-        const comment = (await issues.addComment(
-          params.issueId,
-          params.body,
-          { agentId: params.actorUserId ? undefined : params.authorAgentId, userId: params.actorUserId },
-        )) as IssueComment;
+        const comment = (await issues.addComment(params.issueId, params.body, {
+          agentId: params.actorUserId ? undefined : params.authorAgentId,
+          userId: params.actorUserId,
+        })) as IssueComment;
         await logPluginActivity({
           companyId,
           action: "issue.comment.created",
           entityType: "issue",
           entityId: issue.id,
-          actor: { actorAgentId: params.actorUserId ? null : params.authorAgentId ?? null, actorUserId: params.actorUserId ?? null },
+          actor: {
+            actorAgentId: params.actorUserId
+              ? null
+              : (params.authorAgentId ?? null),
+            actorUserId: params.actorUserId ?? null,
+          },
           details: {
             identifier: issue.identifier,
             commentId: comment.id,
@@ -2629,42 +3211,50 @@ export function buildHostServices(
         // createComment — a rejection would surface to the caller as a failed
         // write and invite a retry that inserts a duplicate comment.
         if (params.actorUserId) {
-          const postCommentIssue = (await issues.getById(issue.id).catch((err) => {
-            logger.warn(
-              { err, issueId: issue.id, commentId: comment.id },
-              "failed to re-fetch issue for plugin-relayed human comment wake; falling back to pre-insert snapshot",
-            );
-            return null;
-          })) ?? issue;
+          const postCommentIssue =
+            (await issues.getById(issue.id).catch((err) => {
+              logger.warn(
+                { err, issueId: issue.id, commentId: comment.id },
+                "failed to re-fetch issue for plugin-relayed human comment wake; falling back to pre-insert snapshot",
+              );
+              return null;
+            })) ?? issue;
           if (
-            postCommentIssue.assigneeAgentId
-            && postCommentIssue.status !== "done"
-            && postCommentIssue.status !== "cancelled"
+            postCommentIssue.assigneeAgentId &&
+            postCommentIssue.status !== "done" &&
+            postCommentIssue.status !== "cancelled"
           ) {
-            await heartbeat.wakeup(postCommentIssue.assigneeAgentId, {
-              source: "automation",
-              triggerDetail: "system",
-              reason: "issue_commented",
-              payload: {
-                issueId: issue.id,
-                commentId: comment.id,
-                mutation: "comment",
-              },
-              requestedByActorType: "user",
-              requestedByActorId: params.actorUserId,
-              contextSnapshot: {
-                issueId: issue.id,
-                taskId: issue.id,
-                sourceCommentId: comment.id,
-                wakeReason: "issue_commented",
-                source: `plugin:${pluginKey}`,
-              },
-            }).catch((err) => logger.warn({
-              err,
-              issueId: issue.id,
-              commentId: comment.id,
-              agentId: postCommentIssue.assigneeAgentId,
-            }, "failed to wake assignee on plugin-relayed human comment"));
+            await heartbeat
+              .wakeup(postCommentIssue.assigneeAgentId, {
+                source: "automation",
+                triggerDetail: "system",
+                reason: "issue_commented",
+                payload: {
+                  issueId: issue.id,
+                  commentId: comment.id,
+                  mutation: "comment",
+                },
+                requestedByActorType: "user",
+                requestedByActorId: params.actorUserId,
+                contextSnapshot: {
+                  issueId: issue.id,
+                  taskId: issue.id,
+                  sourceCommentId: comment.id,
+                  wakeReason: "issue_commented",
+                  source: `plugin:${pluginKey}`,
+                },
+              })
+              .catch((err) =>
+                logger.warn(
+                  {
+                    err,
+                    issueId: issue.id,
+                    commentId: comment.id,
+                    agentId: postCommentIssue.assigneeAgentId,
+                  },
+                  "failed to wake assignee on plugin-relayed human comment",
+                ),
+              );
           }
         }
 
@@ -2673,10 +3263,18 @@ export function buildHostServices(
       async createInteraction(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const issue = requireInCompany("Issue", await issues.getById(params.issueId), companyId);
-        const interaction = await issueThreadInteractionService(db).create(issue, params.interaction as CreateIssueThreadInteraction, {
-          agentId: params.authorAgentId ?? null,
-        });
+        const issue = requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
+        const interaction = await issueThreadInteractionService(db).create(
+          issue,
+          params.interaction as CreateIssueThreadInteraction,
+          {
+            agentId: params.authorAgentId ?? null,
+          },
+        );
         await logPluginActivity({
           companyId,
           action: "issue.thread_interaction_created",
@@ -2706,19 +3304,31 @@ export function buildHostServices(
       async respondInteraction(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const issue = requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        const issue = requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         // Resolving an interaction is a board-user action (the web app's
         // interaction-resolve routes are board-only). The host re-verifies the
         // paired user is an active human member at apply time and never trusts
         // the plugin-supplied identity — matching the createComment bar.
         if (!params.actorUserId) {
-          throw new Error("actorUserId is required to respond to an interaction on behalf of a board user");
+          throw new Error(
+            "actorUserId is required to respond to an interaction on behalf of a board user",
+          );
         }
         await requireActiveHumanMember(companyId, params.actorUserId);
 
         const current = await interactions.getById(params.interactionId);
-        if (!current || current.issueId !== issue.id || current.companyId !== companyId) {
-          throw new Error(`Interaction "${params.interactionId}" not found for this issue`);
+        if (
+          !current ||
+          current.issueId !== issue.id ||
+          current.companyId !== companyId
+        ) {
+          throw new Error(
+            `Interaction "${params.interactionId}" not found for this issue`,
+          );
         }
         // Idempotent replay: an already-resolved interaction converges without
         // re-applying, so a duplicate button tap from chat is a safe no-op.
@@ -2765,9 +3375,10 @@ export function buildHostServices(
 
         await logPluginActivity({
           companyId,
-          action: params.action === "accept"
-            ? "issue.thread_interaction_accepted"
-            : "issue.thread_interaction_rejected",
+          action:
+            params.action === "accept"
+              ? "issue.thread_interaction_accepted"
+              : "issue.thread_interaction_rejected",
           entityType: "issue",
           entityId: issue.id,
           actor: { actorUserId: params.actorUserId },
@@ -2805,16 +3416,25 @@ export function buildHostServices(
         if (!attachment || attachment.companyId !== companyId) return null;
         // A private issue's attachment content must not reach a non-member
         // plugin: gate on the parent issue's visibility, same null response.
-        if (!(await pluginCanReadIssue(await issues.getById(attachment.issueId)))) return null;
+        if (
+          !(await pluginCanReadIssue(await issues.getById(attachment.issueId)))
+        )
+          return null;
 
-        const maxBytes = typeof params.maxBytes === "number" && params.maxBytes > 0 ? params.maxBytes : null;
+        const maxBytes =
+          typeof params.maxBytes === "number" && params.maxBytes > 0
+            ? params.maxBytes
+            : null;
         if (maxBytes !== null && attachment.byteSize > maxBytes) {
           throw new Error(
             `attachment ${attachment.id} is ${attachment.byteSize} bytes, over the ${maxBytes}-byte cap`,
           );
         }
 
-        const object = await getStorageService().getObject(attachment.companyId, attachment.objectKey);
+        const object = await getStorageService().getObject(
+          attachment.companyId,
+          attachment.objectKey,
+        );
         const chunks: Buffer[] = [];
         let total = 0;
         for await (const chunk of object.stream) {
@@ -2824,7 +3444,9 @@ export function buildHostServices(
           // metadata/object size mismatch can never exceed the requested cap.
           if (maxBytes !== null && total > maxBytes) {
             object.stream.destroy();
-            throw new Error(`attachment ${attachment.id} exceeded the ${maxBytes}-byte cap while reading`);
+            throw new Error(
+              `attachment ${attachment.id} exceeded the ${maxBytes}-byte cap while reading`,
+            );
           }
           chunks.push(buf);
         }
@@ -2857,7 +3479,10 @@ export function buildHostServices(
       async list(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const rows = await approvalSvc.list(companyId, params.status ?? undefined);
+        const rows = await approvalSvc.list(
+          companyId,
+          params.status ?? undefined,
+        );
         // Match the web app's approval read surface: payloads are redacted so
         // the chat bridge never receives secrets the web app itself hides.
         return rows.map((approval) => redactApprovalPayload(approval)) as any;
@@ -2880,17 +3505,31 @@ export function buildHostServices(
         // decision routes are board-only). Re-verify active membership at apply
         // time; never trust the plugin-supplied identity.
         if (!params.actorUserId) {
-          throw new Error("actorUserId is required to decide an approval on behalf of a board user");
+          throw new Error(
+            "actorUserId is required to decide an approval on behalf of a board user",
+          );
         }
         await requireActiveHumanMember(companyId, params.actorUserId);
 
-        const { approval, applied } = params.action === "approve"
-          ? await approvalSvc.approve(params.approvalId, params.actorUserId, params.decisionNote ?? null)
-          : await approvalSvc.reject(params.approvalId, params.actorUserId, params.decisionNote ?? null);
+        const { approval, applied } =
+          params.action === "approve"
+            ? await approvalSvc.approve(
+                params.approvalId,
+                params.actorUserId,
+                params.decisionNote ?? null,
+              )
+            : await approvalSvc.reject(
+                params.approvalId,
+                params.actorUserId,
+                params.decisionNote ?? null,
+              );
 
         await logPluginActivity({
           companyId,
-          action: params.action === "approve" ? "approval.approved" : "approval.rejected",
+          action:
+            params.action === "approve"
+              ? "approval.approved"
+              : "approval.rejected",
           entityType: "approval",
           entityId: approval.id,
           actor: { actorUserId: params.actorUserId },
@@ -2905,27 +3544,40 @@ export function buildHostServices(
         // so it resumes after a chat-driven decision. Only on a fresh decision
         // (applied) and only when a requester agent exists.
         if (applied && approval.requestedByAgentId) {
-          void heartbeat.wakeup(approval.requestedByAgentId, {
-            source: "automation",
-            triggerDetail: "system",
-            reason: params.action === "approve" ? "approval_approved" : "approval_rejected",
-            payload: {
-              approvalId: approval.id,
-              approvalStatus: approval.status,
-            },
-            requestedByActorType: "user",
-            requestedByActorId: params.actorUserId,
-            contextSnapshot: {
-              source: `plugin:${pluginKey}:approval.${params.action}`,
-              approvalId: approval.id,
-              approvalStatus: approval.status,
-              wakeReason: params.action === "approve" ? "approval_approved" : "approval_rejected",
-            },
-          }).catch((err) => logger.warn({
-            err,
-            approvalId: approval.id,
-            requestedByAgentId: approval.requestedByAgentId,
-          }, "failed to wake requester on plugin-relayed approval decision"));
+          void heartbeat
+            .wakeup(approval.requestedByAgentId, {
+              source: "automation",
+              triggerDetail: "system",
+              reason:
+                params.action === "approve"
+                  ? "approval_approved"
+                  : "approval_rejected",
+              payload: {
+                approvalId: approval.id,
+                approvalStatus: approval.status,
+              },
+              requestedByActorType: "user",
+              requestedByActorId: params.actorUserId,
+              contextSnapshot: {
+                source: `plugin:${pluginKey}:approval.${params.action}`,
+                approvalId: approval.id,
+                approvalStatus: approval.status,
+                wakeReason:
+                  params.action === "approve"
+                    ? "approval_approved"
+                    : "approval_rejected",
+              },
+            })
+            .catch((err) =>
+              logger.warn(
+                {
+                  err,
+                  approvalId: approval.id,
+                  requestedByAgentId: approval.requestedByAgentId,
+                },
+                "failed to wake requester on plugin-relayed approval decision",
+              ),
+            );
         }
 
         return { approval: redactApprovalPayload(approval) as any, applied };
@@ -2945,13 +3597,20 @@ export function buildHostServices(
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
         await requirePluginReadableIssue(params.issueId, companyId);
-        const doc = await documents.getIssueDocumentByKey(params.issueId, params.key);
+        const doc = await documents.getIssueDocumentByKey(
+          params.issueId,
+          params.key,
+        );
         return (doc ?? null) as any;
       },
       async upsert(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const issue = requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        const issue = requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         const result = await documents.upsertIssueDocument({
           issueId: params.issueId,
           key: params.key,
@@ -2977,7 +3636,11 @@ export function buildHostServices(
       async delete(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const issue = requireInCompany("Issue", await issues.getById(params.issueId), companyId);
+        const issue = requireInCompany(
+          "Issue",
+          await issues.getById(params.issueId),
+          companyId,
+        );
         await documents.deleteIssueDocument(params.issueId, params.key);
         await logPluginActivity({
           companyId,
@@ -2998,7 +3661,9 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const rows = await agents.list(companyId);
         return applyWindow(
-          rows.filter((agent) => !params.status || agent.status === params.status) as Agent[],
+          rows.filter(
+            (agent) => !params.status || agent.status === params.status,
+          ) as Agent[],
           params,
         );
       },
@@ -3043,7 +3708,8 @@ export function buildHostServices(
           requestedByActorType: "system",
           requestedByActorId: pluginId,
         });
-        if (!run) throw new Error("Agent wakeup was skipped by heartbeat policy");
+        if (!run)
+          throw new Error("Agent wakeup was skipped by heartbeat policy");
         return { runId: run.id };
       },
       async managedGet(params) {
@@ -3069,9 +3735,10 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const rows = await goals.list(companyId);
         return applyWindow(
-          rows.filter((goal) =>
-            (!params.level || goal.level === params.level) &&
-            (!params.status || goal.status === params.status),
+          rows.filter(
+            (goal) =>
+              (!params.level || goal.level === params.level) &&
+              (!params.status || goal.status === params.status),
           ) as Goal[],
           params,
         );
@@ -3107,7 +3774,9 @@ export function buildHostServices(
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
         const rows = await access.listMembers(companyId);
-        const visibleRows = params.includeArchived ? rows : rows.filter((row) => row.status !== "archived");
+        const visibleRows = params.includeArchived
+          ? rows
+          : rows.filter((row) => row.status !== "archived");
         const grants = await db
           .select()
           .from(principalPermissionGrants)
@@ -3122,8 +3791,13 @@ export function buildHostServices(
         return visibleRows.map((member) => ({
           ...member,
           principalType: member.principalType as PrincipalType,
-          status: member.status as "pending" | "active" | "suspended" | "archived",
-          grants: (grantsByPrincipal.get(`${member.principalType}:${member.principalId}`) ?? []).map(redactGrant),
+          status: member.status as
+            "pending" | "active" | "suspended" | "archived",
+          grants: (
+            grantsByPrincipal.get(
+              `${member.principalType}:${member.principalId}`,
+            ) ?? []
+          ).map(redactGrant),
         }));
       },
       async getMember(params) {
@@ -3134,7 +3808,11 @@ export function buildHostServices(
       async updateMember(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const updated = await access.updateMember(companyId, params.memberId, params.patch);
+        const updated = await access.updateMember(
+          companyId,
+          params.memberId,
+          params.patch,
+        );
         if (!updated) throw new Error("Member not found");
         await logPluginActivity({
           companyId,
@@ -3156,7 +3834,11 @@ export function buildHostServices(
         const rows = await db
           .select()
           .from(invites)
-          .where(stateClause ? and(eq(invites.companyId, companyId), stateClause) : eq(invites.companyId, companyId))
+          .where(
+            stateClause
+              ? and(eq(invites.companyId, companyId), stateClause)
+              : eq(invites.companyId, companyId),
+          )
           .orderBy(desc(invites.createdAt))
           .limit(limit + 1)
           .offset(offset);
@@ -3169,22 +3851,34 @@ export function buildHostServices(
       async createInvite(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const normalizedAgentMessage = typeof params.agentMessage === "string"
-          ? params.agentMessage.trim() || null
-          : null;
+        const normalizedAgentMessage =
+          typeof params.agentMessage === "string"
+            ? params.agentMessage.trim() || null
+            : null;
         const allowedJoinTypes = params.allowedJoinTypes ?? "both";
-        const humanRole = allowedJoinTypes === "agent" ? null : params.humanRole ?? "operator";
+        const humanRole =
+          allowedJoinTypes === "agent"
+            ? null
+            : (params.humanRole ?? "operator");
         const insertValues = {
           companyId,
           inviteType: "company_join" as const,
           allowedJoinTypes,
-          defaultsPayload: mergeInviteDefaults(params.defaultsPayload ?? null, normalizedAgentMessage, humanRole),
+          defaultsPayload: mergeInviteDefaults(
+            params.defaultsPayload ?? null,
+            normalizedAgentMessage,
+            humanRole,
+          ),
           expiresAt: new Date(Date.now() + COMPANY_INVITE_TTL_MS),
           invitedByUserId: null,
         };
         let token: string | null = null;
         let created: typeof invites.$inferSelect | null = null;
-        for (let attempt = 0; attempt < INVITE_TOKEN_MAX_RETRIES; attempt += 1) {
+        for (
+          let attempt = 0;
+          attempt < INVITE_TOKEN_MAX_RETRIES;
+          attempt += 1
+        ) {
           const candidateToken = createInviteToken();
           try {
             created = await db
@@ -3201,7 +3895,8 @@ export function buildHostServices(
             if (!isInviteTokenHashCollisionError(error)) throw error;
           }
         }
-        if (!token || !created) throw new Error("Failed to generate a unique invite token");
+        if (!token || !created)
+          throw new Error("Failed to generate a unique invite token");
         await logPluginActivity({
           companyId,
           action: "invite.created_by_plugin",
@@ -3221,7 +3916,12 @@ export function buildHostServices(
         const invite = await db
           .select()
           .from(invites)
-          .where(and(eq(invites.id, params.inviteId), eq(invites.companyId, companyId)))
+          .where(
+            and(
+              eq(invites.id, params.inviteId),
+              eq(invites.companyId, companyId),
+            ),
+          )
           .then((rows) => rows[0] ?? null);
         if (!invite) throw new Error("Invite not found");
         if (invite.acceptedAt) throw new Error("Invite already consumed");
@@ -3248,27 +3948,49 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const conditions = [
           eq(principalPermissionGrants.companyId, companyId),
-          params.principalType ? eq(principalPermissionGrants.principalType, params.principalType) : undefined,
-          params.principalId ? eq(principalPermissionGrants.principalId, params.principalId) : undefined,
-        ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+          params.principalType
+            ? eq(principalPermissionGrants.principalType, params.principalType)
+            : undefined,
+          params.principalId
+            ? eq(principalPermissionGrants.principalId, params.principalId)
+            : undefined,
+        ].filter((condition): condition is NonNullable<typeof condition> =>
+          Boolean(condition),
+        );
         const rows = await db
           .select()
           .from(principalPermissionGrants)
           .where(and(...conditions))
-          .orderBy(principalPermissionGrants.principalType, principalPermissionGrants.principalId, principalPermissionGrants.permissionKey);
+          .orderBy(
+            principalPermissionGrants.principalType,
+            principalPermissionGrants.principalId,
+            principalPermissionGrants.permissionKey,
+          );
         return rows.map(redactGrant);
       },
       async setGrants(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        if (params.principalType !== "agent" && params.principalType !== "user") {
+        if (
+          params.principalType !== "agent" &&
+          params.principalType !== "user"
+        ) {
           throw new Error("principalType must be 'agent' or 'user'");
         }
         if (params.principalType === "agent") {
-          requireInCompany("Agent", await agents.getById(params.principalId), companyId);
+          requireInCompany(
+            "Agent",
+            await agents.getById(params.principalId),
+            companyId,
+          );
         } else {
-          const membership = await access.getMembership(companyId, params.principalType as PrincipalType, params.principalId);
-          if (!membership) throw new Error("Principal is not a member of this company");
+          const membership = await access.getMembership(
+            companyId,
+            params.principalType as PrincipalType,
+            params.principalId,
+          );
+          if (!membership)
+            throw new Error("Principal is not a member of this company");
         }
         await access.setPrincipalGrants(
           companyId,
@@ -3288,7 +4010,11 @@ export function buildHostServices(
           details: { grantCount: params.grants.length },
         });
         return access
-          .listPrincipalGrants(companyId, params.principalType as PrincipalType, params.principalId)
+          .listPrincipalGrants(
+            companyId,
+            params.principalType as PrincipalType,
+            params.principalId,
+          )
           .then((rows) => rows.map(redactGrant));
       },
       async policySummary(params) {
@@ -3305,7 +4031,9 @@ export function buildHostServices(
           companyId,
           permissionsMode: "simple" as const,
           memberCount: members.length,
-          activeMemberCount: members.filter((member) => member.status === "active").length,
+          activeMemberCount: members.filter(
+            (member) => member.status === "active",
+          ).length,
           grantCount: grants.length,
           advancedPolicyAvailable: false as const,
         };
@@ -3313,17 +4041,26 @@ export function buildHostServices(
       async getPolicy(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        return readAuthorizationPolicy(companyId, params.resourceType, params.resourceId);
+        return readAuthorizationPolicy(
+          companyId,
+          params.resourceType,
+          params.resourceId,
+        );
       },
       async updatePolicy(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
         const policy = params.policy ? sanitizeRecord(params.policy) : null;
         if (params.resourceType === "agent") {
-          const agent = requireInCompany("Agent", await agents.getById(params.resourceId), companyId);
-          const permissions = agent.permissions && typeof agent.permissions === "object"
-            ? { ...(agent.permissions as Record<string, unknown>) }
-            : {};
+          const agent = requireInCompany(
+            "Agent",
+            await agents.getById(params.resourceId),
+            companyId,
+          );
+          const permissions =
+            agent.permissions && typeof agent.permissions === "object"
+              ? { ...(agent.permissions as Record<string, unknown>) }
+              : {};
           if (policy) permissions.authorizationPolicy = policy;
           else delete permissions.authorizationPolicy;
           await db
@@ -3331,10 +4068,21 @@ export function buildHostServices(
             .set({ permissions, updatedAt: new Date() })
             .where(eq(agentsTable.id, agent.id));
         } else if (params.resourceType === "project") {
-          const project = requireInCompany("Project", await projects.getById(params.resourceId), companyId);
-          const executionWorkspacePolicy = project.executionWorkspacePolicy && typeof project.executionWorkspacePolicy === "object"
-            ? { ...(project.executionWorkspacePolicy as unknown as Record<string, unknown>) }
-            : {};
+          const project = requireInCompany(
+            "Project",
+            await projects.getById(params.resourceId),
+            companyId,
+          );
+          const executionWorkspacePolicy =
+            project.executionWorkspacePolicy &&
+            typeof project.executionWorkspacePolicy === "object"
+              ? {
+                  ...(project.executionWorkspacePolicy as unknown as Record<
+                    string,
+                    unknown
+                  >),
+                }
+              : {};
           if (policy) executionWorkspacePolicy.authorizationPolicy = policy;
           else delete executionWorkspacePolicy.authorizationPolicy;
           await db
@@ -3342,10 +4090,15 @@ export function buildHostServices(
             .set({ executionWorkspacePolicy, updatedAt: new Date() })
             .where(eq(projectsTable.id, project.id));
         } else if (params.resourceType === "issue") {
-          const issue = requireInCompany("Issue", await issues.getById(params.resourceId), companyId);
-          const executionPolicy = issue.executionPolicy && typeof issue.executionPolicy === "object"
-            ? { ...(issue.executionPolicy as Record<string, unknown>) }
-            : {};
+          const issue = requireInCompany(
+            "Issue",
+            await issues.getById(params.resourceId),
+            companyId,
+          );
+          const executionPolicy =
+            issue.executionPolicy && typeof issue.executionPolicy === "object"
+              ? { ...(issue.executionPolicy as Record<string, unknown>) }
+              : {};
           if (policy) executionPolicy.authorizationPolicy = policy;
           else delete executionPolicy.authorizationPolicy;
           await db
@@ -3354,8 +4107,11 @@ export function buildHostServices(
             .where(eq(issuesTable.id, issue.id));
         } else {
           const company = await companies.getById(params.resourceId);
-          if (!company || company.id !== companyId) throw new Error("Company not found");
-          throw new Error("Company authorization policy updates are not supported by the current core schema");
+          if (!company || company.id !== companyId)
+            throw new Error("Company not found");
+          throw new Error(
+            "Company authorization policy updates are not supported by the current core schema",
+          );
         }
         await logPluginActivity({
           companyId,
@@ -3364,7 +4120,11 @@ export function buildHostServices(
           entityId: params.resourceId,
           details: { hasPolicy: Boolean(policy) },
         });
-        const updated = await readAuthorizationPolicy(companyId, params.resourceType, params.resourceId);
+        const updated = await readAuthorizationPolicy(
+          companyId,
+          params.resourceType,
+          params.resourceId,
+        );
         if (!updated) throw new Error("Policy resource not found");
         return updated;
       },
@@ -3405,18 +4165,29 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const limit = Math.min(Math.max(Number(params.limit ?? 50), 1), 100);
         const offset = Math.max(Number(params.offset ?? 0), 0);
-        const decisionFilter = typeof params.decision === "string" && params.decision.trim()
-          ? params.decision.trim().toLowerCase()
-          : null;
+        const decisionFilter =
+          typeof params.decision === "string" && params.decision.trim()
+            ? params.decision.trim().toLowerCase()
+            : null;
         const conditions = [
           eq(activityLog.companyId, companyId),
           params.action ? eq(activityLog.action, params.action) : undefined,
-          params.actorType ? eq(activityLog.actorType, params.actorType) : undefined,
+          params.actorType
+            ? eq(activityLog.actorType, params.actorType)
+            : undefined,
           params.actorId ? eq(activityLog.actorId, params.actorId) : undefined,
-          params.entityType ? eq(activityLog.entityType, params.entityType) : undefined,
-          params.entityId ? eq(activityLog.entityId, params.entityId) : undefined,
-          decisionFilter ? authorizationAuditDecisionCondition(decisionFilter) : undefined,
-        ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+          params.entityType
+            ? eq(activityLog.entityType, params.entityType)
+            : undefined,
+          params.entityId
+            ? eq(activityLog.entityId, params.entityId)
+            : undefined,
+          decisionFilter
+            ? authorizationAuditDecisionCondition(decisionFilter)
+            : undefined,
+        ].filter((condition): condition is NonNullable<typeof condition> =>
+          Boolean(condition),
+        );
         const rows = await db
           .select()
           .from(activityLog)
@@ -3426,9 +4197,10 @@ export function buildHostServices(
           .offset(offset);
         return rows.map((row) => ({
           ...row,
-          details: row.details && typeof row.details === "object"
-            ? sanitizeRecord(row.details)
-            : row.details ?? null,
+          details:
+            row.details && typeof row.details === "object"
+              ? sanitizeRecord(row.details)
+              : (row.details ?? null),
         }));
       },
     },
@@ -3439,7 +4211,8 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const agent = await agents.getById(params.agentId);
         requireInCompany("Agent", agent, companyId);
-        const taskKey = params.taskKey ?? `plugin:${pluginKey}:session:${randomUUID()}`;
+        const taskKey =
+          params.taskKey ?? `plugin:${pluginKey}:session:${randomUUID()}`;
 
         const row = await db
           .insert(agentTaskSessionsTable)
@@ -3475,7 +4248,10 @@ export function buildHostServices(
             and(
               eq(agentTaskSessionsTable.agentId, params.agentId),
               eq(agentTaskSessionsTable.companyId, companyId),
-              like(agentTaskSessionsTable.taskKey, `plugin:${pluginKey}:session:%`),
+              like(
+                agentTaskSessionsTable.taskKey,
+                `plugin:${pluginKey}:session:%`,
+              ),
             ),
           )
           .orderBy(desc(agentTaskSessionsTable.createdAt));
@@ -3505,7 +4281,10 @@ export function buildHostServices(
             and(
               eq(agentTaskSessionsTable.id, params.sessionId),
               eq(agentTaskSessionsTable.companyId, companyId),
-              like(agentTaskSessionsTable.taskKey, `plugin:${pluginKey}:session:%`),
+              like(
+                agentTaskSessionsTable.taskKey,
+                `plugin:${pluginKey}:session:%`,
+              ),
             ),
           )
           .then((rows) => rows[0] ?? null);
@@ -3531,13 +4310,20 @@ export function buildHostServices(
           requestedByActorType: "system",
           requestedByActorId: pluginId,
         });
-        if (!run) throw new Error("Agent wakeup was skipped by heartbeat policy");
+        if (!run)
+          throw new Error("Agent wakeup was skipped by heartbeat policy");
 
         // Subscribe to live events and forward to the plugin worker as notifications.
         // Track the subscription so it can be cleaned up on dispose() if the run
         // never reaches a terminal status (hang, crash, network partition).
         if (notifyWorker) {
-          const TERMINAL_STATUSES = new Set(["succeeded", "interrupted", "failed", "cancelled", "timed_out"]);
+          const TERMINAL_STATUSES = new Set([
+            "succeeded",
+            "interrupted",
+            "failed",
+            "cancelled",
+            "timed_out",
+          ]);
 
           const cleanup = () => {
             unsubscribe();
@@ -3546,17 +4332,24 @@ export function buildHostServices(
           };
 
           const unsubscribe = subscribeCompanyLiveEvents(companyId, (event) => {
-            const payload = event.payload as Record<string, unknown> | undefined;
+            const payload = event.payload as
+              Record<string, unknown> | undefined;
             if (!payload || payload.runId !== run.id) return;
 
-            if (event.type === "heartbeat.run.log" || event.type === "heartbeat.run.event") {
+            if (
+              event.type === "heartbeat.run.log" ||
+              event.type === "heartbeat.run.event"
+            ) {
               notifyWorker("agents.sessions.event", {
                 sessionId: params.sessionId,
                 runId: run.id,
                 seq: (payload.seq as number) ?? 0,
                 eventType: "chunk",
                 stream: (payload.stream as string) ?? null,
-                message: (payload.chunk as string) ?? (payload.message as string) ?? null,
+                message:
+                  (payload.chunk as string) ??
+                  (payload.message as string) ??
+                  null,
                 payload: payload,
               });
             } else if (event.type === "heartbeat.run.status") {
@@ -3568,9 +4361,12 @@ export function buildHostServices(
                   seq: 0,
                   eventType: status === "succeeded" ? "done" : "error",
                   stream: "system",
-                  message: status === "succeeded"
-                    ? (typeof payload.finalText === "string" ? payload.finalText : null)
-                    : `Run ${status}`,
+                  message:
+                    status === "succeeded"
+                      ? typeof payload.finalText === "string"
+                        ? payload.finalText
+                        : null
+                      : `Run ${status}`,
                   payload: payload,
                 });
                 cleanup();
@@ -3614,12 +4410,16 @@ export function buildHostServices(
             and(
               eq(agentTaskSessionsTable.id, params.sessionId),
               eq(agentTaskSessionsTable.companyId, companyId),
-              like(agentTaskSessionsTable.taskKey, `plugin:${pluginKey}:session:%`),
+              like(
+                agentTaskSessionsTable.taskKey,
+                `plugin:${pluginKey}:session:%`,
+              ),
             ),
           )
           .returning()
           .then((rows) => rows.length);
-        if (deleted === 0) throw new Error(`Session not found: ${params.sessionId}`);
+        if (deleted === 0)
+          throw new Error(`Session not found: ${params.sessionId}`);
       },
     },
 
@@ -3646,7 +4446,10 @@ export function buildHostServices(
 
       // Flush any buffered log entries synchronously-as-possible on dispose.
       flushPluginLogBuffer().catch((err) => {
-        console.error("[plugin-host-services] dispose() log flush failed:", err);
+        console.error(
+          "[plugin-host-services] dispose() log flush failed:",
+          err,
+        );
       });
     },
   };

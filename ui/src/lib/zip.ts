@@ -4,7 +4,10 @@ const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 // ignoreBOM keeps a leading BOM in the decoded text so text entries
 // re-encode to their original bytes; fatal surfaces invalid UTF-8.
-const strictTextDecoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+const strictTextDecoder = new TextDecoder("utf-8", {
+  fatal: true,
+  ignoreBOM: true,
+});
 
 const crcTable = new Uint32Array(256);
 for (let i = 0; i < 256; i++) {
@@ -16,11 +19,7 @@ for (let i = 0; i < 256; i++) {
 }
 
 function normalizeArchivePath(pathValue: string) {
-  return pathValue
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter(Boolean)
-    .join("/");
+  return pathValue.replace(/\\/g, "/").split("/").filter(Boolean).join("/");
 }
 
 function crc32(bytes: Uint8Array) {
@@ -49,11 +48,12 @@ function readUint16(source: Uint8Array, offset: number) {
 
 function readUint32(source: Uint8Array, offset: number) {
   return (
-    source[offset]! |
-    (source[offset + 1]! << 8) |
-    (source[offset + 2]! << 16) |
-    (source[offset + 3]! << 24)
-  ) >>> 0;
+    (source[offset]! |
+      (source[offset + 1]! << 8) |
+      (source[offset + 2]! << 16) |
+      (source[offset + 3]! << 24)) >>>
+    0
+  );
 }
 
 function getDosDateTime(date: Date) {
@@ -88,7 +88,9 @@ function sharedArchiveRoot(paths: string[]) {
     .filter((parts) => parts.length > 0);
   if (firstSegments.length === 0) return null;
   const candidate = firstSegments[0]![0]!;
-  return firstSegments.every((parts) => parts.length > 1 && parts[0] === candidate)
+  return firstSegments.every(
+    (parts) => parts.length > 1 && parts[0] === candidate,
+  )
     ? candidate
     : null;
 }
@@ -106,7 +108,11 @@ function inferBinaryContentType(pathValue: string) {
   const normalized = normalizeArchivePath(pathValue);
   const extensionIndex = normalized.lastIndexOf(".");
   if (extensionIndex === -1) return null;
-  return binaryContentTypeByExtension[normalized.slice(extensionIndex).toLowerCase()] ?? null;
+  return (
+    binaryContentTypeByExtension[
+      normalized.slice(extensionIndex).toLowerCase()
+    ] ?? null
+  );
 }
 
 function bytesToBase64(bytes: Uint8Array) {
@@ -143,10 +149,17 @@ function decodeStrictUtf8(bytes: Uint8Array): string | null {
   return text;
 }
 
-function bytesToPortableFileEntry(pathValue: string, bytes: Uint8Array): CompanyPortabilityFileEntry {
+function bytesToPortableFileEntry(
+  pathValue: string,
+  bytes: Uint8Array,
+): CompanyPortabilityFileEntry {
   // Content-addressed blob entries are opaque bytes regardless of extension.
   if (isBlobStorePath(pathValue)) {
-    return { encoding: "base64", data: bytesToBase64(bytes), contentType: "application/octet-stream" };
+    return {
+      encoding: "base64",
+      data: bytesToBase64(bytes),
+      contentType: "application/octet-stream",
+    };
   }
   const contentType = inferBinaryContentType(pathValue);
   if (contentType) {
@@ -156,10 +169,16 @@ function bytesToPortableFileEntry(pathValue: string, bytes: Uint8Array): Company
   if (text !== null) return text;
   // Bytes that are not valid UTF-8 must not be decoded lossily; fall back
   // to base64 so they round-trip exactly.
-  return { encoding: "base64", data: bytesToBase64(bytes), contentType: "application/octet-stream" };
+  return {
+    encoding: "base64",
+    data: bytesToBase64(bytes),
+    contentType: "application/octet-stream",
+  };
 }
 
-function portableFileEntryToBytes(entry: CompanyPortabilityFileEntry): Uint8Array {
+function portableFileEntryToBytes(
+  entry: CompanyPortabilityFileEntry,
+): Uint8Array {
   if (typeof entry === "string") return textEncoder.encode(entry);
   return base64ToBytes(entry.data);
 }
@@ -167,23 +186,32 @@ function portableFileEntryToBytes(entry: CompanyPortabilityFileEntry): Uint8Arra
 async function inflateZipEntry(compressionMethod: number, bytes: Uint8Array) {
   if (compressionMethod === 0) return bytes;
   if (compressionMethod !== 8) {
-    throw new Error("Unsupported zip archive: only STORE and DEFLATE entries are supported.");
+    throw new Error(
+      "Unsupported zip archive: only STORE and DEFLATE entries are supported.",
+    );
   }
   if (typeof DecompressionStream !== "function") {
-    throw new Error("Unsupported zip archive: this browser cannot read compressed zip entries.");
+    throw new Error(
+      "Unsupported zip archive: this browser cannot read compressed zip entries.",
+    );
   }
   const body = new Uint8Array(bytes.byteLength);
   body.set(bytes);
-  const stream = new Blob([body]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const stream = new Blob([body])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-export async function readZipArchive(source: ArrayBuffer | Uint8Array): Promise<{
+export async function readZipArchive(
+  source: ArrayBuffer | Uint8Array,
+): Promise<{
   rootPath: string | null;
   files: Record<string, CompanyPortabilityFileEntry>;
 }> {
   const bytes = source instanceof Uint8Array ? source : new Uint8Array(source);
-  const entries: Array<{ path: string; body: CompanyPortabilityFileEntry }> = [];
+  const entries: Array<{ path: string; body: CompanyPortabilityFileEntry }> =
+    [];
   let offset = 0;
 
   while (offset + 4 <= bytes.length) {
@@ -204,7 +232,9 @@ export async function readZipArchive(source: ArrayBuffer | Uint8Array): Promise<
     const extraFieldLength = readUint16(bytes, offset + 28);
 
     if ((generalPurposeFlag & 0x0008) !== 0) {
-      throw new Error("Unsupported zip archive: data descriptors are not supported.");
+      throw new Error(
+        "Unsupported zip archive: data descriptors are not supported.",
+      );
     }
 
     const nameOffset = offset + 30;
@@ -214,11 +244,16 @@ export async function readZipArchive(source: ArrayBuffer | Uint8Array): Promise<
       throw new Error("Invalid zip archive: truncated file contents.");
     }
 
-    const rawArchivePath = textDecoder.decode(bytes.slice(nameOffset, nameOffset + fileNameLength));
+    const rawArchivePath = textDecoder.decode(
+      bytes.slice(nameOffset, nameOffset + fileNameLength),
+    );
     const archivePath = normalizeArchivePath(rawArchivePath);
     const isDirectoryEntry = /\/$/.test(rawArchivePath.replace(/\\/g, "/"));
     if (archivePath && !isDirectoryEntry) {
-      const entryBytes = await inflateZipEntry(compressionMethod, bytes.slice(bodyOffset, bodyEnd));
+      const entryBytes = await inflateZipEntry(
+        compressionMethod,
+        bytes.slice(bodyOffset, bodyEnd),
+      );
       entries.push({
         path: archivePath,
         body: bytesToPortableFileEntry(archivePath, entryBytes),
@@ -242,7 +277,10 @@ export async function readZipArchive(source: ArrayBuffer | Uint8Array): Promise<
   return { rootPath, files };
 }
 
-export function createZipArchive(files: Record<string, CompanyPortabilityFileEntry>, rootPath: string): Uint8Array {
+export function createZipArchive(
+  files: Record<string, CompanyPortabilityFileEntry>,
+  rootPath: string,
+): Uint8Array {
   const normalizedRoot = normalizeArchivePath(rootPath);
   const localChunks: Uint8Array[] = [];
   const centralChunks: Uint8Array[] = [];
@@ -250,8 +288,12 @@ export function createZipArchive(files: Record<string, CompanyPortabilityFileEnt
   let localOffset = 0;
   let entryCount = 0;
 
-  for (const [relativePath, contents] of Object.entries(files).sort(([left], [right]) => left.localeCompare(right))) {
-    const archivePath = normalizeArchivePath(`${normalizedRoot}/${relativePath}`);
+  for (const [relativePath, contents] of Object.entries(files).sort(
+    ([left], [right]) => left.localeCompare(right),
+  )) {
+    const archivePath = normalizeArchivePath(
+      `${normalizedRoot}/${relativePath}`,
+    );
     const fileName = textEncoder.encode(archivePath);
     const body = portableFileEntryToBytes(contents);
     const checksum = crc32(body);
@@ -307,7 +349,11 @@ export function createZipArchive(files: Record<string, CompanyPortabilityFileEnt
   writeUint32(endOfCentralDirectory, 16, localOffset);
   writeUint16(endOfCentralDirectory, 20, 0);
 
-  return concatChunks([...localChunks, centralDirectory, endOfCentralDirectory]);
+  return concatChunks([
+    ...localChunks,
+    centralDirectory,
+    endOfCentralDirectory,
+  ]);
 }
 
 /**
@@ -366,9 +412,13 @@ export function estimateZipArchiveSize(
   const normalizedRoot = normalizeArchivePath(rootPath);
   let size = 22;
   for (const [relativePath, contents] of Object.entries(files)) {
-    const fileNameLength = utf8ByteLength(normalizeArchivePath(`${normalizedRoot}/${relativePath}`));
+    const fileNameLength = utf8ByteLength(
+      normalizeArchivePath(`${normalizedRoot}/${relativePath}`),
+    );
     const bodyLength =
-      typeof contents === "string" ? utf8ByteLength(contents) : base64ByteLength(contents.data);
+      typeof contents === "string"
+        ? utf8ByteLength(contents)
+        : base64ByteLength(contents.data);
     size += 30 + fileNameLength + bodyLength + 46 + fileNameLength;
   }
   return size;

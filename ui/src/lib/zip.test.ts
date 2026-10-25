@@ -2,7 +2,11 @@
 
 import { deflateRawSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { createZipArchive, estimateZipArchiveSize, readZipArchive } from "./zip";
+import {
+  createZipArchive,
+  estimateZipArchiveSize,
+  readZipArchive,
+} from "./zip";
 
 function readUint16(bytes: Uint8Array, offset: number) {
   return bytes[offset]! | (bytes[offset + 1]! << 8);
@@ -10,11 +14,12 @@ function readUint16(bytes: Uint8Array, offset: number) {
 
 function readUint32(bytes: Uint8Array, offset: number) {
   return (
-    bytes[offset]! |
-    (bytes[offset + 1]! << 8) |
-    (bytes[offset + 2]! << 16) |
-    (bytes[offset + 3]! << 24)
-  ) >>> 0;
+    (bytes[offset]! |
+      (bytes[offset + 1]! << 8) |
+      (bytes[offset + 2]! << 16) |
+      (bytes[offset + 3]! << 24)) >>>
+    0
+  );
 }
 
 function readString(bytes: Uint8Array, offset: number, length: number) {
@@ -44,14 +49,19 @@ function crc32(bytes: Uint8Array) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function createDeflatedZipArchive(files: Record<string, string>, rootPath: string) {
+function createDeflatedZipArchive(
+  files: Record<string, string>,
+  rootPath: string,
+) {
   const encoder = new TextEncoder();
   const localChunks: Uint8Array[] = [];
   const centralChunks: Uint8Array[] = [];
   let localOffset = 0;
   let entryCount = 0;
 
-  for (const [relativePath, content] of Object.entries(files).sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [relativePath, content] of Object.entries(files).sort(([a], [b]) =>
+    a.localeCompare(b),
+  )) {
     const fileName = encoder.encode(`${rootPath}/${relativePath}`);
     const rawBody = encoder.encode(content);
     const deflatedBody = new Uint8Array(deflateRawSync(rawBody));
@@ -87,9 +97,14 @@ function createDeflatedZipArchive(files: Record<string, string>, rootPath: strin
     entryCount += 1;
   }
 
-  const centralDirectoryLength = centralChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const centralDirectoryLength = centralChunks.reduce(
+    (sum, chunk) => sum + chunk.length,
+    0,
+  );
   const archive = new Uint8Array(
-    localChunks.reduce((sum, chunk) => sum + chunk.length, 0) + centralDirectoryLength + 22,
+    localChunks.reduce((sum, chunk) => sum + chunk.length, 0) +
+      centralDirectoryLength +
+      22,
   );
   let offset = 0;
   for (const chunk of localChunks) {
@@ -114,13 +129,32 @@ function createZipArchiveWithDirectoryEntries(rootPath: string) {
   const encoder = new TextEncoder();
   const entries = [
     { path: `${rootPath}/`, body: new Uint8Array(0), compressionMethod: 0 },
-    { path: `${rootPath}/agents/`, body: new Uint8Array(0), compressionMethod: 0 },
-    { path: `${rootPath}/agents/ceo/`, body: new Uint8Array(0), compressionMethod: 0 },
-    { path: `${rootPath}/COMPANY.md`, body: encoder.encode("# Company\n"), compressionMethod: 8 },
-    { path: `${rootPath}/agents/ceo/AGENTS.md`, body: encoder.encode("# CEO\n"), compressionMethod: 8 },
+    {
+      path: `${rootPath}/agents/`,
+      body: new Uint8Array(0),
+      compressionMethod: 0,
+    },
+    {
+      path: `${rootPath}/agents/ceo/`,
+      body: new Uint8Array(0),
+      compressionMethod: 0,
+    },
+    {
+      path: `${rootPath}/COMPANY.md`,
+      body: encoder.encode("# Company\n"),
+      compressionMethod: 8,
+    },
+    {
+      path: `${rootPath}/agents/ceo/AGENTS.md`,
+      body: encoder.encode("# CEO\n"),
+      compressionMethod: 8,
+    },
   ].map((entry) => ({
     ...entry,
-    data: entry.compressionMethod === 8 ? new Uint8Array(deflateRawSync(entry.body)) : entry.body,
+    data:
+      entry.compressionMethod === 8
+        ? new Uint8Array(deflateRawSync(entry.body))
+        : entry.body,
     checksum: crc32(entry.body),
   }));
 
@@ -159,9 +193,14 @@ function createZipArchiveWithDirectoryEntries(rootPath: string) {
     localOffset += localHeader.length + entry.data.length;
   }
 
-  const centralDirectoryLength = centralChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const centralDirectoryLength = centralChunks.reduce(
+    (sum, chunk) => sum + chunk.length,
+    0,
+  );
   const archive = new Uint8Array(
-    localChunks.reduce((sum, chunk) => sum + chunk.length, 0) + centralDirectoryLength + 22,
+    localChunks.reduce((sum, chunk) => sum + chunk.length, 0) +
+      centralDirectoryLength +
+      22,
   );
   let offset = 0;
   for (const chunk of localChunks) {
@@ -196,16 +235,28 @@ describe("createZipArchive", () => {
 
     const firstNameLength = readUint16(archive, 26);
     const firstBodyLength = readUint32(archive, 18);
-    expect(readString(archive, 30, firstNameLength)).toBe("taskcore-demo/agents/ceo/AGENTS.md");
-    expect(readString(archive, 30 + firstNameLength, firstBodyLength)).toBe("# CEO\n");
+    expect(readString(archive, 30, firstNameLength)).toBe(
+      "taskcore-demo/agents/ceo/AGENTS.md",
+    );
+    expect(readString(archive, 30 + firstNameLength, firstBodyLength)).toBe(
+      "# CEO\n",
+    );
 
     const secondOffset = 30 + firstNameLength + firstBodyLength;
     expect(readUint32(archive, secondOffset)).toBe(0x04034b50);
 
     const secondNameLength = readUint16(archive, secondOffset + 26);
     const secondBodyLength = readUint32(archive, secondOffset + 18);
-    expect(readString(archive, secondOffset + 30, secondNameLength)).toBe("taskcore-demo/COMPANY.md");
-    expect(readString(archive, secondOffset + 30 + secondNameLength, secondBodyLength)).toBe("# Company\n");
+    expect(readString(archive, secondOffset + 30, secondNameLength)).toBe(
+      "taskcore-demo/COMPANY.md",
+    );
+    expect(
+      readString(
+        archive,
+        secondOffset + 30 + secondNameLength,
+        secondBodyLength,
+      ),
+    ).toBe("# Company\n");
 
     const endOffset = archive.length - 22;
     expect(readUint32(archive, endOffset)).toBe(0x06054b50);
@@ -340,7 +391,9 @@ describe("estimateZipArchiveSize", () => {
       "agents/céo/AGENT.md": "# Héllo wörld — 日本語 🚀\n",
       "images/logo.png": {
         encoding: "base64" as const,
-        data: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]).toString("base64"),
+        data: Buffer.from([
+          0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
+        ]).toString("base64"),
         contentType: "image/png",
       },
       "blobs/4f2d1c9a": {

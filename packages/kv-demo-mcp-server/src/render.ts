@@ -33,7 +33,10 @@ function renderRows(snapshot: KvStateSnapshot): string {
  * polls {@code GET /api/state} so the table reflects tool writes without a manual
  * refresh.
  */
-export function renderStatePage(snapshot: KvStateSnapshot, options: RenderOptions = {}): string {
+export function renderStatePage(
+  snapshot: KvStateSnapshot,
+  options: RenderOptions = {},
+): string {
   const tokenRequired = options.tokenRequired === true;
 
   return `<!doctype html>

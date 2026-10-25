@@ -8,6 +8,6 @@ export function useEmailThread(companyId: string, issueId: string) {
     enabled: Boolean(companyId && issueId) && !issueId.startsWith("chat:"),
     // A null response identifies an ordinary task. It can still refetch on
     // focus or invalidation, but only email tasks need recurring updates.
-    refetchInterval: (query) => query.state.data === null ? false : 3000,
+    refetchInterval: (query) => (query.state.data === null ? false : 3000),
   });
 }

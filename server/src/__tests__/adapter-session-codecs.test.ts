@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { sessionCodec as claudeSessionCodec } from "@taskcore/adapter-claude-local/server";
-import { sessionCodec as codexSessionCodec, isCodexUnknownSessionError } from "@taskcore/adapter-codex-local/server";
+import {
+  sessionCodec as codexSessionCodec,
+  isCodexUnknownSessionError,
+} from "@taskcore/adapter-codex-local/server";
 import {
   sessionCodec as cursorSessionCodec,
   isCursorUnknownSessionError,
@@ -34,20 +37,26 @@ describe("adapter session codecs", () => {
       cwd: "/tmp/workspace",
       promptBundleKey: "bundle-1",
     });
-    expect(claudeSessionCodec.getDisplayId?.(serialized ?? null)).toBe("claude-session-1");
+    expect(claudeSessionCodec.getDisplayId?.(serialized ?? null)).toBe(
+      "claude-session-1",
+    );
   });
 
   it("preserves Claude MCP identity across persistence so resumed turns keep their context", () => {
     const params = {
       sessionId: "11111111-1111-4111-8111-111111111111",
       cwd: "/tmp/workspace",
-      mcpServerIdentity: JSON.stringify([{
-        name: "Taskcore projects",
-        url: "http://localhost:3100/api/mcp/project-tools",
-        connectionId: "taskcore-project-tools",
-      }]),
+      mcpServerIdentity: JSON.stringify([
+        {
+          name: "Taskcore projects",
+          url: "http://localhost:3100/api/mcp/project-tools",
+          connectionId: "taskcore-project-tools",
+        },
+      ]),
     };
-    expect(claudeSessionCodec.deserialize(claudeSessionCodec.serialize(params))).toEqual(params);
+    expect(
+      claudeSessionCodec.deserialize(claudeSessionCodec.serialize(params)),
+    ).toEqual(params);
   });
 
   it("preserves claude ACP session params for ACP lane resumes", () => {
@@ -92,7 +101,9 @@ describe("adapter session codecs", () => {
       sessionId: "codex-session-1",
       cwd: "/tmp/codex",
     });
-    expect(codexSessionCodec.getDisplayId?.(serialized ?? null)).toBe("codex-session-1");
+    expect(codexSessionCodec.getDisplayId?.(serialized ?? null)).toBe(
+      "codex-session-1",
+    );
   });
 
   it("preserves codex ACP session params for ACP lane resumes", () => {
@@ -137,7 +148,9 @@ describe("adapter session codecs", () => {
       sessionId: "opencode-session-1",
       cwd: "/tmp/opencode",
     });
-    expect(opencodeSessionCodec.getDisplayId?.(serialized ?? null)).toBe("opencode-session-1");
+    expect(opencodeSessionCodec.getDisplayId?.(serialized ?? null)).toBe(
+      "opencode-session-1",
+    );
   });
 
   it("normalizes cursor session params with cwd", () => {
@@ -155,7 +168,9 @@ describe("adapter session codecs", () => {
       sessionId: "cursor-session-1",
       cwd: "/tmp/cursor",
     });
-    expect(cursorSessionCodec.getDisplayId?.(serialized ?? null)).toBe("cursor-session-1");
+    expect(cursorSessionCodec.getDisplayId?.(serialized ?? null)).toBe(
+      "cursor-session-1",
+    );
   });
 
   it("normalizes gemini session params with cwd", () => {
@@ -173,7 +188,9 @@ describe("adapter session codecs", () => {
       sessionId: "gemini-session-1",
       cwd: "/tmp/gemini",
     });
-    expect(geminiSessionCodec.getDisplayId?.(serialized ?? null)).toBe("gemini-session-1");
+    expect(geminiSessionCodec.getDisplayId?.(serialized ?? null)).toBe(
+      "gemini-session-1",
+    );
   });
 
   it("preserves gemini ACP session params for ACP lane resumes", () => {
@@ -256,18 +273,10 @@ describe("codex resume recovery detection", () => {
         "",
       ),
     ).toBe(true);
-    expect(
-      isCodexUnknownSessionError(
-        "",
-        "thread 123 not found",
-      ),
-    ).toBe(true);
-    expect(
-      isCodexUnknownSessionError(
-        '{"type":"result","ok":true}',
-        "",
-      ),
-    ).toBe(false);
+    expect(isCodexUnknownSessionError("", "thread 123 not found")).toBe(true);
+    expect(isCodexUnknownSessionError('{"type":"result","ok":true}', "")).toBe(
+      false,
+    );
   });
 });
 
@@ -281,7 +290,7 @@ describe("opencode resume recovery detection", () => {
     ).toBe(true);
     expect(
       isOpenCodeUnknownSessionError(
-        "{\"type\":\"step_finish\",\"part\":{\"reason\":\"stop\"}}",
+        '{"type":"step_finish","part":{"reason":"stop"}}',
         "",
       ),
     ).toBe(false);
@@ -291,22 +300,11 @@ describe("opencode resume recovery detection", () => {
 describe("cursor resume recovery detection", () => {
   it("detects unknown session errors from cursor output", () => {
     expect(
-      isCursorUnknownSessionError(
-        "",
-        "Error: unknown session id abc",
-      ),
+      isCursorUnknownSessionError("", "Error: unknown session id abc"),
     ).toBe(true);
+    expect(isCursorUnknownSessionError("", "chat abc not found")).toBe(true);
     expect(
-      isCursorUnknownSessionError(
-        "",
-        "chat abc not found",
-      ),
-    ).toBe(true);
-    expect(
-      isCursorUnknownSessionError(
-        "{\"type\":\"result\",\"subtype\":\"success\"}",
-        "",
-      ),
+      isCursorUnknownSessionError('{"type":"result","subtype":"success"}', ""),
     ).toBe(false);
   });
 });
@@ -314,20 +312,14 @@ describe("cursor resume recovery detection", () => {
 describe("gemini resume recovery detection", () => {
   it("detects unknown session errors from gemini output", () => {
     expect(
-      isGeminiSessionUnrecoverableError(
-        "",
-        "unknown session id abc",
-      ),
+      isGeminiSessionUnrecoverableError("", "unknown session id abc"),
+    ).toBe(true);
+    expect(
+      isGeminiSessionUnrecoverableError("", "checkpoint latest not found"),
     ).toBe(true);
     expect(
       isGeminiSessionUnrecoverableError(
-        "",
-        "checkpoint latest not found",
-      ),
-    ).toBe(true);
-    expect(
-      isGeminiSessionUnrecoverableError(
-        "{\"type\":\"result\",\"subtype\":\"success\"}",
+        '{"type":"result","subtype":"success"}',
         "",
       ),
     ).toBe(false);

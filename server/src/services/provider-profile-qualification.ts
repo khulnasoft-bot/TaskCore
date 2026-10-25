@@ -13,7 +13,8 @@ export const CLAUDE_MANAGED_QUALIFICATION = {
 export const CLAUDE_MANAGED_QUALIFIED_MODEL = "claude-sonnet-5" as const;
 export const AGENTCORE_QUALIFICATION_SUITE =
   "aws-agentcore-harness-context-v2" as const;
-export const AGENTCORE_QUALIFIED_MODEL = "global.anthropic.claude-sonnet-4-6" as const;
+export const AGENTCORE_QUALIFIED_MODEL =
+  "global.anthropic.claude-sonnet-4-6" as const;
 
 const REVISION_PREFIX = "sha256:";
 const SHA256_RE = /^sha256:[0-9a-f]{64}$/;
@@ -34,21 +35,25 @@ function containsSecretShapedValue(value: unknown): boolean {
   }
   if (Array.isArray(value)) return value.some(containsSecretShapedValue);
   if (!value || typeof value !== "object") return false;
-  return Object.values(value as Record<string, unknown>).some(containsSecretShapedValue);
+  return Object.values(value as Record<string, unknown>).some(
+    containsSecretShapedValue,
+  );
 }
 
 function normalizeKnownPublicValues(value: unknown): unknown {
   if (
-    value === CLAUDE_MANAGED_QUALIFIED_MODEL
-    || value === AGENTCORE_QUALIFIED_MODEL
+    value === CLAUDE_MANAGED_QUALIFIED_MODEL ||
+    value === AGENTCORE_QUALIFIED_MODEL
   ) {
     return "taskcore-qualified-provider-model";
   }
   if (Array.isArray(value)) return value.map(normalizeKnownPublicValues);
   if (!value || typeof value !== "object") return value;
   return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>)
-      .map(([key, entry]) => [key, normalizeKnownPublicValues(entry)]),
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      normalizeKnownPublicValues(entry),
+    ]),
   );
 }
 
@@ -56,12 +61,20 @@ export function assertProfileMetadataContainsNoSecrets(
   value: Record<string, unknown>,
   label: string,
 ): void {
-  const publicValueNormalized = normalizeKnownPublicValues(value) as Record<string, unknown>;
+  const publicValueNormalized = normalizeKnownPublicValues(value) as Record<
+    string,
+    unknown
+  >;
   if (
-    !isDeepStrictEqual(sanitizeRecord(publicValueNormalized), publicValueNormalized)
-    || containsSecretShapedValue(value)
+    !isDeepStrictEqual(
+      sanitizeRecord(publicValueNormalized),
+      publicValueNormalized,
+    ) ||
+    containsSecretShapedValue(value)
   ) {
-    throw unprocessable(`${label} must not contain credential-shaped keys or values`);
+    throw unprocessable(
+      `${label} must not contain credential-shaped keys or values`,
+    );
   }
 }
 
@@ -73,15 +86,17 @@ function assertExactKeys(
   const actual = Object.keys(value).sort();
   const expected = [...keys].sort();
   if (!isDeepStrictEqual(actual, expected)) {
-    throw unprocessable(`${label} must contain the exact qualification attestation fields`);
+    throw unprocessable(
+      `${label} must contain the exact qualification attestation fields`,
+    );
   }
 }
 
 function assertIsoTimestamp(value: unknown, label: string): void {
   if (
-    typeof value !== "string"
-    || !ISO_TIMESTAMP_RE.test(value)
-    || !Number.isFinite(Date.parse(value))
+    typeof value !== "string" ||
+    !ISO_TIMESTAMP_RE.test(value) ||
+    !Number.isFinite(Date.parse(value))
   ) {
     throw unprocessable(`${label} must be an ISO-8601 UTC timestamp`);
   }
@@ -93,11 +108,16 @@ export function assertClaudeManagedQualification(
 ): boolean {
   if (Object.keys(qualification).length === 0) {
     if (options.required) {
-      throw unprocessable("Claude Managed qualification attestation is required before enablement");
+      throw unprocessable(
+        "Claude Managed qualification attestation is required before enablement",
+      );
     }
     return false;
   }
-  assertProfileMetadataContainsNoSecrets(qualification, "Managed Agent qualification");
+  assertProfileMetadataContainsNoSecrets(
+    qualification,
+    "Managed Agent qualification",
+  );
   assertExactKeys(
     qualification,
     ["probedAt", "betaVersion", "environmentPolicy", "agentCapabilities"],
@@ -105,11 +125,15 @@ export function assertClaudeManagedQualification(
   );
   assertIsoTimestamp(qualification.probedAt, "qualification.probedAt");
   if (
-    qualification.betaVersion !== CLAUDE_MANAGED_QUALIFICATION.betaVersion
-    || qualification.environmentPolicy !== CLAUDE_MANAGED_QUALIFICATION.environmentPolicy
-    || qualification.agentCapabilities !== CLAUDE_MANAGED_QUALIFICATION.agentCapabilities
+    qualification.betaVersion !== CLAUDE_MANAGED_QUALIFICATION.betaVersion ||
+    qualification.environmentPolicy !==
+      CLAUDE_MANAGED_QUALIFICATION.environmentPolicy ||
+    qualification.agentCapabilities !==
+      CLAUDE_MANAGED_QUALIFICATION.agentCapabilities
   ) {
-    throw unprocessable("Claude Managed qualification attestation does not match the qualified profile");
+    throw unprocessable(
+      "Claude Managed qualification attestation does not match the qualified profile",
+    );
   }
   return true;
 }
@@ -121,29 +145,44 @@ export function assertAgentCoreQualification(
 ): boolean {
   if (Object.keys(qualification).length === 0) {
     if (options.required) {
-      throw unprocessable("AWS AgentCore qualification attestation is required before enablement");
+      throw unprocessable(
+        "AWS AgentCore qualification attestation is required before enablement",
+      );
     }
     return false;
   }
-  assertProfileMetadataContainsNoSecrets(qualification, "Remote Agent qualification");
+  assertProfileMetadataContainsNoSecrets(
+    qualification,
+    "Remote Agent qualification",
+  );
   assertExactKeys(qualification, ["suite"], "AWS AgentCore qualification");
   if (
-    configuration.qualificationRevision !== AGENTCORE_QUALIFICATION_SUITE
-    || qualification.suite !== AGENTCORE_QUALIFICATION_SUITE
+    configuration.qualificationRevision !== AGENTCORE_QUALIFICATION_SUITE ||
+    qualification.suite !== AGENTCORE_QUALIFICATION_SUITE
   ) {
-    throw unprocessable("AWS AgentCore qualification attestation does not match the qualified harness suite");
+    throw unprocessable(
+      "AWS AgentCore qualification attestation does not match the qualified harness suite",
+    );
   }
   return true;
 }
 
-type CanonicalJson = null | boolean | number | string | CanonicalJson[] | {
-  [key: string]: CanonicalJson;
-};
+type CanonicalJson =
+  | null
+  | boolean
+  | number
+  | string
+  | CanonicalJson[]
+  | {
+      [key: string]: CanonicalJson;
+    };
 
 function canonicalize(value: unknown, label: string): CanonicalJson {
-  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (value === null || typeof value === "string" || typeof value === "boolean")
+    return value;
   if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (Array.isArray(value)) return value.map((entry) => canonicalize(entry, label));
+  if (Array.isArray(value))
+    return value.map((entry) => canonicalize(entry, label));
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)

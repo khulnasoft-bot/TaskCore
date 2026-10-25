@@ -18,7 +18,10 @@ import {
   heartbeatRuns,
   secretAccessEvents,
 } from "@taskcore/db";
-import { LOW_TRUST_REVIEW_PRESET, type AgentApiKeyScope } from "@taskcore/shared";
+import {
+  LOW_TRUST_REVIEW_PRESET,
+  type AgentApiKeyScope,
+} from "@taskcore/shared";
 import { REDACTED_EVENT_VALUE } from "../redaction.js";
 import { errorHandler } from "../middleware/error-handler.js";
 import { secretRoutes } from "../routes/secrets.js";
@@ -30,18 +33,28 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("agent secret routes", () => {
   let stopDb: (() => Promise<void>) | null = null;
   let db!: ReturnType<typeof createDb>;
   const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
-  const secretsTmpDir = path.join(os.tmpdir(), `taskcore-agent-secret-routes-${randomUUID()}`);
+  const secretsTmpDir = path.join(
+    os.tmpdir(),
+    `taskcore-agent-secret-routes-${randomUUID()}`,
+  );
 
   beforeAll(async () => {
     mkdirSync(secretsTmpDir, { recursive: true });
-    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(secretsTmpDir, "master.key");
-    const started = await startEmbeddedPostgresTestDatabase("agent-secret-routes");
+    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(
+      secretsTmpDir,
+      "master.key",
+    );
+    const started = await startEmbeddedPostgresTestDatabase(
+      "agent-secret-routes",
+    );
     stopDb = started.cleanup;
     db = createDb(started.connectionString);
   });
@@ -60,7 +73,8 @@ describeEmbeddedPostgres("agent secret routes", () => {
 
   afterAll(async () => {
     await stopDb?.();
-    if (previousKeyFile === undefined) delete process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
+    if (previousKeyFile === undefined)
+      delete process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
     else process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = previousKeyFile;
     rmSync(secretsTmpDir, { recursive: true, force: true });
   });
@@ -169,68 +183,133 @@ describeEmbeddedPostgres("agent secret routes", () => {
       targetId: randomUUID(),
       configPath: "env.PROJECT_KEY",
     });
-    await db.update(heartbeatRuns).set({
-      contextSnapshot: {
-        taskcoreSecrets: {
-          manifest: [{
-            bindingId: projectBinding.id,
-            secretId: projectSecret.id,
-            configPath: projectBinding.configPath,
-          }],
+    await db
+      .update(heartbeatRuns)
+      .set({
+        contextSnapshot: {
+          taskcoreSecrets: {
+            manifest: [
+              {
+                bindingId: projectBinding.id,
+                secretId: projectSecret.id,
+                configPath: projectBinding.configPath,
+              },
+            ],
+          },
         },
-      },
-    }).where(eq(heartbeatRuns.id, fixture.heartbeatRunId));
+      })
+      .where(eq(heartbeatRuns.id, fixture.heartbeatRunId));
 
-    const list = await request(createApp(fixture)).get("/api/agents/me/secrets");
+    const list = await request(createApp(fixture)).get(
+      "/api/agents/me/secrets",
+    );
     expect(list.status).toBe(200);
     expect(list.body.secrets).toEqual([
-      expect.objectContaining({ key: "api_only_key", delivery: "api", projectionClass: "class_2_runtime_only" }),
+      expect.objectContaining({
+        key: "api_only_key",
+        delivery: "api",
+        projectionClass: "class_2_runtime_only",
+      }),
       expect.objectContaining({ key: "env_only_key", delivery: "env" }),
       expect.objectContaining({ key: "project_key", delivery: "env" }),
     ]);
     expect(JSON.stringify(list.body)).not.toContain("secret-value");
     expect(await db.select().from(secretAccessEvents)).toEqual([]);
     expect(await db.select().from(activityLog)).toEqual([
-      expect.objectContaining({ action: "secret.access.listed", runId: fixture.heartbeatRunId }),
+      expect.objectContaining({
+        action: "secret.access.listed",
+        runId: fixture.heartbeatRunId,
+      }),
     ]);
 
-    const fetched = await request(createApp(fixture)).post("/api/agents/me/secrets/env_only_key/value");
+    const fetched = await request(createApp(fixture)).post(
+      "/api/agents/me/secrets/env_only_key/value",
+    );
     expect(fetched.status).toBe(200);
     expect(fetched.headers["cache-control"]).toBe("no-store");
-    expect(fetched.body).toEqual({ key: "env_only_key", value: "env-secret-value", version: 1 });
-    const [registeredRun] = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, fixture.heartbeatRunId));
-    expect(JSON.stringify(registeredRun.contextSnapshot)).not.toContain("env-secret-value");
+    expect(fetched.body).toEqual({
+      key: "env_only_key",
+      value: "env-secret-value",
+      version: 1,
+    });
+    const [registeredRun] = await db
+      .select()
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.id, fixture.heartbeatRunId));
+    expect(JSON.stringify(registeredRun.contextSnapshot)).not.toContain(
+      "env-secret-value",
+    );
     expect(registeredRun.contextSnapshot).toMatchObject({
-      taskcoreSecretRedactions: [expect.objectContaining({ fingerprintSha256: expect.any(String), material: expect.any(Object) })],
+      taskcoreSecretRedactions: [
+        expect.objectContaining({
+          fingerprintSha256: expect.any(String),
+          material: expect.any(Object),
+        }),
+      ],
     });
     expect(await db.select().from(secretAccessEvents)).toEqual([
-      expect.objectContaining({ secretId: envSecret.id, outcome: "success", consumerType: "agent_api" }),
+      expect.objectContaining({
+        secretId: envSecret.id,
+        outcome: "success",
+        consumerType: "agent_api",
+      }),
     ]);
-    expect(await db.select().from(activityLog)).toEqual(expect.arrayContaining([
-      expect.objectContaining({ action: "secret.value.read", entityId: envSecret.id }),
-    ]));
+    expect(await db.select().from(activityLog)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "secret.value.read",
+          entityId: envSecret.id,
+        }),
+      ]),
+    );
 
-    const projectFetched = await request(createApp(fixture)).post("/api/agents/me/secrets/project_key/value");
+    const projectFetched = await request(createApp(fixture)).post(
+      "/api/agents/me/secrets/project_key/value",
+    );
     expect(projectFetched.status).toBe(200);
-    expect(projectFetched.body).toEqual({ key: "project_key", value: "project-secret-value", version: 1 });
-    expect(await db.select().from(secretAccessEvents)).toEqual(expect.arrayContaining([
-      expect.objectContaining({ secretId: projectSecret.id, outcome: "success", consumerType: "agent_api" }),
-    ]));
+    expect(projectFetched.body).toEqual({
+      key: "project_key",
+      value: "project-secret-value",
+      version: 1,
+    });
+    expect(await db.select().from(secretAccessEvents)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          secretId: projectSecret.id,
+          outcome: "success",
+          consumerType: "agent_api",
+        }),
+      ]),
+    );
 
-    const denied = await request(createApp(fixture)).post("/api/agents/me/secrets/unbound_key/value");
+    const denied = await request(createApp(fixture)).post(
+      "/api/agents/me/secrets/unbound_key/value",
+    );
     expect(denied.status).toBe(403);
-    expect(await db.select().from(secretAccessEvents)).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ secretId: unboundSecret.id }),
-    ]));
-    expect(await db.select().from(activityLog)).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ action: "secret.value.read", entityId: unboundSecret.id }),
-    ]));
+    expect(await db.select().from(secretAccessEvents)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ secretId: unboundSecret.id }),
+      ]),
+    );
+    expect(await db.select().from(activityLog)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "secret.value.read",
+          entityId: unboundSecret.id,
+        }),
+      ]),
+    );
   });
 
   it("fails closed when run redaction registration cannot be persisted", async () => {
     const fixture = await seedAgentRun();
-    await expect(createRunSecretRedactionRegistry(db).register(fixture.companyId, randomUUID(), "must-not-return"))
-      .rejects.toThrow("Heartbeat run redaction registration failed");
+    await expect(
+      createRunSecretRedactionRegistry(db).register(
+        fixture.companyId,
+        randomUUID(),
+        "must-not-return",
+      ),
+    ).rejects.toThrow("Heartbeat run redaction registration failed");
   });
 
   it("deduplicates concurrent redaction registrations for the same run and value", async () => {
@@ -238,53 +317,120 @@ describeEmbeddedPostgres("agent secret routes", () => {
     const registry = createRunSecretRedactionRegistry(db);
 
     await Promise.all([
-      registry.register(fixture.companyId, fixture.heartbeatRunId, "duplicate-secret"),
-      registry.register(fixture.companyId, fixture.heartbeatRunId, "duplicate-secret"),
+      registry.register(
+        fixture.companyId,
+        fixture.heartbeatRunId,
+        "duplicate-secret",
+      ),
+      registry.register(
+        fixture.companyId,
+        fixture.heartbeatRunId,
+        "duplicate-secret",
+      ),
     ]);
 
-    const [run] = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, fixture.heartbeatRunId));
+    const [run] = await db
+      .select()
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.id, fixture.heartbeatRunId));
     expect(run.contextSnapshot).toMatchObject({
-      taskcoreSecretRedactions: [expect.objectContaining({ fingerprintSha256: expect.any(String) })],
+      taskcoreSecretRedactions: [
+        expect.objectContaining({ fingerprintSha256: expect.any(String) }),
+      ],
     });
-    expect((run.contextSnapshot as { taskcoreSecretRedactions: unknown[] }).taskcoreSecretRedactions).toHaveLength(1);
+    expect(
+      (run.contextSnapshot as { taskcoreSecretRedactions: unknown[] })
+        .taskcoreSecretRedactions,
+    ).toHaveLength(1);
   });
 
   it("redacts batched runs from projected registries and enforces company scope", async () => {
     const first = await seedAgentRun();
     const foreign = await seedAgentRun();
     const registry = createRunSecretRedactionRegistry(db);
-    await registry.register(first.companyId, first.heartbeatRunId, "first-secret-value");
-    await registry.register(foreign.companyId, foreign.heartbeatRunId, "foreign-secret-value");
+    await registry.register(
+      first.companyId,
+      first.heartbeatRunId,
+      "first-secret-value",
+    );
+    await registry.register(
+      foreign.companyId,
+      foreign.heartbeatRunId,
+      "foreign-secret-value",
+    );
     const runs = [
-      { id: first.heartbeatRunId, text: "first-secret-value foreign-secret-value", createdAt: new Date() },
-      { id: foreign.heartbeatRunId, text: "foreign-secret-value", createdAt: new Date() },
+      {
+        id: first.heartbeatRunId,
+        text: "first-secret-value foreign-secret-value",
+        createdAt: new Date(),
+      },
+      {
+        id: foreign.heartbeatRunId,
+        text: "foreign-secret-value",
+        createdAt: new Date(),
+      },
     ];
     const redacted = await registry.redactForRuns(first.companyId, runs);
-    expect(redacted[0].text).toBe(`${REDACTED_EVENT_VALUE} foreign-secret-value`);
+    expect(redacted[0].text).toBe(
+      `${REDACTED_EVENT_VALUE} foreign-secret-value`,
+    );
     expect(redacted[0].createdAt).toEqual(runs[0].createdAt);
     expect(redacted[1].text).toBe("foreign-secret-value");
-    expect(await registry.redactForRun(first.companyId, first.heartbeatRunId, runs[0].text))
-      .toBe(redacted[0].text);
+    expect(
+      await registry.redactForRun(
+        first.companyId,
+        first.heartbeatRunId,
+        runs[0].text,
+      ),
+    ).toBe(redacted[0].text);
   });
 
   it("denies low-trust, task-bridge, and skill-test callers on both routes", async () => {
     const lowTrust = await seedAgentRun({
       trustPreset: LOW_TRUST_REVIEW_PRESET,
-      authorizationPolicy: { trustBoundary: { mode: LOW_TRUST_REVIEW_PRESET, projectIds: [randomUUID()] } },
+      authorizationPolicy: {
+        trustBoundary: {
+          mode: LOW_TRUST_REVIEW_PRESET,
+          projectIds: [randomUUID()],
+        },
+      },
     });
     const standard = await seedAgentRun();
     const cases = [
-      { name: "low trust", fixture: lowTrust, scope: { kind: "standard" } as const, source: "agent_jwt" as const },
-      { name: "task bridge", fixture: standard, scope: { kind: "task_bridge", parentIssueId: randomUUID() } as const, source: "agent_key" as const },
-      { name: "skill test", fixture: standard, scope: { kind: "skill_test", issueId: randomUUID() } as const, source: "agent_jwt" as const },
+      {
+        name: "low trust",
+        fixture: lowTrust,
+        scope: { kind: "standard" } as const,
+        source: "agent_jwt" as const,
+      },
+      {
+        name: "task bridge",
+        fixture: standard,
+        scope: { kind: "task_bridge", parentIssueId: randomUUID() } as const,
+        source: "agent_key" as const,
+      },
+      {
+        name: "skill test",
+        fixture: standard,
+        scope: { kind: "skill_test", issueId: randomUUID() } as const,
+        source: "agent_jwt" as const,
+      },
     ];
     for (const testCase of cases) {
       expect(
-        (await request(createApp(testCase.fixture, testCase.scope, testCase.source)).get("/api/agents/me/secrets")).status,
+        (
+          await request(
+            createApp(testCase.fixture, testCase.scope, testCase.source),
+          ).get("/api/agents/me/secrets")
+        ).status,
         `${testCase.name} list`,
       ).toBe(403);
       expect(
-        (await request(createApp(testCase.fixture, testCase.scope, testCase.source)).post("/api/agents/me/secrets/ANY/value")).status,
+        (
+          await request(
+            createApp(testCase.fixture, testCase.scope, testCase.source),
+          ).post("/api/agents/me/secrets/ANY/value")
+        ).status,
         `${testCase.name} fetch`,
       ).toBe(403);
     }

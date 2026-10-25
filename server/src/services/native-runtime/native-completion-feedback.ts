@@ -1,13 +1,22 @@
 import { eligibleIssueMonitorWait } from "../issue-monitors.js";
-import { activeIssueInteractionCondition, ordinaryQuestionCondition } from "../issue-question-context.js";
-import { publishedTaskDocuments, validateNativeDeliverableEvidence } from "./native-deliverable-feedback.js";
+import {
+  activeIssueInteractionCondition,
+  ordinaryQuestionCondition,
+} from "../issue-question-context.js";
+import {
+  publishedTaskDocuments,
+  validateNativeDeliverableEvidence,
+} from "./native-deliverable-feedback.js";
 import { findAutomaticCompletionReviews } from "./automatic-completion-reviews.js";
 import { evaluateAgentInvokabilityFromDb } from "../agent-invokability.js";
 import { issueService } from "../issues.js";
 import { isConversation } from "../agent-conversations.js";
 import { issueTreeControlService } from "../issue-tree-control.js";
 import { resolveExternalChatResponseWaitAuthorization } from "./chat-attachment-reuse.js";
-import { getNativeReviewAssignment, readNativeReviewAssignmentContext } from "./native-review-participant.js";
+import {
+  getNativeReviewAssignment,
+  readNativeReviewAssignmentContext,
+} from "./native-review-participant.js";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 import {
   approvals,
@@ -27,16 +36,30 @@ import {
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown> : {};
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 /** Reconstruct links from current task state, never from provider-supplied URLs. */
-async function savedDocumentLinks(db: Db, run: typeof heartbeatRuns.$inferSelect, issue: typeof issues.$inferSelect) {
-  const saved = await publishedTaskDocuments(db, { companyId: run.companyId, issueId: issue.id });
+async function savedDocumentLinks(
+  db: Db,
+  run: typeof heartbeatRuns.$inferSelect,
+  issue: typeof issues.$inferSelect,
+) {
+  const saved = await publishedTaskDocuments(db, {
+    companyId: run.companyId,
+    issueId: issue.id,
+  });
   if (!saved.length) return [];
-  const [company] = await db.select({ issuePrefix: companies.issuePrefix }).from(companies).where(eq(companies.id, run.companyId));
+  const [company] = await db
+    .select({ issuePrefix: companies.issuePrefix })
+    .from(companies)
+    .where(eq(companies.id, run.companyId));
   if (!company) return [];
-  return saved.map(document => `[Saved document](/${encodeURIComponent(company.issuePrefix)}/issues/${encodeURIComponent(issue.identifier ?? issue.id)}#document-${encodeURIComponent(document.key)})`);
+  return saved.map(
+    (document) =>
+      `[Saved document](/${encodeURIComponent(company.issuePrefix)}/issues/${encodeURIComponent(issue.identifier ?? issue.id)}#document-${encodeURIComponent(document.key)})`,
+  );
 }
 
 /** Read current constraints before accepting the report, not a premature status commit. */
@@ -65,13 +88,24 @@ export async function nativeCompletionFeedback(
   if (!issue) throw new Error("Completion task no longer exists.");
   const reviewContext = readNativeReviewAssignmentContext(run.contextSnapshot);
   if (reviewContext) {
-    if (result.continuation?.kind === "monitor") throw new Error("Review-only runs cannot yield to a task monitor; resolve the assigned review or report its blocker.");
+    if (result.continuation?.kind === "monitor")
+      throw new Error(
+        "Review-only runs cannot yield to a task monitor; resolve the assigned review or report its blocker.",
+      );
     const review = await getNativeReviewAssignment(db, {
-      companyId: run.companyId, issueId: issue.id, agentId: run.agentId,
-      contextSnapshot: reviewContext, allowResolvedByRunId: run.id,
+      companyId: run.companyId,
+      issueId: issue.id,
+      agentId: run.agentId,
+      contextSnapshot: reviewContext,
+      allowResolvedByRunId: run.id,
     });
-    if (review?.interaction.status === "pending" && result.reportedWorkDisposition !== "blocked") {
-      throw new Error("Resolve your assigned review with resolve_review before finishing. If you cannot review the work, report the concrete blocker with taskcore_block.");
+    if (
+      review?.interaction.status === "pending" &&
+      result.reportedWorkDisposition !== "blocked"
+    ) {
+      throw new Error(
+        "Resolve your assigned review with resolve_review before finishing. If you cannot review the work, report the concrete blocker with taskcore_block.",
+      );
     }
     return review?.interaction.status === "pending"
       ? "Review blocker recorded. Taskcore will preserve the task and record the reviewer recovery action."
@@ -81,27 +115,54 @@ export async function nativeCompletionFeedback(
   // an unrelated newer run. Reject before admitting the result so the provider
   // can correct the report in the same turn.
   if (run.completionContractId) {
-    const contract = await db.select().from(completionContracts).where(and(
-      eq(completionContracts.id, run.completionContractId),
-      eq(completionContracts.companyId, run.companyId),
-      eq(completionContracts.issueId, issue.id),
-    )).then((rows) => rows[0]);
-    if (!contract) throw new Error("Completion report's bound contract no longer exists.");
-    const current = contract.contractJson as { revision?: string; criteria?: Array<{ id: string }> };
+    const contract = await db
+      .select()
+      .from(completionContracts)
+      .where(
+        and(
+          eq(completionContracts.id, run.completionContractId),
+          eq(completionContracts.companyId, run.companyId),
+          eq(completionContracts.issueId, issue.id),
+        ),
+      )
+      .then((rows) => rows[0]);
+    if (!contract)
+      throw new Error("Completion report's bound contract no longer exists.");
+    const current = contract.contractJson as {
+      revision?: string;
+      criteria?: Array<{ id: string }>;
+    };
     if (result.completionClaim.contractRevision !== current.revision) {
-      throw new Error(`Stale completionClaim.contractRevision. This turn requires ${JSON.stringify(current.revision)} with criterion IDs ${JSON.stringify(current.criteria?.map((c) => c.id) ?? [])}. Reassess the current request and resubmit your report with that revision; do not repeat completed work.`);
+      throw new Error(
+        `Stale completionClaim.contractRevision. This turn requires ${JSON.stringify(current.revision)} with criterion IDs ${JSON.stringify(current.criteria?.map((c) => c.id) ?? [])}. Reassess the current request and resubmit your report with that revision; do not repeat completed work.`,
+      );
     }
     const expected = current.criteria?.map((criterion) => criterion.id) ?? [];
-    const received = result.completionClaim.criteria.map((criterion) => criterion.criterionId);
-    if (received.length !== expected.length || new Set(received).size !== received.length || received.some((id) => !expected.includes(id))) {
-      throw new Error(`completionClaim.criteria must contain exactly these criterion IDs, once each: ${JSON.stringify(expected)}. Keep contractRevision ${JSON.stringify(current.revision)} and correct the report without repeating completed work.`);
+    const received = result.completionClaim.criteria.map(
+      (criterion) => criterion.criterionId,
+    );
+    if (
+      received.length !== expected.length ||
+      new Set(received).size !== received.length ||
+      received.some((id) => !expected.includes(id))
+    ) {
+      throw new Error(
+        `completionClaim.criteria must contain exactly these criterion IDs, once each: ${JSON.stringify(expected)}. Keep contractRevision ${JSON.stringify(current.revision)} and correct the report without repeating completed work.`,
+      );
     }
-
   }
-  if (result.reportedWorkDisposition === "yielded" && result.continuation?.kind === "monitor") {
-    if (issue.workMode !== "standard" || issue.executionRunId !== run.id ||
-        !eligibleIssueMonitorWait(issue, run.agentId)) {
-      throw new Error("A monitor wait requires a persisted, eligible monitor on this task. Call set_task_monitor for the current task, confirm its schedule, then report yielded with continuation.kind monitor.");
+  if (
+    result.reportedWorkDisposition === "yielded" &&
+    result.continuation?.kind === "monitor"
+  ) {
+    if (
+      issue.workMode !== "standard" ||
+      issue.executionRunId !== run.id ||
+      !eligibleIssueMonitorWait(issue, run.agentId)
+    ) {
+      throw new Error(
+        "A monitor wait requires a persisted, eligible monitor on this task. Call set_task_monitor for the current task, confirm its schedule, then report yielded with continuation.kind monitor.",
+      );
     }
   }
   const signals = normalizePrpResultSignals(result);
@@ -127,11 +188,23 @@ export async function nativeCompletionFeedback(
   if (issue.executionRunId && issue.executionRunId !== runId) {
     return "Report accepted; a newer run owns the task. Do not claim this report changed its status.";
   }
-  const continuation = run.contextSnapshot?.executionContinuation as { objective?: unknown } | undefined;
-  const objective = typeof continuation?.objective === "string"
-    ? continuation.objective : [issue.title, issue.description].filter(Boolean).join("\n");
-  await validateNativeDeliverableEvidence(db, { companyId: run.companyId, issueId: issue.id, runId,
-    objective, semanticToolReceipts: run.resultJson?.semanticToolReceipts }, result);
+  const continuation = run.contextSnapshot?.executionContinuation as
+    { objective?: unknown } | undefined;
+  const objective =
+    typeof continuation?.objective === "string"
+      ? continuation.objective
+      : [issue.title, issue.description].filter(Boolean).join("\n");
+  await validateNativeDeliverableEvidence(
+    db,
+    {
+      companyId: run.companyId,
+      issueId: issue.id,
+      runId,
+      objective,
+      semanticToolReceipts: run.resultJson?.semanticToolReceipts,
+    },
+    result,
+  );
   const retiredCandidates = await findAutomaticCompletionReviews(db, issue.id);
   const retiredIds = retiredCandidates.map(({ interaction }) => interaction.id);
   const [interaction, approval] = await Promise.all([
@@ -148,7 +221,10 @@ export async function nativeCompletionFeedback(
           eq(issueThreadInteractions.companyId, run.companyId),
           eq(issueThreadInteractions.issueId, issue.id),
           eq(issueThreadInteractions.status, "pending"),
-          activeIssueInteractionCondition({ runId, conversationMode: isConversation(issue) }),
+          activeIssueInteractionCondition({
+            runId,
+            conversationMode: isConversation(issue),
+          }),
           ...(retiredIds.length
             ? [notInArray(issueThreadInteractions.id, retiredIds)]
             : []),
@@ -179,37 +255,87 @@ export async function nativeCompletionFeedback(
   // Match an existing action by its exact durable identity, regardless of how
   // the provider labels its final disposition. A summary can cite the invocation
   // ID instead of an interaction evidence ref; prose similarity is not identity.
-  if (signals.actionableAttentionRequests.some(request => request.kind === "approval" && request.ownerClass === "human")) {
+  if (
+    signals.actionableAttentionRequests.some(
+      (request) =>
+        request.kind === "approval" && request.ownerClass === "human",
+    )
+  ) {
     const approvalTarget = {
       summary: result.summary,
-      attentionRequests: signals.actionableAttentionRequests.filter(request => request.kind === "approval" && request.ownerClass === "human"),
+      attentionRequests: signals.actionableAttentionRequests.filter(
+        (request) =>
+          request.kind === "approval" && request.ownerClass === "human",
+      ),
       blocker: result.blocker,
       // An unmet criterion can name the action still being requested. Completed
       // evidence elsewhere in the report is not authority to suppress a review.
-      unmetCriteria: result.completionClaim.criteria.filter(criterion => criterion.status !== "satisfied"),
+      unmetCriteria: result.completionClaim.criteria.filter(
+        (criterion) => criterion.status !== "satisfied",
+      ),
       continuation: result.continuation,
       // The existing response-wake contract also names its card through evidence.
-      evidence: result.reportedWorkDisposition === "yielded" && result.continuation?.kind === "response_wake" ? result.evidence : [],
+      evidence:
+        result.reportedWorkDisposition === "yielded" &&
+        result.continuation?.kind === "response_wake"
+          ? result.evidence
+          : [],
     };
-    const referencedIds = new Set(JSON.stringify(approvalTarget).match(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi)?.map(id => id.toLowerCase()) ?? []);
-    const cards = referencedIds.size ? await db.select().from(issueThreadInteractions).where(and(
-      eq(issueThreadInteractions.companyId, run.companyId), eq(issueThreadInteractions.issueId, issue.id),
-      eq(issueThreadInteractions.sourceRunId, run.id), eq(issueThreadInteractions.createdByAgentId, run.agentId),
-      eq(issueThreadInteractions.kind, "request_confirmation"), eq(issueThreadInteractions.continuationPolicy, "wake_assignee"),
-    )) : [];
-    const referenced = cards.filter(card => {
+    const referencedIds = new Set(
+      JSON.stringify(approvalTarget)
+        .match(
+          /\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi,
+        )
+        ?.map((id) => id.toLowerCase()) ?? [],
+    );
+    const cards = referencedIds.size
+      ? await db
+          .select()
+          .from(issueThreadInteractions)
+          .where(
+            and(
+              eq(issueThreadInteractions.companyId, run.companyId),
+              eq(issueThreadInteractions.issueId, issue.id),
+              eq(issueThreadInteractions.sourceRunId, run.id),
+              eq(issueThreadInteractions.createdByAgentId, run.agentId),
+              eq(issueThreadInteractions.kind, "request_confirmation"),
+              eq(issueThreadInteractions.continuationPolicy, "wake_assignee"),
+            ),
+          )
+      : [];
+    const referenced = cards.filter((card) => {
       const action = record(record(card.payload).toolAction);
-      return [card.id, action.actionRequestId, action.invocationId].some(id => typeof id === "string" && referencedIds.has(id.toLowerCase()));
+      return [card.id, action.actionRequestId, action.invocationId].some(
+        (id) => typeof id === "string" && referencedIds.has(id.toLowerCase()),
+      );
     });
     for (const card of referenced) {
       const action = record(record(card.payload).toolAction);
-      if (action.version !== 1 || typeof action.actionRequestId !== "string") continue;
-      if (["accepted", "rejected"].includes(card.status) && (!interaction || interaction.id === card.id) && !approval
-        && signals.actionableAttentionRequests.some(request => request.kind === "approval" && request.ownerClass === "human")) {
-        throw new Error(`The referenced tool-action approval is already resolved (${card.id}). Read its persisted interaction result and continue from that decision. Do not repeat the service call or request approval again.`);
+      if (action.version !== 1 || typeof action.actionRequestId !== "string")
+        continue;
+      if (
+        ["accepted", "rejected"].includes(card.status) &&
+        (!interaction || interaction.id === card.id) &&
+        !approval &&
+        signals.actionableAttentionRequests.some(
+          (request) =>
+            request.kind === "approval" && request.ownerClass === "human",
+        )
+      ) {
+        throw new Error(
+          `The referenced tool-action approval is already resolved (${card.id}). Read its persisted interaction result and continue from that decision. Do not repeat the service call or request approval again.`,
+        );
       }
-      if (card.status === "pending" && signals.actionableAttentionRequests.some(request => request.kind === "approval" && request.ownerClass === "human")) {
-        throw new Error(`This tool action already has an approval card (${card.id}). Wait on that existing interaction with a yielded response_wake report and no duplicate approval attentionRequest. Taskcore will resume from its decision; do not create a completion review or repeat the service call.`);
+      if (
+        card.status === "pending" &&
+        signals.actionableAttentionRequests.some(
+          (request) =>
+            request.kind === "approval" && request.ownerClass === "human",
+        )
+      ) {
+        throw new Error(
+          `This tool action already has an approval card (${card.id}). Wait on that existing interaction with a yielded response_wake report and no duplicate approval attentionRequest. Taskcore will resume from its decision; do not create a completion review or repeat the service call.`,
+        );
       }
     }
   }
@@ -233,25 +359,36 @@ export async function nativeCompletionFeedback(
   if (readiness.unresolvedBlockerCount > 0) {
     return `Completion report accepted; this task still has unresolved dependencies. Explain the blockers on [this task](/issues/${issue.identifier ?? issue.id}); do not say the task is done.`;
   }
-  if (result.reportedWorkDisposition === "yielded" && result.continuation?.kind === "monitor") {
+  if (
+    result.reportedWorkDisposition === "yielded" &&
+    result.continuation?.kind === "monitor"
+  ) {
     return `Monitor wait accepted. The task remains active and Taskcore will wake its assignee at or after ${issue.monitorNextCheckAt!.toISOString()} with issue_monitor_due. End this turn; do not poll or mark the task done.`;
   }
   if (
     !isConversation(issue) &&
     result.reportedWorkDisposition === "yielded" &&
     result.continuation?.kind === "response_wake" &&
-    result.completionClaim.remainingWork.some((entry) => entry.blocksCompletion) &&
+    result.completionClaim.remainingWork.some(
+      (entry) => entry.blocksCompletion,
+    ) &&
     signals.actionableAttentionRequests.length === 0
   ) {
     const pause = await issueTreeControlService(db).getActivePauseHoldGate(
-      run.companyId, issue.id,
+      run.companyId,
+      issue.id,
     );
     if (pause) {
       return "Completion report accepted; this task is paused. Wait for the recorded pause to be released before continuing.";
     }
     const chatWait = await resolveExternalChatResponseWaitAuthorization({
       db,
-      binding: { companyId: run.companyId, issueId: issue.id, runId, agentId: run.agentId },
+      binding: {
+        companyId: run.companyId,
+        issueId: issue.id,
+        runId,
+        agentId: run.agentId,
+      },
     });
     // Conversation turns and revoked chat authority retain their own lifecycle.
     if (chatWait === "not_applicable") {
@@ -271,16 +408,36 @@ export async function nativeCompletionFeedback(
   for (const request of signals.actionableAttentionRequests) {
     if (request.ownerClass !== "agent") continue;
     if (request.targetAgentId === run.agentId) {
-      throw new Error("Name a different agent to review this task. A worker cannot review its own completion.");
+      throw new Error(
+        "Name a different agent to review this task. A worker cannot review its own completion.",
+      );
     }
-    if (!request.targetAgentId || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(request.targetAgentId)) {
+    if (
+      !request.targetAgentId ||
+      !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(
+        request.targetAgentId,
+      )
+    ) {
       throw new Error("Name the reviewer's exact agent ID in targetAgentId.");
     }
-    const reviewer = await db.select().from(agents).where(and(
-      eq(agents.id, request.targetAgentId), eq(agents.companyId, run.companyId),
-    )).limit(1).then((rows) => rows[0]);
-    if (!reviewer || !(await evaluateAgentInvokabilityFromDb(db, reviewer)).invokable) {
-      throw new Error("The named reviewer is not available in this company. Choose an available reviewer or report the concrete blocker.");
+    const reviewer = await db
+      .select()
+      .from(agents)
+      .where(
+        and(
+          eq(agents.id, request.targetAgentId),
+          eq(agents.companyId, run.companyId),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0]);
+    if (
+      !reviewer ||
+      !(await evaluateAgentInvokabilityFromDb(db, reviewer)).invokable
+    ) {
+      throw new Error(
+        "The named reviewer is not available in this company. Choose an available reviewer or report the concrete blocker.",
+      );
     }
   }
   if (result.reportedWorkDisposition === "blocked") {
@@ -288,6 +445,10 @@ export async function nativeCompletionFeedback(
   }
   const links = await savedDocumentLinks(db, run, issue);
   const documentGuidance = links.length
-    ? ` When compatible with the requested response format, include these clickable links to this run's saved documents in your final response: ${links.join(" ")}` : "";
-  return "Completion report accepted. Task status will be committed after this turn and workspace finalization finish. Follow the user's explicitly requested final-response format, including an exact response when requested. Otherwise describe the completed work and any explicitly requested reviewer action. Do not claim an approval is needed unless one was requested." + documentGuidance;
+    ? ` When compatible with the requested response format, include these clickable links to this run's saved documents in your final response: ${links.join(" ")}`
+    : "";
+  return (
+    "Completion report accepted. Task status will be committed after this turn and workspace finalization finish. Follow the user's explicitly requested final-response format, including an exact response when requested. Otherwise describe the completed work and any explicitly requested reviewer action. Do not claim an approval is needed unless one was requested." +
+    documentGuidance
+  );
 }

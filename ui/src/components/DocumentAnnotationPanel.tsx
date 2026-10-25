@@ -4,13 +4,7 @@ import type {
   DocumentAnnotationComment,
   DocumentAnnotationThreadWithComments,
 } from "@taskcore/shared";
-import {
-  Check,
-  Copy,
-  MoreHorizontal,
-  RotateCcw,
-  X,
-} from "lucide-react";
+import { Check, Copy, MoreHorizontal, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -59,7 +53,10 @@ export interface AnnotationPanelProps {
   inline?: boolean;
   className?: string;
   /** Resolve `<authorAgentId>` to a display name. */
-  agentMap?: ReadonlyMap<string, Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>>;
+  agentMap?: ReadonlyMap<
+    string,
+    Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>
+  >;
   /** Resolve `<authorUserId>` to a display name. */
   userProfileMap?: ReadonlyMap<string, CompanyUserProfile>;
 }
@@ -74,9 +71,13 @@ export function DocumentAnnotationPanel(props: AnnotationPanelProps) {
           className="taskcore-doc-annotation-sheet z-(--z-60) flex max-h-(--sz-88vh) flex-col rounded-none border-t border-border bg-popover p-0 text-popover-foreground shadow-2xl"
         >
           <SheetTitle className="sr-only">
-            Comments on {props.documentKey} revision {props.documentRevisionNumber}
+            Comments on {props.documentKey} revision{" "}
+            {props.documentRevisionNumber}
           </SheetTitle>
-          <div className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+          <div
+            className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30"
+            aria-hidden="true"
+          />
           <AnnotationPanelBody {...props} />
         </SheetContent>
       </Sheet>
@@ -95,7 +96,11 @@ export function DocumentAnnotationPanel(props: AnnotationPanelProps) {
         props.inline ? "w-full" : "w-(--sz-360px)",
         props.className,
       )}
-      style={props.desktopWidth ? { width: props.desktopWidth, maxWidth: props.desktopWidth } : undefined}
+      style={
+        props.desktopWidth
+          ? { width: props.desktopWidth, maxWidth: props.desktopWidth }
+          : undefined
+      }
     >
       <AnnotationPanelBody {...props} />
     </aside>
@@ -110,22 +115,31 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
   const bodyTestId = props.isMobile ? "document-annotation-panel" : undefined;
   const annotationTarget = useMemo<DocumentAnnotationTarget>(() => {
     if (props.target) return props.target;
-    if (!props.issueId) throw new Error("Document annotation panel requires an annotation target.");
-    return { kind: "issue", issueId: props.issueId, documentKey: props.documentKey };
+    if (!props.issueId)
+      throw new Error(
+        "Document annotation panel requires an annotation target.",
+      );
+    return {
+      kind: "issue",
+      issueId: props.issueId,
+      documentKey: props.documentKey,
+    };
   }, [props.documentKey, props.issueId, props.target]);
 
-  const { createThread, addReply, updateStatus, mutationError, currentUser } = useDocumentAnnotationMutations({
-    target: annotationTarget,
-    baseRevisionId: props.baseRevisionId,
-    baseRevisionNumber: props.baseRevisionNumber,
-    pendingAnchor: props.pendingAnchor,
-    onFocusThread: props.onFocusThread,
-    onThreadCreated: () => {
-      props.onClearPendingAnchor();
-      setComposerValue("");
-    },
-    onReplyAdded: (threadId) => setReplyDrafts((current) => ({ ...current, [threadId]: "" })),
-  });
+  const { createThread, addReply, updateStatus, mutationError, currentUser } =
+    useDocumentAnnotationMutations({
+      target: annotationTarget,
+      baseRevisionId: props.baseRevisionId,
+      baseRevisionNumber: props.baseRevisionNumber,
+      pendingAnchor: props.pendingAnchor,
+      onFocusThread: props.onFocusThread,
+      onThreadCreated: () => {
+        props.onClearPendingAnchor();
+        setComposerValue("");
+      },
+      onReplyAdded: (threadId) =>
+        setReplyDrafts((current) => ({ ...current, [threadId]: "" })),
+    });
 
   // Show every thread that can be anchored in the document (orphaned threads have
   // lost their anchor). Filters were removed in favour of a single simple list.
@@ -135,13 +149,14 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
     () =>
       props.threads
         .filter((thread) => thread.anchorState !== "orphaned")
-        .sort((a, b) =>
-          (a.normalizedStart - b.normalizedStart)
-          || (a.markdownStart - b.markdownStart)
-          || (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())),
+        .sort(
+          (a, b) =>
+            a.normalizedStart - b.normalizedStart ||
+            a.markdownStart - b.markdownStart ||
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        ),
     [props.threads],
   );
-
 
   useEffect(() => {
     if (!props.open) {
@@ -210,7 +225,10 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
           {mutationError}
         </p>
       ) : null}
-      <div ref={listScrollRef} className="min-h-0 flex-1 overflow-y-auto bg-popover px-3 py-2">
+      <div
+        ref={listScrollRef}
+        className="min-h-0 flex-1 overflow-y-auto bg-popover px-3 py-2"
+      >
         {visibleThreads.length === 0 ? null : (
           <ul className="space-y-2">
             {visibleThreads.map((thread) => (
@@ -219,12 +237,17 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
                 thread={thread}
                 expanded={thread.id === props.focusedThreadId}
                 focusedCommentId={
-                  thread.id === props.focusedThreadId ? props.focusedCommentId : null
+                  thread.id === props.focusedThreadId
+                    ? props.focusedCommentId
+                    : null
                 }
                 onFocus={() => props.onFocusThread(thread.id)}
                 replyDraft={replyDrafts[thread.id] ?? ""}
                 onReplyChange={(value) =>
-                  setReplyDrafts((current) => ({ ...current, [thread.id]: value }))
+                  setReplyDrafts((current) => ({
+                    ...current,
+                    [thread.id]: value,
+                  }))
                 }
                 onSubmitReply={() => {
                   const body = (replyDrafts[thread.id] ?? "").trim();
@@ -237,9 +260,17 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
                     status: thread.status === "resolved" ? "open" : "resolved",
                   })
                 }
-                onCopyLink={() => copyAnnotationLink(props.documentKey, thread.id)}
-                pendingReply={addReply.isPending && addReply.variables?.threadId === thread.id}
-                pendingStatus={updateStatus.isPending && updateStatus.variables?.threadId === thread.id}
+                onCopyLink={() =>
+                  copyAnnotationLink(props.documentKey, thread.id)
+                }
+                pendingReply={
+                  addReply.isPending &&
+                  addReply.variables?.threadId === thread.id
+                }
+                pendingStatus={
+                  updateStatus.isPending &&
+                  updateStatus.variables?.threadId === thread.id
+                }
                 agentMap={props.agentMap}
                 userProfileMap={props.userProfileMap}
               />
@@ -254,10 +285,16 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
           </blockquote>
           <div className="mb-1.5 flex items-center gap-1.5">
             <Avatar size="xs" className="shrink-0">
-              {currentUser.image ? <AvatarImage src={currentUser.image} alt={currentUser.name} /> : null}
-              <AvatarFallback>{deriveInitials(currentUser.name)}</AvatarFallback>
+              {currentUser.image ? (
+                <AvatarImage src={currentUser.image} alt={currentUser.name} />
+              ) : null}
+              <AvatarFallback>
+                {deriveInitials(currentUser.name)}
+              </AvatarFallback>
             </Avatar>
-            <span className="truncate text-(length:--text-micro) font-medium text-foreground">{currentUser.name}</span>
+            <span className="truncate text-(length:--text-micro) font-medium text-foreground">
+              {currentUser.name}
+            </span>
           </div>
           <Textarea
             ref={composerRef}
@@ -270,10 +307,10 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
                 event.preventDefault();
                 const body = composerValue.trim();
                 if (
-                  body
-                  && !createThread.isPending
-                  && !props.newCommentDisabled
-                  && props.baseRevisionId
+                  body &&
+                  !createThread.isPending &&
+                  !props.newCommentDisabled &&
+                  props.baseRevisionId
                 ) {
                   createThread.mutate(body);
                 }
@@ -299,10 +336,10 @@ export function AnnotationPanelBody(props: AnnotationPanelProps) {
               type="button"
               size="sm"
               disabled={
-                createThread.isPending
-                || !composerValue.trim()
-                || props.newCommentDisabled
-                || !props.baseRevisionId
+                createThread.isPending ||
+                !composerValue.trim() ||
+                props.newCommentDisabled ||
+                !props.baseRevisionId
               }
               onClick={() => createThread.mutate(composerValue.trim())}
             >
@@ -327,7 +364,10 @@ export function ThreadCard(props: {
   onCopyLink: () => void;
   pendingReply: boolean;
   pendingStatus: boolean;
-  agentMap?: ReadonlyMap<string, Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>>;
+  agentMap?: ReadonlyMap<
+    string,
+    Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>
+  >;
   userProfileMap?: ReadonlyMap<string, CompanyUserProfile>;
 }) {
   const { thread } = props;
@@ -344,7 +384,8 @@ export function ThreadCard(props: {
         aria-labelledby={`thread-quote-${thread.id}`}
         className={cn(
           "scroll-mt-2 rounded-none border border-border bg-background transition-colors",
-          props.expanded && "ring-2 ring-primary/80 ring-offset-1 ring-offset-popover",
+          props.expanded &&
+            "ring-2 ring-primary/80 ring-offset-1 ring-offset-popover",
           thread.status === "resolved" && "bg-muted",
         )}
         tabIndex={0}
@@ -354,7 +395,8 @@ export function ThreadCard(props: {
           id={`thread-quote-${thread.id}`}
           className={cn(
             "mx-3 mt-2 line-clamp-2 overflow-hidden rounded-none bg-muted px-2 py-1 text-xs italic leading-5 text-muted-foreground [overflow-wrap:anywhere]",
-            (thread.anchorState === "stale" || thread.status === "resolved") && "bg-muted",
+            (thread.anchorState === "stale" || thread.status === "resolved") &&
+              "bg-muted",
           )}
         >
           {truncate(thread.selectedText, 120)}
@@ -444,9 +486,14 @@ export function ThreadCard(props: {
         ) : (
           <p className="px-3 py-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">
-              {thread.comments.length} comment{thread.comments.length === 1 ? "" : "s"}
+              {thread.comments.length} comment
+              {thread.comments.length === 1 ? "" : "s"}
             </span>
-            {latestComment ? <span className="ml-1">· {truncate(latestComment.body, 120)}</span> : null}
+            {latestComment ? (
+              <span className="ml-1">
+                · {truncate(latestComment.body, 120)}
+              </span>
+            ) : null}
           </p>
         )}
       </article>
@@ -462,7 +509,10 @@ function CommentRow({
 }: {
   comment: DocumentAnnotationComment;
   focused: boolean;
-  agentMap?: ReadonlyMap<string, Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>>;
+  agentMap?: ReadonlyMap<
+    string,
+    Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>
+  >;
   userProfileMap?: ReadonlyMap<string, CompanyUserProfile>;
 }) {
   const author = resolveAuthor(comment, { agentMap, userProfileMap });
@@ -477,17 +527,26 @@ function CommentRow({
     >
       <div className="mb-0.5 flex items-center justify-between gap-2 text-(length:--text-micro)">
         <span className="flex min-w-0 items-center gap-1.5">
-          {author.role === "agent" ? <AgentAvatar agent={author.agent} size={20} /> : (
-          <Avatar size="xs" className="shrink-0">
-            {author.imageUrl ? <AvatarImage src={author.imageUrl} alt={author.name} /> : null}
-            <AvatarFallback>{deriveInitials(author.name)}</AvatarFallback>
-          </Avatar>)}
-          <span className="truncate font-medium text-foreground">{author.name}</span>
+          {author.role === "agent" ? (
+            <AgentAvatar agent={author.agent} size={20} />
+          ) : (
+            <Avatar size="xs" className="shrink-0">
+              {author.imageUrl ? (
+                <AvatarImage src={author.imageUrl} alt={author.name} />
+              ) : null}
+              <AvatarFallback>{deriveInitials(author.name)}</AvatarFallback>
+            </Avatar>
+          )}
+          <span className="truncate font-medium text-foreground">
+            {author.name}
+          </span>
           {author.role === "agent" ? (
             <span className="text-muted-foreground">· agent</span>
           ) : null}
         </span>
-        <span className="shrink-0 text-muted-foreground">{relativeTime(comment.createdAt)}</span>
+        <span className="shrink-0 text-muted-foreground">
+          {relativeTime(comment.createdAt)}
+        </span>
       </div>
       <MarkdownBody className="text-sm leading-6">{comment.body}</MarkdownBody>
     </div>
@@ -495,17 +554,28 @@ function CommentRow({
 }
 
 /** ⌘/Ctrl + Enter submits the composer or reply. */
-function isSubmitShortcut(event: React.KeyboardEvent<HTMLTextAreaElement>): boolean {
+function isSubmitShortcut(
+  event: React.KeyboardEvent<HTMLTextAreaElement>,
+): boolean {
   return event.key === "Enter" && (event.metaKey || event.ctrlKey);
 }
 
 function resolveAuthor(
   comment: DocumentAnnotationComment,
   maps: {
-    agentMap?: ReadonlyMap<string, Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>>;
+    agentMap?: ReadonlyMap<
+      string,
+      Pick<Agent, "id" | "name"> & Partial<Pick<Agent, "icon" | "appearance">>
+    >;
     userProfileMap?: ReadonlyMap<string, CompanyUserProfile>;
   },
-): { name: string; role: "board" | "agent"; agentIcon?: Agent["icon"]; agent?: import("./AgentAvatar").AvatarAgent; imageUrl?: string | null } {
+): {
+  name: string;
+  role: "board" | "agent";
+  agentIcon?: Agent["icon"];
+  agent?: import("./AgentAvatar").AvatarAgent;
+  imageUrl?: string | null;
+} {
   if (comment.authorAgentId) {
     const agent = maps.agentMap?.get(comment.authorAgentId);
     return {
@@ -523,7 +593,10 @@ function resolveAuthor(
       imageUrl: profile?.image ?? null,
     };
   }
-  return { name: comment.authorType === "agent" ? "Agent" : "Board", role: comment.authorType === "agent" ? "agent" : "board" };
+  return {
+    name: comment.authorType === "agent" ? "Agent" : "Board",
+    role: comment.authorType === "agent" ? "agent" : "board",
+  };
 }
 
 export function truncate(value: string, limit: number) {
@@ -544,7 +617,10 @@ export function useCopyAnnotationLink() {
       if (typeof window === "undefined") return;
       const { pathname } = window.location;
       const hash = `#document-${encodeURIComponent(documentKey)}&thread=${encodeURIComponent(threadId)}`;
-      void copyWithToast(`${window.location.origin}${pathname}${hash}`, "Link copied");
+      void copyWithToast(
+        `${window.location.origin}${pathname}${hash}`,
+        "Link copied",
+      );
     },
     [copyWithToast],
   );

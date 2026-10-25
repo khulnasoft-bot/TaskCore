@@ -55,10 +55,16 @@ const cleanupDirectories: string[] = [];
 it("rejects reasoning mislabeled as assistant text without echoing private content", () => {
   const reasoning = {
     eventType: "item.delta",
-    payload: { prpEvent: {
-      eventType: "item.delta",
-      payload: { kind: "agentMessage", text: "PRIVATE_THOUGHT", update: { kind: "reasoning" } },
-    } },
+    payload: {
+      prpEvent: {
+        eventType: "item.delta",
+        payload: {
+          kind: "agentMessage",
+          text: "PRIVATE_THOUGHT",
+          update: { kind: "reasoning" },
+        },
+      },
+    },
   };
   expect(reasoningProjectionFailures([reasoning])).toEqual([
     "provider reasoning was projected as assistant text in 1 durable events",
@@ -72,14 +78,26 @@ it("rejects reasoning mislabeled as assistant text without echoing private conte
 });
 
 describe("complete run event evidence", () => {
-  const page = Array.from({ length: 1000 }, (_, i) => ({ seq: i + 1, eventType: "item.delta" }));
+  const page = Array.from({ length: 1000 }, (_, i) => ({
+    seq: i + 1,
+    eventType: "item.delta",
+  }));
   it("reads completion events beyond the first 1000 rows", async () => {
-    const terminal = ["run.result.proposed", "run.result.accepted", "run.terminal"]
-      .map((eventType, i) => ({ seq: 1001 + i, eventType }));
-    const load = vi.fn().mockResolvedValueOnce(page).mockResolvedValueOnce(terminal);
+    const terminal = [
+      "run.result.proposed",
+      "run.result.accepted",
+      "run.terminal",
+    ].map((eventType, i) => ({ seq: 1001 + i, eventType }));
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce(page)
+      .mockResolvedValueOnce(terminal);
     const events = await collectRunEvents(load);
     expect(events).toEqual([...page, ...terminal]);
-    expect(load.mock.calls).toEqual([[0, 1000], [1000, 1000]]);
+    expect(load.mock.calls).toEqual([
+      [0, 1000],
+      [1000, 1000],
+    ]);
   });
   it("checks for another page even at an exact page boundary", async () => {
     const load = vi.fn().mockResolvedValueOnce(page).mockResolvedValueOnce([]);
@@ -87,29 +105,47 @@ describe("complete run event evidence", () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
   it.each([
-    null, {}, [{ eventType: "run.terminal" }], [{ seq: 0 }], [{ seq: -1 }],
-    [{ seq: 1.5 }], [{ seq: "1" }], [{ seq: NaN }], [{ seq: Infinity }],
-    [{ seq: 2 }, { seq: 1 }], [{ seq: 1 }, { seq: 1 }], [...page, { seq: 1001 }],
+    null,
+    {},
+    [{ eventType: "run.terminal" }],
+    [{ seq: 0 }],
+    [{ seq: -1 }],
+    [{ seq: 1.5 }],
+    [{ seq: "1" }],
+    [{ seq: NaN }],
+    [{ seq: Infinity }],
+    [{ seq: 2 }, { seq: 1 }],
+    [{ seq: 1 }, { seq: 1 }],
+    [...page, { seq: 1001 }],
   ])("rejects malformed evidence page %#", async (malformed) => {
-    await expect(collectRunEvents(async () => malformed)).rejects.toThrow("Run event evidence");
+    await expect(collectRunEvents(async () => malformed)).rejects.toThrow(
+      "Run event evidence",
+    );
   });
   it("rejects a repeated cursor instead of accepting duplicate events", async () => {
     const load = vi.fn().mockResolvedValue(page);
-    await expect(collectRunEvents(load)).rejects.toThrow("non-increasing sequence");
+    await expect(collectRunEvents(load)).rejects.toThrow(
+      "non-increasing sequence",
+    );
     expect(load).toHaveBeenCalledTimes(2);
   });
   it("propagates a missing later page without returning partial evidence", async () => {
-    const load = vi.fn().mockResolvedValueOnce(page).mockRejectedValueOnce(new Error("Unavailable"));
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce(page)
+      .mockRejectedValueOnce(new Error("Unavailable"));
     await expect(collectRunEvents(load)).rejects.toThrow("Unavailable");
   });
   it("fails closed when a stream never ends within the bounded capture", async () => {
-    const load = vi.fn(async (afterSeq: number) => page.map((event) => ({ ...event, seq: event.seq + afterSeq })));
-    await expect(collectRunEvents(load)).rejects.toThrow("refusing incomplete evidence");
+    const load = vi.fn(async (afterSeq: number) =>
+      page.map((event) => ({ ...event, seq: event.seq + afterSeq })),
+    );
+    await expect(collectRunEvents(load)).rejects.toThrow(
+      "refusing incomplete evidence",
+    );
     expect(load).toHaveBeenCalledTimes(100);
   });
 });
-
-
 
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -225,7 +261,11 @@ describe("runner E2E provider environment", () => {
           { KEEP_ME: "yes", OPENCODE_ALLOW_ALL_MODELS: "ambient" },
           [execution],
         ),
-      ).toEqual({ KEEP_ME: "yes", OPENCODE_ALLOW_ALL_MODELS: "true", TASKCORE_ANNOUNCEMENTS_ENABLED: "false" });
+      ).toEqual({
+        KEEP_ME: "yes",
+        OPENCODE_ALLOW_ALL_MODELS: "true",
+        TASKCORE_ANNOUNCEMENTS_ENABLED: "false",
+      });
     }
 
     for (const execution of [nativeOpenCode, breadthOpenCode]) {
@@ -242,7 +282,9 @@ describe("runner E2E provider environment", () => {
     for (const execution of runnerMatrix) {
       const source = { TASKCORE_ANNOUNCEMENTS_ENABLED: "true" };
       const env = buildRunnerE2EProcessEnvironment(source, [execution]);
-      expect(buildTaskcoreServerEnvironment(env).TASKCORE_ANNOUNCEMENTS_ENABLED).toBe("false");
+      expect(
+        buildTaskcoreServerEnvironment(env).TASKCORE_ANNOUNCEMENTS_ENABLED,
+      ).toBe("false");
       expect(source.TASKCORE_ANNOUNCEMENTS_ENABLED).toBe("true");
     }
   });
@@ -250,11 +292,26 @@ describe("runner E2E provider environment", () => {
 
 describe("hiring capability opt-in", () => {
   it("enables API tools only when the manual hiring story is selected", () => {
-    const hire = runnerMatrix.find((e) => e.suite.id === "everyday-workflows" && e.task.id === "hire-reuse")!;
-    const delegate = runnerMatrix.find((e) => e.suite.id === "everyday-workflows" && e.task.id === "delegate-feedback")!;
-    expect(buildRunnerE2EProcessEnvironment({}, [hire]).TASKCORE_RUNNER_API_TOOLS_ENABLED).toBe("true");
-    expect(buildRunnerE2EProcessEnvironment({}, [delegate]).TASKCORE_RUNNER_API_TOOLS_ENABLED).toBeUndefined();
-    expect(buildRunnerE2EProcessEnvironment({}, []).TASKCORE_RUNNER_API_TOOLS_ENABLED).toBeUndefined();
+    const hire = runnerMatrix.find(
+      (e) => e.suite.id === "everyday-workflows" && e.task.id === "hire-reuse",
+    )!;
+    const delegate = runnerMatrix.find(
+      (e) =>
+        e.suite.id === "everyday-workflows" &&
+        e.task.id === "delegate-feedback",
+    )!;
+    expect(
+      buildRunnerE2EProcessEnvironment({}, [hire])
+        .TASKCORE_RUNNER_API_TOOLS_ENABLED,
+    ).toBe("true");
+    expect(
+      buildRunnerE2EProcessEnvironment({}, [delegate])
+        .TASKCORE_RUNNER_API_TOOLS_ENABLED,
+    ).toBeUndefined();
+    expect(
+      buildRunnerE2EProcessEnvironment({}, [])
+        .TASKCORE_RUNNER_API_TOOLS_ENABLED,
+    ).toBeUndefined();
   });
 });
 
@@ -291,12 +348,25 @@ describe("runner E2E server port allocation", () => {
 describe("runner E2E sensitive API boundary", () => {
   it("uses the authenticated browser session for encrypted secret provisioning", async () => {
     vi.stubEnv("TASKCORE_RUNNER_E2E_PORT", "43123");
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ id: "secret-id" }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(Response.json({ id: "secret-id" }));
     vi.stubGlobal("fetch", fetchMock);
     const api = new RunnerApi({} as never);
     api.setBrowserSession("fixture.session=opaque");
-    await api.postSensitive("/api/companies/company/secrets", { value: "fixture-value" });
-    expect(fetchMock).toHaveBeenCalledWith(new URL("http://127.0.0.1:43123/api/companies/company/secrets"), expect.objectContaining({ headers: { "content-type": "application/json", Cookie: "fixture.session=opaque", Origin: "http://127.0.0.1:43123" } }));
+    await api.postSensitive("/api/companies/company/secrets", {
+      value: "fixture-value",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL("http://127.0.0.1:43123/api/companies/company/secrets"),
+      expect.objectContaining({
+        headers: {
+          "content-type": "application/json",
+          Cookie: "fixture.session=opaque",
+          Origin: "http://127.0.0.1:43123",
+        },
+      }),
+    );
   });
   it("keeps secret request bodies out of Playwright API tracing", async () => {
     vi.stubEnv("TASKCORE_RUNNER_E2E_PORT", "43123");
@@ -350,14 +420,28 @@ describe("runner E2E structured evidence scanning", () => {
     const fakeCredentials = ["kimi-fixture-secret", "xai-fixture-secret"];
     const payload = {
       env: {
-        KIMI_MODEL_API_KEY: { type: "secret_ref", secretId: "kimi-ref", version: "latest" },
-        XAI_API_KEY: { type: "secret_ref", secretId: "xai-ref", version: "latest" },
+        KIMI_MODEL_API_KEY: {
+          type: "secret_ref",
+          secretId: "kimi-ref",
+          version: "latest",
+        },
+        XAI_API_KEY: {
+          type: "secret_ref",
+          secretId: "xai-ref",
+          version: "latest",
+        },
       },
       log: "provider response redacted",
     };
     expect(findSecretLeakInJsonValues(payload, fakeCredentials)).toBeNull();
     expect(findSecretLeak(JSON.stringify(payload), fakeCredentials)).toBeNull();
-    expect(() => assertSecretFree(JSON.stringify(payload), fakeCredentials, "pending-profile.json")).not.toThrow();
+    expect(() =>
+      assertSecretFree(
+        JSON.stringify(payload),
+        fakeCredentials,
+        "pending-profile.json",
+      ),
+    ).not.toThrow();
     expect(JSON.stringify(payload)).not.toContain(fakeCredentials[0]!);
     expect(JSON.stringify(payload)).not.toContain(fakeCredentials[1]!);
   });
@@ -795,12 +879,19 @@ describe("runner E2E run observations", () => {
 describe("runner E2E failure policy", () => {
   it("classifies sandbox file-transfer RPC deadlines without hiding other RPC defects", () => {
     for (const method of ["environmentSyncIn", "environmentSyncOut"]) {
-      expect(classifyFailure(new Error(
-        `Stopped waiting for everyday recover-controller settled: native execution failed native_session_interrupted: RPC call "${method}" timed out after 330000ms`,
-      ))).toBe("transient_infrastructure");
+      expect(
+        classifyFailure(
+          new Error(
+            `Stopped waiting for everyday recover-controller settled: native execution failed native_session_interrupted: RPC call "${method}" timed out after 330000ms`,
+          ),
+        ),
+      ).toBe("transient_infrastructure");
     }
-    expect(classifyFailure(new Error('RPC call "run.attach" timed out after 330000ms')))
-      .toBe("candidate_failure");
+    expect(
+      classifyFailure(
+        new Error('RPC call "run.attach" timed out after 330000ms'),
+      ),
+    ).toBe("candidate_failure");
   });
 
   it.each([
@@ -816,11 +907,14 @@ describe("runner E2E failure policy", () => {
   it.each([
     'native_session_recovery_failed: Error: PRP command run.attach failed: {"result":{"code":"command_execution_failed","message":"failed to start ACPX provider: ACPX sidecar command session.open was rejected (retryable=false, classification=unclassified)"},"status":"failed"}',
     "native_session_recovery_failed: provider transport failed\nACPX sidecar command session.open was rejected (retryable = false, classification=session_not_found)",
-  ])("does not retry explicit non-retryable ACPX recovery rejection: %s", (message) => {
-    const failureClass = classifyFailure(new Error(message));
-    expect(failureClass).toBe("candidate_failure");
-    expect(shouldRetryFailure(failureClass)).toBe(false);
-  });
+  ])(
+    "does not retry explicit non-retryable ACPX recovery rejection: %s",
+    (message) => {
+      const failureClass = classifyFailure(new Error(message));
+      expect(failureClass).toBe("candidate_failure");
+      expect(shouldRetryFailure(failureClass)).toBe(false);
+    },
+  );
 
   it.each([
     'native_session_recovery_failed: PRP run.attach failed: {"message":"failed to start ACPX provider: ACPX sidecar command session.open was rejected (retryable=true, classification=network)","status":"failed"}',
@@ -1067,13 +1161,25 @@ describe("runner E2E evidence redaction", () => {
 
   it("drops OAuth callback credentials before collecting browser diagnostics", () => {
     const code = "pcmcp_code_fixture_private_code";
-    const route = browserDiagnosticUrl(`https://name:password@assistant.example/callback?code=${code}&state=private-state#token`);
+    const route = browserDiagnosticUrl(
+      `https://name:password@assistant.example/callback?code=${code}&state=private-state#token`,
+    );
     expect(route).toBe("https://assistant.example/callback");
-    expect(() => assertSecretFree(JSON.stringify({ url: route }), [code, "password", "private-state"], "browser-diagnostics")).not.toThrow();
-    expect(browserDiagnosticUrl(`data:text/plain,${code}`)).toBe("[non-HTTP URL]");
+    expect(() =>
+      assertSecretFree(
+        JSON.stringify({ url: route }),
+        [code, "password", "private-state"],
+        "browser-diagnostics",
+      ),
+    ).not.toThrow();
+    expect(browserDiagnosticUrl(`data:text/plain,${code}`)).toBe(
+      "[non-HTTP URL]",
+    );
     expect(browserDiagnosticUrl(code)).toBe("[invalid URL]");
     // The pre-publication credential gate must still fail for leaked API data.
-    expect(() => assertSecretFree(JSON.stringify({ body: code }), [code], "api-state")).toThrow("Secret leak");
+    expect(() =>
+      assertSecretFree(JSON.stringify({ body: code }), [code], "api-state"),
+    ).toThrow("Secret leak");
   });
 
   it("detects leaks and accepts sanitized evidence", () => {
@@ -1108,75 +1214,154 @@ describe("runner E2E evidence redaction", () => {
   });
 
   it("tolerates only the embedded PostgreSQL PID disappearing during shutdown and keeps scanning", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-e2e-postgres-pid-race-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-e2e-postgres-pid-race-"),
+    );
     cleanupDirectories.push(root);
-    const pidFile = path.join(root, "instances", "test", "db", "postmaster.pid");
+    const pidFile = path.join(
+      root,
+      "instances",
+      "test",
+      "db",
+      "postmaster.pid",
+    );
     const persistedFile = path.join(path.dirname(pidFile), "z-persisted.bin");
     await mkdir(path.dirname(pidFile), { recursive: true });
     await writeFile(pidFile, "1234\n");
     await writeFile(persistedFile, secret);
-    await expect(findSecretLeakInDirectory(root, [secret], {
-      ignoreFile: (file) => {
-        if (file === pidFile) unlinkSync(file); // Removed after directory enumeration.
-        return false;
-      },
-      allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
-    })).resolves.toEqual({ file: persistedFile, reason: "exact secret value" });
-    expect(isEphemeralPostgresPidFile(root, path.join(root, "workspace", "postmaster.pid"))).toBe(false);
-    expect(isEphemeralPostgresPidFile(root, path.join(root, "instances", "test", "db", "records.bin"))).toBe(false);
+    await expect(
+      findSecretLeakInDirectory(root, [secret], {
+        ignoreFile: (file) => {
+          if (file === pidFile) unlinkSync(file); // Removed after directory enumeration.
+          return false;
+        },
+        allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
+      }),
+    ).resolves.toEqual({ file: persistedFile, reason: "exact secret value" });
+    expect(
+      isEphemeralPostgresPidFile(
+        root,
+        path.join(root, "workspace", "postmaster.pid"),
+      ),
+    ).toBe(false);
+    expect(
+      isEphemeralPostgresPidFile(
+        root,
+        path.join(root, "instances", "test", "db", "records.bin"),
+      ),
+    ).toBe(false);
   });
 
   it("handles a removed PostgreSQL relation but scans existing relation bytes", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-e2e-postgres-relation-race-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-e2e-postgres-relation-race-"),
+    );
     cleanupDirectories.push(root);
-    const relation = path.join(root, "instances", "test", "db", "base", "16384", "16824");
+    const relation = path.join(
+      root,
+      "instances",
+      "test",
+      "db",
+      "base",
+      "16384",
+      "16824",
+    );
     const persisted = path.join(path.dirname(relation), "16825");
     await mkdir(path.dirname(relation), { recursive: true });
-    await writeFile(relation, "old relation"); await writeFile(persisted, secret);
-    await expect(findSecretLeakInDirectory(root, [secret], {
-      ignoreFile: file => { if(file === relation)unlinkSync(file); return false; },
-      allowDisappearedFile: file => isEphemeralPostgresScanFile(root, file),
-    })).resolves.toEqual({file:persisted,reason:"exact secret value"});
-    expect(isEphemeralPostgresScanFile(root,path.join(root,"workspace","base","16384","16824"))).toBe(false);
-    expect(isEphemeralPostgresScanFile(root,path.join(root,"instances","test","db","base","records.json"))).toBe(false);
+    await writeFile(relation, "old relation");
+    await writeFile(persisted, secret);
+    await expect(
+      findSecretLeakInDirectory(root, [secret], {
+        ignoreFile: (file) => {
+          if (file === relation) unlinkSync(file);
+          return false;
+        },
+        allowDisappearedFile: (file) => isEphemeralPostgresScanFile(root, file),
+      }),
+    ).resolves.toEqual({ file: persisted, reason: "exact secret value" });
+    expect(
+      isEphemeralPostgresScanFile(
+        root,
+        path.join(root, "workspace", "base", "16384", "16824"),
+      ),
+    ).toBe(false);
+    expect(
+      isEphemeralPostgresScanFile(
+        root,
+        path.join(root, "instances", "test", "db", "base", "records.json"),
+      ),
+    ).toBe(false);
   });
 
   it("still detects secrets in an existing PostgreSQL PID file", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-e2e-postgres-pid-secret-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-e2e-postgres-pid-secret-"),
+    );
     cleanupDirectories.push(root);
-    const pidFile = path.join(root, "instances", "test", "db", "postmaster.pid");
+    const pidFile = path.join(
+      root,
+      "instances",
+      "test",
+      "db",
+      "postmaster.pid",
+    );
     await mkdir(path.dirname(pidFile), { recursive: true });
     await writeFile(pidFile, secret);
-    await expect(findSecretLeakInDirectory(root, [secret], {
-      allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
-    })).resolves.toEqual({ file: pidFile, reason: "exact secret value" });
+    await expect(
+      findSecretLeakInDirectory(root, [secret], {
+        allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
+      }),
+    ).resolves.toEqual({ file: pidFile, reason: "exact secret value" });
   });
 
   it("fails when required persisted state disappears during scanning", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-e2e-required-file-race-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-e2e-required-file-race-"),
+    );
     cleanupDirectories.push(root);
     const requiredFile = path.join(root, "records.json");
     await writeFile(requiredFile, "{}");
-    await expect(findSecretLeakInDirectory(root, [secret], {
-      ignoreFile: (file) => { unlinkSync(file); return false; },
-      allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
-    })).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(
+      findSecretLeakInDirectory(root, [secret], {
+        ignoreFile: (file) => {
+          unlinkSync(file);
+          return false;
+        },
+        allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
+      }),
+    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("does not suppress other I/O failures for the ephemeral PID path", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-e2e-postgres-pid-io-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-e2e-postgres-pid-io-"),
+    );
     cleanupDirectories.push(root);
-    const pidFile = path.join(root, "instances", "test", "db", "postmaster.pid");
+    const pidFile = path.join(
+      root,
+      "instances",
+      "test",
+      "db",
+      "postmaster.pid",
+    );
     await mkdir(path.dirname(pidFile), { recursive: true });
     await writeFile(pidFile, "1234\n");
-    await expect(findSecretLeakInDirectory(root, [secret], {
-      ignoreFile: (file) => { unlinkSync(file); mkdirSync(file); return false; },
-      allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
-    })).rejects.toMatchObject({ code: "EISDIR" });
+    await expect(
+      findSecretLeakInDirectory(root, [secret], {
+        ignoreFile: (file) => {
+          unlinkSync(file);
+          mkdirSync(file);
+          return false;
+        },
+        allowDisappearedFile: (file) => isEphemeralPostgresPidFile(root, file),
+      }),
+    ).rejects.toMatchObject({ code: "EISDIR" });
   });
 
   it("still reports missing mandatory pass evidence", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-e2e-required-evidence-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-e2e-required-evidence-"),
+    );
     cleanupDirectories.push(root);
     const privateDir = path.join(root, "private");
     await mkdir(privateDir);
@@ -1299,19 +1484,37 @@ describe("runner E2E evidence redaction", () => {
   });
 
   it("retains the two reviewed chat plan captures without admitting arbitrary chat PNGs", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-e2e-chat-captures-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-e2e-chat-captures-"),
+    );
     cleanupDirectories.push(root);
     const privateDir = path.join(root, "private");
     const uploadDir = path.join(root, "upload");
     await mkdir(privateDir, { recursive: true });
-    for (const file of ["chat-plan-draft.png", "chat-plan-revised.png", "chat-secret.png", "chat-plan-extra.png"]) {
+    for (const file of [
+      "chat-plan-draft.png",
+      "chat-plan-revised.png",
+      "chat-secret.png",
+      "chat-plan-extra.png",
+    ]) {
       await writeFile(path.join(privateDir, file), "fixture raster");
     }
-    const packaged = await packageEvidence({ privateDir, uploadDir, secrets: [secret], expectPassScreenshot: false });
-    expect(packaged.files.sort()).toEqual(["chat-plan-draft.png", "chat-plan-revised.png", "evidence-manifest.json"]);
+    const packaged = await packageEvidence({
+      privateDir,
+      uploadDir,
+      secrets: [secret],
+      expectPassScreenshot: false,
+    });
+    expect(packaged.files.sort()).toEqual([
+      "chat-plan-draft.png",
+      "chat-plan-revised.png",
+      "evidence-manifest.json",
+    ]);
     expect(packaged.leaks).toEqual([]);
     for (const file of packaged.files.filter((file) => file.endsWith(".png"))) {
-      expect(await readFile(path.join(uploadDir, file), "utf8")).toBe("fixture raster");
+      expect(await readFile(path.join(uploadDir, file), "utf8")).toBe(
+        "fixture raster",
+      );
     }
   });
 
@@ -1437,46 +1640,83 @@ describe("runner E2E macOS shared-memory cleanup", () => {
   });
 });
 
-
 describe("persisted final response selection", () => {
   const comments = [
-    { id: "attachment-comment", body: "Prepared file for this response.", createdByRunId: "run-1" },
+    {
+      id: "attachment-comment",
+      body: "Prepared file for this response.",
+      createdByRunId: "run-1",
+    },
     { id: "reply", body: "FINAL", createdByRunId: "run-1" },
     { id: "other-run", body: "unrelated", createdByRunId: "run-2" },
   ];
-  const run = { id: "run-1", resultJson: { presentationDecision: { commentId: "reply" } } };
+  const run = {
+    id: "run-1",
+    resultJson: { presentationDecision: { commentId: "reply" } },
+  };
   it("grades the real final comment independently from an attachment's preparation comment", () => {
     expect(persistedFinalRunMessage(comments, run)).toBe("FINAL");
   });
   it("fails closed when the selected final comment is missing or belongs to another run", () => {
     expect(persistedFinalRunMessage(comments.slice(0, 1), run)).toBe("");
-    expect(persistedFinalRunMessage(comments, { ...run, resultJson: { presentationDecision: { commentId: "other-run" } } })).toBe("");
+    expect(
+      persistedFinalRunMessage(comments, {
+        ...run,
+        resultJson: { presentationDecision: { commentId: "other-run" } },
+      }),
+    ).toBe("");
   });
   it("waits for the native response receipt and its selected comment, not an earlier attachment comment", () => {
     const native = { ...run, runtimeMode: "native" };
-    expect(persistedFinalRunMessage(comments.slice(0, 1), { id: native.id, runtimeMode: "native" })).toBe("");
-    expect(persistedFinalRunMessage(comments, { id: native.id, runtimeMode: "native", resultJson: { summary: "FINAL" } })).toBe("");
+    expect(
+      persistedFinalRunMessage(comments.slice(0, 1), {
+        id: native.id,
+        runtimeMode: "native",
+      }),
+    ).toBe("");
+    expect(
+      persistedFinalRunMessage(comments, {
+        id: native.id,
+        runtimeMode: "native",
+        resultJson: { summary: "FINAL" },
+      }),
+    ).toBe("");
     expect(persistedFinalRunMessage(comments.slice(0, 1), native)).toBe("");
     expect(persistedFinalRunMessage(comments, native)).toBe("FINAL");
   });
   it("keeps legacy fallback and does not replace absent visible text with a summary", () => {
-    expect(persistedFinalRunMessage(comments, { id: "run-1" })).toBe("Prepared file for this response.\nFINAL");
-    expect(persistedFinalRunMessage([], { id: "run-1", resultJson: { summary: "FINAL" } })).toBe("");
+    expect(persistedFinalRunMessage(comments, { id: "run-1" })).toBe(
+      "Prepared file for this response.\nFINAL",
+    );
+    expect(
+      persistedFinalRunMessage([], {
+        id: "run-1",
+        resultJson: { summary: "FINAL" },
+      }),
+    ).toBe("");
   });
 });
 
 describe("warm continuity grading scope", () => {
   it("checks workspace bytes, lifecycle, and ordered turn markers without exact response formatting", () => {
-    const execution = runnerMatrix.find((cell) => cell.task.flow === "warm_three_turn")!;
+    const execution = runnerMatrix.find(
+      (cell) => cell.task.flow === "warm_three_turn",
+    )!;
     const matchers = execution.task.buildMatchers("test-nonce", execution);
     expect(matchers).toContainEqual({
-      kind: "message_occurrences", expected: "TASKCORE_E2E_WARM_T1_test-nonce", count: 1,
+      kind: "message_occurrences",
+      expected: "TASKCORE_E2E_WARM_T1_test-nonce",
+      count: 1,
     });
     expect(matchers).toContainEqual({
-      kind: "message_occurrences", expected: "TASKCORE_E2E_WARM_T2_test-nonce", count: 1,
+      kind: "message_occurrences",
+      expected: "TASKCORE_E2E_WARM_T2_test-nonce",
+      count: 1,
     });
     expect(matchers).toContainEqual({
-      kind: "message_occurrences", expected: "TASKCORE_E2E_WARM_T3_test-nonce", count: 1,
+      kind: "message_occurrences",
+      expected: "TASKCORE_E2E_WARM_T3_test-nonce",
+      count: 1,
     });
     expect(matchers).toContainEqual({
       kind: "message_ordered",
@@ -1487,17 +1727,27 @@ describe("warm continuity grading scope", () => {
       ],
     });
     expect(matchers).toContainEqual({
-      kind: "file_exact", path: "daytona-warm-test-nonce.txt",
+      kind: "file_exact",
+      path: "daytona-warm-test-nonce.txt",
       expected: "T1-test-nonce\nT2-test-nonce\nT3-test-nonce\n",
     });
     expect(matchers).toContainEqual({ kind: "issue_status", expected: "done" });
-    const hello = runnerMatrix.find((cell) => cell.task.id === "hello-complete")!;
-    expect(hello.task.buildMatchers("test-nonce", hello).some((matcher) => matcher.kind === "message_exact")).toBe(true);
+    const hello = runnerMatrix.find(
+      (cell) => cell.task.id === "hello-complete",
+    )!;
+    expect(
+      hello.task
+        .buildMatchers("test-nonce", hello)
+        .some((matcher) => matcher.kind === "message_exact"),
+    ).toBe(true);
   });
 
   it("accepts warm-turn prose while rejecting missing, duplicate, or out-of-order markers", async () => {
-    const execution = runnerMatrix.find((cell) => cell.task.flow === "warm_three_turn")!;
-    const matchers = execution.task.buildMatchers("test-nonce", execution)
+    const execution = runnerMatrix.find(
+      (cell) => cell.task.flow === "warm_three_turn",
+    )!;
+    const matchers = execution.task
+      .buildMatchers("test-nonce", execution)
       .filter((matcher) => matcher.kind.startsWith("message_"));
     const passing = await evaluateMatchers(matchers, {
       message: [

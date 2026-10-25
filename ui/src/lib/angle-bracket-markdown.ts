@@ -89,7 +89,11 @@ function stripBlockquotePrefix(line: string, depth: number): string | null {
  * literal inside a code span — so the closing scan must not skip a backtick
  * that happens to follow one.
  */
-function findCodeSpanEnd(text: string, contentStart: number, runLength: number): number {
+function findCodeSpanEnd(
+  text: string,
+  contentStart: number,
+  runLength: number,
+): number {
   let i = contentStart;
 
   while (i < text.length) {
@@ -160,10 +164,10 @@ function transformInlineChunk(text: string, mode: Mode): string {
 
     if (char === "\\") {
       if (
-        mode === "unescape"
-        && text[i + 1] === "<"
-        && isHtmlOpener(text[i + 2])
-        && matchProtectedConstruct(text.slice(i + 1), out) === null
+        mode === "unescape" &&
+        text[i + 1] === "<" &&
+        isHtmlOpener(text[i + 2]) &&
+        matchProtectedConstruct(text.slice(i + 1), out) === null
       ) {
         out += "<";
         i += 2;
@@ -224,12 +228,18 @@ function transformAngleBrackets(markdown: string, mode: Mode): string {
       out.push(line);
 
       const closeCandidate = stripBlockquotePrefix(line, fenceBlockquoteDepth);
-      const closeMatch = closeCandidate ? FENCE_CLOSE_RE.exec(closeCandidate) : null;
+      const closeMatch = closeCandidate
+        ? FENCE_CLOSE_RE.exec(closeCandidate)
+        : null;
 
       if (closeMatch) {
         const indent = closeMatch[1].length;
         const run = closeMatch[2];
-        if (indent <= fenceCloseIndentMax && run[0] === fenceChar && run.length >= fenceLen) {
+        if (
+          indent <= fenceCloseIndentMax &&
+          run[0] === fenceChar &&
+          run.length >= fenceLen
+        ) {
           fenceChar = "";
           fenceLen = 0;
           fenceBlockquoteDepth = 0;
@@ -256,11 +266,14 @@ function transformAngleBrackets(markdown: string, mode: Mode): string {
         out.push(line);
         fenceChar = char;
         fenceLen = run.length;
-        fenceBlockquoteDepth = (prefix.match(BLOCKQUOTE_MARKER_RE) ?? []).length;
+        fenceBlockquoteDepth = (prefix.match(BLOCKQUOTE_MARKER_RE) ?? [])
+          .length;
         // A list's continuation indent includes its marker and following spaces.
         // A closing fence may add CommonMark's normal 0–3 spaces after that.
         fenceCloseIndentMax =
-          (listMarkers.length > 0 ? listMarkers.reduce((sum, marker) => sum + marker.length, 0) : 0) + 3;
+          (listMarkers.length > 0
+            ? listMarkers.reduce((sum, marker) => sum + marker.length, 0)
+            : 0) + 3;
         paragraphOpen = false;
         continue;
       }

@@ -37,7 +37,7 @@ describe("bridge exec", () => {
     expect(optionsArg).toEqual({ cwd: "/", timeout: 12_345 });
     expect(optionsArg).not.toHaveProperty("args");
     expect(optionsArg).not.toHaveProperty("stdin");
-    expect(commandArg).toContain('. /etc/profile');
+    expect(commandArg).toContain(". /etc/profile");
     // The wrapper sources no `nvm.sh`; the sandbox image supplies node on PATH.
     expect(commandArg).not.toContain("nvm.sh");
     expect(commandArg).not.toContain("NVM_DIR");
@@ -85,7 +85,9 @@ describe("bridge exec", () => {
   });
 
   it("stages stdin through a sandbox temp file and redirects from it", async () => {
-    const exec = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
+    const exec = vi
+      .fn()
+      .mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
     const writeFile = vi.fn().mockResolvedValue(undefined);
     const deleteFile = vi.fn().mockResolvedValue(undefined);
     // sessionStrategy: "default" routes through the sandbox itself (no
@@ -120,7 +122,9 @@ describe("bridge exec", () => {
   });
 
   it("does not write a stdin file or redirect when stdin is empty", async () => {
-    const exec = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
+    const exec = vi
+      .fn()
+      .mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
     const writeFile = vi.fn();
     const deleteFile = vi.fn();
     const sandbox = {
@@ -145,10 +149,12 @@ describe("bridge exec", () => {
   });
 
   it("rejects invalid environment variable keys in the login-shell wrapper", () => {
-    expect(() => buildLoginShellScript({
-      command: "pwd",
-      args: [],
-      env: { "bad-key": "1" },
-    })).toThrow("Invalid sandbox environment variable key: bad-key");
+    expect(() =>
+      buildLoginShellScript({
+        command: "pwd",
+        args: [],
+        env: { "bad-key": "1" },
+      }),
+    ).toThrow("Invalid sandbox environment variable key: bad-key");
   });
 });

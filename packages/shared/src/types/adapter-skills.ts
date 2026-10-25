@@ -3,17 +3,10 @@ export type AgentSkillSyncMode = "unsupported" | "persistent" | "ephemeral";
 export type AgentSkillAssignmentMode = "add" | "remove" | "replace";
 
 export type AgentSkillState =
-  | "available"
-  | "configured"
-  | "installed"
-  | "missing"
-  | "stale"
-  | "external";
+  "available" | "configured" | "installed" | "missing" | "stale" | "external";
 
 export type AgentSkillOrigin =
-  | "company_managed"
-  | "user_installed"
-  | "external_unknown";
+  "company_managed" | "user_installed" | "external_unknown";
 
 export interface AgentDesiredSkillEntry {
   key: string;

@@ -6,21 +6,32 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
 const script = path.join(repoRoot, "scripts", "e2e-update-migrations.sh");
 const cleanEnv = Object.fromEntries(
-  Object.entries(process.env).filter(([name]) => !name.startsWith("TASKCORE_") && !name.startsWith("E2E_UPDATE_")),
+  Object.entries(process.env).filter(
+    ([name]) =>
+      !name.startsWith("TASKCORE_") && !name.startsWith("E2E_UPDATE_"),
+  ),
 );
 
 test("cross-version migration harness has valid shell syntax", () => {
-  const result = spawnSync("bash", ["-n", script], { cwd: repoRoot, encoding: "utf8" });
+  const result = spawnSync("bash", ["-n", script], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
 
   assert.equal(result.status, 0, result.stderr);
 });
 
 test("failure cleanup removes the service and managed install", () => {
   const source = readFileSync(script, "utf8");
-  const cleanup = source.match(/cleanup\(\) \{(?<body>[\s\S]*?)\n\}/)?.groups?.body;
+  const cleanup = source.match(/cleanup\(\) \{(?<body>[\s\S]*?)\n\}/)?.groups
+    ?.body;
 
   assert.ok(cleanup, "expected a cleanup function");
   assert.match(cleanup, /shim service stop/);
@@ -31,9 +42,14 @@ test("failure cleanup removes the service and managed install", () => {
 test("cross-version migration harness requires both refs before side effects", () => {
   for (const testCase of [
     { env: {}, missing: "E2E_UPDATE_BASE_REF" },
-    { env: { E2E_UPDATE_BASE_REF: "test/base" }, missing: "E2E_UPDATE_NEXT_REF" },
+    {
+      env: { E2E_UPDATE_BASE_REF: "test/base" },
+      missing: "E2E_UPDATE_NEXT_REF",
+    },
   ]) {
-    const testHome = mkdtempSync(path.join(os.tmpdir(), "taskcore-update-migrations-"));
+    const testHome = mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-update-migrations-"),
+    );
     try {
       const result = spawnSync("bash", [script], {
         cwd: repoRoot,
@@ -42,8 +58,15 @@ test("cross-version migration harness requires both refs before side effects", (
       });
 
       assert.equal(result.status, 1);
-      assert.match(result.stderr, new RegExp(`${testCase.missing} is required`));
-      assert.deepEqual(readdirSync(testHome), [], "validation must run before the harness writes files");
+      assert.match(
+        result.stderr,
+        new RegExp(`${testCase.missing} is required`),
+      );
+      assert.deepEqual(
+        readdirSync(testHome),
+        [],
+        "validation must run before the harness writes files",
+      );
     } finally {
       rmSync(testHome, { recursive: true, force: true });
     }

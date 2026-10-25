@@ -29,15 +29,27 @@ function mapMetadataRow(
 ): SystemNoticeMetadataRow | null {
   switch (row.type) {
     case "text":
-      return { kind: "text", label: metadataRowText(row, "Detail"), value: row.text };
+      return {
+        kind: "text",
+        label: metadataRowText(row, "Detail"),
+        value: row.text,
+      };
     case "code":
-      return { kind: "code", label: metadataRowText(row, "Code"), value: row.code };
+      return {
+        kind: "code",
+        label: metadataRowText(row, "Code"),
+        value: row.code,
+      };
     case "key_value":
       return { kind: "text", label: row.label, value: row.value };
     case "issue_link": {
       const identifier = row.identifier ?? null;
       if (!identifier) {
-        return { kind: "text", label: metadataRowText(row, "Task"), value: row.title ?? "unknown" };
+        return {
+          kind: "text",
+          label: metadataRowText(row, "Task"),
+          value: row.title ?? "unknown",
+        };
       }
       return {
         kind: "issue",
@@ -58,7 +70,9 @@ function mapMetadataRow(
     }
     case "run_link": {
       const runAgentId = row.agentId ?? ctx.runAgentId ?? null;
-      const href = runAgentId ? `/agents/${runAgentId}/runs/${row.runId}` : undefined;
+      const href = runAgentId
+        ? `/agents/${runAgentId}/runs/${row.runId}`
+        : undefined;
       return {
         kind: "run",
         label: metadataRowText(row, "Run"),

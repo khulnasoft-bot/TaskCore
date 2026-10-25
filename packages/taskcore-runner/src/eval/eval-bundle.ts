@@ -41,7 +41,8 @@ export interface EvalBundleLaunchContext {
    * Class of working directory the candidate launched into. A *class*, never an
    * absolute host path — absolute paths can leak usernames and layout secrets.
    */
-  workingDirectoryClass: "ephemeral-fixture" | "workspace-checkout" | "clean-room";
+  workingDirectoryClass:
+    "ephemeral-fixture" | "workspace-checkout" | "clean-room";
   scenarioId: string;
   turnTimeoutMs: number;
 }
@@ -69,10 +70,7 @@ export interface EvalBundleControlPlaneAdapter {
 }
 
 export type EvalFaultClass =
-  | "authorization"
-  | "conflict"
-  | "retry"
-  | "provider_capability";
+  "authorization" | "conflict" | "retry" | "provider_capability";
 
 export interface EvalBundleFaultInjection {
   id: string;
@@ -160,7 +158,9 @@ function canonicalJson(value: unknown): string {
  * (in any field order) always yields the same id; any change yields a new one.
  */
 export function bundleId(bundle: EvalBundle): string {
-  const digest = createHash("sha256").update(canonicalJson(bundle)).digest("hex");
+  const digest = createHash("sha256")
+    .update(canonicalJson(bundle))
+    .digest("hex");
   return `evb-${digest.slice(0, 16)}`;
 }
 
@@ -169,7 +169,8 @@ function sha256(value: unknown): string {
 }
 
 /** Object keys that must never appear in a declared bundle. */
-const FORBIDDEN_KEY = /(^|[-_])(api[-_]?key|secret|token|password|passwd|credential|private[-_]?key|authorization|bearer|session[-_]?token)($|[-_])/i;
+const FORBIDDEN_KEY =
+  /(^|[-_])(api[-_]?key|secret|token|password|passwd|credential|private[-_]?key|authorization|bearer|session[-_]?token)($|[-_])/i;
 
 /** Value shapes that look like leaked credentials regardless of their key. */
 const SECRET_VALUE_PATTERNS: Array<{ id: string; pattern: RegExp }> = [
@@ -182,19 +183,25 @@ const SECRET_VALUE_PATTERNS: Array<{ id: string; pattern: RegExp }> = [
   { id: "pypi-token", pattern: /\bpypi-[A-Za-z0-9_-]{20,}\b/ },
   { id: "bearer-token", pattern: /\bBearer\s+[^\s"'`]{12,}/i },
   { id: "aws-access-key", pattern: /\bAKIA[0-9A-Z]{16}\b/ },
-  { id: "jwt", pattern: /\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/ },
+  {
+    id: "jwt",
+    pattern: /\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+  },
   { id: "pem-block", pattern: /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/ },
   {
     id: "credential-assignment",
-    pattern: /\b(?:api[-_]?key|access[-_]?token|auth[-_]?token|session[-_]?token|token|authorization|bearer|secret|password|passwd|credential|private[-_]?key)\s*(?:=|:)\s*["']?[^\s"'`,}]{8,}/i,
+    pattern:
+      /\b(?:api[-_]?key|access[-_]?token|auth[-_]?token|session[-_]?token|token|authorization|bearer|secret|password|passwd|credential|private[-_]?key)\s*(?:=|:)\s*["']?[^\s"'`,}]{8,}/i,
   },
   {
     id: "json-credential-field",
-    pattern: /"(?:api[-_]?key|access[-_]?token|auth[-_]?token|session[-_]?token|token|authorization|bearer|secret|password|passwd|credential|private[-_]?key)"\s*:\s*"[^"\\]{4,}/i,
+    pattern:
+      /"(?:api[-_]?key|access[-_]?token|auth[-_]?token|session[-_]?token|token|authorization|bearer|secret|password|passwd|credential|private[-_]?key)"\s*:\s*"[^"\\]{4,}/i,
   },
   {
     id: "escaped-json-credential-field",
-    pattern: /\\"(?:api[-_]?key|access[-_]?token|auth[-_]?token|session[-_]?token|token|authorization|bearer|secret|password|passwd|credential|private[-_]?key)\\"\s*:\s*\\"(?:\\\\.|[^"\\]){4,}/i,
+    pattern:
+      /\\"(?:api[-_]?key|access[-_]?token|auth[-_]?token|session[-_]?token|token|authorization|bearer|secret|password|passwd|credential|private[-_]?key)\\"\s*:\s*\\"(?:\\\\.|[^"\\]){4,}/i,
   },
 ];
 
@@ -280,7 +287,9 @@ export function bundleEvidenceDeclaration(
         : { temperature: bundle.model.temperature }),
     },
     launchContext: {
-      workingDirectoryClassSha256: sha256(bundle.launchContext.workingDirectoryClass),
+      workingDirectoryClassSha256: sha256(
+        bundle.launchContext.workingDirectoryClass,
+      ),
       scenarioIdSha256: sha256(bundle.launchContext.scenarioId),
       turnTimeoutMs: bundle.launchContext.turnTimeoutMs,
     },
@@ -310,7 +319,10 @@ export function bundleEvidenceDeclaration(
 }
 
 /** A redacted, one-line human description safe to print in a report header. */
-export function describeBundle(bundle: EvalBundle): { bundleId: string; summary: string } {
+export function describeBundle(bundle: EvalBundle): {
+  bundleId: string;
+  summary: string;
+} {
   assertBundleSecretFree(bundle);
   const id = bundleId(bundle);
   return {

@@ -12,7 +12,8 @@ import {
 import { visibleIssueCondition } from "./issue-visibility.js";
 
 const EXCERPT_MAX_CHARS = 180;
-const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s<>"'`]+|(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}\/[^\s<>"'`]+/giu;
+const URL_PATTERN =
+  /(?:https?:\/\/|www\.)[^\s<>"'`]+|(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}\/[^\s<>"'`]+/giu;
 
 type ExtractSource = {
   issueId: string;
@@ -46,25 +47,45 @@ function contentMatch(
     : sql`${column} ILIKE ${containsPattern}`;
 }
 
-function updatedWithinStart(value: string | undefined, now = new Date()): Date | null {
+function updatedWithinStart(
+  value: string | undefined,
+  now = new Date(),
+): Date | null {
   if (!value) return null;
   const match = /^(\d+)(h|d|w|m)$/.exec(value);
   if (!match) return null;
   const amount = Number.parseInt(match[1]!, 10);
   const unit = match[2];
-  const hours = unit === "h" ? amount : unit === "d" ? amount * 24 : unit === "w" ? amount * 24 * 7 : amount * 24 * 30;
+  const hours =
+    unit === "h"
+      ? amount
+      : unit === "d"
+        ? amount * 24
+        : unit === "w"
+          ? amount * 24 * 7
+          : amount * 24 * 30;
   return new Date(now.getTime() - hours * 60 * 60 * 1000);
 }
 
-function scopeIncludes(scope: CompanySearchExtractQuery["scope"], source: Exclude<CompanySearchExtractQuery["scope"], "all">) {
+function scopeIncludes(
+  scope: CompanySearchExtractQuery["scope"],
+  source: Exclude<CompanySearchExtractQuery["scope"], "all">,
+) {
   return scope === "all" || scope === source;
 }
 
 function trimUrlToken(value: string): string {
   let result = value.replace(/[.,;:!?]+$/g, "");
-  const pairs: Array<[string, string]> = [["(", ")"], ["[", "]"], ["{", "}"]];
+  const pairs: Array<[string, string]> = [
+    ["(", ")"],
+    ["[", "]"],
+    ["{", "}"],
+  ];
   for (const [open, close] of pairs) {
-    while (result.endsWith(close) && result.split(close).length > result.split(open).length) {
+    while (
+      result.endsWith(close) &&
+      result.split(close).length > result.split(open).length
+    ) {
       result = result.slice(0, -1);
     }
   }
@@ -79,7 +100,10 @@ function literalOccurrences(text: string, contains: string) {
   while (start <= text.length - contains.length) {
     const index = lowerText.indexOf(lowerContains, start);
     if (index < 0) break;
-    matches.push({ value: text.slice(index, index + contains.length), start: index });
+    matches.push({
+      value: text.slice(index, index + contains.length),
+      start: index,
+    });
     start = index + Math.max(contains.length, 1);
   }
   return matches;
@@ -119,7 +143,10 @@ function excerpt(text: string, start: number, length: number) {
   };
 }
 
-function extractMatches(sources: ExtractSource[], query: CompanySearchExtractQuery) {
+function extractMatches(
+  sources: ExtractSource[],
+  query: CompanySearchExtractQuery,
+) {
   const matches: CompanySearchExtractMatch[] = [];
   const seen = new Set<string>();
   let matchesTruncated = false;
@@ -134,7 +161,11 @@ function extractMatches(sources: ExtractSource[], query: CompanySearchExtractQue
         matchesTruncated = true;
         continue;
       }
-      const matchExcerpt = excerpt(source.text, occurrence.start, occurrence.value.length);
+      const matchExcerpt = excerpt(
+        source.text,
+        occurrence.start,
+        occurrence.value.length,
+      );
       matches.push({
         value: occurrence.value,
         field: source.field,
@@ -160,10 +191,17 @@ export function companySearchExtractService(db: Db) {
       const urlPattern = urlContainsPattern(query.contains);
       const scopeConditions: SQL[] = [];
       if (scopeIncludes(query.scope, "issues")) {
-        scopeConditions.push(or(
-          contentMatch(issues.title, query, containsPattern, urlPattern),
-          contentMatch(issues.description, query, containsPattern, urlPattern),
-        )!);
+        scopeConditions.push(
+          or(
+            contentMatch(issues.title, query, containsPattern, urlPattern),
+            contentMatch(
+              issues.description,
+              query,
+              containsPattern,
+              urlPattern,
+            ),
+          )!,
+        );
       }
       if (scopeIncludes(query.scope, "comments")) {
         scopeConditions.push(sql`EXISTS (
@@ -172,9 +210,11 @@ export function companySearchExtractService(db: Db) {
           WHERE extract_comments.company_id = ${companyId}
             AND extract_comments.issue_id = ${issues.id}
             AND extract_comments.deleted_at IS NULL
-            AND ${query.kind === "url"
-              ? sql`extract_comments.body ~* ${urlPattern}`
-              : sql`extract_comments.body ILIKE ${containsPattern}`}
+            AND ${
+              query.kind === "url"
+                ? sql`extract_comments.body ~* ${urlPattern}`
+                : sql`extract_comments.body ILIKE ${containsPattern}`
+            }
         )`);
       }
       if (scopeIncludes(query.scope, "documents")) {
@@ -187,12 +227,16 @@ export function companySearchExtractService(db: Db) {
           WHERE extract_issue_documents.company_id = ${companyId}
             AND extract_issue_documents.issue_id = ${issues.id}
             AND (
-              ${query.kind === "url"
-                ? sql`extract_documents.title ~* ${urlPattern}`
-                : sql`extract_documents.title ILIKE ${containsPattern}`}
-              OR ${query.kind === "url"
-                ? sql`extract_documents.latest_body ~* ${urlPattern}`
-                : sql`extract_documents.latest_body ILIKE ${containsPattern}`}
+              ${
+                query.kind === "url"
+                  ? sql`extract_documents.title ~* ${urlPattern}`
+                  : sql`extract_documents.title ILIKE ${containsPattern}`
+              }
+              OR ${
+                query.kind === "url"
+                  ? sql`extract_documents.latest_body ~* ${urlPattern}`
+                  : sql`extract_documents.latest_body ILIKE ${containsPattern}`
+              }
             )
         )`);
       }
@@ -202,11 +246,14 @@ export function companySearchExtractService(db: Db) {
         visibleIssueCondition(),
         or(...scopeConditions)!,
       ];
-      if (options?.issueReadCondition) conditions.push(options.issueReadCondition);
-      if (query.status.length > 0) conditions.push(inArray(issues.status, query.status));
+      if (options?.issueReadCondition)
+        conditions.push(options.issueReadCondition);
+      if (query.status.length > 0)
+        conditions.push(inArray(issues.status, query.status));
       const updatedWithin = updatedWithinStart(query.updatedWithin);
       if (updatedWithin) conditions.push(gte(issues.updatedAt, updatedWithin));
-      if (query.updatedAfter) conditions.push(gte(issues.updatedAt, new Date(query.updatedAfter)));
+      if (query.updatedAfter)
+        conditions.push(gte(issues.updatedAt, new Date(query.updatedAfter)));
 
       const candidateRows = await db
         .select({
@@ -245,7 +292,10 @@ export function companySearchExtractService(db: Db) {
               source: { type: "issue", issueId: row.id },
             });
           }
-          if (row.description && sourceOccurrences(row.description, query).length > 0) {
+          if (
+            row.description &&
+            sourceOccurrences(row.description, query).length > 0
+          ) {
             addSource({
               issueId: row.id,
               field: "description",
@@ -259,14 +309,25 @@ export function companySearchExtractService(db: Db) {
 
       if (issueIds.length > 0 && scopeIncludes(query.scope, "comments")) {
         const commentRows = await db
-          .select({ id: issueComments.id, issueId: issueComments.issueId, body: issueComments.body })
+          .select({
+            id: issueComments.id,
+            issueId: issueComments.issueId,
+            body: issueComments.body,
+          })
           .from(issueComments)
-          .where(and(
-            eq(issueComments.companyId, companyId),
-            inArray(issueComments.issueId, issueIds),
-            isNull(issueComments.deletedAt),
-            contentMatch(issueComments.body, query, containsPattern, urlPattern),
-          ))
+          .where(
+            and(
+              eq(issueComments.companyId, companyId),
+              inArray(issueComments.issueId, issueIds),
+              isNull(issueComments.deletedAt),
+              contentMatch(
+                issueComments.body,
+                query,
+                containsPattern,
+                urlPattern,
+              ),
+            ),
+          )
           .orderBy(asc(issueComments.createdAt), asc(issueComments.id));
         for (const row of commentRows) {
           addSource({
@@ -289,21 +350,40 @@ export function companySearchExtractService(db: Db) {
             body: documents.latestBody,
           })
           .from(issueDocuments)
-          .innerJoin(documents, and(
-            eq(documents.id, issueDocuments.documentId),
-            eq(documents.companyId, issueDocuments.companyId),
-          ))
-          .where(and(
-            eq(issueDocuments.companyId, companyId),
-            inArray(issueDocuments.issueId, issueIds),
-            or(
-              contentMatch(documents.title, query, containsPattern, urlPattern),
-              contentMatch(documents.latestBody, query, containsPattern, urlPattern),
+          .innerJoin(
+            documents,
+            and(
+              eq(documents.id, issueDocuments.documentId),
+              eq(documents.companyId, issueDocuments.companyId),
             ),
-          ))
+          )
+          .where(
+            and(
+              eq(issueDocuments.companyId, companyId),
+              inArray(issueDocuments.issueId, issueIds),
+              or(
+                contentMatch(
+                  documents.title,
+                  query,
+                  containsPattern,
+                  urlPattern,
+                ),
+                contentMatch(
+                  documents.latestBody,
+                  query,
+                  containsPattern,
+                  urlPattern,
+                ),
+              ),
+            ),
+          )
           .orderBy(asc(issueDocuments.key), asc(documents.id));
         for (const row of documentRows) {
-          const source = { type: "document" as const, documentId: row.id, documentKey: row.key };
+          const source = {
+            type: "document" as const,
+            documentId: row.id,
+            documentKey: row.key,
+          };
           if (row.title && sourceOccurrences(row.title, query).length > 0) {
             addSource({
               issueId: row.issueId,
@@ -326,7 +406,10 @@ export function companySearchExtractService(db: Db) {
       }
 
       const results: CompanySearchExtractIssueResult[] = pageRows.map((row) => {
-        const extracted = extractMatches(sourcesByIssue.get(row.id) ?? [], query);
+        const extracted = extractMatches(
+          sourcesByIssue.get(row.id) ?? [],
+          query,
+        );
         return {
           issueId: row.id,
           identifier: row.identifier,

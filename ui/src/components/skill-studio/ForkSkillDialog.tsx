@@ -98,11 +98,15 @@ export function ForkSkillDialog({
         reassignAgentIds: reassign ? reassignTargetIds(usedByAgents) : [],
       }),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.companySkills.list(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.companySkills.list(companyId),
+      });
       queryClient.invalidateQueries({
         queryKey: queryKeys.companySkills.detail(companyId, skill.id),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.list(companyId),
+      });
       for (const entry of result.reassignments) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.agents.skills(entry.agentId),
@@ -124,7 +128,8 @@ export function ForkSkillDialog({
       toast?.pushToast({
         tone: "error",
         title: "Couldn't create a copy",
-        body: error instanceof Error ? error.message : "The fork request failed.",
+        body:
+          error instanceof Error ? error.message : "The fork request failed.",
       });
     },
   });
@@ -142,7 +147,10 @@ export function ForkSkillDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => (busy ? undefined : onOpenChange(next))}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => (busy ? undefined : onOpenChange(next))}
+    >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -158,7 +166,9 @@ export function ForkSkillDialog({
 
         {reusableFork ? (
           <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
-            <p className="font-medium text-foreground">You already have a copy</p>
+            <p className="font-medium text-foreground">
+              You already have a copy
+            </p>
             <p className="mt-0.5 text-muted-foreground">
               An unedited copy of this skill already exists. Open it instead of
               making another.
@@ -179,7 +189,9 @@ export function ForkSkillDialog({
         <div
           className={cn(
             "rounded-md border p-3",
-            agentCount > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-border bg-muted/30",
+            agentCount > 0
+              ? "border-amber-500/40 bg-amber-500/5"
+              : "border-border bg-muted/30",
           )}
         >
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">

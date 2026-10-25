@@ -25,7 +25,9 @@ function run(command, args) {
   });
 
   if (result.error) {
-    console.error(`[typecheck:build-gaps] Failed to spawn ${command}: ${result.error.message}`);
+    console.error(
+      `[typecheck:build-gaps] Failed to spawn ${command}: ${result.error.message}`,
+    );
     process.exit(1);
   }
 
@@ -48,8 +50,8 @@ function listFilesRecursive(rootDir) {
   }
 
   const files = [];
-  const entries = readdirSync(rootDir, { withFileTypes: true }).sort((left, right) =>
-    left.name.localeCompare(right.name),
+  const entries = readdirSync(rootDir, { withFileTypes: true }).sort(
+    (left, right) => left.name.localeCompare(right.name),
   );
 
   for (const entry of entries) {
@@ -69,7 +71,16 @@ function listFilesRecursive(rootDir) {
 
 function isRuntimeAsset(filePath) {
   const ext = path.extname(filePath).toLowerCase();
-  return !new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]).has(ext);
+  return !new Set([
+    ".ts",
+    ".tsx",
+    ".mts",
+    ".cts",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+  ]).has(ext);
 }
 
 function checkServerRuntimeAssets() {
@@ -87,7 +98,9 @@ function checkServerRuntimeAssets() {
   let checkedCount = 0;
 
   for (const assetTree of runtimeAssetTrees) {
-    const sourceAssets = listFilesRecursive(assetTree.sourceDir).filter(isRuntimeAsset);
+    const sourceAssets = listFilesRecursive(assetTree.sourceDir).filter(
+      isRuntimeAsset,
+    );
     checkedCount += sourceAssets.length;
 
     for (const sourcePath of sourceAssets) {
@@ -130,7 +143,9 @@ function listWorkspacePackages() {
   });
 
   if (result.error) {
-    fail(`Unable to spawn pnpm to list workspace packages: ${result.error.message}`);
+    fail(
+      `Unable to spawn pnpm to list workspace packages: ${result.error.message}`,
+    );
   }
 
   if (result.status !== 0) {
@@ -162,7 +177,9 @@ const packagesMissingTypecheck = buildGapCandidates.filter(
   ({ pkg }) => typeof pkg.scripts?.typecheck !== "string",
 );
 if (packagesMissingTypecheck.length > 0) {
-  const missingNames = packagesMissingTypecheck.map((workspacePkg) => workspacePkg.name).join(", ");
+  const missingNames = packagesMissingTypecheck
+    .map((workspacePkg) => workspacePkg.name)
+    .join(", ");
   fail(
     `Workspace packages with build scripts that skip tsc must define a typecheck script. Missing: ${missingNames}`,
   );

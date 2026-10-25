@@ -21,7 +21,12 @@
     "summary": { "type": "string", "minLength": 1, "maxLength": 12000 },
     "completionClaim": {
       "type": "object",
-      "required": ["contractRevision", "objectiveSatisfied", "criteria", "remainingWork"],
+      "required": [
+        "contractRevision",
+        "objectiveSatisfied",
+        "criteria",
+        "remainingWork"
+      ],
       "properties": {
         "contractRevision": { "type": "string", "minLength": 1 },
         "objectiveSatisfied": { "type": "boolean" },
@@ -33,7 +38,10 @@
             "properties": {
               "criterionId": { "type": "string", "minLength": 1 },
               "status": { "enum": ["satisfied", "not_satisfied", "unknown"] },
-              "evidenceRefs": { "type": "array", "items": { "type": "string" } },
+              "evidenceRefs": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
               "explanation": { "type": "string" }
             },
             "additionalProperties": true
@@ -137,7 +145,13 @@
       "required": ["kind", "summary", "idempotencyKey"],
       "properties": {
         "kind": {
-          "enum": ["same_agent", "retry", "delegated_issue", "response_wake", "monitor"]
+          "enum": [
+            "same_agent",
+            "retry",
+            "delegated_issue",
+            "response_wake",
+            "monitor"
+          ]
         },
         "summary": { "type": "string", "minLength": 1 },
         "idempotencyKey": { "type": "string", "minLength": 1 }
@@ -147,11 +161,15 @@
   },
   "allOf": [
     {
-      "if": { "properties": { "reportedWorkDisposition": { "const": "blocked" } } },
+      "if": {
+        "properties": { "reportedWorkDisposition": { "const": "blocked" } }
+      },
       "then": { "required": ["blocker"] }
     },
     {
-      "if": { "properties": { "reportedWorkDisposition": { "const": "yielded" } } },
+      "if": {
+        "properties": { "reportedWorkDisposition": { "const": "yielded" } }
+      },
       "then": { "required": ["continuation"] }
     }
   ],

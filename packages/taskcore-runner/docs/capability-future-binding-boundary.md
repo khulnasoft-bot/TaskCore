@@ -21,7 +21,7 @@ The package owns two contracts a future consumer implements:
 
 - **`ControlPlanePort`** — the narrow surface through which a runner opens a
   run, appends ordered events, records semantic operations, and submits a
-  terminal result. Capability injects the *mock* adapter behind this port; future upload integration
+  terminal result. Capability injects the _mock_ adapter behind this port; future upload integration
   injects a real one. The catalog, authorization engine, and conformance suite
   bind to the port, not to any adapter.
 - **`NativeSessionBackend`** — the normalized session surface for a future

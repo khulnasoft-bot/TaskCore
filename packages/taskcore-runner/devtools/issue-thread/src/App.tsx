@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   CAPABILITY_DEFAULT_FIXTURE_PROFILE,
@@ -24,7 +31,11 @@ import {
   type CapabilityCleanRoomIdentity,
   type CapabilityHarnessConfiguration,
 } from "./live-client";
-import { parseCapabilityRoute, capabilityRouteHref, type CapabilityRoute } from "./route";
+import {
+  parseCapabilityRoute,
+  capabilityRouteHref,
+  type CapabilityRoute,
+} from "./route";
 import { SurfaceNav, type CapabilityChatHistoryItem } from "./SurfaceNav";
 import { EvalAssertions, TurnGroup, type EvalAssertion } from "./ThreadItems";
 
@@ -49,21 +60,55 @@ const REPLAY_STEP_MS = 800;
 const PENDING_ANNOUNCEMENT = "A request is waiting for your answer.";
 const ANSWERED_ANNOUNCEMENT = "Your answer was recorded.";
 const SETTLED_ANNOUNCEMENT = "The pending request is resolved.";
-const SCENARIOS = ["hb-baseline", "dp-documents", "ix-interactions", "ar-artifacts", "wc-workspace-changes", "fr-file-reference", "pe-structured-plan", "te-command-execution", "mp-mcp-progress", "rs-web-research", "da-subagent-delegation", "mr-model-routing", "cc-context-compaction", "ag-generated-artifact", "rv-review-mode", "hk-hook-lifecycle", "mc-memory-citations", "sr-safety-review", "ti-terminal-input", "wt-intentional-wait", "pn-provider-notices", "ax-acpx-lifecycle", "ax-acpx-permissions", "ax-acpx-tools", "ax-acpx-events", "ax-acpx-failures"];
+const SCENARIOS = [
+  "hb-baseline",
+  "dp-documents",
+  "ix-interactions",
+  "ar-artifacts",
+  "wc-workspace-changes",
+  "fr-file-reference",
+  "pe-structured-plan",
+  "te-command-execution",
+  "mp-mcp-progress",
+  "rs-web-research",
+  "da-subagent-delegation",
+  "mr-model-routing",
+  "cc-context-compaction",
+  "ag-generated-artifact",
+  "rv-review-mode",
+  "hk-hook-lifecycle",
+  "mc-memory-citations",
+  "sr-safety-review",
+  "ti-terminal-input",
+  "wt-intentional-wait",
+  "pn-provider-notices",
+  "ax-acpx-lifecycle",
+  "ax-acpx-permissions",
+  "ax-acpx-tools",
+  "ax-acpx-events",
+  "ax-acpx-failures",
+];
 const CHAT_HISTORY_KEY = "taskcore-runner.capability.chat.history.v1";
 const CHAT_HARNESS_KEY = "taskcore-runner.capability.chat.harness.v1";
 const MODEL_PRESETS = {
   codex: ["gpt-5.4-mini", "gpt-5.4"],
   opencode: ["openrouter/deepseek/deepseek-v4-flash-0731"],
-  acpx: ["openrouter/deepseek/deepseek-v4-flash-0731", "claude-sonnet-5", "gpt-5.6-sol"],
+  acpx: [
+    "openrouter/deepseek/deepseek-v4-flash-0731",
+    "claude-sonnet-5",
+    "gpt-5.6-sol",
+  ],
 } as const;
 const ACPX_DEFAULT_MODELS = {
   claude: "claude-sonnet-5",
   codex: "gpt-5.6-sol",
 } as const;
 
-function acpxLabel(configuration: CapabilityHarnessConfiguration | null | undefined): string {
-  if (configuration?.provider !== "acpx") return configuration?.provider ?? "starting";
+function acpxLabel(
+  configuration: CapabilityHarnessConfiguration | null | undefined,
+): string {
+  if (configuration?.provider !== "acpx")
+    return configuration?.provider ?? "starting";
   const agent = configuration.acpxAgent ?? "codex";
   return `Real ${agent === "claude" ? "Claude" : "Codex"} via ACPX`;
 }
@@ -121,11 +166,17 @@ interface EmbeddedEvalReport {
   };
   view: CapabilityIssueThreadSnapshot;
   devtools: CapabilityDevtoolsSnapshot | null;
-  navigation: { suiteHref: string; previous: { label: string; href: string } | null; next: { label: string; href: string } | null };
+  navigation: {
+    suiteHref: string;
+    previous: { label: string; href: string } | null;
+    next: { label: string; href: string } | null;
+  };
 }
 
 declare global {
-  interface Window { __TASKCORE_EVAL_REPORT__?: EmbeddedEvalReport }
+  interface Window {
+    __TASKCORE_EVAL_REPORT__?: EmbeddedEvalReport;
+  }
 }
 
 interface StoredChatSession {
@@ -134,10 +185,14 @@ interface StoredChatSession {
   identity: CapabilityCleanRoomIdentity | null;
   updatedAt: string;
   configuration?: CapabilityHarnessConfiguration;
-  runtime?: Awaited<ReturnType<typeof capabilityLiveClient.newCleanRoom>>["runtime"];
+  runtime?: Awaited<
+    ReturnType<typeof capabilityLiveClient.newCleanRoom>
+  >["runtime"];
 }
 
-function defaultHarness(provider: CapabilityHarnessConfiguration["provider"] = "codex"): CapabilityHarnessConfiguration {
+function defaultHarness(
+  provider: CapabilityHarnessConfiguration["provider"] = "codex",
+): CapabilityHarnessConfiguration {
   return {
     provider,
     model: MODEL_PRESETS[provider][0],
@@ -148,19 +203,36 @@ function defaultHarness(provider: CapabilityHarnessConfiguration["provider"] = "
 
 function readHarnessConfiguration(): CapabilityHarnessConfiguration {
   try {
-    const value = JSON.parse(window.localStorage.getItem(CHAT_HARNESS_KEY) ?? "null") as Partial<CapabilityHarnessConfiguration> | null;
-    if (value && (value.provider === "codex" || value.provider === "opencode" || value.provider === "acpx") && typeof value.model === "string") {
-      const lifecyclePolicy = value.lifecyclePolicy?.mode === "per_turn"
-        ? { mode: "per_turn" as const, idleTimeoutMs: null }
-        : value.lifecyclePolicy?.mode === "warm" && Number.isSafeInteger(value.lifecyclePolicy.idleTimeoutMs) && Number(value.lifecyclePolicy.idleTimeoutMs) > 0
-          ? { mode: "warm" as const, idleTimeoutMs: Number(value.lifecyclePolicy.idleTimeoutMs) }
-          : { mode: "warm" as const, idleTimeoutMs: 300_000 };
+    const value = JSON.parse(
+      window.localStorage.getItem(CHAT_HARNESS_KEY) ?? "null",
+    ) as Partial<CapabilityHarnessConfiguration> | null;
+    if (
+      value &&
+      (value.provider === "codex" ||
+        value.provider === "opencode" ||
+        value.provider === "acpx") &&
+      typeof value.model === "string"
+    ) {
+      const lifecyclePolicy =
+        value.lifecyclePolicy?.mode === "per_turn"
+          ? { mode: "per_turn" as const, idleTimeoutMs: null }
+          : value.lifecyclePolicy?.mode === "warm" &&
+              Number.isSafeInteger(value.lifecyclePolicy.idleTimeoutMs) &&
+              Number(value.lifecyclePolicy.idleTimeoutMs) > 0
+            ? {
+                mode: "warm" as const,
+                idleTimeoutMs: Number(value.lifecyclePolicy.idleTimeoutMs),
+              }
+            : { mode: "warm" as const, idleTimeoutMs: 300_000 };
       return {
         provider: value.provider,
         model: value.model,
-        ...(value.provider === "acpx" ? {
-          acpxAgent: value.acpxAgent === "claude" ? value.acpxAgent : "codex",
-        } : {}),
+        ...(value.provider === "acpx"
+          ? {
+              acpxAgent:
+                value.acpxAgent === "claude" ? value.acpxAgent : "codex",
+            }
+          : {}),
         lifecyclePolicy,
       };
     }
@@ -170,9 +242,14 @@ function readHarnessConfiguration(): CapabilityHarnessConfiguration {
   return defaultHarness();
 }
 
-function persistHarnessConfiguration(configuration: CapabilityHarnessConfiguration): void {
+function persistHarnessConfiguration(
+  configuration: CapabilityHarnessConfiguration,
+): void {
   try {
-    window.localStorage.setItem(CHAT_HARNESS_KEY, JSON.stringify(configuration));
+    window.localStorage.setItem(
+      CHAT_HARNESS_KEY,
+      JSON.stringify(configuration),
+    );
   } catch {
     // Provider/model preference is convenient but not authority-bearing.
   }
@@ -180,14 +257,20 @@ function persistHarnessConfiguration(configuration: CapabilityHarnessConfigurati
 
 function readChatHistory(): StoredChatSession[] {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(CHAT_HISTORY_KEY) ?? "[]") as unknown;
+    const parsed = JSON.parse(
+      window.localStorage.getItem(CHAT_HISTORY_KEY) ?? "[]",
+    ) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is StoredChatSession =>
-      typeof item === "object" && item !== null &&
-      typeof (item as StoredChatSession).sessionId === "string" &&
-      typeof (item as StoredChatSession).updatedAt === "string" &&
-      typeof (item as StoredChatSession).snapshot === "object",
-    ).slice(0, 12);
+    return parsed
+      .filter(
+        (item): item is StoredChatSession =>
+          typeof item === "object" &&
+          item !== null &&
+          typeof (item as StoredChatSession).sessionId === "string" &&
+          typeof (item as StoredChatSession).updatedAt === "string" &&
+          typeof (item as StoredChatSession).snapshot === "object",
+      )
+      .slice(0, 12);
   } catch {
     return [];
   }
@@ -195,7 +278,10 @@ function readChatHistory(): StoredChatSession[] {
 
 function persistChatHistory(history: StoredChatSession[]): void {
   try {
-    window.localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history.slice(0, 12)));
+    window.localStorage.setItem(
+      CHAT_HISTORY_KEY,
+      JSON.stringify(history.slice(0, 12)),
+    );
   } catch {
     // History is a convenience; a blocked or full storage quota must not stop chat.
   }
@@ -205,7 +291,9 @@ function readStoredNumber(key: string, fallback: number): number {
   try {
     const raw = window.localStorage.getItem(key);
     const parsed = raw === null ? Number.NaN : Number.parseInt(raw, 10);
-    return Number.isFinite(parsed) ? Math.min(PANEL_MAX, Math.max(PANEL_MIN, parsed)) : fallback;
+    return Number.isFinite(parsed)
+      ? Math.min(PANEL_MAX, Math.max(PANEL_MIN, parsed))
+      : fallback;
   } catch {
     return fallback;
   }
@@ -225,7 +313,10 @@ function readStoredFlag(key: string, fallback: boolean): boolean {
  * account for the sticky panel head, which would otherwise sit on top of the
  * section header the deep link was supposed to reveal.
  */
-function scrollEvidenceIntoView(target: Element, block: "start" | "center"): void {
+function scrollEvidenceIntoView(
+  target: Element,
+  block: "start" | "center",
+): void {
   target.scrollIntoView({ block });
   if (block !== "start") return;
   const panel = target.closest<HTMLElement>(".pit-panel");
@@ -239,7 +330,10 @@ function describe(cause: unknown): string {
 }
 
 /** Resolution copy for a request that settled without this client answering it. */
-function settledAnnouncement(snapshot: CapabilityIssueThreadSnapshot, interactionId: string): string {
+function settledAnnouncement(
+  snapshot: CapabilityIssueThreadSnapshot,
+  interactionId: string,
+): string {
   for (const turn of snapshot.turns) {
     for (const item of turn.items) {
       if (item.kind === "interaction" && item.interactionId === interactionId) {
@@ -254,22 +348,30 @@ function currentTurnActivity(snapshot: CapabilityIssueThreadSnapshot): string {
   const harness = snapshot.identity.agentLabel.replace(/^Real /, "");
   const turn = snapshot.turns.at(-1);
   if (turn === undefined) return `Dispatching turn to ${harness}`;
-  const activity = [...turn.items].reverse().find((item) =>
-    item.kind === "tool_activity" || item.kind === "progress_activity" || item.kind === "provider_activity" ||
-    (item.kind === "agent_message" && item.streaming),
-  );
+  const activity = [...turn.items]
+    .reverse()
+    .find(
+      (item) =>
+        item.kind === "tool_activity" ||
+        item.kind === "progress_activity" ||
+        item.kind === "provider_activity" ||
+        (item.kind === "agent_message" && item.streaming),
+    );
   if (activity?.kind === "tool_activity") {
     return activity.status === "running"
       ? `Taskcore tool · ${activity.operationId}`
       : `Taskcore tool completed · ${activity.operationId}`;
   }
   if (activity?.kind === "progress_activity") return activity.summary;
-  if (activity?.kind === "agent_message") return `Receiving ${harness} response`;
+  if (activity?.kind === "agent_message")
+    return `Receiving ${harness} response`;
   return `Waiting for ${harness} activity`;
 }
 
 function useRoute(): CapabilityRoute {
-  const [route, setRoute] = useState(() => parseCapabilityRoute(window.location));
+  const [route, setRoute] = useState(() =>
+    parseCapabilityRoute(window.location),
+  );
   useEffect(() => {
     const onChange = () => setRoute(parseCapabilityRoute(window.location));
     window.addEventListener("hashchange", onChange);
@@ -284,11 +386,21 @@ function useRoute(): CapabilityRoute {
 
 function useLayout(): "side" | "overlay" | "segment" {
   const [layout, setLayout] = useState<"side" | "overlay" | "segment">(() =>
-    window.innerWidth <= 767 ? "segment" : window.innerWidth <= 1100 ? "overlay" : "side",
+    window.innerWidth <= 767
+      ? "segment"
+      : window.innerWidth <= 1100
+        ? "overlay"
+        : "side",
   );
   useEffect(() => {
     const onResize = () =>
-      setLayout(window.innerWidth <= 767 ? "segment" : window.innerWidth <= 1100 ? "overlay" : "side");
+      setLayout(
+        window.innerWidth <= 767
+          ? "segment"
+          : window.innerWidth <= 1100
+            ? "overlay"
+            : "side",
+      );
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -311,15 +423,31 @@ export function App() {
       : "🧯 Mock Taskcore · Issue thread";
   }, [chat, embeddedEval]);
 
-  const [snapshot, setSnapshot] = useState<CapabilityIssueThreadSnapshot | null>(null);
-  const [devtools, setDevtools] = useState<CapabilityDevtoolsSnapshot | null>(null);
-  const [identity, setIdentity] = useState<CapabilityCleanRoomIdentity | null>(null);
-  const initialHarnessRef = useRef<CapabilityHarnessConfiguration>(readHarnessConfiguration());
-  const [harness, setHarness] = useState<CapabilityHarnessConfiguration>(initialHarnessRef.current);
-  const [activeHarness, setActiveHarness] = useState<CapabilityHarnessConfiguration | null>(null);
-  const [providerRuntime, setProviderRuntime] = useState<Awaited<ReturnType<typeof capabilityLiveClient.newCleanRoom>>["runtime"]>(undefined);
-  const [chatHistory, setChatHistory] = useState<StoredChatSession[]>(readChatHistory);
-  const [historicSessionId, setHistoricSessionId] = useState<string | null>(null);
+  const [snapshot, setSnapshot] =
+    useState<CapabilityIssueThreadSnapshot | null>(null);
+  const [devtools, setDevtools] = useState<CapabilityDevtoolsSnapshot | null>(
+    null,
+  );
+  const [identity, setIdentity] = useState<CapabilityCleanRoomIdentity | null>(
+    null,
+  );
+  const initialHarnessRef = useRef<CapabilityHarnessConfiguration>(
+    readHarnessConfiguration(),
+  );
+  const [harness, setHarness] = useState<CapabilityHarnessConfiguration>(
+    initialHarnessRef.current,
+  );
+  const [activeHarness, setActiveHarness] =
+    useState<CapabilityHarnessConfiguration | null>(null);
+  const [providerRuntime, setProviderRuntime] =
+    useState<
+      Awaited<ReturnType<typeof capabilityLiveClient.newCleanRoom>>["runtime"]
+    >(undefined);
+  const [chatHistory, setChatHistory] =
+    useState<StoredChatSession[]>(readChatHistory);
+  const [historicSessionId, setHistoricSessionId] = useState<string | null>(
+    null,
+  );
   const liveRoomRef = useRef<StoredChatSession | null>(null);
   /**
    * Which surface produced `snapshot`. A hash change commits the new route in
@@ -332,15 +460,31 @@ export function App() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [loadNonce, setLoadNonce] = useState(0);
   const [settled, setSettled] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(() => embeddedEval !== null ||
-    readStoredFlag(route.surface === "chat" ? CHAT_PANEL_OPEN_KEY : PANEL_OPEN_KEY, false));
-  const [panelWidth, setPanelWidth] = useState(() => readStoredNumber(PANEL_WIDTH_KEY, 384));
-  const [devtoolsTab, setDevtoolsTab] = useState<CapabilityDevtoolsTab>(embeddedEval !== null ? "eval" : "evidence");
+  const [panelOpen, setPanelOpen] = useState(
+    () =>
+      embeddedEval !== null ||
+      readStoredFlag(
+        route.surface === "chat" ? CHAT_PANEL_OPEN_KEY : PANEL_OPEN_KEY,
+        false,
+      ),
+  );
+  const [panelWidth, setPanelWidth] = useState(() =>
+    readStoredNumber(PANEL_WIDTH_KEY, 384),
+  );
+  const [devtoolsTab, setDevtoolsTab] = useState<CapabilityDevtoolsTab>(
+    embeddedEval !== null ? "eval" : "evidence",
+  );
   const [segment, setSegment] = useState<"thread" | "evidence">(route.segment);
-  const [openSections, setOpenSections] = useState<CapabilityEvidenceSectionId[]>(["tools"]);
+  const [openSections, setOpenSections] = useState<
+    CapabilityEvidenceSectionId[]
+  >(["tools"]);
   const [selectedTurnId, setSelectedTurnId] = useState<string | "all">("all");
-  const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(route.record);
-  const [focusInteractionId, setFocusInteractionId] = useState<string | null>(null);
+  const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(
+    route.record,
+  );
+  const [focusInteractionId, setFocusInteractionId] = useState<string | null>(
+    null,
+  );
   const [confirmReset, setConfirmReset] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [showJump, setShowJump] = useState(false);
@@ -383,7 +527,12 @@ export function App() {
       setIdentity(null);
       setSnapshot({
         ...embeddedEval.view,
-        composer: { state: "disabled", helper: null, reason: "Immutable eval recording", pendingInteractionId: null },
+        composer: {
+          state: "disabled",
+          helper: null,
+          reason: "Immutable eval recording",
+          pendingInteractionId: null,
+        },
       });
       setDevtools(embeddedEval.devtools);
       setSnapshotSurface("issue");
@@ -399,7 +548,8 @@ export function App() {
           if (cancelled) return;
           rememberSession(response.sessionId, "cleanroom");
           setIdentity(response.identity ?? null);
-          const configuration = response.configuration ?? initialHarnessRef.current;
+          const configuration =
+            response.configuration ?? initialHarnessRef.current;
           setActiveHarness(configuration);
           // The server-returned immutable session configuration is authoritative
           // for both the active status and the options initially shown for the
@@ -410,7 +560,8 @@ export function App() {
           setSnapshot(response.view);
           setSnapshotSurface("chat");
         } catch (cause) {
-          if (!cancelled) setError(String(cause instanceof Error ? cause.message : cause));
+          if (!cancelled)
+            setError(String(cause instanceof Error ? cause.message : cause));
         }
       })();
     } else if (route.mode === "live") {
@@ -422,12 +573,18 @@ export function App() {
           setSnapshot(response.view);
           setSnapshotSurface("issue");
         } catch (cause) {
-          if (!cancelled) setError(String(cause instanceof Error ? cause.message : cause));
+          if (!cancelled)
+            setError(String(cause instanceof Error ? cause.message : cause));
         }
       })();
     } else {
       setIdentity(null);
-      setSnapshot(capabilityIssueThreadFixture(route.shot ?? "thread-baseline", route.fixtureProfile));
+      setSnapshot(
+        capabilityIssueThreadFixture(
+          route.shot ?? "thread-baseline",
+          route.fixtureProfile,
+        ),
+      );
       setSnapshotSurface("issue");
     }
     return () => {
@@ -436,7 +593,15 @@ export function App() {
       // into a thread that is no longer on screen.
       abandonTurn();
     };
-  }, [abandonTurn, chat, embeddedEval, route.mode, route.shot, route.fixtureProfile, loadNonce]);
+  }, [
+    abandonTurn,
+    chat,
+    embeddedEval,
+    route.mode,
+    route.shot,
+    route.fixtureProfile,
+    loadNonce,
+  ]);
 
   /* ------------------------------------------------------- deep-link params */
 
@@ -469,7 +634,9 @@ export function App() {
       if (cancelled) return;
       const target =
         record === null
-          ? document.querySelector(`[data-evidence-section="${CSS.escape(panel)}"]`)
+          ? document.querySelector(
+              `[data-evidence-section="${CSS.escape(panel)}"]`,
+            )
           : document.querySelector(`[data-record-id="${CSS.escape(record)}"]`);
       if (target !== null) {
         scrollEvidenceIntoView(target, record === null ? "start" : "center");
@@ -495,8 +662,11 @@ export function App() {
         await document.fonts.ready;
       }
       if (cancelled) return;
-      if (scroller !== null) scroller.scrollTop = embeddedEval === null ? scroller.scrollHeight : 0;
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      if (scroller !== null)
+        scroller.scrollTop = embeddedEval === null ? scroller.scrollHeight : 0;
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
       if (!cancelled) setSettled(true);
     })();
     return () => {
@@ -505,14 +675,34 @@ export function App() {
   }, [snapshot]);
 
   useEffect(() => {
-    if (embeddedEval !== null || !panelOpen || snapshot === null || route.mode !== "live") return;
+    if (
+      embeddedEval !== null ||
+      !panelOpen ||
+      snapshot === null ||
+      route.mode !== "live"
+    )
+      return;
     if (historicSessionId !== null) return;
     let cancelled = false;
-    void capabilityLiveClient.devtools(snapshot.sessionId)
-      .then((next) => { if (!cancelled) setDevtools(next); })
-      .catch((cause) => { if (!cancelled) setActionError(describe(cause)); });
-    return () => { cancelled = true; };
-  }, [embeddedEval, historicSessionId, panelOpen, route.mode, snapshot?.renderedAt, snapshot?.sessionId]);
+    void capabilityLiveClient
+      .devtools(snapshot.sessionId)
+      .then((next) => {
+        if (!cancelled) setDevtools(next);
+      })
+      .catch((cause) => {
+        if (!cancelled) setActionError(describe(cause));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    embeddedEval,
+    historicSessionId,
+    panelOpen,
+    route.mode,
+    snapshot?.renderedAt,
+    snapshot?.sessionId,
+  ]);
 
   useEffect(() => {
     if (!chat || snapshot === null || historicSessionId !== null) return;
@@ -526,11 +716,22 @@ export function App() {
     };
     liveRoomRef.current = record;
     setChatHistory((current) => {
-      const next = [record, ...current.filter((item) => item.sessionId !== record.sessionId)].slice(0, 12);
+      const next = [
+        record,
+        ...current.filter((item) => item.sessionId !== record.sessionId),
+      ].slice(0, 12);
       persistChatHistory(next);
       return next;
     });
-  }, [activeHarness, chat, historicSessionId, identity, providerRuntime, snapshot?.renderedAt, snapshot?.sessionId]);
+  }, [
+    activeHarness,
+    chat,
+    historicSessionId,
+    identity,
+    providerRuntime,
+    snapshot?.renderedAt,
+    snapshot?.sessionId,
+  ]);
 
   useEffect(() => {
     if (snapshot === null) return;
@@ -546,7 +747,9 @@ export function App() {
       return;
     }
     if (snapshot.connection.state === "reconnecting") {
-      setAnnouncement(`Connection lost — retrying (attempt ${snapshot.connection.attempt}).`);
+      setAnnouncement(
+        `Connection lost — retrying (attempt ${snapshot.connection.attempt}).`,
+      );
       return;
     }
     if (announced === null) return;
@@ -554,7 +757,9 @@ export function App() {
     // only the now-false "still waiting" guidance is replaced, so a screen
     // reader never carries pending-state copy into later turns (TASK-16978).
     setAnnouncement((current) =>
-      current === PENDING_ANNOUNCEMENT ? settledAnnouncement(snapshot, announced) : current,
+      current === PENDING_ANNOUNCEMENT
+        ? settledAnnouncement(snapshot, announced)
+        : current,
     );
   }, [snapshot]);
 
@@ -563,7 +768,10 @@ export function App() {
   const persistPanel = useCallback(
     (open: boolean, width: number) => {
       try {
-        window.localStorage.setItem(chat ? CHAT_PANEL_OPEN_KEY : PANEL_OPEN_KEY, String(open));
+        window.localStorage.setItem(
+          chat ? CHAT_PANEL_OPEN_KEY : PANEL_OPEN_KEY,
+          String(open),
+        );
         window.localStorage.setItem(PANEL_WIDTH_KEY, String(width));
       } catch {
         // Panel preference is a convenience, never a correctness requirement.
@@ -578,7 +786,9 @@ export function App() {
       setDevtoolsTab("evidence");
       setSegment("evidence");
       setSelectedTurnId("all");
-      setOpenSections((current) => (current.includes(section) ? current : [...current, section]));
+      setOpenSections((current) =>
+        current.includes(section) ? current : [...current, section],
+      );
       setHighlightedRecordId(recordId);
       persistPanel(true, panelWidth);
       window.setTimeout(() => {
@@ -597,7 +807,10 @@ export function App() {
     // Focus came into the panel when it opened (§9.2), so hand it back to the
     // visible control that owns the panel rather than dropping it on `body`.
     window.setTimeout(() => {
-      const candidates = ['[data-testid="evidence-toggle"]', '[data-testid="segment-thread"]'];
+      const candidates = [
+        '[data-testid="evidence-toggle"]',
+        '[data-testid="segment-thread"]',
+      ];
       for (const selector of candidates) {
         const control = document.querySelector<HTMLElement>(selector);
         if (control !== null && control.offsetParent !== null) {
@@ -610,7 +823,9 @@ export function App() {
 
   const jumpToThread = useCallback((anchorId: string) => {
     setSegment("thread");
-    const anchor = document.getElementById(anchorId) ?? document.querySelector(`#${CSS.escape(anchorId)}`);
+    const anchor =
+      document.getElementById(anchorId) ??
+      document.querySelector(`#${CSS.escape(anchorId)}`);
     anchor?.scrollIntoView({ block: "center" });
   }, []);
 
@@ -629,38 +844,60 @@ export function App() {
       // first request resolved it and the duplicate produced "not pending".
       const sessionId = snapshot.sessionId;
       setActionError(null);
-      setSnapshot((current) => current === null ? current : {
-        ...current,
-        turns: current.turns.map((turn) => ({
-          ...turn,
-          items: turn.items.map((item) =>
-            item.kind === "interaction" && item.interactionId === response.interactionId
-              ? { ...item, state: "submitting" as const, stateLabel: "Submitting…" }
-              : item,
-          ),
-        })),
-      });
+      setSnapshot((current) =>
+        current === null
+          ? current
+          : {
+              ...current,
+              turns: current.turns.map((turn) => ({
+                ...turn,
+                items: turn.items.map((item) =>
+                  item.kind === "interaction" &&
+                  item.interactionId === response.interactionId
+                    ? {
+                        ...item,
+                        state: "submitting" as const,
+                        stateLabel: "Submitting…",
+                      }
+                    : item,
+                ),
+              })),
+            },
+      );
       void capabilityLiveClient
-        .respond(sessionId, response.interactionId, response.outcome, response.result)
+        .respond(
+          sessionId,
+          response.interactionId,
+          response.outcome,
+          response.result,
+        )
         .then((next) => {
           setSnapshot(next.view);
           setAnnouncement(ANSWERED_ANNOUNCEMENT);
         })
         .catch((cause) => {
           setActionError(describe(cause));
-          setSnapshot((current) => current === null ? current : {
-            ...current,
-            turns: current.turns.map((turn) => ({
-              ...turn,
-              items: turn.items.map((item) =>
-                item.kind === "interaction" &&
-                item.interactionId === response.interactionId &&
-                item.state === "submitting"
-                  ? { ...item, state: "pending" as const, stateLabel: "Waiting for you" }
-                  : item,
-              ),
-            })),
-          });
+          setSnapshot((current) =>
+            current === null
+              ? current
+              : {
+                  ...current,
+                  turns: current.turns.map((turn) => ({
+                    ...turn,
+                    items: turn.items.map((item) =>
+                      item.kind === "interaction" &&
+                      item.interactionId === response.interactionId &&
+                      item.state === "submitting"
+                        ? {
+                            ...item,
+                            state: "pending" as const,
+                            stateLabel: "Waiting for you",
+                          }
+                        : item,
+                    ),
+                  })),
+                },
+          );
         });
     },
     [route.mode, snapshot],
@@ -684,7 +921,9 @@ export function App() {
       turnAbortRef.current = controller;
       setStreamingTurn(true);
       setSnapshot((current) =>
-        current === null ? current : { ...current, composer: { ...current.composer, state: "sending" } },
+        current === null
+          ? current
+          : { ...current, composer: { ...current.composer, state: "sending" } },
       );
       void capabilityLiveClient
         .send(snapshot.sessionId, message, {
@@ -700,11 +939,17 @@ export function App() {
           }
         })
         .catch((cause) => {
-          if (turnGenerationRef.current !== generation || controller.signal.aborted) return;
+          if (
+            turnGenerationRef.current !== generation ||
+            controller.signal.aborted
+          )
+            return;
           setActionError(describe(cause));
           // A refused turn must not strand the composer in `sending`.
           setSnapshot((stale) =>
-            stale === null ? stale : { ...stale, composer: { ...stale.composer, state: "ready" } },
+            stale === null
+              ? stale
+              : { ...stale, composer: { ...stale.composer, state: "ready" } },
           );
         })
         .finally(() => {
@@ -727,18 +972,26 @@ export function App() {
         void capabilityLiveClient
           .stop(current.sessionId)
           .then((next) => {
-            if (!streaming && turnAbortRef.current === null) setSnapshot(next.view);
+            if (!streaming && turnAbortRef.current === null)
+              setSnapshot(next.view);
           })
           .catch((cause) => setActionError(describe(cause)));
         return current;
       }
       const turns = current.turns.map((turn, index) =>
-        index === current.turns.length - 1 ? { ...turn, stoppedByUser: true } : turn,
+        index === current.turns.length - 1
+          ? { ...turn, stoppedByUser: true }
+          : turn,
       );
       return {
         ...current,
         turns,
-        composer: { state: "ready", helper: null, reason: null, pendingInteractionId: null },
+        composer: {
+          state: "ready",
+          helper: null,
+          reason: null,
+          pendingInteractionId: null,
+        },
       };
     });
     setAnnouncement("Turn stopped. Partial output is preserved.");
@@ -749,22 +1002,25 @@ export function App() {
    * server always answers with a new session id and new mock identities, so the
    * client's job is only to forget the old ones.
    */
-  const adoptCleanRoom = useCallback((next: Awaited<ReturnType<typeof capabilityLiveClient.newCleanRoom>>) => {
-    rememberSession(next.sessionId, "cleanroom");
-    setIdentity(next.identity ?? null);
-    const configuration = next.configuration ?? harness;
-    setActiveHarness(configuration);
-    setHarness(configuration);
-    setProviderRuntime(next.runtime);
-    setHistoricSessionId(null);
-    setSnapshot(next.view);
-    setDevtools(null);
-    setError(null);
-    setActionError(null);
-    setAnnouncement(
-      `New clean-room chat started on ${next.view.issue.identifier}. The previous session was closed.`,
-    );
-  }, [harness]);
+  const adoptCleanRoom = useCallback(
+    (next: Awaited<ReturnType<typeof capabilityLiveClient.newCleanRoom>>) => {
+      rememberSession(next.sessionId, "cleanroom");
+      setIdentity(next.identity ?? null);
+      const configuration = next.configuration ?? harness;
+      setActiveHarness(configuration);
+      setHarness(configuration);
+      setProviderRuntime(next.runtime);
+      setHistoricSessionId(null);
+      setSnapshot(next.view);
+      setDevtools(null);
+      setError(null);
+      setActionError(null);
+      setAnnouncement(
+        `New clean-room chat started on ${next.view.issue.identifier}. The previous session was closed.`,
+      );
+    },
+    [harness],
+  );
 
   const newChat = useCallback(() => {
     const model = harness.model?.trim() ?? "";
@@ -784,43 +1040,52 @@ export function App() {
     abandonTurn();
     setAnnouncement("Starting a new clean-room chat…");
     void capabilityLiveClient
-      .newCleanRoom(liveRoomRef.current?.sessionId ?? snapshot?.sessionId ?? null, configuration)
+      .newCleanRoom(
+        liveRoomRef.current?.sessionId ?? snapshot?.sessionId ?? null,
+        configuration,
+      )
       .then(adoptCleanRoom)
       .catch((cause) => setActionError(describe(cause)));
   }, [abandonTurn, adoptCleanRoom, harness, snapshot]);
 
-  const selectChatHistory = useCallback((sessionId: string) => {
-    const live = liveRoomRef.current;
-    if (live?.sessionId === sessionId) {
-      setSnapshot(live.snapshot);
-      setIdentity(live.identity);
-      setActiveHarness(live.configuration ?? null);
-      if (live.configuration !== undefined) setHarness(live.configuration);
-      setProviderRuntime(live.runtime);
-      setDevtools(null);
-      setHistoricSessionId(null);
-      setActionError(null);
-      return;
-    }
-    const archived = chatHistory.find((item) => item.sessionId === sessionId);
-    if (archived === undefined) return;
-    abandonTurn();
-    const configuration = archived.configuration ?? defaultHarness();
-    void capabilityLiveClient.loadCleanRoom(sessionId, configuration)
-      .then((restored) => {
-        rememberSession(restored.sessionId, "cleanroom");
-        setSnapshot(restored.view);
-        setIdentity(restored.identity ?? archived.identity);
-        setActiveHarness(restored.configuration ?? configuration);
-        setHarness(restored.configuration ?? configuration);
-        setProviderRuntime(restored.runtime);
+  const selectChatHistory = useCallback(
+    (sessionId: string) => {
+      const live = liveRoomRef.current;
+      if (live?.sessionId === sessionId) {
+        setSnapshot(live.snapshot);
+        setIdentity(live.identity);
+        setActiveHarness(live.configuration ?? null);
+        if (live.configuration !== undefined) setHarness(live.configuration);
+        setProviderRuntime(live.runtime);
         setDevtools(null);
         setHistoricSessionId(null);
         setActionError(null);
-        setAnnouncement("Archived chat restored. The runner will resume when you send a message.");
-      })
-      .catch((cause) => setActionError(describe(cause)));
-  }, [abandonTurn, chatHistory]);
+        return;
+      }
+      const archived = chatHistory.find((item) => item.sessionId === sessionId);
+      if (archived === undefined) return;
+      abandonTurn();
+      const configuration = archived.configuration ?? defaultHarness();
+      void capabilityLiveClient
+        .loadCleanRoom(sessionId, configuration)
+        .then((restored) => {
+          rememberSession(restored.sessionId, "cleanroom");
+          setSnapshot(restored.view);
+          setIdentity(restored.identity ?? archived.identity);
+          setActiveHarness(restored.configuration ?? configuration);
+          setHarness(restored.configuration ?? configuration);
+          setProviderRuntime(restored.runtime);
+          setDevtools(null);
+          setHistoricSessionId(null);
+          setActionError(null);
+          setAnnouncement(
+            "Archived chat restored. The runner will resume when you send a message.",
+          );
+        })
+        .catch((cause) => setActionError(describe(cause)));
+    },
+    [abandonTurn, chatHistory],
+  );
 
   const reset = useCallback(() => {
     setConfirmReset(false);
@@ -842,9 +1107,20 @@ export function App() {
         .catch((cause) => setActionError(describe(cause)));
       return;
     }
-    setSnapshot(capabilityIssueThreadFixture("thread-baseline", route.fixtureProfile));
-    setAnnouncement("Scenario reset. The mock state is back to its clean seed.");
-  }, [abandonTurn, adoptCleanRoom, chat, route.fixtureProfile, route.mode, snapshot]);
+    setSnapshot(
+      capabilityIssueThreadFixture("thread-baseline", route.fixtureProfile),
+    );
+    setAnnouncement(
+      "Scenario reset. The mock state is back to its clean seed.",
+    );
+  }, [
+    abandonTurn,
+    adoptCleanRoom,
+    chat,
+    route.fixtureProfile,
+    route.mode,
+    snapshot,
+  ]);
 
   const retry = useCallback(() => {
     if (route.mode === "live" && snapshot !== null) {
@@ -860,7 +1136,12 @@ export function App() {
         : {
             ...current,
             connection: { state: "connected", attempt: 0 },
-            composer: { state: "ready", helper: null, reason: null, pendingInteractionId: null },
+            composer: {
+              state: "ready",
+              helper: null,
+              reason: null,
+              pendingInteractionId: null,
+            },
           },
     );
     setReconnected(true);
@@ -885,7 +1166,9 @@ export function App() {
     if (snapshot === null || snapshot.replay === null) return null;
     const { total } = snapshot.replay;
     const ordinal =
-      route.at === null ? snapshot.replay.ordinal : Math.min(total, Math.max(0, route.at));
+      route.at === null
+        ? snapshot.replay.ordinal
+        : Math.min(total, Math.max(0, route.at));
     return { ordinal, total };
   }, [snapshot, route.at]);
 
@@ -904,7 +1187,9 @@ export function App() {
       return;
     }
     const timer = window.setTimeout(() => {
-      window.location.hash = capabilityRouteHref(route, { at: replay.ordinal + 1 });
+      window.location.hash = capabilityRouteHref(route, {
+        at: replay.ordinal + 1,
+      });
     }, REPLAY_STEP_MS);
     return () => window.clearTimeout(timer);
   }, [playing, replay, route]);
@@ -916,7 +1201,8 @@ export function App() {
   /* ---------------------------------------------------------------- render */
 
   const denialCount = useMemo(
-    () => (snapshot === null ? 0 : capabilityDenialCount(snapshot.evidence, null)),
+    () =>
+      snapshot === null ? 0 : capabilityDenialCount(snapshot.evidence, null),
     [snapshot],
   );
   const historyItems: CapabilityChatHistoryItem[] = chatHistory.map((item) => ({
@@ -931,17 +1217,31 @@ export function App() {
       surface={route.surface}
       history={historyItems}
       activeSessionId={snapshot?.sessionId ?? null}
-      onNewChat={chat ? newChat : () => { window.location.hash = "#/chat"; }}
+      onNewChat={
+        chat
+          ? newChat
+          : () => {
+              window.location.hash = "#/chat";
+            }
+      }
       onSelectHistory={selectChatHistory}
     />
   );
 
   if (error !== null) {
     return (
-      <div className="pit-app" data-thread-state="failed" data-surface={route.surface}>
+      <div
+        className="pit-app"
+        data-thread-state="failed"
+        data-surface={route.surface}
+      >
         {surfaceNav}
         <main className="pit-app-error">
-          <p className="pit-composer-reason" role="alert" data-testid="surface-error">
+          <p
+            className="pit-composer-reason"
+            role="alert"
+            data-testid="surface-error"
+          >
             {chat
               ? `The clean-room chat could not start the selected provider: ${error}`
               : error}
@@ -949,17 +1249,22 @@ export function App() {
           {chat ? (
             <>
               <p className="pit-muted">
-                The clean room only runs against the selected real provider through real runnerd, so it does not fall
-                back to a fixture or a recording.
+                The clean room only runs against the selected real provider
+                through real runnerd, so it does not fall back to a fixture or a
+                recording.
               </p>
-              <section className="pit-harness-picker" aria-label="Chat provider recovery options">
+              <section
+                className="pit-harness-picker"
+                aria-label="Chat provider recovery options"
+              >
                 <label>
                   <span>Provider</span>
                   <select
                     data-testid="chat-provider"
                     value={harness.provider}
                     onChange={(event) => {
-                      const provider = event.target.value as CapabilityHarnessConfiguration["provider"];
+                      const provider = event.target
+                        .value as CapabilityHarnessConfiguration["provider"];
                       setHarness((current) => ({
                         ...defaultHarness(provider),
                         lifecyclePolicy: current.lifecyclePolicy,
@@ -978,7 +1283,9 @@ export function App() {
                       data-testid="chat-acpx-agent"
                       value={harness.acpxAgent ?? "codex"}
                       onChange={(event) => {
-                        const acpxAgent = event.target.value as NonNullable<CapabilityHarnessConfiguration["acpxAgent"]>;
+                        const acpxAgent = event.target.value as NonNullable<
+                          CapabilityHarnessConfiguration["acpxAgent"]
+                        >;
                         setHarness((current) => ({
                           ...current,
                           acpxAgent,
@@ -996,12 +1303,15 @@ export function App() {
                   <select
                     data-testid="chat-lifecycle-mode"
                     value={harness.lifecyclePolicy.mode}
-                    onChange={(event) => setHarness((current) => ({
-                      ...current,
-                      lifecyclePolicy: event.target.value === "per_turn"
-                        ? { mode: "per_turn", idleTimeoutMs: null }
-                        : { mode: "warm", idleTimeoutMs: 300_000 },
-                    }))}
+                    onChange={(event) =>
+                      setHarness((current) => ({
+                        ...current,
+                        lifecyclePolicy:
+                          event.target.value === "per_turn"
+                            ? { mode: "per_turn", idleTimeoutMs: null }
+                            : { mode: "warm", idleTimeoutMs: 300_000 },
+                      }))
+                    }
                   >
                     <option value="warm">Warm session</option>
                     <option value="per_turn">Turn by turn</option>
@@ -1014,14 +1324,20 @@ export function App() {
                       data-testid="chat-idle-timeout"
                       type="number"
                       min={1}
-                      value={Math.round((harness.lifecyclePolicy.idleTimeoutMs ?? 300_000) / 1_000)}
-                      onChange={(event) => setHarness((current) => ({
-                        ...current,
-                        lifecyclePolicy: {
-                          mode: "warm",
-                          idleTimeoutMs: Math.max(1, Number(event.target.value)) * 1_000,
-                        },
-                      }))}
+                      value={Math.round(
+                        (harness.lifecyclePolicy.idleTimeoutMs ?? 300_000) /
+                          1_000,
+                      )}
+                      onChange={(event) =>
+                        setHarness((current) => ({
+                          ...current,
+                          lifecyclePolicy: {
+                            mode: "warm",
+                            idleTimeoutMs:
+                              Math.max(1, Number(event.target.value)) * 1_000,
+                          },
+                        }))
+                      }
                     />
                   </label>
                 ) : null}
@@ -1031,11 +1347,22 @@ export function App() {
                     data-testid="chat-model"
                     list={`chat-recovery-models-${harness.provider}`}
                     value={harness.model ?? ""}
-                    placeholder={harness.provider === "opencode" ? "provider/model" : "model name"}
-                    onChange={(event) => setHarness((current) => ({ ...current, model: event.target.value }))}
+                    placeholder={
+                      harness.provider === "opencode"
+                        ? "provider/model"
+                        : "model name"
+                    }
+                    onChange={(event) =>
+                      setHarness((current) => ({
+                        ...current,
+                        model: event.target.value,
+                      }))
+                    }
                   />
                   <datalist id={`chat-recovery-models-${harness.provider}`}>
-                    {MODEL_PRESETS[harness.provider].map((model) => <option key={model} value={model} />)}
+                    {MODEL_PRESETS[harness.provider].map((model) => (
+                      <option key={model} value={model} />
+                    ))}
                   </datalist>
                 </label>
                 <button
@@ -1066,7 +1393,11 @@ export function App() {
 
   if (snapshot === null) {
     return (
-      <div className="pit-app" data-thread-state="loading" data-surface={route.surface}>
+      <div
+        className="pit-app"
+        data-thread-state="loading"
+        data-surface={route.surface}
+      >
         {surfaceNav}
         <main className="pit-app-error">
           <p className="pit-muted" role="status" data-testid="surface-loading">
@@ -1115,7 +1446,9 @@ export function App() {
           if (layout === "segment") setSegment(next ? "evidence" : "thread");
         }}
         onSelectScenario={(scenario) => {
-          window.location.hash = capabilityRouteHref(route, { fixtureProfile: scenario });
+          window.location.hash = capabilityRouteHref(route, {
+            fixtureProfile: scenario,
+          });
         }}
         onReplay={() => {
           window.location.hash = capabilityRouteHref(route, {
@@ -1130,7 +1463,10 @@ export function App() {
       />
 
       {chat && embeddedEval === null ? (
-        <section className="pit-harness-picker" aria-label="Chat provider and model">
+        <section
+          className="pit-harness-picker"
+          aria-label="Chat provider and model"
+        >
           <label>
             <span>Provider</span>
             <select
@@ -1138,7 +1474,8 @@ export function App() {
               value={harness.provider}
               disabled={streamingTurn}
               onChange={(event) => {
-                const provider = event.target.value as CapabilityHarnessConfiguration["provider"];
+                const provider = event.target
+                  .value as CapabilityHarnessConfiguration["provider"];
                 setHarness((current) => ({
                   ...defaultHarness(provider),
                   lifecyclePolicy: current.lifecyclePolicy,
@@ -1158,7 +1495,9 @@ export function App() {
                 value={harness.acpxAgent ?? "codex"}
                 disabled={streamingTurn}
                 onChange={(event) => {
-                  const acpxAgent = event.target.value as NonNullable<CapabilityHarnessConfiguration["acpxAgent"]>;
+                  const acpxAgent = event.target.value as NonNullable<
+                    CapabilityHarnessConfiguration["acpxAgent"]
+                  >;
                   setHarness((current) => ({
                     ...current,
                     acpxAgent,
@@ -1177,12 +1516,15 @@ export function App() {
               data-testid="chat-lifecycle-mode"
               value={harness.lifecyclePolicy.mode}
               disabled={streamingTurn}
-              onChange={(event) => setHarness((current) => ({
-                ...current,
-                lifecyclePolicy: event.target.value === "per_turn"
-                  ? { mode: "per_turn", idleTimeoutMs: null }
-                  : { mode: "warm", idleTimeoutMs: 300_000 },
-              }))}
+              onChange={(event) =>
+                setHarness((current) => ({
+                  ...current,
+                  lifecyclePolicy:
+                    event.target.value === "per_turn"
+                      ? { mode: "per_turn", idleTimeoutMs: null }
+                      : { mode: "warm", idleTimeoutMs: 300_000 },
+                }))
+              }
             >
               <option value="warm">Warm session</option>
               <option value="per_turn">Turn by turn</option>
@@ -1196,13 +1538,21 @@ export function App() {
                 type="number"
                 min={1}
                 step={1}
-                value={Math.round(harness.lifecyclePolicy.idleTimeoutMs / 1_000)}
+                value={Math.round(
+                  harness.lifecyclePolicy.idleTimeoutMs / 1_000,
+                )}
                 disabled={streamingTurn}
                 onChange={(event) => {
-                  const seconds = Math.max(1, Number.parseInt(event.target.value || "1", 10));
+                  const seconds = Math.max(
+                    1,
+                    Number.parseInt(event.target.value || "1", 10),
+                  );
                   setHarness((current) => ({
                     ...current,
-                    lifecyclePolicy: { mode: "warm", idleTimeoutMs: seconds * 1_000 },
+                    lifecyclePolicy: {
+                      mode: "warm",
+                      idleTimeoutMs: seconds * 1_000,
+                    },
                   }));
                 }}
               />
@@ -1215,11 +1565,22 @@ export function App() {
               list={`chat-models-${harness.provider}`}
               value={harness.model ?? ""}
               disabled={streamingTurn}
-              placeholder={harness.provider === "opencode" ? "provider/model" : "model name"}
-              onChange={(event) => setHarness((current) => ({ ...current, model: event.target.value }))}
+              placeholder={
+                harness.provider === "opencode"
+                  ? "provider/model"
+                  : "model name"
+              }
+              onChange={(event) =>
+                setHarness((current) => ({
+                  ...current,
+                  model: event.target.value,
+                }))
+              }
             />
             <datalist id={`chat-models-${harness.provider}`}>
-              {MODEL_PRESETS[harness.provider].map((model) => <option key={model} value={model} />)}
+              {MODEL_PRESETS[harness.provider].map((model) => (
+                <option key={model} value={model} />
+              ))}
             </datalist>
           </label>
           <button
@@ -1232,18 +1593,43 @@ export function App() {
           >
             Start new chat
           </button>
-          <span className="pit-harness-active" data-testid="chat-active-harness">
+          <span
+            className="pit-harness-active"
+            data-testid="chat-active-harness"
+          >
             Active: {acpxLabel(activeHarness)}
             {activeHarness?.model ? ` · ${activeHarness.model}` : ""}
-            {activeHarness ? ` · ${activeHarness.lifecyclePolicy.mode === "warm" ? `warm ${Math.round(activeHarness.lifecyclePolicy.idleTimeoutMs / 1_000)}s` : "turn by turn"}` : ""}
-            {providerRuntime?.runnerPid ? ` · runner PID ${providerRuntime.runnerPid}` : ""}
-            {activeHarness?.provider === "acpx" && providerRuntime?.sidecarPid ? ` · sidecar PID ${providerRuntime.sidecarPid}` : ""}
-            {activeHarness?.provider === "acpx" && providerRuntime?.agentPid ? ` · agent PID ${providerRuntime.agentPid}` : ""}
-            {activeHarness?.provider === "acpx" && providerRuntime?.driverSessionId ? ` · ACPX record ${providerRuntime.driverSessionId}` : ""}
-            {providerRuntime?.providerSessionId ? ` · session ${providerRuntime.providerSessionId}` : ""}
-            {activeHarness?.provider === "acpx" && providerRuntime?.providerVersion ? ` · ACPX ${providerRuntime.providerVersion}` : ""}
-            {activeHarness?.provider === "acpx" && providerRuntime?.agentServerVersion ? ` · agent ${providerRuntime.agentServerVersion}` : ""}
-            {activeHarness?.provider === "acpx" && providerRuntime?.acpProtocolVersion ? ` · ACP ${providerRuntime.acpProtocolVersion}` : ""}
+            {activeHarness
+              ? ` · ${activeHarness.lifecyclePolicy.mode === "warm" ? `warm ${Math.round(activeHarness.lifecyclePolicy.idleTimeoutMs / 1_000)}s` : "turn by turn"}`
+              : ""}
+            {providerRuntime?.runnerPid
+              ? ` · runner PID ${providerRuntime.runnerPid}`
+              : ""}
+            {activeHarness?.provider === "acpx" && providerRuntime?.sidecarPid
+              ? ` · sidecar PID ${providerRuntime.sidecarPid}`
+              : ""}
+            {activeHarness?.provider === "acpx" && providerRuntime?.agentPid
+              ? ` · agent PID ${providerRuntime.agentPid}`
+              : ""}
+            {activeHarness?.provider === "acpx" &&
+            providerRuntime?.driverSessionId
+              ? ` · ACPX record ${providerRuntime.driverSessionId}`
+              : ""}
+            {providerRuntime?.providerSessionId
+              ? ` · session ${providerRuntime.providerSessionId}`
+              : ""}
+            {activeHarness?.provider === "acpx" &&
+            providerRuntime?.providerVersion
+              ? ` · ACPX ${providerRuntime.providerVersion}`
+              : ""}
+            {activeHarness?.provider === "acpx" &&
+            providerRuntime?.agentServerVersion
+              ? ` · agent ${providerRuntime.agentServerVersion}`
+              : ""}
+            {activeHarness?.provider === "acpx" &&
+            providerRuntime?.acpProtocolVersion
+              ? ` · ACP ${providerRuntime.acpProtocolVersion}`
+              : ""}
             {providerRuntime?.status ? ` · ${providerRuntime.status}` : ""}
           </span>
         </section>
@@ -1252,14 +1638,33 @@ export function App() {
       {embeddedEval !== null ? (
         <nav className="pit-eval-nav" aria-label="Eval result navigation">
           <a href={embeddedEval.navigation.suiteHref}>← All results</a>
-          {embeddedEval.navigation.previous ? <a href={embeddedEval.navigation.previous.href}>← {embeddedEval.navigation.previous.label}</a> : <span />}
-          <strong>{embeddedEval.passed ? "PASS" : "FAIL"} · {embeddedEval.attemptId}</strong>
-          {embeddedEval.navigation.next ? <a href={embeddedEval.navigation.next.href}>{embeddedEval.navigation.next.label} →</a> : <span />}
+          {embeddedEval.navigation.previous ? (
+            <a href={embeddedEval.navigation.previous.href}>
+              ← {embeddedEval.navigation.previous.label}
+            </a>
+          ) : (
+            <span />
+          )}
+          <strong>
+            {embeddedEval.passed ? "PASS" : "FAIL"} · {embeddedEval.attemptId}
+          </strong>
+          {embeddedEval.navigation.next ? (
+            <a href={embeddedEval.navigation.next.href}>
+              {embeddedEval.navigation.next.label} →
+            </a>
+          ) : (
+            <span />
+          )}
         </nav>
       ) : null}
 
       {actionError !== null ? (
-        <p className="pit-banner" data-tone="danger" role="alert" data-testid="action-error">
+        <p
+          className="pit-banner"
+          data-tone="danger"
+          role="alert"
+          data-testid="action-error"
+        >
           <span aria-hidden="true">⚠</span>
           {actionError}
           <button
@@ -1285,11 +1690,18 @@ export function App() {
       ) : null}
 
       {streamingTurn ? (
-        <div className="pit-live-activity" role="status" aria-live="polite" data-testid="live-activity">
+        <div
+          className="pit-live-activity"
+          role="status"
+          aria-live="polite"
+          data-testid="live-activity"
+        >
           <span className="pit-live-activity-pulse" aria-hidden="true" />
           <Icon name="terminal" />
           <span>{currentTurnActivity(snapshot)}</span>
-          <span className="pit-live-activity-tail" aria-hidden="true">live</span>
+          <span className="pit-live-activity-tail" aria-hidden="true">
+            live
+          </span>
         </div>
       ) : null}
 
@@ -1355,29 +1767,41 @@ export function App() {
               onScroll={(event) => {
                 const element = event.currentTarget;
                 const distance =
-                  element.scrollHeight - element.scrollTop - element.clientHeight;
+                  element.scrollHeight -
+                  element.scrollTop -
+                  element.clientHeight;
                 setShowJump(distance > 300);
               }}
             >
               <div className="pit-thread">
                 {embeddedEval !== null ? (
-                  <div className="pit-eval-boundary" data-phase="execution"><strong>Eval execution</strong>{embeddedEval.publication ? <span>{embeddedEval.publication.notice}</span> : null}</div>
+                  <div className="pit-eval-boundary" data-phase="execution">
+                    <strong>Eval execution</strong>
+                    {embeddedEval.publication ? (
+                      <span>{embeddedEval.publication.notice}</span>
+                    ) : null}
+                  </div>
                 ) : null}
                 {snapshot.turns.length === 0 ? (
-                  <section className="pit-empty-thread" data-testid="clean-room-empty">
+                  <section
+                    className="pit-empty-thread"
+                    data-testid="clean-room-empty"
+                  >
                     <h2>Start a clean-room chat</h2>
                     <p>
                       This is a blank thread on a brand-new mock tenant:{" "}
                       <strong>{snapshot.issue.identifier}</strong> in{" "}
-                      <strong>Mock Taskcore (clean room)</strong>. Nothing has been said, called, or
-                      recorded yet.
+                      <strong>Mock Taskcore (clean room)</strong>. Nothing has
+                      been said, called, or recorded yet.
                     </p>
                     <p className="pit-muted">
-                      Your first message starts a real {snapshot.identity.agentLabel.replace(/^Real /, "")} turn through real runnerd. The agent may
-                      call the semantic tools this session exposes, and every record it creates lands
-                      in the mock control plane only — never a real Taskcore API. Detailed tool,
-                      policy, event, and state evidence stays in the Evidence drawer until you open
-                      it.
+                      Your first message starts a real{" "}
+                      {snapshot.identity.agentLabel.replace(/^Real /, "")} turn
+                      through real runnerd. The agent may call the semantic
+                      tools this session exposes, and every record it creates
+                      lands in the mock control plane only — never a real
+                      Taskcore API. Detailed tool, policy, event, and state
+                      evidence stays in the Evidence drawer until you open it.
                     </p>
                   </section>
                 ) : (
@@ -1390,20 +1814,40 @@ export function App() {
                         onRespond: respond,
                         focusInteractionId,
                       }}
-                      assertions={Object.fromEntries(embeddedEval?.checks
-                        .filter((check) => check.anchor.kind === "item")
-                        .map((check) => [check.anchor.id, [{ ...check } satisfies EvalAssertion]]) ?? [])}
-                      terminalAssertions={embeddedEval?.checks
-                        .filter((check) => check.anchor.kind === "turn" && check.anchor.id === turn.id)
-                        .map((check) => ({ ...check })) ?? []}
+                      assertions={Object.fromEntries(
+                        embeddedEval?.checks
+                          .filter((check) => check.anchor.kind === "item")
+                          .map((check) => [
+                            check.anchor.id,
+                            [{ ...check } satisfies EvalAssertion],
+                          ]) ?? [],
+                      )}
+                      terminalAssertions={
+                        embeddedEval?.checks
+                          .filter(
+                            (check) =>
+                              check.anchor.kind === "turn" &&
+                              check.anchor.id === turn.id,
+                          )
+                          .map((check) => ({ ...check })) ?? []
+                      }
                     />
                   ))
                 )}
                 {embeddedEval !== null ? (
                   <div className="pit-eval-boundary" data-phase="post-run">
                     <strong>Post-run state</strong>
-                    <span>{embeddedEval.publication ? "Company-state details withheld from public replay" : embeddedEval.run.finalStateSummary ?? `Final mock control-plane revision ${embeddedEval.run.finalRevision}`}</span>
-                    <EvalAssertions assertions={embeddedEval.checks.filter((check) => check.anchor.kind === "run")} />
+                    <span>
+                      {embeddedEval.publication
+                        ? "Company-state details withheld from public replay"
+                        : (embeddedEval.run.finalStateSummary ??
+                          `Final mock control-plane revision ${embeddedEval.run.finalRevision}`)}
+                    </span>
+                    <EvalAssertions
+                      assertions={embeddedEval.checks.filter(
+                        (check) => check.anchor.kind === "run",
+                      )}
+                    />
                   </div>
                 ) : null}
               </div>
@@ -1414,7 +1858,8 @@ export function App() {
                 className="pit-button pit-jump-pill"
                 onClick={() => {
                   const element = scrollRef.current;
-                  if (element !== null) element.scrollTop = element.scrollHeight;
+                  if (element !== null)
+                    element.scrollTop = element.scrollHeight;
                   setShowJump(false);
                 }}
               >
@@ -1423,21 +1868,23 @@ export function App() {
             ) : null}
           </div>
 
-          {embeddedEval === null ? <Composer
-            model={snapshot.composer}
-            sessionId={snapshot.sessionId}
-            onSend={send}
-            onStop={stop}
-            onRetry={retry}
-            onReset={() => (chat ? newChat() : setConfirmReset(true))}
-            resetLabel={chat ? "New chat" : "Reset scenario"}
-            onFocusPending={(interactionId) => {
-              setFocusInteractionId(interactionId);
-              document
-                .getElementById(`interaction-${interactionId}`)
-                ?.scrollIntoView({ block: "center" });
-            }}
-          /> : null}
+          {embeddedEval === null ? (
+            <Composer
+              model={snapshot.composer}
+              sessionId={snapshot.sessionId}
+              onSend={send}
+              onStop={stop}
+              onRetry={retry}
+              onReset={() => (chat ? newChat() : setConfirmReset(true))}
+              resetLabel={chat ? "New chat" : "Reset scenario"}
+              onFocusPending={(interactionId) => {
+                setFocusInteractionId(interactionId);
+                document
+                  .getElementById(`interaction-${interactionId}`)
+                  ?.scrollIntoView({ block: "center" });
+              }}
+            />
+          ) : null}
         </main>
 
         {showPanel && layout === "side" ? (
@@ -1454,7 +1901,10 @@ export function App() {
               const splitter = event.currentTarget;
               splitter.setPointerCapture(event.pointerId);
               const resize = (pointer: PointerEvent) => {
-                const next = Math.min(PANEL_MAX, Math.max(PANEL_MIN, window.innerWidth - pointer.clientX));
+                const next = Math.min(
+                  PANEL_MAX,
+                  Math.max(PANEL_MIN, window.innerWidth - pointer.clientX),
+                );
                 setPanelWidth(next);
               };
               const finish = () => {
@@ -1497,11 +1947,15 @@ export function App() {
             devtoolsTab={devtoolsTab}
             onDevtoolsTabChange={setDevtoolsTab}
             evalReport={embeddedEval}
-            {...(embeddedEval !== null || (route.mode === "live" && historicSessionId === null) ? { devtools } : {})}
+            {...(embeddedEval !== null ||
+            (route.mode === "live" && historicSessionId === null)
+              ? { devtools }
+              : {})}
             onForkRevision={(revision) => {
               abandonTurn();
               setActionError(null);
-              void capabilityLiveClient.fork(snapshot.sessionId, revision)
+              void capabilityLiveClient
+                .fork(snapshot.sessionId, revision)
                 .then((next) => {
                   rememberSession(next.sessionId, chat ? "cleanroom" : "issue");
                   setSnapshot(next.view);
@@ -1525,13 +1979,21 @@ export function App() {
             }
             onClose={closeEvidence}
             onJumpToThread={jumpToThread}
-            onInvokeTool={route.mode === "live" && historicSessionId === null ? async (operationId, input) => {
-              setActionError(null);
-              const next = await capabilityLiveClient.invokeTool(snapshot.sessionId, operationId, input);
-              setSnapshot(next.view);
-              setSelectedTurnId(next.toolTurnId);
-              return next.toolResult;
-            } : undefined}
+            onInvokeTool={
+              route.mode === "live" && historicSessionId === null
+                ? async (operationId, input) => {
+                    setActionError(null);
+                    const next = await capabilityLiveClient.invokeTool(
+                      snapshot.sessionId,
+                      operationId,
+                      input,
+                    );
+                    setSnapshot(next.view);
+                    setSelectedTurnId(next.toolTurnId);
+                    return next.toolResult;
+                  }
+                : undefined
+            }
           />
         ) : null}
       </div>

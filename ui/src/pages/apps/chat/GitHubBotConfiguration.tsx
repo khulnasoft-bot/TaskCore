@@ -317,11 +317,11 @@ export function GitHubPolicyEditor({
           <option value="report">Report only</option>
         </select>
         <p className="text-xs text-muted-foreground">
-          Taskcore computes the result for the exact reviewed commit.
-          Incomplete reviews cannot pass. To require it before merging, select
-          “Taskcore Review” in your GitHub branch protection or ruleset
-          settings and choose this bot’s GitHub App as the expected source. Run
-          a review first so the check appears in GitHub’s selector.
+          Taskcore computes the result for the exact reviewed commit. Incomplete
+          reviews cannot pass. To require it before merging, select “Taskcore
+          Review” in your GitHub branch protection or ruleset settings and
+          choose this bot’s GitHub App as the expected source. Run a review
+          first so the check appears in GitHub’s selector.
         </p>
         <a
           className="text-xs underline"

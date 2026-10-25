@@ -29,7 +29,10 @@ import { Button } from "@/components/ui/button";
 const ARTIFACTS_PAGE_SIZE = 30;
 const SEARCH_DEBOUNCE_MS = 250;
 
-export const ARTIFACT_KIND_FILTERS: { value: ArtifactKindFilter; label: string }[] = [
+export const ARTIFACT_KIND_FILTERS: {
+  value: ArtifactKindFilter;
+  label: string;
+}[] = [
   { value: "all", label: "All" },
   { value: "image", label: "Images" },
   { value: "video", label: "Videos" },
@@ -38,16 +41,22 @@ export const ARTIFACT_KIND_FILTERS: { value: ArtifactKindFilter; label: string }
   { value: "file", label: "Files" },
 ];
 
-export const ARTIFACT_GROUP_OPTIONS: { value: ArtifactGroupBy; label: string }[] = [
+export const ARTIFACT_GROUP_OPTIONS: {
+  value: ArtifactGroupBy;
+  label: string;
+}[] = [
   { value: "none", label: "None" },
   { value: "task", label: "Task" },
   { value: "parent_task", label: "Parent task" },
 ];
 
-const KIND_VALUES = new Set(ARTIFACT_KIND_FILTERS.map((filter) => filter.value));
+const KIND_VALUES = new Set(
+  ARTIFACT_KIND_FILTERS.map((filter) => filter.value),
+);
 
 function parseGroupBy(value: string | null): ArtifactGroupBy {
-  if (value === "none" || value === "task" || value === "parent_task") return value;
+  if (value === "none" || value === "task" || value === "parent_task")
+    return value;
   return "task";
 }
 
@@ -58,7 +67,10 @@ function parseKind(value: string | null): ArtifactKindFilter {
 }
 
 export function artifactGroupByLabel(value: ArtifactGroupBy): string {
-  return ARTIFACT_GROUP_OPTIONS.find((option) => option.value === value)?.label ?? "None";
+  return (
+    ARTIFACT_GROUP_OPTIONS.find((option) => option.value === value)?.label ??
+    "None"
+  );
 }
 
 export function Artifacts() {
@@ -177,7 +189,13 @@ export function Artifacts() {
     fetchNextPage,
     error,
   } = useInfiniteQuery({
-    queryKey: queryKeys.artifacts.list(selectedCompanyId!, kind, query, groupBy, groupIssueId),
+    queryKey: queryKeys.artifacts.list(
+      selectedCompanyId!,
+      kind,
+      query,
+      groupBy,
+      groupIssueId,
+    ),
     queryFn: ({ pageParam }) =>
       artifactsApi.list(selectedCompanyId!, {
         kind,
@@ -195,16 +213,22 @@ export function Artifacts() {
   useEffect(() => {
     const target = loadMoreRef.current;
     if (!target || !hasNextPage || isFetchingNextPage) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        void fetchNextPage();
-      }
-    }, { rootMargin: "320px 0px" });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "320px 0px" },
+    );
     observer.observe(target);
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const artifacts = useMemo(() => data?.pages.flatMap((page) => page.artifacts) ?? [], [data]);
+  const artifacts = useMemo(
+    () => data?.pages.flatMap((page) => page.artifacts) ?? [],
+    [data],
+  );
   const groups = useMemo(
     () => data?.pages.flatMap((page) => page.groups ?? []) ?? [],
     [data],
@@ -227,7 +251,12 @@ export function Artifacts() {
   }, [setBreadcrumbs, viewingSelectedStack, selectedGroup]);
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Package} message="Select an organization to view artifacts." />;
+    return (
+      <EmptyState
+        icon={Package}
+        message="Select an organization to view artifacts."
+      />
+    );
   }
 
   const showGroupCards = viewingStackList;
@@ -296,13 +325,19 @@ export function Artifacts() {
                   className="justify-between"
                 >
                   {option.label}
-                  {groupBy === option.value ? <Check className="h-3.5 w-3.5" /> : null}
+                  {groupBy === option.value ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : null}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Filter artifacts by type">
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="tablist"
+            aria-label="Filter artifacts by type"
+          >
             {ARTIFACT_KIND_FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -336,7 +371,9 @@ export function Artifacts() {
           </Link>
           {selectedGroup ? (
             <span className="truncate text-muted-foreground">
-              <span className="text-foreground/80">{selectedGroup.issue.identifier}</span>{" "}
+              <span className="text-foreground/80">
+                {selectedGroup.issue.identifier}
+              </span>{" "}
               {selectedGroup.title}
             </span>
           ) : null}
@@ -348,19 +385,32 @@ export function Artifacts() {
       {isLoading ? (
         <PageSkeleton variant="list" />
       ) : items.length === 0 ? (
-        <EmptyState icon={showGroupCards ? Layers : Package} message={emptyMessage} />
+        <EmptyState
+          icon={showGroupCards ? Layers : Package}
+          message={emptyMessage}
+        />
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {showGroupCards
               ? groups.map((group) => (
-                  <ArtifactGroupCard key={group.id} group={group} to={stackTo(group.issue.id)} />
+                  <ArtifactGroupCard
+                    key={group.id}
+                    group={group}
+                    to={stackTo(group.issue.id)}
+                  />
                 ))
               : artifacts.map((artifact) => (
-                  <ArtifactCard key={`${artifact.source}:${artifact.id}`} artifact={artifact} />
+                  <ArtifactCard
+                    key={`${artifact.source}:${artifact.id}`}
+                    artifact={artifact}
+                  />
                 ))}
           </div>
-          <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center pb-2 text-xs text-muted-foreground">
+          <div
+            ref={loadMoreRef}
+            className="flex min-h-10 items-center justify-center pb-2 text-xs text-muted-foreground"
+          >
             {isFetchingNextPage
               ? "Loading more artifacts..."
               : hasNextPage

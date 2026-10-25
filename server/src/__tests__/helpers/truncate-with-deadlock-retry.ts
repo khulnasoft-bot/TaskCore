@@ -19,7 +19,9 @@ export function errorHasPostgresCode(error: unknown, code: string): boolean {
 
 function isLateWriterRace(error: unknown): boolean {
   if (errorHasPostgresCode(error, DEADLOCK_DETECTED_CODE)) return true;
-  return error instanceof Error && error.message.includes(LATE_COMMENT_FOREIGN_KEY);
+  return (
+    error instanceof Error && error.message.includes(LATE_COMMENT_FOREIGN_KEY)
+  );
 }
 
 // A fixture cleanup can race a background write that the test's drain step

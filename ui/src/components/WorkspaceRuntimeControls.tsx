@@ -8,7 +8,14 @@ import {
   listWorkspaceCommandDefinitions,
   matchWorkspaceRuntimeServiceToCommand,
 } from "@taskcore/shared";
-import { Activity, ExternalLink, Loader2, Play, RotateCcw, Square } from "lucide-react";
+import {
+  Activity,
+  ExternalLink,
+  Loader2,
+  Play,
+  RotateCcw,
+  Square,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useManagedSandboxOnly } from "@/hooks/useManagedSandboxOnly";
 import { cn } from "@/lib/utils";
@@ -55,36 +62,40 @@ type LegacyWorkspaceRuntimeControlItem = WorkspaceRuntimeControlItem & {
   status?: string | null;
 };
 
-type WorkspaceRuntimeControlsProps = {
-  sections: WorkspaceRuntimeControlSections;
-  items?: never;
-  isPending?: boolean;
-  pendingRequest?: WorkspaceRuntimeControlRequest | null;
-  serviceEmptyMessage?: string;
-  jobEmptyMessage?: string;
-  emptyMessage?: never;
-  disabledHint?: string | null;
-  onAction: (request: WorkspaceRuntimeControlRequest) => void;
-  className?: string;
-  square?: boolean;
-} | {
-  sections?: never;
-  items: LegacyWorkspaceRuntimeControlItem[];
-  isPending?: boolean;
-  pendingRequest?: WorkspaceRuntimeControlRequest | null;
-  serviceEmptyMessage?: never;
-  jobEmptyMessage?: never;
-  emptyMessage?: string;
-  disabledHint?: string | null;
-  onAction: (request: WorkspaceRuntimeControlRequest) => void;
-  className?: string;
-  square?: boolean;
-};
+type WorkspaceRuntimeControlsProps =
+  | {
+      sections: WorkspaceRuntimeControlSections;
+      items?: never;
+      isPending?: boolean;
+      pendingRequest?: WorkspaceRuntimeControlRequest | null;
+      serviceEmptyMessage?: string;
+      jobEmptyMessage?: string;
+      emptyMessage?: never;
+      disabledHint?: string | null;
+      onAction: (request: WorkspaceRuntimeControlRequest) => void;
+      className?: string;
+      square?: boolean;
+    }
+  | {
+      sections?: never;
+      items: LegacyWorkspaceRuntimeControlItem[];
+      isPending?: boolean;
+      pendingRequest?: WorkspaceRuntimeControlRequest | null;
+      serviceEmptyMessage?: never;
+      jobEmptyMessage?: never;
+      emptyMessage?: string;
+      disabledHint?: string | null;
+      onAction: (request: WorkspaceRuntimeControlRequest) => void;
+      className?: string;
+      square?: boolean;
+    };
 
 export function hasRunningRuntimeServices(
   runtimeServices: Array<{ status: string }> | null | undefined,
 ) {
-  return (runtimeServices ?? []).some((service) => service.status === "starting" || service.status === "running");
+  return (runtimeServices ?? []).some(
+    (service) => service.status === "starting" || service.status === "running",
+  );
 }
 
 function buildServiceItem(
@@ -134,7 +145,9 @@ function buildJobItem(
     workspaceCommandId: command.id,
     runtimeServiceId: null,
     serviceIndex: null,
-    disabledReason: command.disabledReason ?? (!command.command ? "This job is missing a command." : null),
+    disabledReason:
+      command.disabledReason ??
+      (!command.command ? "This job is missing a command." : null),
   };
 }
 
@@ -152,21 +165,30 @@ export function buildWorkspaceRuntimeControlSections(input: {
 
   for (const command of commands) {
     if (command.kind === "job") {
-      jobs.push(buildJobItem(command, input.canRunJobs ?? input.canStartServices));
+      jobs.push(
+        buildJobItem(command, input.canRunJobs ?? input.canStartServices),
+      );
       continue;
     }
 
-    const runtimeService = matchWorkspaceRuntimeServiceToCommand(command, runtimeServices);
+    const runtimeService = matchWorkspaceRuntimeServiceToCommand(
+      command,
+      runtimeServices,
+    );
     if (runtimeService) matchedRuntimeServiceIds.add(runtimeService.id);
-    services.push(buildServiceItem(command, runtimeService, input.canStartServices));
+    services.push(
+      buildServiceItem(command, runtimeService, input.canStartServices),
+    );
   }
 
   const otherServices = runtimeServices
-    .filter((runtimeService) =>
-      !matchedRuntimeServiceIds.has(runtimeService.id)
-      && (runtimeService.status === "provisioning"
-        || runtimeService.status === "starting"
-        || runtimeService.status === "running"))
+    .filter(
+      (runtimeService) =>
+        !matchedRuntimeServiceIds.has(runtimeService.id) &&
+        (runtimeService.status === "provisioning" ||
+          runtimeService.status === "starting" ||
+          runtimeService.status === "running"),
+    )
     .map((runtimeService) => ({
       key: `runtime:${runtimeService.id}`,
       title: runtimeService.serviceName,
@@ -184,7 +206,8 @@ export function buildWorkspaceRuntimeControlSections(input: {
       workspaceCommandId: null,
       runtimeServiceId: runtimeService.id,
       serviceIndex: runtimeService.configIndex ?? null,
-      disabledReason: "This runtime service no longer matches a configured workspace command.",
+      disabledReason:
+        "This runtime service no longer matches a configured workspace command.",
     }));
 
   return {
@@ -210,13 +233,19 @@ export function getRunningRuntimeServiceUrl(
   sections: WorkspaceRuntimeControlSections,
 ) {
   const runningService = [...sections.services, ...sections.otherServices].find(
-    (item) => (item.statusLabel === "running" || item.statusLabel === "starting") && item.url,
+    (item) =>
+      (item.statusLabel === "running" || item.statusLabel === "starting") &&
+      item.url,
   );
   return runningService?.url ?? null;
 }
 
 function isActiveStatusLabel(statusLabel: string) {
-  return statusLabel === "running" || statusLabel === "starting" || statusLabel === "provisioning";
+  return (
+    statusLabel === "running" ||
+    statusLabel === "starting" ||
+    statusLabel === "provisioning"
+  );
 }
 
 function exposureFailureCopy(exposure: RuntimeExposureStatus | null) {
@@ -235,11 +264,18 @@ function exposureFailureCopy(exposure: RuntimeExposureStatus | null) {
   return null;
 }
 
-function ExposureFailureDetail({ exposure }: { exposure: RuntimeExposureStatus | null }) {
+function ExposureFailureDetail({
+  exposure,
+}: {
+  exposure: RuntimeExposureStatus | null;
+}) {
   const copy = exposureFailureCopy(exposure);
   if (!copy) return null;
   return (
-    <div className="space-y-1 break-words text-xs text-destructive" role="alert">
+    <div
+      className="space-y-1 break-words text-xs text-destructive"
+      role="alert"
+    >
       <div
         className="line-clamp-3 font-medium"
         title={exposure?.lastError ?? undefined}
@@ -265,63 +301,78 @@ export function buildWorkspaceServiceControlEntries(input: {
   pendingRequests?: WorkspaceRuntimeControlRequest[];
 }): WorkspaceServiceControlEntry[] {
   const runtimeServicesById = new Map(
-    (input.runtimeServices ?? []).map((runtimeService) => [runtimeService.id, runtimeService]),
+    (input.runtimeServices ?? []).map((runtimeService) => [
+      runtimeService.id,
+      runtimeService,
+    ]),
   );
-  const pendingRequests = input.pendingRequests
-    ?? (input.isPending && input.pendingRequest ? [input.pendingRequest] : []);
+  const pendingRequests =
+    input.pendingRequests ??
+    (input.isPending && input.pendingRequest ? [input.pendingRequest] : []);
 
-  return [...input.sections.services, ...input.sections.otherServices].map((item) => {
-    let state: WorkspaceServiceControlEntry["state"] =
-      item.statusLabel === "running"
-        ? "running"
-        : item.statusLabel === "provisioning"
-          ? "provisioning"
-          : item.statusLabel === "starting"
-            ? "starting"
-            : item.statusLabel === "failed"
-              ? "failed"
-              : "stopped";
+  return [...input.sections.services, ...input.sections.otherServices].map(
+    (item) => {
+      let state: WorkspaceServiceControlEntry["state"] =
+        item.statusLabel === "running"
+          ? "running"
+          : item.statusLabel === "provisioning"
+            ? "provisioning"
+            : item.statusLabel === "starting"
+              ? "starting"
+              : item.statusLabel === "failed"
+                ? "failed"
+                : "stopped";
 
-    const pendingRequest = pendingRequests.find((request) =>
-      request.action !== "run"
-      && (request.workspaceCommandId ?? null) === (item.workspaceCommandId ?? null)
-      && (request.runtimeServiceId ?? null) === (item.runtimeServiceId ?? null)
-      && (request.serviceIndex ?? null) === (item.serviceIndex ?? null));
-    if (pendingRequest) {
-      state = pendingRequest.action === "stop"
-        ? "stopping"
-        : pendingRequest.action === "restart"
-          ? "restarting"
-          : "starting";
-    }
+      const pendingRequest = pendingRequests.find(
+        (request) =>
+          request.action !== "run" &&
+          (request.workspaceCommandId ?? null) ===
+            (item.workspaceCommandId ?? null) &&
+          (request.runtimeServiceId ?? null) ===
+            (item.runtimeServiceId ?? null) &&
+          (request.serviceIndex ?? null) === (item.serviceIndex ?? null),
+      );
+      if (pendingRequest) {
+        state =
+          pendingRequest.action === "stop"
+            ? "stopping"
+            : pendingRequest.action === "restart"
+              ? "restarting"
+              : "starting";
+      }
 
-    const runtimeService = item.runtimeServiceId ? runtimeServicesById.get(item.runtimeServiceId) ?? null : null;
-    const failureDetail = state === "failed"
-      ? `Service failed${runtimeService?.stoppedAt ? ` · ${timeAgo(runtimeService.stoppedAt)}` : ""}`
-      : null;
-    const exposure = runtimeService?.exposure ?? item.exposure;
-    const exposureFailure = exposureFailureCopy(exposure);
-    const exposureDetail = exposure?.state === "pending"
-      ? "Provisioning HTTPS…"
-      : exposure?.state === "ready"
-        ? "HTTPS ready"
-        : exposureFailure
-          ? `${exposureFailure.label} · ${exposureFailure.remediation}`
+      const runtimeService = item.runtimeServiceId
+        ? (runtimeServicesById.get(item.runtimeServiceId) ?? null)
+        : null;
+      const failureDetail =
+        state === "failed"
+          ? `Service failed${runtimeService?.stoppedAt ? ` · ${timeAgo(runtimeService.stoppedAt)}` : ""}`
           : null;
+      const exposure = runtimeService?.exposure ?? item.exposure;
+      const exposureFailure = exposureFailureCopy(exposure);
+      const exposureDetail =
+        exposure?.state === "pending"
+          ? "Provisioning HTTPS…"
+          : exposure?.state === "ready"
+            ? "HTTPS ready"
+            : exposureFailure
+              ? `${exposureFailure.label} · ${exposureFailure.remediation}`
+              : null;
 
-    return {
-      key: item.key,
-      name: item.title,
-      state,
-      healthStatus: item.healthStatus,
-      url: item.url,
-      port: item.port,
-      failureDetail,
-      exposureState: exposure?.state ?? null,
-      exposureDetail,
-      canStart: item.canStart,
-    };
-  });
+      return {
+        key: item.key,
+        name: item.title,
+        state,
+        healthStatus: item.healthStatus,
+        url: item.url,
+        port: item.port,
+        failureDetail,
+        exposureState: exposure?.state ?? null,
+        exposureDetail,
+        canStart: item.canStart,
+      };
+    },
+  );
 }
 
 /**
@@ -350,7 +401,8 @@ export function resolveWorkspaceServiceControlRequests(
       .map((item) => buildRequest(item, "start"));
   }
   return items.flatMap((item) => {
-    if (isActiveStatusLabel(item.statusLabel)) return [buildRequest(item, "restart")];
+    if (isActiveStatusLabel(item.statusLabel))
+      return [buildRequest(item, "restart")];
     if (item.canStart) return [buildRequest(item, "start")];
     return [];
   });
@@ -360,13 +412,21 @@ function requestMatchesPending(
   pendingRequest: WorkspaceRuntimeControlRequest | null | undefined,
   nextRequest: WorkspaceRuntimeControlRequest,
 ) {
-  return pendingRequest?.action === nextRequest.action
-    && (pendingRequest?.workspaceCommandId ?? null) === (nextRequest.workspaceCommandId ?? null)
-    && (pendingRequest?.runtimeServiceId ?? null) === (nextRequest.runtimeServiceId ?? null)
-    && (pendingRequest?.serviceIndex ?? null) === (nextRequest.serviceIndex ?? null);
+  return (
+    pendingRequest?.action === nextRequest.action &&
+    (pendingRequest?.workspaceCommandId ?? null) ===
+      (nextRequest.workspaceCommandId ?? null) &&
+    (pendingRequest?.runtimeServiceId ?? null) ===
+      (nextRequest.runtimeServiceId ?? null) &&
+    (pendingRequest?.serviceIndex ?? null) ===
+      (nextRequest.serviceIndex ?? null)
+  );
 }
 
-function buildRequest(item: WorkspaceRuntimeControlItem, action: WorkspaceRuntimeAction): WorkspaceRuntimeControlRequest {
+function buildRequest(
+  item: WorkspaceRuntimeControlItem,
+  action: WorkspaceRuntimeAction,
+): WorkspaceRuntimeControlRequest {
   return {
     action,
     workspaceCommandId: item.workspaceCommandId ?? null,
@@ -398,27 +458,45 @@ function CommandActionButtons({
         : ["start"];
 
   return (
-    <div className={cn("flex gap-2", iconOnly ? "w-auto flex-row flex-wrap" : "w-full flex-col sm:w-auto sm:flex-row sm:flex-wrap")}>
+    <div
+      className={cn(
+        "flex gap-2",
+        iconOnly
+          ? "w-auto flex-row flex-wrap"
+          : "w-full flex-col sm:w-auto sm:flex-row sm:flex-wrap",
+      )}
+    >
       {actions.map((action) => {
         const request = buildRequest(item, action);
-        const Icon = action === "stop" ? Square : action === "restart" ? RotateCcw : Play;
-        const label = action === "run"
-          ? "Run"
-          : action === "start"
-            ? "Start"
-            : action === "stop"
-              ? "Stop"
-              : "Restart";
-        const showSpinner = isPending && requestMatchesPending(pendingRequest, request);
+        const Icon =
+          action === "stop" ? Square : action === "restart" ? RotateCcw : Play;
+        const label =
+          action === "run"
+            ? "Run"
+            : action === "start"
+              ? "Start"
+              : action === "stop"
+                ? "Stop"
+                : "Restart";
+        const showSpinner =
+          isPending && requestMatchesPending(pendingRequest, request);
         const disabled =
-          isPending
-          || (action === "run" && !item.canRun)
-          || ((action === "start" || action === "restart") && !item.canStart);
+          isPending ||
+          (action === "run" && !item.canRun) ||
+          ((action === "start" || action === "restart") && !item.canStart);
 
         return (
           <Button
             key={`${item.key}:${action}`}
-            variant={iconOnly ? "outline" : action === "stop" ? "destructive" : action === "restart" ? "outline" : "default"}
+            variant={
+              iconOnly
+                ? "outline"
+                : action === "stop"
+                  ? "destructive"
+                  : action === "restart"
+                    ? "outline"
+                    : "default"
+            }
             size={iconOnly ? "icon-xs" : "sm"}
             className={cn(
               iconOnly ? "shrink-0" : "w-full justify-start sm:w-auto",
@@ -429,7 +507,11 @@ function CommandActionButtons({
             aria-label={label}
             title={label}
           >
-            {showSpinner ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+            {showSpinner ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Icon className="h-4 w-4" />
+            )}
             {iconOnly ? <span className="sr-only">{label}</span> : label}
           </Button>
         );
@@ -473,14 +555,25 @@ function CommandSection({
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       {items.length === 0 ? (
-        <div className={cn("border border-dashed border-border/80 bg-background px-3 py-4 text-sm text-muted-foreground", square ? "rounded-none" : "rounded-xl")}>
+        <div
+          className={cn(
+            "border border-dashed border-border/80 bg-background px-3 py-4 text-sm text-muted-foreground",
+            square ? "rounded-none" : "rounded-xl",
+          )}
+        >
           {emptyMessage}
           {disabledHint ? <p className="mt-2 text-xs">{disabledHint}</p> : null}
         </div>
       ) : (
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.key} className={cn("border border-border/80 bg-background px-3 py-3", square ? "rounded-none" : "rounded-xl")}>
+            <div
+              key={item.key}
+              className={cn(
+                "border border-border/80 bg-background px-3 py-3",
+                square ? "rounded-none" : "rounded-xl",
+              )}
+            >
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
@@ -501,27 +594,41 @@ function CommandSection({
                 </div>
                 <div className="space-y-1 text-xs text-muted-foreground">
                   {item.url ? (
-                    <a href={item.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 hover:underline"
+                    >
                       {item.url}
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   ) : null}
                   {item.port ? <div>Port {item.port}</div> : null}
-                  {item.command ? <div className="break-all font-mono">{item.command}</div> : null}
-                  {item.cwd && !hideHostPaths ? <div className="break-all font-mono">{item.cwd}</div> : null}
-                  {item.disabledReason ? <div>{item.disabledReason}</div> : null}
+                  {item.command ? (
+                    <div className="break-all font-mono">{item.command}</div>
+                  ) : null}
+                  {item.cwd && !hideHostPaths ? (
+                    <div className="break-all font-mono">{item.cwd}</div>
+                  ) : null}
+                  {item.disabledReason ? (
+                    <div>{item.disabledReason}</div>
+                  ) : null}
                 </div>
                 <ExposureFailureDetail exposure={item.exposure} />
                 {item.healthStatus && item.statusLabel !== "stopped" ? (
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={cn(
-                      "px-2.5 py-1 text-(length:--text-micro)",
-                      item.healthStatus === "healthy"
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                        : item.healthStatus === "unhealthy"
-                          ? "border-destructive/30 bg-destructive/10 text-destructive"
-                          : "border-border text-muted-foreground",
-                    )}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "px-2.5 py-1 text-(length:--text-micro)",
+                        item.healthStatus === "healthy"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                          : item.healthStatus === "unhealthy"
+                            ? "border-destructive/30 bg-destructive/10 text-destructive"
+                            : "border-border text-muted-foreground",
+                      )}
+                    >
                       {item.healthStatus}
                     </Badge>
                   </div>
@@ -557,18 +664,30 @@ export function WorkspaceRuntimeControls({
     otherServices: [],
   };
   const resolvedServiceEmptyMessage = emptyMessage ?? serviceEmptyMessage;
-  const runningCount = [...resolvedSections.services, ...resolvedSections.otherServices].filter(
+  const runningCount = [
+    ...resolvedSections.services,
+    ...resolvedSections.otherServices,
+  ].filter(
     (item) => item.statusLabel === "running" || item.statusLabel === "starting",
   ).length;
-  const visibleDisabledHint = runningCount > 0 || disabledHint === null ? null : disabledHint;
+  const visibleDisabledHint =
+    runningCount > 0 || disabledHint === null ? null : disabledHint;
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className={cn("border border-border/70 bg-background p-3", square ? "rounded-none" : "rounded-xl")}>
+      <div
+        className={cn(
+          "border border-border/70 bg-background p-3",
+          square ? "rounded-none" : "rounded-xl",
+        )}
+      >
         <div className="space-y-1">
-          <div className="text-xs font-medium uppercase tracking-(--tracking-eyebrow) text-muted-foreground">Workspace commands</div>
+          <div className="text-xs font-medium uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
+            Workspace commands
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline"
+            <Badge
+              variant="outline"
               className={cn(
                 "gap-1.5 px-2.5 py-1",
                 runningCount > 0
@@ -577,7 +696,9 @@ export function WorkspaceRuntimeControls({
               )}
             >
               <Activity className="h-3.5 w-3.5" />
-              {runningCount > 0 ? `${runningCount} services running` : "No services running"}
+              {runningCount > 0
+                ? `${runningCount} services running`
+                : "No services running"}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {resolvedSections.jobs.length > 0
@@ -585,7 +706,11 @@ export function WorkspaceRuntimeControls({
                 : "Each command can be controlled independently."}
             </span>
           </div>
-          {visibleDisabledHint ? <p className="text-xs text-muted-foreground">{visibleDisabledHint}</p> : null}
+          {visibleDisabledHint ? (
+            <p className="text-xs text-muted-foreground">
+              {visibleDisabledHint}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -645,20 +770,39 @@ export function WorkspaceRuntimeQuickControls({
   align?: "start" | "end";
   iconOnly?: boolean;
 }) {
-  const controlItems = sections.services.length > 0 ? sections.services : sections.otherServices;
+  const controlItems =
+    sections.services.length > 0 ? sections.services : sections.otherServices;
   const serviceUrl = getRunningRuntimeServiceUrl(sections);
   const alignEnd = align === "end";
 
   if (controlItems.length === 0 && !serviceUrl) return null;
 
   return (
-    <div className={cn("flex min-w-0 flex-col items-stretch gap-2", alignEnd ? "sm:items-end" : "sm:items-start")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col items-stretch gap-2",
+        alignEnd ? "sm:items-end" : "sm:items-start",
+      )}
+    >
       {controlItems.length > 0 ? (
-        <div className={cn("flex max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap", alignEnd ? "sm:justify-end" : "sm:justify-start")}>
+        <div
+          className={cn(
+            "flex max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap",
+            alignEnd ? "sm:justify-end" : "sm:justify-start",
+          )}
+        >
           {controlItems.map((item) => (
-            <div key={item.key} className={cn("flex min-w-0 flex-col gap-1", alignEnd ? "sm:items-end" : "sm:items-start")}>
+            <div
+              key={item.key}
+              className={cn(
+                "flex min-w-0 flex-col gap-1",
+                alignEnd ? "sm:items-end" : "sm:items-start",
+              )}
+            >
               {controlItems.length > 1 ? (
-                <span className="truncate text-xs text-muted-foreground">{item.title}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {item.title}
+                </span>
               ) : null}
               <CommandActionButtons
                 item={item}

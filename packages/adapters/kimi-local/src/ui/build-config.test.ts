@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { CreateConfigValues } from "@taskcore/adapter-utils";
 import { buildKimiLocalConfig } from "./build-config.js";
 
-function makeValues(overrides: Partial<CreateConfigValues> = {}): CreateConfigValues {
+function makeValues(
+  overrides: Partial<CreateConfigValues> = {},
+): CreateConfigValues {
   return {
     adapterType: "kimi_local",
     cwd: "",
@@ -45,21 +47,25 @@ describe("buildKimiLocalConfig", () => {
   });
 
   it("persists an explicit model and command", () => {
-    const config = buildKimiLocalConfig(makeValues({
-      model: "kimi-code/k3",
-      command: "/usr/local/bin/kimi",
-    }));
+    const config = buildKimiLocalConfig(
+      makeValues({
+        model: "kimi-code/k3",
+        command: "/usr/local/bin/kimi",
+      }),
+    );
 
     expect(config.model).toBe("kimi-code/k3");
     expect(config.command).toBe("/usr/local/bin/kimi");
   });
 
   it("persists cwd, instructionsFilePath, and extra args", () => {
-    const config = buildKimiLocalConfig(makeValues({
-      cwd: "/tmp/project",
-      instructionsFilePath: "/tmp/project/AGENTS.md",
-      extraArgs: "--add-dir /tmp/other, --plan",
-    }));
+    const config = buildKimiLocalConfig(
+      makeValues({
+        cwd: "/tmp/project",
+        instructionsFilePath: "/tmp/project/AGENTS.md",
+        extraArgs: "--add-dir /tmp/other, --plan",
+      }),
+    );
 
     expect(config.cwd).toBe("/tmp/project");
     expect(config.instructionsFilePath).toBe("/tmp/project/AGENTS.md");
@@ -67,12 +73,14 @@ describe("buildKimiLocalConfig", () => {
   });
 
   it("merges legacy env vars with secret bindings", () => {
-    const config = buildKimiLocalConfig(makeValues({
-      envVars: "KIMI_MODEL_NAME=kimi-code/k3\n# comment\nINVALID LINE",
-      envBindings: {
-        KIMI_MODEL_API_KEY: { type: "secret_ref", secretId: "secret-1" },
-      },
-    }));
+    const config = buildKimiLocalConfig(
+      makeValues({
+        envVars: "KIMI_MODEL_NAME=kimi-code/k3\n# comment\nINVALID LINE",
+        envBindings: {
+          KIMI_MODEL_API_KEY: { type: "secret_ref", secretId: "secret-1" },
+        },
+      }),
+    );
 
     expect(config.env).toEqual({
       KIMI_MODEL_NAME: { type: "plain", value: "kimi-code/k3" },

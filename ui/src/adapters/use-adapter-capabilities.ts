@@ -20,15 +20,72 @@ const ALL_FALSE: AdapterCapabilities = {
  * Reconcile the two together if any adapter's login flow changes.
  */
 const KNOWN_DEFAULTS: Record<string, AdapterCapabilities> = {
-  claude_local: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: false, supportsAcp: true, login: { panelMode: "submitted_browser_code", timeoutPolicy: "fixed" } },
-  codex_local: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: false, supportsAcp: true, login: { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" } },
-  taskcore_runner: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: false, requiresMaterializedRuntimeSkills: false, supportsAcp: false },
-  cursor: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: true, supportsAcp: false },
-  gemini_local: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: true, supportsAcp: true },
-  grok_local: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: true, supportsAcp: false, login: { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" } },
-  kimi_local: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: true, supportsAcp: true },
-  opencode_local: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: true, supportsAcp: false },
-  pi_local: { supportsInstructionsBundle: true, supportsSkills: true, supportsLocalAgentJwt: true, requiresMaterializedRuntimeSkills: true, supportsAcp: false },
+  claude_local: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: false,
+    supportsAcp: true,
+    login: { panelMode: "submitted_browser_code", timeoutPolicy: "fixed" },
+  },
+  codex_local: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: false,
+    supportsAcp: true,
+    login: { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" },
+  },
+  taskcore_runner: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: false,
+    requiresMaterializedRuntimeSkills: false,
+    supportsAcp: false,
+  },
+  cursor: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: true,
+    supportsAcp: false,
+  },
+  gemini_local: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: true,
+    supportsAcp: true,
+  },
+  grok_local: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: true,
+    supportsAcp: false,
+    login: { panelMode: "displayed_code", timeoutPolicy: "caller_bounded" },
+  },
+  kimi_local: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: true,
+    supportsAcp: true,
+  },
+  opencode_local: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: true,
+    supportsAcp: false,
+  },
+  pi_local: {
+    supportsInstructionsBundle: true,
+    supportsSkills: true,
+    supportsLocalAgentJwt: true,
+    requiresMaterializedRuntimeSkills: true,
+    supportsAcp: false,
+  },
   openclaw_gateway: ALL_FALSE,
 };
 
@@ -39,7 +96,9 @@ const KNOWN_DEFAULTS: Record<string, AdapterCapabilities> = {
  * via react-query. Before the data loads, known built-in adapter types
  * return correct synchronous defaults to avoid cold-load regressions.
  */
-export function useAdapterCapabilities(): (type: string) => AdapterCapabilities {
+export function useAdapterCapabilities(): (
+  type: string,
+) => AdapterCapabilities {
   const { data: adapters } = useQuery({
     queryKey: queryKeys.adapters.all,
     queryFn: () => adaptersApi.list(),

@@ -3,7 +3,11 @@ import { Check, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export interface FilterMenuOption {
@@ -47,7 +51,11 @@ interface SingleProps extends BaseProps {
 
 export type SearchFilterMenuProps = MultiProps | SingleProps;
 
-function summarizeTrigger(label: string, selected: string[], options: FilterMenuOption[]): string {
+function summarizeTrigger(
+  label: string,
+  selected: string[],
+  options: FilterMenuOption[],
+): string {
   if (selected.length === 0) return label;
   if (selected.length === 1) {
     const only = options.find((option) => option.value === selected[0]);
@@ -75,7 +83,9 @@ export function SearchFilterMenu(props: SearchFilterMenuProps) {
   const visibleOptions = useMemo(() => {
     if (!normalized) return options;
     return options.filter((option) =>
-      `${option.label} ${option.searchText ?? ""}`.toLowerCase().includes(normalized),
+      `${option.label} ${option.searchText ?? ""}`
+        .toLowerCase()
+        .includes(normalized),
     );
   }, [normalized, options]);
 
@@ -104,19 +114,29 @@ export function SearchFilterMenu(props: SearchFilterMenuProps) {
           )}
           aria-label={`Filter by ${label}`}
         >
-          <span className="truncate">{summarizeTrigger(label, selected, options)}</span>
+          <span className="truncate">
+            {summarizeTrigger(label, selected, options)}
+          </span>
           {active ? (
             <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-(length:--text-nano) font-semibold tabular-nums text-primary-foreground">
               {selected.length}
             </span>
           ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            <ChevronDown
+              className="h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden
+            />
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align={align} className={cn("w-64 p-0", contentClassName)}>
+      <PopoverContent
+        align={align}
+        className={cn("w-64 p-0", contentClassName)}
+      >
         <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-xs font-medium text-muted-foreground">{label}</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            {label}
+          </span>
           {props.multi && active ? (
             <button
               type="button"
@@ -147,9 +167,11 @@ export function SearchFilterMenu(props: SearchFilterMenuProps) {
                   onClick={() => {
                     // Replace selection with the preset (toggle off when already exact).
                     for (const value of options.map((option) => option.value)) {
-                      const wantSelected = !isActive && preset.values.includes(value);
+                      const wantSelected =
+                        !isActive && preset.values.includes(value);
                       const currentlySelected = selected.includes(value);
-                      if (wantSelected !== currentlySelected) props.onToggle(value);
+                      if (wantSelected !== currentlySelected)
+                        props.onToggle(value);
                     }
                   }}
                 >
@@ -176,7 +198,9 @@ export function SearchFilterMenu(props: SearchFilterMenuProps) {
 
         <div className="max-h-72 overflow-y-auto overscroll-contain border-t border-border py-1">
           {visibleOptions.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">{emptyMessage}</div>
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              {emptyMessage}
+            </div>
           ) : (
             visibleOptions.map((option) => {
               const isSelected = selected.includes(option.value);
@@ -188,13 +212,23 @@ export function SearchFilterMenu(props: SearchFilterMenuProps) {
                   onClick={() => handleOptionClick(option.value)}
                 >
                   {props.multi ? (
-                    <Checkbox checked={isSelected} tabIndex={-1} className="pointer-events-none" />
+                    <Checkbox
+                      checked={isSelected}
+                      tabIndex={-1}
+                      className="pointer-events-none"
+                    />
                   ) : (
                     <span className="flex h-4 w-4 items-center justify-center">
-                      {isSelected ? <Check className="h-3.5 w-3.5 text-primary" /> : null}
+                      {isSelected ? (
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                      ) : null}
                     </span>
                   )}
-                  {option.icon ? <span className="flex h-4 w-4 items-center justify-center">{option.icon}</span> : null}
+                  {option.icon ? (
+                    <span className="flex h-4 w-4 items-center justify-center">
+                      {option.icon}
+                    </span>
+                  ) : null}
                   {option.swatch ? (
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -202,9 +236,13 @@ export function SearchFilterMenu(props: SearchFilterMenuProps) {
                       aria-hidden
                     />
                   ) : null}
-                  <span className="min-w-0 flex-1 truncate text-sm">{option.label}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm">
+                    {option.label}
+                  </span>
                   {typeof option.count === "number" ? (
-                    <span className="ml-1 text-xs tabular-nums text-muted-foreground">{option.count}</span>
+                    <span className="ml-1 text-xs tabular-nums text-muted-foreground">
+                      {option.count}
+                    </span>
                   ) : null}
                 </button>
               );

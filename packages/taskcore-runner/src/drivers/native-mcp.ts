@@ -12,12 +12,12 @@ export function nativeMcpLaunchBinding(
   const token = environment.TASKCORE_NATIVE_MCP_TOKEN?.trim();
   if (!name && !url && !token) return null;
   if (
-    !name
-    || !url
-    || !token
-    || token.length < 32
-    || token.length > 4096
-    || url.length > 2048
+    !name ||
+    !url ||
+    !token ||
+    token.length < 32 ||
+    token.length > 4096 ||
+    url.length > 2048
   ) {
     throw new Error("assigned native MCP launch binding is incomplete");
   }
@@ -29,9 +29,11 @@ export function nativeMcpLaunchBinding(
     throw new Error("assigned native MCP endpoint contains forbidden URL data");
   }
   if (
-    endpoint.protocol !== "https:"
-    && !(endpoint.protocol === "http:"
-      && ["127.0.0.1", "localhost"].includes(endpoint.hostname))
+    endpoint.protocol !== "https:" &&
+    !(
+      endpoint.protocol === "http:" &&
+      ["127.0.0.1", "localhost"].includes(endpoint.hostname)
+    )
   ) {
     throw new Error(
       "assigned native MCP endpoint requires HTTPS or loopback HTTP",

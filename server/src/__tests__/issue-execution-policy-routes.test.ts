@@ -31,32 +31,53 @@ const mockAccessService = vi.hoisted(() => ({
   decide: vi.fn(),
   hasPermission: vi.fn(async () => false),
 }));
-const mockDbSelectWhere = vi.hoisted(() => vi.fn(() => ({
-  for: () => ({
-    then: (onFulfilled: (rows: unknown[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
-      Promise.resolve([{
-        id: "55555555-5555-4555-8555-555555555555",
-        companyId: "company-1",
-        agentId: "33333333-3333-4333-8333-333333333333",
-        contextSnapshot: { issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
-        permissions: null,
-      }]).then(onFulfilled, onRejected),
-  }),
-  then: (onFulfilled: (rows: unknown[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
-    Promise.resolve([{
-      id: "55555555-5555-4555-8555-555555555555",
-      companyId: "company-1",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      contextSnapshot: { issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
-      permissions: null,
-    }]).then(onFulfilled, onRejected),
-})));
-const mockDbSelectFrom = vi.hoisted(() => vi.fn(() => ({ where: mockDbSelectWhere })));
-const mockDbSelect = vi.hoisted(() => vi.fn(() => ({ from: mockDbSelectFrom })));
+const mockDbSelectWhere = vi.hoisted(() =>
+  vi.fn(() => ({
+    for: () => ({
+      then: (
+        onFulfilled: (rows: unknown[]) => unknown,
+        onRejected?: (reason: unknown) => unknown,
+      ) =>
+        Promise.resolve([
+          {
+            id: "55555555-5555-4555-8555-555555555555",
+            companyId: "company-1",
+            agentId: "33333333-3333-4333-8333-333333333333",
+            contextSnapshot: {
+              issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            },
+            permissions: null,
+          },
+        ]).then(onFulfilled, onRejected),
+    }),
+    then: (
+      onFulfilled: (rows: unknown[]) => unknown,
+      onRejected?: (reason: unknown) => unknown,
+    ) =>
+      Promise.resolve([
+        {
+          id: "55555555-5555-4555-8555-555555555555",
+          companyId: "company-1",
+          agentId: "33333333-3333-4333-8333-333333333333",
+          contextSnapshot: { issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+          permissions: null,
+        },
+      ]).then(onFulfilled, onRejected),
+  })),
+);
+const mockDbSelectFrom = vi.hoisted(() =>
+  vi.fn(() => ({ where: mockDbSelectWhere })),
+);
+const mockDbSelect = vi.hoisted(() =>
+  vi.fn(() => ({ from: mockDbSelectFrom })),
+);
 const mockDb = vi.hoisted(() => ({
   select: mockDbSelect,
-  transaction: vi.fn(async (callback: (tx: { select: typeof mockDbSelect }) => Promise<unknown>) =>
-    callback({ select: mockDbSelect })),
+  transaction: vi.fn(
+    async (
+      callback: (tx: { select: typeof mockDbSelect }) => Promise<unknown>,
+    ) => callback({ select: mockDbSelect }),
+  ),
 }));
 
 const mockLogActivity = vi.hoisted(() => vi.fn(async () => undefined));
@@ -94,25 +115,33 @@ function registerModuleMocks() {
         companyId: "company-1",
         permissions: null,
       })),
-      resolveByReference: vi.fn(async (_companyId: string, reference: string) => ({
-        ambiguous: false,
-        agent: {
-          id: reference,
-          companyId: "company-1",
-          status: "idle",
-          orgChainHealth: { status: "healthy" },
-        },
-      })),
+      resolveByReference: vi.fn(
+        async (_companyId: string, reference: string) => ({
+          ambiguous: false,
+          agent: {
+            id: reference,
+            companyId: "company-1",
+            status: "idle",
+            orgChainHealth: { status: "healthy" },
+          },
+        }),
+      ),
     }),
     companySkillService: () => ({
       completeTestRunForIssue: vi.fn(async () => null),
     }),
-    documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+    documentAnnotationService: () => ({
+      remapOpenThreadsForDocument: async () => [],
+    }),
     documentService: () => ({}),
     executionWorkspaceService: () => ({}),
     feedbackService: () => ({
       listIssueVotesForUser: vi.fn(async () => []),
-      saveIssueVote: vi.fn(async () => ({ vote: null, consentEnabledNow: false, sharingEnabled: false })),
+      saveIssueVote: vi.fn(async () => ({
+        vote: null,
+        consentEnabledNow: false,
+        sharingEnabled: false,
+      })),
     }),
     goalService: () => ({}),
     heartbeatService: () => mockHeartbeatService,
@@ -203,36 +232,61 @@ describe("issue execution policy routes", () => {
     vi.doUnmock("../middleware/index.js");
     registerModuleMocks();
     vi.clearAllMocks();
-    mockIssueService.assertCheckoutOwner.mockResolvedValue({ adoptedFromRunId: null });
-    mockIssueService.getByIdForUpdate.mockImplementation(async () => mockIssueService.getById());
+    mockIssueService.assertCheckoutOwner.mockResolvedValue({
+      adoptedFromRunId: null,
+    });
+    mockIssueService.getByIdForUpdate.mockImplementation(async () =>
+      mockIssueService.getById(),
+    );
     mockIssueService.findMentionedAgents.mockResolvedValue([]);
-    mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
+    mockIssueService.getRelationSummaries.mockResolvedValue({
+      blockedBy: [],
+      blocks: [],
+    });
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
-    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
+    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(
+      null,
+    );
     mockIssueThreadInteractionService.listForIssue.mockResolvedValue([]);
-    mockIssueThreadInteractionService.expireRequestConfirmationsSupersededByComment.mockResolvedValue([]);
+    mockIssueThreadInteractionService.expireRequestConfirmationsSupersededByComment.mockResolvedValue(
+      [],
+    );
     mockIssueApprovalService.listApprovalsForIssue.mockResolvedValue([]);
     mockDbSelect.mockImplementation(() => ({ from: mockDbSelectFrom }));
     mockDbSelectFrom.mockImplementation(() => ({ where: mockDbSelectWhere }));
     mockDbSelectWhere.mockImplementation(() => ({
       for: () => ({
-        then: (onFulfilled: (rows: unknown[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
-          Promise.resolve([{
+        then: (
+          onFulfilled: (rows: unknown[]) => unknown,
+          onRejected?: (reason: unknown) => unknown,
+        ) =>
+          Promise.resolve([
+            {
+              id: "55555555-5555-4555-8555-555555555555",
+              companyId: "company-1",
+              agentId: "33333333-3333-4333-8333-333333333333",
+              contextSnapshot: {
+                issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+              },
+              permissions: null,
+            },
+          ]).then(onFulfilled, onRejected),
+      }),
+      then: (
+        onFulfilled: (rows: unknown[]) => unknown,
+        onRejected?: (reason: unknown) => unknown,
+      ) =>
+        Promise.resolve([
+          {
             id: "55555555-5555-4555-8555-555555555555",
             companyId: "company-1",
             agentId: "33333333-3333-4333-8333-333333333333",
-            contextSnapshot: { issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+            contextSnapshot: {
+              issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            },
             permissions: null,
-          }]).then(onFulfilled, onRejected),
-      }),
-      then: (onFulfilled: (rows: unknown[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
-        Promise.resolve([{
-          id: "55555555-5555-4555-8555-555555555555",
-          companyId: "company-1",
-          agentId: "33333333-3333-4333-8333-333333333333",
-          contextSnapshot: { issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
-          permissions: null,
-        }]).then(onFulfilled, onRejected),
+          },
+        ]).then(onFulfilled, onRejected),
     }));
     mockIssueService.createChild.mockResolvedValue({
       issue: {
@@ -244,24 +298,37 @@ describe("issue execution policy routes", () => {
       parentBlockerAdded: false,
     });
     mockAccessService.canUser.mockResolvedValue(false);
-    mockAccessService.decide.mockImplementation(async (input: { actor?: { type?: string; source?: string }; action?: string }) => {
-      const allowed = input.actor?.type === "board" && input.actor.source === "local_implicit"
-        ? true
-        : input.actor?.type === "agent" && [
-            "company_scope:read",
-            "issue:read",
-            "issue:mutate",
-            "runtime:manage",
-          ].includes(input.action ?? "")
-          ? true
-          : Boolean(await mockAccessService.canUser() || await mockAccessService.hasPermission());
-      return {
-        allowed,
-        action: input.action,
-        reason: allowed ? "allow_explicit_grant" : "deny_missing_grant",
-        explanation: allowed ? "Allowed by test grant." : `Missing permission: ${input.action ?? "action"}`,
-      };
-    });
+    mockAccessService.decide.mockImplementation(
+      async (input: {
+        actor?: { type?: string; source?: string };
+        action?: string;
+      }) => {
+        const allowed =
+          input.actor?.type === "board" &&
+          input.actor.source === "local_implicit"
+            ? true
+            : input.actor?.type === "agent" &&
+                [
+                  "company_scope:read",
+                  "issue:read",
+                  "issue:mutate",
+                  "runtime:manage",
+                ].includes(input.action ?? "")
+              ? true
+              : Boolean(
+                  (await mockAccessService.canUser()) ||
+                  (await mockAccessService.hasPermission()),
+                );
+        return {
+          allowed,
+          action: input.action,
+          reason: allowed ? "allow_explicit_grant" : "deny_missing_grant",
+          explanation: allowed
+            ? "Allowed by test grant."
+            : `Missing permission: ${input.action ?? "action"}`,
+        };
+      },
+    );
     mockAccessService.hasPermission.mockResolvedValue(false);
   });
 
@@ -285,12 +352,14 @@ describe("issue execution policy routes", () => {
       reviewPolicy: "human_only",
     });
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({ status: "done" });
 
@@ -321,12 +390,14 @@ describe("issue execution policy routes", () => {
     };
     mockIssueService.getById.mockResolvedValue(issue);
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({ status: "in_review" });
 
@@ -363,18 +434,22 @@ describe("issue execution policy routes", () => {
         sourceRunId: "55555555-5555-4555-8555-555555555555",
       },
     ]);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({ status: "in_review" });
 
@@ -388,11 +463,15 @@ describe("issue execution policy routes", () => {
       expect.anything(),
       expect.objectContaining({
         action: "issue.updated",
-        details: expect.not.objectContaining({ reviewInteractionId: expect.anything() }),
+        details: expect.not.objectContaining({
+          reviewInteractionId: expect.anything(),
+        }),
       }),
       expect.any(Array),
     );
-    expect(mockLogActivity.mock.calls[0]?.[0]).toBe(mockIssueService.update.mock.calls[0]?.[2]);
+    expect(mockLogActivity.mock.calls[0]?.[0]).toBe(
+      mockIssueService.update.mock.calls[0]?.[2],
+    );
   });
 
   it("binds an explicitly designated same-run confirmation to the review transition", async () => {
@@ -409,26 +488,32 @@ describe("issue execution policy routes", () => {
       executionState: null,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([{
-      id: "11111111-1111-4111-8111-111111111111",
-      kind: "request_confirmation",
-      status: "pending",
-      createdByAgentId: "33333333-3333-4333-8333-333333333333",
-      sourceRunId: "55555555-5555-4555-8555-555555555555",
-      payload: { version: 1, prompt: "Approve this review?" },
-    }]);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        kind: "request_confirmation",
+        status: "pending",
+        createdByAgentId: "33333333-3333-4333-8333-333333333333",
+        sourceRunId: "55555555-5555-4555-8555-555555555555",
+        payload: { version: 1, prompt: "Approve this review?" },
+      },
+    ]);
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({
         status: "in_review",
@@ -467,21 +552,25 @@ describe("issue execution policy routes", () => {
       executionState: null,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([{
-      id: "11111111-1111-4111-8111-111111111111",
-      kind: "request_confirmation",
-      status: "pending",
-      createdByAgentId: null,
-      createdByUserId: "local-board",
-      sourceRunId: null,
-      payload: { version: 1, prompt: "Approve this review?" },
-    }]);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      changes: { status: { from: "todo", to: "in_review" } },
-      updatedAt: new Date(),
-    }));
+    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        kind: "request_confirmation",
+        status: "pending",
+        createdByAgentId: null,
+        createdByUserId: "local-board",
+        sourceRunId: null,
+        payload: { version: 1, prompt: "Approve this review?" },
+      },
+    ]);
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        changes: { status: { from: "todo", to: "in_review" } },
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -524,28 +613,34 @@ describe("issue execution policy routes", () => {
       executionState: null,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([{
-      id: "11111111-1111-4111-8111-111111111111",
-      kind: "request_confirmation",
-      status: "pending",
-      createdByAgentId: "33333333-3333-4333-8333-333333333333",
-      sourceRunId: "55555555-5555-4555-8555-555555555555",
-      payload: { version: 1, prompt: "Approve this review?" },
-    }]);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      changes: { status: { from: "todo", to: "in_review" } },
-      updatedAt: new Date(),
-    }));
+    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        kind: "request_confirmation",
+        status: "pending",
+        createdByAgentId: "33333333-3333-4333-8333-333333333333",
+        sourceRunId: "55555555-5555-4555-8555-555555555555",
+        payload: { version: 1, prompt: "Approve this review?" },
+      },
+    ]);
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        changes: { status: { from: "todo", to: "in_review" } },
+        updatedAt: new Date(),
+      }),
+    );
     mockLogActivity.mockRejectedValueOnce(new Error("activity insert failed"));
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({
         status: "in_review",
@@ -573,21 +668,25 @@ describe("issue execution policy routes", () => {
       executionState: null,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([{
-      id: "11111111-1111-4111-8111-111111111111",
-      kind: "request_confirmation",
-      status: "pending",
-      createdByAgentId: "33333333-3333-4333-8333-333333333333",
-      sourceRunId: "44444444-4444-4444-8444-444444444444",
-      payload: { version: 1, prompt: "Approve another run's request?" },
-    }]);
+    mockIssueThreadInteractionService.listForIssue.mockResolvedValue([
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        kind: "request_confirmation",
+        status: "pending",
+        createdByAgentId: "33333333-3333-4333-8333-333333333333",
+        sourceRunId: "44444444-4444-4444-8444-444444444444",
+        payload: { version: 1, prompt: "Approve another run's request?" },
+      },
+    ]);
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({
         status: "in_review",
@@ -620,23 +719,29 @@ describe("issue execution policy routes", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           type: "review",
-          participants: [{ type: "agent", agentId: "44444444-4444-4444-8444-444444444444" }],
+          participants: [
+            { type: "agent", agentId: "44444444-4444-4444-8444-444444444444" },
+          ],
         },
       ],
     })!;
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({ status: "in_review", executionPolicy: policy });
 
@@ -676,18 +781,22 @@ describe("issue execution policy routes", () => {
       monitorScheduledBy: null,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "55555555-5555-4555-8555-555555555555",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "55555555-5555-4555-8555-555555555555",
+      }),
+    )
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({
         status: "in_review",
@@ -725,11 +834,13 @@ describe("issue execution policy routes", () => {
       executionState: null,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -747,9 +858,15 @@ describe("issue execution policy routes", () => {
       }),
       expect.any(Array),
     );
-    expect(mockLogActivity.mock.calls[0]?.[0]).toBe(mockIssueService.update.mock.calls[0]?.[2]);
-    expect(mockIssueThreadInteractionService.listForIssue).not.toHaveBeenCalled();
-    expect(mockIssueApprovalService.listApprovalsForIssue).not.toHaveBeenCalled();
+    expect(mockLogActivity.mock.calls[0]?.[0]).toBe(
+      mockIssueService.update.mock.calls[0]?.[2],
+    );
+    expect(
+      mockIssueThreadInteractionService.listForIssue,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockIssueApprovalService.listApprovalsForIssue,
+    ).not.toHaveBeenCalled();
   });
 
   it("allows a board user to cancel an active agent review task", async () => {
@@ -758,7 +875,9 @@ describe("issue execution policy routes", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           type: "review",
-          participants: [{ type: "agent", agentId: "33333333-3333-4333-8333-333333333333" }],
+          participants: [
+            { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
+          ],
         },
       ],
     })!;
@@ -777,19 +896,27 @@ describe("issue execution policy routes", () => {
         currentStageId: "11111111-1111-4111-8111-111111111111",
         currentStageIndex: 0,
         currentStageType: "review",
-        currentParticipant: { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
-        returnAssignee: { type: "agent", agentId: "44444444-4444-4444-8444-444444444444" },
+        currentParticipant: {
+          type: "agent",
+          agentId: "33333333-3333-4333-8333-333333333333",
+        },
+        returnAssignee: {
+          type: "agent",
+          agentId: "44444444-4444-4444-8444-444444444444",
+        },
         completedStageIds: [],
         lastDecisionId: null,
         lastDecisionOutcome: null,
       },
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -817,7 +944,9 @@ describe("issue execution policy routes", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           type: "review",
-          participants: [{ type: "agent", agentId: "33333333-3333-4333-8333-333333333333" }],
+          participants: [
+            { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
+          ],
         },
       ],
     })!;
@@ -836,19 +965,27 @@ describe("issue execution policy routes", () => {
         currentStageId: "11111111-1111-4111-8111-111111111111",
         currentStageIndex: 0,
         currentStageType: "review",
-        currentParticipant: { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
-        returnAssignee: { type: "agent", agentId: "44444444-4444-4444-8444-444444444444" },
+        currentParticipant: {
+          type: "agent",
+          agentId: "33333333-3333-4333-8333-333333333333",
+        },
+        returnAssignee: {
+          type: "agent",
+          agentId: "44444444-4444-4444-8444-444444444444",
+        },
         completedStageIds: [],
         lastDecisionId: null,
         lastDecisionOutcome: null,
       },
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -867,7 +1004,10 @@ describe("issue execution policy routes", () => {
       undefined,
       expect.any(Array),
     );
-    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<string, unknown>;
+    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(updatePatch.status).toBe("cancelled");
     expect(updatePatch.assigneeAgentId).toBeUndefined();
     expect(updatePatch.assigneeUserId).toBeUndefined();
@@ -902,35 +1042,54 @@ describe("issue execution policy routes", () => {
         currentStageId: "11111111-1111-4111-8111-111111111111",
         currentStageIndex: 0,
         currentStageType: "review",
-        currentParticipant: { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
-        returnAssignee: { type: "agent", agentId: "44444444-4444-4444-8444-444444444444" },
+        currentParticipant: {
+          type: "agent",
+          agentId: "33333333-3333-4333-8333-333333333333",
+        },
+        returnAssignee: {
+          type: "agent",
+          agentId: "44444444-4444-4444-8444-444444444444",
+        },
         completedStageIds: [],
         lastDecisionId: null,
         lastDecisionOutcome: null,
       },
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({ assigneeAgentId: "55555555-5555-4555-8555-555555555555" });
 
     expect(res.status).toBe(200);
-    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<string, unknown>;
+    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(updatePatch.status).toBe("in_review");
-    expect(updatePatch.assigneeAgentId).toBe("55555555-5555-4555-8555-555555555555");
+    expect(updatePatch.assigneeAgentId).toBe(
+      "55555555-5555-4555-8555-555555555555",
+    );
     expect(updatePatch.assigneeUserId).toBeNull();
     expect(updatePatch.executionState).toMatchObject({
       status: "pending",
       currentStageId: "11111111-1111-4111-8111-111111111111",
       currentStageType: "review",
-      currentParticipant: { type: "agent", agentId: "55555555-5555-4555-8555-555555555555" },
-      returnAssignee: { type: "agent", agentId: "44444444-4444-4444-8444-444444444444" },
+      currentParticipant: {
+        type: "agent",
+        agentId: "55555555-5555-4555-8555-555555555555",
+      },
+      returnAssignee: {
+        type: "agent",
+        agentId: "44444444-4444-4444-8444-444444444444",
+      },
     });
     expect(mockHeartbeatService.cancelRun).not.toHaveBeenCalled();
   });
@@ -941,7 +1100,9 @@ describe("issue execution policy routes", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           type: "review",
-          participants: [{ type: "agent", agentId: "33333333-3333-4333-8333-333333333333" }],
+          participants: [
+            { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
+          ],
         },
       ],
     })!;
@@ -960,29 +1121,42 @@ describe("issue execution policy routes", () => {
         currentStageId: "11111111-1111-4111-8111-111111111111",
         currentStageIndex: 0,
         currentStageType: "review",
-        currentParticipant: { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
-        returnAssignee: { type: "agent", agentId: "44444444-4444-4444-8444-444444444444" },
+        currentParticipant: {
+          type: "agent",
+          agentId: "33333333-3333-4333-8333-333333333333",
+        },
+        returnAssignee: {
+          type: "agent",
+          agentId: "44444444-4444-4444-8444-444444444444",
+        },
         completedStageIds: [],
         lastDecisionId: null,
         lastDecisionOutcome: null,
       },
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
       .send({ assigneeAgentId: "55555555-5555-4555-8555-555555555555" });
 
     expect(res.status).toBe(200);
-    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<string, unknown>;
+    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(updatePatch.status).toBe("in_progress");
     expect(updatePatch.executionState).toBeNull();
-    expect(updatePatch.assigneeAgentId).toBe("55555555-5555-4555-8555-555555555555");
+    expect(updatePatch.assigneeAgentId).toBe(
+      "55555555-5555-4555-8555-555555555555",
+    );
     expect(mockHeartbeatService.cancelRun).not.toHaveBeenCalled();
   });
 
@@ -992,7 +1166,9 @@ describe("issue execution policy routes", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           type: "review",
-          participants: [{ type: "agent", agentId: "33333333-3333-4333-8333-333333333333" }],
+          participants: [
+            { type: "agent", agentId: "33333333-3333-4333-8333-333333333333" },
+          ],
         },
       ],
     })!;
@@ -1009,11 +1185,13 @@ describe("issue execution policy routes", () => {
       executionState: null,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -1028,7 +1206,10 @@ describe("issue execution policy routes", () => {
         actorUserId: "local-board",
       }),
     );
-    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<string, unknown>;
+    const updatePatch = mockIssueService.update.mock.calls[0]?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(updatePatch.status).toBeUndefined();
     expect(updatePatch.assigneeAgentId).toBeUndefined();
     expect(updatePatch.assigneeUserId).toBeUndefined();
@@ -1058,7 +1239,9 @@ describe("issue execution policy routes", () => {
     mockIssueService.getById.mockResolvedValue(issue);
 
     const res = await request(await createApp())
-      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/monitor/check-now")
+      .post(
+        "/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/monitor/check-now",
+      )
       .send({});
 
     expect(res.status).toBe(200);
@@ -1132,12 +1315,14 @@ describe("issue execution policy routes", () => {
       executionState: null,
     });
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "22222222-2222-4222-8222-222222222222",
-      companyId: "company-1",
-      runId: "run-1",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "22222222-2222-4222-8222-222222222222",
+        companyId: "company-1",
+        runId: "run-1",
+      }),
+    )
       .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/children")
       .send({
         title: "Child monitor",
@@ -1152,7 +1337,9 @@ describe("issue execution policy routes", () => {
       });
 
     expect(res.status).toBe(403);
-    expect(res.body.error).toBe("Only the assignee agent or a board user can manage issue monitors");
+    expect(res.body.error).toBe(
+      "Only the assignee agent or a board user can manage issue monitors",
+    );
     expect(mockIssueService.createChild).not.toHaveBeenCalled();
   });
 
@@ -1171,12 +1358,14 @@ describe("issue execution policy routes", () => {
       executionState: null,
     });
 
-    const res = await request(await createApp({
-      type: "agent",
-      agentId: "33333333-3333-4333-8333-333333333333",
-      companyId: "company-1",
-      runId: "run-1",
-    }))
+    const res = await request(
+      await createApp({
+        type: "agent",
+        agentId: "33333333-3333-4333-8333-333333333333",
+        companyId: "company-1",
+        runId: "run-1",
+      }),
+    )
       .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/children")
       .send({
         title: "Child monitor",
@@ -1193,16 +1382,22 @@ describe("issue execution policy routes", () => {
 
     expect(res.status).toBe(201);
     const createPayload = mockIssueService.createChild.mock.calls[0]?.[1] as {
-      executionPolicy: { monitor: { scheduledBy: string; externalRef: string | null } };
+      executionPolicy: {
+        monitor: { scheduledBy: string; externalRef: string | null };
+      };
     };
     expect(createPayload.executionPolicy.monitor.scheduledBy).toBe("assignee");
-    expect(createPayload.executionPolicy.monitor.externalRef).toBe("[redacted]");
+    expect(createPayload.executionPolicy.monitor.externalRef).toBe(
+      "[redacted]",
+    );
     expect(mockLogActivity).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         action: "issue.monitor_scheduled",
         entityId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        details: expect.not.objectContaining({ externalRef: expect.anything() }),
+        details: expect.not.objectContaining({
+          externalRef: expect.anything(),
+        }),
       }),
     );
   });

@@ -18,7 +18,10 @@ export function companyImportTransferPath(transferId: string): string {
   return `${COMPANY_IMPORT_TRANSFERS_ROUTE_PATH}/${encodeURIComponent(transferId)}`;
 }
 
-export function companyImportTransferPartPath(transferId: string, partIndex: number): string {
+export function companyImportTransferPartPath(
+  transferId: string,
+  partIndex: number,
+): string {
   return `${companyImportTransferPath(transferId)}/parts/${partIndex}`;
 }
 
@@ -55,20 +58,22 @@ export const companyImportTransferDeclarationSchema = z.object({
     .regex(SHA256_HEX_RE, "sha256 must be 64 lowercase hex characters")
     .describe("sha256 of the whole .zip, 64 lowercase hex characters"),
   partSizeBytes: z.number().int().min(1),
-  parts: z.array(companyImportTransferDeclaredPartSchema).min(1).max(COMPANY_IMPORT_TRANSFER_MAX_PARTS),
+  parts: z
+    .array(companyImportTransferDeclaredPartSchema)
+    .min(1)
+    .max(COMPANY_IMPORT_TRANSFER_MAX_PARTS),
 });
 
-export type CompanyImportTransferDeclaredPart = z.infer<typeof companyImportTransferDeclaredPartSchema>;
-export type CompanyImportTransferDeclaration = z.infer<typeof companyImportTransferDeclarationSchema>;
+export type CompanyImportTransferDeclaredPart = z.infer<
+  typeof companyImportTransferDeclaredPartSchema
+>;
+export type CompanyImportTransferDeclaration = z.infer<
+  typeof companyImportTransferDeclarationSchema
+>;
 
 /** Ledger states a transfer run moves through (see company_transfer_runs). */
 export type CompanyImportTransferRunStatus =
-  | "pending"
-  | "running"
-  | "applying"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "pending" | "running" | "applying" | "completed" | "failed" | "cancelled";
 
 /** Response of declaring (or resuming) a chunked import transfer. */
 export interface CompanyImportTransferCreated {
@@ -84,7 +89,11 @@ export interface CompanyImportTransferCreated {
    * Null/absent when the run's company link was never written or the company
    * has since been deleted.
    */
-  company?: { id: string; name: string | null; issuePrefix: string | null } | null;
+  company?: {
+    id: string;
+    name: string | null;
+    issuePrefix: string | null;
+  } | null;
 }
 
 /**

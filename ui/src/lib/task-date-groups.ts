@@ -11,12 +11,16 @@ function localCalendarOrdinal(date: Date): number {
 }
 
 /** Groups timestamps by the operator's local calendar, including across DST. */
-export function taskDateGroup(value: Date | string | number, now: Date = new Date()): TaskDateGroup {
+export function taskDateGroup(
+  value: Date | string | number,
+  now: Date = new Date(),
+): TaskDateGroup {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "earlier";
 
   const dayDifference = Math.round(
-    (localCalendarOrdinal(now) - localCalendarOrdinal(date)) / (24 * 60 * 60 * 1000),
+    (localCalendarOrdinal(now) - localCalendarOrdinal(date)) /
+      (24 * 60 * 60 * 1000),
   );
   if (dayDifference <= 0) return "today";
   if (dayDifference === 1) return "yesterday";

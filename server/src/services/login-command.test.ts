@@ -20,9 +20,15 @@ describe("resolveLoginCommandKey", () => {
 
   it("fails closed for an unmapped adapter type", () => {
     // The provider driver key and an unknown adapter confer no command authority.
-    expect(() => resolveLoginCommandKey("daytona")).toThrow("LOGIN_PTY_UNSUPPORTED_ADAPTER");
-    expect(() => resolveLoginCommandKey("gemini_local")).toThrow("LOGIN_PTY_UNSUPPORTED_ADAPTER");
-    expect(() => resolveLoginCommandKey("")).toThrow("LOGIN_PTY_UNSUPPORTED_ADAPTER");
+    expect(() => resolveLoginCommandKey("daytona")).toThrow(
+      "LOGIN_PTY_UNSUPPORTED_ADAPTER",
+    );
+    expect(() => resolveLoginCommandKey("gemini_local")).toThrow(
+      "LOGIN_PTY_UNSUPPORTED_ADAPTER",
+    );
+    expect(() => resolveLoginCommandKey("")).toThrow(
+      "LOGIN_PTY_UNSUPPORTED_ADAPTER",
+    );
   });
 
   it("stays grok when the registered adapter's own getCommand member changes", () => {
@@ -69,18 +75,26 @@ describe("isLoginCommandSupportedAdapterType", () => {
 
 describe("deriveLoginSessionHome", () => {
   it("derives the exact UUID-form absolute path", () => {
-    expect(deriveLoginSessionHome(UUID)).toBe(`${LOGIN_SESSION_HOME_ROOT}/${UUID}`);
+    expect(deriveLoginSessionHome(UUID)).toBe(
+      `${LOGIN_SESSION_HOME_ROOT}/${UUID}`,
+    );
   });
 
   it("rejects a non-UUID id", () => {
-    expect(() => deriveLoginSessionHome("not-a-uuid")).toThrow("LOGIN_PTY_INVALID_SESSION_HOME");
-    expect(() => deriveLoginSessionHome("")).toThrow("LOGIN_PTY_INVALID_SESSION_HOME");
+    expect(() => deriveLoginSessionHome("not-a-uuid")).toThrow(
+      "LOGIN_PTY_INVALID_SESSION_HOME",
+    );
+    expect(() => deriveLoginSessionHome("")).toThrow(
+      "LOGIN_PTY_INVALID_SESSION_HOME",
+    );
   });
 });
 
 describe("validateLoginSessionHome", () => {
   it("accepts the exact derived path shape", () => {
-    expect(() => validateLoginSessionHome(`${LOGIN_SESSION_HOME_ROOT}/${UUID}`)).not.toThrow();
+    expect(() =>
+      validateLoginSessionHome(`${LOGIN_SESSION_HOME_ROOT}/${UUID}`),
+    ).not.toThrow();
   });
 
   it("rejects an empty, relative, traversal, whitespace, control, or metacharacter candidate", () => {

@@ -35,7 +35,9 @@ function shot(name: string) {
 
 async function openWizard(page: import("@playwright/test").Page) {
   await page.goto("/onboarding");
-  const startBtn = page.getByRole("button", { name: /Start Onboarding|New Organization|Add Agent/ });
+  const startBtn = page.getByRole("button", {
+    name: /Start Onboarding|New Organization|Add Agent/,
+  });
   if (await startBtn.count()) {
     await startBtn.first().click();
   }
@@ -45,16 +47,21 @@ test.describe("NUX Phase 4 visual QA", () => {
   test("captures every integrated surface", async ({ page }) => {
     // New-NUX surfaces are flag-gated default-OFF (PAP-136/137/138): turn the
     // experimental flag on for this throwaway instance before driving them.
-    const flagRes = await page.request.patch("/api/instance/settings/experimental", {
-      data: { enableConferenceRoomChat: true },
-    });
+    const flagRes = await page.request.patch(
+      "/api/instance/settings/experimental",
+      {
+        data: { enableConferenceRoomChat: true },
+      },
+    );
     expect(flagRes.ok()).toBe(true);
 
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
-    page.on("pageerror", (err) => consoleErrors.push("PAGEERROR: " + err.message));
+    page.on("pageerror", (err) =>
+      consoleErrors.push("PAGEERROR: " + err.message),
+    );
 
     const baseUrl =
       "http://127.0.0.1:" + (process.env.TASKCORE_E2E_PORT ?? "3199");
@@ -62,7 +69,9 @@ test.describe("NUX Phase 4 visual QA", () => {
     // ── Section A: create-company path (name → hire) ──────────────────────
     await openWizard(page);
     await expect(
-      page.getByRole("heading", { name: "What is the name of your organization?" }),
+      page.getByRole("heading", {
+        name: "What is the name of your organization?",
+      }),
     ).toBeVisible({ timeout: 15_000 });
     await page.getByPlaceholder("e.g. Northwind Labs").fill("QA Robotics");
     await page.screenshot({ path: shot("02-create-name.png") });
@@ -120,8 +129,8 @@ test.describe("NUX Phase 4 visual QA", () => {
     }
 
     // No React Rules-of-Hooks / render crashes on any surface we visited.
-    const hookErrors = consoleErrors.filter(
-      (e) => /Rendered more hooks|change in the order of Hooks/i.test(e),
+    const hookErrors = consoleErrors.filter((e) =>
+      /Rendered more hooks|change in the order of Hooks/i.test(e),
     );
     expect(hookErrors, hookErrors.join("\n")).toHaveLength(0);
   });

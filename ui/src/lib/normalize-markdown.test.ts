@@ -3,7 +3,8 @@ import { normalizeMarkdown } from "./normalize-markdown";
 
 describe("normalizeMarkdown", () => {
   it("strips common leading whitespace (dedent)", () => {
-    const input = "    # Title\n    \n    Some text\n    - Item 1\n    - Item 2";
+    const input =
+      "    # Title\n    \n    Some text\n    - Item 1\n    - Item 2";
     const expected = "# Title\n\nSome text\n- Item 1\n- Item 2";
     expect(normalizeMarkdown(input)).toBe(expected);
   });

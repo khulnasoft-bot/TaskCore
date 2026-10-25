@@ -18,14 +18,16 @@ export function EmailTaskActivity({
 }) {
   const cache = useQueryClient();
   const threadKey = ["email-thread", companyId, issueId];
-  const queryEnabled = Boolean(companyId && issueId) && !issueId.startsWith("chat:");
+  const queryEnabled =
+    Boolean(companyId && issueId) && !issueId.startsWith("chat:");
   const thread = useEmailThread(companyId, issueId);
   if (!queryEnabled) return null;
   const data = thread.data;
   const messages = data?.messages.filter((m) => !m.commentId) ?? [];
-  const publications = data?.publications.filter(
-    (p) => !p.providerMessageId || p.outcome === "uncertain",
-  ) ?? [];
+  const publications =
+    data?.publications.filter(
+      (p) => !p.providerMessageId || p.outcome === "uncertain",
+    ) ?? [];
   if (!thread.error && !messages.length && !publications.length) return null;
   return (
     <div className="space-y-3">

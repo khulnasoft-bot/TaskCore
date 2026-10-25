@@ -3,7 +3,11 @@
   appearance: none;
   height: var(--composer-effort-track-height);
   border-radius: var(--radius-4xl);
-  background: linear-gradient(to right, var(--tc-mode-ask) var(--fill), var(--muted) var(--fill));
+  background: linear-gradient(
+    to right,
+    var(--tc-mode-ask) var(--fill),
+    var(--muted) var(--fill)
+  );
   cursor: pointer;
   /* Native input outlines cross the thumb because the input is track-height. */
   outline: none;
@@ -17,7 +21,9 @@
   border-radius: 50%;
   background: var(--tc-mode-ask);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--motion-duration-fast) var(--motion-ease-out), box-shadow var(--motion-duration-fast) var(--motion-ease-out);
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-out),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-out);
 }
 
 .composer-run-effort-range::-moz-range-thumb {
@@ -27,7 +33,9 @@
   border-radius: 50%;
   background: var(--tc-mode-ask);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--motion-duration-fast) var(--motion-ease-out), box-shadow var(--motion-duration-fast) var(--motion-ease-out);
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-out),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-out);
 }
 
 /* Keep native pointer and keyboard behavior; animate only the thumb feedback. */
@@ -41,19 +49,28 @@
   transform: scale(var(--composer-effort-hover-scale));
   box-shadow: var(--shadow-sm), var(--composer-effort-halo);
 }
-.composer-run-effort-range:active::-webkit-slider-thumb { transform: scale(var(--composer-effort-press-scale)); }
-.composer-run-effort-range:active::-moz-range-thumb { transform: scale(var(--composer-effort-press-scale)); }
+.composer-run-effort-range:active::-webkit-slider-thumb {
+  transform: scale(var(--composer-effort-press-scale));
+}
+.composer-run-effort-range:active::-moz-range-thumb {
+  transform: scale(var(--composer-effort-press-scale));
+}
 
-.composer-run-settings-accent { color: var(--tc-mode-ask); }
-.composer-run-settings-height { overflow: hidden; transition: height var(--motion-duration-base) var(--motion-ease-out); }
+.composer-run-settings-accent {
+  color: var(--tc-mode-ask);
+}
+.composer-run-settings-height {
+  overflow: hidden;
+  transition: height var(--motion-duration-base) var(--motion-ease-out);
+}
 .composer-mobile-dialog {
   top: max(calc(var(--spacing) * 4), env(safe-area-inset-top));
   width: calc(100vw - var(--spacing) * 4);
   max-width: calc(var(--spacing) * 96);
   max-height: calc(
-    var(--mobile-entity-picker-visual-viewport-height)
-    - max(calc(var(--spacing) * 4), env(safe-area-inset-top))
-    - max(calc(var(--spacing) * 4), env(safe-area-inset-bottom))
+    var(--mobile-entity-picker-visual-viewport-height) -
+      max(calc(var(--spacing) * 4), env(safe-area-inset-top)) -
+      max(calc(var(--spacing) * 4), env(safe-area-inset-bottom))
   );
   animation: none;
 }
@@ -81,20 +98,30 @@
   flex-direction: column;
 }
 
-.composer-mobile-dialog .composer-run-settings-list-view > :not([role="listbox"]) {
+.composer-mobile-dialog
+  .composer-run-settings-list-view
+  > :not([role="listbox"]) {
   flex-shrink: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .composer-run-settings-height { transition: none; }
+  .composer-run-settings-height {
+    transition: none;
+  }
   .composer-run-effort-range::-webkit-slider-thumb,
   .composer-run-effort-range:hover::-webkit-slider-thumb,
   .composer-run-effort-range:focus-visible::-webkit-slider-thumb,
-  .composer-run-effort-range:active::-webkit-slider-thumb { transition: none; transform: none; }
+  .composer-run-effort-range:active::-webkit-slider-thumb {
+    transition: none;
+    transform: none;
+  }
   .composer-run-effort-range::-moz-range-thumb,
   .composer-run-effort-range:hover::-moz-range-thumb,
   .composer-run-effort-range:focus-visible::-moz-range-thumb,
-  .composer-run-effort-range:active::-moz-range-thumb { transition: none; transform: none; }
+  .composer-run-effort-range:active::-moz-range-thumb {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* Forced colors suppress shadows, so keep keyboard focus on the thumb. */

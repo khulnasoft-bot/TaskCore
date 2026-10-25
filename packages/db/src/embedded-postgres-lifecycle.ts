@@ -10,7 +10,10 @@ const EMBEDDED_POSTGRES_EXIT_EVENTS = [
 
 type EmbeddedPostgresExitTarget = {
   rawListeners(eventName: string): Function[];
-  removeListener(eventName: string, listener: (...args: any[]) => void): unknown;
+  removeListener(
+    eventName: string,
+    listener: (...args: any[]) => void,
+  ): unknown;
 };
 
 /**
@@ -38,7 +41,9 @@ export async function loadWithoutEmbeddedPostgresExitHooks<T>(
     loaded = await load();
   } finally {
     for (const eventName of EMBEDDED_POSTGRES_EXIT_EVENTS) {
-      const remainingBeforeLoad = [...(listenersBeforeLoad.get(eventName) ?? [])];
+      const remainingBeforeLoad = [
+        ...(listenersBeforeLoad.get(eventName) ?? []),
+      ];
       for (const listener of target.rawListeners(eventName)) {
         const existingIndex = remainingBeforeLoad.indexOf(listener);
         if (existingIndex >= 0) {

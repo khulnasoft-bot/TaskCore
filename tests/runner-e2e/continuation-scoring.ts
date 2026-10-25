@@ -23,13 +23,28 @@ export function isContinuationPlan(
   checkpoint: ContinuationCheckpoint,
 ): boolean {
   if (document.key === "plan") return true;
-  if (!/(^|[-_])plan($|[-_])/i.test(document.key) || !document.latestRevisionId) return false;
+  if (!/(^|[-_])plan($|[-_])/i.test(document.key) || !document.latestRevisionId)
+    return false;
   return checkpoint.interactions.some((value) => {
-    const interaction = value as { kind?: string; payload?: { target?: { type?: string; issueId?: string; key?: string; revisionId?: string } } };
+    const interaction = value as {
+      kind?: string;
+      payload?: {
+        target?: {
+          type?: string;
+          issueId?: string;
+          key?: string;
+          revisionId?: string;
+        };
+      };
+    };
     const target = interaction.payload?.target;
-    return interaction.kind === "request_confirmation" && target?.type === "issue_document"
-      && target.issueId === checkpoint.issue.id && target.key === document.key
-      && target.revisionId === document.latestRevisionId;
+    return (
+      interaction.kind === "request_confirmation" &&
+      target?.type === "issue_document" &&
+      target.issueId === checkpoint.issue.id &&
+      target.key === document.key &&
+      target.revisionId === document.latestRevisionId
+    );
   });
 }
 
@@ -50,7 +65,14 @@ export function gradeContinuation(input: {
   const before = input.checkpoints.filter((c) => c.phase !== "final");
   check(
     "recorded-continuation",
-    before.length > 0 && !!final && final.runs.length >= (["provider-question-bridge", "question-answer-resume"].includes(input.id) ? 1 : 2),
+    before.length > 0 &&
+      !!final &&
+      final.runs.length >=
+        (["provider-question-bridge", "question-answer-resume"].includes(
+          input.id,
+        )
+          ? 1
+          : 2),
     "Initial and final turns must both be recorded.",
   );
   for (const c of before) {
@@ -73,11 +95,21 @@ export function gradeContinuation(input: {
       "Record the settled clarification/revision before sending explicit approval.",
     );
   }
-  const verifiedAttachments = (final?.attachments as Array<Record<string, any>> ?? []).filter(a =>
-    a.contentVerified === true && typeof a.body === "string" &&
-    createHash("sha256").update(a.body).digest("hex") === a.contentSha256);
-  const outputs = [...(final?.documents.filter((d) => !isContinuationPlan(d, final)) ?? []),
-    ...verifiedAttachments.map(a => ({ body: a.body as string, latestRevisionId: a.sha256 as string }))];
+  const verifiedAttachments = (
+    (final?.attachments as Array<Record<string, any>>) ?? []
+  ).filter(
+    (a) =>
+      a.contentVerified === true &&
+      typeof a.body === "string" &&
+      createHash("sha256").update(a.body).digest("hex") === a.contentSha256,
+  );
+  const outputs = [
+    ...(final?.documents.filter((d) => !isContinuationPlan(d, final)) ?? []),
+    ...verifiedAttachments.map((a) => ({
+      body: a.body as string,
+      latestRevisionId: a.sha256 as string,
+    })),
+  ];
   const output = outputs.length === 1 ? outputs[0] : undefined;
   check(
     "updated-output",
@@ -128,14 +160,31 @@ export function gradeContinuation(input: {
     );
   if (input.id === "provider-question-bridge") {
     const initial = before.find((c) => c.phase === "initial");
-    const pending = (initial?.interactions as Array<Record<string, any>> | undefined)?.find((i) =>
-      i.kind === "ask_user_questions" && i.status === "pending" && typeof i.payload?.runtimeRequestId === "string");
-    const answered = (final?.interactions as Array<Record<string, any>> | undefined)?.find((i) => i.id === pending?.id);
-    check("native-question-round-trip", Boolean(pending && answered?.status === "answered" &&
-      final?.runs.length === 1 && pending.sourceRunId === final.runs[0].id),
-      "A real provider-native card must be answered and resume the same run to completion.");
+    const pending = (
+      initial?.interactions as Array<Record<string, any>> | undefined
+    )?.find(
+      (i) =>
+        i.kind === "ask_user_questions" &&
+        i.status === "pending" &&
+        typeof i.payload?.runtimeRequestId === "string",
+    );
+    const answered = (
+      final?.interactions as Array<Record<string, any>> | undefined
+    )?.find((i) => i.id === pending?.id);
+    check(
+      "native-question-round-trip",
+      Boolean(
+        pending &&
+        answered?.status === "answered" &&
+        final?.runs.length === 1 &&
+        pending.sourceRunId === final.runs[0].id,
+      ),
+      "A real provider-native card must be answered and resume the same run to completion.",
+    );
   }
-  if (input.id === "question-tool-documentation") checks.push(...gradeQuestionDocumentation(input.checkpoints, input.marker));
-  if (input.id === "question-answer-resume") checks.push(...gradeQuestionResume(input.checkpoints, input.marker));
+  if (input.id === "question-tool-documentation")
+    checks.push(...gradeQuestionDocumentation(input.checkpoints, input.marker));
+  if (input.id === "question-answer-resume")
+    checks.push(...gradeQuestionResume(input.checkpoints, input.marker));
   return checks;
 }

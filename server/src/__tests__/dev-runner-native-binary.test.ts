@@ -17,12 +17,24 @@ afterEach(() => {
   tempRoots.clear();
 });
 
-function createRunnerCheckout(): { root: string; source: string; binary: string } {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-dev-runner-binary-"));
+function createRunnerCheckout(): {
+  root: string;
+  source: string;
+  binary: string;
+} {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "taskcore-dev-runner-binary-"),
+  );
   tempRoots.add(root);
 
   const runnerRoot = path.join(root, "packages", "taskcore-runner", "runner");
-  const source = path.join(runnerRoot, "crates", "runner-core", "src", "main.rs");
+  const source = path.join(
+    runnerRoot,
+    "crates",
+    "runner-core",
+    "src",
+    "main.rs",
+  );
   const binary = path.join(
     root,
     "packages",
@@ -33,7 +45,11 @@ function createRunnerCheckout(): { root: string; source: string; binary: string 
   );
   fs.mkdirSync(path.dirname(source), { recursive: true });
   fs.mkdirSync(path.dirname(binary), { recursive: true });
-  fs.writeFileSync(path.join(runnerRoot, "Cargo.toml"), "[workspace]\n", "utf8");
+  fs.writeFileSync(
+    path.join(runnerRoot, "Cargo.toml"),
+    "[workspace]\n",
+    "utf8",
+  );
   fs.writeFileSync(path.join(runnerRoot, "Cargo.lock"), "", "utf8");
   fs.writeFileSync(source, "fn main() {}\n", "utf8");
   fs.writeFileSync(binary, "runnerd", "utf8");
@@ -45,13 +61,13 @@ describe("taskcore runner native dev prerequisite", () => {
     expect(
       resolveNativeRunnerRequirement({
         exitCode: 0,
-        stdout: "pnpm warning\n{\"nativeRunnerRequired\":false}\n",
+        stdout: 'pnpm warning\n{"nativeRunnerRequired":false}\n',
       }),
     ).toEqual({ nativeRunnerRequired: false, valid: true });
     expect(
       resolveNativeRunnerRequirement({
         exitCode: 0,
-        stdout: "{\"nativeRunnerRequired\":true}\n",
+        stdout: '{"nativeRunnerRequired":true}\n',
       }),
     ).toEqual({ nativeRunnerRequired: true, valid: true });
     expect(
@@ -63,7 +79,7 @@ describe("taskcore runner native dev prerequisite", () => {
     expect(
       resolveNativeRunnerRequirement({
         exitCode: 0,
-        stdout: "{\"unexpected\":true}\n",
+        stdout: '{"unexpected":true}\n',
       }),
     ).toEqual({ nativeRunnerRequired: true, valid: false });
   });

@@ -27,14 +27,16 @@ users:
   });
 
   it("loads from-cluster config when inCluster=true", () => {
-    const spy = vi.spyOn(KubeConfig.prototype, "loadFromCluster").mockImplementation(function (this: KubeConfig) {
-      this.loadFromString(`apiVersion: v1
+    const spy = vi
+      .spyOn(KubeConfig.prototype, "loadFromCluster")
+      .mockImplementation(function (this: KubeConfig) {
+        this.loadFromString(`apiVersion: v1
 kind: Config
 clusters: [{name: in-cluster, cluster: {server: 'https://kubernetes.default.svc'}}]
 contexts: [{name: in-cluster, context: {cluster: in-cluster, user: in-cluster}}]
 current-context: in-cluster
 users: [{name: in-cluster, user: {token: tok}}]`);
-    });
+      });
     const kc = createKubeConfig({ inCluster: true });
     expect(spy).toHaveBeenCalledOnce();
     expect(kc.getCurrentContext()).toBe("in-cluster");

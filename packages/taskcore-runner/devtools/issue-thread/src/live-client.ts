@@ -96,19 +96,31 @@ export class CapabilityLiveError extends Error {
   }
 }
 
-async function readError(response: Response, path: string): Promise<CapabilityLiveError> {
+async function readError(
+  response: Response,
+  path: string,
+): Promise<CapabilityLiveError> {
   try {
-    const body = (await response.json()) as { error?: string; message?: string };
+    const body = (await response.json()) as {
+      error?: string;
+      message?: string;
+    };
     return new CapabilityLiveError(
       body.error ?? `http_${response.status}`,
       body.message ?? `${path} failed with ${response.status}`,
     );
   } catch {
-    return new CapabilityLiveError(`http_${response.status}`, `${path} failed with ${response.status}`);
+    return new CapabilityLiveError(
+      `http_${response.status}`,
+      `${path} failed with ${response.status}`,
+    );
   }
 }
 
-async function post<T = CapabilityLiveResponse>(path: string, body: unknown): Promise<T> {
+async function post<T = CapabilityLiveResponse>(
+  path: string,
+  body: unknown,
+): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -120,7 +132,9 @@ async function post<T = CapabilityLiveResponse>(path: string, body: unknown): Pr
 }
 
 /** Interim projection delivered while the turn is still running. */
-export type CapabilityTurnFrameHandler = (view: CapabilityIssueThreadSnapshot) => void;
+export type CapabilityTurnFrameHandler = (
+  view: CapabilityIssueThreadSnapshot,
+) => void;
 
 export interface CapabilitySendOptions {
   onFrame?: CapabilityTurnFrameHandler;
@@ -135,7 +149,10 @@ async function postTurnStream(
 ): Promise<CapabilityLiveResponse> {
   const response = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: CAPABILITY_TURN_STREAM_ACCEPT },
+    headers: {
+      "content-type": "application/json",
+      accept: CAPABILITY_TURN_STREAM_ACCEPT,
+    },
     body: JSON.stringify(body),
     credentials: CREDENTIALS,
     ...(options.signal === undefined ? {} : { signal: options.signal }),
@@ -144,10 +161,10 @@ async function postTurnStream(
   // because they are decided before the first frame is written.
   if (!response.ok) throw await readError(response, path);
   try {
-    return await readCapabilityTurnStream<CapabilityIssueThreadSnapshot, CapabilityLiveResponse>(
-      response,
-      (frame) => options.onFrame?.(frame.view),
-    );
+    return await readCapabilityTurnStream<
+      CapabilityIssueThreadSnapshot,
+      CapabilityLiveResponse
+    >(response, (frame) => options.onFrame?.(frame.view));
   } catch (cause) {
     if (cause instanceof CapabilityTurnStreamError) {
       throw new CapabilityLiveError(cause.code, cause.message);
@@ -158,9 +175,12 @@ async function postTurnStream(
 
 export const capabilityLiveClient = {
   async devtools(sessionId: string): Promise<CapabilityDevtoolsSnapshot> {
-    const response = await fetch(`${BASE}/devtools?sessionId=${encodeURIComponent(sessionId)}`, {
-      credentials: CREDENTIALS,
-    });
+    const response = await fetch(
+      `${BASE}/devtools?sessionId=${encodeURIComponent(sessionId)}`,
+      {
+        credentials: CREDENTIALS,
+      },
+    );
     if (!response.ok) throw await readError(response, "/devtools");
     return (await response.json()) as CapabilityDevtoolsSnapshot;
   },
@@ -172,11 +192,18 @@ export const capabilityLiveClient = {
     operationId: string,
     input: CapabilityJsonValue,
   ): Promise<CapabilityToolTestResponse> {
-    return post("/tool", { sessionId, operationId, input }) as Promise<CapabilityToolTestResponse>;
+    return post("/tool", {
+      sessionId,
+      operationId,
+      input,
+    }) as Promise<CapabilityToolTestResponse>;
   },
   async load(sessionId: string | null): Promise<CapabilityLiveResponse> {
-    const query = sessionId === null ? "" : `?sessionId=${encodeURIComponent(sessionId)}`;
-    const response = await fetch(`${BASE}/session${query}`, { credentials: CREDENTIALS });
+    const query =
+      sessionId === null ? "" : `?sessionId=${encodeURIComponent(sessionId)}`;
+    const response = await fetch(`${BASE}/session${query}`, {
+      credentials: CREDENTIALS,
+    });
     if (!response.ok) throw await readError(response, "/session");
     return (await response.json()) as CapabilityLiveResponse;
   },
@@ -184,22 +211,38 @@ export const capabilityLiveClient = {
     return post("/session", { scenario });
   },
   /** Reconnect to a clean room, or open one when there is nothing to resume. */
-  async loadCleanRoom(sessionId: string | null, configuration: CapabilityHarnessConfiguration): Promise<CapabilityLiveResponse> {
+  async loadCleanRoom(
+    sessionId: string | null,
+    configuration: CapabilityHarnessConfiguration,
+  ): Promise<CapabilityLiveResponse> {
     const query = new URLSearchParams({ provider: configuration.provider });
     if (sessionId !== null) query.set("sessionId", sessionId);
     if (configuration.model !== null) query.set("model", configuration.model);
-    if (configuration.acpxAgent) query.set("acpxAgent", configuration.acpxAgent);
+    if (configuration.acpxAgent)
+      query.set("acpxAgent", configuration.acpxAgent);
     query.set("lifecycleMode", configuration.lifecyclePolicy.mode);
     if (configuration.lifecyclePolicy.mode === "warm") {
-      query.set("idleTimeoutMs", String(configuration.lifecyclePolicy.idleTimeoutMs));
+      query.set(
+        "idleTimeoutMs",
+        String(configuration.lifecyclePolicy.idleTimeoutMs),
+      );
     }
-    const response = await fetch(`${BASE}/cleanroom/session?${query.toString()}`, { credentials: CREDENTIALS });
+    const response = await fetch(
+      `${BASE}/cleanroom/session?${query.toString()}`,
+      { credentials: CREDENTIALS },
+    );
     if (!response.ok) throw await readError(response, "/cleanroom/session");
     return (await response.json()) as CapabilityLiveResponse;
   },
   /** `New chat`: retire the current room and mint a new mock tenant. */
-  newCleanRoom(sessionId: string | null, configuration: CapabilityHarnessConfiguration): Promise<CapabilityLiveResponse> {
-    return post("/cleanroom/session", { ...(sessionId === null ? {} : { sessionId }), ...configuration });
+  newCleanRoom(
+    sessionId: string | null,
+    configuration: CapabilityHarnessConfiguration,
+  ): Promise<CapabilityLiveResponse> {
+    return post("/cleanroom/session", {
+      ...(sessionId === null ? {} : { sessionId }),
+      ...configuration,
+    });
   },
   /**
    * Runs one turn. `onFrame` fires for every interim projection the server
@@ -243,7 +286,10 @@ function storageKey(surface: "issue" | "cleanroom"): string {
   return surface === "cleanroom" ? CLEAN_ROOM_STORAGE_KEY : SESSION_STORAGE_KEY;
 }
 
-export function rememberSession(sessionId: string, surface: "issue" | "cleanroom" = "issue"): void {
+export function rememberSession(
+  sessionId: string,
+  surface: "issue" | "cleanroom" = "issue",
+): void {
   try {
     window.localStorage.setItem(storageKey(surface), sessionId);
   } catch {
@@ -251,7 +297,9 @@ export function rememberSession(sessionId: string, surface: "issue" | "cleanroom
   }
 }
 
-export function recallSession(surface: "issue" | "cleanroom" = "issue"): string | null {
+export function recallSession(
+  surface: "issue" | "cleanroom" = "issue",
+): string | null {
   try {
     return window.localStorage.getItem(storageKey(surface));
   } catch {

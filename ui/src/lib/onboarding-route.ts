@@ -31,7 +31,9 @@ export function isOnboardingPath(pathname: string): boolean {
  * Deliberately parses the same shape as {@link isOnboardingPath}: the prefix is
  * the first of exactly two segments. Anything else has no prefix to read.
  */
-export function companyPrefixFromOnboardingPath(pathname: string): string | undefined {
+export function companyPrefixFromOnboardingPath(
+  pathname: string,
+): string | undefined {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length !== 2) return undefined;
   if (segments[1]?.toLowerCase() !== "onboarding") return undefined;
@@ -53,8 +55,7 @@ export const ONBOARDING_MISSION_STEP = 2;
 export const ONBOARDING_AGENT_STEP = 3;
 
 export type ExistingCompanyOnboardingStep =
-  | typeof ONBOARDING_MISSION_STEP
-  | typeof ONBOARDING_AGENT_STEP;
+  typeof ONBOARDING_MISSION_STEP | typeof ONBOARDING_AGENT_STEP;
 
 /**
  * The step a company that already exists belongs on: always the agent.
@@ -87,12 +88,18 @@ export function resolveRouteOnboardingOptions(params: {
    * useful reading of a bare `/onboarding` is that company's agent arc.
    */
   cloudManaged?: boolean;
-}): { initialStep: 1 | ExistingCompanyOnboardingStep; companyId?: string } | null {
+}): {
+  initialStep: 1 | ExistingCompanyOnboardingStep;
+  companyId?: string;
+} | null {
   const { pathname, companyPrefix, companies, cloudManaged } = params;
 
   if (!isOnboardingPath(pathname)) return null;
 
-  const managedFallback = (): { initialStep: ExistingCompanyOnboardingStep; companyId?: string } | null =>
+  const managedFallback = (): {
+    initialStep: ExistingCompanyOnboardingStep;
+    companyId?: string;
+  } | null =>
     companies.length === 1
       ? { initialStep: onboardingStepForCompany(), companyId: companies[0]!.id }
       : null;
@@ -189,7 +196,8 @@ export function canJumpToOnboardingStep(params: {
   entryStep: number;
 }): boolean {
   return (
-    params.targetStep < params.currentStep && params.targetStep >= params.entryStep
+    params.targetStep < params.currentStep &&
+    params.targetStep >= params.entryStep
   );
 }
 

@@ -1,9 +1,4 @@
-const testDirectoryNames = new Set([
-  "__tests__",
-  "_tests",
-  "test",
-  "tests",
-]);
+const testDirectoryNames = new Set(["__tests__", "_tests", "test", "tests"]);
 
 const ignoredTestConfigBasenames = new Set([
   "jest.config.cjs",
@@ -14,10 +9,13 @@ const ignoredTestConfigBasenames = new Set([
   "vitest.config.ts",
 ]);
 
-const nodeDiagnosticReportPattern = /^report\.\d{8}\.\d{6}\.\d+\.\d+\.\d+\.json$/i;
+const nodeDiagnosticReportPattern =
+  /^report\.\d{8}\.\d{6}\.\d+\.\d+\.\d+\.json$/i;
 
 export function shouldTrackDevServerPath(relativePath) {
-  const normalizedPath = String(relativePath).replaceAll("\\", "/").replace(/^\.\/+/, "");
+  const normalizedPath = String(relativePath)
+    .replaceAll("\\", "/")
+    .replace(/^\.\/+/, "");
   if (normalizedPath.length === 0) return false;
 
   const segments = normalizedPath.split("/");
